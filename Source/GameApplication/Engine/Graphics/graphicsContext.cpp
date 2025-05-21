@@ -52,10 +52,6 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 	CreateVertexShader("shader\\unlitTextureVS.cso", m_VertexShader, m_VertexLayout);
 	CreatePixelShader("shader\\unlitTexturePS.cso", m_PixelShader);
 
-	m_context->IASetInputLayout(m_VertexLayout.Get());
-	m_context->VSSetShader(m_VertexShader.Get(), NULL, 0);
-	m_context->PSSetShader(m_PixelShader.Get(), NULL, 0);
-
 	return true;
 }
 
@@ -132,8 +128,13 @@ bool GraphicsContext::CreateD2DResources(HWND hwnd){
 }
 
 void GraphicsContext::Clear(const float clearColor[4]){
+
 	m_context->ClearRenderTargetView(m_renderTargetView.Get(), clearColor);
 	m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+	m_context->IASetInputLayout(m_VertexLayout.Get());
+	m_context->VSSetShader(m_VertexShader.Get(), NULL, 0);
+	m_context->PSSetShader(m_PixelShader.Get(), NULL, 0);
 }
 
 void GraphicsContext::Present(bool vsync){
