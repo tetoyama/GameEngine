@@ -56,10 +56,13 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 	return true;
 }
 
-bool GraphicsContext::CreateSwapChain(HWND hwnd, UINT width, UINT height){
-
+bool GraphicsContext::CreateSwapChain(HWND hwnd, UINT width, UINT height) {
 	IDXGIFactory* pFactory = nullptr;
-	CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&pFactory);
+	HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&pFactory);
+	if (FAILED(hr)) {
+		OutputDebugStringA("DXGIFactoryの作成に失敗しました。\n");
+		return false;
+	}
 
 	IDXGIAdapter* pSelectedAdapter = nullptr;
 	UINT i = 0;
@@ -74,15 +77,20 @@ bool GraphicsContext::CreateSwapChain(HWND hwnd, UINT width, UINT height){
 			pSelectedAdapter = pAdapter; // Use this adapter
 			break;
 		}
-
 		pAdapter->Release();
 		++i;
 	}
 
 	if (!pSelectedAdapter) {
 		// fallback: use default adapter
-		pFactory->EnumAdapters(0, &pSelectedAdapter);
+		if (SUCCEEDED(pFactory->EnumAdapters(0, &pSelectedAdapter))) {
+			// ok
+		} else {
+			OutputDebugStringA("アダプタの取得に失敗しました。\n");
+			return false;
+		}
 	}
+	pFactory->Release();
 
 	DXGI_SWAP_CHAIN_DESC desc = {};
 	desc.BufferCount = 1;
@@ -95,27 +103,34 @@ bool GraphicsContext::CreateSwapChain(HWND hwnd, UINT width, UINT height){
 	desc.OutputWindow = hwnd;
 	desc.SampleDesc.Count = 1;
 	desc.Windowed = TRUE;
+	desc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+	desc.Flags = 0;
 
 	UINT flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-#if defined(_DEBUG)
+	#if defined(_DEBUG)
 	flags |= D3D11_CREATE_DEVICE_DEBUG;
-#endif
+	#endif
 
+	D3D_FEATURE_LEVEL featureLevels[] = {
+		D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0
+	};
 	D3D_FEATURE_LEVEL featureLevel;
-	HRESULT hr = D3D11CreateDeviceAndSwapChain(
-		pSelectedAdapter, D3D_DRIVER_TYPE_UNKNOWN, nullptr, flags, nullptr, 0,
+
+	hr = D3D11CreateDeviceAndSwapChain(
+		pSelectedAdapter, D3D_DRIVER_TYPE_UNKNOWN, nullptr, flags,
+		featureLevels, _countof(featureLevels),
 		D3D11_SDK_VERSION, &desc, m_swapChain.GetAddressOf(),
 		m_device.GetAddressOf(), &featureLevel, m_context.GetAddressOf()
 	);
+
+	pSelectedAdapter->Release();
+	pFactory->Release();
+
 	if (FAILED(hr)) {
 		OutputDebugStringA("スワップチェーンの作成に失敗しました。\n");
 		return false;
 	}
-
-	if (pSelectedAdapter) {
-		pSelectedAdapter->Release();
-	}
-	return SUCCEEDED(hr);
+	return true;
 }
 
 bool GraphicsContext::CreateRenderTarget(){

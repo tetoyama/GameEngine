@@ -5,6 +5,8 @@
 
 
 class MainRenderer;
+class GraphicsContext;
+
 class EntityRegistry;
 class TransformSystem;
 class RenderSystem;
@@ -14,7 +16,7 @@ public:
 	Scene();
 	~Scene();
 
-	void Initialize(MainRenderer* mainRenderer);
+	void Initialize(GraphicsContext* graphiccontext, MainRenderer* mainRenderer);
 	void Update(float deltaTime);
 	void FixedUpdate(float fixedDeltaTime);
 	void Render();

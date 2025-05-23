@@ -14,7 +14,8 @@ Scene::~Scene(){
 	Shutdown();
 }
 
-void Scene::Initialize(MainRenderer* mainRenderer){
+void Scene::Initialize(GraphicsContext* graphiccontext, MainRenderer* mainRenderer){
+
 	m_entityRegistry = std::make_shared<EntityRegistry>();
 	m_transformSystem = std::make_unique<TransformSystem>(m_entityRegistry.get());
 	m_renderSystem = std::make_unique<RenderSystem>(m_entityRegistry.get(), mainRenderer);
@@ -45,7 +46,7 @@ void Scene::Initialize(MainRenderer* mainRenderer){
 	};
 	UINT indices[] = {0, 1, 2};
 
-	ID3D11Device* device = mainRenderer->GetGraphicsContext()->GetDevice(); // 取得済みのデバイス
+	ID3D11Device* device = graphiccontext->GetDevice(); // 取得済みのデバイス
 	D3D11_BUFFER_DESC vbDesc = {};
 	vbDesc.Usage = D3D11_USAGE_DEFAULT;
 	vbDesc.ByteWidth = sizeof(vertices);

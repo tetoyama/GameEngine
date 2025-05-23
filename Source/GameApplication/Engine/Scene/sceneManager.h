@@ -4,13 +4,13 @@
 
 class Scene;
 class MainRenderer;
-
+class GraphicsContext;
 class SceneManager {
 public:
 	SceneManager();
 	~SceneManager();
 
-	void Initialize(MainRenderer* mainRenderer);
+	void Initialize(GraphicsContext* graphiccontext, MainRenderer* mainRenderer);
 	void Update(float deltaTime);
 	void FixedUpdate(float fixedDeltaTime);
 	void Render();
@@ -21,5 +21,6 @@ public:
 
 private:
 	std::shared_ptr<Scene> m_activeScene;
-	MainRenderer* m_mainRenderer;
+	MainRenderer* m_mainRenderer = nullptr;
+	GraphicsContext* m_graphicsContext = nullptr;
 };

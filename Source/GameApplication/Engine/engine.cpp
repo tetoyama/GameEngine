@@ -14,6 +14,9 @@
 #include "Scene/scene.h"
 
 void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInstance, int nCmdShow){
+	if (!context) {
+		return;
+	}
 
 	auto windowSystem = context->Get<WindowSystem>();
 	if (!windowSystem) {
@@ -56,14 +59,11 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	}
 	imgui->Initialize(windowSystem->GetMainWindow().get(), graphicsContext.get());
 
+
+
 	// MainRendererの取得
-	auto mainRenderer = std::make_unique<MainRenderer>(graphicsContext.get(), windowSystem->GetMainWindow().get());
-	auto mainWindow = dynamic_cast<MainWindow*>(windowSystem->GetMainWindow().get());
-	if (mainWindow) {
-		mainWindow->SetMainRenderer(mainRenderer.get());
-		mainWindow->SetImGuiSystem(imgui.get());
-		mainWindow->SetInputSystem(inputSystem.get());
-	}
+	auto mainRenderer = context->Get<MainRenderer>();
+	mainRenderer->Initialize(graphicsContext.get(), windowSystem->GetMainWindow().get());
 
 	// SceneManagerの取得
 	auto sceneManager = context->Get<SceneManager>();
@@ -71,14 +71,22 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		OutputDebugStringA("SceneManager サービスの取得に失敗しました。\n");
 		return;
 	}
-	sceneManager->Initialize(mainRenderer.get());
+	sceneManager->Initialize(graphicsContext.get(), mainRenderer.get());
 
-
+	auto mainWindow = dynamic_cast<MainWindow*>(windowSystem->GetMainWindow().get());
+	if (mainWindow) {
+		mainWindow->SetMainRenderer(mainRenderer.get());
+		mainWindow->SetImGuiSystem(imgui.get());
+		mainWindow->SetInputSystem(inputSystem.get());
+	}
 }
 
 void Engine::Shutdown(std::shared_ptr<EngineContext> context){}
 
 void Engine::Run(std::shared_ptr<EngineContext> context){
+	if (!context) {
+		return;
+	}
 
 	auto windowSystem = context->Get<WindowSystem>();
 	if (!windowSystem) {
@@ -105,8 +113,13 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		OutputDebugStringA("ImGuiSystem サービスの取得に失敗しました。\n");
 		return;
 	}
-	auto mainRenderer = std::make_unique<MainRenderer>(graphicsContext.get(), windowSystem->GetMainWindow().get());
-	auto mainWindow = (windowSystem->GetMainWindow().get());
+
+
+	auto mainRenderer = context->Get<MainRenderer>();
+	if (!mainRenderer) {
+		OutputDebugStringA("MainRenderer サービスの取得に失敗しました。\n");
+		return;
+	}
 
 	auto sceneManager = context->Get<SceneManager>();
 	if (!sceneManager) {
@@ -117,10 +130,6 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 	// 最初のシーンを作成・ロード
 	auto initialScene = std::make_shared<Scene>();
 	sceneManager->LoadScene(initialScene);
-
-	if(!context){
-		return;
-	}
 
 	while(!windowSystem->GetMainWindow()->ShouldClose()){
 
@@ -168,7 +177,6 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 			POINT left = inputSystem->GetGamepadLeftStick(0);
 			ImGui::Text("Left Stick: x=%ld y=%ld", left.x, left.y);
 		}
-
 		ImGui::End();
 
 		mainRenderer->DrawText2D(L"Hello, Direct2D!", 32, 32, 32.0f, D2D1::ColorF(D2D1::ColorF::Yellow));

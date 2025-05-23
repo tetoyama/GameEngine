@@ -7,6 +7,7 @@
 #include "DebugTools/ImGuiSystem.h"
 #include "Platform/InputSystem/InputSystem.h"
 #include "Scene/sceneManager.h"
+#include "Graphics/mainRenderer.h"
 
 std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 
@@ -18,6 +19,7 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 
 	// TimeService ìoò^
 	auto timeService = std::make_shared<TimeService>();
+	timeService->Initialize();
 	context->Register<TimeService>(timeService);
 
 	// GraphicsContext ìoò^
@@ -36,6 +38,9 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 	auto sceneManager = std::make_shared<SceneManager>();
 	context->Register<SceneManager>(sceneManager);
 
+	// MainRenderer ìoò^
+    auto mainRenderer = std::make_shared<MainRenderer>();
+	context->Register<MainRenderer>(mainRenderer);
 
 
 	// ç°å„: ëºÇÃÉVÉXÉeÉÄÇ‡Ç±Ç±Ç≈ìoò^

@@ -111,7 +111,6 @@ LRESULT CALLBACK MainWindow::StaticWindowProc(HWND hwnd, UINT uMsg, WPARAM wPara
 
 LRESULT MainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
 
-
 	if(m_inputSystem){
 		m_inputSystem->MessageUpdateInput(hwnd, uMsg, wParam, lParam);
 	} else{

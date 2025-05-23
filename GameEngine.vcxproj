@@ -2520,6 +2520,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\transformSystem.h" />
     <ClInclude Include="Source\GameApplication\gameApplication.h" />
     <ClInclude Include="Source\main.h" />
+    <ClInclude Include="Source\_Old\renderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\Backends\Effekseer\EffekseerRenderer\EffekseerRendererDX11.DeviceObject.cpp">
@@ -2822,6 +2823,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\transformSystem.cpp" />
     <ClCompile Include="Source\GameApplication\gameApplication.cpp" />
     <ClCompile Include="Source\main.cpp" />
+    <ClCompile Include="Source\_Old\renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\GameApplication\Backends\Assimp\color4.inl">
