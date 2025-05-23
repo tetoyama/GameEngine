@@ -14,7 +14,7 @@ GameApplication::~GameApplication(){
 int GameApplication::Run(HINSTANCE hInstance, int nCmdShow){
 
 	EngineContextBuilder builder;
-	std::shared_ptr<EngineContext> context = builder.Build(hInstance, nCmdShow);
+	std::shared_ptr<EngineContext> context = builder.Build();
 	if(!context){
 		// エラー処理（ログ出力など）
 		return -1;
@@ -23,7 +23,7 @@ int GameApplication::Run(HINSTANCE hInstance, int nCmdShow){
 	Engine engine;
 
 	//エンジンの初期化
-	engine.Initialize(context);
+	engine.Initialize(context, hInstance, nCmdShow);
 
 	//メインループ
 	engine.Run(context);

@@ -31,6 +31,7 @@
 
 // 固有IDライブラリ
 #pragma comment (lib, "dxguid.lib")
+#pragma comment (lib, "dxgi.lib")
 // DirectInput
 #pragma comment (lib, "dinput8.lib")
 
@@ -56,6 +57,33 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 }
 
 bool GraphicsContext::CreateSwapChain(HWND hwnd, UINT width, UINT height){
+
+	IDXGIFactory* pFactory = nullptr;
+	CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&pFactory);
+
+	IDXGIAdapter* pSelectedAdapter = nullptr;
+	UINT i = 0;
+	IDXGIAdapter* pAdapter = nullptr;
+
+	while (pFactory->EnumAdapters(i, &pAdapter) != DXGI_ERROR_NOT_FOUND) {
+		DXGI_ADAPTER_DESC desc;
+		pAdapter->GetDesc(&desc);
+
+		std::wstring descStr(desc.Description);
+		if (descStr.find(L"NVIDIA") != std::wstring::npos) {
+			pSelectedAdapter = pAdapter; // Use this adapter
+			break;
+		}
+
+		pAdapter->Release();
+		++i;
+	}
+
+	if (!pSelectedAdapter) {
+		// fallback: use default adapter
+		pFactory->EnumAdapters(0, &pSelectedAdapter);
+	}
+
 	DXGI_SWAP_CHAIN_DESC desc = {};
 	desc.BufferCount = 1;
 	desc.BufferDesc.Width = width;
@@ -75,10 +103,18 @@ bool GraphicsContext::CreateSwapChain(HWND hwnd, UINT width, UINT height){
 
 	D3D_FEATURE_LEVEL featureLevel;
 	HRESULT hr = D3D11CreateDeviceAndSwapChain(
-		nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, flags, nullptr, 0,
+		pSelectedAdapter, D3D_DRIVER_TYPE_UNKNOWN, nullptr, flags, nullptr, 0,
 		D3D11_SDK_VERSION, &desc, m_swapChain.GetAddressOf(),
 		m_device.GetAddressOf(), &featureLevel, m_context.GetAddressOf()
 	);
+	if (FAILED(hr)) {
+		OutputDebugStringA("スワップチェーンの作成に失敗しました。\n");
+		return false;
+	}
+
+	if (pSelectedAdapter) {
+		pSelectedAdapter->Release();
+	}
 	return SUCCEEDED(hr);
 }
 

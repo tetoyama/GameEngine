@@ -35,7 +35,6 @@ void InputSystem::MessageUpdateInput(HWND hWnd, UINT message, WPARAM wParam, LPA
 			// ウィンドウサイズ・位置の更新
 			break;
 		case WM_ACTIVATEAPP:
-			m_inFocus = (wParam != 0);
 			break;
 		case WM_KEYDOWN:
 		case WM_SYSKEYDOWN:

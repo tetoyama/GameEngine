@@ -28,6 +28,7 @@ public:
 		if(it != m_Services.end()){
 			return std::static_pointer_cast<T>(it->second);
 		}
+		OutputDebugStringA("EngineContext:æ“¾‚É¸”s‚µ‚Ü‚µ‚½B\n");
 		return nullptr;
 	}
 
@@ -38,5 +39,5 @@ private:
 class EngineContextBuilder
 {
 public:
-	std::shared_ptr<EngineContext> Build(HINSTANCE hInstance, int nCmdShow);
+	std::shared_ptr<EngineContext> Build();
 };

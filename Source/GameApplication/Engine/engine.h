@@ -1,13 +1,25 @@
 #pragma once
 #include <memory>
-#include "engineContext.h"
+#include <windows.h>
 class EngineContext;
+
+class MainRenderer;
+class WindowSystem;
+class TimeService;
+class GraphicsContext;
+class ImGuiSystem;
+class InputSystem;
+class SceneManager;
+class Scene;
+class MainWindow;
 
 class Engine
 {
 public:
-	void Initialize(std::shared_ptr<EngineContext> context);
+	void Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInstance, int nCmdShow);
 	void Shutdown(std::shared_ptr<EngineContext> context);
 
 	void Run(std::shared_ptr<EngineContext> context);
+
+private:
 };

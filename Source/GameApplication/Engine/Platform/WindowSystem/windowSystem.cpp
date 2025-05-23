@@ -12,6 +12,6 @@ void WindowSystem::PollEvents(){
 	}
 }
 
-std::shared_ptr<IWindow> WindowSystem::GetMainWindow() const{
+std::shared_ptr<MainWindow> WindowSystem::GetMainWindow() const{
 	return m_MainWindow;
 }
