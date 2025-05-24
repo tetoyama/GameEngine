@@ -1,10 +1,11 @@
 #pragma once
 #include <memory>
+#include "Service/IService.h"
 
 class GraphicsContext;
 class IWindow;
 
-class ImGuiSystem
+class ImGuiSystem : public IService
 {
 public:
 	bool Initialize(IWindow* window, GraphicsContext* graphics);

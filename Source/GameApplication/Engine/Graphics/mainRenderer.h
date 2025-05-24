@@ -8,6 +8,7 @@
 
 #include "GraphicsContext.h"
 #include "D2DRenderer.h"
+#include "Service/IService.h"
 
 #include "Engine/Platform/WindowSystem/mainWindow.h"
 
@@ -18,13 +19,11 @@ struct RenderViewInfo { /* ƒJƒƒ‰“™‚Ìî•ñ */
 struct RenderableMesh { /* ƒƒbƒVƒ…î•ñ */
 };
 
-class MainRenderer {
+class MainRenderer : public IService{
 public:
 	MainRenderer(){}
 
 	~MainRenderer() {
-		m_d2dRenderTarget.Reset();
-		m_fontBrush.Reset();
 		delete m_d2dRenderer;
 	}
 

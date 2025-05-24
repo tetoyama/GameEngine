@@ -3,6 +3,7 @@
 #include <array>
 #include <windows.h>
 #include <xinput.h>
+#include "Service/IService.h"
 #include "keyState.h"
 
 constexpr int MouseButtonCount = 5; // LEFT, RIGHT, MIDDLE, XBUTTON1, XBUTTON2
@@ -14,7 +15,7 @@ struct WindowInputState {
 	std::unordered_map<int, KeyState> keyStates;
 };
 
-class InputSystem {
+class InputSystem: public IService{
 public:
 	InputSystem();
 	~InputSystem();

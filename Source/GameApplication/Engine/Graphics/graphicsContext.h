@@ -6,9 +6,9 @@
 #include <string>
 #include <vector>
 #include <fstream>
-#include "D2DRenderer.h"
 
-class GraphicsContext {
+#include "Service/IService.h"
+class GraphicsContext : public IService {
 public:
 	bool Initialize(HWND hwnd, UINT width, UINT height);
 	void Clear(const float clearColor[4]);

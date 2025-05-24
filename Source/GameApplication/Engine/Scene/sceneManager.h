@@ -1,11 +1,12 @@
 // Engine/Scene/SceneManager.h
 #pragma once
 #include <memory>
+#include "Service/IService.h"
 
 class Scene;
 class MainRenderer;
 class GraphicsContext;
-class SceneManager {
+class SceneManager : public IService {
 public:
 	SceneManager();
 	~SceneManager();
