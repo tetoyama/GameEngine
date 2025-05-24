@@ -113,8 +113,6 @@ LRESULT MainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 	if(m_inputSystem){
 		m_inputSystem->MessageUpdateInput(hwnd, uMsg, wParam, lParam);
-	} else{
-		OutputDebugStringA("InputSystem‚ªnullptr‚Å‚·B\n");
 	}
 
 	switch(uMsg){

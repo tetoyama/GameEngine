@@ -120,7 +120,7 @@ void InputSystem::Update(){
 	// キーの状態を更新
 	for(auto& state : m_keyStates){
 		if(state.second.wasPressed){
-			state.second.wasPressed = false;
+			//state.second.wasPressed = false;
 			if(0 >= state.second.frameCount){
 				state.second.frameCount = 1;
 			} else{
@@ -128,7 +128,7 @@ void InputSystem::Update(){
 			}
 		}
 		if(state.second.wasReleased){
-			state.second.wasReleased = false;
+			//state.second.wasReleased = false;
 			if(0 < state.second.frameCount){
 				state.second.frameCount = 0;
 			} else{
@@ -159,7 +159,7 @@ bool InputSystem::IsKeyUp(int key) const{
 bool InputSystem::IsKey(int key) const{
 	auto it = m_keyStates.find(key); // キーが存在するか確認
 	if(it != m_keyStates.end()){
-		return it->second.isDown;
+		return (it->second.frameCount > 0);
 	}
 	return false; // 存在しない場合は false を返す
 }

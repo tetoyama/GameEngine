@@ -1,7 +1,8 @@
 // Runtime/TimeService.h
 #pragma once
+#include "Service/IService.h"
 
-class TimeService
+class TimeService : public IService
 {
 public:
 	void Initialize();

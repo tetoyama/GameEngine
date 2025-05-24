@@ -4,23 +4,35 @@
 #include <windows.h>
 #include <unordered_map>
 #include <typeindex>
+#include <vector>
+#include "Service/IService.h"
 
 class EngineContext{
 
 public:
-	template<typename T>
-	void Register(std::shared_ptr<T> instance){
-		if(!instance){
-			OutputDebugStringA("サービス登録時にnullptrが渡されました。\n");
-			return;
+	void Shutdown() {
+		// 逆順でShutdown呼び出し
+		for (auto it = m_ServiceOrder.rbegin(); it != m_ServiceOrder.rend(); ++it) {
+			auto found = m_Services.find(*it);
+			if (found != m_Services.end()) {
+				auto service = std::static_pointer_cast<IService>(found->second);
+				if (service) service->Shutdown();
+			}
 		}
-		auto type = std::type_index(typeid(T));
-		if(m_Services.count(type)){
-			OutputDebugStringA("同じ型のサービスが既に登録されています。\n");
-			return;
-		}
-		m_Services[type] = instance;
+		m_Services.clear();
+		m_ServiceOrder.clear();
 	}
+
+	template<typename T>
+	void Register(std::shared_ptr<T> instance) {
+		static_assert(std::is_base_of<IService, T>::value, "サービスはIServiceを継承してください");
+		if (!instance) return;
+		auto type = std::type_index(typeid(T));
+		if (m_Services.count(type)) return;
+		m_Services[type] = instance;
+		m_ServiceOrder.push_back(type);
+	}
+
 
 	template <typename T>
 	std::shared_ptr<T> Get() const{
@@ -33,7 +45,8 @@ public:
 	}
 
 private:
-	std::unordered_map<std::type_index, std::shared_ptr<void>> m_Services;
+    std::unordered_map<std::type_index, std::shared_ptr<void>> m_Services;
+    std::vector<std::type_index> m_ServiceOrder;
 };
 
 class EngineContextBuilder
