@@ -158,17 +158,20 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 
 		ImGui::Begin("Input Debug");
 
+		auto mainWindowHWND = windowSystem->GetMainWindow()->GetHWND();
+
 		// キーボードの例: Aキー
-		ImGui::Text("A: %s", inputSystem->IsKey('A') ? "Down" : "Up");
-		ImGui::Text("A Down: %s", inputSystem->IsKeyDown('A') ? "Yes" : "No");
-		ImGui::Text("A Up: %s", inputSystem->IsKeyUp('A') ? "Yes" : "No");
+		ImGui::Text("A: %s", inputSystem->IsKey(mainWindowHWND, 'A') ? "Down" : "Up");
+		ImGui::Text("A Down: %s", inputSystem->IsKeyDown(mainWindowHWND, 'A') ? "Yes" : "No");
+		ImGui::Text("A Up: %s", inputSystem->IsKeyUp(mainWindowHWND, 'A') ? "Yes" : "No");
 
 		// マウス
-		ImGui::Text("Mouse X: %d", inputSystem->GetMouseX());
-		ImGui::Text("Mouse Y: %d", inputSystem->GetMouseY());
-		ImGui::Text("Mouse Left: %s", inputSystem->IsMouseDown(0) ? "Down" : "Up");
-		ImGui::Text("Mouse Right: %s", inputSystem->IsMouseDown(1) ? "Down" : "Up");
-		ImGui::Text("Mouse Wheel: %d", inputSystem->GetMouseWheel());
+		ImGui::Text("Mouse X: %d", inputSystem->GetMouseX(mainWindowHWND));
+		ImGui::Text("Mouse Y: %d", inputSystem->GetMouseY(mainWindowHWND));
+		ImGui::Text("Mouse Left: %s", inputSystem->IsMouseDown(mainWindowHWND, 0) ? "Down" : "Up");
+		ImGui::Text("Mouse Right: %s", inputSystem->IsMouseDown(mainWindowHWND, 1) ? "Down" : "Up");
+		ImGui::Text("Mouse Wheel: %d", inputSystem->GetMouseWheel(mainWindowHWND));
+
 
 		// ゲームパッド（例: 0番）
 		ImGui::Text("Gamepad 0 Connected: %s", inputSystem->IsGamepadConnected(0) ? "Yes" : "No");

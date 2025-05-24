@@ -24,6 +24,8 @@ public:
 	void SetInputSystem(InputSystem* inputSystem){
 		m_inputSystem = inputSystem;
 	}
+
+	void SetBorderlessFullscreen(bool enable);
 private:
 	static LRESULT CALLBACK StaticWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -34,4 +36,9 @@ private:
 	MainRenderer* m_mainRenderer = nullptr;
 	ImGuiSystem* m_imguiSystem = nullptr;
 	InputSystem* m_inputSystem = nullptr;
+
+	WINDOWPLACEMENT m_wpPrev = {};
+	bool m_fullscreen = false;
+	int m_width = 0;
+	int m_height = 0;
 };

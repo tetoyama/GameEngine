@@ -8,12 +8,19 @@
 #include <Xinput.h>
 
 #pragma comment(lib, "xinput.lib")
+
 InputSystem::InputSystem(){
-	m_mouseState = MouseState{};
 	for(auto& g : m_gamepads) g = GamepadState{};
 }
 
-InputSystem::~InputSystem(){
+InputSystem::~InputSystem(){}
+
+void InputSystem::RegisterWindow(HWND hwnd){
+	m_windowStates[hwnd] = WindowInputState{};
+}
+
+void InputSystem::UnregisterWindow(HWND hwnd){
+	m_windowStates.erase(hwnd);
 }
 
 void InputSystem::Initialize(HWND window){
@@ -22,11 +29,15 @@ void InputSystem::Initialize(HWND window){
 	m_lastX = m_lastY = 0;
 	m_relativeX = m_relativeY = INT32_MAX;
 	m_inFocus = true;
-	m_mouseState = MouseState{};
-	m_keyStates.clear();
+	// 単一ウィンドウ用の初期化。マルチウィンドウでは RegisterWindow を使うこと。
+	m_windowStates[window] = WindowInputState{};
 }
 
 void InputSystem::MessageUpdateInput(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
+	auto it = m_windowStates.find(hWnd);
+	if(it == m_windowStates.end()) return;
+	WindowInputState& state = it->second;
+
 	bool down = false;
 
 	switch(message){
@@ -47,36 +58,36 @@ void InputSystem::MessageUpdateInput(HWND hWnd, UINT message, WPARAM wParam, LPA
 			// RawInputによる相対マウス処理（省略可）
 			break;
 		case WM_MOUSEMOVE:
-			OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+			OnMouseMove(state, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 			break;
 		case WM_LBUTTONDOWN:
-			OnMouseButtonDown(0);
+			OnMouseButtonDown(state, 0);
 			break;
 		case WM_LBUTTONUP:
-			OnMouseButtonUp(0);
+			OnMouseButtonUp(state, 0);
 			break;
 		case WM_RBUTTONDOWN:
-			OnMouseButtonDown(1);
+			OnMouseButtonDown(state, 1);
 			break;
 		case WM_RBUTTONUP:
-			OnMouseButtonUp(1);
+			OnMouseButtonUp(state, 1);
 			break;
 		case WM_MBUTTONDOWN:
-			OnMouseButtonDown(2);
+			OnMouseButtonDown(state, 2);
 			break;
 		case WM_MBUTTONUP:
-			OnMouseButtonUp(2);
+			OnMouseButtonUp(state, 2);
 			break;
 		case WM_XBUTTONDOWN:
-			if(GET_XBUTTON_WPARAM(wParam) == XBUTTON1) OnMouseButtonDown(3);
-			if(GET_XBUTTON_WPARAM(wParam) == XBUTTON2) OnMouseButtonDown(4);
+			if(GET_XBUTTON_WPARAM(wParam) == XBUTTON1) OnMouseButtonDown(state, 3);
+			if(GET_XBUTTON_WPARAM(wParam) == XBUTTON2) OnMouseButtonDown(state, 4);
 			break;
 		case WM_XBUTTONUP:
-			if(GET_XBUTTON_WPARAM(wParam) == XBUTTON1) OnMouseButtonUp(3);
-			if(GET_XBUTTON_WPARAM(wParam) == XBUTTON2) OnMouseButtonUp(4);
+			if(GET_XBUTTON_WPARAM(wParam) == XBUTTON1) OnMouseButtonUp(state, 3);
+			if(GET_XBUTTON_WPARAM(wParam) == XBUTTON2) OnMouseButtonUp(state, 4);
 			break;
 		case WM_MOUSEWHEEL:
-			OnMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam));
+			OnMouseWheel(state, GET_WHEEL_DELTA_WPARAM(wParam));
 			break;
 		default:
 			break;
@@ -88,8 +99,8 @@ void InputSystem::MessageUpdateInput(HWND hWnd, UINT message, WPARAM wParam, LPA
 		case VK_SHIFT:
 			vk = (int)MapVirtualKey(((unsigned int)lParam & 0x00ff0000) >> 16u, MAPVK_VSC_TO_VK_EX);
 			if(!down){
-				OnKeyUp(VK_LSHIFT);
-				OnKeyUp(VK_RSHIFT);
+				OnKeyUp(state, VK_LSHIFT);
+				OnKeyUp(state, VK_RSHIFT);
 			}
 			break;
 		case VK_CONTROL:
@@ -101,125 +112,153 @@ void InputSystem::MessageUpdateInput(HWND hWnd, UINT message, WPARAM wParam, LPA
 	}
 
 	if(message == WM_KEYDOWN || message == WM_SYSKEYDOWN){
-		OnKeyDown(vk);
+		OnKeyDown(state, vk);
 	} else if(message == WM_KEYUP || message == WM_SYSKEYUP){
-		OnKeyUp(vk);
+		OnKeyUp(state, vk);
 	}
 }
 
 void InputSystem::Update(){
-	// マウスボタンの状態を更新
-	for(int i = 0; i < MouseButtonCount; ++i){
-		if(m_mouseState.buttonPressed[i]){
-			m_mouseState.buttonPressed[i] = false;
-		}
-		if(m_mouseState.buttonReleased[i]){
-			m_mouseState.buttonReleased[i] = false;
-		}
-	}
-	// キーの状態を更新
-	for(auto& state : m_keyStates){
-		if(state.second.wasPressed){
-			state.second.wasPressed = false;
-			if(0 >= state.second.frameCount){
-				state.second.frameCount = 1;
-			} else{
-				state.second.frameCount++;
+	for(auto& winPair : m_windowStates){
+		WindowInputState& state = winPair.second;
+		// マウスボタンの状態を更新
+		for(int i = 0; i < MouseButtonCount; ++i){
+			if(state.mouseState.buttonPressed[i]){
+				state.mouseState.buttonPressed[i] = false;
+			}
+			if(state.mouseState.buttonReleased[i]){
+				state.mouseState.buttonReleased[i] = false;
 			}
 		}
-		if(state.second.wasReleased){
-			state.second.wasReleased = false;
-			if(0 < state.second.frameCount){
-				state.second.frameCount = 0;
-			} else{
-				state.second.frameCount--;
+		// キーの状態を更新
+		for(auto& kstate : state.keyStates){
+			if(kstate.second.wasPressed){
+				//kstate.second.wasPressed = false;
+				if(0 >= kstate.second.frameCount){
+					kstate.second.frameCount = 1;
+				} else{
+					kstate.second.frameCount++;
+				}
+			}
+			if(kstate.second.wasReleased){
+				//kstate.second.wasReleased = false;
+				if(0 < kstate.second.frameCount){
+					kstate.second.frameCount = 0;
+				} else{
+					kstate.second.frameCount--;
+				}
 			}
 		}
 	}
 	UpdateGamepads();
-
 }
 
-bool InputSystem::IsKeyDown(int key) const{
-	auto it = m_keyStates.find(key); // キーが存在するか確認
-	if(it != m_keyStates.end()){
-		return (it->second.frameCount == 1);
-	}
-	return false; // 存在しない場合は false を返す
+bool InputSystem::IsKeyDown(HWND hwnd, int key) const{
+	auto it = m_windowStates.find(hwnd);
+	if(it == m_windowStates.end()) return false;
+	auto kit = it->second.keyStates.find(key);
+	if(kit == it->second.keyStates.end()) return false;
+	return kit->second.frameCount == 1;
 }
 
-bool InputSystem::IsKeyUp(int key) const{
-	auto it = m_keyStates.find(key); // キーが存在するか確認
-	if(it != m_keyStates.end()){
-		return (it->second.frameCount == 0);
-	}
-	return false; // 存在しない場合は false を返す
+bool InputSystem::IsKeyUp(HWND hwnd, int key) const{
+	auto it = m_windowStates.find(hwnd);
+	if(it == m_windowStates.end()) return false;
+	auto kit = it->second.keyStates.find(key);
+	if(kit == it->second.keyStates.end()) return false;
+	return kit->second.frameCount == 0;
 }
 
-bool InputSystem::IsKey(int key) const{
-	auto it = m_keyStates.find(key); // キーが存在するか確認
-	if(it != m_keyStates.end()){
-		return it->second.isDown;
-	}
-	return false; // 存在しない場合は false を返す
+bool InputSystem::IsKey(HWND hwnd, int key) const{
+	auto it = m_windowStates.find(hwnd);
+	if(it == m_windowStates.end()) return false;
+	auto kit = it->second.keyStates.find(key);
+	if(kit == it->second.keyStates.end()) return false;
+	return kit->second.frameCount > 0;
 }
 
-bool InputSystem::IsMouseDown(int button) const{
+bool InputSystem::IsMouseDown(HWND hwnd, int button) const{
+	auto it = m_windowStates.find(hwnd);
+	if(it == m_windowStates.end()) return false;
 	if(button < 0 || button >= MouseButtonCount) return false;
-	return m_mouseState.buttonDown[button];
-}
-bool InputSystem::IsMouseUp(int button) const{
-	if(button < 0 || button >= MouseButtonCount) return false;
-	return !m_mouseState.buttonDown[button];
-}
-bool InputSystem::IsMouse(int button) const{
-	if(button < 0 || button >= MouseButtonCount) return false;
-	return m_mouseState.buttonPressed[button];
+	return it->second.mouseState.buttonDown[button];
 }
 
-void InputSystem::OnKeyDown(int key){
-	auto& state = m_keyStates[key];
-	if(!state.isDown){
-		state.wasPressed = true;
+bool InputSystem::IsMouseUp(HWND hwnd, int button) const{
+	auto it = m_windowStates.find(hwnd);
+	if(it == m_windowStates.end()) return false;
+	if(button < 0 || button >= MouseButtonCount) return false;
+	return !it->second.mouseState.buttonDown[button];
+}
+
+bool InputSystem::IsMouse(HWND hwnd, int button) const{
+	auto it = m_windowStates.find(hwnd);
+	if(it == m_windowStates.end()) return false;
+	if(button < 0 || button >= MouseButtonCount) return false;
+	return it->second.mouseState.buttonPressed[button];
+}
+
+int InputSystem::GetMouseX(HWND hwnd) const{
+	auto it = m_windowStates.find(hwnd);
+	if(it == m_windowStates.end()) return 0;
+	return it->second.mouseState.x;
+}
+
+int InputSystem::GetMouseY(HWND hwnd) const{
+	auto it = m_windowStates.find(hwnd);
+	if(it == m_windowStates.end()) return 0;
+	return it->second.mouseState.y;
+}
+
+int InputSystem::GetMouseWheel(HWND hwnd) const{
+	auto it = m_windowStates.find(hwnd);
+	if(it == m_windowStates.end()) return 0;
+	return it->second.mouseState.wheel;
+}
+
+void InputSystem::OnKeyDown(WindowInputState& state, int key){
+	auto& kstate = state.keyStates[key];
+	if(!kstate.isDown){
+		kstate.wasPressed = true;
 	} else{
-		state.wasPressed = false;
+		kstate.wasPressed = false;
 	}
-	state.isDown = true;
-	state.wasReleased = false;
+	kstate.isDown = true;
+	kstate.wasReleased = false;
 }
 
-void InputSystem::OnKeyUp(int key){
-	auto& state = m_keyStates[key];
-	state.isDown = false;
-	state.wasReleased = true;
-	state.wasPressed = false;
+void InputSystem::OnKeyUp(WindowInputState& state, int key){
+	auto& kstate = state.keyStates[key];
+	kstate.isDown = false;
+	kstate.wasReleased = true;
+	kstate.wasPressed = false;
 }
 
-void InputSystem::OnMouseMove(int x, int y){
-	m_mouseState.x = x;
-	m_mouseState.y = y;
+void InputSystem::OnMouseMove(WindowInputState& state, int x, int y){
+	state.mouseState.x = x;
+	state.mouseState.y = y;
 }
 
-void InputSystem::OnMouseButtonDown(int button){
+void InputSystem::OnMouseButtonDown(WindowInputState& state, int button){
 	if(button < 0 || button >= MouseButtonCount) return;
-	if(!m_mouseState.buttonDown[button]){
-		m_mouseState.buttonPressed[button] = true;
+	if(!state.mouseState.buttonDown[button]){
+		state.mouseState.buttonPressed[button] = true;
 	} else{
-		m_mouseState.buttonPressed[button] = false;
+		state.mouseState.buttonPressed[button] = false;
 	}
-	m_mouseState.buttonDown[button] = true;
-	m_mouseState.buttonReleased[button] = false;
+	state.mouseState.buttonDown[button] = true;
+	state.mouseState.buttonReleased[button] = false;
 }
 
-void InputSystem::OnMouseButtonUp(int button){
+void InputSystem::OnMouseButtonUp(WindowInputState& state, int button){
 	if(button < 0 || button >= MouseButtonCount) return;
-	m_mouseState.buttonDown[button] = false;
-	m_mouseState.buttonReleased[button] = true;
-	m_mouseState.buttonPressed[button] = false;
+	state.mouseState.buttonDown[button] = false;
+	state.mouseState.buttonReleased[button] = true;
+	state.mouseState.buttonPressed[button] = false;
 }
 
-void InputSystem::OnMouseWheel(int delta){
-	m_mouseState.wheel += delta;
+void InputSystem::OnMouseWheel(WindowInputState& state, int delta){
+	state.mouseState.wheel += delta;
 }
 
 void InputSystem::UpdateGamepads(){
@@ -235,29 +274,22 @@ void InputSystem::UpdateGamepads(){
 	}
 }
 
-void InputSystem::ClipToWindow(){
+void InputSystem::ClipToWindow(HWND hwnd){
 	RECT rect;
-	GetClientRect(m_window, &rect);
+	GetClientRect(hwnd, &rect);
 	ClipCursor(&rect);
 }
 
-int InputSystem::GetMouseX() const{
-	return m_mouseState.x;
-}
-int InputSystem::GetMouseY() const{
-	return m_mouseState.y;
-}
-int InputSystem::GetMouseWheel() const{
-	return m_mouseState.wheel;
-}
 bool InputSystem::IsGamepadConnected(int id) const{
 	if(id < 0 || id >= GamepadCount) return false;
 	return m_gamepads[id].connected;
 }
+
 bool InputSystem::GetGamepadButton(int id, int button) const{
 	if(id < 0 || id >= GamepadCount) return false;
 	return (m_gamepads[id].pad.wButtons & button) != 0;
 }
+
 POINT InputSystem::GetGamepadLeftStick(int id) const{
 	POINT pt = {0, 0};
 	if(id < 0 || id >= GamepadCount || !m_gamepads[id].connected) return pt;
@@ -267,6 +299,7 @@ POINT InputSystem::GetGamepadLeftStick(int id) const{
 	if(std::abs(pt.y) < XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE) pt.y = 0;
 	return pt;
 }
+
 POINT InputSystem::GetGamepadRightStick(int id) const{
 	POINT pt = {0, 0};
 	if(id < 0 || id >= GamepadCount || !m_gamepads[id].connected) return pt;
@@ -276,6 +309,7 @@ POINT InputSystem::GetGamepadRightStick(int id) const{
 	if(std::abs(pt.y) < XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE) pt.y = 0;
 	return pt;
 }
+
 bool InputSystem::GetGamepadTrigger(int id, int trigger) const{
 	if(id < 0 || id >= GamepadCount) return false;
 	return (m_gamepads[id].pad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD) || (m_gamepads[id].pad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD);

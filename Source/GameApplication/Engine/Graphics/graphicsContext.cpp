@@ -65,27 +65,34 @@ bool GraphicsContext::CreateSwapChain(HWND hwnd, UINT width, UINT height) {
 	}
 
 	IDXGIAdapter* pSelectedAdapter = nullptr;
+	SIZE_T maxDedicatedVideoMemory = 0;
 	UINT i = 0;
 	IDXGIAdapter* pAdapter = nullptr;
 
-	while (pFactory->EnumAdapters(i, &pAdapter) != DXGI_ERROR_NOT_FOUND) {
+	while(pFactory->EnumAdapters(i, &pAdapter) != DXGI_ERROR_NOT_FOUND){
 		DXGI_ADAPTER_DESC desc;
-		pAdapter->GetDesc(&desc);
-
-		std::wstring descStr(desc.Description);
-		if (descStr.find(L"NVIDIA") != std::wstring::npos) {
-			pSelectedAdapter = pAdapter; // Use this adapter
-			break;
+		if(SUCCEEDED(pAdapter->GetDesc(&desc))){
+			if(desc.DedicatedVideoMemory > maxDedicatedVideoMemory){
+				if(pSelectedAdapter){
+					pSelectedAdapter->Release();
+				}
+				pSelectedAdapter = pAdapter; // 新しい最大メモリアダプタ
+				maxDedicatedVideoMemory = desc.DedicatedVideoMemory;
+				// pAdapterはpSelectedAdapterに保持されるのでReleaseしない
+			} else{
+				pAdapter->Release();
+			}
+		} else{
+			pAdapter->Release();
 		}
-		pAdapter->Release();
 		++i;
 	}
 
-	if (!pSelectedAdapter) {
+	if(!pSelectedAdapter){
 		// fallback: use default adapter
-		if (SUCCEEDED(pFactory->EnumAdapters(0, &pSelectedAdapter))) {
+		if(SUCCEEDED(pFactory->EnumAdapters(0, &pSelectedAdapter))){
 			// ok
-		} else {
+		} else{
 			OutputDebugStringA("アダプタの取得に失敗しました。\n");
 			return false;
 		}
@@ -124,7 +131,12 @@ bool GraphicsContext::CreateSwapChain(HWND hwnd, UINT width, UINT height) {
 	);
 
 	pSelectedAdapter->Release();
-	pFactory->Release();
+
+	// ALT + Enterで排他的フルスクリーンモード切り替えを無効にする
+	IDXGIFactory* pfac = nullptr;
+	hr = m_swapChain->GetParent(__uuidof(IDXGIFactory), (void**)&pfac);
+	pfac->MakeWindowAssociation(hwnd, DXGI_MWA_NO_WINDOW_CHANGES | DXGI_MWA_NO_ALT_ENTER);
+	pfac->Release();
 
 	if (FAILED(hr)) {
 		OutputDebugStringA("スワップチェーンの作成に失敗しました。\n");

@@ -68,9 +68,9 @@ public:
 		return m_graphicsContext;
 	}
 private:
-	HWND m_hwnd;
-	GraphicsContext* m_graphicsContext;
-	D2DRenderer* m_d2dRenderer;
+	HWND m_hwnd{};
+	GraphicsContext* m_graphicsContext = nullptr;
+	D2DRenderer* m_d2dRenderer = nullptr;
 
 	Microsoft::WRL::ComPtr<ID2D1RenderTarget> m_d2dRenderTarget;
 	Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> m_fontBrush;

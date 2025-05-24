@@ -94,6 +94,6 @@ GameApplication
   #file:'mainRenderer.cpp' 
   #file;'scene.h'
   #file;'sceneManager.h'
-
+  #file:'scene.cpp' #file:'sceneManager.cpp'
 
 */
