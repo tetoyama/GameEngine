@@ -24,6 +24,16 @@ void MainRenderer::BeginFrame() {
         ID3D11RenderTargetView* renderTargetView = m_graphicsContext->GetRenderTargetView();
         context->OMSetRenderTargets(1, &renderTargetView, depthStencilView);
 
+		// ビューポートのセット
+		D3D11_VIEWPORT viewport = {};
+		viewport.TopLeftX = 0;
+		viewport.TopLeftY = 0;
+		viewport.Width = static_cast<float>(m_width);
+		viewport.Height = static_cast<float>(m_height);
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+		context->RSSetViewports(1, &viewport);
+
         // 必要に応じてデプス/ブレンド/ラスタライザステートをセット
         // 例: context->OMSetDepthStencilState(...);
         // 例: context->OMSetBlendState(...);

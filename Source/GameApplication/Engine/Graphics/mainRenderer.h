@@ -29,6 +29,8 @@ public:
 
 	void Initialize(GraphicsContext* context, IWindow* mainWindow) {
 		m_graphicsContext = context; m_hwnd = mainWindow->GetHWND(); m_d2dRenderer = new D2DRenderer(context, m_hwnd);
+		m_width = mainWindow->GetWidth();
+		m_height = mainWindow->GetHeight();
 	}
 
 	void BeginFrame();
@@ -43,25 +45,32 @@ public:
 			m_graphicsContext->Resize(width, height);
 		}
 		m_d2dRenderer->OnResizeRecreate();
+		m_width = width;
+		m_height = height;
 	}
 
-	void DrawMesh(const MeshRendererComponent* meshRenderer, const TransformComponent* transform){
-		if(!meshRenderer || !meshRenderer->mesh) return;
+    void DrawMesh(const MeshRendererComponent* meshRenderer, const TransformComponent* transform) {  
+       if (!meshRenderer || !meshRenderer->mesh) return;  
 
-		auto* context = m_graphicsContext->GetContext();
+       auto context = m_graphicsContext->GetContext();  
 
-		// 頂点バッファ・インデックスバッファ設定
-		UINT stride = sizeof(float) * 7; // 例: position(3) + color(4)
-		UINT offset = 0;
-		context->IASetVertexBuffers(0, 1, meshRenderer->mesh->vertexBuffer.GetAddressOf(), &stride, &offset);
-		context->IASetIndexBuffer(meshRenderer->mesh->indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+       context->IASetInputLayout(m_graphicsContext->GetVertexLayout().Get());  
 
-		// シェーダや定数バッファのセット（仮実装なら省略可）
+       context->VSSetShader(m_graphicsContext->GetVertexShader().Get(), NULL, 0);  
+       context->PSSetShader(m_graphicsContext->GetPixelShader().Get(), NULL, 0);  
 
-		// 描画
-		context->DrawIndexed(meshRenderer->mesh->indexCount, 0, 0);
-	}
+       m_graphicsContext->SetWorldViewProjection2D();  
+
+       UINT stride = meshRenderer->mesh->GetVertexStride();  
+       UINT offset = 0;  
+
+       ID3D11Buffer* vertexBuffer = meshRenderer->mesh->GetVertexBuffer();  
+       context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);  
+
+       context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);  
+
+       context->Draw(meshRenderer->mesh->GetIndexCount(), 0);  
+    }
 
 	GraphicsContext* GetGraphicsContext() const{
 		return m_graphicsContext;
@@ -74,5 +83,6 @@ private:
 	Microsoft::WRL::ComPtr<ID2D1RenderTarget> m_d2dRenderTarget;
 	Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> m_fontBrush;
 
-
+	UINT m_width = 0;
+	UINT m_height = 0;
 };

@@ -6,13 +6,29 @@
 #include <wrl/client.h>
 #include <d3d11.h>
 
-// 仮のMesh/Material構造体（実際は専用クラスやリソース参照に拡張してください）
-struct MeshData {
-public:
+// Add the missing GetVertexBuffer method to the MeshData struct  
+struct MeshData {  
+public:  
+   UINT GetIndexCount() const {  
+       return indexCount;  
+   }  
 
-	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
-	UINT indexCount = 0;
+   ID3D11Buffer* GetVertexBuffer() const {  
+       return vertexBuffer.Get();  
+   }  
+
+   ID3D11Buffer* GetIndexBuffer() const {  
+       return indexBuffer.Get();  
+   }  
+
+   UINT GetVertexStride() const {  
+       return vertexStride;  
+   }  
+
+   Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;  
+   Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;  
+   UINT indexCount = 0;  
+   UINT vertexStride = 0;  
 };
 
 struct Material {

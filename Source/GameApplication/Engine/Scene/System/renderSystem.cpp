@@ -20,7 +20,7 @@ void RenderSystem::Render(){
 				if(!transform) continue;
 
 				// MainRenderer‚É•`‰æ‚ðˆË—Š
-				//m_renderer->DrawMesh(meshRenderer, transform);
+				m_renderer->DrawMesh(meshRenderer, transform);
 			}
 		}
 	}

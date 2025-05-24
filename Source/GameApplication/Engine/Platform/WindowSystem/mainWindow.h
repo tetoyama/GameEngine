@@ -24,7 +24,12 @@ public:
 	void SetInputSystem(InputSystem* inputSystem){
 		m_inputSystem = inputSystem;
 	}
-
+	UINT GetHeight() const override{
+		return m_height;
+	}
+	UINT GetWidth() const override{
+		return m_width;
+	}
 	void SetBorderlessFullscreen(bool enable);
 private:
 	static LRESULT CALLBACK StaticWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

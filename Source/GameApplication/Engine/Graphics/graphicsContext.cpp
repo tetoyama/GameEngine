@@ -56,6 +56,37 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 	return true;
 }
 
+// graphicsContext.cpp
+void GraphicsContext::SetWorldMatrix(const DirectX::XMMATRIX& world){
+	DirectX::XMFLOAT4X4 worldf;
+	XMStoreFloat4x4(&worldf, XMMatrixTranspose(world));
+	m_context->UpdateSubresource(m_worldConstantBuffer.Get(), 0, nullptr, &worldf, 0, 0);
+}
+
+void GraphicsContext::SetViewMatrix(const DirectX::XMMATRIX& view){
+	DirectX::XMFLOAT4X4 viewf;
+	XMStoreFloat4x4(&viewf, XMMatrixTranspose(view));
+	m_context->UpdateSubresource(m_viewConstantBuffer, 0, nullptr, &viewf, 0, 0);
+}
+
+void GraphicsContext::SetProjectionMatrix(const DirectX::XMMATRIX& proj){
+	DirectX::XMFLOAT4X4 projf;
+	XMStoreFloat4x4(&projf, XMMatrixTranspose(proj));
+	m_context->UpdateSubresource(m_projConstantBuffer, 0, nullptr, &projf, 0, 0);
+}
+
+void GraphicsContext::SetMaterial(const MATERIAL& material){  
+   DirectX::XMFLOAT4 materialf;  
+   materialf = DirectX::XMFLOAT4(material.Diffuse.x, material.Diffuse.y, material.Diffuse.z, material.Diffuse.w);  
+   m_context->UpdateSubresource(m_materialConstantBuffer, 0, nullptr, &materialf, 0, 0);  
+}
+
+void GraphicsContext::SetLight(const LIGHT& light){
+	DirectX::XMFLOAT4 lightf;
+	lightf = DirectX::XMFLOAT4(light.Diffuse.x, light.Diffuse.y, light.Diffuse.z, light.Diffuse.w);
+	m_context->UpdateSubresource(m_lightConstantBuffer, 0, nullptr, &lightf, 0, 0);
+}
+
 bool GraphicsContext::CreateSwapChain(HWND hwnd, UINT width, UINT height) {
 	IDXGIFactory* pFactory = nullptr;
 	HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&pFactory);
@@ -202,6 +233,38 @@ void GraphicsContext::Clear(const float clearColor[4]){
 
 void GraphicsContext::Present(bool vsync){
 	m_swapChain->Present(vsync, 0);
+}
+
+bool GraphicsContext::CreateVertexShader(const char* fileName, Microsoft::WRL::ComPtr<ID3D11VertexShader>& vertexShader, Microsoft::WRL::ComPtr<ID3D11InputLayout>& inputLayout){
+	std::vector<char> buffer;
+	if(!ReadFileToBuffer(fileName, buffer)) return false;
+
+	HRESULT hr = m_device->CreateVertexShader(buffer.data(), buffer.size(), nullptr, vertexShader.GetAddressOf());
+	if(FAILED(hr)) return false;
+
+	D3D11_INPUT_ELEMENT_DESC layout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 4 * 3, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 4 * 6, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 4 * 10, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
+	UINT numElements = ARRAYSIZE(layout);
+
+	hr = m_device->CreateInputLayout(
+		layout, numElements,
+		buffer.data(), buffer.size(),
+		inputLayout.GetAddressOf());
+
+	return SUCCEEDED(hr);
+}
+
+bool GraphicsContext::CreatePixelShader(const char* fileName, Microsoft::WRL::ComPtr<ID3D11PixelShader>& pixelShader){
+	std::vector<char> buffer;
+	if(!ReadFileToBuffer(fileName, buffer)) return false;
+
+	HRESULT hr = m_device->CreatePixelShader(buffer.data(), buffer.size(), nullptr, pixelShader.GetAddressOf());
+	return SUCCEEDED(hr);
 }
 
 void GraphicsContext::Resize(UINT width, UINT height){
