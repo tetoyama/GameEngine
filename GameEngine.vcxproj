@@ -2500,6 +2500,43 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\anchor.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\binary.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\contrib\anchordict.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\contrib\graphbuilder.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\depthguard.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\dll.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitfromevents.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitter.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitterdef.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emittermanip.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitterstyle.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\eventhandler.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\exceptions.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\mark.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\convert.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\impl.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\iterator.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\iterator_fwd.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\memory.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node_data.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node_iterator.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node_ref.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\emit.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\impl.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\iterator.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\node.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\parse.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\ptr.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\type.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\noexcept.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\null.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\ostream_wrapper.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\parser.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\stlemitter.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\traits.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\yaml.h" />
     <ClInclude Include="Source\GameApplication\Engine\DebugTools\DebugSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\DebugTools\ImGuiSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\EditorExtension\EditorBridge.h" />

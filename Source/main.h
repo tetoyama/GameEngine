@@ -81,8 +81,7 @@ GameApplication
         └── EngineContext     （EngineContextの生成・DI）
 
   #file:'main.h'
-  main.hにある感じのクラス設計にしたい
-  必要なドキュメントを全て読んで現在の進捗状況と次に必要な手順を考えて
+
 
   #file:'main.cpp'
 
@@ -91,9 +90,12 @@ GameApplication
   #file:'engine.cpp'
 
   #file:'mainWindow.cpp'
-  #file:'mainRenderer.cpp' 
-  #file;'scene.h'
-  #file;'sceneManager.h'
-  #file:'scene.cpp' #file:'sceneManager.cpp'
+  #file:'mainRenderer.cpp'
+  #file:'scene.cpp'
+  #file:'sceneManager.cpp'
+  こんな感じのクラス設計にしたい
+  必要なドキュメントを全て読んでから次に必要な手順を考えて
+
+
 
 */

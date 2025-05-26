@@ -191,87 +191,31 @@ LRESULT MainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 				UINT width = LOWORD(lParam);
 				UINT height = HIWORD(lParam);
 				m_mainRenderer->OnResize(width, height);
-			} else{
-				OutputDebugStringA("MainRendererが設定されていません。\n");
 			}
 			if(m_imguiSystem){
 				m_imguiSystem->OnResize();
-			} else{
-				OutputDebugStringA("ImGuiSystemがnullptrです。\n");
 			}
 			break;
 		case WM_KEYDOWN:
 			if(wParam == VK_F11){
 				SetBorderlessFullscreen(!m_fullscreen);
 			}
+			if(wParam == VK_ESCAPE){//エスケープキーが押された
+				SendMessage(hwnd, WM_CLOSE, 0, 0);
+			}
 			break;
-		//case WM_SYSCOMMAND:
-		//	if((wParam & 0xFFF0) == SC_MAXIMIZE){
-		//		SetBorderlessFullscreen(!m_fullscreen);
-		//		return 0; // デフォルトの最大化処理を抑制
-		//	}
-		//	if((wParam & 0xFFF0) == SC_RESTORE){
-		//		SetBorderlessFullscreen(!m_fullscreen);
-		//		return 0; // デフォルトの復元処理を抑制
-		//	}
-		//	break;
-		//case WM_TIMER:
-		//	if(m_fullscreen){
-		//		POINT pt;
-		//		GetCursorPos(&pt);
-		//		RECT winRect;
-		//		GetWindowRect(m_HWND, &winRect);
-		//		// 上端2px以内か判定
-		//		bool onTop = (pt.x >= winRect.left && pt.x < winRect.right && pt.y >= winRect.top && pt.y <= winRect.top + 25);
+		case WM_CLOSE://ウィンドウを閉じたい
+			#ifdef _DEBUG
+				DestroyWindow(hwnd);//終了する手続きをリクエスト
+				break;
+			#endif
+				if(IDOK == MessageBox(hwnd, L"本当に終了してよろしいですか？", L"確認", MB_OKCANCEL | MB_DEFBUTTON2 | MB_ICONQUESTION)){	//OKが押された
+					DestroyWindow(hwnd);//終了する手続きをリクエスト
 
-		//		static bool captionShown = false;
-		//		if(onTop && !captionShown){
-		//			// 1. 新しいスタイル
-		//			LONG style = GetWindowLong(m_HWND, GWL_STYLE);
-		//			style |= (WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME);
-
-		//			// 2. クライアント領域をモニター全体に合わせるためのウィンドウサイズを計算
-		//			MONITORINFO mi = {sizeof(mi)};
-		//			GetMonitorInfo(MonitorFromWindow(m_HWND, MONITOR_DEFAULTTONEAREST), &mi);
-		//			RECT rc = mi.rcMonitor; // クライアント領域をモニター全体にしたい
-
-		//			RECT winRect = rc;
-		//			AdjustWindowRect(&winRect, style, FALSE);
-		//			int winWidth = rc.right - rc.left;
-		//			int winHeight = winRect.bottom - winRect.top;
-
-		//			// 3. スタイルを適用
-		//			SetWindowLong(m_HWND, GWL_STYLE, style);
-
-		//			// 4. ウィンドウの位置・サイズを再設定
-		//			SetWindowPos(m_HWND, HWND_TOP,
-		//						0, // 枠線分だけ左上をずらす
-		//						0,
-		//						 winWidth, winHeight,
-		//						 SWP_NOZORDER | SWP_FRAMECHANGED);
-
-		//			captionShown = true;
-		//		} else if(!onTop && captionShown){
-		//			// 枠線・キャプションを外す
-		//			LONG style = GetWindowLong(m_HWND, GWL_STYLE);
-		//			style &= ~(WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME);
-
-		//			// クライアント領域をモニター全体に戻す
-		//			MONITORINFO mi = {sizeof(mi)};
-		//			GetMonitorInfo(MonitorFromWindow(m_HWND, MONITOR_DEFAULTTONEAREST), &mi);
-		//			RECT rc = mi.rcMonitor;
-
-		//			// WS_POPUP時はAdjustWindowRect不要
-		//			SetWindowLong(m_HWND, GWL_STYLE, style);
-		//			SetWindowPos(m_HWND, HWND_TOP,
-		//						 rc.left, rc.top,
-		//						 rc.right - rc.left, rc.bottom - rc.top,
-		//						 SWP_NOZORDER | SWP_FRAMECHANGED);
-
-		//			captionShown = false;
-		//		}
-		//	}
-		//	break;
+				} else{//キャンセル
+					return 0;
+				}
+			break;
 	}
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
