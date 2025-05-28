@@ -28,8 +28,17 @@ public:
 
 	// D2Dリソース解放
 	void OnResizeRelease(){
-		m_d2dRenderTarget.Reset();
-		m_fontBrush.Reset();
+		if(m_d2dRenderTarget){
+			m_d2dRenderTarget->Release();
+		}
+
+		if(m_fontBrush){
+			m_fontBrush->Release();
+		}
+
+		if(m_dwriteFactory){
+			m_dwriteFactory->Release();
+		}
 	}
 
 	// D2Dリソース再生成
@@ -39,13 +48,13 @@ public:
 private:
 	void Initialize2DResources();
 
-	GraphicsContext* m_graphicsContext;
+	GraphicsContext* m_graphicsContext = nullptr;
 	HWND m_hwnd;
 
-	Microsoft::WRL::ComPtr<ID2D1RenderTarget> m_d2dRenderTarget;
-	Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> m_fontBrush;
-	Microsoft::WRL::ComPtr<IDWriteFactory> m_dwriteFactory;
-	Microsoft::WRL::ComPtr<IDWriteTextFormat> m_textFormat;
+	ID2D1RenderTarget* m_d2dRenderTarget = nullptr;
+	ID2D1SolidColorBrush* m_fontBrush = nullptr;
+	IDWriteFactory* m_dwriteFactory = nullptr;
+	IDWriteTextFormat* m_textFormat = nullptr;
 
 	std::wstring m_fontName = L"メイリオ";
 	float m_fontSize = 24.0f;

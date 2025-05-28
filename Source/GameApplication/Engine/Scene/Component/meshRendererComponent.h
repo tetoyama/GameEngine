@@ -31,17 +31,11 @@ public:
    UINT vertexStride = 0;  
 };
 
-struct Material {
-	// テクスチャ、シェーダ、色など
-	// ここではスケルトンなので空
-};
-
 class MeshRendererComponent: public Component {
 public:
 	MeshRendererComponent() = default;
 	virtual ~MeshRendererComponent() = default;
 
 	std::shared_ptr<MeshData> mesh;
-	std::shared_ptr<Material> material;
 	// 必要に応じて他の描画パラメータも追加
 };

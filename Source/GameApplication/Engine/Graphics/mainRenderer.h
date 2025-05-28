@@ -24,11 +24,15 @@ public:
 	MainRenderer(){}
 
 	~MainRenderer() {
-		delete m_d2dRenderer;
+		if(m_d2dRenderer){
+			delete m_d2dRenderer;
+		}
 	}
 
 	void Initialize(GraphicsContext* context, IWindow* mainWindow) {
-		m_graphicsContext = context; m_hwnd = mainWindow->GetHWND(); m_d2dRenderer = new D2DRenderer(context, m_hwnd);
+		m_graphicsContext = context;
+		m_hwnd = mainWindow->GetHWND();
+		m_d2dRenderer = new D2DRenderer(context, m_hwnd);
 		m_width = mainWindow->GetWidth();
 		m_height = mainWindow->GetHeight();
 	}
@@ -54,10 +58,10 @@ public:
 
        auto context = m_graphicsContext->GetContext();  
 
-       context->IASetInputLayout(m_graphicsContext->GetVertexLayout().Get());  
+       context->IASetInputLayout(m_graphicsContext->GetVertexLayout());
 
-       context->VSSetShader(m_graphicsContext->GetVertexShader().Get(), NULL, 0);  
-       context->PSSetShader(m_graphicsContext->GetPixelShader().Get(), NULL, 0);  
+       context->VSSetShader(m_graphicsContext->GetVertexShader(), NULL, 0);  
+       context->PSSetShader(m_graphicsContext->GetPixelShader(), NULL, 0);  
 
        m_graphicsContext->SetWorldViewProjection2D();  
 

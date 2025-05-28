@@ -2571,6 +2571,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Entity\entityRegistry.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\scene.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\sceneManager.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\ISystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\renderSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\transformSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scripting\ScriptBinder.h" />
@@ -2865,6 +2866,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\DebugTools\DebugSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\DebugTools\ImGuiSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\engine.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\engineContext.cpp" />

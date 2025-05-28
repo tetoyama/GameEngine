@@ -1,5 +1,3 @@
-// GameApp.h
-
 #pragma once
 #include <windows.h>
 
@@ -10,7 +8,4 @@ public:
 	~GameApplication();
 
 	int Run(HINSTANCE hInstance, int nCmdShow);
-
-private:
-
 };

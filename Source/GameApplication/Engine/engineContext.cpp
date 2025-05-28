@@ -19,7 +19,6 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 
 	// TimeService “o˜^
 	auto timeService = std::make_shared<TimeService>();
-	timeService->Initialize();
 	context->Register<TimeService>(timeService);
 
 	// GraphicsContext “o˜^

@@ -13,9 +13,13 @@ D2DRenderer::D2DRenderer(GraphicsContext* context, HWND hwnd)
 }
 
 D2DRenderer::~D2DRenderer(){
-	m_d2dRenderTarget.Reset();
-	m_fontBrush.Reset();
-	m_dwriteFactory.Reset();
+	if(m_d2dRenderTarget){
+		m_d2dRenderTarget->Release();
+	}
+
+	if(m_dwriteFactory){
+		m_dwriteFactory->Release();
+	}
 }
 
 void D2DRenderer::Initialize2DResources(){
@@ -45,13 +49,13 @@ void D2DRenderer::Initialize2DResources(){
 		D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_IGNORE),
 		dpiX, dpiY
 	);
-	hr = d2dFactory->CreateDxgiSurfaceRenderTarget(dxgiSurface.Get(), &props, m_d2dRenderTarget.ReleaseAndGetAddressOf());
+	hr = d2dFactory->CreateDxgiSurfaceRenderTarget(dxgiSurface.Get(), &props, &m_d2dRenderTarget);
 	if(FAILED(hr)){
 		OutputDebugStringA("D2Dレンダーターゲットの作成に失敗しました。\n");
 		return;
 	}
 
-	hr = m_d2dRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), m_fontBrush.ReleaseAndGetAddressOf());
+	hr = m_d2dRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &m_fontBrush);
 	if(FAILED(hr)){
 		OutputDebugStringA("SolidColorBrushの作成に失敗しました。\n");
 		return;
@@ -60,12 +64,14 @@ void D2DRenderer::Initialize2DResources(){
 	hr = DWriteCreateFactory(
 		DWRITE_FACTORY_TYPE_SHARED,
 		__uuidof(IDWriteFactory),
-		reinterpret_cast<IUnknown**>(m_dwriteFactory.GetAddressOf())
+		reinterpret_cast<IUnknown**>(&m_dwriteFactory)
 	);
 	if(FAILED(hr)){
 		OutputDebugStringA("DirectWriteファクトリの作成に失敗しました。\n");
 		return;
 	}
+
+	ReloadTextFormat();
 }
 
 void D2DRenderer::BeginDraw(){
@@ -97,14 +103,17 @@ void D2DRenderer::DrawText2D(const std::wstring& text, float x, float y, float f
 	BeginDraw();
 	m_d2dRenderTarget->DrawTextW(
 		text.c_str(), (UINT32)text.length(),
-		textFormat.Get(), layoutRect, m_fontBrush.Get()
+		textFormat.Get(), layoutRect, m_fontBrush
 	);
 	EndDraw();
 }
 
 // テキストフォーマットの再生成
 void D2DRenderer::ReloadTextFormat(){
-	m_textFormat.Reset();
+	if(m_textFormat){
+		m_textFormat->Release();
+	}
+
 	m_graphicsContext->GetDWriteFactory()->CreateTextFormat(
 		m_fontName.c_str(),
 		nullptr,
@@ -124,7 +133,7 @@ Microsoft::WRL::ComPtr<IDWriteTextLayout> D2DRenderer::CreateTextLayout(const st
 	m_graphicsContext->GetDWriteFactory()->CreateTextLayout(
 		text.c_str(),
 		(UINT32)text.length(),
-		m_textFormat.Get(),
+		m_textFormat,
 		size.width,
 		size.height,
 		&textLayout

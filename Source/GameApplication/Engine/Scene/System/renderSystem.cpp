@@ -5,7 +5,11 @@
 #include "Component/meshRendererComponent.h"
 #include "Engine/Graphics/mainRenderer.h"
 
-void RenderSystem::Render(){
+void RenderSystem::Initialize(){
+
+}
+
+void RenderSystem::Draw(){
 	const auto& meshComponents = m_registry->GetComponents();
 	for(const auto& typePair : meshComponents){
 		// MeshRendererComponentŒ^‚Ì‚İˆ—
@@ -25,3 +29,5 @@ void RenderSystem::Render(){
 		}
 	}
 }
+
+void RenderSystem::Finalize(){}

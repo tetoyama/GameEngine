@@ -112,6 +112,7 @@ void Engine::Shutdown(std::shared_ptr<EngineContext> context){
 }
 
 void Engine::Run(std::shared_ptr<EngineContext> context){
+
 	if (!context) {
 		OutputDebugStringA("EngineContext Ç™ nullptr Ç≈Ç∑ÅB\n");
 		return;

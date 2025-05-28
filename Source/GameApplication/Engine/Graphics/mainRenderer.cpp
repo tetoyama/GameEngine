@@ -16,6 +16,8 @@ void MainRenderer::BeginFrame() {
     auto context = m_graphicsContext->GetContext();
     auto depthStencilView = m_graphicsContext->GetDepthStencilView();
 
+	//m_graphicsContext->SetWorldViewProjection2D();
+
     if (context && depthStencilView) {
         // デプスバッファもクリア
         context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -33,6 +35,8 @@ void MainRenderer::BeginFrame() {
 		viewport.MinDepth = 0.0f;
 		viewport.MaxDepth = 1.0f;
 		context->RSSetViewports(1, &viewport);
+
+		
 
         // 必要に応じてデプス/ブレンド/ラスタライザステートをセット
         // 例: context->OMSetDepthStencilState(...);

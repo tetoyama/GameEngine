@@ -17,6 +17,7 @@ Scene::~Scene(){
 void Scene::Initialize(GraphicsContext* graphiccontext, MainRenderer* mainRenderer){
 
 	m_entityRegistry = std::make_shared<EntityRegistry>();
+
 	m_transformSystem = std::make_unique<TransformSystem>(m_entityRegistry.get());
 	m_renderSystem = std::make_unique<RenderSystem>(m_entityRegistry.get(), mainRenderer);
 
@@ -34,43 +35,42 @@ void Scene::Initialize(GraphicsContext* graphiccontext, MainRenderer* mainRender
 	// MeshRendererComponentを追加
 	auto* meshRenderer = registry->AddComponent<MeshRendererComponent>(entity);
 
-	//// --- ここでMeshを初期化 ---
-	//struct Vertex {
-	//	float position[3];
-	//	float color[4];
-	//};
-	//Vertex vertices[] = {
-	//	{ { 0.0f, 0.5f, 0.0f }, { 1, 0, 0, 1 } },
-	//	{ { 0.5f, -0.5f, 0.0f }, { 0, 1, 0, 1 } },
-	//	{ { -0.5f, -0.5f, 0.0f }, { 0, 0, 1, 1 } }
-	//};
-	//UINT indices[] = {0, 1, 2};
+	// --- ここでMeshを初期化 ---
+	struct Vertex {
+		float position[3];
+		float color[4];
+	};
+	Vertex vertices[] = {
+		{ { 0.0f, 0.5f, 0.0f }, { 1, 0, 0, 1 } },
+		{ { 0.5f, -0.5f, 0.0f }, { 0, 1, 0, 1 } },
+		{ { -0.5f, -0.5f, 0.0f }, { 0, 0, 1, 1 } }
+	};
+	UINT indices[] = {0, 1, 2};
 
-	//ID3D11Device* device = graphiccontext->GetDevice(); // 取得済みのデバイス
-	//D3D11_BUFFER_DESC vbDesc = {};
-	//vbDesc.Usage = D3D11_USAGE_DEFAULT;
-	//vbDesc.ByteWidth = sizeof(vertices);
-	//vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	//D3D11_SUBRESOURCE_DATA vbData = {vertices, 0, 0};
-	//ID3D11Buffer* vertexBuffer = nullptr;
-	//device->CreateBuffer(&vbDesc, &vbData, &vertexBuffer);
+	ID3D11Device* device = graphiccontext->GetDevice(); // 取得済みのデバイス
+	D3D11_BUFFER_DESC vbDesc = {};
+	vbDesc.Usage = D3D11_USAGE_DEFAULT;
+	vbDesc.ByteWidth = sizeof(vertices);
+	vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	D3D11_SUBRESOURCE_DATA vbData = {vertices, 0, 0};
+	ID3D11Buffer* vertexBuffer = nullptr;
+	device->CreateBuffer(&vbDesc, &vbData, &vertexBuffer);
 
-	//D3D11_BUFFER_DESC ibDesc = {};
-	//ibDesc.Usage = D3D11_USAGE_DEFAULT;
-	//ibDesc.ByteWidth = sizeof(indices);
-	//ibDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	//D3D11_SUBRESOURCE_DATA ibData = {indices, 0, 0};
-	//ID3D11Buffer* indexBuffer = nullptr;
-	//device->CreateBuffer(&ibDesc, &ibData, &indexBuffer);
+	D3D11_BUFFER_DESC ibDesc = {};
+	ibDesc.Usage = D3D11_USAGE_DEFAULT;
+	ibDesc.ByteWidth = sizeof(indices);
+	ibDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	D3D11_SUBRESOURCE_DATA ibData = {indices, 0, 0};
+	ID3D11Buffer* indexBuffer = nullptr;
+	device->CreateBuffer(&ibDesc, &ibData, &indexBuffer);
 
-	//auto mesh = std::make_shared<MeshData>();
-	//mesh->vertexBuffer = vertexBuffer;
-	//mesh->indexBuffer = indexBuffer;
-	//mesh->indexCount = 3;
+	auto mesh = std::make_shared<MeshData>();
+	mesh->vertexBuffer = vertexBuffer;
+	mesh->indexBuffer = indexBuffer;
+	mesh->indexCount = 3;
 
-	//meshRenderer = registry->AddComponent<MeshRendererComponent>(entity);
-	//meshRenderer->mesh = mesh;
-	//meshRenderer->material = std::make_shared<Material>();
+	meshRenderer = registry->AddComponent<MeshRendererComponent>(entity);
+	meshRenderer->mesh = mesh;
 }
 
 void Scene::Update(float deltaTime){
@@ -82,7 +82,7 @@ void Scene::FixedUpdate(float fixedDeltaTime){
 }
 
 void Scene::Render(){
-	if(m_renderSystem)   m_renderSystem->Render();
+	if(m_renderSystem)   m_renderSystem->Draw();
 }
 
 void Scene::Shutdown(){

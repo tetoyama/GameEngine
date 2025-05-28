@@ -15,8 +15,8 @@ int GameApplication::Run(HINSTANCE hInstance, int nCmdShow){
 
 	EngineContextBuilder builder;
 	std::shared_ptr<EngineContext> context = builder.Build();
+
 	if(!context){
-		// エラー処理（ログ出力など）
 		return -1;
 	}
 
