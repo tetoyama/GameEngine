@@ -46,3 +46,16 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 
 	return context;
 }
+
+void EngineContext::Shutdown() {
+		// ‹t‡‚ÅShutdownŒÄ‚Ño‚µ
+	for (auto it = m_ServiceOrder.rbegin(); it != m_ServiceOrder.rend(); ++it) {
+		auto found = m_Services.find(*it);
+		if (found != m_Services.end()) {
+			auto service = std::static_pointer_cast<IService>(found->second);
+			if (service) service->Shutdown();
+		}
+	}
+	m_Services.clear();
+	m_ServiceOrder.clear();
+}

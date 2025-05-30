@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 #include <windows.h>
-class EngineContext;
+#include "engineContext.h"
 
 class MainRenderer;
 class WindowSystem;
@@ -22,4 +22,6 @@ public:
 	void Run(std::shared_ptr<EngineContext> context);
 
 private:
+
+
 };

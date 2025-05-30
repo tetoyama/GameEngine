@@ -53,29 +53,6 @@ public:
 		m_height = height;
 	}
 
-    void DrawMesh(const MeshRendererComponent* meshRenderer, const TransformComponent* transform) {  
-       if (!meshRenderer || !meshRenderer->mesh) return;  
-
-       auto context = m_graphicsContext->GetContext();  
-
-       context->IASetInputLayout(m_graphicsContext->GetVertexLayout());
-
-       context->VSSetShader(m_graphicsContext->GetVertexShader(), NULL, 0);  
-       context->PSSetShader(m_graphicsContext->GetPixelShader(), NULL, 0);  
-
-       m_graphicsContext->SetWorldViewProjection2D();  
-
-       UINT stride = meshRenderer->mesh->GetVertexStride();  
-       UINT offset = 0;  
-
-       ID3D11Buffer* vertexBuffer = meshRenderer->mesh->GetVertexBuffer();  
-       context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);  
-
-       context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);  
-
-       context->Draw(meshRenderer->mesh->GetIndexCount(), 0);  
-    }
-
 	GraphicsContext* GetGraphicsContext() const{
 		return m_graphicsContext;
 	}

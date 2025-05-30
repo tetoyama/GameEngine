@@ -10,18 +10,7 @@
 class EngineContext{
 
 public:
-	void Shutdown() {
-		// ‹t‡‚ÅShutdownŒÄ‚Ño‚µ
-		for (auto it = m_ServiceOrder.rbegin(); it != m_ServiceOrder.rend(); ++it) {
-			auto found = m_Services.find(*it);
-			if (found != m_Services.end()) {
-				auto service = std::static_pointer_cast<IService>(found->second);
-				if (service) service->Shutdown();
-			}
-		}
-		m_Services.clear();
-		m_ServiceOrder.clear();
-	}
+	void Shutdown();
 
 	template<typename T>
 	void Register(std::shared_ptr<T> instance) {
@@ -35,14 +24,7 @@ public:
 
 
 	template <typename T>
-	std::shared_ptr<T> Get() const{
-		auto it = m_Services.find(std::type_index(typeid(T)));
-		if(it != m_Services.end()){
-			return std::static_pointer_cast<T>(it->second);
-		}
-		OutputDebugStringA("EngineContext:æ“¾‚É¸”s‚µ‚Ü‚µ‚½B\n");
-		return nullptr;
-	}
+	std::shared_ptr<T> Get() const;
 
 private:
     std::unordered_map<std::type_index, std::shared_ptr<void>> m_Services;
@@ -54,3 +36,13 @@ class EngineContextBuilder
 public:
 	std::shared_ptr<EngineContext> Build();
 };
+
+template<typename T>
+inline std::shared_ptr<T> EngineContext::Get() const {
+	auto it = m_Services.find(std::type_index(typeid(T)));
+	if (it != m_Services.end()) {
+		return std::static_pointer_cast<T>(it->second);
+	}
+	OutputDebugStringA("EngineContext:æ“¾‚É¸”s‚µ‚Ü‚µ‚½B\n");
+	return nullptr;
+}
