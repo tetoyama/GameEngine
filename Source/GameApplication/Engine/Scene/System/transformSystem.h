@@ -1,9 +1,10 @@
 // Engine/Scene/transformSystem.h
 #pragma once
+#include "ISystem.h"
 
 class EntityRegistry;
 
-class TransformSystem {
+class TransformSystem : ISystem{
 public:
 	TransformSystem(EntityRegistry* registry);
 	~TransformSystem();

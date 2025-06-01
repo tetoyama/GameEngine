@@ -48,7 +48,7 @@ public:
 	void Present(bool vsync);
 
 	ID3D11Device* GetDevice() const{return m_Device.Get();}
-	ID3D11DeviceContext* GetContext() const{return m_DeviceContext.Get();}
+	ID3D11DeviceContext* GetDeviceContext() const{return m_DeviceContext.Get();}
 	IDXGISwapChain* GetSwapChain() const{return m_SwapChain.Get();}
 
 	ID3D11RenderTargetView* GetRenderTargetView() const{return m_RenderTargetView;}
@@ -56,10 +56,6 @@ public:
 
 	ID2D1Factory* GetD2DFactory() const{return m_d2dFactory.Get();}
 	IDWriteFactory* GetDWriteFactory() const{return m_dwriteFactory.Get();}
-
-	ID3D11InputLayout* GetVertexLayout() const{return m_VertexLayout;}
-	ID3D11PixelShader* GetPixelShader() const{return m_PixelShader;}
-	ID3D11VertexShader* GetVertexShader() const{return m_VertexShader;}
 
     ID3D11Buffer* GetWorldConstantBuffer() {return m_WorldBuffer;}
 
@@ -77,14 +73,15 @@ public:
 	void Resize(UINT width, UINT height);
 
 	bool CreateVertexShader(
-		const char* fileName,
-		ID3D11VertexShader* vertexShader,
-		ID3D11InputLayout* inputLayout
+		const char* fileName, 
+		ID3D11VertexShader** vertexShader, 
+		ID3D11InputLayout** inputLayout
 	);
+
 
 	bool CreatePixelShader(
 		const char* fileName,
-		ID3D11PixelShader* pixelShader
+		ID3D11PixelShader** pixelShader
 	);
 
 private:
@@ -118,18 +115,12 @@ private:
 	ID3D11BlendState*			m_BlendState;
 	ID3D11BlendState*			m_BlendStateATC;
 
-	ID3D11VertexShader*			m_VertexShader;
-	ID3D11PixelShader*			m_PixelShader;
-
-	ID3D11InputLayout*		m_VertexLayout;
-
-
 	DXGI_FORMAT m_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	DXGI_FORMAT m_depthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
 	Microsoft::WRL::ComPtr<ID2D1Factory> m_d2dFactory;
 	Microsoft::WRL::ComPtr<IDWriteFactory> m_dwriteFactory;
 
-
-
+	UINT m_width = 0;
+	UINT m_height = 0;
 };

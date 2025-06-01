@@ -1,0 +1,123 @@
+#pragma once
+#include <math.h>
+
+class Vector3
+{
+public:
+	float x, y, z;
+
+	Vector3(){
+		x = 0.0f;
+		y = 0.0f;
+		z = 0.0f;
+	}
+	Vector3(const Vector3& vec3):x(vec3.x), y(vec3.y), z(vec3.z){}
+	Vector3(const float nx, const float ny, const float nz):x(nx), y(ny), z(nz){}
+	~Vector3(){}
+
+	Vector3& operator=(const Vector3& vec3){
+		if(this != &vec3){
+			x = vec3.x;
+			y = vec3.y;
+			z = vec3.z;
+		}
+		return *this;
+	}
+
+	bool operator==(const Vector3& vec3) const{
+		return (x == vec3.x && y == vec3.y && z == vec3.z);
+	}
+
+	bool operator!=(const Vector3& vec3) const{
+		return !(*this == vec3);
+	}
+
+	Vector3 operator+(const Vector3& vec3) const{
+		return Vector3(x + vec3.x, y + vec3.y, z + vec3.z);
+	}
+
+	Vector3 operator-(const Vector3& vec3) const{
+		return Vector3(x - vec3.x, y - vec3.y, z - vec3.z);
+	}
+
+	Vector3 operator*(const Vector3& vec3) const{
+		return Vector3(x * vec3.x, y * vec3.y, z * vec3.z);
+	}
+
+	Vector3 operator/(const Vector3& vec3) const{
+		if(vec3.x == 0 || vec3.y == 0 || vec3.z == 0) return Vector3(0, 0, 0); // ƒ[ƒœZ‚ğ”ğ‚¯‚é
+		return Vector3(x / vec3.x, y / vec3.y, z / vec3.z);
+	}
+
+	Vector3 operator*(const float scalar) const{
+		return Vector3(x * scalar, y * scalar, z * scalar);
+	}
+
+	Vector3 operator/(const float scalar) const{
+		if(scalar == 0) return Vector3(0, 0, 0); // ƒ[ƒœZ‚ğ”ğ‚¯‚é
+		float oneOverA = 1.0f / scalar;
+		return Vector3(x * oneOverA, y * oneOverA, z * oneOverA);
+	}
+
+	Vector3& operator+=(const Vector3& vec3){
+		x += vec3.x;
+		y += vec3.y;
+		z += vec3.z;
+		return *this;
+	}
+
+	Vector3& operator-=(const Vector3& vec3){
+		x -= vec3.x;
+		y -= vec3.y;
+		z -= vec3.z;
+		return *this;
+	}
+
+	Vector3& operator*=(const Vector3& vec3){
+		x *= vec3.x;
+		y *= vec3.y;
+		z *= vec3.z;
+		return *this;
+	}
+
+	Vector3& operator/=(const Vector3& vec3){
+		if(vec3.x == 0 || vec3.y == 0 || vec3.z == 0) return *this; // ƒ[ƒœZ‚ğ”ğ‚¯‚é
+		x /= vec3.x;
+		y /= vec3.y;
+		z /= vec3.z;
+		return *this;
+	}
+
+	Vector3& operator*=(const float scalar){
+		x *= scalar;
+		y *= scalar;
+		z *= scalar;
+		return *this;
+	}
+
+	Vector3& operator/=(const float scalar){
+		if(scalar == 0) return *this; // ƒ[ƒœZ‚ğ”ğ‚¯‚é
+		float oneOverA = 1.0f / scalar;
+		x *= oneOverA;
+		y *= oneOverA;
+		z *= oneOverA;
+		return *this;
+	}
+
+	void zero(){
+		x = 0.0f;
+		y = 0.0f;
+		z = 0.0f;
+	}
+
+	// ƒxƒNƒgƒ‹‚Ì’·‚³‚ğ‹‚ß‚é
+	float length() const{
+		return sqrtf(x * x + y * y + z * z);
+	}
+	// ƒxƒNƒgƒ‹‚Ì³‹K‰»
+	Vector3 normalize() const{
+		float len = length();
+		if(len == 0) return Vector3(0, 0, 0);
+		return Vector3(x / len, y / len, z / len);
+	}
+};

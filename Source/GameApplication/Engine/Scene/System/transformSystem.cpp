@@ -8,6 +8,5 @@ TransformSystem::TransformSystem(EntityRegistry* registry)
 TransformSystem::~TransformSystem(){}
 
 void TransformSystem::Update(float deltaTime){
-	// TransformComponentを持つ全エンティティの更新処理をここに記述
-	// 例: 物理やスクリプトによるTransformの変更など
+
 }

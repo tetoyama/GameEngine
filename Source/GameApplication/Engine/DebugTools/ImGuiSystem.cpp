@@ -26,7 +26,7 @@ bool ImGuiSystem::Initialize(IWindow* window, GraphicsContext* graphics){
 
 	initialized_ = ImGui_ImplDX11_Init(
 		graphics->GetDevice(),
-		graphics->GetContext()
+		graphics->GetDeviceContext()
 	);
 
 	return initialized_;

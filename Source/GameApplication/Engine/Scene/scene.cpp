@@ -21,53 +21,23 @@ void Scene::Initialize(GraphicsContext* graphiccontext, MainRenderer* mainRender
 	m_transformSystem = std::make_unique<TransformSystem>(m_entityRegistry.get());
 	m_renderSystem = std::make_unique<RenderSystem>(m_entityRegistry.get(), mainRenderer);
 
+	m_renderSystem->Initialize();
+
 	// 例: 1つのエンティティを作成し、TransformとMeshRendererを追加
 	auto registry = GetEntityRegistry();
 	EntityID entity = registry->CreateEntity();
 
 	// TransformComponentを追加
 	auto* transform = registry->AddComponent<TransformComponent>(entity);
-	transform->position[0] = 0.0f;
-	transform->position[1] = 1.0f;
-	transform->position[2] = 0.0f;
-	transform->scale[0] = 2.0f; // x方向だけスケール
+	transform->position.x = 0.0f;
+	transform->position.y = 1.0f;
+	transform->position.z = 0.0f;
+	transform->scale.x = 2.0f; // x方向だけスケール
 
 	// MeshRendererComponentを追加
 	auto* meshRenderer = registry->AddComponent<MeshRendererComponent>(entity);
 
-	// --- ここでMeshを初期化 ---
-	struct Vertex {
-		float position[3];
-		float color[4];
-	};
-	Vertex vertices[] = {
-		{ { 0.0f, 0.5f, 0.0f }, { 1, 0, 0, 1 } },
-		{ { 0.5f, -0.5f, 0.0f }, { 0, 1, 0, 1 } },
-		{ { -0.5f, -0.5f, 0.0f }, { 0, 0, 1, 1 } }
-	};
-	UINT indices[] = {0, 1, 2};
-
-	ID3D11Device* device = graphiccontext->GetDevice(); // 取得済みのデバイス
-	D3D11_BUFFER_DESC vbDesc = {};
-	vbDesc.Usage = D3D11_USAGE_DEFAULT;
-	vbDesc.ByteWidth = sizeof(vertices);
-	vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	D3D11_SUBRESOURCE_DATA vbData = {vertices, 0, 0};
-	ID3D11Buffer* vertexBuffer = nullptr;
-	device->CreateBuffer(&vbDesc, &vbData, &vertexBuffer);
-
-	D3D11_BUFFER_DESC ibDesc = {};
-	ibDesc.Usage = D3D11_USAGE_DEFAULT;
-	ibDesc.ByteWidth = sizeof(indices);
-	ibDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	D3D11_SUBRESOURCE_DATA ibData = {indices, 0, 0};
-	ID3D11Buffer* indexBuffer = nullptr;
-	device->CreateBuffer(&ibDesc, &ibData, &indexBuffer);
-
 	auto mesh = std::make_shared<MeshData>();
-	mesh->vertexBuffer = vertexBuffer;
-	mesh->indexBuffer = indexBuffer;
-	mesh->indexCount = 3;
 
 	meshRenderer = registry->AddComponent<MeshRendererComponent>(entity);
 	meshRenderer->mesh = mesh;
@@ -82,7 +52,9 @@ void Scene::FixedUpdate(float fixedDeltaTime){
 }
 
 void Scene::Render(){
-	if(m_renderSystem)   m_renderSystem->Draw();
+	if(m_renderSystem){
+		m_renderSystem->Draw();
+	}
 }
 
 void Scene::Shutdown(){

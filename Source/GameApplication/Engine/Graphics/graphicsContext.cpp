@@ -38,6 +38,7 @@
 #define SAFE_RELEASE(p) if(p){ p->Release(); }
 
 bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
+
 	if(!CreateDeviceAndSwapChain(hwnd, width, height)){return false;}
 
 	if(!CreateRasterizerState()){return false;}
@@ -48,16 +49,17 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 
 	if(!CreateSamplerstate()){return false;}
 
+	if(!CreateConstantBuffers()){return false;}
+
 	if(!CreateRenderTargetView()){return false;}
 
 	if(!CreateDepthStencilBufferAndView(width, height)){return false;}
 
 	if(!CreateD2DResources(hwnd)){return false;}
 
-	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
+	Resize(width, height);
 
-	CreateVertexShader("shader\\unlitTextureVS.cso", m_VertexShader, m_VertexLayout);
-	CreatePixelShader("shader\\unlitTexturePS.cso", m_PixelShader);
+	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
 
 	return true;
 }
@@ -68,12 +70,16 @@ void GraphicsContext::Shutdown(){
 	SAFE_RELEASE(m_ProjectionBuffer);
 	SAFE_RELEASE(m_LightBuffer);
 	SAFE_RELEASE(m_MaterialBuffer);
-
-	SAFE_RELEASE(m_DeviceContext.Get());
 	SAFE_RELEASE(m_RenderTargetView);
-	SAFE_RELEASE(m_SwapChain.Get());
-	SAFE_RELEASE(m_DeviceContext.Get());
-	SAFE_RELEASE(m_Device.Get());
+
+	SAFE_RELEASE(m_DepthStateEnable);
+	SAFE_RELEASE(m_DepthStateDisable);
+	SAFE_RELEASE(m_BlendState);
+	SAFE_RELEASE(m_BlendStateATC);
+
+	m_DeviceContext.Reset();
+	m_SwapChain.Reset();
+	m_Device.Reset();
 }
 
 void GraphicsContext::SetDepthEnable(const bool& Enable){
@@ -129,7 +135,7 @@ void GraphicsContext::SetWorldViewProjection2D(){
 	SetViewMatrix(DirectX::XMMatrixIdentity());
 
 	DirectX::XMMATRIX projection;
-	projection = DirectX::XMMatrixOrthographicOffCenterLH(0.0f, 1820, 1080, 0.0f, 0.0f, 1.0f);
+	projection = DirectX::XMMatrixOrthographicOffCenterLH(0.0f, m_width, m_height, 0, 0.0f, 1.0f);
 	SetProjectionMatrix(projection);
 }
 
@@ -174,7 +180,6 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 			return false;
 		}
 	}
-	pFactory->Release();
 
 	DXGI_SWAP_CHAIN_DESC desc = {};
 	desc.BufferCount = 1;
@@ -208,6 +213,7 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 	);
 
 	pSelectedAdapter->Release();
+	pFactory->Release();
 
 	// ALT + Enterで排他的フルスクリーンモード切り替えを無効にする
 	IDXGIFactory* pfac = nullptr;
@@ -265,7 +271,6 @@ bool GraphicsContext::CreateSamplerstate(){
 		OutputDebugStringA("サンプラーステートの作成に失敗しました。\n");
 		return false;
 	}
-	m_DeviceContext->PSSetSamplers(0, 1, &samplerState);
 
 	return SUCCEEDED(hr);
 }
@@ -455,20 +460,18 @@ void GraphicsContext::Clear(const float clearColor[4]){
 	m_DeviceContext->ClearRenderTargetView(m_RenderTargetView, clearColor);
 	m_DeviceContext->ClearDepthStencilView(m_DepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	m_DeviceContext->IASetInputLayout(m_VertexLayout);
-	m_DeviceContext->VSSetShader(m_VertexShader, NULL, 0);
-	m_DeviceContext->PSSetShader(m_PixelShader, NULL, 0);
+	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
 }
 
 void GraphicsContext::Present(bool vsync){
 	m_SwapChain->Present(vsync, 0);
 }
 
-bool GraphicsContext::CreateVertexShader(const char* fileName, ID3D11VertexShader* vertexShader, ID3D11InputLayout* inputLayout){
-	std::vector<char> buffer;
+bool GraphicsContext::CreateVertexShader(const char* fileName, ID3D11VertexShader** vertexShader, ID3D11InputLayout** inputLayout){
+std::vector<char> buffer;
 	if(!ReadFileToBuffer(fileName, buffer)) return false;
 
-	HRESULT hr = m_Device->CreateVertexShader(buffer.data(), buffer.size(), nullptr, &vertexShader);
+	HRESULT hr = m_Device->CreateVertexShader(buffer.data(), buffer.size(), nullptr, vertexShader);
 	if(FAILED(hr)) return false;
 
 	D3D11_INPUT_ELEMENT_DESC layout[] =
@@ -483,16 +486,16 @@ bool GraphicsContext::CreateVertexShader(const char* fileName, ID3D11VertexShade
 	hr = m_Device->CreateInputLayout(
 		layout, numElements,
 		buffer.data(), buffer.size(),
-		&inputLayout);
+		inputLayout);
 
 	return SUCCEEDED(hr);
 }
 
-bool GraphicsContext::CreatePixelShader(const char* fileName,ID3D11PixelShader* pixelShader){
+bool GraphicsContext::CreatePixelShader(const char* fileName,ID3D11PixelShader** pixelShader){
 	std::vector<char> buffer;
 	if(!ReadFileToBuffer(fileName, buffer)) return false;
 
-	HRESULT hr = m_Device->CreatePixelShader(buffer.data(), buffer.size(), nullptr, &pixelShader);
+	HRESULT hr = m_Device->CreatePixelShader(buffer.data(), buffer.size(), nullptr, pixelShader);
 	return SUCCEEDED(hr);
 }
 
@@ -516,5 +519,16 @@ void GraphicsContext::Resize(UINT width, UINT height){
 
 		m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
 
+		D3D11_VIEWPORT vp{};
+		vp.TopLeftX = 0;
+		vp.TopLeftY = 0;
+		vp.Width = static_cast<float>(width);
+		vp.Height = static_cast<float>(height);
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		m_DeviceContext->RSSetViewports(1, &vp);
+
+		m_width = width;
+		m_height = height;
 	}
 }

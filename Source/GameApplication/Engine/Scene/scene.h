@@ -3,7 +3,6 @@
 #include <memory>
 #include <vector>
 
-
 class MainRenderer;
 class GraphicsContext;
 

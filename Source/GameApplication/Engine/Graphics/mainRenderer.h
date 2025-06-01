@@ -38,7 +38,6 @@ public:
 	}
 
 	void BeginFrame();
-	void Render(const RenderViewInfo& view, const std::vector<RenderableMesh>& meshes);
 	void EndFrame(bool vsync = true);
 
 	void DrawText2D(const std::wstring& text, float x, float y, float fontSize, D2D1::ColorF color);

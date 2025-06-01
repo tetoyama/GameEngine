@@ -2046,6 +2046,9 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\ISystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\myVector3.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\gameApplication.cpp">
@@ -2315,6 +2318,9 @@
     <ClCompile Include="Source\GameApplication\Engine\DebugTools\DebugSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Resources\TextureLoader.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\GameApplication\Backends\Assimp\color4.inl">
@@ -2348,5 +2354,9 @@
   <ItemGroup>
     <FxCompile Include="Source\GameApplication\Shader\unlitTexturePS.hlsl" />
     <FxCompile Include="Source\GameApplication\Shader\unlitTextureVS.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />
+    <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Release.lib" />
   </ItemGroup>
 </Project>

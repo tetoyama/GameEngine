@@ -22,9 +22,15 @@ public:
 		m_ServiceOrder.push_back(type);
 	}
 
-
-	template <typename T>
-	std::shared_ptr<T> Get() const;
+	template<typename T>
+	inline std::shared_ptr<T> Get() const{
+		auto it = m_Services.find(std::type_index(typeid(T)));
+		if(it != m_Services.end()){
+			return std::static_pointer_cast<T>(it->second);
+		}
+		OutputDebugStringA("EngineContext:æ“¾‚É¸”s‚µ‚Ü‚µ‚½B\n");
+		return nullptr;
+	}
 
 private:
     std::unordered_map<std::type_index, std::shared_ptr<void>> m_Services;
@@ -37,12 +43,4 @@ public:
 	std::shared_ptr<EngineContext> Build();
 };
 
-template<typename T>
-inline std::shared_ptr<T> EngineContext::Get() const {
-	auto it = m_Services.find(std::type_index(typeid(T)));
-	if (it != m_Services.end()) {
-		return std::static_pointer_cast<T>(it->second);
-	}
-	OutputDebugStringA("EngineContext:æ“¾‚É¸”s‚µ‚Ü‚µ‚½B\n");
-	return nullptr;
-}
+

@@ -17,6 +17,8 @@
 #include "Scene/sceneManager.h"
 #include "Scene/scene.h"
 
+#include "Engine/Resources/TextureLoader.h"
+
 void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInstance, int nCmdShow){
 	if (!context) {
 		OutputDebugStringA("EngineContext が nullptr です。\n");
@@ -153,10 +155,13 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		OutputDebugStringA("SceneManager サービスの取得に失敗しました。\n");
 		return;
 	}
+	InitializeTexture(graphicsContext.get());
 
 	// 最初のシーンを作成・ロード
 	auto initialScene = std::make_shared<Scene>();
 	sceneManager->LoadScene(initialScene);
+
+
 
 	while(!windowSystem->GetMainWindow()->ShouldClose()){
 
