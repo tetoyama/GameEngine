@@ -2371,6 +2371,10 @@
   <ItemGroup>
     <FxCompile Include="Source\GameApplication\Shader\unlitTexturePS.hlsl" />
     <FxCompile Include="Source\GameApplication\Shader\unlitTextureVS.hlsl" />
+    <FxCompile Include="Source\GameApplication\Shader\pointLightingBlinnPhongPS.hlsl" />
+    <FxCompile Include="Source\GameApplication\Shader\pointLightingBlinnPhongVS.hlsl" />
+    <FxCompile Include="Source\GameApplication\Shader\pixelLightingBlinnPhongPS.hlsl" />
+    <FxCompile Include="Source\GameApplication\Shader\pixelLightingBlinnPhongVS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />

@@ -46,7 +46,7 @@ static CSO unlitTexture;
 static CSO pixelLighting;
 static CSO pixelLightingBlinnPhong;
 static CSO vertexDirectionalLighting;
-
+static CSO pointLightingBlinnPhong;
 Scene::Scene(){
 
 }
@@ -66,6 +66,7 @@ void Scene::Initialize(GraphicsContext* graphiccontext, MainRenderer* mainRender
 	pixelLighting.Init("Asset\\Shader\\pixelLighting");
 	pixelLightingBlinnPhong.Init("Asset\\Shader\\pixelLightingBlinnPhong");
 	vertexDirectionalLighting.Init("Asset\\Shader\\vertexDirectionalLighting");
+	pointLightingBlinnPhong.Init("Asset\\Shader\\pointLightingBlinnPhong");
 
 	m_entityRegistry = std::make_shared<EntityRegistry>();
 
@@ -156,7 +157,7 @@ void Scene::Render(){
 	light.Position = DirectX::XMFLOAT4(0, 0, 100, 1);
 	light.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
 	light.Ambient = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	light.PointLightParam = DirectX::XMFLOAT4(10.0f, 0, 0, 0);
+	light.PointLightParam = DirectX::XMFLOAT4(100.0f, 0, 0, 0);
 
 	light.SkyColor = DirectX::XMFLOAT4(0.4f, 0.6f, 1.0f, 1.0f);
 	light.GroundColor = DirectX::XMFLOAT4(0.1f, 0.2f, 0.1f, 1.0f);
@@ -182,7 +183,7 @@ void Scene::Render(){
 	pixelLightingBlinnPhong.Load();
 
 	DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(-Timer, Timer, 0) * DirectX::XMMatrixTranslation(XPos + 30, 0, 100), g_Model);
-
+	pointLightingBlinnPhong.Load();
 	DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(Timer, Timer, 0) * DirectX::XMMatrixTranslation(XPos + 60, 0, 100), g_Model);
 }
 
