@@ -2357,14 +2357,20 @@
       <Filter>ヘッダー ファイル</Filter>
     </None>
     <None Include="assimp-vc143-mt.dll" />
-    <None Include="Asset\Shader\pixelLightingBlinPhongPS.cso" />
-    <None Include="Asset\Shader\pixelLightingBlinPhongVS.cso" />
+    <None Include="Asset\Shader\unlitTexturePS.cso" />
+    <None Include="Asset\Shader\unlitTextureVS.cso" />
+    <None Include="Asset\Shader\vertexDirectionalLightingVS.cso" />
+    <None Include="Asset\Shader\pixelLightingPS.cso" />
+    <None Include="Asset\Shader\pixelLightingVS.cso" />
+    <None Include="Asset\Shader\unlitColorPS.cso" />
+    <None Include="Asset\Shader\unlitColorVS.cso" />
+    <None Include="Asset\Shader\vertexDirectionalLightingPS.cso" />
+    <None Include="Asset\Shader\pixelLightingBlinnPhongPS.cso" />
+    <None Include="Asset\Shader\pixelLightingBlinnPhongVS.cso" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\GameApplication\Shader\unlitTexturePS.hlsl" />
     <FxCompile Include="Source\GameApplication\Shader\unlitTextureVS.hlsl" />
-    <FxCompile Include="Source\GameApplication\Shader\pixelLightingBlinPhongPS.hlsl" />
-    <FxCompile Include="Source\GameApplication\Shader\pixelLightingBlinPhongVS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />

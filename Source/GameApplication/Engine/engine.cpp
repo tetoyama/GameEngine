@@ -99,7 +99,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		return;
 	}
 	// SceneManagerの初期化
-	sceneManager->Initialize(graphicsContext.get(), mainRenderer.get());
+	sceneManager->Initialize(graphicsContext.get(), mainRenderer.get(),inputSystem.get());
 
 	// WindowSystemのメインウィンドウを取得
 	auto mainWindow = dynamic_cast<MainWindow*>(windowSystem->GetMainWindow().get());

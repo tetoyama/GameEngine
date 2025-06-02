@@ -9,9 +9,10 @@ SceneManager::~SceneManager(){
 	Shutdown();
 }
 
-void SceneManager::Initialize(GraphicsContext* graphiccontext, MainRenderer* mainRenderer){
+void SceneManager::Initialize(GraphicsContext* graphiccontext, MainRenderer* mainRenderer ,InputSystem* inputsystem){
 	m_mainRenderer = mainRenderer;
 	m_graphicsContext = graphiccontext;
+	m_InputSystem = inputsystem;
 }
 
 void SceneManager::Update(float deltaTime){
@@ -45,7 +46,7 @@ void SceneManager::LoadScene(std::shared_ptr<Scene> scene){
 	}
 	m_activeScene = scene;
 	if(m_activeScene){
-		m_activeScene->Initialize(m_graphicsContext,m_mainRenderer);
+		m_activeScene->Initialize(m_graphicsContext,m_mainRenderer,m_InputSystem);
 	}
 }
 

@@ -5,6 +5,7 @@
 #include <d3d11.h>
 class MainRenderer;
 class GraphicsContext;
+class InputSystem;
 
 class EntityRegistry;
 class TransformSystem;
@@ -15,7 +16,7 @@ public:
 	Scene();
 	~Scene();
 
-	void Initialize(GraphicsContext* graphiccontext, MainRenderer* mainRenderer);
+	void Initialize(GraphicsContext* graphiccontext, MainRenderer* mainRenderer, InputSystem* inputsystem);
 	void Update(float deltaTime);
 	void FixedUpdate(float fixedDeltaTime);
 	void Render();
@@ -24,13 +25,9 @@ public:
 	std::shared_ptr<EntityRegistry> GetEntityRegistry();
 
 private:
+	InputSystem* m_InputSystem;
+	MainRenderer* m_MainRenderer;
 	std::shared_ptr<EntityRegistry> m_entityRegistry;
 	std::unique_ptr<TransformSystem> m_transformSystem;
 	std::unique_ptr<RenderSystem> m_renderSystem;
-
-	ID3D11VertexShader* m_VertexShader;
-	ID3D11PixelShader* m_PixelShader;
-	ID3D11InputLayout* m_VertexLayout;
-
-	GraphicsContext* m_GC;
 };

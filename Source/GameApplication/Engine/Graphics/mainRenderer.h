@@ -55,6 +55,9 @@ public:
 	GraphicsContext* GetGraphicsContext() const{
 		return m_graphicsContext;
 	}
+	HWND GetHWND(){
+		return m_hwnd;
+	}
 private:
 	HWND m_hwnd{};
 	GraphicsContext* m_graphicsContext = nullptr;
