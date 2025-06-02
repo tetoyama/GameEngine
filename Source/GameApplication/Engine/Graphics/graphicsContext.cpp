@@ -119,15 +119,21 @@ void GraphicsContext::SetProjectionMatrix(const DirectX::XMMATRIX& proj){
 }
 
 void GraphicsContext::SetMaterial(const MATERIAL& material){  
-   DirectX::XMFLOAT4 materialf;  
-   materialf = DirectX::XMFLOAT4(material.Diffuse.x, material.Diffuse.y, material.Diffuse.z, material.Diffuse.w);  
-   m_DeviceContext->UpdateSubresource(m_MaterialBuffer, 0, nullptr, &materialf, 0, 0);
+
+   m_DeviceContext->UpdateSubresource(m_MaterialBuffer, 0, nullptr, &material, 0, 0);
 }
 
 void GraphicsContext::SetLight(const LIGHT& light){
-	DirectX::XMFLOAT4 lightf;
-	lightf = DirectX::XMFLOAT4(light.Diffuse.x, light.Diffuse.y, light.Diffuse.z, light.Diffuse.w);
-	m_DeviceContext->UpdateSubresource(m_LightBuffer, 0, nullptr, &lightf, 0, 0);
+
+	m_DeviceContext->UpdateSubresource(m_LightBuffer, 0, nullptr, &light, 0, 0);
+}
+
+void GraphicsContext::SetCamera(const Camera& Camera){
+	m_DeviceContext->UpdateSubresource(m_CameraBuffer, 0, nullptr, &Camera, 0, 0);
+}
+
+void GraphicsContext::SetParameter(const Parameter& Parameter){
+	m_DeviceContext->UpdateSubresource(m_CameraBuffer, 0, nullptr, &Parameter, 0, 0);
 }
 
 void GraphicsContext::SetWorldViewProjection2D(){
@@ -137,6 +143,7 @@ void GraphicsContext::SetWorldViewProjection2D(){
 	DirectX::XMMATRIX projection;
 	projection = DirectX::XMMatrixOrthographicOffCenterLH(0.0f, m_width, m_height, 0, 0.0f, 1.0f);
 	SetProjectionMatrix(projection);
+	SetDepthEnable(false);
 }
 
 bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT height) {
@@ -233,7 +240,7 @@ bool GraphicsContext::CreateDepthStencilstate(){
 	D3D11_DEPTH_STENCIL_DESC depthStencilDesc{};
 	depthStencilDesc.DepthEnable = TRUE;
 	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
 	depthStencilDesc.StencilEnable = FALSE;
 
 	HRESULT hr = m_Device->CreateDepthStencilState(&depthStencilDesc, &m_DepthStateEnable);//深度有効ステート
@@ -315,12 +322,31 @@ bool GraphicsContext::CreateConstantBuffers(){
 	m_DeviceContext->PSSetConstantBuffers(4, 1, &m_LightBuffer);
 	assert(SUCCEEDED(hr));
 
+	bufferDesc.ByteWidth = sizeof(Camera);
+
+	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_CameraBuffer);
+	m_DeviceContext->VSSetConstantBuffers(5, 1, &m_CameraBuffer);
+	m_DeviceContext->PSSetConstantBuffers(5, 1, &m_CameraBuffer);
+	assert(SUCCEEDED(hr));
+
+	bufferDesc.ByteWidth = sizeof(Parameter);
+
+	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_ParameterBuffer);
+	m_DeviceContext->VSSetConstantBuffers(6, 1, &m_ParameterBuffer);
+	m_DeviceContext->PSSetConstantBuffers(6, 1, &m_ParameterBuffer);
+	assert(SUCCEEDED(hr));
+
 	// ライト初期化
 	LIGHT light{};
 	light.Enable = true;
 	light.Direction	= DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
 	light.Ambient	= DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
 	light.Diffuse	= DirectX::XMFLOAT4(1.5f, 1.5f, 1.5f, 1.0f);
+
+	light.Position = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	light.PointLightParam = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	light.SkyColor = DirectX::XMFLOAT4(0.8f, 0.8f, 1.0f, 1.0f);
+	light.GroundColor = DirectX::XMFLOAT4(0.0f, 0.1f, 0.0f, 0.1f);
 	SetLight(light);
 
 	// マテリアル初期化
@@ -328,6 +354,11 @@ bool GraphicsContext::CreateConstantBuffers(){
 	material.Diffuse	= DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	material.Ambient	= DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	SetMaterial(material);
+
+	// カメラ初期化
+	Camera camera{};
+	camera.CameraPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	SetCamera(camera);
 
 	return (SUCCEEDED(hr));
 }
@@ -500,6 +531,7 @@ bool GraphicsContext::CreatePixelShader(const char* fileName,ID3D11PixelShader**
 }
 
 void GraphicsContext::Resize(UINT width, UINT height){
+
 	if(m_SwapChain){
 		m_DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
 		if(m_RenderTargetView){
@@ -514,8 +546,14 @@ void GraphicsContext::Resize(UINT width, UINT height){
 			OutputDebugStringA("スワップチェーンのリサイズに失敗しました。\n");
 			return;
 		}
-		CreateRenderTargetView();
-		CreateDepthStencilBufferAndView(width, height);
+		if(!CreateRenderTargetView()){
+			OutputDebugStringA("スワップチェーンのリサイズに失敗しました。\n");
+			return;
+		}
+		if(!CreateDepthStencilBufferAndView(width, height)){
+			OutputDebugStringA("スワップチェーンのリサイズに失敗しました。\n");
+			return;
+		}
 
 		m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
 

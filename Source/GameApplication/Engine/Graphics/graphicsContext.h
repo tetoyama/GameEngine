@@ -37,8 +37,25 @@ struct LIGHT
 	DirectX::XMFLOAT4	Direction;
 	DirectX::XMFLOAT4	Diffuse;
 	DirectX::XMFLOAT4	Ambient;
+
+	DirectX::XMFLOAT4	Position;
+	DirectX::XMFLOAT4	PointLightParam;
+
+	DirectX::XMFLOAT4	SkyColor;
+	DirectX::XMFLOAT4	GroundColor;
+	DirectX::XMFLOAT4	GroundNormal;
+
 };
 
+struct Camera
+{
+	DirectX::XMFLOAT4	CameraPosition;
+};
+
+struct Parameter
+{
+	DirectX::XMFLOAT4	Parameter;
+};
 
 class GraphicsContext : public IService {
 public:
@@ -67,6 +84,8 @@ public:
 	void SetProjectionMatrix(const DirectX::XMMATRIX& ProjectionMatrix);
 	void SetMaterial(const MATERIAL& Material);
 	void SetLight(const LIGHT& Light);
+	void SetCamera(const Camera& Camera);
+	void SetParameter(const Parameter& Parameter);
 
 	void SetWorldViewProjection2D();
 
@@ -83,7 +102,8 @@ public:
 		const char* fileName,
 		ID3D11PixelShader** pixelShader
 	);
-
+	UINT m_width = 0;
+	UINT m_height = 0;
 private:
 	bool CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT height);
 	bool CreateDepthStencilstate();
@@ -103,11 +123,13 @@ private:
 	ID3D11RenderTargetView*							m_RenderTargetView;
 	ID3D11DepthStencilView*							m_DepthStencilView;
 
-	ID3D11Buffer*			m_WorldBuffer = nullptr;
-	ID3D11Buffer*			m_ViewBuffer = nullptr;
-	ID3D11Buffer*			m_ProjectionBuffer = nullptr;
-	ID3D11Buffer*			m_MaterialBuffer = nullptr;
-	ID3D11Buffer*			m_LightBuffer = nullptr;
+	ID3D11Buffer* m_WorldBuffer = nullptr;
+	ID3D11Buffer* m_ViewBuffer = nullptr;
+	ID3D11Buffer* m_ProjectionBuffer = nullptr;
+	ID3D11Buffer* m_MaterialBuffer = nullptr;
+	ID3D11Buffer* m_LightBuffer = nullptr;
+	ID3D11Buffer* m_CameraBuffer = nullptr;
+	ID3D11Buffer* m_ParameterBuffer = nullptr;
 
 	ID3D11DepthStencilState*	m_DepthStateEnable;
 	ID3D11DepthStencilState*	m_DepthStateDisable;
@@ -120,7 +142,4 @@ private:
 
 	Microsoft::WRL::ComPtr<ID2D1Factory> m_d2dFactory;
 	Microsoft::WRL::ComPtr<IDWriteFactory> m_dwriteFactory;
-
-	UINT m_width = 0;
-	UINT m_height = 0;
 };

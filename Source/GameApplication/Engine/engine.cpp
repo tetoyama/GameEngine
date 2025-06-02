@@ -19,6 +19,9 @@
 
 #include "Engine/Resources/TextureLoader.h"
 
+#include <dxgidebug.h>
+#pragma comment(lib, "dxguid.lib")
+
 void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInstance, int nCmdShow){
 	if (!context) {
 		OutputDebugStringA("EngineContext が nullptr です。\n");
@@ -106,11 +109,31 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		mainWindow->SetImGuiSystem(imgui.get());
 		mainWindow->SetInputSystem(inputSystem.get());
 	}
+	InitializeTexture(graphicsContext.get());
 }
 
 void Engine::Shutdown(std::shared_ptr<EngineContext> context){
 
 	context->Shutdown();
+	FinalizeTexture();
+
+	typedef HRESULT(WINAPI* LPDXGIGetDebugInterface)(REFIID, void**);
+
+	HMODULE dxgiDebugModule = LoadLibraryW(L"dxgidebug.dll");
+	if(dxgiDebugModule){
+		auto dxgiGetDebugInterface = reinterpret_cast<LPDXGIGetDebugInterface>(
+			GetProcAddress(dxgiDebugModule, "DXGIGetDebugInterface"));
+
+		if(dxgiGetDebugInterface){
+			IDXGIDebug* dxgiDebug = nullptr;
+			if(SUCCEEDED(dxgiGetDebugInterface(IID_PPV_ARGS(&dxgiDebug)))){
+				dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_DETAIL);
+				dxgiDebug->Release();
+			}
+		}
+
+		FreeLibrary(dxgiDebugModule);
+	}
 }
 
 void Engine::Run(std::shared_ptr<EngineContext> context){
@@ -155,7 +178,6 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		OutputDebugStringA("SceneManager サービスの取得に失敗しました。\n");
 		return;
 	}
-	InitializeTexture(graphicsContext.get());
 
 	// 最初のシーンを作成・ロード
 	auto initialScene = std::make_shared<Scene>();
@@ -182,39 +204,39 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 
 		sceneManager->Render();
 
-		 // Debug UI をここに書く
-		ImGui::Begin("Debug");
-		ImGui::Text("FPS: %.2f", 1.0f / time->GetDeltaTime());
-		ImGui::Text("Time: %.2f", time->GetTotalTime());
-		ImGui::End();
+		// // Debug UI をここに書く
+		//ImGui::Begin("Debug");
+		//ImGui::Text("FPS: %.2f", 1.0f / time->GetDeltaTime());
+		//ImGui::Text("Time: %.2f", time->GetTotalTime());
+		//ImGui::End();
 
-		ImGui::Begin("Input Debug");
+		//ImGui::Begin("Input Debug");
 
-		auto mainWindowHWND = windowSystem->GetMainWindow()->GetHWND();
+		//auto mainWindowHWND = windowSystem->GetMainWindow()->GetHWND();
 
-		// キーボードの例: Aキー
-		ImGui::Text("A: %s", inputSystem->IsKey(mainWindowHWND, 'A') ? "Down" : "Up");
-		ImGui::Text("A Down: %s", inputSystem->IsKeyDown(mainWindowHWND, 'A') ? "Yes" : "No");
-		ImGui::Text("A Up: %s", inputSystem->IsKeyUp(mainWindowHWND, 'A') ? "Yes" : "No");
+		//// キーボードの例: Aキー
+		//ImGui::Text("A: %s", inputSystem->IsKey(mainWindowHWND, 'A') ? "Down" : "Up");
+		//ImGui::Text("A Down: %s", inputSystem->IsKeyDown(mainWindowHWND, 'A') ? "Yes" : "No");
+		//ImGui::Text("A Up: %s", inputSystem->IsKeyUp(mainWindowHWND, 'A') ? "Yes" : "No");
 
-		// マウス
-		ImGui::Text("Mouse X: %d", inputSystem->GetMouseX(mainWindowHWND));
-		ImGui::Text("Mouse Y: %d", inputSystem->GetMouseY(mainWindowHWND));
-		ImGui::Text("Mouse Left: %s", inputSystem->IsMouseDown(mainWindowHWND, 0) ? "Down" : "Up");
-		ImGui::Text("Mouse Right: %s", inputSystem->IsMouseDown(mainWindowHWND, 1) ? "Down" : "Up");
-		ImGui::Text("Mouse Wheel: %d", inputSystem->GetMouseWheel(mainWindowHWND));
+		//// マウス
+		//ImGui::Text("Mouse X: %d", inputSystem->GetMouseX(mainWindowHWND));
+		//ImGui::Text("Mouse Y: %d", inputSystem->GetMouseY(mainWindowHWND));
+		//ImGui::Text("Mouse Left: %s", inputSystem->IsMouseDown(mainWindowHWND, 0) ? "Down" : "Up");
+		//ImGui::Text("Mouse Right: %s", inputSystem->IsMouseDown(mainWindowHWND, 1) ? "Down" : "Up");
+		//ImGui::Text("Mouse Wheel: %d", inputSystem->GetMouseWheel(mainWindowHWND));
 
 
-		// ゲームパッド（例: 0番）
-		ImGui::Text("Gamepad 0 Connected: %s", inputSystem->IsGamepadConnected(0) ? "Yes" : "No");
-		if(inputSystem->IsGamepadConnected(0)){
-			ImGui::Text("Gamepad 0 A Button: %s", inputSystem->GetGamepadButton(0, XINPUT_GAMEPAD_A) ? "Pressed" : "Released");
-			POINT left = inputSystem->GetGamepadLeftStick(0);
-			ImGui::Text("Left Stick: x=%ld y=%ld", left.x, left.y);
-		}
-		ImGui::End();
+		//// ゲームパッド（例: 0番）
+		//ImGui::Text("Gamepad 0 Connected: %s", inputSystem->IsGamepadConnected(0) ? "Yes" : "No");
+		//if(inputSystem->IsGamepadConnected(0)){
+		//	ImGui::Text("Gamepad 0 A Button: %s", inputSystem->GetGamepadButton(0, XINPUT_GAMEPAD_A) ? "Pressed" : "Released");
+		//	POINT left = inputSystem->GetGamepadLeftStick(0);
+		//	ImGui::Text("Left Stick: x=%ld y=%ld", left.x, left.y);
+		//}
+		//ImGui::End();
 
-		mainRenderer->DrawText2D(L"Hello, Direct2D!", 32, 32, 32.0f, D2D1::ColorF(D2D1::ColorF::Yellow));
+		//mainRenderer->DrawText2D(L"Hello, Direct2D!", 32, 32, 32.0f, D2D1::ColorF(D2D1::ColorF::Yellow));
 
 		imgui->End();
 		mainRenderer->EndFrame();

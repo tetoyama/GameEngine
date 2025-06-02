@@ -20,8 +20,4 @@ public:
 	void Shutdown(std::shared_ptr<EngineContext> context);
 
 	void Run(std::shared_ptr<EngineContext> context);
-
-private:
-
-
 };

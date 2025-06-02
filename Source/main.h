@@ -79,23 +79,4 @@ GameApplication
    └── Engine
         ├── Engine            （全モジュール初期化・更新・描画ループ、Update / Fixed対応）
         └── EngineContext     （EngineContextの生成・DI）
-
-  #file:'main.h'
-
-
-  #file:'main.cpp'
-
-  #file:'gameApplication.cpp'
-  #file:'engineContext.cpp'
-  #file:'engine.cpp'
-
-  #file:'mainWindow.cpp'
-  #file:'mainRenderer.cpp'
-  #file:'scene.cpp'
-  #file:'sceneManager.cpp'
-  こんな感じのクラス設計にしたい
-  必要なドキュメントを全て読んでから次に必要な手順を考えて
-
-
-
 */

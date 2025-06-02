@@ -2,7 +2,7 @@
 #pragma once
 #include <memory>
 #include <vector>
-
+#include <d3d11.h>
 class MainRenderer;
 class GraphicsContext;
 
@@ -27,4 +27,10 @@ private:
 	std::shared_ptr<EntityRegistry> m_entityRegistry;
 	std::unique_ptr<TransformSystem> m_transformSystem;
 	std::unique_ptr<RenderSystem> m_renderSystem;
+
+	ID3D11VertexShader* m_VertexShader;
+	ID3D11PixelShader* m_PixelShader;
+	ID3D11InputLayout* m_VertexLayout;
+
+	GraphicsContext* m_GC;
 };

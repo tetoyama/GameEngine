@@ -1,5 +1,6 @@
 // ScriptLoader.h
 #pragma once
+#include <string>
 class ScriptLoader {
 public:
     ScriptLoader();

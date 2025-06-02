@@ -2049,6 +2049,9 @@
     <ClInclude Include="Source\GameApplication\Backends\myVector3.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\_Old\model.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\gameApplication.cpp">
@@ -2321,6 +2324,9 @@
     <ClCompile Include="Source\GameApplication\Engine\Resources\TextureLoader.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Source\_Old\model.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\GameApplication\Backends\Assimp\color4.inl">
@@ -2350,13 +2356,19 @@
     <None Include="Source\GameApplication\Backends\DirectX11\DirectXTex.inl">
       <Filter>ヘッダー ファイル</Filter>
     </None>
+    <None Include="assimp-vc143-mt.dll" />
+    <None Include="Asset\Shader\pixelLightingBlinPhongPS.cso" />
+    <None Include="Asset\Shader\pixelLightingBlinPhongVS.cso" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\GameApplication\Shader\unlitTexturePS.hlsl" />
     <FxCompile Include="Source\GameApplication\Shader\unlitTextureVS.hlsl" />
+    <FxCompile Include="Source\GameApplication\Shader\pixelLightingBlinPhongPS.hlsl" />
+    <FxCompile Include="Source\GameApplication\Shader\pixelLightingBlinPhongVS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Release.lib" />
+    <Library Include="assimp-vc143-mt.lib" />
   </ItemGroup>
 </Project>
