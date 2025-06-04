@@ -1,3 +1,7 @@
+#include "textureLoader.h"
+
+/*
+
 //========================================================================
 //
 // テクスチャ管理	[texture.cpp]
@@ -18,13 +22,7 @@
 //========================================================================
 // 構造体宣言
 //========================================================================
-struct Texture {
-	std::wstring TexturePath = L"";					//テクスチャのパス名
-	ID3D11ShaderResourceView* pTexture = nullptr;	//ポインター
-	unsigned int UseCount = 0;						//使用数
-	int Width = 0;
-	int Height = 0;
-};
+
 
 //========================================================================
 // グローバル変数
@@ -209,4 +207,58 @@ float GetTextureWidth(const unsigned int Texture){
 }
 float GetTextureHeight(unsigned int Texture){
 	return (float)g_Textures[Texture].Height;
+}
+*/
+
+#include <d3d11.h>
+
+//テクスチャサポートライブラリ
+#include "Backends/DirectX11/DirectXTex.h"
+#if _DEBUG
+#pragma comment(lib,"DirectXTex_Debug.lib")
+#else
+#pragma comment(lib,"DirectXTex_Release.lib")
+#endif
+
+#include "Backends/checkFileExtention.h"
+#include "Engine/Resources/Data/textureData.h"
+#include "Engine/Graphics/graphicsContext.h"
+
+TextureData* TextureLoader::LoadTexture(const std::wstring& filePath){
+	if(m_Textures.count(filePath)){
+		return m_Textures[filePath].get();
+	}
+	bool isTgaFile = HasExtension(filePath, L"tga");
+
+	std::shared_ptr<TextureData> textureData = std::make_shared<TextureData>();
+	DirectX::TexMetadata _metadata{};
+	DirectX::ScratchImage _image{};
+
+	//テクスチャ読み込み
+	if(isTgaFile){
+
+		LoadFromTGAFile(filePath.c_str(), &_metadata, _image);
+
+	} else{
+		
+		wchar_t* temp = (wchar_t*)filePath.c_str();
+		LoadFromWICFile(temp, DirectX::WIC_FLAGS::WIC_FLAGS_NONE, &_metadata, _image);
+	}
+	//読み込んだ画像データをDirectXへ渡してテクスチャとして管理させる
+	CreateShaderResourceView(m_GraphicContext->GetDevice(), _image.GetImages(), _image.GetImageCount(), _metadata, &textureData->pTexture);
+
+	textureData->Width  = (int)_metadata.width;
+	textureData->Height = (int)_metadata.height;
+
+	m_Textures[filePath] = textureData;
+
+	return m_Textures[filePath].get();
+}
+
+TextureData* TextureLoader::GetTexture(const std::wstring& filePath){
+	auto it = m_Textures.find(filePath);
+	if(it != m_Textures.end()){
+		return it->second.get();
+	}
+	return nullptr;
 }

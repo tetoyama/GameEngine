@@ -1,5 +1,7 @@
 #pragma once
 /*
+EİŒv}
+
 GameApplication
 „ 
 „¥„Ÿ„Ÿ Services
@@ -48,6 +50,7 @@ GameApplication
    „        yDepends Onz ¨ GraphicsContext
    „ 
    „¥„Ÿ„Ÿ Scene
+   „    „¥„Ÿ„Ÿ SceneContext (ì¬—\’è)
    „    „¥„Ÿ„Ÿ SceneManager
    „    „    yDepends Onz ¨ TimeService, InputSystem
    „    „¤„Ÿ„Ÿ SceneiECSWorldj

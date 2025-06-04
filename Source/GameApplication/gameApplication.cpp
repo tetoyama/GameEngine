@@ -4,13 +4,6 @@
 #include "Engine/engine.h"
 #include "Engine/engineContext.h"
 
-GameApplication::GameApplication(){
-
-}
-GameApplication::~GameApplication(){
-
-}
-
 int GameApplication::Run(HINSTANCE hInstance, int nCmdShow){
 
 	EngineContextBuilder builder;

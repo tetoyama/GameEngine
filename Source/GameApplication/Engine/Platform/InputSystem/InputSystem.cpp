@@ -29,7 +29,7 @@ void InputSystem::Initialize(HWND window){
 	m_lastX = m_lastY = 0;
 	m_relativeX = m_relativeY = INT32_MAX;
 	m_inFocus = true;
-	// 単一ウィンドウ用の初期化。マルチウィンドウでは RegisterWindow を使うこと。
+	// 単一ウィンドウ用の初期化。マルチウィンドウでは RegisterWindow を使う。
 	m_windowStates[window] = WindowInputState{};
 }
 

@@ -24,7 +24,7 @@ public:
 	void RegisterWindow(HWND hwnd);
 	void UnregisterWindow(HWND hwnd);
 
-	// 初期化（従来の単一ウィンドウ用。マルチウィンドウでは不要なら空実装可）
+	// 初期化
 	void Initialize(HWND window);
 
 	// Win32メッセージ処理

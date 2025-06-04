@@ -461,6 +461,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\checkFileExtention.h" />
     <ClInclude Include="Source\GameApplication\Backends\DirectX11\DirectXTex.h" />
     <ClInclude Include="Source\GameApplication\Backends\Effekseer\Effekseer.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -2540,36 +2541,35 @@
     <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\stlemitter.h" />
     <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\traits.h" />
     <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\yaml.h" />
-    <ClInclude Include="Source\GameApplication\Engine\DebugTools\DebugSystem.h" />
+    <ClInclude Include="Source\GameApplication\Engine\DebugTools\debugSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\DebugTools\ImGuiSystem.h" />
-    <ClInclude Include="Source\GameApplication\Engine\EditorExtension\EditorBridge.h" />
-    <ClInclude Include="Source\GameApplication\Engine\EditorExtension\ToolRegistry.h" />
     <ClInclude Include="Source\GameApplication\Engine\engine.h" />
     <ClInclude Include="Source\GameApplication\Engine\engineContext.h" />
     <ClInclude Include="Source\GameApplication\Engine\Graphics\D2DRenderer.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Graphics\EffectSystem.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Graphics\effectSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Graphics\graphicsContext.h" />
     <ClInclude Include="Source\GameApplication\Engine\Graphics\mainRenderer.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Graphics\SubRenderer.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Graphics\subRenderer.h" />
     <ClInclude Include="Source\GameApplication\Engine\Platform\InputSystem\InputSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Platform\InputSystem\keyState.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Platform\NetWorkSystem\NetworkSystem.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Platform\NetWorkSystem\networkSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Platform\WindowSystem\IWindow.h" />
     <ClInclude Include="Source\GameApplication\Engine\Platform\WindowSystem\mainWindow.h" />
     <ClInclude Include="Source\GameApplication\Engine\Platform\WindowSystem\windowSystem.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Resources\AudioLoader.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Resources\FontLoader.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Resources\ModelLoader.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Resources\PrefabLoader.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Resources\ResourceSystem.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Resources\ShaderLoader.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Resources\TextureLoader.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Data\modelData.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Data\pixelShaderData.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Data\shaderData.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Data\textureData.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Data\vertexShaderData.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\modelLoader.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\resourceSystem.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\shaderLoader.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\textureLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Runtime\JobSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Runtime\TimeService\time.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\component.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\IComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\meshRendererComponent.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\RigidbodyComponent.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\ScriptComponent.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\modelRendererComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\transformComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Entity\entityRegistry.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\scene.h" />
@@ -2577,15 +2577,10 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\ISystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\renderSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\transformSystem.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Scripting\ScriptBinder.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Scripting\ScriptEngine.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Scripting\ScriptLoader.h" />
     <ClInclude Include="Source\GameApplication\gameApplication.h" />
     <ClInclude Include="Source\main.h" />
-    <ClInclude Include="Source\Service\ConfigSystem.h" />
-    <ClInclude Include="Source\Service\IconService.h" />
+    <ClInclude Include="Source\Service\configSystem.h" />
     <ClInclude Include="Source\Service\IService.h" />
-    <ClInclude Include="Source\Service\ProgressStateService.h" />
     <ClInclude Include="Source\_Old\model.h" />
     <ClInclude Include="Source\_Old\renderer.h" />
   </ItemGroup>
@@ -2870,7 +2865,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\DebugTools\DebugSystem.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\DebugTools\debugSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\DebugTools\ImGuiSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\engine.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\engineContext.cpp" />
@@ -2883,7 +2878,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Platform\WindowSystem\windowSystem.cpp" />
-    <ClCompile Include="Source\GameApplication\Engine\Resources\TextureLoader.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Resources\Loader\modelLoader.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Resources\resourceSystem.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Resources\Loader\textureLoader.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Runtime\TimeService\time.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\Entity\entityRegistry.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\scene.cpp" />
@@ -3022,7 +3019,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <Library Include="assimp-vc143-mt.lib" />
+    <Library Include="Source\GameApplication\Backends\Assimp\assimp-vc143-mt.lib" />
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </Library>

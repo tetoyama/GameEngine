@@ -128,7 +128,7 @@ void GraphicsContext::SetLight(const LIGHT& light){
 	m_DeviceContext->UpdateSubresource(m_LightBuffer, 0, nullptr, &light, 0, 0);
 }
 
-void GraphicsContext::SetCamera(const Camera& Camera){
+void GraphicsContext::SetCamera(const CAMERA& Camera){
 	m_DeviceContext->UpdateSubresource(m_CameraBuffer, 0, nullptr, &Camera, 0, 0);
 }
 
@@ -141,7 +141,7 @@ void GraphicsContext::SetWorldViewProjection2D(){
 	SetViewMatrix(DirectX::XMMatrixIdentity());
 
 	DirectX::XMMATRIX projection;
-	projection = DirectX::XMMatrixOrthographicOffCenterLH(0.0f, m_width, m_height, 0, 0.0f, 1.0f);
+	projection = DirectX::XMMatrixOrthographicOffCenterLH(0.0f, (float)m_width, (float)m_height, 0, 0.0f, 1.0f);
 	SetProjectionMatrix(projection);
 	SetDepthEnable(false);
 }
@@ -322,7 +322,7 @@ bool GraphicsContext::CreateConstantBuffers(){
 	m_DeviceContext->PSSetConstantBuffers(4, 1, &m_LightBuffer);
 	assert(SUCCEEDED(hr));
 
-	bufferDesc.ByteWidth = sizeof(Camera);
+	bufferDesc.ByteWidth = sizeof(CAMERA);
 
 	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_CameraBuffer);
 	m_DeviceContext->VSSetConstantBuffers(5, 1, &m_CameraBuffer);
@@ -356,7 +356,7 @@ bool GraphicsContext::CreateConstantBuffers(){
 	SetMaterial(material);
 
 	// ƒJƒƒ‰‰Šú‰»
-	Camera camera{};
+	CAMERA camera{};
 	camera.CameraPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 	SetCamera(camera);
 

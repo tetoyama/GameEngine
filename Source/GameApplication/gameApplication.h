@@ -4,8 +4,8 @@
 class GameApplication
 {
 public:
-	GameApplication();
-	~GameApplication();
+	GameApplication(){}
+	~GameApplication(){}
 
 	int Run(HINSTANCE hInstance, int nCmdShow);
 };

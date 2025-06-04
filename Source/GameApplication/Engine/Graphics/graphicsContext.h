@@ -47,7 +47,7 @@ struct LIGHT
 
 };
 
-struct Camera
+struct CAMERA
 {
 	DirectX::XMFLOAT4	CameraPosition;
 };
@@ -84,7 +84,7 @@ public:
 	void SetProjectionMatrix(const DirectX::XMMATRIX& ProjectionMatrix);
 	void SetMaterial(const MATERIAL& Material);
 	void SetLight(const LIGHT& Light);
-	void SetCamera(const Camera& Camera);
+	void SetCamera(const CAMERA& Camera);
 	void SetParameter(const Parameter& Parameter);
 
 	void SetWorldViewProjection2D();

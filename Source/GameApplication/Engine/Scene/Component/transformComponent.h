@@ -1,8 +1,8 @@
 #pragma once
-#include "Component.h"
+#include "IComponent.h"
 #include "Backends/myVector3.h"
 
-class TransformComponent: public Component {
+class TransformComponent : public IComponent{
 public:
 	Vector3 position = {0, 0, 0};
 	Vector3 rotation = {0, 0, 0};

@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <sstream>
 #include <unordered_set>
+
 void DebugLogSystem::Initialize(){
 	// 必要であればファイルログなどの初期化
 }

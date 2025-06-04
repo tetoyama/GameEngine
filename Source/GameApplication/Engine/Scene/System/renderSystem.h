@@ -6,6 +6,10 @@
 class EntityRegistry;
 class MainRenderer;
 
+class TransformComponent;
+class MeshRendererComponent;
+class ModelRendererComponent;
+
 class RenderSystem : public ISystem{
 public:
 	RenderSystem(EntityRegistry* registry, MainRenderer* renderer)
@@ -20,6 +24,10 @@ public:
 	void Finalize()override;
 
 private:
+
+	void DrawMesh(TransformComponent* pTransform, MeshRendererComponent* pMesh);
+	void DrawModel(TransformComponent* pTransform, ModelRendererComponent* pMesh);
+
 	EntityRegistry* m_registry = nullptr;
 	MainRenderer* m_renderer = nullptr;
 };

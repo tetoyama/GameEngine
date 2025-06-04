@@ -3,9 +3,8 @@
 #include <memory>
 #include <vector>
 #include <d3d11.h>
-class MainRenderer;
-class GraphicsContext;
-class InputSystem;
+
+struct SceneContext;
 
 class EntityRegistry;
 class TransformSystem;
@@ -16,7 +15,7 @@ public:
 	Scene();
 	~Scene();
 
-	void Initialize(GraphicsContext* graphiccontext, MainRenderer* mainRenderer, InputSystem* inputsystem);
+	void Initialize(SceneContext* set);
 	void Update(float deltaTime);
 	void FixedUpdate(float fixedDeltaTime);
 	void Render();
@@ -25,8 +24,8 @@ public:
 	std::shared_ptr<EntityRegistry> GetEntityRegistry();
 
 private:
-	InputSystem* m_InputSystem;
-	MainRenderer* m_MainRenderer;
+
+	SceneContext* m_SceneContext;
 	std::shared_ptr<EntityRegistry> m_entityRegistry;
 	std::unique_ptr<TransformSystem> m_transformSystem;
 	std::unique_ptr<RenderSystem> m_renderSystem;

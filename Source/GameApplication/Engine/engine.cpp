@@ -17,16 +17,18 @@
 #include "Scene/sceneManager.h"
 #include "Scene/scene.h"
 
-#include "Engine/Resources/TextureLoader.h"
+#include "Engine/Resources/resourceSystem.h"
 
 #include <dxgidebug.h>
 #pragma comment(lib, "dxguid.lib")
 
 void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInstance, int nCmdShow){
+	
 	if (!context) {
 		OutputDebugStringA("EngineContext が nullptr です。\n");
 		return;
 	}
+
 	// WindowsSystemの取得
 	auto windowSystem = context->Get<WindowSystem>();
 	if (!windowSystem) {
@@ -39,7 +41,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		return;
 	}
 
-	//各種サービスの初期化
+	//Services の初期化
 
 	// timeServiceの取得
 	auto time = context->Get<TimeService>();
@@ -49,6 +51,8 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	}
 	// timeServiceの初期化
 	time->Initialize();
+
+	// Engine Runtime の初期化
 
 	// GraphicsContextの取得
 	auto graphicsContext = context->Get<GraphicsContext>();
@@ -61,6 +65,15 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		OutputDebugStringA("GraphicsContext の初期化に失敗しました。\n");
 		return;
 	}
+
+	// ResourceSystemの取得
+	auto resourceSystem = context->Get<ResourceSystem>();
+	if(!graphicsContext){
+		OutputDebugStringA("ResourceSystem サービスの取得に失敗しました。\n");
+		return;
+	}
+	// ResourceSystemの初期化
+	resourceSystem->Initialize(graphicsContext.get());
 
 	// InputSystemの取得
 	auto inputSystem = context->Get<InputSystem>();
@@ -97,9 +110,17 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	if (!sceneManager) {
 		OutputDebugStringA("SceneManager サービスの取得に失敗しました。\n");
 		return;
+	} else{
+		// SceneManagerの初期化
+		SceneContext sceneContext{};
+		sceneContext.graphics = graphicsContext.get();
+		sceneContext.renderer = mainRenderer.get();
+		sceneContext.input = inputSystem.get();
+		sceneContext.resource = resourceSystem.get();
+
+		sceneManager->Initialize(sceneContext);
 	}
-	// SceneManagerの初期化
-	sceneManager->Initialize(graphicsContext.get(), mainRenderer.get(),inputSystem.get());
+
 
 	// WindowSystemのメインウィンドウを取得
 	auto mainWindow = dynamic_cast<MainWindow*>(windowSystem->GetMainWindow().get());
@@ -109,13 +130,11 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		mainWindow->SetImGuiSystem(imgui.get());
 		mainWindow->SetInputSystem(inputSystem.get());
 	}
-	InitializeTexture(graphicsContext.get());
 }
 
 void Engine::Shutdown(std::shared_ptr<EngineContext> context){
 
 	context->Shutdown();
-	FinalizeTexture();
 
 	typedef HRESULT(WINAPI* LPDXGIGetDebugInterface)(REFIID, void**);
 

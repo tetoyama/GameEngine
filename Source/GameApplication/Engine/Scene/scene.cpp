@@ -2,17 +2,21 @@
 #include "_Old/model.h"
 
 #include "scene.h"
+#include "sceneManager.h"
+
 #include "Entity/entityRegistry.h"
 #include "System/transformSystem.h"
 #include "System/renderSystem.h"
 #include "Engine/Graphics/mainRenderer.h"
 #include "Component/transformComponent.h"
-#include "Engine/Resources/TextureLoader.h"
+#include "Engine/Resources/resourceSystem.h"
 
 #include "Engine/Platform/InputSystem/InputSystem.h"
 #include <string>
 
-
+#include "Component/modelRendererComponent.h"
+#include "Engine/Resources/Data/modelData.h"
+#include "Engine/Resources/Loader/modelLoader.h"
 
 static MODEL* g_Model = nullptr;
 static float Timer = 0.0f;
@@ -55,23 +59,31 @@ Scene::~Scene(){
 	Shutdown();
 }
 
-void Scene::Initialize(GraphicsContext* graphiccontext, MainRenderer* mainRenderer, InputSystem* inputsystem){
-	pGraphicContext = graphiccontext;
-	m_InputSystem = inputsystem;
-	m_MainRenderer = mainRenderer;
-	InitModel(graphiccontext);
-	g_Model = LoadModel("Asset\\Model\\model.fbx");
+void Scene::Initialize(SceneContext* set){
 
+<<<<<<< Updated upstream
 	unlitTexture.Init("Asset\\Shader\\unlitTexture");
 	pixelLighting.Init("Asset\\Shader\\pixelLighting");
 	pixelLightingBlinnPhong.Init("Asset\\Shader\\pixelLightingBlinnPhong");
 	vertexDirectionalLighting.Init("Asset\\Shader\\vertexDirectionalLighting");
 	pointLightingBlinnPhong.Init("Asset\\Shader\\pointLightingBlinnPhong");
+=======
+	m_SceneContext = set;
+
+	InitModel(m_SceneContext->graphics);
+
+	//unlitTexture.Init("Asset\\Shader\\unlitTexture");
+	//pixelLighting.Init("Asset\\Shader\\pixelLighting");
+	//pixelLightingBlinnPhong.Init("Asset\\Shader\\pixelLightingBlinnPhong");
+	//vertexDirectionalLighting.Init("Asset\\Shader\\vertexDirectionalLighting");
+	//pointLightingBlinnPhong.Init("Asset\\Shader\\pointLightingBlinnPhong");
+	//semiSphereLighting.Init("Asset\\Shader\\semiSphereLighting");
+>>>>>>> Stashed changes
 
 	m_entityRegistry = std::make_shared<EntityRegistry>();
 
 	m_transformSystem = std::make_unique<TransformSystem>(m_entityRegistry.get());
-	m_renderSystem = std::make_unique<RenderSystem>(m_entityRegistry.get(), mainRenderer);
+	m_renderSystem = std::make_unique<RenderSystem>(m_entityRegistry.get(), m_SceneContext->renderer);
 
 	m_renderSystem->Initialize();
 
@@ -93,7 +105,7 @@ void Scene::Initialize(GraphicsContext* graphiccontext, MainRenderer* mainRender
 		auto mesh = std::make_shared<MeshData>();
 
 		mesh->meshCount = 4;
-		mesh->m_TextureID = LoadTexture(L"Asset\\Texture\\texture.jpg");
+		mesh->m_TextureData = m_SceneContext->resource->LoadTexture(L"Asset\\Texture\\texture.jpg");
 		VERTEX_3D vertex[4]{};
 
 		vertex[0].Position = DirectX::XMFLOAT3(100.0f * 0.0f, 100.0f * 0.0f, 0.0f);
@@ -125,16 +137,36 @@ void Scene::Initialize(GraphicsContext* graphiccontext, MainRenderer* mainRender
 		D3D11_SUBRESOURCE_DATA sd{};
 		sd.pSysMem = vertex;
 
-		mainRenderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, &mesh->m_VertexBuffer);
-		mainRenderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\unlitTextureVS.cso", &mesh->m_VertexShader, &mesh->m_VertexLayout);
-		mainRenderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitTexturePS.cso", &mesh->m_PixelShader);
+		m_SceneContext->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, &mesh->m_VertexBuffer);
+		m_SceneContext->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\unlitTextureVS.cso", &mesh->m_VertexShader, &mesh->m_VertexLayout);
+		m_SceneContext->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitTexturePS.cso", &mesh->m_PixelShader);
 
 		meshRenderer->mesh = mesh;
+	}
+
+	{
+		//エンティティを作成し、TransformとMeshRendererを追加
+		EntityID entity = registry->CreateEntity();
+
+		// TransformComponentを追加
+		auto* transform = registry->AddComponent<TransformComponent>(entity);
+		transform->position = Vector3(0.0f, 0.0f, 100.0f);
+		transform->scale = Vector3(10, 10, 10);
+
+
+		// ModelRendererComponentを追加
+		ModelData modelData = *m_SceneContext->resource->LoadModel("Asset\\Model\\model.fbx");
+
+		auto* modelRenderer = registry->AddComponent<ModelRendererComponent>(entity);
+		modelRenderer->model = std::make_shared<ModelData>(modelData);
 	}
 }
 
 void Scene::Update(float deltaTime){
-	XPos += deltaTime * (m_InputSystem->IsKey(m_MainRenderer->GetHWND(), VK_RIGHT) - m_InputSystem->IsKey(m_MainRenderer->GetHWND(), VK_LEFT)) * 50.0f;
+
+	auto inputSystem = m_SceneContext->input;
+
+	XPos += deltaTime * (inputSystem->IsKey(m_SceneContext->renderer->GetHWND(), VK_RIGHT) - inputSystem->IsKey(m_SceneContext->renderer->GetHWND(), VK_LEFT)) * 50.0f;
 	Timer += deltaTime;
 	if(m_transformSystem) m_transformSystem->Update(deltaTime);
 }
@@ -144,38 +176,56 @@ void Scene::FixedUpdate(float fixedDeltaTime){
 }
 
 void Scene::Render(){
-	if(m_renderSystem){
-		m_renderSystem->Draw();
-	}
+	auto Renderer = m_SceneContext->renderer;
+	auto graphicsContext = Renderer->GetGraphicsContext();
 
-	Camera camera;
+	graphicsContext->SetWorldViewProjection2D();
+
+	CAMERA camera{};
 	camera.CameraPosition = {0.0f,0.0f,0.0f,0.0f};
-	pGraphicContext->SetCamera(camera);
+	graphicsContext->SetCamera(camera);
 
 	LIGHT light = {};
 	light.Enable = TRUE;
 	light.Position = DirectX::XMFLOAT4(0, 0, 100, 1);
 	light.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
 	light.Ambient = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+<<<<<<< Updated upstream
 	light.PointLightParam = DirectX::XMFLOAT4(100.0f, 0, 0, 0);
 
 	light.SkyColor = DirectX::XMFLOAT4(0.4f, 0.6f, 1.0f, 1.0f);
 	light.GroundColor = DirectX::XMFLOAT4(0.1f, 0.2f, 0.1f, 1.0f);
 	light.GroundNormal = DirectX::XMFLOAT4(0, 1, 0, 0);
+=======
+	light.Diffuse = DirectX::XMFLOAT4(1.5f, 1.5f, 1.5f, 1.0f);
 
-	DirectX::XMMATRIX projection;
-	projection = DirectX::XMMatrixPerspectiveFovLH(1.0f, (float)pGraphicContext->m_width / pGraphicContext->m_height, 0.01f, 10000.0f);
+	light.Position = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	light.PointLightParam = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	light.SkyColor = DirectX::XMFLOAT4(0.8f, 0.8f, 1.0f, 1.0f);
+	light.GroundColor = DirectX::XMFLOAT4(0.0f, 0.1f, 0.0f, 0.1f);
+	graphicsContext->SetLight(light);
 
-	pGraphicContext->SetProjectionMatrix(projection);
-	pGraphicContext->SetViewMatrix(DirectX::XMMatrixLookAtLH({0.0f,0.0f,0.0f}, {0.0,0.0f,1.0f}, {0.0f,1.0f,0.0f}));
-	pGraphicContext->SetDepthEnable(true);
-	unlitTexture.Load();
+	DirectX::XMMATRIX projection{};
+	projection = DirectX::XMMatrixPerspectiveFovLH(1.0f, (float)graphicsContext->m_width / graphicsContext->m_height, 0.01f, 10000.0f);
 
-	DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(Timer, Timer, 0) * DirectX::XMMatrixTranslation(XPos - 60, 0, 100), g_Model);
-	
-	vertexDirectionalLighting.Load();
+	graphicsContext->SetProjectionMatrix(projection);
+	graphicsContext->SetViewMatrix(DirectX::XMMatrixLookAtLH({0.0f,0.0f,0.0f}, {0.0,0.0f,1.0f}, {0.0f,1.0f,0.0f}));
+	graphicsContext->SetDepthEnable(true);
+
+	if(m_renderSystem){
+		m_renderSystem->Draw();
+	}
 
 
+	//unlitTexture.Load();
+>>>>>>> Stashed changes
+
+	//DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(Timer, Timer, 0) * DirectX::XMMatrixTranslation(XPos - 60, 0, 100), g_Model);
+	//
+	//vertexDirectionalLighting.Load();
+
+
+<<<<<<< Updated upstream
 	DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(Timer, -Timer, 0) * DirectX::XMMatrixTranslation(XPos - 30, 0, 100), g_Model);
 	pixelLighting.Load();
 
@@ -185,6 +235,23 @@ void Scene::Render(){
 	DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(-Timer, Timer, 0) * DirectX::XMMatrixTranslation(XPos + 30, 0, 100), g_Model);
 	pointLightingBlinnPhong.Load();
 	DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(Timer, Timer, 0) * DirectX::XMMatrixTranslation(XPos + 60, 0, 100), g_Model);
+=======
+	//DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(Timer, -Timer, 0) * DirectX::XMMatrixTranslation(XPos - 30, 0, 100), g_Model);
+
+	//pixelLighting.Load();
+	//DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(-Timer, -Timer, 0) * DirectX::XMMatrixTranslation(XPos, 0, 100), g_Model);
+
+	//pixelLightingBlinnPhong.Load();
+	//DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(-Timer, Timer, 0) * DirectX::XMMatrixTranslation(XPos + 30, 0, 100), g_Model);
+
+	//light.SkyColor = DirectX::XMFLOAT4(1.0f, 0.6f, 0.85f, 0.1f); 
+	//light.GroundColor = DirectX::XMFLOAT4(0.8f, 0.8f, 1.0f, 0.5f);
+	//light.GroundNormal = DirectX::XMFLOAT4(0, 1, 0, 0);
+	//pGraphicContext->SetLight(light);
+
+	//semiSphereLighting.Load();
+	//DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(Timer, Timer, 0) * DirectX::XMMatrixTranslation(XPos + 60, 0, 100), g_Model);
+>>>>>>> Stashed changes
 }
 
 void Scene::Shutdown(){

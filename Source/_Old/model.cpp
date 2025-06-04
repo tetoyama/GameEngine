@@ -1,5 +1,4 @@
 #include "model.h"
-#include "Engine/Resources/TextureLoader.h"
 
 #pragma comment (lib, "assimp-vc143-mt.lib")
 
@@ -172,7 +171,7 @@ void DrawModel(XMMATRIX World, MODEL* pModel){
 				g_GraphicContext->GetDeviceContext()->PSSetShaderResources(0, 1, &pModel->Texture[Texture.data]);
 			}
 		} else{
-			SetTexture(0);
+			//SetTexture(0);
 		}
 		// 頂点バッファ設定
 		UINT stride = sizeof(VERTEX_3D);

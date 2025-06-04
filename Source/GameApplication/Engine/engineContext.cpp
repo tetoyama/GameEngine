@@ -8,6 +8,7 @@
 #include "Platform/InputSystem/InputSystem.h"
 #include "Scene/sceneManager.h"
 #include "Graphics/mainRenderer.h"
+#include "Resources/resourceSystem.h"
 
 std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 
@@ -41,6 +42,9 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
     auto mainRenderer = std::make_shared<MainRenderer>();
 	context->Register<MainRenderer>(mainRenderer);
 
+	// ResourceSystem “o˜^
+	auto resourceSystem = std::make_shared<ResourceSystem>();
+	context->Register<ResourceSystem>(resourceSystem);
 
 	// ¡Œã: ‘¼‚ÌƒVƒXƒeƒ€‚à‚±‚±‚Å“o˜^
 
@@ -48,7 +52,9 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 }
 
 void EngineContext::Shutdown() {
-		// ‹t‡‚ÅShutdownŒÄ‚Ño‚µ
+
+	// ‹t‡‚ÅShutdownŒÄ‚Ño‚µ
+
 	for (auto it = m_ServiceOrder.rbegin(); it != m_ServiceOrder.rend(); ++it) {
 		auto found = m_Services.find(*it);
 		if (found != m_Services.end()) {

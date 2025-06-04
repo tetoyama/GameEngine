@@ -7,7 +7,7 @@
 #include <type_traits>
 #include <vector>
 #include <unordered_map>
-#include "Component/component.h"
+#include "Component/IComponent.h"
 
 using EntityID = uint32_t;
 
@@ -22,7 +22,7 @@ public:
 	// Component追加・取得API（テンプレート）
 	template<typename T, typename... Args>
 	T* AddComponent(EntityID id, Args&&... args){
-		static_assert(std::is_base_of<Component, T>::value, "T must inherit from Component");
+		static_assert(std::is_base_of<IComponent, T>::value, "T must inherit from IComponent");
 		auto comp = std::make_unique<T>(std::forward<Args>(args)...);
 		T* ptr = comp.get();
 		m_components[std::type_index(typeid(T))][id] = std::move(comp);
@@ -51,8 +51,22 @@ public:
 		return m_components;
 	}
 
+	// 特定の型のコンポーネントを持つ全ての Entity を取得
+	template<typename T>
+	std::vector<EntityID> FindEntitiesWithComponent() const{
+		static_assert(std::is_base_of<IComponent, T>::value, "T must inherit from IComponent");
+		std::vector<EntityID> result;
+		auto it = m_components.find(std::type_index(typeid(T)));
+		if(it != m_components.end()){
+			for(const auto& [entityID, component] : it->second){
+				result.push_back(entityID);
+			}
+		}
+		return result;
+	}
+
 private:
 	EntityID m_nextEntityID = 1;
 	// 型ごと・EntityごとのComponent管理
-	std::unordered_map<std::type_index, std::unordered_map<EntityID, std::unique_ptr<Component>>> m_components;
+	std::unordered_map<std::type_index, std::unordered_map<EntityID, std::unique_ptr<IComponent>>> m_components;
 };

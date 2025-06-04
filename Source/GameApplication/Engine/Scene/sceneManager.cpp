@@ -2,17 +2,8 @@
 #include "sceneManager.h"
 #include "scene.h"
 
-SceneManager::SceneManager()
-{}
-
-SceneManager::~SceneManager(){
-	Shutdown();
-}
-
-void SceneManager::Initialize(GraphicsContext* graphiccontext, MainRenderer* mainRenderer ,InputSystem* inputsystem){
-	m_mainRenderer = mainRenderer;
-	m_graphicsContext = graphiccontext;
-	m_InputSystem = inputsystem;
+void SceneManager::Initialize(SceneContext sceneContext){
+	m_SceneContext = sceneContext;
 }
 
 void SceneManager::Update(float deltaTime){
@@ -46,7 +37,7 @@ void SceneManager::LoadScene(std::shared_ptr<Scene> scene){
 	}
 	m_activeScene = scene;
 	if(m_activeScene){
-		m_activeScene->Initialize(m_graphicsContext,m_mainRenderer,m_InputSystem);
+		m_activeScene->Initialize(&m_SceneContext);
 	}
 }
 

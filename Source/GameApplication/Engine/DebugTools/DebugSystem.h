@@ -7,6 +7,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
+#include "Service/IService.h"
 #include "Backends/ImGui/imgui.h"
 
 #define LOG_TRACE(msg)    Log(LogLevel::Trace,   msg, __FUNCTION__, __FILE__, __LINE__)
@@ -41,10 +42,10 @@ public:
 	virtual void Write(const LogEntry& entry) = 0;
 };
 
-class DebugLogSystem {
+class DebugLogSystem : IService {
 public:
 	void Initialize(); // 必要ならファイルパスなど渡す
-	void Shutdown();
+	void Shutdown() override;
 
 	void AddSink(std::shared_ptr<ILogSink> sink);
 	void RemoveSink(std::shared_ptr<ILogSink> sink);
