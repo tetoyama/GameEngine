@@ -21,7 +21,8 @@
 #include "Engine/Graphics/mainRenderer.h"
 
 #include "Engine/Resources/resourceSystem.h"
-
+#include "Engine/Resources/Data/vertexShaderData.h"
+#include "Engine/Resources/Data/pixelShaderData.h"
 void RenderSystem::Draw(){
 
 	GraphicsContext* graphicsContext = m_renderer->GetGraphicsContext();
@@ -115,6 +116,15 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 
 	GraphicsContext* graphicsContext = m_renderer->GetGraphicsContext();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
+	if(modelRenderer->pixelShader){
+		deviceContext->PSSetShader(modelRenderer->pixelShader->m_PixelShader.Get(), NULL, 0);
+	}
+
+	if(modelRenderer->vertexShader){
+		deviceContext->IASetInputLayout(modelRenderer->vertexShader->m_VertexLayout.Get());
+		deviceContext->VSSetShader(modelRenderer->vertexShader->m_VertexShader.Get(), NULL, 0);
+	}
 
 	for(unsigned int m = 0; m < pModel->AiScene->mNumMeshes; m++){
 		if(pModel->SetTexture){

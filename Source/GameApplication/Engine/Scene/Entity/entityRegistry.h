@@ -55,11 +55,12 @@ public:
 	template<typename T>
 	std::vector<Entity> FindEntitiesWithComponent() const{
 		static_assert(std::is_base_of<IComponent, T>::value, "T must inherit from IComponent");
+
 		std::vector<Entity> result;
 		auto it = m_components.find(std::type_index(typeid(T)));
 		if(it != m_components.end()){
-			for(const auto& [entityID, component] : it->second){
-				result.push_back(entityID);
+			for(auto it2 = it->second.begin(); it2 != it->second.end(); ++it2){
+				result.push_back(it2->first); // entityID
 			}
 		}
 		return result;

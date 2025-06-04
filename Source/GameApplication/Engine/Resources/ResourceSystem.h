@@ -9,9 +9,12 @@
 
 struct ModelData;
 struct TextureData;
+struct VertexShaderData;
+struct PixelShaderData;
 
 class ModelLoader;
 class TextureLoader;
+class ShaderLoader;
 
 
 class ResourceSystem : IService{
@@ -19,15 +22,19 @@ public:
 	void Initialize(GraphicsContext* graphics);
 	void Finalize();
 
-	ModelData* LoadModel(const std::string& filePath);
-	ModelData* GetModel(const std::string& filePath);
-
-	TextureData* LoadTexture(const std::wstring& filePath);
-	TextureData* GetTexture(const std::wstring& filePath);
-
+	ModelLoader* GetModelLoader(){
+		return m_ModelLoader.get();
+	}
+	TextureLoader* GetTextureLoader(){
+		return m_TextureLoader.get();
+	}
+	ShaderLoader* GetShaderLoader(){
+		return m_ShaderLoader.get();
+	}
 private:
 	GraphicsContext* m_Graphics = nullptr;
 
 	std::shared_ptr<ModelLoader> m_ModelLoader;
 	std::shared_ptr<TextureLoader> m_TextureLoader;
+	std::shared_ptr<ShaderLoader> m_ShaderLoader;
 };

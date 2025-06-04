@@ -3,6 +3,8 @@
 #include <memory>
 
 struct ModelData;
+struct PixelShaderData;
+struct VertexShaderData;
 
 class ModelRendererComponent: public IComponent {
 public:
@@ -10,4 +12,6 @@ public:
 	~ModelRendererComponent() = default;
 
 	std::shared_ptr<ModelData> model;
+	PixelShaderData* pixelShader = nullptr;
+	VertexShaderData* vertexShader = nullptr;
 };

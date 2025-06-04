@@ -25,7 +25,7 @@ public:
 
 private:
 
-	SceneContext* m_SceneContext;
+	SceneContext* m_SceneContext = nullptr;
 	std::shared_ptr<EntityRegistry> m_entityRegistry;
 	std::unique_ptr<TransformSystem> m_transformSystem;
 	std::unique_ptr<RenderSystem> m_renderSystem;

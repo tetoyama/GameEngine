@@ -16,39 +16,12 @@
 #include "Component/modelRendererComponent.h"
 #include "Engine/Resources/Data/modelData.h"
 #include "Engine/Resources/Loader/modelLoader.h"
-
+#include "Engine/Resources/Loader/shaderLoader.h"
+#include "Engine/Resources/Data/vertexShaderData.h"
+#include "Engine/Resources/Data/pixelShaderData.h"
 static float Timer = 0.0f;
-static GraphicsContext* pGraphicContext = nullptr;
 static float XPos = 0.0f;
-class CSO
-{
-public:
-	CSO(){}
-	~CSO(){}
 
-	void Init(const std::string filename){
-		std::string VS = "VS.cso";
-		std::string PS = "PS.cso";
-		pGraphicContext->CreateVertexShader((filename + VS).c_str(), &m_VertexShader, &m_VertexLayout);
-		pGraphicContext->CreatePixelShader((filename + PS).c_str(), &m_PixelShader);
-	}
-
-	void Load(){
-		pGraphicContext->GetDeviceContext()->IASetInputLayout(m_VertexLayout);
-		pGraphicContext->GetDeviceContext()->VSSetShader(m_VertexShader, NULL, 0);
-		pGraphicContext->GetDeviceContext()->PSSetShader(m_PixelShader, NULL, 0);
-	}
-private:
-	ID3D11VertexShader* m_VertexShader;
-	ID3D11PixelShader* m_PixelShader;
-	ID3D11InputLayout* m_VertexLayout;
-};
-
-static CSO unlitTexture;
-static CSO pixelLighting;
-static CSO pixelLightingBlinnPhong;
-static CSO vertexDirectionalLighting;
-static CSO pointLightingBlinnPhong;
 Scene::Scene(){
 
 }
@@ -77,6 +50,7 @@ void Scene::Initialize(SceneContext* set){
 	m_renderSystem->Initialize();
 
 	auto registry = GetEntityRegistry();
+	auto resource = m_SceneContext->resource;
 
 	/* {
 		//エンティティを作成し、TransformとMeshRendererを追加
@@ -134,7 +108,7 @@ void Scene::Initialize(SceneContext* set){
 	}
 	*/
 	{
-		//エンティティを作成し、TransformとMeshRendererを追加
+		//エンティティを作成し、TransformとModelRendererを追加
 		Entity entity = registry->CreateEntity();
 
 		// TransformComponentを追加
@@ -144,10 +118,12 @@ void Scene::Initialize(SceneContext* set){
 
 
 		// ModelRendererComponentを追加
-		ModelData modelData = *m_SceneContext->resource->LoadModel("Asset\\Model\\model.fbx");
+		ModelData modelData = *resource->GetModelLoader()->LoadModel("Asset\\Model\\model.fbx");
 
 		auto* modelRenderer = registry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = std::make_shared<ModelData>(modelData);
+		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\semiSphereLightingVS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\semiSphereLightingPS.cso");
 	}
 }
 
@@ -157,6 +133,12 @@ void Scene::Update(float deltaTime){
 
 	XPos += deltaTime * (inputSystem->IsKey(m_SceneContext->renderer->GetHWND(), VK_RIGHT) - inputSystem->IsKey(m_SceneContext->renderer->GetHWND(), VK_LEFT)) * 50.0f;
 	Timer += deltaTime;
+
+	auto Entity = m_entityRegistry->FindEntitiesWithComponent<ModelRendererComponent>();
+	for(auto t : Entity){
+		auto transform = m_entityRegistry->GetComponent<TransformComponent>(t);
+		transform->rotation = Vector3(Timer,-Timer,Timer * 1.5f);
+	}
 }
 
 void Scene::FixedUpdate(float fixedDeltaTime){
