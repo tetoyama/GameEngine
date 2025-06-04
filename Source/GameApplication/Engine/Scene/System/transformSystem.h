@@ -6,12 +6,13 @@ class EntityRegistry;
 
 class TransformSystem : ISystem{
 public:
-	TransformSystem(EntityRegistry* registry);
-	~TransformSystem();
+	TransformSystem(EntityRegistry* registry): m_registry(registry){}
+	~TransformSystem(){}
 
-	// 毎フレームの更新
-	void Update(float deltaTime);
-
+	void Initialize() override{};
+	void Update(float deltaTime) override{};
+	void Draw() override{};
+	void Finalize()override{};
 private:
 	EntityRegistry* m_registry;
 };

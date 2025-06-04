@@ -4,7 +4,7 @@
 
 class TransformComponent : public IComponent{
 public:
-	Vector3 position = {0, 0, 0};
-	Vector3 rotation = {0, 0, 0};
-	Vector3 scale = {1, 1, 1};
+	Vector3 position = Vector3(0, 0, 0);
+	Vector3 rotation = Vector3(0, 0, 0);
+	Vector3 scale = Vector3(1, 1, 1);
 };

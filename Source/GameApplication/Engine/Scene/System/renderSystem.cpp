@@ -22,9 +22,6 @@
 
 #include "Engine/Resources/resourceSystem.h"
 
-void RenderSystem::Initialize(){
-}
-
 void RenderSystem::Draw(){
 
 	GraphicsContext* graphicsContext = m_renderer->GetGraphicsContext();
@@ -37,7 +34,7 @@ void RenderSystem::Draw(){
 		if(typePair.first == typeid(MeshRendererComponent)){
 			for(const auto& entityPair : typePair.second){
 
-				EntityID entity = entityPair.first;
+				Entity entity = entityPair.first;
 				auto* meshRenderer = static_cast<MeshRendererComponent*>(entityPair.second.get());
 
 				if(!meshRenderer || !meshRenderer->mesh){
@@ -54,7 +51,7 @@ void RenderSystem::Draw(){
 
 			for(const auto& entityPair : typePair.second){
 
-				EntityID entity = entityPair.first;
+				Entity entity = entityPair.first;
 				auto* modelRenderer = static_cast<ModelRendererComponent*>(entityPair.second.get());
 
 				if(!modelRenderer || !modelRenderer->model){
@@ -69,10 +66,6 @@ void RenderSystem::Draw(){
 			}
 		}
 	}
-}
-
-void RenderSystem::Finalize(){
-
 }
 
 void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent* meshRenderer){
@@ -167,7 +160,6 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 
 		graphicsContext->SetWorldMatrix(Scale * Rotation * Translation);
 
-		graphicsContext->SetDepthEnable(true);
 		// ƒ|ƒŠƒSƒ“•`‰æ
 		deviceContext->DrawIndexed(pModel->AiScene->mMeshes[m]->mNumFaces * 3, 0, 0);
 	}

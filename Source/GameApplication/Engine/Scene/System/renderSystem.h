@@ -18,10 +18,10 @@ public:
 	}
 	~RenderSystem(){}
 
-	// •`‰æˆ—
-	void Initialize() override;
+	void Initialize() override{};
+	void Update(float deltaTime) override{};
 	void Draw() override;
-	void Finalize()override;
+	void Finalize()override{};
 
 private:
 

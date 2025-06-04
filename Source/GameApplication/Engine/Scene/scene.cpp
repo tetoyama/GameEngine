@@ -61,13 +61,7 @@ Scene::~Scene(){
 
 void Scene::Initialize(SceneContext* set){
 
-<<<<<<< Updated upstream
-	unlitTexture.Init("Asset\\Shader\\unlitTexture");
-	pixelLighting.Init("Asset\\Shader\\pixelLighting");
-	pixelLightingBlinnPhong.Init("Asset\\Shader\\pixelLightingBlinnPhong");
-	vertexDirectionalLighting.Init("Asset\\Shader\\vertexDirectionalLighting");
-	pointLightingBlinnPhong.Init("Asset\\Shader\\pointLightingBlinnPhong");
-=======
+
 	m_SceneContext = set;
 
 	InitModel(m_SceneContext->graphics);
@@ -78,7 +72,6 @@ void Scene::Initialize(SceneContext* set){
 	//vertexDirectionalLighting.Init("Asset\\Shader\\vertexDirectionalLighting");
 	//pointLightingBlinnPhong.Init("Asset\\Shader\\pointLightingBlinnPhong");
 	//semiSphereLighting.Init("Asset\\Shader\\semiSphereLighting");
->>>>>>> Stashed changes
 
 	m_entityRegistry = std::make_shared<EntityRegistry>();
 
@@ -89,9 +82,9 @@ void Scene::Initialize(SceneContext* set){
 
 	auto registry = GetEntityRegistry();
 
-	{
+	/* {
 		//エンティティを作成し、TransformとMeshRendererを追加
-		EntityID entity = registry->CreateEntity();
+		Entity entity = registry->CreateEntity();
 
 		// TransformComponentを追加
 		auto* transform = registry->AddComponent<TransformComponent>(entity);
@@ -143,10 +136,10 @@ void Scene::Initialize(SceneContext* set){
 
 		meshRenderer->mesh = mesh;
 	}
-
+	*/
 	{
 		//エンティティを作成し、TransformとMeshRendererを追加
-		EntityID entity = registry->CreateEntity();
+		Entity entity = registry->CreateEntity();
 
 		// TransformComponentを追加
 		auto* transform = registry->AddComponent<TransformComponent>(entity);
@@ -168,11 +161,10 @@ void Scene::Update(float deltaTime){
 
 	XPos += deltaTime * (inputSystem->IsKey(m_SceneContext->renderer->GetHWND(), VK_RIGHT) - inputSystem->IsKey(m_SceneContext->renderer->GetHWND(), VK_LEFT)) * 50.0f;
 	Timer += deltaTime;
-	if(m_transformSystem) m_transformSystem->Update(deltaTime);
 }
 
 void Scene::FixedUpdate(float fixedDeltaTime){
-	//if(m_physicsSystem) m_physicsSystem->FixedUpdate(fixedDeltaTime);
+
 }
 
 void Scene::Render(){
@@ -190,13 +182,6 @@ void Scene::Render(){
 	light.Position = DirectX::XMFLOAT4(0, 0, 100, 1);
 	light.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
 	light.Ambient = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-<<<<<<< Updated upstream
-	light.PointLightParam = DirectX::XMFLOAT4(100.0f, 0, 0, 0);
-
-	light.SkyColor = DirectX::XMFLOAT4(0.4f, 0.6f, 1.0f, 1.0f);
-	light.GroundColor = DirectX::XMFLOAT4(0.1f, 0.2f, 0.1f, 1.0f);
-	light.GroundNormal = DirectX::XMFLOAT4(0, 1, 0, 0);
-=======
 	light.Diffuse = DirectX::XMFLOAT4(1.5f, 1.5f, 1.5f, 1.0f);
 
 	light.Position = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -218,24 +203,11 @@ void Scene::Render(){
 
 
 	//unlitTexture.Load();
->>>>>>> Stashed changes
 
 	//DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(Timer, Timer, 0) * DirectX::XMMatrixTranslation(XPos - 60, 0, 100), g_Model);
 	//
 	//vertexDirectionalLighting.Load();
 
-
-<<<<<<< Updated upstream
-	DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(Timer, -Timer, 0) * DirectX::XMMatrixTranslation(XPos - 30, 0, 100), g_Model);
-	pixelLighting.Load();
-
-	DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(-Timer, -Timer, 0) * DirectX::XMMatrixTranslation(XPos, 0, 100), g_Model);
-	pixelLightingBlinnPhong.Load();
-
-	DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(-Timer, Timer, 0) * DirectX::XMMatrixTranslation(XPos + 30, 0, 100), g_Model);
-	pointLightingBlinnPhong.Load();
-	DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(Timer, Timer, 0) * DirectX::XMMatrixTranslation(XPos + 60, 0, 100), g_Model);
-=======
 	//DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(Timer, -Timer, 0) * DirectX::XMMatrixTranslation(XPos - 30, 0, 100), g_Model);
 
 	//pixelLighting.Load();
@@ -251,7 +223,6 @@ void Scene::Render(){
 
 	//semiSphereLighting.Load();
 	//DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(Timer, Timer, 0) * DirectX::XMMatrixTranslation(XPos + 60, 0, 100), g_Model);
->>>>>>> Stashed changes
 }
 
 void Scene::Shutdown(){

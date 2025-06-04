@@ -9,19 +9,19 @@
 #include <unordered_map>
 #include "Component/IComponent.h"
 
-using EntityID = uint32_t;
+using Entity = uint32_t;
 
 class EntityRegistry {
 public:
 	EntityRegistry();
 	~EntityRegistry();
 
-	EntityID CreateEntity();
-	void DestroyEntity(EntityID id);
+	Entity CreateEntity();
+	void DestroyEntity(Entity id);
 
 	// Component追加・取得API（テンプレート）
 	template<typename T, typename... Args>
-	T* AddComponent(EntityID id, Args&&... args){
+	T* AddComponent(Entity id, Args&&... args){
 		static_assert(std::is_base_of<IComponent, T>::value, "T must inherit from IComponent");
 		auto comp = std::make_unique<T>(std::forward<Args>(args)...);
 		T* ptr = comp.get();
@@ -30,7 +30,7 @@ public:
 	}
 
 	template<typename T>
-	T* GetComponent(EntityID id){
+	T* GetComponent(Entity id){
 		auto it = m_components.find(std::type_index(typeid(T)));
 		if(it != m_components.end()){
 			auto entIt = it->second.find(id);
@@ -53,9 +53,9 @@ public:
 
 	// 特定の型のコンポーネントを持つ全ての Entity を取得
 	template<typename T>
-	std::vector<EntityID> FindEntitiesWithComponent() const{
+	std::vector<Entity> FindEntitiesWithComponent() const{
 		static_assert(std::is_base_of<IComponent, T>::value, "T must inherit from IComponent");
-		std::vector<EntityID> result;
+		std::vector<Entity> result;
 		auto it = m_components.find(std::type_index(typeid(T)));
 		if(it != m_components.end()){
 			for(const auto& [entityID, component] : it->second){
@@ -66,7 +66,7 @@ public:
 	}
 
 private:
-	EntityID m_nextEntityID = 1;
+	Entity m_nextEntityID = 1;
 	// 型ごと・EntityごとのComponent管理
-	std::unordered_map<std::type_index, std::unordered_map<EntityID, std::unique_ptr<IComponent>>> m_components;
+	std::unordered_map<std::type_index, std::unordered_map<Entity, std::unique_ptr<IComponent>>> m_components;
 };

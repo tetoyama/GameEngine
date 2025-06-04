@@ -6,7 +6,8 @@ public:
 	virtual void Initialize(){}
 	virtual void Finalize(){}
 	
-	virtual void Update(){}
+	virtual void Update(float deltaTime){}
+
 	virtual void Draw(){}
 
 };
