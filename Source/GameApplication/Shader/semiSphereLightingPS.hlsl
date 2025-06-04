@@ -11,11 +11,15 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     float light = -dot(normal.xyz, Light.Direction.xyz); //光源計算をする
     light = saturate(light);
 	
+    float blendFactor = normal.y * 0.5f + 0.5f;
+    float4 color = lerp(Light.GroundColor, Light.SkyColor, blendFactor);
+    
+    
 	//テクスチャのピクセル色を取得
     outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord);
     outDiffuse.rgb *= In.Diffuse.rgb * light; //明るさを乗算
     outDiffuse.a *= In.Diffuse.a; //αに明るさは関係ないので別計算
-
+    outDiffuse.rgb += color.rgb;
 	
 	//カメラからピクセルへ向かうベクトル
     float3 eyev = In.WorldPosition.xyz - CameraPosition.xyz;

@@ -1,4 +1,5 @@
 #include "common.hlsl"
+
 void main(in VS_IN In, out PS_IN Out)
 {
 	//ここで頂点変換
@@ -23,3 +24,4 @@ void main(in VS_IN In, out PS_IN Out)
 	//ワールド変換した頂点座標を出力
     Out.WorldPosition = mul(In.Position, World);
 }
+

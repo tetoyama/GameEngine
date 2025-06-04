@@ -1,5 +1,4 @@
 // Engine/Scene/scene.cpp
-#include "_Old/model.h"
 
 #include "scene.h"
 #include "sceneManager.h"
@@ -18,7 +17,6 @@
 #include "Engine/Resources/Data/modelData.h"
 #include "Engine/Resources/Loader/modelLoader.h"
 
-static MODEL* g_Model = nullptr;
 static float Timer = 0.0f;
 static GraphicsContext* pGraphicContext = nullptr;
 static float XPos = 0.0f;
@@ -63,8 +61,6 @@ void Scene::Initialize(SceneContext* set){
 
 
 	m_SceneContext = set;
-
-	InitModel(m_SceneContext->graphics);
 
 	//unlitTexture.Init("Asset\\Shader\\unlitTexture");
 	//pixelLighting.Init("Asset\\Shader\\pixelLighting");
