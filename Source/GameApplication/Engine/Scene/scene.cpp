@@ -4,21 +4,30 @@
 #include "sceneManager.h"
 
 #include "Entity/entityRegistry.h"
+
 #include "System/transformSystem.h"
 #include "System/renderSystem.h"
-#include "Engine/Graphics/mainRenderer.h"
+#include "System/cameraSystem.h"
+
+#include "Component/modelRendererComponent.h"
 #include "Component/transformComponent.h"
+#include "Component/cameraComponent.h"
+
+
+
+#include "Engine/Graphics/mainRenderer.h"
 #include "Engine/Resources/resourceSystem.h"
 
 #include "Engine/Platform/InputSystem/InputSystem.h"
 #include <string>
 
-#include "Component/modelRendererComponent.h"
 #include "Engine/Resources/Data/modelData.h"
 #include "Engine/Resources/Loader/modelLoader.h"
 #include "Engine/Resources/Loader/shaderLoader.h"
+#include "Engine/Resources/Loader/textureLoader.h"
 #include "Engine/Resources/Data/vertexShaderData.h"
 #include "Engine/Resources/Data/pixelShaderData.h"
+
 static float Timer = 0.0f;
 static float XPos = 0.0f;
 
@@ -32,27 +41,18 @@ Scene::~Scene(){
 
 void Scene::Initialize(SceneContext* set){
 
-
 	m_SceneContext = set;
-
-	//unlitTexture.Init("Asset\\Shader\\unlitTexture");
-	//pixelLighting.Init("Asset\\Shader\\pixelLighting");
-	//pixelLightingBlinnPhong.Init("Asset\\Shader\\pixelLightingBlinnPhong");
-	//vertexDirectionalLighting.Init("Asset\\Shader\\vertexDirectionalLighting");
-	//pointLightingBlinnPhong.Init("Asset\\Shader\\pointLightingBlinnPhong");
-	//semiSphereLighting.Init("Asset\\Shader\\semiSphereLighting");
 
 	m_entityRegistry = std::make_shared<EntityRegistry>();
 
 	m_transformSystem = std::make_unique<TransformSystem>(m_entityRegistry.get());
 	m_renderSystem = std::make_unique<RenderSystem>(m_entityRegistry.get(), m_SceneContext->renderer);
-
-	m_renderSystem->Initialize();
+	m_cameraSystem = std::make_unique<CameraSystem>(m_entityRegistry.get(), m_SceneContext->renderer);
 
 	auto registry = GetEntityRegistry();
 	auto resource = m_SceneContext->resource;
 
-	/* {
+	 {
 		//エンティティを作成し、TransformとMeshRendererを追加
 		Entity entity = registry->CreateEntity();
 
@@ -68,7 +68,7 @@ void Scene::Initialize(SceneContext* set){
 		auto mesh = std::make_shared<MeshData>();
 
 		mesh->meshCount = 4;
-		mesh->m_TextureData = m_SceneContext->resource->LoadTexture(L"Asset\\Texture\\texture.jpg");
+		mesh->m_TextureData = m_SceneContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\texture.jpg");
 		VERTEX_3D vertex[4]{};
 
 		vertex[0].Position = DirectX::XMFLOAT3(100.0f * 0.0f, 100.0f * 0.0f, 0.0f);
@@ -106,7 +106,7 @@ void Scene::Initialize(SceneContext* set){
 
 		meshRenderer->mesh = mesh;
 	}
-	*/
+	
 	{
 		//エンティティを作成し、TransformとModelRendererを追加
 		Entity entity = registry->CreateEntity();
@@ -114,7 +114,8 @@ void Scene::Initialize(SceneContext* set){
 		// TransformComponentを追加
 		auto* transform = registry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, 0.0f, 100.0f);
-		transform->scale = Vector3(10, 10, 10);
+		transform->scale = Vector3(10.0f, 10.0f, 10.0f);
+		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
 
 
 		// ModelRendererComponentを追加
@@ -122,8 +123,22 @@ void Scene::Initialize(SceneContext* set){
 
 		auto* modelRenderer = registry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = std::make_shared<ModelData>(modelData);
-		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\semiSphereLightingVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\semiSphereLightingPS.cso");
+		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\pixelLightingVS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pixelLightingPS.cso");
+	}
+
+	{
+	//エンティティを作成し、TransformとCameraを追加
+		Entity entity = registry->CreateEntity();
+
+		// CameraComponentを追加
+		auto* camera = registry->AddComponent<CameraComponent>(entity);
+
+		// TransformComponentを追加
+		auto* transform = registry->AddComponent<TransformComponent>(entity);
+		transform->position = Vector3(0.0f, 0.0f, 0.0f);
+		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
+		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
 	}
 }
 
@@ -137,7 +152,7 @@ void Scene::Update(float deltaTime){
 	auto Entity = m_entityRegistry->FindEntitiesWithComponent<ModelRendererComponent>();
 	for(auto t : Entity){
 		auto transform = m_entityRegistry->GetComponent<TransformComponent>(t);
-		transform->rotation = Vector3(Timer,-Timer,Timer * 1.5f);
+		transform->rotation = Vector3(Timer,1.5f * -Timer,0.0f);
 	}
 }
 
@@ -146,61 +161,34 @@ void Scene::FixedUpdate(float fixedDeltaTime){
 }
 
 void Scene::Render(){
+
 	auto Renderer = m_SceneContext->renderer;
 	auto graphicsContext = Renderer->GetGraphicsContext();
 
-	graphicsContext->SetWorldViewProjection2D();
-
-	CAMERA camera{};
-	camera.CameraPosition = {0.0f,0.0f,0.0f,0.0f};
-	graphicsContext->SetCamera(camera);
-
-	LIGHT light = {};
+	LIGHT light{};
 	light.Enable = TRUE;
-	light.Position = DirectX::XMFLOAT4(0, 0, 100, 1);
+	light.Direction = DirectX::XMFLOAT4(0, -1, 0, 0);
+	light.Position = DirectX::XMFLOAT4(0, 100, 0, 0);
 	light.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
 	light.Ambient = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	light.Diffuse = DirectX::XMFLOAT4(1.5f, 1.5f, 1.5f, 1.0f);
+	light.PointLightParam = DirectX::XMFLOAT4(100.0f, 0, 0, 0);
 
-	light.Position = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	light.PointLightParam = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	light.SkyColor = DirectX::XMFLOAT4(0.8f, 0.8f, 1.0f, 1.0f);
-	light.GroundColor = DirectX::XMFLOAT4(0.0f, 0.1f, 0.0f, 0.1f);
+	light.SkyColor = DirectX::XMFLOAT4(1.0f, 0.6f, 0.85f, 0.1f); 
+	light.GroundColor = DirectX::XMFLOAT4(0.8f, 0.8f, 1.0f, 0.5f);
+	light.GroundNormal = DirectX::XMFLOAT4(0, 0, 1, 0);
 	graphicsContext->SetLight(light);
 
-	DirectX::XMMATRIX projection{};
-	projection = DirectX::XMMatrixPerspectiveFovLH(1.0f, (float)graphicsContext->m_width / graphicsContext->m_height, 0.01f, 10000.0f);
 
-	graphicsContext->SetProjectionMatrix(projection);
-	graphicsContext->SetViewMatrix(DirectX::XMMatrixLookAtLH({0.0f,0.0f,0.0f}, {0.0,0.0f,1.0f}, {0.0f,1.0f,0.0f}));
 	graphicsContext->SetDepthEnable(true);
+
+
+	if (m_cameraSystem) {
+		m_cameraSystem->Draw();
+	}
 
 	if(m_renderSystem){
 		m_renderSystem->Draw();
 	}
-
-
-	//unlitTexture.Load();
-
-	//DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(Timer, Timer, 0) * DirectX::XMMatrixTranslation(XPos - 60, 0, 100), g_Model);
-	//
-	//vertexDirectionalLighting.Load();
-
-	//DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(Timer, -Timer, 0) * DirectX::XMMatrixTranslation(XPos - 30, 0, 100), g_Model);
-
-	//pixelLighting.Load();
-	//DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(-Timer, -Timer, 0) * DirectX::XMMatrixTranslation(XPos, 0, 100), g_Model);
-
-	//pixelLightingBlinnPhong.Load();
-	//DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(-Timer, Timer, 0) * DirectX::XMMatrixTranslation(XPos + 30, 0, 100), g_Model);
-
-	//light.SkyColor = DirectX::XMFLOAT4(1.0f, 0.6f, 0.85f, 0.1f); 
-	//light.GroundColor = DirectX::XMFLOAT4(0.8f, 0.8f, 1.0f, 0.5f);
-	//light.GroundNormal = DirectX::XMFLOAT4(0, 1, 0, 0);
-	//pGraphicContext->SetLight(light);
-
-	//semiSphereLighting.Load();
-	//DrawModel(DirectX::XMMatrixScaling(10.0f, 10.0f, 10.0f) * DirectX::XMMatrixRotationRollPitchYaw(Timer, Timer, 0) * DirectX::XMMatrixTranslation(XPos + 60, 0, 100), g_Model);
 }
 
 void Scene::Shutdown(){

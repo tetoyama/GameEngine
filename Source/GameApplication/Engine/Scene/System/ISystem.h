@@ -7,7 +7,6 @@ public:
 	virtual void Finalize(){}
 	
 	virtual void Update(float deltaTime){}
-
 	virtual void Draw(){}
 
 };

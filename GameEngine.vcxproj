@@ -2567,6 +2567,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\textureLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Runtime\JobSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Runtime\TimeService\time.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\cameraComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\IComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\meshRendererComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\modelRendererComponent.h" />
@@ -2574,6 +2575,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Entity\entityRegistry.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\scene.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\sceneManager.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\cameraSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\ISystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\renderSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\transformSystem.h" />
@@ -2887,6 +2889,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\Entity\entityRegistry.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\scene.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\sceneManager.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\cameraSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\renderSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\transformSystem.cpp" />
     <ClCompile Include="Source\GameApplication\gameApplication.cpp" />

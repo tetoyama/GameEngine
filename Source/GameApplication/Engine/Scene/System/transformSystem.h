@@ -6,7 +6,9 @@ class EntityRegistry;
 
 class TransformSystem : ISystem{
 public:
-	TransformSystem(EntityRegistry* registry): m_registry(registry){}
+	TransformSystem(EntityRegistry* registry): m_registry(registry){
+		Initialize();
+	}
 	~TransformSystem(){}
 
 	void Initialize() override{};

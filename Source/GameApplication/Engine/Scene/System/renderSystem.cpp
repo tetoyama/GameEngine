@@ -23,6 +23,7 @@
 #include "Engine/Resources/resourceSystem.h"
 #include "Engine/Resources/Data/vertexShaderData.h"
 #include "Engine/Resources/Data/pixelShaderData.h"
+
 void RenderSystem::Draw(){
 
 	GraphicsContext* graphicsContext = m_renderer->GetGraphicsContext();
@@ -126,6 +127,13 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 		deviceContext->VSSetShader(modelRenderer->vertexShader->m_VertexShader.Get(), NULL, 0);
 	}
 
+
+	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(transform->rotation.x, transform->rotation.y, transform->rotation.z);
+	DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z);
+	DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
+
+	DirectX::XMMATRIX World = Scale * Rotation * Translation;
+
 	for(unsigned int m = 0; m < pModel->AiScene->mNumMeshes; m++){
 		if(pModel->SetTexture){
 
@@ -137,8 +145,6 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 			if(aiString("") != Texture){
 				deviceContext->PSSetShaderResources(0, 1, &pModel->Texture[Texture.data]);
 			}
-		} else{
-			//SetTexture(0);
 		}
 		// 頂点バッファ設定
 		UINT stride = sizeof(VERTEX_3D);
@@ -162,13 +168,8 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 		material.Diffuse = DirectX::XMFLOAT4(diffuse.r, diffuse.g, diffuse.b, 1);
 		graphicsContext->SetMaterial(material);
 
-		//g_GraphicContext->SetLight(World);
-
-		DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(transform->rotation.x, transform->rotation.y, transform->rotation.z);
-		DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z);
-		DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
-
-		graphicsContext->SetWorldMatrix(Scale * Rotation * Translation);
+		graphicsContext->SetWorldMatrix(World);
+		graphicsContext->SetDepthEnable(true);
 
 		// ポリゴン描画
 		deviceContext->DrawIndexed(pModel->AiScene->mMeshes[m]->mNumFaces * 3, 0, 0);

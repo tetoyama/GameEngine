@@ -255,7 +255,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		}
 		ImGui::End();
 
-		mainRenderer->DrawText2D(L"Hello, Direct2D!", 32, 32, 32.0f, D2D1::ColorF(D2D1::ColorF::Yellow));
+		mainRenderer->DrawText2D(L"Hello World!", 32, 32, 32.0f, D2D1::ColorF(D2D1::ColorF::Yellow));
 
 		imgui->End();
 		mainRenderer->EndFrame();

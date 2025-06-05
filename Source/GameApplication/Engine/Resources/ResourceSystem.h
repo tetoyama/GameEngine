@@ -16,7 +16,6 @@ class ModelLoader;
 class TextureLoader;
 class ShaderLoader;
 
-
 class ResourceSystem : IService{
 public:
 	void Initialize(GraphicsContext* graphics);
