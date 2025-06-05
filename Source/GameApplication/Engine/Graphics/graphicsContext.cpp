@@ -35,7 +35,7 @@
 // DirectInput
 #pragma comment (lib, "dinput8.lib")
 
-#define SAFE_RELEASE(p) if(p){ p->Release(); }
+#define SAFE_RELEASE(p) if(p){ p->Release(); p = nullptr;}
 
 bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 
@@ -65,17 +65,26 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 }
 
 void GraphicsContext::Shutdown(){
+
 	SAFE_RELEASE(m_WorldBuffer);
 	SAFE_RELEASE(m_ViewBuffer);
 	SAFE_RELEASE(m_ProjectionBuffer);
-	SAFE_RELEASE(m_LightBuffer);
 	SAFE_RELEASE(m_MaterialBuffer);
+	SAFE_RELEASE(m_LightBuffer);
+	SAFE_RELEASE(m_CameraBuffer);
+	SAFE_RELEASE(m_ParameterBuffer);
+
 	SAFE_RELEASE(m_RenderTargetView);
+	SAFE_RELEASE(m_DepthStencilView);
 
 	SAFE_RELEASE(m_DepthStateEnable);
 	SAFE_RELEASE(m_DepthStateDisable);
+
 	SAFE_RELEASE(m_BlendState);
 	SAFE_RELEASE(m_BlendStateATC);
+
+	m_d2dFactory.Reset();
+	m_dwriteFactory.Reset();
 
 	m_DeviceContext.Reset();
 	m_SwapChain.Reset();
@@ -273,6 +282,7 @@ bool GraphicsContext::CreateSamplerstate(){
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerState;
 	HRESULT hr = m_Device->CreateSamplerState(&samplerDesc, &samplerState);
 	m_DeviceContext->PSSetSamplers(0, 1, samplerState.GetAddressOf());
+	samplerState.Reset();
 
 	if(FAILED(hr)){
 		OutputDebugStringA("サンプラーステートの作成に失敗しました。\n");
@@ -376,6 +386,8 @@ bool GraphicsContext::CreateRasterizerState(){
 
 	m_DeviceContext->RSSetState(rs.Get());
 
+	rs.Reset();
+
 	return SUCCEEDED(hr);
 }
 
@@ -383,6 +395,7 @@ bool GraphicsContext::CreateRenderTargetView(){
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
 	if(FAILED(m_SwapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer)))) return false;
 	HRESULT hr = (m_Device->CreateRenderTargetView(backBuffer.Get(), nullptr, &m_RenderTargetView));
+	backBuffer.Reset();
 	return SUCCEEDED(hr);
 }
 

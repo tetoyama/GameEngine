@@ -7,19 +7,18 @@
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "dwrite.lib")
 
+#define SAFE_RELEASE(p) if(p){ p->Release(); p = nullptr;}
+
 D2DRenderer::D2DRenderer(GraphicsContext* context, HWND hwnd)
 	: m_graphicsContext(context), m_hwnd(hwnd){
 	Initialize2DResources();
 }
 
 D2DRenderer::~D2DRenderer(){
-	if(m_d2dRenderTarget){
-		m_d2dRenderTarget->Release();
-	}
-
-	if(m_dwriteFactory){
-		m_dwriteFactory->Release();
-	}
+	SAFE_RELEASE(m_d2dRenderTarget);
+	SAFE_RELEASE(m_dwriteFactory);
+	SAFE_RELEASE(m_fontBrush);
+	SAFE_RELEASE(m_textFormat);
 }
 
 void D2DRenderer::Initialize2DResources(){

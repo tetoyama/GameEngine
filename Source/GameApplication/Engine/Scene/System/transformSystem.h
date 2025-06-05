@@ -13,7 +13,7 @@ public:
 
 	void Initialize() override{};
 	void Update(float deltaTime) override{};
-	void Draw() override{};
+	void Draw() override {};
 	void Finalize()override{};
 private:
 	EntityRegistry* m_registry;

@@ -1857,9 +1857,6 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\meshRendererComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\_Old\renderer.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Service\configSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -2010,9 +2007,6 @@
     <ClInclude Include="Source\GameApplication\Backends\myVector3.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\_Old\model.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\modelData.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -2035,6 +2029,18 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\shaderData.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\cameraComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\cameraSystem.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\playerComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\playerSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
@@ -2300,22 +2306,31 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\renderSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\_Old\renderer.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\DebugTools\debugSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Resources\Loader\textureLoader.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\_Old\model.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Resources\resourceSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Resources\Loader\modelLoader.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Backends\checkFileExtention.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Resources\Loader\shaderLoader.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\cameraSystem.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\playerSystem.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Resources\Data\modelData.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -2366,6 +2381,14 @@
     <FxCompile Include="Source\GameApplication\Shader\pointLightingBlinnPhongVS.hlsl" />
     <FxCompile Include="Source\GameApplication\Shader\pixelLightingBlinnPhongPS.hlsl" />
     <FxCompile Include="Source\GameApplication\Shader\pixelLightingBlinnPhongVS.hlsl" />
+    <FxCompile Include="Source\GameApplication\Shader\pixelLightingPS.hlsl" />
+    <FxCompile Include="Source\GameApplication\Shader\pixelLightingVS.hlsl" />
+    <FxCompile Include="Source\GameApplication\Shader\semiSphereLightingPS.hlsl" />
+    <FxCompile Include="Source\GameApplication\Shader\semiSphereLightingVS.hlsl" />
+    <FxCompile Include="Source\GameApplication\Shader\unlitColorPS.hlsl" />
+    <FxCompile Include="Source\GameApplication\Shader\unlitColorVS.hlsl" />
+    <FxCompile Include="Source\GameApplication\Shader\vertexDirectionalLightingPS.hlsl" />
+    <FxCompile Include="Source\GameApplication\Shader\vertexDirectionalLightingVS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />

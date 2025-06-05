@@ -6,7 +6,6 @@
 #include <typeindex>
 #include <type_traits>
 #include <vector>
-#include <unordered_map>
 #include "Component/IComponent.h"
 
 using Entity = uint32_t;
@@ -59,7 +58,7 @@ public:
 		std::vector<Entity> result;
 		auto it = m_components.find(std::type_index(typeid(T)));
 		if(it != m_components.end()){
-			for(auto it2 = it->second.begin(); it2 != it->second.end(); ++it2){
+			for(auto it2 = it->second.begin(); it2 != it->second.end(); it2++){
 				result.push_back(it2->first); // entityID
 			}
 		}

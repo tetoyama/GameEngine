@@ -2577,14 +2577,14 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\sceneManager.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\cameraSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\ISystem.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\playerComponent.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\playerSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\renderSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\transformSystem.h" />
     <ClInclude Include="Source\GameApplication\gameApplication.h" />
     <ClInclude Include="Source\main.h" />
     <ClInclude Include="Source\Service\configSystem.h" />
     <ClInclude Include="Source\Service\IService.h" />
-    <ClInclude Include="Source\_Old\model.h" />
-    <ClInclude Include="Source\_Old\renderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\Backends\checkFileExtention.cpp" />
@@ -2881,6 +2881,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Platform\WindowSystem\windowSystem.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Resources\Data\modelData.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Resources\Loader\modelLoader.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Resources\Loader\shaderLoader.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Resources\resourceSystem.cpp" />
@@ -2890,12 +2891,11 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\scene.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\sceneManager.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\cameraSystem.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\playerSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\renderSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\transformSystem.cpp" />
     <ClCompile Include="Source\GameApplication\gameApplication.cpp" />
     <ClCompile Include="Source\main.cpp" />
-    <ClCompile Include="Source\_Old\model.cpp" />
-    <ClCompile Include="Source\_Old\renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Asset\Shader\pixelLightingBlinnPhongPS.cso">

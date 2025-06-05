@@ -22,6 +22,7 @@ struct MeshData {
 	int meshCount = 0;
 	int indexCount = 0;
 };
+
 class MeshRendererComponent: public IComponent {
 public:
 	MeshRendererComponent() = default;

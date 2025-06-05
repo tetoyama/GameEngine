@@ -24,7 +24,7 @@ ModelData* ModelLoader::LoadModel(const std::string& modelPath){
 
 	model->SetTexture = true;
 
-	model->AiScene = aiImportFile(modelPath.c_str(), aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded /* | aiProcess_GenBoundingBoxes */);
+	model->AiScene = aiImportFile(modelPath.c_str(), aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded | aiProcess_Triangulate /* | aiProcess_GenBoundingBoxes */);
 	assert(model->AiScene);
 
 	model->VertexBuffer = new ID3D11Buffer * [model->AiScene->mNumMeshes];
@@ -115,8 +115,8 @@ ModelData* ModelLoader::LoadModel(const std::string& modelPath){
 			aiTexture* aitexture = model->AiScene->mTextures[i];
 
 			ID3D11ShaderResourceView* texture;
-			DirectX::TexMetadata metadata;
-			DirectX::ScratchImage image;
+			DirectX::TexMetadata metadata{};
+			DirectX::ScratchImage image{};
 			if(aitexture->pcData == NULL){
 
 			} else{

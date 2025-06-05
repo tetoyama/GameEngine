@@ -1,48 +1,55 @@
 #include "cameraSystem.h"
 
-#include "Engine/Graphics/graphicsContext.h"
-#include "Engine/Graphics/mainRenderer.h"
-#include "Entity/entityRegistry.h"
-#include "Component/cameraComponent.h"
+#include <DirectXMath.h>
 #include "Backends/myVector3.h"
 
-#include <DirectXMath.h>
+#include "Engine/Graphics/graphicsContext.h"
+#include "Engine/Graphics/mainRenderer.h"
+
+#include "Entity/entityRegistry.h"
+
+#include "Component/cameraComponent.h"
 
 void CameraSystem::Draw() {
 
+	// コンテキストの取得
 	GraphicsContext* graphicsContext = m_renderer->GetGraphicsContext();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-	const auto& searchComponents = m_registry->GetComponents();
+	// カメラコンポーネントを持つエンティティ取得
+	auto entities = m_registry->FindEntitiesWithComponent<CameraComponent>();
+	if (entities.empty()) {
+		//取得に失敗
+		return;
+	}
 
-	for (const auto& typePair : searchComponents) {
+	// カメラコンポーネントの取得
+	auto cameraComponent = m_registry->GetComponent<CameraComponent>(entities[0]);
+	// トランスフォームの取得
+	auto transformComponent = m_registry->GetComponent<TransformComponent>(entities[0]);
 
-		if (typePair.first == typeid(CameraComponent)) {
-			for (const auto& entityPair : typePair.second) {
+	// プロジェクションマトリクス設定
+	DirectX::XMMATRIX projection;
+	projection = DirectX::XMMatrixPerspectiveFovLH(1.0f, (float)graphicsContext->m_width / graphicsContext->m_height, 0.01f, 1000.0f);
+	graphicsContext->SetProjectionMatrix(projection);
 
-				Entity entity = entityPair.first;
-				auto* cameraComponent = static_cast<CameraComponent*>(entityPair.second.get());
+	// コンスタントバッファ設定
+	Vector3 position = transformComponent->position;
+	CAMERA camera{};
+	camera.CameraPosition = { position.x,position.y,position.z,0.0f };
+	graphicsContext->SetCamera(camera);
 
-				if (!cameraComponent) {
-					continue;
-				}
-				auto* transform = m_registry->GetComponent<TransformComponent>(entity);
-				if (!transform) {
-					continue;
-				}
+	// ビューマトリクス設定
+	if (cameraComponent->isLock) {
 
-				DirectX::XMMATRIX projection;
-				projection = DirectX::XMMatrixPerspectiveFovLH(1.0f, (float)graphicsContext->m_width / graphicsContext->m_height, 0.01f, 1000.0f);
-				graphicsContext->SetProjectionMatrix(projection);
+		Vector3 target = cameraComponent->Target;
+		graphicsContext->SetViewMatrix(DirectX::XMMatrixLookAtLH({ position.x,position.y,position.z }, { target.x,target.y,target.z }, { 0.0f,1.0f,0.0f }));
 
-				Vector3 position = transform->position;
+	} else {
 
-				graphicsContext->SetViewMatrix(DirectX::XMMatrixLookAtLH({ position.x,position.y,position.z}, { 0.0,0.0f,1.0f }, { 0.0f,1.0f,0.0f }));
+		Vector3 front = transformComponent->position + transformComponent->front();
+		Vector3 up = transformComponent->position + transformComponent->up();
 
-				CAMERA camera{};
-				camera.CameraPosition = { position.x,position.y,position.z,0.0f };
-				graphicsContext->SetCamera(camera);
-			}
-		}
+		graphicsContext->SetViewMatrix(DirectX::XMMatrixLookAtLH({ position.x,position.y,position.z }, { front.x,front.y,front.z }, { up.x,up.y,up.z }));
 	}
 }

@@ -54,7 +54,6 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 void EngineContext::Shutdown() {
 
 	// ‹t‡‚ÅShutdownŒÄ‚Ño‚µ
-
 	for (auto it = m_ServiceOrder.rbegin(); it != m_ServiceOrder.rend(); ++it) {
 		auto found = m_Services.find(*it);
 		if (found != m_Services.end()) {

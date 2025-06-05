@@ -49,6 +49,7 @@ void RenderSystem::Draw(){
 
 				DrawMesh(transform, meshRenderer);
 			}
+
 		} else if(typePair.first == typeid(ModelRendererComponent)){
 
 			for(const auto& entityPair : typePair.second){
@@ -113,7 +114,7 @@ void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent
 
 void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererComponent* modelRenderer){
 
-	ModelData* pModel = modelRenderer->model.get();
+	ModelData* pModel = modelRenderer->model;
 
 	GraphicsContext* graphicsContext = m_renderer->GetGraphicsContext();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();

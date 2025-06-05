@@ -10,6 +10,7 @@ class EntityRegistry;
 class TransformSystem;
 class RenderSystem;
 class CameraSystem;
+class PlayerSystem;
 
 class Scene {
 public:
@@ -22,7 +23,9 @@ public:
 	void Render();
 	void Shutdown();
 
-	std::shared_ptr<EntityRegistry> GetEntityRegistry();
+	std::shared_ptr<EntityRegistry> GetEntityRegistry() {
+		return m_entityRegistry;
+	}
 
 private:
 
@@ -31,4 +34,5 @@ private:
 	std::unique_ptr<TransformSystem> m_transformSystem;
 	std::unique_ptr<RenderSystem> m_renderSystem;
 	std::unique_ptr<CameraSystem> m_cameraSystem;
+	std::unique_ptr<PlayerSystem> m_playerSystem;
 };

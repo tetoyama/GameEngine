@@ -24,6 +24,8 @@ public:
 	MainRenderer(){}
 
 	~MainRenderer() {
+		m_d2dRenderTarget.Reset();
+		m_fontBrush.Reset();
 		if(m_d2dRenderer){
 			delete m_d2dRenderer;
 		}

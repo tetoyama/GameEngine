@@ -10,7 +10,7 @@ EntityRegistry::EntityRegistry()
 EntityRegistry::~EntityRegistry(){
 	std::vector<Entity> allEntities;
 
-	// まず全EntityIDを収集（重複排除のためsetでも可）
+	// まず全EntityIDを収集
 	for(auto compMapIt = m_components.begin(); compMapIt != m_components.end(); ++compMapIt){
 		const auto& entityMap = compMapIt->second;
 
@@ -40,4 +40,3 @@ void EntityRegistry::DestroyEntity(Entity id){
 		compMap.second.erase(id);
 	}
 }
-

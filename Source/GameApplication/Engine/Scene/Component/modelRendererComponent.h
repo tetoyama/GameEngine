@@ -1,6 +1,5 @@
 #pragma once
 #include "IComponent.h"
-#include <memory>
 
 struct ModelData;
 struct PixelShaderData;
@@ -11,7 +10,7 @@ public:
 	ModelRendererComponent() = default;
 	~ModelRendererComponent() = default;
 
-	std::shared_ptr<ModelData> model;
+	ModelData* model = nullptr;
 	PixelShaderData* pixelShader = nullptr;
 	VertexShaderData* vertexShader = nullptr;
 };

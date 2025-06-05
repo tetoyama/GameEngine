@@ -16,4 +16,7 @@ void ResourceSystem::Initialize(GraphicsContext* graphics){
 }
 
 void ResourceSystem::Finalize(){
+	m_ModelLoader.reset();
+	m_TextureLoader.reset();
+	m_ShaderLoader.reset();
 }

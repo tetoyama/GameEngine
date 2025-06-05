@@ -8,6 +8,8 @@ struct aiScene;
 
 struct ModelData
 {
+	~ModelData();
+
 	const aiScene* AiScene = nullptr;
 
 	ID3D11Buffer** VertexBuffer;
