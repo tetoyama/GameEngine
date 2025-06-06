@@ -20,6 +20,7 @@ public:
 
 	void Start() override;
 	void Update(float deltaTime) override;
+	void FixedUpdate(float fidedDeltaTime) override {}
 	void Draw() override {};
 
 private:

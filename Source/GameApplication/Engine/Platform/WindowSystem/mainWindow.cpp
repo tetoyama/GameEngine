@@ -190,7 +190,9 @@ LRESULT MainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 			if(m_mainRenderer){
 				UINT width = LOWORD(lParam);
 				UINT height = HIWORD(lParam);
-				m_mainRenderer->OnResize(width, height);
+				if (width > 0 && height > 0) {
+					m_mainRenderer->OnResize(width, height);
+				}
 			}
 			if(m_imguiSystem){
 				m_imguiSystem->OnResize();

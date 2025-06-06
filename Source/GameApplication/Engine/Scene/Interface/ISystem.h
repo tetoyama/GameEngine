@@ -3,11 +3,12 @@ class ISystem
 {
 public:
 
-	virtual void Initialize(){}
-	virtual void Finalize(){}
+	virtual void Initialize() = 0;
+	virtual void Finalize() = 0;
 	
-	virtual void Start(){}
-	virtual void Update(float deltaTime){}
-	virtual void Draw(){}
+	virtual void Start() = 0;
+	virtual void Update(float deltaTime) = 0;
+	virtual void FixedUpdate(float fixedDeltaTime) = 0;
+	virtual void Draw() = 0;
 
 };

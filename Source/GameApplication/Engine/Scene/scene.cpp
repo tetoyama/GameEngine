@@ -1,9 +1,22 @@
 // Engine/Scene/scene.cpp
 
 #include "scene.h"
-#include "sceneManager.h"
 
 #include <string>
+
+#include "Engine/Graphics/mainRenderer.h"
+
+#include "Engine/Platform/InputSystem/InputSystem.h"
+
+#include "Engine/Resources/resourceSystem.h"
+#include "Engine/Resources/Data/modelData.h"
+#include "Engine/Resources/Loader/modelLoader.h"
+#include "Engine/Resources/Loader/shaderLoader.h"
+#include "Engine/Resources/Loader/textureLoader.h"
+#include "Engine/Resources/Data/vertexShaderData.h"
+#include "Engine/Resources/Data/pixelShaderData.h"
+
+#include "sceneManager.h"
 
 #include "Entity/entityRegistry.h"
 
@@ -16,19 +29,6 @@
 #include "Component/transformComponent.h"
 #include "Component/cameraComponent.h"
 #include "Component/playerComponent.h"
-
-#include "Engine/Graphics/mainRenderer.h"
-
-#include "Engine/Platform/InputSystem/InputSystem.h"
-
-#include "Engine/Resources/resourceSystem.h"
-
-#include "Engine/Resources/Data/modelData.h"
-#include "Engine/Resources/Loader/modelLoader.h"
-#include "Engine/Resources/Loader/shaderLoader.h"
-#include "Engine/Resources/Loader/textureLoader.h"
-#include "Engine/Resources/Data/vertexShaderData.h"
-#include "Engine/Resources/Data/pixelShaderData.h"
 
 Scene::Scene(){
 
@@ -44,7 +44,7 @@ void Scene::Initialize(SceneContext* set){
 
 	m_entityRegistry = std::make_shared<EntityRegistry>();
 
-	// コンポーネント型を登録（Archetype or Sparse を選択）
+	// コンポーネントを登録（Archetype or Sparse を選択）
 	m_entityRegistry->RegisterComponent<TransformComponent>(true);   
 	m_entityRegistry->RegisterComponent<MeshRendererComponent>(false); 
 	m_entityRegistry->RegisterComponent<ModelRendererComponent>(false); 
@@ -56,6 +56,8 @@ void Scene::Initialize(SceneContext* set){
 	m_entityRegistry->RegisterSystem(std::make_unique<CameraSystem>(m_entityRegistry.get(), m_SceneContext->renderer));
 	m_entityRegistry->RegisterSystem(std::make_unique<RenderSystem>(m_entityRegistry.get(), m_SceneContext->renderer));
 	m_entityRegistry->RegisterSystem(std::make_unique<PlayerSystem>(m_entityRegistry.get(),m_SceneContext));
+
+	m_entityRegistry->InitializeAllSystems();
 
 	auto Renderer = m_SceneContext->renderer;
 	auto graphicsContext = Renderer->GetGraphicsContext();
@@ -195,6 +197,7 @@ void Scene::Update(float deltaTime){
 
 void Scene::FixedUpdate(float fixedDeltaTime){
 
+	m_entityRegistry->FixedUpdateAllSystems(fixedDeltaTime);
 }
 
 void Scene::Render(){

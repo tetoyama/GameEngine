@@ -188,9 +188,21 @@ public:
         m_systems.emplace_back(std::move(system));
     }
 
+    void InitializeAllSystems() {
+        for (auto& sys : m_systems) {
+            sys->Initialize();
+        }
+    }
+
     void StartAllSystems() {
         for (auto& sys : m_systems) {
             sys->Start();
+        }
+    }
+
+    void FixedUpdateAllSystems(float fdt) {
+        for (auto& sys : m_systems) {
+            sys->FixedUpdate(fdt);
         }
     }
 

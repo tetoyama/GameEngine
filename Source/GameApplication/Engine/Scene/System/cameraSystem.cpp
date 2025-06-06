@@ -10,7 +10,7 @@
 
 #include "Component/cameraComponent.h"
 
-void CameraSystem::Draw() {
+void CameraSystem::Update(float deltaTime) {
 
 	// コンテキストの取得
 	GraphicsContext* graphicsContext = m_renderer->GetGraphicsContext();
