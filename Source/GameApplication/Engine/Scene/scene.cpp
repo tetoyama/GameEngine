@@ -142,7 +142,7 @@ void Scene::Initialize(SceneContext* set){
 		// TransformComponent‚ð’Ç‰Á
 		auto* transform = registry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, 0.0f, 100.0f);
-		transform->scale = Vector3(10.0f, 10.0f, 10.0f);
+		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
 
 
@@ -161,8 +161,8 @@ void Scene::Initialize(SceneContext* set){
 
 		// TransformComponent‚ð’Ç‰Á
 		auto* transform = registry->AddComponent<TransformComponent>(entity);
-		transform->position = Vector3(0.0f, -110.0f, 100.0f);
-		transform->scale = Vector3(500.0f, 100.0f, 500.0f);
+		transform->position = Vector3(0.0f, -100.0f, 100.0f);
+		transform->scale = Vector3(100.0f, 100.0f, 100.0f);
 		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
 
 

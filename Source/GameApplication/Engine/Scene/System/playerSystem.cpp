@@ -76,7 +76,7 @@ void PlayerSystem::Update(float deltaTime) {
 			transform->position += rotatedMoveVec;
 
 			// ƒJƒƒ‰‚ÌˆÊ’u
-			Vector3 setCameraPos = transform->position - m_cameraTransform->front() * 100.0f;
+			Vector3 setCameraPos = transform->position - m_cameraTransform->front() * player->cameraDistance;
 			m_cameraTransform->position += (setCameraPos - m_cameraTransform->position) * deltaTime * player->cameraLerp;
 			m_cameraComponent->isLock = true;
 			m_cameraComponent->Target = transform->position;

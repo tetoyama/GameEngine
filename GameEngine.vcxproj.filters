@@ -2401,4 +2401,7 @@
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Release.lib" />
     <Library Include="Source\GameApplication\Backends\Assimp\assimp-vc143-mt.lib" />
   </ItemGroup>
+  <ItemGroup>
+    <Object Include="Asset\Model\player.obj" />
+  </ItemGroup>
 </Project>
