@@ -29,43 +29,25 @@ void RenderSystem::Draw(){
 	GraphicsContext* graphicsContext = m_renderer->GetGraphicsContext();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-	const auto& searchComponents = m_registry->GetComponents();
+	// コンポーネントを持つエンティティの検索
+	const auto& entities = m_registry->FindEntitiesWithComponent<TransformComponent>();
+	if (entities.empty()) {
+		return;
+	} else {
+		for (Entity entity : entities) {
 
-	for(const auto& typePair : searchComponents){
+			TransformComponent* transform = m_registry->GetComponent<TransformComponent>(entity);
+			if (transform) {
 
-		if(typePair.first == typeid(MeshRendererComponent)){
-			for(const auto& entityPair : typePair.second){
-
-				Entity entity = entityPair.first;
-				auto* meshRenderer = static_cast<MeshRendererComponent*>(entityPair.second.get());
-
-				if(!meshRenderer || !meshRenderer->mesh){
-					continue;
-				}
-				auto* transform = m_registry->GetComponent<TransformComponent>(entity);
-				if(!transform){
-					continue;
+				MeshRendererComponent* meshRenderer = m_registry->GetComponent<MeshRendererComponent>(entity);
+				if (meshRenderer) {
+					DrawMesh(transform, meshRenderer);
 				}
 
-				DrawMesh(transform, meshRenderer);
-			}
-
-		} else if(typePair.first == typeid(ModelRendererComponent)){
-
-			for(const auto& entityPair : typePair.second){
-
-				Entity entity = entityPair.first;
-				auto* modelRenderer = static_cast<ModelRendererComponent*>(entityPair.second.get());
-
-				if(!modelRenderer || !modelRenderer->model){
-					continue;
+				ModelRendererComponent* modelRenderer = m_registry->GetComponent<ModelRendererComponent>(entity);
+				if (modelRenderer) {
+					DrawModel(transform, modelRenderer);
 				}
-				auto* transform = m_registry->GetComponent<TransformComponent>(entity);
-				if(!transform){
-					continue;
-				}
-
-				DrawModel(transform, modelRenderer);
 			}
 		}
 	}

@@ -1,6 +1,6 @@
 // Engine/Scene/Component/meshRendererComponent.h
 #pragma once
-#include "IComponent.h"
+#include "Interface/IComponent.h"
 #include <string>
 #include <memory>
 #include <wrl/client.h>

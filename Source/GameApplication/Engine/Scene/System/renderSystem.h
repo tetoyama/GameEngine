@@ -1,6 +1,6 @@
 // Engine/Scene/System/renderSystem.h
 #pragma once
-#include "ISystem.h"
+#include "Interface/ISystem.h"
 #include "d3d11.h"
 
 class EntityRegistry;
@@ -19,9 +19,11 @@ public:
 	~RenderSystem(){}
 
 	void Initialize() override{};
+	void Finalize()override {};
+
+	void Start() override {};
 	void Update(float deltaTime) override{};
 	void Draw() override;
-	void Finalize()override{};
 
 private:
 

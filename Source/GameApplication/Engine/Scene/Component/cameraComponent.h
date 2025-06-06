@@ -1,6 +1,6 @@
 #pragma once
 #pragma once
-#include "IComponent.h"
+#include "Interface/IComponent.h"
 #include "Backends/myVector3.h"
 
 class CameraComponent : public IComponent {

@@ -44,12 +44,18 @@ void Scene::Initialize(SceneContext* set){
 
 	m_entityRegistry = std::make_shared<EntityRegistry>();
 
-	return;
+	// コンポーネント型を登録（Archetype or Sparse を選択）
+	m_entityRegistry->RegisterComponent<TransformComponent>(true);   
+	m_entityRegistry->RegisterComponent<MeshRendererComponent>(false); 
+	m_entityRegistry->RegisterComponent<ModelRendererComponent>(false); 
+	m_entityRegistry->RegisterComponent<PlayerComponent>(false);
+	m_entityRegistry->RegisterComponent<CameraComponent>(true);
 
-	m_transformSystem = std::make_unique<TransformSystem>(m_entityRegistry.get());
-	m_renderSystem = std::make_unique<RenderSystem>(m_entityRegistry.get(), m_SceneContext->renderer);
-	m_cameraSystem = std::make_unique<CameraSystem>(m_entityRegistry.get(), m_SceneContext->renderer);
-	m_playerSystem = std::make_unique<PlayerSystem>(m_entityRegistry.get(), m_SceneContext);
+	// システムを登録
+	m_entityRegistry->RegisterSystem(std::make_unique<TransformSystem>(m_entityRegistry.get()));
+	m_entityRegistry->RegisterSystem(std::make_unique<CameraSystem>(m_entityRegistry.get(), m_SceneContext->renderer));
+	m_entityRegistry->RegisterSystem(std::make_unique<RenderSystem>(m_entityRegistry.get(), m_SceneContext->renderer));
+	m_entityRegistry->RegisterSystem(std::make_unique<PlayerSystem>(m_entityRegistry.get(),m_SceneContext));
 
 	auto Renderer = m_SceneContext->renderer;
 	auto graphicsContext = Renderer->GetGraphicsContext();
@@ -176,15 +182,15 @@ void Scene::Initialize(SceneContext* set){
 		auto* transform = registry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, 10.0f, 0.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
-		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
+		transform->rotation = Vector3(-1.0f, 0.0f, 0.0f);
 	}
+
+	m_entityRegistry->StartAllSystems();
 }
 
 void Scene::Update(float deltaTime){
 
-	if (m_playerSystem) {
-		m_playerSystem->Update(deltaTime);
-	}
+	m_entityRegistry->UpdateAllSystems(deltaTime);
 }
 
 void Scene::FixedUpdate(float fixedDeltaTime){
@@ -193,18 +199,11 @@ void Scene::FixedUpdate(float fixedDeltaTime){
 
 void Scene::Render(){
 
-	if (m_cameraSystem) {
-		m_cameraSystem->Draw();
-	}
-	if(m_renderSystem){
-		m_renderSystem->Draw();
-	}
+	m_entityRegistry->DrawAllSystems();
 }
 
 void Scene::Shutdown(){
 
 	// システムの終了処理
-	m_renderSystem.reset();
-	m_transformSystem.reset();
 	m_entityRegistry.reset();
 }

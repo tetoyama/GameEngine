@@ -1,5 +1,5 @@
 #pragma once
-#include "IComponent.h"
+#include "Interface/IComponent.h"
 #include "Backends/myVector3.h"
 
 class TransformComponent : public IComponent{

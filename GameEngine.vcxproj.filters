@@ -2001,7 +2001,7 @@
     <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\yaml.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\ISystem.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\ISystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Backends\myVector3.h">
@@ -2025,7 +2025,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\modelRendererComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\IComponent.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\IComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\shaderData.h">
@@ -2041,6 +2041,12 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\playerSystem.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\IComponentStorage.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\Entity.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>

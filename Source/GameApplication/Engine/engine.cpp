@@ -223,37 +223,39 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 
 		sceneManager->Render();
 
-		// // Debug UI をここに書く
-		//ImGui::Begin("Debug");
-		//ImGui::Text("FPS: %.2f", 1.0f / time->GetDeltaTime());
-		//ImGui::Text("Time: %.2f", time->GetTotalTime());
-		//ImGui::End();
+		 // Debug UI をここに書く
+		ImGui::Begin("Debug");
+		{
+			ImGui::Text("FPS: %.2f", 1.0f / time->GetDeltaTime());
+			ImGui::Text("Time: %.2f", time->GetTotalTime());
+		}
+		ImGui::End();
 
-		//ImGui::Begin("Input Debug");
+		ImGui::Begin("Input Debug");
 
-		//auto mainWindowHWND = windowSystem->GetMainWindow()->GetHWND();
+		auto mainWindowHWND = windowSystem->GetMainWindow()->GetHWND();
 
-		//// キーボードの例: Aキー
-		//ImGui::Text("A: %s", inputSystem->IsKey(mainWindowHWND, 'A') ? "Down" : "Up");
-		//ImGui::Text("A Down: %s", inputSystem->IsKeyDown(mainWindowHWND, 'A') ? "Yes" : "No");
-		//ImGui::Text("A Up: %s", inputSystem->IsKeyUp(mainWindowHWND, 'A') ? "Yes" : "No");
+		// キーボードの例: Aキー
+		ImGui::Text("A: %s", inputSystem->IsKey(mainWindowHWND, 'A') ? "Down" : "Up");
+		ImGui::Text("A Down: %s", inputSystem->IsKeyDown(mainWindowHWND, 'A') ? "Yes" : "No");
+		ImGui::Text("A Up: %s", inputSystem->IsKeyUp(mainWindowHWND, 'A') ? "Yes" : "No");
 
-		//// マウス
-		//ImGui::Text("Mouse X: %d", inputSystem->GetMouseX(mainWindowHWND));
-		//ImGui::Text("Mouse Y: %d", inputSystem->GetMouseY(mainWindowHWND));
-		//ImGui::Text("Mouse Left: %s", inputSystem->IsMouseDown(mainWindowHWND, 0) ? "Down" : "Up");
-		//ImGui::Text("Mouse Right: %s", inputSystem->IsMouseDown(mainWindowHWND, 1) ? "Down" : "Up");
-		//ImGui::Text("Mouse Wheel: %d", inputSystem->GetMouseWheel(mainWindowHWND));
+		// マウス
+		ImGui::Text("Mouse X: %d", inputSystem->GetMouseX(mainWindowHWND));
+		ImGui::Text("Mouse Y: %d", inputSystem->GetMouseY(mainWindowHWND));
+		ImGui::Text("Mouse Left: %s", inputSystem->IsMouseDown(mainWindowHWND, 0) ? "Down" : "Up");
+		ImGui::Text("Mouse Right: %s", inputSystem->IsMouseDown(mainWindowHWND, 1) ? "Down" : "Up");
+		ImGui::Text("Mouse Wheel: %d", inputSystem->GetMouseWheel(mainWindowHWND));
 
 
-		//// ゲームパッド（例: 0番）
-		//ImGui::Text("Gamepad 0 Connected: %s", inputSystem->IsGamepadConnected(0) ? "Yes" : "No");
-		//if(inputSystem->IsGamepadConnected(0)){
-		//	ImGui::Text("Gamepad 0 A Button: %s", inputSystem->GetGamepadButton(0, XINPUT_GAMEPAD_A) ? "Pressed" : "Released");
-		//	POINT left = inputSystem->GetGamepadLeftStick(0);
-		//	ImGui::Text("Left Stick: x=%ld y=%ld", left.x, left.y);
-		//}
-		//ImGui::End();
+		// ゲームパッド（例: 0番）
+		ImGui::Text("Gamepad 0 Connected: %s", inputSystem->IsGamepadConnected(0) ? "Yes" : "No");
+		if(inputSystem->IsGamepadConnected(0)){
+			ImGui::Text("Gamepad 0 A Button: %s", inputSystem->GetGamepadButton(0, XINPUT_GAMEPAD_A) ? "Pressed" : "Released");
+			POINT left = inputSystem->GetGamepadLeftStick(0);
+			ImGui::Text("Left Stick: x=%ld y=%ld", left.x, left.y);
+		}
+		ImGui::End();
 
 		//mainRenderer->DrawText2D(L"Hello World!", 32, 32, 32.0f, D2D1::ColorF(D2D1::ColorF::Yellow));
 

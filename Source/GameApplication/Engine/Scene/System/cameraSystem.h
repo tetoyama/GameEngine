@@ -1,5 +1,5 @@
 #pragma once
-#include "ISystem.h"
+#include "Interface/ISystem.h"
 
 class EntityRegistry;
 class MainRenderer;
@@ -14,9 +14,11 @@ public:
 	}
 
 	void Initialize() override {};
+	void Finalize()override {};
+
+	void Start() override {};
 	void Update(float deltaTime) override {};
 	void Draw() override;
-	void Finalize()override {};
 
 private:
 	EntityRegistry* m_registry = nullptr;

@@ -1,5 +1,5 @@
 #pragma once
-#include "IComponent.h"
+#include "Interface/IComponent.h"
 
 struct ModelData;
 struct PixelShaderData;

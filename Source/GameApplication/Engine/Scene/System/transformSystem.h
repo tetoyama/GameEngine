@@ -1,10 +1,10 @@
 // Engine/Scene/transformSystem.h
 #pragma once
-#include "ISystem.h"
+#include "Interface/ISystem.h"
 
 class EntityRegistry;
 
-class TransformSystem : ISystem{
+class TransformSystem : public ISystem{
 public:
 	TransformSystem(EntityRegistry* registry): m_registry(registry){
 		Initialize();
@@ -12,9 +12,11 @@ public:
 	~TransformSystem(){}
 
 	void Initialize() override{};
+	void Finalize()override {};
+
+	void Start() override {};
 	void Update(float deltaTime) override{};
 	void Draw() override {};
-	void Finalize()override{};
 private:
 	EntityRegistry* m_registry;
 };
