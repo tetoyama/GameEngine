@@ -1,15 +1,13 @@
 #pragma once
 #include "Interface/ISystem.h"
 
-class EntityRegistry;
-class MainRenderer;
+struct SceneContext;
 
 class CameraSystem : public ISystem {
 
 public:
 
-	CameraSystem(EntityRegistry* registry, MainRenderer* renderer)
-		: m_registry(registry), m_renderer(renderer) {
+	CameraSystem(SceneContext* context): m_context(context){
 		Initialize();
 	}
 
@@ -22,6 +20,5 @@ public:
 	void Draw() override {}
 
 private:
-	EntityRegistry* m_registry = nullptr;
-	MainRenderer* m_renderer = nullptr;
+	SceneContext* m_context;
 };

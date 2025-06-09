@@ -1,7 +1,6 @@
 #pragma once
 #include "Interface/ISystem.h"
 
-class EntityRegistry;
 struct SceneContext;
 
 class InputSystem;
@@ -10,7 +9,7 @@ class TransformComponent;
 
 class PlayerSystem : public ISystem {
 public:
-	PlayerSystem(EntityRegistry* registry, SceneContext* context) : m_registry(registry),m_context(context) {
+	PlayerSystem(SceneContext* context): m_context(context){
 		Initialize();
 	}
 	~PlayerSystem() {}
@@ -24,7 +23,6 @@ public:
 	void Draw() override {};
 
 private:
-	EntityRegistry* m_registry;
 	SceneContext* m_context;
 
 	InputSystem* m_inputSystem = nullptr;

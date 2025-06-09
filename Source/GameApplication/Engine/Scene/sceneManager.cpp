@@ -2,7 +2,7 @@
 #include "sceneManager.h"
 #include "scene.h"
 
-void SceneManager::Initialize(SceneContext sceneContext){
+void SceneManager::Initialize(SceneManagerContext sceneContext){
 	m_SceneContext = sceneContext;
 }
 
@@ -34,6 +34,7 @@ void SceneManager::Shutdown(){
 void SceneManager::LoadScene(std::shared_ptr<Scene> scene){
 	if(m_activeScene){
 		m_activeScene->Shutdown();
+		m_activeScene.reset();
 	}
 	m_activeScene = scene;
 	if(m_activeScene){

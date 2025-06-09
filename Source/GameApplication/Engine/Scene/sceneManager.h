@@ -1,6 +1,7 @@
 // Engine/Scene/SceneManager.h
 #pragma once
 #include <memory>
+#include <Windows.h>
 #include "Service/IService.h"
 
 class Scene;
@@ -10,11 +11,12 @@ class GraphicsContext;
 class InputSystem;
 class ResourceSystem;
 
-struct SceneContext {
+struct SceneManagerContext {
 	GraphicsContext* graphics = nullptr;
 	MainRenderer* renderer = nullptr;
 	InputSystem* input = nullptr;
 	ResourceSystem* resource = nullptr;
+	HWND hwnd{};
 };
 
 class SceneManager : public IService {
@@ -22,7 +24,7 @@ public:
 	SceneManager() = default;
 	~SceneManager() = default;
 
-	void Initialize(SceneContext sceneContext);
+	void Initialize(SceneManagerContext sceneContext);
 	void Update(float deltaTime);
 	void FixedUpdate(float fixedDeltaTime);
 	void Render();
@@ -33,5 +35,5 @@ public:
 
 private:
 	std::shared_ptr<Scene> m_activeScene;
-	SceneContext m_SceneContext;
+	SceneManagerContext m_SceneContext;
 };

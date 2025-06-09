@@ -105,23 +105,6 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	// MainRendererの初期化
 	mainRenderer->Initialize(graphicsContext.get(), windowSystem->GetMainWindow().get());
 
-	// SceneManagerの取得
-	auto sceneManager = context->Get<SceneManager>();
-	if (!sceneManager) {
-		OutputDebugStringA("SceneManager サービスの取得に失敗しました。\n");
-		return;
-	} else{
-		// SceneManagerの初期化
-		SceneContext sceneContext{};
-		sceneContext.graphics = graphicsContext.get();
-		sceneContext.renderer = mainRenderer.get();
-		sceneContext.input = inputSystem.get();
-		sceneContext.resource = resourceSystem.get();
-
-		sceneManager->Initialize(sceneContext);
-	}
-
-
 	// WindowSystemのメインウィンドウを取得
 	auto mainWindow = dynamic_cast<MainWindow*>(windowSystem->GetMainWindow().get());
 	if (mainWindow) {
@@ -129,6 +112,22 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		mainWindow->SetMainRenderer(mainRenderer.get());
 		mainWindow->SetImGuiSystem(imgui.get());
 		mainWindow->SetInputSystem(inputSystem.get());
+	}
+
+	// SceneManagerの取得
+	auto sceneManager = context->Get<SceneManager>();
+	if(!sceneManager){
+		OutputDebugStringA("SceneManager サービスの取得に失敗しました。\n");
+		return;
+	} else{
+		// SceneManagerの初期化
+		SceneManagerContext sceneContext{};
+		sceneContext.graphics = graphicsContext.get();
+		sceneContext.renderer = mainRenderer.get();
+		sceneContext.input = inputSystem.get();
+		sceneContext.resource = resourceSystem.get();
+		sceneContext.hwnd = mainRenderer->GetHWND();
+		sceneManager->Initialize(sceneContext);
 	}
 }
 
@@ -199,8 +198,8 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 	}
 
 	// 最初のシーンを作成・ロード
-	auto initialScene = std::make_shared<Scene>();
-	sceneManager->LoadScene(initialScene);
+	//auto initialScene = std::make_shared<Scene>();
+	//sceneManager->LoadScene(initialScene);
 
 
 
@@ -257,9 +256,9 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		}
 		ImGui::End();
 
-		//mainRenderer->DrawText2D(L"Hello World!", 32, 32, 32.0f, D2D1::ColorF(D2D1::ColorF::Yellow));
+		mainRenderer->DrawText2D(L"Hello World!", 32, 32, 32.0f, D2D1::ColorF(D2D1::ColorF::Yellow));
 
 		imgui->End();
-		mainRenderer->EndFrame();
+		mainRenderer->EndFrame(false);
 	}
 }

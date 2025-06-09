@@ -11,7 +11,8 @@
 
 #include "Engine/Resources/Data/modelData.h"
 
-#include "Entity/entityRegistry.h"
+#include "Registry/entityRegistry.h"
+#include "Registry/componentRegistry.h"
 
 #include "Component/transformComponent.h"
 
@@ -24,27 +25,32 @@
 #include "Engine/Resources/Data/vertexShaderData.h"
 #include "Engine/Resources/Data/pixelShaderData.h"
 
+#include "Scene.h"
+#include "SceneManager.h"
+
 void RenderSystem::Draw(){
 
-	GraphicsContext* graphicsContext = m_renderer->GetGraphicsContext();
+	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
+
+
 	// コンポーネントを持つエンティティの検索
-	const auto& entities = m_registry->FindEntitiesWithComponent<TransformComponent>();
+	const auto& entities = m_context->component->FindEntitiesWithComponent<TransformComponent>();
 	if (entities.empty()) {
 		return;
 	} else {
 		for (Entity entity : entities) {
 
-			TransformComponent* transform = m_registry->GetComponent<TransformComponent>(entity);
+			TransformComponent* transform = m_context->component->GetComponent<TransformComponent>(entity);
 			if (transform) {
 
-				MeshRendererComponent* meshRenderer = m_registry->GetComponent<MeshRendererComponent>(entity);
+				MeshRendererComponent* meshRenderer = m_context->component->GetComponent<MeshRendererComponent>(entity);
 				if (meshRenderer) {
 					DrawMesh(transform, meshRenderer);
 				}
 
-				ModelRendererComponent* modelRenderer = m_registry->GetComponent<ModelRendererComponent>(entity);
+				ModelRendererComponent* modelRenderer = m_context->component->GetComponent<ModelRendererComponent>(entity);
 				if (modelRenderer) {
 					DrawModel(transform, modelRenderer);
 				}
@@ -55,7 +61,7 @@ void RenderSystem::Draw(){
 
 void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent* meshRenderer){
 
-	GraphicsContext* graphicsContext = m_renderer->GetGraphicsContext();
+	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	deviceContext->IASetInputLayout(meshRenderer->mesh->m_VertexLayout.Get());
@@ -98,7 +104,7 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 
 	ModelData* pModel = modelRenderer->model;
 
-	GraphicsContext* graphicsContext = m_renderer->GetGraphicsContext();
+	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	if(modelRenderer->pixelShader){

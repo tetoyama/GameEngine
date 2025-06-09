@@ -18,7 +18,9 @@
 
 #include "sceneManager.h"
 
-#include "Entity/entityRegistry.h"
+#include "Registry/entityRegistry.h"
+#include "Registry/componentRegistry.h"
+#include "Registry/systemRegistry.h"
 
 #include "System/transformSystem.h"
 #include "System/renderSystem.h"
@@ -38,31 +40,41 @@ Scene::~Scene(){
 	Shutdown();
 }
 
-void Scene::Initialize(SceneContext* set){
+void Scene::Initialize(SceneManagerContext* set){
 
-	m_SceneContext = set;
+	m_SceneManagerContext = set;
 
 	m_entityRegistry = std::make_shared<EntityRegistry>();
+	m_componentRegistry = std::make_shared<ComponentRegistry>(m_entityRegistry.get());
+	m_systemRegistry = std::make_shared<SystemRegistry>();
 
 	// コンポーネントを登録（Archetype or Sparse を選択）
-	m_entityRegistry->RegisterComponent<TransformComponent>(true);   
-	m_entityRegistry->RegisterComponent<MeshRendererComponent>(false); 
-	m_entityRegistry->RegisterComponent<ModelRendererComponent>(false); 
-	m_entityRegistry->RegisterComponent<PlayerComponent>(false);
-	m_entityRegistry->RegisterComponent<CameraComponent>(true);
+	m_componentRegistry->RegisterComponent<TransformComponent>(true);   
+	m_componentRegistry->RegisterComponent<MeshRendererComponent>(false); 
+	m_componentRegistry->RegisterComponent<ModelRendererComponent>(false); 
+	m_componentRegistry->RegisterComponent<PlayerComponent>(false);
+	m_componentRegistry->RegisterComponent<CameraComponent>(true);
 
 	// システムを登録
-	m_entityRegistry->RegisterSystem(std::make_unique<TransformSystem>(m_entityRegistry.get()));
-	m_entityRegistry->RegisterSystem(std::make_unique<CameraSystem>(m_entityRegistry.get(), m_SceneContext->renderer));
-	m_entityRegistry->RegisterSystem(std::make_unique<RenderSystem>(m_entityRegistry.get(), m_SceneContext->renderer));
-	m_entityRegistry->RegisterSystem(std::make_unique<PlayerSystem>(m_entityRegistry.get(),m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<PlayerSystem>(&m_SceneContext));
 
-	m_entityRegistry->InitializeAllSystems();
+	m_systemRegistry->InitializeAll();
 
-	auto Renderer = m_SceneContext->renderer;
+	auto Renderer = m_SceneManagerContext->renderer;
 	auto graphicsContext = Renderer->GetGraphicsContext();
-	auto registry = GetEntityRegistry();
-	auto resource = m_SceneContext->resource;
+	auto resource = m_SceneManagerContext->resource;
+
+	m_SceneContext.entity = m_entityRegistry.get();
+	m_SceneContext.component = m_componentRegistry.get();
+	m_SceneContext.system = m_systemRegistry.get();
+	m_SceneContext.manager = m_SceneManagerContext;
+
+	auto entityRegistry = m_SceneContext.entity;
+	auto componentRegistry = m_SceneContext.component;
+	auto systemRegistry = m_SceneContext.system;
 
 	LIGHT light{};
 	light.Enable = TRUE;
@@ -95,7 +107,7 @@ void Scene::Initialize(SceneContext* set){
 		auto mesh = std::make_shared<MeshData>();
 
 		mesh->meshCount = 4;
-		mesh->m_TextureData = m_SceneContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\texture.jpg");
+		mesh->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\texture.jpg");
 		VERTEX_3D vertex[4]{};
 
 		vertex[0].Position = DirectX::XMFLOAT3(100.0f * 0.0f, 100.0f * 0.0f, 0.0f);
@@ -127,9 +139,9 @@ void Scene::Initialize(SceneContext* set){
 		D3D11_SUBRESOURCE_DATA sd{};
 		sd.pSysMem = vertex;
 
-		m_SceneContext->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, &mesh->m_VertexBuffer);
-		m_SceneContext->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\unlitTextureVS.cso", &mesh->m_VertexShader, &mesh->m_VertexLayout);
-		m_SceneContext->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitTexturePS.cso", &mesh->m_PixelShader);
+		m_SceneManagerContext->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, &mesh->m_VertexBuffer);
+		m_SceneManagerContext->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\unlitTextureVS.cso", &mesh->m_VertexShader, &mesh->m_VertexLayout);
+		m_SceneManagerContext->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitTexturePS.cso", &mesh->m_PixelShader);
 
 		meshRenderer->mesh = mesh;
 	}
@@ -137,37 +149,37 @@ void Scene::Initialize(SceneContext* set){
 
 	{
 		//エンティティを作成し、TransformとModelRendererを追加
-		Entity entity = registry->CreateEntity();
+		Entity entity = entityRegistry->Create();
 
 		// TransformComponentを追加
-		auto* transform = registry->AddComponent<TransformComponent>(entity);
+		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, 0.0f, 100.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
 
 
 		// ModelRendererComponentを追加
-		auto* modelRenderer = registry->AddComponent<ModelRendererComponent>(entity);
+		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
 		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\pixelLightingVS.cso");
 		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pixelLightingPS.cso");
 
-		auto player = registry->AddComponent<PlayerComponent>(entity);
+		auto player = componentRegistry->AddComponent<PlayerComponent>(entity);
 	}
 
 	{
 		//エンティティを作成し、TransformとModelRendererを追加
-		Entity entity = registry->CreateEntity();
+		Entity entity = entityRegistry->Create();
 
 		// TransformComponentを追加
-		auto* transform = registry->AddComponent<TransformComponent>(entity);
+		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, -100.0f, 100.0f);
 		transform->scale = Vector3(100.0f, 100.0f, 100.0f);
 		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
 
 
 		// ModelRendererComponentを追加
-		auto* modelRenderer = registry->AddComponent<ModelRendererComponent>(entity);
+		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\cube.fbx");
 		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\pixelLightingVS.cso");
 		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pixelLightingPS.cso");
@@ -175,38 +187,41 @@ void Scene::Initialize(SceneContext* set){
 
 	{
 		//エンティティを作成し、TransformとCameraを追加
-		Entity entity = registry->CreateEntity();
+		Entity entity = entityRegistry->Create();
 
 		// CameraComponentを追加
-		auto* camera = registry->AddComponent<CameraComponent>(entity);
+		auto* camera = componentRegistry->AddComponent<CameraComponent>(entity);
 
 		// TransformComponentを追加
-		auto* transform = registry->AddComponent<TransformComponent>(entity);
+		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, 10.0f, 0.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 		transform->rotation = Vector3(-1.0f, 0.0f, 0.0f);
 	}
 
-	m_entityRegistry->StartAllSystems();
+	m_systemRegistry->StartAll();
 }
 
 void Scene::Update(float deltaTime){
 
-	m_entityRegistry->UpdateAllSystems(deltaTime);
+	m_systemRegistry->UpdateAll(deltaTime);
 }
 
 void Scene::FixedUpdate(float fixedDeltaTime){
 
-	m_entityRegistry->FixedUpdateAllSystems(fixedDeltaTime);
+	m_systemRegistry->FixedUpdateAll(fixedDeltaTime);
 }
 
 void Scene::Render(){
 
-	m_entityRegistry->DrawAllSystems();
+	m_systemRegistry->DrawAll();
 }
 
 void Scene::Shutdown(){
 
 	// システムの終了処理
+
 	m_entityRegistry.reset();
+	m_componentRegistry.reset();
+	m_systemRegistry.reset();
 }

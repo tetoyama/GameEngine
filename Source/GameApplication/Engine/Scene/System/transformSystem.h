@@ -2,11 +2,11 @@
 #pragma once
 #include "Interface/ISystem.h"
 
-class EntityRegistry;
+struct SceneContext;
 
 class TransformSystem : public ISystem{
 public:
-	TransformSystem(EntityRegistry* registry): m_registry(registry){
+	TransformSystem(SceneContext* context): m_context(context){
 		Initialize();
 	}
 	~TransformSystem(){}
@@ -19,5 +19,5 @@ public:
 	void FixedUpdate(float fidedDeltaTime) override {}
 	void Draw() override {};
 private:
-	EntityRegistry* m_registry;
+	SceneContext* m_context;
 };

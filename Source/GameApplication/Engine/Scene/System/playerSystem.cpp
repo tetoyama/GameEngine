@@ -1,8 +1,10 @@
 #include "playerSystem.h"
 
+#include "Scene.h"
 #include "sceneManager.h"
 
-#include "Entity/entityRegistry.h"
+#include "Registry/entityRegistry.h"
+#include "Registry/componentRegistry.h"
 
 #include "Component/playerComponent.h"
 #include "Component/transformComponent.h"
@@ -14,13 +16,13 @@
 
 void PlayerSystem::Start() {
 	// 入力システムの取得
-	m_inputSystem = m_context->input;
+	m_inputSystem = m_context->manager->input;
 
 	// カメラの取得
-	const auto& cameraEntity = m_registry->FindEntitiesWithComponent<CameraComponent>();
+	const auto& cameraEntity = m_context->component->FindEntitiesWithComponent<CameraComponent>();
 	if (!cameraEntity.empty()) {
-		m_cameraComponent = m_registry->GetComponent<CameraComponent>(cameraEntity[0]);
-		m_cameraTransform = m_registry->GetComponent<TransformComponent>(cameraEntity[0]);
+		m_cameraComponent = m_context->component->GetComponent<CameraComponent>(cameraEntity[0]);
+		m_cameraTransform = m_context->component->GetComponent<TransformComponent>(cameraEntity[0]);
 	} else {
 		return;
 	}
@@ -29,26 +31,26 @@ void PlayerSystem::Start() {
 void PlayerSystem::Update(float deltaTime) {
 
 	// コンポーネントを持つエンティティの検索
-	const auto& playerEntity = m_registry->FindEntitiesWithComponent<PlayerComponent>();
+	const auto& playerEntity = m_context->component->FindEntitiesWithComponent<PlayerComponent>();
 	if (playerEntity.empty()) {
 		return;
 	} else {
 		for (Entity entity : playerEntity) {
 
 			// プレイヤコンポーネントの取得
-			PlayerComponent* player = m_registry->GetComponent<PlayerComponent>(entity);
+			PlayerComponent* player = m_context->component->GetComponent<PlayerComponent>(entity);
 			if (!player) {
 				continue;
 			}
 			// プレイヤーのトランスフォームの取得
-			TransformComponent* transform = m_registry->GetComponent<TransformComponent>(entity);
+			TransformComponent* transform = m_context->component->GetComponent<TransformComponent>(entity);
 			if (!transform) {
 				continue;
 			}
 
 			// カメラの回転
-			m_cameraTransform->rotation.y += deltaTime * player->cameraRotate * (m_inputSystem->IsKey(m_context->renderer->GetHWND(), VK_RIGHT) - m_inputSystem->IsKey(m_context->renderer->GetHWND(), VK_LEFT));
-			m_cameraTransform->rotation.x += deltaTime * player->cameraRotate * (m_inputSystem->IsKey(m_context->renderer->GetHWND(), VK_UP) - m_inputSystem->IsKey(m_context->renderer->GetHWND(), VK_DOWN));
+			m_cameraTransform->rotation.y += deltaTime * player->cameraRotate * (m_inputSystem->IsKey(m_context->manager->hwnd, VK_RIGHT) - m_inputSystem->IsKey(m_context->manager->hwnd, VK_LEFT));
+			m_cameraTransform->rotation.x += deltaTime * player->cameraRotate * (m_inputSystem->IsKey(m_context->manager->hwnd, VK_UP) - m_inputSystem->IsKey(m_context->manager->hwnd, VK_DOWN));
 			if (m_cameraTransform->rotation.x > 0.0f) {
 				m_cameraTransform->rotation.x = 0.0f;
 			}
@@ -58,8 +60,8 @@ void PlayerSystem::Update(float deltaTime) {
 
 			// プレイヤーの移動
 			Vector3 moveVec{};
-			moveVec.x += deltaTime * player->moveSpeed * (m_inputSystem->IsKey(m_context->renderer->GetHWND(), 'D') - m_inputSystem->IsKey(m_context->renderer->GetHWND(), 'A'));
-			moveVec.z += deltaTime * player->moveSpeed * (m_inputSystem->IsKey(m_context->renderer->GetHWND(), 'W') - m_inputSystem->IsKey(m_context->renderer->GetHWND(), 'S'));
+			moveVec.x += deltaTime * player->moveSpeed * (m_inputSystem->IsKey(m_context->manager->hwnd, 'D') - m_inputSystem->IsKey(m_context->manager->hwnd, 'A'));
+			moveVec.z += deltaTime * player->moveSpeed * (m_inputSystem->IsKey(m_context->manager->hwnd, 'W') - m_inputSystem->IsKey(m_context->manager->hwnd, 'S'));
 			Vector3 rotatedMoveVec{};
 			rotatedMoveVec.x += moveVec.z * sin(m_cameraTransform->rotation.y) + moveVec.x * cos(m_cameraTransform->rotation.y);
 			rotatedMoveVec.z += moveVec.z * cos(m_cameraTransform->rotation.y) - moveVec.x * sin(m_cameraTransform->rotation.y);

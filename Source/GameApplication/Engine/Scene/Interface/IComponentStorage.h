@@ -1,5 +1,6 @@
 #pragma once
-#include "Entity.h"
+#include "Entity/Entity.h"
+#include "Interface/IComponent.h"
 #include <bitset>
 
 using ComponentTypeID = uint32_t;
@@ -10,6 +11,7 @@ using ComponentMask = std::bitset<MAX_COMPONENTS>;
 struct IComponentStorage {
     virtual ~IComponentStorage() = default;
     virtual void Remove(Entity e) = 0;
+	virtual std::vector<Entity> GetEntityList() const = 0;
 };
 
 template<typename T>
@@ -51,7 +53,7 @@ public:
         m_indexMap.erase(it);
     }
 
-    const std::vector<Entity>& GetEntityList() const {
+   std::vector<Entity> GetEntityList() const override{
         return m_entities;
     }
 };
@@ -76,7 +78,7 @@ public:
         m_map.erase(e);
     }
 
-    std::vector<Entity> GetEntityList() const {
+    std::vector<Entity> GetEntityList() const override{
         std::vector<Entity> result;
         result.reserve(m_map.size());
         for (auto& kv : m_map) {

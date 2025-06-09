@@ -6,27 +6,31 @@
 #include "Engine/Graphics/graphicsContext.h"
 #include "Engine/Graphics/mainRenderer.h"
 
-#include "Entity/entityRegistry.h"
+#include "Scene.h"
+#include "sceneManager.h"
+
+#include "Registry/entityRegistry.h"
+#include "Registry/componentRegistry.h"
 
 #include "Component/cameraComponent.h"
 
 void CameraSystem::Update(float deltaTime) {
 
 	// コンテキストの取得
-	GraphicsContext* graphicsContext = m_renderer->GetGraphicsContext();
+	GraphicsContext* graphicsContext = m_context->manager->renderer->GetGraphicsContext();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	// カメラコンポーネントを持つエンティティ取得
-	auto entities = m_registry->FindEntitiesWithComponent<CameraComponent>();
+	auto entities = m_context->component->FindEntitiesWithComponent<CameraComponent>();
 	if (entities.empty()) {
 		//取得に失敗
 		return;
 	}
 
 	// カメラコンポーネントの取得
-	auto cameraComponent = m_registry->GetComponent<CameraComponent>(entities[0]);
+	auto cameraComponent = m_context->component->GetComponent<CameraComponent>(entities[0]);
 	// トランスフォームの取得
-	auto transformComponent = m_registry->GetComponent<TransformComponent>(entities[0]);
+	auto transformComponent = m_context->component->GetComponent<TransformComponent>(entities[0]);
 
 	// プロジェクションマトリクス設定
 	DirectX::XMMATRIX projection;

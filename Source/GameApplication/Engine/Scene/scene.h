@@ -4,32 +4,39 @@
 #include <vector>
 #include <d3d11.h>
 
-struct SceneContext;
+struct SceneManagerContext;
 
 class EntityRegistry;
-class TransformSystem;
-class RenderSystem;
-class CameraSystem;
-class PlayerSystem;
+class ComponentRegistry;
+class SystemRegistry;
+
+struct SceneContext{
+	EntityRegistry* entity = nullptr;
+	ComponentRegistry* component = nullptr;
+	SystemRegistry* system = nullptr;
+	SceneManagerContext* manager = nullptr;
+};
 
 class Scene {
 public:
 	Scene();
 	~Scene();
 
-	void Initialize(SceneContext* set);
+	void Initialize(SceneManagerContext* set);
 	void Update(float deltaTime);
 	void FixedUpdate(float fixedDeltaTime);
 	void Render();
 	void Shutdown();
 
-	std::shared_ptr<EntityRegistry> GetEntityRegistry() {
-		return m_entityRegistry;
-	}
+	SceneContext* GetSceneContext(){return &m_SceneContext;}
 
 private:
 
-	SceneContext* m_SceneContext = nullptr;
-	std::shared_ptr<EntityRegistry> m_entityRegistry;
+	SceneManagerContext* m_SceneManagerContext = nullptr;
 
+	std::shared_ptr<EntityRegistry> m_entityRegistry;
+	std::shared_ptr<ComponentRegistry> m_componentRegistry;
+	std::shared_ptr<SystemRegistry> m_systemRegistry;
+
+	SceneContext m_SceneContext{};
 };

@@ -1,4 +1,4 @@
-// Engine/Scene/IComponent.h
+// Engine/Scene/Interface/IComponent.h
 #pragma once
 class IComponent {
 public:
