@@ -30,27 +30,27 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	}
 
 	// WindowsSystemの取得
-	auto windowSystem = context->Get<WindowSystem>();
-	if (!windowSystem) {
-		OutputDebugStringA("WindowSystem サービスの取得に失敗しました。\n");
+	auto windowService = context->Get<WindowService>();
+	if (!windowService) {
+		OutputDebugStringA("WindowService サービスの取得に失敗しました。\n");
 		return;
 	}
 	// WindowSystemの初期化
-	if (!windowSystem->Initialize(hInstance, nCmdShow)) {
-		OutputDebugStringA("WindowSystem の初期化に失敗しました。\n");
+	if (!windowService->Initialize(hInstance, nCmdShow)) {
+		OutputDebugStringA("WindowService の初期化に失敗しました。\n");
 		return;
 	}
 
 	//Services の初期化
 
 	// timeServiceの取得
-	auto time = context->Get<TimeService>();
-	if (!time) {
+	auto timeService = context->Get<TimeService>();
+	if (!timeService) {
 		OutputDebugStringA("TimeService サービスの取得に失敗しました。\n");
 		return;
 	}
 	// timeServiceの初期化
-	time->Initialize();
+	timeService->Initialize();
 
 	// Engine Runtime の初期化
 
@@ -61,38 +61,38 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		return;
 	}
 	// GraphicsContextの初期化
-	if (!graphicsContext->Initialize(windowSystem->GetMainWindow()->GetHWND(), DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)) {
+	if (!graphicsContext->Initialize(windowService->GetMainWindow()->GetHWND(), DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)) {
 		OutputDebugStringA("GraphicsContext の初期化に失敗しました。\n");
 		return;
 	}
 
 	// ResourceSystemの取得
-	auto resourceSystem = context->Get<ResourceSystem>();
+	auto resourceService = context->Get<ResourceService>();
 	if(!graphicsContext){
-		OutputDebugStringA("ResourceSystem サービスの取得に失敗しました。\n");
+		OutputDebugStringA("ResourceService サービスの取得に失敗しました。\n");
 		return;
 	}
 	// ResourceSystemの初期化
-	resourceSystem->Initialize(graphicsContext.get());
+	resourceService->Initialize(graphicsContext.get());
 
 	// InputSystemの取得
-	auto inputSystem = context->Get<InputSystem>();
-	if (!inputSystem) {
-		OutputDebugStringA("InputSystem サービスの取得に失敗しました。\n");
+	auto inputService = context->Get<InputService>();
+	if (!inputService) {
+		OutputDebugStringA("InputService サービスの取得に失敗しました。\n");
 		return;
 	}
 	// InputSystemの初期化
-	inputSystem->Initialize(windowSystem->GetMainWindow()->GetHWND());
+	inputService->Initialize(windowService->GetMainWindow()->GetHWND());
 
 	// ImGuiSystemの取得
-	auto imgui = context->Get<ImGuiSystem>();
-	if (!imgui) {
-		OutputDebugStringA("ImGuiSystem サービスの取得に失敗しました。\n");
+	auto imguiService = context->Get<ImGuiService>();
+	if (!imguiService) {
+		OutputDebugStringA("ImGuiService サービスの取得に失敗しました。\n");
 		return;
 	}
 	// ImGuiSystemの初期化
-	if (!imgui->Initialize(windowSystem->GetMainWindow().get(), graphicsContext.get())) {
-		OutputDebugStringA("ImGuiSystem の初期化に失敗しました。\n");
+	if (!imguiService->Initialize(windowService->GetMainWindow().get(), graphicsContext.get())) {
+		OutputDebugStringA("ImGuiService の初期化に失敗しました。\n");
 		return;
 	}
 
@@ -103,15 +103,15 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		return;
 	}
 	// MainRendererの初期化
-	mainRenderer->Initialize(graphicsContext.get(), windowSystem->GetMainWindow().get());
+	mainRenderer->Initialize(graphicsContext.get(), windowService->GetMainWindow().get());
 
 	// WindowSystemのメインウィンドウを取得
-	auto mainWindow = dynamic_cast<MainWindow*>(windowSystem->GetMainWindow().get());
+	auto mainWindow = dynamic_cast<MainWindow*>(windowService->GetMainWindow().get());
 	if (mainWindow) {
 		// 各サービスをメインウィンドウにセット
 		mainWindow->SetMainRenderer(mainRenderer.get());
-		mainWindow->SetImGuiSystem(imgui.get());
-		mainWindow->SetInputSystem(inputSystem.get());
+		mainWindow->SetImGuiSystem(imguiService.get());
+		mainWindow->SetInputSystem(inputService.get());
 	}
 
 	// SceneManagerの取得
@@ -124,8 +124,8 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		SceneManagerContext sceneContext{};
 		sceneContext.graphics = graphicsContext.get();
 		sceneContext.renderer = mainRenderer.get();
-		sceneContext.input = inputSystem.get();
-		sceneContext.resource = resourceSystem.get();
+		sceneContext.input = inputService.get();
+		sceneContext.resource = resourceService.get();
 		sceneContext.hwnd = mainRenderer->GetHWND();
 		sceneManager->Initialize(sceneContext);
 	}
@@ -161,13 +161,13 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		return;
 	}
 
-	auto windowSystem = context->Get<WindowSystem>();
-	if (!windowSystem) {
-		OutputDebugStringA("WindowSystem サービスの取得に失敗しました。\n");
+	auto windowService = context->Get<WindowService>();
+	if (!windowService) {
+		OutputDebugStringA("WindowService サービスの取得に失敗しました。\n");
 		return;
 	}
-	auto time = context->Get<TimeService>();
-	if (!time) {
+	auto timeService = context->Get<TimeService>();
+	if (!timeService) {
 		OutputDebugStringA("TimeService サービスの取得に失敗しました。\n");
 		return;
 	}
@@ -176,14 +176,14 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		OutputDebugStringA("GraphicsContext サービスの取得に失敗しました。\n");
 		return;
 	}
-	auto inputSystem = context->Get<InputSystem>();
-	if (!inputSystem) {
-		OutputDebugStringA("InputSystem サービスの取得に失敗しました。\n");
+	auto inputService = context->Get<InputService>();
+	if (!inputService) {
+		OutputDebugStringA("InputService サービスの取得に失敗しました。\n");
 		return;
 	}
-	auto imgui = context->Get<ImGuiSystem>();
-	if (!imgui) {
-		OutputDebugStringA("ImGuiSystem サービスの取得に失敗しました。\n");
+	auto imguiService = context->Get<ImGuiService>();
+	if (!imguiService) {
+		OutputDebugStringA("ImGuiService サービスの取得に失敗しました。\n");
 		return;
 	}
 	auto mainRenderer = context->Get<MainRenderer>();
@@ -198,67 +198,67 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 	}
 
 	// 最初のシーンを作成・ロード
-	//auto initialScene = std::make_shared<Scene>();
-	//sceneManager->LoadScene(initialScene);
+	auto initialScene = std::make_shared<Scene>();
+	sceneManager->LoadScene(initialScene);
 
 
 
-	while(!windowSystem->GetMainWindow()->ShouldClose()){
+	while(!windowService->GetMainWindow()->ShouldClose()){
 
-		windowSystem->PollEvents();
-		time->Tick();
-		inputSystem->Update();
+		windowService->PollEvents();
+		timeService->Tick();
+		inputService->Update();
 
-		float dt = time->GetDeltaTime();
+		float dt = timeService->GetDeltaTime();
 		sceneManager->Update(dt);
 
-		while(time->ShouldRunFixedUpdate()){
-			sceneManager->FixedUpdate(time->GetFixedDeltaTime());
+		while(timeService->ShouldRunFixedUpdate()){
+			sceneManager->FixedUpdate(timeService->GetFixedDeltaTime());
 		}
 		
 		// Render
 		mainRenderer->BeginFrame();
-		imgui->Begin();
+		imguiService->Begin();
 
 		sceneManager->Render();
 
 		 // Debug UI をここに書く
 		ImGui::Begin("Debug");
 		{
-			ImGui::Text("FPS: %.2f", 1.0f / time->GetDeltaTime());
-			ImGui::Text("Time: %.2f", time->GetTotalTime());
+			ImGui::Text("FPS: %.2f", 1.0f / timeService->GetDeltaTime());
+			ImGui::Text("Time: %.2f", timeService->GetTotalTime());
 		}
 		ImGui::End();
 
 		ImGui::Begin("Input Debug");
 
-		auto mainWindowHWND = windowSystem->GetMainWindow()->GetHWND();
+		auto mainWindowHWND = windowService->GetMainWindow()->GetHWND();
 
 		// キーボードの例: Aキー
-		ImGui::Text("A: %s", inputSystem->IsKey(mainWindowHWND, 'A') ? "Down" : "Up");
-		ImGui::Text("A Down: %s", inputSystem->IsKeyDown(mainWindowHWND, 'A') ? "Yes" : "No");
-		ImGui::Text("A Up: %s", inputSystem->IsKeyUp(mainWindowHWND, 'A') ? "Yes" : "No");
+		ImGui::Text("A: %s", inputService->IsKey(mainWindowHWND, 'A') ? "Down" : "Up");
+		ImGui::Text("A Down: %s", inputService->IsKeyDown(mainWindowHWND, 'A') ? "Yes" : "No");
+		ImGui::Text("A Up: %s", inputService->IsKeyUp(mainWindowHWND, 'A') ? "Yes" : "No");
 
 		// マウス
-		ImGui::Text("Mouse X: %d", inputSystem->GetMouseX(mainWindowHWND));
-		ImGui::Text("Mouse Y: %d", inputSystem->GetMouseY(mainWindowHWND));
-		ImGui::Text("Mouse Left: %s", inputSystem->IsMouseDown(mainWindowHWND, 0) ? "Down" : "Up");
-		ImGui::Text("Mouse Right: %s", inputSystem->IsMouseDown(mainWindowHWND, 1) ? "Down" : "Up");
-		ImGui::Text("Mouse Wheel: %d", inputSystem->GetMouseWheel(mainWindowHWND));
+		ImGui::Text("Mouse X: %d", inputService->GetMouseX(mainWindowHWND));
+		ImGui::Text("Mouse Y: %d", inputService->GetMouseY(mainWindowHWND));
+		ImGui::Text("Mouse Left: %s", inputService->IsMouseDown(mainWindowHWND, 0) ? "Down" : "Up");
+		ImGui::Text("Mouse Right: %s", inputService->IsMouseDown(mainWindowHWND, 1) ? "Down" : "Up");
+		ImGui::Text("Mouse Wheel: %d", inputService->GetMouseWheel(mainWindowHWND));
 
 
 		// ゲームパッド（例: 0番）
-		ImGui::Text("Gamepad 0 Connected: %s", inputSystem->IsGamepadConnected(0) ? "Yes" : "No");
-		if(inputSystem->IsGamepadConnected(0)){
-			ImGui::Text("Gamepad 0 A Button: %s", inputSystem->GetGamepadButton(0, XINPUT_GAMEPAD_A) ? "Pressed" : "Released");
-			POINT left = inputSystem->GetGamepadLeftStick(0);
+		ImGui::Text("Gamepad 0 Connected: %s", inputService->IsGamepadConnected(0) ? "Yes" : "No");
+		if(inputService->IsGamepadConnected(0)){
+			ImGui::Text("Gamepad 0 A Button: %s", inputService->GetGamepadButton(0, XINPUT_GAMEPAD_A) ? "Pressed" : "Released");
+			POINT left = inputService->GetGamepadLeftStick(0);
 			ImGui::Text("Left Stick: x=%ld y=%ld", left.x, left.y);
 		}
 		ImGui::End();
 
 		mainRenderer->DrawText2D(L"Hello World!", 32, 32, 32.0f, D2D1::ColorF(D2D1::ColorF::Yellow));
 
-		imgui->End();
+		imguiService->End();
 		mainRenderer->EndFrame(false);
 	}
 }

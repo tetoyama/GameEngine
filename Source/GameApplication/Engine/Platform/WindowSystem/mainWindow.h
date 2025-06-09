@@ -2,8 +2,8 @@
 #include "IWindow.h"
 
 class MainRenderer;
-class ImGuiSystem;
-class InputSystem;
+class ImGuiService;
+class InputService;
 class MainWindow: public IWindow
 {
 public:
@@ -18,10 +18,10 @@ public:
 	void SetMainRenderer(MainRenderer* renderer){
 		m_mainRenderer = renderer;
 	}
-	void SetImGuiSystem(ImGuiSystem* imguiSystem){
+	void SetImGuiSystem(ImGuiService* imguiSystem){
 		m_imguiSystem = imguiSystem;
 	}
-	void SetInputSystem(InputSystem* inputSystem){
+	void SetInputSystem(InputService* inputSystem){
 		m_inputSystem = inputSystem;
 	}
 	UINT GetHeight() const override{
@@ -39,8 +39,8 @@ private:
 	HWND m_HWND;
 	bool m_ShouldClose;
 	MainRenderer* m_mainRenderer = nullptr;
-	ImGuiSystem* m_imguiSystem = nullptr;
-	InputSystem* m_inputSystem = nullptr;
+	ImGuiService* m_imguiSystem = nullptr;
+	InputService* m_inputSystem = nullptr;
 
 	WINDOWPLACEMENT m_wpPrev = {};
 	bool m_fullscreen = false;

@@ -3,7 +3,7 @@
 #include "Backends/Assimp/scene.h"
 #include "Backends/Assimp/cimport.h"
 
-ModelData::~ModelData() {
+void ModelData::Release() {
 	if (AiScene) {
 		for (unsigned int m = 0; m < AiScene->mNumMeshes; m++) {
 

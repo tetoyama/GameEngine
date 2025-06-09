@@ -14,9 +14,9 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 
 	std::shared_ptr<EngineContext> context = std::make_shared<EngineContext>();
 
-	// WindowSystem ìoò^
-	auto windowSystem = std::make_shared<WindowSystem>();
-	context->Register<WindowSystem>(windowSystem);
+	// WindowService ìoò^
+	auto windowSystem = std::make_shared<WindowService>();
+	context->Register<WindowService>(windowSystem);
 
 	// TimeService ìoò^
 	auto timeService = std::make_shared<TimeService>();
@@ -26,25 +26,25 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 	auto graphicsContext = std::make_shared<GraphicsContext>();
 	context->Register<GraphicsContext>(graphicsContext);
 
-	// imgui ìoò^
-	auto imgui = std::make_shared<ImGuiSystem>();
-	context->Register<ImGuiSystem>(imgui);
+	// MainRenderer ìoò^
+	auto mainRenderer = std::make_shared<MainRenderer>();
+	context->Register<MainRenderer>(mainRenderer);
 
-	// InputSystem ìoò^
-	auto inputSystem = std::make_shared<InputSystem>();
-	context->Register<InputSystem>(inputSystem);
+	// imgui ìoò^
+	auto imgui = std::make_shared<ImGuiService>();
+	context->Register<ImGuiService>(imgui);
+
+	// InputService ìoò^
+	auto inputSystem = std::make_shared<InputService>();
+	context->Register<InputService>(inputSystem);
 
 	// SceneManager ìoò^
 	auto sceneManager = std::make_shared<SceneManager>();
 	context->Register<SceneManager>(sceneManager);
 
-	// MainRenderer ìoò^
-    auto mainRenderer = std::make_shared<MainRenderer>();
-	context->Register<MainRenderer>(mainRenderer);
-
-	// ResourceSystem ìoò^
-	auto resourceSystem = std::make_shared<ResourceSystem>();
-	context->Register<ResourceSystem>(resourceSystem);
+	// ResourceService ìoò^
+	auto resourceSystem = std::make_shared<ResourceService>();
+	context->Register<ResourceService>(resourceSystem);
 
 	// ç°å„: ëºÇÃÉVÉXÉeÉÄÇ‡Ç±Ç±Ç≈ìoò^
 

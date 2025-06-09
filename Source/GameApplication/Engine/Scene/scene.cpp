@@ -37,7 +37,6 @@ Scene::Scene(){
 }
 
 Scene::~Scene(){
-	Shutdown();
 }
 
 void Scene::Initialize(SceneManagerContext* set){
@@ -50,8 +49,8 @@ void Scene::Initialize(SceneManagerContext* set){
 
 	// コンポーネントを登録（Archetype or Sparse を選択）
 	m_componentRegistry->RegisterComponent<TransformComponent>(true);   
-	m_componentRegistry->RegisterComponent<MeshRendererComponent>(false); 
-	m_componentRegistry->RegisterComponent<ModelRendererComponent>(false); 
+	m_componentRegistry->RegisterComponent<MeshRendererComponent>(true);
+	m_componentRegistry->RegisterComponent<ModelRendererComponent>(true);
 	m_componentRegistry->RegisterComponent<PlayerComponent>(false);
 	m_componentRegistry->RegisterComponent<CameraComponent>(true);
 
@@ -167,7 +166,8 @@ void Scene::Initialize(SceneManagerContext* set){
 		auto player = componentRegistry->AddComponent<PlayerComponent>(entity);
 	}
 
-	{
+	for (int i = 0; i < 10000; i++) {
+
 		//エンティティを作成し、TransformとModelRendererを追加
 		Entity entity = entityRegistry->Create();
 
@@ -220,7 +220,6 @@ void Scene::Render(){
 void Scene::Shutdown(){
 
 	// システムの終了処理
-
 	m_entityRegistry.reset();
 	m_componentRegistry.reset();
 	m_systemRegistry.reset();

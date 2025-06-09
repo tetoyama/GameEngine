@@ -6,6 +6,8 @@ class TimeService : public IService
 {
 public:
 	void Initialize();
+	void Shutdown()override {}
+
 	void Tick();                    // 毎フレーム更新
 	bool ShouldRunFixedUpdate();   // 固定更新すべきか
 

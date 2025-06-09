@@ -8,7 +8,9 @@ struct aiScene;
 
 struct ModelData
 {
-	~ModelData();
+	~ModelData() = default;
+
+	void Release();
 
 	const aiScene* AiScene = nullptr;
 

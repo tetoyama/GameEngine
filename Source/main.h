@@ -35,7 +35,7 @@ GameApplication
    │       └── SubRenderer          (SubWindow用 DirectX11 SwapChain)
    │
    ├── Resources
-   │   ├── ResourceSystem          （ローダー管理・依存解決）
+   │   ├── ResourceService          （ローダー管理・依存解決）
    │   ├── FontLoader
    │   ├── ShaderLoader
    │   ├── TextureLoader           （DirectXTex）
@@ -46,7 +46,7 @@ GameApplication
    │
    ├── DebugTools
    │   ├── DebugSystem
-   │   └── ImGuiSystem             （Dear ImGui）
+   │   └── ImGuiService             （Dear ImGui）
    │       【Depends On】 → GraphicsContext
    │
    ├── Scene

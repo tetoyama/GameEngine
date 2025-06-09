@@ -7,10 +7,12 @@
 #define DEFAULT_WINDOW_WIDTH 1280
 #define DEFAULT_WINDOW_HEIGHT 720
 
-class WindowSystem : public IService
+class WindowService : public IService
 {
 public:
 	bool Initialize(HINSTANCE hInstance, int nCmdShow);
+	void Shutdown()override {}
+
 	void PollEvents();
 	std::shared_ptr<MainWindow> GetMainWindow() const;
 

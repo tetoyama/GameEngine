@@ -9,7 +9,7 @@
 
 
 
-bool ImGuiSystem::Initialize(IWindow* window, GraphicsContext* graphics){
+bool ImGuiService::Initialize(IWindow* window, GraphicsContext* graphics){
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -32,7 +32,17 @@ bool ImGuiSystem::Initialize(IWindow* window, GraphicsContext* graphics){
 	return initialized_;
 }
 
-void ImGuiSystem::Begin(){
+void ImGuiService::Shutdown() {
+
+		//ImGuiÇÃèIóπèàóù
+	{
+		ImGui_ImplDX11_Shutdown();
+		ImGui_ImplWin32_Shutdown();
+		ImGui::DestroyContext();
+	}
+}
+
+void ImGuiService::Begin(){
 	if(!initialized_){
 		return;
 	}
@@ -42,7 +52,7 @@ void ImGuiSystem::Begin(){
 	ImGui::NewFrame();
 }
 
-void ImGuiSystem::End(){
+void ImGuiService::End(){
 	if(!initialized_){
 		return;
 	}
@@ -50,7 +60,7 @@ void ImGuiSystem::End(){
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
 
-void ImGuiSystem::OnResize(){
+void ImGuiService::OnResize(){
 	if(!initialized_) return;
 	ImGui_ImplDX11_InvalidateDeviceObjects();
 	ImGui_ImplDX11_CreateDeviceObjects();

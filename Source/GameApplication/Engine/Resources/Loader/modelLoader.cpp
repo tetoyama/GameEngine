@@ -14,6 +14,14 @@
 
 #pragma comment (lib, "assimp-vc143-mt.lib")
 
+ModelLoader::~ModelLoader() {
+	for (auto& m : m_Models) {
+
+		m.second->Release();
+		m.second.reset();
+	}
+}
+
 ModelData* ModelLoader::LoadModel(const std::string& modelPath){
 
 	if(m_Models.count(modelPath)){

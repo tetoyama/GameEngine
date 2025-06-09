@@ -7,7 +7,7 @@
 #include "Engine/Resources/Loader/textureLoader.h"
 #include "Engine/Resources/Loader/shaderLoader.h"
 
-void ResourceSystem::Initialize(GraphicsContext* graphics){
+void ResourceService::Initialize(GraphicsContext* graphics){
 	m_Graphics = graphics;
 
 	m_ModelLoader = std::make_shared<ModelLoader>(m_Graphics);
@@ -15,8 +15,10 @@ void ResourceSystem::Initialize(GraphicsContext* graphics){
 	m_ShaderLoader = std::make_shared<ShaderLoader>(m_Graphics);
 }
 
-void ResourceSystem::Finalize(){
+void ResourceService::Shutdown() {
+
 	m_ModelLoader.reset();
 	m_TextureLoader.reset();
 	m_ShaderLoader.reset();
 }
+

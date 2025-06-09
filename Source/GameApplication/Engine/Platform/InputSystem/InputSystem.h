@@ -15,10 +15,10 @@ struct WindowInputState {
 	std::unordered_map<int, KeyState> keyStates;
 };
 
-class InputSystem: public IService{
+class InputService: public IService{
 public:
-	InputSystem();
-	~InputSystem();
+	InputService();
+	~InputService();
 
 	// ウィンドウ登録・解除
 	void RegisterWindow(HWND hwnd);
@@ -26,6 +26,7 @@ public:
 
 	// 初期化
 	void Initialize(HWND window);
+	void Shutdown()override {}
 
 	// Win32メッセージ処理
 	void MessageUpdateInput(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);

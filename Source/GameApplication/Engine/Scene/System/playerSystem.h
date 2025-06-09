@@ -3,7 +3,7 @@
 
 struct SceneContext;
 
-class InputSystem;
+class InputService;
 class CameraComponent;
 class TransformComponent;
 
@@ -25,7 +25,7 @@ public:
 private:
 	SceneContext* m_context;
 
-	InputSystem* m_inputSystem = nullptr;
+	InputService* m_inputSystem = nullptr;
 
 	CameraComponent* m_cameraComponent = nullptr;
 	TransformComponent* m_cameraTransform = nullptr;

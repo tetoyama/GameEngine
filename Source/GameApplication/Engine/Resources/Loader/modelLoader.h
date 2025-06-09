@@ -12,7 +12,8 @@ class ModelLoader {
 public:
 	ModelLoader(GraphicsContext* set):m_GraphicContext(set){}
 
-    ~ModelLoader() = default;
+	~ModelLoader();
+
 	ModelData* LoadModel(const std::string& modelPath);
 	ModelData* GetModel(const std::string& modelPath);
 private:

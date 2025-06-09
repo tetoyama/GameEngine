@@ -2,5 +2,5 @@
 class IService {
 public:
     virtual ~IService() = default;
-    virtual void Shutdown() {}
+    virtual void Shutdown() = 0;
 };

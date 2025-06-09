@@ -51,8 +51,8 @@ void PlayerSystem::Update(float deltaTime) {
 			// ƒJƒƒ‰‚Ì‰ñ“]
 			m_cameraTransform->rotation.y += deltaTime * player->cameraRotate * (m_inputSystem->IsKey(m_context->manager->hwnd, VK_RIGHT) - m_inputSystem->IsKey(m_context->manager->hwnd, VK_LEFT));
 			m_cameraTransform->rotation.x += deltaTime * player->cameraRotate * (m_inputSystem->IsKey(m_context->manager->hwnd, VK_UP) - m_inputSystem->IsKey(m_context->manager->hwnd, VK_DOWN));
-			if (m_cameraTransform->rotation.x > 0.0f) {
-				m_cameraTransform->rotation.x = 0.0f;
+			if (m_cameraTransform->rotation.x > -0.2f) {
+				m_cameraTransform->rotation.x = -0.2f;
 			}
 			if (m_cameraTransform->rotation.x < -DirectX::XM_PI * 0.4f) {
 				m_cameraTransform->rotation.x = -DirectX::XM_PI * 0.4f;
@@ -69,7 +69,8 @@ void PlayerSystem::Update(float deltaTime) {
 			float setRotation = atan2f(rotatedMoveVec.x, rotatedMoveVec.z);
 			if (DirectX::XM_PI < setRotation - transform->rotation.y) {
 				setRotation -= DirectX::XM_2PI;
-			} else if (-DirectX::XM_PI > setRotation - transform->rotation.y) {
+			}
+			if (-DirectX::XM_PI > setRotation - transform->rotation.y) {
 				setRotation += DirectX::XM_2PI;
 			}
 			if (rotatedMoveVec.length() > 0) {

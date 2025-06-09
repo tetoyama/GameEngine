@@ -39,6 +39,8 @@ public:
 		m_height = mainWindow->GetHeight();
 	}
 
+	void Shutdown()override {}
+
 	void BeginFrame();
 	void EndFrame(bool vsync = true);
 

@@ -16,10 +16,10 @@ class ModelLoader;
 class TextureLoader;
 class ShaderLoader;
 
-class ResourceSystem : IService{
+class ResourceService : public IService{
 public:
 	void Initialize(GraphicsContext* graphics);
-	void Finalize();
+	void Shutdown() override;
 
 	ModelLoader* GetModelLoader(){
 		return m_ModelLoader.get();

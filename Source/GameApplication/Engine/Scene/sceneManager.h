@@ -8,14 +8,14 @@ class Scene;
 
 class MainRenderer;
 class GraphicsContext;
-class InputSystem;
-class ResourceSystem;
+class InputService;
+class ResourceService;
 
 struct SceneManagerContext {
 	GraphicsContext* graphics = nullptr;
 	MainRenderer* renderer = nullptr;
-	InputSystem* input = nullptr;
-	ResourceSystem* resource = nullptr;
+	InputService* input = nullptr;
+	ResourceService* resource = nullptr;
 	HWND hwnd{};
 };
 
