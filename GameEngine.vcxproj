@@ -104,7 +104,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)/Source/GameApplication;$(ProjectDir)/Source/GameApplication/Engine/Scene;$(ProjectDir)/Source;$(ProjectDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/Source/GameApplication;$(ProjectDir)/Source/GameApplication/Engine/Scene;$(ProjectDir)/Source;$(ProjectDir);$(ProjectDir)/Source/GameApplication/Engine/Backends</AdditionalIncludeDirectories>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
@@ -121,7 +121,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)/Source/GameApplication;$(ProjectDir)/Source/GameApplication/Engine/Scene;$(ProjectDir)/Source;$(ProjectDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/Source/GameApplication;$(ProjectDir)/Source/GameApplication/Engine/Scene;$(ProjectDir)/Source;$(ProjectDir);$(ProjectDir)/Source/GameApplication/Engine/Backends</AdditionalIncludeDirectories>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
@@ -2504,42 +2504,150 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\anchor.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\binary.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\contrib\anchordict.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\contrib\graphbuilder.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\depthguard.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\dll.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitfromevents.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitter.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitterdef.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emittermanip.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitterstyle.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\eventhandler.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\exceptions.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\mark.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\convert.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\impl.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\iterator.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\iterator_fwd.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\memory.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node_data.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node_iterator.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node_ref.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\emit.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\impl.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\iterator.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\node.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\parse.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\ptr.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\type.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\noexcept.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\null.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\ostream_wrapper.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\parser.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\stlemitter.h" />
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\traits.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\anchor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\binary.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\contrib\anchordict.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\contrib\graphbuilder.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\depthguard.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\dll.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitfromevents.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitter.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitterdef.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emittermanip.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitterstyle.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\eventhandler.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\exceptions.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\mark.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\convert.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\impl.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\iterator.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\iterator_fwd.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\memory.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node_data.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node_iterator.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node_ref.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\emit.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\impl.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\iterator.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\node.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\parse.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\ptr.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\type.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\noexcept.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\null.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\ostream_wrapper.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\parser.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\stlemitter.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\traits.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\yaml.h" />
     <ClInclude Include="Source\GameApplication\Engine\DebugTools\debugSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\DebugTools\ImGuiSystem.h" />
@@ -3089,6 +3197,24 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </Object>
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="Asset\Fonts\PixelMplus10-Bold.ttf">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </Font>
+    <Font Include="Asset\Fonts\PixelMplus10-Regular.ttf">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </Font>
+    <Font Include="Asset\Fonts\PixelMplus12-Bold.ttf">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </Font>
+    <Font Include="Asset\Fonts\PixelMplus12-Regular.ttf">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </Font>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

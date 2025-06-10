@@ -6,9 +6,8 @@
 #include <wrl/client.h>
 #include <d3d11.h>
 #include "Engine/Resources/Data/textureData.h"
-#include <wrl/client.h> 
-class GraphicsContext;
 
+class GraphicsContext;
 
 struct MeshData {
 	TextureData* m_TextureData = nullptr;

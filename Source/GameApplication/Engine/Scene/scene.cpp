@@ -3,6 +3,7 @@
 #include "scene.h"
 
 #include <string>
+#include "Engine/DebugTools/debugSystem.h"
 
 #include "Engine/Graphics/mainRenderer.h"
 
@@ -28,6 +29,7 @@
 #include "System/playerSystem.h"
 
 #include "Component/modelRendererComponent.h"
+#include "Component/meshRendererComponent.h"
 #include "Component/transformComponent.h"
 #include "Component/cameraComponent.h"
 #include "Component/playerComponent.h"
@@ -42,6 +44,7 @@ Scene::~Scene(){
 void Scene::Initialize(SceneManagerContext* set){
 
 	m_SceneManagerContext = set;
+	m_SceneManagerContext->debug->LOG_INFO(u8"Sceneを初期化中...");
 
 	m_entityRegistry = std::make_shared<EntityRegistry>();
 	m_componentRegistry = std::make_shared<ComponentRegistry>(m_entityRegistry.get());
@@ -60,8 +63,6 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<PlayerSystem>(&m_SceneContext));
 
-	m_systemRegistry->InitializeAll();
-
 	auto Renderer = m_SceneManagerContext->renderer;
 	auto graphicsContext = Renderer->GetGraphicsContext();
 	auto resource = m_SceneManagerContext->resource;
@@ -75,10 +76,14 @@ void Scene::Initialize(SceneManagerContext* set){
 	auto componentRegistry = m_SceneContext.component;
 	auto systemRegistry = m_SceneContext.system;
 
+	m_systemRegistry->InitializeAll();
+
+
+
 	LIGHT light{};
 	light.Enable = TRUE;
 	light.Direction = DirectX::XMFLOAT4(0.2f, -1.0f, 0.2f, 0.0f);
-	light.Position = DirectX::XMFLOAT4(0, 100, 0, 0);
+	light.Position = DirectX::XMFLOAT4(0, 3, 0,0);
 	light.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
 	light.Ambient = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
 	light.PointLightParam = DirectX::XMFLOAT4(100.0f, 0, 0, 0);
@@ -152,7 +157,7 @@ void Scene::Initialize(SceneManagerContext* set){
 
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position = Vector3(0.0f, 0.0f, 100.0f);
+		transform->position = Vector3(0.0f, 0.0f, 0);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
 
@@ -160,20 +165,20 @@ void Scene::Initialize(SceneManagerContext* set){
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
-		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\pixelLightingVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pixelLightingPS.cso");
+		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\pointLightingBlinnPhongVS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pointLightingBlinnPhongPS.cso");
 
 		auto player = componentRegistry->AddComponent<PlayerComponent>(entity);
 	}
 
-	for (int i = 0; i < 10000; i++) {
+	for (int i = 0; i < 1; i++) {
 
 		//エンティティを作成し、TransformとModelRendererを追加
 		Entity entity = entityRegistry->Create();
 
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position = Vector3(0.0f, -100.0f, 100.0f);
+		transform->position = Vector3(0.0f, -100.0f, 0);
 		transform->scale = Vector3(100.0f, 100.0f, 100.0f);
 		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
 
@@ -181,8 +186,8 @@ void Scene::Initialize(SceneManagerContext* set){
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\cube.fbx");
-		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\pixelLightingVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pixelLightingPS.cso");
+		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\pointLightingBlinnPhongVS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pointLightingBlinnPhongPS.cso");
 	}
 
 	{
@@ -198,6 +203,7 @@ void Scene::Initialize(SceneManagerContext* set){
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 		transform->rotation = Vector3(-1.0f, 0.0f, 0.0f);
 	}
+	m_SceneManagerContext->debug->LOG_INFO(u8"Sceneを開始します");
 
 	m_systemRegistry->StartAll();
 }
@@ -218,6 +224,7 @@ void Scene::Render(){
 }
 
 void Scene::Shutdown(){
+	m_SceneManagerContext->debug->LOG_INFO(u8"Sceneを終了中...");
 
 	// システムの終了処理
 	m_entityRegistry.reset();

@@ -1,4 +1,5 @@
 #include "resourceSystem.h"
+#include "Engine/Graphics/graphicsContext.h"
 
 #include "Engine/Resources/Data/modelData.h"
 #include "Engine/Resources/Data/textureData.h"

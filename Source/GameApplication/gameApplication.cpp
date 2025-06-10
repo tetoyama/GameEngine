@@ -6,8 +6,6 @@
 
 int GameApplication::Run(HINSTANCE hInstance, int nCmdShow){
 
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-
 	EngineContextBuilder builder;
 	std::shared_ptr<EngineContext> context = builder.Build();
 

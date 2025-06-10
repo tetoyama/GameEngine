@@ -9,6 +9,9 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     //光源からピクセルへのベクトル
     float4 lv = In.WorldPosition - Light.Position;
     //物体と光源の距離
+    float4 normal = normalize(In.Normal);
+    float light = -dot(normal.xyz, lv);
+
     float4 ld = length(lv);
     //ベクトルの正規化
     lv = normalize(lv);
@@ -17,9 +20,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     float ofs = 1.0f - (1.0f / Light.PointLightParam.x) * ld;
     ofs = max(0, ofs);
     
-    float4 normal = normalize(In.Normal);
     
-    float light = -dot(normal.xyz, ld.xyz);
     light = saturate(light);
     light *= ofs;
     

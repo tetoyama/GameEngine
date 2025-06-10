@@ -7,6 +7,7 @@
 #include <vector>
 #include <cassert>
 #include <memory>
+#include <atomic>
 
 #include "entityRegistry.h"
 #include "Interface/IComponentStorage.h"   // IComponentStorage, ArchetypeStorage<T>, SparseStorage<T> の定義
@@ -21,13 +22,14 @@ class ComponentType {
 public:
 	template<typename T>
 	static ComponentTypeID Get(){
-		static ComponentTypeID id = s_nextID++;
+		static const ComponentTypeID id = s_nextID++;
 		return id;
 	}
 
 private:
-	static ComponentTypeID s_nextID;
+	static std::atomic<ComponentTypeID> s_nextID;
 };
+
 
 
 /**
@@ -40,7 +42,7 @@ private:
 class ComponentRegistry {
 public:
 	ComponentRegistry(EntityRegistry* entityMgr)
-		: m_entityMgr(entityMgr){}
+		: m_entityManager(entityMgr){}
 
 	~ComponentRegistry() = default;
 
@@ -72,7 +74,7 @@ public:
 	// -----------------------------------
 	template<typename T, typename... Args>
 	T* AddComponent(Entity e, Args&&... args){
-		assert(m_entityMgr->IsAlive(e) && "AddComponent: 無効な Entity を指定しています");
+		assert(m_entityManager->IsAlive(e) && "AddComponent: 無効な Entity を指定しています");
 
 		std::type_index ti(typeid(T));
 		auto it = m_storages.find(ti);
@@ -100,7 +102,7 @@ public:
 
 	template<typename T>
 	T* GetComponent(Entity e){
-		if(!m_entityMgr->IsAlive(e)) return nullptr;
+		if(!m_entityManager->IsAlive(e)) return nullptr;
 
 		std::type_index ti(typeid(T));
 		auto it = m_storages.find(ti);
@@ -116,7 +118,7 @@ public:
 
 	template<typename T>
 	void RemoveComponent(Entity e){
-		if(!m_entityMgr->IsAlive(e)) return;
+		if(!m_entityManager->IsAlive(e)) return;
 
 		std::type_index ti(typeid(T));
 		auto it = m_storages.find(ti);
@@ -146,7 +148,7 @@ public:
 	template<typename... Components>
 	std::vector<Entity> QueryEntities(){
 		std::vector<Entity> result;
-		const auto& aliveSet = m_entityMgr->GetAllAlive();
+		const auto& aliveSet = m_entityManager->GetAllAlive();
 
 		// 必要なマスクを作成
 		ComponentMask required;
@@ -182,7 +184,7 @@ public:
 	}
 
 private:
-	EntityRegistry* m_entityMgr;
+	EntityRegistry* m_entityManager;
 
 	// Entity → ComponentMask
 	std::unordered_map<Entity, ComponentMask> m_entityMasks;

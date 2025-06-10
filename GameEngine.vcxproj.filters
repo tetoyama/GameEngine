@@ -2410,4 +2410,10 @@
   <ItemGroup>
     <Object Include="Asset\Model\player.obj" />
   </ItemGroup>
+  <ItemGroup>
+    <Font Include="Asset\Fonts\PixelMplus12-Regular.ttf" />
+    <Font Include="Asset\Fonts\PixelMplus10-Bold.ttf" />
+    <Font Include="Asset\Fonts\PixelMplus10-Regular.ttf" />
+    <Font Include="Asset\Fonts\PixelMplus12-Bold.ttf" />
+  </ItemGroup>
 </Project>

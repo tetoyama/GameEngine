@@ -9,12 +9,10 @@ class TransformComponent;
 
 class PlayerSystem : public ISystem {
 public:
-	PlayerSystem(SceneContext* context): m_context(context){
-		Initialize();
-	}
+	PlayerSystem(SceneContext* context): m_context(context){}
 	~PlayerSystem() {}
 
-	void Initialize() override {};
+	void Initialize() override;
 	void Finalize()override {};
 
 	void Start() override;

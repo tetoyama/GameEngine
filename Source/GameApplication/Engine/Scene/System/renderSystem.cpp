@@ -8,6 +8,7 @@
 #include "Backends/Assimp/cimport.h"
 #include "Backends/Assimp/postprocess.h"
 #include "Backends/Assimp/matrix4x4.h"
+#include "Engine/DebugTools/debugSystem.h"
 
 #include "Engine/Resources/Data/modelData.h"
 
@@ -27,6 +28,10 @@
 
 #include "Scene.h"
 #include "SceneManager.h"
+
+void RenderSystem::Initialize(){
+	m_context->manager->debug->LOG_DEBUG(u8"RenderSystem‚ğ‰Šú‰»’†...");
+}
 
 void RenderSystem::Draw(){
 

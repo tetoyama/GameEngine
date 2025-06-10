@@ -1,8 +1,6 @@
 #include "engine.h"
 #include "engineContext.h"
 
-#include "Backends/ImGui/imgui.h"
-
 #include "Platform/WindowSystem/windowSystem.h"
 
 #include "Runtime/TimeService/time.h"
@@ -11,6 +9,7 @@
 #include "Graphics/mainRenderer.h"
 
 #include "DebugTools/ImGuiSystem.h"
+#include "DebugTools/DebugSystem.h"
 
 #include "Platform/InputSystem/InputSystem.h"
 
@@ -29,28 +28,40 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		return;
 	}
 
-	// WindowsSystemの取得
+	// DebugLogSystemの取得
+	auto debugLogSystem = context->Get<DebugLogSystem>();
+	if(!debugLogSystem){
+		OutputDebugStringA("DebugLogSystem サービスの取得に失敗しました。\n");
+		return;
+	}
+	debugLogSystem->Initialize();
+	debugLogSystem->LOG_INFO(u8"DebugLogSystemが起動しました");
+	
+
+	// WindowServiceの取得
 	auto windowService = context->Get<WindowService>();
 	if (!windowService) {
 		OutputDebugStringA("WindowService サービスの取得に失敗しました。\n");
 		return;
 	}
-	// WindowSystemの初期化
+	// WindowServiceの初期化
 	if (!windowService->Initialize(hInstance, nCmdShow)) {
 		OutputDebugStringA("WindowService の初期化に失敗しました。\n");
 		return;
 	}
+	debugLogSystem->LOG_DEBUG(u8"WindowServiceが正常に作成されました");
 
 	//Services の初期化
 
-	// timeServiceの取得
+	// TimeServiceの取得
 	auto timeService = context->Get<TimeService>();
 	if (!timeService) {
 		OutputDebugStringA("TimeService サービスの取得に失敗しました。\n");
 		return;
 	}
-	// timeServiceの初期化
+	// TimeServiceの初期化
 	timeService->Initialize();
+	debugLogSystem->LOG_DEBUG(u8"TimeServiceが正常に作成されました");
 
 	// Engine Runtime の初期化
 
@@ -65,6 +76,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		OutputDebugStringA("GraphicsContext の初期化に失敗しました。\n");
 		return;
 	}
+	debugLogSystem->LOG_DEBUG(u8"GraphicsContextが正常に作成されました");
 
 	// ResourceSystemの取得
 	auto resourceService = context->Get<ResourceService>();
@@ -74,6 +86,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	}
 	// ResourceSystemの初期化
 	resourceService->Initialize(graphicsContext.get());
+	debugLogSystem->LOG_DEBUG(u8"ResourceServiceが正常に作成されました");
 
 	// InputSystemの取得
 	auto inputService = context->Get<InputService>();
@@ -83,6 +96,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	}
 	// InputSystemの初期化
 	inputService->Initialize(windowService->GetMainWindow()->GetHWND());
+	debugLogSystem->LOG_DEBUG(u8"InputServiceが正常に作成されました");
 
 	// ImGuiSystemの取得
 	auto imguiService = context->Get<ImGuiService>();
@@ -95,6 +109,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		OutputDebugStringA("ImGuiService の初期化に失敗しました。\n");
 		return;
 	}
+	debugLogSystem->LOG_DEBUG(u8"ImGuiSystemが正常に作成されました");
 
 	// MainRendererの取得
 	auto mainRenderer = context->Get<MainRenderer>();
@@ -104,6 +119,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	}
 	// MainRendererの初期化
 	mainRenderer->Initialize(graphicsContext.get(), windowService->GetMainWindow().get());
+	debugLogSystem->LOG_DEBUG(u8"MainRendererが正常に作成されました");
 
 	// WindowSystemのメインウィンドウを取得
 	auto mainWindow = dynamic_cast<MainWindow*>(windowService->GetMainWindow().get());
@@ -113,6 +129,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		mainWindow->SetImGuiSystem(imguiService.get());
 		mainWindow->SetInputSystem(inputService.get());
 	}
+	debugLogSystem->LOG_DEBUG(u8"MainWindowが正常に作成されました");
 
 	// SceneManagerの取得
 	auto sceneManager = context->Get<SceneManager>();
@@ -127,8 +144,13 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		sceneContext.input = inputService.get();
 		sceneContext.resource = resourceService.get();
 		sceneContext.hwnd = mainRenderer->GetHWND();
+		sceneContext.debug = debugLogSystem.get();
 		sceneManager->Initialize(sceneContext);
 	}
+	debugLogSystem->LOG_DEBUG(u8"SceneManagerが正常に作成されました");
+
+	debugLogSystem->LOG_INFO(u8"EngineContextの初期化が完了しました");
+
 }
 
 void Engine::Shutdown(std::shared_ptr<EngineContext> context){
@@ -160,6 +182,12 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		OutputDebugStringA("EngineContext が nullptr です。\n");
 		return;
 	}
+	auto debugLogSystem = context->Get<DebugLogSystem>();
+	if(!debugLogSystem){
+		OutputDebugStringA("DebugLogSystem サービスの取得に失敗しました。\n");
+		return;
+	}
+	debugLogSystem->LOG_DEBUG(u8"Engineの実行を開始します...");
 
 	auto windowService = context->Get<WindowService>();
 	if (!windowService) {
@@ -196,6 +224,8 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		OutputDebugStringA("SceneManager サービスの取得に失敗しました。\n");
 		return;
 	}
+	debugLogSystem->LOG_DEBUG(u8"EngineContextの取得が完了しました");
+
 
 	// 最初のシーンを作成・ロード
 	auto initialScene = std::make_shared<Scene>();
@@ -258,6 +288,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 
 		mainRenderer->DrawText2D(L"Hello World!", 32, 32, 32.0f, D2D1::ColorF(D2D1::ColorF::Yellow));
 
+		debugLogSystem->Draw();
 		imguiService->End();
 		mainRenderer->EndFrame(false);
 	}

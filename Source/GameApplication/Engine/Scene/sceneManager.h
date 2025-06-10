@@ -10,12 +10,14 @@ class MainRenderer;
 class GraphicsContext;
 class InputService;
 class ResourceService;
+class DebugLogSystem;
 
 struct SceneManagerContext {
 	GraphicsContext* graphics = nullptr;
 	MainRenderer* renderer = nullptr;
 	InputService* input = nullptr;
 	ResourceService* resource = nullptr;
+	DebugLogSystem* debug = nullptr;
 	HWND hwnd{};
 };
 

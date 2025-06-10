@@ -11,12 +11,10 @@ class ModelRendererComponent;
 
 class RenderSystem : public ISystem{
 public:
-	RenderSystem(SceneContext* context): m_context(context){
-		Initialize();
-	}
+	RenderSystem(SceneContext* context): m_context(context){}
 	~RenderSystem(){}
 
-	void Initialize() override{};
+	void Initialize() override;
 	void Finalize()override {};
 
 	void Start() override {};

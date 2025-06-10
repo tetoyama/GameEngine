@@ -8,11 +8,19 @@
 
 void DebugLogSystem::Initialize(){
 	// 必要であればファイルログなどの初期化
+	auto memorySink = std::make_shared<MemoryLogSink>();
+	AddSink(memorySink);
+	logWindow = std::make_shared<ImGuiLogWindow>();
+	logWindow->SetLogSource(memorySink);
 }
 
 void DebugLogSystem::Shutdown(){
 	std::lock_guard<std::mutex> lock(mutex);
 	sinks.clear();
+}
+void DebugLogSystem::Draw(){
+	logWindow->Draw();
+
 }
 
 void DebugLogSystem::AddSink(std::shared_ptr<ILogSink> sink){
@@ -30,6 +38,7 @@ void DebugLogSystem::Log(LogLevel level,
 						 const std::string& function,
 						 const std::string& file,
 						 int line){
+	
 	LogEntry entry;
 	entry.level = level;
 	entry.message = message;
@@ -37,6 +46,7 @@ void DebugLogSystem::Log(LogLevel level,
 	entry.file = file;
 	entry.line = line;
 	entry.timestamp = std::chrono::system_clock::now();
+	OutputDebugStringW(Utf8ToWide(message).c_str());
 
 	std::lock_guard<std::mutex> lock(mutex);
 	for(const auto& sink : sinks){
@@ -86,6 +96,21 @@ const char* ImGuiLogWindow::LevelToString(LogLevel level) const{
 	}
 }
 
+std::string ImGuiLogWindow::LevelFilterString(LogLevel level) const{
+
+	int Count = 0;
+
+	const auto& entries = logSink->GetEntries();
+	for(const auto& entry : entries){
+		if(entry.level != level) continue;
+		Count++;
+	}
+
+	std::string a = LevelToString(level);
+	a = a + "(" + std::to_string(Count) +  ")";
+	return a;
+}
+
 ImVec4 ImGuiLogWindow::GetColorForLevel(LogLevel level) const{
 	switch(level){
 		case LogLevel::Trace:    return ImVec4(1.0f, 1.0f, 1.0f, 0.7f);
@@ -114,7 +139,7 @@ void ImGuiLogWindow::Draw(){
 	for(int i = (int)LogLevel::Trace; i <= (int)LogLevel::Critical; ++i){
 		LogLevel level = static_cast<LogLevel>(i);
 		bool selected = levelFilter.find(level) != levelFilter.end();
-		if(ImGui::Checkbox(LevelToString(level), &selected)){
+		if(ImGui::Checkbox(LevelFilterString(level).c_str(), &selected)){
 			if(selected)
 				levelFilter.insert(level);
 			else
@@ -123,7 +148,7 @@ void ImGuiLogWindow::Draw(){
 		if(i < (int)LogLevel::Critical) ImGui::SameLine();
 	}
 
-	ImGui::BeginChild("LogRegion", ImVec2(0, 0), false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+	ImGui::BeginChild("LogRegion", ImVec2(0, 0), false);
 
 	if(logSink){
 		const auto& entries = logSink->GetEntries();
@@ -132,10 +157,11 @@ void ImGuiLogWindow::Draw(){
 
 			ImVec4 color = GetColorForLevel(entry.level);
 			ImGui::PushStyleColor(ImGuiCol_Text, color);
-			ImGui::Text("[%s] %s (%s:%d)",
+			ImGui::Text(ToU8String(u8"[%s] %s\n       (関数名 %s,ファイル %s ,行 %d)").c_str(),
 						LevelToString(entry.level),
 						entry.message.c_str(),
 						entry.function.c_str(),
+						entry.file.c_str(),
 						entry.line);
 			ImGui::PopStyleColor();
 		}

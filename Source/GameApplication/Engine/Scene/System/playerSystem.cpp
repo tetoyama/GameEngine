@@ -2,6 +2,7 @@
 
 #include "Scene.h"
 #include "sceneManager.h"
+#include "Engine/DebugTools/debugSystem.h"
 
 #include "Registry/entityRegistry.h"
 #include "Registry/componentRegistry.h"
@@ -13,6 +14,10 @@
 #include "Engine/Graphics/mainRenderer.h"
 
 #include "Engine/Platform/InputSystem/InputSystem.h"
+
+void PlayerSystem::Initialize(){
+	m_context->manager->debug->LOG_DEBUG(u8"PlayerSystem‚ğ‰Šú‰»’†...");
+}
 
 void PlayerSystem::Start() {
 	// “ü—ÍƒVƒXƒeƒ€‚Ìæ“¾

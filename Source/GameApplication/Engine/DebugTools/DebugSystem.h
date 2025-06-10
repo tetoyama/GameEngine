@@ -5,6 +5,8 @@
 #include <memory>
 #include <vector>
 #include <mutex>
+#include <Windows.h>
+
 #include <unordered_map>
 #include <unordered_set>
 #include "Service/IService.h"
@@ -42,6 +44,8 @@ public:
 	virtual void Write(const LogEntry& entry) = 0;
 };
 
+
+class ImGuiLogWindow;
 class DebugLogSystem : IService {
 public:
 	void Initialize(); // 必要ならファイルパスなど渡す
@@ -60,9 +64,20 @@ public:
 	void Info(const std::string& message, const std::string& source = "");
 	void Error(const std::string& message, const std::string& source = "");
 
+	void Draw();
 private:
 	std::vector<std::shared_ptr<ILogSink>> sinks;
 	std::mutex mutex; // マルチスレッド対応
+
+	std::shared_ptr<ImGuiLogWindow> logWindow;
+
+	std::wstring Utf8ToWide(const std::string& utf8){
+		int size = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
+		std::wstring wide(size, 0);
+		MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, &wide[0], size);
+		wide.pop_back(); // null終端除去
+		return wide + L"\n";
+	}
 };
 
 class MemoryLogSink: public ILogSink {
@@ -101,5 +116,19 @@ private:
 
 	bool PassesFilter(const LogEntry& entry) const;
 	const char* LevelToString(LogLevel level) const;
+	std::string LevelFilterString(LogLevel level) const;
 	ImVec4 GetColorForLevel(LogLevel level) const;
+
+	// char* → UTF-8 相当の std::string（C++11～17 互換）
+	std::string ToU8String(const char* cstr){
+		if(!cstr) return {};
+		return std::string(cstr, cstr + std::strlen(cstr));
+	}
+
+	// オーバーロード：std::string から
+	std::string ToU8String(const std::string& s){
+		return std::string(s.begin(), s.end());
+	}
+
+
 };

@@ -13,8 +13,9 @@ bool ImGuiService::Initialize(IWindow* window, GraphicsContext* graphics){
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	//ImGuiIO& io = ImGui::GetIO();
-	//io.Fonts->AddFontFromFileTTF("Asset\\Fonts\\NotoSansJP-Regular.ttf", 20.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
+	ImGuiIO& io = ImGui::GetIO();
+	//io.Fonts->AddFontFromFileTTF("Asset\\Fonts\\PixelMplus12-Bold.ttf", 15.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
+	io.Fonts->AddFontFromFileTTF("Asset\\Fonts\\NotoSansJP-Regular.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 	ImGui::StyleColorsDark();

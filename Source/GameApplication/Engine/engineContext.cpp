@@ -5,6 +5,7 @@
 #include "Runtime/TimeService/time.h"
 #include "Graphics/GraphicsContext.h"
 #include "DebugTools/ImGuiSystem.h"
+#include "DebugTools/DebugSystem.h"
 #include "Platform/InputSystem/InputSystem.h"
 #include "Scene/sceneManager.h"
 #include "Graphics/mainRenderer.h"
@@ -33,6 +34,10 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 	// imgui “o˜^
 	auto imgui = std::make_shared<ImGuiService>();
 	context->Register<ImGuiService>(imgui);
+
+	// DebugLogSystem “o˜^
+	auto debugLogSystem = std::make_shared<DebugLogSystem>();
+	context->Register<DebugLogSystem>(debugLogSystem);
 
 	// InputService “o˜^
 	auto inputSystem = std::make_shared<InputService>();

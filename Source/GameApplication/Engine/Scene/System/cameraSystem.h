@@ -7,11 +7,9 @@ class CameraSystem : public ISystem {
 
 public:
 
-	CameraSystem(SceneContext* context): m_context(context){
-		Initialize();
-	}
+	CameraSystem(SceneContext* context): m_context(context){}
 
-	void Initialize() override {};
+	void Initialize() override;
 	void Finalize()override {};
 
 	void Start() override {};

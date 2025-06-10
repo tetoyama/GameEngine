@@ -2,6 +2,7 @@
 
 #include <DirectXMath.h>
 #include "Backends/myVector3.h"
+#include "Engine/DebugTools/debugSystem.h"
 
 #include "Engine/Graphics/graphicsContext.h"
 #include "Engine/Graphics/mainRenderer.h"
@@ -13,6 +14,11 @@
 #include "Registry/componentRegistry.h"
 
 #include "Component/cameraComponent.h"
+#include "Component/transformComponent.h"
+
+void CameraSystem::Initialize(){
+	m_context->manager->debug->LOG_DEBUG(u8"CameraSystem‚ğ‰Šú‰»’†...");
+}
 
 void CameraSystem::Update(float deltaTime) {
 

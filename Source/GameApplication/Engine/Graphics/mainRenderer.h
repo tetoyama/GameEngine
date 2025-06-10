@@ -12,20 +12,11 @@
 
 #include "Engine/Platform/WindowSystem/mainWindow.h"
 
-#include "Engine/Scene/Component/meshRendererComponent.h"
-#include "Engine/Scene/Component/transformComponent.h"
-struct RenderViewInfo { /* ƒJƒƒ‰“™‚Ìî•ñ */
-};
-struct RenderableMesh { /* ƒƒbƒVƒ…î•ñ */
-};
-
 class MainRenderer : public IService{
 public:
 	MainRenderer(){}
 
 	~MainRenderer() {
-		m_d2dRenderTarget.Reset();
-		m_fontBrush.Reset();
 		if(m_d2dRenderer){
 			delete m_d2dRenderer;
 		}
@@ -66,9 +57,6 @@ private:
 	HWND m_hwnd{};
 	GraphicsContext* m_graphicsContext = nullptr;
 	D2DRenderer* m_d2dRenderer = nullptr;
-
-	Microsoft::WRL::ComPtr<ID2D1RenderTarget> m_d2dRenderTarget;
-	Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> m_fontBrush;
 
 	UINT m_width = 0;
 	UINT m_height = 0;

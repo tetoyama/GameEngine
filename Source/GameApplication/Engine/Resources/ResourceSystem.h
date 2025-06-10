@@ -5,12 +5,13 @@
 #include <memory>
 
 #include "Service/IService.h"
-#include "Engine/Graphics/graphicsContext.h"
 
 struct ModelData;
 struct TextureData;
 struct VertexShaderData;
 struct PixelShaderData;
+
+class GraphicsContext;
 
 class ModelLoader;
 class TextureLoader;

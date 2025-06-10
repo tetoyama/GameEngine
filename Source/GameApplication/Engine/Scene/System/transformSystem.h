@@ -6,12 +6,10 @@ struct SceneContext;
 
 class TransformSystem : public ISystem{
 public:
-	TransformSystem(SceneContext* context): m_context(context){
-		Initialize();
-	}
+	TransformSystem(SceneContext* context): m_context(context){}
 	~TransformSystem(){}
 
-	void Initialize() override{};
+	void Initialize() override;
 	void Finalize()override {};
 
 	void Start() override {};
