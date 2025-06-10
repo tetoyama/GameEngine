@@ -86,7 +86,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	light.Position = DirectX::XMFLOAT4(0, 3, 0,0);
 	light.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
 	light.Ambient = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	light.PointLightParam = DirectX::XMFLOAT4(100.0f, 0, 0, 0);
+	light.PointLightParam = DirectX::XMFLOAT4(10.0f, 0, 0, 0);
 
 	light.SkyColor = DirectX::XMFLOAT4(1.0f, 0.6f, 0.85f, 0.1f);
 	light.GroundColor = DirectX::XMFLOAT4(0.8f, 0.8f, 1.0f, 0.5f);

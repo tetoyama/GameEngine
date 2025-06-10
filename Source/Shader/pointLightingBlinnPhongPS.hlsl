@@ -10,7 +10,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     float4 lv = In.WorldPosition - Light.Position;
     //•¨‘Ì‚ÆŒõŒ¹‚Ì‹——£
     float4 normal = normalize(In.Normal);
-    float light = -dot(normal.xyz, lv);
+    float light = -dot(normal.xyz, lv.xyz);
 
     float4 ld = length(lv);
     //ƒxƒNƒgƒ‹‚Ì³‹K‰»
