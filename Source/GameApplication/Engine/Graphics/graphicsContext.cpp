@@ -435,7 +435,7 @@ bool GraphicsContext::CreateDepthStencilBufferAndView(UINT width, UINT height){
 	textureDesc.Height = (UINT)height;
 	textureDesc.MipLevels = 1;
 	textureDesc.ArraySize = 1;
-	textureDesc.Format = DXGI_FORMAT_D16_UNORM;
+	textureDesc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 	textureDesc.SampleDesc.Count = 1;
 	textureDesc.SampleDesc.Quality = 0;
 	textureDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -512,7 +512,7 @@ void GraphicsContext::Present(bool vsync){
 }
 
 bool GraphicsContext::CreateVertexShader(const char* fileName, ID3D11VertexShader** vertexShader, ID3D11InputLayout** inputLayout){
-std::vector<char> buffer;
+	std::vector<char> buffer;
 	if(!ReadFileToBuffer(fileName, buffer)) return false;
 
 	HRESULT hr = m_Device->CreateVertexShader(buffer.data(), buffer.size(), nullptr, vertexShader);

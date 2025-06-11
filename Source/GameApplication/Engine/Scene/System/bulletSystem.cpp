@@ -18,6 +18,7 @@
 #include "Component/transformComponent.h"
 #include "Component/modelRendererComponent.h"
 #include "Component/bulletComponent.h"
+#include "Component/enemyComponent.h"
 
 #include "Engine/Graphics/mainRenderer.h"
 
@@ -42,6 +43,27 @@ void BulletSystem::Update(float deltaTime){
 					m_context->entity->Destroy(bulletEntity);
 					m_context->component->OnEntityDestroyed(bulletEntity);
 					continue;
+				}
+
+				const auto& enemyEntities = m_context->component->FindEntitiesWithComponent<EnemyComponent>();
+				if(!enemyEntities.empty()){
+
+					for(Entity enemyEntity : enemyEntities){
+
+						TransformComponent* enemyTransform = m_context->component->GetComponent<TransformComponent>(enemyEntity);
+						if(transform && enemyTransform){
+
+							if((enemyTransform->position - transform->position).length() < 2.0f){
+								m_context->entity->Destroy(bulletEntity);
+								m_context->component->OnEntityDestroyed(bulletEntity);
+
+								m_context->entity->Destroy(enemyEntity);
+								m_context->component->OnEntityDestroyed(enemyEntity);
+								break;
+								continue;
+							}
+						}
+					}
 				}
 			}
 		}
