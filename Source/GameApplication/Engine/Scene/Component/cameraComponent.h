@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 #include "Interface/IComponent.h"
 #include "Backends/myVector3.h"
 

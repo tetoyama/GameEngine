@@ -4,12 +4,23 @@
 #include "sceneManager.h"
 #include "Engine/DebugTools/debugSystem.h"
 
+#include "Engine/Resources/resourceSystem.h"
+#include "Engine/Resources/Data/modelData.h"
+#include "Engine/Resources/Loader/modelLoader.h"
+#include "Engine/Resources/Loader/shaderLoader.h"
+#include "Engine/Resources/Loader/textureLoader.h"
+#include "Engine/Resources/Data/vertexShaderData.h"
+#include "Engine/Resources/Data/pixelShaderData.h"
+
 #include "Registry/entityRegistry.h"
 #include "Registry/componentRegistry.h"
 
 #include "Component/playerComponent.h"
+#include "Component/entityNameComponent.h"
 #include "Component/transformComponent.h"
 #include "Component/cameraComponent.h"
+#include "Component/modelRendererComponent.h"
+#include "Component/bulletComponent.h"
 
 #include "Engine/Graphics/mainRenderer.h"
 
@@ -20,20 +31,21 @@ void PlayerSystem::Initialize(){
 }
 
 void PlayerSystem::Start() {
-	// 入力システムの取得
-	m_inputSystem = m_context->manager->input;
-
-	// カメラの取得
-	const auto& cameraEntity = m_context->component->FindEntitiesWithComponent<CameraComponent>();
-	if (!cameraEntity.empty()) {
-		m_cameraComponent = m_context->component->GetComponent<CameraComponent>(cameraEntity[0]);
-		m_cameraTransform = m_context->component->GetComponent<TransformComponent>(cameraEntity[0]);
-	} else {
-		return;
-	}
 }
 
 void PlayerSystem::Update(float deltaTime) {
+	CameraComponent* m_cameraComponent = nullptr;
+	TransformComponent * m_cameraTransform = nullptr;
+	// カメラの取得
+	const auto& cameraEntity = m_context->component->FindEntitiesWithComponent<CameraComponent>();
+	if(!cameraEntity.empty()){
+		m_cameraComponent = m_context->component->GetComponent<CameraComponent>(cameraEntity[0]);
+		m_cameraTransform = m_context->component->GetComponent<TransformComponent>(cameraEntity[0]);
+	} else{
+		return;
+	}
+
+	auto input = m_context->manager->input;
 
 	// コンポーネントを持つエンティティの検索
 	const auto& playerEntity = m_context->component->FindEntitiesWithComponent<PlayerComponent>();
@@ -54,8 +66,8 @@ void PlayerSystem::Update(float deltaTime) {
 			}
 
 			// カメラの回転
-			m_cameraTransform->rotation.y += deltaTime * player->cameraRotate * (m_inputSystem->IsKey(m_context->manager->hwnd, VK_RIGHT) - m_inputSystem->IsKey(m_context->manager->hwnd, VK_LEFT));
-			m_cameraTransform->rotation.x += deltaTime * player->cameraRotate * (m_inputSystem->IsKey(m_context->manager->hwnd, VK_UP) - m_inputSystem->IsKey(m_context->manager->hwnd, VK_DOWN));
+			m_cameraTransform->rotation.y += deltaTime * player->cameraRotate * (input->IsKey(m_context->manager->hwnd, VK_RIGHT) - input->IsKey(m_context->manager->hwnd, VK_LEFT));
+			m_cameraTransform->rotation.x += deltaTime * player->cameraRotate * (input->IsKey(m_context->manager->hwnd, VK_UP) - input->IsKey(m_context->manager->hwnd, VK_DOWN));
 			if (m_cameraTransform->rotation.x > -0.2f) {
 				m_cameraTransform->rotation.x = -0.2f;
 			}
@@ -65,8 +77,8 @@ void PlayerSystem::Update(float deltaTime) {
 
 			// プレイヤーの移動
 			Vector3 moveVec{};
-			moveVec.x += deltaTime * player->moveSpeed * (m_inputSystem->IsKey(m_context->manager->hwnd, 'D') - m_inputSystem->IsKey(m_context->manager->hwnd, 'A'));
-			moveVec.z += deltaTime * player->moveSpeed * (m_inputSystem->IsKey(m_context->manager->hwnd, 'W') - m_inputSystem->IsKey(m_context->manager->hwnd, 'S'));
+			moveVec.x += deltaTime * player->moveSpeed * (input->IsKey(m_context->manager->hwnd, 'D') - input->IsKey(m_context->manager->hwnd, 'A'));
+			moveVec.z += deltaTime * player->moveSpeed * (input->IsKey(m_context->manager->hwnd, 'W') - input->IsKey(m_context->manager->hwnd, 'S'));
 			Vector3 rotatedMoveVec{};
 			rotatedMoveVec.x += moveVec.z * sin(m_cameraTransform->rotation.y) + moveVec.x * cos(m_cameraTransform->rotation.y);
 			rotatedMoveVec.z += moveVec.z * cos(m_cameraTransform->rotation.y) - moveVec.x * sin(m_cameraTransform->rotation.y);
@@ -88,6 +100,27 @@ void PlayerSystem::Update(float deltaTime) {
 			m_cameraTransform->position += (setCameraPos - m_cameraTransform->position) * deltaTime * player->cameraLerp;
 			m_cameraComponent->isLock = true;
 			m_cameraComponent->Target = transform->position;
+
+			if(input->IsKeyDown(m_context->manager->hwnd, VK_SPACE)){
+
+				Entity bulletEntity = m_context->entity->Create();
+				NameComponent* name = m_context->component->AddComponent<NameComponent>(bulletEntity);
+				name->name = "Bullet";
+
+				TransformComponent* bulletTransform = m_context->component->AddComponent<TransformComponent>(bulletEntity);
+				transform = m_context->component->GetComponent<TransformComponent>(entity); //Addしたタイミングでメモリコピーが行われると本来の参照元の位置と違う場所になるので再取得...アーキタイプで管理しない方がいいのかも
+				bulletTransform->position = transform->position + Vector3(0.0f,1.0f,0.0f);
+				bulletTransform->rotation = transform->rotation;
+				bulletTransform->scale = transform->scale * 2.0f;
+
+				ModelRendererComponent* bulletModelRenderer = m_context->component->AddComponent<ModelRendererComponent>(bulletEntity);
+				bulletModelRenderer->model = m_context->manager->resource->GetModelLoader()->LoadModel("Asset\\Model\\ball.fbx");
+				bulletModelRenderer->vertexShader = m_context->manager->resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\limLightVS.cso");
+				bulletModelRenderer->pixelShader = m_context->manager->resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
+
+				BulletComponent* bullet = m_context->component->AddComponent<BulletComponent>(bulletEntity);
+				//bullet->lifeTime = 1.0f;
+			}
 		}
 	}
 }

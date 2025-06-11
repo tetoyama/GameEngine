@@ -3,10 +3,6 @@
 
 struct SceneContext;
 
-class InputService;
-class CameraComponent;
-class TransformComponent;
-
 class PlayerSystem : public ISystem {
 public:
 	PlayerSystem(SceneContext* context): m_context(context){}
@@ -22,9 +18,4 @@ public:
 
 private:
 	SceneContext* m_context;
-
-	InputService* m_inputSystem = nullptr;
-
-	CameraComponent* m_cameraComponent = nullptr;
-	TransformComponent* m_cameraTransform = nullptr;
 };

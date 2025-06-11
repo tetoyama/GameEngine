@@ -39,7 +39,8 @@ struct LIGHT
     
     float4 Position;
     float4 PointLightParam;
-    
+    float4 Angle;
+
     float4 SkyColor;
     float4 GroundColor;
     float4 GroundNomal;

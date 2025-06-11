@@ -76,7 +76,7 @@ private:
 		std::wstring wide(size, 0);
 		MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, &wide[0], size);
 		wide.pop_back(); // null終端除去
-		return wide + L"\n";
+		return wide;
 	}
 };
 

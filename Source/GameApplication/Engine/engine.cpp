@@ -257,32 +257,48 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		{
 			ImGui::Text("FPS: %.2f", 1.0f / timeService->GetDeltaTime());
 			ImGui::Text("Time: %.2f", timeService->GetTotalTime());
-		}
-		ImGui::End();
 
-		ImGui::Begin("Input Debug");
+			ImGuiIO& io = ImGui::GetIO();
+			if(io.DisplaySize.x > 0){
+				ImGuiStyle& style = ImGui::GetStyle();
+				ImVec2 pad = style.DisplayWindowPadding;
 
-		auto mainWindowHWND = windowService->GetMainWindow()->GetHWND();
+				ImVec2 pos = ImGui::GetWindowPos();
+				ImVec2 size = ImGui::GetWindowSize();
+				ImVec2 newPos = pos;
+				bool need = false;
+				if(size.x > io.DisplaySize.x - pad.x * 2){
+					size.x = io.DisplaySize.x - pad.x * 2;
+					need = true;
+				}
+				if(size.y > io.DisplaySize.y - pad.y * 2){
+					size.y = io.DisplaySize.y - pad.y * 2;
+					need = true;
+				}
+				ImVec2 newSize = size;
 
-		// キーボードの例: Aキー
-		ImGui::Text("A: %s", inputService->IsKey(mainWindowHWND, 'A') ? "Down" : "Up");
-		ImGui::Text("A Down: %s", inputService->IsKeyDown(mainWindowHWND, 'A') ? "Yes" : "No");
-		ImGui::Text("A Up: %s", inputService->IsKeyUp(mainWindowHWND, 'A') ? "Yes" : "No");
+				if(pos.x < pad.x){
+					newPos.x = pad.x;
+					need = true;
+				}
+				if(pos.y < pad.y){
+					newPos.y = pad.y;
+					need = true;
+				}
+				if(pos.x + size.x > io.DisplaySize.x - pad.x){
+					newPos.x = io.DisplaySize.x - pad.x - size.x;
+					need = true;
+				}
+				if(pos.y + size.y > io.DisplaySize.y - pad.y){
+					newPos.y = io.DisplaySize.y - pad.y - size.y;
+					need = true;
+				}
 
-		// マウス
-		ImGui::Text("Mouse X: %d", inputService->GetMouseX(mainWindowHWND));
-		ImGui::Text("Mouse Y: %d", inputService->GetMouseY(mainWindowHWND));
-		ImGui::Text("Mouse Left: %s", inputService->IsMouseDown(mainWindowHWND, 0) ? "Down" : "Up");
-		ImGui::Text("Mouse Right: %s", inputService->IsMouseDown(mainWindowHWND, 1) ? "Down" : "Up");
-		ImGui::Text("Mouse Wheel: %d", inputService->GetMouseWheel(mainWindowHWND));
-
-
-		// ゲームパッド（例: 0番）
-		ImGui::Text("Gamepad 0 Connected: %s", inputService->IsGamepadConnected(0) ? "Yes" : "No");
-		if(inputService->IsGamepadConnected(0)){
-			ImGui::Text("Gamepad 0 A Button: %s", inputService->GetGamepadButton(0, XINPUT_GAMEPAD_A) ? "Pressed" : "Released");
-			POINT left = inputService->GetGamepadLeftStick(0);
-			ImGui::Text("Left Stick: x=%ld y=%ld", left.x, left.y);
+				if(need){
+					ImGui::SetWindowSize(newSize, ImGuiCond_Always);
+					ImGui::SetWindowPos(newPos, ImGuiCond_Always);
+				}
+			}
 		}
 		ImGui::End();
 

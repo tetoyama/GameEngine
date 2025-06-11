@@ -46,7 +46,7 @@ void DebugLogSystem::Log(LogLevel level,
 	entry.file = file;
 	entry.line = line;
 	entry.timestamp = std::chrono::system_clock::now();
-	OutputDebugStringW(Utf8ToWide(message).c_str());
+	OutputDebugStringW((Utf8ToWide(message) +L"\n").c_str());
 
 	std::lock_guard<std::mutex> lock(mutex);
 	for(const auto& sink : sinks){
@@ -124,6 +124,7 @@ ImVec4 ImGuiLogWindow::GetColorForLevel(LogLevel level) const{
 }
 
 void ImGuiLogWindow::Draw(){
+
 	ImGui::Begin("Debug Log");
 
 	ImGui::InputText("Search", searchBuffer, sizeof(searchBuffer));
@@ -170,6 +171,51 @@ void ImGuiLogWindow::Draw(){
 			ImGui::SetScrollHereY(1.0f);
 	}
 
+
 	ImGui::EndChild();
+
+
+	ImGuiIO& io = ImGui::GetIO();
+	if(io.DisplaySize.x > 0){
+		ImGuiStyle& style = ImGui::GetStyle();
+		ImVec2 pad = style.DisplayWindowPadding;
+
+		ImVec2 pos = ImGui::GetWindowPos();
+		ImVec2 size = ImGui::GetWindowSize();
+		ImVec2 newPos = pos;
+		bool need = false;
+		if(size.x > io.DisplaySize.x - pad.x * 2){
+			size.x = io.DisplaySize.x - pad.x * 2;
+			need = true;
+		}
+		if(size.y > io.DisplaySize.y - pad.y * 2){
+			size.y = io.DisplaySize.y - pad.y * 2;
+			need = true;
+		}
+		ImVec2 newSize = size;
+
+		if(pos.x < pad.x){
+			newPos.x = pad.x;
+			need = true;
+		}
+		if(pos.y < pad.y){
+			newPos.y = pad.y;
+			need = true;
+		}
+		if(pos.x + size.x > io.DisplaySize.x - pad.x){
+			newPos.x = io.DisplaySize.x - pad.x - size.x;
+			need = true;
+		}
+		if(pos.y + size.y > io.DisplaySize.y - pad.y){
+			newPos.y = io.DisplaySize.y - pad.y - size.y;
+			need = true;
+		}
+
+		if(need){
+			ImGui::SetWindowSize(newSize, ImGuiCond_Always);
+			ImGui::SetWindowPos(newPos, ImGuiCond_Always);
+		}
+	}
+
 	ImGui::End();
 }

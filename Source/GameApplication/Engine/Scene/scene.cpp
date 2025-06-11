@@ -23,16 +23,22 @@
 #include "Registry/componentRegistry.h"
 #include "Registry/systemRegistry.h"
 
+#include "System/inspectorSystem.h"
 #include "System/transformSystem.h"
 #include "System/renderSystem.h"
 #include "System/cameraSystem.h"
-#include "System/playerSystem.h"
 
-#include "Component/modelRendererComponent.h"
-#include "Component/meshRendererComponent.h"
+#include "System/playerSystem.h"
+#include "System/bulletSystem.h"
+
+#include "Component/entityNameComponent.h"
 #include "Component/transformComponent.h"
 #include "Component/cameraComponent.h"
+#include "Component/modelRendererComponent.h"
+#include "Component/meshRendererComponent.h"
+
 #include "Component/playerComponent.h"
+#include "Component/bulletComponent.h"
 
 Scene::Scene(){
 
@@ -51,17 +57,24 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_systemRegistry = std::make_shared<SystemRegistry>();
 
 	// コンポーネントを登録（Archetype or Sparse を選択）
-	m_componentRegistry->RegisterComponent<TransformComponent>(true);   
-	m_componentRegistry->RegisterComponent<MeshRendererComponent>(true);
-	m_componentRegistry->RegisterComponent<ModelRendererComponent>(true);
+	// ボトルネックが見つかったコンポーネントから ArchetypeStorage<T> に移行
+	m_componentRegistry->RegisterComponent<NameComponent>(false);
+	m_componentRegistry->RegisterComponent<TransformComponent>(false);
+	m_componentRegistry->RegisterComponent<MeshRendererComponent>(false);
+	m_componentRegistry->RegisterComponent<ModelRendererComponent>(false);
+	m_componentRegistry->RegisterComponent<CameraComponent>(false);
+
 	m_componentRegistry->RegisterComponent<PlayerComponent>(false);
-	m_componentRegistry->RegisterComponent<CameraComponent>(true);
+	m_componentRegistry->RegisterComponent<BulletComponent>(false);
 
 	// システムを登録
+	m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
+
 	m_systemRegistry->RegisterSystem(std::make_unique<PlayerSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<BulletSystem>(&m_SceneContext));
 
 	auto Renderer = m_SceneManagerContext->renderer;
 	auto graphicsContext = Renderer->GetGraphicsContext();
@@ -82,14 +95,15 @@ void Scene::Initialize(SceneManagerContext* set){
 
 	LIGHT light{};
 	light.Enable = TRUE;
-	light.Direction = DirectX::XMFLOAT4(0.2f, -1.0f, 0.2f, 0.0f);
-	light.Position = DirectX::XMFLOAT4(0, 3, 0,0);
-	light.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
+	light.Direction = DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
+	light.Position = DirectX::XMFLOAT4(0, 5, 0,0);
+	light.Diffuse = DirectX::XMFLOAT4(0.9f, 0.9f, 1.0f, 1);
 	light.Ambient = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	light.PointLightParam = DirectX::XMFLOAT4(10.0f, 0, 0, 0);
+	light.PointLightParam = DirectX::XMFLOAT4(20.0f, 0, 0, 0);
+	light.Angle = DirectX::XMFLOAT4(DirectX::XM_PI / 180.0f * 60.0f, 0.0f, 0.0f, 0.0f);
 
-	light.SkyColor = DirectX::XMFLOAT4(1.0f, 0.6f, 0.85f, 0.1f);
-	light.GroundColor = DirectX::XMFLOAT4(0.8f, 0.8f, 1.0f, 0.5f);
+	light.SkyColor = DirectX::XMFLOAT4(0.8f, 0.8f, 1.0f, 0.1f);
+	light.GroundColor = DirectX::XMFLOAT4(1.0f, 0.8f, 0.5f, 0.05f);
 	light.GroundNormal = DirectX::XMFLOAT4(0, 0, 1, 0);
 	graphicsContext->SetLight(light);
 	graphicsContext->SetDepthEnable(true);
@@ -151,30 +165,52 @@ void Scene::Initialize(SceneManagerContext* set){
 	}
 	*/
 
-	{
-		//エンティティを作成し、TransformとModelRendererを追加
+
+
+	int Sample = 3;
+	float Distance = 5.0f;
+	for(int i = 0; i < Sample; i++){
+
 		Entity entity = entityRegistry->Create();
+
+		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		name->name = "Model";
 
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position = Vector3(0.0f, 0.0f, 0);
-		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
+		transform->position = Vector3(cosf(float(i) / Sample * DirectX::XM_2PI) * Distance, 2.0f, sinf(float(i) / Sample * DirectX::XM_2PI) * Distance);
+		transform->scale = Vector3(2.0f, 2.0f, 2.0f);
 		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
 
 
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
-		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
-		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\pointLightingBlinnPhongVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pointLightingBlinnPhongPS.cso");
+		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\model.fbx");
 
-		auto player = componentRegistry->AddComponent<PlayerComponent>(entity);
+		if(i % 3 <= 0){
+			name->name = "Model_pointLighting";
+			modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\pointLightingBlinnPhongVS.cso");
+			modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pointLightingBlinnPhongPS.cso");
+
+		} else if(i % 3 <= 1){
+			name->name = "Model_spotLight";
+
+			modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\spotLightVS.cso");
+			modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\spotLightPS.cso");
+		} else{
+			name->name = "Model_limLight";
+
+			modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\limLightVS.cso");
+			modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
+		}
 	}
 
-	for (int i = 0; i < 1; i++) {
-
+	{
 		//エンティティを作成し、TransformとModelRendererを追加
 		Entity entity = entityRegistry->Create();
+
+		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		name->name = "Field";
 
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
@@ -186,22 +222,48 @@ void Scene::Initialize(SceneManagerContext* set){
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\cube.fbx");
-		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\pointLightingBlinnPhongVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pointLightingBlinnPhongPS.cso");
+		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\spotLightVS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\spotLightPS.cso");
 	}
 
+	{
+		//エンティティを作成し、TransformとModelRendererを追加
+		Entity entity = entityRegistry->Create();
+
+		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		name->name = "Player";
+
+		// TransformComponentを追加
+		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
+		transform->position = Vector3(0.0f, 0.2f, 0);
+		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
+		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
+
+
+		// ModelRendererComponentを追加
+		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
+		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
+		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\limLightVS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
+
+		auto player = componentRegistry->AddComponent<PlayerComponent>(entity);
+	}
 	{
 		//エンティティを作成し、TransformとCameraを追加
 		Entity entity = entityRegistry->Create();
 
-		// CameraComponentを追加
-		auto* camera = componentRegistry->AddComponent<CameraComponent>(entity);
+		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		name->name = "Camera";
 
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, 10.0f, 0.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 		transform->rotation = Vector3(-1.0f, 0.0f, 0.0f);
+
+
+		// CameraComponentを追加
+		auto* camera = componentRegistry->AddComponent<CameraComponent>(entity);
 	}
 	m_SceneManagerContext->debug->LOG_INFO(u8"Sceneを開始します");
 

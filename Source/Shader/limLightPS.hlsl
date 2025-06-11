@@ -12,7 +12,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     float4 normal = normalize(In.Normal);
     float light = -dot(normal.xyz, lv.xyz);
 
-    float ld = length(lv);
+    float4 ld = length(lv);
     //ÉxÉNÉgÉãÇÃê≥ãKâª
     lv = normalize(lv);
     
@@ -24,9 +24,8 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     light = saturate(light);
     light *= ofs;
     
-    outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord);
-    outDiffuse.rgb *= In.Diffuse.rgb * light + Light.Ambient.rgb;
-    outDiffuse.a *= In.Diffuse.a;
+
+    
     
     float3 eyev = In.WorldPosition.xyz - CameraPosition.xyz;
     eyev = normalize(eyev);
@@ -39,6 +38,24 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     specular = pow(specular, 30);
     
     outDiffuse.rgb += (specular * ofs);
+
+    
+    float lit = 1.0f - max(0, dot(lv.xyz, eyev));
+    float lim = 1.0f - max(0, dot(normal.xyz, -eyev));
+    
+    float blendFactor = normal.y * 0.5f + 0.5f;
+    float4 color = lerp(Light.GroundColor, Light.SkyColor, blendFactor);
+
+    
+    outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord);
+    outDiffuse.rgb *= In.Diffuse.rgb * light + Light.Ambient.rgb + pow(lim, 3) * color.rgb;
+    outDiffuse.a *= In.Diffuse.a;
+
+    outDiffuse.rgb += color.rgb * color.a;
+
+    outDiffuse.rgb += pow(lit * lim, 5) * color.rgb;
+    outDiffuse.rgb += (specular * ofs);
+
 }
 
 

@@ -56,6 +56,11 @@ Index of this file:
 
 #pragma once
 
+// demoÇ…Ç†Ç¡ÇΩä÷êîÇÃà⁄êA
+#ifndef IM_CLAMP
+#define IM_CLAMP(V, MN, MX) ((V) < (MN) ? (MN) : (V) > (MX) ? (MX) : (V))
+#endif
+
 // Configuration file with compile-time options
 // (edit imconfig.h or '#define IMGUI_USER_CONFIG "myfilename.h" from your build system)
 #ifdef IMGUI_USER_CONFIG

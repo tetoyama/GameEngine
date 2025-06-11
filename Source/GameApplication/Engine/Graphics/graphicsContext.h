@@ -40,6 +40,7 @@ struct LIGHT
 
 	DirectX::XMFLOAT4	Position;
 	DirectX::XMFLOAT4	PointLightParam;
+	DirectX::XMFLOAT4	Angle;
 
 	DirectX::XMFLOAT4	SkyColor;
 	DirectX::XMFLOAT4	GroundColor;

@@ -20,7 +20,6 @@ bool ImGuiService::Initialize(IWindow* window, GraphicsContext* graphics){
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 	ImGui::StyleColorsDark();
 
-
 	HWND hwnd = window->GetHWND();
 
 	ImGui_ImplWin32_Init(hwnd);
