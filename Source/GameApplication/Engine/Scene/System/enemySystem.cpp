@@ -60,7 +60,7 @@ void EnemySystem::Update(float deltaTime){
 						TransformComponent randomDir;
 						randomDir.position = Vector3(1.0f, 0.0f, 0.0f);
 						randomDir.rotation.y = 0.0001f * (rand() % 10000) * DirectX::XM_2PI;
-						enemy->TargetPos = enemy->OriginPos + randomDir.front() * 0.01f * (rand() % 51 + 50);
+						enemy->TargetPos = enemy->OriginPos + randomDir.front() * 0.01f * (float)(rand() % 51 + 50) * (float)enemy->maxDistance;
 					}
 				}
 			}
