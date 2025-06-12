@@ -13,8 +13,7 @@ GameApplication
    │
    ├── Runtime
    │   ├── TimeService              （QueryPerformanceCounter）【実装済み】
-   │   ├── JobSystem                （マルチスレッドタスク管理）【未実装】
-   │   └── EngineContext            （全体のDIハブ）【実装済み】
+   │   └── JobSystem                （マルチスレッドタスク管理）【未実装】
    │
    ├── Platform
    │   ├── WindowSystem
