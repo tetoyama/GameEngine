@@ -70,6 +70,7 @@ void GraphicsContext::Shutdown(){
 	SAFE_RELEASE(m_ViewBuffer);
 	SAFE_RELEASE(m_ProjectionBuffer);
 	SAFE_RELEASE(m_MaterialBuffer);
+	SAFE_RELEASE(m_UVMatrixBuffer);
 	SAFE_RELEASE(m_LightBuffer);
 	SAFE_RELEASE(m_CameraBuffer);
 	SAFE_RELEASE(m_ParameterBuffer);
@@ -125,6 +126,12 @@ void GraphicsContext::SetProjectionMatrix(const DirectX::XMMATRIX& proj){
 	DirectX::XMFLOAT4X4 projf;
 	XMStoreFloat4x4(&projf, XMMatrixTranspose(proj));
 	m_DeviceContext->UpdateSubresource(m_ProjectionBuffer, 0, nullptr, &projf, 0, 0);
+}
+
+void GraphicsContext::SetUVMatrix(const DirectX::XMMATRIX& uvMatrix) {
+	DirectX::XMFLOAT4X4 matrixFloat4x4;
+	XMStoreFloat4x4(&matrixFloat4x4, XMMatrixTranspose(uvMatrix)); // 転置が必要な場合あり
+	m_DeviceContext->UpdateSubresource(m_UVMatrixBuffer, 0, nullptr, &matrixFloat4x4, 0, 0);
 }
 
 void GraphicsContext::SetMaterial(const MATERIAL& material){  
@@ -324,26 +331,31 @@ bool GraphicsContext::CreateConstantBuffers(){
 	m_DeviceContext->PSSetConstantBuffers(3, 1, &m_MaterialBuffer);
 	assert(SUCCEEDED(hr));
 
+	bufferDesc.ByteWidth = sizeof(UVMatrix);
+	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_UVMatrixBuffer);
+	m_DeviceContext->VSSetConstantBuffers(4, 1, &m_UVMatrixBuffer);
+	m_DeviceContext->PSSetConstantBuffers(4, 1, &m_UVMatrixBuffer);
+	assert(SUCCEEDED(hr));
 
 	bufferDesc.ByteWidth = sizeof(LIGHT);
 
 	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_LightBuffer);
-	m_DeviceContext->VSSetConstantBuffers(4, 1, &m_LightBuffer);
-	m_DeviceContext->PSSetConstantBuffers(4, 1, &m_LightBuffer);
+	m_DeviceContext->VSSetConstantBuffers(5, 1, &m_LightBuffer);
+	m_DeviceContext->PSSetConstantBuffers(5, 1, &m_LightBuffer);
 	assert(SUCCEEDED(hr));
 
 	bufferDesc.ByteWidth = sizeof(CAMERA);
 
 	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_CameraBuffer);
-	m_DeviceContext->VSSetConstantBuffers(5, 1, &m_CameraBuffer);
-	m_DeviceContext->PSSetConstantBuffers(5, 1, &m_CameraBuffer);
+	m_DeviceContext->VSSetConstantBuffers(6, 1, &m_CameraBuffer);
+	m_DeviceContext->PSSetConstantBuffers(6, 1, &m_CameraBuffer);
 	assert(SUCCEEDED(hr));
 
 	bufferDesc.ByteWidth = sizeof(Parameter);
 
 	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_ParameterBuffer);
-	m_DeviceContext->VSSetConstantBuffers(6, 1, &m_ParameterBuffer);
-	m_DeviceContext->PSSetConstantBuffers(6, 1, &m_ParameterBuffer);
+	m_DeviceContext->VSSetConstantBuffers(7, 1, &m_ParameterBuffer);
+	m_DeviceContext->PSSetConstantBuffers(7, 1, &m_ParameterBuffer);
 	assert(SUCCEEDED(hr));
 
 	// ライト初期化
@@ -378,6 +390,7 @@ bool GraphicsContext::CreateRasterizerState(){
 	D3D11_RASTERIZER_DESC rasterizerDesc{};
 	rasterizerDesc.FillMode = D3D11_FILL_SOLID;
 	rasterizerDesc.CullMode = D3D11_CULL_BACK;
+	//rasterizerDesc.CullMode = D3D11_CULL_NONE;
 	rasterizerDesc.DepthClipEnable = TRUE;
 	rasterizerDesc.MultisampleEnable = FALSE;
 

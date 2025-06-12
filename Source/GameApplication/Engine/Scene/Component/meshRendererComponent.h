@@ -27,5 +27,5 @@ public:
 	MeshRendererComponent() = default;
 	~MeshRendererComponent() = default;
 
-	std::shared_ptr<MeshData> mesh;
+	MeshData mesh;
 };

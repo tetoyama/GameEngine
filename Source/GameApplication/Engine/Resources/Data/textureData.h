@@ -2,7 +2,7 @@
 #include <string>
 #include <d3d11.h>
 #include <wrl/client.h> 
-class GraphicsContext;
+
 
 struct TextureData {
 	std::wstring TexturePath = L"";					//テクスチャのパス名

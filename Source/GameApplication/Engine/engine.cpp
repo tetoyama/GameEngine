@@ -258,6 +258,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 			ImGui::Text("FPS: %.2f", 1.0f / timeService->GetDeltaTime());
 			ImGui::Text("Time: %.2f", timeService->GetTotalTime());
 
+
 			ImGuiIO& io = ImGui::GetIO();
 			if(io.DisplaySize.x > 0){
 				ImGuiStyle& style = ImGui::GetStyle();

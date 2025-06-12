@@ -12,7 +12,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     light = saturate(light);
 	
 	//テクスチャのピクセル色を取得
-    outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord);
+    outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord) * Material.Diffuse;
     outDiffuse.rgb *= In.Diffuse.rgb * light; //明るさを乗算
     outDiffuse.a *= In.Diffuse.a; //αに明るさは関係ないので別計算
 }

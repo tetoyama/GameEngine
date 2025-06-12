@@ -24,6 +24,8 @@ TextureData* TextureLoader::LoadTexture(const std::wstring& filePath){
 	DirectX::TexMetadata _metadata{};
 	DirectX::ScratchImage _image{};
 
+	textureData->TexturePath = filePath;
+	
 	//テクスチャ読み込み
 	if(isTgaFile){
 

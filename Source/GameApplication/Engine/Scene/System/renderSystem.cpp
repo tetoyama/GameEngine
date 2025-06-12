@@ -17,6 +17,7 @@
 
 #include "Component/transformComponent.h"
 
+#include "Component/textureComponent.h"
 #include "Component/meshRendererComponent.h"
 #include "Component/modelRendererComponent.h"
 #include "Component/BillBoardRendererComponent.h"
@@ -52,68 +53,75 @@ void RenderSystem::Draw(){
 			TransformComponent* transform = m_context->component->GetComponent<TransformComponent>(entity);
 			if (transform) {
 
+				TextureComponent* texture = m_context->component->GetComponent<TextureComponent>(entity);
+				if (texture) {
+					deviceContext->PSSetShaderResources(0, 1, texture->m_TextureData->pTexture.GetAddressOf());
+
+					// マテリアル設定
+					MATERIAL material{};
+					material.Diffuse = texture->Material.Diffuse;
+					graphicsContext->SetMaterial(material);
+				}
+
 				BillBoardRendererComponent* billBoardRenderer = m_context->component->GetComponent<BillBoardRendererComponent>(entity);
 				MeshRendererComponent* meshRenderer = m_context->component->GetComponent<MeshRendererComponent>(entity);
 				if (meshRenderer && billBoardRenderer) {
-					DrawBillBoard(transform, meshRenderer,billBoardRenderer);
+					DrawBillBoard(transform, meshRenderer,billBoardRenderer, texture);
 				} else if (meshRenderer) {
-					DrawMesh(transform, meshRenderer);
+					DrawMesh(transform, meshRenderer, texture);
 
 				}
 
 				ModelRendererComponent* modelRenderer = m_context->component->GetComponent<ModelRendererComponent>(entity);
 				if (modelRenderer) {
-					DrawModel(transform, modelRenderer);
+					DrawModel(transform, modelRenderer,texture);
 				}
 			}
 		}
 	}
 }
 
-void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent* meshRenderer){
+void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent* meshRenderer, TextureComponent* pTexture){
 
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	graphicsContext->SetWorldViewProjection2D();
 
-	deviceContext->IASetInputLayout(meshRenderer->mesh->m_VertexLayout.Get());
+	if (meshRenderer->mesh.m_TextureData) {
+		deviceContext->PSSetShaderResources(0, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
 
-	deviceContext->VSSetShader(meshRenderer->mesh->m_VertexShader.Get(), NULL, 0);
-	deviceContext->PSSetShader(meshRenderer->mesh->m_PixelShader.Get(), NULL, 0);
+		MATERIAL material{};
+		material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
+			graphicsContext->SetMaterial(material);
+
+	}
+
+	deviceContext->IASetInputLayout(meshRenderer->mesh.m_VertexLayout.Get());
+	deviceContext->VSSetShader(meshRenderer->mesh.m_VertexShader.Get(), NULL, 0);
+	deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
 
 	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(transform->rotation.x, transform->rotation.y, transform->rotation.z);
 	DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z);
 	DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
+	DirectX::XMMATRIX World = Scale * Rotation * Translation;
 
-	graphicsContext->SetWorldMatrix(Scale * Rotation * Translation);
+	graphicsContext->SetWorldMatrix(World);
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
 
-	deviceContext->IASetVertexBuffers(0, 1, &meshRenderer->mesh->m_VertexBuffer, &stride, &offset);
+	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
 
-	deviceContext->PSSetShaderResources(0, 1, &meshRenderer->mesh->m_TextureData->pTexture);
 
-	MATERIAL material{};
-	material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
 
-	graphicsContext->SetMaterial(material);
 
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	if(meshRenderer->mesh->m_IndexBuffer){
+	deviceContext->Draw(meshRenderer->mesh.meshCount, 0);
 
-		deviceContext->IASetIndexBuffer(
-		meshRenderer->mesh->m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-
-		deviceContext->DrawIndexed(meshRenderer->mesh->indexCount, 0, 0);
-
-	} else{
-		deviceContext->Draw(meshRenderer->mesh->meshCount, 0);
-	}
 }
 
-void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererComponent* modelRenderer){
+void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererComponent* modelRenderer, TextureComponent* pTexture){
 
 	ModelData* pModel = modelRenderer->model;
 
@@ -140,12 +148,15 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 		if(pModel->SetTexture){
 
 			//テクスチャ設定
-			aiString Texture;
-			aiMaterial* aiMaterial = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-			aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &Texture);
+			if (!pTexture) {
 
-			if(aiString("") != Texture){
-				deviceContext->PSSetShaderResources(0, 1, &pModel->Texture[Texture.data]);
+				aiString Texture;
+				aiMaterial* aiMaterial = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
+				aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &Texture);
+
+				if (aiString("") != Texture) {
+					deviceContext->PSSetShaderResources(0, 1, &pModel->Texture[Texture.data]);
+				}
 			}
 		}
 		// 頂点バッファ設定
@@ -161,32 +172,30 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST		//渡された頂点の配列をどのように解釈するか
 		);
 
+		if (!pTexture) {
 		// マテリアル設定
-		MATERIAL material;
-		ZeroMemory(&material, sizeof(material));
-		aiMaterial* pAiMaterial = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-		aiColor3D diffuse;
-		pAiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
-		material.Diffuse = DirectX::XMFLOAT4(diffuse.r, diffuse.g, diffuse.b, 1);
-		graphicsContext->SetMaterial(material);
-
+			MATERIAL material;
+			ZeroMemory(&material, sizeof(material));
+			aiMaterial* pAiMaterial = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
+			aiColor4D diffuse;
+			pAiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
+			material.Diffuse = DirectX::XMFLOAT4(diffuse.r, diffuse.g, diffuse.b, diffuse.a);
+			graphicsContext->SetMaterial(material);
+		}
 		graphicsContext->SetWorldMatrix(World);
-		graphicsContext->SetDepthEnable(true);
 
 		// ポリゴン描画
 		deviceContext->DrawIndexed(pModel->AiScene->mMeshes[m]->mNumFaces * 3, 0, 0);
 	}
 }
 
-void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComponent* meshRenderer, BillBoardRendererComponent* billBoard) {
+void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComponent* meshRenderer, BillBoardRendererComponent* billBoard, TextureComponent* pTexture) {
 
 	CameraComponent* cameraComponent = nullptr;
-	TransformComponent* cameraTransform = nullptr;
 	// カメラの取得
 	const auto& cameraEntity = m_context->component->FindEntitiesWithComponent<CameraComponent>();
 	if (!cameraEntity.empty()) {
 		cameraComponent = m_context->component->GetComponent<CameraComponent>(cameraEntity[0]);
-		cameraTransform = m_context->component->GetComponent<TransformComponent>(cameraEntity[0]);
 	} else {
 		return;
 	}
@@ -204,41 +213,36 @@ void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComp
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-	deviceContext->IASetInputLayout(meshRenderer->mesh->m_VertexLayout.Get());
 
-	deviceContext->VSSetShader(meshRenderer->mesh->m_VertexShader.Get(), NULL, 0);
-	deviceContext->PSSetShader(meshRenderer->mesh->m_PixelShader.Get(), NULL, 0);
+	if (meshRenderer->mesh.m_TextureData) {
+		deviceContext->PSSetShaderResources(0, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
+
+		MATERIAL material{};
+		material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
+		graphicsContext->SetMaterial(material);
+
+	}
+
+	deviceContext->IASetInputLayout(meshRenderer->mesh.m_VertexLayout.Get());
+
+	deviceContext->VSSetShader(meshRenderer->mesh.m_VertexShader.Get(), NULL, 0);
+	deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
 
 	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(transform->rotation.x, transform->rotation.y, transform->rotation.z);
 	DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z);
 	DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
 
-	DirectX::XMMATRIX World =  Scale * Rotation * InvViewBillBoardMatrix * Translation;
+	DirectX::XMMATRIX World =  Scale * InvViewBillBoardMatrix * Translation;
 
 
 	graphicsContext->SetWorldMatrix(World);
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
 
-	deviceContext->IASetVertexBuffers(0, 1, &meshRenderer->mesh->m_VertexBuffer, &stride, &offset);
-
-	deviceContext->PSSetShaderResources(0, 1, &meshRenderer->mesh->m_TextureData->pTexture);
-
-	MATERIAL material{};
-	material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
-
-	graphicsContext->SetMaterial(material);
+	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
 
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	if (meshRenderer->mesh->m_IndexBuffer) {
+	deviceContext->Draw(meshRenderer->mesh.meshCount, 0);
 
-		deviceContext->IASetIndexBuffer(
-			meshRenderer->mesh->m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-
-		deviceContext->DrawIndexed(meshRenderer->mesh->indexCount, 0, 0);
-
-	} else {
-		deviceContext->Draw(meshRenderer->mesh->meshCount, 0);
-	}
 }

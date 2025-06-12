@@ -19,15 +19,19 @@ struct VERTEX_3D
 	DirectX::XMFLOAT2 TexCoord;
 };
 
+struct UVMatrix {
+	DirectX::XMFLOAT4X4 Matrix;
+};
+
 struct MATERIAL
 {
-	DirectX::XMFLOAT4	Ambient;
-	DirectX::XMFLOAT4	Diffuse;
-	DirectX::XMFLOAT4	Specular;
-	DirectX::XMFLOAT4	Emission;
-	float		Shininess;
-	BOOL		TextureEnable;
-	float		Dummy[2];
+	DirectX::XMFLOAT4	Ambient = {1.0f,1.0f,1.0f,1.0f};
+	DirectX::XMFLOAT4	Diffuse = { 1.0f,1.0f,1.0f,1.0f };
+	DirectX::XMFLOAT4	Specular = { 1.0f,1.0f,1.0f,1.0f };
+	DirectX::XMFLOAT4	Emission = { 1.0f,1.0f,1.0f,1.0f };
+	float		Shininess = 1.0f;
+	BOOL		TextureEnable = true;
+	float		Dummy[2]{};
 };
 
 struct LIGHT
@@ -83,6 +87,7 @@ public:
 	void SetWorldMatrix(const DirectX::XMMATRIX& WorldMatrix);
 	void SetViewMatrix(const DirectX::XMMATRIX& ViewMatrix);
 	void SetProjectionMatrix(const DirectX::XMMATRIX& ProjectionMatrix);
+	void SetUVMatrix(const DirectX::XMMATRIX& uvMatrix);
 	void SetMaterial(const MATERIAL& Material);
 	void SetLight(const LIGHT& Light);
 	void SetCamera(const CAMERA& Camera);
@@ -127,6 +132,7 @@ private:
 	ID3D11Buffer* m_WorldBuffer = nullptr;
 	ID3D11Buffer* m_ViewBuffer = nullptr;
 	ID3D11Buffer* m_ProjectionBuffer = nullptr;
+	ID3D11Buffer* m_UVMatrixBuffer = nullptr;
 	ID3D11Buffer* m_MaterialBuffer = nullptr;
 	ID3D11Buffer* m_LightBuffer = nullptr;
 	ID3D11Buffer* m_CameraBuffer = nullptr;

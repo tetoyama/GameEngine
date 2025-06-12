@@ -1,8 +1,9 @@
 #pragma once
 #include "Interface/IComponent.h"
 #include "Backends/myVector3.h"
-
+#include "GameApplication/Engine/Graphics/graphicsContext.h"
 struct TextureData;
+struct MATERIAL;
 
 class TextureComponent : public IComponent {
 public:
@@ -12,4 +13,5 @@ public:
 	int AnimationNum = 0;
 
 	TextureData* m_TextureData = nullptr;
+	MATERIAL Material;
 };

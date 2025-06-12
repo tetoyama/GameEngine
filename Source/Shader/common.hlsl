@@ -28,6 +28,11 @@ cbuffer MaterialBuffer : register(b3)
     MATERIAL Material;
 }
 
+cbuffer UVMatrixBuffer : register(b4)
+{
+    matrix g_UVMatrix;
+};
+
 struct LIGHT
 {
     bool Enable;
@@ -46,18 +51,18 @@ struct LIGHT
     float4 GroundNomal;
 };
 
-cbuffer LightBuffer : register(b4)
+cbuffer LightBuffer : register(b5)
 {
     LIGHT Light;
 }
 
 // ViewBuffer‚Æ‚Ü‚Æ‚ß‚ç‚ê‚é?
-cbuffer CameraBuffer : register(b5)
+cbuffer CameraBuffer : register(b6)
 {
     float4 CameraPosition;
 }
 
-cbuffer ParameterBuffer : register(b6)
+cbuffer ParameterBuffer : register(b7)
 {
     float4 Parameter;
 };
@@ -78,3 +83,9 @@ struct PS_IN
     float2 TexCoord : TEXCOORD0;
     float4 WorldPosition : TEXCOORD1;
 };
+
+float2 TransformUV(float2 texCoord)
+{
+    float4 uv = mul(float4(texCoord, 0.0f, 1.0f), g_UVMatrix);
+    return uv.xy;
+}

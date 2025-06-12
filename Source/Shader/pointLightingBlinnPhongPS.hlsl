@@ -24,7 +24,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     light = saturate(light);
     light *= ofs;
     
-    outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord);
+    outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord) * Material.Diffuse;
     outDiffuse.rgb *= In.Diffuse.rgb * light + Light.Ambient.rgb;
     outDiffuse.a *= In.Diffuse.a;
     

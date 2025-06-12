@@ -60,6 +60,12 @@ public:
 			 const std::string& file,
 			 int line);
 
+	void Log(LogLevel level,
+			 const char8_t* message,
+			 const std::string& function,
+			 const std::string& file,
+			 int line);
+
 	// 便利関数
 	void Info(const std::string& message, const std::string& source = "");
 	void Error(const std::string& message, const std::string& source = "");
@@ -129,6 +135,4 @@ private:
 	std::string ToU8String(const std::string& s){
 		return std::string(s.begin(), s.end());
 	}
-
-
 };

@@ -38,6 +38,7 @@
 #include "Component/modelRendererComponent.h"
 #include "Component/meshRendererComponent.h"
 #include "Component/BillBoardRendererComponent.h"
+#include "Component/textureComponent.h"
 
 #include "Component/playerComponent.h"
 #include "Component/bulletComponent.h"
@@ -65,6 +66,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_componentRegistry->RegisterComponent<TransformComponent>(false);
 	m_componentRegistry->RegisterComponent<CameraComponent>(false);
 
+	m_componentRegistry->RegisterComponent<TextureComponent>(false);
 	m_componentRegistry->RegisterComponent<MeshRendererComponent>(false);
 	m_componentRegistry->RegisterComponent<ModelRendererComponent>(false);
 	m_componentRegistry->RegisterComponent<BillBoardRendererComponent>(false);
@@ -114,37 +116,115 @@ void Scene::Initialize(SceneManagerContext* set){
 	graphicsContext->SetDepthEnable(true);
 
 	{
+		//エンティティを作成し、TransformとModelRendererを追加
 		Entity entity = entityRegistry->Create();
+
+		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		name->name = "Field";
+
+		// TransformComponentを追加
+		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
+		transform->scale = Vector3(10.0f, 10.0f, 10.0f);
+
+		transform->position = Vector3(0.0f, -transform->scale.y, 0);
+		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
+
+
+		// ModelRendererComponentを追加
+		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
+		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\cube.fbx");
+		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\pointLightingBlinnPhongVS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pointLightingBlinnPhongPS.cso");
+	}
+
+	{
+		//エンティティを作成し、TransformとModelRendererを追加
+		Entity entity = entityRegistry->Create();
+
+		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		name->name = "Player";
+
+		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
+		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\white.tga");
+		texture->Material.Diffuse = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+
+		// TransformComponentを追加
+		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
+		transform->position = Vector3(0.0f, 0.2f, 0);
+		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
+		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
+
+
+		// ModelRendererComponentを追加
+		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
+		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
+		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\limLightVS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
+
+		auto player = componentRegistry->AddComponent<PlayerComponent>(entity);
+	}
+
+	{
+		//エンティティを作成し、TransformとCameraを追加
+		Entity entity = entityRegistry->Create();
+
+		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		name->name = "Camera";
+
+		// TransformComponentを追加
+		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
+		transform->position = Vector3(0.0f, 10.0f, 5.0f);
+		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
+		transform->rotation = Vector3(-1.0f, 0.0f, 0.0f);
+
+
+		// CameraComponentを追加
+		auto* camera = componentRegistry->AddComponent<CameraComponent>(entity);
+	}
+
+
+	{
+		Entity entity = entityRegistry->Create();
+
+		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		name->name = "BillBoard";
+
+
+		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
+		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\texture.jpg");
+		texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
+
+		auto* bill = componentRegistry->AddComponent<BillBoardRendererComponent>(entity);
 
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position.x = 0.0f;
-		transform->position.y = 100.0f;
+		transform->position.y = 1.0f;
 		transform->position.z = 0.0f;
+
+		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 
 		auto* meshRenderer = componentRegistry->AddComponent<MeshRendererComponent>(entity);
 
-		auto mesh = std::make_shared<MeshData>();
+		meshRenderer->mesh.meshCount = 4;
 
-		mesh->meshCount = 4;
-		mesh->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\texture.jpg");
 		VERTEX_3D vertex[4]{};
 
-		vertex[0].Position = DirectX::XMFLOAT3(100.0f * 0.0f, 100.0f * 0.0f, 0.0f);
+		vertex[0].Position = DirectX::XMFLOAT3(-0.5f, 0.5f, 0.0f);
 		vertex[0].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
 		vertex[0].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		vertex[0].TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
 
-		vertex[1].Position = DirectX::XMFLOAT3(100.0f * 1.0f, 100.0f * 0.0f, 0.0f);
+		vertex[1].Position = DirectX::XMFLOAT3(0.5f, 0.5f, 0.0f);
 		vertex[1].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
 		vertex[1].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		vertex[1].TexCoord = DirectX::XMFLOAT2(1.0f, 0.0f);
 
-		vertex[2].Position = DirectX::XMFLOAT3(100.0f * 0.0f, 100.0f * 1.0f, 0.0f);
+		vertex[2].Position = DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f);
 		vertex[2].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
 		vertex[2].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		vertex[2].TexCoord = DirectX::XMFLOAT2(0.0f, 1.0f);
 
-		vertex[3].Position = DirectX::XMFLOAT3(100.0f * 1.0f, 100.0f * 1.0f, 0.0f);
+		vertex[3].Position = DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f);
 		vertex[3].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
 		vertex[3].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		vertex[3].TexCoord = DirectX::XMFLOAT2(1.0f, 1.0f);
@@ -158,102 +238,41 @@ void Scene::Initialize(SceneManagerContext* set){
 		D3D11_SUBRESOURCE_DATA sd{};
 		sd.pSysMem = vertex;
 
-		m_SceneManagerContext->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, &mesh->m_VertexBuffer);
-		m_SceneManagerContext->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\pointLightingBlinnPhongVS.cso", &mesh->m_VertexShader, &mesh->m_VertexLayout);
-		m_SceneManagerContext->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\pointLightingBlinnPhongPS.cso", &mesh->m_PixelShader);
-
-		meshRenderer->mesh = mesh;
+		m_SceneManagerContext->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, meshRenderer->mesh.m_VertexBuffer.GetAddressOf());
+		m_SceneManagerContext->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\unlitUVTextureVS.cso", meshRenderer->mesh.m_VertexShader.GetAddressOf(), meshRenderer->mesh.m_VertexLayout.GetAddressOf());
+		m_SceneManagerContext->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", meshRenderer->mesh.m_PixelShader.GetAddressOf());
 	}
 
+	int Sample = 20;
+	float Distance = 10.0f;
+	for(int i = 0; i < Sample; i++){
+	
+		//エンティティを作成し、TransformとModelRendererを追加
+		Entity entity = entityRegistry->Create();
 
-	//{
-	//	//エンティティを作成し、TransformとModelRendererを追加
-	//	Entity entity = entityRegistry->Create();
+		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		name->name = "Enemy";
 
-	//	auto* name = componentRegistry->AddComponent<NameComponent>(entity);
-	//	name->name = "Field";
+		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
+		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\white.tga");
+		texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
 
-	//	// TransformComponentを追加
-	//	auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-	//	transform->scale = Vector3(10.0f, 10.0f, 10.0f);
-
-	//	transform->position = Vector3(0.0f, -transform->scale.y, 0);
-	//	transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
-
-
-	//	// ModelRendererComponentを追加
-	//	auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
-	//	modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\cube.fbx");
-	//	modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\pointLightingBlinnPhongVS.cso");
-	//	modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pointLightingBlinnPhongPS.cso");
-	//}
-
-	//{
-	//	//エンティティを作成し、TransformとModelRendererを追加
-	//	Entity entity = entityRegistry->Create();
-
-	//	auto* name = componentRegistry->AddComponent<NameComponent>(entity);
-	//	name->name = "Player";
-
-	//	// TransformComponentを追加
-	//	auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-	//	transform->position = Vector3(0.0f, 0.2f, 0);
-	//	transform->scale = Vector3(1.0f, 1.0f, 1.0f);
-	//	transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
+		// TransformComponentを追加
+		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
+		transform->position = Vector3(cosf(float(i) / Sample * DirectX::XM_2PI) * Distance, 0.2f, sinf(float(i) / Sample * DirectX::XM_2PI) * Distance);
+		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
+		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
 
 
-	//	// ModelRendererComponentを追加
-	//	auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
-	//	modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
-	//	modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\limLightVS.cso");
-	//	modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
+		// ModelRendererComponentを追加
+		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
+		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
+		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\limLightVS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
 
-	//	auto player = componentRegistry->AddComponent<PlayerComponent>(entity);
-	//}
-	//{
-	//	//エンティティを作成し、TransformとCameraを追加
-	//	Entity entity = entityRegistry->Create();
+		auto player = componentRegistry->AddComponent<EnemyComponent>(entity);
+	}
 
-	//	auto* name = componentRegistry->AddComponent<NameComponent>(entity);
-	//	name->name = "Camera";
-
-	//	// TransformComponentを追加
-	//	auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-	//	transform->position = Vector3(0.0f, 10.0f, 5.0f);
-	//	transform->scale = Vector3(1.0f, 1.0f, 1.0f);
-	//	transform->rotation = Vector3(-1.0f, 0.0f, 0.0f);
-
-
-	//	// CameraComponentを追加
-	//	auto* camera = componentRegistry->AddComponent<CameraComponent>(entity);
-	//}
-	//int Sample = 20;
-	//float Distance = 10.0f;
-	//for(int i = 0; i < Sample; i++){
-	//
-	//	//エンティティを作成し、TransformとModelRendererを追加
-	//	Entity entity = entityRegistry->Create();
-
-	//	auto* name = componentRegistry->AddComponent<NameComponent>(entity);
-	//	name->name = "Enemy";
-
-	//	// TransformComponentを追加
-	//	auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-	//	transform->position = Vector3(cosf(float(i) / Sample * DirectX::XM_2PI) * Distance, 0.2f, sinf(float(i) / Sample * DirectX::XM_2PI) * Distance);
-	//	transform->scale = Vector3(1.0f, 1.0f, 1.0f);
-	//	transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
-
-
-	//	// ModelRendererComponentを追加
-	//	auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
-	//	modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
-	//	modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\limLightVS.cso");
-	//	modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
-
-	//	auto player = componentRegistry->AddComponent<EnemyComponent>(entity);
-	//}
-
-	m_SceneManagerContext->renderer->GetGraphicsContext()->SetWorldViewProjection2D();
 	m_SceneManagerContext->debug->LOG_INFO(u8"Sceneを開始します");
 
 	m_systemRegistry->StartAll();

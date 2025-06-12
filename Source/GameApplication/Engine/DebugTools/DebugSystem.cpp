@@ -54,6 +54,11 @@ void DebugLogSystem::Log(LogLevel level,
 	}
 }
 
+void DebugLogSystem::Log(LogLevel level, const char8_t* message, const std::string& function, const std::string& file, int line) {
+	std::string str = reinterpret_cast<const char*>(message);
+	Log(level, str, function, file, line);
+}
+
 void DebugLogSystem::Info(const std::string& message, const std::string& source){
 	Log(LogLevel::Info, message, source, source, 0);
 }
@@ -158,7 +163,7 @@ void ImGuiLogWindow::Draw(){
 
 			ImVec4 color = GetColorForLevel(entry.level);
 			ImGui::PushStyleColor(ImGuiCol_Text, color);
-			ImGui::Text(ToU8String(u8"[%s] %s\n       (関数名 %s,ファイル %s ,行 %d)").c_str(),
+			ImGui::Text(ToU8String((const char*)u8"[%s] %s\n       (関数名 %s,ファイル %s ,行 %d)").c_str(),
 						LevelToString(entry.level),
 						entry.message.c_str(),
 						entry.function.c_str(),

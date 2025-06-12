@@ -35,7 +35,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     float Spot = saturate(1.0f - 1.0f / Light.Angle.x * abs(Angle));
     Spot += Light.PointLightParam.y;
     
-    outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord);
+    outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord) * Material.Diffuse;
     outDiffuse.rgb *= Light.Diffuse.rgb * In.Diffuse.rgb * light * Spot + Light.Ambient.rgb;
     outDiffuse.rgb += (Specular * Spot);
 

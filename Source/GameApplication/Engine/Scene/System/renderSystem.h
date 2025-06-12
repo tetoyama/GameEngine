@@ -6,6 +6,7 @@
 struct SceneContext;
 
 class TransformComponent;
+class TextureComponent;
 class MeshRendererComponent;
 class ModelRendererComponent;
 class BillBoardRendererComponent;
@@ -25,9 +26,9 @@ public:
 
 private:
 
-	void DrawMesh(TransformComponent* pTransform, MeshRendererComponent* pMesh);
-	void DrawModel(TransformComponent* pTransform, ModelRendererComponent* pMesh);
-	void DrawBillBoard(TransformComponent* pTransform, MeshRendererComponent* pMesh, BillBoardRendererComponent* pBillBoard);
+	void DrawMesh(TransformComponent* pTransform, MeshRendererComponent* pMesh, TextureComponent* pTexture);
+	void DrawModel(TransformComponent* pTransform, ModelRendererComponent* pMesh, TextureComponent* pTexture);
+	void DrawBillBoard(TransformComponent* pTransform, MeshRendererComponent* pMesh, BillBoardRendererComponent* pBillBoard, TextureComponent* pTexture);
 
 	SceneContext* m_context;
 };
