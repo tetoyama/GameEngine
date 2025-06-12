@@ -6,8 +6,9 @@ SamplerState g_SamplerState : register(s0);
 
 void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 {
-    outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord);
-
-    float2 animatedUV = TransformUV(In.TexCoord);
-    outDiffuse = g_Texture.Sample(g_SamplerState, animatedUV) * In.Diffuse;
+    outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord) * Material.Diffuse;
+    if (outDiffuse.a <= 0.05f)//ƒ¿ƒeƒXƒg
+    {
+        discard;
+    }
 }

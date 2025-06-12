@@ -61,6 +61,24 @@ void RenderSystem::Draw(){
 					MATERIAL material{};
 					material.Diffuse = texture->Material.Diffuse;
 					graphicsContext->SetMaterial(material);
+
+					UVMatrix uv;
+					uv.Start.x = (float)(texture->AnimationNum % texture->UV_Slice_Y) * 1.0f / (float)texture->UV_Slice_X;
+					uv.Start.y = (float)(texture->AnimationNum / texture->UV_Slice_X) * 1.0f / (float)texture->UV_Slice_Y;
+
+					uv.End.x = (float)uv.Start.x + 1.0f / (float)texture->UV_Slice_X;
+					uv.End.y = (float)uv.Start.y + 1.0f / (float)texture->UV_Slice_Y;
+
+					graphicsContext->SetUVMatrix(uv);
+
+				} else {
+										// マテリアル設定
+					MATERIAL material{};
+					material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+					graphicsContext->SetMaterial(material);
+
+					UVMatrix uv;
+					graphicsContext->SetUVMatrix(uv);
 				}
 
 				BillBoardRendererComponent* billBoardRenderer = m_context->component->GetComponent<BillBoardRendererComponent>(entity);
@@ -88,7 +106,7 @@ void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent
 
 	graphicsContext->SetWorldViewProjection2D();
 
-	if (meshRenderer->mesh.m_TextureData) {
+	if (!pTexture) {
 		deviceContext->PSSetShaderResources(0, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
 
 		MATERIAL material{};
@@ -149,7 +167,6 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 
 			//テクスチャ設定
 			if (!pTexture) {
-
 				aiString Texture;
 				aiMaterial* aiMaterial = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
 				aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &Texture);
@@ -214,13 +231,14 @@ void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComp
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 
-	if (meshRenderer->mesh.m_TextureData) {
-		deviceContext->PSSetShaderResources(0, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
+	if (!pTexture) {
+		if (meshRenderer->mesh.m_TextureData) {
+			deviceContext->PSSetShaderResources(0, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
 
-		MATERIAL material{};
-		material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
-		graphicsContext->SetMaterial(material);
-
+			MATERIAL material{};
+			material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
+			graphicsContext->SetMaterial(material);
+		}
 	}
 
 	deviceContext->IASetInputLayout(meshRenderer->mesh.m_VertexLayout.Get());

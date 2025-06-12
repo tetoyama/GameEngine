@@ -128,10 +128,8 @@ void GraphicsContext::SetProjectionMatrix(const DirectX::XMMATRIX& proj){
 	m_DeviceContext->UpdateSubresource(m_ProjectionBuffer, 0, nullptr, &projf, 0, 0);
 }
 
-void GraphicsContext::SetUVMatrix(const DirectX::XMMATRIX& uvMatrix) {
-	DirectX::XMFLOAT4X4 matrixFloat4x4;
-	XMStoreFloat4x4(&matrixFloat4x4, XMMatrixTranspose(uvMatrix)); // “]’u‚ª•K—v‚Èê‡‚ ‚è
-	m_DeviceContext->UpdateSubresource(m_UVMatrixBuffer, 0, nullptr, &matrixFloat4x4, 0, 0);
+void GraphicsContext::SetUVMatrix(const UVMatrix& uv) {
+	m_DeviceContext->UpdateSubresource(m_UVMatrixBuffer, 0, nullptr, &uv, 0, 0);
 }
 
 void GraphicsContext::SetMaterial(const MATERIAL& material){  

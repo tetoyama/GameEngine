@@ -20,7 +20,8 @@ struct VERTEX_3D
 };
 
 struct UVMatrix {
-	DirectX::XMFLOAT4X4 Matrix;
+	DirectX::XMFLOAT2 Start = {0.0f,0.0f};
+	DirectX::XMFLOAT2 End = {1.0f,1.0f};
 };
 
 struct MATERIAL
@@ -87,7 +88,7 @@ public:
 	void SetWorldMatrix(const DirectX::XMMATRIX& WorldMatrix);
 	void SetViewMatrix(const DirectX::XMMATRIX& ViewMatrix);
 	void SetProjectionMatrix(const DirectX::XMMATRIX& ProjectionMatrix);
-	void SetUVMatrix(const DirectX::XMMATRIX& uvMatrix);
+	void SetUVMatrix(const UVMatrix& uv);
 	void SetMaterial(const MATERIAL& Material);
 	void SetLight(const LIGHT& Light);
 	void SetCamera(const CAMERA& Camera);
@@ -102,7 +103,6 @@ public:
 		ID3D11VertexShader** vertexShader, 
 		ID3D11InputLayout** inputLayout
 	);
-
 
 	bool CreatePixelShader(
 		const char* fileName,

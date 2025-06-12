@@ -2699,6 +2699,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\cameraComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\enemyComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\entityNameComponent.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\explosionEffectComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\textureComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Entity\Entity.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\IComponent.h" />
@@ -2716,6 +2717,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\ISystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\playerComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\enemySystem.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\explosionEffectSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\inspectorSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\playerSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\renderSystem.h" />
@@ -3033,6 +3035,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\bulletSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\cameraSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\enemySystem.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\explosionEffectSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\inspectorSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\playerSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\renderSystem.cpp" />

@@ -15,16 +15,17 @@
 #endif
 
 TextureData* TextureLoader::LoadTexture(const std::wstring& filePath){
+
 	if(m_Textures.count(filePath)){
 		return m_Textures[filePath].get();
 	}
 	bool isTgaFile = HasExtension(filePath, L"tga");
 
-	std::shared_ptr<TextureData> textureData = std::make_shared<TextureData>();
-	DirectX::TexMetadata _metadata{};
-	DirectX::ScratchImage _image{};
+	m_Textures[filePath] = std::make_shared<TextureData>();
+	DirectX::TexMetadata _metadata;
+	DirectX::ScratchImage _image;
 
-	textureData->TexturePath = filePath;
+	m_Textures[filePath]->TexturePath = filePath;
 	
 	//テクスチャ読み込み
 	if(isTgaFile){
@@ -33,16 +34,16 @@ TextureData* TextureLoader::LoadTexture(const std::wstring& filePath){
 
 	} else{
 		
-		wchar_t* temp = (wchar_t*)filePath.c_str();
-		LoadFromWICFile(temp, DirectX::WIC_FLAGS::WIC_FLAGS_NONE, &_metadata, _image);
+		LoadFromWICFile((wchar_t*)filePath.c_str(), DirectX::WIC_FLAGS::WIC_FLAGS_NONE, &_metadata, _image);
 	}
 	//読み込んだ画像データをDirectXへ渡してテクスチャとして管理させる
-	CreateShaderResourceView(m_GraphicContext->GetDevice(), _image.GetImages(), _image.GetImageCount(), _metadata, &textureData->pTexture);
+	CreateShaderResourceView(m_GraphicContext->GetDevice(), _image.GetImages(), _image.GetImageCount(), _metadata, m_Textures[filePath]->pTexture.GetAddressOf());
 
-	textureData->Width  = (int)_metadata.width;
-	textureData->Height = (int)_metadata.height;
+	m_Textures[filePath]->Width  = (int)_metadata.width;
+	m_Textures[filePath]->Height = (int)_metadata.height;
 
-	m_Textures[filePath] = textureData;
+
+	assert(m_Textures[filePath]->pTexture.Get());
 
 	return m_Textures[filePath].get();
 }

@@ -13,6 +13,8 @@
 #include "Component/cameraComponent.h"
 #include "Component/playerComponent.h"
 
+#include "Component/textureComponent.h"
+
 #include "Engine/DebugTools/debugSystem.h"
 
 void InspectorSystem::Initialize(){
@@ -70,6 +72,28 @@ void InspectorSystem::Draw(){
 							ImGui::TreePop();
 						}
 
+					}
+
+					TextureComponent* texture = m_context->component->GetComponent<TextureComponent>(entity);
+					if (texture) {
+						if (ImGui::TreeNodeEx("texture", ImGuiTreeNodeFlags_DefaultOpen)) {
+							ImGui::Columns(2, nullptr, false);
+							ImGui::SetColumnWidth(0, 75); // ¶ƒJƒ‰ƒ€•’²®
+
+							ImGui::Text("Diffuse");
+							ImGui::NextColumn();
+							ImGui::SetNextItemWidth(-1);
+							ImGui::DragFloat4("##Diffuse", &texture->Material.Diffuse.x,0.01f,0.0f,1.0f);
+							ImGui::Columns(1);
+
+							ImGui::DragInt("Slice:X", &texture->UV_Slice_X, 0.1f, 1, 256);
+							ImGui::DragInt("Slice:Y", &texture->UV_Slice_Y,0.1f,1,256);
+
+							ImGui::DragInt("Frame:", &texture->AnimationNum, 0.1f, 0, texture->UV_Slice_X * texture->UV_Slice_Y - 1);
+
+
+							ImGui::TreePop();
+						}
 					}
 
 					CameraComponent* camera = m_context->component->GetComponent<CameraComponent>(entity);

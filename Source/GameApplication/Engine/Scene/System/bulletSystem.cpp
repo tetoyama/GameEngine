@@ -19,6 +19,10 @@
 #include "Component/modelRendererComponent.h"
 #include "Component/bulletComponent.h"
 #include "Component/enemyComponent.h"
+#include "Component/textureComponent.h"
+#include "Component/BillBoardRendererComponent.h"
+#include "Component/meshRendererComponent.h"
+#include "Component/explosionEffectComponent.h"
 
 #include "Engine/Graphics/mainRenderer.h"
 
@@ -40,8 +44,71 @@ void BulletSystem::Update(float deltaTime){
 
 				bullet->currentLifeTime += deltaTime;
 				if(bullet->maxLifeTime <= bullet->currentLifeTime){
+
+					if (transform) {
+						Entity entity = m_context->entity->Create();
+
+						auto* effectName = m_context->component->AddComponent<NameComponent>(entity);
+						effectName->name = "BillBoardEffect";
+
+						auto* effect = m_context->component->AddComponent<ExplosionEffectComponent>(entity);
+						auto* bill = m_context->component->AddComponent<BillBoardRendererComponent>(entity);
+
+						auto* effectTransform = m_context->component->AddComponent<TransformComponent>(entity);
+						effectTransform->position = transform->position;
+						effectTransform->scale = Vector3(1.0f, 1.0f, 1.0f);
+
+						auto* effectTexture = m_context->component->AddComponent<TextureComponent>(entity);
+						effectTexture->m_TextureData = m_context->manager->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\explosion.png");
+						//texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\texture.jpg");
+						effectTexture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+						effectTexture->UV_Slice_X = 4;
+						effectTexture->UV_Slice_Y = 4;
+						effectTexture->AnimationNum = 0;
+
+						auto* meshRenderer = m_context->component->AddComponent<MeshRendererComponent>(entity);
+
+						meshRenderer->mesh.meshCount = 4;
+
+						VERTEX_3D vertex[4]{};
+
+						vertex[0].Position = DirectX::XMFLOAT3(-0.5f, 0.5f, 0.0f);
+						vertex[0].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+						vertex[0].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+						vertex[0].TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
+
+						vertex[1].Position = DirectX::XMFLOAT3(0.5f, 0.5f, 0.0f);
+						vertex[1].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+						vertex[1].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+						vertex[1].TexCoord = DirectX::XMFLOAT2(1.0f, 0.0f);
+
+						vertex[2].Position = DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f);
+						vertex[2].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+						vertex[2].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+						vertex[2].TexCoord = DirectX::XMFLOAT2(0.0f, 1.0f);
+
+						vertex[3].Position = DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f);
+						vertex[3].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+						vertex[3].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+						vertex[3].TexCoord = DirectX::XMFLOAT2(1.0f, 1.0f);
+
+						D3D11_BUFFER_DESC bd{};
+						bd.Usage = D3D11_USAGE_DEFAULT;
+						bd.ByteWidth = sizeof(VERTEX_3D) * 4;
+						bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+						bd.CPUAccessFlags = 0;
+
+						D3D11_SUBRESOURCE_DATA sd{};
+						sd.pSysMem = vertex;
+
+						m_context->manager->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, meshRenderer->mesh.m_VertexBuffer.GetAddressOf());
+						m_context->manager->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\unlitUVTextureVS.cso", meshRenderer->mesh.m_VertexShader.GetAddressOf(), meshRenderer->mesh.m_VertexLayout.GetAddressOf());
+						m_context->manager->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", meshRenderer->mesh.m_PixelShader.GetAddressOf());
+					}
+
 					m_context->entity->Destroy(bulletEntity);
 					m_context->component->OnEntityDestroyed(bulletEntity);
+
 					continue;
 				}
 
@@ -54,6 +121,72 @@ void BulletSystem::Update(float deltaTime){
 						if(transform && enemyTransform){
 
 							if((enemyTransform->position - transform->position).length() < 2.0f){
+
+
+
+								{
+									Entity entity = m_context->entity->Create();
+
+									auto* effectName = m_context->component->AddComponent<NameComponent>(entity);
+									effectName->name = "BillBoardEffect";
+
+									auto* effect = m_context->component->AddComponent<ExplosionEffectComponent>(entity);
+									auto* bill = m_context->component->AddComponent<BillBoardRendererComponent>(entity);
+
+									auto* effectTransform = m_context->component->AddComponent<TransformComponent>(entity);
+									effectTransform->position = (transform->position + enemyTransform->position) * 0.5f;
+									effectTransform->scale = Vector3(2.5f, 2.5f, 2.5f);
+
+									auto* effectTexture = m_context->component->AddComponent<TextureComponent>(entity);
+									effectTexture->m_TextureData = m_context->manager->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\explosion.png");
+									//texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\texture.jpg");
+									effectTexture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
+									effectTexture->UV_Slice_X = 4;
+									effectTexture->UV_Slice_Y = 4;
+									effectTexture->AnimationNum = 0;
+
+									auto* meshRenderer = m_context->component->AddComponent<MeshRendererComponent>(entity);
+
+									meshRenderer->mesh.meshCount = 4;
+
+									VERTEX_3D vertex[4]{};
+
+									vertex[0].Position = DirectX::XMFLOAT3(-0.5f, 0.5f, 0.0f);
+									vertex[0].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+									vertex[0].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+									vertex[0].TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
+
+									vertex[1].Position = DirectX::XMFLOAT3(0.5f, 0.5f, 0.0f);
+									vertex[1].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+									vertex[1].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+									vertex[1].TexCoord = DirectX::XMFLOAT2(1.0f, 0.0f);
+
+									vertex[2].Position = DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f);
+									vertex[2].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+									vertex[2].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+									vertex[2].TexCoord = DirectX::XMFLOAT2(0.0f, 1.0f);
+
+									vertex[3].Position = DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f);
+									vertex[3].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+									vertex[3].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+									vertex[3].TexCoord = DirectX::XMFLOAT2(1.0f, 1.0f);
+
+									D3D11_BUFFER_DESC bd{};
+									bd.Usage = D3D11_USAGE_DEFAULT;
+									bd.ByteWidth = sizeof(VERTEX_3D) * 4;
+									bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+									bd.CPUAccessFlags = 0;
+
+									D3D11_SUBRESOURCE_DATA sd{};
+									sd.pSysMem = vertex;
+
+									m_context->manager->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, meshRenderer->mesh.m_VertexBuffer.GetAddressOf());
+									m_context->manager->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\unlitUVTextureVS.cso", meshRenderer->mesh.m_VertexShader.GetAddressOf(), meshRenderer->mesh.m_VertexLayout.GetAddressOf());
+									m_context->manager->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", meshRenderer->mesh.m_PixelShader.GetAddressOf());
+								}
+
+
+
 								m_context->entity->Destroy(bulletEntity);
 								m_context->component->OnEntityDestroyed(bulletEntity);
 

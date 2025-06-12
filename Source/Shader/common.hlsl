@@ -30,7 +30,8 @@ cbuffer MaterialBuffer : register(b3)
 
 cbuffer UVMatrixBuffer : register(b4)
 {
-    matrix g_UVMatrix;
+    float2 UVStart;
+    float2 UVEnd;
 };
 
 struct LIGHT
@@ -84,8 +85,7 @@ struct PS_IN
     float4 WorldPosition : TEXCOORD1;
 };
 
-float2 TransformUV(float2 texCoord)
+float2 TransformUV(float2 In, float2 start, float2 end)
 {
-    float4 uv = mul(float4(texCoord, 0.0f, 1.0f), g_UVMatrix);
-    return uv.xy;
+    return start + In * (end - start);
 }

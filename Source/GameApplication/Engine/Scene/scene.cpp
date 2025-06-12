@@ -31,6 +31,7 @@
 #include "System/playerSystem.h"
 #include "System/bulletSystem.h"
 #include "System/enemySystem.h"
+#include "System/explosionEffectSystem.h"
 
 #include "Component/entityNameComponent.h"
 #include "Component/transformComponent.h"
@@ -43,6 +44,7 @@
 #include "Component/playerComponent.h"
 #include "Component/bulletComponent.h"
 #include "Component/enemyComponent.h"
+#include "Component/explosionEffectComponent.h"
 
 Scene::Scene(){
 
@@ -74,6 +76,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_componentRegistry->RegisterComponent<PlayerComponent>(false);
 	m_componentRegistry->RegisterComponent<BulletComponent>(false);
 	m_componentRegistry->RegisterComponent<EnemyComponent>(false);
+	m_componentRegistry->RegisterComponent<ExplosionEffectComponent>(false);
 
 	// システムを登録
 	m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));
@@ -84,6 +87,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_systemRegistry->RegisterSystem(std::make_unique<PlayerSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<BulletSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<EnemySystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<ExplosionEffectSystem>(&m_SceneContext));
 
 	auto Renderer = m_SceneManagerContext->renderer;
 	auto graphicsContext = Renderer->GetGraphicsContext();
@@ -124,7 +128,7 @@ void Scene::Initialize(SceneManagerContext* set){
 
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->scale = Vector3(10.0f, 10.0f, 10.0f);
+		transform->scale = Vector3(100.0f, 10.0f, 100.0f);
 
 		transform->position = Vector3(0.0f, -transform->scale.y, 0);
 		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
@@ -182,6 +186,35 @@ void Scene::Initialize(SceneManagerContext* set){
 		auto* camera = componentRegistry->AddComponent<CameraComponent>(entity);
 	}
 
+	int Sample = 20;
+	float Distance = 10.0f;
+	for(int i = 0; i < Sample; i++){
+	
+		//エンティティを作成し、TransformとModelRendererを追加
+		Entity entity = entityRegistry->Create();
+
+		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		name->name = "Enemy";
+
+		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
+		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\white.tga");
+		texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
+
+		// TransformComponentを追加
+		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
+		transform->position = Vector3(cosf(float(i) / Sample * DirectX::XM_2PI) * Distance, 0.2f, sinf(float(i) / Sample * DirectX::XM_2PI) * Distance);
+		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
+		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
+
+
+		// ModelRendererComponentを追加
+		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
+		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
+		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\limLightVS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
+
+		auto player = componentRegistry->AddComponent<EnemyComponent>(entity);
+	}
 
 	{
 		Entity entity = entityRegistry->Create();
@@ -189,19 +222,19 @@ void Scene::Initialize(SceneManagerContext* set){
 		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
 		name->name = "BillBoard";
 
-
-		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
-		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\texture.jpg");
-		texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
-
 		auto* bill = componentRegistry->AddComponent<BillBoardRendererComponent>(entity);
 
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position.x = 0.0f;
-		transform->position.y = 1.0f;
-		transform->position.z = 0.0f;
+		transform->position = Vector3(0.0f, 5.0f, 0.0f);
+		transform->scale = Vector3(10.0f, 10.0f, 10.0f);
 
-		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
+		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
+		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\explosion.png");
+		//texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\texture.jpg");
+		texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		texture->UV_Slice_X = 4;
+		texture->UV_Slice_Y = 4;
+		texture->AnimationNum = 10;
 
 		auto* meshRenderer = componentRegistry->AddComponent<MeshRendererComponent>(entity);
 
@@ -243,35 +276,6 @@ void Scene::Initialize(SceneManagerContext* set){
 		m_SceneManagerContext->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", meshRenderer->mesh.m_PixelShader.GetAddressOf());
 	}
 
-	int Sample = 20;
-	float Distance = 10.0f;
-	for(int i = 0; i < Sample; i++){
-	
-		//エンティティを作成し、TransformとModelRendererを追加
-		Entity entity = entityRegistry->Create();
-
-		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
-		name->name = "Enemy";
-
-		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
-		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\white.tga");
-		texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
-
-		// TransformComponentを追加
-		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position = Vector3(cosf(float(i) / Sample * DirectX::XM_2PI) * Distance, 0.2f, sinf(float(i) / Sample * DirectX::XM_2PI) * Distance);
-		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
-		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
-
-
-		// ModelRendererComponentを追加
-		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
-		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
-		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\limLightVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
-
-		auto player = componentRegistry->AddComponent<EnemyComponent>(entity);
-	}
 
 	m_SceneManagerContext->debug->LOG_INFO(u8"Sceneを開始します");
 
