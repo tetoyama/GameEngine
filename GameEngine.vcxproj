@@ -2692,10 +2692,12 @@
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\textureLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Runtime\JobSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Runtime\TimeService\time.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\BillBoardRendererComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\bulletComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\cameraComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\enemyComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\entityNameComponent.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\textureComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Entity\Entity.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\IComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\meshRendererComponent.h" />

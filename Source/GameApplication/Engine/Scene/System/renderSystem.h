@@ -8,6 +8,7 @@ struct SceneContext;
 class TransformComponent;
 class MeshRendererComponent;
 class ModelRendererComponent;
+class BillBoardRendererComponent;
 
 class RenderSystem : public ISystem{
 public:
@@ -26,6 +27,7 @@ private:
 
 	void DrawMesh(TransformComponent* pTransform, MeshRendererComponent* pMesh);
 	void DrawModel(TransformComponent* pTransform, ModelRendererComponent* pMesh);
+	void DrawBillBoard(TransformComponent* pTransform, MeshRendererComponent* pMesh, BillBoardRendererComponent* pBillBoard);
 
 	SceneContext* m_context;
 };

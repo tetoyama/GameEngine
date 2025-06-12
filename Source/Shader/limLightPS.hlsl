@@ -57,6 +57,3 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     outDiffuse.rgb += (specular * ofs);
 
 }
-
-
-//    outDiffuse.rgb *= (In.Diffuse.rgb * light + Light.Ambient.rgb); //–¾‚é‚³‚ğæZ

@@ -19,6 +19,8 @@
 
 #include "Component/meshRendererComponent.h"
 #include "Component/modelRendererComponent.h"
+#include "Component/BillBoardRendererComponent.h"
+#include "Component/cameraComponent.h"
 
 #include "Engine/Graphics/mainRenderer.h"
 
@@ -50,9 +52,13 @@ void RenderSystem::Draw(){
 			TransformComponent* transform = m_context->component->GetComponent<TransformComponent>(entity);
 			if (transform) {
 
+				BillBoardRendererComponent* billBoardRenderer = m_context->component->GetComponent<BillBoardRendererComponent>(entity);
 				MeshRendererComponent* meshRenderer = m_context->component->GetComponent<MeshRendererComponent>(entity);
-				if (meshRenderer) {
+				if (meshRenderer && billBoardRenderer) {
+					DrawBillBoard(transform, meshRenderer,billBoardRenderer);
+				} else if (meshRenderer) {
 					DrawMesh(transform, meshRenderer);
+
 				}
 
 				ModelRendererComponent* modelRenderer = m_context->component->GetComponent<ModelRendererComponent>(entity);
@@ -68,6 +74,8 @@ void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent
 
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
+	graphicsContext->SetWorldViewProjection2D();
 
 	deviceContext->IASetInputLayout(meshRenderer->mesh->m_VertexLayout.Get());
 
@@ -96,7 +104,7 @@ void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent
 	if(meshRenderer->mesh->m_IndexBuffer){
 
 		deviceContext->IASetIndexBuffer(
-			meshRenderer->mesh->m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		meshRenderer->mesh->m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
 		deviceContext->DrawIndexed(meshRenderer->mesh->indexCount, 0, 0);
 
@@ -167,5 +175,70 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 
 		// ƒ|ƒŠƒSƒ“•`‰æ
 		deviceContext->DrawIndexed(pModel->AiScene->mMeshes[m]->mNumFaces * 3, 0, 0);
+	}
+}
+
+void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComponent* meshRenderer, BillBoardRendererComponent* billBoard) {
+
+	CameraComponent* cameraComponent = nullptr;
+	TransformComponent* cameraTransform = nullptr;
+	// ƒJƒƒ‰‚ÌŽæ“¾
+	const auto& cameraEntity = m_context->component->FindEntitiesWithComponent<CameraComponent>();
+	if (!cameraEntity.empty()) {
+		cameraComponent = m_context->component->GetComponent<CameraComponent>(cameraEntity[0]);
+		cameraTransform = m_context->component->GetComponent<TransformComponent>(cameraEntity[0]);
+	} else {
+		return;
+	}
+
+
+	DirectX::XMMATRIX InverseViewMatrix = DirectX::XMMatrixTranspose(cameraComponent->viewMatrix);
+	DirectX::XMFLOAT4X4 Mat;
+	DirectX::XMStoreFloat4x4(&Mat, InverseViewMatrix);
+	Mat._14 = Mat._24 = Mat._34 = 0.0f;
+	DirectX::XMMATRIX InvViewBillBoardMatrix;
+	InvViewBillBoardMatrix = DirectX::XMLoadFloat4x4(&Mat);
+
+
+
+	GraphicsContext* graphicsContext = m_context->manager->graphics;
+	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
+	deviceContext->IASetInputLayout(meshRenderer->mesh->m_VertexLayout.Get());
+
+	deviceContext->VSSetShader(meshRenderer->mesh->m_VertexShader.Get(), NULL, 0);
+	deviceContext->PSSetShader(meshRenderer->mesh->m_PixelShader.Get(), NULL, 0);
+
+	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(transform->rotation.x, transform->rotation.y, transform->rotation.z);
+	DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z);
+	DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
+
+	DirectX::XMMATRIX World =  Scale * Rotation * InvViewBillBoardMatrix * Translation;
+
+
+	graphicsContext->SetWorldMatrix(World);
+	UINT stride = sizeof(VERTEX_3D);
+	UINT offset = 0;
+
+	deviceContext->IASetVertexBuffers(0, 1, &meshRenderer->mesh->m_VertexBuffer, &stride, &offset);
+
+	deviceContext->PSSetShaderResources(0, 1, &meshRenderer->mesh->m_TextureData->pTexture);
+
+	MATERIAL material{};
+	material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
+
+	graphicsContext->SetMaterial(material);
+
+	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+	if (meshRenderer->mesh->m_IndexBuffer) {
+
+		deviceContext->IASetIndexBuffer(
+			meshRenderer->mesh->m_IndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+		deviceContext->DrawIndexed(meshRenderer->mesh->indexCount, 0, 0);
+
+	} else {
+		deviceContext->Draw(meshRenderer->mesh->meshCount, 0);
 	}
 }

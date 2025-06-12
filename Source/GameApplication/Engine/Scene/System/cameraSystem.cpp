@@ -49,17 +49,21 @@ void CameraSystem::Update(float deltaTime) {
 	camera.CameraPosition = { position.x,position.y,position.z,0.0f };
 	graphicsContext->SetCamera(camera);
 
+
 	// ビューマトリクス設定
 	if (cameraComponent->isLock) {
 
 		Vector3 target = cameraComponent->Target;
-		graphicsContext->SetViewMatrix(DirectX::XMMatrixLookAtLH({ position.x,position.y,position.z }, { target.x,target.y,target.z }, { 0.0f,1.0f,0.0f }));
+		cameraComponent->viewMatrix = DirectX::XMMatrixLookAtLH({ position.x,position.y,position.z }, { target.x,target.y,target.z }, { 0.0f,1.0f,0.0f });
+
 
 	} else {
 
 		Vector3 front = transformComponent->position + transformComponent->front();
 		Vector3 up = transformComponent->position + transformComponent->up();
 
-		graphicsContext->SetViewMatrix(DirectX::XMMatrixLookAtLH({ position.x,position.y,position.z }, { front.x,front.y,front.z }, { up.x,up.y,up.z }));
+		cameraComponent->viewMatrix = DirectX::XMMatrixLookAtLH({ position.x,position.y,position.z }, { front.x,front.y,front.z }, { up.x,up.y,up.z });
 	}
+	graphicsContext->SetViewMatrix(cameraComponent->viewMatrix);
+
 }

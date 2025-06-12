@@ -115,8 +115,8 @@ void PlayerSystem::Update(float deltaTime) {
 
 				ModelRendererComponent* bulletModelRenderer = m_context->component->AddComponent<ModelRendererComponent>(bulletEntity);
 				bulletModelRenderer->model = m_context->manager->resource->GetModelLoader()->LoadModel("Asset\\Model\\ball.fbx");
-				bulletModelRenderer->vertexShader = m_context->manager->resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\pixelLightingBlinnPhongVS.cso");
-				bulletModelRenderer->pixelShader = m_context->manager->resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pixelLightingBlinnPhongPS.cso");
+				bulletModelRenderer->vertexShader = m_context->manager->resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\limLightVS.cso");
+				bulletModelRenderer->pixelShader = m_context->manager->resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
 
 				BulletComponent* bullet = m_context->component->AddComponent<BulletComponent>(bulletEntity);
 				//bullet->lifeTime = 1.0f;
