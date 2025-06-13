@@ -177,7 +177,7 @@ void Scene::Initialize(SceneManagerContext* set){
 
 		// TransformComponent‚ð’Ç‰Á
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position = Vector3(0.0f, 10.0f, 5.0f);
+		transform->position = Vector3(0.0f, 20.0f, -15.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 		transform->rotation = Vector3(-1.0f, 0.0f, 0.0f);
 
@@ -194,7 +194,7 @@ void Scene::Initialize(SceneManagerContext* set){
 		Entity entity = entityRegistry->Create();
 
 		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
-		name->name = "Enemy";
+		name->name = "Enemy" + std::to_string(i + 1);
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
 		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\white.tga");
@@ -215,67 +215,6 @@ void Scene::Initialize(SceneManagerContext* set){
 
 		auto player = componentRegistry->AddComponent<EnemyComponent>(entity);
 	}
-
-	{
-		Entity entity = entityRegistry->Create();
-
-		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
-		name->name = "BillBoard";
-
-		auto* bill = componentRegistry->AddComponent<BillBoardRendererComponent>(entity);
-
-		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position = Vector3(0.0f, 5.0f, 0.0f);
-		transform->scale = Vector3(10.0f, 10.0f, 10.0f);
-
-		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
-		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\explosion.png");
-		//texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\texture.jpg");
-		texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		texture->UV_Slice_X = 4;
-		texture->UV_Slice_Y = 4;
-		texture->AnimationNum = 10;
-
-		auto* meshRenderer = componentRegistry->AddComponent<MeshRendererComponent>(entity);
-
-		meshRenderer->mesh.meshCount = 4;
-
-		VERTEX_3D vertex[4]{};
-
-		vertex[0].Position = DirectX::XMFLOAT3(-0.5f, 0.5f, 0.0f);
-		vertex[0].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-		vertex[0].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		vertex[0].TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
-
-		vertex[1].Position = DirectX::XMFLOAT3(0.5f, 0.5f, 0.0f);
-		vertex[1].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-		vertex[1].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		vertex[1].TexCoord = DirectX::XMFLOAT2(1.0f, 0.0f);
-
-		vertex[2].Position = DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f);
-		vertex[2].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-		vertex[2].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		vertex[2].TexCoord = DirectX::XMFLOAT2(0.0f, 1.0f);
-
-		vertex[3].Position = DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f);
-		vertex[3].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-		vertex[3].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		vertex[3].TexCoord = DirectX::XMFLOAT2(1.0f, 1.0f);
-
-		D3D11_BUFFER_DESC bd{};
-		bd.Usage = D3D11_USAGE_DEFAULT;
-		bd.ByteWidth = sizeof(VERTEX_3D) * 4;
-		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bd.CPUAccessFlags = 0;
-
-		D3D11_SUBRESOURCE_DATA sd{};
-		sd.pSysMem = vertex;
-
-		m_SceneManagerContext->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, meshRenderer->mesh.m_VertexBuffer.GetAddressOf());
-		m_SceneManagerContext->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\unlitUVTextureVS.cso", meshRenderer->mesh.m_VertexShader.GetAddressOf(), meshRenderer->mesh.m_VertexLayout.GetAddressOf());
-		m_SceneManagerContext->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", meshRenderer->mesh.m_PixelShader.GetAddressOf());
-	}
-
 
 	m_SceneManagerContext->debug->LOG_INFO(u8"Scene‚ðŠJŽn‚µ‚Ü‚·");
 

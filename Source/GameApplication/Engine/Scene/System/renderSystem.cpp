@@ -55,8 +55,9 @@ void RenderSystem::Draw(){
 
 				TextureComponent* texture = m_context->component->GetComponent<TextureComponent>(entity);
 				if (texture) {
-					deviceContext->PSSetShaderResources(0, 1, texture->m_TextureData->pTexture.GetAddressOf());
-
+					if (texture->m_TextureData) {
+						deviceContext->PSSetShaderResources(0, 1, texture->m_TextureData->pTexture.GetAddressOf());
+					}
 					// マテリアル設定
 					MATERIAL material{};
 					material.Diffuse = texture->Material.Diffuse;
@@ -106,7 +107,7 @@ void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent
 
 	graphicsContext->SetWorldViewProjection2D();
 
-	if (!pTexture) {
+	if (!pTexture || !pTexture->m_TextureData) {
 		deviceContext->PSSetShaderResources(0, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
 
 		MATERIAL material{};
@@ -166,7 +167,7 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 		if(pModel->SetTexture){
 
 			//テクスチャ設定
-			if (!pTexture) {
+			if (!pTexture || !pTexture->m_TextureData) {
 				aiString Texture;
 				aiMaterial* aiMaterial = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
 				aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &Texture);

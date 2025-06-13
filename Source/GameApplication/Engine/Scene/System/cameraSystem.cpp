@@ -40,7 +40,7 @@ void CameraSystem::Update(float deltaTime) {
 
 	// プロジェクションマトリクス設定
 	DirectX::XMMATRIX projection;
-	projection = DirectX::XMMatrixPerspectiveFovLH(1.0f, (float)graphicsContext->m_width / graphicsContext->m_height, 0.01f, 256.0f);
+	projection = DirectX::XMMatrixPerspectiveFovLH(cameraComponent->FOV, (float)graphicsContext->m_width / graphicsContext->m_height, cameraComponent->NearClip, cameraComponent->FarClip);
 	graphicsContext->SetProjectionMatrix(projection);
 
 	// コンスタントバッファ設定

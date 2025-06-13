@@ -42,6 +42,8 @@ void BulletSystem::Update(float deltaTime){
 					transform->position += transform->front().normalize() * deltaTime * bullet->bulletSpeed;
 				}
 
+				TextureComponent* texture = m_context->component->GetComponent<TextureComponent>(bulletEntity);
+
 				bullet->currentLifeTime += deltaTime;
 				if(bullet->maxLifeTime <= bullet->currentLifeTime){
 
@@ -61,7 +63,11 @@ void BulletSystem::Update(float deltaTime){
 						auto* effectTexture = m_context->component->AddComponent<TextureComponent>(entity);
 						effectTexture->m_TextureData = m_context->manager->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\explosion.png");
 						//texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\texture.jpg");
-						effectTexture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+
+						if (texture) {
+							effectTexture->Material = texture->Material;
+						}
+
 						effectTexture->UV_Slice_X = 4;
 						effectTexture->UV_Slice_Y = 4;
 						effectTexture->AnimationNum = 0;
@@ -138,9 +144,14 @@ void BulletSystem::Update(float deltaTime){
 									effectTransform->scale = Vector3(2.5f, 2.5f, 2.5f);
 
 									auto* effectTexture = m_context->component->AddComponent<TextureComponent>(entity);
+									auto* enemyTexture = m_context->component->AddComponent<TextureComponent>(enemyEntity);
 									effectTexture->m_TextureData = m_context->manager->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\explosion.png");
 									//texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\texture.jpg");
-									effectTexture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
+
+									if (enemyTexture) {
+										effectTexture->Material = enemyTexture->Material;
+									}
+
 									effectTexture->UV_Slice_X = 4;
 									effectTexture->UV_Slice_Y = 4;
 									effectTexture->AnimationNum = 0;

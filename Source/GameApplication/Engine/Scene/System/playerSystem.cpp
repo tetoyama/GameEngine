@@ -21,6 +21,7 @@
 #include "Component/cameraComponent.h"
 #include "Component/modelRendererComponent.h"
 #include "Component/bulletComponent.h"
+#include "Component/textureComponent.h"
 
 #include "Engine/Graphics/mainRenderer.h"
 
@@ -117,6 +118,12 @@ void PlayerSystem::Update(float deltaTime) {
 				bulletModelRenderer->model = m_context->manager->resource->GetModelLoader()->LoadModel("Asset\\Model\\ball.fbx");
 				bulletModelRenderer->vertexShader = m_context->manager->resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\limLightVS.cso");
 				bulletModelRenderer->pixelShader = m_context->manager->resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
+
+				TextureComponent* texture = m_context->component->AddComponent<TextureComponent>(entity);
+				if (texture) {
+					TextureComponent* bulletTexture = m_context->component->AddComponent<TextureComponent>(bulletEntity);
+					bulletTexture->Material = texture->Material;
+				}
 
 				BulletComponent* bullet = m_context->component->AddComponent<BulletComponent>(bulletEntity);
 				//bullet->lifeTime = 1.0f;

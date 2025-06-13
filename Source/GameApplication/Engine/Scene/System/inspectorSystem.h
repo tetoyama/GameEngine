@@ -19,4 +19,6 @@ public:
 
 private:
 	SceneContext* m_context;
+
+	int SelectEntity = -1;
 };
