@@ -69,6 +69,11 @@ public:
 		}
 	}
 
+	void FinalizeAll(){
+		for(auto& sys : m_systems){
+			sys->Finalize();
+		}
+	}
 private:
 	std::vector<std::unique_ptr<ISystem>> m_systems;
 };

@@ -2,7 +2,13 @@
 
 #include <DirectXMath.h>
 #include "Backends/myVector3.h"
+
+#include "Backends/Imgui/Imgui.h"
+#include "Backends/Imgui/Imguizmo.h"
+
 #include "Engine/DebugTools/debugSystem.h"
+#include "Engine/DebugTools/imguisystem.h"
+
 
 #include "Engine/Graphics/graphicsContext.h"
 #include "Engine/Graphics/mainRenderer.h"
@@ -66,4 +72,5 @@ void CameraSystem::Update(float deltaTime) {
 	}
 	graphicsContext->SetViewMatrix(cameraComponent->viewMatrix);
 
+	m_context->manager->imgui->SetViewProjectionMatrix(cameraComponent->viewMatrix, projection);
 }

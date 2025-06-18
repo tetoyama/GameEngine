@@ -11,6 +11,7 @@ class GraphicsContext;
 class InputService;
 class ResourceService;
 class DebugLogSystem;
+class ImGuiService;
 
 struct SceneManagerContext {
 	GraphicsContext* graphics = nullptr;
@@ -18,6 +19,7 @@ struct SceneManagerContext {
 	InputService* input = nullptr;
 	ResourceService* resource = nullptr;
 	DebugLogSystem* debug = nullptr;
+	ImGuiService* imgui = nullptr;
 	HWND hwnd{};
 };
 
@@ -34,6 +36,9 @@ public:
 
 	void LoadScene(std::shared_ptr<Scene> scene);
 	std::shared_ptr<Scene> GetActiveScene() const;
+
+	void SaveScene();
+	void OpenScene();
 
 private:
 	std::shared_ptr<Scene> m_activeScene;

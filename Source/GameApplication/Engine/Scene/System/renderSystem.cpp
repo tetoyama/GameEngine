@@ -2,6 +2,8 @@
 #include "renderSystem.h"
 #include <DirectXMath.h>
 #include "Backends/DirectX11/DirectXTex.h"
+#include "Backends/ImGui/ImGui.h"
+#include "Backends/ImGui/ImGuizmo.h"
 
 #include "Backends/Assimp/material.h"
 #include "Backends/Assimp/scene.h"
@@ -34,14 +36,40 @@
 
 void RenderSystem::Initialize(){
 	m_context->manager->debug->LOG_DEBUG(u8"RenderSystemを初期化中...");
+
+	D3D11_TEXTURE2D_DESC td = {};
+	td.Width = 1280; td.Height = 720;
+	td.MipLevels = 1; td.ArraySize = 1;
+	td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	td.SampleDesc.Count = 1;
+	td.Usage = D3D11_USAGE_DEFAULT;
+	td.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+	GraphicsContext* graphicsContext = m_context->manager->graphics;
+	ID3D11Device* device = graphicsContext->GetDevice();
+
+	device->CreateTexture2D(&td, nullptr, &tex);
+	device->CreateRenderTargetView(tex, nullptr, &rtv);
+	device->CreateShaderResourceView(tex, nullptr, &srv);
+}
+
+void RenderSystem::Finalize(){
+	tex->Release();
+	rtv->Release();
+	srv->Release();
 }
 
 void RenderSystem::Draw(){
 
+
+
+
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-
+	float clearCol[4] = {0.1f, 0.1f, 0.1f, 1.0f};
+	SetRenderTarget(graphicsContext->GetDeviceContext(), graphicsContext->GetDepthStencilView()); // depthStencilView は別途準備
+	Clear(graphicsContext->GetDeviceContext(), clearCol);
 
 	// コンポーネントを持つエンティティの検索
 	const auto& entities = m_context->component->FindEntitiesWithComponent<TransformComponent>();
@@ -98,6 +126,60 @@ void RenderSystem::Draw(){
 			}
 		}
 	}
+
+
+
+
+
+	ImGui::Begin("Editor View");
+
+	// ツールバー内容
+	if(ImGui::Button("Play")){
+		// 再生開始処理
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("Stop")){
+		// 停止処理
+	}
+
+	ImVec2 avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
+
+	// テクスチャの元サイズ（例）
+	float imgW = 1280.0f, imgH = 720.0f;
+	float imgAspect = imgW / imgH;
+	float availAspect = avail.x / avail.y;
+
+	ImVec2 dst;
+	if(availAspect > imgAspect){
+		// 領域が横長 → 高さに合わせ、幅を計算
+		dst.y = avail.y;
+		dst.x = avail.y * imgAspect;
+	} else{
+		// 領域が縦長または正方形 → 幅に合わせ、高さを計算
+		dst.x = avail.x;
+		dst.y = avail.x / imgAspect;
+	}
+
+	// 中央寄せ
+	ImVec2 cursor = ImGui::GetCursorPos();
+	ImGui::SetCursorPosX(cursor.x + (avail.x - dst.x) * 0.5f);
+	ImGui::SetCursorPosY(cursor.y + (avail.y - dst.y) * 0.5f);
+	cursor = ImGui::GetCursorPos();
+	// イメージ表示（UV反転も場合に応じて調整）
+	ImGui::Image((ImTextureID)srv, dst, ImVec2(0, 0), ImVec2(1, 1));
+
+	ImGuizmo::SetRect(
+		ImGui::GetWindowPos().x + cursor.x,
+		ImGui::GetWindowPos().y + cursor.y,
+		dst.x,
+		dst.y
+	);
+	ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
+
+	ImGui::End();
+
+
+	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
 }
 
 void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent* meshRenderer, TextureComponent* pTexture){

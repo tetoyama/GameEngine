@@ -17,6 +17,7 @@
 #include "Scene/scene.h"
 
 #include "Engine/Resources/resourceSystem.h"
+#include "Engine/EditorUI/ImGuiMainManuBar.h"
 
 #include <dxgidebug.h>
 #pragma comment(lib, "dxguid.lib")
@@ -145,9 +146,20 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		sceneContext.resource = resourceService.get();
 		sceneContext.hwnd = mainRenderer->GetHWND();
 		sceneContext.debug = debugLogSystem.get();
+		sceneContext.imgui = imguiService.get();
 		sceneManager->Initialize(sceneContext);
 	}
 	debugLogSystem->LOG_DEBUG(u8"SceneManagerが正常に作成されました");
+
+	imguiService->GetManubar()->Register(MenuEvent::File_Exit, [windowService](){
+		windowService->GetMainWindow()->Close();
+	});
+
+	imguiService->GetManubar()->Register(MenuEvent::File_New, [sceneManager](){
+		// 最初のシーンを作成・ロード
+		auto initialScene = std::make_shared<Scene>();
+		sceneManager->LoadScene(initialScene);
+	});
 
 	debugLogSystem->LOG_INFO(u8"EngineContextの初期化が完了しました");
 
@@ -255,7 +267,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 
 		sceneManager->Render();
 
-		 // Debug UI をここに書く
+		  //Debug UI をここに書く
 		ImGui::Begin("Debug");
 		{
 			ImGui::Text("FPS: %.2f", 1.0f / timeService->GetDeltaTime());

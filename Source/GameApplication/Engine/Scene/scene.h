@@ -28,6 +28,9 @@ public:
 	void Render();
 	void Shutdown();
 
+	void Load();
+	void Save();
+
 	SceneContext* GetSceneContext(){return &m_SceneContext;}
 
 private:

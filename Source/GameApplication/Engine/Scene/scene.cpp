@@ -79,10 +79,10 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_componentRegistry->RegisterComponent<ExplosionEffectComponent>(false);
 
 	// システムを登録
-	m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));
 
 	m_systemRegistry->RegisterSystem(std::make_unique<PlayerSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<BulletSystem>(&m_SceneContext));
@@ -187,7 +187,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	}
 
 	int Sample = 20;
-	float Distance = 10.0f;
+	float Distance = 20.0f;
 	for(int i = 0; i < Sample; i++){
 	
 		//エンティティを作成し、TransformとModelRendererを追加
@@ -238,9 +238,14 @@ void Scene::Render(){
 
 void Scene::Shutdown(){
 	m_SceneManagerContext->debug->LOG_INFO(u8"Sceneを終了中...");
+	m_systemRegistry->FinalizeAll();
 
 	// システムの終了処理
 	m_entityRegistry.reset();
 	m_componentRegistry.reset();
 	m_systemRegistry.reset();
 }
+
+void Scene::Load(){}
+
+void Scene::Save(){}

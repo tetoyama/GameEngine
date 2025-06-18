@@ -31,6 +31,10 @@ public:
 		return m_width;
 	}
 	void SetBorderlessFullscreen(bool enable);
+
+	void Close(){
+		PostMessage(m_HWND, WM_CLOSE, 0, 0);
+	}
 private:
 	static LRESULT CALLBACK StaticWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

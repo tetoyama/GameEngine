@@ -53,3 +53,7 @@ void SceneManager::LoadScene(std::shared_ptr<Scene> scene){
 std::shared_ptr<Scene> SceneManager::GetActiveScene() const{
 	return m_activeScene;
 }
+
+void SceneManager::SaveScene(){}
+
+void SceneManager::OpenScene(){}

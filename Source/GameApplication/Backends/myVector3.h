@@ -1,6 +1,6 @@
 #pragma once
 #include <math.h>
-
+#include <DirectXMath.h>
 class Vector3
 {
 public:
@@ -13,6 +13,13 @@ public:
 	}
 	Vector3(const Vector3& vec3):x(vec3.x), y(vec3.y), z(vec3.z){}
 	Vector3(const float nx, const float ny, const float nz):x(nx), y(ny), z(nz){}
+	Vector3(const DirectX::XMFLOAT3& v): x(v.x), y(v.y), z(v.z){}
+	Vector3(const DirectX::XMVECTOR& v){
+		x = 0.0f;
+		y = 0.0f;
+		z = 0.0f;
+		DirectX::XMStoreFloat3(reinterpret_cast<DirectX::XMFLOAT3*>(this), v);
+	}
 	~Vector3(){}
 
 	Vector3& operator=(const Vector3& vec3){
@@ -21,6 +28,16 @@ public:
 			y = vec3.y;
 			z = vec3.z;
 		}
+		return *this;
+	}
+	Vector3& operator=(const DirectX::XMFLOAT3& v){
+		x = v.x;
+		y = v.y;
+		z = v.z;
+		return *this;
+	}
+	Vector3& operator=(const DirectX::XMVECTOR& v){
+		DirectX::XMStoreFloat3(reinterpret_cast<DirectX::XMFLOAT3*>(this), v);
 		return *this;
 	}
 
@@ -120,4 +137,9 @@ public:
 		if(len == 0) return Vector3(0, 0, 0);
 		return Vector3(x / len, y / len, z / len);
 	}
+	DirectX::XMVECTOR ToXMVECTOR() const{
+		return DirectX::XMLoadFloat3(reinterpret_cast<const DirectX::XMFLOAT3*>(this));
+	}
+
 };
+

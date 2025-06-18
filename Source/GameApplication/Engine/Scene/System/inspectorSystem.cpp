@@ -3,7 +3,10 @@
 #include "sceneManager.h"
 
 #include "Backends/ImGui/ImGui.h"
+#include "Backends/ImGui/ImGuizmo.h"
 #include "Backends/ImGui/imgui_stdlib.h"
+
+#include "engine/resources/data/texturedata.h"
 
 #include "Entity/Entity.h"
 #include "Registry/componentRegistry.h"
@@ -16,12 +19,18 @@
 #include "Component/textureComponent.h"
 
 #include "Engine/DebugTools/debugSystem.h"
+#include "Engine/DebugTools/imGuiSystem.h"
 
 void InspectorSystem::Initialize(){
 	m_context->manager->debug->LOG_DEBUG(u8"TransformSystemを初期化中...");
 }
 
+void InspectorSystem::Finalize(){
+
+}
+
 void InspectorSystem::Draw() {
+
 	// コンポーネントを持つエンティティの検索
 	const auto& entities = m_context->entity->GetAllAlive();
 	if (entities.empty()) {
@@ -43,8 +52,10 @@ void InspectorSystem::Draw() {
 
 
 				}
-				if (ImGui::Selectable(showName.c_str())) {
+				if (ImGui::TreeNodeEx(showName.c_str())) {
 					SelectEntity = entity;
+
+					ImGui::TreePop();
 				}
 				if (ImGui::IsItemFocused()) {
 					SelectEntity = entity;
@@ -92,8 +103,12 @@ void InspectorSystem::Draw() {
 						ImGui::DragInt("Slice:Y", &texture->UV_Slice_Y, 0.1f, 1, 256);
 
 						ImGui::DragInt("Frame:", &texture->AnimationNum, 0.1f, 0, texture->UV_Slice_X * texture->UV_Slice_Y - 1);
-
-
+						if(texture->m_TextureData){
+							ImGui::Image(
+								(ImTextureID)texture->m_TextureData->pTexture.Get(),
+								ImVec2(256.0f,256.0f)
+							);
+						}
 					}
 					
 					CameraComponent* camera = m_context->component->GetComponent<CameraComponent>(entity);
@@ -127,6 +142,67 @@ void InspectorSystem::Draw() {
 						}
 					}
 					ImGui::TreePop();
+					if(transform){
+						ImGui::End();
+
+						DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(transform->rotation.x, transform->rotation.y, transform->rotation.z);
+						DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z);
+						DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
+
+						DirectX::XMMATRIX World = Scale * Rotation * Translation;
+
+						DirectX::XMMATRIX modelMatrix = m_context->manager->imgui->RenderGizmo(World);
+						if(ImGuizmo::IsUsing()){
+							// スケール、回転、並進を格納する変数
+							DirectX::XMVECTOR scale, rotationQuat, translation;
+
+							// 行列を分解
+							DirectX::XMMatrixDecompose(&scale, &rotationQuat, &translation, modelMatrix);
+
+							// XMVECTOR から XMFLOAT3 に変換
+							DirectX::XMFLOAT3 scale3, translation3;
+							DirectX::XMStoreFloat3(&scale3, scale);
+							DirectX::XMStoreFloat3(&translation3, translation);
+
+							DirectX::XMFLOAT3 axis3;
+							// クォータニオンをオイラー角に変換（roll, pitch, yaw）
+							float qw = DirectX::XMVectorGetW(rotationQuat);
+							float qx = DirectX::XMVectorGetX(rotationQuat);
+							float qy = DirectX::XMVectorGetY(rotationQuat);
+							float qz = DirectX::XMVectorGetZ(rotationQuat);
+							// clampで安全にasin
+							auto safe_asin = [](float v) -> float{
+								if(v > 1.0f) v = 1.0f;
+								else if(v < -1.0f) v = -1.0f;
+								return asinf(v);
+								};
+							float yaw = atan2f(2.0f * (qw * qz + qx * qy), 1.0f - 2.0f * (qy * qy + qz * qz));
+							float pitch = safe_asin(2.0f * (qw * qy - qz * qx));
+							float roll = atan2f(2.0f * (qw * qx + qy * qz), 1.0f - 2.0f * (qx * qx + qy * qy));
+
+							float cosP = cosf(pitch);
+							if(fabsf(cosP) < 1e-6f){
+
+								float r11 = 1.0f - 2.0f * (qx * qx + qz * qz);
+								float r20 = 2.0f * (qx * qz + qw * qy);
+								roll = atan2f(-r20, r11);
+								yaw = 0.0f;
+							}
+							if(roll >= DirectX::XM_PI){
+								roll -= DirectX::XM_2PI;
+							}
+							if(yaw >= DirectX::XM_PI){
+								yaw -= DirectX::XM_2PI;
+							}
+							axis3 = DirectX::XMFLOAT3(roll, pitch, yaw);
+
+
+							transform->position = translation3;
+							//transform->rotation = axis3;
+							transform->scale = scale3;
+						}
+						ImGui::Begin("Inspector");
+					}
 				}
 				ImGui::End();
 			}

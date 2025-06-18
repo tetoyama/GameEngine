@@ -74,8 +74,12 @@ public:
 	ID3D11DeviceContext* GetDeviceContext() const{return m_DeviceContext.Get();}
 	IDXGISwapChain* GetSwapChain() const{return m_SwapChain.Get();}
 
-	ID3D11RenderTargetView* GetRenderTargetView() const{return m_RenderTargetView;}
-	ID3D11DepthStencilView* GetDepthStencilView() const{return m_DepthStencilView;}
+	ID3D11RenderTargetView* GetRenderTargetView() {return m_RenderTargetView;}
+	ID3D11RenderTargetView** GetpRenderTargetView(){
+		return &m_RenderTargetView;
+	}
+
+	ID3D11DepthStencilView* GetDepthStencilView() {return m_DepthStencilView;}
 
 	ID2D1Factory* GetD2DFactory() const{return m_d2dFactory.Get();}
 	IDWriteFactory* GetDWriteFactory() const{return m_dwriteFactory.Get();}

@@ -12,6 +12,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <atomic>
 
 #include "yaml-cpp/dll.h"
 #include "yaml-cpp/node/detail/node_iterator.h"

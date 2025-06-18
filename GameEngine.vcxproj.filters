@@ -1890,117 +1890,6 @@
     <ClInclude Include="Source\Service\IService.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\anchor.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\binary.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\contrib\anchordict.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\contrib\graphbuilder.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\depthguard.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\dll.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitfromevents.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitter.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitterdef.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emittermanip.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitterstyle.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\eventhandler.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\exceptions.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\mark.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\convert.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\impl.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\iterator.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\iterator_fwd.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\memory.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node_data.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node_iterator.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node_ref.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\emit.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\impl.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\iterator.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\node.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\parse.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\ptr.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\type.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\noexcept.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\null.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\ostream_wrapper.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\parser.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\stlemitter.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\traits.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\yaml.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\ISystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -2074,6 +1963,36 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\enemySystem.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\BillBoardRendererComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\explosionEffectComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\textureComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\explosionEffectSystem.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\ImGui\ImGuizmo.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\ImGui\ImApp.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\ImGui\stb_image.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\EditorUI\ImGuiMainManuBar.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\yaml.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\dll.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
@@ -2378,6 +2297,15 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\enemySystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\explosionEffectSystem.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Backends\ImGui\ImGuizmo.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\EditorUI\ImGuiMainManuBar.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\GameApplication\Backends\Assimp\color4.inl">
@@ -2438,6 +2366,8 @@
     <FxCompile Include="Source\Shader\spotLightVS.hlsl" />
     <FxCompile Include="Source\Shader\limLightVS.hlsl" />
     <FxCompile Include="Source\Shader\limLightPS.hlsl" />
+    <FxCompile Include="Source\Shader\unlitUVTexturePS.hlsl" />
+    <FxCompile Include="Source\Shader\unlitUVTextureVS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />

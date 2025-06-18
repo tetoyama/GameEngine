@@ -12,12 +12,6 @@
 #include "entityRegistry.h"
 #include "Interface/IComponentStorage.h"   // IComponentStorage, ArchetypeStorage<T>, SparseStorage<T> の定義
 
-/**
- * @brief グローバルに一意な ComponentTypeID を生成するユーティリティ
- *
- * static 変数をテンプレートごとに持つことで、
- * 複数の ComponentRegistry インスタンスをまたいでも一意性が保証される。
- */
 class ComponentType {
 public:
 	template<typename T>
@@ -30,73 +24,50 @@ private:
 	static std::atomic<ComponentTypeID> s_nextID;
 };
 
-
-
-/**
- * @brief Component の登録・追加・取得・削除、および Entity に紐づくビットマスクを管理するクラス
- *
- * 内部では typeid(T) をキーとした IComponentStorage の固有インスタンスを持ち、
- * ArchetypeStorage<T> や SparseStorage<T> を動的に切り替えて保持可能。
- * また、Entityごとの ComponentMask を持つことで QueryEntities(Ts...) が可能。
- */
 class ComponentRegistry {
 public:
-	ComponentRegistry(EntityRegistry* entityMgr)
+	explicit ComponentRegistry(EntityRegistry* entityMgr)
 		: m_entityManager(entityMgr){}
 
-	~ComponentRegistry() = default;
-
-	// -----------------------------------
-	// Component 登録
-	// -----------------------------------
+	// -------------------------------
+	// 登録処理
+	// -------------------------------
 	template<typename T>
 	void RegisterComponent(bool useArchetype = false){
 		std::type_index ti(typeid(T));
-		if(m_storages.find(ti) != m_storages.end()){
-			// 既に登録済み
-			return;
-		}
+		if(m_storages.contains(ti)) return;
 
-		// 一意な ComponentTypeID を取得してメンバに保持
 		ComponentTypeID typeID = ComponentType::Get<T>();
 		m_typeToID[ti] = typeID;
 
-		// 実際のストレージを生成
-		if(useArchetype){
+		if(useArchetype)
 			m_storages[ti] = std::make_unique<ArchetypeStorage<T>>();
-		} else{
+		else
 			m_storages[ti] = std::make_unique<SparseStorage<T>>();
-		}
 	}
 
-	// -----------------------------------
-	// Component 追加 / 取得 / 削除
-	// -----------------------------------
+	// -------------------------------
+	// Add / Get / Remove
+	// -------------------------------
 	template<typename T, typename... Args>
 	T* AddComponent(Entity e, Args&&... args){
-		assert(m_entityManager->IsAlive(e) && "AddComponent: 無効な Entity を指定しています");
+		assert(m_entityManager->IsAlive(e) && "AddComponent: Entity is not alive");
 
 		std::type_index ti(typeid(T));
-		auto it = m_storages.find(ti);
-		if(it == m_storages.end()){
-			// 未登録ならデフォルトで SparseStorage を使って登録
-			RegisterComponent<T>(false);
-			it = m_storages.find(ti);
+		if(!m_storages.contains(ti)){
+			RegisterComponent<T>();
 		}
 
-		// コンポーネントインスタンスを追加
 		T component(std::forward<Args>(args)...);
-		if(auto arche = dynamic_cast<ArchetypeStorage<T>*>(it->second.get())){
-			arche->Add(e, component);
-		} else if(auto sparse = dynamic_cast<SparseStorage<T>*>(it->second.get())){
-			sparse->Add(e, component);
-		} else{
-			assert(false && "AddComponent: 想定外のストレージタイプです");
-		}
+		auto& storage = m_storages[ti];
+		if(auto* arche = dynamic_cast<ArchetypeStorage<T>*>(storage.get()))
+			arche->Add(e, std::move(component));
+		else if(auto* sparse = dynamic_cast<SparseStorage<T>*>(storage.get()))
+			sparse->Add(e, std::move(component));
+		else
+			assert(false && "Unknown storage type");
 
-		// Entity のビットマスクに対応ビットを立てる
-		ComponentTypeID typeID = ComponentType::Get<T>();
-		m_entityMasks[e].set(typeID);
+		m_entityMasks[e].set(ComponentType::Get<T>());
 		return GetComponent<T>(e);
 	}
 
@@ -108,11 +79,10 @@ public:
 		auto it = m_storages.find(ti);
 		if(it == m_storages.end()) return nullptr;
 
-		if(auto arche = dynamic_cast<ArchetypeStorage<T>*>(it->second.get())){
+		if(auto* arche = dynamic_cast<ArchetypeStorage<T>*>(it->second.get()))
 			return arche->Get(e);
-		} else if(auto sparse = dynamic_cast<SparseStorage<T>*>(it->second.get())){
+		if(auto* sparse = dynamic_cast<SparseStorage<T>*>(it->second.get()))
 			return sparse->Get(e);
-		}
 		return nullptr;
 	}
 
@@ -122,76 +92,52 @@ public:
 
 		std::type_index ti(typeid(T));
 		auto it = m_storages.find(ti);
-		if(it == m_storages.end()) return;
-
-		it->second->Remove(e);
-		ComponentTypeID typeID = ComponentType::Get<T>();
-		m_entityMasks[e].reset(typeID);
+		if(it != m_storages.end()){
+			it->second->Remove(e);
+			m_entityMasks[e].reset(ComponentType::Get<T>());
+		}
 	}
 
-	// -----------------------------------
-	// Entity 破棄時に呼ぶ（全コンポーネントを削除してマスクもクリア）
-	// -----------------------------------
 	void OnEntityDestroyed(Entity e){
-		// 生存チェックは EntityManager が行っている前提
-		// 各ストレージからコンポーネントを一括で除去
-		for(auto& kv : m_storages){
-			kv.second->Remove(e);
+		for(auto& [_, storage] : m_storages){
+			storage->Remove(e);
 		}
-		// マスク情報を消去
 		m_entityMasks.erase(e);
 	}
 
-	// -----------------------------------
-	// クエリ：複数コンポーネントを持つ Entity を列挙する
-	// -----------------------------------
+	// -------------------------------
+	// クエリ
+	// -------------------------------
 	template<typename... Components>
 	std::vector<Entity> QueryEntities(){
 		std::vector<Entity> result;
 		const auto& aliveSet = m_entityManager->GetAllAlive();
 
-		// 必要なマスクを作成
 		ComponentMask required;
-		(void)std::initializer_list<int>{ (required.set(ComponentType::Get<Components>()), 0)... };
+		(required.set(ComponentType::Get<Components>()), ...);
 
 		result.reserve(aliveSet.size());
 		for(Entity e : aliveSet){
-			const auto itMask = m_entityMasks.find(e);
-			if(itMask == m_entityMasks.end()) continue;
-
-			const ComponentMask& mask = itMask->second;
-			if((mask & required) == required){
+			auto it = m_entityMasks.find(e);
+			if(it != m_entityMasks.end() && (it->second & required) == required){
 				result.push_back(e);
 			}
 		}
 		return result;
 	}
 
-	// -----------------------------------
-	// 型 T が登録されている Storage に登録されている全 Entity を取得
-	// （Archetype/Sparse 共通）
-	// -----------------------------------
 	template<typename T>
 	std::vector<Entity> FindEntitiesWithComponent(){
 		std::type_index ti(typeid(T));
 		auto it = m_storages.find(ti);
-		if(it == m_storages.end()){
-			return {};
-		}
-
-		// IComponentStorage の実装側で GetEntityList() を提供している想定
+		if(it == m_storages.end()) return {};
 		return it->second->GetEntityList();
 	}
 
 private:
 	EntityRegistry* m_entityManager;
 
-	// Entity → ComponentMask
 	std::unordered_map<Entity, ComponentMask> m_entityMasks;
-
-	// 型情報 → ComponentTypeID
 	std::unordered_map<std::type_index, ComponentTypeID> m_typeToID;
-
-	// 型情報 → ストレージ本体（ArchetypeStorage<T> または SparseStorage<T>）
 	std::unordered_map<std::type_index, std::unique_ptr<IComponentStorage>> m_storages;
 };
