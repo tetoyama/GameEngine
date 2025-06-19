@@ -54,6 +54,16 @@ std::shared_ptr<Scene> SceneManager::GetActiveScene() const{
 	return m_activeScene;
 }
 
-void SceneManager::SaveScene(){}
+void SceneManager::SaveScene(){
+	if (m_activeScene) {
+		m_activeScene->Save();
+		m_SceneContext.debug->LOG_INFO(u8"Sceneを保存しました");
+	} else {
+		m_SceneContext.debug->LOG_WARNING(u8"ActiveSceneが存在しないため、保存は行われませんでした");
+	}
+}
 
-void SceneManager::OpenScene(){}
+void SceneManager::OpenScene(){
+	// シーンを開く処理を実装する必要があります
+	m_SceneContext.debug->LOG_INFO(u8"OpenSceneはまだ実装されていません");
+}

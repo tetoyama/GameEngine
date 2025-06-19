@@ -52,14 +52,16 @@ void InspectorSystem::Draw() {
 
 
 				}
-				if (ImGui::TreeNodeEx(showName.c_str())) {
-					SelectEntity = entity;
-
-					ImGui::TreePop();
+				if (ImGui::RadioButton(showName.c_str(), SelectEntity == entity)) {
+					if (SelectEntity == entity) {
+						SelectEntity = -1;
+					} else {
+						SelectEntity = entity;
+					}
 				}
-				if (ImGui::IsItemFocused()) {
-					SelectEntity = entity;
-				}
+				//if (ImGui::IsItemFocused()) {
+				//	SelectEntity = entity;
+				//}
 			}
 			ImGui::End();
 
@@ -198,7 +200,7 @@ void InspectorSystem::Draw() {
 
 
 							transform->position = translation3;
-							//transform->rotation = axis3;
+							transform->rotation = axis3;
 							transform->scale = scale3;
 						}
 						ImGui::Begin("Inspector");

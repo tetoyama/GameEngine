@@ -161,6 +161,14 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		sceneManager->LoadScene(initialScene);
 	});
 
+	imguiService->GetManubar()->Register(MenuEvent::File_Save, [sceneManager]() {
+		sceneManager->SaveScene();
+	});
+
+	imguiService->GetManubar()->Register(MenuEvent::File_Open, [sceneManager]() {
+		sceneManager->OpenScene();
+	});
+
 	debugLogSystem->LOG_INFO(u8"EngineContext‚Ì‰Šú‰»‚ªŠ®—¹‚µ‚Ü‚µ‚½");
 
 }
