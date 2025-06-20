@@ -3,6 +3,7 @@
 #include "Interface/IComponent.h"
 #include <bitset>
 
+#include <backends/yaml-cpp/yaml.h>
 using ComponentTypeID = uint32_t;
 constexpr size_t MAX_COMPONENTS = 64;  // •K—v‚É‰‚¶‚Ä’²®
 using ComponentMask = std::bitset<MAX_COMPONENTS>;
@@ -11,6 +12,7 @@ struct IComponentStorage {
 	virtual ~IComponentStorage() = default;
 	virtual void Remove(Entity e) = 0;
 	virtual std::vector<Entity> GetEntityList() const = 0;
+	virtual IComponent* GetEntityComponent(Entity) = 0;
 };
 
 template<typename T>
@@ -53,6 +55,10 @@ public:
 		return m_entities;
 	}
 
+	IComponent* GetEntityComponent(Entity e) {
+		return Get(e);
+	}
+
 private:
 	std::unordered_map<Entity, size_t> m_indexMap;
 	std::vector<T> m_components;
@@ -83,6 +89,10 @@ public:
 		for(const auto& [entity, _] : m_map)
 			result.push_back(entity);
 		return result;
+	}
+
+	IComponent* GetEntityComponent(Entity e) {
+		return Get(e);
 	}
 
 private:

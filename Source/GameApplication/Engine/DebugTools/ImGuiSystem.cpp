@@ -99,12 +99,16 @@ void ImGuiService::Begin(){
 
 	ImGui::DockSpaceOverViewport(0U,0, ImGuiDockNodeFlags_PassthruCentralNode);  // ドッキングスペースの設置
 	manubar->Render();
+
 }
 
 void ImGuiService::End(){
+
 	if(!initialized_){
 		return;
 	}
+
+
 	ImGuiIO& io = ImGui::GetIO();
 
 

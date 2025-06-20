@@ -213,8 +213,7 @@ void Emitter::EmitEndSeq() {
   if (m_pState->CurGroupFlowType() == FlowType::Flow) {
     if (m_stream.comment())
       m_stream << "\n";
-    if (originalType == FlowType::Block || m_pState->HasBegunNode())
-      m_stream << IndentTo(m_pState->CurIndent());
+    m_stream << IndentTo(m_pState->CurIndent());
     if (originalType == FlowType::Block) {
       m_stream << "[";
     } else {
@@ -716,33 +715,33 @@ StringEscaping::value GetStringEscapingStyle(const EMITTER_MANIP emitterManip) {
   }
 }
 
-Emitter& Emitter::Write(const char* str, std::size_t size) {
+Emitter& Emitter::Write(const std::string& str) {
   if (!good())
     return *this;
 
   StringEscaping::value stringEscaping = GetStringEscapingStyle(m_pState->GetOutputCharset());
 
   const StringFormat::value strFormat =
-      Utils::ComputeStringFormat(str, size, m_pState->GetStringFormat(),
+      Utils::ComputeStringFormat(str, m_pState->GetStringFormat(),
                                  m_pState->CurGroupFlowType(), stringEscaping == StringEscaping::NonAscii);
 
-  if (strFormat == StringFormat::Literal || size > 1024)
+  if (strFormat == StringFormat::Literal || str.size() > 1024)
     m_pState->SetMapKeyFormat(YAML::LongKey, FmtScope::Local);
 
   PrepareNode(EmitterNodeType::Scalar);
 
   switch (strFormat) {
     case StringFormat::Plain:
-      m_stream.write(str, size);
+      m_stream << str;
       break;
     case StringFormat::SingleQuoted:
-      Utils::WriteSingleQuotedString(m_stream, str, size);
+      Utils::WriteSingleQuotedString(m_stream, str);
       break;
     case StringFormat::DoubleQuoted:
-      Utils::WriteDoubleQuotedString(m_stream, str, size, stringEscaping);
+      Utils::WriteDoubleQuotedString(m_stream, str, stringEscaping);
       break;
     case StringFormat::Literal:
-      Utils::WriteLiteralString(m_stream, str, size,
+      Utils::WriteLiteralString(m_stream, str,
                                 m_pState->CurIndent() + m_pState->GetIndent());
       break;
   }
@@ -750,10 +749,6 @@ Emitter& Emitter::Write(const char* str, std::size_t size) {
   StartedScalar();
 
   return *this;
-}
-
-Emitter& Emitter::Write(const std::string& str) {
-  return Write(str.data(), str.size());
 }
 
 std::size_t Emitter::GetFloatPrecision() const {
@@ -869,7 +864,7 @@ Emitter& Emitter::Write(const _Alias& alias) {
 
   PrepareNode(EmitterNodeType::Scalar);
 
-  if (!Utils::WriteAlias(m_stream, alias.content.data(), alias.content.size())) {
+  if (!Utils::WriteAlias(m_stream, alias.content)) {
     m_pState->SetError(ErrorMsg::INVALID_ALIAS);
     return *this;
   }
@@ -892,7 +887,7 @@ Emitter& Emitter::Write(const _Anchor& anchor) {
 
   PrepareNode(EmitterNodeType::Property);
 
-  if (!Utils::WriteAnchor(m_stream, anchor.content.data(), anchor.content.size())) {
+  if (!Utils::WriteAnchor(m_stream, anchor.content)) {
     m_pState->SetError(ErrorMsg::INVALID_ANCHOR);
     return *this;
   }
@@ -941,7 +936,7 @@ Emitter& Emitter::Write(const _Comment& comment) {
 
   if (m_stream.col() > 0)
     m_stream << Indentation(m_pState->GetPreCommentIndent());
-  Utils::WriteComment(m_stream, comment.content.data(), comment.content.size(),
+  Utils::WriteComment(m_stream, comment.content,
                       m_pState->GetPostCommentIndent());
 
   m_pState->SetNonContent();

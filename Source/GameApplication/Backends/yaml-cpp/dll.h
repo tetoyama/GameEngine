@@ -1,8 +1,6 @@
 #ifndef DLL_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 #define DLL_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 
-#define YAML_CPP_STATIC_DEFINE //DLLではない場合必要?
-
 // Definition YAML_CPP_STATIC_DEFINE using to building YAML-CPP as static
 // library (definition created by CMake or defined manually)
 
@@ -17,10 +15,13 @@
 #    ifndef YAML_CPP_API
 #      ifdef yaml_cpp_EXPORTS
          /* We are building this library */
+#        pragma message( "Defining YAML_CPP_API for DLL export" )
 #        define YAML_CPP_API __declspec(dllexport)
 #      else
          /* We are using this library */
-#        define YAML_CPP_API __declspec(dllimport)
+#        pragma message( "Defining YAML_CPP_API for DLL import" )
+#        define YAML_CPP_API
+//#        define YAML_CPP_API __declspec(dllimport) //バグるので空定義に
 #      endif
 #    endif
 #    ifndef YAML_CPP_NO_EXPORT

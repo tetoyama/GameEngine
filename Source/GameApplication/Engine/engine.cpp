@@ -166,7 +166,8 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	});
 
 	imguiService->GetManubar()->Register(MenuEvent::File_Open, [sceneManager]() {
-		sceneManager->OpenScene();
+		auto initialScene = std::make_shared<Scene>();
+		sceneManager->OpenScene(initialScene);
 	});
 
 	debugLogSystem->LOG_INFO(u8"EngineContext‚Ì‰Šú‰»‚ªŠ®—¹‚µ‚Ü‚µ‚½");

@@ -1,11 +1,15 @@
 #pragma once
 #include "Interface/IComponent.h"
+#include "Service/YAMLConverters.h"
+
 #include "Backends/myVector3.h"
 
 class EnemyComponent: public IComponent {
 public:
 	YAML::Node encode() override{
 		YAML::Node node;
+		node["Component"] = "EnemyComponent";
+
 		return node;
 	}
 

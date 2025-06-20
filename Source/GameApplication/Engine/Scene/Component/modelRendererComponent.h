@@ -1,9 +1,10 @@
 #pragma once
 #include "Interface/IComponent.h"
 
-struct ModelData;
-struct PixelShaderData;
-struct VertexShaderData;
+#include "Service/YAMLConverters.h"
+#include "Engine/Resources/Data/vertexShaderData.h"
+#include "Engine/Resources/Data/pixelShaderData.h"
+#include "Engine/Resources/Data/modelData.h"
 
 class ModelRendererComponent: public IComponent {
 public:
@@ -12,6 +13,11 @@ public:
 	~ModelRendererComponent() = default;
 	YAML::Node encode() override{
 		YAML::Node node;
+		node["Component"] = "ModelComponent";
+
+		node["FilePath"] = model->FilePath;
+		node["PixelShader"] = pixelShader->FilePath;
+		node["VertexShader"] = vertexShader->FilePath;
 		return node;
 	}
 

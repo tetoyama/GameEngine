@@ -29,22 +29,22 @@ struct StringEscaping {
 };
 
 namespace Utils {
-StringFormat::value ComputeStringFormat(const char* str, std::size_t size,
+StringFormat::value ComputeStringFormat(const std::string& str,
                                         EMITTER_MANIP strFormat,
                                         FlowType::value flowType,
                                         bool escapeNonAscii);
 
-bool WriteSingleQuotedString(ostream_wrapper& out, const char* str, std::size_t size);
-bool WriteDoubleQuotedString(ostream_wrapper& out, const char* str, std::size_t size,
+bool WriteSingleQuotedString(ostream_wrapper& out, const std::string& str);
+bool WriteDoubleQuotedString(ostream_wrapper& out, const std::string& str,
                              StringEscaping::value stringEscaping);
-bool WriteLiteralString(ostream_wrapper& out, const char* str, std::size_t size,
+bool WriteLiteralString(ostream_wrapper& out, const std::string& str,
                         std::size_t indent);
 bool WriteChar(ostream_wrapper& out, char ch,
                StringEscaping::value stringEscapingStyle);
-bool WriteComment(ostream_wrapper& out, const char* str, std::size_t size,
+bool WriteComment(ostream_wrapper& out, const std::string& str,
                   std::size_t postCommentIndent);
-bool WriteAlias(ostream_wrapper& out, const char* str, std::size_t size);
-bool WriteAnchor(ostream_wrapper& out, const char* str, std::size_t size);
+bool WriteAlias(ostream_wrapper& out, const std::string& str);
+bool WriteAnchor(ostream_wrapper& out, const std::string& str);
 bool WriteTag(ostream_wrapper& out, const std::string& str, bool verbatim);
 bool WriteTagWithPrefix(ostream_wrapper& out, const std::string& prefix,
                         const std::string& tag);

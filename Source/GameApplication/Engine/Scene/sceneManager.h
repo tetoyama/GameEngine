@@ -38,9 +38,11 @@ public:
 	std::shared_ptr<Scene> GetActiveScene() const;
 
 	void SaveScene();
-	void OpenScene();
+	void OpenScene(std::shared_ptr<Scene> scene);
 
 private:
 	std::shared_ptr<Scene> m_activeScene;
 	SceneManagerContext m_SceneContext;
+
+	bool OpenFlag = false;
 };

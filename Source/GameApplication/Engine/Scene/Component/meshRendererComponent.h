@@ -6,6 +6,7 @@
 #include <wrl/client.h>
 #include <d3d11.h>
 #include "Engine/Resources/Data/textureData.h"
+#include "Service/YAMLConverters.h"
 
 class GraphicsContext;
 
@@ -26,6 +27,8 @@ class MeshRendererComponent: public IComponent {
 public:
 	YAML::Node encode() override{
 		YAML::Node node;
+		node["Component"] = "MeshComponent";
+
 		return node;
 	}
 

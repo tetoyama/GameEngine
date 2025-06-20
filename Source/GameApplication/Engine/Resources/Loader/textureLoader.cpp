@@ -14,27 +14,31 @@
 #pragma comment(lib,"DirectXTex_Release.lib")
 #endif
 
-TextureData* TextureLoader::LoadTexture(const std::wstring& filePath){
+TextureData* TextureLoader::LoadTexture(const std::string& filePath){
 
 	if(m_Textures.count(filePath)){
 		return m_Textures[filePath].get();
 	}
-	bool isTgaFile = HasExtension(filePath, L"tga");
+	bool isTgaFile = HasExtension(filePath, "tga");
+
+	int size_needed = MultiByteToWideChar(CP_UTF8, 0, filePath.c_str(), -1, NULL, 0);
+	std::wstring w_FilePath(size_needed - 1, 0); // -1: null除く
+	MultiByteToWideChar(CP_UTF8, 0, filePath.c_str(), -1, &w_FilePath[0], size_needed);
 
 	m_Textures[filePath] = std::make_shared<TextureData>();
 	DirectX::TexMetadata _metadata;
 	DirectX::ScratchImage _image;
 
-	m_Textures[filePath]->TexturePath = filePath;
+	m_Textures[filePath]->FilePath = filePath;
 	
 	//テクスチャ読み込み
 	if(isTgaFile){
 
-		LoadFromTGAFile(filePath.c_str(), &_metadata, _image);
+		LoadFromTGAFile((wchar_t*)w_FilePath.c_str(), &_metadata, _image);
 
 	} else{
 		
-		LoadFromWICFile((wchar_t*)filePath.c_str(), DirectX::WIC_FLAGS::WIC_FLAGS_NONE, &_metadata, _image);
+		LoadFromWICFile((wchar_t*)w_FilePath.c_str(), DirectX::WIC_FLAGS::WIC_FLAGS_NONE, &_metadata, _image);
 	}
 	//読み込んだ画像データをDirectXへ渡してテクスチャとして管理させる
 	CreateShaderResourceView(m_GraphicContext->GetDevice(), _image.GetImages(), _image.GetImageCount(), _metadata, m_Textures[filePath]->pTexture.GetAddressOf());
@@ -48,7 +52,7 @@ TextureData* TextureLoader::LoadTexture(const std::wstring& filePath){
 	return m_Textures[filePath].get();
 }
 
-TextureData* TextureLoader::GetTexture(const std::wstring& filePath){
+TextureData* TextureLoader::GetTexture(const std::string& filePath){
 	auto it = m_Textures.find(filePath);
 	if(it != m_Textures.end()){
 		return it->second.get();
@@ -56,7 +60,7 @@ TextureData* TextureLoader::GetTexture(const std::wstring& filePath){
 	return nullptr;
 }
 
-void TextureLoader::SetTexture(const std::wstring& filePath){
+void TextureLoader::SetTexture(const std::string& filePath){
 	if(!m_Textures.count(filePath)){
 		return;
 	}

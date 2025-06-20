@@ -23,6 +23,13 @@ public:
 		return e;
 	}
 
+	Entity CreateID(Entity e) {
+		if (m_nextID <= e) {
+			m_nextID = e + 1;
+		}
+		m_alive.insert(e);
+		return e;
+	}
 
 	void Destroy(Entity e){
 		if(m_alive.erase(e) == 0){
@@ -36,9 +43,14 @@ public:
 		return m_alive.find(e) != m_alive.end();
 	}
 
-
 	const std::unordered_set<Entity>& GetAllAlive() const{
 		return m_alive;
+	}
+
+	void ResetAll() {
+		m_nextID = 1;
+		m_recycledIDs.clear();
+		m_alive.clear();
 	}
 
 private:

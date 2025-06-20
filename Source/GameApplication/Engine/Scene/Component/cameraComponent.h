@@ -1,5 +1,7 @@
 #pragma once
 #include "Interface/IComponent.h"
+#include "Service/YAMLConverters.h"
+
 #include "Backends/myVector3.h"
 #include <DirectXMath.h>
 
@@ -7,6 +9,14 @@ class CameraComponent : public IComponent {
 public:
 	YAML::Node encode() override{
 		YAML::Node node;
+		node["Component"] = "CameraComponent";
+
+		node["isLock"] = isLock;
+		node["Target"] = Target;
+		node["NearClip"] = NearClip;
+		node["FarClip"] = FarClip;
+		node["FOV"] = FOV;
+		node["viewMatrix"] = viewMatrix;
 		return node;
 	}
 

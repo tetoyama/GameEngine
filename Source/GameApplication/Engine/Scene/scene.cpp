@@ -1,6 +1,7 @@
 // Engine/Scene/scene.cpp
 
 #include "scene.h"
+#include <commdlg.h> // GetOpenFileName
 
 #include <string>
 #include "Engine/DebugTools/debugSystem.h"
@@ -45,6 +46,7 @@
 #include "Component/bulletComponent.h"
 #include "Component/enemyComponent.h"
 #include "Component/explosionEffectComponent.h"
+
 
 Scene::Scene(){
 
@@ -149,7 +151,7 @@ void Scene::Initialize(SceneManagerContext* set){
 		name->name = "Player";
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
-		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\white.tga");
+		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\white.tga");
 		texture->Material.Diffuse = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 
 		// TransformComponentを追加
@@ -197,7 +199,7 @@ void Scene::Initialize(SceneManagerContext* set){
 		name->name = "Enemy" + std::to_string(i + 1);
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
-		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\white.tga");
+		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\white.tga");
 		texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
 
 		// TransformComponentを追加
@@ -246,6 +248,100 @@ void Scene::Shutdown(){
 	m_systemRegistry.reset();
 }
 
-void Scene::Load(){}
+bool Scene::Load(){
 
-void Scene::Save(){}
+	std::string filepath = OpenYALM();
+	if (filepath != "") {
+		auto aliveEntities = m_entityRegistry->GetAllAlive();
+
+		for (auto e : aliveEntities) {
+			m_componentRegistry->OnEntityDestroyed(e);
+			m_entityRegistry->Destroy(e);
+		}
+		m_entityRegistry->ResetAll();
+		//OpenSceneYAML(filepath);
+		return true;
+	}
+	return false;
+}
+
+void Scene::Save(){
+	YAML::Node root;
+	YAML::Node entitiesNode = YAML::Node(YAML::NodeType::Sequence);
+
+	for (Entity e : m_entityRegistry->GetAllAlive()) {
+		YAML::Node entityNode;
+		entityNode["Entity"] = static_cast<int>(e);
+		YAML::Node componentsNode = YAML::Node(YAML::NodeType::Sequence);
+		for (IComponent* comp : m_componentRegistry->GetAllComponentsOfEntity(e)) {
+			if (comp) {
+				YAML::Node compNode = comp->encode();  // 各コンポーネントがTypeキーを含むマップを返す
+				if (compNode && compNode.IsMap()) {
+					componentsNode.push_back(compNode);
+				}
+			}
+		}
+
+		entityNode["Components"] = componentsNode;
+		entitiesNode.push_back(entityNode);
+	}
+
+	root["Entities"] = entitiesNode;
+
+	std::ofstream fout("scene.yaml");
+	fout << root;
+}
+
+void Scene::OpenSceneYAML(std::string path) {
+	try {
+		YAML::Node root = YAML::LoadFile(path);
+
+		YAML::Node entities = root["Entities"];
+		for (auto entityNode : entities) {
+			uint32_t id = entityNode["Entity"].as<uint32_t>();
+			m_entityRegistry->Create();
+			//std::cout << "Entity ID: " << id << std::endl;
+
+			if (entityNode["TransformComponent"]) {
+
+
+				auto t = entityNode["TransformComponent"];
+				std::vector<float> pos = t["position"].as<std::vector<float>>();
+				std::vector<float> rot = t["rotation"].as<std::vector<float>>();
+				std::vector<float> scl = t["scale"].as<std::vector<float>>();
+				m_SceneContext.manager->debug->LOG_INFO(("Pos: (" + std::to_string(pos[0]) + ", " + std::to_string(pos[1]) + ", " + std::to_string(pos[2]) + ")\n").c_str());
+				// TransformComponent にセットなど
+			}
+
+			if (entityNode["TextureComponent"]) {
+				auto tex = entityNode["TextureComponent"];
+				int uvx = tex["UV_Slice_X"].as<int>();
+				int uvy = tex["UV_Slice_Y"].as<int>();
+				//std::cout << "  Texture UV: " << uvx << "x" << uvy << "\n";
+			}
+		}
+	}
+	catch (const YAML::Exception& e) {
+		//std::cerr << "YAML Load Error: " << e.what() << std::endl;
+	}
+}
+
+std::string Scene::OpenYALM() {
+	char filename[MAX_PATH] = "";
+
+	OPENFILENAMEA ofn = {}; // ANSI版（UNICODEなら OPENFILENAMEW）
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = nullptr; // ウィンドウハンドル（必要なら自分のウィンドウ）
+	ofn.lpstrFilter = "YAML Files (*.yaml)\0*.yaml\0All Files (*.*)\0*.*\0";
+	ofn.lpstrFile = filename;
+	ofn.nMaxFile = MAX_PATH;
+	ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+	ofn.lpstrDefExt = "yaml";
+
+
+	if (GetOpenFileNameA(&ofn)) {
+		return std::string(filename);
+	}
+
+	return std::string("");
+}

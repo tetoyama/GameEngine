@@ -29,7 +29,7 @@ ModelData* ModelLoader::LoadModel(const std::string& modelPath){
 	}
 
 	std::shared_ptr<ModelData> model = std::make_shared<ModelData>();
-
+	model->FilePath = modelPath;
 	model->SetTexture = true;
 
 	model->AiScene = aiImportFile(modelPath.c_str(), aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded /* | aiProcess_GenBoundingBoxes */);

@@ -16,6 +16,7 @@ VertexShaderData* ShaderLoader::LoadVertexShader(const std::string& shaderPath){
 
 	m_GraphicContext->CreateVertexShader(shaderPath.c_str(), &vertexShaderData->m_VertexShader, &vertexShaderData->m_VertexLayout);
 	m_VertexShaders[shaderPath] = vertexShaderData;
+	m_VertexShaders[shaderPath]->FilePath = shaderPath;
 
 	return m_VertexShaders[shaderPath].get();
 }
@@ -31,6 +32,7 @@ PixelShaderData* ShaderLoader::LoadPixelShader(const std::string& shaderPath){
 
 	m_GraphicContext->CreatePixelShader(shaderPath.c_str(), &pixelShaderData->m_PixelShader);
 	m_PixelShaders[shaderPath] = pixelShaderData;
+	m_PixelShaders[shaderPath]->FilePath = shaderPath;
 
 	return m_PixelShaders[shaderPath].get();
 }

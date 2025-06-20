@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <d3d11.h>
+#include <string>
 
 struct SceneManagerContext;
 
@@ -28,12 +29,15 @@ public:
 	void Render();
 	void Shutdown();
 
-	void Load();
+	bool Load();
 	void Save();
 
 	SceneContext* GetSceneContext(){return &m_SceneContext;}
 
 private:
+
+	void OpenSceneYAML(std::string path);
+	std::string OpenYALM();
 
 	SceneManagerContext* m_SceneManagerContext = nullptr;
 

@@ -2529,7 +2529,66 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\anchor.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\binary.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\collectionstack.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\contrib\anchordict.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\contrib\dragonbox.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\contrib\graphbuilder.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\contrib\graphbuilderadapter.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\depthguard.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\directives.h" />
     <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\dll.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitfromevents.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitter.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitterdef.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emittermanip.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitterstate.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitterstyle.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\emitterutils.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\eventhandler.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\exceptions.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\exp.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\fptostring.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\indentation.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\mark.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\nodebuilder.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\nodeevents.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\convert.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\impl.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\iterator.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\iterator_fwd.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\memory.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node_data.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node_iterator.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\detail\node_ref.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\emit.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\impl.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\iterator.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\node.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\parse.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\ptr.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\node\type.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\noexcept.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\null.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\ostream_wrapper.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\parser.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\ptr_vector.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\regeximpl.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\regex_yaml.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\scanner.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\scanscalar.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\scantag.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\setting.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\singledocparser.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\stlemitter.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\stream.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\streamcharsource.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\stringsource.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\tag.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\token.h" />
+    <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\traits.h" />
     <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\yaml.h" />
     <ClInclude Include="Source\GameApplication\Engine\DebugTools\debugSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\DebugTools\ImGuiSystem.h" />
@@ -2590,6 +2649,7 @@
     <ClInclude Include="Source\main.h" />
     <ClInclude Include="Source\Service\configSystem.h" />
     <ClInclude Include="Source\Service\IService.h" />
+    <ClInclude Include="Source\Service\YAMLConverters.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\Backends\checkFileExtention.cpp" />
@@ -2878,6 +2938,38 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\binary.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\contrib\graphbuilder.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\contrib\graphbuilderadapter.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\convert.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\depthguard.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\directives.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\emit.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\emitfromevents.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\emitter.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\emitterstate.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\emitterutils.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\exceptions.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\exp.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\fptostring.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\memory.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\node.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\nodebuilder.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\nodeevents.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\node_data.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\null.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\ostream_wrapper.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\parse.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\parser.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\regex_yaml.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\scanner.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\scanscalar.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\scantag.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\scantoken.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\simplekey.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\singledocparser.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\stream.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\tag.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\DebugTools\debugSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\DebugTools\ImGuiSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\EditorUI\ImGuiMainManuBar.cpp" />
@@ -2956,6 +3048,7 @@
     <None Include="assimp-vc143-mt.dll">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </None>
+    <None Include="scene.yaml" />
     <None Include="Source\GameApplication\Backends\Assimp\color4.inl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -2989,6 +3082,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
     <None Include="Source\GameApplication\Backends\DirectX11\DirectXTex.inl" />
+    <None Include="Source\GameApplication\Backends\yaml-cpp\contrib\yaml-cpp.natvis.md" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Shader\limLightPS.hlsl">
@@ -3130,6 +3224,12 @@
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Release.lib">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </Library>
+    <Library Include="Source\GameApplication\Backends\yaml-cpp\yaml-cpp.lib">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </Library>
+    <Library Include="Source\GameApplication\Backends\yaml-cpp\yaml-cppd.lib">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </Library>
   </ItemGroup>
   <ItemGroup>
     <Object Include="Asset\Model\player.obj">
@@ -3154,6 +3254,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </Font>
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="Source\GameApplication\Backends\yaml-cpp\contrib\yaml-cpp.natvis" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

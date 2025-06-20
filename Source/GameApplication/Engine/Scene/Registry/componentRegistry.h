@@ -134,6 +134,23 @@ public:
 		return it->second->GetEntityList();
 	}
 
+	std::vector<IComponent*> GetAllComponentsOfEntity(Entity e) {
+		std::vector<IComponent*> components;
+
+		if (!m_entityManager->IsAlive(e)) {
+			return components;
+		}
+
+		for (auto& [ti, storage] : m_storages) {
+			// すべてのストレージでエンティティに対応するコンポーネントを取得
+			IComponent* comp = storage.get()->GetEntityComponent(e);
+			
+			if (comp) {
+				components.push_back(comp);
+			}
+		}
+		return components;
+	}
 private:
 	EntityRegistry* m_entityManager;
 

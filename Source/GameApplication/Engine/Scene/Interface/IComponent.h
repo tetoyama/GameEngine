@@ -1,7 +1,6 @@
 // Engine/Scene/Interface/IComponent.h
 #pragma once
 #include <backends/yaml-cpp/yaml.h>
-#include <backends/yaml-cpp/node/node.h>
 class IComponent {
 public:
 	IComponent() = default;

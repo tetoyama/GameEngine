@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface/IComponent.h"
 #include "Backends/myVector3.h"
+#include "Service/YAMLConverters.h"
 
 class TransformComponent : public IComponent{
 public:
@@ -10,10 +11,26 @@ public:
 
 	YAML::Node encode() override{
 		YAML::Node node;
+		node["Component"] = "TransformComponent";
+		node["Position"] = position;
+		node["Rotation"] = rotation;
+		node["Scale"] = scale;
+
 		return node;
 	}
 
 	bool decode(const YAML::Node& node) override {
+		if (!node.IsMap()) { return false; }
+
+		if (node["Position"]) {
+			position = node["Position"].as<Vector3>();
+		}
+		if (node["Rotation"]) {
+			rotation = node["Rotation"].as<Vector3>();
+		}
+		if (node["Scale"]) {
+			scale = node["Scale"].as<Vector3>();
+		}
 		return true;
 	}
 

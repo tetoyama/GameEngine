@@ -5,7 +5,7 @@
 
 
 struct TextureData {
-	std::wstring TexturePath = L"";					//テクスチャのパス名
+	std::string FilePath;
 	Microsoft::WRL::ComPtr <ID3D11ShaderResourceView> pTexture;	//ポインター
 	int Width = 0;
 	int Height = 0;

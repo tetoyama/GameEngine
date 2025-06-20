@@ -8,10 +8,13 @@ struct aiScene;
 
 struct ModelData
 {
+public:
 	~ModelData() = default;
 
 	void Release();
 
+	std::string FilePath;
+	
 	const aiScene* AiScene = nullptr;
 
 	ID3D11Buffer** VertexBuffer;

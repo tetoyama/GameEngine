@@ -9,6 +9,10 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 }
 
 void SceneManager::Update(float deltaTime){
+	if (OpenFlag) {
+
+		OpenFlag = false;
+	}
 	if(m_activeScene){
 		m_activeScene->Update(deltaTime);
 	}
@@ -63,7 +67,19 @@ void SceneManager::SaveScene(){
 	}
 }
 
-void SceneManager::OpenScene(){
+void SceneManager::OpenScene(std::shared_ptr<Scene> scene){
 	// シーンを開く処理を実装する必要があります
-	m_SceneContext.debug->LOG_INFO(u8"OpenSceneはまだ実装されていません");
+	scene->Initialize(&m_SceneContext);
+	if (scene->Load()) {
+		if (m_activeScene) {
+			m_SceneContext.debug->LOG_DEBUG(u8"ActiveSceneを終了します");
+			m_activeScene->Shutdown();
+			m_activeScene.reset();
+		}
+		m_activeScene = scene;
+		m_SceneContext.debug->LOG_DEBUG(u8"OpenScene");
+	} else {
+		scene.reset();
+	}
+	OpenFlag = true;
 }

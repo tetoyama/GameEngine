@@ -1,10 +1,13 @@
 #pragma once
 #include "Interface/IComponent.h"
+#include "Service/YAMLConverters.h"
 
 class ExplosionEffectComponent : public IComponent {
 public:
 	YAML::Node encode() override{
 		YAML::Node node;
+		node["Component"] = "ExplosionEffectComponent";
+
 		return node;
 	}
 

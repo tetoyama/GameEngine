@@ -1,11 +1,13 @@
 #pragma once
 #include "Interface/IComponent.h"
-#include "Backends/myVector3.h"
+#include "Service/YAMLConverters.h"
 
 class BulletComponent: public IComponent {
 public:
 	YAML::Node encode() override{
 		YAML::Node node;
+		node["Component"] = "BulletComponent";
+
 		return node;
 	}
 
