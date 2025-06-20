@@ -11,6 +11,7 @@
 
 #include "entityRegistry.h"
 #include "Interface/IComponentStorage.h"   // IComponentStorage, ArchetypeStorage<T>, SparseStorage<T> の定義
+#include <functional>
 
 class ComponentType {
 public:
@@ -26,8 +27,36 @@ private:
 
 class ComponentRegistry {
 public:
+	using YAMLCreator = std::function<IComponent* (Entity, const YAML::Node&)>;
+
 	explicit ComponentRegistry(EntityRegistry* entityMgr)
 		: m_entityManager(entityMgr){}
+
+	// YAML からの生成用ファクトリを登録する
+	template<typename T>
+	void RegisterYAMLComponent(const std::string& name, bool useArchetype = false){
+		// まずはストレージ登録
+		RegisterComponent<T>(useArchetype);
+
+		// ファクトリ登録
+		m_yamlFactory[name] = [this](Entity e, const YAML::Node& node) -> IComponent*{
+			auto* comp = AddComponent<T>(e);
+			if(comp){
+				// decode() は T に実装されている前提
+				static_cast<T*>(comp)->decode(node);
+			}
+			return comp;
+			};
+	}
+
+	// YAML 読み込み時に呼び出す汎用 Create
+	IComponent* CreateFromYAML(const std::string& name, Entity e, const YAML::Node& node){
+		auto it = m_yamlFactory.find(name);
+		if(it != m_yamlFactory.end()){
+			return it->second(e, node);
+		}
+		return nullptr;
+	}
 
 	// -------------------------------
 	// 登録処理
@@ -157,4 +186,7 @@ private:
 	std::unordered_map<Entity, ComponentMask> m_entityMasks;
 	std::unordered_map<std::type_index, ComponentTypeID> m_typeToID;
 	std::unordered_map<std::type_index, std::unique_ptr<IComponentStorage>> m_storages;
+
+	// ★ YAML デシリアライズ用ファクトリマップ
+	std::unordered_map<std::string, YAMLCreator> m_yamlFactory;
 };

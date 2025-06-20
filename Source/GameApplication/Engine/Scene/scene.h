@@ -40,6 +40,7 @@ private:
 
 	void OpenSceneYAML(std::string path);
 	std::string OpenYALM();
+	bool ShowSaveFileDialog(std::wstring& outPath);
 
 	SceneManagerContext* m_SceneManagerContext = nullptr;
 

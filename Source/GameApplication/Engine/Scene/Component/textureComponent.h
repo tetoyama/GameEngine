@@ -13,17 +13,31 @@ public:
 			node["FilePath"] = m_TextureData->FilePath;
 		}
 		node["Material"] = Material;
+		node["UV_Slice_X"] = UV_Slice_X;
+		node["UV_Slice_Y"] = UV_Slice_Y;
+		node["AnimationNum"] = AnimationNum;
+
+
 		return node;
 	}
 
 	bool decode(const YAML::Node& node) override{
 		if (!node.IsMap()) { return false; }
 
-		if (node["FilePath"]) {
-			m_TextureData->FilePath = node["Position"].as<std::string>();
+		if (m_TextureData && node["FilePath"]) {
+			m_TextureData->FilePath = node["FilePath"].as<std::string>();
 		}
 		if (node["Material"]) {
 			Material = node["Material"].as<MATERIAL>();
+		}
+		if(node["UV_Slice_X"]){
+			UV_Slice_X = node["UV_Slice_X"].as<int>();
+		}
+		if(node["UV_Slice_Y"]){
+			UV_Slice_Y = node["UV_Slice_Y"].as<int>();
+		}
+		if(node["AnimationNum"]){
+			AnimationNum = node["AnimationNum"].as<int>();
 		}
 		return true;
 	}

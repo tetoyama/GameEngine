@@ -47,7 +47,6 @@
 #include "Component/enemyComponent.h"
 #include "Component/explosionEffectComponent.h"
 
-
 Scene::Scene(){
 
 }
@@ -66,19 +65,19 @@ void Scene::Initialize(SceneManagerContext* set){
 
 	// コンポーネントを登録（Archetype or Sparse を選択）
 	// ボトルネックが見つかったコンポーネントから ArchetypeStorage<T> に移行
-	m_componentRegistry->RegisterComponent<NameComponent>(false);
-	m_componentRegistry->RegisterComponent<TransformComponent>(false);
-	m_componentRegistry->RegisterComponent<CameraComponent>(false);
+	m_componentRegistry->RegisterYAMLComponent<NameComponent>("NameComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<TransformComponent>("TransformComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<CameraComponent>("CameraComponent", false);
 
-	m_componentRegistry->RegisterComponent<TextureComponent>(false);
-	m_componentRegistry->RegisterComponent<MeshRendererComponent>(false);
-	m_componentRegistry->RegisterComponent<ModelRendererComponent>(false);
-	m_componentRegistry->RegisterComponent<BillBoardRendererComponent>(false);
+	m_componentRegistry->RegisterYAMLComponent<TextureComponent>("TextureComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<MeshRendererComponent>("MeshRendererComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<ModelRendererComponent>("ModelRendererComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<BillBoardRendererComponent>("BillBoardRendererComponent", false);
 
-	m_componentRegistry->RegisterComponent<PlayerComponent>(false);
-	m_componentRegistry->RegisterComponent<BulletComponent>(false);
-	m_componentRegistry->RegisterComponent<EnemyComponent>(false);
-	m_componentRegistry->RegisterComponent<ExplosionEffectComponent>(false);
+	m_componentRegistry->RegisterYAMLComponent<PlayerComponent>("PlayerComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<BulletComponent>("BulletComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<EnemyComponent>("EnemyComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<ExplosionEffectComponent>("ExplosionEffectComponent", false);
 
 	// システムを登録
 	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
@@ -292,6 +291,13 @@ bool Scene::Load(){
 }
 
 void Scene::Save(){
+	
+	std::wstring savePath;
+	if(!ShowSaveFileDialog(savePath)){
+		// ユーザーがキャンセルした
+		return;
+	}
+	
 	YAML::Node root;
 	YAML::Node entitiesNode = YAML::Node(YAML::NodeType::Sequence);
 
@@ -314,37 +320,72 @@ void Scene::Save(){
 
 	root["Entities"] = entitiesNode;
 
-	std::ofstream fout("scene.yaml");
+	// UTF-16 → UTF-8 変換
+	int    size_needed = WideCharToMultiByte(CP_UTF8, 0, savePath.c_str(), -1, nullptr, 0, nullptr, nullptr);
+	std::string utf8Path(size_needed, 0);
+	WideCharToMultiByte(CP_UTF8, 0, savePath.c_str(), -1, &utf8Path[0], size_needed, nullptr, nullptr);
+
+	std::ofstream fout(utf8Path, std::ios::binary);
 	fout << root;
 }
 
-void Scene::OpenSceneYAML(std::string path) {
-	try {
-		YAML::Node root = YAML::LoadFile(path);
+void Scene::OpenSceneYAML(std::string path) {  
+	std::ifstream fin(path);  
+	if(!fin.is_open()){  
+		// ファイルが開けなかった場合  
+		m_SceneContext.manager->debug->LOG_ERROR(("Failed to open file: " + path).c_str());  
+		return;  
+	}  
 
-		YAML::Node entities = root["Entities"];
-		for(auto entityNode : entities){
-			Entity id = entityNode["Entity"].as<Entity>();
-			Entity entity = m_entityRegistry->Create();
+	YAML::Node root = YAML::Load(fin);  
+	if(!root["Entities"] || !root["Entities"].IsSequence()){  
+		m_SceneContext.manager->debug->LOG_ERROR("YAML: 'Entities' node missing or invalid");  
+		return;  
+	}  
 
-			YAML::Node components = entityNode["Components"];
-			for(auto compNode : components){
-				std::string compType = compNode["Component"].as<std::string>();
+	YAML::Node entities = root["Entities"];  
+	for(const auto& entityNode : entities){  
 
-				if(compType == "TransformComponent"){
-					auto comp = m_componentRegistry->AddComponent<TransformComponent>(entity);
-					comp->decode(compNode);
+		if(!entityNode["Entity"]){  
+			continue;  
+		}  
+		Entity entity = m_entityRegistry->Create();  
 
+		if(!entityNode["Components"] || !entityNode["Components"].IsSequence()){  
+			continue;  
+		}  
+		for(const auto& compNode : entityNode["Components"]){  
+			const auto& compType = compNode["Component"].as<std::string>();  
+			IComponent* comp = m_componentRegistry->CreateFromYAML(compType, entity, compNode);  
+			if(compType == "ModelRendererComponent"){  
+				auto* modelRenderer = dynamic_cast<ModelRendererComponent*>(comp);  
+				if (modelRenderer) {
+					if(compNode["FilePath"]){
+						const auto& FilePath = compNode["FilePath"].as<std::string>();
+						modelRenderer->model = m_SceneManagerContext->resource->GetModelLoader()->LoadModel(FilePath.c_str());
+					}
+					if(compNode["VertexShader"]){
+
+						const auto& VertexShader = compNode["VertexShader"].as<std::string>();
+						modelRenderer->vertexShader = m_SceneManagerContext->resource->GetShaderLoader()->LoadVertexShader(VertexShader.c_str());
+					}
+					if(compNode["PixelShader"]){
+
+						const auto& PixelShader = compNode["PixelShader"].as<std::string>();
+						modelRenderer->pixelShader = m_SceneManagerContext->resource->GetShaderLoader()->LoadPixelShader(PixelShader.c_str());
+					}
 				}
-				if(compType == "CameraComponent"){
-					auto comp = m_componentRegistry->AddComponent<CameraComponent>(entity);
-					comp->decode(compNode);
+			}
+			if(compType == "TextureComponent"){
+				auto* texture = dynamic_cast<TextureComponent*>(comp);
+				if(texture){
+					if(compNode["FilePath"]){
+						const auto& FilePath = compNode["FilePath"].as<std::string>();
+						texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(FilePath.c_str());
+					}
 				}
 			}
 		}
-	}
-	catch (const YAML::Exception& e) {
-		//std::cerr << "YAML Load Error: " << e.what() << std::endl;
 	}
 }
 
@@ -366,4 +407,20 @@ std::string Scene::OpenYALM() {
 	}
 
 	return std::string("");
+}
+
+bool Scene::ShowSaveFileDialog(std::wstring& outPath){
+	WCHAR szFile[MAX_PATH] = L"scene.yaml";  // デフォルトファイル名
+	OPENFILENAME ofn = {sizeof(ofn)};
+	ofn.hwndOwner = nullptr;                 // 親ウィンドウハンドルを渡す場合は指定
+	ofn.lpstrFilter = L"YAML Files (*.yaml)\0*.yaml\0All Files (*.*)\0*.*\0";
+	ofn.lpstrFile = szFile;
+	ofn.nMaxFile = MAX_PATH;
+	ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
+
+	if(GetSaveFileName(&ofn)){
+		outPath = szFile;
+		return true;
+	}
+	return false;
 }

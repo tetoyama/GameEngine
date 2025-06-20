@@ -16,7 +16,7 @@ namespace YAML {
 
 	template<>
 	struct convert<DirectX::XMFLOAT4> {
-		static Node encode(const DirectX::XMFLOAT4& v) {
+		static Node encode(const DirectX::XMFLOAT4& v){
 			Node node;
 			node["x"] = v.x;
 			node["y"] = v.y;
@@ -25,9 +25,8 @@ namespace YAML {
 			return node;
 		}
 
-		static bool decode(const Node& node, DirectX::XMFLOAT4& v) {
-			if (!node.IsSequence() || node.size() != 4)
-				return false;
+		static bool decode(const Node& node, DirectX::XMFLOAT4& v){
+			if(!node.IsMap()) return false;
 			v.x = node["x"].as<float>();
 			v.y = node["y"].as<float>();
 			v.z = node["z"].as<float>();

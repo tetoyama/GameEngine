@@ -15,6 +15,10 @@ public:
 	}
 
 	bool decode(const YAML::Node& node) override{
+
+		if(node["Name"]){
+			name = node["Name"].as<std::string>();
+		}
 		return true;
 	}
 	std::string name;

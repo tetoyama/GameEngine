@@ -13,7 +13,7 @@ public:
 	~ModelRendererComponent() = default;
 	YAML::Node encode() override{
 		YAML::Node node;
-		node["Component"] = "ModelComponent";
+		node["Component"] = "ModelRendererComponent";
 
 		node["FilePath"] = model->FilePath;
 		node["PixelShader"] = pixelShader->FilePath;
