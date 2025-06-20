@@ -200,7 +200,7 @@ void InspectorSystem::Draw() {
 
 
 							transform->position = translation3;
-							transform->rotation = axis3;
+							//transform->rotation = axis3;
 							transform->scale = scale3;
 						}
 						ImGui::Begin("Inspector");
