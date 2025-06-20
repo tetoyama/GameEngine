@@ -90,26 +90,80 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_systemRegistry->RegisterSystem(std::make_unique<BulletSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<EnemySystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<ExplosionEffectSystem>(&m_SceneContext));
-
+	
 	auto Renderer = m_SceneManagerContext->renderer;
 	auto graphicsContext = Renderer->GetGraphicsContext();
-	auto resource = m_SceneManagerContext->resource;
 
 	m_SceneContext.entity = m_entityRegistry.get();
 	m_SceneContext.component = m_componentRegistry.get();
 	m_SceneContext.system = m_systemRegistry.get();
 	m_SceneContext.manager = m_SceneManagerContext;
 
-	auto entityRegistry = m_SceneContext.entity;
-	auto componentRegistry = m_SceneContext.component;
-	auto systemRegistry = m_SceneContext.system;
-
 	m_systemRegistry->InitializeAll();
+
 
 	LIGHT light{};
 	light.Enable = TRUE;
 	light.Direction = DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
 	light.Position = DirectX::XMFLOAT4(0, 5, 0,0);
+	light.Diffuse = DirectX::XMFLOAT4(0.9f, 0.9f, 1.0f, 1);
+	light.Ambient = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	light.PointLightParam = DirectX::XMFLOAT4(20.0f, 0, 0, 0);
+	light.Angle = DirectX::XMFLOAT4(DirectX::XM_PI / 180.0f * 60.0f, 0.0f, 0.0f, 0.0f);
+
+	light.SkyColor = DirectX::XMFLOAT4(0.8f, 0.8f, 1.0f, 0.1f);
+	light.GroundColor = DirectX::XMFLOAT4(1.0f, 0.8f, 0.5f, 0.05f);
+	light.GroundNormal = DirectX::XMFLOAT4(0, 0, 1, 0);
+	graphicsContext->SetLight(light);
+	graphicsContext->SetDepthEnable(true);
+
+
+	BuildDefaultScene();
+
+	m_SceneManagerContext->debug->LOG_INFO(u8"Sceneを開始します");
+
+	m_systemRegistry->StartAll();
+}
+
+void Scene::Update(float deltaTime){
+
+	m_systemRegistry->UpdateAll(deltaTime);
+}
+
+void Scene::FixedUpdate(float fixedDeltaTime){
+
+	m_systemRegistry->FixedUpdateAll(fixedDeltaTime);
+}
+
+void Scene::Render(){
+
+	m_systemRegistry->DrawAll();
+}
+
+void Scene::Shutdown(){
+	m_SceneManagerContext->debug->LOG_INFO(u8"Sceneを終了中...");
+	m_systemRegistry->FinalizeAll();
+
+	// システムの終了処理
+	m_entityRegistry.reset();
+	m_componentRegistry.reset();
+	m_systemRegistry.reset();
+}
+
+void Scene::BuildDefaultScene(){
+	auto entityRegistry = m_SceneContext.entity;
+	auto componentRegistry = m_SceneContext.component;
+	auto systemRegistry = m_SceneContext.system;
+
+	auto Renderer = m_SceneManagerContext->renderer;
+	auto graphicsContext = Renderer->GetGraphicsContext();
+
+	auto resource = m_SceneManagerContext->resource;
+
+	LIGHT light{};
+	light.Enable = TRUE;
+	light.Direction = DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
+	light.Position = DirectX::XMFLOAT4(0, 5, 0, 0);
 	light.Diffuse = DirectX::XMFLOAT4(0.9f, 0.9f, 1.0f, 1);
 	light.Ambient = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
 	light.PointLightParam = DirectX::XMFLOAT4(20.0f, 0, 0, 0);
@@ -191,7 +245,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	int Sample = 20;
 	float Distance = 20.0f;
 	for(int i = 0; i < Sample; i++){
-	
+
 		//エンティティを作成し、TransformとModelRendererを追加
 		Entity entity = entityRegistry->Create();
 
@@ -217,35 +271,6 @@ void Scene::Initialize(SceneManagerContext* set){
 
 		auto player = componentRegistry->AddComponent<EnemyComponent>(entity);
 	}
-
-	m_SceneManagerContext->debug->LOG_INFO(u8"Sceneを開始します");
-
-	m_systemRegistry->StartAll();
-}
-
-void Scene::Update(float deltaTime){
-
-	m_systemRegistry->UpdateAll(deltaTime);
-}
-
-void Scene::FixedUpdate(float fixedDeltaTime){
-
-	m_systemRegistry->FixedUpdateAll(fixedDeltaTime);
-}
-
-void Scene::Render(){
-
-	m_systemRegistry->DrawAll();
-}
-
-void Scene::Shutdown(){
-	m_SceneManagerContext->debug->LOG_INFO(u8"Sceneを終了中...");
-	m_systemRegistry->FinalizeAll();
-
-	// システムの終了処理
-	m_entityRegistry.reset();
-	m_componentRegistry.reset();
-	m_systemRegistry.reset();
 }
 
 bool Scene::Load(){
@@ -255,11 +280,12 @@ bool Scene::Load(){
 		auto aliveEntities = m_entityRegistry->GetAllAlive();
 
 		for (auto e : aliveEntities) {
-			m_componentRegistry->OnEntityDestroyed(e);
 			m_entityRegistry->Destroy(e);
+			m_componentRegistry->OnEntityDestroyed(e);
+
 		}
 		m_entityRegistry->ResetAll();
-		//OpenSceneYAML(filepath);
+		OpenSceneYAML(filepath);
 		return true;
 	}
 	return false;
@@ -297,27 +323,23 @@ void Scene::OpenSceneYAML(std::string path) {
 		YAML::Node root = YAML::LoadFile(path);
 
 		YAML::Node entities = root["Entities"];
-		for (auto entityNode : entities) {
-			uint32_t id = entityNode["Entity"].as<uint32_t>();
-			m_entityRegistry->Create();
-			//std::cout << "Entity ID: " << id << std::endl;
+		for(auto entityNode : entities){
+			Entity id = entityNode["Entity"].as<Entity>();
+			Entity entity = m_entityRegistry->Create();
 
-			if (entityNode["TransformComponent"]) {
+			YAML::Node components = entityNode["Components"];
+			for(auto compNode : components){
+				std::string compType = compNode["Component"].as<std::string>();
 
+				if(compType == "TransformComponent"){
+					auto comp = m_componentRegistry->AddComponent<TransformComponent>(entity);
+					comp->decode(compNode);
 
-				auto t = entityNode["TransformComponent"];
-				std::vector<float> pos = t["position"].as<std::vector<float>>();
-				std::vector<float> rot = t["rotation"].as<std::vector<float>>();
-				std::vector<float> scl = t["scale"].as<std::vector<float>>();
-				m_SceneContext.manager->debug->LOG_INFO(("Pos: (" + std::to_string(pos[0]) + ", " + std::to_string(pos[1]) + ", " + std::to_string(pos[2]) + ")\n").c_str());
-				// TransformComponent にセットなど
-			}
-
-			if (entityNode["TextureComponent"]) {
-				auto tex = entityNode["TextureComponent"];
-				int uvx = tex["UV_Slice_X"].as<int>();
-				int uvy = tex["UV_Slice_Y"].as<int>();
-				//std::cout << "  Texture UV: " << uvx << "x" << uvy << "\n";
+				}
+				if(compType == "CameraComponent"){
+					auto comp = m_componentRegistry->AddComponent<CameraComponent>(entity);
+					comp->decode(compNode);
+				}
 			}
 		}
 	}

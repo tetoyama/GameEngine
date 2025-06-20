@@ -29,6 +29,8 @@ public:
 	void Render();
 	void Shutdown();
 
+	void BuildDefaultScene();
+
 	bool Load();
 	void Save();
 

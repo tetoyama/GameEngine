@@ -38,7 +38,7 @@ public:
 	std::shared_ptr<Scene> GetActiveScene() const;
 
 	void SaveScene();
-	void OpenScene(std::shared_ptr<Scene> scene);
+	void OpenScene();
 
 private:
 	std::shared_ptr<Scene> m_activeScene;
