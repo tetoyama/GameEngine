@@ -30,55 +30,51 @@ GameApplication
    │   ├── GraphicsContext         （DirectX 11 デバイス・コンテキスト）【実装済み】
    │   ├── EffectSystem            （Effekseer）【未実装】
    │   └── RenderPipeline
-   │       ├── MainRenderer         (MainWindow用 DirectX11 SwapChain)【実装済み】
-   │       └── SubRenderer          (SubWindow用 DirectX11 SwapChain)【未実装】
+   │       ├── MainRenderer        （MainWindow用 DirectX11 SwapChain）【実装済み】
+   │       └── SubRenderer         （SubWindow用 DirectX11 SwapChain）【未実装】
    │
    ├── Resources
    │   └── ResourceService          （ローダー管理・依存解決）【不完全実装】
-   │       ├── FontLoader								【未実装】
-   │       ├── ShaderLoader								【実装済み】
-   │       ├── TextureLoader(DirectXTex）				【実装済み】
-   │       ├── ModelLoader(Assimp）						【実装済み】
-   │       ├── AudioLoader								【未実装】
-   │       ├── EffectLoader								【未実装】
-   │       └── PrefabLoader								【未実装】
+   │       ├── FontLoader                                【未実装】
+   │       ├── ShaderLoader                              【実装済み】
+   │       ├── TextureLoader（DirectXTex）               【実装済み】
+   │       ├── ModelLoader（Assimp）                     【実装済み】
+   │       ├── AudioLoader                               【未実装】
+   │       ├── EffectLoader                              【未実装】
+   │       └── PrefabLoader                              【未実装】
    │
    ├── DebugTools
    │   ├── DebugSystem              【実装済み】
-   │   └── ImGuiService             （Dear ImGui）【実装済み】
+   │   └── ImGuiService            （Dear ImGui）【実装済み】
    │       【Depends On】 → GraphicsContext
    │
    ├── Scene
    │   ├── SceneManagerContext      【実装済み】
-   │   ├── SceneManager
-   │   │   【Depends On】 → TimeService, InputSystem【実装済み】
+   │   ├── SceneManager             【Depends On】 → TimeService, InputSystem【実装済み】
    │   └── Scene（ECSWorld）
    │       ├── SceneContext         【実装済み】
    │       ├── EntityRegistry       【実装済み】
-   │       ├── ComponentPools
-   │       │   ├── TransformComponent           【実装済み】
-   │       │   ├── MeshRendererComponent        【実装済み】
-   │       │   ├── RigidbodyComponent           【未実装】
-   │       │   ├── ScriptComponent（C#バインド）【未実装】
-   │       │   └── CustomComponents             【未実装】
+   │       ├── ComponentRegistry    【実装済み】
+   │       │   └── YAMLComponentFactory（内部匿名構造）【実装済み】
+   │       ├── SystemRegistry       【実装済み】
    │       └── Systems
-   │           ├── TransformSystem         【実装済み】
-   │           ├── RenderSystem            【実装済み】
-   │           ├── PhysicsSystem（PhysX）  【未実装】
-   │           ├── ScriptSystem（.NET連携）【未実装】
-   │           └── その他追加System        【未実装】
+   │           ├── TransformSystem         
+   │           ├── RenderSystem            
+   │           ├── CameraSystem            
+   │           └── InspectorSystem         
+
    │
    ├── Scripting（将来導入）
    │   ├── ScriptEngine            （.NET Runtime ホスト）【未実装】
    │   ├── ScriptBinder            （C++ API → C#）【未実装】
    │   ├── ScriptLoader            （C# DLL読込）【未実装】
    │   └── ScriptComponent         （Entityにアタッチ）【未実装】
-   │       ※ C# 側では IScript 実装
+   │       ※ C# 側では IScript を継承して制御
    │
    ├── EditorExtension（将来導入）
    │   ├── ToolRegistry            （C#からUIや機能登録）【未実装】
    │   └── EditorBridge            （エンジンとエディタの接着）【未実装】
    │
    └── Engine
-		├── Engine                  （初期化・更新・描画ループ）【実装済み】
-		└── EngineContext           （EngineContext生成・DI）【実装済み】
+       ├── Engine                  （初期化・更新・描画ループ）【実装済み】
+       └── EngineContext           （EngineContext生成・DI登録）【実装済み】
