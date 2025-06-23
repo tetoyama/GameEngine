@@ -63,7 +63,7 @@ namespace YAML {
 			node["Specular"] = mat.Specular;
 			node["Emission"] = mat.Emission;
 			node["Shininess"] = mat.Shininess;
-			node["TextureEnable"] = static_cast<bool>(mat.TextureEnable); // BOOLÅ®bool
+			node["TextureEnable"] = static_cast<bool>(mat.TextureEnable); // BOOL‚Üíbool
 			return node;
 		}
 

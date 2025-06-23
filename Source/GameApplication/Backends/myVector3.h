@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <math.h>
 #include <DirectXMath.h>
 class Vector3
@@ -62,7 +62,7 @@ public:
 	}
 
 	Vector3 operator/(const Vector3& vec3) const{
-		if(vec3.x == 0 || vec3.y == 0 || vec3.z == 0) return Vector3(0, 0, 0); // ƒ[ƒœZ‚ğ”ğ‚¯‚é
+		if(vec3.x == 0 || vec3.y == 0 || vec3.z == 0) return Vector3(0, 0, 0); // ã‚¼ãƒ­é™¤ç®—ã‚’é¿ã‘ã‚‹
 		return Vector3(x / vec3.x, y / vec3.y, z / vec3.z);
 	}
 
@@ -71,7 +71,7 @@ public:
 	}
 
 	Vector3 operator/(const float scalar) const{
-		if(scalar == 0) return Vector3(0, 0, 0); // ƒ[ƒœZ‚ğ”ğ‚¯‚é
+		if(scalar == 0) return Vector3(0, 0, 0); // ã‚¼ãƒ­é™¤ç®—ã‚’é¿ã‘ã‚‹
 		float oneOverA = 1.0f / scalar;
 		return Vector3(x * oneOverA, y * oneOverA, z * oneOverA);
 	}
@@ -98,7 +98,7 @@ public:
 	}
 
 	Vector3& operator/=(const Vector3& vec3){
-		if(vec3.x == 0 || vec3.y == 0 || vec3.z == 0) return *this; // ƒ[ƒœZ‚ğ”ğ‚¯‚é
+		if(vec3.x == 0 || vec3.y == 0 || vec3.z == 0) return *this; // ã‚¼ãƒ­é™¤ç®—ã‚’é¿ã‘ã‚‹
 		x /= vec3.x;
 		y /= vec3.y;
 		z /= vec3.z;
@@ -113,7 +113,7 @@ public:
 	}
 
 	Vector3& operator/=(const float scalar){
-		if(scalar == 0) return *this; // ƒ[ƒœZ‚ğ”ğ‚¯‚é
+		if(scalar == 0) return *this; // ã‚¼ãƒ­é™¤ç®—ã‚’é¿ã‘ã‚‹
 		float oneOverA = 1.0f / scalar;
 		x *= oneOverA;
 		y *= oneOverA;
@@ -127,11 +127,11 @@ public:
 		z = 0.0f;
 	}
 
-	// ƒxƒNƒgƒ‹‚Ì’·‚³‚ğ‹‚ß‚é
+	// ãƒ™ã‚¯ãƒˆãƒ«ã®é•·ã•ã‚’æ±‚ã‚ã‚‹
 	float length() const{
 		return sqrtf(x * x + y * y + z * z);
 	}
-	// ƒxƒNƒgƒ‹‚Ì³‹K‰»
+	// ãƒ™ã‚¯ãƒˆãƒ«ã®æ­£è¦åŒ–
 	Vector3 normalize() const{
 		float len = length();
 		if(len == 0) return Vector3(0, 0, 0);

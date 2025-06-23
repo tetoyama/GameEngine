@@ -57,14 +57,14 @@ Scene::~Scene(){
 void Scene::Initialize(SceneManagerContext* set){
 
 	m_SceneManagerContext = set;
-	m_SceneManagerContext->debug->LOG_INFO(u8"Scene‚ğ‰Šú‰»’†...");
+	m_SceneManagerContext->debug->LOG_INFO("Sceneã‚’åˆæœŸåŒ–ä¸­...");
 
 	m_entityRegistry = std::make_shared<EntityRegistry>();
 	m_componentRegistry = std::make_shared<ComponentRegistry>(m_entityRegistry.get());
 	m_systemRegistry = std::make_shared<SystemRegistry>();
 
-	// ƒRƒ“ƒ|[ƒlƒ“ƒg‚ğ“o˜^iArchetype or Sparse ‚ğ‘I‘ğj
-	// ƒ{ƒgƒ‹ƒlƒbƒN‚ªŒ©‚Â‚©‚Á‚½ƒRƒ“ƒ|[ƒlƒ“ƒg‚©‚ç ArchetypeStorage<T> ‚ÉˆÚs
+	// ã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã‚’ç™»éŒ²ï¼ˆArchetype or Sparse ã‚’é¸æŠï¼‰
+	// ãƒœãƒˆãƒ«ãƒãƒƒã‚¯ãŒè¦‹ã¤ã‹ã£ãŸã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã‹ã‚‰ ArchetypeStorage<T> ã«ç§»è¡Œ
 	m_componentRegistry->RegisterYAMLComponent<NameComponent>("NameComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<TransformComponent>("TransformComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<CameraComponent>("CameraComponent", false);
@@ -79,7 +79,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<EnemyComponent>("EnemyComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<ExplosionEffectComponent>("ExplosionEffectComponent", false);
 
-	// ƒVƒXƒeƒ€‚ğ“o˜^
+	// ã‚·ã‚¹ãƒ†ãƒ ã‚’ç™»éŒ²
 	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
@@ -119,7 +119,7 @@ void Scene::Initialize(SceneManagerContext* set){
 
 	BuildDefaultScene();
 
-	m_SceneManagerContext->debug->LOG_INFO(u8"Scene‚ğŠJn‚µ‚Ü‚·");
+	m_SceneManagerContext->debug->LOG_INFO("Sceneã‚’é–‹å§‹ã—ã¾ã™");
 
 	m_systemRegistry->StartAll();
 }
@@ -140,10 +140,10 @@ void Scene::Render(){
 }
 
 void Scene::Shutdown(){
-	m_SceneManagerContext->debug->LOG_INFO(u8"Scene‚ğI—¹’†...");
+	m_SceneManagerContext->debug->LOG_INFO("Sceneã‚’çµ‚äº†ä¸­...");
 	m_systemRegistry->FinalizeAll();
 
-	// ƒVƒXƒeƒ€‚ÌI—¹ˆ—
+	// ã‚·ã‚¹ãƒ†ãƒ ã®çµ‚äº†å‡¦ç†
 	m_entityRegistry.reset();
 	m_componentRegistry.reset();
 	m_systemRegistry.reset();
@@ -175,13 +175,13 @@ void Scene::BuildDefaultScene(){
 	graphicsContext->SetDepthEnable(true);
 
 	{
-		//ƒGƒ“ƒeƒBƒeƒB‚ğì¬‚µATransform‚ÆModelRenderer‚ğ’Ç‰Á
+		//ã‚¨ãƒ³ãƒ†ã‚£ãƒ†ã‚£ã‚’ä½œæˆã—ã€Transformã¨ModelRendererã‚’è¿½åŠ 
 		Entity entity = entityRegistry->Create();
 
 		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
 		name->name = "Field";
 
-		// TransformComponent‚ğ’Ç‰Á
+		// TransformComponentã‚’è¿½åŠ 
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->scale = Vector3(100.0f, 10.0f, 100.0f);
 
@@ -189,7 +189,7 @@ void Scene::BuildDefaultScene(){
 		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
 
 
-		// ModelRendererComponent‚ğ’Ç‰Á
+		// ModelRendererComponentã‚’è¿½åŠ 
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\cube.fbx");
 		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\pointLightingBlinnPhongVS.cso");
@@ -197,7 +197,7 @@ void Scene::BuildDefaultScene(){
 	}
 
 	{
-		//ƒGƒ“ƒeƒBƒeƒB‚ğì¬‚µATransform‚ÆModelRenderer‚ğ’Ç‰Á
+		//ã‚¨ãƒ³ãƒ†ã‚£ãƒ†ã‚£ã‚’ä½œæˆã—ã€Transformã¨ModelRendererã‚’è¿½åŠ 
 		Entity entity = entityRegistry->Create();
 
 		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
@@ -207,14 +207,14 @@ void Scene::BuildDefaultScene(){
 		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\white.tga");
 		texture->Material.Diffuse = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 
-		// TransformComponent‚ğ’Ç‰Á
+		// TransformComponentã‚’è¿½åŠ 
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, 0.2f, 0);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
 
 
-		// ModelRendererComponent‚ğ’Ç‰Á
+		// ModelRendererComponentã‚’è¿½åŠ 
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
 		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\limLightVS.cso");
@@ -224,20 +224,20 @@ void Scene::BuildDefaultScene(){
 	}
 
 	{
-		//ƒGƒ“ƒeƒBƒeƒB‚ğì¬‚µATransform‚ÆCamera‚ğ’Ç‰Á
+		//ã‚¨ãƒ³ãƒ†ã‚£ãƒ†ã‚£ã‚’ä½œæˆã—ã€Transformã¨Cameraã‚’è¿½åŠ 
 		Entity entity = entityRegistry->Create();
 
 		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
 		name->name = "Camera";
 
-		// TransformComponent‚ğ’Ç‰Á
+		// TransformComponentã‚’è¿½åŠ 
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, 20.0f, -15.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 		transform->rotation = Vector3(-1.0f, 0.0f, 0.0f);
 
 
-		// CameraComponent‚ğ’Ç‰Á
+		// CameraComponentã‚’è¿½åŠ 
 		auto* camera = componentRegistry->AddComponent<CameraComponent>(entity);
 	}
 
@@ -245,7 +245,7 @@ void Scene::BuildDefaultScene(){
 	float Distance = 20.0f;
 	for(int i = 0; i < Sample; i++){
 
-		//ƒGƒ“ƒeƒBƒeƒB‚ğì¬‚µATransform‚ÆModelRenderer‚ğ’Ç‰Á
+		//ã‚¨ãƒ³ãƒ†ã‚£ãƒ†ã‚£ã‚’ä½œæˆã—ã€Transformã¨ModelRendererã‚’è¿½åŠ 
 		Entity entity = entityRegistry->Create();
 
 		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
@@ -255,14 +255,14 @@ void Scene::BuildDefaultScene(){
 		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\white.tga");
 		texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
 
-		// TransformComponent‚ğ’Ç‰Á
+		// TransformComponentã‚’è¿½åŠ 
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(cosf(float(i) / Sample * DirectX::XM_2PI) * Distance, 0.2f, sinf(float(i) / Sample * DirectX::XM_2PI) * Distance);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
 
 
-		// ModelRendererComponent‚ğ’Ç‰Á
+		// ModelRendererComponentã‚’è¿½åŠ 
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
 		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\limLightVS.cso");
@@ -294,7 +294,7 @@ void Scene::Save(){
 	
 	std::wstring savePath;
 	if(!ShowSaveFileDialog(savePath)){
-		// ƒ†[ƒU[‚ªƒLƒƒƒ“ƒZƒ‹‚µ‚½
+		// ãƒ¦ãƒ¼ã‚¶ãƒ¼ãŒã‚­ãƒ£ãƒ³ã‚»ãƒ«ã—ãŸ
 		return;
 	}
 	
@@ -307,7 +307,7 @@ void Scene::Save(){
 		YAML::Node componentsNode = YAML::Node(YAML::NodeType::Sequence);
 		for (IComponent* comp : m_componentRegistry->GetAllComponentsOfEntity(e)) {
 			if (comp) {
-				YAML::Node compNode = comp->encode();  // ŠeƒRƒ“ƒ|[ƒlƒ“ƒg‚ªTypeƒL[‚ğŠÜ‚Şƒ}ƒbƒv‚ğ•Ô‚·
+				YAML::Node compNode = comp->encode();  // å„ã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆãŒTypeã‚­ãƒ¼ã‚’å«ã‚€ãƒãƒƒãƒ—ã‚’è¿”ã™
 				if (compNode && compNode.IsMap()) {
 					componentsNode.push_back(compNode);
 				}
@@ -320,7 +320,7 @@ void Scene::Save(){
 
 	root["Entities"] = entitiesNode;
 
-	// UTF-16 ¨ UTF-8 •ÏŠ·
+	// UTF-16 â†’ UTF-8 å¤‰æ›
 	int    size_needed = WideCharToMultiByte(CP_UTF8, 0, savePath.c_str(), -1, nullptr, 0, nullptr, nullptr);
 	std::string utf8Path(size_needed, 0);
 	WideCharToMultiByte(CP_UTF8, 0, savePath.c_str(), -1, &utf8Path[0], size_needed, nullptr, nullptr);
@@ -332,7 +332,7 @@ void Scene::Save(){
 void Scene::OpenSceneYAML(std::string path) {  
 	std::ifstream fin(path);  
 	if(!fin.is_open()){  
-		// ƒtƒ@ƒCƒ‹‚ªŠJ‚¯‚È‚©‚Á‚½ê‡  
+		// ãƒ•ã‚¡ã‚¤ãƒ«ãŒé–‹ã‘ãªã‹ã£ãŸå ´åˆ  
 		m_SceneContext.manager->debug->LOG_ERROR(("Failed to open file: " + path).c_str());  
 		return;  
 	}  
@@ -392,9 +392,9 @@ void Scene::OpenSceneYAML(std::string path) {
 std::string Scene::OpenYALM() {
 	char filename[MAX_PATH] = "";
 
-	OPENFILENAMEA ofn = {}; // ANSI”ÅiUNICODE‚È‚ç OPENFILENAMEWj
+	OPENFILENAMEA ofn = {}; // ANSIç‰ˆï¼ˆUNICODEãªã‚‰ OPENFILENAMEWï¼‰
 	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = nullptr; // ƒEƒBƒ“ƒhƒEƒnƒ“ƒhƒ‹i•K—v‚È‚ç©•ª‚ÌƒEƒBƒ“ƒhƒEj
+	ofn.hwndOwner = nullptr; // ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãƒãƒ³ãƒ‰ãƒ«ï¼ˆå¿…è¦ãªã‚‰è‡ªåˆ†ã®ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ï¼‰
 	ofn.lpstrFilter = "YAML Files (*.yaml)\0*.yaml\0All Files (*.*)\0*.*\0";
 	ofn.lpstrFile = filename;
 	ofn.nMaxFile = MAX_PATH;
@@ -410,9 +410,9 @@ std::string Scene::OpenYALM() {
 }
 
 bool Scene::ShowSaveFileDialog(std::wstring& outPath){
-	WCHAR szFile[MAX_PATH] = L"scene.yaml";  // ƒfƒtƒHƒ‹ƒgƒtƒ@ƒCƒ‹–¼
+	WCHAR szFile[MAX_PATH] = L"scene.yaml";  // ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆãƒ•ã‚¡ã‚¤ãƒ«å
 	OPENFILENAME ofn = {sizeof(ofn)};
-	ofn.hwndOwner = nullptr;                 // eƒEƒBƒ“ƒhƒEƒnƒ“ƒhƒ‹‚ğ“n‚·ê‡‚Íw’è
+	ofn.hwndOwner = nullptr;                 // è¦ªã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãƒãƒ³ãƒ‰ãƒ«ã‚’æ¸¡ã™å ´åˆã¯æŒ‡å®š
 	ofn.lpstrFilter = L"YAML Files (*.yaml)\0*.yaml\0All Files (*.*)\0*.*\0";
 	ofn.lpstrFile = szFile;
 	ofn.nMaxFile = MAX_PATH;

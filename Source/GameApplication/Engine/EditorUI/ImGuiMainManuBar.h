@@ -12,7 +12,7 @@ enum class MenuEvent
 	File_Exit,
 	Edit_Undo,
 	Edit_Redo,
-	// •K—v‚É‰‚¶‚Ä’Ç‰Á
+	// å¿…è¦ã«å¿œã˜ã¦è¿½åŠ 
 };
 
 class ImGuiManubar
@@ -21,7 +21,7 @@ public:
 	using Callback = std::function<void()>;
 
 	void Register(MenuEvent event, const Callback& callback);
-	void Render(); // MainMenuBar ‚ğ•\¦‚·‚é
+	void Render(); // MainMenuBar ã‚’è¡¨ç¤ºã™ã‚‹
 	void Invoke(MenuEvent event);
 
 private:

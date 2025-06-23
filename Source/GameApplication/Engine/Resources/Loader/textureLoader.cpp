@@ -22,7 +22,7 @@ TextureData* TextureLoader::LoadTexture(const std::string& filePath){
 	bool isTgaFile = HasExtension(filePath, "tga");
 
 	int size_needed = MultiByteToWideChar(CP_UTF8, 0, filePath.c_str(), -1, NULL, 0);
-	std::wstring w_FilePath(size_needed - 1, 0); // -1: nullèúÇ≠
+	std::wstring w_FilePath(size_needed - 1, 0); // -1: nullÈô§„Åè
 	MultiByteToWideChar(CP_UTF8, 0, filePath.c_str(), -1, &w_FilePath[0], size_needed);
 
 	m_Textures[filePath] = std::make_shared<TextureData>();
@@ -31,7 +31,7 @@ TextureData* TextureLoader::LoadTexture(const std::string& filePath){
 
 	m_Textures[filePath]->FilePath = filePath;
 	
-	//ÉeÉNÉXÉ`ÉÉì«Ç›çûÇ›
+	//„ÉÜ„ÇØ„Çπ„ÉÅ„É£Ë™≠„ÅøËæº„Åø
 	if(isTgaFile){
 
 		LoadFromTGAFile((wchar_t*)w_FilePath.c_str(), &_metadata, _image);
@@ -40,7 +40,7 @@ TextureData* TextureLoader::LoadTexture(const std::string& filePath){
 		
 		LoadFromWICFile((wchar_t*)w_FilePath.c_str(), DirectX::WIC_FLAGS::WIC_FLAGS_NONE, &_metadata, _image);
 	}
-	//ì«Ç›çûÇÒÇæâÊëúÉfÅ[É^ÇDirectXÇ÷ìnÇµÇƒÉeÉNÉXÉ`ÉÉÇ∆ÇµÇƒä«óùÇ≥ÇπÇÈ
+	//Ë™≠„ÅøËæº„Çì„Å†ÁîªÂÉè„Éá„Éº„Çø„ÇíDirectX„Å∏Ê∏°„Åó„Å¶„ÉÜ„ÇØ„Çπ„ÉÅ„É£„Å®„Åó„Å¶ÁÆ°ÁêÜ„Åï„Åõ„Çã
 	CreateShaderResourceView(m_GraphicContext->GetDevice(), _image.GetImages(), _image.GetImageCount(), _metadata, m_Textures[filePath]->pTexture.GetAddressOf());
 
 	m_Textures[filePath]->Width  = (int)_metadata.width;

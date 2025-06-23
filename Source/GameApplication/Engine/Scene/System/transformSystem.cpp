@@ -12,5 +12,5 @@
 #include "Engine/DebugTools/debugSystem.h"
 
 void TransformSystem::Initialize(){
-	m_context->manager->debug->LOG_DEBUG(u8"TransformSystem‚ğ‰Šú‰»’†...");
+	m_context->manager->debug->LOG_DEBUG("TransformSystemã‚’åˆæœŸåŒ–ä¸­...");
 }

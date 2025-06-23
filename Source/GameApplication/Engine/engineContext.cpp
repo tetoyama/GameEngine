@@ -15,50 +15,50 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 
 	std::shared_ptr<EngineContext> context = std::make_shared<EngineContext>();
 
-	// WindowService “o˜^
+	// WindowService ç™»éŒ²
 	auto windowSystem = std::make_shared<WindowService>();
 	context->Register<WindowService>(windowSystem);
 
-	// TimeService “o˜^
+	// TimeService ç™»éŒ²
 	auto timeService = std::make_shared<TimeService>();
 	context->Register<TimeService>(timeService);
 
-	// GraphicsContext “o˜^
+	// GraphicsContext ç™»éŒ²
 	auto graphicsContext = std::make_shared<GraphicsContext>();
 	context->Register<GraphicsContext>(graphicsContext);
 
-	// MainRenderer “o˜^
+	// MainRenderer ç™»éŒ²
 	auto mainRenderer = std::make_shared<MainRenderer>();
 	context->Register<MainRenderer>(mainRenderer);
 
-	// imgui “o˜^
+	// imgui ç™»éŒ²
 	auto imgui = std::make_shared<ImGuiService>();
 	context->Register<ImGuiService>(imgui);
 
-	// DebugLogSystem “o˜^
+	// DebugLogSystem ç™»éŒ²
 	auto debugLogSystem = std::make_shared<DebugLogSystem>();
 	context->Register<DebugLogSystem>(debugLogSystem);
 
-	// InputService “o˜^
+	// InputService ç™»éŒ²
 	auto inputSystem = std::make_shared<InputService>();
 	context->Register<InputService>(inputSystem);
 
-	// SceneManager “o˜^
+	// SceneManager ç™»éŒ²
 	auto sceneManager = std::make_shared<SceneManager>();
 	context->Register<SceneManager>(sceneManager);
 
-	// ResourceService “o˜^
+	// ResourceService ç™»éŒ²
 	auto resourceSystem = std::make_shared<ResourceService>();
 	context->Register<ResourceService>(resourceSystem);
 
-	// ¡Œã: ‘¼‚ÌƒVƒXƒeƒ€‚à‚±‚±‚Å“o˜^
+	// ä»Šå¾Œ: ä»–ã®ã‚·ã‚¹ãƒ†ãƒ ã‚‚ã“ã“ã§ç™»éŒ²
 
 	return context;
 }
 
 void EngineContext::Shutdown() {
 
-	// ‹t‡‚ÅShutdownŒÄ‚Ño‚µ
+	// é€†é †ã§Shutdownå‘¼ã³å‡ºã—
 	for (auto it = m_ServiceOrder.rbegin(); it != m_ServiceOrder.rend(); ++it) {
 		auto found = m_Services.find(*it);
 		if (found != m_Services.end()) {

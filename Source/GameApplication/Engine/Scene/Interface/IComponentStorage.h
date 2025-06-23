@@ -5,7 +5,7 @@
 
 #include <backends/yaml-cpp/yaml.h>
 using ComponentTypeID = uint32_t;
-constexpr size_t MAX_COMPONENTS = 64;  // •K—v‚É‰‚¶‚Ä’²®
+constexpr size_t MAX_COMPONENTS = 64;  // å¿…è¦ã«å¿œã˜ã¦èª¿æ•´
 using ComponentMask = std::bitset<MAX_COMPONENTS>;
 
 struct IComponentStorage {

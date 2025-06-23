@@ -6,7 +6,7 @@
 
 struct TextureData {
 	std::string FilePath;
-	Microsoft::WRL::ComPtr <ID3D11ShaderResourceView> pTexture;	//ポインター
+	Microsoft::WRL::ComPtr <ID3D11ShaderResourceView> pTexture;	//繝昴う繝ｳ繧ｿ繝ｼ
 	int Width = 0;
 	int Height = 0;
 };

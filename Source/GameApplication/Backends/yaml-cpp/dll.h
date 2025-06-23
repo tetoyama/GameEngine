@@ -1,4 +1,4 @@
-#ifndef DLL_H_62B23520_7C8E_11DE_8A39_0800200C9A66
+ï»¿#ifndef DLL_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 #define DLL_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 
 // Definition YAML_CPP_STATIC_DEFINE using to building YAML-CPP as static
@@ -21,7 +21,7 @@
          /* We are using this library */
 #        pragma message( "Defining YAML_CPP_API for DLL import" )
 #        define YAML_CPP_API
-//#        define YAML_CPP_API __declspec(dllimport) //ƒoƒO‚é‚Ì‚Å‹ó’è‹`‚É
+//#        define YAML_CPP_API __declspec(dllimport) //ãƒã‚°ã‚‹ã®ã§ç©ºå®šç¾©ã«
 #      endif
 #    endif
 #    ifndef YAML_CPP_NO_EXPORT

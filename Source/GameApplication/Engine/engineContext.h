@@ -14,7 +14,7 @@ public:
 
 	template<typename T>
 	void Register(std::shared_ptr<T> instance) {
-		static_assert(std::is_base_of<IService, T>::value, "サービスはIServiceを継承してください");
+		static_assert(std::is_base_of<IService, T>::value, "繧ｵ繝ｼ繝薙せ縺ｯIService繧堤ｶ呎価縺励※縺上□縺輔＞");
 		if (!instance) return;
 		auto type = std::type_index(typeid(T));
 		if (m_Services.count(type)) return;
@@ -28,7 +28,7 @@ public:
 		if(it != m_Services.end()){
 			return std::static_pointer_cast<T>(it->second);
 		}
-		OutputDebugStringA("EngineContext:取得に失敗しました。\n");
+		OutputDebugStringA("EngineContext:蜿門ｾ励↓螟ｱ謨励＠縺ｾ縺励◆縲�\n");
 		return nullptr;
 	}
 

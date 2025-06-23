@@ -57,7 +57,7 @@ cbuffer LightBuffer : register(b5)
     LIGHT Light;
 }
 
-// ViewBuffer�Ƃ܂Ƃ߂���?
+// ViewBufferとまとめられる?
 cbuffer CameraBuffer : register(b6)
 {
     float4 CameraPosition;

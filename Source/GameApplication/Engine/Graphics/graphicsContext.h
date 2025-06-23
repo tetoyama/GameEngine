@@ -86,7 +86,7 @@ public:
 
     ID3D11Buffer* GetWorldConstantBuffer() {return m_WorldBuffer;}
 
-	// セッター
+	// 繧ｻ繝�繧ｿ繝ｼ
 	void SetDepthEnable(const bool& Enable);
 	void SetATCEnable(const bool& Enable);
 	void SetWorldMatrix(const DirectX::XMMATRIX& WorldMatrix);
