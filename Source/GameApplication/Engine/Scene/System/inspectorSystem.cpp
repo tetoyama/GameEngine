@@ -360,9 +360,9 @@ void DrawDirectoryTree(const std::filesystem::path& directory, std::string& sele
 	if(!std::filesystem::exists(path) || !std::filesystem::is_directory(path))
 		return;
 
-	float itemSize = 120.0f;
+	float itemSize = 100.0f;
 	float panelWidth = ImGui::GetContentRegionAvail().x;
-	int columnsCount = static_cast<int>(panelWidth / (itemSize + 10));
+	int columnsCount = static_cast<int>(panelWidth / (itemSize));
 	if(columnsCount < 1) columnsCount = 1;
 
 	int index = 0;
@@ -379,7 +379,7 @@ void DrawDirectoryTree(const std::filesystem::path& directory, std::string& sele
 
 		ImGui::BeginGroup(); // アイコンとテキストを1つのアイテムにまとめる
 
-		ImGui::Button("ICON", ImVec2(itemSize, itemSize * 0.7f));
+		ImGui::Button("ICON", ImVec2(itemSize, itemSize));
 
 		// ファイル名の描画（ラベルの横幅を制限）
 		ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + itemSize);
