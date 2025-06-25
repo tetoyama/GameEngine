@@ -360,9 +360,9 @@ void DrawDirectoryTree(const std::filesystem::path& directory, std::string& sele
 	if(!std::filesystem::exists(path) || !std::filesystem::is_directory(path))
 		return;
 
-	float itemSize = 100.0f;
+	float itemSize = 70.0f;
 	float panelWidth = ImGui::GetContentRegionAvail().x;
-	int columnsCount = static_cast<int>(panelWidth / (itemSize));
+	int columnsCount = static_cast<int>(panelWidth / (itemSize + 5));
 	if(columnsCount < 1) columnsCount = 1;
 
 	int index = 0;
