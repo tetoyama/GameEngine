@@ -21,5 +21,10 @@ public:
 		}
 		return true;
 	}
+
+	void inspector() override{
+		ImGui::Text("NameComponent");
+	}
+
 	std::string name;
 };

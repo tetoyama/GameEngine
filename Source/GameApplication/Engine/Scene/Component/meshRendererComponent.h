@@ -35,6 +35,11 @@ public:
 	bool decode(const YAML::Node& node) override{
 		return true;
 	}
+
+	void inspector() override{
+		ImGui::Text("MeshRendererComponent");
+	}
+
 	MeshRendererComponent() = default;
 	~MeshRendererComponent() = default;
 

@@ -41,6 +41,11 @@ public:
 		}
 		return true;
 	}
+
+	void inspector() override{
+		ImGui::Text("TextureComponent");
+	}
+
 	int UV_Slice_X = 1;
 	int UV_Slice_Y = 1;
 

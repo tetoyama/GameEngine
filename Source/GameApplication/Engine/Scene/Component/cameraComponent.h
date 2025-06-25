@@ -24,6 +24,10 @@ public:
 		return true;
 	}
 
+	void inspector() override{
+		ImGui::Text("CameraComponent");
+	}
+
 	bool isLock = false;
 	Vector3 Target = Vector3(0.0f,0.0f,0.0f);
 

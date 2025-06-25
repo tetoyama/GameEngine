@@ -15,5 +15,9 @@ public:
 		return true;
 	}
 
+	void inspector() override{
+		ImGui::Text("BillBoardRendererComponent");
+	}
+
 	bool RotateX = false;
 };

@@ -17,6 +17,10 @@ public:
 		return true;
 	}
 
+	void inspector() override{
+		ImGui::Text("EnemyComponent");
+	}
+
 	bool setOriginPos = false;
 	Vector3 OriginPos = Vector3(0.0f,0.0f,0.0f);
 	int maxDistance = 15;

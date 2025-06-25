@@ -24,6 +24,11 @@ public:
 	bool decode(const YAML::Node& node) override{
 		return true;
 	}
+
+	void inspector() override{
+		ImGui::Text("ModelRendererComponent");
+	}
+
 	ModelData* model = nullptr;
 	PixelShaderData* pixelShader = nullptr;
 	VertexShaderData* vertexShader = nullptr;

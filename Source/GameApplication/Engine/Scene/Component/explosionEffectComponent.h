@@ -14,6 +14,11 @@ public:
 	bool decode(const YAML::Node& node) override{
 		return true;
 	}
+
+	void inspector() override{
+		ImGui::Text("ExplosionEffectComponent");
+	}
+
 	// 消えるまでの時間
 	float LifeTime = 0.5f;
 

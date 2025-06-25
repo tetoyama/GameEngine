@@ -32,6 +32,11 @@ public:
 		}
 		return true;
 	}
+
+	void inspector() override{
+		ImGui::Text("PlayerComponent");
+	}
+
 	float moveSpeed = 5.0f;
 	float cameraRotate = 2.0f;
 	float cameraDistance = 20.0f;

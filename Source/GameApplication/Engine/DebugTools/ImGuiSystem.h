@@ -28,6 +28,8 @@ public:
 		return manubar;
 	}
 
+
+
 private:
 	bool initialized_ = false;
 	GraphicsContext* m_GraphicsContext = nullptr;
@@ -35,4 +37,5 @@ private:
 	DirectX::XMMATRIX m_projection;
 
 	std::shared_ptr<ImGuiManubar> manubar;
+
 };

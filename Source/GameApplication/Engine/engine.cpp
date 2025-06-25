@@ -259,7 +259,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 
 			debugLogSystem->Draw();
 			imguiService->End();
-			mainRenderer->EndFrame(1);
+			mainRenderer->EndFrame(0);
 		}
 		timeService->EndDraw();
 	}
