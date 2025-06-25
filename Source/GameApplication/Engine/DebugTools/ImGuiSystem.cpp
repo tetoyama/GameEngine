@@ -52,7 +52,7 @@ bool ImGuiService::Initialize(IWindow* window, GraphicsContext* graphics){
 	 
 	
 	//io.Fonts->AddFontFromFileTTF("Asset\\Fonts\\PixelMplus12-Bold.ttf", 15.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
-	io.Fonts->AddFontFromFileTTF("Asset\\Fonts\\NotoSansJP-Regular.ttf", 20.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
+	io.Fonts->AddFontFromFileTTF("Asset\\Fonts\\NotoSansJP-Regular.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
 
 	io.IniFilename = "Asset\\imgui.ini"; // デフォルトでimgui.iniに保存されます
 

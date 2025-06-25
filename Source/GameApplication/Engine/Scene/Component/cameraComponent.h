@@ -24,8 +24,27 @@ public:
 		return true;
 	}
 
-	void inspector() override{
-		ImGui::Text("CameraComponent");
+	void inspector(SceneContext* context) override{
+		ImGui::Text("NearClip");
+		ImGui::SameLine(120);
+		ImGui::DragFloat("##NearClip", &NearClip, 0.01f,0.01f, FarClip - 0.01f);
+		if(ImGui::IsItemHovered())
+			ImGui::SetTooltip("NearClip");
+
+		ImGui::Text("FarClip");
+		ImGui::SameLine(120);
+		ImGui::DragFloat("##FarClip", &FarClip, 0.01f, NearClip + 0.01f, 1024.0f);
+		if(ImGui::IsItemHovered())
+			ImGui::SetTooltip("FarClip");
+
+		if(FarClip <= NearClip)
+			FarClip = NearClip + 0.01f;
+
+		ImGui::Text("FOV");
+		ImGui::SameLine(120);
+		ImGui::DragFloat("##FOV", &FOV, 0.01f);
+		if(ImGui::IsItemHovered())
+			ImGui::SetTooltip("FOV");
 	}
 
 	bool isLock = false;

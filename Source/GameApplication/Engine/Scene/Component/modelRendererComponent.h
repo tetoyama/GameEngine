@@ -5,6 +5,8 @@
 #include "Engine/Resources/Data/vertexShaderData.h"
 #include "Engine/Resources/Data/pixelShaderData.h"
 #include "Engine/Resources/Data/modelData.h"
+#include "Engine/Resources/Loader/modelLoader.h"
+#include "Engine/Resources/Loader/shaderLoader.h"
 
 class ModelRendererComponent: public IComponent {
 public:
@@ -25,8 +27,32 @@ public:
 		return true;
 	}
 
-	void inspector() override{
+	void inspector(SceneContext* context) override{
 		ImGui::Text("ModelRendererComponent");
+
+		static char filepathBuffer[256] = {0}; // 適当な最大長
+		// バッファに現在の文字列をコピー（初回か変更時だけにすると効率的）
+		if(model){
+			strncpy_s(filepathBuffer, sizeof(filepathBuffer), model->FilePath.c_str(), _TRUNCATE);
+		}
+		if(ImGui::InputText("Model File Path", filepathBuffer, sizeof(filepathBuffer))){
+			// 編集されたら std::string に反映
+			model = context->manager->resource->GetModelLoader()->LoadModel(filepathBuffer);
+		}
+		if(pixelShader){
+			strncpy_s(filepathBuffer, sizeof(filepathBuffer), pixelShader->FilePath.c_str(), _TRUNCATE);
+		}
+		if(ImGui::InputText("PixelShader File Path", filepathBuffer, sizeof(filepathBuffer))){
+			// 編集されたら std::string に反映
+			pixelShader = context->manager->resource->GetShaderLoader()->LoadPixelShader(filepathBuffer);
+		}
+		if(vertexShader){
+			strncpy_s(filepathBuffer, sizeof(filepathBuffer), vertexShader->FilePath.c_str(), _TRUNCATE);
+		}
+		if(ImGui::InputText("VertexShader File Path", filepathBuffer, sizeof(filepathBuffer))){
+			// 編集されたら std::string に反映
+			vertexShader = context->manager->resource->GetShaderLoader()->LoadVertexShader(filepathBuffer);
+		}
 	}
 
 	ModelData* model = nullptr;

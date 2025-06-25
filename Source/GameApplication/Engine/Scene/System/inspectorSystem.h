@@ -3,7 +3,7 @@
 #include "../Interface/ISystem.h"
 #include "../Entity/Entity.h" // Entityの定義をインクルード
 
-class SceneContext; // 前方宣言
+struct SceneContext; // 前方宣言
 
 class InspectorSystem: public ISystem
 {
@@ -22,8 +22,8 @@ private:
 
 	// UIパネル描画関数
 	void CreateDockSpace();
-	void DrawSceneHierarchy(class SceneContext* context);
-	void DrawInspector(class SceneContext* context);
+	void DrawSceneHierarchy(SceneContext* context);
+	void DrawInspector(SceneContext* context);
 	void DrawAssetsBrowser();
 
 	// ヒエラルキー描画用のヘルパー

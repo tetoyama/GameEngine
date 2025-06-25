@@ -2,6 +2,9 @@
 #pragma once
 #include <backends/yaml-cpp/yaml.h>
 #include <backends/ImGui/imgui.h>
+
+struct SceneContext;
+
 class IComponent {
 public:
 	IComponent() = default;
@@ -11,5 +14,5 @@ public:
 
 	virtual bool decode(const YAML::Node& node) = 0;
 
-	virtual void inspector() = 0;
+	virtual void inspector(SceneContext* context) = 0;
 };

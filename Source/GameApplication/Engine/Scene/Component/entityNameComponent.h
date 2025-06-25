@@ -22,8 +22,8 @@ public:
 		return true;
 	}
 
-	void inspector() override{
-		ImGui::Text("NameComponent");
+	void inspector(SceneContext* context) override{
+		ImGui::Text(name.c_str());
 	}
 
 	std::string name;

@@ -17,7 +17,7 @@ public:
 		return true;
 	}
 
-	void inspector() override{
+	void inspector(SceneContext* context) override{
 		ImGui::Text("EnemyComponent");
 	}
 

@@ -33,8 +33,31 @@ public:
 		return true;
 	}
 
-	void inspector() override{
-		ImGui::Text("PlayerComponent");
+	void inspector(SceneContext* context) override{
+
+		ImGui::Text("MoveSpeed");
+		ImGui::SameLine(120);
+		ImGui::DragFloat("##moveSpeed", &moveSpeed);
+		if(ImGui::IsItemHovered())
+			ImGui::SetTooltip("moveSpeed");
+
+		ImGui::Text("cameraRotate");
+		ImGui::SameLine(120);
+		ImGui::DragFloat("##cameraRotate", &cameraRotate);
+		if(ImGui::IsItemHovered())
+			ImGui::SetTooltip("cameraRotate");
+
+		ImGui::Text("cameraDistance");
+		ImGui::SameLine(120);
+		ImGui::DragFloat("##cameraDistance", &cameraDistance);
+		if(ImGui::IsItemHovered())
+			ImGui::SetTooltip("cameraDistance");
+
+		ImGui::Text("cameraLerp");
+		ImGui::SameLine(120);
+		ImGui::DragFloat("##cameraLerp", &cameraLerp);
+		if(ImGui::IsItemHovered())
+			ImGui::SetTooltip("cameraLerp");
 	}
 
 	float moveSpeed = 5.0f;

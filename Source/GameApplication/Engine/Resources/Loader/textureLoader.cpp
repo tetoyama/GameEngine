@@ -47,7 +47,9 @@ TextureData* TextureLoader::LoadTexture(const std::string& filePath){
 	m_Textures[filePath]->Height = (int)_metadata.height;
 
 
-	assert(m_Textures[filePath]->pTexture.Get());
+	if(!m_Textures[filePath]->pTexture.Get()){
+		return nullptr; // テクスチャの読み込みに失敗した場合はnullptrを返す
+	}
 
 	return m_Textures[filePath].get();
 }

@@ -34,10 +34,28 @@ public:
 		return true;
 	}
 
-	void inspector() override {
-		ImGui::DragFloat3("Position", &position.x, 0.1f);
-		ImGui::DragFloat3("Rotation", &rotation.x, 0.1f);
-		ImGui::DragFloat3("Scale", &scale.x, 0.01f);
+	void inspector(SceneContext* context) override {
+		// Position
+		ImGui::Text("Position");
+		ImGui::SameLine(120); // 120pxあたりで揃える（適宜調整可）
+		ImGui::DragFloat3("##Position", &position.x, 0.1f);
+		if(ImGui::IsItemHovered())
+			ImGui::SetTooltip("Move the object position");
+
+		// Rotation
+		ImGui::Text("Rotation");
+		ImGui::SameLine(120);
+		ImGui::DragFloat3("##Rotation", &rotation.x, 0.01f, -DirectX::XM_PI, DirectX::XM_PI);
+		if(ImGui::IsItemHovered())
+			ImGui::SetTooltip("Rotate the object (in radian)");
+
+		// Scale
+		ImGui::Text("Scale");
+		ImGui::SameLine(120);
+		ImGui::DragFloat3("##Scale", &scale.x, 0.01f, 0.01f, 10.0f);
+		if(ImGui::IsItemHovered())
+			ImGui::SetTooltip("Scale the object");
+
 	}
 
 	Vector3 front() const {
