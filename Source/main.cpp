@@ -2,22 +2,23 @@
 #include "GameApplication/gameApplication.h"
 
 #ifdef _DEBUG
-#include <crtdbg.h>
+#include <crtdbg.h> // デバッグ時のメモリリーク検出用
 #endif
 
-int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_  HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow){
+// Windowsアプリケーションのエントリーポイント
+int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow){
 
 #ifdef _DEBUG
-	// メモリリークの監視フラグ
+	// メモリリークチェックを有効にする（アプリ終了時にリークを報告）
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-	// Applicationインスタンス作成
+	// アプリケーションインスタンスの生成
 	GameApplication app;
 
-	// 実行
+	// アプリケーションの実行（初期化 → メインループ → 終了処理）
 	int exitCode = app.Run(hInstance, nCmdShow);
 
-	// 終了
+	// アプリケーションの終了コードを返す
 	return exitCode;
 }

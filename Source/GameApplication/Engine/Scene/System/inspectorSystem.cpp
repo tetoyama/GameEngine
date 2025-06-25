@@ -52,7 +52,7 @@ void InspectorSystem::Draw() {
 
 
 				}
-				if (ImGui::RadioButton(showName.c_str(), SelectEntity == entity)) {
+				if (ImGui::Selectable(showName.c_str(), SelectEntity == entity)) {
 					if (SelectEntity == entity) {
 						SelectEntity = -1;
 					} else {

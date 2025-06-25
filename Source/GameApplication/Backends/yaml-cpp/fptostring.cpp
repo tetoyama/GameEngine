@@ -214,11 +214,11 @@ std::string FpToString(T v, int precision = 0) {
 }
 
 std::string FpToString(float v, size_t precision) {
-  return detail::fp_formatting::FpToString(v, precision);
+  return detail::fp_formatting::FpToString(v, (int)precision);
 }
 
 std::string FpToString(double v, size_t precision) {
-  return detail::fp_formatting::FpToString(v, precision);
+  return detail::fp_formatting::FpToString(v, (int)precision);
 }
 
 /**

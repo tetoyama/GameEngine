@@ -51,12 +51,46 @@ void RenderSystem::Initialize(){
 	device->CreateTexture2D(&td, nullptr, &tex);
 	device->CreateRenderTargetView(tex, nullptr, &rtv);
 	device->CreateShaderResourceView(tex, nullptr, &srv);
+
+	// デプスステンシルバッファ作成
+	ID3D11Texture2D* depthStencile{};
+	D3D11_TEXTURE2D_DESC textureDesc{};
+	textureDesc.Width =1280;
+	textureDesc.Height = 720;
+	textureDesc.MipLevels = 1;
+	textureDesc.ArraySize = 1;
+	textureDesc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+	textureDesc.Usage = D3D11_USAGE_DEFAULT;
+	textureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	textureDesc.CPUAccessFlags = 0;
+	textureDesc.MiscFlags = 0;
+	HRESULT hr = device->CreateTexture2D(&textureDesc, NULL, &depthStencile);
+	if(FAILED(hr)){
+		return;
+	}
+
+	// デプスステンシルビュー作成
+	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc{};
+	depthStencilViewDesc.Format = textureDesc.Format;
+	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	depthStencilViewDesc.Flags = 0;
+	if(depthStencile){
+		hr = device->CreateDepthStencilView(depthStencile, &depthStencilViewDesc, &dsv);
+		depthStencile->Release();
+
+		if(FAILED(hr)){
+			return;
+		}
+	}
 }
 
 void RenderSystem::Finalize(){
 	tex->Release();
 	rtv->Release();
 	srv->Release();
+	dsv->Release();
 }
 
 void RenderSystem::Draw(){
@@ -68,8 +102,21 @@ void RenderSystem::Draw(){
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	float clearCol[4] = {0.1f, 0.1f, 0.1f, 1.0f};
-	SetRenderTarget(graphicsContext->GetDeviceContext(), graphicsContext->GetDepthStencilView()); // depthStencilView は別途準備
-	Clear(graphicsContext->GetDeviceContext(), clearCol);
+
+	D3D11_VIEWPORT vp = {};
+	vp.Width = 1280.0f;
+	vp.Height = 720.0f;
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	deviceContext->RSSetViewports(1, &vp);
+
+	deviceContext->ClearRenderTargetView(rtv, clearCol);
+
+	deviceContext->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, &rtv, dsv);
 
 	// コンポーネントを持つエンティティの検索
 	const auto& entities = m_context->component->FindEntitiesWithComponent<TransformComponent>();

@@ -52,8 +52,9 @@ private:
 
 	SceneContext* m_context;
 
-	ID3D11Texture2D* tex;
-	ID3D11RenderTargetView* rtv;
-	ID3D11ShaderResourceView* srv;
-	
+	ID3D11Texture2D* tex = nullptr;
+	ID3D11RenderTargetView* rtv = nullptr;
+	ID3D11ShaderResourceView* srv = nullptr;
+	ID3D11DepthStencilView* dsv = nullptr;
+
 };

@@ -4,24 +4,28 @@
 #include "Engine/engine.h"
 #include "Engine/engineContext.h"
 
+// アプリケーションの実行メソッド（初期化 → ループ → 終了）
 int GameApplication::Run(HINSTANCE hInstance, int nCmdShow){
 
+	// EngineContextのビルダーを使用して、DIコンテナなどの初期環境を構築
 	EngineContextBuilder builder;
 	std::shared_ptr<EngineContext> context = builder.Build();
 
+	// コンテキスト生成に失敗した場合は終了（多くは初期設定ミス）
 	if(!context){
 		return -1;
 	}
 
+	// エンジンインスタンス生成（描画・入力・時間管理などの統括）
 	Engine engine;
 
-	//エンジンの初期化
+	// エンジン初期化（ウィンドウ作成、DirectXデバイス準備など）
 	engine.Initialize(context, hInstance, nCmdShow);
 
-	//メインループ
+	// メインループ（ゲームロジックや描画処理のループ）
 	engine.Run(context);
 
-	//エンジンの終了
+	// 終了処理（リソース解放、終了ログなど）
 	engine.Shutdown(context);
 
 	return 0;

@@ -1,7 +1,9 @@
 #pragma once
 #include <memory>
-#include "Service/IService.h"
 #include <DirectXMath.h>
+#include <Windows.h>
+
+#include "Service/IService.h"
 
 class GraphicsContext;
 class IWindow;
@@ -19,6 +21,8 @@ public:
 	void Begin();
 	void End();
 	void OnResize();
+
+	void DrawDebugImGuiWindow(double Update, double Draw, double FPS, double DeltaFPS);
 
 	std::shared_ptr<ImGuiManubar> GetManubar() const{
 		return manubar;

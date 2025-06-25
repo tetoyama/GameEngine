@@ -2967,7 +2967,7 @@ namespace jkj {
                 s = s * 2 + b;
                 significand = b ? r : significand;
 
-                exponent += s;
+                exponent += (DecimalExponentType)s;
             }
         };
 
@@ -3005,7 +3005,7 @@ namespace jkj {
                 s = s * 2 + b;
                 significand = b ? r : significand;
 
-                exponent += s;
+                exponent += (DecimalExponentType)s;
             }
         };
 

@@ -23,154 +23,112 @@
 #pragma comment(lib, "dxguid.lib")
 
 void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInstance, int nCmdShow){
-	
-	if (!context) {
-		OutputDebugStringA("EngineContext が nullptr です。\n");
-		return;
-	}
+    if (!context) {
+        OutputDebugStringA("EngineContext が nullptr です。\n");
+        return;
+    }
 
-	// DebugLogSystemの取得
-	auto debugLogSystem = context->Get<DebugLogSystem>();
-	if(!debugLogSystem){
-		OutputDebugStringA("DebugLogSystem サービスの取得に失敗しました。\n");
-		return;
-	}
-	debugLogSystem->Initialize();
-	debugLogSystem->LOG_INFO("DebugLogSystemが起動しました");
-	
+    // デバッグ出力システム取得・初期化
+    auto debugLogSystem = context->Get<DebugLogSystem>();
+    if(!debugLogSystem){
+        OutputDebugStringA("DebugLogSystem サービスの取得に失敗しました。\n");
+        return;
+    }
+    debugLogSystem->Initialize();
+    debugLogSystem->LOG_INFO("DebugLogSystemが起動しました");
 
-	// WindowServiceの取得
-	auto windowService = context->Get<WindowService>();
-	if (!windowService) {
-		OutputDebugStringA("WindowService サービスの取得に失敗しました。\n");
-		return;
-	}
-	// WindowServiceの初期化
-	if (!windowService->Initialize(hInstance, nCmdShow)) {
-		OutputDebugStringA("WindowService の初期化に失敗しました。\n");
-		return;
-	}
-	debugLogSystem->LOG_DEBUG("WindowServiceが正常に作成されました");
+    // ウィンドウシステム初期化
+    auto windowService = context->Get<WindowService>();
+    if (!windowService || !windowService->Initialize(hInstance, nCmdShow)) {
+        OutputDebugStringA("WindowService の初期化に失敗しました。\n");
+        return;
+    }
+    debugLogSystem->LOG_DEBUG("WindowServiceが正常に作成されました");
 
-	//Services の初期化
+    // 時間管理サービスの初期化
+    auto timeService = context->Get<TimeService>();
+    if (!timeService) return;
+    timeService->Initialize();
+    debugLogSystem->LOG_DEBUG("TimeServiceが正常に作成されました");
 
-	// TimeServiceの取得
-	auto timeService = context->Get<TimeService>();
-	if (!timeService) {
-		OutputDebugStringA("TimeService サービスの取得に失敗しました。\n");
-		return;
-	}
-	// TimeServiceの初期化
-	timeService->Initialize();
-	debugLogSystem->LOG_DEBUG("TimeServiceが正常に作成されました");
+    // DirectX 描画コンテキスト初期化
+    auto graphicsContext = context->Get<GraphicsContext>();
+    if (!graphicsContext || 
+        !graphicsContext->Initialize(windowService->GetMainWindow()->GetHWND(), DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)) {
+        OutputDebugStringA("GraphicsContext の初期化に失敗しました。\n");
+        return;
+    }
+    debugLogSystem->LOG_DEBUG("GraphicsContextが正常に作成されました");
 
-	// Engine Runtime の初期化
+    // リソース管理初期化
+    auto resourceService = context->Get<ResourceService>();
+    if(!resourceService) return;
+    resourceService->Initialize(graphicsContext.get());
+    debugLogSystem->LOG_DEBUG("ResourceServiceが正常に作成されました");
 
-	// GraphicsContextの取得
-	auto graphicsContext = context->Get<GraphicsContext>();
-	if (!graphicsContext) {
-		OutputDebugStringA("GraphicsContext サービスの取得に失敗しました。\n");
-		return;
-	}
-	// GraphicsContextの初期化
-	if (!graphicsContext->Initialize(windowService->GetMainWindow()->GetHWND(), DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)) {
-		OutputDebugStringA("GraphicsContext の初期化に失敗しました。\n");
-		return;
-	}
-	debugLogSystem->LOG_DEBUG("GraphicsContextが正常に作成されました");
+    // 入力処理初期化
+    auto inputService = context->Get<InputService>();
+    if (!inputService) return;
+    inputService->Initialize(windowService->GetMainWindow()->GetHWND());
+    debugLogSystem->LOG_DEBUG("InputServiceが正常に作成されました");
 
-	// ResourceSystemの取得
-	auto resourceService = context->Get<ResourceService>();
-	if(!graphicsContext){
-		OutputDebugStringA("ResourceService サービスの取得に失敗しました。\n");
-		return;
-	}
-	// ResourceSystemの初期化
-	resourceService->Initialize(graphicsContext.get());
-	debugLogSystem->LOG_DEBUG("ResourceServiceが正常に作成されました");
+    // ImGui デバッグUI初期化
+    auto imguiService = context->Get<ImGuiService>();
+    if (!imguiService || 
+        !imguiService->Initialize(windowService->GetMainWindow().get(), graphicsContext.get())) {
+        OutputDebugStringA("ImGuiService の初期化に失敗しました。\n");
+        return;
+    }
+    debugLogSystem->LOG_DEBUG("ImGuiSystemが正常に作成されました");
 
-	// InputSystemの取得
-	auto inputService = context->Get<InputService>();
-	if (!inputService) {
-		OutputDebugStringA("InputService サービスの取得に失敗しました。\n");
-		return;
-	}
-	// InputSystemの初期化
-	inputService->Initialize(windowService->GetMainWindow()->GetHWND());
-	debugLogSystem->LOG_DEBUG("InputServiceが正常に作成されました");
+    // メインレンダラー初期化
+    auto mainRenderer = context->Get<MainRenderer>();
+    if (!mainRenderer) return;
+    mainRenderer->Initialize(graphicsContext.get(), windowService->GetMainWindow().get());
+    debugLogSystem->LOG_DEBUG("MainRendererが正常に作成されました");
 
-	// ImGuiSystemの取得
-	auto imguiService = context->Get<ImGuiService>();
-	if (!imguiService) {
-		OutputDebugStringA("ImGuiService サービスの取得に失敗しました。\n");
-		return;
-	}
-	// ImGuiSystemの初期化
-	if (!imguiService->Initialize(windowService->GetMainWindow().get(), graphicsContext.get())) {
-		OutputDebugStringA("ImGuiService の初期化に失敗しました。\n");
-		return;
-	}
-	debugLogSystem->LOG_DEBUG("ImGuiSystemが正常に作成されました");
+    // メインウィンドウに各サービスを紐付け
+    auto mainWindow = dynamic_cast<MainWindow*>(windowService->GetMainWindow().get());
+    if (mainWindow) {
+        mainWindow->SetMainRenderer(mainRenderer.get());
+        mainWindow->SetImGuiSystem(imguiService.get());
+        mainWindow->SetInputSystem(inputService.get());
+    }
 
-	// MainRendererの取得
-	auto mainRenderer = context->Get<MainRenderer>();
-	if (!mainRenderer) {
-		OutputDebugStringA("MainRenderer サービスの取得に失敗しました。\n");
-		return;
-	}
-	// MainRendererの初期化
-	mainRenderer->Initialize(graphicsContext.get(), windowService->GetMainWindow().get());
-	debugLogSystem->LOG_DEBUG("MainRendererが正常に作成されました");
+    // シーンマネージャ初期化
+    auto sceneManager = context->Get<SceneManager>();
+    if (!sceneManager) return;
 
-	// WindowSystemのメインウィンドウを取得
-	auto mainWindow = dynamic_cast<MainWindow*>(windowService->GetMainWindow().get());
-	if (mainWindow) {
-		// 各サービスをメインウィンドウにセット
-		mainWindow->SetMainRenderer(mainRenderer.get());
-		mainWindow->SetImGuiSystem(imguiService.get());
-		mainWindow->SetInputSystem(inputService.get());
-	}
-	debugLogSystem->LOG_DEBUG("MainWindowが正常に作成されました");
+	// SceneManagerの初期化
+	SceneManagerContext sceneContext{};
+	sceneContext.graphics = graphicsContext.get();
+	sceneContext.renderer = mainRenderer.get();
+	sceneContext.input = inputService.get();
+	sceneContext.resource = resourceService.get();
+	sceneContext.hwnd = mainRenderer->GetHWND();
+	sceneContext.debug = debugLogSystem.get();
+	sceneContext.imgui = imguiService.get();
 
-	// SceneManagerの取得
-	auto sceneManager = context->Get<SceneManager>();
-	if(!sceneManager){
-		OutputDebugStringA("SceneManager サービスの取得に失敗しました。\n");
-		return;
-	} else{
-		// SceneManagerの初期化
-		SceneManagerContext sceneContext{};
-		sceneContext.graphics = graphicsContext.get();
-		sceneContext.renderer = mainRenderer.get();
-		sceneContext.input = inputService.get();
-		sceneContext.resource = resourceService.get();
-		sceneContext.hwnd = mainRenderer->GetHWND();
-		sceneContext.debug = debugLogSystem.get();
-		sceneContext.imgui = imguiService.get();
-		sceneManager->Initialize(sceneContext);
-	}
+	sceneManager->Initialize(sceneContext);
+
 	debugLogSystem->LOG_DEBUG("SceneManagerが正常に作成されました");
 
-	imguiService->GetManubar()->Register(MenuEvent::File_Exit, [windowService](){
-		windowService->GetMainWindow()->Close();
-	});
+    // ImGuiメニューバー操作にイベントを登録
+    auto manubar = imguiService->GetManubar();
+    manubar->Register(MenuEvent::File_Exit, [windowService](){
+		windowService->GetMainWindow()->Close(); 
+					  });
+    manubar->Register(MenuEvent::File_New,  [sceneManager](){ 
+		sceneManager->LoadScene(std::make_shared<Scene>()); 
+					  });
+    manubar->Register(MenuEvent::File_Save, [sceneManager](){
+		sceneManager->SaveScene(); 
+					  });
+    manubar->Register(MenuEvent::File_Open, [sceneManager](){ 
+		sceneManager->OpenScene(); 
+					  });
 
-	imguiService->GetManubar()->Register(MenuEvent::File_New, [sceneManager](){
-		// 最初のシーンを作成・ロード
-		auto initialScene = std::make_shared<Scene>();
-		sceneManager->LoadScene(initialScene);
-	});
-
-	imguiService->GetManubar()->Register(MenuEvent::File_Save, [sceneManager]() {
-		sceneManager->SaveScene();
-	});
-
-	imguiService->GetManubar()->Register(MenuEvent::File_Open, [sceneManager]() {
-		sceneManager->OpenScene();
-	});
-
-	debugLogSystem->LOG_INFO("EngineContextの初期化が完了しました");
-
+    debugLogSystem->LOG_INFO("EngineContextの初期化が完了しました");
 }
 
 void Engine::Shutdown(std::shared_ptr<EngineContext> context){
@@ -254,40 +212,55 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 
 
 	while(!windowService->GetMainWindow()->ShouldClose()){
-
-		windowService->PollEvents();
 		timeService->Tick();
-		inputService->Update();
-
 		float dt = timeService->GetDeltaTime();
-		sceneManager->Update(dt);
 
-		while(timeService->ShouldRunFixedUpdate()){
-			sceneManager->FixedUpdate(timeService->GetFixedDeltaTime());
+		{	// Update
+
+			windowService->PollEvents();
+			inputService->Update();
+			sceneManager->Update(dt);
 		}
+		timeService->EndDeltaUpdate();
+
+		{	// FixedUpdate
+
+			while(timeService->ShouldRunFixedUpdate()){
+				sceneManager->FixedUpdate(timeService->GetFixedDeltaTime());
+				timeService->EndFixedUpdate();
+			}
+		}
+
 		if (windowService->GetMainWindow()->ShouldClose()) {
 			break;
 		}
 		
-		// Render
-		mainRenderer->BeginFrame();
-		imguiService->Begin();
+		{	// Render
 
-		sceneManager->Render();
+			mainRenderer->BeginFrame();
+			imguiService->Begin();
 
-		  //Debug UI をここに書く
-		ImGui::Begin("Debug");
-		{
-			ImGui::Text("FPS: %.2f", 1.0f / timeService->GetDeltaTime());
-			ImGui::Text("Time: %.2f", timeService->GetTotalTime());
+			{
+				double Update = timeService->GetDeltaUpdateTime();
+				double Draw = timeService->GetDrawTime();
+				imguiService->DrawDebugImGuiWindow(Update * 1000.0f,Draw * 1000.0f, timeService->GetFixedUpdateFPS(),timeService->GetDeltaFPS());
+			}
+			sceneManager->Render();
+
+			//Debug UI をここに書く
+			ImGui::Begin("Debug");
+			{
+				ImGui::Text("FPS: %.2f", 1.0f / timeService->GetDeltaTime());
+				ImGui::Text("Time: %.2f", timeService->GetTotalTime());
+			}
+			ImGui::End();
+
+			mainRenderer->DrawText2D(L"Hello World!", 32, 32, 32.0f, D2D1::ColorF(D2D1::ColorF::White));
+
+			debugLogSystem->Draw();
+			imguiService->End();
+			mainRenderer->EndFrame(1);
 		}
-		ImGui::End();
-
-		mainRenderer->DrawText2D(L"Hello World!", 32, 32, 32.0f, D2D1::ColorF(D2D1::ColorF::Yellow));
-
-		debugLogSystem->Draw();
-		imguiService->End();
-		mainRenderer->EndFrame(true);
-
+		timeService->EndDraw();
 	}
 }
