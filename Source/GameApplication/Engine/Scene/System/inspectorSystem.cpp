@@ -124,6 +124,7 @@ void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 	// コンポーネントを持つエンティティの検索
 	const auto& entities = m_context->entity->GetAllAlive();
 	if(entities.empty()){
+		ImGui::End();
 		return;
 	} else{
 
@@ -135,7 +136,7 @@ void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 			}
 			if(ImGui::Selectable(showName.c_str(), selectedEntity == entity)){
 				if(selectedEntity == entity){
-					selectedEntity = -1;
+					selectedEntity = 0;
 				} else{
 					selectedEntity = entity;
 				}
@@ -151,7 +152,7 @@ void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 void InspectorSystem::DrawInspector(SceneContext* context){
 	ImGui::Begin("Inspector", showInspector);
 	if(selectedEntity == 0){
-		ImGui::Text("No object selected.");
+		//ImGui::Text("No object selected.");
 		ImGui::End();
 		return;
 	}
