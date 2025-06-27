@@ -107,6 +107,10 @@ void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 	if(ImGui::Button("+ Add")){
 		Entity newEntity = registry->Create(); // 新しいエンティティを追加
 		selectedEntity = newEntity;
+		NameComponent* name = context->component->AddComponent<NameComponent>(newEntity); // 名前コンポーネントを追加
+		name->name = "Entity"; // デフォルトの名前を設定
+
+		context->component->AddComponent<TransformComponent>(newEntity);
 	}
 	ImGui::SameLine();
 	//if(ImGui::Button("- Delete")){

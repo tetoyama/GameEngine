@@ -93,113 +93,93 @@ public:
 	}
 
     void inspector(SceneContext* context) override {
-        ImVec2 prevSpacing = ImGui::GetStyle().ItemSpacing;
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, prevSpacing.y));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 6));
 
-        float labelWidth = 100.0f;
-        float fieldWidth = 60.0f;
+        const float labelWidth = 100.0f;
+        const int axisCount = 3;
+        const float spacing = ImGui::GetStyle().ItemSpacing.x;
+        float fieldRegion = ImGui::GetContentRegionAvail().x - labelWidth;
+        float fieldWidth = (fieldRegion - spacing * (axisCount - 1)) / axisCount;
 
         static bool isUniformLocked = false;
+        static DirectX::XMFLOAT3 baseScale = { 1.0f, 1.0f, 1.0f };
 
-        static DirectX::XMFLOAT3 baseScale = { 1.0f, 1.0f, 1.0f }; // ロックON時に記録する元のスケール
+        ImVec4 colorX = ImVec4(0.8f, 0.4f, 0.4f, 1.0f);
+        ImVec4 colorY = ImVec4(0.4f, 0.8f, 0.4f, 1.0f);
+        ImVec4 colorZ = ImVec4(0.4f, 0.4f, 0.8f, 1.0f);
+
+        auto DrawVec3Control = [&](const char* label, float& x, float& y, float& z, bool readOnly = false) {
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted(label);
+            ImGui::SameLine(labelWidth);
+
+            auto DrawComponent = [&](const char* id, float& value, const ImVec4& borderColor) {
+                ImGui::PushID(id);
+                ImGui::PushItemWidth(fieldWidth);
+                ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+                ImGui::DragFloat("##", &value, 0.01f, -1000.0f, 1000.0f);
+                ImGui::PopStyleVar();
+                ImGui::PopStyleColor();
+                ImGui::PopItemWidth();
+                ImGui::PopID();
+            };
+
+            DrawComponent(((std::string)(label) + "X").c_str(), x, colorX); ImGui::SameLine();
+            DrawComponent(((std::string)(label) + "Y").c_str(), y, colorY); ImGui::SameLine();
+            DrawComponent(((std::string)(label) + "Z").c_str(), z, colorZ);
+        };
 
         // ----------- Position -----------
-        ImGui::AlignTextToFramePadding();
-        ImGui::Text("Position");
-        ImGui::SameLine(labelWidth);
-        ImGui::Text("X"); ImGui::SameLine(0, 4); ImGui::PushItemWidth(fieldWidth);
-        ImGui::DragFloat("##PosX", &position.x, 0.1f); ImGui::PopItemWidth(); ImGui::SameLine();
-
-        ImGui::Text("Y"); ImGui::SameLine(0, 4); ImGui::PushItemWidth(fieldWidth);
-        ImGui::DragFloat("##PosY", &position.y, 0.1f); ImGui::PopItemWidth(); ImGui::SameLine();
-
-        ImGui::Text("Z"); ImGui::SameLine(0, 4); ImGui::PushItemWidth(fieldWidth);
-        ImGui::DragFloat("##PosZ", &position.z, 0.1f); ImGui::PopItemWidth();
+        DrawVec3Control("Position", position.x, position.y, position.z);
 
         // ----------- Rotation -----------
-        ImGui::AlignTextToFramePadding();
-        ImGui::Text("Rotation");
-        ImGui::SameLine(labelWidth);
-        ImGui::Text("X"); ImGui::SameLine(0, 4); ImGui::PushItemWidth(fieldWidth);
-        ImGui::DragFloat("##RotX", &rotation.x, 0.01f, -DirectX::XM_PI, DirectX::XM_PI); ImGui::PopItemWidth(); ImGui::SameLine();
-
-        ImGui::Text("Y"); ImGui::SameLine(0, 4); ImGui::PushItemWidth(fieldWidth);
-        ImGui::DragFloat("##RotY", &rotation.y, 0.01f, -DirectX::XM_PI, DirectX::XM_PI); ImGui::PopItemWidth(); ImGui::SameLine();
-
-        ImGui::Text("Z"); ImGui::SameLine(0, 4); ImGui::PushItemWidth(fieldWidth);
-        ImGui::DragFloat("##RotZ", &rotation.z, 0.01f, -DirectX::XM_PI, DirectX::XM_PI); ImGui::PopItemWidth();
+        DrawVec3Control("Rotation", rotation.x, rotation.y, rotation.z);
 
         // ----------- Scale -----------
         ImGui::AlignTextToFramePadding();
-        ImGui::Text("Scale");
-
-        // ----------- Lock Toggle Button -----------
+        ImGui::TextUnformatted("Scale");
         ImGui::SameLine();
 
         bool pressed = ImGui::SmallButton(isUniformLocked ? "-" : "+");
         if (pressed) {
             isUniformLocked = !isUniformLocked;
-            if (isUniformLocked) {
-                baseScale = DirectX::XMFLOAT3{ scale.x,scale.y,scale.z }; // 現在のスケールを基準として記録
-            }
+            if (isUniformLocked)
+                baseScale = {scale.x,scale.y ,scale.z };
         }
 
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip(isUniformLocked ?
-                              "Uniform lock ON\nEdit one axis to scale all proportionally" :
-                              "Uniform lock OFF\nEdit each axis freely");
-        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip(isUniformLocked ? "Uniform lock ON" : "Uniform lock OFF");
 
         ImGui::SameLine(labelWidth);
 
         if (!isUniformLocked) {
-            // 通常編集（個別）
-            ImGui::Text("X"); ImGui::SameLine(0, 4); ImGui::PushItemWidth(fieldWidth);
-            ImGui::DragFloat("##ScaleX", &scale.x, 0.01f, 0.01f, 100.0f); ImGui::PopItemWidth(); ImGui::SameLine();
-
-            ImGui::Text("Y"); ImGui::SameLine(0, 4); ImGui::PushItemWidth(fieldWidth);
-            ImGui::DragFloat("##ScaleY", &scale.y, 0.01f, 0.01f, 100.0f); ImGui::PopItemWidth(); ImGui::SameLine();
-
-            ImGui::Text("Z"); ImGui::SameLine(0, 4); ImGui::PushItemWidth(fieldWidth);
-            ImGui::DragFloat("##ScaleZ", &scale.z, 0.01f, 0.01f, 100.0f); ImGui::PopItemWidth();
+            DrawVec3Control("", scale.x, scale.y, scale.z);
         } else {
-            // ロックON → どこか1軸を変更したら、全軸に倍率を掛ける
-
-            bool changed = false;
             float ratio = 1.0f;
+            bool changed = false;
 
-            // ---- X ----
-            float x = scale.x;
-            ImGui::Text("X"); ImGui::SameLine(0, 4); ImGui::PushItemWidth(fieldWidth);
-            if (ImGui::DragFloat("##ScaleX", &x, 0.01f, 0.01f, 100.0f)) {
-                if (baseScale.x != 0.0f) {
-                    ratio = x / baseScale.x;
-                    changed = true;
+            auto DrawLockedComponent = [&](const char* id, float& value, float baseValue, float& outRatio) {
+                float temp = value;
+                ImGui::PushID(id);
+                ImGui::PushItemWidth(fieldWidth);
+                ImGui::PushStyleColor(ImGuiCol_Border, (id[0] == 'X') ? colorX : (id[0] == 'Y') ? colorY : colorZ);
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+                if (ImGui::DragFloat("##", &temp, 0.01f, 0.01f, 100.0f)) {
+                    if (baseValue != 0.0f) {
+                        outRatio = temp / baseValue;
+                        changed = true;
+                    }
                 }
-            }
-            ImGui::PopItemWidth(); ImGui::SameLine();
+                ImGui::PopStyleVar();
+                ImGui::PopStyleColor();
+                ImGui::PopItemWidth();
+                ImGui::PopID();
+            };
 
-            // ---- Y ----
-            float y = scale.y;
-            ImGui::Text("Y"); ImGui::SameLine(0, 4); ImGui::PushItemWidth(fieldWidth);
-            if (ImGui::DragFloat("##ScaleY", &y, 0.01f, 0.01f, 100.0f)) {
-                if (baseScale.y != 0.0f) {
-                    ratio = y / baseScale.y;
-                    changed = true;
-                }
-            }
-            ImGui::PopItemWidth(); ImGui::SameLine();
-
-            // ---- Z ----
-            float z = scale.z;
-            ImGui::Text("Z"); ImGui::SameLine(0, 4); ImGui::PushItemWidth(fieldWidth);
-            if (ImGui::DragFloat("##ScaleZ", &z, 0.01f, 0.01f, 100.0f)) {
-                if (baseScale.z != 0.0f) {
-                    ratio = z / baseScale.z;
-                    changed = true;
-                }
-            }
-            ImGui::PopItemWidth();
+            DrawLockedComponent("X", scale.x, baseScale.x, ratio); ImGui::SameLine();
+            DrawLockedComponent("Y", scale.y, baseScale.y, ratio); ImGui::SameLine();
+            DrawLockedComponent("Z", scale.z, baseScale.z, ratio);
 
             if (changed) {
                 scale.x = baseScale.x * ratio;
@@ -208,11 +188,12 @@ public:
             }
 
             if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Locked: scale all axes proportionally based on changed axis");
+                ImGui::SetTooltip("Locked: scale all axes proportionally");
         }
 
-        ImGui::PopStyleVar();
+        ImGui::PopStyleVar(); // ItemSpacing
     }
+
 
 
 };
