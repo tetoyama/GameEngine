@@ -6,12 +6,14 @@
 #include <sstream>
 #include <unordered_set>
 
-void DebugLogSystem::Initialize(){
+void DebugLogSystem::Initialize(bool* isOpen){
+
 	// 必要であればファイルログなどの初期化
 	auto memorySink = std::make_shared<MemoryLogSink>();
 	AddSink(memorySink);
 	logWindow = std::make_shared<ImGuiLogWindow>();
 	logWindow->SetLogSource(memorySink);
+	logWindow->SetOpenControl(isOpen);
 }
 
 void DebugLogSystem::Shutdown(){
@@ -129,98 +131,59 @@ ImVec4 ImGuiLogWindow::GetColorForLevel(LogLevel level) const{
 }
 
 void ImGuiLogWindow::Draw(){
+	if(isOpen && *isOpen){
 
-	ImGui::Begin("Debug Log");
+		if(ImGui::Begin("Debug Log", isOpen)){
 
-	ImGui::InputText("Search", searchBuffer, sizeof(searchBuffer));
-	ImGui::SameLine();
-	if(ImGui::Button("Clear") && logSink){
-		logSink->Clear();
-	}
-	ImGui::SameLine();
-	ImGui::Checkbox("Auto Scroll", &autoScroll);
+			ImGui::InputText("Search", searchBuffer, sizeof(searchBuffer));
+			ImGui::SameLine();
+			if(ImGui::Button("Clear") && logSink){
+				logSink->Clear();
+			}
+			ImGui::SameLine();
+			ImGui::Checkbox("Auto Scroll", &autoScroll);
 
-	ImGui::Separator();
+			ImGui::Separator();
 
-	for(int i = (int)LogLevel::Trace; i <= (int)LogLevel::Critical; ++i){
-		LogLevel level = static_cast<LogLevel>(i);
-		bool selected = levelFilter.find(level) != levelFilter.end();
-		if(ImGui::Checkbox(LevelFilterString(level).c_str(), &selected)){
-			if(selected)
-				levelFilter.insert(level);
-			else
-				levelFilter.erase(level);
+			for(int i = (int)LogLevel::Trace; i <= (int)LogLevel::Critical; ++i){
+				LogLevel level = static_cast<LogLevel>(i);
+				bool selected = levelFilter.find(level) != levelFilter.end();
+				if(ImGui::Checkbox(LevelFilterString(level).c_str(), &selected)){
+					if(selected)
+						levelFilter.insert(level);
+					else
+						levelFilter.erase(level);
+				}
+				if(i < (int)LogLevel::Critical) ImGui::SameLine();
+			}
+
+			if(ImGui::BeginChild("LogRegion", ImVec2(0, 0), false)){
+
+				if(logSink){
+					const auto& entries = logSink->GetEntries();
+					for(const auto& entry : entries){
+						if(!PassesFilter(entry)) continue;
+
+						ImVec4 color = GetColorForLevel(entry.level);
+						ImGui::PushStyleColor(ImGuiCol_Text, color);
+						ImGui::Text(ToU8String((const char*)u8"[%s] %s\n       (関数名 %s,ファイル %s ,行 %d)").c_str(),
+									LevelToString(entry.level),
+									entry.message.c_str(),
+									entry.function.c_str(),
+									entry.file.c_str(),
+									entry.line);
+						ImGui::PopStyleColor();
+					}
+
+					if(autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 10.0f)
+						ImGui::SetScrollHereY(1.0f);
+				}
+
+
+				ImGui::EndChild();
+			}
+
 		}
-		if(i < (int)LogLevel::Critical) ImGui::SameLine();
+		ImGui::End();
 	}
-
-	ImGui::BeginChild("LogRegion", ImVec2(0, 0), false);
-
-	if(logSink){
-		const auto& entries = logSink->GetEntries();
-		for(const auto& entry : entries){
-			if(!PassesFilter(entry)) continue;
-
-			ImVec4 color = GetColorForLevel(entry.level);
-			ImGui::PushStyleColor(ImGuiCol_Text, color);
-			ImGui::Text(ToU8String((const char*)u8"[%s] %s\n       (関数名 %s,ファイル %s ,行 %d)").c_str(),
-						LevelToString(entry.level),
-						entry.message.c_str(),
-						entry.function.c_str(),
-						entry.file.c_str(),
-						entry.line);
-			ImGui::PopStyleColor();
-		}
-
-		if(autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 10.0f)
-			ImGui::SetScrollHereY(1.0f);
-	}
-
-
-	ImGui::EndChild();
-
-
-	//ImGuiIO& io = ImGui::GetIO();
-	//if(io.DisplaySize.x > 0){
-	//	ImGuiStyle& style = ImGui::GetStyle();
-	//	ImVec2 pad = style.DisplayWindowPadding;
-
-	//	ImVec2 pos = ImGui::GetWindowPos();
-	//	ImVec2 size = ImGui::GetWindowSize();
-	//	ImVec2 newPos = pos;
-	//	bool need = false;
-	//	if(size.x > io.DisplaySize.x - pad.x * 2){
-	//		size.x = io.DisplaySize.x - pad.x * 2;
-	//		need = true;
-	//	}
-	//	if(size.y > io.DisplaySize.y - pad.y * 2){
-	//		size.y = io.DisplaySize.y - pad.y * 2;
-	//		need = true;
-	//	}
-	//	ImVec2 newSize = size;
-
-	//	if(pos.x < pad.x){
-	//		newPos.x = pad.x;
-	//		need = true;
-	//	}
-	//	if(pos.y < pad.y){
-	//		newPos.y = pad.y;
-	//		need = true;
-	//	}
-	//	if(pos.x + size.x > io.DisplaySize.x - pad.x){
-	//		newPos.x = io.DisplaySize.x - pad.x - size.x;
-	//		need = true;
-	//	}
-	//	if(pos.y + size.y > io.DisplaySize.y - pad.y){
-	//		newPos.y = io.DisplaySize.y - pad.y - size.y;
-	//		need = true;
-	//	}
-
-	//	if(need){
-	//		ImGui::SetWindowSize(newSize, ImGuiCond_Always);
-	//		ImGui::SetWindowPos(newPos, ImGuiCond_Always);
-	//	}
-	//}
-
-	ImGui::End();
 }

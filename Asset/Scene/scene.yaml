@@ -24,11 +24,6 @@ Entities:
     Components:
       - Component: NameComponent
         Name: Player
-      - Component: PlayerComponent
-        moveSpeed: 5
-        cameraRotate: 2
-        cameraDistance: 20
-        cameraLerp: 8
       - Component: TransformComponent
         Position:
           x: 0
@@ -74,18 +69,23 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
+      - Component: PlayerComponent
+        moveSpeed: 5
+        cameraRotate: 2
+        cameraDistance: 20
+        cameraLerp: 8
   - Entity: 3
     Components:
       - Component: NameComponent
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: -16.0591583
-          y: 12.1204453
-          z: -0.0795854777
+          x: 0
+          y: 17.0294151
+          z: -10.8060436
         Rotation:
-          x: -0.638538003
-          y: 1.5658406
+          x: -1
+          y: 0
           z: 0
         Scale:
           x: 1
@@ -102,24 +102,24 @@ Entities:
         FOV: 1
         viewMatrix:
           -
-            - 0.00495570758
-            - 0.596014977
-            - 0.802958012
+            - 1
+            - 0
+            - 0
             - 0
           -
             - 0
-            - 0.802967846
-            - -0.596022308
+            - 0.540302336
+            - -0.841470957
             - 0
           -
-            - -0.999987662
-            - 0.00295371236
-            - 0.00397927407
+            - -0
+            - 0.841470957
+            - 0.540302336
             - 0
           -
             - 0
-            - -0.160593525
-            - 20.1192017
+            - -0.108060837
+            - 20.1682892
             - 1
   - Entity: 4
     Components:
@@ -127,17 +127,17 @@ Entities:
         Name: Enemy1
       - Component: TransformComponent
         Position:
-          x: 27.6443024
-          y: 0.200000286
-          z: -5.34225416
+          x: 14.3721046
+          y: 0.200000003
+          z: 4.5220356
         Rotation:
           x: 0
-          y: -1.09180832
+          y: 1.16387415
           z: 0
         Scale:
-          x: 0.999996901
+          x: 1
           y: 1
-          z: 0.999996901
+          z: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         Material:
@@ -177,12 +177,12 @@ Entities:
         Name: Enemy2
       - Component: TransformComponent
         Position:
-          x: 20.5239067
+          x: 8.33169079
           y: 0.200000003
-          z: 3.19673944
+          z: 8.44147873
         Rotation:
           x: 0
-          y: 5.87599516
+          y: 7.4318676
           z: 0
         Scale:
           x: 1
@@ -227,12 +227,12 @@ Entities:
         Name: Enemy3
       - Component: TransformComponent
         Position:
-          x: 7.79207134
+          x: 14.9514179
           y: 0.200000003
-          z: 9.90530491
+          z: 8.49975014
         Rotation:
           x: 0
-          y: -2.06239963
+          y: 9.20298672
           z: 0
         Scale:
           x: 1
@@ -277,12 +277,12 @@ Entities:
         Name: Enemy4
       - Component: TransformComponent
         Position:
-          x: 13.8060083
+          x: 6.22629881
           y: 0.200000003
-          z: 9.55814171
+          z: 20.2998066
         Rotation:
           x: 0
-          y: 5.03749037
+          y: -2.54537582
           z: 0
         Scale:
           x: 1
@@ -327,12 +327,12 @@ Entities:
         Name: Enemy5
       - Component: TransformComponent
         Position:
-          x: 1.22992706
+          x: 17.384737
           y: 0.200000003
-          z: 17.1858635
+          z: 13.4713678
         Rotation:
           x: 0
-          y: 6.01425171
+          y: 4.07755423
           z: 0
         Scale:
           x: 1
@@ -377,12 +377,12 @@ Entities:
         Name: Enemy6
       - Component: TransformComponent
         Position:
-          x: 0.976795495
+          x: 0.631912053
           y: 0.200000003
-          z: 7.86413097
+          z: 14.5073013
         Rotation:
           x: 0
-          y: -6.80094528
+          y: -2.09079099
           z: 0
         Scale:
           x: 1
@@ -427,12 +427,12 @@ Entities:
         Name: Enemy7
       - Component: TransformComponent
         Position:
-          x: -5.81930017
+          x: -11.6679087
           y: 0.200000003
-          z: 22.619381
+          z: 12.8525076
         Rotation:
           x: 0
-          y: -4.92422676
+          y: 1.63930261
           z: 0
         Scale:
           x: 1
@@ -477,12 +477,12 @@ Entities:
         Name: Enemy8
       - Component: TransformComponent
         Position:
-          x: -21.7674599
+          x: -8.00639534
           y: 0.200000003
-          z: 20.2189941
+          z: 8.66161251
         Rotation:
           x: 0
-          y: 7.35655737
+          y: 9.10324955
           z: 0
         Scale:
           x: 1
@@ -527,12 +527,12 @@ Entities:
         Name: Enemy9
       - Component: TransformComponent
         Position:
-          x: -8.39696884
+          x: -23.5440178
           y: 0.200000003
-          z: 16.6256504
+          z: 18.9136562
         Rotation:
           x: 0
-          y: -1.22610497
+          y: 0.976403713
           z: 0
         Scale:
           x: 1
@@ -577,12 +577,12 @@ Entities:
         Name: Enemy10
       - Component: TransformComponent
         Position:
-          x: -29.2634888
+          x: -26.1222572
           y: 0.200000003
-          z: 2.15701771
+          z: 13.8549299
         Rotation:
           x: 0
-          y: 3.35256886
+          y: 3.69030356
           z: 0
         Scale:
           x: 1
@@ -627,12 +627,12 @@ Entities:
         Name: Enemy11
       - Component: TransformComponent
         Position:
-          x: -19.5093365
+          x: -12.1666107
           y: 0.200000003
-          z: 1.04145348
+          z: -0.446650892
         Rotation:
           x: 0
-          y: -5.71891737
+          y: -3.83460093
           z: 0
         Scale:
           x: 1
@@ -677,12 +677,12 @@ Entities:
         Name: Enemy12
       - Component: TransformComponent
         Position:
-          x: -21.6184216
+          x: -13.6600943
           y: 0.200000003
-          z: -18.50877
+          z: -17.9434071
         Rotation:
           x: 0
-          y: -8.57596302
+          y: -4.43221521
           z: 0
         Scale:
           x: 1
@@ -727,12 +727,12 @@ Entities:
         Name: Enemy13
       - Component: TransformComponent
         Position:
-          x: -28.2919159
+          x: -18.2383938
           y: 0.200000003
-          z: -4.82076168
+          z: -16.7744675
         Rotation:
           x: 0
-          y: 0.596254289
+          y: -4.87851715
           z: 0
         Scale:
           x: 1
@@ -777,12 +777,12 @@ Entities:
         Name: Enemy14
       - Component: TransformComponent
         Position:
-          x: -6.7237649
+          x: -6.52626467
           y: 0.200000003
-          z: -6.91905165
+          z: -21.2130661
         Rotation:
           x: 0
-          y: -7.01368523
+          y: -4.21320772
           z: 0
         Scale:
           x: 1
@@ -827,12 +827,12 @@ Entities:
         Name: Enemy15
       - Component: TransformComponent
         Position:
-          x: -10.1520567
+          x: -16.961195
           y: 0.200000003
-          z: -23.0948677
+          z: -16.0547523
         Rotation:
           x: 0
-          y: -1.17710662
+          y: 7.25484419
           z: 0
         Scale:
           x: 1
@@ -877,12 +877,12 @@ Entities:
         Name: Enemy16
       - Component: TransformComponent
         Position:
-          x: -0.676545203
+          x: -12.8575754
           y: 0.200000003
-          z: -25.7049675
+          z: -13.7026119
         Rotation:
           x: 0
-          y: 8.30846691
+          y: -2.68323636
           z: 0
         Scale:
           x: 1
@@ -927,12 +927,12 @@ Entities:
         Name: Enemy17
       - Component: TransformComponent
         Position:
-          x: -1.50695753
+          x: -0.137748599
           y: 0.200000003
-          z: -19.8271408
+          z: -25.9081135
         Rotation:
           x: 0
-          y: 5.0202322
+          y: 2.16903877
           z: 0
         Scale:
           x: 1
@@ -977,12 +977,12 @@ Entities:
         Name: Enemy18
       - Component: TransformComponent
         Position:
-          x: 12.5031519
+          x: 14.1751051
           y: 0.200000003
-          z: -20.2502823
+          z: -4.74871588
         Rotation:
           x: 0
-          y: -7.39853096
+          y: -5.36816454
           z: 0
         Scale:
           x: 1
@@ -1027,12 +1027,12 @@ Entities:
         Name: Enemy19
       - Component: TransformComponent
         Position:
-          x: 5.84496546
+          x: 27.3085632
           y: 0.200000003
-          z: -12.6611652
+          z: -13.1726923
         Rotation:
           x: 0
-          y: -3.5615201
+          y: -3.59732842
           z: 0
         Scale:
           x: 1
@@ -1077,12 +1077,12 @@ Entities:
         Name: Enemy20
       - Component: TransformComponent
         Position:
-          x: 22.8343849
+          x: 8.79920387
           y: 0.200000003
-          z: 1.84997976
+          z: -15.3236341
         Rotation:
           x: 0
-          y: 0.994395673
+          y: -0.272620082
           z: 0
         Scale:
           x: 1
@@ -1121,18 +1121,3 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
-  - Entity: 24
-    Components:
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1

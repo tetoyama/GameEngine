@@ -95,40 +95,50 @@ public:
     void inspector(SceneContext* context) override {
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 6));
 
-        const float labelWidth = 100.0f;
-        const int axisCount = 3;
-        const float spacing = ImGui::GetStyle().ItemSpacing.x;
-        float fieldRegion = ImGui::GetContentRegionAvail().x - labelWidth;
-        float fieldWidth = (fieldRegion - spacing * (axisCount - 1)) / axisCount;
+		const float labelWidth = 100.0f;
+		const int axisCount = 3;
+		const float spacing = ImGui::GetStyle().ItemSpacing.x;
+		float totalRegion = ImGui::GetContentRegionAvail().x;
+		float fieldRegion = totalRegion - labelWidth - spacing * 2 * (axisCount);
+		float fieldWidth = fieldRegion / axisCount;
 
-        static bool isUniformLocked = false;
-        static DirectX::XMFLOAT3 baseScale = { 1.0f, 1.0f, 1.0f };
+		static bool isUniformLocked = false;
+		static DirectX::XMFLOAT3 baseScale = {1.0f, 1.0f, 1.0f};
 
-        ImVec4 colorX = ImVec4(0.8f, 0.4f, 0.4f, 1.0f);
-        ImVec4 colorY = ImVec4(0.4f, 0.8f, 0.4f, 1.0f);
-        ImVec4 colorZ = ImVec4(0.4f, 0.4f, 0.8f, 1.0f);
+		ImVec4 colorX = ImVec4(0.7f, 0.4f, 0.4f, 0.3f);
+		ImVec4 colorY = ImVec4(0.4f, 0.7f, 0.4f, 0.3f);
+		ImVec4 colorZ = ImVec4(0.4f, 0.4f, 0.7f, 0.3f);
 
-        auto DrawVec3Control = [&](const char* label, float& x, float& y, float& z, bool readOnly = false) {
-            ImGui::AlignTextToFramePadding();
-            ImGui::TextUnformatted(label);
-            ImGui::SameLine(labelWidth);
+		auto DrawVec3Control = [&](const char* label, float& x, float& y, float& z, bool readOnly = false){
+			ImGui::AlignTextToFramePadding();
+			ImGui::TextUnformatted(label);
+			ImGui::SameLine();
+			ImGui::SetCursorPosX(labelWidth); // 確実にラベル後ろに揃える
 
-            auto DrawComponent = [&](const char* id, float& value, const ImVec4& borderColor) {
-                ImGui::PushID(id);
-                ImGui::PushItemWidth(fieldWidth);
-                ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
-                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-                ImGui::DragFloat("##", &value, 0.01f, -1000.0f, 1000.0f);
-                ImGui::PopStyleVar();
-                ImGui::PopStyleColor();
-                ImGui::PopItemWidth();
-                ImGui::PopID();
-            };
+			auto DrawComponent = [&](const char* id, float& value, const ImVec4& borderColor, const char* uniqueId, bool isLast){
+				ImGui::PushID(uniqueId);
+				ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
+				ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+				ImGui::PushItemWidth(fieldWidth - 10.0f);
 
-            DrawComponent(((std::string)(label) + "X").c_str(), x, colorX); ImGui::SameLine();
-            DrawComponent(((std::string)(label) + "Y").c_str(), y, colorY); ImGui::SameLine();
-            DrawComponent(((std::string)(label) + "Z").c_str(), z, colorZ);
-        };
+				// 軸名（X/Y/Z）
+				ImGui::Text("%s", id);
+				ImGui::SameLine(0.0f,10.0f);
+
+				ImGui::DragFloat("##", &value, 0.01f, -1000.0f, 1000.0f);
+
+				ImGui::PopItemWidth();
+				ImGui::PopStyleVar();
+				ImGui::PopStyleColor();
+				ImGui::PopID();
+
+				if(!isLast) ImGui::SameLine();
+				};
+
+			DrawComponent("X", x, colorX, (std::string(label) + "X").c_str(), false);
+			DrawComponent("Y", y, colorY, (std::string(label) + "Y").c_str(), false);
+			DrawComponent("Z", z, colorZ, (std::string(label) + "Z").c_str(), true);
+			};
 
         // ----------- Position -----------
         DrawVec3Control("Position", position.x, position.y, position.z);
@@ -136,60 +146,65 @@ public:
         // ----------- Rotation -----------
         DrawVec3Control("Rotation", rotation.x, rotation.y, rotation.z);
 
-        // ----------- Scale -----------
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted("Scale");
-        ImGui::SameLine();
+		// ----------- Scale -----------
+		ImGui::AlignTextToFramePadding();
+		ImGui::TextUnformatted("Scale");
+		ImGui::SameLine();
 
-        bool pressed = ImGui::SmallButton(isUniformLocked ? "-" : "+");
-        if (pressed) {
-            isUniformLocked = !isUniformLocked;
-            if (isUniformLocked)
-                baseScale = {scale.x,scale.y ,scale.z };
-        }
+		// ロックボタン（+ がON、- がOFF）
+		bool pressed = ImGui::SmallButton(isUniformLocked ? "-" : "+");
+		if(pressed){
+			isUniformLocked = !isUniformLocked;
+			if(isUniformLocked)
+				baseScale = {scale.x, scale.y, scale.z};
+		}
+		if(ImGui::IsItemHovered())
+			ImGui::SetTooltip(isUniformLocked ? "Uniform lock ON" : "Uniform lock OFF");
 
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip(isUniformLocked ? "Uniform lock ON" : "Uniform lock OFF");
+		ImGui::SameLine(labelWidth);
 
-        ImGui::SameLine(labelWidth);
+		if(!isUniformLocked){
+			DrawVec3Control("", scale.x, scale.y, scale.z);
+		} else{
+			float ratio = 1.0f;
+			bool changed = false;
 
-        if (!isUniformLocked) {
-            DrawVec3Control("", scale.x, scale.y, scale.z);
-        } else {
-            float ratio = 1.0f;
-            bool changed = false;
+			auto DrawLockedComponent = [&](const char* id, float& value, float baseValue, float& outRatio, const ImVec4& borderColor, bool isLast){
+				float temp = value;
+				ImGui::PushID(id);
+				ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
+				ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+				ImGui::PushItemWidth(fieldWidth - 10.0f); // <- はみ出し防止：DrawVec3Control と統一
+				ImGui::Text("%s", id);
+				ImGui::SameLine(0.0f, 10.0f);
+				if(ImGui::DragFloat("##", &temp, 0.01f, 0.01f, 100.0f)){
+					if(baseValue != 0.0f){
+						outRatio = temp / baseValue;
+						changed = true;
+					}
+				}
+				ImGui::PopItemWidth();
+				ImGui::PopStyleVar();
+				ImGui::PopStyleColor();
+				ImGui::PopID();
+				if(!isLast) ImGui::SameLine();
+				};
 
-            auto DrawLockedComponent = [&](const char* id, float& value, float baseValue, float& outRatio) {
-                float temp = value;
-                ImGui::PushID(id);
-                ImGui::PushItemWidth(fieldWidth);
-                ImGui::PushStyleColor(ImGuiCol_Border, (id[0] == 'X') ? colorX : (id[0] == 'Y') ? colorY : colorZ);
-                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-                if (ImGui::DragFloat("##", &temp, 0.01f, 0.01f, 100.0f)) {
-                    if (baseValue != 0.0f) {
-                        outRatio = temp / baseValue;
-                        changed = true;
-                    }
-                }
-                ImGui::PopStyleVar();
-                ImGui::PopStyleColor();
-                ImGui::PopItemWidth();
-                ImGui::PopID();
-            };
+			// X/Y/Zを並べて描画（同じ幅とスタイルで）
+			DrawLockedComponent("X", scale.x, baseScale.x, ratio, colorX, false);
+			DrawLockedComponent("Y", scale.y, baseScale.y, ratio, colorY, false);
+			DrawLockedComponent("Z", scale.z, baseScale.z, ratio, colorZ, true);
 
-            DrawLockedComponent("X", scale.x, baseScale.x, ratio); ImGui::SameLine();
-            DrawLockedComponent("Y", scale.y, baseScale.y, ratio); ImGui::SameLine();
-            DrawLockedComponent("Z", scale.z, baseScale.z, ratio);
+			if(changed){
+				scale.x = baseScale.x * ratio;
+				scale.y = baseScale.y * ratio;
+				scale.z = baseScale.z * ratio;
+			}
 
-            if (changed) {
-                scale.x = baseScale.x * ratio;
-                scale.y = baseScale.y * ratio;
-                scale.z = baseScale.z * ratio;
-            }
+			if(ImGui::IsItemHovered())
+				ImGui::SetTooltip("Locked: scale all axes proportionally");
+		}
 
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Locked: scale all axes proportionally");
-        }
 
         ImGui::PopStyleVar(); // ItemSpacing
     }

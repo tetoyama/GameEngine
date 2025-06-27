@@ -30,11 +30,13 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 
     // デバッグ出力システム取得・初期化
     auto debugLogSystem = context->Get<DebugLogSystem>();
+	auto imguiService = context->Get<ImGuiService>();
+
     if(!debugLogSystem){
         OutputDebugStringA("DebugLogSystem サービスの取得に失敗しました。\n");
         return;
     }
-    debugLogSystem->Initialize();
+    debugLogSystem->Initialize(&imguiService->GetManubar()->showConsole);
     debugLogSystem->LOG_INFO("DebugLogSystemが起動しました");
 
     // ウィンドウシステム初期化
@@ -73,7 +75,6 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     debugLogSystem->LOG_DEBUG("InputServiceが正常に作成されました");
 
     // ImGui デバッグUI初期化
-    auto imguiService = context->Get<ImGuiService>();
     if (!imguiService || 
         !imguiService->Initialize(windowService->GetMainWindow().get(), graphicsContext.get())) {
         OutputDebugStringA("ImGuiService の初期化に失敗しました。\n");

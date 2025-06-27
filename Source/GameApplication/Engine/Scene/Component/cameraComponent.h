@@ -47,7 +47,10 @@ public:
 
 		ImGui::Text("FOV");
 		ImGui::SameLine(120);
-		ImGui::DragFloat("##FOV", &FOV, 0.01f);
+		ImGui::DragFloat("##FOV", &FOV, 0.01f, 0.01f);
+		if(FOV <= 0.0f)
+			FOV = 0.01f;
+
 		if(ImGui::IsItemHovered())
 			ImGui::SetTooltip("FOV");
 	}

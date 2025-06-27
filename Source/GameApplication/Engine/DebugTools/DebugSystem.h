@@ -48,7 +48,7 @@ public:
 class ImGuiLogWindow;
 class DebugLogSystem : IService {
 public:
-	void Initialize(); // 必要ならファイルパスなど渡す
+	void Initialize(bool* isOpen); // 必要ならファイルパスなど渡す
 	void Shutdown() override;
 
 	void AddSink(std::shared_ptr<ILogSink> sink);
@@ -112,8 +112,11 @@ public:
 	ImGuiLogWindow();
 	void Draw();  // ImGui::Begin〜Endの中で呼ぶ
 	void SetLogSource(std::shared_ptr<MemoryLogSink> sink);
-
+	void SetOpenControl(bool* openControlPtr){
+		isOpen = openControlPtr;
+	}
 private:
+	bool* isOpen = nullptr; // 外部から開閉制御するためのポインタ
 	std::shared_ptr<MemoryLogSink> logSink;
 
 	char searchBuffer[128] = "";

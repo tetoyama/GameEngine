@@ -28,14 +28,14 @@ public:
 	}
 
 	void inspector(SceneContext* context) override{
-		ImGui::Text("ModelRendererComponent");
-
-		static char filepathBuffer[256] = {0}; // 適当な最大長
+		ImGui::Text("Model File Path");
+		ImGui::SameLine(100.0f);
+		static char filepathBuffer[256] = ""; // 適当な最大長
 		// バッファに現在の文字列をコピー（初回か変更時だけにすると効率的）
 		if(model){
 			strncpy_s(filepathBuffer, sizeof(filepathBuffer), model->FilePath.c_str(), _TRUNCATE);
 		}
-		if(ImGui::InputText("Model File Path", filepathBuffer, sizeof(filepathBuffer))){
+		if(ImGui::InputText("##Model File Path", filepathBuffer, sizeof(filepathBuffer))){
 			// 編集されたら std::string に反映
 			model = context->manager->resource->GetModelLoader()->LoadModel(filepathBuffer);
 		}
@@ -51,11 +51,12 @@ public:
 			ImGui::EndDragDropTarget();
 		}
 
-
+		ImGui::Text("PixelShader");
+		ImGui::SameLine(100.0f);
 		if(pixelShader){
 			strncpy_s(filepathBuffer, sizeof(filepathBuffer), pixelShader->FilePath.c_str(), _TRUNCATE);
 		}
-		if(ImGui::InputText("PixelShader", filepathBuffer, sizeof(filepathBuffer))){
+		if(ImGui::InputText("##PixelShader", filepathBuffer, sizeof(filepathBuffer))){
 			// 編集されたら std::string に反映
 			pixelShader = context->manager->resource->GetShaderLoader()->LoadPixelShader(filepathBuffer);
 		}
@@ -72,11 +73,12 @@ public:
 		}
 
 
-
+		ImGui::Text("VertexShader");
+		ImGui::SameLine(100.0f);
 		if(vertexShader){
 			strncpy_s(filepathBuffer, sizeof(filepathBuffer), vertexShader->FilePath.c_str(), _TRUNCATE);
 		}
-		if(ImGui::InputText("VertexShader", filepathBuffer, sizeof(filepathBuffer))){
+		if(ImGui::InputText("##VertexShader", filepathBuffer, sizeof(filepathBuffer))){
 			// 編集されたら std::string に反映
 			vertexShader = context->manager->resource->GetShaderLoader()->LoadVertexShader(filepathBuffer);
 		}

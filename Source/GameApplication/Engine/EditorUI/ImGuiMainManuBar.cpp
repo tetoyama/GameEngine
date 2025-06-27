@@ -20,7 +20,7 @@ void ImGuiManubar::Render(){
 			if(ImGui::MenuItem("Inspector", nullptr, showInspector)){
 				showInspector = !showInspector;
 			}
-			if(ImGui::MenuItem("Console", nullptr, showConsole)){
+			if(ImGui::MenuItem("DebugLog", nullptr, showConsole)){
 				showConsole = !showConsole;
 			}
 			if(ImGui::MenuItem("Assets Browser", nullptr, showAssetsBrowser)){

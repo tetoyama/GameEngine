@@ -4,10 +4,11 @@
 #include <Windows.h>
 
 #include "Service/IService.h"
+#include "Engine/EditorUI/ImGuiMainManuBar.h"
+
 
 class GraphicsContext;
 class IWindow;
-class ImGuiManubar;
 
 class ImGuiService : public IService
 {
@@ -24,8 +25,8 @@ public:
 
 	void DrawDebugImGuiWindow(double Update, double Draw, double FPS, double DeltaFPS);
 
-	std::shared_ptr<ImGuiManubar> GetManubar() const{
-		return manubar;
+	ImGuiManubar* GetManubar(){
+		return &manubar;
 	}
 
 
@@ -36,6 +37,6 @@ private:
 	DirectX::XMMATRIX m_view;
 	DirectX::XMMATRIX m_projection;
 
-	std::shared_ptr<ImGuiManubar> manubar;
+	ImGuiManubar manubar;
 
 };

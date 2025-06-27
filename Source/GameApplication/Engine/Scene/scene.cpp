@@ -308,7 +308,7 @@ void Scene::Save(){
 		YAML::Node entityNode;
 		entityNode["Entity"] = static_cast<int>(e);
 		YAML::Node componentsNode = YAML::Node(YAML::NodeType::Sequence);
-		for (IComponent* comp : m_componentRegistry->GetAllComponentsOfEntity(e)) {
+		for (IComponent* comp : m_componentRegistry->GetAllComponentsOfEntitySorted(e)) {
 			if (comp) {
 				YAML::Node compNode = comp->encode();  // 各コンポーネントがTypeキーを含むマップを返す
 				if (compNode && compNode.IsMap()) {
@@ -404,6 +404,8 @@ std::string Scene::OpenYALM() {
 	ofn.lpstrFile = filename;
 	ofn.nMaxFile = MAX_PATH;
 	ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+	ofn.Flags |= OFN_NOCHANGEDIR;
+
 	ofn.lpstrDefExt = "yaml";
 
 
@@ -422,6 +424,7 @@ bool Scene::ShowSaveFileDialog(std::wstring& outPath){
 	ofn.lpstrFile = szFile;
 	ofn.nMaxFile = MAX_PATH;
 	ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
+	ofn.Flags |= OFN_NOCHANGEDIR;
 
 	if(GetSaveFileName(&ofn)){
 		outPath = szFile;

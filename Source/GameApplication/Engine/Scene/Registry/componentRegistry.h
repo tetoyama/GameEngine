@@ -26,7 +26,6 @@ public:
 private:
 	static std::atomic<ComponentTypeID> s_nextID;
 };
-
 class ComponentRegistry {
 public:
 	using YAMLCreator = std::function<IComponent* (Entity, const YAML::Node&)>;
@@ -37,9 +36,10 @@ public:
 	// YAML からの生成用ファクトリを登録する
 	template<typename T>
 	void RegisterYAMLComponent(const std::string& name, bool useArchetype = false){
+		if(m_yamlFactory.contains(name)) return;
+
 		RegisterComponent<T>(useArchetype);
 
-		// YAML ファクトリ
 		m_yamlFactory[name] = [this](Entity e, const YAML::Node& node) -> IComponent*{
 			auto* comp = AddComponent<T>(e);
 			if(comp){
@@ -48,13 +48,17 @@ public:
 			return comp;
 			};
 
-		// AddComponent メニュー用
 		m_addComponentFuncs[name] = [this](Entity e){
 			AddComponent<T>(e);
 			};
 
-		// 名前→ComponentTypeID の逆引き
-		m_nameToComponentID[name] = ComponentType::Get<T>();
+		ComponentTypeID typeID = ComponentType::Get<T>();
+
+		m_nameToComponentID[name] = typeID;
+		m_componentIDToName[typeID] = name;
+		m_typeToID[typeid(T)] = typeID;
+		m_idToTypeIndex.emplace(typeID, typeid(T));
+		m_ComponentRegistrationOrder.push_back(name);
 	}
 
 	IComponent* CreateFromYAML(const std::string& name, Entity e, const YAML::Node& node){
@@ -63,21 +67,6 @@ public:
 			return it->second(e, node);
 		}
 		return nullptr;
-	}
-
-	// コンポーネント登録
-	template<typename T>
-	void RegisterComponent(bool useArchetype = false){
-		std::type_index ti(typeid(T));
-		if(m_storages.contains(ti)) return;
-
-		ComponentTypeID typeID = ComponentType::Get<T>();
-		m_typeToID[ti] = typeID;
-
-		if(useArchetype)
-			m_storages[ti] = std::make_unique<ArchetypeStorage<T>>();
-		else
-			m_storages[ti] = std::make_unique<SparseStorage<T>>();
 	}
 
 	// コンポーネント追加
@@ -133,19 +122,15 @@ public:
 	}
 
 	void RemoveComponentByID(Entity e, ComponentTypeID id){
-		for(auto& [ti, typeID] : m_typeToID){
-			if(typeID == id){
-				m_storages[ti]->Remove(e);
+		auto it = m_idToTypeIndex.find(id);
+		if(it != m_idToTypeIndex.end()){
+			const auto& ti = it->second;
+			auto storageIt = m_storages.find(ti);
+			if(storageIt != m_storages.end()){
+				storageIt->second->Remove(e);
 				m_entityMasks[e].reset(id);
-				break;
 			}
 		}
-	}
-
-	ComponentTypeID GetComponentIDFromTypeInfo(const std::type_index& ti) const{
-		auto it = m_typeToID.find(ti);
-		if(it != m_typeToID.end()) return it->second;
-		return -1;
 	}
 
 	void OnEntityDestroyed(Entity e){
@@ -182,23 +167,31 @@ public:
 		return it->second->GetEntityList();
 	}
 
-	std::vector<IComponent*> GetAllComponentsOfEntity(Entity e){
+	std::vector<IComponent*> GetAllComponentsOfEntitySorted(Entity e){
 		std::vector<IComponent*> components;
 
-		if(!m_entityManager->IsAlive(e)){
-			return components;
-		}
+		if(!m_entityManager->IsAlive(e)) return components;
 
-		for(auto& [ti, storage] : m_storages){
-			IComponent* comp = storage.get()->GetEntityComponent(e);
-			if(comp){
-				components.push_back(comp);
+		for(const auto& name : m_ComponentRegistrationOrder){
+			auto itID = m_nameToComponentID.find(name);
+			if(itID == m_nameToComponentID.end()) continue;
+
+			ComponentTypeID id = itID->second;
+			auto itType = m_idToTypeIndex.find(id);
+			if(itType == m_idToTypeIndex.end()) continue;
+
+			const std::type_index& ti = itType->second;
+			auto storageIt = m_storages.find(ti);
+			if(storageIt != m_storages.end()){
+				IComponent* comp = storageIt->second->GetEntityComponent(e);
+				if(comp){
+					components.push_back(comp);
+				}
 			}
 		}
 		return components;
 	}
 
-	// Add Component メニューに使う
 	const std::unordered_map<std::string, std::function<void(Entity)>>& GetAddableComponentList() const{
 		return m_addComponentFuncs;
 	}
@@ -220,17 +213,38 @@ public:
 		if(it != m_typeToID.end()){
 			return it->second;
 		}
-		return static_cast<ComponentTypeID>(-1); // または適切な無効ID
+		return static_cast<ComponentTypeID>(-1);
 	}
+
+	const std::unordered_map<ComponentTypeID, std::string>& GetComponentIDToNameMap() const{
+		return m_componentIDToName;
+	}
+
 private:
 	EntityRegistry* m_entityManager;
 
 	std::unordered_map<std::type_index, std::unique_ptr<IComponentStorage>> m_storages;
 	std::unordered_map<std::type_index, ComponentTypeID> m_typeToID;
+	std::unordered_map<ComponentTypeID, std::type_index> m_idToTypeIndex;
 
 	std::unordered_map<Entity, ComponentMask> m_entityMasks;
 
 	std::unordered_map<std::string, YAMLCreator> m_yamlFactory;
 	std::unordered_map<std::string, std::function<void(Entity)>> m_addComponentFuncs;
 	std::unordered_map<std::string, ComponentTypeID> m_nameToComponentID;
+	std::unordered_map<ComponentTypeID, std::string> m_componentIDToName;
+
+	std::vector<std::string> m_ComponentRegistrationOrder;
+
+	// ストレージ登録（内部専用）
+	template<typename T>
+	void RegisterComponent(bool useArchetype = false){
+		std::type_index ti(typeid(T));
+		if(m_storages.contains(ti)) return;
+
+		if(useArchetype)
+			m_storages[ti] = std::make_unique<ArchetypeStorage<T>>();
+		else
+			m_storages[ti] = std::make_unique<SparseStorage<T>>();
+	}
 };

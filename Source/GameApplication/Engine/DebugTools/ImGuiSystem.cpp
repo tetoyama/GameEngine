@@ -9,7 +9,6 @@
 
 #include "Engine/Graphics/GraphicsContext.h"
 #include "Engine/Platform/WindowSystem/MainWindow.h"
-#include "Engine/EditorUI/ImGuiMainManuBar.h"
 
 #ifdef _DEBUG
 
@@ -54,7 +53,7 @@ bool ImGuiService::Initialize(IWindow* window, GraphicsContext* graphics){
 	//io.Fonts->AddFontFromFileTTF("Asset\\Fonts\\PixelMplus12-Bold.ttf", 15.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
 
 	// メイン日本語フォントを読み込み
-	io.Fonts->AddFontFromFileTTF("Asset\\Fonts\\NotoSansJP-Regular.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
+	io.Fonts->AddFontFromFileTTF("Asset\\Font\\NotoSansJP-Regular.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
 
 	//// 絵文字用フォント設定（マージ用）
 	//ImFontConfig emojiConfig;
@@ -94,14 +93,12 @@ bool ImGuiService::Initialize(IWindow* window, GraphicsContext* graphics){
 		graphics->GetDevice(),
 		graphics->GetDeviceContext()
 	);
-	manubar = std::make_shared<ImGuiManubar>();
 
 	return initialized_;
 }
 
 void ImGuiService::Shutdown() {
 
-	manubar.reset();
 		//ImGuiの終了処理
 	{
 		ImGui_ImplDX11_Shutdown();
@@ -147,7 +144,7 @@ void ImGuiService::Begin(){
 	//ImGuizmo::SetRect(ImGui::GetMainViewport()->Pos.x, ImGui::GetMainViewport()->Pos.y, ImGui::GetMainViewport()->Size.x, ImGui::GetMainViewport()->Size.y);
 
 	ImGui::DockSpaceOverViewport(0U,0, ImGuiDockNodeFlags_PassthruCentralNode);  // ドッキングスペースの設置
-	manubar->Render();
+	manubar.Render();
 	DrawAssetsBrowser();
 }
 
@@ -251,9 +248,9 @@ void SetModernStyle(){
 	colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
 	colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
 	colors[ImGuiCol_WindowBg] = ImVec4(0.11f, 0.15f, 0.17f, 1.00f);
-	colors[ImGuiCol_ChildBg] = ImVec4(0.07f, 0.07f, 0.07f, 1.00f);
+	colors[ImGuiCol_ChildBg] = ImVec4(0.07f, 0.07f, 0.07f, 0.5f);
 	colors[ImGuiCol_PopupBg] = ImVec4(0.08f, 0.08f, 0.10f, 0.94f);
-	colors[ImGuiCol_Border] = ImVec4(0.40f, 0.40f, 0.40f, 0.50f);
+	colors[ImGuiCol_Border] = ImVec4(0.8f, 0.8f, 0.8f, 0.2f);
 	colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
 	colors[ImGuiCol_FrameBg] = ImVec4(0.15f, 0.15f, 0.18f, 1.00f);
 	colors[ImGuiCol_FrameBgHovered] = ImVec4(0.25f, 0.25f, 0.35f, 1.00f);

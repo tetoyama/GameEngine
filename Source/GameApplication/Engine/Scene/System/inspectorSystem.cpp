@@ -24,6 +24,11 @@
 #include <Component/cameraComponent.h>
 #include <Component/playerComponent.h>
 #include <Component/enemyComponent.h>
+#include "Engine/DebugTools/DebugSystem.h" // Add this include to resolve the incomplete type issue
+
+static bool openRename = false;
+static std::filesystem::path renameTarget;
+static char newNameBuffer[256] = {0};
 
 // メインの更新関数
 void InspectorSystem::Draw(){
@@ -32,6 +37,7 @@ void InspectorSystem::Draw(){
 	showSceneHierarchy = &m_context->manager->imgui->GetManubar()->showSceneHierarchy;
 	showInspector = &m_context->manager->imgui->GetManubar()->showInspector;
 	showAssetsBrowser = &m_context->manager->imgui->GetManubar()->showAssetsBrowser;
+	showConsole = &m_context->manager->imgui->GetManubar()->showConsole;
 
 
 	if(*showSceneHierarchy) DrawSceneHierarchy(m_context);
@@ -139,12 +145,21 @@ void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 			if(name && name->name != ""){
 				showName = std::format("{:05}", entity) + " : " + name->name;
 			}
-			if(ImGui::Selectable(showName.c_str(), selectedEntity == entity)){
-				if(selectedEntity == entity){
-					selectedEntity = 0;
-				} else{
-					selectedEntity = entity;
+
+			// サーチフィルタにマッチしない場合はスキップ
+			if(searchBuffer[0] != '\0'){
+				std::string lowerName = showName;
+				std::string lowerSearch = searchBuffer;
+				std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
+				std::transform(lowerSearch.begin(), lowerSearch.end(), lowerSearch.begin(), ::tolower);
+
+				if(lowerName.find(lowerSearch) == std::string::npos){
+					continue;
 				}
+			}
+
+			if(ImGui::Selectable(showName.c_str(), selectedEntity == entity)){
+				selectedEntity = (selectedEntity == entity) ? 0 : entity;
 			}
 		}
 
@@ -201,7 +216,7 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 	ImGui::Dummy(ImVec2(0, 10)); // 間隔を空ける
 	ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
-	auto Components = registry->GetAllComponentsOfEntity(selectedEntity);
+	auto Components = registry->GetAllComponentsOfEntitySorted(selectedEntity);
 	std::vector<IComponent*> componentsToRemove;
 	// ツリーノードヘッダー用カラー
 	ImVec4 headerBg = ImVec4(0.25f, 0.30f, 0.35f, 1.00f); // 通常時
@@ -345,113 +360,284 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 }
 
 void DrawDirectoryTree(const std::filesystem::path& directory, std::string& selectedPath){
-	if(!std::filesystem::exists(directory) || !std::filesystem::is_directory(directory))
+	if(!std::filesystem::exists(directory) || !std::filesystem::is_directory(directory)){
 		return;
+	}
 
+	// === ディレクトリ一覧を収集＆ソート ===
+	std::vector<std::filesystem::directory_entry> directories;
 	for(const auto& entry : std::filesystem::directory_iterator(directory)){
-		const auto& path = entry.path();
-		if(!entry.is_directory()) continue;
-		if(!std::filesystem::exists(path)) continue;
-
-		std::string name = path.filename().string();
-		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
-
-		bool opened = ImGui::TreeNodeEx(name.c_str(), flags);
-		if(ImGui::IsItemClicked()){
-			selectedPath = path.string(); // フォルダ選択
-		}
-
-		if(opened){
-			DrawDirectoryTree(path, selectedPath); // 再帰的に描画
-			ImGui::TreePop();
+		if(entry.is_directory()){
+			directories.push_back(entry);
 		}
 	}
-}void DrawAssetsInDirectory(const std::string& folderPath){
-	std::filesystem::path path = folderPath;
-	if(!std::filesystem::exists(path) || !std::filesystem::is_directory(path))
-		return;
-	ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
+	std::sort(directories.begin(), directories.end(), [](const auto& a, const auto& b){
+		return a.path().filename().string() < b.path().filename().string();
+			  });
+
+	// === 各フォルダ描画 ===
+	for(const auto& entry : directories){
+		const auto& path = entry.path();
+		std::string name = path.filename().string();
+
+		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+
+		// サブディレクトリを持っているかチェック
+		bool hasSubDir = false;
+		for(const auto& subEntry : std::filesystem::directory_iterator(path)){
+			if(subEntry.is_directory()){
+				hasSubDir = true;
+				break;
+			}
+		}
+		if(!hasSubDir){
+			flags |= ImGuiTreeNodeFlags_Leaf;
+		}
+
+		// 選択状態なら色変更
+		// 選択されていたらハイライトさせる
+		bool isSelected = (selectedPath == path.string());
+		if(isSelected){
+			flags |= ImGuiTreeNodeFlags_Selected;
+		}
+		if(isSelected){
+			ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.3f, 0.5f, 0.9f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.4f, 0.6f, 1.0f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.2f, 0.4f, 0.8f, 1.0f));
+		}
+
+		ImGui::PushID(path.string().c_str());
+
+		bool opened = ImGui::TreeNodeEx(name.c_str(), flags);
+		if(isSelected){
+			ImGui::PopStyleColor(3);
+		}
+		// 右クリックメニュー（そのアイテムを右クリック）
+		if(ImGui::BeginPopupContextItem()){
+			if(ImGui::MenuItem("新しいフォルダを作成")){
+				// 例：<path>/NewFolder のように作成
+				std::filesystem::path newFolder = path / "NewFolder";
+				int index = 1;
+				while(std::filesystem::exists(newFolder)){
+					newFolder = path / ("NewFolder" + std::to_string(index++));
+				}
+				std::filesystem::create_directory(newFolder);
+			}
+
+
+			if(ImGui::MenuItem("名前を変更")){
+				openRename = true;
+				renameTarget = path;
+				strcpy_s(newNameBuffer, path.filename().string().c_str());
+				ImGui::CloseCurrentPopup();
+			}
+
+			if(ImGui::MenuItem("削除")){
+				std::error_code ec;
+				if(std::filesystem::is_empty(path, ec)){
+					std::filesystem::remove(path, ec); // 安全に削除
+				}
+			}
+			if(ImGui::MenuItem("エクスプローラーで開く")){
+				ShellExecuteA(NULL, "open", path.string().c_str(), NULL, NULL, SW_SHOW);
+			}
+			ImGui::EndPopup();
+		
+
+
+		}
+
+
+		if(ImGui::IsItemClicked()){
+			std::error_code ec;
+			if(std::filesystem::exists(path, ec) && std::filesystem::is_directory(path, ec)){
+				selectedPath = path.string();
+			}
+		}
+
+		if(openRename){
+			ImGui::OpenPopup("名前を変更");
+			openRename = false;
+		}
+
+		if(ImGui::BeginPopupModal("名前を変更", nullptr, ImGuiWindowFlags_AlwaysAutoResize)){
+			ImGui::InputText("新しい名前", newNameBuffer, IM_ARRAYSIZE(newNameBuffer));
+
+			if(ImGui::Button("OK")){
+				std::filesystem::path newPath = renameTarget.parent_path() / newNameBuffer;
+				std::error_code ec;
+				std::filesystem::rename(renameTarget, newPath, ec);
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+			if(ImGui::Button("キャンセル")){
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndPopup();
+		}
+
+		// サブディレクトリがある場合だけ再帰
+		if(opened){
+			if(hasSubDir){
+				DrawDirectoryTree(path, selectedPath);
+			}
+			ImGui::TreePop();
+		}
+
+		ImGui::PopID();
+
+
+	}
+}
+
+
+
+void DrawAssetsInDirectory(const std::string& folderPath){
+	std::filesystem::path path = folderPath;
+	std::error_code ec;
+	if(!std::filesystem::exists(path, ec) || !std::filesystem::is_directory(path, ec)) return;
+
+	ImGui::Text("Content: %s", folderPath.c_str());
+
+	float SearchWidth = 120.0f;
+	if(ImGui::GetWindowContentRegionMax().x * 0.6f > SearchWidth){
+		SearchWidth = ImGui::GetWindowContentRegionMax().x * 0.6f; // ウィンドウ幅の半分を基準にする
+	}
+	ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - SearchWidth);
+	ImGui::PushItemWidth(SearchWidth);
+	static char searchBuffer[256] = "";
+	ImGui::InputTextWithHint("##AssetSearch", "Search files...", searchBuffer, sizeof(searchBuffer));
+	ImGui::PopItemWidth();
+
+	ImGui::Separator();
+
+	ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
 	float itemSize = 70.0f;
 	float panelWidth = ImGui::GetContentRegionAvail().x;
 	int columnsCount = static_cast<int>(panelWidth / (itemSize + 5));
 	if(columnsCount < 1) columnsCount = 1;
 
+	// 明示的に entry をキャッシュ
+	std::vector<std::filesystem::directory_entry> files;
+	for(const auto& entry : std::filesystem::directory_iterator(path, ec)){
+		if(entry.is_regular_file(ec)){
+			files.push_back(entry);
+		}
+	}
+
+	std::sort(files.begin(), files.end(), [](const auto& a, const auto& b){
+		return a.path().filename().string() < b.path().filename().string();
+			  });
+
+	// 小文字での部分一致用に準備
+	std::string searchStr = searchBuffer;
+	std::transform(searchStr.begin(), searchStr.end(), searchStr.begin(), ::tolower);
+
 	int index = 0;
-
-
-	for(const auto& entry : std::filesystem::directory_iterator(path)){
-		if(!entry.is_regular_file()) continue;
-
+	for(const auto& entry : files){
 		std::string filename = entry.path().filename().string();
+
+		// ★ フィルタ処理
+		if(!searchStr.empty()){
+			std::string lowerFilename = filename;
+			std::transform(lowerFilename.begin(), lowerFilename.end(), lowerFilename.begin(), ::tolower);
+			if(lowerFilename.find(searchStr) == std::string::npos)
+				continue;
+		}
 
 		if(index % columnsCount != 0)
 			ImGui::SameLine();
 
-		ImGui::PushID(index++);
+		ImGui::PushID(entry.path().string().c_str());
 
-		ImGui::BeginGroup(); // アイコンとテキストを1つのアイテムにまとめる
-
+		ImGui::BeginGroup();
 		ImGui::Button("ICON", ImVec2(itemSize, itemSize));
 
-		// === ドラッグ操作の追加 ===
-		if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-			// ファイルパスをドラッグペイロードとして送る
+		if(ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)){
 			std::string fullPath = entry.path().string();
-			ImGui::SetDragDropPayload("ASSET_PATH", fullPath.c_str(), fullPath.size() + 1); // null終端込み
+			ImGui::SetDragDropPayload("ASSET_PATH", fullPath.c_str(), fullPath.size() + 1);
 			ImGui::Text("Drag: %s", filename.c_str());
 			ImGui::EndDragDropSource();
 		}
 
-		// ファイル名の描画（ラベルの横幅を制限）
 		ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + itemSize);
 		ImGui::TextWrapped("%s", filename.c_str());
 		ImGui::PopTextWrapPos();
 
 		ImGui::EndGroup();
-
 		ImGui::PopID();
+		++index;
 	}
 
-	ImGui::EndChild(); // Childウィンドウを閉じる
+	ImGui::EndChild();
 }
+
+
 void InspectorSystem::DrawAssetsBrowser(){
-	std::filesystem::path ASSETS_ROOT = "Asset"; // ルートディレクトリ
+	std::filesystem::path ASSETS_ROOT = "Asset";
+	static std::string selectedPath = ASSETS_ROOT.string();
+	//m_context->manager->debug->LOG_INFO("Current path: " + std::filesystem::current_path().string());
 
-	static std::string selectedPath = ASSETS_ROOT.string(); // 選択中のパスを保持
+	// --- パス検証・正規化 ---
+	std::error_code ec;
+	std::filesystem::path normalized = std::filesystem::weakly_canonical(selectedPath, ec);
 
+	if(ec || !std::filesystem::exists(normalized) || !std::filesystem::is_directory(normalized)){
+		// フォールバック + ログ出力
+		m_context->manager->debug->LOG_ERROR("Invalid selectedPath: " + selectedPath +
+											 "\n→ normalized: " + normalized.string() +
+											 "\n→ ec: " + std::to_string(ec.value()));
+		selectedPath = ASSETS_ROOT.string();
+	}
+
+	// === ImGui Begin ===
 	ImGui::Begin("Assets Browser", showAssetsBrowser);
+
 	ImGui::Columns(2, "AssetColumns", true);
 	ImGui::SetColumnWidth(0, 200);
 
-	// 左コラム（フォルダツリー） Begin
+	// === 左カラム：フォルダツリー ===
 	ImGui::BeginChild("LeftPane", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
 	if(std::filesystem::exists(ASSETS_ROOT) && std::filesystem::is_directory(ASSETS_ROOT)){
+		ImGui::PushID("AssetsRoot");
 		if(ImGui::TreeNodeEx("Assets", ImGuiTreeNodeFlags_DefaultOpen)){
 			if(ImGui::IsItemClicked()){
-				selectedPath = ASSETS_ROOT.string(); // ルートクリック時
+				selectedPath = ASSETS_ROOT.string(); // ルート選択
+			}
+			// --- 右クリックメニュー追加 ---
+			if(ImGui::BeginPopupContextItem()){
+				if(ImGui::MenuItem("新しいフォルダを作成")){
+					std::filesystem::path newFolder = ASSETS_ROOT / "NewFolder";
+					int index = 1;
+					while(std::filesystem::exists(newFolder)){
+						newFolder = ASSETS_ROOT / ("NewFolder" + std::to_string(index++));
+					}
+					std::filesystem::create_directory(newFolder);
+				}
+				ImGui::EndPopup();
 			}
 			DrawDirectoryTree(ASSETS_ROOT, selectedPath);
 			ImGui::TreePop();
+
 		}
+		ImGui::PopID();
 	} else{
 		ImGui::TextColored(ImVec4(1, 0, 0, 1), "Assets directory not found!");
 	}
 
-	ImGui::EndChild(); // 左コラム End
+	ImGui::EndChild();
 
+
+	// === 右カラム：アセット一覧 ===
 	ImGui::NextColumn();
-
-	// 右コラム（アセット一覧） Begin
 	ImGui::BeginChild("RightPane", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
-	ImGui::Text("Content: %s", selectedPath.c_str());
-	ImGui::Separator();
 	DrawAssetsInDirectory(selectedPath);
 
-	ImGui::EndChild(); // 右コラム End
+	ImGui::EndChild();
 
 	ImGui::Columns(1);
 	ImGui::End();

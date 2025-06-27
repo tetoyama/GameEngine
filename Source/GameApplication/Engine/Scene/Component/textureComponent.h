@@ -61,10 +61,10 @@ public:
 
        
         // 色定義
-        ImVec4 colorR = ImVec4(0.7f, 0.5f, 0.5f, 1.0f); // R
-        ImVec4 colorG = ImVec4(0.5f, 0.7f, 0.5f, 1.0f); // G
-        ImVec4 colorB = ImVec4(0.5f, 0.5f, 0.7f, 1.0f); // B
-        ImVec4 colorA = ImVec4(0.8f, 0.8f, 0.8f, 1.0f); // A
+        ImVec4 colorR = ImVec4(0.7f, 0.4f, 0.4f, 0.3f); // R
+        ImVec4 colorG = ImVec4(0.4f, 0.7f, 0.4f, 0.3f); // G
+        ImVec4 colorB = ImVec4(0.4f, 0.4f, 0.7f, 0.3f); // B
+        ImVec4 colorA = ImVec4(0.8f, 0.8f, 0.8f, 0.3f); // A
 
         float* c = &Material.Diffuse.x;
 
@@ -169,29 +169,75 @@ public:
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();
 
-        // --- Animation Frame ---
-        ImGui::AlignTextToFramePadding();
-        ImGui::Text("Frame");
-        ImGui::SameLine();
+		// --- Animation Frame ---
+		ImGui::AlignTextToFramePadding();
+		ImGui::TextUnformatted("Frame");
+		ImGui::SameLine(100.0f);
 
-        float frameLabelWidth = 100.0f;
-        float frameFieldWidth = ImGui::GetContentRegionAvail().x - frameLabelWidth;
-        if (frameFieldWidth < 60.0f) frameFieldWidth = 60.0f; // 最小幅確保
+		// 計算
+		float totalAvail = ImGui::GetContentRegionAvail().x;
+		sliderWidth = totalAvail * 0.6f;
+		float inputWidth = totalAvail - sliderWidth - ImGui::GetStyle().ItemSpacing.x * 2;
 
-        ImGui::SetCursorPosX(frameLabelWidth);
-        ImGui::PushItemWidth(frameFieldWidth);
+		int maxFrame = UV_Slice_X * UV_Slice_Y - 1;
+		if(maxFrame < 0) maxFrame = 0;
 
-        int maxFrame = UV_Slice_X * UV_Slice_Y - 1;
-        if (maxFrame < 0) maxFrame = 0;
-        if (ImGui::DragInt("##Frame", &AnimationNum, 1, -1, maxFrame)) {
-            if (AnimationNum < 0) AnimationNum = 0;
-        }
-        ImGui::PopItemWidth();
+		// スライダー（左）
+		ImGui::PushItemWidth(sliderWidth);
+		// スタイル調整（丸いスライダーグリップ、細いバー）
+		ImGuiStyle& style = ImGui::GetStyle();
+		float oldGrabRounding = style.GrabRounding;
+
+		style.GrabRounding = 100.0f;             // 丸いつまみ
+		if(ImGui::SliderInt("##FrameSlider", &AnimationNum, 0, maxFrame)){
+			if(AnimationNum < 0) AnimationNum = 0;
+		}
+		ImGui::PopItemWidth();
+		// スタイル戻す
+		style.GrabRounding = oldGrabRounding;
+
+		ImGui::SameLine();
+
+		// 数値入力（右）
+		ImGui::PushItemWidth(inputWidth);
+		if(ImGui::DragInt("##FrameInput", &AnimationNum, 1, 0, maxFrame)){
+			if(AnimationNum < 0) AnimationNum = 0;
+		}
+		ImGui::PopItemWidth();
+
+
+		// --- Texture Input ---
+		float textLabelWidth = 100.0f;
+		float inputFieldWidth = ImGui::GetContentRegionAvail().x - textLabelWidth;
+
+		char filepathBuffer[256] = "";
+		if(m_TextureData && !m_TextureData->FilePath.empty()){
+			strncpy_s(filepathBuffer, sizeof(filepathBuffer), m_TextureData->FilePath.c_str(), _TRUNCATE);
+		}
+
+		ImGui::Text("Texture");
+		ImGui::SameLine(textLabelWidth);
+		ImGui::PushItemWidth(inputFieldWidth);
+		if(ImGui::InputText("##TextureInput", filepathBuffer, sizeof(filepathBuffer))){
+			m_TextureData = context->manager->resource->GetTextureLoader()->LoadTexture(filepathBuffer);
+		}
+		ImGui::PopItemWidth();
+
+		// --- Drag and Drop for Texture ---
+		if(ImGui::BeginDragDropTarget()){
+			if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
+				const char* droppedPath = (const char*)payload->Data;
+				std::string _texturePath = std::string(droppedPath);
+
+				m_TextureData = context->manager->resource->GetTextureLoader()->LoadTexture(_texturePath);
+			}
+			ImGui::EndDragDropTarget();
+		}
 
         // --- Texture Preview ---
         if (m_TextureData && m_TextureData->pTexture) {
             ImVec2 avail = ImGui::GetContentRegionAvail();
-            float previewSize = (std::min)(avail.x * 0.5f - 4.0f, 128.0f);  // 左右2分割＋余白
+            float previewSize = avail.x * 0.5f - ImGui::GetStyle().ItemSpacing.x * 2;
             float spacing = 8.0f;
 
             ImGui::BeginGroup();
@@ -230,33 +276,6 @@ public:
 
         ImGui::Spacing();
 
-        // --- Texture Input ---
-        float textLabelWidth = 100.0f;
-        float inputFieldWidth = ImGui::GetContentRegionAvail().x - textLabelWidth;
-
-        char filepathBuffer[256] = "";
-        if (m_TextureData && !m_TextureData->FilePath.empty()) {
-            strncpy_s(filepathBuffer, sizeof(filepathBuffer), m_TextureData->FilePath.c_str(), _TRUNCATE);
-        }
-
-        ImGui::Text("Texture");
-        ImGui::SameLine(textLabelWidth);
-        ImGui::PushItemWidth(inputFieldWidth);
-        if (ImGui::InputText("##TextureInput", filepathBuffer, sizeof(filepathBuffer))) {
-            m_TextureData = context->manager->resource->GetTextureLoader()->LoadTexture(filepathBuffer);
-        }
-        ImGui::PopItemWidth();
-
-        // --- Drag and Drop for Texture ---
-        if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-                const char* droppedPath = (const char*)payload->Data;
-                std::string _texturePath = std::string(droppedPath);
-
-                m_TextureData = context->manager->resource->GetTextureLoader()->LoadTexture(_texturePath);
-            }
-            ImGui::EndDragDropTarget();
-        }
 		ImGui::PopID(); // コンポーネントのIDをポップ
     }
 
