@@ -2,6 +2,7 @@
 
 #include "scene.h"
 #include <commdlg.h> // GetOpenFileName
+#include <filesystem>
 
 #include <string>
 #include "Engine/DebugTools/debugSystem.h"
@@ -193,7 +194,7 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\cube.fbx");
 		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\pointLightingBlinnPhongVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pointLightingBlinnPhongPS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pixelLightingPS.cso");
 	}
 
 	{
@@ -218,7 +219,7 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
 		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\limLightVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pixelLightingPS.cso");
 
 		auto player = componentRegistry->AddComponent<PlayerComponent>(entity);
 	}
@@ -266,7 +267,7 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
 		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\limLightVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pixelLightingPS.cso");
 
 		auto player = componentRegistry->AddComponent<EnemyComponent>(entity);
 	}
@@ -300,8 +301,10 @@ void Scene::Save(){
 	
 	YAML::Node root;
 	YAML::Node entitiesNode = YAML::Node(YAML::NodeType::Sequence);
+	const auto& entities = m_entityRegistry->GetAllAlive();
+	m_SceneManagerContext->debug->LOG_INFO(("保存対象エンティティ数: " + std::to_string(entities.size())).c_str());
 
-	for (Entity e : m_entityRegistry->GetAllAlive()) {
+	for (Entity e : entities) {
 		YAML::Node entityNode;
 		entityNode["Entity"] = static_cast<int>(e);
 		YAML::Node componentsNode = YAML::Node(YAML::NodeType::Sequence);
@@ -320,12 +323,14 @@ void Scene::Save(){
 
 	root["Entities"] = entitiesNode;
 
-	// UTF-16 → UTF-8 変換
-	int    size_needed = WideCharToMultiByte(CP_UTF8, 0, savePath.c_str(), -1, nullptr, 0, nullptr, nullptr);
-	std::string utf8Path(size_needed, 0);
-	WideCharToMultiByte(CP_UTF8, 0, savePath.c_str(), -1, &utf8Path[0], size_needed, nullptr, nullptr);
+    std::string utf8Path = std::filesystem::path(savePath).string();
+
 
 	std::ofstream fout(utf8Path, std::ios::binary);
+	if (!fout.is_open()) {
+		m_SceneManagerContext->debug->LOG_ERROR(("ファイルの保存に失敗しました: " + utf8Path).c_str());
+		return;
+	}
 	fout << root;
 }
 

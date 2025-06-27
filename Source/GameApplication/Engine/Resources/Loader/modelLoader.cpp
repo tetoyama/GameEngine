@@ -33,7 +33,12 @@ ModelData* ModelLoader::LoadModel(const std::string& modelPath){
 	model->SetTexture = true;
 
 	model->AiScene = aiImportFile(modelPath.c_str(), aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded /* | aiProcess_GenBoundingBoxes */);
-	assert(model->AiScene);
+	if (!model->AiScene) {
+		model->AiScene = nullptr;
+		m_Models[modelPath] = model;
+
+		return model.get();
+	}
 
 	model->VertexBuffer = new ID3D11Buffer * [model->AiScene->mNumMeshes];
 	model->IndexBuffer = new ID3D11Buffer * [model->AiScene->mNumMeshes];

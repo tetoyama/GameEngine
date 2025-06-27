@@ -36,25 +36,25 @@ public:
 	void inspector(SceneContext* context) override{
 
 		ImGui::Text("MoveSpeed");
-		ImGui::SameLine(120);
+		ImGui::SameLine(100);
 		ImGui::DragFloat("##moveSpeed", &moveSpeed);
 		if(ImGui::IsItemHovered())
 			ImGui::SetTooltip("moveSpeed");
 
-		ImGui::Text("cameraRotate");
-		ImGui::SameLine(120);
+		ImGui::Text("cmrRotate");
+		ImGui::SameLine(100);
 		ImGui::DragFloat("##cameraRotate", &cameraRotate);
 		if(ImGui::IsItemHovered())
 			ImGui::SetTooltip("cameraRotate");
 
-		ImGui::Text("cameraDistance");
-		ImGui::SameLine(120);
+		ImGui::Text("cmrDistance");
+		ImGui::SameLine(100);
 		ImGui::DragFloat("##cameraDistance", &cameraDistance);
 		if(ImGui::IsItemHovered())
 			ImGui::SetTooltip("cameraDistance");
 
-		ImGui::Text("cameraLerp");
-		ImGui::SameLine(120);
+		ImGui::Text("cmrLerp");
+		ImGui::SameLine(100);
 		ImGui::DragFloat("##cameraLerp", &cameraLerp);
 		if(ImGui::IsItemHovered())
 			ImGui::SetTooltip("cameraLerp");

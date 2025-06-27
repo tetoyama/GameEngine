@@ -61,25 +61,25 @@ public:
 
 		// Diffuseカラー
 		ImGui::Text("Diffuse");
-		ImGui::SameLine(120);
+		ImGui::SameLine(100);
 		ImGui::ColorEdit4("##Diffuse", &Material.Diffuse.x);
 
 		// UV Slice ラベル
 		ImGui::Text("UV Slice");
-		ImGui::SameLine(120);
+		ImGui::SameLine(100);
 
 		// 残り横幅を取得
 		float availWidth = ImGui::GetContentRegionAvail().x;
 
 		// X,Yラベル幅を計算（固定でOKなら不要）
-		float labelXWidth = ImGui::CalcTextSize("X").x + 4.0f; // 4px余白
-		float labelYWidth = ImGui::CalcTextSize("Y").x + 4.0f;
+		float labelXWidth = ImGui::CalcTextSize("X").x + 5.0f;
+		float labelYWidth = ImGui::CalcTextSize("Y").x + 5.0f;
 
 		// X入力幅：残り幅の半分からラベル幅を引いた分
-		float inputWidthX = (availWidth / 2) - labelXWidth - 4.0f; // 4px余白
+		float inputWidthX = (availWidth / 2) - labelXWidth - 5.0f; // 4px余白
 
 		// Y入力幅：残り幅の半分からラベル幅を引いた分
-		float inputWidthY = (availWidth / 2) - labelYWidth - 4.0f;
+		float inputWidthY = (availWidth / 2) - labelYWidth - 5.0f;
 
 		// --- X ---
 		ImGui::TextUnformatted("X");
@@ -102,7 +102,7 @@ public:
 
 		// Animation Frame
 		ImGui::Text("Frame");
-		ImGui::SameLine(120);
+		ImGui::SameLine(100);
 		int maxFrame = UV_Slice_X * UV_Slice_Y - 1;
 		if(maxFrame < 0) maxFrame = 0;
 		if(ImGui::DragInt("##Frame", &AnimationNum, 1, -1, maxFrame)){
@@ -126,10 +126,21 @@ public:
 			);
 
 			ImGui::SameLine();
+
+
+			UVMatrix uv;
+			ImVec2 start;
+			ImVec2 end;
+			start.x = (float)(AnimationNum % UV_Slice_Y) * 1.0f / (float)UV_Slice_X;
+			start.y = (float)(AnimationNum / UV_Slice_X) * 1.0f / (float)UV_Slice_Y;
+
+			end.x = (float)start.x + 1.0f / (float)UV_Slice_X;
+			end.y = (float)start.y + 1.0f / (float)UV_Slice_Y;
+
 			ImGui::Image(
 				(ImTextureID)m_TextureData->pTexture.Get(),
 				ImVec2(size, size),             // サイズを自動調整
-				ImVec2(0, 0), ImVec2(1, 1),     // UV
+				start, end,     // UV
 				ImVec4(Material.Diffuse.x, Material.Diffuse.y, Material.Diffuse.z, Material.Diffuse.w),             // 色
 				ImVec4(0, 0, 0, 0)              // 枠線なし
 			);
@@ -143,9 +154,21 @@ public:
 		if(m_TextureData){
 			strncpy_s(filepathBuffer, sizeof(filepathBuffer), m_TextureData->FilePath.c_str(), _TRUNCATE);
 		}
-		if(ImGui::InputText("Texture File Path", filepathBuffer, sizeof(filepathBuffer))){
+		if(ImGui::InputText("Texture", filepathBuffer, sizeof(filepathBuffer))){
 			// 編集されたら std::string に反映
 			m_TextureData = context->manager->resource->GetTextureLoader()->LoadTexture(filepathBuffer);
+		}
+
+		// ドロップ対象の処理
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+				const char* droppedPath = (const char*)payload->Data;
+				std::string _texturePath = std::string(droppedPath);
+
+				// TODO: 実際のリソースロード処理に差し替えて
+				m_TextureData = context->manager->resource->GetTextureLoader()->LoadTexture(_texturePath);
+			}
+			ImGui::EndDragDropTarget();
 		}
 	}
 };

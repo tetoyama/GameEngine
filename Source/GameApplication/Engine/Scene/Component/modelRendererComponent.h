@@ -39,19 +39,57 @@ public:
 			// 編集されたら std::string に反映
 			model = context->manager->resource->GetModelLoader()->LoadModel(filepathBuffer);
 		}
+		// ドロップ対象の処理
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+				const char* droppedPath = (const char*)payload->Data;
+				std::string _filePath = std::string(droppedPath);
+
+				// TODO: 実際のリソースロード処理に差し替えて
+				model = context->manager->resource->GetModelLoader()->LoadModel(_filePath);
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+
 		if(pixelShader){
 			strncpy_s(filepathBuffer, sizeof(filepathBuffer), pixelShader->FilePath.c_str(), _TRUNCATE);
 		}
-		if(ImGui::InputText("PixelShader File Path", filepathBuffer, sizeof(filepathBuffer))){
+		if(ImGui::InputText("PixelShader", filepathBuffer, sizeof(filepathBuffer))){
 			// 編集されたら std::string に反映
 			pixelShader = context->manager->resource->GetShaderLoader()->LoadPixelShader(filepathBuffer);
 		}
+		// ドロップ対象の処理
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+				const char* droppedPath = (const char*)payload->Data;
+				std::string _filePath = std::string(droppedPath);
+
+				// TODO: 実際のリソースロード処理に差し替えて
+				pixelShader = context->manager->resource->GetShaderLoader()->LoadPixelShader(_filePath);
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+
+
 		if(vertexShader){
 			strncpy_s(filepathBuffer, sizeof(filepathBuffer), vertexShader->FilePath.c_str(), _TRUNCATE);
 		}
-		if(ImGui::InputText("VertexShader File Path", filepathBuffer, sizeof(filepathBuffer))){
+		if(ImGui::InputText("VertexShader", filepathBuffer, sizeof(filepathBuffer))){
 			// 編集されたら std::string に反映
 			vertexShader = context->manager->resource->GetShaderLoader()->LoadVertexShader(filepathBuffer);
+		}
+		// ドロップ対象の処理
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+				const char* droppedPath = (const char*)payload->Data;
+				std::string _filePath = std::string(droppedPath);
+
+				// TODO: 実際のリソースロード処理に差し替えて
+				vertexShader = context->manager->resource->GetShaderLoader()->LoadVertexShader(_filePath);
+			}
+			ImGui::EndDragDropTarget();
 		}
 	}
 

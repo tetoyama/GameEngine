@@ -13,7 +13,7 @@ public:
 
 	void Release();
 
-	std::string FilePath;
+	std::string FilePath = "";
 	
 	const aiScene* AiScene = nullptr;
 

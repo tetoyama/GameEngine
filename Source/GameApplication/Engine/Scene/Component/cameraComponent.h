@@ -37,8 +37,13 @@ public:
 		if(ImGui::IsItemHovered())
 			ImGui::SetTooltip("FarClip");
 
+		if (NearClip <= 0.0f)
+			NearClip = 0.01f;
+
 		if(FarClip <= NearClip)
 			FarClip = NearClip + 0.01f;
+
+		
 
 		ImGui::Text("FOV");
 		ImGui::SameLine(120);

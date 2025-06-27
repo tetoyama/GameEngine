@@ -2623,7 +2623,6 @@
     <None Include="Asset\Shader\pixelLightingBlinnPhongPS.cso" />
     <None Include="Asset\Shader\pixelLightingBlinnPhongVS.cso" />
     <None Include="Source\GameApplication\Backends\yaml-cpp\contrib\yaml-cpp.natvis.md" />
-    <None Include="scene.yaml" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Shader\unlitTexturePS.hlsl" />

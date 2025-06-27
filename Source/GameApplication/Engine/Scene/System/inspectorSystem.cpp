@@ -109,13 +109,13 @@ void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 		selectedEntity = newEntity;
 	}
 	ImGui::SameLine();
-	if(ImGui::Button("- Delete")){
-		if(selectedEntity != 0){
-			registry->Destroy(selectedEntity);
-			context->component->OnEntityDestroyed(selectedEntity);
-			selectedEntity = 0;
-		}
-	}
+	//if(ImGui::Button("- Delete")){
+	//	if(selectedEntity != 0){
+	//		registry->Destroy(selectedEntity);
+	//		context->component->OnEntityDestroyed(selectedEntity);
+	//		selectedEntity = 0;
+	//	}
+	//}
 	static char searchBuffer[256] = "";
 	ImGui::SetNextItemWidth(-1);
 	ImGui::InputTextWithHint("##search", "Search objects...", searchBuffer, sizeof(searchBuffer));
@@ -127,6 +127,7 @@ void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 		ImGui::End();
 		return;
 	} else{
+		ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
 		for(Entity entity : entities){
 			std::string showName = "EntityID:" + std::to_string(entity);
@@ -142,6 +143,8 @@ void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 				}
 			}
 		}
+
+		ImGui::EndChild();
 	}
 	ImGui::End();
 
@@ -181,6 +184,8 @@ void InspectorSystem::DrawInspector(SceneContext* context){
         }
 	}
 	ImGui::SameLine();
+	ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 60);
+
 	if(ImGui::Button("- Delete")){
 		if(selectedEntity != 0){
 			context->entity->Destroy(selectedEntity);
@@ -190,6 +195,7 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 	}
 
 	ImGui::Dummy(ImVec2(0, 10)); // 間隔を空ける
+	ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
 	auto Components = registry->GetAllComponentsOfEntity(selectedEntity);
 	std::vector<IComponent*> componentsToRemove;
@@ -330,7 +336,7 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 			transform->scale = scale3;
 		}
 	}
-
+	ImGui::EndChild();
 	ImGui::End();
 }
 
@@ -360,6 +366,8 @@ void DrawDirectoryTree(const std::filesystem::path& directory, std::string& sele
 	std::filesystem::path path = folderPath;
 	if(!std::filesystem::exists(path) || !std::filesystem::is_directory(path))
 		return;
+	ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
+
 
 	float itemSize = 70.0f;
 	float panelWidth = ImGui::GetContentRegionAvail().x;
@@ -367,6 +375,7 @@ void DrawDirectoryTree(const std::filesystem::path& directory, std::string& sele
 	if(columnsCount < 1) columnsCount = 1;
 
 	int index = 0;
+
 
 	for(const auto& entry : std::filesystem::directory_iterator(path)){
 		if(!entry.is_regular_file()) continue;
@@ -382,6 +391,15 @@ void DrawDirectoryTree(const std::filesystem::path& directory, std::string& sele
 
 		ImGui::Button("ICON", ImVec2(itemSize, itemSize));
 
+		// === ドラッグ操作の追加 ===
+		if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+			// ファイルパスをドラッグペイロードとして送る
+			std::string fullPath = entry.path().string();
+			ImGui::SetDragDropPayload("ASSET_PATH", fullPath.c_str(), fullPath.size() + 1); // null終端込み
+			ImGui::Text("Drag: %s", filename.c_str());
+			ImGui::EndDragDropSource();
+		}
+
 		// ファイル名の描画（ラベルの横幅を制限）
 		ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + itemSize);
 		ImGui::TextWrapped("%s", filename.c_str());
@@ -391,6 +409,8 @@ void DrawDirectoryTree(const std::filesystem::path& directory, std::string& sele
 
 		ImGui::PopID();
 	}
+
+	ImGui::EndChild(); // Childウィンドウを閉じる
 }
 void InspectorSystem::DrawAssetsBrowser(){
 	std::filesystem::path ASSETS_ROOT = "Asset"; // ルートディレクトリ

@@ -7,6 +7,6 @@ class GraphicsContext;
 struct PixelShaderData
 {
 public:
-	std::string FilePath;
+	std::string FilePath = "";
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
 };
