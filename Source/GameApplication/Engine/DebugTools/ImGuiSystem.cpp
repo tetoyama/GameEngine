@@ -52,7 +52,30 @@ bool ImGuiService::Initialize(IWindow* window, GraphicsContext* graphics){
 	 
 	
 	//io.Fonts->AddFontFromFileTTF("Asset\\Fonts\\PixelMplus12-Bold.ttf", 15.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
+
+	// メイン日本語フォントを読み込み
 	io.Fonts->AddFontFromFileTTF("Asset\\Fonts\\NotoSansJP-Regular.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
+
+	//// 絵文字用フォント設定（マージ用）
+	//ImFontConfig emojiConfig;
+	//emojiConfig.MergeMode = true;      // マージモードをONにする
+	//emojiConfig.PixelSnapH = true;
+	//emojiConfig.GlyphMinAdvanceX = 13.0f;  // 必要に応じて調整
+
+	//// 絵文字のUnicode範囲（Noto EmojiやSegoe UI Emojiで使う）
+	//// 例として絵文字の範囲は下記のように指定
+	//static const ImWchar emoji_ranges[] = {
+	//	0x1F300, 0x1F5FF,   // Misc Symbols and Pictographs
+	//	0x1F600, 0x1F64F,   // Emoticons
+	//	0x1F680, 0x1F6FF,   // Transport & Map Symbols
+	//	0x2600,  0x26FF,    // Misc symbols
+	//	0x2700,  0x27BF,    // Dingbats
+	//	0,
+	//};
+
+	//io.Fonts->AddFontFromFileTTF("Asset\\Fonts\\NotoColorEmoji_WindowsCompatible.ttf", 16.0f, &emojiConfig, emoji_ranges);
+
+
 
 	io.IniFilename = "Asset\\imgui.ini"; // デフォルトでimgui.iniに保存されます
 

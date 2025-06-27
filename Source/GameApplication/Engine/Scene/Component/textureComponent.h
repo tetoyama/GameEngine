@@ -149,9 +149,9 @@ public:
 		}
 		ImGui::PopID();
 
-		static char filepathBuffer[256] = {0}; // 適当な最大長
+		char filepathBuffer[256] = ""; // 適当な最大長
 		// バッファに現在の文字列をコピー（初回か変更時だけにすると効率的）
-		if(m_TextureData){
+		if(m_TextureData && m_TextureData->FilePath != "") {
 			strncpy_s(filepathBuffer, sizeof(filepathBuffer), m_TextureData->FilePath.c_str(), _TRUNCATE);
 		}
 		if(ImGui::InputText("Texture", filepathBuffer, sizeof(filepathBuffer))){

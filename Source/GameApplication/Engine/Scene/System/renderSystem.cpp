@@ -148,7 +148,7 @@ void RenderSystem::Draw(){
 					graphicsContext->SetUVMatrix(uv);
 
 				} else {
-										// マテリアル設定
+					// マテリアル設定
 					MATERIAL material{};
 					material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 					graphicsContext->SetMaterial(material);
@@ -163,7 +163,6 @@ void RenderSystem::Draw(){
 					DrawBillBoard(transform, meshRenderer,billBoardRenderer, texture);
 				} else if (meshRenderer) {
 					DrawMesh(transform, meshRenderer, texture);
-
 				} else if(billBoardRenderer) {
 					auto* meshRenderer = m_context->component->AddComponent<MeshRendererComponent>(entity);
 					if(meshRenderer){
@@ -229,6 +228,7 @@ void RenderSystem::Draw(){
 	if(ImGui::Button("Stop")){
 		// 停止処理
 	}
+	ImGui::Separator();
 
 	ImVec2 avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
 
