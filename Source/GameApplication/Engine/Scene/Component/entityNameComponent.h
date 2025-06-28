@@ -9,7 +9,6 @@ public:
 
 	YAML::Node encode() override{
 		YAML::Node node;
-		node["Component"] = "NameComponent";
 		node["Name"] = name;
 		return node;
 	}

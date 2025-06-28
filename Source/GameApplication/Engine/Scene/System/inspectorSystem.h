@@ -26,9 +26,6 @@ private:
 	void DrawInspector(SceneContext* context);
 	void DrawAssetsBrowser();
 
-	// ヒエラルキー描画用のヘルパー
-	void DrawEntityNode(class ComponentRegistry* registry, Entity entity);
-
 	// メンバー変数
 	Entity selectedEntity = 0;
 

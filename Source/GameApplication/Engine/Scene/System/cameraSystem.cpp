@@ -68,7 +68,7 @@ void CameraSystem::Update(float deltaTime) {
 		Vector3 front = transformComponent->position + transformComponent->front().normalize();
 		Vector3 up = transformComponent->position + transformComponent->up().normalize();
 
-		cameraComponent->viewMatrix = DirectX::XMMatrixLookAtLH({ position.x,position.y,position.z }, { front.x,front.y,front.z }, { up.x,up.y,up.z });
+		cameraComponent->viewMatrix = DirectX::XMMatrixLookAtLH({ position.x,position.y,position.z }, { front.x,front.y,front.z }, {0.0f,1.0f,0.0f});
 	}
 	graphicsContext->SetViewMatrix(cameraComponent->viewMatrix);
 

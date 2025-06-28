@@ -13,7 +13,6 @@ public:
 
 	YAML::Node encode() override{
 		YAML::Node node;
-		node["Component"] = "TransformComponent";
 		node["Position"] = position;
 		node["Rotation"] = rotation;
 		node["Scale"] = scale;

@@ -51,7 +51,7 @@ private:
 	void DrawBillBoard(TransformComponent* pTransform, MeshRendererComponent* pMesh, BillBoardRendererComponent* pBillBoard, TextureComponent* pTexture);
 
 	SceneContext* m_context;
-
+	MeshRendererComponent* m_billBoardMesh = nullptr;
 	ID3D11Texture2D* tex = nullptr;
 	ID3D11RenderTargetView* rtv = nullptr;
 	ID3D11ShaderResourceView* srv = nullptr;

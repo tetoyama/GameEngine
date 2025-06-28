@@ -22,7 +22,6 @@ public:
 
 	YAML::Node encode() override{
 		YAML::Node node;
-		node["Component"] = "TextureComponent";
 		if (m_TextureData) {
 			node["FilePath"] = m_TextureData->FilePath;
 		}

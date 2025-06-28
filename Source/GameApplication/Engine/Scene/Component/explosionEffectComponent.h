@@ -6,12 +6,20 @@ class ExplosionEffectComponent : public IComponent {
 public:
 	YAML::Node encode() override{
 		YAML::Node node;
-		node["Component"] = "ExplosionEffectComponent";
+		node["LifeTime"] = LifeTime;
+		node["Timer"] = Timer;
 
 		return node;
 	}
 
 	bool decode(const YAML::Node& node) override{
+
+		if(node["LifeTime"]){
+			LifeTime = node["LifeTime"].as<float>();
+		}
+		if(node["Timer"]){
+			Timer = node["Timer"].as<float>();
+		}
 		return true;
 	}
 

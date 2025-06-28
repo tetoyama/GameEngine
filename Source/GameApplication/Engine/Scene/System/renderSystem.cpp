@@ -84,9 +84,50 @@ void RenderSystem::Initialize(){
 			return;
 		}
 	}
+
+	m_billBoardMesh = new MeshRendererComponent;
+	if(m_billBoardMesh){
+
+		m_billBoardMesh->mesh.meshCount = 4;
+		VERTEX_3D vertex[4]{};
+
+		vertex[0].Position = DirectX::XMFLOAT3(-0.5f, 0.5f, 0.0f);
+		vertex[0].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+		vertex[0].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		vertex[0].TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
+
+		vertex[1].Position = DirectX::XMFLOAT3(0.5f, 0.5f, 0.0f);
+		vertex[1].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+		vertex[1].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		vertex[1].TexCoord = DirectX::XMFLOAT2(1.0f, 0.0f);
+
+		vertex[2].Position = DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f);
+		vertex[2].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+		vertex[2].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		vertex[2].TexCoord = DirectX::XMFLOAT2(0.0f, 1.0f);
+
+		vertex[3].Position = DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f);
+		vertex[3].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+		vertex[3].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		vertex[3].TexCoord = DirectX::XMFLOAT2(1.0f, 1.0f);
+
+		D3D11_BUFFER_DESC bd{};
+		bd.Usage = D3D11_USAGE_DEFAULT;
+		bd.ByteWidth = sizeof(VERTEX_3D) * 4;
+		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bd.CPUAccessFlags = 0;
+
+		D3D11_SUBRESOURCE_DATA sd{};
+		sd.pSysMem = vertex;
+
+		m_context->manager->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_billBoardMesh->mesh.m_VertexBuffer.GetAddressOf());
+		m_context->manager->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\unlitUVTextureVS.cso", m_billBoardMesh->mesh.m_VertexShader.GetAddressOf(), m_billBoardMesh->mesh.m_VertexLayout.GetAddressOf());
+		m_context->manager->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_billBoardMesh->mesh.m_PixelShader.GetAddressOf());
+	}
 }
 
 void RenderSystem::Finalize(){
+	delete m_billBoardMesh;	
 	tex->Release();
 	rtv->Release();
 	srv->Release();
@@ -159,51 +200,10 @@ void RenderSystem::Draw(){
 
 				BillBoardRendererComponent* billBoardRenderer = m_context->component->GetComponent<BillBoardRendererComponent>(entity);
 				MeshRendererComponent* meshRenderer = m_context->component->GetComponent<MeshRendererComponent>(entity);
-				if (meshRenderer && billBoardRenderer) {
-					DrawBillBoard(transform, meshRenderer,billBoardRenderer, texture);
-				} else if (meshRenderer) {
+				if(billBoardRenderer) {
+					DrawBillBoard(transform, m_billBoardMesh, billBoardRenderer, texture);
+				} else if(meshRenderer){
 					DrawMesh(transform, meshRenderer, texture);
-				} else if(billBoardRenderer) {
-					auto* meshRenderer = m_context->component->AddComponent<MeshRendererComponent>(entity);
-					if(meshRenderer){
-
-						meshRenderer->mesh.meshCount = 4;
-						VERTEX_3D vertex[4]{};
-
-						vertex[0].Position = DirectX::XMFLOAT3(-0.5f, 0.5f, 0.0f);
-						vertex[0].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-						vertex[0].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-						vertex[0].TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
-
-						vertex[1].Position = DirectX::XMFLOAT3(0.5f, 0.5f, 0.0f);
-						vertex[1].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-						vertex[1].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-						vertex[1].TexCoord = DirectX::XMFLOAT2(1.0f, 0.0f);
-
-						vertex[2].Position = DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f);
-						vertex[2].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-						vertex[2].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-						vertex[2].TexCoord = DirectX::XMFLOAT2(0.0f, 1.0f);
-
-						vertex[3].Position = DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f);
-						vertex[3].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-						vertex[3].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-						vertex[3].TexCoord = DirectX::XMFLOAT2(1.0f, 1.0f);
-
-						D3D11_BUFFER_DESC bd{};
-						bd.Usage = D3D11_USAGE_DEFAULT;
-						bd.ByteWidth = sizeof(VERTEX_3D) * 4;
-						bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-						bd.CPUAccessFlags = 0;
-
-						D3D11_SUBRESOURCE_DATA sd{};
-						sd.pSysMem = vertex;
-
-						m_context->manager->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, meshRenderer->mesh.m_VertexBuffer.GetAddressOf());
-						m_context->manager->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\unlitUVTextureVS.cso", meshRenderer->mesh.m_VertexShader.GetAddressOf(), meshRenderer->mesh.m_VertexLayout.GetAddressOf());
-						m_context->manager->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", meshRenderer->mesh.m_PixelShader.GetAddressOf());
-					}
-					DrawBillBoard(transform, meshRenderer, billBoardRenderer, texture);
 				}
 
 				ModelRendererComponent* modelRenderer = m_context->component->GetComponent<ModelRendererComponent>(entity);
@@ -213,10 +213,6 @@ void RenderSystem::Draw(){
 			}
 		}
 	}
-
-
-
-
 
 	ImGui::Begin("Editor View");
 

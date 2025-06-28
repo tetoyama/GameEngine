@@ -6,7 +6,6 @@ class BulletComponent: public IComponent {
 public:
 	YAML::Node encode() override{
 		YAML::Node node;
-		node["Component"] = "BulletComponent";
 
 		return node;
 	}

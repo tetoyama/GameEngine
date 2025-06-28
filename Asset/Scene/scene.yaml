@@ -81,8 +81,8 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 17.0294151
-          z: -10.8060436
+          y: 17.0294113
+          z: -10.8060417
         Rotation:
           x: -1
           y: 0
@@ -119,7 +119,7 @@ Entities:
           -
             - 0
             - -0.108060837
-            - 20.1682892
+            - 20.1682854
             - 1
   - Entity: 4
     Components:
@@ -127,12 +127,12 @@ Entities:
         Name: Enemy1
       - Component: TransformComponent
         Position:
-          x: 14.3721046
+          x: 21.3229675
           y: 0.200000003
-          z: 4.5220356
+          z: 2.40698361
         Rotation:
           x: 0
-          y: 1.16387415
+          y: -7.07682037
           z: 0
         Scale:
           x: 1
@@ -171,18 +171,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: 20
+          y: 0.200000003
+          z: 0.0135949999
+        maxDistance: 15
+        TargetPos:
+          x: 16.3863049
+          y: 0.200000003
+          z: 7.26281643
+        MoveSpeed: 1
   - Entity: 5
     Components:
       - Component: NameComponent
         Name: Enemy2
       - Component: TransformComponent
         Position:
-          x: 8.33169079
+          x: 25.9816513
           y: 0.200000003
-          z: 8.44147873
+          z: 4.94002867
         Rotation:
           x: 0
-          y: 7.4318676
+          y: 1.47500575
           z: 0
         Scale:
           x: 1
@@ -221,18 +232,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: 19.0211315
+          y: 0.200000003
+          z: 6.19393492
+        maxDistance: 15
+        TargetPos:
+          x: 28.720665
+          y: 0.200000003
+          z: 5.20321751
+        MoveSpeed: 1
   - Entity: 6
     Components:
       - Component: NameComponent
         Name: Enemy3
       - Component: TransformComponent
         Position:
-          x: 14.9514179
+          x: 8.56522369
           y: 0.200000003
-          z: 8.49975014
+          z: 21.0360756
         Rotation:
           x: 0
-          y: 9.20298672
+          y: -3.88867879
           z: 0
         Scale:
           x: 1
@@ -271,18 +293,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: 16.1803398
+          y: 0.200000003
+          z: 11.7692995
+        maxDistance: 15
+        TargetPos:
+          x: 24.8613701
+          y: 0.200000003
+          z: 0.849492073
+        MoveSpeed: 1
   - Entity: 7
     Components:
       - Component: NameComponent
         Name: Enemy4
       - Component: TransformComponent
         Position:
-          x: 6.22629881
+          x: 10.9718704
           y: 0.200000003
-          z: 20.2998066
+          z: 23.9572601
         Rotation:
           x: 0
-          y: -2.54537582
+          y: -5.38609123
           z: 0
         Scale:
           x: 1
@@ -321,18 +354,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: 11.7557039
+          y: 0.200000003
+          z: 16.1939373
+        maxDistance: 15
+        TargetPos:
+          x: 11.9544544
+          y: 0.200000003
+          z: 24.7416267
+        MoveSpeed: 1
   - Entity: 8
     Components:
       - Component: NameComponent
         Name: Enemy5
       - Component: TransformComponent
         Position:
-          x: 17.384737
+          x: -6.99851513
           y: 0.200000003
-          z: 13.4713678
+          z: 17.6283474
         Rotation:
           x: 0
-          y: 4.07755423
+          y: 4.75958967
           z: 0
         Scale:
           x: 1
@@ -371,18 +415,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: 6.18033934
+          y: 0.200000003
+          z: 19.0347271
+        maxDistance: 15
+        TargetPos:
+          x: -8.0047226
+          y: 0.200000003
+          z: 17.6758595
+        MoveSpeed: 1
   - Entity: 9
     Components:
       - Component: NameComponent
         Name: Enemy6
       - Component: TransformComponent
         Position:
-          x: 0.631912053
+          x: -1.28718424
           y: 0.200000003
-          z: 14.5073013
+          z: 17.7267532
         Rotation:
           x: 0
-          y: -2.09079099
+          y: -6.37633991
           z: 0
         Scale:
           x: 1
@@ -421,18 +476,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: -8.74227794e-07
+          y: 0.200000003
+          z: 20.0135956
+        maxDistance: 15
+        TargetPos:
+          x: -2.63340735
+          y: 0.200000003
+          z: 31.1052666
+        MoveSpeed: 1
   - Entity: 10
     Components:
       - Component: NameComponent
         Name: Enemy7
       - Component: TransformComponent
         Position:
-          x: -11.6679087
+          x: -0.0411188863
           y: 0.200000003
-          z: 12.8525076
+          z: 17.6106243
         Rotation:
           x: 0
-          y: 1.63930261
+          y: 3.315799
           z: 0
         Scale:
           x: 1
@@ -471,18 +537,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: -6.18034315
+          y: 0.200000003
+          z: 19.0347252
+        maxDistance: 15
+        TargetPos:
+          x: -1.0368247
+          y: 0.200000003
+          z: 11.1071329
+        MoveSpeed: 1
   - Entity: 11
     Components:
       - Component: NameComponent
         Name: Enemy8
       - Component: TransformComponent
         Position:
-          x: -8.00639534
+          x: -17.818634
           y: 0.200000003
-          z: 8.66161251
+          z: 15.5909538
         Rotation:
           x: 0
-          y: 9.10324955
+          y: -9.27916813
           z: 0
         Scale:
           x: 1
@@ -521,18 +598,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: -11.7557039
+          y: 0.200000003
+          z: 16.1939354
+        maxDistance: 15
+        TargetPos:
+          x: -19.5542183
+          y: 0.200000003
+          z: 3.73307037
+        MoveSpeed: 1
   - Entity: 12
     Components:
       - Component: NameComponent
         Name: Enemy9
       - Component: TransformComponent
         Position:
-          x: -23.5440178
+          x: -11.3580542
           y: 0.200000003
-          z: 18.9136562
+          z: 1.36985683
         Rotation:
           x: 0
-          y: 0.976403713
+          y: 6.17137861
           z: 0
         Scale:
           x: 1
@@ -571,18 +659,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: -16.1803417
+          y: 0.200000003
+          z: 11.7692986
+        maxDistance: 15
+        TargetPos:
+          x: -19.4576511
+          y: 0.200000003
+          z: 2.42749786
+        MoveSpeed: 1
   - Entity: 13
     Components:
       - Component: NameComponent
         Name: Enemy10
       - Component: TransformComponent
         Position:
-          x: -26.1222572
+          x: -30.1203957
           y: 0.200000003
-          z: 13.8549299
+          z: 11.9778938
         Rotation:
           x: 0
-          y: 3.69030356
+          y: -8.2035675
           z: 0
         Scale:
           x: 1
@@ -621,18 +720,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: -19.0211296
+          y: 0.200000003
+          z: 6.19393587
+        maxDistance: 15
+        TargetPos:
+          x: -30.2370071
+          y: 0.200000003
+          z: 11.9353695
+        MoveSpeed: 1
   - Entity: 14
     Components:
       - Component: NameComponent
         Name: Enemy11
       - Component: TransformComponent
         Position:
-          x: -12.1666107
+          x: -14.5791464
           y: 0.200000003
-          z: -0.446650892
+          z: -8.43696213
         Rotation:
           x: 0
-          y: -3.83460093
+          y: -4.73192692
           z: 0
         Scale:
           x: 1
@@ -671,18 +781,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: -20
+          y: 0.200000003
+          z: 0.0135932518
+        maxDistance: 15
+        TargetPos:
+          x: -14.7813406
+          y: 0.200000003
+          z: -9.7831192
+        MoveSpeed: 1
   - Entity: 15
     Components:
       - Component: NameComponent
         Name: Enemy12
       - Component: TransformComponent
         Position:
-          x: -13.6600943
+          x: -29.714077
           y: 0.200000003
-          z: -17.9434071
+          z: -5.34693384
         Rotation:
           x: 0
-          y: -4.43221521
+          y: 1.16355777
           z: 0
         Scale:
           x: 1
@@ -721,18 +842,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: -19.0211277
+          y: 0.200000003
+          z: -6.166749
+        maxDistance: 15
+        TargetPos:
+          x: -29.9065018
+          y: 0.200000003
+          z: -4.97883368
+        MoveSpeed: 1
   - Entity: 16
     Components:
       - Component: NameComponent
         Name: Enemy13
       - Component: TransformComponent
         Position:
-          x: -18.2383938
+          x: -19.0864468
           y: 0.200000003
-          z: -16.7744675
+          z: -9.06711292
         Rotation:
           x: 0
-          y: -4.87851715
+          y: -3.38220406
           z: 0
         Scale:
           x: 1
@@ -771,18 +903,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: -16.180336
+          y: 0.200000003
+          z: -11.742116
+        maxDistance: 15
+        TargetPos:
+          x: -15.9175949
+          y: 0.200000003
+          z: -24.0393105
+        MoveSpeed: 1
   - Entity: 17
     Components:
       - Component: NameComponent
         Name: Enemy14
       - Component: TransformComponent
         Position:
-          x: -6.52626467
+          x: -18.3984108
           y: 0.200000003
-          z: -21.2130661
+          z: -10.3909874
         Rotation:
           x: 0
-          y: -4.21320772
+          y: -2.98864102
           z: 0
         Scale:
           x: 1
@@ -821,18 +964,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: -11.7557087
+          y: 0.200000003
+          z: -16.1667404
+        maxDistance: 15
+        TargetPos:
+          x: -19.2255058
+          y: 0.200000003
+          z: -18.887886
+        MoveSpeed: 1
   - Entity: 18
     Components:
       - Component: NameComponent
         Name: Enemy15
       - Component: TransformComponent
         Position:
-          x: -16.961195
+          x: 1.19995511
           y: 0.200000003
-          z: -16.0547523
+          z: -24.0406265
         Rotation:
           x: 0
-          y: 7.25484419
+          y: 3.84406018
           z: 0
         Scale:
           x: 1
@@ -871,18 +1025,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: -6.18034172
+          y: 0.200000003
+          z: -19.007534
+        maxDistance: 15
+        TargetPos:
+          x: -6.23236704
+          y: 0.200000003
+          z: -32.8074341
+        MoveSpeed: 1
   - Entity: 19
     Components:
       - Component: NameComponent
         Name: Enemy16
       - Component: TransformComponent
         Position:
-          x: -12.8575754
+          x: 2.89062214
           y: 0.200000003
-          z: -13.7026119
+          z: -12.3122864
         Rotation:
           x: 0
-          y: -2.68323636
+          y: -3.20040488
           z: 0
         Scale:
           x: 1
@@ -921,18 +1086,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: 2.3849762e-07
+          y: 0.200000003
+          z: -19.9864044
+        maxDistance: 15
+        TargetPos:
+          x: 1.78118193
+          y: 0.200000003
+          z: -27.4261551
+        MoveSpeed: 1
   - Entity: 20
     Components:
       - Component: NameComponent
         Name: Enemy17
       - Component: TransformComponent
         Position:
-          x: -0.137748599
+          x: -4.68386841
           y: 0.200000003
-          z: -25.9081135
+          z: -15.8675995
         Rotation:
           x: 0
-          y: 2.16903877
+          y: 0.979004622
           z: 0
         Scale:
           x: 1
@@ -971,18 +1147,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: 6.18034267
+          y: 0.200000003
+          z: -19.007534
+        maxDistance: 15
+        TargetPos:
+          x: 0.0517477989
+          y: 0.200000003
+          z: -12.8325577
+        MoveSpeed: 1
   - Entity: 21
     Components:
       - Component: NameComponent
         Name: Enemy18
       - Component: TransformComponent
         Position:
-          x: 14.1751051
+          x: 19.2301083
           y: 0.200000003
-          z: -4.74871588
+          z: -13.3199034
         Rotation:
           x: 0
-          y: -5.36816454
+          y: 3.24356484
           z: 0
         Scale:
           x: 1
@@ -1021,18 +1208,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: 11.7557096
+          y: 0.200000003
+          z: -16.1667404
+        maxDistance: 15
+        TargetPos:
+          x: 17.5394707
+          y: 0.200000003
+          z: -30.0068302
+        MoveSpeed: 1
   - Entity: 22
     Components:
       - Component: NameComponent
         Name: Enemy19
       - Component: TransformComponent
         Position:
-          x: 27.3085632
+          x: 7.371315
           y: 0.200000003
-          z: -13.1726923
+          z: -11.3006535
         Rotation:
           x: 0
-          y: -3.59732842
+          y: 0.475242078
           z: 0
         Scale:
           x: 1
@@ -1071,18 +1269,29 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: 16.1803398
+          y: 0.200000003
+          z: -11.7421112
+        maxDistance: 15
+        TargetPos:
+          x: 6.89690304
+          y: 0.200000003
+          z: -11.1873236
+        MoveSpeed: 1
   - Entity: 23
     Components:
       - Component: NameComponent
         Name: Enemy20
       - Component: TransformComponent
         Position:
-          x: 8.79920387
+          x: 26.8028374
           y: 0.200000003
-          z: -15.3236341
+          z: -13.6436529
         Rotation:
           x: 0
-          y: -0.272620082
+          y: -4.8156147
           z: 0
         Scale:
           x: 1
@@ -1121,3 +1330,60 @@ Entities:
         PixelShader: Asset\Shader\pixelLightingPS.cso
         VertexShader: Asset\Shader\limLightVS.cso
       - Component: EnemyComponent
+        setOriginPos: true
+        OriginPos:
+          x: 19.0211315
+          y: 0.200000003
+          z: -6.16674376
+        maxDistance: 15
+        TargetPos:
+          x: 26.7632389
+          y: 0.200000003
+          z: -13.0356779
+        MoveSpeed: 1
+  - Entity: 24
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 6.32710171
+          z: 0
+        Rotation:
+          x: -0
+          y: 0
+          z: -0
+        Scale:
+          x: 14.3100004
+          y: 14.3100004
+          z: 14.3100004
+      - Component: TextureComponent
+        FilePath: Asset\Texture\explosion.png
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Emission:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Shininess: 1
+          TextureEnable: true
+        UV_Slice_X: 4
+        UV_Slice_Y: 4
+        AnimationNum: 10
+      - Component: BillBoardRendererComponent

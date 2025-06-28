@@ -6,7 +6,6 @@ class PlayerComponent : public IComponent {
 public:
 	YAML::Node encode() override{
 		YAML::Node node;
-		node["Component"] = "PlayerComponent";
 
 		node["moveSpeed"] = moveSpeed;
 		node["cameraRotate"] = cameraRotate;

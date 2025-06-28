@@ -27,7 +27,6 @@ class MeshRendererComponent: public IComponent {
 public:
 	YAML::Node encode() override{
 		YAML::Node node;
-		node["Component"] = "MeshComponent";
 
 		return node;
 	}

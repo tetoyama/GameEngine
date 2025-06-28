@@ -73,37 +73,6 @@ void InspectorSystem::CreateDockSpace(){
 	ImGui::End();
 }
 
-// ヒエラルキーの再帰描画ヘルパー
-void InspectorSystem::DrawEntityNode(ComponentRegistry* registry, Entity entity){
-	auto nameComp = registry->GetComponent<NameComponent>(entity);
-	auto transformComp = registry->GetComponent<TransformComponent>(entity);
-
-	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
-	//if(transformComp.children.empty()){
-	//	flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-	//}
-	if(entity == selectedEntity){
-		flags |= ImGuiTreeNodeFlags_Selected;
-	}
-
-	// アイコンを名前の前に表示
-	const char* icon = "📦"; // デフォルトアイコン
-
-	bool node_open = ImGui::TreeNodeEx((void*)(uint64_t)entity, flags, "%s %s", icon, nameComp->name.c_str());
-
-	if(ImGui::IsItemClicked()){
-		selectedEntity = entity;
-	}
-
-	//if(node_open && !transformComp.children.empty()){
-	//	for(auto child : transformComp.children){
-	//		DrawEntityNode(registry, child);
-	//	}
-	//	ImGui::TreePop();
-	//}
-}
-
-
 // シーンヒエラルキーウィンドウ
 void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 	ImGui::Begin("Scene Hierarchy", showSceneHierarchy);
@@ -119,13 +88,7 @@ void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 		context->component->AddComponent<TransformComponent>(newEntity);
 	}
 	ImGui::SameLine();
-	//if(ImGui::Button("- Delete")){
-	//	if(selectedEntity != 0){
-	//		registry->Destroy(selectedEntity);
-	//		context->component->OnEntityDestroyed(selectedEntity);
-	//		selectedEntity = 0;
-	//	}
-	//}
+
 	static char searchBuffer[256] = "";
 	ImGui::SetNextItemWidth(-1);
 	ImGui::InputTextWithHint("##search", "Search objects...", searchBuffer, sizeof(searchBuffer));
