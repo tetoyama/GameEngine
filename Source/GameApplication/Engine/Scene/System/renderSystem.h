@@ -55,4 +55,6 @@ private:
 
 	Vector3 m_EditorCameraPosition = Vector3(0.0f, 5.0f, 0.0f);
 	Vector3 m_EditorCameraRotation = Vector3(0.0f, 0.0f, 0.0f);
+	DirectX::XMMATRIX m_EditorCameraView = DirectX::XMMatrixIdentity();
+	float m_MouseWheel = 0.0f;
 };

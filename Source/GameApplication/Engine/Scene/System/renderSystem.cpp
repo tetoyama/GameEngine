@@ -159,6 +159,10 @@ void RenderSystem::Draw(){
 }
 
 void RenderSystem::EditorUpdate(float deltaTime){
+
+
+
+
 	ImGuiIO& io = ImGui::GetIO();
 
 	// マウス右クリックで操作有効
@@ -198,14 +202,31 @@ void RenderSystem::EditorUpdate(float deltaTime){
 		if(ImGui::IsKeyDown(ImGuiKey_D)) velocity -= right;
 		if(ImGui::IsKeyDown(ImGuiKey_Q) || ImGui::IsKeyDown(ImGuiKey_LeftShift)) velocity -= up;
 		if(ImGui::IsKeyDown(ImGuiKey_E) || ImGui::IsKeyDown(ImGuiKey_Space)) velocity += up;
+		if(velocity.length() > 0.0f){
+			m_EditorCameraPosition += velocity.normalize() * speed * deltaTime;
+		}
+	} else{
+		// 回転から方向ベクトル取得
+		Vector3 front;
+		front.x = cosf(m_EditorCameraRotation.y) * sinf(m_EditorCameraRotation.x);
+		front.y = sinf(m_EditorCameraRotation.y);
+		front.z = cosf(m_EditorCameraRotation.y) * cosf(m_EditorCameraRotation.x);
+		front = front.normalize();
+		Vector3 right = (Vec3Cross(front, Vector3(0.0f, 1.0f, 0.0f))).normalize();
+		Vector3 up = (Vec3Cross(right, front)).normalize();
 
+		// ------ 3. 中クリックでパン移動 ------
+		if(ImGui::IsMouseDown(ImGuiMouseButton_Middle)){
+			float panSensitivity = 0.1f;
+			m_EditorCameraPosition += right * io.MouseDelta.x * panSensitivity;
+			m_EditorCameraPosition += up * io.MouseDelta.y * panSensitivity;
+		}
+		// ------ 4. マウスホイールでズーム ------
+		if(m_MouseWheel != 0.0f){
+			float zoomSensitivity = 5.0f; // ズーム速度
+			m_EditorCameraPosition += front * m_MouseWheel * zoomSensitivity;
+		}
 	}
-	if(velocity.length() > 0.0f){
-		m_EditorCameraPosition += velocity.normalize() * speed * deltaTime;
-	}
-
-
-
 }
 
 void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent* meshRenderer, TextureComponent* pTexture){
@@ -321,21 +342,11 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 
 void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComponent* meshRenderer, BillBoardRendererComponent* billBoard, TextureComponent* pTexture) {
 
-	CameraComponent* cameraComponent = nullptr;
-	// カメラの取得
-	const auto& cameraEntity = m_context->component->FindEntitiesWithComponent<CameraComponent>();
-	if (!cameraEntity.empty()) {
-		cameraComponent = m_context->component->GetComponent<CameraComponent>(cameraEntity[0]);
-	} else {
-		return;
-	}
-
-
 	DirectX::XMMATRIX InvViewBillBoardMatrix;
 
 	if(billBoard->FreezeXZ){
 		// カメラの向きを取得（ビュー行列の逆行列 = ワールド行列）
-		DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, cameraComponent->viewMatrix);
+		DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, m_EditorCameraView);
 
 		// Y軸回転だけを取り出す処理
 		DirectX::XMFLOAT4X4 invViewFloat4x4;
@@ -359,7 +370,7 @@ void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComp
 		);
 	} else{
 		// 通常のビルボード（ビュー行列の回転成分のみ使う）
-		DirectX::XMMATRIX InverseViewMatrix = DirectX::XMMatrixTranspose(cameraComponent->viewMatrix);
+		DirectX::XMMATRIX InverseViewMatrix = DirectX::XMMatrixTranspose(m_EditorCameraView);
 		DirectX::XMFLOAT4X4 Mat;
 		DirectX::XMStoreFloat4x4(&Mat, InverseViewMatrix);
 
@@ -525,7 +536,7 @@ void RenderSystem::SetCameraView(){
 		cameraComponent->viewMatrix = DirectX::XMMatrixLookAtLH({position.x,position.y,position.z}, {front.x,front.y,front.z}, {0.0f,1.0f,0.0f});
 	}
 	graphicsContext->SetViewMatrix(cameraComponent->viewMatrix);
-
+	m_EditorCameraView = cameraComponent->viewMatrix;
 	m_context->manager->imgui->SetViewProjectionMatrix(cameraComponent->viewMatrix, projection);
 }
 
@@ -556,6 +567,7 @@ void RenderSystem::SetEditorCameraView(){
 	DirectX::XMMATRIX view = DirectX::XMMatrixLookAtLH(m_EditorCameraPosition.ToXMVECTOR(), (m_EditorCameraPosition + front).ToXMVECTOR(), {0.0f, 1.0f, 0.0f});
 	graphicsContext->SetViewMatrix(view);
 	m_context->manager->imgui->SetViewProjectionMatrix(view, projection);
+	m_EditorCameraView = view;
 }
 
 void RenderSystem::EditorView(){
@@ -583,6 +595,8 @@ void RenderSystem::EditorView(){
 	DrawEntities();
 
 	ImGui::Begin("Editor View");
+
+
 
 	// ツールバー内容
 	if(ImGui::Button("Play")){
@@ -627,6 +641,34 @@ void RenderSystem::EditorView(){
 		dst.y
 	);
 	ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
+
+	// ImGuiIO を取得
+	ImGuiIO& io = ImGui::GetIO();
+
+	// マウスホイールの値をリセット
+	m_MouseWheel = 0.0f;
+
+	// マウスカーソルの位置を取得
+	POINT cursorPos;
+	if(GetCursorPos(&cursorPos)){
+		// 現在のウィンドウのハンドルを取得
+		HWND hwnd = GetActiveWindow();
+		if(hwnd){
+			// スクリーン座標をウィンドウのクライアント座標に変換
+			ScreenToClient(hwnd, &cursorPos);
+
+			// 現在のウィンドウの描画リストを取得
+			ImDrawList* drawList = ImGui::GetWindowDrawList();
+			ImVec2 mousePos = io.MousePos;
+
+			// マウスカーソルがウィンドウ内にあるかを判定
+			if(drawList->GetClipRectMin().x <= mousePos.x && mousePos.x <= drawList->GetClipRectMax().x &&
+			   drawList->GetClipRectMin().y <= mousePos.y && mousePos.y <= drawList->GetClipRectMax().y){
+				// マウスホイールの入力を取得
+				m_MouseWheel = io.MouseWheel;
+			}
+		}
+	}
 
 	ImGui::End();
 

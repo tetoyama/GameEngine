@@ -21,6 +21,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     
     float4 normalMap = g_TextureNormal.Sample(g_SamplerState, In.TexCoord);
     normalMap = normalMap * 2.0f - 1.0f; //法線マップの値を-1から1の範囲に変換
+    normalMap = 0.5f * (normalMap + In.Normal);
     float4 bumpNormal;
     bumpNormal.x = -normalMap.r; // X軸の法線を反転
     bumpNormal.y = normalMap.g; // Y軸の法線
