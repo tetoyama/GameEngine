@@ -114,10 +114,12 @@ void PlayerSystem::Update(float deltaTime) {
 				bulletTransform->rotation = transform->rotation;
 				bulletTransform->scale = transform->scale * 2.0f;
 
+				auto* model = m_context->component->GetComponent<ModelRendererComponent>(entity);
+
 				ModelRendererComponent* bulletModelRenderer = m_context->component->AddComponent<ModelRendererComponent>(bulletEntity);
 				bulletModelRenderer->model = m_context->manager->resource->GetModelLoader()->LoadModel("Asset\\Model\\ball.fbx");
-				bulletModelRenderer->vertexShader = m_context->manager->resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\pixelLightingVS.cso");
-				bulletModelRenderer->pixelShader = m_context->manager->resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pixelLightingPS.cso");
+				bulletModelRenderer->vertexShader = m_context->manager->resource->GetShaderLoader()->LoadVertexShader(model->vertexShader->FilePath);
+				bulletModelRenderer->pixelShader = m_context->manager->resource->GetShaderLoader()->LoadPixelShader(model->pixelShader->FilePath);
 
 				TextureComponent* texture = m_context->component->AddComponent<TextureComponent>(entity);
 				if (texture) {

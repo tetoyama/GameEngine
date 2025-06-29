@@ -121,7 +121,7 @@ void RenderSystem::Initialize(){
 		sd.pSysMem = vertex;
 
 		m_context->manager->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_billBoardMesh->mesh.m_VertexBuffer.GetAddressOf());
-		m_context->manager->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\unlitUVTextureVS.cso", m_billBoardMesh->mesh.m_VertexShader.GetAddressOf(), m_billBoardMesh->mesh.m_VertexLayout.GetAddressOf());
+		m_context->manager->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\commonVS.cso", m_billBoardMesh->mesh.m_VertexShader.GetAddressOf(), m_billBoardMesh->mesh.m_VertexLayout.GetAddressOf());
 		m_context->manager->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_billBoardMesh->mesh.m_PixelShader.GetAddressOf());
 	}
 }
@@ -139,131 +139,11 @@ void RenderSystem::Draw(){
 
 
 
-	GraphicsContext* graphicsContext = m_context->manager->graphics;
-	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+	//DrawEntities();
 
-	float clearCol[4] = {0.1f, 0.1f, 0.1f, 1.0f};
+	PlayerView();
 
-	D3D11_VIEWPORT vp = {};
-	vp.Width = 1280.0f;
-	vp.Height = 720.0f;
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
-	deviceContext->RSSetViewports(1, &vp);
-
-	deviceContext->ClearRenderTargetView(rtv, clearCol);
-
-	deviceContext->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-
-	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, &rtv, dsv);
-
-	// コンポーネントを持つエンティティの検索
-	const auto& entities = m_context->component->FindEntitiesWithComponent<TransformComponent>();
-	if (entities.empty()) {
-		return;
-	} else {
-		for (Entity entity : entities) {
-
-			TransformComponent* transform = m_context->component->GetComponent<TransformComponent>(entity);
-			if (transform) {
-
-				TextureComponent* texture = m_context->component->GetComponent<TextureComponent>(entity);
-				if (texture) {
-					if (texture->m_TextureData) {
-						deviceContext->PSSetShaderResources(0, 1, texture->m_TextureData->pTexture.GetAddressOf());
-					}
-					// マテリアル設定
-					MATERIAL material{};
-					material.Diffuse = texture->Material.Diffuse;
-					graphicsContext->SetMaterial(material);
-
-					UVMatrix uv;
-					uv.Start.x = (float)(texture->AnimationNum % texture->UV_Slice_Y) * 1.0f / (float)texture->UV_Slice_X;
-					uv.Start.y = (float)(texture->AnimationNum / texture->UV_Slice_X) * 1.0f / (float)texture->UV_Slice_Y;
-
-					uv.End.x = (float)uv.Start.x + 1.0f / (float)texture->UV_Slice_X;
-					uv.End.y = (float)uv.Start.y + 1.0f / (float)texture->UV_Slice_Y;
-
-					graphicsContext->SetUVMatrix(uv);
-
-				} else {
-					// マテリアル設定
-					MATERIAL material{};
-					material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-					graphicsContext->SetMaterial(material);
-
-					UVMatrix uv;
-					graphicsContext->SetUVMatrix(uv);
-				}
-
-				BillBoardRendererComponent* billBoardRenderer = m_context->component->GetComponent<BillBoardRendererComponent>(entity);
-				MeshRendererComponent* meshRenderer = m_context->component->GetComponent<MeshRendererComponent>(entity);
-				if(billBoardRenderer) {
-					DrawBillBoard(transform, m_billBoardMesh, billBoardRenderer, texture);
-				} else if(meshRenderer){
-					DrawMesh(transform, meshRenderer, texture);
-				}
-
-				ModelRendererComponent* modelRenderer = m_context->component->GetComponent<ModelRendererComponent>(entity);
-				if (modelRenderer) {
-					DrawModel(transform, modelRenderer,texture);
-				}
-			}
-		}
-	}
-
-	ImGui::Begin("Editor View");
-
-	// ツールバー内容
-	if(ImGui::Button("Play")){
-		// 再生開始処理
-	}
-	ImGui::SameLine();
-	if(ImGui::Button("Stop")){
-		// 停止処理
-	}
-	ImGui::Separator();
-
-	ImVec2 avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
-
-	// テクスチャの元サイズ（例）
-	float imgW = 1280.0f, imgH = 720.0f;
-	float imgAspect = imgW / imgH;
-	float availAspect = avail.x / avail.y;
-
-	ImVec2 dst;
-	if(availAspect > imgAspect){
-		// 領域が横長 → 高さに合わせ、幅を計算
-		dst.y = avail.y;
-		dst.x = avail.y * imgAspect;
-	} else{
-		// 領域が縦長または正方形 → 幅に合わせ、高さを計算
-		dst.x = avail.x;
-		dst.y = avail.x / imgAspect;
-	}
-
-	// 中央寄せ
-	ImVec2 cursor = ImGui::GetCursorPos();
-	ImGui::SetCursorPosX(cursor.x + (avail.x - dst.x) * 0.5f);
-	ImGui::SetCursorPosY(cursor.y + (avail.y - dst.y) * 0.5f);
-	cursor = ImGui::GetCursorPos();
-	// イメージ表示（UV反転も場合に応じて調整）
-	ImGui::Image((ImTextureID)srv, dst, ImVec2(0, 0), ImVec2(1, 1));
-
-	ImGuizmo::SetRect(
-		ImGui::GetWindowPos().x + cursor.x,
-		ImGui::GetWindowPos().y + cursor.y,
-		dst.x,
-		dst.y
-	);
-	ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
-
-	ImGui::End();
-
-
-	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
+	EditorView();
 }
 
 void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent* meshRenderer, TextureComponent* pTexture){
@@ -389,13 +269,42 @@ void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComp
 	}
 
 
-	DirectX::XMMATRIX InverseViewMatrix = DirectX::XMMatrixTranspose(cameraComponent->viewMatrix);
-	DirectX::XMFLOAT4X4 Mat;
-	DirectX::XMStoreFloat4x4(&Mat, InverseViewMatrix);
-	Mat._14 = Mat._24 = Mat._34 = 0.0f;
 	DirectX::XMMATRIX InvViewBillBoardMatrix;
-	InvViewBillBoardMatrix = DirectX::XMLoadFloat4x4(&Mat);
 
+	if(billBoard->FreezeXZ){
+		// カメラの向きを取得（ビュー行列の逆行列 = ワールド行列）
+		DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, cameraComponent->viewMatrix);
+
+		// Y軸回転だけを取り出す処理
+		DirectX::XMFLOAT4X4 invViewFloat4x4;
+		DirectX::XMStoreFloat4x4(&invViewFloat4x4, invView);
+
+		// 上3行3列だけ使う（位置成分除く）
+		DirectX::XMVECTOR forward = DirectX::XMVectorSet(invViewFloat4x4._31, 0.0f, invViewFloat4x4._33, 0.0f); // Z軸（前）
+		forward = DirectX::XMVector3Normalize(forward);
+
+		DirectX::XMVECTOR right = DirectX::XMVector3Cross(DirectX::XMVectorSet(0, 1, 0, 0), forward); // Y軸とZ軸からX軸計算
+		right = DirectX::XMVector3Normalize(right);
+
+		DirectX::XMVECTOR up = DirectX::XMVector3Cross(forward, right); // Z軸とX軸からY軸計算（右手系）
+
+		// 回転行列を作る
+		InvViewBillBoardMatrix = DirectX::XMMATRIX(
+			right,
+			up,
+			forward,
+			DirectX::XMVectorSet(0, 0, 0, 1)
+		);
+	} else{
+		// 通常のビルボード（ビュー行列の回転成分のみ使う）
+		DirectX::XMMATRIX InverseViewMatrix = DirectX::XMMatrixTranspose(cameraComponent->viewMatrix);
+		DirectX::XMFLOAT4X4 Mat;
+		DirectX::XMStoreFloat4x4(&Mat, InverseViewMatrix);
+
+		// 位置成分を0に
+		Mat._14 = Mat._24 = Mat._34 = 0.0f;
+		InvViewBillBoardMatrix = DirectX::XMLoadFloat4x4(&Mat);
+	}
 
 
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
@@ -434,4 +343,267 @@ void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComp
 
 	deviceContext->Draw(meshRenderer->mesh.meshCount, 0);
 
+}
+
+void RenderSystem::DrawEntities(){
+	GraphicsContext* graphicsContext = m_context->manager->graphics;
+	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
+	// コンポーネントを持つエンティティの検索
+	const auto& entities = m_context->component->FindEntitiesWithComponent<TransformComponent>();
+	if(entities.empty()){
+		return;
+	} else{
+		for(Entity entity : entities){
+
+			TransformComponent* transform = m_context->component->GetComponent<TransformComponent>(entity);
+			if(transform){
+
+				TextureComponent* texture = m_context->component->GetComponent<TextureComponent>(entity);
+				if(texture){
+					if(texture->m_TextureData){
+						deviceContext->PSSetShaderResources(0, 1, texture->m_TextureData->pTexture.GetAddressOf());
+					}
+					// マテリアル設定
+					MATERIAL material{};
+					material.Diffuse = texture->Material.Diffuse;
+					graphicsContext->SetMaterial(material);
+
+					UVMatrix uv;
+					uv.Start.x = (float)(texture->AnimationNum % texture->UV_Slice_Y) * 1.0f / (float)texture->UV_Slice_X;
+					uv.Start.y = (float)(texture->AnimationNum / texture->UV_Slice_X) * 1.0f / (float)texture->UV_Slice_Y;
+
+					uv.End.x = (float)uv.Start.x + 1.0f / (float)texture->UV_Slice_X;
+					uv.End.y = (float)uv.Start.y + 1.0f / (float)texture->UV_Slice_Y;
+
+					graphicsContext->SetUVMatrix(uv);
+
+				} else{
+					// マテリアル設定
+					MATERIAL material{};
+					material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+					graphicsContext->SetMaterial(material);
+
+					UVMatrix uv;
+					graphicsContext->SetUVMatrix(uv);
+				}
+
+				BillBoardRendererComponent* billBoardRenderer = m_context->component->GetComponent<BillBoardRendererComponent>(entity);
+				MeshRendererComponent* meshRenderer = m_context->component->GetComponent<MeshRendererComponent>(entity);
+				if(billBoardRenderer){
+					DrawBillBoard(transform, m_billBoardMesh, billBoardRenderer, texture);
+				} else if(meshRenderer){
+					DrawMesh(transform, meshRenderer, texture);
+				}
+
+				ModelRendererComponent* modelRenderer = m_context->component->GetComponent<ModelRendererComponent>(entity);
+				if(modelRenderer){
+					DrawModel(transform, modelRenderer, texture);
+				}
+			}
+		}
+	}
+}
+
+void RenderSystem::SetCameraView(){
+
+	// コンテキストの取得
+	GraphicsContext* graphicsContext = m_context->manager->renderer->GetGraphicsContext();
+	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
+	// カメラコンポーネントを持つエンティティ取得
+	auto entities = m_context->component->FindEntitiesWithComponent<CameraComponent>();
+	if(entities.empty()){
+		//取得に失敗
+		return;
+	}
+
+	// カメラコンポーネントの取得
+	auto cameraComponent = m_context->component->GetComponent<CameraComponent>(entities[0]);
+	// トランスフォームの取得
+	auto transformComponent = m_context->component->GetComponent<TransformComponent>(entities[0]);
+
+	// プロジェクションマトリクス設定
+	DirectX::XMMATRIX projection;
+	projection = DirectX::XMMatrixPerspectiveFovLH(cameraComponent->FOV, (float)graphicsContext->m_width / graphicsContext->m_height, cameraComponent->NearClip, cameraComponent->FarClip);
+	graphicsContext->SetProjectionMatrix(projection);
+
+	// コンスタントバッファ設定
+	Vector3 position = transformComponent->position;
+	CAMERA camera{};
+	camera.CameraPosition = {position.x,position.y,position.z,0.0f};
+	graphicsContext->SetCamera(camera);
+
+
+	// ビューマトリクス設定
+	if(cameraComponent->isLock){
+
+		Vector3 target = cameraComponent->Target;
+		cameraComponent->viewMatrix = DirectX::XMMatrixLookAtLH({position.x,position.y,position.z}, {target.x,target.y,target.z}, {0.0f,1.0f,0.0f});
+
+
+	} else{
+
+		Vector3 front = transformComponent->position + transformComponent->front().normalize();
+		Vector3 up = transformComponent->position + transformComponent->up().normalize();
+
+		cameraComponent->viewMatrix = DirectX::XMMatrixLookAtLH({position.x,position.y,position.z}, {front.x,front.y,front.z}, {0.0f,1.0f,0.0f});
+	}
+	graphicsContext->SetViewMatrix(cameraComponent->viewMatrix);
+
+	m_context->manager->imgui->SetViewProjectionMatrix(cameraComponent->viewMatrix, projection);
+}
+
+void RenderSystem::EditorView(){
+
+	GraphicsContext* graphicsContext = m_context->manager->graphics;
+	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
+	float clearCol[4] = {0.1f, 0.1f, 0.1f, 1.0f};
+
+	D3D11_VIEWPORT vp = {};
+	vp.Width = 1280.0f;
+	vp.Height = 720.0f;
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	deviceContext->RSSetViewports(1, &vp);
+
+	deviceContext->ClearRenderTargetView(rtv, clearCol);
+
+	deviceContext->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, &rtv, dsv);
+
+	DrawEntities();
+
+	ImGui::Begin("Editor View");
+
+	// ツールバー内容
+	if(ImGui::Button("Play")){
+		m_context->state = SceneState::Playing; // シーンの状態を再生中に変更
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("Stop")){
+		m_context->state = SceneState::Stopped; // シーンの状態をエディタに戻す
+	}
+	ImGui::Separator();
+
+	ImVec2 avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
+
+	// テクスチャの元サイズ（例）
+	float imgW = 1280.0f, imgH = 720.0f;
+	float imgAspect = imgW / imgH;
+	float availAspect = avail.x / avail.y;
+
+	ImVec2 dst;
+	if(availAspect > imgAspect){
+		// 領域が横長 → 高さに合わせ、幅を計算
+		dst.y = avail.y;
+		dst.x = avail.y * imgAspect;
+	} else{
+		// 領域が縦長または正方形 → 幅に合わせ、高さを計算
+		dst.x = avail.x;
+		dst.y = avail.x / imgAspect;
+	}
+
+	// 中央寄せ
+	ImVec2 cursor = ImGui::GetCursorPos();
+	ImGui::SetCursorPosX(cursor.x + (avail.x - dst.x) * 0.5f);
+	ImGui::SetCursorPosY(cursor.y + (avail.y - dst.y) * 0.5f);
+	cursor = ImGui::GetCursorPos();
+	// イメージ表示（UV反転も場合に応じて調整）
+	ImGui::Image((ImTextureID)srv, dst, ImVec2(0, 0), ImVec2(1, 1));
+
+	ImGuizmo::SetRect(
+		ImGui::GetWindowPos().x + cursor.x,
+		ImGui::GetWindowPos().y + cursor.y,
+		dst.x,
+		dst.y
+	);
+	ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
+
+	ImGui::End();
+
+	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
+}
+
+void RenderSystem::PlayerView(){
+
+	GraphicsContext* graphicsContext = m_context->manager->graphics;
+	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
+	float clearCol[4] = {0.1f, 0.1f, 0.1f, 1.0f};
+
+	D3D11_VIEWPORT vp = {};
+	vp.Width = 1280.0f;
+	vp.Height = 720.0f;
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	deviceContext->RSSetViewports(1, &vp);
+
+	deviceContext->ClearRenderTargetView(rtv, clearCol);
+
+	deviceContext->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, &rtv, dsv);
+
+	// カメラビューの設定
+	SetCameraView();
+
+	// エンティティの描画
+	DrawEntities();
+
+	ImGui::Begin("Play View");
+
+	// ツールバー内容
+	if(ImGui::Button("Play")){
+		m_context->state = SceneState::Playing; // シーンの状態を再生中に変更
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("Stop")){
+		m_context->state = SceneState::Stopped; // シーンの状態をエディタに戻す
+	}
+	ImGui::Separator();
+
+	ImVec2 avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
+
+	// テクスチャの元サイズ（例）
+	float imgW = 1280.0f, imgH = 720.0f;
+	float imgAspect = imgW / imgH;
+	float availAspect = avail.x / avail.y;
+
+	ImVec2 dst;
+	if(availAspect > imgAspect){
+		// 領域が横長 → 高さに合わせ、幅を計算
+		dst.y = avail.y;
+		dst.x = avail.y * imgAspect;
+	} else{
+		// 領域が縦長または正方形 → 幅に合わせ、高さを計算
+		dst.x = avail.x;
+		dst.y = avail.x / imgAspect;
+	}
+
+	// 中央寄せ
+	ImVec2 cursor = ImGui::GetCursorPos();
+	ImGui::SetCursorPosX(cursor.x + (avail.x - dst.x) * 0.5f);
+	ImGui::SetCursorPosY(cursor.y + (avail.y - dst.y) * 0.5f);
+	cursor = ImGui::GetCursorPos();
+	// イメージ表示（UV反転も場合に応じて調整）
+	ImGui::Image((ImTextureID)srv, dst, ImVec2(0, 0), ImVec2(1, 1));
+
+	ImGuizmo::SetRect(
+		ImGui::GetWindowPos().x + cursor.x,
+		ImGui::GetWindowPos().y + cursor.y,
+		dst.x,
+		dst.y
+	);
+	ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
+
+	ImGui::End();
+
+	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
 }

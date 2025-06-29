@@ -24,6 +24,7 @@ public:
 	void Update(float deltaTime) override{};
 	void FixedUpdate(float fidedDeltaTime) override {}
 	void Draw() override;
+	void EditorUpdate(float deltaTime) override{}
 
 private:
 	void SetRenderTarget(ID3D11DeviceContext* ctx, ID3D11DepthStencilView* dsv = nullptr){
@@ -49,6 +50,13 @@ private:
 	void DrawMesh(TransformComponent* pTransform, MeshRendererComponent* pMesh, TextureComponent* pTexture);
 	void DrawModel(TransformComponent* pTransform, ModelRendererComponent* pMesh, TextureComponent* pTexture);
 	void DrawBillBoard(TransformComponent* pTransform, MeshRendererComponent* pMesh, BillBoardRendererComponent* pBillBoard, TextureComponent* pTexture);
+
+	void DrawEntities();
+
+	void SetCameraView();
+
+	void EditorView();
+	void PlayerView();
 
 	SceneContext* m_context;
 	MeshRendererComponent* m_billBoardMesh = nullptr;

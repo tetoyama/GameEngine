@@ -11,11 +11,19 @@ class EntityRegistry;
 class ComponentRegistry;
 class SystemRegistry;
 
+enum SceneState
+{
+	Playing, // ゲームプレイ中
+	Paused,  // 一時停止中
+	Stopped  // 停止中
+};
+
 struct SceneContext{
 	EntityRegistry* entity = nullptr;
 	ComponentRegistry* component = nullptr;
 	SystemRegistry* system = nullptr;
 	SceneManagerContext* manager = nullptr;
+	SceneState state = SceneState::Stopped; // シーンの状態
 };
 
 class Scene {
@@ -35,6 +43,13 @@ public:
 	void Save();
 
 	SceneContext* GetSceneContext(){return &m_SceneContext;}
+
+	SceneState GetState() const{
+		return m_SceneContext.state;
+	}
+	void SetState(const SceneState& state){
+		m_SceneContext.state = state;
+	}
 
 private:
 

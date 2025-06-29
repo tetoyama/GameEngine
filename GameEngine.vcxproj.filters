@@ -2175,6 +2175,9 @@
     <ClInclude Include="Source\Service\YAMLConverters.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\ScriptComponent .h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\gameApplication.cpp">
@@ -2625,26 +2628,15 @@
     <None Include="Source\GameApplication\Backends\yaml-cpp\contrib\yaml-cpp.natvis.md" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Source\Shader\unlitTexturePS.hlsl" />
-    <FxCompile Include="Source\Shader\unlitTextureVS.hlsl" />
     <FxCompile Include="Source\Shader\pointLightingBlinnPhongPS.hlsl" />
-    <FxCompile Include="Source\Shader\pointLightingBlinnPhongVS.hlsl" />
     <FxCompile Include="Source\Shader\pixelLightingBlinnPhongPS.hlsl" />
-    <FxCompile Include="Source\Shader\pixelLightingBlinnPhongVS.hlsl" />
     <FxCompile Include="Source\Shader\pixelLightingPS.hlsl" />
-    <FxCompile Include="Source\Shader\pixelLightingVS.hlsl" />
     <FxCompile Include="Source\Shader\semiSphereLightingPS.hlsl" />
-    <FxCompile Include="Source\Shader\semiSphereLightingVS.hlsl" />
-    <FxCompile Include="Source\Shader\unlitColorPS.hlsl" />
-    <FxCompile Include="Source\Shader\unlitColorVS.hlsl" />
     <FxCompile Include="Source\Shader\vertexDirectionalLightingPS.hlsl" />
-    <FxCompile Include="Source\Shader\vertexDirectionalLightingVS.hlsl" />
     <FxCompile Include="Source\Shader\spotLightPS.hlsl" />
-    <FxCompile Include="Source\Shader\spotLightVS.hlsl" />
-    <FxCompile Include="Source\Shader\limLightVS.hlsl" />
     <FxCompile Include="Source\Shader\limLightPS.hlsl" />
     <FxCompile Include="Source\Shader\unlitUVTexturePS.hlsl" />
-    <FxCompile Include="Source\Shader\unlitUVTextureVS.hlsl" />
+    <FxCompile Include="Source\Shader\commonVS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />

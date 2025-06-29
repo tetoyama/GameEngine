@@ -61,6 +61,16 @@ public:
 	}
 
 	/**
+	 * @brief 全 System の Update を呼び出す
+	 * @param dt デルタタイム
+	 */
+	void EditorUpdateAll(float dt){
+		for(auto& sys : m_systems){
+			sys->EditorUpdate(dt);
+		}
+	}
+
+	/**
 	 * @brief 全 System の Draw を呼び出す
 	 */
 	void DrawAll(){

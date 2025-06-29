@@ -165,6 +165,10 @@ public:
 		if(!isUniformLocked){
 			DrawVec3Control("", scale.x, scale.y, scale.z);
 		} else{
+			colorX = ImVec4(1.0f, 0.8f, 0.8f, 0.6f);
+			colorY = ImVec4(0.8f, 1.0f, 0.8f, 0.6f);
+			colorZ = ImVec4(0.8f, 0.8f, 1.0f, 0.6f);
+
 			float ratio = 1.0f;
 			bool changed = false;
 

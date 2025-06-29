@@ -16,7 +16,12 @@ public:
 
 	void inspector(SceneContext* context) override{
 		ImGui::Text("BillBoardRendererComponent");
+		ImGui::Text("FreezeXZ");
+		ImGui::SameLine(100);
+		if(ImGui::Button(FreezeXZ ? "Yes" : "No")){
+			FreezeXZ = !FreezeXZ;
+		}
 	}
 
-	bool RotateX = false;
+	bool FreezeXZ = false;
 };

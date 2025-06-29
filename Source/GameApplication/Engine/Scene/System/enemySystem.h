@@ -15,6 +15,7 @@ public:
 	void Update(float deltaTime) override;
 	void FixedUpdate(float fidedDeltaTime) override{}
 	void Draw() override{};
+	void EditorUpdate(float deltaTime) override{}
 
 private:
 	SceneContext* m_context;

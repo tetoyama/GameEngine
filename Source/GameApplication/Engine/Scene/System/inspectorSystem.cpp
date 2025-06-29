@@ -32,7 +32,7 @@ static char newNameBuffer[256] = {0};
 
 // メインの更新関数
 void InspectorSystem::Draw(){
-	CreateDockSpace();
+	//CreateDockSpace();
 
 	showSceneHierarchy = &m_context->manager->imgui->GetManubar()->showSceneHierarchy;
 	showInspector = &m_context->manager->imgui->GetManubar()->showInspector;

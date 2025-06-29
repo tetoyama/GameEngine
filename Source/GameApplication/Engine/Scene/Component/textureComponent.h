@@ -206,8 +206,9 @@ public:
 
 
 		// --- Texture Input ---
+		ImGui::BeginGroup();
 		float textLabelWidth = 100.0f;
-		float inputFieldWidth = ImGui::GetContentRegionAvail().x - textLabelWidth;
+		float inputFieldWidth = ImGui::GetContentRegionAvail().x - textLabelWidth - 24.0f; // 余白 + ボタンサイズ分調整
 
 		char filepathBuffer[256] = "";
 		if(m_TextureData && !m_TextureData->FilePath.empty()){
@@ -222,16 +223,14 @@ public:
 		}
 		ImGui::PopItemWidth();
 
-		// --- Drag and Drop for Texture ---
-		if(ImGui::BeginDragDropTarget()){
-			if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
-				const char* droppedPath = (const char*)payload->Data;
-				std::string _texturePath = std::string(droppedPath);
 
-				m_TextureData = context->manager->resource->GetTextureLoader()->LoadTexture(_texturePath);
-			}
-			ImGui::EndDragDropTarget();
+		// Clear Button
+		ImGui::SameLine();
+		if(ImGui::SmallButton("x")){
+			filepathBuffer[0] = '\0'; // クリア
+			m_TextureData = nullptr; // テクスチャデータもクリア
 		}
+
 
         // --- Texture Preview ---
         if (m_TextureData && m_TextureData->pTexture) {
@@ -273,6 +272,17 @@ public:
             ImGui::TextDisabled("No texture loaded");
         }
 
+		ImGui::EndGroup();
+		// --- Drag and Drop for Texture ---
+		if(ImGui::BeginDragDropTarget()){
+			if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
+				const char* droppedPath = (const char*)payload->Data;
+				std::string _texturePath = std::string(droppedPath);
+
+				m_TextureData = context->manager->resource->GetTextureLoader()->LoadTexture(_texturePath);
+			}
+			ImGui::EndDragDropTarget();
+		}
         ImGui::Spacing();
 
 		ImGui::PopID(); // コンポーネントのIDをポップ

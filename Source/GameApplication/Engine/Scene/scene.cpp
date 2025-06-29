@@ -126,13 +126,18 @@ void Scene::Initialize(SceneManagerContext* set){
 }
 
 void Scene::Update(float deltaTime){
+	if(m_SceneContext.state == SceneState::Playing){
+		m_systemRegistry->UpdateAll(deltaTime);
+	}
 
-	m_systemRegistry->UpdateAll(deltaTime);
+	m_systemRegistry->EditorUpdateAll(deltaTime);
+
 }
 
 void Scene::FixedUpdate(float fixedDeltaTime){
-
-	m_systemRegistry->FixedUpdateAll(fixedDeltaTime);
+	if(m_SceneContext.state == SceneState::Playing){
+		m_systemRegistry->FixedUpdateAll(fixedDeltaTime);
+	}
 }
 
 void Scene::Render(){
@@ -193,7 +198,7 @@ void Scene::BuildDefaultScene(){
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\cube.fbx");
-		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\pointLightingBlinnPhongVS.cso");
+		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\commonVS.cso");
 		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pixelLightingPS.cso");
 	}
 
@@ -218,7 +223,7 @@ void Scene::BuildDefaultScene(){
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
-		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\limLightVS.cso");
+		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\commonVS.cso");
 		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pixelLightingPS.cso");
 
 		auto player = componentRegistry->AddComponent<PlayerComponent>(entity);
@@ -266,7 +271,7 @@ void Scene::BuildDefaultScene(){
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
-		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\limLightVS.cso");
+		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\commonVS.cso");
 		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pixelLightingPS.cso");
 
 		auto player = componentRegistry->AddComponent<EnemyComponent>(entity);
