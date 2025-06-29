@@ -2629,6 +2629,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Runtime\TimeService\time.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\BillBoardRendererComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\bulletComponent.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\bumpMapComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\cameraComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\enemyComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\entityNameComponent.h" />
@@ -3097,6 +3098,12 @@
     <None Include="Source\GameApplication\Backends\yaml-cpp\contrib\yaml-cpp.natvis.md" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="Source\Shader\bumpPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="Source\Shader\commonVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
     </FxCompile>

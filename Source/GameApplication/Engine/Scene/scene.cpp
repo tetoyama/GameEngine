@@ -51,6 +51,7 @@
 #include "Component/bulletComponent.h"
 #include "Component/enemyComponent.h"
 #include "Component/explosionEffectComponent.h"
+#include <Component/bumpMapComponent.h>
 
 Scene::Scene(){
 
@@ -75,6 +76,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<CameraComponent>("CameraComponent", false);
 
 	m_componentRegistry->RegisterYAMLComponent<TextureComponent>("TextureComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<BumpMapComponent>("BumpMapComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<MeshRendererComponent>("MeshRendererComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<ModelRendererComponent>("ModelRendererComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<BillBoardRendererComponent>("BillBoardRendererComponent", false);

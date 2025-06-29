@@ -2181,6 +2181,9 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\ScriptSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\bumpMapComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\gameApplication.cpp">
@@ -2643,6 +2646,7 @@
     <FxCompile Include="Source\Shader\limLightPS.hlsl" />
     <FxCompile Include="Source\Shader\unlitUVTexturePS.hlsl" />
     <FxCompile Include="Source\Shader\commonVS.hlsl" />
+    <FxCompile Include="Source\Shader\bumpPS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />

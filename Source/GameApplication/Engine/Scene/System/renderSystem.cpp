@@ -34,6 +34,7 @@
 
 #include "Scene.h"
 #include "SceneManager.h"
+#include <Component/bumpMapComponent.h>
 
 void RenderSystem::Initialize(){
 	m_context->manager->debug->LOG_DEBUG("RenderSystemを初期化中...");
@@ -195,33 +196,13 @@ void RenderSystem::EditorUpdate(float deltaTime){
 		if(ImGui::IsKeyDown(ImGuiKey_S)) velocity -= front;
 		if(ImGui::IsKeyDown(ImGuiKey_A)) velocity += right;
 		if(ImGui::IsKeyDown(ImGuiKey_D)) velocity -= right;
-		if(ImGui::IsKeyDown(ImGuiKey_LeftShift)) velocity -= up;
-		if(ImGui::IsKeyDown(ImGuiKey_Space)) velocity += up;
-
-	} else{
-
-		// 回転から方向ベクトル取得
-		Vector3 front;
-		front.x = cosf(m_EditorCameraRotation.y) * sinf(m_EditorCameraRotation.x);
-		front.y = sinf(m_EditorCameraRotation.y);
-		front.z = cosf(m_EditorCameraRotation.y) * cosf(m_EditorCameraRotation.x);
-		front = front.normalize();
-		Vector3 right = (Vec3Cross(front, Vector3(0.0f, 1.0f, 0.0f))).normalize();
-		Vector3 up = (Vec3Cross(right, front)).normalize();
-
-
-
-		if(ImGui::IsKeyDown(ImGuiKey_W)) velocity += front;
-		if(ImGui::IsKeyDown(ImGuiKey_S)) velocity -= front;
-		if(ImGui::IsKeyDown(ImGuiKey_A)) velocity += right;
-		if(ImGui::IsKeyDown(ImGuiKey_D)) velocity -= right;
-		if(ImGui::IsKeyDown(ImGuiKey_Q)) velocity -= up;
-		if(ImGui::IsKeyDown(ImGuiKey_E)) velocity += up;
+		if(ImGui::IsKeyDown(ImGuiKey_Q) || ImGui::IsKeyDown(ImGuiKey_LeftShift)) velocity -= up;
+		if(ImGui::IsKeyDown(ImGuiKey_E) || ImGui::IsKeyDown(ImGuiKey_Space)) velocity += up;
 
 	}
-	if(velocity.length() > 0.0f)
+	if(velocity.length() > 0.0f){
 		m_EditorCameraPosition += velocity.normalize() * speed * deltaTime;
-
+	}
 
 
 
@@ -439,6 +420,19 @@ void RenderSystem::DrawEntities(){
 
 			TransformComponent* transform = m_context->component->GetComponent<TransformComponent>(entity);
 			if(transform){
+				BumpMapComponent* bumpMap = m_context->component->GetComponent<BumpMapComponent>(entity);
+				if(bumpMap){
+					// バンプマップの設定
+					if(bumpMap->m_TextureData){
+						deviceContext->PSSetShaderResources(1, 1, bumpMap->m_TextureData->pTexture.GetAddressOf());
+					} else{
+						ID3D11ShaderResourceView* nullSRV = nullptr;
+						deviceContext->PSSetShaderResources(1, 1, &nullSRV);
+					}
+				} else{
+					ID3D11ShaderResourceView* nullSRV = nullptr;
+					deviceContext->PSSetShaderResources(1, 1, &nullSRV);
+				}
 
 				TextureComponent* texture = m_context->component->GetComponent<TextureComponent>(entity);
 				if(texture){

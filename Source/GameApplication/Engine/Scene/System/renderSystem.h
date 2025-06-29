@@ -53,6 +53,6 @@ private:
 	ID3D11ShaderResourceView* srv_editor = nullptr;
 	ID3D11DepthStencilView* dsv_editor = nullptr;
 
-	Vector3 m_EditorCameraPosition = {0.0f, 5.0f, -20.0f};
-	Vector3 m_EditorCameraRotation = {0.0f, 0.0f, 0.0f};
+	Vector3 m_EditorCameraPosition = Vector3(0.0f, 5.0f, 0.0f);
+	Vector3 m_EditorCameraRotation = Vector3(0.0f, 0.0f, 0.0f);
 };

@@ -15,6 +15,7 @@ public:
 	TextureData* LoadTexture(const std::string& filePath);
 	TextureData* GetTexture(const std::string& filePath);
 	void SetTexture(const std::string& filePath);
+	void SetBumpTexture(const std::string& filePath);
 private:
 	std::unordered_map<std::string, std::shared_ptr<TextureData>> m_Textures;
 	GraphicsContext* m_GraphicContext;

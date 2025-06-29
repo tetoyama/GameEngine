@@ -69,3 +69,11 @@ void TextureLoader::SetTexture(const std::string& filePath){
 	TextureData* texture = m_Textures[filePath].get();
 	m_GraphicContext->GetDeviceContext()->PSSetShaderResources(0, 1, &texture->pTexture);
 }
+
+void TextureLoader::SetBumpTexture(const std::string& filePath){
+	if(!m_Textures.count(filePath)){
+		return;
+	}
+	TextureData* texture = m_Textures[filePath].get();
+	m_GraphicContext->GetDeviceContext()->PSSetShaderResources(1, 1, &texture->pTexture);
+}

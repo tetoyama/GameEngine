@@ -16,9 +16,11 @@ Entities:
           x: 100
           y: 10
           z: 100
+      - Component: BumpMapComponent
+        FilePath: Asset\Texture\BumpMap\testbump.png
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.fbx
-        PixelShader: Asset\Shader\pixelLightingPS.cso
+        PixelShader: Asset\Shader\bumpPS.cso
         VertexShader: Asset\Shader\commonVS.cso
   - Entity: 2
     Components:
