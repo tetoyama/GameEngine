@@ -112,14 +112,14 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)/Source/GameApplication;$(ProjectDir)/Source/GameApplication/Engine/Scene;$(ProjectDir)/Source;$(ProjectDir);$(ProjectDir)/Source/GameApplication/Backends</AdditionalIncludeDirectories>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <CompileAsManaged>true</CompileAsManaged>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <ExceptionHandling>Async</ExceptionHandling>
-      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <CompileAsManaged>false</CompileAsManaged>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -144,8 +144,10 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <CompileAsManaged>true</CompileAsManaged>
-      <ExceptionHandling>Async</ExceptionHandling>
+      <CompileAsManaged>false</CompileAsManaged>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -2631,7 +2633,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\enemyComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\entityNameComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\explosionEffectComponent.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\ScriptComponent .h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\ScriptComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\textureComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Entity\Entity.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\IComponent.h" />
@@ -2653,6 +2655,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\inspectorSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\playerSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\renderSystem.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\ScriptSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\transformSystem.h" />
     <ClInclude Include="Source\GameApplication\gameApplication.h" />
     <ClInclude Include="Source\main.h" />
@@ -3009,6 +3012,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\inspectorSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\playerSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\renderSystem.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\ScriptSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\transformSystem.cpp" />
     <ClCompile Include="Source\GameApplication\gameApplication.cpp" />
     <ClCompile Include="Source\main.cpp" />

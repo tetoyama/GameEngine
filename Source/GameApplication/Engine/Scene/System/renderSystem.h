@@ -3,6 +3,7 @@
 #include "Interface/ISystem.h"
 #include <d3d11.h>
 #include <wrl/client.h> 
+#include "Backends/myVector3.h"
 
 struct SceneContext;
 
@@ -24,28 +25,9 @@ public:
 	void Update(float deltaTime) override{};
 	void FixedUpdate(float fidedDeltaTime) override {}
 	void Draw() override;
-	void EditorUpdate(float deltaTime) override{}
+	void EditorUpdate(float deltaTime) override;
 
 private:
-	void SetRenderTarget(ID3D11DeviceContext* ctx, ID3D11DepthStencilView* dsv = nullptr){
-		D3D11_VIEWPORT viewport = {
-		0.0f,              // TopLeftX
-		0.0f,              // TopLeftY
-		1280.0f,           // Width
-		720.0f,            // Height
-		0.0f,              // MinDepth
-		1.0f               // MaxDepth
-		};
-		ctx->OMSetRenderTargets(1, &rtv, dsv);
-		ctx->RSSetViewports(1, &viewport);
-	}
-
-	void Clear(ID3D11DeviceContext* ctx, const float clear[4]){
-		ctx->ClearRenderTargetView(rtv, clear);
-	}
-	ID3D11ShaderResourceView* GetSRV() const{
-		return srv;
-	}
 
 	void DrawMesh(TransformComponent* pTransform, MeshRendererComponent* pMesh, TextureComponent* pTexture);
 	void DrawModel(TransformComponent* pTransform, ModelRendererComponent* pMesh, TextureComponent* pTexture);
@@ -54,15 +36,23 @@ private:
 	void DrawEntities();
 
 	void SetCameraView();
+	void SetEditorCameraView();
 
 	void EditorView();
 	void PlayerView();
 
 	SceneContext* m_context;
 	MeshRendererComponent* m_billBoardMesh = nullptr;
-	ID3D11Texture2D* tex = nullptr;
-	ID3D11RenderTargetView* rtv = nullptr;
-	ID3D11ShaderResourceView* srv = nullptr;
-	ID3D11DepthStencilView* dsv = nullptr;
+	ID3D11Texture2D* tex_player = nullptr;
+	ID3D11RenderTargetView* rtv_player = nullptr;
+	ID3D11ShaderResourceView* srv_player = nullptr;
+	ID3D11DepthStencilView* dsv_player = nullptr;
 
+	ID3D11Texture2D* tex_editor = nullptr;
+	ID3D11RenderTargetView* rtv_editor = nullptr;
+	ID3D11ShaderResourceView* srv_editor = nullptr;
+	ID3D11DepthStencilView* dsv_editor = nullptr;
+
+	Vector3 m_EditorCameraPosition = {0.0f, 5.0f, -20.0f};
+	Vector3 m_EditorCameraRotation = {0.0f, 0.0f, 0.0f};
 };

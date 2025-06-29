@@ -1,9 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <TargetFramework>net4.8</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AssemblyName>ClassLibrary</AssemblyName>
+    <BaseOutputPath></BaseOutputPath>
   </PropertyGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy /Y /D &quot;$(SolutionDir)Source\GameApplication\Backends\ClassLibrary\bin\$(Configuration)\net4.8\ClassLibrary.dll&quot; &quot;$(SolutionDir)x64\$(Configuration)\&quot;&#xD;&#xA;" />
+  </Target>
 
 </Project>

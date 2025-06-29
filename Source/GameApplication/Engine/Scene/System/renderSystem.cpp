@@ -4,6 +4,7 @@
 #include "Backends/DirectX11/DirectXTex.h"
 #include "Backends/ImGui/ImGui.h"
 #include "Backends/ImGui/ImGuizmo.h"
+#include "Backends/myVector3.h"
 
 #include "Backends/Assimp/material.h"
 #include "Backends/Assimp/scene.h"
@@ -48,9 +49,13 @@ void RenderSystem::Initialize(){
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11Device* device = graphicsContext->GetDevice();
 
-	device->CreateTexture2D(&td, nullptr, &tex);
-	device->CreateRenderTargetView(tex, nullptr, &rtv);
-	device->CreateShaderResourceView(tex, nullptr, &srv);
+	device->CreateTexture2D(&td, nullptr, &tex_editor);
+	device->CreateRenderTargetView(tex_editor, nullptr, &rtv_editor);
+	device->CreateShaderResourceView(tex_editor, nullptr, &srv_editor);
+
+	device->CreateTexture2D(&td, nullptr, &tex_player);
+	device->CreateRenderTargetView(tex_player, nullptr, &rtv_player);
+	device->CreateShaderResourceView(tex_player, nullptr, &srv_player);
 
 	// デプスステンシルバッファ作成
 	ID3D11Texture2D* depthStencile{};
@@ -77,7 +82,8 @@ void RenderSystem::Initialize(){
 	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	depthStencilViewDesc.Flags = 0;
 	if(depthStencile){
-		hr = device->CreateDepthStencilView(depthStencile, &depthStencilViewDesc, &dsv);
+		hr = device->CreateDepthStencilView(depthStencile, &depthStencilViewDesc, &dsv_editor);
+		hr = device->CreateDepthStencilView(depthStencile, &depthStencilViewDesc, &dsv_player);
 		depthStencile->Release();
 
 		if(FAILED(hr)){
@@ -128,10 +134,15 @@ void RenderSystem::Initialize(){
 
 void RenderSystem::Finalize(){
 	delete m_billBoardMesh;	
-	tex->Release();
-	rtv->Release();
-	srv->Release();
-	dsv->Release();
+	tex_editor->Release();
+	rtv_editor->Release();
+	srv_editor->Release();
+	dsv_editor->Release();
+
+	tex_player->Release();
+	rtv_player->Release();
+	srv_player->Release();
+	dsv_player->Release();
 }
 
 void RenderSystem::Draw(){
@@ -144,6 +155,76 @@ void RenderSystem::Draw(){
 	PlayerView();
 
 	EditorView();
+}
+
+void RenderSystem::EditorUpdate(float deltaTime){
+	ImGuiIO& io = ImGui::GetIO();
+
+	// マウス右クリックで操作有効
+	static bool isCameraActive = false;
+	if(ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+		isCameraActive = true;
+	else if(!ImGui::IsMouseDown(ImGuiMouseButton_Right))
+		isCameraActive = false;
+
+	// 入力で動かすベクトル
+	Vector3 velocity = {0,0,0};
+	float speed = 20.0f;
+
+	if(isCameraActive){
+		// ------ 1. マウス移動で回転 ------
+		float mouseSensitivity = 0.005f;
+		m_EditorCameraRotation.x += io.MouseDelta.x * mouseSensitivity; // yaw
+		m_EditorCameraRotation.y -= io.MouseDelta.y * mouseSensitivity; // pitch
+
+		// ピッチ制限
+		const float pitchLimit = DirectX::XM_PIDIV2 - 0.01f;
+		if(m_EditorCameraRotation.y > pitchLimit) m_EditorCameraRotation.y = pitchLimit;
+		if(m_EditorCameraRotation.y < -pitchLimit) m_EditorCameraRotation.y = -pitchLimit;
+
+		// 回転から方向ベクトル取得
+		Vector3 front;
+		front.x = cosf(m_EditorCameraRotation.y) * sinf(m_EditorCameraRotation.x);
+		front.y = 0.0f;
+		front.z = cosf(m_EditorCameraRotation.y) * cosf(m_EditorCameraRotation.x);
+		front = front.normalize();
+		Vector3 right = (Vec3Cross(front, Vector3(0.0f, 1.0f, 0.0f))).normalize();
+		Vector3 up = (Vec3Cross(right, front)).normalize();
+
+		if(ImGui::IsKeyDown(ImGuiKey_W)) velocity += front;
+		if(ImGui::IsKeyDown(ImGuiKey_S)) velocity -= front;
+		if(ImGui::IsKeyDown(ImGuiKey_A)) velocity += right;
+		if(ImGui::IsKeyDown(ImGuiKey_D)) velocity -= right;
+		if(ImGui::IsKeyDown(ImGuiKey_LeftShift)) velocity -= up;
+		if(ImGui::IsKeyDown(ImGuiKey_Space)) velocity += up;
+
+	} else{
+
+		// 回転から方向ベクトル取得
+		Vector3 front;
+		front.x = cosf(m_EditorCameraRotation.y) * sinf(m_EditorCameraRotation.x);
+		front.y = sinf(m_EditorCameraRotation.y);
+		front.z = cosf(m_EditorCameraRotation.y) * cosf(m_EditorCameraRotation.x);
+		front = front.normalize();
+		Vector3 right = (Vec3Cross(front, Vector3(0.0f, 1.0f, 0.0f))).normalize();
+		Vector3 up = (Vec3Cross(right, front)).normalize();
+
+
+
+		if(ImGui::IsKeyDown(ImGuiKey_W)) velocity += front;
+		if(ImGui::IsKeyDown(ImGuiKey_S)) velocity -= front;
+		if(ImGui::IsKeyDown(ImGuiKey_A)) velocity += right;
+		if(ImGui::IsKeyDown(ImGuiKey_D)) velocity -= right;
+		if(ImGui::IsKeyDown(ImGuiKey_Q)) velocity -= up;
+		if(ImGui::IsKeyDown(ImGuiKey_E)) velocity += up;
+
+	}
+	if(velocity.length() > 0.0f)
+		m_EditorCameraPosition += velocity.normalize() * speed * deltaTime;
+
+
+
+
 }
 
 void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent* meshRenderer, TextureComponent* pTexture){
@@ -454,8 +535,29 @@ void RenderSystem::SetCameraView(){
 	m_context->manager->imgui->SetViewProjectionMatrix(cameraComponent->viewMatrix, projection);
 }
 
-void RenderSystem::EditorView(){
+void RenderSystem::SetEditorCameraView(){
+	// コンテキストの取得
+	GraphicsContext* graphicsContext = m_context->manager->renderer->GetGraphicsContext();
+	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+	// プロジェクションマトリクス設定
+	DirectX::XMMATRIX projection;
+	projection = DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV4, (float)graphicsContext->m_width / graphicsContext->m_height, 0.01f, 1000.0f);
+	graphicsContext->SetProjectionMatrix(projection);
+	// ビューマトリクス設定
+	float pitch = m_EditorCameraRotation.y;
+	float yaw = m_EditorCameraRotation.x;
 
+	Vector3 front;
+	front.x = cosf(pitch) * sinf(yaw);
+	front.y = sinf(pitch);
+	front.z = cosf(pitch) * cosf(yaw);
+
+	DirectX::XMMATRIX view = DirectX::XMMatrixLookAtLH(m_EditorCameraPosition.ToXMVECTOR(), (m_EditorCameraPosition + front).ToXMVECTOR(), {0.0f, 1.0f, 0.0f});
+	graphicsContext->SetViewMatrix(view);
+	m_context->manager->imgui->SetViewProjectionMatrix(view, projection);
+}
+
+void RenderSystem::EditorView(){
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
@@ -470,11 +572,12 @@ void RenderSystem::EditorView(){
 	vp.TopLeftY = 0;
 	deviceContext->RSSetViewports(1, &vp);
 
-	deviceContext->ClearRenderTargetView(rtv, clearCol);
+	deviceContext->ClearRenderTargetView(rtv_editor, clearCol);
 
-	deviceContext->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	deviceContext->ClearDepthStencilView(dsv_editor, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, &rtv, dsv);
+	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, &rtv_editor, dsv_editor);
+	SetEditorCameraView();
 
 	DrawEntities();
 
@@ -514,7 +617,7 @@ void RenderSystem::EditorView(){
 	ImGui::SetCursorPosY(cursor.y + (avail.y - dst.y) * 0.5f);
 	cursor = ImGui::GetCursorPos();
 	// イメージ表示（UV反転も場合に応じて調整）
-	ImGui::Image((ImTextureID)srv, dst, ImVec2(0, 0), ImVec2(1, 1));
+	ImGui::Image((ImTextureID)srv_editor, dst, ImVec2(0, 0), ImVec2(1, 1));
 
 	ImGuizmo::SetRect(
 		ImGui::GetWindowPos().x + cursor.x,
@@ -545,11 +648,11 @@ void RenderSystem::PlayerView(){
 	vp.TopLeftY = 0;
 	deviceContext->RSSetViewports(1, &vp);
 
-	deviceContext->ClearRenderTargetView(rtv, clearCol);
+	deviceContext->ClearRenderTargetView(rtv_player, clearCol);
 
-	deviceContext->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	deviceContext->ClearDepthStencilView(dsv_player, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, &rtv, dsv);
+	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, &rtv_player, dsv_player);
 
 	// カメラビューの設定
 	SetCameraView();
@@ -593,7 +696,7 @@ void RenderSystem::PlayerView(){
 	ImGui::SetCursorPosY(cursor.y + (avail.y - dst.y) * 0.5f);
 	cursor = ImGui::GetCursorPos();
 	// イメージ表示（UV反転も場合に応じて調整）
-	ImGui::Image((ImTextureID)srv, dst, ImVec2(0, 0), ImVec2(1, 1));
+	ImGui::Image((ImTextureID)srv_player, dst, ImVec2(0, 0), ImVec2(1, 1));
 
 	ImGuizmo::SetRect(
 		ImGui::GetWindowPos().x + cursor.x,

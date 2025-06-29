@@ -35,6 +35,8 @@
 #include "System/enemySystem.h"
 #include "System/explosionEffectSystem.h"
 
+#include "System/ScriptSystem.h"
+
 #include "Component/entityNameComponent.h"
 #include "Component/transformComponent.h"
 #include "Component/cameraComponent.h"
@@ -42,6 +44,8 @@
 #include "Component/meshRendererComponent.h"
 #include "Component/BillBoardRendererComponent.h"
 #include "Component/textureComponent.h"
+
+#include "Component/ScriptComponent.h"
 
 #include "Component/playerComponent.h"
 #include "Component/bulletComponent.h"
@@ -79,6 +83,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<BulletComponent>("BulletComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<EnemyComponent>("EnemyComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<ExplosionEffectComponent>("ExplosionEffectComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<ScriptComponent>("ScriptComponent", false);
 
 	// システムを登録
 	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
@@ -90,7 +95,8 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_systemRegistry->RegisterSystem(std::make_unique<BulletSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<EnemySystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<ExplosionEffectSystem>(&m_SceneContext));
-	
+	m_systemRegistry->RegisterSystem(std::make_unique<ScriptSystem>(&m_SceneContext));
+
 	auto Renderer = m_SceneManagerContext->renderer;
 	auto graphicsContext = Renderer->GetGraphicsContext();
 
@@ -245,6 +251,9 @@ void Scene::BuildDefaultScene(){
 
 		// CameraComponentを追加
 		auto* camera = componentRegistry->AddComponent<CameraComponent>(entity);
+
+		auto* script = componentRegistry->AddComponent<ScriptComponent>(entity);
+		script->SetScriptName("PlayerScript"); // ★スクリプトクラス名
 	}
 
 	int Sample = 20;
