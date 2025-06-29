@@ -176,11 +176,11 @@ void Scene::BuildDefaultScene(){
 	LIGHT light{};
 	light.Enable = TRUE;
 	light.Direction = DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
-	light.Position = DirectX::XMFLOAT4(0, 5, 0, 0);
+	light.Position = DirectX::XMFLOAT4(0, 25, 25, 0);
 	light.Diffuse = DirectX::XMFLOAT4(0.9f, 0.9f, 1.0f, 1);
 	light.Ambient = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	light.PointLightParam = DirectX::XMFLOAT4(20.0f, 0, 0, 0);
-	light.Angle = DirectX::XMFLOAT4(DirectX::XM_PI / 180.0f * 60.0f, 0.0f, 0.0f, 0.0f);
+	light.PointLightParam = DirectX::XMFLOAT4(100.0f, 0, 0, 0);
+	light.Angle = DirectX::XMFLOAT4(DirectX::XM_PI / 180.0f * 120.0f, 0.0f, 0.0f, 0.0f);
 
 	light.SkyColor = DirectX::XMFLOAT4(0.8f, 0.8f, 1.0f, 0.1f);
 	light.GroundColor = DirectX::XMFLOAT4(1.0f, 0.8f, 0.5f, 0.05f);
@@ -207,7 +207,11 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\cube.fbx");
 		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pixelLightingPS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\bumpPS.cso");
+
+		auto* bumpMap = componentRegistry->AddComponent<BumpMapComponent>(entity);
+		bumpMap->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\BumpMap/Normal.bmp");
+
 	}
 
 	{
@@ -232,7 +236,7 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
 		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pixelLightingPS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
 
 		auto player = componentRegistry->AddComponent<PlayerComponent>(entity);
 	}
@@ -283,7 +287,7 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
 		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\pixelLightingPS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
 
 		auto player = componentRegistry->AddComponent<EnemyComponent>(entity);
 	}
@@ -428,6 +432,15 @@ void Scene::OpenSceneYAML(std::string path) {
 			}
 			if(compType == "TextureComponent"){
 				auto* texture = dynamic_cast<TextureComponent*>(comp);
+				if(texture){
+					if(compNode["FilePath"]){
+						const auto& FilePath = compNode["FilePath"].as<std::string>();
+						texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(FilePath.c_str());
+					}
+				}
+			}
+			if(compType == "BumpMapComponent"){
+				auto* texture = dynamic_cast<BumpMapComponent*>(comp);
 				if(texture){
 					if(compNode["FilePath"]){
 						const auto& FilePath = compNode["FilePath"].as<std::string>();

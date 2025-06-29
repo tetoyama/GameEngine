@@ -546,6 +546,13 @@ void RenderSystem::SetEditorCameraView(){
 	front.y = sinf(pitch);
 	front.z = cosf(pitch) * cosf(yaw);
 
+	// コンスタントバッファ設定
+	Vector3 position = m_EditorCameraPosition;
+	CAMERA camera{};
+	camera.CameraPosition = {position.x,position.y,position.z,0.0f};
+	graphicsContext->SetCamera(camera);
+
+
 	DirectX::XMMATRIX view = DirectX::XMMatrixLookAtLH(m_EditorCameraPosition.ToXMVECTOR(), (m_EditorCameraPosition + front).ToXMVECTOR(), {0.0f, 1.0f, 0.0f});
 	graphicsContext->SetViewMatrix(view);
 	m_context->manager->imgui->SetViewProjectionMatrix(view, projection);

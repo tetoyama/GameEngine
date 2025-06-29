@@ -7,6 +7,8 @@ SamplerState g_SamplerState : register(s0); //これは１つでOK
 
 void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 {
+    float4 normal = normalize(In.Normal);
+
     //光源からピクセルへのベクトル
     float4 lv = In.WorldPosition - Light.Position;
     float ld = length(lv);
@@ -32,10 +34,16 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     light = saturate(light);
     light *= ofs;
     
+    float blendFactor = normal.y * 0.5f + 0.5f;
+    float4 color = lerp(Light.GroundColor, Light.SkyColor, blendFactor);
+    
+    
+	//テクスチャのピクセル色を取得
     outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord) * Material.Diffuse;
     outDiffuse.rgb *= In.Diffuse.rgb * light + Light.Ambient.rgb;
     outDiffuse.a *= In.Diffuse.a;
-    
+    outDiffuse.rgb += color.rgb * color.a;
+
     float3 eyev = In.WorldPosition.xyz - CameraPosition.xyz;
     eyev = normalize(eyev);
     
