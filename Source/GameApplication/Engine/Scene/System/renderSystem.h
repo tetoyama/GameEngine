@@ -43,6 +43,7 @@ private:
 
 	SceneContext* m_context;
 	MeshRendererComponent* m_billBoardMesh = nullptr;
+	MeshRendererComponent* m_SpriteMesh = nullptr;
 	ID3D11Texture2D* tex_player = nullptr;
 	ID3D11RenderTargetView* rtv_player = nullptr;
 	ID3D11ShaderResourceView* srv_player = nullptr;

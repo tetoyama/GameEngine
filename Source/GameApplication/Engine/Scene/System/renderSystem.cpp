@@ -131,10 +131,51 @@ void RenderSystem::Initialize(){
 		m_context->manager->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\commonVS.cso", m_billBoardMesh->mesh.m_VertexShader.GetAddressOf(), m_billBoardMesh->mesh.m_VertexLayout.GetAddressOf());
 		m_context->manager->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_billBoardMesh->mesh.m_PixelShader.GetAddressOf());
 	}
+
+	m_SpriteMesh = new MeshRendererComponent;
+	if (m_SpriteMesh) {
+
+		m_SpriteMesh->mesh.meshCount = 4;
+		VERTEX_3D vertex[4]{};
+
+		vertex[0].Position = DirectX::XMFLOAT3(0.5f, 0.5f, 0.0f);
+		vertex[0].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+		vertex[0].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		vertex[0].TexCoord = DirectX::XMFLOAT2(1.0f, 1.0f);
+
+		vertex[1].Position = DirectX::XMFLOAT3(-0.5f, 0.5f, 0.0f);
+		vertex[1].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+		vertex[1].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		vertex[1].TexCoord = DirectX::XMFLOAT2(0.0f, 1.0f);
+
+		vertex[2].Position = DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f);
+		vertex[2].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+		vertex[2].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		vertex[2].TexCoord = DirectX::XMFLOAT2(1.0f, 0.0f);
+
+		vertex[3].Position = DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f);
+		vertex[3].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+		vertex[3].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		vertex[3].TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
+
+		D3D11_BUFFER_DESC bd{};
+		bd.Usage = D3D11_USAGE_DEFAULT;
+		bd.ByteWidth = sizeof(VERTEX_3D) * 4;
+		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bd.CPUAccessFlags = 0;
+
+		D3D11_SUBRESOURCE_DATA sd{};
+		sd.pSysMem = vertex;
+
+		m_context->manager->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_SpriteMesh->mesh.m_VertexBuffer.GetAddressOf());
+		m_context->manager->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\commonVS.cso", m_SpriteMesh->mesh.m_VertexShader.GetAddressOf(), m_SpriteMesh->mesh.m_VertexLayout.GetAddressOf());
+		m_context->manager->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_SpriteMesh->mesh.m_PixelShader.GetAddressOf());
+	}
 }
 
 void RenderSystem::Finalize(){
-	delete m_billBoardMesh;	
+	delete m_billBoardMesh;
+	delete m_SpriteMesh;
 	tex_editor->Release();
 	rtv_editor->Release();
 	srv_editor->Release();
@@ -231,42 +272,44 @@ void RenderSystem::EditorUpdate(float deltaTime){
 
 void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent* meshRenderer, TextureComponent* pTexture){
 
+
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-	graphicsContext->SetWorldViewProjection2D();
 
-	if (!pTexture || !pTexture->m_TextureData) {
-		deviceContext->PSSetShaderResources(0, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
+	if (!pTexture) {
+		if (meshRenderer->mesh.m_TextureData) {
+			deviceContext->PSSetShaderResources(0, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
 
-		MATERIAL material{};
-		material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
+			MATERIAL material{};
+			material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
 			graphicsContext->SetMaterial(material);
-
+		}
 	}
 
 	deviceContext->IASetInputLayout(meshRenderer->mesh.m_VertexLayout.Get());
+
 	deviceContext->VSSetShader(meshRenderer->mesh.m_VertexShader.Get(), NULL, 0);
 	deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
 
 	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(transform->rotation.x, transform->rotation.y, transform->rotation.z);
 	DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z);
 	DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
+
 	DirectX::XMMATRIX World = Scale * Rotation * Translation;
 
+	graphicsContext->SetWorldViewProjection2D();
 	graphicsContext->SetWorldMatrix(World);
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
 
 	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
 
-
-
-
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	deviceContext->Draw(meshRenderer->mesh.meshCount, 0);
 
+	graphicsContext->SetDepthEnable(true);
 }
 
 void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererComponent* modelRenderer, TextureComponent* pTexture){
@@ -479,7 +522,7 @@ void RenderSystem::DrawEntities(){
 				if(billBoardRenderer){
 					DrawBillBoard(transform, m_billBoardMesh, billBoardRenderer, texture);
 				} else if(meshRenderer){
-					DrawMesh(transform, meshRenderer, texture);
+					DrawMesh(transform, m_SpriteMesh, texture);
 				}
 
 				ModelRendererComponent* modelRenderer = m_context->component->GetComponent<ModelRendererComponent>(entity);

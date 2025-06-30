@@ -2627,6 +2627,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\textureLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Runtime\JobSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Runtime\TimeService\time.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\2DspriteRendererComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\BillBoardRendererComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\bulletComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\bumpMapComponent.h" />
