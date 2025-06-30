@@ -239,6 +239,9 @@ void Scene::BuildDefaultScene(){
 		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
 
 		auto player = componentRegistry->AddComponent<PlayerComponent>(entity);
+
+		auto* script = componentRegistry->AddComponent<ScriptComponent>(entity);
+		script->SetScriptName("PlayerScript"); // ★スクリプトクラス名
 	}
 
 	{
@@ -258,8 +261,6 @@ void Scene::BuildDefaultScene(){
 		// CameraComponentを追加
 		auto* camera = componentRegistry->AddComponent<CameraComponent>(entity);
 
-		auto* script = componentRegistry->AddComponent<ScriptComponent>(entity);
-		script->SetScriptName("PlayerScript"); // ★スクリプトクラス名
 	}
 
 	int Sample = 20;
