@@ -180,7 +180,7 @@ public:
 				ImGui::PushItemWidth(fieldWidth - 10.0f); // <- はみ出し防止：DrawVec3Control と統一
 				ImGui::Text("%s", id);
 				ImGui::SameLine(0.0f, 10.0f);
-				if(ImGui::DragFloat("##", &temp, 0.01f, 0.01f, 100.0f)){
+				if(ImGui::DragFloat("##", &temp, 0.01f, 0.01f)){
 					if(baseValue != 0.0f){
 						outRatio = temp / baseValue;
 						changed = true;

@@ -29,10 +29,12 @@ public:
 	void inspector(SceneContext* context) override{
 		ImGui::Text("Model File Path");
 		ImGui::SameLine(100.0f);
-		static char filepathBuffer[256] = ""; // 適当な最大長
+		char filepathBuffer[256] = ""; // 適当な最大長
 		// バッファに現在の文字列をコピー（初回か変更時だけにすると効率的）
 		if(model){
 			strncpy_s(filepathBuffer, sizeof(filepathBuffer), model->FilePath.c_str(), _TRUNCATE);
+		} else{
+			filepathBuffer[0] = '\0'; // 初期化
 		}
 		if(ImGui::InputText("##Model File Path", filepathBuffer, sizeof(filepathBuffer))){
 			// 編集されたら std::string に反映
@@ -54,6 +56,8 @@ public:
 		ImGui::SameLine(100.0f);
 		if(pixelShader){
 			strncpy_s(filepathBuffer, sizeof(filepathBuffer), pixelShader->FilePath.c_str(), _TRUNCATE);
+		} else{
+			filepathBuffer[0] = '\0'; // 初期化
 		}
 		if(ImGui::InputText("##PixelShader", filepathBuffer, sizeof(filepathBuffer))){
 			// 編集されたら std::string に反映
@@ -76,6 +80,8 @@ public:
 		ImGui::SameLine(100.0f);
 		if(vertexShader){
 			strncpy_s(filepathBuffer, sizeof(filepathBuffer), vertexShader->FilePath.c_str(), _TRUNCATE);
+		} else{
+			filepathBuffer[0] = '\0'; // 初期化
 		}
 		if(ImGui::InputText("##VertexShader", filepathBuffer, sizeof(filepathBuffer))){
 			// 編集されたら std::string に反映

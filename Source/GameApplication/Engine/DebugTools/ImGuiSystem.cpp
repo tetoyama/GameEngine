@@ -123,8 +123,39 @@ DirectX::XMMATRIX ImGuiService::RenderGizmo(const DirectX::XMMATRIX& world) cons
 	float* projPtr = &projF.m[0][0];
 	float* modelPtr = &modelF.m[0][0];
 
+	ImGuizmo::SetOrthographic(false); // true＝直交投影、false＝透視
 	// ギズモの操作モードと操作タイプを設定
 	ImGuizmo::Manipulate(viewPtr, projPtr, ImGuizmo::TRANSLATE | ImGuizmo::ROTATE | ImGuizmo::SCALE, ImGuizmo::LOCAL , modelPtr);
+
+	return DirectX::XMLoadFloat4x4(&modelF);
+}
+
+DirectX::XMMATRIX ImGuiService::RenderGizmo2D(const DirectX::XMMATRIX& world) const{
+
+	// ImGuiのメインビューポートを取得
+	ImGuiViewport* viewport = ImGui::GetMainViewport();
+	float left = 0;
+	float right = viewport->Size.x;
+	float top = 0;
+	float bottom = viewport->Size.y;
+	float nearZ = -1.0f;
+	float farZ = 1.0f;
+
+	// 正射影行列をビューポートに合わせて作成
+	DirectX::XMMATRIX ortho = DirectX::XMMatrixOrthographicOffCenterLH(left, right, bottom, top, nearZ, farZ);
+
+	DirectX::XMFLOAT4X4 viewF, projF, modelF;
+	DirectX::XMStoreFloat4x4(&viewF, DirectX::XMMatrixIdentity());
+	DirectX::XMStoreFloat4x4(&projF, ortho);
+	DirectX::XMStoreFloat4x4(&modelF, world);
+
+	float* viewPtr = &viewF.m[0][0];
+	float* projPtr = &projF.m[0][0];
+	float* modelPtr = &modelF.m[0][0];
+
+	ImGuizmo::SetOrthographic(true); // 2Dギズモのため直交投影を使用
+	// ギズモの操作モードと操作タイプを設定
+	ImGuizmo::Manipulate(viewPtr, projPtr, ImGuizmo::TRANSLATE | ImGuizmo::ROTATE | ImGuizmo::SCALE, ImGuizmo::LOCAL, modelPtr);
 
 	return DirectX::XMLoadFloat4x4(&modelF);
 }

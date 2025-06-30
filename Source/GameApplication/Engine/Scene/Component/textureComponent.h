@@ -254,7 +254,7 @@ public:
             UVMatrix uv;
             ImVec2 start, end;
 
-            start.x = (float)(AnimationNum % UV_Slice_Y) / (float)UV_Slice_X;
+            start.x = (float)(AnimationNum % UV_Slice_X) / (float)UV_Slice_X;
             start.y = (float)(AnimationNum / UV_Slice_X) / (float)UV_Slice_Y;
 
             end.x = start.x + 1.0f / (float)UV_Slice_X;

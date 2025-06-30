@@ -1391,3 +1391,49 @@ Entities:
         UV_Slice_Y: 4
         AnimationNum: 11
       - Component: BillBoardRendererComponent
+  - Entity: 25
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 100
+          y: 100
+          z: 0
+        Rotation:
+          x: -0
+          y: 0
+          z: -0
+        Scale:
+          x: 100
+          y: 100
+          z: 100
+      - Component: TextureComponent
+        FilePath: Asset\Texture\texture.jpg
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Emission:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Shininess: 1
+          TextureEnable: true
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: SpriteRendererComponent

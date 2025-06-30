@@ -25,6 +25,7 @@
 #include <Component/playerComponent.h>
 #include <Component/enemyComponent.h>
 #include "Engine/DebugTools/DebugSystem.h" // Add this include to resolve the incomplete type issue
+#include <Component/2DspriteRendererComponent.h>
 
 static bool openRename = false;
 static std::filesystem::path renameTarget;
@@ -268,14 +269,19 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 	TransformComponent* transform = registry->GetComponent<TransformComponent>(selectedEntity);
 
 	if(transform){
-
 		DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(transform->rotation.x, transform->rotation.y, transform->rotation.z);
 		DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z);
 		DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
 
 		DirectX::XMMATRIX World = Scale * Rotation * Translation;
 
-		DirectX::XMMATRIX modelMatrix = m_context->manager->imgui->RenderGizmo(World);
+		DirectX::XMMATRIX modelMatrix;
+		if(registry->GetComponent<SpriteRendererComponent>(selectedEntity)){
+			modelMatrix = m_context->manager->imgui->RenderGizmo2D(World);
+
+		} else{
+			modelMatrix = m_context->manager->imgui->RenderGizmo(World);
+		}
 		if(ImGuizmo::IsUsing()){
 			// スケール、回転、並進を格納する変数
 			DirectX::XMVECTOR scale, rotationQuat, translation;
