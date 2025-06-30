@@ -137,7 +137,7 @@ void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 void InspectorSystem::DrawInspector(SceneContext* context){
 	ImGui::Begin("Inspector", showInspector);
 	if(selectedEntity == 0){
-		//ImGui::Text("No object selected.");
+		ImGui::Text("No object selected.");
 		ImGui::End();
 		return;
 	} else{
