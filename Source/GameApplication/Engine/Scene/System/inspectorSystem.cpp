@@ -144,6 +144,8 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 		bool alive = m_context->entity->IsAlive(selectedEntity); // 選択されたエンティティが生存しているか確認
 		if(!alive){
 			selectedEntity = 0; // 生存していない場合は選択を解除
+			ImGui::End();
+
 			return;
 		}
 	}
