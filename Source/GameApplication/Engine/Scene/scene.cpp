@@ -249,8 +249,8 @@ void Scene::BuildDefaultScene(){
 
 		auto player = componentRegistry->AddComponent<PlayerComponent>(entity);
 
-		auto* script = componentRegistry->AddComponent<ScriptComponent>(entity);
-		script->SetScriptName("PlayerScript"); // ★スクリプトクラス名
+		//auto* script = componentRegistry->AddComponent<ScriptComponent>(entity);
+		//script->SetScriptName("PlayerScript"); // ★スクリプトクラス名
 	}
 
 	{

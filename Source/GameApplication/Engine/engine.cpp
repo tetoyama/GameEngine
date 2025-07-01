@@ -210,8 +210,6 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 	auto initialScene = std::make_shared<Scene>();
 	sceneManager->LoadScene(initialScene);
 
-
-
 	while(!windowService->GetMainWindow()->ShouldClose()){
 		timeService->Tick();
 		float dt = timeService->GetDeltaTime();
@@ -248,19 +246,9 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 			}
 			sceneManager->Render();
 
-			//Debug UI をここに書く
-			ImGui::Begin("Debug");
-			{
-				ImGui::Text("FPS: %.2f", 1.0f / timeService->GetDeltaTime());
-				ImGui::Text("Time: %.2f", timeService->GetTotalTime());
-			}
-			ImGui::End();
-
-			mainRenderer->DrawText2D(L"Hello World!", 32, 32, 32.0f, D2D1::ColorF(D2D1::ColorF::White));
-
 			debugLogSystem->Draw();
 			imguiService->End();
-			mainRenderer->EndFrame(true);
+			mainRenderer->EndFrame(0);
 		}
 		timeService->EndDraw();
 	}

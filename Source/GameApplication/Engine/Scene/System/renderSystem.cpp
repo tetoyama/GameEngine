@@ -40,6 +40,24 @@
 #include <Component/2DspriteRendererComponent.h>
 #include <Component/RenderLayerComponent.h>
 
+RenderLayer GetRenderLayerFromEntity(Entity entity, ComponentRegistry* registry) {
+	auto* layerComponent = registry->GetComponent<RenderLayerComponent>(entity);
+	if (layerComponent) {
+		return layerComponent->layer;
+	}
+	if(registry->HasComponent<SpriteRendererComponent>(entity)){
+		return RenderLayer::OverlayUI;
+	}
+	if(registry->HasComponent<BillBoardRendererComponent>(entity)){
+		return RenderLayer::Transparent3D;
+	}
+	auto* texture = registry->GetComponent<TextureComponent>(entity);
+	if (texture && texture->Material.Diffuse.w < 1.0f) {
+		return RenderLayer::SortTransparent3D; // 透明オブジェクト
+	}
+	return RenderLayer::Opaque3D; // デフォルトレイヤー
+}
+
 struct RenderOrderComparator {
 	ComponentRegistry* registry;
 	Vector3 cameraPosition;
@@ -49,37 +67,8 @@ struct RenderOrderComparator {
 		auto* layerA = registry->GetComponent<RenderLayerComponent>(a);
 		auto* layerB = registry->GetComponent<RenderLayerComponent>(b);
 
-		RenderLayer layerValA;
-		if(layerA){
-			layerValA = layerA->layer;
-		} else {
-			if(registry->GetComponent<SpriteRendererComponent>(a)){
-				layerValA = RenderLayer::UI;
-
-			} else{
-				auto* texture = registry->GetComponent<TextureComponent>(a);
-				if(texture && texture->Material.Diffuse.w < 1.0f){
-					layerValA = RenderLayer::Transparent3D; // 透明オブジェクト
-				} else {
-					layerValA = RenderLayer::Opaque3D; // デフォルトレイヤー
-				}
-			}
-		}
-		RenderLayer layerValB;
-		if(layerB){
-			layerValB = layerB->layer;
-		} else {
-			if(registry->GetComponent<SpriteRendererComponent>(b)){
-				layerValB = RenderLayer::UI;
-			} else{
-				auto* texture = registry->GetComponent<TextureComponent>(b);
-				if(texture && texture->Material.Diffuse.w < 1.0f){
-					layerValB = RenderLayer::Transparent3D; // 透明オブジェクト
-				} else {
-					layerValB = RenderLayer::Opaque3D; // デフォルトレイヤー
-				}
-			}
-		}
+		RenderLayer layerValA = GetRenderLayerFromEntity(a, registry);
+		RenderLayer layerValB = GetRenderLayerFromEntity(b, registry);
 
 		if(layerValA != layerValB){
 			return static_cast<int>(layerValA) < static_cast<int>(layerValB);
@@ -94,8 +83,9 @@ struct RenderOrderComparator {
 		if(orderValA != orderValB){
 			return orderValA < orderValB;
 		}
+
 		// Zソート（透明オブジェクトのみ距離でソート）
-		if(layerValA == RenderLayer::Transparent3D){
+		if(layerValA == RenderLayer::SortTransparent3D){
 			auto* transformA = registry->GetComponent<TransformComponent>(a);
 			auto* transformB = registry->GetComponent<TransformComponent>(b);
 
@@ -394,7 +384,7 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 
 	ModelData* pModel = modelRenderer->model;
 	if(!pModel || !pModel->AiScene){
-		m_context->manager->debug->LOG_ERROR("ModelData is null or AiScene is not initialized.");
+		//m_context->manager->debug->LOG_ERROR("ModelData is null or AiScene is not initialized.");
 		return;
 	}
 
@@ -449,9 +439,20 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 			MATERIAL material;
 			ZeroMemory(&material, sizeof(material));
 			aiMaterial* pAiMaterial = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-			aiColor4D diffuse;
-			pAiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
-			material.Diffuse = DirectX::XMFLOAT4(diffuse.r, diffuse.g, diffuse.b, diffuse.a);
+			aiColor4D Diffuse;
+			aiColor4D Ambient;
+			aiColor4D Emission;
+			aiColor4D Specular;
+
+			pAiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, Diffuse);
+			pAiMaterial->Get(AI_MATKEY_COLOR_AMBIENT, Ambient);
+			pAiMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, Emission);
+			pAiMaterial->Get(AI_MATKEY_COLOR_SPECULAR, Specular);
+
+			material.Diffuse = DirectX::XMFLOAT4(Diffuse.r, Diffuse.g, Diffuse.b, Diffuse.a);
+			material.Ambient = DirectX::XMFLOAT4(Ambient.r, Ambient.g, Ambient.b, Ambient.a);
+			material.Emission = DirectX::XMFLOAT4(Emission.r, Emission.g, Emission.b, Emission.a);
+			material.Specular = DirectX::XMFLOAT4(Specular.r, Specular.g, Specular.b, Specular.a);
 			graphicsContext->SetMaterial(material);
 		}
 		graphicsContext->SetWorldMatrix(World);
@@ -593,9 +594,12 @@ void RenderSystem::SetEditorCameraView(){
 	// コンテキストの取得
 	GraphicsContext* graphicsContext = m_context->manager->renderer->GetGraphicsContext();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
+	ImVec2 avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
+
 	// プロジェクションマトリクス設定
 	DirectX::XMMATRIX projection;
-	projection = DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV4, (float)graphicsContext->m_width / graphicsContext->m_height, 0.01f, 1000.0f);
+	projection = DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV4, avail.x / avail.y, 0.01f, 1000.0f);
 	graphicsContext->SetProjectionMatrix(projection);
 	// ビューマトリクス設定
 	float pitch = m_EditorCameraRotation.y;
@@ -626,9 +630,6 @@ void RenderSystem::EditorView(){
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	ImGui::Begin("Editor View");
-
-
-
 	// ツールバー内容
 	if(ImGui::Button("Play")){
 		m_context->state = SceneState::Playing; // シーンの状態を再生中に変更
@@ -639,7 +640,7 @@ void RenderSystem::EditorView(){
 	}
 	ImGui::Separator();
 
-	float clearCol[4] = {0.1f, 0.1f, 0.1f, 1.0f};
+	float clearCol[4] = {0.5f, 0.5f, 0.5f, 1.0f};
 
 	D3D11_VIEWPORT vp = {};
 	vp.Width = 1280.0f;
@@ -666,16 +667,16 @@ void RenderSystem::EditorView(){
 	float imgAspect = imgW / imgH;
 	float availAspect = avail.x / avail.y;
 
-	ImVec2 dst;
-	if(availAspect > imgAspect){
-		// 領域が横長 → 高さに合わせ、幅を計算
-		dst.y = avail.y;
-		dst.x = avail.y * imgAspect;
-	} else{
-		// 領域が縦長または正方形 → 幅に合わせ、高さを計算
-		dst.x = avail.x;
-		dst.y = avail.x / imgAspect;
-	}
+	ImVec2 dst = avail;
+	//if(availAspect > imgAspect){
+	//	// 領域が横長 → 高さに合わせ、幅を計算
+	//	dst.y = avail.y;
+	//	dst.x = avail.y * imgAspect;
+	//} else{
+	//	// 領域が縦長または正方形 → 幅に合わせ、高さを計算
+	//	dst.x = avail.x;
+	//	dst.y = avail.x / imgAspect;
+	//}
 
 	// 中央寄せ
 	ImVec2 cursor = ImGui::GetCursorPos();
@@ -728,6 +729,17 @@ void RenderSystem::EditorView(){
 
 void RenderSystem::PlayerView(){
 
+	ImGui::Begin("Play View");
+	// ツールバー内容
+	if(ImGui::Button("Play")){
+		m_context->state = SceneState::Playing; // シーンの状態を再生中に変更
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("Stop")){
+		m_context->state = SceneState::Stopped; // シーンの状態をエディタに戻す
+	}
+	ImGui::Separator();
+
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
@@ -754,18 +766,6 @@ void RenderSystem::PlayerView(){
 	// エンティティの描画
 	DrawEntities();
 
-	ImGui::Begin("Play View");
-
-	// ツールバー内容
-	if(ImGui::Button("Play")){
-		m_context->state = SceneState::Playing; // シーンの状態を再生中に変更
-	}
-	ImGui::SameLine();
-	if(ImGui::Button("Stop")){
-		m_context->state = SceneState::Stopped; // シーンの状態をエディタに戻す
-	}
-	ImGui::Separator();
-
 	ImVec2 avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
 
 	// テクスチャの元サイズ（例）
@@ -789,8 +789,15 @@ void RenderSystem::PlayerView(){
 	ImGui::SetCursorPosX(cursor.x + (avail.x - dst.x) * 0.5f);
 	ImGui::SetCursorPosY(cursor.y + (avail.y - dst.y) * 0.5f);
 	cursor = ImGui::GetCursorPos();
+
+	ImVec4 color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); // デフォルトの色
+	if(m_context->state == SceneState::Playing){
+
+	} else {
+		color = ImVec4(0.5f, 0.5f, 0.5f, 0.8f);
+	}
 	// イメージ表示（UV反転も場合に応じて調整）
-	ImGui::Image((ImTextureID)srv_player, dst, ImVec2(0, 0), ImVec2(1, 1));
+	ImGui::Image((ImTextureID)srv_player, dst, ImVec2(0, 0), ImVec2(1, 1), color,ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
 
 	ImGuizmo::SetRect(
 		ImGui::GetWindowPos().x + cursor.x,
@@ -842,8 +849,13 @@ void RenderSystem::DrawEntities(){
 						deviceContext->PSSetShaderResources(0, 1, texture->m_TextureData->pTexture.GetAddressOf());
 					}
 					// マテリアル設定
-					MATERIAL material{};
+					MATERIAL material;
 					material.Diffuse = texture->Material.Diffuse;
+					if(material.Diffuse.w < 1.0f){
+						graphicsContext->SetATCEnable(false);   // アルファブレンド
+					} else{
+						graphicsContext->SetATCEnable(true);    // アルファテスト
+					}
 					graphicsContext->SetMaterial(material);
 
 					UVMatrix uv;
@@ -857,7 +869,7 @@ void RenderSystem::DrawEntities(){
 
 				} else{
 					// マテリアル設定
-					MATERIAL material{};
+					MATERIAL material;
 					material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 					graphicsContext->SetMaterial(material);
 

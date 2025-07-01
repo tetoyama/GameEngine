@@ -138,3 +138,46 @@ void BulletSystem::Update(float deltaTime){
 		}
 	}
 }
+
+void BulletSystem::FixedUpdate(float fidedDeltaTime){
+	// コンポーネントを持つエンティティの検索
+	const auto& bulletEntities = m_context->component->FindEntitiesWithComponent<BulletComponent>();
+	if(bulletEntities.empty()){
+		return;
+	} else{
+		for(Entity bulletEntity : bulletEntities){
+			BulletComponent* bullet = m_context->component->GetComponent<BulletComponent>(bulletEntity);
+			if(bullet){
+				TransformComponent* transform = m_context->component->GetComponent<TransformComponent>(bulletEntity);
+				{
+					Entity entity = m_context->entity->Create();
+
+					auto* effectName = m_context->component->AddComponent<NameComponent>(entity);
+					effectName->name = "BillBoardEffect";
+
+					auto* effect = m_context->component->AddComponent<ExplosionEffectComponent>(entity);
+					effect->LifeTime = 0.5f;
+
+					auto* bill = m_context->component->AddComponent<BillBoardRendererComponent>(entity);
+
+					auto* effectTransform = m_context->component->AddComponent<TransformComponent>(entity);
+					effectTransform->position = transform->position;
+					effectTransform->scale = Vector3(1.0f, 1.0f, 1.0f);
+
+					auto* effectTexture = m_context->component->AddComponent<TextureComponent>(entity);
+					effectTexture->m_TextureData = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\explosion.png");
+
+					TextureComponent* texture = m_context->component->GetComponent<TextureComponent>(bulletEntity);
+					if(texture){
+						effectTexture->Material = texture->Material;
+					}
+					effectTexture->UV_Slice_X = 4;
+					effectTexture->UV_Slice_Y = 4;
+					effectTexture->AnimationNum = 0;
+
+
+				}
+			}
+		}
+	}
+}

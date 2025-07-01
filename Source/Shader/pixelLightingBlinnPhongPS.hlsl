@@ -29,7 +29,4 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     specular = pow(specular, 30);
 
     outDiffuse.rgb += specular; //スペキュラ値をデフューズとして足しこむ
-
-
-
 }

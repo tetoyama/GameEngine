@@ -14,7 +14,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     float light = -dot(normal.xyz, LightVec);
     
     //距離による減衰
-    float3 LightDistance = length(In.WorldPosition.xyz - Light.Position.xyz);
+    float LightDistance = length(In.WorldPosition.xyz - Light.Position.xyz);
     float ofs = 1.0f - (1.0f / Light.PointLightParam.x) * LightDistance;
     light *= ofs;
     
@@ -38,5 +38,4 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord) * Material.Diffuse;
     outDiffuse.rgb *= Light.Diffuse.rgb * In.Diffuse.rgb * light * Spot + Light.Ambient.rgb;
     outDiffuse.rgb += (Specular * Spot);
-
 }

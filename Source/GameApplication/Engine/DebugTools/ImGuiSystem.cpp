@@ -226,7 +226,7 @@ void ImGuiService::DrawDebugImGuiWindow(double Update, double Draw, double FPS, 
 	DrawSamples[SAMPLE_LENGTH - 1] = (float)(int)Draw;
 
 	{
-		ImGui::Begin("デバッグウィンドウ");
+		ImGui::Begin("Performance Monitor");
 
 		if(ImGui::TreeNodeEx("負荷計測", ImGuiTreeNodeFlags_DefaultOpen)){
 
@@ -253,17 +253,16 @@ void ImGuiService::DrawDebugImGuiWindow(double Update, double Draw, double FPS, 
 
 			char Texts[64]{};
 			ImGui::Text("-FPS計測-");
-			sprintf(Texts, "%.2fFPS(Fixed)", FixedFPSAvg);
+			sprintf(Texts, "Fixed:%.2f Avg:%.2f", FixedFpsSamples[SAMPLE_LENGTH - 1], FixedFPSAvg);
 			ImGui::PlotLines(Texts, FixedFpsSamples, SAMPLE_LENGTH, 0, "", 0.0f);
-			sprintf(Texts, "%.2fFPS(Delta)", DeltaFPSAvg);
+			sprintf(Texts, "Delta:%.2f Avg:%.2f", DeltaFpsSamples[SAMPLE_LENGTH - 1], DeltaFPSAvg);
 			ImGui::PlotLines(Texts, DeltaFpsSamples, SAMPLE_LENGTH, 0, "", 0.0f);
 			ImGui::Text("-更新処理-");
-			sprintf(Texts, "%.2fms(Update)", UpdateAvg);
+			sprintf(Texts, "Update:Avg:%.2fms", UpdateAvg);
 			ImGui::PlotLines(Texts, UpdateSamples, SAMPLE_LENGTH, 0, "", 0.0f, 1000.0f / 60.0f);
 			ImGui::Text("-描画処理-");
-			sprintf(Texts, "%.2fms(Draw)", DrawAvg);
+			sprintf(Texts, "Draw:Avg:%.2fms", DrawAvg);
 			ImGui::PlotLines(Texts, DrawSamples, SAMPLE_LENGTH, 0, "", 0.0f, 1000.0f / 60.0f);
-
 			ImGui::TreePop();
 		}
 		ImGui::End();

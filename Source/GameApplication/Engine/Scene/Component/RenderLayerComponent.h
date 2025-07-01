@@ -3,10 +3,12 @@
 #include "Service/YAMLConverters.h"
 
 enum class RenderLayer: int {
-	Opaque3D = 0,
-	Transparent3D = 1,
-	UI = 2,
-	Debug = 3,
+	Background2D = 0,
+	Opaque3D,
+	SortTransparent3D,
+	Transparent3D,
+	OverlayUI,
+	Debug,
 };
 
 class RenderLayerComponent: public IComponent {
@@ -24,7 +26,7 @@ public:
 	}
 
 	void inspector(SceneContext* context) override{
-		static const char* items[] = {"Opaque3D", "Transparent3D", "UI", "Debug"};
+		static const char* items[] = {"Background2D","Opaque3D", "SortTransparent3D","Transparent3D", "OverlayUI", "Debug"};
 		int currentLayer = static_cast<int>(layer);
 
 		if(ImGui::Combo("Render Layer", &currentLayer, items, IM_ARRAYSIZE(items))){
@@ -33,7 +35,6 @@ public:
 	}
 
 	RenderLayer layer = RenderLayer::Opaque3D;
-
 };
 
 

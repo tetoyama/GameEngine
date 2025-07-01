@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "ScriptWrapperAPI.h" // 上で定義したマクロを include
+#include "ScriptWrapperAPI.h"
 
 class SCRIPTWRAPPER_API NativeScriptHandle {
 public:

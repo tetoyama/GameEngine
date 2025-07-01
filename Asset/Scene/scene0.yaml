@@ -1,0 +1,199 @@
+Entities:
+  - Entity: 1
+    Components:
+      - Component: NameComponent
+        Name: Field
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: -10
+          z: 0
+        Rotation:
+          x: 0
+          y: 0
+          z: 0
+        Scale:
+          x: 100
+          y: 10
+          z: 100
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Emission:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Shininess: 1
+          TextureEnable: true
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: BumpMapComponent
+        FilePath: Asset\Texture\BumpMap\testbump.png
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.fbx
+        PixelShader: Asset\Shader\bumpPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+  - Entity: 2
+    Components:
+      - Component: NameComponent
+        Name: Player
+      - Component: TransformComponent
+        Position:
+          x: -4.399508
+          y: 0.200000003
+          z: 5.96064281
+        Rotation:
+          x: 0
+          y: 0.958332002
+          z: 0
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 0
+            y: 1
+            z: 0
+            w: 1
+          Specular:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Emission:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Shininess: 1
+          TextureEnable: true
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: ScriptComponent
+        ScriptName: PlayerScript
+      - Component: PlayerComponent
+        moveSpeed: 5
+        cameraRotate: 2
+        cameraDistance: 20
+        cameraLerp: 8
+  - Entity: 3
+    Components:
+      - Component: NameComponent
+        Name: Camera
+      - Component: TransformComponent
+        Position:
+          x: -19.53125
+          y: 7.81748581
+          z: -4.66977978
+        Rotation:
+          x: -0.390741378
+          y: 7.24156237
+          z: 0
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+      - Component: CameraComponent
+        isLock: true
+        Target:
+          x: -4.399508
+          y: 0.200000003
+          z: 5.96064281
+        NearClip: 0.00999999978
+        FarClip: 256
+        FOV: 1
+        viewMatrix:
+          -
+            - 0.574847996
+            - 0.311653644
+            - 0.756585598
+            - 0
+          -
+            - 0
+            - 0.924627125
+            - -0.380873531
+            - 0
+          -
+            - -0.818260193
+            - 0.218944386
+            - 0.531520069
+            - 0
+          -
+            - 7.40640497
+            - -0.118852377
+            - 20.236618
+            - 1
+  - Entity: 4
+    Components:
+      - Component: TransformComponent
+        Position:
+          x: 174.92691
+          y: 183.076935
+          z: 0
+        Rotation:
+          x: -0
+          y: 0
+          z: -0
+        Scale:
+          x: 251.21463
+          y: 286.255646
+          z: 100
+      - Component: TextureComponent
+        FilePath: Asset\Texture\field.jpg
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Emission:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Shininess: 1
+          TextureEnable: true
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: SpriteRendererComponent

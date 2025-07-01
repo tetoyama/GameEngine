@@ -108,6 +108,20 @@ public:
 		return nullptr;
 	}
 
+	template<typename T>
+	bool HasComponent(Entity e) const {
+		if (!m_entityManager->IsAlive(e)) return false;
+		std::type_index ti(typeid(T));
+		auto it = m_storages.find(ti);
+		if (it == m_storages.end()) return false;
+
+		auto maskIt = m_entityMasks.find(e);
+		if (maskIt != m_entityMasks.end()) {
+			return maskIt->second.test(ComponentType::Get<T>());
+		}
+		return false;
+	}
+
 	// コンポーネント削除
 	template<typename T>
 	void RemoveComponent(Entity e){
