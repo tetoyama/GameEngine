@@ -1,5 +1,7 @@
 // Engine/Scene/System/renderSystem.cpp
 #include "renderSystem.h"
+#include <algorithm>
+
 #include <DirectXMath.h>
 #include "Backends/DirectX11/DirectXTex.h"
 #include "Backends/ImGui/ImGui.h"
@@ -36,6 +38,78 @@
 #include "SceneManager.h"
 #include <Component/bumpMapComponent.h>
 #include <Component/2DspriteRendererComponent.h>
+#include <Component/RenderLayerComponent.h>
+
+struct RenderOrderComparator {
+	ComponentRegistry* registry;
+	Vector3 cameraPosition;
+
+	bool operator()(Entity a, Entity b) const{
+		// Layer取得
+		auto* layerA = registry->GetComponent<RenderLayerComponent>(a);
+		auto* layerB = registry->GetComponent<RenderLayerComponent>(b);
+
+		RenderLayer layerValA;
+		if(layerA){
+			layerValA = layerA->layer;
+		} else {
+			if(registry->GetComponent<SpriteRendererComponent>(a)){
+				layerValA = RenderLayer::UI;
+
+			} else{
+				auto* texture = registry->GetComponent<TextureComponent>(a);
+				if(texture && texture->Material.Diffuse.w < 1.0f){
+					layerValA = RenderLayer::Transparent3D; // 透明オブジェクト
+				} else {
+					layerValA = RenderLayer::Opaque3D; // デフォルトレイヤー
+				}
+			}
+		}
+		RenderLayer layerValB;
+		if(layerB){
+			layerValB = layerB->layer;
+		} else {
+			if(registry->GetComponent<SpriteRendererComponent>(b)){
+				layerValB = RenderLayer::UI;
+			} else{
+				auto* texture = registry->GetComponent<TextureComponent>(b);
+				if(texture && texture->Material.Diffuse.w < 1.0f){
+					layerValB = RenderLayer::Transparent3D; // 透明オブジェクト
+				} else {
+					layerValB = RenderLayer::Opaque3D; // デフォルトレイヤー
+				}
+			}
+		}
+
+		if(layerValA != layerValB){
+			return static_cast<int>(layerValA) < static_cast<int>(layerValB);
+		}
+		// OrderInLayer取得
+		auto* orderA = registry->GetComponent<OrderInLayerComponent>(a);
+		auto* orderB = registry->GetComponent<OrderInLayerComponent>(b);
+
+		int orderValA = orderA ? orderA->order : 0;
+		int orderValB = orderB ? orderB->order : 0;
+
+		if(orderValA != orderValB){
+			return orderValA < orderValB;
+		}
+		// Zソート（透明オブジェクトのみ距離でソート）
+		if(layerValA == RenderLayer::Transparent3D){
+			auto* transformA = registry->GetComponent<TransformComponent>(a);
+			auto* transformB = registry->GetComponent<TransformComponent>(b);
+
+			float distA = transformA ? (cameraPosition - transformA->position).length() : 0.0f;
+			float distB = transformB ? (cameraPosition - transformB->position).length() : 0.0f;
+
+			// 遠い順（奥から手前へ）
+			return distA > distB;
+		}
+
+		return false;
+	}
+};
+
 
 void RenderSystem::Initialize(){
 	m_context->manager->debug->LOG_DEBUG("RenderSystemを初期化中...");
@@ -482,7 +556,7 @@ void RenderSystem::SetCameraView(){
 	auto cameraComponent = m_context->component->GetComponent<CameraComponent>(entities[0]);
 	// トランスフォームの取得
 	auto transformComponent = m_context->component->GetComponent<TransformComponent>(entities[0]);
-
+	m_CameraPosition = transformComponent->position;
 	// プロジェクションマトリクス設定
 	DirectX::XMMATRIX projection;
 	projection = DirectX::XMMatrixPerspectiveFovLH(cameraComponent->FOV, (float)graphicsContext->m_width / graphicsContext->m_height, cameraComponent->NearClip, cameraComponent->FarClip);
@@ -544,6 +618,7 @@ void RenderSystem::SetEditorCameraView(){
 	m_context->manager->imgui->SetViewProjectionMatrix(view, projection);
 	m_CameraView = view;
 	m_CameraProjection = projection;
+	m_CameraPosition = m_EditorCameraPosition;
 }
 
 void RenderSystem::EditorView(){
@@ -735,7 +810,11 @@ void RenderSystem::DrawEntities(){
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	// コンポーネントを持つエンティティの検索
-	const auto& entities = m_context->component->FindEntitiesWithComponent<TransformComponent>();
+	std::vector<Entity> entities = m_context->component->FindEntitiesWithComponent<TransformComponent>();
+
+	std::sort(entities.begin(), entities.end(),
+			  RenderOrderComparator{m_context->component, m_CameraPosition});
+
 	if(entities.empty()){
 		return;
 	} else{

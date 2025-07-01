@@ -2187,6 +2187,9 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\2DspriteRendererComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\RenderLayerComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\gameApplication.cpp">

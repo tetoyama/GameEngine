@@ -53,6 +53,7 @@
 #include "Component/explosionEffectComponent.h"
 #include <Component/bumpMapComponent.h>
 #include <Component/2DspriteRendererComponent.h>
+#include <Component/RenderLayerComponent.h>
 
 Scene::Scene(){
 
@@ -74,20 +75,26 @@ void Scene::Initialize(SceneManagerContext* set){
 	// ボトルネックが見つかったコンポーネントから ArchetypeStorage<T> に移行
 	m_componentRegistry->RegisterYAMLComponent<NameComponent>("NameComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<TransformComponent>("TransformComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<CameraComponent>("CameraComponent", false);
 
 	m_componentRegistry->RegisterYAMLComponent<TextureComponent>("TextureComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<BumpMapComponent>("BumpMapComponent", false);
+
+	m_componentRegistry->RegisterYAMLComponent<RenderLayerComponent>("RenderLayerComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<OrderInLayerComponent>("OrderInLayerComponent", false);
+
 	m_componentRegistry->RegisterYAMLComponent<MeshRendererComponent>("MeshRendererComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<ModelRendererComponent>("ModelRendererComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<BillBoardRendererComponent>("BillBoardRendererComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<SpriteRendererComponent>("SpriteRendererComponent", false);
 
+	m_componentRegistry->RegisterYAMLComponent<CameraComponent>("CameraComponent", false);
+
+	m_componentRegistry->RegisterYAMLComponent<ScriptComponent>("ScriptComponent", false);
+
 	m_componentRegistry->RegisterYAMLComponent<PlayerComponent>("PlayerComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<BulletComponent>("BulletComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<EnemyComponent>("EnemyComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<ExplosionEffectComponent>("ExplosionEffectComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<ScriptComponent>("ScriptComponent", false);
 
 	// システムを登録
 	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
