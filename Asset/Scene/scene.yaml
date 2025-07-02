@@ -16,8 +16,36 @@ Entities:
           x: 100
           y: 10
           z: 100
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0.971664727
+            z: 0.688311696
+            w: 1
+          Specular:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Emission:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Shininess: 1
+          TextureEnable: true
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
       - Component: BumpMapComponent
-        FilePath: Asset\Texture\BumpMap/Normal.bmp
+        FilePath: Asset\Texture\BumpMap\testbump.png
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.fbx
         PixelShader: Asset\Shader\bumpPS.cso
