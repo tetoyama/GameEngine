@@ -120,7 +120,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	sceneContext.hwnd = mainRenderer->GetHWND();
 	sceneContext.debug = debugLogSystem.get();
 	sceneContext.imgui = imguiService.get();
-
+	sceneContext.sceneManager = sceneManager.get();
 	sceneManager->Initialize(sceneContext);
 
 	debugLogSystem->LOG_DEBUG("SceneManagerが正常に作成されました");
@@ -220,6 +220,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 	// 最初のシーンを作成・ロード
 	auto initialScene = std::make_shared<Scene>();
 	sceneManager->LoadScene(initialScene);
+	initialScene->BuildDefaultScene();
 
 	while(!windowService->GetMainWindow()->ShouldClose()){
 		timeService->Tick();

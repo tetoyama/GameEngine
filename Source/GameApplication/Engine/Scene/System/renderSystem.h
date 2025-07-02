@@ -42,6 +42,8 @@ private:
 	void SetCameraView();
 	void SetEditorCameraView();
 
+	void ControllButton();
+
 	void EditorView();
 	void PlayerView();
 

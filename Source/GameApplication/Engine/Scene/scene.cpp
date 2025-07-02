@@ -138,7 +138,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	graphicsContext->SetDepthEnable(true);
 
 
-	BuildDefaultScene();
+	//BuildDefaultScene();
 
 	m_SceneManagerContext->debug->LOG_INFO("Sceneを開始します");
 

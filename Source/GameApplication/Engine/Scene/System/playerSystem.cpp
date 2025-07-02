@@ -125,6 +125,7 @@ void PlayerSystem::Update(float deltaTime) {
 				if (texture) {
 					TextureComponent* bulletTexture = m_context->component->AddComponent<TextureComponent>(bulletEntity);
 					bulletTexture->Material = texture->Material;
+					bulletTexture->m_TextureData = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\white.tga");
 				}
 
 				BulletComponent* bullet = m_context->component->AddComponent<BulletComponent>(bulletEntity);

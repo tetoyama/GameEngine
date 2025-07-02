@@ -12,15 +12,18 @@ class InputService;
 class ResourceService;
 class DebugLogSystem;
 class ImGuiService;
+class SceneManager;
 
 struct SceneManagerContext {
+	SceneManager* sceneManager = nullptr;
+
 	GraphicsContext* graphics = nullptr;
 	MainRenderer* renderer = nullptr;
 	InputService* input = nullptr;
 	ResourceService* resource = nullptr;
 	DebugLogSystem* debug = nullptr;
 	ImGuiService* imgui = nullptr;
-	HWND hwnd{};
+	HWND hwnd = nullptr;
 };
 
 class SceneManager : public IService {

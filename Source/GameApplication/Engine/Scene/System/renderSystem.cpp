@@ -519,7 +519,7 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST		//渡された頂点の配列をどのように解釈するか
 		);
 
-		if (!pTexture) {
+		if (!pTexture || !pTexture->m_TextureData) {
 		// マテリアル設定
 			MATERIAL material;
 			ZeroMemory(&material, sizeof(material));
@@ -662,9 +662,7 @@ void RenderSystem::SetCameraView(){
 		Vector3 target = cameraComponent->Target;
 		cameraComponent->viewMatrix = DirectX::XMMatrixLookAtLH({position.x,position.y,position.z}, {target.x,target.y,target.z}, {0.0f,1.0f,0.0f});
 
-
 	} else{
-
 		Vector3 front = transformComponent->position + transformComponent->front().normalize();
 		Vector3 up = transformComponent->position + transformComponent->up().normalize();
 
@@ -710,20 +708,29 @@ void RenderSystem::SetEditorCameraView(){
 	m_CameraPosition = m_EditorCameraPosition;
 }
 
-void RenderSystem::EditorView(){
-	GraphicsContext* graphicsContext = m_context->manager->graphics;
-	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-
-	ImGui::Begin("Editor View",showEditor);
+void RenderSystem::ControllButton(){
 	// ツールバー内容
 	if(ImGui::Button("Play")){
 		m_context->state = SceneState::Playing; // シーンの状態を再生中に変更
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("Pause")){
+		m_context->state = SceneState::Paused; // シーンの状態を 一時停止に変更
 	}
 	ImGui::SameLine();
 	if(ImGui::Button("Stop")){
 		m_context->state = SceneState::Stopped; // シーンの状態をエディタに戻す
 	}
 	ImGui::Separator();
+}
+
+void RenderSystem::EditorView(){
+	GraphicsContext* graphicsContext = m_context->manager->graphics;
+	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
+	ImGui::Begin("Editor View",showEditor);
+
+	ControllButton();
 
 	float clearCol[4] = {0.1f, 0.1f, 0.1f, 1.0f};
 
@@ -750,15 +757,7 @@ void RenderSystem::EditorView(){
 	float availAspect = avail.x / avail.y;
 
 	ImVec2 dst = avail;
-	//if(availAspect > imgAspect){
-	//	// 領域が横長 → 高さに合わせ、幅を計算
-	//	dst.y = avail.y;
-	//	dst.x = avail.y * imgAspect;
-	//} else{
-	//	// 領域が縦長または正方形 → 幅に合わせ、高さを計算
-	//	dst.x = avail.x;
-	//	dst.y = avail.x / imgAspect;
-	//}
+
 	m_ScreenSize = Vector2(dst.x, dst.y);
 	m_context->EditorScreenSize = Vector2(dst.x, dst.y);
 
@@ -818,15 +817,9 @@ void RenderSystem::EditorView(){
 void RenderSystem::PlayerView(){
 
 	ImGui::Begin("Play View",showPlayer);
-	// ツールバー内容
-	if(ImGui::Button("Play")){
-		m_context->state = SceneState::Playing; // シーンの状態を再生中に変更
-	}
-	ImGui::SameLine();
-	if(ImGui::Button("Stop")){
-		m_context->state = SceneState::Stopped; // シーンの状態をエディタに戻す
-	}
-	ImGui::Separator();
+
+	ControllButton();
+
 
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
@@ -856,16 +849,8 @@ void RenderSystem::PlayerView(){
 	float availAspect = avail.x / avail.y;
 
 	ImVec2 dst = avail;
-	//if(availAspect > imgAspect){
-	//	// 領域が横長 → 高さに合わせ、幅を計算
-	//	dst.y = avail.y;
-	//	dst.x = avail.y * imgAspect;
-	//} else{
-	//	// 領域が縦長または正方形 → 幅に合わせ、高さを計算
-	//	dst.x = avail.x;
-	//	dst.y = avail.x / imgAspect;
-	//}
-	m_ScreenSize = Vector2(dst.x, dst.y);
+
+	m_ScreenSize = Vector2(avail.x, avail.y);
 
 	// カメラビューの設定
 	SetCameraView();
