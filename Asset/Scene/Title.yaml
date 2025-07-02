@@ -24,9 +24,9 @@ Entities:
             z: 1
             w: 1
           Diffuse:
-            x: 0.97835499
-            y: 0.78353101
-            z: 0.78353101
+            x: 0.78353101
+            y: 0.930281579
+            z: 0.97835499
             w: 1
           Specular:
             x: 1
@@ -52,7 +52,7 @@ Entities:
           y: 0
       - Component: SetScene
         ScriptName: SetScene
-        SceneName: Asset\Scene\Title.yaml
+        SceneName: Asset\Scene\scene.yaml
   - Entity: 2
     Components:
       - Component: NameComponent

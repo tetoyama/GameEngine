@@ -1,12 +1,12 @@
 Entities:
-  - Entity: 2
+  - Entity: 1
     Components:
       - Component: NameComponent
         Name: Entity
       - Component: TransformComponent
         Position:
-          x: -0.0184210613
-          y: -0.1657895
+          x: -0.0184210595
+          y: 0.307700753
           z: 0
         Rotation:
           x: -0
@@ -24,9 +24,9 @@ Entities:
             z: 1
             w: 1
           Diffuse:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.97835499
+            y: 0.78353101
+            z: 0.78353101
             w: 1
           Specular:
             x: 1
@@ -46,10 +46,57 @@ Entities:
       - Component: SpriteRendererComponent
         anchor:
           x: 0.5
-          y: 0.5
+          y: 0
         pivot:
           x: 0
           y: 0
       - Component: SetScene
         ScriptName: SetScene
-        SceneName: Asset\Scene\scene.yaml
+        SceneName: Asset\Scene\Title.yaml
+  - Entity: 2
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          x: 0
+          y: 0
+          z: 0
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+      - Component: CameraComponent
+        isLock: false
+        Target:
+          x: 0
+          y: 0
+          z: 0
+        NearClip: 0.00999999978
+        FarClip: 256
+        FOV: 1
+        viewMatrix:
+          -
+            - 1
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 1
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 1

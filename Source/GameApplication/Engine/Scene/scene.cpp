@@ -157,13 +157,17 @@ void Scene::Initialize(SceneManagerContext* set){
 void Scene::Update(float deltaTime){
 
 	if(m_OldState != m_SceneContext.state){
-		m_OldState = m_SceneContext.state;
 
 		if(m_SceneContext.state == SceneState::Playing){
-			TempSave(); // 一時保存
+			if(m_OldState == SceneState::Stopped){
+				TempSave(); // 一時保存
+				m_SceneManagerContext->debug->LOG_INFO("シーンを開始します");
+				m_systemRegistry->FinalizeAll();
+				m_systemRegistry->InitializeAll();
+			} else{
+				m_SceneManagerContext->debug->LOG_INFO("シーンを再開します");
+			}
 
-			m_SceneManagerContext->debug->LOG_INFO("シーンを開始します");
-			//m_systemRegistry->InitializeAll();
 			m_systemRegistry->StartAll();
 
 		} else if(m_SceneContext.state == SceneState::Paused){
@@ -174,6 +178,7 @@ void Scene::Update(float deltaTime){
 			TempLoad(); // 一時読み込み
 			//m_systemRegistry->FinalizeAll();
 		}
+		m_OldState = m_SceneContext.state;
 	}
 
 	if(m_SceneContext.state == SceneState::Playing){
