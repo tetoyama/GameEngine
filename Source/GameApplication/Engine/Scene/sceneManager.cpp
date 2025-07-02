@@ -10,11 +10,15 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 
 void SceneManager::Update(float deltaTime){
 	if (OpenFlag) {
-		
 		OpenFlag = false;
 	}
 	if(m_activeScene){
 		m_activeScene->Update(deltaTime);
+	}
+	if(m_NeedSceneChange){
+		LoadScene(m_NextScene);
+		m_NeedSceneChange = false;
+		m_NextScene.reset();
 	}
 }
 

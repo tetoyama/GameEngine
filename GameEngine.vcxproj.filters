@@ -2175,10 +2175,10 @@
     <ClInclude Include="Source\Service\YAMLConverters.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\ScriptComponent.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\C#ScriptComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\ScriptSystem.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\C#ScriptSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\bumpMapComponent.h">
@@ -2200,6 +2200,15 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Backends\Taskbar\taskbar.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\CustomScriptComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\CustomScriptSystem.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Script\SetScene.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
@@ -2609,13 +2618,16 @@
     <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\tag.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\ScriptSystem.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\C#ScriptSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Backends\Icon\icon.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Backends\Taskbar\taskbar.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\CustomScriptSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>

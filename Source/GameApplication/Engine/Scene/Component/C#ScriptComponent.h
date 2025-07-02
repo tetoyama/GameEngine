@@ -13,10 +13,10 @@
 	#pragma comment(lib, "x64/Release/ScriptWrapper.lib") // Releaseビルド用
 #endif
 
-class ScriptComponent: public IComponent {
+class CSharpScriptComponent: public IComponent {
 public:
-	ScriptComponent() = default;
-	~ScriptComponent() override{
+	CSharpScriptComponent() = default;
+	~CSharpScriptComponent() override{
 		OnStop();
 		if(handle){
 			delete handle;

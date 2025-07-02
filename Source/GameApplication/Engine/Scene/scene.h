@@ -57,6 +57,8 @@ public:
 		m_SceneContext.state = state;
 	}
 
+	std::string ScenePath = ""; // シーンのパス
+
 private:
 	SceneState m_OldState = SceneState::Stopped;
 	void OpenSceneYAML(std::string path);

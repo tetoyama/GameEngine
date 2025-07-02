@@ -1,0 +1,70 @@
+Entities:
+  - Entity: 1
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          x: 0
+          y: 0
+          z: 0
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+      - Component: PlayerComponent
+        moveSpeed: 5
+        cameraRotate: 2
+        cameraDistance: 20
+        cameraLerp: 8
+  - Entity: 2
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          x: 0
+          y: 0
+          z: 0
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+      - Component: CameraComponent
+        isLock: false
+        Target:
+          x: 0
+          y: 0
+          z: 0
+        NearClip: 0.00999999978
+        FarClip: 256
+        FOV: 1
+        viewMatrix:
+          -
+            - 1
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 1
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 1

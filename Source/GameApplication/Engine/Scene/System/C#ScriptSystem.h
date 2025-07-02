@@ -4,10 +4,10 @@
 
 struct SceneContext;
 
-class ScriptSystem: public ISystem{
+class CSharpScriptSystem: public ISystem{
 public:
-	ScriptSystem(SceneContext* context): m_context(context){}
-	~ScriptSystem(){}
+	CSharpScriptSystem(SceneContext* context): m_context(context){}
+	~CSharpScriptSystem(){}
 
 	void Initialize() override{}
 	void Finalize()override{};

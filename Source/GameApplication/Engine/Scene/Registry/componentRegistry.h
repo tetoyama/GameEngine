@@ -12,8 +12,11 @@
 #include <string>
 
 #include "entityRegistry.h"
+#include "Scene.h"
 #include "Interface/IComponentStorage.h"
 #include <yaml-cpp/yaml.h>
+
+class CustomScriptComponent;
 
 // 識別用型
 class ComponentType {
@@ -30,8 +33,8 @@ class ComponentRegistry {
 public:
 	using YAMLCreator = std::function<IComponent* (Entity, const YAML::Node&)>;
 
-	explicit ComponentRegistry(EntityRegistry* entityMgr)
-		: m_entityManager(entityMgr){}
+	explicit ComponentRegistry(EntityRegistry* entityMgr,SceneContext* context)
+		: m_entityManager(entityMgr), m_context(context){}
 
 	// YAML からの生成用ファクトリを登録する
 	template<typename T>
@@ -89,7 +92,9 @@ public:
 			assert(false && "Unknown storage type");
 
 		m_entityMasks[e].set(ComponentType::Get<T>());
-		return GetComponent<T>(e);
+
+		T* comp = GetComponent<T>(e);
+		return comp;
 	}
 
 	// コンポーネント取得
@@ -106,6 +111,20 @@ public:
 		if(auto* sparse = dynamic_cast<SparseStorage<T>*>(it->second.get()))
 			return sparse->Get(e);
 		return nullptr;
+	}
+
+	template<typename T>
+	std::vector<std::pair<Entity, T*>> GetAllBaseComponents(){
+		std::vector<std::pair<Entity, T*>> result;
+		for(const auto& [ti, storage] : m_storages){
+			for(Entity e : storage->GetEntityList()){
+				IComponent* base = storage->GetEntityComponent(e);
+				if(auto* comp = dynamic_cast<T*>(base)){
+					result.emplace_back(e, comp);
+				}
+			}
+		}
+		return result;
 	}
 
 	template<typename T>
@@ -235,6 +254,7 @@ public:
 	}
 
 private:
+	SceneContext* m_context;
 	EntityRegistry* m_entityManager;
 
 	std::unordered_map<std::type_index, std::unique_ptr<IComponentStorage>> m_storages;

@@ -1,4 +1,4 @@
-#include "ScriptSystem.h"
+#include "C#ScriptSystem.h"
 #include "Scene.h"
 #include "sceneManager.h"
 #include "Engine/DebugTools/debugSystem.h"
@@ -13,16 +13,16 @@
 
 #include "Registry/entityRegistry.h"
 #include "Registry/componentRegistry.h"
-#include "Component/ScriptComponent.h"
+#include "Component/C#ScriptComponent.h"
 
-void ScriptSystem::Start(){
+void CSharpScriptSystem::Start(){
 	// コンポーネントを持つエンティティの検索
-	const auto& Entities = m_context->component->FindEntitiesWithComponent<ScriptComponent>();
+	const auto& Entities = m_context->component->FindEntitiesWithComponent<CSharpScriptComponent>();
 	if(Entities.empty()){
 		return;
 	} else{
 		for(Entity entity : Entities){
-			ScriptComponent* script = m_context->component->GetComponent<ScriptComponent>(entity);
+			CSharpScriptComponent* script = m_context->component->GetComponent<CSharpScriptComponent>(entity);
 			if(script){
 				// スクリプトの初期化
 				if(!script->IsInitialized()){
@@ -37,14 +37,14 @@ void ScriptSystem::Start(){
 	}
 }
 
-void ScriptSystem::Update(float deltaTime){
+void CSharpScriptSystem::Update(float deltaTime){
 	// コンポーネントを持つエンティティの検索
-	const auto& Entities = m_context->component->FindEntitiesWithComponent<ScriptComponent>();
+	const auto& Entities = m_context->component->FindEntitiesWithComponent<CSharpScriptComponent>();
 	if(Entities.empty()){
 		return;
 	} else{
 		for(Entity entity : Entities){
-			ScriptComponent* script = m_context->component->GetComponent<ScriptComponent>(entity);
+			CSharpScriptComponent* script = m_context->component->GetComponent<CSharpScriptComponent>(entity);
 			if(script){
 				// スクリプトの初期化
 				if(!script->IsInitialized()){
@@ -59,14 +59,14 @@ void ScriptSystem::Update(float deltaTime){
 	}
 }
 
-void ScriptSystem::FixedUpdate(float fidedDeltaTime){
+void CSharpScriptSystem::FixedUpdate(float fidedDeltaTime){
 	// コンポーネントを持つエンティティの検索
-	const auto& Entities = m_context->component->FindEntitiesWithComponent<ScriptComponent>();
+	const auto& Entities = m_context->component->FindEntitiesWithComponent<CSharpScriptComponent>();
 	if(Entities.empty()){
 		return;
 	} else{
 		for(Entity entity : Entities){
-			ScriptComponent* script = m_context->component->GetComponent<ScriptComponent>(entity);
+			CSharpScriptComponent* script = m_context->component->GetComponent<CSharpScriptComponent>(entity);
 			if(script){
 				// スクリプトの更新
 				script->OnFixedUpdate(fidedDeltaTime);
@@ -77,6 +77,6 @@ void ScriptSystem::FixedUpdate(float fidedDeltaTime){
 	}
 }
 
-void ScriptSystem::Draw(){}
+void CSharpScriptSystem::Draw(){}
 
-void ScriptSystem::EditorUpdate(float deltaTime){}
+void CSharpScriptSystem::EditorUpdate(float deltaTime){}

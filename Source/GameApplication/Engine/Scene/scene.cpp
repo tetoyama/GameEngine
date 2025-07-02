@@ -36,7 +36,7 @@
 #include "System/enemySystem.h"
 #include "System/explosionEffectSystem.h"
 
-#include "System/ScriptSystem.h"
+#include "System/C#ScriptSystem.h"
 
 #include "Component/entityNameComponent.h"
 #include "Component/transformComponent.h"
@@ -45,8 +45,9 @@
 #include "Component/meshRendererComponent.h"
 #include "Component/BillBoardRendererComponent.h"
 #include "Component/textureComponent.h"
+#include "Component/CustomScriptComponent.h"
 
-#include "Component/ScriptComponent.h"
+#include "Component/C#ScriptComponent.h"
 
 #include "Component/playerComponent.h"
 #include "Component/bulletComponent.h"
@@ -55,6 +56,8 @@
 #include <Component/bumpMapComponent.h>
 #include <Component/2DspriteRendererComponent.h>
 #include <Component/RenderLayerComponent.h>
+#include <System/CustomScriptSystem.h>
+#include <Script/SetScene.h>
 
 Scene::Scene(){
 
@@ -71,7 +74,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_OldState = m_SceneContext.state;
 
 	m_entityRegistry = std::make_shared<EntityRegistry>();
-	m_componentRegistry = std::make_shared<ComponentRegistry>(m_entityRegistry.get());
+	m_componentRegistry = std::make_shared<ComponentRegistry>(m_entityRegistry.get(),&m_SceneContext);
 	m_systemRegistry = std::make_shared<SystemRegistry>();
 
 	// コンポーネントを登録（Archetype or Sparse を選択）
@@ -92,12 +95,14 @@ void Scene::Initialize(SceneManagerContext* set){
 
 	m_componentRegistry->RegisterYAMLComponent<CameraComponent>("CameraComponent", false);
 
-	m_componentRegistry->RegisterYAMLComponent<ScriptComponent>("ScriptComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<CustomScriptComponent>("CustomScriptComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<CSharpScriptComponent>("CSharpScriptComponent", false);
 
 	m_componentRegistry->RegisterYAMLComponent<PlayerComponent>("PlayerComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<BulletComponent>("BulletComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<EnemyComponent>("EnemyComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<ExplosionEffectComponent>("ExplosionEffectComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<SetScene>("SetScene", false);
 
 	// システムを登録
 	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
@@ -109,7 +114,8 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_systemRegistry->RegisterSystem(std::make_unique<BulletSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<EnemySystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<ExplosionEffectSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<ScriptSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<CSharpScriptSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<CustomScriptSystem>(&m_SceneContext));
 
 	auto Renderer = m_SceneManagerContext->renderer;
 	auto graphicsContext = Renderer->GetGraphicsContext();
@@ -137,8 +143,11 @@ void Scene::Initialize(SceneManagerContext* set){
 	graphicsContext->SetLight(light);
 	graphicsContext->SetDepthEnable(true);
 
-
-	//BuildDefaultScene();
+	if(ScenePath.empty()){
+		BuildDefaultScene();
+	} else{
+		OpenSceneYAML(ScenePath);
+	}
 
 	m_SceneManagerContext->debug->LOG_INFO("Sceneを開始します");
 
@@ -540,6 +549,8 @@ void Scene::OpenSceneYAML(std::string path) {
 		m_SceneContext.manager->debug->LOG_ERROR("YAML: 'Entities' node missing or invalid");  
 		return;  
 	}  
+
+	ScenePath = path; // シーンのパスを設定
 
 	YAML::Node entities = root["Entities"];  
 	for(const auto& entityNode : entities){  

@@ -39,13 +39,20 @@ public:
 
 	void LoadScene(std::shared_ptr<Scene> scene);
 	std::shared_ptr<Scene> GetActiveScene() const;
-
+	void DeferredLoadScene(std::shared_ptr<Scene> scene) {
+		m_NextScene.reset();
+		m_NeedSceneChange = true;
+		m_NextScene = scene;
+	}
 	void SaveScene();
 	void OpenScene();
 
 private:
 	std::shared_ptr<Scene> m_activeScene;
 	SceneManagerContext m_SceneContext;
+
+	bool m_NeedSceneChange = false;
+	std::shared_ptr<Scene> m_NextScene;
 
 	bool OpenFlag = false;
 };
