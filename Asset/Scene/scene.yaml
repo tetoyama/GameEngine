@@ -16,52 +16,27 @@ Entities:
           x: 100
           y: 10
           z: 100
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0.761904776
-            y: 0.706219375
-            z: 0.432075858
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
       - Component: BumpMapComponent
-        FilePath: Asset\Texture\BumpMap\testbump.png
+        FilePath: Asset\Texture\BumpMap/Normal.bmp
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.fbx
         PixelShader: Asset\Shader\bumpPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+      - Component: SetScene
+        ScriptName: SetScene
+        SceneName: Asset\Scene\Result.yaml
   - Entity: 2
     Components:
       - Component: NameComponent
         Name: Player
       - Component: TransformComponent
         Position:
-          x: -4.399508
+          x: 0
           y: 0.200000003
-          z: 5.96064281
+          z: 0
         Rotation:
           x: 0
-          y: 0.958332002
+          y: 0
           z: 0
         Scale:
           x: 1
@@ -99,8 +74,6 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
-      - Component: ScriptComponent
-        ScriptName: PlayerScript
       - Component: PlayerComponent
         moveSpeed: 5
         cameraRotate: 2
@@ -112,64 +85,66 @@ Entities:
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: -19.5312176
-          y: 7.81748247
-          z: -4.66977167
+          x: 0
+          y: 20
+          z: -15
         Rotation:
-          x: -0.390741378
-          y: 7.24156237
+          x: -1
+          y: 0
           z: 0
         Scale:
           x: 1
           y: 1
           z: 1
       - Component: CameraComponent
-        isLock: true
+        isLock: false
         Target:
-          x: -4.399508
-          y: 0.200000003
-          z: 5.96064281
+          x: 0
+          y: 0
+          z: 0
         NearClip: 0.00999999978
         FarClip: 256
         FOV: 1
         viewMatrix:
           -
-            - 0.574848533
-            - 0.311653823
-            - 0.756585062
+            - 1
+            - 0
+            - 0
             - 0
           -
             - 0
-            - 0.924626946
-            - -0.380873919
+            - 0.540302396
+            - -0.841470897
             - 0
           -
-            - -0.818259835
-            - 0.218944818
-            - 0.531520426
+            - -0
+            - 0.841470897
+            - 0.540302396
             - 0
           -
-            - 7.4064045
-            - -0.118854046
-            - 20.2365799
+            - 0
+            - 1.8160162
+            - 24.9339542
             - 1
   - Entity: 4
     Components:
+      - Component: NameComponent
+        Name: 2DSprite
       - Component: TransformComponent
         Position:
-          x: 174.92691
-          y: 183.076935
+          x: 0
+          y: 0
           z: 0
         Rotation:
-          x: -0
+          x: 0
           y: 0
-          z: -0
+          z: 0
         Scale:
-          x: 251.21463
-          y: 286.255646
-          z: 100
+          x: 0.25
+          y: 0.25
+          z: 1
       - Component: TextureComponent
-        FilePath: Asset\Texture\field.jpg
+        FilePath: Asset\Texture\texture.jpg
         Material:
           Ambient:
             x: 1
@@ -198,4885 +173,20 @@ Entities:
         AnimationNum: 0
       - Component: SpriteRendererComponent
         anchor:
+          x: 0
+          y: 0
+        pivot:
           x: 0.5
           y: 0.5
-        pivot:
-          x: 0
-          y: 0
-  - Entity: 137
-    Components:
-      - Component: NameComponent
-        Name: Bullet
-      - Component: TransformComponent
-        Position:
-          x: 36.3871269
-          y: 1.20000005
-          z: 34.6170578
-        Rotation:
-          x: 0
-          y: 0.958332002
-          z: 0
-        Scale:
-          x: 2
-          y: 2
-          z: 2
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\ball.fbx
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-      - Component: BulletComponent
-  - Entity: 85
-    Components:
-      - Component: NameComponent
-        Name: Bullet
-      - Component: TransformComponent
-        Position:
-          x: 33.6484909
-          y: 1.20000005
-          z: 32.6929207
-        Rotation:
-          x: 0
-          y: 0.958332002
-          z: 0
-        Scale:
-          x: 2
-          y: 2
-          z: 2
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\ball.fbx
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-      - Component: BulletComponent
-  - Entity: 103
-    Components:
-      - Component: NameComponent
-        Name: Bullet
-      - Component: TransformComponent
-        Position:
-          x: 30.4692879
-          y: 1.20000005
-          z: 30.4592266
-        Rotation:
-          x: 0
-          y: 0.958332002
-          z: 0
-        Scale:
-          x: 2
-          y: 2
-          z: 2
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\ball.fbx
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-      - Component: BulletComponent
-  - Entity: 138
-    Components:
-      - Component: NameComponent
-        Name: Bullet
-      - Component: TransformComponent
-        Position:
-          x: 27.6373539
-          y: 1.20000005
-          z: 28.4695301
-        Rotation:
-          x: 0
-          y: 0.958332002
-          z: 0
-        Scale:
-          x: 2
-          y: 2
-          z: 2
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\ball.fbx
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-      - Component: BulletComponent
-  - Entity: 124
-    Components:
-      - Component: NameComponent
-        Name: Bullet
-      - Component: TransformComponent
-        Position:
-          x: 24.8135738
-          y: 1.20000005
-          z: 26.4855595
-        Rotation:
-          x: 0
-          y: 0.958332002
-          z: 0
-        Scale:
-          x: 2
-          y: 2
-          z: 2
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\ball.fbx
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-      - Component: BulletComponent
-  - Entity: 162
-    Components:
-      - Component: NameComponent
-        Name: Bullet
-      - Component: TransformComponent
-        Position:
-          x: 21.5286751
-          y: 1.20000005
-          z: 24.1776066
-        Rotation:
-          x: 0
-          y: 0.958332002
-          z: 0
-        Scale:
-          x: 2
-          y: 2
-          z: 2
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\ball.fbx
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-      - Component: BulletComponent
-  - Entity: 44
-    Components:
-      - Component: NameComponent
-        Name: Bullet
-      - Component: TransformComponent
-        Position:
-          x: 18.682539
-          y: 1.20000005
-          z: 22.177927
-        Rotation:
-          x: 0
-          y: 0.958332002
-          z: 0
-        Scale:
-          x: 2
-          y: 2
-          z: 2
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\ball.fbx
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-      - Component: BulletComponent
-  - Entity: 25
-    Components:
-      - Component: NameComponent
-        Name: Bullet
-      - Component: TransformComponent
-        Position:
-          x: 15.6396618
-          y: 1.20000005
-          z: 20.0400333
-        Rotation:
-          x: 0
-          y: 0.958332002
-          z: 0
-        Scale:
-          x: 2
-          y: 2
-          z: 2
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\ball.fbx
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-      - Component: BulletComponent
-  - Entity: 9
-    Components:
-      - Component: NameComponent
-        Name: Bullet
-      - Component: TransformComponent
-        Position:
-          x: 12.9692335
-          y: 1.20000005
-          z: 18.1638069
-        Rotation:
-          x: 0
-          y: 0.958332002
-          z: 0
-        Scale:
-          x: 2
-          y: 2
-          z: 2
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\ball.fbx
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-      - Component: BulletComponent
-  - Entity: 135
-    Components:
-      - Component: NameComponent
-        Name: Bullet
-      - Component: TransformComponent
-        Position:
-          x: 9.71036816
-          y: 1.20000005
-          z: 15.8741503
-        Rotation:
-          x: 0
-          y: 0.958332002
-          z: 0
-        Scale:
-          x: 2
-          y: 2
-          z: 2
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\ball.fbx
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-      - Component: BulletComponent
-  - Entity: 93
-    Components:
-      - Component: NameComponent
-        Name: Bullet
-      - Component: TransformComponent
-        Position:
-          x: 7.20563507
-          y: 1.20000005
-          z: 14.1143389
-        Rotation:
-          x: 0
-          y: 0.958332002
-          z: 0
-        Scale:
-          x: 2
-          y: 2
-          z: 2
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\ball.fbx
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-      - Component: BulletComponent
-  - Entity: 134
-    Components:
-      - Component: NameComponent
-        Name: Bullet
-      - Component: TransformComponent
-        Position:
-          x: 4.53133535
-          y: 1.20000005
-          z: 12.2353916
-        Rotation:
-          x: 0
-          y: 0.958332002
-          z: 0
-        Scale:
-          x: 2
-          y: 2
-          z: 2
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\ball.fbx
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-      - Component: BulletComponent
-  - Entity: 96
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 28.2504082
-          y: 1.20000005
-          z: 28.900259
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 14
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.497212052
-  - Entity: 77
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 16.6768646
-          y: 1.20000005
-          z: 20.7687607
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 14
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.497212052
-  - Entity: 78
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 13.391963
-          y: 1.20000005
-          z: 18.4608078
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 14
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.497212052
-  - Entity: 98
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: -3.60537767
-          y: 1.20000005
-          z: 6.51859331
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 14
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.497212052
-  - Entity: 15
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 34.0583
-          y: 1.20000005
-          z: 32.9808426
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 14
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.478324354
-  - Entity: 157
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 25.8208771
-          y: 1.20000005
-          z: 27.1932869
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 14
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.478324354
-  - Entity: 156
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 22.6416702
-          y: 1.20000005
-          z: 24.9595928
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 14
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.478324354
-  - Entity: 155
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 7.81203794
-          y: 1.20000005
-          z: 14.5403929
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 14
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.478324354
-  - Entity: 42
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 31.7177505
-          y: 1.20000005
-          z: 31.3363838
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 13
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.458511531
-  - Entity: 13
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 5.46584177
-          y: 1.20000005
-          z: 12.8919706
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 13
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.458511531
-  - Entity: 73
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 20.1339645
-          y: 1.20000005
-          z: 23.1976967
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 13
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.458511531
-  - Entity: 99
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 11.179142
-          y: 1.20000005
-          z: 16.9060936
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 13
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.458511531
-  - Entity: 40
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 2.20697808
-          y: 1.20000005
-          z: 10.6023169
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 13
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.458511531
-  - Entity: 27
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: -0.297757179
-          y: 1.20000005
-          z: 8.84250546
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 13
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.458511531
-  - Entity: 14
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 29.0439472
-          y: 1.20000005
-          z: 29.4577923
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 13
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.448721111
-  - Entity: 79
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 17.4704037
-          y: 1.20000005
-          z: 21.3262939
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 13
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.448721111
-  - Entity: 80
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 14.1855021
-          y: 1.20000005
-          z: 19.0183411
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 13
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.448721111
-  - Entity: 81
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: -2.81183815
-          y: 1.20000005
-          z: 7.07612848
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 13
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.448721111
-  - Entity: 76
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 34.8543777
-          y: 1.20000005
-          z: 33.5401611
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 12
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.429678261
-  - Entity: 74
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 26.6169548
-          y: 1.20000005
-          z: 27.7526035
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 12
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.429678261
-  - Entity: 107
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 23.437748
-          y: 1.20000005
-          z: 25.5189095
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 12
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.429678261
-  - Entity: 106
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 8.6081152
-          y: 1.20000005
-          z: 15.0997124
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 12
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.429678261
-  - Entity: 139
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 32.4991531
-          y: 1.20000005
-          z: 31.8853912
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 12
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.410762072
-  - Entity: 17
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 6.24724674
-          y: 1.20000005
-          z: 13.4409809
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 12
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.410762072
-  - Entity: 108
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 20.9153709
-          y: 1.20000005
-          z: 23.7467041
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 12
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.410762072
-  - Entity: 46
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 11.9605474
-          y: 1.20000005
-          z: 17.455101
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 12
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.410762072
-  - Entity: 136
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 2.98838305
-          y: 1.20000005
-          z: 11.1513271
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 12
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.410762072
-  - Entity: 75
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 0.483647943
-          y: 1.20000005
-          z: 9.39151573
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 12
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.410762072
-  - Entity: 48
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 29.9765663
-          y: 1.20000005
-          z: 30.1130409
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 11
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.391731262
-  - Entity: 18
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 18.4030228
-          y: 1.20000005
-          z: 21.9815426
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 11
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.391731262
-  - Entity: 141
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 15.1181231
-          y: 1.20000005
-          z: 19.6735897
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 11
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.391731262
-  - Entity: 142
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: -1.87921858
-          y: 1.20000005
-          z: 7.73138094
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 11
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.391731262
-  - Entity: 43
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 35.6331596
-          y: 1.20000005
-          z: 34.087326
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 11
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.382088959
-  - Entity: 165
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 27.3957367
-          y: 1.20000005
-          z: 28.2997684
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 11
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.382088959
-  - Entity: 164
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 24.2165298
-          y: 1.20000005
-          z: 26.0660744
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 11
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.382088959
-  - Entity: 84
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 9.38689995
-          y: 1.20000005
-          z: 15.6468811
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 11
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.382088959
-  - Entity: 112
-    Components:
-      - Component: NameComponent
-        Name: Bullet
-      - Component: TransformComponent
-        Position:
-          x: 1.69621754
-          y: 1.20000005
-          z: 10.2434597
-        Rotation:
-          x: 0
-          y: 0.958332002
-          z: 0
-        Scale:
-          x: 2
-          y: 2
-          z: 2
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\ball.fbx
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-      - Component: BulletComponent
-  - Entity: 144
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 33.2818336
-          y: 1.20000005
-          z: 32.4352951
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 10
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.362934738
-  - Entity: 110
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 7.02992487
-          y: 1.20000005
-          z: 13.9908867
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 10
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.362934738
-  - Entity: 109
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 21.6980476
-          y: 1.20000005
-          z: 24.296608
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 10
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.362934738
-  - Entity: 143
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 12.743227
-          y: 1.20000005
-          z: 18.0050049
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 10
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.362934738
-  - Entity: 45
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 3.77106118
-          y: 1.20000005
-          z: 11.7012329
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 10
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.362934738
-  - Entity: 16
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 1.26632619
-          y: 1.20000005
-          z: 9.94142151
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 10
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.362934738
-  - Entity: 140
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 30.7723541
-          y: 1.20000005
-          z: 30.6721573
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 10
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.343102843
-  - Entity: 113
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 19.1988106
-          y: 1.20000005
-          z: 22.540659
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 10
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.343102843
-  - Entity: 19
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 15.9139118
-          y: 1.20000005
-          z: 20.2327061
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 10
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.343102843
-  - Entity: 47
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: -1.08343077
-          y: 1.20000005
-          z: 8.29049587
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 10
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.343102843
-  - Entity: 21
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 36.5928612
-          y: 1.20000005
-          z: 34.7616081
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 9
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.333204627
-  - Entity: 55
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 28.3554401
-          y: 1.20000005
-          z: 28.9740486
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 9
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.323444098
-  - Entity: 152
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 25.1762333
-          y: 1.20000005
-          z: 26.7403545
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 9
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.323444098
-  - Entity: 153
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 10.3466034
-          y: 1.20000005
-          z: 16.3211613
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 9
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.323444098
-  - Entity: 145
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: -3.59684038
-          y: 1.20000005
-          z: 6.5245924
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 9
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.323444098
-  - Entity: 116
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 34.0863075
-          y: 1.20000005
-          z: 33.000515
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 9
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.313775331
-  - Entity: 115
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 7.83440256
-          y: 1.20000005
-          z: 14.5561075
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 9
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.313775331
-  - Entity: 114
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 22.5025253
-          y: 1.20000005
-          z: 24.8618279
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 9
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.313775331
-  - Entity: 54
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 13.5477047
-          y: 1.20000005
-          z: 18.5702248
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 9
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.313775331
-  - Entity: 82
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 4.57553911
-          y: 1.20000005
-          z: 12.2664537
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 9
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.313775331
-  - Entity: 56
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 2.07080388
-          y: 1.20000005
-          z: 10.5066423
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 9
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.313775331
-  - Entity: 118
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 31.5751305
-          y: 1.20000005
-          z: 31.2361832
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 8
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.294047356
-  - Entity: 117
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 20.0015869
-          y: 1.20000005
-          z: 23.1046848
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 8
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.294047356
-  - Entity: 146
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 16.7166882
-          y: 1.20000005
-          z: 20.7967319
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 8
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.294047356
-  - Entity: 147
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: -0.280653387
-          y: 1.20000005
-          z: 8.85452175
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 8
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.294047356
-  - Entity: 57
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 29.1652412
-          y: 1.20000005
-          z: 29.5430126
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 8
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.273959219
-  - Entity: 23
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 25.9860344
-          y: 1.20000005
-          z: 27.3093185
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 8
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.273959219
-  - Entity: 148
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 11.1564083
-          y: 1.20000005
-          z: 16.8901253
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 8
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.273959219
-  - Entity: 149
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: -2.78703594
-          y: 1.20000005
-          z: 7.09355593
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 8
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.273959219
-  - Entity: 119
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 34.8942337
-          y: 1.20000005
-          z: 33.568161
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 7
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.264405102
-  - Entity: 22
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 8.64233017
-          y: 1.20000005
-          z: 15.1237507
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 7
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.264405102
-  - Entity: 83
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 23.3104496
-          y: 1.20000005
-          z: 25.429472
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 7
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.264405102
-  - Entity: 151
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 14.3556328
-          y: 1.20000005
-          z: 19.1378689
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 7
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.264405102
-  - Entity: 53
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 5.38346672
-          y: 1.20000005
-          z: 12.8340969
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 7
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.264405102
-  - Entity: 20
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 2.87873125
-          y: 1.20000005
-          z: 11.0742855
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 7
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.264405102
-  - Entity: 58
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 32.3794746
-          y: 1.20000005
-          z: 31.8013077
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 7
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.244896188
-  - Entity: 88
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 20.8059254
-          y: 1.20000005
-          z: 23.6698093
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 7
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.244896188
-  - Entity: 26
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 17.5210266
-          y: 1.20000005
-          z: 21.3618565
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 7
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.244896188
-  - Entity: 86
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 0.523688436
-          y: 1.20000005
-          z: 9.41964626
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 7
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.244896188
-  - Entity: 52
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 29.9525948
-          y: 1.20000005
-          z: 30.0962029
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 6
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.225846097
-  - Entity: 51
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 26.7733879
-          y: 1.20000005
-          z: 27.8625088
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 6
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.225846097
-  - Entity: 50
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 11.9437647
-          y: 1.20000005
-          z: 17.4433155
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 6
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.225846097
-  - Entity: 24
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: -1.99968076
-          y: 1.20000005
-          z: 7.64674664
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 6
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.225846097
-  - Entity: 89
-    Components:
-      - Component: NameComponent
-        Name: Bullet
-      - Component: TransformComponent
-        Position:
-          x: -0.859743357
-          y: 1.20000005
-          z: 8.44765854
-        Rotation:
-          x: 0
-          y: 0.958332002
-          z: 0
-        Scale:
-          x: 2
-          y: 2
-          z: 2
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\ball.fbx
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-      - Component: BulletComponent
-  - Entity: 35
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 35.8422127
-          y: 1.20000005
-          z: 34.2341995
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 6
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.206477091
-  - Entity: 125
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 9.59030342
-          y: 1.20000005
-          z: 15.7897902
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 6
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.206477091
-  - Entity: 90
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 24.2584209
-          y: 1.20000005
-          z: 26.0955124
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 6
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.206477091
-  - Entity: 29
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 15.303606
-          y: 1.20000005
-          z: 19.8039093
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 6
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.206477091
-  - Entity: 30
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 6.3314395
-          y: 1.20000005
-          z: 13.5001364
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 6
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.206477091
-  - Entity: 123
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 3.82670403
-          y: 1.20000005
-          z: 11.740325
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 6
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.206477091
   - Entity: 5
     Components:
       - Component: NameComponent
-        Name: BillBoardEffect
+        Name: Enemy1
       - Component: TransformComponent
         Position:
-          x: 33.1705208
-          y: 1.20000005
-          z: 32.3570862
+          x: 20
+          y: 0.200000003
+          z: 0
         Rotation:
           x: 0
           y: 0
@@ -5085,2113 +195,6 @@ Entities:
           x: 1
           y: 1
           z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 5
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.19655779
-  - Entity: 111
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 21.5969677
-          y: 1.20000005
-          z: 24.2255917
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 5
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.19655779
-  - Entity: 49
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 18.3120689
-          y: 1.20000005
-          z: 21.9176388
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 5
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.19655779
-  - Entity: 92
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 1.31473064
-          y: 1.20000005
-          z: 9.97542667
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 5
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.19655779
-  - Entity: 87
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 30.7469292
-          y: 1.20000005
-          z: 30.6542988
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 5
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.177306488
-  - Entity: 154
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 27.5677223
-          y: 1.20000005
-          z: 28.4206047
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 5
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.177306488
-  - Entity: 31
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: -3.76130652
-          y: 1.20000005
-          z: 6.40903902
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 5
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.177306488
-  - Entity: 150
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 12.7380991
-          y: 1.20000005
-          z: 18.0014114
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 5
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.177306488
-  - Entity: 122
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: -1.20534587
-          y: 1.20000005
-          z: 8.20484066
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 5
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.177306488
-  - Entity: 121
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 36.6337433
-          y: 1.20000005
-          z: 34.7903252
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 5
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.16761969
-  - Entity: 95
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 10.381834
-          y: 1.20000005
-          z: 16.3459129
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 4
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.158108905
-  - Entity: 91
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 25.0499516
-          y: 1.20000005
-          z: 26.6516361
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 4
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.158108905
-  - Entity: 94
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 16.0951366
-          y: 1.20000005
-          z: 20.360033
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 4
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.158108905
-  - Entity: 131
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 7.12296915
-          y: 1.20000005
-          z: 14.0562592
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 4
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.158108905
-  - Entity: 34
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 4.61823368
-          y: 1.20000005
-          z: 12.2964478
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 4
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.158108905
-  - Entity: 130
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 33.957016
-          y: 1.20000005
-          z: 32.9096756
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 4
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.148497298
-  - Entity: 8
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 22.3834629
-          y: 1.20000005
-          z: 24.7781773
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 4
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.148497298
-  - Entity: 120
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 19.0985641
-          y: 1.20000005
-          z: 22.4702244
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 4
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.148497298
-  - Entity: 6
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 2.10122514
-          y: 1.20000005
-          z: 10.5280123
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 4
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.148497298
-  - Entity: 36
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 31.5327129
-          y: 1.20000005
-          z: 31.2063847
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 3
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.129289508
-  - Entity: 64
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 28.3535061
-          y: 1.20000005
-          z: 28.9726906
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 3
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.129289508
-  - Entity: 129
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: -2.97552395
-          y: 1.20000005
-          z: 6.96112442
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 3
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.129289508
-  - Entity: 128
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 13.5238829
-          y: 1.20000005
-          z: 18.5534973
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 3
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.129289508
-  - Entity: 127
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: -0.419563234
-          y: 1.20000005
-          z: 8.75692654
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 3
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.129289508
-  - Entity: 33
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 11.1754112
-          y: 1.20000005
-          z: 16.9034767
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 3
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.109615602
-  - Entity: 60
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 25.8435287
-          y: 1.20000005
-          z: 27.2091999
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 3
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.109615602
-  - Entity: 37
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 16.8887138
-          y: 1.20000005
-          z: 20.9175968
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 3
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.109615602
-  - Entity: 97
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 7.91654587
-          y: 1.20000005
-          z: 14.613822
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 3
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.109615602
-  - Entity: 10
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 5.4118104
-          y: 1.20000005
-          z: 12.8540106
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 3
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.109615602
-  - Entity: 66
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 34.918087
-          y: 1.20000005
-          z: 33.5849152
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 2
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0897690952
-  - Entity: 65
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 23.3445301
-          y: 1.20000005
-          z: 25.4534187
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 2
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0897690952
-  - Entity: 101
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 20.0596313
-          y: 1.20000005
-          z: 23.1454659
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 2
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0897690952
-  - Entity: 102
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 3.06229305
-          y: 1.20000005
-          z: 11.2032528
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 2
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0897690952
-  - Entity: 166
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 32.3488159
-          y: 1.20000005
-          z: 31.7797756
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 2
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0794196054
-  - Entity: 126
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 29.169611
-          y: 1.20000005
-          z: 29.5460815
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 2
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0794196054
-  - Entity: 62
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: -2.1594193
-          y: 1.20000005
-          z: 7.53451443
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 2
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0794196054
-  - Entity: 61
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 14.3399878
-          y: 1.20000005
-          z: 19.1268883
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 2
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0794196054
-  - Entity: 28
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 0.396541536
-          y: 1.20000005
-          z: 9.33031654
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 2
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0794196054
-  - Entity: 133
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 11.9961557
-          y: 1.20000005
-          z: 17.4801273
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 1
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0594622009
-  - Entity: 132
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 26.6642742
-          y: 1.20000005
-          z: 27.7858505
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 1
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0594622009
-  - Entity: 100
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 17.7094593
-          y: 1.20000005
-          z: 21.4942474
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 1
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0594622009
-  - Entity: 71
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 8.73729038
-          y: 1.20000005
-          z: 15.1904716
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 1
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0594622009
-  - Entity: 70
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 6.23255491
-          y: 1.20000005
-          z: 13.4306602
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 1
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0594622009
-  - Entity: 59
-    Components:
-      - Component: NameComponent
-        Name: Bullet
-      - Component: TransformComponent
-        Position:
-          x: -3.58495092
-          y: 1.20000005
-          z: 6.53294516
-        Rotation:
-          x: 0
-          y: 0.958332002
-          z: 0
-        Scale:
-          x: 2
-          y: 2
-          z: 2
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         Material:
@@ -7201,8 +204,8 @@ Entities:
             z: 1
             w: 1
           Diffuse:
-            x: 0
-            y: 1
+            x: 1
+            y: 0
             z: 0
             w: 1
           Specular:
@@ -7221,19 +224,30 @@ Entities:
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
-        FilePath: Asset\Model\ball.fbx
+        FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
-      - Component: BulletComponent
-  - Entity: 158
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
+  - Entity: 6
     Components:
       - Component: NameComponent
-        Name: BillBoardEffect
+        Name: Enemy2
       - Component: TransformComponent
         Position:
-          x: 35.7347984
-          y: 1.20000005
-          z: 34.1587334
+          x: 19.0211315
+          y: 0.200000003
+          z: 6.18033981
         Rotation:
           x: 0
           y: 0
@@ -7243,7 +257,7 @@ Entities:
           y: 1
           z: 1
       - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
+        FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
             x: 1
@@ -7251,8 +265,8 @@ Entities:
             z: 1
             w: 1
           Diffuse:
-            x: 0
-            y: 1
+            x: 1
+            y: 0
             z: 0
             w: 1
           Specular:
@@ -7267,316 +281,34 @@ Entities:
             w: 1
           Shininess: 1
           TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 1
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0398619995
-  - Entity: 159
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 24.1612453
-          y: 1.20000005
-          z: 26.0272369
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 1
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0398619995
-  - Entity: 160
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 20.8763466
-          y: 1.20000005
-          z: 23.7192841
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 1
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0398619995
-  - Entity: 161
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 3.87900639
-          y: 1.20000005
-          z: 11.77707
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 1
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0398619995
-  - Entity: 69
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 33.1649399
-          y: 1.20000005
-          z: 32.3531799
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
         AnimationNum: 0
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0295483992
-  - Entity: 72
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: 29.9857388
-          y: 1.20000005
-          z: 30.1194878
-        Rotation:
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
           x: 0
           y: 0
           z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 0
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0295483992
-  - Entity: 63
-    Components:
-      - Component: NameComponent
-        Name: BillBoardEffect
-      - Component: TransformComponent
-        Position:
-          x: -1.34329331
-          y: 1.20000005
-          z: 8.10791969
-        Rotation:
+        maxDistance: 15
+        TargetPos:
           x: 0
           y: 0
           z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
-        AnimationNum: 0
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0295483992
+        MoveSpeed: 1
   - Entity: 7
     Components:
       - Component: NameComponent
-        Name: BillBoardEffect
+        Name: Enemy3
       - Component: TransformComponent
         Position:
-          x: 15.1561127
-          y: 1.20000005
-          z: 19.7002945
+          x: 16.1803398
+          y: 0.200000003
+          z: 11.7557049
         Rotation:
           x: 0
           y: 0
@@ -7586,7 +318,7 @@ Entities:
           y: 1
           z: 1
       - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
+        FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
             x: 1
@@ -7594,8 +326,8 @@ Entities:
             z: 1
             w: 1
           Diffuse:
-            x: 0
-            y: 1
+            x: 1
+            y: 0
             z: 0
             w: 1
           Specular:
@@ -7610,22 +342,34 @@ Entities:
             w: 1
           Shininess: 1
           TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
         AnimationNum: 0
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0295483992
-  - Entity: 32
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
+  - Entity: 8
     Components:
       - Component: NameComponent
-        Name: BillBoardEffect
+        Name: Enemy4
       - Component: TransformComponent
         Position:
-          x: 1.21266758
-          y: 1.20000005
-          z: 9.90372086
+          x: 11.7557039
+          y: 0.200000003
+          z: 16.1803417
         Rotation:
           x: 0
           y: 0
@@ -7635,7 +379,7 @@ Entities:
           y: 1
           z: 1
       - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
+        FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
             x: 1
@@ -7643,8 +387,8 @@ Entities:
             z: 1
             w: 1
           Diffuse:
-            x: 0
-            y: 1
+            x: 1
+            y: 0
             z: 0
             w: 1
           Specular:
@@ -7659,22 +403,34 @@ Entities:
             w: 1
           Shininess: 1
           TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
         AnimationNum: 0
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.0295483992
-  - Entity: 39
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
+  - Entity: 9
     Components:
       - Component: NameComponent
-        Name: BillBoardEffect
+        Name: Enemy5
       - Component: TransformComponent
         Position:
-          x: 12.80688
-          y: 1.20000005
-          z: 18.0497379
+          x: 6.18033934
+          y: 0.200000003
+          z: 19.0211315
         Rotation:
           x: 0
           y: 0
@@ -7684,7 +440,7 @@ Entities:
           y: 1
           z: 1
       - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
+        FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
             x: 1
@@ -7692,8 +448,8 @@ Entities:
             z: 1
             w: 1
           Diffuse:
-            x: 0
-            y: 1
+            x: 1
+            y: 0
             z: 0
             w: 1
           Specular:
@@ -7708,22 +464,34 @@ Entities:
             w: 1
           Shininess: 1
           TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
         AnimationNum: 0
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.00992100034
-  - Entity: 104
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
+  - Entity: 10
     Components:
       - Component: NameComponent
-        Name: BillBoardEffect
+        Name: Enemy6
       - Component: TransformComponent
         Position:
-          x: 27.4750004
-          y: 1.20000005
-          z: 28.3554611
+          x: -8.74227794e-07
+          y: 0.200000003
+          z: 20
         Rotation:
           x: 0
           y: 0
@@ -7733,7 +501,7 @@ Entities:
           y: 1
           z: 1
       - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
+        FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
             x: 1
@@ -7741,8 +509,8 @@ Entities:
             z: 1
             w: 1
           Diffuse:
-            x: 0
-            y: 1
+            x: 1
+            y: 0
             z: 0
             w: 1
           Specular:
@@ -7757,22 +525,95 @@ Entities:
             w: 1
           Shininess: 1
           TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
         AnimationNum: 0
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.00992100034
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
+  - Entity: 11
+    Components:
+      - Component: NameComponent
+        Name: Enemy7
+      - Component: TransformComponent
+        Position:
+          x: -6.18034315
+          y: 0.200000003
+          z: 19.0211296
+        Rotation:
+          x: 0
+          y: 0
+          z: 0
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Emission:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Shininess: 1
+          TextureEnable: true
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
   - Entity: 12
     Components:
       - Component: NameComponent
-        Name: BillBoardEffect
+        Name: Enemy8
       - Component: TransformComponent
         Position:
-          x: 18.5201855
-          y: 1.20000005
-          z: 22.063858
+          x: -11.7557039
+          y: 0.200000003
+          z: 16.1803398
         Rotation:
           x: 0
           y: 0
@@ -7782,7 +623,7 @@ Entities:
           y: 1
           z: 1
       - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
+        FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
             x: 1
@@ -7790,8 +631,8 @@ Entities:
             z: 1
             w: 1
           Diffuse:
-            x: 0
-            y: 1
+            x: 1
+            y: 0
             z: 0
             w: 1
           Specular:
@@ -7806,22 +647,34 @@ Entities:
             w: 1
           Shininess: 1
           TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
         AnimationNum: 0
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.00992100034
-  - Entity: 41
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
+  - Entity: 13
     Components:
       - Component: NameComponent
-        Name: BillBoardEffect
+        Name: Enemy9
       - Component: TransformComponent
         Position:
-          x: 9.54801464
-          y: 1.20000005
-          z: 15.7600813
+          x: -16.1803417
+          y: 0.200000003
+          z: 11.7557039
         Rotation:
           x: 0
           y: 0
@@ -7831,7 +684,7 @@ Entities:
           y: 1
           z: 1
       - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
+        FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
             x: 1
@@ -7839,8 +692,8 @@ Entities:
             z: 1
             w: 1
           Diffuse:
-            x: 0
-            y: 1
+            x: 1
+            y: 0
             z: 0
             w: 1
           Specular:
@@ -7855,22 +708,34 @@ Entities:
             w: 1
           Shininess: 1
           TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
         AnimationNum: 0
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.00992100034
-  - Entity: 167
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
+  - Entity: 14
     Components:
       - Component: NameComponent
-        Name: BillBoardEffect
+        Name: Enemy10
       - Component: TransformComponent
         Position:
-          x: 7.04328108
-          y: 1.20000005
-          z: 14.0002699
+          x: -19.0211296
+          y: 0.200000003
+          z: 6.18034077
         Rotation:
           x: 0
           y: 0
@@ -7880,7 +745,7 @@ Entities:
           y: 1
           z: 1
       - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
+        FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
             x: 1
@@ -7888,8 +753,8 @@ Entities:
             z: 1
             w: 1
           Diffuse:
-            x: 0
-            y: 1
+            x: 1
+            y: 0
             z: 0
             w: 1
           Specular:
@@ -7904,22 +769,34 @@ Entities:
             w: 1
           Shininess: 1
           TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
         AnimationNum: 0
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.00992100034
-  - Entity: 168
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
+  - Entity: 15
     Components:
       - Component: NameComponent
-        Name: BillBoardEffect
+        Name: Enemy11
       - Component: TransformComponent
         Position:
-          x: -3.74730492
-          y: 1.20000005
-          z: 6.41887617
+          x: -20
+          y: 0.200000003
+          z: -1.74845559e-06
         Rotation:
           x: 0
           y: 0
@@ -7929,7 +806,7 @@ Entities:
           y: 1
           z: 1
       - Component: TextureComponent
-        FilePath: Asset\Texture\explosion.png
+        FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
             x: 1
@@ -7937,8 +814,8 @@ Entities:
             z: 1
             w: 1
           Diffuse:
-            x: 0
-            y: 1
+            x: 1
+            y: 0
             z: 0
             w: 1
           Specular:
@@ -7953,10 +830,571 @@ Entities:
             w: 1
           Shininess: 1
           TextureEnable: true
-        UV_Slice_X: 4
-        UV_Slice_Y: 4
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
         AnimationNum: 0
-      - Component: BillBoardRendererComponent
-      - Component: ExplosionEffectComponent
-        LifeTime: 0.5
-        Timer: 0.00992100034
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
+  - Entity: 16
+    Components:
+      - Component: NameComponent
+        Name: Enemy12
+      - Component: TransformComponent
+        Position:
+          x: -19.0211277
+          y: 0.200000003
+          z: -6.1803441
+        Rotation:
+          x: 0
+          y: 0
+          z: 0
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Emission:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Shininess: 1
+          TextureEnable: true
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
+  - Entity: 17
+    Components:
+      - Component: NameComponent
+        Name: Enemy13
+      - Component: TransformComponent
+        Position:
+          x: -16.180336
+          y: 0.200000003
+          z: -11.7557106
+        Rotation:
+          x: 0
+          y: 0
+          z: 0
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Emission:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Shininess: 1
+          TextureEnable: true
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
+  - Entity: 18
+    Components:
+      - Component: NameComponent
+        Name: Enemy14
+      - Component: TransformComponent
+        Position:
+          x: -11.7557087
+          y: 0.200000003
+          z: -16.180336
+        Rotation:
+          x: 0
+          y: 0
+          z: 0
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Emission:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Shininess: 1
+          TextureEnable: true
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
+  - Entity: 19
+    Components:
+      - Component: NameComponent
+        Name: Enemy15
+      - Component: TransformComponent
+        Position:
+          x: -6.18034172
+          y: 0.200000003
+          z: -19.0211296
+        Rotation:
+          x: 0
+          y: 0
+          z: 0
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Emission:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Shininess: 1
+          TextureEnable: true
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
+  - Entity: 20
+    Components:
+      - Component: NameComponent
+        Name: Enemy16
+      - Component: TransformComponent
+        Position:
+          x: 2.3849762e-07
+          y: 0.200000003
+          z: -20
+        Rotation:
+          x: 0
+          y: 0
+          z: 0
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Emission:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Shininess: 1
+          TextureEnable: true
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
+  - Entity: 21
+    Components:
+      - Component: NameComponent
+        Name: Enemy17
+      - Component: TransformComponent
+        Position:
+          x: 6.18034267
+          y: 0.200000003
+          z: -19.0211296
+        Rotation:
+          x: 0
+          y: 0
+          z: 0
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Emission:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Shininess: 1
+          TextureEnable: true
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
+  - Entity: 22
+    Components:
+      - Component: NameComponent
+        Name: Enemy18
+      - Component: TransformComponent
+        Position:
+          x: 11.7557096
+          y: 0.200000003
+          z: -16.180336
+        Rotation:
+          x: 0
+          y: 0
+          z: 0
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Emission:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Shininess: 1
+          TextureEnable: true
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
+  - Entity: 23
+    Components:
+      - Component: NameComponent
+        Name: Enemy19
+      - Component: TransformComponent
+        Position:
+          x: 16.1803398
+          y: 0.200000003
+          z: -11.7557058
+        Rotation:
+          x: 0
+          y: 0
+          z: 0
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Emission:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Shininess: 1
+          TextureEnable: true
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
+  - Entity: 24
+    Components:
+      - Component: NameComponent
+        Name: Enemy20
+      - Component: TransformComponent
+        Position:
+          x: 19.0211315
+          y: 0.200000003
+          z: -6.18033886
+        Rotation:
+          x: 0
+          y: 0
+          z: 0
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Emission:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Shininess: 1
+          TextureEnable: true
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\limLightPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1

@@ -1,70 +1,55 @@
 Entities:
-  - Entity: 1
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: PlayerComponent
-        moveSpeed: 5
-        cameraRotate: 2
-        cameraDistance: 20
-        cameraLerp: 8
   - Entity: 2
     Components:
       - Component: NameComponent
         Name: Entity
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 0
+          x: -0.0184210613
+          y: -0.1657895
           z: 0
         Rotation:
-          x: 0
+          x: -0
           y: 0
-          z: 0
+          z: -0
         Scale:
           x: 1
-          y: 1
+          y: 0.529411733
           z: 1
-      - Component: CameraComponent
-        isLock: false
-        Target:
+      - Component: TextureComponent
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Emission:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Shininess: 1
+          TextureEnable: true
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: SpriteRendererComponent
+        anchor:
+          x: 0.5
+          y: 0.5
+        pivot:
           x: 0
           y: 0
-          z: 0
-        NearClip: 0.00999999978
-        FarClip: 256
-        FOV: 1
-        viewMatrix:
-          -
-            - 1
-            - 0
-            - 0
-            - 0
-          -
-            - 0
-            - 1
-            - 0
-            - 0
-          -
-            - 0
-            - 0
-            - 1
-            - 0
-          -
-            - 0
-            - 0
-            - 0
-            - 1
+      - Component: SetScene
+        ScriptName: SetScene
+        SceneName: Asset\Scene\scene.yaml

@@ -30,8 +30,6 @@ public:
 		}
 	}
 	void Update(float dt){
-		OutputDebugStringA(("Update\n"));
-
 		if(isInitialized){
 			OnUpdate(dt);
 		}

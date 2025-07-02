@@ -220,7 +220,6 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 	// 最初のシーンを作成・ロード
 	auto initialScene = std::make_shared<Scene>();
 	sceneManager->LoadScene(initialScene);
-	initialScene->BuildDefaultScene();
 
 	while(!windowService->GetMainWindow()->ShouldClose()){
 		timeService->Tick();

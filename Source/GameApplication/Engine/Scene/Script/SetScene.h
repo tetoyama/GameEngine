@@ -19,19 +19,26 @@ public:
 			sceneName = node["SceneName"].as<std::string>();
 		return true;
 	}
+
 	virtual void inspector(SceneContext* context) override{
 		ImGui::Text(scriptName.c_str());
 		ImGui::InputText("Scene Name", &sceneName[0], sceneName.capacity() + 1);
-		ImGui::DragInt("Test", &Temp);
+		if(ImGui::BeginDragDropTarget()){
+			if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
+				const char* droppedPath = (const char*)payload->Data;
+				std::string _Path = std::string(droppedPath);
+
+				sceneName = _Path;
+			}
+			ImGui::EndDragDropTarget();
+		}
 	}
 
 	void OnStart() override{
 
 	}
 	void OnUpdate(float dt) override{
-		OutputDebugStringA(("SetScene Update\n"));
 		auto* comp = GetComponent<CustomScriptComponent>();
-		Temp++;
 		if(GetKeyDown(VK_RETURN)){
 			LoadScene(sceneName);
 		}
@@ -42,6 +49,5 @@ public:
 	virtual void OnEditorUpdate(float dt)override{}
 	virtual void OnStop() override{}
 private:
-	int Temp = 0;
-	std::string sceneName = "Asset/Scene/Scene.yaml"; // デフォルトのシーン名
+	std::string sceneName = "Asset/Scene/scene.yaml"; // デフォルトのシーン名
 };
