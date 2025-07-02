@@ -4,6 +4,7 @@
 #include <vector>
 #include <d3d11.h>
 #include <string>
+#include "Backends/myVector2.h"
 
 struct SceneManagerContext;
 
@@ -24,6 +25,7 @@ struct SceneContext{
 	SystemRegistry* system = nullptr;
 	SceneManagerContext* manager = nullptr;
 	SceneState state = SceneState::Stopped; // シーンの状態
+	Vector2 EditorScreenSize = {1280.0f, 720.0f}; // エディタの画面サイズ
 };
 
 class Scene {

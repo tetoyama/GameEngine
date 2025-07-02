@@ -24,20 +24,15 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 	//カメラからピクセルへ向かうベクトル
     float3 eyev = In.WorldPosition.xyz - CameraPosition.xyz;
     eyev = normalize(eyev); //正規化する
-//    eyev = normalize(-eyev); //図解通り版
 
 	//ハーフベクトルの作成
     float3 halfv = eyev + Light.Direction.xyz; //視線とライトベクトルを加算
     halfv = normalize(halfv); //正規化する
- //   float3 halfv = eyev + (-Light.Direction.xyz); //図解通り版
 
     float specular = -dot(halfv, normal.xyz); //ハーフベクトルと法線の内積を計算
- //   float specular = dot(halfv, normal.xyz); //図解通り版
+
     specular = saturate(specular); //サチュレートする
     specular = pow(specular, 30);
 
     outDiffuse.rgb += specular; //スペキュラ値をデフューズとして足しこむ
 }
-
-
-//    outDiffuse.rgb *= (In.Diffuse.rgb * light + Light.Ambient.rgb); //明るさを乗算

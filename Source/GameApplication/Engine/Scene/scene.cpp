@@ -3,6 +3,7 @@
 #include "scene.h"
 #include <commdlg.h> // GetOpenFileName
 #include <filesystem>
+#include "Backends/Taskbar/taskbar.h"
 
 #include <string>
 #include "Engine/DebugTools/debugSystem.h"
@@ -274,13 +275,18 @@ void Scene::BuildDefaultScene(){
 	{
 		Entity entity = entityRegistry->Create();
 
+		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		name->name = "2DSprite";
+
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position.x = 100.0f;
-		transform->position.y = 100.0f;
+		transform->position.x = 0.0f;
+		transform->position.y = 0.0f;
 		transform->position.z = 0.0f;
-		transform->scale = Vector3(100.0f, 100.0f, 100.0f);
+		transform->scale = Vector3(0.25f, 0.25f, 1.0f);
 
 		auto* sprite = componentRegistry->AddComponent<SpriteRendererComponent>(entity);
+		sprite->anchor = Vector2(0.0f, 0.0f);
+		sprite->pivot = Vector2(0.5f, 0.5f);
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
 		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\texture.jpg");
@@ -321,7 +327,7 @@ void Scene::BuildDefaultScene(){
 }
 
 bool Scene::Load(){
-
+	SetTaskBarState(TBPF_INDETERMINATE); // タスクバーの状態をインジケーターに設定
 	std::string filepath = OpenYALM();
 	if (filepath != "") {
 		auto aliveEntities = m_entityRegistry->GetAllAlive();
@@ -333,16 +339,20 @@ bool Scene::Load(){
 		}
 		m_entityRegistry->ResetAll();
 		OpenSceneYAML(filepath);
+		SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
 		return true;
 	}
+	SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
 	return false;
 }
 
 void Scene::Save(){
-	
+	SetTaskBarState(TBPF_INDETERMINATE); // タスクバーの状態をインジケーターに設定
+
 	std::wstring savePath;
 	if(!ShowSaveFileDialog(savePath)){
-		// ユーザーがキャンセルした
+		SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
+		m_SceneManagerContext->debug->LOG_INFO("ユーザーがキャンセルしました。");
 		return;
 	}
 	
@@ -405,9 +415,13 @@ void Scene::Save(){
 	std::ofstream fout(utf8Path, std::ios::binary);
 	if (!fout.is_open()) {
 		m_SceneManagerContext->debug->LOG_ERROR(("ファイルの保存に失敗しました: " + utf8Path).c_str());
+		SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
+
 		return;
 	}
 	fout << root;
+
+	SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
 }
 
 void Scene::OpenSceneYAML(std::string path) {  

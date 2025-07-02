@@ -8,6 +8,7 @@
 #include "../../../Backends/ImGui/imgui.h"
 #include "../../../Backends/ImGui/imgui_internal.h" // for DockSpace
 #include "../../../Backends/ImGui/ImGuizmo.h"
+#include "Engine/Graphics/mainRenderer.h"
 
 #include <filesystem>
 #include <set>
@@ -268,7 +269,7 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 	}
 	TransformComponent* transform = registry->GetComponent<TransformComponent>(selectedEntity);
 
-	if(transform){
+	if(transform && m_context->manager->imgui->GetManubar()->showEditorView){
 		DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(transform->rotation.x, transform->rotation.y, transform->rotation.z);
 		DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z);
 		DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
@@ -276,7 +277,17 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 		DirectX::XMMATRIX World = Scale * Rotation * Translation;
 
 		DirectX::XMMATRIX modelMatrix;
-		if(registry->GetComponent<SpriteRendererComponent>(selectedEntity)){
+
+		auto* sprite = registry->GetComponent<SpriteRendererComponent>(selectedEntity);
+
+		if(sprite){
+			TransformComponent temp = CalculateRectTransform(*sprite, *transform);
+			Rotation = DirectX::XMMatrixRotationRollPitchYaw(temp.rotation.x, temp.rotation.y, temp.rotation.z);
+			Scale = DirectX::XMMatrixScaling(temp.scale.x, temp.scale.y, temp.scale.z);
+			Translation = DirectX::XMMatrixTranslation(temp.position.x, temp.position.y, temp.position.z);
+
+			World = Scale * Rotation * Translation;
+
 			modelMatrix = m_context->manager->imgui->RenderGizmo2D(World);
 
 		} else{
@@ -326,10 +337,22 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 			}
 			axis3 = DirectX::XMFLOAT3(roll, pitch, yaw);
 
+			if(sprite){
+				TransformComponent edited;
+				edited.position = translation3;
+				edited.rotation = axis3;
+				edited.scale = scale3;
 
-			transform->position = translation3;
-			transform->rotation = axis3;
-			transform->scale = scale3;
+				edited = ReverseCalculateRectTransform(*sprite, edited);
+
+				transform->position = edited.position;
+				transform->rotation = edited.rotation;
+				transform->scale = edited.scale;
+			} else{
+				transform->position = translation3;
+				transform->rotation = axis3;
+				transform->scale = scale3;
+			}
 		}
 	}
 	ImGui::EndChild();
@@ -618,4 +641,115 @@ void InspectorSystem::DrawAssetsBrowser(){
 
 	ImGui::Columns(1);
 	ImGui::End();
+}
+
+TransformComponent InspectorSystem::CalculateRectTransform(
+	const SpriteRendererComponent& sprite,
+	const TransformComponent& originalTransform
+){
+	TransformComponent adjustedTransform = originalTransform;
+
+	Vector2 screenSize = m_context->EditorScreenSize;
+	Vector2 viewportSize = {
+		(float)m_context->manager->renderer->GetGraphicsContext()->m_width,
+		(float)m_context->manager->renderer->GetGraphicsContext()->m_height
+	};
+
+	// 仮想UI基準解像度
+	const Vector2 referenceResolution = {1.0f, 1.0f};
+
+	// アスペクト比
+	float screenAspect = screenSize.x / screenSize.y;
+	float referenceAspect = referenceResolution.x / referenceResolution.y;
+	float aspectRatioScaleX = referenceAspect / screenAspect;
+
+	// アンカー位置（画面サイズ基準）
+	Vector2 anchoredPosition = {
+		viewportSize.x * sprite.anchor.x,
+		viewportSize.y * sprite.anchor.y
+	};
+
+	// スプライトサイズ（ピクセル単位）
+	Vector2 adjustedScale = {
+		originalTransform.scale.x * aspectRatioScaleX / referenceResolution.x * viewportSize.x,
+		originalTransform.scale.y / referenceResolution.y * viewportSize.y
+	};
+
+	// ピボット補正（ピクセル単位）
+	Vector2 pivotOffset = {
+		adjustedScale.x * -sprite.pivot.x,
+		adjustedScale.y * -sprite.pivot.y
+	};
+
+	// 仮想座標オフセット（position）→ ピクセルスケーリング ＋ アスペクト比補正付き
+	Vector2 positionOffset = {
+		originalTransform.position.x * aspectRatioScaleX / referenceResolution.x * viewportSize.x,
+		originalTransform.position.y / referenceResolution.y * viewportSize.y
+	};
+
+	// 最終位置
+	Vector2 finalPosition = {
+		anchoredPosition.x - pivotOffset.x + positionOffset.x,
+		anchoredPosition.y - pivotOffset.y + positionOffset.y
+	};
+
+	adjustedTransform.position = Vector3(finalPosition.x, finalPosition.y, originalTransform.position.z);
+	adjustedTransform.scale = Vector3(adjustedScale.x, adjustedScale.y, originalTransform.scale.z);
+
+	return adjustedTransform;
+}
+TransformComponent InspectorSystem::ReverseCalculateRectTransform(
+	const SpriteRendererComponent& sprite,
+	const TransformComponent& adjustedTransform
+){
+	TransformComponent virtualTransform = adjustedTransform;
+
+	Vector2 screenSize = m_context->EditorScreenSize;
+	Vector2 viewportSize = {
+		(float)m_context->manager->renderer->GetGraphicsContext()->m_width,
+		(float)m_context->manager->renderer->GetGraphicsContext()->m_height
+	};
+
+	const Vector2 referenceResolution = {1.0f, 1.0f};
+
+	// アスペクト比
+	float screenAspect = screenSize.x / screenSize.y;
+	float referenceAspect = referenceResolution.x / referenceResolution.y;
+	float aspectRatioScaleX = referenceAspect / screenAspect;
+
+	// アンカー位置（ピクセル）
+	Vector2 anchoredPosition = {
+		viewportSize.x * sprite.anchor.x,
+		viewportSize.y * sprite.anchor.y
+	};
+
+	// 実スケール → 仮想スケールに変換
+	Vector2 virtualScale = {
+		adjustedTransform.scale.x / viewportSize.x * referenceResolution.x / aspectRatioScaleX,
+		adjustedTransform.scale.y / viewportSize.y * referenceResolution.y
+	};
+
+	// ピボット補正（ピクセル）
+	Vector2 pivotOffset = {
+		adjustedTransform.scale.x * -sprite.pivot.x,
+		adjustedTransform.scale.y * -sprite.pivot.y
+	};
+
+	// 実座標 → アンカー基準に差分変換（ピクセル空間）
+	Vector2 anchoredDiff = {
+		adjustedTransform.position.x - anchoredPosition.x + pivotOffset.x,
+		adjustedTransform.position.y - anchoredPosition.y + pivotOffset.y
+	};
+
+	// ピクセル → 仮想UI座標に逆変換
+	Vector2 virtualPosition = {
+		anchoredDiff.x / viewportSize.x * referenceResolution.x / aspectRatioScaleX,
+		anchoredDiff.y / viewportSize.y * referenceResolution.y
+	};
+
+	// 最終反映
+	virtualTransform.position = Vector3(virtualPosition.x, virtualPosition.y, adjustedTransform.position.z);
+	virtualTransform.scale = Vector3(virtualScale.x, virtualScale.y, adjustedTransform.scale.z);
+
+	return virtualTransform;
 }

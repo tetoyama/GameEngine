@@ -97,7 +97,7 @@ public:
 	void SetLight(const LIGHT& Light);
 	void SetCamera(const CAMERA& Camera);
 	void SetParameter(const Parameter& Parameter);
-
+	void ResetViewport();
 	void SetWorldViewProjection2D();
 
 	void Resize(UINT width, UINT height);

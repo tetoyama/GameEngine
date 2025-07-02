@@ -68,7 +68,6 @@ void SceneManager::SaveScene(){
 }
 
 void SceneManager::OpenScene(){
-	// シーンを開く処理を実装する必要があります
 	auto scene = std::make_shared<Scene>();
 
 	scene->Initialize(&m_SceneContext);
@@ -81,6 +80,7 @@ void SceneManager::OpenScene(){
 		m_activeScene = scene;
 		m_SceneContext.debug->LOG_DEBUG("OpenScene");
 	} else{
+		scene->Shutdown();
 		scene.reset();
 	}
 	OpenFlag = true;

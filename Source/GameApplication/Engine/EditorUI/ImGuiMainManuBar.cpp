@@ -26,6 +26,12 @@ void ImGuiManubar::Render(){
 			if(ImGui::MenuItem("Assets Browser", nullptr, showAssetsBrowser)){
 				showAssetsBrowser = !showAssetsBrowser;
 			}
+			if(ImGui::MenuItem("Editor View", nullptr, showEditorView)){
+				showEditorView = !showEditorView;
+			}
+			if(ImGui::MenuItem("Player View", nullptr, showPlayerView)){
+				showPlayerView = !showPlayerView;
+			}
 			ImGui::EndMenu();
 		}
 

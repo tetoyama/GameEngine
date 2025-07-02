@@ -3,8 +3,9 @@
 #include "../Interface/ISystem.h"
 #include "../Entity/Entity.h" // Entityの定義をインクルード
 
-struct SceneContext; // 前方宣言
-
+struct SceneContext;
+class TransformComponent;
+class SpriteRendererComponent;
 class InspectorSystem: public ISystem
 {
 public:
@@ -22,6 +23,14 @@ public:
 private:
 	SceneContext* m_context;
 
+	TransformComponent CalculateRectTransform(
+		const SpriteRendererComponent& sprite,
+		const TransformComponent& originalTransform
+	);
+	TransformComponent ReverseCalculateRectTransform(
+		const SpriteRendererComponent& sprite,
+		const TransformComponent& adjustedTransform
+	);
 	// UIパネル描画関数
 	void CreateDockSpace();
 	void DrawSceneHierarchy(SceneContext* context);
@@ -31,8 +40,9 @@ private:
 	// メンバー変数
 	Entity selectedEntity = 0;
 
-	bool* showSceneHierarchy;
-	bool* showInspector;
-	bool* showConsole;
-	bool* showAssetsBrowser;
+	bool* showSceneHierarchy = nullptr;
+	bool* showInspector = nullptr;
+	bool* showConsole = nullptr;
+	bool* showAssetsBrowser = nullptr;
+
 };

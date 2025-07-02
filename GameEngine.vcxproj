@@ -161,6 +161,7 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="resource.h" />
     <ClInclude Include="Source\GameApplication\Backends\Assimp\aabb.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -1067,6 +1068,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\Icon\icon.h" />
     <ClInclude Include="Source\GameApplication\Backends\ImGui\ImApp.h" />
     <ClInclude Include="Source\GameApplication\Backends\ImGui\imconfig.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
@@ -1106,6 +1108,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Backends\ImGui\stb_image.h" />
+    <ClInclude Include="Source\GameApplication\Backends\myVector2.h" />
     <ClInclude Include="Source\GameApplication\Backends\myVector3.h" />
     <ClInclude Include="Source\GameApplication\Backends\PhysX\characterkinematic\PxBoxController.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -2539,6 +2542,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\Taskbar\taskbar.h" />
     <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\anchor.h" />
     <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\binary.h" />
     <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\collectionstack.h" />
@@ -2924,6 +2928,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Source\GameApplication\Backends\Icon\icon.cpp" />
     <ClCompile Include="Source\GameApplication\Backends\ImGui\imgui.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -2953,6 +2958,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Source\GameApplication\Backends\Taskbar\taskbar.cpp" />
     <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\binary.cpp" />
     <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\contrib\graphbuilder.cpp" />
     <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\contrib\graphbuilderadapter.cpp" />
@@ -3122,12 +3128,6 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
-    <FxCompile Include="Source\Shader\pixelLightingPS.hlsl">
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Asset\Shader\%(Filename).cso</ObjectFileOutput>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Asset\Shader\%(Filename).cso</ObjectFileOutput>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-    </FxCompile>
     <FxCompile Include="Source\Shader\pointLightingBlinnPhongPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
@@ -3204,6 +3204,12 @@
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="Source\GameApplication\Backends\yaml-cpp\contrib\yaml-cpp.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Asset\Icon\logo-icon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -147,10 +147,11 @@ void BulletSystem::FixedUpdate(float fidedDeltaTime){
 	} else{
 		for(Entity bulletEntity : bulletEntities){
 			BulletComponent* bullet = m_context->component->GetComponent<BulletComponent>(bulletEntity);
+			bullet->particleCount = (bullet->particleCount + 1) % 3; // パーティクルのカウントを更新
 			if(bullet){
-				TransformComponent* transform = m_context->component->GetComponent<TransformComponent>(bulletEntity);
-				{
+				if(bullet->particleCount == 0) {
 					Entity entity = m_context->entity->Create();
+					TransformComponent* transform = m_context->component->GetComponent<TransformComponent>(bulletEntity);
 
 					auto* effectName = m_context->component->AddComponent<NameComponent>(entity);
 					effectName->name = "BillBoardEffect";

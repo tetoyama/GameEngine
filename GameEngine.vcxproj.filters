@@ -2190,6 +2190,18 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\RenderLayerComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\myVector2.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\Icon\icon.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Backends\Taskbar\taskbar.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\gameApplication.cpp">
@@ -2600,6 +2612,12 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\ScriptSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Source\GameApplication\Backends\Icon\icon.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Backends\Taskbar\taskbar.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\GameApplication\Backends\Assimp\color4.inl">
@@ -2645,7 +2663,6 @@
   <ItemGroup>
     <FxCompile Include="Source\Shader\pointLightingBlinnPhongPS.hlsl" />
     <FxCompile Include="Source\Shader\pixelLightingBlinnPhongPS.hlsl" />
-    <FxCompile Include="Source\Shader\pixelLightingPS.hlsl" />
     <FxCompile Include="Source\Shader\semiSphereLightingPS.hlsl" />
     <FxCompile Include="Source\Shader\vertexDirectionalLightingPS.hlsl" />
     <FxCompile Include="Source\Shader\spotLightPS.hlsl" />
@@ -2672,5 +2689,15 @@
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="Source\GameApplication\Backends\yaml-cpp\contrib\yaml-cpp.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Asset\Icon\logo-icon.ico">
+      <Filter>リソース ファイル</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc">
+      <Filter>リソース ファイル</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

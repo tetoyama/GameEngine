@@ -138,8 +138,8 @@ DirectX::XMMATRIX ImGuiService::RenderGizmo2D(const DirectX::XMMATRIX& world) co
 	float right = viewport->Size.x;
 	float top = 0;
 	float bottom = viewport->Size.y;
-	float nearZ = -1.0f;
-	float farZ = 1.0f;
+	float nearZ = 0.0f;
+	float farZ = 0.01f;
 
 	// 正射影行列をビューポートに合わせて作成
 	DirectX::XMMATRIX ortho = DirectX::XMMatrixOrthographicOffCenterLH(left, right, bottom, top, nearZ, farZ);

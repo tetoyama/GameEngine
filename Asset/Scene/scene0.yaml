@@ -25,9 +25,9 @@ Entities:
             z: 1
             w: 1
           Diffuse:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.761904776
+            y: 0.706219375
+            z: 0.432075858
             w: 1
           Specular:
             x: 1
@@ -197,3 +197,9 @@ Entities:
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: SpriteRendererComponent
+        anchor:
+          x: 0.5
+          y: 0.5
+        pivot:
+          x: 0
+          y: 0

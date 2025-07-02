@@ -3,6 +3,9 @@
 
 #include "Platform/WindowSystem/windowSystem.h"
 
+#include "../Backends/Icon/icon.h"
+#include "../Backends/Taskbar/taskbar.h"
+
 #include "Runtime/TimeService/time.h"
 
 #include "Graphics/GraphicsContext.h"
@@ -27,7 +30,6 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
         OutputDebugStringA("EngineContext が nullptr です。\n");
         return;
     }
-
     // デバッグ出力システム取得・初期化
     auto debugLogSystem = context->Get<DebugLogSystem>();
 	auto imguiService = context->Get<ImGuiService>();
@@ -46,6 +48,15 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
         return;
     }
     debugLogSystem->LOG_DEBUG("WindowServiceが正常に作成されました");
+
+	// タスクバーアイコンの初期化
+	if(!SUCCEEDED(InitIcon(windowService->GetMainWindow()->GetHWND()))){
+		OutputDebugStringA("アイコンの初期化に失敗しました。\n");
+		return;
+	}
+	InitTaskBar(windowService->GetMainWindow()->GetHWND());
+
+	debugLogSystem->LOG_DEBUG("タスクバーアイコンが正常に作成されました");
 
     // 時間管理サービスの初期化
     auto timeService = context->Get<TimeService>();

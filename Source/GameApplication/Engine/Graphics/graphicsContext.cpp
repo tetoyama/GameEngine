@@ -150,6 +150,17 @@ void GraphicsContext::SetParameter(const Parameter& Parameter){
 	m_DeviceContext->UpdateSubresource(m_CameraBuffer, 0, nullptr, &Parameter, 0, 0);
 }
 
+void GraphicsContext::ResetViewport(){
+	D3D11_VIEWPORT vp{};
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	vp.Width = static_cast<float>(m_width);
+	vp.Height = static_cast<float>(m_height);
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	m_DeviceContext->RSSetViewports(1, &vp);
+}
+
 void GraphicsContext::SetWorldViewProjection2D(){
 	SetWorldMatrix(DirectX::XMMatrixIdentity());
 	SetViewMatrix(DirectX::XMMatrixIdentity());
@@ -587,16 +598,10 @@ void GraphicsContext::Resize(UINT width, UINT height){
 
 		m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
 
-		D3D11_VIEWPORT vp{};
-		vp.TopLeftX = 0;
-		vp.TopLeftY = 0;
-		vp.Width = static_cast<float>(width);
-		vp.Height = static_cast<float>(height);
-		vp.MinDepth = 0.0f;
-		vp.MaxDepth = 1.0f;
-		m_DeviceContext->RSSetViewports(1, &vp);
-
 		m_width = width;
 		m_height = height;
+
+		// ビューポートの設定
+		ResetViewport();
 	}
 }

@@ -3,12 +3,14 @@
 #include "Interface/ISystem.h"
 #include <d3d11.h>
 #include <wrl/client.h> 
+#include "Backends/myVector2.h"
 #include "Backends/myVector3.h"
 
 struct SceneContext;
 
 class TransformComponent;
 class TextureComponent;
+class SpriteRendererComponent;
 class MeshRendererComponent;
 class ModelRendererComponent;
 class BillBoardRendererComponent;
@@ -28,6 +30,8 @@ public:
 	void EditorUpdate(float deltaTime) override;
 
 private:
+
+	TransformComponent CalculateRectTransform(const SpriteRendererComponent& sprite, const TransformComponent& transform);
 
 	void DrawMesh(TransformComponent* pTransform, MeshRendererComponent* pMesh, TextureComponent* pTexture);
 	void DrawModel(TransformComponent* pTransform, ModelRendererComponent* pMesh, TextureComponent* pTexture);
@@ -54,6 +58,8 @@ private:
 	ID3D11ShaderResourceView* srv_editor = nullptr;
 	ID3D11DepthStencilView* dsv_editor = nullptr;
 
+	Vector2 m_ScreenSize = Vector2(1280.0f, 720.0f);
+
 	Vector3 m_EditorCameraPosition = Vector3(0.0f, 5.0f, 0.0f);
 	Vector3 m_EditorCameraRotation = Vector3(0.0f, 0.0f, 0.0f);
 
@@ -62,4 +68,7 @@ private:
 	DirectX::XMMATRIX m_CameraView = DirectX::XMMatrixIdentity();
 	DirectX::XMMATRIX m_CameraProjection = DirectX::XMMatrixIdentity();
 	float m_MouseWheel = 0.0f;
+
+	bool* showPlayer = nullptr;
+	bool* showEditor = nullptr;
 };

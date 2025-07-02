@@ -73,15 +73,22 @@ struct RenderOrderComparator {
 		if(layerValA != layerValB){
 			return static_cast<int>(layerValA) < static_cast<int>(layerValB);
 		}
-		// OrderInLayer取得
-		auto* orderA = registry->GetComponent<OrderInLayerComponent>(a);
-		auto* orderB = registry->GetComponent<OrderInLayerComponent>(b);
+		if(layerValA == RenderLayer::Opaque3D || layerValA == RenderLayer::Transparent3D){
+			return false; // 同じレイヤー内での順序は関係ない
+		}
 
-		int orderValA = orderA ? orderA->order : 0;
-		int orderValB = orderB ? orderB->order : 0;
+		if(layerValA == RenderLayer::OverlayUI || layerValA == RenderLayer::Background2D){
 
-		if(orderValA != orderValB){
-			return orderValA < orderValB;
+			// OrderInLayer取得
+			auto* orderA = registry->GetComponent<OrderInLayerComponent>(a);
+			auto* orderB = registry->GetComponent<OrderInLayerComponent>(b);
+
+			int orderValA = orderA ? orderA->order : 0;
+			int orderValB = orderB ? orderB->order : 0;
+
+			if(orderValA != orderValB){
+				return orderValA < orderValB;
+			}
 		}
 
 		// Zソート（透明オブジェクトのみ距離でソート）
@@ -103,6 +110,9 @@ struct RenderOrderComparator {
 
 void RenderSystem::Initialize(){
 	m_context->manager->debug->LOG_DEBUG("RenderSystemを初期化中...");
+
+	showPlayer = &m_context->manager->imgui->GetManubar()->showPlayerView;
+	showEditor = &m_context->manager->imgui->GetManubar()->showEditorView;
 
 	D3D11_TEXTURE2D_DESC td = {};
 	td.Width = 1280; td.Height = 720;
@@ -257,11 +267,25 @@ void RenderSystem::Draw(){
 
 
 
-	//DrawEntities();
+	if(*showPlayer){
+		PlayerView();
+	} else{
+		if(m_context->state == SceneState::Playing){
+			m_context->manager->graphics->ResetViewport();
+			m_context->manager->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->manager->graphics->GetpRenderTargetView(), m_context->manager->graphics->GetDepthStencilView());
+			m_ScreenSize = Vector2(
+				(float)m_context->manager->renderer->GetGraphicsContext()->m_width,
+				(float)m_context->manager->renderer->GetGraphicsContext()->m_height
+			);
+			m_context->EditorScreenSize = m_ScreenSize;
 
-	PlayerView();
-
-	EditorView();
+			SetCameraView();
+			DrawEntities();
+		}
+	}
+	if(*showEditor){
+		EditorView();
+	}
 }
 
 void RenderSystem::EditorUpdate(float deltaTime){
@@ -334,6 +358,65 @@ void RenderSystem::EditorUpdate(float deltaTime){
 		}
 	}
 }
+
+TransformComponent RenderSystem::CalculateRectTransform(
+	const SpriteRendererComponent& sprite,
+	const TransformComponent& originalTransform
+){
+	TransformComponent adjustedTransform = originalTransform;
+
+	Vector2 screenSize = m_ScreenSize;
+	Vector2 viewportSize = {
+		(float)m_context->manager->renderer->GetGraphicsContext()->m_width,
+		(float)m_context->manager->renderer->GetGraphicsContext()->m_height
+	};
+
+	// 仮想UI基準解像度
+	const Vector2 referenceResolution = {1.0f, 1.0f};
+
+	// アスペクト比
+	float screenAspect = screenSize.x / screenSize.y;
+	float referenceAspect = referenceResolution.x / referenceResolution.y;
+	float aspectRatioScaleX = referenceAspect / screenAspect;
+
+	// アンカー位置（画面サイズ基準）
+	Vector2 anchoredPosition = {
+		viewportSize.x * sprite.anchor.x,
+		viewportSize.y * sprite.anchor.y
+	};
+
+	// スプライトサイズ（ピクセル単位）
+	Vector2 adjustedScale = {
+		originalTransform.scale.x * aspectRatioScaleX / referenceResolution.x * viewportSize.x,
+		originalTransform.scale.y / referenceResolution.y * viewportSize.y
+	};
+
+	// ピボット補正（ピクセル単位）
+	Vector2 pivotOffset = {
+		adjustedScale.x * -sprite.pivot.x,
+		adjustedScale.y * -sprite.pivot.y
+	};
+
+	// 仮想座標オフセット（position）→ ピクセルスケーリング ＋ アスペクト比補正付き
+	Vector2 positionOffset = {
+		originalTransform.position.x * aspectRatioScaleX / referenceResolution.x * viewportSize.x,
+		originalTransform.position.y / referenceResolution.y * viewportSize.y
+	};
+
+	// 最終位置
+	Vector2 finalPosition = {
+		anchoredPosition.x - pivotOffset.x + positionOffset.x,
+		anchoredPosition.y - pivotOffset.y + positionOffset.y
+	};
+
+	adjustedTransform.position = Vector3(finalPosition.x, finalPosition.y, originalTransform.position.z);
+	adjustedTransform.scale = Vector3(adjustedScale.x, adjustedScale.y, originalTransform.scale.z);
+
+	return adjustedTransform;
+}
+
+
+
 
 void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent* meshRenderer, TextureComponent* pTexture){
 
@@ -560,7 +643,7 @@ void RenderSystem::SetCameraView(){
 	m_CameraPosition = transformComponent->position;
 	// プロジェクションマトリクス設定
 	DirectX::XMMATRIX projection;
-	projection = DirectX::XMMatrixPerspectiveFovLH(cameraComponent->FOV, (float)graphicsContext->m_width / graphicsContext->m_height, cameraComponent->NearClip, cameraComponent->FarClip);
+	projection = DirectX::XMMatrixPerspectiveFovLH(cameraComponent->FOV, m_ScreenSize.x / m_ScreenSize.y, cameraComponent->NearClip, cameraComponent->FarClip);
 	graphicsContext->SetProjectionMatrix(projection);
 
 	// コンスタントバッファ設定
@@ -595,11 +678,10 @@ void RenderSystem::SetEditorCameraView(){
 	GraphicsContext* graphicsContext = m_context->manager->renderer->GetGraphicsContext();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-	ImVec2 avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
 
 	// プロジェクションマトリクス設定
 	DirectX::XMMATRIX projection;
-	projection = DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV4, avail.x / avail.y, 0.01f, 1000.0f);
+	projection = DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV4, m_ScreenSize.x / m_ScreenSize.y, 0.01f, 1000.0f);
 	graphicsContext->SetProjectionMatrix(projection);
 	// ビューマトリクス設定
 	float pitch = m_EditorCameraRotation.y;
@@ -629,7 +711,7 @@ void RenderSystem::EditorView(){
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-	ImGui::Begin("Editor View");
+	ImGui::Begin("Editor View",showEditor);
 	// ツールバー内容
 	if(ImGui::Button("Play")){
 		m_context->state = SceneState::Playing; // シーンの状態を再生中に変更
@@ -640,7 +722,7 @@ void RenderSystem::EditorView(){
 	}
 	ImGui::Separator();
 
-	float clearCol[4] = {0.5f, 0.5f, 0.5f, 1.0f};
+	float clearCol[4] = {0.1f, 0.1f, 0.1f, 1.0f};
 
 	D3D11_VIEWPORT vp = {};
 	vp.Width = 1280.0f;
@@ -656,9 +738,6 @@ void RenderSystem::EditorView(){
 	deviceContext->ClearDepthStencilView(dsv_editor, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, &rtv_editor, dsv_editor);
-	SetEditorCameraView();
-
-	DrawEntities();
 
 	ImVec2 avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
 
@@ -677,6 +756,12 @@ void RenderSystem::EditorView(){
 	//	dst.x = avail.x;
 	//	dst.y = avail.x / imgAspect;
 	//}
+	m_ScreenSize = Vector2(dst.x, dst.y);
+	m_context->EditorScreenSize = Vector2(dst.x, dst.y);
+
+	SetEditorCameraView();
+
+	DrawEntities();
 
 	// 中央寄せ
 	ImVec2 cursor = ImGui::GetCursorPos();
@@ -729,7 +814,7 @@ void RenderSystem::EditorView(){
 
 void RenderSystem::PlayerView(){
 
-	ImGui::Begin("Play View");
+	ImGui::Begin("Play View",showPlayer);
 	// ツールバー内容
 	if(ImGui::Button("Play")){
 		m_context->state = SceneState::Playing; // シーンの状態を再生中に変更
@@ -743,7 +828,7 @@ void RenderSystem::PlayerView(){
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-	float clearCol[4] = {0.1f, 0.1f, 0.1f, 1.0f};
+	float clearCol[4] = {0.5f, 0.5f, 0.5f, 1.0f};
 
 	D3D11_VIEWPORT vp = {};
 	vp.Width = 1280.0f;
@@ -760,12 +845,6 @@ void RenderSystem::PlayerView(){
 
 	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, &rtv_player, dsv_player);
 
-	// カメラビューの設定
-	SetCameraView();
-
-	// エンティティの描画
-	DrawEntities();
-
 	ImVec2 avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
 
 	// テクスチャの元サイズ（例）
@@ -773,16 +852,25 @@ void RenderSystem::PlayerView(){
 	float imgAspect = imgW / imgH;
 	float availAspect = avail.x / avail.y;
 
-	ImVec2 dst;
-	if(availAspect > imgAspect){
-		// 領域が横長 → 高さに合わせ、幅を計算
-		dst.y = avail.y;
-		dst.x = avail.y * imgAspect;
-	} else{
-		// 領域が縦長または正方形 → 幅に合わせ、高さを計算
-		dst.x = avail.x;
-		dst.y = avail.x / imgAspect;
-	}
+	ImVec2 dst = avail;
+	//if(availAspect > imgAspect){
+	//	// 領域が横長 → 高さに合わせ、幅を計算
+	//	dst.y = avail.y;
+	//	dst.x = avail.y * imgAspect;
+	//} else{
+	//	// 領域が縦長または正方形 → 幅に合わせ、高さを計算
+	//	dst.x = avail.x;
+	//	dst.y = avail.x / imgAspect;
+	//}
+	m_ScreenSize = Vector2(dst.x, dst.y);
+
+	// カメラビューの設定
+	SetCameraView();
+
+	// エンティティの描画
+	DrawEntities();
+
+
 
 	// 中央寄せ
 	ImVec2 cursor = ImGui::GetCursorPos();
@@ -880,8 +968,8 @@ void RenderSystem::DrawEntities(){
 				BillBoardRendererComponent* billBoardRenderer = m_context->component->GetComponent<BillBoardRendererComponent>(entity);
 				MeshRendererComponent* meshRenderer = m_context->component->GetComponent<MeshRendererComponent>(entity);
 				if(spriteRenderer){
-					DrawMesh(transform, m_SpriteMesh, texture);
-
+					TransformComponent newTransform = CalculateRectTransform(*spriteRenderer, *transform);
+					DrawMesh(&newTransform, m_SpriteMesh, texture);
 				} else if(billBoardRenderer){
 					DrawBillBoard(transform, m_billBoardMesh, billBoardRenderer, texture);
 				} else if(meshRenderer){

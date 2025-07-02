@@ -21,4 +21,5 @@ public:
 	float maxLifeTime = 2.5f;
 	float currentLifeTime = 0.0f;
 	float bulletSpeed = 20.0f;
+	int particleCount = 0;
 };

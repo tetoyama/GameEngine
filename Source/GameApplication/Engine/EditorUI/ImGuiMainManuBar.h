@@ -31,6 +31,8 @@ public:
 	bool showInspector = true;
 	bool showConsole = true;
 	bool showAssetsBrowser = true;
+	bool showEditorView = true;
+	bool showPlayerView = true;
 private:
 	std::unordered_map<MenuEvent, Callback> m_eventCallbacks;
 
