@@ -56,6 +56,8 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     specular = pow(specular, 30);
     
     outDiffuse.rgb += (specular * ofs);
+    outDiffuse.rgb = outDiffuse.rgb * Material.TextureEnable + (!Material.TextureEnable * Material.Diffuse);
+
 }
 
 

@@ -56,6 +56,6 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 
     outDiffuse.rgb += pow(lit * lim, 5) * color.rgb * Material.Diffuse.rgb;
     outDiffuse.rgb += (specular * ofs);
-    
-    //outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord) * In.Diffuse;
+    outDiffuse.rgb = outDiffuse.rgb * Material.TextureEnable + (!Material.TextureEnable * Material.Diffuse);
+
 }

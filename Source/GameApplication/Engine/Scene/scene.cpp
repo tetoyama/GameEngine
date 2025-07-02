@@ -68,6 +68,8 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_SceneManagerContext = set;
 	m_SceneManagerContext->debug->LOG_INFO("Sceneを初期化中...");
 
+	m_OldState = m_SceneContext.state;
+
 	m_entityRegistry = std::make_shared<EntityRegistry>();
 	m_componentRegistry = std::make_shared<ComponentRegistry>(m_entityRegistry.get());
 	m_systemRegistry = std::make_shared<SystemRegistry>();
@@ -144,6 +146,27 @@ void Scene::Initialize(SceneManagerContext* set){
 }
 
 void Scene::Update(float deltaTime){
+
+	if(m_OldState != m_SceneContext.state){
+		m_OldState = m_SceneContext.state;
+
+		if(m_SceneContext.state == SceneState::Playing){
+			TempSave(); // 一時保存
+
+			m_SceneManagerContext->debug->LOG_INFO("シーンを開始します");
+			//m_systemRegistry->InitializeAll();
+			m_systemRegistry->StartAll();
+
+		} else if(m_SceneContext.state == SceneState::Paused){
+			m_SceneManagerContext->debug->LOG_INFO("シーンを一時停止します");
+
+		} else if(m_SceneContext.state == SceneState::Stopped){
+			m_SceneManagerContext->debug->LOG_INFO("シーンを停止します");
+			TempLoad(); // 一時読み込み
+			//m_systemRegistry->FinalizeAll();
+		}
+	}
+
 	if(m_SceneContext.state == SceneState::Playing){
 		m_systemRegistry->UpdateAll(deltaTime);
 	}
@@ -330,14 +353,7 @@ bool Scene::Load(){
 	SetTaskBarState(TBPF_INDETERMINATE); // タスクバーの状態をインジケーターに設定
 	std::string filepath = OpenYALM();
 	if (filepath != "") {
-		auto aliveEntities = m_entityRegistry->GetAllAlive();
-
-		for (auto e : aliveEntities) {
-			m_entityRegistry->Destroy(e);
-			m_componentRegistry->OnEntityDestroyed(e);
-
-		}
-		m_entityRegistry->ResetAll();
+		ResetAll();
 		OpenSceneYAML(filepath);
 		SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
 		return true;
@@ -422,6 +438,93 @@ void Scene::Save(){
 	fout << root;
 
 	SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
+}
+
+void Scene::TempSave(){
+	std::wstring savePath =L"TempSave.yaml";
+
+	YAML::Node root;
+	YAML::Node entitiesNode = YAML::Node(YAML::NodeType::Sequence);
+	const auto& entities = m_entityRegistry->GetAllAlive();
+	m_SceneManagerContext->debug->LOG_INFO(("保存対象エンティティ数: " + std::to_string(entities.size())).c_str());
+
+	for(Entity e : entities){
+		YAML::Node entityNode;
+		entityNode["Entity"] = static_cast<int>(e);
+		YAML::Node componentsNode = YAML::Node(YAML::NodeType::Sequence);
+		for(IComponent* comp : m_componentRegistry->GetAllComponentsOfEntitySorted(e)){
+			if(comp){
+				YAML::Node compNode;
+
+				// 型情報を取得
+				std::type_index ti(typeid(*comp));
+				// 型IDを取得
+				auto compId = m_componentRegistry->GetComponentIDByTypeIndex(ti);
+				// ID→名前マップを取得
+				const auto& idToName = m_componentRegistry->GetComponentIDToNameMap();
+				auto it = idToName.find(compId);
+				if(it != idToName.end()){
+					const std::string& compName = it->second;
+					YAML::Node compNode;
+					if(it != idToName.end()){
+						const std::string& compName = it->second;
+						compNode["Component"] = compName;
+					}
+					YAML::Node encoded = comp->encode();
+					// encodedの内容をcompNodeにマージ
+					if(encoded && encoded.IsMap()){
+						for(auto it = encoded.begin(); it != encoded.end(); ++it){
+							compNode[it->first.as<std::string>()] = it->second;
+						}
+					}
+					if(compNode && compNode.IsMap()){
+						componentsNode.push_back(compNode);
+					}
+				}
+				YAML::Node compNode2 = comp->encode();
+
+				compNode.push_back(compNode2);  // 各コンポーネントがTypeキーを含むマップを返す
+				if(compNode && compNode.IsMap()){
+					componentsNode.push_back(compNode);
+				}
+			}
+		}
+
+		entityNode["Components"] = componentsNode;
+		entitiesNode.push_back(entityNode);
+	}
+
+	root["Entities"] = entitiesNode;
+
+	std::string utf8Path = std::filesystem::path(savePath).string();
+
+
+	std::ofstream fout(utf8Path, std::ios::binary);
+	if(!fout.is_open()){
+		m_SceneManagerContext->debug->LOG_ERROR(("ファイルの保存に失敗しました: " + utf8Path).c_str());
+		SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
+
+		return;
+	}
+	fout << root;
+
+	SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
+}
+
+void Scene::TempLoad(){
+	ResetAll(); // 一時保存の読み込み前に全エンティティをリセット
+	OpenSceneYAML("TempSave.yaml");
+}
+
+void Scene::ResetAll(){
+	auto aliveEntities = m_entityRegistry->GetAllAlive();
+
+	for(auto e : aliveEntities){
+		m_entityRegistry->Destroy(e);
+		m_componentRegistry->OnEntityDestroyed(e);
+
+	}
+	m_entityRegistry->ResetAll();
 }
 
 void Scene::OpenSceneYAML(std::string path) {  

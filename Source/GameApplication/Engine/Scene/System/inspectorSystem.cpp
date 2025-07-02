@@ -243,11 +243,24 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 	if(ImGui::Button("+ Add Component", ImVec2(-1, 0))){
 		ImGui::OpenPopup("AddComponentPopup");
 	}
-
 	if(ImGui::BeginPopup("AddComponentPopup")){
-		const auto& addableList = registry->GetAddableComponentList();
+		static char componentSearchBuffer[128] = "";
+		ImGui::InputTextWithHint("##ComponentSearch", "Search component...", componentSearchBuffer, sizeof(componentSearchBuffer));
+		ImGui::Separator();
 
-		// 対象エンティティのマスクを取得
+		const auto& addableMap = registry->GetAddableComponentList();
+
+		// --- 名前順に並べ替える ---
+		std::vector<std::pair<std::string, std::function<void(Entity)>>> addableListSorted(
+			addableMap.begin(), addableMap.end()
+		);
+
+		std::sort(addableListSorted.begin(), addableListSorted.end(),
+				  [](const auto& a, const auto& b){
+					  return a.first < b.first;
+				  });
+
+		// --- マスク確認用 ---
 		const auto& entityMasks = registry->GetEntityMasks();
 		auto it = entityMasks.find(selectedEntity);
 		ComponentMask currentMask;
@@ -255,18 +268,32 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 			currentMask = it->second;
 		}
 
-		for(const auto& [name, func] : addableList){
-			// name から typeid を取得して、すでに追加済みならスキップ
-			// 補足: ComponentTypeID にアクセスするための補助が必要
+		// --- 検索小文字化 ---
+		std::string searchLower = componentSearchBuffer;
+		std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(), ::tolower);
+
+		// --- メニュー表示 ---
+		for(const auto& [name, func] : addableListSorted){
 			ComponentTypeID typeID = registry->GetComponentIDByName(name);
 			if(currentMask.test(typeID)) continue;
+
+			std::string nameLower = name;
+			std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), ::tolower);
+
+			if(!searchLower.empty() && nameLower.find(searchLower) == std::string::npos){
+				continue;
+			}
 
 			if(ImGui::MenuItem(name.c_str())){
 				func(selectedEntity);
 			}
 		}
+
 		ImGui::EndPopup();
 	}
+
+
+
 	TransformComponent* transform = registry->GetComponent<TransformComponent>(selectedEntity);
 
 	if(transform && m_context->manager->imgui->GetManubar()->showEditorView){

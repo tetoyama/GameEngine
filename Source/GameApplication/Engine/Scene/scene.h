@@ -41,8 +41,12 @@ public:
 
 	void BuildDefaultScene();
 
+	void ResetAll();
+
 	bool Load();
 	void Save();
+	void TempSave(); // 一時保存
+	void TempLoad(); // 一時読み込み
 
 	SceneContext* GetSceneContext(){return &m_SceneContext;}
 
@@ -54,7 +58,7 @@ public:
 	}
 
 private:
-
+	SceneState m_OldState = SceneState::Stopped;
 	void OpenSceneYAML(std::string path);
 	std::string OpenYALM();
 	bool ShowSaveFileDialog(std::wstring& outPath);

@@ -85,10 +85,10 @@ void PlayerSystem::Update(float deltaTime) {
 			rotatedMoveVec.z += moveVec.z * cos(m_cameraTransform->rotation.y) - moveVec.x * sin(m_cameraTransform->rotation.y);
 
 			float setRotation = atan2f(rotatedMoveVec.x, rotatedMoveVec.z);
-			if (DirectX::XM_PI < setRotation - transform->rotation.y) {
+			while (DirectX::XM_PI < setRotation - transform->rotation.y) {
 				setRotation -= DirectX::XM_2PI;
 			}
-			if (-DirectX::XM_PI > setRotation - transform->rotation.y) {
+			while(-DirectX::XM_PI > setRotation - transform->rotation.y) {
 				setRotation += DirectX::XM_2PI;
 			}
 			if (rotatedMoveVec.length() > 0) {

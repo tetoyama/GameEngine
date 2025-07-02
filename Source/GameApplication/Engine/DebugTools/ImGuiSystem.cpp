@@ -155,7 +155,7 @@ DirectX::XMMATRIX ImGuiService::RenderGizmo2D(const DirectX::XMMATRIX& world) co
 
 	ImGuizmo::SetOrthographic(true); // 2Dギズモのため直交投影を使用
 	// ギズモの操作モードと操作タイプを設定
-	ImGuizmo::Manipulate(viewPtr, projPtr, ImGuizmo::TRANSLATE | ImGuizmo::ROTATE | ImGuizmo::SCALE, ImGuizmo::LOCAL, modelPtr);
+	ImGuizmo::Manipulate(viewPtr, projPtr, ImGuizmo::TRANSLATE | ImGuizmo::ROTATE_SCREEN | ImGuizmo::SCALE, ImGuizmo::LOCAL, modelPtr);
 
 	return DirectX::XMLoadFloat4x4(&modelF);
 }

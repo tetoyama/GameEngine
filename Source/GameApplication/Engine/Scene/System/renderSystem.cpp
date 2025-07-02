@@ -430,6 +430,8 @@ void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent
 			deviceContext->PSSetShaderResources(0, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
 
 			MATERIAL material{};
+			material.TextureEnable = true;
+
 			material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
 			graphicsContext->SetMaterial(material);
 		}
@@ -531,6 +533,7 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 			pAiMaterial->Get(AI_MATKEY_COLOR_AMBIENT, Ambient);
 			pAiMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, Emission);
 			pAiMaterial->Get(AI_MATKEY_COLOR_SPECULAR, Specular);
+			material.TextureEnable = true;
 
 			material.Diffuse = DirectX::XMFLOAT4(Diffuse.r, Diffuse.g, Diffuse.b, Diffuse.a);
 			material.Ambient = DirectX::XMFLOAT4(Ambient.r, Ambient.g, Ambient.b, Ambient.a);
@@ -933,12 +936,14 @@ void RenderSystem::DrawEntities(){
 
 				TextureComponent* texture = m_context->component->GetComponent<TextureComponent>(entity);
 				if(texture){
-					if(texture->m_TextureData){
-						deviceContext->PSSetShaderResources(0, 1, texture->m_TextureData->pTexture.GetAddressOf());
-					}
 					// マテリアル設定
 					MATERIAL material;
 					material.Diffuse = texture->Material.Diffuse;
+					material.TextureEnable = ((bool)texture->m_TextureData);
+					if(texture->m_TextureData){
+						deviceContext->PSSetShaderResources(0, 1, texture->m_TextureData->pTexture.GetAddressOf());
+					}
+
 					if(material.Diffuse.w < 1.0f){
 						graphicsContext->SetATCEnable(false);   // アルファブレンド
 					} else{
@@ -958,6 +963,7 @@ void RenderSystem::DrawEntities(){
 				} else{
 					// マテリアル設定
 					MATERIAL material;
+					material.TextureEnable = false;
 					material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 					graphicsContext->SetMaterial(material);
 
