@@ -26,11 +26,11 @@ struct UVMatrix {
 
 struct MATERIAL
 {
-	DirectX::XMFLOAT4	Ambient = {1.0f,1.0f,1.0f,1.0f};
-	DirectX::XMFLOAT4	Diffuse = { 1.0f,1.0f,1.0f,1.0f };
-	DirectX::XMFLOAT4	Specular = { 1.0f,1.0f,1.0f,1.0f };
-	DirectX::XMFLOAT4	Emission = { 1.0f,1.0f,1.0f,1.0f };
-	float		Shininess = 1.0f;
+	DirectX::XMFLOAT4	Ambient = { 0.1f, 0.1f, 0.1f, 1.0f }  ;
+	DirectX::XMFLOAT4	Diffuse = { 0.8f, 0.8f, 0.8f, 1.0f }  ;
+	DirectX::XMFLOAT4	Specular ={ 0.04f, 0.04f, 0.04f, 1.0f};
+	DirectX::XMFLOAT4	Emission ={ 0.0f, 0.0f, 0.0f, 1.0f }  ;
+	float		Shininess = 64.0f;
 	BOOL		TextureEnable = true;
 	float		Dummy[2]{};
 };

@@ -11,7 +11,6 @@
 #include "Registry/ComponentRegistry.h"
 #include "Engine/Platform/InputSystem/InputSystem.h"
 
-struct SceneContext;
 class ComponentRegistry;
 
 class CustomScriptComponent: public IComponent {
@@ -90,6 +89,9 @@ public:
 		return isInitialized;
 	}
 
+
+
+
 	// UnityライクなAPI
 	template<typename T>
 	T* GetComponent(){
@@ -103,6 +105,8 @@ public:
 		return m_context->component->AddComponent<T>(m_entity, std::forward<Args>(args)...);
 	}
 
+
+
 	void LoadScene(const std::string& sceneName){
 		auto setScene = std::make_shared<Scene>();
 		setScene->ScenePath = sceneName;
@@ -115,11 +119,14 @@ public:
 		return m_context->manager->input->IsKeyDown(m_context->manager->hwnd, keyCode);
 	}
 
+
+
 	// 所属エンティティとコンテキストのセット
 	void SetContext(SceneContext* context, Entity entity){
 		m_context = context;
 		m_entity = entity;
 	}
+
 protected:
 	std::string scriptName = "CustomScript";
 	bool isInitialized = false; // 初期化フラグ

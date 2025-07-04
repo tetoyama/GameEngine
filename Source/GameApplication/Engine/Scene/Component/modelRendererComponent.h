@@ -19,6 +19,7 @@ public:
 		node["FilePath"] = model->FilePath;
 		node["PixelShader"] = pixelShader->FilePath;
 		node["VertexShader"] = vertexShader->FilePath;
+		node["isBlender"] = isBlender;
 		return node;
 	}
 
@@ -29,6 +30,18 @@ public:
 	void inspector(SceneContext* context) override{
 		ImGui::Text("Model File Path");
 		ImGui::SameLine(100.0f);
+		if(ImGui::Checkbox("##isBlender", &isBlender)){
+			std::string path = model->FilePath;
+			model = context->manager->resource->GetModelLoader()->LoadModel(path, isBlender);
+
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("isBlenderModel?");
+
+		ImGui::SameLine();
+		float inputWidth = ImGui::GetContentRegionAvail().x;
+		ImGui::SetNextItemWidth(inputWidth);
+
 		char filepathBuffer[256] = ""; // 適当な最大長
 		// バッファに現在の文字列をコピー（初回か変更時だけにすると効率的）
 		if(model){
@@ -47,13 +60,15 @@ public:
 				std::string _filePath = std::string(droppedPath);
 
 				// TODO: 実際のリソースロード処理に差し替えて
-				model = context->manager->resource->GetModelLoader()->LoadModel(_filePath);
+				model = context->manager->resource->GetModelLoader()->LoadModel(_filePath, isBlender);
 			}
 			ImGui::EndDragDropTarget();
 		}
 
 		ImGui::Text("PixelShader");
 		ImGui::SameLine(100.0f);
+		inputWidth = ImGui::GetContentRegionAvail().x;
+		ImGui::SetNextItemWidth(inputWidth);
 		if(pixelShader){
 			strncpy_s(filepathBuffer, sizeof(filepathBuffer), pixelShader->FilePath.c_str(), _TRUNCATE);
 		} else{
@@ -78,6 +93,8 @@ public:
 
 		ImGui::Text("VertexShader");
 		ImGui::SameLine(100.0f);
+		inputWidth = ImGui::GetContentRegionAvail().x;
+		ImGui::SetNextItemWidth(inputWidth);
 		if(vertexShader){
 			strncpy_s(filepathBuffer, sizeof(filepathBuffer), vertexShader->FilePath.c_str(), _TRUNCATE);
 		} else{
@@ -101,6 +118,7 @@ public:
 	}
 
 	ModelData* model = nullptr;
+	bool isBlender = false;
 	PixelShaderData* pixelShader = nullptr;
 	VertexShaderData* vertexShader = nullptr;
 };

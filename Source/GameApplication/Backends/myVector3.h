@@ -4,7 +4,13 @@
 class Vector3
 {
 public:
-	float x, y, z;
+
+	union{
+		float v[3];
+		struct {
+			float x, y, z;
+		};
+	};
 
 	Vector3(){
 		x = 0.0f;

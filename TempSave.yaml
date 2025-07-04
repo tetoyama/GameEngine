@@ -20,8 +20,9 @@ Entities:
         FilePath: Asset\Texture\BumpMap/Normal.bmp
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.fbx
-        PixelShader: Asset\Shader\bumpPS.cso
+        PixelShader: Asset\Shader\PixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -43,9 +44,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 0
@@ -53,16 +54,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -71,6 +72,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: PlayerComponent
         moveSpeed: 5
         cameraRotate: 2
@@ -144,9 +146,9 @@ Entities:
         FilePath: Asset\Texture\texture.jpg
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -154,16 +156,16 @@ Entities:
             z: 1
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -196,9 +198,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -206,16 +208,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -224,6 +226,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -257,9 +260,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -267,16 +270,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -285,6 +288,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -318,9 +322,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -328,16 +332,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -346,6 +350,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -379,9 +384,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -389,16 +394,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -407,6 +412,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -440,9 +446,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -450,16 +456,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -468,6 +474,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -501,9 +508,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -511,16 +518,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -529,6 +536,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -562,9 +570,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -572,16 +580,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -590,6 +598,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -623,9 +632,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -633,16 +642,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -651,6 +660,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -684,9 +694,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -694,16 +704,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -712,6 +722,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -745,9 +756,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -755,16 +766,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -773,6 +784,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -806,9 +818,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -816,16 +828,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -834,6 +846,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -867,9 +880,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -877,16 +890,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -895,6 +908,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -928,9 +942,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -938,16 +952,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -956,6 +970,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -989,9 +1004,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -999,16 +1014,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -1017,6 +1032,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -1050,9 +1066,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -1060,16 +1076,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -1078,6 +1094,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -1111,9 +1128,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -1121,16 +1138,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -1139,6 +1156,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -1172,9 +1190,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -1182,16 +1200,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -1200,6 +1218,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -1233,9 +1252,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -1243,16 +1262,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -1261,6 +1280,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -1294,9 +1314,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -1304,16 +1324,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -1322,6 +1342,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -1355,9 +1376,9 @@ Entities:
         FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
             w: 1
           Diffuse:
             x: 1
@@ -1365,16 +1386,16 @@ Entities:
             z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
             w: 1
           Emission:
-            x: 1
-            y: 1
-            z: 1
+            x: 0
+            y: 0
+            z: 0
             w: 1
-          Shininess: 1
+          Shininess: 64
           TextureEnable: true
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -1383,6 +1404,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -1395,8 +1417,3 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 25
-    Components:
-      - Component: SetScene
-        ScriptName: SetScene
-        SceneName: Asset/Scene/scene.yaml

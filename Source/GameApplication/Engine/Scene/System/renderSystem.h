@@ -5,6 +5,7 @@
 #include <wrl/client.h> 
 #include "Backends/myVector2.h"
 #include "Backends/myVector3.h"
+#include "Component/RenderLayerComponent.h"
 
 struct SceneContext;
 
@@ -30,6 +31,7 @@ public:
 	void EditorUpdate(float deltaTime) override;
 
 private:
+	void DrawRenderLayerToggleUI();
 
 	TransformComponent CalculateRectTransform(const SpriteRendererComponent& sprite, const TransformComponent& transform);
 
@@ -37,7 +39,7 @@ private:
 	void DrawModel(TransformComponent* pTransform, ModelRendererComponent* pMesh, TextureComponent* pTexture);
 	void DrawBillBoard(TransformComponent* pTransform, MeshRendererComponent* pMesh, BillBoardRendererComponent* pBillBoard, TextureComponent* pTexture);
 
-	void DrawEntities();
+	void DrawEntities(bool* RenderLayer);
 
 	void SetCameraView();
 	void SetEditorCameraView();
@@ -73,4 +75,15 @@ private:
 
 	bool* showPlayer = nullptr;
 	bool* showEditor = nullptr;
+
+	bool editorRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] = {
+	true, true, true, true, true, true
+	};
+
+	bool playerRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] = {
+	true, true, true, true, true, true
+	};
+
+	int currentSelectedLayer = (int)RenderLayer::Opaque3D; // 初期選択（例）
+
 };

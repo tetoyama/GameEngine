@@ -21,12 +21,12 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     
     float4 normalMap = g_TextureNormal.Sample(g_SamplerState, In.TexCoord);
     normalMap = normalMap * 2.0f - 1.0f; //法線マップの値を-1から1の範囲に変換
-    normalMap = 0.5f * (normalMap + In.Normal);
+    //normalMap = 0.5f * (normalMap + In.Normal);
     float4 bumpNormal;
     bumpNormal.x = -normalMap.r; // X軸の法線を反転
     bumpNormal.y = normalMap.g; // Y軸の法線
-    bumpNormal.z = normalMap.b; // Y軸の法線
-    bumpNormal.w = 0.0f; // Y軸の法線
+    bumpNormal.z = normalMap.b; // Z軸の法線
+    bumpNormal.w = 0.0f;
     
     bumpNormal = normalize(bumpNormal);
     float light = -dot(bumpNormal.xyz, lv.xyz);
@@ -59,6 +59,3 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     outDiffuse.rgb = outDiffuse.rgb * Material.TextureEnable + (!Material.TextureEnable * Material.Diffuse);
 
 }
-
-
-//    outDiffuse.rgb *= (In.Diffuse.rgb * light + Light.Ambient.rgb); //明るさを乗算

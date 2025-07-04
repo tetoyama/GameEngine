@@ -14,7 +14,7 @@ public:
 
 	~ModelLoader();
 
-	ModelData* LoadModel(const std::string& modelPath);
+	ModelData* LoadModel(const std::string& modelPath, const bool& isBlender = false);
 	ModelData* GetModel(const std::string& modelPath);
 private:
 	std::unordered_map<std::string, std::shared_ptr<ModelData>> m_Models;

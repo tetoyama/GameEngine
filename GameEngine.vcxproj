@@ -2640,6 +2640,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\enemyComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\entityNameComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\explosionEffectComponent.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\particleComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\RenderLayerComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\C#ScriptComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\textureComponent.h" />
@@ -2663,6 +2664,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\enemySystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\explosionEffectSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\inspectorSystem.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\particleSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\playerSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\renderSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\C#ScriptSystem.h" />
@@ -3023,6 +3025,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\enemySystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\explosionEffectSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\inspectorSystem.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\particleSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\playerSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\renderSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\C#ScriptSystem.cpp" />
@@ -3120,6 +3123,12 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
+    <FxCompile Include="Source\Shader\disneyPBR_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="Source\Shader\limLightPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
@@ -3130,6 +3139,12 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Asset\Shader\%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Asset\Shader\%(Filename).cso</ObjectFileOutput>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Source\Shader\PixelShader.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Source\Shader\pointLightingBlinnPhongPS.hlsl">

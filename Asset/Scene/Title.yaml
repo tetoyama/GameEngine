@@ -2,11 +2,11 @@ Entities:
   - Entity: 1
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: Image
       - Component: TransformComponent
         Position:
-          x: -0.0184210595
-          y: 0.307700753
+          x: -0.0184210874
+          y: 0.371582717
           z: 0
         Rotation:
           x: -0
@@ -14,9 +14,10 @@ Entities:
           z: -0
         Scale:
           x: 1
-          y: 0.529411733
+          y: 0.622674227
           z: 1
       - Component: TextureComponent
+        FilePath: Asset\Texture\title.png
         Material:
           Ambient:
             x: 1
@@ -56,7 +57,7 @@ Entities:
   - Entity: 2
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: Camera
       - Component: TransformComponent
         Position:
           x: 0

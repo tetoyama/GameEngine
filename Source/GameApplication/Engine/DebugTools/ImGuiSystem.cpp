@@ -47,7 +47,7 @@ bool ImGuiService::Initialize(IWindow* window, GraphicsContext* graphics){
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
 	io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
-	io.ConfigWindowsResizeFromEdges = true;;
+	io.ConfigWindowsResizeFromEdges = true;
 	 
 	
 	//io.Fonts->AddFontFromFileTTF("Asset\\Fonts\\PixelMplus12-Bold.ttf", 15.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());

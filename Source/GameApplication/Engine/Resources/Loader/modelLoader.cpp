@@ -12,6 +12,8 @@
 
 #include "Engine/Resources/Data/modelData.h"
 
+#include <filesystem>
+
 #pragma comment (lib, "assimp-vc143-mt.lib")
 
 ModelLoader::~ModelLoader() {
@@ -22,16 +24,22 @@ ModelLoader::~ModelLoader() {
 	}
 }
 
-ModelData* ModelLoader::LoadModel(const std::string& modelPath){
+ModelData* ModelLoader::LoadModel(const std::string& modelPath, const bool& isBlender){
 
-	if(m_Models.count(modelPath)){
+	if(m_Models.count(modelPath) && m_Models[modelPath]->isBlender == isBlender){
 		return m_Models[modelPath].get();
 	}
+	if (m_Models[modelPath]) {
+		m_Models[modelPath]->Release();
+		m_Models[modelPath].reset();
+	}
+
+	OutputDebugStringA(("LoadModel: " + modelPath + "\n").c_str());
 
 	std::shared_ptr<ModelData> model = std::make_shared<ModelData>();
 	model->FilePath = modelPath;
-	model->SetTexture = true;
-
+	model->SetTexture = false;
+	model->isBlender = isBlender;
 	model->AiScene = aiImportFile(modelPath.c_str(), aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded /* | aiProcess_GenBoundingBoxes */);
 	if (!model->AiScene) {
 		model->AiScene = nullptr;
@@ -69,13 +77,21 @@ ModelData* ModelLoader::LoadModel(const std::string& modelPath){
 
 				}
 
-				//mayaのみ対応
-				vertex[v].Position = DirectX::XMFLOAT3(mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z);
+				if (isBlender) {
+					vertex[v].Position = DirectX::XMFLOAT3(mesh->mVertices[v].x, -mesh->mVertices[v].z, mesh->mVertices[v].y);
 
-				vertex[v].TexCoord = DirectX::XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y);
-				vertex[v].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+					vertex[v].TexCoord = DirectX::XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y);
+					vertex[v].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
-				vertex[v].Normal = DirectX::XMFLOAT3(mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z);
+					vertex[v].Normal = DirectX::XMFLOAT3(mesh->mNormals[v].x, -mesh->mNormals[v].z, mesh->mNormals[v].y);
+				} else {
+					vertex[v].Position = DirectX::XMFLOAT3(mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z);
+
+					vertex[v].TexCoord = DirectX::XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y);
+					vertex[v].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+
+					vertex[v].Normal = DirectX::XMFLOAT3(mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z);
+				}
 			}
 
 			D3D11_BUFFER_DESC bd = {};
@@ -120,19 +136,20 @@ ModelData* ModelLoader::LoadModel(const std::string& modelPath){
 			delete[] index;
 		}
 	}
+	if (model->AiScene->mNumTextures > 0) {
+		model->SetTexture = true;
 
-	if(model->AiScene->mNumTextures > 0){
-		//テクスチャ読み込み(組み込みされているテクスチャのみ)
-		for(unsigned int i = 0; i < model->AiScene->mNumTextures; i++){
+	//テクスチャ読み込み(組み込みされているテクスチャのみ)
+		for (unsigned int i = 0; i < model->AiScene->mNumTextures; i++) {
 
 			aiTexture* aitexture = model->AiScene->mTextures[i];
 
 			ID3D11ShaderResourceView* texture;
 			DirectX::TexMetadata metadata{};
 			DirectX::ScratchImage image{};
-			if(aitexture->pcData == NULL){
+			if (aitexture->pcData == NULL) {
 
-			} else{
+			} else {
 				LoadFromWICMemory(aitexture->pcData, aitexture->mWidth, DirectX::WIC_FLAGS::WIC_FLAGS_NONE, &metadata, image);
 			}
 			CreateShaderResourceView(m_GraphicContext->GetDevice(), image.GetImages(), image.GetImageCount(), metadata, &texture);
@@ -140,8 +157,119 @@ ModelData* ModelLoader::LoadModel(const std::string& modelPath){
 
 			model->Texture[aitexture->mFilename.data] = texture;
 		}
-	} else{
-		model->SetTexture = false;
+	} else {
+		namespace fs = std::filesystem;
+
+		for (unsigned int i = 0; i < model->AiScene->mNumMaterials; i++) {
+			aiMaterial* material = model->AiScene->mMaterials[i];
+
+			if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
+				aiString texPath;
+				if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS) {
+					std::string textureFilePath = texPath.C_Str();
+
+					if (model->Texture.find(textureFilePath) == model->Texture.end()) {
+						// modelPathのフォルダパスを取得
+						std::string directory;
+						size_t pos = modelPath.find_last_of("/\\");
+						if (pos != std::string::npos) {
+							directory = modelPath.substr(0, pos + 1);
+						}
+
+						std::string fullTexPath = directory + textureFilePath;
+
+						if (fs::exists(fullTexPath)) {
+							ID3D11ShaderResourceView* texture = nullptr;
+
+							DirectX::TexMetadata metadata{};
+							DirectX::ScratchImage image{};
+
+							HRESULT hr = DirectX::LoadFromWICFile(
+								std::wstring(fullTexPath.begin(), fullTexPath.end()).c_str(),
+								DirectX::WIC_FLAGS_NONE,
+								&metadata,
+								image);
+
+							if (SUCCEEDED(hr)) {
+								hr = DirectX::CreateShaderResourceView(
+									m_GraphicContext->GetDevice(),
+									image.GetImages(),
+									image.GetImageCount(),
+									metadata,
+									&texture);
+
+								if (SUCCEEDED(hr)) {
+									model->Texture[textureFilePath] = texture;
+									model->SetTexture = true;
+
+								} else {
+									OutputDebugStringA(("Failed to create shader resource view for texture: " + fullTexPath + "\n").c_str());
+								}
+							} else {
+								OutputDebugStringA(("Failed to load WIC texture file: " + fullTexPath + "\n").c_str());
+							}
+						} else {
+							OutputDebugStringA(("Texture file not found: " + fullTexPath + "\n").c_str());
+						}
+
+					}
+				}
+			}
+
+			// NormalMapテクスチャ
+			if (material->GetTextureCount(aiTextureType_NORMALS) > 0) {
+				aiString normalTexPath;
+				if (material->GetTexture(aiTextureType_NORMALS, 0, &normalTexPath) == AI_SUCCESS) {
+					std::string normalMapFile = fs::path(normalTexPath.C_Str()).filename().string();
+
+					if (model->Texture.find(normalMapFile) == model->Texture.end()) {
+						// modelPathのフォルダパスを取得
+						std::string directory;
+						size_t pos = modelPath.find_last_of("/\\");
+						if (pos != std::string::npos) {
+							directory = modelPath.substr(0, pos + 1);
+						}
+
+						std::string fullTexPath = directory + normalMapFile;
+
+						if (fs::exists(fullTexPath)) {
+							ID3D11ShaderResourceView* texture = nullptr;
+
+							DirectX::TexMetadata metadata{};
+							DirectX::ScratchImage image{};
+
+							HRESULT hr = DirectX::LoadFromWICFile(
+								std::wstring(fullTexPath.begin(), fullTexPath.end()).c_str(),
+								DirectX::WIC_FLAGS_NONE,
+								&metadata,
+								image);
+
+							if (SUCCEEDED(hr)) {
+								hr = DirectX::CreateShaderResourceView(
+									m_GraphicContext->GetDevice(),
+									image.GetImages(),
+									image.GetImageCount(),
+									metadata,
+									&texture);
+
+								if (SUCCEEDED(hr)) {
+									model->Texture[normalMapFile] = texture;
+									model->SetTexture = true;
+
+								} else {
+									OutputDebugStringA(("Failed to create shader resource view for texture: " + fullTexPath + "\n").c_str());
+								}
+							} else {
+								OutputDebugStringA(("Failed to load WIC texture file: " + fullTexPath + "\n").c_str());
+							}
+						} else {
+							OutputDebugStringA(("Texture file not found: " + fullTexPath + "\n").c_str());
+						}
+
+					}
+				}
+			}
+		}
 	}
 	//aiReleaseImport(model->AiScene);
 

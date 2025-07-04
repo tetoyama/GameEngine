@@ -9,6 +9,7 @@
 #include "Engine/DebugTools/ImGuiSystem.h"
 #include "Engine/Graphics/mainRenderer.h"
 #include "Engine/Platform/InputSystem/InputSystem.h"
+#include <Icon/icon.h>
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -66,6 +67,7 @@ bool MainWindow::Create(HINSTANCE hInstance, int nCmdShow){
 
 	// ウィンドウの表示
 	ShowWindow(m_HWND, nCmdShow);
+	InitIcon(m_HWND);
 	UpdateWindow(m_HWND);
 
 	return true;

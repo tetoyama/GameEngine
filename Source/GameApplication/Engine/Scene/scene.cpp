@@ -102,6 +102,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<BulletComponent>("BulletComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<EnemyComponent>("EnemyComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<ExplosionEffectComponent>("ExplosionEffectComponent", false);
+
 	m_componentRegistry->RegisterYAMLComponent<SetScene>("SetScene", false);
 
 	// システムを登録
@@ -254,7 +255,7 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\cube.fbx");
 		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\bumpPS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\PixelShader.cso");
 
 		auto* bumpMap = componentRegistry->AddComponent<BumpMapComponent>(entity);
 		bumpMap->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\BumpMap/Normal.bmp");
@@ -574,9 +575,14 @@ void Scene::OpenSceneYAML(std::string path) {
 			if(compType == "ModelRendererComponent"){  
 				auto* modelRenderer = dynamic_cast<ModelRendererComponent*>(comp);  
 				if (modelRenderer) {
+					if (compNode["isBlender"]) {
+						const auto& isBlender = compNode["isBlender"].as<bool>();
+						modelRenderer->isBlender = isBlender;
+					}
+
 					if(compNode["FilePath"]){
 						const auto& FilePath = compNode["FilePath"].as<std::string>();
-						modelRenderer->model = m_SceneManagerContext->resource->GetModelLoader()->LoadModel(FilePath.c_str());
+						modelRenderer->model = m_SceneManagerContext->resource->GetModelLoader()->LoadModel(FilePath.c_str(), modelRenderer->isBlender);
 					}
 					if(compNode["VertexShader"]){
 

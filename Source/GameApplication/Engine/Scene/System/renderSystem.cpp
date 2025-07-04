@@ -1,6 +1,7 @@
 // Engine/Scene/System/renderSystem.cpp
 #include "renderSystem.h"
 #include <algorithm>
+#include <filesystem>
 
 #include <DirectXMath.h>
 #include "Backends/DirectX11/DirectXTex.h"
@@ -280,7 +281,7 @@ void RenderSystem::Draw(){
 			m_context->EditorScreenSize = m_ScreenSize;
 
 			SetCameraView();
-			DrawEntities();
+			DrawEntities(playerRenderLayerVisible);
 		}
 	}
 	if(*showEditor){
@@ -356,6 +357,33 @@ void RenderSystem::EditorUpdate(float deltaTime){
 			float zoomSensitivity = 5.0f; // ズーム速度
 			m_EditorCameraPosition += front * m_MouseWheel * zoomSensitivity;
 		}
+	}
+}
+
+void RenderSystem::DrawRenderLayerToggleUI() {
+
+	ImGui::SameLine();
+
+	// 表示されているレイヤー名をまとめて表示
+	std::string previewText;
+	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; ++i) {
+		if (editorRenderLayerVisible[i]) {
+			if (!previewText.empty()) previewText += ", ";
+			previewText += GetRenderLayerName(static_cast<RenderLayer>(i));
+		}
+	}
+	if (previewText.empty()) previewText = "None";
+
+	// Combo本体
+	if (ImGui::BeginCombo("##Visible Layers", previewText.c_str())) {
+		for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; ++i) {
+			ImGui::Selectable(
+				GetRenderLayerName(static_cast<RenderLayer>(i)),
+				&editorRenderLayerVisible[i],
+				ImGuiSelectableFlags_DontClosePopups
+			);
+		}
+		ImGui::EndCombo();
 	}
 }
 
@@ -493,7 +521,8 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 	DirectX::XMMATRIX World = Scale * Rotation * Translation;
 
 	for(unsigned int m = 0; m < pModel->AiScene->mNumMeshes; m++){
-		if(pModel->SetTexture){
+
+		if (pModel->SetTexture) {
 
 			//テクスチャ設定
 			if (!pTexture || !pTexture->m_TextureData) {
@@ -505,7 +534,30 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 					deviceContext->PSSetShaderResources(0, 1, &pModel->Texture[Texture.data]);
 				}
 			}
+
+			aiMaterial* material = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
+
+			// Diffuseテクスチャセット
+			aiString diffuseTex;
+			if (material->GetTexture(aiTextureType_DIFFUSE, 0, &diffuseTex) == AI_SUCCESS) {
+				std::string diffuseKey = std::filesystem::path(diffuseTex.C_Str()).filename().string();
+				auto itDiffuse = pModel->Texture.find(diffuseKey);
+				if (itDiffuse != pModel->Texture.end()) {
+					deviceContext->PSSetShaderResources(0, 1, &itDiffuse->second);  // スロット0
+				}
+			}
+
+			// NormalMapテクスチャセット
+			aiString normalTex;
+			if (material->GetTexture(aiTextureType_NORMALS, 0, &normalTex) == AI_SUCCESS) {
+				std::string normalKey = std::filesystem::path(normalTex.C_Str()).filename().string();
+				auto itNormal = pModel->Texture.find(normalKey);
+				if (itNormal != pModel->Texture.end()) {
+					deviceContext->PSSetShaderResources(1, 1, &itNormal->second);  // スロット1
+				}
+			}
 		}
+
 		// 頂点バッファ設定
 		UINT stride = sizeof(VERTEX_3D);
 		UINT offset = 0;
@@ -519,26 +571,52 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST		//渡された頂点の配列をどのように解釈するか
 		);
 
-		if (!pTexture || !pTexture->m_TextureData) {
-		// マテリアル設定
+		if ((!pTexture || !pTexture->m_TextureData) && !pModel->SetTexture) {
+			// マテリアル設定
 			MATERIAL material;
-			ZeroMemory(&material, sizeof(material));
 			aiMaterial* pAiMaterial = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-			aiColor4D Diffuse;
-			aiColor4D Ambient;
-			aiColor4D Emission;
-			aiColor4D Specular;
 
-			pAiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, Diffuse);
-			pAiMaterial->Get(AI_MATKEY_COLOR_AMBIENT, Ambient);
-			pAiMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, Emission);
-			pAiMaterial->Get(AI_MATKEY_COLOR_SPECULAR, Specular);
-			material.TextureEnable = true;
+			aiColor4D color;
 
-			material.Diffuse = DirectX::XMFLOAT4(Diffuse.r, Diffuse.g, Diffuse.b, Diffuse.a);
-			material.Ambient = DirectX::XMFLOAT4(Ambient.r, Ambient.g, Ambient.b, Ambient.a);
-			material.Emission = DirectX::XMFLOAT4(Emission.r, Emission.g, Emission.b, Emission.a);
-			material.Specular = DirectX::XMFLOAT4(Specular.r, Specular.g, Specular.b, Specular.a);
+			// Diffuse
+			if (pAiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS) {
+				material.Diffuse = { color.r, color.g, color.b, color.a };
+			} else {
+				material.Diffuse = { 0.8f, 0.8f, 0.8f, 1.0f }; // デフォルト: グレー
+			}
+
+			// Ambient
+			if (pAiMaterial->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS) {
+				material.Ambient = { color.r, color.g, color.b, color.a };
+			} else {
+				material.Ambient = { 0.1f, 0.1f, 0.1f, 1.0f };
+			}
+
+			// Emission
+			if (pAiMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, color) == AI_SUCCESS) {
+				material.Emission = { color.r, color.g, color.b, color.a };
+			} else {
+				material.Emission = { 0.0f, 0.0f, 0.0f, 1.0f };
+			}
+
+			// Specular
+			if (pAiMaterial->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS) {
+				material.Specular = { color.r, color.g, color.b, color.a };
+			} else {
+				material.Specular = { 0.04f, 0.04f, 0.04f, 1.0f }; // 非金属の反射率
+			}
+
+			// Shininess
+			float shininess = 0.0f;
+			if (pAiMaterial->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS) {
+				material.Shininess = std::clamp(shininess, 1.0f, 128.0f);
+			} else {
+				material.Shininess = 64.0f; // 普通の光沢
+			}
+
+			// その他
+			material.TextureEnable = false;
+
 			graphicsContext->SetMaterial(material);
 		}
 		graphicsContext->SetWorldMatrix(World);
@@ -551,6 +629,7 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComponent* meshRenderer, BillBoardRendererComponent* billBoard, TextureComponent* pTexture) {
 
 	DirectX::XMMATRIX InvViewBillBoardMatrix;
+	m_context->manager->renderer->GetGraphicsContext()->SetDepthEnable(false);
 
 	if(billBoard->FreezeXZ){
 		// カメラの向きを取得（ビュー行列の逆行列 = ワールド行列）
@@ -623,6 +702,7 @@ void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComp
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	deviceContext->Draw(meshRenderer->mesh.meshCount, 0);
+	m_context->manager->renderer->GetGraphicsContext()->SetDepthEnable(true);
 
 }
 
@@ -721,7 +801,6 @@ void RenderSystem::ControllButton(){
 	if(ImGui::Button("Stop")){
 		m_context->state = SceneState::Stopped; // シーンの状態をエディタに戻す
 	}
-	ImGui::Separator();
 }
 
 void RenderSystem::EditorView(){
@@ -731,6 +810,9 @@ void RenderSystem::EditorView(){
 	ImGui::Begin("Editor View",showEditor);
 
 	ControllButton();
+	DrawRenderLayerToggleUI();
+
+	ImGui::Separator();
 
 	float clearCol[4] = {0.1f, 0.1f, 0.1f, 1.0f};
 
@@ -763,7 +845,7 @@ void RenderSystem::EditorView(){
 
 	SetEditorCameraView();
 
-	DrawEntities();
+	DrawEntities(editorRenderLayerVisible);
 
 	// 中央寄せ
 	ImVec2 cursor = ImGui::GetCursorPos();
@@ -819,7 +901,7 @@ void RenderSystem::PlayerView(){
 	ImGui::Begin("Play View",showPlayer);
 
 	ControllButton();
-
+	ImGui::Separator();
 
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
@@ -856,7 +938,7 @@ void RenderSystem::PlayerView(){
 	SetCameraView();
 
 	// エンティティの描画
-	DrawEntities();
+	DrawEntities(playerRenderLayerVisible);
 
 
 
@@ -888,7 +970,7 @@ void RenderSystem::PlayerView(){
 	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
 }
 
-void RenderSystem::DrawEntities(){
+void RenderSystem::DrawEntities(bool* pRenderLayer){
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
@@ -897,6 +979,16 @@ void RenderSystem::DrawEntities(){
 
 	std::sort(entities.begin(), entities.end(),
 			  RenderOrderComparator{m_context->component, m_CameraPosition});
+
+	// renderLayerVisible に基づいてフィルタリング
+	entities.erase(
+	    std::remove_if(entities.begin(), entities.end(),
+	        [this, pRenderLayer](Entity e) {
+	            RenderLayer layer = GetRenderLayerFromEntity(e, m_context->component);
+	            return !pRenderLayer[(int)layer]; // 表示されていないレイヤーなら削除
+	        }),
+	    entities.end()
+	);
 
 	if(entities.empty()){
 		return;
@@ -937,12 +1029,13 @@ void RenderSystem::DrawEntities(){
 					graphicsContext->SetMaterial(material);
 
 					UVMatrix uv;
-					uv.Start.x = (float)(texture->AnimationNum % texture->UV_Slice_X) * 1.0f / (float)texture->UV_Slice_X;
-					uv.Start.y = (float)(texture->AnimationNum / texture->UV_Slice_X) * 1.0f / (float)texture->UV_Slice_Y;
+					if (texture->UV_Slice_X != 0 && texture->UV_Slice_Y != 0) {
+						uv.Start.x = (float)(texture->AnimationNum % texture->UV_Slice_X) * 1.0f / (float)texture->UV_Slice_X;
+						uv.Start.y = (float)(texture->AnimationNum / texture->UV_Slice_X) * 1.0f / (float)texture->UV_Slice_Y;
 
-					uv.End.x = (float)uv.Start.x + 1.0f / (float)texture->UV_Slice_X;
-					uv.End.y = (float)uv.Start.y + 1.0f / (float)texture->UV_Slice_Y;
-
+						uv.End.x = (float)uv.Start.x + 1.0f / (float)texture->UV_Slice_X;
+						uv.End.y = (float)uv.Start.y + 1.0f / (float)texture->UV_Slice_Y;
+					}
 					graphicsContext->SetUVMatrix(uv);
 
 				} else{
