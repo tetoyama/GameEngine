@@ -5,16 +5,16 @@ Entities:
         Name: Image
       - Component: TransformComponent
         Position:
-          x: -0.0184210595
-          y: 0.307700753
+          x: 0
+          y: 0
           z: 0
         Rotation:
           x: -0
           y: 0
           z: -0
         Scale:
-          x: 1
-          y: 0.529411733
+          x: 1.95135212
+          y: 1
           z: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\Result.png
@@ -47,7 +47,7 @@ Entities:
       - Component: SpriteRendererComponent
         anchor:
           x: 0.5
-          y: 0
+          y: 0.5
         pivot:
           x: 0
           y: 0

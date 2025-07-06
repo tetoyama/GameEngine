@@ -45,7 +45,7 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\la-night-city\source\Dtla_Orbit.fbx
-        PixelShader: Asset\Shader\vertexDirectionalLightingPS.cso
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
   - Entity: 2
