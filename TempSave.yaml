@@ -23,6 +23,8 @@ Entities:
         PixelShader: Asset\Shader\BumpPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
+      - Component: CSharpScriptComponent
+        ScriptName: PlayerScript
   - Entity: 2
     Components:
       - Component: NameComponent

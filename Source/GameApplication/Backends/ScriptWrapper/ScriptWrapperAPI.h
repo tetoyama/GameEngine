@@ -8,3 +8,7 @@
 #else
 #define SCRIPTWRAPPER_API __declspec(dllimport)
 #endif
+
+#include <string>
+
+typedef void(*LogCallbackFn)(const std::string&);

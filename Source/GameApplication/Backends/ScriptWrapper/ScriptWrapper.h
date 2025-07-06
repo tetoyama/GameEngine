@@ -1,6 +1,7 @@
 #pragma once  
 
 #include <string>  
+#include "ScriptWrapperAPI.h"
 
 // Ensure the /clr compiler option is enabled for C++/CLI mode  
 #ifdef _DEBUG  
@@ -14,6 +15,7 @@ using namespace System;
 public ref class ScriptWrapper {  
 private:  
 	ScriptBase^ instance;  
+	static LogCallbackFn logCallback = nullptr;
 
 public:  
 	ScriptWrapper(String^ className); // ctor  
@@ -22,4 +24,8 @@ public:
 	void OnFixedUpdate(float dt);  
 	void OnDraw();
 	void OnStop();
+
+	static void SetLogCallback(LogCallbackFn callback);
+
+	void Log(System::String^ message); // C#から呼ばれる
 };

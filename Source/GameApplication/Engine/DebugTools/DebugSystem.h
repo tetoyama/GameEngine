@@ -139,3 +139,4 @@ private:
 		return std::string(s.begin(), s.end());
 	}
 };
+

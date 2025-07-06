@@ -9,7 +9,7 @@ public class PlayerScript : ScriptBase
 {
     public override void Start()
     {
-        //Console.WriteLine("PlayerScript: Start()");
+        Console.WriteLine("PlayerScript: Start()");
     }
 
     public override void Update(float dt)

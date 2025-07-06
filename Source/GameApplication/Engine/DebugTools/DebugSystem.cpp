@@ -6,6 +6,10 @@
 #include <sstream>
 #include <unordered_set>
 
+void DebugLog(std::string Message){
+	OutputDebugStringA(Message.c_str());
+}
+
 void DebugLogSystem::Initialize(bool* isOpen){
 
 	// 必要であればファイルログなどの初期化
