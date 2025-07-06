@@ -11,7 +11,7 @@ float CalculateFresnel(float F0, float u);
 
 void main(in PS_IN In, out float4 outColor : SV_Target)
 {
-    float3 normal = normalize(In.Normal);
+    float3 normal = normalize(In.Normal.xyz);
     
     float4 albedoColor = g_Texture.Sample(g_Sampler, In.TexCoord);
 
@@ -35,7 +35,7 @@ void main(in PS_IN In, out float4 outColor : SV_Target)
             
             float nl = saturate(dot(normal.xyz, lightV.xyz));
             
-            float light = nl * Light.Diffuse.rgb / PI;
+            float3 light = nl * Light.Diffuse.rgb / PI;
             
             float3 diffuse = albedoColor.xyz * diffuseFromFresnel * light;
             

@@ -1,8 +1,8 @@
 #include "ScriptWrapper.h"
 #ifdef _DEBUG  
-#using <../ClassLibrary/bin/Debug/net4.8/ClassLibrary.dll> // ビルドしたC# DLL  
+#using <../ClassLibrary/bin/Debug/net4.8/ClassLibrary.dll>
 #else  
-#using <../ClassLibrary/bin/Release/net4.8/ClassLibrary.dll> // ビルドしたC# DLL  
+#using <../ClassLibrary/bin/Release/net4.8/ClassLibrary.dll>
 #endif  
 
 
@@ -11,7 +11,7 @@ using namespace System::Diagnostics;
 
 ScriptWrapper::ScriptWrapper(String^ className){
 	try{
-		// DLL読み込み（ClassLibrary.dll は既にリンクされている）
+
 		Type^ type = Type::GetType(className);
 		if(type == nullptr)
 			throw gcnew Exception("Script class not found: " + className);
@@ -57,11 +57,10 @@ void ScriptWrapper::Log(System::String^ message){
 
 	if(message == nullptr) return;
 
-	// System::String^ → std::string に変換
 	using namespace System::Runtime::InteropServices;
 	IntPtr ptr = Marshal::StringToHGlobalAnsi(message);
 	const char* cstr = static_cast<const char*>(ptr.ToPointer());
 	System::Diagnostics::Debugger::Log(0, message, message);
 
-	Marshal::FreeHGlobal(ptr); // メモリ解放}
+	Marshal::FreeHGlobal(ptr);
 }

@@ -1,8 +1,5 @@
 #pragma once
 
-//SCRIPTWRAPPER_EXPORTS
-//プリプロセッサで定義する事
-
 #ifdef SCRIPTWRAPPER_EXPORTS
 #define SCRIPTWRAPPER_API __declspec(dllexport)
 #else

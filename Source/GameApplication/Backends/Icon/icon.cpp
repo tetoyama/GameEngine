@@ -121,7 +121,7 @@ HRESULT SetIcon(const HWND hWnd, const std::wstring& FileName) {
     }
 
     // アイコンの設定
-	hr = SendMessageW(hWnd, WM_SETICON, ICON_BIG, (LPARAM)g_hIcon);
+	hr = (HRESULT)SendMessageW(hWnd, WM_SETICON, ICON_BIG, (LPARAM)g_hIcon);
 	if(FAILED(hr)){
 		pConverter->Release();
 		pFrame->Release();
@@ -129,7 +129,7 @@ HRESULT SetIcon(const HWND hWnd, const std::wstring& FileName) {
 		pWICFactory->Release();
 		return hr;
 	}
-	hr = SendMessageW(hWnd, WM_SETICON, ICON_SMALL2, (LPARAM)g_hIcon);
+	hr = (HRESULT)SendMessageW(hWnd, WM_SETICON, ICON_SMALL2, (LPARAM)g_hIcon);
 	if(FAILED(hr)){
 		pConverter->Release();
 		pFrame->Release();
@@ -137,7 +137,7 @@ HRESULT SetIcon(const HWND hWnd, const std::wstring& FileName) {
 		pWICFactory->Release();
 		return hr;
 	}
-	hr = SendMessageW(hWnd, WM_SETICON, ICON_SMALL, (LPARAM)g_hIcon);
+	hr = (HRESULT)SendMessageW(hWnd, WM_SETICON, ICON_SMALL, (LPARAM)g_hIcon);
 	if(FAILED(hr)){
 		pConverter->Release();
 		pFrame->Release();
