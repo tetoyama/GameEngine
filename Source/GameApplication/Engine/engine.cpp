@@ -49,14 +49,10 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     }
     debugLogSystem->LOG_DEBUG("WindowServiceが正常に作成されました");
 
-	// タスクバーアイコンの初期化
-	if(!SUCCEEDED(InitIcon(windowService->GetMainWindow()->GetHWND()))){
-		OutputDebugStringA("アイコンの初期化に失敗しました。\n");
-		return;
-	}
+	// タスクバーの初期化
 	InitTaskBar(windowService->GetMainWindow()->GetHWND());
 
-	debugLogSystem->LOG_DEBUG("タスクバーアイコンが正常に作成されました");
+	debugLogSystem->LOG_DEBUG("タスクバーが正常に作成されました");
 
     // 時間管理サービスの初期化
     auto timeService = context->Get<TimeService>();
@@ -112,7 +108,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     if (!sceneManager) return;
 
 	// SceneManagerの初期化
-	SceneManagerContext sceneContext{};
+	ManagerContext sceneContext{};
 	sceneContext.graphics = graphicsContext.get();
 	sceneContext.renderer = mainRenderer.get();
 	sceneContext.input = inputService.get();
@@ -137,7 +133,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		sceneManager->SaveScene(); 
 					  });
     manubar->Register(MenuEvent::File_Open, [sceneManager](){ 
-		sceneManager->OpenScene(); 
+		sceneManager->LoadFromYAMLFile(); 
 					  });
 
     debugLogSystem->LOG_INFO("EngineContextの初期化が完了しました");
@@ -245,7 +241,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 			break;
 		}
 		
-		{	// Render
+		{	// Draw
 
 			mainRenderer->BeginFrame();
 			imguiService->Begin();
@@ -255,7 +251,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 				double Draw = timeService->GetDrawTime();
 				imguiService->DrawDebugImGuiWindow(Update * 1000.0f,Draw * 1000.0f, timeService->GetFixedUpdateFPS(),timeService->GetDeltaFPS());
 			}
-			sceneManager->Render();
+			sceneManager->Draw();
 
 			debugLogSystem->Draw();
 			imguiService->End();

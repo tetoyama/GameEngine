@@ -14,7 +14,7 @@ class DebugLogSystem;
 class ImGuiService;
 class SceneManager;
 
-struct SceneManagerContext {
+struct ManagerContext {
 	SceneManager* sceneManager = nullptr;
 
 	GraphicsContext* graphics = nullptr;
@@ -31,25 +31,21 @@ public:
 	SceneManager() = default;
 	~SceneManager() = default;
 
-	void Initialize(SceneManagerContext sceneContext);
+	void Initialize(ManagerContext sceneContext);
 	void Update(float deltaTime);
 	void FixedUpdate(float fixedDeltaTime);
-	void Render();
+	void Draw();
 	void Shutdown() override;
 
 	void LoadScene(std::shared_ptr<Scene> scene);
-	std::shared_ptr<Scene> GetActiveScene() const;
-	void DeferredLoadScene(std::shared_ptr<Scene> scene) {
-		m_NextScene.reset();
-		m_NeedSceneChange = true;
-		m_NextScene = scene;
-	}
+	void DeferredLoadScene(std::shared_ptr<Scene> scene);
+
 	void SaveScene();
-	void OpenScene();
+	void LoadFromYAMLFile();
 
 private:
 	std::shared_ptr<Scene> m_activeScene;
-	SceneManagerContext m_SceneContext;
+	ManagerContext m_SceneContext;
 
 	bool m_NeedSceneChange = false;
 	std::shared_ptr<Scene> m_NextScene;

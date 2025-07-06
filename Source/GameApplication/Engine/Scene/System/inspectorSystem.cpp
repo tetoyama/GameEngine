@@ -408,7 +408,7 @@ void DrawDirectoryTree(const std::filesystem::path& directory, std::string& sele
 		const auto& path = entry.path();
 		std::string name = path.filename().string();
 
-		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
 
 		// サブディレクトリを持っているかチェック
 		bool hasSubDir = false;
@@ -520,16 +520,17 @@ void DrawDirectoryTree(const std::filesystem::path& directory, std::string& sele
 
 
 
-void DrawAssetsInDirectory(const std::string& folderPath){
-	std::filesystem::path path = folderPath;
+void DrawAssetsInDirectory(std::string& selectedPath){
+	std::filesystem::path path = selectedPath;
 	std::error_code ec;
 	if(!std::filesystem::exists(path, ec) || !std::filesystem::is_directory(path, ec)) return;
 
-	ImGui::Text("Content: %s", folderPath.c_str());
+	ImGui::Text("Content: %s", selectedPath.c_str());
 
+	// 検索バー
 	float SearchWidth = 120.0f;
 	if(ImGui::GetWindowContentRegionMax().x * 0.6f > SearchWidth){
-		SearchWidth = ImGui::GetWindowContentRegionMax().x * 0.6f; // ウィンドウ幅の半分を基準にする
+		SearchWidth = ImGui::GetWindowContentRegionMax().x * 0.6f;
 	}
 	ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - SearchWidth);
 	ImGui::PushItemWidth(SearchWidth);
@@ -538,7 +539,6 @@ void DrawAssetsInDirectory(const std::string& folderPath){
 	ImGui::PopItemWidth();
 
 	ImGui::Separator();
-
 	ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
 	float itemSize = 70.0f;
@@ -546,27 +546,31 @@ void DrawAssetsInDirectory(const std::string& folderPath){
 	int columnsCount = static_cast<int>(panelWidth / (itemSize + 5));
 	if(columnsCount < 1) columnsCount = 1;
 
-	// 明示的に entry をキャッシュ
-	std::vector<std::filesystem::directory_entry> files;
+	// エントリ収集
+	std::vector<std::filesystem::directory_entry> entries;
 	for(const auto& entry : std::filesystem::directory_iterator(path, ec)){
-		if(entry.is_regular_file(ec)){
-			files.push_back(entry);
+		if(entry.is_directory(ec) || entry.is_regular_file(ec)){
+			entries.push_back(entry);
 		}
 	}
 
-	std::sort(files.begin(), files.end(), [](const auto& a, const auto& b){
+	// フォルダ → ファイル順 に並べる
+	std::sort(entries.begin(), entries.end(), [](const auto& a, const auto& b){
+		if(a.is_directory() != b.is_directory()){
+			return a.is_directory(); // フォルダが先
+		}
 		return a.path().filename().string() < b.path().filename().string();
 			  });
 
-	// 小文字での部分一致用に準備
+	// 小文字での検索対応
 	std::string searchStr = searchBuffer;
 	std::transform(searchStr.begin(), searchStr.end(), searchStr.begin(), ::tolower);
 
 	int index = 0;
-	for(const auto& entry : files){
+	for(const auto& entry : entries){
 		std::string filename = entry.path().filename().string();
 
-		// ★ フィルタ処理
+		// フィルタ処理
 		if(!searchStr.empty()){
 			std::string lowerFilename = filename;
 			std::transform(lowerFilename.begin(), lowerFilename.end(), lowerFilename.begin(), ::tolower);
@@ -578,15 +582,22 @@ void DrawAssetsInDirectory(const std::string& folderPath){
 			ImGui::SameLine();
 
 		ImGui::PushID(entry.path().string().c_str());
-
 		ImGui::BeginGroup();
-		ImGui::Button("ICON", ImVec2(itemSize, itemSize));
 
-		if(ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)){
-			std::string fullPath = entry.path().string();
-			ImGui::SetDragDropPayload("ASSET_PATH", fullPath.c_str(), fullPath.size() + 1);
-			ImGui::Text("Drag: %s", filename.c_str());
-			ImGui::EndDragDropSource();
+		// ディレクトリなら別アイコン・クリック時にパス移動
+		if(entry.is_directory(ec)){
+			if(ImGui::Button("Folder", ImVec2(itemSize, itemSize))){
+				selectedPath = entry.path().string(); // ★クリックで移動
+			}
+		} else{
+			ImGui::Button("ICON", ImVec2(itemSize, itemSize));
+
+			if(ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)){
+				std::string fullPath = entry.path().string();
+				ImGui::SetDragDropPayload("ASSET_PATH", fullPath.c_str(), fullPath.size() + 1);
+				ImGui::Text("Drag: %s", filename.c_str());
+				ImGui::EndDragDropSource();
+			}
 		}
 
 		ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + itemSize);
@@ -623,7 +634,7 @@ void InspectorSystem::DrawAssetsBrowser(){
 	ImGui::Begin("Assets Browser", showAssetsBrowser);
 
 	ImGui::Columns(2, "AssetColumns", true);
-	ImGui::SetColumnWidth(0, 200);
+	//ImGui::SetColumnWidth(0, 200);
 
 	// === 左カラム：フォルダツリー ===
 	ImGui::BeginChild("LeftPane", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);

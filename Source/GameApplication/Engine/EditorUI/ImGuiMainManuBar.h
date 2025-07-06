@@ -24,7 +24,7 @@ public:
 	using Callback = std::function<void()>;
 
 	void Register(MenuEvent event, const Callback& callback);
-	void Render(); // MainMenuBar を表示する
+	void Draw(); // MainMenuBar を表示する
 	void Invoke(MenuEvent event);
 
 	bool showSceneHierarchy = true;

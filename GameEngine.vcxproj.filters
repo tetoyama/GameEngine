@@ -2217,6 +2217,15 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\particleSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\LightComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Shader\CommonBuffer.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\lightSystem.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\gameApplication.cpp">
@@ -2639,6 +2648,9 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\particleSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\lightSystem.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\GameApplication\Backends\Assimp\color4.inl">
@@ -2693,6 +2705,7 @@
     <FxCompile Include="Source\Shader\bumpPS.hlsl" />
     <FxCompile Include="Source\Shader\PixelShader.hlsl" />
     <FxCompile Include="Source\Shader\disneyPBR_PS.hlsl" />
+    <FxCompile Include="Source\Shader\oldBumpPS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />

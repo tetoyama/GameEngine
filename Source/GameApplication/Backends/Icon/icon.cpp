@@ -121,16 +121,37 @@ HRESULT SetIcon(const HWND hWnd, const std::wstring& FileName) {
     }
 
     // アイコンの設定
-    SendMessage(hWnd, WM_SETICON, ICON_BIG, (LPARAM)g_hIcon);
-    SendMessage(hWnd, WM_SETICON, ICON_SMALL, (LPARAM)g_hIcon);
-
+	hr = SendMessageW(hWnd, WM_SETICON, ICON_BIG, (LPARAM)g_hIcon);
+	if(FAILED(hr)){
+		pConverter->Release();
+		pFrame->Release();
+		pDecoder->Release();
+		pWICFactory->Release();
+		return hr;
+	}
+	hr = SendMessageW(hWnd, WM_SETICON, ICON_SMALL2, (LPARAM)g_hIcon);
+	if(FAILED(hr)){
+		pConverter->Release();
+		pFrame->Release();
+		pDecoder->Release();
+		pWICFactory->Release();
+		return hr;
+	}
+	hr = SendMessageW(hWnd, WM_SETICON, ICON_SMALL, (LPARAM)g_hIcon);
+	if(FAILED(hr)){
+		pConverter->Release();
+		pFrame->Release();
+		pDecoder->Release();
+		pWICFactory->Release();
+		return hr;
+	}
     // リソースの解放
     pConverter->Release();
     pFrame->Release();
     pDecoder->Release();
     pWICFactory->Release();
 
-    return S_OK;
+    return hr;
 }
 
 void UninitIcon() {

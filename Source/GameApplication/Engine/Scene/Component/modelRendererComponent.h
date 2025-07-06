@@ -15,9 +15,11 @@ public:
 	~ModelRendererComponent() = default;
 	YAML::Node encode() override{
 		YAML::Node node;
-
+		if(model)
 		node["FilePath"] = model->FilePath;
+		if(pixelShader)
 		node["PixelShader"] = pixelShader->FilePath;
+		if(vertexShader)
 		node["VertexShader"] = vertexShader->FilePath;
 		node["isBlender"] = isBlender;
 		return node;
@@ -51,7 +53,7 @@ public:
 		}
 		if(ImGui::InputText("##Model File Path", filepathBuffer, sizeof(filepathBuffer))){
 			// 編集されたら std::string に反映
-			model = context->manager->resource->GetModelLoader()->LoadModel(filepathBuffer);
+			model = context->manager->resource->GetModelLoader()->LoadModel(filepathBuffer,isBlender);
 		}
 		// ドロップ対象の処理
 		if (ImGui::BeginDragDropTarget()) {

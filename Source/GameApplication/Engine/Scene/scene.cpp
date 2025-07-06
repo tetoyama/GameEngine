@@ -37,6 +37,7 @@
 #include "System/explosionEffectSystem.h"
 
 #include "System/C#ScriptSystem.h"
+#include "System/CustomScriptSystem.h"
 
 #include "Component/entityNameComponent.h"
 #include "Component/transformComponent.h"
@@ -53,11 +54,13 @@
 #include "Component/bulletComponent.h"
 #include "Component/enemyComponent.h"
 #include "Component/explosionEffectComponent.h"
-#include <Component/bumpMapComponent.h>
-#include <Component/2DspriteRendererComponent.h>
-#include <Component/RenderLayerComponent.h>
-#include <System/CustomScriptSystem.h>
-#include <Script/SetScene.h>
+#include "Component/bumpMapComponent.h"
+#include "Component/2DspriteRendererComponent.h"
+#include "Component/RenderLayerComponent.h"
+#include "Component/LightComponent.h"
+
+#include "Script/SetScene.h"
+#include <System/lightSystem.h>
 
 Scene::Scene(){
 
@@ -66,7 +69,7 @@ Scene::Scene(){
 Scene::~Scene(){
 }
 
-void Scene::Initialize(SceneManagerContext* set){
+void Scene::Initialize(ManagerContext* set){
 
 	m_SceneManagerContext = set;
 	m_SceneManagerContext->debug->LOG_INFO("Sceneを初期化中...");
@@ -84,6 +87,7 @@ void Scene::Initialize(SceneManagerContext* set){
 
 	m_componentRegistry->RegisterYAMLComponent<TextureComponent>("TextureComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<BumpMapComponent>("BumpMapComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<LightComponent>("LightComponent", false);
 
 	m_componentRegistry->RegisterYAMLComponent<RenderLayerComponent>("RenderLayerComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<OrderInLayerComponent>("OrderInLayerComponent", false);
@@ -108,6 +112,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	// システムを登録
 	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<LightSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));
 
@@ -129,25 +134,14 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_systemRegistry->InitializeAll();
 
 
-	LIGHT light{};
-	light.Enable = TRUE;
-	light.Direction = DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
-	light.Position = DirectX::XMFLOAT4(0, 5, 0,0);
-	light.Diffuse = DirectX::XMFLOAT4(0.9f, 0.9f, 1.0f, 1);
-	light.Ambient = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	light.PointLightParam = DirectX::XMFLOAT4(20.0f, 0, 0, 0);
-	light.Angle = DirectX::XMFLOAT4(DirectX::XM_PI / 180.0f * 60.0f, 0.0f, 0.0f, 0.0f);
-
-	light.SkyColor = DirectX::XMFLOAT4(0.8f, 0.8f, 1.0f, 0.1f);
-	light.GroundColor = DirectX::XMFLOAT4(1.0f, 0.8f, 0.5f, 0.05f);
-	light.GroundNormal = DirectX::XMFLOAT4(0, 0, 1, 0);
+	LIGHT light;
 	graphicsContext->SetLight(light);
 	graphicsContext->SetDepthEnable(true);
 
 	if(ScenePath.empty()){
 		BuildDefaultScene();
 	} else{
-		OpenSceneYAML(ScenePath);
+		LoadSceneFromYAML(ScenePath);
 	}
 
 	m_SceneManagerContext->debug->LOG_INFO("Sceneを開始します");
@@ -196,7 +190,7 @@ void Scene::FixedUpdate(float fixedDeltaTime){
 	}
 }
 
-void Scene::Render(){
+void Scene::Draw(){
 
 	m_systemRegistry->DrawAll();
 }
@@ -255,13 +249,51 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\cube.fbx");
 		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\PixelShader.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\BumpPS.cso");
 
 		auto* bumpMap = componentRegistry->AddComponent<BumpMapComponent>(entity);
 		bumpMap->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\BumpMap/Normal.bmp");
 
 	}
+	{
+		//エンティティを作成し、Transformを追加
+		Entity entity = entityRegistry->Create();
 
+		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		name->name = "Light";
+
+		// TransformComponentを追加
+		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
+		transform->position = Vector3(0.0f, 25.0f,50.0f);
+		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
+		transform->rotation = Vector3(DirectX::XM_PI / 180.0f * 120.0f, 0.0f, 0.0f);
+
+		auto* light = componentRegistry->AddComponent<LightComponent>(entity);
+	}
+	{
+		//エンティティを作成し、TransformとModelRendererを追加
+		Entity entity = entityRegistry->Create();
+
+		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		name->name = "SkyBox";
+
+		// TransformComponentを追加
+		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
+		transform->position = Vector3(0.0f, 0.0f, 0.0f);
+		transform->scale = Vector3(500.0f, 500.0f, 500.0f);
+		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
+
+		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
+		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\Daylight.png");
+		texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+
+		// ModelRendererComponentを追加
+		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
+		modelRenderer->isBlender = true;
+		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\sky.fbx",true);
+		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\commonVS.cso");
+		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\unlitUVTexturePS.cso");
+	}
 	{
 		//エンティティを作成し、TransformとModelRendererを追加
 		Entity entity = entityRegistry->Create();
@@ -310,28 +342,29 @@ void Scene::BuildDefaultScene(){
 		auto* camera = componentRegistry->AddComponent<CameraComponent>(entity);
 
 	}
-	{
-		Entity entity = entityRegistry->Create();
 
-		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
-		name->name = "2DSprite";
+	//{
+	//	Entity entity = entityRegistry->Create();
 
-		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position.x = 0.0f;
-		transform->position.y = 0.0f;
-		transform->position.z = 0.0f;
-		transform->scale = Vector3(0.25f, 0.25f, 1.0f);
+	//	auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+	//	name->name = "2DSprite";
 
-		auto* sprite = componentRegistry->AddComponent<SpriteRendererComponent>(entity);
-		sprite->anchor = Vector2(0.0f, 0.0f);
-		sprite->pivot = Vector2(0.5f, 0.5f);
+	//	auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
+	//	transform->position.x = 0.0f;
+	//	transform->position.y = 0.0f;
+	//	transform->position.z = 0.0f;
+	//	transform->scale = Vector3(0.25f, 0.25f, 1.0f);
 
-		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
-		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\texture.jpg");
-		texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	}
+	//	auto* sprite = componentRegistry->AddComponent<SpriteRendererComponent>(entity);
+	//	sprite->anchor = Vector2(0.0f, 0.0f);
+	//	sprite->pivot = Vector2(0.5f, 0.5f);
 
-	int Sample = 20;
+	//	auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
+	//	texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\texture.jpg");
+	//	texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	//}
+
+	int Sample = 5;
 	float Distance = 20.0f;
 	for(int i = 0; i < Sample; i++){
 
@@ -349,7 +382,7 @@ void Scene::BuildDefaultScene(){
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(cosf(float(i) / Sample * DirectX::XM_2PI) * Distance, 0.2f, sinf(float(i) / Sample * DirectX::XM_2PI) * Distance);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
-		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
+		transform->rotation = Vector3(0.0f, float(i) / Sample * -DirectX::XM_2PI - DirectX::XM_PI * 0.5f, 0.0f);
 
 
 		// ModelRendererComponentを追加
@@ -364,12 +397,12 @@ void Scene::BuildDefaultScene(){
 	
 }
 
-bool Scene::Load(){
+bool Scene::LoadFromYAMLFile(){
 	SetTaskBarState(TBPF_INDETERMINATE); // タスクバーの状態をインジケーターに設定
-	std::string filepath = OpenYALM();
+	std::string filepath = LoadSceneFileDialog();
 	if (filepath != "") {
 		ResetAll();
-		OpenSceneYAML(filepath);
+		LoadSceneFromYAML(filepath);
 		SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
 		return true;
 	}
@@ -381,7 +414,7 @@ void Scene::Save(){
 	SetTaskBarState(TBPF_INDETERMINATE); // タスクバーの状態をインジケーターに設定
 
 	std::wstring savePath;
-	if(!ShowSaveFileDialog(savePath)){
+	if(!SaveSceneFileDialog(savePath)){
 		SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
 		m_SceneManagerContext->debug->LOG_INFO("ユーザーがキャンセルしました。");
 		return;
@@ -528,7 +561,7 @@ void Scene::TempSave(){
 
 void Scene::TempLoad(){
 	ResetAll(); // 一時保存の読み込み前に全エンティティをリセット
-	OpenSceneYAML("TempSave.yaml");
+	LoadSceneFromYAML("TempSave.yaml");
 }
 
 void Scene::ResetAll(){
@@ -542,7 +575,7 @@ void Scene::ResetAll(){
 	m_entityRegistry->ResetAll();
 }
 
-void Scene::OpenSceneYAML(std::string path) {  
+void Scene::LoadSceneFromYAML(std::string path) {  
 	std::ifstream fin(path);  
 	if(!fin.is_open()){  
 		// ファイルが開けなかった場合  
@@ -618,7 +651,7 @@ void Scene::OpenSceneYAML(std::string path) {
 	}
 }
 
-std::string Scene::OpenYALM() {
+std::string Scene::LoadSceneFileDialog() {
 	char filename[MAX_PATH] = "";
 
 	OPENFILENAMEA ofn = {}; // ANSI版（UNICODEなら OPENFILENAMEW）
@@ -640,7 +673,7 @@ std::string Scene::OpenYALM() {
 	return std::string("");
 }
 
-bool Scene::ShowSaveFileDialog(std::wstring& outPath){
+bool Scene::SaveSceneFileDialog(std::wstring& outPath){
 	WCHAR szFile[MAX_PATH] = L"scene.yaml";  // デフォルトファイル名
 	OPENFILENAME ofn = {sizeof(ofn)};
 	ofn.hwndOwner = nullptr;                 // 親ウィンドウハンドルを渡す場合は指定

@@ -81,7 +81,7 @@ namespace YAML {
 			node["Specular"] = mat.Specular;
 			node["Emission"] = mat.Emission;
 			node["Shininess"] = mat.Shininess;
-			node["TextureEnable"] = static_cast<bool>(mat.TextureEnable); // BOOL→bool
+			node["TextureEnable"] = static_cast<bool>(mat.DiffuseTextureEnable); // BOOL→bool
 			return node;
 		}
 
@@ -92,7 +92,7 @@ namespace YAML {
 			mat.Specular = node["Specular"].as<DirectX::XMFLOAT4>();
 			mat.Emission = node["Emission"].as<DirectX::XMFLOAT4>();
 			mat.Shininess = node["Shininess"].as<float>();
-			mat.TextureEnable = node["TextureEnable"].as<bool>() ? TRUE : FALSE;
+			mat.DiffuseTextureEnable = node["TextureEnable"].as<bool>() ? TRUE : FALSE;
 			return true;
 		}
 	};

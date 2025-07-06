@@ -6,7 +6,7 @@
 #include <string>
 #include "Backends/myVector2.h"
 
-struct SceneManagerContext;
+struct ManagerContext;
 
 class EntityRegistry;
 class ComponentRegistry;
@@ -23,9 +23,10 @@ struct SceneContext{
 	EntityRegistry* entity = nullptr;
 	ComponentRegistry* component = nullptr;
 	SystemRegistry* system = nullptr;
-	SceneManagerContext* manager = nullptr;
-	SceneState state = SceneState::Stopped; // シーンの状態
-	Vector2 EditorScreenSize = {1280.0f, 720.0f}; // エディタの画面サイズ
+	ManagerContext* manager = nullptr;
+	SceneState state = SceneState::Stopped;
+	Vector2 PlayerScreenSize = {1280.0f, 720.0f};
+	Vector2 EditorScreenSize = {1280.0f, 720.0f};
 };
 
 class Scene {
@@ -33,18 +34,19 @@ public:
 	Scene();
 	~Scene();
 
-	void Initialize(SceneManagerContext* set);
+	void Initialize(ManagerContext* set);
 	void Update(float deltaTime);
 	void FixedUpdate(float fixedDeltaTime);
-	void Render();
+	void Draw();
 	void Shutdown();
 
 	void BuildDefaultScene();
 
 	void ResetAll();
 
-	bool Load();
+	bool LoadFromYAMLFile();
 	void Save();
+
 	void TempSave(); // 一時保存
 	void TempLoad(); // 一時読み込み
 
@@ -60,16 +62,17 @@ public:
 	std::string ScenePath = ""; // シーンのパス
 
 private:
-	SceneState m_OldState = SceneState::Stopped;
-	void OpenSceneYAML(std::string path);
-	std::string OpenYALM();
-	bool ShowSaveFileDialog(std::wstring& outPath);
-
-	SceneManagerContext* m_SceneManagerContext = nullptr;
+	void LoadSceneFromYAML(std::string path);
+	std::string LoadSceneFileDialog();
+	bool SaveSceneFileDialog(std::wstring& outPath);
 
 	std::shared_ptr<EntityRegistry> m_entityRegistry;
 	std::shared_ptr<ComponentRegistry> m_componentRegistry;
 	std::shared_ptr<SystemRegistry> m_systemRegistry;
+
+	ManagerContext* m_SceneManagerContext = nullptr;
+
+	SceneState m_OldState = SceneState::Stopped;
 
 	SceneContext m_SceneContext{};
 };

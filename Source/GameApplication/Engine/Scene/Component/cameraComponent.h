@@ -52,7 +52,7 @@ public:
 
 		ImGui::Text("FarClip");
 		ImGui::SameLine(100);
-		ImGui::DragFloat("##FarClip", &FarClip, 0.01f, NearClip + 0.01f, 1024.0f);
+		ImGui::DragFloat("##FarClip", &FarClip, 0.01f, NearClip + 0.01f, 4096.0f);
 		if(ImGui::IsItemHovered())
 			ImGui::SetTooltip("FarClip");
 
@@ -93,7 +93,7 @@ public:
 	Vector3 Target = Vector3(0.0f,0.0f,0.0f);
 
 	float NearClip = 0.01f;
-	float FarClip = 256.0f;
+	float FarClip = 1024.0f;
 
 	float FOV = 1.0f;
 

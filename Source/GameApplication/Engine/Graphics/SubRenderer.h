@@ -5,5 +5,5 @@ public:
     SubRenderer();
     ~SubRenderer();
     void Initialize();
-    void Render();
+    void Draw();
 };

@@ -89,3 +89,5 @@ float2 TransformUV(float2 In, float2 start, float2 end)
 {
     return start + In * (end - start);
 }
+
+static const float PI = 3.14159265358979323846f;

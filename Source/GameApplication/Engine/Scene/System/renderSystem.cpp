@@ -458,7 +458,7 @@ void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent
 			deviceContext->PSSetShaderResources(0, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
 
 			MATERIAL material{};
-			material.TextureEnable = true;
+			material.DiffuseTextureEnable = true;
 
 			material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
 			graphicsContext->SetMaterial(material);
@@ -527,33 +527,34 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 			//テクスチャ設定
 			if (!pTexture || !pTexture->m_TextureData) {
 				aiString Texture;
-				aiMaterial* aiMaterial = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-				aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &Texture);
+				aiMaterial* material = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
+				material->GetTexture(aiTextureType_DIFFUSE, 0, &Texture);
 
 				if (aiString("") != Texture) {
 					deviceContext->PSSetShaderResources(0, 1, &pModel->Texture[Texture.data]);
+				} else{
+
+
+					material = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
+
+					// Diffuseテクスチャセット
+					aiString diffuseTex;
+					if(material->GetTexture(aiTextureType_DIFFUSE, 0, &diffuseTex) == AI_SUCCESS){
+						std::string diffuseKey = std::filesystem::path(diffuseTex.C_Str()).filename().string();
+						auto itDiffuse = pModel->Texture.find(diffuseKey);
+						if(itDiffuse != pModel->Texture.end()){
+							deviceContext->PSSetShaderResources(0, 1, &itDiffuse->second);  // スロット0
+						}
+					}
 				}
-			}
-
-			aiMaterial* material = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-
-			// Diffuseテクスチャセット
-			aiString diffuseTex;
-			if (material->GetTexture(aiTextureType_DIFFUSE, 0, &diffuseTex) == AI_SUCCESS) {
-				std::string diffuseKey = std::filesystem::path(diffuseTex.C_Str()).filename().string();
-				auto itDiffuse = pModel->Texture.find(diffuseKey);
-				if (itDiffuse != pModel->Texture.end()) {
-					deviceContext->PSSetShaderResources(0, 1, &itDiffuse->second);  // スロット0
-				}
-			}
-
-			// NormalMapテクスチャセット
-			aiString normalTex;
-			if (material->GetTexture(aiTextureType_NORMALS, 0, &normalTex) == AI_SUCCESS) {
-				std::string normalKey = std::filesystem::path(normalTex.C_Str()).filename().string();
-				auto itNormal = pModel->Texture.find(normalKey);
-				if (itNormal != pModel->Texture.end()) {
-					deviceContext->PSSetShaderResources(1, 1, &itNormal->second);  // スロット1
+				// NormalMapテクスチャセット
+				aiString normalTex;
+				if(material->GetTexture(aiTextureType_NORMALS, 0, &normalTex) == AI_SUCCESS){
+					std::string normalKey = std::filesystem::path(normalTex.C_Str()).filename().string();
+					auto itNormal = pModel->Texture.find(normalKey);
+					if(itNormal != pModel->Texture.end()){
+						deviceContext->PSSetShaderResources(1, 1, &itNormal->second);  // スロット1
+					}
 				}
 			}
 		}
@@ -571,7 +572,7 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST		//渡された頂点の配列をどのように解釈するか
 		);
 
-		if ((!pTexture || !pTexture->m_TextureData) && !pModel->SetTexture) {
+		if(!pTexture){
 			// マテリアル設定
 			MATERIAL material;
 			aiMaterial* pAiMaterial = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
@@ -615,7 +616,7 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 			}
 
 			// その他
-			material.TextureEnable = false;
+			material.DiffuseTextureEnable = pModel->SetTexture;
 
 			graphicsContext->SetMaterial(material);
 		}
@@ -792,6 +793,7 @@ void RenderSystem::ControllButton(){
 	// ツールバー内容
 	if(ImGui::Button("Play")){
 		m_context->state = SceneState::Playing; // シーンの状態を再生中に変更
+		ImGui::SetWindowFocus("Play View");
 	}
 	ImGui::SameLine();
 	if(ImGui::Button("Pause")){
@@ -800,6 +802,7 @@ void RenderSystem::ControllButton(){
 	ImGui::SameLine();
 	if(ImGui::Button("Stop")){
 		m_context->state = SceneState::Stopped; // シーンの状態をエディタに戻す
+		ImGui::SetWindowFocus("Editor View");
 	}
 }
 
@@ -1016,7 +1019,7 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 					// マテリアル設定
 					MATERIAL material;
 					material.Diffuse = texture->Material.Diffuse;
-					material.TextureEnable = ((bool)texture->m_TextureData);
+					material.DiffuseTextureEnable = ((bool)texture->m_TextureData);
 					if(texture->m_TextureData){
 						deviceContext->PSSetShaderResources(0, 1, texture->m_TextureData->pTexture.GetAddressOf());
 					}
@@ -1041,7 +1044,7 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 				} else{
 					// マテリアル設定
 					MATERIAL material;
-					material.TextureEnable = false;
+					material.DiffuseTextureEnable = false;
 					material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 					graphicsContext->SetMaterial(material);
 

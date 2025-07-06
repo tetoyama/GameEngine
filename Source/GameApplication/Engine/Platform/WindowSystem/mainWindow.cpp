@@ -21,6 +21,7 @@ MainWindow::~MainWindow(){
 		DestroyWindow(m_HWND);
 	}
 	m_HWND = nullptr;
+	UninitIcon();
 }
 
 bool MainWindow::Create(HINSTANCE hInstance, int nCmdShow){
@@ -67,8 +68,14 @@ bool MainWindow::Create(HINSTANCE hInstance, int nCmdShow){
 
 	// ウィンドウの表示
 	ShowWindow(m_HWND, nCmdShow);
-	InitIcon(m_HWND);
 	UpdateWindow(m_HWND);
+
+	// アイコンの設定
+	if(FAILED(InitIcon(m_HWND))){
+		OutputDebugStringA("アイコンの初期化に失敗しました。\n");
+		return false;
+	}
+	PollEvents();
 
 	return true;
 }
@@ -164,6 +171,7 @@ LRESULT CALLBACK MainWindow::StaticWindowProc(HWND hwnd, UINT uMsg, WPARAM wPara
 
 	MainWindow* pThis = nullptr;
 	if(uMsg == WM_NCCREATE){
+
 		// lpCreateParamsからthisポインタを取得し、GWLP_USERDATAに保存
 		CREATESTRUCT* cs = reinterpret_cast<CREATESTRUCT*>(lParam);
 		pThis = static_cast<MainWindow*>(cs->lpCreateParams);
@@ -185,6 +193,9 @@ LRESULT MainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 	}
 
 	switch(uMsg){
+		case WM_SETICON:
+			OutputDebugStringA(("SetIcon wParam:" + std::to_string(wParam) + " lParam:" + std::to_string(wParam) + "\n").c_str());
+			break;
 		case WM_DESTROY:
 			PostQuitMessage(0);
 			return 0;

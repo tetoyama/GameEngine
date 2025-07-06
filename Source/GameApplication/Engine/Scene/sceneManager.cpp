@@ -4,7 +4,7 @@
 
 #include "Engine/DebugTools/debugSystem.h"
 
-void SceneManager::Initialize(SceneManagerContext sceneContext){
+void SceneManager::Initialize(ManagerContext sceneContext){
 	m_SceneContext = sceneContext;
 }
 
@@ -28,9 +28,9 @@ void SceneManager::FixedUpdate(float fixedDeltaTime){
 	}
 }
 
-void SceneManager::Render(){
+void SceneManager::Draw(){
 	if(m_activeScene){
-		m_activeScene->Render();
+		m_activeScene->Draw();
 	}
 }
 
@@ -58,8 +58,10 @@ void SceneManager::LoadScene(std::shared_ptr<Scene> scene){
 	}
 }
 
-std::shared_ptr<Scene> SceneManager::GetActiveScene() const{
-	return m_activeScene;
+void SceneManager::DeferredLoadScene(std::shared_ptr<Scene> scene){
+	m_NextScene.reset();
+	m_NeedSceneChange = true;
+	m_NextScene = scene;
 }
 
 void SceneManager::SaveScene(){
@@ -71,11 +73,11 @@ void SceneManager::SaveScene(){
 	}
 }
 
-void SceneManager::OpenScene(){
+void SceneManager::LoadFromYAMLFile(){
 	auto scene = std::make_shared<Scene>();
 
 	scene->Initialize(&m_SceneContext);
-	if(scene->Load()){
+	if(scene->LoadFromYAMLFile()){
 		if(m_activeScene){
 			m_SceneContext.debug->LOG_DEBUG("ActiveSceneを終了します");
 			m_activeScene->Shutdown();

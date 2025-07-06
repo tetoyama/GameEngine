@@ -286,54 +286,54 @@ public:
         ImGui::Spacing();
 
         // --- Material Properties ---
-        auto DrawColorProperty = [](const char* label, float* c, ImVec4 color) {
-            ImGui::AlignTextToFramePadding();
-            ImGui::TextUnformatted(label);
-            ImGui::SameLine(100);
-            float totalWidth = ImGui::GetContentRegionAvail().x;
-            float spacing = ImGui::GetStyle().ItemSpacing.x;
-            float pickerWidth = 24.0f;
-            int sliderCount = 4;
-            float sliderWidth = (totalWidth - pickerWidth - spacing * (sliderCount)) / sliderCount;
+		if(ImGui::TreeNodeEx("Material Properties")){
 
-            const char* labels[] = { "R", "G", "B", "A" };
-            for (int i = 0; i < 4; ++i) {
-                ImGui::PushID((std::to_string(i) + label).c_str());
-                ImGui::PushItemWidth(sliderWidth);
-                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4((i == 0) * 0.7f, (i == 1) * 0.7f, (i == 2) * 0.7f, 0.3f));
-                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-                ImGui::DragFloat(("##" + (std::string)label).c_str(), &c[i], 0.01f, 0.0f, 1.0f);
-                ImGui::PopStyleVar(); ImGui::PopStyleColor(); ImGui::PopItemWidth(); ImGui::PopID();
-                ImGui::SameLine();
-            }
+			auto DrawColorProperty = [](const char* label, float* c, ImVec4 color){
+				ImGui::AlignTextToFramePadding();
+				ImGui::TextUnformatted(label);
+				ImGui::SameLine(100);
+				float totalWidth = ImGui::GetContentRegionAvail().x;
+				float spacing = ImGui::GetStyle().ItemSpacing.x;
+				float pickerWidth = 24.0f;
+				int sliderCount = 4;
+				float sliderWidth = (totalWidth - pickerWidth - spacing * (sliderCount)) / sliderCount;
 
-            if (ImGui::ColorButton("##ColorBtn", ImVec4(c[0], c[1], c[2], c[3]), ImGuiColorEditFlags_NoTooltip)) {
-                ImGui::OpenPopup("ColorPickerPopup");
-            }
-            if (ImGui::BeginPopup("ColorPickerPopup")) {
-                ImGui::ColorPicker4("##ColorPicker", c, ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_AlphaBar);
-                ImGui::EndPopup();
-            }
-        };
+				const char* labels[] = {"R", "G", "B", "A"};
+				for(int i = 0; i < 4; ++i){
+					ImGui::PushID((std::to_string(i) + label).c_str());
+					ImGui::PushItemWidth(sliderWidth);
+					ImGui::PushStyleColor(ImGuiCol_Border, ImVec4((i == 0) * 0.7f, (i == 1) * 0.7f, (i == 2) * 0.7f, 0.3f));
+					ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+					ImGui::DragFloat(("##" + (std::string)label).c_str(), &c[i], 0.01f, 0.0f, 1.0f);
+					ImGui::PopStyleVar(); ImGui::PopStyleColor(); ImGui::PopItemWidth(); ImGui::PopID();
+					ImGui::SameLine();
+				}
 
-        // Material: Ambient
-        DrawColorProperty("Ambient", &Material.Ambient.x, colorR);
-        // Material: Specular
-        DrawColorProperty("Specular", &Material.Specular.x, colorG);
-        // Material: Emission
-        DrawColorProperty("Emission", &Material.Emission.x, colorB);
+				if(ImGui::ColorButton(("##ColorBtn" + (std::string)label).c_str(), ImVec4(c[0], c[1], c[2], c[3]), ImGuiColorEditFlags_NoTooltip)){
+					ImGui::OpenPopup(("ColorPickerPopup" + (std::string)label).c_str());
+				}
+				if(ImGui::BeginPopup(("ColorPickerPopup" + (std::string)label).c_str())){
+					ImGui::ColorPicker4(("##ColorPicker" + (std::string)label).c_str(), c, ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_AlphaBar);
+					ImGui::EndPopup();
+				}
+				};
 
-        // Shininess
-        ImGui::AlignTextToFramePadding();
-        ImGui::Text("Shininess");
-        ImGui::SameLine(100);
-        ImGui::DragFloat("##Shininess", &Material.Shininess, 0.5f, 1.0f, 128.0f);
+			// Material: Ambient
+			DrawColorProperty("Ambient", &Material.Ambient.x, colorR);
+			// Material: Specular
+			DrawColorProperty("Specular", &Material.Specular.x, colorG);
+			// Material: Emission
+			DrawColorProperty("Emission", &Material.Emission.x, colorB);
 
-        // TextureEnable
-        ImGui::AlignTextToFramePadding();
-        ImGui::Text("Use Texture");
-        ImGui::SameLine(100);
-        ImGui::Checkbox("##TexEnable", (bool*)&Material.TextureEnable);
+			// Shininess
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Shininess");
+			ImGui::SameLine(100);
+			ImGui::DragFloat("##Shininess", &Material.Shininess, 0.5f, 1.0f, 128.0f);
+
+			ImGui::TreePop(); // Material Propertiesのツリーをポップ
+
+		}
 
 
 		ImGui::PopID(); // コンポーネントのIDをポップ

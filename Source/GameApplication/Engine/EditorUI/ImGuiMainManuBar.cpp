@@ -6,7 +6,7 @@ void ImGuiManubar::Register(MenuEvent event, const Callback& callback){
 	m_eventCallbacks[event] = callback;
 }
 
-void ImGuiManubar::Render(){
+void ImGuiManubar::Draw(){
 
 	if(ImGui::BeginMainMenuBar()){
 		RenderFileMenu();

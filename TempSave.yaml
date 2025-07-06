@@ -20,10 +20,125 @@ Entities:
         FilePath: Asset\Texture\BumpMap/Normal.bmp
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.fbx
-        PixelShader: Asset\Shader\PixelShader.cso
+        PixelShader: Asset\Shader\BumpPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
   - Entity: 2
+    Components:
+      - Component: NameComponent
+        Name: Light
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 25
+          z: 50
+        Rotation:
+          x: 2.09439516
+          y: 0
+          z: 0
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+      - Component: LightComponent
+        Enable: 1
+        LightType: 0
+        Position:
+          x: 0
+          y: 25
+          z: 50
+          w: 0
+        Angle:
+          x: 1.04719758
+          y: 0
+          z: 0
+          w: 0
+        Direction:
+          x: -0
+          y: 0.866025388
+          z: -0.50000006
+          w: 0
+        Diffuse:
+          x: 0.899999976
+          y: 0.899999976
+          z: 1
+          w: 1
+        Ambient:
+          x: 0.100000001
+          y: 0.100000001
+          z: 0.100000001
+          w: 1
+        PointLightParam:
+          x: 100
+          y: 0
+          z: 0
+          w: 0
+        GroundNormal:
+          x: 0
+          y: 1
+          z: 0
+          w: 0
+        GroundColor:
+          x: 1
+          y: 0.800000012
+          z: 0.5
+          w: 0.0500000007
+        SkyColor:
+          x: 0.800000012
+          y: 0.800000012
+          z: 1
+          w: 0.100000001
+  - Entity: 3
+    Components:
+      - Component: NameComponent
+        Name: SkyBox
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          x: 0
+          y: 0
+          z: 0
+        Scale:
+          x: 500
+          y: 500
+          z: 500
+      - Component: TextureComponent
+        FilePath: Asset\Texture\Daylight.png
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\sky.fbx
+        PixelShader: Asset\Shader\unlitUVTexturePS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: true
+  - Entity: 4
     Components:
       - Component: NameComponent
         Name: Player
@@ -64,7 +179,7 @@ Entities:
             z: 0
             w: 1
           Shininess: 64
-          TextureEnable: true
+          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -78,7 +193,7 @@ Entities:
         cameraRotate: 2
         cameraDistance: 20
         cameraLerp: 8
-  - Entity: 3
+  - Entity: 5
     Components:
       - Component: NameComponent
         Name: Camera
@@ -102,7 +217,7 @@ Entities:
           y: 0
           z: 0
         NearClip: 0.00999999978
-        FarClip: 256
+        FarClip: 1024
         FOV: 1
         viewMatrix:
           -
@@ -125,59 +240,7 @@ Entities:
             - 1.8160162
             - 24.9339542
             - 1
-  - Entity: 4
-    Components:
-      - Component: NameComponent
-        Name: 2DSprite
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 0.25
-          y: 0.25
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\texture.jpg
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0
-          y: 0
-        pivot:
-          x: 0.5
-          y: 0.5
-  - Entity: 5
+  - Entity: 6
     Components:
       - Component: NameComponent
         Name: Enemy1
@@ -188,7 +251,7 @@ Entities:
           z: 0
         Rotation:
           x: 0
-          y: 0
+          y: -1.57079637
           z: 0
         Scale:
           x: 1
@@ -218,69 +281,7 @@ Entities:
             z: 0
             w: 1
           Shininess: 64
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 6
-    Components:
-      - Component: NameComponent
-        Name: Enemy2
-      - Component: TransformComponent
-        Position:
-          x: 19.0211315
-          y: 0.200000003
-          z: 6.18033981
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: true
+          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -304,15 +305,15 @@ Entities:
   - Entity: 7
     Components:
       - Component: NameComponent
-        Name: Enemy3
+        Name: Enemy2
       - Component: TransformComponent
         Position:
-          x: 16.1803398
+          x: 6.18033934
           y: 0.200000003
-          z: 11.7557049
+          z: 19.0211315
         Rotation:
           x: 0
-          y: 0
+          y: -2.82743359
           z: 0
         Scale:
           x: 1
@@ -342,7 +343,7 @@ Entities:
             z: 0
             w: 1
           Shininess: 64
-          TextureEnable: true
+          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -366,15 +367,15 @@ Entities:
   - Entity: 8
     Components:
       - Component: NameComponent
-        Name: Enemy4
+        Name: Enemy3
       - Component: TransformComponent
         Position:
-          x: 11.7557039
+          x: -16.1803417
           y: 0.200000003
-          z: 16.1803417
+          z: 11.7557039
         Rotation:
           x: 0
-          y: 0
+          y: -4.08407068
           z: 0
         Scale:
           x: 1
@@ -404,7 +405,7 @@ Entities:
             z: 0
             w: 1
           Shininess: 64
-          TextureEnable: true
+          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -428,15 +429,15 @@ Entities:
   - Entity: 9
     Components:
       - Component: NameComponent
-        Name: Enemy5
+        Name: Enemy4
       - Component: TransformComponent
         Position:
-          x: 6.18033934
+          x: -16.180336
           y: 0.200000003
-          z: 19.0211315
+          z: -11.7557106
         Rotation:
           x: 0
-          y: 0
+          y: -5.34070778
           z: 0
         Scale:
           x: 1
@@ -466,7 +467,7 @@ Entities:
             z: 0
             w: 1
           Shininess: 64
-          TextureEnable: true
+          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -490,689 +491,7 @@ Entities:
   - Entity: 10
     Components:
       - Component: NameComponent
-        Name: Enemy6
-      - Component: TransformComponent
-        Position:
-          x: -8.74227794e-07
-          y: 0.200000003
-          z: 20
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 11
-    Components:
-      - Component: NameComponent
-        Name: Enemy7
-      - Component: TransformComponent
-        Position:
-          x: -6.18034315
-          y: 0.200000003
-          z: 19.0211296
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 12
-    Components:
-      - Component: NameComponent
-        Name: Enemy8
-      - Component: TransformComponent
-        Position:
-          x: -11.7557039
-          y: 0.200000003
-          z: 16.1803398
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 13
-    Components:
-      - Component: NameComponent
-        Name: Enemy9
-      - Component: TransformComponent
-        Position:
-          x: -16.1803417
-          y: 0.200000003
-          z: 11.7557039
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 14
-    Components:
-      - Component: NameComponent
-        Name: Enemy10
-      - Component: TransformComponent
-        Position:
-          x: -19.0211296
-          y: 0.200000003
-          z: 6.18034077
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 15
-    Components:
-      - Component: NameComponent
-        Name: Enemy11
-      - Component: TransformComponent
-        Position:
-          x: -20
-          y: 0.200000003
-          z: -1.74845559e-06
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 16
-    Components:
-      - Component: NameComponent
-        Name: Enemy12
-      - Component: TransformComponent
-        Position:
-          x: -19.0211277
-          y: 0.200000003
-          z: -6.1803441
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 17
-    Components:
-      - Component: NameComponent
-        Name: Enemy13
-      - Component: TransformComponent
-        Position:
-          x: -16.180336
-          y: 0.200000003
-          z: -11.7557106
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 18
-    Components:
-      - Component: NameComponent
-        Name: Enemy14
-      - Component: TransformComponent
-        Position:
-          x: -11.7557087
-          y: 0.200000003
-          z: -16.180336
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 19
-    Components:
-      - Component: NameComponent
-        Name: Enemy15
-      - Component: TransformComponent
-        Position:
-          x: -6.18034172
-          y: 0.200000003
-          z: -19.0211296
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 20
-    Components:
-      - Component: NameComponent
-        Name: Enemy16
-      - Component: TransformComponent
-        Position:
-          x: 2.3849762e-07
-          y: 0.200000003
-          z: -20
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 21
-    Components:
-      - Component: NameComponent
-        Name: Enemy17
+        Name: Enemy5
       - Component: TransformComponent
         Position:
           x: 6.18034267
@@ -1180,7 +499,7 @@ Entities:
           z: -19.0211296
         Rotation:
           x: 0
-          y: 0
+          y: -6.59734488
           z: 0
         Scale:
           x: 1
@@ -1210,193 +529,7 @@ Entities:
             z: 0
             w: 1
           Shininess: 64
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 22
-    Components:
-      - Component: NameComponent
-        Name: Enemy18
-      - Component: TransformComponent
-        Position:
-          x: 11.7557096
-          y: 0.200000003
-          z: -16.180336
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 23
-    Components:
-      - Component: NameComponent
-        Name: Enemy19
-      - Component: TransformComponent
-        Position:
-          x: 16.1803398
-          y: 0.200000003
-          z: -11.7557058
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 24
-    Components:
-      - Component: NameComponent
-        Name: Enemy20
-      - Component: TransformComponent
-        Position:
-          x: 19.0211315
-          y: 0.200000003
-          z: -6.18033886
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: true
+          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0

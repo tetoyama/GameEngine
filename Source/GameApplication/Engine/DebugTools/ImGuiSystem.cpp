@@ -10,7 +10,6 @@
 #include "Engine/Graphics/GraphicsContext.h"
 #include "Engine/Platform/WindowSystem/MainWindow.h"
 
-#ifdef _DEBUG
 
 #include "GameApplication/GameApplication.h"
 #include "time.h"
@@ -21,7 +20,6 @@ static float DeltaFpsSamples[SAMPLE_LENGTH]{};
 static float UpdateSamples[SAMPLE_LENGTH]{};
 static float DrawSamples[SAMPLE_LENGTH]{};
 static int SampleCount = 0;
-#endif
 
 void SetModernStyle();
 // UI状態管理
@@ -175,7 +173,7 @@ void ImGuiService::Begin(){
 	//ImGuizmo::SetRect(ImGui::GetMainViewport()->Pos.x, ImGui::GetMainViewport()->Pos.y, ImGui::GetMainViewport()->Size.x, ImGui::GetMainViewport()->Size.y);
 
 	ImGui::DockSpaceOverViewport(0U,0, ImGuiDockNodeFlags_PassthruCentralNode);  // ドッキングスペースの設置
-	manubar.Render();
+	manubar.Draw();
 	DrawAssetsBrowser();
 }
 
@@ -208,7 +206,6 @@ void ImGuiService::OnResize(){
 
 void ImGuiService::DrawDebugImGuiWindow(double Update, double Draw, double FPS, double DeltaFPS){
 
-#ifdef _DEBUG
 	SampleCount = (SampleCount + 1) % TARGET_FPS;
 	if(SampleCount == 0){
 		for(int n = 0; n < SAMPLE_LENGTH - 1; n++){
@@ -267,7 +264,6 @@ void ImGuiService::DrawDebugImGuiWindow(double Update, double Draw, double FPS, 
 		}
 		ImGui::End();
 	}
-#endif
 }
 
 void SetModernStyle(){
