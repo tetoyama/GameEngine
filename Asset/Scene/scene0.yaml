@@ -22,6 +22,7 @@ Entities:
         FilePath: Asset\Model\cube.fbx
         PixelShader: Asset\Shader\bumpPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -71,6 +72,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: PlayerComponent
         moveSpeed: 5
         cameraRotate: 2
@@ -123,58 +125,6 @@ Entities:
             - 1.8160162
             - 24.9339542
             - 1
-  - Entity: 4
-    Components:
-      - Component: NameComponent
-        Name: 2DSprite
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 0.25
-          y: 0.25
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\texture.jpg
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Emission:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Shininess: 1
-          TextureEnable: true
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0
-          y: 0
-        pivot:
-          x: 0.5
-          y: 0.5
   - Entity: 5
     Components:
       - Component: NameComponent
@@ -224,6 +174,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -285,6 +236,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -346,6 +298,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -407,6 +360,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -468,6 +422,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -529,6 +484,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -590,6 +546,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -651,6 +608,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -712,6 +670,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -773,6 +732,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -834,6 +794,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -895,6 +856,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -956,6 +918,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -1017,6 +980,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -1078,6 +1042,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -1139,6 +1104,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -1200,6 +1166,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -1261,6 +1228,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -1322,6 +1290,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -1383,6 +1352,7 @@ Entities:
         FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -1395,3 +1365,68 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
+  - Entity: 25
+    Components:
+      - Component: NameComponent
+        Name: Light
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 31.3038979
+          z: 28.9876041
+        Rotation:
+          x: -0
+          y: 0
+          z: -0
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+      - Component: LightComponent
+        Enable: 1
+        LightType: 0
+        Position:
+          x: 0
+          y: 31.3038979
+          z: 28.9876041
+          w: 0
+        Angle:
+          x: 1.04719758
+          y: 0
+          z: 0
+          w: 0
+        Direction:
+          x: 0
+          y: -0
+          z: 1
+          w: 0
+        Diffuse:
+          x: 0.899999976
+          y: 0.899999976
+          z: 1
+          w: 1
+        Ambient:
+          x: 0.100000001
+          y: 0.100000001
+          z: 0.100000001
+          w: 1
+        PointLightParam:
+          x: 223.600006
+          y: 0
+          z: 0
+          w: 0
+        GroundNormal:
+          x: 0
+          y: 1
+          z: 0
+          w: 0
+        GroundColor:
+          x: 1
+          y: 0.800000012
+          z: 0.5
+          w: 0.0500000007
+        SkyColor:
+          x: 0.800000012
+          y: 0.800000012
+          z: 1
+          w: 0.100000001

@@ -712,11 +712,51 @@ void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComp
 }
 
 void RenderSystem::DrawParticle(TransformComponent* pTransform, ParticleComponent* pParticle, TextureComponent* pTexture){
+	GraphicsContext* graphicsContext = m_context->manager->renderer->GetGraphicsContext();
+	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
 	for(int i = 0; i < MAXPARTICLE; i++){
 		if(pParticle->Particle[i].LifeTime > 0.0f){
+			MATERIAL material;
+
+			if (pTexture) {
+					// マテリアル設定
+				material.Diffuse = pTexture->Material.Diffuse;
+				material.DiffuseTextureEnable = ((bool)pTexture->m_TextureData);
+				if (pTexture->m_TextureData) {
+					deviceContext->PSSetShaderResources(0, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+				}
+
+				UVMatrix uv;
+				if (pTexture->UV_Slice_X != 0 && pTexture->UV_Slice_Y != 0) {
+					uv.Start.x = (float)(pTexture->AnimationNum % pTexture->UV_Slice_X) * 1.0f / (float)pTexture->UV_Slice_X;
+					uv.Start.y = (float)(pTexture->AnimationNum / pTexture->UV_Slice_X) * 1.0f / (float)pTexture->UV_Slice_Y;
+
+					uv.End.x = (float)uv.Start.x + 1.0f / (float)pTexture->UV_Slice_X;
+					uv.End.y = (float)uv.Start.y + 1.0f / (float)pTexture->UV_Slice_Y;
+				}
+				graphicsContext->SetUVMatrix(uv);
+
+			} else {
+				// マテリアル設定
+				material.DiffuseTextureEnable = false;
+				material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+
+				UVMatrix uv;
+				graphicsContext->SetUVMatrix(uv);
+			}
+			material.Diffuse.w = pParticle->Particle[i].LifeTime / pParticle->particleLifeTime;
+			if (material.Diffuse.w < 1.0f) {
+				graphicsContext->SetATCEnable(false);   // アルファブレンド
+			} else {
+				graphicsContext->SetATCEnable(true);    // アルファテスト
+			}
+			graphicsContext->SetMaterial(material);
+
 
 			TransformComponent transform = *pTransform;
 			transform.position += pParticle->Particle[i].Position;
+			transform.scale *= pParticle->particleSize;
 
 			BillBoardRendererComponent billBoard;
 

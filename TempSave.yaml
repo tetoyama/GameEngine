@@ -144,12 +144,12 @@ Entities:
         Name: Player
       - Component: TransformComponent
         Position:
-          x: 0
+          x: -2.37375474
           y: 0.200000003
-          z: 0
+          z: 6.96076441
         Rotation:
           x: 0
-          y: 0
+          y: -0.746366441
           z: 0
         Scale:
           x: 1
@@ -165,7 +165,7 @@ Entities:
             w: 1
           Diffuse:
             x: 0
-            y: 1
+            y: 0.376623392
             z: 0
             w: 1
           Specular:
@@ -185,7 +185,7 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: PlayerComponent
@@ -199,46 +199,46 @@ Entities:
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 20
-          z: -15
+          x: 6.19179201
+          y: 4.17339182
+          z: -10.6699858
         Rotation:
-          x: -1
-          y: 0
+          x: -0.200000003
+          y: -0.452246994
           z: 0
         Scale:
           x: 1
           y: 1
           z: 1
       - Component: CameraComponent
-        isLock: false
+        isLock: true
         Target:
-          x: 0
-          y: 0
-          z: 0
+          x: -2.37375474
+          y: 0.200000003
+          z: 6.96076441
         NearClip: 0.00999999978
         FarClip: 1024
         FOV: 1
         viewMatrix:
           -
-            - 1
-            - 0
-            - 0
-            - 0
-          -
-            - 0
-            - 0.540302396
-            - -0.841470897
+            - 0.899467289
+            - -0.0868162811
+            - -0.428277433
             - 0
           -
             - -0
-            - 0.841470897
-            - 0.540302396
+            - 0.980066538
+            - -0.198669627
             - 0
           -
+            - 0.436988175
+            - 0.178696826
+            - 0.881537676
             - 0
-            - 1.8160162
-            - 24.9339542
+          -
+            - -0.906656742
+            - -1.64596093
+            - 12.8869247
             - 1
   - Entity: 6
     Components:
@@ -246,12 +246,12 @@ Entities:
         Name: Enemy1
       - Component: TransformComponent
         Position:
-          x: 20
+          x: 33.9114037
           y: 0.200000003
-          z: 0
+          z: 2.13458276
         Rotation:
           x: 0
-          y: -1.57079637
+          y: 6.45647383
           z: 0
         Scale:
           x: 1
@@ -291,16 +291,16 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: EnemyComponent
-        setOriginPos: false
+        setOriginPos: true
         OriginPos:
-          x: 0
-          y: 0
-          z: 0
+          x: 19.9933567
+          y: 0.200000003
+          z: -2.90352881e-10
         maxDistance: 15
         TargetPos:
-          x: 0
-          y: 0
-          z: 0
+          x: 32.444664
+          y: 0.200000003
+          z: 3.37267971
         MoveSpeed: 1
   - Entity: 7
     Components:
@@ -308,12 +308,12 @@ Entities:
         Name: Enemy2
       - Component: TransformComponent
         Position:
-          x: 6.18033934
+          x: 9.31276035
           y: 0.200000003
-          z: 19.0211315
+          z: 33.752903
         Rotation:
           x: 0
-          y: -2.82743359
+          y: 1.78002071
           z: 0
         Scale:
           x: 1
@@ -353,16 +353,16 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: EnemyComponent
-        setOriginPos: false
+        setOriginPos: true
         OriginPos:
-          x: 0
-          y: 0
-          z: 0
+          x: 6.17828655
+          y: 0.200000003
+          z: 19.0148144
         maxDistance: 15
         TargetPos:
-          x: 0
-          y: 0
-          z: 0
+          x: 10.3439789
+          y: 0.200000003
+          z: 31.5402679
         MoveSpeed: 1
   - Entity: 8
     Components:
@@ -370,12 +370,12 @@ Entities:
         Name: Enemy3
       - Component: TransformComponent
         Position:
-          x: -16.1803417
+          x: -15.5232697
           y: 0.200000003
-          z: 11.7557039
+          z: 19.015749
         Rotation:
           x: 0
-          y: -4.08407068
+          y: 1.86025214
           z: 0
         Scale:
           x: 1
@@ -415,16 +415,16 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: EnemyComponent
-        setOriginPos: false
+        setOriginPos: true
         OriginPos:
-          x: 0
-          y: 0
-          z: 0
+          x: -16.1749687
+          y: 0.200000003
+          z: 11.7517996
         maxDistance: 15
         TargetPos:
-          x: 0
-          y: 0
-          z: 0
+          x: -14.1847534
+          y: 0.200000003
+          z: 20.3751144
         MoveSpeed: 1
   - Entity: 9
     Components:
@@ -432,12 +432,12 @@ Entities:
         Name: Enemy4
       - Component: TransformComponent
         Position:
-          x: -16.180336
+          x: -25.4959927
           y: 0.200000003
-          z: -11.7557106
+          z: -16.7110252
         Rotation:
           x: 0
-          y: -5.34070778
+          y: 1.44206834
           z: 0
         Scale:
           x: 1
@@ -477,16 +477,16 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: EnemyComponent
-        setOriginPos: false
+        setOriginPos: true
         OriginPos:
-          x: 0
-          y: 0
-          z: 0
+          x: -16.174963
+          y: 0.200000003
+          z: -11.7518063
         maxDistance: 15
         TargetPos:
-          x: 0
-          y: 0
-          z: 0
+          x: -24.8807716
+          y: 0.200000003
+          z: -15.0227194
         MoveSpeed: 1
   - Entity: 10
     Components:
@@ -494,12 +494,12 @@ Entities:
         Name: Enemy5
       - Component: TransformComponent
         Position:
-          x: 6.18034267
+          x: 13.2485571
           y: 0.200000003
-          z: -19.0211296
+          z: -23.5371323
         Rotation:
           x: 0
-          y: -6.59734488
+          y: 3.1370554
           z: 0
         Scale:
           x: 1
@@ -539,16 +539,16 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: EnemyComponent
-        setOriginPos: false
+        setOriginPos: true
         OriginPos:
-          x: 0
-          y: 0
-          z: 0
+          x: 6.17828989
+          y: 0.200000003
+          z: -19.0148125
         maxDistance: 15
         TargetPos:
-          x: 0
-          y: 0
-          z: 0
+          x: 13.2811213
+          y: 0.200000003
+          z: -30.6712379
         MoveSpeed: 1
   - Entity: 11
     Components:
@@ -567,4 +567,32 @@ Entities:
           x: 1
           y: 1
           z: 1
+      - Component: TextureComponent
+        FilePath: Asset\Texture\particle.png
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 0.719664156
+            y: 0.764957726
+            z: 0.913419902
+            w: 0.996078432
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
       - Component: ParticleComponent
