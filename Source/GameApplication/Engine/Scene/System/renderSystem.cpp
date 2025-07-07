@@ -40,6 +40,7 @@
 #include <Component/bumpMapComponent.h>
 #include <Component/2DspriteRendererComponent.h>
 #include <Component/RenderLayerComponent.h>
+#include <Component/particleComponent.h>
 
 RenderLayer GetRenderLayerFromEntity(Entity entity, ComponentRegistry* registry) {
 	auto* layerComponent = registry->GetComponent<RenderLayerComponent>(entity);
@@ -50,6 +51,9 @@ RenderLayer GetRenderLayerFromEntity(Entity entity, ComponentRegistry* registry)
 		return RenderLayer::OverlayUI;
 	}
 	if(registry->HasComponent<BillBoardRendererComponent>(entity)){
+		return RenderLayer::Transparent3D;
+	}
+	if(registry->HasComponent<ParticleComponent>(entity)){
 		return RenderLayer::Transparent3D;
 	}
 	auto* texture = registry->GetComponent<TextureComponent>(entity);
@@ -707,6 +711,20 @@ void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComp
 
 }
 
+void RenderSystem::DrawParticle(TransformComponent* pTransform, ParticleComponent* pParticle, TextureComponent* pTexture){
+	for(int i = 0; i < MAXPARTICLE; i++){
+		if(pParticle->Particle[i].LifeTime > 0.0f){
+
+			TransformComponent transform = *pTransform;
+			transform.position += pParticle->Particle[i].Position;
+
+			BillBoardRendererComponent billBoard;
+
+			DrawBillBoard(&transform, m_billBoardMesh, &billBoard, pTexture);
+		}
+	}
+}
+
 void RenderSystem::SetCameraView(){
 
 	// コンテキストの取得
@@ -1066,6 +1084,11 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 				ModelRendererComponent* modelRenderer = m_context->component->GetComponent<ModelRendererComponent>(entity);
 				if(modelRenderer){
 					DrawModel(transform, modelRenderer, texture);
+				}
+
+				ParticleComponent* particle = m_context->component->GetComponent<ParticleComponent>(entity);
+				if(particle){
+					DrawParticle(transform, particle, texture);
 				}
 			}
 		}

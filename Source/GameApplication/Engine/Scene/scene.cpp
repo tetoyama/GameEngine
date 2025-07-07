@@ -61,6 +61,8 @@
 
 #include "Script/SetScene.h"
 #include <System/lightSystem.h>
+#include <Component/particleComponent.h>
+#include <System/particleSystem.h>
 
 Scene::Scene(){
 
@@ -99,6 +101,8 @@ void Scene::Initialize(ManagerContext* set){
 
 	m_componentRegistry->RegisterYAMLComponent<CameraComponent>("CameraComponent", false);
 
+	m_componentRegistry->RegisterYAMLComponent<ParticleComponent>("ParticleComponent", false);
+
 	m_componentRegistry->RegisterYAMLComponent<CustomScriptComponent>("CustomScriptComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<CSharpScriptComponent>("CSharpScriptComponent", false);
 
@@ -115,6 +119,7 @@ void Scene::Initialize(ManagerContext* set){
 	m_systemRegistry->RegisterSystem(std::make_unique<LightSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<ParticleSystem>(&m_SceneContext));
 
 	m_systemRegistry->RegisterSystem(std::make_unique<PlayerSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<BulletSystem>(&m_SceneContext));

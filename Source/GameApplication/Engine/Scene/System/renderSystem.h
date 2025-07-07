@@ -15,6 +15,7 @@ class SpriteRendererComponent;
 class MeshRendererComponent;
 class ModelRendererComponent;
 class BillBoardRendererComponent;
+class ParticleComponent;
 
 class RenderSystem : public ISystem{
 public:
@@ -38,6 +39,7 @@ private:
 	void DrawMesh(TransformComponent* pTransform, MeshRendererComponent* pMesh, TextureComponent* pTexture);
 	void DrawModel(TransformComponent* pTransform, ModelRendererComponent* pMesh, TextureComponent* pTexture);
 	void DrawBillBoard(TransformComponent* pTransform, MeshRendererComponent* pMesh, BillBoardRendererComponent* pBillBoard, TextureComponent* pTexture);
+	void DrawParticle(TransformComponent* pTransform, ParticleComponent* pParticle, TextureComponent* pTexture);
 
 	void DrawEntities(bool* RenderLayer);
 
