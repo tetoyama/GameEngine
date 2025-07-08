@@ -2,7 +2,7 @@
 #include "Interface/IComponent.h"
 #include "Service/YAMLConverters.h"
 
-#define MAXPARTICLE 256
+#define MAXPARTICLE 512
 
 struct PARTICLE
 {

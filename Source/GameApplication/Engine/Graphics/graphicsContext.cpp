@@ -81,9 +81,6 @@ void GraphicsContext::Shutdown(){
 	SAFE_RELEASE(m_DepthStateEnable);
 	SAFE_RELEASE(m_DepthStateDisable);
 
-	SAFE_RELEASE(m_BlendState);
-	SAFE_RELEASE(m_BlendStateATC);
-
 	m_d2dFactory.Reset();
 	m_dwriteFactory.Reset();
 
@@ -100,14 +97,13 @@ void GraphicsContext::SetDepthEnable(const bool& Enable){
 	}
 }
 
-void GraphicsContext::SetATCEnable(const bool& Enable){
-	float blendFactor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-
-	if(Enable){
-		m_DeviceContext->OMSetBlendState(m_BlendStateATC, blendFactor, 0xffffffff);
-	} else{
-		m_DeviceContext->OMSetBlendState(m_BlendState, blendFactor, 0xffffffff);
+void GraphicsContext::SetBlendMode(const BlendMode& mode){
+	if(m_CurrentBlendMode == mode){
+		return;
 	}
+	m_CurrentBlendMode = mode;
+	float blendFactor[4] = {0, 0, 0, 0};
+	m_DeviceContext->OMSetBlendState(m_BlendStates[(int)mode].Get(), blendFactor, 0xffffffff);
 }
 
 void GraphicsContext::SetWorldMatrix(const DirectX::XMMATRIX& world){
@@ -422,36 +418,53 @@ bool GraphicsContext::CreateRenderTargetView(){
 }
 
 bool GraphicsContext::CreateBlendState(){
-	// ブレンドステート設定
-	D3D11_BLEND_DESC blendDesc{};
-	blendDesc.AlphaToCoverageEnable = FALSE;
-	blendDesc.IndependentBlendEnable = FALSE;
+	HRESULT hr = S_OK;
+	D3D11_BLEND_DESC desc = {};
+	desc.AlphaToCoverageEnable = FALSE;
+	desc.IndependentBlendEnable = FALSE;
+	auto& rt = desc.RenderTarget[0];
+	rt.BlendEnable = TRUE;
+	rt.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-	blendDesc.RenderTarget[0].BlendEnable = TRUE;
+	// 各ブレンドモードごとの設定
+	// 1. Alpha
+	rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	rt.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	rt.BlendOp = D3D11_BLEND_OP_ADD;
+	rt.SrcBlendAlpha = D3D11_BLEND_ZERO;
+	rt.DestBlendAlpha = D3D11_BLEND_ONE;
+	rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	hr = m_Device->CreateBlendState(&desc, &m_BlendStates[(int)BlendMode::Alpha]);
+	if(FAILED(hr)) return false;
 
-	// カラー用ブレンド（RGB）
-	blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-	blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-	blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	// 2. Additive
+	rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	rt.DestBlend = D3D11_BLEND_ONE;
+	hr = m_Device->CreateBlendState(&desc, &m_BlendStates[(int)BlendMode::Additive]);
+	if(FAILED(hr)) return false;
 
-	// アルファ用ブレンド（A）
-	blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
-	blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
-	blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	// 3. Subtract
+	rt.BlendOp = D3D11_BLEND_OP_REV_SUBTRACT;
+	rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	rt.DestBlend = D3D11_BLEND_ONE;
+	hr = m_Device->CreateBlendState(&desc, &m_BlendStates[(int)BlendMode::Subtract]);
+	if(FAILED(hr)) return false;
 
-	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	// 4. Multiply
+	rt.BlendOp = D3D11_BLEND_OP_ADD;
+	rt.SrcBlend = D3D11_BLEND_DEST_COLOR;
+	rt.DestBlend = D3D11_BLEND_ZERO;
+	hr = m_Device->CreateBlendState(&desc, &m_BlendStates[(int)BlendMode::Multiply]);
+	if(FAILED(hr)) return false;
 
-	HRESULT hr = m_Device->CreateBlendState(&blendDesc, &m_BlendState);
-	assert(SUCCEEDED(hr));
+	// 5. Screen
+	rt.SrcBlend = D3D11_BLEND_ONE;
+	rt.DestBlend = D3D11_BLEND_INV_DEST_COLOR;
+	hr = m_Device->CreateBlendState(&desc, &m_BlendStates[(int)BlendMode::Screen]);
+	if(FAILED(hr)) return false;
 
-	blendDesc.AlphaToCoverageEnable = TRUE;
-	hr = m_Device->CreateBlendState(&blendDesc, &m_BlendStateATC);
-	assert(SUCCEEDED(hr));
-
-	float blendFactor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-	m_DeviceContext->OMSetBlendState(m_BlendState, blendFactor, 0xffffffff);
-
-	return SUCCEEDED(hr);
+	SetBlendMode(BlendMode::Alpha);
+	return true;
 }
 
 bool GraphicsContext::CreateDepthStencilBufferAndView(UINT width, UINT height){

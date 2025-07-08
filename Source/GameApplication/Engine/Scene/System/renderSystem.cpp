@@ -54,7 +54,7 @@ RenderLayer GetRenderLayerFromEntity(Entity entity, ComponentRegistry* registry)
 		return RenderLayer::Transparent3D;
 	}
 	if(registry->HasComponent<ParticleComponent>(entity)){
-		return RenderLayer::Transparent3D;
+		return RenderLayer::SortTransparent3D;
 	}
 	auto* texture = registry->GetComponent<TextureComponent>(entity);
 	if (texture && texture->Material.Diffuse.w < 1.0f) {
@@ -712,8 +712,11 @@ void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComp
 }
 
 void RenderSystem::DrawParticle(TransformComponent* pTransform, ParticleComponent* pParticle, TextureComponent* pTexture){
+
+
 	GraphicsContext* graphicsContext = m_context->manager->renderer->GetGraphicsContext();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+	graphicsContext->SetBlendMode(BlendMode::Additive);
 
 	for(int i = 0; i < MAXPARTICLE; i++){
 		if(pParticle->Particle[i].LifeTime > 0.0f){
@@ -745,12 +748,8 @@ void RenderSystem::DrawParticle(TransformComponent* pTransform, ParticleComponen
 				UVMatrix uv;
 				graphicsContext->SetUVMatrix(uv);
 			}
-			material.Diffuse.w = pParticle->Particle[i].LifeTime / pParticle->particleLifeTime;
-			if (material.Diffuse.w < 1.0f) {
-				graphicsContext->SetATCEnable(false);   // アルファブレンド
-			} else {
-				graphicsContext->SetATCEnable(true);    // アルファテスト
-			}
+			material.Diffuse.w = pTexture->Material.Diffuse.w * pParticle->Particle[i].LifeTime / pParticle->particleLifeTime;
+
 			graphicsContext->SetMaterial(material);
 
 
@@ -763,6 +762,7 @@ void RenderSystem::DrawParticle(TransformComponent* pTransform, ParticleComponen
 			DrawBillBoard(&transform, m_billBoardMesh, &billBoard, pTexture);
 		}
 	}
+	graphicsContext->SetBlendMode(BlendMode::Alpha);
 }
 
 void RenderSystem::SetCameraView(){
@@ -1082,11 +1082,6 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 						deviceContext->PSSetShaderResources(0, 1, texture->m_TextureData->pTexture.GetAddressOf());
 					}
 
-					if(material.Diffuse.w < 1.0f){
-						graphicsContext->SetATCEnable(false);   // アルファブレンド
-					} else{
-						graphicsContext->SetATCEnable(true);    // アルファテスト
-					}
 					graphicsContext->SetMaterial(material);
 
 					UVMatrix uv;

@@ -11,6 +11,17 @@
 #include "Service/IService.h"
 #include "Shader/CommonBuffer.h"
 
+enum class BlendMode
+{
+	Alpha,		// 通常アルファブレンド
+	Additive,	// 加算
+	Subtract,	// 減算
+	Multiply,	// 乗算
+	Screen,		// スクリーン
+	COUNT		// ブレンドモードの数
+};
+
+
 class GraphicsContext : public IService {
 public:
 	bool Initialize(HWND hwnd, UINT width, UINT height);
@@ -36,7 +47,7 @@ public:
 
 	// セッター
 	void SetDepthEnable(const bool& Enable);
-	void SetATCEnable(const bool& Enable);
+	void SetBlendMode(const BlendMode& mode);
 	void SetWorldMatrix(const DirectX::XMMATRIX& WorldMatrix);
 	void SetViewMatrix(const DirectX::XMMATRIX& ViewMatrix);
 	void SetProjectionMatrix(const DirectX::XMMATRIX& ProjectionMatrix);
@@ -93,8 +104,8 @@ private:
 	ID3D11DepthStencilState*	m_DepthStateEnable;
 	ID3D11DepthStencilState*	m_DepthStateDisable;
 
-	ID3D11BlendState*			m_BlendState;
-	ID3D11BlendState*			m_BlendStateATC;
+	Microsoft::WRL::ComPtr<ID3D11BlendState> m_BlendStates[(int)BlendMode::COUNT];
+	BlendMode m_CurrentBlendMode = BlendMode::COUNT;
 
 	DXGI_FORMAT m_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	DXGI_FORMAT m_depthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
