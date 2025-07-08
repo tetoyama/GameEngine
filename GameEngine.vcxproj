@@ -2674,6 +2674,7 @@
     <ClInclude Include="Source\GameApplication\gameApplication.h" />
     <ClInclude Include="Source\main.h" />
     <ClInclude Include="Source\Service\configSystem.h" />
+    <ClInclude Include="Source\Service\ImGuiFunc.h" />
     <ClInclude Include="Source\Service\IService.h" />
     <ClInclude Include="Source\Service\YAMLConverters.h" />
     <ClInclude Include="Source\Shader\CommonBuffer.h" />
@@ -3036,6 +3037,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\transformSystem.cpp" />
     <ClCompile Include="Source\GameApplication\gameApplication.cpp" />
     <ClCompile Include="Source\main.cpp" />
+    <ClCompile Include="Source\Service\ImGuiFunc.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Asset\Shader\pixelLightingBlinnPhongPS.cso">

@@ -58,9 +58,9 @@ RenderLayer GetRenderLayerFromEntity(Entity entity, ComponentRegistry* registry)
 	}
 	auto* texture = registry->GetComponent<TextureComponent>(entity);
 	if (texture && texture->Material.Diffuse.w < 1.0f) {
-		return RenderLayer::SortTransparent3D; // 透明オブジェクト
+		return RenderLayer::SortTransparent3D;
 	}
-	return RenderLayer::Opaque3D; // デフォルトレイヤー
+	return RenderLayer::Opaque3D;
 }
 
 struct RenderOrderComparator {
@@ -79,35 +79,27 @@ struct RenderOrderComparator {
 			return static_cast<int>(layerValA) < static_cast<int>(layerValB);
 		}
 		if(layerValA == RenderLayer::Opaque3D || layerValA == RenderLayer::Transparent3D){
-			return false; // 同じレイヤー内での順序は関係ない
+			return false;
 		}
-
 		if(layerValA == RenderLayer::OverlayUI || layerValA == RenderLayer::Background2D){
 
-			// OrderInLayer取得
 			auto* orderA = registry->GetComponent<OrderInLayerComponent>(a);
 			auto* orderB = registry->GetComponent<OrderInLayerComponent>(b);
 
 			int orderValA = orderA ? orderA->order : 0;
 			int orderValB = orderB ? orderB->order : 0;
 
-			if(orderValA != orderValB){
-				return orderValA < orderValB;
-			}
+			return orderValA < orderValB;
 		}
-
-		// Zソート（透明オブジェクトのみ距離でソート）
 		if(layerValA == RenderLayer::SortTransparent3D){
 			auto* transformA = registry->GetComponent<TransformComponent>(a);
 			auto* transformB = registry->GetComponent<TransformComponent>(b);
-
-			float distA = transformA ? (cameraPosition - transformA->position).length() : 0.0f;
-			float distB = transformB ? (cameraPosition - transformB->position).length() : 0.0f;
-
-			// 遠い順（奥から手前へ）
-			return distA > distB;
+			if(transformA && transformB){
+				float distA = (cameraPosition - transformA->position).length();
+				float distB = (cameraPosition - transformB->position).length();
+				return distA > distB;
+			}
 		}
-
 		return false;
 	}
 };
@@ -341,7 +333,7 @@ void RenderSystem::EditorUpdate(float deltaTime){
 			m_EditorCameraPosition += velocity.normalize() * speed * deltaTime;
 		}
 	} else{
-		// 回転から方向ベクトル取得
+
 		Vector3 front;
 		front.x = cosf(m_EditorCameraRotation.y) * sinf(m_EditorCameraRotation.x);
 		front.y = sinf(m_EditorCameraRotation.y);
@@ -350,13 +342,11 @@ void RenderSystem::EditorUpdate(float deltaTime){
 		Vector3 right = (Vec3Cross(front, Vector3(0.0f, 1.0f, 0.0f))).normalize();
 		Vector3 up = (Vec3Cross(right, front)).normalize();
 
-		// ------ 3. 中クリックでパン移動 ------
 		if(ImGui::IsMouseDown(ImGuiMouseButton_Middle)){
 			float panSensitivity = 0.1f;
 			m_EditorCameraPosition += right * io.MouseDelta.x * panSensitivity;
 			m_EditorCameraPosition += up * io.MouseDelta.y * panSensitivity;
 		}
-		// ------ 4. マウスホイールでズーム ------
 		if(m_MouseWheel != 0.0f){
 			float zoomSensitivity = 5.0f; // ズーム速度
 			m_EditorCameraPosition += front * m_MouseWheel * zoomSensitivity;
@@ -368,7 +358,6 @@ void RenderSystem::DrawRenderLayerToggleUI() {
 
 	ImGui::SameLine();
 
-	// 表示されているレイヤー名をまとめて表示
 	std::string previewText;
 	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; ++i) {
 		if (editorRenderLayerVisible[i]) {
@@ -378,7 +367,6 @@ void RenderSystem::DrawRenderLayerToggleUI() {
 	}
 	if (previewText.empty()) previewText = "None";
 
-	// Combo本体
 	if (ImGui::BeginCombo("##Visible Layers", previewText.c_str())) {
 		for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; ++i) {
 			ImGui::Selectable(
@@ -429,7 +417,7 @@ TransformComponent RenderSystem::CalculateRectTransform(
 		adjustedScale.y * -sprite.pivot.y
 	};
 
-	// 仮想座標オフセット（position）→ ピクセルスケーリング ＋ アスペクト比補正付き
+	// 仮想座標オフセット（position）→ ピクセルスケーリング ＋ アスペクト比補正
 	Vector2 positionOffset = {
 		originalTransform.position.x * aspectRatioScaleX / referenceResolution.x * viewportSize.x,
 		originalTransform.position.y / referenceResolution.y * viewportSize.y
@@ -446,9 +434,6 @@ TransformComponent RenderSystem::CalculateRectTransform(
 
 	return adjustedTransform;
 }
-
-
-
 
 void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent* meshRenderer, TextureComponent* pTexture){
 
@@ -739,6 +724,7 @@ void RenderSystem::DrawParticle(TransformComponent* pTransform, ParticleComponen
 					uv.End.y = (float)uv.Start.y + 1.0f / (float)pTexture->UV_Slice_Y;
 				}
 				graphicsContext->SetUVMatrix(uv);
+				material.Diffuse.w = pTexture->Material.Diffuse.w * pParticle->Particle[i].LifeTime / pParticle->particleLifeTime;
 
 			} else {
 				// マテリアル設定
@@ -748,10 +734,7 @@ void RenderSystem::DrawParticle(TransformComponent* pTransform, ParticleComponen
 				UVMatrix uv;
 				graphicsContext->SetUVMatrix(uv);
 			}
-			material.Diffuse.w = pTexture->Material.Diffuse.w * pParticle->Particle[i].LifeTime / pParticle->particleLifeTime;
-
 			graphicsContext->SetMaterial(material);
-
 
 			TransformComponent transform = *pTransform;
 			transform.position += pParticle->Particle[i].Position;

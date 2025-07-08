@@ -103,7 +103,7 @@ void PlayerSystem::Update(float deltaTime) {
 			m_cameraComponent->Target = transform->position;
 
 			if(input->IsKeyDown(m_context->manager->hwnd, VK_SPACE)){
-
+				
 				Entity bulletEntity = m_context->entity->Create();
 				NameComponent* name = m_context->component->AddComponent<NameComponent>(bulletEntity);
 				name->name = "Bullet";

@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface/IComponent.h"
 #include "Service/YAMLConverters.h"
+#include "Service/ImGuiFunc.h"
 
 #define MAXPARTICLE 512
 
@@ -13,125 +14,141 @@ struct PARTICLE
 
 class ParticleComponent : public IComponent {
 public:
-	YAML::Node encode() override {
+	PARTICLE Particle[MAXPARTICLE];
+
+	bool isLoop = true;
+
+	float SpawnInterval = 0.05f;
+
+	int SpawnCount = 100;
+
+	float particleLifeTime = 1.0f; // パーティクルのライフタイム
+	float particleSize = 1.0f; // パーティクルのサイズ
+	float particleSpeed = 1.0f; // パーティクルの速度
+	
+	float SpawnTimer = 0.0f;
+
+	Vector3 SpawnPosition = Vector3(0, 0, 0);
+	Vector3 SpawnPositionRandom = Vector3(0, 0, 0);
+
+	Vector3 StartSpeed = Vector3(0, 10, 0);
+	Vector3 StartSpeedRandom = Vector3(3, 0, 3);
+
+	Vector3 AddSpeed = Vector3(0, -15, 0);
+	Vector3 MulSpeed = Vector3(1, 1, 1);
+
+	YAML::Node encode() override{
 		YAML::Node node;
-		node["particleLifeTime"] = particleLifeTime;
-		node["particleSize"] = particleSize;
-		node["particleSpeed"] = particleSpeed;
-		node["SpawnRate"] = SpawnRate;
+		node["IsLoop"] = isLoop;
+		node["SpawnInterval"] = SpawnInterval;
+		node["SpawnCount"] = SpawnCount;
 		node["SpawnTimer"] = SpawnTimer;
+
+		node["ParticleLifeTime"] = particleLifeTime;
+		node["ParticleSize"] = particleSize;
+		node["ParticleSpeed"] = particleSpeed;
+
+		node["SpawnPosition"] = SpawnPosition;
+		node["SpawnPositionRandom"] = SpawnPositionRandom;
+
 		node["StartSpeed"] = StartSpeed;
+		node["StartSpeedRandom"] = StartSpeedRandom;
+
 		node["AddSpeed"] = AddSpeed;
-		node["StartRandom"] = StartRandom;
+		node["MulSpeed"] = MulSpeed;
 
 		return node;
 	}
 
-	bool decode(const YAML::Node& node) override {
-		if (!node.IsMap()) { return false; }
-		if (node["particleLifeTime"]) {
-			particleLifeTime = node["particleLifeTime"].as<float>();
-		}
-		if (node["particleSize"]) {
-			particleSize = node["particleSize"].as<float>();
-		}
-		if (node["particleSpeed"]) {
-			particleSpeed = node["particleSpeed"].as<float>();
-		}
-		if (node["SpawnRate"]) {
-			SpawnRate = node["SpawnRate"].as<float>();
-		}
-		if (node["SpawnTimer"]) {
-			SpawnTimer = node["SpawnTimer"].as<float>();
-		}
-		if (node["StartSpeed"]) {
-			StartSpeed = node["StartSpeed"].as<Vector3>();
-		}
-		if (node["AddSpeed"]) {
-			AddSpeed = node["AddSpeed"].as<Vector3>();
-		}
-		if (node["StartRandom"]) {
-			StartRandom = node["StartRandom"].as<Vector3>();
-		}
+	bool decode(const YAML::Node& node) override{
+		if(!node.IsMap()) return false;
+
+		if(node["IsLoop"]) isLoop = node["IsLoop"].as<bool>();
+		if(node["SpawnInterval"]) SpawnInterval = node["SpawnInterval"].as<float>();
+		if(node["SpawnCount"]) SpawnCount = node["SpawnCount"].as<int>();
+		if(node["SpawnTimer"]) SpawnTimer = node["SpawnTimer"].as<float>();
+
+		if(node["ParticleLifeTime"]) particleLifeTime = node["ParticleLifeTime"].as<float>();
+		if(node["ParticleSize"]) particleSize = node["ParticleSize"].as<float>();
+		if(node["ParticleSpeed"]) particleSpeed = node["ParticleSpeed"].as<float>();
+
+		if(node["SpawnPosition"]) SpawnPosition = node["SpawnPosition"].as<Vector3>();
+		if(node["SpawnPositionRandom"]) SpawnPositionRandom = node["SpawnPositionRandom"].as<Vector3>();
+
+		if(node["StartSpeed"]) StartSpeed = node["StartSpeed"].as<Vector3>();
+		if(node["StartSpeedRandom"]) StartSpeedRandom = node["StartSpeedRandom"].as<Vector3>();
+
+		if(node["AddSpeed"]) AddSpeed = node["AddSpeed"].as<Vector3>();
+		if(node["MulSpeed"]) MulSpeed = node["MulSpeed"].as<Vector3>();
 
 		return true;
 	}
 
 	void inspector(SceneContext* context) override {
+		if(ImGui::TreeNodeEx("Particle", ImGuiTreeNodeFlags_DefaultOpen)){
+			ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
-		const float labelWidth = 100.0f;
-		const int axisCount = 3;
-		const float spacing = ImGui::GetStyle().ItemSpacing.x;
-		float totalRegion = ImGui::GetContentRegionAvail().x;
-		float fieldRegion = totalRegion - labelWidth - spacing * 2 * (axisCount);
-		float fieldWidth = fieldRegion / axisCount;
+			float labelWidth = 120.0f;
+			float dragWidth = ImGui::GetContentRegionAvail().x - labelWidth - ImGui::GetStyle().ItemSpacing.x * 2;
 
-		ImVec4 colorX = ImVec4(0.7f, 0.4f, 0.4f, 0.3f);
-		ImVec4 colorY = ImVec4(0.4f, 0.7f, 0.4f, 0.3f);
-		ImVec4 colorZ = ImVec4(0.4f, 0.4f, 0.7f, 0.3f);
+			ImGui::Text("isLoop?");
+			ImGui::SameLine(labelWidth);
+			ImGui::Checkbox("##isLoop", &isLoop);
 
-		auto DrawVec3Control = [&](const char* label, float& x, float& y, float& z, bool readOnly = false) {
+			if(isLoop){
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("SpawnInterval");
+				ImGui::SameLine(labelWidth);
+				ImGui::PushItemWidth(dragWidth);
+				ImGui::DragFloat("##SpawnInterval", &SpawnInterval, 0.001f, 0.001f, 128.0f);
+			} else{
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("SpawnCount");
+				ImGui::SameLine(labelWidth);
+				ImGui::PushItemWidth(dragWidth);
+				ImGui::DragInt("##SpawnCount", &SpawnCount, 0.1f, 1, MAXPARTICLE);
+			}
 			ImGui::AlignTextToFramePadding();
-			ImGui::TextUnformatted(label);
-			ImGui::SameLine();
-			ImGui::SetCursorPosX(labelWidth); // 確実にラベル後ろに揃える
+			ImGui::Text("particleLifeTime");
+			ImGui::SameLine(labelWidth);
+			ImGui::PushItemWidth(dragWidth);
+			ImGui::DragFloat("##particleLifeTime", &particleLifeTime, 0.01f, 0.01f, 128.0f);
 
-			auto DrawComponent = [&](const char* id, float& value, const ImVec4& borderColor, const char* uniqueId, bool isLast) {
-				ImGui::PushID(uniqueId);
-				ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
-				ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-				ImGui::PushItemWidth(fieldWidth - 10.0f);
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("particleSize");
+			ImGui::SameLine(labelWidth);
+			ImGui::PushItemWidth(dragWidth);
+			ImGui::DragFloat("##particleSize", &particleSize, 0.01f, 0.01f, 128.0f);
+			ImGui::EndChild();
+			ImGui::TreePop();
+		}
+		if(ImGui::TreeNodeEx("Spawn Position", ImGuiTreeNodeFlags_DefaultOpen)){
+			ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
-				// 軸名（X/Y/Z）
-				ImGui::Text("%s", id);
-				ImGui::SameLine(0.0f, 10.0f);
+			ImGui::DragVec3("BasePositon", SpawnPosition);
+			ImGui::DragVec3("RandomPos", SpawnPositionRandom);
 
-				ImGui::DragFloat("##", &value, 0.01f, -1000.0f, 1000.0f);
+			ImGui::EndChild();
+			ImGui::TreePop();
+		}
+		if(ImGui::TreeNodeEx("Initial Velocity", ImGuiTreeNodeFlags_DefaultOpen)){
+			ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
-				ImGui::PopItemWidth();
-				ImGui::PopStyleVar();
-				ImGui::PopStyleColor();
-				ImGui::PopID();
+			ImGui::DragVec3("BaseSpeed", StartSpeed);
+			ImGui::DragVec3("RandomSpd", StartSpeedRandom);
+			ImGui::EndChild();
 
-				if (!isLast) ImGui::SameLine();
-			};
+			ImGui::TreePop();
+		}
+		if(ImGui::TreeNodeEx("Motion", ImGuiTreeNodeFlags_DefaultOpen)){
+			ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
-			DrawComponent("X", x, colorX, (std::string(label) + "X").c_str(), false);
-			DrawComponent("Y", y, colorY, (std::string(label) + "Y").c_str(), false);
-			DrawComponent("Z", z, colorZ, (std::string(label) + "Z").c_str(), true);
-		};
+			ImGui::DragVec3("Acceleration", AddSpeed);
+			ImGui::DragVec3("Velocity Multiplier", MulSpeed);
+			ImGui::EndChild();
 
-	// ----------- StartSpeed -----------
-		DrawVec3Control("StartSpeed", StartSpeed.x, StartSpeed.y, StartSpeed.z);
-		DrawVec3Control("StartRandom", StartRandom.x, StartRandom.y, StartRandom.z);
-		DrawVec3Control("AddSpeed", AddSpeed.x, AddSpeed.y, AddSpeed.z);
+			ImGui::TreePop();
+		}
 
-		ImGui::AlignTextToFramePadding();
-		ImGui::Text("SpawnRate");
-		ImGui::SameLine(labelWidth);
-		ImGui::DragFloat("##SpawnRate", &SpawnRate, 0.001f, 0.001f, 128.0f);
-
-		ImGui::AlignTextToFramePadding();
-		ImGui::Text("particleLifeTime");
-		ImGui::SameLine(labelWidth);
-		ImGui::DragFloat("##particleLifeTime", &particleLifeTime, 0.01f, 0.01f, 128.0f);
-
-		ImGui::AlignTextToFramePadding();
-		ImGui::Text("particleSize");
-		ImGui::SameLine(labelWidth);
-		ImGui::DragFloat("##particleSize", &particleSize, 0.01f, 0.01f, 128.0f);
 	}
-
-	PARTICLE Particle[MAXPARTICLE];
-
-	float particleLifeTime = 1.0f; // パーティクルのライフタイム
-	float particleSize = 1.0f; // パーティクルのサイズ
-	float particleSpeed = 1.0f; // パーティクルの速度
-	float SpawnRate = 0.05f;
-
-	float SpawnTimer = 0.0f;
-
-	Vector3 StartSpeed = Vector3(0, 10, 0);
-	Vector3 AddSpeed = Vector3(0, -15, 0);
-	Vector3 StartRandom = Vector3(3, 0, 3);
 };

@@ -23,7 +23,6 @@ void ParticleSystem::Initialize() {}
 void ParticleSystem::Finalize() {}
 
 void ParticleSystem::Start() {
-	// ライトコンポーネントを持つエンティティの検索
 	const auto& Entities = m_context->component->FindEntitiesWithComponent<ParticleComponent>();
 	if(Entities.empty()){
 		return;
@@ -35,14 +34,21 @@ void ParticleSystem::Start() {
 		}
 		particle->SpawnTimer = 0.0f;
 
-		for (int i = 0; i < MAXPARTICLE; i++) {
-			particle->Particle[i].LifeTime = 0.0f;
+		for(int i = 0; i < MAXPARTICLE; i++){
+			if(particle->isLoop){
+				particle->Particle[i].LifeTime = 0.0f;
+			} else{
+				if(particle->SpawnCount > i){
+					particle->Particle[i].LifeTime = particle->particleLifeTime;
+					particle->Particle[i].Position = particle->SpawnPosition + Vector3(particle->SpawnPositionRandom.x * RandomParticle(), particle->SpawnPositionRandom.y * RandomParticle(), particle->SpawnPositionRandom.z * RandomParticle());
+					particle->Particle[i].Speed = particle->StartSpeed + Vector3(particle->StartSpeedRandom.x * RandomParticle(), particle->StartSpeedRandom.y * RandomParticle(), particle->StartSpeedRandom.z * RandomParticle());
+				}
+			}
 		}
 	}
 }
 
 void ParticleSystem::Update(float deltaTime){
-	// ライトコンポーネントを持つエンティティの検索
 	const auto& Entities = m_context->component->FindEntitiesWithComponent<ParticleComponent>();
 	if(Entities.empty()){
 		return;
@@ -57,28 +63,25 @@ void ParticleSystem::Update(float deltaTime){
 		TransformComponent* transform = m_context->component->GetComponent<TransformComponent>(entity);
 		if(transform){
 
-			if (particle->SpawnRate == 0.0f) {
-				particle->SpawnRate = 0.00001f;
-			}
-			while (particle->SpawnTimer > particle->SpawnRate) {
-				particle->SpawnTimer -= particle->SpawnRate;
-				for (int i = 0; i < MAXPARTICLE; i++) {
-					if (particle->Particle[i].LifeTime <= 0.0f) {
-						particle->Particle[i].LifeTime = particle->particleLifeTime;
-						particle->Particle[i].Position = Vector3(0,0,0);
-						particle->Particle[i].Speed = particle->StartSpeed + Vector3(particle->StartRandom.x * RandomParticle(), particle->StartRandom.y * RandomParticle(), particle->StartRandom.z * RandomParticle());
-						break;
-					}
-				}
-			}
-
-
-			for (int i = 0; i < MAXPARTICLE; i++) {
-				if (particle->Particle[i].LifeTime > 0.0f) {
-
+			for(int i = 0; i < MAXPARTICLE; i++){
+				if(particle->Particle[i].LifeTime > 0.0f){
 					particle->Particle[i].LifeTime -= deltaTime;
 					particle->Particle[i].Position += particle->Particle[i].Speed * deltaTime;
 					particle->Particle[i].Speed += particle->AddSpeed * deltaTime;
+					particle->Particle[i].Speed *= Vector3(powf(particle->MulSpeed.x, deltaTime), powf(particle->MulSpeed.y, deltaTime), powf(particle->MulSpeed.z, deltaTime));
+				}
+			}
+
+			if(particle->SpawnInterval == 0.0f){continue;}
+			while (particle->SpawnTimer > particle->SpawnInterval) {
+				particle->SpawnTimer -= particle->SpawnInterval;
+				for (int i = 0; i < MAXPARTICLE; i++) {
+					if (particle->isLoop && particle->Particle[i].LifeTime <= 0.0f) {
+						particle->Particle[i].LifeTime = particle->particleLifeTime;
+						particle->Particle[i].Position = particle->SpawnPosition + Vector3(particle->SpawnPositionRandom.x * RandomParticle(), particle->SpawnPositionRandom.y * RandomParticle(), particle->SpawnPositionRandom.z * RandomParticle());
+						particle->Particle[i].Speed = particle->StartSpeed + Vector3(particle->StartSpeedRandom.x * RandomParticle(), particle->StartSpeedRandom.y * RandomParticle(), particle->StartSpeedRandom.z * RandomParticle());
+						break;
+					}
 				}
 			}
 		}

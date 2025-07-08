@@ -22,4 +22,8 @@ public:
 	float currentLifeTime = 0.0f;
 	float bulletSpeed = 20.0f;
 	int particleCount = 0;
+
+	Vector3 StartPos;
+	Vector3 TargetPos;
+	Entity Target = 0;
 };
