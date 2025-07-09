@@ -128,8 +128,6 @@ void BulletSystem::Update(float deltaTime){
 										effectTexture->UV_Slice_X = 4;
 										effectTexture->UV_Slice_Y = 4;
 										effectTexture->AnimationNum = 0;
-
-
 									}
 
 
