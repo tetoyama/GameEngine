@@ -55,7 +55,7 @@ void main(in PS_IN In, out float4 outColor : SV_Target)
     float LdotH = max(dot(L, H), 0.0);
 
     // Disneyの Specular F0
-    float3 F0 = lerp(float3(0.04, 0.04, 0.04), baseColor, 0.5); // metallic = 0 と仮定
+    float3 F0 = lerp(float3(0.04, 0.04, 0.04), baseColor, 0.0); // metallic = 0 と仮定
 
     // roughness (Shininessから変換)
     float perceptualRoughness = saturate(1.0 - Material.Shininess / 128.0);

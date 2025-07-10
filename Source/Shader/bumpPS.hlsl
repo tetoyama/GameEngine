@@ -16,24 +16,28 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     lv = normalize(lv);
     
     //減衰の計算
+
     float ofs = 1.0f - (1.0f / Light.PointLightParam.x) * ld;
     ofs = max(0, ofs);
-    
-    float4 normalMap = g_TextureNormal.Sample(g_SamplerState, In.TexCoord);
-    normalMap = normalMap * 2.0f - 1.0f; //法線マップの値を-1から1の範囲に変換
-    //normalMap = 0.5f * (normalMap + In.Normal);
-    float4 bumpNormal;
-    bumpNormal.x = -normalMap.r; // X軸の法線を反転
-    bumpNormal.y = normalMap.g; // Y軸の法線
-    bumpNormal.z = normalMap.b; // Z軸の法線
-    bumpNormal.w = 0.0f;
-    
-    bumpNormal = normalize(bumpNormal);
+        
+    //法線マップ取得
+    float4 normalMap = g_TextureNormal.Sample(g_SamplerState, In.TexCoord); //法線マップのサンプリング
+    //色データをベクトルに展開
+    normalMap = (normalMap * 2.0f) - 1.0f; //テクスチャによる？
+
+    //法線として格納しなおす
+    float4 bumpNormal; //サンプルのテクスチャ次第
+    //normal.x = normalMap.x; //X成分 test.png
+    bumpNormal.x = -normalMap.r; //X成分 normal.bmp
+    bumpNormal.y = normalMap.b; //Y成分
+    bumpNormal.z = normalMap.g; //Z成分
+    bumpNormal.w = 0.0f; //W成分は0にする（平行移動しないため）
+
+    //光源計算をする
     float light = -dot(bumpNormal.xyz, lv.xyz);
-    
-    
     light = saturate(light);
-    light *= ofs;
+    //明るさを減衰する
+    light *= ofs; //距離を減衰率で割る
     
     float blendFactor = normal.y * 0.5f + 0.5f;
     float4 color = lerp(Light.GroundColor, Light.SkyColor, blendFactor);

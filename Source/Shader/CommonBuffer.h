@@ -3,6 +3,7 @@ struct VERTEX_3D
 {
 	DirectX::XMFLOAT3 Position;
 	DirectX::XMFLOAT3 Normal;
+	DirectX::XMFLOAT3 Tangent;
 	DirectX::XMFLOAT4 Diffuse;
 	DirectX::XMFLOAT2 TexCoord;
 };

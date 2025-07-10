@@ -74,24 +74,48 @@ ModelData* ModelLoader::LoadModel(const std::string& modelPath, const bool& isBl
 					Max.x = (std::max)(mesh->mVertices[v].x, Max.x);
 					Max.y = (std::max)(mesh->mVertices[v].y, Max.y);
 					Max.z = (std::max)(mesh->mVertices[v].z, Max.z);
-
 				}
+				if (mesh->HasPositions()) {
+					if (isBlender) {
+						vertex[v].Position = DirectX::XMFLOAT3(mesh->mVertices[v].x, -mesh->mVertices[v].z, mesh->mVertices[v].y);
 
-				if (isBlender) {
-					vertex[v].Position = DirectX::XMFLOAT3(mesh->mVertices[v].x, -mesh->mVertices[v].z, mesh->mVertices[v].y);
-
-					vertex[v].TexCoord = DirectX::XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y);
-					vertex[v].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-
-					vertex[v].Normal = DirectX::XMFLOAT3(mesh->mNormals[v].x, -mesh->mNormals[v].z, mesh->mNormals[v].y);
+					} else {
+						vertex[v].Position = DirectX::XMFLOAT3(mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z);
+					}
 				} else {
-					vertex[v].Position = DirectX::XMFLOAT3(mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z);
-
-					vertex[v].TexCoord = DirectX::XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y);
-					vertex[v].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-
-					vertex[v].Normal = DirectX::XMFLOAT3(mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z);
+					vertex[v].Position = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 				}
+				if (mesh->HasNormals()) {
+					if (isBlender) {
+						vertex[v].Normal = DirectX::XMFLOAT3(mesh->mNormals[v].x, -mesh->mNormals[v].z, mesh->mNormals[v].y);
+					} else {
+						vertex[v].Normal = DirectX::XMFLOAT3(mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z);
+					}
+				} else {
+					vertex[v].Normal = DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
+				}
+				if (mesh->HasTangentsAndBitangents()) {
+					if (isBlender) {
+						vertex[v].Tangent = DirectX::XMFLOAT3(mesh->mTangents[v].x, -mesh->mTangents[v].z, mesh->mTangents[v].y);
+					} else {
+						vertex[v].Tangent = DirectX::XMFLOAT3(mesh->mTangents[v].x, mesh->mTangents[v].y, mesh->mTangents[v].z);
+					}
+				} else {
+					vertex[v].Tangent = DirectX::XMFLOAT3(0.0f,1.0f,0.0f);
+				}
+				if (mesh->HasVertexColors(v)) {
+					vertex[v].Diffuse = DirectX::XMFLOAT4( mesh->mColors[v]->r , mesh->mColors[v]->g, mesh->mColors[v]->b, mesh->mColors[v]->a);
+				} else {
+					vertex[v].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+				}
+
+				if (mesh->HasTextureCoords(0)) {
+					vertex[v].TexCoord = DirectX::XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y);
+				} else {
+					vertex[v].TexCoord = DirectX::XMFLOAT2(0.0f,0.0f);
+				}
+
+
 			}
 
 			D3D11_BUFFER_DESC bd = {};

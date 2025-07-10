@@ -48,7 +48,7 @@ Entities:
         FilePath: Asset\Model\cinematic-plains-and-mountains\textures\Normalmap.png
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cinematic-plains-and-mountains\source\Mesher.fbx
-        PixelShader: Asset\Shader\bumpPS.cso
+        PixelShader: Asset\Shader\bumpPS2.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
   - Entity: 2
@@ -144,7 +144,7 @@ Entities:
           z: 0.100000001
           w: 1
         PointLightParam:
-          x: 100000
+          x: 10000
           y: 0
           z: 0
           w: 0
@@ -284,6 +284,6 @@ Entities:
         FilePath: Asset\Model\dead_tree_rlthg_low\Dead_Tree_rlthg_Low_1K_Normal.jpg
       - Component: ModelRendererComponent
         FilePath: Asset\Model\dead_tree_rlthg_low\Dead_Tree_rlthg_Low.fbx
-        PixelShader: Asset\Shader\bumpPS.cso
+        PixelShader: Asset\Shader\bumpPS2.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false

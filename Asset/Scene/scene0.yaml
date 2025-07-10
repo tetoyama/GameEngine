@@ -125,7 +125,7 @@ Entities:
             - 1.8160162
             - 24.9339542
             - 1
-  - Entity: 5
+  - Entity: 4
     Components:
       - Component: NameComponent
         Name: Enemy1
@@ -187,7 +187,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 6
+  - Entity: 5
     Components:
       - Component: NameComponent
         Name: Enemy2
@@ -249,7 +249,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 7
+  - Entity: 6
     Components:
       - Component: NameComponent
         Name: Enemy3
@@ -311,7 +311,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 8
+  - Entity: 7
     Components:
       - Component: NameComponent
         Name: Enemy4
@@ -373,7 +373,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 9
+  - Entity: 8
     Components:
       - Component: NameComponent
         Name: Enemy5
@@ -435,7 +435,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 10
+  - Entity: 9
     Components:
       - Component: NameComponent
         Name: Enemy6
@@ -497,7 +497,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 11
+  - Entity: 10
     Components:
       - Component: NameComponent
         Name: Enemy7
@@ -559,7 +559,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 12
+  - Entity: 11
     Components:
       - Component: NameComponent
         Name: Enemy8
@@ -621,7 +621,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 13
+  - Entity: 12
     Components:
       - Component: NameComponent
         Name: Enemy9
@@ -683,7 +683,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 14
+  - Entity: 13
     Components:
       - Component: NameComponent
         Name: Enemy10
@@ -745,7 +745,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 15
+  - Entity: 14
     Components:
       - Component: NameComponent
         Name: Enemy11
@@ -807,7 +807,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 16
+  - Entity: 15
     Components:
       - Component: NameComponent
         Name: Enemy12
@@ -869,7 +869,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 17
+  - Entity: 16
     Components:
       - Component: NameComponent
         Name: Enemy13
@@ -931,7 +931,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 18
+  - Entity: 17
     Components:
       - Component: NameComponent
         Name: Enemy14
@@ -993,7 +993,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 19
+  - Entity: 18
     Components:
       - Component: NameComponent
         Name: Enemy15
@@ -1055,7 +1055,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 20
+  - Entity: 19
     Components:
       - Component: NameComponent
         Name: Enemy16
@@ -1117,7 +1117,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 21
+  - Entity: 20
     Components:
       - Component: NameComponent
         Name: Enemy17
@@ -1179,7 +1179,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 22
+  - Entity: 21
     Components:
       - Component: NameComponent
         Name: Enemy18
@@ -1241,7 +1241,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 23
+  - Entity: 22
     Components:
       - Component: NameComponent
         Name: Enemy19
@@ -1303,7 +1303,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 24
+  - Entity: 23
     Components:
       - Component: NameComponent
         Name: Enemy20
@@ -1365,7 +1365,7 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 25
+  - Entity: 24
     Components:
       - Component: NameComponent
         Name: Light
@@ -1430,3 +1430,52 @@ Entities:
           y: 0.800000012
           z: 1
           w: 0.100000001
+  - Entity: 25
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: -1.90734863e-06
+          y: 7.13147831
+          z: -10.2385759
+        Rotation:
+          x: 0.485003382
+          y: 0
+          z: 0
+        Scale:
+          x: 5.57000065
+          y: 5.56999731
+          z: 5.56999731
+      - Component: TextureComponent
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 0.800000012
+            y: 0.800000012
+            z: 0.800000012
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\model.fbx
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false

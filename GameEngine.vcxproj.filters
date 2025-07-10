@@ -2712,6 +2712,7 @@
     <FxCompile Include="Source\Shader\PixelShader.hlsl" />
     <FxCompile Include="Source\Shader\disneyPBR_PS.hlsl" />
     <FxCompile Include="Source\Shader\oldBumpPS.hlsl" />
+    <FxCompile Include="Source\Shader\bumpPS2.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />
