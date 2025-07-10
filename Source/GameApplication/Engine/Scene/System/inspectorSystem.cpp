@@ -10,7 +10,6 @@
 #include "../../../Backends/ImGui/ImGuizmo.h"
 #include "Engine/Graphics/mainRenderer.h"
 
-#include <filesystem>
 #include <set>
 #include <Registry/componentRegistry.h>
 #include <Component/transformComponent.h>
@@ -28,9 +27,59 @@
 #include "Engine/DebugTools/DebugSystem.h" // Add this include to resolve the incomplete type issue
 #include <Component/2DspriteRendererComponent.h>
 
+#include "Engine/Resources/resourceSystem.h"
+
+#include "Engine/Resources/Loader/modelLoader.h"
+#include "Engine/Resources/Loader/shaderLoader.h"
+#include "Engine/Resources/Loader/textureLoader.h"
+
+#include "Engine/Resources/Data/modelData.h"
+#include "Engine/Resources/Data/vertexShaderData.h"
+#include "Engine/Resources/Data/pixelShaderData.h"
+#include "Engine/Resources/Data/textureData.h"
+
+#include "Backends/checkFileExtention.h"
+
 static bool openRename = false;
 static std::filesystem::path renameTarget;
 static char newNameBuffer[256] = {0};
+
+TextureData* InspectorSystem::GetIconTexture(std::string filepath) {
+
+	FileIconType type = FileIconType::UNDEFINED;
+	if (filepath == "FOLDER") {
+		type = FileIconType::FOLDER;
+	}
+	std::string ext = GetFileExtension(filepath);
+
+	if (ext == ".wav") {
+
+	}
+	if (ext == ".png" || ext == ".tga" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp") {
+		// キャッシュされていればそれを返す（重複読み込みを避ける）
+		auto it = previewCache.find(filepath);
+		if (it != previewCache.end()) {
+			return it->second;
+		}
+		// 初回読み込み → テクスチャ作成
+		auto tex = m_context->manager->resource->GetTextureLoader()->LoadTexture(filepath);
+		if (tex) {
+			previewCache[filepath] = tex;
+			return previewCache[filepath];
+		}
+	}
+
+	return fileIcon[type];
+}
+
+void InspectorSystem::Initialize() {
+	fileIcon[FileIconType::UNDEFINED] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\file_undefied.png");
+	fileIcon[FileIconType::FOLDER] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\folder.png");
+}
+
+void InspectorSystem::Finalize() {
+
+}
 
 // メインの更新関数
 void InspectorSystem::Draw(){
@@ -386,7 +435,7 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 	ImGui::End();
 }
 
-void DrawDirectoryTree(const std::filesystem::path& directory, std::string& selectedPath){
+void InspectorSystem::DrawDirectoryTree(const std::filesystem::path& directory, std::string& selectedPath){
 	if(!std::filesystem::exists(directory) || !std::filesystem::is_directory(directory)){
 		return;
 	}
@@ -520,17 +569,17 @@ void DrawDirectoryTree(const std::filesystem::path& directory, std::string& sele
 
 
 
-void DrawAssetsInDirectory(std::string& selectedPath){
+void InspectorSystem::DrawAssetsInDirectory(std::string& selectedPath){
 	std::filesystem::path path = selectedPath;
 	std::error_code ec;
 	if(!std::filesystem::exists(path, ec) || !std::filesystem::is_directory(path, ec)) return;
 
-	ImGui::Text("Content: %s", selectedPath.c_str());
+	ImGui::Text("%s", selectedPath.c_str());
 
 	// 検索バー
 	float SearchWidth = 120.0f;
-	if(ImGui::GetWindowContentRegionMax().x * 0.6f > SearchWidth){
-		SearchWidth = ImGui::GetWindowContentRegionMax().x * 0.6f;
+	if(ImGui::GetWindowContentRegionMax().x * 0.3f > SearchWidth){
+		SearchWidth = ImGui::GetWindowContentRegionMax().x * 0.3f;
 	}
 	ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - SearchWidth);
 	ImGui::PushItemWidth(SearchWidth);
@@ -543,8 +592,12 @@ void DrawAssetsInDirectory(std::string& selectedPath){
 
 	float itemSize = 70.0f;
 	float panelWidth = ImGui::GetContentRegionAvail().x;
-	int columnsCount = static_cast<int>(panelWidth / (itemSize + 5));
-	if(columnsCount < 1) columnsCount = 1;
+
+	float padding = 5.0f; // マージン
+	float totalItemWidth = itemSize + padding;
+
+	int columnsCount = static_cast<int>(panelWidth / totalItemWidth);
+	if (columnsCount < 1) columnsCount = 1;
 
 	// エントリ収集
 	std::vector<std::filesystem::directory_entry> entries;
@@ -579,18 +632,23 @@ void DrawAssetsInDirectory(std::string& selectedPath){
 		}
 
 		if(index % columnsCount != 0)
-			ImGui::SameLine();
+			ImGui::SameLine(0.0f, (panelWidth - (itemSize)*columnsCount) / columnsCount);
 
 		ImGui::PushID(entry.path().string().c_str());
 		ImGui::BeginGroup();
 
+		ImVec2 CursorPos = ImGui::GetCursorPos();
+
 		// ディレクトリなら別アイコン・クリック時にパス移動
 		if(entry.is_directory(ec)){
-			if(ImGui::Button("Folder", ImVec2(itemSize, itemSize))){
-				selectedPath = entry.path().string(); // ★クリックで移動
+			if(ImGui::Button("##Folder", ImVec2(itemSize, itemSize))) {
+				for (auto& [path, texture] : previewCache) {
+					m_context->manager->resource->GetTextureLoader()->UnLoadTexture(path);
+				}
+				selectedPath = entry.path().string();
 			}
 		} else{
-			ImGui::Button("ICON", ImVec2(itemSize, itemSize));
+			ImGui::Button("##ICON", ImVec2(itemSize, itemSize));
 
 			if(ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)){
 				std::string fullPath = entry.path().string();
@@ -599,10 +657,45 @@ void DrawAssetsInDirectory(std::string& selectedPath){
 				ImGui::EndDragDropSource();
 			}
 		}
+		ImVec2 AfterCursorPos = ImGui::GetCursorPos();
 
-		ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + itemSize);
-		ImGui::TextWrapped("%s", filename.c_str());
-		ImGui::PopTextWrapPos();
+		std::string path = entry.path().string();
+		if (entry.is_directory(ec)) {
+			path = "FOLDER";
+		}
+		ImVec2 IconSize = ImVec2(GetIconTexture(path)->Width, GetIconTexture(path)->Height);
+		if (IconSize.x < IconSize.y) {
+			IconSize.x = IconSize.x * itemSize / IconSize.y;
+			IconSize.y = itemSize;
+			ImGui::SetCursorPos(ImVec2(CursorPos.x + (itemSize -IconSize.x) * 0.5f, CursorPos.y));
+		} else {
+			IconSize.y = IconSize.y * itemSize / IconSize.x;
+			IconSize.x = itemSize;
+			ImGui::SetCursorPos(ImVec2(CursorPos.x, CursorPos.y + (itemSize - IconSize.y) * 0.5f));
+		}
+		ImVec4 ImageColor = ImVec4(1, 1, 1, 1);
+		if (ImGui::IsItemHovered()) {
+			ImageColor = ImVec4(1, 1, 1, 0.7f);
+		}
+		if (ImGui::IsItemActive()) {
+			ImVec4(1, 1, 1, 0.5f);
+		}
+		ImGui::Image(GetIconTexture(path)->pTexture.Get(), IconSize,ImVec2(0,0),ImVec2(1,1), ImageColor,ImVec4(0,0,0,0));
+		ImGui::SetCursorPos(AfterCursorPos);
+
+		std::string displayName = filename;
+		ImVec2 textSize = ImGui::CalcTextSize(displayName.c_str());
+		float maxTextWidth = itemSize;
+
+		if (textSize.x > maxTextWidth) {
+			int len = static_cast<int>(displayName.size());
+			while (len > 0 && ImGui::CalcTextSize((displayName.substr(0, len) + "...").c_str()).x > maxTextWidth) {
+				--len;
+			}
+			displayName = displayName.substr(0, len) + "...";
+		}
+
+		ImGui::TextUnformatted(displayName.c_str());
 
 		ImGui::EndGroup();
 		ImGui::PopID();

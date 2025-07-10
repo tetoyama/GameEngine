@@ -13,6 +13,7 @@ public:
 
 	~TextureLoader() = default;
 	TextureData* LoadTexture(const std::string& filePath);
+	void UnLoadTexture(const std::string& filePath);
 	TextureData* GetTexture(const std::string& filePath);
 	void SetTexture(const std::string& filePath);
 	void SetBumpTexture(const std::string& filePath);

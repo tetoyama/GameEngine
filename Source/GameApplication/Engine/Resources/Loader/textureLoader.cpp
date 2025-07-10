@@ -54,6 +54,11 @@ TextureData* TextureLoader::LoadTexture(const std::string& filePath){
 	return m_Textures[filePath].get();
 }
 
+void TextureLoader::UnLoadTexture(const std::string& filePath) {
+	m_Textures[filePath]->pTexture.Reset();
+	m_Textures[filePath].reset();
+}
+
 TextureData* TextureLoader::GetTexture(const std::string& filePath){
 	auto it = m_Textures.find(filePath);
 	if(it != m_Textures.end()){
