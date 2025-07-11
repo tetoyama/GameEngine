@@ -2,6 +2,7 @@
 class ISystem
 {
 public:
+	virtual ~ISystem(){}
 
 	virtual void Initialize() = 0;
 	virtual void Finalize() = 0;

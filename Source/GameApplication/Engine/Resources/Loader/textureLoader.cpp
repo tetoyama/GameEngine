@@ -14,10 +14,10 @@
 #pragma comment(lib,"DirectXTex_Release.lib")
 #endif
 
-TextureData* TextureLoader::LoadTexture(const std::string& filePath){
+std::shared_ptr<TextureData> TextureLoader::LoadTexture(const std::string& filePath){
 
 	if(m_Textures.count(filePath)){
-		return m_Textures[filePath].get();
+		return m_Textures[filePath];
 	}
 	bool isTgaFile = HasExtension(filePath, "tga");
 
@@ -48,21 +48,31 @@ TextureData* TextureLoader::LoadTexture(const std::string& filePath){
 
 
 	if(!m_Textures[filePath]->pTexture.Get()){
+		m_Textures.erase(filePath);
 		return nullptr; // テクスチャの読み込みに失敗した場合はnullptrを返す
 	}
 
-	return m_Textures[filePath].get();
+	return m_Textures[filePath];
 }
 
 void TextureLoader::UnLoadTexture(const std::string& filePath) {
-	m_Textures[filePath]->pTexture.Reset();
-	m_Textures[filePath].reset();
+	if (!m_Textures.empty()) {
+
+		auto it = m_Textures.find(filePath);
+		if (it != m_Textures.end()) {
+			if (it->second.use_count() <= 1) {
+				m_Textures.erase(it);
+			} else {
+				std::cout << "Texture still in use: " << filePath << std::endl;
+			}
+		}
+	}
 }
 
-TextureData* TextureLoader::GetTexture(const std::string& filePath){
+std::shared_ptr<TextureData> TextureLoader::GetTexture(const std::string& filePath){
 	auto it = m_Textures.find(filePath);
 	if(it != m_Textures.end()){
-		return it->second.get();
+		return it->second;
 	}
 	return nullptr;
 }

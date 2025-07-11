@@ -1,5 +1,6 @@
 #pragma once
 #define _CRT_SECURE_NO_WARNINGS
+#include <memory>
 #include "Interface/IComponent.h"
 
 #include "GameApplication/Engine/Graphics/graphicsContext.h"
@@ -11,8 +12,10 @@
 #include "Engine/Resources/Data/TextureData.h"
 class BumpMapComponent: public IComponent {
 public:
-
-	TextureData* m_TextureData = nullptr;
+	~BumpMapComponent() {
+		m_TextureData.reset();
+	}
+	std::shared_ptr<TextureData> m_TextureData;
 
 	YAML::Node encode() override{
 		YAML::Node node;

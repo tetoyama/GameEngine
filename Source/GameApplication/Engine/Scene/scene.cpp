@@ -202,6 +202,7 @@ void Scene::Draw(){
 
 void Scene::Shutdown(){
 	m_SceneManagerContext->debug->LOG_INFO("Sceneを終了中...");
+	ResetAll();
 	m_systemRegistry->FinalizeAll();
 
 	// システムの終了処理

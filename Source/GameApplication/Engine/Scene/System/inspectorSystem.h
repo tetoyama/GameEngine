@@ -17,14 +17,20 @@ class SpriteRendererComponent;
 struct TextureData;
 
 enum FileIconType {
-	UNDEFINED = 0,
-	FOLDER,
-	MAX,
+	FILE_UNDEFINED = 0,
+	FILE_FOLDER,
+	FILE_TEXT,
+	FILE_YAML,
+	FILE_FBX,
+	FILE_OBJ,
+	FILE_TTF,
+	FILE_MAX,
 };
 
 class InspectorSystem: public ISystem
 {
 public:
+
 	InspectorSystem(SceneContext* context): m_context(context){}
 	~InspectorSystem(){}
 	void Initialize() override;
@@ -53,6 +59,7 @@ private:
 	void DrawInspector(SceneContext* context);
 	void DrawAssetsBrowser();
 
+	void ClearPreviewChache();
 
 	void DrawDirectoryTree(const std::filesystem::path& directory, std::string& selectedPath);
 
@@ -61,6 +68,10 @@ private:
 	TextureData* GetIconTexture(std::string filepath);
 
 	// メンバー変数
+	bool openRename = false;
+	std::filesystem::path renameTarget;
+	char newNameBuffer[256]{};
+
 	Entity selectedEntity = 0;
 
 	bool* showSceneHierarchy = nullptr;
@@ -68,8 +79,6 @@ private:
 	bool* showConsole = nullptr;
 	bool* showAssetsBrowser = nullptr;
 
-
-	TextureData* fileIcon[FileIconType::MAX]{};
-	std::unordered_map<std::string, TextureData*> previewCache;
-
+	std::shared_ptr<TextureData> fileIcon[FileIconType::FILE_MAX];
+	std::unordered_map<std::string, std::shared_ptr<TextureData>> previewCache;
 };

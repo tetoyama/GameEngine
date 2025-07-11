@@ -11,10 +11,14 @@ class TextureLoader {
 public:
 	TextureLoader(GraphicsContext* set):m_GraphicContext(set){}
 
-	~TextureLoader() = default;
-	TextureData* LoadTexture(const std::string& filePath);
+	~TextureLoader() {
+		for (auto& [key,data] : m_Textures) {
+			data.reset();
+		}
+	}
+	std::shared_ptr<TextureData> LoadTexture(const std::string& filePath);
 	void UnLoadTexture(const std::string& filePath);
-	TextureData* GetTexture(const std::string& filePath);
+	std::shared_ptr<TextureData> GetTexture(const std::string& filePath);
 	void SetTexture(const std::string& filePath);
 	void SetBumpTexture(const std::string& filePath);
 private:

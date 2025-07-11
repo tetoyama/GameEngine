@@ -40,45 +40,87 @@
 
 #include "Backends/checkFileExtention.h"
 
-static bool openRename = false;
-static std::filesystem::path renameTarget;
-static char newNameBuffer[256] = {0};
+
 
 TextureData* InspectorSystem::GetIconTexture(std::string filepath) {
 
-	FileIconType type = FileIconType::UNDEFINED;
+	FileIconType type = FileIconType::FILE_UNDEFINED;
+
+	//return fileIcon[type].get();
+
+
 	if (filepath == "FOLDER") {
-		type = FileIconType::FOLDER;
+		type = FileIconType::FILE_FOLDER;
 	}
 	std::string ext = GetFileExtension(filepath);
 
 	if (ext == ".wav") {
 
 	}
+	if (ext == ".txt") {
+		type = FileIconType::FILE_TEXT;
+	}
+	if (ext == ".yaml") {
+		type = FileIconType::FILE_YAML;
+	}
+	if (ext == ".fbx") {
+		type = FileIconType::FILE_FBX;
+	}
+	if (ext == ".obj") {
+		type = FileIconType::FILE_OBJ;
+	}
+	if (ext == ".ttf") {
+		type = FileIconType::FILE_TTF;
+	}
 	if (ext == ".png" || ext == ".tga" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp") {
 		// キャッシュされていればそれを返す（重複読み込みを避ける）
 		auto it = previewCache.find(filepath);
-		if (it != previewCache.end()) {
-			return it->second;
+		if (it != previewCache.end() && it->second->pTexture) {
+			return it->second.get();
 		}
 		// 初回読み込み → テクスチャ作成
 		auto tex = m_context->manager->resource->GetTextureLoader()->LoadTexture(filepath);
 		if (tex) {
 			previewCache[filepath] = tex;
-			return previewCache[filepath];
+			tex.reset();
+			return previewCache[filepath].get();
 		}
 	}
 
-	return fileIcon[type];
+	return fileIcon[type].get();
 }
 
 void InspectorSystem::Initialize() {
-	fileIcon[FileIconType::UNDEFINED] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\file_undefied.png");
-	fileIcon[FileIconType::FOLDER] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\folder.png");
+	fileIcon[FileIconType::FILE_UNDEFINED] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\file_undefied.png");
+	fileIcon[FileIconType::FILE_FOLDER] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\folder.png");
+	fileIcon[FileIconType::FILE_TEXT] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\file_txt.png");
+	fileIcon[FileIconType::FILE_YAML] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\file_yaml.png");
+	fileIcon[FileIconType::FILE_FBX] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\file_fbx.png");
+	fileIcon[FileIconType::FILE_OBJ] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\file_obj.png");
+	fileIcon[FileIconType::FILE_TTF] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\file_ttf.png");
 }
 
 void InspectorSystem::Finalize() {
+	for (int i = 0; i < FileIconType::FILE_MAX; i++) {
+		fileIcon[i].reset();
+	}
+	ClearPreviewChache();
 
+
+}
+
+void InspectorSystem::ClearPreviewChache() {
+
+	TextureLoader* loader = m_context->manager->resource->GetTextureLoader();
+
+	for (auto& [key, tex] : previewCache) {
+		previewCache[key].reset();
+
+		if (loader) {
+			loader->UnLoadTexture(key);
+		}
+	}
+	previewCache.clear();
 }
 
 // メインの更新関数
@@ -529,6 +571,7 @@ void InspectorSystem::DrawDirectoryTree(const std::filesystem::path& directory, 
 			std::error_code ec;
 			if(std::filesystem::exists(path, ec) && std::filesystem::is_directory(path, ec)){
 				selectedPath = path.string();
+				ClearPreviewChache();
 			}
 		}
 
@@ -642,9 +685,9 @@ void InspectorSystem::DrawAssetsInDirectory(std::string& selectedPath){
 		// ディレクトリなら別アイコン・クリック時にパス移動
 		if(entry.is_directory(ec)){
 			if(ImGui::Button("##Folder", ImVec2(itemSize, itemSize))) {
-				for (auto& [path, texture] : previewCache) {
-					m_context->manager->resource->GetTextureLoader()->UnLoadTexture(path);
-				}
+
+				ClearPreviewChache();
+
 				selectedPath = entry.path().string();
 			}
 		} else{
@@ -663,7 +706,7 @@ void InspectorSystem::DrawAssetsInDirectory(std::string& selectedPath){
 		if (entry.is_directory(ec)) {
 			path = "FOLDER";
 		}
-		ImVec2 IconSize = ImVec2(GetIconTexture(path)->Width, GetIconTexture(path)->Height);
+		ImVec2 IconSize = ImVec2((float)GetIconTexture(path)->Width, (float)GetIconTexture(path)->Height);
 		if (IconSize.x < IconSize.y) {
 			IconSize.x = IconSize.x * itemSize / IconSize.y;
 			IconSize.y = itemSize;
@@ -736,6 +779,7 @@ void InspectorSystem::DrawAssetsBrowser(){
 		ImGui::PushID("AssetsRoot");
 		if(ImGui::TreeNodeEx("Assets", ImGuiTreeNodeFlags_DefaultOpen)){
 			if(ImGui::IsItemClicked()){
+				ClearPreviewChache();
 				selectedPath = ASSETS_ROOT.string(); // ルート選択
 			}
 			// --- 右クリックメニュー追加 ---
@@ -773,6 +817,8 @@ void InspectorSystem::DrawAssetsBrowser(){
 	ImGui::Columns(1);
 	ImGui::End();
 }
+
+
 
 TransformComponent InspectorSystem::CalculateRectTransform(
 	const SpriteRendererComponent& sprite,

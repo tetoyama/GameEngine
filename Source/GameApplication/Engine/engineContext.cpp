@@ -43,13 +43,13 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 	auto inputSystem = std::make_shared<InputService>();
 	context->Register<InputService>(inputSystem);
 
-	// SceneManager 登録
-	auto sceneManager = std::make_shared<SceneManager>();
-	context->Register<SceneManager>(sceneManager);
-
 	// ResourceService 登録
 	auto resourceSystem = std::make_shared<ResourceService>();
 	context->Register<ResourceService>(resourceSystem);
+
+	// SceneManager 登録
+	auto sceneManager = std::make_shared<SceneManager>();
+	context->Register<SceneManager>(sceneManager);
 
 	// 今後: 他のシステムもここで登録
 

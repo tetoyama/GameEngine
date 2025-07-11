@@ -1,5 +1,8 @@
 #pragma once
 #define _CRT_SECURE_NO_WARNINGS
+
+#include <memory>
+
 #include "Interface/IComponent.h"
 
 #include "GameApplication/Engine/Graphics/graphicsContext.h"
@@ -9,15 +12,19 @@
 #include "Engine/Resources/resourceSystem.h"
 #include "Engine/Resources/Loader/textureLoader.h"
 #include "Engine/Resources/Data/TextureData.h"
+
+
 class TextureComponent : public IComponent {
 public:
-
+	~TextureComponent() {
+		m_TextureData.reset();
+	}
 	int UV_Slice_X = 1;
 	int UV_Slice_Y = 1;
 
 	int AnimationNum = 0;
 
-	TextureData* m_TextureData = nullptr;
+	std::shared_ptr<TextureData> m_TextureData;
 	MATERIAL Material;
 
 	YAML::Node encode() override{

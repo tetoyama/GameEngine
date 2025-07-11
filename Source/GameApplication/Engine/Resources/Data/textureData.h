@@ -5,6 +5,7 @@
 
 
 struct TextureData {
+
 	std::string FilePath;
 	Microsoft::WRL::ComPtr <ID3D11ShaderResourceView> pTexture;	//ポインター
 	int Width = 0;
