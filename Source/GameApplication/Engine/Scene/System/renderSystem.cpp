@@ -31,7 +31,7 @@
 
 #include "Engine/Graphics/mainRenderer.h"
 
-#include "Engine/Resources/resourceSystem.h"
+#include "Engine/Resources/resourceService.h"
 #include "Engine/Resources/Data/vertexShaderData.h"
 #include "Engine/Resources/Data/pixelShaderData.h"
 
@@ -123,13 +123,15 @@ void RenderSystem::Initialize(){
 	ID3D11Device* device = graphicsContext->GetDevice();
 
 	device->CreateTexture2D(&td, nullptr, &tex_editor);
-	device->CreateRenderTargetView(tex_editor, nullptr, &rtv_editor);
-	device->CreateShaderResourceView(tex_editor, nullptr, &srv_editor);
-
+	if (tex_editor) {
+		device->CreateRenderTargetView(tex_editor, nullptr, &rtv_editor);
+		device->CreateShaderResourceView(tex_editor, nullptr, &srv_editor);
+	}
 	device->CreateTexture2D(&td, nullptr, &tex_player);
-	device->CreateRenderTargetView(tex_player, nullptr, &rtv_player);
-	device->CreateShaderResourceView(tex_player, nullptr, &srv_player);
-
+	if (tex_player) {
+		device->CreateRenderTargetView(tex_player, nullptr, &rtv_player);
+		device->CreateShaderResourceView(tex_player, nullptr, &srv_player);
+	}
 	// デプスステンシルバッファ作成
 	ID3D11Texture2D* depthStencile{};
 	D3D11_TEXTURE2D_DESC textureDesc{};

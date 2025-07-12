@@ -9,16 +9,16 @@
 #include "Service/YAMLConverters.h"
 #include "scene.h"
 #include "sceneManager.h"
-#include "Engine/Resources/resourceSystem.h"
+#include "Engine/Resources/resourceService.h"
 #include "Engine/Resources/Loader/textureLoader.h"
 #include "Engine/Resources/Data/TextureData.h"
 
 
 class TextureComponent : public IComponent {
 public:
-	~TextureComponent() {
-		m_TextureData.reset();
-	}
+	//~TextureComponent() {
+	//	m_TextureData.reset();
+	//}
 	int UV_Slice_X = 1;
 	int UV_Slice_Y = 1;
 

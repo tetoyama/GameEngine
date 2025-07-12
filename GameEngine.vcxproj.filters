@@ -36,7 +36,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Platform\WindowSystem\mainWindow.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Runtime\TimeService\time.h">
+    <ClInclude Include="Source\GameApplication\Engine\Runtime\TimeService\timeService.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Graphics\graphicsContext.h">
@@ -1872,7 +1872,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Graphics\subRenderer.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Resources\resourceSystem.h">
+    <ClInclude Include="Source\GameApplication\Engine\Resources\resourceService.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\shaderLoader.h">
@@ -2229,6 +2229,12 @@
     <ClInclude Include="Source\Service\ImGuiFunc.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\audioComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Sounds\audioService.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\gameApplication.cpp">
@@ -2249,7 +2255,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Platform\WindowSystem\windowSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Runtime\TimeService\time.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Runtime\TimeService\timeService.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Graphics\graphicsContext.cpp">
@@ -2495,7 +2501,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Resources\Loader\textureLoader.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Resources\resourceSystem.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Resources\resourceService.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Resources\Loader\modelLoader.cpp">

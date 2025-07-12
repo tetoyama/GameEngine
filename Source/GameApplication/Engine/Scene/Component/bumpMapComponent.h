@@ -7,7 +7,7 @@
 #include "Service/YAMLConverters.h"
 #include "scene.h"
 #include "sceneManager.h"
-#include "Engine/Resources/resourceSystem.h"
+#include "Engine/Resources/resourceService.h"
 #include "Engine/Resources/Loader/textureLoader.h"
 #include "Engine/Resources/Data/TextureData.h"
 class BumpMapComponent: public IComponent {

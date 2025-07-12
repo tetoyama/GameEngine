@@ -6,7 +6,7 @@
 #include "sceneManager.h"
 #include "Engine/DebugTools/debugSystem.h"
 
-#include "Engine/Resources/resourceSystem.h"
+#include "Engine/Resources/resourceService.h"
 #include "Engine/Resources/Data/modelData.h"
 #include "Engine/Resources/Loader/modelLoader.h"
 #include "Engine/Resources/Loader/shaderLoader.h"

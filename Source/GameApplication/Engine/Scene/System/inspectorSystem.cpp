@@ -27,7 +27,7 @@
 #include "Engine/DebugTools/DebugSystem.h" // Add this include to resolve the incomplete type issue
 #include <Component/2DspriteRendererComponent.h>
 
-#include "Engine/Resources/resourceSystem.h"
+#include "Engine/Resources/resourceService.h"
 
 #include "Engine/Resources/Loader/modelLoader.h"
 #include "Engine/Resources/Loader/shaderLoader.h"
@@ -544,12 +544,12 @@ void InspectorSystem::DrawDirectoryTree(const std::filesystem::path& directory, 
 			}
 
 
-			if(ImGui::MenuItem("名前を変更")){
-				openRename = true;
-				renameTarget = path;
-				strcpy_s(newNameBuffer, path.filename().string().c_str());
-				ImGui::CloseCurrentPopup();
-			}
+			//if(ImGui::MenuItem("名前を変更")){
+			//	openRename = true;
+			//	renameTarget = path;
+			//	strcpy_s(newNameBuffer, path.filename().string().c_str());
+			//	ImGui::CloseCurrentPopup();
+			//}
 
 			if(ImGui::MenuItem("削除")){
 				std::error_code ec;
@@ -718,7 +718,7 @@ void InspectorSystem::DrawAssetsInDirectory(std::string& selectedPath){
 		}
 		ImVec4 ImageColor = ImVec4(1, 1, 1, 1);
 		if (ImGui::IsItemHovered()) {
-			ImageColor = ImVec4(1, 1, 1, 0.7f);
+			ImageColor = ImVec4(1, 1, 1, 0.5f);
 		}
 		if (ImGui::IsItemActive()) {
 			ImVec4(1, 1, 1, 0.5f);

@@ -2626,12 +2626,13 @@
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\textureData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\vertexShaderData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\modelLoader.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Resources\resourceSystem.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\resourceService.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\shaderLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\textureLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Runtime\JobSystem.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Runtime\TimeService\time.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Runtime\TimeService\timeService.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\2DspriteRendererComponent.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\audioComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\BillBoardRendererComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\bulletComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\bumpMapComponent.h" />
@@ -2671,6 +2672,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\renderSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\C#ScriptSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\transformSystem.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Sounds\audioService.h" />
     <ClInclude Include="Source\GameApplication\gameApplication.h" />
     <ClInclude Include="Source\main.h" />
     <ClInclude Include="Source\Service\configSystem.h" />
@@ -3017,9 +3019,9 @@
     <ClCompile Include="Source\GameApplication\Engine\Resources\Data\modelData.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Resources\Loader\modelLoader.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Resources\Loader\shaderLoader.cpp" />
-    <ClCompile Include="Source\GameApplication\Engine\Resources\resourceSystem.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Resources\resourceService.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Resources\Loader\textureLoader.cpp" />
-    <ClCompile Include="Source\GameApplication\Engine\Runtime\TimeService\time.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Runtime\TimeService\timeService.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\Registry\componentRegistry.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\scene.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\sceneManager.cpp" />

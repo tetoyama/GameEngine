@@ -121,6 +121,6 @@ public:
 
 	ModelData* model = nullptr;
 	bool isBlender = false;
-	PixelShaderData* pixelShader = nullptr;
-	VertexShaderData* vertexShader = nullptr;
+	std::shared_ptr<PixelShaderData>  pixelShader = nullptr;
+	std::shared_ptr<VertexShaderData>  vertexShader = nullptr;
 };

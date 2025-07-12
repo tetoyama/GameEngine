@@ -2,14 +2,14 @@
 #include "EngineContext.h"
 
 #include "Platform/WindowSystem/windowSystem.h"
-#include "Runtime/TimeService/time.h"
+#include "Runtime/TimeService/timeService.h"
 #include "Graphics/GraphicsContext.h"
 #include "DebugTools/ImGuiSystem.h"
 #include "DebugTools/DebugSystem.h"
 #include "Platform/InputSystem/InputSystem.h"
 #include "Scene/sceneManager.h"
 #include "Graphics/mainRenderer.h"
-#include "Resources/resourceSystem.h"
+#include "Resources/resourceService.h"
 
 std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 
