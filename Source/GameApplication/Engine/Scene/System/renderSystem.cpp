@@ -494,7 +494,7 @@ void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent
 
 void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererComponent* modelRenderer, TextureComponent* pTexture){
 
-	ModelData* pModel = modelRenderer->model;
+	ModelData* pModel = modelRenderer->model.get();
 	if(!pModel || !pModel->AiScene){
 		//m_context->manager->debug->LOG_ERROR("ModelData is null or AiScene is not initialized.");
 		return;

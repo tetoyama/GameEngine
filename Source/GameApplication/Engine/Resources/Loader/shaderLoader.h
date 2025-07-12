@@ -1,29 +1,44 @@
-// ShaderLoader.h
 #pragma once
-#include <string>
-#include <unordered_map>
 #include <memory>
+#include <string>
+#include "Engine/Resources/Data/vertexShaderData.h"
+#include "Engine/Resources/Data/pixelShaderData.h"
+#include "Engine/Graphics/graphicsContext.h"
+#include "Backends/checkFileExtention.h"
 
-class GraphicsContext;
+#include "ResourceLoader.h"
 
-struct VertexShaderData;
-struct PixelShaderData;
+inline std::shared_ptr<VertexShaderData> LoadVertexShaderFromFile(const std::string& path, GraphicsContext* context) {
+	if (!HasExtension(path, "cso")) return nullptr;
 
-class ShaderLoader {
-public:
-    ShaderLoader(GraphicsContext* set):m_GraphicContext(set){}
-	~ShaderLoader(){}
+	auto shader = std::make_shared<VertexShaderData>();
+	context->CreateVertexShader(path.c_str(), &shader->m_VertexShader, &shader->m_VertexLayout);
+	shader->FilePath = path;
+	return shader;
+}
 
-	std::shared_ptr<VertexShaderData> LoadVertexShader(const std::string& shaderPath);
-	std::shared_ptr<PixelShaderData> LoadPixelShader(const std::string& shaderPath);
 
-	std::shared_ptr<VertexShaderData> GetVertexShader(const std::string& shaderPath);
-	std::shared_ptr<PixelShaderData> GetPixelShader(const std::string& shaderPath);
+inline std::shared_ptr<PixelShaderData> LoadPixelShaderFromFile(const std::string& path, GraphicsContext* context) {
+	if (!HasExtension(path, "cso")) return nullptr;
 
-	void SetVertexShader(const std::string& shaderPath);
-	void SetPixelShader(const std::string& shaderPath);
-private:
-	std::unordered_map<std::string, std::shared_ptr<VertexShaderData>> m_VertexShaders;
-	std::unordered_map<std::string, std::shared_ptr<PixelShaderData> > m_PixelShaders;
-	GraphicsContext* m_GraphicContext;
-};
+	auto shader = std::make_shared<PixelShaderData>();
+	context->CreatePixelShader(path.c_str(), &shader->m_PixelShader);
+	shader->FilePath = path;
+	return shader;
+}
+
+template<>
+inline void ResourceLoader<VertexShaderData>::SetupLoadFunc(void* contextPtr) {
+	auto context = static_cast<GraphicsContext*>(contextPtr);
+	SetLoadFunction([=](const std::string& path, void*) {
+		return LoadVertexShaderFromFile(path, context);
+	});
+}
+
+template<>
+inline void ResourceLoader<PixelShaderData>::SetupLoadFunc(void* contextPtr) {
+	auto context = static_cast<GraphicsContext*>(contextPtr);
+	SetLoadFunction([=](const std::string& path, void*) {
+		return LoadPixelShaderFromFile(path, context);
+	});
+}

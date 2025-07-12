@@ -34,7 +34,7 @@ public:
 		ImGui::SameLine(100.0f);
 		if(ImGui::Checkbox("##isBlender", &isBlender)){
 			std::string path = model->FilePath;
-			model = context->manager->resource->GetModelLoader()->LoadModel(path, isBlender);
+			model = context->manager->resource->Load<ModelData>(path, isBlender);
 
 		}
 		if (ImGui::IsItemHovered())
@@ -53,7 +53,7 @@ public:
 		}
 		if(ImGui::InputText("##Model File Path", filepathBuffer, sizeof(filepathBuffer))){
 			// 編集されたら std::string に反映
-			model = context->manager->resource->GetModelLoader()->LoadModel(filepathBuffer,isBlender);
+			model = context->manager->resource->Load<ModelData>(filepathBuffer,isBlender);
 		}
 		// ドロップ対象の処理
 		if (ImGui::BeginDragDropTarget()) {
@@ -62,7 +62,7 @@ public:
 				std::string _filePath = std::string(droppedPath);
 
 				// TODO: 実際のリソースロード処理に差し替えて
-				model = context->manager->resource->GetModelLoader()->LoadModel(_filePath, isBlender);
+				model = context->manager->resource->Load<ModelData>(_filePath, isBlender);
 			}
 			ImGui::EndDragDropTarget();
 		}
@@ -78,7 +78,7 @@ public:
 		}
 		if(ImGui::InputText("##PixelShader", filepathBuffer, sizeof(filepathBuffer))){
 			// 編集されたら std::string に反映
-			pixelShader = context->manager->resource->GetShaderLoader()->LoadPixelShader(filepathBuffer);
+			pixelShader = context->manager->resource->Load<PixelShaderData>(filepathBuffer);
 		}
 		// ドロップ対象の処理
 		if (ImGui::BeginDragDropTarget()) {
@@ -87,7 +87,7 @@ public:
 				std::string _filePath = std::string(droppedPath);
 
 				// TODO: 実際のリソースロード処理に差し替えて
-				pixelShader = context->manager->resource->GetShaderLoader()->LoadPixelShader(_filePath);
+				pixelShader = context->manager->resource->Load<PixelShaderData>(_filePath);
 			}
 			ImGui::EndDragDropTarget();
 		}
@@ -104,7 +104,7 @@ public:
 		}
 		if(ImGui::InputText("##VertexShader", filepathBuffer, sizeof(filepathBuffer))){
 			// 編集されたら std::string に反映
-			vertexShader = context->manager->resource->GetShaderLoader()->LoadVertexShader(filepathBuffer);
+			vertexShader = context->manager->resource->Load<VertexShaderData>(filepathBuffer);
 		}
 		// ドロップ対象の処理
 		if (ImGui::BeginDragDropTarget()) {
@@ -113,13 +113,13 @@ public:
 				std::string _filePath = std::string(droppedPath);
 
 				// TODO: 実際のリソースロード処理に差し替えて
-				vertexShader = context->manager->resource->GetShaderLoader()->LoadVertexShader(_filePath);
+				vertexShader = context->manager->resource->Load<VertexShaderData>(_filePath);
 			}
 			ImGui::EndDragDropTarget();
 		}
 	}
 
-	ModelData* model = nullptr;
+	std::shared_ptr<ModelData>  model = nullptr;
 	bool isBlender = false;
 	std::shared_ptr<PixelShaderData>  pixelShader = nullptr;
 	std::shared_ptr<VertexShaderData>  vertexShader = nullptr;

@@ -79,7 +79,7 @@ TextureData* InspectorSystem::GetIconTexture(std::string filepath) {
 			return it->second.get();
 		}
 		// 初回読み込み → テクスチャ作成
-		auto tex = m_context->manager->resource->GetTextureLoader()->LoadTexture(filepath);
+		auto tex = m_context->manager->resource->Load<TextureData>(filepath);
 		if (tex) {
 			previewCache[filepath] = tex;
 			tex.reset();
@@ -91,13 +91,13 @@ TextureData* InspectorSystem::GetIconTexture(std::string filepath) {
 }
 
 void InspectorSystem::Initialize() {
-	fileIcon[FileIconType::FILE_UNDEFINED] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\file_undefied.png");
-	fileIcon[FileIconType::FILE_FOLDER] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\folder.png");
-	fileIcon[FileIconType::FILE_TEXT] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\file_txt.png");
-	fileIcon[FileIconType::FILE_YAML] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\file_yaml.png");
-	fileIcon[FileIconType::FILE_FBX] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\file_fbx.png");
-	fileIcon[FileIconType::FILE_OBJ] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\file_obj.png");
-	fileIcon[FileIconType::FILE_TTF] = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\UI\\FileIcon\\file_ttf.png");
+	fileIcon[FileIconType::FILE_UNDEFINED] = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_undefied.png");
+	fileIcon[FileIconType::FILE_FOLDER] = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\folder.png");
+	fileIcon[FileIconType::FILE_TEXT] = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_txt.png");
+	fileIcon[FileIconType::FILE_YAML] = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_yaml.png");
+	fileIcon[FileIconType::FILE_FBX] = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_fbx.png");
+	fileIcon[FileIconType::FILE_OBJ] = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_obj.png");
+	fileIcon[FileIconType::FILE_TTF] = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_ttf.png");
 }
 
 void InspectorSystem::Finalize() {
@@ -111,14 +111,9 @@ void InspectorSystem::Finalize() {
 
 void InspectorSystem::ClearPreviewChache() {
 
-	TextureLoader* loader = m_context->manager->resource->GetTextureLoader();
-
 	for (auto& [key, tex] : previewCache) {
 		previewCache[key].reset();
-
-		if (loader) {
-			loader->UnLoadTexture(key);
-		}
+		m_context->manager->resource->Unload<TextureData>(key);
 	}
 	previewCache.clear();
 }
@@ -706,26 +701,27 @@ void InspectorSystem::DrawAssetsInDirectory(std::string& selectedPath){
 		if (entry.is_directory(ec)) {
 			path = "FOLDER";
 		}
-		ImVec2 IconSize = ImVec2((float)GetIconTexture(path)->Width, (float)GetIconTexture(path)->Height);
-		if (IconSize.x < IconSize.y) {
-			IconSize.x = IconSize.x * itemSize / IconSize.y;
-			IconSize.y = itemSize;
-			ImGui::SetCursorPos(ImVec2(CursorPos.x + (itemSize -IconSize.x) * 0.5f, CursorPos.y));
-		} else {
-			IconSize.y = IconSize.y * itemSize / IconSize.x;
-			IconSize.x = itemSize;
-			ImGui::SetCursorPos(ImVec2(CursorPos.x, CursorPos.y + (itemSize - IconSize.y) * 0.5f));
+		if (GetIconTexture(path)) {
+			ImVec2 IconSize = ImVec2((float)GetIconTexture(path)->Width, (float)GetIconTexture(path)->Height);
+			if (IconSize.x < IconSize.y) {
+				IconSize.x = IconSize.x * itemSize / IconSize.y;
+				IconSize.y = itemSize;
+				ImGui::SetCursorPos(ImVec2(CursorPos.x + (itemSize - IconSize.x) * 0.5f, CursorPos.y));
+			} else {
+				IconSize.y = IconSize.y * itemSize / IconSize.x;
+				IconSize.x = itemSize;
+				ImGui::SetCursorPos(ImVec2(CursorPos.x, CursorPos.y + (itemSize - IconSize.y) * 0.5f));
+			}
+			ImVec4 ImageColor = ImVec4(1, 1, 1, 1);
+			if (ImGui::IsItemHovered()) {
+				ImageColor = ImVec4(1, 1, 1, 0.5f);
+			}
+			if (ImGui::IsItemActive()) {
+				ImVec4(1, 1, 1, 0.5f);
+			}
+			ImGui::Image(GetIconTexture(path)->pTexture.Get(), IconSize, ImVec2(0, 0), ImVec2(1, 1), ImageColor, ImVec4(0, 0, 0, 0));
+			ImGui::SetCursorPos(AfterCursorPos);
 		}
-		ImVec4 ImageColor = ImVec4(1, 1, 1, 1);
-		if (ImGui::IsItemHovered()) {
-			ImageColor = ImVec4(1, 1, 1, 0.5f);
-		}
-		if (ImGui::IsItemActive()) {
-			ImVec4(1, 1, 1, 0.5f);
-		}
-		ImGui::Image(GetIconTexture(path)->pTexture.Get(), IconSize,ImVec2(0,0),ImVec2(1,1), ImageColor,ImVec4(0,0,0,0));
-		ImGui::SetCursorPos(AfterCursorPos);
-
 		std::string displayName = filename;
 		ImVec2 textSize = ImGui::CalcTextSize(displayName.c_str());
 		float maxTextWidth = itemSize;

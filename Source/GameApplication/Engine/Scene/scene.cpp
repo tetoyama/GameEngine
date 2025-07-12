@@ -253,12 +253,12 @@ void Scene::BuildDefaultScene(){
 
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
-		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\cube.fbx");
-		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\BumpPS.cso");
+		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\cube.fbx");
+		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
+		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\BumpPS.cso");
 
 		auto* bumpMap = componentRegistry->AddComponent<BumpMapComponent>(entity);
-		bumpMap->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\BumpMap/Normal.bmp");
+		bumpMap->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\BumpMap/Normal.bmp");
 
 	}
 	{
@@ -290,15 +290,15 @@ void Scene::BuildDefaultScene(){
 		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
-		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\Daylight.png");
+		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\Daylight.png");
 		texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->isBlender = true;
-		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\sky.fbx",true);
-		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\unlitUVTexturePS.cso");
+		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\sky.fbx",true);
+		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
+		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\unlitUVTexturePS.cso");
 	}
 	{
 		//エンティティを作成し、TransformとModelRendererを追加
@@ -308,7 +308,7 @@ void Scene::BuildDefaultScene(){
 		name->name = "Player";
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
-		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\white.tga");
+		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\white.tga");
 		texture->Material.Diffuse = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 
 		// TransformComponentを追加
@@ -320,9 +320,9 @@ void Scene::BuildDefaultScene(){
 
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
-		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
-		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
+		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\player.obj");
+		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
+		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\limLightPS.cso");
 
 		auto player = componentRegistry->AddComponent<PlayerComponent>(entity);
 
@@ -381,7 +381,7 @@ void Scene::BuildDefaultScene(){
 		name->name = "Enemy" + std::to_string(i + 1);
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
-		texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\white.tga");
+		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\white.tga");
 		texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
 
 		// TransformComponentを追加
@@ -393,9 +393,9 @@ void Scene::BuildDefaultScene(){
 
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
-		modelRenderer->model = resource->GetModelLoader()->LoadModel("Asset\\Model\\player.obj");
-		modelRenderer->vertexShader = resource->GetShaderLoader()->LoadVertexShader("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->GetShaderLoader()->LoadPixelShader("Asset\\Shader\\limLightPS.cso");
+		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\player.obj");
+		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
+		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\limLightPS.cso");
 
 		auto player = componentRegistry->AddComponent<EnemyComponent>(entity);
 	}
@@ -621,17 +621,17 @@ void Scene::LoadSceneFromYAML(std::string path) {
 
 					if(compNode["FilePath"]){
 						const auto& FilePath = compNode["FilePath"].as<std::string>();
-						modelRenderer->model = m_SceneManagerContext->resource->GetModelLoader()->LoadModel(FilePath.c_str(), modelRenderer->isBlender);
+						modelRenderer->model = m_SceneManagerContext->resource->Load<ModelData>(FilePath.c_str(), modelRenderer->isBlender);
 					}
 					if(compNode["VertexShader"]){
 
 						const auto& VertexShader = compNode["VertexShader"].as<std::string>();
-						modelRenderer->vertexShader = m_SceneManagerContext->resource->GetShaderLoader()->LoadVertexShader(VertexShader.c_str());
+						modelRenderer->vertexShader = m_SceneManagerContext->resource->Load<VertexShaderData>(VertexShader.c_str());
 					}
 					if(compNode["PixelShader"]){
 
 						const auto& PixelShader = compNode["PixelShader"].as<std::string>();
-						modelRenderer->pixelShader = m_SceneManagerContext->resource->GetShaderLoader()->LoadPixelShader(PixelShader.c_str());
+						modelRenderer->pixelShader = m_SceneManagerContext->resource->Load<PixelShaderData>(PixelShader.c_str());
 					}
 				}
 			}
@@ -640,7 +640,7 @@ void Scene::LoadSceneFromYAML(std::string path) {
 				if(texture){
 					if(compNode["FilePath"]){
 						const auto& FilePath = compNode["FilePath"].as<std::string>();
-						texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(FilePath.c_str());
+						texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>(FilePath.c_str());
 					}
 				}
 			}
@@ -649,7 +649,7 @@ void Scene::LoadSceneFromYAML(std::string path) {
 				if(texture){
 					if(compNode["FilePath"]){
 						const auto& FilePath = compNode["FilePath"].as<std::string>();
-						texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(FilePath.c_str());
+						texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>(FilePath.c_str());
 					}
 				}
 			}

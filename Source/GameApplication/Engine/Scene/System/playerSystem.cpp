@@ -4,7 +4,7 @@
 #include "sceneManager.h"
 #include "Engine/DebugTools/debugSystem.h"
 
-#include "Engine/Resources/resourceSystem.h"
+#include "Engine/Resources/resourceService.h"
 #include "Engine/Resources/Data/modelData.h"
 #include "Engine/Resources/Loader/modelLoader.h"
 #include "Engine/Resources/Loader/shaderLoader.h"
@@ -117,15 +117,15 @@ void PlayerSystem::Update(float deltaTime) {
 				auto* model = m_context->component->GetComponent<ModelRendererComponent>(entity);
 
 				ModelRendererComponent* bulletModelRenderer = m_context->component->AddComponent<ModelRendererComponent>(bulletEntity);
-				bulletModelRenderer->model = m_context->manager->resource->GetModelLoader()->LoadModel("Asset\\Model\\ball.fbx");
-				bulletModelRenderer->vertexShader = m_context->manager->resource->GetShaderLoader()->LoadVertexShader(model->vertexShader->FilePath);
-				bulletModelRenderer->pixelShader = m_context->manager->resource->GetShaderLoader()->LoadPixelShader(model->pixelShader->FilePath);
+				bulletModelRenderer->model = m_context->manager->resource->Load<ModelData>("Asset\\Model\\ball.fbx");
+				bulletModelRenderer->vertexShader = m_context->manager->resource->Load<VertexShaderData>(model->vertexShader->FilePath);
+				bulletModelRenderer->pixelShader = m_context->manager->resource->Load<PixelShaderData>(model->pixelShader->FilePath);
 
 				TextureComponent* texture = m_context->component->AddComponent<TextureComponent>(entity);
 				if (texture) {
 					TextureComponent* bulletTexture = m_context->component->AddComponent<TextureComponent>(bulletEntity);
 					bulletTexture->Material = texture->Material;
-					bulletTexture->m_TextureData = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\white.tga");
+					bulletTexture->m_TextureData = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\white.tga");
 				}
 
 				BulletComponent* bullet = m_context->component->AddComponent<BulletComponent>(bulletEntity);

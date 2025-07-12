@@ -73,7 +73,7 @@ public:
 		ImGui::Text("Texture");
 		ImGui::PushItemWidth(inputFieldWidth);
 		if(ImGui::InputText("##TextureInput", filepathBuffer, sizeof(filepathBuffer))){
-			m_TextureData = context->manager->resource->GetTextureLoader()->LoadTexture(filepathBuffer);
+			m_TextureData = context->manager->resource->Load<TextureData>(filepathBuffer);
 		}
 		ImGui::PopItemWidth();
 
@@ -91,7 +91,7 @@ public:
 			if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
 				const char* droppedPath = (const char*)payload->Data;
 				std::string _texturePath = std::string(droppedPath);
-				m_TextureData = context->manager->resource->GetTextureLoader()->LoadTexture(_texturePath);
+				m_TextureData = context->manager->resource->Load<TextureData>(_texturePath);
 			}
 			ImGui::EndDragDropTarget();
 		}

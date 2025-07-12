@@ -68,7 +68,7 @@ void BulletSystem::Update(float deltaTime){
 						effectTransform->scale = Vector3(1.0f, 1.0f, 1.0f);
 
 						auto* effectTexture = m_context->component->AddComponent<TextureComponent>(entity);
-						effectTexture->m_TextureData = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\explosion.png");
+						effectTexture->m_TextureData = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\explosion.png");
 						//texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\texture.jpg");
 
 						if (texture) {
@@ -118,7 +118,7 @@ void BulletSystem::Update(float deltaTime){
 
 										auto* effectTexture = m_context->component->AddComponent<TextureComponent>(entity);
 										auto* enemyTexture = m_context->component->AddComponent<TextureComponent>(enemyEntity);
-										effectTexture->m_TextureData = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\explosion.png");
+										effectTexture->m_TextureData = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\explosion.png");
 										//texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\texture.jpg");
 
 										if(enemyTexture){
@@ -218,7 +218,7 @@ void BulletSystem::FixedUpdate(float fidedDeltaTime){
 					effectTransform->scale = Vector3(1.0f, 1.0f, 1.0f);
 
 					auto* effectTexture = m_context->component->AddComponent<TextureComponent>(entity);
-					effectTexture->m_TextureData = m_context->manager->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\explosion.png");
+					effectTexture->m_TextureData = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\explosion.png");
 
 					TextureComponent* texture = m_context->component->GetComponent<TextureComponent>(bulletEntity);
 					if(texture){

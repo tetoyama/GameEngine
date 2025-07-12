@@ -6,7 +6,7 @@
 #include "../Backends/Icon/icon.h"
 #include "../Backends/Taskbar/taskbar.h"
 
-#include "Runtime/TimeService/time.h"
+#include "Runtime/TimeService/timeService.h"
 
 #include "Graphics/GraphicsContext.h"
 #include "Graphics/mainRenderer.h"
@@ -19,7 +19,7 @@
 #include "Scene/sceneManager.h"
 #include "Scene/scene.h"
 
-#include "Engine/Resources/resourceSystem.h"
+#include "Engine/Resources/resourceService.h"
 #include "Engine/EditorUI/ImGuiMainManuBar.h"
 
 #include <dxgidebug.h>

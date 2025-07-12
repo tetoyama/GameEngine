@@ -2626,6 +2626,8 @@
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\textureData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\vertexShaderData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\modelLoader.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\IResourceLoader.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\resourceLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\resourceService.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\shaderLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\textureLoader.h" />
