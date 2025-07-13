@@ -6,10 +6,10 @@
 
 struct TextureData {
 	TextureData(){
-		OutputDebugStringA("Created Texture\n");
+		OutputDebugStringA("Created TextureData\n");
 	}
 	~TextureData(){
-		OutputDebugStringA(("Destroyed Texture: " + FilePath + "\n").c_str());
+		OutputDebugStringA(("Destroyed TextureData: " + FilePath + "\n").c_str());
 		pTexture.Reset();
 	}
 	std::string FilePath;

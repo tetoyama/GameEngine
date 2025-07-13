@@ -72,7 +72,7 @@ Scene::~Scene(){
 }
 
 void Scene::Initialize(ManagerContext* set){
-
+	
 	m_SceneManagerContext = set;
 	m_SceneManagerContext->debug->LOG_INFO("Sceneを初期化中...");
 
@@ -118,7 +118,7 @@ void Scene::Initialize(ManagerContext* set){
 	m_systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<LightSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
-	//m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<ParticleSystem>(&m_SceneContext));
 
 	m_systemRegistry->RegisterSystem(std::make_unique<PlayerSystem>(&m_SceneContext));
@@ -253,7 +253,7 @@ void Scene::BuildDefaultScene(){
 
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
-		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\cube.fbx");
+		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\cube.fbx",false);
 		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
 		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\BumpPS.cso");
 
@@ -320,7 +320,7 @@ void Scene::BuildDefaultScene(){
 
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
-		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\player.obj");
+		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\player.obj", false);
 		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
 		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\limLightPS.cso");
 
@@ -366,7 +366,7 @@ void Scene::BuildDefaultScene(){
 	//	sprite->pivot = Vector2(0.5f, 0.5f);
 
 	//	auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
-	//	texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture("Asset\\Texture\\texture.jpg");
+	//	texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\texture.jpg");
 	//	texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	//}
 
@@ -393,7 +393,7 @@ void Scene::BuildDefaultScene(){
 
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
-		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\player.obj");
+		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\player.obj", false);
 		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
 		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\limLightPS.cso");
 

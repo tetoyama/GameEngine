@@ -766,8 +766,12 @@ void InspectorSystem::DrawAssetsBrowser(){
 	ImGui::Begin("Assets Browser", showAssetsBrowser);
 
 	ImGui::Columns(2, "AssetColumns", true);
-	//ImGui::SetColumnWidth(0, 200);
 
+	static bool firstFrame = true;
+	if(firstFrame){
+		ImGui::SetColumnWidth(0, 400);
+		firstFrame = false;
+	}
 	// === 左カラム：フォルダツリー ===
 	ImGui::BeginChild("LeftPane", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 

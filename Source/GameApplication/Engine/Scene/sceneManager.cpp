@@ -3,6 +3,7 @@
 #include "scene.h"
 
 #include "Engine/DebugTools/debugSystem.h"
+#include "Engine/Resources/resourceService.h"
 
 void SceneManager::Initialize(ManagerContext sceneContext){
 	m_SceneContext = sceneContext;
@@ -56,6 +57,7 @@ void SceneManager::LoadScene(std::shared_ptr<Scene> scene){
 	if(m_activeScene){
 		m_activeScene->Initialize(&m_SceneContext);
 	}
+	m_SceneContext.resource->ClearAllUnused();
 }
 
 void SceneManager::DeferredLoadScene(std::shared_ptr<Scene> scene){
@@ -85,6 +87,8 @@ void SceneManager::LoadFromYAMLFile(){
 		}
 		m_activeScene = scene;
 		m_SceneContext.debug->LOG_DEBUG("OpenScene");
+
+		m_SceneContext.resource->ClearAllUnused();
 	} else{
 		scene->Shutdown();
 		scene.reset();

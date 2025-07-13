@@ -16,9 +16,11 @@ Entities:
           x: 100
           y: 10
           z: 100
+      - Component: BumpMapComponent
+        FilePath: Asset\Texture\BumpMap/Normal.bmp
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.fbx
-        PixelShader: Asset\Shader\disneyPBR_PS.cso
+        PixelShader: Asset\Shader\BumpPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
   - Entity: 2
@@ -28,12 +30,12 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 2.82550716
-          z: 0
+          y: 25
+          z: 50
         Rotation:
-          x: -0
+          x: 2.09439516
           y: 0
-          z: -0
+          z: 0
         Scale:
           x: 1
           y: 1
@@ -43,8 +45,8 @@ Entities:
         LightType: 0
         Position:
           x: 0
-          y: 2.82550716
-          z: 0
+          y: 25
+          z: 50
           w: 0
         Angle:
           x: 1.04719758
@@ -52,14 +54,14 @@ Entities:
           z: 0
           w: 0
         Direction:
-          x: 0
-          y: -0
-          z: 1
+          x: -0
+          y: 0.866025388
+          z: -0.50000006
           w: 0
         Diffuse:
-          x: 1
-          y: 0.255319118
-          z: 0
+          x: 0.899999976
+          y: 0.899999976
+          z: 1
           w: 1
         Ambient:
           x: 0.100000001
@@ -67,7 +69,7 @@ Entities:
           z: 0.100000001
           w: 1
         PointLightParam:
-          x: 140.199997
+          x: 100
           y: 0
           z: 0
           w: 0
@@ -142,19 +144,19 @@ Entities:
         Name: Player
       - Component: TransformComponent
         Position:
-          x: -4.99108315
-          y: 0.200000003
-          z: 2.69911933
-        Rotation:
           x: 0
-          y: -37.5595894
+          y: 1.25673699
           z: 0
+        Rotation:
+          x: -0
+          y: 0
+          z: -0
         Scale:
           x: 1
           y: 1
           z: 1
       - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
+        FilePath: Asset\Texture\alca.png
         Material:
           Ambient:
             x: 0.100000001
@@ -162,9 +164,9 @@ Entities:
             z: 0.100000001
             w: 1
           Diffuse:
-            x: 0
-            y: 1
-            z: 0
+            x: 0.800000012
+            y: 0.800000012
+            z: 0.800000012
             w: 1
           Specular:
             x: 0.0399999991
@@ -182,8 +184,8 @@ Entities:
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
+        FilePath: Asset\Model\ALCA_v7.obj
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: PlayerComponent
@@ -197,46 +199,46 @@ Entities:
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: -18.9319687
-          y: 4.17338657
-          z: -11.0799913
+          x: 0
+          y: 20
+          z: -15
         Rotation:
-          x: -0.200000003
-          y: -99.7397308
+          x: -1
+          y: 0
           z: 0
         Scale:
           x: 1
           y: 1
           z: 1
       - Component: CameraComponent
-        isLock: true
+        isLock: false
         Target:
-          x: -4.99108315
-          y: 0.200000003
-          z: 2.69911933
+          x: 0
+          y: 0
+          z: 0
         NearClip: 0.00999999978
         FarClip: 1024
         FOV: 1
         viewMatrix:
           -
-            - 0.702968121
-            - 0.141297862
-            - 0.697044253
+            - 1
+            - 0
+            - 0
             - 0
           -
             - 0
-            - 0.980066538
-            - -0.198669329
+            - 0.540302396
+            - -0.841470897
             - 0
           -
-            - -0.711221337
-            - 0.139658198
-            - 0.688955545
+            - -0
+            - 0.841470897
+            - 0.540302396
             - 0
           -
-            - 5.42824459
-            - 0.132261753
-            - 21.6591644
+            - 0
+            - 1.8160162
+            - 24.9339542
             - 1
   - Entity: 6
     Components:
@@ -244,12 +246,12 @@ Entities:
         Name: Enemy1
       - Component: TransformComponent
         Position:
-          x: 24.6532288
+          x: 20
           y: 0.200000003
-          z: 10.255126
+          z: 0
         Rotation:
           x: 0
-          y: 2.89485955
+          y: -1.57079637
           z: 0
         Scale:
           x: 1
@@ -289,16 +291,16 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: EnemyComponent
-        setOriginPos: true
+        setOriginPos: false
         OriginPos:
-          x: 19.9933567
-          y: 0.200000003
-          z: -2.90352881e-10
+          x: 0
+          y: 0
+          z: 0
         maxDistance: 15
         TargetPos:
-          x: 25.5542622
-          y: 0.200000003
-          z: 9.95170021
+          x: 0
+          y: 0
+          z: 0
         MoveSpeed: 1
   - Entity: 7
     Components:
@@ -306,12 +308,12 @@ Entities:
         Name: Enemy2
       - Component: TransformComponent
         Position:
-          x: 11.2623158
+          x: 6.18033934
           y: 0.200000003
-          z: 31.9163418
+          z: 19.0211315
         Rotation:
           x: 0
-          y: -2.96954107
+          y: -2.82743359
           z: 0
         Scale:
           x: 1
@@ -351,16 +353,16 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: EnemyComponent
-        setOriginPos: true
+        setOriginPos: false
         OriginPos:
-          x: 6.17828655
-          y: 0.200000003
-          z: 19.0148144
+          x: 0
+          y: 0
+          z: 0
         maxDistance: 15
         TargetPos:
-          x: 10.3439789
-          y: 0.200000003
-          z: 31.5402679
+          x: 0
+          y: 0
+          z: 0
         MoveSpeed: 1
   - Entity: 8
     Components:
@@ -368,12 +370,12 @@ Entities:
         Name: Enemy3
       - Component: TransformComponent
         Position:
-          x: -21.0651665
+          x: -16.1803417
           y: 0.200000003
-          z: 3.37247372
+          z: 11.7557039
         Rotation:
           x: 0
-          y: -6.03451729
+          y: -4.08407068
           z: 0
         Scale:
           x: 1
@@ -413,16 +415,16 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: EnemyComponent
-        setOriginPos: true
+        setOriginPos: false
         OriginPos:
-          x: -16.1749687
-          y: 0.200000003
-          z: 11.7517996
+          x: 0
+          y: 0
+          z: 0
         maxDistance: 15
         TargetPos:
-          x: -21.6621761
-          y: 0.200000003
-          z: 3.51162052
+          x: 0
+          y: 0
+          z: 0
         MoveSpeed: 1
   - Entity: 9
     Components:
@@ -430,12 +432,12 @@ Entities:
         Name: Enemy4
       - Component: TransformComponent
         Position:
-          x: -6.86967897
+          x: -16.180336
           y: 0.200000003
-          z: -1.05185521
+          z: -11.7557106
         Rotation:
           x: 0
-          y: -2.91535068
+          y: -5.34070778
           z: 0
         Scale:
           x: 1
@@ -475,16 +477,16 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: EnemyComponent
-        setOriginPos: true
+        setOriginPos: false
         OriginPos:
-          x: -16.174963
-          y: 0.200000003
-          z: -11.7518063
+          x: 0
+          y: 0
+          z: 0
         maxDistance: 15
         TargetPos:
-          x: -7.77570915
-          y: 0.200000003
-          z: -1.37514782
+          x: 0
+          y: 0
+          z: 0
         MoveSpeed: 1
   - Entity: 10
     Components:
@@ -492,12 +494,12 @@ Entities:
         Name: Enemy5
       - Component: TransformComponent
         Position:
-          x: -1.96056664
+          x: 6.18034267
           y: 0.200000003
-          z: -17.2938251
+          z: -19.0211296
         Rotation:
           x: 0
-          y: -2.86253142
+          y: -6.59734488
           z: 0
         Scale:
           x: 1
@@ -537,322 +539,14 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: EnemyComponent
-        setOriginPos: true
+        setOriginPos: false
         OriginPos:
-          x: 6.17828989
-          y: 0.200000003
-          z: -19.0148125
+          x: 0
+          y: 0
+          z: 0
         maxDistance: 15
         TargetPos:
-          x: -2.85634375
-          y: 0.200000003
-          z: -17.5664043
+          x: 0
+          y: 0
+          z: 0
         MoveSpeed: 1
-  - Entity: 11
-    Components:
-      - Component: NameComponent
-        Name: MFire
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\particle.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0.259740233
-            z: 0
-            w: 0.584415555
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ParticleComponent
-        IsLoop: true
-        SpawnInterval: 0.0250000004
-        SpawnCount: 100
-        SpawnTimer: 0.0227299538
-        ParticleLifeTime: 0.5
-        ParticleSize: 10
-        ParticleSpeed: 1
-        SpawnPosition:
-          x: 0
-          y: 0
-          z: 0
-        SpawnPositionRandom:
-          x: 0
-          y: 0
-          z: 0
-        StartSpeed:
-          x: 0
-          y: 20
-          z: 0
-        StartSpeedRandom:
-          x: 2
-          y: 5
-          z: 2
-        AddSpeed:
-          x: 0
-          y: -30
-          z: 0
-        MulSpeed:
-          x: 1
-          y: 1
-          z: 1
-  - Entity: 12
-    Components:
-      - Component: NameComponent
-        Name: SFire
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\particle.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0.92868644
-            y: 0.97835499
-            z: 0.432000875
-            w: 0.225108206
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ParticleComponent
-        IsLoop: true
-        SpawnInterval: 0.00499999989
-        SpawnCount: 100
-        SpawnTimer: 0.00273286132
-        ParticleLifeTime: 0.200000003
-        ParticleSize: 3.93000007
-        ParticleSpeed: 1
-        SpawnPosition:
-          x: 0
-          y: 0
-          z: 0
-        SpawnPositionRandom:
-          x: 0
-          y: 0
-          z: 0
-        StartSpeed:
-          x: 0
-          y: 6
-          z: 0
-        StartSpeedRandom:
-          x: 10
-          y: 6
-          z: 10
-        AddSpeed:
-          x: 0
-          y: -15
-          z: 0
-        MulSpeed:
-          x: 1
-          y: 1
-          z: 1
-  - Entity: 13
-    Components:
-      - Component: NameComponent
-        Name: LFire
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 1.59239268
-          z: 0
-        Rotation:
-          x: -0
-          y: 0
-          z: -0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\particle.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0.969696999
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ParticleComponent
-        IsLoop: true
-        SpawnInterval: 0.0199999996
-        SpawnCount: 100
-        SpawnTimer: 0.0177329239
-        ParticleLifeTime: 2
-        ParticleSize: 7.5
-        ParticleSpeed: 1
-        SpawnPosition:
-          x: 0
-          y: 0
-          z: 0
-        SpawnPositionRandom:
-          x: 0
-          y: 0
-          z: 0
-        StartSpeed:
-          x: 0
-          y: 2.5
-          z: 0
-        StartSpeedRandom:
-          x: 2.5
-          y: 5
-          z: 2.5
-        AddSpeed:
-          x: 0
-          y: 0
-          z: 0
-        MulSpeed:
-          x: 1
-          y: 1
-          z: 1
-  - Entity: 14
-    Components:
-      - Component: NameComponent
-        Name: Spark
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: TextureComponent
-        FilePath: Asset\Texture\particle.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0.976938248
-            y: 0.982683957
-            z: 0.540263534
-            w: 0.593073606
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ParticleComponent
-        IsLoop: true
-        SpawnInterval: 0.00999999978
-        SpawnCount: 100
-        SpawnTimer: 0.00773289753
-        ParticleLifeTime: 1
-        ParticleSize: 0.349999994
-        ParticleSpeed: 1
-        SpawnPosition:
-          x: 0
-          y: 0
-          z: 0
-        SpawnPositionRandom:
-          x: 0
-          y: 0
-          z: 0
-        StartSpeed:
-          x: 0
-          y: 10
-          z: 0
-        StartSpeedRandom:
-          x: 5
-          y: 10
-          z: 5
-        AddSpeed:
-          x: 0
-          y: -15
-          z: 0
-        MulSpeed:
-          x: 0.5
-          y: 0.5
-          z: 0.5

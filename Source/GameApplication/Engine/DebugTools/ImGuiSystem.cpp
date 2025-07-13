@@ -1,5 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
-
+#include <Windows.h>
+#include <stdio.h>
+#include <string>
 #include "ImGuiSystem.h"
 
 #include "Backends/ImGui/imgui.h"
@@ -13,12 +15,18 @@
 
 #include "GameApplication/GameApplication.h"
 #include "time.h"
+#include <psapi.h>
+
 #define SAMPLE_LENGTH (TARGET_FPS)
 
+#pragma comment(lib, "Psapi.lib")
 static float FixedFpsSamples[SAMPLE_LENGTH]{};
 static float DeltaFpsSamples[SAMPLE_LENGTH]{};
 static float UpdateSamples[SAMPLE_LENGTH]{};
 static float DrawSamples[SAMPLE_LENGTH]{};
+static float UsageSamples[SAMPLE_LENGTH]{};
+static float CommitSizeSamples[SAMPLE_LENGTH]{};
+static float WorkingSetSizeSamples[SAMPLE_LENGTH]{};
 static int SampleCount = 0;
 
 void SetModernStyle();
@@ -205,15 +213,34 @@ void ImGuiService::OnResize(){
 }
 
 void ImGuiService::DrawDebugImGuiWindow(double Update, double Draw, double FPS, double DeltaFPS){
+	
+	HANDLE hProc = GetCurrentProcess();
+	PROCESS_MEMORY_COUNTERS_EX pmc;
+	BOOL isSuccess = GetProcessMemoryInfo(
+		hProc,
+		(PROCESS_MEMORY_COUNTERS*)&pmc,
+		sizeof(pmc));
+	CloseHandle(hProc);
+	if(isSuccess == FALSE){
+		exit(EXIT_FAILURE);
+	}
 
 	SampleCount = (SampleCount + 1) % TARGET_FPS;
 	if(SampleCount == 0){
 		for(int n = 0; n < SAMPLE_LENGTH - 1; n++){
 			FixedFpsSamples[n] = FixedFpsSamples[n + 1];
 			DeltaFpsSamples[n] = DeltaFpsSamples[n + 1];
+
+			UsageSamples[n] = UsageSamples[n + 1];
+			CommitSizeSamples[n] = CommitSizeSamples[n + 1];
+			WorkingSetSizeSamples[n] = WorkingSetSizeSamples[n + 1];
 		}
 		FixedFpsSamples[SAMPLE_LENGTH - 1] = (float)FPS;
 		DeltaFpsSamples[SAMPLE_LENGTH - 1] = (float)DeltaFPS;
+
+		UsageSamples[SAMPLE_LENGTH - 1] = 100.0f * pmc.WorkingSetSize / (pmc.WorkingSetSize + pmc.WorkingSetSize);
+		CommitSizeSamples[SAMPLE_LENGTH - 1] = pmc.PagefileUsage / 1000000.0f;
+		WorkingSetSizeSamples[SAMPLE_LENGTH - 1] = pmc.WorkingSetSize / 1000000.0f;
 	}
 	for(int n = 0; n < SAMPLE_LENGTH - 1; n++){
 		UpdateSamples[n] = UpdateSamples[n + 1];
@@ -260,6 +287,28 @@ void ImGuiService::DrawDebugImGuiWindow(double Update, double Draw, double FPS, 
 			ImGui::Text("-描画処理-");
 			sprintf(Texts, "Draw:Avg:%.2fms", DrawAvg);
 			ImGui::PlotLines(Texts, DrawSamples, SAMPLE_LENGTH, 0, "", 0.0f, 1000.0f / 60.0f);
+			ImGui::TreePop();
+		}
+		if(ImGui::TreeNodeEx("-メモリ使用量-", ImGuiTreeNodeFlags_DefaultOpen)){
+			float UsageAvg = 0.0f;
+			int FPSCount = 0;
+
+			for(int n = 0; n < SAMPLE_LENGTH; n++){
+				if(0 < FixedFpsSamples[n]){
+					UsageAvg += UsageSamples[n];
+					FPSCount++;
+				}
+			}
+			if(0 < UsageAvg){
+				UsageAvg /= FPSCount;
+			}
+			char Texts[64]{};
+			sprintf(Texts, "usage:Avg:%.2f%%", UsageAvg);
+			ImGui::PlotLines(Texts, UsageSamples, SAMPLE_LENGTH, 0, "", 0.0f, 100.0f);
+			sprintf(Texts, "Commit:%dMB", (int)pmc.PagefileUsage / 1000000);
+			ImGui::PlotLines(Texts, CommitSizeSamples, SAMPLE_LENGTH, 0, "", 0.0f, pmc.PeakPagefileUsage / 1000000.0f);
+			sprintf(Texts, "Working:%dMB", (int)pmc.WorkingSetSize / 1000000);
+			ImGui::PlotLines(Texts, WorkingSetSizeSamples, SAMPLE_LENGTH, 0, "", 0.0f, pmc.PeakWorkingSetSize / 1000000.0f);
 			ImGui::TreePop();
 		}
 		ImGui::End();

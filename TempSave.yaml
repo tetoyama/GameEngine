@@ -23,9 +23,6 @@ Entities:
         PixelShader: Asset\Shader\BumpPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-      - Component: SetScene
-        ScriptName: SetScene
-        SceneName: Asset\Scene\Game.yaml
   - Entity: 2
     Components:
       - Component: NameComponent

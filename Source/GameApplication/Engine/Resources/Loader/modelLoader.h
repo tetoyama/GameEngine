@@ -3,6 +3,8 @@
 
 #include <memory>
 #include <string>
+#include <filesystem>
+
 #include "Engine/Resources/Data/modelData.h"
 #include "Engine/Graphics/graphicsContext.h"
 
@@ -14,15 +16,7 @@
 #include "Backends/Assimp/postprocess.h"
 #include "Backends/Assimp/matrix4x4.h"
 
-#include "Engine/Graphics/graphicsContext.h"
-
-#include "Engine/Resources/Data/modelData.h"
-
-#include <filesystem>
-
 #pragma comment (lib, "assimp-vc143-mt.lib")
-
-// 必要なAssimp, DirectXTexなどの include もここに記述
 
 inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, bool isBlender, GraphicsContext* context) {
 	auto model = std::make_shared<ModelData>();
@@ -284,12 +278,29 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 	return model;
 }
 
+//template<>
+//inline void ResourceLoader<ModelData>::SetupLoadFunc(void* contextPtr) {
+//
+//	auto context = static_cast<GraphicsContext*>(contextPtr);
+//	SetLoadFunction([=](const std::string& path, bool isBlender) {
+//		return LoadModelFromFile(path, isBlender, context);
+//	});
+//}
+
 template<>
-inline void ResourceLoader<ModelData>::SetupLoadFunc(void* contextPtr) {
+inline void ResourceLoader<ModelData>::SetupLoadFunc(void* contextPtr){
 	OutputDebugStringA("SetupLoadFunc ModelData called\n");
 
 	auto context = static_cast<GraphicsContext*>(contextPtr);
-	SetLoadFunction([=](const std::string& path, bool isBlender) {
+
+	SetLoadFunction([=](const std::string& path, void* argsPtr) -> std::shared_ptr<ModelData>{
+
+		using ArgsTuple = std::tuple<std::decay_t<bool>>;
+		bool isBlender = false;
+		if(argsPtr){
+			auto tup = static_cast<ArgsTuple*>(argsPtr);
+			isBlender = std::get<0>(*tup);
+		}
 		return LoadModelFromFile(path, isBlender, context);
 	});
 }

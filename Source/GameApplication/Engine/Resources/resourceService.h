@@ -33,8 +33,8 @@ public:
 
 		ClearAllUnused();
 
-		for(auto iLoader : m_Loaders){
-			iLoader.second->DumpCacheState();
+		for(auto& [type, loader] : m_Loaders){
+			loader->DumpCacheState();
 		}
 
         m_Loaders.clear();

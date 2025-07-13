@@ -7,6 +7,13 @@ class GraphicsContext;
 struct VertexShaderData
 {
 public:
+	VertexShaderData(){
+		OutputDebugStringA("Created VertexShaderData\n");
+	}
+	~VertexShaderData(){
+		OutputDebugStringA(("Destroyed VertexShaderData: " + FilePath + "\n").c_str());
+	}
+
 	std::string FilePath = "";
 
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;

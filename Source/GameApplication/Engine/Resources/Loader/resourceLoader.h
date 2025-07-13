@@ -19,28 +19,28 @@ public:
     // ロード関数型（引数付き）をテンプレートではなくSetLoadFunctionで設定
     using AnyLoadFunc = std::function<std::shared_ptr<T>(const std::string&, void*)>;
 
-    template<typename... Args>
-    std::shared_ptr<T> Load(const std::string& path, Args&&... args) {
-        auto it = m_Cache.find(path);
-        if (it != m_Cache.end()) return it->second;
+	template<typename... Args>
+	std::shared_ptr<T> Load(const std::string& path, Args&&... args){
+		using ArgsTuple = std::tuple<std::decay_t<Args>...>;
+		ArgsTuple argsTuple(std::forward<Args>(args)...);
 
-        if (!m_LoadFunc) return nullptr;
+		// キーを path + 引数文字列に拡張
+		std::string cacheKey = CreateCacheKey(path, argsTuple);
 
-        using ArgsTuple = std::tuple<std::decay_t<Args>...>;
-        ArgsTuple* tuple = new ArgsTuple(std::forward<Args>(args)...);
-        void* extraArgs = static_cast<void*>(tuple);
+		auto it = m_Cache.find(cacheKey);
+		if(it != m_Cache.end()) return it->second;
 
-        auto result = m_LoadFunc(path, extraArgs);
+		if(!m_LoadFunc) return nullptr;
 
-        // 安全に型消去
-        auto deleter = [](void* ptr) { delete static_cast<ArgsTuple*>(ptr); };
-        deleter(extraArgs);
+		void* extraArgs = static_cast<void*>(&argsTuple);
 
-        if (result) {
-            m_Cache[path] = result;
-        }
-        return result;
-    }
+		auto result = m_LoadFunc(path, extraArgs);
+		if(result){
+			m_Cache[cacheKey] = result;
+		}
+		return result;
+	}
+
 
 
     void SetLoadFunction(AnyLoadFunc func) {
@@ -84,21 +84,22 @@ private:
     AnyLoadFunc m_LoadFunc = nullptr;
     std::function<void(void*)> m_Deleter = nullptr;
 
-    // --- PackArgs / FreeArgs の実装例（必要に応じて型ごとに特殊化） ---
-    template<typename... Args>
-    void* PackArgs(Args&&... args) {
-        using ArgsTuple = std::tuple<std::decay_t<Args>...>;
-        ArgsTuple* tuple = new ArgsTuple(std::forward<Args>(args)...);
+	// 型特化せず汎用的に使えるユーティリティ
+	template<typename... Args>
+	std::string CreateCacheKey(const std::string& path, const std::tuple<Args...>& args){
+		return path + ":" + TupleToString(args);
+	}
 
-        m_Deleter = [](void* ptr) {
-            delete static_cast<ArgsTuple*>(ptr);
-        };
+	template<typename Tuple, std::size_t... I>
+	std::string TupleToStringImpl(const Tuple& tuple, std::index_sequence<I...>){
+		std::ostringstream oss;
+		((oss << (I == 0 ? "" : ",") << std::get<I>(tuple)), ...);
+		return oss.str();
+	}
 
-        return static_cast<void*>(tuple);
-    }
-
-    void FreeArgs(void* ptr) {
-        if (m_Deleter) m_Deleter(ptr);
-    }
+	template<typename... Args>
+	std::string TupleToString(const std::tuple<Args...>& tuple){
+		return TupleToStringImpl(tuple, std::index_sequence_for<Args...>{});
+	}
 
 };
