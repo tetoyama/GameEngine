@@ -286,6 +286,8 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 
 template<>
 inline void ResourceLoader<ModelData>::SetupLoadFunc(void* contextPtr) {
+	OutputDebugStringA("SetupLoadFunc ModelData called\n");
+
 	auto context = static_cast<GraphicsContext*>(contextPtr);
 	SetLoadFunction([=](const std::string& path, bool isBlender) {
 		return LoadModelFromFile(path, isBlender, context);

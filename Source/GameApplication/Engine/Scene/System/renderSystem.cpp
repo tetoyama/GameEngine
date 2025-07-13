@@ -272,7 +272,7 @@ void RenderSystem::Finalize(){
 void RenderSystem::Draw(){
 
 
-
+	return;
 
 	if(*showPlayer){
 		PlayerView();

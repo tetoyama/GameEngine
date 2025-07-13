@@ -29,6 +29,8 @@ inline std::shared_ptr<PixelShaderData> LoadPixelShaderFromFile(const std::strin
 
 template<>
 inline void ResourceLoader<VertexShaderData>::SetupLoadFunc(void* contextPtr) {
+	OutputDebugStringA("SetupLoadFunc VertexShaderData called\n");
+
 	auto context = static_cast<GraphicsContext*>(contextPtr);
 	SetLoadFunction([=](const std::string& path, void*) {
 		return LoadVertexShaderFromFile(path, context);
@@ -37,6 +39,8 @@ inline void ResourceLoader<VertexShaderData>::SetupLoadFunc(void* contextPtr) {
 
 template<>
 inline void ResourceLoader<PixelShaderData>::SetupLoadFunc(void* contextPtr) {
+	OutputDebugStringA("SetupLoadFunc PixelShaderData called\n");
+
 	auto context = static_cast<GraphicsContext*>(contextPtr);
 	SetLoadFunction([=](const std::string& path, void*) {
 		return LoadPixelShaderFromFile(path, context);

@@ -3019,10 +3019,6 @@
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Platform\WindowSystem\windowSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Resources\Data\modelData.cpp" />
-    <ClCompile Include="Source\GameApplication\Engine\Resources\Loader\modelLoader.cpp" />
-    <ClCompile Include="Source\GameApplication\Engine\Resources\Loader\shaderLoader.cpp" />
-    <ClCompile Include="Source\GameApplication\Engine\Resources\resourceService.cpp" />
-    <ClCompile Include="Source\GameApplication\Engine\Resources\Loader\textureLoader.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Runtime\TimeService\timeService.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\Registry\componentRegistry.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\scene.cpp" />

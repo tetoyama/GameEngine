@@ -118,7 +118,7 @@ void Scene::Initialize(ManagerContext* set){
 	m_systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<LightSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));
+	//m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<ParticleSystem>(&m_SceneContext));
 
 	m_systemRegistry->RegisterSystem(std::make_unique<PlayerSystem>(&m_SceneContext));

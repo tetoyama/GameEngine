@@ -12,4 +12,7 @@ public:
 
 	virtual void Unload(const std::string& path) = 0;
 	virtual void ClearUnused() = 0;
+	virtual void DumpCacheState() const = 0;
+
+	
 };

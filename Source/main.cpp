@@ -2,7 +2,9 @@
 #include "GameApplication/gameApplication.h"
 
 #ifdef _DEBUG
-#include <crtdbg.h> // デバッグ時のメモリリーク検出用
+#define _CRTDBG_MAP_ALLOC  
+#include <cstdlib>  
+#include <crtdbg.h>
 #endif
 
 // Windowsアプリケーションのエントリーポイント

@@ -9,6 +9,13 @@
 template<typename T>
 class ResourceLoader : public IResourceLoader {
 public:
+	virtual ~ResourceLoader(){
+		OutputDebugStringA("ResourceLoader destroyed\n");
+		if(!m_Cache.empty()){
+			DumpCacheState();
+		}
+	}
+
     // ロード関数型（引数付き）をテンプレートではなくSetLoadFunctionで設定
     using AnyLoadFunc = std::function<std::shared_ptr<T>(const std::string&, void*)>;
 
@@ -60,6 +67,17 @@ public:
                 ++it;
         }
     }
+
+	void DumpCacheState() const override {
+		OutputDebugStringA("DumpCacheState\n");
+		if(m_Cache.empty()){
+			OutputDebugStringA("  Cache is empty\n");
+		}
+		for(const auto& [key, ptr] : m_Cache){
+			std::string msg = key + ", use_count = " + std::to_string(ptr.use_count()) + "\n";
+			OutputDebugStringA(msg.c_str());
+		}
+	}
 
 private:
     std::unordered_map<std::string, std::shared_ptr<T>> m_Cache;

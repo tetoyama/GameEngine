@@ -13,6 +13,10 @@
 #include "Data/modelData.h"
 #include "Data/shaderData.h"
 
+#include "Loader/textureLoader.h"
+#include "Loader/shaderLoader.h"
+#include "Loader/modelLoader.h"
+
 class GraphicsContext;
 
 class ResourceService : public IService {
@@ -26,9 +30,17 @@ public:
     }
 
     void Shutdown() override {
+
+		ClearAllUnused();
+
+		for(auto iLoader : m_Loaders){
+			iLoader.second->DumpCacheState();
+		}
+
         m_Loaders.clear();
         m_Graphics = nullptr;
     }
+
     template<typename T, typename... Args>
     std::shared_ptr<T> Load(const std::string& path, Args&&... args) {
         auto it = m_Loaders.find(std::type_index(typeid(T)));
@@ -69,6 +81,8 @@ public:
 private:
     template<typename T>
     void RegisterLoader() {
+		OutputDebugStringA("RegisterLoader called\n");
+
         auto loader = std::make_shared<ResourceLoader<T>>();
         loader->SetupLoadFunc(static_cast<void*>(m_Graphics));
         m_Loaders[std::type_index(typeid(T))] = loader;

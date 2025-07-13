@@ -5,7 +5,13 @@
 
 
 struct TextureData {
-
+	TextureData(){
+		OutputDebugStringA("Created Texture\n");
+	}
+	~TextureData(){
+		OutputDebugStringA(("Destroyed Texture: " + FilePath + "\n").c_str());
+		pTexture.Reset();
+	}
 	std::string FilePath;
 	Microsoft::WRL::ComPtr <ID3D11ShaderResourceView> pTexture;	//ポインター
 	int Width = 0;

@@ -65,6 +65,8 @@ inline std::shared_ptr<TextureData> LoadTextureFromFile(const std::string& fileP
 
 template<>
 inline void ResourceLoader<TextureData>::SetupLoadFunc(void* contextPtr) {
+	OutputDebugStringA("SetupLoadFunc TextureData called\n");
+
 	auto context = static_cast<GraphicsContext*>(contextPtr);
 	SetLoadFunction([=](const std::string& path, void*) {
 		return LoadTextureFromFile(path, context);
