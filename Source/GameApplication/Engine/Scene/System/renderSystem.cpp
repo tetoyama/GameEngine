@@ -14,7 +14,11 @@
 #include "Backends/Assimp/cimport.h"
 #include "Backends/Assimp/postprocess.h"
 #include "Backends/Assimp/matrix4x4.h"
+
+#include "Backends/myMath.h"
+
 #include "Engine/DebugTools/debugSystem.h"
+
 
 #include "Engine/Resources/Data/modelData.h"
 
@@ -41,6 +45,15 @@
 #include <Component/2DspriteRendererComponent.h>
 #include <Component/RenderLayerComponent.h>
 #include <Component/particleComponent.h>
+
+void ComputeBoneMatrices(
+	const aiNode* node,
+	const DirectX::XMMATRIX& parentTransform,
+	const std::unordered_map<std::string, UINT>& boneMap,
+	const std::vector<DirectX::XMMATRIX>& localTransforms,
+	std::vector<DirectX::XMMATRIX>& finalTransforms,
+	const std::vector<Bone>& bones
+);
 
 RenderLayer GetRenderLayerFromEntity(Entity entity, ComponentRegistry* registry) {
 	auto* layerComponent = registry->GetComponent<RenderLayerComponent>(entity);
@@ -267,6 +280,20 @@ void RenderSystem::Finalize(){
 	rtv_player->Release();
 	srv_player->Release();
 	dsv_player->Release();
+}
+
+void RenderSystem::Update(float deltaTime) {
+	// コンポーネントを持つエンティティの検索
+	const auto& modelEntities = m_context->component->FindEntitiesWithComponent<ModelRendererComponent>();
+	if (modelEntities.empty()) {
+		return;
+	} else {
+		for (Entity entity : modelEntities) {
+
+			UpdateAnimation(entity, deltaTime);
+			SendAnimation(entity);
+		}
+	}
 }
 
 void RenderSystem::Draw(){
@@ -1024,6 +1051,130 @@ void RenderSystem::PlayerView(){
 	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
 }
 
+void RenderSystem::UpdateAnimation(const Entity& entity, const float& deltaTime) {
+	// 必要なコンポーネント取得（例）
+	auto modelRenderer = m_context->component->GetComponent<ModelRendererComponent>(entity);
+	auto transform = m_context->component->GetComponent<TransformComponent>(entity);
+	if (!modelRenderer || !modelRenderer->model) return;
+
+	ModelData* model = modelRenderer->model.get();
+	if (!model || model->Animations.empty()) return;
+
+	// 1. アニメーションの再生状態（例: "Idle" が再生中）
+	std::string animName = "Idle"; // 固定でもOK（後でAnimator導入可）
+	auto animIt = model->Animations.find(animName);
+	if (animIt == model->Animations.end()) return;
+
+	const AnimationClip& clip = animIt->second;
+	float ticksPerSecond = clip.ticksPerSecond != 0.0f ? clip.ticksPerSecond : 25.0f;
+
+	// 再生時間更新（1つの変数に保持している場合）
+	modelRenderer->animationTime += deltaTime * ticksPerSecond;
+	if (modelRenderer->animationTime > clip.duration)
+		modelRenderer->animationTime = fmod(modelRenderer->animationTime, clip.duration);
+
+	float time = modelRenderer->animationTime;
+
+	// 2. キーフレーム補間
+	const auto& keyframes = clip.keyframes;
+	if (keyframes.empty()) return;
+
+	size_t currentFrameIndex = 0;
+	while (currentFrameIndex < keyframes.size() - 1 && keyframes[currentFrameIndex + 1].time < time) {
+		currentFrameIndex++;
+	}
+
+	size_t nextFrameIndex = (std::min)(currentFrameIndex + 1, keyframes.size() - 1);
+
+	const auto& currentKey = keyframes[currentFrameIndex];
+	const auto& nextKey = keyframes[nextFrameIndex];
+
+	float frameDelta = nextKey.time - currentKey.time;
+	float t = (frameDelta > 0.0f) ? (time - currentKey.time) / frameDelta : 0.0f;
+
+	std::vector<DirectX::XMMATRIX> localTransforms(model->Bones.size());
+
+	for (size_t i = 0; i < model->Bones.size(); ++i) {
+		DirectX::XMMATRIX matA = DirectX::XMLoadFloat4x4(&currentKey.boneTransforms[i]);
+		DirectX::XMMATRIX matB = DirectX::XMLoadFloat4x4(&nextKey.boneTransforms[i]);
+		localTransforms[i] = DirectX::XMMatrixLerp(matA, matB, t);
+	}
+
+	// 3. グローバル変換（スキニング行列）の構築
+	std::vector<DirectX::XMMATRIX> finalMatrices(model->Bones.size(), DirectX::XMMatrixIdentity());
+
+	ComputeBoneMatrices(
+		model->AiScene->mRootNode,
+		DirectX::XMMatrixIdentity(),
+		model->BoneNameToIndex,
+		localTransforms,
+		finalMatrices,
+		model->Bones
+	);
+
+	// 4. アニメーションCB作成 & 転送
+	AnimationCB animCB = {};
+	animCB.boneCount = static_cast<UINT>(finalMatrices.size());
+	animCB.animationTime = modelRenderer->animationTime;
+
+	for (size_t i = 0; i < finalMatrices.size(); ++i) {
+		// 転置しておくとHLSLで使いやすい（列優先）
+		animCB.boneMatrices[i] = DirectX::XMMatrixTranspose(finalMatrices[i]);
+	}
+
+	UpdateAnimationCB(m_context->manager->graphics, model->AnimationConstantBuffer, animCB);
+}
+
+// 例として meshIndex を渡す想定
+void RenderSystem::SendAnimation(const Entity& entity, int meshIndex) {
+	auto modelRenderer = m_context->component->GetComponent<ModelRendererComponent>(entity);
+	if (!modelRenderer || !modelRenderer->model) return;
+
+	ModelData* model = modelRenderer->model.get();
+	if (!model) return;
+
+	// 1. ボーン行列のGPUバッファ（例：UpdateAnimation()で転送済みとする）
+	ID3D11ShaderResourceView* boneMatricesSRV = model->BoneMatricesSRV; // ※用意が必要
+
+	// 2. 入力頂点SRV
+	ID3D11ShaderResourceView* inputVertexSRV = nullptr;
+	if (meshIndex < (int)model->InputSRVs.size()) {
+		inputVertexSRV = model->InputSRVs[meshIndex];
+	}
+
+	// 3. 出力UAV
+	ID3D11UnorderedAccessView* outputUAV = nullptr;
+	if (meshIndex < (int)model->OutputUAVs.size()) {
+		outputUAV = model->OutputUAVs[meshIndex];
+	}
+
+	if (!inputVertexSRV || !boneMatricesSRV || !outputUAV) return;
+
+	ID3D11DeviceContext* deviceContext = m_context->manager->graphics->GetDeviceContext();
+
+	// CS設定
+	deviceContext->CSSetShader(m_context->manager->graphics->GetSkinningShader(), nullptr, 0);
+
+	// リソースセット
+	deviceContext->CSSetShaderResources(0, 1, &inputVertexSRV);
+	deviceContext->CSSetShaderResources(1, 1, &boneMatricesSRV);
+	deviceContext->CSSetUnorderedAccessViews(0, 1, &outputUAV, nullptr);
+
+	// Dispatch: (Dispatchスレッド数は頂点数に依存)
+	UINT vertexCount = /*頂点数を入れる*/;
+	UINT threadGroupSize = 64; // 例えば64スレッドでグループ化
+	UINT dispatchCount = (vertexCount + threadGroupSize - 1) / threadGroupSize;
+	deviceContext->Dispatch(dispatchCount, 1, 1);
+
+	// 後片付け
+	ID3D11ShaderResourceView* nullSRV[2] = { nullptr, nullptr };
+	deviceContext->CSSetShaderResources(0, 2, nullSRV);
+	ID3D11UnorderedAccessView* nullUAV[1] = { nullptr };
+	deviceContext->CSSetUnorderedAccessViews(0, 1, nullUAV, nullptr);
+
+	deviceContext->CSSetShader(nullptr, nullptr, 0);
+}
+
 void RenderSystem::DrawEntities(bool* pRenderLayer){
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
@@ -1120,5 +1271,42 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 				}
 			}
 		}
+	}
+}
+
+void ComputeBoneMatrices(
+	const aiNode* node,
+	const DirectX::XMMATRIX& parentTransform,
+	const std::unordered_map<std::string, UINT>& boneMap,
+	const std::vector<DirectX::XMMATRIX>& localTransforms,
+	std::vector<DirectX::XMMATRIX>& finalTransforms,
+	const std::vector<Bone>& bones
+) {
+	std::string nodeName(node->mName.C_Str());
+	DirectX::XMMATRIX nodeTransform = DirectX::AssimpToXM(node->mTransformation);
+
+	auto it = boneMap.find(nodeName);
+	if (it != boneMap.end()) {
+		UINT boneIndex = it->second;
+		nodeTransform = localTransforms[boneIndex];
+	}
+
+	DirectX::XMMATRIX globalTransform = parentTransform * nodeTransform;
+
+	if (it != boneMap.end()) {
+		UINT boneIndex = it->second;
+		DirectX::XMMATRIX offset = DirectX::XMLoadFloat4x4(&bones[boneIndex].offsetMatrix);
+		finalTransforms[boneIndex] = globalTransform * offset;
+	}
+
+	for (UINT i = 0; i < node->mNumChildren; ++i) {
+		ComputeBoneMatrices(
+			node->mChildren[i],
+			globalTransform,
+			boneMap,
+			localTransforms,
+			finalTransforms,
+			bones
+		);
 	}
 }

@@ -4,18 +4,9 @@
 #include <unordered_map>
 #include <d3d11.h>
 #include <DirectXMath.h>
+#include "Shader/CommonBuffer.h"
 
 struct aiScene;
-
-struct AnimationVertex {
-	DirectX::XMFLOAT4 Position;
-	DirectX::XMFLOAT4 Normal;
-	DirectX::XMFLOAT4 Diffuse;
-	DirectX::XMFLOAT2 TexCoord;
-
-	UINT BoneIndex[4] = {0, 0, 0, 0};
-	float BoneWeight[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-};
 
 struct Bone {
 	std::string name;

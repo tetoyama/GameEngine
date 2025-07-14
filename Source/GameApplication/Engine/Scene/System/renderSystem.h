@@ -6,7 +6,7 @@
 #include "Backends/myVector2.h"
 #include "Backends/myVector3.h"
 #include "Component/RenderLayerComponent.h"
-
+#include "../Entity/Entity.h"
 struct SceneContext;
 
 class TransformComponent;
@@ -26,7 +26,7 @@ public:
 	void Finalize()override;
 
 	void Start() override {};
-	void Update(float deltaTime) override{};
+	void Update(float deltaTime) override;
 	void FixedUpdate(float fidedDeltaTime) override {}
 	void Draw() override;
 	void EditorUpdate(float deltaTime) override;
@@ -50,6 +50,9 @@ private:
 
 	void EditorView();
 	void PlayerView();
+
+	void UpdateAnimation(const Entity& entity, const float& deltaTime);
+	void SendAnimation(const Entity& entity);
 
 	SceneContext* m_context;
 	MeshRendererComponent* m_billBoardMesh = nullptr;

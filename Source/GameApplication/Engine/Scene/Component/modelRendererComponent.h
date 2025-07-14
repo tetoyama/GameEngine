@@ -123,4 +123,5 @@ public:
 	bool isBlender = false;
 	std::shared_ptr<PixelShaderData>  pixelShader = nullptr;
 	std::shared_ptr<VertexShaderData>  vertexShader = nullptr;
+	float animationTime = 0.0f;
 };

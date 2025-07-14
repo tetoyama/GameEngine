@@ -57,6 +57,8 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 
 	if(!CreateD2DResources(hwnd)){return false;}
 
+	if (!CreateComputeSkinningShader()) { return false; }
+
 	Resize(width, height);
 
 	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
@@ -507,6 +509,25 @@ bool GraphicsContext::CreateDepthStencilBufferAndView(UINT width, UINT height){
 	}
 	return true;
 }
+
+bool GraphicsContext::CreateComputeSkinningShader() {
+	ID3DBlob* csBlob = nullptr;
+	HRESULT hr = D3DReadFileToBlob(L"Asset\\Shader\\skinnedVertex.cso", &csBlob);
+	if (FAILED(hr)) {
+		OutputDebugStringA("Failed to load skinnedVertex.cso\n");
+		return false;
+	}
+
+	hr = m_Device->CreateComputeShader(csBlob->GetBufferPointer(), csBlob->GetBufferSize(), nullptr, &m_pComputeSkinningShader);
+	csBlob->Release();
+	if (FAILED(hr)) {
+		OutputDebugStringA("Failed to create compute shader\n");
+		return false;
+	}
+
+	return true;
+}
+
 
 bool GraphicsContext::CreateD2DResources(HWND hwnd){
 	// D2Dファクトリ生成（初回のみ）

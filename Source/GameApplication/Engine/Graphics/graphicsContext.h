@@ -71,6 +71,11 @@ public:
 		const char* fileName,
 		ID3D11PixelShader** pixelShader
 	);
+
+	ID3D11ComputeShader* GetSkinningShader() {
+		return m_pComputeSkinningShader;
+	}
+
 	UINT m_width = 0;
 	UINT m_height = 0;
 private:
@@ -82,6 +87,7 @@ private:
 	bool CreateRenderTargetView();
 	bool CreateBlendState();
 	bool CreateDepthStencilBufferAndView(UINT width, UINT height);
+	bool CreateComputeSkinningShader();
 	bool CreateD2DResources(HWND hwnd);
 
 	bool ReadFileToBuffer(const char* fileName, std::vector<char>& buffer);
@@ -100,6 +106,8 @@ private:
 	ID3D11Buffer* m_LightBuffer = nullptr;
 	ID3D11Buffer* m_CameraBuffer = nullptr;
 	ID3D11Buffer* m_ParameterBuffer = nullptr;
+
+	ID3D11ComputeShader* m_pComputeSkinningShader = nullptr;
 
 	ID3D11DepthStencilState*	m_DepthStateEnable;
 	ID3D11DepthStencilState*	m_DepthStateDisable;
