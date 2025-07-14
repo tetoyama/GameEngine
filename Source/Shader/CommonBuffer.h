@@ -58,3 +58,12 @@ struct Parameter
 {
 	DirectX::XMFLOAT4	Parameter;
 };
+
+#define MAX_BONES 128
+
+struct AnimationCB {
+	float animationTime;						// 現在のアニメーション時刻（秒）
+	int boneCount;								// 使用中のボーン数
+	float dummy[2];
+	DirectX::XMMATRIX boneMatrices[MAX_BONES];	// アニメーション済みのボーン行列（モデル空間）
+};

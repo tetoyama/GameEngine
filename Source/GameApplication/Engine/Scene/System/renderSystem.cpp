@@ -496,7 +496,7 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 
 	ModelData* pModel = modelRenderer->model.get();
 	if(!pModel || !pModel->AiScene){
-		//m_context->manager->debug->LOG_ERROR("ModelData is null or AiScene is not initialized.");
+		m_context->manager->debug->LOG_ERROR("ModelData is null or AiScene is not initialized.");
 		return;
 	}
 

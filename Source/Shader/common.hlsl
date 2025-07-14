@@ -68,6 +68,16 @@ cbuffer ParameterBuffer : register(b7)
     float4 Parameter;
 };
 
+#define MAX_BONES 128
+
+cbuffer AnimationCB : register(b0)
+{
+    float animationTime;
+    int boneCount;
+    float2 padding; // 16バイトアライメント調整
+    matrix boneMatrices[MAX_BONES];
+}
+
 struct VS_IN
 {
     float4 Position : POSITION0;

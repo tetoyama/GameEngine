@@ -145,18 +145,18 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 0.200000003
+          y: 1.25673699
           z: 0
         Rotation:
-          x: 0
+          x: -0
           y: 0
-          z: 0
+          z: -0
         Scale:
           x: 1
           y: 1
           z: 1
       - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
+        FilePath: Asset\Texture\alca.png
         Material:
           Ambient:
             x: 0.100000001
@@ -164,9 +164,9 @@ Entities:
             z: 0.100000001
             w: 1
           Diffuse:
-            x: 0
-            y: 1
-            z: 0
+            x: 0.800000012
+            y: 0.800000012
+            z: 0.800000012
             w: 1
           Specular:
             x: 0.0399999991
@@ -184,8 +184,8 @@ Entities:
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
+        FilePath: Asset\Model\ALCA_v7.obj
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: PlayerComponent
