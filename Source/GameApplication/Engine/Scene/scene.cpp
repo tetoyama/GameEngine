@@ -60,9 +60,14 @@
 #include "Component/LightComponent.h"
 
 #include "Script/SetScene.h"
+#include "Script/ScoreManager.h"
+#include "Script/ScoreSprite.h"
+
 #include <System/lightSystem.h>
 #include <Component/particleComponent.h>
 #include <System/particleSystem.h>
+#include <Component/audioComponent.h>
+#include <System/audioSystem.h>
 
 Scene::Scene(){
 
@@ -86,6 +91,9 @@ void Scene::Initialize(ManagerContext* set){
 	// ボトルネックが見つかったコンポーネントから ArchetypeStorage<T> に移行
 	m_componentRegistry->RegisterYAMLComponent<NameComponent>("NameComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<TransformComponent>("TransformComponent", false);
+
+	m_componentRegistry->RegisterYAMLComponent<AudioComponent>("AudioComponent", false);
+
 
 	m_componentRegistry->RegisterYAMLComponent<TextureComponent>("TextureComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<BumpMapComponent>("BumpMapComponent", false);
@@ -112,12 +120,15 @@ void Scene::Initialize(ManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<ExplosionEffectComponent>("ExplosionEffectComponent", false);
 
 	m_componentRegistry->RegisterYAMLComponent<SetScene>("SetScene", false);
+	m_componentRegistry->RegisterYAMLComponent<ScoreManager>("ScoreManager", false);
+	m_componentRegistry->RegisterYAMLComponent<ScoreSprite>("ScoreSprite", false);
 
 	// システムを登録
 	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<LightSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<AudioSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<ParticleSystem>(&m_SceneContext));
 
@@ -176,6 +187,8 @@ void Scene::Update(float deltaTime){
 		} else if(m_SceneContext.state == SceneState::Stopped){
 			m_SceneManagerContext->debug->LOG_INFO("シーンを停止します");
 			TempLoad(); // 一時読み込み
+			m_systemRegistry->FinalizeAll();
+			m_systemRegistry->InitializeAll();
 			//m_systemRegistry->FinalizeAll();
 		}
 		m_OldState = m_SceneContext.state;

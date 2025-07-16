@@ -23,6 +23,7 @@
 #include "Engine/EditorUI/ImGuiMainManuBar.h"
 
 #include <dxgidebug.h>
+#include "Audio/audioContext.h"
 #pragma comment(lib, "dxguid.lib")
 
 void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInstance, int nCmdShow){
@@ -60,6 +61,14 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     timeService->Initialize();
     debugLogSystem->LOG_DEBUG("TimeServiceが正常に作成されました");
 
+	// オーディオコンテキスト初期化
+	auto audioContext = context->Get<AudioContext>();
+	if(!audioContext || !audioContext->Initialize()){
+		OutputDebugStringA("AudioContext の初期化に失敗しました。\n");
+		return;
+	}
+	debugLogSystem->LOG_DEBUG("AudioContextが正常に作成されました");
+
     // DirectX 描画コンテキスト初期化
     auto graphicsContext = context->Get<GraphicsContext>();
     if (!graphicsContext || 
@@ -72,7 +81,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     // リソース管理初期化
     auto resourceService = context->Get<ResourceService>();
     if(!resourceService) return;
-    resourceService->Initialize(graphicsContext.get());
+    resourceService->Initialize(graphicsContext.get(), audioContext.get());
     debugLogSystem->LOG_DEBUG("ResourceServiceが正常に作成されました");
 
     // 入力処理初期化
@@ -108,16 +117,17 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     if (!sceneManager) return;
 
 	// SceneManagerの初期化
-	ManagerContext sceneContext{};
-	sceneContext.graphics = graphicsContext.get();
-	sceneContext.renderer = mainRenderer.get();
-	sceneContext.input = inputService.get();
-	sceneContext.resource = resourceService.get();
-	sceneContext.hwnd = mainRenderer->GetHWND();
-	sceneContext.debug = debugLogSystem.get();
-	sceneContext.imgui = imguiService.get();
-	sceneContext.sceneManager = sceneManager.get();
-	sceneManager->Initialize(sceneContext);
+	ManagerContext sceneManagerContext{};
+	sceneManagerContext.audio = audioContext.get();
+	sceneManagerContext.graphics = graphicsContext.get();
+	sceneManagerContext.renderer = mainRenderer.get();
+	sceneManagerContext.input = inputService.get();
+	sceneManagerContext.resource = resourceService.get();
+	sceneManagerContext.hwnd = mainRenderer->GetHWND();
+	sceneManagerContext.debug = debugLogSystem.get();
+	sceneManagerContext.imgui = imguiService.get();
+	sceneManagerContext.sceneManager = sceneManager.get();
+	sceneManager->Initialize(sceneManagerContext);
 
 	debugLogSystem->LOG_DEBUG("SceneManagerが正常に作成されました");
 

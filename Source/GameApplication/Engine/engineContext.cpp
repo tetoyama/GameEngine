@@ -10,6 +10,7 @@
 #include "Scene/sceneManager.h"
 #include "Graphics/mainRenderer.h"
 #include "Resources/resourceService.h"
+#include "Audio/audioContext.h"
 
 std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 
@@ -22,6 +23,10 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 	// TimeService 登録
 	auto timeService = std::make_shared<TimeService>();
 	context->Register<TimeService>(timeService);
+
+	// AudioContext 登録
+	auto audioContext = std::make_shared<AudioContext>();
+	context->Register<AudioContext>(audioContext);
 
 	// GraphicsContext 登録
 	auto graphicsContext = std::make_shared<GraphicsContext>();

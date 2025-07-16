@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 
 struct SceneContext;
 class TransformComponent;
@@ -56,6 +57,7 @@ private:
 	// UIパネル描画関数
 	void CreateDockSpace();
 	void DrawSceneHierarchy(SceneContext* context);
+	void DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities);
 	void DrawInspector(SceneContext* context);
 	void DrawAssetsBrowser();
 

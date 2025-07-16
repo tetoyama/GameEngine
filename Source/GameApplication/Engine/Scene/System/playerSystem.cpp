@@ -26,6 +26,7 @@
 #include "Engine/Graphics/mainRenderer.h"
 
 #include "Engine/Platform/InputSystem/InputSystem.h"
+#include <Component/audioComponent.h>
 
 void PlayerSystem::Initialize(){
 	m_context->manager->debug->LOG_DEBUG("PlayerSystemを初期化中...");
@@ -104,6 +105,12 @@ void PlayerSystem::Update(float deltaTime) {
 
 			if(input->IsKeyDown(m_context->manager->hwnd, VK_SPACE)){
 				
+				// 効果音の再生
+				auto Audio = m_context->component->GetComponent<AudioComponent>(entity);
+				if(Audio){
+					Audio->Play(m_context->manager->audio);
+				}
+
 				Entity bulletEntity = m_context->entity->Create();
 				NameComponent* name = m_context->component->AddComponent<NameComponent>(bulletEntity);
 				name->name = "Bullet";

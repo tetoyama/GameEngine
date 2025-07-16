@@ -2,6 +2,7 @@
 #include "Interface/IComponent.h"
 #include "Backends/myVector3.h"
 #include "Service/YAMLConverters.h"
+#include "Registry/componentRegistry.h"
 #include "GameApplication/Engine/DebugTools/ImGuiSystem.h"
 
 
@@ -10,12 +11,14 @@ public:
 	Vector3 position = Vector3(0, 0, 0);
 	Vector3 rotation = Vector3(0, 0, 0);
 	Vector3 scale = Vector3(1, 1, 1);
+	Entity parent = 0;
 
 	YAML::Node encode() override{
 		YAML::Node node;
 		node["Position"] = position;
 		node["Rotation"] = rotation;
 		node["Scale"] = scale;
+		node["Parent"] = (int)parent;
 
 		return node;
 	}
@@ -32,67 +35,13 @@ public:
 		if (node["Scale"]) {
 			scale = node["Scale"].as<Vector3>();
 		}
+		if(node["Parent"]){
+			parent = Entity(node["Parent"].as<int>());
+		}
 		return true;
 	}
-	Vector3 front() const {
-		float pitch = rotation.x;
-		float yaw = rotation.y;
-		float roll = rotation.z;
-
-		float cosPitch = cos(pitch);
-		float sinPitch = sin(pitch);
-		float cosYaw = cos(yaw);
-		float sinYaw = sin(yaw);
-		float cosRoll = cos(roll);
-		float sinRoll = sin(roll);
-
-		return Vector3(
-			cosPitch * sinYaw,
-			sinPitch,
-			cosPitch * cosYaw
-		);
-	}
-
-	Vector3 up() const {
-		float pitch = rotation.x;
-		float yaw = rotation.y;
-		float roll = rotation.z;
-
-		float cosPitch = cos(pitch);
-		float sinPitch = sin(pitch);
-		float cosYaw = cos(yaw);
-		float sinYaw = sin(yaw);
-		float cosRoll = cos(roll);
-		float sinRoll = sin(roll);
-
-		return Vector3(
-			-cosPitch * sinYaw * sinRoll + sinPitch * cosRoll,
-			cosPitch * cosRoll + sinPitch * sinYaw * sinRoll,
-			cosYaw * sinPitch
-		);
-	}
-
-	Vector3 right() const {
-		float pitch = rotation.x;
-		float yaw = rotation.y;
-		float roll = rotation.z;
-
-		float cosPitch = cos(pitch);
-		float sinPitch = sin(pitch);
-		float cosYaw = cos(yaw);
-		float sinYaw = sin(yaw);
-		float cosRoll = cos(roll);
-		float sinRoll = sin(roll);
-
-		return Vector3(
-			cosPitch * cosYaw,
-			-sinPitch,
-			cosPitch * sinYaw
-		);
-	}
-
-    void inspector(SceneContext* context) override {
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 6));
+	void inspector(SceneContext* context) override{
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 6));
 
 		const float labelWidth = 100.0f;
 		const int axisCount = 3;
@@ -122,7 +71,7 @@ public:
 
 				// 軸名（X/Y/Z）
 				ImGui::Text("%s", id);
-				ImGui::SameLine(0.0f,10.0f);
+				ImGui::SameLine(0.0f, 10.0f);
 
 				ImGui::DragFloat("##", &value, 0.01f, -1000.0f, 1000.0f);
 
@@ -139,11 +88,11 @@ public:
 			DrawComponent("Z", z, colorZ, (std::string(label) + "Z").c_str(), true);
 			};
 
-        // ----------- Position -----------
-        DrawVec3Control("Position", position.x, position.y, position.z);
+		// ----------- Position -----------
+		DrawVec3Control("Position", position.x, position.y, position.z);
 
-        // ----------- Rotation -----------
-        DrawVec3Control("Rotation", rotation.x, rotation.y, rotation.z);
+		// ----------- Rotation -----------
+		DrawVec3Control("Rotation", rotation.x, rotation.y, rotation.z);
 
 		// ----------- Scale -----------
 		ImGui::AlignTextToFramePadding();
@@ -207,11 +156,81 @@ public:
 			if(ImGui::IsItemHovered())
 				ImGui::SetTooltip("Locked: scale all axes proportionally");
 		}
+		ImGui::InputInt("Parent Entity", (int*)&parent);
+
+		ImGui::PopStyleVar(); // ItemSpacing
+	}
 
 
-        ImGui::PopStyleVar(); // ItemSpacing
-    }
+	Vector3 front() const {
+		float pitch = rotation.x;
+		float yaw = rotation.y;
+		float roll = rotation.z;
 
+		float cosPitch = cos(pitch);
+		float sinPitch = sin(pitch);
+		float cosYaw = cos(yaw);
+		float sinYaw = sin(yaw);
+		float cosRoll = cos(roll);
+		float sinRoll = sin(roll);
 
+		return Vector3(
+			cosPitch * sinYaw,
+			sinPitch,
+			cosPitch * cosYaw
+		);
+	}
 
+	Vector3 up() const {
+		float pitch = rotation.x;
+		float yaw = rotation.y;
+		float roll = rotation.z;
+
+		float cosPitch = cos(pitch);
+		float sinPitch = sin(pitch);
+		float cosYaw = cos(yaw);
+		float sinYaw = sin(yaw);
+		float cosRoll = cos(roll);
+		float sinRoll = sin(roll);
+
+		return Vector3(
+			-cosPitch * sinYaw * sinRoll + sinPitch * cosRoll,
+			cosPitch * cosRoll + sinPitch * sinYaw * sinRoll,
+			cosYaw * sinPitch
+		);
+	}
+
+	Vector3 right() const {
+		float pitch = rotation.x;
+		float yaw = rotation.y;
+		float roll = rotation.z;
+
+		float cosPitch = cos(pitch);
+		float sinPitch = sin(pitch);
+		float cosYaw = cos(yaw);
+		float sinYaw = sin(yaw);
+		float cosRoll = cos(roll);
+		float sinRoll = sin(roll);
+
+		return Vector3(
+			cosPitch * cosYaw,
+			-sinPitch,
+			cosPitch * sinYaw
+		);
+	}
+
+	DirectX::XMMATRIX CalculateWorldMatrix(TransformComponent* transform, ComponentRegistry* registry){
+		DirectX::XMMATRIX local =
+			DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z) *
+			DirectX::XMMatrixRotationRollPitchYaw(transform->rotation.x, transform->rotation.y, transform->rotation.z) *
+			DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
+
+		if(transform->parent != 0){
+			auto* parentTransform = registry->GetComponent<TransformComponent>(transform->parent);
+			if(parentTransform && parentTransform->parent != transform->parent){
+				return local * CalculateWorldMatrix(parentTransform, registry);
+			}
+		}
+		return local;
+	}
 };

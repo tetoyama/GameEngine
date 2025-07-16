@@ -182,42 +182,78 @@ void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 	ImGui::InputTextWithHint("##search", "Search objects...", searchBuffer, sizeof(searchBuffer));
 	ImGui::Separator();
 
-	// コンポーネントを持つエンティティの検索
-	const auto& entities = m_context->entity->GetAllAlive();
-	if(entities.empty()){
-		ImGui::End();
-		return;
-	} else{
-		ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
+	const auto& entities = registry->GetAllAlive();
+	ImGui::BeginChild("Child");
 
-		for(Entity entity : entities){
-			std::string showName = "EntityID:" + std::to_string(entity);
-			NameComponent* name = m_context->component->GetComponent<NameComponent>(entity);
-			if(name && name->name != ""){
-				showName = std::format("{:05}", entity) + " : " + name->name;
-			}
+	// --- ルートエンティティの描画（親を持たないもの） ---
+	for(const Entity& entity : registry->GetAllAlive()){
+		auto* transform = context->component->GetComponent<TransformComponent>(entity);
+		if(!transform || transform->parent != 0)
+			continue;
 
-			// サーチフィルタにマッチしない場合はスキップ
-			if(searchBuffer[0] != '\0'){
-				std::string lowerName = showName;
-				std::string lowerSearch = searchBuffer;
-				std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-				std::transform(lowerSearch.begin(), lowerSearch.end(), lowerSearch.begin(), ::tolower);
+		DrawHierarchyNode(entity, context, registry->GetAllAlive());
+	}
+	ImGui::EndChild();
 
-				if(lowerName.find(lowerSearch) == std::string::npos){
-					continue;
+	ImGui::End();
+}
+
+void InspectorSystem::DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities){
+	auto* name = context->component->GetComponent<NameComponent>(entity);
+	std::string displayName = name ? name->name : "Entity";
+
+	// --- 子の有無を先にチェック ---
+	bool hasChildren = false;
+	for(Entity child : allEntities){
+		auto* childTransform = context->component->GetComponent<TransformComponent>(child);
+		if(childTransform && childTransform->parent == entity){
+			hasChildren = true;
+			break;
+		}
+	}
+
+	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
+		ImGuiTreeNodeFlags_DefaultOpen |
+		(selectedEntity == entity ? ImGuiTreeNodeFlags_Selected : 0);
+
+	if(!hasChildren)
+		flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+
+	// --- ツリーノード表示 ---
+	bool opened = ImGui::TreeNodeEx((void*)(intptr_t)entity, flags, "%s", displayName.c_str());
+
+	if(ImGui::IsItemClicked())
+		selectedEntity = entity;
+	if(ImGui::BeginDragDropSource()){
+		ImGui::SetDragDropPayload("ENTITY_DRAG_DROP", &entity, sizeof(Entity)); // entity を送る
+		ImGui::Text("Move Entity");
+		ImGui::EndDragDropSource();
+	}
+	if(ImGui::BeginDragDropTarget()){
+		if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG_DROP")){
+			IM_ASSERT(payload->DataSize == sizeof(Entity));
+			Entity draggedEntity = *(const Entity*)payload->Data;
+
+			// 自分自身を親にしようとしていないかチェック
+			if(draggedEntity != entity){
+				auto* transform = context->component->GetComponent<TransformComponent>(draggedEntity);
+				if(transform){
+					transform->parent = entity; // ドロップされたエンティティの親を変更
 				}
 			}
-
-			if(ImGui::Selectable(showName.c_str(), selectedEntity == entity)){
-				selectedEntity = (selectedEntity == entity) ? 0 : entity;
+		}
+		ImGui::EndDragDropTarget();
+	}
+	// --- 子の描画（TreePushされていれば） ---
+	if(opened && hasChildren){
+		for(Entity child : allEntities){
+			auto* childTransform = context->component->GetComponent<TransformComponent>(child);
+			if(childTransform && childTransform->parent == entity){
+				DrawHierarchyNode(child, context, allEntities);
 			}
 		}
-
-		ImGui::EndChild();
+		ImGui::TreePop();
 	}
-	ImGui::End();
-
 }
 
 
@@ -387,7 +423,7 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 		DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z);
 		DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
 
-		DirectX::XMMATRIX World = Scale * Rotation * Translation;
+		DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform,context->component);
 
 		DirectX::XMMATRIX modelMatrix;
 

@@ -82,7 +82,8 @@ void GraphicsContext::Shutdown(){
 
 	SAFE_RELEASE(m_DepthStateEnable);
 	SAFE_RELEASE(m_DepthStateDisable);
-
+	SAFE_RELEASE(m_pComputeSkinningShader);
+	
 	m_d2dFactory.Reset();
 	m_dwriteFactory.Reset();
 

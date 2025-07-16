@@ -1,27 +1,50 @@
 #pragma once
 #include "Interface/IComponent.h"
 #include "Service/YAMLConverters.h"
+#include <string>
 
-class BillBoardRendererComponent : public IComponent {
+struct RotateAxis {
+	bool x = true;
+	bool y = true;
+	bool z = true;
+};
+
+class BillBoardRendererComponent: public IComponent {
 public:
+	// --- YAMLエンコード ---
 	YAML::Node encode() override{
 		YAML::Node node;
-
+		node["RotateX"] = RotateXYZ.x;
+		node["RotateY"] = RotateXYZ.y;
+		node["RotateZ"] = RotateXYZ.z;
 		return node;
 	}
 
+	// --- YAMLデコード ---
 	bool decode(const YAML::Node& node) override{
+		if(node["RotateX"]) RotateXYZ.x = node["RotateX"].as<bool>();
+		if(node["RotateY"]) RotateXYZ.y = node["RotateY"].as<bool>();
+		if(node["RotateZ"]) RotateXYZ.z = node["RotateZ"].as<bool>();
 		return true;
 	}
 
+	// --- ImGuiインスペクター表示 ---
 	void inspector(SceneContext* context) override{
 		ImGui::Text("BillBoardRendererComponent");
-		ImGui::Text("FreezeXZ");
+
+		ImGui::Text("Rotate X:");
 		ImGui::SameLine(100);
-		if(ImGui::Button(FreezeXZ ? "Yes" : "No")){
-			FreezeXZ = !FreezeXZ;
-		}
+		ImGui::Checkbox(("##RotateX_" + std::to_string(reinterpret_cast<std::uintptr_t>(this))).c_str(), &RotateXYZ.x);
+
+		ImGui::Text("Rotate Y:");
+		ImGui::SameLine(100);
+		ImGui::Checkbox(("##RotateY_" + std::to_string(reinterpret_cast<std::uintptr_t>(this))).c_str(), &RotateXYZ.y);
+
+		ImGui::Text("Rotate Z:");
+		ImGui::SameLine(100);
+		ImGui::Checkbox(("##RotateZ_" + std::to_string(reinterpret_cast<std::uintptr_t>(this))).c_str(), &RotateXYZ.z);
 	}
 
-	bool FreezeXZ = false;
+	// --- 回転設定 ---
+	RotateAxis RotateXYZ;
 };

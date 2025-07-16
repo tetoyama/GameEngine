@@ -8,6 +8,7 @@ class Scene;
 
 class MainRenderer;
 class GraphicsContext;
+class AudioContext;
 class InputService;
 class ResourceService;
 class DebugLogSystem;
@@ -18,6 +19,7 @@ struct ManagerContext {
 	SceneManager* sceneManager = nullptr;
 
 	GraphicsContext* graphics = nullptr;
+	AudioContext* audio = nullptr;
 	MainRenderer* renderer = nullptr;
 	InputService* input = nullptr;
 	ResourceService* resource = nullptr;

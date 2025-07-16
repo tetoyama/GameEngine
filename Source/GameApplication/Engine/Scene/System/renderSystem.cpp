@@ -290,8 +290,8 @@ void RenderSystem::Update(float deltaTime) {
 	} else {
 		for (Entity entity : modelEntities) {
 
-			UpdateAnimation(entity, deltaTime);
-			SendAnimation(entity);
+			//UpdateAnimation(entity, deltaTime);
+			//SendAnimation(entity,0);
 		}
 	}
 }
@@ -500,7 +500,7 @@ void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent
 	DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z);
 	DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
 
-	DirectX::XMMATRIX World = Scale * Rotation * Translation;
+	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, m_context->component);
 
 	graphicsContext->SetWorldViewProjection2D();
 	graphicsContext->SetWorldMatrix(World);
@@ -539,12 +539,7 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 		deviceContext->VSSetShader(modelRenderer->vertexShader->m_VertexShader.Get(), NULL, 0);
 	}
 
-
-	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(transform->rotation.x, transform->rotation.y, transform->rotation.z);
-	DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z);
-	DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
-
-	DirectX::XMMATRIX World = Scale * Rotation * Translation;
+	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, m_context->component);
 
 	for(unsigned int m = 0; m < pModel->AiScene->mNumMeshes; m++){
 
@@ -655,27 +650,27 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 
 void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComponent* meshRenderer, BillBoardRendererComponent* billBoard, TextureComponent* pTexture) {
 
-	DirectX::XMMATRIX InvViewBillBoardMatrix;
+	DirectX::XMMATRIX InvViewBillBoardMatrix = DirectX::XMMatrixRotationRollPitchYawFromVector(transform->rotation.ToXMVECTOR());
 	m_context->manager->renderer->GetGraphicsContext()->SetDepthEnable(false);
 
-	if(billBoard->FreezeXZ){
-		// カメラの向きを取得（ビュー行列の逆行列 = ワールド行列）
-		DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, m_CameraView);
+	if(!billBoard->RotateXYZ.x && !billBoard->RotateXYZ.y && !billBoard->RotateXYZ.z){
+		// 全軸false：回転しない → 単位行列（通常メッシュと同じ）
+	} else if(billBoard->RotateXYZ.y && !billBoard->RotateXYZ.x && !billBoard->RotateXYZ.z){
+		// Y軸だけ回転（XZビルボード） → UIパネルなどで多用される
 
-		// Y軸回転だけを取り出す処理
+		DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, m_CameraView);
 		DirectX::XMFLOAT4X4 invViewFloat4x4;
 		DirectX::XMStoreFloat4x4(&invViewFloat4x4, invView);
 
-		// 上3行3列だけ使う（位置成分除く）
-		DirectX::XMVECTOR forward = DirectX::XMVectorSet(invViewFloat4x4._31, 0.0f, invViewFloat4x4._33, 0.0f); // Z軸（前）
+		// カメラの前方向ベクトル（Z軸）
+		DirectX::XMVECTOR forward = DirectX::XMVectorSet(invViewFloat4x4._31, 0.0f, invViewFloat4x4._33, 0.0f);
 		forward = DirectX::XMVector3Normalize(forward);
 
-		DirectX::XMVECTOR right = DirectX::XMVector3Cross(DirectX::XMVectorSet(0, 1, 0, 0), forward); // Y軸とZ軸からX軸計算
-		right = DirectX::XMVector3Normalize(right);
+		// up = Y軸固定
+		DirectX::XMVECTOR up = DirectX::XMVectorSet(0, 1, 0, 0);
+		DirectX::XMVECTOR right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(up, forward));
+		up = DirectX::XMVector3Cross(forward, right);
 
-		DirectX::XMVECTOR up = DirectX::XMVector3Cross(forward, right); // Z軸とX軸からY軸計算（右手系）
-
-		// 回転行列を作る
 		InvViewBillBoardMatrix = DirectX::XMMATRIX(
 			right,
 			up,
@@ -683,16 +678,35 @@ void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComp
 			DirectX::XMVectorSet(0, 0, 0, 1)
 		);
 	} else{
-		// 通常のビルボード（ビュー行列の回転成分のみ使う）
-		DirectX::XMMATRIX InverseViewMatrix = DirectX::XMMatrixTranspose(m_CameraView);
-		DirectX::XMFLOAT4X4 Mat;
-		DirectX::XMStoreFloat4x4(&Mat, InverseViewMatrix);
+		// 任意の軸制御（全軸、Y+Z など）
+		DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, m_CameraView);
+		DirectX::XMFLOAT4X4 invViewFloat4x4;
+		DirectX::XMStoreFloat4x4(&invViewFloat4x4, invView);
 
-		// 位置成分を0に
-		Mat._14 = Mat._24 = Mat._34 = 0.0f;
-		InvViewBillBoardMatrix = DirectX::XMLoadFloat4x4(&Mat);
+		DirectX::XMVECTOR forward = DirectX::XMVectorSet(invViewFloat4x4._31, invViewFloat4x4._32, invViewFloat4x4._33, 0.0f);
+		DirectX::XMVECTOR right = DirectX::XMVectorSet(invViewFloat4x4._11, invViewFloat4x4._12, invViewFloat4x4._13, 0.0f);
+		DirectX::XMVECTOR up = DirectX::XMVectorSet(invViewFloat4x4._21, invViewFloat4x4._22, invViewFloat4x4._23, 0.0f);
+
+		const DirectX::XMVECTOR worldRight = DirectX::XMVectorSet(1, 0, 0, 0);
+		const DirectX::XMVECTOR worldUp = DirectX::XMVectorSet(0, 1, 0, 0);
+		const DirectX::XMVECTOR worldForward = DirectX::XMVectorSet(0, 0, 1, 0);
+
+		if(!billBoard->RotateXYZ.x) right = worldRight;
+		if(!billBoard->RotateXYZ.y) up = worldUp;
+		if(!billBoard->RotateXYZ.z) forward = worldForward;
+
+		// 再直交化（forward優先）
+		forward = DirectX::XMVector3Normalize(forward);
+		right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(up, forward));
+		up = DirectX::XMVector3Cross(forward, right);
+
+		InvViewBillBoardMatrix = DirectX::XMMATRIX(
+			right,
+			up,
+			forward,
+			DirectX::XMVectorSet(0, 0, 0, 1)
+		);
 	}
-
 
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
@@ -713,14 +727,32 @@ void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComp
 	deviceContext->VSSetShader(meshRenderer->mesh.m_VertexShader.Get(), NULL, 0);
 	deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
 
-	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(transform->rotation.x, transform->rotation.y, transform->rotation.z);
-	DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z);
-	DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
+	// ローカル変換行列（スケール・ビルボード回転・位置）
+	DirectX::XMMATRIX LocalMatrix =
+		DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z) *
+		InvViewBillBoardMatrix *
+		DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
 
-	DirectX::XMMATRIX World =  Scale * InvViewBillBoardMatrix * Translation;
+	DirectX::XMMATRIX WorldMatrix = LocalMatrix;
 
+	if(transform->parent != 0){
+		auto parentTransform = m_context->component->GetComponent<TransformComponent>(transform->parent);
+		if(parentTransform){
+			DirectX::XMMATRIX parentWorld = parentTransform->CalculateWorldMatrix(parentTransform, m_context->component);
 
-	graphicsContext->SetWorldMatrix(World);
+			// 親の位置だけを取得（分解）
+			DirectX::XMVECTOR parentScale, parentRotation, parentTranslation;
+			DirectX::XMMatrixDecompose(&parentScale, &parentRotation, &parentTranslation, parentWorld);
+
+			// 親の位置だけの平行移動行列を作る
+			DirectX::XMMATRIX parentTranslationMatrix = DirectX::XMMatrixTranslationFromVector(parentTranslation);
+
+			// 親の回転・スケールは無視し、親位置だけ足す
+			WorldMatrix = LocalMatrix * parentTranslationMatrix;
+		}
+	}
+
+	graphicsContext->SetWorldMatrix(WorldMatrix);
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
 
@@ -1134,7 +1166,7 @@ void RenderSystem::SendAnimation(const Entity& entity, int meshIndex) {
 	if (!model) return;
 
 	// 1. ボーン行列のGPUバッファ（例：UpdateAnimation()で転送済みとする）
-	ID3D11ShaderResourceView* boneMatricesSRV = model->BoneMatricesSRV; // ※用意が必要
+	//ID3D11ShaderResourceView* boneMatricesSRV = model->BoneMatricesSRV; // ※用意が必要
 
 	// 2. 入力頂点SRV
 	ID3D11ShaderResourceView* inputVertexSRV = nullptr;
@@ -1148,7 +1180,7 @@ void RenderSystem::SendAnimation(const Entity& entity, int meshIndex) {
 		outputUAV = model->OutputUAVs[meshIndex];
 	}
 
-	if (!inputVertexSRV || !boneMatricesSRV || !outputUAV) return;
+	//if (!inputVertexSRV || !boneMatricesSRV || !outputUAV) return;
 
 	ID3D11DeviceContext* deviceContext = m_context->manager->graphics->GetDeviceContext();
 
@@ -1157,14 +1189,14 @@ void RenderSystem::SendAnimation(const Entity& entity, int meshIndex) {
 
 	// リソースセット
 	deviceContext->CSSetShaderResources(0, 1, &inputVertexSRV);
-	deviceContext->CSSetShaderResources(1, 1, &boneMatricesSRV);
+	//deviceContext->CSSetShaderResources(1, 1, &boneMatricesSRV);
 	deviceContext->CSSetUnorderedAccessViews(0, 1, &outputUAV, nullptr);
 
 	// Dispatch: (Dispatchスレッド数は頂点数に依存)
-	UINT vertexCount = /*頂点数を入れる*/;
+	//UINT vertexCount = /*頂点数を入れる*/;
 	UINT threadGroupSize = 64; // 例えば64スレッドでグループ化
-	UINT dispatchCount = (vertexCount + threadGroupSize - 1) / threadGroupSize;
-	deviceContext->Dispatch(dispatchCount, 1, 1);
+	//UINT dispatchCount = (vertexCount + threadGroupSize - 1) / threadGroupSize;
+	//deviceContext->Dispatch(dispatchCount, 1, 1);
 
 	// 後片付け
 	ID3D11ShaderResourceView* nullSRV[2] = { nullptr, nullptr };

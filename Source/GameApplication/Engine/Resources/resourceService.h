@@ -7,29 +7,36 @@
 
 #include "Service/IService.h"
 #include "Loader/IResourceLoader.h"
-#include "Loader/ResourceLoader.h"  // テンプレート版
+#include "Loader/ResourceLoader.h"
 
 #include "Data/textureData.h"
 #include "Data/modelData.h"
 #include "Data/shaderData.h"
+#include "Data/audioData.h"
 
 #include "Loader/textureLoader.h"
 #include "Loader/shaderLoader.h"
 #include "Loader/modelLoader.h"
+#include "Loader/audioLoader.h"
 
 class GraphicsContext;
+class AudioContext;
 
 class ResourceService : public IService {
 public:
-    void Initialize(GraphicsContext* graphics) {
+    void Initialize(GraphicsContext* graphics , AudioContext* audio) {
         m_Graphics = graphics;
+		m_Audio = audio;
+
         RegisterLoader<TextureData>();
         RegisterLoader<ModelData>();
         RegisterLoader<VertexShaderData>();
         RegisterLoader<PixelShaderData>();
+		RegisterLoader<AudioData>();
     }
 
     void Shutdown() override {
+		OutputDebugStringA("Shutdown ResourceService called\n");
 
 		ClearAllUnused();
 
@@ -89,5 +96,7 @@ private:
     }
 
     GraphicsContext* m_Graphics = nullptr;
+	AudioContext* m_Audio = nullptr;
+
     std::unordered_map<std::type_index, std::shared_ptr<IResourceLoader>> m_Loaders;
 };

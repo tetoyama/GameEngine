@@ -130,9 +130,9 @@ public:
 protected:
 	std::string scriptName = "CustomScript";
 	bool isInitialized = false; // 初期化フラグ
+	SceneContext* m_context = nullptr;
+	Entity m_entity = 0;
 
 private:
 
-	Entity m_entity = 0;
-	SceneContext* m_context = nullptr;
 };

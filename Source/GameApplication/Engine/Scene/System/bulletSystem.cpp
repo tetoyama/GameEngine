@@ -27,6 +27,7 @@
 #include "Engine/Graphics/mainRenderer.h"
 
 #include "Engine/Platform/InputSystem/InputSystem.h"
+#include <Script/ScoreManager.h>
 
 void BulletSystem::Update(float deltaTime){
 	// コンポーネントを持つエンティティの検索
@@ -137,6 +138,13 @@ void BulletSystem::Update(float deltaTime){
 
 									m_context->entity->Destroy(enemyEntity);
 									m_context->component->OnEntityDestroyed(enemyEntity);
+
+									auto entity = m_context->component->FindEntitiesWithComponent<ScoreManager>();
+									if(entity.empty()){
+										return;
+									} else{
+										m_context->component->GetComponent<ScoreManager>(entity[0])->Score += 1;
+									}
 									break;
 									continue;
 								} else if(!nearEnemy || Distance < MinDistance){

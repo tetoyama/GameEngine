@@ -7,6 +7,13 @@
 // アプリケーションの実行メソッド（初期化 → ループ → 終了）
 int GameApplication::Run(HINSTANCE hInstance, int nCmdShow){
 
+	// COMライブラリの初期化
+	HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+	if(FAILED(hr)){
+		OutputDebugStringA("CoInitializeEx failed\n");
+		return -1;
+	}
+
 	// EngineContextのビルダーを使用して、DIコンテナなどの初期環境を構築
 	EngineContextBuilder builder;
 	std::shared_ptr<EngineContext> context = builder.Build();
@@ -27,6 +34,9 @@ int GameApplication::Run(HINSTANCE hInstance, int nCmdShow){
 
 	// 終了処理（リソース解放、終了ログなど）
 	engine.Shutdown(context);
+
+	// COMライブラリの終了
+	CoUninitialize();
 
 	return 0;
 }

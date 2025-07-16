@@ -2605,6 +2605,7 @@
     <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\token.h" />
     <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\traits.h" />
     <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\yaml.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Audio\audioContext.h" />
     <ClInclude Include="Source\GameApplication\Engine\DebugTools\debugSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\DebugTools\ImGuiSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\EditorUI\ImGuiMainManuBar.h" />
@@ -2621,11 +2622,16 @@
     <ClInclude Include="Source\GameApplication\Engine\Platform\WindowSystem\IWindow.h" />
     <ClInclude Include="Source\GameApplication\Engine\Platform\WindowSystem\mainWindow.h" />
     <ClInclude Include="Source\GameApplication\Engine\Platform\WindowSystem\windowSystem.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Data\audioData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\modelData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\pixelShaderData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\shaderData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\textureData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\vertexShaderData.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\audioLoader.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\audioLoader.h">
+      <DeploymentContent>true</DeploymentContent>
+    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\modelLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\IResourceLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\resourceLoader.h" />
@@ -2660,7 +2666,10 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Registry\systemRegistry.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\scene.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\sceneManager.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Script\ScoreManager.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Script\ScoreSprite.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\SetScene.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\audioSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\bulletSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\cameraSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\ISystem.h" />
@@ -2675,7 +2684,6 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\renderSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\C#ScriptSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\transformSystem.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Sounds\audioService.h" />
     <ClInclude Include="Source\GameApplication\gameApplication.h" />
     <ClInclude Include="Source\main.h" />
     <ClInclude Include="Source\Service\configSystem.h" />

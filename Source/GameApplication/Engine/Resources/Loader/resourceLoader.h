@@ -36,7 +36,14 @@ public:
 
 		auto result = m_LoadFunc(path, extraArgs);
 		if(result){
+			OutputDebugStringA("Load Succes: ");
+			OutputDebugStringA(cacheKey.c_str());
+			OutputDebugStringA("\n");
 			m_Cache[cacheKey] = result;
+		} else{
+			OutputDebugStringA("Load FAILED: ");
+			OutputDebugStringA(cacheKey.c_str());
+			OutputDebugStringA("\n");
 		}
 		return result;
 	}
@@ -55,9 +62,44 @@ public:
         // 特殊化で実装
     }
 
-    void Unload(const std::string& path) override {
-        m_Cache.erase(path);
-    }
+	// path + args を使うアンロード（推奨）
+	template<typename... Args>
+	void Unload(const std::string& path, Args&&... args){
+		using ArgsTuple = std::tuple<std::decay_t<Args>...>;
+		ArgsTuple argsTuple(std::forward<Args>(args)...);
+
+		std::string cacheKey = CreateCacheKey(path, argsTuple);
+
+		auto it = m_Cache.find(cacheKey);
+		if(it != m_Cache.end()){
+			if(it->second.use_count() == 1){
+				m_Cache.erase(it);
+				OutputDebugStringA("Unloaded resource: ");
+			} else{
+				OutputDebugStringA("Cannot unload: still in use: ");
+			}
+			OutputDebugStringA(cacheKey.c_str());
+			OutputDebugStringA("\n");
+		}
+	}
+
+	// path だけで削除（関連すべて）
+	void Unload(const std::string& path) override{
+		for(auto it = m_Cache.begin(); it != m_Cache.end(); ){
+			if(it->first.rfind(path + ":", 0) == 0){
+				if(it->second.use_count() == 1){
+					OutputDebugStringA(("Unloaded: " + it->first + "\n").c_str());
+					it = m_Cache.erase(it);
+				} else{
+					OutputDebugStringA(("Still in use: " + it->first + "\n").c_str());
+					++it;
+				}
+			} else{
+				++it;
+			}
+		}
+	}
+
 
     void ClearUnused() override {
         for (auto it = m_Cache.begin(); it != m_Cache.end();) {
