@@ -419,9 +419,6 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 	TransformComponent* transform = registry->GetComponent<TransformComponent>(selectedEntity);
 
 	if(transform && m_context->manager->imgui->GetManubar()->showEditorView){
-		DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(transform->rotation.x, transform->rotation.y, transform->rotation.z);
-		DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z);
-		DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
 
 		DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform,context->component);
 
@@ -431,9 +428,9 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 
 		if(sprite){
 			TransformComponent temp = CalculateRectTransform(*sprite, *transform);
-			Rotation = DirectX::XMMatrixRotationRollPitchYaw(temp.rotation.x, temp.rotation.y, temp.rotation.z);
-			Scale = DirectX::XMMatrixScaling(temp.scale.x, temp.scale.y, temp.scale.z);
-			Translation = DirectX::XMMatrixTranslation(temp.position.x, temp.position.y, temp.position.z);
+			DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(temp.rotation.x, temp.rotation.y, temp.rotation.z);
+			DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(temp.scale.x, temp.scale.y, temp.scale.z);
+			DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(temp.position.x, temp.position.y, temp.position.z);
 
 			World = Scale * Rotation * Translation;
 
@@ -442,6 +439,21 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 		} else{
 			modelMatrix = m_context->manager->imgui->RenderGizmo(World);
 		}
+		Entity Parent = transform->parent;
+		while (Parent != 0) {
+			auto* ParentTransform = registry->GetComponent<TransformComponent>(Parent);
+			if (ParentTransform) {
+
+				DirectX::XMMATRIX ParentWorld = ParentTransform->CalculateWorldMatrix(ParentTransform, context->component);
+
+				modelMatrix = modelMatrix * DirectX::XMMatrixInverse(nullptr, ParentWorld);
+
+				Parent = ParentTransform->parent;
+			} else {
+				Parent = 0;
+			}
+		}
+
 		if(ImGuizmo::IsUsing()){
 			// スケール、回転、並進を格納する変数
 			DirectX::XMVECTOR scale, rotationQuat, translation;

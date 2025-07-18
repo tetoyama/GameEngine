@@ -2628,9 +2628,12 @@
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\shaderData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\textureData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\vertexShaderData.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\audioLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\audioLoader.h">
       <DeploymentContent>true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </DeploymentContent>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\modelLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\IResourceLoader.h" />

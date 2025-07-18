@@ -23,8 +23,11 @@ struct SceneContext{
 	EntityRegistry* entity = nullptr;
 	ComponentRegistry* component = nullptr;
 	SystemRegistry* system = nullptr;
+
 	ManagerContext* manager = nullptr;
+
 	SceneState state = SceneState::Stopped;
+
 	Vector2 PlayerScreenSize = {1280.0f, 720.0f};
 	Vector2 EditorScreenSize = {1280.0f, 720.0f};
 };

@@ -52,8 +52,7 @@ void ComputeBoneMatrices(
 	const std::unordered_map<std::string, UINT>& boneMap,
 	const std::vector<DirectX::XMMATRIX>& localTransforms,
 	std::vector<DirectX::XMMATRIX>& finalTransforms,
-	const std::vector<Bone>& bones
-);
+	const std::vector<Bone>& bones);
 
 RenderLayer GetRenderLayerFromEntity(Entity entity, ComponentRegistry* registry) {
 	auto* layerComponent = registry->GetComponent<RenderLayerComponent>(entity);
@@ -290,8 +289,7 @@ void RenderSystem::Update(float deltaTime) {
 	} else {
 		for (Entity entity : modelEntities) {
 
-			//UpdateAnimation(entity, deltaTime);
-			//SendAnimation(entity,0);
+			UpdateAnimation(entity, deltaTime);
 		}
 	}
 }
@@ -1092,8 +1090,8 @@ void RenderSystem::UpdateAnimation(const Entity& entity, const float& deltaTime)
 	ModelData* model = modelRenderer->model.get();
 	if (!model || model->Animations.empty()) return;
 
-	// 1. アニメーションの再生状態（例: "Idle" が再生中）
-	std::string animName = "Idle"; // 固定でもOK（後でAnimator導入可）
+	// 1. アニメーションの再生状態（例: "arm|down" が再生中）
+	std::string animName = "arm|down"; // 固定でもOK（後でAnimator導入可）
 	auto animIt = model->Animations.find(animName);
 	if (animIt == model->Animations.end()) return;
 
@@ -1105,7 +1103,12 @@ void RenderSystem::UpdateAnimation(const Entity& entity, const float& deltaTime)
 	if (modelRenderer->animationTime > clip.duration)
 		modelRenderer->animationTime = fmod(modelRenderer->animationTime, clip.duration);
 
+	static float Time = 0.0f;
+	Time += deltaTime;
+	Time = fmod(Time, clip.duration); // アニメーション時間を0～durationの範囲に制限
+
 	float time = modelRenderer->animationTime;
+	time = Time;
 
 	// 2. キーフレーム補間
 	const auto& keyframes = clip.keyframes;

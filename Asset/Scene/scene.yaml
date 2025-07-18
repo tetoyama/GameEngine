@@ -16,42 +16,12 @@ Entities:
           x: 100
           y: 10
           z: 100
-      - Component: AudioComponent
-        FilePath: Asset\Audio\BGM.wav
-        Loop: true
-        Volume: 1
-        PlayOnStart: true
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0.783549786
-            y: 0.783549786
-            z: 0.783549786
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
+        Parent: 4
+      - Component: BumpMapComponent
+        FilePath: Asset\Texture\BumpMap/Normal.bmp
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.fbx
-        PixelShader: Asset\Shader\pointLightingBlinnPhongPS.cso
+        PixelShader: Asset\Shader\BumpPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
   - Entity: 2
@@ -61,23 +31,24 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 50
-          z: 0
+          y: 25
+          z: 50
         Rotation:
-          x: -0
+          x: 2.09439516
           y: 0
-          z: -0
+          z: 0
         Scale:
           x: 1
           y: 1
           z: 1
+        Parent: 0
       - Component: LightComponent
         Enable: 1
         LightType: 0
         Position:
           x: 0
-          y: 50
-          z: 0
+          y: 25
+          z: 50
           w: 0
         Angle:
           x: 1.04719758
@@ -85,9 +56,9 @@ Entities:
           z: 0
           w: 0
         Direction:
-          x: 0
-          y: -0
-          z: 1
+          x: -0
+          y: 0.866025388
+          z: -0.50000006
           w: 0
         Diffuse:
           x: 0.899999976
@@ -136,6 +107,7 @@ Entities:
           x: 500
           y: 500
           z: 500
+        Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
         Material:
@@ -186,11 +158,7 @@ Entities:
           x: 1
           y: 1
           z: 1
-      - Component: AudioComponent
-        FilePath: Asset\Audio\Jump.wav
-        Loop: false
-        Volume: 0.5
-        PlayOnStart: false
+        Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         Material:
@@ -221,7 +189,7 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\pointLightingBlinnPhongPS.cso
+        PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: PlayerComponent
@@ -246,6 +214,7 @@ Entities:
           x: 1
           y: 1
           z: 1
+        Parent: 0
       - Component: CameraComponent
         isLock: false
         Target:
@@ -293,6 +262,7 @@ Entities:
           x: 1
           y: 1
           z: 1
+        Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         Material:
@@ -323,7 +293,7 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\pointLightingBlinnPhongPS.cso
+        PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: EnemyComponent
@@ -355,6 +325,7 @@ Entities:
           x: 1
           y: 1
           z: 1
+        Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         Material:
@@ -385,7 +356,7 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\pointLightingBlinnPhongPS.cso
+        PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: EnemyComponent
@@ -417,6 +388,7 @@ Entities:
           x: 1
           y: 1
           z: 1
+        Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         Material:
@@ -447,7 +419,7 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\pointLightingBlinnPhongPS.cso
+        PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: EnemyComponent
@@ -479,6 +451,7 @@ Entities:
           x: 1
           y: 1
           z: 1
+        Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         Material:
@@ -509,7 +482,7 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\pointLightingBlinnPhongPS.cso
+        PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: EnemyComponent
@@ -541,6 +514,7 @@ Entities:
           x: 1
           y: 1
           z: 1
+        Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         Material:
@@ -571,7 +545,7 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\pointLightingBlinnPhongPS.cso
+        PixelShader: Asset\Shader\limLightPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: EnemyComponent
@@ -586,188 +560,3 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 11
-    Components:
-      - Component: NameComponent
-        Name: Score1
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 0.150000006
-          y: 0.150000006
-          z: 0.150000006
-      - Component: TextureComponent
-        FilePath: Asset\Texture\number.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 5
-        UV_Slice_Y: 5
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0
-          y: 0
-        pivot:
-          x: 0.5
-          y: 0.5
-      - Component: ScoreSprite
-        ScriptName: ScoreSprite
-        Degit: 3
-  - Entity: 12
-    Components:
-      - Component: NameComponent
-        Name: Score2
-      - Component: TransformComponent
-        Position:
-          x: 0.100000001
-          y: 0
-          z: 0
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 0.150000006
-          y: 0.150000006
-          z: 0.150000006
-      - Component: TextureComponent
-        FilePath: Asset\Texture\number.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 5
-        UV_Slice_Y: 5
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0
-          y: 0
-        pivot:
-          x: 0.5
-          y: 0.5
-      - Component: ScoreSprite
-        ScriptName: ScoreSprite
-        Degit: 2
-  - Entity: 13
-    Components:
-      - Component: NameComponent
-        Name: Score3
-      - Component: TransformComponent
-        Position:
-          x: 0.200000003
-          y: 0
-          z: 0
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 0.150000006
-          y: 0.150000006
-          z: 0.150000006
-      - Component: TextureComponent
-        FilePath: Asset\Texture\number.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 5
-        UV_Slice_Y: 5
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0
-          y: 0
-        pivot:
-          x: 0.5
-          y: 0.5
-      - Component: ScoreSprite
-        ScriptName: ScoreSprite
-        Degit: 1
-  - Entity: 14
-    Components:
-      - Component: NameComponent
-        Name: ScoreManager
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-      - Component: ScoreManager
-        ScriptName: ScoreManager
-        Score: 0
