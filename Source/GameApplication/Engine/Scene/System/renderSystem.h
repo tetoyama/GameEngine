@@ -52,7 +52,7 @@ private:
 	void PlayerView();
 
 	void UpdateAnimation(const Entity& entity, const float& deltaTime);
-	void SendAnimation(const Entity& entity, int meshIndex);
+	void SendAnimation(ModelRendererComponent* modelRenderer, int meshIndex);
 
 	SceneContext* m_context;
 	MeshRendererComponent* m_billBoardMesh = nullptr;

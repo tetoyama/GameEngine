@@ -517,10 +517,9 @@ void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent
 
 }
 
-void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererComponent* modelRenderer, TextureComponent* pTexture){
-
+void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererComponent* modelRenderer, TextureComponent* pTexture) {
 	ModelData* pModel = modelRenderer->model.get();
-	if(!pModel || !pModel->AiScene){
+	if (!pModel || !pModel->AiScene) {
 		m_context->manager->debug->LOG_ERROR("ModelData is null or AiScene is not initialized.");
 		return;
 	}
@@ -528,120 +527,108 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-	if(modelRenderer->pixelShader){
-		deviceContext->PSSetShader(modelRenderer->pixelShader->m_PixelShader.Get(), NULL, 0);
+	// シェーダ設定
+	if (modelRenderer->pixelShader) {
+		deviceContext->PSSetShader(modelRenderer->pixelShader->m_PixelShader.Get(), nullptr, 0);
 	}
 
-	if(modelRenderer->vertexShader){
+	if (modelRenderer->vertexShader) {
 		deviceContext->IASetInputLayout(modelRenderer->vertexShader->m_VertexLayout.Get());
-		deviceContext->VSSetShader(modelRenderer->vertexShader->m_VertexShader.Get(), NULL, 0);
+		deviceContext->VSSetShader(modelRenderer->vertexShader->m_VertexShader.Get(), nullptr, 0);
 	}
 
+	// ワールド行列計算
 	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, m_context->component);
 
-	for(unsigned int m = 0; m < pModel->AiScene->mNumMeshes; m++){
+	for (unsigned int m = 0; m < pModel->AiScene->mNumMeshes; m++) {
+		//-----------------------------------------------
+		// 1. GPUスキニングを Dispatch（出力: OutputBuffer）
+		//-----------------------------------------------
+		SendAnimation(modelRenderer, m); // OutputUAV に書き込む
 
+		//-----------------------------------------------
+		// 2. テクスチャ設定（必要であれば）
+		//-----------------------------------------------
 		if (pModel->SetTexture) {
+			aiMaterial* material = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
 
-			//テクスチャ設定
 			if (!pTexture || !pTexture->m_TextureData) {
-				aiString Texture;
-				aiMaterial* material = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-				material->GetTexture(aiTextureType_DIFFUSE, 0, &Texture);
-
-				if (aiString("") != Texture) {
-					deviceContext->PSSetShaderResources(0, 1, &pModel->Texture[Texture.data]);
-				} else{
-
-
-					material = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-
-					// Diffuseテクスチャセット
-					aiString diffuseTex;
-					if(material->GetTexture(aiTextureType_DIFFUSE, 0, &diffuseTex) == AI_SUCCESS){
-						std::string diffuseKey = std::filesystem::path(diffuseTex.C_Str()).filename().string();
-						auto itDiffuse = pModel->Texture.find(diffuseKey);
-						if(itDiffuse != pModel->Texture.end()){
-							deviceContext->PSSetShaderResources(0, 1, &itDiffuse->second);  // スロット0
-						}
+				// Diffuse
+				aiString texName;
+				if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texName) == AI_SUCCESS && texName.length > 0) {
+					auto it = pModel->Texture.find(texName.C_Str());
+					if (it != pModel->Texture.end()) {
+						deviceContext->PSSetShaderResources(0, 1, &it->second); // スロット0
 					}
 				}
-				// NormalMapテクスチャセット
-				aiString normalTex;
-				if(material->GetTexture(aiTextureType_NORMALS, 0, &normalTex) == AI_SUCCESS){
-					std::string normalKey = std::filesystem::path(normalTex.C_Str()).filename().string();
-					auto itNormal = pModel->Texture.find(normalKey);
-					if(itNormal != pModel->Texture.end()){
-						deviceContext->PSSetShaderResources(1, 1, &itNormal->second);  // スロット1
+
+				// NormalMap
+				if (material->GetTexture(aiTextureType_NORMALS, 0, &texName) == AI_SUCCESS && texName.length > 0) {
+					auto it = pModel->Texture.find(texName.C_Str());
+					if (it != pModel->Texture.end()) {
+						deviceContext->PSSetShaderResources(1, 1, &it->second); // スロット1
 					}
 				}
 			}
 		}
 
-		// 頂点バッファ設定
+		//-----------------------------------------------
+		// 3. 頂点バッファ設定（スキニング済みの OutputBuffer を使う）
+		//-----------------------------------------------
 		UINT stride = sizeof(VERTEX_3D);
 		UINT offset = 0;
-		deviceContext->IASetVertexBuffers(0, 1, &pModel->VertexBuffer[m], &stride, &offset);
 
-		//インデックスバッファ生成
+		if (m < pModel->OutputVertexBuffers.size() && pModel->OutputVertexBuffers[m]) {
+			deviceContext->IASetVertexBuffers(0, 1, &pModel->OutputVertexBuffers[m], &stride, &offset);
+		} else {
+			deviceContext->IASetVertexBuffers(0, 1, &pModel->VertexBuffer[m], &stride, &offset);
+		}
+
+		//-----------------------------------------------
+		// 4. インデックスバッファ設定
+		//-----------------------------------------------
 		deviceContext->IASetIndexBuffer(pModel->IndexBuffer[m], DXGI_FORMAT_R32_UINT, 0);
 
-		// プリミティブトポロジ設定
-		deviceContext->IASetPrimitiveTopology(
-			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST		//渡された頂点の配列をどのように解釈するか
-		);
+		//-----------------------------------------------
+		// 5. プリミティブトポロジ設定
+		//-----------------------------------------------
+		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		if(!pTexture){
-			// マテリアル設定
-			MATERIAL material;
-			aiMaterial* pAiMaterial = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-
+		//-----------------------------------------------
+		// 6. マテリアル設定（pTexture がない場合のみ）
+		//-----------------------------------------------
+		if (!pTexture) {
+			MATERIAL materialData;
+			aiMaterial* aiMat = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
 			aiColor4D color;
 
-			// Diffuse
-			if (pAiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS) {
-				material.Diffuse = { color.r, color.g, color.b, color.a };
-			} else {
-				material.Diffuse = { 0.8f, 0.8f, 0.8f, 1.0f }; // デフォルト: グレー
-			}
+			// 各種マテリアル色
+			if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS)
+				materialData.Diffuse = { color.r, color.g, color.b, color.a };
 
-			// Ambient
-			if (pAiMaterial->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS) {
-				material.Ambient = { color.r, color.g, color.b, color.a };
-			} else {
-				material.Ambient = { 0.1f, 0.1f, 0.1f, 1.0f };
-			}
+			if (aiMat->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS)
+				materialData.Ambient = { color.r, color.g, color.b, color.a };
 
-			// Emission
-			if (pAiMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, color) == AI_SUCCESS) {
-				material.Emission = { color.r, color.g, color.b, color.a };
-			} else {
-				material.Emission = { 0.0f, 0.0f, 0.0f, 1.0f };
-			}
+			if (aiMat->Get(AI_MATKEY_COLOR_EMISSIVE, color) == AI_SUCCESS)
+				materialData.Emission = { color.r, color.g, color.b, color.a };
 
-			// Specular
-			if (pAiMaterial->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS) {
-				material.Specular = { color.r, color.g, color.b, color.a };
-			} else {
-				material.Specular = { 0.04f, 0.04f, 0.04f, 1.0f }; // 非金属の反射率
-			}
+			if (aiMat->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS)
+				materialData.Specular = { color.r, color.g, color.b, color.a };
 
-			// Shininess
 			float shininess = 0.0f;
-			if (pAiMaterial->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS) {
-				material.Shininess = std::clamp(shininess, 1.0f, 128.0f);
-			} else {
-				material.Shininess = 64.0f; // 普通の光沢
-			}
+			if (aiMat->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS)
+				materialData.Shininess = std::clamp(shininess, 1.0f, 128.0f);
 
-			// その他
-			material.DiffuseTextureEnable = pModel->SetTexture;
-
-			graphicsContext->SetMaterial(material);
+			materialData.DiffuseTextureEnable = pModel->SetTexture;
+			graphicsContext->SetMaterial(materialData);
 		}
+
+		// 行列更新
 		graphicsContext->SetWorldMatrix(World);
 
-		// ポリゴン描画
+		//-----------------------------------------------
+		// 7. 描画
+		//-----------------------------------------------
 		deviceContext->DrawIndexed(pModel->AiScene->mMeshes[m]->mNumFaces * 3, 0, 0);
 	}
 }
@@ -1093,7 +1080,10 @@ void RenderSystem::UpdateAnimation(const Entity& entity, const float& deltaTime)
 	// 1. アニメーションの再生状態（例: "arm|down" が再生中）
 	std::string animName = "arm|down"; // 固定でもOK（後でAnimator導入可）
 	auto animIt = model->Animations.find(animName);
-	if (animIt == model->Animations.end()) return;
+	if (animIt == model->Animations.end()) {
+		OutputDebugStringA("Animation not found!\n");
+		return;
+	}
 
 	const AnimationClip& clip = animIt->second;
 	float ticksPerSecond = clip.ticksPerSecond != 0.0f ? clip.ticksPerSecond : 25.0f;
@@ -1133,6 +1123,12 @@ void RenderSystem::UpdateAnimation(const Entity& entity, const float& deltaTime)
 		DirectX::XMMATRIX matA = DirectX::XMLoadFloat4x4(&currentKey.boneTransforms[i]);
 		DirectX::XMMATRIX matB = DirectX::XMLoadFloat4x4(&nextKey.boneTransforms[i]);
 		localTransforms[i] = DirectX::XMMatrixLerp(matA, matB, t);
+
+		DirectX::XMFLOAT4X4 mat;
+		XMStoreFloat4x4(&mat, localTransforms[i]);
+		char buf[256];
+		sprintf_s(buf, "localTransform[%d]: %.3f %.3f %.3f %.3f\n",i, mat._41, mat._42, mat._43, mat._44);
+		OutputDebugStringA(buf);
 	}
 
 	// 3. グローバル変換（スキニング行列）の構築
@@ -1157,58 +1153,119 @@ void RenderSystem::UpdateAnimation(const Entity& entity, const float& deltaTime)
 		animCB.boneMatrices[i] = DirectX::XMMatrixTranspose(finalMatrices[i]);
 	}
 
-	UpdateAnimationCB(m_context->manager->graphics, model->AnimationConstantBuffer, animCB);
+
+	if (model->AnimationConstantBuffer) {
+		char buf[128];
+		sprintf_s(buf, "sizeof(AnimationCB): %zu\n", sizeof(AnimationCB));
+		OutputDebugStringA(buf);
+
+		UpdateAnimationCB(m_context->manager->graphics, model->AnimationConstantBuffer, animCB);
+	} else {
+		OutputDebugStringA("AnimationConstantBuffer is not created!\n");
+	}
 }
 
-// 例として meshIndex を渡す想定
-void RenderSystem::SendAnimation(const Entity& entity, int meshIndex) {
-	auto modelRenderer = m_context->component->GetComponent<ModelRendererComponent>(entity);
+void RenderSystem::SendAnimation(ModelRendererComponent* modelRenderer, int meshIndex) {
 	if (!modelRenderer || !modelRenderer->model) return;
 
 	ModelData* model = modelRenderer->model.get();
 	if (!model) return;
 
-	// 1. ボーン行列のGPUバッファ（例：UpdateAnimation()で転送済みとする）
-	//ID3D11ShaderResourceView* boneMatricesSRV = model->BoneMatricesSRV; // ※用意が必要
+	if (meshIndex >= model->InputSRVs.size() ||
+		meshIndex >= model->OutputUAVs.size() ||
+		meshIndex >= model->OutputVertexBuffers.size() ||
+		!model->BoneMatricesSRV) return;
 
-	// 2. 入力頂点SRV
-	ID3D11ShaderResourceView* inputVertexSRV = nullptr;
-	if (meshIndex < (int)model->InputSRVs.size()) {
-		inputVertexSRV = model->InputSRVs[meshIndex];
+	ID3D11ShaderResourceView* inputVertexSRV = model->InputSRVs[meshIndex];
+	ID3D11UnorderedAccessView* outputUAV = model->OutputUAVs[meshIndex];
+	ID3D11ShaderResourceView* boneMatricesSRV = model->BoneMatricesSRV;
+	ID3D11Buffer* outputVertexBuffer = model->OutputVertexBuffers[meshIndex];
+
+	auto* deviceContext = m_context->manager->graphics->GetDeviceContext();
+	auto* device = m_context->manager->graphics->GetDevice();
+
+	// 頂点数・サイズ
+	UINT vertexCount = static_cast<UINT>(model->SkinnedVertexData[meshIndex].size());
+	UINT vertexSize = sizeof(AnimationVertex);
+	UINT bufferSize = vertexCount * vertexSize;
+
+	// ======== UAVバッファの作成（初回のみ） ========
+	if (!model->OutputUAVBuffers[meshIndex]) {
+		// UAV用構造化バッファ
+		D3D11_BUFFER_DESC uavBufferDesc = {};
+		uavBufferDesc.ByteWidth = bufferSize;
+		uavBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+		uavBufferDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+		uavBufferDesc.CPUAccessFlags = 0;
+		uavBufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		uavBufferDesc.StructureByteStride = vertexSize;
+
+		HRESULT hr = device->CreateBuffer(&uavBufferDesc, nullptr, &model->OutputUAVBuffers[meshIndex]);
+		if (FAILED(hr)) {
+			OutputDebugStringA("Failed to create OutputUAVBuffer.\n");
+			return;
+		}
+
+		// UAV作成
+		D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+		uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+		uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+		uavDesc.Buffer.NumElements = vertexCount;
+
+		hr = device->CreateUnorderedAccessView(model->OutputUAVBuffers[meshIndex], &uavDesc, &model->OutputUAVs[meshIndex]);
+		if (FAILED(hr)) {
+			OutputDebugStringA("Failed to create OutputUAV.\n");
+			return;
+		}
 	}
 
-	// 3. 出力UAV
-	ID3D11UnorderedAccessView* outputUAV = nullptr;
-	if (meshIndex < (int)model->OutputUAVs.size()) {
-		outputUAV = model->OutputUAVs[meshIndex];
+	// ======== 頂点バッファの作成（初回のみ） ========
+	if (!outputVertexBuffer) {
+		D3D11_BUFFER_DESC vbDesc = {};
+		vbDesc.ByteWidth = bufferSize;
+		vbDesc.Usage = D3D11_USAGE_DEFAULT;
+		vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		vbDesc.CPUAccessFlags = 0;
+		vbDesc.MiscFlags = 0; // ここ重要、構造化バッファフラグは付けない
+
+		HRESULT hr = device->CreateBuffer(&vbDesc, nullptr, &model->OutputVertexBuffers[meshIndex]);
+		if (FAILED(hr)) {
+			OutputDebugStringA("Failed to create OutputVertexBuffer.\n");
+			return;
+		}
+		outputVertexBuffer = model->OutputVertexBuffers[meshIndex];
 	}
 
-	//if (!inputVertexSRV || !boneMatricesSRV || !outputUAV) return;
+	outputUAV = model->OutputUAVs[meshIndex];
 
-	ID3D11DeviceContext* deviceContext = m_context->manager->graphics->GetDeviceContext();
-
-	// CS設定
+	// --- コンピュートシェーダー設定 ---
 	deviceContext->CSSetShader(m_context->manager->graphics->GetSkinningShader(), nullptr, 0);
 
-	// リソースセット
+	// --- SRV/UAV設定 ---
 	deviceContext->CSSetShaderResources(0, 1, &inputVertexSRV);
-	//deviceContext->CSSetShaderResources(1, 1, &boneMatricesSRV);
+	deviceContext->CSSetShaderResources(1, 1, &boneMatricesSRV);
 	deviceContext->CSSetUnorderedAccessViews(0, 1, &outputUAV, nullptr);
 
-	// Dispatch: (Dispatchスレッド数は頂点数に依存)
-	//UINT vertexCount = /*頂点数を入れる*/;
-	UINT threadGroupSize = 64; // 例えば64スレッドでグループ化
-	//UINT dispatchCount = (vertexCount + threadGroupSize - 1) / threadGroupSize;
-	//deviceContext->Dispatch(dispatchCount, 1, 1);
+	// --- Dispatch ---
+	UINT threadGroupSize = 128;
+	UINT dispatchCount = (vertexCount + threadGroupSize - 1) / threadGroupSize;
+	deviceContext->Dispatch(dispatchCount, 1, 1);
 
-	// 後片付け
-	ID3D11ShaderResourceView* nullSRV[2] = { nullptr, nullptr };
-	deviceContext->CSSetShaderResources(0, 2, nullSRV);
+	// --- UAV解除 ---
 	ID3D11UnorderedAccessView* nullUAV[1] = { nullptr };
 	deviceContext->CSSetUnorderedAccessViews(0, 1, nullUAV, nullptr);
 
+	// --- SRV解除 ---
+	ID3D11ShaderResourceView* nullSRV[2] = { nullptr, nullptr };
+	deviceContext->CSSetShaderResources(0, 2, nullSRV);
+
+	// --- CSシェーダー解除 ---
 	deviceContext->CSSetShader(nullptr, nullptr, 0);
+
+	// ====== UAVバッファから頂点バッファへコピー ======
+	deviceContext->CopyResource(outputVertexBuffer, model->OutputUAVBuffers[meshIndex]);
 }
+
 
 void RenderSystem::DrawEntities(bool* pRenderLayer){
 	GraphicsContext* graphicsContext = m_context->manager->graphics;

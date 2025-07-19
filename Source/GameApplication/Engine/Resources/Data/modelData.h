@@ -76,4 +76,10 @@ public:
 
 	// アニメーション群
 	std::unordered_map<std::string, AnimationClip> Animations;
+
+	ID3D11ShaderResourceView* BoneMatricesSRV = nullptr;
+
+	// モデル描画用：OutputStructuredBuffer に対応する VertexBuffer をここで保持
+	std::vector<ID3D11Buffer*> OutputVertexBuffers;
+	std::vector<ID3D11Buffer*> OutputUAVBuffers;
 };

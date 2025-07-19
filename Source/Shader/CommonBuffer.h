@@ -71,17 +71,15 @@ struct AnimationCB {
 struct AnimationVertex {
 	DirectX::XMFLOAT4 Position;
 	DirectX::XMFLOAT4 Normal;
-	DirectX::XMFLOAT4 Diffuse;
 	DirectX::XMFLOAT2 TexCoord;
-	float Dummy[2];
 	UINT BoneIndex[4];
 	float BoneWeight[4];
 };
 
 struct VertexOut {
-	DirectX::XMFLOAT4 Position;
-	DirectX::XMFLOAT4 Normal;
+	DirectX::XMFLOAT3 Position;
+	DirectX::XMFLOAT3 Normal;
+	DirectX::XMFLOAT3 Tangent;
 	DirectX::XMFLOAT4 Diffuse;
 	DirectX::XMFLOAT2 TexCoord;
-	float Dummy[2];
 };
