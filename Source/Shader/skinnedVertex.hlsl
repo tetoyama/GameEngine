@@ -46,8 +46,8 @@ void main(uint3 DTid : SV_DispatchThreadID)
     }
 
     VertexOut vout;
-    vout.Position = (skinnedPos.xyz, 0.0f);
-    vout.Normal = (normalize(skinnedNorm.xyz), 0.0f);
+    vout.Position = float4(skinnedPos.xyz, 1.0f);
+    vout.Normal = float4(normalize(skinnedNorm.xyz), 0.0f);
     vout.Tangent = float4(1.0f, 0.0f, 0.0f,0.0f);
     vout.Diffuse = float4(1.0f, 1.0f, 1.0f, 1.0f);
     vout.TexCoord = vin.TexCoord;

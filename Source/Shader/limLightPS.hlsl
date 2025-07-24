@@ -49,12 +49,12 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 
     
     outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord) * Material.Diffuse;
-    outDiffuse.rgb *= In.Diffuse.rgb * light + Light.Ambient.rgb + pow(lim, 3) * color.rgb * Material.Diffuse.rgb;
+    outDiffuse.rgb *= In.Diffuse.rgb * light + Light.Ambient.rgb;
     outDiffuse.a *= In.Diffuse.a;
 
     outDiffuse.rgb += color.rgb * color.a;
 
-    outDiffuse.rgb += pow(lit * lim, 5) * color.rgb * Material.Diffuse.rgb;
+    outDiffuse.rgb += pow(lit * lim, 5) * color.rgb * Material.Diffuse.rgb + pow(lim, 3) * color.rgb * Material.Diffuse.rgb;
     outDiffuse.rgb += (specular * ofs);
     outDiffuse.rgb = outDiffuse.rgb * Material.TextureEnable + (!Material.TextureEnable * Material.Diffuse.rgb);
 

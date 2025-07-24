@@ -2,41 +2,16 @@ Entities:
   - Entity: 1
     Components:
       - Component: NameComponent
-        Name: Field
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: -10
-          z: 0
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 100
-          y: 10
-          z: 100
-        Parent: 4
-      - Component: BumpMapComponent
-        FilePath: Asset\Texture\BumpMap/Normal.bmp
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\cube.fbx
-        PixelShader: Asset\Shader\BumpPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-  - Entity: 2
-    Components:
-      - Component: NameComponent
         Name: Light
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 25
-          z: 50
+          x: 2.08093262
+          y: 8.75188065
+          z: 6.90939617
         Rotation:
-          x: 2.09439516
+          x: -0
           y: 0
-          z: 0
+          z: -0
         Scale:
           x: 1
           y: 1
@@ -46,19 +21,19 @@ Entities:
         Enable: 1
         LightType: 0
         Position:
-          x: 0
-          y: 25
-          z: 50
+          x: 2.08093262
+          y: 8.75188065
+          z: 6.90939617
           w: 0
         Angle:
-          x: 1.04719758
+          x: 0
           y: 0
           z: 0
           w: 0
         Direction:
-          x: -0
-          y: 0.866025388
-          z: -0.50000006
+          x: 0
+          y: -0
+          z: 1
           w: 0
         Diffuse:
           x: 0.899999976
@@ -71,7 +46,7 @@ Entities:
           z: 0.100000001
           w: 1
         PointLightParam:
-          x: 100
+          x: 200
           y: 0
           z: 0
           w: 0
@@ -90,26 +65,36 @@ Entities:
           y: 0.800000012
           z: 1
           w: 0.100000001
-  - Entity: 3
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\ball.fbx
+        PixelShader: Asset\Shader\ToonShaderPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+  - Entity: 2
     Components:
       - Component: NameComponent
-        Name: SkyBox
+        Name: Player
       - Component: TransformComponent
         Position:
           x: 0
-          y: 0
+          y: 1.61602092
           z: 0
         Rotation:
-          x: 0
+          x: -0
           y: 0
-          z: 0
+          z: -0
         Scale:
-          x: 500
-          y: 500
-          z: 500
+          x: 1
+          y: 1
+          z: 1
         Parent: 0
+      - Component: AudioComponent
+        FilePath: Asset\Audio\Jump.wav
+        Loop: false
+        Volume: 0.5
+        PlayOnStart: false
       - Component: TextureComponent
-        FilePath: Asset\Texture\Daylight.png
+        FilePath: Asset\Texture\alca.png
         Material:
           Ambient:
             x: 0.100000001
@@ -122,74 +107,23 @@ Entities:
             z: 1
             w: 1
           Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\sky.fbx
-        PixelShader: Asset\Shader\unlitUVTexturePS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: true
-  - Entity: 4
-    Components:
-      - Component: NameComponent
-        Name: Player
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0.200000003
-          z: 0
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0
+            x: 1
             y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
+            z: 1
+            w: 0.5
           Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
+            x: 0.5
+            y: 1
+            z: 0.800000012
+            w: 0.5
           Shininess: 64
           TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
+        FilePath: Asset\Model\ALCA_Old.fbx
+        PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
       - Component: PlayerComponent
@@ -197,17 +131,17 @@ Entities:
         cameraRotate: 2
         cameraDistance: 20
         cameraLerp: 8
-  - Entity: 5
+  - Entity: 3
     Components:
       - Component: NameComponent
-        Name: Camera
+        Name: Entity
       - Component: TransformComponent
         Position:
           x: 0
-          y: 20
-          z: -15
+          y: 0
+          z: 0
         Rotation:
-          x: -1
+          x: 0
           y: 0
           z: 0
         Scale:
@@ -232,36 +166,59 @@ Entities:
             - 0
           -
             - 0
-            - 0.540302396
-            - -0.841470897
-            - 0
-          -
-            - -0
-            - 0.841470897
-            - 0.540302396
-            - 0
-          -
-            - 0
-            - 1.8160162
-            - 24.9339542
             - 1
-  - Entity: 6
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 1
+  - Entity: 4
     Components:
       - Component: NameComponent
-        Name: Enemy1
+        Name: Entity
       - Component: TransformComponent
         Position:
-          x: 20
-          y: 0.200000003
+          x: 0
+          y: 0
           z: 0
         Rotation:
           x: 0
-          y: -1.57079637
+          y: 0
           z: 0
         Scale:
           x: 1
           y: 1
           z: 1
+        Parent: 1
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\ball.fbx
+        PixelShader: Asset\Shader\ToonShaderPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+  - Entity: 5
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: -100.5
+          z: 0
+        Rotation:
+          x: 0
+          y: 0
+          z: 0
+        Scale:
+          x: 1000
+          y: 100
+          z: 1000
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
@@ -272,291 +229,27 @@ Entities:
             z: 0.100000001
             w: 1
           Diffuse:
-            x: 1
-            y: 0
-            z: 0
+            x: 0.5
+            y: 0.5
+            z: 0.5
             w: 1
           Specular:
             x: 0.0399999991
             y: 0.0399999991
             z: 0.0399999991
-            w: 1
+            w: 0.5
           Emission:
             x: 0
             y: 0
             z: 0
-            w: 1
+            w: 0
           Shininess: 64
           TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
+        FilePath: Asset\Model\cube.fbx
+        PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 7
-    Components:
-      - Component: NameComponent
-        Name: Enemy2
-      - Component: TransformComponent
-        Position:
-          x: 6.18033934
-          y: 0.200000003
-          z: 19.0211315
-        Rotation:
-          x: 0
-          y: -2.82743359
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 8
-    Components:
-      - Component: NameComponent
-        Name: Enemy3
-      - Component: TransformComponent
-        Position:
-          x: -16.1803417
-          y: 0.200000003
-          z: 11.7557039
-        Rotation:
-          x: 0
-          y: -4.08407068
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 9
-    Components:
-      - Component: NameComponent
-        Name: Enemy4
-      - Component: TransformComponent
-        Position:
-          x: -16.180336
-          y: 0.200000003
-          z: -11.7557106
-        Rotation:
-          x: 0
-          y: -5.34070778
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1
-  - Entity: 10
-    Components:
-      - Component: NameComponent
-        Name: Enemy5
-      - Component: TransformComponent
-        Position:
-          x: 6.18034267
-          y: 0.200000003
-          z: -19.0211296
-        Rotation:
-          x: 0
-          y: -6.59734488
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\limLightPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-      - Component: EnemyComponent
-        setOriginPos: false
-        OriginPos:
-          x: 0
-          y: 0
-          z: 0
-        maxDistance: 15
-        TargetPos:
-          x: 0
-          y: 0
-          z: 0
-        MoveSpeed: 1

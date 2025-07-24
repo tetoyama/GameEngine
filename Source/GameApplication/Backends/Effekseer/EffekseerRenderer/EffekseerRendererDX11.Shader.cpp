@@ -1,4 +1,4 @@
-﻿#include "EffekseerRendererDX11.Shader.h"
+#include "EffekseerRendererDX11.Shader.h"
 #include "EffekseerRendererDX11.RendererImplemented.h"
 
 namespace EffekseerRendererDX11
@@ -30,7 +30,8 @@ Shader::~Shader()
 Shader* Shader::Create(Effekseer::Backend::GraphicsDeviceRef graphicsDevice,
 					   Effekseer::Backend::ShaderRef shader,
 					   const char* name,
-					   const D3D11_INPUT_ELEMENT_DESC decl[],
+					   const 
+					   decl[],
 					   int32_t layoutCount)
 {
 	HRESULT hr;

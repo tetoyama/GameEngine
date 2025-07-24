@@ -84,12 +84,17 @@ void GraphicsContext::Shutdown(){
 	SAFE_RELEASE(m_DepthStateDisable);
 	SAFE_RELEASE(m_pComputeSkinningShader);
 	
+	m_DeviceContext->ClearState();  // すべてのバインドリソースを解除
+	m_DeviceContext->Flush();       // GPU キューを空にする
+
 	m_d2dFactory.Reset();
 	m_dwriteFactory.Reset();
 
 	m_DeviceContext.Reset();
 	m_SwapChain.Reset();
 	m_Device.Reset();
+
+
 }
 
 void GraphicsContext::SetDepthEnable(const bool& Enable){

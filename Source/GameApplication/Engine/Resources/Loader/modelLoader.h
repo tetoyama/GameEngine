@@ -450,15 +450,14 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 						aiQuaternion rot = channel->mRotationKeys[f].mValue;
 						aiVector3D scale = channel->mScalingKeys[f].mValue;
 
-						aiMatrix4x4 mat;
-						mat = aiMatrix4x4(scale.x, 0, 0, 0,
-										  0, scale.y, 0, 0,
-										  0, 0, scale.z, 0,
-										  0, 0, 0, 1);
+						aiMatrix4x4 mat = aiMatrix4x4(1, 0, 0, pos.x,
+													  0, 1, 0, pos.y,
+													  0, 0, 1, pos.z,
+													  0, 0, 0, 1);
 						mat *= aiMatrix4x4(rot.GetMatrix());
-						mat *= aiMatrix4x4(1, 0, 0, pos.x,
-										   0, 1, 0, pos.y,
-										   0, 0, 1, pos.z,
+						mat *= aiMatrix4x4(scale.x, 0, 0, 0,
+										   0, scale.y, 0, 0,
+										   0, 0, scale.z, 0,
 										   0, 0, 0, 1);
 
 						frame.boneTransforms[boneIdx] = DirectX::XMFLOAT4X4(
@@ -518,6 +517,40 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			return nullptr;
 		}
 		CreateAnimationConstantBuffer(context->GetDevice(), model.get());
+
+		// ボーンの行列をすべてデバッグ出力
+		for(size_t i = 0; i < model->Bones.size(); ++i){
+			const auto& bone = model->Bones[i];
+			const DirectX::XMFLOAT4X4& m = bone.offsetMatrix;
+
+			std::ostringstream oss;
+			oss << "Bone[" << i << "] " << bone.name << " offsetMatrix:\n";
+			oss << m._11 << " " << m._12 << " " << m._13 << " " << m._14 << "\n";
+			oss << m._21 << " " << m._22 << " " << m._23 << " " << m._24 << "\n";
+			oss << m._31 << " " << m._32 << " " << m._33 << " " << m._34 << "\n";
+			oss << m._41 << " " << m._42 << " " << m._43 << " " << m._44 << "\n";
+
+			OutputDebugStringA(oss.str().c_str());
+		}
+
+		// アニメーションの各キーフレームのボーン行列を出力（例：最初のアニメーションの最初のキーフレーム）
+		if(!model->Animations.empty()){
+			const auto& firstAnim = model->Animations.begin()->second;
+			if(!firstAnim.keyframes.empty()){
+				const auto& firstFrame = firstAnim.keyframes[0];
+				for(size_t i = 0; i < firstFrame.boneTransforms.size(); ++i){
+					const auto& m = firstFrame.boneTransforms[i];
+					std::ostringstream oss;
+					oss << "AnimationClip[" << model->Animations.begin()->first << "] "
+						<< "KeyFrame[0] Bone[" << i << "] matrix:\n";
+					oss << m._11 << " " << m._12 << " " << m._13 << " " << m._14 << "\n";
+					oss << m._21 << " " << m._22 << " " << m._23 << " " << m._24 << "\n";
+					oss << m._31 << " " << m._32 << " " << m._33 << " " << m._34 << "\n";
+					oss << m._41 << " " << m._42 << " " << m._43 << " " << m._44 << "\n";
+					OutputDebugStringA(oss.str().c_str());
+				}
+			}
+		}
 
 	}
 	if (!model->AnimationConstantBuffer) {
