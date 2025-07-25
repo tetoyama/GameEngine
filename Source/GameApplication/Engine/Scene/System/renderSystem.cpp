@@ -45,6 +45,7 @@
 #include <Component/2DspriteRendererComponent.h>
 #include <Component/RenderLayerComponent.h>
 #include <Component/particleComponent.h>
+#include <Component/outlineComponent.h>
 
 void ComputeBoneMatrices(
 	const aiNode* node,
@@ -266,6 +267,8 @@ void RenderSystem::Initialize(){
 		m_context->manager->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_SpriteMesh->mesh.m_PixelShader.GetAddressOf());
 	}
 
+	m_VertexShader = m_context->manager->resource->Load<VertexShaderData>("Asset\\Shader\\OutlineVS.cso");
+	m_PixelShader = m_context->manager->resource->Load<PixelShaderData>("Asset\\Shader\\OutlinePS.cso");
 }
 
 void RenderSystem::Finalize(){
@@ -290,7 +293,7 @@ void RenderSystem::Update(float deltaTime) {
 	} else {
 		for (Entity entity : modelEntities) {
 
-			UpdateAnimation(entity, deltaTime);
+			//UpdateAnimation(entity, deltaTime);
 		}
 	}
 }
@@ -518,7 +521,7 @@ void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent
 
 }
 
-void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererComponent* modelRenderer, TextureComponent* pTexture){
+void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererComponent* modelRenderer, TextureComponent* pTexture, OutlineComponent* pOutline){
 	ModelData* pModel = modelRenderer->model.get();
 	if(!pModel || !pModel->AiScene){
 		m_context->manager->debug->LOG_ERROR("ModelData is null or AiScene is not initialized.");
@@ -529,137 +532,157 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 	ID3D11Device* device = graphicsContext->GetDevice();
 
-	// シェーダ設定
-	if(modelRenderer->pixelShader){
-		deviceContext->PSSetShader(modelRenderer->pixelShader->m_PixelShader.Get(), nullptr, 0);
-	}
-	if(modelRenderer->vertexShader){
-		deviceContext->IASetInputLayout(modelRenderer->vertexShader->m_VertexLayout.Get());
-		deviceContext->VSSetShader(modelRenderer->vertexShader->m_VertexShader.Get(), nullptr, 0);
-	}
-
 	// ワールド行列計算
 	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, m_context->component);
+	for(int i = 0; i < 2; i++){
+		if(i == 0){
+			if(pOutline){
+				// シェーダ設定
+				deviceContext->PSSetShader(m_PixelShader->m_PixelShader.Get(), nullptr, 0);
 
-	for(unsigned int m = 0; m < pModel->AiScene->mNumMeshes; m++){
-		//-----------------------------------------------
-		// 1. GPUスキニングを Dispatch（出力: OutputBuffer）
-		//-----------------------------------------------
-		SendAnimation(modelRenderer, m); // OutputUAV に書き込む
+				deviceContext->IASetInputLayout(m_VertexShader->m_VertexLayout.Get());
+				deviceContext->VSSetShader(m_VertexShader->m_VertexShader.Get(), nullptr, 0);
 
-		//-----------------------------------------------
-		// 2. テクスチャ設定（必要であれば）
-		//-----------------------------------------------
-		if(pModel->SetTexture){
-			aiMaterial* material = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-			if(!pTexture || !pTexture->m_TextureData){
-				aiString texName;
-				if(material->GetTexture(aiTextureType_DIFFUSE, 0, &texName) == AI_SUCCESS && texName.length > 0){
-					auto it = pModel->Texture.find(texName.C_Str());
-					if(it != pModel->Texture.end()){
-						deviceContext->PSSetShaderResources(0, 1, &it->second);
-					}
-				}
-				if(material->GetTexture(aiTextureType_NORMALS, 0, &texName) == AI_SUCCESS && texName.length > 0){
-					auto it = pModel->Texture.find(texName.C_Str());
-					if(it != pModel->Texture.end()){
-						deviceContext->PSSetShaderResources(1, 1, &it->second);
-					}
-				}
+				graphicsContext->SetCullMode(CullMode::Front);
+			} else{
+				continue;
 			}
+
+		} else {
+			// シェーダ設定
+			if(modelRenderer->pixelShader){
+				deviceContext->PSSetShader(modelRenderer->pixelShader->m_PixelShader.Get(), nullptr, 0);
+			}
+			if(modelRenderer->vertexShader){
+				deviceContext->IASetInputLayout(modelRenderer->vertexShader->m_VertexLayout.Get());
+				deviceContext->VSSetShader(modelRenderer->vertexShader->m_VertexShader.Get(), nullptr, 0);
+			}
+			graphicsContext->SetCullMode(CullMode::Back);
 		}
 
-		//-----------------------------------------------
-		// 3. 頂点バッファ設定（スキニング済みの OutputBuffer を使う）
-		//-----------------------------------------------
-		UINT stride = sizeof(VERTEX_3D);
-		UINT offset = 0;
+		for(unsigned int m = 0; m < pModel->AiScene->mNumMeshes; m++){
+			//-----------------------------------------------
+			// 1. GPUスキニングを Dispatch（出力: OutputBuffer）
+			//-----------------------------------------------
+			//SendAnimation(modelRenderer, m); // OutputUAV に書き込む
 
-		ID3D11Buffer* vertexBuffer = nullptr;
-		if(m < pModel->OutputVertexBuffers.size() && pModel->OutputVertexBuffers[m]){
-			vertexBuffer = pModel->OutputVertexBuffers[m];
-			deviceContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
-		} {
-			vertexBuffer = pModel->VertexBuffer[m];
-			deviceContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
-		}
-
-		//-----------------------------------------------
-		// 3.5 デバッグ用：スキニング結果（頂点位置）を読み取り
-		//-----------------------------------------------
-		if(vertexBuffer){
-			D3D11_BUFFER_DESC desc = {};
-			vertexBuffer->GetDesc(&desc);
-
-			if(desc.Usage != D3D11_USAGE_STAGING){
-				// ステージングバッファ作成
-				D3D11_BUFFER_DESC stagingDesc = desc;
-				stagingDesc.Usage = D3D11_USAGE_STAGING;
-				stagingDesc.BindFlags = 0;
-				stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-				stagingDesc.MiscFlags = 0;
-
-				ID3D11Buffer* stagingBuffer = nullptr;
-				if(SUCCEEDED(device->CreateBuffer(&stagingDesc, nullptr, &stagingBuffer))){
-					deviceContext->CopyResource(stagingBuffer, vertexBuffer);
-
-					D3D11_MAPPED_SUBRESOURCE mapped = {};
-					if(SUCCEEDED(deviceContext->Map(stagingBuffer, 0, D3D11_MAP_READ, 0, &mapped))){
-						const VERTEX_3D* verts = reinterpret_cast<const VERTEX_3D*>(mapped.pData);
-						char buf[256];
-
-						for(int i = 0; i < 10; ++i){
-							sprintf_s(buf, "SkinnedPos[%d] = (%.3f, %.3f, %.3f)\n", i,
-									  verts[i].Position.x, verts[i].Position.y, verts[i].Position.z);
-							OutputDebugStringA(buf);
+			//-----------------------------------------------
+			// 2. テクスチャ設定（必要であれば）
+			//-----------------------------------------------
+			if(pModel->SetTexture){
+				aiMaterial* material = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
+				if(!pTexture || !pTexture->m_TextureData){
+					aiString texName;
+					if(material->GetTexture(aiTextureType_DIFFUSE, 0, &texName) == AI_SUCCESS && texName.length > 0){
+						auto it = pModel->Texture.find(texName.C_Str());
+						if(it != pModel->Texture.end()){
+							deviceContext->PSSetShaderResources(0, 1, &it->second);
 						}
-						deviceContext->Unmap(stagingBuffer, 0);
 					}
-					stagingBuffer->Release();
+					if(material->GetTexture(aiTextureType_NORMALS, 0, &texName) == AI_SUCCESS && texName.length > 0){
+						auto it = pModel->Texture.find(texName.C_Str());
+						if(it != pModel->Texture.end()){
+							deviceContext->PSSetShaderResources(1, 1, &it->second);
+						}
+					}
 				}
 			}
+
+			//-----------------------------------------------
+			// 3. 頂点バッファ設定（スキニング済みの OutputBuffer を使う）
+			//-----------------------------------------------
+			UINT stride = sizeof(VERTEX_3D);
+			UINT offset = 0;
+
+			ID3D11Buffer* vertexBuffer = nullptr;
+			if(m < pModel->OutputVertexBuffers.size() && pModel->OutputVertexBuffers[m]){
+				vertexBuffer = pModel->OutputVertexBuffers[m];
+				deviceContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+			}
+			{
+				vertexBuffer = pModel->VertexBuffer[m];
+				deviceContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+			}
+
+			//-----------------------------------------------
+			// 3.5 デバッグ用：スキニング結果（頂点位置）を読み取り
+			//-----------------------------------------------
+			//if(vertexBuffer){
+			//	D3D11_BUFFER_DESC desc = {};
+			//	vertexBuffer->GetDesc(&desc);
+
+			//	if(desc.Usage != D3D11_USAGE_STAGING){
+			//		// ステージングバッファ作成
+			//		D3D11_BUFFER_DESC stagingDesc = desc;
+			//		stagingDesc.Usage = D3D11_USAGE_STAGING;
+			//		stagingDesc.BindFlags = 0;
+			//		stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+			//		stagingDesc.MiscFlags = 0;
+
+			//		ID3D11Buffer* stagingBuffer = nullptr;
+			//		if(SUCCEEDED(device->CreateBuffer(&stagingDesc, nullptr, &stagingBuffer))){
+			//			deviceContext->CopyResource(stagingBuffer, vertexBuffer);
+
+			//			D3D11_MAPPED_SUBRESOURCE mapped = {};
+			//			if(SUCCEEDED(deviceContext->Map(stagingBuffer, 0, D3D11_MAP_READ, 0, &mapped))){
+			//				const VERTEX_3D* verts = reinterpret_cast<const VERTEX_3D*>(mapped.pData);
+			//				char buf[256];
+
+			//				for(int i = 0; i < 10; ++i){
+			//					sprintf_s(buf, "SkinnedPos[%d] = (%.3f, %.3f, %.3f)\n", i,
+			//							  verts[i].Position.x, verts[i].Position.y, verts[i].Position.z);
+			//					OutputDebugStringA(buf);
+			//				}
+			//				deviceContext->Unmap(stagingBuffer, 0);
+			//			}
+			//			stagingBuffer->Release();
+			//		}
+			//	}
+			//}
+
+			//-----------------------------------------------
+			// 4. インデックスバッファ設定
+			//-----------------------------------------------
+			deviceContext->IASetIndexBuffer(pModel->IndexBuffer[m], DXGI_FORMAT_R32_UINT, 0);
+
+			//-----------------------------------------------
+			// 5. プリミティブトポロジ設定
+			//-----------------------------------------------
+			deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+			//-----------------------------------------------
+			// 6. マテリアル設定（pTexture がない場合のみ）
+			//-----------------------------------------------
+			if(!pTexture){
+				MATERIAL materialData;
+				aiMaterial* aiMat = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
+				aiColor4D color;
+				if(aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS)
+					materialData.Diffuse = {color.r, color.g, color.b, color.a};
+				if(aiMat->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS)
+					materialData.Ambient = {color.r, color.g, color.b, color.a};
+				if(aiMat->Get(AI_MATKEY_COLOR_EMISSIVE, color) == AI_SUCCESS)
+					materialData.Emission = {color.r, color.g, color.b, color.a};
+				if(aiMat->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS)
+					materialData.Specular = {color.r, color.g, color.b, color.a};
+
+				float shininess = 0.0f;
+				if(aiMat->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS)
+					materialData.Shininess = std::clamp(shininess, 1.0f, 128.0f);
+
+				materialData.DiffuseTextureEnable = pModel->SetTexture;
+				graphicsContext->SetMaterial(materialData);
+			}
+
+			graphicsContext->SetWorldMatrix(World);
+
+			//-----------------------------------------------
+			// 7. 描画
+			//-----------------------------------------------
+
+			deviceContext->DrawIndexed(pModel->AiScene->mMeshes[m]->mNumFaces * 3, 0, 0);
+
 		}
-
-		//-----------------------------------------------
-		// 4. インデックスバッファ設定
-		//-----------------------------------------------
-		deviceContext->IASetIndexBuffer(pModel->IndexBuffer[m], DXGI_FORMAT_R32_UINT, 0);
-
-		//-----------------------------------------------
-		// 5. プリミティブトポロジ設定
-		//-----------------------------------------------
-		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-		//-----------------------------------------------
-		// 6. マテリアル設定（pTexture がない場合のみ）
-		//-----------------------------------------------
-		if(!pTexture){
-			MATERIAL materialData;
-			aiMaterial* aiMat = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-			aiColor4D color;
-			if(aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS)
-				materialData.Diffuse = {color.r, color.g, color.b, color.a};
-			if(aiMat->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS)
-				materialData.Ambient = {color.r, color.g, color.b, color.a};
-			if(aiMat->Get(AI_MATKEY_COLOR_EMISSIVE, color) == AI_SUCCESS)
-				materialData.Emission = {color.r, color.g, color.b, color.a};
-			if(aiMat->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS)
-				materialData.Specular = {color.r, color.g, color.b, color.a};
-
-			float shininess = 0.0f;
-			if(aiMat->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS)
-				materialData.Shininess = std::clamp(shininess, 1.0f, 128.0f);
-
-			materialData.DiffuseTextureEnable = pModel->SetTexture;
-			graphicsContext->SetMaterial(materialData);
-		}
-
-		graphicsContext->SetWorldMatrix(World);
-
-		//-----------------------------------------------
-		// 7. 描画
-		//-----------------------------------------------
-		deviceContext->DrawIndexed(pModel->AiScene->mMeshes[m]->mNumFaces * 3, 0, 0);
 	}
 }
 
@@ -1365,6 +1388,7 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 
 			TransformComponent* transform = m_context->component->GetComponent<TransformComponent>(entity);
 			if(transform){
+				OutlineComponent* outline = m_context->component->GetComponent<OutlineComponent>(entity);
 				BumpMapComponent* bumpMap = m_context->component->GetComponent<BumpMapComponent>(entity);
 				if(bumpMap){
 					// バンプマップの設定
@@ -1424,7 +1448,7 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 
 				ModelRendererComponent* modelRenderer = m_context->component->GetComponent<ModelRendererComponent>(entity);
 				if(modelRenderer){
-					DrawModel(transform, modelRenderer, texture);
+					DrawModel(transform, modelRenderer, texture,outline);
 				}
 
 				ParticleComponent* particle = m_context->component->GetComponent<ParticleComponent>(entity);

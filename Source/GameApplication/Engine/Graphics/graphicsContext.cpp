@@ -417,6 +417,38 @@ bool GraphicsContext::CreateRasterizerState(){
 	return SUCCEEDED(hr);
 }
 
+void GraphicsContext::SetCullMode(CullMode set){
+	// ラスタライザステート設定
+	D3D11_RASTERIZER_DESC rasterizerDesc{};
+	switch(set){
+		case CullMode::Back:
+			rasterizerDesc.CullMode = D3D11_CULL_BACK;
+			break;
+		case CullMode::Front:
+			rasterizerDesc.CullMode = D3D11_CULL_FRONT;
+			break;
+		case CullMode::None:
+			rasterizerDesc.CullMode = D3D11_CULL_NONE;
+			break;
+		default:
+			rasterizerDesc.CullMode = D3D11_CULL_BACK;
+			break;
+	}
+	rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+
+	rasterizerDesc.DepthClipEnable = TRUE;
+	rasterizerDesc.MultisampleEnable = FALSE;
+
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rs;
+	HRESULT hr = m_Device->CreateRasterizerState(&rasterizerDesc, &rs);
+
+	m_DeviceContext->RSSetState(rs.Get());
+
+	rs.Reset();
+
+	assert(SUCCEEDED(hr));
+}
+
 bool GraphicsContext::CreateRenderTargetView(){
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
 	if(FAILED(m_SwapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer)))) return false;

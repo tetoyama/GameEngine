@@ -8,6 +8,8 @@
 #include "Component/RenderLayerComponent.h"
 #include "../Entity/Entity.h"
 struct SceneContext;
+struct PixelShaderData;
+struct VertexShaderData;
 
 class TransformComponent;
 class TextureComponent;
@@ -16,6 +18,8 @@ class MeshRendererComponent;
 class ModelRendererComponent;
 class BillBoardRendererComponent;
 class ParticleComponent;
+class OutlineComponent;
+
 
 class RenderSystem : public ISystem{
 public:
@@ -37,7 +41,7 @@ private:
 	TransformComponent CalculateRectTransform(const SpriteRendererComponent& sprite, const TransformComponent& transform);
 
 	void DrawMesh(TransformComponent* pTransform, MeshRendererComponent* pMesh, TextureComponent* pTexture);
-	void DrawModel(TransformComponent* pTransform, ModelRendererComponent* pMesh, TextureComponent* pTexture);
+	void DrawModel(TransformComponent* pTransform, ModelRendererComponent* pMesh, TextureComponent* pTexture, OutlineComponent* pOutline);
 	void DrawBillBoard(TransformComponent* pTransform, MeshRendererComponent* pMesh, BillBoardRendererComponent* pBillBoard, TextureComponent* pTexture);
 	void DrawParticle(TransformComponent* pTransform, ParticleComponent* pParticle, TextureComponent* pTexture);
 
@@ -73,6 +77,9 @@ private:
 	Vector3 m_EditorCameraRotation = Vector3(0.0f, 0.0f, 0.0f);
 
 	Vector3 m_CameraPosition = Vector3(0.0f, 0.0f, 0.0f);
+
+	std::shared_ptr<PixelShaderData> m_PixelShader;
+	std::shared_ptr<VertexShaderData> m_VertexShader;
 
 	DirectX::XMMATRIX m_CameraView = DirectX::XMMatrixIdentity();
 	DirectX::XMMATRIX m_CameraProjection = DirectX::XMMatrixIdentity();

@@ -179,7 +179,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 1.61602092
+          y: 0.200000003
           z: 0
         Rotation:
           x: -0
@@ -196,7 +196,6 @@ Entities:
         Volume: 0.5
         PlayOnStart: false
       - Component: TextureComponent
-        FilePath: Asset\Texture\alca.png
         Material:
           Ambient:
             x: 0.100000001
@@ -204,30 +203,31 @@ Entities:
             z: 0.100000001
             w: 1
           Diffuse:
-            x: 1
+            x: 0
             y: 1
-            z: 1
+            z: 0
             w: 1
           Specular:
-            x: 1
-            y: 1
-            z: 1
-            w: 0.5
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
           Emission:
             x: 0
             y: 0
             z: 0
-            w: 0.5
+            w: 1
           Shininess: 64
           TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
-        FilePath: Asset\Model\ALCA_Old.fbx
+        FilePath: Asset\Model\player.obj
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
+      - Component: OutlineComponent
       - Component: PlayerComponent
         moveSpeed: 5
         cameraRotate: 2
@@ -332,6 +332,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
+      - Component: OutlineComponent
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -395,6 +396,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
+      - Component: OutlineComponent
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -458,6 +460,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
+      - Component: OutlineComponent
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -521,6 +524,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
+      - Component: OutlineComponent
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -584,6 +588,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
+      - Component: OutlineComponent
       - Component: EnemyComponent
         setOriginPos: false
         OriginPos:
@@ -792,7 +797,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: -1.55276692
+          y: 0
           z: 0.00123631209
         Rotation:
           x: 1.57000005

@@ -21,6 +21,13 @@ enum class BlendMode
 	COUNT		// ブレンドモードの数
 };
 
+enum class CullMode
+{
+	Back,	
+	Front,
+	None
+};
+
 
 class GraphicsContext : public IService {
 public:
@@ -58,7 +65,7 @@ public:
 	void SetParameter(const Parameter& Parameter);
 	void ResetViewport();
 	void SetWorldViewProjection2D();
-
+	void SetCullMode(CullMode set);
 	void Resize(UINT width, UINT height);
 
 	bool CreateVertexShader(

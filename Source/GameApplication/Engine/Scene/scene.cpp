@@ -68,6 +68,7 @@
 #include <System/particleSystem.h>
 #include <Component/audioComponent.h>
 #include <System/audioSystem.h>
+#include <Component/outlineComponent.h>
 
 Scene::Scene(){
 
@@ -106,6 +107,7 @@ void Scene::Initialize(ManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<ModelRendererComponent>("ModelRendererComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<BillBoardRendererComponent>("BillBoardRendererComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<SpriteRendererComponent>("SpriteRendererComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<OutlineComponent>("OutlineComponent", false);
 
 	m_componentRegistry->RegisterYAMLComponent<CameraComponent>("CameraComponent", false);
 
