@@ -22,6 +22,8 @@
 #include "Engine/Resources/resourceService.h"
 #include "Engine/EditorUI/ImGuiMainManuBar.h"
 
+#include "../../Service/ConfigSystem.h"
+
 #include <dxgidebug.h>
 #include "Audio/audioContext.h"
 #pragma comment(lib, "dxguid.lib")
@@ -42,6 +44,13 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     debugLogSystem->Initialize(&imguiService->GetManubar()->showConsole);
     debugLogSystem->LOG_INFO("DebugLogSystemが起動しました");
 
+	auto configSystem = context->Get<ConfigSystem>();
+	if(!configSystem || !configSystem->Initialize()){
+		OutputDebugStringA("configSystem の初期化に失敗しました。\n");
+		return;
+	}
+	debugLogSystem->LOG_DEBUG("configSystemが正常に作成されました");
+
     // ウィンドウシステム初期化
     auto windowService = context->Get<WindowService>();
     if (!windowService || !windowService->Initialize(hInstance, nCmdShow)) {
@@ -53,7 +62,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	// タスクバーの初期化
 	InitTaskBar(windowService->GetMainWindow()->GetHWND());
 
-	debugLogSystem->LOG_DEBUG("タスクバーが正常に作成されました");
+	debugLogSystem->LOG_DEBUG("TaskBarが正常に作成されました");
 
     // 時間管理サービスの初期化
     auto timeService = context->Get<TimeService>();
@@ -116,7 +125,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     auto sceneManager = context->Get<SceneManager>();
     if (!sceneManager) return;
 
-	// SceneManagerの初期化
+	// シーンマネージャコンテキストの設定
 	ManagerContext sceneManagerContext{};
 	sceneManagerContext.audio = audioContext.get();
 	sceneManagerContext.graphics = graphicsContext.get();
@@ -127,8 +136,9 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	sceneManagerContext.debug = debugLogSystem.get();
 	sceneManagerContext.imgui = imguiService.get();
 	sceneManagerContext.sceneManager = sceneManager.get();
-	sceneManager->Initialize(sceneManagerContext);
 
+	// SceneManagerの初期化
+	sceneManager->Initialize(sceneManagerContext);
 	debugLogSystem->LOG_DEBUG("SceneManagerが正常に作成されました");
 
     // ImGuiメニューバー操作にイベントを登録
@@ -153,8 +163,8 @@ void Engine::Shutdown(std::shared_ptr<EngineContext> context){
 
 	context->Shutdown();
 
+	// デバッグ出力システムの終了
 	typedef HRESULT(WINAPI* LPDXGIGetDebugInterface)(REFIID, void**);
-
 	HMODULE dxgiDebugModule = LoadLibraryW(L"dxgidebug.dll");
 	if(dxgiDebugModule){
 		auto dxgiGetDebugInterface = reinterpret_cast<LPDXGIGetDebugInterface>(
@@ -167,7 +177,6 @@ void Engine::Shutdown(std::shared_ptr<EngineContext> context){
 				dxgiDebug->Release();
 			}
 		}
-
 		FreeLibrary(dxgiDebugModule);
 	}
 }
@@ -228,9 +237,10 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 	sceneManager->LoadScene(initialScene);
 
 	while(!windowService->GetMainWindow()->ShouldClose()){
-		timeService->Tick();
-		float dt = timeService->GetDeltaTime();
 
+		timeService->Tick();
+
+		float dt = timeService->GetDeltaTime();
 		{	// Update
 
 			windowService->PollEvents();
@@ -248,25 +258,24 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		}
 
 		if (windowService->GetMainWindow()->ShouldClose()) {
+			// ウィンドウが閉じられた場合はループを抜ける
 			break;
 		}
 		
 		{	// Draw
-
 			mainRenderer->BeginFrame();
 			imguiService->Begin();
-
 			{
 				double Update = timeService->GetDeltaUpdateTime();
 				double Draw = timeService->GetDrawTime();
 				imguiService->DrawDebugImGuiWindow(Update * 1000.0f,Draw * 1000.0f, timeService->GetFixedUpdateFPS(),timeService->GetDeltaFPS());
 			}
 			sceneManager->Draw();
-
 			debugLogSystem->Draw();
 			imguiService->End();
 			mainRenderer->EndFrame(0);
 		}
 		timeService->EndDraw();
 	}
+	debugLogSystem->LOG_DEBUG("Engineを終了します");
 }

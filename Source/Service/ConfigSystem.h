@@ -34,13 +34,20 @@ struct APPCONFIG
 };
 
 
-class ConfigSystem {
+class ConfigSystem: public IService {
 public:
 	ConfigSystem(){
-
 	}
 	~ConfigSystem(){
+	}
 
+	bool Initialize(){
+		LoadConfig(L"config.yaml");
+		return true;
+	}
+
+	void Shutdown() override{
+		SaveConfig(L"config.yaml");
 	}
 
 	APPCONFIG appConfig;

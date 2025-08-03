@@ -22,7 +22,7 @@ void main(in PS_IN In, out float4 outColor : SV_Target)
 
         // ライト減衰
     float lightDist = length(Light.Position.xyz - In.WorldPosition.xyz);
-    float attenuation = max(0.0f, 1.0f - lightDist / Light.PointLightParam.x);
+    float attenuation = saturate(1.0f - lightDist / Light.PointLightParam.x);
     
     // ------- Toon 段階ライト -------
     float nl = saturate(dot(normal, lightDir));

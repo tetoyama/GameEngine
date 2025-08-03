@@ -517,7 +517,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			return nullptr;
 		}
 		CreateAnimationConstantBuffer(context->GetDevice(), model.get());
-
+		boneMatrixBuffer->Release();
 		// ボーンの行列をすべてデバッグ出力
 		for(size_t i = 0; i < model->Bones.size(); ++i){
 			const auto& bone = model->Bones[i];

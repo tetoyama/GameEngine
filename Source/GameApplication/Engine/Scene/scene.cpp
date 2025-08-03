@@ -90,29 +90,40 @@ void Scene::Initialize(ManagerContext* set){
 
 	// コンポーネントを登録（Archetype or Sparse を選択）
 	// ボトルネックが見つかったコンポーネントから ArchetypeStorage<T> に移行
+
+	// 名前
 	m_componentRegistry->RegisterYAMLComponent<NameComponent>("NameComponent", false);
+
+	// トランスフォーム
 	m_componentRegistry->RegisterYAMLComponent<TransformComponent>("TransformComponent", false);
 
+	// オーディオ
 	m_componentRegistry->RegisterYAMLComponent<AudioComponent>("AudioComponent", false);
 
 
-	m_componentRegistry->RegisterYAMLComponent<TextureComponent>("TextureComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<BumpMapComponent>("BumpMapComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<LightComponent>("LightComponent", false);
-
+	// 描画レイヤー
 	m_componentRegistry->RegisterYAMLComponent<RenderLayerComponent>("RenderLayerComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<OrderInLayerComponent>("OrderInLayerComponent", false);
 
+	// テクスチャ
+	m_componentRegistry->RegisterYAMLComponent<TextureComponent>("TextureComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<BumpMapComponent>("BumpMapComponent", false);
+
+	// ライティング
+	m_componentRegistry->RegisterYAMLComponent<LightComponent>("LightComponent", false);
+
+	// レンダリング
 	m_componentRegistry->RegisterYAMLComponent<MeshRendererComponent>("MeshRendererComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<ModelRendererComponent>("ModelRendererComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<BillBoardRendererComponent>("BillBoardRendererComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<SpriteRendererComponent>("SpriteRendererComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<OutlineComponent>("OutlineComponent", false);
-
-	m_componentRegistry->RegisterYAMLComponent<CameraComponent>("CameraComponent", false);
-
 	m_componentRegistry->RegisterYAMLComponent<ParticleComponent>("ParticleComponent", false);
 
+	// カメラ
+	m_componentRegistry->RegisterYAMLComponent<CameraComponent>("CameraComponent", false);
+
+	// カスタムスクリプト
 	m_componentRegistry->RegisterYAMLComponent<CustomScriptComponent>("CustomScriptComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<CSharpScriptComponent>("CSharpScriptComponent", false);
 
@@ -121,6 +132,7 @@ void Scene::Initialize(ManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<EnemyComponent>("EnemyComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<ExplosionEffectComponent>("ExplosionEffectComponent", false);
 
+	// ユーザー定義のスクリプトコンポーネントを登録
 	m_componentRegistry->RegisterYAMLComponent<SetScene>("SetScene", false);
 	m_componentRegistry->RegisterYAMLComponent<ScoreManager>("ScoreManager", false);
 	m_componentRegistry->RegisterYAMLComponent<ScoreSprite>("ScoreSprite", false);
@@ -134,16 +146,17 @@ void Scene::Initialize(ManagerContext* set){
 	m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<ParticleSystem>(&m_SceneContext));
 
+	m_systemRegistry->RegisterSystem(std::make_unique<CSharpScriptSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<CustomScriptSystem>(&m_SceneContext));
+
 	m_systemRegistry->RegisterSystem(std::make_unique<PlayerSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<BulletSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<EnemySystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<ExplosionEffectSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<CSharpScriptSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<CustomScriptSystem>(&m_SceneContext));
 
+	// シーンコンテキストの初期化
 	auto Renderer = m_SceneManagerContext->renderer;
-	auto graphicsContext = Renderer->GetGraphicsContext();
-
+	
 	m_SceneContext.entity = m_entityRegistry.get();
 	m_SceneContext.component = m_componentRegistry.get();
 	m_SceneContext.system = m_systemRegistry.get();
@@ -151,27 +164,31 @@ void Scene::Initialize(ManagerContext* set){
 
 	m_systemRegistry->InitializeAll();
 
-
+	auto graphicsContext = Renderer->GetGraphicsContext();
+	// ライティングの仮設定
 	LIGHT light;
 	graphicsContext->SetLight(light);
 	graphicsContext->SetDepthEnable(true);
 
+	// デフォルトのシーンを構築
 	if(ScenePath.empty()){
 		BuildDefaultScene();
 	} else{
 		LoadSceneFromYAML(ScenePath);
 	}
-
 	m_SceneManagerContext->debug->LOG_INFO("Sceneを開始します");
 
+	// システムの初期化
 	m_systemRegistry->StartAll();
 }
 
 void Scene::Update(float deltaTime){
 
+	// シーンの状態が変わった場合の処理
 	if(m_OldState != m_SceneContext.state){
 
 		if(m_SceneContext.state == SceneState::Playing){
+
 			if(m_OldState == SceneState::Stopped){
 				TempSave(); // 一時保存
 				m_SceneManagerContext->debug->LOG_INFO("シーンを開始します");
@@ -188,10 +205,9 @@ void Scene::Update(float deltaTime){
 
 		} else if(m_SceneContext.state == SceneState::Stopped){
 			m_SceneManagerContext->debug->LOG_INFO("シーンを停止します");
-			TempLoad(); // 一時読み込み
+			TempLoad(); // 一時保存の読み込み
 			m_systemRegistry->FinalizeAll();
 			m_systemRegistry->InitializeAll();
-			//m_systemRegistry->FinalizeAll();
 		}
 		m_OldState = m_SceneContext.state;
 	}
@@ -201,7 +217,6 @@ void Scene::Update(float deltaTime){
 	}
 
 	m_systemRegistry->EditorUpdateAll(deltaTime);
-
 }
 
 void Scene::FixedUpdate(float fixedDeltaTime){
@@ -270,10 +285,13 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\cube.fbx",false);
 		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\BumpPS.cso");
+		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\PixelShader.cso");
 
-		auto* bumpMap = componentRegistry->AddComponent<BumpMapComponent>(entity);
-		bumpMap->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\BumpMap/Normal.bmp");
+		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
+		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\white.tga");
+
+		//auto* bumpMap = componentRegistry->AddComponent<BumpMapComponent>(entity);
+		//bumpMap->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\BumpMap/Normal.bmp");
 
 	}
 	{
@@ -285,9 +303,9 @@ void Scene::BuildDefaultScene(){
 
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position = Vector3(0.0f, 25.0f,50.0f);
+		transform->position = Vector3(0.0f, 25.0f,0.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
-		transform->rotation = Vector3(DirectX::XM_PI / 180.0f * 120.0f, 0.0f, 0.0f);
+		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
 
 		auto* light = componentRegistry->AddComponent<LightComponent>(entity);
 	}
@@ -342,7 +360,7 @@ void Scene::BuildDefaultScene(){
 		auto player = componentRegistry->AddComponent<PlayerComponent>(entity);
 
 		//auto* script = componentRegistry->AddComponent<ScriptComponent>(entity);
-		//script->SetScriptName("PlayerScript"); // ★スクリプトクラス名
+		//script->SetScriptName("PlayerScript"); // スクリプトクラス名
 	}
 
 	{

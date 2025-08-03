@@ -16,6 +16,10 @@ void TransformSystem::Initialize(){
 }
 
 void TransformSystem::Draw(){
+
+	// 親が削除されている場合子も削除する処理
+	// lateUpdate実装する必要がありそう？
+
 	// コンポーネントを持つエンティティの検索
 	const auto& Entities = m_context->component->FindEntitiesWithComponent<TransformComponent>();
 	if(Entities.empty()){

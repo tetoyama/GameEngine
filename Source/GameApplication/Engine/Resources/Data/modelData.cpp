@@ -66,7 +66,9 @@ void ModelData::Release(){
 
 	// OutputVertexBuffers 解放
 	for(auto buf : OutputVertexBuffers){
-		if(buf) buf->Release();
+		if(buf){
+			buf->Release();
+		}
 	}
 	OutputVertexBuffers.clear();
 

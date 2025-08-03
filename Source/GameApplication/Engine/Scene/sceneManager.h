@@ -4,8 +4,6 @@
 #include <Windows.h>
 #include "Service/IService.h"
 
-class Scene;
-
 class MainRenderer;
 class GraphicsContext;
 class AudioContext;
@@ -27,6 +25,8 @@ struct ManagerContext {
 	ImGuiService* imgui = nullptr;
 	HWND hwnd = nullptr;
 };
+
+class Scene;
 
 class SceneManager : public IService {
 public:

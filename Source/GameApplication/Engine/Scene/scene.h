@@ -6,6 +6,7 @@
 #include <string>
 #include "Backends/myVector2.h"
 
+// 前方宣言
 struct ManagerContext;
 
 class EntityRegistry;
@@ -20,14 +21,19 @@ enum SceneState
 };
 
 struct SceneContext{
+
+	// マネージャコンテキスト
+	ManagerContext* manager = nullptr;
+
+	// レジストリ
 	EntityRegistry* entity = nullptr;
 	ComponentRegistry* component = nullptr;
 	SystemRegistry* system = nullptr;
 
-	ManagerContext* manager = nullptr;
-
+	// シーンの状態
 	SceneState state = SceneState::Stopped;
 
+	// 画面情報
 	Vector2 PlayerScreenSize = {1280.0f, 720.0f};
 	Vector2 EditorScreenSize = {1280.0f, 720.0f};
 };
@@ -54,28 +60,27 @@ public:
 	void TempLoad(); // 一時読み込み
 
 	SceneContext* GetSceneContext(){return &m_SceneContext;}
-
-	SceneState GetState() const{
-		return m_SceneContext.state;
-	}
-	void SetState(const SceneState& state){
-		m_SceneContext.state = state;
-	}
+	SceneState GetState() const{return m_SceneContext.state;}
+	void SetState(const SceneState& state){m_SceneContext.state = state;}
 
 	std::string ScenePath = ""; // シーンのパス
 
 private:
+
 	void LoadSceneFromYAML(std::string path);
 	std::string LoadSceneFileDialog();
 	bool SaveSceneFileDialog(std::wstring& outPath);
 
+	// シーンの状態
+	SceneState m_OldState = SceneState::Stopped;
+
+	// マネージャコンテキスト
+	ManagerContext* m_SceneManagerContext = nullptr;
+	SceneContext m_SceneContext{};
+
+	// レジストリ
 	std::shared_ptr<EntityRegistry> m_entityRegistry;
 	std::shared_ptr<ComponentRegistry> m_componentRegistry;
 	std::shared_ptr<SystemRegistry> m_systemRegistry;
 
-	ManagerContext* m_SceneManagerContext = nullptr;
-
-	SceneState m_OldState = SceneState::Stopped;
-
-	SceneContext m_SceneContext{};
 };

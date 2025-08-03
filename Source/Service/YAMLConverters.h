@@ -127,5 +127,4 @@ namespace YAML {
 			return true;
 		}
 	};
-
 }

@@ -51,7 +51,7 @@ void SceneManager::LoadScene(std::shared_ptr<Scene> scene){
 		m_activeScene.reset();
 
 	} else{
-		m_SceneContext.debug->LOG_WARNING("ActiveSceneの終了はスキップされました ActiveSceneが存在しないか見つけられませんでした");
+		//m_SceneContext.debug->LOG_WARNING("ActiveSceneの終了はスキップされました ActiveSceneが存在しないか見つけられませんでした");
 	}
 	m_activeScene = scene;
 	if(m_activeScene){

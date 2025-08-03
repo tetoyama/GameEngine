@@ -18,15 +18,13 @@ int GameApplication::Run(HINSTANCE hInstance, int nCmdShow){
 	EngineContextBuilder builder;
 	std::shared_ptr<EngineContext> context = builder.Build();
 
-	// コンテキスト生成に失敗した場合は終了（多くは初期設定ミス）
+	// コンテキスト生成に失敗した場合は終了
 	if(!context){
 		return -1;
 	}
 
-	// エンジンインスタンス生成（描画・入力・時間管理などの統括）
-	Engine engine;
-
 	// エンジン初期化（ウィンドウ作成、DirectXデバイス準備など）
+	Engine engine;
 	engine.Initialize(context, hInstance, nCmdShow);
 
 	// メインループ（ゲームロジックや描画処理のループ）

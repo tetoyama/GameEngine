@@ -2670,6 +2670,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Registry\systemRegistry.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\scene.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\sceneManager.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Script\PlayerController.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\ScoreManager.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\ScoreSprite.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\SetScene.h" />

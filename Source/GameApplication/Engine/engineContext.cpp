@@ -11,10 +11,15 @@
 #include "Graphics/mainRenderer.h"
 #include "Resources/resourceService.h"
 #include "Audio/audioContext.h"
+#include "../../Service/ConfigSystem.h"
 
 std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 
 	std::shared_ptr<EngineContext> context = std::make_shared<EngineContext>();
+
+	// ConfigSystem 登録
+	auto configSystem = std::make_shared<ConfigSystem>();
+	context->Register<ConfigSystem>(configSystem);
 
 	// WindowService 登録
 	auto windowSystem = std::make_shared<WindowService>();
