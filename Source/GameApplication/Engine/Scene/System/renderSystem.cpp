@@ -593,13 +593,15 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 						const DirectX::XMMATRIX& mat = boneMatrices[boneIdx];
 						float weight = v.BoneWeight[j];
 
-						DirectX::XMVECTOR transformedPos = DirectX::XMVector3Transform(pos, mat);
-						DirectX::XMVECTOR weightedPos = DirectX::XMVectorScale(transformedPos, weight);
-						outPos = DirectX::XMVectorAdd(outPos, weightedPos);
+						//DirectX::XMVECTOR transformedPos = DirectX::XMVector3Transform(pos, mat);
+						//DirectX::XMVECTOR weightedPos = DirectX::XMVectorScale(transformedPos, weight);
+						//outPos = DirectX::XMVectorAdd(outPos, weightedPos);
+						outPos = pos;
+						outNorm = norm;
 
-						DirectX::XMVECTOR transformedNorm = DirectX::XMVector3TransformNormal(norm, mat);
-						DirectX::XMVECTOR weightedNorm = DirectX::XMVectorScale(transformedNorm, weight);
-						outNorm = DirectX::XMVectorAdd(outNorm, weightedNorm);
+						//DirectX::XMVECTOR transformedNorm = DirectX::XMVector3TransformNormal(norm, mat);
+						//DirectX::XMVECTOR weightedNorm = DirectX::XMVectorScale(transformedNorm, weight);
+						//outNorm = DirectX::XMVectorAdd(outNorm, weightedNorm);
 					}
 				}
 
@@ -726,30 +728,32 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 			ID3D11Buffer* vertexBuffer = nullptr;
 
 			if(hasAnimation){
-				//char buf[256];
-				//sprintf_s(buf, "Drawing Mesh %u with %u faces\n", m, pModel->AiScene->mMeshes[m]->mNumFaces);
-				//OutputDebugStringA(buf);
+				char buf[256];
+				sprintf_s(buf, "Drawing Mesh %u with %u faces\n", m, pModel->AiScene->mMeshes[m]->mNumFaces);
+				OutputDebugStringA(buf);
 
-				//vertexBuffer = pModel->OutputVertexBuffers[m];
+				vertexBuffer = pModel->OutputVertexBuffers[m];
 
-				//deviceContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+				deviceContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
 
-				//deviceContext->IASetIndexBuffer(pModel->IndexBuffer[m], DXGI_FORMAT_R32_UINT, 0);
-				//deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				deviceContext->IASetIndexBuffer(pModel->IndexBuffer[m], DXGI_FORMAT_R32_UINT, 0);
+				deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-				//deviceContext->DrawIndexed(pModel->AiScene->mMeshes[m]->mNumFaces * 3, 0, 0);
+				deviceContext->DrawIndexed(pModel->AiScene->mMeshes[m]->mNumFaces * 3, 0, 0);
 				vertexBuffer = pModel->VertexBuffer[m];
 
 
 			} else{
 				vertexBuffer = pModel->VertexBuffer[m];
+
+				deviceContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+
+				deviceContext->IASetIndexBuffer(pModel->IndexBuffer[m], DXGI_FORMAT_R32_UINT, 0);
+				deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+				deviceContext->DrawIndexed(pModel->AiScene->mMeshes[m]->mNumFaces * 3, 0, 0);
 			}
-			deviceContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
 
-			deviceContext->IASetIndexBuffer(pModel->IndexBuffer[m], DXGI_FORMAT_R32_UINT, 0);
-			deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-			deviceContext->DrawIndexed(pModel->AiScene->mMeshes[m]->mNumFaces * 3, 0, 0);
 		}
 	}
 }

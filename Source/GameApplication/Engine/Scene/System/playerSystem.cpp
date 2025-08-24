@@ -22,6 +22,7 @@
 #include "Component/modelRendererComponent.h"
 #include "Component/bulletComponent.h"
 #include "Component/textureComponent.h"
+#include "Component/outlineComponent.h"
 
 #include "Engine/Graphics/mainRenderer.h"
 
@@ -136,6 +137,7 @@ void PlayerSystem::Update(float deltaTime) {
 				}
 
 				BulletComponent* bullet = m_context->component->AddComponent<BulletComponent>(bulletEntity);
+				OutlineComponent* outline = m_context->component->AddComponent<OutlineComponent>(bulletEntity);
 				//bullet->lifeTime = 1.0f;
 			}
 		}

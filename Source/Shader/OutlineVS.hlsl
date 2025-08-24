@@ -2,7 +2,7 @@
 
 void main(in VS_IN In, out PS_IN Out)
 {
-    float OutlineThickness = 0.05f;
+    float OutlineThickness = 0.02f;
 
     // 頂点をワールド空間へ変換
     float4 worldPos = mul(In.Position, World);
@@ -10,7 +10,7 @@ void main(in VS_IN In, out PS_IN Out)
     float4 worldNormal = normalize(mul(normal, World));
 
     float distance = length(CameraPosition.xyz - In.Position.xyz);
-    float thicknessScale = clamp(1.0f / distance, 0.01f, 1.0f); // 距離によって縮小
+    float thicknessScale = clamp(distance, 0.01f, 1.0f);
     
     worldPos.xyz += worldNormal * OutlineThickness * thicknessScale;
 

@@ -114,12 +114,20 @@ public:
 		m_context->manager->sceneManager->DeferredLoadScene(setScene);
 	}
 
+	bool GetKeyUp(int keyCode) const{
+		if(!m_context || !m_context->manager || !m_context->manager->input) return false;
+		return m_context->manager->input->IsKeyUp(m_context->manager->hwnd, keyCode);
+	}
+
 	bool GetKeyDown(int keyCode) const {
 		if(!m_context || !m_context->manager || !m_context->manager->input) return false;
 		return m_context->manager->input->IsKeyDown(m_context->manager->hwnd, keyCode);
 	}
 
-
+	bool GetKey(int keyCode) const{
+		if(!m_context || !m_context->manager || !m_context->manager->input) return false;
+		return m_context->manager->input->IsKey(m_context->manager->hwnd, keyCode);
+	}
 
 	// 所属エンティティとコンテキストのセット
 	void SetContext(SceneContext* context, Entity entity){

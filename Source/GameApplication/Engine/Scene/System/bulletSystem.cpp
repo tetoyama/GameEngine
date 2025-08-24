@@ -70,7 +70,6 @@ void BulletSystem::Update(float deltaTime){
 
 						auto* effectTexture = m_context->component->AddComponent<TextureComponent>(entity);
 						effectTexture->m_TextureData = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\explosion.png");
-						//texture->m_TextureData = m_SceneManagerContext->resource->GetTextureLoader()->LoadTexture(L"Asset\\Texture\\texture.jpg");
 
 						if (texture) {
 							effectTexture->Material = texture->Material;
@@ -147,47 +146,7 @@ void BulletSystem::Update(float deltaTime){
 									}
 									break;
 									continue;
-								} else if(!nearEnemy || Distance < MinDistance){
-
-									if(Distance < 20.0f){
-										MinDistance = Distance;
-										nearEnemy = enemyTransform;
-										nearID = enemyEntity;
-									}
 								}
-							}
-						}
-						if(bullet->currentLifeTime == 0 && bullet->Target == 0){
-							bullet->Target = nearID;
-							bullet->maxLifeTime -= bullet->currentLifeTime;
-							bullet->currentLifeTime = deltaTime;
-							bullet->StartPos = transform->position;
-						}
-						if(nearEnemy && bullet->Target == nearID){
-							bullet->TargetPos = nearEnemy->position;
-						}
-						if(bullet->Target != 0){
-							Vector3 P0 = bullet->StartPos;
-							Vector3 P2 = bullet->TargetPos;
-							Vector3 P1 = (P0 + P2) * 0.5f + Vector3(0, 10, 0);
-
-							float t = bullet->bulletSpeed * bullet->currentLifeTime / ((P0 - P1).length() + (P1 - P2).length());
-							if(bullet->currentLifeTime / bullet->maxLifeTime * 1.1f > t){
-								t = bullet->currentLifeTime / bullet->maxLifeTime * 1.1f;
-							}
-							t = std::clamp(t, 0.0f, 1.0f);
-							if(t < 1.0f){
-								Vector3 A = Vec3Lerp(P0, P1, t);
-								Vector3 B = Vec3Lerp(P1, P2, t);
-								Vector3 bezierPos = Vec3Lerp(A, B, t);
-
-								Vector3 direction = (bezierPos - transform->position).normalize();
-
-								float roll = 0.0f;
-								float pitch = atan2f(direction.y, sqrtf(direction.x * direction.x + direction.z * direction.z));
-								float yaw = atan2f(direction.x, direction.z);
-
-								transform->rotation = Vector3(pitch, yaw, roll);
 							}
 						}
 					}

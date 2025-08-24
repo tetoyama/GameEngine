@@ -77,14 +77,14 @@ void SceneManager::SaveScene(){
 
 void SceneManager::LoadFromYAMLFile(){
 	auto scene = std::make_shared<Scene>();
-
+	if(m_activeScene){
+		m_SceneContext.debug->LOG_DEBUG("ActiveSceneを終了します");
+		m_activeScene->Shutdown();
+	}
 	scene->Initialize(&m_SceneContext);
 	if(scene->LoadFromYAMLFile()){
-		if(m_activeScene){
-			m_SceneContext.debug->LOG_DEBUG("ActiveSceneを終了します");
-			m_activeScene->Shutdown();
-			m_activeScene.reset();
-		}
+		m_activeScene.reset();
+
 		m_activeScene = scene;
 		m_SceneContext.debug->LOG_DEBUG("OpenScene");
 
@@ -92,6 +92,7 @@ void SceneManager::LoadFromYAMLFile(){
 	} else{
 		scene->Shutdown();
 		scene.reset();
+		m_activeScene->Initialize(&m_SceneContext);
 	}
 	OpenFlag = true;
 }

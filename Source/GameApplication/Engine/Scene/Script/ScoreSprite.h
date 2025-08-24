@@ -28,15 +28,20 @@ public:
 
 	void OnStart() override{}
 	void OnUpdate(float dt) override{
+		// ScoreManagerのコンポーネントを持つエンティティを取得
 		auto entity = m_context->component->FindEntitiesWithComponent<ScoreManager>();
 		if(entity.empty()){
 			return;
 		}
+		// ScoreManagerのコンポーネントからスコアを取得
 		int Score = m_context->component->GetComponent<ScoreManager>(entity[0])->Score;
 		Score = Score / (int)pow(10, (double)(Degit - 1));
 		int SetNum = Score % 10;
+
+		// ScoreSpriteのコンポーネントを取得
 		auto Texture = GetComponent<TextureComponent>();
 		if(Texture){
+			// スコアに応じてテクスチャを設定
 			Texture->AnimationNum = SetNum;
 		}
 	}

@@ -30,14 +30,16 @@
 #include "System/transformSystem.h"
 #include "System/renderSystem.h"
 #include "System/cameraSystem.h"
-
 #include "System/playerSystem.h"
 #include "System/bulletSystem.h"
 #include "System/enemySystem.h"
 #include "System/explosionEffectSystem.h"
-
 #include "System/C#ScriptSystem.h"
 #include "System/CustomScriptSystem.h"
+#include "System/lightSystem.h"
+#include "System/particleSystem.h"
+#include "System/audioSystem.h"
+#include "System/physicSystem.h"
 
 #include "Component/entityNameComponent.h"
 #include "Component/transformComponent.h"
@@ -47,9 +49,7 @@
 #include "Component/BillBoardRendererComponent.h"
 #include "Component/textureComponent.h"
 #include "Component/CustomScriptComponent.h"
-
 #include "Component/C#ScriptComponent.h"
-
 #include "Component/playerComponent.h"
 #include "Component/bulletComponent.h"
 #include "Component/enemyComponent.h"
@@ -58,17 +58,15 @@
 #include "Component/2DspriteRendererComponent.h"
 #include "Component/RenderLayerComponent.h"
 #include "Component/LightComponent.h"
+#include "Component/particleComponent.h"
+#include "Component/audioComponent.h"
+#include "Component/outlineComponent.h"
 
 #include "Script/SetScene.h"
 #include "Script/ScoreManager.h"
 #include "Script/ScoreSprite.h"
+#include "Script/PlayerController.h"
 
-#include <System/lightSystem.h>
-#include <Component/particleComponent.h>
-#include <System/particleSystem.h>
-#include <Component/audioComponent.h>
-#include <System/audioSystem.h>
-#include <Component/outlineComponent.h>
 
 Scene::Scene(){
 
@@ -136,6 +134,7 @@ void Scene::Initialize(ManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<SetScene>("SetScene", false);
 	m_componentRegistry->RegisterYAMLComponent<ScoreManager>("ScoreManager", false);
 	m_componentRegistry->RegisterYAMLComponent<ScoreSprite>("ScoreSprite", false);
+	m_componentRegistry->RegisterYAMLComponent<PlayerController>("PlayerController", false);
 
 	// システムを登録
 	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
@@ -153,6 +152,7 @@ void Scene::Initialize(ManagerContext* set){
 	m_systemRegistry->RegisterSystem(std::make_unique<BulletSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<EnemySystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<ExplosionEffectSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<PhysicSystem>(&m_SceneContext));
 
 	// シーンコンテキストの初期化
 	auto Renderer = m_SceneManagerContext->renderer;
@@ -355,9 +355,12 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\player.obj", false);
 		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\limLightPS.cso");
+		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\ToonShaderPS.cso");
 
 		auto player = componentRegistry->AddComponent<PlayerComponent>(entity);
+
+		// OutLineComponentを追加
+		auto* outline = componentRegistry->AddComponent<OutlineComponent>(entity);
 
 		//auto* script = componentRegistry->AddComponent<ScriptComponent>(entity);
 		//script->SetScriptName("PlayerScript"); // スクリプトクラス名
@@ -379,7 +382,6 @@ void Scene::BuildDefaultScene(){
 
 		// CameraComponentを追加
 		auto* camera = componentRegistry->AddComponent<CameraComponent>(entity);
-
 	}
 
 	//{
@@ -428,9 +430,12 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\player.obj", false);
 		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\limLightPS.cso");
+		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\ToonShaderPS.cso");
 
-		auto player = componentRegistry->AddComponent<EnemyComponent>(entity);
+		// OutLineComponentを追加
+		auto* outline = componentRegistry->AddComponent<OutlineComponent>(entity);
+
+		auto* enemy = componentRegistry->AddComponent<EnemyComponent>(entity);
 	}
 
 	
