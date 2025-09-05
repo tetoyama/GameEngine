@@ -1,5 +1,6 @@
 #pragma once
 #include "Interface/IComponent.h"
+#include "GameApplication/Engine/Scene/scene.h"
 
 #include "Service/YAMLConverters.h"
 #include "Engine/Resources/Data/vertexShaderData.h"
@@ -21,7 +22,14 @@ public:
 		node["PixelShader"] = pixelShader->FilePath;
 		if(vertexShader)
 		node["VertexShader"] = vertexShader->FilePath;
+		if (!currentAnimationName.empty())
+			node["CurrentAnimationName"] = currentAnimationName;
+
 		node["isBlender"] = isBlender;
+		node["AnimationTime"] = animationTime;
+		for (const auto& [name, animData] : model->m_Animation) {
+			node["Animations"][name] = animData.FilePath;
+		}
 		return node;
 	}
 
@@ -117,11 +125,85 @@ public:
 			}
 			ImGui::EndDragDropTarget();
 		}
+
+		if (model && !model->m_Animation.empty()) {
+			ImGui::Text("Current Animation");
+			ImGui::SameLine(130.0f);
+			inputWidth = ImGui::GetContentRegionAvail().x;
+			ImGui::SetNextItemWidth(inputWidth);
+
+			// アニメーション名一覧取得
+			std::vector<std::string> animNames;
+			for (const auto& pair : model->m_Animation) {
+				animNames.push_back(pair.first);
+			}
+
+			// 現在選択されているアニメーションのインデックスを探す
+			int currentIndex = 0;
+			for (int i = 0; i < (int)animNames.size(); ++i) {
+				if (animNames[i] == currentAnimationName) {
+					currentIndex = i;
+					break;
+				}
+			}
+
+			if (ImGui::Combo("##CurrentAnimation", &currentIndex,
+							 [](void* data, int idx, const char** out_text) {
+				auto& names = *static_cast<std::vector<std::string>*>(data);
+				*out_text = names[idx].c_str();
+				return true;
+			}, &animNames, (int)animNames.size())) {
+				currentAnimationName = animNames[currentIndex];
+				animationTime = 0.0f; // アニメーション切り替えたらフレームをリセット
+			}
+
+			ImGui::Text("Frame");
+			ImGui::SameLine(100.0f);
+			inputWidth = ImGui::GetContentRegionAvail().x;
+			ImGui::SetNextItemWidth(inputWidth);
+
+			ImGui::DragFloat("##Frame", &animationTime, 0.1f, 0.0f, 120.0f);
+		}
+
+		// --- Add Animation Section ---
+		if (ImGui::CollapsingHeader("Add Animation")) {
+			static char newAnimFilePath[256] = "";
+			static char newAnimName[128] = "";
+
+			ImGui::InputText("Animation File Path", newAnimFilePath, sizeof(newAnimFilePath));
+
+			// ドラッグ＆ドロップ受け付け
+			if (ImGui::BeginDragDropTarget()) {
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+					const char* droppedPath = (const char*)payload->Data;
+					strncpy_s(newAnimFilePath, sizeof(newAnimFilePath), droppedPath, _TRUNCATE);
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			ImGui::InputText("Animation Name", newAnimName, sizeof(newAnimName));
+
+			if (ImGui::Button("Add")) {
+				std::string filePathStr(newAnimFilePath);
+				std::string animNameStr(newAnimName);
+				if (!filePathStr.empty() && !animNameStr.empty() &&
+					model->m_Animation.find(animNameStr) == model->m_Animation.end()) {
+					model->LoadAnimation(filePathStr.c_str(), animNameStr.c_str());
+					currentAnimationName = animNameStr;
+					animationTime = 0.0f;
+
+					newAnimFilePath[0] = '\0';
+					newAnimName[0] = '\0';
+				}
+			}
+		}
+
 	}
 
 	std::shared_ptr<ModelData>  model = nullptr;
 	bool isBlender = false;
 	std::shared_ptr<PixelShaderData>  pixelShader = nullptr;
 	std::shared_ptr<VertexShaderData>  vertexShader = nullptr;
+	std::string currentAnimationName;
 	float animationTime = 0.0f;
 };

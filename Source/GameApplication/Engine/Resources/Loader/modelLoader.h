@@ -20,19 +20,6 @@
 
 #include <cassert>
 
-inline void CreateAnimationConstantBuffer(ID3D11Device* device, ModelData* model) {
-	D3D11_BUFFER_DESC desc = {};
-	desc.ByteWidth = sizeof(AnimationCB);
-	desc.Usage = D3D11_USAGE_DYNAMIC;              // MapでCPUから書き込むので動的バッファ
-	desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;  // CPU書き込み許可
-
-	HRESULT hr = device->CreateBuffer(&desc, nullptr, &model->AnimationConstantBuffer);
-	if (FAILED(hr)) {
-		OutputDebugStringA("Failed to create AnimationConstantBuffer\n");
-	}
-}
-
 inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, bool isBlender, GraphicsContext* context){
 
 	auto model = std::make_shared<ModelData>();
@@ -45,6 +32,12 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 
 	model->VertexBuffer = new ID3D11Buffer * [model->AiScene->mNumMeshes];
 	model->IndexBuffer = new ID3D11Buffer * [model->AiScene->mNumMeshes];
+
+		//変形後頂点配列生成
+	model->m_DeformVertex = new std::vector<DEFORM_VERTEX>[model->AiScene->mNumMeshes];
+
+	//再帰的にボーン生成
+	model->CreateBone(model->AiScene->mRootNode);
 
 	DirectX::XMFLOAT3 Min, Max;
 
@@ -61,7 +54,6 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 		aiMesh* mesh = model->AiScene->mMeshes[m];
 
 		UINT vertexCount = mesh->mNumVertices;
-		std::vector<AnimationVertex> animVertices(vertexCount);
 
 		// 頂点バッファ生成
 		{
@@ -140,48 +132,17 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 		if (hasBones) {
 
 			if (mesh->HasBones()) {
-				for (UINT b = 0; b < mesh->mNumBones; ++b) {
-					aiBone* bone = mesh->mBones[b];
-					std::string boneName = bone->mName.C_Str();
-					UINT boneIndex = 0;
-					if (model->BoneNameToIndex.find(boneName) == model->BoneNameToIndex.end()) {
-						boneIndex = static_cast<UINT>(model->Bones.size());
-						aiMatrix4x4 offset = bone->mOffsetMatrix;
-						DirectX::XMFLOAT4X4 mat(offset.a1, offset.b1, offset.c1, offset.d1,
-												offset.a2, offset.b2, offset.c2, offset.d2,
-												offset.a3, offset.b3, offset.c3, offset.d3,
-												offset.a4, offset.b4, offset.c4, offset.d4);
-						model->Bones.push_back({ boneName, mat });
-						model->BoneNameToIndex[boneName] = boneIndex;
-					} else {
-						boneIndex = model->BoneNameToIndex[boneName];
-					}
-					for (UINT w = 0; w < bone->mNumWeights; ++w) {
-						UINT vtxId = bone->mWeights[w].mVertexId;
-						float weight = bone->mWeights[w].mWeight;
-						bool assigned = false;
-						for (int i = 0; i < 4; ++i) {
-							if (animVertices[vtxId].BoneWeight[i] == 0.0f) {
-								animVertices[vtxId].BoneIndex[i] = boneIndex;
-								animVertices[vtxId].BoneWeight[i] = weight;
-								assigned = true;
-								break;
-							}
-						}
-						if (!assigned) {
-							// 警告: 4つ以上のボーン影響はカットされる
-							std::cerr << "Warning: Vertex " << vtxId << " has more than 4 bone influences. Extra weights are ignored.\n";
-						}
-					}
-				}
+
 			}
 		}
+
+
 		// インデックスバッファ生成
 		{
 			unsigned int* index = new unsigned int[mesh->mNumFaces * 3];
 			//unsigned short* index = new unsigned short[mesh->mNumFaces * 3];
 
-			for(unsigned int f = 0; f < mesh->mNumFaces; f++){
+			for (unsigned int f = 0; f < mesh->mNumFaces; f++) {
 				const aiFace* face = &mesh->mFaces[f];
 
 				//assert(face->mNumIndices == 3);
@@ -192,12 +153,14 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			}
 
 			D3D11_BUFFER_DESC bd = {};
+
 			bd.Usage = D3D11_USAGE_DEFAULT;
 			bd.ByteWidth = sizeof(unsigned int) * mesh->mNumFaces * 3;
 			bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 			bd.CPUAccessFlags = 0;
 
 			D3D11_SUBRESOURCE_DATA sd = {};
+
 			sd.pSysMem = index;
 
 			context->GetDevice()->CreateBuffer(&bd, &sd, &model->IndexBuffer[m]);
@@ -205,70 +168,40 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			delete[] index;
 		}
 
-		model->SkinnedVertexData.push_back(animVertices);
+		//変形後頂点データ初期化
+		for (unsigned int v = 0; v < mesh->mNumVertices; v++) {
+			DEFORM_VERTEX deformVertex;
+			deformVertex.Position = mesh->mVertices[v];
+			deformVertex.Normal = mesh->mNormals[v];
+			deformVertex.BoneNum = 0;
 
-		// StructuredBuffer 作成
-		{
-			D3D11_BUFFER_DESC desc = {};
-			desc.Usage = D3D11_USAGE_DEFAULT;
-			desc.ByteWidth = sizeof(AnimationVertex) * vertexCount;
-			desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-			desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-			desc.StructureByteStride = sizeof(AnimationVertex);
-
-			D3D11_SUBRESOURCE_DATA initData = {animVertices.data()};
-			ID3D11Buffer* inputBuffer = nullptr;
-			HRESULT hr = context->GetDevice()->CreateBuffer(&desc, &initData, &inputBuffer);
-			if(FAILED(hr) || !inputBuffer){
-				std::cerr << "Failed to create input StructuredBuffer for mesh " << m << ", HRESULT=" << std::hex << hr << std::endl;
-				// 必要に応じクリーンアップ
-				return nullptr;
+			for (unsigned int b = 0; b < 4; b++) {
+				deformVertex.BoneName[b] = "";
+				deformVertex.BoneWeight[b] = 0.0f;
 			}
-			model->InputStructuredBuffers.push_back(inputBuffer);
 
-			D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-			srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-			srvDesc.Buffer.FirstElement = 0;
-			srvDesc.Buffer.NumElements = vertexCount;
-			ID3D11ShaderResourceView* srv = nullptr;
-			hr = context->GetDevice()->CreateShaderResourceView(inputBuffer, &srvDesc, &srv);
-			if(FAILED(hr) || !srv){
-				std::cerr << "Failed to create input SRV for mesh " << m << ", HRESULT=" << std::hex << hr << std::endl;
-				return nullptr;
-			}
-			model->InputSRVs.push_back(srv);
+			model->m_DeformVertex[m].push_back(deformVertex);
+		}
 
-			// Output Buffer + UAV + SRV
-			desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
-			ID3D11Buffer* outputBuffer = nullptr;
-			hr = context->GetDevice()->CreateBuffer(&desc, nullptr, &outputBuffer);
-			if(FAILED(hr) || !outputBuffer){
-				std::cerr << "Failed to create output StructuredBuffer for mesh " << m << ", HRESULT=" << std::hex << hr << std::endl;
-				return nullptr;
-			}
-			model->OutputStructuredBuffers.push_back(outputBuffer);
 
-			D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-			uavDesc.Format = DXGI_FORMAT_UNKNOWN;
-			uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-			uavDesc.Buffer.FirstElement = 0;
-			uavDesc.Buffer.NumElements = vertexCount;
-			ID3D11UnorderedAccessView* uav = nullptr;
-			hr = context->GetDevice()->CreateUnorderedAccessView(outputBuffer, &uavDesc, &uav);
-			if(FAILED(hr) || !uav){
-				std::cerr << "Failed to create output UAV for mesh " << m << ", HRESULT=" << std::hex << hr << std::endl;
-				return nullptr;
-			}
-			model->OutputUAVs.push_back(uav);
+		//ボーンデータ初期化
+		for (unsigned int b = 0; b < mesh->mNumBones; b++) {
+			aiBone* bone = mesh->mBones[b];
 
-			ID3D11ShaderResourceView* outputSRV = nullptr;
-			hr = context->GetDevice()->CreateShaderResourceView(outputBuffer, &srvDesc, &outputSRV);
-			if(FAILED(hr) || !outputSRV){
-				std::cerr << "Failed to create output SRV for mesh " << m << ", HRESULT=" << std::hex << hr << std::endl;
-				return nullptr;
+			model->m_Bone[bone->mName.C_Str()].OffsetMatrix = bone->mOffsetMatrix;
+
+			//変形後頂点にボーンデータ格納
+			for (unsigned int w = 0; w < bone->mNumWeights; w++) {
+				aiVertexWeight weight = bone->mWeights[w];
+
+				int num = model->m_DeformVertex[m][weight.mVertexId].BoneNum;
+
+				model->m_DeformVertex[m][weight.mVertexId].BoneWeight[num] = weight.mWeight;
+				model->m_DeformVertex[m][weight.mVertexId].BoneName[num] = bone->mName.C_Str();
+				model->m_DeformVertex[m][weight.mVertexId].BoneNum++;
+
+				assert(model->m_DeformVertex[m][weight.mVertexId].BoneNum <= 4);
 			}
-			model->OutputSRVs.push_back(outputSRV);
 		}
 	}
 
@@ -292,7 +225,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			CreateShaderResourceView(context->GetDevice(), image.GetImages(), image.GetImageCount(), metadata, &texture);
 			assert(texture);
 
-			model->Texture[aitexture->mFilename.data] = texture;
+			model->m_Texture[aitexture->mFilename.data] = texture;
 		}
 	} else{
 		namespace fs = std::filesystem;
@@ -305,7 +238,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 				if(material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS){
 					std::string textureFilePath = texPath.C_Str();
 
-					if(model->Texture.find(textureFilePath) == model->Texture.end()){
+					if(model->m_Texture.find(textureFilePath) == model->m_Texture.end()){
 						// modelPathのフォルダパスを取得
 						std::string directory;
 						size_t pos = path.find_last_of("/\\");
@@ -336,7 +269,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 									&texture);
 
 								if(SUCCEEDED(hr)){
-									model->Texture[textureFilePath] = texture;
+									model->m_Texture[textureFilePath] = texture;
 									model->SetTexture = true;
 
 								} else{
@@ -359,7 +292,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 				if(material->GetTexture(aiTextureType_NORMALS, 0, &normalTexPath) == AI_SUCCESS){
 					std::string normalMapFile = fs::path(normalTexPath.C_Str()).filename().string();
 
-					if(model->Texture.find(normalMapFile) == model->Texture.end()){
+					if(model->m_Texture.find(normalMapFile) == model->m_Texture.end()){
 						// modelPathのフォルダパスを取得
 						std::string directory;
 						size_t pos = path.find_last_of("/\\");
@@ -390,7 +323,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 									&texture);
 
 								if(SUCCEEDED(hr)){
-									model->Texture[normalMapFile] = texture;
+									model->m_Texture[normalMapFile] = texture;
 									model->SetTexture = true;
 
 								} else{
@@ -409,170 +342,27 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 		}
 	}
 	if (hasBones && model->AiScene->HasAnimations()) {
+		for (int i = 0; i < model->AiScene->mNumAnimations; i++) {
 
-	// アニメーション読み取り
-		if (model->AiScene->HasAnimations()) {
-			for (UINT i = 0; i < model->AiScene->mNumAnimations; ++i) {
-				aiAnimation* aiAnim = model->AiScene->mAnimations[i];
-				AnimationClip clip;
-				clip.name = aiAnim->mName.C_Str();
-				clip.duration = static_cast<float>(aiAnim->mDuration);
-				clip.ticksPerSecond = static_cast<float>(aiAnim->mTicksPerSecond != 0.0 ? aiAnim->mTicksPerSecond : 25.0f);
-
-				UINT maxKeyCount = 0;
-				for (UINT c = 0; c < aiAnim->mNumChannels; ++c) {
-					maxKeyCount = (std::max)(maxKeyCount, aiAnim->mChannels[c]->mNumPositionKeys);
-				}
-
-				for (UINT f = 0; f < maxKeyCount; ++f) {
-					AnimationKeyFrame frame;
-					frame.time = static_cast<float>(aiAnim->mChannels[0]->mPositionKeys[f].mTime);
-
-					frame.boneTransforms.resize(model->Bones.size(), DirectX::XMFLOAT4X4(
-						1, 0, 0, 0,
-						0, 1, 0, 0,
-						0, 0, 1, 0,
-						0, 0, 0, 1));
-
-					for (UINT c = 0; c < aiAnim->mNumChannels; ++c) {
-						aiNodeAnim* channel = aiAnim->mChannels[c];
-						std::string boneName = channel->mNodeName.C_Str();
-						auto it = model->BoneNameToIndex.find(boneName);
-						if (it == model->BoneNameToIndex.end()) continue;
-						UINT boneIdx = it->second;
-
-						if (f >= channel->mNumPositionKeys || f >= channel->mNumRotationKeys || f >= channel->mNumScalingKeys) {
-							// キーフレーム不足はスキップ
-							continue;
-						}
-
-						aiVector3D pos = channel->mPositionKeys[f].mValue;
-						aiQuaternion rot = channel->mRotationKeys[f].mValue;
-						aiVector3D scale = channel->mScalingKeys[f].mValue;
-
-						aiMatrix4x4 mat = aiMatrix4x4(1, 0, 0, pos.x,
-													  0, 1, 0, pos.y,
-													  0, 0, 1, pos.z,
-													  0, 0, 0, 1);
-						mat *= aiMatrix4x4(rot.GetMatrix());
-						mat *= aiMatrix4x4(scale.x, 0, 0, 0,
-										   0, scale.y, 0, 0,
-										   0, 0, scale.z, 0,
-										   0, 0, 0, 1);
-
-						frame.boneTransforms[boneIdx] = DirectX::XMFLOAT4X4(
-							mat.a1, mat.b1, mat.c1, mat.d1,
-							mat.a2, mat.b2, mat.c2, mat.d2,
-							mat.a3, mat.b3, mat.c3, mat.d3,
-							mat.a4, mat.b4, mat.c4, mat.d4);
-					}
-					clip.keyframes.push_back(frame);
-				}
-				model->Animations[clip.name] = clip;
+			aiAnimation* animation = model->AiScene->mAnimations[i];
+			std::string animName = animation->mName.C_Str();
+			if (animName == "") {
+				animName = "Anim_" + std::to_string(i);
 			}
+
+			AnimationData animationData;
+			animationData.FilePath = model->FilePath;
+			animationData.Scene = model->AiScene;
+			animationData.isImported = false;
+			animationData.Animation = animation;
+
+			model->m_Animation[animName] = animationData;
 		}
-		// Bone行列の初期データ（単位行列）を準備
-		UINT boneCount = static_cast<UINT>(model->Bones.size());
-		std::vector<DirectX::XMFLOAT4X4> boneMatrixData(boneCount);
-		for (UINT i = 0; i < boneCount; ++i) {
-			boneMatrixData[i] = DirectX::XMFLOAT4X4(
-				1, 0, 0, 0,
-				0, 1, 0, 0,
-				0, 0, 1, 0,
-				0, 0, 0, 1
-			);
-		}
-
-		// バッファの設定
-		D3D11_BUFFER_DESC bd = {};
-		bd.ByteWidth = sizeof(DirectX::XMFLOAT4X4) * boneCount;
-		bd.Usage = D3D11_USAGE_DEFAULT;
-		bd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		bd.CPUAccessFlags = 0;
-		bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-		bd.StructureByteStride = sizeof(DirectX::XMFLOAT4X4);
-
-		// 初期データ構造体
-		D3D11_SUBRESOURCE_DATA initData = {};
-		initData.pSysMem = boneMatrixData.data();
-
-		// バッファ作成
-		ID3D11Buffer* boneMatrixBuffer = nullptr;
-		HRESULT hr = context->GetDevice()->CreateBuffer(&bd, &initData, &boneMatrixBuffer);
-		if (FAILED(hr)) {
-			OutputDebugStringA("Failed to create bone matrix buffer.\n");
-			return nullptr; // またはエラー処理
-		}
-
-		// SRVの作成
-		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-		srvDesc.Buffer.FirstElement = 0;
-		srvDesc.Buffer.NumElements = boneCount;
-
-		hr = context->GetDevice()->CreateShaderResourceView(boneMatrixBuffer, &srvDesc, &model->BoneMatricesSRV);
-		if (FAILED(hr)) {
-			OutputDebugStringA("Failed to create BoneMatrices SRV.\n");
-			return nullptr;
-		}
-		CreateAnimationConstantBuffer(context->GetDevice(), model.get());
-
-		// ボーンの行列をすべてデバッグ出力
-		for(size_t i = 0; i < model->Bones.size(); ++i){
-			const auto& bone = model->Bones[i];
-			const DirectX::XMFLOAT4X4& m = bone.offsetMatrix;
-
-			std::ostringstream oss;
-			oss << "Bone[" << i << "] " << bone.name << " offsetMatrix:\n";
-			oss << m._11 << " " << m._12 << " " << m._13 << " " << m._14 << "\n";
-			oss << m._21 << " " << m._22 << " " << m._23 << " " << m._24 << "\n";
-			oss << m._31 << " " << m._32 << " " << m._33 << " " << m._34 << "\n";
-			oss << m._41 << " " << m._42 << " " << m._43 << " " << m._44 << "\n";
-
-			OutputDebugStringA(oss.str().c_str());
-		}
-
-		// アニメーションの各キーフレームのボーン行列を出力（例：最初のアニメーションの最初のキーフレーム）
-		if(!model->Animations.empty()){
-			const auto& firstAnim = model->Animations.begin()->second;
-			if(!firstAnim.keyframes.empty()){
-				const auto& firstFrame = firstAnim.keyframes[0];
-				for(size_t i = 0; i < firstFrame.boneTransforms.size(); ++i){
-					const auto& m = firstFrame.boneTransforms[i];
-					std::ostringstream oss;
-					oss << "AnimationClip[" << model->Animations.begin()->first << "] "
-						<< "KeyFrame[0] Bone[" << i << "] matrix:\n";
-					oss << m._11 << " " << m._12 << " " << m._13 << " " << m._14 << "\n";
-					oss << m._21 << " " << m._22 << " " << m._23 << " " << m._24 << "\n";
-					oss << m._31 << " " << m._32 << " " << m._33 << " " << m._34 << "\n";
-					oss << m._41 << " " << m._42 << " " << m._43 << " " << m._44 << "\n";
-					OutputDebugStringA(oss.str().c_str());
-				}
-			}
-		}
-
-	}
-	if (!model->AnimationConstantBuffer) {
-		OutputDebugStringA("Debug: AnimationConstantBuffer was NOT created.\n");
-	} else {
-		OutputDebugStringA("Debug: AnimationConstantBuffer successfully created.\n");
 	}
 
-	size_t meshCount = model->InputSRVs.size();
-	model->OutputVertexBuffers.resize(meshCount);
-	model->OutputUAVBuffers.resize(meshCount);
-	model->OutputUAVs.resize(meshCount);
+
 
 	return model;
-}
-
-inline void UpdateAnimationCB(GraphicsContext* context, ID3D11Buffer* cb, const AnimationCB& data){
-	D3D11_MAPPED_SUBRESOURCE mapped;
-	if(SUCCEEDED(context->GetDeviceContext()->Map(cb, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped))){
-		memcpy(mapped.pData, &data, sizeof(AnimationCB));
-		context->GetDeviceContext()->Unmap(cb, 0);
-	}
 }
 
 template<>

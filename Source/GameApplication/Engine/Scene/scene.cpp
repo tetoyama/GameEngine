@@ -251,6 +251,8 @@ void Scene::BuildDefaultScene(){
 	graphicsContext->SetLight(light);
 	graphicsContext->SetDepthEnable(true);
 
+	//return;
+
 	{
 		//エンティティを作成し、TransformとModelRendererを追加
 		Entity entity = entityRegistry->Create();
@@ -647,6 +649,19 @@ void Scene::LoadSceneFromYAML(std::string path) {
 
 						const auto& PixelShader = compNode["PixelShader"].as<std::string>();
 						modelRenderer->pixelShader = m_SceneManagerContext->resource->Load<PixelShaderData>(PixelShader.c_str());
+					}
+
+					if (compNode["CurrentAnimationName"]) {
+						modelRenderer->currentAnimationName = compNode["CurrentAnimationName"].as<std::string>();
+					}
+					if (compNode["AnimationTime"]) {
+						modelRenderer->animationTime = compNode["AnimationTime"].as<float>();
+					}
+
+					for (const auto& animNode : compNode["Animations"]) {
+						std::string animName = animNode.first.as<std::string>();
+						std::string animFile = animNode.second.as<std::string>();
+						modelRenderer->model->LoadAnimation(animFile.c_str(), animName.c_str());
 					}
 				}
 			}
