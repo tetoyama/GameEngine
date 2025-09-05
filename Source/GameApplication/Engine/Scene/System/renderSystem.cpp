@@ -891,8 +891,9 @@ void RenderSystem::ControllButton(){
 void RenderSystem::EditorView(){
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+	ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
 
-	ImGui::Begin("Editor View",showEditor);
+	ImGui::Begin("Editor View",showEditor, toolbar_window_flags);
 
 	ControllButton();
 	DrawRenderLayerToggleUI();
@@ -983,7 +984,9 @@ void RenderSystem::EditorView(){
 
 void RenderSystem::PlayerView(){
 
-	ImGui::Begin("Play View",showPlayer);
+	ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
+
+	ImGui::Begin("Play View",showPlayer, toolbar_window_flags);
 
 	ControllButton();
 	ImGui::Separator();

@@ -342,7 +342,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 		}
 	}
 	if (hasBones && model->AiScene->HasAnimations()) {
-		for (int i = 0; i < model->AiScene->mNumAnimations; i++) {
+		for (unsigned int i = 0; i < model->AiScene->mNumAnimations; i++) {
 
 			aiAnimation* animation = model->AiScene->mAnimations[i];
 			std::string animName = animation->mName.C_Str();

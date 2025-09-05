@@ -69,6 +69,7 @@
 #include <Component/audioComponent.h>
 #include <System/audioSystem.h>
 #include <Component/outlineComponent.h>
+#include <Component/EffectComponent.h>
 
 Scene::Scene(){
 
@@ -124,6 +125,9 @@ void Scene::Initialize(ManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<SetScene>("SetScene", false);
 	m_componentRegistry->RegisterYAMLComponent<ScoreManager>("ScoreManager", false);
 	m_componentRegistry->RegisterYAMLComponent<ScoreSprite>("ScoreSprite", false);
+
+	m_componentRegistry->RegisterYAMLComponent<EffectComponent>("EffectComponent", false);
+
 
 	// システムを登録
 	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));

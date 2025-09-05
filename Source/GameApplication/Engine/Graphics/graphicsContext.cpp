@@ -7,6 +7,8 @@
 #include <wrl/client.h>
 #include <windows.h> // GetDpiForWindowを使用するために必要
 
+#include "renderEffectSystem.h"
+
 #include <io.h>
 
 #pragma warning(push)			//警告の抑制の範囲の開始地点
@@ -59,6 +61,8 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 
 	if (!CreateComputeSkinningShader()) { return false; }
 
+	if (!CreateEffectSystem()) { return false; }
+
 	Resize(width, height);
 
 	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
@@ -67,6 +71,10 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 }
 
 void GraphicsContext::Shutdown(){
+
+	m_EffectSystem->ShutDown();
+	delete m_EffectSystem;
+	m_EffectSystem = nullptr;
 
 	SAFE_RELEASE(m_WorldBuffer);
 	SAFE_RELEASE(m_ViewBuffer);
@@ -95,6 +103,13 @@ void GraphicsContext::Shutdown(){
 	m_Device.Reset();
 
 
+}
+
+Effekseer::ManagerRef GraphicsContext::GetEffectManager() {
+	if (m_EffectSystem) {
+		return m_EffectSystem->manager;
+	}
+	return nullptr;
 }
 
 void GraphicsContext::SetDepthEnable(const bool& Enable){
@@ -588,6 +603,15 @@ bool GraphicsContext::CreateD2DResources(HWND hwnd){
 	}
 
 	return true;
+}
+
+bool GraphicsContext::CreateEffectSystem() {
+
+	m_EffectSystem = new RenderEffectSystem();
+	
+	bool result = m_EffectSystem->Initialize(m_Device.Get(), m_DeviceContext.Get());
+
+	return result;
 }
 
 bool GraphicsContext::ReadFileToBuffer(const char* fileName, std::vector<char>& buffer){

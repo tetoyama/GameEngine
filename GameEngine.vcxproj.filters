@@ -1866,7 +1866,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Platform\NetWorkSystem\networkSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Graphics\effectSystem.h">
+    <ClInclude Include="Source\GameApplication\Engine\Graphics\renderEffectSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Graphics\subRenderer.h">
@@ -2260,6 +2260,18 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\outlineComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\EffectComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Data\effectData.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\effectLoader.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\effectSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
@@ -2678,6 +2690,9 @@
     <ClCompile Include="Source\Service\ImGuiFunc.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Graphics\renderEffectSystem.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\GameApplication\Backends\Assimp\color4.inl">
@@ -2746,6 +2761,12 @@
     <Library Include="Source\GameApplication\Backends\Assimp\assimp-vc143-mt.lib" />
     <Library Include="Source\GameApplication\Backends\yaml-cpp\yaml-cpp.lib" />
     <Library Include="Source\GameApplication\Backends\yaml-cpp\yaml-cppd.lib" />
+    <Library Include="Source\GameApplication\Backends\Effekseer\EffekseerSoundXAudio2d.lib" />
+    <Library Include="Source\GameApplication\Backends\Effekseer\Effekseer.lib" />
+    <Library Include="Source\GameApplication\Backends\Effekseer\Effekseerd.lib" />
+    <Library Include="Source\GameApplication\Backends\Effekseer\EffekseerRendererDX11.lib" />
+    <Library Include="Source\GameApplication\Backends\Effekseer\EffekseerRendererDX11d.lib" />
+    <Library Include="Source\GameApplication\Backends\Effekseer\EffekseerSoundXAudio2.lib" />
   </ItemGroup>
   <ItemGroup>
     <Object Include="Asset\Model\player.obj" />

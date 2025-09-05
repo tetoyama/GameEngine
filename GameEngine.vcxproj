@@ -2612,7 +2612,7 @@
     <ClInclude Include="Source\GameApplication\Engine\engine.h" />
     <ClInclude Include="Source\GameApplication\Engine\engineContext.h" />
     <ClInclude Include="Source\GameApplication\Engine\Graphics\D2DRenderer.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Graphics\effectSystem.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Graphics\renderEffectSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Graphics\graphicsContext.h" />
     <ClInclude Include="Source\GameApplication\Engine\Graphics\mainRenderer.h" />
     <ClInclude Include="Source\GameApplication\Engine\Graphics\subRenderer.h" />
@@ -2623,6 +2623,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Platform\WindowSystem\mainWindow.h" />
     <ClInclude Include="Source\GameApplication\Engine\Platform\WindowSystem\windowSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\audioData.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Data\effectData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\modelData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\pixelShaderData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\shaderData.h" />
@@ -2635,6 +2636,7 @@
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </DeploymentContent>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\effectLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\modelLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\IResourceLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\resourceLoader.h" />
@@ -2650,6 +2652,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\bumpMapComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\cameraComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\CustomScriptComponent.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\EffectComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\enemyComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\entityNameComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\explosionEffectComponent.h" />
@@ -2679,6 +2682,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\ISystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\playerComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\CustomScriptSystem.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\effectSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\enemySystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\explosionEffectSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\inspectorSystem.h" />
@@ -3023,6 +3027,7 @@
     <ClCompile Include="Source\GameApplication\Engine\engine.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\engineContext.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Graphics\D2DRenderer.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Graphics\renderEffectSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Graphics\graphicsContext.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Graphics\mainRenderer.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Platform\InputSystem\InputSystem.cpp" />
@@ -3254,6 +3259,30 @@
     </Library>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Release.lib">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </Library>
+    <Library Include="Source\GameApplication\Backends\Effekseer\Effekseer.lib">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </Library>
+    <Library Include="Source\GameApplication\Backends\Effekseer\Effekseerd.lib">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </Library>
+    <Library Include="Source\GameApplication\Backends\Effekseer\EffekseerRendererDX11.lib">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </Library>
+    <Library Include="Source\GameApplication\Backends\Effekseer\EffekseerRendererDX11d.lib">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </Library>
+    <Library Include="Source\GameApplication\Backends\Effekseer\EffekseerSoundXAudio2.lib">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </Library>
+    <Library Include="Source\GameApplication\Backends\Effekseer\EffekseerSoundXAudio2d.lib">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </Library>
     <Library Include="Source\GameApplication\Backends\yaml-cpp\yaml-cpp.lib">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

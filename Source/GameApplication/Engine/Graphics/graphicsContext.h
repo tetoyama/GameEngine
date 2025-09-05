@@ -11,6 +11,11 @@
 #include "Service/IService.h"
 #include "Shader/CommonBuffer.h"
 
+#include "Backends/Effekseer/Effekseer.h"
+#include "Backends/Effekseer/EffekseerRendererDX11.h"
+
+class RenderEffectSystem;
+
 enum class BlendMode
 {
 	Alpha,		// 通常アルファブレンド
@@ -41,9 +46,7 @@ public:
 	IDXGISwapChain* GetSwapChain() const{return m_SwapChain.Get();}
 
 	ID3D11RenderTargetView* GetRenderTargetView() {return m_RenderTargetView;}
-	ID3D11RenderTargetView** GetpRenderTargetView(){
-		return &m_RenderTargetView;
-	}
+	ID3D11RenderTargetView** GetpRenderTargetView(){return &m_RenderTargetView;}
 
 	ID3D11DepthStencilView* GetDepthStencilView() {return m_DepthStencilView;}
 
@@ -52,6 +55,7 @@ public:
 
     ID3D11Buffer* GetWorldConstantBuffer() {return m_WorldBuffer;}
 
+	Effekseer::ManagerRef GetEffectManager();
 	// セッター
 	void SetDepthEnable(const bool& Enable);
 	void SetBlendMode(const BlendMode& mode);
@@ -97,6 +101,8 @@ private:
 	bool CreateComputeSkinningShader();
 	bool CreateD2DResources(HWND hwnd);
 
+	bool CreateEffectSystem();
+
 	bool ReadFileToBuffer(const char* fileName, std::vector<char>& buffer);
 
 	Microsoft::WRL::ComPtr<ID3D11Device>			m_Device;
@@ -127,4 +133,6 @@ private:
 
 	Microsoft::WRL::ComPtr<ID2D1Factory> m_d2dFactory;
 	Microsoft::WRL::ComPtr<IDWriteFactory> m_dwriteFactory;
+
+	RenderEffectSystem* m_EffectSystem = nullptr;
 };

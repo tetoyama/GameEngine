@@ -84,9 +84,9 @@ Entities:
           y: 0
           z: 0
         Scale:
-          x: 1
-          y: 1
-          z: 1
+          x: 0.0199999996
+          y: 0.0199999996
+          z: 0.0199999996
         Parent: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
@@ -95,5 +95,6 @@ Entities:
         isBlender: false
         AnimationTime: 0
         Animations:
-          Run: Asset\Model\Akai_Run.fbx
           Idle: Asset\Model\Akai_Idle.fbx
+          mixamo.com: Asset\Model\Akai.fbx
+          Run: Asset\Model\Akai_Run.fbx

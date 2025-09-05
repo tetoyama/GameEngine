@@ -136,8 +136,9 @@ ImVec4 ImGuiLogWindow::GetColorForLevel(LogLevel level) const{
 
 void ImGuiLogWindow::Draw(){
 	if(isOpen && *isOpen){
+		ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
 
-		if(ImGui::Begin("Debug Log", isOpen)){
+		if(ImGui::Begin("Debug Log", isOpen, toolbar_window_flags)){
 
 			ImGui::InputText("Search", searchBuffer, sizeof(searchBuffer));
 			ImGui::SameLine();
