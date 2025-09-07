@@ -40,6 +40,7 @@
 #include "System/particleSystem.h"
 #include "System/audioSystem.h"
 #include "System/physicSystem.h"
+#include "System/effectSystem.h"
 
 #include "Component/entityNameComponent.h"
 #include "Component/transformComponent.h"
@@ -67,12 +68,6 @@
 #include "Script/ScoreSprite.h"
 #include "Script/PlayerController.h"
 
-#include <System/lightSystem.h>
-#include <Component/particleComponent.h>
-#include <System/particleSystem.h>
-#include <Component/audioComponent.h>
-#include <System/audioSystem.h>
-#include <Component/outlineComponent.h>
 #include <Component/EffectComponent.h>
 
 Scene::Scene(){
@@ -154,6 +149,7 @@ void Scene::Initialize(ManagerContext* set){
 	m_systemRegistry->RegisterSystem(std::make_unique<AudioSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<ParticleSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<EffectSystem>(&m_SceneContext));
 
 	m_systemRegistry->RegisterSystem(std::make_unique<CSharpScriptSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<CustomScriptSystem>(&m_SceneContext));
@@ -372,7 +368,7 @@ void Scene::BuildDefaultScene(){
 		auto player = componentRegistry->AddComponent<PlayerComponent>(entity);
 
 		// OutLineComponentを追加
-		auto* outline = componentRegistry->AddComponent<OutlineComponent>(entity);
+		//auto* outline = componentRegistry->AddComponent<OutlineComponent>(entity);
 
 		//auto* script = componentRegistry->AddComponent<ScriptComponent>(entity);
 		//script->SetScriptName("PlayerScript"); // スクリプトクラス名
@@ -445,7 +441,7 @@ void Scene::BuildDefaultScene(){
 		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\ToonShaderPS.cso");
 
 		// OutLineComponentを追加
-		auto* outline = componentRegistry->AddComponent<OutlineComponent>(entity);
+		//auto* outline = componentRegistry->AddComponent<OutlineComponent>(entity);
 
 		auto* enemy = componentRegistry->AddComponent<EnemyComponent>(entity);
 	}

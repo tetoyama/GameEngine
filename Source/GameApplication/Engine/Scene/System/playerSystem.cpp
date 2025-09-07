@@ -137,7 +137,7 @@ void PlayerSystem::Update(float deltaTime) {
 				}
 
 				BulletComponent* bullet = m_context->component->AddComponent<BulletComponent>(bulletEntity);
-				OutlineComponent* outline = m_context->component->AddComponent<OutlineComponent>(bulletEntity);
+				//OutlineComponent* outline = m_context->component->AddComponent<OutlineComponent>(bulletEntity);
 				//bullet->lifeTime = 1.0f;
 			}
 		}

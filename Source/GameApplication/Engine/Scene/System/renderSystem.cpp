@@ -46,6 +46,19 @@
 #include <Component/RenderLayerComponent.h>
 #include <Component/particleComponent.h>
 #include <Component/outlineComponent.h>
+Effekseer::Matrix44 ConvertXMMATRIXToMatrix44(const DirectX::XMMATRIX& matrix){
+	Effekseer::Matrix44 result;
+	DirectX::XMFLOAT4X4 tempMatrix;
+	DirectX::XMStoreFloat4x4(&tempMatrix, matrix);
+
+	//行列の各成分をEffekseerの行列にコピー
+	for(int row = 0; row < 4; ++row){
+		for(int col = 0; col < 4; ++col){
+			result.Values[row][col] = tempMatrix.m[row][col];
+		}
+	}
+	return result;
+}
 
 RenderLayer GetRenderLayerFromEntity(Entity entity, ComponentRegistry* registry) {
 	auto* layerComponent = registry->GetComponent<RenderLayerComponent>(entity);
@@ -285,13 +298,9 @@ void RenderSystem::Update(float deltaTime) {
 	} else {
 		for (Entity entity : modelEntities) {
 
-			ModelRendererComponent* modelRenderer = m_context->component->GetComponent<ModelRendererComponent>(entity);
-			if (!modelRenderer || !modelRenderer->model) continue;
-			modelRenderer->animationTime += deltaTime * 60.0f;
-
 			//UpdateAnimation(entity, deltaTime);
 			auto* modelRenderer = m_context->component->GetComponent<ModelRendererComponent>(entity);
-			modelRenderer->animationTime += deltaTime;
+			modelRenderer->animationTime += deltaTime * 60.0f;
 		}
 	}
 }
@@ -300,26 +309,29 @@ void RenderSystem::Draw(){
 
 
 	//return;
+	{
+		m_context->manager->graphics->ResetViewport();
+		m_context->manager->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->manager->graphics->GetpRenderTargetView(), m_context->manager->graphics->GetDepthStencilView());
+		m_ScreenSize = Vector2(
+			(float)m_context->manager->renderer->GetGraphicsContext()->m_width,
+			(float)m_context->manager->renderer->GetGraphicsContext()->m_height
+		);
+		m_context->EditorScreenSize = m_ScreenSize;
 
+		SetCameraView();
+		DrawEntities(playerRenderLayerVisible);
+	}
 	if(*showPlayer){
 		PlayerView();
 	} else{
 		if(m_context->state == SceneState::Playing){
-			m_context->manager->graphics->ResetViewport();
-			m_context->manager->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->manager->graphics->GetpRenderTargetView(), m_context->manager->graphics->GetDepthStencilView());
-			m_ScreenSize = Vector2(
-				(float)m_context->manager->renderer->GetGraphicsContext()->m_width,
-				(float)m_context->manager->renderer->GetGraphicsContext()->m_height
-			);
-			m_context->EditorScreenSize = m_ScreenSize;
 
-			SetCameraView();
-			DrawEntities(playerRenderLayerVisible);
 		}
 	}
 	if(*showEditor){
 		EditorView();
 	}
+
 }
 
 void RenderSystem::EditorUpdate(float deltaTime){
@@ -1073,6 +1085,9 @@ void RenderSystem::UpdateAnimation(const Entity& entity, const float& deltaTime)
 
 
 void RenderSystem::DrawEntities(bool* pRenderLayer){
+
+
+
 	GraphicsContext* graphicsContext = m_context->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
@@ -1169,38 +1184,17 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 			}
 		}
 	}
+	//Effekseer用の行列に変換
+	Effekseer::Matrix44 effekseerProjectionMatrix = ConvertXMMATRIXToMatrix44(m_CameraProjection);
 
-	// Assimpシーンからルートノード
-	const aiScene* scene = model->AiScene;
-	const aiNode* rootNode = scene->mRootNode;
+	//エフェクトの描画
+	Effekseer::Manager::DrawParameter drawParameter;
+	drawParameter.ZNear = 0.01f;
+	drawParameter.ZFar = 1000.0f;
+	drawParameter.ViewProjectionMatrix = effekseerProjectionMatrix;
+	m_context->manager->graphics->GetEffectRenderer()->BeginRendering();
 
-	// 今回は1つめのアニメーションを使う（必要に応じて切り替え可能）
-	const aiAnimation* animation = scene->mAnimations[0];
+	m_context->manager->graphics->GetEffectManager()->Draw(drawParameter);
+	m_context->manager->graphics->GetEffectRenderer()->EndRendering();
 
-	// アニメーション時間の範囲を調整（ループ）
-	float ticksPerSecond = static_cast<float>(animation->mTicksPerSecond != 0 ? animation->mTicksPerSecond : 25.0f);
-	float timeInTicks = animationTime * ticksPerSecond;
-	float animationDuration = static_cast<float>(animation->mDuration);
-	float animationTimeWrapped = fmod(timeInTicks, animationDuration);
-
-	// グローバル逆行列を計算
-	DirectX::XMMATRIX globalInverseTransform = DirectX::XMMatrixTranspose(DirectX::XMMATRIX(
-		scene->mRootNode->mTransformation.a1, scene->mRootNode->mTransformation.b1, scene->mRootNode->mTransformation.c1, scene->mRootNode->mTransformation.d1,
-		scene->mRootNode->mTransformation.a2, scene->mRootNode->mTransformation.b2, scene->mRootNode->mTransformation.c2, scene->mRootNode->mTransformation.d2,
-		scene->mRootNode->mTransformation.a3, scene->mRootNode->mTransformation.b3, scene->mRootNode->mTransformation.c3, scene->mRootNode->mTransformation.d3,
-		scene->mRootNode->mTransformation.a4, scene->mRootNode->mTransformation.b4, scene->mRootNode->mTransformation.c4, scene->mRootNode->mTransformation.d4));
-
-	//DirectX::XMMATRIX globalInverseTransform = (DirectX::XMMATRIX(
-	//	scene->mRootNode->mTransformation.a1, scene->mRootNode->mTransformation.b1, scene->mRootNode->mTransformation.c1, scene->mRootNode->mTransformation.d1,
-	//	scene->mRootNode->mTransformation.a2, scene->mRootNode->mTransformation.b2, scene->mRootNode->mTransformation.c2, scene->mRootNode->mTransformation.d2,
-	//	scene->mRootNode->mTransformation.a3, scene->mRootNode->mTransformation.b3, scene->mRootNode->mTransformation.c3, scene->mRootNode->mTransformation.d3,
-	//	scene->mRootNode->mTransformation.a4, scene->mRootNode->mTransformation.b4, scene->mRootNode->mTransformation.c4, scene->mRootNode->mTransformation.d4));
-
-	globalInverseTransform = DirectX::XMMatrixInverse(nullptr, globalInverseTransform);
-
-	// 初期化
-	outBoneMatrices.resize(model->Bones.size(), DirectX::XMMatrixIdentity());
-
-	// 階層再帰的にボーン行列を計算
-	ReadNodeHierarchy(animationTimeWrapped, rootNode, DirectX::XMMatrixIdentity(), animation, model->Bones, model->BoneNameToIndex, outBoneMatrices, globalInverseTransform);
 }

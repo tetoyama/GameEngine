@@ -56,6 +56,7 @@ public:
     ID3D11Buffer* GetWorldConstantBuffer() {return m_WorldBuffer;}
 
 	Effekseer::ManagerRef GetEffectManager();
+	EffekseerRendererDX11::RendererRef GetEffectRenderer();
 	// セッター
 	void SetDepthEnable(const bool& Enable);
 	void SetBlendMode(const BlendMode& mode);

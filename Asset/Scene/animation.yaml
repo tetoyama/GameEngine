@@ -98,3 +98,62 @@ Entities:
           Idle: Asset\Model\Akai_Idle.fbx
           mixamo.com: Asset\Model\Akai.fbx
           Run: Asset\Model\Akai_Run.fbx
+      - Component: PlayerComponent
+        moveSpeed: 5
+        cameraRotate: 2
+        cameraDistance: 20
+        cameraLerp: 8
+  - Entity: 4
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: -100
+          z: 0
+        Rotation:
+          x: 0
+          y: 0
+          z: 0
+        Scale:
+          x: 100
+          y: 100
+          z: 100
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\field.jpg
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: BumpMapComponent
+        FilePath: Asset\Texture\BumpMap\Normal.bmp
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.fbx
+        PixelShader: Asset\Shader\bumpPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 0

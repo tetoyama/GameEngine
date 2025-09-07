@@ -112,6 +112,13 @@ Effekseer::ManagerRef GraphicsContext::GetEffectManager() {
 	return nullptr;
 }
 
+EffekseerRendererDX11::RendererRef GraphicsContext::GetEffectRenderer(){
+	if(m_EffectSystem){
+		return m_EffectSystem->renderer;
+	}
+	return nullptr;
+}
+
 void GraphicsContext::SetDepthEnable(const bool& Enable){
 	if(Enable){
 		m_DeviceContext->OMSetDepthStencilState(m_DepthStateEnable, NULL);
