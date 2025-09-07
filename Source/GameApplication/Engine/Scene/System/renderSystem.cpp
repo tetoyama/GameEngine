@@ -46,6 +46,7 @@
 #include <Component/RenderLayerComponent.h>
 #include <Component/particleComponent.h>
 #include <Component/outlineComponent.h>
+#include <Component/EffectComponent.h>
 Effekseer::Matrix44 ConvertXMMATRIXToMatrix44(const DirectX::XMMATRIX& matrix){
 	Effekseer::Matrix44 result;
 	DirectX::XMFLOAT4X4 tempMatrix;
@@ -1195,6 +1196,7 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 	m_context->manager->graphics->GetEffectRenderer()->BeginRendering();
 
 	m_context->manager->graphics->GetEffectManager()->Draw(drawParameter);
+
 	m_context->manager->graphics->GetEffectRenderer()->EndRendering();
 
 }
