@@ -138,7 +138,7 @@ void InspectorSystem::CreateDockSpace(){
 	static bool dockspaceOpen = true;
 	static ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags_None;
 
-	ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+	ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoCollapse;
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(viewport->WorkPos);
 	ImGui::SetNextWindowSize(viewport->WorkSize);
@@ -163,7 +163,10 @@ void InspectorSystem::CreateDockSpace(){
 
 // シーンヒエラルキーウィンドウ
 void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
-	ImGui::Begin("Scene Hierarchy", showSceneHierarchy);
+
+	ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
+
+	ImGui::Begin("Scene Hierarchy", showSceneHierarchy, toolbar_window_flags);
 	EntityRegistry* registry = context->entity;
 
 	// ツールバー
@@ -811,7 +814,9 @@ void InspectorSystem::DrawAssetsBrowser(){
 	}
 
 	// === ImGui Begin ===
-	ImGui::Begin("Assets Browser", showAssetsBrowser);
+	ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
+
+	ImGui::Begin("Assets Browser", showAssetsBrowser, toolbar_window_flags);
 
 	ImGui::Columns(2, "AssetColumns", true);
 

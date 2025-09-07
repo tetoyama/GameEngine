@@ -67,6 +67,13 @@
 #include "Script/ScoreSprite.h"
 #include "Script/PlayerController.h"
 
+#include <System/lightSystem.h>
+#include <Component/particleComponent.h>
+#include <System/particleSystem.h>
+#include <Component/audioComponent.h>
+#include <System/audioSystem.h>
+#include <Component/outlineComponent.h>
+#include <Component/EffectComponent.h>
 
 Scene::Scene(){
 
@@ -135,6 +142,9 @@ void Scene::Initialize(ManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<ScoreManager>("ScoreManager", false);
 	m_componentRegistry->RegisterYAMLComponent<ScoreSprite>("ScoreSprite", false);
 	m_componentRegistry->RegisterYAMLComponent<PlayerController>("PlayerController", false);
+
+	m_componentRegistry->RegisterYAMLComponent<EffectComponent>("EffectComponent", false);
+
 
 	// システムを登録
 	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
@@ -265,6 +275,8 @@ void Scene::BuildDefaultScene(){
 	light.GroundNormal = DirectX::XMFLOAT4(0, 0, 1, 0);
 	graphicsContext->SetLight(light);
 	graphicsContext->SetDepthEnable(true);
+
+	//return;
 
 	{
 		//エンティティを作成し、TransformとModelRendererを追加
@@ -670,6 +682,19 @@ void Scene::LoadSceneFromYAML(std::string path) {
 
 						const auto& PixelShader = compNode["PixelShader"].as<std::string>();
 						modelRenderer->pixelShader = m_SceneManagerContext->resource->Load<PixelShaderData>(PixelShader.c_str());
+					}
+
+					if (compNode["CurrentAnimationName"]) {
+						modelRenderer->currentAnimationName = compNode["CurrentAnimationName"].as<std::string>();
+					}
+					if (compNode["AnimationTime"]) {
+						modelRenderer->animationTime = compNode["AnimationTime"].as<float>();
+					}
+
+					for (const auto& animNode : compNode["Animations"]) {
+						std::string animName = animNode.first.as<std::string>();
+						std::string animFile = animNode.second.as<std::string>();
+						modelRenderer->model->LoadAnimation(animFile.c_str(), animName.c_str());
 					}
 				}
 			}

@@ -167,6 +167,7 @@ DirectX::XMMATRIX ImGuiService::RenderGizmo2D(const DirectX::XMMATRIX& world) co
 }
 
 void ImGuiService::Begin(){
+
 	if(!initialized_){
 		return;
 	}
@@ -180,7 +181,7 @@ void ImGuiService::Begin(){
 
 	//ImGuizmo::SetRect(ImGui::GetMainViewport()->Pos.x, ImGui::GetMainViewport()->Pos.y, ImGui::GetMainViewport()->Size.x, ImGui::GetMainViewport()->Size.y);
 
-	ImGui::DockSpaceOverViewport(0U,0, ImGuiDockNodeFlags_PassthruCentralNode);  // ドッキングスペースの設置
+	ImGui::DockSpaceOverViewport(0U,0, ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_AutoHideTabBar);  // ドッキングスペースの設置
 	manubar.Draw();
 	DrawAssetsBrowser();
 }
@@ -250,7 +251,9 @@ void ImGuiService::DrawDebugImGuiWindow(double Update, double Draw, double FPS, 
 	DrawSamples[SAMPLE_LENGTH - 1] = (float)(int)Draw;
 
 	{
-		ImGui::Begin("Performance Monitor");
+		ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
+
+		ImGui::Begin("Performance Monitor",NULL, toolbar_window_flags);
 
 		if(ImGui::TreeNodeEx("負荷計測", ImGuiTreeNodeFlags_DefaultOpen)){
 

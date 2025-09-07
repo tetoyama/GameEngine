@@ -13,11 +13,13 @@
 #include "Data/modelData.h"
 #include "Data/shaderData.h"
 #include "Data/audioData.h"
+#include "Data/effectData.h"
 
 #include "Loader/textureLoader.h"
 #include "Loader/shaderLoader.h"
 #include "Loader/modelLoader.h"
 #include "Loader/audioLoader.h"
+#include "Loader/effectLoader.h"
 
 class GraphicsContext;
 class AudioContext;
@@ -32,7 +34,8 @@ public:
         RegisterLoader<ModelData>();
         RegisterLoader<VertexShaderData>();
         RegisterLoader<PixelShaderData>();
-		RegisterLoader<AudioData>();
+        RegisterLoader<AudioData>();
+        RegisterLoader<EffectData>();
     }
 
     void Shutdown() override {

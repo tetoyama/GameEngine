@@ -6,23 +6,35 @@
 #include <DirectXMath.h>
 #include "Shader/CommonBuffer.h"
 
+#include "assimp/cimport.h"
+#include "assimp/scene.h"
+#include "assimp/postprocess.h"
+#include "assimp/matrix4x4.h"
+
+class GraphicsContext;
 struct aiScene;
 
-struct Bone {
-	std::string name;
-	DirectX::XMFLOAT4X4 offsetMatrix;
+//変形後頂点構造体
+struct DEFORM_VERTEX {
+	aiVector3D Position;
+	aiVector3D Normal;
+	int				BoneNum;
+	std::string		BoneName[4];//本来はボーンインデックスで管理するべき
+	float			BoneWeight[4];
 };
 
-struct AnimationKeyFrame {
-	float time;
-	std::vector<DirectX::XMFLOAT4X4> boneTransforms;
+//ボーン構造体
+struct BONE {
+	aiMatrix4x4 Matrix;
+	aiMatrix4x4 AnimationMatrix;
+	aiMatrix4x4 OffsetMatrix;
 };
 
-struct AnimationClip {
-	std::string name;
-	float duration;
-	float ticksPerSecond;
-	std::vector<AnimationKeyFrame> keyframes;
+struct AnimationData {
+	std::string FilePath;
+	const aiScene* Scene;
+	aiAnimation* Animation;
+	bool isImported = true;
 };
 
 struct ModelData {
@@ -51,35 +63,17 @@ public:
 	ID3D11Buffer** IndexBuffer = nullptr;
 
 	// テクスチャ群
-	std::unordered_map<std::string, ID3D11ShaderResourceView*> Texture;
+	std::unordered_map<std::string, ID3D11ShaderResourceView*> m_Texture;
 
-	// --- スキニング関連 ---
+	std::vector<DEFORM_VERTEX>* m_DeformVertex;//変形後頂点データ
+	std::unordered_map<std::string, BONE> m_Bone;//ボーンデータ（名前で参照）
 
-	// CPU側 頂点配列（メッシュごと）
-	std::vector<std::vector<AnimationVertex>> SkinnedVertexData;
+	void CreateBone(aiNode* Node);
+	void UpdateBoneMatrix(aiNode* Node, aiMatrix4x4 Matrix);
 
-	// GPU側 StructuredBuffer: 入力（頂点情報）→ Compute Shader用
-	std::vector<ID3D11Buffer*> InputStructuredBuffers;
-	std::vector<ID3D11ShaderResourceView*> InputSRVs;
+	void LoadAnimation(const char* FileName, const char* Name);
+	void Update(const char* AnimationName1, int Frame1, GraphicsContext* pGraphicContext);
 
-	// GPU側 StructuredBuffer: 出力（スキニング結果）→ 頂点シェーダ用
-	std::vector<ID3D11Buffer*> OutputStructuredBuffers;
-	std::vector<ID3D11UnorderedAccessView*> OutputUAVs;
-	std::vector<ID3D11ShaderResourceView*> OutputSRVs;
+	std::unordered_map<std::string, AnimationData> m_Animation;
 
-	// アニメーション定数バッファ（毎フレームボーン行列＋頂点数などを更新）
-	ID3D11Buffer* AnimationConstantBuffer = nullptr;
-
-	// ボーン情報
-	std::vector<Bone> Bones;
-	std::unordered_map<std::string, UINT> BoneNameToIndex;
-
-	// アニメーション群
-	std::unordered_map<std::string, AnimationClip> Animations;
-
-	ID3D11ShaderResourceView* BoneMatricesSRV = nullptr;
-
-	// モデル描画用：OutputStructuredBuffer に対応する VertexBuffer をここで保持
-	std::vector<ID3D11Buffer*> OutputVertexBuffers;
-	std::vector<ID3D11Buffer*> OutputUAVBuffers;
 };
