@@ -37,10 +37,11 @@ public:
 		return true;
 	}
 
-	void inspector(SceneContext* context) override{
+	void inspector(SceneContext* context) override {
+
 		ImGui::Text("Model File Path");
 		ImGui::SameLine(100.0f);
-		if(ImGui::Checkbox("##isBlender", &isBlender)){
+		if (ImGui::Checkbox("##isBlender", &isBlender)) {
 			std::string path = model->FilePath;
 			model = context->manager->resource->Load<ModelData>(path, isBlender);
 
@@ -54,14 +55,14 @@ public:
 
 		char filepathBuffer[256] = ""; // 適当な最大長
 		// バッファに現在の文字列をコピー（初回か変更時だけにすると効率的）
-		if(model){
+		if (model) {
 			strncpy_s(filepathBuffer, sizeof(filepathBuffer), model->FilePath.c_str(), _TRUNCATE);
-		} else{
+		} else {
 			filepathBuffer[0] = '\0'; // 初期化
 		}
-		if(ImGui::InputText("##Model File Path", filepathBuffer, sizeof(filepathBuffer))){
+		if (ImGui::InputText("##Model File Path", filepathBuffer, sizeof(filepathBuffer))) {
 			// 編集されたら std::string に反映
-			model = context->manager->resource->Load<ModelData>(filepathBuffer,isBlender);
+			model = context->manager->resource->Load<ModelData>(filepathBuffer, isBlender);
 		}
 		// ドロップ対象の処理
 		if (ImGui::BeginDragDropTarget()) {
@@ -79,12 +80,12 @@ public:
 		ImGui::SameLine(100.0f);
 		inputWidth = ImGui::GetContentRegionAvail().x;
 		ImGui::SetNextItemWidth(inputWidth);
-		if(pixelShader){
+		if (pixelShader) {
 			strncpy_s(filepathBuffer, sizeof(filepathBuffer), pixelShader->FilePath.c_str(), _TRUNCATE);
-		} else{
+		} else {
 			filepathBuffer[0] = '\0'; // 初期化
 		}
-		if(ImGui::InputText("##PixelShader", filepathBuffer, sizeof(filepathBuffer))){
+		if (ImGui::InputText("##PixelShader", filepathBuffer, sizeof(filepathBuffer))) {
 			// 編集されたら std::string に反映
 			pixelShader = context->manager->resource->Load<PixelShaderData>(filepathBuffer);
 		}
@@ -105,12 +106,12 @@ public:
 		ImGui::SameLine(100.0f);
 		inputWidth = ImGui::GetContentRegionAvail().x;
 		ImGui::SetNextItemWidth(inputWidth);
-		if(vertexShader){
+		if (vertexShader) {
 			strncpy_s(filepathBuffer, sizeof(filepathBuffer), vertexShader->FilePath.c_str(), _TRUNCATE);
-		} else{
+		} else {
 			filepathBuffer[0] = '\0'; // 初期化
 		}
-		if(ImGui::InputText("##VertexShader", filepathBuffer, sizeof(filepathBuffer))){
+		if (ImGui::InputText("##VertexShader", filepathBuffer, sizeof(filepathBuffer))) {
 			// 編集されたら std::string に反映
 			vertexShader = context->manager->resource->Load<VertexShaderData>(filepathBuffer);
 		}
@@ -166,35 +167,34 @@ public:
 		}
 
 		// --- Add Animation Section ---
-		if (ImGui::CollapsingHeader("Add Animation")) {
-			static char newAnimFilePath[256] = "";
-			static char newAnimName[128] = "";
+		ImGui::Text("Add Animation");
+		static char newAnimFilePath[256] = "";
+		static char newAnimName[128] = "";
 
-			ImGui::InputText("Animation File Path", newAnimFilePath, sizeof(newAnimFilePath));
+		ImGui::InputText("File Path", newAnimFilePath, sizeof(newAnimFilePath));
 
-			// ドラッグ＆ドロップ受け付け
-			if (ImGui::BeginDragDropTarget()) {
-				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-					const char* droppedPath = (const char*)payload->Data;
-					strncpy_s(newAnimFilePath, sizeof(newAnimFilePath), droppedPath, _TRUNCATE);
-				}
-				ImGui::EndDragDropTarget();
+		// ドラッグ＆ドロップ受け付け
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+				const char* droppedPath = (const char*)payload->Data;
+				strncpy_s(newAnimFilePath, sizeof(newAnimFilePath), droppedPath, _TRUNCATE);
 			}
+			ImGui::EndDragDropTarget();
+		}
 
-			ImGui::InputText("Animation Name", newAnimName, sizeof(newAnimName));
+		ImGui::InputText("Name", newAnimName, sizeof(newAnimName));
 
-			if (ImGui::Button("Add")) {
-				std::string filePathStr(newAnimFilePath);
-				std::string animNameStr(newAnimName);
-				if (!filePathStr.empty() && !animNameStr.empty() &&
-					model->m_Animation.find(animNameStr) == model->m_Animation.end()) {
-					model->LoadAnimation(filePathStr.c_str(), animNameStr.c_str());
-					currentAnimationName = animNameStr;
-					animationTime = 0.0f;
+		if (ImGui::Button("Add")) {
+			std::string filePathStr(newAnimFilePath);
+			std::string animNameStr(newAnimName);
+			if (!filePathStr.empty() && !animNameStr.empty() &&
+				model->m_Animation.find(animNameStr) == model->m_Animation.end()) {
+				model->LoadAnimation(filePathStr.c_str(), animNameStr.c_str());
+				currentAnimationName = animNameStr;
+				animationTime = 0.0f;
 
-					newAnimFilePath[0] = '\0';
-					newAnimName[0] = '\0';
-				}
+				newAnimFilePath[0] = '\0';
+				newAnimName[0] = '\0';
 			}
 		}
 

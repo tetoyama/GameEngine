@@ -2280,6 +2280,9 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\effectSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\ColliderComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\gameApplication.cpp">
@@ -2755,6 +2758,15 @@
     <FxCompile Include="Source\Shader\common.hlsl" />
     <FxCompile Include="Source\Shader\skinnedVertex.hlsl" />
     <FxCompile Include="Source\Shader\unlitUVTexturePS.hlsl" />
+    <FxCompile Include="Source\Shader\vertexDirectionalLightingPS.hlsl" />
+    <FxCompile Include="Source\Shader\bumpPS2.hlsl" />
+    <FxCompile Include="Source\Shader\limLightPS.hlsl" />
+    <FxCompile Include="Source\Shader\oldBumpPS.hlsl" />
+    <FxCompile Include="Source\Shader\pixelLightingBlinnPhongPS.hlsl" />
+    <FxCompile Include="Source\Shader\pointLightingBlinnPhongPS.hlsl" />
+    <FxCompile Include="Source\Shader\semiSphereLightingPS.hlsl" />
+    <FxCompile Include="Source\Shader\spotLightPS.hlsl" />
+    <FxCompile Include="Source\Shader\textureShadowPS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />

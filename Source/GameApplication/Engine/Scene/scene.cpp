@@ -69,6 +69,7 @@
 #include "Script/PlayerController.h"
 
 #include <Component/EffectComponent.h>
+#include <Component/ColliderComponent.h>
 
 Scene::Scene(){
 
@@ -96,6 +97,7 @@ void Scene::Initialize(ManagerContext* set){
 
 	// トランスフォーム
 	m_componentRegistry->RegisterYAMLComponent<TransformComponent>("TransformComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<ColliderComponent>("ColliderComponent", false);
 
 	// オーディオ
 	m_componentRegistry->RegisterYAMLComponent<AudioComponent>("AudioComponent", false);

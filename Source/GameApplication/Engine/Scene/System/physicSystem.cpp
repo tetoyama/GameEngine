@@ -71,7 +71,8 @@ void PhysicSystem::Start(){
 }
 
 void PhysicSystem::Update(float deltaTime){
-	std::lock_guard<std::mutex> lock(mtx); // mtxを使ってロックする
+
+	
 
 	g_pScene->lockWrite();
 	g_pScene->lockRead();
