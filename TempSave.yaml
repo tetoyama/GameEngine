@@ -594,26 +594,3 @@ Entities:
           y: 0
           z: 0
         MoveSpeed: 1
-  - Entity: 11
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          x: 0
-          y: 0
-          z: 0
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: EffectComponent
-        FilePath: Asset\Effect\Laser01.efkefc
-        Loop: true
-        Volume: 1
-        PlayOnStart: true

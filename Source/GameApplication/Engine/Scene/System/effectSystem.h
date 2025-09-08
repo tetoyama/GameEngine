@@ -50,6 +50,17 @@ public:
 	}
 
 	void Update(float dt) override {
+
+
+		m_context->manager->graphics->GetEffectManager()->Update(dt * 60.0f);
+
+	}
+
+	void FixedUpdate(float dt) override {}
+	void Draw() override {
+
+	}
+	void EditorUpdate(float dt) override {
 		m_context->manager->graphics->GetEffectManager()->BeginUpdate();
 
 		auto entities = m_context->component->FindEntitiesWithComponent<EffectComponent>();
@@ -64,7 +75,7 @@ public:
 				}
 
 				auto* transform = m_context->component->GetComponent<TransformComponent>(entity);
-				if(transform){
+				if (transform) {
 
 					Vector3 m_Pos = transform->position;
 					Vector3 m_Rot = transform->rotation;
@@ -72,7 +83,7 @@ public:
 
 					Effekseer::Matrix43 Matrix, MatrixRot;
 					MatrixRot.Indentity(); // 単位行列取得
-					MatrixRot.RotationZXY(m_Rot.x, m_Rot.z, m_Rot.y + DirectX::XM_PI * 0.5f); // 回転行列生成
+					MatrixRot.RotationZXY(m_Rot.x, -m_Rot.z, m_Rot.y + DirectX::XM_PI * 0.5f); // 回転行列生成
 
 					Effekseer::Vector3D vec3Ds(m_Scale.x, m_Scale.y, m_Scale.z);
 					Effekseer::Vector3D vec3Dt(m_Pos.x, m_Pos.y, m_Pos.z);
@@ -86,22 +97,15 @@ public:
 					m_context->manager->graphics->GetEffectManager()->SetBaseMatrix(comp->m_Handle, Matrix); // その行列をエフェクトに適用
 				}
 
-				m_context->manager->graphics->GetEffectManager()->UpdateHandle(comp->m_Handle, dt / 60.0f);
-			} else{
-				if(comp->Loop){
+				m_context->manager->graphics->GetEffectManager()->UpdateHandle(comp->m_Handle,0.0f);
+			} else {
+				if (comp->Loop) {
 					comp->Play(m_context);
 				}
 			}
 		}
 		m_context->manager->graphics->GetEffectManager()->EndUpdate();
-
 	}
-
-	void FixedUpdate(float dt) override {}
-	void Draw() override {
-
-	}
-	void EditorUpdate(float) override {}
 
 private:
 	SceneContext* m_context = nullptr;

@@ -1187,15 +1187,15 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 	}
 	//Effekseer用の行列に変換
 	Effekseer::Matrix44 effekseerProjectionMatrix = ConvertXMMATRIXToMatrix44(m_CameraProjection);
+	Effekseer::Matrix44 effekseerViewMatrix = ConvertXMMATRIXToMatrix44(m_CameraView);
 
-	//エフェクトの描画
-	Effekseer::Manager::DrawParameter drawParameter;
-	drawParameter.ZNear = 0.01f;
-	drawParameter.ZFar = 1000.0f;
-	drawParameter.ViewProjectionMatrix = effekseerProjectionMatrix;
+	m_context->manager->graphics->GetEffectRenderer()->SetProjectionMatrix(effekseerProjectionMatrix);
+	m_context->manager->graphics->GetEffectRenderer()->SetCameraMatrix(effekseerViewMatrix);
+
+
 	m_context->manager->graphics->GetEffectRenderer()->BeginRendering();
 
-	m_context->manager->graphics->GetEffectManager()->Draw(drawParameter);
+	m_context->manager->graphics->GetEffectManager()->Draw();
 
 	m_context->manager->graphics->GetEffectRenderer()->EndRendering();
 

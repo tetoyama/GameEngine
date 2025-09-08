@@ -2785,6 +2785,23 @@
     <Library Include="Source\GameApplication\Backends\Effekseer\EffekseerRendererDX11.lib" />
     <Library Include="Source\GameApplication\Backends\Effekseer\EffekseerRendererDX11d.lib" />
     <Library Include="Source\GameApplication\Backends\Effekseer\EffekseerSoundXAudio2.lib" />
+    <Library Include="Source\GameApplication\Backends\PhysX\lib\Release\SnippetUtils_static_64.lib" />
+    <Library Include="Source\GameApplication\Backends\PhysX\lib\Release\LowLevel_static_64.lib" />
+    <Library Include="Source\GameApplication\Backends\PhysX\lib\Release\LowLevelAABB_static_64.lib" />
+    <Library Include="Source\GameApplication\Backends\PhysX\lib\Release\LowLevelDynamics_static_64.lib" />
+    <Library Include="Source\GameApplication\Backends\PhysX\lib\Release\PhysX_64.lib" />
+    <Library Include="Source\GameApplication\Backends\PhysX\lib\Release\PhysXCharacterKinematic_static_64.lib" />
+    <Library Include="Source\GameApplication\Backends\PhysX\lib\Release\PhysXCommon_64.lib" />
+    <Library Include="Source\GameApplication\Backends\PhysX\lib\Release\PhysXCooking_64.lib" />
+    <Library Include="Source\GameApplication\Backends\PhysX\lib\Release\PhysXExtensions_static_64.lib" />
+    <Library Include="Source\GameApplication\Backends\PhysX\lib\Release\PhysXFoundation_64.lib" />
+    <Library Include="Source\GameApplication\Backends\PhysX\lib\Release\PhysXPvdSDK_static_64.lib" />
+    <Library Include="Source\GameApplication\Backends\PhysX\lib\Release\PhysXTask_static_64.lib" />
+    <Library Include="Source\GameApplication\Backends\PhysX\lib\Release\PhysXVehicle2_static_64.lib" />
+    <Library Include="Source\GameApplication\Backends\PhysX\lib\Release\PVDRuntime_64.lib" />
+    <Library Include="Source\GameApplication\Backends\PhysX\lib\Release\SceneQuery_static_64.lib" />
+    <Library Include="Source\GameApplication\Backends\PhysX\lib\Release\SimulationController_static_64.lib" />
+    <Library Include="Source\GameApplication\Backends\PhysX\lib\Release\SnippetRender_static_64.lib" />
   </ItemGroup>
   <ItemGroup>
     <Object Include="Asset\Model\player.obj" />
