@@ -7,6 +7,8 @@
 
 struct SceneContext;
 
+
+
 class PhysicSystem: public ISystem {
 public:
 	PhysicSystem(SceneContext* context): m_context(context){}
@@ -20,30 +22,7 @@ public:
 	void FixedUpdate(float fidedDeltaTime) override{}
 	void Draw() override{};
 	void EditorUpdate(float deltaTime) override{}
-
-	// Dynamic Rigidbodyの作成
-	physx::PxRigidDynamic* CreateDynamic(const physx::PxTransform& t,
-								  const physx::PxGeometry& geometry, physx::PxMaterial& material, physx::PxReal density){
-		std::lock_guard<std::mutex> lock(mtx); // mtxを使ってロックする
-		WaitPhysicsUpdate();
-
-		physx::PxRigidDynamic* rigid_dynamic = PxCreateDynamic(*g_pPhysics, t, geometry, material, density);
-		g_pScene->addActor(*rigid_dynamic);
-		UpdatingPhysics = false;
-
-		return rigid_dynamic;
-	}
-
-	physx::PxRigidStatic* CreateStatic(const physx::PxTransform& t, const physx::PxGeometry& geometry, physx::PxMaterial& material){
-		std::lock_guard<std::mutex> lock(mtx); // mtxを使ってロックする
-		WaitPhysicsUpdate();
-
-		physx::PxRigidStatic* rigid_static = PxCreateStatic(*g_pPhysics, t, geometry, material);
-		g_pScene->addActor(*rigid_static);
-		UpdatingPhysics = false;
-
-		return rigid_static;
-	}
+	void Stop() override;
 
 
 	void ReleasePhysics(physx::PxRigidStatic** pRigidStatic){
@@ -149,4 +128,7 @@ private:
 		}
 		UpdatingPhysics = true;
 	}
+
+	physx::PxRigidDynamic* CreateDynamic(const physx::PxTransform& t, const physx::PxGeometry& geometry, physx::PxMaterial& material, physx::PxReal density = 10.0f);
+	physx::PxRigidStatic* CreateStatic(const physx::PxTransform& t, const physx::PxGeometry& geometry, physx::PxMaterial& material);
 };

@@ -1,6 +1,9 @@
 #include "physicSystem.h"
 # include <mutex>
 #include "Source/GameApplication/BackEnds/PhysX/PxPhysicsAPI.h"
+#include <GameApplication/Engine/Scene/scene.h>
+#include <GameApplication/Engine/Scene/Component/ColliderComponent.h>
+#include <GameApplication/Engine/Scene/Component/transformComponent.h>
 
 #pragma comment(lib, "PhysX_64.lib")
 #pragma comment(lib, "PhysXCommon_64.lib")
@@ -11,6 +14,24 @@
 #pragma comment(lib, "PhysXTask_static_64.lib")
 #pragma comment(lib, "SceneQuery_static_64.lib")
 #pragma comment(lib, "SimulationController_static_64.lib")
+
+// Dynamic Rigidbodyの作成
+physx::PxRigidDynamic* PhysicSystem::CreateDynamic(const physx::PxTransform& t,
+							  const physx::PxGeometry& geometry, physx::PxMaterial& material, physx::PxReal density) {
+
+	physx::PxRigidDynamic* rigid_dynamic = PxCreateDynamic(*g_pPhysics, t, geometry, material, density);
+	g_pScene->addActor(*rigid_dynamic);
+
+	return rigid_dynamic;
+}
+
+physx::PxRigidStatic* PhysicSystem::CreateStatic(const physx::PxTransform& t, const physx::PxGeometry& geometry, physx::PxMaterial& material) {
+
+	physx::PxRigidStatic* rigid_static = PxCreateStatic(*g_pPhysics, t, geometry, material);
+	g_pScene->addActor(*rigid_static);
+
+	return rigid_static;
+}
 
 void PhysicSystem::Initialize(){
 	UpdatingPhysics = false;
@@ -53,6 +74,24 @@ void PhysicSystem::Finalize(){
 	std::lock_guard<std::mutex> lock(mtx); // mtxを使ってロックする
 	WaitPhysicsUpdate();
 
+	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
+
+	for (Entity entity : colliderEntity) {
+
+
+		auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
+		if (Collider->pRigidbodyStatic) {
+			Collider->pRigidbodyStatic->release();
+			Collider->pRigidbodyStatic = nullptr;
+		}
+		if (Collider->pRigidbodyDynamic) {
+			Collider->pRigidbodyDynamic->release();
+			Collider->pRigidbodyDynamic = nullptr;
+
+		}
+	}
+
+
 	PxCloseExtensions();
 	g_pScene->release();
 	g_pDispatcher->release();
@@ -68,11 +107,116 @@ void PhysicSystem::Finalize(){
 
 void PhysicSystem::Start(){
 
+	// コンポーネントを持つエンティティの検索
+	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
+	if (colliderEntity.empty()) {
+		return;
+	} else {
+		for (Entity entity : colliderEntity) {
+			auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
+			auto Transform = m_context->component->GetComponent<TransformComponent>(entity);
+
+			if (Transform) {
+
+				physx::PxVec3 pos(Transform->position.x, Transform->position.y, Transform->position.z);
+				physx::PxVec3 rot(Transform->rotation.x, Transform->rotation.y, Transform->rotation.z);
+				physx::PxVec3 scl(Transform->scale.x, Transform->scale.y, Transform->scale.z);
+
+				DirectX::XMVECTOR dxQuat = DirectX::XMQuaternionRotationRollPitchYaw(
+					Transform->rotation.x,
+					Transform->rotation.y,
+					Transform->rotation.z
+				);
+
+				// PxQuatに変換
+				physx::PxQuat quatRot;
+				XMStoreFloat4(reinterpret_cast<DirectX::XMFLOAT4*>(&quatRot), dxQuat);
+				//quatRot.x = rot.x;
+				//quatRot.y = rot.y;
+				//quatRot.z = rot.z;
+				//quatRot.w = 0.0f;
+
+				physx::PxTransform pxTransform(pos, quatRot);
+				
+				physx::PxMaterial* const kMaterial = GetPhysics()->createMaterial(0.2f, 0.2f, 0.2f);
+
+				if (Collider->isDynamic) {
+					Collider->pRigidbodyDynamic = CreateDynamic(pxTransform, physx::PxBoxGeometry(scl.x, scl.y, scl.z), *kMaterial);
+				} else {
+					Collider->pRigidbodyStatic = CreateStatic(pxTransform, physx::PxBoxGeometry(scl.x, scl.y, scl.z), *kMaterial);
+				}
+			}
+		}
+	}
+}
+physx::PxVec3 QuatToEuler(const physx::PxQuat& q) {
+	float ysqr = q.y * q.y;
+
+	// ロール (X軸回転)
+	float t0 = +2.0f * (q.w * q.x + q.y * q.z);
+	float t1 = +1.0f - 2.0f * (q.x * q.x + ysqr);
+	float roll = std::atan2(t0, t1);
+
+	// ピッチ (Y軸回転)
+	float t2 = +2.0f * (q.w * q.y - q.z * q.x);
+	t2 = t2 > 1.0f ? 1.0f : t2;
+	t2 = t2 < -1.0f ? -1.0f : t2;
+	float pitch = std::asin(t2);
+
+	// ヨー (Z軸回転)
+	float t3 = +2.0f * (q.w * q.z + q.x * q.y);
+	float t4 = +1.0f - 2.0f * (ysqr + q.z * q.z);
+	float yaw = std::atan2(t3, t4);
+
+	return physx::PxVec3(roll, pitch, yaw);
 }
 
 void PhysicSystem::Update(float deltaTime){
 
-	
+	std::lock_guard<std::mutex> lock(mtx); // mtxを使ってロックする
+
+		// コンポーネントを持つエンティティの検索
+	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
+	if (colliderEntity.empty()) {
+		return;
+	} else {
+		for (Entity entity : colliderEntity) {
+			auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
+			auto Transform = m_context->component->GetComponent<TransformComponent>(entity);
+
+			if (Transform) {
+				physx::PxVec3 pos(Transform->position.x, Transform->position.y, Transform->position.z);
+				physx::PxVec3 rot(Transform->rotation.x, Transform->rotation.y, Transform->rotation.z);
+				physx::PxVec3 scl(Transform->scale.x, Transform->scale.y, Transform->scale.z);
+
+				DirectX::XMVECTOR dxQuat = DirectX::XMQuaternionRotationRollPitchYaw(
+					Transform->rotation.x,
+					Transform->rotation.y,
+					Transform->rotation.z
+				);
+
+				// PxQuatに変換
+				physx::PxQuat quatRot;
+				XMStoreFloat4(reinterpret_cast<DirectX::XMFLOAT4*>(&quatRot), dxQuat);
+				//quatRot.x = rot.x;
+				//quatRot.y = rot.y;
+				//quatRot.z = rot.z;
+				//quatRot.w = 0.0f;
+
+				physx::PxTransform pxTransform(pos, quatRot);
+
+				if (Collider->pRigidbodyDynamic) {
+
+					Collider->pRigidbodyDynamic->setGlobalPose(pxTransform);
+				}
+
+				if (Collider->pRigidbodyStatic) {
+					Collider->pRigidbodyStatic->setGlobalPose(pxTransform);
+
+				}
+			}
+		}
+	}
 
 	g_pScene->lockWrite();
 	g_pScene->lockRead();
@@ -80,4 +224,51 @@ void PhysicSystem::Update(float deltaTime){
 	g_pScene->fetchResults(true);
 	g_pScene->unlockWrite();
 	g_pScene->unlockRead();
+
+	if (colliderEntity.empty()) {
+		return;
+	} else {
+		for (Entity entity : colliderEntity) {
+			auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
+			auto Transform = m_context->component->GetComponent<TransformComponent>(entity);
+
+			if (Transform) {
+				physx::PxTransform TmpTransform;
+				if (Collider->pRigidbodyDynamic) {
+
+					TmpTransform = Collider->pRigidbodyDynamic->getGlobalPose();
+				}
+
+				if (Collider->pRigidbodyStatic) {
+					TmpTransform = Collider->pRigidbodyStatic->getGlobalPose();
+
+				}
+				physx::PxVec3 position = TmpTransform.p;
+				physx::PxQuat rotation = TmpTransform.q;
+				physx::PxVec3 euler = QuatToEuler(rotation);
+
+				Transform->position = Vector3(position.x, position.y, position.z);
+				Transform->rotation = Vector3(euler.x, euler.y, euler.z);
+			}
+		}
+	}
+}
+
+void PhysicSystem::Stop() {
+	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
+
+	for (Entity entity : colliderEntity) {
+
+
+		auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
+		if (Collider->pRigidbodyStatic) {
+			Collider->pRigidbodyStatic->release();
+			Collider->pRigidbodyStatic = nullptr;
+		}
+		if (Collider->pRigidbodyDynamic) {
+			Collider->pRigidbodyDynamic->release();
+			Collider->pRigidbodyDynamic = nullptr;
+
+		}
+	}
 }

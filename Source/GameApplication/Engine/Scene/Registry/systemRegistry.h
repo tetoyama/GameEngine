@@ -79,6 +79,12 @@ public:
 		}
 	}
 
+	void StopAll() {
+		for (auto& sys : m_systems) {
+			sys->Stop();
+		}
+	}
+
 	void FinalizeAll(){
 		for(auto& sys : m_systems){
 			sys->Finalize();
