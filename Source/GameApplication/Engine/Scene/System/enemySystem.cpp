@@ -43,13 +43,13 @@ void EnemySystem::Update(float deltaTime){
 					if(enemy->setOriginPos && MoveVec.length() > 0.1f){
 
 						float setRotation = atan2f(MoveVec.x, MoveVec.z);
-						if(DirectX::XM_PI < setRotation - transform->rotation.y){
+						if(DirectX::XM_PI < setRotation - transform->GetRotationEuler().y){
 							setRotation -= DirectX::XM_2PI;
 						}
-						if(-DirectX::XM_PI > setRotation - transform->rotation.y){
+						if(-DirectX::XM_PI > setRotation - transform->GetRotationEuler().y){
 							setRotation += DirectX::XM_2PI;
 						}
-						transform->rotation.y += (setRotation - transform->rotation.y) * deltaTime;
+						transform->AddRotationY((setRotation - transform->GetRotationEuler().y) * deltaTime);
 					} else{
 
 						if(!enemy->setOriginPos){
@@ -59,7 +59,7 @@ void EnemySystem::Update(float deltaTime){
 
 						TransformComponent randomDir;
 						randomDir.position = Vector3(1.0f, 0.0f, 0.0f);
-						randomDir.rotation.y = 0.0001f * (rand() % 10000) * DirectX::XM_2PI;
+						randomDir.SetRotationY(0.0001f * (rand() % 10000) * DirectX::XM_2PI);
 						enemy->TargetPos = enemy->OriginPos + randomDir.front() * 0.01f * (float)(rand() % 51 + 50) * (float)enemy->maxDistance;
 					}
 				}

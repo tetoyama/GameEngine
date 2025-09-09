@@ -456,7 +456,6 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 				Parent = 0;
 			}
 		}
-
 		if(ImGuizmo::IsUsing()){
 			// スケール、回転、並進を格納する変数
 			DirectX::XMVECTOR scale, rotationQuat, translation;
@@ -469,42 +468,14 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 			DirectX::XMStoreFloat3(&scale3, scale);
 			DirectX::XMStoreFloat3(&translation3, translation);
 
-			DirectX::XMFLOAT3 axis3;
-			// クォータニオンをオイラー角に変換（roll, pitch, yaw）
-			float qw = DirectX::XMVectorGetW(rotationQuat);
-			float qx = DirectX::XMVectorGetX(rotationQuat);
-			float qy = DirectX::XMVectorGetY(rotationQuat);
-			float qz = DirectX::XMVectorGetZ(rotationQuat);
-			// clampで安全にasin
-			auto safe_asin = [](float v) -> float{
-				if(v > 1.0f) v = 1.0f;
-				else if(v < -1.0f) v = -1.0f;
-				return asinf(v);
-				};
-			float yaw = atan2f(2.0f * (qw * qz + qx * qy), 1.0f - 2.0f * (qy * qy + qz * qz));
-			float pitch = safe_asin(2.0f * (qw * qy - qz * qx));
-			float roll = atan2f(2.0f * (qw * qx + qy * qz), 1.0f - 2.0f * (qx * qx + qy * qy));
-
-			float cosP = cosf(pitch);
-			if(fabsf(cosP) < 1e-6f){
-
-				float r11 = 1.0f - 2.0f * (qx * qx + qz * qz);
-				float r20 = 2.0f * (qx * qz + qw * qy);
-				roll = atan2f(-r20, r11);
-				yaw = 0.0f;
-			}
-			if(roll >= DirectX::XM_PI){
-				roll -= DirectX::XM_2PI;
-			}
-			if(yaw >= DirectX::XM_PI){
-				yaw -= DirectX::XM_2PI;
-			}
-			axis3 = DirectX::XMFLOAT3(roll, pitch, yaw);
+			// rotationQuat はクォータニオンなのでそのまま XMFLOAT4 に書き出し
+			DirectX::XMFLOAT4 quat;
+			DirectX::XMStoreFloat4(&quat, rotationQuat);
 
 			if(sprite){
 				TransformComponent edited;
 				edited.position = translation3;
-				edited.rotation = axis3;
+				edited.rotation = quat;     // クォータニオンを代入
 				edited.scale = scale3;
 
 				edited = ReverseCalculateRectTransform(*sprite, edited);
@@ -514,9 +485,11 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 				transform->scale = edited.scale;
 			} else{
 				transform->position = translation3;
-				transform->rotation = axis3;
+				transform->rotation = quat; // クォータニオンを保持
 				transform->scale = scale3;
 			}
+		
+
 		}
 	}
 	ImGui::EndChild();

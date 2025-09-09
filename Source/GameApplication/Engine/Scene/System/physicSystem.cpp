@@ -171,48 +171,35 @@ physx::PxVec3 QuatToEuler(const physx::PxQuat& q) {
 	return physx::PxVec3(roll, pitch, yaw);
 }
 
-void PhysicSystem::Update(float deltaTime){
+void PhysicSystem::FixedUpdate(float deltaTime){
+	std::lock_guard<std::mutex> lock(mtx);
 
-	std::lock_guard<std::mutex> lock(mtx); // mtxを使ってロックする
-
-		// コンポーネントを持つエンティティの検索
+	// コンポーネントを持つエンティティの検索
 	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
-	if (colliderEntity.empty()) {
+	if(colliderEntity.empty()){
 		return;
-	} else {
-		for (Entity entity : colliderEntity) {
+	} else{
+		for(Entity entity : colliderEntity){
 			auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
 			auto Transform = m_context->component->GetComponent<TransformComponent>(entity);
 
-			if (Transform) {
+			if(Transform){
+				// DirectX の Transform から PhysX 用に変換
 				physx::PxVec3 pos(Transform->position.x, Transform->position.y, Transform->position.z);
-				physx::PxVec3 rot(Transform->rotation.x, Transform->rotation.y, Transform->rotation.z);
-				physx::PxVec3 scl(Transform->scale.x, Transform->scale.y, Transform->scale.z);
 
-				DirectX::XMVECTOR dxQuat = DirectX::XMQuaternionRotationRollPitchYaw(
-					Transform->rotation.x,
-					Transform->rotation.y,
-					Transform->rotation.z
-				);
+				DirectX::XMVECTOR dxQuat = Transform->rotationVector(); // クォータニオンを取得
+				DirectX::XMFLOAT4 qf;
+				DirectX::XMStoreFloat4(&qf, dxQuat);
 
-				// PxQuatに変換
-				physx::PxQuat quatRot;
-				XMStoreFloat4(reinterpret_cast<DirectX::XMFLOAT4*>(&quatRot), dxQuat);
-				//quatRot.x = rot.x;
-				//quatRot.y = rot.y;
-				//quatRot.z = rot.z;
-				//quatRot.w = 0.0f;
-
+				physx::PxQuat quatRot(qf.x, qf.y, qf.z, qf.w);
 				physx::PxTransform pxTransform(pos, quatRot);
 
-				if (Collider->pRigidbodyDynamic) {
-
+				if(Collider->pRigidbodyDynamic){
 					Collider->pRigidbodyDynamic->setGlobalPose(pxTransform);
 				}
 
-				if (Collider->pRigidbodyStatic) {
+				if(Collider->pRigidbodyStatic){
 					Collider->pRigidbodyStatic->setGlobalPose(pxTransform);
-
 				}
 			}
 		}
@@ -225,30 +212,32 @@ void PhysicSystem::Update(float deltaTime){
 	g_pScene->unlockWrite();
 	g_pScene->unlockRead();
 
-	if (colliderEntity.empty()) {
+	if(colliderEntity.empty()){
 		return;
-	} else {
-		for (Entity entity : colliderEntity) {
+	} else{
+		for(Entity entity : colliderEntity){
 			auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
 			auto Transform = m_context->component->GetComponent<TransformComponent>(entity);
 
-			if (Transform) {
+			if(Transform){
 				physx::PxTransform TmpTransform;
-				if (Collider->pRigidbodyDynamic) {
-
+				if(Collider->pRigidbodyDynamic){
 					TmpTransform = Collider->pRigidbodyDynamic->getGlobalPose();
 				}
 
-				if (Collider->pRigidbodyStatic) {
+				if(Collider->pRigidbodyStatic){
 					TmpTransform = Collider->pRigidbodyStatic->getGlobalPose();
-
 				}
+
 				physx::PxVec3 position = TmpTransform.p;
 				physx::PxQuat rotation = TmpTransform.q;
-				physx::PxVec3 euler = QuatToEuler(rotation);
 
+				// PhysX の PxQuat → DirectX::XMFLOAT4
+				DirectX::XMFLOAT4 qf(rotation.x, rotation.y, rotation.z, rotation.w);
+
+				// TransformComponent に反映
 				Transform->position = Vector3(position.x, position.y, position.z);
-				Transform->rotation = Vector3(euler.x, euler.y, euler.z);
+				Transform->rotation = qf; // クォータニオンを格納
 			}
 		}
 	}

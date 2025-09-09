@@ -78,23 +78,39 @@ public:
 				if (transform) {
 
 					Vector3 m_Pos = transform->position;
-					Vector3 m_Rot = transform->rotation;
+					DirectX::XMFLOAT4 m_RotQuat = transform->rotation; // クォータニオン
 					Vector3 m_Scale = transform->scale;
 
 					Effekseer::Matrix43 Matrix, MatrixRot;
 					MatrixRot.Indentity(); // 単位行列取得
-					MatrixRot.RotationZXY(m_Rot.x, -m_Rot.z, m_Rot.y + DirectX::XM_PI * 0.5f); // 回転行列生成
 
+					// クォータニオンを回転行列に変換
+					DirectX::XMVECTOR q = DirectX::XMLoadFloat4(&m_RotQuat);
+					DirectX::XMMATRIX rotMat = DirectX::XMMatrixRotationQuaternion(q);
+
+					// XMMATRIX から Effekseer::Matrix43 に変換
+					DirectX::XMFLOAT4X4 rotMatF;
+					DirectX::XMStoreFloat4x4(&rotMatF, rotMat);
+
+					for(int i = 0; i < 3; ++i){
+						for(int j = 0; j < 3; ++j){
+							MatrixRot.Value[i][j] = rotMatF.m[i][j];
+						}
+					}
+
+					// スケール・位置ベクトルを Effekseer 用に作成
 					Effekseer::Vector3D vec3Ds(m_Scale.x, m_Scale.y, m_Scale.z);
 					Effekseer::Vector3D vec3Dt(m_Pos.x, m_Pos.y, m_Pos.z);
 
+					// SRT 行列作成
 					Matrix.SetSRT(
 						vec3Ds,
 						MatrixRot,
 						vec3Dt
-					); // 拡大、回転、移動行列を作成
+					);
 
-					m_context->manager->graphics->GetEffectManager()->SetBaseMatrix(comp->m_Handle, Matrix); // その行列をエフェクトに適用
+					// エフェクトに適用
+					m_context->manager->graphics->GetEffectManager()->SetBaseMatrix(comp->m_Handle, Matrix);
 				}
 
 				m_context->manager->graphics->GetEffectManager()->UpdateHandle(comp->m_Handle,0.0f);

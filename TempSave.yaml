@@ -9,9 +9,10 @@ Entities:
           y: -10
           z: 0
         Rotation:
-          x: 0
-          y: 0
-          z: 0
+          - 0
+          - 0
+          - 0
+          - 1
         Scale:
           x: 100
           y: 10
@@ -63,9 +64,10 @@ Entities:
           y: 25
           z: 0
         Rotation:
-          x: 0
-          y: 0
-          z: 0
+          - 0
+          - 0
+          - 0
+          - 1
         Scale:
           x: 1
           y: 1
@@ -129,9 +131,10 @@ Entities:
           y: 0
           z: 0
         Rotation:
-          x: 0
-          y: 0
-          z: 0
+          - 0
+          - 0
+          - 0
+          - 1
         Scale:
           x: 500
           y: 500
@@ -181,9 +184,10 @@ Entities:
           y: 0.200000003
           z: 0
         Rotation:
-          x: 0
-          y: 0
-          z: 0
+          - 0
+          - 0
+          - 0
+          - 1
         Scale:
           x: 1
           y: 1
@@ -238,9 +242,10 @@ Entities:
           y: 17.0294094
           z: -10.8060408
         Rotation:
-          x: -1
-          y: 0
-          z: 0
+          - 0
+          - 0
+          - 0
+          - 1
         Scale:
           x: 1
           y: 1
@@ -286,9 +291,10 @@ Entities:
           y: 0.200000003
           z: -6.0498786
         Rotation:
-          x: 0
-          y: -5.44305515
-          z: 0
+          - 0
+          - 0
+          - 0
+          - 1
         Scale:
           x: 1
           y: 1
@@ -350,9 +356,10 @@ Entities:
           y: 0.200000003
           z: 12.2597713
         Rotation:
-          x: 0
-          y: -6.99610806
-          z: 0
+          - 0
+          - 0
+          - 0
+          - 1
         Scale:
           x: 1
           y: 1
@@ -414,9 +421,10 @@ Entities:
           y: 0.200000003
           z: 22.3242455
         Rotation:
-          x: 0
-          y: -4.4382596
-          z: 0
+          - 0
+          - 0
+          - 0
+          - 1
         Scale:
           x: 1
           y: 1
@@ -478,9 +486,10 @@ Entities:
           y: 0.200000003
           z: -9.32716084
         Rotation:
-          x: 0
-          y: -2.93266296
-          z: 0
+          - 0
+          - 0
+          - 0
+          - 1
         Scale:
           x: 1
           y: 1
@@ -542,9 +551,10 @@ Entities:
           y: 0.200000003
           z: -13.1616011
         Rotation:
-          x: 0
-          y: -4.39452362
-          z: 0
+          - 0
+          - 0
+          - 0
+          - 1
         Scale:
           x: 1
           y: 1
@@ -606,16 +616,17 @@ Entities:
           y: 6.27998734
           z: 0
         Rotation:
-          x: 0
-          y: 0
-          z: 0
+          - 0
+          - 0
+          - 0
+          - 1
         Scale:
           x: 5
           y: 5
           z: 5
         Parent: 0
       - Component: ColliderComponent
-        isDynamic: false
+        isDynamic: true
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         PixelShader: Asset\Shader\disneyPBR_PS.cso
@@ -632,9 +643,10 @@ Entities:
           y: 12.5825386
           z: 0
         Rotation:
-          x: 0
-          y: 0
-          z: 0
+          - 0
+          - 0
+          - 0
+          - 1
         Scale:
           x: 9.73194504
           y: 1

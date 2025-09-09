@@ -288,7 +288,7 @@ void Scene::BuildDefaultScene(){
 		transform->scale = Vector3(100.0f, 10.0f, 100.0f);
 
 		transform->position = Vector3(0.0f, -transform->scale.y, 0);
-		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
+		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
 
 		// ModelRendererComponentを追加
@@ -315,7 +315,7 @@ void Scene::BuildDefaultScene(){
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, 25.0f,0.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
-		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
+		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
 		auto* light = componentRegistry->AddComponent<LightComponent>(entity);
 	}
@@ -330,7 +330,7 @@ void Scene::BuildDefaultScene(){
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, 0.0f, 0.0f);
 		transform->scale = Vector3(500.0f, 500.0f, 500.0f);
-		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
+		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
 		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\Daylight.png");
@@ -358,7 +358,7 @@ void Scene::BuildDefaultScene(){
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, 0.2f, 0);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
-		transform->rotation = Vector3(0.0f, 0.0f, 0.0f);
+		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
 
 		// ModelRendererComponentを追加
@@ -387,7 +387,7 @@ void Scene::BuildDefaultScene(){
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, 20.0f, -15.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
-		transform->rotation = Vector3(-1.0f, 0.0f, 0.0f);
+		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
 
 		// CameraComponentを追加
@@ -433,7 +433,7 @@ void Scene::BuildDefaultScene(){
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(cosf(float(i) / Sample * DirectX::XM_2PI) * Distance, 0.2f, sinf(float(i) / Sample * DirectX::XM_2PI) * Distance);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
-		transform->rotation = Vector3(0.0f, float(i) / Sample * -DirectX::XM_2PI - DirectX::XM_PI * 0.5f, 0.0f);
+		transform->SetRotationEuler(Vector3(0.0f, float(i) / Sample * -DirectX::XM_2PI - DirectX::XM_PI * 0.5f, 0.0f));
 
 
 		// ModelRendererComponentを追加

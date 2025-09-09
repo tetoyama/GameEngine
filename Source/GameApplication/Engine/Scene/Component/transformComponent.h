@@ -4,35 +4,111 @@
 #include "Service/YAMLConverters.h"
 #include "Registry/componentRegistry.h"
 #include "GameApplication/Engine/DebugTools/ImGuiSystem.h"
+#include <DirectXMath.h>
 
-
-class TransformComponent : public IComponent{
+class TransformComponent: public IComponent {
 public:
 	Vector3 position = Vector3(0, 0, 0);
-	Vector3 rotation = Vector3(0, 0, 0);
+	DirectX::XMFLOAT4 rotation = {0, 0, 0, 1}; // クォータニオン
 	Vector3 scale = Vector3(1, 1, 1);
 	Entity parent = 0;
+	// rotation を XMVECTOR として取得
+	DirectX::XMVECTOR rotationVector() const{
+		return DirectX::XMLoadFloat4(&rotation);
+	}
 
+	void SetRotationX(float x){
+		Vector3 euler = GetRotationEuler();
+		euler.x = x;
+		SetRotationEuler(euler);
+	}
+
+	void SetRotationY(float y){
+		Vector3 euler = GetRotationEuler();
+		euler.y = y;
+		SetRotationEuler(euler);
+	}
+
+	void SetRotationZ(float z){
+		Vector3 euler = GetRotationEuler();
+		euler.z = z;
+		SetRotationEuler(euler);
+	}
+
+	void AddRotationX(float x){
+		Vector3 euler = GetRotationEuler();
+		euler.x += x;
+		SetRotationEuler(euler);
+	}
+
+	void AddRotationY(float y){
+		Vector3 euler = GetRotationEuler();
+		euler.y += y;
+		SetRotationEuler(euler);
+	}
+
+	void AddRotationZ(float z){
+		Vector3 euler = GetRotationEuler();
+		euler.z += z;
+		SetRotationEuler(euler);
+	}
+
+	// オイラー角 (ラジアン) から回転を設定する
+	void SetRotationEuler(const Vector3& euler){
+		DirectX::XMVECTOR q = DirectX::XMQuaternionRotationRollPitchYaw(
+			euler.x, // Pitch (X軸)
+			euler.y, // Yaw   (Y軸)
+			euler.z  // Roll  (Z軸)
+		);
+		DirectX::XMStoreFloat4(&rotation, q);
+	}
+
+	// オイラー角 (ラジアン) を取得する
+	Vector3 GetRotationEuler() const{
+		DirectX::XMVECTOR q = rotationVector();
+		DirectX::XMFLOAT4 qf;
+		DirectX::XMStoreFloat4(&qf, q);
+
+		// クォータニオン → オイラー角変換
+		float ysqr = qf.y * qf.y;
+
+		float t0 = +2.0f * (qf.w * qf.x + qf.y * qf.z);
+		float t1 = +1.0f - 2.0f * (qf.x * qf.x + ysqr);
+		float roll = atan2f(t0, t1);
+
+		float t2 = +2.0f * (qf.w * qf.y - qf.z * qf.x);
+		t2 = (t2 > 1.0f) ? 1.0f : t2;
+		t2 = (t2 < -1.0f) ? -1.0f : t2;
+		float pitch = asinf(t2);
+
+		float t3 = +2.0f * (qf.w * qf.z + qf.x * qf.y);
+		float t4 = +1.0f - 2.0f * (ysqr + qf.z * qf.z);
+		float yaw = atan2f(t3, t4);
+
+		return Vector3(roll, pitch, yaw);
+	}
 	YAML::Node encode() override{
 		YAML::Node node;
 		node["Position"] = position;
-		node["Rotation"] = rotation;
+		node["Rotation"] = std::vector<float>{rotation.x, rotation.y, rotation.z, rotation.w};
 		node["Scale"] = scale;
 		node["Parent"] = (int)parent;
-
 		return node;
 	}
 
-	bool decode(const YAML::Node& node) override {
-		if (!node.IsMap()) { return false; }
+	bool decode(const YAML::Node& node) override{
+		if(!node.IsMap()){
+			return false;
+		}
 
-		if (node["Position"]) {
+		if(node["Position"]){
 			position = node["Position"].as<Vector3>();
 		}
-		if (node["Rotation"]) {
-			rotation = node["Rotation"].as<Vector3>();
+		if(node["Rotation"] && node["Rotation"].IsSequence() && node["Rotation"].size() == 4){
+			auto q = node["Rotation"].as<std::vector<float>>();
+			rotation = {q[0], q[1], q[2], q[3]};
 		}
-		if (node["Scale"]) {
+		if(node["Scale"]){
 			scale = node["Scale"].as<Vector3>();
 		}
 		if(node["Parent"]){
@@ -40,6 +116,7 @@ public:
 		}
 		return true;
 	}
+
 	void inspector(SceneContext* context) override{
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 6));
 
@@ -61,7 +138,7 @@ public:
 			ImGui::AlignTextToFramePadding();
 			ImGui::TextUnformatted(label);
 			ImGui::SameLine();
-			ImGui::SetCursorPosX(labelWidth); // 確実にラベル後ろに揃える
+			ImGui::SetCursorPosX(labelWidth);
 
 			auto DrawComponent = [&](const char* id, float& value, const ImVec4& borderColor, const char* uniqueId, bool isLast){
 				ImGui::PushID(uniqueId);
@@ -69,10 +146,8 @@ public:
 				ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
 				ImGui::PushItemWidth(fieldWidth - 10.0f);
 
-				// 軸名（X/Y/Z）
 				ImGui::Text("%s", id);
 				ImGui::SameLine(0.0f, 10.0f);
-
 				ImGui::DragFloat("##", &value, 0.01f, -1000.0f, 1000.0f);
 
 				ImGui::PopItemWidth();
@@ -91,15 +166,44 @@ public:
 		// ----------- Position -----------
 		DrawVec3Control("Position", position.x, position.y, position.z);
 
-		// ----------- Rotation -----------
-		DrawVec3Control("Rotation", rotation.x, rotation.y, rotation.z);
+		// ----------- Rotation (Euler UI) -----------
+		{
+			DirectX::XMVECTOR q = DirectX::XMLoadFloat4(&rotation);
+			DirectX::XMFLOAT4 qf;
+			DirectX::XMStoreFloat4(&qf, q);
+
+			// クォータニオン → オイラー角変換 (Roll=X, Pitch=Y, Yaw=Z)
+			float ysqr = qf.y * qf.y;
+
+			float t0 = +2.0f * (qf.w * qf.x + qf.y * qf.z);
+			float t1 = +1.0f - 2.0f * (qf.x * qf.x + ysqr);
+			float roll = atan2f(t0, t1);
+
+			float t2 = +2.0f * (qf.w * qf.y - qf.z * qf.x);
+			t2 = (t2 > 1.0f) ? 1.0f : t2;
+			t2 = (t2 < -1.0f) ? -1.0f : t2;
+			float pitch = asinf(t2);
+
+			float t3 = +2.0f * (qf.w * qf.z + qf.x * qf.y);
+			float t4 = +1.0f - 2.0f * (ysqr + qf.z * qf.z);
+			float yaw = atan2f(t3, t4);
+
+			float e[3] = {roll, pitch, yaw};
+
+			if(ImGui::DragFloat3("Rotation (Euler)", e, 0.01f)){
+				DirectX::XMVECTOR qNew = DirectX::XMQuaternionRotationRollPitchYaw(
+					e[0], e[1], e[2]
+				);
+				DirectX::XMStoreFloat4(&rotation, qNew);
+			}
+		}
+
 
 		// ----------- Scale -----------
 		ImGui::AlignTextToFramePadding();
 		ImGui::TextUnformatted("Scale");
 		ImGui::SameLine();
 
-		// ロックボタン（+ がON、- がOFF）
 		bool pressed = ImGui::SmallButton(isUniformLocked ? "-" : "+");
 		if(pressed){
 			isUniformLocked = !isUniformLocked;
@@ -126,7 +230,7 @@ public:
 				ImGui::PushID(id);
 				ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
 				ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-				ImGui::PushItemWidth(fieldWidth - 10.0f); // <- はみ出し防止：DrawVec3Control と統一
+				ImGui::PushItemWidth(fieldWidth - 10.0f);
 				ImGui::Text("%s", id);
 				ImGui::SameLine(0.0f, 10.0f);
 				if(ImGui::DragFloat("##", &temp, 0.01f, 0.01f)){
@@ -142,7 +246,6 @@ public:
 				if(!isLast) ImGui::SameLine();
 				};
 
-			// X/Y/Zを並べて描画（同じ幅とスタイルで）
 			DrawLockedComponent("X", scale.x, baseScale.x, ratio, colorX, false);
 			DrawLockedComponent("Y", scale.y, baseScale.y, ratio, colorY, false);
 			DrawLockedComponent("Z", scale.z, baseScale.z, ratio, colorZ, true);
@@ -161,68 +264,34 @@ public:
 		ImGui::PopStyleVar(); // ItemSpacing
 	}
 
-
-	Vector3 front() const {
-		float pitch = rotation.x;
-		float yaw = rotation.y;
-		float roll = rotation.z;
-
-		float cosPitch = cos(pitch);
-		float sinPitch = sin(pitch);
-		float cosYaw = cos(yaw);
-		float sinYaw = sin(yaw);
-		float cosRoll = cos(roll);
-		float sinRoll = sin(roll);
-
-		return Vector3(
-			cosPitch * sinYaw,
-			sinPitch,
-			cosPitch * cosYaw
-		);
+	Vector3 front() const{
+		DirectX::XMVECTOR q = DirectX::XMLoadFloat4(&rotation);
+		DirectX::XMVECTOR f = DirectX::XMVector3Rotate(DirectX::XMVectorSet(0, 0, 1, 0), q);
+		DirectX::XMFLOAT3 out;
+		XMStoreFloat3(&out, f);
+		return Vector3(out.x, out.y, out.z);
 	}
 
-	Vector3 up() const {
-		float pitch = rotation.x;
-		float yaw = rotation.y;
-		float roll = rotation.z;
-
-		float cosPitch = cos(pitch);
-		float sinPitch = sin(pitch);
-		float cosYaw = cos(yaw);
-		float sinYaw = sin(yaw);
-		float cosRoll = cos(roll);
-		float sinRoll = sin(roll);
-
-		return Vector3(
-			-cosPitch * sinYaw * sinRoll + sinPitch * cosRoll,
-			cosPitch * cosRoll + sinPitch * sinYaw * sinRoll,
-			cosYaw * sinPitch
-		);
+	Vector3 up() const{
+		DirectX::XMVECTOR q = DirectX::XMLoadFloat4(&rotation);
+		DirectX::XMVECTOR u = DirectX::XMVector3Rotate(DirectX::XMVectorSet(0, 1, 0, 0), q);
+		DirectX::XMFLOAT3 out;
+		XMStoreFloat3(&out, u);
+		return Vector3(out.x, out.y, out.z);
 	}
 
-	Vector3 right() const {
-		float pitch = rotation.x;
-		float yaw = rotation.y;
-		float roll = rotation.z;
-
-		float cosPitch = cos(pitch);
-		float sinPitch = sin(pitch);
-		float cosYaw = cos(yaw);
-		float sinYaw = sin(yaw);
-		float cosRoll = cos(roll);
-		float sinRoll = sin(roll);
-
-		return Vector3(
-			cosPitch * cosYaw,
-			-sinPitch,
-			cosPitch * sinYaw
-		);
+	Vector3 right() const{
+		DirectX::XMVECTOR q = DirectX::XMLoadFloat4(&rotation);
+		DirectX::XMVECTOR r = DirectX::XMVector3Rotate(DirectX::XMVectorSet(1, 0, 0, 0), q);
+		DirectX::XMFLOAT3 out;
+		XMStoreFloat3(&out, r);
+		return Vector3(out.x, out.y, out.z);
 	}
 
 	DirectX::XMMATRIX CalculateWorldMatrix(TransformComponent* transform, ComponentRegistry* registry){
 		DirectX::XMMATRIX local =
 			DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z) *
-			DirectX::XMMatrixRotationRollPitchYaw(transform->rotation.x, transform->rotation.y, transform->rotation.z) *
+			DirectX::XMMatrixRotationQuaternion(XMLoadFloat4(&transform->rotation)) *
 			DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
 
 		if(transform->parent != 0){

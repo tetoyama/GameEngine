@@ -69,13 +69,13 @@ void PlayerSystem::Update(float deltaTime) {
 			}
 
 			// カメラの回転
-			m_cameraTransform->rotation.y += deltaTime * player->cameraRotate * (input->IsKey(m_context->manager->hwnd, VK_RIGHT) - input->IsKey(m_context->manager->hwnd, VK_LEFT));
-			m_cameraTransform->rotation.x += deltaTime * player->cameraRotate * (input->IsKey(m_context->manager->hwnd, VK_UP) - input->IsKey(m_context->manager->hwnd, VK_DOWN));
-			if (m_cameraTransform->rotation.x > -0.2f) {
-				m_cameraTransform->rotation.x = -0.2f;
+			m_cameraTransform->AddRotationY(deltaTime * player->cameraRotate * (input->IsKey(m_context->manager->hwnd, VK_RIGHT) - input->IsKey(m_context->manager->hwnd, VK_LEFT)));
+			m_cameraTransform->AddRotationX(deltaTime * player->cameraRotate * (input->IsKey(m_context->manager->hwnd, VK_UP) - input->IsKey(m_context->manager->hwnd, VK_DOWN)));
+			if (m_cameraTransform->GetRotationEuler().x > -0.2f){
+				m_cameraTransform->SetRotationX( - 0.2f);
 			}
-			if (m_cameraTransform->rotation.x < -DirectX::XM_PI * 0.4f) {
-				m_cameraTransform->rotation.x = -DirectX::XM_PI * 0.4f;
+			if (m_cameraTransform->GetRotationEuler().x < -DirectX::XM_PI * 0.4f) {
+				m_cameraTransform->SetRotationX( - DirectX::XM_PI * 0.4f);
 			}
 
 			// プレイヤーの移動
@@ -94,7 +94,7 @@ void PlayerSystem::Update(float deltaTime) {
 				setRotation += DirectX::XM_2PI;
 			}
 			if (rotatedMoveVec.length() > 0) {
-				transform->rotation.y += (setRotation - transform->rotation.y) * deltaTime * player->cameraLerp;
+				transform->AddRotationY((setRotation - transform->rotation.y) * deltaTime * player->cameraLerp);
 			}
 			transform->position += rotatedMoveVec;
 
