@@ -1926,12 +1926,6 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\cameraSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\playerComponent.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\playerSystem.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\IComponentStorage.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -1953,28 +1947,10 @@
     <ClInclude Include="Source\GameApplication\Backends\ImGui\imgui_stdlib.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\bulletComponent.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\bulletSystem.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\enemyComponent.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\enemySystem.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\BillBoardRendererComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\explosionEffectComponent.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\textureComponent.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\explosionEffectSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Backends\ImGui\ImGuizmo.h">
@@ -2268,9 +2244,6 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\physicSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\EffectComponent.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\effectData.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -2281,6 +2254,9 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\ColliderComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\EffectComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
@@ -2552,9 +2528,6 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\cameraSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\playerSystem.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Resources\Data\modelData.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -2565,15 +2538,6 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Backends\ImGui\imgui_stdlib.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\bulletSystem.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\enemySystem.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\explosionEffectSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Backends\ImGui\ImGuizmo.cpp">

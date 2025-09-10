@@ -22,8 +22,6 @@
 #include "Engine/EditorUI/ImGuiMainManuBar.h"
 #include <Component/textureComponent.h>
 #include <Component/cameraComponent.h>
-#include <Component/playerComponent.h>
-#include <Component/enemyComponent.h>
 #include "Engine/DebugTools/DebugSystem.h" // Add this include to resolve the incomplete type issue
 #include <Component/2DspriteRendererComponent.h>
 

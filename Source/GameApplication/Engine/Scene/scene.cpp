@@ -30,10 +30,7 @@
 #include "System/transformSystem.h"
 #include "System/renderSystem.h"
 #include "System/cameraSystem.h"
-#include "System/playerSystem.h"
-#include "System/bulletSystem.h"
-#include "System/enemySystem.h"
-#include "System/explosionEffectSystem.h"
+
 #include "System/C#ScriptSystem.h"
 #include "System/CustomScriptSystem.h"
 #include "System/lightSystem.h"
@@ -51,10 +48,6 @@
 #include "Component/textureComponent.h"
 #include "Component/CustomScriptComponent.h"
 #include "Component/C#ScriptComponent.h"
-#include "Component/playerComponent.h"
-#include "Component/bulletComponent.h"
-#include "Component/enemyComponent.h"
-#include "Component/explosionEffectComponent.h"
 #include "Component/bumpMapComponent.h"
 #include "Component/2DspriteRendererComponent.h"
 #include "Component/RenderLayerComponent.h"
@@ -129,11 +122,6 @@ void Scene::Initialize(ManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<CustomScriptComponent>("CustomScriptComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<CSharpScriptComponent>("CSharpScriptComponent", false);
 
-	m_componentRegistry->RegisterYAMLComponent<PlayerComponent>("PlayerComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<BulletComponent>("BulletComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<EnemyComponent>("EnemyComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<ExplosionEffectComponent>("ExplosionEffectComponent", false);
-
 	// ユーザー定義のスクリプトコンポーネントを登録
 	m_componentRegistry->RegisterYAMLComponent<SetScene>("SetScene", false);
 	m_componentRegistry->RegisterYAMLComponent<ScoreManager>("ScoreManager", false);
@@ -156,10 +144,6 @@ void Scene::Initialize(ManagerContext* set){
 	m_systemRegistry->RegisterSystem(std::make_unique<CSharpScriptSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<CustomScriptSystem>(&m_SceneContext));
 
-	m_systemRegistry->RegisterSystem(std::make_unique<PlayerSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<BulletSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<EnemySystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<ExplosionEffectSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<PhysicSystem>(&m_SceneContext));
 
 	// シーンコンテキストの初期化
@@ -367,8 +351,6 @@ void Scene::BuildDefaultScene(){
 		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
 		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\ToonShaderPS.cso");
 
-		auto player = componentRegistry->AddComponent<PlayerComponent>(entity);
-
 		// OutLineComponentを追加
 		//auto* outline = componentRegistry->AddComponent<OutlineComponent>(entity);
 
@@ -444,8 +426,6 @@ void Scene::BuildDefaultScene(){
 
 		// OutLineComponentを追加
 		//auto* outline = componentRegistry->AddComponent<OutlineComponent>(entity);
-
-		auto* enemy = componentRegistry->AddComponent<EnemyComponent>(entity);
 	}
 
 	

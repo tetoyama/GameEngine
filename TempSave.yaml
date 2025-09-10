@@ -18,8 +18,6 @@ Entities:
           y: 10
           z: 100
         Parent: 0
-      - Component: ColliderComponent
-        isDynamic: false
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         Material:
@@ -49,11 +47,11 @@ Entities:
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
-        FilePath: Asset\Model\cube.obj
+        FilePath: Asset\Model\cube.fbx
         PixelShader: Asset\Shader\PixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 1251.92236
+        AnimationTime: 0
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -173,7 +171,7 @@ Entities:
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
-        AnimationTime: 1251.92236
+        AnimationTime: 0
   - Entity: 4
     Components:
       - Component: NameComponent
@@ -226,12 +224,19 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 1251.92236
-      - Component: PlayerComponent
-        moveSpeed: 5
-        cameraRotate: 2
-        cameraDistance: 20
-        cameraLerp: 8
+        AnimationTime: 0
+      - Component: EnemyComponent
+        setOriginPos: false
+        OriginPos:
+          x: 0
+          y: 0
+          z: 0
+        maxDistance: 15
+        TargetPos:
+          x: 0
+          y: 0
+          z: 0
+        MoveSpeed: 1
   - Entity: 5
     Components:
       - Component: NameComponent
@@ -239,8 +244,8 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 17.0294094
-          z: -10.8060408
+          y: 20
+          z: -15
         Rotation:
           - 0
           - 0
@@ -252,10 +257,10 @@ Entities:
           z: 1
         Parent: 0
       - Component: CameraComponent
-        isLock: true
+        isLock: false
         Target:
           x: 0
-          y: 0.200000003
+          y: 0
           z: 0
         NearClip: 0.00999999978
         FarClip: 1024
@@ -268,18 +273,18 @@ Entities:
             - 0
           -
             - 0
-            - 0.540302336
-            - -0.841470897
+            - 1
             - 0
-          -
-            - -0
-            - 0.841470897
-            - 0.540302336
             - 0
           -
             - 0
-            - -0.108060837
-            - 20.1682816
+            - 0
+            - 1
+            - 0
+          -
+            - 0
+            - -20
+            - 15
             - 1
   - Entity: 6
     Components:
@@ -287,14 +292,14 @@ Entities:
         Name: Enemy1
       - Component: TransformComponent
         Position:
-          x: 18.1784134
+          x: 20
           y: 0.200000003
-          z: -6.0498786
+          z: 0
         Rotation:
           - 0
+          - -0.707106769
           - 0
-          - 0
-          - 1
+          - 0.707106709
         Scale:
           x: 1
           y: 1
@@ -333,33 +338,21 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 1251.92236
-      - Component: EnemyComponent
-        setOriginPos: true
-        OriginPos:
-          x: 19.9926777
-          y: 0.200000003
-          z: -3.20072274e-10
-        maxDistance: 15
-        TargetPos:
-          x: 31.3165779
-          y: 0.200000003
-          z: 1.31502628
-        MoveSpeed: 1
+        AnimationTime: 0
   - Entity: 7
     Components:
       - Component: NameComponent
         Name: Enemy2
       - Component: TransformComponent
         Position:
-          x: 5.41634417
+          x: 6.18033934
           y: 0.200000003
-          z: 12.2597713
+          z: 19.0211315
         Rotation:
           - 0
+          - -0.987688363
           - 0
-          - 0
-          - 1
+          - 0.156434357
         Scale:
           x: 1
           y: 1
@@ -398,33 +391,21 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 1251.92236
-      - Component: EnemyComponent
-        setOriginPos: true
-        OriginPos:
-          x: 6.17807674
-          y: 0.200000003
-          z: 19.0141678
-        maxDistance: 15
-        TargetPos:
-          x: -3.27035522
-          y: 0.200000003
-          z: 19.1863499
-        MoveSpeed: 1
+        AnimationTime: 0
   - Entity: 8
     Components:
       - Component: NameComponent
         Name: Enemy3
       - Component: TransformComponent
         Position:
-          x: -22.5099525
+          x: -16.1803417
           y: 0.200000003
-          z: 22.3242455
+          z: 11.7557039
         Rotation:
+          - -0
+          - -0.89100647
           - 0
-          - 0
-          - 0
-          - 1
+          - -0.453990519
         Scale:
           x: 1
           y: 1
@@ -463,33 +444,21 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 1251.92236
-      - Component: EnemyComponent
-        setOriginPos: true
-        OriginPos:
-          x: -16.1744175
-          y: 0.200000003
-          z: 11.7514
-        maxDistance: 15
-        TargetPos:
-          x: -15.975667
-          y: 0.200000003
-          z: 20.2990894
-        MoveSpeed: 1
+        AnimationTime: 0
   - Entity: 9
     Components:
       - Component: NameComponent
         Name: Enemy4
       - Component: TransformComponent
         Position:
-          x: -5.7384572
+          x: -16.180336
           y: 0.200000003
-          z: -9.32716084
+          z: -11.7557106
         Rotation:
+          - -0
+          - -0.453990459
           - 0
-          - 0
-          - 0
-          - 1
+          - -0.891006529
         Scale:
           x: 1
           y: 1
@@ -528,33 +497,21 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 1251.92236
-      - Component: EnemyComponent
-        setOriginPos: true
-        OriginPos:
-          x: -16.1744118
-          y: 0.200000003
-          z: -11.7514067
-        maxDistance: 15
-        TargetPos:
-          x: -6.47487736
-          y: 0.200000003
-          z: -12.7421246
-        MoveSpeed: 1
+        AnimationTime: 0
   - Entity: 10
     Components:
       - Component: NameComponent
         Name: Enemy5
       - Component: TransformComponent
         Position:
-          x: -0.903372765
+          x: 6.18034267
           y: 0.200000003
-          z: -13.1616011
+          z: -19.0211296
         Rotation:
           - 0
-          - 0
-          - 0
-          - 1
+          - 0.156434521
+          - -0
+          - -0.987688303
         Scale:
           x: 1
           y: 1
@@ -593,68 +550,4 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 1251.92236
-      - Component: EnemyComponent
-        setOriginPos: true
-        OriginPos:
-          x: 6.17808008
-          y: 0.200000003
-          z: -19.0141659
-        maxDistance: 15
-        TargetPos:
-          x: 0.785578251
-          y: 0.200000003
-          z: -13.8015919
-        MoveSpeed: 1
-  - Entity: 11
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 6.27998734
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 5
-          y: 5
-          z: 5
-        Parent: 0
-      - Component: ColliderComponent
-        isDynamic: true
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\cube.obj
-        PixelShader: Asset\Shader\disneyPBR_PS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-        AnimationTime: 1251.92236
-  - Entity: 12
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: 7.98724222
-          y: 12.5825386
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 9.73194504
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: ColliderComponent
-        isDynamic: true
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\cube.obj
-        isBlender: false
-        AnimationTime: 1251.92236
+        AnimationTime: 0
