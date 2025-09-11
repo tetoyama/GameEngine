@@ -103,8 +103,11 @@ public:
 		return true;
 	  }
 
-	void Stop() {
-		if (Playing) {
+	void Stop(SceneContext* sceneContext) {
+		if (Playing && sceneContext->manager->graphics->GetEffectManager()->Exists(m_Handle)) {
+
+			sceneContext->manager->graphics->GetEffectManager()->StopEffect(m_Handle);
+
 			m_Handle = -1;
 		}
 		Playing = false;

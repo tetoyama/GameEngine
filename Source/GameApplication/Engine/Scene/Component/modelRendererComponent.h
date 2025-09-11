@@ -22,8 +22,6 @@ public:
 		node["PixelShader"] = pixelShader->FilePath;
 		if(vertexShader)
 		node["VertexShader"] = vertexShader->FilePath;
-		if (!currentAnimationName.empty())
-			node["CurrentAnimationName"] = currentAnimationName;
 
 		node["isBlender"] = isBlender;
 		node["AnimationTime"] = animationTime;
@@ -127,83 +125,210 @@ public:
 			ImGui::EndDragDropTarget();
 		}
 
-		if (model && !model->m_Animation.empty()) {
-			ImGui::Text("Current Animation");
-			ImGui::SameLine(130.0f);
-			inputWidth = ImGui::GetContentRegionAvail().x;
-			ImGui::SetNextItemWidth(inputWidth);
+		// --- モーションブレンド編集UI ---
+		ImGui::Separator();
+		ImGui::Text("Motion Blend");
 
-			// アニメーション名一覧取得
-			std::vector<std::string> animNames;
-			for (const auto& pair : model->m_Animation) {
-				animNames.push_back(pair.first);
+		if (model && !model->m_Animation.empty()) {
+			// ブレンド用アニメーションリストの表示
+			for (int i = 0; i < (int)model->blendedAnimations.size(); ++i) {
+				auto& blendEntry = model->blendedAnimations[i];
+
+				ImGui::PushID(i);
+				// アニメーション名表示（プルダウンで選択可能にする）
+				int currentIdx = 0;
+				std::vector<std::string> animNames;
+				for (const auto& pair : model->m_Animation) {
+					animNames.push_back(pair.first);
+				}
+				for (int idx = 0; idx < (int)animNames.size(); ++idx) {
+					if (animNames[idx] == blendEntry.name) {
+						currentIdx = idx;
+						break;
+					}
+				}
+				blendEntry.name = animNames[currentIdx];
+				ImGui::Text(blendEntry.name.c_str());
+
+				// 重みスライダー
+				ImGui::SameLine();
+				ImGui::PushItemWidth(100);
+				ImGui::DragFloat("Weight", &blendEntry.weight, 0.01f, 0.0f, 1.0f);
+				ImGui::PopItemWidth();
+
+				// 削除ボタン
+				ImGui::SameLine();
+				if (ImGui::Button("Remove")) {
+					model->blendedAnimations.erase(model->blendedAnimations.begin() + i);
+					ImGui::PopID();
+					break; // 破壊的操作なのでループ抜ける
+				}
+
+				ImGui::PopID();
 			}
 
-			// 現在選択されているアニメーションのインデックスを探す
-			int currentIndex = 0;
-			for (int i = 0; i < (int)animNames.size(); ++i) {
-				if (animNames[i] == currentAnimationName) {
-					currentIndex = i;
-					break;
+			// 新規追加用UI
+			static int newBlendAnimIndex = 0;
+			static float newBlendWeight = 0.0f;
+
+			if (!model->m_Animation.empty()) {
+				std::vector<std::string> animNames;
+				for (const auto& pair : model->m_Animation) {
+					animNames.push_back(pair.first);
+				}
+
+				ImGui::PushItemWidth(150);
+				ImGui::Combo("Add Animation", &newBlendAnimIndex,
+							 [](void* data, int idx, const char** out_text) {
+					auto& names = *static_cast<std::vector<std::string>*>(data);
+					*out_text = names[idx].c_str();
+					return true;
+				}, &animNames, (int)animNames.size());
+				ImGui::PopItemWidth();
+
+				ImGui::SameLine();
+				ImGui::PushItemWidth(100);
+				ImGui::DragFloat("Weight##Add", &newBlendWeight, 0.01f, 0.0f, 1.0f);
+				ImGui::PopItemWidth();
+
+				ImGui::SameLine();
+				if (ImGui::Button("Add")) {
+					const std::string& newName = animNames[newBlendAnimIndex];
+					// すでに登録済みかチェック
+					bool exists = false;
+					for (const auto& entry : model->blendedAnimations) {
+						if (entry.name == newName) {
+							exists = true;
+							break;
+						}
+					}
+					if (!exists) {
+						model->blendedAnimations.push_back({ newName, newBlendWeight });
+						// リセット
+						newBlendWeight = 0.0f;
+					}
 				}
 			}
-
-			if (ImGui::Combo("##CurrentAnimation", &currentIndex,
-							 [](void* data, int idx, const char** out_text) {
-				auto& names = *static_cast<std::vector<std::string>*>(data);
-				*out_text = names[idx].c_str();
-				return true;
-			}, &animNames, (int)animNames.size())) {
-				currentAnimationName = animNames[currentIndex];
-				animationTime = 0.0f; // アニメーション切り替えたらフレームをリセット
-			}
-
-			ImGui::Text("Frame");
-			ImGui::SameLine(100.0f);
-			inputWidth = ImGui::GetContentRegionAvail().x;
-			ImGui::SetNextItemWidth(inputWidth);
-
-			ImGui::DragFloat("##Frame", &animationTime, 0.1f, 0.0f, 120.0f);
+		} else {
+			ImGui::TextDisabled("No model or no animations loaded.");
 		}
 
-		// --- Add Animation Section ---
-		ImGui::Text("Add Animation");
+
+
 		static char newAnimFilePath[256] = "";
 		static char newAnimName[128] = "";
 
-		ImGui::InputText("File Path", newAnimFilePath, sizeof(newAnimFilePath));
+		// アニメーション一覧 + 削除ボタン
+		if (model) {
+			ImGui::Separator();
 
-		// ドラッグ＆ドロップ受け付け
-		if (ImGui::BeginDragDropTarget()) {
-			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-				const char* droppedPath = (const char*)payload->Data;
-				strncpy_s(newAnimFilePath, sizeof(newAnimFilePath), droppedPath, _TRUNCATE);
+			inputWidth = ImGui::GetContentRegionAvail().x;
+			ImGui::SetNextItemWidth(inputWidth);
+			if (ImGui::TreeNodeEx(("LoadedAnimation(" + std::to_string(model->m_Animation.size()) + ")").c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+
+
+				// --- Add Animation Section ---
+				ImGui::BeginGroup();
+
+				// Add Animation ボタン（ポップアップ開く用）
+				if (ImGui::Button("Add Animation")) {
+					ImGui::OpenPopup("AddAnimationPopup");
+				}
+				ImGui::SameLine();
+				inputWidth = ImGui::GetContentRegionAvail().x;
+				ImGui::SetNextItemWidth(inputWidth - 20.0f);
+
+				ImGui::InputText("##AddAnimation", newAnimFilePath, sizeof(newAnimFilePath));
+
+				ImGui::EndGroup();
+
+				// ボタンに対するドラッグ&ドロップ処理
+				if (ImGui::BeginDragDropTarget()) {
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+						const char* droppedPath = (const char*)payload->Data;
+						strncpy_s(newAnimFilePath, sizeof(newAnimFilePath), droppedPath, _TRUNCATE);
+						ImGui::OpenPopup("AddAnimationPopup");
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+				std::vector<std::string> toDelete;
+				if (model->m_Animation.empty()) {
+
+				} else {
+
+					ImGui::Separator();
+
+					for (const auto& [name, anim] : model->m_Animation) {
+						ImGui::PushID(name.c_str());
+						if (anim.isImported) {
+							if (ImGui::Button("Delete")) {
+								toDelete.push_back(name);
+							}
+						} else {
+							ImGui::BeginDisabled();
+							ImGui::Button("Delete");
+							ImGui::EndDisabled();
+						}
+						ImGui::SameLine();
+
+						ImGui::Text("%s", name.c_str());
+
+
+
+						ImGui::PopID();
+					}
+				}
+
+
+				// ポップアップ内容
+				if (ImGui::BeginPopupModal("AddAnimationPopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+
+					ImGui::InputText("File Path", newAnimFilePath, sizeof(newAnimFilePath));
+
+					// FilePath に対するドラッグ&ドロップ（ポップアップ内でも対応）
+					if (ImGui::BeginDragDropTarget()) {
+						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+							const char* droppedPath = (const char*)payload->Data;
+							strncpy_s(newAnimFilePath, sizeof(newAnimFilePath), droppedPath, _TRUNCATE);
+						}
+						ImGui::EndDragDropTarget();
+					}
+
+					ImGui::InputText("Name", newAnimName, sizeof(newAnimName));
+
+					if (ImGui::Button("Add")) {
+						std::string filePathStr(newAnimFilePath);
+						std::string animNameStr(newAnimName);
+						if (!filePathStr.empty() && !animNameStr.empty() &&
+							model && model->m_Animation.find(animNameStr) == model->m_Animation.end()) {
+
+							model->LoadAnimation(filePathStr.c_str(), animNameStr.c_str());
+
+							// 入力欄をクリア
+							newAnimFilePath[0] = '\0';
+							newAnimName[0] = '\0';
+							ImGui::CloseCurrentPopup();
+						}
+						ImGui::SameLine();
+					}
+					ImGui::SameLine();
+
+					if (ImGui::Button("Cancel")) {
+						ImGui::CloseCurrentPopup();
+					}
+
+					ImGui::EndPopup();
+				}
+
+				ImGui::TreePop();
 			}
-			ImGui::EndDragDropTarget();
 		}
-
-		ImGui::InputText("Name", newAnimName, sizeof(newAnimName));
-
-		if (ImGui::Button("Add")) {
-			std::string filePathStr(newAnimFilePath);
-			std::string animNameStr(newAnimName);
-			if (!filePathStr.empty() && !animNameStr.empty() &&
-				model->m_Animation.find(animNameStr) == model->m_Animation.end()) {
-				model->LoadAnimation(filePathStr.c_str(), animNameStr.c_str());
-				currentAnimationName = animNameStr;
-				animationTime = 0.0f;
-
-				newAnimFilePath[0] = '\0';
-				newAnimName[0] = '\0';
-			}
-		}
-
 	}
 
 	std::shared_ptr<ModelData>  model = nullptr;
 	bool isBlender = false;
 	std::shared_ptr<PixelShaderData>  pixelShader = nullptr;
 	std::shared_ptr<VertexShaderData>  vertexShader = nullptr;
-	std::string currentAnimationName;
 	float animationTime = 0.0f;
 };

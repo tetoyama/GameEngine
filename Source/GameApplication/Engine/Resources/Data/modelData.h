@@ -30,11 +30,26 @@ struct BONE {
 	aiMatrix4x4 OffsetMatrix;
 };
 
+struct AnimationBlend {
+	std::string name;
+	float weight = 0.0f;
+	float animationStartTime = 0.0f;
+};
+
 struct AnimationData {
 	std::string FilePath;
 	const aiScene* Scene;
 	aiAnimation* Animation;
 	bool isImported = true;
+
+
+	void Release() {
+		if (isImported && Scene) {
+			aiReleaseImport(Scene);
+			Scene = nullptr;
+			Animation = nullptr;
+		}
+	}
 };
 
 struct ModelData {
@@ -72,8 +87,17 @@ public:
 	void UpdateBoneMatrix(aiNode* Node, aiMatrix4x4 Matrix);
 
 	void LoadAnimation(const char* FileName, const char* Name);
+	void RemoveAnimation(const std::string& name) {
+		auto it = m_Animation.find(name);
+		if (it != m_Animation.end()) {
+			it->second.Release();  // Assimpメモリを開放
+			m_Animation.erase(it);
+		}
+	}
+
 	void Update(const char* AnimationName1, int Frame1, GraphicsContext* pGraphicContext);
+	void Update(float Frame, GraphicsContext* pGraphicContext);
 
 	std::unordered_map<std::string, AnimationData> m_Animation;
-
+	std::vector<AnimationBlend> blendedAnimations;
 };

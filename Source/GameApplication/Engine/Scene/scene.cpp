@@ -662,9 +662,6 @@ void Scene::LoadSceneFromYAML(std::string path) {
 						modelRenderer->pixelShader = m_SceneManagerContext->resource->Load<PixelShaderData>(PixelShader.c_str());
 					}
 
-					if (compNode["CurrentAnimationName"]) {
-						modelRenderer->currentAnimationName = compNode["CurrentAnimationName"].as<std::string>();
-					}
 					if (compNode["AnimationTime"]) {
 						modelRenderer->animationTime = compNode["AnimationTime"].as<float>();
 					}

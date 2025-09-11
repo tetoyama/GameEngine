@@ -9,9 +9,10 @@ Entities:
           y: 20
           z: -15
         Rotation:
-          x: -1
-          y: 0
-          z: 0
+          - 0
+          - 0
+          - 0
+          - 1
         Scale:
           x: 1
           y: 1
@@ -34,32 +35,33 @@ Entities:
             - 0
           -
             - 0
-            - 0.540302396
-            - -0.841470897
+            - 1
             - 0
-          -
-            - -0
-            - 0.841470897
-            - 0.540302396
             - 0
           -
             - 0
-            - 1.8160162
-            - 24.9339542
+            - 0
+            - 1
+            - 0
+          -
+            - 0
+            - -20
+            - 15
             - 1
   - Entity: 2
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: SkyBox
       - Component: TransformComponent
         Position:
           x: 0
           y: 0
           z: 0
         Rotation:
-          x: 0
-          y: 0
-          z: 0
+          - 0
+          - 0
+          - 0
+          - 1
         Scale:
           x: 500
           y: 500
@@ -68,21 +70,23 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\sky.fbx
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
+        VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
         AnimationTime: 0
   - Entity: 3
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: Akai
       - Component: TransformComponent
         Position:
           x: 0
           y: 0
           z: 0
         Rotation:
-          x: 0
-          y: 0
-          z: 0
+          - 0
+          - 0
+          - 0
+          - 1
         Scale:
           x: 0.0199999996
           y: 0.0199999996
@@ -91,31 +95,27 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
+        VertexShader: Asset\Shader\commonVS.cso
         CurrentAnimationName: Run
         isBlender: false
         AnimationTime: 0
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
-          mixamo.com: Asset\Model\Akai.fbx
           Run: Asset\Model\Akai_Run.fbx
-      - Component: PlayerComponent
-        moveSpeed: 5
-        cameraRotate: 2
-        cameraDistance: 20
-        cameraLerp: 8
   - Entity: 4
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: Field
       - Component: TransformComponent
         Position:
           x: 0
           y: -100
           z: 0
         Rotation:
-          x: 0
-          y: 0
-          z: 0
+          - 0
+          - 0
+          - 0
+          - 1
         Scale:
           x: 100
           y: 100

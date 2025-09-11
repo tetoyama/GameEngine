@@ -23,13 +23,17 @@ public:
 	}
 
 	void Finalize() override {
+		m_context->manager->graphics->GetEffectManager()->StopAllEffects();
+
 		auto entities = m_context->component->FindEntitiesWithComponent<EffectComponent>();
 		for (auto entity : entities) {
 			auto* comp = m_context->component->GetComponent<EffectComponent>(entity);
 			if (comp) {
-				comp->Stop();
+				comp->Stop(m_context);
 			}
 		}
+		m_context->manager->graphics->GetEffectManager()->Update(0.0f);
+
 	}
 
 	void Start() override {
@@ -41,10 +45,6 @@ public:
 			// AudioDataロードはSystem側でやる
 			if (!comp->m_EffectData && !comp->FilePath.empty()) {
 				comp->m_EffectData = m_context->manager->resource->Load<EffectData>(comp->FilePath);
-			}
-
-			if (comp->PlayOnStart && !comp->Playing) {
-				comp->Play(m_context);
 			}
 		}
 	}
@@ -115,7 +115,7 @@ public:
 
 				m_context->manager->graphics->GetEffectManager()->UpdateHandle(comp->m_Handle,0.0f);
 			} else {
-				if (comp->Loop) {
+				if (comp->Loop || comp->PlayOnStart) {
 					comp->Play(m_context);
 				}
 			}
