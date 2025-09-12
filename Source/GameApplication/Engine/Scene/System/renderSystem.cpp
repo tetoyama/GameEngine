@@ -557,7 +557,7 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	//pModel->Update(modelRenderer->currentAnimationName.c_str(), (int)modelRenderer->animationTime, m_context->manager->graphics);
-	pModel->Update((int)modelRenderer->animationTime, m_context->manager->graphics);
+	pModel->Update(modelRenderer->animationTime, m_context->manager->graphics);
 
 
 	// ワールド行列計算

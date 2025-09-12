@@ -95,7 +95,7 @@ public:
 		}
 	}
 
-	void Update(const char* AnimationName1, int Frame1, GraphicsContext* pGraphicContext);
+	void UpdateSingleAnimation(const char* AnimationName1, int Frame1, GraphicsContext* pGraphicContext);
 	void Update(float Frame, GraphicsContext* pGraphicContext);
 
 	std::unordered_map<std::string, AnimationData> m_Animation;

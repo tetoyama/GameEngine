@@ -85,7 +85,7 @@ void ModelData::LoadAnimation(const char* FileName, const char* Name) {
 	m_Animation[Name] = animationData;
 }
 
-void ModelData::Update(const char* AnimationName1, int Frame1, GraphicsContext* pGraphicContext) {
+void ModelData::UpdateSingleAnimation(const char* AnimationName1, int Frame1, GraphicsContext* pGraphicContext) {
 	if (m_Animation.count(AnimationName1) == 0) {
 		return;
 	}
@@ -187,7 +187,7 @@ void ModelData::Update(float Frame, GraphicsContext* pGraphicContext) {
 		return;
 	} else {
 		if (blendedAnimations.size() == 1) {
-			Update(blendedAnimations[0].name.c_str(), (int)Frame, pGraphicContext);
+			UpdateSingleAnimation(blendedAnimations[0].name.c_str(), (int)Frame - blendedAnimations[0].animationStartTime, pGraphicContext);
 			return;
 		}
 	}
