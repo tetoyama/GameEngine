@@ -81,9 +81,6 @@ private:
 	std::shared_ptr<PixelShaderData> m_PixelShader;
 	std::shared_ptr<VertexShaderData> m_VertexShader;
 
-	std::shared_ptr<PixelShaderData> m_LinePixelShader;
-	std::shared_ptr<VertexShaderData> m_LineVertexShader;
-
 	DirectX::XMMATRIX m_CameraView = DirectX::XMMatrixIdentity();
 	DirectX::XMMATRIX m_CameraProjection = DirectX::XMMatrixIdentity();
 	float m_MouseWheel = 0.0f;

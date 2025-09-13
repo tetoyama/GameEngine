@@ -251,7 +251,8 @@ void ImGuiService::DrawDebugImGuiWindow(double Update, double Draw, double FPS, 
 	DrawSamples[SAMPLE_LENGTH - 1] = (float)(int)Draw;
 
 	{
-		ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
+		//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
+		ImGuiWindowFlags toolbar_window_flags = 0;
 
 		ImGui::Begin("Performance Monitor",NULL, toolbar_window_flags);
 

@@ -162,8 +162,8 @@ void InspectorSystem::CreateDockSpace(){
 // シーンヒエラルキーウィンドウ
 void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 
-	ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
-
+	//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
+	ImGuiWindowFlags toolbar_window_flags = 0;
 	ImGui::Begin("Scene Hierarchy", showSceneHierarchy, toolbar_window_flags);
 	EntityRegistry* registry = context->entity;
 
@@ -785,8 +785,8 @@ void InspectorSystem::DrawAssetsBrowser(){
 	}
 
 	// === ImGui Begin ===
-	ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
-
+	//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
+	ImGuiWindowFlags toolbar_window_flags = 0;
 	ImGui::Begin("Assets Browser", showAssetsBrowser, toolbar_window_flags);
 
 	ImGui::Columns(2, "AssetColumns", true);

@@ -26,6 +26,8 @@ public:
 
 
 	void ReleasePhysics(physx::PxRigidStatic** pRigidStatic){
+		std::lock_guard<std::mutex> lock(mtx); // mtxを使ってロックする
+		WaitPhysicsUpdate();
 
 		if(*pRigidStatic){
 			(*pRigidStatic)->release();
@@ -36,6 +38,10 @@ public:
 	}
 
 	physx::PxPhysics* GetPhysics(){
+		WaitPhysicsUpdate();
+
+		std::lock_guard<std::mutex> lock(mtx); // mtxを使ってロックする
+		UpdatingPhysics = false;
 
 		return g_pPhysics;
 	}
@@ -121,6 +127,13 @@ private:
 	ID3D11PixelShader* m_debugPS = nullptr;
 
 	void LoadDebugShaders();
+
+	void WaitPhysicsUpdate(){
+		while(UpdatingPhysics){
+
+		}
+		UpdatingPhysics = true;
+	}
 
 	physx::PxRigidDynamic* CreateDynamic(const physx::PxTransform& t, const physx::PxGeometry& geometry, physx::PxMaterial& material, physx::PxReal density = 10.0f);
 	physx::PxRigidStatic* CreateStatic(const physx::PxTransform& t, const physx::PxGeometry& geometry, physx::PxMaterial& material);

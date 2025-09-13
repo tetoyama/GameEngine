@@ -17,14 +17,6 @@
 #pragma comment(lib, "SceneQuery_static_64.lib")
 #pragma comment(lib, "SimulationController_static_64.lib")
 
-ID3D11InputLayout* debugInputLayout = nullptr;
-
-
-struct DebugVertex {
-	DirectX::XMFLOAT3 pos;
-	DirectX::XMFLOAT4 color;
-};
-
 // Dynamic Rigidbodyの作成
 physx::PxRigidDynamic* PhysicSystem::CreateDynamic(const physx::PxTransform& t,
 							  const physx::PxGeometry& geometry, physx::PxMaterial& material, physx::PxReal density) {
@@ -102,34 +94,17 @@ void PhysicSystem::LoadDebugShaders() {
 	D3DCompileFromFile(L"Source/Shader/DebugLinePS.hlsl", nullptr, nullptr, "main", "ps_5_0", 0, 0, &psBlob, nullptr);
 	device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &m_debugPS);
 
-	D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(DebugVertex, pos), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(DebugVertex, color), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
-
-	device->CreateInputLayout(
-		layoutDesc,
-		ARRAYSIZE(layoutDesc),
-		vsBlob->GetBufferPointer(),
-		vsBlob->GetBufferSize(),
-		&debugInputLayout
-	);
-
 	if (vsBlob) vsBlob->Release();
 	if (psBlob) psBlob->Release();
-
-
-
 }
 
 void PhysicSystem::Finalize(){
 
-	if (debugInputLayout) { debugInputLayout->Release(); debugInputLayout = nullptr; }
-	if (m_debugPS) { m_debugPS->Release(); m_debugPS = nullptr; }
+	if (m_debugVS) { m_debugVS->Release(); m_debugVS = nullptr; }
 	if (m_debugPS) { m_debugPS->Release(); m_debugPS = nullptr; }
 
 	std::lock_guard<std::mutex> lock(mtx); // mtxを使ってロックする
+	WaitPhysicsUpdate();
 
 	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
 
@@ -319,9 +294,12 @@ void PhysicSystem::Stop() {
 	}
 }
 
+struct DebugVertex {
+	DirectX::XMFLOAT3 pos;
+	DirectX::XMFLOAT4 color;
+};
 
 void PhysicSystem::Draw() {
-
 	if (!g_pScene) return;
 
 	const physx::PxRenderBuffer& rb = g_pScene->getRenderBuffer();
@@ -331,7 +309,7 @@ void PhysicSystem::Draw() {
 		const physx::PxDebugLine& line = rb.getLines()[i];
 
 		// 色を 0-1 の範囲に変換（ARGB -> RGBA）
-		DirectX::XMFLOAT4 convertColor = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+		DirectX::XMFLOAT4 convertColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
 		DebugVertex v0;
 		v0.pos = DirectX::XMFLOAT3(line.pos0.x, line.pos0.y, line.pos0.z);
@@ -364,8 +342,6 @@ void PhysicSystem::Draw() {
 
 	ID3D11Buffer* pVertexBuffer = nullptr;
 	device->CreateBuffer(&bd, &initData, &pVertexBuffer);
-
-	context->IASetInputLayout(debugInputLayout);
 
 	UINT stride = sizeof(DebugVertex);
 	UINT offset = 0;

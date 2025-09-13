@@ -275,9 +275,6 @@ void RenderSystem::Initialize(){
 
 	m_VertexShader = m_context->manager->resource->Load<VertexShaderData>("Asset\\Shader\\OutlineVS.cso");
 	m_PixelShader = m_context->manager->resource->Load<PixelShaderData>("Asset\\Shader\\OutlinePS.cso");
-
-	m_LineVertexShader = m_context->manager->resource->Load<VertexShaderData>("Asset\\Shader\\DebugLineVS.cso");
-	m_LinePixelShader = m_context->manager->resource->Load<PixelShaderData>("Asset\\Shader\\DebugLinePS.cso");
 }
 
 void RenderSystem::Finalize(){
@@ -335,8 +332,6 @@ void RenderSystem::Draw(){
 	if(*showEditor){
 		EditorView();
 	}
-	m_context->manager->graphics->ResetViewport();
-	m_context->manager->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->manager->graphics->GetpRenderTargetView(), m_context->manager->graphics->GetDepthStencilView());
 
 }
 
@@ -563,7 +558,6 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 
 	//pModel->Update(modelRenderer->currentAnimationName.c_str(), (int)modelRenderer->animationTime, m_context->manager->graphics);
 	pModel->Update(modelRenderer->animationTime, m_context->manager->graphics);
-	deviceContext->IASetInputLayout(m_VertexShader->m_VertexLayout.Get());
 
 
 	// ワールド行列計算
@@ -572,6 +566,7 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 		if(i == 0){
 			if(pOutline){
 				deviceContext->PSSetShader(m_PixelShader->m_PixelShader.Get(), nullptr, 0);
+				deviceContext->IASetInputLayout(m_VertexShader->m_VertexLayout.Get());
 				deviceContext->VSSetShader(m_VertexShader->m_VertexShader.Get(), nullptr, 0);
 				graphicsContext->SetCullMode(CullMode::Front);
 			} else{
