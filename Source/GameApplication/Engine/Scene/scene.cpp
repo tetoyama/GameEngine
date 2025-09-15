@@ -60,6 +60,11 @@
 #include "Script/ScoreManager.h"
 #include "Script/ScoreSprite.h"
 #include "Script/PlayerController.h"
+#include "Script/GameTimeManager.h"
+#include "Script/TimerSprite.h"
+#include "Script/BallController.h"
+
+#include "Script/CameraController.h"
 
 #include <Component/EffectComponent.h>
 #include <Component/ColliderComponent.h>
@@ -114,6 +119,7 @@ void Scene::Initialize(ManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<SpriteRendererComponent>("SpriteRendererComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<OutlineComponent>("OutlineComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<ParticleComponent>("ParticleComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<EffectComponent>("EffectComponent", false);
 
 	// カメラ
 	m_componentRegistry->RegisterYAMLComponent<CameraComponent>("CameraComponent", false);
@@ -127,8 +133,11 @@ void Scene::Initialize(ManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<ScoreManager>("ScoreManager", false);
 	m_componentRegistry->RegisterYAMLComponent<ScoreSprite>("ScoreSprite", false);
 	m_componentRegistry->RegisterYAMLComponent<PlayerController>("PlayerController", false);
+	m_componentRegistry->RegisterYAMLComponent<GameTimeManager>("GameTimeManager", false);
+	m_componentRegistry->RegisterYAMLComponent<TimerSprite>("TimerSprite", false);
+	m_componentRegistry->RegisterYAMLComponent<CameraController>("CameraController", false);
+	m_componentRegistry->RegisterYAMLComponent<BallController>("BallController", false);
 
-	m_componentRegistry->RegisterYAMLComponent<EffectComponent>("EffectComponent", false);
 
 
 	// システムを登録
@@ -171,7 +180,7 @@ void Scene::Initialize(ManagerContext* set){
 	m_SceneManagerContext->debug->LOG_INFO("Sceneを開始します");
 
 	// システムの初期化
-	m_systemRegistry->StartAll();
+	//m_systemRegistry->StartAll();
 }
 
 void Scene::Update(float deltaTime){
@@ -186,11 +195,11 @@ void Scene::Update(float deltaTime){
 				m_SceneManagerContext->debug->LOG_INFO("シーンを開始します");
 				m_systemRegistry->FinalizeAll();
 				m_systemRegistry->InitializeAll();
+				m_systemRegistry->StartAll();
 			} else{
 				m_SceneManagerContext->debug->LOG_INFO("シーンを再開します");
 			}
 
-			m_systemRegistry->StartAll();
 
 		} else if(m_SceneContext.state == SceneState::Paused){
 			m_SceneManagerContext->debug->LOG_INFO("シーンを一時停止します");

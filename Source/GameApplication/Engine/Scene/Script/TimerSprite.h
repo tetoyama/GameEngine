@@ -2,13 +2,13 @@
 #include "Component/CustomScriptComponent.h"
 #include "Backends/checkFileExtention.h"
 
-class ScoreSprite: public CustomScriptComponent {
+class TimerSprite: public CustomScriptComponent {
 public:
-	BEGIN_REFLECT(ScoreSprite)
+	BEGIN_REFLECT(TimerSprite)
 		REFLECT_FIELD(bool, isBlue, false)
 		REFLECT_FIELD(int, Degit, 0)
 
-	ScoreSprite(): CustomScriptComponent("ScoreSprite"){}
+		TimerSprite(): CustomScriptComponent("TimerSprite"){}
 
 	YAML::Node encode() override{
 		YAML::Node node;
@@ -28,18 +28,15 @@ public:
 	void OnStart() override{}
 	void OnUpdate(float dt) override{
 		// ScoreManagerのコンポーネントを持つエンティティを取得
-		auto entity = m_context->component->FindEntitiesWithComponent<ScoreManager>();
+		auto entity = m_context->component->FindEntitiesWithComponent<GameTimeManager>();
 		if(entity.empty()){
 			return;
 		}
 		if(0 < Degit){
 			// ScoreManagerのコンポーネントからスコアを取得
 			int Score;
-			if(isBlue){
-				Score = m_context->component->GetComponent<ScoreManager>(entity[0])->BlueScore;
-			} else{
-				Score = m_context->component->GetComponent<ScoreManager>(entity[0])->RedScore;
-			}
+			Score = m_context->component->GetComponent<GameTimeManager>(entity[0])->Timer;
+
 			Score = Score / (int)pow(10, (double)(Degit - 1));
 			int SetNum = Score % 10;
 

@@ -17,6 +17,16 @@
 #include "Registry/entityRegistry.h"
 #include "Registry/componentRegistry.h"
 
+void CustomScriptSystem::Initialize(){
+	auto scripts = m_context->component->GetAllBaseComponents<CustomScriptComponent>();
+	for(auto& [entity, script] : scripts){
+		if(script && !script->IsInitialized()){
+			script->SetContext(m_context, entity);
+			script->Initialize();
+		}
+	}
+}
+
 void CustomScriptSystem::Start(){
 	auto scripts = m_context->component->GetAllBaseComponents<CustomScriptComponent>();
 	for(auto& [entity, script] : scripts){
@@ -24,6 +34,7 @@ void CustomScriptSystem::Start(){
 			script->SetContext(m_context,entity);
 			script->Initialize();
 		}
+		script->Start();
 	}
 }
 

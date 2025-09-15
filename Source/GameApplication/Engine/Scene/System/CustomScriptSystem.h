@@ -13,7 +13,7 @@ public:
 	CustomScriptSystem(SceneContext* context): m_context(context){}
 	~CustomScriptSystem(){}
 
-	void Initialize() override{}
+	void Initialize() override;
 	void Finalize() override{}
 
 	void Start() override;

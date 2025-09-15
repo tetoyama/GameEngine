@@ -23,6 +23,13 @@ public:
 	virtual ~CustomScriptComponent() = default;
 
 	void Initialize(){
+		//if(!isInitialized){
+		//	OnStart();
+		//	isInitialized = true;
+		//}
+	}
+
+	void Start(){
 		if(!isInitialized){
 			OnStart();
 			isInitialized = true;

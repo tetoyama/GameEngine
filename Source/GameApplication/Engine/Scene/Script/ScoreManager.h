@@ -4,26 +4,27 @@
 
 class ScoreManager: public CustomScriptComponent {
 public:
+	BEGIN_REFLECT(ScoreManager)
+		REFLECT_FIELD_INIT(int, RedScore, 0,REFLECT_INSPECTOR)
+		REFLECT_FIELD_INIT(int, BlueScore, 0, REFLECT_INSPECTOR)
 
 	ScoreManager(): CustomScriptComponent("ScoreManager"){}
 
 	YAML::Node encode() override{
 		YAML::Node node;
-		node["ScriptName"] = scriptName;
-		node["Score"] = Score;
+		ENCODE_FIELDS(node);
+
 		return node;
 	}
 	bool decode(const YAML::Node& node) override{
-		if(node["ScriptName"])
-			scriptName = node["ScriptName"].as<std::string>();
-		if(node["Score"])
-			Score = node["Score"].as<int>();
+		DECODE_FIELDS(node);
+
 		return true;
 	}
 
 	void inspector(SceneContext* context) override{
-		ImGui::Text(scriptName.c_str());
-		ImGui::InputInt("Score", &Score);
+		INSPECTOR_FIELDS();
+
 	}
 
 	void OnStart() override{}
@@ -33,6 +34,5 @@ public:
 	void OnEditorUpdate(float dt)override{}
 	void OnStop() override{}
 
-	int Score = 0;
 private:
 };

@@ -2673,10 +2673,14 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Registry\systemRegistry.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\scene.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\sceneManager.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Script\BallController.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Script\CameraController.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Script\GameTimeManager.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\PlayerController.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\ScoreManager.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\ScoreSprite.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\SetScene.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Script\TimerSprite.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\audioSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\cameraSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\ISystem.h" />
@@ -3139,6 +3143,7 @@
     </FxCompile>
     <FxCompile Include="Source\Shader\bumpPS2.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Source\Shader\common.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -3168,9 +3173,11 @@
     </FxCompile>
     <FxCompile Include="Source\Shader\limLightPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Source\Shader\oldBumpPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Source\Shader\OutlinePS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
@@ -3186,6 +3193,7 @@
     </FxCompile>
     <FxCompile Include="Source\Shader\pixelLightingBlinnPhongPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Source\Shader\PixelShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
@@ -3195,9 +3203,11 @@
     </FxCompile>
     <FxCompile Include="Source\Shader\pointLightingBlinnPhongPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Source\Shader\semiSphereLightingPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Source\Shader\skinnedVertex.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
@@ -3205,9 +3215,11 @@
     </FxCompile>
     <FxCompile Include="Source\Shader\spotLightPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Source\Shader\textureShadowPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Source\Shader\ToonShaderPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
@@ -3221,6 +3233,7 @@
     </FxCompile>
     <FxCompile Include="Source\Shader\vertexDirectionalLightingPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
