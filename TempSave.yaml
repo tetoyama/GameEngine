@@ -6,17 +6,17 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: -10
+          y: -2.4000001
           z: 0
         Rotation:
+          - -0
           - 0
-          - 0
-          - 0
+          - -0
           - 1
         Scale:
-          x: 100
+          x: 13.79
           y: 10
-          z: 100
+          z: 11.1300001
         Parent: 0
       - Component: ColliderComponent
         isDynamic: false
@@ -72,7 +72,7 @@ Entities:
         PixelShader: Asset\Shader\PixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 1251.92236
+        AnimationTime: 19259.9648
       - Component: PlayerController
         health: 0
         isInvincible: false
@@ -195,60 +195,55 @@ Entities:
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
-        AnimationTime: 1251.92236
+        AnimationTime: 19259.9648
   - Entity: 4
     Components:
       - Component: NameComponent
         Name: Player
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 0.200000003
-          z: 0
+          x: 1.50506043
+          y: 2.6286037
+          z: -0.0704126358
         Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
+          - 4.04072925e-05
+          - 0.729449868
+          - -3.39987273e-05
+          - 0.684034288
         Scale:
-          x: 1
-          y: 1
-          z: 1
+          x: 0.00299999863
+          y: 0.00300000003
+          z: 0.00299999863
         Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
+      - Component: ColliderComponent
+        isDynamic: true
+        colliders:
+          - type: 0
+            size:
+              - 30
+              - 165.699997
+              - 30
+            offset:
+              - 0
+              - 80.0999985
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.5
+            dynamicFriction: 0.5
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: true
+            lockRotY: false
+            lockRotZ: true
       - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
+        FilePath: Asset\Model\Akai.fbx
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 1251.92236
+        AnimationTime: 19259.9648
+        Animations:
+          mixamo.com: Asset\Model\Akai.fbx
   - Entity: 5
     Components:
       - Component: NameComponent
@@ -301,376 +296,21 @@ Entities:
   - Entity: 6
     Components:
       - Component: NameComponent
-        Name: Enemy1
+        Name: Ball
       - Component: TransformComponent
         Position:
-          x: 18.1784134
-          y: 0.200000003
-          z: -6.0498786
+          x: 0.135013476
+          y: 2.88627672
+          z: -0.0853434801
         Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
+          - -0.0302640125
+          - 0.00279241637
+          - -0.0917858556
+          - 0.995314837
         Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-        AnimationTime: 1251.92236
-  - Entity: 7
-    Components:
-      - Component: NameComponent
-        Name: Enemy2
-      - Component: TransformComponent
-        Position:
-          x: 5.41634417
-          y: 0.200000003
-          z: 12.2597713
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-        AnimationTime: 1251.92236
-  - Entity: 8
-    Components:
-      - Component: NameComponent
-        Name: Enemy3
-      - Component: TransformComponent
-        Position:
-          x: -22.5099525
-          y: 0.200000003
-          z: 22.3242455
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-        AnimationTime: 1251.92236
-  - Entity: 9
-    Components:
-      - Component: NameComponent
-        Name: Enemy4
-      - Component: TransformComponent
-        Position:
-          x: -5.7384572
-          y: 0.200000003
-          z: -9.32716084
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-        AnimationTime: 1251.92236
-  - Entity: 10
-    Components:
-      - Component: NameComponent
-        Name: Enemy5
-      - Component: TransformComponent
-        Position:
-          x: -0.903372765
-          y: 0.200000003
-          z: -13.1616011
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-        AnimationTime: 1251.92236
-  - Entity: 11
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 6.27998734
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 5
-          y: 5
-          z: 5
-        Parent: 0
-      - Component: ColliderComponent
-        isDynamic: true
-        colliders:
-          - type: 0
-            size:
-              - 1
-              - 1
-              - 1
-            offset:
-              - 0
-              - 0
-              - 0
-            radius: 0.5
-            height: 1
-            staticFriction: 0.5
-            dynamicFriction: 0.5
-            restitution: 0.100000001
-            collisionLayer: 0
-            lockRotX: false
-            lockRotY: false
-            lockRotZ: false
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\cube.obj
-        PixelShader: Asset\Shader\disneyPBR_PS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-        AnimationTime: 1251.92236
-  - Entity: 12
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: 7.98724222
-          y: 12.5825386
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 9.73194504
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: ColliderComponent
-        isDynamic: true
-        colliders:
-          - type: 0
-            size:
-              - 1
-              - 1
-              - 1
-            offset:
-              - 0
-              - 0
-              - 0
-            radius: 0.5
-            height: 1
-            staticFriction: 0.5
-            dynamicFriction: 0.5
-            restitution: 0.100000001
-            collisionLayer: 0
-            lockRotX: false
-            lockRotY: false
-            lockRotZ: false
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\cube.obj
-        isBlender: false
-        AnimationTime: 1251.92236
-  - Entity: 13
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: 0.72640121
-          y: 23.6884003
-          z: 0
-        Rotation:
-          - -0
-          - 0
-          - -0
-          - 1
-        Scale:
-          x: 10
-          y: 10
-          z: 10
+          x: 0.299999982
+          y: 0.300000012
+          z: 0.300000012
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
@@ -684,7 +324,7 @@ Entities:
               - 0
               - 0
               - 0
-            radius: 0.200000003
+            radius: 0.5
             height: 1
             staticFriction: 0.5
             dynamicFriction: 0.5
@@ -694,8 +334,416 @@ Entities:
             lockRotY: false
             lockRotZ: false
       - Component: ModelRendererComponent
-        FilePath: Asset\Model\ball.fbx
-        PixelShader: Asset\Shader\disneyPBR_PS.cso
+        FilePath: Asset\Model\mesh.fbx
+        PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 18007.9473
+  - Entity: 7
+    Components:
+      - Component: NameComponent
+        Name: Stadium
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Model\football-stadium-with-surrounding-area\textures\Etaj4.jpeg
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\football-stadium-with-surrounding-area\stadion_floor.fbx
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: true
+        AnimationTime: 18007.9473
+  - Entity: 8
+    Components:
+      - Component: NameComponent
+        Name: Roof
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 7
+      - Component: TextureComponent
+        FilePath: Asset\Model\football-stadium-with-surrounding-area\textures\Krysha3.jpeg
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\football-stadium-with-surrounding-area\stadion_roof.fbx
+        isBlender: true
+        AnimationTime: 18007.9473
+  - Entity: 9
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 7
+      - Component: TextureComponent
+        FilePath: Asset\Model\football-stadium-with-surrounding-area\textures\Opory2.jpeg
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\football-stadium-with-surrounding-area\stadion_hasira.fbx
+        isBlender: true
+        AnimationTime: 18007.9473
+  - Entity: 10
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 7
+      - Component: TextureComponent
+        FilePath: Asset\Model\football-stadium-with-surrounding-area\textures\Tribuny2.jpeg
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\football-stadium-with-surrounding-area\stadion_seki.fbx
+        isBlender: true
+        AnimationTime: 18007.9473
+  - Entity: 11
+    Components:
+      - Component: NameComponent
+        Name: Wall
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        colliders:
+          - type: 0
+            size:
+              - 10
+              - 10
+              - 10
+            offset:
+              - 11
+              - 7.69999981
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.5
+            dynamicFriction: 0.5
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+          - type: 0
+            size:
+              - 10
+              - 10
+              - 10
+            offset:
+              - -10.6000004
+              - 7.69999981
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.5
+            dynamicFriction: 0.5
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+          - type: 0
+            size:
+              - 15
+              - 10
+              - 15
+            offset:
+              - 0
+              - 7.69999981
+              - 11.6000004
+            radius: 0.5
+            height: 1
+            staticFriction: 0.5
+            dynamicFriction: 0.5
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+          - type: 0
+            size:
+              - 15
+              - 10
+              - 15
+            offset:
+              - 0
+              - 7.69999981
+              - -11.6999998
+            radius: 0.5
+            height: 1
+            staticFriction: 0.5
+            dynamicFriction: 0.5
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+  - Entity: 12
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: -0.281689674
+          y: -0.447886586
+          z: 0
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 0.100000001
+          y: 0.100000001
+          z: 0.100000001
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\number.png
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 5
+        UV_Slice_Y: 5
+        AnimationNum: 0
+      - Component: SpriteRendererComponent
+        anchor:
+          x: 0.5
+          y: 0.5
+        pivot:
+          x: 0
+          y: 0
+  - Entity: 13
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: -0.212393537
+          y: -0.446478099
+          z: 0
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 0.100000001
+          y: 0.100000001
+          z: 0.100000001
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\number.png
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 5
+        UV_Slice_Y: 5
+        AnimationNum: 0
+      - Component: SpriteRendererComponent
+        anchor:
+          x: 0.5
+          y: 0.5
+        pivot:
+          x: 0
+          y: 0

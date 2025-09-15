@@ -29,6 +29,10 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 	model->isBlender = isBlender;
 	model->AiScene = aiImportFile(path.c_str(), aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded /* | aiProcess_GenBoundingBoxes */);
 
+	if(!model->AiScene){
+		model.reset();
+		return nullptr;
+	}
 
 	model->VertexBuffer = new ID3D11Buffer * [model->AiScene->mNumMeshes];
 	model->IndexBuffer = new ID3D11Buffer * [model->AiScene->mNumMeshes];
@@ -247,36 +251,44 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 						}
 
 						std::string fullTexPath = directory + textureFilePath;
+						std::u8string utf8Path = reinterpret_cast<const char8_t*>(fullTexPath.c_str());
+						std::filesystem::path texPath{utf8Path};
+						std::error_code ec;
 
-						if(fs::exists(fullTexPath)){
-							ID3D11ShaderResourceView* texture = nullptr;
+						if(fs::exists(texPath,ec)){
+							if(ec){
+								OutputDebugStringA(("fs::exists error: " + ec.message()).c_str());
 
-							DirectX::TexMetadata metadata{};
-							DirectX::ScratchImage image{};
+							} else{
+								ID3D11ShaderResourceView* texture = nullptr;
 
-							HRESULT hr = DirectX::LoadFromWICFile(
-								std::wstring(fullTexPath.begin(), fullTexPath.end()).c_str(),
-								DirectX::WIC_FLAGS_NONE,
-								&metadata,
-								image);
+								DirectX::TexMetadata metadata{};
+								DirectX::ScratchImage image{};
 
-							if(SUCCEEDED(hr)){
-								hr = DirectX::CreateShaderResourceView(
-									context->GetDevice(),
-									image.GetImages(),
-									image.GetImageCount(),
-									metadata,
-									&texture);
+								HRESULT hr = DirectX::LoadFromWICFile(
+									std::wstring(fullTexPath.begin(), fullTexPath.end()).c_str(),
+									DirectX::WIC_FLAGS_NONE,
+									&metadata,
+									image);
 
 								if(SUCCEEDED(hr)){
-									model->m_Texture[textureFilePath] = texture;
-									model->SetTexture = true;
+									hr = DirectX::CreateShaderResourceView(
+										context->GetDevice(),
+										image.GetImages(),
+										image.GetImageCount(),
+										metadata,
+										&texture);
 
+									if(SUCCEEDED(hr)){
+										model->m_Texture[textureFilePath] = texture;
+										model->SetTexture = true;
+
+									} else{
+										OutputDebugStringA(("Failed to create shader resource view for texture: " + fullTexPath + "\n").c_str());
+									}
 								} else{
-									OutputDebugStringA(("Failed to create shader resource view for texture: " + fullTexPath + "\n").c_str());
+									OutputDebugStringA(("Failed to load WIC texture file: " + fullTexPath + "\n").c_str());
 								}
-							} else{
-								OutputDebugStringA(("Failed to load WIC texture file: " + fullTexPath + "\n").c_str());
 							}
 						} else{
 							OutputDebugStringA(("Texture file not found: " + fullTexPath + "\n").c_str());
