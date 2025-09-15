@@ -1403,3 +1403,82 @@ Entities:
           y: 0
       - Component: FadeInSprite
         FadeTime: 1
+  - Entity: 24
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 2.67000008
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 0
+            y: 0
+            z: 0
+            w: 0
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: SpriteRendererComponent
+        anchor:
+          x: 0.5
+          y: 0.5
+        pivot:
+          x: 0
+          y: 0
+      - Component: FadeOutSprite
+        FadeTime: 1
+  - Entity: 25
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 42.3561707
+          y: 55.6905518
+          z: -50.6025696
+        Rotation:
+          - -0.0618773624
+          - 0.133216292
+          - -0.416692942
+          - 0.89710182
+        Scale:
+          x: 1.00000012
+          y: 0.999999881
+          z: 1.00000012
+        Parent: 22
+      - Component: BillBoardRendererComponent
+        RotateX: true
+        RotateY: true
+        RotateZ: true
