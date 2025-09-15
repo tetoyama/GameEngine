@@ -175,60 +175,6 @@ Entities:
   - Entity: 4
     Components:
       - Component: NameComponent
-        Name: Player
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0.0500000007
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 2
-          y: 1.35135138
-          z: 1.35135138
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\03626073-9e02-40ca-ac27-43c12f45e821.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0.554112554
-            y: 0.554112554
-            z: 0.554112554
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
-  - Entity: 5
-    Components:
-      - Component: NameComponent
         Name: Camera
       - Component: TransformComponent
         Position:
@@ -275,7 +221,7 @@ Entities:
             - -24.9833488
             - -0.912284851
             - 1
-  - Entity: 6
+  - Entity: 5
     Components:
       - Component: NameComponent
         Name: Enemy1
@@ -328,7 +274,7 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 0
-  - Entity: 7
+  - Entity: 6
     Components:
       - Component: NameComponent
         Name: Enemy2
@@ -381,7 +327,7 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 0
-  - Entity: 8
+  - Entity: 7
     Components:
       - Component: NameComponent
         Name: Enemy3
@@ -434,7 +380,7 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 0
-  - Entity: 9
+  - Entity: 8
     Components:
       - Component: NameComponent
         Name: Enemy4
@@ -487,7 +433,7 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 0
-  - Entity: 10
+  - Entity: 9
     Components:
       - Component: NameComponent
         Name: Enemy5
@@ -540,14 +486,14 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 0
-  - Entity: 11
+  - Entity: 10
     Components:
       - Component: NameComponent
         Name: Entity
       - Component: TransformComponent
         Position:
           x: 0
-          y: 0.0277193282
+          y: -0.0570760109
           z: 0
         Rotation:
           - -0
@@ -556,11 +502,11 @@ Entities:
           - 1
         Scale:
           x: 1.5
-          y: 0.171000004
+          y: 0.300999999
           z: 0.581081092
         Parent: 0
       - Component: TextureComponent
-        FilePath: Asset\Texture\SOCCERGAME.png
+        FilePath: Asset\Texture\YOUWIN.png
         Material:
           Ambient:
             x: 0.100000001
@@ -568,9 +514,9 @@ Entities:
             z: 0.100000001
             w: 1
           Diffuse:
-            x: 0.776465952
+            x: 1
             y: 1
-            z: 0.75757575
+            z: 1
             w: 1
           Specular:
             x: 0.0399999991
@@ -594,7 +540,7 @@ Entities:
         pivot:
           x: 0
           y: 0
-  - Entity: 12
+  - Entity: 11
     Components:
       - Component: NameComponent
         Name: Entity
@@ -650,7 +596,7 @@ Entities:
           y: 0
       - Component: FadeInSprite
         FadeTime: 1
-  - Entity: 13
+  - Entity: 12
     Components:
       - Component: NameComponent
         Name: Entity
@@ -704,3 +650,62 @@ Entities:
         pivot:
           x: 0
           y: 0
+  - Entity: 13
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 2.21000004
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 0
+            y: 0
+            z: 0
+            w: 0
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: SpriteRendererComponent
+        anchor:
+          x: 0.5
+          y: 0.5
+        pivot:
+          x: 0
+          y: 0
+      - Component: FadeOutSprite
+        FadeTime: 1
+      - Component: FadeSetScene
+        ScriptName: FadeSetScene
+        SceneName: Asset/Scene/scene_title.yaml

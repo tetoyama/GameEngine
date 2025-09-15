@@ -41,7 +41,7 @@ public:
 		auto Texture = GetComponent<TextureComponent>();
 		if(Texture){
 			// スコアに応じてテクスチャを設定
-			Texture->Material.Diffuse.w = 1.0f - Timer / FadeTime;
+			Texture->Material.Diffuse.w = Timer / FadeTime;
 		}
 	}
 	void OnFixedUpdate(float dt)override{}

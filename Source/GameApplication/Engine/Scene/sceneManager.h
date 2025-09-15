@@ -2,6 +2,7 @@
 #pragma once
 #include <memory>
 #include <Windows.h>
+#include <string>
 #include "Service/IService.h"
 
 class MainRenderer;
@@ -44,6 +45,7 @@ public:
 
 	void SaveScene();
 	void LoadFromYAMLFile();
+	bool LoadFromYAML(const std::string& filePath);
 
 private:
 	std::shared_ptr<Scene> m_activeScene;

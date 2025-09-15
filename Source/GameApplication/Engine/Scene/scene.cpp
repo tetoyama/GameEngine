@@ -66,6 +66,7 @@
 #include "Script/EnemyController.h"
 #include "Script/FadeInSprite.h"
 #include "Script/FadeOutSprite.h"
+#include "Script/FadeSetScene.h"
 
 #include "Script/CameraController.h"
 
@@ -143,6 +144,7 @@ void Scene::Initialize(ManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<EnemyController>("EnemyController", false);
 	m_componentRegistry->RegisterYAMLComponent<FadeInSprite>("FadeInSprite", false);
 	m_componentRegistry->RegisterYAMLComponent<FadeOutSprite>("FadeOutSprite", false);
+	m_componentRegistry->RegisterYAMLComponent<FadeSetScene>("FadeSetScene", false);
 
 
 

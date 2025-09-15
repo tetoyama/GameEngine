@@ -1226,6 +1226,7 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 	m_context->manager->graphics->GetEffectManager()->Draw();
 
 	m_context->manager->graphics->GetEffectRenderer()->EndRendering();
+#ifdef _DEBUG
 
 	auto physics = m_context->system->GetSystem<PhysicSystem>();
 	const physx::PxRenderBuffer& rb = physics->GetRenderBuffer();
@@ -1280,5 +1281,7 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 
 	// 描画
 	context->Draw(static_cast<UINT>(vertices.size()), 0);
+
+#endif // _DEBUG
 
 }

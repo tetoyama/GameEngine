@@ -120,6 +120,12 @@ public:
 		if(dir.length() > 0.01f){
 			dir = dir.normalize();
 			move = dir;
+
+			if(transform->position.y < ballTransform->position.y){
+				moveTarget = ballTransform->position;
+				dir = moveTarget - transform->position;
+				move = dir * -1.0f;
+			}
 		}
 
 		// ダッシュ判定

@@ -23,6 +23,7 @@ void CustomScriptSystem::Initialize(){
 		if(script && !script->IsInitialized()){
 			script->SetContext(m_context, entity);
 			script->Initialize();
+			script->Start();
 		}
 	}
 }

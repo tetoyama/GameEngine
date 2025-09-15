@@ -64,10 +64,10 @@ public:
 	void SetState(const SceneState& state){m_SceneContext.state = state;}
 
 	std::string ScenePath = ""; // シーンのパス
+	void LoadSceneFromYAML(std::string path);
 
 private:
 
-	void LoadSceneFromYAML(std::string path);
 	std::string LoadSceneFileDialog();
 	bool SaveSceneFileDialog(std::wstring& outPath);
 

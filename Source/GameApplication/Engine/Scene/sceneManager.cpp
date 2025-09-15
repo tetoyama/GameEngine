@@ -18,6 +18,7 @@ void SceneManager::Update(float deltaTime){
 	}
 	if(m_NeedSceneChange){
 		LoadScene(m_NextScene);
+		m_NextScene->SetState(SceneState::Playing);
 		m_NeedSceneChange = false;
 		m_NextScene.reset();
 	}
@@ -95,4 +96,23 @@ void SceneManager::LoadFromYAMLFile(){
 		m_activeScene->Initialize(&m_SceneContext);
 	}
 	OpenFlag = true;
+}
+
+bool SceneManager::LoadFromYAML(const std::string& filePath){
+	auto scene = std::make_shared<Scene>();
+	if(m_activeScene){
+		m_SceneContext.debug->LOG_DEBUG("ActiveSceneを終了します");
+		m_activeScene->Shutdown();
+	}
+
+	scene->Initialize(&m_SceneContext);
+	scene->LoadSceneFromYAML(filePath);
+	m_activeScene.reset();
+	m_activeScene = scene;
+	m_SceneContext.debug->LOG_INFO("Sceneをファイルから読み込みました: " + filePath);
+	m_SceneContext.resource->ClearAllUnused();
+	scene->SetState(SceneState::Playing);
+	OpenFlag = true;
+
+	return true;
 }

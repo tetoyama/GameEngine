@@ -59,6 +59,11 @@ public:
 			velocity = Vector3(0, 0, 0);
 			if(scoreManager) scoreManager->BlueScore++;
 		}
+
+		if(transform->position.y < -10.0f){
+			transform->position = Vector3(0.0f, 1.0f, 0.0f);
+
+		}
 	}
 
 	void OnFixedUpdate(float dt) override{}

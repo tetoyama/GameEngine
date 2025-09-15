@@ -1,6 +1,8 @@
 #pragma once
 #include "Component/CustomScriptComponent.h"
 #include "Backends/checkFileExtention.h"
+#include "fadeOutSprite.h"
+#include "scoreManager.h"
 
 class GameTimeManager: public CustomScriptComponent {
 public:
@@ -12,7 +14,8 @@ public:
 		REFLECT_FIELD(int, InGameTime, 60)
 
 	bool init = false;
-
+	FadeOutSprite* fade = nullptr;
+	ScoreManager* score = nullptr;
 	GameTimeManager(): CustomScriptComponent("GameTimeManager"){}
 
 	YAML::Node encode() override{
@@ -33,6 +36,16 @@ public:
 		Timer = (float)InGameTime;
 		CountDownTimer = (float)CountDownTime;
 		ShutDownTimer = 0.0f;
+
+		auto fadeEntities = m_context->component->FindEntitiesWithComponent<FadeOutSprite>();
+		if(!fadeEntities.empty()){
+			fade = m_context->component->GetComponent<FadeOutSprite>(fadeEntities[0]);
+		}
+
+		auto scoreEntities = m_context->component->FindEntitiesWithComponent<ScoreManager>();
+		if(!scoreEntities.empty()){
+			score = m_context->component->GetComponent<ScoreManager>(scoreEntities[0]);
+		}
 	}
 	void OnUpdate(float dt) override{
 		if(CountDownTimer > 0.0f){
@@ -47,6 +60,31 @@ public:
 			}
 		} else{
 			ShutDownTimer += dt;
+			if(fade){
+				fade->Active = true;
+
+				if(fade->Active && fade->FadeTime <= fade->Timer){
+					if(score){
+
+
+						if(score->BlueScore >= score->RedScore){
+							LoadScene("Asset/Scene/scene_win.yaml");
+						} else{
+							LoadScene("Asset/Scene/scene_lose.yaml");
+						}
+					} else{
+						auto scoreEntities = m_context->component->FindEntitiesWithComponent<ScoreManager>();
+						if(!scoreEntities.empty()){
+							score = m_context->component->GetComponent<ScoreManager>(scoreEntities[0]);
+						}
+					}
+				}
+			} else{
+				auto fadeEntities = m_context->component->FindEntitiesWithComponent<FadeOutSprite>();
+				if(!fadeEntities.empty()){
+					fade = m_context->component->GetComponent<FadeOutSprite>(fadeEntities[0]);
+				}
+			}
 		}
 	}
 	void OnFixedUpdate(float dt)override{}

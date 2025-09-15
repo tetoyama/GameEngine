@@ -100,6 +100,15 @@ bool ImGuiService::Initialize(IWindow* window, GraphicsContext* graphics){
 		graphics->GetDeviceContext()
 	);
 
+#ifdef _DEBUG
+#else
+	showSceneHierarchy = false;
+	showInspector = false;
+	showConsole = false;
+	showAssetsBrowser = false;
+#endif // _DEBUG
+
+
 	return initialized_;
 }
 
@@ -195,15 +204,20 @@ void ImGuiService::End(){
 
 	ImGuiIO& io = ImGui::GetIO();
 
-
+#ifdef _DEBUG
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
 
-	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+	if(io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable){
 		ImGui::UpdatePlatformWindows();
 		ImGui::RenderPlatformWindowsDefault();
 	}
+#else
+
+#endif // _DEBUG
+
+
 
 }
 

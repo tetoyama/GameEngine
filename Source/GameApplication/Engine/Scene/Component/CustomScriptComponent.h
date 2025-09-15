@@ -112,7 +112,7 @@ public:
 	void LoadScene(const std::string& sceneName){
 		auto setScene = std::make_shared<Scene>();
 		setScene->ScenePath = sceneName;
-		setScene->SetState(SceneState::Playing);
+		setScene->SetState(SceneState::Stopped);
 		m_context->manager->sceneManager->DeferredLoadScene(setScene);
 	}
 
