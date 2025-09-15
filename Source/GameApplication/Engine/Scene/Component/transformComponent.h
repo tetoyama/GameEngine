@@ -2,14 +2,18 @@
 #include "Interface/IComponent.h"
 #include "Backends/myVector3.h"
 #include "Service/YAMLConverters.h"
+#include "Service/ImGuiFunc.h"
 #include "Registry/componentRegistry.h"
 #include "GameApplication/Engine/DebugTools/ImGuiSystem.h"
 #include <DirectXMath.h>
 
 class TransformComponent: public IComponent {
+private:
+	Vector3 rotationEular;
+	DirectX::XMFLOAT4 rotation = {0, 0, 0, 1}; // クォータニオン
+
 public:
 	Vector3 position = Vector3(0, 0, 0);
-	DirectX::XMFLOAT4 rotation = {0, 0, 0, 1}; // クォータニオン
 	Vector3 scale = Vector3(1, 1, 1);
 	Entity parent = 0;
 	// rotation を XMVECTOR として取得
@@ -55,12 +59,22 @@ public:
 
 	// オイラー角 (ラジアン) から回転を設定する
 	void SetRotationEuler(const Vector3& euler){
+		rotationEular = euler;
 		DirectX::XMVECTOR q = DirectX::XMQuaternionRotationRollPitchYaw(
 			euler.x, // Pitch (X軸)
 			euler.y, // Yaw   (Y軸)
 			euler.z  // Roll  (Z軸)
 		);
 		DirectX::XMStoreFloat4(&rotation, q);
+	}
+
+	void SetRotation(const DirectX::XMFLOAT4 q){
+		rotation = q;
+		rotationEular = GetRotationEuler();
+	}
+
+	const DirectX::XMFLOAT4& GetRotation() const{
+		return rotation;
 	}
 
 	// オイラー角 (ラジアン) を取得する
@@ -168,34 +182,17 @@ public:
 
 		// ----------- Rotation (Euler UI) -----------
 		{
-			DirectX::XMVECTOR q = DirectX::XMLoadFloat4(&rotation);
-			DirectX::XMFLOAT4 qf;
-			DirectX::XMStoreFloat4(&qf, q);
-
-			// クォータニオン → オイラー角変換 (Roll=X, Pitch=Y, Yaw=Z)
-			float ysqr = qf.y * qf.y;
-
-			float t0 = +2.0f * (qf.w * qf.x + qf.y * qf.z);
-			float t1 = +1.0f - 2.0f * (qf.x * qf.x + ysqr);
-			float roll = atan2f(t0, t1);
-
-			float t2 = +2.0f * (qf.w * qf.y - qf.z * qf.x);
-			t2 = (t2 > 1.0f) ? 1.0f : t2;
-			t2 = (t2 < -1.0f) ? -1.0f : t2;
-			float pitch = asinf(t2);
-
-			float t3 = +2.0f * (qf.w * qf.z + qf.x * qf.y);
-			float t4 = +1.0f - 2.0f * (ysqr + qf.z * qf.z);
-			float yaw = atan2f(t3, t4);
-
-			float e[3] = {roll, pitch, yaw};
-
+			float e[3] = {rotationEular.x, rotationEular.y, rotationEular.z};
 			if(ImGui::DragFloat3("Rotation (Euler)", e, 0.01f)){
 				DirectX::XMVECTOR qNew = DirectX::XMQuaternionRotationRollPitchYaw(
 					e[0], e[1], e[2]
 				);
 				DirectX::XMStoreFloat4(&rotation, qNew);
+				rotationEular.x = e[0];
+				rotationEular.y = e[1];
+				rotationEular.z = e[2];
 			}
+
 		}
 
 

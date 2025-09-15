@@ -1,5 +1,5 @@
 #include "physicSystem.h"
-# include <mutex>
+#include <mutex>
 #include "Source/GameApplication/BackEnds/PhysX/PxPhysicsAPI.h"
 #include <GameApplication/Engine/Scene/scene.h>
 #include <GameApplication/Engine/Scene/sceneManager.h>
@@ -17,249 +17,292 @@
 #pragma comment(lib, "SceneQuery_static_64.lib")
 #pragma comment(lib, "SimulationController_static_64.lib")
 
-ID3D11InputLayout* debugInputLayout = nullptr;
-
-
-struct DebugVertex {
-	DirectX::XMFLOAT3 pos;
-	DirectX::XMFLOAT4 color;
-};
-
-// Dynamic Rigidbodyの作成
-physx::PxRigidDynamic* PhysicSystem::CreateDynamic(const physx::PxTransform& t,
-							  const physx::PxGeometry& geometry, physx::PxMaterial& material, physx::PxReal density) {
-
+physx::PxRigidDynamic* PhysicSystem::CreateDynamic(const physx::PxTransform& t, const physx::PxGeometry& geometry, physx::PxMaterial& material, physx::PxReal density){
 	physx::PxRigidDynamic* rigid_dynamic = PxCreateDynamic(*g_pPhysics, t, geometry, material, density);
 	g_pScene->addActor(*rigid_dynamic);
-
 	return rigid_dynamic;
 }
 
-physx::PxRigidStatic* PhysicSystem::CreateStatic(const physx::PxTransform& t, const physx::PxGeometry& geometry, physx::PxMaterial& material) {
-
+physx::PxRigidStatic* PhysicSystem::CreateStatic(const physx::PxTransform& t, const physx::PxGeometry& geometry, physx::PxMaterial& material){
 	physx::PxRigidStatic* rigid_static = PxCreateStatic(*g_pPhysics, t, geometry, material);
 	g_pScene->addActor(*rigid_static);
-
 	return rigid_static;
 }
 
-void PhysicSystem::Initialize(){
-	UpdatingPhysics = false;
-	// Foundationのインスタンス化
-	g_pFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, g_defaultAllocator, g_defaultErrorCallback);
-	if(g_pFoundation){
-	    // PVDと接続する設定
-	    g_pPvd = physx::PxCreatePvd(*g_pFoundation);
-	    // PVD側のデフォルトポートは5425
-	    physx::PxPvdTransport* transport = physx::PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
-	    g_pPvd->connect(*transport, physx::PxPvdInstrumentationFlag::eALL);
+
+// Actor に attach する形で PxShape を作成
+physx::PxShape* PhysicSystem::CreatePxShape(physx::PxRigidActor* actor, const ColliderShape& col, const Vector3& scale, physx::PxMaterial& material){
+	if(!actor) return nullptr;
+
+	physx::PxShape* shape = nullptr;
+	switch(col.type){
+		case ColliderType::Box:
+			shape = physx::PxRigidActorExt::createExclusiveShape(
+				*actor,
+				physx::PxBoxGeometry(col.size.x * 0.5f * scale.x,
+									 col.size.y * 0.5f * scale.y,
+									 col.size.z * 0.5f * scale.z),
+				material
+			);
+			break;
+		case ColliderType::Sphere:
+		{
+			float r = col.radius * (std::max)({scale.x, scale.y, scale.z});
+			shape = physx::PxRigidActorExt::createExclusiveShape(
+				*actor,
+				physx::PxSphereGeometry(r),
+				material
+			);
+			break;
+		}
+		case ColliderType::Capsule:
+		{
+			float rxz = (std::max)(scale.x, scale.z);
+			float ry = scale.y;
+			shape = physx::PxRigidActorExt::createExclusiveShape(
+				*actor,
+				physx::PxCapsuleGeometry(col.radius * rxz, col.height * 0.5f * ry),
+				material
+			);
+			break;
+		}
+		case ColliderType::Mesh:
+			// Mesh は事前に Cooking が必要
+			break;
 	}
 
-	// Physicsのインスタンス化
+	if(shape){
+		physx::PxVec3 offset(col.offset.x * scale.x,
+							 col.offset.y * scale.y,
+							 col.offset.z * scale.z);
+		shape->setLocalPose(physx::PxTransform(offset));
+	}
+
+	return shape;
+}
+
+void PhysicSystem::UpdateColliderParam(ColliderComponent* collider, size_t entity, size_t index){
+	if(!collider) return;
+	if(index >= collider->colliders.size()) return;
+
+	ColliderShape& col = collider->colliders[index];
+	physx::PxRigidActor* actor = collider->isDynamic ?
+		static_cast<physx::PxRigidActor*>(collider->pRigidbodyDynamic) :
+		static_cast<physx::PxRigidActor*>(collider->pRigidbodyStatic);
+
+	if(!actor) return;
+
+	// シーン変更は write-lock の中で行う
+	g_pScene->lockWrite();
+
+	// 1) 古い shape を確実に解放（pxShape が nullptr なら何もしない）
+	if(col.pxShape){
+		actor->detachShape(*col.pxShape);
+		//col.pxShape->release();
+		col.pxShape = nullptr;
+	}
+
+	// 2) 古い material があれば解放（不要なら omit）
+	if(col.pxMaterial){
+		col.pxMaterial->release();
+		col.pxMaterial = nullptr;
+	}
+
+	// 3) 新しい material を作成して保存
+	physx::PxMaterial* material = g_pPhysics->createMaterial(
+		col.staticFriction, col.dynamicFriction, col.restitution
+	);
+	col.pxMaterial = material;
+
+	// 4) Transform のスケール取得（entity から TransformComponent を取る）
+	TransformComponent* transform = m_context->component->GetComponent<TransformComponent>(entity);
+	Vector3 scale = transform ? transform->scale : Vector3{1.0f, 1.0f, 1.0f};
+
+	// 5) 新しい shape を作って pxShape に保持（CreatePxShape は actor に attach して返す想定）
+	physx::PxShape* newShape = CreatePxShape(actor, col, scale, *material);
+	col.pxShape = newShape;
+
+	// 6) レイヤー / フィルタ設定
+	if(newShape){
+		physx::PxFilterData fd;
+		fd.word0 = col.collisionLayer;
+		newShape->setSimulationFilterData(fd);
+	}
+
+	// 7) 回転軸固定は actor（Dynamic）側に設定
+	if(collider->isDynamic){
+		physx::PxRigidDynamic* dyn = static_cast<physx::PxRigidDynamic*>(actor);
+		physx::PxRigidDynamicLockFlags lockFlags = physx::PxRigidDynamicLockFlags();
+		if(col.lockRotX) lockFlags |= physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_X;
+		if(col.lockRotY) lockFlags |= physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_Y;
+		if(col.lockRotZ) lockFlags |= physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_Z;
+		dyn->setRigidDynamicLockFlags(lockFlags);
+	}
+
+	g_pScene->unlockWrite();
+}
+
+
+void PhysicSystem::Initialize(){
+	UpdatingPhysics = false;
+	g_pFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, g_defaultAllocator, g_defaultErrorCallback);
+
+	if(g_pFoundation){
+		g_pPvd = physx::PxCreatePvd(*g_pFoundation);
+		physx::PxPvdTransport* transport = physx::PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
+		g_pPvd->connect(*transport, physx::PxPvdInstrumentationFlag::eALL);
+	}
+
 	g_pPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *g_pFoundation, physx::PxTolerancesScale(), true, g_pPvd);
-	// 拡張機能用
 	PxInitExtensions(*g_pPhysics, g_pPvd);
-	// 処理に使うスレッドを指定する
+
 	g_pDispatcher = physx::PxDefaultCpuDispatcherCreate(8);
-	// 空間の設定
 	physx::PxSceneDesc scene_desc(g_pPhysics->getTolerancesScale());
 	scene_desc.gravity = physx::PxVec3(0, -9, 0);
 	scene_desc.filterShader = physx::PxDefaultSimulationFilterShader;
 	scene_desc.cpuDispatcher = g_pDispatcher;
 
 	g_pScene = g_pPhysics->createScene(scene_desc);
-	if (g_pScene) {
+	if(g_pScene){
 		g_pScene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 1.0f);
 		g_pScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f);
 		g_pScene->setVisualizationParameter(physx::PxVisualizationParameter::eACTOR_AXES, 1.0f);
 	}
 
-	// 空間のインスタンス化
-	{
-	    // PVDの表示設定
-	    physx::PxPvdSceneClient* pvd_client;
-	    pvd_client = g_pScene->getScenePvdClient();
-	    pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONSTRAINTS, true);
-	    pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
-	    pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
+	if(g_pScene){
+		physx::PxPvdSceneClient* pvd_client = g_pScene->getScenePvdClient();
+		pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONSTRAINTS, true);
+		pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
+		pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
 	}
-
-
-	// ライン描画用シェーダーをロード
-	LoadDebugShaders();
-}
-
-void PhysicSystem::LoadDebugShaders() {
-	auto device = m_context->manager->graphics->GetDevice();
-
-	// VS
-	ID3DBlob* vsBlob = nullptr;
-	D3DCompileFromFile(L"Source/Shader/DebugLineVS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, &vsBlob, nullptr);
-	device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &m_debugVS);
-
-	// PS
-	ID3DBlob* psBlob = nullptr;
-	D3DCompileFromFile(L"Source/Shader/DebugLinePS.hlsl", nullptr, nullptr, "main", "ps_5_0", 0, 0, &psBlob, nullptr);
-	device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &m_debugPS);
-
-	D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(DebugVertex, pos), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(DebugVertex, color), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
-
-	device->CreateInputLayout(
-		layoutDesc,
-		ARRAYSIZE(layoutDesc),
-		vsBlob->GetBufferPointer(),
-		vsBlob->GetBufferSize(),
-		&debugInputLayout
-	);
-
-	if (vsBlob) vsBlob->Release();
-	if (psBlob) psBlob->Release();
-
-
-
 }
 
 void PhysicSystem::Finalize(){
-
-	if (debugInputLayout) { debugInputLayout->Release(); debugInputLayout = nullptr; }
-	if (m_debugPS) { m_debugPS->Release(); m_debugPS = nullptr; }
-	if (m_debugPS) { m_debugPS->Release(); m_debugPS = nullptr; }
-
-	std::lock_guard<std::mutex> lock(mtx); // mtxを使ってロックする
-
+	std::lock_guard<std::mutex> lock(mtx);
 	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
-
-	for (Entity entity : colliderEntity) {
-
-
+	for(Entity entity : colliderEntity){
 		auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
-		if (Collider->pRigidbodyStatic) {
-			Collider->pRigidbodyStatic->release();
-			Collider->pRigidbodyStatic = nullptr;
+		if(Collider->pRigidbodyStatic){
+			Collider->pRigidbodyStatic->release(); Collider->pRigidbodyStatic = nullptr;
 		}
-		if (Collider->pRigidbodyDynamic) {
-			Collider->pRigidbodyDynamic->release();
-			Collider->pRigidbodyDynamic = nullptr;
-
+		if(Collider->pRigidbodyDynamic){
+			Collider->pRigidbodyDynamic->release(); Collider->pRigidbodyDynamic = nullptr;
 		}
 	}
-
 
 	PxCloseExtensions();
 	g_pScene->release();
 	g_pDispatcher->release();
 	g_pPhysics->release();
+
 	if(g_pPvd){
 		g_pPvd->disconnect();
 		physx::PxPvdTransport* transport = g_pPvd->getTransport();
 		g_pPvd->release();
 		transport->release();
 	}
+
 	g_pFoundation->release();
 }
 
 void PhysicSystem::Start(){
-
-	// コンポーネントを持つエンティティの検索
 	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
-	if (colliderEntity.empty()) {
-		return;
-	} else {
-		for (Entity entity : colliderEntity) {
-			auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
-			auto Transform = m_context->component->GetComponent<TransformComponent>(entity);
+	if(colliderEntity.empty()) return;
 
-			if (Transform) {
+	for(Entity entity : colliderEntity){
+		auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
+		auto Transform = m_context->component->GetComponent<TransformComponent>(entity);
+		if(!Transform) continue;
 
-				physx::PxVec3 pos(Transform->position.x, Transform->position.y, Transform->position.z);
-				physx::PxVec3 rot(Transform->rotation.x, Transform->rotation.y, Transform->rotation.z);
-				physx::PxVec3 scl(Transform->scale.x, Transform->scale.y, Transform->scale.z);
+		physx::PxVec3 pos(Transform->position.x, Transform->position.y, Transform->position.z);
+		DirectX::XMVECTOR dxQuat = DirectX::XMQuaternionRotationRollPitchYaw(
+			Transform->GetRotationEuler().x,
+			Transform->GetRotationEuler().y,
+			Transform->GetRotationEuler().z
+		);
+		physx::PxQuat quatRot;
+		XMStoreFloat4(reinterpret_cast<DirectX::XMFLOAT4*>(&quatRot), dxQuat);
+		physx::PxTransform pxTransform(pos, quatRot);
 
-				DirectX::XMVECTOR dxQuat = DirectX::XMQuaternionRotationRollPitchYaw(
-					Transform->rotation.x,
-					Transform->rotation.y,
-					Transform->rotation.z
-				);
+		physx::PxMaterial* kMaterial = GetPhysics()->createMaterial(0.2f, 0.2f, 0.2f);
 
-				// PxQuatに変換
-				physx::PxQuat quatRot;
-				XMStoreFloat4(reinterpret_cast<DirectX::XMFLOAT4*>(&quatRot), dxQuat);
-				//quatRot.x = rot.x;
-				//quatRot.y = rot.y;
-				//quatRot.z = rot.z;
-				//quatRot.w = 0.0f;
+		if(Collider->isDynamic){
+			Collider->pRigidbodyDynamic = g_pPhysics->createRigidDynamic(pxTransform);
+			g_pScene->addActor(*Collider->pRigidbodyDynamic);
 
-				physx::PxTransform pxTransform(pos, quatRot);
-				
-				physx::PxMaterial* const kMaterial = GetPhysics()->createMaterial(0.2f, 0.2f, 0.2f);
+			for(auto& col : Collider->colliders){
+				// 既存の scale を使う
+				Vector3 scale = Transform->scale;
 
-				if (Collider->isDynamic) {
-					Collider->pRigidbodyDynamic = CreateDynamic(pxTransform, physx::PxBoxGeometry(scl.x, scl.y, scl.z), *kMaterial);
-				} else {
-					Collider->pRigidbodyStatic = CreateStatic(pxTransform, physx::PxBoxGeometry(scl.x, scl.y, scl.z), *kMaterial);
+				// マテリアル作成して保存
+				physx::PxMaterial* material = g_pPhysics->createMaterial(col.staticFriction, col.dynamicFriction, col.restitution);
+				col.pxMaterial = material;
+
+				// CreatePxShape は actor に attach して PxShape* を返す実装を想定
+				physx::PxShape* shape = CreatePxShape(Collider->pRigidbodyDynamic /*またはStatic*/, col, scale, *material);
+				col.pxShape = shape;
+
+				if(shape){
+					// レイヤー等のフィルタがあれば設定
+					physx::PxFilterData fd;
+					fd.word0 = col.collisionLayer;
+					shape->setSimulationFilterData(fd);
+				}
+			}
+		} else{
+			Collider->pRigidbodyStatic = g_pPhysics->createRigidStatic(pxTransform);
+			g_pScene->addActor(*Collider->pRigidbodyStatic);
+
+			for(auto& col : Collider->colliders){
+				// 既存の scale を使う
+				Vector3 scale = Transform->scale;
+
+				// マテリアル作成して保存
+				physx::PxMaterial* material = g_pPhysics->createMaterial(col.staticFriction, col.dynamicFriction, col.restitution);
+				col.pxMaterial = material;
+
+				// CreatePxShape は actor に attach して PxShape* を返す実装を想定
+				physx::PxShape* shape = CreatePxShape(Collider->pRigidbodyStatic /*またはStatic*/, col, scale, *material);
+				col.pxShape = shape;
+
+				if(shape){
+					// レイヤー等のフィルタがあれば設定
+					physx::PxFilterData fd;
+					fd.word0 = col.collisionLayer;
+					shape->setSimulationFilterData(fd);
 				}
 			}
 		}
 	}
 }
-physx::PxVec3 QuatToEuler(const physx::PxQuat& q) {
-	float ysqr = q.y * q.y;
-
-	// ロール (X軸回転)
-	float t0 = +2.0f * (q.w * q.x + q.y * q.z);
-	float t1 = +1.0f - 2.0f * (q.x * q.x + ysqr);
-	float roll = std::atan2(t0, t1);
-
-	// ピッチ (Y軸回転)
-	float t2 = +2.0f * (q.w * q.y - q.z * q.x);
-	t2 = t2 > 1.0f ? 1.0f : t2;
-	t2 = t2 < -1.0f ? -1.0f : t2;
-	float pitch = std::asin(t2);
-
-	// ヨー (Z軸回転)
-	float t3 = +2.0f * (q.w * q.z + q.x * q.y);
-	float t4 = +1.0f - 2.0f * (ysqr + q.z * q.z);
-	float yaw = std::atan2(t3, t4);
-
-	return physx::PxVec3(roll, pitch, yaw);
-}
 
 void PhysicSystem::FixedUpdate(float deltaTime){
 	std::lock_guard<std::mutex> lock(mtx);
-
-	// コンポーネントを持つエンティティの検索
 	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
-	if(colliderEntity.empty()){
-		return;
-	} else{
-		for(Entity entity : colliderEntity){
-			auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
-			auto Transform = m_context->component->GetComponent<TransformComponent>(entity);
+	if(colliderEntity.empty()) return;
 
-			if(Transform){
-				// DirectX の Transform から PhysX 用に変換
-				physx::PxVec3 pos(Transform->position.x, Transform->position.y, Transform->position.z);
+	for(Entity entity : colliderEntity){
+		auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
 
-				DirectX::XMVECTOR dxQuat = Transform->rotationVector(); // クォータニオンを取得
-				DirectX::XMFLOAT4 qf;
-				DirectX::XMStoreFloat4(&qf, dxQuat);
+		auto Transform = m_context->component->GetComponent<TransformComponent>(entity);
+		if(!Transform) continue;
 
-				physx::PxQuat quatRot(qf.x, qf.y, qf.z, qf.w);
-				physx::PxTransform pxTransform(pos, quatRot);
-
-				if(Collider->pRigidbodyDynamic){
-					Collider->pRigidbodyDynamic->setGlobalPose(pxTransform);
-				}
-
-				if(Collider->pRigidbodyStatic){
-					Collider->pRigidbodyStatic->setGlobalPose(pxTransform);
-				}
+		if(Collider->needsUpdate){
+			for(size_t i = 0; i < Collider->colliders.size(); ++i){
+				UpdateColliderParam(Collider,entity, i);
 			}
+			Collider->needsUpdate = false;
 		}
+
+		physx::PxVec3 pos(Transform->position.x, Transform->position.y, Transform->position.z);
+		DirectX::XMVECTOR dxQuat = Transform->rotationVector();
+		DirectX::XMFLOAT4 qf;
+		DirectX::XMStoreFloat4(&qf, dxQuat);
+		physx::PxQuat quatRot(qf.x, qf.y, qf.z, qf.w);
+		physx::PxTransform pxTransform(pos, quatRot);
+
+		if(Collider->pRigidbodyDynamic) Collider->pRigidbodyDynamic->setGlobalPose(pxTransform);
+		if(Collider->pRigidbodyStatic) Collider->pRigidbodyStatic->setGlobalPose(pxTransform);
 	}
 
 	g_pScene->lockWrite();
@@ -269,115 +312,42 @@ void PhysicSystem::FixedUpdate(float deltaTime){
 	g_pScene->unlockWrite();
 	g_pScene->unlockRead();
 
-	if(colliderEntity.empty()){
-		return;
-	} else{
-		for(Entity entity : colliderEntity){
-			auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
-			auto Transform = m_context->component->GetComponent<TransformComponent>(entity);
+	for(Entity entity : colliderEntity){
+		auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
+		auto Transform = m_context->component->GetComponent<TransformComponent>(entity);
+		if(!Transform) continue;
 
-			if(Transform){
-				physx::PxTransform TmpTransform;
-				if(Collider->pRigidbodyDynamic){
-					TmpTransform = Collider->pRigidbodyDynamic->getGlobalPose();
-				}
+		physx::PxTransform TmpTransform;
+		if(Collider->pRigidbodyDynamic) TmpTransform = Collider->pRigidbodyDynamic->getGlobalPose();
+		if(Collider->pRigidbodyStatic) TmpTransform = Collider->pRigidbodyStatic->getGlobalPose();
 
-				if(Collider->pRigidbodyStatic){
-					TmpTransform = Collider->pRigidbodyStatic->getGlobalPose();
-				}
+		Transform->position = Vector3(TmpTransform.p.x, TmpTransform.p.y, TmpTransform.p.z);
+		Transform->SetRotation(DirectX::XMFLOAT4(TmpTransform.q.x, TmpTransform.q.y, TmpTransform.q.z, TmpTransform.q.w));
+	}
+}
 
-				physx::PxVec3 position = TmpTransform.p;
-				physx::PxQuat rotation = TmpTransform.q;
-
-				// PhysX の PxQuat → DirectX::XMFLOAT4
-				DirectX::XMFLOAT4 qf(rotation.x, rotation.y, rotation.z, rotation.w);
-
-				// TransformComponent に反映
-				Transform->position = Vector3(position.x, position.y, position.z);
-				Transform->rotation = qf; // クォータニオンを格納
+void PhysicSystem::Stop(){
+	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
+	for(Entity entity : colliderEntity){
+		auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
+		for(auto& col : Collider->colliders){
+			if(col.pxShape){
+				col.pxShape->release(); col.pxShape = nullptr;
+			}
+			if(col.pxMaterial){
+				col.pxMaterial->release(); col.pxMaterial = nullptr;
 			}
 		}
-	}
-}
-
-void PhysicSystem::Stop() {
-	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
-
-	for (Entity entity : colliderEntity) {
-
-
-		auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
-		if (Collider->pRigidbodyStatic) {
-			Collider->pRigidbodyStatic->release();
-			Collider->pRigidbodyStatic = nullptr;
+		if(Collider->pRigidbodyStatic){
+			Collider->pRigidbodyStatic->release(); Collider->pRigidbodyStatic = nullptr;
 		}
-		if (Collider->pRigidbodyDynamic) {
-			Collider->pRigidbodyDynamic->release();
-			Collider->pRigidbodyDynamic = nullptr;
-
+		if(Collider->pRigidbodyDynamic){
+			Collider->pRigidbodyDynamic->release(); Collider->pRigidbodyDynamic = nullptr;
 		}
 	}
 }
 
-
-void PhysicSystem::Draw() {
-
-	if (!g_pScene) return;
-
-	const physx::PxRenderBuffer& rb = g_pScene->getRenderBuffer();
-
-	std::vector<DebugVertex> vertices;
-	for (physx::PxU32 i = 0; i < rb.getNbLines(); i++) {
-		const physx::PxDebugLine& line = rb.getLines()[i];
-
-		// 色を 0-1 の範囲に変換（ARGB -> RGBA）
-		DirectX::XMFLOAT4 convertColor = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
-
-		DebugVertex v0;
-		v0.pos = DirectX::XMFLOAT3(line.pos0.x, line.pos0.y, line.pos0.z);
-		v0.color = convertColor;
-
-		DebugVertex v1;
-		v1.pos = DirectX::XMFLOAT3(line.pos1.x, line.pos1.y, line.pos1.z);
-		v1.color = convertColor;
-
-		vertices.push_back(v0);
-		vertices.push_back(v1);
-	}
-
-
-	if (vertices.empty()) return;
-
-	// デバイスとコンテキスト取得
-	ID3D11Device* device = m_context->manager->graphics->GetDevice();
-	ID3D11DeviceContext* context = m_context->manager->graphics->GetDeviceContext();
-
-	// 頂点バッファ作成
-	D3D11_BUFFER_DESC bd{};
-	bd.Usage = D3D11_USAGE_DYNAMIC;
-	bd.ByteWidth = sizeof(DebugVertex) * vertices.size();
-	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-	D3D11_SUBRESOURCE_DATA initData{};
-	initData.pSysMem = vertices.data();
-
-	ID3D11Buffer* pVertexBuffer = nullptr;
-	device->CreateBuffer(&bd, &initData, &pVertexBuffer);
-
-	context->IASetInputLayout(debugInputLayout);
-
-	UINT stride = sizeof(DebugVertex);
-	UINT offset = 0;
-	context->IASetVertexBuffers(0, 1, &pVertexBuffer, &stride, &offset);
-	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-
-	// クラスメンバのシェーダーを使用
-	context->VSSetShader(m_debugVS, nullptr, 0);
-	context->PSSetShader(m_debugPS, nullptr, 0);
-
-	context->Draw(vertices.size(), 0);
-
-	pVertexBuffer->Release();
+void PhysicSystem::Draw(){
+	if(!g_pScene) return;
+	// PhysX の可視化デバッグは g_pScene->getRenderBuffer() などで取得可能
 }
-

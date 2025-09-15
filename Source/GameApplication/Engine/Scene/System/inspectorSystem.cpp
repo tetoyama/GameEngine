@@ -429,7 +429,7 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 
 		if(sprite){
 			TransformComponent temp = CalculateRectTransform(*sprite, *transform);
-			DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(temp.rotation.x, temp.rotation.y, temp.rotation.z);
+			DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(temp.GetRotationEuler().x, temp.GetRotationEuler().y, temp.GetRotationEuler().z);
 			DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(temp.scale.x, temp.scale.y, temp.scale.z);
 			DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(temp.position.x, temp.position.y, temp.position.z);
 
@@ -473,17 +473,17 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 			if(sprite){
 				TransformComponent edited;
 				edited.position = translation3;
-				edited.rotation = quat;     // クォータニオンを代入
+				edited.SetRotation(quat);     // クォータニオンを代入
 				edited.scale = scale3;
 
 				edited = ReverseCalculateRectTransform(*sprite, edited);
 
 				transform->position = edited.position;
-				transform->rotation = edited.rotation;
+				transform->SetRotation(edited.GetRotation());
 				transform->scale = edited.scale;
 			} else{
 				transform->position = translation3;
-				transform->rotation = quat; // クォータニオンを保持
+				transform->SetRotation(quat); // クォータニオンを保持
 				transform->scale = scale3;
 			}
 		

@@ -89,9 +89,6 @@ public:
 		return isInitialized;
 	}
 
-
-
-
 	// UnityライクなAPI
 	template<typename T>
 	T* GetComponent(){
@@ -104,8 +101,6 @@ public:
 		if(!m_context || !m_context->component) return nullptr;
 		return m_context->component->AddComponent<T>(m_entity, std::forward<Args>(args)...);
 	}
-
-
 
 	void LoadScene(const std::string& sceneName){
 		auto setScene = std::make_shared<Scene>();

@@ -6,25 +6,32 @@
 
 #include "Component/TransformComponent.h"
 
+
 class PlayerController: public CustomScriptComponent {
+	BEGIN_REFLECT(PlayerController)
+
+		REFLECT_FIELD_INIT(float, moveSpeed,0.0f, REFLECT_INSPECTOR)
+		REFLECT_FIELD(float, health, 0.0f)
+		REFLECT_FIELD(bool, isInvincible, false)
+
 public:
 
 	PlayerController(): CustomScriptComponent("PlayerController"){}
 
 	YAML::Node encode() override{
 		YAML::Node node;
-		node["ScriptName"] = scriptName;
+		ENCODE_FIELDS(node);
 		return node;
 	}
 	bool decode(const YAML::Node& node) override{
-		if(node["ScriptName"])
-			scriptName = node["ScriptName"].as<std::string>();
-
+		DECODE_FIELDS(node);
 		return true;
 	}
 
 	void inspector(SceneContext* context) override{
 		ImGui::Text(scriptName.c_str());
+
+		INSPECTOR_FIELDS();
 	}
 
 	void OnStart() override{

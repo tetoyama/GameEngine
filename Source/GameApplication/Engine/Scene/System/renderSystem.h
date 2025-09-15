@@ -56,7 +56,6 @@ private:
 	void PlayerView();
 
 	void UpdateAnimation(const Entity& entity, const float& deltaTime);
-	void SendAnimation(ModelRendererComponent* modelRenderer, int meshIndex);
 
 	SceneContext* m_context;
 	MeshRendererComponent* m_billBoardMesh = nullptr;
@@ -101,4 +100,5 @@ private:
 
 	int currentSelectedLayer = (int)RenderLayer::Opaque3D; // 初期選択（例）
 
+	ID3D11Buffer* pPhysicsDebugLineVB;
 };

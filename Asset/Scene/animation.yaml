@@ -96,12 +96,16 @@ Entities:
         FilePath: Asset\Model\Akai.fbx
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
-        CurrentAnimationName: Run
         isBlender: false
         AnimationTime: 0
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
+          mixamo.com: Asset\Model\Akai.fbx
           Run: Asset\Model\Akai_Run.fbx
+      - Component: PlayerController
+        moveSpeed: 0
+        health: 0
+        isInvincible: false
   - Entity: 4
     Components:
       - Component: NameComponent

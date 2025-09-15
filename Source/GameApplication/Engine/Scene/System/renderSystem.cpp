@@ -23,6 +23,7 @@
 #include "Engine/Resources/Data/modelData.h"
 
 #include "Registry/entityRegistry.h"
+#include "Registry/systemRegistry.h"
 #include "Registry/componentRegistry.h"
 
 #include "Component/transformComponent.h"
@@ -47,6 +48,10 @@
 #include <Component/particleComponent.h>
 #include <Component/outlineComponent.h>
 #include <Component/EffectComponent.h>
+#include "physicSystem.h"
+
+constexpr int maxLineCount = 1048;
+
 Effekseer::Matrix44 ConvertXMMATRIXToMatrix44(const DirectX::XMMATRIX& matrix){
 	Effekseer::Matrix44 result;
 	DirectX::XMFLOAT4X4 tempMatrix;
@@ -278,9 +283,25 @@ void RenderSystem::Initialize(){
 
 	m_LineVertexShader = m_context->manager->resource->Load<VertexShaderData>("Asset\\Shader\\DebugLineVS.cso");
 	m_LinePixelShader = m_context->manager->resource->Load<PixelShaderData>("Asset\\Shader\\DebugLinePS.cso");
+
+
+	D3D11_BUFFER_DESC bd{};
+	bd.Usage = D3D11_USAGE_DYNAMIC;
+	bd.ByteWidth = sizeof(VERTEX_3D) * maxLineCount * 2;
+	// 1ライン = 2頂点、最大ライン数を想定して確保しておく
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+	hr = device->CreateBuffer(&bd, nullptr, &pPhysicsDebugLineVB);
+	if(FAILED(hr)){
+		throw std::runtime_error("Failed to create physics debug line vertex buffer.");
+	}
+
 }
 
 void RenderSystem::Finalize(){
+	pPhysicsDebugLineVB->Release();
+	pPhysicsDebugLineVB = nullptr;
 	delete m_billBoardMesh;
 	delete m_SpriteMesh;
 	tex_editor->Release();
@@ -292,6 +313,7 @@ void RenderSystem::Finalize(){
 	rtv_player->Release();
 	srv_player->Release();
 	dsv_player->Release();
+
 }
 
 void RenderSystem::Update(float deltaTime) {
@@ -526,7 +548,7 @@ void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent
 	deviceContext->VSSetShader(meshRenderer->mesh.m_VertexShader.Get(), NULL, 0);
 	deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
 
-	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(transform->rotation.x, transform->rotation.y, transform->rotation.z);
+	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(transform->GetRotationEuler().x, transform->GetRotationEuler().y, transform->GetRotationEuler().z);
 	DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z);
 	DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
 
@@ -1115,7 +1137,7 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 	);
 
 	if(entities.empty()){
-		return;
+		//return;
 	} else{
 		for(Entity entity : entities){
 
@@ -1204,5 +1226,59 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 	m_context->manager->graphics->GetEffectManager()->Draw();
 
 	m_context->manager->graphics->GetEffectRenderer()->EndRendering();
+
+	auto physics = m_context->system->GetSystem<PhysicSystem>();
+	const physx::PxRenderBuffer& rb = physics->GetRenderBuffer();
+
+	// 色変換関数
+	auto ConvertColor = [](physx::PxU32 c){
+		float a = ((c >> 24) & 0xFF) / 255.0f;
+		float r = ((c >> 16) & 0xFF) / 255.0f;
+		float g = ((c >> 8) & 0xFF) / 255.0f;
+		float b = ((c >> 0) & 0xFF) / 255.0f;
+		return DirectX::XMFLOAT4(r, g, b, a);
+		};
+
+	std::vector<VERTEX_3D> vertices;
+	for(physx::PxU32 i = 0; i < rb.getNbLines(); i++){
+		const physx::PxDebugLine& line = rb.getLines()[i];
+
+		VERTEX_3D v0;
+		v0.Position = DirectX::XMFLOAT3(line.pos0.x, line.pos0.y, line.pos0.z);
+		v0.Diffuse = ConvertColor(line.color0);
+
+		VERTEX_3D v1;
+		v1.Position = DirectX::XMFLOAT3(line.pos1.x, line.pos1.y, line.pos1.z);
+		v1.Diffuse = ConvertColor(line.color1);
+
+		vertices.push_back(v0);
+		vertices.push_back(v1);
+	}
+
+	if(vertices.empty() || vertices.size() >= maxLineCount) return;
+
+	ID3D11Device* device = graphicsContext->GetDevice();
+	ID3D11DeviceContext* context = graphicsContext->GetDeviceContext();
+
+	// --- 頂点バッファ更新 ---
+	// 動的バッファを初期化時に作ってあると仮定（pDebugLineVB）
+	D3D11_MAPPED_SUBRESOURCE mapped;
+	context->Map(pPhysicsDebugLineVB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+	memcpy(mapped.pData, vertices.data(), sizeof(VERTEX_3D) * vertices.size());
+	context->Unmap(pPhysicsDebugLineVB, 0);
+
+	graphicsContext->SetWorldMatrix(DirectX::XMMatrixIdentity());
+
+	UINT stride = sizeof(VERTEX_3D);
+	UINT offset = 0;
+	context->IASetVertexBuffers(0, 1, &pPhysicsDebugLineVB, &stride, &offset);
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+
+	// シェーダーをセット（通常のカラー付き頂点用のものを使用）
+	context->VSSetShader(m_VertexShader->m_VertexShader.Get(), nullptr, 0);
+	context->PSSetShader(m_PixelShader->m_PixelShader.Get(), nullptr, 0);
+
+	// 描画
+	context->Draw(static_cast<UINT>(vertices.size()), 0);
 
 }

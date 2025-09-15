@@ -78,7 +78,7 @@ public:
 				if (transform) {
 
 					Vector3 m_Pos = transform->position;
-					DirectX::XMFLOAT4 m_RotQuat = transform->rotation; // クォータニオン
+					DirectX::XMFLOAT4 m_RotQuat = transform->GetRotation(); // クォータニオン
 					Vector3 m_Scale = transform->scale;
 
 					Effekseer::Matrix43 Matrix, MatrixRot;

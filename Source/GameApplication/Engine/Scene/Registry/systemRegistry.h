@@ -90,6 +90,16 @@ public:
 			sys->Finalize();
 		}
 	}
+
+	template<typename T>
+	T* GetSystem(){
+		for(auto& sys : m_systems){
+			if(auto casted = dynamic_cast<T*>(sys.get())){
+				return casted;
+			}
+		}
+		return nullptr;
+	}
 private:
 	std::vector<std::unique_ptr<ISystem>> m_systems;
 };
