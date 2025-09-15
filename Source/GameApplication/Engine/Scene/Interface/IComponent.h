@@ -2,6 +2,9 @@
 #pragma once
 #include <backends/yaml-cpp/yaml.h>
 #include <backends/ImGui/imgui.h>
+#include <backends/myVector3.h>
+#include "Service/ImGuiFunc.h"
+#include "Service/YAMLConverters.h"
 #include <functional>
 struct SceneContext;
 
@@ -76,6 +79,21 @@ struct FieldHandler<bool> {
 		ImGui::Checkbox(name, &v);
 	}
 };
+
+// Vector3
+template<>
+struct FieldHandler<Vector3> {
+	static void Decode(const YAML::Node& node, IComponent*, Vector3& v, const char* name){
+		if(node[name]) v = node[name].as<Vector3>();
+	}
+	static void Encode(YAML::Node& node, IComponent*, Vector3& v, const char* name){
+		node[name] = v;
+	}
+	static void Inspector(IComponent*, Vector3& v, const char* name){
+		ImGui::DragVec3(name, v);
+	}
+};
+
 
 // ===========================================
 // フィールド情報

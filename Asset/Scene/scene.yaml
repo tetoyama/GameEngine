@@ -207,14 +207,14 @@ Entities:
           y: 2.60837793
           z: -0.0700856149
         Rotation:
-          - 0.000993341906
-          - 0.728569686
-          - 0.000977752032
-          - 0.68497026
+          - -0.000918874284
+          - 0.725822508
+          - 0.00104804314
+          - -0.687880635
         Scale:
-          x: 0.00299999863
-          y: 0.00300000003
-          z: 0.00299999863
+          x: 0.00300000631
+          y: 0.00300000026
+          z: 0.00299999933
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
@@ -237,6 +237,34 @@ Entities:
             lockRotX: true
             lockRotY: false
             lockRotZ: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 0
+            y: 0
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
         PixelShader: Asset\Shader\disneyPBR_PS.cso
@@ -251,6 +279,14 @@ Entities:
         moveSpeed: 1
         health: 0
         isInvincible: false
+        dashMultiplier: 2
+        accel: 10
+        rotateSpeed: 8
+        maxStamina: 5
+        stamina: 5
+        staminaConsumeRate: 1.5
+        staminaRecoverRate: 1
+        Stamina: 5
   - Entity: 5
     Components:
       - Component: NameComponent
@@ -353,6 +389,8 @@ Entities:
         isBlender: false
         AnimationTime: 68314.1172
       - Component: BallController
+        friction: 0.949999988
+        knockbackPower: 5
   - Entity: 7
     Components:
       - Component: NameComponent
@@ -1217,3 +1255,147 @@ Entities:
       - Component: TimerSprite
         isBlue: false
         Degit: 1
+  - Entity: 22
+    Components:
+      - Component: NameComponent
+        Name: Enemy
+      - Component: TransformComponent
+        Position:
+          x: -1.30306208
+          y: 2.61291432
+          z: 0
+        Rotation:
+          - -0
+          - 0.553362548
+          - -0
+          - 0.832940519
+        Scale:
+          x: 0.00300002261
+          y: 0.00300000003
+          z: 0.00300002261
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: true
+        colliders:
+          - type: 0
+            size:
+              - 30
+              - 165
+              - 30
+            offset:
+              - 0
+              - 80
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.5
+            dynamicFriction: 0.5
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: true
+            lockRotY: false
+            lockRotZ: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\Akai (1).fbx
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 0
+        Animations:
+          Idle: Asset\Model\Akai_Idle.fbx
+          mixamo.com: Asset\Model\Akai (1).fbx
+          Run: Asset\Model\Akai_Run.fbx
+      - Component: EnemyController
+        moveSpeed: 1
+        dashMultiplier: 2
+        accel: 10
+        rotateSpeed: 8
+        maxStamina: 5
+        stamina: 5
+        staminaConsumeRate: 1.5
+        staminaRecoverRate: 1
+        Stamina: 5
+  - Entity: 23
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 5.30999994
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 0
+            y: 0
+            z: 0
+            w: 0
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: SpriteRendererComponent
+        anchor:
+          x: 0.5
+          y: 0.5
+        pivot:
+          x: 0
+          y: 0
+      - Component: FadeInSprite
+        FadeTime: 1

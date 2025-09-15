@@ -2675,6 +2675,9 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\sceneManager.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\BallController.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\CameraController.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Script\EnemyController.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Script\FadeInSprite.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Script\FadeOutSprite.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\GameTimeManager.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\PlayerController.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\ScoreManager.h" />

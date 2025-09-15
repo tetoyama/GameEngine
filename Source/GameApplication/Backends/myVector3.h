@@ -146,7 +146,9 @@ public:
 	DirectX::XMVECTOR ToXMVECTOR() const{
 		return DirectX::XMLoadFloat3(reinterpret_cast<const DirectX::XMFLOAT3*>(this));
 	}
-
+	float dot(const Vector3& v) const{
+		return x * v.x + y * v.y + z * v.z;
+	}
 };
 
 inline Vector3 Vec3Cross(const Vector3& a, const Vector3& b){
