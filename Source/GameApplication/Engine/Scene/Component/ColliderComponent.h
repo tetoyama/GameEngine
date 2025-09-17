@@ -43,7 +43,7 @@ public:
 	~ColliderComponent(){
 		for(auto& col : colliders){
 			if(col.pxShape){
-				col.pxShape->release(); col.pxShape = nullptr;
+				 col.pxShape = nullptr;
 			}
 			if(col.pxMaterial){
 				col.pxMaterial->release(); col.pxMaterial = nullptr;

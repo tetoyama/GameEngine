@@ -8,10 +8,7 @@ void ImGuiManubar::Register(MenuEvent event, const Callback& callback){
 
 void ImGuiManubar::Draw(){
 
-	static bool showManuBar = false;
-#ifdef _DEBUG
-	showManuBar = true;
-#else
+	static bool showManuBar = IMGUI_SHOW_DEFAULT;
 	if(ImGui::IsKeyPressed(ImGuiKey_F3, false)){
 		showManuBar = !showManuBar;
 
@@ -24,7 +21,6 @@ void ImGuiManubar::Draw(){
 		showParformanceMonitor = showManuBar;
 
 	}
-#endif // _DEBUG
 
 
 	if(showManuBar && ImGui::BeginMainMenuBar()){

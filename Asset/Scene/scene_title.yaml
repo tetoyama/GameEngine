@@ -277,11 +277,11 @@ Entities:
             - 1
         PostEffects:
           - Name: NewEffect
-            Enabled: true
+            Enabled: false
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Blur.cso
           - Name: NewEffect
-            Enabled: true
+            Enabled: false
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Mosaic.cso
   - Entity: 6
@@ -634,7 +634,7 @@ Entities:
             x: 0
             y: 0
             z: 0
-            w: 0
+            w: 1
           Specular:
             x: 0.0399999991
             y: 0.0399999991

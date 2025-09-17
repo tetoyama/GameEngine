@@ -102,7 +102,7 @@ private:
 	};
 
 	bool playerRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] = {
-	true, true, true, true, true, true
+	true, true, true, true, true, false
 	};
 
 	int currentSelectedLayer = (int)RenderLayer::Opaque3D; // 初期選択（例）

@@ -347,31 +347,28 @@ void RenderSystem::Draw(){
 		PlayerView();
 	} else{
 
-		if(m_context->state == SceneState::Playing){
+		m_context->manager->graphics->ResetViewport();
+		m_context->manager->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->manager->graphics->GetpRenderTargetView(), m_context->manager->graphics->GetDepthStencilView());
+		m_ScreenSize = Vector2(
+			(float)m_context->manager->renderer->GetGraphicsContext()->m_width,
+			(float)m_context->manager->renderer->GetGraphicsContext()->m_height
+		);
+		m_context->EditorScreenSize = m_ScreenSize;
 
-			m_context->manager->graphics->ResetViewport();
-			m_context->manager->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->manager->graphics->GetpRenderTargetView(), m_context->manager->graphics->GetDepthStencilView());
-			m_ScreenSize = Vector2(
-				(float)m_context->manager->renderer->GetGraphicsContext()->m_width,
-				(float)m_context->manager->renderer->GetGraphicsContext()->m_height
-			);
-			m_context->EditorScreenSize = m_ScreenSize;
+		SetCameraView();
+		DrawEntities(playerRenderLayerVisible);
 
-			SetCameraView();
-			DrawEntities(playerRenderLayerVisible);
-
-			// カメラを取得
-			auto entities = m_context->component->FindEntitiesWithComponent<CameraComponent>();
-			if(entities.empty()){
-				return;
-			}
-			auto cameraComponent = m_context->component->GetComponent<CameraComponent>(entities[0]);
-			ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(cameraComponent);
-
-			ID3D11RenderTargetView* rtv = *m_context->manager->graphics->GetpRenderTargetView(); // バックバッファ
-			m_context->manager->graphics->GetDeviceContext()->OMSetRenderTargets(1, &rtv, m_context->manager->graphics->GetDepthStencilView());
-			m_context->manager->graphics->DrawQuad(&copyShader, finalSRV);
+		// カメラを取得
+		auto entities = m_context->component->FindEntitiesWithComponent<CameraComponent>();
+		if(entities.empty()){
+			return;
 		}
+		auto cameraComponent = m_context->component->GetComponent<CameraComponent>(entities[0]);
+		ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(cameraComponent);
+
+		ID3D11RenderTargetView* rtv = *m_context->manager->graphics->GetpRenderTargetView(); // バックバッファ
+		m_context->manager->graphics->GetDeviceContext()->OMSetRenderTargets(1, &rtv, m_context->manager->graphics->GetDepthStencilView());
+		m_context->manager->graphics->DrawQuad(&copyShader, finalSRV);
 	}
 	if(*showEditor){
 		EditorView();
@@ -1177,12 +1174,12 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 
 	// renderLayerVisible に基づいてフィルタリング
 	entities.erase(
-	    std::remove_if(entities.begin(), entities.end(),
-	        [this, pRenderLayer](Entity e) {
-	            RenderLayer layer = GetRenderLayerFromEntity(e, m_context->component);
-	            return !pRenderLayer[(int)layer]; // 表示されていないレイヤーなら削除
-	        }),
-	    entities.end()
+		std::remove_if(entities.begin(), entities.end(),
+					   [this, pRenderLayer](Entity e){
+						   RenderLayer layer = GetRenderLayerFromEntity(e, m_context->component);
+						   return !pRenderLayer[(int)layer]; // 表示されていないレイヤーなら削除
+					   }),
+		entities.end()
 	);
 
 	if(entities.empty()){
@@ -1219,7 +1216,7 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 					graphicsContext->SetMaterial(material);
 
 					UVMatrix uv;
-					if (texture->UV_Slice_X != 0 && texture->UV_Slice_Y != 0) {
+					if(texture->UV_Slice_X != 0 && texture->UV_Slice_Y != 0){
 						uv.Start.x = (float)(texture->AnimationNum % texture->UV_Slice_X) * 1.0f / (float)texture->UV_Slice_X;
 						uv.Start.y = (float)(texture->AnimationNum / texture->UV_Slice_X) * 1.0f / (float)texture->UV_Slice_Y;
 
@@ -1252,7 +1249,7 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 
 				ModelRendererComponent* modelRenderer = m_context->component->GetComponent<ModelRendererComponent>(entity);
 				if(modelRenderer){
-					DrawModel(transform, modelRenderer, texture,outline);
+					DrawModel(transform, modelRenderer, texture, outline);
 				}
 
 				ParticleComponent* particle = m_context->component->GetComponent<ParticleComponent>(entity);
@@ -1275,62 +1272,60 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 	m_context->manager->graphics->GetEffectManager()->Draw();
 
 	m_context->manager->graphics->GetEffectRenderer()->EndRendering();
-#ifdef _DEBUG
 
-	auto physics = m_context->system->GetSystem<PhysicSystem>();
-	const physx::PxRenderBuffer& rb = physics->GetRenderBuffer();
+	if(pRenderLayer && pRenderLayer[(int)RenderLayer::Debug]){
+		auto physics = m_context->system->GetSystem<PhysicSystem>();
+		const physx::PxRenderBuffer& rb = physics->GetRenderBuffer();
 
-	// 色変換関数
-	auto ConvertColor = [](physx::PxU32 c){
-		float a = ((c >> 24) & 0xFF) / 255.0f;
-		float r = ((c >> 16) & 0xFF) / 255.0f;
-		float g = ((c >> 8) & 0xFF) / 255.0f;
-		float b = ((c >> 0) & 0xFF) / 255.0f;
-		return DirectX::XMFLOAT4(r, g, b, a);
-		};
+		// 色変換関数
+		auto ConvertColor = [](physx::PxU32 c){
+			float a = ((c >> 24) & 0xFF) / 255.0f;
+			float r = ((c >> 16) & 0xFF) / 255.0f;
+			float g = ((c >> 8) & 0xFF) / 255.0f;
+			float b = ((c >> 0) & 0xFF) / 255.0f;
+			return DirectX::XMFLOAT4(r, g, b, a);
+			};
 
-	std::vector<VERTEX_3D> vertices;
-	for(physx::PxU32 i = 0; i < rb.getNbLines(); i++){
-		const physx::PxDebugLine& line = rb.getLines()[i];
+		std::vector<VERTEX_3D> vertices;
+		for(physx::PxU32 i = 0; i < rb.getNbLines(); i++){
+			const physx::PxDebugLine& line = rb.getLines()[i];
 
-		VERTEX_3D v0;
-		v0.Position = DirectX::XMFLOAT3(line.pos0.x, line.pos0.y, line.pos0.z);
-		v0.Diffuse = ConvertColor(line.color0);
+			VERTEX_3D v0;
+			v0.Position = DirectX::XMFLOAT3(line.pos0.x, line.pos0.y, line.pos0.z);
+			v0.Diffuse = ConvertColor(line.color0);
 
-		VERTEX_3D v1;
-		v1.Position = DirectX::XMFLOAT3(line.pos1.x, line.pos1.y, line.pos1.z);
-		v1.Diffuse = ConvertColor(line.color1);
+			VERTEX_3D v1;
+			v1.Position = DirectX::XMFLOAT3(line.pos1.x, line.pos1.y, line.pos1.z);
+			v1.Diffuse = ConvertColor(line.color1);
 
-		vertices.push_back(v0);
-		vertices.push_back(v1);
+			vertices.push_back(v0);
+			vertices.push_back(v1);
+		}
+
+		if(vertices.empty() || vertices.size() >= maxLineCount) return;
+
+		ID3D11Device* device = graphicsContext->GetDevice();
+		ID3D11DeviceContext* context = graphicsContext->GetDeviceContext();
+
+		// --- 頂点バッファ更新 ---
+		// 動的バッファを初期化時に作ってあると仮定（pDebugLineVB）
+		D3D11_MAPPED_SUBRESOURCE mapped;
+		context->Map(pPhysicsDebugLineVB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+		memcpy(mapped.pData, vertices.data(), sizeof(VERTEX_3D) * vertices.size());
+		context->Unmap(pPhysicsDebugLineVB, 0);
+
+		graphicsContext->SetWorldMatrix(DirectX::XMMatrixIdentity());
+
+		UINT stride = sizeof(VERTEX_3D);
+		UINT offset = 0;
+		context->IASetVertexBuffers(0, 1, &pPhysicsDebugLineVB, &stride, &offset);
+		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+
+		// シェーダーをセット（通常のカラー付き頂点用のものを使用）
+		context->VSSetShader(m_VertexShader->m_VertexShader.Get(), nullptr, 0);
+		context->PSSetShader(m_PixelShader->m_PixelShader.Get(), nullptr, 0);
+
+		// 描画
+		context->Draw(static_cast<UINT>(vertices.size()), 0);
 	}
-
-	if(vertices.empty() || vertices.size() >= maxLineCount) return;
-
-	ID3D11Device* device = graphicsContext->GetDevice();
-	ID3D11DeviceContext* context = graphicsContext->GetDeviceContext();
-
-	// --- 頂点バッファ更新 ---
-	// 動的バッファを初期化時に作ってあると仮定（pDebugLineVB）
-	D3D11_MAPPED_SUBRESOURCE mapped;
-	context->Map(pPhysicsDebugLineVB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-	memcpy(mapped.pData, vertices.data(), sizeof(VERTEX_3D) * vertices.size());
-	context->Unmap(pPhysicsDebugLineVB, 0);
-
-	graphicsContext->SetWorldMatrix(DirectX::XMMatrixIdentity());
-
-	UINT stride = sizeof(VERTEX_3D);
-	UINT offset = 0;
-	context->IASetVertexBuffers(0, 1, &pPhysicsDebugLineVB, &stride, &offset);
-	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-
-	// シェーダーをセット（通常のカラー付き頂点用のものを使用）
-	context->VSSetShader(m_VertexShader->m_VertexShader.Get(), nullptr, 0);
-	context->PSSetShader(m_PixelShader->m_PixelShader.Get(), nullptr, 0);
-
-	// 描画
-	context->Draw(static_cast<UINT>(vertices.size()), 0);
-
-#endif // _DEBUG
-
 }

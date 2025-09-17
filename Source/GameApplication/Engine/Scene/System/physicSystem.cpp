@@ -82,6 +82,8 @@ physx::PxShape* PhysicSystem::CreatePxShape(physx::PxRigidActor* actor, const Co
 }
 
 void PhysicSystem::UpdateColliderParam(ColliderComponent* collider, size_t entity, size_t index){
+	OutputDebugStringA("PhysicSystem::UpdateColliderParam\n");
+
 	if(!collider) return;
 	if(index >= collider->colliders.size()) return;
 
@@ -98,7 +100,7 @@ void PhysicSystem::UpdateColliderParam(ColliderComponent* collider, size_t entit
 	// 1) 古い shape を確実に解放（pxShape が nullptr なら何もしない）
 	if(col.pxShape){
 		actor->detachShape(*col.pxShape);
-		//col.pxShape->release();
+		col.pxShape->release();
 		col.pxShape = nullptr;
 	}
 
@@ -176,33 +178,98 @@ void PhysicSystem::Initialize(){
 		pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
 	}
 }
-
 void PhysicSystem::Finalize(){
-	std::lock_guard<std::mutex> lock(mtx);
+	OutputDebugStringA("PhysicSystem::Finalize\n");
 	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
 	for(Entity entity : colliderEntity){
 		auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
+		for(auto& col : Collider->colliders){
+			if(col.pxMaterial){
+				OutputDebugStringA(("Finalize Release Material: " + std::to_string((uintptr_t)col.pxMaterial) + "\n").c_str());
+				col.pxMaterial->release();
+				col.pxMaterial = nullptr;
+			}
+			if(col.pxShape){
+				OutputDebugStringA(("Finalize Shape Pointer Clear: " + std::to_string((uintptr_t)col.pxShape) + "\n").c_str());
+				col.pxShape = nullptr; // Actor release に任せる
+			}
+		}
 		if(Collider->pRigidbodyStatic){
-			Collider->pRigidbodyStatic->release(); Collider->pRigidbodyStatic = nullptr;
+			OutputDebugStringA(("Finalize Release Static Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyStatic) + "\n").c_str());
+			Collider->pRigidbodyStatic->release();
+			Collider->pRigidbodyStatic = nullptr;
 		}
 		if(Collider->pRigidbodyDynamic){
-			Collider->pRigidbodyDynamic->release(); Collider->pRigidbodyDynamic = nullptr;
+			OutputDebugStringA(("Finalize Release Dynamic Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyDynamic) + "\n").c_str());
+			Collider->pRigidbodyDynamic->release();
+			Collider->pRigidbodyDynamic = nullptr;
 		}
 	}
 
 	PxCloseExtensions();
-	g_pScene->release();
-	g_pDispatcher->release();
-	g_pPhysics->release();
+	if(g_pScene){
+		OutputDebugStringA(("Finalize Release Scene: " + std::to_string((uintptr_t)g_pScene) + "\n").c_str());
+		g_pScene->release();
+		g_pScene = nullptr;
+	}
+	if(g_pDispatcher){
+		OutputDebugStringA(("Finalize Release Dispatcher: " + std::to_string((uintptr_t)g_pDispatcher) + "\n").c_str());
+		g_pDispatcher->release();
+		g_pDispatcher = nullptr;
+	}
+	if(g_pPhysics){
+		OutputDebugStringA(("Finalize Release Physics: " + std::to_string((uintptr_t)g_pPhysics) + "\n").c_str());
+		g_pPhysics->release();
+		g_pPhysics = nullptr;
+	}
 
 	if(g_pPvd){
+		OutputDebugStringA(("Finalize Disconnect PVD: " + std::to_string((uintptr_t)g_pPvd) + "\n").c_str());
 		g_pPvd->disconnect();
 		physx::PxPvdTransport* transport = g_pPvd->getTransport();
 		g_pPvd->release();
-		transport->release();
+		g_pPvd = nullptr;
+		if(transport){
+			OutputDebugStringA(("Finalize Release PVD Transport: " + std::to_string((uintptr_t)transport) + "\n").c_str());
+			transport->release();
+		}
 	}
 
-	g_pFoundation->release();
+	if(g_pFoundation){
+		OutputDebugStringA(("Finalize Release Foundation: " + std::to_string((uintptr_t)g_pFoundation) + "\n").c_str());
+		g_pFoundation->release();
+		g_pFoundation = nullptr;
+	}
+}
+
+void PhysicSystem::Stop(){
+	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
+	for(Entity entity : colliderEntity){
+		auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
+
+		for(auto& col : Collider->colliders){
+			if(col.pxMaterial){
+				OutputDebugStringA(("Stop Release Material: " + std::to_string((uintptr_t)col.pxMaterial) + "\n").c_str());
+				col.pxMaterial->release();
+				col.pxMaterial = nullptr;
+			}
+			if(col.pxShape){
+				OutputDebugStringA(("Stop Shape Pointer Clear: " + std::to_string((uintptr_t)col.pxShape) + "\n").c_str());
+				col.pxShape = nullptr;
+			}
+		}
+
+		if(Collider->pRigidbodyStatic){
+			OutputDebugStringA(("Stop Release Static Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyStatic) + "\n").c_str());
+			Collider->pRigidbodyStatic->release();
+			Collider->pRigidbodyStatic = nullptr;
+		}
+		if(Collider->pRigidbodyDynamic){
+			OutputDebugStringA(("Stop Release Dynamic Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyDynamic) + "\n").c_str());
+			Collider->pRigidbodyDynamic->release();
+			Collider->pRigidbodyDynamic = nullptr;
+		}
+	}
 }
 
 void PhysicSystem::Start(){
@@ -277,7 +344,7 @@ void PhysicSystem::Start(){
 }
 
 void PhysicSystem::FixedUpdate(float deltaTime){
-	std::lock_guard<std::mutex> lock(mtx);
+
 	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
 	if(colliderEntity.empty()) return;
 
@@ -326,26 +393,7 @@ void PhysicSystem::FixedUpdate(float deltaTime){
 	}
 }
 
-void PhysicSystem::Stop(){
-	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
-	for(Entity entity : colliderEntity){
-		auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
-		for(auto& col : Collider->colliders){
-			if(col.pxShape){
-				col.pxShape->release(); col.pxShape = nullptr;
-			}
-			if(col.pxMaterial){
-				col.pxMaterial->release(); col.pxMaterial = nullptr;
-			}
-		}
-		if(Collider->pRigidbodyStatic){
-			Collider->pRigidbodyStatic->release(); Collider->pRigidbodyStatic = nullptr;
-		}
-		if(Collider->pRigidbodyDynamic){
-			Collider->pRigidbodyDynamic->release(); Collider->pRigidbodyDynamic = nullptr;
-		}
-	}
-}
+
 
 void PhysicSystem::Draw(){
 	if(!g_pScene) return;
