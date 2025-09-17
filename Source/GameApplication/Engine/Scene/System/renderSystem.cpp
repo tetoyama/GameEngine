@@ -1032,53 +1032,74 @@ void RenderSystem::EditorView(){
 	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
 }
 
+ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(CameraComponent* camera){
+	GraphicsContext* graphics = m_context->manager->graphics;
+
+	// 1. シーンを BufferA に描画
+	DirectX::XMFLOAT4 clearColor = {0,0,0,1};
+	graphics->ResetPingPongBuffer(&clearColor.x);
+
+	DrawEntities(playerRenderLayerVisible);
+
+	// 2. ポストプロセスチェインを作成
+	std::vector<PostEffectShader> effectChain;
+	if(camera){
+		for(auto& e : camera->postEffects){
+			if(!e.enabled || !e.ps || !e.vs) continue;
+			PostEffectShader shader{};
+			shader.m_VS = e.vs ? e.vs->m_VertexShader : nullptr;
+			shader.m_PS = e.ps ? e.ps->m_PixelShader : nullptr;
+			shader.m_InputLayout = e.vs ? e.vs->m_VertexLayout : nullptr;
+			effectChain.push_back(shader);
+		}
+	}
+
+	// 3. ポストプロセスがある場合のみ Apply
+	if(!effectChain.empty()){
+		graphics->ApplyPostProcessChain(effectChain);
+	}
+
+	// 4. SRV を ImGui に渡せるようにレンダーターゲット解除
+	graphics->GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
+
+	// 5. 最終結果 SRV を返す（空チェインでも BufferA の SRV）
+	return graphics->GetCurrentSRV();
+}
+
+
 void RenderSystem::PlayerView(){
+	ImGui::Begin("Play View", showPlayer, 0);
 
-	//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
-	ImGuiWindowFlags toolbar_window_flags = 0;
-	ImGui::Begin("Play View",showPlayer, toolbar_window_flags);
-
+	// 共通UI（元のControllButtonやSeparatorなど）
 	ControllButton();
 	ImGui::Separator();
 
-	GraphicsContext* graphicsContext = m_context->manager->graphics;
-	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+	ImVec2 avail = ImGui::GetContentRegionAvail();
+	m_ScreenSize = Vector2(avail.x, avail.y);
 
-	float clearCol[4] = {0.5f, 0.5f, 0.5f, 1.0f};
+	// カメラを取得
+	auto entities = m_context->component->FindEntitiesWithComponent<CameraComponent>();
+	if(entities.empty()){
+		ImGui::Text("No Camera Found");
+		ImGui::End();
+		return;
+	}
+	auto cameraComponent = m_context->component->GetComponent<CameraComponent>(entities[0]);
 
-	D3D11_VIEWPORT vp = {};
-	vp.Width = 1280.0f;
-	vp.Height = 720.0f;
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
-	deviceContext->RSSetViewports(1, &vp);
+	// --- 共通処理: シーン + ポストプロセス ---
+	ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(cameraComponent);
 
-	deviceContext->ClearRenderTargetView(rtv_player, clearCol);
-
-	deviceContext->ClearDepthStencilView(dsv_player, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-
-	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, &rtv_player, dsv_player);
-
-	ImVec2 avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
-
-	// テクスチャの元サイズ（例）
+	// アスペクト比調整（元コードのロジックを流用）
 	float imgW = 1280.0f, imgH = 720.0f;
 	float imgAspect = imgW / imgH;
 	float availAspect = avail.x / avail.y;
 
 	ImVec2 dst = avail;
-
-	m_ScreenSize = Vector2(avail.x, avail.y);
-
-	// カメラビューの設定
-	SetCameraView();
-
-	// エンティティの描画
-	DrawEntities(playerRenderLayerVisible);
-
-
+	if(imgAspect > availAspect){
+		dst.y = dst.x / imgAspect;
+	} else{
+		dst.x = dst.y * imgAspect;
+	}
 
 	// 中央寄せ
 	ImVec2 cursor = ImGui::GetCursorPos();
@@ -1086,15 +1107,18 @@ void RenderSystem::PlayerView(){
 	ImGui::SetCursorPosY(cursor.y + (avail.y - dst.y) * 0.5f);
 	cursor = ImGui::GetCursorPos();
 
-	ImVec4 color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); // デフォルトの色
-	if(m_context->state == SceneState::Playing){
+	// 状態によって色を変える（元のコード維持）
+	ImVec4 color = (m_context->state == SceneState::Playing)
+		? ImVec4(1.0f, 1.0f, 1.0f, 1.0f)
+		: ImVec4(0.5f, 0.5f, 0.5f, 0.8f);
 
-	} else {
-		color = ImVec4(0.5f, 0.5f, 0.5f, 0.8f);
+	// ImGui::Image で最終結果を表示
+	if(!finalSRV){
+		ImGui::Text("finalSRV is NULL");
 	}
-	// イメージ表示（UV反転も場合に応じて調整）
-	ImGui::Image((ImTextureID)srv_player, dst, ImVec2(0, 0), ImVec2(1, 1), color,ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
+	ImGui::Image((ImTextureID)finalSRV, dst, ImVec2(0, 0), ImVec2(1, 1), color, ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
 
+	// Guizmo 設定も元のまま
 	ImGuizmo::SetRect(
 		ImGui::GetWindowPos().x + cursor.x,
 		ImGui::GetWindowPos().y + cursor.y,
@@ -1105,8 +1129,13 @@ void RenderSystem::PlayerView(){
 
 	ImGui::End();
 
-	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
+	// バックバッファへ戻す
+	auto graphics = m_context->manager->graphics;
+	graphics->GetDeviceContext()->OMSetRenderTargets(
+		1, graphics->GetpRenderTargetView(), graphics->GetDepthStencilView()
+	);
 }
+
 
 void RenderSystem::UpdateAnimation(const Entity& entity, const float& deltaTime) {
 

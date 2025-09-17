@@ -187,7 +187,7 @@ void ModelData::Update(float Frame, GraphicsContext* pGraphicContext) {
 		return;
 	} else {
 		if (blendedAnimations.size() == 1) {
-			UpdateSingleAnimation(blendedAnimations[0].name.c_str(), (int)Frame - blendedAnimations[0].animationStartTime, pGraphicContext);
+			UpdateSingleAnimation(blendedAnimations[0].name.c_str(), (int)(Frame - blendedAnimations[0].animationStartTime), pGraphicContext);
 			return;
 		}
 	}

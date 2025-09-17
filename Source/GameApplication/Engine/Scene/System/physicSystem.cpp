@@ -115,7 +115,7 @@ void PhysicSystem::UpdateColliderParam(ColliderComponent* collider, size_t entit
 	col.pxMaterial = material;
 
 	// 4) Transform のスケール取得（entity から TransformComponent を取る）
-	TransformComponent* transform = m_context->component->GetComponent<TransformComponent>(entity);
+	TransformComponent* transform = m_context->component->GetComponent<TransformComponent>((Entity)entity);
 	Vector3 scale = transform ? transform->scale : Vector3{1.0f, 1.0f, 1.0f};
 
 	// 5) 新しい shape を作って pxShape に保持（CreatePxShape は actor に attach して返す想定）

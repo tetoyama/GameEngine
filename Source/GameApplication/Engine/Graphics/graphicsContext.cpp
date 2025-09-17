@@ -63,6 +63,8 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 
 	if (!CreateEffectSystem()) { return false; }
 
+	if(!CreateFullScreenQuad()){ return false;}
+
 	Resize(width, height);
 
 	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
@@ -612,6 +614,34 @@ bool GraphicsContext::CreateD2DResources(HWND hwnd){
 	return true;
 }
 
+bool GraphicsContext::CreateFullScreenQuad(){
+	VERTEX_3D fullscreenVertices[] = {
+		{ {-1,-1,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {0,1} },
+		{ {-1, 1,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {0,0} },
+		{ { 1,-1,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {1,1} },
+		{ { 1, 1,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {1,0} },
+	};
+	UINT fullscreenIndices[] = {0,1,2, 2,1,3};
+
+	// VB
+	D3D11_BUFFER_DESC vbDesc = {};
+	vbDesc.Usage = D3D11_USAGE_DEFAULT;
+	vbDesc.ByteWidth = sizeof(fullscreenVertices);
+	vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	D3D11_SUBRESOURCE_DATA vbData = {fullscreenVertices};
+	if(FAILED(m_Device->CreateBuffer(&vbDesc, &vbData, &m_FullScreenVB))) return false;
+
+	// IB
+	D3D11_BUFFER_DESC ibDesc = {};
+	ibDesc.Usage = D3D11_USAGE_DEFAULT;
+	ibDesc.ByteWidth = sizeof(fullscreenIndices);
+	ibDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	D3D11_SUBRESOURCE_DATA ibData = {fullscreenIndices};
+	if(FAILED(m_Device->CreateBuffer(&ibDesc, &ibData, &m_FullScreenIB))) return false;
+
+	return true;
+}
+
 bool GraphicsContext::CreateEffectSystem() {
 
 	m_EffectSystem = new RenderEffectSystem();
@@ -700,6 +730,8 @@ void GraphicsContext::Resize(UINT width, UINT height){
 			return;
 		}
 
+		CreatePingPongBuffers(width, height);
+
 		m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
 
 		m_width = width;
@@ -708,4 +740,65 @@ void GraphicsContext::Resize(UINT width, UINT height){
 		// ビューポートの設定
 		ResetViewport();
 	}
+}
+
+void GraphicsContext::ResetPingPongBuffer(const float clearColor[4]){
+	m_DeviceContext->ClearRenderTargetView(m_PostRTV_A.Get(), clearColor);
+	m_DeviceContext->ClearRenderTargetView(m_PostRTV_B.Get(), clearColor);
+	m_DeviceContext->ClearDepthStencilView(m_DepthStencilView,
+										   D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
+										   1.0f, 0);
+
+	// 最初は A を書き込み用に設定
+	SwitchRenderTarget(PostProcessBufferID::BufferA);
+}
+
+bool GraphicsContext::CreatePingPongBuffers(UINT width, UINT height){
+	D3D11_TEXTURE2D_DESC desc = {};
+	desc.Width = width;
+	desc.Height = height;
+	desc.MipLevels = 1;
+	desc.ArraySize = 1;
+	desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	desc.SampleDesc.Count = 1;
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+	m_Device->CreateTexture2D(&desc, nullptr, &m_PostBufferA);
+	m_Device->CreateRenderTargetView(m_PostBufferA.Get(), nullptr, &m_PostRTV_A);
+	m_Device->CreateShaderResourceView(m_PostBufferA.Get(), nullptr, &m_PostSRV_A);
+
+	m_Device->CreateTexture2D(&desc, nullptr, &m_PostBufferB);
+	m_Device->CreateRenderTargetView(m_PostBufferB.Get(), nullptr, &m_PostRTV_B);
+	m_Device->CreateShaderResourceView(m_PostBufferB.Get(), nullptr, &m_PostSRV_B);
+
+	return true;
+}
+
+void GraphicsContext::SwitchRenderTarget(PostProcessBufferID id){
+	ID3D11RenderTargetView* rtv = (id == PostProcessBufferID::BufferA) ? m_PostRTV_A.Get() : m_PostRTV_B.Get();
+	m_DeviceContext->OMSetRenderTargets(1, &rtv, m_DepthStencilView);
+	m_CurrentBuffer = id;
+}
+
+ID3D11ShaderResourceView* GraphicsContext::GetCurrentSRV() const{
+	return (m_CurrentBuffer == PostProcessBufferID::BufferA) ? m_PostSRV_A.Get() : m_PostSRV_B.Get();
+}
+
+void GraphicsContext::DrawQuad(PostEffectShader* shader, ID3D11ShaderResourceView* inputSRV){
+	auto* context = m_DeviceContext.Get();
+
+	shader->Bind(context);
+
+	UINT stride = sizeof(VERTEX_3D);
+	UINT offset = 0;
+	context->IASetVertexBuffers(0, 1, m_FullScreenVB.GetAddressOf(), &stride, &offset);
+	context->IASetIndexBuffer(m_FullScreenIB.Get(), DXGI_FORMAT_R32_UINT, 0);
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	context->PSSetShaderResources(0, 1, &inputSRV);
+	context->DrawIndexed(6, 0, 0);
+
+	ID3D11ShaderResourceView* nullSRV[1] = {nullptr};
+	context->PSSetShaderResources(0, 1, nullSRV);
 }

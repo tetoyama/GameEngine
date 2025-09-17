@@ -35,7 +35,7 @@ public:
 		if(0 < Degit){
 			// ScoreManagerのコンポーネントからスコアを取得
 			int Score;
-			Score = m_context->component->GetComponent<GameTimeManager>(entity[0])->Timer;
+			Score = (int)m_context->component->GetComponent<GameTimeManager>(entity[0])->Timer;
 
 			Score = Score / (int)pow(10, (double)(Degit - 1));
 			int SetNum = Score % 10;

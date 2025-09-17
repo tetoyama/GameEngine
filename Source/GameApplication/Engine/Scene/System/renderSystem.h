@@ -19,6 +19,13 @@ class ModelRendererComponent;
 class BillBoardRendererComponent;
 class ParticleComponent;
 class OutlineComponent;
+class CameraComponent;
+
+struct PostEffect {
+	PostEffectShader* shader;
+	std::string name;
+	bool enabled;
+};
 
 
 class RenderSystem : public ISystem{
@@ -56,7 +63,7 @@ private:
 	void PlayerView();
 
 	void UpdateAnimation(const Entity& entity, const float& deltaTime);
-
+	ID3D11ShaderResourceView* RenderSceneWithPostEffects(CameraComponent* camera);
 	SceneContext* m_context;
 	MeshRendererComponent* m_billBoardMesh = nullptr;
 	MeshRendererComponent* m_SpriteMesh = nullptr;

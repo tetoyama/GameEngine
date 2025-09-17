@@ -58,28 +58,3 @@ struct Parameter
 {
 	DirectX::XMFLOAT4	Parameter;
 };
-
-#define MAX_BONES 128
-
-struct AnimationCB {
-	float animationTime;						// 現在のアニメーション時刻（秒）
-	int boneCount;								// 使用中のボーン数
-	float dummy[2];
-	DirectX::XMMATRIX boneMatrices[MAX_BONES];	// アニメーション済みのボーン行列（モデル空間）
-};
-
-struct AnimationVertex {
-	DirectX::XMFLOAT4 Position;
-	DirectX::XMFLOAT4 Normal;
-	DirectX::XMFLOAT2 TexCoord;
-	UINT BoneIndex[4];
-	float BoneWeight[4];
-};
-
-struct VertexOut {
-	DirectX::XMFLOAT3 Position;
-	DirectX::XMFLOAT3 Normal;
-	DirectX::XMFLOAT3 Tangent;
-	DirectX::XMFLOAT4 Diffuse;
-	DirectX::XMFLOAT2 TexCoord;
-};

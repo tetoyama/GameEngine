@@ -39,6 +39,11 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+      - Component: AudioComponent
+        FilePath: Asset\Audio\BGM.wav
+        Loop: true
+        Volume: 0.0989999995
+        PlayOnStart: true
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         Material:

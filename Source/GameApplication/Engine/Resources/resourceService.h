@@ -35,8 +35,8 @@ public:
         RegisterLoader<VertexShaderData>();
         RegisterLoader<PixelShaderData>();
         RegisterLoader<AudioData>();
-        RegisterLoader<EffectData>();
-    }
+		RegisterLoader<EffectData>();
+	}
 
     void Shutdown() override {
 		OutputDebugStringA("Shutdown ResourceService called\n");

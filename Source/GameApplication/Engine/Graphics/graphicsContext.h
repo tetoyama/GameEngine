@@ -32,8 +32,22 @@ enum class CullMode
 	Front,
 	None
 };
+class PostEffectShader {
+public:
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VS;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader>  m_PS;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout>  m_InputLayout;
 
-
+	void Bind(ID3D11DeviceContext* context){
+		context->VSSetShader(m_VS.Get(), nullptr, 0);
+		context->PSSetShader(m_PS.Get(), nullptr, 0);
+		context->IASetInputLayout(m_InputLayout.Get());
+	}
+};
+enum class PostProcessBufferID {
+	BufferA,
+	BufferB
+};
 class GraphicsContext : public IService {
 public:
 	bool Initialize(HWND hwnd, UINT width, UINT height);
@@ -87,6 +101,40 @@ public:
 	ID3D11ComputeShader* GetSkinningShader() {
 		return m_pComputeSkinningShader;
 	}
+	// 描画
+	void ResetPingPongBuffer(const float clearColor[4]);
+	void ApplyPostProcessChain(
+		const std::vector<PostEffectShader>& effects){
+		for(size_t i = 0; i < effects.size(); i++){
+			PostEffectShader shader = effects[i];
+
+			// 入力は現在の SRV
+			ID3D11ShaderResourceView* inputSRV = GetCurrentSRV();
+
+			// 出力先はもう一方のバッファ
+			m_CurrentBuffer = (m_CurrentBuffer == PostProcessBufferID::BufferA)
+				? PostProcessBufferID::BufferB
+				: PostProcessBufferID::BufferA;
+			SwitchRenderTarget(m_CurrentBuffer);
+
+			// クアッドを描画してシェーダーを適用
+			DrawQuad(&shader, inputSRV);
+		}
+	}
+	ID3D11ShaderResourceView* GetPostProcessResultSRV() const{
+		return GetCurrentSRV();
+	}
+	void BlitToBackBuffer(PostEffectShader* copyShader){
+		// バックバッファを描画先に設定
+		m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, nullptr);
+
+		// 現在の SRV をフルスクリーン描画
+		ID3D11ShaderResourceView* inputSRV = GetCurrentSRV();
+		DrawQuad(copyShader, inputSRV);
+	}
+	void DrawQuad(PostEffectShader* shader, ID3D11ShaderResourceView* inputSRV);
+	void SwitchRenderTarget(PostProcessBufferID id);
+	ID3D11ShaderResourceView* GetCurrentSRV() const;
 
 	UINT m_width = 0;
 	UINT m_height = 0;
@@ -101,6 +149,8 @@ private:
 	bool CreateDepthStencilBufferAndView(UINT width, UINT height);
 	bool CreateComputeSkinningShader();
 	bool CreateD2DResources(HWND hwnd);
+	bool CreateFullScreenQuad();
+	bool CreatePingPongBuffers(UINT width, UINT height);
 
 	bool CreateEffectSystem();
 
@@ -134,6 +184,20 @@ private:
 
 	Microsoft::WRL::ComPtr<ID2D1Factory> m_d2dFactory;
 	Microsoft::WRL::ComPtr<IDWriteFactory> m_dwriteFactory;
+
+	// PostProcess用バッファ
+	Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_PostBufferA;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_PostRTV_A;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_PostSRV_A;
+
+	Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_PostBufferB;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_PostRTV_B;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_PostSRV_B;
+
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_FullScreenVB;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_FullScreenIB;
+
+	PostProcessBufferID m_CurrentBuffer = PostProcessBufferID::BufferA;
 
 	RenderEffectSystem* m_EffectSystem = nullptr;
 };
