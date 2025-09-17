@@ -753,6 +753,38 @@ void GraphicsContext::ResetPingPongBuffer(const float clearColor[4]){
 	SwitchRenderTarget(PostProcessBufferID::BufferA);
 }
 
+void GraphicsContext::ApplyPostProcessChain(std::vector<PostEffectShader>& effects){
+	PostProcessBufferID writeBuffer = PostProcessBufferID::BufferB;
+	PostProcessBufferID readBuffer = PostProcessBufferID::BufferA;
+
+	for(size_t i = 0; i < effects.size(); i++){
+		PostEffectShader& shader = effects[i];
+
+		// 出力 RT
+		ID3D11RenderTargetView* outputRTV = (writeBuffer == PostProcessBufferID::BufferA) ? m_PostRTV_A.Get() : m_PostRTV_B.Get();
+		m_DeviceContext->OMSetRenderTargets(1, &outputRTV, nullptr); // 深度不要なら nullptr
+
+		// 入力 SRV
+		ID3D11ShaderResourceView* inputSRV = (readBuffer == PostProcessBufferID::BufferA) ? m_PostSRV_A.Get() : m_PostSRV_B.Get();
+
+		// SRV の解除（前のループの残骸をクリア）
+		ID3D11ShaderResourceView* nullSRV[1] = {nullptr};
+		m_DeviceContext->PSSetShaderResources(0, 1, nullSRV);
+
+		// Quad 描画
+		DrawQuad(&shader, inputSRV);
+
+		// Ping-Pong
+		std::swap(readBuffer, writeBuffer);
+	}
+
+	// 最終出力
+	m_CurrentBuffer = readBuffer;
+}
+
+
+
+
 bool GraphicsContext::CreatePingPongBuffers(UINT width, UINT height){
 	D3D11_TEXTURE2D_DESC desc = {};
 	desc.Width = width;

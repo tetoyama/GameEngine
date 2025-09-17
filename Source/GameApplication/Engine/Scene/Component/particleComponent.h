@@ -60,7 +60,7 @@ public:
 		return node;
 	}
 
-	bool decode(const YAML::Node& node) override{
+	bool decode(SceneContext* context, const YAML::Node& node) override{
 		if(!node.IsMap()) return false;
 
 		if(node["IsLoop"]) isLoop = node["IsLoop"].as<bool>();

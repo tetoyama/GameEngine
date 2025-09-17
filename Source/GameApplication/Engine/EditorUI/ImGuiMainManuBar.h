@@ -4,6 +4,12 @@
 #include <vector>
 #include <functional>
 
+#ifdef _DEBUG
+#define IMGUI_SHOW_DEFAULT (true)
+#else
+#define IMGUI_SHOW_DEFAULT (false)
+#endif // _DEBUG
+
 
 enum class MenuEvent
 {
@@ -20,6 +26,9 @@ class ImGuiService;
 class ImGuiManubar
 {
 public:
+	ImGuiManubar(){
+
+	}
 
 	using Callback = std::function<void()>;
 
@@ -27,12 +36,14 @@ public:
 	void Draw(); // MainMenuBar を表示する
 	void Invoke(MenuEvent event);
 
-	bool showSceneHierarchy = true;
-	bool showInspector = true;
-	bool showConsole = true;
-	bool showAssetsBrowser = true;
-	bool showEditorView = true;
-	bool showPlayerView = true;
+	bool showSceneHierarchy = IMGUI_SHOW_DEFAULT;
+	bool showInspector = IMGUI_SHOW_DEFAULT;
+	bool showConsole = IMGUI_SHOW_DEFAULT;
+	bool showAssetsBrowser = IMGUI_SHOW_DEFAULT;
+	bool showEditorView = IMGUI_SHOW_DEFAULT;
+	bool showPlayerView = IMGUI_SHOW_DEFAULT;
+	bool showParformanceMonitor = IMGUI_SHOW_DEFAULT;
+
 private:
 	std::unordered_map<MenuEvent, Callback> m_eventCallbacks;
 

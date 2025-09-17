@@ -33,7 +33,7 @@ public:
 		return node;
 	}
 
-	bool decode(const YAML::Node& node) override{
+	bool decode(SceneContext* context, const YAML::Node& node) override{
 		if(!node["layer"]) return false;
 		layer = static_cast<RenderLayer>(node["layer"].as<int>());
 		return true;
@@ -63,7 +63,7 @@ public:
 		return node;
 	}
 
-	bool decode(const YAML::Node& node) override{
+	bool decode(SceneContext* context, const YAML::Node& node) override{
 		if(!node["layer"]) return false;
 		order = node["layer"].as<int>();
 		return true;

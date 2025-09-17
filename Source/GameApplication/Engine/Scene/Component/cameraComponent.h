@@ -42,7 +42,9 @@ public:
 		return node;
 	}
 
-	bool decode(const YAML::Node& node) override{
+	bool decode(SceneContext* _context, const YAML::Node& node) override{
+		context = _context;
+
 		if(node["isLock"]) isLock = node["isLock"].as<bool>();
 		if(node["Target"]) Target = node["Target"].as<Vector3>();
 		if(node["NearClip"]) NearClip = node["NearClip"].as<float>();
@@ -50,7 +52,7 @@ public:
 		if(node["FOV"]) FOV = node["FOV"].as<float>();
 		if(node["viewMatrix"]) viewMatrix = node["viewMatrix"].as<DirectX::XMMATRIX>();
 
-		if(node["PostEffects"] && context){
+		if(node["PostEffects"]){
 			for(auto eNode : node["PostEffects"]){
 				CameraPostEffect effect;
 				effect.name = eNode["Name"].as<std::string>();

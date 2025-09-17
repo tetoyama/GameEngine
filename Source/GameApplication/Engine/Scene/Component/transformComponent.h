@@ -110,7 +110,7 @@ public:
 		return node;
 	}
 
-	bool decode(const YAML::Node& node) override{
+	bool decode(SceneContext* context, const YAML::Node& node) override{
 		if(!node.IsMap()){
 			return false;
 		}
@@ -148,114 +148,52 @@ public:
 		ImVec4 colorY = ImVec4(0.4f, 0.7f, 0.4f, 0.3f);
 		ImVec4 colorZ = ImVec4(0.4f, 0.4f, 0.7f, 0.3f);
 
-		auto DrawVec3Control = [&](const char* label, float& x, float& y, float& z, bool readOnly = false){
-			ImGui::AlignTextToFramePadding();
-			ImGui::TextUnformatted(label);
-			ImGui::SameLine();
-			ImGui::SetCursorPosX(labelWidth);
-
-			auto DrawComponent = [&](const char* id, float& value, const ImVec4& borderColor, const char* uniqueId, bool isLast){
-				ImGui::PushID(uniqueId);
-				ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
-				ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-				ImGui::PushItemWidth(fieldWidth - 10.0f);
-
-				ImGui::Text("%s", id);
-				ImGui::SameLine(0.0f, 10.0f);
-				ImGui::DragFloat("##", &value, 0.01f, -1000.0f, 1000.0f);
-
-				ImGui::PopItemWidth();
-				ImGui::PopStyleVar();
-				ImGui::PopStyleColor();
-				ImGui::PopID();
-
-				if(!isLast) ImGui::SameLine();
-				};
-
-			DrawComponent("X", x, colorX, (std::string(label) + "X").c_str(), false);
-			DrawComponent("Y", y, colorY, (std::string(label) + "Y").c_str(), false);
-			DrawComponent("Z", z, colorZ, (std::string(label) + "Z").c_str(), true);
-			};
-
 		// ----------- Position -----------
-		DrawVec3Control("Position", position.x, position.y, position.z);
-
+		ImGui::DragVec3("Position", position);
 		// ----------- Rotation (Euler UI) -----------
 		{
-			float e[3] = {rotationEular.x, rotationEular.y, rotationEular.z};
-			if(ImGui::DragFloat3("Rotation (Euler)", e, 0.01f)){
+			if(ImGui::DragVec3("Rotation", rotationEular)){
 				DirectX::XMVECTOR qNew = DirectX::XMQuaternionRotationRollPitchYaw(
-					e[0], e[1], e[2]
+					rotationEular.x, rotationEular.y, rotationEular.z
 				);
 				DirectX::XMStoreFloat4(&rotation, qNew);
-				rotationEular.x = e[0];
-				rotationEular.y = e[1];
-				rotationEular.z = e[2];
 			}
 
 		}
 
 
 		// ----------- Scale -----------
-		ImGui::AlignTextToFramePadding();
-		ImGui::TextUnformatted("Scale");
+		ImGui::Checkbox("##isUniformLocked", &isUniformLocked);
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("isUniformLocked?");
 		ImGui::SameLine();
+		// 変更前のスケールを保存
+		Vector3 oldScale = scale;
 
-		bool pressed = ImGui::SmallButton(isUniformLocked ? "-" : "+");
-		if(pressed){
-			isUniformLocked = !isUniformLocked;
-			if(isUniformLocked)
-				baseScale = {scale.x, scale.y, scale.z};
-		}
-		if(ImGui::IsItemHovered())
-			ImGui::SetTooltip(isUniformLocked ? "Uniform lock ON" : "Uniform lock OFF");
+		// DragVec3 を呼ぶ
+		bool changed = ImGui::DragVec3("Scale", scale);
 
-		ImGui::SameLine(labelWidth);
+		if(isUniformLocked && changed){
+			// 比率を維持
+			Vector3 ratio;
+			ratio.x = oldScale.x != 0.0f ? scale.x / oldScale.x : 1.0f;
+			ratio.y = oldScale.y != 0.0f ? scale.y / oldScale.y : 1.0f;
+			ratio.z = oldScale.z != 0.0f ? scale.z / oldScale.z : 1.0f;
 
-		if(!isUniformLocked){
-			DrawVec3Control("", scale.x, scale.y, scale.z);
-		} else{
-			colorX = ImVec4(1.0f, 0.8f, 0.8f, 0.6f);
-			colorY = ImVec4(0.8f, 1.0f, 0.8f, 0.6f);
-			colorZ = ImVec4(0.8f, 0.8f, 1.0f, 0.6f);
-
-			float ratio = 1.0f;
-			bool changed = false;
-
-			auto DrawLockedComponent = [&](const char* id, float& value, float baseValue, float& outRatio, const ImVec4& borderColor, bool isLast){
-				float temp = value;
-				ImGui::PushID(id);
-				ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
-				ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-				ImGui::PushItemWidth(fieldWidth - 10.0f);
-				ImGui::Text("%s", id);
-				ImGui::SameLine(0.0f, 10.0f);
-				if(ImGui::DragFloat("##", &temp, 0.01f, 0.01f)){
-					if(baseValue != 0.0f){
-						outRatio = temp / baseValue;
-						changed = true;
-					}
-				}
-				ImGui::PopItemWidth();
-				ImGui::PopStyleVar();
-				ImGui::PopStyleColor();
-				ImGui::PopID();
-				if(!isLast) ImGui::SameLine();
-				};
-
-			DrawLockedComponent("X", scale.x, baseScale.x, ratio, colorX, false);
-			DrawLockedComponent("Y", scale.y, baseScale.y, ratio, colorY, false);
-			DrawLockedComponent("Z", scale.z, baseScale.z, ratio, colorZ, true);
-
-			if(changed){
-				scale.x = baseScale.x * ratio;
-				scale.y = baseScale.y * ratio;
-				scale.z = baseScale.z * ratio;
+			// どの軸が変更されたかを判定（X軸優先など任意で決める）
+			if(scale.x != oldScale.x){
+				scale.y = oldScale.y * ratio.x;
+				scale.z = oldScale.z * ratio.x;
+			} else if(scale.y != oldScale.y){
+				scale.x = oldScale.x * ratio.y;
+				scale.z = oldScale.z * ratio.y;
+			} else if(scale.z != oldScale.z){
+				scale.x = oldScale.x * ratio.z;
+				scale.y = oldScale.y * ratio.z;
 			}
-
-			if(ImGui::IsItemHovered())
-				ImGui::SetTooltip("Locked: scale all axes proportionally");
 		}
+
+
 		ImGui::InputInt("Parent Entity", (int*)&parent);
 
 		ImGui::PopStyleVar(); // ItemSpacing

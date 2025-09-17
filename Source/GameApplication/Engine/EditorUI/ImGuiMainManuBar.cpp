@@ -8,7 +8,26 @@ void ImGuiManubar::Register(MenuEvent event, const Callback& callback){
 
 void ImGuiManubar::Draw(){
 
-	if(ImGui::BeginMainMenuBar()){
+	static bool showManuBar = false;
+#ifdef _DEBUG
+	showManuBar = true;
+#else
+	if(ImGui::IsKeyPressed(ImGuiKey_F3, false)){
+		showManuBar = !showManuBar;
+
+		showSceneHierarchy = showManuBar;
+		showInspector = showManuBar;
+		showConsole = showManuBar;
+		showAssetsBrowser = showManuBar;
+		showEditorView = showManuBar;
+		showPlayerView = showManuBar;
+		showParformanceMonitor = showManuBar;
+
+	}
+#endif // _DEBUG
+
+
+	if(showManuBar && ImGui::BeginMainMenuBar()){
 		RenderFileMenu();
 		RenderEditMenu();
 
@@ -31,6 +50,9 @@ void ImGuiManubar::Draw(){
 			}
 			if(ImGui::MenuItem("Player View", nullptr, showPlayerView)){
 				showPlayerView = !showPlayerView;
+			}
+			if(ImGui::MenuItem("ParformanceMonitor", nullptr, showParformanceMonitor)){
+				showParformanceMonitor = !showParformanceMonitor;
 			}
 			ImGui::EndMenu();
 		}

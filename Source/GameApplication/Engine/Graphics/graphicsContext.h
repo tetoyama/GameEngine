@@ -103,24 +103,7 @@ public:
 	}
 	// 描画
 	void ResetPingPongBuffer(const float clearColor[4]);
-	void ApplyPostProcessChain(
-		const std::vector<PostEffectShader>& effects){
-		for(size_t i = 0; i < effects.size(); i++){
-			PostEffectShader shader = effects[i];
-
-			// 入力は現在の SRV
-			ID3D11ShaderResourceView* inputSRV = GetCurrentSRV();
-
-			// 出力先はもう一方のバッファ
-			m_CurrentBuffer = (m_CurrentBuffer == PostProcessBufferID::BufferA)
-				? PostProcessBufferID::BufferB
-				: PostProcessBufferID::BufferA;
-			SwitchRenderTarget(m_CurrentBuffer);
-
-			// クアッドを描画してシェーダーを適用
-			DrawQuad(&shader, inputSRV);
-		}
-	}
+	void ApplyPostProcessChain(std::vector<PostEffectShader>& effects);
 	ID3D11ShaderResourceView* GetPostProcessResultSRV() const{
 		return GetCurrentSRV();
 	}

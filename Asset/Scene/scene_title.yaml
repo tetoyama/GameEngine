@@ -275,6 +275,15 @@ Entities:
             - -24.9833488
             - -0.912284851
             - 1
+        PostEffects:
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Blur.cso
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Mosaic.cso
   - Entity: 6
     Components:
       - Component: NameComponent

@@ -15,7 +15,7 @@ public:
 
 	virtual YAML::Node encode() = 0;
 
-	virtual bool decode(const YAML::Node& node) = 0;
+	virtual bool decode(SceneContext* context, const YAML::Node& node) = 0;
 
 	virtual void inspector(SceneContext* context) = 0;
 };

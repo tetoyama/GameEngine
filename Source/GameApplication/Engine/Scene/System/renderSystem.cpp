@@ -297,6 +297,13 @@ void RenderSystem::Initialize(){
 		throw std::runtime_error("Failed to create physics debug line vertex buffer.");
 	}
 
+	auto m_FullScreenVS = m_context->manager->resource->Load<VertexShaderData>("Asset\\Shader\\PostEffectVS.cso");
+	auto m_FullScreenPS = m_context->manager->resource->Load<PixelShaderData>("Asset\\Shader\\PostEffectPS.cso");
+
+	copyShader.m_VS = m_FullScreenVS->m_VertexShader; // フルスクリーンVS
+	copyShader.m_PS = m_FullScreenPS->m_PixelShader; // 単純に SRV → out を返す PS
+	copyShader.m_InputLayout = m_FullScreenVS->m_VertexLayout;
+
 }
 
 void RenderSystem::Finalize(){
@@ -335,28 +342,42 @@ void RenderSystem::Draw(){
 
 
 	//return;
-	{
-		m_context->manager->graphics->ResetViewport();
-		m_context->manager->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->manager->graphics->GetpRenderTargetView(), m_context->manager->graphics->GetDepthStencilView());
-		m_ScreenSize = Vector2(
-			(float)m_context->manager->renderer->GetGraphicsContext()->m_width,
-			(float)m_context->manager->renderer->GetGraphicsContext()->m_height
-		);
-		m_context->EditorScreenSize = m_ScreenSize;
 
-		SetCameraView();
-		DrawEntities(playerRenderLayerVisible);
-	}
 	if(*showPlayer){
 		PlayerView();
 	} else{
+
 		if(m_context->state == SceneState::Playing){
 
+			m_context->manager->graphics->ResetViewport();
+			m_context->manager->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->manager->graphics->GetpRenderTargetView(), m_context->manager->graphics->GetDepthStencilView());
+			m_ScreenSize = Vector2(
+				(float)m_context->manager->renderer->GetGraphicsContext()->m_width,
+				(float)m_context->manager->renderer->GetGraphicsContext()->m_height
+			);
+			m_context->EditorScreenSize = m_ScreenSize;
+
+			SetCameraView();
+			DrawEntities(playerRenderLayerVisible);
+
+			// カメラを取得
+			auto entities = m_context->component->FindEntitiesWithComponent<CameraComponent>();
+			if(entities.empty()){
+				return;
+			}
+			auto cameraComponent = m_context->component->GetComponent<CameraComponent>(entities[0]);
+			ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(cameraComponent);
+
+			ID3D11RenderTargetView* rtv = *m_context->manager->graphics->GetpRenderTargetView(); // バックバッファ
+			m_context->manager->graphics->GetDeviceContext()->OMSetRenderTargets(1, &rtv, m_context->manager->graphics->GetDepthStencilView());
+			m_context->manager->graphics->DrawQuad(&copyShader, finalSRV);
 		}
 	}
 	if(*showEditor){
 		EditorView();
 	}
+
+
 	m_context->manager->graphics->ResetViewport();
 	m_context->manager->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->manager->graphics->GetpRenderTargetView(), m_context->manager->graphics->GetDepthStencilView());
 
@@ -1086,8 +1107,7 @@ void RenderSystem::PlayerView(){
 	}
 	auto cameraComponent = m_context->component->GetComponent<CameraComponent>(entities[0]);
 
-	// --- 共通処理: シーン + ポストプロセス ---
-	ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(cameraComponent);
+
 
 	// アスペクト比調整（元コードのロジックを流用）
 	float imgW = 1280.0f, imgH = 720.0f;
@@ -1095,11 +1115,12 @@ void RenderSystem::PlayerView(){
 	float availAspect = avail.x / avail.y;
 
 	ImVec2 dst = avail;
-	if(imgAspect > availAspect){
-		dst.y = dst.x / imgAspect;
-	} else{
-		dst.x = dst.y * imgAspect;
-	}
+
+	m_ScreenSize = Vector2(avail.x, avail.y);
+	SetCameraView();
+
+	// --- 共通処理: シーン + ポストプロセス ---
+	ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(cameraComponent);
 
 	// 中央寄せ
 	ImVec2 cursor = ImGui::GetCursorPos();
@@ -1117,7 +1138,6 @@ void RenderSystem::PlayerView(){
 		ImGui::Text("finalSRV is NULL");
 	}
 	ImGui::Image((ImTextureID)finalSRV, dst, ImVec2(0, 0), ImVec2(1, 1), color, ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
-
 	// Guizmo 設定も元のまま
 	ImGuizmo::SetRect(
 		ImGui::GetWindowPos().x + cursor.x,

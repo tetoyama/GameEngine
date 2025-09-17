@@ -100,18 +100,24 @@ void SceneManager::LoadFromYAMLFile(){
 
 bool SceneManager::LoadFromYAML(const std::string& filePath){
 	auto scene = std::make_shared<Scene>();
+
+	m_SceneContext.debug->LOG_INFO("Sceneを読み込みます...");
 	if(m_activeScene){
 		m_SceneContext.debug->LOG_DEBUG("ActiveSceneを終了します");
 		m_activeScene->Shutdown();
-	}
+		m_activeScene.reset();
 
-	scene->Initialize(&m_SceneContext);
-	scene->LoadSceneFromYAML(filePath);
-	m_activeScene.reset();
+	} else{
+		//m_SceneContext.debug->LOG_WARNING("ActiveSceneの終了はスキップされました ActiveSceneが存在しないか見つけられませんでした");
+	}
 	m_activeScene = scene;
-	m_SceneContext.debug->LOG_INFO("Sceneをファイルから読み込みました: " + filePath);
+	if(m_activeScene){
+		scene->Initialize(&m_SceneContext);
+		scene->ResetAll();
+		scene->LoadSceneFromYAML(filePath);
+		scene->SetState(SceneState::Playing);
+	}
 	m_SceneContext.resource->ClearAllUnused();
-	scene->SetState(SceneState::Playing);
 	OpenFlag = true;
 
 	return true;

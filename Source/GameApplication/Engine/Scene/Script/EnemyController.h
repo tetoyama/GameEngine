@@ -44,7 +44,7 @@ public:
 		node["Stamina"] = stamina;
 		return node;
 	}
-	bool decode(const YAML::Node& node) override{
+	bool decode(SceneContext* context, const YAML::Node& node) override{
 		DECODE_FIELDS(node);
 		if(node["Stamina"]) stamina = node["Stamina"].as<float>();
 		return true;

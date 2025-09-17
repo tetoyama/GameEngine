@@ -21,7 +21,7 @@ public:
 	}
 
 	// --- YAMLデコード ---
-	bool decode(const YAML::Node& node) override{
+	bool decode(SceneContext* context, const YAML::Node& node) override{
 		if(node["RotateX"]) RotateXYZ.x = node["RotateX"].as<bool>();
 		if(node["RotateY"]) RotateXYZ.y = node["RotateY"].as<bool>();
 		if(node["RotateZ"]) RotateXYZ.z = node["RotateZ"].as<bool>();

@@ -36,7 +36,7 @@ public:
 		  return node;
 	  }
 
-	  bool decode(const YAML::Node& node) override {
+	  bool decode(SceneContext* context, const YAML::Node& node) override{
 		  if (!node.IsMap()) return false;
 		  if (node["FilePath"]) FilePath = node["FilePath"].as<std::string>();
 		  if (node["Loop"]) Loop = node["Loop"].as<bool>();

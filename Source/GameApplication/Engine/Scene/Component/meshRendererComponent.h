@@ -31,7 +31,7 @@ public:
 		return node;
 	}
 
-	bool decode(const YAML::Node& node) override{
+	bool decode(SceneContext* context, const YAML::Node& node) override{
 		return true;
 	}
 

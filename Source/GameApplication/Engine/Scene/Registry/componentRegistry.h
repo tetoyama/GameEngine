@@ -46,7 +46,7 @@ public:
 		m_yamlFactory[name] = [this](Entity e, const YAML::Node& node) -> IComponent*{
 			auto* comp = AddComponent<T>(e);
 			if(comp){
-				static_cast<T*>(comp)->decode(node);
+				static_cast<T*>(comp)->decode(m_context,node);
 			}
 			return comp;
 			};

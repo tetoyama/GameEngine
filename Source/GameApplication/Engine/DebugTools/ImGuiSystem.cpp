@@ -30,11 +30,6 @@ static float WorkingSetSizeSamples[SAMPLE_LENGTH]{};
 static int SampleCount = 0;
 
 void SetModernStyle();
-// UI状態管理
-bool showSceneHierarchy = true;
-bool showInspector = true;
-bool showConsole = true;
-bool showAssetsBrowser = true;
 
 void DrawAssetsBrowser(){
 
@@ -100,13 +95,7 @@ bool ImGuiService::Initialize(IWindow* window, GraphicsContext* graphics){
 		graphics->GetDeviceContext()
 	);
 
-#ifdef _DEBUG
-#else
-	showSceneHierarchy = false;
-	showInspector = false;
-	showConsole = false;
-	showAssetsBrowser = false;
-#endif // _DEBUG
+
 
 
 	return initialized_;
@@ -204,7 +193,6 @@ void ImGuiService::End(){
 
 	ImGuiIO& io = ImGui::GetIO();
 
-#ifdef _DEBUG
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
@@ -213,9 +201,7 @@ void ImGuiService::End(){
 		ImGui::UpdatePlatformWindows();
 		ImGui::RenderPlatformWindowsDefault();
 	}
-#else
 
-#endif // _DEBUG
 
 
 
@@ -228,7 +214,9 @@ void ImGuiService::OnResize(){
 }
 
 void ImGuiService::DrawDebugImGuiWindow(double Update, double Draw, double FPS, double DeltaFPS){
-	
+
+
+
 	HANDLE hProc = GetCurrentProcess();
 	PROCESS_MEMORY_COUNTERS_EX pmc;
 	BOOL isSuccess = GetProcessMemoryInfo(
@@ -264,6 +252,9 @@ void ImGuiService::DrawDebugImGuiWindow(double Update, double Draw, double FPS, 
 	UpdateSamples[SAMPLE_LENGTH - 1] = (float)(int)Update;
 	DrawSamples[SAMPLE_LENGTH - 1] = (float)(int)Draw;
 
+	if(!manubar.showParformanceMonitor){
+		return;
+	}
 	{
 		//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
 		ImGuiWindowFlags toolbar_window_flags = 0;
@@ -331,6 +322,7 @@ void ImGuiService::DrawDebugImGuiWindow(double Update, double Draw, double FPS, 
 		}
 		ImGui::End();
 	}
+
 }
 
 void SetModernStyle(){
