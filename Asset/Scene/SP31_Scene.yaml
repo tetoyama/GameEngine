@@ -51,7 +51,7 @@ Entities:
         PixelShader: Asset\Shader\PixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 133155.812
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -171,7 +171,7 @@ Entities:
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
-        AnimationTime: 0
+        AnimationTime: 133155.812
   - Entity: 4
     Components:
       - Component: NameComponent
@@ -179,7 +179,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 0.0500000007
+          y: 0.200000003
           z: 0
         Rotation:
           - 0
@@ -187,12 +187,12 @@ Entities:
           - 0
           - 1
         Scale:
-          x: 2
-          y: 1.35135138
-          z: 1.35135138
+          x: 1
+          y: 1
+          z: 1
         Parent: 0
       - Component: TextureComponent
-        FilePath: Asset\Texture\03626073-9e02-40ca-ac27-43c12f45e821.png
+        FilePath: Asset\Texture\white.tga
         Material:
           Ambient:
             x: 0.100000001
@@ -200,9 +200,9 @@ Entities:
             z: 0.100000001
             w: 1
           Diffuse:
-            x: 1
+            x: 0
             y: 1
-            z: 1
+            z: 0
             w: 1
           Specular:
             x: 0.0399999991
@@ -219,27 +219,27 @@ Entities:
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\ToonShaderPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 133155.812
+      - Component: OutlineComponent
   - Entity: 5
     Components:
       - Component: NameComponent
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 20
+          x: 4.67000008
+          y: 4.09000015
           z: -15
         Rotation:
-          - -0.333487093
+          - -0.0799146891
           - 0
           - 0
-          - 0.942754686
+          - 0.996801734
         Scale:
           x: 1
           y: 1
@@ -262,28 +262,40 @@ Entities:
             - 0
           -
             - 0
-            - 0.777572334
-            - 0.628793478
+            - 0.987227321
+            - 0.159317955
             - 0
           -
             - 0
-            - -0.628793478
-            - 0.777572334
+            - -0.159317955
+            - 0.987227321
             - 0
           -
-            - 0
-            - -24.9833488
-            - -0.912284851
+            - -4.67000008
+            - -6.42752934
+            - 14.1567993
             - 1
         PostEffects:
-          - Name: NewEffect
+          - Name: "Blur\x00fect"
             Enabled: false
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Blur.cso
-          - Name: NewEffect
+          - Name: "Mosaic\x00ct"
             Enabled: false
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Mosaic.cso
+          - Name: GraysScal
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Grayscale.cso
+          - Name: Posterize
+            Enabled: false
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Posterize.cso
+          - Name: NewEffect
+            Enabled: false
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Glitch.cso
   - Entity: 6
     Components:
       - Component: NameComponent
@@ -336,7 +348,8 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 133155.812
+      - Component: OutlineComponent
   - Entity: 7
     Components:
       - Component: NameComponent
@@ -389,7 +402,8 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 133155.812
+      - Component: OutlineComponent
   - Entity: 8
     Components:
       - Component: NameComponent
@@ -442,7 +456,8 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 133155.812
+      - Component: OutlineComponent
   - Entity: 9
     Components:
       - Component: NameComponent
@@ -495,7 +510,8 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 133155.812
+      - Component: OutlineComponent
   - Entity: 10
     Components:
       - Component: NameComponent
@@ -548,28 +564,29 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 133155.812
+      - Component: OutlineComponent
   - Entity: 11
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: Sprite
       - Component: TransformComponent
         Position:
           x: 0
-          y: -0.0132163577
+          y: 0
           z: 0
         Rotation:
-          - -0
           - 0
-          - -0
+          - 0
+          - 0
           - 1
         Scale:
-          x: 1.5
-          y: 0.171000004
-          z: 0.581081092
+          x: 0.289999992
+          y: 0.290000021
+          z: 0.290000021
         Parent: 0
       - Component: TextureComponent
-        FilePath: Asset\Texture\SOCCERGAME.png
+        FilePath: Asset\Texture\texture.jpg
         Material:
           Ambient:
             x: 0.100000001
@@ -603,172 +620,3 @@ Entities:
         pivot:
           x: 0
           y: 0
-  - Entity: 12
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 3.57999992
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
-      - Component: FadeInSprite
-        FadeTime: 1
-  - Entity: 13
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: -0.0614036545
-          y: 0.269064426
-          z: 0
-        Rotation:
-          - -0
-          - 0
-          - -0
-          - 1
-        Scale:
-          x: 0.579999983
-          y: 0.0600000024
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\PRESSENTER.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0
-            y: 0
-            z: 0
-            w: 0.666666627
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
-  - Entity: 14
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 2.54999995
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0
-            y: 0
-            z: 0
-            w: 0
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
-      - Component: FadeOutSprite
-        FadeTime: 1
-      - Component: FadeSetScene
-        ScriptName: FadeSetScene
-        SceneName: Asset/Scene/scene.yaml

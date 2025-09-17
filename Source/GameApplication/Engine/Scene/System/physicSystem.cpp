@@ -100,7 +100,7 @@ void PhysicSystem::UpdateColliderParam(ColliderComponent* collider, size_t entit
 	// 1) 古い shape を確実に解放（pxShape が nullptr なら何もしない）
 	if(col.pxShape){
 		actor->detachShape(*col.pxShape);
-		col.pxShape->release();
+		//col.pxShape->release();
 		col.pxShape = nullptr;
 	}
 

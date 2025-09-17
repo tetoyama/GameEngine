@@ -1273,7 +1273,7 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 
 	m_context->manager->graphics->GetEffectRenderer()->EndRendering();
 
-	if(pRenderLayer && pRenderLayer[(int)RenderLayer::Debug]){
+	if(pRenderLayer[(int)RenderLayer::Debug]){
 		auto physics = m_context->system->GetSystem<PhysicSystem>();
 		const physx::PxRenderBuffer& rb = physics->GetRenderBuffer();
 
