@@ -1110,6 +1110,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Backends\ImGui\stb_image.h" />
+    <ClInclude Include="Source\GameApplication\Backends\ImGui\imnodes.h" />
+    <ClInclude Include="Source\GameApplication\Backends\ImGui\imnodes_internal.h" />
     <ClInclude Include="Source\GameApplication\Backends\myMath.h" />
     <ClInclude Include="Source\GameApplication\Backends\myVector2.h" />
     <ClInclude Include="Source\GameApplication\Backends\myVector3.h" />
@@ -2993,6 +2995,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Source\GameApplication\Backends\ImGui\imnodes.cpp" />
     <ClCompile Include="Source\GameApplication\Backends\Taskbar\taskbar.cpp" />
     <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\binary.cpp" />
     <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\contrib\graphbuilder.cpp" />

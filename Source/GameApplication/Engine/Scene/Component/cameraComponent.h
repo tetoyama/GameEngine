@@ -83,7 +83,7 @@ public:
 			ImGui::Text("Target Position"); ImGui::SameLine(100); ImGui::DragFloat3("##Target", &Target.x, 0.01f);
 		}
 
-		char filepathBuffer[256];
+		char filepathBuffer[512];
 
 		// --- Post Effects ---
 		ImGui::Separator();
@@ -92,7 +92,7 @@ public:
 		for(auto& effect : postEffects){
 			ImGui::PushID(idx);
 			ImGui::Checkbox("##Enabled", &effect.enabled); ImGui::SameLine();
-			ImGui::InputText("Name", &effect.name[0], effect.name.size() + 1);
+			ImGui::InputText("Name", &effect.name[0], effect.name.size() + 16);
 
 			// --- Pixel Shader ---
 			if(effect.ps) strncpy_s(filepathBuffer, sizeof(filepathBuffer), effect.ps->FilePath.c_str(), _TRUNCATE);

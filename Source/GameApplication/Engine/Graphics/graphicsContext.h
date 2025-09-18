@@ -44,6 +44,23 @@ public:
 		context->IASetInputLayout(m_InputLayout.Get());
 	}
 };
+
+struct PostProcessNode {
+	int id;
+	std::string shaderPath;
+	float resolutionScale = 1.0f;
+
+	std::vector<int> inputs; // 接続元ノードID
+	std::unordered_map<std::string, float> parameters;
+
+	// 実行リソース
+	PostEffectShader shader;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> tex;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
+};
+
+
 enum class PostProcessBufferID {
 	BufferA,
 	BufferB

@@ -1,4 +1,4 @@
-#define DEFAULT_SCENE "Asset\\Scene\\Scene_Title.yaml"
+#define DEFAULT_SCENE "Asset\\Scene\\SP31_Scene.yaml"
 
 #include "engine.h"
 #include "engineContext.h"

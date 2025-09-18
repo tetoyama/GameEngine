@@ -51,7 +51,7 @@ Entities:
         PixelShader: Asset\Shader\PixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 133155.812
+        AnimationTime: 147682.875
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -171,7 +171,7 @@ Entities:
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
-        AnimationTime: 133155.812
+        AnimationTime: 147682.875
   - Entity: 4
     Components:
       - Component: NameComponent
@@ -224,7 +224,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 133155.812
+        AnimationTime: 147682.875
       - Component: OutlineComponent
   - Entity: 5
     Components:
@@ -285,14 +285,14 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Mosaic.cso
           - Name: GraysScal
-            Enabled: true
+            Enabled: false
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Grayscale.cso
           - Name: Posterize
             Enabled: false
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Posterize.cso
-          - Name: NewEffect
+          - Name: "Glitch\x00ct"
             Enabled: false
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Glitch.cso
@@ -348,7 +348,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 133155.812
+        AnimationTime: 147682.875
       - Component: OutlineComponent
   - Entity: 7
     Components:
@@ -402,7 +402,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 133155.812
+        AnimationTime: 147682.875
       - Component: OutlineComponent
   - Entity: 8
     Components:
@@ -456,7 +456,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 133155.812
+        AnimationTime: 147682.875
       - Component: OutlineComponent
   - Entity: 9
     Components:
@@ -510,7 +510,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 133155.812
+        AnimationTime: 147682.875
       - Component: OutlineComponent
   - Entity: 10
     Components:
@@ -564,59 +564,5 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 133155.812
+        AnimationTime: 147682.875
       - Component: OutlineComponent
-  - Entity: 11
-    Components:
-      - Component: NameComponent
-        Name: Sprite
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 0.289999992
-          y: 0.290000021
-          z: 0.290000021
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\texture.jpg
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0

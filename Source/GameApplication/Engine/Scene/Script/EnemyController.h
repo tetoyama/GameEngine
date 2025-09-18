@@ -74,6 +74,7 @@ public:
 		canDash = true;
 		CurrentSpeed = 0.0f;
 		stamina = maxStamina;
+
 	}
 
 	void OnUpdate(float dt) override{

@@ -14,9 +14,6 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     // 輝度を計算
     float luminance = dot(color.rgb, float3(0.299, 0.587, 0.114));
 
-    // ポスタライズ処理
-    luminance = floor(luminance * LEVELS) / (LEVELS - 1);
-
     // グレースケール出力
     outDiffuse = float4(luminance, luminance, luminance, color.a);
 }
