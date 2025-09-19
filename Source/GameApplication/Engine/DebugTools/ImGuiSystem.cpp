@@ -8,6 +8,7 @@
 #include "Backends/ImGui/imgui_impl_win32.h"
 #include "Backends/ImGui/imgui_impl_dx11.h"
 #include "Backends/ImGui/imguizmo.h"
+#include "Backends/ImGui/imnodes.h"
 
 #include "Engine/Graphics/GraphicsContext.h"
 #include "Engine/Platform/WindowSystem/MainWindow.h"
@@ -41,6 +42,7 @@ bool ImGuiService::Initialize(IWindow* window, GraphicsContext* graphics){
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
+	ImNodes::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
 
 	// Enable docking(available in imgui `docking` branch at the moment)
@@ -103,7 +105,8 @@ bool ImGuiService::Initialize(IWindow* window, GraphicsContext* graphics){
 
 void ImGuiService::Shutdown() {
 
-		//ImGuiの終了処理
+	ImNodes::DestroyContext();
+	//ImGuiの終了処理
 	{
 		ImGui_ImplDX11_Shutdown();
 		ImGui_ImplWin32_Shutdown();
@@ -173,7 +176,7 @@ void ImGuiService::Begin(){
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
-
+	
 	ImGuizmo::BeginFrame();
 	ImGuizmo::SetOrthographic(false); // true＝直交投影、false＝透視
 

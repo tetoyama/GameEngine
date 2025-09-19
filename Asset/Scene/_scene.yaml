@@ -274,6 +274,40 @@ Entities:
             - -20
             - 15
             - 1
+        PostEffects:
+          - Name: NewEffect
+            Enabled: true
+            NodePos:
+              x: 138
+              y: 47
+            InputPins:
+              - 2
+              - 4
+            OutputPin: 3
+        PostEffectLinks:
+          - ID: 1
+            StartNode: -1
+            EndNode: 0
+            StartAttr: -1
+            EndAttr: 2
+          - ID: 2
+            StartNode: 0
+            EndNode: -2
+            StartAttr: 3
+            EndAttr: 1
+        ScreenInput:
+          Name: ""
+          NodePos:
+            x: 24
+            y: 42
+          OutputPin: -1
+        ScreenOutput:
+          Name: ""
+          NodePos:
+            x: 375
+            y: 151
+          InputPins:
+            - 1
   - Entity: 6
     Components:
       - Component: NameComponent

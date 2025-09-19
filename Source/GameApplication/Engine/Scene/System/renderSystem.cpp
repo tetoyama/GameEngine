@@ -566,10 +566,6 @@ void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent
 	deviceContext->VSSetShader(meshRenderer->mesh.m_VertexShader.Get(), NULL, 0);
 	deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
 
-	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(transform->GetRotationEuler().x, transform->GetRotationEuler().y, transform->GetRotationEuler().z);
-	DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z);
-	DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
-
 	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, m_context->component);
 
 	graphicsContext->SetWorldViewProjection2D();
@@ -1128,7 +1124,7 @@ void RenderSystem::PlayerView(){
 	// 状態によって色を変える（元のコード維持）
 	ImVec4 color = (m_context->state == SceneState::Playing)
 		? ImVec4(1.0f, 1.0f, 1.0f, 1.0f)
-		: ImVec4(0.5f, 0.5f, 0.5f, 0.8f);
+		: ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 	// ImGui::Image で最終結果を表示
 	if(!finalSRV){

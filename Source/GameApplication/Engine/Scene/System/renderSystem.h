@@ -107,7 +107,7 @@ private:
 
 	int currentSelectedLayer = (int)RenderLayer::Opaque3D; // 初期選択（例）
 
-	ID3D11Buffer* pPhysicsDebugLineVB;
+	ID3D11Buffer* pPhysicsDebugLineVB = nullptr;
 	PostEffectShader copyShader;
 
 };
