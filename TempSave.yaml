@@ -51,7 +51,7 @@ Entities:
         PixelShader: Asset\Shader\PixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 150331.875
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -171,7 +171,7 @@ Entities:
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
-        AnimationTime: 0
+        AnimationTime: 150331.875
   - Entity: 4
     Components:
       - Component: NameComponent
@@ -224,21 +224,22 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 150331.875
+      - Component: OutlineComponent
   - Entity: 5
     Components:
       - Component: NameComponent
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 20
+          x: 4.67000008
+          y: 4.09000015
           z: -15
         Rotation:
+          - -0.0799146891
           - 0
           - 0
-          - 0
-          - 1
+          - 0.996801734
         Scale:
           x: 1
           y: 1
@@ -261,19 +262,83 @@ Entities:
             - 0
           -
             - 0
-            - 1
-            - 0
-            - 0
-          -
-            - 0
-            - 0
-            - 1
+            - 0.987227321
+            - 0.159317955
             - 0
           -
             - 0
-            - -20
-            - 15
+            - -0.159317955
+            - 0.987227321
+            - 0
+          -
+            - -4.67000008
+            - -6.42752934
+            - 14.1567993
             - 1
+        PostEffects:
+          - Name: "Blur\x00fect"
+            Enabled: false
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Blur.cso
+            NodePos:
+              x: -1
+              y: -1
+            InputPins:
+              - 1
+            OutputPin: 2
+          - Name: "Mosaic\x00ct"
+            Enabled: false
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Mosaic.cso
+            NodePos:
+              x: -1
+              y: -1
+            InputPins:
+              - 3
+            OutputPin: 4
+          - Name: GraysScal
+            Enabled: false
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Grayscale.cso
+            NodePos:
+              x: -1
+              y: -1
+            InputPins:
+              - 5
+            OutputPin: 6
+          - Name: Posterize
+            Enabled: false
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Posterize.cso
+            NodePos:
+              x: -1
+              y: -1
+            InputPins:
+              - 7
+            OutputPin: 8
+          - Name: "Glitch\x00ct"
+            Enabled: false
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Glitch.cso
+            NodePos:
+              x: -1
+              y: -1
+            InputPins:
+              - 9
+            OutputPin: 10
+        ScreenInput:
+          Name: ScreenInput
+          NodePos:
+            x: 50
+            y: 50
+          OutputPin: 11
+        ScreenOutput:
+          Name: ScreenOutput
+          NodePos:
+            x: 500
+            y: 50
+          InputPins:
+            - 12
   - Entity: 6
     Components:
       - Component: NameComponent
@@ -326,7 +391,8 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 150331.875
+      - Component: OutlineComponent
   - Entity: 7
     Components:
       - Component: NameComponent
@@ -379,7 +445,8 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 150331.875
+      - Component: OutlineComponent
   - Entity: 8
     Components:
       - Component: NameComponent
@@ -432,7 +499,8 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 150331.875
+      - Component: OutlineComponent
   - Entity: 9
     Components:
       - Component: NameComponent
@@ -485,7 +553,8 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 150331.875
+      - Component: OutlineComponent
   - Entity: 10
     Components:
       - Component: NameComponent
@@ -538,4 +607,112 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 150331.875
+      - Component: OutlineComponent
+  - Entity: 11
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\texture.jpg
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: SpriteRendererComponent
+        anchor:
+          x: 0.5
+          y: 0.5
+        pivot:
+          x: 0
+          y: 0
+  - Entity: 12
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0.345013738
+          y: 0.237196937
+          z: 0
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 11
+      - Component: TextureComponent
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: SpriteRendererComponent
+        anchor:
+          x: 0.5
+          y: 0.5
+        pivot:
+          x: 0
+          y: 0

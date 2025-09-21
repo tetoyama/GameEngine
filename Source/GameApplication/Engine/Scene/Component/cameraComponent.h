@@ -44,6 +44,8 @@ public:
     int nextLinkId = 1;
     int nextPinId = 1;
 
+	bool initialized = false;
+
     YAML::Node encode() override {
         YAML::Node node;
         node["isLock"] = isLock;
@@ -96,8 +98,9 @@ public:
     bool decode(SceneContext* _context, const YAML::Node& node) override {
         context = _context;
 
-
-
+		initialized = true;
+		screenInputNode.initialized = true;
+		screenOutputNode.initialized = true;
 
         if (node["isLock"]) isLock = node["isLock"].as<bool>();
         if (node["Target"]) Target = node["Target"].as<Vector3>();
@@ -168,6 +171,13 @@ public:
     }
 
     void inspector(SceneContext* ctx) {
+
+		if(!initialized){
+			postEffectLinks.clear();
+			postEffectLinks.push_back({nextLinkId++, -1, -2, -1, 1});
+			initialized = true;
+		}
+
         context = ctx;
         ImGui::PushID(this);
 
@@ -275,6 +285,17 @@ public:
             ImGui::PushItemWidth(150.0f);
             if (ImGui::InputText("PS", filepathBuffer, sizeof(filepathBuffer)) && context)
                 effect.ps = context->manager->resource->Load<PixelShaderData>(filepathBuffer);
+			// Drag&Drop (PS)
+			if(ImGui::BeginDragDropTarget() && context){
+				if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
+					const char* droppedPath = (const char*)payload->Data;
+					std::string path(droppedPath);
+					if(path.find(".cso") != std::string::npos){
+						effect.ps = context->manager->resource->Load<PixelShaderData>(path);
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
             ImGui::PopItemWidth();
 
             if (effect.vs) strncpy_s(filepathBuffer, sizeof(filepathBuffer), effect.vs->FilePath.c_str(), _TRUNCATE);
@@ -282,15 +303,35 @@ public:
             ImGui::PushItemWidth(150.0f);
             if (ImGui::InputText("VS", filepathBuffer, sizeof(filepathBuffer)) && context)
                 effect.vs = context->manager->resource->Load<VertexShaderData>(filepathBuffer);
+			// Drag & Drop(VS)
+			if(ImGui::BeginDragDropTarget() && context){
+				if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
+					const char* droppedPath = (const char*)payload->Data;
+					std::string path(droppedPath);
+					if(path.find(".cso") != std::string::npos){
+						effect.vs = context->manager->resource->Load<VertexShaderData>(path);
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
             ImGui::PopItemWidth();
 
             // Input Pins
             int inputnum = 0;
+			bool isFirst = true;
             for (int pinId : effect.inputPins) {
                 ImNodes::BeginInputAttribute(pinId);
                 ImGui::Text(("Input[" + std::to_string(inputnum) + "]").c_str());
                 ImNodes::EndInputAttribute();
                 inputnum++;
+
+				if(isFirst){
+					ImGui::SameLine(150.0f);
+					ImNodes::BeginOutputAttribute(effect.outputPin);
+					ImGui::Text("Output");
+					ImNodes::EndOutputAttribute();
+					isFirst = false;
+				}
             }
 
             // 未接続なら追加
@@ -302,10 +343,6 @@ public:
             }
             if (allConnected) effect.inputPins.push_back(nextPinId++);
 
-            ImGui::SameLine(150.0f);
-            ImNodes::BeginOutputAttribute(effect.outputPin);
-            ImGui::Text("Output");
-            ImNodes::EndOutputAttribute();
 
             ImNodes::EndNode();
             idx++;
