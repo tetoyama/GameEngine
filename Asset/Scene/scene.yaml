@@ -278,10 +278,10 @@ Entities:
           - Name: NewEffect
             Enabled: true
             VS: Asset\Shader\PostEffectVS.cso
-            PS: Asset\Shader\Mosaic.cso
+            PS: Asset\Shader\Glitch.cso
             NodePos:
-              x: 122
-              y: 40
+              x: 183
+              y: 35
             InputPins:
               - 2
               - 4
@@ -306,8 +306,8 @@ Entities:
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 389
-            y: 102
+            x: 499
+            y: 109
           InputPins:
             - 1
   - Entity: 6

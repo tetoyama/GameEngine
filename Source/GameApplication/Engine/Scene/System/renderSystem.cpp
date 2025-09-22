@@ -1131,14 +1131,15 @@ ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(CameraCompone
 			node.srv = e.srv.Get();
 			node.tex = e.tex.Get();
 
-			// inputPins が -1 の場合は初期入力SRVを参照
+			// リンクから入力ノードを決定
 			node.inputs.clear();
-			for(int inputId : e.inputPins){
-				if(inputId < 0){
-					// -1 の場合は初期描画結果を仮想ノードとして扱う
-					node.inputs.push_back(-1);
-				} else{
-					node.inputs.push_back(inputId);
+			for(auto& link : camera->postEffectLinks){
+				if(link.endNode == idx){
+					if(link.startNode < 0){
+						node.inputs.push_back(-2); // 初期SRV扱い
+					} else{
+						node.inputs.push_back(link.startNode);
+					}
 				}
 			}
 
@@ -1155,10 +1156,14 @@ ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(CameraCompone
 				}
 			}
 		}
-		graphics->ApplyPostProcessChain(postNodes, initialSRV);
-	}
+		graphics->GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
 
-	graphics->GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
+		graphics->ApplyPostProcessChain(postNodes, initialSRV);
+
+		graphics->GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
+
+		return graphics->m_CurrentSRV;
+	}
 
 	return graphics->GetCurrentSRV();
 }
