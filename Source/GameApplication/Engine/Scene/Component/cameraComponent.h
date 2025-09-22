@@ -67,7 +67,7 @@ struct CameraPostEffect {
 	}
 
 	void ResizeTexture(ID3D11Device* device, const Vector2& screenSize){
-		if (resolution.x == screenSize.x && resolution.y == screenSize.y) return;
+		if (resolution.x == screenSize.x && resolution.y == screenSize.y && tex && rtv && srv) return;
 		tex = nullptr;
 		rtv = nullptr;
 		srv = nullptr;
@@ -113,6 +113,8 @@ public:
         node["FarClip"] = FarClip;
         node["FOV"] = FOV;
         node["viewMatrix"] = viewMatrix;
+        node["nextLinkId"] = nextLinkId;
+        node["nextPinId"] = nextPinId;
 
         for (auto& effect : postEffects) {
             YAML::Node e;
@@ -168,6 +170,10 @@ public:
         if (node["FOV"]) FOV = node["FOV"].as<float>();
         if (node["viewMatrix"]) viewMatrix = node["viewMatrix"].as<DirectX::XMMATRIX>();
 
+        if (node["nextLinkId"]) nextLinkId = node["nextLinkId"].as<int>();
+        if (node["nextPinId"]) nextPinId = node["nextPinId"].as<int>();
+
+
         if (node["PostEffects"]) {
             for (auto eNode : node["PostEffects"]) {
                 CameraPostEffect effect;
@@ -203,10 +209,10 @@ public:
             screenInputNode.name = e["Name"].as<std::string>();
             if (e["NodePos"]) screenInputNode.nodePos = e["NodePos"].as<Vector2>();
             if (e["OutputPin"]) screenInputNode.outputPin = e["OutputPin"].as<int>();
-            if (screenInputNode.outputPin <= 0) screenInputNode.outputPin = nextPinId++;
+            //if (screenInputNode.outputPin <= 0) screenInputNode.outputPin = nextPinId++;
             screenInputNode.initialized = true;
         } else {
-            screenInputNode.name = "ScreenInput";
+            screenInputNode.name = "";
             screenInputNode.outputPin = nextPinId++;
             screenInputNode.nodePos = Vector2(50, 50);
             screenInputNode.initialized = false;
@@ -217,10 +223,10 @@ public:
             screenOutputNode.name = e["Name"].as<std::string>();
             if (e["NodePos"]) screenOutputNode.nodePos = e["NodePos"].as<Vector2>();
             if (e["InputPins"]) screenOutputNode.inputPins = e["InputPins"].as<std::vector<int>>();
-            if (screenOutputNode.inputPins.empty()) screenOutputNode.inputPins.push_back(nextPinId++);
+            //if (screenOutputNode.inputPins.empty()) screenOutputNode.inputPins.push_back(nextPinId++);
             screenOutputNode.initialized = true;
         } else {
-            screenOutputNode.name = "ScreenOutput";
+            screenOutputNode.name = "";
             screenOutputNode.inputPins.push_back(nextPinId++);
             screenOutputNode.nodePos = Vector2(500, 50);
             screenOutputNode.initialized = false;

@@ -795,8 +795,6 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 				inputSRV = initialSRV;
 			} else if(node.inputs[i] >= 0 && node.inputs[i] < static_cast<int>(effects.size())){
 				inputSRV = effects[node.inputs[i]].srv;
-			} else{
-				inputSRV = initialSRV;
 			}
 
 			m_DeviceContext->PSSetShaderResources(static_cast<UINT>(i), 1, &inputSRV);
@@ -856,8 +854,9 @@ void GraphicsContext::DrawQuad(PostEffectShader* shader, ID3D11ShaderResourceVie
 	context->IASetVertexBuffers(0, 1, m_FullScreenVB.GetAddressOf(), &stride, &offset);
 	context->IASetIndexBuffer(m_FullScreenIB.Get(), DXGI_FORMAT_R32_UINT, 0);
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
+	if (inputSRV){
 	context->PSSetShaderResources(0, 1, &inputSRV);
+	}
 	context->DrawIndexed(6, 0, 0);
 
 	ID3D11ShaderResourceView* nullSRV[1] = {nullptr};

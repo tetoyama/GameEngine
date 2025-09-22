@@ -1048,61 +1048,68 @@ void RenderSystem::EditorView(){
 }
 
 
-std::vector<int> TopologicalSortPostEffects(CameraComponent* camera){
+std::vector<int> TopologicalSortPostEffects(CameraComponent* camera) {
 	std::vector<int> sortedIndices;
-	if(!camera) return sortedIndices;
+	if (!camera) return sortedIndices;
 
 	int n = static_cast<int>(camera->postEffects.size());
-	std::vector<int> indegree(n, 0);
 	std::unordered_map<int, std::vector<int>> adj;
+	std::unordered_map<int, int> indegree;
+	std::unordered_set<int> relevantNodes;
 
-	// グラフ構築（startNode -> endNode）
-	for(const auto& link : camera->postEffectLinks){
-		if(link.startNode >= 0 && link.endNode >= 0 &&
-		   link.startNode < n && link.endNode < n){
+	// グラフ構築 + 関連ノード収集
+	for (const auto& link : camera->postEffectLinks) {
+		if (link.startNode >= 0 && link.endNode >= 0 &&
+			link.startNode < n && link.endNode < n) {
 			adj[link.startNode].push_back(link.endNode);
 			indegree[link.endNode]++;
+			relevantNodes.insert(link.startNode);
+			relevantNodes.insert(link.endNode);
 		}
 	}
 
-	// 入次数0のノードをキューに入れる
+	// 入次数が0のノード（relevantNodes のみ）
 	std::queue<int> q;
-	for(int i = 0; i < n; ++i){
-		if(indegree[i] == 0) q.push(i);
+	for (int node : relevantNodes) {
+		if (indegree.find(node) == indegree.end()) {
+			q.push(node);
+		}
 	}
 
-	// Kahnのアルゴリズムでトポロジカルソート
-	while(!q.empty()){
+	// Kahnのアルゴリズム
+	while (!q.empty()) {
 		int node = q.front();
 		q.pop();
 		sortedIndices.push_back(node);
 
-		for(int neighbor : adj[node]){
+		for (int neighbor : adj[node]) {
 			indegree[neighbor]--;
-			if(indegree[neighbor] == 0){
+			if (indegree[neighbor] == 0) {
 				q.push(neighbor);
 			}
 		}
 	}
 
-	// サイクルがある場合は警告
-	if(sortedIndices.size() != n){
+	// サイクル検出（relevantNodes と sortedIndices の比較）
+	if (sortedIndices.size() != relevantNodes.size()) {
 		OutputDebugStringA("Warning: post effect graph has cycles!\n");
-		// サイクルがあっても適当に残りを追加
-		for(int i = 0; i < n; ++i){
-			if(std::find(sortedIndices.begin(), sortedIndices.end(), i) == sortedIndices.end())
-				sortedIndices.push_back(i);
+		// サイクルのある場合でも relevantNodes の中で追加されていないノードを追加
+		for (int node : relevantNodes) {
+			if (std::find(sortedIndices.begin(), sortedIndices.end(), node) == sortedIndices.end()) {
+				sortedIndices.push_back(node);
+			}
 		}
 	}
 
 	return sortedIndices;
 }
 
-ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(CameraComponent* camera){
+
+ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(CameraComponent* camera) {
 	GraphicsContext* graphics = m_context->manager->graphics;
 
 	// 1. シーンを初期バッファに描画
-	DirectX::XMFLOAT4 clearColor = {0,0,0,1};
+	DirectX::XMFLOAT4 clearColor = { 0,0,0,1 };
 	graphics->ResetPingPongBuffer(&clearColor.x); // 初期描画用バッファ
 
 	DrawEntities(playerRenderLayerVisible);
@@ -1112,12 +1119,14 @@ ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(CameraCompone
 
 	// 2. トポロジカルソート済みのポストエフェクトノード作成
 	std::vector<PostProcessNode> postNodes;
-	if(camera){
+	std::unordered_map<int, int> effectIndexToPostNodeIndex; // camera->postEffects idx → postNodes idx
+
+	if (camera) {
 		auto sortedIndices = TopologicalSortPostEffects(camera);
 
-		for(int idx : sortedIndices){
+		for (int idx : sortedIndices) {
 			auto& e = camera->postEffects[idx];
-			if(!e.enabled || !e.ps || !e.vs) continue;
+			if (!e.enabled || !e.ps || !e.vs) continue;
 
 			PostProcessNode node{};
 			node.id = idx;
@@ -1125,7 +1134,7 @@ ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(CameraCompone
 			node.shader.m_PS = e.ps->m_PixelShader;
 			node.shader.m_InputLayout = e.vs->m_VertexLayout;
 
-			e.ResizeTexture(graphics->GetDevice(), m_ScreenSize);
+			e.ResizeTexture(graphics->GetDevice(), Vector2((float)graphics->m_width, (float)graphics->m_height));
 			e.Clear(graphics->GetDeviceContext(), &clearColor.x);
 			node.rtv = e.rtv.GetAddressOf();
 			node.srv = e.srv.Get();
@@ -1133,33 +1142,44 @@ ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(CameraCompone
 
 			// リンクから入力ノードを決定
 			node.inputs.clear();
-			for(auto& link : camera->postEffectLinks){
-				if(link.endNode == idx){
-					if(link.startNode < 0){
-						node.inputs.push_back(-2); // 初期SRV扱い
-					} else{
-						node.inputs.push_back(link.startNode);
-					}
-				}
-			}
+			// ノード追加前にインデックスを記録しておく
+			int postNodeIndex = static_cast<int>(postNodes.size());
+			effectIndexToPostNodeIndex[idx] = postNodeIndex;
 
 			postNodes.push_back(std::move(node));
 		}
+
+		// リンクを後から追加（マッピングが揃った後に行う）
+		for (auto& node : postNodes) {
+			int effectIdx = node.id;
+			for (auto& link : camera->postEffectLinks) {
+				if (link.endNode == effectIdx) {
+					if (link.startNode < 0) {
+						node.inputs.push_back(-2); // 初期SRV
+					} else {
+						auto it = effectIndexToPostNodeIndex.find(link.startNode);
+						if (it != effectIndexToPostNodeIndex.end()) {
+							node.inputs.push_back(it->second);
+						}
+						// else: 無効な startNode は無視（スキップされたノードの可能性あり）
+					}
+				}
+			}
+		}
 	}
 
-	// 3. ApplyPostProcessChain 側で -1 を初期SRVに置き換えるようにする
-	if(!postNodes.empty()){
-		for(auto& node : postNodes){
-			for(size_t i = 0; i < node.inputs.size(); ++i){
-				if(node.inputs[i] == -1){
+	// 3. ApplyPostProcessChain 側で -1 を初期SRVに置き換えるようにする（念のための処理）
+	if (!postNodes.empty()) {
+		for (auto& node : postNodes) {
+			for (size_t i = 0; i < node.inputs.size(); ++i) {
+				if (node.inputs[i] == -1) {
 					node.inputs[i] = -2; // 特殊値 -2 を初期SRV扱いとして ApplyPostProcessChain で処理
 				}
 			}
 		}
+
 		graphics->GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
-
 		graphics->ApplyPostProcessChain(postNodes, initialSRV);
-
 		graphics->GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
 
 		return graphics->m_CurrentSRV;
@@ -1167,6 +1187,7 @@ ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(CameraCompone
 
 	return graphics->GetCurrentSRV();
 }
+
 
 
 

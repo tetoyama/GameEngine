@@ -274,18 +274,76 @@ Entities:
             - -20
             - 15
             - 1
+        nextLinkId: 15
+        nextPinId: 21
         PostEffects:
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\BrightPass.cso
+            NodePos:
+              x: -101.640381
+              y: -23.1147766
+            InputPins:
+              - 2
+              - 4
+            OutputPin: 3
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\BlurHorizontal.cso
+            NodePos:
+              x: 125.359619
+              y: -24.1147766
+            InputPins:
+              - 5
+              - 9
+            OutputPin: 6
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\BlurVertical.cso
+            NodePos:
+              x: 348.359619
+              y: -23.1147766
+            InputPins:
+              - 7
+              - 10
+            OutputPin: 8
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\CompositeBloom.cso
+            NodePos:
+              x: 606.630127
+              y: 61.692688
+            InputPins:
+              - 11
+              - 13
+              - 14
+            OutputPin: 12
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Mosaic.cso
+            NodePos:
+              x: 1097.74731
+              y: 62.669281
+            InputPins:
+              - 15
+              - 17
+            OutputPin: 16
           - Name: NewEffect
             Enabled: true
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Glitch.cso
             NodePos:
-              x: 183
-              y: 35
+              x: 857.950195
+              y: 67.6367188
             InputPins:
-              - 2
-              - 4
-            OutputPin: 3
+              - 18
+              - 20
+            OutputPin: 19
         PostEffectLinks:
           - ID: 2
             StartNode: -1
@@ -294,20 +352,50 @@ Entities:
             EndAttr: 2
           - ID: 3
             StartNode: 0
-            EndNode: -2
+            EndNode: 1
             StartAttr: 3
+            EndAttr: 5
+          - ID: 4
+            StartNode: 1
+            EndNode: 2
+            StartAttr: 6
+            EndAttr: 7
+          - ID: 5
+            StartNode: 2
+            EndNode: 3
+            StartAttr: 8
+            EndAttr: 11
+          - ID: 7
+            StartNode: -1
+            EndNode: 3
+            StartAttr: -1
+            EndAttr: 13
+          - ID: 12
+            StartNode: 3
+            EndNode: 5
+            StartAttr: 12
+            EndAttr: 18
+          - ID: 13
+            StartNode: 5
+            EndNode: 4
+            StartAttr: 19
+            EndAttr: 15
+          - ID: 14
+            StartNode: 4
+            EndNode: -2
+            StartAttr: 16
             EndAttr: 1
         ScreenInput:
           Name: ""
           NodePos:
-            x: 0
-            y: 0
+            x: -204.654083
+            y: 244.932678
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 499
-            y: 109
+            x: 1352.75415
+            y: 232.710754
           InputPins:
             - 1
   - Entity: 6
