@@ -55,11 +55,12 @@ struct PostProcessNode {
 
 	// 実行リソース
 	PostEffectShader shader;
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> tex;
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
+	ID3D11Texture2D* tex;
+	ID3D11RenderTargetView** rtv;
+	ID3D11ShaderResourceView* srv;
 };
 
+struct CameraPostEffect;
 
 enum class PostProcessBufferID {
 	BufferA,
@@ -121,6 +122,8 @@ public:
 	// 描画
 	void ResetPingPongBuffer(const float clearColor[4]);
 	void ApplyPostProcessChain(std::vector<PostEffectShader>& effects);
+	void ApplyPostProcessChain(std::vector<PostProcessNode>& effects, ID3D11ShaderResourceView* initialSRV);
+
 	ID3D11ShaderResourceView* GetPostProcessResultSRV() const{
 		return GetCurrentSRV();
 	}
@@ -138,6 +141,7 @@ public:
 
 	UINT m_width = 0;
 	UINT m_height = 0;
+	ID3D11ShaderResourceView* m_CurrentSRV = nullptr;
 private:
 	bool CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT height);
 	bool CreateDepthStencilstate();

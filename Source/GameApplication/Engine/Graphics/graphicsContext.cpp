@@ -753,6 +753,7 @@ void GraphicsContext::ResetPingPongBuffer(const float clearColor[4]){
 	SwitchRenderTarget(PostProcessBufferID::BufferA);
 }
 
+// ApplyPostProcessChain の更新版（Ping-Pong + トポロジカル対応）
 void GraphicsContext::ApplyPostProcessChain(std::vector<PostEffectShader>& effects){
 	PostProcessBufferID writeBuffer = PostProcessBufferID::BufferB;
 	PostProcessBufferID readBuffer = PostProcessBufferID::BufferA;
@@ -760,14 +761,14 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostEffectShader>& effec
 	for(size_t i = 0; i < effects.size(); i++){
 		PostEffectShader& shader = effects[i];
 
-		// 出力 RT
+		// 出力 RT（Ping-Pong）
 		ID3D11RenderTargetView* outputRTV = (writeBuffer == PostProcessBufferID::BufferA) ? m_PostRTV_A.Get() : m_PostRTV_B.Get();
-		m_DeviceContext->OMSetRenderTargets(1, &outputRTV, nullptr); // 深度不要なら nullptr
+		m_DeviceContext->OMSetRenderTargets(1, &outputRTV, nullptr);
 
-		// 入力 SRV
+		// 入力 SRV（Ping-Pong）
 		ID3D11ShaderResourceView* inputSRV = (readBuffer == PostProcessBufferID::BufferA) ? m_PostSRV_A.Get() : m_PostSRV_B.Get();
 
-		// SRV の解除（前のループの残骸をクリア）
+		// SRV の解除
 		ID3D11ShaderResourceView* nullSRV[1] = {nullptr};
 		m_DeviceContext->PSSetShaderResources(0, 1, nullSRV);
 
@@ -778,9 +779,37 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostEffectShader>& effec
 		std::swap(readBuffer, writeBuffer);
 	}
 
-	// 最終出力
 	m_CurrentBuffer = readBuffer;
 }
+
+void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effects, ID3D11ShaderResourceView* initialSRV){
+	for(auto& node : effects){
+		m_DeviceContext->OMSetRenderTargets(1, node.rtv, nullptr);
+
+		ID3D11ShaderResourceView* nullSRV[8] = {nullptr};
+		m_DeviceContext->PSSetShaderResources(0, 8, nullSRV); // まず全解除
+
+		for(size_t i = 0; i < node.inputs.size(); ++i){
+			ID3D11ShaderResourceView* inputSRV = nullptr;
+			if(node.inputs[i] == -2){
+				inputSRV = initialSRV;
+			} else if(node.inputs[i] >= 0 && node.inputs[i] < static_cast<int>(effects.size())){
+				inputSRV = effects[node.inputs[i]].srv;
+			} else{
+				inputSRV = initialSRV;
+			}
+
+			m_DeviceContext->PSSetShaderResources(static_cast<UINT>(i), 1, &inputSRV);
+		}
+
+		DrawQuad(&node.shader, nullptr); // SRV はすでに PSSetShaderResources でセット済み
+	}
+
+	if(!effects.empty()){
+		m_CurrentSRV = effects.back().srv;
+	}
+}
+
 
 
 

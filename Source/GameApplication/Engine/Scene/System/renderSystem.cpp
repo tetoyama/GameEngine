@@ -49,6 +49,7 @@
 #include <Component/outlineComponent.h>
 #include <Component/EffectComponent.h>
 #include "physicSystem.h"
+#include <queue>
 
 constexpr int maxLineCount = 1048;
 
@@ -1046,39 +1047,122 @@ void RenderSystem::EditorView(){
 	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
 }
 
-ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(CameraComponent* camera){
-	GraphicsContext* graphics = m_context->manager->graphics;
 
-	// 1. シーンを BufferA に描画
-	DirectX::XMFLOAT4 clearColor = {0,0,0,1};
-	graphics->ResetPingPongBuffer(&clearColor.x);
+std::vector<int> TopologicalSortPostEffects(CameraComponent* camera){
+	std::vector<int> sortedIndices;
+	if(!camera) return sortedIndices;
 
-	DrawEntities(playerRenderLayerVisible);
+	int n = static_cast<int>(camera->postEffects.size());
+	std::vector<int> indegree(n, 0);
+	std::unordered_map<int, std::vector<int>> adj;
 
-	// 2. ポストプロセスチェインを作成
-	std::vector<PostEffectShader> effectChain;
-	if(camera){
-		for(auto& e : camera->postEffects){
-			if(!e.enabled || !e.ps || !e.vs) continue;
-			PostEffectShader shader{};
-			shader.m_VS = e.vs ? e.vs->m_VertexShader : nullptr;
-			shader.m_PS = e.ps ? e.ps->m_PixelShader : nullptr;
-			shader.m_InputLayout = e.vs ? e.vs->m_VertexLayout : nullptr;
-			effectChain.push_back(shader);
+	// グラフ構築（startNode -> endNode）
+	for(const auto& link : camera->postEffectLinks){
+		if(link.startNode >= 0 && link.endNode >= 0 &&
+		   link.startNode < n && link.endNode < n){
+			adj[link.startNode].push_back(link.endNode);
+			indegree[link.endNode]++;
 		}
 	}
 
-	// 3. ポストプロセスがある場合のみ Apply
-	if(!effectChain.empty()){
-		graphics->ApplyPostProcessChain(effectChain);
+	// 入次数0のノードをキューに入れる
+	std::queue<int> q;
+	for(int i = 0; i < n; ++i){
+		if(indegree[i] == 0) q.push(i);
 	}
 
-	// 4. SRV を ImGui に渡せるようにレンダーターゲット解除
+	// Kahnのアルゴリズムでトポロジカルソート
+	while(!q.empty()){
+		int node = q.front();
+		q.pop();
+		sortedIndices.push_back(node);
+
+		for(int neighbor : adj[node]){
+			indegree[neighbor]--;
+			if(indegree[neighbor] == 0){
+				q.push(neighbor);
+			}
+		}
+	}
+
+	// サイクルがある場合は警告
+	if(sortedIndices.size() != n){
+		OutputDebugStringA("Warning: post effect graph has cycles!\n");
+		// サイクルがあっても適当に残りを追加
+		for(int i = 0; i < n; ++i){
+			if(std::find(sortedIndices.begin(), sortedIndices.end(), i) == sortedIndices.end())
+				sortedIndices.push_back(i);
+		}
+	}
+
+	return sortedIndices;
+}
+
+ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(CameraComponent* camera){
+	GraphicsContext* graphics = m_context->manager->graphics;
+
+	// 1. シーンを初期バッファに描画
+	DirectX::XMFLOAT4 clearColor = {0,0,0,1};
+	graphics->ResetPingPongBuffer(&clearColor.x); // 初期描画用バッファ
+
+	DrawEntities(playerRenderLayerVisible);
+
+	// 初期入力 SRV (inputPin が -1 の場合に使う)
+	ID3D11ShaderResourceView* initialSRV = graphics->GetCurrentSRV();
+
+	// 2. トポロジカルソート済みのポストエフェクトノード作成
+	std::vector<PostProcessNode> postNodes;
+	if(camera){
+		auto sortedIndices = TopologicalSortPostEffects(camera);
+
+		for(int idx : sortedIndices){
+			auto& e = camera->postEffects[idx];
+			if(!e.enabled || !e.ps || !e.vs) continue;
+
+			PostProcessNode node{};
+			node.id = idx;
+			node.shader.m_VS = e.vs->m_VertexShader;
+			node.shader.m_PS = e.ps->m_PixelShader;
+			node.shader.m_InputLayout = e.vs->m_VertexLayout;
+
+			e.ResizeTexture(graphics->GetDevice(), m_ScreenSize);
+			e.Clear(graphics->GetDeviceContext(), &clearColor.x);
+			node.rtv = e.rtv.GetAddressOf();
+			node.srv = e.srv.Get();
+			node.tex = e.tex.Get();
+
+			// inputPins が -1 の場合は初期入力SRVを参照
+			node.inputs.clear();
+			for(int inputId : e.inputPins){
+				if(inputId < 0){
+					// -1 の場合は初期描画結果を仮想ノードとして扱う
+					node.inputs.push_back(-1);
+				} else{
+					node.inputs.push_back(inputId);
+				}
+			}
+
+			postNodes.push_back(std::move(node));
+		}
+	}
+
+	// 3. ApplyPostProcessChain 側で -1 を初期SRVに置き換えるようにする
+	if(!postNodes.empty()){
+		for(auto& node : postNodes){
+			for(size_t i = 0; i < node.inputs.size(); ++i){
+				if(node.inputs[i] == -1){
+					node.inputs[i] = -2; // 特殊値 -2 を初期SRV扱いとして ApplyPostProcessChain で処理
+				}
+			}
+		}
+		graphics->ApplyPostProcessChain(postNodes, initialSRV);
+	}
+
 	graphics->GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
 
-	// 5. 最終結果 SRV を返す（空チェインでも BufferA の SRV）
 	return graphics->GetCurrentSRV();
 }
+
 
 
 void RenderSystem::PlayerView(){

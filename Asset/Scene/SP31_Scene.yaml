@@ -281,8 +281,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Blur.cso
             NodePos:
-              x: 319.078522
-              y: -7.00143433
+              x: -614.25708
+              y: 51.1759872
             InputPins:
               - 1
               - 13
@@ -292,8 +292,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Mosaic.cso
             NodePos:
-              x: 571.078491
-              y: -7.00143433
+              x: -362.257141
+              y: 51.1759872
             InputPins:
               - 3
               - 14
@@ -303,8 +303,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Grayscale.cso
             NodePos:
-              x: 322.078522
-              y: 190.998566
+              x: -611.25708
+              y: 249.175995
             InputPins:
               - 5
               - 18
@@ -314,8 +314,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Posterize.cso
             NodePos:
-              x: 864.078613
-              y: 122.998596
+              x: -69.257019
+              y: 181.176025
             InputPins:
               - 7
               - 15
@@ -326,8 +326,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Glitch.cso
             NodePos:
-              x: 565.078552
-              y: 189.998566
+              x: -368.25708
+              y: 248.175995
             InputPins:
               - 9
               - 17
@@ -371,14 +371,14 @@ Entities:
         ScreenInput:
           Name: ScreenInput
           NodePos:
-            x: 43.3505859
-            y: 135.103333
+            x: -933.335632
+            y: 58.1774216
           OutputPin: 11
         ScreenOutput:
           Name: ScreenOutput
           NodePos:
-            x: 1125.72803
-            y: 227.895325
+            x: 207.000061
+            y: 265
           InputPins:
             - 12
   - Entity: 6

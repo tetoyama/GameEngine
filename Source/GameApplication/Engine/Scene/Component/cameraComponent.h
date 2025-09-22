@@ -5,6 +5,7 @@
 #include "Backends/myVector3.h"
 #include "Backends/ImGui/Imnodes.h"
 #include <DirectXMath.h>
+#include <d3d11.h>
 #include "Engine/Resources/ResourceService.h"
 #include "Engine/Resources/Data/vertexShaderData.h"
 #include "Engine/Resources/Data/pixelShaderData.h"
@@ -21,6 +22,64 @@ struct CameraPostEffect {
     bool initialized = false;
     std::vector<int> inputPins;
     int outputPin = -1;
+
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> tex;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
+	Vector2 resolution{1280, 720};
+
+	void CreateTexture(ID3D11Device* device, const Vector2& screenSize){
+		if (tex) return;
+		resolution = screenSize;
+		D3D11_TEXTURE2D_DESC desc = {};
+		desc.Width = static_cast<UINT>(resolution.x);
+		desc.Height = static_cast<UINT>(resolution.y);
+		desc.MipLevels = 1;
+		desc.ArraySize = 1;
+		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		desc.SampleDesc.Count = 1;
+		desc.Usage = D3D11_USAGE_DEFAULT;
+		desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+		HRESULT hr = device->CreateTexture2D(&desc, nullptr, &tex);
+		if (FAILED(hr)) {
+			OutputDebugStringA("Failed to create post effect texture\n");
+			return;
+		}
+		D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+		rtvDesc.Format = desc.Format;
+		rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+		rtvDesc.Texture2D.MipSlice = 0;
+		hr = device->CreateRenderTargetView(tex.Get(), &rtvDesc, &rtv);
+		if (FAILED(hr)) {
+			OutputDebugStringA("Failed to create post effect RTV\n");
+			return;
+		}
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Format = desc.Format;
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.Texture2D.MipLevels = 1;
+		hr = device->CreateShaderResourceView(tex.Get(), &srvDesc, &srv);
+		if (FAILED(hr)) {
+			OutputDebugStringA("Failed to create post effect SRV\n");
+			return;
+		}
+	}
+
+	void ResizeTexture(ID3D11Device* device, const Vector2& screenSize){
+		if (resolution.x == screenSize.x && resolution.y == screenSize.y) return;
+		tex = nullptr;
+		rtv = nullptr;
+		srv = nullptr;
+		CreateTexture(device, screenSize);
+	}
+
+	void Clear(ID3D11DeviceContext* context, const float clearColor[4]){
+		if (rtv) {
+			context->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
+			context->ClearRenderTargetView(rtv.Get(), clearColor);
+		}
+	}
 };
 
 struct CameraPostEffectLink {
@@ -251,7 +310,7 @@ public:
         }
 
         // Effects
-        int idx = 0;
+        int idx = 2;
         char filepathBuffer[512];
         float startX = 50.0f, startY = 150.0f, spacingX = 200.0f, spacingY = 120.0f;
 
@@ -316,6 +375,16 @@ public:
 			}
             ImGui::PopItemWidth();
 
+			if(effect.srv){
+				// サイズは適宜調整
+				float availWidth = ImGui::GetContentRegionAvail().x;
+				availWidth = 150.0f < availWidth ? 150.0f : availWidth;
+				ImGui::Image(
+					(ImTextureID)effect.srv.Get(),
+					ImVec2(150.0f, 150.0f / 16.0f * 9.0f)  // 表示サイズ
+				);
+			}
+
             // Input Pins
             int inputnum = 0;
 			bool isFirst = true;
@@ -348,16 +417,18 @@ public:
             idx++;
         }
 
-        // Links
-        for (auto it = postEffectLinks.begin(); it != postEffectLinks.end();) {
-            ImNodes::Link(it->id, it->startAttr, it->endAttr);
-            if (ImNodes::IsLinkSelected(it->id) && ImGui::GetMouseClickedCount(0) > 1)
-                it = postEffectLinks.erase(it);
-            else ++it;
-        }
+		// Links
+		for(auto it = postEffectLinks.begin(); it != postEffectLinks.end();){
+			ImNodes::Link(it->id, it->startAttr, it->endAttr);
+			if(ImNodes::IsLinkSelected(it->id) && ImGui::GetMouseClickedCount(0) > 1)
+				it = postEffectLinks.erase(it);
+			else ++it;
+		}
 
         ImNodes::MiniMap(0.2f, ImNodesMiniMapLocation_BottomRight);
         ImNodes::EndNodeEditor();
+
+
 
         int startAttr, endAttr;
         if (ImNodes::IsLinkCreated(&startAttr, &endAttr)) {
