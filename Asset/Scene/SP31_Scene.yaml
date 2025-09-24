@@ -72,7 +72,7 @@ Entities:
         PixelShader: Asset\Shader\PixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 11203.8926
+        AnimationTime: 14764.1855
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -192,16 +192,16 @@ Entities:
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
-        AnimationTime: 11203.8926
+        AnimationTime: 14764.1855
   - Entity: 4
     Components:
       - Component: NameComponent
         Name: Player
       - Component: TransformComponent
         Position:
-          x: -0.796408772
-          y: -0.00133180618
-          z: -0.0117928386
+          x: -0.976000011
+          y: 0
+          z: 0
         Rotation:
           - -3.9084954e-11
           - -2.8925539e-11
@@ -245,7 +245,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 11203.8926
+        AnimationTime: 14764.1855
       - Component: OutlineComponent
   - Entity: 5
     Components:
@@ -304,8 +304,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Blur.cso
             NodePos:
-              x: 109.130035
-              y: 0.304382324
+              x: -1100.87
+              y: -1.69561768
             InputPins:
               - 2
               - 4
@@ -320,8 +320,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Grayscale.cso
             NodePos:
-              x: 343.378479
-              y: 2.52084351
+              x: -866.621521
+              y: 0.520843506
             InputPins:
               - 5
               - 7
@@ -336,8 +336,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\BrightPass.cso
             NodePos:
-              x: 607.378418
-              y: -57.4791565
+              x: -602.621582
+              y: -59.4791565
             InputPins:
               - 8
               - 10
@@ -352,8 +352,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Blur.cso
             NodePos:
-              x: 842.378418
-              y: -54.4791565
+              x: -367.621582
+              y: -56.4791565
             InputPins:
               - 11
               - 13
@@ -368,8 +368,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\CompositeBloom.cso
             NodePos:
-              x: 1078.37842
-              y: -23.479187
+              x: -131.621582
+              y: -25.479187
             InputPins:
               - 14
               - 16
@@ -419,14 +419,14 @@ Entities:
         ScreenInput:
           Name: ""
           NodePos:
-            x: -20.8534546
-            y: 209.573364
+            x: -1230.85352
+            y: 207.573364
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 1367.14648
-            y: 178.573364
+            x: 157.146484
+            y: 176.573364
           InputPins:
             - 1
   - Entity: 6
@@ -481,7 +481,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 11203.8926
+        AnimationTime: 14764.1855
       - Component: OutlineComponent
   - Entity: 7
     Components:
@@ -535,7 +535,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 11203.8926
+        AnimationTime: 14764.1855
       - Component: OutlineComponent
   - Entity: 8
     Components:
@@ -589,7 +589,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 11203.8926
+        AnimationTime: 14764.1855
       - Component: OutlineComponent
   - Entity: 9
     Components:
@@ -643,7 +643,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 11203.8926
+        AnimationTime: 14764.1855
       - Component: OutlineComponent
   - Entity: 10
     Components:
@@ -697,7 +697,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 11203.8926
+        AnimationTime: 14764.1855
       - Component: OutlineComponent
   - Entity: 11
     Components:
@@ -706,18 +706,18 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: -0.810000002
+          y: 0
           z: 0
         Rotation:
-          - 0.703279376
-          - 0
-          - -0
+          - 0.703279436
+          - -1.00902491e-06
+          - 9.98189535e-07
           - 0.710913539
         Scale:
-          x: 3.31999993
-          y: 3.32000065
-          z: 3.32000065
-        Parent: 12
+          x: 2.70000005
+          y: 2.69999886
+          z: 2.69999886
+        Parent: 4
       - Component: TextureComponent
         FilePath: Asset\Texture\particle.png
         Material:
@@ -756,14 +756,14 @@ Entities:
         Name: Entity
       - Component: TransformComponent
         Position:
-          x: 2.02801871
-          y: 1.38984108
-          z: -0.258844167
+          x: 2.02722287
+          y: 1.00000596
+          z: -0.258842885
         Rotation:
-          - 0
-          - 0
-          - 0.706825197
-          - 0.707388222
+          - -6.93169341e-06
+          - -6.93089714e-06
+          - 0.707107246
+          - 0.707106352
         Scale:
           x: 1.0000056
           y: 1.0000056

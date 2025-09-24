@@ -205,7 +205,7 @@ void InspectorSystem::DrawHierarchyNode(Entity entity, SceneContext* context, co
 
 	ImGui::SetCursorPosX(0.0f);
 	ImGui::Text(("ID : " + std::to_string(entity)).c_str());
-	ImGui::SameLine(50.0f + offsetX);
+	ImGui::SameLine(50.0f + offsetX * 0.25f);
 
 	auto* name = context->component->GetComponent<NameComponent>(entity);
 	std::string displayName = name ? name->name : "Entity";
