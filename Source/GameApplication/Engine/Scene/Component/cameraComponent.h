@@ -19,6 +19,7 @@ struct CameraPostEffect {
     std::string name;
     bool enabled = true;
     Vector2 nodePos{ -1, -1 };
+	DirectX::XMFLOAT4 Param{0,0,0,0};
     bool initialized = false;
     std::vector<int> inputPins;
     int outputPin = -1;
@@ -114,7 +115,7 @@ public:
         node["FOV"] = FOV;
         node["viewMatrix"] = viewMatrix;
         node["nextLinkId"] = nextLinkId;
-        node["nextPinId"] = nextPinId;
+		node["nextPinId"] = nextPinId;
 
         for (auto& effect : postEffects) {
             YAML::Node e;
@@ -125,6 +126,8 @@ public:
             e["NodePos"] = effect.nodePos;
             e["InputPins"] = effect.inputPins;
             e["OutputPin"] = effect.outputPin;
+			e["Param"] = effect.Param;
+
             node["PostEffects"].push_back(e);
         }
 
@@ -175,19 +178,25 @@ public:
 
 
         if (node["PostEffects"]) {
+			int idx = 2;
             for (auto eNode : node["PostEffects"]) {
                 CameraPostEffect effect;
                 effect.name = eNode["Name"].as<std::string>();
                 effect.enabled = eNode["Enabled"].as<bool>();
                 if (eNode["VS"]) effect.vs = context->manager->resource->Load<VertexShaderData>(eNode["VS"].as<std::string>());
                 if (eNode["PS"]) effect.ps = context->manager->resource->Load<PixelShaderData>(eNode["PS"].as<std::string>());
-                if (eNode["NodePos"]) effect.nodePos = eNode["NodePos"].as<Vector2>();
+				if(eNode["NodePos"]){
+					effect.nodePos = eNode["NodePos"].as<Vector2>();
+					ImNodes::SetNodeEditorSpacePos(idx, ImVec2(effect.nodePos.x, effect.nodePos.y));
+				}
                 if (eNode["InputPins"]) effect.inputPins = eNode["InputPins"].as<std::vector<int>>();
                 if (effect.inputPins.empty()) effect.inputPins.push_back(nextPinId++);
-                if (eNode["OutputPin"]) effect.outputPin = eNode["OutputPin"].as<int>();
-                if (effect.outputPin <= 0) effect.outputPin = nextPinId++;
-                effect.initialized = false;
+				if(eNode["OutputPin"]) effect.outputPin = eNode["OutputPin"].as<int>();
+				if(eNode["Param"]) effect.Param = eNode["Param"].as < DirectX::XMFLOAT4 > ();
+				if (effect.outputPin <= 0) effect.outputPin = nextPinId++;
+                effect.initialized = true;
                 postEffects.push_back(effect);
+				idx++;
             }
         }
 
@@ -210,6 +219,8 @@ public:
             if (e["NodePos"]) screenInputNode.nodePos = e["NodePos"].as<Vector2>();
             if (e["OutputPin"]) screenInputNode.outputPin = e["OutputPin"].as<int>();
             //if (screenInputNode.outputPin <= 0) screenInputNode.outputPin = nextPinId++;
+			ImNodes::SetNodeEditorSpacePos(-1, ImVec2(screenInputNode.nodePos.x, screenInputNode.nodePos.y));
+
             screenInputNode.initialized = true;
         } else {
             screenInputNode.name = "";
@@ -224,6 +235,8 @@ public:
             if (e["NodePos"]) screenOutputNode.nodePos = e["NodePos"].as<Vector2>();
             if (e["InputPins"]) screenOutputNode.inputPins = e["InputPins"].as<std::vector<int>>();
             //if (screenOutputNode.inputPins.empty()) screenOutputNode.inputPins.push_back(nextPinId++);
+			ImNodes::SetNodeEditorSpacePos(-2, ImVec2(screenOutputNode.nodePos.x, screenOutputNode.nodePos.y));
+
             screenOutputNode.initialized = true;
         } else {
             screenOutputNode.name = "";
@@ -278,7 +291,7 @@ public:
         {
             ImNodes::BeginNode(-1);
             ImNodes::BeginNodeTitleBar();
-            ImGui::Text("%s", ("ScreenInput" + screenInputNode.name).c_str());
+            ImGui::Text("%s", "ScreenInput");
             ImNodes::EndNodeTitleBar();
             ImNodes::BeginOutputAttribute(screenInputNode.outputPin);
             ImGui::Text("Output");
@@ -298,7 +311,7 @@ public:
         {
             ImNodes::BeginNode(-2);
             ImNodes::BeginNodeTitleBar();
-            ImGui::Text("%s", ("ScreenOutput" + screenOutputNode.name).c_str());
+            ImGui::Text("%s", "ScreenOutput");
             ImNodes::EndNodeTitleBar();
             if (screenOutputNode.inputPins.empty()) screenOutputNode.inputPins.push_back(nextPinId++);
             ImNodes::BeginInputAttribute(screenOutputNode.inputPins[0]);
@@ -321,14 +334,12 @@ public:
         float startX = 50.0f, startY = 150.0f, spacingX = 200.0f, spacingY = 120.0f;
 
         for (auto& effect : postEffects) {
+
             ImNodes::BeginNode(idx);
 
             if (!effect.initialized) {
-                if (effect.nodePos.x < 0 && effect.nodePos.y < 0)
-                    effect.nodePos = Vector2(startX + (idx % 5) * spacingX, startY + (idx / 5) * spacingY);
-                if (effect.inputPins.empty()) effect.inputPins.push_back(nextPinId++);
-                if (effect.outputPin <= 0) effect.outputPin = nextPinId++;
-                ImNodes::SetNodeEditorSpacePos(idx, ImVec2(effect.nodePos.x, effect.nodePos.y));
+
+                ImNodes::SetNodeEditorSpacePos(idx, ImVec2(0, 0));
                 effect.initialized = true;
             } else {
                 ImVec2 currentPos = ImNodes::GetNodeEditorSpacePos(idx);
@@ -344,6 +355,8 @@ public:
             ImNodes::EndNodeTitleBar();
 
             ImGui::Checkbox("Enabled", &effect.enabled);
+
+			ImGui::DragFloat4("##Param", &effect.Param.x, 0.01f);
 
             if (effect.ps) strncpy_s(filepathBuffer, sizeof(filepathBuffer), effect.ps->FilePath.c_str(), _TRUNCATE);
             else filepathBuffer[0] = '\0';
@@ -381,13 +394,13 @@ public:
 			}
             ImGui::PopItemWidth();
 
-			if(effect.srv){
+			if(effect.srv && effect.enabled){
 				// サイズは適宜調整
 				float availWidth = ImGui::GetContentRegionAvail().x;
-				availWidth = 150.0f < availWidth ? 150.0f : availWidth;
+				availWidth = 150.0f;
 				ImGui::Image(
 					(ImTextureID)effect.srv.Get(),
-					ImVec2(150.0f, 150.0f / 16.0f * 9.0f)  // 表示サイズ
+					ImVec2(availWidth, availWidth / 16.0f * 9.0f)  // 表示サイズ
 				);
 			}
 
@@ -434,7 +447,46 @@ public:
         ImNodes::MiniMap(0.2f, ImNodesMiniMapLocation_BottomRight);
         ImNodes::EndNodeEditor();
 
+		// --- ノード右クリックメニュー ---
+		static int hoveredNode = -1000;
 
+
+		if(ImGui::BeginPopup("NodeContextMenu")){
+			if(hoveredNode >= 2){ // postEffects のみ削除可能 (-1, -2 は特別ノード)
+				if(ImGui::MenuItem("Delete Node")){
+					int effectIndex = hoveredNode - 2;
+
+					if(effectIndex >= 0 && effectIndex < (int)postEffects.size()){
+						// --- 関連リンク削除 ---
+						postEffectLinks.erase(
+							std::remove_if(postEffectLinks.begin(), postEffectLinks.end(),
+										   [&](const CameraPostEffectLink& link){
+											   return (link.startNode == effectIndex || link.endNode == effectIndex);
+										   }),
+							postEffectLinks.end()
+						);
+
+						// --- ノード削除 ---
+						postEffects.erase(postEffects.begin() + effectIndex);
+
+						// --- ID補正 ---
+						for(auto& link : postEffectLinks){
+							if(link.startNode > effectIndex) link.startNode--;
+							if(link.endNode > effectIndex) link.endNode--;
+						}
+					}
+				}
+			} else{
+				ImGui::TextDisabled("Cannot delete this node");
+			}
+			ImGui::EndPopup();
+		} else{
+			if(ImNodes::IsNodeHovered(&hoveredNode)){
+				if(ImGui::IsMouseClicked(ImGuiMouseButton_Right)){
+					ImGui::OpenPopup("NodeContextMenu");
+				}
+			}
+		}
 
         int startAttr, endAttr;
         if (ImNodes::IsLinkCreated(&startAttr, &endAttr)) {

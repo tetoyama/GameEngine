@@ -93,7 +93,9 @@ public:
 			model->model->blendedAnimations.push_back({"Idle", 1.0f, 0.0f});
 			// name = "Idle", weight = 0.0, startTime = 0.0
 		}
-		if(!transform || !cameraTransform || !gameTime || gameTime->CountDownTimer > 0.0f) return;
+		if(!transform || !cameraTransform) return;
+		if(gameTime && gameTime->CountDownTimer <= 0.0f)return;
+
 
 		Vector3 move(0, 0, 0);
 

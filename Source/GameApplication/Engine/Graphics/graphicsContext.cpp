@@ -175,7 +175,7 @@ void GraphicsContext::SetCamera(const CAMERA& Camera){
 }
 
 void GraphicsContext::SetParameter(const Parameter& Parameter){
-	m_DeviceContext->UpdateSubresource(m_CameraBuffer, 0, nullptr, &Parameter, 0, 0);
+	m_DeviceContext->UpdateSubresource(m_ParameterBuffer, 0, nullptr, &Parameter, 0, 0);
 }
 
 void GraphicsContext::ResetViewport(){
@@ -799,6 +799,10 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 
 			m_DeviceContext->PSSetShaderResources(static_cast<UINT>(i), 1, &inputSRV);
 		}
+
+		Parameter param;
+		param.Parameter = node.param;
+		SetParameter(param);
 
 		DrawQuad(&node.shader, nullptr); // SRV はすでに PSSetShaderResources でセット済み
 	}

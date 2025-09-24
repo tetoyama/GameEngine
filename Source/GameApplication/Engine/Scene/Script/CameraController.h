@@ -65,7 +65,10 @@ public:
 	}
 
 	void OnUpdate(float dt) override{
-	
+
+	}
+	void OnFixedUpdate(float dt)override{
+
 		if(!transform || playerEntity < 0) return;
 
 		auto* targetTransform = m_context->component->GetComponent<TransformComponent>(playerEntity);
@@ -106,7 +109,6 @@ public:
 		DirectX::XMStoreFloat4(&temp, q);
 		transform->SetRotation(temp);
 	}
-	void OnFixedUpdate(float dt)override{}
 	void OnDraw() override{}
 	void OnEditorUpdate(float dt)override{}
 	void OnStop() override{}

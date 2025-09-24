@@ -187,12 +187,12 @@ void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 	ImGui::BeginChild("Child");
 
 	// --- ルートエンティティの描画（親を持たないもの） ---
-	for(const Entity& entity : registry->GetAllAlive()){
+	for(const Entity& entity : entities){
 		auto* transform = context->component->GetComponent<TransformComponent>(entity);
-		if(!transform || transform->parent != 0)
+		if(transform && transform->parent != 0)
 			continue;
 
-		DrawHierarchyNode(entity, context, registry->GetAllAlive());
+		DrawHierarchyNode(entity, context, entities);
 	}
 	ImGui::EndChild();
 
@@ -200,6 +200,13 @@ void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 }
 
 void InspectorSystem::DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities){
+
+	float offsetX = ImGui::GetCursorPosX();
+
+	ImGui::SetCursorPosX(0.0f);
+	ImGui::Text(("ID : " + std::to_string(entity)).c_str());
+	ImGui::SameLine(50.0f + offsetX);
+
 	auto* name = context->component->GetComponent<NameComponent>(entity);
 	std::string displayName = name ? name->name : "Entity";
 

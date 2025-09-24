@@ -3,11 +3,10 @@
 Texture2D g_Texture : register(t0);
 SamplerState g_SamplerState : register(s0);
 
-// ポスタライズの階調数
-static const float LEVELS = 4.0;
-
 void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 {
+    float LEVELS = Parameter.x;
+    
     // テクスチャをサンプリング
     float4 color = g_Texture.Sample(g_SamplerState, In.TexCoord);
 

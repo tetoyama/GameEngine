@@ -51,7 +51,7 @@
 #include "physicSystem.h"
 #include <queue>
 
-constexpr int maxLineCount = 1048;
+constexpr int maxLineCount = 99999;
 
 Effekseer::Matrix44 ConvertXMMATRIXToMatrix44(const DirectX::XMMATRIX& matrix){
 	Effekseer::Matrix44 result;
@@ -1048,61 +1048,67 @@ void RenderSystem::EditorView(){
 }
 
 
-std::vector<int> TopologicalSortPostEffects(CameraComponent* camera) {
+std::vector<int> TopologicalSortPostEffects(CameraComponent* camera){
 	std::vector<int> sortedIndices;
-	if (!camera) return sortedIndices;
+	if(!camera) return sortedIndices;
 
 	int n = static_cast<int>(camera->postEffects.size());
+	int INPUT_NODE = n;     // -1 の代わり
+	int OUTPUT_NODE = n + 1;   // -2 の代わり
+
 	std::unordered_map<int, std::vector<int>> adj;
 	std::unordered_map<int, int> indegree;
-	std::unordered_set<int> relevantNodes;
+	std::unordered_set<int> nodes;
 
-	// グラフ構築 + 関連ノード収集
-	for (const auto& link : camera->postEffectLinks) {
-		if (link.startNode >= 0 && link.endNode >= 0 &&
-			link.startNode < n && link.endNode < n) {
-			adj[link.startNode].push_back(link.endNode);
-			indegree[link.endNode]++;
-			relevantNodes.insert(link.startNode);
-			relevantNodes.insert(link.endNode);
+	for(const auto& link : camera->postEffectLinks){
+		int start = link.startNode;
+		int end = link.endNode;
+
+		if(start == -1) start = INPUT_NODE;
+		if(end == -2) end = OUTPUT_NODE;
+
+		if(start >= 0 && start <= OUTPUT_NODE && end >= 0 && end <= OUTPUT_NODE){
+			adj[start].push_back(end);
+			indegree[end]++;
+			nodes.insert(start);
+			nodes.insert(end);
 		}
 	}
 
-	// 入次数が0のノード（relevantNodes のみ）
 	std::queue<int> q;
-	for (int node : relevantNodes) {
-		if (indegree.find(node) == indegree.end()) {
-			q.push(node);
-		}
+	for(int node : nodes){
+		if(indegree.find(node) == indegree.end()) q.push(node);
 	}
 
-	// Kahnのアルゴリズム
-	while (!q.empty()) {
-		int node = q.front();
-		q.pop();
+	while(!q.empty()){
+		int node = q.front(); q.pop();
 		sortedIndices.push_back(node);
 
-		for (int neighbor : adj[node]) {
+		for(int neighbor : adj[node]){
 			indegree[neighbor]--;
-			if (indegree[neighbor] == 0) {
-				q.push(neighbor);
-			}
+			if(indegree[neighbor] == 0) q.push(neighbor);
 		}
 	}
 
-	// サイクル検出（relevantNodes と sortedIndices の比較）
-	if (sortedIndices.size() != relevantNodes.size()) {
+	// サイクル検出
+	if(sortedIndices.size() != nodes.size()){
 		OutputDebugStringA("Warning: post effect graph has cycles!\n");
-		// サイクルのある場合でも relevantNodes の中で追加されていないノードを追加
-		for (int node : relevantNodes) {
-			if (std::find(sortedIndices.begin(), sortedIndices.end(), node) == sortedIndices.end()) {
+		for(int node : nodes){
+			if(std::find(sortedIndices.begin(), sortedIndices.end(), node) == sortedIndices.end()){
 				sortedIndices.push_back(node);
 			}
 		}
 	}
 
+	// 仮IDを元に戻す
+	for(auto& idx : sortedIndices){
+		if(idx == INPUT_NODE) idx = -1;
+		if(idx == OUTPUT_NODE) idx = -2;
+	}
+
 	return sortedIndices;
 }
+
 
 
 ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(CameraComponent* camera) {
@@ -1125,6 +1131,8 @@ ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(CameraCompone
 		auto sortedIndices = TopologicalSortPostEffects(camera);
 
 		for (int idx : sortedIndices) {
+			if(idx < 0) continue; // -1/-2 は描画対象としてノード作らない
+
 			auto& e = camera->postEffects[idx];
 			if (!e.enabled || !e.ps || !e.vs) continue;
 
@@ -1133,6 +1141,7 @@ ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(CameraCompone
 			node.shader.m_VS = e.vs->m_VertexShader;
 			node.shader.m_PS = e.ps->m_PixelShader;
 			node.shader.m_InputLayout = e.vs->m_VertexLayout;
+			node.param = e.Param;
 
 			e.ResizeTexture(graphics->GetDevice(), Vector2((float)graphics->m_width, (float)graphics->m_height));
 			e.Clear(graphics->GetDeviceContext(), &clearColor.x);

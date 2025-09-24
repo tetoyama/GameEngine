@@ -6,7 +6,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: -10
+          y: -5
           z: 0
         Rotation:
           - 0
@@ -18,6 +18,27 @@ Entities:
           y: 10
           z: 100
         Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.5
+            dynamicFriction: 0.5
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         Material:
@@ -47,11 +68,11 @@ Entities:
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
-        FilePath: Asset\Model\cube.fbx
+        FilePath: Asset\Model\cube.obj
         PixelShader: Asset\Shader\PixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 4094.4292
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -171,74 +192,21 @@ Entities:
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
-        AnimationTime: 0
+        AnimationTime: 4094.4292
   - Entity: 4
-    Components:
-      - Component: NameComponent
-        Name: Player
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0.200000003
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0
-            y: 1
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-        AnimationTime: 0
-  - Entity: 5
     Components:
       - Component: NameComponent
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 20
-          z: -15
+          x: 1.16117799
+          y: 2.00407624
+          z: -6.36666679
         Rotation:
+          - 0.160182238
           - 0
           - 0
-          - 0
-          - 1
+          - 0.987087429
         Scale:
           x: 1
           y: 1
@@ -261,144 +229,41 @@ Entities:
             - 0
           -
             - 0
-            - 1
-            - 0
-            - 0
-          -
-            - 0
-            - 0
-            - 1
+            - 0.948683321
+            - -0.316227823
             - 0
           -
+            - -0
+            - 0.316227823
+            - 0.948683321
             - 0
-            - -20
-            - 15
+          -
+            - -1.16117799
+            - 0.112083435
+            - 6.67369509
             - 1
-        nextLinkId: 15
-        nextPinId: 21
-        PostEffects:
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset\Shader\PostEffectVS.cso
-            PS: Asset\Shader\BrightPass.cso
-            NodePos:
-              x: -101.640381
-              y: -23.1147766
-            InputPins:
-              - 2
-              - 4
-            OutputPin: 3
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset\Shader\PostEffectVS.cso
-            PS: Asset\Shader\BlurHorizontal.cso
-            NodePos:
-              x: 125.359619
-              y: -24.1147766
-            InputPins:
-              - 5
-              - 9
-            OutputPin: 6
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset\Shader\PostEffectVS.cso
-            PS: Asset\Shader\BlurVertical.cso
-            NodePos:
-              x: 348.359619
-              y: -23.1147766
-            InputPins:
-              - 7
-              - 10
-            OutputPin: 8
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset\Shader\PostEffectVS.cso
-            PS: Asset\Shader\CompositeBloom.cso
-            NodePos:
-              x: 606.630127
-              y: 61.692688
-            InputPins:
-              - 11
-              - 13
-              - 14
-            OutputPin: 12
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset\Shader\PostEffectVS.cso
-            PS: Asset\Shader\Mosaic.cso
-            NodePos:
-              x: 1097.74731
-              y: 62.669281
-            InputPins:
-              - 15
-              - 17
-            OutputPin: 16
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset\Shader\PostEffectVS.cso
-            PS: Asset\Shader\Glitch.cso
-            NodePos:
-              x: 857.950195
-              y: 67.6367188
-            InputPins:
-              - 18
-              - 20
-            OutputPin: 19
-        PostEffectLinks:
-          - ID: 2
-            StartNode: -1
-            EndNode: 0
-            StartAttr: -1
-            EndAttr: 2
-          - ID: 3
-            StartNode: 0
-            EndNode: 1
-            StartAttr: 3
-            EndAttr: 5
-          - ID: 4
-            StartNode: 1
-            EndNode: 2
-            StartAttr: 6
-            EndAttr: 7
-          - ID: 5
-            StartNode: 2
-            EndNode: 3
-            StartAttr: 8
-            EndAttr: 11
-          - ID: 7
-            StartNode: -1
-            EndNode: 3
-            StartAttr: -1
-            EndAttr: 13
-          - ID: 12
-            StartNode: 3
-            EndNode: 5
-            StartAttr: 12
-            EndAttr: 18
-          - ID: 13
-            StartNode: 5
-            EndNode: 4
-            StartAttr: 19
-            EndAttr: 15
-          - ID: 14
-            StartNode: 4
-            EndNode: -2
-            StartAttr: 16
-            EndAttr: 1
+        nextLinkId: 1
+        nextPinId: 2
         ScreenInput:
           Name: ""
           NodePos:
-            x: -204.654083
-            y: 244.932678
+            x: -1
+            y: -1
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 1352.75415
-            y: 232.710754
+            x: -1
+            y: -1
           InputPins:
             - 1
-  - Entity: 6
+      - Component: CameraController
+        distance: 6
+        height: 2
+        rotateSpeed: 1.5
+        minPitch: 0
+        maxPitch: 1
+  - Entity: 5
     Components:
       - Component: NameComponent
         Name: Enemy1
@@ -450,8 +315,8 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
-  - Entity: 7
+        AnimationTime: 4094.4292
+  - Entity: 6
     Components:
       - Component: NameComponent
         Name: Enemy2
@@ -503,8 +368,8 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
-  - Entity: 8
+        AnimationTime: 4094.4292
+  - Entity: 7
     Components:
       - Component: NameComponent
         Name: Enemy3
@@ -556,8 +421,8 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
-  - Entity: 9
+        AnimationTime: 4094.4292
+  - Entity: 8
     Components:
       - Component: NameComponent
         Name: Enemy4
@@ -609,8 +474,8 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
-  - Entity: 10
+        AnimationTime: 4094.4292
+  - Entity: 9
     Components:
       - Component: NameComponent
         Name: Enemy5
@@ -662,4 +527,117 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 4094.4292
+  - Entity: 10
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 1.16117692
+          y: 0.00407620566
+          z: -0.36666736
+        Rotation:
+          - 0
+          - 0.000552645361
+          - 0
+          - 0.999999881
+        Scale:
+          x: 0.00999999978
+          y: 0.00999999978
+          z: 0.00999999978
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: true
+        colliders:
+          - type: 0
+            size:
+              - 38.2999992
+              - 128.600006
+              - 39.2999992
+            offset:
+              - 0
+              - 63.9000015
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.5
+            dynamicFriction: 0.5
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: true
+            lockRotY: false
+            lockRotZ: true
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\Akai.fbx
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 4094.4292
+        Animations:
+          Idle: Asset\Model\Akai_Idle.fbx
+          mixamo.com: Asset\Model\Akai.fbx
+          Run: Asset\Model\Akai_Run.fbx
+      - Component: PlayerController
+        moveSpeed: 6
+        health: 0
+        isInvincible: false
+        dashMultiplier: 2
+        accel: 10
+        rotateSpeed: 8
+        maxStamina: 5
+        stamina: 5
+        staminaConsumeRate: 1.5
+        staminaRecoverRate: 1
+        Stamina: 5
+  - Entity: 11
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0.00999999978
+          z: 0
+        Rotation:
+          - 0.710353315
+          - 0
+          - 0
+          - 0.703845263
+        Scale:
+          x: 1.98000002
+          y: 1.97999954
+          z: 1.97999954
+        Parent: 10
+      - Component: TextureComponent
+        FilePath: Asset\Texture\particle.png
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 0
+            y: 0
+            z: 0
+            w: 0.363636374
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: BillBoardRendererComponent
+        RotateX: false
+        RotateY: false
+        RotateZ: false

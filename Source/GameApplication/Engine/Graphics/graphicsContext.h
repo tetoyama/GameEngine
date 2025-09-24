@@ -50,6 +50,8 @@ struct PostProcessNode {
 	std::string shaderPath;
 	float resolutionScale = 1.0f;
 
+	DirectX::XMFLOAT4 param = {0,0,0,0};
+
 	std::vector<int> inputs; // 接続元ノードID
 	std::unordered_map<std::string, float> parameters;
 
