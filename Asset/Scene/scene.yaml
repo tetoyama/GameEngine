@@ -32,8 +32,8 @@ Entities:
               - 0
             radius: 0.5
             height: 1
-            staticFriction: 0.5
-            dynamicFriction: 0.5
+            staticFriction: 1
+            dynamicFriction: 1
             restitution: 0.100000001
             collisionLayer: 0
             lockRotX: false
@@ -72,7 +72,7 @@ Entities:
         PixelShader: Asset\Shader\PixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 4094.4292
+        AnimationTime: 10948.8711
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -192,21 +192,21 @@ Entities:
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
-        AnimationTime: 4094.4292
+        AnimationTime: 10948.8711
   - Entity: 4
     Components:
       - Component: NameComponent
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: 1.16117799
+          x: 13.2233334
           y: 2.00407624
-          z: -6.36666679
+          z: -3.50666809
         Rotation:
-          - 0.160182238
-          - 0
-          - 0
-          - 0.987087429
+          - 0.132572293
+          - -0.554020524
+          - 0.0899051502
+          - 0.816947281
         Scale:
           x: 1
           y: 1
@@ -223,24 +223,24 @@ Entities:
         FOV: 1
         viewMatrix:
           -
-            - 1
-            - 0
-            - 0
-            - 0
-          -
-            - 0
-            - 0.948683321
-            - -0.316227823
+            - 0.369956642
+            - -0.293791115
+            - -0.881373286
             - 0
           -
             - -0
-            - 0.316227823
             - 0.948683321
+            - -0.316227764
             - 0
           -
-            - -1.16117799
-            - 0.112083435
-            - 6.67369509
+            - 0.929049075
+            - 0.116990559
+            - 0.350971669
+            - 0
+          -
+            - -1.63419294
+            - 2.3939116
+            - 13.5191793
             - 1
         nextLinkId: 1
         nextPinId: 2
@@ -315,7 +315,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 4094.4292
+        AnimationTime: 10948.8711
   - Entity: 6
     Components:
       - Component: NameComponent
@@ -368,7 +368,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 4094.4292
+        AnimationTime: 10948.8711
   - Entity: 7
     Components:
       - Component: NameComponent
@@ -421,7 +421,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 4094.4292
+        AnimationTime: 10948.8711
   - Entity: 8
     Components:
       - Component: NameComponent
@@ -474,7 +474,7 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 4094.4292
+        AnimationTime: 10948.8711
   - Entity: 9
     Components:
       - Component: NameComponent
@@ -527,21 +527,21 @@ Entities:
         PixelShader: Asset\Shader\ToonShaderPS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 4094.4292
+        AnimationTime: 10948.8711
   - Entity: 10
     Components:
       - Component: NameComponent
         Name: Entity
       - Component: TransformComponent
         Position:
-          x: 1.16117692
-          y: 0.00407620566
-          z: -0.36666736
+          x: 7.64903831
+          y: 0.00407627318
+          z: -1.28692746
         Rotation:
           - 0
-          - 0.000552645361
+          - 0.501798391
           - 0
-          - 0.999999881
+          - 0.864984632
         Scale:
           x: 0.00999999978
           y: 0.00999999978
@@ -561,8 +561,8 @@ Entities:
               - 0
             radius: 0.5
             height: 1
-            staticFriction: 0.5
-            dynamicFriction: 0.5
+            staticFriction: 1
+            dynamicFriction: 1
             restitution: 0.100000001
             collisionLayer: 0
             lockRotX: true
@@ -573,7 +573,7 @@ Entities:
         PixelShader: Asset\Shader\disneyPBR_PS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 4094.4292
+        AnimationTime: 10948.8711
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           mixamo.com: Asset\Model\Akai.fbx
@@ -647,14 +647,14 @@ Entities:
         Name: Entity
       - Component: TransformComponent
         Position:
-          x: 2.1804719
-          y: 1.31117868
-          z: 6.47263813
+          x: 1.17280757
+          y: 1.17001569
+          z: 9.40948391
         Rotation:
-          - 0.999899149
-          - 0
-          - 0
-          - -0.0142029868
+          - 0.963841379
+          - 1.59158776e-06
+          - 0.266476542
+          - -7.12315796e-07
         Scale:
           x: 2.33999991
           y: 2.34003234
@@ -674,8 +674,8 @@ Entities:
               - 0
             radius: 0.5
             height: 1
-            staticFriction: 0.5
-            dynamicFriction: 0.5
+            staticFriction: 1
+            dynamicFriction: 1
             restitution: 0.100000001
             collisionLayer: 0
             lockRotX: false
@@ -714,7 +714,7 @@ Entities:
         PixelShader: Asset\Shader\disneyPBR_PS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 6854.41943
   - Entity: 13
     Components:
       - Component: NameComponent
@@ -748,8 +748,8 @@ Entities:
               - 0
             radius: 0.5
             height: 1
-            staticFriction: 0.5
-            dynamicFriction: 0.5
+            staticFriction: 1
+            dynamicFriction: 1
             restitution: 0.100000001
             collisionLayer: 0
             lockRotX: false
@@ -788,4 +788,4 @@ Entities:
         PixelShader: Asset\Shader\PixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 6854.41943
