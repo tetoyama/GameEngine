@@ -80,6 +80,10 @@ public:
 	}
 
 	void OnUpdate(float dt) override{
+		
+	}
+
+	void OnFixedUpdate(float dt)override{
 		model->model->blendedAnimations.clear();
 
 		// Run アニメーションを追加
@@ -131,6 +135,19 @@ public:
 			if(CurrentSpeed > moveSpeed) CurrentSpeed = moveSpeed;
 			model->model->blendedAnimations[0].weight = CurrentSpeed / moveSpeed;
 			model->model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / moveSpeed);
+
+			// --- 回転補間 ---
+			DirectX::XMVECTOR targetQ = DirectX::XMQuaternionRotationRollPitchYaw(
+				0.0f,
+				transform->GetRotationEuler().y,
+				0.0f
+			);
+
+			DirectX::XMVECTOR currentQ = transform->rotationVector();
+			DirectX::XMVECTOR newQ = DirectX::XMQuaternionSlerp(currentQ, targetQ, rotateSpeed * dt);
+			DirectX::XMFLOAT4 FloatQ;
+			DirectX::XMStoreFloat4(&FloatQ, newQ);
+			transform->SetRotation(FloatQ);
 		} else{
 			// 目標速度
 			float targetSpeed = isDashing ? moveSpeed * dashMultiplier : moveSpeed;
@@ -177,8 +194,6 @@ public:
 			ballController->ApplyForce(dir); // ボールを吹っ飛ばす
 		}
 	}
-
-	void OnFixedUpdate(float dt)override{}
 	void OnDraw() override{}
 	void OnEditorUpdate(float dt)override{}
 	void OnStop() override{}

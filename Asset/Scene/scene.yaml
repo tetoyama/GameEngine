@@ -641,3 +641,151 @@ Entities:
         RotateX: false
         RotateY: false
         RotateZ: false
+  - Entity: 12
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 2.1804719
+          y: 1.31117868
+          z: 6.47263813
+        Rotation:
+          - 0.999899149
+          - 0
+          - 0
+          - -0.0142029868
+        Scale:
+          x: 2.33999991
+          y: 2.34003234
+          z: 2.34003234
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: true
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.5
+            dynamicFriction: 0.5
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+      - Component: TextureComponent
+        FilePath: Asset\Texture\field.jpg
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 13
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 9.39099979
+          y: -1.03999996
+          z: 2.35100007
+        Rotation:
+          - -0.248502776
+          - 0.317183465
+          - 0.0865090638
+          - 0.911129653
+        Scale:
+          x: 5.36999941
+          y: 5.36999989
+          z: 5.36999989
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.5
+            dynamicFriction: 0.5
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        PixelShader: Asset\Shader\PixelShader.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 0
