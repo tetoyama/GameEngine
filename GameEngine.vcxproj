@@ -2663,6 +2663,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\particleComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\RenderLayerComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\C#ScriptComponent.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\terrainComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\textureComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Entity\Entity.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\IComponent.h" />
@@ -2698,6 +2699,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\physicSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\renderSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\C#ScriptSystem.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\terrainSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\transformSystem.h" />
     <ClInclude Include="Source\GameApplication\gameApplication.h" />
     <ClInclude Include="Source\main.h" />

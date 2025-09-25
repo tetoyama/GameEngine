@@ -15,6 +15,7 @@ class TransformComponent;
 class TextureComponent;
 class SpriteRendererComponent;
 class MeshRendererComponent;
+class TerrainComponent;
 class ModelRendererComponent;
 class BillBoardRendererComponent;
 class ParticleComponent;
@@ -51,6 +52,7 @@ private:
 	void DrawModel(TransformComponent* pTransform, ModelRendererComponent* pMesh, TextureComponent* pTexture, OutlineComponent* pOutline);
 	void DrawBillBoard(TransformComponent* pTransform, MeshRendererComponent* pMesh, BillBoardRendererComponent* pBillBoard, TextureComponent* pTexture);
 	void DrawParticle(TransformComponent* pTransform, ParticleComponent* pParticle, TextureComponent* pTexture);
+	void DrawTerrain(TransformComponent* pTransform, TerrainComponent* pTerrain, TextureComponent* pTexture);
 
 	void DrawEntities(bool* RenderLayer);
 

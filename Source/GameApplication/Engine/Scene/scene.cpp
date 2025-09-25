@@ -30,6 +30,7 @@
 #include "System/transformSystem.h"
 #include "System/renderSystem.h"
 #include "System/cameraSystem.h"
+#include "System/terrainSystem.h"
 
 #include "System/C#ScriptSystem.h"
 #include "System/CustomScriptSystem.h"
@@ -42,9 +43,12 @@
 #include "Component/entityNameComponent.h"
 #include "Component/transformComponent.h"
 #include "Component/cameraComponent.h"
+
 #include "Component/modelRendererComponent.h"
 #include "Component/meshRendererComponent.h"
 #include "Component/BillBoardRendererComponent.h"
+#include "Component/terrainComponent.h"
+
 #include "Component/textureComponent.h"
 #include "Component/CustomScriptComponent.h"
 #include "Component/C#ScriptComponent.h"
@@ -121,6 +125,7 @@ void Scene::Initialize(ManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<ModelRendererComponent>("ModelRendererComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<BillBoardRendererComponent>("BillBoardRendererComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<SpriteRendererComponent>("SpriteRendererComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<TerrainComponent>("TerrainComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<OutlineComponent>("OutlineComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<ParticleComponent>("ParticleComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<EffectComponent>("EffectComponent", false);
@@ -165,6 +170,7 @@ void Scene::Initialize(ManagerContext* set){
 	m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<ParticleSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<EffectSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<TerrainSystem>(&m_SceneContext));
 
 	m_systemRegistry->RegisterSystem(std::make_unique<CSharpScriptSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<CustomScriptSystem>(&m_SceneContext));
@@ -296,18 +302,23 @@ void Scene::BuildDefaultScene(){
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->scale = Vector3(100.0f, 10.0f, 100.0f);
 
-		transform->position = Vector3(0.0f, -transform->scale.y, 0);
+		transform->position = Vector3(0.0f, -transform->scale.y * 0.5f, 0);
 		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
 
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
-		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\cube.fbx",false);
+		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\cube.obj",false);
 		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
 		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\PixelShader.cso");
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
 		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\white.tga");
+
+		auto* collider = componentRegistry->AddComponent<ColliderComponent>(entity);
+		ColliderShape col;
+
+		collider->colliders.push_back(col);
 
 		//auto* bumpMap = componentRegistry->AddComponent<BumpMapComponent>(entity);
 		//bumpMap->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\BumpMap/Normal.bmp");

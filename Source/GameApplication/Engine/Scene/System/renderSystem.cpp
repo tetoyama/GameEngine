@@ -50,6 +50,7 @@
 #include <Component/EffectComponent.h>
 #include "physicSystem.h"
 #include <queue>
+#include <Component/terrainComponent.h>
 
 constexpr int maxLineCount = 99999;
 
@@ -561,12 +562,15 @@ void RenderSystem::DrawMesh(TransformComponent* transform, MeshRendererComponent
 			graphicsContext->SetMaterial(material);
 		}
 	}
-
-	deviceContext->IASetInputLayout(meshRenderer->mesh.m_VertexLayout.Get());
-
-	deviceContext->VSSetShader(meshRenderer->mesh.m_VertexShader.Get(), NULL, 0);
-	deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
-
+	if (meshRenderer->mesh.m_VertexLayout) {
+		deviceContext->IASetInputLayout(meshRenderer->mesh.m_VertexLayout.Get());
+	}
+	if (meshRenderer->mesh.m_VertexShader) {
+		deviceContext->VSSetShader(meshRenderer->mesh.m_VertexShader.Get(), NULL, 0);
+	}
+	if (meshRenderer->mesh.m_PixelShader) {
+		deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
+	}
 	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, m_context->component);
 
 	graphicsContext->SetWorldViewProjection2D();
@@ -852,6 +856,55 @@ void RenderSystem::DrawParticle(TransformComponent* pTransform, ParticleComponen
 		}
 	}
 	graphicsContext->SetBlendMode(BlendMode::Alpha);
+}
+
+void RenderSystem::DrawTerrain(TransformComponent* pTransform, TerrainComponent* pTerrain, TextureComponent* pTexture) {
+	if (!pTerrain || !pTerrain->meshRenderer) {
+		return;
+	}
+
+	auto meshRenderer = pTerrain->meshRenderer;
+	auto transform = pTransform;
+
+	GraphicsContext* graphicsContext = m_context->manager->graphics;
+	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
+
+	//if (!pTexture) {
+	//	if (meshRenderer->mesh.m_TextureData) {
+	//		deviceContext->PSSetShaderResources(0, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
+
+	//		MATERIAL material{};
+	//		material.DiffuseTextureEnable = true;
+
+	//		material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
+	//		graphicsContext->SetMaterial(material);
+	//	}
+	//}
+	//if (meshRenderer->mesh.m_VertexLayout) {
+	//	deviceContext->IASetInputLayout(meshRenderer->mesh.m_VertexLayout.Get());
+	//}
+	//if (meshRenderer->mesh.m_VertexShader) {
+	//	deviceContext->VSSetShader(meshRenderer->mesh.m_VertexShader.Get(), NULL, 0);
+	//}
+	//if (meshRenderer->mesh.m_PixelShader) {
+	//	deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
+	//}
+	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, m_context->component);
+
+	graphicsContext->SetWorldMatrix(World);
+	UINT stride = sizeof(VERTEX_3D);
+	UINT offset = 0;
+	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
+	deviceContext->IASetIndexBuffer(*meshRenderer->mesh.m_IndexBuffer.GetAddressOf(), DXGI_FORMAT_R32_UINT,0);
+
+	deviceContext->DrawIndexed(meshRenderer->mesh.indexCount, 0,0);
+
+	graphicsContext->SetDepthEnable(true);
+	graphicsContext->SetViewMatrix(m_CameraView);
+	graphicsContext->SetProjectionMatrix(m_CameraProjection);
 }
 
 void RenderSystem::SetCameraView(){
@@ -1351,16 +1404,25 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 					graphicsContext->SetUVMatrix(uv);
 				}
 				SpriteRendererComponent* spriteRenderer = m_context->component->GetComponent<SpriteRendererComponent>(entity);
-				BillBoardRendererComponent* billBoardRenderer = m_context->component->GetComponent<BillBoardRendererComponent>(entity);
-				MeshRendererComponent* meshRenderer = m_context->component->GetComponent<MeshRendererComponent>(entity);
 				if(spriteRenderer){
 					TransformComponent newTransform = CalculateRectTransform(*spriteRenderer, *transform);
 					DrawMesh(&newTransform, m_SpriteMesh, texture);
-				} else if(billBoardRenderer){
+				}
+				BillBoardRendererComponent* billBoardRenderer = m_context->component->GetComponent<BillBoardRendererComponent>(entity);
+				if (billBoardRenderer) {
 					DrawBillBoard(transform, m_billBoardMesh, billBoardRenderer, texture);
-				} else if(meshRenderer){
+				}
+				TerrainComponent* terrain = m_context->component->GetComponent<TerrainComponent>(entity);
+				if (terrain) {
+					DrawTerrain(transform, terrain, texture);
+				}
+
+				MeshRendererComponent* meshRenderer = m_context->component->GetComponent<MeshRendererComponent>(entity);
+				if (meshRenderer) {
 					DrawMesh(transform, meshRenderer, texture);
 				}
+					
+				
 
 				ModelRendererComponent* modelRenderer = m_context->component->GetComponent<ModelRendererComponent>(entity);
 				if(modelRenderer){

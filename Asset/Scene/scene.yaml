@@ -239,8 +239,8 @@ Entities:
             - 0
           -
             - -1.63419294
-            - 2.3939116
-            - 13.5191793
+            - 2.39391136
+            - 13.5191784
             - 1
         nextLinkId: 1
         nextPinId: 2
@@ -531,7 +531,7 @@ Entities:
   - Entity: 10
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: Player
       - Component: TransformComponent
         Position:
           x: 7.64903831
@@ -593,7 +593,7 @@ Entities:
   - Entity: 11
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: Shadow
       - Component: TransformComponent
         Position:
           x: 0
@@ -644,7 +644,7 @@ Entities:
   - Entity: 12
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: PushCube
       - Component: TransformComponent
         Position:
           x: 1.17280757
@@ -718,7 +718,7 @@ Entities:
   - Entity: 13
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: Slope
       - Component: TransformComponent
         Position:
           x: 9.39099979
