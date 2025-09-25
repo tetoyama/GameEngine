@@ -25,12 +25,18 @@ public:
 		YAML::Node node;
 		node["Scale"] = Scale;
 
+		node["HeightMap"] = HeightMap;
+
 		return node;
 	}
 
 	bool decode(SceneContext* context, const YAML::Node& node) override {
 		if (node["Scale"])
 			Scale = node["Scale"].as<int>();
+
+		if (node["HeightMap"]) {
+			HeightMap = node["HeightMap"].as<std::vector<float>>();
+		}
 
 		return true;
 	}
@@ -61,8 +67,10 @@ public:
         ImGui::Separator();
         ImGui::Text("HeightMap Editor");
 
-        const float cellSize = 20.0f; // 1マスのサイズ
-        const ImVec2 canvasSize(mapSize * cellSize, mapSize * cellSize);
+		float availWidth = ImGui::GetContentRegionAvail().x * 0.5f;
+
+        const float cellSize = availWidth / mapSize; // 1マスのサイズ
+        const ImVec2 canvasSize(availWidth, availWidth);
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         ImVec2 canvasPos = ImGui::GetCursorScreenPos();
@@ -74,7 +82,7 @@ public:
                 float h = HeightMap[index];
 
                 // 高さを0〜1に正規化（例: -1〜1）
-                float norm = (h + 1.0f) / 2.0f;
+                float norm = (h + 10.0f) / 20.0f;
                 norm = std::clamp(norm, 0.0f, 1.0f);
                 ImU32 col = ImColor(norm, norm, norm);
 
