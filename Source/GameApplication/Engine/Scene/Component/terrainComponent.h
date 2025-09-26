@@ -51,14 +51,14 @@ public:
 
         int mapSize = (int)std::sqrt(HeightMap.size());
         static int brushRadius = 2;
-        static float brushStrength = 0.001f;
+        static float brushStrength = 0.01f;
         static int brushMode = 0; // 0=Raise, 1=Lower, 2=Smooth
 
 
 
         ImGui::Separator();
         ImGui::Text("Brush Settings");
-        ImGui::SliderInt("Brush Radius", &brushRadius, 1, 10);
+        ImGui::SliderInt("Brush Radius", &brushRadius, 1, 100);
         ImGui::SliderFloat("Brush Strength", &brushStrength, 0.01f, 1.0f);
         ImGui::RadioButton("Raise", &brushMode, 0); ImGui::SameLine();
         ImGui::RadioButton("Lower", &brushMode, 1); ImGui::SameLine();
@@ -82,20 +82,20 @@ public:
                 float h = HeightMap[index];
 
                 // 高さを0〜1に正規化（例: -1〜1）
-                float norm = (h + 10.0f) / 20.0f;
+                float norm = h * 10.0f;
                 norm = std::clamp(norm, 0.0f, 1.0f);
                 ImU32 col = ImColor(norm, norm, norm);
 
                 ImVec2 p0 = ImVec2(x * cellSize + canvasPos.x, y * cellSize + canvasPos.y);
                 ImVec2 p1 = ImVec2(cellSize + p0.x, cellSize + p0.y);
                 drawList->AddRectFilled(p0, p1, col);
-                drawList->AddRect(p0, p1, IM_COL32(50, 50, 50, 255));
+                drawList->AddRect(p0, p1, IM_COL32(50, 50, 50, 0));
             }
         }
 
         // 入力領域
         ImGui::InvisibleButton("canvas", canvasSize);
-        if (ImGui::IsItemHovered() && ImGui::IsMouseDown(0)) {
+        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) {
             CurrentScale = 0;
             ImVec2 mousePos = ImGui::GetMousePos();
             int gx = (int)((mousePos.x - canvasPos.x) / cellSize);

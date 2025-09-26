@@ -99,13 +99,39 @@ private:
 			for (int z = 0; z <= gridSize; ++z) {
 				for (int x = 0; x <= gridSize; ++x) {
 					int index = z * (gridSize + 1) + x;
-					vertices[index].Position = DirectX::XMFLOAT3((x - halfSize) / (float)gridSize, comp->HeightMap[x + (gridSize - z) * (gridSize + 1)], (z - halfSize) / (float)gridSize);
-					vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
-					vertices[index].Tangent = DirectX::XMFLOAT3(0.0f, 0.0, 1.0f);
+
+					// 位置セット
+					vertices[index].Position = DirectX::XMFLOAT3(
+						(x - halfSize) / (float)gridSize,
+						comp->HeightMap[x + (gridSize - z) * (gridSize + 1)],
+						(z - halfSize) / (float)gridSize
+					);
+
+					// 法線計算（周囲の高さを取得）
+					float heightL = (x > 0) ? comp->HeightMap[(x - 1) + (gridSize - z) * (gridSize + 1)] : comp->HeightMap[x + (gridSize - z) * (gridSize + 1)];
+					float heightR = (x < gridSize) ? comp->HeightMap[(x + 1) + (gridSize - z) * (gridSize + 1)] : comp->HeightMap[x + (gridSize - z) * (gridSize + 1)];
+					float heightD = (z > 0) ? comp->HeightMap[x + (gridSize - (z - 1)) * (gridSize + 1)] : comp->HeightMap[x + (gridSize - z) * (gridSize + 1)];
+					float heightU = (z < gridSize) ? comp->HeightMap[x + (gridSize - (z + 1)) * (gridSize + 1)] : comp->HeightMap[x + (gridSize - z) * (gridSize + 1)];
+
+					// 高さ差から勾配計算
+					float dx = heightL - heightR;
+					float dz = heightD - heightU;
+
+					// 法線ベクトルを正規化
+					DirectX::XMFLOAT3 normal(-dx, 2.0f, -dz);
+					DirectX::XMVECTOR n = DirectX::XMLoadFloat3(&normal);
+					n = DirectX::XMVector3Normalize(n);
+					DirectX::XMStoreFloat3(&normal, n);
+
+					vertices[index].Normal = normal;
+
+					// その他の頂点情報
+					vertices[index].Tangent = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
 					vertices[index].TexCoord = DirectX::XMFLOAT2((float)x / gridSize * uvScale, (float)z / gridSize * uvScale);
 					vertices[index].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 				}
 			}
+
 			// インデックスデータの生成
 			int idx = 0;
 			for (int z = 0; z < gridSize; ++z) {
