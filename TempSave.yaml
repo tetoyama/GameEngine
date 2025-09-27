@@ -263,24 +263,24 @@ Entities:
         rotateSpeed: 1.5
         minPitch: 0
         maxPitch: 1
-  - Entity: 10
+  - Entity: 5
     Components:
       - Component: NameComponent
         Name: Player
       - Component: TransformComponent
         Position:
-          x: 7.64903831
-          y: 0.00407627318
-          z: -1.28692746
+          x: 8.78955269
+          y: 1.35904717
+          z: 0.964328051
         Rotation:
-          - 0
-          - 0.501798391
-          - 0
-          - 0.864984632
+          - -0
+          - 0.501798451
+          - -0
+          - 0.864984572
         Scale:
-          x: 0.00999999978
+          x: 0.00999999885
           y: 0.00999999978
-          z: 0.00999999978
+          z: 0.00999999885
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
@@ -325,7 +325,7 @@ Entities:
         staminaConsumeRate: 1.5
         staminaRecoverRate: 1
         Stamina: 5
-  - Entity: 11
+  - Entity: 6
     Components:
       - Component: NameComponent
         Name: Shadow
@@ -343,7 +343,7 @@ Entities:
           x: 1.98000002
           y: 1.97999954
           z: 1.97999954
-        Parent: 10
+        Parent: 5
       - Component: TextureComponent
         FilePath: Asset\Texture\particle.png
         Material:
@@ -376,24 +376,24 @@ Entities:
         RotateX: false
         RotateY: false
         RotateZ: false
-  - Entity: 12
+  - Entity: 7
     Components:
       - Component: NameComponent
         Name: PushCube
       - Component: TransformComponent
         Position:
-          x: 1.17280757
-          y: 1.17001569
+          x: 1.17280352
+          y: 2.57760954
           z: 9.40948391
         Rotation:
-          - 0.963841379
-          - 1.59158776e-06
-          - 0.266476542
-          - -7.12315796e-07
+          - 0.957806647
+          - -0.0297714788
+          - 0.264808267
+          - 0.10768801
         Scale:
-          x: 2.33999991
-          y: 2.34003234
-          z: 2.34003234
+          x: 2.34000015
+          y: 2.34009933
+          z: 2.34002757
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
@@ -450,14 +450,14 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 6854.41943
-  - Entity: 13
+  - Entity: 8
     Components:
       - Component: NameComponent
         Name: Slope
       - Component: TransformComponent
         Position:
           x: 9.39099979
-          y: -1.03999996
+          y: -1.15999997
           z: 2.35100007
         Rotation:
           - -0.248502776
@@ -499,8 +499,8 @@ Entities:
             z: 0.100000001
             w: 1
           Diffuse:
-            x: 1
-            y: 1
+            x: 0
+            y: 0.441558361
             z: 1
             w: 1
           Specular:
@@ -520,18 +520,18 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
-        PixelShader: Asset\Shader\PixelShader.cso
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 6854.41943
-  - Entity: 14
+  - Entity: 9
     Components:
       - Component: NameComponent
         Name: Terrain
       - Component: TransformComponent
         Position:
           x: 0
-          y: -2.87583447
+          y: 0.0199999996
           z: 0
         Rotation:
           - -0
@@ -539,27 +539,27 @@ Entities:
           - -0
           - 1
         Scale:
-          x: 200
-          y: 200
-          z: 200
+          x: 50
+          y: 50
+          z: 50
         Parent: 0
       - Component: TextureComponent
-        FilePath: Asset\Texture\field.jpg
+        FilePath: Asset\Texture\grass.jpg
         Material:
           Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
+            x: 0
+            y: 0
+            z: 0
             w: 1
           Diffuse:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.509473145
+            y: 0.696969688
+            z: 0.199134186
             w: 1
           Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
+            x: 0
+            y: 0
+            z: 0
             w: 1
           Emission:
             x: 0
@@ -10775,15 +10775,15 @@ Entities:
           - 0
           - 0
           - 0
-  - Entity: 15
+  - Entity: 10
     Components:
       - Component: NameComponent
-        Name: Tree
+        Name: Tree1
       - Component: TransformComponent
         Position:
-          x: -5.08721972
-          y: 3.45576429
-          z: 29.401926
+          x: -6.86142731
+          y: 4.27112627
+          z: 12.0691605
         Rotation:
           - -0
           - 0
@@ -10806,6 +10806,416 @@ Entities:
             x: 1
             y: 1
             z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: BillBoardRendererComponent
+        RotateX: false
+        RotateY: true
+        RotateZ: false
+  - Entity: 11
+    Components:
+      - Component: NameComponent
+        Name: Tree2
+      - Component: TransformComponent
+        Position:
+          x: -8.43550491
+          y: 3.73242807
+          z: 8.53645802
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 7
+          y: 7
+          z: 7
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\tree.png
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: BillBoardRendererComponent
+        RotateX: false
+        RotateY: true
+        RotateZ: false
+  - Entity: 12
+    Components:
+      - Component: NameComponent
+        Name: Tree3
+      - Component: TransformComponent
+        Position:
+          x: -2.81701636
+          y: 4.3895669
+          z: 11.084466
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 7
+          y: 7
+          z: 7
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\tree.png
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: BillBoardRendererComponent
+        RotateX: false
+        RotateY: true
+        RotateZ: false
+  - Entity: 13
+    Components:
+      - Component: NameComponent
+        Name: Tree4
+      - Component: TransformComponent
+        Position:
+          x: 1.18161798
+          y: 3.6183126
+          z: -8.96039963
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 7
+          y: 7
+          z: 7
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\tree.png
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: BillBoardRendererComponent
+        RotateX: false
+        RotateY: true
+        RotateZ: false
+  - Entity: 14
+    Components:
+      - Component: NameComponent
+        Name: Tree5
+      - Component: TransformComponent
+        Position:
+          x: 13.5755196
+          y: 7.62800169
+          z: 15.1465702
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 9.51000023
+          y: 9.51000214
+          z: 9.51000214
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\tree.png
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: BillBoardRendererComponent
+        RotateX: false
+        RotateY: true
+        RotateZ: false
+  - Entity: 15
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: -13.8297806
+          y: -0.433131933
+          z: 5.28905916
+        Rotation:
+          - 0.634822845
+          - -0.0401854776
+          - -0.155873597
+          - 0.755703986
+        Scale:
+          x: 3.28999901
+          y: 3.28998494
+          z: 3.2899766
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Model\boulder_01_1k.fbx\textures\boulder_01_diff_1k.jpg
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 0.90476191
+            y: 0.772305608
+            z: 0.575757563
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\boulder_01_1k.fbx\boulder_01_1k.fbx
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 16
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: -2.53460503
+          y: 1.51236904
+          z: 4.05298233
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 3
+          y: 2.99999952
+          z: 2.99999952
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\leaf0213.png
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 0.126496926
+            y: 0.541125536
+            z: 0
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: BillBoardRendererComponent
+        RotateX: false
+        RotateY: true
+        RotateZ: false
+  - Entity: 17
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 5.76245785
+          y: 1.88690805
+          z: -6.30397081
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 3.52999997
+          y: 3.53000045
+          z: 3.53000045
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\leaf0213.png
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 0.149322584
+            y: 0.718614697
+            z: 0
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: BillBoardRendererComponent
+        RotateX: false
+        RotateY: true
+        RotateZ: false
+  - Entity: 18
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 20.7460079
+          y: 1.28699994
+          z: -0.116281509
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 4.78000021
+          y: 4.78000021
+          z: 4.78000021
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\leaf0213.png
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 0.0348569341
+            y: 0.670995712
+            z: 0
             w: 1
           Specular:
             x: 0.0399999991
