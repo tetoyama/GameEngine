@@ -300,7 +300,7 @@ void Scene::BuildDefaultScene(){
 
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->scale = Vector3(100.0f, 10.0f, 100.0f);
+		transform->scale = Vector3(500.0f, 10.0f, 500.0f);
 
 		transform->position = Vector3(0.0f, -transform->scale.y * 0.5f, 0);
 		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
@@ -310,13 +310,17 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\cube.obj",false);
 		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\PixelShader.cso");
+		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\disneyPBR_PS.cso");
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
 		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\white.tga");
+		texture->Material.Diffuse = DirectX::XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
 
 		auto* collider = componentRegistry->AddComponent<ColliderComponent>(entity);
 		ColliderShape col;
+		col.type = ColliderType::Box;
+		col.offset = Vector3(0, 0, 0);
+		col.size = Vector3(1, 1, 1);
 
 		collider->colliders.push_back(col);
 
@@ -333,11 +337,12 @@ void Scene::BuildDefaultScene(){
 
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position = Vector3(0.0f, 25.0f,0.0f);
+		transform->position = Vector3(0.0f, 100.0f,0.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
 		auto* light = componentRegistry->AddComponent<LightComponent>(entity);
+		light->light.Diffuse = DirectX::XMFLOAT4(0.6f, 0.6f, 0.6f, 1.0f);
 	}
 	{
 		//エンティティを作成し、TransformとModelRendererを追加
@@ -370,22 +375,49 @@ void Scene::BuildDefaultScene(){
 		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
 		name->name = "Player";
 
-		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
-		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\white.tga");
-		texture->Material.Diffuse = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+		//auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
+		//texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\white.tga");
+		//texture->Material.Diffuse = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position = Vector3(0.0f, 0.2f, 0);
-		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
+		transform->position = Vector3(0.0f, 0.0f, 0.0f);
+		transform->scale = Vector3(0.05f, 0.05f, 0.05f);
 		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
 
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
-		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\player.obj", false);
+		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\Akai.fbx", false);
 		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\ToonShaderPS.cso");
+		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\disneyPBR_PS.cso");
+
+		modelRenderer->model->LoadAnimation("Asset\\Model\\Akai_Idle.fbx", "Idle");
+		modelRenderer->model->LoadAnimation("Asset\\Model\\Akai_Run.fbx", "Run");
+		
+		AnimationBlend idle;
+		idle.animationStartTime = 0.0f;
+		idle.name = "Idle";
+		idle.weight = 1.0f;
+		modelRenderer->model->blendedAnimations.push_back(idle);
+
+		AnimationBlend run;
+		run.animationStartTime = 0.0f;
+		run.name = "Run";
+		run.weight = 0.0f;
+		modelRenderer->model->blendedAnimations.push_back(run);
+
+		auto* collider = componentRegistry->AddComponent<ColliderComponent>(entity);
+		ColliderShape col;
+		col.type = ColliderType::Box;
+		col.offset = Vector3(0, 81, 0);
+		col.size = Vector3(50, 160, 50);
+		col.lockRotX = true;
+		col.lockRotZ = true;
+
+
+		collider->colliders.push_back(col);
+		collider->isDynamic = true;
 
 		// OutLineComponentを追加
 		//auto* outline = componentRegistry->AddComponent<OutlineComponent>(entity);
@@ -403,7 +435,7 @@ void Scene::BuildDefaultScene(){
 
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position = Vector3(0.0f, 20.0f, -15.0f);
+		transform->position = Vector3(0.0f, 5.0f, -15.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
@@ -412,59 +444,7 @@ void Scene::BuildDefaultScene(){
 		auto* camera = componentRegistry->AddComponent<CameraComponent>(entity);
 	}
 
-	//{
-	//	Entity entity = entityRegistry->Create();
 
-	//	auto* name = componentRegistry->AddComponent<NameComponent>(entity);
-	//	name->name = "2DSprite";
-
-	//	auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-	//	transform->position.x = 0.0f;
-	//	transform->position.y = 0.0f;
-	//	transform->position.z = 0.0f;
-	//	transform->scale = Vector3(0.25f, 0.25f, 1.0f);
-
-	//	auto* sprite = componentRegistry->AddComponent<SpriteRendererComponent>(entity);
-	//	sprite->anchor = Vector2(0.0f, 0.0f);
-	//	sprite->pivot = Vector2(0.5f, 0.5f);
-
-	//	auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
-	//	texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\texture.jpg");
-	//	texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	//}
-
-	int Sample = 5;
-	float Distance = 20.0f;
-	for(int i = 0; i < Sample; i++){
-
-		//エンティティを作成し、TransformとModelRendererを追加
-		Entity entity = entityRegistry->Create();
-
-		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
-		name->name = "Enemy" + std::to_string(i + 1);
-
-		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
-		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\white.tga");
-		texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
-
-		// TransformComponentを追加
-		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position = Vector3(cosf(float(i) / Sample * DirectX::XM_2PI) * Distance, 0.2f, sinf(float(i) / Sample * DirectX::XM_2PI) * Distance);
-		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
-		transform->SetRotationEuler(Vector3(0.0f, float(i) / Sample * -DirectX::XM_2PI - DirectX::XM_PI * 0.5f, 0.0f));
-
-
-		// ModelRendererComponentを追加
-		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
-		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\player.obj", false);
-		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\ToonShaderPS.cso");
-
-		// OutLineComponentを追加
-		//auto* outline = componentRegistry->AddComponent<OutlineComponent>(entity);
-	}
-
-	
 }
 
 bool Scene::LoadFromYAMLFile(){

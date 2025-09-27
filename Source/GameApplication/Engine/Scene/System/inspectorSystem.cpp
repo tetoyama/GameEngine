@@ -186,8 +186,11 @@ void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 	const auto& entities = registry->GetAllAlive();
 	ImGui::BeginChild("Child");
 
+
+	deleteEntity = 0;
 	// --- ルートエンティティの描画（親を持たないもの） ---
 	for(const Entity& entity : entities){
+
 		auto* transform = context->component->GetComponent<TransformComponent>(entity);
 		if(transform && transform->parent != 0)
 			continue;
@@ -197,9 +200,17 @@ void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 	ImGui::EndChild();
 
 	ImGui::End();
+
+	if (deleteEntity != 0) {
+		context->entity->Destroy(deleteEntity);
+		context->component->OnEntityDestroyed(deleteEntity);
+		deleteEntity = 0;
+	}
 }
 
-void InspectorSystem::DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities){
+char renameBuffer[256] = "";
+
+void InspectorSystem::DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities) {
 
 	float offsetX = ImGui::GetCursorPosX();
 
@@ -209,12 +220,14 @@ void InspectorSystem::DrawHierarchyNode(Entity entity, SceneContext* context, co
 
 	auto* name = context->component->GetComponent<NameComponent>(entity);
 	std::string displayName = name ? name->name : "Entity";
-
-	// --- 子の有無を先にチェック ---
+	if (pendingRenameEntity == entity) {
+		displayName = "";
+	}
+	// --- 子の有無チェック ---
 	bool hasChildren = false;
-	for(Entity child : allEntities){
+	for (Entity child : allEntities) {
 		auto* childTransform = context->component->GetComponent<TransformComponent>(child);
-		if(childTransform && childTransform->parent == entity){
+		if (childTransform && childTransform->parent == entity) {
 			hasChildren = true;
 			break;
 		}
@@ -224,39 +237,134 @@ void InspectorSystem::DrawHierarchyNode(Entity entity, SceneContext* context, co
 		ImGuiTreeNodeFlags_DefaultOpen |
 		(selectedEntity == entity ? ImGuiTreeNodeFlags_Selected : 0);
 
-	if(!hasChildren)
+	if (!hasChildren)
 		flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 
-	// --- ツリーノード表示 ---
+	// --- ノード描画 ---
 	bool opened = ImGui::TreeNodeEx((void*)(intptr_t)entity, flags, "%s", displayName.c_str());
 
-	if(ImGui::IsItemClicked())
+	if (ImGui::IsItemClicked())
 		selectedEntity = entity;
-	if(ImGui::BeginDragDropSource()){
-		ImGui::SetDragDropPayload("ENTITY_DRAG_DROP", &entity, sizeof(Entity)); // entity を送る
+
+	// --- 右クリックメニュー ---
+	if (ImGui::BeginPopupContextItem()) {
+
+		if (ImGui::MenuItem("名前変更")) {
+			pendingRenameEntity = entity;
+			if (name) {
+				strncpy(renameBuffer, name->name.c_str(), sizeof(renameBuffer));
+				renameBuffer[sizeof(renameBuffer) - 1] = '\0';
+			}
+		}
+
+		if (ImGui::BeginMenu("作成")) {
+			if (ImGui::MenuItem("EmptyParent")) {
+				// 子を持つ空の親エンティティを作成（例）
+				Entity newEntity = context->entity->Create();
+				auto* newtransform = context->component->AddComponent<TransformComponent>(newEntity);
+
+				auto* transform = context->component->GetComponent<TransformComponent>(entity);
+				if (transform) transform->parent = newEntity; // ルートに置く
+			}
+			if (ImGui::MenuItem("EmptyChild")) {
+				// 選択ノードの子エンティティを作成
+				Entity newEntity = context->entity->Create();
+				auto* transform = context->component->AddComponent<TransformComponent>(newEntity);
+				if (transform) transform->parent = entity;
+			}
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::MenuItem("複製")) {
+			//context->component->DuplicateEntity(entity);
+		}
+
+		if (ImGui::BeginMenu("Prefab")) {
+			if (ImGui::MenuItem("Prefabとして保存")) {
+				ImGui::OpenPopup("SavePrefabPopup");
+			}
+			if (ImGui::MenuItem("Prefabからリセット")) {
+				// まだ処理未実装。プレースホルダ
+			}
+			if (ImGui::MenuItem("Prefabへ適用")) {
+				// まだ処理未実装。プレースホルダ
+			}
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::MenuItem("削除")) {
+
+			deleteEntity = entity;
+			if (selectedEntity == entity) {
+				selectedEntity = 0;
+			}
+
+			//context->entity->Destroy(entity);
+			//context->component->OnEntityDestroyed(entity);
+			ImGui::EndPopup();
+			if (opened) {
+				//ImGui::TreePop();
+			}
+			return;
+		}
+
+		ImGui::EndPopup();
+	}
+
+	// --- Prefab保存ダイアログ（見た目だけ） ---
+	if (ImGui::BeginPopup("SavePrefabPopup")) {
+		ImGui::Text("Prefab saving is not implemented yet.");
+		static char prefabName[128] = "";
+		ImGui::InputText("Name", prefabName, sizeof(prefabName));
+		if (ImGui::Button("OK")) {
+			// 保存処理が実装されるまでは閉じるだけ
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel")) {
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	}
+
+	// --- 名前変更UI ---
+	if (pendingRenameEntity == entity) {
+		ImGui::SameLine();
+		ImGui::PushItemWidth(150.0f);
+		if (ImGui::InputText("##Rename", renameBuffer, sizeof(renameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
+			if (name) {
+				name->name = renameBuffer;
+			}
+			pendingRenameEntity = 0;
+		}
+		ImGui::PopItemWidth();
+	}
+
+	// --- Drag & Drop ---
+	if (ImGui::BeginDragDropSource()) {
+		ImGui::SetDragDropPayload("ENTITY_DRAG_DROP", &entity, sizeof(Entity));
 		ImGui::Text("Move Entity");
 		ImGui::EndDragDropSource();
 	}
-	if(ImGui::BeginDragDropTarget()){
-		if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG_DROP")){
+	if (ImGui::BeginDragDropTarget()) {
+		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG_DROP")) {
 			IM_ASSERT(payload->DataSize == sizeof(Entity));
 			Entity draggedEntity = *(const Entity*)payload->Data;
-
-			// 自分自身を親にしようとしていないかチェック
-			if(draggedEntity != entity){
+			if (draggedEntity != entity) {
 				auto* transform = context->component->GetComponent<TransformComponent>(draggedEntity);
-				if(transform){
-					transform->parent = entity; // ドロップされたエンティティの親を変更
+				if (transform) {
+					transform->parent = entity;
 				}
 			}
 		}
 		ImGui::EndDragDropTarget();
 	}
-	// --- 子の描画（TreePushされていれば） ---
-	if(opened && hasChildren){
-		for(Entity child : allEntities){
+
+	// --- 子描画 ---
+	if (opened && hasChildren) {
+		for (Entity child : allEntities) {
 			auto* childTransform = context->component->GetComponent<TransformComponent>(child);
-			if(childTransform && childTransform->parent == entity){
+			if (childTransform && childTransform->parent == entity) {
 				DrawHierarchyNode(child, context, allEntities);
 			}
 		}

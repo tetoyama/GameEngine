@@ -75,6 +75,8 @@ private:
 	char newNameBuffer[256]{};
 
 	Entity selectedEntity = 0;
+	Entity deleteEntity = 0;
+	Entity pendingRenameEntity = 0;
 
 	bool* showSceneHierarchy = nullptr;
 	bool* showInspector = nullptr;

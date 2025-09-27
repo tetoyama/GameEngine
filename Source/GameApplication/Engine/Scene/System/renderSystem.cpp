@@ -692,7 +692,7 @@ void RenderSystem::DrawModel(TransformComponent* transform, ModelRendererCompone
 void RenderSystem::DrawBillBoard(TransformComponent* transform, MeshRendererComponent* meshRenderer, BillBoardRendererComponent* billBoard, TextureComponent* pTexture) {
 
 	DirectX::XMMATRIX InvViewBillBoardMatrix = DirectX::XMMatrixRotationQuaternion(transform->rotationVector());
-	m_context->manager->renderer->GetGraphicsContext()->SetDepthEnable(false);
+	//m_context->manager->renderer->GetGraphicsContext()->SetDepthEnable(false);
 
 	if(!billBoard->RotateXYZ.x && !billBoard->RotateXYZ.y && !billBoard->RotateXYZ.z){
 		// 全軸false：回転しない → 単位行列（通常メッシュと同じ）
