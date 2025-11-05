@@ -333,7 +333,7 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\cube.obj",false);
 		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\ToonShaderPS.cso");
+		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\disneyPBR_PS.cso");
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
 		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\white.tga");
@@ -413,7 +413,7 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\Akai.fbx", false);
 		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\ToonShaderPS.cso");
+		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\disneyPBR_PS.cso");
 
 		modelRenderer->model->LoadAnimation("Asset\\Model\\Akai_Idle.fbx", "Idle");
 		modelRenderer->model->LoadAnimation("Asset\\Model\\Akai_Run.fbx", "Run");

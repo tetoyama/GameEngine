@@ -225,7 +225,7 @@ Entities:
             lockRotZ: true
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
-        PixelShader: Asset\Shader\ToonShaderPS.cso
+        PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 0
@@ -315,27 +315,3 @@ Entities:
         rotateSpeed: 1.5
         minPitch: 0
         maxPitch: 0.785398185
-  - Entity: 6
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 1.94268966
-          z: 0
-        Rotation:
-          - -0
-          - 0
-          - -0
-          - 1
-        Scale:
-          x: 100
-          y: 1
-          z: 100
-        Parent: 0
-      - Component: WaveComponent
-        Resolution: 50
-        Amplitude: 0.200000003
-        Wavelength: 2
-        Speed: 0.100000001
