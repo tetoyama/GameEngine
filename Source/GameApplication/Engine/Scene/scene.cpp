@@ -1,4 +1,5 @@
 // Engine/Scene/scene.cpp
+#include "GameApplication/gameApplication.h"
 
 #include "scene.h"
 #include <commdlg.h> // GetOpenFileName
@@ -59,6 +60,7 @@
 #include "Component/particleComponent.h"
 #include "Component/audioComponent.h"
 #include "Component/outlineComponent.h"
+#include "Component/waveComponent.h"
 
 #include "Script/SetScene.h"
 #include "Script/ScoreManager.h"
@@ -76,6 +78,7 @@
 
 #include <Component/EffectComponent.h>
 #include <Component/ColliderComponent.h>
+#include <System/waveSystem.h>
 
 Scene::Scene(){
 
@@ -126,6 +129,7 @@ void Scene::Initialize(ManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<BillBoardRendererComponent>("BillBoardRendererComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<SpriteRendererComponent>("SpriteRendererComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<TerrainComponent>("TerrainComponent", false);
+	m_componentRegistry->RegisterYAMLComponent<WaveComponent>("WaveComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<OutlineComponent>("OutlineComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<ParticleComponent>("ParticleComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<EffectComponent>("EffectComponent", false);
@@ -176,6 +180,7 @@ void Scene::Initialize(ManagerContext* set){
 	m_systemRegistry->RegisterSystem(std::make_unique<CustomScriptSystem>(&m_SceneContext));
 
 	m_systemRegistry->RegisterSystem(std::make_unique<PhysicSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<WaveSystem>(&m_SceneContext));
 
 	// シーンコンテキストの初期化
 	auto Renderer = m_SceneManagerContext->renderer;
@@ -232,7 +237,25 @@ void Scene::Update(float deltaTime){
 			m_systemRegistry->FinalizeAll();
 			m_systemRegistry->InitializeAll();
 		}
-		m_OldState = m_SceneContext.state;
+		if(m_SceneContext.state == SceneState::Step){
+
+			if(m_OldState == SceneState::Stopped){
+				TempSave(); // 一時保存
+				m_SceneManagerContext->debug->LOG_INFO("シーンを開始します");
+				m_systemRegistry->FinalizeAll();
+				m_systemRegistry->InitializeAll();
+				m_systemRegistry->StartAll();
+			}
+			m_SceneManagerContext->debug->LOG_INFO("シーンを1フレーム進めます");
+			m_systemRegistry->UpdateAll(deltaTime);
+			m_systemRegistry->FixedUpdateAll(1.0f / TARGET_FPS);
+
+			m_OldState = m_SceneContext.state;
+			m_SceneContext.state = SceneState::Paused;
+
+		} else {
+			m_OldState = m_SceneContext.state;
+		}
 	}
 
 	if(m_SceneContext.state == SceneState::Playing){
@@ -310,7 +333,7 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\cube.obj",false);
 		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\disneyPBR_PS.cso");
+		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\ToonShaderPS.cso");
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
 		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\white.tga");
@@ -337,7 +360,7 @@ void Scene::BuildDefaultScene(){
 
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position = Vector3(0.0f, 100.0f,0.0f);
+		transform->position = Vector3(0.0f, 50.0f,0.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
@@ -390,7 +413,7 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\Akai.fbx", false);
 		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\disneyPBR_PS.cso");
+		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\ToonShaderPS.cso");
 
 		modelRenderer->model->LoadAnimation("Asset\\Model\\Akai_Idle.fbx", "Idle");
 		modelRenderer->model->LoadAnimation("Asset\\Model\\Akai_Run.fbx", "Run");
@@ -409,15 +432,20 @@ void Scene::BuildDefaultScene(){
 
 		auto* collider = componentRegistry->AddComponent<ColliderComponent>(entity);
 		ColliderShape col;
-		col.type = ColliderType::Box;
-		col.offset = Vector3(0, 81, 0);
-		col.size = Vector3(50, 160, 50);
+		col.type = ColliderType::Capsule;
+		col.offset = Vector3(0, 75, 0);
+		col.height = 100.0f;
+		col.radius = 25.0f;
+		col.rotationOffset = Vector3(0, 0, 90.0f);
 		col.lockRotX = true;
+		col.lockRotY = true;
 		col.lockRotZ = true;
 
 
 		collider->colliders.push_back(col);
 		collider->isDynamic = true;
+
+		auto* player = componentRegistry->AddComponent<PlayerController>(entity);
 
 		// OutLineComponentを追加
 		//auto* outline = componentRegistry->AddComponent<OutlineComponent>(entity);
@@ -442,6 +470,8 @@ void Scene::BuildDefaultScene(){
 
 		// CameraComponentを追加
 		auto* camera = componentRegistry->AddComponent<CameraComponent>(entity);
+
+		auto* cameraController = componentRegistry->AddComponent<CameraController>(entity);
 	}
 
 

@@ -16,6 +16,7 @@ class TextureComponent;
 class SpriteRendererComponent;
 class MeshRendererComponent;
 class TerrainComponent;
+class WaveComponent;
 class ModelRendererComponent;
 class BillBoardRendererComponent;
 class ParticleComponent;
@@ -53,6 +54,7 @@ private:
 	void DrawBillBoard(TransformComponent* pTransform, MeshRendererComponent* pMesh, BillBoardRendererComponent* pBillBoard, TextureComponent* pTexture);
 	void DrawParticle(TransformComponent* pTransform, ParticleComponent* pParticle, TextureComponent* pTexture);
 	void DrawTerrain(TransformComponent* pTransform, TerrainComponent* pTerrain, TextureComponent* pTexture);
+	void DrawWave(TransformComponent* pTransform, WaveComponent* pWave, TextureComponent* pTexture);
 
 	void DrawEntities(bool* RenderLayer);
 
@@ -111,5 +113,10 @@ private:
 
 	ID3D11Buffer* pPhysicsDebugLineVB = nullptr;
 	PostEffectShader copyShader;
+
+	std::shared_ptr<TextureData> PlayButtonTexture;
+	std::shared_ptr<TextureData> PauseButtonTexture;
+	std::shared_ptr<TextureData> StopButtonTexture;
+	std::shared_ptr<TextureData> StepButtonTexture;
 
 };

@@ -1,5 +1,6 @@
 // JobSystem.h
 #pragma once
+#include <functional>
 class JobSystem {
 public:
     JobSystem();

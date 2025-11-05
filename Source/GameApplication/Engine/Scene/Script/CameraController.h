@@ -6,11 +6,11 @@
 class CameraController: public CustomScriptComponent {
 public:
 	BEGIN_REFLECT(CameraController)
-		REFLECT_FIELD(float, distance, 6.0f)
-		REFLECT_FIELD(float, height, 2.0f)
+		REFLECT_FIELD(float, distance, 30.0f)
+		REFLECT_FIELD(float, height, 10.0f)
 		REFLECT_FIELD(float, rotateSpeed, 1.5f)
-		REFLECT_FIELD(float, minPitch, -DirectX::XM_PIDIV2 + 0.1f)
-		REFLECT_FIELD(float, maxPitch, DirectX::XM_PIDIV2 - 0.1f)
+		REFLECT_FIELD(float, minPitch, 0)
+		REFLECT_FIELD(float, maxPitch, DirectX::XM_PIDIV2 * 0.5f)
 
 	float yaw = 0.0f;
 	float pitch = 0.0f;
@@ -100,10 +100,9 @@ public:
 		transform->position = Vector3(pos.x, pos.y, pos.z);
 
 		// --- プレイヤー方向を向く ---
-		Vector3 forward = (targetTransform->position - transform->position).normalize();
+		Vector3 forward = (targetTransform->position - transform->position - Vector3(0,-height,0)).normalize();
 		float yawLook = atan2f(forward.x, forward.z);
 		float pitchLook = asinf(-forward.y);
-
 		DirectX::XMVECTOR q = DirectX::XMQuaternionRotationRollPitchYaw(pitchLook, yawLook, 0);
 		DirectX::XMFLOAT4 temp;
 		DirectX::XMStoreFloat4(&temp, q);

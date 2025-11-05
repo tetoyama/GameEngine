@@ -64,7 +64,7 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 0
@@ -74,13 +74,13 @@ Entities:
         Name: Light
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 50
-          z: 0
+          x: 4.46314955
+          y: 10
+          z: -6.8464551
         Rotation:
+          - -0
           - 0
-          - 0
-          - 0
+          - -0
           - 1
         Scale:
           x: 1
@@ -91,9 +91,9 @@ Entities:
         Enable: 1
         LightType: 0
         Position:
-          x: 0
-          y: 50
-          z: 0
+          x: 4.46314955
+          y: 10
+          z: -6.8464551
           w: 0
         Angle:
           x: 1.04719758
@@ -210,22 +210,22 @@ Entities:
       - Component: ColliderComponent
         isDynamic: true
         colliders:
-          - type: 2
-            size: [1, 1, 1]
-            offset: [0, 75, 0]
-            rotationOffset: [0, 0, 90]
-            radius: 25
-            height: 100
+          - type: 0
+            size: [50, 160, 50]
+            offset: [0, 81, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
             staticFriction: 0.5
             dynamicFriction: 0.5
             restitution: 0.100000001
             collisionLayer: 0
             lockRotX: true
-            lockRotY: true
+            lockRotY: false
             lockRotZ: true
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
-        PixelShader: Asset\Shader\ToonShaderPS.cso
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 0
@@ -233,18 +233,6 @@ Entities:
           Idle: Asset\Model\Akai_Idle.fbx
           mixamo.com: Asset\Model\Akai_Run.fbx
           Run: Asset\Model\Akai_Run.fbx
-      - Component: PlayerController
-        moveSpeed: 20
-        health: 0
-        isInvincible: false
-        dashMultiplier: 2
-        accel: 10
-        rotateSpeed: 8
-        maxStamina: 5
-        stamina: 5
-        staminaConsumeRate: 1.5
-        staminaRecoverRate: 1
-        Stamina: 5
   - Entity: 5
     Components:
       - Component: NameComponent
@@ -294,48 +282,88 @@ Entities:
             - -5
             - 15
             - 1
-        nextLinkId: 1
-        nextPinId: 1
+        nextLinkId: 2
+        nextPinId: 2
+        PostEffectLinks:
+          - ID: 1
+            StartNode: -1
+            EndNode: -2
+            StartAttr: -1
+            EndAttr: 1
         ScreenInput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: 0
+            y: 0
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: 100
+            y: 0
           InputPins:
-            []
-      - Component: CameraController
-        distance: 30
-        height: 10
-        rotateSpeed: 1.5
-        minPitch: 0
-        maxPitch: 0.785398185
+            - 1
   - Entity: 6
     Components:
       - Component: NameComponent
         Name: Entity
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 1.94268966
-          z: 0
+          x: 6.84676933
+          y: 1.37203765
+          z: -2.17999091e-11
         Rotation:
-          - -0
-          - 0
-          - -0
-          - 1
+          - -0.00551937427
+          - -0.00552377198
+          - -0.70680356
+          - 0.707366765
         Scale:
-          x: 100
-          y: 1
-          z: 100
+          x: 0.419999897
+          y: 0.419999927
+          z: 0.419999927
         Parent: 0
-      - Component: WaveComponent
-        Resolution: 50
-        Amplitude: 0.200000003
-        Wavelength: 2
-        Speed: 0.100000001
+      - Component: TextureComponent
+        FilePath: Asset\Texture\alca.png
+        Material:
+          Ambient:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\alca.fbx
+        PixelShader: Asset\Shader\ToonShaderPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 0
+        Animations:
+          arm|idle: Asset\Model\ALCA_Old.fbx
+          Take 001: Asset\Model\alca.fbx
+          arm|move.001: Asset\Model\ALCA_Old.fbx
+          arm|jump: Asset\Model\ALCA_Old.fbx
+          arm|down: Asset\Model\ALCA_Old.fbx
+          arm|idle.001: Asset\Model\ALCA_Old.fbx
+          arm|idle.002: Asset\Model\ALCA_Old.fbx
+          arm|moving: Asset\Model\ALCA_Old.fbx
+          ALCA_Old.: Asset\Model\ALCA_Old.fbx
+      - Component: OutlineComponent

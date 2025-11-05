@@ -17,7 +17,8 @@ enum SceneState
 {
 	Playing, // ゲームプレイ中
 	Paused,  // 一時停止中
-	Stopped  // 停止中
+	Stopped, // 停止中
+	Step,
 };
 
 struct SceneContext{

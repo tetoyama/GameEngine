@@ -30,21 +30,30 @@ physx::PxRigidStatic* PhysicSystem::CreateStatic(const physx::PxTransform& t, co
 }
 
 
+// =============================================================
 // Actor に attach する形で PxShape を作成
-physx::PxShape* PhysicSystem::CreatePxShape(physx::PxRigidActor* actor, const ColliderShape& col, const Vector3& scale, physx::PxMaterial& material){
+// =============================================================
+physx::PxShape* PhysicSystem::CreatePxShape(
+	physx::PxRigidActor* actor,
+	const ColliderShape& col,
+	const Vector3& scale,
+	physx::PxMaterial& material){
 	if(!actor) return nullptr;
 
 	physx::PxShape* shape = nullptr;
+
 	switch(col.type){
 		case ColliderType::Box:
 			shape = physx::PxRigidActorExt::createExclusiveShape(
 				*actor,
-				physx::PxBoxGeometry(col.size.x * 0.5f * scale.x,
-									 col.size.y * 0.5f * scale.y,
-									 col.size.z * 0.5f * scale.z),
+				physx::PxBoxGeometry(
+					col.size.x * 0.5f * scale.x,
+					col.size.y * 0.5f * scale.y,
+					col.size.z * 0.5f * scale.z),
 				material
 			);
 			break;
+
 		case ColliderType::Sphere:
 		{
 			float r = col.radius * (std::max)({scale.x, scale.y, scale.z});
@@ -55,6 +64,7 @@ physx::PxShape* PhysicSystem::CreatePxShape(physx::PxRigidActor* actor, const Co
 			);
 			break;
 		}
+
 		case ColliderType::Capsule:
 		{
 			float rxz = (std::max)(scale.x, scale.z);
@@ -66,21 +76,48 @@ physx::PxShape* PhysicSystem::CreatePxShape(physx::PxRigidActor* actor, const Co
 			);
 			break;
 		}
+
 		case ColliderType::Mesh:
-			// Mesh は事前に Cooking が必要
+			// Mesh は Cooking 必須なので別処理
 			break;
 	}
 
+	// =============================================================
+	// ★ 回転オフセットの反映（オイラー角 → PxQuat）
+	// =============================================================
 	if(shape){
-		physx::PxVec3 offset(col.offset.x * scale.x,
-							 col.offset.y * scale.y,
-							 col.offset.z * scale.z);
-		shape->setLocalPose(physx::PxTransform(offset));
+		physx::PxVec3 offset(
+			col.offset.x * scale.x,
+			col.offset.y * scale.y,
+			col.offset.z * scale.z
+		);
+
+		// オイラー角をラジアンに変換
+		const float DegToRad = physx::PxPi / 180.0f;
+		physx::PxVec3 eulerRad(
+			col.rotationOffset.x * DegToRad,
+			col.rotationOffset.y * DegToRad,
+			col.rotationOffset.z * DegToRad
+		);
+
+		// XYZ順でクォータニオンを合成
+		physx::PxQuat qx(eulerRad.x, physx::PxVec3(1, 0, 0));
+		physx::PxQuat qy(eulerRad.y, physx::PxVec3(0, 1, 0));
+		physx::PxQuat qz(eulerRad.z, physx::PxVec3(0, 0, 1));
+
+		// 回転順序：Z→Y→X（一般的な右手座標系向け）
+		physx::PxQuat rot = qz * qy * qx;
+
+		// オフセット＋回転をローカルポーズとして設定
+		shape->setLocalPose(physx::PxTransform(offset, rot));
 	}
 
 	return shape;
 }
 
+// =============================================================
+// Collider の更新（PhysXへの反映）
+// =============================================================
 void PhysicSystem::UpdateColliderParam(ColliderComponent* collider, size_t entity, size_t index){
 	OutputDebugStringA("PhysicSystem::UpdateColliderParam\n");
 
@@ -94,47 +131,45 @@ void PhysicSystem::UpdateColliderParam(ColliderComponent* collider, size_t entit
 
 	if(!actor) return;
 
-	// シーン変更は write-lock の中で行う
 	g_pScene->lockWrite();
 
-	// 1) 古い shape を確実に解放（pxShape が nullptr なら何もしない）
+	// 1) 古い shape を安全に detach
 	if(col.pxShape){
 		actor->detachShape(*col.pxShape);
-		//col.pxShape->release();
 		col.pxShape = nullptr;
 	}
 
-	// 2) 古い material があれば解放（不要なら omit）
+	// 2) 古い material 解放
 	if(col.pxMaterial){
 		col.pxMaterial->release();
 		col.pxMaterial = nullptr;
 	}
 
-	// 3) 新しい material を作成して保存
+	// 3) 新しい material 作成
 	physx::PxMaterial* material = g_pPhysics->createMaterial(
 		col.staticFriction, col.dynamicFriction, col.restitution
 	);
 	col.pxMaterial = material;
 
-	// 4) Transform のスケール取得（entity から TransformComponent を取る）
+	// 4) Transform スケール取得
 	TransformComponent* transform = m_context->component->GetComponent<TransformComponent>((Entity)entity);
 	Vector3 scale = transform ? transform->scale : Vector3{1.0f, 1.0f, 1.0f};
 
-	// 5) 新しい shape を作って pxShape に保持（CreatePxShape は actor に attach して返す想定）
+	// 5) 新しい shape 作成
 	physx::PxShape* newShape = CreatePxShape(actor, col, scale, *material);
 	col.pxShape = newShape;
 
-	// 6) レイヤー / フィルタ設定
+	// 6) レイヤー設定
 	if(newShape){
 		physx::PxFilterData fd;
 		fd.word0 = col.collisionLayer;
 		newShape->setSimulationFilterData(fd);
 	}
 
-	// 7) 回転軸固定は actor（Dynamic）側に設定
+	// 7) 回転ロック設定
 	if(collider->isDynamic){
 		physx::PxRigidDynamic* dyn = static_cast<physx::PxRigidDynamic*>(actor);
-		physx::PxRigidDynamicLockFlags lockFlags = physx::PxRigidDynamicLockFlags();
+		physx::PxRigidDynamicLockFlags lockFlags;
 		if(col.lockRotX) lockFlags |= physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_X;
 		if(col.lockRotY) lockFlags |= physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_Y;
 		if(col.lockRotZ) lockFlags |= physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_Z;
@@ -143,6 +178,7 @@ void PhysicSystem::UpdateColliderParam(ColliderComponent* collider, size_t entit
 
 	g_pScene->unlockWrite();
 }
+
 
 
 void PhysicSystem::Initialize(){

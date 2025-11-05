@@ -51,6 +51,7 @@
 #include "physicSystem.h"
 #include <queue>
 #include <Component/terrainComponent.h>
+#include <Component/waveComponent.h>
 
 constexpr int maxLineCount = 99999;
 
@@ -136,6 +137,11 @@ void RenderSystem::Initialize(){
 
 	showPlayer = &m_context->manager->imgui->GetManubar()->showPlayerView;
 	showEditor = &m_context->manager->imgui->GetManubar()->showEditorView;
+
+	PlayButtonTexture = m_context->manager->resource->Load<TextureData>("Asset/Texture/UI/Control/Play.png");
+	PauseButtonTexture = m_context->manager->resource->Load<TextureData>("Asset/Texture/UI/Control/Pause.png");
+	StopButtonTexture = m_context->manager->resource->Load<TextureData>("Asset/Texture/UI/Control/Stop.png");
+	StepButtonTexture = m_context->manager->resource->Load<TextureData>("Asset/Texture/UI/Control/Step.png");
 
 	D3D11_TEXTURE2D_DESC td = {};
 	td.Width = 1280; td.Height = 720;
@@ -305,6 +311,8 @@ void RenderSystem::Initialize(){
 	copyShader.m_VS = m_FullScreenVS->m_VertexShader; // フルスクリーンVS
 	copyShader.m_PS = m_FullScreenPS->m_PixelShader; // 単純に SRV → out を返す PS
 	copyShader.m_InputLayout = m_FullScreenVS->m_VertexLayout;
+
+
 
 }
 
@@ -907,6 +915,57 @@ void RenderSystem::DrawTerrain(TransformComponent* pTransform, TerrainComponent*
 	graphicsContext->SetProjectionMatrix(m_CameraProjection);
 }
 
+void RenderSystem::DrawWave(TransformComponent* pTransform, WaveComponent* pWave, TextureComponent* pTexture){
+	if(!pWave || !pWave->meshRenderer){
+		return;
+	}
+
+	auto meshRenderer = pWave->meshRenderer;
+	auto transform = pTransform;
+
+	GraphicsContext* graphicsContext = m_context->manager->graphics;
+	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
+
+	//if (!pTexture) {
+	//	if (meshRenderer->mesh.m_TextureData) {
+	//		deviceContext->PSSetShaderResources(0, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
+
+	//		MATERIAL material{};
+	//		material.DiffuseTextureEnable = true;
+
+	//		material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
+	//		graphicsContext->SetMaterial(material);
+	//	}
+	//}
+	//if (meshRenderer->mesh.m_VertexLayout) {
+	//	deviceContext->IASetInputLayout(meshRenderer->mesh.m_VertexLayout.Get());
+	//}
+	//if (meshRenderer->mesh.m_VertexShader) {
+	//	deviceContext->VSSetShader(meshRenderer->mesh.m_VertexShader.Get(), NULL, 0);
+	//}
+	//if (meshRenderer->mesh.m_PixelShader) {
+	//	deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
+	//}
+	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, m_context->component);
+
+	graphicsContext->SetWorldMatrix(World);
+	UINT stride = sizeof(VERTEX_3D);
+	UINT offset = 0;
+	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
+	deviceContext->IASetIndexBuffer(*meshRenderer->mesh.m_IndexBuffer.GetAddressOf(), DXGI_FORMAT_R32_UINT, 0);
+
+	deviceContext->DrawIndexed(meshRenderer->mesh.indexCount, 0, 0);
+
+	graphicsContext->SetDepthEnable(true);
+	graphicsContext->SetViewMatrix(m_CameraView);
+	graphicsContext->SetProjectionMatrix(m_CameraProjection);
+
+
+}
+
 void RenderSystem::SetCameraView(){
 
 	// コンテキストの取得
@@ -990,20 +1049,56 @@ void RenderSystem::SetEditorCameraView(){
 }
 
 void RenderSystem::ControllButton(){
+
+	if(!PlayButtonTexture){
+		return;
+	}
+
+	ImTextureRef Play;
+	Play._TexID = (ImTextureID)PlayButtonTexture.get()->pTexture.Get();
+	ImTextureRef Pause;
+	Pause._TexID = (ImTextureID)PauseButtonTexture.get()->pTexture.Get();
+	ImTextureRef Stop;
+	Stop._TexID = (ImTextureID)StopButtonTexture.get()->pTexture.Get();
+	ImTextureRef Step;
+	Step._TexID = (ImTextureID)StepButtonTexture.get()->pTexture.Get();
+
+	ImVec4 DefaultButtonColor = ImVec4(1.0f, 1.0f, 1.0f, 0.8f);
+	ImVec4 StopButtonColor = ImVec4(1.0f, 1.0f, 1.0f, 0.8f);
+	if(m_context->state == SceneState::Stopped){
+		StopButtonColor = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
+	}
+	ImGui::BeginDisabled(m_context->state == SceneState::Stopped);
+
+	if(ImGui::ImageButton("Stop", Stop, ImVec2(20, 20),ImVec2(0,0),ImVec2(1,1),ImVec4(0,0,0,0), StopButtonColor)){
+		if(m_context->state != SceneState::Stopped){
+
+			m_context->state = SceneState::Stopped; // シーンの状態をエディタに戻す
+			ImGui::SetWindowFocus("Editor View");
+		}
+	}
+	ImGui::EndDisabled();
+
+	ImGui::SameLine();
+
 	// ツールバー内容
-	if(ImGui::Button("Play")){
-		m_context->state = SceneState::Playing; // シーンの状態を再生中に変更
-		ImGui::SetWindowFocus("Play View");
+	if(m_context->state == SceneState::Playing){
+		if(ImGui::ImageButton("Pause", Pause, ImVec2(20, 20), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), DefaultButtonColor)){
+			m_context->state = SceneState::Paused; // シーンの状態を 一時停止に変更
+		}
+	} else{
+		if(ImGui::ImageButton("Play", Play, ImVec2(20, 20), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), DefaultButtonColor)){
+			m_context->state = SceneState::Playing; // シーンの状態を再生中に変更
+			//ImGui::SetWindowFocus("Play View");
+		}
 	}
+
+
 	ImGui::SameLine();
-	if(ImGui::Button("Pause")){
-		m_context->state = SceneState::Paused; // シーンの状態を 一時停止に変更
+	if(ImGui::ImageButton("Step", Step, ImVec2(20, 20), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), DefaultButtonColor)){
+		m_context->state = SceneState::Step; // シーンの状態を ステップに変更
 	}
-	ImGui::SameLine();
-	if(ImGui::Button("Stop")){
-		m_context->state = SceneState::Stopped; // シーンの状態をエディタに戻す
-		ImGui::SetWindowFocus("Editor View");
-	}
+	
 }
 
 void RenderSystem::EditorView(){
@@ -1413,8 +1508,12 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 					DrawBillBoard(transform, m_billBoardMesh, billBoardRenderer, texture);
 				}
 				TerrainComponent* terrain = m_context->component->GetComponent<TerrainComponent>(entity);
-				if (terrain) {
+				if(terrain){
 					DrawTerrain(transform, terrain, texture);
+				}
+				WaveComponent* wave = m_context->component->GetComponent<WaveComponent>(entity);
+				if(wave){
+					DrawWave(transform, wave, texture);
 				}
 
 				MeshRendererComponent* meshRenderer = m_context->component->GetComponent<MeshRendererComponent>(entity);

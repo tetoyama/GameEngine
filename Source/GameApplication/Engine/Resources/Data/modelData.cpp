@@ -72,7 +72,7 @@ void ModelData::UpdateBoneMatrix(aiNode* node, aiMatrix4x4 Matrix) {
 	}
 }
 
-void ModelData::LoadAnimation(const char* FileName, const char* Name) {
+void ModelData::LoadAnimation(const char* FileName, const char* Name){
 	const aiScene* scene = aiImportFile(FileName, aiProcess_ConvertToLeftHanded);
 	assert(scene);
 
@@ -83,6 +83,22 @@ void ModelData::LoadAnimation(const char* FileName, const char* Name) {
 	animationData.Animation = scene->mAnimations[0];
 
 	m_Animation[Name] = animationData;
+	if(scene->mNumAnimations != 0){
+
+		for(int i = 0; i < scene->mNumAnimations; i++){
+
+			scene = aiImportFile(FileName, aiProcess_ConvertToLeftHanded);
+
+			AnimationData animationData;
+			animationData.FilePath = FileName;
+			animationData.Scene = scene;
+			animationData.isImported = true;
+			animationData.Animation = scene->mAnimations[i];
+			m_Animation[scene->mAnimations[i]->mName.C_Str()] = animationData;
+
+		}
+
+	}
 }
 
 void ModelData::UpdateSingleAnimation(const char* AnimationName1, int Frame1, GraphicsContext* pGraphicContext) {
@@ -272,45 +288,60 @@ void ModelData::Update(float Frame, GraphicsContext* pGraphicContext) {
 	aiMatrix4x4 rootMatrix = aiMatrix4x4(aiVector3D(1, 1, 1), aiQuaternion(DirectX::XM_PI, 0, 0), aiVector3D(0, 0, 0));
 	UpdateBoneMatrix(AiScene->mRootNode, rootMatrix);
 
-	// 頂点変換（CPUスキニング）
-	for (unsigned int i = 0; i < AiScene->mNumMeshes; i++) {
+	// CPUスキニング安全版
+	for(unsigned int i = 0; i < AiScene->mNumMeshes; i++){
 		aiMesh* mesh = AiScene->mMeshes[i];
 
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		pGraphicContext->GetDeviceContext()->Map(VertexBuffer[i], 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-
 		VERTEX_3D* vertex = (VERTEX_3D*)mappedResource.pData;
 
-		for (unsigned int j = 0; j < mesh->mNumVertices; j++) {
+		for(unsigned int j = 0; j < mesh->mNumVertices; j++){
 			DEFORM_VERTEX* deformVertex = &m_DeformVertex[i][j];
 
-			aiMatrix4x4 matrix[4];
+			aiVector3D blendedPos(0.0f, 0.0f, 0.0f);
+			aiVector3D blendedNormal(0.0f, 0.0f, 0.0f);
 
-			for (int k = 0; k < 4; k++) {
-				matrix[k] = m_Bone[deformVertex->BoneName[k]].Matrix;
+			// 各ボーンの影響を適用
+			for(int k = 0; k < 4; k++){
+				float w = deformVertex->BoneWeight[k];
+				if(w <= 0.0f) continue;
+
+				const aiMatrix4x4& boneMat = m_Bone[deformVertex->BoneName[k]].Matrix;
+
+				// 頂点座標変換
+				aiVector3D p = mesh->mVertices[j];
+				p *= boneMat;
+
+				// 法線変換用（逆転置行列を使用）
+				aiMatrix3x3 normalMat = aiMatrix3x3(boneMat);
+				normalMat = normalMat.Inverse().Transpose();
+
+				aiVector3D n = mesh->mNormals[j];
+				n *= normalMat;
+
+				blendedPos += p * w;
+				blendedNormal += n * w;
 			}
 
-			aiMatrix4x4 outMatrix =
-				matrix[0] * deformVertex->BoneWeight[0] +
-				matrix[1] * deformVertex->BoneWeight[1] +
-				matrix[2] * deformVertex->BoneWeight[2] +
-				matrix[3] * deformVertex->BoneWeight[3];
+			blendedNormal.Normalize();
 
-			deformVertex->Position = mesh->mVertices[j];
-			deformVertex->Position *= outMatrix;
+			vertex[j].Position = DirectX::XMFLOAT3(blendedPos.x, blendedPos.y, blendedPos.z);
+			vertex[j].Normal = DirectX::XMFLOAT3(blendedNormal.x, blendedNormal.y, blendedNormal.z);
 
-			// 法線変換用に移動成分を削除
-			outMatrix.a4 = 0.0f; outMatrix.b4 = 0.0f; outMatrix.c4 = 0.0f;
+			if(mesh->HasTextureCoords(0)){
+				vertex[j].TexCoord = DirectX::XMFLOAT2(
+					mesh->mTextureCoords[0][j].x,
+					mesh->mTextureCoords[0][j].y
+				);
+			} else{
+				vertex[j].TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
+			}
 
-			deformVertex->Normal = mesh->mNormals[j];
-			deformVertex->Normal *= outMatrix;
-
-			vertex[j].Position = DirectX::XMFLOAT3(deformVertex->Position.x, deformVertex->Position.y, deformVertex->Position.z);
-			vertex[j].Normal = DirectX::XMFLOAT3(deformVertex->Normal.x, deformVertex->Normal.y, deformVertex->Normal.z);
-			vertex[j].TexCoord = DirectX::XMFLOAT2(mesh->mTextureCoords[0][j].x, mesh->mTextureCoords[0][j].y);
 			vertex[j].Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
 		}
 
 		pGraphicContext->GetDeviceContext()->Unmap(VertexBuffer[i], 0);
 	}
+
 }

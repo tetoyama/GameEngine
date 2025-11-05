@@ -8,7 +8,7 @@
 class PlayerController: public CustomScriptComponent {
 	BEGIN_REFLECT(PlayerController)
 
-		REFLECT_FIELD(float, moveSpeed, 0.0f)
+		REFLECT_FIELD(float, moveSpeed, 20.0f)
 		REFLECT_FIELD(float, health, 0.0f)
 		REFLECT_FIELD(bool, isInvincible, false)
 
@@ -109,7 +109,7 @@ public:
 		if(GetKey('D')) move.x += 1.0f;
 
 		// ダッシュ判定
-		bool dashKey = (GetKey(VK_SPACE));
+		bool dashKey = (GetKey(VK_LSHIFT));
 		bool isDashing = dashKey && canDash;
 
 		// スタミナ更新
@@ -133,8 +133,8 @@ public:
 			CurrentSpeed -= moveSpeed * dt;
 			if(CurrentSpeed < 0.0f) CurrentSpeed = 0.0f;
 			if(CurrentSpeed > moveSpeed) CurrentSpeed = moveSpeed;
-			model->model->blendedAnimations[0].weight = CurrentSpeed / moveSpeed;
-			model->model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / moveSpeed);
+			model->model->blendedAnimations[0].weight = CurrentSpeed / (moveSpeed * dashMultiplier);
+			model->model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / (moveSpeed * dashMultiplier));
 
 			// --- 回転補間 ---
 			DirectX::XMVECTOR targetQ = DirectX::XMQuaternionRotationRollPitchYaw(
@@ -143,11 +143,6 @@ public:
 				0.0f
 			);
 
-			DirectX::XMVECTOR currentQ = transform->rotationVector();
-			DirectX::XMVECTOR newQ = DirectX::XMQuaternionSlerp(currentQ, targetQ, rotateSpeed * dt);
-			DirectX::XMFLOAT4 FloatQ;
-			DirectX::XMStoreFloat4(&FloatQ, newQ);
-			transform->SetRotation(FloatQ);
 		} else{
 			// 目標速度
 			float targetSpeed = isDashing ? moveSpeed * dashMultiplier : moveSpeed;
@@ -160,8 +155,8 @@ public:
 				CurrentSpeed = targetSpeed;
 			}
 
-			model->model->blendedAnimations[0].weight = CurrentSpeed / targetSpeed;
-			model->model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / targetSpeed);
+			model->model->blendedAnimations[0].weight = CurrentSpeed / (moveSpeed * dashMultiplier);
+			model->model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / (moveSpeed * dashMultiplier));
 
 			// --- カメラ基準の移動 ---
 			Vector3 camForward = cameraTransform->front();
