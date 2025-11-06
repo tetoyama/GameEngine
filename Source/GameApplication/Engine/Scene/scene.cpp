@@ -175,11 +175,11 @@ void Scene::Initialize(ManagerContext* set){
 	m_systemRegistry->RegisterSystem(std::make_unique<ParticleSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<EffectSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<TerrainSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<PhysicSystem>(&m_SceneContext));
 
 	m_systemRegistry->RegisterSystem(std::make_unique<CSharpScriptSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<CustomScriptSystem>(&m_SceneContext));
 
-	m_systemRegistry->RegisterSystem(std::make_unique<PhysicSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<WaveSystem>(&m_SceneContext));
 
 	// シーンコンテキストの初期化
@@ -190,7 +190,6 @@ void Scene::Initialize(ManagerContext* set){
 	m_SceneContext.system = m_systemRegistry.get();
 	m_SceneContext.manager = m_SceneManagerContext;
 
-	m_systemRegistry->InitializeAll();
 
 	auto graphicsContext = Renderer->GetGraphicsContext();
 	// ライティングの仮設定
@@ -204,10 +203,11 @@ void Scene::Initialize(ManagerContext* set){
 	} else{
 		LoadSceneFromYAML(ScenePath);
 	}
+
 	m_SceneManagerContext->debug->LOG_INFO("Sceneを開始します");
 
 	// システムの初期化
-	//m_systemRegistry->StartAll();
+	m_systemRegistry->InitializeAll();
 }
 
 void Scene::Update(float deltaTime){
@@ -418,6 +418,8 @@ void Scene::BuildDefaultScene(){
 		modelRenderer->model->LoadAnimation("Asset\\Model\\Akai_Idle.fbx", "Idle");
 		modelRenderer->model->LoadAnimation("Asset\\Model\\Akai_Run.fbx", "Run");
 		
+		modelRenderer->model->blendedAnimations.clear();
+
 		AnimationBlend idle;
 		idle.animationStartTime = 0.0f;
 		idle.name = "Idle";

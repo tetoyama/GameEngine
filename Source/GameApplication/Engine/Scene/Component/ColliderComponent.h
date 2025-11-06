@@ -57,7 +57,7 @@ public:
 	BEGIN_REFLECT(ColliderComponent)
 		REFLECT_FIELD(bool, isDynamic, false)
 
-		std::vector<ColliderShape> colliders;
+	std::vector<ColliderShape> colliders;
 
 	// =====================================================
 	// YAML Encode
@@ -79,7 +79,6 @@ public:
 			colNode["offset"].push_back(col.offset.y);
 			colNode["offset"].push_back(col.offset.z);
 
-			// ★ 回転オフセットを保存
 			colNode["rotationOffset"] = YAML::Load("[]");
 			colNode["rotationOffset"].push_back(col.rotationOffset.x);
 			colNode["rotationOffset"].push_back(col.rotationOffset.y);
@@ -154,22 +153,35 @@ public:
 
 		for(size_t i = 0; i < colliders.size(); ++i){
 			ImGui::Separator();
-			ImGui::Text("Collider %d", (int)i);
 
-			ImGui::SameLine();
-			if(ImGui::Button(("Remove##" + std::to_string(i)).c_str())){
-				if(colliders[i].pxShape){
+			std::string TreeText = "Collider" + std::to_string((int)i);
+
+
+			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+
+			// ツリーノードの展開矢印だけ表示（幅だけ取るためにNoTreePushOnOpen）
+			bool open = ImGui::TreeNodeEx(TreeText.c_str(), flags, TreeText.c_str());
+
+			// Removeボタンは同じ行の右端に配置
+			ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 60);
+			if (ImGui::SmallButton(("Remove##" + TreeText).c_str())) {
+				if (colliders[i].pxShape) {
 					colliders[i].pxShape->release();
 					colliders[i].pxShape = nullptr;
 				}
-				if(colliders[i].pxMaterial){
+				if (colliders[i].pxMaterial) {
 					colliders[i].pxMaterial->release();
 					colliders[i].pxMaterial = nullptr;
 				}
 				colliders.erase(colliders.begin() + i);
 				needsUpdate = true;
 				continue;
+
+			}else if (!open) {
+				continue;
 			}
+
+
 
 			int type = static_cast<int>(colliders[i].type);
 			if(ImGui::Combo(("Type##" + std::to_string(i)).c_str(), &type, "Box\0Sphere\0Capsule\0Mesh\0")){
@@ -192,7 +204,6 @@ public:
 			if(ImGui::DragFloat3(("Offset##" + std::to_string(i)).c_str(), &colliders[i].offset.x, 0.1f))
 				needsUpdate = true;
 
-			// ★ 回転オフセット（度数法）
 			if(ImGui::DragFloat3(("Rotation Offset (deg)##" + std::to_string(i)).c_str(), &colliders[i].rotationOffset.x, 1.0f))
 				needsUpdate = true;
 

@@ -119,4 +119,5 @@ private:
 	std::shared_ptr<TextureData> StopButtonTexture;
 	std::shared_ptr<TextureData> StepButtonTexture;
 
+	bool mouseOnEditor = false;
 };

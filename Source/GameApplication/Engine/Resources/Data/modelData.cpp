@@ -76,6 +76,11 @@ void ModelData::LoadAnimation(const char* FileName, const char* Name){
 	const aiScene* scene = aiImportFile(FileName, aiProcess_ConvertToLeftHanded);
 	assert(scene);
 
+	auto it = m_Animation.find(Name);
+	if (it != m_Animation.end()) {
+		return;
+	}
+
 	AnimationData animationData;
 	animationData.FilePath = FileName;
 	animationData.Scene = scene;

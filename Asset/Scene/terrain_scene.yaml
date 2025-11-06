@@ -233,9 +233,9 @@ Entities:
             - 0.914376795
             - 0
           -
-            - -10.2071056
-            - -4.07680607
-            - 8.6300869
+            - -10.2070885
+            - -4.07679367
+            - 8.63009644
             - 1
         nextLinkId: 1
         nextPinId: 2
@@ -11013,7 +11013,7 @@ Entities:
   - Entity: 15
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: Rock
       - Component: TransformComponent
         Position:
           x: -13.8297806
@@ -11066,7 +11066,7 @@ Entities:
   - Entity: 16
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: Grass1
       - Component: TransformComponent
         Position:
           x: -2.53460503
@@ -11117,7 +11117,7 @@ Entities:
   - Entity: 17
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: Grass2
       - Component: TransformComponent
         Position:
           x: 5.76245785
@@ -11168,7 +11168,7 @@ Entities:
   - Entity: 18
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: Grass3
       - Component: TransformComponent
         Position:
           x: 20.7460079

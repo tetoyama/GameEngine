@@ -4,6 +4,7 @@
 #include "GameTimeManager.h"
 #include "BallController.h"
 #include "Component/TransformComponent.h"
+#include "Component/ColliderComponent.h"
 
 class PlayerController: public CustomScriptComponent {
 	BEGIN_REFLECT(PlayerController)
@@ -23,8 +24,11 @@ class PlayerController: public CustomScriptComponent {
 		REFLECT_FIELD(float, staminaConsumeRate, 1.5f)
 		REFLECT_FIELD(float, staminaRecoverRate, 1.0f)
 
-		bool canDash = true;
-		float CurrentSpeed = 0.0f;
+		REFLECT_FIELD(float, jumpPower, 5.0f)
+
+
+	bool canDash = true;
+	float CurrentSpeed = 0.0f;
 	TransformComponent* transform = nullptr;
 	TransformComponent* cameraTransform = nullptr;
 	GameTimeManager* gameTime = nullptr;
@@ -127,6 +131,29 @@ public:
 			}
 		}
 
+		// --- カメラ基準の移動 ---
+		Vector3 camForward = cameraTransform->front();
+		Vector3 camRight = cameraTransform->right();
+		camForward.y = 0; camRight.y = 0;
+		camForward = camForward.normalize();
+		camRight = camRight.normalize();
+		Vector3 dir = camForward * move.z + camRight * move.x;
+		dir = dir.normalize();
+
+		ColliderComponent* collider = GetComponent<ColliderComponent>();
+
+		if (!collider) {
+			transform->position += dir * (CurrentSpeed * dt);
+		} else {
+
+			float Y = collider->pRigidbodyDynamic->getLinearVelocity().y;
+
+			if (GetKeyDown(VK_SPACE)) {
+				Y = jumpPower;
+			}
+
+			collider->pRigidbodyDynamic->setLinearVelocity(physx::PxVec3(dir.x * CurrentSpeed, Y, dir.z * CurrentSpeed));
+		}
 
 		// 入力がなければ減速
 		if(move.x == 0 && move.z == 0){
@@ -157,18 +184,6 @@ public:
 
 			model->model->blendedAnimations[0].weight = CurrentSpeed / (moveSpeed * dashMultiplier);
 			model->model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / (moveSpeed * dashMultiplier));
-
-			// --- カメラ基準の移動 ---
-			Vector3 camForward = cameraTransform->front();
-			Vector3 camRight = cameraTransform->right();
-			camForward.y = 0; camRight.y = 0;
-			camForward = camForward.normalize();
-			camRight = camRight.normalize();
-
-			Vector3 dir = camForward * move.z + camRight * move.x;
-			dir = dir.normalize();
-
-			transform->position += dir * (CurrentSpeed * dt);
 
 			// --- 回転補間 ---
 			DirectX::XMVECTOR targetQ = DirectX::XMQuaternionRotationRollPitchYaw(

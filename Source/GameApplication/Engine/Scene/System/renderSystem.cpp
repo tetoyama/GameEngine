@@ -390,7 +390,7 @@ void RenderSystem::Draw(){
 
 }
 
-void RenderSystem::EditorUpdate(float deltaTime){
+void RenderSystem::EditorUpdate(float deltaTime) {
 
 
 
@@ -399,11 +399,11 @@ void RenderSystem::EditorUpdate(float deltaTime){
 
 	// マウス右クリックで操作有効
 	static bool isCameraActive = false;
-	if(ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+	if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
 		isCameraActive = true;
-	else if(!ImGui::IsMouseDown(ImGuiMouseButton_Right))
+	} else if (!ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
 		isCameraActive = false;
-
+	}
 	// 入力で動かすベクトル
 	Vector3 velocity = {0,0,0};
 	float speed = 20.0f;
@@ -437,7 +437,7 @@ void RenderSystem::EditorUpdate(float deltaTime){
 		if(velocity.length() > 0.0f){
 			m_EditorCameraPosition += velocity.normalize() * speed * deltaTime;
 		}
-	} else{
+	} else if(mouseOnEditor){
 
 		Vector3 front;
 		front.x = cosf(m_EditorCameraRotation.y) * sinf(m_EditorCameraRotation.x);
@@ -1168,6 +1168,8 @@ void RenderSystem::EditorView(){
 	// マウスホイールの値をリセット
 	m_MouseWheel = 0.0f;
 
+	mouseOnEditor = false;
+
 	// マウスカーソルの位置を取得
 	POINT cursorPos;
 	if(GetCursorPos(&cursorPos)){
@@ -1184,6 +1186,9 @@ void RenderSystem::EditorView(){
 			// マウスカーソルがウィンドウ内にあるかを判定
 			if(drawList->GetClipRectMin().x <= mousePos.x && mousePos.x <= drawList->GetClipRectMax().x &&
 			   drawList->GetClipRectMin().y <= mousePos.y && mousePos.y <= drawList->GetClipRectMax().y){
+
+				mouseOnEditor = true;
+
 				// マウスホイールの入力を取得
 				m_MouseWheel = io.MouseWheel;
 			}
