@@ -8,7 +8,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 {
 	//ピクセルの法線を正規化
     float4 normal = normalize(In.Normal);
-    float light = -dot(normal.xyz, Light.Direction.xyz); //光源計算をする
+    float light = -dot(normal.xyz, Lights[0].Direction.xyz); //光源計算をする
     light = saturate(light);
 	
 	//テクスチャのピクセル色を取得
@@ -21,7 +21,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     eyev = normalize(eyev); //正規化する
 
 	//ハーフベクトルの作成
-    float3 halfv = eyev + Light.Direction.xyz; //視線とライトベクトルを加算
+    float3 halfv = eyev + Lights[0].Direction.xyz; //視線とライトベクトルを加算
     halfv = normalize(halfv); //正規化する
 
     float specular = -dot(halfv, normal.xyz); //ハーフベクトルと法線の内積を計算

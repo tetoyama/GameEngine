@@ -17,6 +17,7 @@
 #include "GameApplication/GameApplication.h"
 #include "time.h"
 #include <psapi.h>
+#include <ImGui/imgui_internal.h>
 
 #define SAMPLE_LENGTH (TARGET_FPS)
 
@@ -182,7 +183,7 @@ void ImGuiService::Begin(){
 
 	//ImGuizmo::SetRect(ImGui::GetMainViewport()->Pos.x, ImGui::GetMainViewport()->Pos.y, ImGui::GetMainViewport()->Size.x, ImGui::GetMainViewport()->Size.y);
 
-	ImGui::DockSpaceOverViewport(0U,0, ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_AutoHideTabBar);  // ドッキングスペースの設置
+	ImGui::DockSpaceOverViewport(0U,0, ImGuiDockNodeFlags_PassthruCentralNode);  // ドッキングスペースの設置
 	manubar.Draw();
 	DrawAssetsBrowser();
 }
@@ -255,15 +256,16 @@ void ImGuiService::DrawDebugImGuiWindow(double Update, double Draw, double FPS, 
 	UpdateSamples[SAMPLE_LENGTH - 1] = (float)(int)Update;
 	DrawSamples[SAMPLE_LENGTH - 1] = (float)(int)Draw;
 
-	if(!manubar.showParformanceMonitor){
-		return;
-	}
-	{
+	if(manubar.showParformanceMonitor){
+		ImGuiWindowClass window_class;
+		window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
+		ImGui::SetNextWindowClass(&window_class);
+
 		//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
 		ImGuiWindowFlags toolbar_window_flags = 0;
 
-		ImGui::Begin("Performance Monitor",NULL, toolbar_window_flags);
-
+		ImGui::Begin("Performance Monitor", &manubar.showParformanceMonitor, toolbar_window_flags);
+		
 		if(ImGui::TreeNodeEx("負荷計測", ImGuiTreeNodeFlags_DefaultOpen)){
 
 			float FixedFPSAvg = 0.0f;

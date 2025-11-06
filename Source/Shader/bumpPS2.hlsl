@@ -28,11 +28,11 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 
     // ------------------------
     // 光ベクトル（ライトからピクセルへのベクトル）
-    float3 lv = normalize(In.WorldPosition.xyz - Light.Position.xyz);
-    float ld = length(In.WorldPosition.xyz - Light.Position.xyz);
+    float3 lv = normalize(In.WorldPosition.xyz - Lights[0].Position.xyz);
+    float ld = length(In.WorldPosition.xyz - Lights[0].Position.xyz);
 
     // 減衰計算
-    float ofs = 1.0f - (1.0f / Light.PointLightParam.x) * ld;
+    float ofs = 1.0f - (1.0f / Lights[0].PointLightParam.x) * ld;
     ofs = max(0, ofs);
 
     // ------------------------
@@ -43,12 +43,12 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     // ------------------------
     // グラデーション環境色（N.yベース）
     float blendFactor = N.y * 0.5f + 0.5f;
-    float4 envColor = lerp(Light.GroundColor, Light.SkyColor, blendFactor);
+    float4 envColor = lerp(Lights[0].GroundColor, Lights[0].SkyColor, blendFactor);
 
     // ------------------------
     // テクスチャカラー取得 + 拡散・環境光適用
     outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord) * Material.Diffuse;
-    outDiffuse.rgb *= In.Diffuse.rgb * light + Light.Ambient.rgb;
+    outDiffuse.rgb *= In.Diffuse.rgb * light + Lights[0].Ambient.rgb;
     outDiffuse.a *= In.Diffuse.a;
     outDiffuse.rgb += envColor.rgb * envColor.a;
 

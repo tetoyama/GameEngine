@@ -20,6 +20,8 @@ Entities:
         Parent: 0
       - Component: ColliderComponent
         isDynamic: false
+        autoMass: true
+        Mass: 0
         colliders:
           - type: 0
             size: [1, 1, 1]
@@ -29,7 +31,7 @@ Entities:
             height: 1
             staticFriction: 1
             dynamicFriction: 1
-            restitution: 0.100000001
+            restitution: 0
             collisionLayer: 0
             lockRotX: false
             lockRotY: false
@@ -64,10 +66,10 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
-        PixelShader: Asset\Shader\pointLightingBlinnPhongPS.cso
+        PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 29278.3809
+        AnimationTime: 39796.4648
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -187,21 +189,21 @@ Entities:
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
-        AnimationTime: 29278.3809
+        AnimationTime: 39796.4648
   - Entity: 4
     Components:
       - Component: NameComponent
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: 12.8271427
-          y: 4.07679367
-          z: -3.75867343
+          x: 7.7673645
+          y: 2.44828534
+          z: -5.71381617
         Rotation:
-          - -0
-          - -0.206909731
           - 0
-          - 0.978360057
+          - 0
+          - 0
+          - 1
         Scale:
           x: 1
           y: 1
@@ -218,24 +220,24 @@ Entities:
         FOV: 1
         viewMatrix:
           -
-            - 0.914376795
+            - 1
             - 0
-            - -0.404864341
+            - 0
             - 0
           -
-            - -0
+            - 0
             - 1
             - 0
             - 0
           -
-            - 0.404864341
             - 0
-            - 0.914376795
+            - 0
+            - 1
             - 0
           -
-            - -10.2070885
-            - -4.07679367
-            - 8.63009644
+            - -7.7673893
+            - -2.44830894
+            - 5.71378469
             - 1
         nextLinkId: 1
         nextPinId: 2
@@ -264,14 +266,14 @@ Entities:
         Name: Player
       - Component: TransformComponent
         Position:
-          x: 10.3979435
-          y: 2.07678199
-          z: 1.72757137
+          x: 7.7673645
+          y: 0.448285401
+          z: 0.286183953
         Rotation:
           - -4.20389539e-45
-          - 0.545539141
+          - 0.707142174
           - 4.20389539e-45
-          - 0.838085294
+          - 0.707071483
         Scale:
           x: 0.00999999885
           y: 0.00999999978
@@ -279,6 +281,8 @@ Entities:
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
+        autoMass: true
+        Mass: 1
         colliders:
           - type: 2
             size: [1, 1, 1]
@@ -288,17 +292,17 @@ Entities:
             height: 95.1999969
             staticFriction: 0.5
             dynamicFriction: 0.5
-            restitution: 0.100000001
+            restitution: 0
             collisionLayer: 0
             lockRotX: true
             lockRotY: true
             lockRotZ: true
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
-        PixelShader: Asset\Shader\pointLightingBlinnPhongPS.cso
+        PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 29278.3809
+        AnimationTime: 39796.4648
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           mixamo.com: Asset\Model\Akai_Run.fbx
@@ -314,6 +318,7 @@ Entities:
         stamina: 5
         staminaConsumeRate: 1.5
         staminaRecoverRate: 1
+        jumpPower: 5
         Stamina: 5
   - Entity: 6
     Components:
@@ -372,14 +377,14 @@ Entities:
         Name: PushCube
       - Component: TransformComponent
         Position:
-          x: 4.77763081
-          y: 1.17004943
-          z: 2.85297203
+          x: 15.3251495
+          y: 1.17001367
+          z: 2.34701705
         Rotation:
-          - 0.332853466
-          - 1.66445921e-06
-          - 0.94297868
-          - 6.69312158e-07
+          - -0.536677659
+          - 0.460408419
+          - -0.46040836
+          - -0.536679864
         Scale:
           x: 2.34000015
           y: 2.34009933
@@ -387,6 +392,8 @@ Entities:
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
+        autoMass: true
+        Mass: 1
         colliders:
           - type: 0
             size: [1, 1, 1]
@@ -396,7 +403,7 @@ Entities:
             height: 1
             staticFriction: 1
             dynamicFriction: 1
-            restitution: 0.100000001
+            restitution: 0
             collisionLayer: 0
             lockRotX: false
             lockRotY: false
@@ -431,10 +438,10 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
-        PixelShader: Asset\Shader\pointLightingBlinnPhongPS.cso
+        PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 25183.9453
+        AnimationTime: 35702.0898
   - Entity: 8
     Components:
       - Component: NameComponent
@@ -456,6 +463,8 @@ Entities:
         Parent: 0
       - Component: ColliderComponent
         isDynamic: false
+        autoMass: true
+        Mass: 0
         colliders:
           - type: 0
             size: [1, 1, 1]
@@ -465,7 +474,7 @@ Entities:
             height: 1
             staticFriction: 1
             dynamicFriction: 1
-            restitution: 0.100000001
+            restitution: 0
             collisionLayer: 0
             lockRotX: false
             lockRotY: false
@@ -500,10 +509,10 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
-        PixelShader: Asset\Shader\pointLightingBlinnPhongPS.cso
+        PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 25183.9453
+        AnimationTime: 35702.0898
   - Entity: 9
     Components:
       - Component: NameComponent
@@ -11059,10 +11068,10 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\boulder_01_1k.fbx\boulder_01_1k.fbx
-        PixelShader: Asset\Shader\pixelLightingBlinnPhongPS.cso
+        PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 18329.5859
+        AnimationTime: 28847.668
   - Entity: 16
     Components:
       - Component: NameComponent

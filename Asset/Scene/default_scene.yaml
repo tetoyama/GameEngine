@@ -20,6 +20,8 @@ Entities:
         Parent: 0
       - Component: ColliderComponent
         isDynamic: false
+        autoMass: true
+        Mass: 0
         colliders:
           - type: 0
             size: [1, 1, 1]
@@ -209,6 +211,8 @@ Entities:
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
+        autoMass: true
+        Mass: 1
         colliders:
           - type: 0
             size: [50, 160, 50]

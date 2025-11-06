@@ -333,7 +333,7 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\cube.obj",false);
 		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\disneyPBR_PS.cso");
+		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\DefaultPixelShader.cso");
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
 		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\white.tga");
@@ -360,12 +360,14 @@ void Scene::BuildDefaultScene(){
 
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position = Vector3(0.0f, 50.0f,0.0f);
+		transform->position = Vector3(0.0f, 100.0f,0.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
 		auto* light = componentRegistry->AddComponent<LightComponent>(entity);
-		light->light.Diffuse = DirectX::XMFLOAT4(0.6f, 0.6f, 0.6f, 1.0f);
+		light->light.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		light->light.Ambient = DirectX::XMFLOAT4(0.25f, 0.25f, 0.25f, 1.0f);
+		light->light.PointLightParam.x = 500.0f;
 	}
 	{
 		//エンティティを作成し、TransformとModelRendererを追加
@@ -413,7 +415,7 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\Akai.fbx", false);
 		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\disneyPBR_PS.cso");
+		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\DefaultPixelShader.cso");
 
 		modelRenderer->model->LoadAnimation("Asset\\Model\\Akai_Idle.fbx", "Idle");
 		modelRenderer->model->LoadAnimation("Asset\\Model\\Akai_Run.fbx", "Run");

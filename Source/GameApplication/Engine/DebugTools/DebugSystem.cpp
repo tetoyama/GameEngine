@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <sstream>
 #include <unordered_set>
+#include <ImGui/imgui_internal.h>
 
 void DebugLog(std::string Message){
 	OutputDebugStringA(Message.c_str());
@@ -136,6 +137,11 @@ ImVec4 ImGuiLogWindow::GetColorForLevel(LogLevel level) const{
 
 void ImGuiLogWindow::Draw(){
 	if(isOpen && *isOpen){
+
+		ImGuiWindowClass window_class;
+		window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
+		ImGui::SetNextWindowClass(&window_class);
+
 		//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
 		ImGuiWindowFlags toolbar_window_flags = 0;
 		if(ImGui::Begin("Debug Log", isOpen, toolbar_window_flags)){

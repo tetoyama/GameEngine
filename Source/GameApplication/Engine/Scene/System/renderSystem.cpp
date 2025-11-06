@@ -1603,8 +1603,8 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
 		// シェーダーをセット（通常のカラー付き頂点用のものを使用）
-		context->VSSetShader(m_VertexShader->m_VertexShader.Get(), nullptr, 0);
-		context->PSSetShader(m_PixelShader->m_PixelShader.Get(), nullptr, 0);
+		context->VSSetShader(m_LineVertexShader->m_VertexShader.Get(), nullptr, 0);
+		context->PSSetShader(m_LinePixelShader->m_PixelShader.Get(), nullptr, 0);
 
 		// 描画
 		context->Draw(static_cast<UINT>(vertices.size()), 0);

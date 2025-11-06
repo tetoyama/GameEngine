@@ -54,7 +54,7 @@ struct LIGHT
 
 cbuffer LightBuffer : register(b5)
 {
-    LIGHT Light;
+    LIGHT Lights[64];
 }
 
 // ViewBufferとまとめられる?

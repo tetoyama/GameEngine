@@ -27,19 +27,19 @@ void main(in PS_IN In, out float4 outColor : SV_Target)
     
     for(int i = 0; i < 1; i++)
     {
-        if (Light.Enable)
+        if (Lights[0].Enable)
         {
-            float3 lightV = normalize(Light.Position.xyz - In.WorldPosition.xyz);
+            float3 lightV = normalize(Lights[0].Position.xyz - In.WorldPosition.xyz);
 
             float diffuseFromFresnel = CalculateDiffuseFromFresnel(normal.xyz, lightV, eyeV);
             
             float nl = saturate(dot(normal.xyz, lightV.xyz));
             
-            float3 light = nl * Light.Diffuse.rgb / PI;
+            float3 light = nl * Lights[0].Diffuse.rgb / PI;
             
             float3 diffuse = albedoColor.xyz * diffuseFromFresnel * light;
             
-            float3 specular = CalculateCookTorranceSpecular(normal.xyz, lightV, eyeV, smoothness, metallic) * Light.Diffuse.rgb;
+            float3 specular = CalculateCookTorranceSpecular(normal.xyz, lightV, eyeV, smoothness, metallic) * Lights[0].Diffuse.rgb;
             
             specular *= lerp(float3(1.0f, 1.0f, 1.0f), SpecularColor.rgb, metallic);
             
@@ -47,7 +47,7 @@ void main(in PS_IN In, out float4 outColor : SV_Target)
         }
     }
     
-    _light += Light.Ambient.rgb * albedoColor.rgb;
+    _light += Lights[0].Ambient.rgb * albedoColor.rgb;
     
     outColor = g_Texture.Sample(g_Sampler, In.TexCoord) * Material.Diffuse;
     

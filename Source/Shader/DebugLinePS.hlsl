@@ -1,10 +1,11 @@
-struct PSInput
-{
-    float4 pos : SV_POSITION;
-    float4 color : COLOR;
-};
 
-float4 main(PSInput input) : SV_TARGET
+#include "common.hlsl"
+
+Texture2D g_Texture : register(t0);
+SamplerState g_SamplerState : register(s0);
+
+void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 {
-    return input.color; // 頂点カラーそのまま出力
+    outDiffuse = In.Diffuse;
+    
 }

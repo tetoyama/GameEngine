@@ -161,6 +161,9 @@ void InspectorSystem::CreateDockSpace(){
 
 // シーンヒエラルキーウィンドウ
 void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
+	ImGuiWindowClass window_class;
+	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
+	ImGui::SetNextWindowClass(&window_class);
 
 	//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
 	ImGuiWindowFlags toolbar_window_flags = 0;
@@ -375,6 +378,11 @@ void InspectorSystem::DrawHierarchyNode(Entity entity, SceneContext* context, co
 
 // インスペクターウィンドウ
 void InspectorSystem::DrawInspector(SceneContext* context){
+
+	ImGuiWindowClass window_class;
+	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
+	ImGui::SetNextWindowClass(&window_class);
+
 	ImGui::Begin("Inspector", showInspector);
 	if(selectedEntity == 0){
 		ImGui::Text("No object selected.");
@@ -900,6 +908,11 @@ void InspectorSystem::DrawAssetsBrowser(){
 	}
 
 	// === ImGui Begin ===
+	
+	ImGuiWindowClass window_class;
+	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
+	ImGui::SetNextWindowClass(&window_class);
+
 	//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
 	ImGuiWindowFlags toolbar_window_flags = 0;
 	ImGui::Begin("Assets Browser", showAssetsBrowser, toolbar_window_flags);

@@ -1,27 +1,49 @@
-cbuffer cbPerFrame : register(b0)
+#include "common.hlsl"
+
+void main(in VS_IN In, out PS_IN Out)
 {
-    matrix gWorldViewProj; // ワールドビュー射影行列
-};
+    float OutlineThickness = 0.02f;
 
-struct VSInput
-{
-    float3 pos : POSITION;
-    float4 color : COLOR;
-};
+    // 頂点をワールド空間へ変換
+    float4 worldPos = mul(In.Position, World);
+    float4 normal = float4(In.Normal.xyz, 0.0f);
+    float4 worldNormal = normalize(mul(normal, World));
 
-struct VSOutput
-{
-    float4 pos : SV_POSITION;
-    float4 color : COLOR;
-};
+    float distance = length(CameraPosition.xyz - In.Position.xyz);
+    float thicknessScale = clamp(distance, 0.01f, 1.0f);
+    
+    worldPos.xyz += worldNormal * OutlineThickness * thicknessScale;
 
-VSOutput main(VSInput input)
-{
-    VSOutput output;
+    // ワールド空間 → ビュー空間
+    float4 viewPos = mul(worldPos, View);
+    float3 viewNormal = normalize(mul((float3x3) View, worldNormal.xyz));
+    
+    // ビュー→プロジェクションへ
+    Out.Position = mul(viewPos, Projection);
 
-    // 座標をワールドビュー射影行列で変換
-    output.pos = mul(float4(input.pos, 1.0f), gWorldViewProj);
-    output.color = input.color;
+    // ワールド空間での法線・タンジェント等をそのまま使用
+    Out.Normal = worldNormal;
 
-    return output;
+    float4 tangent = float4(In.Tangent.xyz, 0.0f);
+    float4 worldTangent = normalize(mul(tangent, World));
+    Out.Tangent = worldTangent;
+
+    float3 worldNormal3 = normalize(worldNormal.xyz);
+    float3 worldTangent3 = normalize(worldTangent.xyz);
+    float3 worldBitangent3 = cross(worldNormal3, worldTangent3) * In.Tangent.w;
+    Out.Bitangent = float4(worldBitangent3, 0.0f);
+
+    Out.Diffuse = In.Diffuse;
+    Out.TexCoord = TransformUV(In.TexCoord, UVStart, UVEnd);
+    Out.WorldPosition = worldPos; // 元の位置
+    
+    // ワールド空間での法線・タンジェント等をそのまま使用
+    Out.Normal = worldNormal;
+    Out.Tangent = worldTangent;
+    Out.Bitangent = float4(worldBitangent3, 0.0f);
+
+    Out.Diffuse = In.Diffuse;
+    Out.TexCoord = TransformUV(In.TexCoord, UVStart, UVEnd);
+    Out.WorldPosition = worldPos; // 元の位置
+
 }

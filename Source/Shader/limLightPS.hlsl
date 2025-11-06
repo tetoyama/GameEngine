@@ -7,7 +7,7 @@ SamplerState g_SamplerState : register(s0); //サンプラー０番
 void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 {
     //光源からピクセルへのベクトル
-    float4 lv = In.WorldPosition - Light.Position;
+    float4 lv = In.WorldPosition - Lights[0].Position;
     //物体と光源の距離
     float4 normal = normalize(In.Normal);
     float light = -dot(normal.xyz, lv.xyz);
@@ -17,7 +17,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     lv = normalize(lv);
     
     //減衰の計算
-    float ofs = 1.0f - (1.0f / Light.PointLightParam.x) * ld;
+    float ofs = 1.0f - (1.0f / Lights[0].PointLightParam.x) * ld;
     ofs = max(0, ofs);
     
     
@@ -44,12 +44,12 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     float lim = 1.0f - max(0, dot(normal.xyz, -eyev));
     
     float blendFactor = normal.y * 0.5f + 0.5f;
-    float4 color = lerp(Light.GroundColor, Light.SkyColor, blendFactor);
+    float4 color = lerp(Lights[0].GroundColor, Lights[0].SkyColor, blendFactor);
 
 
     
     outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord) * Material.Diffuse;
-    outDiffuse.rgb *= In.Diffuse.rgb * light + Light.Ambient.rgb;
+    outDiffuse.rgb *= In.Diffuse.rgb * light + Lights[0].Ambient.rgb;
     outDiffuse.a *= In.Diffuse.a;
 
     outDiffuse.rgb += color.rgb * color.a;

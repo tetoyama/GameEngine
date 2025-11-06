@@ -10,14 +10,14 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     float4 normal = normalize(In.Normal);
 
     //光源からピクセルへのベクトル
-    float4 lv = In.WorldPosition - Light.Position;
+    float4 lv = In.WorldPosition - Lights[0].Position;
     float ld = length(lv);
     //ベクトルの正規化
     lv = normalize(lv);
     
     //減衰の計算
 
-    float ofs = 1.0f - (1.0f / Light.PointLightParam.x) * ld;
+    float ofs = 1.0f - (1.0f / Lights[0].PointLightParam.x) * ld;
     ofs = max(0, ofs);
         
     //法線マップ取得
@@ -40,12 +40,12 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     light *= ofs; //距離を減衰率で割る
     
     float blendFactor = normal.y * 0.5f + 0.5f;
-    float4 color = lerp(Light.GroundColor, Light.SkyColor, blendFactor);
+    float4 color = lerp(Lights[0].GroundColor, Lights[0].SkyColor, blendFactor);
     
     
 	//テクスチャのピクセル色を取得
     outDiffuse = g_Texture.Sample(g_SamplerState, In.TexCoord) * Material.Diffuse;
-    outDiffuse.rgb *= In.Diffuse.rgb * light + Light.Ambient.rgb;
+    outDiffuse.rgb *= In.Diffuse.rgb * light + Lights[0].Ambient.rgb;
     outDiffuse.a *= In.Diffuse.a;
     outDiffuse.rgb += color.rgb * color.a;
 

@@ -435,6 +435,17 @@ void PhysicSystem::UpdateCollider() {
 
 		if (Collider->pRigidbodyDynamic) Collider->pRigidbodyDynamic->setGlobalPose(pxTransform);
 		if (Collider->pRigidbodyStatic) Collider->pRigidbodyStatic->setGlobalPose(pxTransform);
+
+		if (Collider->autoMass) {
+			if (Collider->pRigidbodyDynamic) {
+				Collider->Mass = Collider->pRigidbodyDynamic->getMass();
+			}
+
+		} else {
+			if (Collider->pRigidbodyDynamic) {
+				physx::PxRigidBodyExt::setMassAndUpdateInertia(*Collider->pRigidbodyDynamic, Collider->Mass);
+			}
+		}
 	}
 }
 

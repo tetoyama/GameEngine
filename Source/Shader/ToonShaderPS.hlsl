@@ -13,7 +13,7 @@ float CalculateFresnel(float F0, float u);
 void main(in PS_IN In, out float4 outColor : SV_Target)
 {
     float3 normal = normalize(In.Normal.xyz);
-    float3 lightDir = normalize(In.WorldPosition.xyz - Light.Position.xyz);
+    float3 lightDir = normalize(In.WorldPosition.xyz - Lights[0].Position.xyz);
     float3 viewDir = normalize(In.WorldPosition.xyz - CameraPosition.xyz);
     float3 halfDir = normalize(viewDir + lightDir);
 
@@ -21,8 +21,8 @@ void main(in PS_IN In, out float4 outColor : SV_Target)
     float3 albedo = Material.TextureEnable ? texColor * Material.Diffuse.rgb : Material.Diffuse.rgb;
 
         // ライト減衰
-    float lightDist = length(Light.Position.xyz - In.WorldPosition.xyz);
-    float attenuation = saturate(1.0f - lightDist / Light.PointLightParam.x);
+    float lightDist = length(Lights[0].Position.xyz - In.WorldPosition.xyz);
+    float attenuation = saturate(1.0f - lightDist / Lights[0].PointLightParam.x);
     
     // ------- Toon 段階ライト -------
     float nl = saturate(dot(normal, lightDir));
@@ -60,7 +60,7 @@ void main(in PS_IN In, out float4 outColor : SV_Target)
     float roughness = saturate(1.0f - Material.Shininess / 100.0f);
     float metallic = 0.5f;
 
-    float3 specular = CalculateCookTorranceSpecular(normal, lightDir, viewDir, roughness, metallic) * Light.Diffuse.rgb;
+    float3 specular = CalculateCookTorranceSpecular(normal, lightDir, viewDir, roughness, metallic) * Lights[0].Diffuse.rgb;
     specular *= attenuation;
     specular = min(specular, 0.25f); // トゥーンらしさを保つ制限
 
@@ -70,12 +70,12 @@ void main(in PS_IN In, out float4 outColor : SV_Target)
 
     // ------- 環境光（スカイ/地面） -------
     float blend = normal.y * 0.5f + 0.5f;
-    float4 hemiColor = lerp(Light.GroundColor, Light.SkyColor, blend);
+    float4 hemiColor = lerp(Lights[0].GroundColor, Lights[0].SkyColor, blend);
     float3 env = hemiColor.rgb * hemiColor.a * 0.5f * Material.Specular.a;
     env += rim * Material.Diffuse.rgb * (texColor * 0.5f + 0.5f) * Material.Emission.rgb;
 
     // ------- 合成 -------
-    float3 lighting = toon * In.Diffuse.rgb + Light.Ambient.rgb;
+    float3 lighting = toon * In.Diffuse.rgb + Lights[0].Ambient.rgb;
     float3 result = albedo * lighting + specular + env;
 
     outColor.rgb = result;

@@ -56,6 +56,8 @@ public:
 
 	BEGIN_REFLECT(ColliderComponent)
 		REFLECT_FIELD(bool, isDynamic, false)
+		REFLECT_FIELD(bool, autoMass, true)
+		REFLECT_FIELD(float, Mass, false)
 
 	std::vector<ColliderShape> colliders;
 
