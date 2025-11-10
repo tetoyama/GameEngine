@@ -45,9 +45,9 @@ Entities:
             z: 0.100000001
             w: 1
           Diffuse:
-            x: 0.5
-            y: 0.5
-            z: 0.5
+            x: 1
+            y: 1
+            z: 1
             w: 1
           Specular:
             x: 0.0399999991
@@ -320,3 +320,29 @@ Entities:
         rotateSpeed: 1.5
         minPitch: 0
         maxPitch: 0.785398185
+  - Entity: 6
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: SpriteRendererComponent
+        anchor:
+          x: 0.5
+          y: 0.5
+        pivot:
+          x: 0
+          y: 0

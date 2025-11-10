@@ -20,16 +20,13 @@ Entities:
         Parent: 0
       - Component: ColliderComponent
         isDynamic: false
+        autoMass: true
+        Mass: 0
         colliders:
           - type: 0
-            size:
-              - 1
-              - 1
-              - 1
-            offset:
-              - 0
-              - 0
-              - 0
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
             radius: 0.5
             height: 1
             staticFriction: 0.5
@@ -304,8 +301,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Blur.cso
             NodePos:
-              x: 241.130005
-              y: 78.3043823
+              x: -761.869995
+              y: 233.304382
             InputPins:
               - 2
               - 4
@@ -320,8 +317,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Grayscale.cso
             NodePos:
-              x: 475.378479
-              y: 80.5208435
+              x: -527.621521
+              y: 235.520844
             InputPins:
               - 5
               - 7
@@ -336,8 +333,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\BrightPass.cso
             NodePos:
-              x: 739.378418
-              y: 20.5208435
+              x: -263.621582
+              y: 175.520844
             InputPins:
               - 8
               - 10
@@ -352,14 +349,14 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Blur.cso
             NodePos:
-              x: 974.378418
-              y: 23.5208435
+              x: -28.621582
+              y: 178.520844
             InputPins:
               - 11
               - 13
             OutputPin: 12
             Param:
-              x: 0.800000012
+              x: 2.11999989
               y: 0
               z: 0
               w: 0
@@ -368,15 +365,15 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\CompositeBloom.cso
             NodePos:
-              x: 1210.37842
-              y: 54.520813
+              x: 207.378418
+              y: 209.520813
             InputPins:
               - 14
               - 16
               - 17
             OutputPin: 15
             Param:
-              x: 0.150000006
+              x: 0.119999997
               y: 0
               z: 0
               w: 0
@@ -419,14 +416,14 @@ Entities:
         ScreenInput:
           Name: ""
           NodePos:
-            x: 111.146484
-            y: 287.573364
+            x: -891.853516
+            y: 442.573364
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 1499.14648
-            y: 256.573364
+            x: 496.146484
+            y: 411.573364
           InputPins:
             - 1
   - Entity: 6
@@ -771,16 +768,13 @@ Entities:
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
+        autoMass: true
+        Mass: 0
         colliders:
           - type: 2
-            size:
-              - 1
-              - 1
-              - 1
-            offset:
-              - 0
-              - 0
-              - 0
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
             radius: 0.5
             height: 1
             staticFriction: 0.5
@@ -791,14 +785,9 @@ Entities:
             lockRotY: false
             lockRotZ: true
           - type: 0
-            size:
-              - 1
-              - 0.5
-              - 0.5
-            offset:
-              - -0.5
-              - 0
-              - 0
+            size: [1, 0.5, 0.5]
+            offset: [-0.5, 0, 0]
+            rotationOffset: [0, 0, 0]
             radius: 0.5
             height: 1
             staticFriction: 0.5
