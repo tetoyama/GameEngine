@@ -13,8 +13,8 @@ void SceneManager::Update(float deltaTime){
 	if (OpenFlag) {
 		OpenFlag = false;
 	}
-	if(m_activeScene){
-		m_activeScene->Update(deltaTime);
+	for(auto& [name, scene] : m_activeScenes){
+		scene->Update(deltaTime);
 	}
 	if(m_NeedSceneChange){
 		LoadScene(m_NextScene);
@@ -25,22 +25,27 @@ void SceneManager::Update(float deltaTime){
 }
 
 void SceneManager::FixedUpdate(float fixedDeltaTime){
-	if(m_activeScene){
-		m_activeScene->FixedUpdate(fixedDeltaTime);
+	for(auto& [name, scene] : m_activeScenes){
+		scene->FixedUpdate(fixedDeltaTime);
 	}
 }
 
 void SceneManager::Draw(){
-	if(m_activeScene){
-		m_activeScene->Draw();
+	for(auto& [name, scene] : m_activeScenes){
+		scene->Draw();
 	}
 }
 
 void SceneManager::Shutdown(){
-	if(m_activeScene){
-		m_activeScene->Shutdown();
-		m_activeScene.reset();
+	for(auto& [name, scene] : m_activeScenes){
+		scene->Shutdown();
+		scene.reset();
 	}
+	m_activeScenes.clear();
+}
+
+void SceneManager::AddScene(std::shared_ptr<Scene> scene){
+	m_activeScenes[scene->SceneName] = scene;
 }
 
 void SceneManager::LoadScene(std::shared_ptr<Scene> scene){
@@ -67,12 +72,9 @@ void SceneManager::DeferredLoadScene(std::shared_ptr<Scene> scene){
 	m_NextScene = scene;
 }
 
-void SceneManager::SaveScene(){
-	if (m_activeScene) {
-		m_activeScene->Save();
-		m_SceneContext.debug->LOG_INFO("Sceneを保存しました");
-	} else {
-		m_SceneContext.debug->LOG_WARNING("ActiveSceneが存在しないため、保存は行われませんでした");
+void SceneManager::SaveScenes(){
+	for(auto& scene : m_activeScenes){
+		scene->Save();
 	}
 }
 

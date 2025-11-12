@@ -64,6 +64,7 @@ public:
 	SceneState GetState() const{return m_SceneContext.state;}
 	void SetState(const SceneState& state){m_SceneContext.state = state;}
 
+	std::string SceneName = "Untitled"; // シーンの名前
 	std::string ScenePath = ""; // シーンのパス
 	void LoadSceneFromYAML(std::string path);
 

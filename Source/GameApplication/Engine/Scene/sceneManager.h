@@ -3,6 +3,8 @@
 #include <memory>
 #include <Windows.h>
 #include <string>
+#include <vector>
+#include <unordered_map>
 #include "Service/IService.h"
 
 class MainRenderer;
@@ -29,6 +31,14 @@ struct ManagerContext {
 
 class Scene;
 
+enum SceneManagerState
+{
+	Playing,	// ゲームプレイ中
+	Paused,		// 一時停止中
+	Stopped,	// 停止中
+	Step,		// 1フレーム進める
+};
+
 class SceneManager : public IService {
 public:
 	SceneManager() = default;
@@ -40,15 +50,19 @@ public:
 	void Draw();
 	void Shutdown() override;
 
+	void AddScene(std::shared_ptr<Scene> scene);
+
 	void LoadScene(std::shared_ptr<Scene> scene);
 	void DeferredLoadScene(std::shared_ptr<Scene> scene);
 
-	void SaveScene();
-	void LoadFromYAMLFile();
-	bool LoadFromYAML(const std::string& filePath);
+	void SaveScenes();
+
+	std::shared_ptr<Scene> OpenFromYAMLFile();
+	std::shared_ptr<Scene> LoadFromFilePath(const std::string& filePath);
 
 private:
-	std::shared_ptr<Scene> m_activeScene;
+
+	std::unordered_map<std::string, std::shared_ptr<Scene>> m_activeScenes;
 	ManagerContext m_SceneContext;
 
 	bool m_NeedSceneChange = false;
