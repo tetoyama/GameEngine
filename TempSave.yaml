@@ -1,5 +1,5 @@
 Scenes:
-  - Name: default_scene
-    Path: C:\Users\学校用\Documents\GitHub\GameEngine\Asset\Scene\default_scene.yaml
+  - Name: Untitled
+    Path: ""
   - Name: terrain_scene
     Path: C:\Users\学校用\Documents\GitHub\GameEngine\Asset\Scene\terrain_scene.yaml

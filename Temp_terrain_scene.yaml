@@ -193,187 +193,6 @@ Entities:
   - Entity: 4
     Components:
       - Component: NameComponent
-        Name: Camera
-      - Component: TransformComponent
-        Position:
-          x: 7.7673645
-          y: 2.44828534
-          z: -5.71381617
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: CameraComponent
-        isLock: false
-        Target:
-          x: 0
-          y: 0
-          z: 0
-        NearClip: 0.00999999978
-        FarClip: 1024
-        FOV: 1
-        viewMatrix:
-          -
-            - 1
-            - 0
-            - 0
-            - 0
-          -
-            - 0
-            - 1
-            - 0
-            - 0
-          -
-            - 0
-            - 0
-            - 1
-            - 0
-          -
-            - -7.7673645
-            - -2.44828534
-            - 5.71381617
-            - 1
-        nextLinkId: 1
-        nextPinId: 2
-        ScreenInput:
-          Name: ""
-          NodePos:
-            x: -1
-            y: -1
-          OutputPin: -1
-        ScreenOutput:
-          Name: ""
-          NodePos:
-            x: -1
-            y: -1
-          InputPins:
-            - 1
-      - Component: CameraController
-        distance: 6
-        height: 2
-        rotateSpeed: 1.5
-        minPitch: 0
-        maxPitch: 1
-  - Entity: 5
-    Components:
-      - Component: NameComponent
-        Name: Player
-      - Component: TransformComponent
-        Position:
-          x: 7.7673645
-          y: 0.448285401
-          z: 0.286183953
-        Rotation:
-          - -4.20389539e-45
-          - 0.707142174
-          - 4.20389539e-45
-          - 0.707071483
-        Scale:
-          x: 0.00999999885
-          y: 0.00999999978
-          z: 0.00999999885
-        Parent: 0
-      - Component: ColliderComponent
-        isDynamic: true
-        autoMass: true
-        Mass: 1
-        colliders:
-          - type: 2
-            size: [1, 1, 1]
-            offset: [0, 77.4000015, 0]
-            rotationOffset: [0, 0, 90]
-            radius: 29.1000004
-            height: 95.1999969
-            staticFriction: 0.5
-            dynamicFriction: 0.5
-            restitution: 0
-            collisionLayer: 0
-            lockRotX: true
-            lockRotY: true
-            lockRotZ: true
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\Akai.fbx
-        PixelShader: Asset\Shader\DefaultPixelShader.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-        AnimationTime: 39796.4648
-        Animations:
-          Idle: Asset\Model\Akai_Idle.fbx
-          mixamo.com: Asset\Model\Akai_Run.fbx
-          Run: Asset\Model\Akai_Run.fbx
-      - Component: PlayerController
-        moveSpeed: 6
-        health: 0
-        isInvincible: false
-        dashMultiplier: 2
-        accel: 10
-        rotateSpeed: 8
-        maxStamina: 5
-        stamina: 5
-        staminaConsumeRate: 1.5
-        staminaRecoverRate: 1
-        jumpPower: 5
-        Stamina: 5
-  - Entity: 6
-    Components:
-      - Component: NameComponent
-        Name: Shadow
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0.00999999978
-          z: 0
-        Rotation:
-          - 0.710353315
-          - 0
-          - 0
-          - 0.703845263
-        Scale:
-          x: 1.98000002
-          y: 1.97999954
-          z: 1.97999954
-        Parent: 5
-      - Component: TextureComponent
-        FilePath: Asset\Texture\particle.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0
-            y: 0
-            z: 0
-            w: 0.363636374
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: BillBoardRendererComponent
-        RotateX: false
-        RotateY: false
-        RotateZ: false
-  - Entity: 7
-    Components:
-      - Component: NameComponent
         Name: PushCube
       - Component: TransformComponent
         Position:
@@ -442,7 +261,7 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 35702.0898
-  - Entity: 8
+  - Entity: 5
     Components:
       - Component: NameComponent
         Name: Slope
@@ -513,7 +332,7 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 35702.0898
-  - Entity: 9
+  - Entity: 6
     Components:
       - Component: NameComponent
         Name: Terrain
@@ -10764,7 +10583,7 @@ Entities:
           - 0
           - 0
           - 0
-  - Entity: 10
+  - Entity: 7
     Components:
       - Component: NameComponent
         Name: Tree1
@@ -10815,7 +10634,7 @@ Entities:
         RotateX: false
         RotateY: true
         RotateZ: false
-  - Entity: 11
+  - Entity: 8
     Components:
       - Component: NameComponent
         Name: Tree2
@@ -10866,7 +10685,7 @@ Entities:
         RotateX: false
         RotateY: true
         RotateZ: false
-  - Entity: 12
+  - Entity: 9
     Components:
       - Component: NameComponent
         Name: Tree3
@@ -10917,7 +10736,7 @@ Entities:
         RotateX: false
         RotateY: true
         RotateZ: false
-  - Entity: 13
+  - Entity: 10
     Components:
       - Component: NameComponent
         Name: Tree4
@@ -10968,7 +10787,7 @@ Entities:
         RotateX: false
         RotateY: true
         RotateZ: false
-  - Entity: 14
+  - Entity: 11
     Components:
       - Component: NameComponent
         Name: Tree5
@@ -11019,7 +10838,7 @@ Entities:
         RotateX: false
         RotateY: true
         RotateZ: false
-  - Entity: 15
+  - Entity: 12
     Components:
       - Component: NameComponent
         Name: Rock
@@ -11072,7 +10891,7 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 28847.668
-  - Entity: 16
+  - Entity: 13
     Components:
       - Component: NameComponent
         Name: Grass1
@@ -11123,7 +10942,7 @@ Entities:
         RotateX: false
         RotateY: true
         RotateZ: false
-  - Entity: 17
+  - Entity: 14
     Components:
       - Component: NameComponent
         Name: Grass2
@@ -11174,7 +10993,7 @@ Entities:
         RotateX: false
         RotateY: true
         RotateZ: false
-  - Entity: 18
+  - Entity: 15
     Components:
       - Component: NameComponent
         Name: Grass3
