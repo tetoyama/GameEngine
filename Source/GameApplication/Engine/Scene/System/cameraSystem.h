@@ -1,13 +1,13 @@
 #pragma once
 #include "Interface/ISystem.h"
 
-struct SceneContext;
+struct SceneManagerContext;
 
 class CameraSystem : public ISystem {
 
 public:
 
-	CameraSystem(SceneContext* context): m_context(context){}
+	CameraSystem(SceneManagerContext* context): m_context(context){}
 
 	void Initialize() override;
 	void Finalize()override {}
@@ -19,5 +19,5 @@ public:
 	void EditorUpdate(float deltaTime) override{}
 
 private:
-	SceneContext* m_context;
+	SceneManagerContext* m_context;
 };

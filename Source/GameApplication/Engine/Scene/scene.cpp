@@ -1,12 +1,16 @@
 // Engine/Scene/scene.cpp
-#include "GameApplication/gameApplication.h"
 
 #include "scene.h"
+
 #include <commdlg.h> // GetOpenFileName
 #include <filesystem>
-#include "Backends/Taskbar/taskbar.h"
-
 #include <string>
+
+#include "Backends/Taskbar/taskbar.h"
+#include "Backends/convertWString.h"
+
+#include "GameApplication/gameApplication.h"
+
 #include "Engine/DebugTools/debugSystem.h"
 
 #include "Engine/Graphics/mainRenderer.h"
@@ -27,29 +31,13 @@
 #include "Registry/componentRegistry.h"
 #include "Registry/systemRegistry.h"
 
-#include "System/inspectorSystem.h"
-#include "System/transformSystem.h"
-#include "System/renderSystem.h"
-#include "System/cameraSystem.h"
-#include "System/terrainSystem.h"
-
-#include "System/C#ScriptSystem.h"
-#include "System/CustomScriptSystem.h"
-#include "System/lightSystem.h"
-#include "System/particleSystem.h"
-#include "System/audioSystem.h"
-#include "System/physicSystem.h"
-#include "System/effectSystem.h"
-
 #include "Component/entityNameComponent.h"
 #include "Component/transformComponent.h"
 #include "Component/cameraComponent.h"
-
 #include "Component/modelRendererComponent.h"
 #include "Component/meshRendererComponent.h"
 #include "Component/BillBoardRendererComponent.h"
 #include "Component/terrainComponent.h"
-
 #include "Component/textureComponent.h"
 #include "Component/CustomScriptComponent.h"
 #include "Component/C#ScriptComponent.h"
@@ -61,6 +49,8 @@
 #include "Component/audioComponent.h"
 #include "Component/outlineComponent.h"
 #include "Component/waveComponent.h"
+#include "Component/EffectComponent.h"
+#include "Component/ColliderComponent.h"
 
 #include "Script/SetScene.h"
 #include "Script/ScoreManager.h"
@@ -73,12 +63,8 @@
 #include "Script/FadeInSprite.h"
 #include "Script/FadeOutSprite.h"
 #include "Script/FadeSetScene.h"
-
 #include "Script/CameraController.h"
 
-#include <Component/EffectComponent.h>
-#include <Component/ColliderComponent.h>
-#include <System/waveSystem.h>
 
 Scene::Scene(){
 
@@ -87,16 +73,15 @@ Scene::Scene(){
 Scene::~Scene(){
 }
 
-void Scene::Initialize(ManagerContext* set){
+void Scene::Initialize(SceneManagerContext* set){
 	
 	m_SceneManagerContext = set;
 	m_SceneManagerContext->debug->LOG_INFO("Sceneを初期化中...");
 
-	m_OldState = m_SceneContext.state;
+	m_SceneManagerContext->sceneManager->OldState = m_SceneManagerContext->sceneManager->State;
 
 	m_entityRegistry = std::make_shared<EntityRegistry>();
 	m_componentRegistry = std::make_shared<ComponentRegistry>(m_entityRegistry.get(),&m_SceneContext);
-	m_systemRegistry = std::make_shared<SystemRegistry>();
 
 	// コンポーネントを登録（Archetype or Sparse を選択）
 	// ボトルネックが見つかったコンポーネントから ArchetypeStorage<T> に移行
@@ -106,6 +91,8 @@ void Scene::Initialize(ManagerContext* set){
 
 	// トランスフォーム
 	m_componentRegistry->RegisterYAMLComponent<TransformComponent>("TransformComponent", false);
+
+	// コライダー
 	m_componentRegistry->RegisterYAMLComponent<ColliderComponent>("ColliderComponent", false);
 
 	// オーディオ
@@ -155,41 +142,14 @@ void Scene::Initialize(ManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<FadeOutSprite>("FadeOutSprite", false);
 	m_componentRegistry->RegisterYAMLComponent<FadeSetScene>("FadeSetScene", false);
 
-
-
-
-
-
-
-
-
-
-
-	// システムを登録
-	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<LightSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<AudioSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<ParticleSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<EffectSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<TerrainSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<PhysicSystem>(&m_SceneContext));
-
-	m_systemRegistry->RegisterSystem(std::make_unique<CSharpScriptSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<CustomScriptSystem>(&m_SceneContext));
-
-	m_systemRegistry->RegisterSystem(std::make_unique<WaveSystem>(&m_SceneContext));
-
 	// シーンコンテキストの初期化
 	auto Renderer = m_SceneManagerContext->renderer;
 	
-	m_SceneContext.entity = m_entityRegistry.get();
-	m_SceneContext.component = m_componentRegistry.get();
-	m_SceneContext.system = m_systemRegistry.get();
 	m_SceneContext.manager = m_SceneManagerContext;
 
+	m_SceneContext.entity = m_entityRegistry.get();
+	m_SceneContext.component = m_componentRegistry.get();
+	m_SceneContext.system = m_SceneManagerContext->systemRegistry;
 
 	auto graphicsContext = Renderer->GetGraphicsContext();
 	// ライティングの仮設定
@@ -205,86 +165,31 @@ void Scene::Initialize(ManagerContext* set){
 	}
 
 	m_SceneManagerContext->debug->LOG_INFO("Sceneを開始します");
-
-	// システムの初期化
-	m_systemRegistry->InitializeAll();
 }
 
 void Scene::Update(float deltaTime){
 
-	// シーンの状態が変わった場合の処理
-	if(m_OldState != m_SceneContext.state){
-
-		if(m_SceneContext.state == SceneState::Playing){
-
-			if(m_OldState == SceneState::Stopped){
-				TempSave(); // 一時保存
-				m_SceneManagerContext->debug->LOG_INFO("シーンを開始します");
-				m_systemRegistry->FinalizeAll();
-				m_systemRegistry->InitializeAll();
-				m_systemRegistry->StartAll();
-			} else{
-				m_SceneManagerContext->debug->LOG_INFO("シーンを再開します");
-			}
-
-
-		} else if(m_SceneContext.state == SceneState::Paused){
-			m_SceneManagerContext->debug->LOG_INFO("シーンを一時停止します");
-
-		} else if(m_SceneContext.state == SceneState::Stopped){
-			m_SceneManagerContext->debug->LOG_INFO("シーンを停止します");
-			TempLoad(); // 一時保存の読み込み
-			m_systemRegistry->FinalizeAll();
-			m_systemRegistry->InitializeAll();
-		}
-		if(m_SceneContext.state == SceneState::Step){
-
-			if(m_OldState == SceneState::Stopped){
-				TempSave(); // 一時保存
-				m_SceneManagerContext->debug->LOG_INFO("シーンを開始します");
-				m_systemRegistry->FinalizeAll();
-				m_systemRegistry->InitializeAll();
-				m_systemRegistry->StartAll();
-			}
-			m_SceneManagerContext->debug->LOG_INFO("シーンを1フレーム進めます");
-			m_systemRegistry->UpdateAll(deltaTime);
-			m_systemRegistry->FixedUpdateAll(1.0f / TARGET_FPS);
-
-			m_OldState = m_SceneContext.state;
-			m_SceneContext.state = SceneState::Paused;
-
-		} else {
-			m_OldState = m_SceneContext.state;
-		}
-	}
-
-	if(m_SceneContext.state == SceneState::Playing){
-		m_systemRegistry->UpdateAll(deltaTime);
-	}
-
-	m_systemRegistry->EditorUpdateAll(deltaTime);
+	//m_systemRegistry->UpdateAll(deltaTime);
+	//m_systemRegistry->EditorUpdateAll(deltaTime);
 }
 
 void Scene::FixedUpdate(float fixedDeltaTime){
-	if(m_SceneContext.state == SceneState::Playing){
-		m_systemRegistry->FixedUpdateAll(fixedDeltaTime);
-	}
+
+	//m_systemRegistry->FixedUpdateAll(fixedDeltaTime);
 }
 
 void Scene::Draw(){
 
-	m_systemRegistry->DrawAll();
+	//m_systemRegistry->DrawAll();
 }
 
 void Scene::Shutdown(){
 	m_SceneManagerContext->debug->LOG_INFO("Sceneを終了中...");
 	ResetAll();
-	m_systemRegistry->FinalizeAll();
 
-	// システムの終了処理
+	// レジストリの終了処理
 	m_entityRegistry.reset();
 	m_componentRegistry.reset();
-	m_systemRegistry.reset();
 }
 
 void Scene::BuildDefaultScene(){
@@ -496,14 +401,19 @@ bool Scene::LoadFromYAMLFile(){
 
 void Scene::Save(){
 	SetTaskBarState(TBPF_INDETERMINATE); // タスクバーの状態をインジケーターに設定
-
 	std::wstring savePath;
-	if(!SaveSceneFileDialog(savePath)){
-		SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
-		m_SceneManagerContext->debug->LOG_INFO("ユーザーがキャンセルしました。");
-		return;
+
+	if (ScenePath == "") {
+
+		if (!SaveSceneFileDialog(savePath)) {
+			SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
+			m_SceneManagerContext->debug->LOG_INFO("ユーザーがキャンセルしました。");
+			return;
+		}
+	} else {
+
+		savePath = std::filesystem::path(ScenePath);
 	}
-	
 	YAML::Node root;
 	YAML::Node entitiesNode = YAML::Node(YAML::NodeType::Sequence);
 	const auto& entities = m_entityRegistry->GetAllAlive();
@@ -573,7 +483,7 @@ void Scene::Save(){
 }
 
 void Scene::TempSave(){
-	std::wstring savePath =L"TempSave.yaml";
+	std::wstring savePath = L"Temp_" + StringToWString(SceneName) + L".yaml";
 
 	YAML::Node root;
 	YAML::Node entitiesNode = YAML::Node(YAML::NodeType::Sequence);
@@ -645,7 +555,7 @@ void Scene::TempSave(){
 
 void Scene::TempLoad(){
 	ResetAll(); // 一時保存の読み込み前に全エンティティをリセット
-	LoadSceneFromYAML("TempSave.yaml");
+	LoadSceneFromYAML("Temp_" + SceneName + ".yaml" );
 }
 
 void Scene::ResetAll(){

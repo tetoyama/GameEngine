@@ -1,32 +1,141 @@
 // Engine/Scene/sceneManager.cpp
+#include <algorithm>
+
+#include "GameApplication/gameApplication.h"
+
 #include "sceneManager.h"
 #include "scene.h"
 
 #include "Engine/DebugTools/debugSystem.h"
 #include "Engine/Resources/resourceService.h"
 
-void SceneManager::Initialize(ManagerContext sceneContext){
+#include "Registry/systemRegistry.h"
+
+#include "System/inspectorSystem.h"
+#include "System/transformSystem.h"
+#include "System/renderSystem.h"
+#include "System/cameraSystem.h"
+#include "System/terrainSystem.h"
+#include "System/C#ScriptSystem.h"
+#include "System/CustomScriptSystem.h"
+#include "System/lightSystem.h"
+#include "System/particleSystem.h"
+#include "System/audioSystem.h"
+#include "System/physicSystem.h"
+#include "System/effectSystem.h"
+#include "System/waveSystem.h"
+
+void SceneManager::Initialize(SceneManagerContext sceneContext){
 	m_SceneContext = sceneContext;
+
+	m_systemRegistry = std::make_shared<SystemRegistry>();
+
+	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<LightSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<AudioSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<ParticleSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<EffectSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<TerrainSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<PhysicSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<CSharpScriptSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<CustomScriptSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<WaveSystem>(&m_SceneContext));
+
+	// システムの初期化
+	m_systemRegistry->InitializeAll();
+	for (auto& [name, scene] : m_activeScenes) {
+		scene->Initialize(&m_SceneContext);
+	}
 }
 
 void SceneManager::Update(float deltaTime){
-	if (OpenFlag) {
-		OpenFlag = false;
+
+	if (OldState != State) {
+		if (State == SceneManagerState::Paused) {
+
+			m_SceneContext.debug->LOG_INFO("シーンを一時停止します");
+
+		} else if (State == SceneManagerState::Stopped) {
+
+			m_SceneContext.debug->LOG_INFO("シーンを停止します");
+			TempLoad(); // 一時保存の読み込み
+
+		} else if (State == SceneManagerState::Playing) {
+
+			if (OldState == SceneManagerState::Stopped) {
+
+				TempSave(); // 一時保存
+				m_SceneContext.debug->LOG_INFO("シーンを開始します");
+				for (auto& [name, scene] : m_activeScenes) {
+					scene->Shutdown();
+					scene->Initialize(&m_SceneContext);
+				}
+
+			} else {
+				m_SceneContext.debug->LOG_INFO("シーンを再開します");
+			}
+
+		} else if (State == SceneManagerState::Step) {
+
+			m_SceneContext.debug->LOG_INFO("シーンを1フレーム進めます");
+
+			if (OldState == SceneManagerState::Stopped) {
+				TempSave(); // 一時保存
+			}
+
+			for (auto& [name, scene] : m_activeScenes) {
+
+				scene->Update(deltaTime);
+				m_systemRegistry->UpdateAll(deltaTime);
+
+				scene->FixedUpdate(1.0f / TARGET_FPS);
+				m_systemRegistry->FixedUpdateAll(1.0f / TARGET_FPS);
+			}
+
+			OldState = State;
+			State = SceneManagerState::Paused;
+		} else {
+			OldState = State;
+		}
 	}
-	for(auto& [name, scene] : m_activeScenes){
-		scene->Update(deltaTime);
+
+	if (State == SceneManagerState::Playing) {
+		for (auto& [name, scene] : m_activeScenes) {
+			scene->Update(deltaTime);
+		}
+		m_systemRegistry->UpdateAll(deltaTime);
 	}
+	m_systemRegistry->EditorUpdateAll(deltaTime);
+
+	for (auto it = m_activeScenes.begin(); it != m_activeScenes.end(); ) {
+		if (it->second->isDestroy) {
+
+			it->second->Shutdown();
+			it->second.reset();
+
+			it = m_activeScenes.erase(it);
+
+		} else {
+			++it;
+		}
+	}
+
 	if(m_NeedSceneChange){
 		LoadScene(m_NextScene);
-		m_NextScene->SetState(SceneState::Playing);
 		m_NeedSceneChange = false;
 		m_NextScene.reset();
 	}
 }
 
 void SceneManager::FixedUpdate(float fixedDeltaTime){
-	for(auto& [name, scene] : m_activeScenes){
-		scene->FixedUpdate(fixedDeltaTime);
+	if (State == SceneManagerState::Playing) {
+		for (auto& [name, scene] : m_activeScenes) {
+			scene->FixedUpdate(fixedDeltaTime);
+		}
+		m_systemRegistry->FixedUpdateAll(fixedDeltaTime);
 	}
 }
 
@@ -34,6 +143,7 @@ void SceneManager::Draw(){
 	for(auto& [name, scene] : m_activeScenes){
 		scene->Draw();
 	}
+	m_systemRegistry->DrawAll();
 }
 
 void SceneManager::Shutdown(){
@@ -42,6 +152,9 @@ void SceneManager::Shutdown(){
 		scene.reset();
 	}
 	m_activeScenes.clear();
+
+	m_systemRegistry->FinalizeAll();
+	m_systemRegistry.reset();
 }
 
 void SceneManager::AddScene(std::shared_ptr<Scene> scene){
@@ -51,18 +164,15 @@ void SceneManager::AddScene(std::shared_ptr<Scene> scene){
 void SceneManager::LoadScene(std::shared_ptr<Scene> scene){
 
 	m_SceneContext.debug->LOG_INFO("Sceneを読み込みます...");
-	if(m_activeScene){
-		m_SceneContext.debug->LOG_DEBUG("ActiveSceneを終了します");
-		m_activeScene->Shutdown();
-		m_activeScene.reset();
+	
+	for (auto& [name, scene] : m_activeScenes) {
+		scene->Shutdown();
+		scene.reset();
+	}
+	m_activeScenes.clear();
 
-	} else{
-		//m_SceneContext.debug->LOG_WARNING("ActiveSceneの終了はスキップされました ActiveSceneが存在しないか見つけられませんでした");
-	}
-	m_activeScene = scene;
-	if(m_activeScene){
-		m_activeScene->Initialize(&m_SceneContext);
-	}
+	m_activeScenes[scene->SceneName] = scene;
+
 	m_SceneContext.resource->ClearAllUnused();
 }
 
@@ -73,54 +183,47 @@ void SceneManager::DeferredLoadScene(std::shared_ptr<Scene> scene){
 }
 
 void SceneManager::SaveScenes(){
-	for(auto& scene : m_activeScenes){
+	for (auto& [name, scene] : m_activeScenes) {
 		scene->Save();
 	}
 }
 
-void SceneManager::LoadFromYAMLFile(){
+std::shared_ptr<Scene>  SceneManager::OpenFromYAMLFile(){
 	auto scene = std::make_shared<Scene>();
-	if(m_activeScene){
-		m_SceneContext.debug->LOG_DEBUG("ActiveSceneを終了します");
-		m_activeScene->Shutdown();
-	}
+
 	scene->Initialize(&m_SceneContext);
 	if(scene->LoadFromYAMLFile()){
-		m_activeScene.reset();
 
-		m_activeScene = scene;
 		m_SceneContext.debug->LOG_DEBUG("OpenScene");
-
 		m_SceneContext.resource->ClearAllUnused();
+
 	} else{
 		scene->Shutdown();
 		scene.reset();
-		m_activeScene->Initialize(&m_SceneContext);
+
+		return nullptr;
 	}
-	OpenFlag = true;
+	return scene;
 }
 
-bool SceneManager::LoadFromYAML(const std::string& filePath){
-	auto scene = std::make_shared<Scene>();
+std::shared_ptr<Scene>  SceneManager::LoadFromFilePath(const std::string& filePath){
 
 	m_SceneContext.debug->LOG_INFO("Sceneを読み込みます...");
-	if(m_activeScene){
-		m_SceneContext.debug->LOG_DEBUG("ActiveSceneを終了します");
-		m_activeScene->Shutdown();
-		m_activeScene.reset();
 
-	} else{
-		//m_SceneContext.debug->LOG_WARNING("ActiveSceneの終了はスキップされました ActiveSceneが存在しないか見つけられませんでした");
-	}
-	m_activeScene = scene;
-	if(m_activeScene){
-		scene->Initialize(&m_SceneContext);
-		scene->ResetAll();
-		scene->LoadSceneFromYAML(filePath);
-		scene->SetState(SceneState::Playing);
-	}
-	m_SceneContext.resource->ClearAllUnused();
-	OpenFlag = true;
+	auto scene = std::make_shared<Scene>();
+	scene->Initialize(&m_SceneContext);
+	scene->ResetAll();
+	scene->LoadSceneFromYAML(filePath);
 
-	return true;
+	 m_SceneContext.resource->ClearAllUnused();
+
+	return scene;
+}
+
+void SceneManager::TempSave() {
+
+}
+
+void SceneManager::TempLoad() {
+
 }

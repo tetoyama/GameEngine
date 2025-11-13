@@ -12,7 +12,7 @@
 #include "Engine/DebugTools/debugSystem.h"
 
 void TransformSystem::Initialize(){
-	m_context->manager->debug->LOG_DEBUG("TransformSystemを初期化中...");
+	m_context->debug->LOG_DEBUG("TransformSystemを初期化中...");
 }
 
 void TransformSystem::Draw(){
@@ -21,15 +21,20 @@ void TransformSystem::Draw(){
 	// lateUpdate実装する必要がありそう？
 
 	// コンポーネントを持つエンティティの検索
-	const auto& Entities = m_context->component->FindEntitiesWithComponent<TransformComponent>();
-	if(Entities.empty()){
-		return;
-	} else{
-		for(Entity entity : Entities){
-			auto* transform = m_context->component->GetComponent<TransformComponent>(entity);
-			if(transform->parent != 0 && !m_context->entity->IsAlive(transform->parent)){
-				m_context->entity->Destroy(entity);
-				m_context->component->OnEntityDestroyed(entity);
+
+	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		auto context = scene->GetSceneContext();
+
+		const auto& Entities = context->component->FindEntitiesWithComponent<TransformComponent>();
+		if (Entities.empty()) {
+			return;
+		} else {
+			for (Entity entity : Entities) {
+				auto* transform = context->component->GetComponent<TransformComponent>(entity);
+				if (transform->parent != 0 && !context->entity->IsAlive(transform->parent)) {
+					context->entity->Destroy(entity);
+					context->component->OnEntityDestroyed(entity);
+				}
 			}
 		}
 	}

@@ -493,6 +493,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Backends\checkFileExtention.h" />
+    <ClInclude Include="Source\GameApplication\Backends\convertWString.h" />
     <ClInclude Include="Source\GameApplication\Backends\DirectX11\DirectXTex.h" />
     <ClInclude Include="Source\GameApplication\Backends\Effekseer\Effekseer.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

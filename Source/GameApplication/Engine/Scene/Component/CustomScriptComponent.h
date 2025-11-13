@@ -109,10 +109,9 @@ public:
 		return m_context->component->AddComponent<T>(m_entity, std::forward<Args>(args)...);
 	}
 
-	void LoadScene(const std::string& sceneName){
+	void LoadScene(const std::string& scenePath){
 		auto setScene = std::make_shared<Scene>();
-		setScene->ScenePath = sceneName;
-		setScene->SetState(SceneState::Stopped);
+		setScene->ScenePath = scenePath;
 		m_context->manager->sceneManager->DeferredLoadScene(setScene);
 	}
 

@@ -16,62 +16,72 @@
 #include "Component/C#ScriptComponent.h"
 
 void CSharpScriptSystem::Start(){
+	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		auto context = scene->GetSceneContext();
 	// コンポーネントを持つエンティティの検索
-	const auto& Entities = m_context->component->FindEntitiesWithComponent<CSharpScriptComponent>();
-	if(Entities.empty()){
-		return;
-	} else{
-		for(Entity entity : Entities){
-			CSharpScriptComponent* script = m_context->component->GetComponent<CSharpScriptComponent>(entity);
-			if(script){
-				// スクリプトの初期化
-				if(!script->IsInitialized()){
-					script->OnStart();
-				} else{
-					m_context->manager->debug->LOG_ERROR("ScriptComponent already initialized for entity: " + std::to_string(entity));
+		const auto& Entities = context->component->FindEntitiesWithComponent<CSharpScriptComponent>();
+		if (Entities.empty()) {
+			return;
+		} else {
+			for (Entity entity : Entities) {
+				CSharpScriptComponent* script = context->component->GetComponent<CSharpScriptComponent>(entity);
+				if (script) {
+					// スクリプトの初期化
+					if (!script->IsInitialized()) {
+						script->OnStart();
+					} else {
+						m_context->debug->LOG_ERROR("ScriptComponent already initialized for entity: " + std::to_string(entity));
+					}
+				} else {
+					m_context->debug->LOG_ERROR("ScriptComponent not found for entity: " + std::to_string(entity));
 				}
-			} else{
-				m_context->manager->debug->LOG_ERROR("ScriptComponent not found for entity: " + std::to_string(entity));
 			}
+
 		}
 	}
 }
 
 void CSharpScriptSystem::Update(float deltaTime){
+	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		auto context = scene->GetSceneContext();
 	// コンポーネントを持つエンティティの検索
-	const auto& Entities = m_context->component->FindEntitiesWithComponent<CSharpScriptComponent>();
-	if(Entities.empty()){
-		return;
-	} else{
-		for(Entity entity : Entities){
-			CSharpScriptComponent* script = m_context->component->GetComponent<CSharpScriptComponent>(entity);
-			if(script){
-				// スクリプトの初期化
-				if(!script->IsInitialized()){
-					script->OnStart();
+		const auto& Entities = context->component->FindEntitiesWithComponent<CSharpScriptComponent>();
+		if (Entities.empty()) {
+			return;
+		} else {
+			for (Entity entity : Entities) {
+				CSharpScriptComponent* script = context->component->GetComponent<CSharpScriptComponent>(entity);
+				if (script) {
+					// スクリプトの初期化
+					if (!script->IsInitialized()) {
+						script->OnStart();
+					}
+					// スクリプトの更新
+					script->OnUpdate(deltaTime);
+				} else {
+					m_context->debug->LOG_ERROR("ScriptComponent not found for entity: " + std::to_string(entity));
 				}
-				// スクリプトの更新
-				script->OnUpdate(deltaTime);
-			} else{
-				m_context->manager->debug->LOG_ERROR("ScriptComponent not found for entity: " + std::to_string(entity));
 			}
 		}
 	}
 }
 
 void CSharpScriptSystem::FixedUpdate(float fidedDeltaTime){
+	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		auto context = scene->GetSceneContext();
 	// コンポーネントを持つエンティティの検索
-	const auto& Entities = m_context->component->FindEntitiesWithComponent<CSharpScriptComponent>();
-	if(Entities.empty()){
-		return;
-	} else{
-		for(Entity entity : Entities){
-			CSharpScriptComponent* script = m_context->component->GetComponent<CSharpScriptComponent>(entity);
-			if(script){
-				// スクリプトの更新
-				script->OnFixedUpdate(fidedDeltaTime);
-			} else{
-				m_context->manager->debug->LOG_ERROR("ScriptComponent not found for entity: " + std::to_string(entity));
+		const auto& Entities = context->component->FindEntitiesWithComponent<CSharpScriptComponent>();
+		if (Entities.empty()) {
+			return;
+		} else {
+			for (Entity entity : Entities) {
+				CSharpScriptComponent* script = context->component->GetComponent<CSharpScriptComponent>(entity);
+				if (script) {
+					// スクリプトの更新
+					script->OnFixedUpdate(fidedDeltaTime);
+				} else {
+					m_context->debug->LOG_ERROR("ScriptComponent not found for entity: " + std::to_string(entity));
+				}
 			}
 		}
 	}

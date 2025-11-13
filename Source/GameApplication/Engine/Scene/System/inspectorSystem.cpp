@@ -77,7 +77,7 @@ TextureData* InspectorSystem::GetIconTexture(std::string filepath) {
 			return it->second.get();
 		}
 		// 初回読み込み → テクスチャ作成
-		auto tex = m_context->manager->resource->Load<TextureData>(filepath);
+		auto tex = m_context->resource->Load<TextureData>(filepath);
 		if (tex) {
 			previewCache[filepath] = tex;
 			tex.reset();
@@ -89,13 +89,13 @@ TextureData* InspectorSystem::GetIconTexture(std::string filepath) {
 }
 
 void InspectorSystem::Initialize() {
-	fileIcon[FileIconType::FILE_UNDEFINED] = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_undefied.png");
-	fileIcon[FileIconType::FILE_FOLDER] = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\folder.png");
-	fileIcon[FileIconType::FILE_TEXT] = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_txt.png");
-	fileIcon[FileIconType::FILE_YAML] = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_yaml.png");
-	fileIcon[FileIconType::FILE_FBX] = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_fbx.png");
-	fileIcon[FileIconType::FILE_OBJ] = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_obj.png");
-	fileIcon[FileIconType::FILE_TTF] = m_context->manager->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_ttf.png");
+	fileIcon[FileIconType::FILE_UNDEFINED] = m_context->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_undefied.png");
+	fileIcon[FileIconType::FILE_FOLDER] = m_context->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\folder.png");
+	fileIcon[FileIconType::FILE_TEXT] = m_context->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_txt.png");
+	fileIcon[FileIconType::FILE_YAML] = m_context->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_yaml.png");
+	fileIcon[FileIconType::FILE_FBX] = m_context->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_fbx.png");
+	fileIcon[FileIconType::FILE_OBJ] = m_context->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_obj.png");
+	fileIcon[FileIconType::FILE_TTF] = m_context->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_ttf.png");
 }
 
 void InspectorSystem::Finalize() {
@@ -111,7 +111,7 @@ void InspectorSystem::ClearPreviewChache() {
 
 	for (auto& [key, tex] : previewCache) {
 		previewCache[key].reset();
-		m_context->manager->resource->Unload<TextureData>(key);
+		m_context->resource->Unload<TextureData>(key);
 	}
 	previewCache.clear();
 }
@@ -120,14 +120,15 @@ void InspectorSystem::ClearPreviewChache() {
 void InspectorSystem::Draw(){
 	//CreateDockSpace();
 
-	showSceneHierarchy = &m_context->manager->imgui->GetManubar()->showSceneHierarchy;
-	showInspector = &m_context->manager->imgui->GetManubar()->showInspector;
-	showAssetsBrowser = &m_context->manager->imgui->GetManubar()->showAssetsBrowser;
-	showConsole = &m_context->manager->imgui->GetManubar()->showConsole;
+	showSceneHierarchy = &m_context->imgui->GetManubar()->showSceneHierarchy;
+	showInspector = &m_context->imgui->GetManubar()->showInspector;
+	showAssetsBrowser = &m_context->imgui->GetManubar()->showAssetsBrowser;
+	showConsole = &m_context->imgui->GetManubar()->showConsole;
 
+	m_InspectorContext = nullptr;
 
 	if(*showSceneHierarchy) DrawSceneHierarchy(m_context);
-	if(*showInspector) DrawInspector(m_context);
+	if(*showInspector && m_InspectorContext) DrawInspector(m_InspectorContext);
 	if(*showAssetsBrowser) DrawAssetsBrowser();
 }
 
@@ -160,7 +161,8 @@ void InspectorSystem::CreateDockSpace(){
 }
 
 // シーンヒエラルキーウィンドウ
-void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
+void InspectorSystem::DrawSceneHierarchy(SceneManagerContext* managerContext){
+
 	ImGuiWindowClass window_class;
 	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
 	ImGui::SetNextWindowClass(&window_class);
@@ -168,47 +170,52 @@ void InspectorSystem::DrawSceneHierarchy(SceneContext* context){
 	//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
 	ImGuiWindowFlags toolbar_window_flags = 0;
 	ImGui::Begin("Scene Hierarchy", showSceneHierarchy, toolbar_window_flags);
-	EntityRegistry* registry = context->entity;
 
-	// ツールバー
-	if(ImGui::Button("+ Add")){
-		Entity newEntity = registry->Create(); // 新しいエンティティを追加
-		selectedEntity = newEntity;
-		NameComponent* name = context->component->AddComponent<NameComponent>(newEntity); // 名前コンポーネントを追加
-		name->name = "Entity"; // デフォルトの名前を設定
+	for (auto& scenePair : managerContext->sceneManager->GetActiveScenes()) {
 
-		context->component->AddComponent<TransformComponent>(newEntity);
-	}
-	ImGui::SameLine();
+		SceneContext* context = scenePair.second->GetSceneContext();
 
-	static char searchBuffer[256] = "";
-	ImGui::SetNextItemWidth(-1);
-	ImGui::InputTextWithHint("##search", "Search objects...", searchBuffer, sizeof(searchBuffer));
-	ImGui::Separator();
+		EntityRegistry* registry = context->entity;
 
-	const auto& entities = registry->GetAllAlive();
-	ImGui::BeginChild("Child");
+		// ツールバー
+		if (ImGui::Button("+ Add")) {
+			Entity newEntity = registry->Create(); // 新しいエンティティを追加
+			selectedEntity = newEntity;
+			NameComponent* name = context->component->AddComponent<NameComponent>(newEntity); // 名前コンポーネントを追加
+			name->name = "Entity"; // デフォルトの名前を設定
+
+			context->component->AddComponent<TransformComponent>(newEntity);
+		}
+		ImGui::SameLine();
+
+		static char searchBuffer[256] = "";
+		ImGui::SetNextItemWidth(-1);
+		ImGui::InputTextWithHint("##search", "Search objects...", searchBuffer, sizeof(searchBuffer));
+		ImGui::Separator();
+
+		const auto& entities = registry->GetAllAlive();
+		ImGui::BeginChild("Child");
 
 
-	deleteEntity = 0;
-	// --- ルートエンティティの描画（親を持たないもの） ---
-	for(const Entity& entity : entities){
-
-		auto* transform = context->component->GetComponent<TransformComponent>(entity);
-		if(transform && transform->parent != 0)
-			continue;
-
-		DrawHierarchyNode(entity, context, entities);
-	}
-	ImGui::EndChild();
-
-	ImGui::End();
-
-	if (deleteEntity != 0) {
-		context->entity->Destroy(deleteEntity);
-		context->component->OnEntityDestroyed(deleteEntity);
 		deleteEntity = 0;
+		// --- ルートエンティティの描画（親を持たないもの） ---
+		for (const Entity& entity : entities) {
+
+			auto* transform = context->component->GetComponent<TransformComponent>(entity);
+			if (transform && transform->parent != 0)
+				continue;
+
+			DrawHierarchyNode(entity, context, entities);
+		}
+		ImGui::EndChild();
+
+		if (deleteEntity != 0) {
+			context->entity->Destroy(deleteEntity);
+			context->component->OnEntityDestroyed(deleteEntity);
+			deleteEntity = 0;
+		}
 	}
+	ImGui::End();
 }
 
 char renameBuffer[256] = "";
@@ -240,15 +247,17 @@ void InspectorSystem::DrawHierarchyNode(Entity entity, SceneContext* context, co
 		ImGuiTreeNodeFlags_DefaultOpen |
 		(selectedEntity == entity ? ImGuiTreeNodeFlags_Selected : 0);
 
-	if (!hasChildren)
+	if (!hasChildren) {
 		flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+	}
 
 	// --- ノード描画 ---
 	bool opened = ImGui::TreeNodeEx((void*)(intptr_t)entity, flags, "%s", displayName.c_str());
 
-	if (ImGui::IsItemClicked())
+	if (ImGui::IsItemClicked()) {
 		selectedEntity = entity;
-
+		m_InspectorContext = context;
+	}
 	// --- 右クリックメニュー ---
 	if (ImGui::BeginPopupContextItem()) {
 
@@ -389,7 +398,7 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 		ImGui::End();
 		return;
 	} else{
-		bool alive = m_context->entity->IsAlive(selectedEntity); // 選択されたエンティティが生存しているか確認
+		bool alive = context->entity->IsAlive(selectedEntity); // 選択されたエンティティが生存しているか確認
 		if(!alive){
 			selectedEntity = 0; // 生存していない場合は選択を解除
 			ImGui::End();
@@ -407,7 +416,7 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 	ImGui::SameLine();
 
 
-	NameComponent* name = m_context->component->GetComponent<NameComponent>(selectedEntity);
+	NameComponent* name = context->component->GetComponent<NameComponent>(selectedEntity);
 	if(name){
         if (name) {
             // Convert std::string to char buffer for ImGui::InputText
@@ -468,7 +477,7 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 
 		// 次の行に移動
 		if(open){
-			Component->inspector(m_context);
+			Component->inspector(context);
 		}
 		ImGui::Dummy(ImVec2(0, 2.5f)); // 間隔を空ける
 
@@ -542,7 +551,7 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 
 	TransformComponent* transform = registry->GetComponent<TransformComponent>(selectedEntity);
 
-	if(transform && m_context->manager->imgui->GetManubar()->showEditorView){
+	if(transform && m_context->imgui->GetManubar()->showEditorView){
 
 		DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform,context->component);
 
@@ -558,10 +567,10 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 
 			World = Scale * Rotation * Translation;
 
-			modelMatrix = m_context->manager->imgui->RenderGizmo2D(World);
+			modelMatrix = m_context->imgui->RenderGizmo2D(World);
 
 		} else{
-			modelMatrix = m_context->manager->imgui->RenderGizmo(World);
+			modelMatrix = m_context->imgui->RenderGizmo(World);
 		}
 		Entity Parent = transform->parent;
 		while (Parent != 0) {
@@ -893,7 +902,7 @@ void InspectorSystem::DrawAssetsInDirectory(std::string& selectedPath){
 void InspectorSystem::DrawAssetsBrowser(){
 	std::filesystem::path ASSETS_ROOT = "Asset";
 	static std::string selectedPath = ASSETS_ROOT.string();
-	//m_context->manager->debug->LOG_INFO("Current path: " + std::filesystem::current_path().string());
+	//m_context->debug->LOG_INFO("Current path: " + std::filesystem::current_path().string());
 
 	// --- パス検証・正規化 ---
 	std::error_code ec;
@@ -901,7 +910,7 @@ void InspectorSystem::DrawAssetsBrowser(){
 
 	if(ec || !std::filesystem::exists(normalized) || !std::filesystem::is_directory(normalized)){
 		// フォールバック + ログ出力
-		m_context->manager->debug->LOG_ERROR("Invalid selectedPath: " + selectedPath +
+		m_context->debug->LOG_ERROR("Invalid selectedPath: " + selectedPath +
 											 "\n→ normalized: " + normalized.string() +
 											 "\n→ ec: " + std::to_string(ec.value()));
 		selectedPath = ASSETS_ROOT.string();
@@ -980,8 +989,8 @@ TransformComponent InspectorSystem::CalculateRectTransform(
 
 	Vector2 screenSize = m_context->EditorScreenSize;
 	Vector2 viewportSize = {
-		(float)m_context->manager->renderer->GetGraphicsContext()->m_width,
-		(float)m_context->manager->renderer->GetGraphicsContext()->m_height
+		(float)m_context->renderer->GetGraphicsContext()->m_width,
+		(float)m_context->renderer->GetGraphicsContext()->m_height
 	};
 
 	// 仮想UI基準解像度
@@ -1035,8 +1044,8 @@ TransformComponent InspectorSystem::ReverseCalculateRectTransform(
 
 	Vector2 screenSize = m_context->EditorScreenSize;
 	Vector2 viewportSize = {
-		(float)m_context->manager->renderer->GetGraphicsContext()->m_width,
-		(float)m_context->manager->renderer->GetGraphicsContext()->m_height
+		(float)m_context->renderer->GetGraphicsContext()->m_width,
+		(float)m_context->renderer->GetGraphicsContext()->m_height
 	};
 
 	const Vector2 referenceResolution = {1.0f, 1.0f};

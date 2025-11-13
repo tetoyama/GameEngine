@@ -6,6 +6,7 @@
 #include <vector>
 #include <unordered_map>
 #include "Service/IService.h"
+#include "Backends/myVector2.h"
 
 class MainRenderer;
 class GraphicsContext;
@@ -14,10 +15,20 @@ class InputService;
 class ResourceService;
 class DebugLogSystem;
 class ImGuiService;
-class SceneManager;
 
-struct ManagerContext {
+class SystemRegistry;
+
+class SceneManager;
+class Scene;
+
+struct SceneManagerContext {
 	SceneManager* sceneManager = nullptr;
+
+	SystemRegistry* systemRegistry = nullptr;
+
+	// 画面情報
+	Vector2 PlayerScreenSize = { 1280.0f, 720.0f };
+	Vector2 EditorScreenSize = { 1280.0f, 720.0f };
 
 	GraphicsContext* graphics = nullptr;
 	AudioContext* audio = nullptr;
@@ -29,7 +40,6 @@ struct ManagerContext {
 	HWND hwnd = nullptr;
 };
 
-class Scene;
 
 enum SceneManagerState
 {
@@ -44,7 +54,7 @@ public:
 	SceneManager() = default;
 	~SceneManager() = default;
 
-	void Initialize(ManagerContext sceneContext);
+	void Initialize(SceneManagerContext sceneContext);
 	void Update(float deltaTime);
 	void FixedUpdate(float fixedDeltaTime);
 	void Draw();
@@ -57,16 +67,23 @@ public:
 
 	void SaveScenes();
 
+	std::unordered_map<std::string, std::shared_ptr<Scene>>& GetActiveScenes() { return m_activeScenes; }
+
 	std::shared_ptr<Scene> OpenFromYAMLFile();
 	std::shared_ptr<Scene> LoadFromFilePath(const std::string& filePath);
 
+	SceneManagerState State = SceneManagerState::Stopped;
+	SceneManagerState OldState = SceneManagerState::Stopped;
+
 private:
 
+	void TempSave(); // 一時保存
+	void TempLoad(); // 一時読み込み
+
 	std::unordered_map<std::string, std::shared_ptr<Scene>> m_activeScenes;
-	ManagerContext m_SceneContext;
+	SceneManagerContext m_SceneContext;
 
 	bool m_NeedSceneChange = false;
-	std::shared_ptr<Scene> m_NextScene;
-
-	bool OpenFlag = false;
+	std::shared_ptr<Scene> m_NextScene = nullptr;
+	std::shared_ptr<SystemRegistry> m_systemRegistry = nullptr;
 };

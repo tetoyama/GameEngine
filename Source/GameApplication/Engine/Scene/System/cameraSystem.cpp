@@ -23,7 +23,7 @@
 #include "Component/transformComponent.h"
 
 void CameraSystem::Initialize(){
-	m_context->manager->debug->LOG_DEBUG("CameraSystemを初期化中...");
+	m_context->debug->LOG_DEBUG("CameraSystemを初期化中...");
 }
 
 void CameraSystem::Update(float deltaTime) {

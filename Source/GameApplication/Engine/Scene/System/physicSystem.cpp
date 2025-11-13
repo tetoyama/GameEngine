@@ -119,7 +119,7 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 // =============================================================
 // Collider の更新（PhysXへの反映）
 // =============================================================
-void PhysicSystem::UpdateColliderParam(ColliderComponent* collider, size_t entity, size_t index){
+void PhysicSystem::UpdateColliderParam(TransformComponent* transform, ColliderComponent* collider, size_t entity, size_t index){
 	OutputDebugStringA("PhysicSystem::UpdateColliderParam\n");
 
 	if(!collider) return;
@@ -153,7 +153,6 @@ void PhysicSystem::UpdateColliderParam(ColliderComponent* collider, size_t entit
 	col.pxMaterial = material;
 
 	// 4) Transform スケール取得
-	TransformComponent* transform = m_context->component->GetComponent<TransformComponent>((Entity)entity);
 	Vector3 scale = transform ? transform->scale : Vector3{1.0f, 1.0f, 1.0f};
 
 	// 5) 新しい shape 作成
@@ -214,45 +213,48 @@ void PhysicSystem::Initialize(){
 		pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
 		pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
 	}
+	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		auto context = scene->GetSceneContext();
+		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
+		if (colliderEntity.empty()) return;
+		for (Entity entity : colliderEntity) {
+			auto Collider = context->component->GetComponent<ColliderComponent>(entity);
 
-	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
-	if (colliderEntity.empty()) return;
-	for (Entity entity : colliderEntity) {
-		auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
-
-		Collider->needsUpdate = true;
+			Collider->needsUpdate = true;
+		}
 	}
-
 	UpdateCollider();
 }
 void PhysicSystem::Finalize(){
 	OutputDebugStringA("PhysicSystem::Finalize\n");
-	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
-	for(Entity entity : colliderEntity){
-		auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
-		for(auto& col : Collider->colliders){
-			if(col.pxMaterial){
-				OutputDebugStringA(("Finalize Release Material: " + std::to_string((uintptr_t)col.pxMaterial) + "\n").c_str());
-				col.pxMaterial->release();
-				col.pxMaterial = nullptr;
+	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		auto context = scene->GetSceneContext();
+		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
+		for (Entity entity : colliderEntity) {
+			auto Collider = context->component->GetComponent<ColliderComponent>(entity);
+			for (auto& col : Collider->colliders) {
+				if (col.pxMaterial) {
+					OutputDebugStringA(("Finalize Release Material: " + std::to_string((uintptr_t)col.pxMaterial) + "\n").c_str());
+					col.pxMaterial->release();
+					col.pxMaterial = nullptr;
+				}
+				if (col.pxShape) {
+					OutputDebugStringA(("Finalize Shape Pointer Clear: " + std::to_string((uintptr_t)col.pxShape) + "\n").c_str());
+					col.pxShape = nullptr; // Actor release に任せる
+				}
 			}
-			if(col.pxShape){
-				OutputDebugStringA(("Finalize Shape Pointer Clear: " + std::to_string((uintptr_t)col.pxShape) + "\n").c_str());
-				col.pxShape = nullptr; // Actor release に任せる
+			if (Collider->pRigidbodyStatic) {
+				OutputDebugStringA(("Finalize Release Static Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyStatic) + "\n").c_str());
+				Collider->pRigidbodyStatic->release();
+				Collider->pRigidbodyStatic = nullptr;
 			}
-		}
-		if(Collider->pRigidbodyStatic){
-			OutputDebugStringA(("Finalize Release Static Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyStatic) + "\n").c_str());
-			Collider->pRigidbodyStatic->release();
-			Collider->pRigidbodyStatic = nullptr;
-		}
-		if(Collider->pRigidbodyDynamic){
-			OutputDebugStringA(("Finalize Release Dynamic Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyDynamic) + "\n").c_str());
-			Collider->pRigidbodyDynamic->release();
-			Collider->pRigidbodyDynamic = nullptr;
+			if (Collider->pRigidbodyDynamic) {
+				OutputDebugStringA(("Finalize Release Dynamic Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyDynamic) + "\n").c_str());
+				Collider->pRigidbodyDynamic->release();
+				Collider->pRigidbodyDynamic = nullptr;
+			}
 		}
 	}
-
 	PxCloseExtensions();
 	if(g_pScene){
 		OutputDebugStringA(("Finalize Release Scene: " + std::to_string((uintptr_t)g_pScene) + "\n").c_str());
@@ -290,31 +292,34 @@ void PhysicSystem::Finalize(){
 }
 
 void PhysicSystem::Stop(){
-	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
-	for(Entity entity : colliderEntity){
-		auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
+	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		auto context = scene->GetSceneContext();
+		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
+		for (Entity entity : colliderEntity) {
+			auto Collider = context->component->GetComponent<ColliderComponent>(entity);
 
-		for(auto& col : Collider->colliders){
-			if(col.pxMaterial){
-				OutputDebugStringA(("Stop Release Material: " + std::to_string((uintptr_t)col.pxMaterial) + "\n").c_str());
-				col.pxMaterial->release();
-				col.pxMaterial = nullptr;
+			for (auto& col : Collider->colliders) {
+				if (col.pxMaterial) {
+					OutputDebugStringA(("Stop Release Material: " + std::to_string((uintptr_t)col.pxMaterial) + "\n").c_str());
+					col.pxMaterial->release();
+					col.pxMaterial = nullptr;
+				}
+				if (col.pxShape) {
+					OutputDebugStringA(("Stop Shape Pointer Clear: " + std::to_string((uintptr_t)col.pxShape) + "\n").c_str());
+					col.pxShape = nullptr;
+				}
 			}
-			if(col.pxShape){
-				OutputDebugStringA(("Stop Shape Pointer Clear: " + std::to_string((uintptr_t)col.pxShape) + "\n").c_str());
-				col.pxShape = nullptr;
-			}
-		}
 
-		if(Collider->pRigidbodyStatic){
-			OutputDebugStringA(("Stop Release Static Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyStatic) + "\n").c_str());
-			Collider->pRigidbodyStatic->release();
-			Collider->pRigidbodyStatic = nullptr;
-		}
-		if(Collider->pRigidbodyDynamic){
-			OutputDebugStringA(("Stop Release Dynamic Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyDynamic) + "\n").c_str());
-			Collider->pRigidbodyDynamic->release();
-			Collider->pRigidbodyDynamic = nullptr;
+			if (Collider->pRigidbodyStatic) {
+				OutputDebugStringA(("Stop Release Static Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyStatic) + "\n").c_str());
+				Collider->pRigidbodyStatic->release();
+				Collider->pRigidbodyStatic = nullptr;
+			}
+			if (Collider->pRigidbodyDynamic) {
+				OutputDebugStringA(("Stop Release Dynamic Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyDynamic) + "\n").c_str());
+				Collider->pRigidbodyDynamic->release();
+				Collider->pRigidbodyDynamic = nullptr;
+			}
 		}
 	}
 }
@@ -324,136 +329,136 @@ void PhysicSystem::Start(){
 }
 
 void PhysicSystem::UpdateCollider() {
+	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		auto context = scene->GetSceneContext();
+		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
+		if (colliderEntity.empty()) return;
 
-	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
-	if (colliderEntity.empty()) return;
+		for (Entity entity : colliderEntity) {
+			auto Collider = context->component->GetComponent<ColliderComponent>(entity);
+			auto Transform = context->component->GetComponent<TransformComponent>(entity);
+			if (!Transform) continue;
 
-	for (Entity entity : colliderEntity) {
-		auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
-		auto Transform = m_context->component->GetComponent<TransformComponent>(entity);
-		if (!Transform) continue;
+			physx::PxVec3 pos(Transform->position.x, Transform->position.y, Transform->position.z);
+			DirectX::XMVECTOR dxQuat = DirectX::XMQuaternionRotationRollPitchYaw(
+				Transform->GetRotationEuler().x,
+				Transform->GetRotationEuler().y,
+				Transform->GetRotationEuler().z
+			);
+			physx::PxQuat quatRot;
+			XMStoreFloat4(reinterpret_cast<DirectX::XMFLOAT4*>(&quatRot), dxQuat);
+			physx::PxTransform pxTransform(pos, quatRot);
 
-		physx::PxVec3 pos(Transform->position.x, Transform->position.y, Transform->position.z);
-		DirectX::XMVECTOR dxQuat = DirectX::XMQuaternionRotationRollPitchYaw(
-			Transform->GetRotationEuler().x,
-			Transform->GetRotationEuler().y,
-			Transform->GetRotationEuler().z
-		);
-		physx::PxQuat quatRot;
-		XMStoreFloat4(reinterpret_cast<DirectX::XMFLOAT4*>(&quatRot), dxQuat);
-		physx::PxTransform pxTransform(pos, quatRot);
+			if (Collider->isDynamic) {
 
-		if (Collider->isDynamic) {
-
-			if (Collider->pRigidbodyStatic) {
-				Collider->pRigidbodyStatic->release();
-				Collider->pRigidbodyStatic = nullptr;
-			}
-
-			if (Collider->pRigidbodyDynamic) {
-				continue;
-			}
-
-			Collider->pRigidbodyDynamic = g_pPhysics->createRigidDynamic(pxTransform);
-			g_pScene->addActor(*Collider->pRigidbodyDynamic);
-
-			for (auto& col : Collider->colliders) {
-				// 既存の scale を使う
-				Vector3 scale = Transform->scale;
-
-				// マテリアル作成して保存
-				physx::PxMaterial* material = g_pPhysics->createMaterial(col.staticFriction, col.dynamicFriction, col.restitution);
-				col.pxMaterial = material;
-
-				// CreatePxShape は actor に attach して PxShape* を返す実装を想定
-				physx::PxShape* shape = CreatePxShape(Collider->pRigidbodyDynamic /*またはStatic*/, col, scale, *material);
-				col.pxShape = shape;
-
-				if (shape) {
-					// レイヤー等のフィルタがあれば設定
-					physx::PxFilterData fd;
-					fd.word0 = col.collisionLayer;
-					shape->setSimulationFilterData(fd);
+				if (Collider->pRigidbodyStatic) {
+					Collider->pRigidbodyStatic->release();
+					Collider->pRigidbodyStatic = nullptr;
 				}
-			}
-		} else {
 
-			if (Collider->pRigidbodyDynamic) {
-				Collider->pRigidbodyDynamic->release();
-				Collider->pRigidbodyDynamic = nullptr;
-			}
+				if (Collider->pRigidbodyDynamic) {
+					continue;
+				}
 
-			if (Collider->pRigidbodyStatic) {
-				continue;
-			}
+				Collider->pRigidbodyDynamic = g_pPhysics->createRigidDynamic(pxTransform);
+				g_pScene->addActor(*Collider->pRigidbodyDynamic);
 
-			Collider->pRigidbodyStatic = g_pPhysics->createRigidStatic(pxTransform);
-			g_pScene->addActor(*Collider->pRigidbodyStatic);
+				for (auto& col : Collider->colliders) {
+					// 既存の scale を使う
+					Vector3 scale = Transform->scale;
 
-			for (auto& col : Collider->colliders) {
-				// 既存の scale を使う
-				Vector3 scale = Transform->scale;
+					// マテリアル作成して保存
+					physx::PxMaterial* material = g_pPhysics->createMaterial(col.staticFriction, col.dynamicFriction, col.restitution);
+					col.pxMaterial = material;
 
-				// マテリアル作成して保存
-				physx::PxMaterial* material = g_pPhysics->createMaterial(col.staticFriction, col.dynamicFriction, col.restitution);
-				col.pxMaterial = material;
+					// CreatePxShape は actor に attach して PxShape* を返す実装を想定
+					physx::PxShape* shape = CreatePxShape(Collider->pRigidbodyDynamic /*またはStatic*/, col, scale, *material);
+					col.pxShape = shape;
 
-				// CreatePxShape は actor に attach して PxShape* を返す実装を想定
-				physx::PxShape* shape = CreatePxShape(Collider->pRigidbodyStatic /*またはStatic*/, col, scale, *material);
-				col.pxShape = shape;
+					if (shape) {
+						// レイヤー等のフィルタがあれば設定
+						physx::PxFilterData fd;
+						fd.word0 = col.collisionLayer;
+						shape->setSimulationFilterData(fd);
+					}
+				}
+			} else {
 
-				if (shape) {
-					// レイヤー等のフィルタがあれば設定
-					physx::PxFilterData fd;
-					fd.word0 = col.collisionLayer;
-					shape->setSimulationFilterData(fd);
+				if (Collider->pRigidbodyDynamic) {
+					Collider->pRigidbodyDynamic->release();
+					Collider->pRigidbodyDynamic = nullptr;
+				}
+
+				if (Collider->pRigidbodyStatic) {
+					continue;
+				}
+
+				Collider->pRigidbodyStatic = g_pPhysics->createRigidStatic(pxTransform);
+				g_pScene->addActor(*Collider->pRigidbodyStatic);
+
+				for (auto& col : Collider->colliders) {
+					// 既存の scale を使う
+					Vector3 scale = Transform->scale;
+
+					// マテリアル作成して保存
+					physx::PxMaterial* material = g_pPhysics->createMaterial(col.staticFriction, col.dynamicFriction, col.restitution);
+					col.pxMaterial = material;
+
+					// CreatePxShape は actor に attach して PxShape* を返す実装を想定
+					physx::PxShape* shape = CreatePxShape(Collider->pRigidbodyStatic /*またはStatic*/, col, scale, *material);
+					col.pxShape = shape;
+
+					if (shape) {
+						// レイヤー等のフィルタがあれば設定
+						physx::PxFilterData fd;
+						fd.word0 = col.collisionLayer;
+						shape->setSimulationFilterData(fd);
+					}
 				}
 			}
 		}
-	}
 
 
-	for (Entity entity : colliderEntity) {
-		auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
+		for (Entity entity : colliderEntity) {
+			auto Collider = context->component->GetComponent<ColliderComponent>(entity);
 
-		auto Transform = m_context->component->GetComponent<TransformComponent>(entity);
-		if (!Transform) continue;
+			auto Transform = context->component->GetComponent<TransformComponent>(entity);
+			if (!Transform) continue;
 
-		if (Collider->needsUpdate) {
-			for (size_t i = 0; i < Collider->colliders.size(); ++i) {
-				UpdateColliderParam(Collider, entity, i);
-			}
-			Collider->needsUpdate = false;
-		}
-
-		physx::PxVec3 pos(Transform->position.x, Transform->position.y, Transform->position.z);
-		DirectX::XMVECTOR dxQuat = Transform->rotationVector();
-		DirectX::XMFLOAT4 qf;
-		DirectX::XMStoreFloat4(&qf, dxQuat);
-		physx::PxQuat quatRot(qf.x, qf.y, qf.z, qf.w);
-		physx::PxTransform pxTransform(pos, quatRot);
-
-		if (Collider->pRigidbodyDynamic) Collider->pRigidbodyDynamic->setGlobalPose(pxTransform);
-		if (Collider->pRigidbodyStatic) Collider->pRigidbodyStatic->setGlobalPose(pxTransform);
-
-		if (Collider->autoMass) {
-			if (Collider->pRigidbodyDynamic) {
-				Collider->Mass = Collider->pRigidbodyDynamic->getMass();
+			if (Collider->needsUpdate) {
+				for (size_t i = 0; i < Collider->colliders.size(); ++i) {
+					UpdateColliderParam(Transform, Collider, entity, i);
+				}
+				Collider->needsUpdate = false;
 			}
 
-		} else {
-			if (Collider->pRigidbodyDynamic) {
-				physx::PxRigidBodyExt::setMassAndUpdateInertia(*Collider->pRigidbodyDynamic, Collider->Mass);
+			physx::PxVec3 pos(Transform->position.x, Transform->position.y, Transform->position.z);
+			DirectX::XMVECTOR dxQuat = Transform->rotationVector();
+			DirectX::XMFLOAT4 qf;
+			DirectX::XMStoreFloat4(&qf, dxQuat);
+			physx::PxQuat quatRot(qf.x, qf.y, qf.z, qf.w);
+			physx::PxTransform pxTransform(pos, quatRot);
+
+			if (Collider->pRigidbodyDynamic) Collider->pRigidbodyDynamic->setGlobalPose(pxTransform);
+			if (Collider->pRigidbodyStatic) Collider->pRigidbodyStatic->setGlobalPose(pxTransform);
+
+			if (Collider->autoMass) {
+				if (Collider->pRigidbodyDynamic) {
+					Collider->Mass = Collider->pRigidbodyDynamic->getMass();
+				}
+
+			} else {
+				if (Collider->pRigidbodyDynamic) {
+					physx::PxRigidBodyExt::setMassAndUpdateInertia(*Collider->pRigidbodyDynamic, Collider->Mass);
+				}
 			}
 		}
 	}
 }
 
 
-void PhysicSystem::FixedUpdate(float deltaTime){
+void PhysicSystem::FixedUpdate(float deltaTime) {
 
-	const auto& colliderEntity = m_context->component->FindEntitiesWithComponent<ColliderComponent>();
-	if(colliderEntity.empty()) return;
 
 	UpdateCollider();
 
@@ -463,18 +468,22 @@ void PhysicSystem::FixedUpdate(float deltaTime){
 	g_pScene->fetchResults(true);
 	g_pScene->unlockWrite();
 	g_pScene->unlockRead();
+	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		auto context = scene->GetSceneContext();
+		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
 
-	for(Entity entity : colliderEntity){
-		auto Collider = m_context->component->GetComponent<ColliderComponent>(entity);
-		auto Transform = m_context->component->GetComponent<TransformComponent>(entity);
-		if(!Transform) continue;
+		for (Entity entity : colliderEntity) {
+			auto Collider = context->component->GetComponent<ColliderComponent>(entity);
+			auto Transform = context->component->GetComponent<TransformComponent>(entity);
+			if (!Transform) continue;
 
-		physx::PxTransform TmpTransform;
-		if(Collider->pRigidbodyDynamic) TmpTransform = Collider->pRigidbodyDynamic->getGlobalPose();
-		if(Collider->pRigidbodyStatic) TmpTransform = Collider->pRigidbodyStatic->getGlobalPose();
+			physx::PxTransform TmpTransform;
+			if (Collider->pRigidbodyDynamic) TmpTransform = Collider->pRigidbodyDynamic->getGlobalPose();
+			if (Collider->pRigidbodyStatic) TmpTransform = Collider->pRigidbodyStatic->getGlobalPose();
 
-		Transform->position = Vector3(TmpTransform.p.x, TmpTransform.p.y, TmpTransform.p.z);
-		Transform->SetRotation(DirectX::XMFLOAT4(TmpTransform.q.x, TmpTransform.q.y, TmpTransform.q.z, TmpTransform.q.w));
+			Transform->position = Vector3(TmpTransform.p.x, TmpTransform.p.y, TmpTransform.p.z);
+			Transform->SetRotation(DirectX::XMFLOAT4(TmpTransform.q.x, TmpTransform.q.y, TmpTransform.q.z, TmpTransform.q.w));
+		}
 	}
 }
 

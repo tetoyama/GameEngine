@@ -11,6 +11,7 @@ class TransformComponent: public IComponent {
 private:
 	Vector3 rotationEular;
 	DirectX::XMFLOAT4 rotation = {0, 0, 0, 1}; // クォータニオン
+	SceneContext* m_context = nullptr;
 
 public:
 	Vector3 position = Vector3(0, 0, 0);
@@ -223,16 +224,17 @@ public:
 		return Vector3(out.x, out.y, out.z);
 	}
 
-	DirectX::XMMATRIX CalculateWorldMatrix(TransformComponent* transform, ComponentRegistry* registry){
+	DirectX::XMMATRIX CalculateWorldMatrix(TransformComponent* transform,ComponentRegistry* componentregistry){
+
 		DirectX::XMMATRIX local =
 			DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z) *
 			DirectX::XMMatrixRotationQuaternion(XMLoadFloat4(&transform->rotation)) *
 			DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
 
 		if(transform->parent != 0){
-			auto* parentTransform = registry->GetComponent<TransformComponent>(transform->parent);
+			auto* parentTransform = componentregistry->GetComponent<TransformComponent>(transform->parent);
 			if(parentTransform && parentTransform->parent != transform->parent){
-				return local * CalculateWorldMatrix(parentTransform, registry);
+				return local * CalculateWorldMatrix(parentTransform, componentregistry);
 			}
 		}
 		return local;

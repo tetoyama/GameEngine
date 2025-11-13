@@ -53,7 +53,7 @@ public:
 
 		m_addComponentFuncs[name] = [this](Entity e){
 			AddComponent<T>(e);
-			};
+		};
 
 		ComponentTypeID typeID = ComponentType::Get<T>();
 
@@ -194,6 +194,7 @@ public:
 
 	template<typename T>
 	std::vector<Entity> FindEntitiesWithComponent(){
+		int size = m_storages.size();
 		std::type_index ti(typeid(T));
 		auto it = m_storages.find(ti);
 		if(it == m_storages.end()) return {};

@@ -2,11 +2,11 @@
 #pragma once
 #include "Interface/ISystem.h"
 
-struct SceneContext;
+struct SceneManagerContext;
 
 class TransformSystem : public ISystem{
 public:
-	TransformSystem(SceneContext* context): m_context(context){}
+	TransformSystem(SceneManagerContext* context): m_context(context){}
 	~TransformSystem(){}
 
 	void Initialize() override;
@@ -18,5 +18,5 @@ public:
 	void Draw() override;
 	void EditorUpdate(float deltaTime) override {}
 private:
-	SceneContext* m_context;
+	SceneManagerContext* m_context;
 };

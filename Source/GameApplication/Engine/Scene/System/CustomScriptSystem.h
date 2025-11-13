@@ -6,11 +6,11 @@
 #include <memory>
 #include <vector>
 
-struct SceneContext;
+struct SceneManagerContext;
 
 class CustomScriptSystem: public ISystem {
 public:
-	CustomScriptSystem(SceneContext* context): m_context(context){}
+	CustomScriptSystem(SceneManagerContext* context): m_context(context){}
 	~CustomScriptSystem(){}
 
 	void Initialize() override;
@@ -23,5 +23,5 @@ public:
 	void EditorUpdate(float deltaTime) override;
 
 private:
-	SceneContext* m_context;
+	SceneManagerContext* m_context;
 };

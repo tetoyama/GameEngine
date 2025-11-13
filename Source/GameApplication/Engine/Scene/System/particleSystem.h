@@ -3,12 +3,12 @@
 #include "../Interface/ISystem.h"
 #include "../Entity/Entity.h" // Entityの定義をインクルード
 
-struct SceneContext;
+struct SceneManagerContext;
 class TransformComponent;
 class SpriteRendererComponent;
 class ParticleSystem : public ISystem {
 public:
-	ParticleSystem(SceneContext* context) : m_context(context) {}
+	ParticleSystem(SceneManagerContext* context) : m_context(context) {}
 	~ParticleSystem() {}
 	void Initialize() override;
 	void Finalize()override;
@@ -20,5 +20,5 @@ public:
 	void EditorUpdate(float deltaTime) override {}
 
 private:
-	SceneContext* m_context;
+	SceneManagerContext* m_context;
 };

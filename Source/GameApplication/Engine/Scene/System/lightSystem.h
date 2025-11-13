@@ -2,11 +2,11 @@
 #pragma once
 #include "Interface/ISystem.h"
 
-struct SceneContext;
+struct SceneManagerContext;
 
 class LightSystem: public ISystem{
 public:
-	LightSystem(SceneContext* context): m_context(context){}
+	LightSystem(SceneManagerContext* context): m_context(context){}
 	~LightSystem(){}
 
 	void Initialize() override;
@@ -20,5 +20,5 @@ public:
 		Update(deltaTime);
 	}
 private:
-	SceneContext* m_context;
+	SceneManagerContext* m_context;
 };

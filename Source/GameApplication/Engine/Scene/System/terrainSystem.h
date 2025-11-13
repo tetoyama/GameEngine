@@ -14,35 +14,41 @@
 
 class TerrainSystem : public ISystem {
 public:
-	TerrainSystem(SceneContext* context)
+	TerrainSystem(SceneManagerContext* context)
 		: m_context(context) {}
 
 	~TerrainSystem() {}
 
 	void Initialize() override {
-		m_graphicContext = m_context->manager->graphics;
-		auto entities = m_context->component->FindEntitiesWithComponent<TerrainComponent>();
-		for (auto entity : entities) {
+		m_graphicContext = m_context->graphics;
+		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+			auto context = scene->GetSceneContext();
+			auto entities = context->component->FindEntitiesWithComponent<TerrainComponent>();
+			for (auto entity : entities) {
 
-			CreateMesh(entity);
+				CreateMesh(context,entity);
+			}
 		}
 	}
 
 	void Finalize() override {
-		auto entities = m_context->component->FindEntitiesWithComponent<TerrainComponent>();
-		for (auto entity : entities) {
-			auto* comp = m_context->component->GetComponent<TerrainComponent>(entity);
-			if (comp && comp->meshRenderer) {
+		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+			auto context = scene->GetSceneContext();
+			auto entities = context->component->FindEntitiesWithComponent<TerrainComponent>();
+			for (auto entity : entities) {
+				auto* comp = context->component->GetComponent<TerrainComponent>(entity);
+				if (comp && comp->meshRenderer) {
 
-				comp->meshRenderer->mesh.m_IndexBuffer.Reset();
-				comp->meshRenderer->mesh.m_VertexBuffer.Reset();
-				comp->meshRenderer->mesh.m_PixelShader.Reset();
-				comp->meshRenderer->mesh.m_VertexShader.Reset();
-				comp->meshRenderer->mesh.m_VertexLayout.Reset();
-				delete comp->meshRenderer->mesh.m_TextureData;
+					comp->meshRenderer->mesh.m_IndexBuffer.Reset();
+					comp->meshRenderer->mesh.m_VertexBuffer.Reset();
+					comp->meshRenderer->mesh.m_PixelShader.Reset();
+					comp->meshRenderer->mesh.m_VertexShader.Reset();
+					comp->meshRenderer->mesh.m_VertexLayout.Reset();
+					delete comp->meshRenderer->mesh.m_TextureData;
 
-				delete comp->meshRenderer;
-				comp->meshRenderer = nullptr;
+					delete comp->meshRenderer;
+					comp->meshRenderer = nullptr;
+				}
 			}
 		}
 	}
@@ -57,10 +63,13 @@ public:
 
 	void FixedUpdate(float dt) override {}
 	void Draw() override {
-		auto entities = m_context->component->FindEntitiesWithComponent<TerrainComponent>();
-		for (auto entity : entities) {
+		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+			auto context = scene->GetSceneContext();
+			auto entities = context->component->FindEntitiesWithComponent<TerrainComponent>();
+			for (auto entity : entities) {
 
-			CreateMesh(entity);
+				CreateMesh(context,entity);
+			}
 		}
 	}
 	void EditorUpdate(float dt) override {
@@ -68,11 +77,11 @@ public:
 	}
 
 private:
-	SceneContext* m_context = nullptr;
+	SceneManagerContext* m_context = nullptr;
 	GraphicsContext* m_graphicContext = nullptr;
 
-	void CreateMesh(Entity entity) {
-		auto* comp = m_context->component->GetComponent<TerrainComponent>(entity);
+	void CreateMesh(SceneContext* context,Entity entity) {
+		auto* comp = context->component->GetComponent<TerrainComponent>(entity);
 		if (!comp) return;
 
 		if (!comp->meshRenderer || comp->Scale != comp->CurrentScale) {

@@ -128,7 +128,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     if (!sceneManager) return;
 
 	// シーンマネージャコンテキストの設定
-	ManagerContext sceneManagerContext{};
+	SceneManagerContext sceneManagerContext{};
 	sceneManagerContext.audio = audioContext.get();
 	sceneManagerContext.graphics = graphicsContext.get();
 	sceneManagerContext.renderer = mainRenderer.get();
@@ -149,13 +149,13 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		windowService->GetMainWindow()->Close(); 
 					  });
     manubar->Register(MenuEvent::File_New,  [sceneManager](){ 
-		sceneManager->LoadScene(std::make_shared<Scene>()); 
+		sceneManager->AddScene(std::make_shared<Scene>()); 
 					  });
     manubar->Register(MenuEvent::File_Save, [sceneManager](){
-		sceneManager->SaveScene(); 
+		sceneManager->SaveScenes(); 
 					  });
     manubar->Register(MenuEvent::File_Open, [sceneManager](){ 
-		sceneManager->LoadFromYAMLFile(); 
+		sceneManager->AddScene(sceneManager->OpenFromYAMLFile());
 					  });
 
     debugLogSystem->LOG_INFO("EngineContextの初期化が完了しました");

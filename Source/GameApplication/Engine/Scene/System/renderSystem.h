@@ -7,10 +7,12 @@
 #include "Backends/myVector3.h"
 #include "Component/RenderLayerComponent.h"
 #include "../Entity/Entity.h"
-struct SceneContext;
+
+struct SceneManagerContext;
 struct PixelShaderData;
 struct VertexShaderData;
 
+class ComponentRegistry;
 class TransformComponent;
 class TextureComponent;
 class SpriteRendererComponent;
@@ -32,7 +34,7 @@ struct PostEffect {
 
 class RenderSystem : public ISystem{
 public:
-	RenderSystem(SceneContext* context): m_context(context){}
+	RenderSystem(SceneManagerContext* context): m_context(context){}
 	~RenderSystem(){}
 
 	void Initialize() override;
@@ -45,16 +47,18 @@ public:
 	void EditorUpdate(float deltaTime) override;
 
 private:
+
+
 	void DrawRenderLayerToggleUI();
 
 	TransformComponent CalculateRectTransform(const SpriteRendererComponent& sprite, const TransformComponent& transform);
 
-	void DrawMesh(TransformComponent* pTransform, MeshRendererComponent* pMesh, TextureComponent* pTexture);
-	void DrawModel(TransformComponent* pTransform, ModelRendererComponent* pMesh, TextureComponent* pTexture, OutlineComponent* pOutline);
-	void DrawBillBoard(TransformComponent* pTransform, MeshRendererComponent* pMesh, BillBoardRendererComponent* pBillBoard, TextureComponent* pTexture);
-	void DrawParticle(TransformComponent* pTransform, ParticleComponent* pParticle, TextureComponent* pTexture);
-	void DrawTerrain(TransformComponent* pTransform, TerrainComponent* pTerrain, TextureComponent* pTexture);
-	void DrawWave(TransformComponent* pTransform, WaveComponent* pWave, TextureComponent* pTexture);
+	void DrawMesh(ComponentRegistry* componentRegistry, TransformComponent* pTransform, MeshRendererComponent* pMesh, TextureComponent* pTexture);
+	void DrawModel(ComponentRegistry* componentRegistry, TransformComponent* pTransform, ModelRendererComponent* pMesh, TextureComponent* pTexture, OutlineComponent* pOutline);
+	void DrawBillBoard(ComponentRegistry* componentRegistry, TransformComponent* pTransform, MeshRendererComponent* pMesh, BillBoardRendererComponent* pBillBoard, TextureComponent* pTexture);
+	void DrawParticle(ComponentRegistry* componentRegistry, TransformComponent* pTransform, ParticleComponent* pParticle, TextureComponent* pTexture);
+	void DrawTerrain(ComponentRegistry* componentRegistry, TransformComponent* pTransform, TerrainComponent* pTerrain, TextureComponent* pTexture);
+	void DrawWave(ComponentRegistry* componentRegistry, TransformComponent* pTransform, WaveComponent* pWave, TextureComponent* pTexture);
 
 	void DrawEntities(bool* RenderLayer);
 
@@ -68,7 +72,7 @@ private:
 
 	void UpdateAnimation(const Entity& entity, const float& deltaTime);
 	ID3D11ShaderResourceView* RenderSceneWithPostEffects(CameraComponent* camera);
-	SceneContext* m_context;
+	SceneManagerContext* m_context;
 	MeshRendererComponent* m_billBoardMesh = nullptr;
 	MeshRendererComponent* m_SpriteMesh = nullptr;
 	ID3D11Texture2D* tex_player = nullptr;

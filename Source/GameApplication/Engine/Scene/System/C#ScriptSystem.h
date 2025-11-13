@@ -2,11 +2,11 @@
 #pragma once
 #include "Interface/ISystem.h"
 
-struct SceneContext;
+struct SceneManagerContext;
 
 class CSharpScriptSystem: public ISystem{
 public:
-	CSharpScriptSystem(SceneContext* context): m_context(context){}
+	CSharpScriptSystem(SceneManagerContext* context): m_context(context){}
 	~CSharpScriptSystem(){}
 
 	void Initialize() override{}
@@ -18,5 +18,5 @@ public:
 	void Draw() override;
 	void EditorUpdate(float deltaTime) override;
 private:
-	SceneContext* m_context;
+	SceneManagerContext* m_context;
 };

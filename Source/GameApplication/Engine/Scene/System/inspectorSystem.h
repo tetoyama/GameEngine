@@ -12,6 +12,7 @@
 #include <unordered_set>
 
 struct SceneContext;
+struct SceneManagerContext;
 class TransformComponent;
 class SpriteRendererComponent;
 
@@ -32,7 +33,7 @@ class InspectorSystem: public ISystem
 {
 public:
 
-	InspectorSystem(SceneContext* context): m_context(context){}
+	InspectorSystem(SceneManagerContext* context): m_context(context){}
 	~InspectorSystem(){}
 	void Initialize() override;
 	void Finalize()override;
@@ -44,7 +45,8 @@ public:
 	void EditorUpdate(float deltaTime) override{}
 
 private:
-	SceneContext* m_context;
+	SceneManagerContext* m_context;
+	SceneContext* m_InspectorContext = nullptr;
 
 	TransformComponent CalculateRectTransform(
 		const SpriteRendererComponent& sprite,
@@ -56,7 +58,7 @@ private:
 	);
 	// UIパネル描画関数
 	void CreateDockSpace();
-	void DrawSceneHierarchy(SceneContext* context);
+	void DrawSceneHierarchy(SceneManagerContext* context);
 	void DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities);
 	void DrawInspector(SceneContext* context);
 	void DrawAssetsBrowser();

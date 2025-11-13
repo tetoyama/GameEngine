@@ -6,14 +6,15 @@
 #include <DirectXMath.h>
 #include <d3d11.h>
 
-struct SceneContext;
+struct SceneManagerContext;
 struct ColliderShape;
 class ColliderComponent;
+class TransformComponent;
 class Vector3;
 
 class PhysicSystem: public ISystem {
 public:
-	PhysicSystem(SceneContext* context): m_context(context){}
+	PhysicSystem(SceneManagerContext* context): m_context(context){}
 	~PhysicSystem(){}
 
 	void Initialize() override;
@@ -33,7 +34,7 @@ public:
 		return g_pScene->getRenderBuffer();
 	}
 private:
-	SceneContext* m_context;
+	SceneManagerContext* m_context;
 
 	// PhysX 内で利用するアロケーターやコールバック
 	physx::PxDefaultAllocator g_defaultAllocator;
@@ -52,6 +53,6 @@ private:
 
 	void UpdateCollider();
 
-	void UpdateColliderParam(ColliderComponent* collider, size_t entity ,size_t index);
+	void UpdateColliderParam(TransformComponent* transform, ColliderComponent* collider, size_t entity ,size_t index);
 	physx::PxShape* CreatePxShape(physx::PxRigidActor* actor, const ColliderShape& col, const Vector3& scale, physx::PxMaterial& material);
 };
