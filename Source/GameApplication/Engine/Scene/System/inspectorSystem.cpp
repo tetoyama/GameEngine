@@ -89,6 +89,7 @@ TextureData* InspectorSystem::GetIconTexture(std::string filepath) {
 }
 
 void InspectorSystem::Initialize() {
+
 	fileIcon[FileIconType::FILE_UNDEFINED] = m_context->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_undefied.png");
 	fileIcon[FileIconType::FILE_FOLDER] = m_context->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\folder.png");
 	fileIcon[FileIconType::FILE_TEXT] = m_context->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_txt.png");
@@ -125,10 +126,8 @@ void InspectorSystem::Draw(){
 	showAssetsBrowser = &m_context->imgui->GetManubar()->showAssetsBrowser;
 	showConsole = &m_context->imgui->GetManubar()->showConsole;
 
-	m_InspectorContext = nullptr;
-
 	if(*showSceneHierarchy) DrawSceneHierarchy(m_context);
-	if(*showInspector && m_InspectorContext) DrawInspector(m_InspectorContext);
+	if(*showInspector) DrawInspector(m_InspectorContext);
 	if(*showAssetsBrowser) DrawAssetsBrowser();
 }
 
@@ -177,42 +176,47 @@ void InspectorSystem::DrawSceneHierarchy(SceneManagerContext* managerContext){
 
 		EntityRegistry* registry = context->entity;
 
+		
+		if (ImGui::TreeNodeEx(scenePair.first.c_str(),ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::SetCursorPos(ImVec2(10,ImGui::GetCursorPos().y));
 		// ツールバー
-		if (ImGui::Button("+ Add")) {
-			Entity newEntity = registry->Create(); // 新しいエンティティを追加
-			selectedEntity = newEntity;
-			NameComponent* name = context->component->AddComponent<NameComponent>(newEntity); // 名前コンポーネントを追加
-			name->name = "Entity"; // デフォルトの名前を設定
+			if (ImGui::Button("+ Add")) {
+				Entity newEntity = registry->Create(); // 新しいエンティティを追加
+				selectedEntity = newEntity;
+				NameComponent* name = context->component->AddComponent<NameComponent>(newEntity); // 名前コンポーネントを追加
+				name->name = "Entity"; // デフォルトの名前を設定
 
-			context->component->AddComponent<TransformComponent>(newEntity);
-		}
-		ImGui::SameLine();
+				context->component->AddComponent<TransformComponent>(newEntity);
+			}
+			ImGui::SameLine();
 
-		static char searchBuffer[256] = "";
-		ImGui::SetNextItemWidth(-1);
-		ImGui::InputTextWithHint("##search", "Search objects...", searchBuffer, sizeof(searchBuffer));
-		ImGui::Separator();
+			static char searchBuffer[256] = "";
+			ImGui::SetNextItemWidth(-1);
+			ImGui::InputTextWithHint("##search", "Search objects...", searchBuffer, sizeof(searchBuffer));
 
-		const auto& entities = registry->GetAllAlive();
-		ImGui::BeginChild("Child");
+			ImGui::SetCursorPos(ImVec2(10, ImGui::GetCursorPos().y));
+			ImGui::Separator();
 
+			const auto& entities = registry->GetAllAlive();
 
-		deleteEntity = 0;
-		// --- ルートエンティティの描画（親を持たないもの） ---
-		for (const Entity& entity : entities) {
-
-			auto* transform = context->component->GetComponent<TransformComponent>(entity);
-			if (transform && transform->parent != 0)
-				continue;
-
-			DrawHierarchyNode(entity, context, entities);
-		}
-		ImGui::EndChild();
-
-		if (deleteEntity != 0) {
-			context->entity->Destroy(deleteEntity);
-			context->component->OnEntityDestroyed(deleteEntity);
 			deleteEntity = 0;
+			// --- ルートエンティティの描画（親を持たないもの） ---
+			for (const Entity& entity : entities) {
+
+				auto* transform = context->component->GetComponent<TransformComponent>(entity);
+				if (transform && transform->parent != 0)
+					continue;
+
+				DrawHierarchyNode(entity, context, entities);
+			}
+
+			if (deleteEntity != 0) {
+				context->entity->Destroy(deleteEntity);
+				context->component->OnEntityDestroyed(deleteEntity);
+				deleteEntity = 0;
+			}
+
+			ImGui::TreePop();
 		}
 	}
 	ImGui::End();
@@ -224,7 +228,7 @@ void InspectorSystem::DrawHierarchyNode(Entity entity, SceneContext* context, co
 
 	float offsetX = ImGui::GetCursorPosX();
 
-	ImGui::SetCursorPosX(0.0f);
+	ImGui::SetCursorPosX(10.0f);
 	ImGui::Text(("ID : " + std::to_string(entity)).c_str());
 	ImGui::SameLine(50.0f + offsetX * 0.25f);
 
@@ -393,7 +397,7 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 	ImGui::SetNextWindowClass(&window_class);
 
 	ImGui::Begin("Inspector", showInspector);
-	if(selectedEntity == 0){
+	if(selectedEntity == 0 || !m_InspectorContext){
 		ImGui::Text("No object selected.");
 		ImGui::End();
 		return;

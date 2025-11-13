@@ -194,7 +194,7 @@ public:
 
 	template<typename T>
 	std::vector<Entity> FindEntitiesWithComponent(){
-		int size = m_storages.size();
+		size_t size = m_storages.size();
 		std::type_index ti(typeid(T));
 		auto it = m_storages.find(ti);
 		if(it == m_storages.end()) return {};
@@ -277,9 +277,11 @@ private:
 		std::type_index ti(typeid(T));
 		if(m_storages.contains(ti)) return;
 
-		if(useArchetype)
+		if (useArchetype) {
 			m_storages[ti] = std::make_unique<ArchetypeStorage<T>>();
-		else
+		}
+		else {
 			m_storages[ti] = std::make_unique<SparseStorage<T>>();
+		}
 	}
 };

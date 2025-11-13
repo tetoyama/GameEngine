@@ -31,6 +31,7 @@ public:
 		return g_pPhysics;
 	}
 	const physx::PxRenderBuffer& GetRenderBuffer(){
+
 		return g_pScene->getRenderBuffer();
 	}
 private:

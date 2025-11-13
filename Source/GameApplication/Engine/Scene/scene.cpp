@@ -78,7 +78,8 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_SceneManagerContext = set;
 	m_SceneManagerContext->debug->LOG_INFO("Sceneを初期化中...");
 
-	m_SceneManagerContext->sceneManager->OldState = m_SceneManagerContext->sceneManager->State;
+	m_SceneContext.system = m_SceneManagerContext->systemRegistry;
+
 
 	m_entityRegistry = std::make_shared<EntityRegistry>();
 	m_componentRegistry = std::make_shared<ComponentRegistry>(m_entityRegistry.get(),&m_SceneContext);
@@ -149,7 +150,6 @@ void Scene::Initialize(SceneManagerContext* set){
 
 	m_SceneContext.entity = m_entityRegistry.get();
 	m_SceneContext.component = m_componentRegistry.get();
-	m_SceneContext.system = m_SceneManagerContext->systemRegistry;
 
 	auto graphicsContext = Renderer->GetGraphicsContext();
 	// ライティングの仮設定
@@ -391,6 +391,8 @@ bool Scene::LoadFromYAMLFile(){
 	std::string filepath = LoadSceneFileDialog();
 	if (filepath != "") {
 		ResetAll();
+		std::filesystem::path path(filepath);
+		SceneName = path.stem().string();  // 拡張子を除いたファイル名
 		LoadSceneFromYAML(filepath);
 		SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
 		return true;
@@ -483,6 +485,9 @@ void Scene::Save(){
 }
 
 void Scene::TempSave(){
+
+	return;
+
 	std::wstring savePath = L"Temp_" + StringToWString(SceneName) + L".yaml";
 
 	YAML::Node root;
@@ -554,6 +559,8 @@ void Scene::TempSave(){
 }
 
 void Scene::TempLoad(){
+	return;
+
 	ResetAll(); // 一時保存の読み込み前に全エンティティをリセット
 	LoadSceneFromYAML("Temp_" + SceneName + ".yaml" );
 }

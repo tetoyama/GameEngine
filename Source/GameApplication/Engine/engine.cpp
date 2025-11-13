@@ -240,7 +240,6 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 	sceneManager->LoadScene(initialScene);
 #else
 	sceneManager->LoadFromYAML(DEFAULT_SCENE);
-
 #endif // _DEBUG
 
 	while(!windowService->GetMainWindow()->ShouldClose()){

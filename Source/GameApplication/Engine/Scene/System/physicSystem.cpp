@@ -276,12 +276,12 @@ void PhysicSystem::Finalize(){
 		OutputDebugStringA(("Finalize Disconnect PVD: " + std::to_string((uintptr_t)g_pPvd) + "\n").c_str());
 		g_pPvd->disconnect();
 		physx::PxPvdTransport* transport = g_pPvd->getTransport();
-		g_pPvd->release();
-		g_pPvd = nullptr;
 		if(transport){
 			OutputDebugStringA(("Finalize Release PVD Transport: " + std::to_string((uintptr_t)transport) + "\n").c_str());
 			transport->release();
 		}
+		g_pPvd->release();
+		g_pPvd = nullptr;
 	}
 
 	if(g_pFoundation){
@@ -332,7 +332,7 @@ void PhysicSystem::UpdateCollider() {
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
-		if (colliderEntity.empty()) return;
+		if (colliderEntity.empty()) continue;
 
 		for (Entity entity : colliderEntity) {
 			auto Collider = context->component->GetComponent<ColliderComponent>(entity);

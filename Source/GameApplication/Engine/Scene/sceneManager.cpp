@@ -46,6 +46,8 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 
 	// システムの初期化
 	m_systemRegistry->InitializeAll();
+	m_SceneContext.systemRegistry = m_systemRegistry.get();
+
 	for (auto& [name, scene] : m_activeScenes) {
 		scene->Initialize(&m_SceneContext);
 	}
@@ -57,11 +59,17 @@ void SceneManager::Update(float deltaTime){
 		if (State == SceneManagerState::Paused) {
 
 			m_SceneContext.debug->LOG_INFO("シーンを一時停止します");
+			OldState = State;
 
 		} else if (State == SceneManagerState::Stopped) {
 
 			m_SceneContext.debug->LOG_INFO("シーンを停止します");
+
+			m_systemRegistry->FinalizeAll();
+			m_systemRegistry->InitializeAll();
+
 			TempLoad(); // 一時保存の読み込み
+			OldState = State;
 
 		} else if (State == SceneManagerState::Playing) {
 
@@ -73,10 +81,12 @@ void SceneManager::Update(float deltaTime){
 					scene->Shutdown();
 					scene->Initialize(&m_SceneContext);
 				}
+				m_systemRegistry->InitializeAll();
 
 			} else {
 				m_SceneContext.debug->LOG_INFO("シーンを再開します");
 			}
+			OldState = State;
 
 		} else if (State == SceneManagerState::Step) {
 
@@ -157,8 +167,9 @@ void SceneManager::Shutdown(){
 	m_systemRegistry.reset();
 }
 
-void SceneManager::AddScene(std::shared_ptr<Scene> scene){
+void SceneManager::AddScene(std::shared_ptr<Scene> scene) {
 	m_activeScenes[scene->SceneName] = scene;
+	scene->Initialize(&m_SceneContext);
 }
 
 void SceneManager::LoadScene(std::shared_ptr<Scene> scene){
@@ -173,6 +184,7 @@ void SceneManager::LoadScene(std::shared_ptr<Scene> scene){
 
 	m_activeScenes[scene->SceneName] = scene;
 
+	scene->Initialize(&m_SceneContext);
 	m_SceneContext.resource->ClearAllUnused();
 }
 
