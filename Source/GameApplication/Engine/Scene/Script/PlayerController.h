@@ -9,7 +9,7 @@
 class PlayerController: public CustomScriptComponent {
 	BEGIN_REFLECT(PlayerController)
 
-		REFLECT_FIELD(float, moveSpeed, 20.0f)
+		REFLECT_FIELD(float, moveSpeed, 6.0f)
 		REFLECT_FIELD(float, health, 0.0f)
 		REFLECT_FIELD(bool, isInvincible, false)
 
@@ -29,6 +29,8 @@ class PlayerController: public CustomScriptComponent {
 
 	bool canDash = true;
 	float CurrentSpeed = 0.0f;
+	bool isJumpPressed = false;
+
 	TransformComponent* transform = nullptr;
 	TransformComponent* cameraTransform = nullptr;
 	GameTimeManager* gameTime = nullptr;
@@ -148,9 +150,10 @@ public:
 
 			float Y = collider->pRigidbodyDynamic->getLinearVelocity().y;
 
-			if (GetKeyDown(VK_SPACE)) {
+			if (GetKey(VK_SPACE) && !isJumpPressed) {
 				Y = jumpPower;
 			}
+			isJumpPressed = GetKey(VK_SPACE);
 
 			collider->pRigidbodyDynamic->setLinearVelocity(physx::PxVec3(dir.x * CurrentSpeed, Y, dir.z * CurrentSpeed));
 		}

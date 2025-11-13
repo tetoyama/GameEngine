@@ -312,7 +312,7 @@ void Scene::BuildDefaultScene(){
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, 0.0f, 0.0f);
-		transform->scale = Vector3(0.05f, 0.05f, 0.05f);
+		transform->scale = Vector3(0.01f, 0.01f, 0.01f);
 		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
 
@@ -486,8 +486,6 @@ void Scene::Save(){
 
 void Scene::TempSave(){
 
-	return;
-
 	std::wstring savePath = L"Temp_" + StringToWString(SceneName) + L".yaml";
 
 	YAML::Node root;
@@ -559,7 +557,6 @@ void Scene::TempSave(){
 }
 
 void Scene::TempLoad(){
-	return;
 
 	ResetAll(); // 一時保存の読み込み前に全エンティティをリセット
 	LoadSceneFromYAML("Temp_" + SceneName + ".yaml" );

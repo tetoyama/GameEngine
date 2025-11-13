@@ -997,6 +997,10 @@ void RenderSystem::SetCameraView(){
 		cameraComponent = context->component->GetComponent<CameraComponent>(entities[0]);
 		transformComponent = context->component->GetComponent<TransformComponent>(entities[0]);
 	}
+	if (cameraComponent == nullptr || transformComponent == nullptr) {
+		return;
+	}
+
 	m_CameraPosition = transformComponent->position;
 
 	// プロジェクションマトリクス設定

@@ -1,0 +1,322 @@
+Entities:
+  - Entity: 1
+    Components:
+      - Component: NameComponent
+        Name: Field
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: -5
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 500
+          y: 10
+          z: 500
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 0
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0.5
+            dynamicFriction: 0.5
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        PixelShader: Asset\Shader\DefaultPixelShader.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 2
+    Components:
+      - Component: NameComponent
+        Name: Light
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 100
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 0
+        Position:
+          x: 0
+          y: 100
+          z: 0
+          w: 0
+        Angle:
+          x: 1.04719758
+          y: 0
+          z: 0
+          w: 0
+        Direction:
+          x: 0
+          y: 0
+          z: 1
+          w: 0
+        Diffuse:
+          x: 1
+          y: 1
+          z: 1
+          w: 1
+        Ambient:
+          x: 0.25
+          y: 0.25
+          z: 0.25
+          w: 1
+        PointLightParam:
+          x: 500
+          y: 0
+          z: 0
+          w: 0
+        GroundNormal:
+          x: 0
+          y: 1
+          z: 0
+          w: 0
+        GroundColor:
+          x: 1
+          y: 0.800000012
+          z: 0.5
+          w: 0.0500000007
+        SkyColor:
+          x: 0.800000012
+          y: 0.800000012
+          z: 1
+          w: 0.100000001
+  - Entity: 3
+    Components:
+      - Component: NameComponent
+        Name: SkyBox
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 500
+          y: 500
+          z: 500
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\Daylight.png
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\sky.fbx
+        PixelShader: Asset\Shader\unlitUVTexturePS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: true
+        AnimationTime: 0
+  - Entity: 4
+    Components:
+      - Component: NameComponent
+        Name: Player
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.00999999978
+          y: 0.00999999978
+          z: 0.00999999978
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: true
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 2
+            size: [1, 1, 1]
+            offset: [0, 75, 0]
+            rotationOffset: [0, 0, 90]
+            radius: 25
+            height: 100
+            staticFriction: 0.5
+            dynamicFriction: 0.5
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: true
+            lockRotY: true
+            lockRotZ: true
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\Akai.fbx
+        PixelShader: Asset\Shader\DefaultPixelShader.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 0
+        Animations:
+          Idle: Asset\Model\Akai_Idle.fbx
+          mixamo.com: Asset\Model\Akai_Run.fbx
+          Run: Asset\Model\Akai_Run.fbx
+      - Component: PlayerController
+        moveSpeed: 6
+        health: 0
+        isInvincible: false
+        dashMultiplier: 2
+        accel: 10
+        rotateSpeed: 8
+        maxStamina: 5
+        stamina: 5
+        staminaConsumeRate: 1.5
+        staminaRecoverRate: 1
+        jumpPower: 5
+        Stamina: 5
+  - Entity: 5
+    Components:
+      - Component: NameComponent
+        Name: Camera
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 5
+          z: -15
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: CameraComponent
+        isLock: false
+        Target:
+          x: 0
+          y: 0
+          z: 0
+        NearClip: 0.00999999978
+        FarClip: 1024
+        FOV: 1
+        viewMatrix:
+          -
+            - 1
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 1
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+          -
+            - 0
+            - -5
+            - 15
+            - 1
+        nextLinkId: 1
+        nextPinId: 1
+        ScreenInput:
+          Name: ""
+          NodePos:
+            x: -1
+            y: -1
+          OutputPin: -1
+        ScreenOutput:
+          Name: ""
+          NodePos:
+            x: -1
+            y: -1
+          InputPins:
+            []
+      - Component: CameraController
+        distance: 6
+        height: 2
+        rotateSpeed: 1.5
+        minPitch: 0
+        maxPitch: 0.785398185

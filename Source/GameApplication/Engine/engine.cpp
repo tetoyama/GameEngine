@@ -239,7 +239,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 #ifdef _DEBUG
 	sceneManager->LoadScene(initialScene);
 #else
-	sceneManager->LoadFromYAML(DEFAULT_SCENE);
+	sceneManager->LoadFromFilePath(DEFAULT_SCENE);
 #endif // _DEBUG
 
 	while(!windowService->GetMainWindow()->ShouldClose()){

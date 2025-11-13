@@ -1,0 +1,805 @@
+Entities:
+  - Entity: 1
+    Components:
+      - Component: NameComponent
+        Name: Field
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: -5
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 100
+          y: 10
+          z: 100
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 0
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0.5
+            dynamicFriction: 0.5
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        PixelShader: Asset\Shader\PixelShader.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 14764.1855
+  - Entity: 2
+    Components:
+      - Component: NameComponent
+        Name: Light
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 25
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 0
+        Position:
+          x: 0
+          y: 25
+          z: 0
+          w: 0
+        Angle:
+          x: 1.04719758
+          y: 0
+          z: 0
+          w: 0
+        Direction:
+          x: 0
+          y: 0
+          z: 1
+          w: 0
+        Diffuse:
+          x: 0.899999976
+          y: 0.899999976
+          z: 1
+          w: 1
+        Ambient:
+          x: 0.00999999978
+          y: 0.00999999978
+          z: 0.00999999978
+          w: 1
+        PointLightParam:
+          x: 100
+          y: 0
+          z: 0
+          w: 0
+        GroundNormal:
+          x: 0
+          y: 1
+          z: 0
+          w: 0
+        GroundColor:
+          x: 1
+          y: 0.800000012
+          z: 0.5
+          w: 0.0500000007
+        SkyColor:
+          x: 0.800000012
+          y: 0.800000012
+          z: 1
+          w: 0.100000001
+  - Entity: 3
+    Components:
+      - Component: NameComponent
+        Name: SkyBox
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 500
+          y: 500
+          z: 500
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\Daylight.png
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\sky.fbx
+        PixelShader: Asset\Shader\unlitUVTexturePS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: true
+        AnimationTime: 14764.1855
+  - Entity: 4
+    Components:
+      - Component: NameComponent
+        Name: PlayerModel
+      - Component: TransformComponent
+        Position:
+          x: -0.976000011
+          y: 0
+          z: 0
+        Rotation:
+          - -3.9084954e-11
+          - -2.8925539e-11
+          - -0.706825197
+          - 0.707388222
+        Scale:
+          x: 0.999932706
+          y: 0.999931097
+          z: 1
+        Parent: 12
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 0
+            y: 1
+            z: 0
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\ToonShaderPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 14764.1855
+      - Component: OutlineComponent
+  - Entity: 5
+    Components:
+      - Component: NameComponent
+        Name: Camera
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 1.67999995
+          z: -15
+        Rotation:
+          - -0.139543116
+          - 0
+          - 0
+          - 0.990216017
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: CameraComponent
+        isLock: false
+        Target:
+          x: 0
+          y: 0
+          z: 0
+        NearClip: 0.00999999978
+        FarClip: 1024
+        FOV: 1
+        viewMatrix:
+          -
+            - 1
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0.961055517
+            - 0.276355565
+            - 0
+          -
+            - 0
+            - -0.276355565
+            - 0.961055517
+            - 0
+          -
+            - 0
+            - -5.75990677
+            - 13.9515553
+            - 1
+        nextLinkId: 11
+        nextPinId: 18
+        PostEffects:
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Blur.cso
+            NodePos:
+              x: -761.869995
+              y: 233.304382
+            InputPins:
+              - 2
+              - 4
+            OutputPin: 3
+            Param:
+              x: 0
+              y: 0
+              z: 0
+              w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Grayscale.cso
+            NodePos:
+              x: -527.621521
+              y: 235.520844
+            InputPins:
+              - 5
+              - 7
+            OutputPin: 6
+            Param:
+              x: 0
+              y: 0
+              z: 0
+              w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\BrightPass.cso
+            NodePos:
+              x: -263.621582
+              y: 175.520844
+            InputPins:
+              - 8
+              - 10
+            OutputPin: 9
+            Param:
+              x: 0.910000026
+              y: 0
+              z: 0
+              w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Blur.cso
+            NodePos:
+              x: -28.621582
+              y: 178.520844
+            InputPins:
+              - 11
+              - 13
+            OutputPin: 12
+            Param:
+              x: 2.11999989
+              y: 0
+              z: 0
+              w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\CompositeBloom.cso
+            NodePos:
+              x: 207.378418
+              y: 209.520813
+            InputPins:
+              - 14
+              - 16
+              - 17
+            OutputPin: 15
+            Param:
+              x: 0.119999997
+              y: 0
+              z: 0
+              w: 0
+        PostEffectLinks:
+          - ID: 2
+            StartNode: -1
+            EndNode: 0
+            StartAttr: -1
+            EndAttr: 2
+          - ID: 4
+            StartNode: 0
+            EndNode: 1
+            StartAttr: 3
+            EndAttr: 5
+          - ID: 6
+            StartNode: 1
+            EndNode: 2
+            StartAttr: 6
+            EndAttr: 8
+          - ID: 7
+            StartNode: 2
+            EndNode: 3
+            StartAttr: 9
+            EndAttr: 11
+          - ID: 8
+            StartNode: 3
+            EndNode: 4
+            StartAttr: 12
+            EndAttr: 14
+          - ID: 9
+            StartNode: 4
+            EndNode: -2
+            StartAttr: 15
+            EndAttr: 1
+          - ID: 10
+            StartNode: 1
+            EndNode: 4
+            StartAttr: 6
+            EndAttr: 16
+        ScreenInput:
+          Name: ""
+          NodePos:
+            x: -891.853516
+            y: 442.573364
+          OutputPin: -1
+        ScreenOutput:
+          Name: ""
+          NodePos:
+            x: 496.146484
+            y: 411.573364
+          InputPins:
+            - 1
+      - Component: CameraController
+        distance: 6
+        height: 2
+        rotateSpeed: 1.5
+        minPitch: 0
+        maxPitch: 0.785398185
+  - Entity: 6
+    Components:
+      - Component: NameComponent
+        Name: Enemy1
+      - Component: TransformComponent
+        Position:
+          x: 20
+          y: 0.200000003
+          z: 0
+        Rotation:
+          - 0
+          - -0.707106769
+          - 0
+          - 0.707106709
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\ToonShaderPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 14764.1855
+      - Component: OutlineComponent
+  - Entity: 7
+    Components:
+      - Component: NameComponent
+        Name: Enemy2
+      - Component: TransformComponent
+        Position:
+          x: 6.18033934
+          y: 0.200000003
+          z: 19.0211315
+        Rotation:
+          - 0
+          - -0.987688363
+          - 0
+          - 0.156434357
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\ToonShaderPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 14764.1855
+      - Component: OutlineComponent
+  - Entity: 8
+    Components:
+      - Component: NameComponent
+        Name: Enemy3
+      - Component: TransformComponent
+        Position:
+          x: -16.1803417
+          y: 0.200000003
+          z: 11.7557039
+        Rotation:
+          - -0
+          - -0.89100647
+          - 0
+          - -0.453990519
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\ToonShaderPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 14764.1855
+      - Component: OutlineComponent
+  - Entity: 9
+    Components:
+      - Component: NameComponent
+        Name: Enemy4
+      - Component: TransformComponent
+        Position:
+          x: -16.180336
+          y: 0.200000003
+          z: -11.7557106
+        Rotation:
+          - -0
+          - -0.453990459
+          - 0
+          - -0.891006529
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\ToonShaderPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 14764.1855
+      - Component: OutlineComponent
+  - Entity: 10
+    Components:
+      - Component: NameComponent
+        Name: Enemy5
+      - Component: TransformComponent
+        Position:
+          x: 6.18034267
+          y: 0.200000003
+          z: -19.0211296
+        Rotation:
+          - 0
+          - 0.156434521
+          - -0
+          - -0.987688303
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\player.obj
+        PixelShader: Asset\Shader\ToonShaderPS.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 14764.1855
+      - Component: OutlineComponent
+  - Entity: 11
+    Components:
+      - Component: NameComponent
+        Name: Shadow
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0.703279436
+          - -1.00902491e-06
+          - 9.98189535e-07
+          - 0.710913539
+        Scale:
+          x: 2.70000005
+          y: 2.69999886
+          z: 2.69999886
+        Parent: 4
+      - Component: TextureComponent
+        FilePath: Asset\Texture\particle.png
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: BillBoardRendererComponent
+        RotateX: false
+        RotateY: false
+        RotateZ: false
+  - Entity: 12
+    Components:
+      - Component: NameComponent
+        Name: Player
+      - Component: TransformComponent
+        Position:
+          x: 2.02722287
+          y: 1.00000596
+          z: -0.258842885
+        Rotation:
+          - -6.93169341e-06
+          - -6.93089714e-06
+          - 0.707107246
+          - 0.707106352
+        Scale:
+          x: 1.0000056
+          y: 1.0000056
+          z: 1
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: true
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 2
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0.5
+            dynamicFriction: 0.5
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: true
+          - type: 0
+            size: [1, 0.5, 0.5]
+            offset: [-0.5, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0.5
+            dynamicFriction: 0.5
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false

@@ -189,6 +189,7 @@ void PhysicSystem::Initialize(){
 		g_pPvd = physx::PxCreatePvd(*g_pFoundation);
 		physx::PxPvdTransport* transport = physx::PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
 		g_pPvd->connect(*transport, physx::PxPvdInstrumentationFlag::eALL);
+
 	}
 
 	g_pPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *g_pFoundation, physx::PxTolerancesScale(), true, g_pPvd);

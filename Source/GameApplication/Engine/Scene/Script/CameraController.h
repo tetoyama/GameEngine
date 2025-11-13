@@ -6,8 +6,8 @@
 class CameraController: public CustomScriptComponent {
 public:
 	BEGIN_REFLECT(CameraController)
-		REFLECT_FIELD(float, distance, 30.0f)
-		REFLECT_FIELD(float, height, 10.0f)
+		REFLECT_FIELD(float, distance, 6.0f)
+		REFLECT_FIELD(float, height, 2.0f)
 		REFLECT_FIELD(float, rotateSpeed, 1.5f)
 		REFLECT_FIELD(float, minPitch, 0)
 		REFLECT_FIELD(float, maxPitch, DirectX::XM_PIDIV2 * 0.5f)

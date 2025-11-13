@@ -77,10 +77,8 @@ void SceneManager::Update(float deltaTime){
 
 				TempSave(); // 一時保存
 				m_SceneContext.debug->LOG_INFO("シーンを開始します");
-				for (auto& [name, scene] : m_activeScenes) {
-					scene->Shutdown();
-					scene->Initialize(&m_SceneContext);
-				}
+
+				m_systemRegistry->FinalizeAll();
 				m_systemRegistry->InitializeAll();
 
 			} else {
@@ -168,6 +166,14 @@ void SceneManager::Shutdown(){
 }
 
 void SceneManager::AddScene(std::shared_ptr<Scene> scene) {
+	if (!scene) {
+		return;
+	}
+
+	InspectorSystem* inspector = m_systemRegistry->GetSystem<InspectorSystem>();
+	inspector->Finalize();
+	inspector->Initialize();
+
 	m_activeScenes[scene->SceneName] = scene;
 	scene->Initialize(&m_SceneContext);
 }
@@ -233,9 +239,64 @@ std::shared_ptr<Scene>  SceneManager::LoadFromFilePath(const std::string& filePa
 }
 
 void SceneManager::TempSave() {
+	YAML::Emitter out;
+	out << YAML::BeginMap;
+	out << YAML::Key << "Scenes" << YAML::Value << YAML::BeginSeq;
 
+	for (auto& [name, scene] : m_activeScenes) {
+		scene->TempSave(); // 各シーンの個別セーブ
+
+		out << YAML::BeginMap;
+		out << YAML::Key << "Name" << YAML::Value << name;
+		out << YAML::Key << "Path" << YAML::Value << scene->ScenePath;
+		out << YAML::EndMap;
+	}
+
+	out << YAML::EndSeq;
+	out << YAML::EndMap;
+
+	std::ofstream fout("TempSave.yaml");
+	fout << out.c_str();
+	fout.close();
 }
 
 void SceneManager::TempLoad() {
+	// アクティブシーンを破棄
+	for (auto& [name, scene] : m_activeScenes) {
+		if (scene) {
+			scene->Shutdown();
+			scene.reset();
+		}
+	}
+	m_activeScenes.clear();
 
+	// YAMLファイル読み込み
+	YAML::Node data;
+	try {
+		data = YAML::LoadFile("TempSave.yaml");
+	}
+	catch (const YAML::BadFile& e) {
+		std::cerr << "TempSave.yaml が見つかりません: " << e.what() << std::endl;
+		return;
+	}
+
+	// シーンの再ロード
+	if (data["Scenes"]) {
+		for (const auto& sceneNode : data["Scenes"]) {
+			std::string name = sceneNode["Name"].as<std::string>();
+			std::string path = sceneNode["Path"].as<std::string>();
+
+			// Sceneの生成・ロード
+			auto newScene = std::make_shared<Scene>();
+
+			newScene->Initialize(&m_SceneContext);
+
+			newScene->SceneName = name;
+
+			newScene->TempLoad(); // 各シーンの個別ロード
+
+			newScene->ScenePath = path;
+			m_activeScenes[name] = newScene;
+		}
+	}
 }

@@ -97,6 +97,8 @@ void InspectorSystem::Initialize() {
 	fileIcon[FileIconType::FILE_FBX] = m_context->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_fbx.png");
 	fileIcon[FileIconType::FILE_OBJ] = m_context->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_obj.png");
 	fileIcon[FileIconType::FILE_TTF] = m_context->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_ttf.png");
+
+	m_InspectorContext = nullptr;
 }
 
 void InspectorSystem::Finalize() {
@@ -104,8 +106,6 @@ void InspectorSystem::Finalize() {
 		fileIcon[i].reset();
 	}
 	ClearPreviewChache();
-
-
 }
 
 void InspectorSystem::ClearPreviewChache() {
@@ -234,7 +234,7 @@ void InspectorSystem::DrawHierarchyNode(Entity entity, SceneContext* context, co
 
 	auto* name = context->component->GetComponent<NameComponent>(entity);
 	std::string displayName = name ? name->name : "Entity";
-	if (pendingRenameEntity == entity) {
+	if (pendingRenameEntity != 0 && selectedEntity == entity && m_InspectorContext == context) {
 		displayName = "";
 	}
 	// --- 子の有無チェック ---
@@ -249,7 +249,7 @@ void InspectorSystem::DrawHierarchyNode(Entity entity, SceneContext* context, co
 
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
 		ImGuiTreeNodeFlags_DefaultOpen |
-		(selectedEntity == entity ? ImGuiTreeNodeFlags_Selected : 0);
+		((selectedEntity == entity && m_InspectorContext == context) ? ImGuiTreeNodeFlags_Selected : 0);
 
 	if (!hasChildren) {
 		flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
@@ -344,9 +344,22 @@ void InspectorSystem::DrawHierarchyNode(Entity entity, SceneContext* context, co
 	}
 
 	// --- 名前変更UI ---
-	if (pendingRenameEntity == entity) {
+	if (pendingRenameEntity != 0 && selectedEntity == entity && m_InspectorContext == context) {
+
+		if (pendingRenameEntity != entity) {
+			if (name) {
+				strncpy(renameBuffer, name->name.c_str(), sizeof(renameBuffer));
+				renameBuffer[sizeof(renameBuffer) - 1] = '\0';
+			} else {
+				renameBuffer[0] = '\0';
+			}
+			pendingRenameEntity = entity;
+		}
+
 		ImGui::SameLine();
-		ImGui::PushItemWidth(150.0f);
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() - 10.0f);
+		ImGui::PushItemWidth(80.0f);
+
 		if (ImGui::InputText("##Rename", renameBuffer, sizeof(renameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
 			if (name) {
 				name->name = renameBuffer;
@@ -397,11 +410,18 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 	ImGui::SetNextWindowClass(&window_class);
 
 	ImGui::Begin("Inspector", showInspector);
+
+
 	if(selectedEntity == 0 || !m_InspectorContext){
 		ImGui::Text("No object selected.");
 		ImGui::End();
 		return;
-	} else{
+	} else 	if (!context || !context->entity) {
+		selectedEntity = 0;
+		ImGui::Text("No object selected.");
+		ImGui::End();
+		return;
+	} else {
 		bool alive = context->entity->IsAlive(selectedEntity); // 選択されたエンティティが生存しているか確認
 		if(!alive){
 			selectedEntity = 0; // 生存していない場合は選択を解除
