@@ -64,6 +64,7 @@
 #include "Script/FadeOutSprite.h"
 #include "Script/FadeSetScene.h"
 #include "Script/CameraController.h"
+#include <Script/GN31.h>
 
 
 Scene::Scene(){
@@ -142,6 +143,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<FadeInSprite>("FadeInSprite", false);
 	m_componentRegistry->RegisterYAMLComponent<FadeOutSprite>("FadeOutSprite", false);
 	m_componentRegistry->RegisterYAMLComponent<FadeSetScene>("FadeSetScene", false);
+	m_componentRegistry->RegisterYAMLComponent<GN31>("GN31", false);
 
 	// シーンコンテキストの初期化
 	auto Renderer = m_SceneManagerContext->renderer;

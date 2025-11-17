@@ -94,6 +94,20 @@ struct FieldHandler<Vector3> {
 	}
 };
 
+// String
+template<>
+struct FieldHandler<std::string> {
+    static void Decode(const YAML::Node& node, IComponent*, std::string& v, const char* name) {
+        if (node[name]) v = node[name].as<std::string>();
+    }
+    static void Encode(YAML::Node& node, IComponent*, std::string& v, const char* name) {
+        node[name] = v;
+    }
+    static void Inspector(IComponent*, std::string& v, const char* name) {
+        ImGui::InputText(name,(char*)v.c_str(),v.size());
+    }
+};
+
 
 // ===========================================
 // フィールド情報

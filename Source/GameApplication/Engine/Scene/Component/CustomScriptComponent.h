@@ -23,10 +23,7 @@ public:
 	virtual ~CustomScriptComponent() = default;
 
 	void Initialize(){
-		//if(!isInitialized){
-		//	OnStart();
-		//	isInitialized = true;
-		//}
+		OnInitialize();
 	}
 
 	void Start(){
@@ -63,7 +60,8 @@ public:
 	}
 
 	// 派生クラスでオーバーライド可能な仮想関数
-	virtual void OnStart(){}
+	virtual void OnInitialize() {}
+	virtual void OnStart() {}
 	virtual void OnUpdate(float dt){}
 	virtual void OnFixedUpdate(float dt){}
 	virtual void OnDraw(){}

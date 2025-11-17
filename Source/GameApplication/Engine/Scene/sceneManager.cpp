@@ -80,6 +80,7 @@ void SceneManager::Update(float deltaTime){
 
 				m_systemRegistry->FinalizeAll();
 				m_systemRegistry->InitializeAll();
+				m_systemRegistry->StartAll();
 
 			} else {
 				m_SceneContext.debug->LOG_INFO("シーンを再開します");

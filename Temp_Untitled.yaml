@@ -70,6 +70,8 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 0
+      - Component: GN31
+        port: 1234
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -196,13 +198,13 @@ Entities:
         Name: Player
       - Component: TransformComponent
         Position:
-          x: -8.89035988
-          y: 8.6183424
+          x: 0
+          y: 0
           z: 0
         Rotation:
-          - -0
           - 0
-          - -0
+          - 0
+          - 0
           - 1
         Scale:
           x: 0.00999999978
@@ -256,13 +258,13 @@ Entities:
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: 1.60314023
-          y: 5.30779839
+          x: 0
+          y: 5
           z: -15
         Rotation:
-          - -0
           - 0
-          - -0
+          - 0
+          - 0
           - 1
         Scale:
           x: 1
@@ -295,12 +297,12 @@ Entities:
             - 1
             - 0
           -
-            - -1.60314023
-            - -5.30779839
+            - 0
+            - -5
             - 15
             - 1
         nextLinkId: 1
-        nextPinId: 2
+        nextPinId: 1
         ScreenInput:
           Name: ""
           NodePos:
@@ -313,7 +315,7 @@ Entities:
             x: -1
             y: -1
           InputPins:
-            - 1
+            []
       - Component: CameraController
         distance: 6
         height: 2

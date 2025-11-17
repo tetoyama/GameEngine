@@ -25,8 +25,21 @@ void CustomScriptSystem::Initialize(){
 			if (script && !script->IsInitialized()) {
 				script->SetContext(context, entity);
 				script->Initialize();
-				script->Start();
 			}
+		}
+	}
+}
+
+void CustomScriptSystem::Finalize() {
+	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		auto context = scene->GetSceneContext();
+		auto scripts = context->component->GetAllBaseComponents<CustomScriptComponent>();
+		for (auto& [entity, script] : scripts) {
+			if (script && !script->IsInitialized()) {
+				script->SetContext(context, entity);
+				script->Initialize();
+			}
+			script->Stop();
 		}
 	}
 }
