@@ -49,7 +49,7 @@ public:
 		if(node["Position"])
 			light.Position = node["Position"].as<DirectX::XMFLOAT4>();
 
-		if(node["PointLightParam"])
+		if(node["Param"])
 			light.Param = node["Param"].as<DirectX::XMFLOAT4>();
 
 		if(node["LightView"])
