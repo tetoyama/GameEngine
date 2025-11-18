@@ -26,11 +26,11 @@ class OutlineComponent;
 class CameraComponent;
 
 struct PostEffect {
+
 	PostEffectShader* shader;
 	std::string name;
 	bool enabled;
 };
-
 
 class RenderSystem : public ISystem{
 public:
@@ -53,14 +53,14 @@ private:
 
 	TransformComponent CalculateRectTransform(const SpriteRendererComponent& sprite, const TransformComponent& transform);
 
+	void DrawEntities(bool* RenderLayer);
+
 	void DrawMesh(ComponentRegistry* componentRegistry, TransformComponent* pTransform, MeshRendererComponent* pMesh, TextureComponent* pTexture);
 	void DrawModel(ComponentRegistry* componentRegistry, TransformComponent* pTransform, ModelRendererComponent* pMesh, TextureComponent* pTexture, OutlineComponent* pOutline);
 	void DrawBillBoard(ComponentRegistry* componentRegistry, TransformComponent* pTransform, MeshRendererComponent* pMesh, BillBoardRendererComponent* pBillBoard, TextureComponent* pTexture);
 	void DrawParticle(ComponentRegistry* componentRegistry, TransformComponent* pTransform, ParticleComponent* pParticle, TextureComponent* pTexture);
 	void DrawTerrain(ComponentRegistry* componentRegistry, TransformComponent* pTransform, TerrainComponent* pTerrain, TextureComponent* pTexture);
 	void DrawWave(ComponentRegistry* componentRegistry, TransformComponent* pTransform, WaveComponent* pWave, TextureComponent* pTexture);
-
-	void DrawEntities(bool* RenderLayer);
 
 	void SetCameraView();
 	void SetEditorCameraView();
@@ -73,8 +73,12 @@ private:
 	ID3D11ShaderResourceView* RenderSceneWithPostEffects(CameraComponent* camera);
 
 	SceneManagerContext* m_context;
+
 	MeshRendererComponent* m_billBoardMesh = nullptr;
 	MeshRendererComponent* m_SpriteMesh = nullptr;
+
+
+
 	ID3D11Texture2D* tex_player = nullptr;
 	ID3D11RenderTargetView* rtv_player = nullptr;
 	ID3D11ShaderResourceView* srv_player = nullptr;

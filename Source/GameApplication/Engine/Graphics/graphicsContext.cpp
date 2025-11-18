@@ -59,7 +59,7 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 
 	if(!CreateD2DResources(hwnd)){return false;}
 
-	if (!CreateComputeSkinningShader()) { return false; }
+//	if (!CreateComputeSkinningShader()) { return false; }
 
 	if (!CreateEffectSystem()) { return false; }
 
@@ -167,7 +167,10 @@ void GraphicsContext::SetMaterial(const MATERIAL& material){
 
 void GraphicsContext::SetLight(const LIGHT& light){
 
-	m_DeviceContext->UpdateSubresource(m_LightBuffer, 0, nullptr, &light, 0, 0);
+	LIGHT lightBuffer[64];
+	lightBuffer[0] = light;
+
+	m_DeviceContext->UpdateSubresource(m_LightBuffer, 0, nullptr, lightBuffer, 0, 0);
 }
 
 void GraphicsContext::SetCamera(const CAMERA& Camera){
@@ -374,7 +377,7 @@ bool GraphicsContext::CreateConstantBuffers(){
 	m_DeviceContext->PSSetConstantBuffers(4, 1, &m_UVMatrixBuffer);
 	assert(SUCCEEDED(hr));
 
-	bufferDesc.ByteWidth = sizeof(LIGHT);
+	bufferDesc.ByteWidth = sizeof(LIGHT) * LIGHT_MAX_COUNT;
 
 	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_LightBuffer);
 	m_DeviceContext->VSSetConstantBuffers(5, 1, &m_LightBuffer);
@@ -403,9 +406,21 @@ bool GraphicsContext::CreateConstantBuffers(){
 	light.Diffuse	= DirectX::XMFLOAT4(1.5f, 1.5f, 1.5f, 1.0f);
 
 	light.Position = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	light.PointLightParam = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	light.SkyColor = DirectX::XMFLOAT4(0.8f, 0.8f, 1.0f, 1.0f);
-	light.GroundColor = DirectX::XMFLOAT4(0.0f, 0.1f, 0.0f, 0.1f);
+
+	light.LightView = DirectX::XMFLOAT4X4{
+		1,0,0,0,
+		0,1,0,0,
+		0,0,1,0,
+		0,0,0,1
+	};
+
+	light.LightProjection = DirectX::XMFLOAT4X4{
+		1,0,0,0,
+		0,1,0,0,
+		0,0,1,0,
+		0,0,0,1
+	};
+
 	SetLight(light);
 
 	// マテリアル初期化

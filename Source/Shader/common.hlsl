@@ -36,25 +36,25 @@ cbuffer UVMatrixBuffer : register(b4)
 
 struct LIGHT
 {
-    bool Enable;
-    bool3 Dummy;
+    int Enable;
+    int LightType;
+    int2 Dummy;
     
+    float4 Position;
     float4 Direction;
+    
     float4 Diffuse;
     float4 Ambient;
     
-    float4 Position;
-    float4 PointLightParam;
-    float4 Angle;
-
-    float4 SkyColor;
-    float4 GroundColor;
-    float4 GroundNomal;
+    float4x4 LightView;
+    float4x4 LightProjection;
+    
+    float4 Param;
 };
 
 cbuffer LightBuffer : register(b5)
 {
-    LIGHT Lights[64];
+    LIGHT Lights[64]; // LIGHT_MAX_COUNT
 }
 
 // ViewBufferとまとめられる?

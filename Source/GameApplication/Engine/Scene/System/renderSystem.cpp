@@ -138,6 +138,7 @@ void RenderSystem::Initialize(){
 	showPlayer = &m_context->imgui->GetManubar()->showPlayerView;
 	showEditor = &m_context->imgui->GetManubar()->showEditorView;
 
+	m_context->debug->LOG_DEBUG("UI用テクスチャの取得中...");
 	PlayButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Play.png");
 	PauseButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Pause.png");
 	StopButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Stop.png");

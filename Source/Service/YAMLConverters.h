@@ -127,4 +127,35 @@ namespace YAML {
 			return true;
 		}
 	};
+
+
+	template<>
+	struct convert<DirectX::XMFLOAT4X4> {
+		static Node encode(const DirectX::XMFLOAT4X4& mat){
+			Node node;
+			for(int i = 0; i < 4; ++i){
+				Node row;
+				for(int j = 0; j < 4; ++j){
+					row.push_back(mat.m[i][j]);
+				}
+				node.push_back(row);
+			}
+			return node;
+		}
+
+		static bool decode(const Node& node, DirectX::XMFLOAT4X4& mat){
+			if(!node.IsSequence() || node.size() != 4)
+				return false;
+
+			for(int i = 0; i < 4; ++i){
+				if(!node[i].IsSequence() || node[i].size() != 4)
+					return false;
+
+				for(int j = 0; j < 4; ++j){
+					mat.m[i][j] = node[i][j].as<float>();
+				}
+			}
+			return true;
+		}
+	};
 }

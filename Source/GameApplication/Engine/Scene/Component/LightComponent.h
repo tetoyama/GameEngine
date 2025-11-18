@@ -13,17 +13,15 @@ public:
 		node["LightType"] = light.LightType;
 
 		node["Position"] = light.Position;
-		node["Angle"] = light.Angle;
-
 		node["Direction"] = light.Direction;
+
 		node["Diffuse"] = light.Diffuse;
 		node["Ambient"] = light.Ambient;
 
-		node["PointLightParam"] = light.PointLightParam;
+		node["Param"] = light.Param;
 
-		node["GroundNormal"] = light.GroundNormal;
-		node["GroundColor"] = light.GroundColor;
-		node["SkyColor"] = light.SkyColor;
+		node["LightView"] = light.LightView;
+		node["LightProjection"] = light.LightProjection;
 
 		return node;
 	}
@@ -52,19 +50,13 @@ public:
 			light.Position = node["Position"].as<DirectX::XMFLOAT4>();
 
 		if(node["PointLightParam"])
-			light.PointLightParam = node["PointLightParam"].as<DirectX::XMFLOAT4>();
+			light.Param = node["Param"].as<DirectX::XMFLOAT4>();
 
-		if(node["Angle"])
-			light.Angle = node["Angle"].as<DirectX::XMFLOAT4>();
+		if(node["LightView"])
+			light.LightView = node["LightView"].as<DirectX::XMFLOAT4X4>();
 
-		if(node["SkyColor"])
-			light.SkyColor = node["SkyColor"].as<DirectX::XMFLOAT4>();
-
-		if(node["GroundColor"])
-			light.GroundColor = node["GroundColor"].as<DirectX::XMFLOAT4>();
-
-		if(node["GroundNormal"])
-			light.GroundNormal = node["GroundNormal"].as<DirectX::XMFLOAT4>();
+		if(node["LightProjection"])
+			light.LightProjection = node["LightProjection"].as<DirectX::XMFLOAT4X4>();
 
 		return true;
 	}
@@ -85,17 +77,17 @@ public:
 		// 色設定
 		ImGui::ColorEdit4("Diffuse", reinterpret_cast<float*>(&light.Diffuse));
 		ImGui::ColorEdit4("Ambient", reinterpret_cast<float*>(&light.Ambient));
-		ImGui::ColorEdit4("Sky Color", reinterpret_cast<float*>(&light.SkyColor));
-		ImGui::ColorEdit4("Ground Color", reinterpret_cast<float*>(&light.GroundColor));
+		//ImGui::ColorEdit4("Sky Color", reinterpret_cast<float*>(&light.SkyColor));
+		//ImGui::ColorEdit4("Ground Color", reinterpret_cast<float*>(&light.GroundColor));
 
 		// 各種ベクトル設定
-		ImGui::DragFloat3("Angle", reinterpret_cast<float*>(&light.Angle), 0.1f);
+		//ImGui::DragFloat3("Angle", reinterpret_cast<float*>(&light.Angle), 0.1f);
 
 		// パラメータ (例: Point Light の範囲、減衰など)
-		ImGui::DragFloat4("PointLightParam", reinterpret_cast<float*>(&light.PointLightParam), 0.1f);
+		//ImGui::DragFloat4("PointLightParam", reinterpret_cast<float*>(&light.PointLightParam), 0.1f);
 
 		// 地面の法線方向
-		ImGui::DragFloat3("GroundNormal", reinterpret_cast<float*>(&light.GroundNormal), 0.1f);
+		//ImGui::DragFloat3("GroundNormal", reinterpret_cast<float*>(&light.GroundNormal), 0.1f);
 
 		ImGui::PopStyleVar();
 	}

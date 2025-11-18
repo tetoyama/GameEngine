@@ -70,8 +70,6 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 0
-      - Component: GN31
-        port: 1234
   - Entity: 2
     Components:
       - Component: NameComponent

@@ -210,12 +210,12 @@ void Scene::BuildDefaultScene(){
 	light.Position = DirectX::XMFLOAT4(0, 25, 25, 0);
 	light.Diffuse = DirectX::XMFLOAT4(0.9f, 0.9f, 1.0f, 1);
 	light.Ambient = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	light.PointLightParam = DirectX::XMFLOAT4(100.0f, 0, 0, 0);
-	light.Angle = DirectX::XMFLOAT4(DirectX::XM_PI / 180.0f * 120.0f, 0.0f, 0.0f, 0.0f);
+	light.Param = DirectX::XMFLOAT4(100.0f, 0, 0, 0);
+	//light.Angle = DirectX::XMFLOAT4(DirectX::XM_PI / 180.0f * 120.0f, 0.0f, 0.0f, 0.0f);
 
-	light.SkyColor = DirectX::XMFLOAT4(0.8f, 0.8f, 1.0f, 0.1f);
-	light.GroundColor = DirectX::XMFLOAT4(1.0f, 0.8f, 0.5f, 0.05f);
-	light.GroundNormal = DirectX::XMFLOAT4(0, 0, 1, 0);
+	//light.SkyColor = DirectX::XMFLOAT4(0.8f, 0.8f, 1.0f, 0.1f);
+	//light.GroundColor = DirectX::XMFLOAT4(1.0f, 0.8f, 0.5f, 0.05f);
+	//light.GroundNormal = DirectX::XMFLOAT4(0, 0, 1, 0);
 	graphicsContext->SetLight(light);
 	graphicsContext->SetDepthEnable(true);
 
@@ -274,7 +274,7 @@ void Scene::BuildDefaultScene(){
 		auto* light = componentRegistry->AddComponent<LightComponent>(entity);
 		light->light.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		light->light.Ambient = DirectX::XMFLOAT4(0.25f, 0.25f, 0.25f, 1.0f);
-		light->light.PointLightParam.x = 500.0f;
+		light->light.Param.x = 500.0f;
 	}
 	{
 		//エンティティを作成し、TransformとModelRendererを追加

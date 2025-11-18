@@ -77,7 +77,7 @@ void main(in PS_IN In, out float4 outColor : SV_Target)
 
     // 光の減衰（距離による）
     float dist = length(Lights[0].Position.xyz - In.WorldPosition.xyz);
-    float attenuation = saturate(1.0f - dist / Lights[0].PointLightParam.x);
+    float attenuation = saturate(1.0f - dist / Lights[0].Param.x);
 
     // Light color * BRDF
     float3 Lo = (diffuseTerm + specular) * Lights[0].Diffuse.rgb * NdotL * attenuation;

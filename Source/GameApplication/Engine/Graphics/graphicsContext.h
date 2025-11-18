@@ -32,6 +32,7 @@ enum class CullMode
 	Front,
 	None
 };
+
 class PostEffectShader {
 public:
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VS;
@@ -68,6 +69,7 @@ enum class PostProcessBufferID {
 	BufferA,
 	BufferB
 };
+
 class GraphicsContext : public IService {
 public:
 	bool Initialize(HWND hwnd, UINT width, UINT height);
@@ -91,6 +93,7 @@ public:
 
 	Effekseer::ManagerRef GetEffectManager();
 	EffekseerRendererDX11::RendererRef GetEffectRenderer();
+
 	// セッター
 	void SetDepthEnable(const bool& Enable);
 	void SetBlendMode(const BlendMode& mode);
@@ -144,6 +147,7 @@ public:
 	UINT m_width = 0;
 	UINT m_height = 0;
 	ID3D11ShaderResourceView* m_CurrentSRV = nullptr;
+
 private:
 	bool CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT height);
 	bool CreateDepthStencilstate();
