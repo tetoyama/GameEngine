@@ -70,8 +70,8 @@ private:
 	void EditorView();
 	void PlayerView();
 
-	void UpdateAnimation(const Entity& entity, const float& deltaTime);
 	ID3D11ShaderResourceView* RenderSceneWithPostEffects(CameraComponent* camera);
+
 	SceneManagerContext* m_context;
 	MeshRendererComponent* m_billBoardMesh = nullptr;
 	MeshRendererComponent* m_SpriteMesh = nullptr;

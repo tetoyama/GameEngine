@@ -90,7 +90,7 @@ void ModelData::LoadAnimation(const char* FileName, const char* Name){
 	m_Animation[Name] = animationData;
 	if(scene->mNumAnimations != 0){
 
-		for(int i = 0; i < scene->mNumAnimations; i++){
+		for(unsigned int i = 0; i < scene->mNumAnimations; i++){
 
 			scene = aiImportFile(FileName, aiProcess_ConvertToLeftHanded);
 

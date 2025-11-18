@@ -1443,15 +1443,7 @@ void RenderSystem::PlayerView(){
 	);
 }
 
-
-void RenderSystem::UpdateAnimation(const Entity& entity, const float& deltaTime) {
-
-}
-
-
 void RenderSystem::DrawEntities(bool* pRenderLayer){
-
-
 
 	GraphicsContext* graphicsContext = m_context->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
@@ -1607,13 +1599,12 @@ void RenderSystem::DrawEntities(bool* pRenderLayer){
 				vertices.push_back(v1);
 			}
 
-			if (vertices.empty() || vertices.size() >= maxLineCount) return;
+			if (vertices.empty() || vertices.size() >= maxLineCount) continue;
 
 			ID3D11Device* device = graphicsContext->GetDevice();
 			ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 			// --- 頂点バッファ更新 ---
-			// 動的バッファを初期化時に作ってあると仮定（pDebugLineVB）
 			D3D11_MAPPED_SUBRESOURCE mapped;
 			deviceContext->Map(pPhysicsDebugLineVB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
 			memcpy(mapped.pData, vertices.data(), sizeof(VERTEX_3D) * vertices.size());
