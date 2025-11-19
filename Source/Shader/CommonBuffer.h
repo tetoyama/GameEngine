@@ -1,4 +1,6 @@
 #pragma once
+#include "commonDefine.h"
+
 struct VERTEX_3D
 {
 	DirectX::XMFLOAT3 Position;
@@ -25,18 +27,12 @@ struct MATERIAL
 	float		Dummy{};
 };
 
-#define LIGHT_TYPE_NONE			0
-#define LIGHT_TYPE_DIRECTIONAL	1
-#define LIGHT_TYPE_POINT		2
-#define LIGHT_TYPE_SPOT			3
-
-#define LIGHT_MAX_COUNT		64
-
 struct LIGHT
 {
-	UINT		Enable = true;
+	UINT		Enable = 0;
 	UINT		LightType = 0;
-	UINT		Dummy[2];
+	UINT		CastShadow = 0;
+	UINT		Dummy = 0;
 
 	DirectX::XMFLOAT4	Position = DirectX::XMFLOAT4(0, 1, 0, 0);
 	DirectX::XMFLOAT4	Direction = DirectX::XMFLOAT4(0, -1, 0, 0);
@@ -44,13 +40,13 @@ struct LIGHT
 	DirectX::XMFLOAT4	Diffuse = DirectX::XMFLOAT4(0.9f, 0.9f, 1.0f, 1);
 	DirectX::XMFLOAT4	Ambient = DirectX::XMFLOAT4(0.01f, 0.01f, 0.01f, 1.0f);
 
-	DirectX::XMFLOAT4X4 LightView = DirectX::XMFLOAT4X4{
+	DirectX::XMMATRIX LightView = DirectX::XMMATRIX{
 		1,0,0,0,
 		0,1,0,0,
 		0,0,1,0,
 		0,0,0,1
 	};
-	DirectX::XMFLOAT4X4 LightProjection = DirectX::XMFLOAT4X4{
+	DirectX::XMMATRIX LightProjection = DirectX::XMMATRIX{
 		1,0,0,0,
 		0,1,0,0,
 		0,0,1,0,

@@ -1,3 +1,5 @@
 Scenes:
   - Name: Untitled
     Path: ""
+  - Name: scene
+    Path: C:\Users\teto_\source\repos\GameEngine\Asset\Scene\scene.yaml

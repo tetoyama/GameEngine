@@ -155,7 +155,7 @@ void Scene::Initialize(SceneManagerContext* set){
 
 	auto graphicsContext = Renderer->GetGraphicsContext();
 	// ライティングの仮設定
-	LIGHT light;
+	LIGHT light[LIGHT_MAX_COUNT];
 	graphicsContext->SetLight(light);
 	graphicsContext->SetDepthEnable(true);
 
@@ -204,18 +204,18 @@ void Scene::BuildDefaultScene(){
 
 	auto resource = m_SceneManagerContext->resource;
 
-	LIGHT light{};
-	light.Enable = TRUE;
-	light.Direction = DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
-	light.Position = DirectX::XMFLOAT4(0, 25, 25, 0);
-	light.Diffuse = DirectX::XMFLOAT4(0.9f, 0.9f, 1.0f, 1);
-	light.Ambient = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	light.Param = DirectX::XMFLOAT4(100.0f, 0, 0, 0);
-	//light.Angle = DirectX::XMFLOAT4(DirectX::XM_PI / 180.0f * 120.0f, 0.0f, 0.0f, 0.0f);
+	LIGHT light[LIGHT_MAX_COUNT];
+	light[0].Enable = TRUE;
+	light[0].Direction = DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
+	light[0].Position = DirectX::XMFLOAT4(0, 25, 25, 0);
+	light[0].Diffuse = DirectX::XMFLOAT4(0.9f, 0.9f, 1.0f, 1);
+	light[0].Ambient = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	light[0].Param = DirectX::XMFLOAT4(100.0f, 0, 0, 0);
+	//light[0].Angle = DirectX::XMFLOAT4(DirectX::XM_PI / 180.0f * 120.0f, 0.0f, 0.0f, 0.0f);
 
-	//light.SkyColor = DirectX::XMFLOAT4(0.8f, 0.8f, 1.0f, 0.1f);
-	//light.GroundColor = DirectX::XMFLOAT4(1.0f, 0.8f, 0.5f, 0.05f);
-	//light.GroundNormal = DirectX::XMFLOAT4(0, 0, 1, 0);
+	//light[0].SkyColor = DirectX::XMFLOAT4(0.8f, 0.8f, 1.0f, 0.1f);
+	//light[0].GroundColor = DirectX::XMFLOAT4(1.0f, 0.8f, 0.5f, 0.05f);
+	//light[0].GroundNormal = DirectX::XMFLOAT4(0, 0, 1, 0);
 	graphicsContext->SetLight(light);
 	graphicsContext->SetDepthEnable(true);
 

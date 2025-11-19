@@ -2307,6 +2307,9 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\GN31.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Shader\commonDefine.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\gameApplication.cpp">
@@ -2762,24 +2765,12 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Shader\commonVS.hlsl" />
-    <FxCompile Include="Source\Shader\bumpPS.hlsl" />
     <FxCompile Include="Source\Shader\PixelShader.hlsl" />
     <FxCompile Include="Source\Shader\disneyPBR_PS.hlsl" />
-    <FxCompile Include="Source\Shader\ToonShaderPS.hlsl" />
     <FxCompile Include="Source\Shader\OutlineVS.hlsl" />
     <FxCompile Include="Source\Shader\OutlinePS.hlsl" />
     <FxCompile Include="Source\Shader\common.hlsl" />
-    <FxCompile Include="Source\Shader\skinnedVertex.hlsl" />
     <FxCompile Include="Source\Shader\unlitUVTexturePS.hlsl" />
-    <FxCompile Include="Source\Shader\vertexDirectionalLightingPS.hlsl" />
-    <FxCompile Include="Source\Shader\bumpPS2.hlsl" />
-    <FxCompile Include="Source\Shader\limLightPS.hlsl" />
-    <FxCompile Include="Source\Shader\oldBumpPS.hlsl" />
-    <FxCompile Include="Source\Shader\pixelLightingBlinnPhongPS.hlsl" />
-    <FxCompile Include="Source\Shader\pointLightingBlinnPhongPS.hlsl" />
-    <FxCompile Include="Source\Shader\semiSphereLightingPS.hlsl" />
-    <FxCompile Include="Source\Shader\spotLightPS.hlsl" />
-    <FxCompile Include="Source\Shader\textureShadowPS.hlsl" />
     <FxCompile Include="Source\Shader\DebugLinePS.hlsl" />
     <FxCompile Include="Source\Shader\DebugLineVS.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\PostEffectVS.hlsl" />

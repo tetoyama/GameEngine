@@ -5,6 +5,15 @@
 
 class LightComponent: public IComponent {
 public:
+	float moveSpeed = 5.0f;
+	LIGHT light;
+
+	LightComponent(){
+		light.Enable = true;
+		light.LightType = LIGHT_TYPE_DIRECTIONAL;
+		light.CastShadow = true;
+	}
+
 	YAML::Node encode() override{
 		YAML::Node node;
 
@@ -53,10 +62,10 @@ public:
 			light.Param = node["Param"].as<DirectX::XMFLOAT4>();
 
 		if(node["LightView"])
-			light.LightView = node["LightView"].as<DirectX::XMFLOAT4X4>();
+			light.LightView = node["LightView"].as<DirectX::XMMATRIX>();
 
 		if(node["LightProjection"])
-			light.LightProjection = node["LightProjection"].as<DirectX::XMFLOAT4X4>();
+			light.LightProjection = node["LightProjection"].as<DirectX::XMMATRIX>();
 
 		return true;
 	}
@@ -66,6 +75,7 @@ public:
 
 		// ライト有効・無効
 		ImGui::Checkbox("Enable", (bool*)&light.Enable);
+		ImGui::Checkbox("CastShadow", (bool*)&light.Enable);
 
 		// ライトの種類
 		const char* lightTypes[] = {"Directional", "Point", "Spot"};
@@ -84,15 +94,12 @@ public:
 		//ImGui::DragFloat3("Angle", reinterpret_cast<float*>(&light.Angle), 0.1f);
 
 		// パラメータ (例: Point Light の範囲、減衰など)
-		//ImGui::DragFloat4("PointLightParam", reinterpret_cast<float*>(&light.PointLightParam), 0.1f);
+		ImGui::DragFloat4("Param", reinterpret_cast<float*>(&light.Param), 0.1f);
 
 		// 地面の法線方向
 		//ImGui::DragFloat3("GroundNormal", reinterpret_cast<float*>(&light.GroundNormal), 0.1f);
 
 		ImGui::PopStyleVar();
 	}
-
-
-	float moveSpeed = 5.0f;
-	LIGHT light;
 };
+                       

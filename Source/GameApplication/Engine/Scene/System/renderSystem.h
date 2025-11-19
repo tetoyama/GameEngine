@@ -67,6 +67,8 @@ private:
 
 	void ControllButton();
 
+	void ShadowPass();
+
 	void EditorView();
 	void PlayerView();
 
@@ -78,6 +80,10 @@ private:
 	MeshRendererComponent* m_SpriteMesh = nullptr;
 
 
+	ID3D11Texture2D* tex_shadow = nullptr;
+	ID3D11RenderTargetView* rtv_shadow = nullptr;
+	ID3D11ShaderResourceView* srv_shadow = nullptr;
+	ID3D11DepthStencilView* dsv_shadow = nullptr;
 
 	ID3D11Texture2D* tex_player = nullptr;
 	ID3D11RenderTargetView* rtv_player = nullptr;

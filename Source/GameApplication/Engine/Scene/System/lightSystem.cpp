@@ -37,6 +37,18 @@ void LightSystem::Update(float deltaTime){
 				// ライトの方向をエンティティの向きに設定
 				light->light.Direction = DirectX::XMFLOAT4(transform->front().x, transform->front().y, transform->front().z, 0.0f);
 				light->light.Enable = light->light.Enable;
+				light->light.LightProjection = DirectX::XMMatrixLookAtLH(
+					transform->position.ToXMVECTOR(),
+					(transform->position + transform->front()).ToXMVECTOR(),
+					(transform->position + transform->up()).ToXMVECTOR()
+				);
+
+				light->light.LightView = DirectX::XMMatrixPerspectiveFovLH(
+					DirectX::XMConvertToRadians(45.0f),
+					1.0f,
+					0.1f,
+					1000.0f
+				);
 			}
 		}
 	}
@@ -44,9 +56,13 @@ void LightSystem::Update(float deltaTime){
 
 void LightSystem::Draw(){
 
+	LIGHT lights[LIGHT_MAX_COUNT];
+	int lightCount = 0;
+
+	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
+
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
-		GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
 
 		// ライトコンポーネントを持つエンティティの検索
 		const auto& lightEntities = context->component->FindEntitiesWithComponent<LightComponent>();
@@ -59,7 +75,13 @@ void LightSystem::Draw(){
 				continue;
 			}
 			// ライトの描画処理
-			graphicsContext->SetLight(light->light);
+			if (lightCount < LIGHT_MAX_COUNT) {
+				lights[lightCount] = light->light;
+				lightCount++;
+			}
 		}
 	}
+
+	graphicsContext->SetLight(&lights[0]);
+
 }

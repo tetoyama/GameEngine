@@ -165,12 +165,12 @@ void GraphicsContext::SetMaterial(const MATERIAL& material){
    m_DeviceContext->UpdateSubresource(m_MaterialBuffer, 0, nullptr, &material, 0, 0);
 }
 
-void GraphicsContext::SetLight(const LIGHT& light){
+void GraphicsContext::SetLight(LIGHT* light){
 
-	LIGHT lightBuffer[64];
-	lightBuffer[0] = light;
-
-	m_DeviceContext->UpdateSubresource(m_LightBuffer, 0, nullptr, lightBuffer, 0, 0);
+	for(int i = 0; i < LIGHT_MAX_COUNT; i++){
+		m_LightData[i] = light[i];
+	}
+	m_DeviceContext->UpdateSubresource(m_LightBuffer, 0, nullptr, light, 0, 0);
 }
 
 void GraphicsContext::SetCamera(const CAMERA& Camera){
@@ -399,27 +399,12 @@ bool GraphicsContext::CreateConstantBuffers(){
 	assert(SUCCEEDED(hr));
 
 	// ライト初期化
-	LIGHT light{};
-	light.Enable = true;
-	light.Direction	= DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
-	light.Ambient	= DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	light.Diffuse	= DirectX::XMFLOAT4(1.5f, 1.5f, 1.5f, 1.0f);
-
-	light.Position = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-
-	light.LightView = DirectX::XMFLOAT4X4{
-		1,0,0,0,
-		0,1,0,0,
-		0,0,1,0,
-		0,0,0,1
-	};
-
-	light.LightProjection = DirectX::XMFLOAT4X4{
-		1,0,0,0,
-		0,1,0,0,
-		0,0,1,0,
-		0,0,0,1
-	};
+	LIGHT light[LIGHT_MAX_COUNT];
+	light[0].Enable = true;
+	light[0].Direction	= DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
+	light[0].Ambient	= DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	light[0].Diffuse	= DirectX::XMFLOAT4(1.5f, 1.5f, 1.5f, 1.0f);
+	light[0].Position = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	SetLight(light);
 

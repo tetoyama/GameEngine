@@ -97,11 +97,6 @@ Entities:
           y: 25
           z: 0
           w: 0
-        Angle:
-          x: 1.04719758
-          y: 0
-          z: 0
-          w: 0
         Direction:
           x: 0
           y: 0
@@ -117,26 +112,53 @@ Entities:
           y: 0.00999999978
           z: 0.00999999978
           w: 1
-        PointLightParam:
+        Param:
           x: 100
           y: 0
           z: 0
           w: 0
-        GroundNormal:
-          x: 0
-          y: 1
-          z: 0
-          w: 0
-        GroundColor:
-          x: 1
-          y: 0.800000012
-          z: 0.5
-          w: 0.0500000007
-        SkyColor:
-          x: 0.800000012
-          y: 0.800000012
-          z: 1
-          w: 0.100000001
+        LightView:
+          -
+            - 2.41421342
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 2.41421342
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1.00010002
+            - 1
+          -
+            - 0
+            - 0
+            - -0.10001
+            - 0
+        LightProjection:
+          -
+            - 1
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 1
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+          -
+            - 0
+            - -25
+            - 0
+            - 1
   - Entity: 3
     Components:
       - Component: NameComponent
@@ -193,6 +215,76 @@ Entities:
   - Entity: 4
     Components:
       - Component: NameComponent
+        Name: Camera
+      - Component: TransformComponent
+        Position:
+          x: 13.2233334
+          y: 2.00407624
+          z: -3.50666809
+        Rotation:
+          - 0.132572293
+          - -0.554020524
+          - 0.0899051502
+          - 0.816947281
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: CameraComponent
+        isLock: false
+        Target:
+          x: 0
+          y: 0
+          z: 0
+        NearClip: 0.00999999978
+        FarClip: 1024
+        FOV: 1
+        viewMatrix:
+          -
+            - 0.369956642
+            - -0.293791115
+            - -0.881373286
+            - 0
+          -
+            - -0
+            - 0.948683321
+            - -0.316227764
+            - 0
+          -
+            - 0.929049075
+            - 0.116990559
+            - 0.350971669
+            - 0
+          -
+            - -1.63419294
+            - 2.39391136
+            - 13.5191784
+            - 1
+        nextLinkId: 1
+        nextPinId: 2
+        ScreenInput:
+          Name: ""
+          NodePos:
+            x: -1
+            y: -1
+          OutputPin: -1
+        ScreenOutput:
+          Name: ""
+          NodePos:
+            x: -1
+            y: -1
+          InputPins:
+            - 1
+      - Component: CameraController
+        distance: 6
+        height: 2
+        rotateSpeed: 1.5
+        minPitch: 0
+        maxPitch: 1
+  - Entity: 5
+    Components:
+      - Component: NameComponent
         Name: Enemy1
       - Component: TransformComponent
         Position:
@@ -243,7 +335,7 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 10948.8711
-  - Entity: 5
+  - Entity: 6
     Components:
       - Component: NameComponent
         Name: Enemy2
@@ -296,7 +388,7 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 10948.8711
-  - Entity: 6
+  - Entity: 7
     Components:
       - Component: NameComponent
         Name: Enemy3
@@ -349,7 +441,7 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 10948.8711
-  - Entity: 7
+  - Entity: 8
     Components:
       - Component: NameComponent
         Name: Enemy4
@@ -402,7 +494,7 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 10948.8711
-  - Entity: 8
+  - Entity: 9
     Components:
       - Component: NameComponent
         Name: Enemy5
@@ -455,7 +547,7 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 10948.8711
-  - Entity: 9
+  - Entity: 10
     Components:
       - Component: NameComponent
         Name: Player
@@ -490,7 +582,7 @@ Entities:
             restitution: 0.100000001
             collisionLayer: 0
             lockRotX: true
-            lockRotY: true
+            lockRotY: false
             lockRotZ: true
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
@@ -515,7 +607,7 @@ Entities:
         staminaRecoverRate: 1
         jumpPower: 5
         Stamina: 5
-  - Entity: 10
+  - Entity: 11
     Components:
       - Component: NameComponent
         Name: Shadow
@@ -566,7 +658,7 @@ Entities:
         RotateX: false
         RotateY: false
         RotateZ: false
-  - Entity: 11
+  - Entity: 12
     Components:
       - Component: NameComponent
         Name: PushCube
@@ -637,7 +729,7 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 6854.41943
-  - Entity: 12
+  - Entity: 13
     Components:
       - Component: NameComponent
         Name: Slope

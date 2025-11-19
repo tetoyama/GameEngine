@@ -367,8 +367,10 @@ void RenderSystem::Draw(){
 			(float)m_context->renderer->GetGraphicsContext()->m_height
 		);
 		m_context->EditorScreenSize = m_ScreenSize;
-
 		SetCameraView();
+
+
+
 		DrawEntities(playerRenderLayerVisible);
 
 		CameraComponent* cameraComponent = nullptr;
@@ -1115,6 +1117,59 @@ void RenderSystem::ControllButton(){
 	if(ImGui::ImageButton("Step", Step, ImVec2(20, 20), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), DefaultButtonColor)){
 		m_context->sceneManager->State = SceneManagerState::Step; // シーンの状態を ステップに変更
 	}
+}
+
+void RenderSystem::ShadowPass(){
+	Vector2 oldScreenSize = m_ScreenSize;
+	Vector3 oldCameraPosition = m_CameraPosition;
+	DirectX::XMMATRIX oldCameraView = m_CameraView;
+	DirectX::XMMATRIX oldCameraProjection = m_CameraProjection;
+
+	GraphicsContext* graphicsContext = m_context->graphics;
+	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
+	// シャドウマップ用レンダーターゲットとデプスステンシルビューを設定
+	deviceContext->OMSetRenderTargets(1, &rtv_shadow, dsv_shadow);
+
+	// ビューポート設定
+	D3D11_VIEWPORT vp = {};
+	vp.Width = 1000.0f;
+	vp.Height = 1000.0f;
+	vp.MinDepth = 0.1f;
+	vp.MaxDepth = 1.0f;
+
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	deviceContext->RSSetViewports(1, &vp);
+
+	// シャドウマップ用のカメラ設定
+	LIGHT light = m_context->renderer->GetGraphicsContext()->GetLight()[0];
+	
+	// プロジェクションマトリクス設定
+	DirectX::XMMATRIX projection;
+	graphicsContext->SetProjectionMatrix(light.LightProjection);
+
+	// コンスタントバッファ設定
+	Vector3 position = m_EditorCameraPosition;
+	CAMERA camera{};
+	camera.CameraPosition = light.Position;
+	graphicsContext->SetCamera(camera);
+
+
+	DirectX::XMMATRIX view = DirectX::XMMatrixLookAtLH(m_EditorCameraPosition.ToXMVECTOR(), (m_EditorCameraPosition + front).ToXMVECTOR(), {0.0f, 1.0f, 0.0f});
+	graphicsContext->SetViewMatrix(view);
+	m_context->imgui->SetViewProjectionMatrix(view, projection);
+	m_CameraView = view;
+	m_CameraProjection = projection;
+	m_CameraPosition = m_EditorCameraPosition;
+
+	// シーン内のエンティティを描画
+	DrawEntities(editorRenderLayerVisible);
+
+	// 元のレンダーターゲットとデプスステンシルビューに戻す
+	deviceContext->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
+
+
 }
 
 void RenderSystem::EditorView(){

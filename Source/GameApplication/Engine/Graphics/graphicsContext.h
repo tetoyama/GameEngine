@@ -94,6 +94,8 @@ public:
 	Effekseer::ManagerRef GetEffectManager();
 	EffekseerRendererDX11::RendererRef GetEffectRenderer();
 
+	LIGHT* GetLight(){return m_LightData;}
+
 	// セッター
 	void SetDepthEnable(const bool& Enable);
 	void SetBlendMode(const BlendMode& mode);
@@ -102,7 +104,7 @@ public:
 	void SetProjectionMatrix(const DirectX::XMMATRIX& ProjectionMatrix);
 	void SetUVMatrix(const UVMatrix& uv);
 	void SetMaterial(const MATERIAL& Material);
-	void SetLight(const LIGHT& Light);
+	void SetLight(LIGHT* Light);
 	void SetCamera(const CAMERA& Camera);
 	void SetParameter(const Parameter& Parameter);
 	void ResetViewport();
@@ -210,4 +212,6 @@ private:
 	PostProcessBufferID m_CurrentBuffer = PostProcessBufferID::BufferA;
 
 	RenderEffectSystem* m_EffectSystem = nullptr;
+
+	LIGHT m_LightData[LIGHT_MAX_COUNT];
 };

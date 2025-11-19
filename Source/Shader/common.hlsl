@@ -1,3 +1,4 @@
+#include <commonDefine.h>
 
 cbuffer WorldBuffer : register(b0)
 {
@@ -54,7 +55,7 @@ struct LIGHT
 
 cbuffer LightBuffer : register(b5)
 {
-    LIGHT Lights[64]; // LIGHT_MAX_COUNT
+    LIGHT Lights[LIGHT_MAX_COUNT]; // LIGHT_MAX_COUNT
 }
 
 // ViewBufferとまとめられる?
