@@ -32,6 +32,48 @@ struct PostEffect {
 	bool enabled;
 };
 
+enum RenderPassType {
+	SHADOW_PASS  = 0,
+	GBUFFER_PASS,
+};
+
+struct CameraEntityData {
+
+	CameraComponent* cameraComponent = nullptr;
+	TransformComponent* transformComponent = nullptr;
+
+	// 念のためエンティティも保持
+	Entity entity = 0;
+	SceneContext* sceneContext = nullptr;
+};
+
+struct RenderPassContext {
+
+	RenderPassContext(
+		const RenderPassType& renderPass, 
+		bool* renderLayer, 
+		std::shared_ptr<PixelShaderData> setPixelShader,
+		std::shared_ptr<VertexShaderData> setVertexShader, 
+		const CameraEntityData& data, 
+		const Vector2& setScreenSize
+	);
+
+	bool* renderLayerVisibility = nullptr;
+	RenderPassType passType = SHADOW_PASS;
+
+	DirectX::XMFLOAT4 cameraPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+
+	DirectX::XMMATRIX viewMatrix = DirectX::XMMatrixIdentity();
+	DirectX::XMMATRIX projectionMatrix = DirectX::XMMatrixIdentity();
+
+	std::shared_ptr<PixelShaderData> pixelShader;
+	std::shared_ptr<VertexShaderData> vertexShader;
+
+	CameraEntityData cameraData;
+	Vector2 screenSize = Vector2(1280.0f, 720.0f);
+
+};
+
 class RenderSystem : public ISystem{
 public:
 	RenderSystem(SceneManagerContext* context): m_context(context){}
@@ -49,11 +91,11 @@ public:
 private:
 
 
-	void DrawRenderLayerToggleUI();
+	TransformComponent CalculateRectTransform(const RenderPassContext& renderPassContext, const SpriteRendererComponent& sprite, const TransformComponent& transform);
 
-	TransformComponent CalculateRectTransform(const SpriteRendererComponent& sprite, const TransformComponent& transform);
+	const CameraEntityData FindCameraEntity();
 
-	void DrawEntities(bool* RenderLayer);
+	void DrawEntities(const RenderPassContext& renderPassContext);
 
 	void DrawMesh(ComponentRegistry* componentRegistry, TransformComponent* pTransform, MeshRendererComponent* pMesh, TextureComponent* pTexture);
 	void DrawModel(ComponentRegistry* componentRegistry, TransformComponent* pTransform, ModelRendererComponent* pMesh, TextureComponent* pTexture, OutlineComponent* pOutline);
@@ -62,23 +104,22 @@ private:
 	void DrawTerrain(ComponentRegistry* componentRegistry, TransformComponent* pTransform, TerrainComponent* pTerrain, TextureComponent* pTexture);
 	void DrawWave(ComponentRegistry* componentRegistry, TransformComponent* pTransform, WaveComponent* pWave, TextureComponent* pTexture);
 
-	void SetCameraView();
-	void SetEditorCameraView();
-
 	void ControllButton();
+	void DrawRenderLayerToggleUI();
 
-	void ShadowPass();
+	void ShadowPass(RenderPassContext renderPassContext);
 
 	void EditorView();
 	void PlayerView();
 
-	ID3D11ShaderResourceView* RenderSceneWithPostEffects(CameraComponent* camera);
+	void ResizeRenderBuffer(const Vector2& screenSize,ID3D11Texture2D** tex, ID3D11RenderTargetView** rtv, ID3D11ShaderResourceView** srv, ID3D11DepthStencilView** dsv);
+
+	ID3D11ShaderResourceView* RenderSceneWithPostEffects(ID3D11ShaderResourceView* initialSRV, const RenderPassContext& renderPassContext);
 
 	SceneManagerContext* m_context;
 
 	MeshRendererComponent* m_billBoardMesh = nullptr;
 	MeshRendererComponent* m_SpriteMesh = nullptr;
-
 
 	ID3D11Texture2D* tex_shadow = nullptr;
 	ID3D11RenderTargetView* rtv_shadow = nullptr;
@@ -94,8 +135,6 @@ private:
 	ID3D11RenderTargetView* rtv_editor = nullptr;
 	ID3D11ShaderResourceView* srv_editor = nullptr;
 	ID3D11DepthStencilView* dsv_editor = nullptr;
-
-	Vector2 m_ScreenSize = Vector2(1280.0f, 720.0f);
 
 	Vector3 m_EditorCameraPosition = Vector3(0.0f, 5.0f, -20.0f);
 	Vector3 m_EditorCameraRotation = Vector3(0.0f, 0.0f, 0.0f);

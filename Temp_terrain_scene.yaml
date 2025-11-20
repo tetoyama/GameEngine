@@ -69,7 +69,7 @@ Entities:
         PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 39796.4648
+        AnimationTime: 64212.168
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -119,25 +119,25 @@ Entities:
           w: 0
         LightView:
           -
-            - 1
+            - 2.41421342
             - 0
             - 0
             - 0
           -
             - 0
-            - 1
+            - 2.41421342
             - 0
             - 0
           -
             - 0
             - 0
+            - 1.00010002
             - 1
-            - 0
           -
             - 0
             - 0
+            - -0.10001
             - 0
-            - 1
         LightProjection:
           -
             - 1
@@ -156,7 +156,7 @@ Entities:
             - 0
           -
             - 0
-            - 0
+            - -25
             - 0
             - 1
   - Entity: 3
@@ -211,21 +211,21 @@ Entities:
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
-        AnimationTime: 39796.4648
+        AnimationTime: 64212.168
   - Entity: 4
     Components:
       - Component: NameComponent
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: 7.7673645
-          y: 2.44828534
-          z: -5.71381617
+          x: 12.4879618
+          y: 3.24552488
+          z: -2.57599545
         Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
+          - -9.16959664e-09
+          - -0.384699464
+          - -3.82164567e-09
+          - 0.92304188
         Scale:
           x: 1
           y: 1
@@ -242,38 +242,87 @@ Entities:
         FOV: 1
         viewMatrix:
           -
-            - 1
+            - 0.704012871
             - 0
+            - -0.710187197
+            - 0
+          -
+            - -0
+            - 1
             - 0
             - 0
           -
+            - 0.710187197
             - 0
-            - 1
-            - 0
-            - 0
-          -
-            - 0
-            - 0
-            - 1
+            - 0.704012871
             - 0
           -
-            - -7.7673645
-            - -2.44828534
-            - 5.71381617
+            - -6.96224689
+            - -3.24552488
+            - 10.6823244
             - 1
-        nextLinkId: 1
-        nextPinId: 2
+        nextLinkId: 5
+        nextPinId: 8
+        PostEffects:
+          - Name: Blur
+            Enabled: false
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Blur.cso
+            NodePos:
+              x: 48.1153564
+              y: 7.12582397
+            InputPins:
+              - 2
+              - 4
+            OutputPin: 3
+            Param:
+              x: 3
+              y: 0
+              z: 0
+              w: 0
+          - Name: Grayscale
+            Enabled: false
+            VS: Asset\Shader\PostEffects\PostEffectVS.cso
+            PS: Asset\Shader\PostEffects\Grayscale.cso
+            NodePos:
+              x: 288.542786
+              y: 24.0898819
+            InputPins:
+              - 5
+              - 7
+            OutputPin: 6
+            Param:
+              x: 1
+              y: 0
+              z: 0
+              w: 0
+        PostEffectLinks:
+          - ID: 1
+            StartNode: -1
+            EndNode: 0
+            StartAttr: -1
+            EndAttr: 2
+          - ID: 3
+            StartNode: 0
+            EndNode: 1
+            StartAttr: 3
+            EndAttr: 5
+          - ID: 4
+            StartNode: 1
+            EndNode: -2
+            StartAttr: 6
+            EndAttr: 1
         ScreenInput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: -71.8846436
+            y: 24.1258316
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: 532.720703
+            y: 203.151428
           InputPins:
             - 1
       - Component: CameraController
@@ -288,14 +337,14 @@ Entities:
         Name: Player
       - Component: TransformComponent
         Position:
-          x: 7.7673645
-          y: 0.448285401
-          z: 0.286183953
+          x: 8.22683716
+          y: 1.245525
+          z: 1.64808095
         Rotation:
           - -4.20389539e-45
-          - 0.707142174
+          - 0.361448079
           - 4.20389539e-45
-          - 0.707071483
+          - 0.932392359
         Scale:
           x: 0.00999999885
           y: 0.00999999978
@@ -324,7 +373,7 @@ Entities:
         PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 39796.4648
+        AnimationTime: 64212.168
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           mixamo.com: Asset\Model\Akai_Run.fbx
@@ -399,14 +448,14 @@ Entities:
         Name: PushCube
       - Component: TransformComponent
         Position:
-          x: 15.3251495
-          y: 1.17001367
-          z: 2.34701705
+          x: 2.67906618
+          y: 1.17004943
+          z: 1.23769808
         Rotation:
-          - -0.536677659
-          - 0.460408419
-          - -0.46040836
-          - -0.536679864
+          - -0.890922308
+          - -4.72146979e-07
+          - 0.454155833
+          - 1.6991047e-06
         Scale:
           x: 2.34000015
           y: 2.34009933
@@ -463,7 +512,7 @@ Entities:
         PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 35702.0898
+        AnimationTime: 60117.793
   - Entity: 8
     Components:
       - Component: NameComponent
@@ -534,7 +583,7 @@ Entities:
         PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 35702.0898
+        AnimationTime: 60117.793
   - Entity: 9
     Components:
       - Component: NameComponent
@@ -11093,7 +11142,7 @@ Entities:
         PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 28847.668
+        AnimationTime: 53263.3711
   - Entity: 16
     Components:
       - Component: NameComponent

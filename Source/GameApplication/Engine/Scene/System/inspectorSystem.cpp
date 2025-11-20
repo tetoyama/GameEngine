@@ -166,6 +166,8 @@ void InspectorSystem::DrawSceneHierarchy(SceneManagerContext* managerContext){
 	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
 	ImGui::SetNextWindowClass(&window_class);
 
+	std::shared_ptr<Scene> sceneToDelete = nullptr;
+
 	//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
 	ImGuiWindowFlags toolbar_window_flags = 0;
 	ImGui::Begin("Scene Hierarchy", showSceneHierarchy, toolbar_window_flags);
@@ -178,6 +180,27 @@ void InspectorSystem::DrawSceneHierarchy(SceneManagerContext* managerContext){
 
 		
 		if (ImGui::TreeNodeEx(scenePair.first.c_str(),ImGuiTreeNodeFlags_DefaultOpen)) {
+
+			if (ImGui::BeginPopupContextItem()) {
+
+				if (ImGui::MenuItem("Save scene as...")) {
+					std::string oldSavePath = scenePair.second->ScenePath;
+
+					scenePair.second->ScenePath = "";
+
+					scenePair.second->Save();
+
+					scenePair.second->ScenePath = oldSavePath;
+
+				}
+
+				if (ImGui::MenuItem("Delete Scene")) {
+					scenePair.second->isDestroy = true; // シーンを削除フラグ付きでマーク
+				}
+
+				ImGui::EndPopup();
+			}
+
 			ImGui::SetCursorPos(ImVec2(10,ImGui::GetCursorPos().y));
 		// ツールバー
 			if (ImGui::Button("+ Add")) {

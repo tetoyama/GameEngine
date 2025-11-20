@@ -191,8 +191,9 @@ void ImGuiLogWindow::Draw(){
 				}
 
 
-				ImGui::EndChild();
 			}
+			ImGui::EndChild();
+
 
 		}
 		ImGui::End();

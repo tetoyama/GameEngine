@@ -26,6 +26,30 @@ void CameraSystem::Initialize(){
 	m_context->debug->LOG_DEBUG("CameraSystemを初期化中...");
 }
 
-void CameraSystem::Update(float deltaTime) {
+void CameraSystem::Draw() {
 
+	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		auto context = scene->GetSceneContext();
+		auto cameras = context->component->GetAllBaseComponents<CameraComponent>();
+		for (auto& [entity, camera] : cameras) {
+			TransformComponent* transform = context->component->GetComponent<TransformComponent>(entity);
+			if (transform) {
+				if (camera->isLock) {
+					camera->viewMatrix = DirectX::XMMatrixLookAtLH(
+						transform->position.ToXMVECTOR(),
+						camera->Target.ToXMVECTOR(),
+						{ 0.0f, 1.0f, 0.0f }
+					);
+
+				} else {
+
+					camera->viewMatrix = DirectX::XMMatrixLookAtLH(
+						transform->position.ToXMVECTOR(),
+						(transform->position + transform->front()).ToXMVECTOR(),
+						{ 0.0f, 1.0f, 0.0f }
+					);
+				}
+			}
+		}
+	}
 }

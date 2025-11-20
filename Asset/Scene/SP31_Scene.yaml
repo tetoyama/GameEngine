@@ -97,11 +97,6 @@ Entities:
           y: 25
           z: 0
           w: 0
-        Angle:
-          x: 1.04719758
-          y: 0
-          z: 0
-          w: 0
         Direction:
           x: 0
           y: 0
@@ -117,26 +112,53 @@ Entities:
           y: 0.00999999978
           z: 0.00999999978
           w: 1
-        PointLightParam:
+        Param:
           x: 100
           y: 0
           z: 0
           w: 0
-        GroundNormal:
-          x: 0
-          y: 1
-          z: 0
-          w: 0
-        GroundColor:
-          x: 1
-          y: 0.800000012
-          z: 0.5
-          w: 0.0500000007
-        SkyColor:
-          x: 0.800000012
-          y: 0.800000012
-          z: 1
-          w: 0.100000001
+        LightView:
+          -
+            - 2.41421342
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 2.41421342
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1.00010002
+            - 1
+          -
+            - 0
+            - 0
+            - -0.10001
+            - 0
+        LightProjection:
+          -
+            - 1
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 1
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+          -
+            - 0
+            - -25
+            - 0
+            - 1
   - Entity: 3
     Components:
       - Component: NameComponent
@@ -239,7 +261,7 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 14764.1855
@@ -475,7 +497,7 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 14764.1855
@@ -529,7 +551,7 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 14764.1855
@@ -583,7 +605,7 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 14764.1855
@@ -637,7 +659,7 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 14764.1855
@@ -691,7 +713,7 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
+        PixelShader: Asset\Shader\disneyPBR_PS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 14764.1855

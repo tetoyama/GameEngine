@@ -30,14 +30,17 @@ public:
 	void OnResizeRelease(){
 		if(m_d2dRenderTarget){
 			m_d2dRenderTarget->Release();
+			m_d2dRenderTarget = nullptr;
 		}
 
 		if(m_fontBrush){
 			m_fontBrush->Release();
+			m_fontBrush = nullptr;
 		}
 
 		if(m_dwriteFactory){
 			m_dwriteFactory->Release();
+			m_dwriteFactory = nullptr;
 		}
 	}
 

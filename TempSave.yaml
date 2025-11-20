@@ -1,5 +1,3 @@
 Scenes:
-  - Name: Untitled
-    Path: ""
-  - Name: scene
-    Path: C:\Users\teto_\source\repos\GameEngine\Asset\Scene\scene.yaml
+  - Name: terrain_scene
+    Path: C:\Users\äwçZóp\Documents\GitHub\GameEngine\Asset\Scene\terrain_scene.yaml

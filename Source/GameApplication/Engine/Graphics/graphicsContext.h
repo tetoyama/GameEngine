@@ -110,6 +110,7 @@ public:
 	void ResetViewport();
 	void SetWorldViewProjection2D();
 	void SetCullMode(CullMode set);
+
 	void Resize(UINT width, UINT height);
 
 	bool CreateVertexShader(

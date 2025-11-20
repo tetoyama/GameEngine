@@ -97,11 +97,6 @@ Entities:
           y: 10
           z: -6.8464551
           w: 0
-        Angle:
-          x: 1.04719758
-          y: 0
-          z: 0
-          w: 0
         Direction:
           x: 0
           y: 0
@@ -117,26 +112,53 @@ Entities:
           y: 0.00999999978
           z: 0.00999999978
           w: 1
-        PointLightParam:
+        Param:
           x: 100
           y: 0
           z: 0
           w: 0
-        GroundNormal:
-          x: 0
-          y: 1
-          z: 0
-          w: 0
-        GroundColor:
-          x: 1
-          y: 0.800000012
-          z: 0.5
-          w: 0.0500000007
-        SkyColor:
-          x: 0.800000012
-          y: 0.800000012
-          z: 1
-          w: 0.100000001
+        LightView:
+          -
+            - 2.41421342
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 2.41421342
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1.00010002
+            - 1
+          -
+            - 0
+            - 0
+            - -0.10001
+            - 0
+        LightProjection:
+          -
+            - 0.926630974
+            - 0.375972033
+            - 0
+            - 0
+          -
+            - -0.375972033
+            - 0.926630974
+            - 0
+            - 0
+          -
+            - 0
+            - -0
+            - 1
+            - 0
+          -
+            - -0.375972271
+            - -10.9443293
+            - 6.8464551
+            - 1
   - Entity: 3
     Components:
       - Component: NameComponent
@@ -307,67 +329,3 @@ Entities:
             y: 0
           InputPins:
             - 1
-  - Entity: 6
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: 6.84676933
-          y: 1.37203765
-          z: -2.17999091e-11
-        Rotation:
-          - -0.00551937427
-          - -0.00552377198
-          - -0.70680356
-          - 0.707366765
-        Scale:
-          x: 0.419999897
-          y: 0.419999927
-          z: 0.419999927
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\alca.png
-        Material:
-          Ambient:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\alca.fbx
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-        AnimationTime: 0
-        Animations:
-          arm|idle: Asset\Model\ALCA_Old.fbx
-          Take 001: Asset\Model\alca.fbx
-          arm|move.001: Asset\Model\ALCA_Old.fbx
-          arm|jump: Asset\Model\ALCA_Old.fbx
-          arm|down: Asset\Model\ALCA_Old.fbx
-          arm|idle.001: Asset\Model\ALCA_Old.fbx
-          arm|idle.002: Asset\Model\ALCA_Old.fbx
-          arm|moving: Asset\Model\ALCA_Old.fbx
-          ALCA_Old.: Asset\Model\ALCA_Old.fbx
-      - Component: OutlineComponent
