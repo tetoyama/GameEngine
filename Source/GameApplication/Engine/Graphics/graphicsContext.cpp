@@ -711,9 +711,11 @@ void GraphicsContext::Resize(UINT width, UINT height){
 		m_DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
 		if(m_RenderTargetView){
 			m_RenderTargetView->Release();
+			m_RenderTargetView = nullptr;
 		}
 		if(m_DepthStencilView){
 			m_DepthStencilView->Release();
+			m_DepthStencilView = nullptr;
 		}
 
 		HRESULT hr = m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);

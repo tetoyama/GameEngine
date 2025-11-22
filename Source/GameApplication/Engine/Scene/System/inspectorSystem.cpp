@@ -196,6 +196,7 @@ void InspectorSystem::DrawSceneHierarchy(SceneManagerContext* managerContext){
 
 				if (ImGui::MenuItem("Delete Scene")) {
 					scenePair.second->isDestroy = true; // シーンを削除フラグ付きでマーク
+					selectedEntity = 0;
 				}
 
 				ImGui::EndPopup();

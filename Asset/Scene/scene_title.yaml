@@ -79,11 +79,6 @@ Entities:
           y: 25
           z: 0
           w: 0
-        Angle:
-          x: 1.04719758
-          y: 0
-          z: 0
-          w: 0
         Direction:
           x: 0
           y: 0
@@ -99,26 +94,53 @@ Entities:
           y: 0.00999999978
           z: 0.00999999978
           w: 1
-        PointLightParam:
+        Param:
           x: 100
           y: 0
           z: 0
           w: 0
-        GroundNormal:
-          x: 0
-          y: 1
-          z: 0
-          w: 0
-        GroundColor:
-          x: 1
-          y: 0.800000012
-          z: 0.5
-          w: 0.0500000007
-        SkyColor:
-          x: 0.800000012
-          y: 0.800000012
-          z: 1
-          w: 0.100000001
+        LightView:
+          -
+            - 2.41421342
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 2.41421342
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1.00010002
+            - 1
+          -
+            - 0
+            - 0
+            - -0.10001
+            - 0
+        LightProjection:
+          -
+            - 1
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 1
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+          -
+            - 0
+            - -25
+            - 0
+            - 1
   - Entity: 3
     Components:
       - Component: NameComponent
@@ -275,15 +297,52 @@ Entities:
             - -24.9833488
             - -0.912284851
             - 1
+        nextLinkId: 1
+        nextPinId: 7
         PostEffects:
           - Name: NewEffect
             Enabled: false
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Blur.cso
+            NodePos:
+              x: -1
+              y: -1
+            InputPins:
+              - 1
+            OutputPin: 2
+            Param:
+              x: 0
+              y: 0
+              z: 0
+              w: 0
           - Name: NewEffect
             Enabled: false
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Mosaic.cso
+            NodePos:
+              x: -1
+              y: -1
+            InputPins:
+              - 3
+            OutputPin: 4
+            Param:
+              x: 0
+              y: 0
+              z: 0
+              w: 0
+        ScreenInput:
+          Name: ""
+          NodePos:
+            x: 50
+            y: 50
+          OutputPin: 5
+        ScreenOutput:
+          Name: ""
+          NodePos:
+            x: 500
+            y: 50
+          InputPins:
+            - 6
   - Entity: 6
     Components:
       - Component: NameComponent

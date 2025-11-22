@@ -256,7 +256,7 @@ Entities:
             restitution: 0.100000001
             collisionLayer: 0
             lockRotX: true
-            lockRotY: false
+            lockRotY: true
             lockRotZ: true
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
@@ -1307,7 +1307,7 @@ Entities:
             restitution: 0.100000001
             collisionLayer: 0
             lockRotX: true
-            lockRotY: false
+            lockRotY: true
             lockRotZ: true
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
@@ -1393,7 +1393,7 @@ Entities:
             x: 0
             y: 0
             z: 0
-            w: 1
+            w: 0
           Specular:
             x: 0.0399999991
             y: 0.0399999991

@@ -46,6 +46,11 @@ private:
 	ImGuiService* m_imguiSystem = nullptr;
 	InputService* m_inputSystem = nullptr;
 
+	bool m_resizing = false;
+
+	UINT m_pendingWidth = 1280;
+	UINT m_pendingHeight = 720;
+
 	WINDOWPLACEMENT m_wpPrev = {};
 	bool m_fullscreen = false;
 	int m_width = 0;

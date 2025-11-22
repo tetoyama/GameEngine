@@ -269,15 +269,17 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		}
 		
 		{	// Draw
+			double Update = timeService->GetDeltaUpdateTime();
+			double Draw = timeService->GetDrawTime();
+
 			mainRenderer->BeginFrame();
 			imguiService->Begin();
 			{
-				double Update = timeService->GetDeltaUpdateTime();
-				double Draw = timeService->GetDrawTime();
-				imguiService->DrawDebugImGuiWindow(Update * 1000.0f,Draw * 1000.0f, timeService->GetFixedUpdateFPS(),timeService->GetDeltaFPS());
+				imguiService->DrawDebugImGuiWindow(Update * 1000.0f, Draw * 1000.0f, timeService->GetFixedUpdateFPS(), timeService->GetDeltaFPS());
+
+				sceneManager->Draw();
+				debugLogSystem->Draw();
 			}
-			sceneManager->Draw();
-			debugLogSystem->Draw();
 			imguiService->End();
 			mainRenderer->EndFrame(0);
 		}

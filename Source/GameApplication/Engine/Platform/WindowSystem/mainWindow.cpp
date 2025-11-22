@@ -99,7 +99,6 @@ bool MainWindow::ShouldClose() const{
 	return m_ShouldClose;
 }
 
-
 void MainWindow::SetBorderlessFullscreen(bool enable){
 	if(!m_HWND) return;
 
@@ -199,18 +198,32 @@ LRESULT MainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 		case WM_DESTROY:
 			PostQuitMessage(0);
 			return 0;
-		case WM_SIZE:
-			if(m_mainRenderer){
-				UINT width = LOWORD(lParam);
-				UINT height = HIWORD(lParam);
-				if (width > 0 && height > 0) {
-					m_mainRenderer->OnResize(width, height);
+
+		case WM_ENTERSIZEMOVE:
+			m_resizing = true;
+			break;
+
+		case WM_EXITSIZEMOVE:
+			m_resizing = false;
+			if (m_mainRenderer) {
+				m_mainRenderer->OnResize(m_pendingWidth, m_pendingHeight);
+				if (m_imguiSystem) {
+					m_imguiSystem->OnResize();
 				}
 			}
-			if(m_imguiSystem){
-				m_imguiSystem->OnResize();
+			break;
+
+		case WM_SIZE:
+			m_pendingWidth = LOWORD(lParam);
+			m_pendingHeight = HIWORD(lParam);
+			if (!m_resizing && m_mainRenderer) {
+				m_mainRenderer->OnResize(m_pendingWidth, m_pendingHeight);
+				if (m_imguiSystem) {
+					m_imguiSystem->OnResize();
+				}
 			}
 			break;
+
 		case WM_KEYDOWN:
 			if(wParam == VK_F11){
 				SetBorderlessFullscreen(!m_fullscreen);
