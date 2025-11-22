@@ -590,6 +590,8 @@ void Scene::LoadSceneFromYAML(std::string path) {
 	}  
 
 	ScenePath = path; // シーンのパスを設定
+	std::filesystem::path fpath(ScenePath);
+	SceneName = fpath.stem().string();  // 拡張子を除いたファイル名
 
 	YAML::Node entities = root["Entities"];  
 	for(const auto& entityNode : entities){  

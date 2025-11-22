@@ -108,8 +108,7 @@ public:
 	}
 
 	void LoadScene(const std::string& scenePath){
-		auto setScene = std::make_shared<Scene>();
-		setScene->ScenePath = scenePath;
+		auto setScene = m_context->manager->sceneManager->LoadFromFilePath(scenePath);
 		m_context->manager->sceneManager->DeferredLoadScene(setScene);
 	}
 

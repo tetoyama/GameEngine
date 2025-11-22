@@ -63,95 +63,61 @@ HRESULT InitIcon(const HWND hWnd) {
     return SetIcon(hWnd, DEFAULT_ICON);
 }
 
-HRESULT SetIcon(const HWND hWnd, const std::wstring& FileName) {
-
-    if (g_hIcon) {
-        DestroyIcon(g_hIcon);
-    }
-
-    IWICImagingFactory* pWICFactory = nullptr;
-    HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pWICFactory));
-    if (FAILED(hr)) {
-        return hr;
-    }
-
-    IWICBitmapDecoder* pDecoder = nullptr;
-    hr = pWICFactory->CreateDecoderFromFilename(FileName.c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &pDecoder);
-    if (FAILED(hr)) {
-        pWICFactory->Release();
-        return hr;
-    }
-
-    IWICBitmapFrameDecode* pFrame = nullptr;
-    hr = pDecoder->GetFrame(0, &pFrame);
-    if (FAILED(hr)) {
-        pDecoder->Release();
-        pWICFactory->Release();
-        return hr;
-    }
-
-    // フォーマットの変換
-    IWICFormatConverter* pConverter = nullptr;
-    hr = pWICFactory->CreateFormatConverter(&pConverter);
-    if (FAILED(hr)) {
-        pFrame->Release();
-        pDecoder->Release();
-        pWICFactory->Release();
-        return hr;
-    }
-
-    hr = pConverter->Initialize(pFrame, GUID_WICPixelFormat32bppBGRA, WICBitmapDitherTypeNone, nullptr, 0.0f, WICBitmapPaletteTypeCustom);
-    if (FAILED(hr)) {
-        pConverter->Release();
-        pFrame->Release();
-        pDecoder->Release();
-        pWICFactory->Release();
-        return hr;
-    }
-
-    // アイコンの作成
-    g_hIcon = nullptr;
-    g_hIcon = CreateIconFromWicBitmap(pConverter);
-    if (!g_hIcon) {
-        pConverter->Release();
-        pFrame->Release();
-        pDecoder->Release();
-        pWICFactory->Release();
-        return E_FAIL;
-    }
-
-    // アイコンの設定
-	hr = (HRESULT)SendMessageW(hWnd, WM_SETICON, ICON_BIG, (LPARAM)g_hIcon);
-	if(FAILED(hr)){
-		pConverter->Release();
-		pFrame->Release();
-		pDecoder->Release();
-		pWICFactory->Release();
-		return hr;
+HRESULT SetIcon(const HWND hWnd, const std::wstring& FileName){
+	if(g_hIcon){
+		DestroyIcon(g_hIcon);
+		g_hIcon = nullptr;
 	}
-	hr = (HRESULT)SendMessageW(hWnd, WM_SETICON, ICON_SMALL2, (LPARAM)g_hIcon);
-	if(FAILED(hr)){
-		pConverter->Release();
-		pFrame->Release();
-		pDecoder->Release();
-		pWICFactory->Release();
-		return hr;
-	}
-	hr = (HRESULT)SendMessageW(hWnd, WM_SETICON, ICON_SMALL, (LPARAM)g_hIcon);
-	if(FAILED(hr)){
-		pConverter->Release();
-		pFrame->Release();
-		pDecoder->Release();
-		pWICFactory->Release();
-		return hr;
-	}
-    // リソースの解放
-    pConverter->Release();
-    pFrame->Release();
-    pDecoder->Release();
-    pWICFactory->Release();
 
-    return hr;
+	IWICImagingFactory* pFactory = nullptr;
+	IWICBitmapDecoder* pDecoder = nullptr;
+	IWICBitmapFrameDecode* pFrame = nullptr;
+	IWICFormatConverter* pConverter = nullptr;
+
+	HRESULT hr = CoCreateInstance(
+		CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
+		IID_PPV_ARGS(&pFactory)
+	);
+	if(FAILED(hr)) goto Cleanup;
+
+	hr = pFactory->CreateDecoderFromFilename(
+		FileName.c_str(), nullptr, GENERIC_READ,
+		WICDecodeMetadataCacheOnDemand, &pDecoder
+	);
+	if(FAILED(hr)) goto Cleanup;
+
+	hr = pDecoder->GetFrame(0, &pFrame);
+	if(FAILED(hr)) goto Cleanup;
+
+	hr = pFactory->CreateFormatConverter(&pConverter);
+	if(FAILED(hr)) goto Cleanup;
+
+	hr = pConverter->Initialize(
+		pFrame, GUID_WICPixelFormat32bppBGRA,
+		WICBitmapDitherTypeNone, nullptr, 0.f,
+		WICBitmapPaletteTypeCustom
+	);
+	if(FAILED(hr)) goto Cleanup;
+
+	g_hIcon = CreateIconFromWicBitmap(pConverter);
+	if(!g_hIcon){
+		hr = E_FAIL;
+		goto Cleanup;
+	}
+
+	SendMessageW(hWnd, WM_SETICON, ICON_BIG, (LPARAM)g_hIcon);
+	SendMessageW(hWnd, WM_SETICON, ICON_SMALL, (LPARAM)g_hIcon);
+#ifdef ICON_SMALL2
+	SendMessageW(hWnd, WM_SETICON, ICON_SMALL2, (LPARAM)g_hIcon);
+#endif
+
+Cleanup:
+	if(pConverter) pConverter->Release();
+	if(pFrame)     pFrame->Release();
+	if(pDecoder)   pDecoder->Release();
+	if(pFactory)   pFactory->Release();
+
+	return hr;
 }
 
 void UninitIcon() {

@@ -146,11 +146,9 @@ void SceneManager::Update(float deltaTime){
 	if(m_NeedSceneChange){
 
 		LoadScene(m_NextScene);
-		//m_NextScene->LoadSceneFromYAML(m_NextScene->ScenePath);
 
 		m_NeedSceneChange = false;
 		m_NextScene = nullptr;
-		//m_NextScene.reset();
 	}
 }
 
@@ -241,7 +239,7 @@ std::shared_ptr<Scene>  SceneManager::OpenFromYAMLFile(){
 	return scene;
 }
 
-std::shared_ptr<Scene>  SceneManager::LoadFromFilePath(const std::string& filePath){
+std::shared_ptr<Scene> SceneManager::LoadFromFilePath(const std::string& filePath){
 
 	m_SceneContext.debug->LOG_INFO("Sceneを読み込みます...");
 
@@ -252,7 +250,7 @@ std::shared_ptr<Scene>  SceneManager::LoadFromFilePath(const std::string& filePa
 
 	m_activeScenes[scene->SceneName] = scene;
 
-	 m_SceneContext.resource->ClearAllUnused();
+	m_SceneContext.resource->ClearAllUnused();
 
 	return scene;
 }

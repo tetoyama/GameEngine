@@ -222,9 +222,9 @@ Entities:
             z: 0.100000001
             w: 1
           Diffuse:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.692640662
+            y: 0.692640662
+            z: 0.692640662
             w: 1
           Specular:
             x: 0.0399999991
@@ -297,50 +297,95 @@ Entities:
             - -24.9833488
             - -0.912284851
             - 1
-        nextLinkId: 1
-        nextPinId: 7
+        nextLinkId: 8
+        nextPinId: 13
         PostEffects:
           - Name: NewEffect
-            Enabled: false
+            Enabled: true
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Blur.cso
             NodePos:
-              x: -1
-              y: -1
+              x: 163.367371
+              y: 188.176468
             InputPins:
               - 1
+              - 12
             OutputPin: 2
             Param:
-              x: 0
+              x: 1
               y: 0
               z: 0
               w: 0
           - Name: NewEffect
-            Enabled: false
+            Enabled: true
             VS: Asset\Shader\PostEffectVS.cso
-            PS: Asset\Shader\Mosaic.cso
+            PS: Asset\Shader\BrightPass.cso
             NodePos:
-              x: -1
-              y: -1
+              x: 163.368103
+              y: -100.116318
             InputPins:
               - 3
+              - 7
             OutputPin: 4
+            Param:
+              x: 0.949999988
+              y: 0
+              z: 0
+              w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\CompositeBloom.cso
+            NodePos:
+              x: 405.000031
+              y: 79
+            InputPins:
+              - 8
+              - 10
+              - 11
+            OutputPin: 9
             Param:
               x: 0
               y: 0
               z: 0
               w: 0
+        PostEffectLinks:
+          - ID: 3
+            StartNode: 1
+            EndNode: 2
+            StartAttr: 4
+            EndAttr: 8
+          - ID: 4
+            StartNode: 0
+            EndNode: 2
+            StartAttr: 2
+            EndAttr: 10
+          - ID: 5
+            StartNode: -1
+            EndNode: 1
+            StartAttr: 5
+            EndAttr: 3
+          - ID: 6
+            StartNode: 2
+            EndNode: -2
+            StartAttr: 9
+            EndAttr: 6
+          - ID: 7
+            StartNode: -1
+            EndNode: 0
+            StartAttr: 5
+            EndAttr: 1
         ScreenInput:
           Name: ""
           NodePos:
-            x: 50
-            y: 50
+            x: -84.631897
+            y: 101.883682
           OutputPin: 5
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 500
-            y: 50
+            x: 668.368042
+            y: 185.883667
           InputPins:
             - 6
   - Entity: 6
@@ -693,7 +738,7 @@ Entities:
             x: 0
             y: 0
             z: 0
-            w: 1
+            w: 0
           Specular:
             x: 0.0399999991
             y: 0.0399999991
@@ -746,10 +791,10 @@ Entities:
             z: 0.100000001
             w: 1
           Diffuse:
-            x: 0
-            y: 0
-            z: 0
-            w: 0.666666627
+            x: 1
+            y: 1
+            z: 1
+            w: 1
           Specular:
             x: 0.0399999991
             y: 0.0399999991

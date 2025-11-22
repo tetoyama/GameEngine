@@ -29,8 +29,6 @@ physx::PxRigidStatic* PhysicSystem::CreateStatic(const physx::PxTransform& t, co
 	return rigid_static;
 }
 
-
-
 // =============================================================
 // Actor に attach する形で PxShape を作成
 // =============================================================
@@ -84,7 +82,7 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 	}
 
 	// =============================================================
-	// ★ 回転オフセットの反映（オイラー角 → PxQuat）
+	//  回転オフセットの反映（オイラー角 → PxQuat）
 	// =============================================================
 	if(shape){
 		physx::PxVec3 offset(
@@ -187,9 +185,11 @@ void PhysicSystem::Initialize(){
 
 	if(g_pFoundation){
 		g_pPvd = physx::PxCreatePvd(*g_pFoundation);
-		physx::PxPvdTransport* transport = physx::PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
-		g_pPvd->connect(*transport, physx::PxPvdInstrumentationFlag::eALL);
+		physx::PxPvdTransport* transport = 
+			physx::PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
+			//physx::PxDefaultPvdFileTransportCreate("physx_capture.pvd");
 
+		g_pPvd->connect(*transport, physx::PxPvdInstrumentationFlag::eALL);
 	}
 
 	g_pPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *g_pFoundation, physx::PxTolerancesScale(), true, g_pPvd);

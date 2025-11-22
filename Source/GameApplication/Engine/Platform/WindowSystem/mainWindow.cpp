@@ -214,9 +214,17 @@ LRESULT MainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 			break;
 
 		case WM_SIZE:
-			m_pendingWidth = LOWORD(lParam);
-			m_pendingHeight = HIWORD(lParam);
-			if (!m_resizing && m_mainRenderer) {
+			if(LOWORD(lParam) != 0 && HIWORD(lParam) != 0){
+				m_pendingWidth = LOWORD(lParam);
+				m_pendingHeight = HIWORD(lParam);
+			}
+
+			if(m_resizing){
+
+				break;
+
+			} else if (m_mainRenderer) {
+
 				m_mainRenderer->OnResize(m_pendingWidth, m_pendingHeight);
 				if (m_imguiSystem) {
 					m_imguiSystem->OnResize();
