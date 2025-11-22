@@ -42,10 +42,23 @@ class ColliderComponent: public IComponent {
 public:
 	~ColliderComponent(){
 		for(auto& col : colliders){
-			if(col.pxShape) col.pxShape = nullptr;
-			if(col.pxMaterial){
-				col.pxMaterial->release();
-				col.pxMaterial = nullptr;
+			//if (col.pxShape) {
+			//	col.pxShape->release();
+			//	col.pxShape = nullptr;
+			//}
+			//if(col.pxMaterial){
+			//	col.pxMaterial->release();
+			//	col.pxMaterial = nullptr;
+			//}
+			if (pRigidbodyStatic) {
+				OutputDebugStringA(("Finalize Release Static Actor: " + std::to_string((uintptr_t)pRigidbodyStatic) + "\n").c_str());
+				pRigidbodyStatic->release();
+				pRigidbodyStatic = nullptr;
+			}
+			if (pRigidbodyDynamic) {
+				OutputDebugStringA(("Finalize Release Dynamic Actor: " + std::to_string((uintptr_t)pRigidbodyDynamic) + "\n").c_str());
+				pRigidbodyDynamic->release();
+				pRigidbodyDynamic = nullptr;
 			}
 		}
 	}

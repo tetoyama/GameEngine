@@ -26,6 +26,17 @@
 #include "System/waveSystem.h"
 
 void SceneManager::Initialize(SceneManagerContext sceneContext){
+	
+	#ifdef _DEBUG
+
+	#else
+
+	State = SceneManagerState::Playing;
+	OldState = SceneManagerState::Stopped;
+
+	#endif // DEBUG
+
+
 	m_SceneContext = sceneContext;
 
 	m_systemRegistry = std::make_shared<SystemRegistry>();
@@ -133,9 +144,13 @@ void SceneManager::Update(float deltaTime){
 	}
 
 	if(m_NeedSceneChange){
+
 		LoadScene(m_NextScene);
+		//m_NextScene->LoadSceneFromYAML(m_NextScene->ScenePath);
+
 		m_NeedSceneChange = false;
-		m_NextScene.reset();
+		m_NextScene = nullptr;
+		//m_NextScene.reset();
 	}
 }
 
@@ -192,6 +207,7 @@ void SceneManager::LoadScene(std::shared_ptr<Scene> scene){
 	m_activeScenes[scene->SceneName] = scene;
 
 	scene->Initialize(&m_SceneContext);
+
 	m_SceneContext.resource->ClearAllUnused();
 }
 
@@ -233,6 +249,8 @@ std::shared_ptr<Scene>  SceneManager::LoadFromFilePath(const std::string& filePa
 	scene->Initialize(&m_SceneContext);
 	scene->ResetAll();
 	scene->LoadSceneFromYAML(filePath);
+
+	m_activeScenes[scene->SceneName] = scene;
 
 	 m_SceneContext.resource->ClearAllUnused();
 

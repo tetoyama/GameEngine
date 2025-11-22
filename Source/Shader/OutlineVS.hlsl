@@ -10,7 +10,7 @@ void main(in VS_IN In, out PS_IN Out)
     float4 worldNormal = normalize(mul(normal, World));
 
     float distance = length(CameraPosition.xyz - In.Position.xyz);
-    float thicknessScale = clamp(distance, 0.01f, 1.0f);
+    float thicknessScale = clamp(distance, 0.01f, 0.5f);
     
     worldPos.xyz += worldNormal * OutlineThickness * thicknessScale;
 

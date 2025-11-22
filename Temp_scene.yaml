@@ -296,6 +296,7 @@ Entities:
           Idle: Asset\Model\Akai_Idle.fbx
           mixamo.com: Asset\Model\Akai_Run.fbx
           Run: Asset\Model\Akai_Run.fbx
+      - Component: OutlineComponent
       - Component: PlayerController
         moveSpeed: 1
         health: 0
@@ -1346,6 +1347,7 @@ Entities:
           Idle: Asset\Model\Akai_Idle.fbx
           mixamo.com: Asset\Model\Akai_Run.fbx
           Run: Asset\Model\Akai_Run.fbx
+      - Component: OutlineComponent
       - Component: EnemyController
         moveSpeed: 1
         dashMultiplier: 2
@@ -1391,7 +1393,7 @@ Entities:
             x: 0
             y: 0
             z: 0
-            w: 1
+            w: 0
           Specular:
             x: 0.0399999991
             y: 0.0399999991

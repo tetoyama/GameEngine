@@ -67,6 +67,7 @@ void CustomScriptSystem::Update(float deltaTime){
 				if (!script->IsInitialized()) {
 					script->SetContext(context, entity);
 					script->Initialize();
+					script->Start();
 				}
 
 				script->Update(deltaTime);

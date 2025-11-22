@@ -356,12 +356,17 @@ void RenderSystem::Draw(){
 		m_context->PlayerScreenSize = ScreenSize;
 		m_context->EditorScreenSize = ScreenSize;
 
+		CameraEntityData cameraEntity = FindCameraEntity();
+		if (!cameraEntity.cameraComponent) {
+			return;
+		}
+
 		RenderPassContext renderPassContext(
 			RenderPassType::GBUFFER_PASS,
 			playerRenderLayerVisible,
 			nullptr,
 			nullptr,
-			FindCameraEntity(),
+			cameraEntity,
 			ScreenSize
 		);
 
