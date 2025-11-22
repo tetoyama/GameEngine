@@ -104,7 +104,7 @@ public:
 			// name = "Idle", weight = 0.0, startTime = 0.0
 		}
 		if(!transform || !cameraTransform) return;
-		if(gameTime && gameTime->CountDownTimer <= 0.0f)return;
+		if(gameTime && gameTime->CountDownTimer > 0.0f)return;
 
 
 		Vector3 move(0, 0, 0);
