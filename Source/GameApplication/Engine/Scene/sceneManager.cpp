@@ -36,7 +36,6 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 
 	#endif // DEBUG
 
-
 	m_SceneContext = sceneContext;
 
 	m_systemRegistry = std::make_shared<SystemRegistry>();
