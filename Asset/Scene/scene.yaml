@@ -320,10 +320,10 @@ Entities:
           y: 2.84962869
           z: -2.88820529
         Rotation:
-          - -0.0426860824
+          - -0.375559121
           - 0
           - 0
-          - 0.999088526
+          - 0.926798463
         Scale:
           x: 1
           y: 1
@@ -346,32 +346,108 @@ Entities:
             - 0
           -
             - 0
-            - 0.996355832
-            - 0.0852942541
+            - 0.717910707
+            - 0.696135223
             - 0
           -
             - 0
-            - -0.0852942541
-            - 0.996355832
+            - -0.696135223
+            - 0.717910707
             - 0
           -
             - -1.50484014
-            - -3.08559155
-            - 2.63462329
+            - -4.05636024
+            - 0.0897465944
             - 1
-        nextLinkId: 1
-        nextPinId: 3
+        nextLinkId: 9
+        nextPinId: 13
+        PostEffects:
+          - Name: BrightPass
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\BrightPass.cso
+            NodePos:
+              x: 118.988647
+              y: 8.7460022
+            InputPins:
+              - 3
+              - 5
+            OutputPin: 4
+            Param:
+              x: 0.800000012
+              y: 0
+              z: 0
+              w: 0
+          - Name: Blur
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Blur.cso
+            NodePos:
+              x: 352.988678
+              y: 9.7460022
+            InputPins:
+              - 6
+              - 8
+            OutputPin: 7
+            Param:
+              x: 4
+              y: 0
+              z: 0
+              w: 0
+          - Name: CompositeBloom
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\CompositeBloom.cso
+            NodePos:
+              x: 586
+              y: 57
+            InputPins:
+              - 9
+              - 11
+              - 12
+            OutputPin: 10
+            Param:
+              x: 0
+              y: 0
+              z: 0
+              w: 0
+        PostEffectLinks:
+          - ID: 1
+            StartNode: -1
+            EndNode: 0
+            StartAttr: 1
+            EndAttr: 3
+          - ID: 3
+            StartNode: 0
+            EndNode: 1
+            StartAttr: 4
+            EndAttr: 6
+          - ID: 6
+            StartNode: 1
+            EndNode: 2
+            StartAttr: 7
+            EndAttr: 9
+          - ID: 7
+            StartNode: -1
+            EndNode: 2
+            StartAttr: 1
+            EndAttr: 11
+          - ID: 8
+            StartNode: 2
+            EndNode: -2
+            StartAttr: 10
+            EndAttr: 2
         ScreenInput:
           Name: ""
           NodePos:
-            x: 50
-            y: 50
+            x: 13.9886475
+            y: 275.745972
           OutputPin: 1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 500
-            y: 50
+            x: 805.988647
+            y: 255.745972
           InputPins:
             - 2
       - Component: CameraController

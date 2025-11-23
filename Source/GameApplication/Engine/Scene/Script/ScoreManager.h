@@ -1,12 +1,11 @@
 #pragma once
 #include "Component/CustomScriptComponent.h"
-#include "Backends/checkFileExtention.h"
 
 class ScoreManager: public CustomScriptComponent {
 public:
 	BEGIN_REFLECT(ScoreManager)
-		REFLECT_FIELD_INIT(int, RedScore, 0,REFLECT_INSPECTOR)
-		REFLECT_FIELD_INIT(int, BlueScore, 0, REFLECT_INSPECTOR)
+		REFLECT_FIELD(int, RedScore, 0)
+		REFLECT_FIELD(int, BlueScore, 0)
 
 	ScoreManager(): CustomScriptComponent("ScoreManager"){}
 
@@ -24,10 +23,12 @@ public:
 
 	void inspector(SceneContext* context) override{
 		INSPECTOR_FIELDS();
-
 	}
 
-	void OnStart() override{}
+	void OnStart() override{
+		RedScore = 0;
+		BlueScore = 0;
+	}
 	void OnUpdate(float dt) override{}
 	void OnFixedUpdate(float dt)override{}
 	void OnDraw() override{}
