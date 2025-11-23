@@ -76,6 +76,8 @@ Entities:
         isBlender: false
         AnimationTime: 69565.8516
       - Component: ScoreManager
+        RedScore: 0
+        BlueScore: 0
       - Component: GameTimeManager
         CountDownTime: 5
         InGameTime: 60
@@ -363,12 +365,12 @@ Entities:
         nextPinId: 13
         PostEffects:
           - Name: BrightPass
-            Enabled: true
+            Enabled: false
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\BrightPass.cso
             NodePos:
-              x: 118.988647
-              y: 8.7460022
+              x: -317.011353
+              y: 27.7460022
             InputPins:
               - 3
               - 5
@@ -379,12 +381,12 @@ Entities:
               z: 0
               w: 0
           - Name: Blur
-            Enabled: true
+            Enabled: false
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Blur.cso
             NodePos:
-              x: 352.988678
-              y: 9.7460022
+              x: -83.011322
+              y: 28.7460022
             InputPins:
               - 6
               - 8
@@ -395,12 +397,12 @@ Entities:
               z: 0
               w: 0
           - Name: CompositeBloom
-            Enabled: true
+            Enabled: false
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\CompositeBloom.cso
             NodePos:
-              x: 586
-              y: 57
+              x: 150
+              y: 76
             InputPins:
               - 9
               - 11
@@ -440,14 +442,14 @@ Entities:
         ScreenInput:
           Name: ""
           NodePos:
-            x: 13.9886475
-            y: 275.745972
+            x: -422.011353
+            y: 294.745972
           OutputPin: 1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 805.988647
-            y: 255.745972
+            x: 369.988647
+            y: 274.745972
           InputPins:
             - 2
       - Component: CameraController

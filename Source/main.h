@@ -59,9 +59,9 @@ GameApplication
    │       ├── ComponentPools
    │       │   ├── TransformComponent					【実装済み】
    │       │   ├── MeshRendererComponent				【実装済み】
-   │       │   ├── RigidbodyComponent					【未実装】
+   │       │   ├── RigidbodyComponent					【実装済み】
    │       │   ├── ScriptComponent（C#バインド）		【未実装】
-   │       │   └── CustomComponents					【未実装】
+   │       │   └── CustomComponents					【実装済み】
    │       └── Systems
    │           ├── TransformSystem						【実装済み】
    │           ├── RenderSystem							【実装済み】
