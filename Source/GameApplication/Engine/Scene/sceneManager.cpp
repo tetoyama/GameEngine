@@ -13,7 +13,7 @@
 
 #include "System/inspectorSystem.h"
 #include "System/transformSystem.h"
-#include "System/renderSystem.h"
+#include "System/RenderSystem/renderSystem.h"
 #include "System/cameraSystem.h"
 #include "System/terrainSystem.h"
 #include "System/C#ScriptSystem.h"
@@ -30,10 +30,8 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 	#ifdef _DEBUG
 
 	#else
-
 	State = SceneManagerState::Playing;
 	OldState = SceneManagerState::Stopped;
-
 	#endif // DEBUG
 
 	m_SceneContext = sceneContext;
@@ -226,21 +224,17 @@ std::shared_ptr<Scene>  SceneManager::OpenFromYAMLFile(){
 	scene->Initialize(&m_SceneContext);
 	if(scene->LoadFromYAMLFile()){
 
-		m_SceneContext.debug->LOG_DEBUG("OpenScene");
 		m_SceneContext.resource->ClearAllUnused();
-
-	} else{
-		scene->Shutdown();
-		scene.reset();
-
-		return nullptr;
+		return scene;
 	}
-	return scene;
+	scene->Shutdown();
+	scene.reset();
+	return nullptr;
 }
 
 std::shared_ptr<Scene> SceneManager::LoadFromFilePath(const std::string& filePath){
 
-	m_SceneContext.debug->LOG_INFO("Sceneを読み込みます...");
+	m_SceneContext.debug->LOG_INFO(("Scene[" + filePath + "]を読み込みます...").c_str());
 
 	auto scene = std::make_shared<Scene>();
 	scene->Initialize(&m_SceneContext);
@@ -271,7 +265,7 @@ void SceneManager::TempSave() {
 	out << YAML::EndSeq;
 	out << YAML::EndMap;
 
-	std::ofstream fout("TempSave.yaml");
+	std::ofstream fout((std::string(TEMP_SAVE_PATH) + "TempSave.yaml").c_str());
 	fout << out.c_str();
 	fout.close();
 }
@@ -289,7 +283,7 @@ void SceneManager::TempLoad() {
 	// YAMLファイル読み込み
 	YAML::Node data;
 	try {
-		data = YAML::LoadFile("TempSave.yaml");
+		data = YAML::LoadFile(std::string(TEMP_SAVE_PATH) + "TempSave.yaml");
 	}
 	catch (const YAML::BadFile& e) {
 		std::cerr << "TempSave.yaml が見つかりません: " << e.what() << std::endl;
@@ -312,6 +306,8 @@ void SceneManager::TempLoad() {
 			newScene->TempLoad(); // 各シーンの個別ロード
 
 			newScene->ScenePath = path;
+			newScene->SceneName = name;
+
 			m_activeScenes[name] = newScene;
 		}
 	}

@@ -1848,7 +1848,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\transformSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\renderSystem.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\transformComponent.h">
@@ -2310,6 +2310,21 @@
     <ClInclude Include="Source\Shader\commonDefine.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\IRenderPass.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\RenderPassContext.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderPhase.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\cameraEntityData.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderTarget.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\gameApplication.cpp">
@@ -2567,7 +2582,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\transformSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\renderSystem.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\DebugTools\debugSystem.cpp">

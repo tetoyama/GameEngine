@@ -77,7 +77,7 @@ Scene::~Scene(){
 void Scene::Initialize(SceneManagerContext* set){
 	
 	m_SceneManagerContext = set;
-	m_SceneManagerContext->debug->LOG_INFO("Sceneを初期化中...");
+	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を初期化中...").c_str());
 
 	m_SceneContext.system = m_SceneManagerContext->systemRegistry;
 
@@ -165,8 +165,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	} else{
 		LoadSceneFromYAML(ScenePath);
 	}
-
-	m_SceneManagerContext->debug->LOG_INFO("Sceneを開始します");
+	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を開始します").c_str());
 }
 
 void Scene::Update(float deltaTime){
@@ -186,12 +185,14 @@ void Scene::Draw(){
 }
 
 void Scene::Shutdown(){
-	m_SceneManagerContext->debug->LOG_INFO("Sceneを終了中...");
+	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を終了中...").c_str());
+
 	ResetAll();
 
 	// レジストリの終了処理
 	m_entityRegistry.reset();
 	m_componentRegistry.reset();
+	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を終了しました").c_str());
 }
 
 void Scene::BuildDefaultScene(){
@@ -415,12 +416,16 @@ void Scene::Save(){
 			return;
 		}
 	} else {
-
 		savePath = std::filesystem::path(ScenePath);
 	}
+	std::filesystem::path filepath = std::filesystem::path(savePath);
+	ScenePath = filepath.string();
+	SceneName = filepath.stem().string();  // 拡張子を除いたファイル名
+
 	YAML::Node root;
 	YAML::Node entitiesNode = YAML::Node(YAML::NodeType::Sequence);
 	const auto& entities = m_entityRegistry->GetAllAlive();
+	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を保存します").c_str());
 	m_SceneManagerContext->debug->LOG_INFO(("保存対象エンティティ数: " + std::to_string(entities.size())).c_str());
 
 	for (Entity e : entities) {
@@ -488,7 +493,7 @@ void Scene::Save(){
 
 void Scene::TempSave(){
 
-	std::wstring savePath = L"Temp_" + StringToWString(SceneName) + L".yaml";
+	std::wstring savePath = StringToWString(TEMP_SAVE_PATH) + L"Temp_" + StringToWString(SceneName) + L".yaml";
 
 	YAML::Node root;
 	YAML::Node entitiesNode = YAML::Node(YAML::NodeType::Sequence);
@@ -561,7 +566,7 @@ void Scene::TempSave(){
 void Scene::TempLoad(){
 
 	ResetAll(); // 一時保存の読み込み前に全エンティティをリセット
-	LoadSceneFromYAML("Temp_" + SceneName + ".yaml" );
+	LoadSceneFromYAML(std::string(TEMP_SAVE_PATH) + "Temp_" + SceneName + ".yaml");
 }
 
 void Scene::ResetAll(){
@@ -581,15 +586,17 @@ void Scene::LoadSceneFromYAML(std::string path) {
 		// ファイルが開けなかった場合  
 		m_SceneContext.manager->debug->LOG_ERROR(("Failed to open file: " + path).c_str());  
 		return;  
-	}  
+	}
 
 	YAML::Node root = YAML::Load(fin);  
 	if(!root["Entities"] || !root["Entities"].IsSequence()){  
 		m_SceneContext.manager->debug->LOG_ERROR("YAML: 'Entities' node missing or invalid");  
-		return;  
-	}  
+		return;
+	}
 
 	ScenePath = path; // シーンのパスを設定
+	m_SceneContext.manager->debug->LOG_DEBUG(("Sceneをファイルから読み込みます:FilePath[" + ScenePath + "]").c_str());
+
 	std::filesystem::path fpath(ScenePath);
 	SceneName = fpath.stem().string();  // 拡張子を除いたファイル名
 
@@ -603,7 +610,7 @@ void Scene::LoadSceneFromYAML(std::string path) {
 
 		if(!entityNode["Components"] || !entityNode["Components"].IsSequence()){  
 			continue;  
-		}  
+		}
 		for(const auto& compNode : entityNode["Components"]){  
 			const auto& compType = compNode["Component"].as<std::string>();  
 			IComponent* comp = m_componentRegistry->CreateFromYAML(compType, entity, compNode);  

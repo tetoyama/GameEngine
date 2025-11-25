@@ -178,8 +178,7 @@ void InspectorSystem::DrawSceneHierarchy(SceneManagerContext* managerContext){
 
 		EntityRegistry* registry = context->entity;
 
-		
-		if (ImGui::TreeNodeEx(scenePair.first.c_str(),ImGuiTreeNodeFlags_DefaultOpen)) {
+		if (ImGui::TreeNodeEx((scenePair.second->SceneName + "##" + scenePair.first).c_str(), ImGuiTreeNodeFlags_DefaultOpen)){
 
 			if (ImGui::BeginPopupContextItem()) {
 

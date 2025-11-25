@@ -6,13 +6,22 @@
 #include "Backends/myVector2.h"
 #include "Backends/myVector3.h"
 #include "Component/RenderLayerComponent.h"
-#include "../Entity/Entity.h"
+#include "GameApplication/Engine/Scene/Entity/Entity.h"
 
 struct SceneManagerContext;
+
 struct PixelShaderData;
 struct VertexShaderData;
 
+struct RenderPassContext;
+struct RenderTarget;
+
+struct CameraEntityData;
+
+class IRenderPass;
+
 class ComponentRegistry;
+
 class TransformComponent;
 class TextureComponent;
 class SpriteRendererComponent;
@@ -32,48 +41,6 @@ struct PostEffect {
 	bool enabled;
 };
 
-enum RenderPassType {
-	SHADOW_PASS  = 0,
-	GBUFFER_PASS,
-};
-
-struct CameraEntityData {
-
-	CameraComponent* cameraComponent = nullptr;
-	TransformComponent* transformComponent = nullptr;
-
-	// 念のためエンティティも保持
-	Entity entity = 0;
-	SceneContext* sceneContext = nullptr;
-};
-
-struct RenderPassContext {
-
-	RenderPassContext(
-		const RenderPassType& renderPass, 
-		bool* renderLayer, 
-		std::shared_ptr<PixelShaderData> setPixelShader,
-		std::shared_ptr<VertexShaderData> setVertexShader, 
-		const CameraEntityData& data, 
-		const Vector2& setScreenSize
-	);
-
-	bool* renderLayerVisibility = nullptr;
-	RenderPassType passType = SHADOW_PASS;
-
-	DirectX::XMFLOAT4 cameraPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-
-	DirectX::XMMATRIX viewMatrix = DirectX::XMMatrixIdentity();
-	DirectX::XMMATRIX projectionMatrix = DirectX::XMMatrixIdentity();
-
-	std::shared_ptr<PixelShaderData> pixelShader;
-	std::shared_ptr<VertexShaderData> vertexShader;
-
-	CameraEntityData cameraData;
-	Vector2 screenSize = Vector2(1280.0f, 720.0f);
-
-};
-
 class RenderSystem : public ISystem{
 public:
 	RenderSystem(SceneManagerContext* context): m_context(context){}
@@ -89,7 +56,6 @@ public:
 	void EditorUpdate(float deltaTime) override;
 
 private:
-
 
 	TransformComponent CalculateRectTransform(const RenderPassContext& renderPassContext, const SpriteRendererComponent& sprite, const TransformComponent& transform);
 
@@ -121,25 +87,12 @@ private:
 	MeshRendererComponent* m_billBoardMesh = nullptr;
 	MeshRendererComponent* m_SpriteMesh = nullptr;
 
-	ID3D11Texture2D* tex_shadow = nullptr;
-	ID3D11RenderTargetView* rtv_shadow = nullptr;
-	ID3D11ShaderResourceView* srv_shadow = nullptr;
-	ID3D11DepthStencilView* dsv_shadow = nullptr;
-
-	ID3D11Texture2D* tex_player = nullptr;
-	ID3D11RenderTargetView* rtv_player = nullptr;
-	ID3D11ShaderResourceView* srv_player = nullptr;
-	ID3D11DepthStencilView* dsv_player = nullptr;
-
-	ID3D11Texture2D* tex_editor = nullptr;
-	ID3D11RenderTargetView* rtv_editor = nullptr;
-	ID3D11ShaderResourceView* srv_editor = nullptr;
-	ID3D11DepthStencilView* dsv_editor = nullptr;
+	RenderTarget* m_Shadow = nullptr;
+	RenderTarget* m_Player = nullptr;
+	RenderTarget* m_Editor = nullptr;
 
 	Vector3 m_EditorCameraPosition = Vector3(0.0f, 5.0f, -20.0f);
 	Vector3 m_EditorCameraRotation = Vector3(0.0f, 0.0f, 0.0f);
-
-	Vector3 m_CameraPosition = Vector3(0.0f, 0.0f, 0.0f);
 
 	std::shared_ptr<PixelShaderData> m_PixelShader;
 	std::shared_ptr<VertexShaderData> m_VertexShader;

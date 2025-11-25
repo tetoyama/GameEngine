@@ -8,6 +8,8 @@
 #include "Service/IService.h"
 #include "Backends/myVector2.h"
 
+#define TEMP_SAVE_PATH "Asset/Temp/"
+
 class MainRenderer;
 class GraphicsContext;
 class AudioContext;

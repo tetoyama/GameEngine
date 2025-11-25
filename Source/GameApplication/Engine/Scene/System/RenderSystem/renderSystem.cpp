@@ -1,9 +1,12 @@
 // Engine/Scene/System/renderSystem.cpp
 #include "renderSystem.h"
+
 #include <algorithm>
 #include <filesystem>
+#include <queue>
 
 #include <DirectXMath.h>
+
 #include "Backends/DirectX11/DirectXTex.h"
 #include "Backends/ImGui/ImGui.h"
 #include "Backends/ImGui/ImGuizmo.h"
@@ -19,20 +22,11 @@
 
 #include "Engine/DebugTools/debugSystem.h"
 
-
 #include "Engine/Resources/Data/modelData.h"
 
 #include "Registry/entityRegistry.h"
 #include "Registry/systemRegistry.h"
 #include "Registry/componentRegistry.h"
-
-#include "Component/transformComponent.h"
-
-#include "Component/textureComponent.h"
-#include "Component/meshRendererComponent.h"
-#include "Component/modelRendererComponent.h"
-#include "Component/BillBoardRendererComponent.h"
-#include "Component/cameraComponent.h"
 
 #include "Engine/Graphics/mainRenderer.h"
 
@@ -42,22 +36,33 @@
 
 #include "Scene.h"
 #include "SceneManager.h"
+
+#include "System/physicSystem.h"
+#include "System/RenderSystem/cameraEntityData.h"
+#include "System/RenderSystem/renderPhase.h"
+#include "System/RenderSystem/renderTarget.h"
+#include "System/RenderSystem/RenderPass/RenderPassContext.h"
+
 #include <Component/bumpMapComponent.h>
 #include <Component/2DspriteRendererComponent.h>
 #include <Component/RenderLayerComponent.h>
 #include <Component/particleComponent.h>
 #include <Component/outlineComponent.h>
 #include <Component/EffectComponent.h>
-#include "physicSystem.h"
-#include <queue>
 #include <Component/terrainComponent.h>
 #include <Component/waveComponent.h>
+#include "Component/transformComponent.h"
+#include "Component/textureComponent.h"
+#include "Component/meshRendererComponent.h"
+#include "Component/modelRendererComponent.h"
+#include "Component/BillBoardRendererComponent.h"
+#include "Component/cameraComponent.h"
 
 constexpr int maxLineCount = 99999;
 
-RenderPassContext::RenderPassContext(const RenderPassType& renderPass, bool* renderLayer, std::shared_ptr<PixelShaderData> setPixelShader, std::shared_ptr<VertexShaderData> setVertexShader, const CameraEntityData& data, const Vector2& setScreenSize) {
+RenderPassContext::RenderPassContext(const RenderPhase& renderPass, bool* renderLayer, std::shared_ptr<PixelShaderData> setPixelShader, std::shared_ptr<VertexShaderData> setVertexShader, const CameraEntityData& data, const Vector2& setScreenSize) {
 
-	passType = renderPass;
+	passPhase = renderPass;
 
 	renderLayerVisibility = renderLayer;
 
@@ -174,9 +179,9 @@ void RenderSystem::Initialize(){
 	StopButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Stop.png");
 	StepButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Step.png");
 
-	ResizeRenderBuffer(m_context->PlayerScreenSize, &tex_player, &rtv_player, &srv_player, &dsv_player);
-	ResizeRenderBuffer(m_context->EditorScreenSize, &tex_editor, &rtv_editor, &srv_editor, &dsv_editor);
-	ResizeRenderBuffer(Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE), &tex_shadow, &rtv_shadow, &srv_shadow, &dsv_shadow);
+	m_Player = new RenderTarget(m_context->PlayerScreenSize, m_context->graphics);
+	m_Editor = new RenderTarget(m_context->EditorScreenSize, m_context->graphics);
+	m_Shadow = new RenderTarget(Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE), m_context->graphics);
 
 	m_billBoardMesh = new MeshRendererComponent;
 	if(m_billBoardMesh){
@@ -302,21 +307,9 @@ void RenderSystem::Finalize(){
 	delete m_billBoardMesh;
 	delete m_SpriteMesh;
 
-	tex_shadow->Release();
-	rtv_shadow->Release();
-	srv_shadow->Release();
-	dsv_shadow->Release();
-
-	tex_editor->Release();
-	rtv_editor->Release();
-	srv_editor->Release();
-	dsv_editor->Release();
-
-	tex_player->Release();
-	rtv_player->Release();
-	srv_player->Release();
-	dsv_player->Release();
-
+	delete m_Shadow;
+	delete m_Editor;
+	delete m_Player;
 }
 
 void RenderSystem::Update(float deltaTime) {
@@ -354,7 +347,6 @@ void RenderSystem::Draw(){
 		);
 
 		m_context->PlayerScreenSize = ScreenSize;
-		m_context->EditorScreenSize = ScreenSize;
 
 		CameraEntityData cameraEntity = FindCameraEntity();
 		if (!cameraEntity.cameraComponent) {
@@ -362,7 +354,7 @@ void RenderSystem::Draw(){
 		}
 
 		RenderPassContext renderPassContext(
-			RenderPassType::GBUFFER_PASS,
+			RenderPhase::PHASE_GBUFFER,
 			playerRenderLayerVisible,
 			nullptr,
 			nullptr,
@@ -451,21 +443,9 @@ void RenderSystem::EditorUpdate(float deltaTime) {
 			m_EditorCameraPosition += right * io.MouseDelta.x * panSensitivity;
 			m_EditorCameraPosition += up * io.MouseDelta.y * panSensitivity;
 		}
-		static float zoomSensitivity = 5.0f; // ズーム速度
 
 		if(m_MouseWheel != 0.0f){
-			if(zoomSensitivity < 10.0f){
-				zoomSensitivity += 1.0f * deltaTime; // ズーム速度を徐々に上げる
-			} else{
-				zoomSensitivity = 10.0f;
-			}
-			m_EditorCameraPosition += front * m_MouseWheel * zoomSensitivity;
-		} else{
-			if(zoomSensitivity > 0.1f){
-				zoomSensitivity += (0.1f - zoomSensitivity) * 0.5f * deltaTime; // ズーム速度を徐々に上げる
-			} else{
-				zoomSensitivity = 0.1f;
-			}
+			m_EditorCameraPosition += front * m_MouseWheel * 2.0f;
 		}
 	}
 }
@@ -1038,7 +1018,7 @@ void RenderSystem::ShadowPass(RenderPassContext renderPassContext){
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	// シャドウマップ用レンダーターゲットとデプスステンシルビューを設定
-	deviceContext->OMSetRenderTargets(1, &rtv_shadow, dsv_shadow);
+	deviceContext->OMSetRenderTargets(1, m_Shadow->rtv.GetAddressOf(), m_Shadow->dsv.Get());
 
 	// シャドウマップ用のカメラ設定
 	LIGHT light = m_context->renderer->GetGraphicsContext()->GetLight()[0];
@@ -1061,7 +1041,7 @@ void RenderSystem::ShadowPass(RenderPassContext renderPassContext){
 	cameraData.transformComponent = &lightTransform;
 
 	renderPassContext.cameraData = cameraData;
-	renderPassContext.passType = RenderPassType::SHADOW_PASS;
+	renderPassContext.passPhase = RenderPhase::PHASE_SHADOW;
 	renderPassContext.screenSize = Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE);
 
 	// シーン内のエンティティを描画
@@ -1107,36 +1087,28 @@ void RenderSystem::EditorView(){
 	cameraData.cameraComponent = &editorCamera;
 	cameraData.transformComponent = &editorCameraTransform;
 
-	if (Vector2(avail.x, avail.y) != m_context->EditorScreenSize) {
-
-		tex_editor->Release();
-		rtv_editor->Release();
-		srv_editor->Release();
-		dsv_editor->Release();
-
-		ResizeRenderBuffer(Vector2(avail.x, avail.y), &tex_editor, &rtv_editor, &srv_editor, &dsv_editor);
-		m_context->EditorScreenSize = Vector2(avail.x, avail.y);
-	}
+	m_context->EditorScreenSize = Vector2(avail.x, avail.y);
+	m_Editor->Resize(Vector2(avail.x, avail.y),m_context->graphics);
 
 	RenderPassContext renderPassContext(
-		RenderPassType::GBUFFER_PASS,
+		RenderPhase::PHASE_GBUFFER,
 		editorRenderLayerVisible,
 		nullptr,
 		nullptr,
 		cameraData,
-		m_context->EditorScreenSize
+		m_Editor->size
 	);
 	ShadowPass(renderPassContext);
 	
 	float clearCol[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
-	deviceContext->ClearRenderTargetView(rtv_editor, clearCol);
-	deviceContext->ClearDepthStencilView(dsv_editor, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	deviceContext->ClearRenderTargetView(m_Editor->rtv.Get(), clearCol);
+	deviceContext->ClearDepthStencilView(m_Editor->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, &rtv_editor, dsv_editor);
+	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, m_Editor->rtv.GetAddressOf(), m_Editor->dsv.Get());
 	DrawEntities(renderPassContext);
 
 	ImVec2 cursor = ImGui::GetCursorPos();
-	ImGui::Image((ImTextureID)srv_editor, avail, ImVec2(0, 0), ImVec2(1, 1));
+	ImGui::Image((ImTextureID)m_Editor->srv.Get(), avail, ImVec2(0, 0), ImVec2(1, 1));
 
 	// ImGuizmo の描画領域を設定
 	ImGuizmo::SetRect(
@@ -1338,9 +1310,6 @@ ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(ID3D11ShaderR
 	return initialSRV;
 }
 
-
-
-
 void RenderSystem::PlayerView(){
 	GraphicsContext* graphicsContext = m_context->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
@@ -1363,16 +1332,7 @@ void RenderSystem::PlayerView(){
 	// 利用可能な領域サイズを取得
 	ImVec2 avail = ImGui::GetContentRegionAvail();
 
-	if (Vector2(avail.x, avail.y) != m_context->PlayerScreenSize) {
-
-		tex_player->Release();
-		rtv_player->Release();
-		srv_player->Release();
-		dsv_player->Release();
-
-		ResizeRenderBuffer(Vector2(avail.x, avail.y), &tex_player, &rtv_player, &srv_player, &dsv_player);
-		m_context->PlayerScreenSize = Vector2(avail.x, avail.y);
-	}
+	m_Player->Resize(Vector2(avail.x, avail.y), m_context->graphics);
 
 	//// 画面サイズ計算
 	//m_context->PlayerScreenSize = Vector2((float)m_context->graphics->m_width, (float)m_context->graphics->m_height);
@@ -1395,22 +1355,22 @@ void RenderSystem::PlayerView(){
 
 
 	RenderPassContext renderPassContext(
-		RenderPassType::GBUFFER_PASS,
+		RenderPhase::PHASE_GBUFFER,
 		playerRenderLayerVisible,
 		nullptr,
 		nullptr,
 		cameraData,
-		m_context->PlayerScreenSize
+		m_Player->size
 	);
 	ShadowPass(renderPassContext);
 
 	float clearCol[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
-	deviceContext->ClearRenderTargetView(rtv_player, clearCol);
-	deviceContext->ClearDepthStencilView(dsv_player, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	deviceContext->ClearRenderTargetView(m_Player->rtv.Get(), clearCol);
+	deviceContext->ClearDepthStencilView(m_Player->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, &rtv_player, dsv_player);
+	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, m_Player->rtv.GetAddressOf(), m_Player->dsv.Get());
 	// --- ポストプロセス描画 ---
-	ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(srv_player, renderPassContext);
+	ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(m_Player->srv.Get(), renderPassContext);
 	if(!finalSRV){
 		ImGui::Text("finalSRV is NULL");
 	}

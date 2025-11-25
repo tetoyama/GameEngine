@@ -2700,8 +2700,13 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\lightSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\particleSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\physicSystem.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\renderSystem.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\cameraEntityData.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\IRenderPass.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\RenderPassContext.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderPhase.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\C#ScriptSystem.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderTarget.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\terrainSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\transformSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\waveSystem.h" />
@@ -3062,7 +3067,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\lightSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\particleSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\physicSystem.cpp" />
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\renderSystem.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\C#ScriptSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\transformSystem.cpp" />
     <ClCompile Include="Source\GameApplication\gameApplication.cpp" />
