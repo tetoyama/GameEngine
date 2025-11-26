@@ -306,7 +306,6 @@ void SceneManager::TempLoad() {
 			newScene->TempLoad(); // 各シーンの個別ロード
 
 			newScene->ScenePath = path;
-			newScene->SceneName = name;
 
 			m_activeScenes[name] = newScene;
 		}

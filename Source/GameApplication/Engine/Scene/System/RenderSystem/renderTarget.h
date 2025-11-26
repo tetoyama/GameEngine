@@ -70,7 +70,7 @@ struct RenderTarget {
 		}
 	}
 
-	void Clear(ID3D11DeviceContext* ctx, const float clearColor[4]){
+	void Clear(ID3D11DeviceContext* ctx, const float clearColor[4]) const{
 		if(rtv){
 			ctx->ClearRenderTargetView(rtv.Get(), clearColor);
 		}

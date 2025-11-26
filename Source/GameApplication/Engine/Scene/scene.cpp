@@ -564,9 +564,10 @@ void Scene::TempSave(){
 }
 
 void Scene::TempLoad(){
-
+	std::string name = SceneName;
 	ResetAll(); // 一時保存の読み込み前に全エンティティをリセット
 	LoadSceneFromYAML(std::string(TEMP_SAVE_PATH) + "Temp_" + SceneName + ".yaml");
+	SceneName = name;
 }
 
 void Scene::ResetAll(){

@@ -1311,8 +1311,6 @@ ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(ID3D11ShaderR
 }
 
 void RenderSystem::PlayerView(){
-	GraphicsContext* graphicsContext = m_context->graphics;
-	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	ImGui::Begin("Play View", showPlayer, 0);
 
@@ -1322,7 +1320,6 @@ void RenderSystem::PlayerView(){
 
 	// カメラコンポーネントを持つエンティティ取得
 	const CameraEntityData& cameraData = FindCameraEntity();
-
 	if (!cameraData.cameraComponent) {
 		ImGui::Text("No Camera Component found.");
 		ImGui::End();
@@ -1332,27 +1329,9 @@ void RenderSystem::PlayerView(){
 	// 利用可能な領域サイズを取得
 	ImVec2 avail = ImGui::GetContentRegionAvail();
 
+	float clearCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
 	m_Player->Resize(Vector2(avail.x, avail.y), m_context->graphics);
-
-	//// 画面サイズ計算
-	//m_context->PlayerScreenSize = Vector2((float)m_context->graphics->m_width, (float)m_context->graphics->m_height);
-
-	//// アスペクト比
-	//float targetAspect = m_context->PlayerScreenSize.x / m_context->PlayerScreenSize.y;
-	//float availAspect = avail.x / avail.y;
-
-	//// --- アスペクト比を維持した描画サイズを計算 ---
-	ImVec2 drawSize = avail;
-	//if (availAspect > targetAspect) {
-	//	// 高さに合わせる
-	//	drawSize.y = avail.y;
-	//	drawSize.x = drawSize.y * targetAspect;
-	//} else {
-	//	// 幅に合わせる
-	//	drawSize.x = avail.x;
-	//	drawSize.y = drawSize.x / targetAspect;
-	//}
-
+	m_Player->Clear(m_context->graphics->GetDeviceContext(), clearCol);
 
 	RenderPassContext renderPassContext(
 		RenderPhase::PHASE_GBUFFER,
@@ -1364,83 +1343,18 @@ void RenderSystem::PlayerView(){
 	);
 	ShadowPass(renderPassContext);
 
-	float clearCol[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
-	deviceContext->ClearRenderTargetView(m_Player->rtv.Get(), clearCol);
-	deviceContext->ClearDepthStencilView(m_Player->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-
-	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, m_Player->rtv.GetAddressOf(), m_Player->dsv.Get());
-	// --- ポストプロセス描画 ---
+	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_Player->rtv.GetAddressOf(), m_Player->dsv.Get());
 	ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(m_Player->srv.Get(), renderPassContext);
 	if(!finalSRV){
 		ImGui::Text("finalSRV is NULL");
 	}
-	ImVec2 cursor = ImGui::GetCursorPos();
-	ImGui::SetCursorPos(ImVec2(
-		cursor.x + (avail.x - drawSize.x) * 0.5f,
-		cursor.y + (avail.y - drawSize.y) * 0.5f
-	));
-	ImGui::Image((ImTextureID)finalSRV, drawSize, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1.0f, 1.0f, 1.0f, 1.0f), ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
-
+	ImGui::Image((ImTextureID)finalSRV, avail, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1.0f, 1.0f, 1.0f, 1.0f), ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
 	ImGui::End();
 
 	// バックバッファへ戻す
-	auto graphics = m_context->graphics;
-	graphics->GetDeviceContext()->OMSetRenderTargets(
-		1, graphics->GetpRenderTargetView(), graphics->GetDepthStencilView()
+	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(
+		1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView()
 	);
-}
-
-void RenderSystem::ResizeRenderBuffer(const Vector2& screenSize, ID3D11Texture2D** tex, ID3D11RenderTargetView** rtv, ID3D11ShaderResourceView** srv, ID3D11DepthStencilView** dsv) {
-	
-	D3D11_TEXTURE2D_DESC td = {};
-	td.Width = (int)screenSize.x; td.Height = (int)screenSize.y;
-	td.MipLevels = 1; td.ArraySize = 1;
-	td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	td.SampleDesc.Count = 1;
-	td.Usage = D3D11_USAGE_DEFAULT;
-	td.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-
-	GraphicsContext* graphicsContext = m_context->graphics;
-	ID3D11Device* device = graphicsContext->GetDevice();
-
-	device->CreateTexture2D(&td, nullptr, tex);
-	if (*tex) {
-		device->CreateRenderTargetView(*tex, nullptr, rtv);
-		device->CreateShaderResourceView(*tex, nullptr, srv);
-	}
-
-	// デプスステンシルバッファ作成
-	ID3D11Texture2D* depthStencile{};
-	D3D11_TEXTURE2D_DESC textureDesc{};
-	textureDesc.Width = (int)screenSize.x;
-	textureDesc.Height = (int)screenSize.y;
-	textureDesc.MipLevels = 1;
-	textureDesc.ArraySize = 1;
-	textureDesc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
-	textureDesc.SampleDesc.Count = 1;
-	textureDesc.SampleDesc.Quality = 0;
-	textureDesc.Usage = D3D11_USAGE_DEFAULT;
-	textureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-	textureDesc.CPUAccessFlags = 0;
-	textureDesc.MiscFlags = 0;
-	HRESULT hr = device->CreateTexture2D(&textureDesc, NULL, &depthStencile);
-	if (FAILED(hr)) {
-		return;
-	}
-
-	// デプスステンシルビュー作成
-	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc{};
-	depthStencilViewDesc.Format = textureDesc.Format;
-	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-	depthStencilViewDesc.Flags = 0;
-	if (depthStencile) {
-		hr = device->CreateDepthStencilView(depthStencile, &depthStencilViewDesc, dsv);
-		depthStencile->Release();
-
-		if (FAILED(hr)) {
-			return;
-		}
-	}
 }
 
 void RenderSystem::DrawEntities(const RenderPassContext& renderPassContext){

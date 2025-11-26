@@ -78,8 +78,6 @@ private:
 	void EditorView();
 	void PlayerView();
 
-	void ResizeRenderBuffer(const Vector2& screenSize,ID3D11Texture2D** tex, ID3D11RenderTargetView** rtv, ID3D11ShaderResourceView** srv, ID3D11DepthStencilView** dsv);
-
 	ID3D11ShaderResourceView* RenderSceneWithPostEffects(ID3D11ShaderResourceView* initialSRV, const RenderPassContext& renderPassContext);
 
 	SceneManagerContext* m_context;
