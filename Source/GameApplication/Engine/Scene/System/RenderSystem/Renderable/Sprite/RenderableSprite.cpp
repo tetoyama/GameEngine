@@ -1,0 +1,122 @@
+#include "RenderableSprite.h"
+
+#include <d3d11.h>
+#include "../RenderableContext.h"
+
+#include "GameApplication/Engine/DebugTools/DebugSystem.h"
+#include "GameApplication/Engine/Graphics/mainRenderer.h"
+
+#include "GameApplication/Engine/Scene/scene.h"
+#include "GameApplication/Engine/Scene/sceneManager.h"
+#include "GameApplication/Engine/Scene/Registry/componentRegistry.h"
+
+#include "GameApplication/Engine/Scene/Component/2DspriteRendererComponent.h"
+#include "GameApplication/Engine/Scene/Component/meshRendererComponent.h"
+#include "GameApplication/Engine/Scene/Component/transformComponent.h"
+#include "GameApplication/Engine/Scene/Component/textureComponent.h"
+
+void RenderableSprite::Initialize(SceneManagerContext* context){
+	m_spriteMesh = new MeshRendererComponent;
+	if(m_spriteMesh){
+
+		m_spriteMesh->mesh.meshCount = 4;
+		VERTEX_3D vertex[4]{};
+
+		vertex[0].Position = DirectX::XMFLOAT3(0.5f, 0.5f, 0.0f);
+		vertex[0].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+		vertex[0].Tangent = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
+		vertex[0].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		vertex[0].TexCoord = DirectX::XMFLOAT2(1.0f, 1.0f);
+
+		vertex[1].Position = DirectX::XMFLOAT3(-0.5f, 0.5f, 0.0f);
+		vertex[1].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+		vertex[1].Tangent = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
+		vertex[1].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		vertex[1].TexCoord = DirectX::XMFLOAT2(0.0f, 1.0f);
+
+		vertex[2].Position = DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f);
+		vertex[2].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+		vertex[2].Tangent = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
+		vertex[2].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		vertex[2].TexCoord = DirectX::XMFLOAT2(1.0f, 0.0f);
+
+		vertex[3].Position = DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f);
+		vertex[3].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+		vertex[3].Tangent = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
+		vertex[3].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		vertex[3].TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
+
+		D3D11_BUFFER_DESC bd{};
+		bd.Usage = D3D11_USAGE_DEFAULT;
+		bd.ByteWidth = sizeof(VERTEX_3D) * 4;
+		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bd.CPUAccessFlags = 0;
+
+		D3D11_SUBRESOURCE_DATA sd{};
+		sd.pSysMem = vertex;
+
+		context->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_spriteMesh->mesh.m_VertexBuffer.GetAddressOf());
+		context->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\commonVS.cso", m_spriteMesh->mesh.m_VertexShader.GetAddressOf(), m_spriteMesh->mesh.m_VertexLayout.GetAddressOf());
+		context->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_spriteMesh->mesh.m_PixelShader.GetAddressOf());
+	}
+}
+
+void RenderableSprite::Finalize(){
+	delete m_spriteMesh;
+}
+
+void RenderableSprite::Execute(const RenderableContext& ctx, SceneContext* sceneContext, const Entity& entity){
+
+	SpriteRendererComponent* spriteRenderer = sceneContext->component->GetComponent<SpriteRendererComponent>(entity);
+	TransformComponent* transform = sceneContext->component->GetComponent<TransformComponent>(entity);
+	if(!spriteRenderer || !transform){
+		return;
+	}
+	Vector2 viewportSize = Vector2(
+		(float)sceneContext->manager->graphics->m_width,
+		(float)sceneContext->manager->graphics->m_height
+	);
+
+	TransformComponent newTransform = transform->CalculateRectTransform(viewportSize, ctx, *spriteRenderer, *transform);
+
+	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
+	ID3D11Device* device = graphicsContext->GetDevice();
+	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+	ComponentRegistry* componentRegistry = sceneContext->component;
+
+	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
+	if(pTexture){
+		MATERIAL material = pTexture->Material;
+		material.DiffuseTextureEnable = true;
+		graphicsContext->SetMaterial(material);
+
+		if(pTexture->m_TextureData){
+			deviceContext->PSSetShaderResources(0, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+		}
+	}
+	if(m_spriteMesh->mesh.m_VertexLayout){
+		deviceContext->IASetInputLayout(m_spriteMesh->mesh.m_VertexLayout.Get());
+	}
+	if(m_spriteMesh->mesh.m_VertexShader){
+		deviceContext->VSSetShader(m_spriteMesh->mesh.m_VertexShader.Get(), NULL, 0);
+	}
+	if(m_spriteMesh->mesh.m_PixelShader){
+		deviceContext->PSSetShader(m_spriteMesh->mesh.m_PixelShader.Get(), NULL, 0);
+	}
+	DirectX::XMMATRIX World = newTransform.CalculateWorldMatrix(&newTransform, componentRegistry);
+
+	graphicsContext->SetWorldViewProjection2D();
+	graphicsContext->SetWorldMatrix(World);
+	UINT stride = sizeof(VERTEX_3D);
+	UINT offset = 0;
+
+	deviceContext->IASetVertexBuffers(0, 1, m_spriteMesh->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
+
+	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+	deviceContext->Draw(m_spriteMesh->mesh.meshCount, 0);
+
+	graphicsContext->SetDepthEnable(true);
+	graphicsContext->SetViewMatrix(ctx.viewMatrix);
+	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
+}

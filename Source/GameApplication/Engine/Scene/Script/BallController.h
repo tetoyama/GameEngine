@@ -1,8 +1,6 @@
 #pragma once
 #include "Component/CustomScriptComponent.h"
 #include "Backends/checkFileExtention.h"
-#pragma once
-#include "Component/CustomScriptComponent.h"
 #include "Component/TransformComponent.h"
 #include "ScoreManager.h"
 

@@ -13,12 +13,12 @@ struct SceneManagerContext;
 struct PixelShaderData;
 struct VertexShaderData;
 
-struct RenderPassContext;
+struct RenderableContext;
 struct RenderTarget;
 
 struct CameraEntityData;
 
-class IRenderPass;
+class IRenderable;
 
 class ComponentRegistry;
 
@@ -57,37 +57,32 @@ public:
 
 private:
 
-	TransformComponent CalculateRectTransform(const RenderPassContext& renderPassContext, const SpriteRendererComponent& sprite, const TransformComponent& transform);
+	TransformComponent CalculateRectTransform(const RenderableContext& renderPassContext, const SpriteRendererComponent& sprite, const TransformComponent& transform);
 
 	const CameraEntityData FindCameraEntity();
 
-	void DrawEntities(const RenderPassContext& renderPassContext);
+	void DrawEntities(const RenderableContext& renderPassContext);
 
-	void DrawMesh(ComponentRegistry* componentRegistry, TransformComponent* pTransform, MeshRendererComponent* pMesh, TextureComponent* pTexture);
-	void DrawModel(ComponentRegistry* componentRegistry, TransformComponent* pTransform, ModelRendererComponent* pMesh, TextureComponent* pTexture, OutlineComponent* pOutline);
-	void DrawBillBoard(ComponentRegistry* componentRegistry, TransformComponent* pTransform, MeshRendererComponent* pMesh, BillBoardRendererComponent* pBillBoard, TextureComponent* pTexture);
-	void DrawParticle(ComponentRegistry* componentRegistry, TransformComponent* pTransform, ParticleComponent* pParticle, TextureComponent* pTexture);
 	void DrawTerrain(ComponentRegistry* componentRegistry, TransformComponent* pTransform, TerrainComponent* pTerrain, TextureComponent* pTexture);
 	void DrawWave(ComponentRegistry* componentRegistry, TransformComponent* pTransform, WaveComponent* pWave, TextureComponent* pTexture);
 
 	void ControllButton();
 	void DrawRenderLayerToggleUI();
 
-	void ShadowPass(RenderPassContext renderPassContext);
+	void ShadowPass(RenderableContext renderPassContext);
 
 	void EditorView();
 	void PlayerView();
 
-	ID3D11ShaderResourceView* RenderSceneWithPostEffects(ID3D11ShaderResourceView* initialSRV, const RenderPassContext& renderPassContext);
+	ID3D11ShaderResourceView* RenderSceneWithPostEffects(ID3D11ShaderResourceView* initialSRV, const RenderableContext& renderPassContext);
 
 	SceneManagerContext* m_context;
 
-	MeshRendererComponent* m_billBoardMesh = nullptr;
-	MeshRendererComponent* m_SpriteMesh = nullptr;
+	std::vector<std::shared_ptr<IRenderable>> m_renderables;
 
-	RenderTarget* m_Shadow = nullptr;
-	RenderTarget* m_Player = nullptr;
-	RenderTarget* m_Editor = nullptr;
+	RenderTarget* m_RenderTargetShadow = nullptr;
+	RenderTarget* m_RenderTargetPlayer = nullptr;
+	RenderTarget* m_RenderTargetEditor = nullptr;
 
 	Vector3 m_EditorCameraPosition = Vector3(0.0f, 5.0f, -20.0f);
 	Vector3 m_EditorCameraRotation = Vector3(0.0f, 0.0f, 0.0f);
@@ -112,8 +107,6 @@ private:
 	bool playerRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] = {
 	true, true, true, true, true, false
 	};
-
-	int currentSelectedLayer = (int)RenderLayer::Opaque3D; // 初期選択（例）
 
 	ID3D11Buffer* pPhysicsDebugLineVB = nullptr;
 	PostEffectShader copyShader;

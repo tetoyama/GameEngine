@@ -3,6 +3,8 @@
 #include "GameApplication/Engine/Scene/scene.h"
 
 #include "Service/YAMLConverters.h"
+
+#include "Engine/Resources/resourceService.h"
 #include "Engine/Resources/Data/vertexShaderData.h"
 #include "Engine/Resources/Data/pixelShaderData.h"
 #include "Engine/Resources/Data/modelData.h"

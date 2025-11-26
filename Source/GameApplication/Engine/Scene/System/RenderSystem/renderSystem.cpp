@@ -38,19 +38,16 @@
 #include "SceneManager.h"
 
 #include "System/physicSystem.h"
-#include "System/RenderSystem/cameraEntityData.h"
-#include "System/RenderSystem/renderPhase.h"
-#include "System/RenderSystem/renderTarget.h"
-#include "System/RenderSystem/RenderPass/RenderPassContext.h"
 
-#include <Component/bumpMapComponent.h>
-#include <Component/2DspriteRendererComponent.h>
-#include <Component/RenderLayerComponent.h>
-#include <Component/particleComponent.h>
-#include <Component/outlineComponent.h>
-#include <Component/EffectComponent.h>
-#include <Component/terrainComponent.h>
-#include <Component/waveComponent.h>
+
+#include "Component/bumpMapComponent.h"
+#include "Component/2DspriteRendererComponent.h"
+#include "Component/RenderLayerComponent.h"
+#include "Component/particleComponent.h"
+#include "Component/outlineComponent.h"
+#include "Component/EffectComponent.h"
+#include "Component/terrainComponent.h"
+#include "Component/waveComponent.h"
 #include "Component/transformComponent.h"
 #include "Component/textureComponent.h"
 #include "Component/meshRendererComponent.h"
@@ -58,35 +55,20 @@
 #include "Component/BillBoardRendererComponent.h"
 #include "Component/cameraComponent.h"
 
+
+#include "cameraEntityData.h"
+#include "renderPhase.h"
+#include "RenderTarget/renderTarget.h"
+#include "Renderable/RenderableContext.h"
+#include "Renderable/Mesh/RenderableMesh.h"
+#include "Renderable/Model/RenderableModel.h"
+#include "Renderable/BillBoard/RenderableBillBoard.h"
+#include "Renderable/Sprite/RenderableSprite.h"
+#include "Renderable/Particle/RenderableParticle.h"
+
 constexpr int maxLineCount = 99999;
 
-RenderPassContext::RenderPassContext(const RenderPhase& renderPass, bool* renderLayer, std::shared_ptr<PixelShaderData> setPixelShader, std::shared_ptr<VertexShaderData> setVertexShader, const CameraEntityData& data, const Vector2& setScreenSize) {
 
-	passPhase = renderPass;
-
-	renderLayerVisibility = renderLayer;
-
-	pixelShader = setPixelShader;
-	vertexShader = setVertexShader;
-
-	cameraData = data;
-
-	screenSize = setScreenSize;
-
-	CameraComponent* cameraComponent = cameraData.cameraComponent;
-	TransformComponent* transformComponent = cameraData.transformComponent;
-
-	if (cameraComponent == nullptr || transformComponent == nullptr) {
-		return;
-	}
-
-	// プロジェクションマトリクス設定
-	projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(cameraComponent->FOV, screenSize.x / screenSize.y, cameraComponent->NearClip, cameraComponent->FarClip);
-
-	cameraPosition = DirectX::XMFLOAT4(transformComponent->position.x, transformComponent->position.y, transformComponent->position.z, 0.0f);
-
-	viewMatrix = cameraComponent->viewMatrix;
-}
 
 Effekseer::Matrix44 ConvertXMMATRIXToMatrix44(const DirectX::XMMATRIX& matrix){
 	Effekseer::Matrix44 result;
@@ -168,6 +150,16 @@ struct RenderOrderComparator {
 void RenderSystem::Initialize(){
 	m_context->debug->LOG_DEBUG("RenderSystemを初期化中...");
 
+	m_renderables.clear();
+	m_renderables.push_back(std::make_shared<RenderableModel>());
+	m_renderables.push_back(std::make_shared<RenderableMesh>());
+	m_renderables.push_back(std::make_shared<RenderableBillBoard>());
+	m_renderables.push_back(std::make_shared<RenderableSprite>());
+	m_renderables.push_back(std::make_shared<RenderableParticle>());
+	for(auto renderable : m_renderables){
+		renderable->Initialize(m_context);
+	}
+
 	ID3D11Device* device = m_context->graphics->GetDevice();
 
 	showPlayer = &m_context->imgui->GetManubar()->showPlayerView;
@@ -179,97 +171,9 @@ void RenderSystem::Initialize(){
 	StopButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Stop.png");
 	StepButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Step.png");
 
-	m_Player = new RenderTarget(m_context->PlayerScreenSize, m_context->graphics);
-	m_Editor = new RenderTarget(m_context->EditorScreenSize, m_context->graphics);
-	m_Shadow = new RenderTarget(Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE), m_context->graphics);
-
-	m_billBoardMesh = new MeshRendererComponent;
-	if(m_billBoardMesh){
-
-		m_billBoardMesh->mesh.meshCount = 4;
-		VERTEX_3D vertex[4]{};
-
-		vertex[0].Position = DirectX::XMFLOAT3(-0.5f, 0.5f, 0.0f);
-		vertex[0].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-		vertex[0].Tangent = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
-		vertex[0].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		vertex[0].TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
-
-		vertex[1].Position = DirectX::XMFLOAT3(0.5f, 0.5f, 0.0f);
-		vertex[1].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-		vertex[1].Tangent = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
-		vertex[1].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		vertex[1].TexCoord = DirectX::XMFLOAT2(1.0f, 0.0f);
-
-		vertex[2].Position = DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f);
-		vertex[2].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-		vertex[2].Tangent = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
-		vertex[2].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		vertex[2].TexCoord = DirectX::XMFLOAT2(0.0f, 1.0f);
-
-		vertex[3].Position = DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f);
-		vertex[3].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-		vertex[3].Tangent = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
-		vertex[3].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		vertex[3].TexCoord = DirectX::XMFLOAT2(1.0f, 1.0f);
-
-		D3D11_BUFFER_DESC bd{};
-		bd.Usage = D3D11_USAGE_DEFAULT;
-		bd.ByteWidth = sizeof(VERTEX_3D) * 4;
-		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bd.CPUAccessFlags = 0;
-
-		D3D11_SUBRESOURCE_DATA sd{};
-		sd.pSysMem = vertex;
-
-		m_context->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_billBoardMesh->mesh.m_VertexBuffer.GetAddressOf());
-		m_context->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\commonVS.cso", m_billBoardMesh->mesh.m_VertexShader.GetAddressOf(), m_billBoardMesh->mesh.m_VertexLayout.GetAddressOf());
-		m_context->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_billBoardMesh->mesh.m_PixelShader.GetAddressOf());
-	}
-
-	m_SpriteMesh = new MeshRendererComponent;
-	if (m_SpriteMesh) {
-
-		m_SpriteMesh->mesh.meshCount = 4;
-		VERTEX_3D vertex[4]{};
-
-		vertex[0].Position = DirectX::XMFLOAT3(0.5f, 0.5f, 0.0f);
-		vertex[0].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-		vertex[0].Tangent = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
-		vertex[0].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		vertex[0].TexCoord = DirectX::XMFLOAT2(1.0f, 1.0f);
-
-		vertex[1].Position = DirectX::XMFLOAT3(-0.5f, 0.5f, 0.0f);
-		vertex[1].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-		vertex[1].Tangent = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
-		vertex[1].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		vertex[1].TexCoord = DirectX::XMFLOAT2(0.0f, 1.0f);
-
-		vertex[2].Position = DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f);
-		vertex[2].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-		vertex[2].Tangent = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
-		vertex[2].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		vertex[2].TexCoord = DirectX::XMFLOAT2(1.0f, 0.0f);
-
-		vertex[3].Position = DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f);
-		vertex[3].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-		vertex[3].Tangent = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
-		vertex[3].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		vertex[3].TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
-
-		D3D11_BUFFER_DESC bd{};
-		bd.Usage = D3D11_USAGE_DEFAULT;
-		bd.ByteWidth = sizeof(VERTEX_3D) * 4;
-		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bd.CPUAccessFlags = 0;
-
-		D3D11_SUBRESOURCE_DATA sd{};
-		sd.pSysMem = vertex;
-
-		m_context->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_SpriteMesh->mesh.m_VertexBuffer.GetAddressOf());
-		m_context->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\commonVS.cso", m_SpriteMesh->mesh.m_VertexShader.GetAddressOf(), m_SpriteMesh->mesh.m_VertexLayout.GetAddressOf());
-		m_context->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_SpriteMesh->mesh.m_PixelShader.GetAddressOf());
-	}
+	m_RenderTargetPlayer = new RenderTarget(m_context->PlayerScreenSize, m_context->graphics);
+	m_RenderTargetEditor = new RenderTarget(m_context->EditorScreenSize, m_context->graphics);
+	m_RenderTargetShadow = new RenderTarget(Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE), m_context->graphics);
 
 	m_VertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\OutlineVS.cso");
 	m_PixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\OutlinePS.cso");
@@ -304,12 +208,14 @@ void RenderSystem::Initialize(){
 void RenderSystem::Finalize(){
 	pPhysicsDebugLineVB->Release();
 	pPhysicsDebugLineVB = nullptr;
-	delete m_billBoardMesh;
-	delete m_SpriteMesh;
 
-	delete m_Shadow;
-	delete m_Editor;
-	delete m_Player;
+	for(auto renderable : m_renderables){
+		renderable->Finalize();
+	}
+
+	delete m_RenderTargetShadow;
+	delete m_RenderTargetEditor;
+	delete m_RenderTargetPlayer;
 }
 
 void RenderSystem::Update(float deltaTime) {
@@ -353,7 +259,7 @@ void RenderSystem::Draw(){
 			return;
 		}
 
-		RenderPassContext renderPassContext(
+		RenderableContext renderPassContext(
 			RenderPhase::PHASE_GBUFFER,
 			playerRenderLayerVisible,
 			nullptr,
@@ -432,11 +338,11 @@ void RenderSystem::EditorUpdate(float deltaTime) {
 
 		Vector3 front;
 		front.x = cosf(m_EditorCameraRotation.y) * sinf(m_EditorCameraRotation.x);
-		front.y = sinf(m_EditorCameraRotation.y);
+		front.y = sinf(m_EditorCameraRotation.x);
 		front.z = cosf(m_EditorCameraRotation.y) * cosf(m_EditorCameraRotation.x);
 		front = front.normalize();
 		Vector3 right = (Vec3Cross(front, Vector3(0.0f, 1.0f, 0.0f))).normalize();
-		Vector3 up = (Vec3Cross(right, front)).normalize();
+		Vector3 up = (Vec3Cross(front, Vector3(1.0f, 0.0f, 0.0f))).normalize();
 
 		if(ImGui::IsMouseDown(ImGuiMouseButton_Middle)){
 			float panSensitivity = 0.1f;
@@ -476,7 +382,7 @@ void RenderSystem::DrawRenderLayerToggleUI() {
 }
 
 TransformComponent RenderSystem::CalculateRectTransform(
-	const RenderPassContext& renderPassContext,
+	const RenderableContext& renderPassContext,
 	const SpriteRendererComponent& sprite,
 	const TransformComponent& originalTransform
 ){
@@ -549,317 +455,6 @@ const CameraEntityData RenderSystem::FindCameraEntity() {
 		return cameraData;
 	}
 	return cameraData;
-}
-
-void RenderSystem::DrawMesh(ComponentRegistry* componentRegistry, TransformComponent* transform, MeshRendererComponent* meshRenderer, TextureComponent* pTexture){
-
-
-	GraphicsContext* graphicsContext = m_context->graphics;
-	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-
-
-	if (!pTexture) {
-		if (meshRenderer->mesh.m_TextureData) {
-			deviceContext->PSSetShaderResources(0, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
-
-			MATERIAL material{};
-			material.DiffuseTextureEnable = true;
-
-			material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
-			graphicsContext->SetMaterial(material);
-		}
-	}
-	if (meshRenderer->mesh.m_VertexLayout) {
-		deviceContext->IASetInputLayout(meshRenderer->mesh.m_VertexLayout.Get());
-	}
-	if (meshRenderer->mesh.m_VertexShader) {
-		deviceContext->VSSetShader(meshRenderer->mesh.m_VertexShader.Get(), NULL, 0);
-	}
-	if (meshRenderer->mesh.m_PixelShader) {
-		deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
-	}
-	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, componentRegistry);
-
-	graphicsContext->SetWorldViewProjection2D();
-	graphicsContext->SetWorldMatrix(World);
-	UINT stride = sizeof(VERTEX_3D);
-	UINT offset = 0;
-
-	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
-
-	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-	deviceContext->Draw(meshRenderer->mesh.meshCount, 0);
-
-	graphicsContext->SetDepthEnable(true);
-	graphicsContext->SetViewMatrix(m_CameraView);
-	graphicsContext->SetProjectionMatrix(m_CameraProjection);
-
-}
-void RenderSystem::DrawModel(ComponentRegistry* componentRegistry, TransformComponent* transform, ModelRendererComponent* modelRenderer, TextureComponent* pTexture, OutlineComponent* pOutline){
-	ModelData* pModel = modelRenderer->model.get();
-	if(!pModel || !pModel->AiScene){
-		//m_context->debug->LOG_ERROR("ModelData is null or AiScene is not initialized.");
-		return;
-	}
-
-	GraphicsContext* graphicsContext = m_context->graphics;
-	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-	ID3D11Device* device = graphicsContext->GetDevice();
-
-	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	//pModel->Update(modelRenderer->currentAnimationName.c_str(), (int)modelRenderer->animationTime, m_context->graphics);
-	pModel->Update(modelRenderer->animationTime, m_context->graphics);
-	deviceContext->IASetInputLayout(m_VertexShader->m_VertexLayout.Get());
-
-
-	// ワールド行列計算
-	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, componentRegistry);
-	for(int i = 0; i < 2; i++){
-		if(i == 0){
-			if(pOutline){
-				deviceContext->PSSetShader(m_PixelShader->m_PixelShader.Get(), nullptr, 0);
-				deviceContext->VSSetShader(m_VertexShader->m_VertexShader.Get(), nullptr, 0);
-				graphicsContext->SetCullMode(CullMode::Front);
-			} else{
-				continue;
-			}
-		} else{
-			if(modelRenderer->pixelShader){
-				deviceContext->PSSetShader(modelRenderer->pixelShader->m_PixelShader.Get(), nullptr, 0);
-			}
-			if(modelRenderer->vertexShader){
-				deviceContext->IASetInputLayout(modelRenderer->vertexShader->m_VertexLayout.Get());
-				deviceContext->VSSetShader(modelRenderer->vertexShader->m_VertexShader.Get(), nullptr, 0);
-			}
-			graphicsContext->SetCullMode(CullMode::Back);
-		}
-
-		for(unsigned int m = 0; m < pModel->AiScene->mNumMeshes; m++){
-
-			if(pModel->SetTexture){
-				aiMaterial* material = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-				if(!pTexture || !pTexture->m_TextureData){
-					aiString texName;
-					if(material->GetTexture(aiTextureType_DIFFUSE, 0, &texName) == AI_SUCCESS && texName.length > 0){
-						auto it = pModel->m_Texture.find(texName.C_Str());
-						if(it != pModel->m_Texture.end()){
-							deviceContext->PSSetShaderResources(0, 1, &it->second);
-						}
-					}
-					if(material->GetTexture(aiTextureType_NORMALS, 0, &texName) == AI_SUCCESS && texName.length > 0){
-						auto it = pModel->m_Texture.find(texName.C_Str());
-						if(it != pModel->m_Texture.end()){
-							deviceContext->PSSetShaderResources(1, 1, &it->second);
-						}
-					}
-				}
-			}
-
-			if(!pTexture){
-				MATERIAL materialData;
-				aiMaterial* aiMat = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-				aiColor4D color;
-				if(aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS)
-					materialData.Diffuse = {color.r, color.g, color.b, color.a};
-				if(aiMat->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS)
-					materialData.Ambient = {color.r, color.g, color.b, color.a};
-				if(aiMat->Get(AI_MATKEY_COLOR_EMISSIVE, color) == AI_SUCCESS)
-					materialData.Emission = {color.r, color.g, color.b, color.a};
-				if(aiMat->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS)
-					materialData.Specular = {color.r, color.g, color.b, color.a};
-
-				float shininess = 0.0f;
-				if(aiMat->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS)
-					materialData.Shininess = std::clamp(shininess, 1.0f, 128.0f);
-
-				materialData.DiffuseTextureEnable = pModel->SetTexture;
-				graphicsContext->SetMaterial(materialData);
-			}
-
-			graphicsContext->SetWorldMatrix(World);
-
-			// 頂点バッファ設定
-			UINT stride = sizeof(VERTEX_3D);
-			UINT offset = 0;
-			graphicsContext->GetDeviceContext()->IASetVertexBuffers(0, 1, &pModel->VertexBuffer[m], &stride, &offset);
-
-			// インデックスバッファ設定
-			graphicsContext->GetDeviceContext()->IASetIndexBuffer(pModel->IndexBuffer[m], DXGI_FORMAT_R32_UINT, 0);
-
-			
-			
-			deviceContext->DrawIndexed(pModel->AiScene->mMeshes[m]->mNumFaces * 3, 0, 0);
-		}
-	}
-}
-
-
-void RenderSystem::DrawBillBoard(ComponentRegistry* componentRegistry, TransformComponent* transform, MeshRendererComponent* meshRenderer, BillBoardRendererComponent* billBoard, TextureComponent* pTexture) {
-
-	DirectX::XMMATRIX InvViewBillBoardMatrix = DirectX::XMMatrixRotationQuaternion(transform->rotationVector());
-
-	if(!billBoard->RotateXYZ.x && !billBoard->RotateXYZ.y && !billBoard->RotateXYZ.z){
-		// 全軸false：回転しない → 単位行列（通常メッシュと同じ）
-	} else if(billBoard->RotateXYZ.y && !billBoard->RotateXYZ.x && !billBoard->RotateXYZ.z){
-		// Y軸だけ回転（XZビルボード） → UIパネルなどで多用される
-
-		DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, m_CameraView);
-		DirectX::XMFLOAT4X4 invViewFloat4x4;
-		DirectX::XMStoreFloat4x4(&invViewFloat4x4, invView);
-
-		// カメラの前方向ベクトル（Z軸）
-		DirectX::XMVECTOR forward = DirectX::XMVectorSet(invViewFloat4x4._31, 0.0f, invViewFloat4x4._33, 0.0f);
-		forward = DirectX::XMVector3Normalize(forward);
-
-		// up = Y軸固定
-		DirectX::XMVECTOR up = DirectX::XMVectorSet(0, 1, 0, 0);
-		DirectX::XMVECTOR right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(up, forward));
-		up = DirectX::XMVector3Cross(forward, right);
-
-		InvViewBillBoardMatrix = DirectX::XMMATRIX(
-			right,
-			up,
-			forward,
-			DirectX::XMVectorSet(0, 0, 0, 1)
-		);
-	} else{
-		// 任意の軸制御（全軸、Y+Z など）
-		DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, m_CameraView);
-		DirectX::XMFLOAT4X4 invViewFloat4x4;
-		DirectX::XMStoreFloat4x4(&invViewFloat4x4, invView);
-
-		DirectX::XMVECTOR forward = DirectX::XMVectorSet(invViewFloat4x4._31, invViewFloat4x4._32, invViewFloat4x4._33, 0.0f);
-		DirectX::XMVECTOR right = DirectX::XMVectorSet(invViewFloat4x4._11, invViewFloat4x4._12, invViewFloat4x4._13, 0.0f);
-		DirectX::XMVECTOR up = DirectX::XMVectorSet(invViewFloat4x4._21, invViewFloat4x4._22, invViewFloat4x4._23, 0.0f);
-
-		const DirectX::XMVECTOR worldRight = DirectX::XMVectorSet(1, 0, 0, 0);
-		const DirectX::XMVECTOR worldUp = DirectX::XMVectorSet(0, 1, 0, 0);
-		const DirectX::XMVECTOR worldForward = DirectX::XMVectorSet(0, 0, 1, 0);
-
-		if(!billBoard->RotateXYZ.x) right = worldRight;
-		if(!billBoard->RotateXYZ.y) up = worldUp;
-		if(!billBoard->RotateXYZ.z) forward = worldForward;
-
-		// 再直交化（forward優先）
-		forward = DirectX::XMVector3Normalize(forward);
-		right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(up, forward));
-		up = DirectX::XMVector3Cross(forward, right);
-
-		InvViewBillBoardMatrix = DirectX::XMMATRIX(
-			right,
-			up,
-			forward,
-			DirectX::XMVectorSet(0, 0, 0, 1)
-		);
-	}
-
-	GraphicsContext* graphicsContext = m_context->graphics;
-	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-
-
-	if (!pTexture) {
-		if (meshRenderer->mesh.m_TextureData) {
-			deviceContext->PSSetShaderResources(0, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
-
-			MATERIAL material{};
-			material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
-			graphicsContext->SetMaterial(material);
-		}
-	}
-
-	deviceContext->IASetInputLayout(meshRenderer->mesh.m_VertexLayout.Get());
-
-	deviceContext->VSSetShader(meshRenderer->mesh.m_VertexShader.Get(), NULL, 0);
-	deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
-
-	// ローカル変換行列（スケール・ビルボード回転・位置）
-	DirectX::XMMATRIX LocalMatrix =
-		DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z) *
-		InvViewBillBoardMatrix *
-		DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
-
-	DirectX::XMMATRIX WorldMatrix = LocalMatrix;
-
-	if(transform->parent != 0){
-		auto parentTransform = componentRegistry->GetComponent<TransformComponent>(transform->parent);
-		if(parentTransform){
-			DirectX::XMMATRIX parentWorld = parentTransform->CalculateWorldMatrix(parentTransform, componentRegistry);
-
-			// 親の位置だけを取得（分解）
-			DirectX::XMVECTOR parentScale, parentRotation, parentTranslation;
-			DirectX::XMMatrixDecompose(&parentScale, &parentRotation, &parentTranslation, parentWorld);
-
-			// 親の位置だけの平行移動行列を作る
-			DirectX::XMMATRIX parentTranslationMatrix = DirectX::XMMatrixTranslationFromVector(parentTranslation);
-
-			// 親の回転・スケールは無視し、親位置だけ足す
-			WorldMatrix = LocalMatrix * parentTranslationMatrix;
-		}
-	}
-
-	graphicsContext->SetWorldMatrix(WorldMatrix);
-	UINT stride = sizeof(VERTEX_3D);
-	UINT offset = 0;
-
-	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
-
-	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-	deviceContext->Draw(meshRenderer->mesh.meshCount, 0);
-}
-
-void RenderSystem::DrawParticle(ComponentRegistry* componentRegistry, TransformComponent* pTransform, ParticleComponent* pParticle, TextureComponent* pTexture){
-
-
-	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
-	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-	graphicsContext->SetBlendMode(BlendMode::Additive);
-
-	for(int i = 0; i < MAXPARTICLE; i++){
-		if(pParticle->Particle[i].LifeTime > 0.0f){
-			MATERIAL material;
-
-			if (pTexture) {
-					// マテリアル設定
-				material.Diffuse = pTexture->Material.Diffuse;
-				material.DiffuseTextureEnable = ((bool)pTexture->m_TextureData);
-				if (pTexture->m_TextureData) {
-					deviceContext->PSSetShaderResources(0, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
-				}
-
-				UVMatrix uv;
-				if (pTexture->UV_Slice_X != 0 && pTexture->UV_Slice_Y != 0) {
-					uv.Start.x = (float)(pTexture->AnimationNum % pTexture->UV_Slice_X) * 1.0f / (float)pTexture->UV_Slice_X;
-					uv.Start.y = (float)(pTexture->AnimationNum / pTexture->UV_Slice_X) * 1.0f / (float)pTexture->UV_Slice_Y;
-
-					uv.End.x = (float)uv.Start.x + 1.0f / (float)pTexture->UV_Slice_X;
-					uv.End.y = (float)uv.Start.y + 1.0f / (float)pTexture->UV_Slice_Y;
-				}
-				graphicsContext->SetUVMatrix(uv);
-				material.Diffuse.w = pTexture->Material.Diffuse.w * pParticle->Particle[i].LifeTime / pParticle->particleLifeTime;
-
-			} else {
-				// マテリアル設定
-				material.DiffuseTextureEnable = false;
-				material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-
-				UVMatrix uv;
-				graphicsContext->SetUVMatrix(uv);
-			}
-			graphicsContext->SetMaterial(material);
-
-			TransformComponent transform = *pTransform;
-			transform.position += pParticle->Particle[i].Position;
-			transform.scale *= pParticle->particleSize;
-
-			BillBoardRendererComponent billBoard;
-
-			DrawBillBoard(componentRegistry ,&transform, m_billBoardMesh, &billBoard, pTexture);
-		}
-	}
-	graphicsContext->SetBlendMode(BlendMode::Alpha);
 }
 
 void RenderSystem::DrawTerrain(ComponentRegistry* componentRegistry, TransformComponent* pTransform, TerrainComponent* pTerrain, TextureComponent* pTexture) {
@@ -1012,13 +607,13 @@ void RenderSystem::ControllButton(){
 	}
 }
 
-void RenderSystem::ShadowPass(RenderPassContext renderPassContext){
+void RenderSystem::ShadowPass(RenderableContext renderPassContext){
 
 	GraphicsContext* graphicsContext = m_context->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	// シャドウマップ用レンダーターゲットとデプスステンシルビューを設定
-	deviceContext->OMSetRenderTargets(1, m_Shadow->rtv.GetAddressOf(), m_Shadow->dsv.Get());
+	deviceContext->OMSetRenderTargets(1, m_RenderTargetShadow->rtv.GetAddressOf(), m_RenderTargetShadow->dsv.Get());
 
 	// シャドウマップ用のカメラ設定
 	LIGHT light = m_context->renderer->GetGraphicsContext()->GetLight()[0];
@@ -1054,8 +649,8 @@ void RenderSystem::ShadowPass(RenderPassContext renderPassContext){
 void RenderSystem::EditorView(){
 	GraphicsContext* graphicsContext = m_context->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-	//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
 	ImGuiWindowFlags toolbar_window_flags = 0;
+	//toolbar_window_flags |= ImGuiWindowFlags_NoCollapse;
 	ImGui::Begin("Editor View",showEditor, toolbar_window_flags);
 
 	ControllButton();
@@ -1088,27 +683,27 @@ void RenderSystem::EditorView(){
 	cameraData.transformComponent = &editorCameraTransform;
 
 	m_context->EditorScreenSize = Vector2(avail.x, avail.y);
-	m_Editor->Resize(Vector2(avail.x, avail.y),m_context->graphics);
+	m_RenderTargetEditor->Resize(Vector2(avail.x, avail.y),m_context->graphics);
 
-	RenderPassContext renderPassContext(
+	RenderableContext renderPassContext(
 		RenderPhase::PHASE_GBUFFER,
 		editorRenderLayerVisible,
 		nullptr,
 		nullptr,
 		cameraData,
-		m_Editor->size
+		m_RenderTargetEditor->size
 	);
 	ShadowPass(renderPassContext);
 	
 	float clearCol[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
-	deviceContext->ClearRenderTargetView(m_Editor->rtv.Get(), clearCol);
-	deviceContext->ClearDepthStencilView(m_Editor->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	deviceContext->ClearRenderTargetView(m_RenderTargetEditor->rtv.Get(), clearCol);
+	deviceContext->ClearDepthStencilView(m_RenderTargetEditor->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, m_Editor->rtv.GetAddressOf(), m_Editor->dsv.Get());
+	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, m_RenderTargetEditor->rtv.GetAddressOf(), m_RenderTargetEditor->dsv.Get());
 	DrawEntities(renderPassContext);
 
 	ImVec2 cursor = ImGui::GetCursorPos();
-	ImGui::Image((ImTextureID)m_Editor->srv.Get(), avail, ImVec2(0, 0), ImVec2(1, 1));
+	ImGui::Image((ImTextureID)m_RenderTargetEditor->srv.Get(), avail, ImVec2(0, 0), ImVec2(1, 1));
 
 	// ImGuizmo の描画領域を設定
 	ImGuizmo::SetRect(
@@ -1220,14 +815,14 @@ std::vector<int> TopologicalSortPostEffects(CameraComponent* camera){
 
 
 
-ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(ID3D11ShaderResourceView* initialSRV, const RenderPassContext& renderPassContext) {
+ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(ID3D11ShaderResourceView* initialSRV, const RenderableContext& renderPassContext) {
 	GraphicsContext* graphics = m_context->graphics;
 
 	// 1. シーンを初期バッファに描画
 	DirectX::XMFLOAT4 clearColor = { 0,0,0,1 };
 	//graphics->ResetPingPongBuffer(&clearColor.x); // 初期描画用バッファ
 
-	//RenderPassContext _renderPassContext = renderPassContext;
+	//RenderableContext _renderPassContext = renderPassContext;
 	//_renderPassContext.screenSize = Vector2((float)m_context->graphics->m_width, (float)m_context->graphics->m_height);
 
 	DrawEntities(renderPassContext);
@@ -1330,21 +925,21 @@ void RenderSystem::PlayerView(){
 	ImVec2 avail = ImGui::GetContentRegionAvail();
 
 	float clearCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
-	m_Player->Resize(Vector2(avail.x, avail.y), m_context->graphics);
-	m_Player->Clear(m_context->graphics->GetDeviceContext(), clearCol);
+	m_RenderTargetPlayer->Resize(Vector2(avail.x, avail.y), m_context->graphics);
+	m_RenderTargetPlayer->Clear(m_context->graphics->GetDeviceContext(), clearCol);
 
-	RenderPassContext renderPassContext(
+	RenderableContext renderPassContext(
 		RenderPhase::PHASE_GBUFFER,
 		playerRenderLayerVisible,
 		nullptr,
 		nullptr,
 		cameraData,
-		m_Player->size
+		m_RenderTargetPlayer->size
 	);
 	ShadowPass(renderPassContext);
 
-	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_Player->rtv.GetAddressOf(), m_Player->dsv.Get());
-	ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(m_Player->srv.Get(), renderPassContext);
+	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_RenderTargetPlayer->rtv.GetAddressOf(), m_RenderTargetPlayer->dsv.Get());
+	ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(m_RenderTargetPlayer->srv.Get(), renderPassContext);
 	if(!finalSRV){
 		ImGui::Text("finalSRV is NULL");
 	}
@@ -1357,7 +952,7 @@ void RenderSystem::PlayerView(){
 	);
 }
 
-void RenderSystem::DrawEntities(const RenderPassContext& renderPassContext){
+void RenderSystem::DrawEntities(const RenderableContext& renderPassContext){
 
 	bool* pRenderLayer = renderPassContext.renderLayerVisibility;
 
@@ -1389,6 +984,10 @@ void RenderSystem::DrawEntities(const RenderPassContext& renderPassContext){
 
 	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++) {
 
+		if(renderPassContext.renderLayerVisibility[i] == false){
+			continue;
+		}
+
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();
 
@@ -1407,6 +1006,10 @@ void RenderSystem::DrawEntities(const RenderPassContext& renderPassContext){
 
 					if ((int)layer != i) {
 						continue;
+					}
+
+					for(auto renderable : m_renderables){
+						renderable->Execute(renderPassContext, context ,entity);
 					}
 
 					TransformComponent* transform = context->component->GetComponent<TransformComponent>(entity);
@@ -1457,15 +1060,7 @@ void RenderSystem::DrawEntities(const RenderPassContext& renderPassContext){
 							UVMatrix uv;
 							graphicsContext->SetUVMatrix(uv);
 						}
-						SpriteRendererComponent* spriteRenderer = context->component->GetComponent<SpriteRendererComponent>(entity);
-						if (spriteRenderer) {
-							TransformComponent newTransform = CalculateRectTransform(renderPassContext, *spriteRenderer, *transform);
-							DrawMesh(context->component, &newTransform, m_SpriteMesh, texture);
-						}
-						BillBoardRendererComponent* billBoardRenderer = context->component->GetComponent<BillBoardRendererComponent>(entity);
-						if (billBoardRenderer) {
-							DrawBillBoard(context->component, transform, m_billBoardMesh, billBoardRenderer, texture);
-						}
+
 						TerrainComponent* terrain = context->component->GetComponent<TerrainComponent>(entity);
 						if (terrain) {
 							DrawTerrain(context->component, transform, terrain, texture);
@@ -1473,21 +1068,6 @@ void RenderSystem::DrawEntities(const RenderPassContext& renderPassContext){
 						WaveComponent* wave = context->component->GetComponent<WaveComponent>(entity);
 						if (wave) {
 							DrawWave(context->component, transform, wave, texture);
-						}
-
-						MeshRendererComponent* meshRenderer = context->component->GetComponent<MeshRendererComponent>(entity);
-						if (meshRenderer) {
-							DrawMesh(context->component, transform, meshRenderer, texture);
-						}
-
-						ModelRendererComponent* modelRenderer = context->component->GetComponent<ModelRendererComponent>(entity);
-						if (modelRenderer) {
-							DrawModel(context->component, transform, modelRenderer, texture, outline);
-						}
-
-						ParticleComponent* particle = context->component->GetComponent<ParticleComponent>(entity);
-						if (particle) {
-							DrawParticle(context->component, transform, particle, texture);
 						}
 					}
 				}

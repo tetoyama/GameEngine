@@ -4,14 +4,21 @@
 #include "Service/YAMLConverters.h"
 #include "Service/ImGuiFunc.h"
 #include "Registry/componentRegistry.h"
+#include "Engine/Graphics/mainRenderer.h"
+#include "GameApplication/Engine/Scene/scene.h"
+
 #include "GameApplication/Engine/DebugTools/ImGuiSystem.h"
+#include "GameApplication/Engine/Scene/sceneManager.h"
+#include "GameApplication/Engine/Scene/System/RenderSystem/Renderable/RenderableContext.h"
+
+#include "2DspriteRendererComponent.h"
+
 #include <DirectXMath.h>
 
 class TransformComponent: public IComponent {
 private:
 	Vector3 rotationEular;
 	DirectX::XMFLOAT4 rotation = {0, 0, 0, 1}; // クォータニオン
-	SceneContext* m_context = nullptr;
 
 public:
 	Vector3 position = Vector3(0, 0, 0);
@@ -238,5 +245,59 @@ public:
 			}
 		}
 		return local;
+	}
+
+	TransformComponent CalculateRectTransform(
+		const Vector2& viewportSize,
+		const RenderableContext& renderPassContext,
+		const SpriteRendererComponent& sprite,
+		const TransformComponent& originalTransform
+	){
+		TransformComponent adjustedTransform = originalTransform;
+
+		Vector2 screenSize = renderPassContext.screenSize;
+
+		// 仮想UI基準解像度
+		const Vector2 referenceResolution = {1.0f, 1.0f};
+
+		// アスペクト比
+		float screenAspect = screenSize.x / screenSize.y;
+		float referenceAspect = referenceResolution.x / referenceResolution.y;
+		float aspectRatioScaleX = referenceAspect / screenAspect;
+
+		// アンカー位置（画面サイズ基準）
+		Vector2 anchoredPosition = {
+			viewportSize.x * sprite.anchor.x,
+			viewportSize.y * sprite.anchor.y
+		};
+
+		// スプライトサイズ（ピクセル単位）
+		Vector2 adjustedScale = {
+			originalTransform.scale.x * aspectRatioScaleX / referenceResolution.x * viewportSize.x,
+			originalTransform.scale.y / referenceResolution.y * viewportSize.y
+		};
+
+		// ピボット補正（ピクセル単位）
+		Vector2 pivotOffset = {
+			adjustedScale.x * -sprite.pivot.x,
+			adjustedScale.y * -sprite.pivot.y
+		};
+
+		// 仮想座標オフセット（position）→ ピクセルスケーリング ＋ アスペクト比補正
+		Vector2 positionOffset = {
+			originalTransform.position.x * aspectRatioScaleX / referenceResolution.x * viewportSize.x,
+			originalTransform.position.y / referenceResolution.y * viewportSize.y
+		};
+
+		// 最終位置
+		Vector2 finalPosition = {
+			anchoredPosition.x - pivotOffset.x + positionOffset.x,
+			anchoredPosition.y - pivotOffset.y + positionOffset.y
+		};
+
+		adjustedTransform.position = Vector3(finalPosition.x, finalPosition.y, originalTransform.position.z);
+		adjustedTransform.scale = Vector3(adjustedScale.x, adjustedScale.y, originalTransform.scale.z);
+
+		return adjustedTransform;
 	}
 };

@@ -18,7 +18,7 @@ struct aiScene;
 struct DEFORM_VERTEX {
 	aiVector3D Position;
 	aiVector3D Normal;
-	int				BoneNum;
+	int				BoneNum = 0;
 	std::string		BoneName[4];//本来はボーンインデックスで管理するべき
 	float			BoneWeight[4];
 };
@@ -38,8 +38,8 @@ struct AnimationBlend {
 
 struct AnimationData {
 	std::string FilePath;
-	const aiScene* Scene;
-	aiAnimation* Animation;
+	const aiScene* Scene = nullptr;
+	aiAnimation* Animation = nullptr;
 	bool isImported = true;
 
 

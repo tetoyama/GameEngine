@@ -86,7 +86,6 @@ public:
 
 	void inspector(SceneContext* context) override {
 		if(ImGui::TreeNodeEx("Particle", ImGuiTreeNodeFlags_DefaultOpen)){
-			ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
 			float labelWidth = 120.0f;
 			float dragWidth = ImGui::GetContentRegionAvail().x - labelWidth - ImGui::GetStyle().ItemSpacing.x * 2;
@@ -119,33 +118,26 @@ public:
 			ImGui::SameLine(labelWidth);
 			ImGui::PushItemWidth(dragWidth);
 			ImGui::DragFloat("##particleSize", &particleSize, 0.01f, 0.01f, 128.0f);
-			ImGui::EndChild();
 			ImGui::TreePop();
 		}
 		if(ImGui::TreeNodeEx("Spawn Position", ImGuiTreeNodeFlags_DefaultOpen)){
-			ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
 			ImGui::DragVec3("BasePositon", SpawnPosition);
 			ImGui::DragVec3("RandomPos", SpawnPositionRandom);
 
-			ImGui::EndChild();
 			ImGui::TreePop();
 		}
 		if(ImGui::TreeNodeEx("Initial Velocity", ImGuiTreeNodeFlags_DefaultOpen)){
-			ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
 			ImGui::DragVec3("BaseSpeed", StartSpeed);
 			ImGui::DragVec3("RandomSpd", StartSpeedRandom);
-			ImGui::EndChild();
 
 			ImGui::TreePop();
 		}
 		if(ImGui::TreeNodeEx("Motion", ImGuiTreeNodeFlags_DefaultOpen)){
-			ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
 			ImGui::DragVec3("Acceleration", AddSpeed);
 			ImGui::DragVec3("Velocity Multiplier", MulSpeed);
-			ImGui::EndChild();
 
 			ImGui::TreePop();
 		}

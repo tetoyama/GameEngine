@@ -207,10 +207,10 @@ void ModelData::Update(float Frame, GraphicsContext* pGraphicContext) {
 	if (blendedAnimations.size() == 0) {
 		return;
 	} else {
-		if (blendedAnimations.size() == 1) {
-			UpdateSingleAnimation(blendedAnimations[0].name.c_str(), (int)(Frame - blendedAnimations[0].animationStartTime), pGraphicContext);
-			return;
-		}
+		//if (blendedAnimations.size() == 1) {
+		//	UpdateSingleAnimation(blendedAnimations[0].name.c_str(), (int)(Frame - blendedAnimations[0].animationStartTime), pGraphicContext);
+		//	return;
+		//}
 	}
 
 	// 全アニメーションの重み合計を先に計算
