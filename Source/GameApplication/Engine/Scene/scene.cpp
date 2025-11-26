@@ -268,9 +268,9 @@ void Scene::BuildDefaultScene(){
 
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position = Vector3(0.0f, 100.0f,0.0f);
+		transform->position = Vector3(0.0f, 50.0f,0.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
-		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
+		transform->SetRotationEuler(Vector3(DirectX::XM_PIDIV2, 0.0f, 0.0f));
 
 		auto* light = componentRegistry->AddComponent<LightComponent>(entity);
 		light->light.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);

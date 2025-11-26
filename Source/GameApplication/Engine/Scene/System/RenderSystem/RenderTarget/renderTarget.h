@@ -5,9 +5,15 @@
 
 class GraphicsContext;
 
+enum RenderTargetType
+{
+	RENDERTARGET_TYPE_COLOR,
+	RENDERTARGET_TYPE_DEPTH,
+};
+
 struct RenderTarget {
 
-	RenderTarget(const Vector2& _size, GraphicsContext* _graphicsContext);
+	RenderTarget(const Vector2& _size, GraphicsContext* _graphicsContext,const RenderTargetType& type);
 
 	Microsoft::WRL::ComPtr<ID3D11Texture2D>				tex;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>		rtv;
@@ -15,6 +21,7 @@ struct RenderTarget {
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView>		dsv;
 
 	Vector2 size = Vector2(-1, -1);
+	RenderTargetType type = RENDERTARGET_TYPE_COLOR;
 
 	void Resize(const Vector2& _size, GraphicsContext* _graphicsContext);
 

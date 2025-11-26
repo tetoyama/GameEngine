@@ -37,17 +37,21 @@ void LightSystem::Update(float deltaTime){
 				// ライトの方向をエンティティの向きに設定
 				light->light.Direction = DirectX::XMFLOAT4(transform->front().x, transform->front().y, transform->front().z, 0.0f);
 				light->light.Enable = light->light.Enable;
-				light->light.LightProjection = DirectX::XMMatrixLookAtLH(
+
+				Vector3 front = transform->front();
+				Vector3 up = transform->up();
+
+				light->light.LightView = DirectX::XMMatrixLookAtLH(
 					transform->position.ToXMVECTOR(),
-					(transform->position + transform->front()).ToXMVECTOR(),
-					(transform->position + transform->up()).ToXMVECTOR()
+					(transform->position + front * 100.0f).ToXMVECTOR(),
+					(transform->position + up * 100.0f).ToXMVECTOR()
 				);
 
-				light->light.LightView = DirectX::XMMatrixPerspectiveFovLH(
+				light->light.LightProjection = DirectX::XMMatrixPerspectiveFovLH(
 					DirectX::XMConvertToRadians(45.0f),
 					1.0f,
 					0.1f,
-					1000.0f
+					2000.0f
 				);
 			}
 		}

@@ -2,9 +2,10 @@
 
 Texture2D g_Texture : register(t0);
 Texture2D g_NormalMap : register(t1);
-SamplerState g_Sampler : register(s0);
+Texture2D ShadowMap : register(t2);
 
-#define PI 3.14159265f
+SamplerState g_Sampler : register(s0);
+SamplerComparisonState ShadowSampler : register(s1);
 
 float3 FresnelSchlick(float cosTheta, float3 F0)
 {
@@ -35,7 +36,26 @@ float D_GTR2(float NdotH, float roughness)
     return a2 / (PI * denom * denom);
 }
 
-void main(in PS_IN In, out float4 outColor : SV_Target)
+// ---- Shadow sampling ----
+float ShadowFactor(float4 worldPos, LIGHT light)
+{
+    float4 shadowPos = mul(float4(worldPos.xyz, 1.0f), light.LightView);
+    shadowPos = mul(shadowPos, light.LightProjection);
+
+    shadowPos.xyz /= shadowPos.w;
+
+    float2 uv = shadowPos.xy * 0.5f + 0.5f;
+    float depth = shadowPos.z;
+
+    if (uv.x < 0.0f || uv.x > 1.0f || uv.y < 0.0f || uv.y > 1.0f)
+        return 1.0f;
+
+    float shadow = ShadowMap.SampleCmpLevelZero(ShadowSampler, uv, depth);
+
+    return shadow;
+}
+
+float4 main(in PS_IN In) : SV_Target
 {
     float3 baseColor = Material.Diffuse.rgb;
     if (Material.TextureEnable)
@@ -54,40 +74,38 @@ void main(in PS_IN In, out float4 outColor : SV_Target)
     float NdotH = max(dot(N, H), 0.0);
     float LdotH = max(dot(L, H), 0.0);
 
-    // Disneyの Specular F0
-    float3 F0 = lerp(float3(0.04, 0.04, 0.04), baseColor, 0.0); // metallic = 0 と仮定
+    float3 F0 = lerp(float3(0.04, 0.04, 0.04), baseColor, 0.0);
 
-    // roughness (Shininessから変換)
     float perceptualRoughness = saturate(1.0 - Material.Shininess / 128.0);
-    float roughness = max(perceptualRoughness, 0.05); // 0は使えない
+    float roughness = max(perceptualRoughness, 0.05);
 
-    // Fresnel, Geometry, Distribution
     float3 F = FresnelSchlick(LdotH, F0);
     float G = G_Smith(N, V, L, roughness);
     float D = D_GTR2(NdotH, roughness);
 
     float3 specular = (D * F * G) / (4.0 * NdotL * NdotV + 0.001);
-    float specScale = 0.5 + 0.5 * roughness; // roughなほど光沢控えめ
+    float specScale = 0.5 + 0.5 * roughness;
     specular *= specScale;
-    
-    // Diffuse: DisneyDiffuse
+
     float FL = pow(1.0 - NdotL, 5.0);
     float FV = pow(1.0 - NdotV, 5.0);
     float3 diffuseTerm = baseColor * (1.0 + FL) * (1.0 + FV) * (1.0 / PI);
 
-    // 光の減衰（距離による）
     float dist = length(Lights[0].Position.xyz - In.WorldPosition.xyz);
     float attenuation = saturate(1.0f - dist / Lights[0].Param.x);
 
-    // Light color * BRDF
-    float3 Lo = (diffuseTerm + specular) * Lights[0].Diffuse.rgb * NdotL * attenuation;
+    // ---- shadow計算 ----
+    float shadow = ShadowFactor(In.WorldPosition, Lights[0]);
 
-    // Ambient and Emission
+    float3 Lo = (diffuseTerm + specular) * Lights[0].Diffuse.rgb * NdotL * attenuation * shadow;
+
     float3 ambient = Material.Ambient.rgb * Lights[0].Ambient.rgb;
     float3 emission = Material.Emission.rgb;
 
     float3 finalColor = ambient + Lo + emission;
 
-    finalColor = pow(finalColor, 1.0 / 2.2); // gamma correction
-    outColor = float4(finalColor, 1.0);
+    finalColor = pow(finalColor, 1.0 / 2.2);
+    return float4(finalColor, 1.0);
+    //outColor = float4(shadow, shadow, shadow, 1.0);
+    
 }

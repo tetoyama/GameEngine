@@ -63,7 +63,6 @@ private:
 
 	void DrawEntities(const RenderableContext& renderPassContext);
 
-	void DrawTerrain(ComponentRegistry* componentRegistry, TransformComponent* pTransform, TerrainComponent* pTerrain, TextureComponent* pTexture);
 	void DrawWave(ComponentRegistry* componentRegistry, TransformComponent* pTransform, WaveComponent* pWave, TextureComponent* pTexture);
 
 	void ControllButton();
@@ -78,6 +77,7 @@ private:
 
 	SceneManagerContext* m_context;
 
+	ID3D11SamplerState* shadowSampler = nullptr;
 	std::vector<std::shared_ptr<IRenderable>> m_renderables;
 
 	RenderTarget* m_RenderTargetShadow = nullptr;
@@ -86,9 +86,6 @@ private:
 
 	Vector3 m_EditorCameraPosition = Vector3(0.0f, 5.0f, -20.0f);
 	Vector3 m_EditorCameraRotation = Vector3(0.0f, 0.0f, 0.0f);
-
-	std::shared_ptr<PixelShaderData> m_PixelShader;
-	std::shared_ptr<VertexShaderData> m_VertexShader;
 
 	std::shared_ptr<PixelShaderData> m_LinePixelShader;
 	std::shared_ptr<VertexShaderData> m_LineVertexShader;

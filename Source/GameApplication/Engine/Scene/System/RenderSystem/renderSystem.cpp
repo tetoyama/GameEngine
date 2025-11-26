@@ -65,6 +65,7 @@
 #include "Renderable/BillBoard/RenderableBillBoard.h"
 #include "Renderable/Sprite/RenderableSprite.h"
 #include "Renderable/Particle/RenderableParticle.h"
+#include "Renderable/Terrain/RenderableTerrain.h"
 
 constexpr int maxLineCount = 99999;
 
@@ -150,17 +151,27 @@ struct RenderOrderComparator {
 void RenderSystem::Initialize(){
 	m_context->debug->LOG_DEBUG("RenderSystemを初期化中...");
 
+
+
 	m_renderables.clear();
 	m_renderables.push_back(std::make_shared<RenderableModel>());
 	m_renderables.push_back(std::make_shared<RenderableMesh>());
 	m_renderables.push_back(std::make_shared<RenderableBillBoard>());
 	m_renderables.push_back(std::make_shared<RenderableSprite>());
 	m_renderables.push_back(std::make_shared<RenderableParticle>());
+	m_renderables.push_back(std::make_shared<RenderableTerrain>());
 	for(auto renderable : m_renderables){
 		renderable->Initialize(m_context);
 	}
 
 	ID3D11Device* device = m_context->graphics->GetDevice();
+
+	D3D11_SAMPLER_DESC desc = {};
+	desc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+	desc.AddressU = desc.AddressV = desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	desc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+
+	device->CreateSamplerState(&desc, &shadowSampler);
 
 	showPlayer = &m_context->imgui->GetManubar()->showPlayerView;
 	showEditor = &m_context->imgui->GetManubar()->showEditorView;
@@ -171,12 +182,9 @@ void RenderSystem::Initialize(){
 	StopButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Stop.png");
 	StepButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Step.png");
 
-	m_RenderTargetPlayer = new RenderTarget(m_context->PlayerScreenSize, m_context->graphics);
-	m_RenderTargetEditor = new RenderTarget(m_context->EditorScreenSize, m_context->graphics);
-	m_RenderTargetShadow = new RenderTarget(Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE), m_context->graphics);
-
-	m_VertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\OutlineVS.cso");
-	m_PixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\OutlinePS.cso");
+	m_RenderTargetPlayer = new RenderTarget(m_context->PlayerScreenSize, m_context->graphics,RenderTargetType::RENDERTARGET_TYPE_COLOR);
+	m_RenderTargetEditor = new RenderTarget(m_context->EditorScreenSize, m_context->graphics, RenderTargetType::RENDERTARGET_TYPE_COLOR);
+	m_RenderTargetShadow = new RenderTarget(Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE), m_context->graphics, RenderTargetType::RENDERTARGET_TYPE_DEPTH);
 
 	m_LineVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\DebugLineVS.cso");
 	m_LinePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DebugLinePS.cso");
@@ -208,6 +216,8 @@ void RenderSystem::Initialize(){
 void RenderSystem::Finalize(){
 	pPhysicsDebugLineVB->Release();
 	pPhysicsDebugLineVB = nullptr;
+	shadowSampler->Release();
+	shadowSampler = nullptr;
 
 	for(auto renderable : m_renderables){
 		renderable->Finalize();
@@ -308,27 +318,26 @@ void RenderSystem::EditorUpdate(float deltaTime) {
 	if(isCameraActive){
 		// ------ 1. マウス移動で回転 ------
 		float mouseSensitivity = 0.005f;
-		m_EditorCameraRotation.x += io.MouseDelta.x * mouseSensitivity; // yaw
-		m_EditorCameraRotation.y += io.MouseDelta.y * mouseSensitivity; // pitch
+		m_EditorCameraRotation.y += io.MouseDelta.x * mouseSensitivity; // yaw
+		m_EditorCameraRotation.x += io.MouseDelta.y * mouseSensitivity; // pitch
 
 		// ピッチ制限
 		const float pitchLimit = DirectX::XM_PIDIV2 - 0.01f;
-		if(m_EditorCameraRotation.y > pitchLimit) m_EditorCameraRotation.y = pitchLimit;
-		if(m_EditorCameraRotation.y < -pitchLimit) m_EditorCameraRotation.y = -pitchLimit;
+		if(m_EditorCameraRotation.x > pitchLimit) m_EditorCameraRotation.x = pitchLimit;
+		if(m_EditorCameraRotation.x < -pitchLimit) m_EditorCameraRotation.x = -pitchLimit;
 
 		// 回転から方向ベクトル取得
-		Vector3 front;
-		front.x = cosf(m_EditorCameraRotation.y) * sinf(m_EditorCameraRotation.x);
-		front.y = 0.0f;
-		front.z = cosf(m_EditorCameraRotation.y) * cosf(m_EditorCameraRotation.x);
-		front = front.normalize();
-		Vector3 right = (Vec3Cross(front, Vector3(0.0f, 1.0f, 0.0f))).normalize();
-		Vector3 up = (Vec3Cross(right, front)).normalize();
+		TransformComponent transform;
+		transform.position = m_EditorCameraPosition;
+		transform.SetRotationEuler(m_EditorCameraRotation);
+		Vector3 front = transform.front();
+		Vector3 right = transform.right();
+		Vector3 up = Vector3(0,1,0);
 
 		if(ImGui::IsKeyDown(ImGuiKey_W)) velocity += front;
 		if(ImGui::IsKeyDown(ImGuiKey_S)) velocity -= front;
-		if(ImGui::IsKeyDown(ImGuiKey_A)) velocity += right;
-		if(ImGui::IsKeyDown(ImGuiKey_D)) velocity -= right;
+		if(ImGui::IsKeyDown(ImGuiKey_A)) velocity -= right;
+		if(ImGui::IsKeyDown(ImGuiKey_D)) velocity += right;
 		if(ImGui::IsKeyDown(ImGuiKey_Q) || ImGui::IsKeyDown(ImGuiKey_LeftShift)) velocity -= up;
 		if(ImGui::IsKeyDown(ImGuiKey_E) || ImGui::IsKeyDown(ImGuiKey_Space)) velocity += up;
 		if(velocity.length() > 0.0f){
@@ -336,17 +345,17 @@ void RenderSystem::EditorUpdate(float deltaTime) {
 		}
 	} else if(mouseOnEditor){
 
-		Vector3 front;
-		front.x = cosf(m_EditorCameraRotation.y) * sinf(m_EditorCameraRotation.x);
-		front.y = sinf(m_EditorCameraRotation.x);
-		front.z = cosf(m_EditorCameraRotation.y) * cosf(m_EditorCameraRotation.x);
-		front = front.normalize();
-		Vector3 right = (Vec3Cross(front, Vector3(0.0f, 1.0f, 0.0f))).normalize();
-		Vector3 up = (Vec3Cross(front, Vector3(1.0f, 0.0f, 0.0f))).normalize();
+		TransformComponent transform;
+		transform.position = m_EditorCameraPosition;
+		transform.SetRotationEuler(m_EditorCameraRotation);
+
+		Vector3 front = transform.front();
+		Vector3 right = transform.right();
+		Vector3 up = transform.up();
 
 		if(ImGui::IsMouseDown(ImGuiMouseButton_Middle)){
 			float panSensitivity = 0.1f;
-			m_EditorCameraPosition += right * io.MouseDelta.x * panSensitivity;
+			m_EditorCameraPosition -= right * io.MouseDelta.x * panSensitivity;
 			m_EditorCameraPosition += up * io.MouseDelta.y * panSensitivity;
 		}
 
@@ -457,55 +466,6 @@ const CameraEntityData RenderSystem::FindCameraEntity() {
 	return cameraData;
 }
 
-void RenderSystem::DrawTerrain(ComponentRegistry* componentRegistry, TransformComponent* pTransform, TerrainComponent* pTerrain, TextureComponent* pTexture) {
-	if (!pTerrain || !pTerrain->meshRenderer) {
-		return;
-	}
-
-	auto meshRenderer = pTerrain->meshRenderer;
-	auto transform = pTransform;
-
-	GraphicsContext* graphicsContext = m_context->graphics;
-	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-
-
-	//if (!pTexture) {
-	//	if (meshRenderer->mesh.m_TextureData) {
-	//		deviceContext->PSSetShaderResources(0, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
-
-	//		MATERIAL material{};
-	//		material.DiffuseTextureEnable = true;
-
-	//		material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
-	//		graphicsContext->SetMaterial(material);
-	//	}
-	//}
-	//if (meshRenderer->mesh.m_VertexLayout) {
-	//	deviceContext->IASetInputLayout(meshRenderer->mesh.m_VertexLayout.Get());
-	//}
-	//if (meshRenderer->mesh.m_VertexShader) {
-	//	deviceContext->VSSetShader(meshRenderer->mesh.m_VertexShader.Get(), NULL, 0);
-	//}
-	//if (meshRenderer->mesh.m_PixelShader) {
-	//	deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
-	//}
-	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, componentRegistry);
-
-	graphicsContext->SetWorldMatrix(World);
-	UINT stride = sizeof(VERTEX_3D);
-	UINT offset = 0;
-	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
-	deviceContext->IASetIndexBuffer(*meshRenderer->mesh.m_IndexBuffer.GetAddressOf(), DXGI_FORMAT_R32_UINT,0);
-
-	deviceContext->DrawIndexed(meshRenderer->mesh.indexCount, 0,0);
-
-	graphicsContext->SetDepthEnable(true);
-	graphicsContext->SetViewMatrix(m_CameraView);
-	graphicsContext->SetProjectionMatrix(m_CameraProjection);
-}
-
 void RenderSystem::DrawWave(ComponentRegistry* componentRegistry, TransformComponent* pTransform, WaveComponent* pWave, TextureComponent* pTexture){
 	if(!pWave || !pWave->meshRenderer){
 		return;
@@ -608,43 +568,30 @@ void RenderSystem::ControllButton(){
 }
 
 void RenderSystem::ShadowPass(RenderableContext renderPassContext){
-
+	RenderableContext newContext = renderPassContext;
 	GraphicsContext* graphicsContext = m_context->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-	// シャドウマップ用レンダーターゲットとデプスステンシルビューを設定
-	deviceContext->OMSetRenderTargets(1, m_RenderTargetShadow->rtv.GetAddressOf(), m_RenderTargetShadow->dsv.Get());
+	// 深度クリアのみ
+	deviceContext->ClearDepthStencilView(m_RenderTargetShadow->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	// シャドウマップ用のカメラ設定
+	// Depth-onlyの場合は RTV は無し
+	deviceContext->OMSetRenderTargets(0, nullptr, m_RenderTargetShadow->dsv.Get());
+
+	// シャドウマップ用カメラ
 	LIGHT light = m_context->renderer->GetGraphicsContext()->GetLight()[0];
+	newContext.cameraPosition = DirectX::XMFLOAT4(light.Position.x, light.Position.y, light.Position.z, 0.0f);
+	newContext.passPhase = RenderPhase::PHASE_SHADOW;
+	newContext.screenSize = Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE);
+	newContext.viewMatrix = light.LightView;
+	newContext.projectionMatrix = light.LightProjection;
 
+	DrawEntities(newContext);
 
-	TransformComponent lightTransform;
-	lightTransform.position = Vector3(light.Position.x, light.Position.y, light.Position.z);
-
-	CameraComponent lightCamera;
-	lightCamera.NearClip = 0.1f;
-	lightCamera.FarClip = 100.0f;
-	lightCamera.FOV = DirectX::XM_PIDIV4;
-	lightCamera.isLock = false;
-	lightCamera.viewMatrix = light.LightView;
-
-	CameraEntityData cameraData;
-	cameraData.entity = 0;
-	cameraData.sceneContext = nullptr;
-	cameraData.cameraComponent = &lightCamera;
-	cameraData.transformComponent = &lightTransform;
-
-	renderPassContext.cameraData = cameraData;
-	renderPassContext.passPhase = RenderPhase::PHASE_SHADOW;
-	renderPassContext.screenSize = Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE);
-
-	// シーン内のエンティティを描画
-	DrawEntities(renderPassContext);
-
-	// 元のレンダーターゲットとデプスステンシルビューに戻す
+	// 元のレンダーターゲットに戻す
 	deviceContext->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
 }
+
 
 void RenderSystem::EditorView(){
 	GraphicsContext* graphicsContext = m_context->graphics;
@@ -663,7 +610,7 @@ void RenderSystem::EditorView(){
 
 	TransformComponent editorCameraTransform;
 	editorCameraTransform.position = m_EditorCameraPosition;
-	editorCameraTransform.SetRotationEuler(Vector3(m_EditorCameraRotation.y, m_EditorCameraRotation.x, m_EditorCameraRotation.z));
+	editorCameraTransform.SetRotationEuler(m_EditorCameraRotation);
 
 	CameraComponent editorCamera;
 	editorCamera.FOV = DirectX::XM_PIDIV4;
@@ -748,6 +695,18 @@ void RenderSystem::EditorView(){
 
 	ImGui::End();
 
+	//ImGui::Begin("Shadow Map View", nullptr, toolbar_window_flags);
+	//avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
+	//float availMin;
+
+	//if(avail.x < avail.y){
+	//	availMin = avail.x;
+	//} else{
+	//	availMin = avail.y;
+	//}
+	//ImGui::Image((ImTextureID)m_RenderTargetShadow->srv.Get(), ImVec2(availMin, availMin), ImVec2(0, 0), ImVec2(1, 1));
+	//ImGui::End();
+
 	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
 }
 
@@ -812,8 +771,6 @@ std::vector<int> TopologicalSortPostEffects(CameraComponent* camera){
 
 	return sortedIndices;
 }
-
-
 
 ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(ID3D11ShaderResourceView* initialSRV, const RenderableContext& renderPassContext) {
 	GraphicsContext* graphics = m_context->graphics;
@@ -936,7 +893,7 @@ void RenderSystem::PlayerView(){
 		cameraData,
 		m_RenderTargetPlayer->size
 	);
-	ShadowPass(renderPassContext);
+	//ShadowPass(renderPassContext);
 
 	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_RenderTargetPlayer->rtv.GetAddressOf(), m_RenderTargetPlayer->dsv.Get());
 	ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(m_RenderTargetPlayer->srv.Get(), renderPassContext);
@@ -961,11 +918,14 @@ void RenderSystem::DrawEntities(const RenderableContext& renderPassContext){
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	// コンスタントバッファ設定
+	deviceContext->PSSetShaderResources(2, 1, m_RenderTargetShadow->srv.GetAddressOf());
+	deviceContext->PSSetSamplers(1, 1, &shadowSampler);
+
 	CAMERA camera{};
 	camera.CameraPosition = renderPassContext.cameraPosition;
 	graphicsContext->SetCamera(camera);
 
-	m_CameraView = renderPassContext.cameraData.cameraComponent->viewMatrix;
+	m_CameraView = renderPassContext.viewMatrix;
 	m_CameraProjection = renderPassContext.projectionMatrix;
 
 	graphicsContext->SetViewMatrix(renderPassContext.viewMatrix);
@@ -1061,10 +1021,6 @@ void RenderSystem::DrawEntities(const RenderableContext& renderPassContext){
 							graphicsContext->SetUVMatrix(uv);
 						}
 
-						TerrainComponent* terrain = context->component->GetComponent<TerrainComponent>(entity);
-						if (terrain) {
-							DrawTerrain(context->component, transform, terrain, texture);
-						}
 						WaveComponent* wave = context->component->GetComponent<WaveComponent>(entity);
 						if (wave) {
 							DrawWave(context->component, transform, wave, texture);
