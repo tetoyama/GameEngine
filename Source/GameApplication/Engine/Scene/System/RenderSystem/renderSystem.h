@@ -9,21 +9,15 @@
 #include "GameApplication/Engine/Scene/Entity/Entity.h"
 
 struct SceneManagerContext;
-
 struct PixelShaderData;
 struct VertexShaderData;
-
 struct RenderableContext;
 struct RenderTarget;
-
 struct CameraEntityData;
 
 class IRenderable;
-
 class ComponentRegistry;
-
 class TransformComponent;
-
 
 struct PostEffect {
 
