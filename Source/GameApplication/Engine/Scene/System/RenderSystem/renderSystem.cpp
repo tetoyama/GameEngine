@@ -139,7 +139,7 @@ void RenderSystem::Initialize(){
 
 	m_RenderTargetPlayer = new RenderTarget(m_context->PlayerScreenSize, m_context->graphics,RenderTargetType::RENDERTARGET_TYPE_COLOR);
 	m_RenderTargetEditor = new RenderTarget(m_context->EditorScreenSize, m_context->graphics, RenderTargetType::RENDERTARGET_TYPE_COLOR);
-	m_RenderTargetShadow = new RenderTarget(Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE), m_context->graphics, RenderTargetType::RENDERTARGET_TYPE_COLOR);
+	m_RenderTargetShadow = new RenderTarget(Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE), m_context->graphics, RenderTargetType::RENDERTARGET_TYPE_DEPTH);
 
 	m_LineVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\DebugLineVS.cso");
 	m_LinePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DebugLinePS.cso");

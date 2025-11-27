@@ -23,16 +23,7 @@ class IRenderable;
 class ComponentRegistry;
 
 class TransformComponent;
-class TextureComponent;
-class SpriteRendererComponent;
-class MeshRendererComponent;
-class TerrainComponent;
-class WaveComponent;
-class ModelRendererComponent;
-class BillBoardRendererComponent;
-class ParticleComponent;
-class OutlineComponent;
-class CameraComponent;
+
 
 struct PostEffect {
 
