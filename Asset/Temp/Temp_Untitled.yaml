@@ -77,30 +77,30 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 50
-          z: 0
+          y: 2.37030125
+          z: 2.8389511e-06
         Rotation:
           - 0.707106769
           - 0
-          - 0
-          - 0.707106709
+          - -0
+          - 0.707106769
         Scale:
           x: 1
-          y: 1
-          z: 1
+          y: 0.999989808
+          z: 0.999989808
         Parent: 0
       - Component: LightComponent
         Enable: 1
         LightType: 1
         Position:
           x: 0
-          y: 50
-          z: 0
+          y: 2.37030125
+          z: 2.8389511e-06
           w: 0
         Direction:
           x: 0
-          y: -0.999999881
-          z: -5.96046448e-08
+          y: -0.99999994
+          z: 0
           w: 0
         Diffuse:
           x: 1
@@ -125,18 +125,18 @@ Entities:
             - 0
           -
             - 0
-            - -5.96046519e-08
+            - 0
             - -1
             - 0
           -
             - -0
             - 1
-            - -5.96046519e-08
+            - 0
             - 0
           -
             - 0
-            - 2.98023269e-06
-            - 50
+            - -2.8389511e-06
+            - 2.37030125
             - 1
         LightProjection:
           -
@@ -152,12 +152,12 @@ Entities:
           -
             - 0
             - 0
-            - 1.00004995
+            - 1.01010108
             - 1
           -
             - 0
             - 0
-            - -0.100004993
+            - -0.101010107
             - 0
   - Entity: 3
     Components:

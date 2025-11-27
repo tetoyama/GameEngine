@@ -8,10 +8,11 @@ class BallController: public CustomScriptComponent {
 public:
 	BEGIN_REFLECT(BallController)
 
-		REFLECT_FIELD(float, friction, 0.95f)              // 摩擦減衰
-		REFLECT_FIELD(float, knockbackPower, 5.0f)         // 吹っ飛びの強さ
-		Vector3 velocity = Vector3(0, 0, 0); // ボールの速度
-		TransformComponent* transform = nullptr;
+		REFLECT_FIELD(float, friction, 0.95f)			// 摩擦減衰
+		REFLECT_FIELD(float, knockbackPower, 5.0f)		// 吹っ飛びの強さ
+
+	Vector3 velocity = Vector3(0, 0, 0); // ボールの速度
+	TransformComponent* transform = nullptr;
 	ScoreManager* scoreManager = nullptr;
 
 	BallController(): CustomScriptComponent("BallController"){}

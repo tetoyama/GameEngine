@@ -408,9 +408,15 @@ void RenderSystem::ControllButton(){
 }
 
 void RenderSystem::ShadowPass(RenderableContext renderPassContext){
+
+	//return;
+
 	RenderableContext newContext = renderPassContext;
 	GraphicsContext* graphicsContext = m_context->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
+	//ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+	//deviceContext->PSSetShaderResources(2, 1, nullSRV); // t2 をクリア（あなたの slot に合わせる）
 
 	// シャドウマップレンダーターゲットに切り替え
 	if (m_RenderTargetShadow->type == RenderTargetType::RENDERTARGET_TYPE_DEPTH) {
@@ -436,6 +442,11 @@ void RenderSystem::ShadowPass(RenderableContext renderPassContext){
 
 	// 元のレンダーターゲットに戻す
 	deviceContext->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
+
+
+	// シャドウマップをピクセルシェーダーの t2 にセット
+	deviceContext->PSSetShaderResources(2, 1, m_RenderTargetShadow->srv.GetAddressOf());
+	deviceContext->PSSetSamplers(2, 1, &shadowSampler);
 }
 
 
@@ -731,7 +742,7 @@ void RenderSystem::PlayerView(){
 		cameraData,
 		m_RenderTargetPlayer->size
 	);
-	//ShadowPass(renderPassContext);
+	ShadowPass(renderPassContext);
 
 	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_RenderTargetPlayer->rtv.GetAddressOf(), m_RenderTargetPlayer->dsv.Get());
 	ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(m_RenderTargetPlayer->srv.Get(), renderPassContext);

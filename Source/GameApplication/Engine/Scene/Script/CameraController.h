@@ -98,6 +98,10 @@ public:
 		DirectX::XMFLOAT3 pos;
 		DirectX::XMStoreFloat3(&pos, camPos);
 		transform->position = Vector3(pos.x, pos.y, pos.z);
+		transform->SetRotationEuler(Vector3(pitch, yaw, 0));
+
+		camera->isLock = true;
+		camera->Target = targetTransform->position;
 
 		// --- プレイヤー方向を向く ---
 		Vector3 forward = (targetTransform->position - transform->position - Vector3(0,-height,0)).normalize();

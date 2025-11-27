@@ -35,8 +35,6 @@ public:
 		INSPECTOR_FIELDS();
 	}
 
-
-
 private:
 
 	WSADATA wsaData;
@@ -142,9 +140,12 @@ private:
 	}
 
 	void OnUpdate(float dt) override {
+		u_long mode = 1;
+		ioctlsocket(clientSocket, FIONBIO, &mode);
+
 		int recvSize = recv(clientSocket, recvBuffer, sizeof(recvBuffer) - 1, 0);
 		if (recvSize == SOCKET_ERROR) {
-			m_context->manager->debug->LOG_DEBUG("受信エラーです\n");
+			//m_context->manager->debug->LOG_DEBUG("受信エラーです\n");
 			return;
 		}
 		recvBuffer[recvSize] = '\0'; // 文字列終端を追加
@@ -156,7 +157,7 @@ private:
 		sprintf_s(debugString, "受信:%s\n", recvBuffer);
 		m_context->manager->debug->LOG_DEBUG(debugString);
 
-		send(listenSocket, recvBuffer, (int)strlen(recvBuffer), 0);
+		send(clientSocket, recvBuffer, (int)strlen(recvBuffer), 0);
 	}
 
 	void OnFixedUpdate(float dt)override {}
@@ -167,11 +168,11 @@ private:
 
 	void OnStop() override {
 
-		//// ⑧ ソケットの送受信停止
-		//shutdown(clientSocket, SD_BOTH);
-		//// ⑨ ソケットを閉じる
-		//closesocket(clientSocket);
-		//closesocket(listenSocket);
+		// ⑧ ソケットの送受信停止
+		shutdown(clientSocket, 0);
+		// ⑨ ソケットを閉じる
+		closesocket(clientSocket);
+		closesocket(listenSocket);
 		WSACleanup();
 
 		m_context->manager->debug->LOG_DEBUG("GN31 Stopped");

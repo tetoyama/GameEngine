@@ -111,6 +111,9 @@ void RenderableModel::Execute(const RenderableContext& ctx, SceneContext* sceneC
 		// インデックスバッファ設定
 		graphicsContext->GetDeviceContext()->IASetIndexBuffer(pModel->IndexBuffer[m], DXGI_FORMAT_R32_UINT, 0);
 
+		if (ctx.passPhase == RenderPhase::PHASE_SHADOW) {
+			deviceContext->PSSetShader(nullptr, NULL, 0); // ピクセルシェーダー無効化
+		}
 		deviceContext->DrawIndexed(pModel->AiScene->mMeshes[m]->mNumFaces * 3, 0, 0);
 	}
 }

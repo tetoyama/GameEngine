@@ -105,7 +105,9 @@ float4 main(in PS_IN In) : SV_Target
     float3 finalColor = ambient + Lo + emission;
 
     finalColor = pow(finalColor, 1.0 / 2.2);
+
+    return float4(shadow, shadow, shadow, 1.0);
     return float4(finalColor, 1.0);
-    //outColor = float4(shadow, shadow, shadow, 1.0);
+
     
 }

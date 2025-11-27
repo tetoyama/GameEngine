@@ -44,14 +44,14 @@ void LightSystem::Update(float deltaTime){
 				light->light.LightView = DirectX::XMMatrixLookAtLH(
 					transform->position.ToXMVECTOR(),
 					(transform->position + front * 100.0f).ToXMVECTOR(),
-					(transform->position + up * 100.0f).ToXMVECTOR()
+					(up).ToXMVECTOR()
 				);
 
 				light->light.LightProjection = DirectX::XMMatrixPerspectiveFovLH(
 					DirectX::XMConvertToRadians(45.0f),
 					1.0f,
 					0.1f,
-					2000.0f
+					10.0f
 				);
 			}
 		}
