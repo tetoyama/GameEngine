@@ -106,52 +106,8 @@ RenderLayer GetRenderLayerFromEntity(Entity entity, ComponentRegistry* registry)
 	return RenderLayer::Opaque3D;
 }
 
-struct RenderOrderComparator {
-	ComponentRegistry* registry;
-	Vector3 cameraPosition;
-
-	bool operator()(Entity a, Entity b) const{
-		// Layer取得
-		auto* layerA = registry->GetComponent<RenderLayerComponent>(a);
-		auto* layerB = registry->GetComponent<RenderLayerComponent>(b);
-
-		RenderLayer layerValA = GetRenderLayerFromEntity(a, registry);
-		RenderLayer layerValB = GetRenderLayerFromEntity(b, registry);
-
-		if(layerValA != layerValB){
-			return static_cast<int>(layerValA) < static_cast<int>(layerValB);
-		}
-		if(layerValA == RenderLayer::Opaque3D || layerValA == RenderLayer::Transparent3D){
-			return false;
-		}
-		if(layerValA == RenderLayer::OverlayUI || layerValA == RenderLayer::Background2D){
-
-			auto* orderA = registry->GetComponent<OrderInLayerComponent>(a);
-			auto* orderB = registry->GetComponent<OrderInLayerComponent>(b);
-
-			int orderValA = orderA ? orderA->order : 0;
-			int orderValB = orderB ? orderB->order : 0;
-
-			return orderValA < orderValB;
-		}
-		if(layerValA == RenderLayer::SortTransparent3D){
-			auto* transformA = registry->GetComponent<TransformComponent>(a);
-			auto* transformB = registry->GetComponent<TransformComponent>(b);
-			if(transformA && transformB){
-				float distA = (cameraPosition - transformA->position).length();
-				float distB = (cameraPosition - transformB->position).length();
-				return distA > distB;
-			}
-		}
-		return false;
-	}
-};
-
-
 void RenderSystem::Initialize(){
 	m_context->debug->LOG_DEBUG("RenderSystemを初期化中...");
-
-
 
 	m_renderables.clear();
 	m_renderables.push_back(std::make_shared<RenderableModel>());
@@ -176,7 +132,6 @@ void RenderSystem::Initialize(){
 	showPlayer = &m_context->imgui->GetManubar()->showPlayerView;
 	showEditor = &m_context->imgui->GetManubar()->showEditorView;
 
-	m_context->debug->LOG_DEBUG("UI用テクスチャの取得中...");
 	PlayButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Play.png");
 	PauseButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Pause.png");
 	StopButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Stop.png");
@@ -184,7 +139,7 @@ void RenderSystem::Initialize(){
 
 	m_RenderTargetPlayer = new RenderTarget(m_context->PlayerScreenSize, m_context->graphics,RenderTargetType::RENDERTARGET_TYPE_COLOR);
 	m_RenderTargetEditor = new RenderTarget(m_context->EditorScreenSize, m_context->graphics, RenderTargetType::RENDERTARGET_TYPE_COLOR);
-	m_RenderTargetShadow = new RenderTarget(Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE), m_context->graphics, RenderTargetType::RENDERTARGET_TYPE_DEPTH);
+	m_RenderTargetShadow = new RenderTarget(Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE), m_context->graphics, RenderTargetType::RENDERTARGET_TYPE_COLOR);
 
 	m_LineVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\DebugLineVS.cso");
 	m_LinePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DebugLinePS.cso");
@@ -193,7 +148,6 @@ void RenderSystem::Initialize(){
 	D3D11_BUFFER_DESC bd{};
 	bd.Usage = D3D11_USAGE_DYNAMIC;
 	bd.ByteWidth = sizeof(VERTEX_3D) * maxLineCount * 2;
-	// 1ライン = 2頂点、最大ライン数を想定して確保しておく
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
@@ -208,9 +162,6 @@ void RenderSystem::Initialize(){
 	copyShader.m_VS = m_FullScreenVS->m_VertexShader; // フルスクリーンVS
 	copyShader.m_PS = m_FullScreenPS->m_PixelShader; // 単純に SRV → out を返す PS
 	copyShader.m_InputLayout = m_FullScreenVS->m_VertexLayout;
-
-
-
 }
 
 void RenderSystem::Finalize(){
@@ -247,9 +198,6 @@ void RenderSystem::Update(float deltaTime) {
 
 void RenderSystem::Draw(){
 
-
-	//return;
-
 	if(*showPlayer){
 		PlayerView();
 	} else{
@@ -280,11 +228,11 @@ void RenderSystem::Draw(){
 
 
 		DirectX::XMFLOAT4 clearColor = { 0,0,0,1 };
-		m_context->graphics->ResetPingPongBuffer(&clearColor.x); // 初期描画用バッファ
+		m_context->graphics->Clear(&clearColor.x);
 
-		ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(m_context->graphics->GetCurrentSRV(), renderPassContext);
+		ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(m_context->graphics->GetRenderTargetSRV(), renderPassContext);
 
-		ID3D11RenderTargetView* rtv = *m_context->graphics->GetpRenderTargetView(); // バックバッファ
+		ID3D11RenderTargetView* rtv = m_context->graphics->GetRenderTargetView(); // バックバッファ
 		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, &rtv, m_context->graphics->GetDepthStencilView());
 		m_context->graphics->DrawQuad(&copyShader, finalSRV);
 	}
@@ -390,63 +338,6 @@ void RenderSystem::DrawRenderLayerToggleUI() {
 	}
 }
 
-TransformComponent RenderSystem::CalculateRectTransform(
-	const RenderableContext& renderPassContext,
-	const SpriteRendererComponent& sprite,
-	const TransformComponent& originalTransform
-){
-	TransformComponent adjustedTransform = originalTransform;
-
-	Vector2 screenSize = renderPassContext.screenSize;
-	Vector2 viewportSize = {
-		(float)m_context->renderer->GetGraphicsContext()->m_width,
-		(float)m_context->renderer->GetGraphicsContext()->m_height
-	};
-
-	// 仮想UI基準解像度
-	const Vector2 referenceResolution = {1.0f, 1.0f};
-
-	// アスペクト比
-	float screenAspect = screenSize.x / screenSize.y;
-	float referenceAspect = referenceResolution.x / referenceResolution.y;
-	float aspectRatioScaleX = referenceAspect / screenAspect;
-
-	// アンカー位置（画面サイズ基準）
-	Vector2 anchoredPosition = {
-		viewportSize.x * sprite.anchor.x,
-		viewportSize.y * sprite.anchor.y
-	};
-
-	// スプライトサイズ（ピクセル単位）
-	Vector2 adjustedScale = {
-		originalTransform.scale.x * aspectRatioScaleX / referenceResolution.x * viewportSize.x,
-		originalTransform.scale.y / referenceResolution.y * viewportSize.y
-	};
-
-	// ピボット補正（ピクセル単位）
-	Vector2 pivotOffset = {
-		adjustedScale.x * -sprite.pivot.x,
-		adjustedScale.y * -sprite.pivot.y
-	};
-
-	// 仮想座標オフセット（position）→ ピクセルスケーリング ＋ アスペクト比補正
-	Vector2 positionOffset = {
-		originalTransform.position.x * aspectRatioScaleX / referenceResolution.x * viewportSize.x,
-		originalTransform.position.y / referenceResolution.y * viewportSize.y
-	};
-
-	// 最終位置
-	Vector2 finalPosition = {
-		anchoredPosition.x - pivotOffset.x + positionOffset.x,
-		anchoredPosition.y - pivotOffset.y + positionOffset.y
-	};
-
-	adjustedTransform.position = Vector3(finalPosition.x, finalPosition.y, originalTransform.position.z);
-	adjustedTransform.scale = Vector3(adjustedScale.x, adjustedScale.y, originalTransform.scale.z);
-
-	return adjustedTransform;
-}
-
 const CameraEntityData RenderSystem::FindCameraEntity() {
 
 	CameraEntityData cameraData{};
@@ -464,57 +355,6 @@ const CameraEntityData RenderSystem::FindCameraEntity() {
 		return cameraData;
 	}
 	return cameraData;
-}
-
-void RenderSystem::DrawWave(ComponentRegistry* componentRegistry, TransformComponent* pTransform, WaveComponent* pWave, TextureComponent* pTexture){
-	if(!pWave || !pWave->meshRenderer){
-		return;
-	}
-
-	auto meshRenderer = pWave->meshRenderer;
-	auto transform = pTransform;
-
-	GraphicsContext* graphicsContext = m_context->graphics;
-	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-
-
-	//if (!pTexture) {
-	//	if (meshRenderer->mesh.m_TextureData) {
-	//		deviceContext->PSSetShaderResources(0, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
-
-	//		MATERIAL material{};
-	//		material.DiffuseTextureEnable = true;
-
-	//		material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
-	//		graphicsContext->SetMaterial(material);
-	//	}
-	//}
-	//if (meshRenderer->mesh.m_VertexLayout) {
-	//	deviceContext->IASetInputLayout(meshRenderer->mesh.m_VertexLayout.Get());
-	//}
-	//if (meshRenderer->mesh.m_VertexShader) {
-	//	deviceContext->VSSetShader(meshRenderer->mesh.m_VertexShader.Get(), NULL, 0);
-	//}
-	//if (meshRenderer->mesh.m_PixelShader) {
-	//	deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
-	//}
-	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, componentRegistry);
-
-	graphicsContext->SetWorldMatrix(World);
-	UINT stride = sizeof(VERTEX_3D);
-	UINT offset = 0;
-	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
-	deviceContext->IASetIndexBuffer(*meshRenderer->mesh.m_IndexBuffer.GetAddressOf(), DXGI_FORMAT_R32_UINT, 0);
-
-	deviceContext->DrawIndexed(meshRenderer->mesh.indexCount, 0, 0);
-
-	graphicsContext->SetDepthEnable(true);
-	graphicsContext->SetViewMatrix(m_CameraView);
-	graphicsContext->SetProjectionMatrix(m_CameraProjection);
-
-
 }
 
 void RenderSystem::ControllButton(){
@@ -572,12 +412,18 @@ void RenderSystem::ShadowPass(RenderableContext renderPassContext){
 	GraphicsContext* graphicsContext = m_context->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-	// 深度クリアのみ
-	deviceContext->ClearDepthStencilView(m_RenderTargetShadow->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	// シャドウマップレンダーターゲットに切り替え
+	if (m_RenderTargetShadow->type == RenderTargetType::RENDERTARGET_TYPE_DEPTH) {
 
-	// Depth-onlyの場合は RTV は無し
-	deviceContext->OMSetRenderTargets(0, nullptr, m_RenderTargetShadow->dsv.Get());
+		deviceContext->ClearDepthStencilView(m_RenderTargetShadow->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		deviceContext->OMSetRenderTargets(0, nullptr, m_RenderTargetShadow->dsv.Get());
 
+	} else {
+		float color[4] = { 1.0f,1.0f,1.0f,1.0f };
+		deviceContext->ClearRenderTargetView(m_RenderTargetShadow->rtv.Get(), color);
+		deviceContext->ClearDepthStencilView(m_RenderTargetShadow->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		deviceContext->OMSetRenderTargets(1, m_RenderTargetShadow->rtv.GetAddressOf(), m_RenderTargetShadow->dsv.Get());
+	}
 	// シャドウマップ用カメラ
 	LIGHT light = m_context->renderer->GetGraphicsContext()->GetLight()[0];
 	newContext.cameraPosition = DirectX::XMFLOAT4(light.Position.x, light.Position.y, light.Position.z, 0.0f);
@@ -695,17 +541,17 @@ void RenderSystem::EditorView(){
 
 	ImGui::End();
 
-	//ImGui::Begin("Shadow Map View", nullptr, toolbar_window_flags);
-	//avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
-	//float availMin;
+	ImGui::Begin("Shadow Map View", nullptr, toolbar_window_flags);
+	avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
+	float availMin;
 
-	//if(avail.x < avail.y){
-	//	availMin = avail.x;
-	//} else{
-	//	availMin = avail.y;
-	//}
-	//ImGui::Image((ImTextureID)m_RenderTargetShadow->srv.Get(), ImVec2(availMin, availMin), ImVec2(0, 0), ImVec2(1, 1));
-	//ImGui::End();
+	if(avail.x < avail.y){
+		availMin = avail.x;
+	} else{
+		availMin = avail.y;
+	}
+	ImGui::Image((ImTextureID)m_RenderTargetShadow->srv.Get(), ImVec2(availMin, availMin), ImVec2(0, 0), ImVec2(1, 1));
+	ImGui::End();
 
 	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
 }
@@ -775,20 +621,12 @@ std::vector<int> TopologicalSortPostEffects(CameraComponent* camera){
 ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(ID3D11ShaderResourceView* initialSRV, const RenderableContext& renderPassContext) {
 	GraphicsContext* graphics = m_context->graphics;
 
-	// 1. シーンを初期バッファに描画
-	DirectX::XMFLOAT4 clearColor = { 0,0,0,1 };
-	//graphics->ResetPingPongBuffer(&clearColor.x); // 初期描画用バッファ
-
-	//RenderableContext _renderPassContext = renderPassContext;
-	//_renderPassContext.screenSize = Vector2((float)m_context->graphics->m_width, (float)m_context->graphics->m_height);
-
 	DrawEntities(renderPassContext);
 
-	//return initialSRV;
-
-	// 2. トポロジカルソート済みのポストエフェクトノード作成
 	std::vector<PostProcessNode> postNodes;
 	std::unordered_map<int, int> effectIndexToPostNodeIndex; // camera->postEffects idx → postNodes idx
+
+	DirectX::XMFLOAT4 clearColor = { 0,0,0,1 };
 
 	CameraComponent* camera = renderPassContext.cameraData.cameraComponent;
 
@@ -925,9 +763,6 @@ void RenderSystem::DrawEntities(const RenderableContext& renderPassContext){
 	camera.CameraPosition = renderPassContext.cameraPosition;
 	graphicsContext->SetCamera(camera);
 
-	m_CameraView = renderPassContext.viewMatrix;
-	m_CameraProjection = renderPassContext.projectionMatrix;
-
 	graphicsContext->SetViewMatrix(renderPassContext.viewMatrix);
 	graphicsContext->SetProjectionMatrix(renderPassContext.projectionMatrix);
 
@@ -968,64 +803,63 @@ void RenderSystem::DrawEntities(const RenderableContext& renderPassContext){
 						continue;
 					}
 
-					for(auto renderable : m_renderables){
-						renderable->Execute(renderPassContext, context ,entity);
-					}
-
 					TransformComponent* transform = context->component->GetComponent<TransformComponent>(entity);
-					if (transform) {
-						OutlineComponent* outline = context->component->GetComponent<OutlineComponent>(entity);
-						BumpMapComponent* bumpMap = context->component->GetComponent<BumpMapComponent>(entity);
-						if (bumpMap) {
-							// バンプマップの設定
-							if (bumpMap->m_TextureData) {
-								deviceContext->PSSetShaderResources(1, 1, bumpMap->m_TextureData->pTexture.GetAddressOf());
-							} else {
-								ID3D11ShaderResourceView* nullSRV = nullptr;
-								deviceContext->PSSetShaderResources(1, 1, &nullSRV);
-							}
+					if (!transform) {
+						continue;
+					}
+					OutlineComponent* outline = context->component->GetComponent<OutlineComponent>(entity);
+					BumpMapComponent* bumpMap = context->component->GetComponent<BumpMapComponent>(entity);
+					if (bumpMap) {
+						// バンプマップの設定
+						if (bumpMap->m_TextureData) {
+							deviceContext->PSSetShaderResources(1, 1, bumpMap->m_TextureData->pTexture.GetAddressOf());
 						} else {
 							ID3D11ShaderResourceView* nullSRV = nullptr;
 							deviceContext->PSSetShaderResources(1, 1, &nullSRV);
 						}
-
-						TextureComponent* texture = context->component->GetComponent<TextureComponent>(entity);
-						if (texture) {
-							// マテリアル設定
-							MATERIAL material = texture->Material;
-							material.DiffuseTextureEnable = ((bool)texture->m_TextureData);
-							if (texture->m_TextureData) {
-								deviceContext->PSSetShaderResources(0, 1, texture->m_TextureData->pTexture.GetAddressOf());
-							}
-
-							graphicsContext->SetMaterial(material);
-
-							UVMatrix uv;
-							if (texture->UV_Slice_X != 0 && texture->UV_Slice_Y != 0) {
-								uv.Start.x = (float)(texture->AnimationNum % texture->UV_Slice_X) * 1.0f / (float)texture->UV_Slice_X;
-								uv.Start.y = (float)(texture->AnimationNum / texture->UV_Slice_X) * 1.0f / (float)texture->UV_Slice_Y;
-
-								uv.End.x = (float)uv.Start.x + 1.0f / (float)texture->UV_Slice_X;
-								uv.End.y = (float)uv.Start.y + 1.0f / (float)texture->UV_Slice_Y;
-							}
-							graphicsContext->SetUVMatrix(uv);
-
-						} else {
-							// マテリアル設定
-							MATERIAL material;
-							material.DiffuseTextureEnable = false;
-							material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-							graphicsContext->SetMaterial(material);
-
-							UVMatrix uv;
-							graphicsContext->SetUVMatrix(uv);
-						}
-
-						WaveComponent* wave = context->component->GetComponent<WaveComponent>(entity);
-						if (wave) {
-							DrawWave(context->component, transform, wave, texture);
-						}
+					} else {
+						ID3D11ShaderResourceView* nullSRV = nullptr;
+						deviceContext->PSSetShaderResources(1, 1, &nullSRV);
 					}
+
+					TextureComponent* texture = context->component->GetComponent<TextureComponent>(entity);
+					if (texture) {
+						// マテリアル設定
+						MATERIAL material = texture->Material;
+						material.DiffuseTextureEnable = ((bool)texture->m_TextureData);
+						if (texture->m_TextureData) {
+							deviceContext->PSSetShaderResources(0, 1, texture->m_TextureData->pTexture.GetAddressOf());
+						}
+
+						graphicsContext->SetMaterial(material);
+
+						UVMatrix uv;
+						if (texture->UV_Slice_X != 0 && texture->UV_Slice_Y != 0) {
+							uv.Start.x = (float)(texture->AnimationNum % texture->UV_Slice_X) * 1.0f / (float)texture->UV_Slice_X;
+							uv.Start.y = (float)(texture->AnimationNum / texture->UV_Slice_X) * 1.0f / (float)texture->UV_Slice_Y;
+
+							uv.End.x = (float)uv.Start.x + 1.0f / (float)texture->UV_Slice_X;
+							uv.End.y = (float)uv.Start.y + 1.0f / (float)texture->UV_Slice_Y;
+						}
+						graphicsContext->SetUVMatrix(uv);
+
+					} else {
+						// マテリアル設定
+						MATERIAL material;
+						material.DiffuseTextureEnable = false;
+						material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+						graphicsContext->SetMaterial(material);
+
+						UVMatrix uv;
+						graphicsContext->SetUVMatrix(uv);
+					}
+
+					for(auto renderable : m_renderables){
+						renderable->Execute(renderPassContext, context ,entity);
+					}
+
+
+					
 				}
 			}
 		}

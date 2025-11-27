@@ -57,13 +57,10 @@ public:
 
 private:
 
-	TransformComponent CalculateRectTransform(const RenderableContext& renderPassContext, const SpriteRendererComponent& sprite, const TransformComponent& transform);
-
 	const CameraEntityData FindCameraEntity();
 
 	void DrawEntities(const RenderableContext& renderPassContext);
-
-	void DrawWave(ComponentRegistry* componentRegistry, TransformComponent* pTransform, WaveComponent* pWave, TextureComponent* pTexture);
+	ID3D11ShaderResourceView* RenderSceneWithPostEffects(ID3D11ShaderResourceView* initialSRV, const RenderableContext& renderPassContext);
 
 	void ControllButton();
 	void DrawRenderLayerToggleUI();
@@ -73,39 +70,31 @@ private:
 	void EditorView();
 	void PlayerView();
 
-	ID3D11ShaderResourceView* RenderSceneWithPostEffects(ID3D11ShaderResourceView* initialSRV, const RenderableContext& renderPassContext);
-
 	SceneManagerContext* m_context;
 
-	ID3D11SamplerState* shadowSampler = nullptr;
 	std::vector<std::shared_ptr<IRenderable>> m_renderables;
 
 	RenderTarget* m_RenderTargetShadow = nullptr;
+	ID3D11SamplerState* shadowSampler = nullptr;
+
 	RenderTarget* m_RenderTargetPlayer = nullptr;
 	RenderTarget* m_RenderTargetEditor = nullptr;
-
-	Vector3 m_EditorCameraPosition = Vector3(0.0f, 5.0f, -20.0f);
-	Vector3 m_EditorCameraRotation = Vector3(0.0f, 0.0f, 0.0f);
 
 	std::shared_ptr<PixelShaderData> m_LinePixelShader;
 	std::shared_ptr<VertexShaderData> m_LineVertexShader;
 
-	DirectX::XMMATRIX m_CameraView = DirectX::XMMatrixIdentity();
-	DirectX::XMMATRIX m_CameraProjection = DirectX::XMMatrixIdentity();
-	float m_MouseWheel = 0.0f;
-
-	bool* showPlayer = nullptr;
 	bool* showEditor = nullptr;
-
 	bool editorRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] = {
 	true, true, true, true, true, true
 	};
 
+	bool* showPlayer = nullptr;
 	bool playerRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] = {
 	true, true, true, true, true, false
 	};
 
 	ID3D11Buffer* pPhysicsDebugLineVB = nullptr;
+
 	PostEffectShader copyShader;
 
 	std::shared_ptr<TextureData> PlayButtonTexture;
@@ -113,5 +102,8 @@ private:
 	std::shared_ptr<TextureData> StopButtonTexture;
 	std::shared_ptr<TextureData> StepButtonTexture;
 
+	Vector3 m_EditorCameraPosition = Vector3(0.0f, 5.0f, -20.0f);
+	Vector3 m_EditorCameraRotation = Vector3(0.0f, 0.0f, 0.0f);
+	float m_MouseWheel = 0.0f;
 	bool mouseOnEditor = false;
 };

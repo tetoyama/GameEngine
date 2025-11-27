@@ -481,7 +481,7 @@ bool GraphicsContext::CreateRenderTargetView(){
 	return SUCCEEDED(hr);
 }
 
-bool GraphicsContext::CreateBlendState(){
+bool GraphicsContext::CreateBlendState() {
 	HRESULT hr = S_OK;
 	D3D11_BLEND_DESC desc = {};
 	desc.AlphaToCoverageEnable = FALSE;
@@ -490,7 +490,6 @@ bool GraphicsContext::CreateBlendState(){
 	rt.BlendEnable = TRUE;
 	rt.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-	// 各ブレンドモードごとの設定
 	// 1. Alpha
 	rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;
 	rt.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
@@ -499,33 +498,47 @@ bool GraphicsContext::CreateBlendState(){
 	rt.DestBlendAlpha = D3D11_BLEND_ONE;
 	rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
 	hr = m_Device->CreateBlendState(&desc, &m_BlendStates[(int)BlendMode::Alpha]);
-	if(FAILED(hr)) return false;
+	if (FAILED(hr)) return false;
 
 	// 2. Additive
 	rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;
 	rt.DestBlend = D3D11_BLEND_ONE;
+	rt.BlendOp = D3D11_BLEND_OP_ADD;
+	rt.SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
+	rt.DestBlendAlpha = D3D11_BLEND_ONE;
+	rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
 	hr = m_Device->CreateBlendState(&desc, &m_BlendStates[(int)BlendMode::Additive]);
-	if(FAILED(hr)) return false;
+	if (FAILED(hr)) return false;
 
 	// 3. Subtract
-	rt.BlendOp = D3D11_BLEND_OP_REV_SUBTRACT;
 	rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;
 	rt.DestBlend = D3D11_BLEND_ONE;
+	rt.BlendOp = D3D11_BLEND_OP_REV_SUBTRACT;
+	rt.SrcBlendAlpha = D3D11_BLEND_ZERO;
+	rt.DestBlendAlpha = D3D11_BLEND_ONE;
+	rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
 	hr = m_Device->CreateBlendState(&desc, &m_BlendStates[(int)BlendMode::Subtract]);
-	if(FAILED(hr)) return false;
+	if (FAILED(hr)) return false;
 
 	// 4. Multiply
-	rt.BlendOp = D3D11_BLEND_OP_ADD;
 	rt.SrcBlend = D3D11_BLEND_DEST_COLOR;
 	rt.DestBlend = D3D11_BLEND_ZERO;
+	rt.BlendOp = D3D11_BLEND_OP_ADD;
+	rt.SrcBlendAlpha = D3D11_BLEND_ZERO;
+	rt.DestBlendAlpha = D3D11_BLEND_ONE;
+	rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
 	hr = m_Device->CreateBlendState(&desc, &m_BlendStates[(int)BlendMode::Multiply]);
-	if(FAILED(hr)) return false;
+	if (FAILED(hr)) return false;
 
 	// 5. Screen
 	rt.SrcBlend = D3D11_BLEND_ONE;
 	rt.DestBlend = D3D11_BLEND_INV_DEST_COLOR;
+	rt.BlendOp = D3D11_BLEND_OP_ADD;
+	rt.SrcBlendAlpha = D3D11_BLEND_ZERO;
+	rt.DestBlendAlpha = D3D11_BLEND_ONE;
+	rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
 	hr = m_Device->CreateBlendState(&desc, &m_BlendStates[(int)BlendMode::Screen]);
-	if(FAILED(hr)) return false;
+	if (FAILED(hr)) return false;
 
 	SetBlendMode(BlendMode::Alpha);
 	return true;
@@ -717,7 +730,7 @@ void GraphicsContext::Resize(UINT width, UINT height){
 			m_DepthStencilView->Release();
 			m_DepthStencilView = nullptr;
 		}
-
+		
 		HRESULT hr = m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 		if(FAILED(hr)){
 			OutputDebugStringA("スワップチェーンのリサイズに失敗しました。\n");
@@ -732,7 +745,7 @@ void GraphicsContext::Resize(UINT width, UINT height){
 			return;
 		}
 
-		CreatePingPongBuffers(width, height);
+		CreateBuffer(width, height);
 
 		m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
 
@@ -744,44 +757,12 @@ void GraphicsContext::Resize(UINT width, UINT height){
 	}
 }
 
-void GraphicsContext::ResetPingPongBuffer(const float clearColor[4]){
-	m_DeviceContext->ClearRenderTargetView(m_PostRTV_A.Get(), clearColor);
-	m_DeviceContext->ClearRenderTargetView(m_PostRTV_B.Get(), clearColor);
+void GraphicsContext::ResetBuffer(const float clearColor[4]){
+	m_DeviceContext->ClearRenderTargetView(m_RTV.Get(), clearColor);
 	m_DeviceContext->ClearDepthStencilView(m_DepthStencilView,
 										   D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
 										   1.0f, 0);
-
-	// 最初は A を書き込み用に設定
-	SwitchRenderTarget(PostProcessBufferID::BufferA);
-}
-
-// ApplyPostProcessChain の更新版（Ping-Pong + トポロジカル対応）
-void GraphicsContext::ApplyPostProcessChain(std::vector<PostEffectShader>& effects){
-	PostProcessBufferID writeBuffer = PostProcessBufferID::BufferB;
-	PostProcessBufferID readBuffer = PostProcessBufferID::BufferA;
-
-	for(size_t i = 0; i < effects.size(); i++){
-		PostEffectShader& shader = effects[i];
-
-		// 出力 RT（Ping-Pong）
-		ID3D11RenderTargetView* outputRTV = (writeBuffer == PostProcessBufferID::BufferA) ? m_PostRTV_A.Get() : m_PostRTV_B.Get();
-		m_DeviceContext->OMSetRenderTargets(1, &outputRTV, nullptr);
-
-		// 入力 SRV（Ping-Pong）
-		ID3D11ShaderResourceView* inputSRV = (readBuffer == PostProcessBufferID::BufferA) ? m_PostSRV_A.Get() : m_PostSRV_B.Get();
-
-		// SRV の解除
-		ID3D11ShaderResourceView* nullSRV[1] = {nullptr};
-		m_DeviceContext->PSSetShaderResources(0, 1, nullSRV);
-
-		// Quad 描画
-		DrawQuad(&shader, inputSRV);
-
-		// Ping-Pong
-		std::swap(readBuffer, writeBuffer);
-	}
-
-	m_CurrentBuffer = readBuffer;
+	m_DeviceContext->OMSetRenderTargets(1, m_RTV.GetAddressOf(), m_DepthStencilView);
 }
 
 void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effects, ID3D11ShaderResourceView* initialSRV){
@@ -818,7 +799,7 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 
 
 
-bool GraphicsContext::CreatePingPongBuffers(UINT width, UINT height){
+bool GraphicsContext::CreateBuffer(UINT width, UINT height){
 	D3D11_TEXTURE2D_DESC desc = {};
 	desc.Width = width;
 	desc.Height = height;
@@ -829,25 +810,15 @@ bool GraphicsContext::CreatePingPongBuffers(UINT width, UINT height){
 	desc.Usage = D3D11_USAGE_DEFAULT;
 	desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
-	m_Device->CreateTexture2D(&desc, nullptr, &m_PostBufferA);
-	m_Device->CreateRenderTargetView(m_PostBufferA.Get(), nullptr, &m_PostRTV_A);
-	m_Device->CreateShaderResourceView(m_PostBufferA.Get(), nullptr, &m_PostSRV_A);
-
-	m_Device->CreateTexture2D(&desc, nullptr, &m_PostBufferB);
-	m_Device->CreateRenderTargetView(m_PostBufferB.Get(), nullptr, &m_PostRTV_B);
-	m_Device->CreateShaderResourceView(m_PostBufferB.Get(), nullptr, &m_PostSRV_B);
+	m_Device->CreateTexture2D(&desc, nullptr, &m_Buffer);
+	m_Device->CreateRenderTargetView(m_Buffer.Get(), nullptr, &m_RTV);
+	m_Device->CreateShaderResourceView(m_Buffer.Get(), nullptr, &m_SRV);
 
 	return true;
 }
 
-void GraphicsContext::SwitchRenderTarget(PostProcessBufferID id){
-	ID3D11RenderTargetView* rtv = (id == PostProcessBufferID::BufferA) ? m_PostRTV_A.Get() : m_PostRTV_B.Get();
-	m_DeviceContext->OMSetRenderTargets(1, &rtv, m_DepthStencilView);
-	m_CurrentBuffer = id;
-}
-
 ID3D11ShaderResourceView* GraphicsContext::GetCurrentSRV() const{
-	return (m_CurrentBuffer == PostProcessBufferID::BufferA) ? m_PostSRV_A.Get() : m_PostSRV_B.Get();
+	return m_SRV.Get();
 }
 
 void GraphicsContext::DrawQuad(PostEffectShader* shader, ID3D11ShaderResourceView* inputSRV){

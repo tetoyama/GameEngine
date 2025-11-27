@@ -84,6 +84,8 @@ public:
 	ID3D11RenderTargetView* GetRenderTargetView() {return m_RenderTargetView;}
 	ID3D11RenderTargetView** GetpRenderTargetView(){return &m_RenderTargetView;}
 
+	ID3D11ShaderResourceView* GetRenderTargetSRV() { return m_SRV.Get(); }
+
 	ID3D11DepthStencilView* GetDepthStencilView() {return m_DepthStencilView;}
 
 	ID2D1Factory* GetD2DFactory() const{return m_d2dFactory.Get();}
@@ -94,7 +96,7 @@ public:
 	Effekseer::ManagerRef GetEffectManager();
 	EffekseerRendererDX11::RendererRef GetEffectRenderer();
 
-	LIGHT* GetLight(){return m_LightData;}
+	LIGHT* GetLight() { return m_LightData; }
 
 	// セッター
 	void SetDepthEnable(const bool& Enable);
@@ -108,6 +110,7 @@ public:
 	void SetCamera(const CAMERA& Camera);
 	void SetParameter(const Parameter& Parameter);
 	void ResetViewport();
+	void ResetBuffer(const float clearColor[4]);
 	void SetWorldViewProjection2D();
 	void SetCullMode(CullMode set);
 
@@ -128,8 +131,6 @@ public:
 		return m_pComputeSkinningShader;
 	}
 	// 描画
-	void ResetPingPongBuffer(const float clearColor[4]);
-	void ApplyPostProcessChain(std::vector<PostEffectShader>& effects);
 	void ApplyPostProcessChain(std::vector<PostProcessNode>& effects, ID3D11ShaderResourceView* initialSRV);
 
 	ID3D11ShaderResourceView* GetPostProcessResultSRV() const{
@@ -144,7 +145,6 @@ public:
 		DrawQuad(copyShader, inputSRV);
 	}
 	void DrawQuad(PostEffectShader* shader, ID3D11ShaderResourceView* inputSRV);
-	void SwitchRenderTarget(PostProcessBufferID id);
 	ID3D11ShaderResourceView* GetCurrentSRV() const;
 
 	UINT m_width = 0;
@@ -163,7 +163,7 @@ private:
 	bool CreateComputeSkinningShader();
 	bool CreateD2DResources(HWND hwnd);
 	bool CreateFullScreenQuad();
-	bool CreatePingPongBuffers(UINT width, UINT height);
+	bool CreateBuffer(UINT width, UINT height);
 
 	bool CreateEffectSystem();
 
@@ -198,19 +198,12 @@ private:
 	Microsoft::WRL::ComPtr<ID2D1Factory> m_d2dFactory;
 	Microsoft::WRL::ComPtr<IDWriteFactory> m_dwriteFactory;
 
-	// PostProcess用バッファ
-	Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_PostBufferA;
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_PostRTV_A;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_PostSRV_A;
-
-	Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_PostBufferB;
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_PostRTV_B;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_PostSRV_B;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_Buffer;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_RTV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_SRV;
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_FullScreenVB;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_FullScreenIB;
-
-	PostProcessBufferID m_CurrentBuffer = PostProcessBufferID::BufferA;
 
 	RenderEffectSystem* m_EffectSystem = nullptr;
 

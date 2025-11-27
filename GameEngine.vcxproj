@@ -2709,6 +2709,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Model\RenderableModel.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Sprite\RenderableSprite.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Terrain\RenderableTerrain.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Wave\RenderableWave.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\IRenderPass.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderPhase.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderSystem.h" />
@@ -3081,6 +3082,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\RenderableContext.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Sprite\RenderableSprite.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Terrain\RenderableTerrain.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Wave\RenderableWave.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\C#ScriptSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderTarget\renderTarget.cpp" />
