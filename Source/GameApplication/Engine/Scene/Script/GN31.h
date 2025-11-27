@@ -62,7 +62,6 @@ private:
 
 		m_context->manager->debug->LOG_DEBUG(("ポート番号 : " + std::to_string(port)));
 
-
 		if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
 			m_context->manager->debug->LOG_ERROR("WSAStartup failed");
 			return;
@@ -88,79 +87,77 @@ private:
 		sprintf_s(debugString, "ホスト名=%s", hostName);
 		m_context->manager->debug->LOG_DEBUG(debugString);
 
-
 		memcpy(&ipAddr, hostInfo->h_addr_list[0], 4);
 		strcpy_s(ipAddress, inet_ntoa(ipAddr));
 		sprintf_s(debugString,"IPアドレス=%s", ipAddress);
 		m_context->manager->debug->LOG_DEBUG(debugString);
 
-		//// ③ ソケット作成（TCP通信）
-		//// AF_INET: IPv4, SOCK_STREAM: TCP, 0: プロトコル自動選択
-		//listenSocket = socket(AF_INET, SOCK_STREAM, 0);
-		//if (listenSocket == INVALID_SOCKET
-		//	) {
-		//	printf("ソケットオープンエラー\n");
-		//	getchar();
-		//	WSACleanup();
-		//	exit(-5);
-		//}
-		//// ④ ソケットとポートの結びつけ（bind）
-		//memset(&serverAddr, 0, sizeof
-		//(SOCKADDR_IN)); // 構造体をゼロクリア
-		//serverAddr.sin_family = AF_INET; // IPv4を使用
-		//serverAddr.sin_port = htons(port); // ポート番号をネットワークバイトオーダーに変換
-		//serverAddr.sin_addr.s_addr = INADDR_ANY; // どのIPからの接続も受け付ける
-		//if (bind(listenSocket, (SOCKADDR*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR
-		//	) {
-		//	printf("バインドエラー\n");
-		//	getchar();
-		//	closesocket(listenSocket);
-		//	WSACleanup();
-		//	exit(-1);
-		//}
-		//// ⑤ ソケットを待機状態に変更（listen）
-		// // SOMAXCONN: 最大接続数をOSに任せる
-		//if (listen(listenSocket, SOMAXCONN) == SOCKET_ERROR
-		//	) {
-		//	printf("待機状態変更失敗\n");
-		//	getchar();
-		//	closesocket(listenSocket);
-		//	WSACleanup();
-		//	exit(-2);
-		//}
+		// ③ ソケット作成（TCP通信）
+		// AF_INET: IPv4, SOCK_STREAM: TCP, 0: プロトコル自動選択
+		listenSocket = socket(AF_INET, SOCK_STREAM, 0);
+		if (listenSocket == INVALID_SOCKET
+			) {
+			m_context->manager->debug->LOG_DEBUG("ソケットオープンエラー\n");
+			WSACleanup();
+			exit(-5);
+		}
 
-		//	 // ⑥ クライアントから接続受け入れ（accept）
-		//clientSocket = accept(listenSocket, (SOCKADDR*)&clientAddr, &clientAddrLen);
-		//if (clientSocket == INVALID_SOCKET
-		//	) {
+		// ④ ソケットとポートの結びつけ（bind）
+		memset(&serverAddr, 0, sizeof
+		(SOCKADDR_IN)); // 構造体をゼロクリア
+		serverAddr.sin_family = AF_INET; // IPv4を使用
+		serverAddr.sin_port = htons(port); // ポート番号をネットワークバイトオーダーに変換
+		serverAddr.sin_addr.s_addr = INADDR_ANY; // どのIPからの接続も受け付ける
+		if (bind(listenSocket, (SOCKADDR*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR
+			) {
+			m_context->manager->debug->LOG_DEBUG("バインドエラー\n");
+			closesocket(listenSocket);
+			WSACleanup();
+			exit(-1);
+		}
+		// ⑤ ソケットを待機状態に変更（listen）
+		 // SOMAXCONN: 最大接続数をOSに任せる
+		if (listen(listenSocket, SOMAXCONN) == SOCKET_ERROR
+			) {
+			m_context->manager->debug->LOG_DEBUG("待機状態変更失敗\n");
+			closesocket(listenSocket);
+			WSACleanup();
+			exit(-2);
+		}
 
-		//	printf("accept error\n");
-		//	closesocket(listenSocket);
-		//	WSACleanup();
-		//	exit(-3);
-		//}
-		//printf("%sが接続してきました\n", inet_ntoa(clientAddr.sin_addr));
-		//printf("受信を開始します\n終了は end です\n");
-		// // ⑦ データ受信ループ
-		//while (1) {
-		//	int recvSize = recv(clientSocket, recvBuffer, sizeof(recvBuffer) - 1, 0);
-		//	if (recvSize == SOCKET_ERROR
-		//		) {
-		//		printf("受信エラーです\n");
-		//		break;
-		//	}
-		//	recvBuffer[recvSize] = '\0'; // 文字列終端を追加
-		//	if (strcmp(recvBuffer, "end") == 0) {
-		//		printf("クライアントが接続を切りました\n");
-		//		break;
-		//	}
-		//	printf("受信:%s\n", recvBuffer);
-		//}
+		// ⑥ クライアントから接続受け入れ（accept）
+		clientSocket = accept(listenSocket, (SOCKADDR*)&clientAddr, &clientAddrLen);
+		if (clientSocket == INVALID_SOCKET
+			) {
 
+			m_context->manager->debug->LOG_DEBUG("accept error\n");
+			closesocket(listenSocket);
+			WSACleanup();
+			exit(-3);
+		}
+		sprintf_s(debugString, "%sが接続してきました\n", inet_ntoa(clientAddr.sin_addr));
+		m_context->manager->debug->LOG_DEBUG(debugString);
+		m_context->manager->debug->LOG_DEBUG("受信を開始します\n終了は end です\n");
+		 // ⑦ データ受信ループ
 	}
 
+	void OnUpdate(float dt) override {
+		int recvSize = recv(clientSocket, recvBuffer, sizeof(recvBuffer) - 1, 0);
+		if (recvSize == SOCKET_ERROR) {
+			m_context->manager->debug->LOG_DEBUG("受信エラーです\n");
+			return;
+		}
+		recvBuffer[recvSize] = '\0'; // 文字列終端を追加
+		if (strcmp(recvBuffer, "end") == 0) {
+			m_context->manager->debug->LOG_DEBUG("クライアントが接続を切りました\n");
+			return;
+		}
+		char debugString[1024];
+		sprintf_s(debugString, "受信:%s\n", recvBuffer);
+		m_context->manager->debug->LOG_DEBUG(debugString);
 
-	void OnUpdate(float dt) override {}
+		send(listenSocket, recvBuffer, (int)strlen(recvBuffer), 0);
+	}
 
 	void OnFixedUpdate(float dt)override {}
 
