@@ -65,3 +65,11 @@ struct Parameter
 {
 	DirectX::XMFLOAT4	Parameter;
 };
+
+struct ObjectInfo
+{
+	unsigned int    ObjectID;
+	unsigned int    MaterialID;
+
+	unsigned int    Dummy[2];
+};

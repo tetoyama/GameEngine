@@ -69,6 +69,14 @@ cbuffer ParameterBuffer : register(b7)
     float4 Parameter;
 };
 
+cbuffer ObjectInfo : register(b10)
+{
+    uint ObjectID; // drawcallごとに設定
+    uint MaterialID; // マテリアルごとに設定
+    uint _pad0;
+    uint _pad1;
+}
+
 struct VS_IN
 {
     float4 Position : POSITION0;
