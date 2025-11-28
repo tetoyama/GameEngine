@@ -129,6 +129,7 @@ public:
 		if(node["Rotation"] && node["Rotation"].IsSequence() && node["Rotation"].size() == 4){
 			auto q = node["Rotation"].as<std::vector<float>>();
 			rotation = {q[0], q[1], q[2], q[3]};
+			rotationEular = GetRotationEuler();
 		}
 		if(node["Scale"]){
 			scale = node["Scale"].as<Vector3>();

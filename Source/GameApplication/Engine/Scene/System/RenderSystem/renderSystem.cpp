@@ -227,14 +227,17 @@ void RenderSystem::Draw(){
 			cameraEntity,
 			ScreenSize
 		);
-
+		ShadowPass(renderPassContext);
 
 		DirectX::XMFLOAT4 clearColor = { 0,0,0,1 };
 		m_context->graphics->Clear(&clearColor.x);
 
+		m_context->graphics->GetDeviceContext()->PSSetShaderResources(2, 1, m_RenderTargetShadow->srv.GetAddressOf());
+		m_context->graphics->GetDeviceContext()->PSSetSamplers(1, 1, &shadowSampler);
 		ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(m_context->graphics->GetRenderTargetSRV(), renderPassContext);
 
 		ID3D11RenderTargetView* rtv = m_context->graphics->GetRenderTargetView(); // バックバッファ
+
 		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, &rtv, m_context->graphics->GetDepthStencilView());
 		m_context->graphics->DrawQuad(&copyShader, finalSRV);
 	}
@@ -640,19 +643,19 @@ void RenderSystem::EditorView(){
 
 	ImGui::End();
 
-	//ImGui::Begin("Shadow Map View", nullptr, toolbar_window_flags);
-	//avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
-	//float availMin;
+	ImGui::Begin("Shadow Map View", nullptr, toolbar_window_flags);
+	avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
+	float availMin;
 
-	//if(avail.x < avail.y){
-	//	availMin = avail.x;
-	//} else{
-	//	availMin = avail.y;
-	//}
-	//ImGui::Image((ImTextureID)m_RenderTargetShadow->srv.Get(), ImVec2(availMin, availMin), ImVec2(0, 0), ImVec2(1, 1));
-	//ImGui::End();
+	if(avail.x < avail.y){
+		availMin = avail.x;
+	} else{
+		availMin = avail.y;
+	}
+	ImGui::Image((ImTextureID)m_RenderTargetShadow->srv.Get(), ImVec2(availMin, availMin), ImVec2(0, 0), ImVec2(1, 1));
+	ImGui::End();
 
-	//graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
+	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
 }
 
 
