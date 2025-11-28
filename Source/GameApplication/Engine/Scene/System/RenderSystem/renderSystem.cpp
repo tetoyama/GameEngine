@@ -229,12 +229,15 @@ void RenderSystem::Draw(){
 		);
 		ShadowPass(renderPassContext);
 
-		DirectX::XMFLOAT4 clearColor = { 0,0,0,1 };
-		m_context->graphics->Clear(&clearColor.x);
+		float clearCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
+		m_RenderTargetPlayer->Resize(Vector2(m_context->graphics->m_width, m_context->graphics->m_height), m_context->graphics);
+		m_RenderTargetPlayer->Clear(m_context->graphics->GetDeviceContext(), clearCol);
+		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_RenderTargetPlayer->rtv.GetAddressOf(), m_RenderTargetPlayer->dsv.Get());
 
 		m_context->graphics->GetDeviceContext()->PSSetShaderResources(2, 1, m_RenderTargetShadow->srv.GetAddressOf());
 		m_context->graphics->GetDeviceContext()->PSSetSamplers(1, 1, &shadowSampler);
-		ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(m_context->graphics->GetRenderTargetSRV(), renderPassContext);
+
+		ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(m_RenderTargetPlayer->srv.Get(), renderPassContext);
 
 		ID3D11RenderTargetView* rtv = m_context->graphics->GetRenderTargetView(); // バックバッファ
 
@@ -930,6 +933,7 @@ void RenderSystem::DrawEntities(const RenderableContext& renderPassContext){
 
 	//PhysX
 	if(pRenderLayer[(int)RenderLayer::Debug] && renderPassContext.passPhase != RenderPhase::PHASE_SHADOW){
+
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();
 			auto physics = m_context->systemRegistry->GetSystem<PhysicSystem>();
