@@ -10,7 +10,7 @@ public:
 
 	LightComponent(){
 		light.Enable = true;
-		light.LightType = LIGHT_TYPE_DIRECTIONAL;
+		light.LightType = LIGHT_TYPE_POINT;
 		light.CastShadow = true;
 	}
 
@@ -62,10 +62,10 @@ public:
 			light.Param = node["Param"].as<DirectX::XMFLOAT4>();
 
 		if(node["LightView"])
-			light.LightView = node["LightView"].as<DirectX::XMMATRIX>();
+			light.LightView = node["LightView"].as<DirectX::XMFLOAT4X4>();
 
 		if(node["LightProjection"])
-			light.LightProjection = node["LightProjection"].as<DirectX::XMMATRIX>();
+			light.LightProjection = node["LightProjection"].as<DirectX::XMFLOAT4X4>();
 
 		return true;
 	}
@@ -78,7 +78,7 @@ public:
 		ImGui::Checkbox("CastShadow", (bool*)&light.Enable);
 
 		// ライトの種類
-		const char* lightTypes[] = {"Directional", "Point", "Spot"};
+		const char* lightTypes[] = {"Point","Directional",  "Spot"};
 		int selected = static_cast<int>(light.LightType);
 		if(ImGui::Combo("Light Type", &selected, lightTypes, IM_ARRAYSIZE(lightTypes))){
 			light.LightType = selected;

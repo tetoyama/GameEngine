@@ -66,6 +66,7 @@
 #include "Renderable/Sprite/RenderableSprite.h"
 #include "Renderable/Particle/RenderableParticle.h"
 #include "Renderable/Terrain/RenderableTerrain.h"
+#include <Component/LightComponent.h>
 
 constexpr int maxLineCount = 99999;
 
@@ -141,6 +142,7 @@ void RenderSystem::Initialize(){
 	m_RenderTargetEditor = new RenderTarget(m_context->EditorScreenSize, m_context->graphics, RenderTargetType::RENDERTARGET_TYPE_COLOR);
 	m_RenderTargetShadow = new RenderTarget(Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE), m_context->graphics, RenderTargetType::RENDERTARGET_TYPE_DEPTH);
 
+	m_ShadowPixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\shadowPS.cso");
 	m_LineVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\DebugLineVS.cso");
 	m_LinePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DebugLinePS.cso");
 
@@ -415,8 +417,8 @@ void RenderSystem::ShadowPass(RenderableContext renderPassContext){
 	GraphicsContext* graphicsContext = m_context->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-	//ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-	//deviceContext->PSSetShaderResources(2, 1, nullSRV); // t2 をクリア（あなたの slot に合わせる）
+	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+	deviceContext->PSSetShaderResources(2, 1, nullSRV); // t2 をクリア（あなたの slot に合わせる）
 
 	// シャドウマップレンダーターゲットに切り替え
 	if (m_RenderTargetShadow->type == RenderTargetType::RENDERTARGET_TYPE_DEPTH) {
@@ -432,25 +434,106 @@ void RenderSystem::ShadowPass(RenderableContext renderPassContext){
 	}
 	// シャドウマップ用カメラ
 	LIGHT light = m_context->renderer->GetGraphicsContext()->GetLight()[0];
-	newContext.cameraPosition = DirectX::XMFLOAT4(light.Position.x, light.Position.y, light.Position.z, 0.0f);
+	//newContext.cameraPosition = DirectX::XMFLOAT4(light.Position.x, light.Position.y, light.Position.z, 0.0f);
 	newContext.passPhase = RenderPhase::PHASE_SHADOW;
 	newContext.screenSize = Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE);
-	newContext.viewMatrix = light.LightView;
-	newContext.projectionMatrix = light.LightProjection;
+
+	for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
+		auto context = scene->GetSceneContext();
+		// ライトコンポーネントを持つエンティティの検索
+		const auto& lightEntities = context->component->FindEntitiesWithComponent<LightComponent>();
+		if(lightEntities.empty()){
+			continue;
+		}
+		for(Entity entity : lightEntities){
+			LightComponent* light = context->component->GetComponent<LightComponent>(entity);
+			if(!light){
+				continue;
+			}
+			TransformComponent* transform = context->component->GetComponent<TransformComponent>(entity);
+			if(transform){
+				newContext.cameraPosition = DirectX::XMFLOAT4(light->light.Position.x, light->light.Position.y, light->light.Position.z, 0.0f);
+
+				Vector3 front = transform->front();
+				Vector3 up = transform->up();
+				newContext.viewMatrix = DirectX::XMMatrixLookAtLH(
+					transform->position.ToXMVECTOR(),
+					(transform->position + front * 100.0f).ToXMVECTOR(),
+					(up).ToXMVECTOR()
+				);
+				newContext.projectionMatrix = DirectX::XMMatrixOrthographicLH(
+					100.0f,
+					100.0f,
+					0.01f,
+					100.0f
+				);
+				break;
+				break;
+			}
+		}
+	}
+	newContext.pixelShader = m_ShadowPixelShader;
 
 	DrawEntities(newContext);
 
 	// 元のレンダーターゲットに戻す
 	deviceContext->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
-
-
-	// シャドウマップをピクセルシェーダーの t2 にセット
-	deviceContext->PSSetShaderResources(2, 1, m_RenderTargetShadow->srv.GetAddressOf());
-	deviceContext->PSSetSamplers(2, 1, &shadowSampler);
 }
 
+void RenderSystem::PlayerView(){
 
+
+	ImGui::Begin("Play View", showPlayer, 0);
+
+	// 共通UI（元のControllButtonやSeparatorなど）
+	ControllButton();
+	ImGui::Separator();
+
+	// カメラコンポーネントを持つエンティティ取得
+	const CameraEntityData& cameraData = FindCameraEntity();
+	if(!cameraData.cameraComponent){
+		ImGui::Text("No Camera Component found.");
+		ImGui::End();
+		return;
+	}
+
+	// 利用可能な領域サイズを取得
+	ImVec2 avail = ImGui::GetContentRegionAvail();
+
+
+
+	RenderableContext renderPassContext(
+		RenderPhase::PHASE_GBUFFER,
+		playerRenderLayerVisible,
+		nullptr,
+		nullptr,
+		cameraData,
+		m_RenderTargetPlayer->size
+	);
+	ShadowPass(renderPassContext);
+
+	float clearCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
+	m_RenderTargetPlayer->Resize(Vector2(avail.x, avail.y), m_context->graphics);
+	m_RenderTargetPlayer->Clear(m_context->graphics->GetDeviceContext(), clearCol);
+	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_RenderTargetPlayer->rtv.GetAddressOf(), m_RenderTargetPlayer->dsv.Get());
+
+	m_context->graphics->GetDeviceContext()->PSSetShaderResources(2, 1, m_RenderTargetShadow->srv.GetAddressOf());
+	m_context->graphics->GetDeviceContext()->PSSetSamplers(1, 1, &shadowSampler);
+
+	ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(m_RenderTargetPlayer->srv.Get(), renderPassContext);
+	if(!finalSRV){
+		ImGui::Text("finalSRV is NULL");
+	}
+	ImGui::Image((ImTextureID)finalSRV, avail, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1.0f, 1.0f, 1.0f, 1.0f), ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
+	ImGui::End();
+
+	// バックバッファへ戻す
+	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(
+		1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView()
+	);
+}
 void RenderSystem::EditorView(){
+
 	GraphicsContext* graphicsContext = m_context->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 	ImGuiWindowFlags toolbar_window_flags = 0;
@@ -498,12 +581,17 @@ void RenderSystem::EditorView(){
 		m_RenderTargetEditor->size
 	);
 	ShadowPass(renderPassContext);
-	
+
+
 	float clearCol[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
 	deviceContext->ClearRenderTargetView(m_RenderTargetEditor->rtv.Get(), clearCol);
 	deviceContext->ClearDepthStencilView(m_RenderTargetEditor->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, m_RenderTargetEditor->rtv.GetAddressOf(), m_RenderTargetEditor->dsv.Get());
+
+	 //シャドウマップをピクセルシェーダーの t2 にセット
+	deviceContext->PSSetShaderResources(2, 1, m_RenderTargetShadow->srv.GetAddressOf());
+	deviceContext->PSSetSamplers(1, 1, &shadowSampler);
 	DrawEntities(renderPassContext);
 
 	ImVec2 cursor = ImGui::GetCursorPos();
@@ -552,19 +640,19 @@ void RenderSystem::EditorView(){
 
 	ImGui::End();
 
-	ImGui::Begin("Shadow Map View", nullptr, toolbar_window_flags);
-	avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
-	float availMin;
+	//ImGui::Begin("Shadow Map View", nullptr, toolbar_window_flags);
+	//avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
+	//float availMin;
 
-	if(avail.x < avail.y){
-		availMin = avail.x;
-	} else{
-		availMin = avail.y;
-	}
-	ImGui::Image((ImTextureID)m_RenderTargetShadow->srv.Get(), ImVec2(availMin, availMin), ImVec2(0, 0), ImVec2(1, 1));
-	ImGui::End();
+	//if(avail.x < avail.y){
+	//	availMin = avail.x;
+	//} else{
+	//	availMin = avail.y;
+	//}
+	//ImGui::Image((ImTextureID)m_RenderTargetShadow->srv.Get(), ImVec2(availMin, availMin), ImVec2(0, 0), ImVec2(1, 1));
+	//ImGui::End();
 
-	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
+	//graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
 }
 
 
@@ -711,52 +799,7 @@ ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(ID3D11ShaderR
 	return initialSRV;
 }
 
-void RenderSystem::PlayerView(){
 
-	ImGui::Begin("Play View", showPlayer, 0);
-
-	// 共通UI（元のControllButtonやSeparatorなど）
-	ControllButton();
-	ImGui::Separator();
-
-	// カメラコンポーネントを持つエンティティ取得
-	const CameraEntityData& cameraData = FindCameraEntity();
-	if (!cameraData.cameraComponent) {
-		ImGui::Text("No Camera Component found.");
-		ImGui::End();
-		return;
-	}
-
-	// 利用可能な領域サイズを取得
-	ImVec2 avail = ImGui::GetContentRegionAvail();
-
-	float clearCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
-	m_RenderTargetPlayer->Resize(Vector2(avail.x, avail.y), m_context->graphics);
-	m_RenderTargetPlayer->Clear(m_context->graphics->GetDeviceContext(), clearCol);
-
-	RenderableContext renderPassContext(
-		RenderPhase::PHASE_GBUFFER,
-		playerRenderLayerVisible,
-		nullptr,
-		nullptr,
-		cameraData,
-		m_RenderTargetPlayer->size
-	);
-	ShadowPass(renderPassContext);
-
-	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_RenderTargetPlayer->rtv.GetAddressOf(), m_RenderTargetPlayer->dsv.Get());
-	ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(m_RenderTargetPlayer->srv.Get(), renderPassContext);
-	if(!finalSRV){
-		ImGui::Text("finalSRV is NULL");
-	}
-	ImGui::Image((ImTextureID)finalSRV, avail, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1.0f, 1.0f, 1.0f, 1.0f), ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
-	ImGui::End();
-
-	// バックバッファへ戻す
-	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(
-		1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView()
-	);
-}
 
 void RenderSystem::DrawEntities(const RenderableContext& renderPassContext){
 
@@ -765,10 +808,6 @@ void RenderSystem::DrawEntities(const RenderableContext& renderPassContext){
 	// コンテキストの取得
 	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-
-	// コンスタントバッファ設定
-	deviceContext->PSSetShaderResources(2, 1, m_RenderTargetShadow->srv.GetAddressOf());
-	deviceContext->PSSetSamplers(1, 1, &shadowSampler);
 
 	CAMERA camera{};
 	camera.CameraPosition = renderPassContext.cameraPosition;
@@ -887,7 +926,7 @@ void RenderSystem::DrawEntities(const RenderableContext& renderPassContext){
 	m_context->graphics->GetEffectRenderer()->EndRendering();
 
 	//PhysX
-	if(pRenderLayer[(int)RenderLayer::Debug]){
+	if(pRenderLayer[(int)RenderLayer::Debug] && renderPassContext.passPhase != RenderPhase::PHASE_SHADOW){
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();
 			auto physics = m_context->systemRegistry->GetSystem<PhysicSystem>();

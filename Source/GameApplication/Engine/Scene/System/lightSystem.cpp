@@ -40,19 +40,20 @@ void LightSystem::Update(float deltaTime){
 
 				Vector3 front = transform->front();
 				Vector3 up = transform->up();
-
-				light->light.LightView = DirectX::XMMatrixLookAtLH(
+				DirectX::XMStoreFloat4x4(
+				&light->light.LightView, DirectX::XMMatrixTranspose(DirectX::XMMatrixLookAtLH(
 					transform->position.ToXMVECTOR(),
 					(transform->position + front * 100.0f).ToXMVECTOR(),
 					(up).ToXMVECTOR()
-				);
+				)));
+				DirectX::XMStoreFloat4x4(
 
-				light->light.LightProjection = DirectX::XMMatrixPerspectiveFovLH(
-					DirectX::XMConvertToRadians(45.0f),
-					1.0f,
-					0.1f,
-					10.0f
-				);
+				&light->light.LightProjection , DirectX::XMMatrixTranspose(DirectX::XMMatrixOrthographicLH(
+					100.0f,
+					100.0f,
+					0.01f,
+					100.0f
+				)));
 			}
 		}
 	}
@@ -61,6 +62,10 @@ void LightSystem::Update(float deltaTime){
 void LightSystem::Draw(){
 
 	LIGHT lights[LIGHT_MAX_COUNT];
+	for(int i = 0; i < LIGHT_MAX_COUNT; i++){
+		lights[i].Enable = false;
+	}
+
 	int lightCount = 0;
 
 	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();

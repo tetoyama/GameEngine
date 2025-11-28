@@ -65,6 +65,8 @@ private:
 	RenderTarget* m_RenderTargetPlayer = nullptr;
 	RenderTarget* m_RenderTargetEditor = nullptr;
 
+	std::shared_ptr<PixelShaderData> m_ShadowPixelShader;
+
 	std::shared_ptr<PixelShaderData> m_LinePixelShader;
 	std::shared_ptr<VertexShaderData> m_LineVertexShader;
 

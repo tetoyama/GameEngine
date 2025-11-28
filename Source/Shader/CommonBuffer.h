@@ -40,13 +40,13 @@ struct LIGHT
 	DirectX::XMFLOAT4	Diffuse = DirectX::XMFLOAT4(0.9f, 0.9f, 1.0f, 1);
 	DirectX::XMFLOAT4	Ambient = DirectX::XMFLOAT4(0.01f, 0.01f, 0.01f, 1.0f);
 
-	DirectX::XMMATRIX LightView = DirectX::XMMATRIX{
+	DirectX::XMFLOAT4X4  LightView = DirectX::XMFLOAT4X4{
 		1,0,0,0,
 		0,1,0,0,
 		0,0,1,0,
 		0,0,0,1
 	};
-	DirectX::XMMATRIX LightProjection = DirectX::XMMATRIX{
+	DirectX::XMFLOAT4X4  LightProjection = DirectX::XMFLOAT4X4{
 		1,0,0,0,
 		0,1,0,0,
 		0,0,1,0,

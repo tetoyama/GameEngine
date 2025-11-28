@@ -207,6 +207,7 @@ void Scene::BuildDefaultScene(){
 
 	LIGHT light[LIGHT_MAX_COUNT];
 	light[0].Enable = TRUE;
+	light[0].LightType = LIGHT_TYPE_DIRECTIONAL;
 	light[0].Direction = DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
 	light[0].Position = DirectX::XMFLOAT4(0, 25, 25, 0);
 	light[0].Diffuse = DirectX::XMFLOAT4(0.9f, 0.9f, 1.0f, 1);
@@ -273,6 +274,7 @@ void Scene::BuildDefaultScene(){
 		transform->SetRotationEuler(Vector3(DirectX::XM_PIDIV2, 0.0f, 0.0f));
 
 		auto* light = componentRegistry->AddComponent<LightComponent>(entity);
+		light->light.LightType = LIGHT_TYPE_DIRECTIONAL;
 		light->light.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		light->light.Ambient = DirectX::XMFLOAT4(0.25f, 0.25f, 0.25f, 1.0f);
 		light->light.Param.x = 500.0f;
