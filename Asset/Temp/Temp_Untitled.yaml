@@ -6,7 +6,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: -5
+          y: -25
           z: 0
         Rotation:
           - 0
@@ -14,9 +14,9 @@ Entities:
           - 0
           - 1
         Scale:
-          x: 500
-          y: 10
-          z: 500
+          x: 50
+          y: 50
+          z: 50
         Parent: 0
       - Component: ColliderComponent
         isDynamic: false
@@ -37,7 +37,7 @@ Entities:
             lockRotY: false
             lockRotZ: false
       - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
+        FilePath: Asset\Texture\mesh.png
         Material:
           Ambient:
             x: 0.100000001
@@ -45,8 +45,8 @@ Entities:
             z: 0.100000001
             w: 1
           Diffuse:
-            x: 1
-            y: 1
+            x: 0.5
+            y: 0.5
             z: 1
             w: 1
           Specular:
@@ -76,14 +76,14 @@ Entities:
         Name: Light
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 50
-          z: 0
+          x: -37.6899986
+          y: 46.2799988
+          z: -22.5599995
         Rotation:
-          - 0.707106769
-          - 0
-          - 0
-          - 0.707106709
+          - 0.420735508
+          - 0.420735508
+          - -0.229848862
+          - 0.770151138
         Scale:
           x: 1
           y: 1
@@ -93,14 +93,14 @@ Entities:
         Enable: 1
         LightType: 1
         Position:
-          x: 0
-          y: 50
-          z: 0
+          x: -37.6899986
+          y: 46.2799988
+          z: -22.5599995
           w: 0
         Direction:
-          x: 0
-          y: -0.999999881
-          z: -5.96046448e-08
+          x: 0.454648674
+          y: -0.841471016
+          z: 0.291926563
           w: 0
         Diffuse:
           x: 1
@@ -119,20 +119,20 @@ Entities:
           w: 0
         LightView:
           -
-            - 1
-            - 0
-            - 0
-            - 0
+            - 0.540302277
+            - -4.47034836e-08
+            - -0.841471076
+            - 1.38040733
           -
-            - 0
-            - -5.96046519e-08
-            - 1
-            - 2.98023269e-06
+            - 0.708073497
+            - 0.540302277
+            - 0.454648674
+            - 11.9389744
           -
-            - 0
-            - -1
-            - -5.96046519e-08
-            - 50
+            - 0.454648674
+            - -0.841471016
+            - 0.291926563
+            - 62.6648483
           -
             - 0
             - 0

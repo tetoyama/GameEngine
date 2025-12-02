@@ -45,7 +45,7 @@ float ShadowFactor(float3 worldPos, LIGHT light)
     float2 uv = shadowPos.xy * 0.5f + 0.5f;
     uv.y = 1.0f - uv.y;
 
-    float depthBias = 0.0001;
+    float depthBias = 0.001;
     float depth = saturate(shadowPos.z - depthBias);
 
     if (uv.x < 0.0f || uv.x > 1.0f || uv.y < 0.0f || uv.y > 1.0f)

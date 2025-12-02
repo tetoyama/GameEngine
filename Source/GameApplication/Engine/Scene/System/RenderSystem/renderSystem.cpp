@@ -486,6 +486,70 @@ void RenderSystem::ShadowPass(RenderableContext renderPassContext){
 	deviceContext->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
 }
 
+void RenderSystem::StencilShadow(RenderableContext renderPassContext){
+	ID3D11DeviceContext* ctx = m_context->graphics->GetDeviceContext();
+	ID3D11Device* device = m_context->graphics->GetDevice();
+
+	// --- 1. ステンシル初期化（クリア） ---
+	ctx->ClearDepthStencilView(
+		m_RenderTargetPlayer->dsv.Get(),
+		D3D11_CLEAR_STENCIL,
+		1.0f,
+		0
+	);
+
+	// --- 2. ステンシル書き込み用 DepthStencilState ---
+	ID3D11DepthStencilState* dssShadowWrite = nullptr;
+	{
+		D3D11_DEPTH_STENCIL_DESC desc = {};
+		desc.DepthEnable = TRUE;
+		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;   // 深度は書き込まない
+		desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+
+		desc.StencilEnable = TRUE;
+		desc.StencilReadMask = 0xFF;
+		desc.StencilWriteMask = 0xFF;
+
+		// フロントフェース → near 面
+		desc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+		desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_INCR_SAT;
+		desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+		desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+
+		// バックフェース → far 面
+		desc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+		desc.BackFace.StencilPassOp = D3D11_STENCIL_OP_DECR_SAT;
+		desc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+		desc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+
+		HRESULT hr = device->CreateDepthStencilState(&desc, &dssShadowWrite);
+		if(FAILED(hr) || !dssShadowWrite){
+			// 作成失敗なら安全に戻す
+			ctx->OMSetDepthStencilState(nullptr, 0);
+			return;
+		}
+	}
+
+	// --- DSV + RTV をバインド（RTV は既存の Player View） ---
+	ctx->OMSetRenderTargets(1, m_RenderTargetPlayer->rtv.GetAddressOf(), m_RenderTargetPlayer->dsv.Get());
+
+	// --- ステンシル書き込み状態へ ---
+	ctx->OMSetDepthStencilState(dssShadowWrite, 0);
+
+	// --- 3. 影ボリュームを描画 ---
+	//DrawShadowVolumes(renderPassContext); // ユーザー実装
+
+	// --- 元のステートへ戻す ---
+	ctx->OMSetDepthStencilState(nullptr, 0);
+
+	// --- 作成した DepthStencilState を解放 ---
+	if(dssShadowWrite){
+		dssShadowWrite->Release();
+		dssShadowWrite = nullptr;
+	}
+}
+
+
 void RenderSystem::PlayerView(){
 
 

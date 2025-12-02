@@ -51,6 +51,7 @@ private:
 	void DrawRenderLayerToggleUI();
 
 	void ShadowPass(RenderableContext renderPassContext);
+	void StencilShadow(RenderableContext renderPassContext);
 
 	void EditorView();
 	void PlayerView();
