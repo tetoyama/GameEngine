@@ -76,9 +76,9 @@ Entities:
         Name: Light
       - Component: TransformComponent
         Position:
-          x: -37.6899986
-          y: 46.2799988
-          z: -22.5599995
+          x: -20
+          y: 50
+          z: 0
         Rotation:
           - 0.420735508
           - 0.420735508
@@ -93,9 +93,9 @@ Entities:
         Enable: 1
         LightType: 1
         Position:
-          x: -37.6899986
-          y: 46.2799988
-          z: -22.5599995
+          x: -20
+          y: 50
+          z: 0
           w: 0
         Direction:
           x: 0.454648674
@@ -113,7 +113,7 @@ Entities:
           z: 0.25
           w: 1
         Param:
-          x: 500
+          x: 497.399994
           y: 0
           z: 0
           w: 0
@@ -122,17 +122,17 @@ Entities:
             - 0.540302277
             - -4.47034836e-08
             - -0.841471076
-            - 1.38040733
+            - 10.8060474
           -
             - 0.708073497
             - 0.540302277
             - 0.454648674
-            - 11.9389744
+            - -12.8536434
           -
             - 0.454648674
             - -0.841471016
             - 0.291926563
-            - 62.6648483
+            - 51.1665268
           -
             - 0
             - 0
@@ -321,21 +321,49 @@ Entities:
             - -5
             - 15
             - 1
-        nextLinkId: 1
-        nextPinId: 1
+        nextLinkId: 4
+        nextPinId: 5
+        PostEffects:
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Grayscale.cso
+            NodePos:
+              x: 169
+              y: 61
+            InputPins:
+              - 2
+              - 4
+            OutputPin: 3
+            Param:
+              x: 0
+              y: 0
+              z: 0
+              w: 0
+        PostEffectLinks:
+          - ID: 2
+            StartNode: -1
+            EndNode: 0
+            StartAttr: -1
+            EndAttr: 2
+          - ID: 3
+            StartNode: 0
+            EndNode: -2
+            StartAttr: 3
+            EndAttr: 1
         ScreenInput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: 59
+            y: 170
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: 411
+            y: 169
           InputPins:
-            []
+            - 1
       - Component: CameraController
         distance: 6
         height: 2

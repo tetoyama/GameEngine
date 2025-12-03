@@ -108,9 +108,9 @@ Entities:
           z: 1
           w: 1
         Ambient:
-          x: 0.00999999978
-          y: 0.00999999978
-          z: 0.00999999978
+          x: 0.472340405
+          y: 0.472340405
+          z: 0.472340405
           w: 1
         Param:
           x: 100
@@ -361,8 +361,8 @@ Entities:
             rotationOffset: [0, 0, 90]
             radius: 29.1000004
             height: 95.1999969
-            staticFriction: 0.5
-            dynamicFriction: 0.5
+            staticFriction: 0
+            dynamicFriction: 0
             restitution: 0
             collisionLayer: 0
             lockRotX: true
@@ -391,7 +391,7 @@ Entities:
         staminaRecoverRate: 1
         jumpPower: 5
         Stamina: 5
-  - Entity: 7
+  - Entity: 6
     Components:
       - Component: NameComponent
         Name: PushCube
@@ -462,7 +462,7 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 60117.793
-  - Entity: 8
+  - Entity: 7
     Components:
       - Component: NameComponent
         Name: Slope
@@ -533,7 +533,7 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 60117.793
-  - Entity: 9
+  - Entity: 8
     Components:
       - Component: NameComponent
         Name: Terrain
@@ -10784,7 +10784,7 @@ Entities:
           - 0
           - 0
           - 0
-  - Entity: 10
+  - Entity: 9
     Components:
       - Component: NameComponent
         Name: Tree1
@@ -10835,7 +10835,7 @@ Entities:
         RotateX: false
         RotateY: true
         RotateZ: false
-  - Entity: 11
+  - Entity: 10
     Components:
       - Component: NameComponent
         Name: Tree2
@@ -10886,7 +10886,7 @@ Entities:
         RotateX: false
         RotateY: true
         RotateZ: false
-  - Entity: 12
+  - Entity: 11
     Components:
       - Component: NameComponent
         Name: Tree3
@@ -10937,7 +10937,7 @@ Entities:
         RotateX: false
         RotateY: true
         RotateZ: false
-  - Entity: 13
+  - Entity: 12
     Components:
       - Component: NameComponent
         Name: Tree4
@@ -10988,7 +10988,7 @@ Entities:
         RotateX: false
         RotateY: true
         RotateZ: false
-  - Entity: 14
+  - Entity: 13
     Components:
       - Component: NameComponent
         Name: Tree5
@@ -11039,7 +11039,7 @@ Entities:
         RotateX: false
         RotateY: true
         RotateZ: false
-  - Entity: 15
+  - Entity: 14
     Components:
       - Component: NameComponent
         Name: Rock
@@ -11092,7 +11092,7 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 53263.3711
-  - Entity: 16
+  - Entity: 15
     Components:
       - Component: NameComponent
         Name: Grass1
@@ -11143,7 +11143,7 @@ Entities:
         RotateX: false
         RotateY: true
         RotateZ: false
-  - Entity: 17
+  - Entity: 16
     Components:
       - Component: NameComponent
         Name: Grass2
@@ -11194,7 +11194,7 @@ Entities:
         RotateX: false
         RotateY: true
         RotateZ: false
-  - Entity: 18
+  - Entity: 17
     Components:
       - Component: NameComponent
         Name: Grass3
