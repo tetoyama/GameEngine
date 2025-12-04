@@ -39,22 +39,11 @@
 
 #include "System/physicSystem.h"
 
-
-#include "Component/bumpMapComponent.h"
-#include "Component/2DspriteRendererComponent.h"
 #include "Component/RenderLayerComponent.h"
-#include "Component/particleComponent.h"
-#include "Component/outlineComponent.h"
-#include "Component/EffectComponent.h"
-#include "Component/terrainComponent.h"
-#include "Component/waveComponent.h"
 #include "Component/transformComponent.h"
-#include "Component/textureComponent.h"
-#include "Component/meshRendererComponent.h"
-#include "Component/modelRendererComponent.h"
-#include "Component/BillBoardRendererComponent.h"
 #include "Component/cameraComponent.h"
-
+#include <Component/modelRendererComponent.h>
+#include <Component/LightComponent.h>
 
 #include "cameraEntityData.h"
 #include "renderPhase.h"
@@ -68,32 +57,10 @@
 #include "Renderable/Terrain/RenderableTerrain.h"
 #include "RenderPass/IRenderPass.h"
 
-#include <Component/LightComponent.h>
 #include "RenderPass/GBuffer/GBufferPass.h"
 #include "RenderPass/ShadowMap/ShadowMapPass.h"
 #include "RenderPass/PlayerView/PlayerPass.h"
 #include "RenderPass/EditorView/EditorPass.h"
-
-RenderLayer GetRenderLayerFromEntity(Entity entity, ComponentRegistry* registry) {
-	auto* layerComponent = registry->GetComponent<RenderLayerComponent>(entity);
-	if (layerComponent) {
-		return layerComponent->layer;
-	}
-	if(registry->HasComponent<SpriteRendererComponent>(entity)){
-		return RenderLayer::OverlayUI;
-	}
-	if(registry->HasComponent<BillBoardRendererComponent>(entity)){
-		return RenderLayer::Transparent3D;
-	}
-	if(registry->HasComponent<ParticleComponent>(entity)){
-		return RenderLayer::SortTransparent3D;
-	}
-	auto* texture = registry->GetComponent<TextureComponent>(entity);
-	if (texture && texture->Material.Diffuse.w < 1.0f) {
-		return RenderLayer::SortTransparent3D;
-	}
-	return RenderLayer::Opaque3D;
-}
 
 void RenderSystem::Initialize(){
 	m_context->debug->LOG_DEBUG("RenderSystemを初期化中...");
@@ -163,6 +130,7 @@ void RenderSystem::Update(float deltaTime) {
 			for (Entity entity : modelEntities) {
 				auto* modelRenderer = context->component->GetComponent<ModelRendererComponent>(entity);
 				modelRenderer->animationTime += deltaTime * 60.0f;
+				//modelRenderer->model->Update(modelRenderer->animationTime, m_context->graphics);
 			}
 		}
 	}
@@ -171,48 +139,40 @@ void RenderSystem::Update(float deltaTime) {
 void RenderSystem::Draw(){
 
 	if(*showPlayer){
+
 		PlayerView();
+
 	} else{
 
-		//m_context->graphics->ResetViewport();
-		//m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
+		m_context->graphics->ResetViewport();
+		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
 
-		//Vector2 ScreenSize = Vector2(
-		//	(float)m_context->renderer->GetGraphicsContext()->m_width,
-		//	(float)m_context->renderer->GetGraphicsContext()->m_height
-		//);
+		Vector2 ScreenSize = Vector2(
+			(float)m_context->renderer->GetGraphicsContext()->m_width,
+			(float)m_context->renderer->GetGraphicsContext()->m_height
+		);
 
-		//m_context->PlayerScreenSize = ScreenSize;
+		m_context->PlayerScreenSize = ScreenSize;
 
-		//CameraEntityData cameraEntity = FindCameraEntity();
-		//if (!cameraEntity.cameraComponent) {
-		//	return;
-		//}
+		CameraEntityData cameraEntity = FindCameraEntity();
+		if (!cameraEntity.cameraComponent) {
+			return;
+		}
 
-		//RenderableContext renderPassContext(
-		//	RenderPhase::PHASE_GBUFFER,
-		//	playerRenderLayerVisible,
-		//	nullptr,
-		//	nullptr,
-		//	cameraEntity,
-		//	ScreenSize
-		//);
-		//ShadowPass(renderPassContext);
+		RenderPassContext renderPassContext(
+			RenderPhase::PHASE_GBUFFER,
+			playerRenderLayerVisible,
+			cameraEntity,
+			ScreenSize
+		);
 
-		//float clearCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
-		//m_RenderTargetPlayer->Resize(Vector2((float)m_context->graphics->m_width, (float)m_context->graphics->m_height), m_context->graphics);
-		//m_RenderTargetPlayer->Clear(m_context->graphics->GetDeviceContext(), clearCol);
-		//m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_RenderTargetPlayer->rtv.GetAddressOf(), m_RenderTargetPlayer->dsv.Get());
+		m_PlayerPass->Execute(renderPassContext);
 
-		//m_context->graphics->GetDeviceContext()->PSSetShaderResources(2, 1, m_RenderTargetShadow->srv.GetAddressOf());
-		//m_context->graphics->GetDeviceContext()->PSSetSamplers(1, 1, &shadowSampler);
+		ID3D11RenderTargetView* rtv = m_context->graphics->GetRenderTargetView();
+		ID3D11ShaderResourceView* finalSRV = m_PlayerPass->result;
+		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, &rtv, m_context->graphics->GetDepthStencilView());
+		m_context->graphics->DrawQuad(&copyShader, finalSRV);
 
-		//ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(m_RenderTargetPlayer->srv.Get(), renderPassContext);
-
-		//ID3D11RenderTargetView* rtv = m_context->graphics->GetRenderTargetView(); // バックバッファ
-
-		//m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, &rtv, m_context->graphics->GetDepthStencilView());
-		//m_context->graphics->DrawQuad(&copyShader, finalSRV);
 	}
 	if(*showEditor){
 		EditorView();
@@ -225,6 +185,20 @@ void RenderSystem::Draw(){
 
 void RenderSystem::EditorUpdate(float deltaTime) {
 
+	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		auto context = scene->GetSceneContext();
+		const auto& modelEntities = context->component->FindEntitiesWithComponent<ModelRendererComponent>();
+		if (modelEntities.empty()) {
+			return;
+		} else {
+			for (Entity entity : modelEntities) {
+				auto* modelRenderer = context->component->GetComponent<ModelRendererComponent>(entity);
+				if (modelRenderer->model) {
+					modelRenderer->model->Update(modelRenderer->animationTime, m_context->graphics);
+				}
+			}
+		}
+	}
 	ImGuiIO& io = ImGui::GetIO();
 
 	// マウス右クリックで操作有効
@@ -236,7 +210,7 @@ void RenderSystem::EditorUpdate(float deltaTime) {
 	}
 	// 入力で動かすベクトル
 	Vector3 velocity = {0,0,0};
-	float speed = 20.0f;
+	float speed = 1.0f;
 
 	if(isCameraActive){
 		// ------ 1. マウス移動で回転 ------

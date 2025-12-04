@@ -70,7 +70,6 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 	}
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	pModel->Update(modelRenderer->animationTime, sceneContext->manager->graphics);
 
 	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, sceneContext->component);
 
