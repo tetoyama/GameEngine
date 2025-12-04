@@ -2349,6 +2349,12 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Wave\RenderableWave.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\GBuffer\GBufferPass.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\ShadowMap\ShadowMapPass.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\gameApplication.cpp">
@@ -2787,6 +2793,9 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Wave\RenderableWave.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\GBuffer\GBufferPass.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>

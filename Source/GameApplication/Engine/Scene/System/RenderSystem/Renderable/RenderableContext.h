@@ -22,7 +22,7 @@ struct RenderableContext {
 	);
 
 	bool* renderLayerVisibility = nullptr;
-	RenderPhase passPhase = PHASE_SHADOW;
+	RenderPhase passPhase = RenderPhase::PHASE_SHADOW;
 
 	DirectX::XMFLOAT4 cameraPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 

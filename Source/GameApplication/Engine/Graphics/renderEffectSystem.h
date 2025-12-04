@@ -12,8 +12,6 @@ public:
 	bool Initialize(ID3D11Device* device, ID3D11DeviceContext* context);
     void ShutDown();
 
-    void PlayEffect(int effectId);
-
     Effekseer::ManagerRef manager; //エフェクトの管理クラス
     EffekseerRendererDX11::RendererRef renderer;  //エフェクトの描画クラス
 private:

@@ -230,7 +230,7 @@ void RenderSystem::Draw(){
 		ShadowPass(renderPassContext);
 
 		float clearCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
-		m_RenderTargetPlayer->Resize(Vector2(m_context->graphics->m_width, m_context->graphics->m_height), m_context->graphics);
+		m_RenderTargetPlayer->Resize(Vector2((float)m_context->graphics->m_width, (float)m_context->graphics->m_height), m_context->graphics);
 		m_RenderTargetPlayer->Clear(m_context->graphics->GetDeviceContext(), clearCol);
 		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_RenderTargetPlayer->rtv.GetAddressOf(), m_RenderTargetPlayer->dsv.Get());
 
