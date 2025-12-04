@@ -72,6 +72,7 @@
 #include "RenderPass/GBuffer/GBufferPass.h"
 #include "RenderPass/ShadowMap/ShadowMapPass.h"
 #include "RenderPass/PlayerView/PlayerPass.h"
+#include "RenderPass/EditorView/EditorPass.h"
 
 RenderLayer GetRenderLayerFromEntity(Entity entity, ComponentRegistry* registry) {
 	auto* layerComponent = registry->GetComponent<RenderLayerComponent>(entity);
@@ -109,21 +110,14 @@ void RenderSystem::Initialize(){
 		renderable->Initialize(m_context);
 	}
 
-	m_renderpass.clear();
-	m_renderpass.push_back(std::make_shared<PlayerPass>());
+	m_PlayerPass = new PlayerPass();
+	m_PlayerPass->Initialize(this, m_context);
 
-	for (auto renderpass : m_renderpass) {
-		renderpass->Initialize(this, m_context);
-	}
+
+	m_EditorPass = new EditorPass();
+	m_EditorPass->Initialize(this, m_context);
 
 	ID3D11Device* device = m_context->graphics->GetDevice();
-
-	D3D11_SAMPLER_DESC desc = {};
-	desc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
-	desc.AddressU = desc.AddressV = desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-	desc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
-
-	//device->CreateSamplerState(&desc, &shadowSampler);
 
 	showPlayer = &m_context->imgui->GetManubar()->showPlayerView;
 	showEditor = &m_context->imgui->GetManubar()->showEditorView;
@@ -132,26 +126,6 @@ void RenderSystem::Initialize(){
 	PauseButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Pause.png");
 	StopButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Stop.png");
 	StepButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Step.png");
-
-	//m_RenderTargetPlayer = new RenderTarget(m_context->PlayerScreenSize, m_context->graphics,RenderTargetType::RENDERTARGET_TYPE_COLOR);
-	//m_RenderTargetEditor = new RenderTarget(m_context->EditorScreenSize, m_context->graphics, RenderTargetType::RENDERTARGET_TYPE_COLOR);
-	//m_RenderTargetShadow = new RenderTarget(Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE), m_context->graphics, RenderTargetType::RENDERTARGET_TYPE_DEPTH);
-
-	m_ShadowPixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\shadowPS.cso");
-	//m_LineVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\DebugLineVS.cso");
-	//m_LinePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DebugLinePS.cso");
-
-
-	//D3D11_BUFFER_DESC bd{};
-	//bd.Usage = D3D11_USAGE_DYNAMIC;
-	//bd.ByteWidth = sizeof(VERTEX_3D) * maxLineCount * 2;
-	//bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	//bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-	//HRESULT hr = device->CreateBuffer(&bd, nullptr, &pPhysicsDebugLineVB);
-	//if(FAILED(hr)){
-	//	throw std::runtime_error("Failed to create physics debug line vertex buffer.");
-	//}
 
 	auto m_FullScreenVS = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\PostEffectVS.cso");
 	auto m_FullScreenPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\PostEffectPS.cso");
@@ -163,17 +137,18 @@ void RenderSystem::Initialize(){
 
 void RenderSystem::Finalize(){
 
-	for (auto renderpass : m_renderpass) {
-		renderpass->Finalize();
-	}
-	m_renderpass.clear();
+	m_EditorPass->Finalize();
+	delete m_EditorPass;
+	m_EditorPass = nullptr;
+
+	m_PlayerPass->Finalize();
+	delete m_PlayerPass;
+	m_PlayerPass = nullptr;
 
 	for(auto renderable : m_renderables){
 		renderable->Finalize();
 	}
 	m_renderables.clear();
-
-	delete m_RenderTargetEditor;
 }
 
 void RenderSystem::Update(float deltaTime) {
@@ -199,45 +174,45 @@ void RenderSystem::Draw(){
 		PlayerView();
 	} else{
 
-		m_context->graphics->ResetViewport();
-		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
+		//m_context->graphics->ResetViewport();
+		//m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
 
-		Vector2 ScreenSize = Vector2(
-			(float)m_context->renderer->GetGraphicsContext()->m_width,
-			(float)m_context->renderer->GetGraphicsContext()->m_height
-		);
+		//Vector2 ScreenSize = Vector2(
+		//	(float)m_context->renderer->GetGraphicsContext()->m_width,
+		//	(float)m_context->renderer->GetGraphicsContext()->m_height
+		//);
 
-		m_context->PlayerScreenSize = ScreenSize;
+		//m_context->PlayerScreenSize = ScreenSize;
 
-		CameraEntityData cameraEntity = FindCameraEntity();
-		if (!cameraEntity.cameraComponent) {
-			return;
-		}
+		//CameraEntityData cameraEntity = FindCameraEntity();
+		//if (!cameraEntity.cameraComponent) {
+		//	return;
+		//}
 
-		RenderableContext renderPassContext(
-			RenderPhase::PHASE_GBUFFER,
-			playerRenderLayerVisible,
-			nullptr,
-			nullptr,
-			cameraEntity,
-			ScreenSize
-		);
-		ShadowPass(renderPassContext);
+		//RenderableContext renderPassContext(
+		//	RenderPhase::PHASE_GBUFFER,
+		//	playerRenderLayerVisible,
+		//	nullptr,
+		//	nullptr,
+		//	cameraEntity,
+		//	ScreenSize
+		//);
+		//ShadowPass(renderPassContext);
 
-		float clearCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
-		m_RenderTargetPlayer->Resize(Vector2((float)m_context->graphics->m_width, (float)m_context->graphics->m_height), m_context->graphics);
-		m_RenderTargetPlayer->Clear(m_context->graphics->GetDeviceContext(), clearCol);
-		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_RenderTargetPlayer->rtv.GetAddressOf(), m_RenderTargetPlayer->dsv.Get());
+		//float clearCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
+		//m_RenderTargetPlayer->Resize(Vector2((float)m_context->graphics->m_width, (float)m_context->graphics->m_height), m_context->graphics);
+		//m_RenderTargetPlayer->Clear(m_context->graphics->GetDeviceContext(), clearCol);
+		//m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_RenderTargetPlayer->rtv.GetAddressOf(), m_RenderTargetPlayer->dsv.Get());
 
-		m_context->graphics->GetDeviceContext()->PSSetShaderResources(2, 1, m_RenderTargetShadow->srv.GetAddressOf());
-		m_context->graphics->GetDeviceContext()->PSSetSamplers(1, 1, &shadowSampler);
+		//m_context->graphics->GetDeviceContext()->PSSetShaderResources(2, 1, m_RenderTargetShadow->srv.GetAddressOf());
+		//m_context->graphics->GetDeviceContext()->PSSetSamplers(1, 1, &shadowSampler);
 
-		ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(m_RenderTargetPlayer->srv.Get(), renderPassContext);
+		//ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(m_RenderTargetPlayer->srv.Get(), renderPassContext);
 
-		ID3D11RenderTargetView* rtv = m_context->graphics->GetRenderTargetView(); // バックバッファ
+		//ID3D11RenderTargetView* rtv = m_context->graphics->GetRenderTargetView(); // バックバッファ
 
-		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, &rtv, m_context->graphics->GetDepthStencilView());
-		m_context->graphics->DrawQuad(&copyShader, finalSRV);
+		//m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, &rtv, m_context->graphics->GetDepthStencilView());
+		//m_context->graphics->DrawQuad(&copyShader, finalSRV);
 	}
 	if(*showEditor){
 		EditorView();
@@ -249,9 +224,6 @@ void RenderSystem::Draw(){
 }
 
 void RenderSystem::EditorUpdate(float deltaTime) {
-
-
-
 
 	ImGuiIO& io = ImGui::GetIO();
 
@@ -410,141 +382,6 @@ void RenderSystem::ControllButton(){
 	}
 }
 
-void RenderSystem::ShadowPass(RenderableContext renderPassContext){
-
-	return;
-
-	RenderableContext newContext = renderPassContext;
-	GraphicsContext* graphicsContext = m_context->graphics;
-	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-
-	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-	deviceContext->PSSetShaderResources(2, 1, nullSRV);
-
-	// シャドウマップレンダーターゲットに切り替え
-	if (m_RenderTargetShadow->type == RenderTargetType::RENDERTARGET_TYPE_DEPTH) {
-
-		deviceContext->ClearDepthStencilView(m_RenderTargetShadow->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-		deviceContext->OMSetRenderTargets(0, nullptr, m_RenderTargetShadow->dsv.Get());
-
-	} else {
-		float color[4] = { 1.0f,1.0f,1.0f,1.0f };
-		deviceContext->ClearRenderTargetView(m_RenderTargetShadow->rtv.Get(), color);
-		deviceContext->ClearDepthStencilView(m_RenderTargetShadow->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-		deviceContext->OMSetRenderTargets(1, m_RenderTargetShadow->rtv.GetAddressOf(), m_RenderTargetShadow->dsv.Get());
-	}
-	// シャドウマップ用カメラ
-	LIGHT light = m_context->renderer->GetGraphicsContext()->GetLight()[0];
-	//newContext.cameraPosition = DirectX::XMFLOAT4(light.Position.x, light.Position.y, light.Position.z, 0.0f);
-	newContext.passPhase = RenderPhase::PHASE_SHADOW;
-	newContext.screenSize = Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE);
-
-	for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
-		auto context = scene->GetSceneContext();
-		// ライトコンポーネントを持つエンティティの検索
-		const auto& lightEntities = context->component->FindEntitiesWithComponent<LightComponent>();
-		if(lightEntities.empty()){
-			continue;
-		}
-		for(Entity entity : lightEntities){
-			LightComponent* light = context->component->GetComponent<LightComponent>(entity);
-			if(!light){
-				continue;
-			}
-			TransformComponent* transform = context->component->GetComponent<TransformComponent>(entity);
-			if(transform){
-				newContext.cameraPosition = DirectX::XMFLOAT4(light->light.Position.x, light->light.Position.y, light->light.Position.z, 0.0f);
-
-				Vector3 front = transform->front();
-				Vector3 up = transform->up();
-				newContext.viewMatrix = DirectX::XMMatrixLookAtLH(
-					transform->position.ToXMVECTOR(),
-					(transform->position + front * 100.0f).ToXMVECTOR(),
-					(up).ToXMVECTOR()
-				);
-				newContext.projectionMatrix = DirectX::XMMatrixOrthographicLH(
-					100.0f,
-					100.0f,
-					0.01f,
-					100.0f
-				);
-				break;
-				break;
-			}
-		}
-	}
-	//newContext.pixelShader = m_ShadowPixelShader;
-
-	//DrawEntities(newContext);
-
-	// 元のレンダーターゲットに戻す
-	deviceContext->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
-}
-
-void RenderSystem::StencilShadow(RenderableContext renderPassContext){
-	ID3D11DeviceContext* ctx = m_context->graphics->GetDeviceContext();
-	ID3D11Device* device = m_context->graphics->GetDevice();
-
-	// --- 1. ステンシル初期化（クリア） ---
-	ctx->ClearDepthStencilView(
-		m_RenderTargetPlayer->dsv.Get(),
-		D3D11_CLEAR_STENCIL,
-		1.0f,
-		0
-	);
-
-	// --- 2. ステンシル書き込み用 DepthStencilState ---
-	ID3D11DepthStencilState* dssShadowWrite = nullptr;
-	{
-		D3D11_DEPTH_STENCIL_DESC desc = {};
-		desc.DepthEnable = TRUE;
-		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;   // 深度は書き込まない
-		desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-
-		desc.StencilEnable = TRUE;
-		desc.StencilReadMask = 0xFF;
-		desc.StencilWriteMask = 0xFF;
-
-		// フロントフェース → near 面
-		desc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-		desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_INCR_SAT;
-		desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-		desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
-
-		// バックフェース → far 面
-		desc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-		desc.BackFace.StencilPassOp = D3D11_STENCIL_OP_DECR_SAT;
-		desc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-		desc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
-
-		HRESULT hr = device->CreateDepthStencilState(&desc, &dssShadowWrite);
-		if(FAILED(hr) || !dssShadowWrite){
-			// 作成失敗なら安全に戻す
-			ctx->OMSetDepthStencilState(nullptr, 0);
-			return;
-		}
-	}
-
-	// --- DSV + RTV をバインド（RTV は既存の Player View） ---
-	ctx->OMSetRenderTargets(1, m_RenderTargetPlayer->rtv.GetAddressOf(), m_RenderTargetPlayer->dsv.Get());
-
-	// --- ステンシル書き込み状態へ ---
-	ctx->OMSetDepthStencilState(dssShadowWrite, 0);
-
-	// --- 3. 影ボリュームを描画 ---
-	//DrawShadowVolumes(renderPassContext); // ユーザー実装
-
-	// --- 元のステートへ戻す ---
-	ctx->OMSetDepthStencilState(nullptr, 0);
-
-	// --- 作成した DepthStencilState を解放 ---
-	if(dssShadowWrite){
-		dssShadowWrite->Release();
-		dssShadowWrite = nullptr;
-	}
-}
-
-
 void RenderSystem::PlayerView(){
 
 
@@ -561,11 +398,8 @@ void RenderSystem::PlayerView(){
 		ImGui::End();
 		return;
 	}
-
 	// 利用可能な領域サイズを取得
 	ImVec2 avail = ImGui::GetContentRegionAvail();
-
-
 
 	RenderPassContext renderPassContext(
 		RenderPhase::PHASE_GBUFFER,
@@ -573,31 +407,11 @@ void RenderSystem::PlayerView(){
 		cameraData,
 		Vector2(avail.x, avail.y)
 	);
+	m_PlayerPass->Execute(renderPassContext);
 
-	for (auto renderPass : m_renderpass) {
-		renderPass->Execute(renderPassContext);
-	}
-
-	//ShadowPass(renderPassContext);
-
-	//float clearCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
-	//m_RenderTargetPlayer->Resize(Vector2(avail.x, avail.y), m_context->graphics);
-	//m_RenderTargetPlayer->Clear(m_context->graphics->GetDeviceContext(), clearCol);
-	//m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_RenderTargetPlayer->rtv.GetAddressOf(), m_RenderTargetPlayer->dsv.Get());
-
-	//m_context->graphics->GetDeviceContext()->PSSetShaderResources(2, 1, m_RenderTargetShadow->srv.GetAddressOf());
-	//m_context->graphics->GetDeviceContext()->PSSetSamplers(1, 1, &shadowSampler);
-
-	//ID3D11ShaderResourceView* finalSRV = RenderSceneWithPostEffects(m_RenderTargetPlayer->srv.Get(), renderPassContext);
-	//if(!finalSRV){
-	//	ImGui::Text("finalSRV is NULL");
-	//}
-	//ImGui::Image((ImTextureID)finalSRV, avail, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1.0f, 1.0f, 1.0f, 1.0f), ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
+	ImGui::Image((ImTextureRef)m_PlayerPass->result, avail);
 	ImGui::End();
 
-
-
-	// バックバッファへ戻す
 	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(
 		1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView()
 	);
@@ -640,7 +454,6 @@ void RenderSystem::EditorView(){
 	cameraData.transformComponent = &editorCameraTransform;
 
 	m_context->EditorScreenSize = Vector2(avail.x, avail.y);
-	//m_RenderTargetEditor->Resize(Vector2(avail.x, avail.y),m_context->graphics);
 
 	RenderPassContext renderPassContext(
 		RenderPhase::PHASE_GBUFFER,
@@ -648,22 +461,7 @@ void RenderSystem::EditorView(){
 		cameraData,
 		Vector2(avail.x, avail.y)
 	);
-	//ShadowPass(renderPassContext);
-
-
-	//float clearCol[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
-	//deviceContext->ClearRenderTargetView(m_RenderTargetEditor->rtv.Get(), clearCol);
-	//deviceContext->ClearDepthStencilView(m_RenderTargetEditor->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-
-	//graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, m_RenderTargetEditor->rtv.GetAddressOf(), m_RenderTargetEditor->dsv.Get());
-
-	// //シャドウマップをピクセルシェーダーの t2 にセット
-	//deviceContext->PSSetShaderResources(2, 1, m_RenderTargetShadow->srv.GetAddressOf());
-	//deviceContext->PSSetSamplers(1, 1, &shadowSampler);
-	//DrawEntities(renderPassContext);
-
 	ImVec2 cursor = ImGui::GetCursorPos();
-	//ImGui::Image((ImTextureID)m_RenderTargetEditor->srv.Get(), avail, ImVec2(0, 0), ImVec2(1, 1));
 
 	// ImGuizmo の描画領域を設定
 	ImGuizmo::SetRect(
@@ -673,6 +471,9 @@ void RenderSystem::EditorView(){
 		avail.y
 	);
 	ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
+
+	m_EditorPass->Execute(renderPassContext);
+	ImGui::Image((ImTextureRef)m_EditorPass->result, avail);
 
 	// ImGuiIO を取得
 	ImGuiIO& io = ImGui::GetIO();
@@ -708,349 +509,6 @@ void RenderSystem::EditorView(){
 
 	ImGui::End();
 
-	//ImGui::Begin("Shadow Map View", nullptr, toolbar_window_flags);
-	//avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
-	//float availMin;
-
-	//if(avail.x < avail.y){
-	//	availMin = avail.x;
-	//} else{
-	//	availMin = avail.y;
-	//}
-	////ImGui::Image((ImTextureID)m_RenderTargetShadow->srv.Get(), ImVec2(availMin, availMin), ImVec2(0, 0), ImVec2(1, 1));
-	//ImGui::End();
-
 	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, graphicsContext->GetpRenderTargetView(), graphicsContext->GetDepthStencilView());
 }
-
-
-std::vector<int> TopologicalSortPostEffects(CameraComponent* camera){
-	std::vector<int> sortedIndices;
-	if(!camera) return sortedIndices;
-
-	int n = static_cast<int>(camera->postEffects.size());
-	int INPUT_NODE = n;     // -1 の代わり
-	int OUTPUT_NODE = n + 1;   // -2 の代わり
-
-	std::unordered_map<int, std::vector<int>> adj;
-	std::unordered_map<int, int> indegree;
-	std::unordered_set<int> nodes;
-
-	for(const auto& link : camera->postEffectLinks){
-		int start = link.startNode;
-		int end = link.endNode;
-
-		if(start == -1) start = INPUT_NODE;
-		if(end == -2) end = OUTPUT_NODE;
-
-		if(start >= 0 && start <= OUTPUT_NODE && end >= 0 && end <= OUTPUT_NODE){
-			adj[start].push_back(end);
-			indegree[end]++;
-			nodes.insert(start);
-			nodes.insert(end);
-		}
-	}
-
-	std::queue<int> q;
-	for(int node : nodes){
-		if(indegree.find(node) == indegree.end()) q.push(node);
-	}
-
-	while(!q.empty()){
-		int node = q.front(); q.pop();
-		sortedIndices.push_back(node);
-
-		for(int neighbor : adj[node]){
-			indegree[neighbor]--;
-			if(indegree[neighbor] == 0) q.push(neighbor);
-		}
-	}
-
-	// サイクル検出
-	if(sortedIndices.size() != nodes.size()){
-		OutputDebugStringA("Warning: post effect graph has cycles!\n");
-		for(int node : nodes){
-			if(std::find(sortedIndices.begin(), sortedIndices.end(), node) == sortedIndices.end()){
-				sortedIndices.push_back(node);
-			}
-		}
-	}
-
-	// 仮IDを元に戻す
-	for(auto& idx : sortedIndices){
-		if(idx == INPUT_NODE) idx = -1;
-		if(idx == OUTPUT_NODE) idx = -2;
-	}
-
-	return sortedIndices;
-}
-
-ID3D11ShaderResourceView* RenderSystem::RenderSceneWithPostEffects(ID3D11ShaderResourceView* initialSRV, const RenderableContext& renderPassContext) {
-	GraphicsContext* graphics = m_context->graphics;
-
-	//DrawEntities(renderPassContext);
-
-	std::vector<PostProcessNode> postNodes;
-	std::unordered_map<int, int> effectIndexToPostNodeIndex; // camera->postEffects idx → postNodes idx
-
-	DirectX::XMFLOAT4 clearColor = { 0,0,0,1 };
-
-	CameraComponent* camera = renderPassContext.cameraData.cameraComponent;
-
-	if (camera) {
-		auto sortedIndices = TopologicalSortPostEffects(camera);
-
-		for (int idx : sortedIndices) {
-			if(idx < 0) continue; // -1/-2 は描画対象としてノード作らない
-
-			auto& e = camera->postEffects[idx];
-			if (!e.enabled || !e.ps || !e.vs) continue;
-
-			PostProcessNode node{};
-			node.id = idx;
-			node.shader.m_VS = e.vs->m_VertexShader;
-			node.shader.m_PS = e.ps->m_PixelShader;
-			node.shader.m_InputLayout = e.vs->m_VertexLayout;
-			node.param = e.Param;
-
-			e.ResizeTexture(graphics->GetDevice(), renderPassContext.screenSize);
-			e.Clear(graphics->GetDeviceContext(), &clearColor.x);
-			node.rtv = e.rtv.GetAddressOf();
-			node.srv = e.srv.Get();
-			node.tex = e.tex.Get();
-
-			// リンクから入力ノードを決定
-			node.inputs.clear();
-			// ノード追加前にインデックスを記録しておく
-			int postNodeIndex = static_cast<int>(postNodes.size());
-			effectIndexToPostNodeIndex[idx] = postNodeIndex;
-
-			postNodes.push_back(std::move(node));
-		}
-
-		// リンクを後から追加（マッピングが揃った後に行う）
-		for (auto& node : postNodes) {
-			int effectIdx = node.id;
-			for (auto& link : camera->postEffectLinks) {
-				if (link.endNode == effectIdx) {
-					if (link.startNode < 0) {
-						node.inputs.push_back(-2); // 初期SRV
-					} else {
-						auto it = effectIndexToPostNodeIndex.find(link.startNode);
-						if (it != effectIndexToPostNodeIndex.end()) {
-							node.inputs.push_back(it->second);
-						}
-						// else: 無効な startNode は無視（スキップされたノードの可能性あり）
-					}
-				}
-			}
-		}
-	}
-
-	// 3. ApplyPostProcessChain 側で -1 を初期SRVに置き換えるようにする（念のための処理）
-	if (!postNodes.empty()) {
-		for (auto& node : postNodes) {
-			for (size_t i = 0; i < node.inputs.size(); ++i) {
-				if (node.inputs[i] == -1) {
-					node.inputs[i] = -2; // 特殊値 -2 を初期SRV扱いとして ApplyPostProcessChain で処理
-				}
-			}
-		}
-
-		graphics->GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
-		graphics->ApplyPostProcessChain(postNodes, initialSRV);
-		graphics->GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
-
-		return graphics->m_CurrentSRV;
-	}
-
-	return initialSRV;
-}
-
-
-
-//void RenderSystem::DrawEntities(const RenderableContext& renderPassContext){
-//
-//	bool* pRenderLayer = renderPassContext.renderLayerVisibility;
-//
-//	// コンテキストの取得
-//	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
-//	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-//
-//	CAMERA camera{};
-//	camera.CameraPosition = renderPassContext.cameraPosition;
-//	graphicsContext->SetCamera(camera);
-//
-//	graphicsContext->SetViewMatrix(renderPassContext.viewMatrix);
-//	graphicsContext->SetProjectionMatrix(renderPassContext.projectionMatrix);
-//
-//	D3D11_VIEWPORT vp = {};
-//	vp.Width = renderPassContext.screenSize.x;
-//	vp.Height = renderPassContext.screenSize.y;
-//	vp.MinDepth = 0.0f;
-//	vp.MaxDepth = 1.0f;
-//	vp.TopLeftX = 0;
-//	vp.TopLeftY = 0;
-//	deviceContext->RSSetViewports(1, &vp);
-//
-//	m_context->imgui->SetViewProjectionMatrix(renderPassContext.viewMatrix, renderPassContext.projectionMatrix);
-//
-//	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++) {
-//
-//		if(renderPassContext.renderLayerVisibility[i] == false){
-//			continue;
-//		}
-//
-//		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-//			auto context = scene->GetSceneContext();
-//
-//			// コンポーネントを持つエンティティの検索
-//			std::vector<Entity> entities = context->component->FindEntitiesWithComponent<TransformComponent>();
-//
-//			if (entities.empty()) {
-//
-//				continue;
-//
-//			} else {
-//
-//				for (Entity entity : entities) {
-//
-//					RenderLayer layer = GetRenderLayerFromEntity(entity, context->component);
-//
-//					if ((int)layer != i) {
-//						continue;
-//					}
-//
-//					TransformComponent* transform = context->component->GetComponent<TransformComponent>(entity);
-//					if (!transform) {
-//						continue;
-//					}
-//					OutlineComponent* outline = context->component->GetComponent<OutlineComponent>(entity);
-//					BumpMapComponent* bumpMap = context->component->GetComponent<BumpMapComponent>(entity);
-//					if (bumpMap) {
-//						// バンプマップの設定
-//						if (bumpMap->m_TextureData) {
-//							deviceContext->PSSetShaderResources(1, 1, bumpMap->m_TextureData->pTexture.GetAddressOf());
-//						} else {
-//							ID3D11ShaderResourceView* nullSRV = nullptr;
-//							deviceContext->PSSetShaderResources(1, 1, &nullSRV);
-//						}
-//					} else {
-//						ID3D11ShaderResourceView* nullSRV = nullptr;
-//						deviceContext->PSSetShaderResources(1, 1, &nullSRV);
-//					}
-//
-//					TextureComponent* texture = context->component->GetComponent<TextureComponent>(entity);
-//					if (texture) {
-//						// マテリアル設定
-//						MATERIAL material = texture->Material;
-//						material.DiffuseTextureEnable = ((bool)texture->m_TextureData);
-//						if (texture->m_TextureData) {
-//							deviceContext->PSSetShaderResources(0, 1, texture->m_TextureData->pTexture.GetAddressOf());
-//						}
-//
-//						graphicsContext->SetMaterial(material);
-//
-//						UVMatrix uv;
-//						if (texture->UV_Slice_X != 0 && texture->UV_Slice_Y != 0) {
-//							uv.Start.x = (float)(texture->AnimationNum % texture->UV_Slice_X) * 1.0f / (float)texture->UV_Slice_X;
-//							uv.Start.y = (float)(texture->AnimationNum / texture->UV_Slice_X) * 1.0f / (float)texture->UV_Slice_Y;
-//
-//							uv.End.x = (float)uv.Start.x + 1.0f / (float)texture->UV_Slice_X;
-//							uv.End.y = (float)uv.Start.y + 1.0f / (float)texture->UV_Slice_Y;
-//						}
-//						graphicsContext->SetUVMatrix(uv);
-//
-//					} else {
-//						// マテリアル設定
-//						MATERIAL material;
-//						material.DiffuseTextureEnable = false;
-//						material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-//						graphicsContext->SetMaterial(material);
-//
-//						UVMatrix uv;
-//						graphicsContext->SetUVMatrix(uv);
-//					}
-//
-//					for(auto renderable : m_renderables){
-//						renderable->Execute(renderPassContext, context ,entity);
-//					}
-//
-//
-//					
-//				}
-//			}
-//		}
-//	}
-//	//Effekseer
-//	Effekseer::Matrix44 effekseerProjectionMatrix = ConvertXMMATRIXToMatrix44(renderPassContext.projectionMatrix);
-//	Effekseer::Matrix44 effekseerViewMatrix = ConvertXMMATRIXToMatrix44(renderPassContext.viewMatrix);
-//
-//	m_context->graphics->GetEffectRenderer()->SetProjectionMatrix(effekseerProjectionMatrix);
-//	m_context->graphics->GetEffectRenderer()->SetCameraMatrix(effekseerViewMatrix);
-//
-//	m_context->graphics->GetEffectRenderer()->BeginRendering();
-//	m_context->graphics->GetEffectManager()->Draw();
-//	m_context->graphics->GetEffectRenderer()->EndRendering();
-//
-//	//PhysX
-//	if(pRenderLayer[(int)RenderLayer::Debug] && renderPassContext.passPhase != RenderPhase::PHASE_SHADOW){
-//
-//		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-//			auto context = scene->GetSceneContext();
-//			auto physics = m_context->systemRegistry->GetSystem<PhysicSystem>();
-//			const physx::PxRenderBuffer& rb = physics->GetRenderBuffer();
-//
-//			// 色変換関数
-//			auto ConvertColor = [](physx::PxU32 c) {
-//				float a = ((c >> 24) & 0xFF) / 255.0f;
-//				float r = ((c >> 16) & 0xFF) / 255.0f;
-//				float g = ((c >> 8) & 0xFF) / 255.0f;
-//				float b = ((c >> 0) & 0xFF) / 255.0f;
-//				return DirectX::XMFLOAT4(r, g, b, a);
-//			};
-//
-//			std::vector<VERTEX_3D> vertices;
-//			for (physx::PxU32 i = 0; i < rb.getNbLines(); i++) {
-//				const physx::PxDebugLine& line = rb.getLines()[i];
-//
-//				VERTEX_3D v0;
-//				v0.Position = DirectX::XMFLOAT3(line.pos0.x, line.pos0.y, line.pos0.z);
-//				v0.Diffuse = ConvertColor(line.color0);
-//
-//				VERTEX_3D v1;
-//				v1.Position = DirectX::XMFLOAT3(line.pos1.x, line.pos1.y, line.pos1.z);
-//				v1.Diffuse = ConvertColor(line.color1);
-//
-//				vertices.push_back(v0);
-//				vertices.push_back(v1);
-//			}
-//
-//			if (vertices.empty() || vertices.size() >= maxLineCount) continue;
-//
-//			ID3D11Device* device = graphicsContext->GetDevice();
-//			ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-//
-//			// 頂点バッファ更新
-//			D3D11_MAPPED_SUBRESOURCE mapped;
-//			deviceContext->Map(pPhysicsDebugLineVB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-//			memcpy(mapped.pData, vertices.data(), sizeof(VERTEX_3D) * vertices.size());
-//			deviceContext->Unmap(pPhysicsDebugLineVB, 0);
-//
-//			graphicsContext->SetWorldMatrix(DirectX::XMMatrixIdentity());
-//
-//			UINT stride = sizeof(VERTEX_3D);
-//			UINT offset = 0;
-//			deviceContext->IASetVertexBuffers(0, 1, &pPhysicsDebugLineVB, &stride, &offset);
-//			deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-//
-//			// シェーダーをセット（通常のカラー付き頂点用のものを使用）
-//			deviceContext->VSSetShader(m_LineVertexShader->m_VertexShader.Get(), nullptr, 0);
-//			deviceContext->PSSetShader(m_LinePixelShader->m_PixelShader.Get(), nullptr, 0);
-//
-//			// 描画
-//			deviceContext->Draw(static_cast<UINT>(vertices.size()), 0);
-//		}
-//	}
-//}
 

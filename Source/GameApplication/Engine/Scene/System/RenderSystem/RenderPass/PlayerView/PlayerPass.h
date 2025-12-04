@@ -30,4 +30,6 @@ public:
 	std::shared_ptr<VertexShaderData> m_LineVertexShader;
 
 	ID3D11ShaderResourceView* result = nullptr;
+
+	int maxLineCount = 99999;
 };

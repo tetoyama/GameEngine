@@ -493,6 +493,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Backends\checkFileExtention.h" />
+    <ClInclude Include="Source\GameApplication\Backends\convertMatrix.h" />
     <ClInclude Include="Source\GameApplication\Backends\convertWString.h" />
     <ClInclude Include="Source\GameApplication\Backends\DirectX11\DirectXTex.h" />
     <ClInclude Include="Source\GameApplication\Backends\Effekseer\Effekseer.h">
@@ -3088,6 +3089,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Sprite\RenderableSprite.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Terrain\RenderableTerrain.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Wave\RenderableWave.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\EditorView\EditorPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\GBuffer\GBufferPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\PlayerView\PlayerPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\RenderPassContext.cpp" />
