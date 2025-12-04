@@ -1,6 +1,7 @@
 #include "RenderableParticle.h"
 #include <d3d11.h>
 #include "../RenderableContext.h"
+#include "../../RenderPass/RenderPassContext.h"
 
 #include "GameApplication/Engine/DebugTools/DebugSystem.h"
 #include "GameApplication/Engine/Graphics/mainRenderer.h"
@@ -64,7 +65,7 @@ void RenderableParticle::Finalize(){
 	delete m_billBoardMesh;
 }
 
-void RenderableParticle::Execute(const RenderableContext& ctx, SceneContext* sceneContext, const Entity& entity){
+void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
 	ParticleComponent* pParticle = sceneContext->component->GetComponent<ParticleComponent>(entity);
 	TransformComponent* pTransform = sceneContext->component->GetComponent<TransformComponent>(entity);
 	if(!pParticle || !pTransform){

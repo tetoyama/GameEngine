@@ -1,7 +1,7 @@
 #pragma once
 #include "GameApplication/Engine/Scene/Entity/Entity.h"
 
-struct RenderableContext;
+struct RenderPassContext;
 struct SceneManagerContext;
 struct SceneContext;
 
@@ -15,7 +15,7 @@ public:
 	virtual void Finalize() = 0;
 
 	virtual void Execute(
-		const RenderableContext& ctx,
+		const RenderPassContext& ctx,
 		SceneContext* sceneContext,
 		const Entity& entity
 	) = 0;

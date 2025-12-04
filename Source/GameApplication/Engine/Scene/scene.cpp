@@ -711,3 +711,27 @@ bool Scene::SaveSceneFileDialog(std::wstring& outPath){
 	}
 	return false;
 }
+
+RenderLayer Scene::GetRenderLayerFromEntity(Entity entity) {
+
+	ComponentRegistry* registry = m_componentRegistry.get();
+
+	auto* layerComponent = registry->GetComponent<RenderLayerComponent>(entity);
+	if (layerComponent) {
+		return layerComponent->layer;
+	}
+	if (registry->HasComponent<SpriteRendererComponent>(entity)) {
+		return RenderLayer::OverlayUI;
+	}
+	if (registry->HasComponent<BillBoardRendererComponent>(entity)) {
+		return RenderLayer::Transparent3D;
+	}
+	if (registry->HasComponent<ParticleComponent>(entity)) {
+		return RenderLayer::SortTransparent3D;
+	}
+	auto* texture = registry->GetComponent<TextureComponent>(entity);
+	if (texture && texture->Material.Diffuse.w < 1.0f) {
+		return RenderLayer::SortTransparent3D;
+	}
+	return RenderLayer::Opaque3D;
+}

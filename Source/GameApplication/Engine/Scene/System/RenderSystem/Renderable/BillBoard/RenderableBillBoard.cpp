@@ -2,6 +2,7 @@
 
 #include <d3d11.h>
 #include "../RenderableContext.h"
+#include "../../RenderPass/RenderPassContext.h"
 
 #include "GameApplication/Engine/DebugTools/DebugSystem.h"
 #include "GameApplication/Engine/Graphics/mainRenderer.h"
@@ -65,7 +66,7 @@ void RenderableBillBoard::Finalize(){
 	delete m_billBoardMesh;
 }
 
-void RenderableBillBoard::Execute(const RenderableContext& ctx, SceneContext* sceneContext, const Entity& entity){
+void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
 
 	BillBoardRendererComponent* billBoard = sceneContext->component->GetComponent<BillBoardRendererComponent>(entity);
 	TransformComponent* transform = sceneContext->component->GetComponent<TransformComponent>(entity);

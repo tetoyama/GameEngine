@@ -2,6 +2,7 @@
 
 #include <d3d11.h>
 #include "../RenderableContext.h"
+#include "../../RenderPass/RenderPassContext.h"
 
 #include "GameApplication/Engine/DebugTools/DebugSystem.h"
 #include "GameApplication/Engine/Graphics/mainRenderer.h"
@@ -65,7 +66,7 @@ void RenderableSprite::Finalize(){
 	delete m_spriteMesh;
 }
 
-void RenderableSprite::Execute(const RenderableContext& ctx, SceneContext* sceneContext, const Entity& entity){
+void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
 
 	SpriteRendererComponent* spriteRenderer = sceneContext->component->GetComponent<SpriteRendererComponent>(entity);
 	TransformComponent* transform = sceneContext->component->GetComponent<TransformComponent>(entity);

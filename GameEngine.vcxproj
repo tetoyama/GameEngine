@@ -2710,8 +2710,11 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Sprite\RenderableSprite.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Terrain\RenderableTerrain.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Wave\RenderableWave.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\EditorView\EditorPass.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\GBuffer\GBufferPass.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\IRenderPass.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\PlayerView\PlayerPass.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\RenderPassContext.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\ShadowMap\ShadowMapPass.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderPhase.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderSystem.h" />
@@ -3086,6 +3089,9 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Terrain\RenderableTerrain.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Wave\RenderableWave.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\GBuffer\GBufferPass.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\PlayerView\PlayerPass.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\RenderPassContext.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\ShadowMap\ShadowMapPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\C#ScriptSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderTarget\renderTarget.cpp" />

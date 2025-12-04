@@ -2,6 +2,7 @@
 
 #include <d3d11.h>
 #include "../RenderableContext.h"
+#include "../../RenderPass/RenderPassContext.h"
 
 #include "GameApplication/Engine/DebugTools/DebugSystem.h"
 
@@ -15,7 +16,7 @@
 #include "GameApplication/Engine/Scene/Component/textureComponent.h"
 
 
-void RenderableWave::Execute(const RenderableContext& ctx, SceneContext* sceneContext, const Entity& entity) {
+void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity) {
 	auto componentRegistry = sceneContext->component;
 	auto pTransform = componentRegistry->GetComponent<TransformComponent>(entity);
 	auto pWave = componentRegistry->GetComponent<WaveComponent>(entity);

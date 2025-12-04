@@ -16,6 +16,8 @@ struct RenderTarget;
 struct CameraEntityData;
 
 class IRenderable;
+class IRenderPass;
+
 class ComponentRegistry;
 class TransformComponent;
 
@@ -40,11 +42,37 @@ public:
 	void Draw() override;
 	void EditorUpdate(float deltaTime) override;
 
+	template<typename T>
+	T* GetRenderable() {
+		static_assert(std::is_base_of<IRenderable, T>::value,
+						"T must inherit from IRenderable");
+
+		for (auto& r : m_renderables) {
+			if (auto p = dynamic_cast<T*>(r.get())) {
+				return p;
+			}
+		}
+		return nullptr;
+	}
+
+	template<typename T>
+	T* GetRenderPass() {
+		static_assert(std::is_base_of<IRenderPass, T>::value,
+						"T must inherit from IRenderPass");
+
+		for (auto& r : m_renderpass) {
+			if (auto p = dynamic_cast<T*>(r.get())) {
+				return p;
+			}
+		}
+		return nullptr;
+	}
+
 private:
 
 	const CameraEntityData FindCameraEntity();
 
-	void DrawEntities(const RenderableContext& renderPassContext);
+	//void DrawEntities(const RenderableContext& renderPassContext);
 	ID3D11ShaderResourceView* RenderSceneWithPostEffects(ID3D11ShaderResourceView* initialSRV, const RenderableContext& renderPassContext);
 
 	void ControllButton();
@@ -59,6 +87,7 @@ private:
 	SceneManagerContext* m_context;
 
 	std::vector<std::shared_ptr<IRenderable>> m_renderables;
+	std::vector<std::shared_ptr<IRenderPass>> m_renderpass;
 
 	RenderTarget* m_RenderTargetShadow = nullptr;
 	ID3D11SamplerState* shadowSampler = nullptr;

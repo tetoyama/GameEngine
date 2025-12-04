@@ -10,7 +10,7 @@ public:
 	void Finalize() override {}
 
 	void Execute(
-		const RenderableContext& ctx,
+		const RenderPassContext& ctx,
 		SceneContext* sceneContext,
 		const Entity& entity
 	)override;

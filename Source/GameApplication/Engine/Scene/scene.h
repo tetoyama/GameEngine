@@ -5,13 +5,18 @@
 #include <d3d11.h>
 #include <string>
 #include "Backends/myVector2.h"
+#include "Entity/Entity.h"
 
 // 前方宣言
+
+enum RenderLayer;
+
 struct SceneManagerContext;
 
 class EntityRegistry;
 class ComponentRegistry;
 class SystemRegistry;
+
 
 struct SceneContext{
 
@@ -48,6 +53,7 @@ public:
 	SceneContext* GetSceneContext(){return &m_SceneContext;}
 
 	void LoadSceneFromYAML(std::string path);
+	RenderLayer GetRenderLayerFromEntity(Entity entity);
 
 	std::string SceneName = "Untitled"; // シーンの名前
 	std::string ScenePath = ""; // シーンのパス

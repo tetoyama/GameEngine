@@ -2,7 +2,7 @@
 #include "Interface/IComponent.h"
 #include "Service/YAMLConverters.h"
 
-enum class RenderLayer: int {
+enum RenderLayer: int {
 	Background2D = 0,
 	Opaque3D,
 	Transparent3D,

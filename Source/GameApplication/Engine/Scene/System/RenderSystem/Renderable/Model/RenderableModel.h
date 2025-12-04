@@ -4,7 +4,7 @@
 
 class ComponentRegistry;
 
-struct RenderableContext;
+struct RenderPassContext;
 struct SceneManagerContext;
 
 class RenderableModel :public IRenderable {
@@ -13,7 +13,7 @@ public:
 	void Finalize() override{}
 
 	void Execute(
-		const RenderableContext& ctx,
+		const RenderPassContext& ctx,
 		SceneContext* sceneContext,
 		const Entity& entity
 	) override;

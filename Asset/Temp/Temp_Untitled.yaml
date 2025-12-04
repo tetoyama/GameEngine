@@ -113,7 +113,7 @@ Entities:
           z: 0.25
           w: 1
         Param:
-          x: 497.399994
+          x: 500
           y: 0
           z: 0
           w: 0
@@ -321,47 +321,19 @@ Entities:
             - -5
             - 15
             - 1
-        nextLinkId: 4
-        nextPinId: 5
-        PostEffects:
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset\Shader\PostEffectVS.cso
-            PS: Asset\Shader\Grayscale.cso
-            NodePos:
-              x: 169
-              y: 61
-            InputPins:
-              - 2
-              - 4
-            OutputPin: 3
-            Param:
-              x: 0
-              y: 0
-              z: 0
-              w: 0
-        PostEffectLinks:
-          - ID: 2
-            StartNode: -1
-            EndNode: 0
-            StartAttr: -1
-            EndAttr: 2
-          - ID: 3
-            StartNode: 0
-            EndNode: -2
-            StartAttr: 3
-            EndAttr: 1
+        nextLinkId: 1
+        nextPinId: 2
         ScreenInput:
           Name: ""
           NodePos:
-            x: 59
-            y: 170
+            x: -1
+            y: -1
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 411
-            y: 169
+            x: 180
+            y: 5
           InputPins:
             - 1
       - Component: CameraController

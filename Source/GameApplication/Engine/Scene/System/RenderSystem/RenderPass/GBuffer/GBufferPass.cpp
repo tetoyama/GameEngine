@@ -1,7 +1,9 @@
 #include "GBufferPass.h"
-#include "../Scene/sceneManager.h"
+#include "System/RenderSystem/renderSystem.h"
+#include "sceneManager.h"
 
-void GBufferPass::Initialize(SceneManagerContext* context) {
+void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
+	m_renderSystem = renderSystem;
 	m_context = context;
 }
 
@@ -9,6 +11,6 @@ void GBufferPass::Finalize() {
 
 }
 
-void GBufferPass::Execute() {
+void GBufferPass::Execute(const RenderPassContext& ctx) {
 
 }

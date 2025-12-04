@@ -9,7 +9,7 @@
 
 #include "GameApplication/Engine/DebugTools/ImGuiSystem.h"
 #include "GameApplication/Engine/Scene/sceneManager.h"
-#include "GameApplication/Engine/Scene/System/RenderSystem/Renderable/RenderableContext.h"
+#include "GameApplication/Engine/Scene/System/RenderSystem/RenderPass/RenderPassContext.h"
 
 #include "2DspriteRendererComponent.h"
 
@@ -250,7 +250,7 @@ public:
 
 	TransformComponent CalculateRectTransform(
 		const Vector2& viewportSize,
-		const RenderableContext& renderPassContext,
+		const RenderPassContext& renderPassContext,
 		const SpriteRendererComponent& sprite,
 		const TransformComponent& originalTransform
 	){

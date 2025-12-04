@@ -6,6 +6,7 @@
 #include "Backends/ImGui/Imnodes.h"
 #include <DirectXMath.h>
 #include <d3d11.h>
+#include <queue>
 #include "Engine/Resources/ResourceService.h"
 #include "Engine/Resources/Data/vertexShaderData.h"
 #include "Engine/Resources/Data/pixelShaderData.h"
@@ -13,6 +14,10 @@
 #include "Engine/Graphics/graphicsContext.h"
 #include "scene.h"
 #include "sceneManager.h"
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
 
 struct CameraPostEffect {
     std::shared_ptr<PixelShaderData> ps;
@@ -532,4 +537,65 @@ public:
     float FarClip = 1024.0f;
     float FOV = 1.0f;
     DirectX::XMMATRIX viewMatrix{};
+
+
+    std::vector<int> TopologicalSortPostEffects() {
+        std::vector<int> sortedIndices;
+
+        int n = static_cast<int>(postEffects.size());
+        int INPUT_NODE = n;     // -1 の代わり
+        int OUTPUT_NODE = n + 1;   // -2 の代わり
+
+        std::unordered_map<int, std::vector<int>> adj;
+        std::unordered_map<int, int> indegree;
+        std::unordered_set<int> nodes;
+
+        for (const auto& link : postEffectLinks) {
+            int start = link.startNode;
+            int end = link.endNode;
+
+            if (start == -1) start = INPUT_NODE;
+            if (end == -2) end = OUTPUT_NODE;
+
+            if (start >= 0 && start <= OUTPUT_NODE && end >= 0 && end <= OUTPUT_NODE) {
+                adj[start].push_back(end);
+                indegree[end]++;
+                nodes.insert(start);
+                nodes.insert(end);
+            }
+        }
+
+        std::queue<int> q;
+        for (int node : nodes) {
+            if (indegree.find(node) == indegree.end()) q.push(node);
+        }
+
+        while (!q.empty()) {
+            int node = q.front(); q.pop();
+            sortedIndices.push_back(node);
+
+            for (int neighbor : adj[node]) {
+                indegree[neighbor]--;
+                if (indegree[neighbor] == 0) q.push(neighbor);
+            }
+        }
+
+        // サイクル検出
+        if (sortedIndices.size() != nodes.size()) {
+            OutputDebugStringA("Warning: post effect graph has cycles!\n");
+            for (int node : nodes) {
+                if (std::find(sortedIndices.begin(), sortedIndices.end(), node) == sortedIndices.end()) {
+                    sortedIndices.push_back(node);
+                }
+            }
+        }
+
+        // 仮IDを元に戻す
+        for (auto& idx : sortedIndices) {
+            if (idx == INPUT_NODE) idx = -1;
+            if (idx == OUTPUT_NODE) idx = -2;
+        }
+        return sortedIndices;
+    }
+
 };

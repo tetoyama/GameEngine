@@ -2,6 +2,7 @@
 
 #include <d3d11.h>
 #include "../RenderableContext.h"
+#include "../../RenderPass/RenderPassContext.h"
 
 #include "GameApplication/Engine/DebugTools/DebugSystem.h"
 
@@ -14,7 +15,7 @@
 #include "GameApplication/Engine/Scene/Component/transformComponent.h"
 #include "GameApplication/Engine/Scene/Component/textureComponent.h"
 
-void RenderableTerrain::Execute(const RenderableContext& ctx, SceneContext* sceneContext, const Entity& entity){
+void RenderableTerrain::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
 
 	TerrainComponent* pTerrain = sceneContext->component->GetComponent<TerrainComponent>(entity);
 	TransformComponent* pTransform = sceneContext->component->GetComponent<TransformComponent>(entity);
