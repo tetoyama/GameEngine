@@ -2313,9 +2313,6 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\IRenderable.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\RenderableContext.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderPhase.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -2778,9 +2775,6 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Backends\ImGui\imnodes.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\RenderableContext.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderTarget\renderTarget.cpp">

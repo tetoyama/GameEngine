@@ -2705,7 +2705,6 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\IRenderable.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\BillBoard\RenderableBillBoard.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Particle\RenderableParticle.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\RenderableContext.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Mesh\RenderableMesh.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Model\RenderableModel.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Sprite\RenderableSprite.h" />
@@ -3085,7 +3084,6 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Mesh\RenderableMesh.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Model\RenderableModel.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Particle\RenderableParticle.cpp" />
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\RenderableContext.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Sprite\RenderableSprite.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Terrain\RenderableTerrain.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Wave\RenderableWave.cpp" />

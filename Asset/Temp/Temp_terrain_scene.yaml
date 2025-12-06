@@ -265,7 +265,7 @@ Entities:
         nextPinId: 8
         PostEffects:
           - Name: Blur
-            Enabled: true
+            Enabled: false
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Blur.cso
             NodePos:
@@ -276,7 +276,7 @@ Entities:
               - 4
             OutputPin: 3
             Param:
-              x: -0.0500000007
+              x: 3
               y: 0
               z: 0
               w: 0

@@ -1,7 +1,6 @@
 #include "RenderableBillBoard.h"
 
 #include <d3d11.h>
-#include "../RenderableContext.h"
 #include "../../RenderPass/RenderPassContext.h"
 
 #include "GameApplication/Engine/DebugTools/DebugSystem.h"
