@@ -105,38 +105,61 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 			TransformComponent* transform = sctx->component->GetComponent<TransformComponent>(ent);
 			if(transform){
-				if(light->light.LightType == LIGHT_TYPE_DIRECTIONAL){
-					// ======== シャドウカメラ計算 ========
-					float shadowDistance = 50.0f;
-					float shadowSize = 80.0f;
-
-					XMVECTOR camPos = mainCamPos.ToXMVECTOR();
-					XMVECTOR camDir = mainCamFront.ToXMVECTOR();
-					XMVECTOR ld = transform->front().ToXMVECTOR();
-
-					XMVECTOR center = camPos;
-					float dist = shadowSize * 2.0f;
-
-					XMVECTOR eyev = center - ld * dist;
-					XMVECTOR upv = XMVectorSet(0, 1, 0, 0);
-
-					XMMATRIX lightView = XMMatrixLookAtLH(eyev, center, upv);
-					XMMATRIX lightProj = XMMatrixOrthographicLH(shadowSize, shadowSize, 0.1f, dist * 3.0f);
-
-					XMFLOAT3 lightCamPos;
-					XMStoreFloat3(&lightCamPos, eyev);
-					newContext.cameraPosition = XMFLOAT4(lightCamPos.x, lightCamPos.y, lightCamPos.z, 0);
-					newContext.viewMatrix = lightView;
-					newContext.projectionMatrix = lightProj;
-					light->light.Position = newContext.cameraPosition;
-					XMStoreFloat4x4(&light->light.LightView, DirectX::XMMatrixTranspose(newContext.viewMatrix));
-					XMStoreFloat4x4(&light->light.LightProjection, DirectX::XMMatrixTranspose(newContext.projectionMatrix));
-
-					foundLight = true;
-				}
 				light->light.Position = DirectX::XMFLOAT4(transform->position.x, transform->position.y, transform->position.z, 0.0f);
 				light->light.Direction = DirectX::XMFLOAT4(transform->front().x, transform->front().y, transform->front().z, 0.0f);
-				light->light.Enable = light->light.Enable;
+				if(light->light.CastShadow){
+					if(light->light.LightType == LIGHT_TYPE_DIRECTIONAL){
+						// ======== シャドウカメラ計算 ========
+						float shadowSize = 100.0f;
+
+						XMVECTOR camPos = mainCamPos.ToXMVECTOR();
+						XMVECTOR camDir = mainCamFront.ToXMVECTOR();
+						XMVECTOR ld = transform->front().ToXMVECTOR();
+
+						XMVECTOR center = camPos;
+						float dist = shadowSize;
+
+						XMVECTOR eyev = center - ld * dist;
+						XMVECTOR upv = XMVectorSet(0, 1, 0, 0);
+
+						XMMATRIX lightView = XMMatrixLookAtLH(eyev, center, upv);
+						XMMATRIX lightProj = XMMatrixOrthographicLH(shadowSize, shadowSize, 0.1f, dist * 2.0f);
+
+						XMFLOAT3 lightCamPos;
+						XMStoreFloat3(&lightCamPos, eyev);
+						newContext.cameraPosition = XMFLOAT4(lightCamPos.x, lightCamPos.y, lightCamPos.z, 0);
+						newContext.viewMatrix = lightView;
+						newContext.projectionMatrix = lightProj;
+						light->light.Position = newContext.cameraPosition;
+						XMStoreFloat4x4(&light->light.LightView, DirectX::XMMatrixTranspose(newContext.viewMatrix));
+						XMStoreFloat4x4(&light->light.LightProjection, DirectX::XMMatrixTranspose(newContext.projectionMatrix));
+
+						foundLight = true;
+					} else if(light->light.LightType == LIGHT_TYPE_SPOT && light->light.CastShadow){
+						XMVECTOR eye = transform->position.ToXMVECTOR();
+						XMVECTOR dir = XMVector3Normalize(transform->front().ToXMVECTOR());
+						XMVECTOR at = eye + dir;
+						XMVECTOR up = XMVectorSet(0, 1, 0, 0);
+
+						float inner = light->light.Param.y; // degrees
+						float outer = light->light.Param.z; // degrees
+						if(outer <= 0.01f){
+							outer = 0.01f;
+						}
+						float fov = (outer);
+
+						float nearZ = 0.01f;
+						float farZ = light->light.Param.x; // range
+
+						XMMATRIX lightView = XMMatrixLookAtLH(eye, at, up);
+						XMMATRIX lightProj = XMMatrixPerspectiveFovLH(fov, 1.0f, nearZ, farZ);
+
+						XMStoreFloat4x4(&light->light.LightView, XMMatrixTranspose(lightView));
+						XMStoreFloat4x4(&light->light.LightProjection, XMMatrixTranspose(lightProj));
+
+						foundLight = true;
+					}
+				}
 			}
 			// 現在のライトスロットにコピー
 			lights[lightCount] = light->light;
@@ -149,49 +172,77 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 		return; // ライトが無い場合は中断
 	}
 
+	int ATLAS_GRID = (int)std::sqrt((float)LIGHT_MAX_COUNT);
+	if(ATLAS_GRID * ATLAS_GRID < LIGHT_MAX_COUNT){
+		ATLAS_GRID++;
+	}
+	const int ATLAS_SIZE = (int)shadowRenderTarget->size.x;
+	const int TILE_SIZE = ATLAS_SIZE / ATLAS_GRID;
 
-	// ======== GraphicsContext に反映 ========
-	CAMERA camSetter{};
-	camSetter.CameraPosition = newContext.cameraPosition;
-	graphicsContext->SetCamera(camSetter);
-	graphicsContext->SetViewMatrix(newContext.viewMatrix);
-	graphicsContext->SetProjectionMatrix(newContext.projectionMatrix);
+	for(int i = 0; i < lightCount; i++){
 
-	// ======== Viewport ========
-	D3D11_VIEWPORT vp = {};
-	vp.Width = newContext.screenSize.x;
-	vp.Height = newContext.screenSize.y;
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
-	deviceContext->RSSetViewports(1, &vp);
+		int gx = i % ATLAS_GRID;
+		int gy = i / ATLAS_GRID;
 
-	m_context->imgui->SetViewProjectionMatrix(newContext.viewMatrix, newContext.projectionMatrix);
+		int tileX = gx * TILE_SIZE;
+		int tileY = gy * TILE_SIZE;
 
-	// ======== レンダリング実行 ========
-	for(int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++){
+		if(lights[i].Enable && lights[i].CastShadow){
 
-		if(!newContext.renderLayerVisibility[i]) continue;
+			if(lights[i].LightType == LIGHT_TYPE_POINT){
+				continue;
+			}
 
-		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
-			auto sctx = scene->GetSceneContext();
+			// ======== GraphicsContext に反映 ========
+			newContext.cameraPosition = lights[i].Position;
+			newContext.viewMatrix = DirectX::XMMatrixTranspose(XMLoadFloat4x4(&lights[i].LightView));
+			newContext.projectionMatrix = DirectX::XMMatrixTranspose(XMLoadFloat4x4(&lights[i].LightProjection));
 
-			std::vector<Entity> entities = sctx->component->FindEntitiesWithComponent<TransformComponent>();
-			if(entities.empty()) continue;
+			// GraphicsContext に反映
+			CAMERA camSetter{};
+			camSetter.CameraPosition = newContext.cameraPosition;
+			graphicsContext->SetCamera(camSetter);
+			graphicsContext->SetViewMatrix(newContext.viewMatrix);
+			graphicsContext->SetProjectionMatrix(newContext.projectionMatrix);
 
-			for(Entity ent : entities){
+			m_context->imgui->SetViewProjectionMatrix(newContext.viewMatrix, newContext.projectionMatrix);
 
-				RenderLayer layer = scene->GetRenderLayerFromEntity(ent);
-				if((int)layer != i) continue;
+			// ======== Viewport ========
+			D3D11_VIEWPORT vp = {};
+			vp.TopLeftX = (float)tileX;
+			vp.TopLeftY = (float)tileY;
+			vp.Width = (float)TILE_SIZE;
+			vp.Height = (float)TILE_SIZE;
+			vp.MinDepth = 0.0f;
+			vp.MaxDepth = 1.0f;
+			deviceContext->RSSetViewports(1, &vp);
 
-				for(auto renderable : renderables){
-					renderable->Execute(newContext, sctx, ent);
+			// ======== レンダリング実行 ========
+			for(int j = 0; j < (int)RenderLayer::MaxRenderLayer; j++){
+
+				if(!newContext.renderLayerVisibility[j]) continue;
+
+				for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
+					auto sctx = scene->GetSceneContext();
+
+					std::vector<Entity> entities = sctx->component->FindEntitiesWithComponent<TransformComponent>();
+					if(entities.empty()) continue;
+
+					for(Entity ent : entities){
+
+						RenderLayer layer = scene->GetRenderLayerFromEntity(ent);
+						if((int)layer != j) continue;
+
+						for(auto renderable : renderables){
+							renderable->Execute(newContext, sctx, ent);
+						}
+					}
 				}
 			}
 		}
 	}
 
-	ImGui::Image((ImTextureRef)shadowRenderTarget->srv.Get(), ImVec2(200, 200));
+
+	//ImGui::Image((ImTextureRef)shadowRenderTarget->srv.Get(), ImVec2(200, 200));
 }
 

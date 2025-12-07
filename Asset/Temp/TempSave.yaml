@@ -1,3 +1,5 @@
 Scenes:
   - Name: terrain_scene
     Path: C:\Users\teto_\source\repos\GameEngine\Asset\Scene\terrain_scene.yaml
+  - Name: default_scene
+    Path: C:\Users\teto_\source\repos\GameEngine\Asset\Scene\default_scene.yaml

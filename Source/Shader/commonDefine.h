@@ -21,6 +21,6 @@
 #define LIGHT_TYPE_POINT		(2)
 #define LIGHT_TYPE_SPOT			(3)
 
-#define LIGHT_MAX_COUNT		64
+#define LIGHT_MAX_COUNT			(25)
 
-#define SHADOWMAP_SIZE	8192
+#define SHADOWMAP_SIZE			(16384)

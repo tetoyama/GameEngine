@@ -92,10 +92,11 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 1
+        CastShadow: 1
         Position:
           x: 0
-          y: 25
-          z: 0
+          y: 95.4412231
+          z: -62.6659851
           w: 0
         Direction:
           x: 0
@@ -126,13 +127,13 @@ Entities:
           -
             - 0
             - 0.426659822
-            - 0.90441221
-            - 19.5725937
+            - 0.90441215
+            - 15.9549408
           -
             - 0
-            - -0.90441221
+            - -0.90441215
             - 0.426659822
-            - 174.761917
+            - 113.05526
           -
             - 0
             - 0
@@ -140,20 +141,20 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0250000004
+            - 0.0199999996
             - 0
             - 0
             - 0
           -
             - 0
-            - 0.0250000004
+            - 0.0199999996
             - 0
             - 0
           -
             - 0
             - 0
-            - 0.00208376744
-            - -0.000208376747
+            - 0.00500250142
+            - -0.000500250142
           -
             - 0
             - 0
@@ -212,185 +213,6 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
         AnimationTime: 64212.168
-  - Entity: 4
-    Components:
-      - Component: NameComponent
-        Name: Camera
-      - Component: TransformComponent
-        Position:
-          x: 12.4879618
-          y: 3.24552488
-          z: -2.57599545
-        Rotation:
-          - -0.227977529
-          - 0
-          - 0
-          - 0.97366637
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: CameraComponent
-        isLock: true
-        Target:
-          x: 0
-          y: 0
-          z: 0
-        NearClip: 0.00999999978
-        FarClip: 1024
-        FOV: 1
-        viewMatrix:
-          -
-            - 0.202024922
-            - -0.241582096
-            - -0.949117482
-            - 0
-          -
-            - -0
-            - 0.969099939
-            - -0.246668309
-            - 0
-          -
-            - 0.979380369
-            - 0.049833145
-            - 0.195782334
-            - 0
-          -
-            - -2.38418579e-07
-            - -8.94069672e-08
-            - 13.1574459
-            - 1
-        nextLinkId: 5
-        nextPinId: 8
-        PostEffects:
-          - Name: Blur
-            Enabled: false
-            VS: Asset\Shader\PostEffectVS.cso
-            PS: Asset\Shader\Blur.cso
-            NodePos:
-              x: 48.1153564
-              y: 7.12582397
-            InputPins:
-              - 2
-              - 4
-            OutputPin: 3
-            Param:
-              x: 3
-              y: 0
-              z: 0
-              w: 0
-          - Name: Grayscale
-            Enabled: false
-            VS: Asset\Shader\PostEffects\PostEffectVS.cso
-            PS: Asset\Shader\PostEffects\Grayscale.cso
-            NodePos:
-              x: 288.542786
-              y: 24.0898819
-            InputPins:
-              - 5
-              - 7
-            OutputPin: 6
-            Param:
-              x: 1
-              y: 0
-              z: 0
-              w: 0
-        PostEffectLinks:
-          - ID: 1
-            StartNode: -1
-            EndNode: 0
-            StartAttr: -1
-            EndAttr: 2
-          - ID: 3
-            StartNode: 0
-            EndNode: 1
-            StartAttr: 3
-            EndAttr: 5
-          - ID: 4
-            StartNode: 1
-            EndNode: -2
-            StartAttr: 6
-            EndAttr: 1
-        ScreenInput:
-          Name: ""
-          NodePos:
-            x: -71.8846436
-            y: 24.1258316
-          OutputPin: -1
-        ScreenOutput:
-          Name: ""
-          NodePos:
-            x: 532.720703
-            y: 203.151428
-          InputPins:
-            - 1
-      - Component: CameraController
-        distance: 6
-        height: 2
-        rotateSpeed: 1.5
-        minPitch: 0
-        maxPitch: 1
-  - Entity: 5
-    Components:
-      - Component: NameComponent
-        Name: Player
-      - Component: TransformComponent
-        Position:
-          x: 8.22683716
-          y: 1.245525
-          z: 1.64808095
-        Rotation:
-          - -4.20389539e-45
-          - 0.361448079
-          - 4.20389539e-45
-          - 0.932392359
-        Scale:
-          x: 0.00999999885
-          y: 0.00999999978
-          z: 0.00999999885
-        Parent: 0
-      - Component: ColliderComponent
-        isDynamic: true
-        autoMass: true
-        Mass: 1
-        colliders:
-          - type: 2
-            size: [1, 1, 1]
-            offset: [0, 77.4000015, 0]
-            rotationOffset: [0, 0, 90]
-            radius: 29.1000004
-            height: 95.1999969
-            staticFriction: 0
-            dynamicFriction: 0
-            restitution: 0
-            collisionLayer: 0
-            lockRotX: true
-            lockRotY: true
-            lockRotZ: true
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\Akai.fbx
-        PixelShader: Asset\Shader\DefaultPixelShader.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-        AnimationTime: 64212.168
-        Animations:
-          Idle: Asset\Model\Akai_Idle.fbx
-          mixamo.com: Asset\Model\Akai_Run.fbx
-          Run: Asset\Model\Akai_Run.fbx
-      - Component: PlayerController
-        moveSpeed: 6
-        health: 0
-        isInvincible: false
-        dashMultiplier: 2
-        accel: 10
-        rotateSpeed: 8
-        maxStamina: 5
-        stamina: 5
-        staminaConsumeRate: 1.5
-        staminaRecoverRate: 1
-        jumpPower: 5
-        Stamina: 5
   - Entity: 6
     Components:
       - Component: NameComponent

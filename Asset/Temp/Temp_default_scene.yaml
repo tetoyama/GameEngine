@@ -69,7 +69,7 @@ Entities:
         PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 5608.30469
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -92,10 +92,11 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 1
+        CastShadow: 1
         Position:
-          x: -20
-          y: 50
-          z: 0
+          x: -45.4648666
+          y: 89.1471024
+          z: -49.1926575
           w: 0
         Direction:
           x: 0.454648674
@@ -120,19 +121,19 @@ Entities:
         LightView:
           -
             - 0.540302277
-            - -4.47034836e-08
-            - -0.841471076
-            - 10.8060474
+            - 0
+            - -0.841470957
+            - -16.8294201
           -
-            - 0.708073497
+            - 0.708073437
             - 0.540302277
-            - 0.454648674
-            - -12.8536434
+            - 0.454648703
+            - 6.39145851
           -
             - 0.454648674
             - -0.841471016
             - 0.291926563
-            - 51.1665268
+            - 110.045883
           -
             - 0
             - 0
@@ -152,8 +153,8 @@ Entities:
           -
             - 0
             - 0
-            - 0.010001
-            - -0.000100009995
+            - 0.00500250142
+            - -0.000500250142
           -
             - 0
             - 0
@@ -211,21 +212,21 @@ Entities:
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
-        AnimationTime: 0
+        AnimationTime: 5608.30469
   - Entity: 4
     Components:
       - Component: NameComponent
         Name: Player
       - Component: TransformComponent
         Position:
-          x: -10.515893
+          x: 3.92788672
           y: 0
-          z: 0
+          z: -1.04860592
         Rotation:
-          - -0
-          - 0.43045789
           - 0
-          - 0.90261066
+          - 0.851286411
+          - 0
+          - 0.524701476
         Scale:
           x: 0.00999999978
           y: 0.00999999978
@@ -234,7 +235,7 @@ Entities:
       - Component: ColliderComponent
         isDynamic: true
         autoMass: true
-        Mass: 0
+        Mass: 1
         colliders:
           - type: 2
             size: [1, 1, 1]
@@ -254,7 +255,7 @@ Entities:
         PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 5608.30469
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           mixamo.com: Asset\Model\Akai_Run.fbx
@@ -278,48 +279,48 @@ Entities:
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 5
-          z: -15
+          x: 2.20623732
+          y: 4.52261686
+          z: -5.12069035
         Rotation:
-          - 0
-          - -0.813415527
-          - 0
-          - 0.581683099
+          - 0.251251549
+          - 0.192029953
+          - -0.0509312041
+          - 0.947313666
         Scale:
           x: 1
           y: 1
           z: 1
         Parent: 0
       - Component: CameraComponent
-        isLock: false
+        isLock: true
         Target:
-          x: 0
+          x: 3.92788672
           y: 0
-          z: 0
+          z: -1.04860592
         NearClip: 0.00999999978
         FarClip: 1024
         FOV: 1
         viewMatrix:
           -
-            - -0.125871167
-            - 0.297779739
-            - -0.94630003
+            - 0.921061039
+            - 0.27846849
+            - 0.272216618
             - 0
           -
-            - 0.921092153
-            - 0.389344692
             - 0
-            - 0
-          -
-            - 0.368436873
-            - -0.871629536
-            - -0.323289841
+            - 0.699034035
+            - -0.715088367
             - 0
           -
-            - 0.92109251
-            - -15.0211658
-            - -4.84934759
+            - -0.389418304
+            - 0.658640027
+            - 0.643852949
+            - 0
+          -
+            - -4.02616978
+            - -0.403138876
+            - 5.93046761
             - 1
         nextLinkId: 1
         nextPinId: 2
@@ -382,16 +383,16 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 5608.30469
   - Entity: 7
     Components:
       - Component: NameComponent
         Name: SpotLight
       - Component: TransformComponent
         Position:
-          x: 6.62655926
-          y: 10.623498
-          z: -7.17032433
+          x: 4.47810841
+          y: 2.79885888
+          z: -0.379267871
         Rotation:
           - 0.699716091
           - 0
@@ -405,10 +406,11 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 3
+        CastShadow: 1
         Position:
-          x: 6.62655926
-          y: 10.623498
-          z: -7.17032433
+          x: 4.47810841
+          y: 2.79885888
+          z: -0.379267871
           w: 0
         Direction:
           x: 0
@@ -416,36 +418,36 @@ Entities:
           z: 0.0207948387
           w: 0
         Diffuse:
-          x: 0.899999976
-          y: 0.899999976
-          z: 1
+          x: 0.978723526
+          y: 1
+          z: 0
           w: 1
         Ambient:
-          x: 0.00999999978
-          y: 0.00999999978
-          z: 0.00999999978
+          x: 0
+          y: 0
+          z: 0
           w: 1
         Param:
-          x: 20
+          x: 100
           y: 0
-          z: 53.5999985
+          z: 71.6999969
           w: 0
         LightView:
           -
             - 1
             - 0
             - -0
-            - -6.62655926
+            - -4.47810841
           -
             - 0
-            - 0.0207948405
+            - 0.0207948387
             - 0.999783754
-            - 6.94785976
+            - 0.320984036
           -
             - 0
             - -0.999783754
-            - 0.0207948405
-            - 10.7703066
+            - 0.0207948387
+            - 2.80614042
           -
             - 0
             - 0
@@ -453,25 +455,25 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0199999996
+            - 0.285733074
             - 0
             - 0
             - 0
           -
             - 0
-            - 0.0199999996
+            - 0.285733074
             - 0
             - 0
           -
             - 0
             - 0
-            - 0.010001
-            - -0.000100009995
+            - 1.00010002
+            - -0.010001
           -
-            - 0
             - 0
             - 0
             - 1
+            - 0
   - Entity: 8
     Components:
       - Component: NameComponent
@@ -479,13 +481,13 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 2.6928165
-          y: 5
+          y: 4
           z: 6.76027012
         Rotation:
-          - -0
+          - 0.706825197
           - 0
           - -0
-          - 1
+          - 0.707388222
         Scale:
           x: 1
           y: 1
@@ -494,15 +496,16 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 2
+        CastShadow: 1
         Position:
           x: 2.6928165
-          y: 5
+          y: 4
           z: 6.76027012
           w: 0
         Direction:
           x: 0
-          y: 0
-          z: 1
+          y: -0.999999642
+          z: 0.000796228647
           w: 0
         Diffuse:
           x: 0
@@ -523,18 +526,18 @@ Entities:
           -
             - 1
             - 0
-            - 0
+            - -0
             - -2.6928165
           -
             - 0
-            - 1
-            - 0
-            - -5
+            - 0.000796318054
+            - 0.999999762
+            - -6.76345396
           -
             - 0
-            - 0
-            - 1
-            - -6.76027012
+            - -0.999999762
+            - 0.000796318054
+            - 3.99461579
           -
             - 0
             - 0
@@ -542,25 +545,25 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0199999996
+            - 0.99999994
             - 0
             - 0
             - 0
           -
             - 0
-            - 0.0199999996
+            - 0.99999994
             - 0
             - 0
           -
             - 0
             - 0
-            - 0.010001
-            - -0.000100009995
+            - 1.001001
+            - -0.0100100096
           -
-            - 0
             - 0
             - 0
             - 1
+            - 0
   - Entity: 9
     Components:
       - Component: NameComponent
@@ -568,13 +571,13 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 8.2638216
-          y: 5
+          y: 4
           z: 9.52341461
         Rotation:
-          - -0
+          - 0.706825197
           - 0
           - -0
-          - 1
+          - 0.707388222
         Scale:
           x: 1
           y: 1
@@ -583,15 +586,16 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 2
+        CastShadow: 1
         Position:
           x: 8.2638216
-          y: 5
+          y: 4
           z: 9.52341461
           w: 0
         Direction:
           x: 0
-          y: 0
-          z: 1
+          y: -0.999999642
+          z: 0.000796228647
           w: 0
         Diffuse:
           x: 1
@@ -612,18 +616,18 @@ Entities:
           -
             - 1
             - 0
-            - 0
+            - -0
             - -8.2638216
           -
             - 0
-            - 1
-            - 0
-            - -5
+            - 0.000796318054
+            - 0.999999762
+            - -9.52659798
           -
             - 0
-            - 0
-            - 1
-            - -9.52341461
+            - -0.999999762
+            - 0.000796318054
+            - 3.99241543
           -
             - 0
             - 0
@@ -631,25 +635,25 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0199999996
+            - 0.99999994
             - 0
             - 0
             - 0
           -
             - 0
-            - 0.0199999996
+            - 0.99999994
             - 0
             - 0
           -
             - 0
             - 0
-            - 0.010001
-            - -0.000100009995
+            - 1.001001
+            - -0.0100100096
           -
-            - 0
             - 0
             - 0
             - 1
+            - 0
   - Entity: 10
     Components:
       - Component: NameComponent
@@ -657,13 +661,13 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 3.81178188
-          y: 5
+          y: 4
           z: 14.7731266
         Rotation:
-          - -0
+          - 0.706825197
           - 0
           - -0
-          - 1
+          - 0.707388222
         Scale:
           x: 1
           y: 1
@@ -672,15 +676,16 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 2
+        CastShadow: 1
         Position:
           x: 3.81178188
-          y: 5
+          y: 4
           z: 14.7731266
           w: 0
         Direction:
           x: 0
-          y: 0
-          z: 1
+          y: -0.999999642
+          z: 0.000796228647
           w: 0
         Diffuse:
           x: 0
@@ -701,18 +706,18 @@ Entities:
           -
             - 1
             - 0
-            - 0
+            - -0
             - -3.81178188
           -
             - 0
-            - 1
-            - 0
-            - -5
+            - 0.000796318054
+            - 0.999999762
+            - -14.7763081
           -
             - 0
-            - 0
-            - 1
-            - -14.7731266
+            - -0.999999762
+            - 0.000796318054
+            - 3.988235
           -
             - 0
             - 0
@@ -720,22 +725,22 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0199999996
+            - 0.99999994
             - 0
             - 0
             - 0
           -
             - 0
-            - 0.0199999996
+            - 0.99999994
             - 0
             - 0
           -
             - 0
             - 0
-            - 0.010001
-            - -0.000100009995
+            - 1.001001
+            - -0.0100100096
           -
-            - 0
             - 0
             - 0
             - 1
+            - 0

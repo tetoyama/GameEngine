@@ -35,28 +35,53 @@ float D_GTR2(float NdotH, float roughness)
     return a2 / (PI * denom * denom);
 }
 
-float ShadowFactor(float3 worldPos, LIGHT light)
+
+float ShadowFactor(float3 worldPos, LIGHT light, int lightIndex)
 {
     float4 shadowPos = mul(float4(worldPos, 1.0f), light.LightView);
     shadowPos = mul(shadowPos, light.LightProjection);
 
     shadowPos.xyz /= shadowPos.w;
+
     float2 uv = shadowPos.xy * 0.5f + 0.5f;
     uv.y = 1.0f - uv.y;
 
     float depthBias = 0.001;
     float depth = saturate(shadowPos.z - depthBias);
 
-    if (uv.x < 0.0f || uv.x > 1.0f || uv.y < 0.0f || uv.y > 1.0f)
+    // -------------------------
+    // ★ タイル計算
+    // -------------------------
+    uint atlasW, atlasH;
+    ShadowMap.GetDimensions(atlasW, atlasH);
+
+    int grid = (int) sqrt((float) LIGHT_MAX_COUNT);
+    if (grid * grid < LIGHT_MAX_COUNT)
+        grid++;
+
+    float tileSize = 1.0 / grid;
+
+    int gx = lightIndex % grid;
+    int gy = lightIndex / grid;
+
+    float2 tileMin = float2(gx * tileSize, gy * tileSize);
+    float2 tileMax = tileMin + tileSize;
+
+    float2 tileUV = tileMin + uv * tileSize;
+
+    // ★ 初期位置がタイル外 → 影なし扱い
+    if (any(tileUV < tileMin) || any(tileUV > tileMax))
         return 1.0f;
 
-    uint width, height;
-    ShadowMap.GetDimensions(width, height);
-    float2 texelSize = 1.0f / float2(width, height);
+    // -------------------------
+    // ★ 正しい texelSize（隣タイルを読まない）
+    // -------------------------
+    float2 texelSize = float2(1.0f / atlasW, 1.0f / atlasH);
 
     int sample = 2;
     float shadow = 0.0f;
     float totalWeight = 0.0f;
+
     float kernel[5] = { 0.06136, 0.24477, 0.38774, 0.24477, 0.06136 };
 
     [unroll]
@@ -66,72 +91,73 @@ float ShadowFactor(float3 worldPos, LIGHT light)
         for (int y = -sample; y <= sample; y++)
         {
             float2 offset = float2(x, y) * texelSize;
+            float2 sampleUV = tileUV + offset;
+
+            // -------------------------
+            // ★ PCF サンプル時もタイル外を除外
+            // -------------------------
+            if (sampleUV.x < tileMin.x || sampleUV.x > tileMax.x ||
+                sampleUV.y < tileMin.y || sampleUV.y > tileMax.y)
+            {
+                // タイル外 → 光が当たる扱い
+                shadow += 1.0 * kernel[x + sample] * kernel[y + sample];
+                totalWeight += kernel[x + sample] * kernel[y + sample];
+                continue;
+            }
+
             float weight = kernel[x + sample] * kernel[y + sample];
-            shadow += ShadowMap.SampleCmpLevelZero(ShadowSampler, uv + offset, depth) * weight;
+            shadow += ShadowMap.SampleCmpLevelZero(ShadowSampler, sampleUV, depth) * weight;
             totalWeight += weight;
         }
     }
 
-    shadow /= totalWeight;
-    return shadow;
+    return shadow / totalWeight;
 }
 
-// 修正版：スポット計算を正しく行う（方向の符号と角度の扱いに注意）
-float3 ComputeLightContribution(LIGHT light, float3 N, float3 V, float3 worldPos, float3 baseColor)
+
+
+// ============================================================================
+//  ライティング (そのまま)
+// ============================================================================
+float3 ComputeLightContribution(LIGHT light, float3 N, float3 V, float3 worldPos, float3 baseColor, int lightIndex)
 {
     float3 L;
     float attenuation = 1.0;
 
     if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
     {
-        // directional: light.Direction is the light's forward direction (from light toward scene)
-        L = normalize(-light.Direction.xyz); // vector from surface toward light for directional (pointing to light)
+        L = normalize(-light.Direction.xyz);
     }
     else
     {
-        // point/spot: L = vector from surface to light position
         float3 toLight = light.Position.xyz - worldPos;
         float dist = length(toLight);
         L = (dist > 0.0) ? toLight / dist : float3(0.0, 0.0, 1.0);
 
-        // 距離減衰（線形レンジ） — 必要なら逆二乗に変更可能
-        float range = max(light.Param.x, 0.0001); // Param.x = range
-        attenuation = saturate(1.0f - dist / range);
+        float range = max(light.Param.x, 0.0001);
+        attenuation = saturate(1.0 - dist / range);
 
         if (light.LightType == LIGHT_TYPE_SPOT)
         {
-            // 重要：light.Direction は「ライトが向いている方向（ライト→シーン）」と想定
-            // L は「サーフェス→ライト」なので、ライトからサーフェス方向は -L
-            float3 spotAxis = normalize(light.Direction.xyz); // ライトが向いている方向（light->scene）
-            float cosTheta = dot(-L, spotAxis); // cos between spot axis and vector from light to surface
+            float3 spotAxis = normalize(light.Direction.xyz);
+            float cosTheta = dot(-L, spotAxis);
 
-            // inner/outer を度で保持している想定（もし既に cos 値なら cos() を使わないでください）
-            // Param.y = innerAngleDeg, Param.z = outerAngleDeg
-            float innerDeg = light.Param.y;
-            float outerDeg = light.Param.z;
-            // clamp anglesして安全化
-            innerDeg = clamp(innerDeg, 0.0, 180.0);
-            outerDeg = clamp(outerDeg, 0.0, 180.0);
+            float innerDeg = clamp(light.Param.y, 0.0, 180.0);
+            float outerDeg = clamp(light.Param.z, 0.0, 180.0);
 
-            // 内側の角度が小さく（狭く）なるはず -> cos(inner) は cos(outer) より大きい
             float cosInner = cos(radians(innerDeg));
             float cosOuter = cos(radians(outerDeg));
 
-            // 安全対策：もしユーザが cos 値を直接入れている場合に対応させたいならここで切り替え可能。
-            // 例：もし innerDeg/outerDeg がすでに [-1,1] の値なら上の cos() は不要。
-
-            // prevent division by zero or inverted cones
             if (cosInner <= cosOuter)
             {
-                // 角度指定が逆か、誤った値なら外側を小さくしておく（最小限の保護）
-                float tmp = cosInner;
+                float t = cosInner;
                 cosInner = cosOuter;
-                cosOuter = tmp;
+                cosOuter = t;
             }
 
-            // smoothstep風の減衰（cosTheta が cosInner 以上で 1.0, cosTheta <= cosOuter で 0.0）
-            float spotFactor = saturate((cosTheta - cosOuter) / (cosInner - cosOuter));
-            // optionally smooth the edge (pow or smoothstep)
+            float spotFactor =
+                saturate((cosTheta - cosOuter) / (cosInner - cosOuter));
+
             spotFactor = smoothstep(0.0, 1.0, spotFactor);
 
             attenuation *= spotFactor;
@@ -144,7 +170,6 @@ float3 ComputeLightContribution(LIGHT light, float3 N, float3 V, float3 worldPos
     float NdotH = max(dot(N, H), 0.0);
     float LdotH = max(dot(L, H), 0.0);
 
-
     float3 dielectricF0 = float3(0.04, 0.04, 0.04);
     float3 F0 = lerp(dielectricF0, baseColor, 0.0);
 
@@ -154,21 +179,27 @@ float3 ComputeLightContribution(LIGHT light, float3 N, float3 V, float3 worldPos
     float G = G_Smith(N, V, L, roughness);
     float D = D_GTR2(NdotH, roughness);
 
-    float3 specular = (D * F * G) / (max(4.0 * NdotL * NdotV, 0.001));
+    float3 specular =
+        (D * F * G) / (max(4.0 * NdotL * NdotV, 0.001));
     specular = saturate(specular);
 
     float FL = pow(1.0 - NdotL, 5.0);
     float FV = pow(1.0 - NdotV, 5.0);
-    float3 diffuseTerm = (1.0 + FL) * (1.0 + FV) * (1.0 / PI);
+    float3 diffuseTerm =
+        (1.0 + FL) * (1.0 + FV) * (1.0 / PI);
 
-    float shadow = ShadowFactor(worldPos, light);
+    float shadow = ShadowFactor(worldPos, light, lightIndex);
 
     float3 diffuse = baseColor * diffuseTerm * light.Diffuse.rgb * NdotL * attenuation * shadow;
-    float3 spec = specular * light.Diffuse.rgb * shadow * attenuation;
+    float3 spec = specular * light.Diffuse.rgb * attenuation * shadow;
 
     return diffuse + spec;
 }
 
+
+// ============================================================================
+// Pixel Shader Main
+// ============================================================================
 float4 main(in PS_IN In) : SV_Target
 {
     float3 baseColor = Material.Diffuse.rgb;
@@ -190,7 +221,7 @@ float4 main(in PS_IN In) : SV_Target
             continue;
 
         ambient += baseColor * light.Ambient.rgb;
-        Lo += ComputeLightContribution(light, N, V, In.WorldPosition.xyz, baseColor);
+        Lo += ComputeLightContribution(light, N, V, In.WorldPosition.xyz, baseColor, i);
     }
 
     float3 finalColor = ambient + Lo + Material.Emission.rgb;

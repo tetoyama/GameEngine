@@ -246,8 +246,8 @@ void Scene::BuildDefaultScene(){
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
 		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\mesh.png");
-		texture->Material.Diffuse = DirectX::XMFLOAT4(0.5f, 0.5f, 1.0f, 1.0f);
-
+		texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		texture->Material.Shininess = 48.0f;
 		auto* collider = componentRegistry->AddComponent<ColliderComponent>(entity);
 		ColliderShape col;
 		col.type = ColliderType::Box;
@@ -271,7 +271,7 @@ void Scene::BuildDefaultScene(){
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(-20.0f, 50.0f,0.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
-		transform->SetRotationEuler(Vector3(1.0f, 1.0f, 0.0f));
+		transform->SetRotationEuler(Vector3(0.5f, 1.0f, 0.0f));
 
 		auto* light = componentRegistry->AddComponent<LightComponent>(entity);
 		light->light.LightType = LIGHT_TYPE_DIRECTIONAL;

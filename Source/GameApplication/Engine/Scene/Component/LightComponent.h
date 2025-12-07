@@ -20,6 +20,7 @@ public:
 
 		node["Enable"] = light.Enable;
 		node["LightType"] = light.LightType;
+		node["CastShadow"] = light.CastShadow;
 
 		node["Position"] = light.Position;
 		node["Direction"] = light.Direction;
@@ -42,6 +43,9 @@ public:
 
 		if(node["Enable"])
 			light.Enable = node["Enable"].as<BOOL>();
+
+		if(node["CastShadow"])
+			light.CastShadow = node["CastShadow"].as<BOOL>();
 
 		if(node["LightType"])
 			light.LightType = node["LightType"].as<UINT>();
@@ -75,7 +79,7 @@ public:
 
 		// ライト有効・無効
 		ImGui::Checkbox("Enable", (bool*)&light.Enable);
-		ImGui::Checkbox("CastShadow", (bool*)&light.Enable);
+		ImGui::Checkbox("CastShadow", (bool*)&light.CastShadow);
 
 		// ライトの種類
 		const char* lightTypes[] = {"None","Directional", "Point", "Spot"};
@@ -87,19 +91,10 @@ public:
 		// 色設定
 		ImGui::ColorEdit4("Diffuse", reinterpret_cast<float*>(&light.Diffuse));
 		ImGui::ColorEdit4("Ambient", reinterpret_cast<float*>(&light.Ambient));
-		//ImGui::ColorEdit4("Sky Color", reinterpret_cast<float*>(&light.SkyColor));
-		//ImGui::ColorEdit4("Ground Color", reinterpret_cast<float*>(&light.GroundColor));
-
-		// 各種ベクトル設定
-		//ImGui::DragFloat3("Angle", reinterpret_cast<float*>(&light.Angle), 0.1f);
 
 		// パラメータ (例: Point Light の範囲、減衰など)
 		ImGui::DragFloat4("Param", reinterpret_cast<float*>(&light.Param), 0.1f);
 
-		// 地面の法線方向
-		//ImGui::DragFloat3("GroundNormal", reinterpret_cast<float*>(&light.GroundNormal), 0.1f);
-
 		ImGui::PopStyleVar();
 	}
 };
-                       
