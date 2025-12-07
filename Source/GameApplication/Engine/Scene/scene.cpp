@@ -253,7 +253,8 @@ void Scene::BuildDefaultScene(){
 		col.type = ColliderType::Box;
 		col.offset = Vector3(0, 0, 0);
 		col.size = Vector3(1, 1, 1);
-
+		col.staticFriction = 0.0f;
+		col.dynamicFriction = 0.0f;
 		collider->colliders.push_back(col);
 
 		//auto* bumpMap = componentRegistry->AddComponent<BumpMapComponent>(entity);
@@ -351,6 +352,8 @@ void Scene::BuildDefaultScene(){
 		col.height = 100.0f;
 		col.radius = 25.0f;
 		col.rotationOffset = Vector3(0, 0, 90.0f);
+		col.staticFriction = 0.0f;
+		col.dynamicFriction = 0.0f;
 		col.lockRotX = true;
 		col.lockRotY = true;
 		col.lockRotZ = true;

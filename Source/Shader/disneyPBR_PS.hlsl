@@ -1,4 +1,5 @@
 #include "common.hlsl"
+#include "commonDefine.h"
 
 Texture2D g_Texture : register(t0);
 SamplerState g_Sampler : register(s0);
@@ -25,9 +26,9 @@ void main(in PS_IN In, out float4 outColor : SV_Target)
 
     float3 _light = 0;
     
-    for(int i = 0; i < 1; i++)
+    for (int i = 0; i < LIGHT_MAX_COUNT; i++)
     {
-        if (Lights[0].Enable)
+        if (Lights[i].Enable)
         {
             float3 lightV = normalize(Lights[0].Position.xyz - In.WorldPosition.xyz);
 
@@ -35,11 +36,11 @@ void main(in PS_IN In, out float4 outColor : SV_Target)
             
             float nl = saturate(dot(normal.xyz, lightV.xyz));
             
-            float3 light = nl * Lights[0].Diffuse.rgb / PI;
+            float3 light = nl * Lights[i].Diffuse.rgb / PI;
             
             float3 diffuse = albedoColor.xyz * diffuseFromFresnel * light;
             
-            float3 specular = CalculateCookTorranceSpecular(normal.xyz, lightV, eyeV, smoothness, metallic) * Lights[0].Diffuse.rgb;
+            float3 specular = CalculateCookTorranceSpecular(normal.xyz, lightV, eyeV, smoothness, metallic) * Lights[i].Diffuse.rgb;
             
             specular *= lerp(float3(1.0f, 1.0f, 1.0f), SpecularColor.rgb, metallic);
             
