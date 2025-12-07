@@ -16,6 +16,7 @@
 #include "Registry/systemRegistry.h"
 #include "System/RenderSystem/Renderable/Model/RenderableModel.h"
 #include <Component/LightComponent.h>
+#include <Component/cameraComponent.h>
 #include <System/RenderSystem/Renderable/Terrain/RenderableTerrain.h>
 
 void ShadowMapPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
@@ -48,23 +49,23 @@ void ShadowMapPass::Finalize() {
 	delete shadowRenderTarget;
 	shadowRenderTarget = nullptr;
 }
+void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
-void ShadowMapPass::Execute(const RenderPassContext& ctx) {
+	using namespace DirectX;
 
 	ID3D11DeviceContext* deviceContext = m_context->graphics->GetDeviceContext();
+	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
 
-	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+	ID3D11ShaderResourceView* nullSRV[1] = {nullptr};
 	deviceContext->PSSetShaderResources(2, 1, nullSRV);
-	deviceContext->PSSetShader(nullptr, NULL, 0); // ピクセルシェーダー無効化
+	deviceContext->PSSetShader(nullptr, NULL, 0);
 
-	// シャドウマップレンダーターゲットに切り替え
-	if (shadowRenderTarget->type == RenderTargetType::RENDERTARGET_TYPE_DEPTH) {
-
+	// ======== RenderTarget 切り替え ========
+	if(shadowRenderTarget->type == RenderTargetType::RENDERTARGET_TYPE_DEPTH){
 		deviceContext->ClearDepthStencilView(shadowRenderTarget->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		deviceContext->OMSetRenderTargets(0, nullptr, shadowRenderTarget->dsv.Get());
-
-	} else {
-		float color[4] = { 1.0f,1.0f,1.0f,1.0f };
+	} else{
+		float color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 		deviceContext->ClearRenderTargetView(shadowRenderTarget->rtv.Get(), color);
 		deviceContext->ClearDepthStencilView(shadowRenderTarget->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		deviceContext->OMSetRenderTargets(1, shadowRenderTarget->rtv.GetAddressOf(), shadowRenderTarget->dsv.Get());
@@ -74,57 +75,89 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx) {
 	newContext.passPhase = RenderPhase::PHASE_SHADOW;
 	newContext.screenSize = Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE);
 
-	// シャドウマップ用カメラ
-	LIGHT light = m_context->renderer->GetGraphicsContext()->GetLight()[0];
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
-		// ライトコンポーネントを持つエンティティの検索
-		const auto& lightEntities = context->component->FindEntitiesWithComponent<LightComponent>();
-		if (lightEntities.empty()) {
-			continue;
-		}
-		for (Entity entity : lightEntities) {
-			LightComponent* light = context->component->GetComponent<LightComponent>(entity);
-			if (!light) {
-				continue;
-			}
-			TransformComponent* transform = context->component->GetComponent<TransformComponent>(entity);
-			if (transform) {
-				newContext.cameraPosition = DirectX::XMFLOAT4(transform->position.x, transform->position.y, transform->position.z, 0.0f);
+	// ======== メインカメラ取得 ========
+	Vector3 mainCamPos = Vector3(ctx.cameraPosition.x, ctx.cameraPosition.y, ctx.cameraPosition.z);
+	Vector3 mainCamFront = ctx.cameraData.transformComponent->front();
 
-				Vector3 front = transform->front();
-				Vector3 up = transform->up();
+	// ======== Directional Light 取得 ========
+	LIGHT lights[LIGHT_MAX_COUNT];
 
-				newContext.viewMatrix = DirectX::XMMatrixLookAtLH(
-					transform->position.ToXMVECTOR(),
-					(transform->position + front * 100.0f).ToXMVECTOR(),
-					(up).ToXMVECTOR()
-				);
-				newContext.projectionMatrix = DirectX::XMMatrixOrthographicLH(
-					100.0f,
-					100.0f,
-					0.01f,
-					100.0f
-				);
-				break;
+	// 全ライトを無効化で初期化
+	for(int i = 0; i < LIGHT_MAX_COUNT; i++){
+		lights[i].Enable = false;
+	}
+	int lightCount = 0;
+
+	bool foundLight = false;
+	for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
+		auto sctx = scene->GetSceneContext();
+		const auto& lightEntities = sctx->component->FindEntitiesWithComponent<LightComponent>();
+		if(lightEntities.empty()) continue;
+
+		for(Entity ent : lightEntities){
+			LightComponent* light = sctx->component->GetComponent<LightComponent>(ent);
+			if(!light) continue;
+
+			// 最大数を超えたら安全に打ち切る
+			if(lightCount >= LIGHT_MAX_COUNT){
 				break;
 			}
+
+			TransformComponent* transform = sctx->component->GetComponent<TransformComponent>(ent);
+			if(transform){
+				if(light->light.LightType == LIGHT_TYPE_DIRECTIONAL){
+					// ======== シャドウカメラ計算 ========
+					float shadowDistance = 50.0f;
+					float shadowSize = 80.0f;
+
+					XMVECTOR camPos = mainCamPos.ToXMVECTOR();
+					XMVECTOR camDir = mainCamFront.ToXMVECTOR();
+					XMVECTOR ld = transform->front().ToXMVECTOR();
+
+					XMVECTOR center = camPos;
+					float dist = shadowSize * 2.0f;
+
+					XMVECTOR eyev = center - ld * dist;
+					XMVECTOR upv = XMVectorSet(0, 1, 0, 0);
+
+					XMMATRIX lightView = XMMatrixLookAtLH(eyev, center, upv);
+					XMMATRIX lightProj = XMMatrixOrthographicLH(shadowSize, shadowSize, 0.1f, dist * 3.0f);
+
+					XMFLOAT3 lightCamPos;
+					XMStoreFloat3(&lightCamPos, eyev);
+					newContext.cameraPosition = XMFLOAT4(lightCamPos.x, lightCamPos.y, lightCamPos.z, 0);
+					newContext.viewMatrix = lightView;
+					newContext.projectionMatrix = lightProj;
+					light->light.Position = newContext.cameraPosition;
+					XMStoreFloat4x4(&light->light.LightView, DirectX::XMMatrixTranspose(newContext.viewMatrix));
+					XMStoreFloat4x4(&light->light.LightProjection, DirectX::XMMatrixTranspose(newContext.projectionMatrix));
+
+					foundLight = true;
+				}
+				light->light.Position = DirectX::XMFLOAT4(transform->position.x, transform->position.y, transform->position.z, 0.0f);
+				light->light.Direction = DirectX::XMFLOAT4(transform->front().x, transform->front().y, transform->front().z, 0.0f);
+				light->light.Enable = light->light.Enable;
+			}
+			// 現在のライトスロットにコピー
+			lights[lightCount] = light->light;
+			lightCount++;
 		}
+	}
+	graphicsContext->SetLight(&lights[0]);
+
+	if(!foundLight){
+		return; // ライトが無い場合は中断
 	}
 
 
-	bool* pRenderLayer = newContext.renderLayerVisibility;
-
-	// コンテキストの取得
-	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
-
-	CAMERA camera{};
-	camera.CameraPosition = newContext.cameraPosition;
-	graphicsContext->SetCamera(camera);
-
+	// ======== GraphicsContext に反映 ========
+	CAMERA camSetter{};
+	camSetter.CameraPosition = newContext.cameraPosition;
+	graphicsContext->SetCamera(camSetter);
 	graphicsContext->SetViewMatrix(newContext.viewMatrix);
 	graphicsContext->SetProjectionMatrix(newContext.projectionMatrix);
 
+	// ======== Viewport ========
 	D3D11_VIEWPORT vp = {};
 	vp.Width = newContext.screenSize.x;
 	vp.Height = newContext.screenSize.y;
@@ -136,37 +169,29 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx) {
 
 	m_context->imgui->SetViewProjectionMatrix(newContext.viewMatrix, newContext.projectionMatrix);
 
-	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++) {
+	// ======== レンダリング実行 ========
+	for(int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++){
 
-		if(newContext.renderLayerVisibility[i] == false){
-			continue;
-		}
+		if(!newContext.renderLayerVisibility[i]) continue;
 
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-			auto context = scene->GetSceneContext();
+		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
+			auto sctx = scene->GetSceneContext();
 
-			// コンポーネントを持つエンティティの検索
-			std::vector<Entity> entities = context->component->FindEntitiesWithComponent<TransformComponent>();
+			std::vector<Entity> entities = sctx->component->FindEntitiesWithComponent<TransformComponent>();
+			if(entities.empty()) continue;
 
-			if (entities.empty()) {
+			for(Entity ent : entities){
 
-				continue;
+				RenderLayer layer = scene->GetRenderLayerFromEntity(ent);
+				if((int)layer != i) continue;
 
-			} else {
-
-				for (Entity entity : entities) {
-
-					RenderLayer layer = scene->GetRenderLayerFromEntity(entity);
-
-					if ((int)layer != i) {
-						continue;
-					}
-
-					for(auto renderable : renderables){
-						renderable->Execute(newContext, context ,entity);
-					}
+				for(auto renderable : renderables){
+					renderable->Execute(newContext, sctx, ent);
 				}
 			}
 		}
 	}
+
+	ImGui::Image((ImTextureRef)shadowRenderTarget->srv.Get(), ImVec2(200, 200));
 }
+

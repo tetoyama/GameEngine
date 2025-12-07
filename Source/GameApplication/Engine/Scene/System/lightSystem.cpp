@@ -18,6 +18,8 @@ void LightSystem::Initialize(){}
 
 void LightSystem::Update(float deltaTime){
 
+	return;
+
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
 		// ライトコンポーネントを持つエンティティの検索
@@ -91,6 +93,6 @@ void LightSystem::Draw(){
 		}
 	}
 
-	graphicsContext->SetLight(&lights[0]);
+	//graphicsContext->SetLight(&lights[0]);
 
 }

@@ -1,7 +1,6 @@
 #include "common.hlsl"
 
 Texture2D g_Texture : register(t0);
-//Texture2D g_NormalMap : register(t1);
 Texture2D ShadowMap : register(t2);
 
 SamplerState g_Sampler : register(s0);
@@ -77,6 +76,7 @@ float ShadowFactor(float3 worldPos, LIGHT light)
     return shadow;
 }
 
+// 修正版：スポット計算を正しく行う（方向の符号と角度の扱いに注意）
 float3 ComputeLightContribution(LIGHT light, float3 N, float3 V, float3 worldPos, float3 baseColor)
 {
     float3 L;
@@ -84,21 +84,56 @@ float3 ComputeLightContribution(LIGHT light, float3 N, float3 V, float3 worldPos
 
     if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
     {
-        L = normalize(-light.Direction.xyz);
+        // directional: light.Direction is the light's forward direction (from light toward scene)
+        L = normalize(-light.Direction.xyz); // vector from surface toward light for directional (pointing to light)
     }
     else
     {
-        L = normalize(light.Position.xyz - worldPos);
-        float dist = length(light.Position.xyz - worldPos);
-        attenuation = saturate(1.0f - dist / light.Param.x);
+        // point/spot: L = vector from surface to light position
+        float3 toLight = light.Position.xyz - worldPos;
+        float dist = length(toLight);
+        L = (dist > 0.0) ? toLight / dist : float3(0.0, 0.0, 1.0);
+
+        // 距離減衰（線形レンジ） — 必要なら逆二乗に変更可能
+        float range = max(light.Param.x, 0.0001); // Param.x = range
+        attenuation = saturate(1.0f - dist / range);
 
         if (light.LightType == LIGHT_TYPE_SPOT)
         {
-            float3 spotDir = normalize(-light.Direction.xyz);
-            float cosTheta = dot(L, spotDir);
-            float inner = light.Param.y;
-            float outer = light.Param.z;
-            float spotFactor = saturate((cosTheta - outer) / (inner - outer));
+            // 重要：light.Direction は「ライトが向いている方向（ライト→シーン）」と想定
+            // L は「サーフェス→ライト」なので、ライトからサーフェス方向は -L
+            float3 spotAxis = normalize(light.Direction.xyz); // ライトが向いている方向（light->scene）
+            float cosTheta = dot(-L, spotAxis); // cos between spot axis and vector from light to surface
+
+            // inner/outer を度で保持している想定（もし既に cos 値なら cos() を使わないでください）
+            // Param.y = innerAngleDeg, Param.z = outerAngleDeg
+            float innerDeg = light.Param.y;
+            float outerDeg = light.Param.z;
+            // clamp anglesして安全化
+            innerDeg = clamp(innerDeg, 0.0, 180.0);
+            outerDeg = clamp(outerDeg, 0.0, 180.0);
+
+            // 内側の角度が小さく（狭く）なるはず -> cos(inner) は cos(outer) より大きい
+            float cosInner = cos(radians(innerDeg));
+            float cosOuter = cos(radians(outerDeg));
+
+            // 安全対策：もしユーザが cos 値を直接入れている場合に対応させたいならここで切り替え可能。
+            // 例：もし innerDeg/outerDeg がすでに [-1,1] の値なら上の cos() は不要。
+
+            // prevent division by zero or inverted cones
+            if (cosInner <= cosOuter)
+            {
+                // 角度指定が逆か、誤った値なら外側を小さくしておく（最小限の保護）
+                float tmp = cosInner;
+                cosInner = cosOuter;
+                cosOuter = tmp;
+            }
+
+            // smoothstep風の減衰（cosTheta が cosInner 以上で 1.0, cosTheta <= cosOuter で 0.0）
+            float spotFactor = saturate((cosTheta - cosOuter) / (cosInner - cosOuter));
+            // optionally smooth the edge (pow or smoothstep)
+            spotFactor = smoothstep(0.0, 1.0, spotFactor);
+
             attenuation *= spotFactor;
         }
     }
@@ -109,14 +144,17 @@ float3 ComputeLightContribution(LIGHT light, float3 N, float3 V, float3 worldPos
     float NdotH = max(dot(N, H), 0.0);
     float LdotH = max(dot(L, H), 0.0);
 
-    float3 F0 = lerp(float3(0.04, 0.04, 0.04), baseColor, 0.0);
+
+    float3 dielectricF0 = float3(0.04, 0.04, 0.04);
+    float3 F0 = lerp(dielectricF0, baseColor, 0.0);
+
     float roughness = max(saturate(1.0 - Material.Shininess / 128.0), 0.05);
 
     float3 F = FresnelSchlick(LdotH, F0);
     float G = G_Smith(N, V, L, roughness);
     float D = D_GTR2(NdotH, roughness);
 
-    float3 specular = (D * F * G) / (4.0 * NdotL * NdotV + 0.001);
+    float3 specular = (D * F * G) / (max(4.0 * NdotL * NdotV, 0.001));
     specular = saturate(specular);
 
     float FL = pow(1.0 - NdotL, 5.0);

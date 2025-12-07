@@ -419,7 +419,6 @@ void RenderSystem::EditorView(){
 		(editorCameraTransform.position + editorCameraTransform.front()).ToXMVECTOR(),
 		{ 0.0f, 1.0f, 0.0f }
 	);
-
 	CameraEntityData cameraData;
 	cameraData.entity = 0;
 	cameraData.sceneContext = nullptr;
