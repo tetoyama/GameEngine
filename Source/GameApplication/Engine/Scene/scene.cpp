@@ -276,7 +276,7 @@ void Scene::BuildDefaultScene(){
 		auto* light = componentRegistry->AddComponent<LightComponent>(entity);
 		light->light.LightType = LIGHT_TYPE_DIRECTIONAL;
 		light->light.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		light->light.Ambient = DirectX::XMFLOAT4(0.25f, 0.25f, 0.25f, 1.0f);
+		light->light.Ambient = DirectX::XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
 		light->light.Param.x = 500.0f;
 	}
 	{
