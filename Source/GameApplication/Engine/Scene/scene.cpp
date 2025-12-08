@@ -155,8 +155,8 @@ void Scene::Initialize(SceneManagerContext* set){
 
 	auto graphicsContext = Renderer->GetGraphicsContext();
 	// ライティングの仮設定
-	LIGHT light[LIGHT_MAX_COUNT];
-	graphicsContext->SetLight(light);
+	//LIGHT light[LIGHT_MAX_COUNT];
+	//graphicsContext->SetLight(light);
 	graphicsContext->SetDepthEnable(true);
 
 	// デフォルトのシーンを構築

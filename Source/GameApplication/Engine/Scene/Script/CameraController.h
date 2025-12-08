@@ -80,8 +80,9 @@ public:
 		if(GetKey(VK_UP))    pitch += rotateSpeed * dt;
 		if(GetKey(VK_DOWN))  pitch -= rotateSpeed * dt;
 
-		pitch = std::clamp(pitch, minPitch, maxPitch);
-
+		if (minPitch < maxPitch) {
+			pitch = std::clamp(pitch, minPitch, maxPitch);
+		}
 		// --- カメラ位置計算 ---
 		DirectX::XMVECTOR offset = DirectX::XMVectorSet(0, height, -distance, 0);
 		DirectX::XMVECTOR rot = DirectX::XMQuaternionRotationRollPitchYaw(pitch, yaw, 0);

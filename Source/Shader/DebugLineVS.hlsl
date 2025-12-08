@@ -12,7 +12,7 @@ void main(in VS_IN In, out PS_IN Out)
     float distance = length(CameraPosition.xyz - In.Position.xyz);
     float thicknessScale = clamp(distance, 0.01f, 1.0f);
     
-    worldPos.xyz += worldNormal * OutlineThickness * thicknessScale;
+    worldPos.xyz += worldNormal.xyz * OutlineThickness * thicknessScale;
 
     // ワールド空間 → ビュー空間
     float4 viewPos = mul(worldPos, View);

@@ -1,7 +1,8 @@
 #include "common.hlsl"
+#include "commondefine.h"
 
 Texture2D g_Texture : register(t0);
-Texture2D ShadowMap : register(t2);
+Texture2D ShadowMap : register(t7);
 
 SamplerState g_Sampler : register(s0);
 SamplerComparisonState ShadowSampler : register(s1);
@@ -47,6 +48,10 @@ float ShadowFactor(float3 worldPos, LIGHT light, int lightIndex)
     uv.y = 1.0f - uv.y;
 
     float depthBias = 0.001;
+    #ifdef LOW_RESOLUTION
+    depthBias = 0.005;
+    #endif
+    
     float depth = saturate(shadowPos.z - depthBias);
 
     // -------------------------

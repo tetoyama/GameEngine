@@ -18,6 +18,7 @@ public:
 
 	BEGIN_REFLECT(GN31)
 		REFLECT_FIELD(int, port, 1234)
+		REFLECT_FIELD_INIT(bool,isServer,false,REFLECT_INSPECTOR)
 
 	YAML::Node encode() override {
 		YAML::Node node;

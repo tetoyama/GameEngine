@@ -6,7 +6,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: -5
+          y: -25
           z: 0
         Rotation:
           - 0
@@ -14,9 +14,9 @@ Entities:
           - 0
           - 1
         Scale:
-          x: 500
-          y: 10
-          z: 500
+          x: 50
+          y: 50
+          z: 50
         Parent: 0
       - Component: ColliderComponent
         isDynamic: false
@@ -29,15 +29,15 @@ Entities:
             rotationOffset: [0, 0, 0]
             radius: 0.5
             height: 1
-            staticFriction: 0.5
-            dynamicFriction: 0.5
+            staticFriction: 0
+            dynamicFriction: 0
             restitution: 0.100000001
             collisionLayer: 0
             lockRotX: false
             lockRotY: false
             lockRotZ: false
       - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
+        FilePath: Asset\Texture\mesh.png
         Material:
           Ambient:
             x: 0.100000001
@@ -59,7 +59,7 @@ Entities:
             y: 0
             z: 0
             w: 1
-          Shininess: 64
+          Shininess: 48
           TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -76,14 +76,14 @@ Entities:
         Name: Light
       - Component: TransformComponent
         Position:
-          x: 0
+          x: -20
           y: 50
           z: 0
         Rotation:
-          - 0.707106769
-          - 0
-          - 0
-          - 0.707106709
+          - 0.217117399
+          - 0.464521378
+          - -0.118611783
+          - 0.85030061
         Scale:
           x: 1
           y: 1
@@ -92,15 +92,16 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 1
+        CastShadow: 1
         Position:
-          x: 0
-          y: 50
-          z: 0
+          x: -73.8460236
+          y: 52.9425545
+          z: -67.4159851
           w: 0
         Direction:
-          x: 0
-          y: -0.999999881
-          z: -5.96046448e-08
+          x: 0.738460243
+          y: -0.47942555
+          z: 0.474159837
           w: 0
         Diffuse:
           x: 1
@@ -108,9 +109,9 @@ Entities:
           z: 1
           w: 1
         Ambient:
-          x: 0.25
-          y: 0.25
-          z: 0.25
+          x: 0.0500000007
+          y: 0.0500000007
+          z: 0.0500000007
           w: 1
         Param:
           x: 500
@@ -119,46 +120,46 @@ Entities:
           w: 0
         LightView:
           -
-            - 1
+            - 0.540302277
             - 0
-            - 0
-            - 0
+            - -0.841470957
+            - -16.8294182
+          -
+            - 0.403422713
+            - 0.87758255
+            - 0.259034723
+            - 0.792783737
+          -
+            - 0.738460302
+            - -0.479425579
+            - 0.474159896
+            - 111.880325
           -
             - 0
-            - -5.96046519e-08
-            - -1
             - 0
-          -
-            - -0
-            - 1
-            - -5.96046519e-08
             - 0
-          -
-            - 0
-            - 2.98023269e-06
-            - 50
             - 1
         LightProjection:
           -
-            - 2.41421342
+            - 0.0199999996
             - 0
             - 0
             - 0
           -
             - 0
-            - 2.41421342
+            - 0.0199999996
             - 0
             - 0
           -
             - 0
             - 0
-            - 1.00004995
+            - 0.00500250142
+            - -0.000500250142
+          -
+            - 0
+            - 0
+            - 0
             - 1
-          -
-            - 0
-            - 0
-            - -0.100004993
-            - 0
   - Entity: 3
     Components:
       - Component: NameComponent
@@ -212,6 +213,66 @@ Entities:
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
         AnimationTime: 0
+  - Entity: 4
+    Components:
+      - Component: NameComponent
+        Name: Player
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.00999999978
+          y: 0.00999999978
+          z: 0.00999999978
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: true
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 2
+            size: [1, 1, 1]
+            offset: [0, 75, 0]
+            rotationOffset: [0, 0, 90]
+            radius: 25
+            height: 100
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: true
+            lockRotY: true
+            lockRotZ: true
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\Akai.fbx
+        PixelShader: Asset\Shader\DefaultPixelShader.cso
+        VertexShader: Asset\Shader\commonVS.cso
+        isBlender: false
+        AnimationTime: 0
+        Animations:
+          Idle: Asset\Model\Akai_Idle.fbx
+          mixamo.com: Asset\Model\Akai_Run.fbx
+          Run: Asset\Model\Akai_Run.fbx
+      - Component: PlayerController
+        moveSpeed: 6
+        health: 0
+        isInvincible: false
+        dashMultiplier: 2
+        accel: 10
+        rotateSpeed: 8
+        maxStamina: 5
+        stamina: 5
+        staminaConsumeRate: 1.5
+        staminaRecoverRate: 1
+        jumpPower: 5
+        Stamina: 5
   - Entity: 5
     Components:
       - Component: NameComponent
@@ -285,7 +346,7 @@ Entities:
   - Entity: 6
     Components:
       - Component: NameComponent
-        Name: GN31
+        Name: NetworkSystem
       - Component: TransformComponent
         Position:
           x: 0

@@ -57,7 +57,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
 
 	ID3D11ShaderResourceView* nullSRV[1] = {nullptr};
-	deviceContext->PSSetShaderResources(2, 1, nullSRV);
+	deviceContext->PSSetShaderResources(TextureSlot_ShadowMap, 1, nullSRV);
 	deviceContext->PSSetShader(nullptr, NULL, 0);
 
 	// ======== RenderTarget 切り替え ========
@@ -110,7 +110,10 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 				if(light->light.CastShadow){
 					if(light->light.LightType == LIGHT_TYPE_DIRECTIONAL){
 						// ======== シャドウカメラ計算 ========
-						float shadowSize = 100.0f;
+						float shadowSize = light->light.Param.x / 10.0f;
+						if (shadowSize <= 50.0f) {
+							shadowSize = 50.0f;
+						}
 
 						XMVECTOR camPos = mainCamPos.ToXMVECTOR();
 						XMVECTOR camDir = mainCamFront.ToXMVECTOR();
@@ -135,27 +138,93 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 						XMStoreFloat4x4(&light->light.LightProjection, DirectX::XMMatrixTranspose(newContext.projectionMatrix));
 
 						foundLight = true;
-					} else if(light->light.LightType == LIGHT_TYPE_SPOT && light->light.CastShadow){
+					} else if (light->light.LightType == LIGHT_TYPE_SPOT && light->light.CastShadow) {
+						// --- 位置と forward 取得 ---
 						XMVECTOR eye = transform->position.ToXMVECTOR();
-						XMVECTOR dir = XMVector3Normalize(transform->front().ToXMVECTOR());
-						XMVECTOR at = eye + dir;
-						XMVECTOR up = XMVectorSet(0, 1, 0, 0);
+						XMVECTOR forward = XMVector3Normalize(transform->front().ToXMVECTOR());
 
-						float inner = light->light.Param.y; // degrees
-						float outer = light->light.Param.z; // degrees
-						if(outer <= 0.01f){
+						// --- ワールドの上方向（基準ベクトル） ---
+						XMVECTOR worldUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+						// --- forward と worldUp が平行に近い場合の対策 ---
+						float dp = XMVectorGetX(XMVector3Dot(forward, worldUp));
+						if (fabsf(dp) > 0.99f) {
+							// ほぼ真上/真下を向いている場合は X 軸を使う
+							worldUp = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+						}
+
+						// --- 正確な up / right を再構築（直交化） ---
+						XMVECTOR right = XMVector3Normalize(XMVector3Cross(worldUp, forward));
+						XMVECTOR up = XMVector3Cross(forward, right);
+
+						// --- LookAt 用のターゲット ---
+						XMVECTOR at = eye + forward;
+
+						// ------------------------------
+						//      ライト行列の計算
+						// ------------------------------
+						float inner = light->light.Param.y;
+						float outer = light->light.Param.z;
+						if (outer <= 0.01f) {
 							outer = 0.01f;
 						}
-						float fov = (outer);
+						float fov = XMConvertToRadians(outer) * 2.0f;
 
-						float nearZ = 0.01f;
-						float farZ = light->light.Param.x; // range
-
+						float nearZ = 1.0f;
+						float farZ = light->light.Param.x * 1000.0f;
+						if (nearZ > farZ) {
+							farZ = nearZ + 1.0f;
+						}
 						XMMATRIX lightView = XMMatrixLookAtLH(eye, at, up);
 						XMMATRIX lightProj = XMMatrixPerspectiveFovLH(fov, 1.0f, nearZ, farZ);
 
+						// 転置して格納
 						XMStoreFloat4x4(&light->light.LightView, XMMatrixTranspose(lightView));
 						XMStoreFloat4x4(&light->light.LightProjection, XMMatrixTranspose(lightProj));
+
+
+						foundLight = true;
+
+					} else if (light->light.LightType == LIGHT_TYPE_POINT && light->light.CastShadow) {
+						// --- 位置と forward 取得 ---
+						XMVECTOR eye = transform->position.ToXMVECTOR();
+						XMVECTOR forward = XMVector3Normalize(transform->front().ToXMVECTOR());
+
+						// --- ワールドの上方向（基準ベクトル） ---
+						XMVECTOR worldUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+						// --- forward と worldUp が平行に近い場合の対策 ---
+						float dp = XMVectorGetX(XMVector3Dot(forward, worldUp));
+						if (fabsf(dp) > 0.99f) {
+							// ほぼ真上/真下を向いている場合は X 軸を使う
+							worldUp = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+						}
+
+						// --- 正確な up / right を再構築（直交化） ---
+						XMVECTOR right = XMVector3Normalize(XMVector3Cross(worldUp, forward));
+						XMVECTOR up = XMVector3Cross(forward, right);
+
+						// --- LookAt 用のターゲット ---
+						XMVECTOR at = eye + forward;
+
+						// ------------------------------
+						//      ライト行列の計算
+						// ------------------------------
+
+						float fov = XM_PIDIV2 * 1.5f;
+
+						float nearZ = 1.0f;
+						float farZ = light->light.Param.x * 1000.0f;
+						if (nearZ > farZ) {
+							farZ = nearZ + 1.0f;
+						}
+						XMMATRIX lightView = XMMatrixLookAtLH(eye, at, up);
+						XMMATRIX lightProj = XMMatrixPerspectiveFovLH(fov, 1.0f, nearZ, farZ);
+
+						// 転置して格納
+						XMStoreFloat4x4(&light->light.LightView, XMMatrixTranspose(lightView));
+						XMStoreFloat4x4(&light->light.LightProjection, XMMatrixTranspose(lightProj));
+
 
 						foundLight = true;
 					}
@@ -179,7 +248,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 	const int ATLAS_SIZE = (int)shadowRenderTarget->size.x;
 	const int TILE_SIZE = ATLAS_SIZE / ATLAS_GRID;
 
-	for(int i = 0; i < lightCount; i++){
+	for(int i = 0; i < LIGHT_MAX_COUNT; i++){
 
 		int gx = i % ATLAS_GRID;
 		int gy = i / ATLAS_GRID;
@@ -188,10 +257,6 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 		int tileY = gy * TILE_SIZE;
 
 		if(lights[i].Enable && lights[i].CastShadow){
-
-			if(lights[i].LightType == LIGHT_TYPE_POINT){
-				continue;
-			}
 
 			// ======== GraphicsContext に反映 ========
 			newContext.cameraPosition = lights[i].Position;

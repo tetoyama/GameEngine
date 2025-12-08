@@ -105,7 +105,7 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 	playerRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearCol);
 	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, playerRenderTarget->rtv.GetAddressOf(), playerRenderTarget->dsv.Get());
 
-	m_context->graphics->GetDeviceContext()->PSSetShaderResources(2, 1, shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
+	m_context->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_ShadowMap, 1, shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
 	m_context->graphics->GetDeviceContext()->PSSetSamplers(1, 1, &shadowMapPass->shadowSampler);
 
 	ID3D11ShaderResourceView* initialSRV = playerRenderTarget->srv.Get();

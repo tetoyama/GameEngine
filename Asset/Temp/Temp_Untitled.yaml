@@ -94,9 +94,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: -76.897438
-          y: 51.0415459
-          z: -45.4870605
+          x: -36.9230118
+          y: 28.9712772
+          z: -36.94133
           w: 0
         Direction:
           x: 0.738460243
@@ -120,20 +120,20 @@ Entities:
           w: 0
         LightView:
           -
-            - 0.540302277
+            - 0.540302336
             - 0
             - -0.841470957
-            - 3.27182007
+            - -11.1354675
           -
-            - 0.403422713
+            - 0.403422683
             - 0.87758255
-            - 0.259034723
-            - -1.98826981
+            - 0.259034753
+            - -0.960018158
           -
-            - 0.738460302
-            - -0.479425579
+            - 0.738460243
+            - -0.47942555
             - 0.474159896
-            - 102.824471
+            - 58.6718445
           -
             - 0
             - 0
@@ -141,20 +141,20 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0199999996
+            - 0.0399999991
             - 0
             - 0
             - 0
           -
             - 0
-            - 0.0199999996
+            - 0.0399999991
             - 0
             - 0
           -
             - 0
             - 0
-            - 0.00500250142
-            - -0.000500250142
+            - 0.0100100096
+            - -0.00100100099
           -
             - 0
             - 0
@@ -343,62 +343,3 @@ Entities:
         rotateSpeed: 1.5
         minPitch: 0
         maxPitch: 0.785398185
-  - Entity: 6
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 2.10799384
-          z: -2.68690062
-        Rotation:
-          - -0
-          - 0
-          - -0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\alca.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\ALCA_Old.fbx
-        isBlender: false
-        AnimationTime: 0
-        Animations:
-          arm|move.001: Asset\Model\ALCA_Old.fbx
-          arm|jump: Asset\Model\ALCA_Old.fbx
-          arm|down: Asset\Model\ALCA_Old.fbx
-          arm|idle.001: Asset\Model\ALCA_Old.fbx
-          arm|idle: Asset\Model\ALCA_Old.fbx
-          arm|moving: Asset\Model\ALCA_Old.fbx
-          arm|idle.002: Asset\Model\ALCA_Old.fbx

@@ -29,9 +29,9 @@ Entities:
             rotationOffset: [0, 0, 0]
             radius: 0.5
             height: 1
-            staticFriction: 0.5
-            dynamicFriction: 0.5
-            restitution: 0.100000001
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
             collisionLayer: 0
             lockRotX: false
             lockRotY: false
@@ -69,7 +69,7 @@ Entities:
         PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 5608.30469
+        AnimationTime: 9800.35352
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -94,9 +94,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: -45.4648666
-          y: 89.1471024
-          z: -49.1926575
+          x: -22.7324333
+          y: 47.0735512
+          z: -34.5963287
           w: 0
         Direction:
           x: 0.454648674
@@ -123,17 +123,17 @@ Entities:
             - 0.540302277
             - 0
             - -0.841470957
-            - -16.8294201
+            - -16.8294182
           -
             - 0.708073437
             - 0.540302277
             - 0.454648703
-            - 6.39145851
+            - 6.39146042
           -
             - 0.454648674
             - -0.841471016
             - 0.291926563
-            - 110.045883
+            - 60.045887
           -
             - 0
             - 0
@@ -141,20 +141,20 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0199999996
+            - 0.0399999991
             - 0
             - 0
             - 0
           -
             - 0
-            - 0.0199999996
+            - 0.0399999991
             - 0
             - 0
           -
             - 0
             - 0
-            - 0.00500250142
-            - -0.000500250142
+            - 0.0100100096
+            - -0.00100100099
           -
             - 0
             - 0
@@ -212,25 +212,25 @@ Entities:
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
-        AnimationTime: 5608.30469
+        AnimationTime: 9800.35352
   - Entity: 4
     Components:
       - Component: NameComponent
         Name: Player
       - Component: TransformComponent
         Position:
-          x: 3.92788672
-          y: 0
-          z: -1.04860592
+          x: 3.49707818
+          y: -9.69494522e-07
+          z: 10.3782835
         Rotation:
           - 0
-          - 0.851286411
+          - 0.288383365
           - 0
-          - 0.524701476
+          - 0.957515121
         Scale:
-          x: 0.00999999978
+          x: 0.0100000016
           y: 0.00999999978
-          z: 0.00999999978
+          z: 0.0100000016
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
@@ -243,9 +243,9 @@ Entities:
             rotationOffset: [0, 0, 90]
             radius: 25
             height: 100
-            staticFriction: 0.5
-            dynamicFriction: 0.5
-            restitution: 0.100000001
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
             collisionLayer: 0
             lockRotX: true
             lockRotY: true
@@ -255,7 +255,7 @@ Entities:
         PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 5608.30469
+        AnimationTime: 9800.35352
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           mixamo.com: Asset\Model\Akai_Run.fbx
@@ -279,14 +279,14 @@ Entities:
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: 2.20623732
-          y: 4.52261686
-          z: -5.12069035
+          x: 2.84300923
+          y: 5.65572596
+          z: 7.62420654
         Rotation:
-          - 0.251251549
-          - 0.192029953
-          - -0.0509312041
-          - 0.947313666
+          - 0.437333196
+          - 0.104438327
+          - -0.0512190759
+          - 0.891744852
         Scale:
           x: 1
           y: 1
@@ -295,32 +295,32 @@ Entities:
       - Component: CameraComponent
         isLock: true
         Target:
-          x: 3.92788672
-          y: 0
-          z: -1.04860592
+          x: 3.49707818
+          y: -9.69494522e-07
+          z: 10.3782835
         NearClip: 0.00999999978
         FarClip: 1024
         FOV: 1
         viewMatrix:
           -
-            - 0.921061039
-            - 0.27846849
-            - 0.272216618
+            - 0.972938478
+            - 0.206629008
+            - 0.103417389
             - 0
           -
             - 0
-            - 0.699034035
-            - -0.715088367
+            - 0.447569728
+            - -0.894249022
             - 0
           -
-            - -0.389418304
-            - 0.658640027
-            - 0.643852949
+            - -0.23106429
+            - 0.870049298
+            - 0.435457826
             - 0
           -
-            - -4.02616978
-            - -0.403138876
-            - 5.93046761
+            - -1.00439107
+            - -9.75221539
+            - 1.4435904
             - 1
         nextLinkId: 1
         nextPinId: 2
@@ -341,7 +341,7 @@ Entities:
         distance: 6
         height: 2
         rotateSpeed: 1.5
-        minPitch: 0
+        minPitch: -0.785000026
         maxPitch: 0.785398185
   - Entity: 6
     Components:
@@ -373,9 +373,9 @@ Entities:
             rotationOffset: [0, 0, 0]
             radius: 0.5
             height: 1
-            staticFriction: 0.5
-            dynamicFriction: 0.5
-            restitution: 0.100000001
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
             collisionLayer: 0
             lockRotX: false
             lockRotY: false
@@ -383,7 +383,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 5608.30469
+        AnimationTime: 9800.35352
   - Entity: 7
     Components:
       - Component: NameComponent
@@ -434,15 +434,15 @@ Entities:
           w: 0
         LightView:
           -
+            - 0
+            - -0.0207948387
+            - -0.999783754
+            - -0.320984036
+          -
             - 1
             - 0
-            - -0
-            - -4.47810841
-          -
             - 0
-            - 0.0207948387
-            - 0.999783754
-            - 0.320984036
+            - -4.47810841
           -
             - 0
             - -0.999783754
@@ -455,20 +455,20 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.285733074
+            - 0.330718368
             - 0
             - 0
             - 0
           -
             - 0
-            - 0.285733074
+            - 0.330718368
             - 0
             - 0
           -
             - 0
             - 0
-            - 1.00010002
-            - -0.010001
+            - 1.00001001
+            - -1.00001001
           -
             - 0
             - 0
@@ -524,15 +524,15 @@ Entities:
           w: 0
         LightView:
           -
-            - 1
             - 0
-            - -0
-            - -2.6928165
+            - -0.000796318054
+            - -0.999999762
+            - 6.76345396
           -
+            - 1.00000012
             - 0
-            - 0.000796318054
-            - 0.999999762
-            - -6.76345396
+            - 0
+            - -2.69281673
           -
             - 0
             - -0.999999762
@@ -545,20 +545,20 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.99999994
+            - 0.414213568
             - 0
             - 0
             - 0
           -
             - 0
-            - 0.99999994
+            - 0.414213568
             - 0
             - 0
           -
             - 0
             - 0
-            - 1.001001
-            - -0.0100100096
+            - 1.00010002
+            - -1.00010002
           -
             - 0
             - 0
@@ -614,15 +614,15 @@ Entities:
           w: 0
         LightView:
           -
-            - 1
             - 0
-            - -0
-            - -8.2638216
+            - -0.000796318054
+            - -0.999999762
+            - 9.52659798
           -
+            - 1.00000012
             - 0
-            - 0.000796318054
-            - 0.999999762
-            - -9.52659798
+            - 0
+            - -8.26382256
           -
             - 0
             - -0.999999762
@@ -635,20 +635,20 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.99999994
+            - 0.414213568
             - 0
             - 0
             - 0
           -
             - 0
-            - 0.99999994
+            - 0.414213568
             - 0
             - 0
           -
             - 0
             - 0
-            - 1.001001
-            - -0.0100100096
+            - 1.00010002
+            - -1.00010002
           -
             - 0
             - 0
@@ -704,20 +704,110 @@ Entities:
           w: 0
         LightView:
           -
-            - 1
             - 0
-            - -0
-            - -3.81178188
+            - -0.000796318054
+            - -0.999999762
+            - 14.7763081
           -
+            - 1.00000012
             - 0
-            - 0.000796318054
-            - 0.999999762
-            - -14.7763081
+            - 0
+            - -3.81178236
           -
             - 0
             - -0.999999762
             - 0.000796318054
             - 3.988235
+          -
+            - 0
+            - 0
+            - 0
+            - 1
+        LightProjection:
+          -
+            - 0.414213568
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0.414213568
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1.00010002
+            - -1.00010002
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+  - Entity: 11
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: -7.71899986
+          y: 1.77027273
+          z: -4.23400021
+        Rotation:
+          - -0.0249973964
+          - 0
+          - 0
+          - 0.999687493
+        Scale:
+          x: 1
+          y: 0.999971926
+          z: 0.999971926
+        Parent: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 3
+        CastShadow: 1
+        Position:
+          x: -7.71899986
+          y: 1.77027273
+          z: -4.23400021
+          w: 0
+        Direction:
+          x: 0
+          y: 0.0499791689
+          z: 0.99875021
+          w: 0
+        Diffuse:
+          x: 0.899999976
+          y: 0.899999976
+          z: 1
+          w: 1
+        Ambient:
+          x: 0.00999999978
+          y: 0.00999999978
+          z: 0.00999999978
+          w: 1
+        Param:
+          x: 100
+          y: 0
+          z: 45
+          w: 0
+        LightView:
+          -
+            - 1
+            - -0
+            - 0
+            - 7.71899986
+          -
+            - 0
+            - 0.998750269
+            - -0.0499792136
+            - -1.97967231
+          -
+            - 0
+            - 0.0499792136
+            - 0.998750269
+            - 4.14023209
           -
             - 0
             - 0
@@ -737,10 +827,79 @@ Entities:
           -
             - 0
             - 0
-            - 1.001001
-            - -0.0100100096
+            - 1.00001001
+            - -1.00001001
           -
             - 0
             - 0
             - 1
             - 0
+  - Entity: 12
+    Components:
+      - Component: NameComponent
+        Name: Cube
+      - Component: TransformComponent
+        Position:
+          x: -4.06946087
+          y: 0
+          z: 6.99680424
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 3.92000103
+          y: 3.92000008
+          z: 3.92000103
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 0
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 4192.05078
