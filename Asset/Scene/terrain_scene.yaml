@@ -29,8 +29,8 @@ Entities:
             rotationOffset: [0, 0, 0]
             radius: 0.5
             height: 1
-            staticFriction: 1
-            dynamicFriction: 1
+            staticFriction: 0
+            dynamicFriction: 0
             restitution: 0
             collisionLayer: 0
             lockRotX: false
@@ -92,10 +92,11 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 1
+        CastShadow: 1
         Position:
-          x: 0
-          y: 25
-          z: 0
+          x: 25.2189903
+          y: 64.4086838
+          z: 2.33072662
           w: 0
         Direction:
           x: 0
@@ -122,17 +123,17 @@ Entities:
             - 1
             - 0
             - -0
-            - 0
+            - -25.2189903
           -
             - 0
             - 0.426659822
             - 0.90441215
-            - -10.6664953
+            - -29.5885353
           -
             - 0
             - -0.90441215
             - 0.426659822
-            - 22.6103039
+            - 57.2575684
           -
             - 0
             - 0
@@ -140,20 +141,20 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0199999996
+            - 0.0399999991
             - 0
             - 0
             - 0
           -
             - 0
-            - 0.0199999996
+            - 0.0399999991
             - 0
             - 0
           -
             - 0
             - 0
-            - 0.010001
-            - -0.000100009995
+            - 0.0100100096
+            - -0.00100100099
           -
             - 0
             - 0
@@ -352,8 +353,8 @@ Entities:
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
-        autoMass: true
-        Mass: 1
+        autoMass: false
+        Mass: 5
         colliders:
           - type: 2
             size: [1, 1, 1]
@@ -361,8 +362,8 @@ Entities:
             rotationOffset: [0, 0, 90]
             radius: 29.1000004
             height: 95.1999969
-            staticFriction: 0
-            dynamicFriction: 0
+            staticFriction: 3
+            dynamicFriction: 3
             restitution: 0
             collisionLayer: 0
             lockRotX: true
@@ -492,8 +493,8 @@ Entities:
             rotationOffset: [0, 0, 0]
             radius: 0.5
             height: 1
-            staticFriction: 1
-            dynamicFriction: 1
+            staticFriction: 0
+            dynamicFriction: 0
             restitution: 0
             collisionLayer: 0
             lockRotX: false
