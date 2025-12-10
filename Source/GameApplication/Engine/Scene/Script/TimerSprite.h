@@ -8,7 +8,7 @@ public:
 		REFLECT_FIELD(bool, isBlue, false)
 		REFLECT_FIELD(int, Degit, 0)
 
-		TimerSprite(): CustomScriptComponent("TimerSprite"){}
+	TimerSprite(): CustomScriptComponent("TimerSprite"){}
 
 	YAML::Node encode() override{
 		YAML::Node node;

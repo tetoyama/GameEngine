@@ -8,7 +8,7 @@
 
 #endif
 
-#define LOW_RESOLUTION
+//#define LOW_RESOLUTION
 
 #define TextureSlot_Albedo		(0)
 #define TextureSlot_Normal		(1)
