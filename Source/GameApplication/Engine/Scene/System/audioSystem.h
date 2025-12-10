@@ -38,14 +38,16 @@ public:
 			for (auto entity : entities) {
 				auto* comp = context->component->GetComponent<AudioComponent>(entity);
 				if (!comp) continue;
+				if (!comp->isInitialized) {
+					comp->isInitialized = true;
+					// AudioDataロードはSystem側でやる
+					if (!comp->m_AudioData && !comp->FilePath.empty()) {
+						comp->m_AudioData = m_context->resource->Load<AudioData>(comp->FilePath);
+					}
 
-				// AudioDataロードはSystem側でやる
-				if (!comp->m_AudioData && !comp->FilePath.empty()) {
-					comp->m_AudioData = m_context->resource->Load<AudioData>(comp->FilePath);
-				}
-
-				if (comp->PlayOnStart && !comp->Playing) {
-					comp->Play(m_audioContext);
+					if (comp->PlayOnStart && !comp->Playing) {
+						comp->Play(m_audioContext);
+					}
 				}
 			}
 		}
@@ -58,7 +60,17 @@ public:
 			for (auto entity : entities) {
 				auto* comp = context->component->GetComponent<AudioComponent>(entity);
 				if (!comp) continue;
+				if (!comp->isInitialized) {
+					comp->isInitialized = true;
+					// AudioDataロードはSystem側でやる
+					if (!comp->m_AudioData && !comp->FilePath.empty()) {
+						comp->m_AudioData = m_context->resource->Load<AudioData>(comp->FilePath);
+					}
 
+					if (comp->PlayOnStart && !comp->Playing) {
+						comp->Play(m_audioContext);
+					}
+				}
 				if (comp->Playing) {
 					if (!comp->m_SourceVoice) {
 						comp->Playing = false;

@@ -21,6 +21,7 @@ public:
 	float Volume = 1.0f;
 	bool PlayOnStart = false;
 	bool Playing = false;
+	bool isInitialized = false;
 
 	IXAudio2SourceVoice* m_SourceVoice = nullptr; // 再生ハンドルは実行時に取得する
 

@@ -73,7 +73,7 @@ Entities:
         Position:
           x: 0
           y: 9.99167061
-          z: -57.2168808
+          z: -57.0001945
           w: 0
         Direction:
           x: 0
@@ -105,12 +105,12 @@ Entities:
             - 0
             - 0.995004117
             - 0.0998334065
-            - -4.22959709
+            - -4.25122976
           -
             - 0
             - -0.0998334065
             - 0.995004117
-            - 57.9285316
+            - 57.7129288
           -
             - 0
             - 0
@@ -267,7 +267,7 @@ Entities:
           Run: Asset\Model\Akai_Run.fbx
       - Component: OutlineComponent
       - Component: PlayerController
-        moveSpeed: 1
+        moveSpeed: 2
         health: 0
         isInvincible: false
         dashMultiplier: 2
@@ -520,7 +520,7 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\football-stadium-with-surrounding-area\stadion_floor.fbx
-        PixelShader: Asset\Shader\disneyPBR_PS.cso
+        PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
         AnimationTime: 68314.1172
