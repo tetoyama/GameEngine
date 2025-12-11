@@ -46,7 +46,7 @@ public:
 
 
 class ImGuiLogWindow;
-class DebugLogSystem : IService {
+class DebugLogSystem : public IService {
 public:
 	void Initialize(bool* isOpen); // 必要ならファイルパスなど渡す
 	void Shutdown() override;

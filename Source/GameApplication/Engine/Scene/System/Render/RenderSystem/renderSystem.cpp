@@ -244,7 +244,6 @@ void RenderSystem::Draw(){
 		m_context->graphics->ResetViewport();
 		m_context->graphics->Clear(clearColor);
 		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
-		m_context->graphics->SetWorldViewProjection2D();
 		m_context->graphics->DrawQuad(&copyShader, m_PlayerPass->result);
 	}
 	if(*showEditor){
@@ -253,7 +252,6 @@ void RenderSystem::Draw(){
 
 	m_context->graphics->ResetViewport();
 	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
-
 }
 
 void RenderSystem::DrawRenderLayerToggleUI() {

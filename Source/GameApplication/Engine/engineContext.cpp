@@ -22,10 +22,6 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 	auto configSystem = std::make_shared<ConfigSystem>();
 	context->Register<ConfigSystem>(configSystem);
 
-	// EditorService 登録
-	auto editorService = std::make_shared<EditorService>();
-	context->Register<EditorService>(editorService);
-
 	// WindowService 登録
 	auto windowSystem = std::make_shared<WindowService>();
 	context->Register<WindowService>(windowSystem);
@@ -65,6 +61,10 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 	//SceneManager 登録
 	auto sceneManager = std::make_shared<SceneManager>();
 	context->Register<SceneManager>(sceneManager);
+
+	// EditorService 登録
+	auto editorService = std::make_shared<EditorService>();
+	context->Register<EditorService>(editorService);
 
 	// 今後: 他のシステムもここで登録
 

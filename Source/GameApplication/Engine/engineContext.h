@@ -33,7 +33,7 @@ public:
 	}
 
 private:
-    std::unordered_map<std::type_index, std::shared_ptr<void>> m_Services;
+    std::unordered_map<std::type_index, std::shared_ptr<IService>> m_Services;
     std::vector<std::type_index> m_ServiceOrder;
 };
 

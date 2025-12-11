@@ -244,10 +244,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 				}
 			}
 		}
-
-		graphics->GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
 		graphics->ApplyPostProcessChain(postNodes, initialSRV);
-		graphics->GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
 
 		result = graphics->m_CurrentSRV;
 	} else {

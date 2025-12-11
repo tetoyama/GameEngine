@@ -33,6 +33,7 @@
 #pragma comment(lib, "dxguid.lib")
 
 void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInstance, int nCmdShow){
+
     if (!context) {
         OutputDebugStringA("EngineContext が nullptr です。\n");
         return;
@@ -51,14 +52,8 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	auto sceneManager = context->Get<SceneManager>();
 
 	// エディタ初期化
-	if (!editorService) {
-		return;
-	}
 	editorService->Initialize();
 
-    if(!debugLogSystem){
-        return;
-    }
     debugLogSystem->Initialize(&editorService->GetManubar()->showConsole);
     debugLogSystem->LOG_INFO("DebugLogSystemが起動しました");
 
@@ -157,16 +152,16 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     auto manubar = editorService->GetManubar();
     manubar->Register(MenuEvent::File_Exit, [windowService](){
 		windowService->GetMainWindow()->Close(); 
-					  });
+	});
     manubar->Register(MenuEvent::File_New,  [sceneManager](){ 
 		sceneManager->AddScene(std::make_shared<Scene>()); 
-					  });
+	});
     manubar->Register(MenuEvent::File_Save, [sceneManager](){
 		sceneManager->SaveScenes(); 
-					  });
+	});
     manubar->Register(MenuEvent::File_Open, [sceneManager](){ 
 		sceneManager->AddScene(sceneManager->OpenFromYAMLFile());
-					  });
+	});
 
     debugLogSystem->LOG_INFO("EngineContextの初期化が完了しました");
 }

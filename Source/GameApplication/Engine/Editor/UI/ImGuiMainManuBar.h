@@ -26,7 +26,8 @@ enum class MenuEvent
 
 class Manubar : public IEditorUI {
 public:
-	Manubar(){}
+	Manubar() {}
+	~Manubar() {}
 	void Initialize() override {}
 	void Finalize() override {
 		//m_eventCallbacks.clear();

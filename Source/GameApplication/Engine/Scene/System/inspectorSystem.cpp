@@ -125,7 +125,7 @@ void InspectorSystem::ClearPreviewChache() {
 
 // メインの更新関数
 void InspectorSystem::Draw(){
-	CreateDockSpace();
+	//CreateDockSpace();
 
 	showSceneHierarchy = &m_context->editor->GetManubar()->showSceneHierarchy;
 	showInspector = &m_context->editor->GetManubar()->showInspector;
