@@ -1,4 +1,4 @@
-// Engine/Scene/SceneManager.h
+// Scene/SceneManager.h
 #pragma once
 #include <memory>
 #include <Windows.h>
@@ -17,6 +17,7 @@ class InputService;
 class ResourceService;
 class DebugLogSystem;
 class ImGuiService;
+class ConfigSystem;
 
 class SystemRegistry;
 
@@ -39,6 +40,7 @@ struct SceneManagerContext {
 	ResourceService* resource = nullptr;
 	DebugLogSystem* debug = nullptr;
 	ImGuiService* imgui = nullptr;
+	ConfigSystem* config = nullptr;
 	HWND hwnd = nullptr;
 };
 

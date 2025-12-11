@@ -6,12 +6,12 @@
 #include "Backends/Imgui/Imgui.h"
 #include "Backends/Imgui/Imguizmo.h"
 
-#include "Engine/DebugTools/debugSystem.h"
-#include "Engine/DebugTools/imguisystem.h"
+#include "DebugTools/debugSystem.h"
+#include "DebugTools/imguisystem.h"
 
 
-#include "Engine/Graphics/graphicsContext.h"
-#include "Engine/Graphics/mainRenderer.h"
+#include "Graphics/graphicsContext.h"
+#include "Graphics/mainRenderer.h"
 
 #include "Scene.h"
 #include "sceneManager.h"

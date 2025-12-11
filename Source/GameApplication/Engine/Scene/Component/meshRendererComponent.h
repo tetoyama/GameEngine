@@ -1,12 +1,12 @@
-// Engine/Scene/Component/meshRendererComponent.h
+// Scene/Component/meshRendererComponent.h
 #pragma once
 #include "Interface/IComponent.h"
 #include <string>
 #include <memory>
 #include <wrl/client.h>
 #include <d3d11.h>
-#include "Engine/Resources/Data/textureData.h"
-#include "Service/YAMLConverters.h"
+#include "Resources/Data/textureData.h"
+#include "BackEnds/YAMLConverters.h"
 
 class GraphicsContext;
 

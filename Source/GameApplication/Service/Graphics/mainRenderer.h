@@ -10,7 +10,7 @@
 #include "D2DRenderer.h"
 #include "Service/IService.h"
 
-#include "Engine/Platform/WindowSystem/mainWindow.h"
+#include "Platform/WindowSystem/mainWindow.h"
 
 class MainRenderer : public IService{
 public:

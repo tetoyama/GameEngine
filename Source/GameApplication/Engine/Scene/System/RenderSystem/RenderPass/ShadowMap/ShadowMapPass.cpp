@@ -12,7 +12,7 @@
 
 #include "Shader/commonDefine.h"
 
-#include "GameApplication/Engine/Graphics/graphicsContext.h"
+#include "Graphics/graphicsContext.h"
 #include "Registry/systemRegistry.h"
 #include "System/RenderSystem/Renderable/Model/RenderableModel.h"
 #include <Component/LightComponent.h>

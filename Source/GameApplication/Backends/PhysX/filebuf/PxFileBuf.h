@@ -48,7 +48,7 @@ PX_PUSH_PACK_DEFAULT
 \brief Callback class for data serialization.
 
 The user needs to supply an PxFileBuf implementation to a number of methods to allow the SDK to read or write
-chunks of binary data. This allows flexibility for the source/destination of the data. For example the PxFileBuf
+chunks of binary data. This allows flexibility for the destination of the data. For example the PxFileBuf
 could store data in a file, memory buffer or custom file format.
 
 \note It is the users responsibility to ensure that the data is written to the appropriate offset.

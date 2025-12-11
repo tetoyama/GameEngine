@@ -1,4 +1,4 @@
-// Engine/Scene/System/renderSystem.h
+// Scene/System/renderSystem.h
 #pragma once
 #include "Interface/ISystem.h"
 #include <d3d11.h>
@@ -6,7 +6,7 @@
 #include "Backends/myVector2.h"
 #include "Backends/myVector3.h"
 #include "Component/RenderLayerComponent.h"
-#include "GameApplication/Engine/Scene/Entity/Entity.h"
+#include "Scene/Entity/Entity.h"
 
 struct SceneManagerContext;
 struct PixelShaderData;

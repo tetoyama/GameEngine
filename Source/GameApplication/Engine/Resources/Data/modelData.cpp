@@ -4,7 +4,7 @@
 #include "Backends/Assimp/cimport.h"
 #include "Backends/Assimp/postprocess.h"
 
-#include "GameApplication/Engine/Graphics/graphicsContext.h"
+#include "Graphics/graphicsContext.h"
 
 
 void ModelData::Release(){

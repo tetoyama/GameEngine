@@ -1,5 +1,5 @@
 #include "renderTarget.h"
-#include "Engine/Graphics/graphicsContext.h"
+#include "Graphics/graphicsContext.h"
 
 RenderTarget::RenderTarget(const Vector2& _size, GraphicsContext* _graphicsContext, const RenderTargetType& setType){
 	type = setType;

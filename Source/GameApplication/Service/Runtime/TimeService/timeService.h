@@ -1,7 +1,7 @@
 // Runtime/TimeService.h
 #pragma once
 #include "Service/IService.h"
-#include "GameApplication/gameapplication.h"
+#include "gameapplication.h"
 class TimeService : public IService
 {
 public:

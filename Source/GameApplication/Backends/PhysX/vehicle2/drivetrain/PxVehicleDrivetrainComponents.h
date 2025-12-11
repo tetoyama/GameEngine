@@ -326,7 +326,7 @@ public:
 	\param[out] steerResponseStates The resulting steer response states given the command input, steer response and (optionally) Ackermann parameters.
 	\param[out] gearboxResponseState The resulting gearbox response state given the command input and gearbox parameters.
 	\param[out] clutchResponseState The resulting clutch state given the command input and clutch response parameters.
-	\param[out] autoboxState The resulting autobox state given the autobox/engine/gear params and engine state. Only needed if an autobox is
+	\param[out] autoboxState The resulting autobox state given the autobox/gear params and engine state. Only needed if an autobox is
 				provided (see autoboxParams), else it can be set to NULL.
 	*/
 	virtual void getDataForEngineDriveCommandResponseComponent(

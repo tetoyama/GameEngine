@@ -1,10 +1,10 @@
 // AudioSystem.h
 #pragma once
 #include "Interface/ISystem.h"
-#include "Engine/Scene/scene.h"
+#include "Scene/scene.h"
 #include "Registry/componentRegistry.h"
 #include "Component/audioComponent.h"
-#include "Engine/Audio/audioContext.h"
+#include "Audio/audioContext.h"
 
 class AudioSystem: public ISystem {
 public:

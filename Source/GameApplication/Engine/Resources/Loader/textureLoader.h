@@ -7,8 +7,8 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 
-#include "Engine/Resources/Data/textureData.h"
-#include "Engine/Graphics/graphicsContext.h"
+#include "Resources/Data/textureData.h"
+#include "Graphics/graphicsContext.h"
 #include "Backends/DirectX11/DirectXTex.h"
 #include "Backends/checkFileExtention.h"
 

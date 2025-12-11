@@ -1,4 +1,4 @@
-// Engine/Scene/System/renderSystem.cpp
+// Scene/System/renderSystem.cpp
 #include "renderSystem.h"
 
 #include <algorithm>
@@ -20,19 +20,19 @@
 
 #include "Backends/myMath.h"
 
-#include "Engine/DebugTools/debugSystem.h"
+#include "DebugTools/debugSystem.h"
 
-#include "Engine/Resources/Data/modelData.h"
+#include "Resources/Data/modelData.h"
 
 #include "Registry/entityRegistry.h"
 #include "Registry/systemRegistry.h"
 #include "Registry/componentRegistry.h"
 
-#include "Engine/Graphics/mainRenderer.h"
+#include "Graphics/mainRenderer.h"
 
-#include "Engine/Resources/resourceService.h"
-#include "Engine/Resources/Data/vertexShaderData.h"
-#include "Engine/Resources/Data/pixelShaderData.h"
+#include "Resources/resourceService.h"
+#include "Resources/Data/vertexShaderData.h"
+#include "Resources/Data/pixelShaderData.h"
 
 #include "Scene.h"
 #include "SceneManager.h"

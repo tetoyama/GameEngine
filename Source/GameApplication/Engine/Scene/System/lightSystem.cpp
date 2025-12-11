@@ -9,9 +9,9 @@
 
 #include "Component/lightComponent.h"
 
-#include "Engine/DebugTools/debugSystem.h"
-#include "Engine/Graphics/graphicsContext.h"
-#include "Engine/Graphics/mainRenderer.h"
+#include "DebugTools/debugSystem.h"
+#include "Graphics/graphicsContext.h"
+#include "Graphics/mainRenderer.h"
 #include <Component/transformComponent.h>
 
 void LightSystem::Initialize(){}

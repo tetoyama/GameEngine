@@ -1,5 +1,5 @@
 #pragma once
-#include "GameApplication/Engine/Scene/Entity/Entity.h"
+#include "Scene/Entity/Entity.h"
 
 struct RenderPassContext;
 struct SceneManagerContext;

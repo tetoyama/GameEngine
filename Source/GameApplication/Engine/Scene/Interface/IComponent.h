@@ -1,10 +1,10 @@
-// Engine/Scene/Interface/IComponent.h
+// Scene/Interface/IComponent.h
 #pragma once
 #include <backends/yaml-cpp/yaml.h>
 #include <backends/ImGui/imgui.h>
 #include <backends/myVector3.h>
-#include "Service/ImGuiFunc.h"
-#include "Service/YAMLConverters.h"
+#include "BackEnds/ImGuiFunc.h"
+#include "BackEnds/YAMLConverters.h"
 #include <functional>
 struct SceneContext;
 

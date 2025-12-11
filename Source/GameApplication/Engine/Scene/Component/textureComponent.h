@@ -5,13 +5,13 @@
 
 #include "Interface/IComponent.h"
 
-#include "GameApplication/Engine/Graphics/graphicsContext.h"
-#include "Service/YAMLConverters.h"
+#include "Graphics/graphicsContext.h"
+#include "BackEnds/YAMLConverters.h"
 #include "scene.h"
 #include "sceneManager.h"
-#include "Engine/Resources/resourceService.h"
-#include "Engine/Resources/Loader/textureLoader.h"
-#include "Engine/Resources/Data/TextureData.h"
+#include "Resources/resourceService.h"
+#include "Resources/Loader/textureLoader.h"
+#include "Resources/Data/TextureData.h"
 
 
 class TextureComponent : public IComponent {

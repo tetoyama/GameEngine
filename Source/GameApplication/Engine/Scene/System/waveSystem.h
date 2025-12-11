@@ -1,9 +1,9 @@
 #pragma once
 #include "Interface/ISystem.h"
-#include "Engine/Graphics/GraphicsContext.h"
-#include "Engine/Scene/scene.h"
-#include "Engine/Scene/sceneManager.h"
-#include "Engine/Scene/registry/ComponentRegistry.h"
+#include "Graphics/GraphicsContext.h"
+#include "Scene/scene.h"
+#include "Scene/sceneManager.h"
+#include "Scene/registry/ComponentRegistry.h"
 #include "Component/meshRendererComponent.h"
 #include "Component/waveComponent.h"
 

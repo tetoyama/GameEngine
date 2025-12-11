@@ -10,11 +10,11 @@
 #include "Backends/ImGui/imguizmo.h"
 #include "Backends/ImGui/imnodes.h"
 
-#include "Engine/Graphics/GraphicsContext.h"
-#include "Engine/Platform/WindowSystem/MainWindow.h"
+#include "Graphics/GraphicsContext.h"
+#include "Platform/WindowSystem/MainWindow.h"
 
 
-#include "GameApplication/GameApplication.h"
+#include "GameApplication.h"
 #include "time.h"
 #include <psapi.h>
 #include <ImGui/imgui_internal.h>

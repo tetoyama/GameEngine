@@ -1,16 +1,16 @@
 #pragma once
 #include "Interface/IComponent.h"
-#include "Service/YAMLConverters.h"
+#include "BackEnds/YAMLConverters.h"
 
 #include <memory>
 #include <string>
 
 #include <xaudio2.h>
-#include "Engine//Scene/scene.h"
+#include "scene.h"
 
-#include "Engine/Resources/Data/effectData.h"
-#include "GameApplication/Backends/Effekseer/Effekseer.h"
-#include "GameApplication/Backends/Effekseer/EffekseerRendererDX11.h"
+#include "Resources/Data/effectData.h"
+#include "Backends/Effekseer/Effekseer.h"
+#include "Backends/Effekseer/EffekseerRendererDX11.h"
 
 class EffectComponent : public IComponent {
 public:	

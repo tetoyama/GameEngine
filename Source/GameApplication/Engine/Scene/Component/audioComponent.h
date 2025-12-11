@@ -5,10 +5,10 @@
 #include <xaudio2.h>
 
 #include "Interface/IComponent.h"
-#include "Engine/Resources/Data/AudioData.h"
+#include "Resources/Data/AudioData.h"
 #include "scene.h"
 #include "sceneManager.h"
-#include "Engine/Resources/resourceService.h"
+#include "Resources/resourceService.h"
 
 class AudioContext;
 

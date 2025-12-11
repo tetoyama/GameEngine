@@ -1,4 +1,4 @@
-// Engine/Scene/scene.cpp
+// Scene/scene.cpp
 
 #include "scene.h"
 
@@ -9,21 +9,21 @@
 #include "Backends/Taskbar/taskbar.h"
 #include "Backends/convertWString.h"
 
-#include "GameApplication/gameApplication.h"
+#include "gameApplication.h"
 
-#include "Engine/DebugTools/debugSystem.h"
+#include "DebugTools/debugSystem.h"
 
-#include "Engine/Graphics/mainRenderer.h"
+#include "Graphics/mainRenderer.h"
 
-#include "Engine/Platform/InputSystem/InputSystem.h"
+#include "Platform/InputSystem/InputSystem.h"
 
-#include "Engine/Resources/resourceService.h"
-#include "Engine/Resources/Data/modelData.h"
-#include "Engine/Resources/Loader/modelLoader.h"
-#include "Engine/Resources/Loader/shaderLoader.h"
-#include "Engine/Resources/Loader/textureLoader.h"
-#include "Engine/Resources/Data/vertexShaderData.h"
-#include "Engine/Resources/Data/pixelShaderData.h"
+#include "Resources/resourceService.h"
+#include "Resources/Data/modelData.h"
+#include "Resources/Loader/modelLoader.h"
+#include "Resources/Loader/shaderLoader.h"
+#include "Resources/Loader/textureLoader.h"
+#include "Resources/Data/vertexShaderData.h"
+#include "Resources/Data/pixelShaderData.h"
 
 #include "sceneManager.h"
 

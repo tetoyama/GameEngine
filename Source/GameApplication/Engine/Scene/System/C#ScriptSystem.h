@@ -1,4 +1,4 @@
-// Engine/Scene/ScriptSystem.h
+// Scene/ScriptSystem.h
 #pragma once
 #include "Interface/ISystem.h"
 

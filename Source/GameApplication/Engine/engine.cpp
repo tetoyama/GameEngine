@@ -21,10 +21,10 @@
 #include "Scene/sceneManager.h"
 #include "Scene/scene.h"
 
-#include "Engine/Resources/resourceService.h"
-#include "Engine/EditorUI/ImGuiMainManuBar.h"
+#include "Resources/resourceService.h"
+#include "EditorUI/ImGuiMainManuBar.h"
 
-#include "../../Service/ConfigSystem.h"
+#include "../../Service/Config/ConfigSystem.h"
 
 #include <dxgidebug.h>
 #include "Audio/audioContext.h"
@@ -138,6 +138,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	sceneManagerContext.debug = debugLogSystem.get();
 	sceneManagerContext.imgui = imguiService.get();
 	sceneManagerContext.sceneManager = sceneManager.get();
+	sceneManagerContext.config = configSystem.get();
 
 	// SceneManagerの初期化
 	sceneManager->Initialize(sceneManagerContext);

@@ -1,6 +1,6 @@
 #pragma once
 #include "Interface/ISystem.h"
-#include "Source/GameApplication/BackEnds/PhysX/PxPhysicsAPI.h"
+#include "BackEnds/PhysX/PxPhysicsAPI.h"
 #include <mutex>
 #include <vector>
 #include <DirectXMath.h>
@@ -24,7 +24,8 @@ public:
 	void Update(float deltaTime) override{}
 	void FixedUpdate(float fidedDeltaTime) override;
 	void Draw() override;
-	void EditorUpdate(float deltaTime) override{}
+	void EditorUpdate(float deltaTime) override {}
+
 	void Stop() override;
 
 	physx::PxPhysics* GetPhysics(){

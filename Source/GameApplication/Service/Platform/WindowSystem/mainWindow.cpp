@@ -6,9 +6,9 @@
 
 #include "windowSystem.h"
 
-#include "Engine/DebugTools/ImGuiSystem.h"
-#include "Engine/Graphics/mainRenderer.h"
-#include "Engine/Platform/InputSystem/InputSystem.h"
+#include "DebugTools/ImGuiSystem.h"
+#include "Graphics/mainRenderer.h"
+#include "Platform/InputSystem/InputSystem.h"
 #include <Icon/icon.h>
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

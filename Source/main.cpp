@@ -8,7 +8,7 @@
 // インクルード
 // -----------------------------------------------------------------------
 #include <windows.h>
-#include "GameApplication/gameApplication.h"
+#include "gameApplication.h"
 
 //デバッグ用
 #ifdef _DEBUG

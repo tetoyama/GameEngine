@@ -6,8 +6,8 @@
 #include <string>
 #include <filesystem>
 
-#include "Engine/Resources/Data/modelData.h"
-#include "Engine/Graphics/graphicsContext.h"
+#include "Resources/Data/modelData.h"
+#include "Graphics/graphicsContext.h"
 
 #include "Backends/DirectX11/DirectXTex.h"
 #include "Backends/Assimp/material.h"

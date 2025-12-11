@@ -1,9 +1,9 @@
 #pragma once
 #include <memory>
 #include <string>
-#include "Engine/Resources/Data/vertexShaderData.h"
-#include "Engine/Resources/Data/pixelShaderData.h"
-#include "Engine/Graphics/graphicsContext.h"
+#include "Resources/Data/vertexShaderData.h"
+#include "Resources/Data/pixelShaderData.h"
+#include "Graphics/graphicsContext.h"
 #include "Backends/checkFileExtention.h"
 
 #include "ResourceLoader.h"

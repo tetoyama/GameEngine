@@ -4,8 +4,8 @@
 
 #include <memory>
 #include <string>
-#include "Engine/Resources/Data/effectData.h"
-#include "Engine/Graphics/graphicsContext.h"
+#include "Resources/Data/effectData.h"
+#include "Graphics/graphicsContext.h"
 
 #include <uchar.h>
 

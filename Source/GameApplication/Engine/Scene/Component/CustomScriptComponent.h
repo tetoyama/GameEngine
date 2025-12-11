@@ -1,7 +1,7 @@
 #pragma once
 #include "Interface/IComponent.h"
-#include "Service/YAMLConverters.h"
-#include "GameApplication/Engine/DebugTools/ImGuiSystem.h"
+#include "BackEnds/YAMLConverters.h"
+#include "DebugTools/ImGuiSystem.h"
 #include <string>
 //#include "System/CustomScriptSystem.h" // For ScriptFactory
 
@@ -9,7 +9,7 @@
 #include "SceneManager.h"
 #include "Entity/Entity.h"
 #include "Registry/ComponentRegistry.h"
-#include "Engine/Platform/InputSystem/InputSystem.h"
+#include "Platform/InputSystem/InputSystem.h"
 
 class ComponentRegistry;
 

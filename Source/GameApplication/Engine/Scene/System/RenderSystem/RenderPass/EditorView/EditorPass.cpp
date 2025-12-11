@@ -14,7 +14,7 @@
 
 #include "Shader/commonDefine.h"
 
-#include "GameApplication/Engine/Graphics/graphicsContext.h"
+#include "Graphics/graphicsContext.h"
 #include "Registry/systemRegistry.h"
 
 #include "Component/cameraComponent.h"

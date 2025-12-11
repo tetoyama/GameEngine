@@ -3,15 +3,15 @@
 #include <d3d11.h>
 #include "../../RenderPass/RenderPassContext.h"
 
-#include "GameApplication/Engine/DebugTools/DebugSystem.h"
+#include "DebugTools/DebugSystem.h"
 
-#include "GameApplication/Engine/Scene/scene.h"
-#include "GameApplication/Engine/Scene/sceneManager.h"
-#include "GameApplication/Engine/Scene/Registry/componentRegistry.h"
+#include "Scene/scene.h"
+#include "Scene/sceneManager.h"
+#include "Scene/Registry/componentRegistry.h"
 
-#include "GameApplication/Engine/Scene/Component/meshRendererComponent.h"
-#include "GameApplication/Engine/Scene/Component/transformComponent.h"
-#include "GameApplication/Engine/Scene/Component/textureComponent.h"
+#include "Scene/Component/meshRendererComponent.h"
+#include "Scene/Component/transformComponent.h"
+#include "Scene/Component/textureComponent.h"
 
 void RenderableMesh::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
 

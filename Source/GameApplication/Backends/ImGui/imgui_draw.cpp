@@ -3582,7 +3582,7 @@ bool ImFontAtlasFontInitOutput(ImFontAtlas* atlas, ImFont* font)
     return ret;
 }
 
-// Keep source/input FontData
+// Keep input FontData
 void ImFontAtlasFontDestroyOutput(ImFontAtlas* atlas, ImFont* font)
 {
     font->ClearOutputData();

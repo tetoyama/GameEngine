@@ -1,13 +1,13 @@
-// Engine/Scene/sceneManager.cpp
+// Scene/sceneManager.cpp
 #include <algorithm>
 
-#include "GameApplication/gameApplication.h"
+#include "gameApplication.h"
 
 #include "sceneManager.h"
 #include "scene.h"
 
-#include "Engine/DebugTools/debugSystem.h"
-#include "Engine/Resources/resourceService.h"
+#include "DebugTools/debugSystem.h"
+#include "Resources/resourceService.h"
 
 #include "Registry/systemRegistry.h"
 
@@ -73,8 +73,7 @@ void SceneManager::Update(float deltaTime){
 
 			m_SceneContext.debug->LOG_INFO("シーンを停止します");
 
-			m_systemRegistry->FinalizeAll();
-			m_systemRegistry->InitializeAll();
+			m_systemRegistry->StopAll();
 
 			TempLoad(); // 一時保存の読み込み
 			OldState = State;
@@ -85,9 +84,6 @@ void SceneManager::Update(float deltaTime){
 
 				TempSave(); // 一時保存
 				m_SceneContext.debug->LOG_INFO("シーンを開始します");
-
-				m_systemRegistry->FinalizeAll();
-				m_systemRegistry->InitializeAll();
 				m_systemRegistry->StartAll();
 
 			} else {

@@ -9,7 +9,7 @@
 
 #include "Component/transformComponent.h"
 
-#include "Engine/DebugTools/debugSystem.h"
+#include "DebugTools/debugSystem.h"
 
 void TransformSystem::Initialize(){
 	m_context->debug->LOG_DEBUG("TransformSystemを初期化中...");

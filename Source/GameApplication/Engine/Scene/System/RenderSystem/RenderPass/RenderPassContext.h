@@ -3,7 +3,7 @@
 #include <d3d11.h>
 
 #include "Backends/myVector2.h"
-#include "GameApplication/Engine/Resources/Data/shaderData.h"
+#include "Resources/Data/shaderData.h"
 #include "../renderPhase.h"
 #include "../cameraEntityData.h"
 

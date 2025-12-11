@@ -1,10 +1,10 @@
 #pragma once
 #include "Interface/IComponent.h"
-#include "Service/YAMLConverters.h"
-#include "Service/ImGuiFunc.h"
+#include "BackEnds/YAMLConverters.h"
+#include "BackEnds/ImGuiFunc.h"
 #include "Backends/myVector2.h"
 #include "registry/SystemRegistry.h"
-#include "Source/GameApplication/BackEnds/PhysX/PxPhysicsAPI.h"
+#include "BackEnds/PhysX/PxPhysicsAPI.h"
 
 enum class ColliderType {
 	Box,
@@ -65,7 +65,7 @@ public:
 
 	physx::PxRigidDynamic* pRigidbodyDynamic = nullptr;
 	physx::PxRigidStatic* pRigidbodyStatic = nullptr;
-	bool needsUpdate = false;
+	bool needsUpdate = true;
 
 	BEGIN_REFLECT(ColliderComponent)
 		REFLECT_FIELD(bool, isDynamic, false)

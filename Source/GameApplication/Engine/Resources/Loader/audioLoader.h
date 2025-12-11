@@ -7,8 +7,8 @@
 #include <memory>
 #include <string>
 
-#include "Engine/Resources/Data/audioData.h"
-#include "Engine/Audio/audioContext.h"
+#include "Resources/Data/audioData.h"
+#include "Audio/audioContext.h"
 #include "Backends/checkFileExtention.h"
 
 #pragma comment(lib, "xaudio2.lib")

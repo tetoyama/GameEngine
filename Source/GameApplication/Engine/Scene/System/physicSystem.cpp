@@ -1,10 +1,10 @@
 #include "physicSystem.h"
 #include <mutex>
-#include "Source/GameApplication/BackEnds/PhysX/PxPhysicsAPI.h"
-#include <GameApplication/Engine/Scene/scene.h>
-#include <GameApplication/Engine/Scene/sceneManager.h>
-#include <GameApplication/Engine/Scene/Component/ColliderComponent.h>
-#include <GameApplication/Engine/Scene/Component/transformComponent.h>
+#include "BackEnds/PhysX/PxPhysicsAPI.h"
+#include <Scene/scene.h>
+#include <Scene/sceneManager.h>
+#include <Scene/Component/ColliderComponent.h>
+#include <Scene/Component/transformComponent.h>
 #include <d3dcompiler.h>
 
 #pragma comment(lib, "PhysX_64.lib")
@@ -214,17 +214,6 @@ void PhysicSystem::Initialize(){
 		pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
 		pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
 	}
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
-		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
-		if (colliderEntity.empty()) return;
-		for (Entity entity : colliderEntity) {
-			auto Collider = context->component->GetComponent<ColliderComponent>(entity);
-
-			Collider->needsUpdate = true;
-		}
-	}
-	UpdateCollider();
 }
 void PhysicSystem::Finalize(){
 	OutputDebugStringA("PhysicSystem::Finalize\n");
@@ -326,7 +315,17 @@ void PhysicSystem::Stop(){
 }
 
 void PhysicSystem::Start(){
+	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		auto context = scene->GetSceneContext();
+		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
+		if (colliderEntity.empty()) return;
+		for (Entity entity : colliderEntity) {
+			auto Collider = context->component->GetComponent<ColliderComponent>(entity);
 
+			Collider->needsUpdate = true;
+		}
+	}
+	UpdateCollider();
 }
 
 void PhysicSystem::UpdateCollider() {
@@ -487,8 +486,6 @@ void PhysicSystem::FixedUpdate(float deltaTime) {
 		}
 	}
 }
-
-
 
 void PhysicSystem::Draw(){
 	if(!g_pScene) return;

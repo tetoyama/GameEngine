@@ -7,9 +7,9 @@
 #include <Windows.h>
 //#include <WinSock2.h>
 
-#include "GameApplication/Engine/Scene/sceneManager.h"
+#include "Scene/sceneManager.h"
 #include "Component/CustomScriptComponent.h"
-#include "GameApplication/Engine/DebugTools/DebugSystem.h"
+#include "DebugTools/DebugSystem.h"
 
 #pragma comment (lib, "ws2_32.lib") // WinSockライブラリをリンク
 

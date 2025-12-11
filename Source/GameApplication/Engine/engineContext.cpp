@@ -11,7 +11,7 @@
 #include "Graphics/mainRenderer.h"
 #include "Resources/resourceService.h"
 #include "Audio/audioContext.h"
-#include "../../Service/ConfigSystem.h"
+#include "../../Service/Config/ConfigSystem.h"
 
 std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 

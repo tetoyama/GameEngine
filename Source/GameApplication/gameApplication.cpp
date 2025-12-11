@@ -1,8 +1,8 @@
 #include "gameApplication.h"
 #include <windows.h>
 
-#include "Engine/engine.h"
-#include "Engine/engineContext.h"
+#include "engine.h"
+#include "engineContext.h"
 
 // アプリケーションの実行メソッド（初期化 → ループ → 終了）
 int GameApplication::Run(HINSTANCE hInstance, int nCmdShow){

@@ -1,15 +1,15 @@
 #pragma once
 #include "Interface/IComponent.h"
 #include "Backends/myVector3.h"
-#include "Service/YAMLConverters.h"
-#include "Service/ImGuiFunc.h"
+#include "BackEnds/YAMLConverters.h"
+#include "BackEnds/ImGuiFunc.h"
 #include "Registry/componentRegistry.h"
-#include "Engine/Graphics/mainRenderer.h"
-#include "GameApplication/Engine/Scene/scene.h"
+#include "Graphics/mainRenderer.h"
+#include "Scene/scene.h"
 
-#include "GameApplication/Engine/DebugTools/ImGuiSystem.h"
-#include "GameApplication/Engine/Scene/sceneManager.h"
-#include "GameApplication/Engine/Scene/System/RenderSystem/RenderPass/RenderPassContext.h"
+#include "DebugTools/ImGuiSystem.h"
+#include "Scene/sceneManager.h"
+#include "Scene/System/RenderSystem/RenderPass/RenderPassContext.h"
 
 #include "2DspriteRendererComponent.h"
 

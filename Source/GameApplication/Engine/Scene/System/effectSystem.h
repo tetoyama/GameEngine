@@ -1,14 +1,14 @@
 // AudioSystem.h
 #pragma once
 #include "Interface/ISystem.h"
-#include "GameApplication/Engine/Resources/resourceService.h"
-#include "Engine/Graphics/GraphicsContext.h"
-#include "Engine/Scene/scene.h"
-#include "Engine/Scene/sceneManager.h"
-#include "Engine/Scene/registry/ComponentRegistry.h"
+#include "Resources/resourceService.h"
+#include "Graphics/GraphicsContext.h"
+#include "Scene/scene.h"
+#include "Scene/sceneManager.h"
+#include "Scene/registry/ComponentRegistry.h"
 #include "Component/EffectComponent.h"
-#include "Engine/Audio/audioContext.h"
-#include "Engine/Scene/component/transformComponent.h"
+#include "Audio/audioContext.h"
+#include "Scene/component/transformComponent.h"
 
 
 class EffectSystem : public ISystem {

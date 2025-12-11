@@ -3,15 +3,15 @@
 #include <d3d11.h>
 #include "../../RenderPass/RenderPassContext.h"
 
-#include "GameApplication/Engine/DebugTools/DebugSystem.h"
+#include "DebugTools/DebugSystem.h"
 
-#include "GameApplication/Engine/Scene/scene.h"
-#include "GameApplication/Engine/Scene/sceneManager.h"
-#include "GameApplication/Engine/Scene/Registry/componentRegistry.h"
+#include "Scene/scene.h"
+#include "Scene/sceneManager.h"
+#include "Scene/Registry/componentRegistry.h"
 
-#include "GameApplication/Engine/Scene/Component/modelRendererComponent.h"
-#include "GameApplication/Engine/Scene/Component/transformComponent.h"
-#include "GameApplication/Engine/Scene/Component/textureComponent.h"
+#include "Scene/Component/modelRendererComponent.h"
+#include "Scene/Component/transformComponent.h"
+#include "Scene/Component/textureComponent.h"
 
 #include "Backends/Assimp/material.h"
 #include "Backends/Assimp/scene.h"

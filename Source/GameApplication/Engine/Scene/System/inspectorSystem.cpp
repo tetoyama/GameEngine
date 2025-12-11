@@ -1,4 +1,4 @@
-// GameEngine/Source/GameApplication/Engine/Scene/System/inspectorSystem.cpp
+// GameScene/System/inspectorSystem.cpp
 #define _CRT_SECURE_NO_WARNINGS // for strncpy
 
 #include "inspectorSystem.h"
@@ -8,7 +8,7 @@
 #include "../../../Backends/ImGui/imgui.h"
 #include "../../../Backends/ImGui/imgui_internal.h" // for DockSpace
 #include "../../../Backends/ImGui/ImGuizmo.h"
-#include "Engine/Graphics/mainRenderer.h"
+#include "Graphics/mainRenderer.h"
 
 #include <set>
 #include <Registry/componentRegistry.h>
@@ -18,23 +18,23 @@
 
 #include "../scene.h"
 #include "../sceneManager.h"
-#include "Engine/DebugTools/ImGuiSystem.h"
-#include "Engine/EditorUI/ImGuiMainManuBar.h"
+#include "DebugTools/ImGuiSystem.h"
+#include "EditorUI/ImGuiMainManuBar.h"
 #include <Component/textureComponent.h>
 #include <Component/cameraComponent.h>
-#include "Engine/DebugTools/DebugSystem.h" // Add this include to resolve the incomplete type issue
+#include "DebugTools/DebugSystem.h" // Add this include to resolve the incomplete type issue
 #include <Component/2DspriteRendererComponent.h>
 
-#include "Engine/Resources/resourceService.h"
+#include "Resources/resourceService.h"
 
-#include "Engine/Resources/Loader/modelLoader.h"
-#include "Engine/Resources/Loader/shaderLoader.h"
-#include "Engine/Resources/Loader/textureLoader.h"
+#include "Resources/Loader/modelLoader.h"
+#include "Resources/Loader/shaderLoader.h"
+#include "Resources/Loader/textureLoader.h"
 
-#include "Engine/Resources/Data/modelData.h"
-#include "Engine/Resources/Data/vertexShaderData.h"
-#include "Engine/Resources/Data/pixelShaderData.h"
-#include "Engine/Resources/Data/textureData.h"
+#include "Resources/Data/modelData.h"
+#include "Resources/Data/vertexShaderData.h"
+#include "Resources/Data/pixelShaderData.h"
+#include "Resources/Data/textureData.h"
 
 #include "Backends/checkFileExtention.h"
 
@@ -97,8 +97,6 @@ void InspectorSystem::Initialize() {
 	fileIcon[FileIconType::FILE_FBX] = m_context->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_fbx.png");
 	fileIcon[FileIconType::FILE_OBJ] = m_context->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_obj.png");
 	fileIcon[FileIconType::FILE_TTF] = m_context->resource->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_ttf.png");
-
-	m_InspectorContext = nullptr;
 }
 
 void InspectorSystem::Finalize() {
@@ -106,6 +104,13 @@ void InspectorSystem::Finalize() {
 		fileIcon[i].reset();
 	}
 	ClearPreviewChache();
+}
+
+void InspectorSystem::Start() {
+}
+
+void InspectorSystem::Stop() {
+	m_InspectorContext = nullptr;
 }
 
 void InspectorSystem::ClearPreviewChache() {

@@ -10,8 +10,8 @@
 #include <DirectXMath.h>
 #include "Backends/myVector2.h"
 #include "Backends/myVector3.h"
-#include "Engine/Resources/Data/textureData.h"
-#include "Engine/Graphics/graphicsContext.h"
+#include "Resources/Data/textureData.h"
+#include "Graphics/graphicsContext.h"
 
 namespace YAML {
 

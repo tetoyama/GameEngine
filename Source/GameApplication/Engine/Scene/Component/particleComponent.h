@@ -1,7 +1,7 @@
 #pragma once
 #include "Interface/IComponent.h"
-#include "Service/YAMLConverters.h"
-#include "Service/ImGuiFunc.h"
+#include "BackEnds/YAMLConverters.h"
+#include "BackEnds/ImGuiFunc.h"
 
 #define MAXPARTICLE 512
 

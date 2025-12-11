@@ -1,15 +1,15 @@
 #pragma once
 #include "Interface/IComponent.h"
-#include "GameApplication/Engine/Scene/scene.h"
+#include "Scene/scene.h"
 
-#include "Service/YAMLConverters.h"
+#include "BackEnds/YAMLConverters.h"
 
-#include "Engine/Resources/resourceService.h"
-#include "Engine/Resources/Data/vertexShaderData.h"
-#include "Engine/Resources/Data/pixelShaderData.h"
-#include "Engine/Resources/Data/modelData.h"
-#include "Engine/Resources/Loader/modelLoader.h"
-#include "Engine/Resources/Loader/shaderLoader.h"
+#include "Resources/resourceService.h"
+#include "Resources/Data/vertexShaderData.h"
+#include "Resources/Data/pixelShaderData.h"
+#include "Resources/Data/modelData.h"
+#include "Resources/Loader/modelLoader.h"
+#include "Resources/Loader/shaderLoader.h"
 
 class ModelRendererComponent: public IComponent {
 public:
