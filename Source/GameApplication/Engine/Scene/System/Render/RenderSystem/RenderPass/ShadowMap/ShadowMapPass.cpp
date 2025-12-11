@@ -1,12 +1,12 @@
 #include "ShadowMapPass.h"
-#include "System/RenderSystem/renderSystem.h"
+#include "System/Render/RenderSystem/renderSystem.h"
 #include "sceneManager.h"
 #include "../RenderPassContext.h"
 #include "../../renderPhase.h"
 
 #include "scene.h"
-#include "System/RenderSystem/Renderable/IRenderable.h"
-#include "System/RenderSystem/RenderTarget/renderTarget.h"
+#include "System/Render/RenderSystem/Renderable/IRenderable.h"
+#include "System/Render/RenderSystem/RenderTarget/renderTarget.h"
 #include "Component/transformComponent.h"
 #include "Registry/componentRegistry.h"
 
@@ -14,10 +14,10 @@
 
 #include "Graphics/graphicsContext.h"
 #include "Registry/systemRegistry.h"
-#include "System/RenderSystem/Renderable/Model/RenderableModel.h"
+#include "System/Render/RenderSystem/Renderable/Model/RenderableModel.h"
 #include <Component/LightComponent.h>
 #include <Component/cameraComponent.h>
-#include <System/RenderSystem/Renderable/Terrain/RenderableTerrain.h>
+#include <System/Render/RenderSystem/Renderable/Terrain/RenderableTerrain.h>
 
 void ShadowMapPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 	m_renderSystem = renderSystem;

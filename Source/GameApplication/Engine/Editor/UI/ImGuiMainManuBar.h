@@ -4,12 +4,14 @@
 #include <vector>
 #include <functional>
 
+#include "Editor/editorService.h"
+#include "Editor/InterFace/IEditorUI.h"
+
 #ifdef _DEBUG
 #define IMGUI_SHOW_DEFAULT (true)
 #else
 #define IMGUI_SHOW_DEFAULT (false)
 #endif // _DEBUG
-
 
 enum class MenuEvent
 {
@@ -21,19 +23,19 @@ enum class MenuEvent
 	Edit_Redo,
 	// 必要に応じて追加
 };
-class ImGuiService;
 
-class ImGuiManubar
-{
+class Manubar : public IEditorUI {
 public:
-	ImGuiManubar(){
-
+	Manubar(){}
+	void Initialize() override {}
+	void Finalize() override {
+		//m_eventCallbacks.clear();
 	}
+	void Draw(EditorDrawContext ctx) override;
 
 	using Callback = std::function<void()>;
 
 	void Register(MenuEvent event, const Callback& callback);
-	void Draw(); // MainMenuBar を表示する
 	void Invoke(MenuEvent event);
 
 	bool showSceneHierarchy = IMGUI_SHOW_DEFAULT;
@@ -45,9 +47,10 @@ public:
 	bool showParformanceMonitor = IMGUI_SHOW_DEFAULT;
 
 private:
+	bool showManuBar = IMGUI_SHOW_DEFAULT;
+
 	std::unordered_map<MenuEvent, Callback> m_eventCallbacks;
 
 	void RenderFileMenu();
 	void RenderEditMenu();
-
 };

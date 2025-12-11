@@ -1,7 +1,7 @@
 // GameScene/System/inspectorSystem.h
 #pragma once
-#include "../Interface/ISystem.h"
-#include "../Entity/Entity.h" // Entityの定義をインクルード
+#include "Interface/ISystem.h"
+#include "Entity/Entity.h" // Entityの定義をインクルード
 
 struct SceneManagerContext;
 class TransformComponent;

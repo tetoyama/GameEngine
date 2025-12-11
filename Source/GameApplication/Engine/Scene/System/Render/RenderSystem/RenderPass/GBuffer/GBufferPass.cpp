@@ -1,5 +1,5 @@
 #include "GBufferPass.h"
-#include "System/RenderSystem/renderSystem.h"
+#include "System/Render/RenderSystem/renderSystem.h"
 #include "sceneManager.h"
 
 void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {

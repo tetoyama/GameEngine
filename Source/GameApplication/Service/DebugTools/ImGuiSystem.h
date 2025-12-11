@@ -4,8 +4,6 @@
 #include <Windows.h>
 
 #include "Service/IService.h"
-#include "EditorUI/ImGuiMainManuBar.h"
-
 
 class GraphicsContext;
 class IWindow;
@@ -24,20 +22,9 @@ public:
 	void End();
 	void OnResize();
 
-	void DrawDebugImGuiWindow(double Update, double Draw, double FPS, double DeltaFPS);
-
-	ImGuiManubar* GetManubar(){
-		return &manubar;
-	}
-
-
-
 private:
 	bool initialized_ = false;
 	GraphicsContext* m_GraphicsContext = nullptr;
 	DirectX::XMMATRIX m_view;
 	DirectX::XMMATRIX m_projection;
-
-	ImGuiManubar manubar;
-
 };

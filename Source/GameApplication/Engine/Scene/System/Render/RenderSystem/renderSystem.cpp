@@ -37,7 +37,10 @@
 #include "Scene.h"
 #include "SceneManager.h"
 
-#include "System/physicSystem.h"
+#include "Editor/editorService.h"
+#include "Editor/UI/ImGuiMainManuBar.h"
+
+#include "System/Physic/physicSystem.h"
 
 #include "Component/RenderLayerComponent.h"
 #include "Component/transformComponent.h"
@@ -85,8 +88,8 @@ void RenderSystem::Initialize(){
 
 	ID3D11Device* device = m_context->graphics->GetDevice();
 
-	showPlayer = &m_context->imgui->GetManubar()->showPlayerView;
-	showEditor = &m_context->imgui->GetManubar()->showEditorView;
+	showPlayer = &m_context->editor->GetManubar()->showPlayerView;
+	showEditor = &m_context->editor->GetManubar()->showEditorView;
 
 	PlayButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Play.png");
 	PauseButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Pause.png");
@@ -124,62 +127,14 @@ void RenderSystem::Update(float deltaTime) {
 		auto context = scene->GetSceneContext();
 		const auto& modelEntities = context->component->FindEntitiesWithComponent<ModelRendererComponent>();
 		if (modelEntities.empty()) {
-			return;
+			continue;
 		} else {
 			for (Entity entity : modelEntities) {
 				auto* modelRenderer = context->component->GetComponent<ModelRendererComponent>(entity);
 				modelRenderer->animationTime += deltaTime * 60.0f;
-				//modelRenderer->model->Update(modelRenderer->animationTime, m_context->graphics);
 			}
 		}
 	}
-}
-
-void RenderSystem::Draw(){
-
-	if(*showPlayer){
-
-		PlayerView();
-
-	} else{
-
-		m_context->graphics->ResetViewport();
-		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
-
-		Vector2 ScreenSize = Vector2(
-			(float)m_context->renderer->GetGraphicsContext()->m_width,
-			(float)m_context->renderer->GetGraphicsContext()->m_height
-		);
-
-		m_context->PlayerScreenSize = ScreenSize;
-
-		CameraEntityData cameraEntity = FindCameraEntity();
-		if (!cameraEntity.cameraComponent) {
-			return;
-		}
-
-		RenderPassContext renderPassContext(
-			RenderPhase::PHASE_GBUFFER,
-			playerRenderLayerVisible,
-			cameraEntity,
-			ScreenSize
-		);
-
-		m_PlayerPass->Execute(renderPassContext);
-
-		ID3D11RenderTargetView* rtv = m_context->graphics->GetRenderTargetView();
-		ID3D11ShaderResourceView* finalSRV = m_PlayerPass->result;
-		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, &rtv, m_context->graphics->GetDepthStencilView());
-		m_context->graphics->DrawQuad(&copyShader, finalSRV);
-
-	}
-	if(*showEditor){
-		EditorView();
-	}
-
-	m_context->graphics->ResetViewport();
-	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
-
 }
 
 void RenderSystem::EditorUpdate(float deltaTime) {
@@ -188,7 +143,7 @@ void RenderSystem::EditorUpdate(float deltaTime) {
 		auto context = scene->GetSceneContext();
 		const auto& modelEntities = context->component->FindEntitiesWithComponent<ModelRendererComponent>();
 		if (modelEntities.empty()) {
-			return;
+			continue;
 		} else {
 			for (Entity entity : modelEntities) {
 				auto* modelRenderer = context->component->GetComponent<ModelRendererComponent>(entity);
@@ -198,67 +153,107 @@ void RenderSystem::EditorUpdate(float deltaTime) {
 			}
 		}
 	}
-	ImGuiIO& io = ImGui::GetIO();
 
-	// マウス右クリックで操作有効
-	static bool isCameraActive = false;
-	if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
-		isCameraActive = true;
-	} else if (!ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
-		isCameraActive = false;
-	}
-	// 入力で動かすベクトル
-	Vector3 velocity = {0,0,0};
-	float speed = 1.0f;
-
-	if(isCameraActive){
-		// ------ 1. マウス移動で回転 ------
-		float mouseSensitivity = 0.005f;
-		m_EditorCameraRotation.y += io.MouseDelta.x * mouseSensitivity; // yaw
-		m_EditorCameraRotation.x += io.MouseDelta.y * mouseSensitivity; // pitch
-
-		// ピッチ制限
-		const float pitchLimit = DirectX::XM_PIDIV2 - 0.01f;
-		if(m_EditorCameraRotation.x > pitchLimit) m_EditorCameraRotation.x = pitchLimit;
-		if(m_EditorCameraRotation.x < -pitchLimit) m_EditorCameraRotation.x = -pitchLimit;
-
-		// 回転から方向ベクトル取得
-		TransformComponent transform;
-		transform.position = m_EditorCameraPosition;
-		transform.SetRotationEuler(m_EditorCameraRotation);
-		Vector3 front = transform.front();
-		Vector3 right = transform.right();
-		Vector3 up = Vector3(0,1,0);
-
-		if(ImGui::IsKeyDown(ImGuiKey_W)) velocity += front;
-		if(ImGui::IsKeyDown(ImGuiKey_S)) velocity -= front;
-		if(ImGui::IsKeyDown(ImGuiKey_A)) velocity -= right;
-		if(ImGui::IsKeyDown(ImGuiKey_D)) velocity += right;
-		if(ImGui::IsKeyDown(ImGuiKey_Q) || ImGui::IsKeyDown(ImGuiKey_LeftShift)) velocity -= up;
-		if(ImGui::IsKeyDown(ImGuiKey_E) || ImGui::IsKeyDown(ImGuiKey_Space)) velocity += up;
-		if(velocity.length() > 0.0f){
-			m_EditorCameraPosition += velocity.normalize() * speed * deltaTime;
+	if (mouseOnEditor) {
+		ImGuiIO& io = ImGui::GetIO();
+		// マウス右クリックで操作有効
+		static bool isCameraActive = false;
+		if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+			isCameraActive = true;
+		} else if (!ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
+			isCameraActive = false;
 		}
-	} else if(mouseOnEditor){
-
-		TransformComponent transform;
-		transform.position = m_EditorCameraPosition;
-		transform.SetRotationEuler(m_EditorCameraRotation);
-
-		Vector3 front = transform.front();
-		Vector3 right = transform.right();
-		Vector3 up = transform.up();
-
-		if(ImGui::IsMouseDown(ImGuiMouseButton_Middle)){
-			float panSensitivity = 0.1f;
-			m_EditorCameraPosition -= right * io.MouseDelta.x * panSensitivity;
-			m_EditorCameraPosition += up * io.MouseDelta.y * panSensitivity;
-		}
-
-		if(m_MouseWheel != 0.0f){
-			m_EditorCameraPosition += front * m_MouseWheel * 2.0f;
+		// 入力で動かすベクトル
+		Vector3 velocity = { 0,0,0 };
+		float speed = 1.0f;
+		if (isCameraActive) {
+			// ------ 1. マウス移動で回転 ------
+			float mouseSensitivity = 0.005f;
+			m_EditorCameraRotation.y += io.MouseDelta.x * mouseSensitivity; // yaw
+			m_EditorCameraRotation.x += io.MouseDelta.y * mouseSensitivity; // pitch
+			// ピッチ制限
+			const float pitchLimit = DirectX::XM_PIDIV2 - 0.01f;
+			if (m_EditorCameraRotation.x > pitchLimit) m_EditorCameraRotation.x = pitchLimit;
+			if (m_EditorCameraRotation.x < -pitchLimit) m_EditorCameraRotation.x = -pitchLimit;
+			// 回転から方向ベクトル取得
+			TransformComponent transform;
+			transform.position = m_EditorCameraPosition;
+			transform.SetRotationEuler(m_EditorCameraRotation);
+			Vector3 front = transform.front();
+			Vector3 right = transform.right();
+			Vector3 up = Vector3(0, 1, 0);
+			if (ImGui::IsKeyDown(ImGuiKey_W)) velocity += front;
+			if (ImGui::IsKeyDown(ImGuiKey_S)) velocity -= front;
+			if (ImGui::IsKeyDown(ImGuiKey_A)) velocity -= right;
+			if (ImGui::IsKeyDown(ImGuiKey_D)) velocity += right;
+			if (ImGui::IsKeyDown(ImGuiKey_Q) || ImGui::IsKeyDown(ImGuiKey_LeftShift)) velocity -= up;
+			if (ImGui::IsKeyDown(ImGuiKey_E) || ImGui::IsKeyDown(ImGuiKey_Space)) velocity += up;
+			if (velocity.length() > 0.0f) {
+				m_EditorCameraPosition += velocity.normalize() * speed * deltaTime;
+			}
+		} else {
+			TransformComponent transform;
+			transform.position = m_EditorCameraPosition;
+			transform.SetRotationEuler(m_EditorCameraRotation);
+			Vector3 front = transform.front();
+			Vector3 right = transform.right();
+			Vector3 up = transform.up();
+			if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)) {
+				float panSensitivity = 0.1f;
+				m_EditorCameraPosition -= right * io.MouseDelta.x * panSensitivity;
+				m_EditorCameraPosition += up * io.MouseDelta.y * panSensitivity;
+			}
+			if (m_MouseWheel != 0.0f) {
+				m_EditorCameraPosition += front * m_MouseWheel * 2.0f;
+			}
 		}
 	}
+}
+
+
+void RenderSystem::Draw(){
+
+	if(*showPlayer){
+
+		PlayerView();
+
+	} else{
+
+		Vector2 ScreenSize = Vector2(
+			(float)m_context->renderer->GetGraphicsContext()->m_width,
+			(float)m_context->renderer->GetGraphicsContext()->m_height
+		);
+		m_context->PlayerScreenSize = ScreenSize;
+
+		CameraEntityData cameraEntity = FindCameraEntity();
+		if (!cameraEntity.cameraComponent) {
+			return;
+		}
+		RenderPassContext renderPassContext(
+			RenderPhase::PHASE_GBUFFER,
+			playerRenderLayerVisible,
+			cameraEntity,
+			ScreenSize
+		);
+		m_PlayerPass->Execute(renderPassContext);
+		if (!m_PlayerPass->result) {
+			return;
+		}
+
+		float clearColor[4] = { 1.0f,1.0f,1.0f,1.0f };
+		m_context->graphics->ResetViewport();
+		m_context->graphics->Clear(clearColor);
+		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
+		m_context->graphics->SetWorldViewProjection2D();
+		m_context->graphics->DrawQuad(&copyShader, m_PlayerPass->result);
+	}
+	if(*showEditor){
+		EditorView();
+	}
+
+	m_context->graphics->ResetViewport();
+	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
+
 }
 
 void RenderSystem::DrawRenderLayerToggleUI() {

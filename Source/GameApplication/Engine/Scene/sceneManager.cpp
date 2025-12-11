@@ -12,18 +12,22 @@
 #include "Registry/systemRegistry.h"
 
 #include "System/inspectorSystem.h"
-#include "System/transformSystem.h"
-#include "System/RenderSystem/renderSystem.h"
-#include "System/cameraSystem.h"
-#include "System/terrainSystem.h"
-#include "System/C#ScriptSystem.h"
-#include "System/CustomScriptSystem.h"
-#include "System/lightSystem.h"
-#include "System/particleSystem.h"
-#include "System/audioSystem.h"
-#include "System/physicSystem.h"
-#include "System/effectSystem.h"
-#include "System/waveSystem.h"
+#include "System/Transform/transformSystem.h"
+
+#include "System/Render/RenderSystem/renderSystem.h"
+#include "System/Render/Camera/cameraSystem.h"
+#include "System/Render/Effect/effectSystem.h"
+#include "System/Render/Terrain/waveSystem.h"
+#include "System/Render/Terrain/terrainSystem.h"
+#include "System/Render/Particle/particleSystem.h"
+
+#include "System/Script/C#ScriptSystem.h"
+#include "System/Script/CustomScriptSystem.h"
+
+#include "System/Audio/audioSystem.h"
+
+#include "System/Physic/physicSystem.h"
+
 
 void SceneManager::Initialize(SceneManagerContext sceneContext){
 	
@@ -40,7 +44,6 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 
 	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<LightSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<AudioSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));

@@ -6,14 +6,6 @@
 #include "sceneManager.h"
 #include "DebugTools/debugSystem.h"
 
-#include "Resources/resourceService.h"
-#include "Resources/Data/modelData.h"
-#include "Resources/Loader/modelLoader.h"
-#include "Resources/Loader/shaderLoader.h"
-#include "Resources/Loader/textureLoader.h"
-#include "Resources/Data/vertexShaderData.h"
-#include "Resources/Data/pixelShaderData.h"
-
 #include "Registry/entityRegistry.h"
 #include "Registry/componentRegistry.h"
 

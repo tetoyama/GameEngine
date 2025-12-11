@@ -11,7 +11,8 @@
 #include "Graphics/mainRenderer.h"
 #include "Resources/resourceService.h"
 #include "Audio/audioContext.h"
-#include "../../Service/Config/ConfigSystem.h"
+#include "Config/ConfigSystem.h"
+#include "Engine/Editor/editorService.h"
 
 std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 
@@ -20,6 +21,10 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 	// ConfigSystem 登録
 	auto configSystem = std::make_shared<ConfigSystem>();
 	context->Register<ConfigSystem>(configSystem);
+
+	// EditorService 登録
+	auto editorService = std::make_shared<EditorService>();
+	context->Register<EditorService>(editorService);
 
 	// WindowService 登録
 	auto windowSystem = std::make_shared<WindowService>();
@@ -57,7 +62,7 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 	auto resourceSystem = std::make_shared<ResourceService>();
 	context->Register<ResourceService>(resourceSystem);
 
-	// SceneManager 登録
+	//SceneManager 登録
 	auto sceneManager = std::make_shared<SceneManager>();
 	context->Register<SceneManager>(sceneManager);
 

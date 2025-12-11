@@ -18,6 +18,7 @@ class ResourceService;
 class DebugLogSystem;
 class ImGuiService;
 class ConfigSystem;
+class EditorService;
 
 class SystemRegistry;
 
@@ -41,6 +42,7 @@ struct SceneManagerContext {
 	DebugLogSystem* debug = nullptr;
 	ImGuiService* imgui = nullptr;
 	ConfigSystem* config = nullptr;
+	EditorService* editor = nullptr;
 	HWND hwnd = nullptr;
 };
 

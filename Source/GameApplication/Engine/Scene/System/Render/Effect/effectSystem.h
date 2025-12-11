@@ -46,7 +46,7 @@ public:
 				auto* comp = context->component->GetComponent<EffectComponent>(entity);
 				if (!comp) continue;
 
-				// AudioDataロードはSystem側でやる
+				// EffectDataロードはSystem側でやる
 				if (!comp->m_EffectData && !comp->FilePath.empty()) {
 					comp->m_EffectData = m_context->resource->Load<EffectData>(comp->FilePath);
 				}
@@ -62,9 +62,8 @@ public:
 	}
 
 	void FixedUpdate(float dt) override {}
-	void Draw() override {
+	void Draw() override {}
 
-	}
 	void EditorUpdate(float dt) override {
 		m_context->graphics->GetEffectManager()->BeginUpdate();
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {

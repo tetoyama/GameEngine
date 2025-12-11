@@ -22,7 +22,9 @@
 #include "Scene/scene.h"
 
 #include "Resources/resourceService.h"
-#include "EditorUI/ImGuiMainManuBar.h"
+
+#include "Editor/editorService.h"
+#include "Editor/UI/ImGuiMainManuBar.h"
 
 #include "../../Service/Config/ConfigSystem.h"
 
@@ -38,15 +40,28 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     // デバッグ出力システム取得・初期化
     auto debugLogSystem = context->Get<DebugLogSystem>();
 	auto imguiService = context->Get<ImGuiService>();
+	auto editorService = context->Get<EditorService>();
+	auto inputService = context->Get<InputService>();
+	auto windowService = context->Get<WindowService>();
+	auto configSystem = context->Get<ConfigSystem>();
+	auto timeService = context->Get<TimeService>();
+	auto graphicsContext = context->Get<GraphicsContext>();
+	auto resourceService = context->Get<ResourceService>();
+	auto mainRenderer = context->Get<MainRenderer>();
+	auto sceneManager = context->Get<SceneManager>();
+
+	// エディタ初期化
+	if (!editorService) {
+		return;
+	}
+	editorService->Initialize();
 
     if(!debugLogSystem){
-        OutputDebugStringA("DebugLogSystem サービスの取得に失敗しました。\n");
         return;
     }
-    debugLogSystem->Initialize(&imguiService->GetManubar()->showConsole);
+    debugLogSystem->Initialize(&editorService->GetManubar()->showConsole);
     debugLogSystem->LOG_INFO("DebugLogSystemが起動しました");
 
-	auto configSystem = context->Get<ConfigSystem>();
 	if(!configSystem || !configSystem->Initialize()){
 		OutputDebugStringA("configSystem の初期化に失敗しました。\n");
 		return;
@@ -54,7 +69,6 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	debugLogSystem->LOG_DEBUG("configSystemが正常に作成されました");
 
     // ウィンドウシステム初期化
-    auto windowService = context->Get<WindowService>();
     if (!windowService || !windowService->Initialize(hInstance, nCmdShow)) {
         OutputDebugStringA("WindowService の初期化に失敗しました。\n");
         return;
@@ -67,7 +81,6 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	debugLogSystem->LOG_DEBUG("TaskBarが正常に作成されました");
 
     // 時間管理サービスの初期化
-    auto timeService = context->Get<TimeService>();
     if (!timeService) return;
     timeService->Initialize();
     debugLogSystem->LOG_DEBUG("TimeServiceが正常に作成されました");
@@ -81,7 +94,6 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	debugLogSystem->LOG_DEBUG("AudioContextが正常に作成されました");
 
     // DirectX 描画コンテキスト初期化
-    auto graphicsContext = context->Get<GraphicsContext>();
     if (!graphicsContext || 
         !graphicsContext->Initialize(windowService->GetMainWindow()->GetHWND(), DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)) {
         OutputDebugStringA("GraphicsContext の初期化に失敗しました。\n");
@@ -90,13 +102,11 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     debugLogSystem->LOG_DEBUG("GraphicsContextが正常に作成されました");
 
     // リソース管理初期化
-    auto resourceService = context->Get<ResourceService>();
     if(!resourceService) return;
     resourceService->Initialize(graphicsContext.get(), audioContext.get());
     debugLogSystem->LOG_DEBUG("ResourceServiceが正常に作成されました");
 
     // 入力処理初期化
-    auto inputService = context->Get<InputService>();
     if (!inputService) return;
     inputService->Initialize(windowService->GetMainWindow()->GetHWND());
     debugLogSystem->LOG_DEBUG("InputServiceが正常に作成されました");
@@ -110,7 +120,6 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     debugLogSystem->LOG_DEBUG("ImGuiSystemが正常に作成されました");
 
     // メインレンダラー初期化
-    auto mainRenderer = context->Get<MainRenderer>();
     if (!mainRenderer) return;
     mainRenderer->Initialize(graphicsContext.get(), windowService->GetMainWindow().get());
     debugLogSystem->LOG_DEBUG("MainRendererが正常に作成されました");
@@ -124,7 +133,6 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     }
 
     // シーンマネージャ初期化
-    auto sceneManager = context->Get<SceneManager>();
     if (!sceneManager) return;
 
 	// シーンマネージャコンテキストの設定
@@ -139,13 +147,14 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	sceneManagerContext.imgui = imguiService.get();
 	sceneManagerContext.sceneManager = sceneManager.get();
 	sceneManagerContext.config = configSystem.get();
+	sceneManagerContext.editor = editorService.get();
 
 	// SceneManagerの初期化
 	sceneManager->Initialize(sceneManagerContext);
 	debugLogSystem->LOG_DEBUG("SceneManagerが正常に作成されました");
 
     // ImGuiメニューバー操作にイベントを登録
-    auto manubar = imguiService->GetManubar();
+    auto manubar = editorService->GetManubar();
     manubar->Register(MenuEvent::File_Exit, [windowService](){
 		windowService->GetMainWindow()->Close(); 
 					  });
@@ -232,6 +241,14 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		OutputDebugStringA("SceneManager サービスの取得に失敗しました。\n");
 		return;
 	}
+
+	auto editorService = context->Get<EditorService>();
+	if (!editorService) {
+		OutputDebugStringA("EditorService サービスの取得に失敗しました。\n");
+		return;
+	}
+
+
 	debugLogSystem->LOG_DEBUG("EngineContextの取得が完了しました");
 
 
@@ -270,16 +287,21 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		}
 		
 		{	// Draw
-			double Update = timeService->GetDeltaUpdateTime();
-			double Draw = timeService->GetDrawTime();
-
 			mainRenderer->BeginFrame();
 			imguiService->Begin();
 			{
-				imguiService->DrawDebugImGuiWindow(Update * 1000.0f, Draw * 1000.0f, timeService->GetFixedUpdateFPS(), timeService->GetDeltaFPS());
+				EditorDrawContext editorDrawContext{};
+				editorDrawContext.editor = editorService.get();
+				editorDrawContext.UpdateTime = timeService->GetDeltaUpdateTime();
+				editorDrawContext.DrawTime = timeService->GetDrawTime();
+				editorDrawContext.FPS = timeService->GetDeltaFPS();
+				editorDrawContext.DeltaFPS = timeService->GetFixedUpdateFPS();
+				editorService->Draw(editorDrawContext);
 
 				sceneManager->Draw();
 				debugLogSystem->Draw();
+
+
 			}
 			imguiService->End();
 			mainRenderer->EndFrame(0);

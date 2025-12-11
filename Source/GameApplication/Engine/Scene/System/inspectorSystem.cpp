@@ -19,7 +19,8 @@
 #include "../scene.h"
 #include "../sceneManager.h"
 #include "DebugTools/ImGuiSystem.h"
-#include "EditorUI/ImGuiMainManuBar.h"
+#include "Editor/editorService.h"
+#include "Editor/UI/ImGuiMainManuBar.h"
 #include <Component/textureComponent.h>
 #include <Component/cameraComponent.h>
 #include "DebugTools/DebugSystem.h" // Add this include to resolve the incomplete type issue
@@ -124,12 +125,12 @@ void InspectorSystem::ClearPreviewChache() {
 
 // メインの更新関数
 void InspectorSystem::Draw(){
-	//CreateDockSpace();
+	CreateDockSpace();
 
-	showSceneHierarchy = &m_context->imgui->GetManubar()->showSceneHierarchy;
-	showInspector = &m_context->imgui->GetManubar()->showInspector;
-	showAssetsBrowser = &m_context->imgui->GetManubar()->showAssetsBrowser;
-	showConsole = &m_context->imgui->GetManubar()->showConsole;
+	showSceneHierarchy = &m_context->editor->GetManubar()->showSceneHierarchy;
+	showInspector = &m_context->editor->GetManubar()->showInspector;
+	showAssetsBrowser = &m_context->editor->GetManubar()->showAssetsBrowser;
+	showConsole = &m_context->editor->GetManubar()->showConsole;
 
 	if(*showSceneHierarchy) DrawSceneHierarchy(m_context);
 	if(*showInspector) DrawInspector(m_InspectorContext);
@@ -603,7 +604,7 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 
 	TransformComponent* transform = registry->GetComponent<TransformComponent>(selectedEntity);
 
-	if(transform && m_context->imgui->GetManubar()->showEditorView){
+	if(transform && m_context->editor->GetManubar()->showEditorView){
 
 		DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform,context->component);
 

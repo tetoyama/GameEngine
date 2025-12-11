@@ -27,7 +27,6 @@ void DebugLogSystem::Shutdown(){
 }
 void DebugLogSystem::Draw(){
 	logWindow->Draw();
-
 }
 
 void DebugLogSystem::AddSink(std::shared_ptr<ILogSink> sink){
@@ -193,8 +192,6 @@ void ImGuiLogWindow::Draw(){
 
 			}
 			ImGui::EndChild();
-
-
 		}
 		ImGui::End();
 	}

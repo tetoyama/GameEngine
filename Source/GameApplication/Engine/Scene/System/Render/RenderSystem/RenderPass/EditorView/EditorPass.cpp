@@ -1,5 +1,5 @@
-#include "PlayerPass.h"
-#include "System/RenderSystem/renderSystem.h"
+#include "EditorPass.h"
+#include "System/Render/RenderSystem/renderSystem.h"
 #include "sceneManager.h"
 #include "../RenderPassContext.h"
 #include "../../renderPhase.h"
@@ -7,8 +7,8 @@
 #include "../ShadowMap/ShadowMapPass.h"
 
 #include "scene.h"
-#include "System/RenderSystem/Renderable/IRenderable.h"
-#include "System/RenderSystem/RenderTarget/renderTarget.h"
+#include "System/Render/RenderSystem/Renderable/IRenderable.h"
+#include "System/Render/RenderSystem/RenderTarget/renderTarget.h"
 #include "Component/transformComponent.h"
 #include "Registry/componentRegistry.h"
 
@@ -20,23 +20,25 @@
 #include "Component/cameraComponent.h"
 #include "Component/LightComponent.h"
 
-#include "System/RenderSystem/Renderable/Model/RenderableModel.h"
-#include "System/RenderSystem/Renderable/BillBoard/RenderableBillBoard.h"
-#include "System/RenderSystem/Renderable/Mesh/RenderableMesh.h"
-#include "System/RenderSystem/Renderable/Particle/RenderableParticle.h"
-#include "System/RenderSystem/Renderable/Sprite/RenderableSprite.h"
-#include "System/RenderSystem/Renderable/Terrain/RenderableTerrain.h"
-#include "System/RenderSystem/Renderable/Wave/RenderableWave.h"
+#include "System/Render/RenderSystem/Renderable/Model/RenderableModel.h"
+#include "System/Render/RenderSystem/Renderable/BillBoard/RenderableBillBoard.h"
+#include "System/Render/RenderSystem/Renderable/Mesh/RenderableMesh.h"
+#include "System/Render/RenderSystem/Renderable/Particle/RenderableParticle.h"
+#include "System/Render/RenderSystem/Renderable/Sprite/RenderableSprite.h"
+#include "System/Render/RenderSystem/Renderable/Terrain/RenderableTerrain.h"
+#include "System/Render/RenderSystem/Renderable/Wave/RenderableWave.h"
 #include <queue>
 #include <Component/outlineComponent.h>
 #include <Component/bumpMapComponent.h>
 #include <PhysX/PxScene.h>
-#include <System/physicSystem.h>
+#include <System/Physic/physicSystem.h>
 #include <Component/textureComponent.h>
+
 
 #include "Backends/convertMatrix.h"
 
-void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
+
+void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 
 	m_renderSystem = renderSystem;
 	m_context = context;
@@ -77,7 +79,7 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	);
 }
 
-void PlayerPass::Finalize() {
+void EditorPass::Finalize() {
 
 
 	pPhysicsDebugLineVB->Release();
@@ -94,7 +96,7 @@ void PlayerPass::Finalize() {
 	playerRenderTarget = nullptr;
 }
 
-void PlayerPass::Execute(const RenderPassContext& ctx) {
+void EditorPass::Execute(const RenderPassContext& ctx) {
 
 	shadowMapPass->Execute(ctx);
 
@@ -178,6 +180,66 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	m_context->graphics->GetEffectManager()->Draw();
 	m_context->graphics->GetEffectRenderer()->EndRendering();
 
+	//PhysX
+	if (pRenderLayer[(int)RenderLayer::Debug]) {
+
+		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+			auto context = scene->GetSceneContext();
+			auto physics = m_context->systemRegistry->GetSystem<PhysicSystem>();
+			const physx::PxRenderBuffer& rb = physics->GetRenderBuffer();
+
+			// 色変換関数
+			auto ConvertColor = [](physx::PxU32 c) {
+				float a = ((c >> 24) & 0xFF) / 255.0f;
+				float r = ((c >> 16) & 0xFF) / 255.0f;
+				float g = ((c >> 8) & 0xFF) / 255.0f;
+				float b = ((c >> 0) & 0xFF) / 255.0f;
+				return DirectX::XMFLOAT4(r, g, b, a);
+			};
+
+			std::vector<VERTEX_3D> vertices;
+			for (physx::PxU32 i = 0; i < rb.getNbLines(); i++) {
+				const physx::PxDebugLine& line = rb.getLines()[i];
+
+				VERTEX_3D v0;
+				v0.Position = DirectX::XMFLOAT3(line.pos0.x, line.pos0.y, line.pos0.z);
+				v0.Diffuse = ConvertColor(line.color0);
+
+				VERTEX_3D v1;
+				v1.Position = DirectX::XMFLOAT3(line.pos1.x, line.pos1.y, line.pos1.z);
+				v1.Diffuse = ConvertColor(line.color1);
+
+				vertices.push_back(v0);
+				vertices.push_back(v1);
+			}
+
+			if (vertices.empty() || vertices.size() >= maxLineCount) continue;
+
+			ID3D11Device* device = graphicsContext->GetDevice();
+			ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
+			// 頂点バッファ更新
+			D3D11_MAPPED_SUBRESOURCE mapped;
+			deviceContext->Map(pPhysicsDebugLineVB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+			memcpy(mapped.pData, vertices.data(), sizeof(VERTEX_3D) * vertices.size());
+			deviceContext->Unmap(pPhysicsDebugLineVB, 0);
+
+			graphicsContext->SetWorldMatrix(DirectX::XMMatrixIdentity());
+
+			UINT stride = sizeof(VERTEX_3D);
+			UINT offset = 0;
+			deviceContext->IASetVertexBuffers(0, 1, &pPhysicsDebugLineVB, &stride, &offset);
+			deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+
+			// シェーダーをセット（通常のカラー付き頂点用のものを使用）
+			deviceContext->VSSetShader(m_LineVertexShader->m_VertexShader.Get(), nullptr, 0);
+			deviceContext->PSSetShader(m_LinePixelShader->m_PixelShader.Get(), nullptr, 0);
+
+			// 描画
+			deviceContext->Draw(static_cast<UINT>(vertices.size()), 0);
+		}
+	}
+
 	std::vector<PostProcessNode> postNodes;
 	std::unordered_map<int, int> effectIndexToPostNodeIndex; // camera->postEffects idx → postNodes idx
 
@@ -253,5 +315,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	} else {
 		result = initialSRV;
 	}
+
+	//ImGui::Image((ImTextureRef)result, ImVec2(ctx.screenSize.x, ctx.screenSize.y));
 }
 

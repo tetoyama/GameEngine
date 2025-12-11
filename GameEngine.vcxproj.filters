@@ -1845,10 +1845,10 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Registry\entityRegistry.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\transformSystem.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Transform\transformSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderSystem.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\transformComponent.h">
@@ -1923,7 +1923,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\cameraComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\cameraSystem.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Camera\cameraSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\IComponentStorage.h">
@@ -1962,7 +1962,7 @@
     <ClInclude Include="Source\GameApplication\Backends\ImGui\stb_image.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\EditorUI\ImGuiMainManuBar.h">
+    <ClInclude Include="Source\GameApplication\Engine\Editor\UI\ImGuiMainManuBar.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\yaml.h">
@@ -2154,7 +2154,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\C#ScriptComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\C#ScriptSystem.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Script\C#ScriptSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\bumpMapComponent.h">
@@ -2181,7 +2181,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\CustomScriptComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\CustomScriptSystem.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Script\CustomScriptSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\SetScene.h">
@@ -2190,13 +2190,10 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\particleComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\particleSystem.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Particle\particleSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\LightComponent.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\lightSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Backends\ImGuiFunc.h">
@@ -2220,7 +2217,7 @@
     <ClInclude Include="Source\GameApplication\Service\Audio\audioContext.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\audioSystem.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Audio\audioSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\ScoreManager.h">
@@ -2238,7 +2235,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\PlayerController.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\physicSystem.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Physic\physicSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\effectData.h">
@@ -2247,7 +2244,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\effectLoader.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\effectSystem.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Effect\effectSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\ColliderComponent.h">
@@ -2292,13 +2289,13 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\terrainComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\terrainSystem.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Terrain\terrainSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\waveComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\waveSystem.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Terrain\waveSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Backends\convertWString.h">
@@ -2310,58 +2307,67 @@
     <ClInclude Include="Source\Shader\commonDefine.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\IRenderable.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\IRenderable.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderPhase.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderPhase.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\cameraEntityData.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\cameraEntityData.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderTarget\renderTarget.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderTarget\renderTarget.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\IRenderPass.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\IRenderPass.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Mesh\RenderableMesh.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Mesh\RenderableMesh.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Model\RenderableModel.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Model\RenderableModel.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\BillBoard\RenderableBillBoard.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\BillBoard\RenderableBillBoard.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Sprite\RenderableSprite.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Sprite\RenderableSprite.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Particle\RenderableParticle.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Particle\RenderableParticle.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Terrain\RenderableTerrain.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Terrain\RenderableTerrain.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Wave\RenderableWave.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Wave\RenderableWave.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\GBuffer\GBufferPass.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\GBuffer\GBufferPass.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\ShadowMap\ShadowMapPass.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\ShadowMap\ShadowMapPass.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\RenderPassContext.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\RenderPassContext.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\EditorView\EditorPass.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\EditorView\EditorPass.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\PlayerView\PlayerPass.h">
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PlayerView\PlayerPass.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Backends\convertMatrix.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Editor\editorService.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Editor\UI\DebugWindow.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Editor\InterFace\IEditorUI.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
@@ -2618,10 +2624,10 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\sceneManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\transformSystem.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Transform\transformSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\renderSystem.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Service\DebugTools\debugSystem.cpp">
@@ -2630,7 +2636,7 @@
     <ClCompile Include="Source\GameApplication\Backends\checkFileExtention.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\cameraSystem.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\Camera\cameraSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Resources\Data\modelData.cpp">
@@ -2648,7 +2654,7 @@
     <ClCompile Include="Source\GameApplication\Backends\ImGui\ImGuizmo.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\EditorUI\ImGuiMainManuBar.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Editor\UI\ImGuiMainManuBar.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\contrib\graphbuilder.cpp">
@@ -2747,7 +2753,7 @@
     <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\tag.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\C#ScriptSystem.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\C#ScriptSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Backends\Icon\icon.cpp">
@@ -2756,19 +2762,16 @@
     <ClCompile Include="Source\GameApplication\Backends\Taskbar\taskbar.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\CustomScriptSystem.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\CustomScriptSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\particleSystem.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\lightSystem.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\Particle\particleSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Backends\ImGuiFunc.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\physicSystem.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Physic\physicSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Service\Graphics\renderEffectSystem.cpp">
@@ -2777,43 +2780,49 @@
     <ClCompile Include="Source\GameApplication\Backends\ImGui\imnodes.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderTarget\renderTarget.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderTarget\renderTarget.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Model\RenderableModel.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Model\RenderableModel.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Mesh\RenderableMesh.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Mesh\RenderableMesh.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\BillBoard\RenderableBillBoard.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\BillBoard\RenderableBillBoard.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Sprite\RenderableSprite.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Sprite\RenderableSprite.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Particle\RenderableParticle.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Particle\RenderableParticle.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Terrain\RenderableTerrain.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Terrain\RenderableTerrain.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\Renderable\Wave\RenderableWave.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Wave\RenderableWave.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\GBuffer\GBufferPass.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\GBuffer\GBufferPass.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\ShadowMap\ShadowMapPass.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\ShadowMap\ShadowMapPass.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\RenderPassContext.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\RenderPassContext.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\PlayerView\PlayerPass.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PlayerView\PlayerPass.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\RenderSystem\RenderPass\EditorView\EditorPass.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\EditorView\EditorPass.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Editor\editorService.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Editor\UI\DebugWindow.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>

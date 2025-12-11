@@ -9,7 +9,7 @@
 
 #include "DebugTools/ImGuiSystem.h"
 #include "Scene/sceneManager.h"
-#include "Scene/System/RenderSystem/RenderPass/RenderPassContext.h"
+#include "System/Render/RenderSystem/RenderPass/RenderPassContext.h"
 
 #include "2DspriteRendererComponent.h"
 
