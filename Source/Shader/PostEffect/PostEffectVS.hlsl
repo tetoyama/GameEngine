@@ -4,7 +4,10 @@ void main(in VS_IN In, out PS_IN Out)
 {
 
     Out.Position = In.Position;
-    Out.TexCoord = In.TexCoord;
+    Out.TexCoord = float2(
+        (In.Position.x * 0.5f) + 0.5f,
+        (-In.Position.y * 0.5f) + 0.5f
+    );
 
     Out.Normal = float4(0, 0, 0, 0);
     Out.Tangent = float4(0, 0, 0, 0);

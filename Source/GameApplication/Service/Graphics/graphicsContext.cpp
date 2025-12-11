@@ -630,11 +630,11 @@ bool GraphicsContext::CreateD2DResources(HWND hwnd){
 bool GraphicsContext::CreateFullScreenQuad(){
 	VERTEX_3D fullscreenVertices[] = {
 		{ {-1,-1,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {0,1} },
-		{ {-1, 1,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {0,0} },
-		{ { 1,-1,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {1,1} },
+		{ {-1, 3,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {0,0} },
+		{ { 3,-1,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {1,1} },
 		{ { 1, 1,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {1,0} },
 	};
-	UINT fullscreenIndices[] = {0,1,2, 2,1,3};
+	UINT fullscreenIndices[] = {0,1,2};
 
 	// VB
 	D3D11_BUFFER_DESC vbDesc = {};
