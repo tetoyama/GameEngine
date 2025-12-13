@@ -1,7 +1,8 @@
 #pragma once
 #include <backends/yaml-cpp/yaml.h>
+#include "buildSetting.h"
 
-#ifdef _DEBUG
+#ifdef _DEBUG_BUILD
 #pragma comment(lib,"yaml-cppd.lib")
 #else
 #pragma comment(lib,"yaml-cpp.lib")

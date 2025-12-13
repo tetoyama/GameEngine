@@ -1,4 +1,5 @@
 #pragma once
+#include "buildSetting.h"
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -7,7 +8,7 @@
 #include "Editor/editorService.h"
 #include "Editor/InterFace/IEditorUI.h"
 
-#ifdef _DEBUG
+#ifdef _DEBUG_BUILD
 #define IMGUI_SHOW_DEFAULT (true)
 #else
 #define IMGUI_SHOW_DEFAULT (false)

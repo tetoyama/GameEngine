@@ -16,9 +16,11 @@ void DebugLogSystem::Initialize(bool* isOpen){
 	// 必要であればファイルログなどの初期化
 	auto memorySink = std::make_shared<MemoryLogSink>();
 	AddSink(memorySink);
-	logWindow = std::make_shared<ImGuiLogWindow>();
-	logWindow->SetLogSource(memorySink);
-	logWindow->SetOpenControl(isOpen);
+	if(isOpen){
+		logWindow = std::make_shared<ImGuiLogWindow>();
+		logWindow->SetLogSource(memorySink);
+		logWindow->SetOpenControl(isOpen);
+	}
 }
 
 void DebugLogSystem::Shutdown(){
@@ -26,7 +28,9 @@ void DebugLogSystem::Shutdown(){
 	sinks.clear();
 }
 void DebugLogSystem::Draw(){
-	logWindow->Draw();
+	if(logWindow){
+		logWindow->Draw();
+	}
 }
 
 void DebugLogSystem::AddSink(std::shared_ptr<ILogSink> sink){

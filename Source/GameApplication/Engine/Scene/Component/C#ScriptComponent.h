@@ -1,4 +1,6 @@
 #pragma once  
+#include "buildSetting.h"
+
 #include "Interface/IComponent.h"  
 #include <string>  
 #include <memory>  
@@ -7,7 +9,7 @@
 
 #include "Backends/ScriptWrapper/NativeScriptHandle.h" // ← C++/CLI DLL プロジェクトのヘッダー
 
-#ifdef _DEBUG
+#ifdef _DEBUG_BUILD
 	#pragma comment(lib, "x64/Debug/ScriptWrapper.lib") // Debugビルド用
 #else
 	#pragma comment(lib, "x64/Release/ScriptWrapper.lib") // Releaseビルド用

@@ -69,7 +69,7 @@ Entities:
         PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 9800.35352
+        AnimationTime: 27435.4922
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -94,9 +94,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: -22.7324333
-          y: 47.0735512
-          z: -34.5963287
+          x: -57.9702225
+          y: 98.402626
+          z: -49.2228851
           w: 0
         Direction:
           x: 0.454648674
@@ -114,26 +114,26 @@ Entities:
           z: 0
           w: 1
         Param:
-          x: 500
+          x: 1000
           y: 0
           z: 0
           w: 0
         LightView:
           -
-            - 0.540302277
+            - 0.540302217
             - 0
             - -0.841470957
-            - -16.8294182
+            - -10.0981884
           -
             - 0.708073437
-            - 0.540302277
-            - 0.454648703
-            - 6.39146042
+            - 0.540302217
+            - 0.454648644
+            - 10.2591381
           -
             - 0.454648674
             - -0.841471016
-            - 0.291926563
-            - 60.045887
+            - 0.291926533
+            - 123.528511
           -
             - 0
             - 0
@@ -141,20 +141,20 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0399999991
+            - 0.0199999996
             - 0
             - 0
             - 0
           -
             - 0
-            - 0.0399999991
+            - 0.0199999996
             - 0
             - 0
           -
             - 0
             - 0
-            - 0.0100100096
-            - -0.00100100099
+            - 0.00500250142
+            - -0.000500250142
           -
             - 0
             - 0
@@ -212,21 +212,21 @@ Entities:
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
-        AnimationTime: 9800.35352
+        AnimationTime: 27435.4922
   - Entity: 4
     Components:
       - Component: NameComponent
         Name: Player
       - Component: TransformComponent
         Position:
-          x: 3.49707818
-          y: -9.69494522e-07
-          z: 10.3782835
+          x: 4.44993639
+          y: -6.71669227e-07
+          z: 10.4660158
         Rotation:
           - 0
-          - 0.288383365
+          - -0.678943515
           - 0
-          - 0.957515121
+          - 0.734190583
         Scale:
           x: 0.0100000016
           y: 0.00999999978
@@ -255,7 +255,7 @@ Entities:
         PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 9800.35352
+        AnimationTime: 27435.4922
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           mixamo.com: Asset\Model\Akai_Run.fbx
@@ -279,62 +279,159 @@ Entities:
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: 2.84300923
-          y: 5.65572596
-          z: 7.62420654
+          x: -7.54965067
+          y: 7.01785517
+          z: 20.1926193
         Rotation:
-          - 0.437333196
-          - 0.104438327
-          - -0.0512190759
-          - 0.891744852
+          - 0
+          - 0.984848797
+          - 0
+          - 0.173415184
         Scale:
-          x: 1
-          y: 1
+          x: 0.999999881
+          y: 0.999999821
           z: 1
         Parent: 0
       - Component: CameraComponent
-        isLock: true
+        isLock: false
         Target:
-          x: 3.49707818
-          y: -9.69494522e-07
-          z: 10.3782835
+          x: 4.44993639
+          y: -6.71669227e-07
+          z: 10.4660158
         NearClip: 0.00999999978
         FarClip: 1024
         FOV: 1
         viewMatrix:
           -
-            - 0.972938478
-            - 0.206629008
-            - 0.103417389
+            - -0.93956697
+            - -0.0232330039
+            - 0.341575831
             - 0
           -
+            - -0.0247197952
+            - 0.999694407
             - 0
-            - 0.447569728
-            - -0.894249022
-            - 0
-          -
-            - -0.23106429
-            - 0.870049298
-            - 0.435457826
             - 0
           -
-            - -1.00439107
-            - -9.75221539
-            - 1.4435904
+            - -0.341471463
+            - -0.00844368432
+            - -0.939854205
+            - 0
+          -
+            - -0.0247192383
+            - -7.02061129
+            - 21.5568962
             - 1
-        nextLinkId: 1
-        nextPinId: 2
+        nextLinkId: 7
+        nextPinId: 15
+        PostEffects:
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\BrightPass.cso
+            NodePos:
+              x: 13.0870667
+              y: -55.6550903
+            InputPins:
+              - 2
+              - 4
+            OutputPin: 3
+            Param:
+              x: 0.910000026
+              y: 0
+              z: 0
+              w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\BlurHorizontal.cso
+            NodePos:
+              x: 238.087067
+              y: -56.6550903
+            InputPins:
+              - 5
+              - 7
+            OutputPin: 6
+            Param:
+              x: 10
+              y: 0
+              z: 0
+              w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\BlurVertical.cso
+            NodePos:
+              x: 462.087067
+              y: -58.6550903
+            InputPins:
+              - 8
+              - 10
+            OutputPin: 9
+            Param:
+              x: 10
+              y: 0
+              z: 0
+              w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\CompositeBloom.cso
+            NodePos:
+              x: 699.087036
+              y: 22.3449097
+            InputPins:
+              - 11
+              - 13
+              - 14
+            OutputPin: 12
+            Param:
+              x: 0.0199999996
+              y: 0
+              z: 0
+              w: 0
+        PostEffectLinks:
+          - ID: 1
+            StartNode: -1
+            EndNode: 0
+            StartAttr: -1
+            EndAttr: 2
+          - ID: 2
+            StartNode: 0
+            EndNode: 1
+            StartAttr: 3
+            EndAttr: 5
+          - ID: 3
+            StartNode: 1
+            EndNode: 2
+            StartAttr: 6
+            EndAttr: 8
+          - ID: 4
+            StartNode: 2
+            EndNode: 3
+            StartAttr: 9
+            EndAttr: 11
+          - ID: 5
+            StartNode: 3
+            EndNode: -2
+            StartAttr: 12
+            EndAttr: 1
+          - ID: 6
+            StartNode: -1
+            EndNode: 3
+            StartAttr: -1
+            EndAttr: 13
         ScreenInput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: -107.912933
+            y: 226.34491
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: 928.68689
+            y: 226.147705
           InputPins:
             - 1
       - Component: CameraController
@@ -383,7 +480,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 9800.35352
+        AnimationTime: 27435.4922
   - Entity: 7
     Components:
       - Component: NameComponent
@@ -902,4 +999,4 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 4192.05078
+        AnimationTime: 21827.2422

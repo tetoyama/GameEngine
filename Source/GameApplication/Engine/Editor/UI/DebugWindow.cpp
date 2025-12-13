@@ -37,8 +37,8 @@ void DebugWindow::Draw(EditorDrawContext ctx) {
 			CommitSizeSamples[n] = CommitSizeSamples[n + 1];
 			WorkingSetSizeSamples[n] = WorkingSetSizeSamples[n + 1];
 		}
-		FixedFpsSamples[SAMPLE_LENGTH - 1] = (float)FPS;
-		DeltaFpsSamples[SAMPLE_LENGTH - 1] = (float)DeltaFPS;
+		FixedFpsSamples[SAMPLE_LENGTH - 1] = (float)DeltaFPS;
+		DeltaFpsSamples[SAMPLE_LENGTH - 1] = (float)FPS;
 
 		UsageSamples[SAMPLE_LENGTH - 1] = 100.0f * pmc.WorkingSetSize / (pmc.WorkingSetSize + pmc.WorkingSetSize);
 		CommitSizeSamples[SAMPLE_LENGTH - 1] = pmc.PagefileUsage / 1000000.0f;
@@ -114,9 +114,9 @@ void DebugWindow::Draw(EditorDrawContext ctx) {
 			char Texts[64]{};
 			sprintf(Texts, "usage:Avg:%.2f%%", UsageAvg);
 			ImGui::PlotLines(Texts, UsageSamples, SAMPLE_LENGTH, 0, "", 0.0f, 100.0f);
-			sprintf(Texts, "Commit:%dMB", (int)pmc.PagefileUsage / 1000000);
+			sprintf(Texts, "Commit:%dMB", (int)(pmc.PagefileUsage / 1000000));
 			ImGui::PlotLines(Texts, CommitSizeSamples, SAMPLE_LENGTH, 0, "", 0.0f, pmc.PeakPagefileUsage / 1000000.0f);
-			sprintf(Texts, "Working:%dMB", (int)pmc.WorkingSetSize / 1000000);
+			sprintf(Texts, "Working:%dMB", (int)(pmc.WorkingSetSize / 1000000));
 			ImGui::PlotLines(Texts, WorkingSetSizeSamples, SAMPLE_LENGTH, 0, "", 0.0f, pmc.PeakWorkingSetSize / 1000000.0f);
 			ImGui::TreePop();
 		}

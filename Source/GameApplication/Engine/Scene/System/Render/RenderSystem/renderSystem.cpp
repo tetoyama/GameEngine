@@ -1,5 +1,6 @@
 // Scene/System/renderSystem.cpp
 #include "renderSystem.h"
+#include "buildSetting.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -88,6 +89,7 @@ void RenderSystem::Initialize(){
 
 	ID3D11Device* device = m_context->graphics->GetDevice();
 
+#ifdef _EDITOR
 	showPlayer = &m_context->editor->GetManubar()->showPlayerView;
 	showEditor = &m_context->editor->GetManubar()->showEditorView;
 
@@ -95,6 +97,11 @@ void RenderSystem::Initialize(){
 	PauseButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Pause.png");
 	StopButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Stop.png");
 	StepButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Step.png");
+#else
+	showPlayer = nullptr;
+	showEditor = nullptr;
+#endif // _EDITOR
+
 
 	auto m_FullScreenVS = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\PostEffectVS.cso");
 	auto m_FullScreenPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\PostEffectPS.cso");
@@ -213,7 +220,7 @@ void RenderSystem::EditorUpdate(float deltaTime) {
 
 void RenderSystem::Draw(){
 
-	if(*showPlayer){
+	if(showPlayer && *showPlayer){
 
 		PlayerView();
 
@@ -246,7 +253,7 @@ void RenderSystem::Draw(){
 		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
 		m_context->graphics->DrawQuad(&copyShader, m_PlayerPass->result);
 	}
-	if(*showEditor){
+	if(showEditor && *showEditor){
 		EditorView();
 	}
 

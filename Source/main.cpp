@@ -8,10 +8,11 @@
 // インクルード
 // -----------------------------------------------------------------------
 #include <windows.h>
+#include "buildSetting.h"
 #include "gameApplication.h"
 
 //デバッグ用
-#ifdef _DEBUG
+#ifdef _DEBUG_BUILD
 #define _CRTDBG_MAP_ALLOC  
 #include <cstdlib>  
 #include <crtdbg.h>
@@ -22,7 +23,7 @@
 // -----------------------------------------------------------------------
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow){
 
-#ifdef _DEBUG
+#ifdef _DEBUG_BUILD
 	// メモリリークチェックを有効にする（アプリ終了時にリークを報告）
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif

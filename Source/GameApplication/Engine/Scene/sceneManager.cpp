@@ -1,6 +1,6 @@
 // Scene/sceneManager.cpp
 #include <algorithm>
-
+#include "buildSetting.h"
 #include "gameApplication.h"
 
 #include "sceneManager.h"
@@ -31,7 +31,7 @@
 
 void SceneManager::Initialize(SceneManagerContext sceneContext){
 	
-	#ifdef _DEBUG
+	#ifdef _DEBUG_BUILD
 
 	#else
 	State = SceneManagerState::Playing;

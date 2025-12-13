@@ -1,6 +1,7 @@
+#include "buildSetting.h"
 #include "mainWindow.h"
 #include <windows.h>
-#include <dwmapi.h> // 必要なら追加
+#include <dwmapi.h>
 #pragma comment(lib, "dwmapi.lib")
 #include "Backends/ImGui/imgui_impl_win32.h"
 
@@ -241,7 +242,7 @@ LRESULT MainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 			}
 			break;
 		case WM_CLOSE://ウィンドウを閉じたい
-			#ifdef _DEBUG
+			#ifdef _DEBUG_BUILD
 				DestroyWindow(hwnd);//終了する手続きをリクエスト
 				break;
 			#endif

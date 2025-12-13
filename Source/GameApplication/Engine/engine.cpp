@@ -1,4 +1,4 @@
-#define DEFAULT_SCENE "Asset\\Scene\\scene_title.yaml"
+#include "buildSetting.h"
 
 #include "engine.h"
 #include "engineContext.h"
@@ -38,7 +38,6 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
         OutputDebugStringA("EngineContext が nullptr です。\n");
         return;
     }
-    // デバッグ出力システム取得・初期化
     auto debugLogSystem = context->Get<DebugLogSystem>();
 	auto imguiService = context->Get<ImGuiService>();
 	auto editorService = context->Get<EditorService>();
@@ -50,74 +49,58 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	auto resourceService = context->Get<ResourceService>();
 	auto mainRenderer = context->Get<MainRenderer>();
 	auto sceneManager = context->Get<SceneManager>();
+	auto audioContext = context->Get<AudioContext>();
 
-	// エディタ初期化
-	editorService->Initialize();
+	if(editorService){
+		editorService->Initialize();
+	}
 
-    debugLogSystem->Initialize(&editorService->GetManubar()->showConsole);
-    debugLogSystem->LOG_INFO("DebugLogSystemが起動しました");
+	if(debugLogSystem){
+		if(editorService){
+			debugLogSystem->Initialize(&editorService->GetManubar()->showConsole);
+		} else{
+			debugLogSystem->Initialize(nullptr);
+		}
+	}
 
 	if(!configSystem || !configSystem->Initialize()){
 		OutputDebugStringA("configSystem の初期化に失敗しました。\n");
-		return;
 	}
-	debugLogSystem->LOG_DEBUG("configSystemが正常に作成されました");
 
-    // ウィンドウシステム初期化
     if (!windowService || !windowService->Initialize(hInstance, nCmdShow)) {
         OutputDebugStringA("WindowService の初期化に失敗しました。\n");
-        return;
     }
-    debugLogSystem->LOG_DEBUG("WindowServiceが正常に作成されました");
 
-	// タスクバーの初期化
 	InitTaskBar(windowService->GetMainWindow()->GetHWND());
 
-	debugLogSystem->LOG_DEBUG("TaskBarが正常に作成されました");
+	if(timeService){
+		timeService->Initialize();
+	}
 
-    // 時間管理サービスの初期化
-    if (!timeService) return;
-    timeService->Initialize();
-    debugLogSystem->LOG_DEBUG("TimeServiceが正常に作成されました");
-
-	// オーディオコンテキスト初期化
-	auto audioContext = context->Get<AudioContext>();
 	if(!audioContext || !audioContext->Initialize()){
 		OutputDebugStringA("AudioContext の初期化に失敗しました。\n");
-		return;
 	}
-	debugLogSystem->LOG_DEBUG("AudioContextが正常に作成されました");
 
-    // DirectX 描画コンテキスト初期化
     if (!graphicsContext || 
         !graphicsContext->Initialize(windowService->GetMainWindow()->GetHWND(), DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)) {
         OutputDebugStringA("GraphicsContext の初期化に失敗しました。\n");
-        return;
     }
-    debugLogSystem->LOG_DEBUG("GraphicsContextが正常に作成されました");
 
-    // リソース管理初期化
-    if(!resourceService) return;
-    resourceService->Initialize(graphicsContext.get(), audioContext.get());
-    debugLogSystem->LOG_DEBUG("ResourceServiceが正常に作成されました");
+	if(resourceService){
+		resourceService->Initialize(graphicsContext.get(), audioContext.get());
+	}
 
-    // 入力処理初期化
-    if (!inputService) return;
-    inputService->Initialize(windowService->GetMainWindow()->GetHWND());
-    debugLogSystem->LOG_DEBUG("InputServiceが正常に作成されました");
-
-    // ImGui デバッグUI初期化
+	if(inputService){
+		inputService->Initialize(windowService->GetMainWindow()->GetHWND());
+	}
     if (!imguiService || 
         !imguiService->Initialize(windowService->GetMainWindow().get(), graphicsContext.get())) {
         OutputDebugStringA("ImGuiService の初期化に失敗しました。\n");
-        return;
     }
-    debugLogSystem->LOG_DEBUG("ImGuiSystemが正常に作成されました");
 
-    // メインレンダラー初期化
-    if (!mainRenderer) return;
-    mainRenderer->Initialize(graphicsContext.get(), windowService->GetMainWindow().get());
-    debugLogSystem->LOG_DEBUG("MainRendererが正常に作成されました");
+	if(mainRenderer){
+		mainRenderer->Initialize(graphicsContext.get(), windowService->GetMainWindow().get());
+	}
 
     // メインウィンドウに各サービスを紐付け
     auto mainWindow = dynamic_cast<MainWindow*>(windowService->GetMainWindow().get());
@@ -128,41 +111,42 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     }
 
     // シーンマネージャ初期化
-    if (!sceneManager) return;
-
-	// シーンマネージャコンテキストの設定
-	SceneManagerContext sceneManagerContext{};
-	sceneManagerContext.audio = audioContext.get();
-	sceneManagerContext.graphics = graphicsContext.get();
-	sceneManagerContext.renderer = mainRenderer.get();
-	sceneManagerContext.input = inputService.get();
-	sceneManagerContext.resource = resourceService.get();
-	sceneManagerContext.hwnd = mainRenderer->GetHWND();
-	sceneManagerContext.debug = debugLogSystem.get();
-	sceneManagerContext.imgui = imguiService.get();
-	sceneManagerContext.sceneManager = sceneManager.get();
-	sceneManagerContext.config = configSystem.get();
-	sceneManagerContext.editor = editorService.get();
-
-	// SceneManagerの初期化
-	sceneManager->Initialize(sceneManagerContext);
-	debugLogSystem->LOG_DEBUG("SceneManagerが正常に作成されました");
+	if(sceneManager){
+		// シーンマネージャコンテキストの設定
+		SceneManagerContext sceneManagerContext{};
+		sceneManagerContext.audio = audioContext.get();
+		sceneManagerContext.graphics = graphicsContext.get();
+		sceneManagerContext.renderer = mainRenderer.get();
+		sceneManagerContext.input = inputService.get();
+		sceneManagerContext.resource = resourceService.get();
+		sceneManagerContext.hwnd = mainRenderer->GetHWND();
+		sceneManagerContext.debug = debugLogSystem.get();
+		sceneManagerContext.imgui = imguiService.get();
+		sceneManagerContext.sceneManager = sceneManager.get();
+		sceneManagerContext.config = configSystem.get();
+		sceneManagerContext.editor = editorService.get();
+		// SceneManagerの初期化
+		sceneManager->Initialize(sceneManagerContext);
+	}
 
     // ImGuiメニューバー操作にイベントを登録
-    auto manubar = editorService->GetManubar();
-    manubar->Register(MenuEvent::File_Exit, [windowService](){
-		windowService->GetMainWindow()->Close(); 
-	});
-    manubar->Register(MenuEvent::File_New,  [sceneManager](){ 
-		sceneManager->AddScene(std::make_shared<Scene>()); 
-	});
-    manubar->Register(MenuEvent::File_Save, [sceneManager](){
-		sceneManager->SaveScenes(); 
-	});
-    manubar->Register(MenuEvent::File_Open, [sceneManager](){ 
-		sceneManager->AddScene(sceneManager->OpenFromYAMLFile());
-	});
-
+	if(editorService){
+		auto manubar = editorService->GetManubar();
+		if(manubar){
+			manubar->Register(MenuEvent::File_Exit, [windowService](){
+				windowService->GetMainWindow()->Close();
+							  });
+			manubar->Register(MenuEvent::File_New, [sceneManager](){
+				sceneManager->AddScene(std::make_shared<Scene>());
+							  });
+			manubar->Register(MenuEvent::File_Save, [sceneManager](){
+				sceneManager->SaveScenes();
+							  });
+			manubar->Register(MenuEvent::File_Open, [sceneManager](){
+				sceneManager->AddScene(sceneManager->OpenFromYAMLFile());
+							  });
+		}
+	}
     debugLogSystem->LOG_INFO("EngineContextの初期化が完了しました");
 }
 
@@ -240,7 +224,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 	auto editorService = context->Get<EditorService>();
 	if (!editorService) {
 		OutputDebugStringA("EditorService サービスの取得に失敗しました。\n");
-		return;
+		//return;
 	}
 
 
@@ -249,7 +233,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 
 	// 最初のシーンを作成・ロード
 	auto initialScene = std::make_shared<Scene>();
-#ifdef _DEBUG
+#ifdef _DEBUG_BUILD
 	sceneManager->LoadScene(initialScene);
 #else
 	sceneManager->LoadFromFilePath(DEFAULT_SCENE);
@@ -285,14 +269,15 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 			mainRenderer->BeginFrame();
 			imguiService->Begin();
 			{
-				EditorDrawContext editorDrawContext{};
-				editorDrawContext.editor = editorService.get();
-				editorDrawContext.UpdateTime = timeService->GetDeltaUpdateTime();
-				editorDrawContext.DrawTime = timeService->GetDrawTime();
-				editorDrawContext.FPS = timeService->GetDeltaFPS();
-				editorDrawContext.DeltaFPS = timeService->GetFixedUpdateFPS();
-				editorService->Draw(editorDrawContext);
-
+				if(editorService){
+					EditorDrawContext editorDrawContext{};
+					editorDrawContext.editor = editorService.get();
+					editorDrawContext.UpdateTime = timeService->GetDeltaUpdateTime();
+					editorDrawContext.DrawTime = timeService->GetDrawTime();
+					editorDrawContext.FPS = timeService->GetDeltaFPS();
+					editorDrawContext.DeltaFPS = timeService->GetFixedUpdateFPS();
+					editorService->Draw(editorDrawContext);
+				}
 				sceneManager->Draw();
 				debugLogSystem->Draw();
 

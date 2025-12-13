@@ -42,14 +42,6 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 	auto mainRenderer = std::make_shared<MainRenderer>();
 	context->Register<MainRenderer>(mainRenderer);
 
-	// imgui 登録
-	auto imgui = std::make_shared<ImGuiService>();
-	context->Register<ImGuiService>(imgui);
-
-	// DebugLogSystem 登録
-	auto debugLogSystem = std::make_shared<DebugLogSystem>();
-	context->Register<DebugLogSystem>(debugLogSystem);
-
 	// InputService 登録
 	auto inputSystem = std::make_shared<InputService>();
 	context->Register<InputService>(inputSystem);
@@ -62,9 +54,20 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 	auto sceneManager = std::make_shared<SceneManager>();
 	context->Register<SceneManager>(sceneManager);
 
+	// DebugLogSystem 登録
+	auto debugLogSystem = std::make_shared<DebugLogSystem>();
+	context->Register<DebugLogSystem>(debugLogSystem);
+
+	// imgui 登録
+	auto imgui = std::make_shared<ImGuiService>();
+	context->Register<ImGuiService>(imgui);
+#ifdef _EDITOR
+
+
 	// EditorService 登録
 	auto editorService = std::make_shared<EditorService>();
 	context->Register<EditorService>(editorService);
+#endif // _EDITOR
 
 	// 今後: 他のシステムもここで登録
 
