@@ -1,6 +1,5 @@
 #include "physicSystem.h"
 #include <mutex>
-#include "BackEnds/PhysX/PxPhysicsAPI.h"
 #include <Scene/scene.h>
 #include <Scene/sceneManager.h>
 #include <Scene/Component/ColliderComponent.h>
@@ -197,7 +196,7 @@ void PhysicSystem::Initialize(){
 
 	g_pDispatcher = physx::PxDefaultCpuDispatcherCreate(8);
 	physx::PxSceneDesc scene_desc(g_pPhysics->getTolerancesScale());
-	scene_desc.gravity = physx::PxVec3(0, -9, 0);
+	scene_desc.gravity = physx::PxVec3(0, Gravity, 0);
 	scene_desc.filterShader = physx::PxDefaultSimulationFilterShader;
 	scene_desc.cpuDispatcher = g_pDispatcher;
 
@@ -312,6 +311,46 @@ void PhysicSystem::Stop(){
 			}
 		}
 	}
+
+	g_pScene->lockWrite();
+	g_pScene->lockRead();
+	g_pScene->simulate(1.0f);
+	g_pScene->fetchResults(true);
+	g_pScene->unlockWrite();
+	g_pScene->unlockRead();
+}
+
+RayHit PhysicSystem::RaycastWithMask(const physx::PxVec3& origin, const physx::PxVec3& direction, physx::PxReal maxDistance, physx::PxU32 layerMask) {
+	RayHit result{};
+	result.hit = false;
+
+	physx::PxVec3 dirNorm = direction;
+	if (dirNorm.normalize() < 1e-6f) return result;
+
+	physx::PxQueryFilterData filterData;
+	filterData.data.word0 = layerMask;
+
+	physx::PxRaycastBuffer hitBuffer;
+
+	bool status = g_pScene->raycast(
+		origin,
+		dirNorm,
+		maxDistance,
+		hitBuffer,										// ← ここ
+		physx::PxHitFlags(physx::PxHitFlag::eDEFAULT),	// ← 取得したいフラグ
+		filterData										// ← フィルタ
+	);
+
+	if (status && hitBuffer.hasBlock) {
+		const physx::PxRaycastHit& b = hitBuffer.block;
+		result.hit = true;
+		result.position = b.position;
+		result.normal = b.normal;
+		result.distance = b.distance;
+		result.hitShape = b.shape;
+		result.hitActor = b.actor;
+	}
+	return result;
 }
 
 void PhysicSystem::Start(){

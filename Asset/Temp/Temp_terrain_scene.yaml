@@ -80,10 +80,10 @@ Entities:
           y: 25
           z: 0
         Rotation:
-          - 0.535415828
-          - 0
-          - 0
-          - 0.844588637
+          - 0.484371454
+          - -0.118098937
+          - 0.864324331
+          - 0.066183202
         Scale:
           x: 1
           y: 1
@@ -94,24 +94,24 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: 0
-          y: 50.2206116
-          z: -39.2163391
+          x: -76.2975082
+          y: 27.0256958
+          z: -33.3589897
           w: 0
         Direction:
-          x: 0
-          y: -0.90441227
-          z: 0.426659852
+          x: 0.821675718
+          y: -0.268266082
+          z: 0.502873659
           w: 0
         Diffuse:
-          x: 0.899999976
-          y: 0.899999976
+          x: 1
+          y: 1
           z: 1
           w: 1
         Ambient:
-          x: 0.472340405
-          y: 0.472340405
-          z: 0.472340405
+          x: 0.068085134
+          y: 0.068085134
+          z: 0.068085134
           w: 1
         Param:
           x: 100
@@ -120,20 +120,20 @@ Entities:
           w: 0
         LightView:
           -
-            - 1
+            - 0.522008061
             - 0
-            - -0
-            - 0
+            - -0.852940559
+            - 11.3746796
           -
-            - 0
-            - 0.426659793
-            - 0.90441215
-            - 14.0406189
+            - 0.228815079
+            - 0.963344872
+            - 0.14003709
+            - -3.90554762
           -
-            - 0
-            - -0.90441215
-            - 0.426659793
-            - 62.1521683
+            - 0.821675897
+            - -0.268266141
+            - 0.502873778
+            - 86.7172623
           -
             - 0
             - 0
@@ -362,8 +362,8 @@ Entities:
             rotationOffset: [0, 0, 90]
             radius: 29.1000004
             height: 95.1999969
-            staticFriction: 3
-            dynamicFriction: 3
+            staticFriction: 0
+            dynamicFriction: 0
             restitution: 0
             collisionLayer: 0
             lockRotX: true
@@ -422,8 +422,8 @@ Entities:
             rotationOffset: [0, 0, 0]
             radius: 0.5
             height: 1
-            staticFriction: 1
-            dynamicFriction: 1
+            staticFriction: 0
+            dynamicFriction: 0
             restitution: 0
             collisionLayer: 0
             lockRotX: false
@@ -523,7 +523,7 @@ Entities:
             y: 0
             z: 0
             w: 1
-          Shininess: 64
+          Shininess: 1
           TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -576,7 +576,7 @@ Entities:
             y: 0
             z: 0
             w: 1
-          Shininess: 64
+          Shininess: 1
           TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -11246,3 +11246,93 @@ Entities:
         RotateX: false
         RotateY: true
         RotateZ: false
+  - Entity: 18
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 11.7883282
+          y: 3.15778065
+          z: 5.2312336
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 2
+        CastShadow: 0
+        Position:
+          x: 11.7883282
+          y: 3.15778065
+          z: 5.2312336
+          w: 0
+        Direction:
+          x: 0
+          y: 0
+          z: 1
+          w: 0
+        Diffuse:
+          x: 1
+          y: 0
+          z: 0
+          w: 1
+        Ambient:
+          x: 0.00999999978
+          y: 0.00999999978
+          z: 0.00999999978
+          w: 1
+        Param:
+          x: 5
+          y: 0
+          z: 0
+          w: 0
+        LightView:
+          -
+            - 1
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 1
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 1
+        LightProjection:
+          -
+            - 0.414213568
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0.414213568
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1.00001001
+            - -1.00001001
+          -
+            - 0
+            - 0
+            - 1
+            - 0

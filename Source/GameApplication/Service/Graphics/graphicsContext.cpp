@@ -834,7 +834,7 @@ void GraphicsContext::DrawQuad(PostEffectShader* shader, ID3D11ShaderResourceVie
 	if (inputSRV){
 	context->PSSetShaderResources(0, 1, &inputSRV);
 	}
-	context->DrawIndexed(6, 0, 0);
+	context->DrawIndexed(3, 0, 0);
 
 	ID3D11ShaderResourceView* nullSRV[1] = {nullptr};
 	context->PSSetShaderResources(0, 1, nullSRV);

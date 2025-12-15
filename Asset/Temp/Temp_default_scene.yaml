@@ -94,9 +94,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: -442.787354
-          y: 863.046448
-          z: -336.489349
+          x: -47.0960579
+          y: 89.8752975
+          z: -55.5809364
           w: 0
         Direction:
           x: 0.454648674
@@ -114,7 +114,7 @@ Entities:
           z: 0
           w: 1
         Param:
-          x: 10000
+          x: 1000
           y: 0
           z: 0
           w: 0
@@ -123,17 +123,17 @@ Entities:
             - 0.540302277
             - 0
             - -0.841470957
-            - -43.9070129
+            - -21.323637
           -
             - 0.708073437
             - 0.540302277
             - 0.454648703
-            - 0.204452515
+            - 10.0574398
           -
             - 0.454648674
             - -0.841471016
             - 0.291926563
-            - 1025.77148
+            - 113.265167
           -
             - 0
             - 0
@@ -141,20 +141,20 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.00200000009
+            - 0.0199999996
             - 0
             - 0
             - 0
           -
             - 0
-            - 0.00200000009
+            - 0.0199999996
             - 0
             - 0
           -
             - 0
             - 0
-            - 0.000500024995
-            - -5.00025017e-05
+            - 0.00500250142
+            - -0.000500250142
           -
             - 0
             - 0
@@ -447,7 +447,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 7.85336685
-          y: 12.3310642
+          y: 6.08396244
           z: 1.97791302
         Rotation:
           - -0
@@ -593,7 +593,7 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 2
-        CastShadow: 1
+        CastShadow: 0
         Position:
           x: 2.6928165
           y: 4
@@ -683,7 +683,7 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 2
-        CastShadow: 1
+        CastShadow: 0
         Position:
           x: 8.2638216
           y: 4
@@ -773,7 +773,7 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 2
-        CastShadow: 1
+        CastShadow: 0
         Position:
           x: 3.81178188
           y: 4

@@ -4,7 +4,9 @@
 #include "GameTimeManager.h"
 #include "BallController.h"
 #include "Component/TransformComponent.h"
+#include "Component/modelRendererComponent.h"
 #include "Component/ColliderComponent.h"
+#include <System/Physic/physicSystem.h>
 
 class PlayerController: public CustomScriptComponent {
 	BEGIN_REFLECT(PlayerController)
@@ -39,6 +41,8 @@ class PlayerController: public CustomScriptComponent {
 	BallController* ballController = nullptr;
 public:
 
+	float velY = 0.0f;
+
 	PlayerController(): CustomScriptComponent("PlayerController"){}
 
 	YAML::Node encode() override{
@@ -62,6 +66,8 @@ public:
 	}
 
 	void OnStart() override{
+		velY = 0.0f;
+
 		transform = GetComponent<TransformComponent>();
 		model = GetComponent<ModelRendererComponent>();
 		auto cameraEntities = m_context->component->FindEntitiesWithComponent<CameraComponent>();
@@ -148,14 +154,58 @@ public:
 			transform->position += dir * (CurrentSpeed * dt);
 		} else {
 
-			float Y = collider->pRigidbodyDynamic->getLinearVelocity().y;
+			physx::PxRigidDynamic* rigid = collider->pRigidbodyDynamic;
 
-			if (GetKey(VK_SPACE) && !isJumpPressed) {
-				Y = jumpPower;
+			// 現在の速度
+			physx::PxVec3 velocity = rigid->getLinearVelocity();
+
+			// Raycast（足元）
+			physx::PxVec3 rayPos(
+				transform->position.x,
+				transform->position.y - 0.05f,
+				transform->position.z
+			);
+
+			physx::PxVec3 rayDir(0.0f, -1.0f, 0.0f);
+
+			RayHit hit = m_context->manager
+				->systemRegistry
+				->GetSystem<PhysicSystem>()
+				->RaycastWithMask(rayPos, rayDir, 0.3f, physx::PxU32());
+
+			bool isGround = hit.hit && hit.distance < 0.05f;
+
+			// 入力方向（正規化済み想定）
+			physx::PxVec3 wishDir(dir.x, 0.0f, dir.z);
+
+			// 水平方向の目標速度
+			physx::PxVec3 horizontalVel = wishDir * CurrentSpeed;
+
+			if (isGround) {
+				physx::PxVec3 n = hit.normal;
+
+				// 坂に沿った移動
+				horizontalVel -= n * horizontalVel.dot(n);
+
+				// ジャンプ
+				if (GetKey(VK_SPACE) && !isJumpPressed) {
+					velY = jumpPower;
+					transform->position.y += 0.1f;
+				} else {
+					velY = 0.0f;
+				}
+			} else {
+				velY -= 9.0f *dt;
 			}
-			isJumpPressed = GetKey(VK_SPACE);
 
-			collider->pRigidbodyDynamic->setLinearVelocity(physx::PxVec3(dir.x * CurrentSpeed, Y, dir.z * CurrentSpeed));
+			// 最終速度合成
+			velocity.x = horizontalVel.x;
+			velocity.y = velY;
+			velocity.z = horizontalVel.z;
+
+			rigid->setLinearVelocity(velocity);
+
+			isJumpPressed = GetKey(VK_SPACE);
 		}
 
 		// 入力がなければ減速
@@ -182,7 +232,7 @@ public:
 				CurrentSpeed += accel * dt;
 				if(CurrentSpeed > targetSpeed) CurrentSpeed = targetSpeed;
 			} else if(CurrentSpeed > targetSpeed){
-				CurrentSpeed = targetSpeed;
+ 				CurrentSpeed = targetSpeed;
 			}
 
 			model->model->blendedAnimations[0].weight = CurrentSpeed / (moveSpeed * dashMultiplier);

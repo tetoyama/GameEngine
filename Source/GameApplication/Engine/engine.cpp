@@ -227,9 +227,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		//return;
 	}
 
-
 	debugLogSystem->LOG_DEBUG("EngineContextの取得が完了しました");
-
 
 	// 最初のシーンを作成・ロード
 	auto initialScene = std::make_shared<Scene>();
@@ -280,8 +278,6 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 				}
 				sceneManager->Draw();
 				debugLogSystem->Draw();
-
-
 			}
 			imguiService->End();
 			mainRenderer->EndFrame(0);

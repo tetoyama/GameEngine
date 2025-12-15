@@ -42,8 +42,7 @@ public:
 	}
 
 	bool Initialize(){
-		LoadConfig(L"config.yaml");
-		return true;
+		return LoadConfig(L"config.yaml");;
 	}
 
 	void Shutdown() override{

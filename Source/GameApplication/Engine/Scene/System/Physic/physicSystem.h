@@ -12,6 +12,23 @@ class ColliderComponent;
 class TransformComponent;
 class Vector3;
 
+enum RayLayer : physx::PxU32 {
+    LAYER_DEFAULT = (1u << 0),
+    LAYER_PLAYER = (1u << 1),
+    LAYER_ENEMY = (1u << 2),
+    LAYER_ENVIRON = (1u << 3),
+    // 必要に応じて増やす
+};
+
+struct RayHit {
+    bool hit;
+    physx::PxVec3 position;
+    physx::PxVec3 normal;
+    physx::PxReal distance;
+    physx::PxShape* hitShape;
+    physx::PxRigidActor* hitActor;
+};
+
 class PhysicSystem: public ISystem {
 public:
 	PhysicSystem(SceneManagerContext* context): m_context(context){}
@@ -35,6 +52,14 @@ public:
 
 		return g_pScene->getRenderBuffer();
 	}
+
+	RayHit RaycastWithMask(const physx::PxVec3& origin,
+						   const physx::PxVec3& direction,
+						   physx::PxReal maxDistance,
+						   physx::PxU32 layerMask /* ここが “どのレイヤーを当たり対象にするか” */);
+
+	float Gravity = -9.0f;
+
 private:
 	SceneManagerContext* m_context;
 

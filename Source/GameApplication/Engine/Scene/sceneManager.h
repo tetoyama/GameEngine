@@ -1,5 +1,6 @@
 // Scene/SceneManager.h
 #pragma once
+#include "buildSetting.h"
 #include <memory>
 #include <Windows.h>
 #include <string>
@@ -7,8 +8,6 @@
 #include <unordered_map>
 #include "Service/IService.h"
 #include "Backends/myVector2.h"
-
-#define TEMP_SAVE_PATH "Asset/Temp/"
 
 class MainRenderer;
 class GraphicsContext;
