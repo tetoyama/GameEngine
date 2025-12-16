@@ -2615,6 +2615,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Editor\editorService.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\InterFace\IEditorUI.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\UI\DebugWindow.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\Effekseer\EffectPass.h" />
     <ClInclude Include="Source\GameApplication\Service\Audio\audioContext.h" />
     <ClInclude Include="Source\GameApplication\Service\DebugTools\debugSystem.h" />
     <ClInclude Include="Source\GameApplication\Service\DebugTools\ImGuiSystem.h" />
@@ -3059,6 +3060,7 @@
     <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\tag.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\editorService.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\DebugWindow.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\Effekseer\EffectPass.cpp" />
     <ClCompile Include="Source\GameApplication\Service\DebugTools\debugSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Service\DebugTools\ImGuiSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\ImGuiMainManuBar.cpp" />

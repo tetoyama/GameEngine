@@ -7,6 +7,7 @@ enum RenderLayer: int {
 	Opaque3D,
 	Transparent3D,
 	SortTransparent3D,
+	Effect,
 	OverlayUI,
 	Debug,
 	MaxRenderLayer
@@ -19,6 +20,7 @@ inline const char* GetRenderLayerName(const RenderLayer& layer) {
 		case RenderLayer::Opaque3D:            return "Opaque 3D";
 		case RenderLayer::SortTransparent3D:   return "Sorted Transparent 3D";
 		case RenderLayer::Transparent3D:       return "Transparent 3D";
+		case RenderLayer::Effect:              return "Effect";
 		case RenderLayer::OverlayUI:           return "Overlay UI";
 		case RenderLayer::Debug:               return "Debug";
 		default:                               return "Unknown";

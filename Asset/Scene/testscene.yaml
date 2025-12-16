@@ -69,7 +69,7 @@ Entities:
         PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 1303.77112
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -96,7 +96,7 @@ Entities:
         Position:
           x: -36.9230118
           y: 28.9712772
-          z: -43.7079926
+          z: -18.4913292
           w: 0
         Direction:
           x: 0.738460243
@@ -123,17 +123,17 @@ Entities:
             - 0.540302277
             - 0
             - -0.841470957
-            - -16.8294201
+            - 4.38967037
           -
             - 0.403422713
             - 0.87758255
             - 0.259034723
-            - 0.792782784
+            - -5.7392087
           -
             - 0.738460302
             - -0.479425579
             - 0.474159896
-            - 61.8803253
+            - 49.9235992
           -
             - 0
             - 0
@@ -212,21 +212,21 @@ Entities:
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
-        AnimationTime: 0
+        AnimationTime: 1303.77112
   - Entity: 4
     Components:
       - Component: NameComponent
         Name: Player
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 0
-          z: 0
+          x: 2.66430926
+          y: 3.57099938
+          z: 15.5144339
         Rotation:
           - 0
+          - -0.117812663
           - 0
-          - 0
-          - 1
+          - 0.993035913
         Scale:
           x: 0.00999999978
           y: 0.00999999978
@@ -235,7 +235,7 @@ Entities:
       - Component: ColliderComponent
         isDynamic: true
         autoMass: true
-        Mass: 0
+        Mass: 1
         colliders:
           - type: 2
             size: [1, 1, 1]
@@ -255,7 +255,7 @@ Entities:
         PixelShader: Asset\Shader\DefaultPixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 1303.77112
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           mixamo.com: Asset\Model\Akai_Run.fbx
@@ -279,48 +279,48 @@ Entities:
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 5
-          z: -15
+          x: 4.21741581
+          y: 6.85922623
+          z: 20.6889324
         Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
+          - 0.0169644989
+          - -0.982622087
+          - 0.115532525
+          - 0.144285709
         Scale:
           x: 1
           y: 1
           z: 1
         Parent: 0
       - Component: CameraComponent
-        isLock: false
+        isLock: true
         Target:
-          x: 0
-          y: 0
-          z: 0
+          x: 2.66430926
+          y: 3.57099938
+          z: 15.5144339
         NearClip: 0.00999999978
         FarClip: 1024
         FOV: 1
         viewMatrix:
           -
-            - 1
-            - 0
-            - 0
-            - 0
-          -
-            - -0
-            - 1
-            - 0
+            - -0.957787752
+            - -0.149463072
+            - -0.245567665
             - 0
           -
             - 0
-            - -0
-            - 1
+            - 0.854218483
+            - -0.51991421
             - 0
           -
+            - 0.28747642
+            - -0.497967452
+            - -0.818159938
             - 0
-            - -5
-            - 15
+          -
+            - -1.9081912
+            - 5.0734849
+            - 21.5287247
             - 1
         nextLinkId: 1
         nextPinId: 1
@@ -422,7 +422,7 @@ Entities:
             y: 0
             z: 0
             w: 1
-          Shininess: 64
+          Shininess: 1
           TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -430,7 +430,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 1303.77112
   - Entity: 8
     Components:
       - Component: NameComponent
@@ -441,10 +441,10 @@ Entities:
           y: -3.63083696
           z: 7.64486647
         Rotation:
-          - -0.267695069
+          - -0.267695099
           - 0
           - -0
-          - 0.963503659
+          - 0.963503778
         Scale:
           x: 10.4099998
           y: 10.4099951
@@ -491,7 +491,7 @@ Entities:
             y: 0
             z: 0
             w: 1
-          Shininess: 64
+          Shininess: 1
           TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -499,7 +499,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 1303.77112
   - Entity: 9
     Components:
       - Component: NameComponent
@@ -507,7 +507,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 1
+          y: 0.322822034
           z: 12.9622393
         Rotation:
           - -0
@@ -515,9 +515,9 @@ Entities:
           - -0
           - 1
         Scale:
-          x: 1
-          y: 1
-          z: 1
+          x: 2
+          y: 2
+          z: 2
         Parent: 6
       - Component: ColliderComponent
         isDynamic: false
@@ -537,10 +537,38 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 1
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 1303.77112
   - Entity: 10
     Components:
       - Component: NameComponent
@@ -548,7 +576,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 2
+          y: 1.76354742
           z: 15.2036495
         Rotation:
           - -0
@@ -556,9 +584,9 @@ Entities:
           - -0
           - 1
         Scale:
-          x: 1
-          y: 1
-          z: 1
+          x: 2
+          y: 2
+          z: 2
         Parent: 6
       - Component: ColliderComponent
         isDynamic: false
@@ -578,7 +606,35 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 1
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 1303.77112

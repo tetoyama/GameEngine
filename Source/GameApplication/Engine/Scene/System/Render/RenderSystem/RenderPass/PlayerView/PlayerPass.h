@@ -8,6 +8,7 @@ class IRenderable;
 struct RenderTarget;
 
 class ShadowMapPass;
+class EffectPass;
 
 struct PixelShaderData;
 struct VertexShaderData;
@@ -20,6 +21,7 @@ public:
 	void Finalize() override;
 	void Execute(const RenderPassContext& ctx) override;
 	ShadowMapPass* shadowMapPass;
+	EffectPass* effectPass;
 
 	std::vector<IRenderable*> renderables;
 	RenderTarget* playerRenderTarget = nullptr;

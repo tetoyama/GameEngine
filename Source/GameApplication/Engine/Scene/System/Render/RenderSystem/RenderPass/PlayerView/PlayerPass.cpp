@@ -5,6 +5,7 @@
 #include "../../renderPhase.h"
 
 #include "../ShadowMap/ShadowMapPass.h"
+#include "../Effekseer/EffectPass.h"
 
 #include "scene.h"
 #include "System/Render/RenderSystem/Renderable/IRenderable.h"
@@ -34,7 +35,6 @@
 #include <System/Physic/physicSystem.h>
 #include <Component/textureComponent.h>
 
-#include "Backends/convertMatrix.h"
 
 void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 
@@ -57,6 +57,12 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 
 	shadowMapPass = new ShadowMapPass();
 	shadowMapPass->Initialize(
+		renderSystem,
+		context
+	);
+
+	effectPass = new EffectPass();
+	effectPass->Initialize(
 		renderSystem,
 		context
 	);
@@ -89,6 +95,10 @@ void PlayerPass::Finalize() {
 	shadowMapPass->Finalize();
 	delete shadowMapPass;
 	shadowMapPass = nullptr;
+
+	effectPass->Finalize();
+	delete effectPass;
+	effectPass = nullptr;
 
 	delete playerRenderTarget;
 	playerRenderTarget = nullptr;
@@ -168,15 +178,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 		}
 	}
 	//Effekseer
-	Effekseer::Matrix44 effekseerProjectionMatrix = ConvertXMMATRIXToMatrix44(ctx.projectionMatrix);
-	Effekseer::Matrix44 effekseerViewMatrix = ConvertXMMATRIXToMatrix44(ctx.viewMatrix);
-
-	m_context->graphics->GetEffectRenderer()->SetProjectionMatrix(effekseerProjectionMatrix);
-	m_context->graphics->GetEffectRenderer()->SetCameraMatrix(effekseerViewMatrix);
-
-	m_context->graphics->GetEffectRenderer()->BeginRendering();
-	m_context->graphics->GetEffectManager()->Draw();
-	m_context->graphics->GetEffectRenderer()->EndRendering();
+	effectPass->Execute(ctx);
 
 	std::vector<PostProcessNode> postNodes;
 	std::unordered_map<int, int> effectIndexToPostNodeIndex; // camera->postEffects idx → postNodes idx

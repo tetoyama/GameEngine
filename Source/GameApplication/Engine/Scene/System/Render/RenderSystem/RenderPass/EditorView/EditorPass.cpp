@@ -5,6 +5,7 @@
 #include "../../renderPhase.h"
 
 #include "../ShadowMap/ShadowMapPass.h"
+#include "../Effekseer/EffectPass.h"
 
 #include "scene.h"
 #include "System/Render/RenderSystem/Renderable/IRenderable.h"
@@ -63,6 +64,12 @@ void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 		context
 	);
 
+	effectPass = new EffectPass();
+	effectPass->Initialize(
+		renderSystem,
+		context
+	);
+
 	renderables.clear();
 	renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableBillBoard>());
@@ -91,6 +98,10 @@ void EditorPass::Finalize() {
 	shadowMapPass->Finalize();
 	delete shadowMapPass;
 	shadowMapPass = nullptr;
+
+	effectPass->Finalize();
+	delete effectPass;
+	effectPass = nullptr;
 
 	delete playerRenderTarget;
 	playerRenderTarget = nullptr;
@@ -170,15 +181,7 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 		}
 	}
 	//Effekseer
-	Effekseer::Matrix44 effekseerProjectionMatrix = ConvertXMMATRIXToMatrix44(ctx.projectionMatrix);
-	Effekseer::Matrix44 effekseerViewMatrix = ConvertXMMATRIXToMatrix44(ctx.viewMatrix);
-
-	m_context->graphics->GetEffectRenderer()->SetProjectionMatrix(effekseerProjectionMatrix);
-	m_context->graphics->GetEffectRenderer()->SetCameraMatrix(effekseerViewMatrix);
-
-	m_context->graphics->GetEffectRenderer()->BeginRendering();
-	m_context->graphics->GetEffectManager()->Draw();
-	m_context->graphics->GetEffectRenderer()->EndRendering();
+	effectPass->Execute(ctx);
 
 	//PhysX
 	if (pRenderLayer[(int)RenderLayer::Debug]) {

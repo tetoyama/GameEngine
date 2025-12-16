@@ -226,21 +226,14 @@ void RenderSystem::Draw(){
 
 	} else{
 
-		Vector2 ScreenSize = Vector2(
-			(float)m_context->renderer->GetGraphicsContext()->m_width,
-			(float)m_context->renderer->GetGraphicsContext()->m_height
-		);
-		m_context->PlayerScreenSize = ScreenSize;
-
-		CameraEntityData cameraEntity = FindCameraEntity();
-		if (!cameraEntity.cameraComponent) {
-			return;
-		}
 		RenderPassContext renderPassContext(
 			RenderPhase::PHASE_GBUFFER,
 			playerRenderLayerVisible,
-			cameraEntity,
-			ScreenSize
+			FindCameraEntity(),
+			Vector2(
+				(float)m_context->renderer->GetGraphicsContext()->m_width,
+				(float)m_context->renderer->GetGraphicsContext()->m_height
+			)
 		);
 		m_PlayerPass->Execute(renderPassContext);
 		if (!m_PlayerPass->result) {
