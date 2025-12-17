@@ -20,6 +20,10 @@ void Inspector::Draw(const EditorDrawContext ctx){
 	Entity selectedEntity = m_editor->GetUI<Hierarchy>()->selectedEntity;
 	SceneContext* context = m_editor->GetUI<Hierarchy>()->sceneContext;
 
+	if(!showInspector || !*showInspector){
+		return;
+	}
+
 	ImGui::Begin("Inspector", showInspector);
 
 	if(selectedEntity == 0 || !context){

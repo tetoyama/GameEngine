@@ -41,6 +41,11 @@ void AssetsBrowser::Finalize(){
 void AssetsBrowser::Draw(const EditorDrawContext ctx){
 
 	bool* showAssetsBrowser = &m_editor->GetUI<MenuBar>()->showAssetsBrowser;
+
+	if(!showAssetsBrowser || !*showAssetsBrowser){
+		return;
+	}
+
 	SceneManagerContext* sceneManagerContext = m_editor->sceneManager->GetContext();
 
 	std::filesystem::path ASSETS_ROOT = ASSET_PATH;

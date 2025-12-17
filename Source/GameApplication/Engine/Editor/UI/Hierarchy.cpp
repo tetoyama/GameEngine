@@ -20,6 +20,10 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 	std::shared_ptr<Scene> sceneToDelete = nullptr;
 	Entity deleteEntity = 0;
 
+	if(!showSceneHierarchy || !*showSceneHierarchy){
+		return;
+	}
+
 	//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
 	ImGuiWindowFlags toolbar_window_flags = 0;
 	ImGui::Begin("Hierarchy", showSceneHierarchy, toolbar_window_flags);
