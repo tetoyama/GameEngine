@@ -61,9 +61,8 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 	// imgui 登録
 	auto imgui = std::make_shared<ImGuiService>();
 	context->Register<ImGuiService>(imgui);
+
 #ifdef _EDITOR
-
-
 	// EditorService 登録
 	auto editorService = std::make_shared<EditorService>();
 	context->Register<EditorService>(editorService);

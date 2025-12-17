@@ -39,7 +39,7 @@
 #include "SceneManager.h"
 
 #include "Editor/editorService.h"
-#include "Editor/UI/ImGuiMainManuBar.h"
+#include "Editor/UI/MenuBar.h"
 
 #include "System/Physic/physicSystem.h"
 
@@ -90,8 +90,8 @@ void RenderSystem::Initialize(){
 	ID3D11Device* device = m_context->graphics->GetDevice();
 
 #ifdef _EDITOR
-	showPlayer = &m_context->editor->GetManubar()->showPlayerView;
-	showEditor = &m_context->editor->GetManubar()->showEditorView;
+	showPlayer = &m_context->editor->GetUI<MenuBar>()->showPlayerView;
+	showEditor = &m_context->editor->GetUI<MenuBar>()->showEditorView;
 
 	PlayButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Play.png");
 	PauseButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Pause.png");
@@ -220,6 +220,9 @@ void RenderSystem::EditorUpdate(float deltaTime) {
 
 void RenderSystem::Draw(){
 
+	if(showEditor && *showEditor){
+		EditorView();
+	}
 	if(showPlayer && *showPlayer){
 
 		PlayerView();
@@ -245,9 +248,6 @@ void RenderSystem::Draw(){
 		m_context->graphics->Clear(clearColor);
 		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
 		m_context->graphics->DrawQuad(&copyShader, m_PlayerPass->result);
-	}
-	if(showEditor && *showEditor){
-		EditorView();
 	}
 
 	m_context->graphics->ResetViewport();

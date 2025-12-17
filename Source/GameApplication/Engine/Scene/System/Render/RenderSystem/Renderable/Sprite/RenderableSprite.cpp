@@ -96,7 +96,7 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 		MATERIAL material = pTexture->Material;
 		material.DiffuseTextureEnable = ((bool)pTexture->m_TextureData);
 		if (pTexture->m_TextureData) {
-			deviceContext->PSSetShaderResources(0, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 		}
 
 		graphicsContext->SetMaterial(material);

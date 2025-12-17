@@ -41,20 +41,6 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	m_renderSystem = renderSystem;
 	m_context = context;
 
-	m_LineVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\DebugLineVS.cso");
-	m_LinePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DebugLinePS.cso");
-
-	D3D11_BUFFER_DESC bd{};
-	bd.Usage = D3D11_USAGE_DYNAMIC;
-	bd.ByteWidth = sizeof(VERTEX_3D) * maxLineCount * 2;
-	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-	HRESULT hr = context->graphics->GetDevice()->CreateBuffer(&bd, nullptr, &pPhysicsDebugLineVB);
-	if (FAILED(hr)) {
-		throw std::runtime_error("Failed to create physics debug line vertex buffer.");
-	}
-
 	shadowMapPass = new ShadowMapPass();
 	shadowMapPass->Initialize(
 		renderSystem,
@@ -86,11 +72,6 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 void PlayerPass::Finalize() {
 
 
-	pPhysicsDebugLineVB->Release();
-	pPhysicsDebugLineVB = nullptr;
-
-	m_LinePixelShader.reset();
-	m_LineVertexShader.reset();
 
 	shadowMapPass->Finalize();
 	delete shadowMapPass;

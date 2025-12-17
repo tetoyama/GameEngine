@@ -24,7 +24,7 @@
 #include "Resources/resourceService.h"
 
 #include "Editor/editorService.h"
-#include "Editor/UI/ImGuiMainManuBar.h"
+#include "Editor/UI/MenuBar.h"
 
 #include "../../Service/Config/ConfigSystem.h"
 
@@ -51,15 +51,12 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	auto sceneManager = context->Get<SceneManager>();
 	auto audioContext = context->Get<AudioContext>();
 
-	if(editorService){
-		editorService->Initialize();
-	}
-
 	if(debugLogSystem){
+		debugLogSystem->Initialize();
+
 		if(editorService){
-			debugLogSystem->Initialize(&editorService->GetManubar()->showConsole);
+			//debugLogSystem->Initialize(&editorService->GetUI<MenuBar>()->showConsole);
 		} else{
-			debugLogSystem->Initialize(nullptr);
 		}
 	}
 
@@ -110,6 +107,10 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
         mainWindow->SetInputSystem(inputService.get());
     }
 
+	if(editorService){
+		editorService->Initialize(debugLogSystem.get(), resourceService.get(), sceneManager.get());
+	}
+
     // シーンマネージャ初期化
 	if(sceneManager){
 		// シーンマネージャコンテキストの設定
@@ -131,7 +132,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 
     // ImGuiメニューバー操作にイベントを登録
 	if(editorService){
-		auto manubar = editorService->GetManubar();
+		auto manubar = editorService->GetUI<MenuBar>();
 		if(manubar){
 			manubar->Register(MenuEvent::File_Exit, [windowService](){
 				windowService->GetMainWindow()->Close();
@@ -269,7 +270,6 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 			{
 				if(editorService){
 					EditorDrawContext editorDrawContext{};
-					editorDrawContext.editor = editorService.get();
 					editorDrawContext.UpdateTime = timeService->GetDeltaUpdateTime();
 					editorDrawContext.DrawTime = timeService->GetDrawTime();
 					editorDrawContext.FPS = timeService->GetDeltaFPS();

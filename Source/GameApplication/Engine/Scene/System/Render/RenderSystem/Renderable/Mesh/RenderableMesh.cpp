@@ -29,7 +29,7 @@ void RenderableMesh::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 
 	if(!pTexture){
 		if(meshRenderer->mesh.m_TextureData){
-			deviceContext->PSSetShaderResources(0, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
+			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
 
 			MATERIAL material{};
 			material.DiffuseTextureEnable = true;

@@ -1,16 +1,28 @@
 #include "editorService.h"
 #include "Editor/InterFace/IEditorUI.h"
-#include "UI/ImGuiMainManuBar.h"
-#include "UI/DebugWindow.h"
+#include "UI/MenuBar.h"
+#include "UI/PerformanceMonitor.h"
+#include "UI/Hierarchy.h"
+#include "UI/Inspector.h"
+#include "UI/AssetsBrowser.h"
+#include "UI/DebugLogWindow.h"
 
-void EditorService::Initialize() {
+void EditorService::Initialize(DebugLogSystem* debug, ResourceService* resource, SceneManager* manager) {
+
+	debugLogSystem = debug;
+	resourceService = resource;
+	sceneManager = manager;
+
 	UIs.clear();
-
-	UIs.push_back(new Manubar());
-	UIs.push_back(new DebugWindow());
+	UIs.push_back(new MenuBar());
+	UIs.push_back(new PerformanceMonitor());
+	UIs.push_back(new Hierarchy());
+	UIs.push_back(new Inspector());
+	UIs.push_back(new AssetsBrowser());
+	UIs.push_back(new DebugLogWindow());
 
 	for (auto ui : UIs) {
-		ui->Initialize();
+		ui->Initialize(this);
 	}
 }
 
@@ -27,14 +39,5 @@ void EditorService::Shutdown() {
 		ui = nullptr;
 	}
 	UIs.clear();
-}
-
-Manubar* EditorService::GetManubar() {
-	for (IEditorUI* ui : UIs) {
-		if (auto* m = dynamic_cast<Manubar*>(ui)) {
-			return (Manubar*)ui;
-		}
-	}
-	return nullptr;
 }
 

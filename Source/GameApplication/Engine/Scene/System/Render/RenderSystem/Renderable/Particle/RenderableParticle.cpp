@@ -86,7 +86,7 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 				material.Diffuse = pTexture->Material.Diffuse;
 				material.DiffuseTextureEnable = ((bool)pTexture->m_TextureData);
 				if(pTexture->m_TextureData){
-					deviceContext->PSSetShaderResources(0, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+					deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 				}
 
 				UVMatrix uv;

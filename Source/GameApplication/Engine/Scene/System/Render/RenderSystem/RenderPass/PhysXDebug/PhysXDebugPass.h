@@ -4,23 +4,22 @@
 #include <vector>
 #include <memory>
 
-class IRenderable;
-struct RenderTarget;
+struct PixelShaderData;
+struct VertexShaderData;
 
-class ShadowMapPass;
-class EffectPass;
+class CameraComponent;
 
-class EditorPass : public IRenderPass {
+class PhysXDebugPass: public IRenderPass {
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;
 	void Finalize() override;
 	void Execute(const RenderPassContext& ctx) override;
 
-	std::vector<IRenderable*> renderables;
-	RenderTarget* playerRenderTarget = nullptr;
+	ID3D11Buffer* pPhysicsDebugLineVB = nullptr;
+	std::shared_ptr<PixelShaderData> m_LinePixelShader;
+	std::shared_ptr<VertexShaderData> m_LineVertexShader;
 
 	ID3D11ShaderResourceView* result = nullptr;
 
-	ShadowMapPass* shadowMapPass;
-	EffectPass* effectPass;
+	int maxLineCount = 99999;
 };

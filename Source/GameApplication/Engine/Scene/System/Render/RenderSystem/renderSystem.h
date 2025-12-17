@@ -85,6 +85,7 @@ private:
 	bool editorRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] = {
 	true, true, true, true, true, true, true,
 	};
+
 	Vector3 m_EditorCameraPosition = Vector3(0.0f, 5.0f, -20.0f);
 	Vector3 m_EditorCameraRotation = Vector3(0.0f, 0.0f, 0.0f);
 	float m_MouseWheel = 0.0f;

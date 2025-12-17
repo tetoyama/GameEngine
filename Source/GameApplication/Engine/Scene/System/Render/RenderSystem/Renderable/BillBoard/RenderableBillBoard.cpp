@@ -84,7 +84,7 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 		graphicsContext->SetMaterial(material);
 
 		if(pTexture->m_TextureData){
-			deviceContext->PSSetShaderResources(0, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 		}
 	}
 	DirectX::XMMATRIX InvViewBillBoardMatrix = DirectX::XMMatrixRotationQuaternion(transform->rotationVector());
@@ -139,17 +139,6 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 			DirectX::XMVectorSet(0, 0, 0, 1)
 		);
 	}
-
-	if(!pTexture){
-		if(m_billBoardMesh->mesh.m_TextureData){
-			deviceContext->PSSetShaderResources(0, 1, m_billBoardMesh->mesh.m_TextureData->pTexture.GetAddressOf());
-
-			MATERIAL material{};
-			material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
-			graphicsContext->SetMaterial(material);
-		}
-	}
-
 	deviceContext->IASetInputLayout(m_billBoardMesh->mesh.m_VertexLayout.Get());
 
 	deviceContext->VSSetShader(m_billBoardMesh->mesh.m_VertexShader.Get(), NULL, 0);

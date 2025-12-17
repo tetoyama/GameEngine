@@ -11,7 +11,7 @@
 #include "Backends/ImGui/imnodes.h"
 
 #include "Editor/editorService.h"
-#include "Editor/UI/ImGuiMainManuBar.h"
+#include "Editor/UI/MenuBar.h"
 
 #include "Graphics/GraphicsContext.h"
 #include "Platform/WindowSystem/MainWindow.h"

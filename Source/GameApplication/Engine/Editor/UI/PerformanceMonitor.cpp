@@ -1,20 +1,20 @@
 #define _CRT_SECURE_NO_WARNINGS
 
-#include "DebugWindow.h"
+#include "PerformanceMonitor.h"
 #include <Psapi.h>
 #include <ImGui/imgui.h>
 #include <ImGui/imgui_internal.h>
 
 #include "Editor/editorService.h"
-#include "Editor/UI/ImGuiMainManuBar.h"
+#include "Editor/UI/MenuBar.h"
 
-void DebugWindow::Draw(EditorDrawContext ctx) {
+void PerformanceMonitor::Draw(EditorDrawContext ctx) {
 
 	double FPS = ctx.FPS;
 	double DeltaFPS = ctx.DeltaFPS;
 	double Draw = ctx.DrawTime;
 	double Update = ctx.UpdateTime;
-	bool showParformanceMonitor = ctx.editor->GetManubar()->showParformanceMonitor;
+	bool showParformanceMonitor = m_editor->GetUI<MenuBar>()->showParformanceMonitor;
 
 	HANDLE hProc = GetCurrentProcess();
 	PROCESS_MEMORY_COUNTERS_EX pmc;

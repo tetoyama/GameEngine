@@ -28,6 +28,7 @@
 #include "System/Render/RenderSystem/Renderable/Sprite/RenderableSprite.h"
 #include "System/Render/RenderSystem/Renderable/Terrain/RenderableTerrain.h"
 #include "System/Render/RenderSystem/Renderable/Wave/RenderableWave.h"
+
 #include <queue>
 #include <Component/outlineComponent.h>
 #include <Component/bumpMapComponent.h>
@@ -44,32 +45,6 @@ void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	m_renderSystem = renderSystem;
 	m_context = context;
 
-	m_LineVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\DebugLineVS.cso");
-	m_LinePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DebugLinePS.cso");
-
-	D3D11_BUFFER_DESC bd{};
-	bd.Usage = D3D11_USAGE_DYNAMIC;
-	bd.ByteWidth = sizeof(VERTEX_3D) * maxLineCount * 2;
-	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-	HRESULT hr = context->graphics->GetDevice()->CreateBuffer(&bd, nullptr, &pPhysicsDebugLineVB);
-	if (FAILED(hr)) {
-		throw std::runtime_error("Failed to create physics debug line vertex buffer.");
-	}
-
-	shadowMapPass = new ShadowMapPass();
-	shadowMapPass->Initialize(
-		renderSystem,
-		context
-	);
-
-	effectPass = new EffectPass();
-	effectPass->Initialize(
-		renderSystem,
-		context
-	);
-
 	renderables.clear();
 	renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableBillBoard>());
@@ -84,16 +59,21 @@ void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 		context->graphics,
 		RenderTargetType::RENDERTARGET_TYPE_COLOR
 	);
+
+	shadowMapPass = new ShadowMapPass();
+	shadowMapPass->Initialize(
+		renderSystem,
+		context
+	);
+
+	effectPass = new EffectPass();
+	effectPass->Initialize(
+		renderSystem,
+		context
+	);
 }
 
 void EditorPass::Finalize() {
-
-
-	pPhysicsDebugLineVB->Release();
-	pPhysicsDebugLineVB = nullptr;
-
-	m_LinePixelShader.reset();
-	m_LineVertexShader.reset();
 
 	shadowMapPass->Finalize();
 	delete shadowMapPass;
@@ -184,64 +164,6 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 	effectPass->Execute(ctx);
 
 	//PhysX
-	if (pRenderLayer[(int)RenderLayer::Debug]) {
-
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-			auto context = scene->GetSceneContext();
-			auto physics = m_context->systemRegistry->GetSystem<PhysicSystem>();
-			const physx::PxRenderBuffer& rb = physics->GetRenderBuffer();
-
-			// 色変換関数
-			auto ConvertColor = [](physx::PxU32 c) {
-				float a = ((c >> 24) & 0xFF) / 255.0f;
-				float r = ((c >> 16) & 0xFF) / 255.0f;
-				float g = ((c >> 8) & 0xFF) / 255.0f;
-				float b = ((c >> 0) & 0xFF) / 255.0f;
-				return DirectX::XMFLOAT4(r, g, b, a);
-			};
-
-			std::vector<VERTEX_3D> vertices;
-			for (physx::PxU32 i = 0; i < rb.getNbLines(); i++) {
-				const physx::PxDebugLine& line = rb.getLines()[i];
-
-				VERTEX_3D v0;
-				v0.Position = DirectX::XMFLOAT3(line.pos0.x, line.pos0.y, line.pos0.z);
-				v0.Diffuse = ConvertColor(line.color0);
-
-				VERTEX_3D v1;
-				v1.Position = DirectX::XMFLOAT3(line.pos1.x, line.pos1.y, line.pos1.z);
-				v1.Diffuse = ConvertColor(line.color1);
-
-				vertices.push_back(v0);
-				vertices.push_back(v1);
-			}
-
-			if (vertices.empty() || vertices.size() >= maxLineCount) continue;
-
-			ID3D11Device* device = graphicsContext->GetDevice();
-			ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-
-			// 頂点バッファ更新
-			D3D11_MAPPED_SUBRESOURCE mapped;
-			deviceContext->Map(pPhysicsDebugLineVB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-			memcpy(mapped.pData, vertices.data(), sizeof(VERTEX_3D) * vertices.size());
-			deviceContext->Unmap(pPhysicsDebugLineVB, 0);
-
-			graphicsContext->SetWorldMatrix(DirectX::XMMatrixIdentity());
-
-			UINT stride = sizeof(VERTEX_3D);
-			UINT offset = 0;
-			deviceContext->IASetVertexBuffers(0, 1, &pPhysicsDebugLineVB, &stride, &offset);
-			deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-
-			// シェーダーをセット（通常のカラー付き頂点用のものを使用）
-			deviceContext->VSSetShader(m_LineVertexShader->m_VertexShader.Get(), nullptr, 0);
-			deviceContext->PSSetShader(m_LinePixelShader->m_PixelShader.Get(), nullptr, 0);
-
-			// 描画
-			deviceContext->Draw(static_cast<UINT>(vertices.size()), 0);
-		}
-	}
 
 	std::vector<PostProcessNode> postNodes;
 	std::unordered_map<int, int> effectIndexToPostNodeIndex; // camera->postEffects idx → postNodes idx

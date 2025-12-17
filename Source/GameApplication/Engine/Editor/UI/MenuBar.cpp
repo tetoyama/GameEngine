@@ -1,27 +1,27 @@
 #include "Backends/ImGui/imgui.h"
 #include "DebugTools/ImGuiSystem.h"
-#include "ImGuiMainManubar.h"
+#include "MenuBar.h"
 
-void Manubar::Register(MenuEvent event, const Callback& callback){
+void MenuBar::Register(MenuEvent event, const Callback& callback){
 	m_eventCallbacks[event] = callback;
 }
 
-void Manubar::Draw(EditorDrawContext ctx){
+void MenuBar::Draw(EditorDrawContext ctx){
 
 	if(ImGui::IsKeyPressed(ImGuiKey_F3, false)){
-		showManuBar = !showManuBar;
+		showMenuBar = !showMenuBar;
 
-		showSceneHierarchy = showManuBar;
-		showInspector = showManuBar;
-		showConsole = showManuBar;
-		showAssetsBrowser = showManuBar;
-		showEditorView = showManuBar;
-		showPlayerView = showManuBar;
-		showParformanceMonitor = showManuBar;
+		showSceneHierarchy = showMenuBar;
+		showInspector = showMenuBar;
+		showConsole = showMenuBar;
+		showAssetsBrowser = showMenuBar;
+		showEditorView = showMenuBar;
+		showPlayerView = showMenuBar;
+		showParformanceMonitor = showMenuBar;
 
 	}
 
-	if(showManuBar && ImGui::BeginMainMenuBar()){
+	if(showMenuBar && ImGui::BeginMainMenuBar()){
 		RenderFileMenu();
 		RenderEditMenu();
 
@@ -57,12 +57,12 @@ void Manubar::Draw(EditorDrawContext ctx){
 
 }
 
-void Manubar::Invoke(MenuEvent event){
+void MenuBar::Invoke(MenuEvent event){
 	auto it = m_eventCallbacks.find(event);
 	if(it != m_eventCallbacks.end()) it->second();
 }
 
-void Manubar::RenderFileMenu(){
+void MenuBar::RenderFileMenu(){
 	if(ImGui::BeginMenu("File")){
 		if(ImGui::MenuItem("New Scene", "Ctrl+N")){
 			Invoke(MenuEvent::File_New);
@@ -84,7 +84,7 @@ void Manubar::RenderFileMenu(){
 	}
 }
 
-void Manubar::RenderEditMenu(){
+void MenuBar::RenderEditMenu(){
 
 	if(ImGui::BeginMenu("Edit")){
 		if(ImGui::MenuItem("Undo", "Ctrl+Z")){

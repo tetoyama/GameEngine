@@ -25,15 +25,13 @@ enum class MenuEvent
 	// 必要に応じて追加
 };
 
-class Manubar : public IEditorUI {
+class MenuBar : public IEditorUI {
 public:
-	Manubar() {}
-	~Manubar() {}
-	void Initialize() override {}
-	void Finalize() override {
-		//m_eventCallbacks.clear();
-	}
-	void Draw(EditorDrawContext ctx) override;
+	MenuBar() {}
+	~MenuBar() {}
+	void Initialize(EditorService* editor) override {}
+	void Finalize() override {}
+	void Draw(const EditorDrawContext ctx) override;
 
 	using Callback = std::function<void()>;
 
@@ -49,7 +47,7 @@ public:
 	bool showParformanceMonitor = IMGUI_SHOW_DEFAULT;
 
 private:
-	bool showManuBar = IMGUI_SHOW_DEFAULT;
+	bool showMenuBar = IMGUI_SHOW_DEFAULT;
 
 	std::unordered_map<MenuEvent, Callback> m_eventCallbacks;
 

@@ -65,6 +65,10 @@ public:
 	void Draw();
 	void Shutdown() override;
 
+	SceneManagerContext* GetContext(){
+		return &m_SceneContext;
+	}
+
 	void AddScene(std::shared_ptr<Scene> scene);
 
 	void LoadScene(std::shared_ptr<Scene> scene);

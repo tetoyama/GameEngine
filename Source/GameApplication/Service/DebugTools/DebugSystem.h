@@ -44,15 +44,23 @@ public:
 	virtual void Write(const LogEntry& entry) = 0;
 };
 
-
-class ImGuiLogWindow;
 class DebugLogSystem : public IService {
 public:
-	void Initialize(bool* isOpen); // 必要ならファイルパスなど渡す
+	void Initialize(); // 必要ならファイルパスなど渡す
 	void Shutdown() override;
 
 	void AddSink(std::shared_ptr<ILogSink> sink);
 	void RemoveSink(std::shared_ptr<ILogSink> sink);
+	template<typename T>
+	std::shared_ptr<T> GetSink(){
+		std::lock_guard<std::mutex> lock(mutex);
+		for(auto& sink : sinks){
+			if(auto casted = std::dynamic_pointer_cast<T>(sink)){
+				return casted;
+			}
+		}
+		return nullptr;
+	}
 
 	void Log(LogLevel level,
 			 const std::string& message,
@@ -74,8 +82,6 @@ public:
 private:
 	std::vector<std::shared_ptr<ILogSink>> sinks;
 	std::mutex mutex; // マルチスレッド対応
-
-	std::shared_ptr<ImGuiLogWindow> logWindow;
 
 	std::wstring Utf8ToWide(const std::string& utf8){
 		int size = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
@@ -105,38 +111,5 @@ public:
 private:
 	std::vector<LogEntry> entries;
 	mutable std::mutex mutex;
-};
-
-class ImGuiLogWindow {
-public:
-	ImGuiLogWindow();
-	void Draw();  // ImGui::Begin〜Endの中で呼ぶ
-	void SetLogSource(std::shared_ptr<MemoryLogSink> sink);
-	void SetOpenControl(bool* openControlPtr){
-		isOpen = openControlPtr;
-	}
-private:
-	bool* isOpen = nullptr; // 外部から開閉制御するためのポインタ
-	std::shared_ptr<MemoryLogSink> logSink;
-
-	char searchBuffer[128] = "";
-	bool autoScroll = true;
-	std::unordered_set<LogLevel> levelFilter;
-
-	bool PassesFilter(const LogEntry& entry) const;
-	const char* LevelToString(LogLevel level) const;
-	std::string LevelFilterString(LogLevel level) const;
-	ImVec4 GetColorForLevel(LogLevel level) const;
-
-	// char* → UTF-8 相当の std::string（C++11～17 互換）
-	std::string ToU8String(const char* cstr){
-		if(!cstr) return {};
-		return std::string(cstr, cstr + std::strlen(cstr));
-	}
-
-	// オーバーロード：std::string から
-	std::string ToU8String(const std::string& s){
-		return std::string(s.begin(), s.end());
-	}
 };
 

@@ -6,14 +6,19 @@
 #include "Editor/editorService.h"
 #include "Editor/InterFace/IEditorUI.h"
 
-class DebugWindow : public IEditorUI{
+class PerformanceMonitor: public IEditorUI{
 
 public:
-	void Initialize() override {}
+	void Initialize(EditorService* editor) override {
+		m_editor = editor;
+	}
 	void Finalize() override {}
-	void Draw(EditorDrawContext ctx) override;
+	void Draw(const EditorDrawContext ctx) override;
 
 private:
+
+	EditorService* m_editor = nullptr;
+
 	float FixedFpsSamples[SAMPLE_LENGTH]{};
 	float DeltaFpsSamples[SAMPLE_LENGTH]{};
 	float UpdateSamples[SAMPLE_LENGTH]{};

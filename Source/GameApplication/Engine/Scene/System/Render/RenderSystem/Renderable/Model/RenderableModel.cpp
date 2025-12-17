@@ -39,9 +39,11 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 
 			// マテリアル設定
 		MATERIAL material = pTexture->Material;
-		material.DiffuseTextureEnable = ((bool)pTexture->m_TextureData);
 		if (pTexture->m_TextureData) {
-			deviceContext->PSSetShaderResources(0, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+			material.DiffuseTextureEnable = true;
+			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+		} else{
+			material.DiffuseTextureEnable = false;
 		}
 
 		graphicsContext->SetMaterial(material);
@@ -128,12 +130,15 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 		} else {
 
 			MATERIAL material = pTexture->Material;
-			material.DiffuseTextureEnable = true;
-			graphicsContext->SetMaterial(material);
 
 			if (pTexture->m_TextureData) {
-				deviceContext->PSSetShaderResources(0, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+				deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+				material.DiffuseTextureEnable = true;
+			} else{
+				material.DiffuseTextureEnable = false;
 			}
+			graphicsContext->SetMaterial(material);
+
 		}
 		
 		graphicsContext->SetWorldMatrix(World);
