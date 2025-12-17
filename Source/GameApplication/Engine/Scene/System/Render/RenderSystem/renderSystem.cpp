@@ -64,6 +64,7 @@
 #include "RenderPass/ShadowMap/ShadowMapPass.h"
 #include "RenderPass/PlayerView/PlayerPass.h"
 #include "RenderPass/EditorView/EditorPass.h"
+#include "Renderable/Wave/RenderableWave.h"
 
 void RenderSystem::Initialize(){
 	m_context->debug->LOG_DEBUG("RenderSystemを初期化中...");
@@ -75,6 +76,7 @@ void RenderSystem::Initialize(){
 	m_renderables.push_back(std::make_shared<RenderableSprite>());
 	m_renderables.push_back(std::make_shared<RenderableParticle>());
 	m_renderables.push_back(std::make_shared<RenderableTerrain>());
+	m_renderables.push_back(std::make_shared<RenderableWave>());
 
 	for(auto renderable : m_renderables){
 		renderable->Initialize(m_context);
@@ -86,8 +88,6 @@ void RenderSystem::Initialize(){
 
 	m_EditorPass = new EditorPass();
 	m_EditorPass->Initialize(this, m_context);
-
-	ID3D11Device* device = m_context->graphics->GetDevice();
 
 #ifdef _EDITOR
 	showPlayer = &m_context->editor->GetUI<MenuBar>()->showPlayerView;
@@ -249,7 +249,6 @@ void RenderSystem::Draw(){
 		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
 		m_context->graphics->DrawQuad(&copyShader, m_PlayerPass->result);
 	}
-
 	m_context->graphics->ResetViewport();
 	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
 }

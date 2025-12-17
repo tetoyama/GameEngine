@@ -2619,6 +2619,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Editor\UI\Hierarchy.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\UI\Inspector.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\UI\PerformanceMonitor.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Editor\UI\ViewWindow.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\Effekseer\EffectPass.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PhysXDebug\PhysXDebugPass.h" />
     <ClInclude Include="Source\GameApplication\Service\Audio\audioContext.h" />

@@ -60,7 +60,7 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	renderables.push_back(renderSystem->GetRenderable<RenderableParticle>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableSprite>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableTerrain>());
-	//renderables.push_back(renderSystem->GetRenderable<RenderableWave>());
+	renderables.push_back(renderSystem->GetRenderable<RenderableWave>());
 
 	playerRenderTarget = new RenderTarget(
 		context->PlayerScreenSize,
@@ -161,6 +161,9 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	//Effekseer
 	effectPass->Execute(ctx);
 
+	ID3D11RenderTargetView* nullRTV[1] = {nullptr};
+	deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);
+
 	std::vector<PostProcessNode> postNodes;
 	std::unordered_map<int, int> effectIndexToPostNodeIndex; // camera->postEffects idx → postNodes idx
 
@@ -227,11 +230,29 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 				}
 			}
 		}
+
+		// SRV を全解除
+		ID3D11ShaderResourceView* nullSRV[TextureSlot_Max] = {nullptr};
+		deviceContext->PSSetShaderResources(0, TextureSlot_Max, nullSRV);
+
+		// RTV を解除
+		ID3D11RenderTargetView* nullRTV[1] = {nullptr};
+		deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);
+
 		graphics->ApplyPostProcessChain(postNodes, initialSRV);
 
 		result = graphics->m_CurrentSRV;
 	} else {
 		result = initialSRV;
+	}
+	{
+		// SRV を全解除
+		ID3D11ShaderResourceView* nullSRV[TextureSlot_Max] = {nullptr};
+		deviceContext->PSSetShaderResources(0, TextureSlot_Max, nullSRV);
+
+		// RTV を解除
+		ID3D11RenderTargetView* nullRTV[1] = {nullptr};
+		deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);
 	}
 }
 

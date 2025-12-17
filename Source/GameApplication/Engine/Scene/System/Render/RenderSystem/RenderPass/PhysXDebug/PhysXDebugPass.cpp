@@ -10,6 +10,8 @@
 
 void PhysXDebugPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context){
 
+	m_context = context;
+
 	m_LineVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\DebugLineVS.cso");
 	m_LinePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DebugLinePS.cso");
 

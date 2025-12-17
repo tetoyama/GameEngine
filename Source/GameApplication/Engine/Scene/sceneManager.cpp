@@ -11,7 +11,6 @@
 
 #include "Registry/systemRegistry.h"
 
-#include "System/inspectorSystem.h"
 #include "System/Transform/transformSystem.h"
 
 #include "System/Render/RenderSystem/renderSystem.h"
@@ -33,10 +32,17 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 	
 	#ifdef _DEBUG_BUILD
 
+#ifndef _EDITOR
+	State = SceneManagerState::Playing;
+	OldState = SceneManagerState::Stopped;
+#endif // !_EDITOR
+
 	#else
 	State = SceneManagerState::Playing;
 	OldState = SceneManagerState::Stopped;
 	#endif // DEBUG
+
+
 
 	m_SceneContext = sceneContext;
 
@@ -46,7 +52,6 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 	m_systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<AudioSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<InspectorSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<ParticleSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<EffectSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<TerrainSystem>(&m_SceneContext));
@@ -179,10 +184,6 @@ void SceneManager::AddScene(std::shared_ptr<Scene> scene) {
 	if (!scene) {
 		return;
 	}
-
-	InspectorSystem* inspector = m_systemRegistry->GetSystem<InspectorSystem>();
-	inspector->Finalize();
-	inspector->Initialize();
 
 	m_activeScenes[scene->SceneName] = scene;
 	scene->Initialize(&m_SceneContext);

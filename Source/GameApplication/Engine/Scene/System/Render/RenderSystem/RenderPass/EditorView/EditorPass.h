@@ -9,7 +9,7 @@ struct RenderTarget;
 
 class ShadowMapPass;
 class EffectPass;
-
+class PhysXDebugPass;
 class EditorPass : public IRenderPass {
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;
@@ -23,4 +23,5 @@ public:
 
 	ShadowMapPass* shadowMapPass;
 	EffectPass* effectPass;
+	PhysXDebugPass* physXDebugPass;
 };

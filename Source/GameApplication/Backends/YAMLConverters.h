@@ -2,7 +2,7 @@
 #include <backends/yaml-cpp/yaml.h>
 #include "buildSetting.h"
 
-#ifdef _DEBUG_BUILD
+#ifdef _DEBUG
 #pragma comment(lib,"yaml-cppd.lib")
 #else
 #pragma comment(lib,"yaml-cpp.lib")

@@ -2,7 +2,7 @@
 #include "renderEffectSystem.h"
 #include "graphicsContext.h"
 
-#ifdef _DEBUG_BUILD
+#ifdef _DEBUG
 #pragma comment(lib,"Effekseerd.lib")
 #pragma comment(lib,"EffekseerRendererDX11d.lib")
 #pragma comment(lib,"EffekseerSoundXAudio2d.lib")

@@ -13,6 +13,9 @@
 
 #include "DebugTools/debugSystem.h"
 
+#include "Editor/editorService.h"
+#include "Editor/UI/Hierarchy.h"
+
 #include "Graphics/mainRenderer.h"
 
 #include "Platform/InputSystem/InputSystem.h"
@@ -186,6 +189,13 @@ void Scene::Draw(){
 
 void Scene::Shutdown(){
 	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を終了中...").c_str());
+
+	if(m_SceneManagerContext->editor){
+		auto hierarchy = m_SceneManagerContext->editor->GetUI<Hierarchy>();
+		if(hierarchy && hierarchy->sceneContext == &m_SceneContext){
+			hierarchy->sceneContext = nullptr;
+		}
+	}
 
 	ResetAll();
 
@@ -682,7 +692,7 @@ std::string Scene::LoadSceneFileDialog() {
 	OPENFILENAMEA ofn = {}; // ANSI版（UNICODEなら OPENFILENAMEW）
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = nullptr; // ウィンドウハンドル（必要なら自分のウィンドウ）
-	ofn.lpstrFilter = "YAML Files (*.yaml)\0*.yaml\0All Files (*.*)\0*.*\0";
+	ofn.lpstrFilter = "Scene Files (*.scene)\0*.scene\0YAML Files (*.yaml)\0*.yaml\0All Files (*.*)\0*.*\0";
 	ofn.lpstrFile = filename;
 	ofn.nMaxFile = MAX_PATH;
 	ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
@@ -699,10 +709,10 @@ std::string Scene::LoadSceneFileDialog() {
 }
 
 bool Scene::SaveSceneFileDialog(std::wstring& outPath){
-	WCHAR szFile[MAX_PATH] = L"scene.yaml";  // デフォルトファイル名
+	WCHAR szFile[MAX_PATH] = L"scene.scene";  // デフォルトファイル名
 	OPENFILENAME ofn = {sizeof(ofn)};
 	ofn.hwndOwner = nullptr;                 // 親ウィンドウハンドルを渡す場合は指定
-	ofn.lpstrFilter = L"YAML Files (*.yaml)\0*.yaml\0All Files (*.*)\0*.*\0";
+	ofn.lpstrFilter = L"Scene Files (*.scene)\0*.scene\0YAML Files (*.yaml)\0*.yaml\0All Files (*.*)\0*.*\0";
 	ofn.lpstrFile = szFile;
 	ofn.nMaxFile = MAX_PATH;
 	ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;

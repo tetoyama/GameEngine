@@ -18,6 +18,7 @@
 #include <Component/LightComponent.h>
 #include <Component/cameraComponent.h>
 #include <System/Render/RenderSystem/Renderable/Terrain/RenderableTerrain.h>
+#include <System/Render/RenderSystem/Renderable/Wave/RenderableWave.h>
 
 void ShadowMapPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 	m_renderSystem = renderSystem;
@@ -39,6 +40,7 @@ void ShadowMapPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* 
 	renderables.clear();
 	renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableTerrain>());
+	renderables.push_back(renderSystem->GetRenderable<RenderableWave>());
 }
 
 void ShadowMapPass::Finalize() {

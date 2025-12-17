@@ -53,11 +53,6 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 
 	if(debugLogSystem){
 		debugLogSystem->Initialize();
-
-		if(editorService){
-			//debugLogSystem->Initialize(&editorService->GetUI<MenuBar>()->showConsole);
-		} else{
-		}
 	}
 
 	if(!configSystem || !configSystem->Initialize()){
@@ -268,6 +263,9 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 			mainRenderer->BeginFrame();
 			imguiService->Begin();
 			{
+				sceneManager->Draw();
+				debugLogSystem->Draw();
+
 				if(editorService){
 					EditorDrawContext editorDrawContext{};
 					editorDrawContext.UpdateTime = timeService->GetDeltaUpdateTime();
@@ -276,8 +274,6 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 					editorDrawContext.DeltaFPS = timeService->GetFixedUpdateFPS();
 					editorService->Draw(editorDrawContext);
 				}
-				sceneManager->Draw();
-				debugLogSystem->Draw();
 			}
 			imguiService->End();
 			mainRenderer->EndFrame(0);

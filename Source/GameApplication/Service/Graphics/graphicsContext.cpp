@@ -767,10 +767,11 @@ void GraphicsContext::ResetBuffer(const float clearColor[4]){
 
 void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effects, ID3D11ShaderResourceView* initialSRV){
 	for(auto& node : effects){
-		m_DeviceContext->OMSetRenderTargets(1, node.rtv, nullptr);
 
-		ID3D11ShaderResourceView* nullSRV[8] = {nullptr};
+		ID3D11ShaderResourceView* nullSRV[TextureSlot_Max] = {nullptr};
 		m_DeviceContext->PSSetShaderResources(0, 8, nullSRV); // まず全解除
+
+		m_DeviceContext->OMSetRenderTargets(1, node.rtv, nullptr);
 
 		for(size_t i = 0; i < node.inputs.size(); ++i){
 			ID3D11ShaderResourceView* inputSRV = nullptr;

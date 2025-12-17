@@ -24,6 +24,21 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 		return;
 	}
 
+	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
+	MATERIAL material{};
+
+	if(pTexture && pTexture->m_TextureData && pTexture->m_TextureData->pTexture){
+		sceneContext->manager->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+
+		material = pTexture->Material;
+		material.DiffuseTextureEnable = true;
+
+	} else{
+		material.DiffuseTextureEnable = false;
+		material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
+	}
+	sceneContext->manager->graphics->SetMaterial(material);
+
 	auto meshRenderer = pWave->meshRenderer;
 	auto transform = pTransform;
 

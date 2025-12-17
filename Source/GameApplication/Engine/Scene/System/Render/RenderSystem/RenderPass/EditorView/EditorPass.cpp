@@ -6,6 +6,7 @@
 
 #include "../ShadowMap/ShadowMapPass.h"
 #include "../Effekseer/EffectPass.h"
+#include "../PhysXDebug/PhysXDebugPass.h"
 
 #include "scene.h"
 #include "System/Render/RenderSystem/Renderable/IRenderable.h"
@@ -52,7 +53,7 @@ void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	renderables.push_back(renderSystem->GetRenderable<RenderableParticle>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableSprite>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableTerrain>());
-	//renderables.push_back(renderSystem->GetRenderable<RenderableWave>());
+	renderables.push_back(renderSystem->GetRenderable<RenderableWave>());
 
 	playerRenderTarget = new RenderTarget(
 		context->PlayerScreenSize,
@@ -71,6 +72,12 @@ void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 		renderSystem,
 		context
 	);
+
+	physXDebugPass = new PhysXDebugPass();
+	physXDebugPass->Initialize(
+		renderSystem,
+		context
+	);
 }
 
 void EditorPass::Finalize() {
@@ -82,6 +89,10 @@ void EditorPass::Finalize() {
 	effectPass->Finalize();
 	delete effectPass;
 	effectPass = nullptr;
+
+	physXDebugPass->Finalize();
+	delete physXDebugPass;
+	physXDebugPass = nullptr;
 
 	delete playerRenderTarget;
 	playerRenderTarget = nullptr;
@@ -164,6 +175,7 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 	effectPass->Execute(ctx);
 
 	//PhysX
+	physXDebugPass->Execute(ctx);
 
 	std::vector<PostProcessNode> postNodes;
 	std::unordered_map<int, int> effectIndexToPostNodeIndex; // camera->postEffects idx → postNodes idx
