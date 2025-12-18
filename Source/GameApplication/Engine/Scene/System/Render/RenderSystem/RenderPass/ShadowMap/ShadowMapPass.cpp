@@ -309,6 +309,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 		}
 	}
 
+	deviceContext->OMSetRenderTargets(0, nullptr, nullptr);
 
 	//ImGui::Image((ImTextureRef)shadowRenderTarget->srv.Get(), ImVec2(200, 200));
 }

@@ -46,7 +46,7 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 	Vector2 size = Vector2((float)context->graphics->m_width, (float)context->graphics->m_height);
 
 	// ----- RenderTargets -----
-	pRenderTarget = new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR);
+	pRenderTarget = new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR_UNORM);
 }
 
 void LightingPass::Finalize() {
@@ -56,6 +56,9 @@ void LightingPass::Finalize() {
 
 	delete pRenderTarget;
 	pRenderTarget = nullptr;
+
+	m_LinearSampler->Release();
+	m_LinearSampler = nullptr;
 
 }
 
@@ -69,9 +72,7 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 	ID3D11DeviceContext* dc = m_context->graphics->GetDeviceContext();
 	GraphicsContext* gc = m_context->renderer->GetGraphicsContext();
 
-	dc->VSSetShader(m_LightingVertexShader->m_VertexShader.Get(), nullptr, 0);
-	dc->IASetInputLayout(m_LightingVertexShader->m_VertexLayout.Get());
-	dc->PSSetShader(m_LightingPixelShader->m_PixelShader.Get(), nullptr, 0);
+	dc->OMSetRenderTargets(1, pRenderTarget->rtv.GetAddressOf(), nullptr);
 
 	dc->OMSetRenderTargets(
 		1,
@@ -79,12 +80,19 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 		nullptr
 	);
 
+	//gc->SetWorldViewProjection2D();
+
+	dc->VSSetShader(m_LightingVertexShader->m_VertexShader.Get(), nullptr, 0);
+	dc->IASetInputLayout(m_LightingVertexShader->m_VertexLayout.Get());
+	dc->PSSetShader(m_LightingPixelShader->m_PixelShader.Get(), nullptr, 0);
+
 	gc->DrawQuad();
 
 	ID3D11ShaderResourceView* nullSRV[LightingSlot_Max] = {};
 	dc->PSSetShaderResources(0, LightingSlot_Max, nullSRV);
+
 	ID3D11SamplerState* nullSampler[2] = { nullptr };
-	dc->PSSetSamplers(0, 2, nullSampler);
+	dc->PSSetSamplers(1, 2, nullSampler);
 
 	{
 	//return;
@@ -110,23 +118,24 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 	}
 }
 
-void LightingPass::SetTextureSlot(const GBufferPass& gBufferPass, const ShadowMapPass& shadowMapPass, GraphicsContext* gc) {
+void LightingPass::SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shadowMapPass, GraphicsContext* gc) {
 
 	ID3D11DeviceContext* dc = gc->GetDeviceContext();
 
-	dc->PSSetShaderResources(LightingSlot_GAlbedo, 1, gBufferPass.pRenderTargets[GBufferSlot_Albedo]->srv.GetAddressOf());
-	dc->PSSetShaderResources(LightingSlot_GNormal, 1, gBufferPass.pRenderTargets[GBufferSlot_Normal]->srv.GetAddressOf());
-	dc->PSSetShaderResources(LightingSlot_GPosition, 1, gBufferPass.pRenderTargets[GBufferSlot_Position]->srv.GetAddressOf());
-	dc->PSSetShaderResources(LightingSlot_GMaterial, 1, gBufferPass.pRenderTargets[GBufferSlot_Material]->srv.GetAddressOf());
-	dc->PSSetShaderResources(LightingSlot_GParam, 1, gBufferPass.pRenderTargets[GBufferSlot_Param]->srv.GetAddressOf());
-	dc->PSSetShaderResources(LightingSlot_ShadowMap, 1, shadowMapPass.shadowRenderTarget->srv.GetAddressOf());
+	ID3D11ShaderResourceView* nullSRV[LightingSlot_Max] = {};
+	dc->PSSetShaderResources(0, LightingSlot_Max, nullSRV);
+	
+	dc->PSSetShaderResources(LightingSlot_GAlbedo, 1, gBufferPass->pRenderTargets[GBufferSlot_Albedo]->srv.GetAddressOf());
+	dc->PSSetShaderResources(LightingSlot_GNormal, 1, gBufferPass->pRenderTargets[GBufferSlot_Normal]->srv.GetAddressOf());
+	dc->PSSetShaderResources(LightingSlot_GPosition, 1, gBufferPass->pRenderTargets[GBufferSlot_Position]->srv.GetAddressOf());
+	dc->PSSetShaderResources(LightingSlot_GMaterial, 1, gBufferPass->pRenderTargets[GBufferSlot_Material]->srv.GetAddressOf());
+	dc->PSSetShaderResources(LightingSlot_GParam, 1, gBufferPass->pRenderTargets[GBufferSlot_Param]->srv.GetAddressOf());
+	dc->PSSetShaderResources(LightingSlot_ShadowMap, 1, shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
 
 	ID3D11SamplerState* samplers[] =
 	{
-		m_LinearSampler,				// s0
-		shadowMapPass.shadowSampler		// s1
+		shadowMapPass->shadowSampler,		// s1
+		m_LinearSampler				// s0
 	};
-
-
-	dc->PSSetSamplers(0, 2, samplers);
+	dc->PSSetSamplers(1, 2, samplers);
 }

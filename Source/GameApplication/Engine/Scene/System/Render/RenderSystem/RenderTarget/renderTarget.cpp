@@ -23,7 +23,38 @@ void RenderTarget::Resize(const Vector2& _size, GraphicsContext* _graphicsContex
     ID3D11Device* device = graphicsContext->GetDevice();
 
     switch (type) {
-		case RENDERTARGET_TYPE_COLOR:
+        case RENDERTARGET_TYPE_COLOR:
+            {
+                // --- カラーターゲットの場合 ---
+                td.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+                td.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+                HRESULT hr = device->CreateTexture2D(&td, nullptr, tex.ReleaseAndGetAddressOf());
+                if (FAILED(hr) || !tex) return;
+
+                device->CreateRenderTargetView(tex.Get(), nullptr, rtv.ReleaseAndGetAddressOf());
+                device->CreateShaderResourceView(tex.Get(), nullptr, srv.ReleaseAndGetAddressOf());
+
+                // 深度ステンシルを別で作成（カラーRT用）
+                ID3D11Texture2D* depthStencilTex = nullptr;
+
+                D3D11_TEXTURE2D_DESC depthDesc = td;
+                depthDesc.Format = DXGI_FORMAT_D32_FLOAT;
+                depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+                depthDesc.MiscFlags = 0;
+
+                hr = device->CreateTexture2D(&depthDesc, nullptr, &depthStencilTex);
+                if (FAILED(hr) || !depthStencilTex) return;
+
+                D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
+                dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+                dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+
+                device->CreateDepthStencilView(depthStencilTex, &dsvDesc, dsv.ReleaseAndGetAddressOf());
+                depthStencilTex->Release();
+            }
+            break;
+        case RENDERTARGET_TYPE_COLOR_UNORM:
             {
                 // --- カラーターゲットの場合 ---
                 td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;

@@ -22,7 +22,7 @@ public:
 	void Finalize() override;
 	void Execute(const RenderPassContext& ctx) override;
 
-	void SetTextureSlot(const GBufferPass& gBufferPass, const ShadowMapPass& shadowMapPass, GraphicsContext* gc);
+	void SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shadowMapPass, GraphicsContext* gc);
 
 	std::shared_ptr<PixelShaderData> m_LightingPixelShader;
 	std::shared_ptr<VertexShaderData> m_LightingVertexShader;

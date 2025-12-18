@@ -1,7 +1,9 @@
-#include <commonDefine.h>
 #include "common.hlsl"
+#include "commondefine.h"
 
-// Lighting Slot 定義（PS側）
+// ============================================================================
+// GBuffer
+// ============================================================================
 Texture2D GAlbedo : register(t0);
 Texture2D GNormal : register(t1);
 Texture2D GPosition : register(t2);
@@ -10,41 +12,166 @@ Texture2D<uint4> GParam : register(t4);
 
 Texture2D ShadowMap : register(t5);
 
-SamplerState LinearSampler : register(s0);
+SamplerState g_Sampler : register(s0);
 SamplerComparisonState ShadowSampler : register(s1);
+SamplerState LinearSampler : register(s2);
 
-float4 main(PS_IN In) : SV_Target0
+// ============================================================================
+// PBR Utility
+// ============================================================================
+float3 FresnelSchlick(float cosTheta, float3 F0)
 {
-    return float4(In.TexCoord, 0, 1);
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
 
-    // -----------------------------
-    // GBuffer 読み取り
-    // -----------------------------
-    float4 albedo = GAlbedo.Sample(LinearSampler, In.TexCoord);
-    float3 normal = GNormal.Sample(LinearSampler, In.TexCoord).xyz;
-    float3 worldPos = GPosition.Sample(LinearSampler, In.TexCoord).xyz;
-    float4 material = GMaterial.Sample(LinearSampler, In.TexCoord);
+float SchlickGGX(float NdotV, float roughness)
+{
+    float a = roughness;
+    float k = (a * a) * 0.5;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
 
-    // Decode normal [0,1] -> [-1,1]
-    normal = normalize(normal * 2.0f - 1.0f);
+float G_Smith(float3 N, float3 V, float3 L, float roughness)
+{
+    float NdotV = saturate(dot(N, V));
+    float NdotL = saturate(dot(N, L));
+    return SchlickGGX(NdotV, roughness) * SchlickGGX(NdotL, roughness);
+}
 
-    // -----------------------------
-    // 仮ライト（1灯・固定）
-    // -----------------------------
-    float3 lightDir = normalize(float3(0.5f, -1.0f, 0.3f));
-    float3 lightCol = float3(1.0f, 1.0f, 1.0f);
+float D_GTR2(float NdotH, float roughness)
+{
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float d = (NdotH * NdotH) * (a2 - 1.0) + 1.0;
+    return a2 / (PI * d * d);
+}
 
-    float NdotL = saturate(dot(normal, -lightDir));
+// ============================================================================
+// Shadow
+// ============================================================================
+float ShadowFactor(float3 worldPos, LIGHT light, int lightIndex)
+{
+    float4 sp = mul(float4(worldPos, 1), light.LightView);
+    sp = mul(sp, light.LightProjection);
+    sp.xyz /= sp.w;
 
-    // -----------------------------
-    // Lambert
-    // -----------------------------
-    float3 diffuse = albedo.rgb * lightCol * NdotL;
+    float2 uv = sp.xy * 0.5 + 0.5;
+    uv.y = 1.0 - uv.y;
 
-    // 環境光（最低限）
-    float3 ambient = albedo.rgb * 0.1f;
+    float depth = saturate(sp.z - 0.001);
 
-    float3 color = diffuse + ambient;
+    uint w, h;
+    ShadowMap.GetDimensions(w, h);
 
-    return float4(color, 1.0f);
+    int grid = ceil(sqrt((float) LIGHT_MAX_COUNT));
+    float tile = 1.0 / grid;
+
+    int gx = lightIndex % grid;
+    int gy = lightIndex / grid;
+
+    float2 tileMin = float2(gx, gy) * tile;
+    float2 tileMax = tileMin + tile;
+
+    float2 suv = tileMin + uv * tile;
+
+    if (any(suv < tileMin) || any(suv > tileMax))
+        return 1.0;
+
+    return ShadowMap.SampleCmpLevelZero(ShadowSampler, suv, depth);
+}
+
+// ============================================================================
+// Lighting
+// ============================================================================
+float3 ComputeLightContribution(
+    LIGHT light,
+    float3 N,
+    float3 V,
+    float3 worldPos,
+    float3 baseColor,
+    float shininess,
+    int lightIndex)
+{
+    float3 L;
+    float attenuation = 1.0;
+
+    if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
+    {
+        L = normalize(-light.Direction.xyz);
+    }
+    else
+    {
+        float3 toL = light.Position.xyz - worldPos;
+        float dist = length(toL);
+        L = toL / max(dist, 0.001);
+
+        attenuation = saturate(1.0 - dist / max(light.Param.x, 0.001));
+    }
+
+    float3 H = normalize(V + L);
+
+    float NdotL = saturate(dot(N, L));
+    float NdotV = saturate(dot(N, V));
+    float NdotH = saturate(dot(N, H));
+    float LdotH = saturate(dot(L, H));
+
+    float roughness = max(1.0 - shininess / 128.0, 0.05);
+
+    float3 F0 = float3(0.04, 0.04, 0.04);
+    float3 F = FresnelSchlick(LdotH, F0);
+    float G = G_Smith(N, V, L, roughness);
+    float D = D_GTR2(NdotH, roughness);
+
+    float3 spec =
+        (D * F * G) / max(4.0 * NdotL * NdotV, 0.001);
+
+    float3 diff = baseColor * (1.0 / PI);
+
+    float shadow = ShadowFactor(worldPos, light, lightIndex);
+
+    return (diff + spec) * light.Diffuse.rgb * NdotL * attenuation * shadow;
+}
+
+// ============================================================================
+// Pixel Shader Main
+// ============================================================================
+float4 main(PS_IN In) : SV_Target
+{
+    float2 uv = In.TexCoord;
+
+    float3 baseColor = GAlbedo.Sample(g_Sampler, uv).rgb;
+    float3 N = GNormal.Sample(g_Sampler, uv).rgb;
+    float3 worldPos = GPosition.Sample(g_Sampler, uv).rgb;
+    float4 mat = GMaterial.Sample(g_Sampler, uv);
+
+    N = normalize(N * 2.0 - 1.0);
+
+    float shininess = mat.r * 128.0;
+    float emission = mat.g;
+
+    float3 V = normalize(CameraPosition.xyz - worldPos);
+
+    float3 color = float3(0, 0, 0);
+    float3 ambient = float3(0, 0, 0);
+
+    for (int i = 0; i < LIGHT_MAX_COUNT; i++)
+    {
+        if (Lights[i].Enable == 0)
+            continue;
+
+        ambient += baseColor * Lights[i].Ambient.rgb;
+        color += ComputeLightContribution(
+            Lights[i],
+            N,
+            V,
+            worldPos,
+            baseColor,
+            shininess,
+            i);
+    }
+
+    float3 finalColor = ambient + color + emission;
+    finalColor = pow(finalColor, 1.0 / 2.2);
+
+    return float4(finalColor, 1.0);
 }

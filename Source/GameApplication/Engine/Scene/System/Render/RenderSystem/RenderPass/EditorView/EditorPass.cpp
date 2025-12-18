@@ -61,7 +61,7 @@ void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	playerRenderTarget = new RenderTarget(
 		context->PlayerScreenSize,
 		context->graphics,
-		RenderTargetType::RENDERTARGET_TYPE_COLOR
+		RenderTargetType::RENDERTARGET_TYPE_COLOR_UNORM
 	);
 
 	shadowMapPass = new ShadowMapPass();

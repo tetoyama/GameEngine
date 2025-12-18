@@ -119,15 +119,15 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
+
+
 	gBufferPass->Execute(ctx);
 
-	deviceContext->VSSetShader(m_RenderableVertexShader->m_VertexShader.Get(), nullptr, 0);
-	deviceContext->IASetInputLayout(m_RenderableVertexShader->m_VertexLayout.Get());
 
 	shadowMapPass->Execute(ctx);
 
-	//lightingPass->SetTextureSlot(*gBufferPass, *shadowMapPass, graphicsContext);
-	//lightingPass->Execute(ctx);
+	lightingPass->SetTextureSlot(gBufferPass, shadowMapPass, graphicsContext);
+	lightingPass->Execute(ctx);
 
 	float clearCol[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
 	playerRenderTarget->Resize(ctx.screenSize, m_context->graphics);
@@ -136,8 +136,10 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 
 	m_context->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_ShadowMap, 1, shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
 	m_context->graphics->GetDeviceContext()->PSSetSamplers(1, 1, &shadowMapPass->shadowSampler);
+	
 	deviceContext->VSSetShader(m_RenderableVertexShader->m_VertexShader.Get(), nullptr, 0);
 	deviceContext->IASetInputLayout(m_RenderableVertexShader->m_VertexLayout.Get());
+	deviceContext->PSSetShader(m_RenderablePixelShader->m_PixelShader.Get(), nullptr, 0);
 
 	ID3D11ShaderResourceView* initialSRV = playerRenderTarget->srv.Get();
 
@@ -162,7 +164,6 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	m_context->imgui->SetViewProjectionMatrix(ctx.viewMatrix, ctx.projectionMatrix);
 
 	// シェーダーセット
-	deviceContext->PSSetShader(m_RenderablePixelShader->m_PixelShader.Get(), nullptr, 0);
 
 	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++) {
 

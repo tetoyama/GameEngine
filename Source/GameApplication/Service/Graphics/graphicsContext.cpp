@@ -675,9 +675,8 @@ bool GraphicsContext::CreateD2DResources(HWND hwnd){
 bool GraphicsContext::CreateFullScreenQuad(){
 	VERTEX_3D fullscreenVertices[] = {
 		{ {-1,-1,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {0,1} },
-		{ {-1, 3,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {0,0} },
-		{ { 3,-1,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {1,1} },
-		{ { 1, 1,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {1,0} },
+		{ {-1, 3,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {0,-1} },
+		{ { 3,-1,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {2,1} },
 	};
 	UINT fullscreenIndices[] = {0,1,2};
 
@@ -884,4 +883,17 @@ void GraphicsContext::DrawQuad(PostEffectShader* shader, ID3D11ShaderResourceVie
 
 	ID3D11ShaderResourceView* nullSRV[1] = {nullptr};
 	context->PSSetShaderResources(0, 1, nullSRV);
+}
+
+
+void GraphicsContext::DrawQuad() {
+	auto* context = m_DeviceContext.Get();
+
+	UINT stride = sizeof(VERTEX_3D);
+	UINT offset = 0;
+	context->IASetVertexBuffers(0, 1, m_FullScreenVB.GetAddressOf(), &stride, &offset);
+	context->IASetIndexBuffer(m_FullScreenIB.Get(), DXGI_FORMAT_R32_UINT, 0);
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	context->DrawIndexed(3, 0, 0);
 }
