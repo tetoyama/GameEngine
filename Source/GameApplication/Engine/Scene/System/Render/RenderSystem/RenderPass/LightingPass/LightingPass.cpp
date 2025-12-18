@@ -74,17 +74,18 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 
 	dc->OMSetRenderTargets(1, pRenderTarget->rtv.GetAddressOf(), nullptr);
 
-	dc->OMSetRenderTargets(
-		1,
-		pRenderTarget->rtv.GetAddressOf(),
-		nullptr
-	);
-
-	//gc->SetWorldViewProjection2D();
-
 	dc->VSSetShader(m_LightingVertexShader->m_VertexShader.Get(), nullptr, 0);
 	dc->IASetInputLayout(m_LightingVertexShader->m_VertexLayout.Get());
 	dc->PSSetShader(m_LightingPixelShader->m_PixelShader.Get(), nullptr, 0);
+
+	D3D11_VIEWPORT vp = {};
+	vp.Width = ctx.screenSize.x;
+	vp.Height = ctx.screenSize.y;
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	dc->RSSetViewports(1, &vp);
 
 	gc->DrawQuad();
 
@@ -111,7 +112,7 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 		// Albedo
 		ImGui::Image(
 			pRenderTarget->srv.Get(),
-			ImVec2(256, 256)
+			ImVec2(256, ctx.screenSize.y / ctx.screenSize.x * 256.0f)
 		);
 
 		ImGui::End();

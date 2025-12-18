@@ -92,6 +92,7 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 0
+        CastShadow: 1
         Position:
           x: 0
           y: 25
@@ -301,7 +302,7 @@ Entities:
             - 0
             - 0
           -
-            - 0
+            - -0
             - 0.961055517
             - 0.276355565
             - 0

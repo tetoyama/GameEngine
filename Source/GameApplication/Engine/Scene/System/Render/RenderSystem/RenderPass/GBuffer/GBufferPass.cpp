@@ -190,19 +190,19 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 		// Albedo
 		ImGui::Image(
 			pRenderTargets[GBufferSlot_Albedo]->srv.Get(),
-			ImVec2(256, 256)
+			ImVec2(256, ctx.screenSize.y / ctx.screenSize.x * 256.0f)
 		);
 
 		// Normal
 		ImGui::Image(
 			pRenderTargets[GBufferSlot_Normal]->srv.Get(),
-			ImVec2(256, 256)
+			ImVec2(256, ctx.screenSize.y / ctx.screenSize.x * 256.0f)
 		);
 
 		// Position
 		ImGui::Image(
 			pRenderTargets[GBufferSlot_Position]->srv.Get(),
-			ImVec2(256, 256)
+			ImVec2(256, ctx.screenSize.y / ctx.screenSize.x * 256.0f)
 		);
 
 		ImGui::End();

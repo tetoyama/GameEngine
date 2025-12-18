@@ -138,6 +138,7 @@ float3 ComputeLightContribution(
 float4 main(PS_IN In) : SV_Target
 {
     float2 uv = In.TexCoord;
+    //return float4(uv, 1.0, 1.0);
 
     float3 baseColor = GAlbedo.Sample(g_Sampler, uv).rgb;
     float3 N = GNormal.Sample(g_Sampler, uv).rgb;
