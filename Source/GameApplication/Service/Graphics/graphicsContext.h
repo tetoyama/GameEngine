@@ -18,6 +18,7 @@ class RenderEffectSystem;
 
 enum class BlendMode
 {
+	None,		// ブレンド無し（GBuffer / Shadow）
 	Alpha,		// 通常アルファブレンド
 	Additive,	// 加算
 	Subtract,	// 減算
@@ -109,6 +110,8 @@ public:
 	void SetLight(LIGHT* Light);
 	void SetCamera(const CAMERA& Camera);
 	void SetParameter(const Parameter& Parameter);
+	void SetObjectInfo(const ObjectInfo& ObjectInfo);
+
 	void ResetViewport();
 	void ResetBuffer(const float clearColor[4]);
 	void SetWorldViewProjection2D();
@@ -183,6 +186,7 @@ private:
 	ID3D11Buffer* m_LightBuffer = nullptr;
 	ID3D11Buffer* m_CameraBuffer = nullptr;
 	ID3D11Buffer* m_ParameterBuffer = nullptr;
+	ID3D11Buffer* m_ObjectInfoBuffer = nullptr;
 
 	ID3D11ComputeShader* m_pComputeSkinningShader = nullptr;
 

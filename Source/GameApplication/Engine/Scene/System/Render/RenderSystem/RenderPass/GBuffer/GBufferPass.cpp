@@ -16,12 +16,19 @@
 #include <System/Render/RenderSystem/Renderable/Terrain/RenderableTerrain.h>
 #include <System/Render/RenderSystem/Renderable/Wave/RenderableWave.h>
 
+#include "Resources/resourceService.h"
+#include "Resources/Data/shaderData.h"
+#include <ImGui/imgui_impl_dx11.h>
+
 using namespace DirectX;
 
 void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 
 	m_renderSystem = renderSystem;
 	m_context = context;
+
+	m_GBufferVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
+	m_GBufferPixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\GBufferPS.cso");
 
 	// ----- Sampler -----
 	D3D11_SAMPLER_DESC samp = {};
@@ -60,6 +67,9 @@ void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* co
 
 void GBufferPass::Finalize() {
 
+	m_GBufferPixelShader.reset();
+	m_GBufferVertexShader.reset();
+
 	if (sampler) {
 		sampler->Release();
 		sampler = nullptr;
@@ -78,6 +88,12 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 
 	ID3D11DeviceContext* dc = m_context->graphics->GetDeviceContext();
 	GraphicsContext* gc = m_context->renderer->GetGraphicsContext();
+
+	dc->VSSetShader(m_GBufferVertexShader->m_VertexShader.Get(), nullptr, 0);
+	dc->IASetInputLayout(m_GBufferVertexShader->m_VertexLayout.Get());
+	dc->PSSetShader(m_GBufferPixelShader->m_PixelShader.Get(), nullptr, 0);
+
+	gc->SetBlendMode(BlendMode::None);
 
 	// ----- Clear -----
 	float clearColor[4] = { 0,0,0,0 };
@@ -156,5 +172,39 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 				}
 			}
 		}
+	}
+	{
+		//return;
+		// ================================
+		// ImGui Debug Draw（暫定）
+		// ================================
+
+		// 1. バックバッファに戻す
+		dc->OMSetRenderTargets(0, nullptr, nullptr);
+
+		// 5. ImGui 描画
+		ImGui::Begin("GBuffer Debug");
+
+		ImGui::Text("GBuffer Debug View");
+
+		// Albedo
+		ImGui::Image(
+			pRenderTargets[GBufferSlot_Albedo]->srv.Get(),
+			ImVec2(256, 256)
+		);
+
+		// Normal
+		ImGui::Image(
+			pRenderTargets[GBufferSlot_Normal]->srv.Get(),
+			ImVec2(256, 256)
+		);
+
+		// Position
+		ImGui::Image(
+			pRenderTargets[GBufferSlot_Position]->srv.Get(),
+			ImVec2(256, 256)
+		);
+
+		ImGui::End();
 	}
 }

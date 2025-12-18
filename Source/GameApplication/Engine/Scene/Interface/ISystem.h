@@ -12,6 +12,7 @@ public:
 	virtual void Update(float deltaTime) = 0;
 	virtual void FixedUpdate(float fixedDeltaTime) = 0;
 	virtual void Draw() = 0;
+	virtual void SystemSetting() {}
 
 	virtual void EditorUpdate(float deltaTime) = 0;
 	

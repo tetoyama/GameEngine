@@ -69,12 +69,12 @@ cbuffer ParameterBuffer : register(b7)
     float4 Parameter;
 };
 
-cbuffer ObjectInfo : register(b10)
+cbuffer ObjectInfo : register(b8)
 {
+    uint SceneID; // drawcallごとに設定
     uint ObjectID; // drawcallごとに設定
-    uint MaterialID; // マテリアルごとに設定
-    uint _pad0;
-    uint _pad1;
+    uint ShaderID; // マテリアルごとに設定
+    uint _pad;
 }
 
 struct VS_IN

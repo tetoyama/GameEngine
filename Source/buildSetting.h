@@ -16,5 +16,5 @@
 
 #endif // _DEBUG
 
-//#define _EDITOR
+#define _EDITOR
 

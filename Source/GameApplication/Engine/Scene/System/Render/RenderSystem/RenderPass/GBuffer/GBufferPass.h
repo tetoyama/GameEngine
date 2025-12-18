@@ -3,9 +3,13 @@
 
 #include <d3d11.h>
 #include <vector>
+#include <memory>
 
 class IRenderable;
 struct RenderTarget;
+
+struct PixelShaderData;
+struct VertexShaderData;
 
 class GBufferPass : public IRenderPass {
 public:
@@ -15,6 +19,9 @@ public:
 
 	// Renderables
 	std::vector<IRenderable*> renderables;
+
+	std::shared_ptr<PixelShaderData> m_GBufferPixelShader;
+	std::shared_ptr<VertexShaderData> m_GBufferVertexShader;
 
 	// GBuffer targets
 	std::vector<RenderTarget*> pRenderTargets;

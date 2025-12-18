@@ -5,6 +5,7 @@
 #include "../../renderPhase.h"
 
 #include "../ShadowMap/ShadowMapPass.h"
+#include "../GBuffer/GBufferPass.h"
 #include "../Effekseer/EffectPass.h"
 
 #include "scene.h"
@@ -56,6 +57,12 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 		context
 	);
 
+	gBufferPass = new GBufferPass();
+	gBufferPass->Initialize(
+		renderSystem,
+		context
+	);
+
 	renderables.clear();
 	renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableBillBoard>());
@@ -77,6 +84,10 @@ void PlayerPass::Finalize() {
 	m_RenderablePixelShader.reset();
 	m_RenderableVertexShader.reset();
 
+	gBufferPass->Finalize();
+	delete gBufferPass;
+	gBufferPass = nullptr;
+
 	shadowMapPass->Finalize();
 	delete shadowMapPass;
 	shadowMapPass = nullptr;
@@ -91,10 +102,13 @@ void PlayerPass::Finalize() {
 
 void PlayerPass::Execute(const RenderPassContext& ctx) {
 
+
 	// コンテキストの取得
 	GraphicsContext* graphics = m_context->graphics;
 	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
+	gBufferPass->Execute(ctx);
 
 	deviceContext->VSSetShader(m_RenderableVertexShader->m_VertexShader.Get(), nullptr, 0);
 	deviceContext->IASetInputLayout(m_RenderableVertexShader->m_VertexLayout.Get());

@@ -12,6 +12,7 @@ struct VertexShaderData;
 
 class ShadowMapPass;
 class EffectPass;
+class GBufferPass;
 
 class PlayerPass : public IRenderPass {
 public:
@@ -29,4 +30,5 @@ public:
 
 	ShadowMapPass* shadowMapPass;
 	EffectPass* effectPass;
+	GBufferPass* gBufferPass;
 };

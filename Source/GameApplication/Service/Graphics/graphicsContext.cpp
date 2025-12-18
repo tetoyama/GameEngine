@@ -86,6 +86,7 @@ void GraphicsContext::Shutdown(){
 	SAFE_RELEASE(m_LightBuffer);
 	SAFE_RELEASE(m_CameraBuffer);
 	SAFE_RELEASE(m_ParameterBuffer);
+	SAFE_RELEASE(m_ObjectInfoBuffer);
 
 	SAFE_RELEASE(m_RenderTargetView);
 	SAFE_RELEASE(m_DepthStencilView);
@@ -179,6 +180,10 @@ void GraphicsContext::SetCamera(const CAMERA& Camera){
 
 void GraphicsContext::SetParameter(const Parameter& Parameter){
 	m_DeviceContext->UpdateSubresource(m_ParameterBuffer, 0, nullptr, &Parameter, 0, 0);
+}
+
+void GraphicsContext::SetObjectInfo(const ObjectInfo& ObjectInfo) {
+	m_DeviceContext->UpdateSubresource(m_ObjectInfoBuffer, 0, nullptr, &ObjectInfo, 0, 0);
 }
 
 void GraphicsContext::ResetViewport(){
@@ -398,6 +403,13 @@ bool GraphicsContext::CreateConstantBuffers(){
 	m_DeviceContext->PSSetConstantBuffers(7, 1, &m_ParameterBuffer);
 	assert(SUCCEEDED(hr));
 
+	bufferDesc.ByteWidth = sizeof(ObjectInfo);
+
+	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_ObjectInfoBuffer);
+	m_DeviceContext->VSSetConstantBuffers(8, 1, &m_ObjectInfoBuffer);
+	m_DeviceContext->PSSetConstantBuffers(8, 1, &m_ObjectInfoBuffer);
+	assert(SUCCEEDED(hr));
+
 	// ライト初期化
 	LIGHT light[LIGHT_MAX_COUNT];
 	light[0].Enable = true;
@@ -483,64 +495,97 @@ bool GraphicsContext::CreateRenderTargetView(){
 
 bool GraphicsContext::CreateBlendState() {
 	HRESULT hr = S_OK;
-	D3D11_BLEND_DESC desc = {};
+
+	// -------------------------
+	// 共通初期化
+	// -------------------------
+	D3D11_BLEND_DESC desc{};
 	desc.AlphaToCoverageEnable = FALSE;
-	desc.IndependentBlendEnable = FALSE;
-	auto& rt = desc.RenderTarget[0];
-	rt.BlendEnable = TRUE;
-	rt.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	desc.IndependentBlendEnable = TRUE;
 
-	// 1. Alpha
-	rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;
-	rt.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-	rt.BlendOp = D3D11_BLEND_OP_ADD;
-	rt.SrcBlendAlpha = D3D11_BLEND_ZERO;
-	rt.DestBlendAlpha = D3D11_BLEND_ONE;
-	rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
-	hr = m_Device->CreateBlendState(&desc, &m_BlendStates[(int)BlendMode::Alpha]);
+	// =========================
+	// None（GBuffer / Shadow）
+	// =========================
+	for (int i = 0; i < 8; i++) {
+		auto& rt = desc.RenderTarget[i];
+		rt.BlendEnable = FALSE;
+		rt.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	}
+
+	hr = m_Device->CreateBlendState(
+		&desc,
+		m_BlendStates[(int)BlendMode::None].ReleaseAndGetAddressOf()
+	);
 	if (FAILED(hr)) return false;
 
-	// 2. Additive
-	rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;
-	rt.DestBlend = D3D11_BLEND_ONE;
-	rt.BlendOp = D3D11_BLEND_OP_ADD;
-	rt.SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
-	rt.DestBlendAlpha = D3D11_BLEND_ONE;
-	rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
-	hr = m_Device->CreateBlendState(&desc, &m_BlendStates[(int)BlendMode::Additive]);
+	// =========================
+	// Alpha / Add / etc
+	// =========================
+	for (int i = 1; i < 8; i++) {
+		desc.RenderTarget[i].BlendEnable = FALSE;
+		desc.RenderTarget[i].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	}
+
+	auto& rt0 = desc.RenderTarget[0];
+
+	// ---- Alpha ----
+	rt0.BlendEnable = TRUE;
+	rt0.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	rt0.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	rt0.BlendOp = D3D11_BLEND_OP_ADD;
+	rt0.SrcBlendAlpha = D3D11_BLEND_ZERO;
+	rt0.DestBlendAlpha = D3D11_BLEND_ONE;
+	rt0.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+
+	hr = m_Device->CreateBlendState(
+		&desc,
+		m_BlendStates[(int)BlendMode::Alpha].ReleaseAndGetAddressOf()
+	);
 	if (FAILED(hr)) return false;
 
-	// 3. Subtract
-	rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;
-	rt.DestBlend = D3D11_BLEND_ONE;
-	rt.BlendOp = D3D11_BLEND_OP_REV_SUBTRACT;
-	rt.SrcBlendAlpha = D3D11_BLEND_ZERO;
-	rt.DestBlendAlpha = D3D11_BLEND_ONE;
-	rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
-	hr = m_Device->CreateBlendState(&desc, &m_BlendStates[(int)BlendMode::Subtract]);
+	// ---- Additive ----
+	rt0.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	rt0.DestBlend = D3D11_BLEND_ONE;
+
+	hr = m_Device->CreateBlendState(
+		&desc,
+		m_BlendStates[(int)BlendMode::Additive].ReleaseAndGetAddressOf()
+	);
 	if (FAILED(hr)) return false;
 
-	// 4. Multiply
-	rt.SrcBlend = D3D11_BLEND_DEST_COLOR;
-	rt.DestBlend = D3D11_BLEND_ZERO;
-	rt.BlendOp = D3D11_BLEND_OP_ADD;
-	rt.SrcBlendAlpha = D3D11_BLEND_ZERO;
-	rt.DestBlendAlpha = D3D11_BLEND_ONE;
-	rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
-	hr = m_Device->CreateBlendState(&desc, &m_BlendStates[(int)BlendMode::Multiply]);
+	// ---- Subtract ----
+	rt0.BlendOp = D3D11_BLEND_OP_REV_SUBTRACT;
+
+	hr = m_Device->CreateBlendState(
+		&desc,
+		m_BlendStates[(int)BlendMode::Subtract].ReleaseAndGetAddressOf()
+	);
 	if (FAILED(hr)) return false;
 
-	// 5. Screen
-	rt.SrcBlend = D3D11_BLEND_ONE;
-	rt.DestBlend = D3D11_BLEND_INV_DEST_COLOR;
-	rt.BlendOp = D3D11_BLEND_OP_ADD;
-	rt.SrcBlendAlpha = D3D11_BLEND_ZERO;
-	rt.DestBlendAlpha = D3D11_BLEND_ONE;
-	rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
-	hr = m_Device->CreateBlendState(&desc, &m_BlendStates[(int)BlendMode::Screen]);
+	// ---- Multiply ----
+	rt0.BlendOp = D3D11_BLEND_OP_ADD;
+	rt0.SrcBlend = D3D11_BLEND_DEST_COLOR;
+	rt0.DestBlend = D3D11_BLEND_ZERO;
+
+	hr = m_Device->CreateBlendState(
+		&desc,
+		m_BlendStates[(int)BlendMode::Multiply].ReleaseAndGetAddressOf()
+	);
 	if (FAILED(hr)) return false;
 
-	SetBlendMode(BlendMode::Alpha);
+	// ---- Screen ----
+	rt0.SrcBlend = D3D11_BLEND_ONE;
+	rt0.DestBlend = D3D11_BLEND_INV_DEST_COLOR;
+
+	hr = m_Device->CreateBlendState(
+		&desc,
+		m_BlendStates[(int)BlendMode::Screen].ReleaseAndGetAddressOf()
+	);
+	if (FAILED(hr)) return false;
+
+	// 初期状態
+	SetBlendMode(BlendMode::None);
+
 	return true;
 }
 
