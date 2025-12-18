@@ -46,6 +46,9 @@ void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	m_renderSystem = renderSystem;
 	m_context = context;
 
+	m_RenderableVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
+	m_RenderablePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DefaultPixelShader.cso");
+
 	renderables.clear();
 	renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableBillBoard>());
@@ -82,6 +85,9 @@ void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 
 void EditorPass::Finalize() {
 
+	m_RenderablePixelShader.reset();
+	m_RenderableVertexShader.reset();
+
 	shadowMapPass->Finalize();
 	delete shadowMapPass;
 	shadowMapPass = nullptr;
@@ -100,6 +106,14 @@ void EditorPass::Finalize() {
 
 void EditorPass::Execute(const RenderPassContext& ctx) {
 
+	// コンテキストの取得
+	GraphicsContext* graphics = m_context->graphics;
+	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
+	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
+	deviceContext->VSSetShader(m_RenderableVertexShader->m_VertexShader.Get(), nullptr, 0);
+	deviceContext->IASetInputLayout(m_RenderableVertexShader->m_VertexLayout.Get());
+
 	shadowMapPass->Execute(ctx);
 
 	float clearCol[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
@@ -112,13 +126,7 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 
 	ID3D11ShaderResourceView* initialSRV = playerRenderTarget->srv.Get();
 
-	GraphicsContext* graphics = m_context->graphics;
-
 	bool* pRenderLayer = ctx.renderLayerVisibility;
-
-	// コンテキストの取得
-	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
-	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	CAMERA camera{};
 	camera.CameraPosition = ctx.cameraPosition;
@@ -137,6 +145,9 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 	deviceContext->RSSetViewports(1, &vp);
 
 	m_context->imgui->SetViewProjectionMatrix(ctx.viewMatrix, ctx.projectionMatrix);
+
+	// シェーダーセット
+	deviceContext->PSSetShader(m_RenderablePixelShader->m_PixelShader.Get(), nullptr, 0);
 
 	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++) {
 

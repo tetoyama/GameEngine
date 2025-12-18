@@ -78,13 +78,13 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 		//deviceContext->PSSetShader(nullptr, NULL, 0); // ピクセルシェーダー無効化
 	} else {
 		if (modelRenderer->pixelShader) {
-			deviceContext->PSSetShader(modelRenderer->pixelShader->m_PixelShader.Get(), nullptr, 0);
+			//deviceContext->PSSetShader(modelRenderer->pixelShader->m_PixelShader.Get(), nullptr, 0);
 		}
 	}
 
 	if(modelRenderer->vertexShader){
-		deviceContext->IASetInputLayout(modelRenderer->vertexShader->m_VertexLayout.Get());
-		deviceContext->VSSetShader(modelRenderer->vertexShader->m_VertexShader.Get(), nullptr, 0);
+		//deviceContext->IASetInputLayout(modelRenderer->vertexShader->m_VertexLayout.Get());
+		//deviceContext->VSSetShader(modelRenderer->vertexShader->m_VertexShader.Get(), nullptr, 0);
 	}
 	graphicsContext->SetCullMode(CullMode::Back);
 

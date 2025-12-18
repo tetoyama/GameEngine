@@ -122,15 +122,15 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 		graphicsContext->SetUVMatrix(uv);
 
 	}
-	if(m_spriteMesh->mesh.m_VertexLayout){
-		deviceContext->IASetInputLayout(m_spriteMesh->mesh.m_VertexLayout.Get());
-	}
-	if(m_spriteMesh->mesh.m_VertexShader){
-		deviceContext->VSSetShader(m_spriteMesh->mesh.m_VertexShader.Get(), NULL, 0);
-	}
-	if(m_spriteMesh->mesh.m_PixelShader){
-		deviceContext->PSSetShader(m_spriteMesh->mesh.m_PixelShader.Get(), NULL, 0);
-	}
+	//if(m_spriteMesh->mesh.m_VertexLayout){
+	//	deviceContext->IASetInputLayout(m_spriteMesh->mesh.m_VertexLayout.Get());
+	//}
+	//if(m_spriteMesh->mesh.m_VertexShader){
+	//	deviceContext->VSSetShader(m_spriteMesh->mesh.m_VertexShader.Get(), NULL, 0);
+	//}
+	//if(m_spriteMesh->mesh.m_PixelShader){
+	//	deviceContext->PSSetShader(m_spriteMesh->mesh.m_PixelShader.Get(), NULL, 0);
+	//}
 	DirectX::XMMATRIX World = newTransform.CalculateWorldMatrix(&newTransform, componentRegistry);
 
 	graphicsContext->SetWorldViewProjection2D();
@@ -142,9 +142,9 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	if (ctx.passPhase == RenderPhase::PHASE_SHADOW) {
-		deviceContext->PSSetShader(nullptr, NULL, 0); // ピクセルシェーダー無効化
-	}
+	//if (ctx.passPhase == RenderPhase::PHASE_SHADOW) {
+	//	deviceContext->PSSetShader(nullptr, NULL, 0); // ピクセルシェーダー無効化
+	//}
 	deviceContext->Draw(m_spriteMesh->mesh.meshCount, 0);
 
 	graphicsContext->SetDepthEnable(true);

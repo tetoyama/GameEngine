@@ -8,7 +8,9 @@ class GraphicsContext;
 enum RenderTargetType
 {
 	RENDERTARGET_TYPE_COLOR,
+	RENDERTARGET_TYPE_COLOR_NO_DSV,
 	RENDERTARGET_TYPE_DEPTH,
+	RENDERTARGET_TYPE_UINT4,
 };
 
 struct RenderTarget {

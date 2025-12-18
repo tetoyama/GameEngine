@@ -1,7 +1,6 @@
 #include "common.hlsl"
 void main(in VS_IN In, out PS_IN Out)
 {
-    
 	//ここで頂点変換
 	//頂点座標を出力
 	//頂点変換処理  この処理は必ず必要

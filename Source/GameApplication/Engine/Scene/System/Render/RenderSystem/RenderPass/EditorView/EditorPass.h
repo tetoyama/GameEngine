@@ -10,6 +10,11 @@ struct RenderTarget;
 class ShadowMapPass;
 class EffectPass;
 class PhysXDebugPass;
+
+
+struct PixelShaderData;
+struct VertexShaderData;
+
 class EditorPass : public IRenderPass {
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;
@@ -18,6 +23,9 @@ public:
 
 	std::vector<IRenderable*> renderables;
 	RenderTarget* playerRenderTarget = nullptr;
+
+	std::shared_ptr<PixelShaderData> m_RenderablePixelShader;
+	std::shared_ptr<VertexShaderData> m_RenderableVertexShader;
 
 	ID3D11ShaderResourceView* result = nullptr;
 

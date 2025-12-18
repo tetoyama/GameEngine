@@ -7,6 +7,9 @@
 class IRenderable;
 struct RenderTarget;
 
+struct PixelShaderData;
+struct VertexShaderData;
+
 class ShadowMapPass;
 class EffectPass;
 
@@ -18,6 +21,9 @@ public:
 
 	std::vector<IRenderable*> renderables;
 	RenderTarget* playerRenderTarget = nullptr;
+
+	std::shared_ptr<PixelShaderData> m_RenderablePixelShader;
+	std::shared_ptr<VertexShaderData> m_RenderableVertexShader;
 
 	ID3D11ShaderResourceView* result = nullptr;
 

@@ -141,8 +141,8 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 	}
 	deviceContext->IASetInputLayout(m_billBoardMesh->mesh.m_VertexLayout.Get());
 
-	deviceContext->VSSetShader(m_billBoardMesh->mesh.m_VertexShader.Get(), NULL, 0);
-	deviceContext->PSSetShader(m_billBoardMesh->mesh.m_PixelShader.Get(), NULL, 0);
+	//deviceContext->VSSetShader(m_billBoardMesh->mesh.m_VertexShader.Get(), NULL, 0);
+	//deviceContext->PSSetShader(m_billBoardMesh->mesh.m_PixelShader.Get(), NULL, 0);
 
 	// ローカル変換行列（スケール・ビルボード回転・位置）
 	DirectX::XMMATRIX LocalMatrix =

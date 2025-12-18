@@ -38,15 +38,15 @@ void RenderableMesh::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 			graphicsContext->SetMaterial(material);
 		}
 	}
-	if(meshRenderer->mesh.m_VertexLayout){
-		deviceContext->IASetInputLayout(meshRenderer->mesh.m_VertexLayout.Get());
-	}
-	if(meshRenderer->mesh.m_VertexShader){
-		deviceContext->VSSetShader(meshRenderer->mesh.m_VertexShader.Get(), NULL, 0);
-	}
-	if(meshRenderer->mesh.m_PixelShader){
-		deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
-	}
+	//if(meshRenderer->mesh.m_VertexLayout){
+	//	deviceContext->IASetInputLayout(meshRenderer->mesh.m_VertexLayout.Get());
+	//}
+	//if(meshRenderer->mesh.m_VertexShader){
+	//	deviceContext->VSSetShader(meshRenderer->mesh.m_VertexShader.Get(), NULL, 0);
+	//}
+	//if(meshRenderer->mesh.m_PixelShader){
+	//	deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
+	//}
 	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, componentRegistry);
 
 	graphicsContext->SetWorldViewProjection2D();
@@ -58,9 +58,9 @@ void RenderableMesh::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	if (ctx.passPhase == RenderPhase::PHASE_SHADOW) {
-		deviceContext->PSSetShader(nullptr, NULL, 0); // ピクセルシェーダー無効化
-	}
+	//if (ctx.passPhase == RenderPhase::PHASE_SHADOW) {
+	//	deviceContext->PSSetShader(nullptr, NULL, 0); // ピクセルシェーダー無効化
+	//}
 	deviceContext->Draw(meshRenderer->mesh.meshCount, 0);
 
 	graphicsContext->SetDepthEnable(true);

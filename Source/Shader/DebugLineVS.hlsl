@@ -2,7 +2,7 @@
 
 void main(in VS_IN In, out PS_IN Out)
 {
-    float OutlineThickness = 0.02f;
+    float OutlineThickness = 0.05f;
 
     // 頂点をワールド空間へ変換
     float4 worldPos = mul(In.Position, World);

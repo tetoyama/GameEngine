@@ -144,10 +144,10 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 				DirectX::XMVectorSet(0, 0, 0, 1)
 			);
 
-			deviceContext->IASetInputLayout(m_billBoardMesh->mesh.m_VertexLayout.Get());
+			//deviceContext->IASetInputLayout(m_billBoardMesh->mesh.m_VertexLayout.Get());
 
-			deviceContext->VSSetShader(m_billBoardMesh->mesh.m_VertexShader.Get(), NULL, 0);
-			deviceContext->PSSetShader(m_billBoardMesh->mesh.m_PixelShader.Get(), NULL, 0);
+			//deviceContext->VSSetShader(m_billBoardMesh->mesh.m_VertexShader.Get(), NULL, 0);
+			//deviceContext->PSSetShader(m_billBoardMesh->mesh.m_PixelShader.Get(), NULL, 0);
 
 			// ローカル変換行列（スケール・ビルボード回転・位置）
 			DirectX::XMMATRIX LocalMatrix =
@@ -164,9 +164,9 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 			deviceContext->IASetVertexBuffers(0, 1, m_billBoardMesh->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
 
 			deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-			if (ctx.passPhase == RenderPhase::PHASE_SHADOW) {
-				deviceContext->PSSetShader(nullptr, NULL, 0); // ピクセルシェーダー無効化
-			}
+			//if (ctx.passPhase == RenderPhase::PHASE_SHADOW) {
+			//	deviceContext->PSSetShader(nullptr, NULL, 0); // ピクセルシェーダー無効化
+			//}
 			deviceContext->Draw(m_billBoardMesh->mesh.meshCount, 0);
 		}
 	}

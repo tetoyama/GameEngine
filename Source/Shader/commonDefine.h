@@ -21,6 +21,14 @@
 
 #define TextureSlot_Max			(8)
 
+#define GBufferSlot_Albedo		(0)
+#define GBufferSlot_Normal		(1)
+#define GBufferSlot_Position	(2)
+#define GBufferSlot_Material	(3)
+#define GBufferSlot_Param		(4)
+
+#define GBufferSlot_Max			(5)
+
 #define LIGHT_TYPE_NONE			(0)
 #define LIGHT_TYPE_DIRECTIONAL	(1)
 #define LIGHT_TYPE_POINT		(2)
