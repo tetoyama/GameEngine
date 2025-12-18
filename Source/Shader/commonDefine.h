@@ -29,6 +29,16 @@
 
 #define GBufferSlot_Max			(5)
 
+#define LightingSlot_GAlbedo    (0)
+#define LightingSlot_GNormal    (1)
+#define LightingSlot_GPosition  (2)
+#define LightingSlot_GMaterial  (3)
+#define LightingSlot_GParam     (4)
+#define LightingSlot_ShadowMap  (5)
+
+#define LightingSlot_Max        (6)
+
+
 #define LIGHT_TYPE_NONE			(0)
 #define LIGHT_TYPE_DIRECTIONAL	(1)
 #define LIGHT_TYPE_POINT		(2)

@@ -148,6 +148,7 @@ public:
 		DrawQuad(copyShader, inputSRV);
 	}
 	void DrawQuad(PostEffectShader* shader, ID3D11ShaderResourceView* inputSRV);
+	void DrawQuad();
 	ID3D11ShaderResourceView* GetCurrentSRV() const;
 
 	UINT m_width = 0;

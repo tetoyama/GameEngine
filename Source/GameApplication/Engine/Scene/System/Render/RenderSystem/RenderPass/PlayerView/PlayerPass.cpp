@@ -7,6 +7,7 @@
 #include "../ShadowMap/ShadowMapPass.h"
 #include "../GBuffer/GBufferPass.h"
 #include "../Effekseer/EffectPass.h"
+#include "../LightingPass/LightingPass.h"
 
 #include "scene.h"
 #include "System/Render/RenderSystem/Renderable/IRenderable.h"
@@ -63,6 +64,12 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 		context
 	);
 
+	lightingPass = new LightingPass();
+	lightingPass->Initialize(
+		renderSystem,
+		context
+	);
+
 	renderables.clear();
 	renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableBillBoard>());
@@ -83,6 +90,10 @@ void PlayerPass::Finalize() {
 
 	m_RenderablePixelShader.reset();
 	m_RenderableVertexShader.reset();
+
+	lightingPass->Finalize();
+	delete lightingPass;
+	lightingPass = nullptr;
 
 	gBufferPass->Finalize();
 	delete gBufferPass;
@@ -115,6 +126,9 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 
 	shadowMapPass->Execute(ctx);
 
+	//lightingPass->SetTextureSlot(*gBufferPass, *shadowMapPass, graphicsContext);
+	//lightingPass->Execute(ctx);
+
 	float clearCol[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
 	playerRenderTarget->Resize(ctx.screenSize, m_context->graphics);
 	playerRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearCol);
@@ -122,6 +136,8 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 
 	m_context->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_ShadowMap, 1, shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
 	m_context->graphics->GetDeviceContext()->PSSetSamplers(1, 1, &shadowMapPass->shadowSampler);
+	deviceContext->VSSetShader(m_RenderableVertexShader->m_VertexShader.Get(), nullptr, 0);
+	deviceContext->IASetInputLayout(m_RenderableVertexShader->m_VertexLayout.Get());
 
 	ID3D11ShaderResourceView* initialSRV = playerRenderTarget->srv.Get();
 
