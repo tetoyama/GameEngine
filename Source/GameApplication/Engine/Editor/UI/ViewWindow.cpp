@@ -41,6 +41,10 @@ void ViewWindow::EditorView(const EditorDrawContext ctx) {
 
 	bool* showEditor = &m_editor->GetUI<MenuBar>()->showEditorView;
 
+	if (!*showEditor) {
+		return;
+	}
+
 	ImGuiWindowFlags toolbar_window_flags = 0;
 	//toolbar_window_flags |= ImGuiWindowFlags_NoCollapse;
 	ImGui::Begin("Editor View", showEditor, toolbar_window_flags);

@@ -122,15 +122,15 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 		graphicsContext->SetUVMatrix(uv);
 
 	}
-	//if(m_spriteMesh->mesh.m_VertexLayout){
-	//	deviceContext->IASetInputLayout(m_spriteMesh->mesh.m_VertexLayout.Get());
-	//}
-	//if(m_spriteMesh->mesh.m_VertexShader){
-	//	deviceContext->VSSetShader(m_spriteMesh->mesh.m_VertexShader.Get(), NULL, 0);
-	//}
-	//if(m_spriteMesh->mesh.m_PixelShader){
-	//	deviceContext->PSSetShader(m_spriteMesh->mesh.m_PixelShader.Get(), NULL, 0);
-	//}
+	if(m_spriteMesh->mesh.m_VertexLayout){
+		deviceContext->IASetInputLayout(m_spriteMesh->mesh.m_VertexLayout.Get());
+	}
+	if(m_spriteMesh->mesh.m_VertexShader){
+		deviceContext->VSSetShader(m_spriteMesh->mesh.m_VertexShader.Get(), NULL, 0);
+	}
+	if(m_spriteMesh->mesh.m_PixelShader){
+		deviceContext->PSSetShader(m_spriteMesh->mesh.m_PixelShader.Get(), NULL, 0);
+	}
 	DirectX::XMMATRIX World = newTransform.CalculateWorldMatrix(&newTransform, componentRegistry);
 
 	graphicsContext->SetWorldViewProjection2D();

@@ -62,6 +62,29 @@ void LightingPass::Finalize() {
 
 }
 
+void LightingPass::SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shadowMapPass, GraphicsContext* gc) {
+
+	ID3D11DeviceContext* dc = gc->GetDeviceContext();
+
+	ID3D11ShaderResourceView* nullSRV[LightingSlot_Max] = {};
+	dc->PSSetShaderResources(0, LightingSlot_Max, nullSRV);
+
+	dc->PSSetShaderResources(LightingSlot_GAlbedo, 1, gBufferPass->pRenderTargets[GBufferSlot_Albedo]->srv.GetAddressOf());
+	dc->PSSetShaderResources(LightingSlot_GNormal, 1, gBufferPass->pRenderTargets[GBufferSlot_Normal]->srv.GetAddressOf());
+	dc->PSSetShaderResources(LightingSlot_GPosition, 1, gBufferPass->pRenderTargets[GBufferSlot_Position]->srv.GetAddressOf());
+	dc->PSSetShaderResources(LightingSlot_GMaterial, 1, gBufferPass->pRenderTargets[GBufferSlot_Material]->srv.GetAddressOf());
+	dc->PSSetShaderResources(LightingSlot_GParam, 1, gBufferPass->pRenderTargets[GBufferSlot_Param]->srv.GetAddressOf());
+	dc->PSSetShaderResources(LightingSlot_ShadowMap, 1, shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
+
+	ID3D11SamplerState* samplers[] =
+	{
+		shadowMapPass->shadowSampler,	// s1
+		m_LinearSampler					// s2
+	};
+	//dc->PSSetSamplers(1, 2, samplers);
+}
+
+
 void LightingPass::Execute(const RenderPassContext& ctx) {
 
 	pRenderTarget->Resize(ctx.screenSize, m_context->graphics);
@@ -92,8 +115,8 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 	ID3D11ShaderResourceView* nullSRV[LightingSlot_Max] = {};
 	dc->PSSetShaderResources(0, LightingSlot_Max, nullSRV);
 
-	ID3D11SamplerState* nullSampler[2] = { nullptr };
-	dc->PSSetSamplers(1, 2, nullSampler);
+	//ID3D11SamplerState* nullSampler[2] = { nullptr };
+	//dc->PSSetSamplers(1, 2, nullSampler);
 
 	{
 	//return;
@@ -117,26 +140,18 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 
 		ImGui::End();
 	}
-}
 
-void LightingPass::SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shadowMapPass, GraphicsContext* gc) {
+		// サンプラーステート設定
+	D3D11_SAMPLER_DESC samplerDesc{};
+	samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.MaxAnisotropy = 4;
+	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-	ID3D11DeviceContext* dc = gc->GetDeviceContext();
-
-	ID3D11ShaderResourceView* nullSRV[LightingSlot_Max] = {};
-	dc->PSSetShaderResources(0, LightingSlot_Max, nullSRV);
-	
-	dc->PSSetShaderResources(LightingSlot_GAlbedo, 1, gBufferPass->pRenderTargets[GBufferSlot_Albedo]->srv.GetAddressOf());
-	dc->PSSetShaderResources(LightingSlot_GNormal, 1, gBufferPass->pRenderTargets[GBufferSlot_Normal]->srv.GetAddressOf());
-	dc->PSSetShaderResources(LightingSlot_GPosition, 1, gBufferPass->pRenderTargets[GBufferSlot_Position]->srv.GetAddressOf());
-	dc->PSSetShaderResources(LightingSlot_GMaterial, 1, gBufferPass->pRenderTargets[GBufferSlot_Material]->srv.GetAddressOf());
-	dc->PSSetShaderResources(LightingSlot_GParam, 1, gBufferPass->pRenderTargets[GBufferSlot_Param]->srv.GetAddressOf());
-	dc->PSSetShaderResources(LightingSlot_ShadowMap, 1, shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
-
-	ID3D11SamplerState* samplers[] =
-	{
-		shadowMapPass->shadowSampler,	// s1
-		m_LinearSampler					// s0
-	};
-	dc->PSSetSamplers(1, 2, samplers);
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerState;
+	HRESULT hr = gc->GetDevice()->CreateSamplerState(&samplerDesc, &samplerState);
+	dc->PSSetSamplers(0, 1, samplerState.GetAddressOf());
+	samplerState.Reset();
 }

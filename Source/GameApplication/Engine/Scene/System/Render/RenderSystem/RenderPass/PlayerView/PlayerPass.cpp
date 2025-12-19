@@ -44,7 +44,7 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	m_context = context;
 
 	m_RenderableVertexShader= m_context->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-	m_RenderablePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DefaultPixelShader.cso");
+	m_RenderablePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\unlitUVTexturePS.cso");
 
 	shadowMapPass = new ShadowMapPass();
 	shadowMapPass->Initialize(
@@ -71,13 +71,13 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	);
 
 	renderables.clear();
-	renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
+	//renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableBillBoard>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableMesh>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableParticle>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableSprite>());
-	renderables.push_back(renderSystem->GetRenderable<RenderableTerrain>());
-	renderables.push_back(renderSystem->GetRenderable<RenderableWave>());
+	//renderables.push_back(renderSystem->GetRenderable<RenderableTerrain>());
+	//renderables.push_back(renderSystem->GetRenderable<RenderableWave>());
 
 	playerRenderTarget = new RenderTarget(
 		context->PlayerScreenSize,
@@ -113,26 +113,29 @@ void PlayerPass::Finalize() {
 
 void PlayerPass::Execute(const RenderPassContext& ctx) {
 
+	RenderPassContext passCtx = ctx;
 
 	// コンテキストの取得
 	GraphicsContext* graphics = m_context->graphics;
 	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-
-
+	passCtx.passPhase = RenderPhase::PHASE_GBUFFER;
 	gBufferPass->Execute(ctx);
 
 
+	passCtx.passPhase = RenderPhase::PHASE_SHADOW;
 	shadowMapPass->Execute(ctx);
 
+	passCtx.passPhase = RenderPhase::PHASE_LIGHTING;
 	lightingPass->SetTextureSlot(gBufferPass, shadowMapPass, graphicsContext);
 	lightingPass->Execute(ctx);
 
 	float clearCol[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
 	playerRenderTarget->Resize(ctx.screenSize, m_context->graphics);
 	playerRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearCol);
-	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, playerRenderTarget->rtv.GetAddressOf(), playerRenderTarget->dsv.Get());
+	//m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, playerRenderTarget->rtv.GetAddressOf(), playerRenderTarget->dsv.Get());
+	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, lightingPass->pRenderTarget->rtv.GetAddressOf(), lightingPass->pRenderTarget->dsv.Get());
 
 	m_context->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_ShadowMap, 1, shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
 	m_context->graphics->GetDeviceContext()->PSSetSamplers(1, 1, &shadowMapPass->shadowSampler);
@@ -140,18 +143,6 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	deviceContext->VSSetShader(m_RenderableVertexShader->m_VertexShader.Get(), nullptr, 0);
 	deviceContext->IASetInputLayout(m_RenderableVertexShader->m_VertexLayout.Get());
 	deviceContext->PSSetShader(m_RenderablePixelShader->m_PixelShader.Get(), nullptr, 0);
-
-	ID3D11ShaderResourceView* initialSRV = playerRenderTarget->srv.Get();
-	initialSRV = lightingPass->pRenderTarget->srv.Get();
-
-	bool* pRenderLayer = ctx.renderLayerVisibility;
-
-	CAMERA camera{};
-	camera.CameraPosition = ctx.cameraPosition;
-	graphicsContext->SetCamera(camera);
-
-	graphicsContext->SetViewMatrix(ctx.viewMatrix);
-	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
 
 	D3D11_VIEWPORT vp = {};
 	vp.Width = ctx.screenSize.x;
@@ -162,32 +153,49 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	vp.TopLeftY = 0;
 	deviceContext->RSSetViewports(1, &vp);
 
+	ID3D11ShaderResourceView* initialSRV = playerRenderTarget->srv.Get();
+	initialSRV = lightingPass->pRenderTarget->srv.Get();
+
+	bool* pRenderLayer = ctx.renderLayerVisibility;
+
+	CAMERA camera{};
+	camera.CameraPosition = ctx.cameraPosition;
+	graphicsContext->SetCamera(camera);
+	graphicsContext->SetViewMatrix(ctx.viewMatrix);
+	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
 
 	// シェーダーセット
 
-	//for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++) {
-	//	if (ctx.renderLayerVisibility[i] == false) {
-	//		continue;
-	//	}
-	//	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-	//		auto context = scene->GetSceneContext();
-	//		// コンポーネントを持つエンティティの検索
-	//		std::vector<Entity> entities = context->component->FindEntitiesWithComponent<TransformComponent>();
-	//		if (entities.empty()) {
-	//			continue;
-	//		} else {
-	//			for (Entity entity : entities) {
-	//				RenderLayer layer = scene->GetRenderLayerFromEntity(entity);
-	//				if ((int)layer != i) {
-	//					continue;
-	//				}
-	//				for (auto renderable : renderables) {
-	//					renderable->Execute(ctx, context, entity);
-	//				}
-	//			}
-	//		}
-	//	}
-	//}
+	passCtx.passPhase = RenderPhase::PHASE_FOWARD;
+
+	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++) {
+		if (ctx.renderLayerVisibility[i] == false) {
+			continue;
+		}
+
+		if (i != (int)RenderLayer::OverlayUI) {
+			continue;
+		}
+
+		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+			auto context = scene->GetSceneContext();
+			// コンポーネントを持つエンティティの検索
+			std::vector<Entity> entities = context->component->FindEntitiesWithComponent<TransformComponent>();
+			if (entities.empty()) {
+				continue;
+			} else {
+				for (Entity entity : entities) {
+					RenderLayer layer = scene->GetRenderLayerFromEntity(entity);
+					if ((int)layer != i) {
+						continue;
+					}
+					for (auto renderable : renderables) {
+						renderable->Execute(ctx, context, entity);
+					}
+				}
+			}
+		}
+	}
 	
 	//Effekseer
 	effectPass->Execute(ctx);

@@ -824,10 +824,8 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 			} else if(node.inputs[i] >= 0 && node.inputs[i] < static_cast<int>(effects.size())){
 				inputSRV = effects[node.inputs[i]].srv;
 			}
-
 			m_DeviceContext->PSSetShaderResources(static_cast<UINT>(i), 1, &inputSRV);
 		}
-
 		Parameter param;
 		param.Parameter = node.param;
 		SetParameter(param);

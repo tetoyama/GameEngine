@@ -284,7 +284,7 @@ Entities:
             - 0
             - 0
           -
-            - 0
+            - -0
             - 0.777572334
             - 0.628793478
             - 0
@@ -306,8 +306,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Blur.cso
             NodePos:
-              x: 163.367371
-              y: 188.176468
+              x: 169.000031
+              y: 94
             InputPins:
               - 1
               - 12
@@ -322,8 +322,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\BrightPass.cso
             NodePos:
-              x: 163.368103
-              y: -100.116318
+              x: 160.222046
+              y: -202.863174
             InputPins:
               - 3
               - 7
@@ -338,8 +338,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\CompositeBloom.cso
             NodePos:
-              x: 405.000031
-              y: 79
+              x: 417.127808
+              y: -55.3689423
             InputPins:
               - 8
               - 10
@@ -379,14 +379,14 @@ Entities:
         ScreenInput:
           Name: ""
           NodePos:
-            x: -84.631897
-            y: 101.883682
+            x: 40.368103
+            y: 150.883667
           OutputPin: 5
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 668.368042
-            y: 185.883667
+            x: 646.368042
+            y: 138.883667
           InputPins:
             - 6
   - Entity: 6
@@ -660,8 +660,8 @@ Entities:
         Name: Entity
       - Component: TransformComponent
         Position:
-          x: 0
-          y: -0.0132163577
+          x: -0.321553141
+          y: 0.489071727
           z: 0
         Rotation:
           - -0

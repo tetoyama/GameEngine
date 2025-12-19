@@ -308,7 +308,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 	}
 
 	deviceContext->OMSetRenderTargets(0, nullptr, nullptr);
-	deviceContext->PSSetShaderResources(TextureSlot_ShadowMap, 1, nullSRV);
+	//deviceContext->PSSetShaderResources(TextureSlot_ShadowMap, 1, nullSRV);
 
 	//ImGui::Image((ImTextureRef)shadowRenderTarget->srv.Get(), ImVec2(200, 200));
 }
