@@ -48,6 +48,10 @@ void MenuBar::Draw(EditorDrawContext ctx){
 			if(ImGui::MenuItem("ParformanceMonitor", nullptr, showParformanceMonitor)){
 				showParformanceMonitor = !showParformanceMonitor;
 			}
+			if (ImGui::MenuItem("SystemSetting", nullptr, showSystemSetting)) {
+				showSystemSetting = !showSystemSetting;
+			}
+
 			ImGui::EndMenu();
 		}
 

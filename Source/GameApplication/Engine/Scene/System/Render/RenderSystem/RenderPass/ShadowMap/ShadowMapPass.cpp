@@ -272,8 +272,6 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 			graphicsContext->SetViewMatrix(newContext.viewMatrix);
 			graphicsContext->SetProjectionMatrix(newContext.projectionMatrix);
 
-			m_context->imgui->SetViewProjectionMatrix(newContext.viewMatrix, newContext.projectionMatrix);
-
 			// ======== Viewport ========
 			D3D11_VIEWPORT vp = {};
 			vp.TopLeftX = (float)tileX;

@@ -80,7 +80,7 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 		(float)sceneContext->manager->graphics->m_height
 	);
 
-	TransformComponent newTransform = transform->CalculateRectTransform(viewportSize, ctx, *spriteRenderer, *transform);
+	TransformComponent newTransform = transform->CalculateRectTransform(viewportSize, *spriteRenderer, *transform);
 
 	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
 	ID3D11Device* device = graphicsContext->GetDevice();

@@ -142,6 +142,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	deviceContext->PSSetShader(m_RenderablePixelShader->m_PixelShader.Get(), nullptr, 0);
 
 	ID3D11ShaderResourceView* initialSRV = playerRenderTarget->srv.Get();
+	initialSRV = lightingPass->pRenderTarget->srv.Get();
 
 	bool* pRenderLayer = ctx.renderLayerVisibility;
 
@@ -161,43 +162,33 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	vp.TopLeftY = 0;
 	deviceContext->RSSetViewports(1, &vp);
 
-	m_context->imgui->SetViewProjectionMatrix(ctx.viewMatrix, ctx.projectionMatrix);
 
 	// シェーダーセット
 
-	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++) {
-
-		if (ctx.renderLayerVisibility[i] == false) {
-			continue;
-		}
-
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-			auto context = scene->GetSceneContext();
-
-			// コンポーネントを持つエンティティの検索
-			std::vector<Entity> entities = context->component->FindEntitiesWithComponent<TransformComponent>();
-
-			if (entities.empty()) {
-
-				continue;
-
-			} else {
-
-				for (Entity entity : entities) {
-
-					RenderLayer layer = scene->GetRenderLayerFromEntity(entity);
-
-					if ((int)layer != i) {
-						continue;
-					}
-
-					for (auto renderable : renderables) {
-						renderable->Execute(ctx, context, entity);
-					}
-				}
-			}
-		}
-	}
+	//for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++) {
+	//	if (ctx.renderLayerVisibility[i] == false) {
+	//		continue;
+	//	}
+	//	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	//		auto context = scene->GetSceneContext();
+	//		// コンポーネントを持つエンティティの検索
+	//		std::vector<Entity> entities = context->component->FindEntitiesWithComponent<TransformComponent>();
+	//		if (entities.empty()) {
+	//			continue;
+	//		} else {
+	//			for (Entity entity : entities) {
+	//				RenderLayer layer = scene->GetRenderLayerFromEntity(entity);
+	//				if ((int)layer != i) {
+	//					continue;
+	//				}
+	//				for (auto renderable : renderables) {
+	//					renderable->Execute(ctx, context, entity);
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
+	
 	//Effekseer
 	effectPass->Execute(ctx);
 

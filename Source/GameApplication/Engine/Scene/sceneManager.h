@@ -84,6 +84,9 @@ public:
 	SceneManagerState State = SceneManagerState::Stopped;
 	SceneManagerState OldState = SceneManagerState::Stopped;
 
+	std::shared_ptr<SystemRegistry> systemRegistry = nullptr;
+
+
 private:
 
 	void TempSave(); // 一時保存
@@ -94,5 +97,4 @@ private:
 
 	bool m_NeedSceneChange = false;
 	std::shared_ptr<Scene> m_NextScene = nullptr;
-	std::shared_ptr<SystemRegistry> m_systemRegistry = nullptr;
 };

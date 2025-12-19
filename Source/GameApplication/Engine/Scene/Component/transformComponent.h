@@ -250,13 +250,12 @@ public:
 
 	TransformComponent CalculateRectTransform(
 		const Vector2& viewportSize,
-		const RenderPassContext& renderPassContext,
 		const SpriteRendererComponent& sprite,
 		const TransformComponent& originalTransform
 	){
 		TransformComponent adjustedTransform = originalTransform;
 
-		Vector2 screenSize = renderPassContext.screenSize;
+		Vector2 screenSize = viewportSize;
 
 		// 仮想UI基準解像度
 		const Vector2 referenceResolution = {1.0f, 1.0f};
@@ -301,4 +300,56 @@ public:
 
 		return adjustedTransform;
 	}
+
+	TransformComponent ReverseCalculateRectTransform(
+		const Vector2& viewportSize,
+		const SpriteRendererComponent& sprite,
+		const TransformComponent& adjustedTransform
+	) {
+		TransformComponent virtualTransform = adjustedTransform;
+
+		const Vector2 referenceResolution = { 1.0f, 1.0f };
+
+		// アスペクト比
+		float screenAspect = viewportSize.x / viewportSize.y;
+		float referenceAspect = referenceResolution.x / referenceResolution.y;
+		float aspectRatioScaleX = referenceAspect / screenAspect;
+
+		// アンカー位置（ピクセル）
+		Vector2 anchoredPosition = {
+			viewportSize.x * sprite.anchor.x,
+			viewportSize.y * sprite.anchor.y
+		};
+
+		// 実スケール → 仮想スケールに変換
+		Vector2 virtualScale = {
+			adjustedTransform.scale.x / viewportSize.x * referenceResolution.x / aspectRatioScaleX,
+			adjustedTransform.scale.y / viewportSize.y * referenceResolution.y
+		};
+
+		// ピボット補正（ピクセル）
+		Vector2 pivotOffset = {
+			adjustedTransform.scale.x * -sprite.pivot.x,
+			adjustedTransform.scale.y * -sprite.pivot.y
+		};
+
+		// 実座標 → アンカー基準に差分変換（ピクセル空間）
+		Vector2 anchoredDiff = {
+			adjustedTransform.position.x - anchoredPosition.x + pivotOffset.x,
+			adjustedTransform.position.y - anchoredPosition.y + pivotOffset.y
+		};
+
+		// ピクセル → 仮想UI座標に逆変換
+		Vector2 virtualPosition = {
+			anchoredDiff.x / viewportSize.x * referenceResolution.x / aspectRatioScaleX,
+			anchoredDiff.y / viewportSize.y * referenceResolution.y
+		};
+
+		// 最終反映
+		virtualTransform.position = Vector3(virtualPosition.x, virtualPosition.y, adjustedTransform.position.z);
+		virtualTransform.scale = Vector3(virtualScale.x, virtualScale.y, adjustedTransform.scale.z);
+
+		return virtualTransform;
+	}
+
 };

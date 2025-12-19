@@ -57,6 +57,18 @@ public:
 		return nullptr;
 	}
 
+	PlayerPass* m_PlayerPass = nullptr;
+	bool* showPlayer = nullptr;
+	bool playerRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] = {
+	true, true, true, true, true,true, false
+	};
+
+	EditorPass* m_EditorPass = nullptr;
+	bool* showEditor = nullptr;
+	bool editorRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] = {
+	true, true, true, true, true, true, true,
+	};
+
 private:
 
 	const CameraEntityData FindCameraEntity();
@@ -73,22 +85,6 @@ private:
 
 	PostEffectShader copyShader;
 
-	PlayerPass* m_PlayerPass = nullptr;
-	bool* showPlayer = nullptr;
-	bool playerRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] = {
-	true, true, true, true, true,true, false
-	};
-
-	EditorPass* m_EditorPass = nullptr;
-	bool* showEditor = nullptr;
-	bool editorRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] = {
-	true, true, true, true, true, true, true,
-	};
-
-	Vector3 m_EditorCameraPosition = Vector3(0.0f, 5.0f, -20.0f);
-	Vector3 m_EditorCameraRotation = Vector3(0.0f, 0.0f, 0.0f);
-	float m_MouseWheel = 0.0f;
-	bool mouseOnEditor = false;
 	std::shared_ptr<TextureData> PlayButtonTexture;
 	std::shared_ptr<TextureData> PauseButtonTexture;
 	std::shared_ptr<TextureData> StopButtonTexture;

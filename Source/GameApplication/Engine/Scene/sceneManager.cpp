@@ -1,4 +1,5 @@
 // Scene/sceneManager.cpp
+#include <memory>
 #include <algorithm>
 #include "buildSetting.h"
 #include "gameApplication.h"
@@ -46,23 +47,23 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 
 	m_SceneContext = sceneContext;
 
-	m_systemRegistry = std::make_shared<SystemRegistry>();
+	systemRegistry = std::make_shared<SystemRegistry>();
 
-	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<AudioSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<ParticleSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<EffectSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<TerrainSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<PhysicSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<CSharpScriptSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<CustomScriptSystem>(&m_SceneContext));
-	m_systemRegistry->RegisterSystem(std::make_unique<WaveSystem>(&m_SceneContext));
+	systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
+	systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
+	systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
+	systemRegistry->RegisterSystem(std::make_unique<AudioSystem>(&m_SceneContext));
+	systemRegistry->RegisterSystem(std::make_unique<ParticleSystem>(&m_SceneContext));
+	systemRegistry->RegisterSystem(std::make_unique<EffectSystem>(&m_SceneContext));
+	systemRegistry->RegisterSystem(std::make_unique<TerrainSystem>(&m_SceneContext));
+	systemRegistry->RegisterSystem(std::make_unique<PhysicSystem>(&m_SceneContext));
+	systemRegistry->RegisterSystem(std::make_unique<CSharpScriptSystem>(&m_SceneContext));
+	systemRegistry->RegisterSystem(std::make_unique<CustomScriptSystem>(&m_SceneContext));
+	systemRegistry->RegisterSystem(std::make_unique<WaveSystem>(&m_SceneContext));
 
 	// システムの初期化
-	m_systemRegistry->InitializeAll();
-	m_SceneContext.systemRegistry = m_systemRegistry.get();
+	systemRegistry->InitializeAll();
+	m_SceneContext.systemRegistry = systemRegistry.get();
 
 	for (auto& [name, scene] : m_activeScenes) {
 		scene->Initialize(&m_SceneContext);
@@ -81,7 +82,7 @@ void SceneManager::Update(float deltaTime){
 
 			m_SceneContext.debug->LOG_INFO("シーンを停止します");
 
-			m_systemRegistry->StopAll();
+			systemRegistry->StopAll();
 
 			TempLoad(); // 一時保存の読み込み
 			OldState = State;
@@ -92,7 +93,7 @@ void SceneManager::Update(float deltaTime){
 
 				TempSave(); // 一時保存
 				m_SceneContext.debug->LOG_INFO("シーンを開始します");
-				m_systemRegistry->StartAll();
+				systemRegistry->StartAll();
 
 			} else {
 				m_SceneContext.debug->LOG_INFO("シーンを再開します");
@@ -110,10 +111,10 @@ void SceneManager::Update(float deltaTime){
 			for (auto& [name, scene] : m_activeScenes) {
 
 				scene->Update(deltaTime);
-				m_systemRegistry->UpdateAll(deltaTime);
+				systemRegistry->UpdateAll(deltaTime);
 
 				scene->FixedUpdate(1.0f / TARGET_FPS);
-				m_systemRegistry->FixedUpdateAll(1.0f / TARGET_FPS);
+				systemRegistry->FixedUpdateAll(1.0f / TARGET_FPS);
 			}
 
 			OldState = State;
@@ -127,9 +128,9 @@ void SceneManager::Update(float deltaTime){
 		for (auto& [name, scene] : m_activeScenes) {
 			scene->Update(deltaTime);
 		}
-		m_systemRegistry->UpdateAll(deltaTime);
+		systemRegistry->UpdateAll(deltaTime);
 	}
-	m_systemRegistry->EditorUpdateAll(deltaTime);
+	systemRegistry->EditorUpdateAll(deltaTime);
 
 	for (auto it = m_activeScenes.begin(); it != m_activeScenes.end(); ) {
 		if (it->second->isDestroy) {
@@ -158,7 +159,7 @@ void SceneManager::FixedUpdate(float fixedDeltaTime){
 		for (auto& [name, scene] : m_activeScenes) {
 			scene->FixedUpdate(fixedDeltaTime);
 		}
-		m_systemRegistry->FixedUpdateAll(fixedDeltaTime);
+		systemRegistry->FixedUpdateAll(fixedDeltaTime);
 	}
 }
 
@@ -166,7 +167,7 @@ void SceneManager::Draw(){
 	for(auto& [name, scene] : m_activeScenes){
 		scene->Draw();
 	}
-	m_systemRegistry->DrawAll();
+	systemRegistry->DrawAll();
 }
 
 void SceneManager::Shutdown(){
@@ -176,8 +177,8 @@ void SceneManager::Shutdown(){
 	}
 	m_activeScenes.clear();
 
-	m_systemRegistry->FinalizeAll();
-	m_systemRegistry.reset();
+	systemRegistry->FinalizeAll();
+	systemRegistry.reset();
 }
 
 void SceneManager::AddScene(std::shared_ptr<Scene> scene) {

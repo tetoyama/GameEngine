@@ -671,8 +671,6 @@ void InspectorSystem::DrawInspector(SceneContext* context){
 				transform->SetRotation(quat); // クォータニオンを保持
 				transform->scale = scale3;
 			}
-		
-
 		}
 	}
 	ImGui::EndChild();
