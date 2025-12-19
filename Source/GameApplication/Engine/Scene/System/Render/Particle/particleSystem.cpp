@@ -94,7 +94,3 @@ void ParticleSystem::Update(float deltaTime){
 
 	}
 }
-
-void ParticleSystem::Draw(){
-
-}

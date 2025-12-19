@@ -1,20 +1,27 @@
 #pragma once
+#include <backends/yaml-cpp/yaml.h>
 
 class ISystem
 {
 public:
 	virtual ~ISystem() {}
 
-	virtual void Initialize() = 0;
-	virtual void Finalize() = 0;
+	virtual void Initialize() {}
+	virtual void Finalize() {}
 	
-	virtual void Start() = 0;
-	virtual void Update(float deltaTime) = 0;
-	virtual void FixedUpdate(float fixedDeltaTime) = 0;
-	virtual void Draw() = 0;
+	virtual void Start() {}
+	virtual void Update(float deltaTime) {}
+	virtual void FixedUpdate(float fixedDeltaTime) {}
+	virtual void Draw() {}
 	virtual void SystemSetting() {}
 
-	virtual void EditorUpdate(float deltaTime) = 0;
+	virtual void EditorUpdate(float deltaTime){}
 	
 	virtual void Stop(){}
+
+	virtual YAML::Node encode() { return YAML::Node(); }
+
+	virtual bool decode(const YAML::Node& node) { return true; }
+
+	virtual void systemSetting(){}
 };

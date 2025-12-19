@@ -9,9 +9,6 @@ public:
 	CSharpScriptSystem(SceneManagerContext* context): m_context(context){}
 	~CSharpScriptSystem(){}
 
-	void Initialize() override{}
-	void Finalize()override{};
-
 	void Start() override;
 	void Update(float deltaTime) override;
 	void FixedUpdate(float fidedDeltaTime) override;

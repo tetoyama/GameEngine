@@ -80,10 +80,6 @@ public:
 		}
 	}
 
-	void FixedUpdate(float) override{}
-	void Draw() override{}
-	void EditorUpdate(float) override{}
-
 private:
 	SceneManagerContext* m_context = nullptr;
 	AudioContext* m_audioContext = nullptr;

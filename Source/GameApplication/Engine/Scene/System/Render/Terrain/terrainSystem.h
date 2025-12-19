@@ -52,16 +52,6 @@ public:
 			}
 		}
 	}
-
-	void Start() override {
-
-	}
-
-	void Update(float dt) override {
-
-	}
-
-	void FixedUpdate(float dt) override {}
 	void Draw() override {
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();
@@ -71,9 +61,6 @@ public:
 				CreateMesh(context,entity);
 			}
 		}
-	}
-	void EditorUpdate(float dt) override {
-
 	}
 
 private:

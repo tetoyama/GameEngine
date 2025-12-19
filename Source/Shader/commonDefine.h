@@ -8,7 +8,7 @@
 
 #endif
 
-//#define LOW_RESOLUTION
+#define LOW_RESOLUTION
 
 #define TextureSlot_Albedo		(0)
 #define TextureSlot_Normal		(1)
@@ -47,7 +47,7 @@
 
 #ifdef LOW_RESOLUTION
 #define SHADOWMAP_SIZE			(4096)
-#define LIGHT_MAX_COUNT			(16)
+#define LIGHT_MAX_COUNT			(9)
 #else
 #define SHADOWMAP_SIZE			(16384)
 #define LIGHT_MAX_COUNT			(64)

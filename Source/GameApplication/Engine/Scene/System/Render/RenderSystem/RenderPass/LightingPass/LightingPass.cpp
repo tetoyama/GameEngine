@@ -135,8 +135,8 @@ void LightingPass::SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shado
 
 	ID3D11SamplerState* samplers[] =
 	{
-		shadowMapPass->shadowSampler,		// s1
-		m_LinearSampler				// s0
+		shadowMapPass->shadowSampler,	// s1
+		m_LinearSampler					// s0
 	};
 	dc->PSSetSamplers(1, 2, samplers);
 }

@@ -43,9 +43,6 @@ public:
 		}
 	}
 
-	void Start() override{}
-	void FixedUpdate(float dt) override{}
-
 	void Update(float dt) override{
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();
@@ -62,9 +59,6 @@ public:
 			}
 		}
 	}
-
-	void Draw() override{}
-	void EditorUpdate(float dt) override{}
 
 private:
 	SceneManagerContext* m_context = nullptr;

@@ -55,14 +55,8 @@ public:
 	}
 
 	void Update(float dt) override {
-
-
 		m_context->graphics->GetEffectManager()->Update(dt * 60.0f);
-
 	}
-
-	void FixedUpdate(float dt) override {}
-	void Draw() override {}
 
 	void EditorUpdate(float dt) override {
 		m_context->graphics->GetEffectManager()->BeginUpdate();
