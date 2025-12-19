@@ -140,18 +140,4 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 
 		ImGui::End();
 	}
-
-		// サンプラーステート設定
-	D3D11_SAMPLER_DESC samplerDesc{};
-	samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.MaxAnisotropy = 4;
-	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
-
-	Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerState;
-	HRESULT hr = gc->GetDevice()->CreateSamplerState(&samplerDesc, &samplerState);
-	dc->PSSetSamplers(0, 1, samplerState.GetAddressOf());
-	samplerState.Reset();
 }
