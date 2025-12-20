@@ -51,7 +51,7 @@ Entities:
         PixelShader: Asset\Shader\PixelShader.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 1761.02966
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -62,10 +62,10 @@ Entities:
           y: 25
           z: 0
         Rotation:
+          - 0.30981648
           - 0
           - 0
-          - 0
-          - 1
+          - 0.950796366
         Scale:
           x: 1
           y: 1
@@ -73,17 +73,17 @@ Entities:
         Parent: 0
       - Component: LightComponent
         Enable: 1
-        LightType: 0
+        LightType: 1
         CastShadow: 1
         Position:
           x: 0
-          y: 25
-          z: 0
+          y: 38.4372406
+          z: -33.071373
           w: 0
         Direction:
           x: 0
-          y: 0
-          z: 1
+          y: -0.589144766
+          z: 0.808027506
           w: 0
         Diffuse:
           x: 0.899999976
@@ -91,9 +91,9 @@ Entities:
           z: 1
           w: 1
         Ambient:
-          x: 0.00999999978
-          y: 0.00999999978
-          z: 0.00999999978
+          x: 0.208510637
+          y: 0.208510637
+          z: 0.208510637
           w: 1
         Param:
           x: 100
@@ -102,44 +102,44 @@ Entities:
           w: 0
         LightView:
           -
-            - 2.41421342
-            - 0
-            - 0
-            - 0
-          -
-            - 0
-            - 2.41421342
-            - 0
-            - 0
-          -
-            - 0
-            - 0
-            - 1.00010002
             - 1
+            - 0
+            - -0
+            - 0
+          -
+            - 0
+            - 0.808027446
+            - 0.589144766
+            - -11.5745201
+          -
+            - 0
+            - -0.589144766
+            - 0.808027446
+            - 49.3676758
           -
             - 0
             - 0
-            - -0.10001
             - 0
+            - 1
         LightProjection:
           -
-            - 1
+            - 0.0399999991
             - 0
             - 0
             - 0
           -
             - 0
-            - 1
+            - 0.0399999991
             - 0
             - 0
           -
             - 0
             - 0
-            - 1
-            - 0
+            - 0.0100100096
+            - -0.00100100099
           -
             - 0
-            - -25
+            - 0
             - 0
             - 1
   - Entity: 3
@@ -194,75 +194,21 @@ Entities:
         PixelShader: Asset\Shader\unlitUVTexturePS.cso
         VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
-        AnimationTime: 0
+        AnimationTime: 1761.02966
   - Entity: 4
-    Components:
-      - Component: NameComponent
-        Name: Player
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0.0500000007
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 2
-          y: 1.35135138
-          z: 1.35135138
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\03626073-9e02-40ca-ac27-43c12f45e821.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0.692640662
-            y: 0.692640662
-            z: 0.692640662
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
-  - Entity: 5
     Components:
       - Component: NameComponent
         Name: Camera
       - Component: TransformComponent
         Position:
           x: 0
-          y: 20
-          z: -15
+          y: 8.97999954
+          z: 7.32999992
         Rotation:
-          - -0.333487093
+          - -0.958471298
           - 0
           - 0
-          - 0.942754686
+          - -0.285188973
         Scale:
           x: 1
           y: 1
@@ -279,24 +225,24 @@ Entities:
         FOV: 1
         viewMatrix:
           -
-            - 1
+            - -1
             - 0
             - 0
+            - 0
+          -
+            - 0
+            - 0.837334514
+            - -0.546690881
             - 0
           -
             - -0
-            - 0.777572334
-            - 0.628793478
+            - -0.546690881
+            - -0.837334514
             - 0
           -
             - 0
-            - -0.628793478
-            - 0.777572334
-            - 0
-          -
-            - 0
-            - -24.9833488
-            - -0.912284851
+            - -3.51201963
+            - 11.0469456
             - 1
         nextLinkId: 8
         nextPinId: 13
@@ -389,279 +335,14 @@ Entities:
             y: 138.883667
           InputPins:
             - 6
-  - Entity: 6
+  - Entity: 5
     Components:
       - Component: NameComponent
-        Name: Enemy1
+        Name: Title
       - Component: TransformComponent
         Position:
-          x: 20
-          y: 0.200000003
-          z: 0
-        Rotation:
-          - 0
-          - -0.707106769
-          - 0
-          - 0.707106709
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-        AnimationTime: 0
-  - Entity: 7
-    Components:
-      - Component: NameComponent
-        Name: Enemy2
-      - Component: TransformComponent
-        Position:
-          x: 6.18033934
-          y: 0.200000003
-          z: 19.0211315
-        Rotation:
-          - 0
-          - -0.987688363
-          - 0
-          - 0.156434357
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-        AnimationTime: 0
-  - Entity: 8
-    Components:
-      - Component: NameComponent
-        Name: Enemy3
-      - Component: TransformComponent
-        Position:
-          x: -16.1803417
-          y: 0.200000003
-          z: 11.7557039
-        Rotation:
-          - -0
-          - -0.89100647
-          - 0
-          - -0.453990519
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-        AnimationTime: 0
-  - Entity: 9
-    Components:
-      - Component: NameComponent
-        Name: Enemy4
-      - Component: TransformComponent
-        Position:
-          x: -16.180336
-          y: 0.200000003
-          z: -11.7557106
-        Rotation:
-          - -0
-          - -0.453990459
-          - 0
-          - -0.891006529
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-        AnimationTime: 0
-  - Entity: 10
-    Components:
-      - Component: NameComponent
-        Name: Enemy5
-      - Component: TransformComponent
-        Position:
-          x: 6.18034267
-          y: 0.200000003
-          z: -19.0211296
-        Rotation:
-          - 0
-          - 0.156434521
-          - -0
-          - -0.987688303
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
-        isBlender: false
-        AnimationTime: 0
-  - Entity: 11
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: -0.321553141
-          y: 0.489071727
+          x: 0
+          y: -0.0132163577
           z: 0
         Rotation:
           - -0
@@ -708,10 +389,10 @@ Entities:
         pivot:
           x: 0
           y: 0
-  - Entity: 12
+  - Entity: 6
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: Fadein
       - Component: TransformComponent
         Position:
           x: 0
@@ -739,7 +420,7 @@ Entities:
             x: 0
             y: 0
             z: 0
-            w: 0
+            w: -3.51628733
           Specular:
             x: 0.0399999991
             y: 0.0399999991
@@ -764,10 +445,10 @@ Entities:
           y: 0
       - Component: FadeInSprite
         FadeTime: 1
-  - Entity: 13
+  - Entity: 7
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: Press
       - Component: TransformComponent
         Position:
           x: -0.0614036545
@@ -818,10 +499,10 @@ Entities:
         pivot:
           x: 0
           y: 0
-  - Entity: 14
+  - Entity: 8
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: FadeOut
       - Component: TransformComponent
         Position:
           x: 0
@@ -877,3 +558,439 @@ Entities:
       - Component: FadeSetScene
         ScriptName: FadeSetScene
         SceneName: Asset/Scene/scene.yaml
+  - Entity: 9
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset/Model\football-stadium-with-surrounding-area\textures\Etaj4.jpeg
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset/Model\football-stadium-with-surrounding-area\stadion_floor.fbx
+        isBlender: true
+        AnimationTime: 1761.02966
+  - Entity: 10
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset/Model\football-stadium-with-surrounding-area\textures\Opory2.jpeg
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset/Model\football-stadium-with-surrounding-area\stadion_hasira.fbx
+        isBlender: true
+        AnimationTime: 1761.02966
+  - Entity: 11
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset/Model\football-stadium-with-surrounding-area\textures\Krysha3.jpeg
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset/Model\football-stadium-with-surrounding-area\stadion_roof.fbx
+        isBlender: true
+        AnimationTime: 1761.02966
+  - Entity: 12
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+  - Entity: 13
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 6.01263428
+          y: 2.55294251
+          z: 0
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset/Texture\particle.png
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 0.5
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ParticleComponent
+        IsLoop: true
+        SpawnInterval: 0.00499999989
+        SpawnCount: 100
+        SpawnTimer: 0.00128778536
+        ParticleLifeTime: 1
+        ParticleSize: 1
+        ParticleSpeed: 1
+        SpawnPosition:
+          x: 0
+          y: 0
+          z: 0
+        SpawnPositionRandom:
+          x: 0
+          y: 0
+          z: 2
+        StartSpeed:
+          x: -6
+          y: 10
+          z: 0
+        StartSpeedRandom:
+          x: 3
+          y: 0
+          z: 10
+        AddSpeed:
+          x: 0
+          y: -15
+          z: 0
+        MulSpeed:
+          x: 1
+          y: 1
+          z: 1
+  - Entity: 14
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: -6
+          y: 2.5
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset/Texture\particle.png
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 0
+            y: 0
+            z: 1
+            w: 0.5
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ParticleComponent
+        IsLoop: true
+        SpawnInterval: 0.00499999989
+        SpawnCount: 100
+        SpawnTimer: 0.00128778536
+        ParticleLifeTime: 1
+        ParticleSize: 1
+        ParticleSpeed: 1
+        SpawnPosition:
+          x: 0
+          y: 0
+          z: 0
+        SpawnPositionRandom:
+          x: 0
+          y: 0
+          z: 2
+        StartSpeed:
+          x: 6
+          y: 10
+          z: 0
+        StartSpeedRandom:
+          x: 3
+          y: 0
+          z: 10
+        AddSpeed:
+          x: 0
+          y: -15
+          z: 0
+        MulSpeed:
+          x: 1
+          y: 1
+          z: 1
+  - Entity: 15
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 3
+          y: 2.55826855
+          z: 0
+        Rotation:
+          - 0
+          - 0.509841084
+          - -0
+          - 0.860268593
+        Scale:
+          x: 0.00999999978
+          y: 0.00999999978
+          z: 0.00999999978
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset/Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset/Model\Akai (1).fbx
+        isBlender: false
+        AnimationTime: 270.977203
+        Animations:
+          Idle: Asset/Model\Akai_Idle.fbx
+          mixamo.com: Asset/Model\Akai_Idle.fbx
+  - Entity: 16
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: -3
+          y: 2.5999999
+          z: 0
+        Rotation:
+          - 0
+          - -0.619809568
+          - -0
+          - 0.78475225
+        Scale:
+          x: 0.0100000054
+          y: 0.00999999978
+          z: 0.0100000054
+        Parent: 0
+      - Component: TextureComponent
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 0
+            y: 0
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset/Model\Akai.fbx
+        isBlender: false
+        AnimationTime: 270.977203
+        Animations:
+          mixamo.com: Asset/Model\Akai.fbx

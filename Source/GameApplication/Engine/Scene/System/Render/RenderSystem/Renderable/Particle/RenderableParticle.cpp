@@ -74,6 +74,7 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 
 	GraphicsContext* graphicsContext = sceneContext->manager->renderer->GetGraphicsContext();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
 	graphicsContext->SetBlendMode(BlendMode::Additive);
 	graphicsContext->SetDepthEnable(false);
 

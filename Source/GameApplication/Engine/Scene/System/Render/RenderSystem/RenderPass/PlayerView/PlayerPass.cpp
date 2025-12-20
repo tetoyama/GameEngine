@@ -164,6 +164,8 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	graphicsContext->SetViewMatrix(ctx.viewMatrix);
 	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
 
+	graphicsContext->SetBlendMode(BlendMode::Alpha);
+
 	// シェーダーセット
 
 	passCtx.passPhase = RenderPhase::PHASE_FOWARD;
@@ -173,7 +175,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 			continue;
 		}
 
-		if (i != (int)RenderLayer::OverlayUI) {
+		if (i != (int)RenderLayer::OverlayUI && i != (int)RenderLayer::SortTransparent3D) {
 			continue;
 		}
 
