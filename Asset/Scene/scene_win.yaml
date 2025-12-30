@@ -48,10 +48,8 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.fbx
-        PixelShader: Asset\Shader\PixelShader.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 2104.78418
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -62,10 +60,10 @@ Entities:
           y: 25
           z: 0
         Rotation:
+          - 0.69253701
           - 0
           - 0
-          - 0
-          - 1
+          - 0.72138238
         Scale:
           x: 1
           y: 1
@@ -73,21 +71,17 @@ Entities:
         Parent: 0
       - Component: LightComponent
         Enable: 1
-        LightType: 0
+        LightType: 1
+        CastShadow: 1
         Position:
           x: 0
-          y: 25
-          z: 0
-          w: 0
-        Angle:
-          x: 1.04719758
-          y: 0
-          z: 0
+          y: 69.9584045
+          z: -17.0392513
           w: 0
         Direction:
           x: 0
-          y: 0
-          z: 1
+          y: -0.999167979
+          z: 0.0407850146
           w: 0
         Diffuse:
           x: 0.899999976
@@ -99,26 +93,53 @@ Entities:
           y: 0.00999999978
           z: 0.00999999978
           w: 1
-        PointLightParam:
+        Param:
           x: 100
           y: 0
           z: 0
           w: 0
-        GroundNormal:
-          x: 0
-          y: 1
-          z: 0
-          w: 0
-        GroundColor:
-          x: 1
-          y: 0.800000012
-          z: 0.5
-          w: 0.0500000007
-        SkyColor:
-          x: 0.800000012
-          y: 0.800000012
-          z: 1
-          w: 0.100000001
+        LightView:
+          -
+            - 1
+            - 0
+            - -0
+            - 0
+          -
+            - 0
+            - 0.0407850221
+            - 0.999167919
+            - 14.1718187
+          -
+            - 0
+            - -0.999167919
+            - 0.0407850221
+            - 70.5951385
+          -
+            - 0
+            - 0
+            - 0
+            - 1
+        LightProjection:
+          -
+            - 0.0399999991
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0.0399999991
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0.0100100096
+            - -0.00100100099
+          -
+            - 0
+            - 0
+            - 0
+            - 1
   - Entity: 3
     Components:
       - Component: NameComponent
@@ -168,10 +189,8 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\sky.fbx
-        PixelShader: Asset\Shader\unlitUVTexturePS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
-        AnimationTime: 0
+        AnimationTime: 2104.78418
   - Entity: 4
     Components:
       - Component: NameComponent
@@ -207,7 +226,7 @@ Entities:
             - 0
             - 0
           -
-            - 0
+            - -0
             - 0.777572334
             - 0.628793478
             - 0
@@ -221,6 +240,21 @@ Entities:
             - -24.9833488
             - -0.912284851
             - 1
+        nextLinkId: 1
+        nextPinId: 3
+        ScreenInput:
+          Name: ""
+          NodePos:
+            x: 50
+            y: 50
+          OutputPin: 1
+        ScreenOutput:
+          Name: ""
+          NodePos:
+            x: 500
+            y: 50
+          InputPins:
+            - 2
   - Entity: 5
     Components:
       - Component: NameComponent
@@ -270,10 +304,8 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 2104.78418
   - Entity: 6
     Components:
       - Component: NameComponent
@@ -323,10 +355,8 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 2104.78418
   - Entity: 7
     Components:
       - Component: NameComponent
@@ -376,10 +406,8 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 2104.78418
   - Entity: 8
     Components:
       - Component: NameComponent
@@ -429,10 +457,8 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 2104.78418
   - Entity: 9
     Components:
       - Component: NameComponent
@@ -482,10 +508,8 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\player.obj
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 2104.78418
   - Entity: 10
     Components:
       - Component: NameComponent
@@ -571,7 +595,7 @@ Entities:
             x: 0
             y: 0
             z: 0
-            w: 1
+            w: -34.0797119
           Specular:
             x: 0.0399999991
             y: 0.0399999991

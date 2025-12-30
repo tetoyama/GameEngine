@@ -48,8 +48,6 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.fbx
-        PixelShader: Asset\Shader\PixelShader.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 1761.02966
   - Entity: 2
@@ -191,8 +189,6 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\sky.fbx
-        PixelShader: Asset\Shader\unlitUVTexturePS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
         AnimationTime: 1761.02966
   - Entity: 4
