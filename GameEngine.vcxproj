@@ -2712,7 +2712,6 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\ISystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Script\CustomScriptSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Effect\effectSystem.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\inspectorSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Particle\particleSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Physic\physicSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\cameraEntityData.h" />
@@ -3101,7 +3100,6 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\sceneManager.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\Camera\cameraSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\CustomScriptSystem.cpp" />
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\inspectorSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\Particle\particleSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Physic\physicSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\BillBoard\RenderableBillBoard.cpp" />

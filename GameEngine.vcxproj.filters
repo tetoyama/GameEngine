@@ -1938,9 +1938,6 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Registry\systemRegistry.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\inspectorSystem.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\entityNameComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -2679,9 +2676,6 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Scene\Registry\componentRegistry.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\inspectorSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Backends\ImGui\imgui_stdlib.cpp">
