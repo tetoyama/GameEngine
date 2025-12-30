@@ -6,26 +6,21 @@
 
 #include "Graphics/graphicsContext.h"
 
-
 void ModelData::Release(){
 	if(AiScene){
 		// メッシュバッファ解放
-		if(VertexBuffer){
-			for(UINT m = 0; m < AiScene->mNumMeshes; ++m){
-				if(VertexBuffer[m]) VertexBuffer[m]->Release();
+		for(int i = 0; i < VertexBuffer.size(); i++){
+			if(VertexBuffer[i]){
+				VertexBuffer[i]->Release();
+				VertexBuffer[i] = nullptr;
 			}
-			delete[] VertexBuffer;
-			VertexBuffer = nullptr;
 		}
-
-		if(IndexBuffer){
-			for(UINT m = 0; m < AiScene->mNumMeshes; ++m){
-				if(IndexBuffer[m]) IndexBuffer[m]->Release();
+		for(int i = 0; i < IndexBuffer.size(); i++){
+			if(IndexBuffer[i]){
+				IndexBuffer[i]->Release();
+				IndexBuffer[i] = nullptr;
 			}
-			delete[] IndexBuffer;
-			IndexBuffer = nullptr;
 		}
-
 		// テクスチャ解放
 		if(SetTexture){
 			for(auto& pair : m_Texture){
@@ -41,6 +36,7 @@ void ModelData::Release(){
 		}
 
 		delete[] m_DeformVertex;
+		m_DeformVertex = nullptr;
 
 		aiReleaseImport(AiScene);
 		AiScene = nullptr;
@@ -102,251 +98,132 @@ void ModelData::LoadAnimation(const char* FileName, const char* Name){
 			m_Animation[scene->mAnimations[i]->mName.C_Str()] = animationData;
 
 		}
-
 	}
 }
 
-void ModelData::UpdateSingleAnimation(const char* AnimationName1, int Frame1, GraphicsContext* pGraphicContext) {
-	if (m_Animation.count(AnimationName1) == 0) {
-		return;
-	}
-	if (!m_Animation[AnimationName1].Animation) {
-		return;
-	}
-	//アニメーションデータからボーンマトリクス算出
-	aiAnimation* animation1 = m_Animation[AnimationName1].Animation;
+void ModelData::UpdateBoneAnimation(
+	const std::vector<AnimationBlend>& anims,
+	float frame
+){
+	if(anims.empty()) return;
 
-	for (auto pair : m_Bone) {
-		BONE* bone = &m_Bone[pair.first];
-
-		aiNodeAnim* nodeAnim = nullptr;
-
-		for (unsigned int n = 0; n < animation1->mNumChannels; n++) {
-
-			if (animation1->mChannels[n]->mNodeName == aiString(pair.first)) {
-				nodeAnim = animation1->mChannels[n];
-				break;
-			}
-		}
-		aiQuaternion rotation;
-		aiVector3D position;
-		int f;
-
-		if (nodeAnim) {
-			f = Frame1 % nodeAnim->mNumRotationKeys;
-			rotation = nodeAnim->mRotationKeys[f].mValue;
-
-			f = Frame1 % nodeAnim->mNumPositionKeys;
-			position = nodeAnim->mPositionKeys[f].mValue;
-		}
-		bone->AnimationMatrix = aiMatrix4x4(aiVector3D(1.0f, 1.0f, 1.0f), rotation, position);
-
-
-	}
-	//再帰的にボーンマトリクスを更新
-	aiMatrix4x4 rootMatrix = aiMatrix4x4(aiVector3D(1.0f,1.0f,1.0f),aiQuaternion(DirectX::XM_PI,0.0f,0.0f),aiVector3D(0.0f,0.0f,0.0f));
-	UpdateBoneMatrix(AiScene->mRootNode, rootMatrix);
-
-
-	//頂点変換（CPUスキニング）
-	for (unsigned int i = 0; i < AiScene->mNumMeshes; i++) {
-		aiMesh* mesh = AiScene->mMeshes[i];
-
-		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		pGraphicContext->GetDeviceContext()->Map(VertexBuffer[i], 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-
-		VERTEX_3D* vertex = (VERTEX_3D*)mappedResource.pData;
-
-		for (unsigned int j = 0; j < mesh->mNumVertices; j++) {
-
-			DEFORM_VERTEX* deformVertex = &m_DeformVertex[i][j];
-
-			aiMatrix4x4 matrix[4];
-
-			for (int k = 0; k < 4; k++) {
-				matrix[k] = m_Bone[deformVertex->BoneName[k]].Matrix;
-			}
-
-
-			aiMatrix4x4 outMatrix;
-
-			outMatrix = matrix[0] * deformVertex->BoneWeight[0]
-				+ matrix[1] * deformVertex->BoneWeight[1]
-				+ matrix[2] * deformVertex->BoneWeight[2]
-				+ matrix[3] * deformVertex->BoneWeight[3];
-
-			deformVertex->Position = mesh->mVertices[j];
-			deformVertex->Position *= outMatrix;
-
-			//法線変換用に移動成分を削除
-			outMatrix.a4 = 0.0f; outMatrix.b4 = 0.0f; outMatrix.c4 = 0.0f;
-
-			deformVertex->Normal = mesh->mNormals[j];
-			deformVertex->Normal *= outMatrix;
-
-
-			//頂点バッファに書き込み
-			vertex[j].Position = DirectX::XMFLOAT3(deformVertex->Position.x, deformVertex->Position.y, deformVertex->Position.z);
-			vertex[j].Normal = DirectX::XMFLOAT3(deformVertex->Normal.x, deformVertex->Normal.y, deformVertex->Normal.z);
-
-			vertex[j].TexCoord = DirectX::XMFLOAT2(mesh->mTextureCoords[0][j].x, mesh->mTextureCoords[0][j].y);
-			vertex[j].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0, 1.0f);
-
-		}
-
-		pGraphicContext->GetDeviceContext()->Unmap(VertexBuffer[i], 0);
-	}
-
-
-
-
-}
-
-void ModelData::Update(float Frame, GraphicsContext* pGraphicContext) {
-
-	if (blendedAnimations.size() == 0) {
-		return;
-	} else {
-		//if (blendedAnimations.size() == 1) {
-		//	UpdateSingleAnimation(blendedAnimations[0].name.c_str(), (int)(Frame - blendedAnimations[0].animationStartTime), pGraphicContext);
-		//	return;
-		//}
-	}
-
-	// 全アニメーションの重み合計を先に計算
 	float totalWeight = 0.0f;
-	for (auto& Animation : blendedAnimations) {
-		totalWeight += Animation.weight;
+	for(const auto& anim : anims){
+		totalWeight += anim.weight;
 	}
-	if (totalWeight <= 0.0f) return; // 重みゼロは処理しない
+	if(totalWeight <= 0.0f) return;
 
-	// ボーンごとの最終的な回転・位置を初期化
-	for (auto& pair : m_Bone) {
-		pair.second.AnimationMatrix = aiMatrix4x4();  // 初期化
+	// 各ボーンの AnimationMatrix 初期化
+	for(auto& pair : m_Bone){
+		pair.second.AnimationMatrix = aiMatrix4x4();
 	}
 
-	// ボーンごとに処理
-	for (auto& pair : m_Bone) {
-		std::string boneName = pair.first;
-		BONE* bone = &pair.second;
+	for(auto& pair : m_Bone){
+		const std::string& boneName = pair.first;
+		BONE& bone = pair.second;
 
-		aiQuaternion blendedRotation;
-		aiVector3D blendedPosition(0, 0, 0);
-		bool first = true;
+		aiQuaternion blendedRot(0, 0, 0, 0);
+		aiVector3D blendedPos(0, 0, 0);
 
-		// 各アニメーションを重み付きでブレンド
-		for (auto& Animation : blendedAnimations) {
+		for(const auto& anim : anims){
+			if(anim.weight <= 0.0f) continue;
 
-			if (!m_Animation[Animation.name].Animation) {
-				continue; // 無効ならスキップ
-			}
+			auto it = m_Animation.find(anim.name);
+			if(it == m_Animation.end()) continue;
 
-			aiAnimation* animation = m_Animation[Animation.name].Animation;
-
-			BONE* bone = &m_Bone[pair.first];
+			aiAnimation* animation = it->second.Animation;
+			if(!animation) continue;
 
 			aiNodeAnim* nodeAnim = nullptr;
-
-			for (unsigned int n = 0; n < animation->mNumChannels; n++) {
-
-				if (animation->mChannels[n]->mNodeName == aiString(pair.first)) {
-					nodeAnim = animation->mChannels[n];
+			for(unsigned int c = 0; c < animation->mNumChannels; c++){
+				if(animation->mChannels[c]->mNodeName == aiString(boneName)){
+					nodeAnim = animation->mChannels[c];
 					break;
 				}
 			}
-			aiQuaternion rotation;
-			aiVector3D position;
-			int f;
+			if(!nodeAnim) continue;
 
-			if (nodeAnim) {
-				f = (int)(Frame - Animation.animationStartTime) % nodeAnim->mNumRotationKeys;
-				rotation = nodeAnim->mRotationKeys[f].mValue;
+			int rotIdx = (int)frame % nodeAnim->mNumRotationKeys;
+			int posIdx = (int)frame % nodeAnim->mNumPositionKeys;
 
-				f = (int)(Frame - Animation.animationStartTime) % nodeAnim->mNumPositionKeys;
-				position = nodeAnim->mPositionKeys[f].mValue;
-			}
+			aiQuaternion rot = nodeAnim->mRotationKeys[rotIdx].mValue;
+			aiVector3D pos = nodeAnim->mPositionKeys[posIdx].mValue;
 
-			float weightNorm = Animation.weight / totalWeight;
-			if (Animation.weight > 0.0f) {
-				if (first) {
-					blendedRotation = rotation;
-					blendedPosition = position * weightNorm;
-					first = false;
-				} else {
-					// aiQuaternion::Interpolate(出力, 開始, 終了, 補間率)
-					// 複数の補間は段階的に行う
-					aiQuaternion newRot;
-					aiQuaternion::Interpolate(newRot, blendedRotation, rotation, weightNorm);
-					blendedRotation = newRot;
-					blendedRotation.Normalize();
+			float w = anim.weight / totalWeight;
 
-					blendedPosition += position * weightNorm;
-				}
-			}
+			// ---- 回転 ----
+			blendedRot.x += rot.x * w;
+			blendedRot.y += rot.y * w;
+			blendedRot.z += rot.z * w;
+			blendedRot.w += rot.w * w;
+
+			// 位置：線形加算
+			blendedPos += pos * w;
 		}
 
-		// 結果をマトリクスにセット
-		bone->AnimationMatrix = aiMatrix4x4(aiVector3D(1, 1, 1), blendedRotation, blendedPosition);
+		blendedRot.Normalize();
+
+		bone.AnimationMatrix =
+			aiMatrix4x4(aiVector3D(1, 1, 1), blendedRot, blendedPos);
 	}
 
-	// 再帰的にボーンマトリクスを更新
-	aiMatrix4x4 rootMatrix = aiMatrix4x4(aiVector3D(1, 1, 1), aiQuaternion(DirectX::XM_PI, 0, 0), aiVector3D(0, 0, 0));
+	aiMatrix4x4 rootMatrix(
+		aiVector3D(1, 1, 1),
+		aiQuaternion(DirectX::XM_PI, 0, 0),
+		aiVector3D(0, 0, 0)
+	);
+
 	UpdateBoneMatrix(AiScene->mRootNode, rootMatrix);
+}
 
-	// CPUスキニング安全版
-	for(unsigned int i = 0; i < AiScene->mNumMeshes; i++){
-		aiMesh* mesh = AiScene->mMeshes[i];
+void ModelData::CPU_Skinning(
+	const std::vector<DEFORM_VERTEX>& deformVertices,
+	const aiMesh* mesh,
+	VERTEX_3D* outVertex
+) const{
+	for(unsigned int j = 0; j < mesh->mNumVertices; j++){
+		const DEFORM_VERTEX& dv = deformVertices[j];
 
-		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		pGraphicContext->GetDeviceContext()->Map(VertexBuffer[i], 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		VERTEX_3D* vertex = (VERTEX_3D*)mappedResource.pData;
+		aiVector3D blendedPos(0, 0, 0);
+		aiVector3D blendedNormal(0, 0, 0);
 
-		for(unsigned int j = 0; j < mesh->mNumVertices; j++){
-			DEFORM_VERTEX* deformVertex = &m_DeformVertex[i][j];
+		for(int k = 0; k < 4; k++){
+			float w = dv.BoneWeight[k];
+			if(w <= 0.0f) continue;
 
-			aiVector3D blendedPos(0.0f, 0.0f, 0.0f);
-			aiVector3D blendedNormal(0.0f, 0.0f, 0.0f);
+			const aiMatrix4x4& boneMat =
+				m_Bone.at(dv.BoneName[k]).Matrix;
 
-			// 各ボーンの影響を適用
-			for(int k = 0; k < 4; k++){
-				float w = deformVertex->BoneWeight[k];
-				if(w <= 0.0f) continue;
+			aiVector3D p = mesh->mVertices[j];
+			p *= boneMat;
 
-				const aiMatrix4x4& boneMat = m_Bone[deformVertex->BoneName[k]].Matrix;
+			aiMatrix3x3 normalMat(boneMat);
+			normalMat = normalMat.Inverse().Transpose();
 
-				// 頂点座標変換
-				aiVector3D p = mesh->mVertices[j];
-				p *= boneMat;
+			aiVector3D n = mesh->mNormals[j];
+			n *= normalMat;
 
-				// 法線変換用（逆転置行列を使用）
-				aiMatrix3x3 normalMat = aiMatrix3x3(boneMat);
-				normalMat = normalMat.Inverse().Transpose();
-
-				aiVector3D n = mesh->mNormals[j];
-				n *= normalMat;
-
-				blendedPos += p * w;
-				blendedNormal += n * w;
-			}
-
-			blendedNormal.Normalize();
-
-			vertex[j].Position = DirectX::XMFLOAT3(blendedPos.x, blendedPos.y, blendedPos.z);
-			vertex[j].Normal = DirectX::XMFLOAT3(blendedNormal.x, blendedNormal.y, blendedNormal.z);
-
-			if(mesh->HasTextureCoords(0)){
-				vertex[j].TexCoord = DirectX::XMFLOAT2(
-					mesh->mTextureCoords[0][j].x,
-					mesh->mTextureCoords[0][j].y
-				);
-			} else{
-				vertex[j].TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
-			}
-
-			vertex[j].Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
+			blendedPos += p * w;
+			blendedNormal += n * w;
 		}
 
-		pGraphicContext->GetDeviceContext()->Unmap(VertexBuffer[i], 0);
-	}
+		blendedNormal.Normalize();
 
+		outVertex[j].Position =
+		{blendedPos.x, blendedPos.y, blendedPos.z};
+		outVertex[j].Normal =
+		{blendedNormal.x, blendedNormal.y, blendedNormal.z};
+
+		if(mesh->HasTextureCoords(0)){
+			outVertex[j].TexCoord =
+			{
+				mesh->mTextureCoords[0][j].x,
+				mesh->mTextureCoords[0][j].y
+			};
+		} else{
+			outVertex[j].TexCoord = {0.0f, 0.0f};
+		}
+
+		outVertex[j].Diffuse = {1,1,1,1};
+	}
 }

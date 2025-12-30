@@ -2,39 +2,118 @@
 #include "Interface/IComponent.h"
 #include "Scene/scene.h"
 
+#include <string>
+#include <memory>
+#include <d3d11.h>
+#include <vector>
+#include <algorithm>
+
 #include "BackEnds/YAMLConverters.h"
 
 #include "Resources/resourceService.h"
-#include "Resources/Data/vertexShaderData.h"
-#include "Resources/Data/pixelShaderData.h"
+
 #include "Resources/Data/modelData.h"
 #include "Resources/Loader/modelLoader.h"
-#include "Resources/Loader/shaderLoader.h"
+
+#include "DebugTools/DebugSystem.h"
 
 class ModelRendererComponent: public IComponent {
 public:
+	
+	std::shared_ptr<ModelData>model = nullptr;
+
+	std::string modelFilePath;
+	std::vector<std::pair<std::string,std::string>> animations;
+	std::vector<AnimationBlend> blendedAnimations;
+
+	// 描画用（Dynamic）
+	std::vector<ID3D11Buffer*> dynamicVertexBuffers;
+
+	bool isBlender = false;
+	float animationTime = 0.0f;
 
 	ModelRendererComponent() = default;
-	~ModelRendererComponent() = default;
+
+	~ModelRendererComponent(){
+		ReleaseBuffers();
+		model = nullptr;
+	}
+
+	bool decode(SceneContext* context, const YAML::Node& node) override{
+		if(node["FilePath"]){
+			modelFilePath = node["FilePath"].as<std::string>();
+		}
+		if (node["isBlender"]) {
+			isBlender = node["isBlender"].as<bool>();
+		}
+		if (node["AnimationTime"]) {
+			animationTime = node["AnimationTime"].as<float>();
+		}
+		animations.clear();
+		for(const auto& animNode : node["Animations"]){
+			animations.emplace_back(animNode.first.as<std::string>(), animNode.second.as<std::string>());
+		}
+		CreateModel(context);
+		return true;
+	}
+
 	YAML::Node encode() override{
 		YAML::Node node;
-		if(model)
-		node["FilePath"] = model->FilePath;
-		if(pixelShader)
-		node["PixelShader"] = pixelShader->FilePath;
-		if(vertexShader)
-		node["VertexShader"] = vertexShader->FilePath;
+		if(model){
+			node["FilePath"] = model->FilePath;
+		}
 
 		node["isBlender"] = isBlender;
 		node["AnimationTime"] = animationTime;
-		for (const auto& [name, animData] : model->m_Animation) {
-			node["Animations"][name] = animData.FilePath;
+		for (const auto& [animName, animFile] : animations) {
+			node["Animations"][animName] = animFile;
 		}
 		return node;
 	}
 
-	bool decode(SceneContext* context, const YAML::Node& node) override{
-		return true;
+	void CreateModel(SceneContext* context){
+
+		if(modelFilePath.empty()){
+			return;
+		}
+		if(model){
+			ReleaseBuffers();
+			model.reset();
+		}
+
+		model = context->manager->resource->Load<ModelData>(modelFilePath, isBlender);
+
+		for(const auto& animNode : animations){
+			std::string animName = animNode.first;
+			std::string animFile = animNode.second;
+			model->LoadAnimation(animFile.c_str(), animName.c_str());
+		}
+
+		dynamicVertexBuffers.clear();
+		dynamicVertexBuffers.resize(model->AiScene->mNumMeshes);
+
+		for(uint32_t i = 0; i < model->AiScene->mNumMeshes; i++){
+			aiMesh* mesh = model->AiScene->mMeshes[i];
+
+			D3D11_BUFFER_DESC desc{};
+			desc.Usage = D3D11_USAGE_DYNAMIC;
+			desc.ByteWidth = sizeof(VERTEX_3D) * mesh->mNumVertices;
+			desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+			desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+			HRESULT hr = context->manager->graphics->GetDevice()->CreateBuffer(
+				&desc, nullptr, &dynamicVertexBuffers[i]
+			);
+			assert(SUCCEEDED(hr));
+		}
+
+	}
+
+	void ReleaseBuffers(){
+		for(auto* vb : dynamicVertexBuffers){
+			if(vb) vb->Release();
+		}
+		dynamicVertexBuffers.clear();
 	}
 
 	void inspector(SceneContext* context) override {
@@ -43,8 +122,12 @@ public:
 		ImGui::SameLine(100.0f);
 		if (ImGui::Checkbox("##isBlender", &isBlender)) {
 			std::string path = model->FilePath;
-			model = context->manager->resource->Load<ModelData>(path, isBlender);
 
+			ReleaseBuffers();
+			model.reset();
+			animations.clear();
+			blendedAnimations.clear();
+			CreateModel(context);
 		}
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("isBlenderModel?");
@@ -61,71 +144,30 @@ public:
 			filepathBuffer[0] = '\0'; // 初期化
 		}
 		if (ImGui::InputText("##Model File Path", filepathBuffer, sizeof(filepathBuffer))) {
-			// 編集されたら std::string に反映
-			model = context->manager->resource->Load<ModelData>(filepathBuffer, isBlender);
+			ReleaseBuffers();
+			model.reset();
+			animations.clear();
+			blendedAnimations.clear();
+
+			modelFilePath = std::string(filepathBuffer);
+			CreateModel(context);
 		}
 		// ドロップ対象の処理
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+				ReleaseBuffers();
+				model.reset();
+				animations.clear();
+				blendedAnimations.clear();
+
 				const char* droppedPath = (const char*)payload->Data;
 				std::string _filePath = std::string(droppedPath);
-
-				// TODO: 実際のリソースロード処理に差し替えて
-				model = context->manager->resource->Load<ModelData>(_filePath, isBlender);
+				modelFilePath = _filePath;
+				CreateModel(context);
 			}
 			ImGui::EndDragDropTarget();
 		}
 
-		ImGui::Text("PixelShader");
-		ImGui::SameLine(100.0f);
-		inputWidth = ImGui::GetContentRegionAvail().x;
-		ImGui::SetNextItemWidth(inputWidth);
-		if (pixelShader) {
-			strncpy_s(filepathBuffer, sizeof(filepathBuffer), pixelShader->FilePath.c_str(), _TRUNCATE);
-		} else {
-			filepathBuffer[0] = '\0'; // 初期化
-		}
-		if (ImGui::InputText("##PixelShader", filepathBuffer, sizeof(filepathBuffer))) {
-			// 編集されたら std::string に反映
-			pixelShader = context->manager->resource->Load<PixelShaderData>(filepathBuffer);
-		}
-		// ドロップ対象の処理
-		if (ImGui::BeginDragDropTarget()) {
-			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-				const char* droppedPath = (const char*)payload->Data;
-				std::string _filePath = std::string(droppedPath);
-
-				// TODO: 実際のリソースロード処理に差し替えて
-				pixelShader = context->manager->resource->Load<PixelShaderData>(_filePath);
-			}
-			ImGui::EndDragDropTarget();
-		}
-
-
-		ImGui::Text("VertexShader");
-		ImGui::SameLine(100.0f);
-		inputWidth = ImGui::GetContentRegionAvail().x;
-		ImGui::SetNextItemWidth(inputWidth);
-		if (vertexShader) {
-			strncpy_s(filepathBuffer, sizeof(filepathBuffer), vertexShader->FilePath.c_str(), _TRUNCATE);
-		} else {
-			filepathBuffer[0] = '\0'; // 初期化
-		}
-		if (ImGui::InputText("##VertexShader", filepathBuffer, sizeof(filepathBuffer))) {
-			// 編集されたら std::string に反映
-			vertexShader = context->manager->resource->Load<VertexShaderData>(filepathBuffer);
-		}
-		// ドロップ対象の処理
-		if (ImGui::BeginDragDropTarget()) {
-			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-				const char* droppedPath = (const char*)payload->Data;
-				std::string _filePath = std::string(droppedPath);
-
-				// TODO: 実際のリソースロード処理に差し替えて
-				vertexShader = context->manager->resource->Load<VertexShaderData>(_filePath);
-			}
-			ImGui::EndDragDropTarget();
-		}
 		if (model) {
 		// --- モーションブレンド編集UI ---
 			ImGui::Separator();
@@ -133,13 +175,13 @@ public:
 
 			if (!model->m_Animation.empty()) {
 				// ブレンド用アニメーションリストの表示
-				for (int i = 0; i < (int)model->blendedAnimations.size(); ++i) {
-					auto& blendEntry = model->blendedAnimations[i];
+				for (int i = 0; i < (int)blendedAnimations.size(); ++i) {
+					auto& blendEntry = blendedAnimations[i];
 					ImGui::PushID(i);
 
 					// 削除ボタン
 					if (ImGui::Button("Remove")) {
-						model->blendedAnimations.erase(model->blendedAnimations.begin() + i);
+						blendedAnimations.erase(blendedAnimations.begin() + i);
 						ImGui::PopID();
 						break;
 					}
@@ -201,8 +243,6 @@ public:
 					ImGui::PopItemWidth();
 
 					ImGui::PopID();
-
-
 				}
 
 				// 新規追加用UI
@@ -228,22 +268,20 @@ public:
 						const std::string& newName = animNames[newBlendAnimIndex];
 						// すでに登録済みかチェック
 						bool exists = false;
-						for (const auto& entry : model->blendedAnimations) {
+						for (const auto& entry : blendedAnimations) {
 							if (entry.name == newName) {
 								exists = true;
 								break;
 							}
 						}
 						if (!exists) {
-							model->blendedAnimations.push_back({ newName, 0.0f });
+							blendedAnimations.push_back({ newName, 0.0f });
 						}
 					}
 				}
 			} else {
 				ImGui::TextDisabled("no animations loaded.");
 			}
-
-
 
 			static char newAnimFilePath[256] = "";
 			static char newAnimName[128] = "";
@@ -307,11 +345,36 @@ public:
 
 						ImGui::PopID();
 					}
-					for (auto _delete : toDelete) {
-						model->RemoveAnimation(_delete);
+					for(const auto& delName : toDelete){
+
+						// ModelData 側の削除
+						model->RemoveAnimation(delName);
+
+						// Component 側の animations からも削除
+						animations.erase(
+							std::remove_if(
+								animations.begin(),
+								animations.end(),
+								[&](const std::pair<std::string, std::string>& anim){
+									return anim.first == delName;
+								}
+							),
+							animations.end()
+						);
+
+						// ブレンドリストからも削除
+						blendedAnimations.erase(
+							std::remove_if(
+								blendedAnimations.begin(),
+								blendedAnimations.end(),
+								[&](const AnimationBlend& blend){
+									return blend.name == delName;
+								}
+							),
+							blendedAnimations.end()
+						);
 					}
 				}
-
 
 				// ポップアップ内容
 				if (ImGui::BeginPopupModal("AddAnimationPopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
@@ -336,7 +399,7 @@ public:
 							model && model->m_Animation.find(animNameStr) == model->m_Animation.end()) {
 
 							model->LoadAnimation(filePathStr.c_str(), animNameStr.c_str());
-
+							animations.push_back(std::make_pair(animNameStr, filePathStr));
 							// 入力欄をクリア
 							newAnimFilePath[0] = '\0';
 							newAnimName[0] = '\0';
@@ -355,13 +418,6 @@ public:
 
 				ImGui::TreePop();
 			}
-
 		}
 	}
-
-	std::shared_ptr<ModelData>  model = nullptr;
-	bool isBlender = false;
-	std::shared_ptr<PixelShaderData>  pixelShader = nullptr;
-	std::shared_ptr<VertexShaderData>  vertexShader = nullptr;
-	float animationTime = 0.0f;
 };

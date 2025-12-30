@@ -32,25 +32,7 @@ public:
 	}
 
 	void Start() override{
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-			auto context = scene->GetSceneContext();
-			auto entities = context->component->FindEntitiesWithComponent<AudioComponent>();
-			for (auto entity : entities) {
-				auto* comp = context->component->GetComponent<AudioComponent>(entity);
-				if (!comp) continue;
-				if (!comp->isInitialized) {
-					comp->isInitialized = true;
-					// AudioDataロードはSystem側でやる
-					if (!comp->m_AudioData && !comp->FilePath.empty()) {
-						comp->m_AudioData = m_context->resource->Load<AudioData>(comp->FilePath);
-					}
 
-					if (comp->PlayOnStart && !comp->Playing) {
-						comp->Play(m_audioContext);
-					}
-				}
-			}
-		}
 	}
 
 	void Update(float) override{

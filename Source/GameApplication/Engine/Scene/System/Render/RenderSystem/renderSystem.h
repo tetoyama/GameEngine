@@ -3,10 +3,15 @@
 #include "Interface/ISystem.h"
 #include <d3d11.h>
 #include <wrl/client.h> 
+#include <string>
+#include <vector>
+#include <memory>
+
 #include "Backends/myVector2.h"
 #include "Backends/myVector3.h"
-#include "Component/RenderLayerComponent.h"
 #include "Scene/Entity/Entity.h"
+
+#include "System/Render/RenderSystem/renderLayer.h"
 
 struct SceneManagerContext;
 struct PixelShaderData;
@@ -14,6 +19,7 @@ struct VertexShaderData;
 struct RenderableContext;
 struct RenderTarget;
 struct CameraEntityData;
+struct TextureData;
 
 class IRenderable;
 class IRenderPass;
@@ -23,6 +29,8 @@ class EditorPass;
 
 class ComponentRegistry;
 class TransformComponent;
+
+class PostEffectShader;
 
 struct PostEffect {
 
@@ -83,7 +91,7 @@ private:
 
 	std::vector<std::shared_ptr<IRenderable>> m_renderables;
 
-	PostEffectShader copyShader;
+	PostEffectShader* copyShader = nullptr;
 
 	std::shared_ptr<TextureData> PlayButtonTexture;
 	std::shared_ptr<TextureData> PauseButtonTexture;

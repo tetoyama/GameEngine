@@ -66,8 +66,6 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
-        PixelShader: Asset\Shader\DefaultPixelShader.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 0
   - Entity: 2
@@ -209,8 +207,6 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\sky.fbx
-        PixelShader: Asset\Shader\unlitUVTexturePS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
         AnimationTime: 0
   - Entity: 4
@@ -252,13 +248,10 @@ Entities:
             lockRotZ: true
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
-        PixelShader: Asset\Shader\DefaultPixelShader.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 0
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
-          mixamo.com: Asset\Model\Akai_Run.fbx
           Run: Asset\Model\Akai_Run.fbx
       - Component: PlayerController
         moveSpeed: 6

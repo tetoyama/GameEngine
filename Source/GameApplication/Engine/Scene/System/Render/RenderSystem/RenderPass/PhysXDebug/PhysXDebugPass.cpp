@@ -4,7 +4,7 @@
 #include "../RenderPassContext.h"
 #include "../../renderPhase.h"
 #include "Component/cameraComponent.h"
-#include "Component/RenderLayerComponent.h"
+#include "System/Render/RenderSystem/renderLayer.h"
 #include "Registry/systemRegistry.h"
 #include <System/Physic/physicSystem.h>
 

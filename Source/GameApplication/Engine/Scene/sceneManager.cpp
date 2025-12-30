@@ -106,6 +106,8 @@ void SceneManager::Update(float deltaTime){
 
 			if (OldState == SceneManagerState::Stopped) {
 				TempSave(); // 一時保存
+				m_SceneContext.debug->LOG_INFO("シーンを開始します");
+				systemRegistry->StartAll();
 			}
 
 			for (auto& [name, scene] : m_activeScenes) {
@@ -300,15 +302,19 @@ void SceneManager::TempLoad() {
 			// Sceneの生成・ロード
 			auto newScene = std::make_shared<Scene>();
 
+			newScene->ScenePath = (std::string(TEMP_SAVE_PATH) + "Temp_" + name + ".yaml");
+
 			newScene->Initialize(&m_SceneContext);
 
 			newScene->SceneName = name;
 
-			newScene->TempLoad(); // 各シーンの個別ロード
+			//newScene->TempLoad(); // 各シーンの個別ロード
 
 			newScene->ScenePath = path;
 
 			m_activeScenes[name] = newScene;
 		}
 	}
+
+	m_SceneContext.resource->ClearAllUnused();
 }

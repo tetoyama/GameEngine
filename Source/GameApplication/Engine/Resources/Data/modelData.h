@@ -55,7 +55,7 @@ struct AnimationData {
 struct ModelData {
 public:
 	ModelData(){
-		OutputDebugStringA("Created ModelData\n");
+		OutputDebugStringA(("Created ModelData" + FilePath + "\n").c_str());
 	}
 
 	~ModelData(){
@@ -74,14 +74,14 @@ public:
 	const aiScene* AiScene = nullptr;
 
 	// メッシュごとの頂点・インデックスバッファ（既存描画用）
-	ID3D11Buffer** VertexBuffer = nullptr;
-	ID3D11Buffer** IndexBuffer = nullptr;
+	std::vector<ID3D11Buffer*>VertexBuffer;
+	std::vector<ID3D11Buffer*>IndexBuffer;
 
 	// テクスチャ群
 	std::unordered_map<std::string, ID3D11ShaderResourceView*> m_Texture;
 
-	std::vector<DEFORM_VERTEX>* m_DeformVertex;//変形後頂点データ
-	std::unordered_map<std::string, BONE> m_Bone;//ボーンデータ（名前で参照）
+	std::vector<DEFORM_VERTEX>* m_DeformVertex = nullptr;
+	std::unordered_map<std::string, BONE> m_Bone;
 
 	void CreateBone(aiNode* Node);
 	void UpdateBoneMatrix(aiNode* Node, aiMatrix4x4 Matrix);
@@ -95,9 +95,15 @@ public:
 		}
 	}
 
-	void UpdateSingleAnimation(const char* AnimationName1, int Frame1, GraphicsContext* pGraphicContext);
-	void Update(float Frame, GraphicsContext* pGraphicContext);
+	void UpdateBoneAnimation(
+		const std::vector<AnimationBlend>& anims,
+		float frame
+	);
+	void CPU_Skinning(
+		const std::vector<DEFORM_VERTEX>& deformVertices,
+		const aiMesh* mesh,
+		VERTEX_3D* outVertex
+	) const;
 
 	std::unordered_map<std::string, AnimationData> m_Animation;
-	std::vector<AnimationBlend> blendedAnimations;
 };

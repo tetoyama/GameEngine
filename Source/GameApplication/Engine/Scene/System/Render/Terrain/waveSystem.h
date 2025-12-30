@@ -43,7 +43,7 @@ public:
 		}
 	}
 
-	void Update(float dt) override{
+	void EditorUpdate(float dt) override{
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<WaveComponent>();
@@ -54,7 +54,6 @@ public:
 				if (!comp->meshRenderer || comp->Resolution != comp->CurrentResolution) {
 					CreateMesh(context,entity);
 				}
-
 				UpdateWaveVertices(comp);
 			}
 		}

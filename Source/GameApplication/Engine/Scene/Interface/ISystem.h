@@ -4,6 +4,7 @@
 class ISystem
 {
 public:
+	ISystem(){}
 	virtual ~ISystem() {}
 
 	virtual void Initialize() {}

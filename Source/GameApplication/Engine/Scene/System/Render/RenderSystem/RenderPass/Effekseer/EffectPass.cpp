@@ -1,5 +1,5 @@
 #include "EffectPass.h"
-
+#include "Graphics/graphicsContext.h"
 #include "Backends/convertMatrix.h"
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "scene.h"

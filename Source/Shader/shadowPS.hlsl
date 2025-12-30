@@ -9,6 +9,5 @@ float4 main(in PS_IN In) : SV_Target
     {
         discard;
     }
-    
 	return float4(1.0f, 1.0f, 1.0f, 1.0f);
 }

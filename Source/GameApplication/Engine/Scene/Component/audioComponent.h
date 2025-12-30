@@ -85,6 +85,12 @@ public:
 		Playing = false;
 	}
 
+	void Reset(){
+		Stop();
+		isInitialized = false;
+		m_AudioData.reset();
+	}
+
 	YAML::Node encode() override{
 		YAML::Node node;
 		node["FilePath"] = FilePath;
@@ -115,28 +121,35 @@ public:
 		ImGui::SameLine(100);
 		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 24.0f);
 		if(ImGui::InputText("##AudioInput", filepathBuffer, sizeof(filepathBuffer))){
+			Reset();
 			FilePath = std::string(filepathBuffer);
 		}
 		ImGui::PopItemWidth();
 
 		ImGui::SameLine();
 		if(ImGui::SmallButton("x")){
+			Reset();
 			FilePath.clear();
-			m_AudioData.reset();
 		}
 		ImGui::EndGroup();
 
 		if(ImGui::BeginDragDropTarget()){
 			if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
-				const char* droppedPath = (const char*)payload->Data;
-				FilePath = droppedPath;
+				Reset();
+				FilePath = (const char*)payload->Data;
 			}
 			ImGui::EndDragDropTarget();
 		}
 
-		ImGui::Checkbox("Loop", &Loop);
+		if(ImGui::Checkbox("Loop", &Loop)){
+			Reset();
+		}
+		
 		ImGui::SameLine();
-		ImGui::Checkbox("Play On Start", &PlayOnStart);
+		
+		if(ImGui::Checkbox("Play On Start", &PlayOnStart)){
+			Reset();
+		}
 
 		ImGui::AlignTextToFramePadding();
 		ImGui::Text("Volume");

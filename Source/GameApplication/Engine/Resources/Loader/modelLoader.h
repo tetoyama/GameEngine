@@ -34,10 +34,10 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 		return nullptr;
 	}
 
-	model->VertexBuffer = new ID3D11Buffer * [model->AiScene->mNumMeshes];
-	model->IndexBuffer = new ID3D11Buffer * [model->AiScene->mNumMeshes];
+	model->VertexBuffer.resize(model->AiScene->mNumMeshes);
+	model->IndexBuffer.resize(model->AiScene->mNumMeshes);
 
-		//変形後頂点配列生成
+	//変形後頂点配列生成
 	model->m_DeformVertex = new std::vector<DEFORM_VERTEX>[model->AiScene->mNumMeshes];
 
 	//再帰的にボーン生成
@@ -371,9 +371,6 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			model->m_Animation[animName] = animationData;
 		}
 	}
-
-
-
 	return model;
 }
 

@@ -29,6 +29,7 @@
 #include "Registry/systemRegistry.h"
 #include "Registry/componentRegistry.h"
 
+#include "Graphics/graphicsContext.h"
 #include "Graphics/mainRenderer.h"
 
 #include "Resources/resourceService.h"
@@ -42,6 +43,8 @@
 #include "Editor/UI/MenuBar.h"
 
 #include "System/Physic/physicSystem.h"
+
+#include "System/Render/RenderSystem/renderLayer.h"
 
 #include "Component/RenderLayerComponent.h"
 #include "Component/transformComponent.h"
@@ -107,12 +110,18 @@ void RenderSystem::Initialize(){
 	auto m_FullScreenVS = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\PostEffectVS.cso");
 	auto m_FullScreenPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\PostEffectPS.cso");
 
-	copyShader.m_VS = m_FullScreenVS->m_VertexShader; // フルスクリーンVS
-	copyShader.m_PS = m_FullScreenPS->m_PixelShader; // 単純に SRV → out を返す PS
-	copyShader.m_InputLayout = m_FullScreenVS->m_VertexLayout;
+	copyShader = new PostEffectShader();
+	copyShader->m_VS = m_FullScreenVS->m_VertexShader; // フルスクリーンVS
+	copyShader->m_PS = m_FullScreenPS->m_PixelShader; // 単純に SRV → out を返す PS
+	copyShader->m_InputLayout = m_FullScreenVS->m_VertexLayout;
 }
 
 void RenderSystem::Finalize(){
+
+	if(copyShader){
+		delete copyShader;
+		copyShader = nullptr;
+	}
 
 	m_EditorPass->Finalize();
 	delete m_EditorPass;
@@ -156,7 +165,30 @@ void RenderSystem::EditorUpdate(float deltaTime) {
 			for (Entity entity : modelEntities) {
 				auto* modelRenderer = context->component->GetComponent<ModelRendererComponent>(entity);
 				if (modelRenderer->model) {
-					modelRenderer->model->Update(modelRenderer->animationTime, m_context->graphics);
+					if(modelRenderer->blendedAnimations.size() > 0){
+						modelRenderer->model->UpdateBoneAnimation(modelRenderer->blendedAnimations, modelRenderer->animationTime);
+
+						for(int i = 0; i < modelRenderer->dynamicVertexBuffers.size(); i++){
+							D3D11_MAPPED_SUBRESOURCE mapped;
+							HRESULT hr = m_context->graphics->GetDeviceContext()->Map(
+								modelRenderer->dynamicVertexBuffers[i], 0,
+								D3D11_MAP_WRITE_DISCARD, 0,
+								&mapped
+							);
+							if(FAILED(hr)){
+								continue;
+							}
+							modelRenderer->model->CPU_Skinning(
+								modelRenderer->model->m_DeformVertex[i],
+								modelRenderer->model->AiScene->mMeshes[i],
+								(VERTEX_3D*)mapped.pData
+							);
+
+							m_context->graphics->GetDeviceContext()->Unmap(modelRenderer->dynamicVertexBuffers[i], 0);
+						}
+					}
+				} else{
+					modelRenderer->CreateModel(context);
 				}
 			}
 		}
@@ -193,7 +225,7 @@ void RenderSystem::Draw(){
 		m_context->graphics->ResetViewport();
 		m_context->graphics->Clear(clearColor);
 		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
-		m_context->graphics->DrawQuad(&copyShader, m_PlayerPass->result);
+		m_context->graphics->DrawQuad(copyShader, m_PlayerPass->result);
 	}
 	m_context->graphics->ResetViewport();
 	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
@@ -245,7 +277,7 @@ const CameraEntityData RenderSystem::FindCameraEntity() {
 
 void RenderSystem::ControllButton(){
 
-	if(!PlayButtonTexture){
+	if(!PlayButtonTexture.get()->pTexture){
 		return;
 	}
 

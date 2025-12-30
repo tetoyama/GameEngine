@@ -77,15 +77,9 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 	if (ctx.passPhase == RenderPhase::PHASE_SHADOW) {
 		//deviceContext->PSSetShader(nullptr, NULL, 0); // ピクセルシェーダー無効化
 	} else {
-		if (modelRenderer->pixelShader) {
-			//deviceContext->PSSetShader(modelRenderer->pixelShader->m_PixelShader.Get(), nullptr, 0);
-		}
+
 	}
 
-	if(modelRenderer->vertexShader){
-		//deviceContext->IASetInputLayout(modelRenderer->vertexShader->m_VertexLayout.Get());
-		//deviceContext->VSSetShader(modelRenderer->vertexShader->m_VertexShader.Get(), nullptr, 0);
-	}
 	graphicsContext->SetCullMode(CullMode::Back);
 
 	for(unsigned int m = 0; m < pModel->AiScene->mNumMeshes; m++){
@@ -146,15 +140,15 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 		// 頂点バッファ設定
 		UINT stride = sizeof(VERTEX_3D);
 		UINT offset = 0;
-		graphicsContext->GetDeviceContext()->IASetVertexBuffers(0, 1, &pModel->VertexBuffer[m], &stride, &offset);
+		if(modelRenderer->blendedAnimations.size() > 0){
 
+			graphicsContext->GetDeviceContext()->IASetVertexBuffers(0, 1, &modelRenderer->dynamicVertexBuffers[m], &stride, &offset);
+		} else{
+			graphicsContext->GetDeviceContext()->IASetVertexBuffers(0, 1, &pModel->VertexBuffer[m], &stride, &offset);
+		}
 		// インデックスバッファ設定
 		graphicsContext->GetDeviceContext()->IASetIndexBuffer(pModel->IndexBuffer[m], DXGI_FORMAT_R32_UINT, 0);
 
-
-		if (ctx.passPhase == RenderPhase::PHASE_SHADOW) {
-			//deviceContext->PSSetShader(nullptr, NULL, 0); // ピクセルシェーダー無効化
-		}
 		deviceContext->DrawIndexed(pModel->AiScene->mMeshes[m]->mNumFaces * 3, 0, 0);
 	}
 }

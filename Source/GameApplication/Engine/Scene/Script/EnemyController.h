@@ -79,12 +79,12 @@ public:
 
 	void OnUpdate(float dt) override{
 		// アニメーション設定
-		model->model->blendedAnimations.clear();
+		model->blendedAnimations.clear();
 		if(model->model->m_Animation.find("Run") != model->model->m_Animation.end()){
-			model->model->blendedAnimations.push_back({"Run", 0.0f, 0.0f});
+			model->blendedAnimations.push_back({"Run", 0.0f, 0.0f});
 		}
 		if(model->model->m_Animation.find("Idle") != model->model->m_Animation.end()){
-			model->model->blendedAnimations.push_back({"Idle", 1.0f, 0.0f});
+			model->blendedAnimations.push_back({"Idle", 1.0f, 0.0f});
 		}
 
 		if(!transform || !ballTransform || !gameTime || gameTime->CountDownTimer > 0.0f) return;
@@ -156,8 +156,8 @@ public:
 			if(CurrentSpeed < 0.0f) CurrentSpeed = 0.0f;
 			if(CurrentSpeed > moveSpeed) CurrentSpeed = moveSpeed;
 
-			model->model->blendedAnimations[0].weight = CurrentSpeed / moveSpeed;
-			model->model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / moveSpeed);
+			model->blendedAnimations[0].weight = CurrentSpeed / moveSpeed;
+			model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / moveSpeed);
 		} else{
 			// 目標速度
 			float targetSpeed = isDashing ? moveSpeed * dashMultiplier : moveSpeed;
@@ -170,8 +170,8 @@ public:
 				CurrentSpeed = targetSpeed;
 			}
 
-			model->model->blendedAnimations[0].weight = CurrentSpeed / targetSpeed;
-			model->model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / targetSpeed);
+			model->blendedAnimations[0].weight = CurrentSpeed / targetSpeed;
+			model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / targetSpeed);
 
 			// --- 位置更新 ---
 			transform->position += dir * (CurrentSpeed * dt);

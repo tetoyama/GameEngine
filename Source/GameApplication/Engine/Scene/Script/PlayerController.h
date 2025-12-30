@@ -96,17 +96,21 @@ public:
 	}
 
 	void OnFixedUpdate(float dt)override{
-		model->model->blendedAnimations.clear();
+		if(!model->model){
+			return;
+		}
+
+		model->blendedAnimations.clear();
 
 		// Run アニメーションを追加
 		if(model->model->m_Animation.find("Run") != model->model->m_Animation.end()){
-			model->model->blendedAnimations.push_back({"Run", 0.0f, 0.0f});
+			model->blendedAnimations.push_back({"Run", 0.0f, 0.0f});
 			// name = "Run", weight = 1.0, startTime = 0.0
 		}
 
 		// Idle アニメーションを追加
 		if(model->model->m_Animation.find("Idle") != model->model->m_Animation.end()){
-			model->model->blendedAnimations.push_back({"Idle", 1.0f, 0.0f});
+			model->blendedAnimations.push_back({"Idle", 1.0f, 0.0f});
 			// name = "Idle", weight = 0.0, startTime = 0.0
 		}
 		if(!transform || !cameraTransform) return;
@@ -213,8 +217,8 @@ public:
 			CurrentSpeed -= moveSpeed * dt;
 			if(CurrentSpeed < 0.0f) CurrentSpeed = 0.0f;
 			if(CurrentSpeed > moveSpeed) CurrentSpeed = moveSpeed;
-			model->model->blendedAnimations[0].weight = CurrentSpeed / (moveSpeed * dashMultiplier);
-			model->model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / (moveSpeed * dashMultiplier));
+			model->blendedAnimations[0].weight = CurrentSpeed / (moveSpeed * dashMultiplier);
+			model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / (moveSpeed * dashMultiplier));
 
 			// --- 回転補間 ---
 			DirectX::XMVECTOR targetQ = DirectX::XMQuaternionRotationRollPitchYaw(
@@ -235,8 +239,8 @@ public:
  				CurrentSpeed = targetSpeed;
 			}
 
-			model->model->blendedAnimations[0].weight = CurrentSpeed / (moveSpeed * dashMultiplier);
-			model->model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / (moveSpeed * dashMultiplier));
+			model->blendedAnimations[0].weight = CurrentSpeed / (moveSpeed * dashMultiplier);
+			model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / (moveSpeed * dashMultiplier));
 
 			// --- 回転補間 ---
 			DirectX::XMVECTOR targetQ = DirectX::XMQuaternionRotationRollPitchYaw(

@@ -194,6 +194,7 @@ void Scene::Shutdown(){
 		auto hierarchy = m_SceneManagerContext->editor->GetUI<Hierarchy>();
 		if(hierarchy && hierarchy->sceneContext == &m_SceneContext){
 			hierarchy->sceneContext = nullptr;
+			hierarchy->selectedEntity = 0;
 		}
 	}
 
@@ -250,9 +251,11 @@ void Scene::BuildDefaultScene(){
 
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
-		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\cube.obj",false);
-		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\DefaultPixelShader.cso");
+		modelRenderer->modelFilePath = "Asset\\Model\\cube.obj";
+
+		//modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\cube.obj",false);
+		//modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
+		//modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\DefaultPixelShader.cso");
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
 		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\mesh.png");
@@ -310,9 +313,11 @@ void Scene::BuildDefaultScene(){
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->isBlender = true;
-		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\sky.fbx",true);
-		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\unlitUVTexturePS.cso");
+		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\sky.fbx", true);
+
+		//modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\sky.fbx",true);
+		//modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
+		//modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\unlitUVTexturePS.cso");
 	}
 	{
 		//エンティティを作成し、TransformとModelRendererを追加
@@ -334,26 +339,32 @@ void Scene::BuildDefaultScene(){
 
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
-		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\Akai.fbx", false);
-		modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-		modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\DefaultPixelShader.cso");
+		modelRenderer->modelFilePath = "Asset\\Model\\Akai.fbx";
+		modelRenderer->isBlender = false;
+		modelRenderer->animations.push_back(std::make_pair("Idle", "Asset\\Model\\Akai_Idle.fbx"));
+		modelRenderer->animations.push_back(std::make_pair("Run", "Asset\\Model\\Akai_Run.fbx"));
+		modelRenderer->CreateModel(&m_SceneContext);
 
-		modelRenderer->model->LoadAnimation("Asset\\Model\\Akai_Idle.fbx", "Idle");
-		modelRenderer->model->LoadAnimation("Asset\\Model\\Akai_Run.fbx", "Run");
+		//modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\Akai.fbx", false);
+		//modelRenderer->vertexShader = resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
+		//modelRenderer->pixelShader = resource->Load<PixelShaderData>("Asset\\Shader\\DefaultPixelShader.cso");
+
+		//modelRenderer->model->LoadAnimation("Asset\\Model\\Akai_Idle.fbx", "Idle");
+		//modelRenderer->model->LoadAnimation("Asset\\Model\\Akai_Run.fbx", "Run");
 		
-		modelRenderer->model->blendedAnimations.clear();
+		modelRenderer->blendedAnimations.clear();
 
 		AnimationBlend idle;
 		idle.animationStartTime = 0.0f;
 		idle.name = "Idle";
 		idle.weight = 1.0f;
-		modelRenderer->model->blendedAnimations.push_back(idle);
+		modelRenderer->blendedAnimations.push_back(idle);
 
 		AnimationBlend run;
 		run.animationStartTime = 0.0f;
 		run.name = "Run";
 		run.weight = 0.0f;
-		modelRenderer->model->blendedAnimations.push_back(run);
+		modelRenderer->blendedAnimations.push_back(run);
 
 		auto* collider = componentRegistry->AddComponent<ColliderComponent>(entity);
 		ColliderShape col;
@@ -630,40 +641,7 @@ void Scene::LoadSceneFromYAML(std::string path) {
 		for(const auto& compNode : entityNode["Components"]){  
 			const auto& compType = compNode["Component"].as<std::string>();  
 			IComponent* comp = m_componentRegistry->CreateFromYAML(compType, entity, compNode);  
-			if(compType == "ModelRendererComponent"){  
-				auto* modelRenderer = dynamic_cast<ModelRendererComponent*>(comp);  
-				if (modelRenderer) {
-					if (compNode["isBlender"]) {
-						const auto& isBlender = compNode["isBlender"].as<bool>();
-						modelRenderer->isBlender = isBlender;
-					}
 
-					if(compNode["FilePath"]){
-						const auto& FilePath = compNode["FilePath"].as<std::string>();
-						modelRenderer->model = m_SceneManagerContext->resource->Load<ModelData>(FilePath.c_str(), modelRenderer->isBlender);
-					}
-					if(compNode["VertexShader"]){
-
-						const auto& VertexShader = compNode["VertexShader"].as<std::string>();
-						modelRenderer->vertexShader = m_SceneManagerContext->resource->Load<VertexShaderData>(VertexShader.c_str());
-					}
-					if(compNode["PixelShader"]){
-
-						const auto& PixelShader = compNode["PixelShader"].as<std::string>();
-						modelRenderer->pixelShader = m_SceneManagerContext->resource->Load<PixelShaderData>(PixelShader.c_str());
-					}
-
-					if (compNode["AnimationTime"]) {
-						modelRenderer->animationTime = compNode["AnimationTime"].as<float>();
-					}
-
-					for (const auto& animNode : compNode["Animations"]) {
-						std::string animName = animNode.first.as<std::string>();
-						std::string animFile = animNode.second.as<std::string>();
-						modelRenderer->model->LoadAnimation(animFile.c_str(), animName.c_str());
-					}
-				}
-			}
 			if(compType == "TextureComponent"){
 				auto* texture = dynamic_cast<TextureComponent*>(comp);
 				if(texture){
