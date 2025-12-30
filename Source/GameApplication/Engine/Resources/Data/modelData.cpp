@@ -6,6 +6,63 @@
 
 #include "Graphics/graphicsContext.h"
 
+aiQuaternion InterpolateRotation(
+	float time,
+	const aiNodeAnim* nodeAnim
+){
+	if(nodeAnim->mNumRotationKeys == 1)
+		return nodeAnim->mRotationKeys[0].mValue;
+
+	uint32_t index = 0;
+	while(index + 1 < nodeAnim->mNumRotationKeys &&
+		  time > (float)nodeAnim->mRotationKeys[index + 1].mTime){
+		index++;
+	}
+
+	uint32_t nextIndex = index + 1;
+	if(nextIndex >= nodeAnim->mNumRotationKeys)
+		return nodeAnim->mRotationKeys[index].mValue;
+
+	float t1 = (float)nodeAnim->mRotationKeys[index].mTime;
+	float t2 = (float)nodeAnim->mRotationKeys[nextIndex].mTime;
+	float factor = (time - t1) / (t2 - t1);
+
+	aiQuaternion out;
+	aiQuaternion::Interpolate(
+		out,
+		nodeAnim->mRotationKeys[index].mValue,
+		nodeAnim->mRotationKeys[nextIndex].mValue,
+		factor
+	);
+	out.Normalize();
+	return out;
+}
+aiVector3D InterpolatePosition(
+	float time,
+	const aiNodeAnim* nodeAnim
+){
+	if(nodeAnim->mNumPositionKeys == 1)
+		return nodeAnim->mPositionKeys[0].mValue;
+
+	uint32_t index = 0;
+	while(index + 1 < nodeAnim->mNumPositionKeys &&
+		  time > (float)nodeAnim->mPositionKeys[index + 1].mTime){
+		index++;
+	}
+
+	uint32_t nextIndex = index + 1;
+	if(nextIndex >= nodeAnim->mNumPositionKeys)
+		return nodeAnim->mPositionKeys[index].mValue;
+
+	float t1 = (float)nodeAnim->mPositionKeys[index].mTime;
+	float t2 = (float)nodeAnim->mPositionKeys[nextIndex].mTime;
+	float factor = (time - t1) / (t2 - t1);
+
+	return
+		nodeAnim->mPositionKeys[index].mValue * (1.0f - factor) +
+		nodeAnim->mPositionKeys[nextIndex].mValue * factor;
+}
+
 void ModelData::Release(){
 	if(AiScene){
 		// メッシュバッファ解放
@@ -43,24 +100,28 @@ void ModelData::Release(){
 	}
 }
 
-void ModelData::CreateBone(aiNode* node) {
+void ModelData::CreateBone(aiNode* node){
+	std::string name = node->mName.C_Str();
 
-	BONE bone;
-
-	m_Bone[node->mName.C_Str()] = bone;
-
-	for (unsigned int n = 0; n < node->mNumChildren; n++) {
-		CreateBone(node->mChildren[n]);
+	if(m_BoneIndexMap.find(name) == m_BoneIndexMap.end()){
+		uint32_t index = (uint32_t)m_Bones.size();
+		m_BoneIndexMap[name] = index;
+		m_Bones.push_back(BONE{});
 	}
 
+	for(uint32_t i = 0; i < node->mNumChildren; i++){
+		CreateBone(node->mChildren[i]);
+	}
 }
 
+
 void ModelData::UpdateBoneMatrix(aiNode* node, aiMatrix4x4 Matrix) {
-	BONE* bone = &m_Bone[node->mName.C_Str()];
 
-	aiMatrix4x4 worldMatrix = Matrix * bone->AnimationMatrix;
+	uint32_t index = m_BoneIndexMap[node->mName.C_Str()];
+	BONE& bone = m_Bones[index];
 
-	bone->Matrix = worldMatrix * bone->OffsetMatrix;
+	aiMatrix4x4 worldMatrix = Matrix * bone.AnimationMatrix;
+	bone.Matrix = worldMatrix * bone.OffsetMatrix;
 
 	for (unsigned int i = 0; i < node->mNumChildren; i++) {
 
@@ -108,63 +169,62 @@ void ModelData::UpdateBoneAnimation(
 	if(anims.empty()) return;
 
 	float totalWeight = 0.0f;
-	for(const auto& anim : anims){
-		totalWeight += anim.weight;
-	}
+	for(const auto& a : anims) totalWeight += a.weight;
 	if(totalWeight <= 0.0f) return;
 
-	// 各ボーンの AnimationMatrix 初期化
-	for(auto& pair : m_Bone){
-		pair.second.AnimationMatrix = aiMatrix4x4();
+	const size_t boneCount = m_Bones.size();
+
+	// 一時バッファ
+	std::vector<aiQuaternion> accumRot(
+		boneCount, aiQuaternion(0, 0, 0, 0)
+	);
+	std::vector<aiVector3D> accumPos(
+		boneCount, aiVector3D(0, 0, 0)
+	);
+
+	for(const auto& anim : anims){
+		if(anim.weight <= 0.0f) continue;
+
+		auto itAnim = m_Animation.find(anim.name);
+		if(itAnim == m_Animation.end()) continue;
+
+		aiAnimation* animation = itAnim->second.Animation;
+		if(!animation) continue;
+
+		float animTime =
+			fmod(frame + anim.animationStartTime,
+				 (float)animation->mDuration);
+
+		float w = anim.weight / totalWeight;
+
+		for(unsigned int c = 0; c < animation->mNumChannels; c++){
+			aiNodeAnim* nodeAnim = animation->mChannels[c];
+			const char* boneName = nodeAnim->mNodeName.C_Str();
+
+			auto itBone = m_BoneIndexMap.find(boneName);
+			if(itBone == m_BoneIndexMap.end()) continue;
+
+			uint32_t idx = itBone->second;
+
+			aiQuaternion rot = InterpolateRotation(animTime, nodeAnim);
+			aiVector3D  pos = InterpolatePosition(animTime, nodeAnim);
+
+			accumRot[idx].x += rot.x * w;
+			accumRot[idx].y += rot.y * w;
+			accumRot[idx].z += rot.z * w;
+			accumRot[idx].w += rot.w * w;
+
+			accumPos[idx] += pos * w;
+		}
 	}
 
-	for(auto& pair : m_Bone){
-		const std::string& boneName = pair.first;
-		BONE& bone = pair.second;
+	// AnimationMatrix へ反映
+	for(size_t i = 0; i < boneCount; i++){
+		aiQuaternion r = accumRot[i];
+		r.Normalize();
 
-		aiQuaternion blendedRot(0, 0, 0, 0);
-		aiVector3D blendedPos(0, 0, 0);
-
-		for(const auto& anim : anims){
-			if(anim.weight <= 0.0f) continue;
-
-			auto it = m_Animation.find(anim.name);
-			if(it == m_Animation.end()) continue;
-
-			aiAnimation* animation = it->second.Animation;
-			if(!animation) continue;
-
-			aiNodeAnim* nodeAnim = nullptr;
-			for(unsigned int c = 0; c < animation->mNumChannels; c++){
-				if(animation->mChannels[c]->mNodeName == aiString(boneName)){
-					nodeAnim = animation->mChannels[c];
-					break;
-				}
-			}
-			if(!nodeAnim) continue;
-
-			int rotIdx = (int)frame % nodeAnim->mNumRotationKeys;
-			int posIdx = (int)frame % nodeAnim->mNumPositionKeys;
-
-			aiQuaternion rot = nodeAnim->mRotationKeys[rotIdx].mValue;
-			aiVector3D pos = nodeAnim->mPositionKeys[posIdx].mValue;
-
-			float w = anim.weight / totalWeight;
-
-			// ---- 回転 ----
-			blendedRot.x += rot.x * w;
-			blendedRot.y += rot.y * w;
-			blendedRot.z += rot.z * w;
-			blendedRot.w += rot.w * w;
-
-			// 位置：線形加算
-			blendedPos += pos * w;
-		}
-
-		blendedRot.Normalize();
-
-		bone.AnimationMatrix =
-			aiMatrix4x4(aiVector3D(1, 1, 1), blendedRot, blendedPos);
+		m_Bones[i].AnimationMatrix =
+			aiMatrix4x4(aiVector3D(1, 1, 1), r, accumPos[i]);
 	}
 
 	aiMatrix4x4 rootMatrix(
@@ -192,7 +252,7 @@ void ModelData::CPU_Skinning(
 			if(w <= 0.0f) continue;
 
 			const aiMatrix4x4& boneMat =
-				m_Bone.at(dv.BoneName[k]).Matrix;
+				m_Bones[dv.BoneIndex[k]].Matrix;
 
 			aiVector3D p = mesh->mVertices[j];
 			p *= boneMat;

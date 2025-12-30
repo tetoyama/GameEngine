@@ -177,10 +177,9 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			DEFORM_VERTEX deformVertex;
 			deformVertex.Position = mesh->mVertices[v];
 			deformVertex.Normal = mesh->mNormals[v];
-			deformVertex.BoneNum = 0;
 
 			for (unsigned int b = 0; b < 4; b++) {
-				deformVertex.BoneName[b] = "";
+				deformVertex.BoneIndex[b] = 0;
 				deformVertex.BoneWeight[b] = 0.0f;
 			}
 
@@ -189,24 +188,39 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 
 
 		//ボーンデータ初期化
-		for (unsigned int b = 0; b < mesh->mNumBones; b++) {
+		for(unsigned int b = 0; b < mesh->mNumBones; b++){
+
 			aiBone* bone = mesh->mBones[b];
+			const std::string boneName = bone->mName.C_Str();
 
-			model->m_Bone[bone->mName.C_Str()].OffsetMatrix = bone->mOffsetMatrix;
+			// Model全体のBoneIndexを取得
+			auto it = model->m_BoneIndexMap.find(boneName);
+			if(it == model->m_BoneIndexMap.end()){
+				continue; // Node階層に存在しないボーンは無視
+			}
 
-			//変形後頂点にボーンデータ格納
-			for (unsigned int w = 0; w < bone->mNumWeights; w++) {
-				aiVertexWeight weight = bone->mWeights[w];
+			const uint32_t boneIndex = it->second;
 
-				int num = model->m_DeformVertex[m][weight.mVertexId].BoneNum;
+			// OffsetMatrix 設定
+			model->m_Bones[boneIndex].OffsetMatrix = bone->mOffsetMatrix;
 
-				model->m_DeformVertex[m][weight.mVertexId].BoneWeight[num] = weight.mWeight;
-				model->m_DeformVertex[m][weight.mVertexId].BoneName[num] = bone->mName.C_Str();
-				model->m_DeformVertex[m][weight.mVertexId].BoneNum++;
+			// Weight 登録
+			for(unsigned int w = 0; w < bone->mNumWeights; w++){
 
-				assert(model->m_DeformVertex[m][weight.mVertexId].BoneNum <= 4);
+				const aiVertexWeight& vw = bone->mWeights[w];
+				DEFORM_VERTEX& dv = model->m_DeformVertex[m][vw.mVertexId];
+
+				// 空いているスロットに入れる（最大4）
+				for(uint32_t i = 0; i < 4; i++){
+					if(dv.BoneWeight[i] == 0.0f){
+						dv.BoneIndex[i] = boneIndex;
+						dv.BoneWeight[i] = vw.mWeight;
+						break;
+					}
+				}
 			}
 		}
+
 	}
 
 

@@ -16,10 +16,9 @@ struct aiScene;
 
 //変形後頂点構造体
 struct DEFORM_VERTEX {
-	aiVector3D Position;
-	aiVector3D Normal;
-	int				BoneNum = 0;
-	std::string		BoneName[4];//本来はボーンインデックスで管理するべき
+	aiVector3D		Position;
+	aiVector3D		Normal;
+	uint32_t		BoneIndex[4];
 	float			BoneWeight[4];
 };
 
@@ -80,8 +79,11 @@ public:
 	// テクスチャ群
 	std::unordered_map<std::string, ID3D11ShaderResourceView*> m_Texture;
 
+	std::vector<BONE> m_Bones;
+	std::unordered_map<std::string, uint32_t> m_BoneIndexMap;
+
+	std::unordered_map<std::string, AnimationData> m_Animation;
 	std::vector<DEFORM_VERTEX>* m_DeformVertex = nullptr;
-	std::unordered_map<std::string, BONE> m_Bone;
 
 	void CreateBone(aiNode* Node);
 	void UpdateBoneMatrix(aiNode* Node, aiMatrix4x4 Matrix);
@@ -105,5 +107,4 @@ public:
 		VERTEX_3D* outVertex
 	) const;
 
-	std::unordered_map<std::string, AnimationData> m_Animation;
 };
