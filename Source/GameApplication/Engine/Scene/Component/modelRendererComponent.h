@@ -171,116 +171,120 @@ public:
 		if (model) {
 		// --- モーションブレンド編集UI ---
 			ImGui::Separator();
-			ImGui::Text("Motion Blend");
+			if(ImGui::TreeNodeEx(("Motion Blend(" + std::to_string(blendedAnimations.size()) + ")").c_str(), ImGuiTreeNodeFlags_DefaultOpen)){
 
-			if (!model->m_Animation.empty()) {
-				// ブレンド用アニメーションリストの表示
-				for (int i = 0; i < (int)blendedAnimations.size(); ++i) {
-					auto& blendEntry = blendedAnimations[i];
-					ImGui::PushID(i);
+				if(!model->m_Animation.empty()){
+					// ブレンド用アニメーションリストの表示
+					for(int i = 0; i < (int)blendedAnimations.size(); ++i){
+						auto& blendEntry = blendedAnimations[i];
+						ImGui::PushID(i);
 
-					// 削除ボタン
-					if (ImGui::Button("Remove")) {
-						blendedAnimations.erase(blendedAnimations.begin() + i);
-						ImGui::PopID();
-						break;
-					}
-					ImGui::SameLine();
-
-					// アニメーション名取得
-					int currentIdx = 0;
-					std::vector<std::string> animNames;
-					for (const auto& pair : model->m_Animation) {
-						animNames.push_back(pair.first);
-					}
-					for (int idx = 0; idx < (int)animNames.size(); ++idx) {
-						if (animNames[idx] == blendEntry.name) {
-							currentIdx = idx;
+						// 削除ボタン
+						if(ImGui::Button("Remove")){
+							blendedAnimations.erase(blendedAnimations.begin() + i);
+							ImGui::PopID();
 							break;
 						}
-					}
-					blendEntry.name = animNames[currentIdx];
+						ImGui::SameLine();
 
-					// レイアウト基準点
-					float baseX = ImGui::GetCursorPosX();
-					float baseY = ImGui::GetCursorPosY();
-
-					// 指定開始位置（自由に変えてOK）
-					float totalWidth = ImGui::GetContentRegionAvail().x;
-					float textWidth = totalWidth * 0.3f; // テキスト部分の幅
-					float weightStartX = baseX + textWidth; // ここを調整すれば開始位置を制御できる
-
-					// アニメーション名表示
-					ImGui::Text("%s", blendEntry.name.c_str());
-
-					// 重みスライダー
-					ImGui::SetCursorPosX(weightStartX); // ここで開始位置を明示的に指定
-					ImGui::SetCursorPosY(baseY); // ここで開始位置を明示的に指定
-					ImGui::Dummy(ImVec2(0.0f, 0.0f));
-					ImGui::SameLine();
-
-					// 幅の内訳
-					totalWidth = ImGui::GetContentRegionAvail().x;
-					float spacing = ImGui::GetStyle().ItemSpacing.x;
-					float nameWidth = 60.0f;
-					float sliderWidth = (totalWidth - nameWidth * 2.0f - spacing * 4.0f) / 2.0f;
-
-					baseX = ImGui::GetCursorPosX();
-					ImGui::Text("Weight");
-					ImGui::SameLine(baseX + nameWidth);
-					ImGui::PushItemWidth(sliderWidth);
-					ImGui::DragFloat("##Weight", &blendEntry.weight, 0.01f, 0.0f, 1.0f);
-					ImGui::PopItemWidth();
-
-					// 開始時間スライダー
-					ImGui::SameLine();
-					baseX = ImGui::GetCursorPosX();
-					ImGui::Text("StartTime");
-					ImGui::SameLine(baseX + nameWidth);
-					ImGui::PushItemWidth(sliderWidth);
-					ImGui::DragFloat("##StartTime", &blendEntry.animationStartTime, 0.0f, 0.0f,
-									 (float)model->m_Animation[blendEntry.name].Scene->mAnimations[0]->mDuration);
-					ImGui::PopItemWidth();
-
-					ImGui::PopID();
-				}
-
-				// 新規追加用UI
-				static int newBlendAnimIndex = 0;
-
-				if (!model->m_Animation.empty()) {
-					std::vector<std::string> animNames;
-					for (const auto& pair : model->m_Animation) {
-						animNames.push_back(pair.first);
-					}
-
-					ImGui::PushItemWidth(150);
-					ImGui::Combo("##Add Animation", &newBlendAnimIndex,
-								 [](void* data, int idx, const char** out_text) {
-						auto& names = *static_cast<std::vector<std::string>*>(data);
-						*out_text = names[idx].c_str();
-						return true;
-					}, &animNames, (int)animNames.size());
-					ImGui::PopItemWidth();
-
-					ImGui::SameLine();
-					if (ImGui::Button("Add")) {
-						const std::string& newName = animNames[newBlendAnimIndex];
-						// すでに登録済みかチェック
-						bool exists = false;
-						for (const auto& entry : blendedAnimations) {
-							if (entry.name == newName) {
-								exists = true;
+						// アニメーション名取得
+						int currentIdx = 0;
+						std::vector<std::string> animNames;
+						for(const auto& pair : model->m_Animation){
+							animNames.push_back(pair.first);
+						}
+						for(int idx = 0; idx < (int)animNames.size(); ++idx){
+							if(animNames[idx] == blendEntry.name){
+								currentIdx = idx;
 								break;
 							}
 						}
-						if (!exists) {
-							blendedAnimations.push_back({ newName, 0.0f });
+						blendEntry.name = animNames[currentIdx];
+
+						// レイアウト基準点
+						float baseX = ImGui::GetCursorPosX();
+						float baseY = ImGui::GetCursorPosY();
+
+						// 指定開始位置（自由に変えてOK）
+						float totalWidth = ImGui::GetContentRegionAvail().x;
+						float textWidth = totalWidth * 0.3f; // テキスト部分の幅
+						float weightStartX = baseX + textWidth; // ここを調整すれば開始位置を制御できる
+
+						// アニメーション名表示
+						ImGui::Text("%s", blendEntry.name.c_str());
+
+						// 重みスライダー
+						ImGui::SetCursorPosX(weightStartX); // ここで開始位置を明示的に指定
+						ImGui::SetCursorPosY(baseY); // ここで開始位置を明示的に指定
+						ImGui::Dummy(ImVec2(0.0f, 0.0f));
+						ImGui::SameLine();
+
+						// 幅の内訳
+						totalWidth = ImGui::GetContentRegionAvail().x;
+						float spacing = ImGui::GetStyle().ItemSpacing.x;
+						float nameWidth = 60.0f;
+						float sliderWidth = (totalWidth - nameWidth * 2.0f - spacing * 4.0f) / 2.0f;
+
+						baseX = ImGui::GetCursorPosX();
+						ImGui::Text("Weight");
+						ImGui::SameLine(baseX + nameWidth);
+						ImGui::PushItemWidth(sliderWidth);
+						ImGui::DragFloat("##Weight", &blendEntry.weight, 0.01f, 0.0f, 1.0f);
+						ImGui::PopItemWidth();
+
+						// 開始時間スライダー
+						ImGui::SameLine();
+						baseX = ImGui::GetCursorPosX();
+						ImGui::Text("StartTime");
+						ImGui::SameLine(baseX + nameWidth);
+						ImGui::PushItemWidth(sliderWidth);
+						ImGui::DragFloat("##StartTime", &blendEntry.animationStartTime, 0.0f, 0.0f,
+										 (float)model->m_Animation[blendEntry.name].Scene->mAnimations[0]->mDuration);
+						ImGui::PopItemWidth();
+
+						ImGui::PopID();
+					}
+
+					// 新規追加用UI
+					static int newBlendAnimIndex = 0;
+
+					if(!model->m_Animation.empty()){
+						std::vector<std::string> animNames;
+						for(const auto& pair : model->m_Animation){
+							animNames.push_back(pair.first);
+						}
+
+						ImGui::PushItemWidth(150);
+						ImGui::Combo("##Add Animation", &newBlendAnimIndex,
+									 [](void* data, int idx, const char** out_text){
+										 auto& names = *static_cast<std::vector<std::string>*>(data);
+										 *out_text = names[idx].c_str();
+										 return true;
+									 }, &animNames, (int)animNames.size());
+						ImGui::PopItemWidth();
+
+						ImGui::SameLine();
+						if(ImGui::Button("Add")){
+							const std::string& newName = animNames[newBlendAnimIndex];
+							// すでに登録済みかチェック
+							bool exists = false;
+							for(const auto& entry : blendedAnimations){
+								if(entry.name == newName){
+									exists = true;
+									break;
+								}
+							}
+							if(!exists){
+								blendedAnimations.push_back({newName, 0.0f});
+							}
 						}
 					}
+				} else{
+					ImGui::TextDisabled("no animations loaded.");
 				}
-			} else {
-				ImGui::TextDisabled("no animations loaded.");
+
+				ImGui::TreePop();
+
 			}
 
 			static char newAnimFilePath[256] = "";
