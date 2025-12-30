@@ -64,37 +64,103 @@ aiVector3D InterpolatePosition(
 }
 
 void ModelData::Release(){
+	// ----------------------------
+	// classic buffers
+	// ----------------------------
+	for(auto*& vb : VertexBuffer){
+		if(vb){
+			vb->Release(); vb = nullptr;
+		}
+	}
+	for(auto*& ib : IndexBuffer){
+		if(ib){
+			ib->Release(); ib = nullptr;
+		}
+	}
+	VertexBuffer.clear();
+	IndexBuffer.clear();
+
+	// ----------------------------
+	// textures
+	// ----------------------------
+	if(SetTexture){
+		for(auto& pair : m_Texture){
+			if(pair.second){
+				pair.second->Release();
+			}
+		}
+		m_Texture.clear();
+	}
+
+	// ----------------------------
+	// animations (imported scenes only)
+	// ----------------------------
+	for(auto& pair : m_Animation){
+		if(pair.second.isImported && pair.second.Scene){
+			aiReleaseImport(pair.second.Scene);
+			pair.second.Scene = nullptr;
+		}
+	}
+	m_Animation.clear();
+
+	// ----------------------------
+	// deform data
+	// ----------------------------
+	delete[] m_DeformVertex;
+	m_DeformVertex = nullptr;
+
+	// ============================================================
+	// GPU skinning resources
+	// ============================================================
+
+	for(auto*& b : m_SkinInputBuffer){
+		if(b){
+			b->Release(); b = nullptr;
+		}
+	}
+	for(auto*& s : m_SkinInputSRV){
+		if(s){
+			s->Release(); s = nullptr;
+		}
+	}
+	for(auto*& b : m_SkinOutputUAVBuffer){
+		if(b){
+			b->Release(); b = nullptr;
+		}
+	}
+	for(auto*& u : m_SkinOutputUAV){
+		if(u){
+			u->Release(); u = nullptr;
+		}
+	}
+	for(auto*& vb : m_SkinOutputVB){
+		if(vb){
+			vb->Release(); vb = nullptr;
+		}
+	}
+
+	m_SkinInputBuffer.clear();
+	m_SkinInputSRV.clear();
+	m_SkinOutputUAVBuffer.clear();
+	m_SkinOutputUAV.clear();
+	m_SkinOutputVB.clear();
+
+	// ----------------------------
+	// constant buffers
+	// ----------------------------
+	if(m_BoneCB){
+		m_BoneCB->Release();
+		m_BoneCB = nullptr;
+	}
+	if(m_InfoCB){
+		m_InfoCB->Release();
+		m_InfoCB = nullptr;
+	}
+
+	// ----------------------------
+	// Assimp scene
+	// ----------------------------
 	if(AiScene){
-		// メッシュバッファ解放
-		for(int i = 0; i < VertexBuffer.size(); i++){
-			if(VertexBuffer[i]){
-				VertexBuffer[i]->Release();
-				VertexBuffer[i] = nullptr;
-			}
-		}
-		for(int i = 0; i < IndexBuffer.size(); i++){
-			if(IndexBuffer[i]){
-				IndexBuffer[i]->Release();
-				IndexBuffer[i] = nullptr;
-			}
-		}
-		// テクスチャ解放
-		if(SetTexture){
-			for(auto& pair : m_Texture){
-				if(pair.second) pair.second->Release();
-			}
-			m_Texture.clear();
-		}
-
-		for (std::pair<std::string, AnimationData> pair : m_Animation) {
-			if (pair.second.isImported) {
-				aiReleaseImport(pair.second.Scene);
-			}
-		}
-
-		delete[] m_DeformVertex;
-		m_DeformVertex = nullptr;
-
 		aiReleaseImport(AiScene);
 		AiScene = nullptr;
 	}
@@ -132,6 +198,14 @@ void ModelData::UpdateBoneMatrix(aiNode* node, aiMatrix4x4 Matrix) {
 void ModelData::LoadAnimation(const char* FileName, const char* Name){
 	const aiScene* scene = aiImportFile(FileName, aiProcess_ConvertToLeftHanded);
 	assert(scene);
+	if(scene == nullptr){
+		OutputDebugStringA(("Failed to load animation file: " + std::string(FileName) + "\n").c_str());
+		return;
+	}
+	if(!scene->HasAnimations()){
+		OutputDebugStringA(("No animations found in file: " + std::string(FileName) + "\n").c_str());
+		return;
+	}
 
 	auto it = m_Animation.find(Name);
 	if (it != m_Animation.end()) {
@@ -287,3 +361,171 @@ void ModelData::CPU_Skinning(
 		outVertex[j].Diffuse = {1,1,1,1};
 	}
 }
+
+void ModelData::CreateSkinningBuffers(GraphicsContext* ctx){
+	ID3D11Device* dev = ctx->GetDevice();
+	const size_t meshCount = AiScene->mNumMeshes;
+
+	m_SkinInputBuffer.resize(meshCount);
+	m_SkinInputSRV.resize(meshCount);
+
+	m_SkinOutputUAVBuffer.resize(meshCount);
+	m_SkinOutputUAV.resize(meshCount);
+	m_SkinOutputVB.resize(meshCount);
+
+	for(size_t m = 0; m < meshCount; ++m){
+		aiMesh* mesh = AiScene->mMeshes[m];
+		UINT vertexCount = mesh->mNumVertices;
+
+		// ============================
+		// Input StructuredBuffer (SRV)
+		// ============================
+		std::vector<SKINNING_INPUT_VERTEX> input(vertexCount);
+
+		for(UINT v = 0; v < vertexCount; ++v){
+			input[v].Position = {mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z};
+			input[v].Normal = mesh->mNormals ? DirectX::XMFLOAT3{mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z} : DirectX::XMFLOAT3{0,0,0};
+			input[v].TexCoord = mesh->HasTextureCoords(0) ? DirectX::XMFLOAT2{mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y} : DirectX::XMFLOAT2{0,0};
+
+			const DEFORM_VERTEX& dv = m_DeformVertex[m][v];
+			for(int i = 0; i < 4; i++){
+				input[v].BoneIndex[i] = dv.BoneIndex[i];
+				input[v].BoneWeight[i] = dv.BoneWeight[i];
+			}
+
+			input[v].Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
+		}
+
+		D3D11_BUFFER_DESC inBD{};
+		inBD.Usage = D3D11_USAGE_DEFAULT;
+		inBD.ByteWidth = sizeof(SKINNING_INPUT_VERTEX) * vertexCount;
+		inBD.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		inBD.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		inBD.StructureByteStride = sizeof(SKINNING_INPUT_VERTEX);
+
+		D3D11_SUBRESOURCE_DATA inSD{};
+		inSD.pSysMem = input.data();
+
+		HRESULT hr = dev->CreateBuffer(&inBD, &inSD, &m_SkinInputBuffer[m]);
+		assert(SUCCEEDED(hr));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+		srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+		srvDesc.Buffer.NumElements = vertexCount;
+
+		hr = dev->CreateShaderResourceView(m_SkinInputBuffer[m], &srvDesc, &m_SkinInputSRV[m]);
+		assert(SUCCEEDED(hr));
+
+		// ============================
+		// Output UAV Buffer
+		// ============================
+		D3D11_BUFFER_DESC outUAVBD{};
+		outUAVBD.Usage = D3D11_USAGE_DEFAULT;
+		outUAVBD.ByteWidth = sizeof(VERTEX_3D) * vertexCount;
+		outUAVBD.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+		outUAVBD.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		outUAVBD.StructureByteStride = sizeof(VERTEX_3D);
+
+		hr = dev->CreateBuffer(&outUAVBD, nullptr, &m_SkinOutputUAVBuffer[m]);
+		assert(SUCCEEDED(hr));
+
+		D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
+		uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+		uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+		uavDesc.Buffer.NumElements = vertexCount;
+
+		hr = dev->CreateUnorderedAccessView(m_SkinOutputUAVBuffer[m], &uavDesc, &m_SkinOutputUAV[m]);
+		assert(SUCCEEDED(hr));
+
+		// ============================
+		// VertexBuffer (描画用)
+		// ============================
+		D3D11_BUFFER_DESC vbBD{};
+		vbBD.Usage = D3D11_USAGE_DYNAMIC;
+		vbBD.ByteWidth = sizeof(VERTEX_3D) * vertexCount;
+		vbBD.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		vbBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+		hr = dev->CreateBuffer(&vbBD, nullptr, &m_SkinOutputVB[m]);
+		assert(SUCCEEDED(hr));
+	}
+
+	// Bone CB
+	{
+		D3D11_BUFFER_DESC cbd{};
+		cbd.Usage = D3D11_USAGE_DYNAMIC;
+		cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		cbd.ByteWidth = sizeof(DirectX::XMMATRIX) * BONE_MAX_COUNT;
+		dev->CreateBuffer(&cbd, nullptr, &m_BoneCB);
+	}
+
+	// Info CB
+	{
+		D3D11_BUFFER_DESC ibd{};
+		ibd.Usage = D3D11_USAGE_DYNAMIC;
+		ibd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		ibd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		ibd.ByteWidth = 16;
+		dev->CreateBuffer(&ibd, nullptr, &m_InfoCB);
+	}
+}
+
+void ModelData::UpdateAndDispatchSkinning(GraphicsContext* ctx, std::vector<ID3D11Buffer*>& dynamicVertexBuffers){
+	ID3D11DeviceContext* dc = ctx->GetDeviceContext();
+	const UINT MAX_BONES = BONE_MAX_COUNT;
+
+	// 1) Bone palette
+	std::vector<DirectX::XMMATRIX> bonePal(MAX_BONES, DirectX::XMMatrixIdentity());
+	for(size_t i = 0; i < m_Bones.size() && i < MAX_BONES; ++i){
+		const aiMatrix4x4& a = m_Bones[i].Matrix;
+		DirectX::XMMATRIX m(a.a1, a.a2, a.a3, a.a4,
+							a.b1, a.b2, a.b3, a.b4,
+							a.c1, a.c2, a.c3, a.c4,
+							a.d1, a.d2, a.d3, a.d4);
+		bonePal[i] = m;
+	}
+
+	// 2) Update Bone CB
+	D3D11_MAPPED_SUBRESOURCE mapped{};
+	HRESULT hr = dc->Map(m_BoneCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+	assert(SUCCEEDED(hr));
+	memcpy(mapped.pData, bonePal.data(), sizeof(DirectX::XMMATRIX) * MAX_BONES);
+	dc->Unmap(m_BoneCB, 0);
+
+	// 3) Dispatch per mesh
+	for(size_t m = 0; m < AiScene->mNumMeshes; ++m){
+		aiMesh* mesh = AiScene->mMeshes[m];
+		const uint32_t vertexCount = mesh->mNumVertices;
+
+		// Info CB
+		D3D11_MAPPED_SUBRESOURCE mapInfo{};
+		hr = dc->Map(m_InfoCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapInfo);
+		assert(SUCCEEDED(hr));
+		reinterpret_cast<uint32_t*>(mapInfo.pData)[0] = vertexCount;
+		dc->Unmap(m_InfoCB, 0);
+
+		// Bind SRV/UAV/CB
+		dc->CSSetShaderResources(0, 1, &m_SkinInputSRV[m]);
+		dc->CSSetUnorderedAccessViews(0, 1, &m_SkinOutputUAV[m], nullptr);
+		dc->CSSetConstantBuffers(0, 1, &m_BoneCB);
+		dc->CSSetConstantBuffers(1, 1, &m_InfoCB);
+
+		// Dispatch CS
+		dc->CSSetShader(ctx->GetSkinningShader(), nullptr, 0);
+		uint32_t group = (vertexCount + 63) / 64;
+		dc->Dispatch(group, 1, 1);
+
+		// Unbind
+		ID3D11UnorderedAccessView* nullUAV = nullptr;
+		dc->CSSetUnorderedAccessViews(0, 1, &nullUAV, nullptr);
+		ID3D11ShaderResourceView* nullSRV = nullptr;
+		dc->CSSetShaderResources(0, 1, &nullSRV);
+		dc->CSSetShader(nullptr, nullptr, 0);
+
+		// --- GPU 内で CopyResource して描画用 VertexBuffer に転送 ---
+		dc->CopyResource(dynamicVertexBuffers[m], m_SkinOutputUAVBuffer[m]);
+	}
+}
+

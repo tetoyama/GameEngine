@@ -59,7 +59,7 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 
 	if(!CreateD2DResources(hwnd)){return false;}
 
-//	if (!CreateComputeSkinningShader()) { return false; }
+	if (!CreateComputeSkinningShader()) { return false; }
 
 	if (!CreateEffectSystem()) { return false; }
 
@@ -93,7 +93,7 @@ void GraphicsContext::Shutdown(){
 
 	SAFE_RELEASE(m_DepthStateEnable);
 	SAFE_RELEASE(m_DepthStateDisable);
-	SAFE_RELEASE(m_pComputeSkinningShader);
+	SAFE_RELEASE(csSkinning);
 	
 	m_DeviceContext->ClearState();  // すべてのバインドリソースを解除
 	m_DeviceContext->Flush();       // GPU キューを空にする
@@ -632,13 +632,13 @@ bool GraphicsContext::CreateDepthStencilBufferAndView(UINT width, UINT height){
 
 bool GraphicsContext::CreateComputeSkinningShader() {
 	ID3DBlob* csBlob = nullptr;
-	HRESULT hr = D3DReadFileToBlob(L"Asset\\Shader\\skinnedVertex.cso", &csBlob);
+	HRESULT hr = D3DReadFileToBlob(L"Asset\\Shader\\SkinningCS.cso", &csBlob);
 	if (FAILED(hr)) {
-		OutputDebugStringA("Failed to load skinnedVertex.cso\n");
+		OutputDebugStringA("Failed to load SkinningCS.cso\n");
 		return false;
 	}
 
-	hr = m_Device->CreateComputeShader(csBlob->GetBufferPointer(), csBlob->GetBufferSize(), nullptr, &m_pComputeSkinningShader);
+	hr = m_Device->CreateComputeShader(csBlob->GetBufferPointer(), csBlob->GetBufferSize(), nullptr, &csSkinning);
 	csBlob->Release();
 	if (FAILED(hr)) {
 		OutputDebugStringA("Failed to create compute shader\n");

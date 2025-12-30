@@ -131,7 +131,7 @@ public:
 	);
 
 	ID3D11ComputeShader* GetSkinningShader() {
-		return m_pComputeSkinningShader;
+		return csSkinning;
 	}
 	// 描画
 	void ApplyPostProcessChain(std::vector<PostProcessNode>& effects, ID3D11ShaderResourceView* initialSRV);
@@ -189,7 +189,7 @@ private:
 	ID3D11Buffer* m_ParameterBuffer = nullptr;
 	ID3D11Buffer* m_ObjectInfoBuffer = nullptr;
 
-	ID3D11ComputeShader* m_pComputeSkinningShader = nullptr;
+	ID3D11ComputeShader* csSkinning = nullptr;
 
 	ID3D11DepthStencilState*	m_DepthStateEnable;
 	ID3D11DepthStencilState*	m_DepthStateDisable;

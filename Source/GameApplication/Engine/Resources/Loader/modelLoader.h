@@ -384,6 +384,8 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 
 			model->m_Animation[animName] = animationData;
 		}
+
+		model->CreateSkinningBuffers(context);
 	}
 	return model;
 }

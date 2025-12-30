@@ -154,41 +154,79 @@ void RenderSystem::Update(float deltaTime) {
 	}
 }
 
-void RenderSystem::EditorUpdate(float deltaTime) {
+void RenderSystem::EditorUpdate(float deltaTime)
+{
+	auto* dc = m_context->graphics->GetDeviceContext();
 
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
 		auto context = scene->GetSceneContext();
-		const auto& modelEntities = context->component->FindEntitiesWithComponent<ModelRendererComponent>();
-		if (modelEntities.empty()) {
-			continue;
-		} else {
-			for (Entity entity : modelEntities) {
-				auto* modelRenderer = context->component->GetComponent<ModelRendererComponent>(entity);
-				if (modelRenderer->model) {
-					if(modelRenderer->blendedAnimations.size() > 0){
-						modelRenderer->model->UpdateBoneAnimation(modelRenderer->blendedAnimations, modelRenderer->animationTime);
+		const auto& modelEntities =
+			context->component->FindEntitiesWithComponent<ModelRendererComponent>();
 
-						for(int i = 0; i < modelRenderer->dynamicVertexBuffers.size(); i++){
-							D3D11_MAPPED_SUBRESOURCE mapped;
-							HRESULT hr = m_context->graphics->GetDeviceContext()->Map(
-								modelRenderer->dynamicVertexBuffers[i], 0,
-								D3D11_MAP_WRITE_DISCARD, 0,
-								&mapped
-							);
-							if(FAILED(hr)){
-								continue;
-							}
-							modelRenderer->model->CPU_Skinning(
-								modelRenderer->model->m_DeformVertex[i],
-								modelRenderer->model->AiScene->mMeshes[i],
-								(VERTEX_3D*)mapped.pData
-							);
+		for(Entity entity : modelEntities){
+			auto* mr =
+				context->component->GetComponent<ModelRendererComponent>(entity);
 
-							m_context->graphics->GetDeviceContext()->Unmap(modelRenderer->dynamicVertexBuffers[i], 0);
-						}
+			if(!mr->model){
+				mr->CreateModel(context);
+				continue;
+			}
+
+			if(mr->blendedAnimations.empty()){
+				continue;
+			}
+
+			// ----------------------------------------
+			// 1) Update skeleton (共通)
+			// ----------------------------------------
+			mr->model->UpdateBoneAnimation(
+				mr->blendedAnimations,
+				mr->animationTime
+			);
+
+			// ----------------------------------------
+			// 2) Decide CPU or GPU skinning
+			// ----------------------------------------
+			const bool useGPUSkinning =
+				mr->model->m_Bones.size() <= BONE_MAX_COUNT;
+
+			// ========================================
+			// GPU SKINNING PATH
+			// ========================================
+			if(useGPUSkinning){
+
+				// Compute Shader dispatch
+				mr->model->UpdateAndDispatchSkinning(m_context->graphics, mr->dynamicVertexBuffers);
+
+				// ※ ここでは Map / Unmap / CPU_Skinning は一切しない
+				// ※ 描画時に m_SkinOutputVB を VertexBuffer として使う
+
+			}
+			// ========================================
+			// CPU SKINNING PATH (fallback)
+			// ========================================
+			else{
+
+				for(size_t i = 0; i < mr->dynamicVertexBuffers.size(); i++){
+					D3D11_MAPPED_SUBRESOURCE mapped{};
+					HRESULT hr = dc->Map(
+						mr->dynamicVertexBuffers[i],
+						0,
+						D3D11_MAP_WRITE_DISCARD,
+						0,
+						&mapped
+					);
+					if(FAILED(hr)){
+						continue;
 					}
-				} else{
-					modelRenderer->CreateModel(context);
+
+					mr->model->CPU_Skinning(
+						mr->model->m_DeformVertex[i],
+						mr->model->AiScene->mMeshes[i],
+						static_cast<VERTEX_3D*>(mapped.pData)
+					);
+
+					dc->Unmap(mr->dynamicVertexBuffers[i], 0);
 				}
 			}
 		}

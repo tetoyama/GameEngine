@@ -141,7 +141,6 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 		UINT stride = sizeof(VERTEX_3D);
 		UINT offset = 0;
 		if(modelRenderer->blendedAnimations.size() > 0){
-
 			graphicsContext->GetDeviceContext()->IASetVertexBuffers(0, 1, &modelRenderer->dynamicVertexBuffers[m], &stride, &offset);
 		} else{
 			graphicsContext->GetDeviceContext()->IASetVertexBuffers(0, 1, &pModel->VertexBuffer[m], &stride, &offset);

@@ -8,6 +8,8 @@
 
 #endif
 
+#define BONE_MAX_COUNT			(256)
+
 #define LOW_RESOLUTION
 
 #define TextureSlot_Albedo		(0)

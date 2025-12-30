@@ -14,6 +14,15 @@
 class GraphicsContext;
 struct aiScene;
 
+struct SKINNING_INPUT_VERTEX {
+	DirectX::XMFLOAT3 Position;
+	DirectX::XMFLOAT3 Normal;
+	DirectX::XMFLOAT2 TexCoord;
+	uint32_t BoneIndex[4];
+	float    BoneWeight[4];
+	DirectX::XMFLOAT4 Diffuse; // 追加
+};
+
 //変形後頂点構造体
 struct DEFORM_VERTEX {
 	aiVector3D		Position;
@@ -54,45 +63,89 @@ struct AnimationData {
 struct ModelData {
 public:
 	ModelData(){
-		OutputDebugStringA(("Created ModelData" + FilePath + "\n").c_str());
+		OutputDebugStringA(("Created ModelData " + FilePath + "\n").c_str());
 	}
 
 	~ModelData(){
-		OutputDebugStringA(("Destroyed ModelData: " + FilePath + "\n").c_str());
+		OutputDebugStringA(("Destroyed ModelData " + FilePath + "\n").c_str());
 		Release();
 	}
 
 	void Release();
 
-	// ファイルパスとインポート設定
+	// ----------------------------
+	// basic model info
+	// ----------------------------
 	std::string FilePath = "";
 	bool isBlender = false;
 	bool SetTexture = false;
 
-	// Assimpシーン
 	const aiScene* AiScene = nullptr;
 
-	// メッシュごとの頂点・インデックスバッファ（既存描画用）
-	std::vector<ID3D11Buffer*>VertexBuffer;
-	std::vector<ID3D11Buffer*>IndexBuffer;
+	// ----------------------------
+	// classic rendering buffers
+	// ----------------------------
+	std::vector<ID3D11Buffer*> VertexBuffer;
+	std::vector<ID3D11Buffer*> IndexBuffer;
 
-	// テクスチャ群
 	std::unordered_map<std::string, ID3D11ShaderResourceView*> m_Texture;
 
+	// ----------------------------
+	// skeleton
+	// ----------------------------
 	std::vector<BONE> m_Bones;
 	std::unordered_map<std::string, uint32_t> m_BoneIndexMap;
 
+	// ----------------------------
+	// animation
+	// ----------------------------
 	std::unordered_map<std::string, AnimationData> m_Animation;
+
+	// per mesh deform data (CPU or upload source)
 	std::vector<DEFORM_VERTEX>* m_DeformVertex = nullptr;
 
-	void CreateBone(aiNode* Node);
-	void UpdateBoneMatrix(aiNode* Node, aiMatrix4x4 Matrix);
+	// ============================================================
+	// GPU skinning resources (per mesh)
+	// ============================================================
 
+	// Input structured buffer (static)
+	std::vector<ID3D11Buffer*>             m_SkinInputBuffer;
+	std::vector<ID3D11ShaderResourceView*> m_SkinInputSRV;
+
+	// Output structured buffer (CS write only)
+	std::vector<ID3D11Buffer*>             m_SkinOutputUAVBuffer;
+	std::vector<ID3D11UnorderedAccessView*> m_SkinOutputUAV;
+
+	// Output vertex buffer (Draw only)
+	std::vector<ID3D11Buffer*>             m_SkinOutputVB;
+
+	// ============================================================
+	// constant buffers (shared)
+	// ============================================================
+
+	// bone matrices (MAX_BONES * float4x4)
+	ID3D11Buffer* m_BoneCB = nullptr;
+
+	// optional info CB (vertex count etc.)
+	ID3D11Buffer* m_InfoCB = nullptr;
+
+	// ============================================================
+	// helpers
+	// ============================================================
+
+	void CreateSkinningBuffers(GraphicsContext* ctx);
+	void UpdateAndDispatchSkinning(GraphicsContext* ctx, std::vector<ID3D11Buffer*>& dynamicVertexBuffers);
+
+	// skeleton helpers
+	void CreateBone(aiNode* Node);
+	void UpdateBoneMatrix(aiNode* Node, aiMatrix4x4 Parent);
+
+	// animation
 	void LoadAnimation(const char* FileName, const char* Name);
-	void RemoveAnimation(const std::string& name) {
+	void RemoveAnimation(const std::string& name){
 		auto it = m_Animation.find(name);
-		if (it != m_Animation.end()) {
-			it->second.Release();  // Assimpメモリを開放
+		if(it != m_Animation.end()){
+			it->second.Release();
 			m_Animation.erase(it);
 		}
 	}
@@ -101,6 +154,8 @@ public:
 		const std::vector<AnimationBlend>& anims,
 		float frame
 	);
+
+	// CPU fallback (debug / compare)
 	void CPU_Skinning(
 		const std::vector<DEFORM_VERTEX>& deformVertices,
 		const aiMesh* mesh,
