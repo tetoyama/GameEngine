@@ -44,8 +44,8 @@ public:
 	bool decode(SceneContext* context, const YAML::Node& node) override{
 		if (!node.IsMap()) { return false; }
 
-		if (m_TextureData && node["FilePath"]) {
-			m_TextureData->FilePath = node["FilePath"].as<std::string>();
+		if (node["FilePath"]) {
+			m_TextureData = context->manager->resource->Load<TextureData>(node["FilePath"].as<std::string>().c_str());
 		}
 		if (node["Material"]) {
 			Material = node["Material"].as<MATERIAL>();

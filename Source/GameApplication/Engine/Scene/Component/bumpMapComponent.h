@@ -30,8 +30,8 @@ public:
 			return false;
 		}
 
-		if(m_TextureData && node["FilePath"]){
-			m_TextureData->FilePath = node["FilePath"].as<std::string>();
+		if(node["FilePath"]){
+			m_TextureData = context->manager->resource->Load<TextureData>(node["FilePath"].as<std::string>().c_str());
 		}
 		return true;
 	}

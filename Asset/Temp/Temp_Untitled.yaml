@@ -246,19 +246,6 @@ Entities:
             lockRotX: true
             lockRotY: true
             lockRotZ: true
-          - type: 0
-            size: [1, 1, 1]
-            offset: [0, 0, 0]
-            rotationOffset: [0, 0, 0]
-            radius: 0.5
-            height: 1
-            staticFriction: 0.5
-            dynamicFriction: 0.5
-            restitution: 0.100000001
-            collisionLayer: 0
-            lockRotX: true
-            lockRotY: true
-            lockRotZ: true
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
         isBlender: false
@@ -329,7 +316,7 @@ Entities:
             - 15
             - 1
         nextLinkId: 1
-        nextPinId: 1
+        nextPinId: 2
         ScreenInput:
           Name: ""
           NodePos:
@@ -342,7 +329,7 @@ Entities:
             x: -1
             y: -1
           InputPins:
-            []
+            - 1
       - Component: CameraController
         distance: 6
         height: 2

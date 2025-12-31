@@ -641,25 +641,6 @@ void Scene::LoadSceneFromYAML(std::string path) {
 		for(const auto& compNode : entityNode["Components"]){  
 			const auto& compType = compNode["Component"].as<std::string>();  
 			IComponent* comp = m_componentRegistry->CreateFromYAML(compType, entity, compNode);  
-
-			if(compType == "TextureComponent"){
-				auto* texture = dynamic_cast<TextureComponent*>(comp);
-				if(texture){
-					if(compNode["FilePath"]){
-						const auto& FilePath = compNode["FilePath"].as<std::string>();
-						texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>(FilePath.c_str());
-					}
-				}
-			}
-			if(compType == "BumpMapComponent"){
-				auto* texture = dynamic_cast<BumpMapComponent*>(comp);
-				if(texture){
-					if(compNode["FilePath"]){
-						const auto& FilePath = compNode["FilePath"].as<std::string>();
-						texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>(FilePath.c_str());
-					}
-				}
-			}
 		}
 	}
 }
