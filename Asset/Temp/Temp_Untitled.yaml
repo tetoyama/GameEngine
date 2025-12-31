@@ -246,6 +246,19 @@ Entities:
             lockRotX: true
             lockRotY: true
             lockRotZ: true
+          - type: 0
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0.5
+            dynamicFriction: 0.5
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: true
+            lockRotY: true
+            lockRotZ: true
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
         isBlender: false

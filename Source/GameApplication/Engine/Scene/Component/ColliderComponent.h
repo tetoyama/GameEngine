@@ -161,76 +161,146 @@ public:
 		ImGui::Text("Collider Component");
 		INSPECTOR_FIELDS();
 
+
+		ImGui::Separator();
+		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen;
+
+		bool isOpenColliders = ImGui::TreeNodeEx(("Colliders(" + std::to_string(colliders.size()) + ")").c_str(), flags);
+		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 85);
 		if(ImGui::Button("Add Collider")){
 			colliders.push_back(ColliderShape());
 			needsUpdate = true;
 		}
+		if(isOpenColliders){
+			ImGui::BeginChild("Colliders Child", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY);
 
-		for(size_t i = 0; i < colliders.size(); ++i){
-			ImGui::Separator();
+			for(size_t i = 0; i < colliders.size(); i++ , ImGui::Separator()){
 
-			std::string TreeText = "Collider" + std::to_string((int)i);
+				std::string TreeText = "Collider" + std::to_string((int)i);
+
+				// ツリーノードの展開矢印だけ表示（幅だけ取るためにNoTreePushOnOpen）
+				bool isOpenCollider = ImGui::TreeNodeEx(TreeText.c_str(), flags, TreeText.c_str());
 
 
-			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+				// Removeボタンは同じ行の右端に配置
+				ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 60);
+				if(ImGui::SmallButton(("Remove##" + TreeText).c_str())){
+					if(colliders[i].pxShape){
+						colliders[i].pxShape->release();
+						colliders[i].pxShape = nullptr;
+					}
+					if(colliders[i].pxMaterial){
+						colliders[i].pxMaterial->release();
+						colliders[i].pxMaterial = nullptr;
+					}
+					colliders.erase(colliders.begin() + i);
+					needsUpdate = true;
+					if(isOpenCollider){
+						ImGui::TreePop();
+					}
+					continue;
 
-			// ツリーノードの展開矢印だけ表示（幅だけ取るためにNoTreePushOnOpen）
-			bool open = ImGui::TreeNodeEx(TreeText.c_str(), flags, TreeText.c_str());
+				} else if(!isOpenCollider){
+					continue;
+				} else{
 
-			// Removeボタンは同じ行の右端に配置
-			ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 60);
-			if (ImGui::SmallButton(("Remove##" + TreeText).c_str())) {
-				if (colliders[i].pxShape) {
-					colliders[i].pxShape->release();
-					colliders[i].pxShape = nullptr;
+					int type = static_cast<int>(colliders[i].type);
+					float XPos = 120.0f;
+					ImGui::BeginChild("ColliderChild", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY);
+
+					if(ImGui::TreeNodeEx("Param", flags)){
+						ImGui::BeginChild("ParamChild", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY);
+
+						ImGui::Text("Type");
+						ImGui::SameLine(XPos);
+						if(ImGui::Combo(("##Type" + std::to_string(i)).c_str(), &type, "Box\0Sphere\0Capsule\0Mesh\0")){
+							colliders[i].type = static_cast<ColliderType>(type);
+							needsUpdate = true;
+						}
+
+						if(colliders[i].type == ColliderType::Box){
+							ImGui::Text("Size");
+							ImGui::SameLine(XPos);
+							if(ImGui::DragFloat3(("##Size" + std::to_string(i)).c_str(), &colliders[i].size.x, 0.1f))
+								needsUpdate = true;
+						} else if(colliders[i].type == ColliderType::Sphere){
+							ImGui::Text("Radius");
+							ImGui::SameLine(XPos);
+							if(ImGui::DragFloat(("##Radius" + std::to_string(i)).c_str(), &colliders[i].radius, 0.1f))
+								needsUpdate = true;
+						} else if(colliders[i].type == ColliderType::Capsule){
+							ImGui::Text("Radius");
+							ImGui::SameLine(XPos);
+							if(ImGui::DragFloat(("##Radius" + std::to_string(i)).c_str(), &colliders[i].radius, 0.1f)){
+								needsUpdate = true;
+							}
+							ImGui::Text("Height");
+							ImGui::SameLine(XPos);
+							if(ImGui::DragFloat(("##Height" + std::to_string(i)).c_str(), &colliders[i].height, 0.1f)){
+								needsUpdate = true;
+							}
+						}
+						ImGui::EndChild();
+						ImGui::TreePop();
+					}
+					if(ImGui::TreeNodeEx("Offset")){
+						ImGui::BeginChild("OffsetChild", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY);
+
+						ImGui::Text("Position");
+						ImGui::SameLine(XPos);
+						if(ImGui::DragFloat3(("##Position" + std::to_string(i)).c_str(), &colliders[i].offset.x, 0.1f)){
+							needsUpdate = true;
+						}
+						ImGui::Text("Rotation");
+						ImGui::SameLine(XPos);
+						if(ImGui::DragFloat3(("##Rotation" + std::to_string(i)).c_str(), &colliders[i].rotationOffset.x, 1.0f)){
+							needsUpdate = true;
+						}
+						ImGui::Text("Lock Rotation");
+						ImGui::SameLine(XPos);
+						if(ImGui::Checkbox(("X##Lock Rot " + std::to_string(i)).c_str(), &colliders[i].lockRotX)){
+							needsUpdate = true;
+						}
+						ImGui::SameLine();
+						if(ImGui::Checkbox(("Y##Lock Rot " + std::to_string(i)).c_str(), &colliders[i].lockRotY)){
+							needsUpdate = true;
+						}
+						ImGui::SameLine();
+						if(ImGui::Checkbox(("Z##Lock Rot" + std::to_string(i)).c_str(), &colliders[i].lockRotZ)){
+							needsUpdate = true;
+						}
+						ImGui::EndChild();
+						ImGui::TreePop();
+					}
+					if(ImGui::TreeNodeEx("Friction")){
+						ImGui::BeginChild("FrictionChild", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY);
+
+						ImGui::Text("Static");
+						ImGui::SameLine(XPos);
+						if(ImGui::DragFloat(("##Static" + std::to_string(i)).c_str(), &colliders[i].staticFriction, 0.01f, 0.0f, 1.0f)){
+							needsUpdate = true;
+						}
+						ImGui::Text("Dynamic");
+						ImGui::SameLine(XPos);
+						if(ImGui::DragFloat(("##Dynamic" + std::to_string(i)).c_str(), &colliders[i].dynamicFriction, 0.01f, 0.0f, 1.0f)){
+							needsUpdate = true;
+						}
+						ImGui::Text("Restitution");
+						ImGui::SameLine(XPos);
+						if(ImGui::DragFloat(("##Restitution" + std::to_string(i)).c_str(), &colliders[i].restitution, 0.01f, 0.0f, 1.0f)){
+							needsUpdate = true;
+						}
+						ImGui::EndChild();
+						ImGui::TreePop();
+					}
+
+
+					ImGui::EndChild();
+					ImGui::TreePop();
 				}
-				if (colliders[i].pxMaterial) {
-					colliders[i].pxMaterial->release();
-					colliders[i].pxMaterial = nullptr;
-				}
-				colliders.erase(colliders.begin() + i);
-				needsUpdate = true;
-				continue;
-
-			}else if (!open) {
-				continue;
 			}
-
-
-
-			int type = static_cast<int>(colliders[i].type);
-			if(ImGui::Combo(("Type##" + std::to_string(i)).c_str(), &type, "Box\0Sphere\0Capsule\0Mesh\0")){
-				colliders[i].type = static_cast<ColliderType>(type);
-				needsUpdate = true;
-			}
-
-			if(colliders[i].type == ColliderType::Box){
-				if(ImGui::DragFloat3(("Size##" + std::to_string(i)).c_str(), &colliders[i].size.x, 0.1f))
-					needsUpdate = true;
-			} else if(colliders[i].type == ColliderType::Sphere){
-				if(ImGui::DragFloat(("Radius##" + std::to_string(i)).c_str(), &colliders[i].radius, 0.1f))
-					needsUpdate = true;
-			} else if(colliders[i].type == ColliderType::Capsule){
-				if(ImGui::DragFloat(("Radius##" + std::to_string(i)).c_str(), &colliders[i].radius, 0.1f) ||
-				   ImGui::DragFloat(("Height##" + std::to_string(i)).c_str(), &colliders[i].height, 0.1f))
-					needsUpdate = true;
-			}
-
-			if(ImGui::DragFloat3(("Offset##" + std::to_string(i)).c_str(), &colliders[i].offset.x, 0.1f))
-				needsUpdate = true;
-
-			if(ImGui::DragFloat3(("Rotation Offset (deg)##" + std::to_string(i)).c_str(), &colliders[i].rotationOffset.x, 1.0f))
-				needsUpdate = true;
-
-			if(ImGui::DragFloat(("StaticFriction##" + std::to_string(i)).c_str(), &colliders[i].staticFriction, 0.01f, 0.0f, 1.0f) ||
-			   ImGui::DragFloat(("DynamicFriction##" + std::to_string(i)).c_str(), &colliders[i].dynamicFriction, 0.01f, 0.0f, 1.0f) ||
-			   ImGui::DragFloat(("Restitution##" + std::to_string(i)).c_str(), &colliders[i].restitution, 0.01f, 0.0f, 1.0f))
-				needsUpdate = true;
-
-			if(ImGui::Checkbox(("Lock Rot X##" + std::to_string(i)).c_str(), &colliders[i].lockRotX) ||
-			   ImGui::Checkbox(("Lock Rot Y##" + std::to_string(i)).c_str(), &colliders[i].lockRotY) ||
-			   ImGui::Checkbox(("Lock Rot Z##" + std::to_string(i)).c_str(), &colliders[i].lockRotZ))
-				needsUpdate = true;
+			ImGui::EndChild();
+			ImGui::TreePop();
 		}
 	}
 };

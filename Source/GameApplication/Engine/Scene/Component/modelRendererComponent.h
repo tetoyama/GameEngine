@@ -169,18 +169,184 @@ public:
 		}
 
 		if (model) {
-		// --- モーションブレンド編集UI ---
+			// アニメーション一覧 + 削除ボタン
+			ImGui::Separator();
+			static char newAnimFilePath[256] = "";
+			static char newAnimName[128] = "";
+			inputWidth = ImGui::GetContentRegionAvail().x;
+			ImGui::SetNextItemWidth(inputWidth);
+			if(ImGui::TreeNodeEx(("LoadedAnimation(" + std::to_string(model->m_Animation.size()) + ")").c_str(), ImGuiTreeNodeFlags_DefaultOpen)){
+
+
+				// --- Add Animation Section ---
+				ImGui::BeginGroup();
+
+				// Add Animation ボタン（ポップアップ開く用）
+				if(ImGui::Button("Add Animation")){
+					ImGui::OpenPopup("AddAnimationPopup");
+				}
+				ImGui::SameLine();
+				inputWidth = ImGui::GetContentRegionAvail().x;
+				ImGui::SetNextItemWidth(inputWidth - 20.0f);
+
+				ImGui::InputText("##AddAnimation", newAnimFilePath, sizeof(newAnimFilePath));
+
+				ImGui::EndGroup();
+
+				// ボタンに対するドラッグ&ドロップ処理
+				if(ImGui::BeginDragDropTarget()){
+					if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
+						const char* droppedPath = (const char*)payload->Data;
+						strncpy_s(newAnimFilePath, sizeof(newAnimFilePath), droppedPath, _TRUNCATE);
+						ImGui::OpenPopup("AddAnimationPopup");
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+				std::vector<std::string> toDelete;
+				if(model->m_Animation.empty()){
+
+				} else{
+
+					ImGui::Separator();
+
+					for(const auto& [name, anim] : model->m_Animation){
+						ImGui::PushID(name.c_str());
+						if(anim.isImported){
+							if(ImGui::Button("Delete")){
+								toDelete.push_back(name);
+							}
+						} else{
+							ImGui::BeginDisabled();
+							ImGui::Button("Delete");
+							ImGui::EndDisabled();
+						}
+						ImGui::SameLine();
+
+						ImGui::Text("%s", name.c_str());
+
+
+
+						ImGui::PopID();
+					}
+					for(const auto& delName : toDelete){
+
+						// ModelData 側の削除
+						model->RemoveAnimation(delName);
+
+						// Component 側の animations からも削除
+						animations.erase(
+							std::remove_if(
+								animations.begin(),
+								animations.end(),
+								[&](const std::pair<std::string, std::string>& anim){
+									return anim.first == delName;
+								}
+							),
+							animations.end()
+						);
+
+						// ブレンドリストからも削除
+						blendedAnimations.erase(
+							std::remove_if(
+								blendedAnimations.begin(),
+								blendedAnimations.end(),
+								[&](const AnimationBlend& blend){
+									return blend.name == delName;
+								}
+							),
+							blendedAnimations.end()
+						);
+					}
+				}
+
+				// ポップアップ内容
+				if(ImGui::BeginPopupModal("AddAnimationPopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize)){
+
+					ImGui::InputText("File Path", newAnimFilePath, sizeof(newAnimFilePath));
+
+					// FilePath に対するドラッグ&ドロップ（ポップアップ内でも対応）
+					if(ImGui::BeginDragDropTarget()){
+						if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
+							const char* droppedPath = (const char*)payload->Data;
+							strncpy_s(newAnimFilePath, sizeof(newAnimFilePath), droppedPath, _TRUNCATE);
+						}
+						ImGui::EndDragDropTarget();
+					}
+
+					ImGui::InputText("Name", newAnimName, sizeof(newAnimName));
+
+					if(ImGui::Button("Add")){
+						std::string filePathStr(newAnimFilePath);
+						std::string animNameStr(newAnimName);
+						if(!filePathStr.empty() && !animNameStr.empty() &&
+						   model && model->m_Animation.find(animNameStr) == model->m_Animation.end()){
+
+							model->LoadAnimation(filePathStr.c_str(), animNameStr.c_str());
+							animations.push_back(std::make_pair(animNameStr, filePathStr));
+							// 入力欄をクリア
+							newAnimFilePath[0] = '\0';
+							newAnimName[0] = '\0';
+							ImGui::CloseCurrentPopup();
+						}
+						ImGui::SameLine();
+					}
+					ImGui::SameLine();
+
+					if(ImGui::Button("Cancel")){
+						ImGui::CloseCurrentPopup();
+					}
+
+					ImGui::EndPopup();
+				}
+
+				ImGui::TreePop();
+			}
+			// --- モーションブレンド編集UI ---
 			ImGui::Separator();
 			if(ImGui::TreeNodeEx(("Motion Blend(" + std::to_string(blendedAnimations.size()) + ")").c_str(), ImGuiTreeNodeFlags_DefaultOpen)){
 
 				if(!model->m_Animation.empty()){
+
+					// 新規追加用UI
+					static int newBlendAnimIndex = 0;
+
+					if(!model->m_Animation.empty()){
+						std::vector<std::string> animNames;
+						for(const auto& pair : model->m_Animation){
+							animNames.push_back(pair.first);
+						}
+
+						if(ImGui::Button("Add Animation")){
+							const std::string& newName = animNames[newBlendAnimIndex];
+							// すでに登録済みかチェック
+							bool exists = false;
+							for(const auto& entry : blendedAnimations){
+								if(entry.name == newName){
+									exists = true;
+									break;
+								}
+							}
+							if(!exists){
+								blendedAnimations.push_back({newName, 0.0f});
+							}
+						}
+						ImGui::SameLine();
+						ImGui::Combo("##Add Animation", &newBlendAnimIndex,
+									 [](void* data, int idx, const char** out_text){
+										 auto& names = *static_cast<std::vector<std::string>*>(data);
+										 *out_text = names[idx].c_str();
+										 return true;
+									 }, &animNames, (int)animNames.size());
+					}
+
 					// ブレンド用アニメーションリストの表示
 					for(int i = 0; i < (int)blendedAnimations.size(); ++i){
 						auto& blendEntry = blendedAnimations[i];
 						ImGui::PushID(i);
 
 						// 削除ボタン
-						if(ImGui::Button("Remove")){
+						if(ImGui::Button("Delete")){
 							blendedAnimations.erase(blendedAnimations.begin() + i);
 							ImGui::PopID();
 							break;
@@ -245,182 +411,13 @@ public:
 						ImGui::PopID();
 					}
 
-					// 新規追加用UI
-					static int newBlendAnimIndex = 0;
 
-					if(!model->m_Animation.empty()){
-						std::vector<std::string> animNames;
-						for(const auto& pair : model->m_Animation){
-							animNames.push_back(pair.first);
-						}
-
-						ImGui::PushItemWidth(150);
-						ImGui::Combo("##Add Animation", &newBlendAnimIndex,
-									 [](void* data, int idx, const char** out_text){
-										 auto& names = *static_cast<std::vector<std::string>*>(data);
-										 *out_text = names[idx].c_str();
-										 return true;
-									 }, &animNames, (int)animNames.size());
-						ImGui::PopItemWidth();
-
-						ImGui::SameLine();
-						if(ImGui::Button("Add")){
-							const std::string& newName = animNames[newBlendAnimIndex];
-							// すでに登録済みかチェック
-							bool exists = false;
-							for(const auto& entry : blendedAnimations){
-								if(entry.name == newName){
-									exists = true;
-									break;
-								}
-							}
-							if(!exists){
-								blendedAnimations.push_back({newName, 0.0f});
-							}
-						}
-					}
 				} else{
 					ImGui::TextDisabled("no animations loaded.");
 				}
 
 				ImGui::TreePop();
 
-			}
-
-			static char newAnimFilePath[256] = "";
-			static char newAnimName[128] = "";
-
-			// アニメーション一覧 + 削除ボタン
-			ImGui::Separator();
-
-			inputWidth = ImGui::GetContentRegionAvail().x;
-			ImGui::SetNextItemWidth(inputWidth);
-			if (ImGui::TreeNodeEx(("LoadedAnimation(" + std::to_string(model->m_Animation.size()) + ")").c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-
-
-				// --- Add Animation Section ---
-				ImGui::BeginGroup();
-
-				// Add Animation ボタン（ポップアップ開く用）
-				if (ImGui::Button("Add Animation")) {
-					ImGui::OpenPopup("AddAnimationPopup");
-				}
-				ImGui::SameLine();
-				inputWidth = ImGui::GetContentRegionAvail().x;
-				ImGui::SetNextItemWidth(inputWidth - 20.0f);
-
-				ImGui::InputText("##AddAnimation", newAnimFilePath, sizeof(newAnimFilePath));
-
-				ImGui::EndGroup();
-
-				// ボタンに対するドラッグ&ドロップ処理
-				if (ImGui::BeginDragDropTarget()) {
-					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-						const char* droppedPath = (const char*)payload->Data;
-						strncpy_s(newAnimFilePath, sizeof(newAnimFilePath), droppedPath, _TRUNCATE);
-						ImGui::OpenPopup("AddAnimationPopup");
-					}
-					ImGui::EndDragDropTarget();
-				}
-
-				std::vector<std::string> toDelete;
-				if (model->m_Animation.empty()) {
-
-				} else {
-
-					ImGui::Separator();
-
-					for (const auto& [name, anim] : model->m_Animation) {
-						ImGui::PushID(name.c_str());
-						if (anim.isImported) {
-							if (ImGui::Button("Delete")) {
-								toDelete.push_back(name);
-							}
-						} else {
-							ImGui::BeginDisabled();
-							ImGui::Button("Delete");
-							ImGui::EndDisabled();
-						}
-						ImGui::SameLine();
-
-						ImGui::Text("%s", name.c_str());
-
-
-
-						ImGui::PopID();
-					}
-					for(const auto& delName : toDelete){
-
-						// ModelData 側の削除
-						model->RemoveAnimation(delName);
-
-						// Component 側の animations からも削除
-						animations.erase(
-							std::remove_if(
-								animations.begin(),
-								animations.end(),
-								[&](const std::pair<std::string, std::string>& anim){
-									return anim.first == delName;
-								}
-							),
-							animations.end()
-						);
-
-						// ブレンドリストからも削除
-						blendedAnimations.erase(
-							std::remove_if(
-								blendedAnimations.begin(),
-								blendedAnimations.end(),
-								[&](const AnimationBlend& blend){
-									return blend.name == delName;
-								}
-							),
-							blendedAnimations.end()
-						);
-					}
-				}
-
-				// ポップアップ内容
-				if (ImGui::BeginPopupModal("AddAnimationPopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-
-					ImGui::InputText("File Path", newAnimFilePath, sizeof(newAnimFilePath));
-
-					// FilePath に対するドラッグ&ドロップ（ポップアップ内でも対応）
-					if (ImGui::BeginDragDropTarget()) {
-						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-							const char* droppedPath = (const char*)payload->Data;
-							strncpy_s(newAnimFilePath, sizeof(newAnimFilePath), droppedPath, _TRUNCATE);
-						}
-						ImGui::EndDragDropTarget();
-					}
-
-					ImGui::InputText("Name", newAnimName, sizeof(newAnimName));
-
-					if (ImGui::Button("Add")) {
-						std::string filePathStr(newAnimFilePath);
-						std::string animNameStr(newAnimName);
-						if (!filePathStr.empty() && !animNameStr.empty() &&
-							model && model->m_Animation.find(animNameStr) == model->m_Animation.end()) {
-
-							model->LoadAnimation(filePathStr.c_str(), animNameStr.c_str());
-							animations.push_back(std::make_pair(animNameStr, filePathStr));
-							// 入力欄をクリア
-							newAnimFilePath[0] = '\0';
-							newAnimName[0] = '\0';
-							ImGui::CloseCurrentPopup();
-						}
-						ImGui::SameLine();
-					}
-					ImGui::SameLine();
-
-					if (ImGui::Button("Cancel")) {
-						ImGui::CloseCurrentPopup();
-					}
-
-					ImGui::EndPopup();
-				}
-
-				ImGui::TreePop();
 			}
 		}
 	}
