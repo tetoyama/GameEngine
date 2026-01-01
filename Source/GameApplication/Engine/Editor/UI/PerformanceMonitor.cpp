@@ -48,8 +48,8 @@ void PerformanceMonitor::Draw(EditorDrawContext ctx) {
 		UpdateSamples[n] = UpdateSamples[n + 1];
 		DrawSamples[n] = DrawSamples[n + 1];
 	}
-	UpdateSamples[SAMPLE_LENGTH - 1] = (float)(int)Update;
-	DrawSamples[SAMPLE_LENGTH - 1] = (float)(int)Draw;
+	UpdateSamples[SAMPLE_LENGTH - 1] = (float)Update;
+	DrawSamples[SAMPLE_LENGTH - 1] = (float)Draw;
 
 	if (showParformanceMonitor) {
 		ImGuiWindowClass window_class;
@@ -91,10 +91,10 @@ void PerformanceMonitor::Draw(EditorDrawContext ctx) {
 			sprintf(Texts, "Delta:%.2f Avg:%.2f", DeltaFpsSamples[SAMPLE_LENGTH - 1], DeltaFPSAvg);
 			ImGui::PlotLines(Texts, DeltaFpsSamples, SAMPLE_LENGTH, 0, "", 0.0f);
 			ImGui::Text("-更新処理-");
-			sprintf(Texts, "Update:Avg:%.2fms", UpdateAvg);
+			sprintf(Texts, "Update:Avg:%.4fms", UpdateAvg);
 			ImGui::PlotLines(Texts, UpdateSamples, SAMPLE_LENGTH, 0, "", 0.0f, 1000.0f / 60.0f);
 			ImGui::Text("-描画処理-");
-			sprintf(Texts, "Draw:Avg:%.2fms", DrawAvg);
+			sprintf(Texts, "Draw:Avg:%.4fms", DrawAvg);
 			ImGui::PlotLines(Texts, DrawSamples, SAMPLE_LENGTH, 0, "", 0.0f, 1000.0f / 60.0f);
 			ImGui::TreePop();
 		}
