@@ -168,6 +168,13 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 				if ((int)scene->GetRenderLayerFromEntity(ent) != layer) continue;
 
 				for (auto r : renderables) {
+
+					ObjectInfo info;
+					info.SceneID = (unsigned int)sctx;
+					info.ObjectID = ent;
+					info.MaterialID = ent - 1;
+					m_context->graphics->SetObjectInfo(info);
+
 					r->Execute(newCtx, sctx, ent);
 				}
 			}

@@ -2921,6 +2921,7 @@
     <None Include="Asset\Shader\unlitColorVS.cso" />
     <None Include="Asset\Shader\pixelLightingBlinnPhongVS.cso" />
     <None Include="Source\GameApplication\Backends\yaml-cpp\contrib\yaml-cpp.natvis.md" />
+    <None Include="Source\Shader\Material\MaterialFunc.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Shader\commonVS.hlsl" />
@@ -2948,6 +2949,7 @@
     <FxCompile Include="Source\Shader\LightingPS.hlsl" />
     <FxCompile Include="Source\Shader\LightingVS.hlsl" />
     <FxCompile Include="Source\Shader\Compute\SkinningCS.hlsl" />
+    <FxCompile Include="Source\Shader\AutoGen\PixelShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />

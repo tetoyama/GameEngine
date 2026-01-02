@@ -145,6 +145,18 @@ float4 main(PS_IN In) : SV_Target
     float3 worldPos = GPosition.Sample(g_Sampler, uv).rgb;
     float4 mat = GMaterial.Sample(g_Sampler, uv);
 
+    int2 pixelCoord = int2(In.Position.xy);
+    uint4 param = GParam.Load(int3(pixelCoord, 0));
+    
+    int sceneID = (int) param.x;
+    int objectID = (int) param.y;
+    int materialID = (int) param.z;
+    
+    if (materialID == 0)
+    {
+        return float4(1.0, 0.0, 1.0, 1.0);
+    }
+    
     N = normalize(N * 2.0 - 1.0);
 
     float shininess = mat.r * 128.0;

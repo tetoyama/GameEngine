@@ -1,5 +1,6 @@
 #include "../common.hlsl"
 #include "../commondefine.h"
+#include "../Material/MaterialFunc.hlsli"
 
 // ============================================================================
 // GBuffer

@@ -68,9 +68,9 @@ struct Parameter
 
 struct ObjectInfo
 {
-	unsigned int    SceneID;
-	unsigned int    ObjectID;
-	unsigned int    MaterialID;
+	unsigned int    SceneID = 0;
+	unsigned int    ObjectID = 0;
+	unsigned int    MaterialID = 0;
 
-	unsigned int    Dummy;
+	unsigned int    Dummy = 0;
 };
