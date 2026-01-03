@@ -1,12 +1,13 @@
 #ifdef __cplusplus
 // C++ Build
-#pragma once
 
 #else
 // HLSL Build
-#define TexSlot(i) (t##i)
 
 #endif
+
+#ifndef COMMON_DEFINE_H
+#define COMMON_DEFINE_H
 
 #define BONE_MAX_COUNT			(256)
 
@@ -55,6 +56,7 @@
 #define LIGHT_MAX_COUNT			(64)
 #endif // LOWRESOLUTION
 
+#endif // !COMMON_DEFINE_H
 
 
 

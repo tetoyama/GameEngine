@@ -13,38 +13,8 @@ Texture2D<uint4>    GParam      : register(t4);
 
 Texture2D           ShadowMap   : register(t5);
 
-SamplerState            LinearSampler : register(s0);
+SamplerState            LinearSampler   : register(s0);
 SamplerComparisonState  ShadowSampler   : register(s1);
-
-// ============================================================================
-// PBR Utility
-// ============================================================================
-float3 FresnelSchlick(float cosTheta, float3 F0)
-{
-    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
-}
-
-float SchlickGGX(float NdotV, float roughness)
-{
-    float a = roughness;
-    float k = (a * a) * 0.5;
-    return NdotV / (NdotV * (1.0 - k) + k);
-}
-
-float G_Smith(float3 N, float3 V, float3 L, float roughness)
-{
-    float NdotV = saturate(dot(N, V));
-    float NdotL = saturate(dot(N, L));
-    return SchlickGGX(NdotV, roughness) * SchlickGGX(NdotL, roughness);
-}
-
-float D_GTR2(float NdotH, float roughness)
-{
-    float a = roughness * roughness;
-    float a2 = a * a;
-    float d = (NdotH * NdotH) * (a2 - 1.0) + 1.0;
-    return a2 / (PI * d * d);
-}
 
 // ============================================================================
 // Shadow
@@ -63,11 +33,13 @@ float ShadowFactor(float3 worldPos, LIGHT light, int lightIndex)
     uint w, h;
     ShadowMap.GetDimensions(w, h);
 
-    int grid = ceil(sqrt((float) LIGHT_MAX_COUNT));
-    float tile = 1.0 / grid;
 
-    int gx = lightIndex % grid;
-    int gy = lightIndex / grid;
+    uint grid = (uint) ceil(sqrt((float) LIGHT_MAX_COUNT));
+    uint uIndex = (uint) lightIndex;
+    uint gx = uIndex % grid;
+    uint gy = uIndex / grid;
+    
+    float tile = 1.0 / grid;
 
     float2 tileMin = float2(gx, gy) * tile;
     float2 tileMax = tileMin + tile;

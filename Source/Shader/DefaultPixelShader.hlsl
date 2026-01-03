@@ -60,14 +60,14 @@ float ShadowFactor(float3 worldPos, LIGHT light, int lightIndex)
     uint atlasW, atlasH;
     ShadowMap.GetDimensions(atlasW, atlasH);
 
-    int grid = (int) sqrt((float) LIGHT_MAX_COUNT);
+    uint grid = (int) sqrt((float) LIGHT_MAX_COUNT);
     if (grid * grid < LIGHT_MAX_COUNT)
         grid++;
 
     float tileSize = 1.0 / grid;
 
-    int gx = lightIndex % grid;
-    int gy = lightIndex / grid;
+    uint gx = lightIndex % grid;
+    uint gy = lightIndex / grid;
 
     float2 tileMin = float2(gx * tileSize, gy * tileSize);
     float2 tileMax = tileMin + tileSize;

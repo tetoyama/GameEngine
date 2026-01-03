@@ -1,4 +1,7 @@
-#include <commonDefine.h>
+#ifndef COMMON_HLSL
+#define COMMON_HLSL
+
+#include "commonDefine.h"
 
 cbuffer WorldBuffer : register(b0)
 {
@@ -105,3 +108,5 @@ float2 TransformUV(float2 In, float2 start, float2 end)
 }
 
 static const float PI = 3.14159265358979323846f;
+
+#endif // COMMON_HLSL
