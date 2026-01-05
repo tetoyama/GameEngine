@@ -19,6 +19,7 @@
 #include "Resources/resourceService.h"
 #include "Resources/Data/shaderData.h"
 #include <ImGui/imgui_impl_dx11.h>
+#include <Component/materialComponent.h>
 
 using namespace DirectX;
 
@@ -169,10 +170,17 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 
 				for (auto r : renderables) {
 
+					int materialID = 0;
+					MaterialComponent* material =
+						sctx->component->GetComponent<MaterialComponent>(ent);
+					if(material){
+						materialID = material->ShaderID;
+					}
+
 					ObjectInfo info;
 					info.SceneID = (unsigned int)sctx;
 					info.ObjectID = ent;
-					info.MaterialID = ent - 1;
+					info.MaterialID = materialID;
 					m_context->graphics->SetObjectInfo(info);
 
 					r->Execute(newCtx, sctx, ent);

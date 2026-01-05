@@ -14,7 +14,6 @@ Texture2D ShadowMap : register(t5);
 
 SamplerState g_Sampler : register(s0);
 SamplerComparisonState ShadowSampler : register(s1);
-SamplerState LinearSampler : register(s2);
 
 // ============================================================================
 // PBR Utility

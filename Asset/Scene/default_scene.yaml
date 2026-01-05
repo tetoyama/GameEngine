@@ -36,6 +36,31 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
       - Component: TextureComponent
         FilePath: Asset\Texture\mesh.png
         Material:
@@ -66,8 +91,6 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
-        PixelShader: Asset\Shader\DefaultPixelShader.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 27435.4922
   - Entity: 2
@@ -94,9 +117,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: -57.9702225
-          y: 98.402626
-          z: -49.2228851
+          x: -53.0145187
+          y: 91.1649551
+          z: -9.00003624
           w: 0
         Direction:
           x: 0.454648674
@@ -120,20 +143,20 @@ Entities:
           w: 0
         LightView:
           -
-            - 0.540302217
+            - 0.540302277
             - 0
             - -0.841470957
-            - -10.0981884
+            - 21.0705967
           -
             - 0.708073437
-            - 0.540302217
-            - 0.454648644
-            - 10.2591381
+            - 0.540302277
+            - 0.454648703
+            - -7.62660551
           -
             - 0.454648674
             - -0.841471016
-            - 0.291926533
-            - 123.528511
+            - 0.291926563
+            - 103.443001
           -
             - 0
             - 0
@@ -209,8 +232,6 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\sky.fbx
-        PixelShader: Asset\Shader\unlitUVTexturePS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
         AnimationTime: 27435.4922
   - Entity: 4
@@ -252,8 +273,6 @@ Entities:
             lockRotZ: true
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
-        PixelShader: Asset\Shader\DefaultPixelShader.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 27435.4922
         Animations:
@@ -968,6 +987,31 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         Material:

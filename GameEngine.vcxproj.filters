@@ -2259,9 +2259,6 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\GameTimeManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Shader\CommonBuffer.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\TimerSprite.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -2299,9 +2296,6 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\GN31.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Shader\commonDefine.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\IRenderable.h">
@@ -2401,6 +2395,12 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderLayer.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Shader\CommonBuffer.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Shader\commonDefine.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
@@ -2921,7 +2921,12 @@
     <None Include="Asset\Shader\unlitColorVS.cso" />
     <None Include="Asset\Shader\pixelLightingBlinnPhongVS.cso" />
     <None Include="Source\GameApplication\Backends\yaml-cpp\contrib\yaml-cpp.natvis.md" />
+    <None Include="Source\Shader\Material\PBRShader.hlsli" />
+    <None Include="Source\Shader\Material\UnlitShader.hlsli" />
+    <None Include="Source\Shader\Material\MaterialDefine.hlsli" />
     <None Include="Source\Shader\Material\MaterialFunc.hlsli" />
+    <None Include="Source\Shader\Material\DeferredFunc.hlsli" />
+    <None Include="Source\Shader\Material\FowardFunc.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Shader\commonVS.hlsl" />
@@ -2929,7 +2934,6 @@
     <FxCompile Include="Source\Shader\disneyPBR_PS.hlsl" />
     <FxCompile Include="Source\Shader\OutlineVS.hlsl" />
     <FxCompile Include="Source\Shader\OutlinePS.hlsl" />
-    <FxCompile Include="Source\Shader\common.hlsl" />
     <FxCompile Include="Source\Shader\unlitUVTexturePS.hlsl" />
     <FxCompile Include="Source\Shader\PhysX\DebugLinePS.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\PostEffectVS.hlsl" />
@@ -2949,7 +2953,8 @@
     <FxCompile Include="Source\Shader\LightingPS.hlsl" />
     <FxCompile Include="Source\Shader\LightingVS.hlsl" />
     <FxCompile Include="Source\Shader\Compute\SkinningCS.hlsl" />
-    <FxCompile Include="Source\Shader\AutoGen\PixelShader.hlsl" />
+    <FxCompile Include="Source\Shader\AutoGen\DefferdRenderingPS.hlsl" />
+    <FxCompile Include="Source\Shader\AutoGen\FowardRenderingPS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />

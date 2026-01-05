@@ -49,8 +49,9 @@ public:
 
 	void Update(float deltaTime) override;
 	void EditorUpdate(float deltaTime) override;
-
 	void Draw() override;
+
+	void SystemSetting() override;
 
 	template<typename T>
 	T* GetRenderable() {

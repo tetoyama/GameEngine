@@ -231,6 +231,6 @@ float4 main(in PS_IN In) : SV_Target
 
     float3 finalColor = ambient + Lo + Material.Emission.rgb;
     finalColor = pow(finalColor, 1.0 / 2.2);
-
+    
     return float4(finalColor, 1.0);
 }

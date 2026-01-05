@@ -106,7 +106,6 @@ void RenderSystem::Initialize(){
 	showEditor = nullptr;
 #endif // _EDITOR
 
-
 	auto m_FullScreenVS = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\PostEffectVS.cso");
 	auto m_FullScreenPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\PostEffectPS.cso");
 
@@ -164,49 +163,24 @@ void RenderSystem::EditorUpdate(float deltaTime)
 			context->component->FindEntitiesWithComponent<ModelRendererComponent>();
 
 		for(Entity entity : modelEntities){
-			auto* mr =
-				context->component->GetComponent<ModelRendererComponent>(entity);
+			auto* mr = context->component->GetComponent<ModelRendererComponent>(entity);
 
 			if(!mr->model){
 				mr->CreateModel(context);
 				continue;
 			}
-
 			if(mr->blendedAnimations.empty()){
 				continue;
 			}
-
-			// ----------------------------------------
-			// 1) Update skeleton (共通)
-			// ----------------------------------------
 			mr->model->UpdateBoneAnimation(
 				mr->blendedAnimations,
 				mr->animationTime
 			);
+			const bool useGPUSkinning = mr->model->m_Bones.size() <= BONE_MAX_COUNT;
 
-			// ----------------------------------------
-			// 2) Decide CPU or GPU skinning
-			// ----------------------------------------
-			const bool useGPUSkinning =
-				mr->model->m_Bones.size() <= BONE_MAX_COUNT;
-
-			// ========================================
-			// GPU SKINNING PATH
-			// ========================================
 			if(useGPUSkinning){
-
-				// Compute Shader dispatch
 				mr->model->UpdateAndDispatchSkinning(m_context->graphics, mr->dynamicVertexBuffers);
-
-				// ※ ここでは Map / Unmap / CPU_Skinning は一切しない
-				// ※ 描画時に m_SkinOutputVB を VertexBuffer として使う
-
-			}
-			// ========================================
-			// CPU SKINNING PATH (fallback)
-			// ========================================
-			else{
-
+			}else{
 				for(size_t i = 0; i < mr->dynamicVertexBuffers.size(); i++){
 					D3D11_MAPPED_SUBRESOURCE mapped{};
 					HRESULT hr = dc->Map(
@@ -219,13 +193,11 @@ void RenderSystem::EditorUpdate(float deltaTime)
 					if(FAILED(hr)){
 						continue;
 					}
-
 					mr->model->CPU_Skinning(
 						mr->model->m_DeformVertex[i],
 						mr->model->AiScene->mMeshes[i],
 						static_cast<VERTEX_3D*>(mapped.pData)
 					);
-
 					dc->Unmap(mr->dynamicVertexBuffers[i], 0);
 				}
 			}
@@ -267,6 +239,11 @@ void RenderSystem::Draw(){
 	}
 	m_context->graphics->ResetViewport();
 	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
+}
+
+void RenderSystem::SystemSetting(){
+
+
 }
 
 void RenderSystem::DrawRenderLayerToggleUI() {

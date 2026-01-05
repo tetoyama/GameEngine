@@ -7,6 +7,7 @@
 #include "UI/AssetsBrowser.h"
 #include "UI/DebugLogWindow.h"
 #include "UI/ViewWindow.h"
+#include "UI/SystemSetting.h"
 
 void EditorService::Initialize(DebugLogSystem* debug, ResourceService* resource, SceneManager* manager) {
 
@@ -22,6 +23,7 @@ void EditorService::Initialize(DebugLogSystem* debug, ResourceService* resource,
 	UIs.push_back(new AssetsBrowser());
 	UIs.push_back(new DebugLogWindow());
 	UIs.push_back(new ViewWindow());
+	UIs.push_back(new SystemSetting());
 
 	for (auto ui : UIs) {
 		ui->Initialize(this);

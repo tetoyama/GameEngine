@@ -31,11 +31,36 @@ Entities:
             height: 1
             staticFriction: 0
             dynamicFriction: 0
-            restitution: 0.100000001
+            restitution: 0
             collisionLayer: 0
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
       - Component: TextureComponent
         FilePath: Asset\Texture\mesh.png
         Material:
@@ -59,7 +84,7 @@ Entities:
             y: 0
             z: 0
             w: 1
-          Shininess: 48
+          Shininess: 10
           TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -67,7 +92,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 34944.2734
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -78,10 +103,10 @@ Entities:
           y: 50
           z: 0
         Rotation:
-          - 0.217117399
-          - 0.464521378
-          - -0.118611783
-          - 0.85030061
+          - 0.420735508
+          - 0.420735508
+          - -0.229848862
+          - 0.770151138
         Scale:
           x: 1
           y: 1
@@ -92,14 +117,14 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: -36.9230118
-          y: 28.9712772
-          z: -38.7079926
+          x: -44.2719421
+          y: 86.086998
+          z: -30.7263527
           w: 0
         Direction:
-          x: 0.738460243
-          y: -0.47942555
-          z: 0.474159837
+          x: 0.454648674
+          y: -0.841471016
+          z: 0.291926563
           w: 0
         Diffuse:
           x: 1
@@ -107,31 +132,31 @@ Entities:
           z: 1
           w: 1
         Ambient:
-          x: 0.0500000007
-          y: 0.0500000007
-          z: 0.0500000007
+          x: 0
+          y: 0
+          z: 0
           w: 1
         Param:
-          x: 500
+          x: 1000
           y: 0
           z: 0
           w: 0
         LightView:
           -
-            - 0.540302277
+            - 0.540302217
             - 0
             - -0.841470957
-            - -12.6220646
+            - -1.93510437
           -
-            - 0.403422713
-            - 0.87758255
-            - 0.259034723
-            - -0.502390862
+            - 0.708073437
+            - 0.540302217
+            - 0.454648644
+            - -1.19551659
           -
-            - 0.738460302
-            - -0.479425579
-            - 0.474159896
-            - 59.5095291
+            - 0.454648674
+            - -0.841471016
+            - 0.291926533
+            - 101.537735
           -
             - 0
             - 0
@@ -139,20 +164,20 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0399999991
+            - 0.0199999996
             - 0
             - 0
             - 0
           -
             - 0
-            - 0.0399999991
+            - 0.0199999996
             - 0
             - 0
           -
             - 0
             - 0
-            - 0.0100100096
-            - -0.00100100099
+            - 0.00500250142
+            - -0.000500250142
           -
             - 0
             - 0
@@ -208,30 +233,30 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\sky.fbx
         isBlender: true
-        AnimationTime: 0
+        AnimationTime: 34944.2734
   - Entity: 4
     Components:
       - Component: NameComponent
         Name: Player
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 0
-          z: 0
+          x: 6.90492201
+          y: -8.65709012e-07
+          z: 0.366264045
         Rotation:
           - 0
+          - -0.965482771
           - 0
-          - 0
-          - 1
+          - 0.260467261
         Scale:
-          x: 0.00999999978
+          x: 0.0100000016
           y: 0.00999999978
-          z: 0.00999999978
+          z: 0.0100000016
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
         autoMass: true
-        Mass: 0
+        Mass: 1
         colliders:
           - type: 2
             size: [1, 1, 1]
@@ -241,17 +266,43 @@ Entities:
             height: 100
             staticFriction: 0
             dynamicFriction: 0
-            restitution: 0.100000001
+            restitution: 0
             collisionLayer: 0
             lockRotX: true
             lockRotY: true
             lockRotZ: true
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 34944.2734
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
+          mixamo.com: Asset\Model\Akai_Run.fbx
           Run: Asset\Model\Akai_Run.fbx
       - Component: PlayerController
         moveSpeed: 6
@@ -272,340 +323,749 @@ Entities:
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 5
-          z: -15
+          x: 1.19292307
+          y: 1.93989909
+          z: -1.53369808
         Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
+          - -0.00404859986
+          - 0.584961057
+          - 0.00292002317
+          - 0.811046004
         Scale:
-          x: 1
-          y: 1
+          x: 0.999999881
+          y: 0.999999821
           z: 1
         Parent: 0
       - Component: CameraComponent
-        isLock: false
+        isLock: true
         Target:
-          x: 0
-          y: 0
-          z: 0
+          x: 6.90492201
+          y: -8.65709012e-07
+          z: 0.366264045
         NearClip: 0.00999999978
         FarClip: 1024
         FOV: 1
         viewMatrix:
           -
-            - 1
-            - 0
-            - 0
-            - 0
-          -
-            - -0
-            - 1
-            - 0
+            - 0.315624058
+            - 0.291046649
+            - 0.903146386
             - 0
           -
             - 0
-            - -0
-            - 1
+            - 0.951798201
+            - -0.306725115
             - 0
           -
+            - -0.948884308
+            - 0.0968098268
+            - 0.30041042
             - 0
-            - -5
-            - 15
+          -
+            - -1.83181715
+            - -2.04511166
+            - -0.0216294527
             - 1
-        nextLinkId: 1
-        nextPinId: 1
+        nextLinkId: 7
+        nextPinId: 15
+        PostEffects:
+          - Name: BrightPass
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\BrightPass.cso
+            NodePos:
+              x: -514.912964
+              y: 52.3449097
+            InputPins:
+              - 2
+              - 4
+            OutputPin: 3
+            Param:
+              x: 0.899999976
+              y: 0
+              z: 0
+              w: 0
+          - Name: BlurHorizontal
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\BlurHorizontal.cso
+            NodePos:
+              x: -289.912933
+              y: 51.3449097
+            InputPins:
+              - 5
+              - 7
+            OutputPin: 6
+            Param:
+              x: 10
+              y: 0
+              z: 0
+              w: 0
+          - Name: BlurVertical
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\BlurVertical.cso
+            NodePos:
+              x: -65.9129333
+              y: 49.3449097
+            InputPins:
+              - 8
+              - 10
+            OutputPin: 9
+            Param:
+              x: 10
+              y: 0
+              z: 0
+              w: 0
+          - Name: CompositeBloom
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\CompositeBloom.cso
+            NodePos:
+              x: 171.087036
+              y: 130.34491
+            InputPins:
+              - 11
+              - 13
+              - 14
+            OutputPin: 12
+            Param:
+              x: 0.0199999996
+              y: 0
+              z: 0
+              w: 0
+        PostEffectLinks:
+          - ID: 1
+            StartNode: -1
+            EndNode: 0
+            StartAttr: -1
+            EndAttr: 2
+          - ID: 2
+            StartNode: 0
+            EndNode: 1
+            StartAttr: 3
+            EndAttr: 5
+          - ID: 3
+            StartNode: 1
+            EndNode: 2
+            StartAttr: 6
+            EndAttr: 8
+          - ID: 4
+            StartNode: 2
+            EndNode: 3
+            StartAttr: 9
+            EndAttr: 11
+          - ID: 5
+            StartNode: 3
+            EndNode: -2
+            StartAttr: 12
+            EndAttr: 1
+          - ID: 6
+            StartNode: -1
+            EndNode: 3
+            StartAttr: -1
+            EndAttr: 13
         ScreenInput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: -635.912964
+            y: 334.34491
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: 400.68689
+            y: 334.147705
           InputPins:
-            []
+            - 1
       - Component: CameraController
         distance: 6
         height: 2
         rotateSpeed: 1.5
-        minPitch: 0
+        minPitch: -0.785000026
         maxPitch: 0.785398185
   - Entity: 6
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: Roof
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 0
-          z: 0
+          x: 7.85336685
+          y: 12.3310642
+          z: 1.97791302
         Rotation:
+          - -0
           - 0
-          - 0
-          - 0
+          - -0
           - 1
         Scale:
-          x: 1
+          x: 28.5874043
           y: 1
-          z: 1
+          z: 30.7935829
         Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 0
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
       - Component: ModelRendererComponent
-        FilePath: Asset/Model\Akai.fbx
+        FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 0
-        Animations:
-          a: Asset/Model\Akai_Idle.fbx
-  - Entity: 6
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset/Model\Akai.fbx
-        isBlender: false
-        AnimationTime: 0
-        Animations:
-          a: Asset/Model\Akai_Idle.fbx
+        AnimationTime: 34944.2734
   - Entity: 7
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: SpotLight
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 0
-          z: 0
+          x: 4.47810841
+          y: 2.79885888
+          z: -0.379267871
         Rotation:
+          - 0.699716091
           - 0
-          - 0
-          - 0
-          - 1
+          - -0
+          - 0.714421034
         Scale:
           x: 1
           y: 1
           z: 1
         Parent: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset/Model\Akai.fbx
-        isBlender: false
-        AnimationTime: 0
-        Animations:
-          a: Asset/Model\Akai_Idle.fbx
-    - Entity: 8
-      Components:
+      - Component: LightComponent
+        Enable: 1
+        LightType: 3
+        CastShadow: 1
+        Position:
+          x: 4.47810841
+          y: 2.79885888
+          z: -0.379267871
+          w: 0
+        Direction:
+          x: 0
+          y: -0.999783814
+          z: 0.0207948387
+          w: 0
+        Diffuse:
+          x: 0.978723526
+          y: 1
+          z: 0
+          w: 1
+        Ambient:
+          x: 0
+          y: 0
+          z: 0
+          w: 1
+        Param:
+          x: 100
+          y: 0
+          z: 71.6999969
+          w: 0
+        LightView:
+          -
+            - 0
+            - -0.0207948387
+            - -0.999783754
+            - -0.320984036
+          -
+            - 1
+            - 0
+            - 0
+            - -4.47810841
+          -
+            - 0
+            - -0.999783754
+            - 0.0207948387
+            - 2.80614042
+          -
+            - 0
+            - 0
+            - 0
+            - 1
+        LightProjection:
+          -
+            - 0.330718368
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0.330718368
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1.00001001
+            - -1.00001001
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+  - Entity: 8
+    Components:
       - Component: NameComponent
-        Name: Entity
+        Name: PointLightB
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 0
-          z: 0
+          x: 2.6928165
+          y: 4
+          z: 6.76027012
         Rotation:
+          - 0.706825197
           - 0
-          - 0
-          - 0
-          - 1
+          - -0
+          - 0.707388222
         Scale:
           x: 1
           y: 1
           z: 1
         Parent: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset/Model\Akai.fbx
-        isBlender: false
-        AnimationTime: 0
-        Animations:
-          a: Asset/Model\Akai_Idle.fbx
+      - Component: LightComponent
+        Enable: 1
+        LightType: 2
+        CastShadow: 1
+        Position:
+          x: 2.6928165
+          y: 4
+          z: 6.76027012
+          w: 0
+        Direction:
+          x: 0
+          y: -0.999999642
+          z: 0.000796228647
+          w: 0
+        Diffuse:
+          x: 0
+          y: 2.38418579e-07
+          z: 1
+          w: 1
+        Ambient:
+          x: 0.00999999978
+          y: 0.00999999978
+          z: 0.00999999978
+          w: 1
+        Param:
+          x: 10
+          y: 0
+          z: 0
+          w: 0
+        LightView:
+          -
+            - 0
+            - -0.000796318054
+            - -0.999999762
+            - 6.76345396
+          -
+            - 1.00000012
+            - 0
+            - 0
+            - -2.69281673
+          -
+            - 0
+            - -0.999999762
+            - 0.000796318054
+            - 3.99461579
+          -
+            - 0
+            - 0
+            - 0
+            - 1
+        LightProjection:
+          -
+            - 0.414213568
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0.414213568
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1.00010002
+            - -1.00010002
+          -
+            - 0
+            - 0
+            - 1
+            - 0
   - Entity: 9
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: PointLightR
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 0
-          z: 0
+          x: 8.2638216
+          y: 4
+          z: 9.52341461
         Rotation:
+          - 0.706825197
           - 0
-          - 0
-          - 0
-          - 1
+          - -0
+          - 0.707388222
         Scale:
           x: 1
           y: 1
           z: 1
         Parent: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset/Model\Akai.fbx
-        isBlender: false
-        AnimationTime: 0
-        Animations:
-          a: Asset/Model\Akai_Idle.fbx
+      - Component: LightComponent
+        Enable: 1
+        LightType: 2
+        CastShadow: 1
+        Position:
+          x: 8.2638216
+          y: 4
+          z: 9.52341461
+          w: 0
+        Direction:
+          x: 0
+          y: -0.999999642
+          z: 0.000796228647
+          w: 0
+        Diffuse:
+          x: 1
+          y: 0
+          z: 0
+          w: 1
+        Ambient:
+          x: 0.00999999978
+          y: 0.00999999978
+          z: 0.00999999978
+          w: 1
+        Param:
+          x: 10
+          y: 0
+          z: 0
+          w: 0
+        LightView:
+          -
+            - 0
+            - -0.000796318054
+            - -0.999999762
+            - 9.52659798
+          -
+            - 1.00000012
+            - 0
+            - 0
+            - -8.26382256
+          -
+            - 0
+            - -0.999999762
+            - 0.000796318054
+            - 3.99241543
+          -
+            - 0
+            - 0
+            - 0
+            - 1
+        LightProjection:
+          -
+            - 0.414213568
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0.414213568
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1.00010002
+            - -1.00010002
+          -
+            - 0
+            - 0
+            - 1
+            - 0
   - Entity: 10
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: PointLightG
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 0
-          z: 0
+          x: 3.81178188
+          y: 4
+          z: 14.7731266
         Rotation:
+          - 0.706825197
           - 0
-          - 0
-          - 0
-          - 1
+          - -0
+          - 0.707388222
         Scale:
           x: 1
           y: 1
           z: 1
         Parent: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset/Model\Akai.fbx
-        isBlender: false
-        AnimationTime: 0
-        Animations:
-          a: Asset/Model\Akai_Idle.fbx  - Entity: 6
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
+      - Component: LightComponent
+        Enable: 1
+        LightType: 2
+        CastShadow: 1
         Position:
+          x: 3.81178188
+          y: 4
+          z: 14.7731266
+          w: 0
+        Direction:
           x: 0
+          y: -0.999999642
+          z: 0.000796228647
+          w: 0
+        Diffuse:
+          x: 0
+          y: 1
+          z: 0
+          w: 1
+        Ambient:
+          x: 0.00999999978
+          y: 0.00999999978
+          z: 0.00999999978
+          w: 1
+        Param:
+          x: 10
           y: 0
           z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset/Model\Akai.fbx
-        isBlender: false
-        AnimationTime: 0
-        Animations:
-          a: Asset/Model\Akai_Idle.fbx
+          w: 0
+        LightView:
+          -
+            - 0
+            - -0.000796318054
+            - -0.999999762
+            - 14.7763081
+          -
+            - 1.00000012
+            - 0
+            - 0
+            - -3.81178236
+          -
+            - 0
+            - -0.999999762
+            - 0.000796318054
+            - 3.988235
+          -
+            - 0
+            - 0
+            - 0
+            - 1
+        LightProjection:
+          -
+            - 0.414213568
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0.414213568
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1.00010002
+            - -1.00010002
+          -
+            - 0
+            - 0
+            - 1
+            - 0
   - Entity: 11
     Components:
       - Component: NameComponent
         Name: Entity
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 0
-          z: 0
+          x: -7.71899986
+          y: 1.77027273
+          z: -4.23400021
         Rotation:
+          - -0.0249973964
           - 0
           - 0
-          - 0
-          - 1
+          - 0.999687493
         Scale:
           x: 1
-          y: 1
-          z: 1
+          y: 0.999971926
+          z: 0.999971926
         Parent: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset/Model\Akai.fbx
-        isBlender: false
-        AnimationTime: 0
-        Animations:
-          a: Asset/Model\Akai_Idle.fbx
+      - Component: LightComponent
+        Enable: 1
+        LightType: 3
+        CastShadow: 1
+        Position:
+          x: -7.71899986
+          y: 1.77027273
+          z: -4.23400021
+          w: 0
+        Direction:
+          x: 0
+          y: 0.0499791689
+          z: 0.99875021
+          w: 0
+        Diffuse:
+          x: 0.899999976
+          y: 0.899999976
+          z: 1
+          w: 1
+        Ambient:
+          x: 0.00999999978
+          y: 0.00999999978
+          z: 0.00999999978
+          w: 1
+        Param:
+          x: 100
+          y: 0
+          z: 45
+          w: 0
+        LightView:
+          -
+            - 1
+            - -0
+            - 0
+            - 7.71899986
+          -
+            - 0
+            - 0.998750269
+            - -0.0499792136
+            - -1.97967231
+          -
+            - 0
+            - 0.0499792136
+            - 0.998750269
+            - 4.14023209
+          -
+            - 0
+            - 0
+            - 0
+            - 1
+        LightProjection:
+          -
+            - 0.99999994
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0.99999994
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1.00001001
+            - -1.00001001
+          -
+            - 0
+            - 0
+            - 1
+            - 0
   - Entity: 12
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: Cube
       - Component: TransformComponent
         Position:
-          x: 0
+          x: -4.06946087
           y: 0
-          z: 0
+          z: 6.99680424
         Rotation:
+          - -0
           - 0
-          - 0
-          - 0
+          - -0
           - 1
         Scale:
-          x: 1
-          y: 1
-          z: 1
+          x: 3.92000103
+          y: 3.92000008
+          z: 3.92000103
         Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 0
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
       - Component: ModelRendererComponent
-        FilePath: Asset/Model\Akai.fbx
+        FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 0
-        Animations:
-          a: Asset/Model\Akai_Idle.fbx  - Entity: 6
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset/Model\Akai.fbx
-        isBlender: false
-        AnimationTime: 0
-        Animations:
-          a: Asset/Model\Akai_Idle.fbx
-  - Entity: 13
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset/Model\Akai.fbx
-        isBlender: false
-        AnimationTime: 0
-        Animations:
-          a: Asset/Model\Akai_Idle.fbx
+        AnimationTime: 29336.0938

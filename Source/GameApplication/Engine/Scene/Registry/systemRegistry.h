@@ -100,6 +100,11 @@ public:
 		}
 		return nullptr;
 	}
+
+	std::vector<std::unique_ptr<ISystem>>& GetSystems() {
+		return m_systems;
+	}
+
 private:
 	std::vector<std::unique_ptr<ISystem>> m_systems;
 };

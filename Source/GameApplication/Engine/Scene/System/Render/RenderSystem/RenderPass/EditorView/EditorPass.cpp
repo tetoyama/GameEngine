@@ -39,6 +39,7 @@
 
 
 #include "Backends/convertMatrix.h"
+#include <Component/materialComponent.h>
 
 
 void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
@@ -47,7 +48,7 @@ void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	m_context = context;
 
 	m_RenderableVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-	m_RenderablePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DefaultPixelShader.cso");
+	m_RenderablePixelShader = m_context->resource->Load<PixelShaderData>("Source\\Shader\\AutoGen\\FowardRenderingPS.hlsl");
 
 	renderables.clear();
 	renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
@@ -176,6 +177,20 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 					}
 
 					for (auto renderable : renderables) {
+
+						int materialID = 0;
+						MaterialComponent* material =
+							context->component->GetComponent<MaterialComponent>(entity);
+						if(material){
+							materialID = material->ShaderID;
+						}
+
+						ObjectInfo info;
+						info.SceneID = (unsigned int)context;
+						info.ObjectID = entity;
+						info.MaterialID = materialID;
+						m_context->graphics->SetObjectInfo(info);
+
 						renderable->Execute(ctx, context, entity);
 					}
 				}

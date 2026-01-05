@@ -3192,24 +3192,21 @@
     </None>
     <None Include="Source\GameApplication\Backends\DirectX11\DirectXTex.inl" />
     <None Include="Source\GameApplication\Backends\yaml-cpp\contrib\yaml-cpp.natvis.md" />
-    <None Include="Source\Shader\Material\MaterialFunc.hlsli">
-      <FileType>Document</FileType>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </EntryPointName>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </None>
+    <None Include="Source\Shader\Material\DeferredFunc.hlsli" />
+    <None Include="Source\Shader\Material\FowardFunc.hlsli" />
+    <None Include="Source\Shader\Material\MaterialDefine.hlsli" />
+    <None Include="Source\Shader\Material\MaterialFunc.hlsli" />
+    <None Include="Source\Shader\Material\PBRShader.hlsli" />
+    <None Include="Source\Shader\Material\UnlitShader.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Source\Shader\AutoGen\PixelShader.hlsl">
+    <FxCompile Include="Source\Shader\AutoGen\DefferdRenderingPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
-    <FxCompile Include="Source\Shader\common.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    <FxCompile Include="Source\Shader\AutoGen\FowardRenderingPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Source\Shader\commonVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>

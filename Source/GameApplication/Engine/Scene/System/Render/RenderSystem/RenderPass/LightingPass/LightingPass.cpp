@@ -40,8 +40,7 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 	desc.MaxLOD = D3D11_FLOAT32_MAX;
 	m_context->graphics->GetDevice()->CreateSamplerState(&desc, &m_LinearSampler);
 
-	m_LightingVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\LightingVS.cso");
-	m_LightingPixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\LightingPS.cso");
+	ReloadShader();
 
 	Vector2 size = Vector2((float)context->graphics->m_width, (float)context->graphics->m_height);
 
@@ -140,4 +139,9 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 
 		ImGui::End();
 	}
+}
+
+void LightingPass::ReloadShader(){
+	m_LightingVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\LightingVS.cso");
+	m_LightingPixelShader = m_context->resource->Load<PixelShaderData>("Source\\Shader\\AutoGen\\DefferdRenderingPS.hlsl");
 }

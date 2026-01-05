@@ -57,10 +57,10 @@ Entities:
           y: 25
           z: 0
         Rotation:
-          - 0.0499791689
+          - 0.597195446
           - 0
           - 0
-          - 0.998750269
+          - 0.802095771
         Scale:
           x: 1
           y: 1
@@ -71,14 +71,14 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: 0
-          y: 9.99167061
-          z: -57.0001945
+          x: 1.50484014
+          y: 50.7504196
+          z: -17.2239666
           w: 0
         Direction:
           x: 0
-          y: -0.099833414
-          z: 0.995004177
+          y: -0.958015859
+          z: 0.286715239
           w: 0
         Diffuse:
           x: 0.899999976
@@ -100,17 +100,17 @@ Entities:
             - 1
             - 0
             - -0
-            - 0
+            - -1.50484014
           -
             - 0
-            - 0.995004117
-            - 0.0998334065
-            - -4.25122976
+            - 0.286715209
+            - 0.9580158
+            - 1.94991398
           -
             - 0
-            - -0.0998334065
-            - 0.995004117
-            - 57.7129288
+            - -0.9580158
+            - 0.286715209
+            - 53.5580788
           -
             - 0
             - 0
@@ -186,8 +186,6 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\sky.fbx
-        PixelShader: Asset\Shader\unlitUVTexturePS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
         AnimationTime: 69565.8516
   - Entity: 4
@@ -257,8 +255,6 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
-        PixelShader: Asset\Shader\disneyPBR_PS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 69565.8516
         Animations:
@@ -464,8 +460,6 @@ Entities:
             lockRotZ: false
       - Component: ModelRendererComponent
         FilePath: Asset\Model\mesh.fbx
-        PixelShader: Asset\Shader\ToonShaderPS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 68314.1172
       - Component: BallController
@@ -490,6 +484,31 @@ Entities:
           y: 1
           z: 1
         Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
       - Component: TextureComponent
         FilePath: Asset\Model\football-stadium-with-surrounding-area\textures\Etaj4.jpeg
         Material:
@@ -520,8 +539,6 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\football-stadium-with-surrounding-area\stadion_floor.fbx
-        PixelShader: Asset\Shader\unlitUVTexturePS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
         AnimationTime: 68314.1172
   - Entity: 8
@@ -543,6 +560,31 @@ Entities:
           y: 1
           z: 1
         Parent: 7
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
       - Component: TextureComponent
         FilePath: Asset\Model\football-stadium-with-surrounding-area\textures\Krysha3.jpeg
         Material:
@@ -573,8 +615,6 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\football-stadium-with-surrounding-area\stadion_roof.fbx
-        PixelShader: Asset\Shader\disneyPBR_PS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
         AnimationTime: 68314.1172
   - Entity: 9
@@ -596,6 +636,31 @@ Entities:
           y: 1
           z: 1
         Parent: 7
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          Ambient:
+            x: 0.100000001
+            y: 0.100000001
+            z: 0.100000001
+            w: 1
+          Diffuse:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Specular:
+            x: 0.0399999991
+            y: 0.0399999991
+            z: 0.0399999991
+            w: 1
+          Emission:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Shininess: 64
+          TextureEnable: false
       - Component: TextureComponent
         FilePath: Asset\Model\football-stadium-with-surrounding-area\textures\Opory2.jpeg
         Material:
@@ -626,8 +691,6 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\football-stadium-with-surrounding-area\stadion_hasira.fbx
-        PixelShader: Asset\Shader\disneyPBR_PS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
         AnimationTime: 68314.1172
   - Entity: 10
@@ -679,8 +742,6 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\football-stadium-with-surrounding-area\stadion_seki.fbx
-        PixelShader: Asset\Shader\unlitUVTexturePS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
         AnimationTime: 68314.1172
   - Entity: 11
@@ -1384,8 +1445,6 @@ Entities:
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai (1).fbx
-        PixelShader: Asset\Shader\disneyPBR_PS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 0
         Animations:

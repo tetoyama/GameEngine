@@ -1,7 +1,9 @@
 #ifndef COMMON_HLSL
 #define COMMON_HLSL
 
+#ifndef COMMON_DEFINE_H
 #include "commonDefine.h"
+#endif
 
 cbuffer WorldBuffer : register(b0)
 {

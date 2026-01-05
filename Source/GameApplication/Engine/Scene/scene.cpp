@@ -68,6 +68,7 @@
 #include "Script/FadeSetScene.h"
 #include "Script/CameraController.h"
 #include <Script/GN31.h>
+#include <Component/materialComponent.h>
 
 
 Scene::Scene(){
@@ -109,6 +110,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_componentRegistry->RegisterYAMLComponent<OrderInLayerComponent>("OrderInLayerComponent", false);
 
 	// テクスチャ
+	m_componentRegistry->RegisterYAMLComponent<MaterialComponent>("MaterialComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<TextureComponent>("TextureComponent", false);
 	m_componentRegistry->RegisterYAMLComponent<BumpMapComponent>("BumpMapComponent", false);
 
@@ -270,6 +272,9 @@ void Scene::BuildDefaultScene(){
 		col.dynamicFriction = 0.0f;
 		collider->colliders.push_back(col);
 
+		auto* material = componentRegistry->AddComponent<MaterialComponent>(entity);
+		material->ShaderID = 1;
+
 		//auto* bumpMap = componentRegistry->AddComponent<BumpMapComponent>(entity);
 		//bumpMap->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\BumpMap/Normal.bmp");
 
@@ -385,6 +390,8 @@ void Scene::BuildDefaultScene(){
 
 		auto* player = componentRegistry->AddComponent<PlayerController>(entity);
 
+		auto* material = componentRegistry->AddComponent<MaterialComponent>(entity);
+		material->ShaderID = 1;
 		// OutLineComponentを追加
 		//auto* outline = componentRegistry->AddComponent<OutlineComponent>(entity);
 

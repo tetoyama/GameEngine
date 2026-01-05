@@ -23,6 +23,4 @@ public:
 	virtual YAML::Node encode() { return YAML::Node(); }
 
 	virtual bool decode(const YAML::Node& node) { return true; }
-
-	virtual void systemSetting(){}
 };
