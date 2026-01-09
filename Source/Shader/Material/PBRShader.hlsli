@@ -5,8 +5,6 @@
 #include "MaterialFunc.hlsli"
 #endif
 
-
-
 float4 ShadeMaterial_PBR(MaterialInput input)
 {
     LightingResult lighting = ComputeLightingFromMaterialInput(input);

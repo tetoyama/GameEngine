@@ -2,9 +2,7 @@
 #include "../common.hlsl"
 
 #include "../Material/MaterialDefine.hlsli"
-
 #include "../Material/DeferredFunc.hlsli"
-
 #include "../Material/MaterialFunc.hlsli"
 
 // material
