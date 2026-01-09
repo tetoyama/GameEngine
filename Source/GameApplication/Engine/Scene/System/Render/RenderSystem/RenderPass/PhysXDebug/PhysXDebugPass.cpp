@@ -38,6 +38,8 @@ void PhysXDebugPass::Finalize(){
 
 void PhysXDebugPass::Execute(const RenderPassContext& ctx){
 	auto graphicsContext = m_context->graphics;
+	graphicsContext->SetDepthEnable(false);
+
 	bool* pRenderLayer = ctx.renderLayerVisibility;
 	if(pRenderLayer[(int)RenderLayer::Debug]){
 
@@ -97,4 +99,6 @@ void PhysXDebugPass::Execute(const RenderPassContext& ctx){
 			deviceContext->Draw(static_cast<UINT>(vertices.size()), 0);
 		}
 	}
+
+	graphicsContext->SetDepthEnable(true);
 }

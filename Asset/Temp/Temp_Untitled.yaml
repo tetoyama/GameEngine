@@ -405,35 +405,8 @@ Entities:
           y: 1
           z: 1
         Parent: 0
-      - Component: ParticleComponent
-        IsLoop: true
-        SpawnInterval: 0.0500000007
-        SpawnCount: 100
-        SpawnTimer: 0
-        ParticleLifeTime: 1
-        ParticleSize: 1
-        ParticleSpeed: 1
-        SpawnPosition:
-          x: 0
-          y: 0
-          z: 0
-        SpawnPositionRandom:
-          x: 0
-          y: 0
-          z: 0
-        StartSpeed:
-          x: 0
-          y: 10
-          z: 0
-        StartSpeedRandom:
-          x: 3
-          y: 0
-          z: 3
-        AddSpeed:
-          x: 0
-          y: -15
-          z: 0
-        MulSpeed:
-          x: 1
-          y: 1
-          z: 1
+      - Component: EffectComponent
+        FilePath: Asset/Effect\Laser01.efkefc
+        Loop: false
+        Volume: 1
+        PlayOnStart: true

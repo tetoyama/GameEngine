@@ -3,6 +3,7 @@
 
 #define ASSET_PATH "Asset/"
 #define TEMP_SAVE_PATH "Asset/Temp/"
+#define CONFIG_PATH L"config.yaml"
 
 #ifdef _DEBUG 
 

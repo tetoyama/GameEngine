@@ -22,7 +22,7 @@ public:
 	void Execute(const RenderPassContext& ctx) override;
 
 	std::vector<IRenderable*> renderables;
-	RenderTarget* playerRenderTarget = nullptr;
+	RenderTarget* editorRenderTarget = nullptr;
 
 	std::shared_ptr<PixelShaderData> m_RenderablePixelShader;
 	std::shared_ptr<VertexShaderData> m_RenderableVertexShader;

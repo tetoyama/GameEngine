@@ -79,7 +79,7 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	//renderables.push_back(renderSystem->GetRenderable<RenderableTerrain>());
 	//renderables.push_back(renderSystem->GetRenderable<RenderableWave>());
 
-	playerRenderTarget = new RenderTarget(
+	editorRenderTarget = new RenderTarget(
 		context->PlayerScreenSize,
 		context->graphics,
 		RenderTargetType::RENDERTARGET_TYPE_COLOR
@@ -107,8 +107,8 @@ void PlayerPass::Finalize() {
 	delete effectPass;
 	effectPass = nullptr;
 
-	delete playerRenderTarget;
-	playerRenderTarget = nullptr;
+	delete editorRenderTarget;
+	editorRenderTarget = nullptr;
 }
 
 void PlayerPass::Execute(const RenderPassContext& ctx) {
@@ -132,9 +132,9 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	lightingPass->Execute(ctx);
 
 	float clearCol[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
-	playerRenderTarget->Resize(ctx.screenSize, m_context->graphics);
-	playerRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearCol);
-	//m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, playerRenderTarget->rtv.GetAddressOf(), playerRenderTarget->dsv.Get());
+	editorRenderTarget->Resize(ctx.screenSize, m_context->graphics);
+	editorRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearCol);
+	//m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, editorRenderTarget->rtv.GetAddressOf(), editorRenderTarget->dsv.Get());
 	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, lightingPass->pRenderTarget->rtv.GetAddressOf(), lightingPass->pRenderTarget->dsv.Get());
 
 	m_context->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_ShadowMap, 1, shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
@@ -153,7 +153,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	vp.TopLeftY = 0;
 	deviceContext->RSSetViewports(1, &vp);
 
-	ID3D11ShaderResourceView* initialSRV = playerRenderTarget->srv.Get();
+	ID3D11ShaderResourceView* initialSRV = editorRenderTarget->srv.Get();
 	initialSRV = lightingPass->pRenderTarget->srv.Get();
 
 	bool* pRenderLayer = ctx.renderLayerVisibility;

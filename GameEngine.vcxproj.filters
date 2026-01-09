@@ -2930,10 +2930,6 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Shader\commonVS.hlsl" />
-    <FxCompile Include="Source\Shader\PixelShader.hlsl" />
-    <FxCompile Include="Source\Shader\disneyPBR_PS.hlsl" />
-    <FxCompile Include="Source\Shader\OutlineVS.hlsl" />
-    <FxCompile Include="Source\Shader\OutlinePS.hlsl" />
     <FxCompile Include="Source\Shader\unlitUVTexturePS.hlsl" />
     <FxCompile Include="Source\Shader\PhysX\DebugLinePS.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\PostEffectVS.hlsl" />
@@ -2947,14 +2943,12 @@
     <FxCompile Include="Source\Shader\PostEffect\BlurHorizontal.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\BlurVertical.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\CompositeBloom.hlsl" />
-    <FxCompile Include="Source\Shader\DefaultPixelShader.hlsl" />
     <FxCompile Include="Source\Shader\shadowPS.hlsl" />
     <FxCompile Include="Source\Shader\GBufferPS.hlsl" />
-    <FxCompile Include="Source\Shader\LightingPS.hlsl" />
-    <FxCompile Include="Source\Shader\LightingVS.hlsl" />
     <FxCompile Include="Source\Shader\Compute\SkinningCS.hlsl" />
     <FxCompile Include="Source\Shader\AutoGen\DefferdRenderingPS.hlsl" />
     <FxCompile Include="Source\Shader\AutoGen\FowardRenderingPS.hlsl" />
+    <FxCompile Include="Source\Shader\LightingVS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />
