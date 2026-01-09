@@ -2,9 +2,15 @@
 #define FORWARD_FUNC_HLSLI
 
 #ifndef MATERIAL_DEFINE_HLSLI
-#include "../commonDefine.h"
-#include "../common.hlsl"
 #include "MaterialDefine.hlsli"
+#endif
+
+#ifndef COMMON_DEFINE_HLSLI
+#include "../commonDefine.h"
+#endif
+
+#ifndef COMMON_HLSL
+#include "../common.hlsl"
 #endif
 
 // ================= Texture =================

@@ -2,9 +2,15 @@
 #define DEFERRED_FUNC_HLSLI
 
 #ifndef MATERIAL_DEFINE_HLSLI
-#include "../common.hlsl"
-#include "../commonDefine.h"
 #include "MaterialDefine.hlsli"
+#endif
+
+#ifndef COMMON_DEFINE_HLSLI
+#include "../commonDefine.h"
+#endif
+
+#ifndef COMMON_HLSL
+#include "../common.hlsl"
 #endif
 
 // ================= GBuffer =================

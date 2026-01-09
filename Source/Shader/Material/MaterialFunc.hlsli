@@ -2,16 +2,23 @@
 #define MATERIAL_FUNC_HLSLI
 
 #ifndef MATERIAL_DEFINE_HLSLI
-#include "../common.hlsl"
-#include "../commonDefine.h"
+
 #include "MaterialDefine.hlsli"
 
 #ifdef FORWARD_FUNC_HLSLI
 #include "FowardFunc.hlsli"
 #else
 #include "DeferredFunc.hlsli"
+#endif//FORWARD_FUNC_HLSLI
+
+#endif //MATERIAL_DEFINE_HLSLI
+
+#ifndef COMMON_DEFINE_HLSLI
+#include "../commonDefine.h"
 #endif
 
+#ifndef COMMON_HLSL
+#include "../common.hlsl"
 #endif
 
 // ===== BRDF =====

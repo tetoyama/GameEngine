@@ -1,11 +1,8 @@
 #ifndef SHADER_PBR_HLSLI
 #define SHADER_PBR_HLSLI
 
-#ifndef MATERIAL_DEFINE_HLSLI
-
-#include "MaterialDefine.hlsli"
+#ifndef MATERIAL_FUNC_HLSLI
 #include "MaterialFunc.hlsli"
-
 #endif
 
 
