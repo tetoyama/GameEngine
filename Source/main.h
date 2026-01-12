@@ -78,6 +78,8 @@ GameApplication
    │                ├── CameraComponent										【実装済み】
    │                ├── CustomScriptComponent								【実装済み】
    │                ├── CSharpScriptComponent								【実装済み】
+   │                │
+   │                │ // CustomScript
    │                ├── SetScene											【実装済み】
    │                ├── ScoreManager										【実装済み】
    │                ├── ScoreSprite											【実装済み】

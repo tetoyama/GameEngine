@@ -1,4 +1,5 @@
 AppType: 0
+StartScene: Asset\Scene\scene_title.yaml
 Vsync: false
 ShaderPath: Shader/AutoGen/
 ShaderMaterial:
