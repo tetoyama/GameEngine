@@ -36,6 +36,7 @@ struct APPCONFIG
 
 	// アプリケーションの種類
 	APPTYPE AppType = Editor;
+	std::string startSceneFilePath = DEFAULT_SCENE;
 
 	// Video Settings
 	bool Vsync = false;

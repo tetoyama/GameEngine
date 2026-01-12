@@ -12,7 +12,7 @@ GameApplication
 └── Engine
    ├── Runtime
    │   ├── TimeService				（QueryPerformanceCounter）				【実装済み】
-   │   └── JobSystem				（マルチスレッドタスク管理）			【実装済み】
+   │   └── JobSystem				（マルチスレッドタスク管理）			【未実装】
    ├── Platform
    │   ├── WindowSystem
    │   │   ├── MainWindow			（IWindow）								【実装済み】

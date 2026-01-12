@@ -118,7 +118,7 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 	//dc->PSSetSamplers(1, 2, nullSampler);
 
 	{
-	//return;
+	return;
 	// ================================
 	// ImGui Debug Draw（暫定）
 	// ================================

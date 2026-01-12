@@ -235,7 +235,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 #ifdef _DEBUG_BUILD
 	sceneManager->LoadScene(initialScene);
 #else
-	sceneManager->LoadFromFilePath(DEFAULT_SCENE);
+	sceneManager->LoadFromFilePath(configSystem->appConfig.startSceneFilePath);
 #endif // _DEBUG
 
 	while(!windowService->GetMainWindow()->ShouldClose()){

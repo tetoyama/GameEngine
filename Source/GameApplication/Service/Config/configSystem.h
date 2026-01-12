@@ -38,6 +38,9 @@ public:
 		if(root["AppType"])
 			appConfig.AppType = static_cast<APPTYPE>(root["AppType"].as<int>());
 
+		if(root["StartScene"])
+			appConfig.startSceneFilePath = root["StartScene"].as<std::string>();
+
 		if(root["Vsync"])
 			appConfig.Vsync = root["Vsync"].as<bool>();
 
@@ -83,6 +86,7 @@ public:
 		out << YAML::BeginMap;
 
 		out << YAML::Key << "AppType" << YAML::Value << static_cast<int>(appConfig.AppType);
+		out << YAML::Key << "StartScene" << YAML::Value << appConfig.startSceneFilePath;
 		out << YAML::Key << "Vsync" << YAML::Value << appConfig.Vsync;
 		out << YAML::Key << "ShaderPath" << YAML::Value << appConfig.ShaderPath;
 
