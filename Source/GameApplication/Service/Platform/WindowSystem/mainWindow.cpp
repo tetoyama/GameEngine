@@ -11,6 +11,8 @@
 #include "Graphics/mainRenderer.h"
 #include "Platform/InputSystem/InputSystem.h"
 #include <Icon/icon.h>
+#include "Config/appConfig.h"
+
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -25,7 +27,11 @@ MainWindow::~MainWindow(){
 	UninitIcon();
 }
 
-bool MainWindow::Create(HINSTANCE hInstance, int nCmdShow){
+bool MainWindow::Create(const HINSTANCE hInstance, const int nCmdShow, const APPCONFIG appconfig){
+
+	m_width = appconfig.Width;
+	m_height = appconfig.Height;
+
 	// ウィンドウクラス名
 	const wchar_t CLASS_NAME[] = L"GameWindowClass";
 
@@ -39,7 +45,7 @@ bool MainWindow::Create(HINSTANCE hInstance, int nCmdShow){
 	RegisterClass(&wc);
 
 	//ウィンドウサイズの調整
-	RECT rc = {0,0,DEFAULT_WINDOW_WIDTH ,DEFAULT_WINDOW_HEIGHT};
+	RECT rc = {0,0,m_width ,m_height};
 
 	DWORD DwStyle = WS_OVERLAPPEDWINDOW;
 
@@ -77,6 +83,10 @@ bool MainWindow::Create(HINSTANCE hInstance, int nCmdShow){
 		return false;
 	}
 	PollEvents();
+
+	if(appconfig.FullScreen){
+		SetBorderlessFullscreen(true);
+	}
 
 	return true;
 }

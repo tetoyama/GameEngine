@@ -1,16 +1,19 @@
 #pragma once
 #include "IWindow.h"
 
+struct APPCONFIG;
+
 class MainRenderer;
 class ImGuiService;
 class InputService;
+
 class MainWindow: public IWindow
 {
 public:
 	MainWindow();
 	~MainWindow();
 
-	bool Create(HINSTANCE hInstance, int nCmdShow) override;
+	bool Create(const HINSTANCE hInstance, const int nCmdShow, const APPCONFIG appconfig) override;
 	void PollEvents() override;
 	HWND GetHWND() const override;
 	bool ShouldClose() const override;

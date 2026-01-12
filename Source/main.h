@@ -6,81 +6,91 @@
 GameApplication
 │
 ├── Services
-│   ├── ConfigService             （yaml-cpp）【未実装】
-│   ├── IconService               （wincodec, commdlg）【未実装】
-│   └── ProgressStateService      （shobjidl）【未実装】
-│
+│   ├── ConfigService				（yaml-cpp）							【実装済み】
+│   ├── IconService					（wincodec, commdlg）					【実装済み】
+│   └── ProgressStateService		（shobjidl）							【実装済み】
 └── Engine
-   │
    ├── Runtime
-   │   ├── TimeService              （QueryPerformanceCounter）【実装済み】
-   │   └── JobSystem                （マルチスレッドタスク管理）【未実装】
-   │
+   │   ├── TimeService				（QueryPerformanceCounter）				【実装済み】
+   │   └── JobSystem				（マルチスレッドタスク管理）			【実装済み】
    ├── Platform
    │   ├── WindowSystem
-   │   │   ├── MainWindow          （IWindow）【実装済み】
-   │   │   └── SubWindow           【未実装】
-   │   ├── InputSystem
-   │   │   ├── Keyboard            【実装済み】
-   │   │   ├── Mouse               【実装済み】
-   │   │   └── GamePad             （XInput）【実装済み】
-   │   ├── AudioSystem             （XAudio2）【実装済み】
-   │   └── NetworkSystem           （ASIO, Winsock2）【未実装】
-   │
+   │   │   ├── MainWindow			（IWindow）								【実装済み】
+   │   │   └── SubWindow													【未実装】
+   │   ├── InputSystem														【実装済み】
+   │   ├── AudioSystem				（XAudio2）								【実装済み】
+   │   └── NetworkSystem			（ASIO, Winsock2）						【未実装】
    ├── Graphics
-   │   ├── GraphicsContext		（DirectX 11 デバイス・コンテキスト）	【実装済み】
-   │   ├── RenderEffectSystem	(Effekseer）							【実装済み】
+   │   ├── GraphicsContext			（DirectX 11 デバイス・コンテキスト）	【実装済み】
+   │   ├── RenderEffectSystem		（Effekseer）							【実装済み】
    │   └── RenderPipeline
-   │       ├── MainRenderer		(MainWindow用 DirectX11 SwapChain)		【実装済み】
-   │       └── SubRenderer		(SubWindow用 DirectX11 SwapChain)		【未実装】
-   │
+   │       ├── MainRenderer			（MainWindow用 DirectX11 SwapChain）	【実装済み】
+   │       └── SubRenderer			（SubWindow用 DirectX11 SwapChain）		【未実装】
    ├── Resources
-   │   └── ResourceService          （ローダー管理・依存解決）【不完全実装】
-   │       ├── FontLoader								【未実装】
-   │       ├── ShaderLoader								【実装済み】
-   │       ├── TextureLoader(DirectXTex）				【実装済み】
-   │       ├── ModelLoader(Assimp）						【実装済み】
-   │       ├── AudioLoader								【実装済み】
-   │       ├── EffectLoader								【実装済み】
-   │       └── PrefabLoader								【未実装】
-   │
+   │   └── ResourceService			（ローダー管理・依存解決）				【実装済み】
+   │       ├── TextureData													【実装済み】
+   │       ├── ModelData			（Assimp使用）							【実装済み】
+   │       ├── VertexShaderData												【実装済み】
+   │       ├── PixelShaderData												【実装済み】
+   │       ├── AudioData													【実装済み】
+   │       └── EffectData													【実装済み】
    ├── DebugTools
-   │   ├── DebugSystem									【実装済み】
-   │   └── ImGuiService（Dear ImGui）					【実装済み】
-   │       【Depends On】 → GraphicsContext
-   │
+   │   ├── DebugSystem														【実装済み】
+   │   └── ImGuiService（Dear ImGui）										【実装済み】
+   │ 	【Depends On】 → GraphicsContext
    ├── Scene
-   │   ├── SceneManagerContext							【実装済み】
-   │   ├── SceneManager
-   │   │   【Depends On】 → TimeService, InputSystem		【実装済み】
-   │   └── Scene（ECSWorld）
-   │       ├── SceneContext								【実装済み】
-   │       ├── EntityRegistry							【実装済み】
-   │       ├── ComponentPools
-   │       │   ├── TransformComponent					【実装済み】
-   │       │   ├── MeshRendererComponent				【実装済み】
-   │       │   ├── RigidbodyComponent					【実装済み】
-   │       │   ├── ScriptComponent（C#バインド）		【未実装】
-   │       │   └── CustomComponents					【実装済み】
-   │       └── Systems
-   │           ├── TransformSystem						【実装済み】
-   │           ├── RenderSystem							【実装済み】
-   │           ├── PhysicsSystem（PhysX）				【実装済み】
-   │           ├── ScriptSystem（.NET連携）				【未実装】
-   │           └── その他追加System						【未実装】
-   │
-   ├── Scripting（将来導入）
-   │   ├── ScriptEngine			（.NET Runtime ホスト）	【未実装】
-   │   ├── ScriptBinder			（C++ API → C#）		【未実装】
-   │   ├── ScriptLoader			（C# DLL読込）			【未実装】
-   │   └── ScriptComponent		（Entityにアタッチ）	【未実装】
-   │       ※ C# 側では IScript 実装
-   │
-   ├── EditorExtension（将来導入）
-   │   ├── ToolRegistry	（C#からUIや機能登録）			【未実装】
-   │   └── EditorBridge	（エンジンとエディタの接着）	【未実装】
-   │
-   └── Engine
-		├── Engine		（初期化・更新・描画ループ）	【実装済み】
-		└── EngineContext（EngineContext生成・DI）		【実装済み】
+   │   ├── SceneManagerContext												【実装済み】
+   │   └── SceneManager
+   │        ├── SystemRegistry												【実装済み】
+   │        │   ├── TransformSystem										【実装済み】
+   │        │   ├── CameraSystem											【実装済み】
+   │        │   ├── RenderSystem											【実装済み】
+   │        │   ├── AudioSystem											【実装済み】
+   │        │   ├── ParticleSystem											【実装済み】
+   │        │   ├── EffectSystem											【実装済み】
+   │        │   ├── TerrainSystem											【実装済み】
+   │        │   ├── PhysicSystem											【実装済み】
+   │        │   ├── CSharpScriptSystem										【実装済み】
+   │        │   ├── CustomScriptSystem										【実装済み】
+   │        │   └── WaveSystem												【実装済み】
+   │        └── Active Scenes												【実装済み】
+   │            ├── EntityRegistry											【実装済み】
+   │            └── ComponentRegistry										【実装済み】
+   │                ├── NameComponent										【実装済み】
+   │                ├── TransformComponent									【実装済み】
+   │                ├── ColliderComponent									【実装済み】
+   │                ├── AudioComponent										【実装済み】
+   │                ├── RenderLayerComponent								【実装済み】
+   │                ├── OrderInLayerComponent								【実装済み】
+   │                ├── MaterialComponent									【実装済み】
+   │                ├── TextureComponent									【実装済み】
+   │                ├── BumpMapComponent									【実装済み】
+   │                ├── LightComponent										【実装済み】
+   │                ├── MeshRendererComponent								【実装済み】
+   │                ├── ModelRendererComponent								【実装済み】
+   │                ├── BillBoardRendererComponent							【実装済み】
+   │                ├── SpriteRendererComponent								【実装済み】
+   │                ├── TerrainComponent									【実装済み】
+   │                ├── WaveComponent										【実装済み】
+   │                ├── OutlineComponent									【未実装】
+   │                ├── ParticleComponent									【実装済み】
+   │                ├── EffectComponent										【実装済み】
+   │                ├── CameraComponent										【実装済み】
+   │                ├── CustomScriptComponent								【実装済み】
+   │                ├── CSharpScriptComponent								【実装済み】
+   │                ├── SetScene											【実装済み】
+   │                ├── ScoreManager										【実装済み】
+   │                ├── ScoreSprite											【実装済み】
+   │                ├── PlayerController									【実装済み】
+   │                ├── GameTimeManager										【実装済み】
+   │                ├── TimerSprite											【実装済み】
+   │                ├── CameraController									【実装済み】
+   │                ├── BallController										【実装済み】
+   │                ├── EnemyController										【実装済み】
+   │                ├── FadeInSprite										【実装済み】
+   │                ├── FadeOutSprite										【実装済み】
+   │                ├── FadeSetScene										【実装済み】
+   │                └── GN31												【実装済み】
+   ├── Scripting（将来導入）													【未実装】
+   └── EditorExtension（将来導入）											【未実装】
 */

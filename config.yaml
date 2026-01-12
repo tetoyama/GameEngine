@@ -1,10 +1,9 @@
 AppType: 0
 Vsync: false
 ShaderPath: Shader/AutoGen/
-ShaderMaterial_FilePath: UnlitShader.hlsli
-ShaderMaterial_EntryPoint: ShadeMaterial_Unlit
-ShaderMaterial_FilePath: PBRShader.hlsli
-ShaderMaterial_EntryPoint: ShadeMaterial_PBR
+ShaderMaterial:
+  UnlitShader.hlsli: ShadeMaterial_Unlit
+  PBRShader.hlsli: ShadeMaterial_PBR
 FullScreen: false
 Width: 1280
 Height: 720

@@ -1,8 +1,6 @@
 #pragma once
 #include <windows.h>
 
-#define TARGET_FPS (60)
-
 // アプリケーション全体を管理するクラス
 class GameApplication
 {

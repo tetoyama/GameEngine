@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GameApplication.h"
+#include "buildSetting.h"
 #define SAMPLE_LENGTH (TARGET_FPS)
 
 #include "Editor/editorService.h"

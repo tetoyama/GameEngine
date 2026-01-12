@@ -59,9 +59,10 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		OutputDebugStringA("configSystem の初期化に失敗しました。\n");
 	}
 
-    if (!windowService || !windowService->Initialize(hInstance, nCmdShow)) {
+    if (!windowService || !windowService->Initialize(hInstance, nCmdShow,configSystem->appConfig)) {
         OutputDebugStringA("WindowService の初期化に失敗しました。\n");
     }
+	auto mainWindow = windowService->GetMainWindow();
 
 	InitTaskBar(windowService->GetMainWindow()->GetHWND());
 
@@ -74,7 +75,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	}
 
     if (!graphicsContext || 
-        !graphicsContext->Initialize(windowService->GetMainWindow()->GetHWND(), DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)) {
+        !graphicsContext->Initialize(windowService->GetMainWindow()->GetHWND(), mainWindow->GetWidth(), mainWindow->GetHeight())){
         OutputDebugStringA("GraphicsContext の初期化に失敗しました。\n");
     }
 
@@ -95,7 +96,6 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	}
 
     // メインウィンドウに各サービスを紐付け
-    auto mainWindow = dynamic_cast<MainWindow*>(windowService->GetMainWindow().get());
     if (mainWindow) {
         mainWindow->SetMainRenderer(mainRenderer.get());
         mainWindow->SetImGuiSystem(imguiService.get());
@@ -184,6 +184,11 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 	auto windowService = context->Get<WindowService>();
 	if (!windowService) {
 		OutputDebugStringA("WindowService サービスの取得に失敗しました。\n");
+		return;
+	}
+	auto configSystem = context->Get<ConfigSystem>();
+	if(!configSystem){
+		OutputDebugStringA("ConfigSystem サービスの取得に失敗しました。\n");
 		return;
 	}
 	auto timeService = context->Get<TimeService>();
@@ -276,7 +281,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 				}
 			}
 			imguiService->End();
-			mainRenderer->EndFrame(0);
+			mainRenderer->EndFrame(configSystem->appConfig.Vsync);
 		}
 		timeService->EndDraw();
 	}

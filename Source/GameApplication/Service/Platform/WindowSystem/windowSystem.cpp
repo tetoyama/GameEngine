@@ -1,9 +1,10 @@
 #include "windowSystem.h"
 #include "mainWindow.h"
+#include "Config/appConfig.h"
 
-bool WindowService::Initialize(HINSTANCE hInstance, int nCmdShow){
+bool WindowService::Initialize(const HINSTANCE hInstance, const int nCmdShow, const APPCONFIG appconfig){
 	m_MainWindow = std::make_shared<MainWindow>();
-	return m_MainWindow->Create(hInstance, nCmdShow);
+	return m_MainWindow->Create(hInstance, nCmdShow,appconfig);
 }
 
 void WindowService::PollEvents(){

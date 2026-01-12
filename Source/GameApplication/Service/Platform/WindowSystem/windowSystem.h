@@ -4,13 +4,10 @@
 #include "IWindow.h"
 #include "mainWindow.h"
 
-#define DEFAULT_WINDOW_WIDTH 1280
-#define DEFAULT_WINDOW_HEIGHT 720
-
 class WindowService : public IService
 {
 public:
-	bool Initialize(HINSTANCE hInstance, int nCmdShow);
+	bool Initialize(const HINSTANCE hInstance, const int nCmdShow, const APPCONFIG appconfig);
 	void Shutdown()override {}
 
 	void PollEvents();

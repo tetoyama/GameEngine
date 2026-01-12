@@ -5,6 +5,11 @@
 #define TEMP_SAVE_PATH "Asset/Temp/"
 #define CONFIG_PATH L"config.yaml"
 
+#define DEFAULT_WINDOW_WIDTH 1280
+#define DEFAULT_WINDOW_HEIGHT 720
+
+#define TARGET_FPS (60)
+
 #ifdef _DEBUG 
 
 #define _DEBUG_BUILD
