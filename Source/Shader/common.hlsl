@@ -60,6 +60,9 @@ struct LIGHT
 
 cbuffer LightBuffer : register(b5)
 {
+    int ActiveLightCount;
+    int ShadowAtlasCount;
+    int2 Dummy;
     LIGHT Lights[LIGHT_MAX_COUNT]; // LIGHT_MAX_COUNT
 }
 

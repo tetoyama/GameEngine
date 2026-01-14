@@ -5,6 +5,7 @@
 #include "Backends/myVector2.h"
 #include "Resources/Data/shaderData.h"
 #include "../renderPhase.h"
+#include "../renderLayer.h"
 #include "../cameraEntityData.h"
 
 struct RenderPassContext {
@@ -16,7 +17,7 @@ struct RenderPassContext {
 		const Vector2& setScreenSize
 	);
 
-	bool* renderLayerVisibility = nullptr;
+	bool renderLayerVisibility[RenderLayer::MaxRenderLayer];
 	RenderPhase passPhase = RenderPhase::PHASE_SHADOW;
 
 	DirectX::XMFLOAT4 cameraPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);

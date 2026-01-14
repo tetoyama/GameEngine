@@ -166,11 +166,9 @@ void GraphicsContext::SetMaterial(const MATERIAL& material){
    m_DeviceContext->UpdateSubresource(m_MaterialBuffer, 0, nullptr, &material, 0, 0);
 }
 
-void GraphicsContext::SetLight(LIGHT* light){
+void GraphicsContext::SetLight(LIGHT_BUFFER* light){
 
-	for(int i = 0; i < LIGHT_MAX_COUNT; i++){
-		m_LightData[i] = light[i];
-	}
+	m_LightData = *light;
 	m_DeviceContext->UpdateSubresource(m_LightBuffer, 0, nullptr, light, 0, 0);
 }
 
@@ -382,7 +380,7 @@ bool GraphicsContext::CreateConstantBuffers(){
 	m_DeviceContext->PSSetConstantBuffers(4, 1, &m_UVMatrixBuffer);
 	assert(SUCCEEDED(hr));
 
-	bufferDesc.ByteWidth = sizeof(LIGHT) * LIGHT_MAX_COUNT;
+	bufferDesc.ByteWidth = sizeof(LIGHT_BUFFER);
 
 	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_LightBuffer);
 	m_DeviceContext->VSSetConstantBuffers(5, 1, &m_LightBuffer);
@@ -411,14 +409,14 @@ bool GraphicsContext::CreateConstantBuffers(){
 	assert(SUCCEEDED(hr));
 
 	// ライト初期化
-	LIGHT light[LIGHT_MAX_COUNT];
-	light[0].Enable = true;
-	light[0].Direction	= DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
-	light[0].Ambient	= DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	light[0].Diffuse	= DirectX::XMFLOAT4(1.5f, 1.5f, 1.5f, 1.0f);
-	light[0].Position = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	LIGHT_BUFFER light;
+	light.lights[0].Enable = true;
+	light.lights[0].Direction	= DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
+	light.lights[0].Ambient	= DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	light.lights[0].Diffuse	= DirectX::XMFLOAT4(1.5f, 1.5f, 1.5f, 1.0f);
+	light.lights[0].Position = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 
-	SetLight(light);
+	SetLight(&light);
 
 	// マテリアル初期化
 	MATERIAL material{};

@@ -64,7 +64,7 @@ LightingResult ComputeLightingFromMaterialInput(
     float3 baseColor = input.baseColor.rgb;
 
     [loop]
-    for (int i = 0; i < LIGHT_MAX_COUNT; i++)
+    for (int i = 0; i < ActiveLightCount; i++)
     {
         if (Lights[i].Enable == 0)
             continue;

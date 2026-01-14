@@ -8,9 +8,12 @@ float4 ShadeMaterial_PBR(MaterialInput materialInput)
 
     float3 diffuseColor = materialInput.baseColor.rgb * lighting.diffuse;
     float3 specularColor = lighting.specular;
-    float3 ambientColor = lighting.ambient;
+
+    float3 ambientColor = materialInput.baseColor.rgb * lighting.ambient;
 
     float3 finalColor = diffuseColor + specularColor + ambientColor;
+
+    finalColor = saturate(finalColor);
 
     return float4(finalColor, materialInput.baseColor.a);
 }

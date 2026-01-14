@@ -135,6 +135,9 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 	// ----- Context -----
 	RenderPassContext newCtx = ctx;
 	newCtx.passPhase = RenderPhase::PHASE_GBUFFER;
+	newCtx.renderLayerVisibility[RenderLayer::SortTransparent3D] = false;
+	newCtx.renderLayerVisibility[RenderLayer::Transparent3D] = false;
+	newCtx.renderLayerVisibility[RenderLayer::OverlayUI] = false;
 
 	// ----- Camera -----
 	CAMERA cam{};

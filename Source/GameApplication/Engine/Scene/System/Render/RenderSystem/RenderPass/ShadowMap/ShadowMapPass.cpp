@@ -82,13 +82,14 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 	Vector3 mainCamFront = ctx.cameraData.transformComponent->front();
 
 	// ======== Directional Light 取得 ========
-	LIGHT lights[LIGHT_MAX_COUNT];
+	LIGHT_BUFFER light;
 
 	// 全ライトを無効化で初期化
 	for(int i = 0; i < LIGHT_MAX_COUNT; i++){
-		lights[i].Enable = false;
+		light.lights[i].Enable = false;
 	}
 	int lightCount = 0;
+	int shadowCount = 0;
 
 	bool foundLight = false;
 	for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
@@ -97,8 +98,8 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 		if(lightEntities.empty()) continue;
 
 		for(Entity ent : lightEntities){
-			LightComponent* light = sctx->component->GetComponent<LightComponent>(ent);
-			if(!light) continue;
+			LightComponent* lightcomp = sctx->component->GetComponent<LightComponent>(ent);
+			if(!lightcomp) continue;
 
 			// 最大数を超えたら安全に打ち切る
 			if(lightCount >= LIGHT_MAX_COUNT){
@@ -107,12 +108,12 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 			TransformComponent* transform = sctx->component->GetComponent<TransformComponent>(ent);
 			if(transform){
-				light->light.Position = DirectX::XMFLOAT4(transform->position.x, transform->position.y, transform->position.z, 0.0f);
-				light->light.Direction = DirectX::XMFLOAT4(transform->front().x, transform->front().y, transform->front().z, 0.0f);
-				if(light->light.CastShadow){
-					if(light->light.LightType == LIGHT_TYPE_DIRECTIONAL){
+				lightcomp->light.Position = DirectX::XMFLOAT4(transform->position.x, transform->position.y, transform->position.z, 0.0f);
+				lightcomp->light.Direction = DirectX::XMFLOAT4(transform->front().x, transform->front().y, transform->front().z, 0.0f);
+				if(lightcomp->light.CastShadow){
+					if(lightcomp->light.LightType == LIGHT_TYPE_DIRECTIONAL){
 						// ======== シャドウカメラ計算 ========
-						float shadowSize = light->light.Param.x / 10.0f;
+						float shadowSize = lightcomp->light.Param.x / 10.0f;
 						if (shadowSize <= 50.0f) {
 							shadowSize = 50.0f;
 						}
@@ -135,12 +136,12 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 						newContext.cameraPosition = XMFLOAT4(lightCamPos.x, lightCamPos.y, lightCamPos.z, 0);
 						newContext.viewMatrix = lightView;
 						newContext.projectionMatrix = lightProj;
-						light->light.Position = newContext.cameraPosition;
-						XMStoreFloat4x4(&light->light.LightView, DirectX::XMMatrixTranspose(newContext.viewMatrix));
-						XMStoreFloat4x4(&light->light.LightProjection, DirectX::XMMatrixTranspose(newContext.projectionMatrix));
+						lightcomp->light.Position = newContext.cameraPosition;
+						XMStoreFloat4x4(&lightcomp->light.LightView, DirectX::XMMatrixTranspose(newContext.viewMatrix));
+						XMStoreFloat4x4(&lightcomp->light.LightProjection, DirectX::XMMatrixTranspose(newContext.projectionMatrix));
 
 						foundLight = true;
-					} else if (light->light.LightType == LIGHT_TYPE_SPOT && light->light.CastShadow) {
+					} else if (lightcomp->light.LightType == LIGHT_TYPE_SPOT && lightcomp->light.CastShadow) {
 						// --- 位置と forward 取得 ---
 						XMVECTOR eye = transform->position.ToXMVECTOR();
 						XMVECTOR forward = XMVector3Normalize(transform->front().ToXMVECTOR());
@@ -165,15 +166,15 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 						// ------------------------------
 						//      ライト行列の計算
 						// ------------------------------
-						float inner = light->light.Param.y;
-						float outer = light->light.Param.z;
+						float inner = lightcomp->light.Param.y;
+						float outer = lightcomp->light.Param.z;
 						if (outer <= 0.01f) {
 							outer = 0.01f;
 						}
 						float fov = XMConvertToRadians(outer) * 2.0f;
 
 						float nearZ = 1.0f;
-						float farZ = light->light.Param.x * 1000.0f;
+						float farZ = lightcomp->light.Param.x * 1000.0f;
 						if (nearZ > farZ) {
 							farZ = nearZ + 1.0f;
 						}
@@ -181,13 +182,13 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 						XMMATRIX lightProj = XMMatrixPerspectiveFovLH(fov, 1.0f, nearZ, farZ);
 
 						// 転置して格納
-						XMStoreFloat4x4(&light->light.LightView, XMMatrixTranspose(lightView));
-						XMStoreFloat4x4(&light->light.LightProjection, XMMatrixTranspose(lightProj));
+						XMStoreFloat4x4(&lightcomp->light.LightView, XMMatrixTranspose(lightView));
+						XMStoreFloat4x4(&lightcomp->light.LightProjection, XMMatrixTranspose(lightProj));
 
 
 						foundLight = true;
 
-					} else if (light->light.LightType == LIGHT_TYPE_POINT && light->light.CastShadow) {
+					} else if (lightcomp->light.LightType == LIGHT_TYPE_POINT && lightcomp->light.CastShadow) {
 						// --- 位置と forward 取得 ---
 						XMVECTOR eye = transform->position.ToXMVECTOR();
 						XMVECTOR forward = XMVector3Normalize(transform->front().ToXMVECTOR());
@@ -216,7 +217,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 						float fov = XM_PIDIV2 * 1.5f;
 
 						float nearZ = 1.0f;
-						float farZ = light->light.Param.x * 1000.0f;
+						float farZ = lightcomp->light.Param.x * 1000.0f;
 						if (nearZ > farZ) {
 							farZ = nearZ + 1.0f;
 						}
@@ -224,8 +225,8 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 						XMMATRIX lightProj = XMMatrixPerspectiveFovLH(fov, 1.0f, nearZ, farZ);
 
 						// 転置して格納
-						XMStoreFloat4x4(&light->light.LightView, XMMatrixTranspose(lightView));
-						XMStoreFloat4x4(&light->light.LightProjection, XMMatrixTranspose(lightProj));
+						XMStoreFloat4x4(&lightcomp->light.LightView, XMMatrixTranspose(lightView));
+						XMStoreFloat4x4(&lightcomp->light.LightProjection, XMMatrixTranspose(lightProj));
 
 
 						foundLight = true;
@@ -233,37 +234,43 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 				}
 			}
 			// 現在のライトスロットにコピー
-			lights[lightCount] = light->light;
+			light.lights[lightCount] = lightcomp->light;
 			lightCount++;
+			if(lightcomp->light.CastShadow){
+				shadowCount++;
+			}
 		}
 	}
-	graphicsContext->SetLight(&lights[0]);
+	light.ActiveLightCount = lightCount;
+	light.ShadowAtlasCount = shadowCount;
+	graphicsContext->SetLight(&light);
 
 	if(!foundLight){
 		return; // ライトが無い場合は中断
 	}
 
-	int ATLAS_GRID = (int)std::sqrt((float)LIGHT_MAX_COUNT);
-	if(ATLAS_GRID * ATLAS_GRID < LIGHT_MAX_COUNT){
+	int ATLAS_GRID = (int)std::sqrt((float)shadowCount);
+	if(ATLAS_GRID * ATLAS_GRID < shadowCount){
 		ATLAS_GRID++;
 	}
 	const int ATLAS_SIZE = (int)shadowRenderTarget->size.x;
 	const int TILE_SIZE = ATLAS_SIZE / ATLAS_GRID;
+	int shadowNum = 0;
 
 	for(int i = 0; i < LIGHT_MAX_COUNT; i++){
 
-		int gx = i % ATLAS_GRID;
-		int gy = i / ATLAS_GRID;
+		int gx = shadowNum % ATLAS_GRID;
+		int gy = shadowNum / ATLAS_GRID;
 
 		int tileX = gx * TILE_SIZE;
 		int tileY = gy * TILE_SIZE;
 
-		if(lights[i].Enable && lights[i].CastShadow){
+		if(light.lights[i].Enable && light.lights[i].CastShadow){
 
 			// ======== GraphicsContext に反映 ========
-			newContext.cameraPosition = lights[i].Position;
-			newContext.viewMatrix = DirectX::XMMatrixTranspose(XMLoadFloat4x4(&lights[i].LightView));
-			newContext.projectionMatrix = DirectX::XMMatrixTranspose(XMLoadFloat4x4(&lights[i].LightProjection));
+			newContext.cameraPosition = light.lights[i].Position;
+			newContext.viewMatrix = DirectX::XMMatrixTranspose(XMLoadFloat4x4(&light.lights[i].LightView));
+			newContext.projectionMatrix = DirectX::XMMatrixTranspose(XMLoadFloat4x4(&light.lights[i].LightProjection));
 
 			// GraphicsContext に反映
 			CAMERA camSetter{};
@@ -304,6 +311,8 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 					}
 				}
 			}
+
+			shadowNum++;
 		}
 	}
 

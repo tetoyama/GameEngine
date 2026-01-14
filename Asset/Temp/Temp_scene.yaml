@@ -84,7 +84,7 @@ Entities:
             y: 0
             z: 0
             w: 1
-          Shininess: 10
+          Shininess: 81.5
           TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
@@ -92,7 +92,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 34944.2734
+        AnimationTime: 59812.0781
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -103,10 +103,10 @@ Entities:
           y: 50
           z: 0
         Rotation:
-          - 0.420735508
-          - 0.420735508
-          - -0.229848862
-          - 0.770151138
+          - 0.271889538
+          - 0.455836058
+          - -0.148533911
+          - 0.834402323
         Scale:
           x: 1
           y: 1
@@ -117,14 +117,14 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: -44.2719421
-          y: 86.086998
-          z: -30.7263527
+          x: -45.2229538
+          y: 33.2683945
+          z: -20.4068966
           w: 0
         Direction:
-          x: 0.454648674
-          y: -0.841471016
-          z: 0.291926563
+          x: 0.6799317
+          y: -0.589144766
+          z: 0.436579108
           w: 0
         Diffuse:
           x: 1
@@ -137,7 +137,7 @@ Entities:
           z: 0
           w: 1
         Param:
-          x: 1000
+          x: 500
           y: 0
           z: 0
           w: 0
@@ -145,18 +145,18 @@ Entities:
           -
             - 0.540302217
             - 0
-            - -0.841470957
-            - -1.93510437
+            - -0.841471076
+            - 7.26224899
           -
-            - 0.708073437
-            - 0.540302217
-            - 0.454648644
-            - -1.19551659
+            - 0.495748281
+            - 0.808027506
+            - 0.318316221
+            - 2.03326845
           -
-            - 0.454648674
-            - -0.841471016
-            - 0.291926533
-            - 101.537735
+            - 0.67993176
+            - -0.589144766
+            - 0.436579049
+            - 59.2576447
           -
             - 0
             - 0
@@ -164,20 +164,20 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0199999996
+            - 0.0399999991
             - 0
             - 0
             - 0
           -
             - 0
-            - 0.0199999996
+            - 0.0399999991
             - 0
             - 0
           -
             - 0
             - 0
-            - 0.00500250142
-            - -0.000500250142
+            - 0.0100100096
+            - -0.00100100099
           -
             - 0
             - 0
@@ -233,21 +233,21 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\sky.fbx
         isBlender: true
-        AnimationTime: 34944.2734
+        AnimationTime: 59812.0781
   - Entity: 4
     Components:
       - Component: NameComponent
         Name: Player
       - Component: TransformComponent
         Position:
-          x: 6.90492201
-          y: -8.65709012e-07
-          z: 0.366264045
+          x: -8.51616573
+          y: 5.60683134e-07
+          z: 5.67998171
         Rotation:
           - 0
-          - -0.965482771
+          - -0.955315828
           - 0
-          - 0.260467261
+          - 0.295587182
         Scale:
           x: 0.0100000016
           y: 0.00999999978
@@ -299,7 +299,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
         isBlender: false
-        AnimationTime: 34944.2734
+        AnimationTime: 59812.0781
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           mixamo.com: Asset\Model\Akai_Run.fbx
@@ -323,14 +323,14 @@ Entities:
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: 1.19292307
-          y: 1.93989909
-          z: -1.53369808
+          x: -11.226366
+          y: 3.8111546
+          z: 1.42205763
         Rotation:
-          - -0.00404859986
-          - 0.584961057
-          - 0.00292002317
-          - 0.811046004
+          - 0.164573833
+          - 0.275498003
+          - -0.0479331538
+          - 0.945895672
         Scale:
           x: 0.999999881
           y: 0.999999821
@@ -339,32 +339,32 @@ Entities:
       - Component: CameraComponent
         isLock: true
         Target:
-          x: 6.90492201
-          y: -8.65709012e-07
-          z: 0.366264045
+          x: -8.51616573
+          y: 5.60683134e-07
+          z: 5.67998171
         NearClip: 0.00999999978
         FarClip: 1024
         FOV: 1
         viewMatrix:
           -
-            - 0.315624058
-            - 0.291046649
-            - 0.903146386
+            - 0.843606532
+            - 0.323571205
+            - 0.428520292
             - 0
           -
             - 0
-            - 0.951798201
-            - -0.306725115
+            - 0.798046052
+            - -0.602596343
             - 0
           -
-            - -0.948884308
-            - 0.0968098268
-            - 0.30041042
+            - -0.536961794
+            - 0.508354187
+            - 0.673236907
             - 0
           -
-            - -1.83181715
-            - -2.04511166
-            - -0.0216294527
+            - 10.2342262
+            - -0.131857157
+            - 6.14993191
             - 1
         nextLinkId: 7
         nextPinId: 15
@@ -374,14 +374,14 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\BrightPass.cso
             NodePos:
-              x: -514.912964
-              y: 52.3449097
+              x: 55.0870361
+              y: 32.3449097
             InputPins:
               - 2
               - 4
             OutputPin: 3
             Param:
-              x: 0.899999976
+              x: 0.949999988
               y: 0
               z: 0
               w: 0
@@ -390,14 +390,14 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\BlurHorizontal.cso
             NodePos:
-              x: -289.912933
-              y: 51.3449097
+              x: 280.087067
+              y: 31.3449097
             InputPins:
               - 5
               - 7
             OutputPin: 6
             Param:
-              x: 10
+              x: 20
               y: 0
               z: 0
               w: 0
@@ -406,14 +406,14 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\BlurVertical.cso
             NodePos:
-              x: -65.9129333
-              y: 49.3449097
+              x: 504.087067
+              y: 29.3449097
             InputPins:
               - 8
               - 10
             OutputPin: 9
             Param:
-              x: 10
+              x: 20
               y: 0
               z: 0
               w: 0
@@ -422,8 +422,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\CompositeBloom.cso
             NodePos:
-              x: 171.087036
-              y: 130.34491
+              x: 741.087036
+              y: 110.34491
             InputPins:
               - 11
               - 13
@@ -468,14 +468,14 @@ Entities:
         ScreenInput:
           Name: ""
           NodePos:
-            x: -635.912964
-            y: 334.34491
+            x: -65.9129639
+            y: 314.34491
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 400.68689
-            y: 334.147705
+            x: 970.68689
+            y: 314.147705
           InputPins:
             - 1
       - Component: CameraController
@@ -490,7 +490,7 @@ Entities:
         Name: Roof
       - Component: TransformComponent
         Position:
-          x: 7.85336685
+          x: -7.63753033
           y: 12.3310642
           z: 1.97791302
         Rotation:
@@ -524,7 +524,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 34944.2734
+        AnimationTime: 59812.0781
   - Entity: 7
     Components:
       - Component: NameComponent
@@ -891,32 +891,32 @@ Entities:
         Name: Entity
       - Component: TransformComponent
         Position:
-          x: -7.71899986
-          y: 1.77027273
-          z: -4.23400021
+          x: -12.0486889
+          y: 4.29865694
+          z: -6.9068222
         Rotation:
-          - -0.0249973964
-          - 0
-          - 0
-          - 0.999687493
+          - 6.98615499e-10
+          - 0.104807027
+          - 6.62903243e-09
+          - 0.99449259
         Scale:
-          x: 1
+          x: 0.999999881
           y: 0.999971926
-          z: 0.999971926
+          z: 0.999970436
         Parent: 0
       - Component: LightComponent
         Enable: 1
         LightType: 3
         CastShadow: 1
         Position:
-          x: -7.71899986
-          y: 1.77027273
-          z: -4.23400021
+          x: -12.0486889
+          y: 4.29865694
+          z: -6.9068222
           w: 0
         Direction:
-          x: 0
-          y: 0.0499791689
-          z: 0.99875021
+          x: 0.208459616
+          y: 2.55351296e-15
+          z: 0.97803098
           w: 0
         Diffuse:
           x: 0.899999976
@@ -935,20 +935,20 @@ Entities:
           w: 0
         LightView:
           -
+            - 0.97803098
+            - -5.29395643e-22
+            - -0.208459824
+            - 10.3441963
+          -
+            - 5.17765283e-22
             - 1
-            - -0
-            - 0
-            - 7.71899986
+            - -1.10357715e-22
+            - -4.29865694
           -
+            - 0.208459809
             - 0
-            - 0.998750269
-            - -0.0499792136
-            - -1.97967231
-          -
-            - 0
-            - 0.0499792136
-            - 0.998750269
-            - 4.14023209
+            - 0.97803092
+            - 9.2667532
           -
             - 0
             - 0
@@ -982,7 +982,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: -4.06946087
-          y: 0
+          y: -0.646774054
           z: 6.99680424
         Rotation:
           - -0
@@ -1047,9 +1047,9 @@ Entities:
             w: 1
           Diffuse:
             x: 1
-            y: 1
-            z: 1
-            w: 1
+            y: 0
+            z: 0
+            w: 0.393939376
           Specular:
             x: 0.0399999991
             y: 0.0399999991
@@ -1068,4 +1068,4 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 29336.0938
+        AnimationTime: 54203.9023

@@ -56,6 +56,15 @@ struct LIGHT
 	DirectX::XMFLOAT4	Param = DirectX::XMFLOAT4(100.0f, 0, 0, 0);
 };
 
+struct LIGHT_BUFFER
+{
+	int ActiveLightCount;
+	int ShadowAtlasCount;
+	int Dummy[2];
+
+	LIGHT lights[LIGHT_MAX_COUNT];
+};
+
 struct CAMERA
 {
 	DirectX::XMFLOAT4	CameraPosition;

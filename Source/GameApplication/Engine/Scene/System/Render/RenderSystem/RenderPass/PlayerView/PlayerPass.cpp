@@ -36,6 +36,7 @@
 #include <PhysX/PxScene.h>
 #include <System/Physic/physicSystem.h>
 #include <Component/textureComponent.h>
+#include <Component/materialComponent.h>
 
 
 void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
@@ -44,7 +45,7 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	m_context = context;
 
 	m_RenderableVertexShader= m_context->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-	m_RenderablePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\unlitUVTexturePS.cso");
+	m_RenderablePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\FowardRenderingPS.cso");
 
 	shadowMapPass = new ShadowMapPass();
 	shadowMapPass->Initialize(
@@ -71,13 +72,13 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	);
 
 	renderables.clear();
-	//renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
+	renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableBillBoard>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableMesh>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableParticle>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableSprite>());
-	//renderables.push_back(renderSystem->GetRenderable<RenderableTerrain>());
-	//renderables.push_back(renderSystem->GetRenderable<RenderableWave>());
+	renderables.push_back(renderSystem->GetRenderable<RenderableTerrain>());
+	renderables.push_back(renderSystem->GetRenderable<RenderableWave>());
 
 	editorRenderTarget = new RenderTarget(
 		context->PlayerScreenSize,
@@ -164,9 +165,8 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	ID3D11ShaderResourceView* initialSRV = editorRenderTarget->srv.Get();
 	initialSRV = lightingPass->pRenderTarget->srv.Get();
 
-	bool* pRenderLayer = ctx.renderLayerVisibility;
-
-
+	//Effekseer
+	effectPass->Execute(ctx);
 
 	graphicsContext->SetBlendMode(BlendMode::Alpha);
 
@@ -179,7 +179,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 			continue;
 		}
 
-		if (i != (int)RenderLayer::OverlayUI && i != (int)RenderLayer::SortTransparent3D) {
+		if (i != (int)RenderLayer::OverlayUI && i != (int)RenderLayer::SortTransparent3D && i != (int)RenderLayer::Transparent3D) {
 			continue;
 		}
 
@@ -196,15 +196,26 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 						continue;
 					}
 					for (auto renderable : renderables) {
+
+						int materialID = 0;
+						MaterialComponent* material =
+							context->component->GetComponent<MaterialComponent>(entity);
+						if(material){
+							materialID = material->ShaderID;
+						}
+
+						ObjectInfo info;
+						info.SceneID = (unsigned int)context;
+						info.ObjectID = entity;
+						info.MaterialID = materialID;
+						m_context->graphics->SetObjectInfo(info);
+
 						renderable->Execute(ctx, context, entity);
 					}
 				}
 			}
 		}
 	}
-	
-	//Effekseer
-	effectPass->Execute(ctx);
 
 	ID3D11RenderTargetView* nullRTV[1] = {nullptr};
 	deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);

@@ -84,7 +84,7 @@ float ShadowFactor(
 
     float depth = saturate(sp.z - 0.001);
 
-    uint grid = (uint) ceil(sqrt((float) LIGHT_MAX_COUNT));
+    uint grid = (uint) ceil(sqrt((float) ShadowAtlasCount));
     float tile = 1.0 / grid;
 
     uint gx = lightIndex % grid;

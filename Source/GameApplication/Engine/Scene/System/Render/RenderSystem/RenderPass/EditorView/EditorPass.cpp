@@ -127,8 +127,6 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 
 	ID3D11ShaderResourceView* initialSRV = editorRenderTarget->srv.Get();
 
-	bool* pRenderLayer = ctx.renderLayerVisibility;
-
 	CAMERA camera{};
 	camera.CameraPosition = ctx.cameraPosition;
 	graphicsContext->SetCamera(camera);
@@ -154,6 +152,11 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 
 		if (ctx.renderLayerVisibility[i] == false) {
 			continue;
+		}
+
+		if((RenderLayer)i == RenderLayer::Transparent3D){
+			//Effekseer
+			effectPass->Execute(ctx);
 		}
 
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
@@ -197,8 +200,6 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 			}
 		}
 	}
-	//Effekseer
-	effectPass->Execute(ctx);
 
 	//PhysX
 	physXDebugPass->Execute(ctx);

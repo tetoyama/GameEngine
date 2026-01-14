@@ -3,8 +3,9 @@
 #include "Component/cameraComponent.h"
 
 RenderPassContext::RenderPassContext(const RenderPhase& renderPass, bool* renderLayer, const CameraEntityData& data, const Vector2& setScreenSize) {
-
-	renderLayerVisibility = renderLayer;
+	for(int i = 0; i < RenderLayer::MaxRenderLayer; i++){
+		renderLayerVisibility[i] = renderLayer[i];
+	}
 	passPhase = renderPass;
 	cameraData = data;
 	screenSize = setScreenSize;

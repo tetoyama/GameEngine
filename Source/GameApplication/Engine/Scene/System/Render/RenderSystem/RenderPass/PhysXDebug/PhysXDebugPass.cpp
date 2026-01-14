@@ -40,8 +40,7 @@ void PhysXDebugPass::Execute(const RenderPassContext& ctx){
 	auto graphicsContext = m_context->graphics;
 	graphicsContext->SetDepthEnable(false);
 
-	bool* pRenderLayer = ctx.renderLayerVisibility;
-	if(pRenderLayer[(int)RenderLayer::Debug]){
+	if(ctx.renderLayerVisibility[(int)RenderLayer::Debug]){
 
 		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
 			auto context = scene->GetSceneContext();
