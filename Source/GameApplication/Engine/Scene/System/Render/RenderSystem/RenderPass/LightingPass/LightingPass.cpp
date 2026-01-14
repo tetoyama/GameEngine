@@ -77,10 +77,9 @@ void LightingPass::SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shado
 
 	ID3D11SamplerState* samplers[] =
 	{
-		shadowMapPass->shadowSampler,	// s1
 		m_LinearSampler					// s2
 	};
-	//dc->PSSetSamplers(1, 2, samplers);
+	dc->PSSetSamplers(2, 1, samplers);
 }
 
 
@@ -114,11 +113,11 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 	ID3D11ShaderResourceView* nullSRV[LightingSlot_Max] = {};
 	dc->PSSetShaderResources(0, LightingSlot_Max, nullSRV);
 
-	//ID3D11SamplerState* nullSampler[2] = { nullptr };
-	//dc->PSSetSamplers(1, 2, nullSampler);
+	ID3D11SamplerState* nullSampler[1] = { nullptr };
+	dc->PSSetSamplers(2, 1, nullSampler);
 
 	{
-	return;
+	//return;
 	// ================================
 	// ImGui Debug Draw（暫定）
 	// ================================

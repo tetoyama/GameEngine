@@ -87,7 +87,7 @@ void RenderTarget::Resize(const Vector2& _size, GraphicsContext* _graphicsContex
 			break;
         case RENDERTARGET_TYPE_COLOR_NO_DSV:
             {
-                td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+                td.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
                 td.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
                 HRESULT hr = device->CreateTexture2D(&td, nullptr, tex.ReleaseAndGetAddressOf());

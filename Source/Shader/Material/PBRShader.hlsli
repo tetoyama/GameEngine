@@ -5,9 +5,12 @@
 #include "MaterialFunc.hlsli"
 #endif
 
-float4 ShadeMaterial_PBR(MaterialInput input)
+float4 ShadeMaterial_PBR(MaterialInput materialInput)
 {
-    LightingResult lighting = ComputeLightingFromMaterialInput(input);
-    return float4(input.baseColor.rgb * lighting.diffuse + lighting.specular, input.baseColor.a);
+    //return float4(materialInput.worldPos, 1);
+    //return float4(materialInput.viewDir, 1);
+    
+    LightingResult lighting = ComputeLightingFromMaterialInput(materialInput);
+    return float4((materialInput.baseColor.rgb + +lighting.specular) * lighting.diffuse, materialInput.baseColor.a);
 }
 #endif

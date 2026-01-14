@@ -51,7 +51,7 @@ GBUFFER_OUT main(PS_IN In)
     float ao = 0;
     float emissive = dot(Material.Emission.rgb, float3(0.3333, 0.3333, 0.3333));
 
-    Out.Material = float4(roughness, metallic, ao, emissive);
+    Out.Material = float4(Material.Shininess, Material.Emission.rgb);
 
     // -----------------------------
     // Param (UINT4)

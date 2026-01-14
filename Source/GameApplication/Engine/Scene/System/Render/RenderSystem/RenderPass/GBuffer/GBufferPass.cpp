@@ -49,7 +49,7 @@ void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* co
 	pRenderTargets[GBufferSlot_Normal] =
 		new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR_NO_DSV);
 	pRenderTargets[GBufferSlot_Position] =
-		new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR);
+		new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR_NO_DSV);
 	pRenderTargets[GBufferSlot_Material] =
 		new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR_NO_DSV);
 	pRenderTargets[GBufferSlot_Param] =
@@ -189,7 +189,7 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 		}
 	}
 	{
-		return;
+		//return;
 		// ================================
 		// ImGui Debug Draw（暫定）
 		// ================================

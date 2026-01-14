@@ -46,7 +46,7 @@ void CameraSystem::Draw() {
 					camera->viewMatrix = DirectX::XMMatrixLookAtLH(
 						transform->position.ToXMVECTOR(),
 						(transform->position + transform->front()).ToXMVECTOR(),
-						(transform->position + transform->up()).ToXMVECTOR()
+						{0.0f, 1.0f, 0.0f}
 						);
 				}
 			}

@@ -58,7 +58,7 @@ LightingResult ComputeLightingFromMaterialInput(
 
     float3 worldPos = input.worldPos;
     float3 N = normalize(input.normal);
-    float3 V = normalize(input.viewDir);
+    float3 V = normalize(CameraPosition.xyz - input.worldPos);
     float shininess = input.shininess;
     float3 baseColor = input.baseColor.rgb;
 

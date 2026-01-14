@@ -120,12 +120,20 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
+
+
 	passCtx.passPhase = RenderPhase::PHASE_GBUFFER;
 	gBufferPass->Execute(ctx);
 
-
 	passCtx.passPhase = RenderPhase::PHASE_SHADOW;
 	shadowMapPass->Execute(ctx);
+
+
+	CAMERA camera{};
+	camera.CameraPosition = ctx.cameraPosition;
+	graphicsContext->SetCamera(camera);
+	graphicsContext->SetViewMatrix(ctx.viewMatrix);
+	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
 
 	passCtx.passPhase = RenderPhase::PHASE_LIGHTING;
 	lightingPass->SetTextureSlot(gBufferPass, shadowMapPass, graphicsContext);
@@ -158,11 +166,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 
 	bool* pRenderLayer = ctx.renderLayerVisibility;
 
-	CAMERA camera{};
-	camera.CameraPosition = ctx.cameraPosition;
-	graphicsContext->SetCamera(camera);
-	graphicsContext->SetViewMatrix(ctx.viewMatrix);
-	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
+
 
 	graphicsContext->SetBlendMode(BlendMode::Alpha);
 

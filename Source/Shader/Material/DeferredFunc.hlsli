@@ -20,6 +20,7 @@ Texture2D GPosition : register(t2);
 Texture2D GMaterial : register(t3);
 Texture2D<uint4> GParam : register(t4);
 SamplerState LinearSampler : register(s0);
+SamplerState PointSampler : register(s2);
 
 // ================= Shadow =================
 Texture2D ShadowMap : register(t5);
@@ -31,16 +32,26 @@ MaterialInput GetMaterialInput(PS_IN In)
     MaterialInput input;
     input.uv = In.TexCoord;
 
-    input.baseColor = float4(GAlbedo.Sample(LinearSampler, input.uv).rgb, 1);
-    input.normal = normalize(GNormal.Sample(LinearSampler, input.uv).rgb * 2.0 - 1.0);
-    input.worldPos = GPosition.Sample(LinearSampler, input.uv).rgb;
-    input.viewDir = normalize(CameraPosition.xyz - input.worldPos);
+    input.baseColor =
+        float4(GAlbedo.Sample(PointSampler, input.uv).rgb, 1);
 
-    float4 mat = GMaterial.Sample(LinearSampler, input.uv);
-    input.shininess = mat.r * 128.0;
+    input.normal =
+        normalize(GNormal.Sample(PointSampler, input.uv).rgb * 2.0 - 1.0);
+
+    uint w, h;
+    GPosition.GetDimensions(w, h);
+    int2 pixelCoord = int2(In.TexCoord.x * w, In.TexCoord.y * h);
+
+    float3 worldPos = GPosition.Load(int3(pixelCoord, 0)).xyz;
+    
+    input.worldPos = worldPos;
+
+    input.viewDir = normalize(CameraPosition.xyz - worldPos);
+
+    float4 mat = GMaterial.Sample(PointSampler, input.uv);
+    input.shininess = mat.r;
     input.emission = mat.g;
 
-    int2 pixelCoord = int2(In.Position.xy);
     uint4 param = GParam.Load(int3(pixelCoord, 0));
     input.sceneID = param.x;
     input.objectID = param.y;
@@ -48,6 +59,7 @@ MaterialInput GetMaterialInput(PS_IN In)
 
     return input;
 }
+
 
 
 float ShadowFactor(
