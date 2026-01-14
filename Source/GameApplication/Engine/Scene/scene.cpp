@@ -290,7 +290,7 @@ void Scene::BuildDefaultScene(){
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(-20.0f, 50.0f,0.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
-		transform->SetRotationEuler(Vector3(0.5f, 1.0f, 0.0f));
+		transform->SetRotationEuler(Vector3(0.75f, 1.0f, 0.0f));
 
 		auto* light = componentRegistry->AddComponent<LightComponent>(entity);
 		light->light.LightType = LIGHT_TYPE_DIRECTIONAL;

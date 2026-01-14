@@ -55,6 +55,7 @@ LightingResult ComputeLightingFromMaterialInput(
     LightingResult result;
     result.diffuse = 0.0;
     result.specular = 0.0;
+    result.ambient = 0.0;
 
     float3 worldPos = input.worldPos;
     float3 N = normalize(input.normal);
@@ -75,15 +76,58 @@ LightingResult ComputeLightingFromMaterialInput(
 
         if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
         {
+            // -------------------------
+            // Directional Light
+            // -------------------------
             L = normalize(-light.Direction.xyz);
+            attenuation = 1.0;
+        }
+        else if (light.LightType == LIGHT_TYPE_POINT)
+        {
+            // -------------------------
+            // Point Light
+            // -------------------------
+            float3 toL = light.Position.xyz - worldPos;
+            float dist = length(toL);
+
+            L = toL / max(dist, 0.001);
+
+            // 距離減衰
+            attenuation =
+                saturate(1.0 - dist / max(light.Param.x, 0.001));
+        }
+        else if (light.LightType == LIGHT_TYPE_SPOT)
+        {
+            // -------------------------
+            // Spot Light
+            // -------------------------
+            float3 toL = light.Position.xyz - worldPos;
+            float dist = length(toL);
+
+            L = toL / max(dist, 0.001);
+
+            // 距離減衰
+            float rangeAtten =
+                saturate(1.0 - dist / max(light.Param.x, 0.001));
+
+            // 角度減衰
+            float3 lightDir = normalize(light.Direction.xyz);
+            float cosAngle = dot(-L, lightDir);
+
+            float inner = cos(radians(light.Param.y));
+            float outer = cos(radians(light.Param.z));
+
+            float angleAtten =
+        saturate((cosAngle - outer) / max(inner - outer, 0.001));
+
+            attenuation = rangeAtten * angleAtten;
         }
         else
         {
-            float3 toL = light.Position.xyz - worldPos;
-            float dist = length(toL);
-            L = toL / max(dist, 0.001);
-            attenuation =
-                saturate(1.0 - dist / max(light.Param.x, 0.001));
+            // -------------------------
+            // NONE / 未定義
+            // -------------------------
+            attenuation = 0.0;
         }
 
         float3 H = normalize(V + L);
@@ -115,6 +159,8 @@ LightingResult ComputeLightingFromMaterialInput(
         result.specular +=
             spec * light.Diffuse.rgb *
             attenuation * shadow;
+        
+        result.ambient += light.Ambient.rgb;
     }
 
     return result;

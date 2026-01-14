@@ -1,0 +1,103 @@
+Entities:
+  - Entity: 1
+    Components:
+      - Component: NameComponent
+        Name: Camera
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 5
+          z: -15
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: CameraComponent
+        isLock: false
+        Target:
+          x: 0
+          y: 0
+          z: 0
+        NearClip: 0.00999999978
+        FarClip: 1024
+        FOV: 1
+        viewMatrix:
+          -
+            - 1
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 1
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+          -
+            - 0
+            - -5
+            - 15
+            - 1
+        nextLinkId: 2
+        nextPinId: 2
+        PostEffectLinks:
+          - ID: 1
+            StartNode: -1
+            EndNode: -2
+            StartAttr: -1
+            EndAttr: 1
+        ScreenInput:
+          Name: ""
+          NodePos:
+            x: 0
+            y: 0
+          OutputPin: -1
+        ScreenOutput:
+          Name: ""
+          NodePos:
+            x: 100
+            y: 0
+          InputPins:
+            - 1
+      - Component: CameraController
+        distance: 6
+        height: 2
+        rotateSpeed: 1.5
+        minPitch: 0
+        maxPitch: 0.785398185
+  - Entity: 2
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 0.167530939
+          y: 0.135899007
+          z: 1
+        Parent: 0
+      - Component: SpriteRendererComponent
+        anchor:
+          x: 0.5
+          y: 0.5
+        pivot:
+          x: 0
+          y: 0

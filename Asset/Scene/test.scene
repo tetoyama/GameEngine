@@ -103,10 +103,10 @@ Entities:
           y: 50
           z: 0
         Rotation:
-          - 0.321434379
-          - 0.446109116
-          - -0.17560041
-          - 0.816597223
+          - 0.217117399
+          - 0.464521378
+          - -0.118611783
+          - 0.85030061
         Scale:
           x: 1
           y: 1
@@ -117,14 +117,14 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: -30.7847443
-          y: 39.0819397
-          z: -34.766655
+          x: -36.9230118
+          y: 28.9712772
+          z: -38.7079926
           w: 0
         Direction:
-          x: 0.61569488
-          y: -0.681638777
-          z: 0.395333111
+          x: 0.738460243
+          y: -0.47942555
+          z: 0.474159837
           w: 0
         Diffuse:
           x: 1
@@ -146,17 +146,17 @@ Entities:
             - 0.540302277
             - 0
             - -0.841470957
-            - -12.6220627
+            - -12.6220646
           -
-            - 0.573579311
-            - 0.731688797
-            - 0.36829102
-            - 1.86592102
+            - 0.403422713
+            - 0.87758255
+            - 0.259034723
+            - -0.502390862
           -
-            - 0.61569494
-            - -0.681638837
-            - 0.395333141
-            - 59.338192
+            - 0.738460302
+            - -0.479425579
+            - 0.474159896
+            - 59.5095291
           -
             - 0
             - 0
@@ -365,24 +365,80 @@ Entities:
             - -5
             - 15
             - 1
-        nextLinkId: 1
-        nextPinId: 1
+        nextLinkId: 2
+        nextPinId: 2
+        PostEffectLinks:
+          - ID: 1
+            StartNode: -1
+            EndNode: -2
+            StartAttr: -1
+            EndAttr: 1
         ScreenInput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: 0
+            y: 0
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: 100
+            y: 0
           InputPins:
-            []
+            - 1
       - Component: CameraController
         distance: 6
         height: 2
         rotateSpeed: 1.5
         minPitch: 0
         maxPitch: 0.785398185
+  - Entity: 6
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 0.167530939
+          y: 0.135899007
+          z: 1
+        Parent: 0
+      - Component: SpriteRendererComponent
+        anchor:
+          x: 0.5
+          y: 0.5
+        pivot:
+          x: 0
+          y: 0
+  - Entity: 7
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: EffectComponent
+        FilePath: Asset/Effect\Laser01.efkefc
+        Loop: false
+        Volume: 1
+        PlayOnStart: true

@@ -189,7 +189,7 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 		}
 	}
 	{
-		//return;
+		return;
 		// ================================
 		// ImGui Debug Draw（暫定）
 		// ================================

@@ -143,7 +143,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	editorRenderTarget->Resize(ctx.screenSize, m_context->graphics);
 	editorRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearCol);
 	//m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, editorRenderTarget->rtv.GetAddressOf(), editorRenderTarget->dsv.Get());
-	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, lightingPass->pRenderTarget->rtv.GetAddressOf(), lightingPass->pRenderTarget->dsv.Get());
+	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, lightingPass->pRenderTarget->rtv.GetAddressOf(), gBufferPass->pDepthTarget->dsv.Get());
 
 	m_context->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_ShadowMap, 1, shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
 	m_context->graphics->GetDeviceContext()->PSSetSamplers(1, 1, &shadowMapPass->shadowSampler);
