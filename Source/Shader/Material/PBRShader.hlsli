@@ -5,6 +5,12 @@
 float4 ShadeMaterial_PBR(MaterialInput materialInput)
 {
     LightingResult lighting = ComputeLightingFromMaterialInput(materialInput);
-    return float4((materialInput.baseColor.rgb + +lighting.specular) * lighting.diffuse + lighting.ambient, materialInput.baseColor.a);
-}
 
+    float3 diffuseColor = materialInput.baseColor.rgb * lighting.diffuse;
+    float3 specularColor = lighting.specular;
+    float3 ambientColor = lighting.ambient;
+
+    float3 finalColor = diffuseColor + specularColor + ambientColor;
+
+    return float4(finalColor, materialInput.baseColor.a);
+}

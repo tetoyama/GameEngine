@@ -18,7 +18,7 @@ void MenuBar::Draw(EditorDrawContext ctx){
 		showEditorView = showMenuBar;
 		showPlayerView = showMenuBar;
 		showParformanceMonitor = showMenuBar;
-
+		showSystemSetting = showMenuBar;
 	}
 
 	if(showMenuBar && ImGui::BeginMainMenuBar()){
