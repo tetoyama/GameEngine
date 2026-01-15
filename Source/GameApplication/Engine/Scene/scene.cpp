@@ -250,7 +250,7 @@ void Scene::BuildDefaultScene(){
 
 		auto* material = componentRegistry->AddComponent<MaterialComponent>(entity);
 		material->ShaderID = 1;
-		material->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		material->Material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		material->Material.Metallic = 0.25f;
 		material->Material.Roughness = 0.5f;
 		auto* collider = componentRegistry->AddComponent<ColliderComponent>(entity);
@@ -304,7 +304,7 @@ void Scene::BuildDefaultScene(){
 
 		auto* material = componentRegistry->AddComponent<MaterialComponent>(entity);
 
-		material->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		material->Material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
@@ -700,7 +700,7 @@ RenderLayer Scene::GetRenderLayerFromEntity(Entity entity) {
 		return RenderLayer::SortTransparent3D;
 	}
 	auto* material = registry->GetComponent<MaterialComponent>(entity);
-	if (material && material->Material.Diffuse.w < 1.0f) {
+	if (material && material->Material.BaseColor.w < 1.0f) {
 		return RenderLayer::SortTransparent3D;
 	}
 	return RenderLayer::Opaque3D;

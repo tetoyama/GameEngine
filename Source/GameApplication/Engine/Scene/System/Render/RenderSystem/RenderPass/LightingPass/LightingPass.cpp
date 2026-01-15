@@ -72,6 +72,7 @@ void LightingPass::SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shado
 	dc->PSSetShaderResources(LightingSlot_GNormal, 1, gBufferPass->pRenderTargets[GBufferSlot_Normal]->srv.GetAddressOf());
 	dc->PSSetShaderResources(LightingSlot_GPosition, 1, gBufferPass->pRenderTargets[GBufferSlot_Position]->srv.GetAddressOf());
 	dc->PSSetShaderResources(LightingSlot_GMaterial, 1, gBufferPass->pRenderTargets[GBufferSlot_Material]->srv.GetAddressOf());
+	dc->PSSetShaderResources(LightingSlot_GEmissive, 1, gBufferPass->pRenderTargets[GBufferSlot_Emissive]->srv.GetAddressOf());
 	dc->PSSetShaderResources(LightingSlot_GParam, 1, gBufferPass->pRenderTargets[GBufferSlot_Param]->srv.GetAddressOf());
 	dc->PSSetShaderResources(LightingSlot_ShadowMap, 1, shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
 

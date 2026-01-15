@@ -99,8 +99,8 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 	if (pTexture) {
 
 			// マテリアル設定
-		material.DiffuseTextureEnable = ((bool)pTexture->m_TextureData);
 		if (pTexture->m_TextureData) {
+			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 		}
 
@@ -119,8 +119,7 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 	} else {
 		// マテリアル設定
 		MATERIAL material;
-		material.DiffuseTextureEnable = false;
-		material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		graphicsContext->SetMaterial(material);
 
 		UVMatrix uv;

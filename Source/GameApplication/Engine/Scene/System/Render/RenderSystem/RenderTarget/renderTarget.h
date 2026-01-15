@@ -18,10 +18,10 @@ struct RenderTarget {
 
 	RenderTarget(const Vector2& _size, GraphicsContext* _graphicsContext,const RenderTargetType& type);
 
-	Microsoft::WRL::ComPtr<ID3D11Texture2D>				tex;
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>		rtv;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	srv;
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilView>		dsv;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D>				tex = nullptr;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>		rtv = nullptr;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	srv = nullptr;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilView>		dsv = nullptr;
 
 	Vector2 size = Vector2(-1, -1);
 	RenderTargetType type = RENDERTARGET_TYPE_COLOR;

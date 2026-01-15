@@ -50,27 +50,30 @@ float D_GTR2(float NdotH, float roughness)
     return a2 / (PI * d * d);
 }
 
-LightingResult ComputeLightingFromMaterialInput(
-    MaterialInput input)
+LightingResult ComputeLightingFromMaterialInput(MaterialInput input)
 {
     LightingResult result;
     result.diffuse = 0.0;
     result.specular = 0.0;
     result.ambient = 0.0;
 
-    float3 worldPos = input.worldPos;
     float3 N = normalize(input.normal);
     float3 V = normalize(CameraPosition.xyz - input.worldPos);
-    float3 baseColor = input.baseColor.rgb;
+
+    float roughness = saturate(input.Roughness);
+    float metallic = saturate(input.Metallic);
+
+    // 鏡面F0（baseColorは使わない）
+    float3 F0 = lerp(float3(0.04, 0.04, 0.04), float3(1, 1, 1), metallic);
+
     int shadowMapNum = 0;
-    
+
     [loop]
     for (int i = 0; i < ActiveLightCount; i++)
     {
         if (Lights[i].Enable == 0)
-        {
             continue;
-        }
+
         LIGHT light = Lights[i];
 
         float3 L;
@@ -78,57 +81,14 @@ LightingResult ComputeLightingFromMaterialInput(
 
         if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
         {
-            // -------------------------
-            // Directional Light
-            // -------------------------
             L = normalize(-light.Direction.xyz);
-            attenuation = 1.0;
-        }
-        else if (light.LightType == LIGHT_TYPE_POINT)
-        {
-            // -------------------------
-            // Point Light
-            // -------------------------
-            float3 toL = light.Position.xyz - worldPos;
-            float dist = length(toL);
-
-            L = toL / max(dist, 0.001);
-
-            // 距離減衰
-            attenuation =
-                saturate(1.0 - dist / max(light.Param.x, 0.001));
-        }
-        else if (light.LightType == LIGHT_TYPE_SPOT)
-        {
-            // -------------------------
-            // Spot Light
-            // -------------------------
-            float3 toL = light.Position.xyz - worldPos;
-            float dist = length(toL);
-
-            L = toL / max(dist, 0.001);
-
-            // 距離減衰
-            float rangeAtten =
-                saturate(1.0 - dist / max(light.Param.x, 0.001));
-
-            // 角度減衰
-            float3 lightDir = normalize(light.Direction.xyz);
-            float cosAngle = dot(-L, lightDir);
-
-            float inner = cos(radians(light.Param.y));
-            float outer = cos(radians(light.Param.z));
-
-            float angleAtten = saturate((cosAngle - outer) / max(inner - outer, 0.001));
-
-            attenuation = rangeAtten * angleAtten;
         }
         else
         {
-            // -------------------------
-            // NONE / 未定義
-            // -------------------------
-            attenuation = 0.0;
+            float3 toL = light.Position.xyz - input.worldPos;
+            float dist = length(toL);
+            L = toL / max(dist, 0.001);
+            attenuation = saturate(1.0 - dist / max(light.Param.x, 0.001));
         }
 
         float3 H = normalize(V + L);
@@ -136,39 +96,43 @@ LightingResult ComputeLightingFromMaterialInput(
         float NdotL = saturate(dot(N, L));
         float NdotV = saturate(dot(N, V));
         float NdotH = saturate(dot(N, H));
-        float LdotH = saturate(dot(L, H));
 
-        float roughness = input.Roughness;
+        if (NdotL <= 0.0 || NdotV <= 0.0)
+            continue;
 
-        float3 F0 = lerp(float3(0.04, 0.04, 0.04), baseColor, input.Metallic);
         float3 F = FresnelSchlick(saturate(dot(V, H)), F0);
         float G = G_Smith(N, V, L, roughness);
         float D = D_GTR2(NdotH, roughness);
 
-        float shadow = 1.0f;
-        if (Lights[i].CastShadow)
-        {
-            shadow = ShadowFactor(worldPos, light, shadowMapNum);
-            shadowMapNum++;
-        }
-        
-        float3 spec = (D * G * F) / max(4.0 * NdotL * NdotV, 0.001);
-
-        // Energy Compensation
-        spec *= 1.0 + 0.5 * (1.0 - roughness); // 粗さで明るさ補正
+        float3 specular =
+            (D * G * F) / max(4.0 * NdotL * NdotV, 0.001);
 
         float3 kS = F;
-        float3 kD = (1.0 - kS) * (1.0 - input.Metallic); // 非金属のみDiffuse
+        float3 kD = (1.0 - kS) * (1.0 - metallic);
 
-        result.diffuse += input.baseColor.rgb * kD * light.Diffuse.rgb * NdotL * attenuation * shadow;
-        result.specular += spec * kS * light.Diffuse.rgb * attenuation * shadow;
+        float shadow = 1.0;
+        if (light.CastShadow)
+        {
+            shadow = ShadowFactor(input.worldPos, light, shadowMapNum);
+            shadowMapNum++;
+        }
 
-        
-        result.ambient += input.baseColor.rgb * input.AO * 0.03; // AOで減衰
+        float3 radiance = light.Diffuse.rgb * attenuation * shadow;
+
+        if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
+        {
+            radiance *= 4.0;
+        }
+
+        result.diffuse += (NdotL) * radiance;
+        result.specular += specular * radiance;
+        result.ambient += light.Ambient.rgb;
     }
-    float3 emissive = input.baseColor * input.Emissive;
-    result.diffuse += emissive;
+
+    // AO は光量に掛ける
+    result.ambient *= input.AO;
 
     return result;
 }
+
 #endif

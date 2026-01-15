@@ -20,17 +20,20 @@ cbuffer ProjectionBuffer : register(b2)
 
 struct MATERIAL
 {
-    float4 Diffuse;
-    
+    float4 BaseColor; // Linear RGB, A = Opacity
+
     float Metallic;
     float Roughness;
     float AO;
-    float Emissive;
-    
-    bool TextureEnable;
-    bool NormalTextureEnable;
-    float2 Dummy;
+    float Pad0;
+
+    float3 EmissiveColor;
+    float EmissiveIntensity;
+
+    uint MaterialFlags; // UseBaseColorMap, UseNormalMap, etc.
+    uint3 Pad1;
 };
+
 
 cbuffer MaterialBuffer : register(b3)
 {

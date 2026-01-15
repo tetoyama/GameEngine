@@ -243,6 +243,23 @@ void RenderSystem::Draw(){
 
 void RenderSystem::SystemSetting(){
 
+	float width = ImGui::GetContentRegionAvail().x;
+	ImGui::Image(
+		m_EditorPass->result,
+		ImVec2(width, m_EditorPass->editorRenderTarget->size.y / m_EditorPass->editorRenderTarget->size.x * width)
+	);
+	for (auto RT : m_PlayerPass->gBufferPass->pRenderTargets) {
+		if (RT->type == RenderTargetType::RENDERTARGET_TYPE_COLOR_NO_DSV && RT->srv) {
+			ImGui::Image(
+				RT->srv.Get(),
+				ImVec2(width, m_PlayerPass->editorRenderTarget->size.y / m_PlayerPass->editorRenderTarget->size.x * width)
+			);
+		}
+	}
+	ImGui::Image(
+		m_PlayerPass->result,
+		ImVec2(width, m_PlayerPass->editorRenderTarget->size.y / m_PlayerPass->editorRenderTarget->size.x * width)
+	);
 }
 
 void RenderSystem::DrawRenderLayerToggleUI() {

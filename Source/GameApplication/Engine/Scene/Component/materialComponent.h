@@ -77,7 +77,7 @@ public:
 		ImVec4 colorB = ImVec4(0.4f, 0.4f, 0.7f, 0.3f); // B
 		ImVec4 colorA = ImVec4(0.8f, 0.8f, 0.8f, 0.3f); // A
 
-		float* c = &Material.Diffuse.x;
+		float* c = &Material.BaseColor.x;
 
 		// --- Material Properties ---
 
@@ -111,7 +111,7 @@ public:
 			}
 		};
 
-		DrawColorProperty("Diffuse", &Material.Diffuse.x);
+		DrawColorProperty("BaseColor", &Material.BaseColor.x);
 		// Material: Metallic
 		ImGui::AlignTextToFramePadding();
 		ImGui::Text("Metallic");
@@ -132,7 +132,7 @@ public:
 		ImGui::AlignTextToFramePadding();
 		ImGui::Text("Emissive");
 		ImGui::SameLine(100);
-		ImGui::DragFloat("##Emissive", &Material.Emissive, 0.01f, 0.0f, 1.0f);
+		ImGui::DragFloat4("##Emissive", &Material.EmissiveColor.x, 0.01f, 0.0f, 1.0f);
 
 
 

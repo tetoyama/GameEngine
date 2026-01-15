@@ -28,24 +28,32 @@
 #define GBufferSlot_Normal		(1)
 #define GBufferSlot_Position	(2)
 #define GBufferSlot_Material	(3)
-#define GBufferSlot_Param		(4)
+#define GBufferSlot_Emissive	(4)
+#define GBufferSlot_Param		(5)
 
-#define GBufferSlot_Max			(5)
+#define GBufferSlot_Max			(6)
 
 #define LightingSlot_GAlbedo    (0)
 #define LightingSlot_GNormal    (1)
 #define LightingSlot_GPosition  (2)
 #define LightingSlot_GMaterial  (3)
-#define LightingSlot_GParam     (4)
-#define LightingSlot_ShadowMap  (5)
+#define LightingSlot_GEmissive  (4)
+#define LightingSlot_GParam     (5)
+#define LightingSlot_ShadowMap  (6)
 
-#define LightingSlot_Max        (6)
+#define LightingSlot_Max        (7)
 
 
 #define LIGHT_TYPE_NONE			(0)
 #define LIGHT_TYPE_DIRECTIONAL	(1)
 #define LIGHT_TYPE_POINT		(2)
 #define LIGHT_TYPE_SPOT			(3)
+
+// MaterialFlags 用のビットマスク
+#define MATERIAL_FLAG_USE_DIFFUSE_TEXTURE		(1 << 0)
+#define MATERIAL_FLAG_USE_NORMAL_TEXTURE		(1 << 1)
+#define MATERIAL_FLAG_USE_ROUGHNESS_TEXTURE		(1 << 2)
+#define MATERIAL_FLAG_USE_METALLIC_TEXTURE		(1 << 3)
 
 
 #ifdef LOW_RESOLUTION

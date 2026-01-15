@@ -44,7 +44,7 @@ public:
 		auto Material = GetComponent<MaterialComponent>();
 		if(Material){
 			// スコアに応じてテクスチャを設定
-			Material->Material.Diffuse.w = Timer / FadeTime;
+			Material->Material.BaseColor.w = Timer / FadeTime;
 		}
 	}
 	void OnFixedUpdate(float dt)override{}

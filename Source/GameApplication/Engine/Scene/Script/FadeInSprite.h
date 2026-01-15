@@ -33,7 +33,7 @@ public:
 		auto Material = GetComponent<MaterialComponent>();
 		if (Material) {
 			// スコアに応じてテクスチャを設定
-			Material->Material.Diffuse.w = 1.0f - Timer / FadeTime;
+			Material->Material.BaseColor.w = 1.0f - Timer / FadeTime;
 		}
 	}
 	void OnFixedUpdate(float dt)override{}

@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface/IComponent.h"
 #include "BackEnds/YAMLConverters.h"
+#include "Resources/resourceService.h"
 
 #include <memory>
 #include <string>

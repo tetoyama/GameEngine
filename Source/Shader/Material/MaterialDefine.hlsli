@@ -13,7 +13,7 @@ struct MaterialInput
     float Metallic;
     float Roughness;
     float AO;
-    float Emissive;
+    float4 Emissive;
 
     int materialID;
     int objectID;

@@ -37,6 +37,26 @@ namespace YAML {
 		}
 	};
 
+
+	template<>
+	struct convert<DirectX::XMFLOAT3> {
+		static Node encode(const DirectX::XMFLOAT3& v) {
+			Node node;
+			node["x"] = v.x;
+			node["y"] = v.y;
+			node["z"] = v.z;
+			return node;
+		}
+
+		static bool decode(const Node& node, DirectX::XMFLOAT3& v) {
+			if (!node.IsMap()) return false;
+			v.x = node["x"].as<float>();
+			v.y = node["y"].as<float>();
+			v.z = node["z"].as<float>();
+			return true;
+		}
+	};
+
 	template<>
 	struct convert<Vector2> {
 		static Node encode(const Vector2& rhs){
@@ -73,31 +93,40 @@ namespace YAML {
 		}
 	};
 
+
 	template<>
 	struct convert<MATERIAL> {
 		static Node encode(const MATERIAL& mat) {
 			Node node;
-			node["Diffuse"] = mat.Diffuse;
+			node["BaseColor"] = mat.BaseColor;
 			node["Metallic"] = mat.Metallic;
 			node["Roughness"] = mat.Roughness;
 			node["AO"] = mat.AO;
-			node["Emissive"] = mat.Emissive;
-			node["TextureEnable"] = static_cast<bool>(mat.DiffuseTextureEnable); // BOOL→bool
+			node["EmissiveColor"] = mat.EmissiveColor;
+			node["EmissiveIntensity"] = mat.EmissiveIntensity;
+
+			// MaterialFlags を個別の bool に変換して書き出す
+			node["UseDiffuseTexture"] = (mat.MaterialFlags & MATERIAL_FLAG_USE_DIFFUSE_TEXTURE) != 0;
+			node["UseNormalTexture"] = (mat.MaterialFlags & MATERIAL_FLAG_USE_NORMAL_TEXTURE) != 0;
+
 			return node;
 		}
 
 		static bool decode(const Node& node, MATERIAL& mat) {
 			if (!node.IsMap()) return false;
-			mat.Diffuse = node["Diffuse"].as<DirectX::XMFLOAT4>();
-			if (!node["Ambient"]) {
-				mat.Metallic = node["Metallic"].as<float>();
-				mat.Roughness = node["Roughness"].as<float>();
-				mat.AO = node["AO"].as<float>();
-				if (node["Emissive"]) {
-					mat.Emissive = node["Emissive"].as<float>();
-				}
-			}
-			mat.DiffuseTextureEnable = node["TextureEnable"].as<bool>() ? TRUE : FALSE;
+
+			mat.BaseColor = node["BaseColor"].as<DirectX::XMFLOAT4>();
+			mat.Metallic = node["Metallic"].as<float>();
+			mat.Roughness = node["Roughness"].as<float>();
+			mat.AO = node["AO"].as<float>();
+			mat.EmissiveColor = node["EmissiveColor"].as<DirectX::XMFLOAT3>();
+			mat.EmissiveIntensity = node["EmissiveIntensity"].as<float>();
+
+			// フラグを個別の bool からビットマスクに変換
+			mat.MaterialFlags = 0;
+			if (node["UseDiffuseTexture"].as<bool>()) mat.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
+			if (node["UseNormalTexture"].as<bool>())  mat.MaterialFlags |= MATERIAL_FLAG_USE_NORMAL_TEXTURE;
+
 			return true;
 		}
 	};

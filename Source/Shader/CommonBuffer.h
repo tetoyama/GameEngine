@@ -15,18 +15,19 @@ struct UVMatrix {
 	DirectX::XMFLOAT2 End = {1.0f,1.0f};
 };
 
-struct MATERIAL
-{
-	DirectX::XMFLOAT4	Diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+struct MATERIAL {
+	DirectX::XMFLOAT4 BaseColor = {1.0f,1.0f,1.0f,1.0f};   // 16
 
-	float		Metallic = 0.0f;
-	float		Roughness = 0.0f;
-	float		AO = 0.0f;
-	float		Emissive = 0.0f;
+	float Metallic;                // 4
+	float Roughness;               // 4
+	float AO;                      // 4
+	float Pad0;                    // 4
 
-	BOOL		DiffuseTextureEnable = false;
-	BOOL		NormalTextureEnable = false;
-	BOOL		Dummy[2];
+	DirectX::XMFLOAT3 EmissiveColor; // 12
+	float EmissiveIntensity;        // 4
+
+	UINT MaterialFlags;             // 4
+	UINT Pad1[3];                   // 12
 };
 
 struct LIGHT

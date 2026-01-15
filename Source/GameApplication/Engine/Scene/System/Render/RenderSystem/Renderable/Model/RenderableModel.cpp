@@ -20,15 +20,15 @@
 #include "Backends/Assimp/matrix4x4.h"
 #include <Component/materialComponent.h>
 
-void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
+void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity) {
 
 	ModelRendererComponent* modelRenderer = sceneContext->component->GetComponent<ModelRendererComponent>(entity);
 	TransformComponent* transform = sceneContext->component->GetComponent<TransformComponent>(entity);
-	if(!modelRenderer || !transform){
+	if (!modelRenderer || !transform) {
 		return;
 	}
 	ModelData* pModel = modelRenderer->model.get();
-	if(!pModel || !pModel->AiScene){
+	if (!pModel || !pModel->AiScene) {
 		//sceneContext->manager->debug->LOG_ERROR("ModelData is null or AiScene is not initialized.");
 		return;
 	}
@@ -37,7 +37,7 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
 	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
-	MATERIAL material{};
+	MATERIAL material;
 	if (pMaterial) {
 		material = pMaterial->Material;
 	}
@@ -46,10 +46,8 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 
 			// マテリアル設定
 		if (pTexture->m_TextureData) {
-			material.DiffuseTextureEnable = true;
+			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
-		} else{
-			material.DiffuseTextureEnable = false;
 		}
 
 		graphicsContext->SetMaterial(material);
@@ -67,8 +65,7 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 	} else {
 		// マテリアル設定
 		MATERIAL material;
-		material.DiffuseTextureEnable = false;
-		material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		graphicsContext->SetMaterial(material);
 
 		UVMatrix uv;
@@ -88,66 +85,59 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 
 	graphicsContext->SetCullMode(CullMode::Back);
 
-	for(unsigned int m = 0; m < pModel->AiScene->mNumMeshes; m++){
+	for (unsigned int m = 0; m < pModel->AiScene->mNumMeshes; m++) {
 
 		if (pModel->SetTexture) {
-			aiMaterial* material = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-			if (!pTexture || !pTexture->m_TextureData) {
-				aiString texName;
-				if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texName) == AI_SUCCESS && texName.length > 0) {
-					auto it = pModel->m_Texture.find(texName.C_Str());
-					if (it != pModel->m_Texture.end()) {
-						deviceContext->PSSetShaderResources(0, 1, &it->second);
-					}
-				}
-				if (material->GetTexture(aiTextureType_NORMALS, 0, &texName) == AI_SUCCESS && texName.length > 0) {
-					auto it = pModel->m_Texture.find(texName.C_Str());
-					if (it != pModel->m_Texture.end()) {
-						deviceContext->PSSetShaderResources(1, 1, &it->second);
-					}
-				}
-			}
+
 		}
 		if (!pTexture) {
 			MATERIAL materialData;
 			aiMaterial* aiMat = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
 			aiColor4D color;
 			if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS) {
-				materialData.Diffuse = { color.r, color.g, color.b, color.a };
+				materialData.BaseColor = { color.r, color.g, color.b, color.a };
 			}
-			//if (aiMat->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS)
-			//	materialData.Ambient = { color.r, color.g, color.b, color.a };
-			//if (aiMat->Get(AI_MATKEY_COLOR_EMISSIVE, color) == AI_SUCCESS)
-			//	materialData.Emission = { color.r, color.g, color.b, color.a };
-			//if (aiMat->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS)
-			//	materialData.Specular = { color.r, color.g, color.b, color.a };
 
-			//float shininess = 0.0f;
-			//if (aiMat->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS)
-			//	materialData.Shininess = std::clamp(shininess, 1.0f, 128.0f);
+			aiMaterial* material = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
+			aiString texName;
+			if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texName) == AI_SUCCESS && texName.length > 0) {
+				auto it = pModel->m_Texture.find(texName.C_Str());
+				if (it != pModel->m_Texture.end()) {
+					deviceContext->PSSetShaderResources(0, 1, &it->second);
+					materialData.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
+				}
+			}
+			if (material->GetTexture(aiTextureType_NORMALS, 0, &texName) == AI_SUCCESS && texName.length > 0) {
+				auto it = pModel->m_Texture.find(texName.C_Str());
+				if (it != pModel->m_Texture.end()) {
+					deviceContext->PSSetShaderResources(1, 1, &it->second);
+					materialData.MaterialFlags |= MATERIAL_FLAG_USE_NORMAL_TEXTURE;
+				}
+			}
 
-			materialData.DiffuseTextureEnable = pModel->SetTexture;
+			if (pModel->SetTexture) {
+			}
 			graphicsContext->SetMaterial(materialData);
 		} else {
 
 			if (pTexture->m_TextureData) {
 				deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
-				material.DiffuseTextureEnable = true;
-			} else{
-				material.DiffuseTextureEnable = false;
+				if (pModel->SetTexture) {
+					material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
+				}
 			}
 			graphicsContext->SetMaterial(material);
 
 		}
-		
+
 		graphicsContext->SetWorldMatrix(World);
 
 		// 頂点バッファ設定
 		UINT stride = sizeof(VERTEX_3D);
 		UINT offset = 0;
-		if(modelRenderer->blendedAnimations.size() > 0){
+		if (modelRenderer->blendedAnimations.size() > 0) {
 			graphicsContext->GetDeviceContext()->IASetVertexBuffers(0, 1, &modelRenderer->dynamicVertexBuffers[m], &stride, &offset);
-		} else{
+		} else {
 			graphicsContext->GetDeviceContext()->IASetVertexBuffers(0, 1, &pModel->VertexBuffer[m], &stride, &offset);
 		}
 		// インデックスバッファ設定

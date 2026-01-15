@@ -18,12 +18,13 @@ Texture2D GAlbedo : register(t0);
 Texture2D GNormal : register(t1);
 Texture2D GPosition : register(t2);
 Texture2D GMaterial : register(t3);
-Texture2D<uint4> GParam : register(t4);
+Texture2D GEmissive: register(t4);
+Texture2D<uint4> GParam : register(t5);
 SamplerState LinearSampler : register(s0);
 SamplerState PointSampler : register(s2);
 
 // ================= Shadow =================
-Texture2D ShadowMap : register(t5);
+Texture2D ShadowMap : register(t6);
 SamplerComparisonState ShadowSampler : register(s1);
 
 // ================= Implement =================
@@ -52,7 +53,7 @@ MaterialInput GetMaterialInput(PS_IN In)
     input.Metallic = mat.r;
     input.Roughness = mat.g;
     input.AO = mat.b;
-    input.Emissive = mat.a;
+    input.Emissive = GEmissive.Sample(PointSampler, input.uv);
 
     uint4 param = GParam.Load(int3(pixelCoord, 0));
     input.sceneID = param.x;

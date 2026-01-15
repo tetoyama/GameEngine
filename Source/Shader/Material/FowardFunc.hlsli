@@ -34,11 +34,11 @@ MaterialInput GetMaterialInput(PS_IN In)
     input.viewDir = normalize(CameraPosition.xyz - input.worldPos);
 
     // ===== Material =====
-    input.baseColor = Material.Diffuse;
-    if (Material.TextureEnable)
+    input.baseColor = Material.BaseColor;
+    // Diffuse Texture を使うか
+    if (Material.MaterialFlags & MATERIAL_FLAG_USE_DIFFUSE_TEXTURE != 0)
     {
-        input.baseColor *=
-            BaseColorTex.Sample(LinearSampler, input.uv);
+        input.baseColor *= BaseColorTex.Sample(LinearSampler, In.TexCoord);
     }
 
     input.normal = normalize(In.Normal.xyz);
@@ -46,7 +46,7 @@ MaterialInput GetMaterialInput(PS_IN In)
     input.Metallic = Material.Metallic;
     input.Roughness = Material.Roughness;
     input.AO = Material.AO;
-    input.Emissive = Material.Emissive;
+    input.Emissive = float4(Material.EmissiveColor, Material.EmissiveIntensity);
 
     // ===== IDs =====
     input.materialID = ShaderID;

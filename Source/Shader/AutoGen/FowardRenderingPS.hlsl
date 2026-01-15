@@ -1,6 +1,5 @@
 #include "../commonDefine.h"
 #include "../common.hlsl"
-
 #include "../Material/MaterialDefine.hlsli"
 #include "../Material/FowardFunc.hlsli"
 #include "../Material/MaterialFunc.hlsli"

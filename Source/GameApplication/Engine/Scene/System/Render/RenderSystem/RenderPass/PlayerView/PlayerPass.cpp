@@ -114,6 +114,8 @@ void PlayerPass::Finalize() {
 
 void PlayerPass::Execute(const RenderPassContext& ctx) {
 
+	//return;
+
 	RenderPassContext passCtx = ctx;
 
 	// コンテキストの取得

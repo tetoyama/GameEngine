@@ -52,6 +52,8 @@ void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* co
 		new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR_NO_DSV);
 	pRenderTargets[GBufferSlot_Material] =
 		new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR_NO_DSV);
+	pRenderTargets[GBufferSlot_Emissive] =
+		new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR_NO_DSV);
 	pRenderTargets[GBufferSlot_Param] =
 		new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_UINT4);
 
