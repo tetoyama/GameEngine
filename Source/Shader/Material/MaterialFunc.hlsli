@@ -30,9 +30,10 @@ float3 FresnelSchlick(float cosTheta, float3 F0)
 float SchlickGGX(float NdotV, float roughness)
 {
     float a = roughness;
-    float k = (a * a) * 0.5;
+    float k = (a * a + 1.0) / 8.0; // 安定化
     return NdotV / (NdotV * (1.0 - k) + k);
 }
+
 
 float G_Smith(float3 N, float3 V, float3 L, float roughness)
 {
@@ -60,7 +61,6 @@ LightingResult ComputeLightingFromMaterialInput(
     float3 worldPos = input.worldPos;
     float3 N = normalize(input.normal);
     float3 V = normalize(CameraPosition.xyz - input.worldPos);
-    float shininess = input.Shininess;
     float3 baseColor = input.baseColor.rgb;
     int shadowMapNum = 0;
     
@@ -138,11 +138,10 @@ LightingResult ComputeLightingFromMaterialInput(
         float NdotH = saturate(dot(N, H));
         float LdotH = saturate(dot(L, H));
 
-        float roughness =
-            max(1.0 - shininess / 128.0, 0.05);
+        float roughness = input.Roughness;
 
-        float3 F0 = float3(0.04, 0.04, 0.04);
-        float3 F = FresnelSchlick(LdotH, F0);
+        float3 F0 = lerp(float3(0.04, 0.04, 0.04), baseColor, input.Metallic);
+        float3 F = FresnelSchlick(saturate(dot(V, H)), F0);
         float G = G_Smith(N, V, L, roughness);
         float D = D_GTR2(NdotH, roughness);
 
@@ -153,20 +152,22 @@ LightingResult ComputeLightingFromMaterialInput(
             shadowMapNum++;
         }
         
-        float3 spec =
-            (D * F * G) /
-            max(4.0 * NdotL * NdotV, 0.001);
+        float3 spec = (D * G * F) / max(4.0 * NdotL * NdotV, 0.001);
 
-        result.diffuse +=
-            baseColor * light.Diffuse.rgb *
-            NdotL * attenuation * shadow;
+        // Energy Compensation
+        spec *= 1.0 + 0.5 * (1.0 - roughness); // 粗さで明るさ補正
 
-        result.specular +=
-            spec * light.Diffuse.rgb *
-            attenuation * shadow;
+        float3 kS = F;
+        float3 kD = (1.0 - kS) * (1.0 - input.Metallic); // 非金属のみDiffuse
+
+        result.diffuse += input.baseColor.rgb * kD * light.Diffuse.rgb * NdotL * attenuation * shadow;
+        result.specular += spec * kS * light.Diffuse.rgb * attenuation * shadow;
+
         
-        result.ambient += light.Ambient.rgb;
+        result.ambient += input.baseColor.rgb * input.AO * 0.03; // AOで減衰
     }
+    float3 emissive = input.baseColor * input.Emissive;
+    result.diffuse += emissive;
 
     return result;
 }

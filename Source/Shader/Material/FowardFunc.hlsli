@@ -46,7 +46,7 @@ MaterialInput GetMaterialInput(PS_IN In)
     input.Metallic = Material.Metallic;
     input.Roughness = Material.Roughness;
     input.AO = Material.AO;
-    input.Shininess = Material.Shininess;
+    input.Emissive = Material.Emissive;
 
     // ===== IDs =====
     input.materialID = ShaderID;

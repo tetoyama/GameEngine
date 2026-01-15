@@ -52,7 +52,7 @@ MaterialInput GetMaterialInput(PS_IN In)
     input.Metallic = mat.r;
     input.Roughness = mat.g;
     input.AO = mat.b;
-    input.Shininess = mat.a;
+    input.Emissive = mat.a;
 
     uint4 param = GParam.Load(int3(pixelCoord, 0));
     input.sceneID = param.x;

@@ -22,7 +22,7 @@ struct MATERIAL
 	float		Metallic = 0.0f;
 	float		Roughness = 0.0f;
 	float		AO = 0.0f;
-	float		Shininess = 64.0f;
+	float		Emissive = 0.0f;
 
 	BOOL		DiffuseTextureEnable = false;
 	BOOL		NormalTextureEnable = false;

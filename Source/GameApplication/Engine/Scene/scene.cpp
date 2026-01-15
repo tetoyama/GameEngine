@@ -251,7 +251,8 @@ void Scene::BuildDefaultScene(){
 		auto* material = componentRegistry->AddComponent<MaterialComponent>(entity);
 		material->ShaderID = 1;
 		material->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		material->Material.Shininess = 48.0f;
+		material->Material.Metallic = 0.25f;
+		material->Material.Roughness = 0.5f;
 		auto* collider = componentRegistry->AddComponent<ColliderComponent>(entity);
 		ColliderShape col;
 		col.type = ColliderType::Box;

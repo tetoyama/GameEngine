@@ -128,11 +128,11 @@ public:
 		ImGui::SameLine(100);
 		ImGui::DragFloat("##AO", &Material.AO, 0.5f);
 
-		// Shininess
+		// Emissive
 		ImGui::AlignTextToFramePadding();
-		ImGui::Text("Shininess");
+		ImGui::Text("Emissive");
 		ImGui::SameLine(100);
-		ImGui::DragFloat("##Shininess", &Material.Shininess, 0.5f, 1.0f, 128.0f);
+		ImGui::DragFloat("##Emissive", &Material.Emissive, 0.01f, 0.0f, 1.0f);
 
 
 

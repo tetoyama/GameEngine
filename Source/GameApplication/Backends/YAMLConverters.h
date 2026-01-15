@@ -81,7 +81,7 @@ namespace YAML {
 			node["Metallic"] = mat.Metallic;
 			node["Roughness"] = mat.Roughness;
 			node["AO"] = mat.AO;
-			node["Shininess"] = mat.Shininess;
+			node["Emissive"] = mat.Emissive;
 			node["TextureEnable"] = static_cast<bool>(mat.DiffuseTextureEnable); // BOOL→bool
 			return node;
 		}
@@ -93,7 +93,9 @@ namespace YAML {
 				mat.Metallic = node["Metallic"].as<float>();
 				mat.Roughness = node["Roughness"].as<float>();
 				mat.AO = node["AO"].as<float>();
-				mat.Shininess = node["Shininess"].as<float>();
+				if (node["Emissive"]) {
+					mat.Emissive = node["Emissive"].as<float>();
+				}
 			}
 			mat.DiffuseTextureEnable = node["TextureEnable"].as<bool>() ? TRUE : FALSE;
 			return true;

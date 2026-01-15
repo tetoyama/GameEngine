@@ -112,8 +112,9 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 			MATERIAL materialData;
 			aiMaterial* aiMat = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
 			aiColor4D color;
-			if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS)
+			if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS) {
 				materialData.Diffuse = { color.r, color.g, color.b, color.a };
+			}
 			//if (aiMat->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS)
 			//	materialData.Ambient = { color.r, color.g, color.b, color.a };
 			//if (aiMat->Get(AI_MATKEY_COLOR_EMISSIVE, color) == AI_SUCCESS)
@@ -121,9 +122,9 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 			//if (aiMat->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS)
 			//	materialData.Specular = { color.r, color.g, color.b, color.a };
 
-			float shininess = 0.0f;
-			if (aiMat->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS)
-				materialData.Shininess = std::clamp(shininess, 1.0f, 128.0f);
+			//float shininess = 0.0f;
+			//if (aiMat->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS)
+			//	materialData.Shininess = std::clamp(shininess, 1.0f, 128.0f);
 
 			materialData.DiffuseTextureEnable = pModel->SetTexture;
 			graphicsContext->SetMaterial(materialData);

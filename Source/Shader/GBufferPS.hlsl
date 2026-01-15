@@ -49,7 +49,7 @@ GBUFFER_OUT main(PS_IN In)
         Material.Metallic,
         Material.Roughness,
         Material.AO,
-        Material.Shininess
+        Material.Emissive
     );
 
     // -----------------------------

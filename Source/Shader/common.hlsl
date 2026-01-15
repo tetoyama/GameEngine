@@ -25,7 +25,7 @@ struct MATERIAL
     float Metallic;
     float Roughness;
     float AO;
-    float Shininess;
+    float Emissive;
     
     bool TextureEnable;
     bool NormalTextureEnable;
