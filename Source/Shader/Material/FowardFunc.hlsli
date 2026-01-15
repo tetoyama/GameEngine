@@ -42,8 +42,11 @@ MaterialInput GetMaterialInput(PS_IN In)
     }
 
     input.normal = normalize(In.Normal.xyz);
-    input.shininess = Material.Shininess;
-    input.emission = Material.Emission.rgb;
+    
+    input.Metallic = Material.Metallic;
+    input.Roughness = Material.Roughness;
+    input.AO = Material.AO;
+    input.Shininess = Material.Shininess;
 
     // ===== IDs =====
     input.materialID = ShaderID;

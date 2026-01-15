@@ -20,12 +20,15 @@ cbuffer ProjectionBuffer : register(b2)
 
 struct MATERIAL
 {
-    float4 Ambient;
     float4 Diffuse;
-    float4 Specular;
-    float4 Emission;
+    
+    float Metallic;
+    float Roughness;
+    float AO;
     float Shininess;
+    
     bool TextureEnable;
+    bool NormalTextureEnable;
     float2 Dummy;
 };
 
@@ -44,7 +47,8 @@ struct LIGHT
 {
     int Enable;
     int LightType;
-    int2 Dummy;
+    int CastShadow;
+    int Dummy;
     
     float4 Position;
     float4 Direction;

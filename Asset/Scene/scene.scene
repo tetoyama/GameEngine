@@ -39,60 +39,25 @@ Entities:
       - Component: MaterialComponent
         ShaderID: 1
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
           Diffuse:
             x: 1
             y: 1
             z: 1
             w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
           Shininess: 64
           TextureEnable: false
       - Component: TextureComponent
         FilePath: Asset\Texture\mesh.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 81.5
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 66031.9609
+        AnimationTime: 67442.8438
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -117,9 +82,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: -44.1486969
-          y: 33.2683945
-          z: -31.478653
+          x: -32.1755714
+          y: 33.3206711
+          z: -19.6606178
           w: 0
         Direction:
           x: 0.6799317
@@ -143,20 +108,20 @@ Entities:
           w: 0
         LightView:
           -
-            - 0.540302217
+            - 0.540302277
             - 0
-            - -0.841471076
-            - -2.63473701
+            - -0.841471016
+            - 0.840694427
           -
             - 0.495748281
             - 0.808027506
-            - 0.318316221
-            - 5.02502728
+            - 0.318316281
+            - -4.71474028
           -
-            - 0.67993176
-            - -0.589144766
+            - 0.6799317
+            - -0.589144826
             - 0.436579049
-            - 63.3609238
+            - 50.0913086
           -
             - 0
             - 0
@@ -204,50 +169,27 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\sky.fbx
         isBlender: true
-        AnimationTime: 66031.9609
+        AnimationTime: 67442.8438
   - Entity: 4
     Components:
       - Component: NameComponent
         Name: Player
       - Component: TransformComponent
         Position:
-          x: -6.41542912
-          y: 4.88287469e-07
-          z: -6.25671577
+          x: -0.796279907
+          y: 3.02003826e-08
+          z: 6.43725443
         Rotation:
           - 0
-          - 0.94486618
+          - -0.997591555
           - 0
-          - -0.327456713
+          - -0.0693626553
         Scale:
           x: 0.0100000016
           y: 0.00999999978
@@ -274,32 +216,20 @@ Entities:
       - Component: MaterialComponent
         ShaderID: 1
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
           Diffuse:
             x: 1
             y: 1
             z: 1
             w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
           Shininess: 64
           TextureEnable: false
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
         isBlender: false
-        AnimationTime: 66031.9609
+        AnimationTime: 67442.8438
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           mixamo.com: Asset\Model\Akai_Run.fbx
@@ -323,14 +253,14 @@ Entities:
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: -10.1521091
-          y: 3.8111546
-          z: -9.64969826
+          x: 1.82101607
+          y: 3.86343074
+          z: 2.16833591
         Rotation:
-          - 0.156738549
-          - 0.398830026
-          - -0.0693913549
-          - 0.900862098
+          - 0.170530602
+          - -0.26725021
+          - 0.0481149629
+          - 0.947196722
         Scale:
           x: 0.999999881
           y: 0.999999821
@@ -339,32 +269,32 @@ Entities:
       - Component: CameraComponent
         isLock: true
         Target:
-          x: -6.41542912
-          y: 4.88287469e-07
-          z: -6.25671577
+          x: -0.796279907
+          y: 3.02003826e-08
+          z: 6.43725443
         NearClip: 0.00999999978
         FarClip: 1024
         FOV: 1
         viewMatrix:
           -
-            - 0.672238827
-            - 0.446122766
-            - 0.590820968
+            - 0.852524519
+            - -0.319289744
+            - -0.413830817
             - 0
           -
-            - 0
-            - 0.798046112
-            - -0.602596343
-            - 0
-          -
-            - -0.740334332
-            - 0.405088663
-            - 0.536477625
+            - -0
+            - 0.79173702
+            - -0.610862017
             - 0
           -
-            - -0.31936121
-            - 5.39659309
-            - 13.4715137
+            - 0.522687197
+            - 0.520774841
+            - 0.674975276
+            - 0
+          -
+            - -2.68582249
+            - -3.6066041
+            - 1.65004241
             - 1
         nextLinkId: 7
         nextPinId: 15
@@ -524,7 +454,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 66031.9609
+        AnimationTime: 67442.8438
   - Entity: 7
     Components:
       - Component: NameComponent
@@ -1015,57 +945,22 @@ Entities:
       - Component: MaterialComponent
         ShaderID: 1
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
           Diffuse:
             x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
             y: 0
             z: 0
-            w: 1
+            w: 0.290043294
+          Metallic: 0
+          Roughness: 0
+          AO: 0
           Shininess: 64
           TextureEnable: false
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 0.393939376
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 60423.9141
+        AnimationTime: 61834.7734

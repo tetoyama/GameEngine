@@ -30,10 +30,10 @@ public:
 	void OnUpdate(float dt) override{
 		Timer += dt;
 		// ScoreSpriteのコンポーネントを取得
-		auto Texture = GetComponent<TextureComponent>();
-		if(Texture){
+		auto Material = GetComponent<MaterialComponent>();
+		if (Material) {
 			// スコアに応じてテクスチャを設定
-			Texture->Material.Diffuse.w = 1.0f - Timer / FadeTime;
+			Material->Material.Diffuse.w = 1.0f - Timer / FadeTime;
 		}
 	}
 	void OnFixedUpdate(float dt)override{}

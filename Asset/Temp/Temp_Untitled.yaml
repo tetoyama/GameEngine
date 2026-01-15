@@ -39,53 +39,18 @@ Entities:
       - Component: MaterialComponent
         ShaderID: 1
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
           Diffuse:
             x: 1
             y: 1
             z: 1
             w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          Shininess: 48
           TextureEnable: false
       - Component: TextureComponent
         FilePath: Asset\Texture\mesh.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 48
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -202,31 +167,21 @@ Entities:
           y: 500
           z: 500
         Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\Daylight.png
+      - Component: MaterialComponent
+        ShaderID: 0
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
           Diffuse:
             x: 1
             y: 1
             z: 1
             w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
           Shininess: 64
           TextureEnable: false
+      - Component: TextureComponent
+        FilePath: Asset\Texture\Daylight.png
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -274,26 +229,14 @@ Entities:
       - Component: MaterialComponent
         ShaderID: 1
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
           Diffuse:
             x: 1
             y: 1
             z: 1
             w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
           Shininess: 64
           TextureEnable: false
       - Component: ModelRendererComponent

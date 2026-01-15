@@ -13,6 +13,7 @@
 #include "Scene/Component/meshRendererComponent.h"
 #include "Scene/Component/transformComponent.h"
 #include "Scene/Component/textureComponent.h"
+#include <Component/materialComponent.h>
 
 
 void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity) {
@@ -25,15 +26,19 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	}
 
 	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
+	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
 	MATERIAL material{};
+	if (pMaterial) {
+		material = pMaterial->Material;
+	}
 
 	if(pTexture && pTexture->m_TextureData && pTexture->m_TextureData->pTexture){
-		sceneContext->manager->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 
-		material = pTexture->Material;
+		sceneContext->manager->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 		material.DiffuseTextureEnable = true;
 
 	} else{
+
 		material.DiffuseTextureEnable = false;
 		material.Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
 	}

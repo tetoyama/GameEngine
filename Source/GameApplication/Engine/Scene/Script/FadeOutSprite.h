@@ -1,6 +1,8 @@
 #pragma once
 #include "Component/CustomScriptComponent.h"
 #include "Backends/checkFileExtention.h"
+#include <Component/materialComponent.h>
+#include <Component/textureComponent.h>
 
 class FadeOutSprite: public CustomScriptComponent {
 public:
@@ -39,9 +41,10 @@ public:
 		Timer += dt;
 		// ScoreSpriteのコンポーネントを取得
 		auto Texture = GetComponent<TextureComponent>();
-		if(Texture){
+		auto Material = GetComponent<MaterialComponent>();
+		if(Material){
 			// スコアに応じてテクスチャを設定
-			Texture->Material.Diffuse.w = Timer / FadeTime;
+			Material->Material.Diffuse.w = Timer / FadeTime;
 		}
 	}
 	void OnFixedUpdate(float dt)override{}

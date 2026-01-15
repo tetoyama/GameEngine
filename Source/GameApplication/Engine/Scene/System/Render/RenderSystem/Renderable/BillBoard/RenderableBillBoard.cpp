@@ -14,6 +14,7 @@
 #include "Scene/Component/meshRendererComponent.h"
 #include "Scene/Component/transformComponent.h"
 #include "Scene/Component/textureComponent.h"
+#include <Component/materialComponent.h>
 
 void RenderableBillBoard::Initialize(SceneManagerContext* context){
 	m_billBoardMesh = new MeshRendererComponent;
@@ -77,15 +78,43 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 	ComponentRegistry* componentRegistry = sceneContext->component;
 
-	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
-	if(pTexture){
-		MATERIAL material = pTexture->Material;
-		material.DiffuseTextureEnable = true;
-		graphicsContext->SetMaterial(material);
+	MATERIAL material;
+	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
+	if (pMaterial) {
+		material = pMaterial->Material;
+	}
 
-		if(pTexture->m_TextureData){
+	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
+	if (pTexture) {
+
+			// マテリアル設定
+		material.DiffuseTextureEnable = ((bool)pTexture->m_TextureData);
+		if (pTexture->m_TextureData) {
 			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 		}
+
+		graphicsContext->SetMaterial(material);
+
+		UVMatrix uv;
+		if (pTexture->UV_Slice_X != 0 && pTexture->UV_Slice_Y != 0) {
+			uv.Start.x = (float)(pTexture->AnimationNum % pTexture->UV_Slice_X) * 1.0f / (float)pTexture->UV_Slice_X;
+			uv.Start.y = (float)(pTexture->AnimationNum / pTexture->UV_Slice_X) * 1.0f / (float)pTexture->UV_Slice_Y;
+
+			uv.End.x = (float)uv.Start.x + 1.0f / (float)pTexture->UV_Slice_X;
+			uv.End.y = (float)uv.Start.y + 1.0f / (float)pTexture->UV_Slice_Y;
+		}
+		graphicsContext->SetUVMatrix(uv);
+
+	} else {
+		// マテリアル設定
+		MATERIAL material;
+		material.DiffuseTextureEnable = false;
+		material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		graphicsContext->SetMaterial(material);
+
+		UVMatrix uv;
+		graphicsContext->SetUVMatrix(uv);
+
 	}
 	DirectX::XMMATRIX InvViewBillBoardMatrix = DirectX::XMMatrixRotationQuaternion(transform->rotationVector());
 	DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, ctx.viewMatrix);

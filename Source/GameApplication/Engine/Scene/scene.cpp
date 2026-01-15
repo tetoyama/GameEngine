@@ -247,8 +247,11 @@ void Scene::BuildDefaultScene(){
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
 		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\mesh.png");
-		texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		texture->Material.Shininess = 48.0f;
+
+		auto* material = componentRegistry->AddComponent<MaterialComponent>(entity);
+		material->ShaderID = 1;
+		material->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		material->Material.Shininess = 48.0f;
 		auto* collider = componentRegistry->AddComponent<ColliderComponent>(entity);
 		ColliderShape col;
 		col.type = ColliderType::Box;
@@ -258,8 +261,6 @@ void Scene::BuildDefaultScene(){
 		col.dynamicFriction = 0.0f;
 		collider->colliders.push_back(col);
 
-		auto* material = componentRegistry->AddComponent<MaterialComponent>(entity);
-		material->ShaderID = 1;
 
 		//auto* bumpMap = componentRegistry->AddComponent<BumpMapComponent>(entity);
 		//bumpMap->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\BumpMap/Normal.bmp");
@@ -299,7 +300,10 @@ void Scene::BuildDefaultScene(){
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
 		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\Daylight.png");
-		texture->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+
+		auto* material = componentRegistry->AddComponent<MaterialComponent>(entity);
+
+		material->Material.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
@@ -694,8 +698,8 @@ RenderLayer Scene::GetRenderLayerFromEntity(Entity entity) {
 	if (registry->HasComponent<ParticleComponent>(entity)) {
 		return RenderLayer::SortTransparent3D;
 	}
-	auto* texture = registry->GetComponent<TextureComponent>(entity);
-	if (texture && texture->Material.Diffuse.w < 1.0f) {
+	auto* material = registry->GetComponent<MaterialComponent>(entity);
+	if (material && material->Material.Diffuse.w < 1.0f) {
 		return RenderLayer::SortTransparent3D;
 	}
 	return RenderLayer::Opaque3D;

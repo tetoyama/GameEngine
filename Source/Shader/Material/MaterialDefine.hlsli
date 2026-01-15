@@ -10,8 +10,10 @@ struct MaterialInput
     float3 worldPos;
     float3 viewDir;
 
-    float shininess;
-    float emission;
+    float Metallic;
+    float Roughness;
+    float AO;
+    float Shininess;
 
     int materialID;
     int objectID;

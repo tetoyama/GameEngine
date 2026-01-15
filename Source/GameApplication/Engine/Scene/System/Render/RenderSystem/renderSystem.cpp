@@ -243,7 +243,6 @@ void RenderSystem::Draw(){
 
 void RenderSystem::SystemSetting(){
 
-
 }
 
 void RenderSystem::DrawRenderLayerToggleUI() {

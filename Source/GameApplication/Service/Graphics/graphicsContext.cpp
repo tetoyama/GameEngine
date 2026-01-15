@@ -421,7 +421,6 @@ bool GraphicsContext::CreateConstantBuffers(){
 	// マテリアル初期化
 	MATERIAL material{};
 	material.Diffuse	= DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	material.Ambient	= DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	SetMaterial(material);
 
 	// カメラ初期化

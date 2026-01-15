@@ -14,6 +14,7 @@
 #include "Scene/Component/meshRendererComponent.h"
 #include "Scene/Component/transformComponent.h"
 #include "Scene/Component/textureComponent.h"
+#include <Component/materialComponent.h>
 
 void RenderableSprite::Initialize(SceneManagerContext* context){
 	m_spriteMesh = new MeshRendererComponent;
@@ -88,12 +89,16 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 	ComponentRegistry* componentRegistry = sceneContext->component;
 
 
+	MATERIAL material;
+	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
+	if (pMaterial) {
+		material = pMaterial->Material;
+	}
 
 	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
 	if (pTexture) {
 
 			// マテリアル設定
-		MATERIAL material = pTexture->Material;
 		material.DiffuseTextureEnable = ((bool)pTexture->m_TextureData);
 		if (pTexture->m_TextureData) {
 			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());

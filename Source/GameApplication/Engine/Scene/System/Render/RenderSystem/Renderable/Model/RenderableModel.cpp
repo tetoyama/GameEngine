@@ -18,6 +18,7 @@
 #include "Backends/Assimp/cimport.h"
 #include "Backends/Assimp/postprocess.h"
 #include "Backends/Assimp/matrix4x4.h"
+#include <Component/materialComponent.h>
 
 void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
 
@@ -35,10 +36,15 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 	ID3D11Device* device = graphicsContext->GetDevice();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
+	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
+	MATERIAL material{};
+	if (pMaterial) {
+		material = pMaterial->Material;
+	}
+
 	if (pTexture) {
 
 			// マテリアル設定
-		MATERIAL material = pTexture->Material;
 		if (pTexture->m_TextureData) {
 			material.DiffuseTextureEnable = true;
 			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
@@ -108,12 +114,12 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 			aiColor4D color;
 			if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS)
 				materialData.Diffuse = { color.r, color.g, color.b, color.a };
-			if (aiMat->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS)
-				materialData.Ambient = { color.r, color.g, color.b, color.a };
-			if (aiMat->Get(AI_MATKEY_COLOR_EMISSIVE, color) == AI_SUCCESS)
-				materialData.Emission = { color.r, color.g, color.b, color.a };
-			if (aiMat->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS)
-				materialData.Specular = { color.r, color.g, color.b, color.a };
+			//if (aiMat->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS)
+			//	materialData.Ambient = { color.r, color.g, color.b, color.a };
+			//if (aiMat->Get(AI_MATKEY_COLOR_EMISSIVE, color) == AI_SUCCESS)
+			//	materialData.Emission = { color.r, color.g, color.b, color.a };
+			//if (aiMat->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS)
+			//	materialData.Specular = { color.r, color.g, color.b, color.a };
 
 			float shininess = 0.0f;
 			if (aiMat->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS)
@@ -122,8 +128,6 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 			materialData.DiffuseTextureEnable = pModel->SetTexture;
 			graphicsContext->SetMaterial(materialData);
 		} else {
-
-			MATERIAL material = pTexture->Material;
 
 			if (pTexture->m_TextureData) {
 				deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());

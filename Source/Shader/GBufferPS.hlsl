@@ -45,13 +45,12 @@ GBUFFER_OUT main(PS_IN In)
     // -----------------------------
     // Material Parameters
     // -----------------------------
-    // ここはエンジン設計次第で自由
-    float roughness = saturate(Material.Shininess / 256.0f);
-    float metallic = 0;
-    float ao = 0;
-    float emissive = dot(Material.Emission.rgb, float3(0.3333, 0.3333, 0.3333));
-
-    Out.Material = float4(Material.Shininess, Material.Emission.rgb);
+    Out.Material = float4(
+        Material.Metallic,
+        Material.Roughness,
+        Material.AO,
+        Material.Shininess
+    );
 
     // -----------------------------
     // Param (UINT4)

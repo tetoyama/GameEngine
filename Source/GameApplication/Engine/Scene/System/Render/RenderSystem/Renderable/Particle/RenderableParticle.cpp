@@ -14,6 +14,7 @@
 #include "Scene/Component/meshRendererComponent.h"
 #include "Scene/Component/transformComponent.h"
 #include "Scene/Component/textureComponent.h"
+#include <Component/materialComponent.h>
 void RenderableParticle::Initialize(SceneManagerContext* context){
 	m_billBoardMesh = new MeshRendererComponent;
 	if(m_billBoardMesh){
@@ -71,6 +72,11 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 		return;
 	}
 	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
+	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
+	MATERIAL material{};
+	if (pMaterial) {
+		material = pMaterial->Material;
+	}
 
 	GraphicsContext* graphicsContext = sceneContext->manager->renderer->GetGraphicsContext();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
@@ -84,7 +90,6 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 
 			if(pTexture){
 				// マテリアル設定
-				material.Diffuse = pTexture->Material.Diffuse;
 				material.DiffuseTextureEnable = ((bool)pTexture->m_TextureData);
 				if(pTexture->m_TextureData){
 					deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
@@ -99,8 +104,11 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 					uv.End.y = (float)uv.Start.y + 1.0f / (float)pTexture->UV_Slice_Y;
 				}
 				graphicsContext->SetUVMatrix(uv);
-				material.Diffuse.w = pTexture->Material.Diffuse.w * pParticle->Particle[i].LifeTime / pParticle->particleLifeTime;
 
+				if (pMaterial) {
+					material.Diffuse = pMaterial->Material.Diffuse;
+					material.Diffuse.w = pMaterial->Material.Diffuse.w * pParticle->Particle[i].LifeTime / pParticle->particleLifeTime;
+				}
 			} else{
 				// マテリアル設定
 				material.DiffuseTextureEnable = false;

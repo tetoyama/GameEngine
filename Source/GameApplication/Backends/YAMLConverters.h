@@ -77,10 +77,10 @@ namespace YAML {
 	struct convert<MATERIAL> {
 		static Node encode(const MATERIAL& mat) {
 			Node node;
-			node["Ambient"] = mat.Ambient;
 			node["Diffuse"] = mat.Diffuse;
-			node["Specular"] = mat.Specular;
-			node["Emission"] = mat.Emission;
+			node["Metallic"] = mat.Metallic;
+			node["Roughness"] = mat.Roughness;
+			node["AO"] = mat.AO;
 			node["Shininess"] = mat.Shininess;
 			node["TextureEnable"] = static_cast<bool>(mat.DiffuseTextureEnable); // BOOL→bool
 			return node;
@@ -88,11 +88,13 @@ namespace YAML {
 
 		static bool decode(const Node& node, MATERIAL& mat) {
 			if (!node.IsMap()) return false;
-			mat.Ambient = node["Ambient"].as<DirectX::XMFLOAT4>();
 			mat.Diffuse = node["Diffuse"].as<DirectX::XMFLOAT4>();
-			mat.Specular = node["Specular"].as<DirectX::XMFLOAT4>();
-			mat.Emission = node["Emission"].as<DirectX::XMFLOAT4>();
-			mat.Shininess = node["Shininess"].as<float>();
+			if (!node["Ambient"]) {
+				mat.Metallic = node["Metallic"].as<float>();
+				mat.Roughness = node["Roughness"].as<float>();
+				mat.AO = node["AO"].as<float>();
+				mat.Shininess = node["Shininess"].as<float>();
+			}
 			mat.DiffuseTextureEnable = node["TextureEnable"].as<bool>() ? TRUE : FALSE;
 			return true;
 		}

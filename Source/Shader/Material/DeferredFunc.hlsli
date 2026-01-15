@@ -49,8 +49,10 @@ MaterialInput GetMaterialInput(PS_IN In)
     input.viewDir = normalize(CameraPosition.xyz - worldPos);
 
     float4 mat = GMaterial.Sample(PointSampler, input.uv);
-    input.shininess = mat.r;
-    input.emission = mat.g;
+    input.Metallic = mat.r;
+    input.Roughness = mat.g;
+    input.AO = mat.b;
+    input.Shininess = mat.a;
 
     uint4 param = GParam.Load(int3(pixelCoord, 0));
     input.sceneID = param.x;

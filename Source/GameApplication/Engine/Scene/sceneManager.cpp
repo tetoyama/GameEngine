@@ -27,7 +27,9 @@
 #include "System/Audio/audioSystem.h"
 
 #include "System/Physic/physicSystem.h"
-
+#include "Editor/editorService.h"
+#include <Editor/UI/Inspector.h>
+#include <Editor/UI/Hierarchy.h>
 
 void SceneManager::Initialize(SceneManagerContext sceneContext){
 	
@@ -186,6 +188,11 @@ void SceneManager::Shutdown(){
 void SceneManager::AddScene(std::shared_ptr<Scene> scene) {
 	if (!scene) {
 		return;
+	}
+
+	if (m_activeScenes[scene->SceneName]) {
+		m_activeScenes[scene->SceneName]->Shutdown();
+		m_activeScenes[scene->SceneName] = nullptr;
 	}
 
 	m_activeScenes[scene->SceneName] = scene;

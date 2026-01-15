@@ -60,15 +60,17 @@ LightingResult ComputeLightingFromMaterialInput(
     float3 worldPos = input.worldPos;
     float3 N = normalize(input.normal);
     float3 V = normalize(CameraPosition.xyz - input.worldPos);
-    float shininess = input.shininess;
+    float shininess = input.Shininess;
     float3 baseColor = input.baseColor.rgb;
-
+    int shadowMapNum = 0;
+    
     [loop]
     for (int i = 0; i < ActiveLightCount; i++)
     {
         if (Lights[i].Enable == 0)
+        {
             continue;
-
+        }
         LIGHT light = Lights[i];
 
         float3 L;
@@ -117,8 +119,7 @@ LightingResult ComputeLightingFromMaterialInput(
             float inner = cos(radians(light.Param.y));
             float outer = cos(radians(light.Param.z));
 
-            float angleAtten =
-        saturate((cosAngle - outer) / max(inner - outer, 0.001));
+            float angleAtten = saturate((cosAngle - outer) / max(inner - outer, 0.001));
 
             attenuation = rangeAtten * angleAtten;
         }
@@ -145,9 +146,13 @@ LightingResult ComputeLightingFromMaterialInput(
         float G = G_Smith(N, V, L, roughness);
         float D = D_GTR2(NdotH, roughness);
 
-        float shadow =
-            ShadowFactor(worldPos, light, i);
-
+        float shadow = 1.0f;
+        if (Lights[i].CastShadow)
+        {
+            shadow = ShadowFactor(worldPos, light, shadowMapNum);
+            shadowMapNum++;
+        }
+        
         float3 spec =
             (D * F * G) /
             max(4.0 * NdotL * NdotV, 0.001);
