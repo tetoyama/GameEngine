@@ -29,5 +29,10 @@ float4 main(PS_IN In) : SV_Target
             break;
     }
 
+    if (Result.a <= 0.001f)
+    {
+        discard;
+    }
+    
     return Result;
 }

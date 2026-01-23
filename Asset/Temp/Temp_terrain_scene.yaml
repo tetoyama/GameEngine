@@ -52,8 +52,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -352,8 +352,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
         isBlender: false
@@ -428,8 +428,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset\Texture\field.jpg
         UV_Slice_X: 10
@@ -492,8 +492,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -538,8 +538,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset\Texture\grass.jpg
         UV_Slice_X: 1

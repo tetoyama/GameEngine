@@ -355,8 +355,8 @@ public:
 
 		// ピクセル → 仮想UI座標に逆変換
 		Vector2 virtualPosition = {
-			anchoredDiff.x / (viewportSize.x * 2.0f ) * referenceResolution.x / aspectRatioScaleX,
-			anchoredDiff.y / (viewportSize.y * 2.0f ) * referenceResolution.y
+			anchoredDiff.x / (viewportSize.x) * referenceResolution.x / aspectRatioScaleX,
+			anchoredDiff.y / (viewportSize.y) * referenceResolution.y
 		};
 
 		// 最終反映

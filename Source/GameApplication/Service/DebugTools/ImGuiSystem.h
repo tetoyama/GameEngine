@@ -16,7 +16,7 @@ public:
 
 	void SetViewProjectionMatrix(const DirectX::XMMATRIX& view, const DirectX::XMMATRIX& projection);
 	DirectX::XMMATRIX RenderGizmo(const DirectX::XMMATRIX& world) const;
-	DirectX::XMMATRIX RenderGizmo2D(const DirectX::XMMATRIX& world) const;
+	DirectX::XMMATRIX RenderGizmo2D(const DirectX::XMMATRIX& world, const DirectX::XMFLOAT2& vp) const;
 
 	void Begin();
 	void End();

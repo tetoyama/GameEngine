@@ -67,116 +67,139 @@ private:
 	SceneManagerContext* m_context = nullptr;
 	GraphicsContext* m_graphicContext = nullptr;
 
-	void CreateMesh(SceneContext* context,Entity entity) {
+	void CreateMesh(SceneContext* context, Entity entity){
 		auto* comp = context->component->GetComponent<TerrainComponent>(entity);
-		if (!comp) return;
+		if(!comp) return;
 
-		if (!comp->meshRenderer || comp->Scale != comp->CurrentScale) {
-			if (comp->meshRenderer) {
-				// 既存のメッシュがある場合は解放
-				comp->meshRenderer->mesh.m_IndexBuffer.Reset();
-				comp->meshRenderer->mesh.m_VertexBuffer.Reset();
-			} else {
+		if(!comp->meshRenderer || comp->Scale != comp->CurrentScale){
+			if(!comp->meshRenderer)
 				comp->meshRenderer = new MeshRendererComponent();
+			else{
+				comp->meshRenderer->mesh.m_VertexBuffer.Reset();
+				comp->meshRenderer->mesh.m_IndexBuffer.Reset();
 			}
-			if (comp->Scale + 1 != std::sqrt(comp->HeightMap.size())) {
-				comp->HeightMap.resize((comp->Scale + 1) * (comp->Scale + 1), 0.0f);
-			}
-			// メッシュ生成
+
 			int gridSize = comp->Scale;
 			int vertexCount = (gridSize + 1) * (gridSize + 1);
 			int indexCount = gridSize * gridSize * 6;
+
 			std::vector<VERTEX_3D> vertices(vertexCount);
 			std::vector<unsigned int> indices(indexCount);
-			float halfSize = gridSize / 2.0f;
-			float uvScale = 1.0f; // UVのスケール調整用
 
-			// 頂点データの生成
-			for (int z = 0; z <= gridSize; ++z) {
-				for (int x = 0; x <= gridSize; ++x) {
-					int index = z * (gridSize + 1) + x;
+			float halfSize = gridSize * 0.5f;
 
-					// 位置セット
-					vertices[index].Position = DirectX::XMFLOAT3(
-						(x - halfSize) / (float)gridSize,
+			/*============================
+			  頂点生成（法線は0初期化）
+			============================*/
+			for(int z = 0; z <= gridSize; ++z){
+				for(int x = 0; x <= gridSize; ++x){
+					int i = z * (gridSize + 1) + x;
+
+					vertices[i].Position = {
+						(x - halfSize) / gridSize,
 						comp->HeightMap[x + (gridSize - z) * (gridSize + 1)],
-						(z - halfSize) / (float)gridSize
-					);
+						(z - halfSize) / gridSize
+					};
 
-					// 法線計算（周囲の高さを取得）
-					float heightL = (x > 0) ? comp->HeightMap[(x - 1) + (gridSize - z) * (gridSize + 1)] : comp->HeightMap[x + (gridSize - z) * (gridSize + 1)];
-					float heightR = (x < gridSize) ? comp->HeightMap[(x + 1) + (gridSize - z) * (gridSize + 1)] : comp->HeightMap[x + (gridSize - z) * (gridSize + 1)];
-					float heightD = (z > 0) ? comp->HeightMap[x + (gridSize - (z - 1)) * (gridSize + 1)] : comp->HeightMap[x + (gridSize - z) * (gridSize + 1)];
-					float heightU = (z < gridSize) ? comp->HeightMap[x + (gridSize - (z + 1)) * (gridSize + 1)] : comp->HeightMap[x + (gridSize - z) * (gridSize + 1)];
-
-					// 高さ差から勾配計算
-					float dx = heightL - heightR;
-					float dz = heightD - heightU;
-
-					// 法線ベクトルを正規化
-					DirectX::XMFLOAT3 normal(-dx, 2.0f, -dz);
-					DirectX::XMVECTOR n = DirectX::XMLoadFloat3(&normal);
-					n = DirectX::XMVector3Normalize(n);
-					DirectX::XMStoreFloat3(&normal, n);
-
-					vertices[index].Normal = normal;
-
-					// その他の頂点情報
-					vertices[index].Tangent = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
-					vertices[index].TexCoord = DirectX::XMFLOAT2((float)x / gridSize * uvScale, (float)z / gridSize * uvScale);
-					vertices[index].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+					vertices[i].Normal = {0,0,0};
+					vertices[i].Tangent = {1,0,0};
+					vertices[i].TexCoord = {
+						(float)x / gridSize,
+						(float)z / gridSize
+					};
+					vertices[i].Diffuse = {1,1,1,1};
 				}
 			}
 
-			// インデックスデータの生成
+			/*============================
+			  インデックス生成
+			============================*/
 			int idx = 0;
-			for (int z = 0; z < gridSize; ++z) {
-				for (int x = 0; x < gridSize; ++x) {
-					int topLeft = z * (gridSize + 1) + x;
-					int topRight = topLeft + 1;
-					int bottomLeft = (z + 1) * (gridSize + 1) + x;
-					int bottomRight = bottomLeft + 1;
-					// 三角形1
-					indices[idx++] = topLeft;
-					indices[idx++] = bottomLeft;
-					indices[idx++] = topRight;
-					// 三角形2
-					indices[idx++] = topRight;
-					indices[idx++] = bottomLeft;
-					indices[idx++] = bottomRight;
+			for(int z = 0; z < gridSize; ++z){
+				for(int x = 0; x < gridSize; ++x){
+					int tl = z * (gridSize + 1) + x;
+					int tr = tl + 1;
+					int bl = (z + 1) * (gridSize + 1) + x;
+					int br = bl + 1;
+
+					indices[idx++] = tl;
+					indices[idx++] = bl;
+					indices[idx++] = tr;
+
+					indices[idx++] = tr;
+					indices[idx++] = bl;
+					indices[idx++] = br;
 				}
 			}
-			comp->meshRenderer->mesh.meshCount = vertexCount;
-			comp->meshRenderer->mesh.indexCount = indexCount;
 
-			// 頂点バッファの作成
+			/*============================
+			  法線計算（面法線加算）
+			============================*/
+			for(int i = 0; i < indexCount; i += 3){
+				auto& v0 = vertices[indices[i + 0]];
+				auto& v1 = vertices[indices[i + 1]];
+				auto& v2 = vertices[indices[i + 2]];
+
+				DirectX::XMVECTOR p0 = DirectX::XMLoadFloat3(&v0.Position);
+				DirectX::XMVECTOR p1 = DirectX::XMLoadFloat3(&v1.Position);
+				DirectX::XMVECTOR p2 = DirectX::XMLoadFloat3(&v2.Position);
+
+				DirectX::XMVECTOR e1 = DirectX::XMVectorSubtract(p1, p0);
+				DirectX::XMVECTOR e2 = DirectX::XMVectorSubtract(p2, p0);
+
+				DirectX::XMVECTOR n = DirectX::XMVector3Cross(e1, e2);
+
+				DirectX::XMFLOAT3 normal;
+				DirectX::XMStoreFloat3(&normal, n);
+
+				v0.Normal.x += normal.x;
+				v0.Normal.y += normal.y;
+				v0.Normal.z += normal.z;
+
+				v1.Normal.x += normal.x;
+				v1.Normal.y += normal.y;
+				v1.Normal.z += normal.z;
+
+				v2.Normal.x += normal.x;
+				v2.Normal.y += normal.y;
+				v2.Normal.z += normal.z;
+			}
+
+			/*============================
+			  法線正規化
+			============================*/
+			for(auto& v : vertices){
+				DirectX::XMVECTOR n = DirectX::XMLoadFloat3(&v.Normal);
+				n = DirectX::XMVector3Normalize(n);
+				DirectX::XMStoreFloat3(&v.Normal, n);
+			}
+
+			/*============================
+			  バッファ作成
+			============================*/
 			D3D11_BUFFER_DESC bd{};
 			bd.Usage = D3D11_USAGE_DEFAULT;
-			bd.ByteWidth = sizeof(VERTEX_3D) * vertexCount;
 			bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-			bd.CPUAccessFlags = 0;
+			bd.ByteWidth = sizeof(VERTEX_3D) * vertexCount;
+
 			D3D11_SUBRESOURCE_DATA sd{};
 			sd.pSysMem = vertices.data();
-			m_graphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.m_VertexBuffer.GetAddressOf());
 
-			// インデックスバッファの作成
-			bd.Usage = D3D11_USAGE_DEFAULT;
-			bd.ByteWidth = sizeof(unsigned int) * indexCount;
+			m_graphicContext->GetDevice()->CreateBuffer(
+				&bd, &sd,
+				comp->meshRenderer->mesh.m_VertexBuffer.GetAddressOf());
+
 			bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-			bd.CPUAccessFlags = 0;
+			bd.ByteWidth = sizeof(unsigned int) * indexCount;
 			sd.pSysMem = indices.data();
-			m_graphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.m_IndexBuffer.GetAddressOf());
 
-			// シェーダーのロード
-			comp->meshRenderer->mesh.m_VertexShader = nullptr;
-			comp->meshRenderer->mesh.m_PixelShader = nullptr;
-			comp->meshRenderer->mesh.m_VertexLayout = nullptr;
+			m_graphicContext->GetDevice()->CreateBuffer(
+				&bd, &sd,
+				comp->meshRenderer->mesh.m_IndexBuffer.GetAddressOf());
 
-			//m_graphicContext->CreateVertexShader("Asset\\Shader\\commonVS.cso", comp->meshRenderer->mesh.m_VertexShader.GetAddressOf(), comp->meshRenderer->mesh.m_VertexLayout.GetAddressOf());
-			//m_graphicContext->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", comp->meshRenderer->mesh.m_PixelShader.GetAddressOf());
-
+			comp->meshRenderer->mesh.meshCount = vertexCount;
+			comp->meshRenderer->mesh.indexCount = indexCount;
 			comp->CurrentScale = comp->Scale;
 		}
-
 	}
 };

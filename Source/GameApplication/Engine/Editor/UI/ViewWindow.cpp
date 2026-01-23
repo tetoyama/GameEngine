@@ -185,17 +185,27 @@ void ViewWindow::EditorView(const EditorDrawContext ctx) {
 
 			auto* sprite = registry->GetComponent<SpriteRendererComponent>(selectedEntity);
 
-			if (sprite) {
+			if(sprite){
+				// temp は CalculateRectTransform の結果（position: ピクセル位置, scale: ピクセルスケール, rotation: Euler）
 				TransformComponent temp = transform->CalculateRectTransform(Vector2(avail.x, avail.y), *sprite, *transform);
-				DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(temp.GetRotationEuler().x, temp.GetRotationEuler().y, temp.GetRotationEuler().z);
-				DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(temp.scale.x, temp.scale.y, temp.scale.z);
-				DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(temp.position.x, temp.position.y, temp.position.z);
 
-				World = Scale * Rotation * Translation;
+				// 2D 用のアフィン変換を使う（ピボットを origin にして回転・スケールを適用）
+				// 前提（重要）: sprite のローカル頂点は 0..1 の範囲に定義されている（左上が (0,0)、右下が (1,1) 等）。
+				// もし頂点定義が異なれば pivot の扱いを頂点定義に合わせてください。
+				DirectX::XMVECTOR scaling = DirectX::XMVectorSet(temp.scale.x, temp.scale.y, 1.0f, 0.0f); // ピクセルスケール
+				DirectX::XMVECTOR rotationOrigin = DirectX::XMVectorSet(sprite->pivot.x, sprite->pivot.y, 0.0f, 0.0f); // ローカル単位（0..1）
+				float rotationZ = temp.GetRotationEuler().z; // 2D 回転は Z 軸回り（ラジアン）
+				DirectX::XMVECTOR translation = DirectX::XMVectorSet(temp.position.x, temp.position.y, temp.position.z, 0.0f);
 
-				modelMatrix = m_editor->sceneManager->GetContext()->imgui->RenderGizmo2D(World);
+				// XMMatrixAffineTransformation2D(Scaling, RotationOrigin, Rotation, Translation)
+				DirectX::XMMATRIX model2D = DirectX::XMMatrixAffineTransformation2D(scaling, rotationOrigin, rotationZ, translation);
 
-			} else {
+				// World はこの model2D（imGuizmo 用行列）
+				World = model2D;
+
+				// Gizmo 描画（RenderGizmo2D は ortho と SetRect を使う前提）
+				modelMatrix = m_editor->sceneManager->GetContext()->imgui->RenderGizmo2D(World, DirectX::XMFLOAT2(avail.x, avail.y));
+			} else{
 				modelMatrix = m_editor->sceneManager->GetContext()->imgui->RenderGizmo(World);
 			}
 			Entity Parent = transform->parent;

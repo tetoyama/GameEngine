@@ -694,7 +694,11 @@ RenderLayer Scene::GetRenderLayerFromEntity(Entity entity) {
 		return RenderLayer::OverlayUI;
 	}
 	if(registry->HasComponent<BillBoardRendererComponent>(entity)){
-		return RenderLayer::SortTransparent3D;
+		auto* material = registry->GetComponent<MaterialComponent>(entity);
+		if(material && material->Material.BaseColor.w < 1.0f){
+			return RenderLayer::SortTransparent3D;
+		}
+		return RenderLayer::Transparent3D;
 	}
 	if(registry->HasComponent<EffectComponent>(entity)){
 		return RenderLayer::SortTransparent3D;
