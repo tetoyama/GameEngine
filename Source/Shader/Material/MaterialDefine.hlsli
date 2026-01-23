@@ -20,6 +20,12 @@ struct MaterialInput
     int sceneID;
 };
 
+struct ShadowPCFParams
+{
+    int KernelRadius; // 1 = 3x3, 2 = 5x5
+    float StepTexel; // 1.0 = 1ピクセル間隔
+};
+
 struct LightingResult
 {
     float3 diffuse; // 影込み Diffuse 強度（無色）

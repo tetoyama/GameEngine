@@ -50,12 +50,10 @@ float D_GTR2(float NdotH, float roughness)
     return a2 / (PI * d * d);
 }
 
-LightingResult ComputeLightingFromMaterialInput(MaterialInput input)
+
+LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFParams shadowParam)
 {
-    LightingResult result;
-    result.diffuse = 0.0;
-    result.specular = 0.0;
-    result.ambient = 0.0;
+    LightingResult result = (LightingResult) 0;
 
     float3 N = normalize(input.normal);
     float3 V = normalize(CameraPosition.xyz - input.worldPos);
@@ -63,24 +61,23 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input)
     float roughness = saturate(input.Roughness);
     float metallic = saturate(input.Metallic);
 
-    // 鏡面F0（baseColorは使わない）
-    float3 F0 = lerp(float3(0.04, 0.04, 0.04), float3(1, 1, 1), metallic);
+    float3 F0 = lerp(float3(0.04, 0.04, 0.04), float3(1.0, 1.0, 1.0), metallic);
 
     int shadowMapNum = 0;
 
     [loop]
     for (int i = 0; i < ActiveLightCount; i++)
     {
-        if (Lights[i].Enable == 0)
-            continue;
-
         LIGHT light = Lights[i];
+        if (light.Enable == 0)
+            continue;
 
         float3 L;
         float attenuation = 1.0;
 
         if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
         {
+          // 平行光
             L = normalize(-light.Direction.xyz);
         }
         else
@@ -88,51 +85,68 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input)
             float3 toL = light.Position.xyz - input.worldPos;
             float dist = length(toL);
             L = toL / max(dist, 0.001);
-            attenuation = saturate(1.0 - dist / max(light.Param.x, 0.001));
+
+             // 距離減衰（POINT / SPOT 共通）
+            float rangeAtten = saturate(1.0 - dist / max(light.Param.x, 0.001));
+            attenuation = rangeAtten;
+
+            if (light.LightType == LIGHT_TYPE_SPOT)
+            {
+                // スポット方向（ライトの forward）
+                float3 spotDir = normalize(-light.Direction.xyz);
+
+                // 角度判定
+                float cosTheta = dot(L, spotDir);
+
+                // inner / outer（度 → cos）
+                float innerCos = cos(radians(light.Param.y));
+                float outerCos = cos(radians(light.Param.z));
+
+                // 滑らかな角度減衰
+                float spotAtten =
+                    saturate((cosTheta - outerCos) / max(innerCos - outerCos, 0.001));
+
+                attenuation *= spotAtten;
+            }
         }
 
-        float3 H = normalize(V + L);
+
+
+        float ambientStrength =
+            saturate(max(light.Ambient.r, max(light.Ambient.g, light.Ambient.b)));
 
         float NdotL = saturate(dot(N, L));
         float NdotV = saturate(dot(N, V));
-        float NdotH = saturate(dot(N, H));
 
-        if (NdotL <= 0.0 || NdotV <= 0.0)
-            continue;
+
+        float shadow = 1.0;
+        if (light.CastShadow)
+            shadow = ShadowFactor(input.worldPos, light, shadowMapNum++, shadowParam);
+
+        float shade = NdotL * shadow + ambientStrength * (1.0 - NdotL * shadow);
+
+        float3 diffuse =
+            light.Diffuse.rgb * attenuation * shade;
+
+        float3 H = normalize(V + L);
+        float NdotH = saturate(dot(N, H));
 
         float3 F = FresnelSchlick(saturate(dot(V, H)), F0);
         float G = G_Smith(N, V, L, roughness);
         float D = D_GTR2(NdotH, roughness);
 
         float3 specular =
-            (D * G * F) / max(4.0 * NdotL * NdotV, 0.001);
+            (D * G * F) / max(4.0 * NdotL * NdotV, 0.001)
+            * attenuation * shadow
+            * (1.0 - ambientStrength);
 
-        float3 kS = F;
-        float3 kD = (1.0 - kS) * (1.0 - metallic);
-
-        float shadow = 1.0;
-        if (light.CastShadow)
-        {
-            shadow = ShadowFactor(input.worldPos, light, shadowMapNum);
-            shadowMapNum++;
-        }
-
-        float3 radiance = light.Diffuse.rgb * attenuation * shadow;
-
-        if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
-        {
-            radiance *= 4.0;
-        }
-
-        result.diffuse += (NdotL) * radiance;
-        result.specular += specular * radiance;
+        result.diffuse += diffuse;
+        result.specular += specular;
         result.ambient += light.Ambient.rgb;
     }
 
-    // AO は光量に掛ける
-    result.ambient *= input.AO;
-
     return result;
 }
+
 
 #endif

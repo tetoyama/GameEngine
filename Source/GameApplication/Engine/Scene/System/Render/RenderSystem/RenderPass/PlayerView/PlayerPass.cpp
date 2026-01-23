@@ -37,6 +37,7 @@
 #include <System/Physic/physicSystem.h>
 #include <Component/textureComponent.h>
 #include <Component/materialComponent.h>
+#include <System/Render/RenderSystem/Renderable/Effect/RenderableEffect.h>
 
 
 void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
@@ -79,6 +80,7 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	renderables.push_back(renderSystem->GetRenderable<RenderableSprite>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableTerrain>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableWave>());
+	renderables.push_back(renderSystem->GetRenderable<RenderableEffect>());
 
 	editorRenderTarget = new RenderTarget(
 		context->PlayerScreenSize,
@@ -168,7 +170,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	initialSRV = lightingPass->pRenderTarget->srv.Get();
 
 	//Effekseer
-	effectPass->Execute(ctx);
+	//effectPass->Execute(ctx);
 
 	graphicsContext->SetBlendMode(BlendMode::Alpha);
 
@@ -184,23 +186,50 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 		if (i != (int)RenderLayer::OverlayUI && i != (int)RenderLayer::SortTransparent3D && i != (int)RenderLayer::Transparent3D) {
 			continue;
 		}
+		// --- Transparent 用の一時バッファ ---
+		std::vector<TransparentDrawItem> transparentList;
 
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
+
 			auto context = scene->GetSceneContext();
-			// コンポーネントを持つエンティティの検索
-			std::vector<Entity> entities = context->component->FindEntitiesWithComponent<TransformComponent>();
-			if (entities.empty()) {
+			std::vector<Entity> entities =
+				context->component->FindEntitiesWithComponent<TransformComponent>();
+
+			if(entities.empty()){
 				continue;
-			} else {
-				for (Entity entity : entities) {
-					RenderLayer layer = scene->GetRenderLayerFromEntity(entity);
-					if ((int)layer != i) {
+			}
+
+			for(Entity entity : entities){
+
+				RenderLayer layer = scene->GetRenderLayerFromEntity(entity);
+				if((int)layer != i){
+					continue;
+				}
+
+				// SortTransparent3D の場合は一旦貯める
+				if(layer == RenderLayer::SortTransparent3D){
+
+					auto transform =
+						context->component->GetComponent<TransformComponent>(entity);
+					if(!transform){
 						continue;
 					}
-					for (auto renderable : renderables) {
+
+					Vector3 worldPos = transform->GetWorldPosition(context->component);
+					Vector3 diff = worldPos - Vector3(ctx.cameraPosition.x, ctx.cameraPosition.y, ctx.cameraPosition.z);
+
+					TransparentDrawItem item;
+					item.entity = entity;
+					item.distanceSq = diff.dot(diff);
+					item.context = context;
+					transparentList.push_back(item);
+
+				} else{
+					// 通常描画（不透明など）
+					for(auto renderable : renderables){
 
 						int materialID = 0;
-						MaterialComponent* material =
+						auto material =
 							context->component->GetComponent<MaterialComponent>(entity);
 						if(material){
 							materialID = material->ShaderID;
@@ -216,6 +245,46 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 					}
 				}
 			}
+
+		}
+
+		// --- Z ソートして描画 ---
+		if(!transparentList.empty()){
+
+			m_context->graphics->SetDepthMode(DepthMode::ReadOnly);
+
+			std::sort(
+				transparentList.begin(),
+				transparentList.end(),
+				[](const TransparentDrawItem& a,
+				   const TransparentDrawItem& b){
+					   return a.distanceSq > b.distanceSq; // 遠い→近い
+				});
+
+			for(auto& item : transparentList){
+
+				Entity entity = item.entity;
+
+				for(auto renderable : renderables){
+
+					int materialID = 0;
+					auto material =
+						item.context->component->GetComponent<MaterialComponent>(entity);
+					if(material){
+						materialID = material->ShaderID;
+					}
+
+					ObjectInfo info;
+					info.SceneID = (unsigned int)item.context;
+					info.ObjectID = entity;
+					info.MaterialID = materialID;
+					m_context->graphics->SetObjectInfo(info);
+
+					renderable->Execute(ctx, item.context, entity);
+				}
+			}
+
+			m_context->graphics->SetDepthMode(DepthMode::Write);
 		}
 	}
 

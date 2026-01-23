@@ -11,7 +11,9 @@
 void RenderableEffect::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity) {
 
 	EffectComponent* effect = sceneContext->component->GetComponent<EffectComponent>(entity);
-
+	if(!effect){
+		return;
+	}
 	Effekseer::Matrix44 effekseerProjectionMatrix = ConvertXMMATRIXToMatrix44(ctx.projectionMatrix);
 	Effekseer::Matrix44 effekseerViewMatrix = ConvertXMMATRIXToMatrix44(ctx.viewMatrix);
 

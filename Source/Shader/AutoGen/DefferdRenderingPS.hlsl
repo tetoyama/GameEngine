@@ -15,6 +15,7 @@ float4 main(PS_IN In) : SV_Target
     // デフォルト色（未対応 material 用）
     float4 Result = float4(1, 0, 1, 1);
 
+    
     switch (input.materialID)
     {
         case 0:

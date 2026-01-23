@@ -39,7 +39,7 @@ Entities:
       - Component: MaterialComponent
         ShaderID: 1
         Material:
-          Diffuse:
+          BaseColor:
             x: 1
             y: 1
             z: 1
@@ -47,8 +47,13 @@ Entities:
           Metallic: 0
           Roughness: 0
           AO: 0
-          Emissive: 0
-          TextureEnable: false
+          EmissiveColor:
+            x: -4.78938595e+31
+            y: 4.59037351e-41
+            z: -6.51376215e-39
+          EmissiveIntensity: 4.37205121e-43
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset\Texture\mesh.png
         UV_Slice_X: 1
@@ -57,7 +62,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 6910.58496
+        AnimationTime: 29383.0371
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -82,9 +87,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: -34.6996841
-          y: 27.2595043
-          z: -31.9005966
+          x: -38.890789
+          y: 25.9712772
+          z: -33.0103531
           w: 0
         Direction:
           x: 0.738460243
@@ -108,20 +113,20 @@ Entities:
           w: 0
         LightView:
           -
-            - 0.540302277
+            - 0.540302336
             - 0
             - -0.841470957
-            - -8.09510803
+            - -6.76446915
           -
-            - 0.403422713
+            - 0.403422683
             - 0.87758255
-            - 0.259034723
-            - -1.66046143
+            - 0.259034753
+            - 1.44831657
           -
-            - 0.738460302
-            - -0.479425579
+            - 0.738460243
+            - -0.47942555
             - 0.474159896
-            - 53.8192291
+            - 56.8227768
           -
             - 0
             - 0
@@ -175,21 +180,21 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\sky.fbx
         isBlender: true
-        AnimationTime: 6910.58496
+        AnimationTime: 29383.0371
   - Entity: 4
     Components:
       - Component: NameComponent
         Name: Player
       - Component: TransformComponent
         Position:
-          x: -2.09126019
-          y: 0
-          z: -4.94116068
+          x: -0.629140258
+          y: -5.08036464e-07
+          z: -3.45359421
         Rotation:
           - 0
-          - 0.281837821
+          - -0.99453491
           - 0
-          - 0.959462106
+          - 0.104405098
         Scale:
           x: 0.00999999978
           y: 0.00999999978
@@ -216,7 +221,7 @@ Entities:
       - Component: MaterialComponent
         ShaderID: 1
         Material:
-          Diffuse:
+          BaseColor:
             x: 1
             y: 1
             z: 1
@@ -224,12 +229,17 @@ Entities:
           Metallic: 0
           Roughness: 0
           AO: 0
-          Emissive: 0
-          TextureEnable: false
+          EmissiveColor:
+            x: -4.78938595e+31
+            y: 4.59037351e-41
+            z: -6.50759644e-39
+          EmissiveIntensity: 4.37205121e-43
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
         isBlender: false
-        AnimationTime: 6910.58496
+        AnimationTime: 29383.0371
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           Run: Asset\Model\Akai_Run.fbx
@@ -252,14 +262,14 @@ Entities:
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: 2.22332883
-          y: 3.2882266
-          z: -8.19260406
+          x: -1.96777844
+          y: 1.99999952
+          z: -9.30235863
         Rotation:
-          - 0.104503386
-          - -0.443134278
-          - 0.0521018468
-          - 0.88881743
+          - 0
+          - 0.112262852
+          - 0
+          - 0.99367857
         Scale:
           x: 1
           y: 1
@@ -268,32 +278,32 @@ Entities:
       - Component: CameraComponent
         isLock: true
         Target:
-          x: -2.09126019
-          y: 0
-          z: -4.94116068
+          x: -0.629140258
+          y: -5.08036464e-07
+          z: -3.45359421
         NearClip: 0.00999999978
         FarClip: 1024
         FOV: 1
         viewMatrix:
           -
-            - 0.601834774
-            - -0.41521427
-            - -0.682196438
+            - 0.974794149
+            - 0.070552431
+            - 0.211657286
             - 0
           -
-            - -0
-            - 0.854218364
-            - -0.519914329
+            - 0
+            - 0.948683262
+            - -0.316227764
             - 0
           -
-            - 0.798620582
-            - 0.31290251
-            - 0.514098346
+            - -0.223106384
+            - 0.308256984
+            - 0.924770832
             - 0
           -
-            - 5.20470572
-            - 0.677780628
-            - 7.43814754
+            - -0.157236695
+            - 1.10898256
+            - 9.65149975
             - 1
         nextLinkId: 2
         nextPinId: 2
@@ -359,13 +369,13 @@ Entities:
         Name: Entity
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 0
-          z: 0
+          x: -4.37780666
+          y: 1.54216135
+          z: -4.07353592
         Rotation:
+          - -0
           - 0
-          - 0
-          - 0
+          - -0
           - 1
         Scale:
           x: 1
@@ -397,25 +407,133 @@ Entities:
           z: 3.26000118
         Parent: 0
       - Component: RenderLayerComponent
-        layer: 2
+        layer: 3
       - Component: MaterialComponent
         ShaderID: 1
         Material:
-          Diffuse:
+          BaseColor:
             x: 1
             y: 1
             z: 1
-            w: 0.502164483
+            w: 0.476190448
           Metallic: 0
           Roughness: 0
           AO: 0
-          Emissive: 0
-          TextureEnable: false
+          EmissiveColor:
+            x: 0
+            y: 4.59037351e-41
+            z: -6.50439027e-39
+          EmissiveIntensity: 4.37205121e-43
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
+        FilePath: Asset/Texture\white.tga
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.fbx
         isBlender: false
-        AnimationTime: 6910.58496
+        AnimationTime: 29383.0371
+  - Entity: 9
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 6.54619646
+          y: 4.05051708
+          z: 0
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 0
+        Material:
+          BaseColor:
+            x: 1
+            y: 0.545454502
+            z: 0.545454502
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+      - Component: TextureComponent
+        FilePath: Asset/Texture\particle.png
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ParticleComponent
+        IsLoop: true
+        SpawnInterval: 0.00999999978
+        SpawnCount: 100
+        SpawnTimer: 0.00889032427
+        ParticleLifeTime: 1
+        ParticleSize: 3
+        ParticleSpeed: 1
+        SpawnPosition:
+          x: 0
+          y: 0
+          z: 0
+        SpawnPositionRandom:
+          x: 0
+          y: 0
+          z: 0
+        StartSpeed:
+          x: 0
+          y: 0
+          z: 0
+        StartSpeedRandom:
+          x: 3
+          y: 3
+          z: 3
+        AddSpeed:
+          x: 0
+          y: 0
+          z: 0
+        MulSpeed:
+          x: 1
+          y: 1
+          z: 1
+  - Entity: 10
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 2.17155266
+          z: 4.84706068
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 5.78999996
+          y: 5.79000187
+          z: 5.79000187
+        Parent: 0
+      - Component: TextureComponent
+        FilePath: Asset/Texture\tree.png
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: BillBoardRendererComponent
+        RotateX: false
+        RotateY: true
+        RotateZ: false

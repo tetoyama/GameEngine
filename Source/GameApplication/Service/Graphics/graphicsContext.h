@@ -27,6 +27,13 @@ enum class BlendMode
 	COUNT		// ブレンドモードの数
 };
 
+enum class DepthMode {
+	Write,		// 不透明
+	ReadOnly,	// 半透明
+	Disable,		// UI
+	COUNT		
+};
+
 enum class CullMode
 {
 	Back,	
@@ -100,7 +107,7 @@ public:
 	LIGHT_BUFFER* GetLight() { return &m_LightData; }
 
 	// セッター
-	void SetDepthEnable(const bool& Enable);
+	void SetDepthMode(const DepthMode& mode);
 	void SetBlendMode(const BlendMode& mode);
 	void SetWorldMatrix(const DirectX::XMMATRIX& WorldMatrix);
 	void SetViewMatrix(const DirectX::XMMATRIX& ViewMatrix);
@@ -191,8 +198,7 @@ private:
 
 	ID3D11ComputeShader* csSkinning = nullptr;
 
-	ID3D11DepthStencilState*	m_DepthStateEnable;
-	ID3D11DepthStencilState*	m_DepthStateDisable;
+	ID3D11DepthStencilState*	m_DepthStates[(int)DepthMode::COUNT];
 
 	Microsoft::WRL::ComPtr<ID3D11BlendState> m_BlendStates[(int)BlendMode::COUNT];
 	BlendMode m_CurrentBlendMode = BlendMode::COUNT;

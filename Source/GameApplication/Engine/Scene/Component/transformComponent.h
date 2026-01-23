@@ -232,7 +232,7 @@ public:
 		return Vector3(out.x, out.y, out.z);
 	}
 
-	DirectX::XMMATRIX CalculateWorldMatrix(TransformComponent* transform,ComponentRegistry* componentregistry){
+	DirectX::XMMATRIX CalculateWorldMatrix(const TransformComponent* transform,ComponentRegistry* componentregistry) const{
 
 		DirectX::XMMATRIX local =
 			DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z) *
@@ -246,6 +246,20 @@ public:
 			}
 		}
 		return local;
+	}
+
+	Vector3 GetWorldPosition(ComponentRegistry* componentregistry) const{
+		// 自分自身を起点に WorldMatrix を計算
+		DirectX::XMMATRIX world = CalculateWorldMatrix(
+			this,
+			componentregistry
+		);
+
+		// 平行移動成分を取得
+		DirectX::XMFLOAT4X4 m;
+		DirectX::XMStoreFloat4x4(&m, world);
+
+		return Vector3(m._41, m._42, m._43);
 	}
 
 	TransformComponent CalculateRectTransform(

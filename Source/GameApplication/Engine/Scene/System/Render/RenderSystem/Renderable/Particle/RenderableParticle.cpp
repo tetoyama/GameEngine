@@ -82,7 +82,7 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	graphicsContext->SetBlendMode(BlendMode::Additive);
-	graphicsContext->SetDepthEnable(false);
+	//graphicsContext->SetDepthMode(DepthMode::Disable);
 
 	for(int i = 0; i < MAXPARTICLE; i++){
 		if(pParticle->Particle[i].LifeTime > 0.0f){
@@ -179,5 +179,5 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 		}
 	}
 	graphicsContext->SetBlendMode(BlendMode::Alpha);
-	graphicsContext->SetDepthEnable(true);
+	//graphicsContext->SetDepthMode(DepthMode::Write);
 }

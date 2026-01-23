@@ -26,7 +26,7 @@ GBUFFER_OUT main(PS_IN In)
     float4 baseColor = Material.BaseColor;
 
     // Diffuse Texture を使うか
-    if (Material.MaterialFlags & MATERIAL_FLAG_USE_DIFFUSE_TEXTURE != 0)
+    if ((Material.MaterialFlags & MATERIAL_FLAG_USE_DIFFUSE_TEXTURE) != 0)
     {
         baseColor *= DiffuseTexture.Sample(LinearSampler, In.TexCoord);
     }
@@ -40,7 +40,7 @@ GBUFFER_OUT main(PS_IN In)
     // Normal Texture を使うか
     if ((Material.MaterialFlags & MATERIAL_FLAG_USE_NORMAL_TEXTURE) != 0)
     {
-        N = normalize(N + NormalMap.Sample(LinearSampler, In.TexCoord).xyz * 2 - 1);
+        //N = normalize(N + NormalMap.Sample(LinearSampler, In.TexCoord).xyz * 2 - 1);
     }
     // World Normal [-1,1] → [0,1] encode
     Out.OutNormal = float4(N * 0.5f + 0.5f, 1.0f);

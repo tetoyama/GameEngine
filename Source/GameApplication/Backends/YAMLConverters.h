@@ -115,17 +115,29 @@ namespace YAML {
 		static bool decode(const Node& node, MATERIAL& mat) {
 			if (!node.IsMap()) return false;
 
-			mat.BaseColor = node["BaseColor"].as<DirectX::XMFLOAT4>();
-			mat.Metallic = node["Metallic"].as<float>();
+			if(node["BaseColor"])
+				mat.BaseColor = node["BaseColor"].as<DirectX::XMFLOAT4>();
+
+			if(node["Metallic"])
+				mat.Metallic = node["Metallic"].as<float>();
+
+			if(node["Roughness"])
+				
 			mat.Roughness = node["Roughness"].as<float>();
-			mat.AO = node["AO"].as<float>();
-			mat.EmissiveColor = node["EmissiveColor"].as<DirectX::XMFLOAT3>();
-			mat.EmissiveIntensity = node["EmissiveIntensity"].as<float>();
+			
+			if(node["AO"])
+				mat.AO = node["AO"].as<float>();
+			
+			if(node["EmissiveColor"])
+				mat.EmissiveColor = node["EmissiveColor"].as<DirectX::XMFLOAT3>();
+			
+			if(node["EmissiveIntensity"])
+				mat.EmissiveIntensity = node["EmissiveIntensity"].as<float>();
 
 			// フラグを個別の bool からビットマスクに変換
 			mat.MaterialFlags = 0;
-			if (node["UseDiffuseTexture"].as<bool>()) mat.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
-			if (node["UseNormalTexture"].as<bool>())  mat.MaterialFlags |= MATERIAL_FLAG_USE_NORMAL_TEXTURE;
+			if (node["UseDiffuseTexture"]) mat.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
+			if (node["UseNormalTexture"]) mat.MaterialFlags |= MATERIAL_FLAG_USE_NORMAL_TEXTURE;
 
 			return true;
 		}

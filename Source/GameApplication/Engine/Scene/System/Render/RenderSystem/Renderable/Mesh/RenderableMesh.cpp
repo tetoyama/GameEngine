@@ -63,7 +63,7 @@ void RenderableMesh::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	//}
 	deviceContext->Draw(meshRenderer->mesh.meshCount, 0);
 
-	graphicsContext->SetDepthEnable(true);
+	graphicsContext->SetDepthMode(DepthMode::Write);
 	graphicsContext->SetViewMatrix(ctx.viewMatrix);
 	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
 }

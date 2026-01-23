@@ -36,38 +36,31 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
+      - Component: MaterialComponent
+        ShaderID: 1
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
+          BaseColor:
             x: 1
             y: 1
             z: 1
             w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
             x: 0
             y: 0
             z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
-        PixelShader: Asset\Shader\DefaultPixelShader.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 64212.168
   - Entity: 2
@@ -94,9 +87,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: -24.0465012
-          y: 18.4331856
-          z: -22.359869
+          x: -28.5958252
+          y: 16.6588287
+          z: -27.719677
           w: 0
         Direction:
           x: 0.821675718
@@ -120,20 +113,20 @@ Entities:
           w: 0
         LightView:
           -
-            - 0.522008061
+            - 0.522008002
             - 0
-            - -0.852940559
-            - -6.51917267
+            - -0.852940619
+            - -8.71598816
           -
-            - 0.228815079
+            - 0.228815094
             - 0.963344872
-            - 0.14003709
-            - -9.12410164
+            - 0.140037075
+            - -5.62325764
           -
             - 0.821675897
             - -0.268266141
-            - 0.502873778
-            - 35.9476242
+            - 0.502873719
+            - 41.9049988
           -
             - 0
             - 0
@@ -181,36 +174,11 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\sky.fbx
-        PixelShader: Asset\Shader\unlitUVTexturePS.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: true
         AnimationTime: 64212.168
   - Entity: 4
@@ -284,7 +252,6 @@ Entities:
           - Name: Grayscale
             Enabled: false
             VS: Asset\Shader\PostEffects\PostEffectVS.cso
-            PS: Asset\Shader\PostEffects\Grayscale.cso
             NodePos:
               x: 288.542786
               y: 24.0898819
@@ -369,10 +336,26 @@ Entities:
             lockRotX: true
             lockRotY: true
             lockRotZ: true
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
-        PixelShader: Asset\Shader\DefaultPixelShader.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 64212.168
         Animations:
@@ -429,38 +412,31 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
-      - Component: TextureComponent
-        FilePath: Asset\Texture\field.jpg
+      - Component: MaterialComponent
+        ShaderID: 1
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
+          BaseColor:
             x: 1
             y: 1
             z: 1
             w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
             x: 0
             y: 0
             z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+      - Component: TextureComponent
+        FilePath: Asset\Texture\field.jpg
+        UV_Slice_X: 10
+        UV_Slice_Y: 10
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
-        PixelShader: Asset\Shader\DefaultPixelShader.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 60117.793
   - Entity: 7
@@ -500,38 +476,31 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
+      - Component: MaterialComponent
+        ShaderID: 1
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0
-            y: 0.441558361
+          BaseColor:
+            x: 0.502164483
+            y: 0.721987903
             z: 1
             w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
             x: 0
             y: 0
             z: 0
-            w: 1
-          Shininess: 1
-          TextureEnable: false
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
-        PixelShader: Asset\Shader\DefaultPixelShader.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 60117.793
   - Entity: 8
@@ -553,31 +522,26 @@ Entities:
           y: 50
           z: 50
         Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
       - Component: TextureComponent
         FilePath: Asset\Texture\grass.jpg
-        Material:
-          Ambient:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Diffuse:
-            x: 0.509473145
-            y: 0.696969688
-            z: 0.199134186
-            w: 1
-          Specular:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 1
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -10806,29 +10770,6 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\tree.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -10857,29 +10798,6 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\tree.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -10908,29 +10826,6 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\tree.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -10959,29 +10854,6 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\tree.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -11010,29 +10882,6 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\tree.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -11061,36 +10910,11 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Model\boulder_01_1k.fbx\textures\boulder_01_diff_1k.jpg
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0.90476191
-            y: 0.772305608
-            z: 0.575757563
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\boulder_01_1k.fbx\boulder_01_1k.fbx
-        PixelShader: Asset\Shader\DefaultPixelShader.cso
-        VertexShader: Asset\Shader\commonVS.cso
         isBlender: false
         AnimationTime: 53263.3711
   - Entity: 15
@@ -11114,29 +10938,6 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\leaf0213.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0.126496926
-            y: 0.541125536
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -11165,29 +10966,6 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\leaf0213.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0.149322584
-            y: 0.718614697
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -11216,29 +10994,6 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\leaf0213.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0.0348569341
-            y: 0.670995712
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -11253,7 +11008,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 11.7883282
-          y: 3.15778065
+          y: 4.03820133
           z: 5.2312336
         Rotation:
           - -0
@@ -11271,7 +11026,7 @@ Entities:
         CastShadow: 0
         Position:
           x: 11.7883282
-          y: 3.15778065
+          y: 4.03820133
           z: 5.2312336
           w: 0
         Direction:

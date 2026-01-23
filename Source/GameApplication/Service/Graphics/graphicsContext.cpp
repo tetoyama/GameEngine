@@ -90,9 +90,9 @@ void GraphicsContext::Shutdown(){
 
 	SAFE_RELEASE(m_RenderTargetView);
 	SAFE_RELEASE(m_DepthStencilView);
-
-	SAFE_RELEASE(m_DepthStateEnable);
-	SAFE_RELEASE(m_DepthStateDisable);
+	for(int i = 0; i < (int)DepthMode::COUNT; i++){
+		SAFE_RELEASE(m_DepthStates[i]);
+	}
 	SAFE_RELEASE(csSkinning);
 	
 	m_DeviceContext->ClearState();  // すべてのバインドリソースを解除
@@ -122,12 +122,9 @@ EffekseerRendererDX11::RendererRef GraphicsContext::GetEffectRenderer(){
 	return nullptr;
 }
 
-void GraphicsContext::SetDepthEnable(const bool& Enable){
-	if(Enable){
-		m_DeviceContext->OMSetDepthStencilState(m_DepthStateEnable, NULL);
-	} else{
-		m_DeviceContext->OMSetDepthStencilState(m_DepthStateDisable, NULL);
-	}
+void GraphicsContext::SetDepthMode(const DepthMode& mode){
+	ID3D11DepthStencilState* state = m_DepthStates[(int)mode];
+	m_DeviceContext->OMSetDepthStencilState(state, 0);
 }
 
 void GraphicsContext::SetBlendMode(const BlendMode& mode){
@@ -202,7 +199,7 @@ void GraphicsContext::SetWorldViewProjection2D(){
 	DirectX::XMMATRIX projection;
 	projection = DirectX::XMMatrixOrthographicOffCenterLH(0.0f, (float)m_width, (float)m_height, 0, 0.0f, 1.0f);
 	SetProjectionMatrix(projection);
-	SetDepthEnable(false);
+	SetDepthMode(DepthMode::Disable);
 }
 
 bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT height) {
@@ -295,28 +292,50 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 }
 
 bool GraphicsContext::CreateDepthStencilstate(){
-	// デプスステンシルステート設定
-	D3D11_DEPTH_STENCIL_DESC depthStencilDesc{};
-	depthStencilDesc.DepthEnable = TRUE;
-	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
-	depthStencilDesc.StencilEnable = FALSE;
+	HRESULT hr;
+	D3D11_DEPTH_STENCIL_DESC desc{};
+	desc.StencilEnable = FALSE;
 
-	HRESULT hr = m_Device->CreateDepthStencilState(&depthStencilDesc, &m_DepthStateEnable);//深度有効ステート
-	if(FAILED(hr)){
-		OutputDebugStringA("デプスステンシルステートの作成に失敗しました。\n");
-		return false;
-	}
-	//depthStencilDesc.DepthEnable = FALSE;
-	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-	hr = m_Device->CreateDepthStencilState(&depthStencilDesc, &m_DepthStateDisable);//深度無効ステート
-	if(FAILED(hr)){
-		OutputDebugStringA("デプスステンシルステートの作成に失敗しました。\n");
-		return false;
-	}
-	m_DeviceContext->OMSetDepthStencilState(m_DepthStateEnable, NULL);
+	// =========================
+	// Write : 不透明
+	// =========================
+	desc.DepthEnable = TRUE;
+	desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
 
-	return SUCCEEDED(hr);
+	hr = m_Device->CreateDepthStencilState(
+		&desc,
+		&m_DepthStates[(int)DepthMode::Write]
+	);
+	if(FAILED(hr)) return false;
+
+	// =========================
+	// ReadOnly : 半透明
+	// =========================
+	desc.DepthEnable = TRUE;
+	desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+
+	hr = m_Device->CreateDepthStencilState(
+		&desc,
+		&m_DepthStates[(int)DepthMode::ReadOnly]
+	);
+	if(FAILED(hr)) return false;
+
+	// =========================
+	// Disable : UI / Fullscreen
+	// =========================
+	desc.DepthEnable = FALSE;
+	desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	desc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+
+	hr = m_Device->CreateDepthStencilState(
+		&desc,
+		&m_DepthStates[(int)DepthMode::Disable]
+	);
+	if(FAILED(hr)) return false;
+
+	return true;
 }
 
 bool GraphicsContext::CreateSamplerstate(){

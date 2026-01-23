@@ -162,7 +162,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	// ライティングの仮設定
 	//LIGHT light[LIGHT_MAX_COUNT];
 	//graphicsContext->SetLight(light);
-	graphicsContext->SetDepthEnable(true);
+	graphicsContext->SetDepthMode(DepthMode::Write);
 
 	// デフォルトのシーンを構築
 	if(ScenePath.empty()){
@@ -218,7 +218,7 @@ void Scene::BuildDefaultScene(){
 
 	auto resource = m_SceneManagerContext->resource;
 
-	graphicsContext->SetDepthEnable(true);
+	graphicsContext->SetDepthMode(DepthMode::Write);
 
 	//return;
 
@@ -693,8 +693,11 @@ RenderLayer Scene::GetRenderLayerFromEntity(Entity entity) {
 	if (registry->HasComponent<SpriteRendererComponent>(entity)) {
 		return RenderLayer::OverlayUI;
 	}
-	if (registry->HasComponent<BillBoardRendererComponent>(entity)) {
-		return RenderLayer::Transparent3D;
+	if(registry->HasComponent<BillBoardRendererComponent>(entity)){
+		return RenderLayer::SortTransparent3D;
+	}
+	if(registry->HasComponent<EffectComponent>(entity)){
+		return RenderLayer::SortTransparent3D;
 	}
 	if (registry->HasComponent<ParticleComponent>(entity)) {
 		return RenderLayer::SortTransparent3D;

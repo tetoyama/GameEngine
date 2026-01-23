@@ -68,9 +68,10 @@ MaterialInput GetMaterialInput(PS_IN In)
 float ShadowFactor(
     float3 worldPos,
     LIGHT light,
-    int lightIndex)
+    int lightIndex,
+    ShadowPCFParams pcf)
 {
-    // Directional / Point 共通（LightView/Projection 前提）
+    // ---- Light Space ----
     float4 sp = mul(float4(worldPos, 1.0), light.LightView);
     sp = mul(sp, light.LightProjection);
 
@@ -87,6 +88,7 @@ float ShadowFactor(
 
     float depth = saturate(sp.z - 0.001);
 
+    // ---- Atlas ----
     uint grid = (uint) ceil(sqrt((float) ShadowAtlasCount));
     float tile = 1.0 / grid;
 
@@ -94,14 +96,40 @@ float ShadowFactor(
     uint gy = lightIndex / grid;
 
     float2 tileMin = float2(gx, gy) * tile;
-    float2 tileMax = tileMin + tile;
+    float2 suvBase = tileMin + uv * tile;
 
-    float2 suv = tileMin + uv * tile;
+    // ---- テクセルサイズ（1ピクセル）----
+    float2 texelSize;
+    ShadowMap.GetDimensions(texelSize.x, texelSize.y);
+    texelSize = 1.0 / texelSize;
 
-    if (any(suv < tileMin) || any(suv > tileMax))
-        return 1.0;
+    texelSize *= tile; // アトラス対応
 
-    return ShadowMap.SampleCmpLevelZero(ShadowSampler, suv, depth);
+    // ---- PCF ----
+    float shadow = 0.0;
+    int radius = max(pcf.KernelRadius, 0);
+    int count = 0;
+
+    [loop]
+    for (int y = -radius; y <= radius; y++)
+    {
+        [loop]
+        for (int x = -radius; x <= radius; x++)
+        {
+            float2 offset =
+                float2(x, y) * texelSize * pcf.StepTexel;
+
+            shadow += ShadowMap.SampleCmpLevelZero(
+                ShadowSampler,
+                suvBase + offset,
+                depth);
+
+            count++;
+        }
+    }
+
+    return shadow / max(count, 1);
 }
+
 
 #endif

@@ -57,10 +57,10 @@ Entities:
           y: 25
           z: 0
         Rotation:
-          - 0.597195446
+          - 0.47942555
           - 0
           - 0
-          - 0.802095771
+          - 0.87758255
         Scale:
           x: 1
           y: 1
@@ -72,13 +72,13 @@ Entities:
         CastShadow: 1
         Position:
           x: 1.50484014
-          y: 50.7504196
-          z: -17.2239666
+          y: 44.9231796
+          z: -29.9033184
           w: 0
         Direction:
           x: 0
-          y: -0.958015859
-          z: 0.286715239
+          y: -0.841471016
+          z: 0.540302277
           w: 0
         Diffuse:
           x: 0.899999976
@@ -86,12 +86,12 @@ Entities:
           z: 1
           w: 1
         Ambient:
-          x: 0.731914878
-          y: 0.731914878
-          z: 0.731914878
+          x: 0.11063832
+          y: 0.11063832
+          z: 0.11063832
           w: 1
         Param:
-          x: 100
+          x: 500
           y: 0
           z: 0
           w: 0
@@ -103,14 +103,14 @@ Entities:
             - -1.50484014
           -
             - 0
-            - 0.286715209
-            - 0.9580158
-            - 1.94991398
+            - 0.540302277
+            - 0.841471016
+            - 0.890678406
           -
             - 0
-            - -0.9580158
-            - 0.286715209
-            - 53.5580788
+            - -0.841471016
+            - 0.540302277
+            - 53.9583817
           -
             - 0
             - 0
@@ -158,29 +158,6 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -225,31 +202,26 @@ Entities:
             lockRotX: true
             lockRotY: true
             lockRotZ: true
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
+      - Component: MaterialComponent
+        ShaderID: 1
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
+          BaseColor:
             x: 0
             y: 0
             z: 1
             w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
             x: 0
             y: 0
             z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -305,23 +277,23 @@ Entities:
         FOV: 1
         viewMatrix:
           -
-            - 0.958453536
-            - 0.285248578
+            - 1
+            - 0
             - 0
             - 0
           -
-            - -0.204782978
-            - 0.688084066
+            - 0
+            - 0.717910707
             - 0.696135223
             - 0
           -
-            - 0.198571563
-            - -0.667213261
+            - 0
+            - -0.696135223
             - 0.717910707
             - 0
           -
-            - -0.285248518
-            - -4.31708622
+            - -1.50484014
+            - -4.05636024
             - 0.0897465944
             - 1
         nextLinkId: 9
@@ -487,53 +459,23 @@ Entities:
       - Component: MaterialComponent
         ShaderID: 1
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
+          BaseColor:
             x: 1
             y: 1
             z: 1
             w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
+          Metallic: 0
+          Roughness: 7.53898574e-43
+          AO: 0
+          EmissiveColor:
+            x: 3.26552768e-25
+            y: 4.59051364e-41
             z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
+          EmissiveIntensity: 7.53898574e-43
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset\Model\football-stadium-with-surrounding-area\textures\Etaj4.jpeg
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 1
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -561,55 +503,25 @@ Entities:
           z: 1
         Parent: 7
       - Component: MaterialComponent
-        ShaderID: 1
+        ShaderID: 0
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
+          BaseColor:
             x: 1
             y: 1
             z: 1
             w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
+          Metallic: 0
+          Roughness: 7.53898574e-43
+          AO: 0
+          EmissiveColor:
+            x: 3.26552768e-25
+            y: 4.59051364e-41
             z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
+          EmissiveIntensity: 7.53898574e-43
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset\Model\football-stadium-with-surrounding-area\textures\Krysha3.jpeg
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -639,53 +551,23 @@ Entities:
       - Component: MaterialComponent
         ShaderID: 1
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
+          BaseColor:
             x: 1
             y: 1
             z: 1
             w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
+          Metallic: 0
+          Roughness: 7.53898574e-43
+          AO: 0
+          EmissiveColor:
+            x: 3.26552768e-25
+            y: 4.59051364e-41
             z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
+          EmissiveIntensity: 7.53898574e-43
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset\Model\football-stadium-with-surrounding-area\textures\Opory2.jpeg
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -712,31 +594,26 @@ Entities:
           y: 1
           z: 1
         Parent: 7
-      - Component: TextureComponent
-        FilePath: Asset\Model\football-stadium-with-surrounding-area\textures\Tribuny2.jpeg
+      - Component: MaterialComponent
+        ShaderID: 1
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
+          BaseColor:
             x: 1
             y: 1
             z: 1
             w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
             x: 0
             y: 0
             z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+      - Component: TextureComponent
+        FilePath: Asset\Model\football-stadium-with-surrounding-area\textures\Tribuny2.jpeg
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -841,29 +718,6 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\number.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0
-            y: 0
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 5
         UV_Slice_Y: 5
         AnimationNum: 0
@@ -898,29 +752,6 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\number.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0
-            y: 2.38418579e-07
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 5
         UV_Slice_Y: 5
         AnimationNum: 0
@@ -955,29 +786,6 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\number.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 5
         UV_Slice_Y: 5
         AnimationNum: 0
@@ -1012,29 +820,6 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\number.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 5
         UV_Slice_Y: 5
         AnimationNum: 0
@@ -1067,31 +852,26 @@ Entities:
           y: 0.15866667
           z: 0
         Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 0
+        Material:
+          BaseColor:
+            x: 0
+            y: 0
+            z: 0
+            w: 0.550000012
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset\Texture\block.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0
-            y: 0
-            z: 0
-            w: 0.545454502
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -1123,29 +903,6 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\number.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 5
         UV_Slice_Y: 5
         AnimationNum: 12
@@ -1175,31 +932,26 @@ Entities:
           y: 0.0459574461
           z: 0.0459574461
         Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\RedTeam.png
+      - Component: MaterialComponent
+        ShaderID: 0
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0.995670974
-            y: 0.487059802
-            z: 0.487059802
-            w: 0.783549786
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
+          BaseColor:
+            x: 1
             y: 0
             z: 0
             w: 1
-          Shininess: 64
-          TextureEnable: false
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\RedTeam.png
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -1229,31 +981,26 @@ Entities:
           y: 0.0460000001
           z: 0.0460000001
         Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\BlueTeam.png
+      - Component: MaterialComponent
+        ShaderID: 0
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0.484848499
-            y: 0.484848619
+          BaseColor:
+            x: 0
+            y: 0
             z: 1
-            w: 0.783549786
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
             w: 1
-          Emission:
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
             x: 0
             y: 0
             z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\BlueTeam.png
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -1285,29 +1032,6 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\number.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 5
         UV_Slice_Y: 5
         AnimationNum: 4
@@ -1342,29 +1066,6 @@ Entities:
         Parent: 0
       - Component: TextureComponent
         FilePath: Asset\Texture\number.png
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 5
         UV_Slice_Y: 5
         AnimationNum: 8
@@ -1415,31 +1116,26 @@ Entities:
             lockRotX: true
             lockRotY: true
             lockRotZ: true
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
+      - Component: MaterialComponent
+        ShaderID: 1
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
+          BaseColor:
             x: 1
             y: 0
             z: 0
             w: 1
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
             x: 0
             y: 0
             z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -1485,31 +1181,26 @@ Entities:
           y: 1
           z: 1
         Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 0
+        Material:
+          BaseColor:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
-        Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
-            x: 0
-            y: 0
-            z: 0
-            w: 0
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
@@ -1541,31 +1232,26 @@ Entities:
           y: 1
           z: 1
         Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
+      - Component: MaterialComponent
+        ShaderID: 0
         Material:
-          Ambient:
-            x: 0.100000001
-            y: 0.100000001
-            z: 0.100000001
-            w: 1
-          Diffuse:
+          BaseColor:
             x: 0
             y: 0
             z: 0
             w: 0
-          Specular:
-            x: 0.0399999991
-            y: 0.0399999991
-            z: 0.0399999991
-            w: 1
-          Emission:
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
             x: 0
             y: 0
             z: 0
-            w: 1
-          Shininess: 64
-          TextureEnable: false
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0

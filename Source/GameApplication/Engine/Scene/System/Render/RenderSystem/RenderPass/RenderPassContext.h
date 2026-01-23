@@ -28,3 +28,9 @@ struct RenderPassContext {
 	CameraEntityData cameraData;
 	Vector2 screenSize = Vector2(1280.0f, 720.0f);
 };
+
+struct TransparentDrawItem {
+	Entity entity;
+	float distanceSq;
+	SceneContext* context;
+};

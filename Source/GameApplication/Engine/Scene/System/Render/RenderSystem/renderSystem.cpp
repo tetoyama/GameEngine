@@ -69,6 +69,7 @@
 #include "RenderPass/EditorView/EditorPass.h"
 #include "Renderable/Wave/RenderableWave.h"
 #include <Editor/UI/ViewWindow.h>
+#include "Renderable/Effect/RenderableEffect.h"
 
 void RenderSystem::Initialize(){
 	m_context->debug->LOG_DEBUG("RenderSystemを初期化中...");
@@ -81,6 +82,7 @@ void RenderSystem::Initialize(){
 	m_renderables.push_back(std::make_shared<RenderableParticle>());
 	m_renderables.push_back(std::make_shared<RenderableTerrain>());
 	m_renderables.push_back(std::make_shared<RenderableWave>());
+	m_renderables.push_back(std::make_shared<RenderableEffect>());
 
 	for(auto renderable : m_renderables){
 		renderable->Initialize(m_context);

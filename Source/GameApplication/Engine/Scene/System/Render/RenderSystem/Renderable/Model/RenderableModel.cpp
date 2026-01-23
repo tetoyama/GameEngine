@@ -88,47 +88,47 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 	for (unsigned int m = 0; m < pModel->AiScene->mNumMeshes; m++) {
 
 		if (pModel->SetTexture) {
+			if(!pTexture){
+				MATERIAL materialData;
+				aiMaterial* aiMat = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
+				aiColor4D color;
+				if(aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS){
+					materialData.BaseColor = {color.r, color.g, color.b, color.a};
+				}
 
+				aiMaterial* material = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
+				aiString texName;
+				if(material->GetTexture(aiTextureType_DIFFUSE, 0, &texName) == AI_SUCCESS && texName.length > 0){
+					auto it = pModel->m_Texture.find(texName.C_Str());
+					if(it != pModel->m_Texture.end()){
+						deviceContext->PSSetShaderResources(0, 1, &it->second);
+						materialData.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
+					}
+				}
+				if(material->GetTexture(aiTextureType_NORMALS, 0, &texName) == AI_SUCCESS && texName.length > 0){
+					auto it = pModel->m_Texture.find(texName.C_Str());
+					if(it != pModel->m_Texture.end()){
+						deviceContext->PSSetShaderResources(1, 1, &it->second);
+						materialData.MaterialFlags |= MATERIAL_FLAG_USE_NORMAL_TEXTURE;
+					}
+				}
+
+				if(pModel->SetTexture){
+				}
+				graphicsContext->SetMaterial(materialData);
+			} else{
+
+				if(pTexture->m_TextureData){
+					deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+					if(pModel->SetTexture){
+						material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
+					}
+				}
+				graphicsContext->SetMaterial(material);
+
+			}
 		}
-		if (!pTexture) {
-			MATERIAL materialData;
-			aiMaterial* aiMat = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-			aiColor4D color;
-			if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS) {
-				materialData.BaseColor = { color.r, color.g, color.b, color.a };
-			}
-
-			aiMaterial* material = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-			aiString texName;
-			if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texName) == AI_SUCCESS && texName.length > 0) {
-				auto it = pModel->m_Texture.find(texName.C_Str());
-				if (it != pModel->m_Texture.end()) {
-					deviceContext->PSSetShaderResources(0, 1, &it->second);
-					materialData.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
-				}
-			}
-			if (material->GetTexture(aiTextureType_NORMALS, 0, &texName) == AI_SUCCESS && texName.length > 0) {
-				auto it = pModel->m_Texture.find(texName.C_Str());
-				if (it != pModel->m_Texture.end()) {
-					deviceContext->PSSetShaderResources(1, 1, &it->second);
-					materialData.MaterialFlags |= MATERIAL_FLAG_USE_NORMAL_TEXTURE;
-				}
-			}
-
-			if (pModel->SetTexture) {
-			}
-			graphicsContext->SetMaterial(materialData);
-		} else {
-
-			if (pTexture->m_TextureData) {
-				deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
-				if (pModel->SetTexture) {
-					material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
-				}
-			}
-			graphicsContext->SetMaterial(material);
-
-		}
+		
 
 		graphicsContext->SetWorldMatrix(World);
 
