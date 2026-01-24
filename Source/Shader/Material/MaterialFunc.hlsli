@@ -140,6 +140,14 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
             * attenuation * shadow
             * (1.0 - ambientStrength);
 
+        if (light.LightType == LIGHT_TYPE_POINT)
+        {
+            diffuse /= 6.0f;
+            specular /= 6.0f;
+            light.Ambient.rgb /= 6.0f;
+        }
+
+        
         result.diffuse += diffuse;
         result.specular += specular;
         result.ambient += light.Ambient.rgb;

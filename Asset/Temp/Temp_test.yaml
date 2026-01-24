@@ -48,7 +48,7 @@ Entities:
           Roughness: 0
           AO: 0
           EmissiveColor:
-            x: 0
+            x: -4.78938595e+31
             y: 4.59037351e-41
             z: -6.51376215e-39
           EmissiveIntensity: 4.37205121e-43

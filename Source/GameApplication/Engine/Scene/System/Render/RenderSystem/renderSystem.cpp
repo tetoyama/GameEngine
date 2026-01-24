@@ -243,25 +243,57 @@ void RenderSystem::Draw(){
 	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
 }
 
-void RenderSystem::SystemSetting(){
+void RenderSystem::SystemSetting() {
 
 	float width = ImGui::GetContentRegionAvail().x;
-	ImGui::Image(
-		m_EditorPass->result,
-		ImVec2(width, m_EditorPass->editorRenderTarget->size.y / m_EditorPass->editorRenderTarget->size.x * width)
-	);
-	for (auto RT : m_PlayerPass->gBufferPass->pRenderTargets) {
-		if (RT->type == RenderTargetType::RENDERTARGET_TYPE_COLOR_NO_DSV && RT->srv) {
+
+	if (ImGui::TreeNode("RenderDebug")) {
+		if (ImGui::TreeNode("Editor View")) {
+			width = ImGui::GetContentRegionAvail().x;
 			ImGui::Image(
-				RT->srv.Get(),
+				m_EditorPass->result,
+				ImVec2(width, m_EditorPass->editorRenderTarget->size.y / m_EditorPass->editorRenderTarget->size.x * width)
+			);
+
+			ImGui::Text("ShadowMap Render Target");
+			ImGui::Image(
+				m_EditorPass->shadowMapPass->shadowRenderTarget->srv.Get(),
+				ImVec2(width, m_EditorPass->shadowMapPass->shadowRenderTarget->size.y / m_EditorPass->shadowMapPass->shadowRenderTarget->size.x * width)
+			);
+			ImGui::TreePop();
+		}
+		ImGui::Separator();
+		if (ImGui::TreeNode("Player View")) {
+			width = ImGui::GetContentRegionAvail().x;
+
+			ImGui::Image(
+				m_PlayerPass->result,
 				ImVec2(width, m_PlayerPass->editorRenderTarget->size.y / m_PlayerPass->editorRenderTarget->size.x * width)
 			);
+
+			ImGui::Text("ShadowMap Render Target");
+			ImGui::Image(
+				m_PlayerPass->shadowMapPass->shadowRenderTarget->srv.Get(),
+				ImVec2(width, m_PlayerPass->shadowMapPass->shadowRenderTarget->size.y / m_PlayerPass->shadowMapPass->shadowRenderTarget->size.x * width)
+			);
+			ImGui::TreePop();
 		}
+		ImGui::Separator();
+		if (ImGui::TreeNode("GBuffer Render Targets")) {
+			width = ImGui::GetContentRegionAvail().x;
+
+			for (auto RT : m_PlayerPass->gBufferPass->pRenderTargets) {
+				if (RT->type == RenderTargetType::RENDERTARGET_TYPE_COLOR_NO_DSV && RT->srv) {
+					ImGui::Image(
+						RT->srv.Get(),
+						ImVec2(width, m_PlayerPass->editorRenderTarget->size.y / m_PlayerPass->editorRenderTarget->size.x * width)
+					);
+				}
+			}
+			ImGui::TreePop();
+		}
+		ImGui::TreePop();
 	}
-	ImGui::Image(
-		m_PlayerPass->result,
-		ImVec2(width, m_PlayerPass->editorRenderTarget->size.y / m_PlayerPass->editorRenderTarget->size.x * width)
-	);
 }
 
 void RenderSystem::DrawRenderLayerToggleUI() {
@@ -376,6 +408,11 @@ void RenderSystem::PlayerView(){
 	}
 	// 利用可能な領域サイズを取得
 	ImVec2 avail = ImGui::GetContentRegionAvail();
+
+	if (avail.x <= 0.0f || avail.y <= 0.0f) {
+		ImGui::End();
+		return;
+	}
 
 	RenderPassContext renderPassContext(
 		RenderPhase::PHASE_GBUFFER,

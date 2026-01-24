@@ -3,7 +3,7 @@
 
 #define ASSET_PATH "Asset/"
 #define TEMP_SAVE_PATH "Asset/Temp/"
-#define CONFIG_PATH L"config.yaml"
+#define CONFIG_PATH L"Asset/EngineConfig.yaml"
 
 #define DEFAULT_WINDOW_WIDTH 1280
 #define DEFAULT_WINDOW_HEIGHT 720
@@ -14,13 +14,14 @@
 
 #define _DEBUG_BUILD
 //#define _RELEASE_BUILD
+#define _EDITOR
 
 #else
 
 //#define _DEBUG_BUILD
 #define _RELEASE_BUILD
+//#define _EDITOR
 
 #endif // _DEBUG
 
-#define _EDITOR
 

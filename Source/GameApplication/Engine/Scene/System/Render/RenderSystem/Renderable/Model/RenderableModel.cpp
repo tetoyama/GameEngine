@@ -50,8 +50,6 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 		}
 
-		graphicsContext->SetMaterial(material);
-
 		UVMatrix uv;
 		if (pTexture->UV_Slice_X != 0 && pTexture->UV_Slice_Y != 0) {
 			uv.Start.x = (float)(pTexture->AnimationNum % pTexture->UV_Slice_X) * 1.0f / (float)pTexture->UV_Slice_X;
@@ -64,14 +62,14 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 
 	} else {
 		// マテリアル設定
-		MATERIAL material;
 		material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		graphicsContext->SetMaterial(material);
 
 		UVMatrix uv;
 		graphicsContext->SetUVMatrix(uv);
 
 	}
+	graphicsContext->SetMaterial(material);
+
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 

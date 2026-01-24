@@ -62,6 +62,10 @@ float ShadowFactor(
     int lightIndex,
     ShadowPCFParams pcf)
 {
+    if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
+    {
+    }
+    
     // ---- Light Space ----
     float4 sp = mul(float4(worldPos, 1.0), light.LightView);
     sp = mul(sp, light.LightProjection);
@@ -77,7 +81,7 @@ float ShadowFactor(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    float depth = saturate(sp.z - 0.001);
+    float depth = saturate(sp.z - DEPTH_BIAS_CONSTANT);
 
     // ---- Atlas ----
     uint grid = (uint) ceil(sqrt((float) ShadowAtlasCount));

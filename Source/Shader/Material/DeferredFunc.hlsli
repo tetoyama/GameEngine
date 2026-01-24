@@ -86,7 +86,7 @@ float ShadowFactor(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    float depth = saturate(sp.z - 0.001);
+    float depth = saturate(sp.z - DEPTH_BIAS_CONSTANT);
 
     // ---- Atlas ----
     uint grid = (uint) ceil(sqrt((float) ShadowAtlasCount));

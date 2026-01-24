@@ -9,6 +9,7 @@
 #include "System/Render/RenderSystem/RenderTarget/renderTarget.h"
 #include "Component/transformComponent.h"
 #include "Registry/componentRegistry.h"
+#include "Resources/Data/pixelShaderData.h"
 
 #include "Shader/commonDefine.h"
 
@@ -19,6 +20,23 @@
 #include <Component/cameraComponent.h>
 #include <System/Render/RenderSystem/Renderable/Terrain/RenderableTerrain.h>
 #include <System/Render/RenderSystem/Renderable/Wave/RenderableWave.h>
+#include <System/Render/RenderSystem/Renderable/Particle/RenderableParticle.h>
+#include <System/Render/RenderSystem/Renderable/BillBoard/RenderableBillBoard.h>
+
+struct PointFace {
+	DirectX::XMVECTOR dir;
+	DirectX::XMVECTOR up;
+};
+
+static const PointFace s_PointFaces[6] = {
+	{ { 1, 0, 0, 0}, { 0, 1, 0, 0 }}, // +X
+	{ {-1, 0, 0, 0 },{ 0, 1, 0, 0 }}, // -X
+	{ { 0, 1, 0, 0 },{ 0, 0, -1, 0}}, // +Y
+	{ { 0,-1, 0, 0 },{ 0, 0, 1, 0 }}, // -Y
+	{ { 0, 0, 1, 0 },{ 0, 1, 0, 0 }}, // +Z
+	{ { 0, 0,-1, 0 },{ 0, 1, 0, 0 }}, // -Z
+};
+
 
 void ShadowMapPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 	m_renderSystem = renderSystem;
@@ -41,9 +59,15 @@ void ShadowMapPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* 
 	renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableTerrain>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableWave>());
+	//renderables.push_back(renderSystem->GetRenderable<RenderableParticle>());
+	renderables.push_back(renderSystem->GetRenderable<RenderableBillBoard>());
+
+	m_RenderablePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\shadowPS.cso");
+
 }
 
 void ShadowMapPass::Finalize() {
+	m_RenderablePixelShader.reset();
 
 	shadowSampler->Release();
 	shadowSampler = nullptr;
@@ -60,7 +84,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 	ID3D11ShaderResourceView* nullSRV[1] = {nullptr};
 	deviceContext->PSSetShaderResources(TextureSlot_ShadowMap, 1, nullSRV);
-	deviceContext->PSSetShader(nullptr, NULL, 0);
+	deviceContext->PSSetShader(m_RenderablePixelShader->m_PixelShader.Get(), NULL, 0);
 
 	// ======== RenderTarget 切り替え ========
 	if(shadowRenderTarget->type == RenderTargetType::RENDERTARGET_TYPE_DEPTH){
@@ -189,47 +213,46 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 						foundLight = true;
 
 					} else if (lightcomp->light.LightType == LIGHT_TYPE_POINT && lightcomp->light.CastShadow) {
-						// --- 位置と forward 取得 ---
+
 						XMVECTOR eye = transform->position.ToXMVECTOR();
-						XMVECTOR forward = XMVector3Normalize(transform->front().ToXMVECTOR());
 
-						// --- ワールドの上方向（基準ベクトル） ---
-						XMVECTOR worldUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+						float nearZ = 0.1f;
+						float farZ = lightcomp->light.Param.x;
 
-						// --- forward と worldUp が平行に近い場合の対策 ---
-						float dp = XMVectorGetX(XMVector3Dot(forward, worldUp));
-						if (fabsf(dp) > 0.99f) {
-							// ほぼ真上/真下を向いている場合は X 軸を使う
-							worldUp = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+						XMMATRIX lightProj =
+							XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, nearZ, farZ);
+
+						for (int face = 0; face < 6; face++) {
+
+							if (lightCount >= LIGHT_MAX_COUNT)
+								break;
+
+							XMVECTOR at = eye + s_PointFaces[face].dir;
+
+							XMMATRIX lightView =
+								XMMatrixLookAtLH(eye, at, s_PointFaces[face].up);
+
+							LIGHT faceLight = lightcomp->light;
+
+							XMStoreFloat4x4(
+								&faceLight.LightView,
+								XMMatrixTranspose(lightView)
+							);
+							XMStoreFloat4x4(
+								&faceLight.LightProjection,
+								XMMatrixTranspose(lightProj)
+							);
+
+							// Light配列に直接積む
+							light.lights[lightCount] = faceLight;
+							light.lights[lightCount].Enable = true;
+
+							lightCount++;
+							shadowCount++;
 						}
-
-						// --- 正確な up / right を再構築（直交化） ---
-						XMVECTOR right = XMVector3Normalize(XMVector3Cross(worldUp, forward));
-						XMVECTOR up = XMVector3Cross(forward, right);
-
-						// --- LookAt 用のターゲット ---
-						XMVECTOR at = eye + forward;
-
-						// ------------------------------
-						//      ライト行列の計算
-						// ------------------------------
-
-						float fov = XM_PIDIV2 * 1.5f;
-
-						float nearZ = 1.0f;
-						float farZ = lightcomp->light.Param.x * 1000.0f;
-						if (nearZ > farZ) {
-							farZ = nearZ + 1.0f;
-						}
-						XMMATRIX lightView = XMMatrixLookAtLH(eye, at, up);
-						XMMATRIX lightProj = XMMatrixPerspectiveFovLH(fov, 1.0f, nearZ, farZ);
-
-						// 転置して格納
-						XMStoreFloat4x4(&lightcomp->light.LightView, XMMatrixTranspose(lightView));
-						XMStoreFloat4x4(&lightcomp->light.LightProjection, XMMatrixTranspose(lightProj));
-
 
 						foundLight = true;
+						continue;
 					}
 				}
 			}

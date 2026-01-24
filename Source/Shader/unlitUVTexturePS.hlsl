@@ -12,7 +12,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
         outDiffuse *= g_Texture.Sample(g_SamplerState, In.TexCoord);
     }
 
-    if (outDiffuse.a <= 0.001f)
+    if (outDiffuse.a <= ALPHA_CLIP_THRESHOLD)
     {
         discard;
     }

@@ -206,12 +206,12 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 0.313395202
+          y: 0
           z: 0
         Rotation:
-          - -0
           - 0
-          - -0
+          - 0
+          - 0
           - 1
         Scale:
           x: 0.00999999978

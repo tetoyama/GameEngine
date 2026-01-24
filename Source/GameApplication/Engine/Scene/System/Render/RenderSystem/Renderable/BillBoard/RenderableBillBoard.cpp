@@ -205,9 +205,5 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-	if (ctx.passPhase == RenderPhase::PHASE_SHADOW) {
-		return;
-	}
-
 	deviceContext->Draw(m_billBoardMesh->mesh.meshCount, 0);
 }
