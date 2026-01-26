@@ -2624,7 +2624,6 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\materialComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Effect\RenderableEffect.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderLayer.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\Effekseer\EffectPass.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\LightingPass\LightingPass.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PhysXDebug\PhysXDebugPass.h" />
     <ClInclude Include="Source\GameApplication\Service\Audio\audioContext.h" />
@@ -3078,7 +3077,6 @@
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\SystemSetting.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\ViewWindow.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Effect\RenderableEffect.cpp" />
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\Effekseer\EffectPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\LightingPass\LightingPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PhysXDebug\PhysXDebugPass.cpp" />
     <ClCompile Include="Source\GameApplication\Service\DebugTools\debugSystem.cpp" />

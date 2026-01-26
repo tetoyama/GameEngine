@@ -6,7 +6,6 @@
 
 #include "../ShadowMap/ShadowMapPass.h"
 #include "../GBuffer/GBufferPass.h"
-#include "../Effekseer/EffectPass.h"
 #include "../LightingPass/LightingPass.h"
 
 #include "scene.h"
@@ -38,6 +37,7 @@
 #include <Component/textureComponent.h>
 #include <Component/materialComponent.h>
 #include <System/Render/RenderSystem/Renderable/Effect/RenderableEffect.h>
+#include <Component/RenderLayerComponent.h>
 
 
 void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
@@ -50,12 +50,6 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 
 	shadowMapPass = new ShadowMapPass();
 	shadowMapPass->Initialize(
-		renderSystem,
-		context
-	);
-
-	effectPass = new EffectPass();
-	effectPass->Initialize(
 		renderSystem,
 		context
 	);
@@ -105,10 +99,6 @@ void PlayerPass::Finalize() {
 	shadowMapPass->Finalize();
 	delete shadowMapPass;
 	shadowMapPass = nullptr;
-
-	effectPass->Finalize();
-	delete effectPass;
-	effectPass = nullptr;
 
 	delete editorRenderTarget;
 	editorRenderTarget = nullptr;
@@ -188,6 +178,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 		}
 		// --- Transparent 用の一時バッファ ---
 		std::vector<TransparentDrawItem> transparentList;
+		std::vector<SpriteDrawItem> spriteList;
 
 		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
 
@@ -224,7 +215,26 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 					item.context = context;
 					transparentList.push_back(item);
 
-				} else{
+				} else if (layer == RenderLayer::OverlayUI) {
+
+					auto transform =
+						context->component->GetComponent<TransformComponent>(entity);
+					if (!transform) {
+						continue;
+					}
+
+					SpriteDrawItem item;
+					item.entity = entity;
+					item.orderInLayer = 0;
+					OrderInLayerComponent* layer = context->component->GetComponent<OrderInLayerComponent>(entity);
+					if (layer) {
+						item.orderInLayer = layer->order;
+					}
+					item.context = context;
+					spriteList.push_back(item);
+
+				} else {
+
 					// 通常描画（不透明など）
 					for(auto renderable : renderables){
 
@@ -286,6 +296,42 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 
 			m_context->graphics->SetDepthMode(DepthMode::Write);
 		}
+		// --- Sprite 描画 ---
+		if (!spriteList.empty()) {
+
+			std::sort(
+				spriteList.begin(),
+				spriteList.end(),
+				[](const SpriteDrawItem& a,
+				   const SpriteDrawItem& b) {
+				return a.orderInLayer > b.orderInLayer; // 遠い→近い
+			});
+
+			for (auto& item : spriteList) {
+
+				Entity entity = item.entity;
+
+				for (auto renderable : renderables) {
+
+					int materialID = 0;
+					auto material =
+						item.context->component->GetComponent<MaterialComponent>(entity);
+					if (material) {
+						materialID = material->ShaderID;
+					}
+
+					ObjectInfo info;
+					info.SceneID = (unsigned int)item.context;
+					info.ObjectID = entity;
+					info.MaterialID = materialID;
+					m_context->graphics->SetObjectInfo(info);
+
+					renderable->Execute(ctx, item.context, entity);
+				}
+			}
+		}
+
+
 	}
 
 	ID3D11RenderTargetView* nullRTV[1] = {nullptr};

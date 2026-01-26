@@ -8,9 +8,7 @@ class IRenderable;
 struct RenderTarget;
 
 class ShadowMapPass;
-class EffectPass;
 class PhysXDebugPass;
-
 
 struct PixelShaderData;
 struct VertexShaderData;
@@ -30,6 +28,5 @@ public:
 	ID3D11ShaderResourceView* result = nullptr;
 
 	ShadowMapPass* shadowMapPass;
-	EffectPass* effectPass;
 	PhysXDebugPass* physXDebugPass;
 };

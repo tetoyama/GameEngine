@@ -34,3 +34,9 @@ struct TransparentDrawItem {
 	float distanceSq;
 	SceneContext* context;
 };
+
+struct SpriteDrawItem {
+	Entity entity;
+	int orderInLayer;
+	SceneContext* context;
+};

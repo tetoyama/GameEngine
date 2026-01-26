@@ -11,7 +11,6 @@ struct PixelShaderData;
 struct VertexShaderData;
 
 class ShadowMapPass;
-class EffectPass;
 class GBufferPass;
 class LightingPass;
 
@@ -30,7 +29,6 @@ public:
 	ID3D11ShaderResourceView* result = nullptr;
 
 	ShadowMapPass* shadowMapPass;
-	EffectPass* effectPass;
 	GBufferPass* gBufferPass;
 	LightingPass* lightingPass;
 };

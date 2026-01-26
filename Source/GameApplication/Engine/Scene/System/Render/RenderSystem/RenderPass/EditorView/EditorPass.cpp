@@ -5,7 +5,6 @@
 #include "../../renderPhase.h"
 
 #include "../ShadowMap/ShadowMapPass.h"
-#include "../Effekseer/EffectPass.h"
 #include "../PhysXDebug/PhysXDebugPass.h"
 
 #include "scene.h"
@@ -73,12 +72,6 @@ void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 		context
 	);
 
-	effectPass = new EffectPass();
-	effectPass->Initialize(
-		renderSystem,
-		context
-	);
-
 	physXDebugPass = new PhysXDebugPass();
 	physXDebugPass->Initialize(
 		renderSystem,
@@ -94,10 +87,6 @@ void EditorPass::Finalize() {
 	shadowMapPass->Finalize();
 	delete shadowMapPass;
 	shadowMapPass = nullptr;
-
-	effectPass->Finalize();
-	delete effectPass;
-	effectPass = nullptr;
 
 	physXDebugPass->Finalize();
 	delete physXDebugPass;
