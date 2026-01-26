@@ -5,6 +5,9 @@
 #define TEMP_SAVE_PATH "Asset/Temp/"
 #define CONFIG_PATH L"Asset/EngineConfig.yaml"
 
+#define DEFAULT_WINDOW_POSTEFFECT_PS_PATH "Asset/Shader/PostEffectPS.cso"
+#define DEFAULT_WINDOW_POSTEFFECT_VS_PATH "Asset/Shader/PostEffectVS.cso"
+
 #define DEFAULT_WINDOW_WIDTH 1280
 #define DEFAULT_WINDOW_HEIGHT 720
 

@@ -56,7 +56,7 @@ struct LIGHT
 		0,0,0,1
 	};
 
-	DirectX::XMFLOAT4	Param = DirectX::XMFLOAT4(100.0f, 0, 0, 0);
+	DirectX::XMFLOAT4	Param = DirectX::XMFLOAT4(5.0f, 0, 0, 0);
 };
 
 struct LIGHT_BUFFER

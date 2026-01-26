@@ -44,18 +44,18 @@ Entities:
             y: 1
             z: 1
             w: 1
-          Metallic: 0.25
-          Roughness: 0.5
+          Metallic: 1
+          Roughness: 0.819999993
           AO: 0
           EmissiveColor:
-            x: 0
-            y: 0
-            z: 0
+            x: 0.980000019
+            y: 1
+            z: 1
           EmissiveIntensity: 0
           UseDiffuseTexture: false
           UseNormalTexture: false
       - Component: TextureComponent
-        FilePath: Asset\Texture\mesh.png
+        FilePath: Asset/Texture\icon.png
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0

@@ -5,9 +5,9 @@ ShaderPath: Shader/AutoGen/
 ShaderMaterial:
   UnlitShader.hlsli: ShadeMaterial_Unlit
   PBRShader.hlsli: ShadeMaterial_PBR
-FullScreen: true
-Width: 1280
-Height: 720
+FullScreen: false
+Width: 1900
+Height: 1040
 MasterVolume: 1
 BGMVolume: 1
 SEVolume: 1

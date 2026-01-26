@@ -525,6 +525,10 @@ public:
             newEffect.initialized = false;
             newEffect.inputPins.push_back(nextPinId++);
             newEffect.outputPin = nextPinId++;
+
+			newEffect.vs = context->manager->resource->Load<VertexShaderData>(DEFAULT_WINDOW_POSTEFFECT_VS_PATH);
+			newEffect.ps = context->manager->resource->Load<PixelShaderData>(DEFAULT_WINDOW_POSTEFFECT_PS_PATH);
+
             postEffects.push_back(newEffect);
         }
 

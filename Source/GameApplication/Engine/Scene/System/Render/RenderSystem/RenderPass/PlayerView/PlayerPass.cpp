@@ -305,7 +305,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 			if (idx < 0) continue; // -1/-2 は描画対象としてノード作らない
 
 			auto& e = cameraComponent->postEffects[idx];
-			if (!e.enabled || !e.ps || !e.vs) continue;
+			if (!e.enabled || !e.ps || !e.vs ) continue;
 
 			PostProcessNode node{};
 			node.id = idx;

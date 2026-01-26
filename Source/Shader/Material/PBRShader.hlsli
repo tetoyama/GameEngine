@@ -5,7 +5,7 @@
 float4 ShadeMaterial_PBR(MaterialInput materialInput)
 {
     ShadowPCFParams pcf;
-    pcf.KernelRadius = 1;   // 0 = no PCF
+    pcf.KernelRadius = 2;   // 0 = no PCF
     pcf.StepTexel = 1;      // 1ピクセル間隔
     
     LightingResult lighting = ComputeLightingFromMaterialInput(materialInput, pcf);
