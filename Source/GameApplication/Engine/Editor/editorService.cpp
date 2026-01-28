@@ -8,6 +8,7 @@
 #include "UI/DebugLogWindow.h"
 #include "UI/ViewWindow.h"
 #include "UI/SystemSetting.h"
+#include "UI/BRAIN.h"
 
 void EditorService::Initialize(DebugLogSystem* debug, ResourceService* resource, SceneManager* manager) {
 
@@ -24,6 +25,7 @@ void EditorService::Initialize(DebugLogSystem* debug, ResourceService* resource,
 	UIs.push_back(new DebugLogWindow());
 	UIs.push_back(new ViewWindow());
 	UIs.push_back(new SystemSetting());
+	UIs.push_back(new BRAIN());
 
 	for (auto ui : UIs) {
 		ui->Initialize(this);
