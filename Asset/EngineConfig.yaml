@@ -6,8 +6,8 @@ ShaderMaterial:
   UnlitShader.hlsli: ShadeMaterial_Unlit
   PBRShader.hlsli: ShadeMaterial_PBR
 FullScreen: false
-Width: 1530
-Height: 830
+Width: 1900
+Height: 1040
 MasterVolume: 1
 BGMVolume: 1
 SEVolume: 1
