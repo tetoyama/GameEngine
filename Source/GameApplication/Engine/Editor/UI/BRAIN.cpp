@@ -95,7 +95,7 @@ void BRAIN::Initialize(EditorService* editor){
 	// -------------------
 	// ロゴテクスチャ読み込み
 	// -------------------
-	logoTexture = m_editor->resourceService->Load<TextureData>("Asset/BRIAN/logo/Icon.png");
+	logoTexture = m_editor->resourceService->Load<TextureData>("Asset/BRAIN/logo/Icon.png");
 }
 
 // ============================================================
@@ -276,6 +276,86 @@ void BRAIN::Draw(const EditorDrawContext){
 
 	ImGui::Begin("B.R.A.I.N.", show);
 
+	ImVec2 winPos = ImGui::GetWindowPos();
+	ImVec2 winSize = ImGui::GetWindowSize();
+
+	// -------------------
+	// 背景にロゴ描画（アスペクト比維持）
+	// -------------------
+	if(logoTexture && logoTexture->pTexture){
+		float texWidth = (float)logoTexture->Width;
+		float texHeight = (float)logoTexture->Height;
+
+		float texRatio = texWidth / texHeight;
+		float winRatio = winSize.x / winSize.y;
+
+		ImVec2 drawSize;
+		if(winRatio > texRatio){
+			drawSize.y = winSize.y;
+			drawSize.x = winSize.y * texRatio;
+		} else{
+			drawSize.x = winSize.x;
+			drawSize.y = winSize.x / texRatio;
+		}
+
+		// 中心配置
+		ImVec2 drawPos;
+		drawPos.x = winPos.x + (winSize.x - drawSize.x) * 0.5f;
+		drawPos.y = winPos.y + (winSize.y - drawSize.y) * 0.5f;
+
+		ImGui::GetWindowDrawList()->AddImage(
+			logoTexture->pTexture.Get(),
+			drawPos,
+			ImVec2(drawPos.x + drawSize.x, drawPos.y + drawSize.y),
+			ImVec2(0, 0),
+			ImVec2(1, 1),
+			IM_COL32(255, 255, 255, 8) // 半透明
+		);
+	}
+
+	// -------------------
+	// Chat log
+	// -------------------
+	float chatLogHeight = winSize.y - 220.0f;
+
+	ImGui::Text("Conversation Log:");
+	ImGui::BeginChild("ChatLogChild", ImVec2(-1, chatLogHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
+	{
+		std::lock_guard<std::mutex> lock(m_outputMutex);
+
+		int count = 0;
+		for(auto& entry : m_chatLog){
+			std::string label = (entry.role == ChatEntry::Role::User) ? "User" : "Assistant";
+			ImVec4 color = (entry.role == ChatEntry::Role::User) ? ImVec4(0.7f, 0.8f, 1.0f, 1.0f) : ImVec4(0.8f, 1.0f, 0.8f, 1.0f);
+
+			std::string buf = entry.text + '\0';
+
+			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0, 0, 0, 0));
+			ImGui::PushStyleColor(ImGuiCol_Text, color);
+
+			float maxWidth = ImGui::GetContentRegionAvail().x; // 最大横幅
+			ImGui::BeginChild(("PromptChild" + label + std::to_string(count)).c_str(), ImVec2(maxWidth, winSize.y * 0.2f), true);
+			ImGui::Text("%s:", label.c_str());
+			maxWidth = ImGui::GetContentRegionAvail().x;
+			ImGui::InputTextMultiline(("##" + label + std::to_string(count)).c_str(), buf.data(), buf.size(), ImVec2(maxWidth, -1), ImGuiInputTextFlags_ReadOnly);
+			ImGui::EndChild();
+
+			ImGui::PopStyleColor(2);
+
+			count++;
+		}
+
+		if(ImGui::GetScrollY() >= ImGui::GetScrollMaxY()){
+			ImGui::SetScrollHereY(1.0f);
+		}
+	}
+	ImGui::EndChild();
+
+	ImGui::Separator();
+
+	// -------------------
+	// Prompt 入力欄
+	// -------------------
 	ImGui::InputTextMultiline("##Prompt", inputBuffer, sizeof(inputBuffer), ImVec2(-1, 100));
 
 	bool running = m_isRunning.load(std::memory_order_acquire);
@@ -322,38 +402,9 @@ void BRAIN::Draw(const EditorDrawContext){
 	}
 	ImGui::EndDisabled();
 
-	ImGui::Separator();
-	ImGui::Text("Conversation Log:");
-
-	// -------------------
-	// Chat log
-	// -------------------
-	ImGui::BeginChild("ChatLogChild");
-	std::lock_guard<std::mutex> lock(m_outputMutex);
-
-	int count = 0;
-	for(auto& entry : m_chatLog){
-		std::string label = (entry.role == ChatEntry::Role::User) ? "User" : "Assistant";
-		ImVec4 color = (entry.role == ChatEntry::Role::User) ? ImVec4(0.7f, 0.8f, 1.0f, 1.0f) : ImVec4(0.8f, 1.0f, 0.8f, 1.0f);
-
-		std::string buf = entry.text + '\0';
-
-		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0, 0, 0, 0));
-		ImGui::PushStyleColor(ImGuiCol_Text, color);
-		ImGui::Text("%s:", label.c_str());
-		ImGui::InputTextMultiline(("##" + label + std::to_string(count)).c_str(), buf.data(), buf.size(), ImVec2(-1, 0), ImGuiInputTextFlags_ReadOnly);
-		ImGui::PopStyleColor(2);
-
-		count++;
-	}
-
-	if(ImGui::GetScrollY() >= ImGui::GetScrollMaxY()){
-		ImGui::SetScrollHereY(1.0f);
-	}
-
-	ImGui::EndChild();
 	ImGui::End();
 }
+
 
 // ============================================================
 // Create LLM sampler chain

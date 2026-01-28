@@ -92,7 +92,7 @@ private:
 		"<|system|>\n"
 		"You are a helpful assistant integrated into a game engine editor.\n Your name is B.R.A.I.N. = Buddy for Runtime Artificial Intelligence Navigator";
 
-	std::shared_ptr<TextureData> logoTexture;
+	std::shared_ptr<TextureData> logoTexture = nullptr;
 
 	// 会話ログ（User / Assistant のペアを順に保持）
 	std::vector<ChatEntry> m_chatLog;
