@@ -1,5 +1,3 @@
-#define _CRT_SECURE_NO_WARNINGS // for strncpy
-
 #include "Hierarchy.h"
 #include <ImGui/imgui_internal.h>
 #include <memory>

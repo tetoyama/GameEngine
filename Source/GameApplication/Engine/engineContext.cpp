@@ -1,3 +1,5 @@
+
+
 #include <memory>
 #include "EngineContext.h"
 
@@ -13,6 +15,7 @@
 #include "Audio/audioContext.h"
 #include "Config/ConfigSystem.h"
 #include "Engine/Editor/editorService.h"
+#include "LlamaService/LLAMAService.h"
 
 std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 
@@ -67,6 +70,10 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 	auto editorService = std::make_shared<EditorService>();
 	context->Register<EditorService>(editorService);
 #endif // _EDITOR
+
+	// LLAMAService 登録
+	auto llamaService = std::make_shared<LLAMAService>();
+	context->Register<LLAMAService>(llamaService);
 
 	// 今後: 他のシステムもここで登録
 

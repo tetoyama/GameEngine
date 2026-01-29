@@ -1,5 +1,3 @@
-#define _CRT_SECURE_NO_WARNINGS
-
 #include "BRAIN.h"
 #include <Service/DebugTools/DebugSystem.h>
 #include <Backends/llama/llama.h>

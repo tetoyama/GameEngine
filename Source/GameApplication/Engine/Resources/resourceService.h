@@ -1,5 +1,7 @@
 // ResourceService.h
 #pragma once
+
+
 #include <unordered_map>
 #include <typeindex>
 #include <memory>
@@ -14,12 +16,14 @@
 #include "Data/shaderData.h"
 #include "Data/audioData.h"
 #include "Data/effectData.h"
+#include "Data/llamaModelData.h"
 
 #include "Loader/textureLoader.h"
 #include "Loader/shaderLoader.h"
 #include "Loader/modelLoader.h"
 #include "Loader/audioLoader.h"
 #include "Loader/effectLoader.h"
+#include "Loader/llamaModelLoader.h"
 
 class GraphicsContext;
 class AudioContext;
@@ -35,8 +39,9 @@ public:
         RegisterLoader<VertexShaderData>();
         RegisterLoader<PixelShaderData>();
         RegisterLoader<AudioData>();
-		RegisterLoader<EffectData>();
-	}
+        RegisterLoader<EffectData>();
+        RegisterLoader<LLAMAModelData>();
+    }
 
     void Shutdown() override {
 		OutputDebugStringA("Shutdown ResourceService called\n");

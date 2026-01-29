@@ -1,5 +1,5 @@
 #pragma once
-#define _CRT_SECURE_NO_WARNINGS
+
 #define _WINSOCK_DEPRECATED_NO_WARNINGS // 古いWinSock関数の警告を無効化
 
 #include <stdio.h>

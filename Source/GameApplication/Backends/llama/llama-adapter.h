@@ -1,5 +1,4 @@
 #pragma once
-
 #include "llama.h"
 
 #include "ggml-cpp.h"

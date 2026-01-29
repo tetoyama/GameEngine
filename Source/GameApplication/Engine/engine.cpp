@@ -28,6 +28,8 @@
 
 #include "../../Service/Config/ConfigSystem.h"
 
+#include "LlamaService/LLAMAService.h"
+
 #include <dxgidebug.h>
 #include "Audio/audioContext.h"
 #pragma comment(lib, "dxguid.lib")
@@ -50,6 +52,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	auto mainRenderer = context->Get<MainRenderer>();
 	auto sceneManager = context->Get<SceneManager>();
 	auto audioContext = context->Get<AudioContext>();
+	auto llamaService = context->Get<LLAMAService>();
 
 	if(debugLogSystem){
 		debugLogSystem->Initialize();
@@ -143,6 +146,12 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 							  });
 		}
 	}
+
+	// LLAMAサービス初期化
+	if (llamaService) {
+		llamaService->Initialize();
+	}
+
     debugLogSystem->LOG_INFO("EngineContextの初期化が完了しました");
 }
 
