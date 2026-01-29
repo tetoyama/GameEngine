@@ -47,7 +47,7 @@ void BRAIN::Initialize(EditorService* editor){
 	// コンテキスト初期化
 	// -------------------
 	llama_context_params cParams = llama_context_default_params();
-	cParams.n_ctx = 2048; // 最大コンテキスト長
+	cParams.n_ctx = MAX_CONTEXT_TOKEN; // 最大コンテキスト長
 	cParams.n_threads = (std::max)(1u, std::thread::hardware_concurrency());
 
 	m_llamaContext = llama_init_from_model(m_llamaModel, cParams);
@@ -155,7 +155,7 @@ void BRAIN::ResetContext(){
 	}
 
 	llama_context_params cParams = llama_context_default_params();
-	cParams.n_ctx = 2048;
+	cParams.n_ctx = MAX_CONTEXT_TOKEN;
 	cParams.n_threads = (std::max)(1u, std::thread::hardware_concurrency());
 
 	m_llamaContext = llama_init_from_model(m_llamaModel, cParams);
@@ -169,8 +169,8 @@ void BRAIN::ResetContext(){
 // ============================================================
 // Run LLM (streaming)
 // ============================================================
-void BRAIN::RunLLM_Internal(const std::string& prompt){
-	if(prompt.empty()){
+void BRAIN::RunLLM_Internal(const std::string& prompt) {
+	if (prompt.empty()) {
 		m_editor->debugLogSystem->LOG_WARNING("BRAIN: prompt.empty()");
 		return;
 	}
@@ -184,16 +184,17 @@ void BRAIN::RunLLM_Internal(const std::string& prompt){
 	{
 		std::lock_guard<std::mutex> lock(m_outputMutex);
 		m_asyncOutput.clear();
-		m_chatLog.push_back({ChatEntry::Role::User, prompt});
-		m_chatLog.push_back({ChatEntry::Role::Assistant, ""}); // 仮エントリ
+		m_chatLog.push_back({ ChatEntry::Role::User, prompt });
+		m_chatLog.push_back({ ChatEntry::Role::Assistant, "" }); // 仮エントリ
 	}
 
 	std::string userPrompt = "<|user|>\n" + prompt + "\n<|assistant|>\n";
 	const llama_vocab* vocab = llama_model_get_vocab(m_llamaModel);
 
-	std::vector<llama_token> tokens(prompt.size() * 2 + 16);
-	int n_prompt = llama_tokenize(vocab, userPrompt.c_str(), (int)userPrompt.size(), tokens.data(), (int)tokens.size(), true, false);
-	if(n_prompt <= 0){
+	std::vector<llama_token> tokens(userPrompt.size() * 2 + 16);
+	int n_prompt = llama_tokenize(vocab, userPrompt.c_str(), (int)userPrompt.size(),
+								  tokens.data(), (int)tokens.size(), true, false);
+	if (n_prompt <= 0) {
 		m_isRunning.store(false, std::memory_order_release);
 		m_editor->debugLogSystem->LOG_WARNING("BRAIN: n_prompt <= 0");
 		return;
@@ -201,10 +202,15 @@ void BRAIN::RunLLM_Internal(const std::string& prompt){
 	tokens.resize(n_prompt);
 
 	// -------------------
+	// コンテキストに収まるよう調整
+	// -------------------
+	EnsureContextFits(m_pastTokens);
+
+	// -------------------
 	// デコードユーザ入力
 	// -------------------
 	llama_batch batch = llama_batch_init(n_prompt, 0, 1);
-	for(int i = 0; i < n_prompt; ++i){
+	for (int i = 0; i < n_prompt; ++i) {
 		batch.token[i] = tokens[i];
 		batch.pos[i] = m_nPast + i;
 		batch.seq_id[i][0] = 0;
@@ -213,40 +219,46 @@ void BRAIN::RunLLM_Internal(const std::string& prompt){
 	batch.n_tokens = n_prompt;
 	batch.logits[n_prompt - 1] = 1;
 
-	if(llama_decode(m_llamaContext, batch) != 0){
+	if (llama_decode(m_llamaContext, batch) != 0) {
 		llama_batch_free(batch);
 		m_isRunning.store(false, std::memory_order_release);
 		m_editor->debugLogSystem->LOG_WARNING("BRAIN: llama_decode failed");
 		return;
 	}
 	llama_batch_free(batch);
+
+	// トークンを保存
+	m_pastTokens.insert(m_pastTokens.end(), tokens.begin(), tokens.end());
 	m_nPast += n_prompt;
 
 	// -------------------
 	// アシスタント応答生成
 	// -------------------
 	int newlineCount = 0;
-	while(m_threadRunning && !m_stopRequested){
+	while (m_threadRunning && !m_stopRequested) {
 		llama_token tok = llama_sampler_sample(m_sampler, m_llamaContext, -1);
-		if(tok == LLAMA_TOKEN_NULL) break;
-		if(llama_vocab_is_eog(vocab, tok)) break;
-		if(llama_vocab_is_control(vocab, tok)) continue;
+		if (tok == LLAMA_TOKEN_NULL) break;
+		if (llama_vocab_is_eog(vocab, tok)) break;
+		if (llama_vocab_is_control(vocab, tok)) continue;
 
 		char buf[64];
 		int len = llama_token_to_piece(vocab, tok, buf, sizeof(buf), 0, false);
-		if(len > 0){
+		if (len > 0) {
 			std::lock_guard<std::mutex> lock(m_outputMutex);
 			m_asyncOutput.append(buf, len);
-			if(!m_chatLog.empty() && m_chatLog.back().role == ChatEntry::Role::Assistant)
+			if (!m_chatLog.empty() && m_chatLog.back().role == ChatEntry::Role::Assistant)
 				m_chatLog.back().text = m_asyncOutput;
 
 			// 改行2回で応答終了
-			if(buf[0] == '\n'){
-				if(++newlineCount >= 2) break;
-			} else{
+			if (buf[0] == '\n') {
+				if (++newlineCount >= 2) break;
+			} else {
 				newlineCount = 0;
 			}
 		}
+
+		// トークン保存
+		m_pastTokens.push_back(tok);
 
 		llama_batch b = llama_batch_init(1, 0, 1);
 		b.token[0] = tok;
@@ -256,7 +268,7 @@ void BRAIN::RunLLM_Internal(const std::string& prompt){
 		b.n_tokens = 1;
 		b.logits[0] = 1;
 
-		if(llama_decode(m_llamaContext, b) != 0){
+		if (llama_decode(m_llamaContext, b) != 0) {
 			llama_batch_free(b);
 			break;
 		}
@@ -266,6 +278,208 @@ void BRAIN::RunLLM_Internal(const std::string& prompt){
 
 	m_isRunning.store(false, std::memory_order_release);
 }
+
+std::string BRAIN::DecodeTokensToString(const std::vector<llama_token>& tokens, const llama_vocab* vocab) {
+	std::string result;
+	char buf[64];
+	for (auto tok : tokens) {
+		int len = llama_token_to_piece(vocab, tok, buf, sizeof(buf), 0, false);
+		if (len > 0) result.append(buf, len);
+	}
+	return result;
+}
+
+std::string BRAIN::SummarizeText(const std::string& text) {
+	if (!m_llamaModel) return "";
+
+	m_editor->debugLogSystem->LOG_DEBUG("BRAIN: SummarizeText start");
+
+	// --- 新規 LLM コンテキスト作成 ---
+	llama_context_params cParams = llama_context_default_params();
+	cParams.n_ctx = MAX_CONTEXT_TOKEN;
+	if (cParams.n_ctx < text.size() * 3) {
+		cParams.n_ctx = text.size() * 3;
+	}
+	cParams.n_threads = (std::max)(1u, std::thread::hardware_concurrency());
+
+	llama_context* tempContext = llama_init_from_model(m_llamaModel, cParams);
+	if (!tempContext) {
+		m_editor->debugLogSystem->LOG_WARNING("BRAIN: failed to create temporary context for summarization");
+		return "";
+	}
+
+	// --- サマリ専用サンプラー ---
+	llama_sampler_chain_params sp = llama_sampler_chain_default_params();
+	llama_sampler* tempSampler = llama_sampler_chain_init(sp);
+	llama_sampler_chain_add(tempSampler, llama_sampler_init_top_k(20));
+	llama_sampler_chain_add(tempSampler, llama_sampler_init_top_p(0.85f, 1));
+	llama_sampler_chain_add(tempSampler, llama_sampler_init_temp(0.5f));
+	llama_sampler_chain_add(tempSampler, llama_sampler_init_dist(
+		(uint32_t)std::chrono::system_clock::now().time_since_epoch().count()));
+	llama_sampler_chain_add(tempSampler, llama_sampler_init_penalties(128, 1.5f, 0.0f, 0.0f));
+
+	const llama_vocab* vocab = llama_model_get_vocab(m_llamaModel);
+
+	// --- プロンプト作成 ---
+	std::string prompt = "<|user|>\n次のテキストを要約してください（英語で簡潔に、最大 "
+		+ std::to_string(MAX_CONTEXT_TOKEN / 4) + "文字）:\n" + text + "\n<|assistant|>\n";
+
+	OutputDebugStringA(prompt.c_str());
+
+	// --- トークン化 ---
+	std::vector<llama_token> tokens(prompt.size() * 3 + 128); // 安全に余裕をもたせる
+	int n_tokens = llama_tokenize(vocab, prompt.c_str(), (int)prompt.size(),
+								  tokens.data(), (int)tokens.size(), true, false);
+	if (n_tokens <= 0) {
+		llama_free(tempContext);
+		llama_sampler_free(tempSampler);
+		return "";
+	}
+	tokens.resize(n_tokens);
+
+	// --- デコード入力 ---
+	llama_batch batch = llama_batch_init(n_tokens, 0, 1);
+	for (int i = 0; i < n_tokens; ++i) {
+		batch.token[i] = tokens[i];
+		batch.pos[i] = i;
+		batch.seq_id[i][0] = 0;
+		batch.n_seq_id[i] = 1;
+	}
+	batch.n_tokens = n_tokens;
+	if (llama_decode(tempContext, batch) != 0) {
+		llama_batch_free(batch);
+		llama_free(tempContext);
+		llama_sampler_free(tempSampler);
+		return "";
+	}
+	llama_batch_free(batch);
+
+	// --- 応答生成 ---
+	std::string output;
+	int newlineCount = 0;
+	const int MAX_OUTPUT_TOKENS = 256; // 応答トークン上限
+	for (int i = 0; i < MAX_OUTPUT_TOKENS; ++i) {
+		llama_token tok = llama_sampler_sample(tempSampler, tempContext, -1);
+		if (tok == LLAMA_TOKEN_NULL) break;
+		if (llama_vocab_is_eog(vocab, tok)) break;
+		if (llama_vocab_is_control(vocab, tok)) continue;
+
+		char buf[64];
+		int len = llama_token_to_piece(vocab, tok, buf, sizeof(buf), 0, false);
+		if (len > 0) {
+			output.append(buf, len);
+
+			if (buf[0] == '\n') {
+				if (++newlineCount >= 2) break;
+			} else {
+				newlineCount = 0;
+			}
+		}
+
+		// トークンをデコード
+		llama_batch b = llama_batch_init(1, 0, 1);
+		b.token[0] = tok;
+		b.pos[0] = i;
+		b.seq_id[0][0] = 0;
+		b.n_seq_id[0] = 1;
+		b.n_tokens = 1;
+		b.logits[0] = 1;
+		if (llama_decode(tempContext, b) != 0) {
+			llama_batch_free(b);
+			break;
+		}
+		llama_batch_free(b);
+	}
+
+	// --- 終了処理 ---
+	llama_free(tempContext);
+	llama_sampler_free(tempSampler);
+
+	// --- デバッグ ---
+	std::string debugMsg = "BRAIN: SummarizeText done\n" + output;
+	m_editor->debugLogSystem->LOG_DEBUG(debugMsg.c_str());
+
+	return output;
+}
+
+void BRAIN::EnsureContextFits(const std::vector<llama_token>& newTokens) {
+	const int MAX_CTX = MAX_CONTEXT_TOKEN * 0.5f;
+
+	int totalTokens = (int)(m_pastTokens.size() + newTokens.size());
+	if (totalTokens >= MAX_CTX) {
+		m_editor->debugLogSystem->LOG_DEBUG("BRAIN: EnsureContextFits");
+
+		m_editor->debugLogSystem->LOG_DEBUG("BRAIN: Context exceeds MAX_CTX, performing summarization");
+
+		// --- 過去トークンを文字列化 ---
+		const llama_vocab* vocab = llama_model_get_vocab(m_llamaModel);
+		std::string pastText = DecodeTokensToString(m_pastTokens, vocab);
+
+		// --- 要約 ---
+		std::string summary = SummarizeText(pastText);
+
+		// --- 要約をトークン化 ---
+		std::vector<llama_token> summaryTokens(summary.size() * 2 + 16);
+		int n_summary = llama_tokenize(
+			vocab,
+			summary.c_str(),
+			(int)summary.size(),
+			summaryTokens.data(),
+			(int)summaryTokens.size(),
+			true,
+			false
+		);
+		summaryTokens.resize(n_summary);
+
+		// --- 最新の 10% トークンを保持 ---
+		int keep = m_pastTokens.size() / 10;
+		if (keep < 0) keep = 0;
+		std::vector<llama_token> recentTokens(
+			m_pastTokens.end() - keep,
+			m_pastTokens.end()
+		);
+
+		// --- 新しい m_pastTokens = summaryTokens + recentTokens ---
+		m_pastTokens = summaryTokens;
+		m_pastTokens.insert(m_pastTokens.end(), recentTokens.begin(), recentTokens.end());
+
+		// --- MAX_CTX に収まるよう調整 ---
+		if ((int)m_pastTokens.size() > MAX_CTX - 1) {
+			// 最新のトークンを削って調整
+			m_pastTokens.erase(
+				m_pastTokens.begin(),
+				m_pastTokens.begin() + ((int)m_pastTokens.size() - (MAX_CTX - 1))
+			);
+		}
+
+		// --- コンテキストをリセット ---
+		ResetContext();
+
+		// --- m_pastTokens を再注入 ---
+		llama_batch batch = llama_batch_init((int)m_pastTokens.size(), 0, 1);
+		for (int i = 0; i < (int)m_pastTokens.size(); ++i) {
+			batch.token[i] = m_pastTokens[i];
+			batch.pos[i] = i;
+			batch.seq_id[i][0] = 0;
+			batch.n_seq_id[i] = 1;
+		}
+		batch.n_tokens = (int)m_pastTokens.size();
+
+		if (llama_decode(m_llamaContext, batch) != 0) {
+			m_editor->debugLogSystem->LOG_WARNING("BRAIN: llama_decode failed during EnsureContextFits");
+		}
+		llama_batch_free(batch);
+
+		m_nPast = (int)m_pastTokens.size();
+
+		m_editor->debugLogSystem->LOG_DEBUG(
+			"BRAIN: Context summarized and re-injected. New token count: " + std::to_string(m_nPast)
+		);
+	}
+}
+
+
+
 
 // ============================================================
 // ImGui UI
@@ -316,7 +530,7 @@ void BRAIN::Draw(const EditorDrawContext){
 	// -------------------
 	// Chat log
 	// -------------------
-	float chatLogHeight = winSize.y - 220.0f;
+	float chatLogHeight = winSize.y - 240.0f;
 
 	ImGui::Text("Conversation Log:");
 	ImGui::BeginChild("ChatLogChild", ImVec2(-1, chatLogHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
@@ -401,6 +615,8 @@ void BRAIN::Draw(const EditorDrawContext){
 		m_chatLog.clear();
 	}
 	ImGui::EndDisabled();
+
+	ImGui::Text(("Token:" + std::to_string(m_nPast) + "/" + std::to_string(MAX_CONTEXT_TOKEN)).c_str());
 
 	ImGui::End();
 }

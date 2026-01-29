@@ -5,6 +5,7 @@
 #include "Editor/editorService.h"
 #include "Editor/InterFace/IEditorUI.h"
 
+#include <vector>
 #include <string>
 #include <filesystem>
 #include <thread>
@@ -13,10 +14,15 @@
 #include <queue>
 #include <atomic>
 
+//#define MAX_CONTEXT_TOKEN (256)
+#define MAX_CONTEXT_TOKEN (4096)
+
 // llama forward declarations
 struct llama_model;
 struct llama_context;
 struct llama_sampler;
+struct llama_vocab;
+typedef int32_t llama_token;
 
 struct TextureData;
 
@@ -44,7 +50,9 @@ private:
 	void CreateSampler();
 	// 逐次生成（ワーカースレッド専用）
 	void RunLLM_Internal(const std::string& prompt);
-
+	std::string DecodeTokensToString(const std::vector<llama_token>& tokens, const llama_vocab* vocab);
+	std::string SummarizeText(const std::string& text);
+	void EnsureContextFits(const std::vector<llama_token>& tokens);
 private:
 	// ===== Editor =====
 	EditorService* m_editor = nullptr;
@@ -59,7 +67,7 @@ private:
 		"Asset/BRAIN/model/qwen2.5-coder-7b-instruct-q4_k_m.gguf";
 
 	// ===== UI buffers =====
-	char        inputBuffer[512]{};
+	char        inputBuffer[4096]{};
 	std::string outputText;
 
 	// ===== マルチスレッド関連 =====
@@ -90,11 +98,12 @@ private:
 	// system prompt
 	static constexpr const char* SYSTEM_PROMPT =
 		"<|system|>\n"
-		"You are a helpful assistant integrated into a game engine editor.\n Your name is B.R.A.I.N. = Buddy for Runtime Artificial Intelligence Navigator";
+		"You are a helpful assistant integrated into a game engine editor.\n";
 
 	std::shared_ptr<TextureData> logoTexture = nullptr;
 
 	// 会話ログ（User / Assistant のペアを順に保持）
 	std::vector<ChatEntry> m_chatLog;
 
+	std::vector<llama_token> m_pastTokens;  // コンテキストで使用したすべてのトークンを保持
 };
