@@ -105,13 +105,11 @@ public:
 		// Run アニメーションを追加
 		if(model->model->m_Animation.find("Run") != model->model->m_Animation.end()){
 			model->blendedAnimations.push_back({"Run", 0.0f, 0.0f});
-			// name = "Run", weight = 1.0, startTime = 0.0
 		}
 
 		// Idle アニメーションを追加
 		if(model->model->m_Animation.find("Idle") != model->model->m_Animation.end()){
 			model->blendedAnimations.push_back({"Idle", 1.0f, 0.0f});
-			// name = "Idle", weight = 0.0, startTime = 0.0
 		}
 		if(!transform || !cameraTransform) return;
 		if(gameTime && gameTime->CountDownTimer > 0.0f)return;

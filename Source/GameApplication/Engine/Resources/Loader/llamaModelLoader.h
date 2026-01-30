@@ -9,8 +9,6 @@
 #include "../Data/llamaModelData.h"
 
 #include <llama/llama.h>
-#include <llama/llama-model.h>
-#include <llama/llama-model-loader.h>
 
 inline std::shared_ptr<LLAMAModelData> LoadLLAMAModelFromFile(const std::string& filePath) {
     std::shared_ptr<LLAMAModelData> modelData = std::make_shared<LLAMAModelData>();

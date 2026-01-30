@@ -31,7 +31,7 @@ Entities:
             height: 1
             staticFriction: 0
             dynamicFriction: 0
-            restitution: 0.100000001
+            restitution: 0
             collisionLayer: 0
             lockRotX: false
             lockRotY: false
@@ -231,7 +231,7 @@ Entities:
             height: 100
             staticFriction: 0
             dynamicFriction: 0
-            restitution: 0.100000001
+            restitution: 0
             collisionLayer: 0
             lockRotX: true
             lockRotY: true

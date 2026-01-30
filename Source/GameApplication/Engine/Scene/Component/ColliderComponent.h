@@ -24,9 +24,9 @@ struct ColliderShape {
 	float radius = 0.5f;
 	float height = 1.0f;
 
-	float staticFriction = 0.5f;
-	float dynamicFriction = 0.5f;
-	float restitution = 0.1f;
+	float staticFriction = 0.0f;
+	float dynamicFriction = 0.0f;
+	float restitution = 0.0f;
 
 	uint32_t collisionLayer = 0;
 
@@ -42,14 +42,6 @@ class ColliderComponent: public IComponent {
 public:
 	~ColliderComponent(){
 		for(auto& col : colliders){
-			//if (col.pxShape) {
-			//	col.pxShape->release();
-			//	col.pxShape = nullptr;
-			//}
-			//if(col.pxMaterial){
-			//	col.pxMaterial->release();
-			//	col.pxMaterial = nullptr;
-			//}
 			if (pRigidbodyStatic) {
 				OutputDebugStringA(("Finalize Release Static Actor: " + std::to_string((uintptr_t)pRigidbodyStatic) + "\n").c_str());
 				pRigidbodyStatic->release();
