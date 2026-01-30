@@ -296,7 +296,7 @@ std::string BRAIN::SummarizeText(const std::string& text) {
 	llama_context_params cParams = llama_context_default_params();
 	cParams.n_ctx = MAX_CONTEXT_TOKEN;
 	if (cParams.n_ctx < text.size() * 3) {
-		cParams.n_ctx = text.size() * 3;
+		cParams.n_ctx = (uint32_t)text.size() * 3;
 	}
 	cParams.n_threads = (std::max)(1u, std::thread::hardware_concurrency());
 
@@ -401,7 +401,7 @@ std::string BRAIN::SummarizeText(const std::string& text) {
 }
 
 void BRAIN::EnsureContextFits(const std::vector<llama_token>& newTokens) {
-	const int MAX_CTX = MAX_CONTEXT_TOKEN * 0.5f;
+	const int MAX_CTX = MAX_CONTEXT_TOKEN / 2;
 
 	int totalTokens = (int)(m_pastTokens.size() + newTokens.size());
 	if (totalTokens >= MAX_CTX) {
@@ -430,7 +430,7 @@ void BRAIN::EnsureContextFits(const std::vector<llama_token>& newTokens) {
 		summaryTokens.resize(n_summary);
 
 		// --- 最新の 10% トークンを保持 ---
-		int keep = m_pastTokens.size() / 10;
+		int keep = (int)m_pastTokens.size() / 10;
 		if (keep < 0) keep = 0;
 		std::vector<llama_token> recentTokens(
 			m_pastTokens.end() - keep,

@@ -8,7 +8,6 @@
 #include "Entity/Entity.h"
 
 // 前方宣言
-
 enum RenderLayer;
 
 struct SceneManagerContext;
@@ -16,7 +15,6 @@ struct SceneManagerContext;
 class EntityRegistry;
 class ComponentRegistry;
 class SystemRegistry;
-
 
 struct SceneContext{
 
@@ -45,10 +43,9 @@ public:
 	void ResetAll();
 
 	bool LoadFromYAMLFile();
-	void Save();
 
+	void Save();
 	void TempSave(); // 一時保存
-	void TempLoad(); // 一時読み込み
 
 	SceneContext* GetSceneContext(){return &m_SceneContext;}
 

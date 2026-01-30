@@ -1,6 +1,7 @@
 // Scene/sceneManager.cpp
 #include <memory>
 #include <algorithm>
+
 #include "buildSetting.h"
 #include "gameApplication.h"
 
@@ -296,7 +297,7 @@ void SceneManager::TempLoad() {
 		data = YAML::LoadFile(std::string(TEMP_SAVE_PATH) + "TempSave.yaml");
 	}
 	catch (const YAML::BadFile& e) {
-		std::cerr << "TempSave.yaml が見つかりません: " << e.what() << std::endl;
+		m_SceneContext.debug->LOG_ERROR((std::string("TempSave.yaml が見つかりません") + e.what()).c_str());
 		return;
 	}
 
@@ -314,8 +315,6 @@ void SceneManager::TempLoad() {
 			newScene->Initialize(&m_SceneContext);
 
 			newScene->SceneName = name;
-
-			//newScene->TempLoad(); // 各シーンの個別ロード
 
 			newScene->ScenePath = path;
 

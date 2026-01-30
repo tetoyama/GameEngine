@@ -23,7 +23,7 @@
 
 //#define _DEBUG_BUILD
 #define _RELEASE_BUILD
-//#define _EDITOR
+#define _EDITOR
 
 #endif // _DEBUG
 

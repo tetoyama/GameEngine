@@ -1,12 +1,7 @@
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
+#include "llamaModelData.h"
 
 #include <Windows.h>
-#include "llamaModelData.h"
-#include <debugapi.h>
 #include <llama/llama.h>
-
-#pragma comment(lib, "llama.lib")
 
 LLAMAModelData::LLAMAModelData() {
 	OutputDebugStringA(("Created LLAMAModelData " + m_path + "\n").c_str());

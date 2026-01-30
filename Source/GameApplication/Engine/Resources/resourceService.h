@@ -1,7 +1,6 @@
 // ResourceService.h
 #pragma once
 
-
 #include <unordered_map>
 #include <typeindex>
 #include <memory>
@@ -11,50 +10,14 @@
 #include "Loader/IResourceLoader.h"
 #include "Loader/ResourceLoader.h"
 
-#include "Data/textureData.h"
-#include "Data/modelData.h"
-#include "Data/shaderData.h"
-#include "Data/audioData.h"
-#include "Data/effectData.h"
-#include "Data/llamaModelData.h"
-
-#include "Loader/textureLoader.h"
-#include "Loader/shaderLoader.h"
-#include "Loader/modelLoader.h"
-#include "Loader/audioLoader.h"
-#include "Loader/effectLoader.h"
-#include "Loader/llamaModelLoader.h"
-
 class GraphicsContext;
 class AudioContext;
 
 class ResourceService : public IService {
 public:
-    void Initialize(GraphicsContext* graphics , AudioContext* audio) {
-        m_Graphics = graphics;
-		m_Audio = audio;
+	void Initialize(GraphicsContext* graphics, AudioContext* audio);
 
-        RegisterLoader<TextureData>();
-        RegisterLoader<ModelData>();
-        RegisterLoader<VertexShaderData>();
-        RegisterLoader<PixelShaderData>();
-        RegisterLoader<AudioData>();
-        RegisterLoader<EffectData>();
-        RegisterLoader<LLAMAModelData>();
-    }
-
-    void Shutdown() override {
-		OutputDebugStringA("Shutdown ResourceService called\n");
-
-		ClearAllUnused();
-
-		for(auto& [type, loader] : m_Loaders){
-			loader->DumpCacheState();
-		}
-
-        m_Loaders.clear();
-        m_Graphics = nullptr;
-    }
+	void Shutdown() override;
 
     template<typename T, typename... Args>
     std::shared_ptr<T> Load(const std::string& path, Args&&... args) {
@@ -65,7 +28,6 @@ public:
         }
         return nullptr;
     }
-
 
     template<typename T>
     void Unload(const std::string& path) {

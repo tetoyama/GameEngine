@@ -4,6 +4,8 @@
 #include <memory>
 #include <functional>
 #include <typeinfo>
+#include <Windows.h>
+
 #include "IResourceLoader.h"
 
 template<typename T>

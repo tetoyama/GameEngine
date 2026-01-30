@@ -5,6 +5,8 @@
 #include <xaudio2.h>
 
 #include "Interface/IComponent.h"
+
+#include "Service/Audio/audioContext.h"
 #include "Resources/Data/AudioData.h"
 #include "scene.h"
 #include "sceneManager.h"
