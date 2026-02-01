@@ -14,21 +14,21 @@ public class PlayerScript : ScriptBase
 
     public override void Update(float dt)
     {
-        //Console.WriteLine($"PlayerScript: Update({dt})");
+        Console.WriteLine($"PlayerScript: Update({dt})");
     }
 
     public override void FixedUpdate(float dt)
     {
-        //Console.WriteLine($"PlayerScript: FixedUpdate({dt})");
+        Console.WriteLine($"PlayerScript: FixedUpdate({dt})");
     }
     public override void Draw()
     {
-        //Console.WriteLine($"PlayerScript: Draw()");
+        Console.WriteLine($"PlayerScript: Draw()");
     }
 
     public override void Stop()
     {
-        //Console.WriteLine("PlayerScript: Stop()");
+        Console.WriteLine("PlayerScript: Stop()");
     }
 }
 
