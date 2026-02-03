@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 #include <mutex>
 #include <functional>
 
@@ -11,6 +12,10 @@
 // ============================
 class LLAMAModelData;
 struct AgentConfig;
+struct llama_context;
+struct llama_sampler;
+
+typedef int32_t llama_token;
 
 // ============================
 // LLAMAAgent
@@ -42,6 +47,12 @@ private:
 private:
     std::shared_ptr<LLAMAModelData> m_model;
     std::shared_ptr<const AgentConfig> m_config;
+    
+    llama_context* m_context = nullptr;
+    llama_sampler* m_sampler = nullptr;
+
+    std::vector<llama_token> m_pastTokens;
+    int m_nPast = 0;
 
     std::mutex m_mutex;
 };

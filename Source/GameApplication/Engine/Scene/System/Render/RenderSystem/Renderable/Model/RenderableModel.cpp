@@ -40,6 +40,7 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 	MATERIAL material;
 	if (pMaterial) {
 		material = pMaterial->Material;
+		material.MaterialFlags = 0;
 	}
 
 	if (pTexture) {
@@ -88,6 +89,8 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 		if (pModel->SetTexture) {
 			if(!pTexture){
 				MATERIAL materialData;
+				material.MaterialFlags = 0;
+
 				aiMaterial* aiMat = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
 				aiColor4D color;
 				if(aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS){
