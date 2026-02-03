@@ -5,6 +5,7 @@
 #include <typeindex>
 #include <memory>
 #include <string>
+#include <sstream>
 
 #include "Service/IService.h"
 #include "Loader/IResourceLoader.h"

@@ -171,6 +171,9 @@ public:
 		if (model) {
 			// アニメーション一覧 + 削除ボタン
 			ImGui::Separator();
+
+			ImGui::DragFloat("Animation Time", &animationTime, 1.0f, 0, 0);
+
 			static char newAnimFilePath[256] = "";
 			static char newAnimName[128] = "";
 			inputWidth = ImGui::GetContentRegionAvail().x;

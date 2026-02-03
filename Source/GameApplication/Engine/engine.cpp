@@ -155,7 +155,11 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 
 	// LLAMAサービス初期化
 	if (llamaService) {
-		llamaService->Initialize();
+
+		LLAMAServiceContext llamaContext{};
+		llamaContext.resourceService = resourceService.get();
+
+		llamaService->Initialize(llamaContext);
 	}
 
     debugLogSystem->LOG_INFO("EngineContextの初期化が完了しました");
@@ -259,7 +263,6 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 
 		float dt = timeService->GetDeltaTime();
 		{	// Update
-
 			windowService->PollEvents();
 			inputService->Update();
 			sceneManager->Update(dt);

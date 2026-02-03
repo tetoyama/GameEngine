@@ -8,7 +8,7 @@
 struct llama_model;
 struct llama_vocab;
 
-class LLAMAModelData {
+struct LLAMAModelData {
 public:
     LLAMAModelData();
     ~LLAMAModelData();

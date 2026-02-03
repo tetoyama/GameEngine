@@ -62,7 +62,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 29383.0371
+        AnimationTime: 32806.8789
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -87,9 +87,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: -38.890789
+          x: -29.3306408
           y: 25.9712772
-          z: -33.0103531
+          z: -5.08334923
           w: 0
         Direction:
           x: 0.738460243
@@ -113,20 +113,20 @@ Entities:
           w: 0
         LightView:
           -
-            - 0.540302336
+            - 0.540302277
             - 0
             - -0.841470957
-            - -6.76446915
+            - 11.5699215
           -
-            - 0.403422683
+            - 0.403422713
             - 0.87758255
-            - 0.259034753
-            - 1.44831657
+            - 0.259034723
+            - -9.64252853
           -
-            - 0.738460243
-            - -0.47942555
+            - 0.738460302
+            - -0.479425579
             - 0.474159896
-            - 56.8227768
+            - 36.5211296
           -
             - 0
             - 0
@@ -180,21 +180,21 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\sky.fbx
         isBlender: true
-        AnimationTime: 29383.0371
+        AnimationTime: 32806.8789
   - Entity: 4
     Components:
       - Component: NameComponent
         Name: Player
       - Component: TransformComponent
         Position:
-          x: -0.629140258
-          y: -5.08036464e-07
-          z: -3.45359421
+          x: 4.98142242
+          y: 8.80099833e-08
+          z: 13.2225189
         Rotation:
           - 0
-          - -0.99453491
+          - -0.22320953
           - 0
-          - 0.104405098
+          - -0.974770486
         Scale:
           x: 0.00999999978
           y: 0.00999999978
@@ -239,7 +239,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
         isBlender: false
-        AnimationTime: 29383.0371
+        AnimationTime: 32806.8789
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           Run: Asset\Model\Akai_Run.fbx
@@ -262,14 +262,14 @@ Entities:
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: -1.96777844
-          y: 1.99999952
-          z: -9.30235863
+          x: 7.59237146
+          y: 2
+          z: 18.6246433
         Rotation:
-          - 0
-          - 0.112262852
-          - 0
-          - 0.99367857
+          - -2.21739849e-09
+          - -0.974770248
+          - -9.68347269e-09
+          - 0.223210633
         Scale:
           x: 1
           y: 1
@@ -278,32 +278,32 @@ Entities:
       - Component: CameraComponent
         isLock: true
         Target:
-          x: -0.629140258
-          y: -5.08036464e-07
-          z: -3.45359421
+          x: 4.98142242
+          y: 8.80099833e-08
+          z: 13.2225189
         NearClip: 0.00999999978
         FarClip: 1024
         FOV: 1
         viewMatrix:
           -
-            - 0.974794149
-            - 0.070552431
-            - 0.211657286
+            - -0.900354028
+            - -0.137609079
+            - -0.412827283
             - 0
           -
             - 0
-            - 0.948683262
-            - -0.316227764
+            - 0.948683321
+            - -0.316227734
             - 0
           -
-            - -0.223106384
-            - 0.308256984
-            - 0.924770832
+            - 0.435158163
+            - -0.284716904
+            - -0.854150832
             - 0
           -
-            - -0.157236695
-            - 1.10898256
-            - 9.65149975
+            - -1.26884365
+            - 4.45016336
+            - 19.6750488
             - 1
         nextLinkId: 2
         nextPinId: 2
@@ -338,37 +338,6 @@ Entities:
         Name: Entity
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          - -0
-          - 0
-          - -0
-          - 1
-        Scale:
-          x: 0.208000004
-          y: 0.208000004
-          z: 1
-        Parent: 0
-      - Component: TextureComponent
-        FilePath: Asset/Texture\icon.png
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 1
-          y: 1
-        pivot:
-          x: -0.5
-          y: -0.5
-  - Entity: 7
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
           x: -4.37780666
           y: 1.54216135
           z: -4.07353592
@@ -387,7 +356,7 @@ Entities:
         Loop: false
         Volume: 1
         PlayOnStart: true
-  - Entity: 8
+  - Entity: 7
     Components:
       - Component: NameComponent
         Name: Entity
@@ -434,8 +403,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.fbx
         isBlender: false
-        AnimationTime: 29383.0371
-  - Entity: 9
+        AnimationTime: 32806.8789
+  - Entity: 8
     Components:
       - Component: NameComponent
         Name: Entity
@@ -481,7 +450,7 @@ Entities:
         IsLoop: true
         SpawnInterval: 0.00999999978
         SpawnCount: 100
-        SpawnTimer: 0.00889032427
+        SpawnTimer: 0.00485170726
         ParticleLifeTime: 1
         ParticleSize: 3
         ParticleSpeed: 1
@@ -509,7 +478,7 @@ Entities:
           x: 1
           y: 1
           z: 1
-  - Entity: 10
+  - Entity: 9
     Components:
       - Component: NameComponent
         Name: Entity

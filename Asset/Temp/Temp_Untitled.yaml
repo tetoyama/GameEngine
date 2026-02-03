@@ -272,7 +272,7 @@ Entities:
         stamina: 5
         staminaConsumeRate: 1.5
         staminaRecoverRate: 1
-        jumpPower: 5
+        jumpPower: 4
         Stamina: 5
   - Entity: 5
     Components:

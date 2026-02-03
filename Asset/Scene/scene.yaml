@@ -245,7 +245,7 @@ Entities:
         stamina: 5
         staminaConsumeRate: 1.5
         staminaRecoverRate: 3
-        jumpPower: 2
+        jumpPower: 4
         Stamina: 5
   - Entity: 5
     Components:
@@ -446,8 +446,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: ModelRendererComponent
         FilePath: Asset/Model\ball.fbx
         isBlender: false
@@ -1206,7 +1206,7 @@ Entities:
             x: 0
             y: 0
             z: 0
-            w: 0
+            w: 1
           Metallic: 0
           Roughness: 0
           AO: 0

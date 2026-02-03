@@ -17,9 +17,16 @@
 // ============================
 // 前方宣言のみ
 // ============================
-class LLAMAModelData;
+class ResourceService;
+
+struct LLAMAModelData;
 class LLAMAAgent;
 struct AgentConfig;
+
+struct LLAMAServiceContext
+{
+	ResourceService* resourceService = nullptr;
+};
 
 // ============================
 // LLAMAService
@@ -31,12 +38,11 @@ public:
 	LLAMAService() = default;
 
     // ===== IService =====
-    void Initialize();
+    void Initialize(LLAMAServiceContext context);
     void Shutdown() override;
 
     // ===== モデル管理 =====
     bool LoadModel(const std::string& path);
-    void UnloadModel(const std::string& path);
     std::shared_ptr<LLAMAModelData> GetModel(const std::string& path);
     std::vector<std::shared_ptr<LLAMAModelData>> GetLoadedModels() const;
 
@@ -62,6 +68,9 @@ public:
     );
 
 private:
+
+	ResourceService* m_resourceService = nullptr;
+
     // ============================
     // 非同期ジョブ構造体
     // ============================
@@ -101,8 +110,22 @@ private:
 
     std::mutex m_jobMutex;
     std::condition_variable m_jobCV;
-    std::atomic<bool> m_threadRunning;
-    std::thread m_workerThread;
+	std::atomic<bool> m_threadRunning{false};
+	std::thread m_workerThread;
+
+	// -------------------------
+	// LLM
+	// -------------------------
+	std::shared_ptr<LLAMAModelData> m_llamaModel;
+	std::shared_ptr<AgentConfig>    m_agentConfig;
+	std::shared_ptr<LLAMAAgent>     m_mainAgent;
+	std::shared_ptr<LLAMAAgent>     m_summaryAgent;
+
+	// -------------------------
+	// UI state
+	// -------------------------
+	char inputBuffer[2048]{};
+	bool m_scrollToBottom = false;
 
     // ============================
     // 内部処理
@@ -111,4 +134,14 @@ private:
 
     void ProcessModelLoadJob(const ModelLoadJob& job);
     void ProcessAgentCreateJob(const AgentCreateJob& job);
+
+	// 完了コールバック（メインスレッド実行用）
+	struct CompletedCallback {
+		std::function<void()> fn;
+	};
+
+	std::queue<CompletedCallback> m_completedCallbacks;
+	std::mutex m_completedMutex;
+
+	void PumpCallbacks();
 };

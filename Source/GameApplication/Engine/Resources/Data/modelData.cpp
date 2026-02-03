@@ -185,10 +185,11 @@ void ModelData::UpdateBoneMatrix(aiNode* node, aiMatrix4x4 Matrix) {
 
 	uint32_t index = m_BoneIndexMap[node->mName.C_Str()];
 	BONE& bone = m_Bones[index];
-
-	aiMatrix4x4 worldMatrix = Matrix * bone.AnimationMatrix;
-	bone.Matrix = worldMatrix * bone.OffsetMatrix;
-
+	aiMatrix4x4 worldMatrix = Matrix;
+	if(enableRootMotion || node != AiScene->mRootNode){
+		worldMatrix = Matrix * bone.AnimationMatrix;
+		bone.Matrix = worldMatrix * bone.OffsetMatrix;
+	}
 	for (unsigned int i = 0; i < node->mNumChildren; i++) {
 
 		UpdateBoneMatrix(node->mChildren[i], worldMatrix);
@@ -217,7 +218,7 @@ void ModelData::LoadAnimation(const char* FileName, const char* Name){
 	animationData.Scene = scene;
 	animationData.isImported = true;
 	animationData.Animation = scene->mAnimations[0];
-
+	
 	m_Animation[Name] = animationData;
 	if(scene->mNumAnimations != 0){
 
@@ -265,9 +266,25 @@ void ModelData::UpdateBoneAnimation(
 		aiAnimation* animation = itAnim->second.Animation;
 		if(!animation) continue;
 
-		float animTime =
-			fmod(frame + anim.animationStartTime,
-				 (float)animation->mDuration);
+		float animTime = 0.0f;
+
+		const float duration = static_cast<float>(animation->mDuration);
+		const float time = frame + anim.animationStartTime;
+
+		if(anim.isLoop){
+			// ループあり：周期で回す
+			animTime = fmod(time, duration);
+		} else{
+			// ループなし：最後のフレームで止める
+			if(time >= duration){
+				animTime = duration;
+			} else if(time <= 0.0f){
+				animTime = 0.0f;
+			} else{
+				animTime = time;
+			}
+		}
+
 
 		float w = anim.weight / totalWeight;
 

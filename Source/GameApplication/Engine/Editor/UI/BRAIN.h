@@ -1,42 +1,51 @@
 #pragma once
 
-
-#include "GameApplication.h"
-
-#include "Editor/editorService.h"
-#include "Editor/InterFace/IEditorUI.h"
-
 #include <vector>
 #include <string>
-#include <filesystem>
-#include <thread>
-#include <mutex>
-#include <condition_variable>
 #include <queue>
+#include <mutex>
 #include <atomic>
+#include <condition_variable>
+#include <wrl/client.h>
+#include <d3d11.h>
 
-//#define MAX_CONTEXT_TOKEN (256)
-#define MAX_CONTEXT_TOKEN (4096)
+#include "../InterFace/IEditorUI.h"
 
-// llama forward declarations
-struct llama_model;
-struct llama_context;
-struct llama_sampler;
-struct llama_vocab;
-typedef int32_t llama_token;
+// ---------------------------------
+// Forward declarations
+// ---------------------------------
+class EditorService;
+class LLAMAService;
+class LLAMAAgent;
 
+struct EditorDrawContext;
 struct TextureData;
+struct LLAMAModelData;
+struct AgentConfig;
 
-// B.R.A.I.N. = Buddy for Runtime Artificial Intelligence Navigator
-
+// ---------------------------------
+// Chat log entry
+// ---------------------------------
 struct ChatEntry {
 	enum class Role {
-		User, Assistant
+		User,
+		Assistant
 	};
+
 	Role role;
 	std::string text;
 };
 
+// ---------------------------------
+// LLM Job
+// ---------------------------------
+struct LLMJob {
+	std::string prompt;
+};
+
+// ---------------------------------
+// BRAIN UI
+// ---------------------------------
 class BRAIN: public IEditorUI {
 
 public:
@@ -45,66 +54,64 @@ public:
 	void Draw(const EditorDrawContext ctx) override;
 
 private:
-	// ===== 非同期制御 =====
-	void LLMThreadMain();
-	void ResetContext();
-	void CreateSampler();
-	// 逐次生成（ワーカースレッド専用）
-	void RunLLM_Internal(const std::string& prompt);
-	std::string DecodeTokensToString(const std::vector<llama_token>& tokens, const llama_vocab* vocab);
-	std::string SummarizeText(const std::string& text);
-	void EnsureContextFits(const std::vector<llama_token>& tokens);
-private:
-	// ===== Editor =====
+	// -----------------------------
+	// Editor
+	// -----------------------------
 	EditorService* m_editor = nullptr;
 
-	// ===== llama =====
-	llama_model* m_llamaModel = nullptr;
-	llama_context* m_llamaContext = nullptr;
-	llama_sampler* m_sampler = nullptr;
+	// -----------------------------
+	// Logo
+	// -----------------------------
+	std::shared_ptr<TextureData> logoTexture;
 
-	// ===== model path =====
-	static inline const std::filesystem::path modelPath =
-		"Asset/BRAIN/model/qwen2.5-coder-7b-instruct-q4_k_m.gguf";
-
-	// ===== UI buffers =====
-	char        inputBuffer[4096]{};
-	std::string outputText;
-
-	// ===== マルチスレッド関連 =====
-	struct LLMJob {
-		std::string prompt;
-	};
-
-	std::thread              m_llmThread;
-	std::atomic<bool>        m_threadRunning{false};
-
-	std::mutex               m_jobMutex;
-	std::condition_variable  m_jobCV;
-	std::queue<LLMJob>       m_jobQueue;
-
-	// 逐次出力用（UIと共有）
-	std::mutex               m_outputMutex;
-	std::string              m_asyncOutput;
-
-	bool m_requestReset = false;
-	// --- generate control ---
-	std::atomic<bool> m_stopRequested =false;
-	std::atomic<bool> m_isRunning = false;
-
-	// 会話管理
-	bool m_conversationActive = false;
-	int  m_nPast = 0;
-
-	// system prompt
-	static constexpr const char* SYSTEM_PROMPT =
-		"<|system|>\n"
-		"You are a helpful assistant integrated into a game engine editor.\n";
-
-	std::shared_ptr<TextureData> logoTexture = nullptr;
-
-	// 会話ログ（User / Assistant のペアを順に保持）
+	// -----------------------------
+	// Chat / Output
+	// -----------------------------
 	std::vector<ChatEntry> m_chatLog;
+	std::string m_asyncOutput;
 
-	std::vector<llama_token> m_pastTokens;  // コンテキストで使用したすべてのトークンを保持
+	mutable std::mutex m_outputMutex;
+
+	// -----------------------------
+	// Job queue
+	// -----------------------------
+	std::queue<LLMJob> m_jobQueue;
+	std::mutex m_jobMutex;
+	std::condition_variable m_jobCV;
+
+	// ----------------------------
+	// ワーカースレッド
+	// ----------------------------
+	std::thread m_workerThread;
+	void WorkerLoop();
+
+	// -----------------------------
+	// Runtime state
+	// -----------------------------
+	std::atomic<bool> m_isRunning{false};
+	std::atomic<bool> m_stopRequested{false};
+	std::atomic<bool> m_exitRequested{false};
+	std::atomic<bool> m_requestReset{false};
+
+	// -------------------------
+	// LLM
+	// -------------------------
+	std::shared_ptr<LLAMAModelData> m_llamaModel;
+	std::shared_ptr<AgentConfig>    m_agentConfig;
+	std::shared_ptr<LLAMAAgent>     m_mainAgent;
+
+	// 将来用（要約Agent）
+	std::shared_ptr<LLAMAAgent>     m_summaryAgent;
+
+	// -------------------------
+	// UI state
+	// -------------------------
+	char inputBuffer[2048]{};
+	bool m_scrollToBottom = false;
+
+	// -----------------------------
+	// Token state (表示用)
+	// -----------------------------
+	uint32_t m_nPast = 0;
+	static constexpr uint32_t MAX_CONTEXT_TOKEN = 8192;
 };

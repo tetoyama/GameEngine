@@ -52,8 +52,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset/Texture\mesh.png
         UV_Slice_X: 1
@@ -577,7 +577,7 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 2
-        CastShadow: 1
+        CastShadow: 0
         Position:
           x: 2.6928165
           y: 4
@@ -667,7 +667,7 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 2
-        CastShadow: 1
+        CastShadow: 0
         Position:
           x: 8.2638216
           y: 4
@@ -757,7 +757,7 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 2
-        CastShadow: 1
+        CastShadow: 0
         Position:
           x: 3.81178188
           y: 4

@@ -26,7 +26,7 @@ class PlayerController: public CustomScriptComponent {
 		REFLECT_FIELD(float, staminaConsumeRate, 1.5f)
 		REFLECT_FIELD(float, staminaRecoverRate, 1.0f)
 
-		REFLECT_FIELD(float, jumpPower, 5.0f)
+		REFLECT_FIELD(float, jumpPower, 4.0f)
 
 
 	bool canDash = true;
@@ -100,16 +100,34 @@ public:
 			return;
 		}
 
-		model->blendedAnimations.clear();
+		if(model->blendedAnimations.size() < 4){
+			model->blendedAnimations.clear();
 
-		// Run アニメーションを追加
-		if(model->model->m_Animation.find("Run") != model->model->m_Animation.end()){
+			// Run アニメーションを追加
+			if(model->model->m_Animation.find("Run") == model->model->m_Animation.end()){
+				model->model->LoadAnimation("Asset/Model/Akai_Run.fbx", "Run");
+			}
+			// Idle アニメーションを追加
+			if(model->model->m_Animation.find("Idle") == model->model->m_Animation.end()){
+				model->model->LoadAnimation("Asset/Model/Akai_Idle.fbx", "Idle");
+
+			}
+			if(model->model->m_Animation.find("JumpingUp") == model->model->m_Animation.end()){
+				model->model->LoadAnimation("Asset/Model/Jumping Up.fbx", "JumpingUp");
+			}
+			if(model->model->m_Animation.find("JumpingDown") == model->model->m_Animation.end()){
+				model->model->LoadAnimation("Asset/Model/Jumping Down.fbx", "JumpingDown");
+
+			}
 			model->blendedAnimations.push_back({"Run", 0.0f, 0.0f});
-		}
-
-		// Idle アニメーションを追加
-		if(model->model->m_Animation.find("Idle") != model->model->m_Animation.end()){
 			model->blendedAnimations.push_back({"Idle", 1.0f, 0.0f});
+			model->blendedAnimations.push_back({"JumpingUp", 0.0f, 0.0f});
+			model->blendedAnimations.push_back({"JumpingDown", 0.0f, 0.0f});
+
+			model->blendedAnimations[0].isLoop = true;
+			model->blendedAnimations[1].isLoop = true;
+			model->blendedAnimations[2].isLoop = false;
+			model->blendedAnimations[3].isLoop = false;
 		}
 		if(!transform || !cameraTransform) return;
 		if(gameTime && gameTime->CountDownTimer > 0.0f)return;
@@ -152,6 +170,9 @@ public:
 
 		ColliderComponent* collider = GetComponent<ColliderComponent>();
 
+		bool isGround = false;
+		bool isJumping = false;
+
 		if (!collider) {
 			transform->position += dir * (CurrentSpeed * dt);
 		} else {
@@ -175,7 +196,7 @@ public:
 				->GetSystem<PhysicSystem>()
 				->RaycastWithMask(rayPos, rayDir, 0.3f, physx::PxU32());
 
-			bool isGround = hit.hit && hit.distance < 0.05f;
+			isGround = hit.hit && hit.distance < 0.05f;
 
 			// 入力方向（正規化済み想定）
 			physx::PxVec3 wishDir(dir.x, 0.0f, dir.z);
@@ -207,16 +228,24 @@ public:
 
 			rigid->setLinearVelocity(velocity);
 
+			if(velocity.y > 0.0f){
+				isJumping = true;
+
+			}
+
 			isJumpPressed = GetKey(VK_SPACE);
 		}
 
 		// 入力がなければ減速
 		if(move.x == 0 && move.z == 0){
+
+			model->blendedAnimations[0].weight = CurrentSpeed / (moveSpeed * dashMultiplier);
+			model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / (moveSpeed * dashMultiplier));
+
 			CurrentSpeed -= moveSpeed * dt;
 			if(CurrentSpeed < 0.0f) CurrentSpeed = 0.0f;
 			if(CurrentSpeed > moveSpeed) CurrentSpeed = moveSpeed;
-			model->blendedAnimations[0].weight = CurrentSpeed / (moveSpeed * dashMultiplier);
-			model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / (moveSpeed * dashMultiplier));
+
 
 			// --- 回転補間 ---
 			DirectX::XMVECTOR targetQ = DirectX::XMQuaternionRotationRollPitchYaw(
@@ -226,6 +255,10 @@ public:
 			);
 
 		} else{
+
+
+			model->blendedAnimations[0].weight = CurrentSpeed / (moveSpeed * dashMultiplier);
+			model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / (moveSpeed * dashMultiplier));
 			// 目標速度
 			float targetSpeed = isDashing ? moveSpeed * dashMultiplier : moveSpeed;
 
@@ -237,8 +270,7 @@ public:
  				CurrentSpeed = targetSpeed;
 			}
 
-			model->blendedAnimations[0].weight = CurrentSpeed / (moveSpeed * dashMultiplier);
-			model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / (moveSpeed * dashMultiplier));
+
 
 			// --- 回転補間 ---
 			DirectX::XMVECTOR targetQ = DirectX::XMQuaternionRotationRollPitchYaw(
@@ -258,6 +290,54 @@ public:
 			Vector3 dir = ballTransform->position - transform->position;
 			ballController->ApplyForce(dir); // ボールを吹っ飛ばす
 		}
+
+		if(!isGround){
+
+			if(isJumping){
+				if(model->blendedAnimations[2].weight <= 0.0f){
+					model->blendedAnimations[2].animationStartTime = -model->animationTime + 25.0f;
+				}
+				model->blendedAnimations[2].weight += 0.225f;
+				if(model->blendedAnimations[2].weight > 1.0f){
+					model->blendedAnimations[2].weight = 1.0f;
+				}
+				model->blendedAnimations[0].weight *= 1.0f - model->blendedAnimations[2].weight;
+				model->blendedAnimations[1].weight *= 1.0f - model->blendedAnimations[2].weight;
+				model->blendedAnimations[3].weight = 0.0f;
+			} else{
+
+				if(model->blendedAnimations[3].weight <= 0.0f){
+					model->blendedAnimations[3].animationStartTime = -model->animationTime;
+				}
+
+				model->blendedAnimations[2].weight -= 0.05f;
+				if(model->blendedAnimations[2].weight < 0.0f){
+					model->blendedAnimations[2].weight = 0.0f;
+				}
+
+				model->blendedAnimations[3].weight += 0.225f;
+				if(model->blendedAnimations[2].weight + model->blendedAnimations[3].weight > 1.0f){
+					model->blendedAnimations[3].weight = 1.0f - model->blendedAnimations[2].weight;
+				}
+				model->blendedAnimations[0].weight *= 1.0f - (model->blendedAnimations[2].weight + model->blendedAnimations[3].weight);
+				model->blendedAnimations[1].weight *= 1.0f - (model->blendedAnimations[2].weight + model->blendedAnimations[3].weight);
+			}
+		} else{
+			model->blendedAnimations[2].weight -= 0.225f;
+			if(model->blendedAnimations[2].weight < 0.0f){
+				model->blendedAnimations[2].weight = 0.0f;
+			}
+			model->blendedAnimations[3].weight -= 0.225f;
+			if(model->blendedAnimations[3].weight < 0.0f){
+				model->blendedAnimations[3].weight = 0.0f;
+			}
+
+			float totalWeight = model->blendedAnimations[2].weight + model->blendedAnimations[3].weight;
+			model->blendedAnimations[0].weight *= 1.0f - totalWeight;
+			model->blendedAnimations[1].weight *= 1.0f - totalWeight;
+		}
+
+
 	}
 	void OnDraw() override{}
 	void OnEditorUpdate(float dt)override{}

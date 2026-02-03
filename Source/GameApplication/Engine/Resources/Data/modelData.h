@@ -42,6 +42,7 @@ struct AnimationBlend {
 	std::string name;
 	float weight = 0.0f;
 	float animationStartTime = 0.0f;
+	bool isLoop = true;
 };
 
 struct AnimationData {
@@ -96,6 +97,8 @@ public:
 	std::vector<BONE> m_Bones;
 	std::unordered_map<std::string, uint32_t> m_BoneIndexMap;
 
+	bool enableRootMotion = false;
+
 	// ----------------------------
 	// animation
 	// ----------------------------
@@ -109,11 +112,11 @@ public:
 	// ============================================================
 
 	// Input structured buffer (static)
-	std::vector<ID3D11Buffer*>             m_SkinInputBuffer;
-	std::vector<ID3D11ShaderResourceView*> m_SkinInputSRV;
+	std::vector<ID3D11Buffer*>              m_SkinInputBuffer;
+	std::vector<ID3D11ShaderResourceView*>  m_SkinInputSRV;
 
 	// Output structured buffer (CS write only)
-	std::vector<ID3D11Buffer*>             m_SkinOutputUAVBuffer;
+	std::vector<ID3D11Buffer*>              m_SkinOutputUAVBuffer;
 	std::vector<ID3D11UnorderedAccessView*> m_SkinOutputUAV;
 
 	// Output vertex buffer (Draw only)
