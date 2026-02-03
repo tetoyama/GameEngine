@@ -106,7 +106,13 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     }
 
 	if(editorService){
-		editorService->Initialize(debugLogSystem.get(), resourceService.get(), sceneManager.get());
+		EditorServiceContext editorContext;
+		editorContext.debugLogSystem = debugLogSystem.get();
+		editorContext.llamaService = llamaService.get();
+		editorContext.resourceService = resourceService.get();
+		editorContext.sceneManager = sceneManager.get();
+
+		editorService->Initialize(editorContext);
 	}
 
     // シーンマネージャ初期化

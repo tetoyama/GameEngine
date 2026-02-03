@@ -319,7 +319,7 @@ void Scene::BuildDefaultScene(){
 
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
-		modelRenderer->modelFilePath = "Asset\\Model\\Akai.fbx";
+		modelRenderer->modelFilePath = "Asset\\Model\\Y Bot.fbx";
 		modelRenderer->isBlender = false;
 
 		modelRenderer->animations.push_back(std::make_pair("Idle", "Asset\\Model\\Akai_Idle.fbx"));

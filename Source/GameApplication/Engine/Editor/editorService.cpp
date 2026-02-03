@@ -10,11 +10,12 @@
 #include "UI/SystemSetting.h"
 #include "UI/BRAIN.h"
 
-void EditorService::Initialize(DebugLogSystem* debug, ResourceService* resource, SceneManager* manager) {
+void EditorService::Initialize(EditorServiceContext context) {
 
-	debugLogSystem = debug;
-	resourceService = resource;
-	sceneManager = manager;
+	debugLogSystem = context.debugLogSystem;
+	resourceService = context.resourceService;
+	sceneManager = context.sceneManager;
+	llamaService = context.llamaService;
 
 	UIs.clear();
 	UIs.push_back(new MenuBar());

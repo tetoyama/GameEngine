@@ -9,13 +9,22 @@ class EditorService;
 class ResourceService;
 class DebugLogSystem;
 class SceneManager;
+class LLAMAService;
+
 struct SceneManagerContext;
+
+struct EditorServiceContext {
+	DebugLogSystem* debugLogSystem = nullptr;
+	ResourceService* resourceService = nullptr;
+	SceneManager* sceneManager = nullptr;
+	LLAMAService* llamaService = nullptr;
+};
 
 class EditorService : public IService {
 
 public:
 
-	void Initialize(DebugLogSystem* debug, ResourceService* resource, SceneManager* manager);
+	void Initialize(EditorServiceContext context);
 	void Draw(EditorDrawContext ctx);
 	void Shutdown() override;
 
@@ -33,6 +42,7 @@ public:
 	DebugLogSystem* debugLogSystem = nullptr;
 	ResourceService* resourceService = nullptr;
 	SceneManager* sceneManager = nullptr;
+	LLAMAService* llamaService = nullptr;
 
 private:
 
