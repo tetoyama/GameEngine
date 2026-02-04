@@ -156,6 +156,18 @@ std::shared_ptr<LLAMAAgent> LLAMAService::CreateAgent(
     return agent;
 }
 
+std::shared_ptr<LLAMAAgent> LLAMAService::CreateAgent(const std::shared_ptr<LLAMAModelData> model, const std::shared_ptr<const AgentConfig>& config){
+
+	auto agent = std::make_shared<LLAMAAgent>(model, config);
+
+	{
+		std::lock_guard<std::mutex> lock(m_agentMutex);
+		m_agents.push_back(agent);
+	}
+
+	return agent;
+}
+
 
 void LLAMAService::DestroyAgent(const std::shared_ptr<LLAMAAgent>& agent) {
     std::lock_guard<std::mutex> lock(m_agentMutex);

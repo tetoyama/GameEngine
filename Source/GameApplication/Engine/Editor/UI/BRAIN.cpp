@@ -24,6 +24,8 @@
 #include "Service/LlamaService/LLAMAAgent.h"
 #include "Service/LlamaService/AgentConfig.h"
 
+#include "DebugTools/DebugSystem.h"
+
 // --------------------------------------------
 // 定数
 // --------------------------------------------
@@ -54,6 +56,7 @@ void BRAIN::Initialize(EditorService* editor){
 	// ---------------------------------
 	m_agentConfig = std::make_shared<AgentConfig>();
 	m_agentConfig->max_tokens = MAX_CONTEXT_TOKEN;
+	m_agentConfig->n_ctx = 128;
 	m_agentConfig->n_threads =
 		(std::max)(1u, std::thread::hardware_concurrency());
 
@@ -95,12 +98,6 @@ void BRAIN::Finalize(){
 		m_mainAgent->Stop();
 		m_mainAgent.reset();
 	}
-
-	if(m_summaryAgent){
-		m_summaryAgent->Stop();
-		m_summaryAgent.reset();
-	}
-
 	m_llamaModel.reset();
 	m_agentConfig.reset();
 }
@@ -108,29 +105,27 @@ void BRAIN::Finalize(){
 // --------------------------------------------
 // WorkerLoop
 // --------------------------------------------
+// ===========================
+// BRAIN::WorkerLoop (修正版)
+// ===========================
 void BRAIN::WorkerLoop(){
 	while(true){
 
-		if(!m_mainAgent){
-			m_isRunning.store(false);
-			std::this_thread::sleep_for(std::chrono::milliseconds(50)); // 少し待つ
-
-			m_llamaModel = m_editor->llamaService->GetModel("Asset/BRAIN/model/qwen2.5-coder-7b-instruct-q4_k_m.gguf");
-			if(m_llamaModel){
-				m_mainAgent = std::make_shared<LLAMAAgent>(m_llamaModel, m_agentConfig);
-				m_summaryAgent = std::make_shared<LLAMAAgent>(m_llamaModel, m_agentConfig);
-				m_mainAgent->SetSummaryAgent(m_summaryAgent);
-			}
-			continue;
-		}
 		LLMJob job;
+		bool hasJob = false;
+		bool doReset = false;
+
 		{
 			std::unique_lock<std::mutex> lock(m_jobMutex);
-			m_jobCV.wait(lock, [&](){
-				return m_exitRequested.load()
-					|| m_requestReset.load()
-					|| !m_jobQueue.empty();
-						 });
+
+			m_jobCV.wait_for(
+				lock,
+				std::chrono::milliseconds(100),
+				[&](){
+					return m_exitRequested.load()
+						|| m_requestReset.load()
+						|| !m_jobQueue.empty();
+				});
 
 			if(m_exitRequested.load()){
 				return;
@@ -138,69 +133,103 @@ void BRAIN::WorkerLoop(){
 
 			if(m_requestReset.load()){
 				m_requestReset.store(false);
-				m_nPast = 0;
-				continue;
+				doReset = true;
 			}
 
-			job = std::move(m_jobQueue.front());
-			m_jobQueue.pop();
-			m_isRunning.store(true);
+			if(!m_jobQueue.empty()){
+				job = std::move(m_jobQueue.front());
+				m_jobQueue.pop();
+				hasJob = true;
+				m_isRunning.store(true);
+			}
 		}
 
-		// User log
-		{
-			std::lock_guard<std::mutex> lock(m_outputMutex);
-			m_chatLog.push_back(
-				{ChatEntry::Role::User, job.prompt});
-			m_scrollToBottom = true;
-		}
+		// ---------------------------
+		// Reset 処理
+		// ---------------------------
+		if(doReset){
+			if(m_mainAgent){
+				while(m_mainAgent->GetState() == LLAMAAgent::State::Running){
+					std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				}
+				m_mainAgent->ResetContext();
+			}
 
-		if(!m_mainAgent){
+			m_nPast = 0;
+
+			{
+				std::lock_guard<std::mutex> lock(m_outputMutex);
+				m_chatLog.clear();
+				m_scrollToBottom = false;
+			}
+
 			m_isRunning.store(false);
 			continue;
 		}
 
-		// ---------------------------------
-		// Agent 実行
-		// ---------------------------------
-		m_mainAgent->RunAsync(job.prompt);
+		// ---------------------------
+		// Agent 初期化
+		// ---------------------------
+		if(!m_mainAgent){
+			m_llamaModel =
+				m_editor->llamaService->GetModel(
+					"Asset/BRAIN/model/qwen2.5-coder-7b-instruct-q4_k_m.gguf");
 
-		// 最初に Running になるのを待つ
-		while(m_mainAgent->GetState() != LLAMAAgent::State::Running){
-			if(m_stopRequested.load()){
-				m_mainAgent->Stop();
-				m_stopRequested.store(false);
-				break;
+			if(m_llamaModel){
+				m_mainAgent =
+					m_editor->llamaService
+					->CreateAgent(m_llamaModel, m_agentConfig);
 			}
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
 
-		// ストリーム更新
-		while(true){
+		if(!hasJob || !m_mainAgent){
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			continue;
+		}
+
+		// ---------------------------
+		// User log
+		// ---------------------------
+		{
+			std::lock_guard<std::mutex> lock(m_outputMutex);
+			m_chatLog.push_back({ChatEntry::Role::User, job.prompt});
+			m_scrollToBottom = true;
+		}
+
+		// ---------------------------
+		// 実行
+		// ---------------------------
+		m_mainAgent->RunAsync(job.prompt);
+
+		{
+			std::lock_guard<std::mutex> lock(m_outputMutex);
+			m_chatLog.push_back({ChatEntry::Role::Assistant, std::string()});
+			m_scrollToBottom = true;
+		}
+		while(m_mainAgent->GetState() != LLAMAAgent::State::Running){
+		}
+		// ---------------------------
+		// 出力監視ループ（Running状態監視一本化）
+		// ---------------------------
+		while(m_mainAgent->GetState() == LLAMAAgent::State::Running){
 			if(m_stopRequested.load()){
 				m_mainAgent->Stop();
 				m_stopRequested.store(false);
 				break;
 			}
+
 			std::string out = m_mainAgent->GetOutput();
 			{
 				std::lock_guard<std::mutex> lock(m_outputMutex);
-				if(!m_chatLog.empty()
-				   && m_chatLog.back().role
-				   == ChatEntry::Role::Assistant){
+				if(!m_chatLog.empty() && m_chatLog.back().role == ChatEntry::Role::Assistant){
 					m_chatLog.back().text = out;
-					m_scrollToBottom = true;
-				} else{
-					m_chatLog.push_back(
-						{ChatEntry::Role::Assistant, out});
 					m_scrollToBottom = true;
 				}
 			}
-			if(m_mainAgent->GetState() != LLAMAAgent::State::Running){
-				break;
-			}
+
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		}
+
 		m_isRunning.store(false);
 	}
 }
@@ -256,7 +285,7 @@ void BRAIN::Draw(const EditorDrawContext){
 	// -------------------
 	// Chat log
 	// -------------------
-	float chatLogHeight = winSize.y - 240.0f;
+	float chatLogHeight = winSize.y - 256.0f;
 
 	ImGui::Text("Conversation Log:");
 	ImGui::BeginChild(
@@ -265,42 +294,47 @@ void BRAIN::Draw(const EditorDrawContext){
 		true
 	);
 
+	// 描画用にコピー（スレッド安全）
+	std::vector<ChatEntry> logCopy;
 	{
 		std::lock_guard<std::mutex> lock(m_outputMutex);
+		logCopy = m_chatLog;
+	}
 
-		int idx = 0;
-		for(const auto& e : m_chatLog){
-			const char* label =
-				(e.role == ChatEntry::Role::User)
-				? "User"
-				: "Assistant";
+	for(const auto& e : logCopy){
+		const char* label =
+			(e.role == ChatEntry::Role::User)
+			? "User"
+			: "Assistant";
 
-			ImVec4 color =
-				(e.role == ChatEntry::Role::User)
-				? ImVec4(0.7f, 0.8f, 1.0f, 1.0f)
-				: ImVec4(0.8f, 1.0f, 0.8f, 1.0f);
+		ImVec4 color =
+			(e.role == ChatEntry::Role::User)
+			? ImVec4(0.7f, 0.8f, 1.0f, 1.0f)
+			: ImVec4(0.8f, 1.0f, 0.8f, 1.0f);
 
-			ImGui::PushStyleColor(ImGuiCol_Text, color);
-			ImGui::Text("%s:", label);
-
-			ImGui::InputTextMultiline(
-				("##log" + std::to_string(idx++)).c_str(),
-				const_cast<char*>(e.text.c_str()),
-				e.text.size() + 1,
-				ImVec2(-1, 80),
-				ImGuiInputTextFlags_ReadOnly
+		ImGui::PushStyleColor(ImGuiCol_Text, color);
+		ImGui::Text("%s:", label);
+		// 長すぎる文字列も分割表示
+		const size_t chunkSize = 4096;
+		for(size_t offset = 0; offset < e.text.size(); offset += chunkSize){
+			ImGui::TextWrapped("%.*s",
+							   (int)(std::min)(chunkSize, e.text.size() - offset),
+							   e.text.c_str() + offset
 			);
-
-			ImGui::PopStyleColor();
 		}
 
-		if(m_scrollToBottom){
-			ImGui::SetScrollHereY(1.0f);
-			m_scrollToBottom = false;
-		}
+		ImGui::PopStyleColor();
+	}
+
+	if(m_scrollToBottom){
+		ImGui::SetScrollHereY(1.0f);
+		m_scrollToBottom = false;
 	}
 
 	ImGui::EndChild();
+
+
+
 	ImGui::Separator();
 
 	// -------------------
@@ -351,7 +385,20 @@ void BRAIN::Draw(const EditorDrawContext){
 	}
 	ImGui::EndDisabled();
 
-	ImGui::Text("Token: %u / %d", m_nPast, MAX_CONTEXT_TOKEN);
+	if(m_mainAgent){
+		int used = m_mainAgent->GetTokenCount();
+		int max = m_mainAgent->GetMaxTokenCount();
+
+		ImGui::Text("Token: %d / %d", used, max);
+
+		// 使用率バー（おすすめ）
+		float rate = m_mainAgent->GetTokenUsageRate();
+		ImGui::ProgressBar(
+			rate,
+			ImVec2(-1, 0),
+			nullptr
+		);
+	}
 
 	ImGui::End();
 }

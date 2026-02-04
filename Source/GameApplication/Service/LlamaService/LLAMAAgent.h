@@ -25,25 +25,26 @@ using llama_token = int32_t;
 // ============================
 // ・1 Agent = 1 llama_context
 // ・内部ワーカースレッドで非同期推論
-// ・会話コンテキスト（past tokens）を保持
-// ・Context 溢れ時は SummaryAgent による要約を実行
-// ・Editor / BRAIN からは State / Output のみ参照
+// ・RunAsync は何度でも呼べる
+// ・プロンプトが長い場合は内部で同期要約
 //
 class LLAMAAgent {
 public:
 	// ============================
 	// State
 	// ============================
+
 	enum class State {
-		Idle,       // 待機中
-		Running,    // 推論実行中
-		Stopping,   // 停止要求中
-		Dead        // スレッド終了済み
+		Idle,
+		Running,
+		Stopping,
+		Dead
 	};
 
 	// ============================
 	// ctor / dtor
 	// ============================
+
 	LLAMAAgent(
 		std::shared_ptr<LLAMAModelData> model,
 		std::shared_ptr<const AgentConfig> config
@@ -55,47 +56,61 @@ public:
 	// Public API
 	// ============================
 
-	// 非同期実行（内部キューに積む）
+	// 非同期実行（キューに積む）
 	void RunAsync(const std::string& prompt);
 
-	// 実行停止要求（即時停止は保証しない）
+	// 停止要求
 	void Stop();
+	// ============================
+	// Context Utilities
+	// ============================
 
-	// 現在の状態取得
+	// context を初期状態に戻す
+	void ResetContext();
+
+
+	// 状態取得
 	State GetState() const noexcept{
 		return m_state.load(std::memory_order_acquire);
 	}
 
-	// 現在の出力取得（ポーリング用）
+	// 出力取得
 	std::string GetOutput() const;
 
 	// ============================
-	// Summary Agent
+	// Token Info
 	// ============================
 
-	// SummaryAgent を外部から注入
-	void SetSummaryAgent(std::shared_ptr<LLAMAAgent> agent);
+	// 現在使用中のトークン数
+	int GetTokenCount() const noexcept;
 
-	// 同期生成（SummaryAgent 専用）
-	std::string GenerateSync(const std::string& prompt);
+	// 最大コンテキストトークン数
+	int GetMaxTokenCount() const noexcept;
+
+	// 使用率（0.0f ～ 1.0f）
+	float GetTokenUsageRate() const noexcept;
+
 
 private:
+
+	void ResetContextUnlocked();
+
+	llama_context* CreateContext() const;
+	llama_sampler* CreateSampler() const;
+
 	// ============================
 	// Internal Thread
 	// ============================
 
-	// ワーカースレッド本体
 	void WorkerMain();
-
-	// 1 プロンプト分の推論処理
 	void RunPromptInternal(const std::string& prompt);
 
 	// ============================
 	// Model / Config
 	// ============================
 
-	std::shared_ptr<LLAMAModelData>   m_model;
-	std::shared_ptr<const AgentConfig> m_config;
+	std::shared_ptr<LLAMAModelData>     m_model;
+	std::shared_ptr<const AgentConfig>  m_config;
 
 	// ============================
 	// llama Runtime
@@ -129,34 +144,16 @@ private:
 	std::string m_output;
 
 	// ============================
-	// Context Utilities
+	// Summary
 	// ============================
 
-	// incomingTokens を考慮してコンテキストを維持
-	void EnsureContextFits(size_t incomingTokens);
-
-	// llama_context を初期状態に戻す
-	void ResetContext();
-
-	// pastTokens を文字列化
-	std::string DecodeTokensToString() const;
-
-	// ============================
-	// Summary Support
-	// ============================
-
-	// Context 溢れ時の要約 → 再構築
+	// Context 溢れ or prompt 過長時の要約
+	// 内部で一時 llama_context を生成し同期実行
 	void SummarizeAndReset();
 
-	// SummaryAgent 本体
-	std::shared_ptr<LLAMAAgent> m_summaryAgent;
-
-	// SummaryAgent 待機制御
-	mutable std::mutex m_summaryMutex;
-	std::condition_variable m_summaryCv;
-
-	// 要約済みシステムプロンプト
+	// 要約済みテキスト（次回プロンプトに注入）
 	std::string m_summaryText;
-	std::atomic<bool> m_isSummarizing{false};
 
+	// 再入防止フラグ
+	bool m_isSummarizing = false;
 };

@@ -53,10 +53,15 @@ public:
     );
 
     // ===== エージェント管理 =====
-    std::shared_ptr<LLAMAAgent> CreateAgent(
-        const std::string& modelPath,
-        const std::shared_ptr<const AgentConfig>& config
-    );
+	std::shared_ptr<LLAMAAgent> CreateAgent(
+		const std::string& modelPath,
+		const std::shared_ptr<const AgentConfig>& config
+	);
+
+	std::shared_ptr<LLAMAAgent> CreateAgent(
+		const std::shared_ptr<LLAMAModelData> model,
+		const std::shared_ptr<const AgentConfig>& config
+	);
 
     void DestroyAgent(const std::shared_ptr<LLAMAAgent>& agent);
 

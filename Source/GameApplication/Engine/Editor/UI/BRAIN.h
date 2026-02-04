@@ -100,9 +100,6 @@ private:
 	std::shared_ptr<AgentConfig>    m_agentConfig;
 	std::shared_ptr<LLAMAAgent>     m_mainAgent;
 
-	// 将来用（要約Agent）
-	std::shared_ptr<LLAMAAgent>     m_summaryAgent;
-
 	// -------------------------
 	// UI state
 	// -------------------------

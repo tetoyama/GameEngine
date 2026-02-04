@@ -95,6 +95,16 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 				aiColor4D color;
 				if(aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS){
 					materialData.BaseColor = {color.r, color.g, color.b, color.a};
+
+					if(pMaterial){
+						materialData.BaseColor.x *= pMaterial->Material.BaseColor.x;
+						materialData.BaseColor.y *= pMaterial->Material.BaseColor.y;
+						materialData.BaseColor.z *= pMaterial->Material.BaseColor.z;
+						materialData.BaseColor.w *= pMaterial->Material.BaseColor.w;
+
+
+
+					}
 				}
 
 				aiMaterial* material = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
