@@ -56,7 +56,8 @@ void BRAIN::Initialize(EditorService* editor){
 	// ---------------------------------
 	m_agentConfig = std::make_shared<AgentConfig>();
 	m_agentConfig->max_tokens = MAX_CONTEXT_TOKEN;
-	m_agentConfig->n_ctx = 128;
+	m_agentConfig->n_ctx = 8192;
+	//m_agentConfig->n_ctx = 256;
 	m_agentConfig->n_threads =
 		(std::max)(1u, std::thread::hardware_concurrency());
 
@@ -217,7 +218,8 @@ void BRAIN::WorkerLoop() {
 			m_chatLog.push_back({ ChatEntry::Role::Assistant, std::string() });
 			m_scrollToBottom = true;
 		}
-
+		while (m_mainAgent->GetState() != LLAMAAgent::State::Running) {
+		}
 		// ---------------------------
 		// 出力監視ループ（Running状態監視一本化）
 		// ---------------------------
@@ -239,6 +241,7 @@ void BRAIN::WorkerLoop() {
 
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		}
+		OutputDebugStringA(("BRAIN: LLM job completed. Output length: " + std::to_string(m_mainAgent->GetOutput().size()) + "\n" + m_mainAgent->GetOutput()).c_str());
 
 		m_isRunning.store(false);
 	}
