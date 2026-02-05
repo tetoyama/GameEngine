@@ -3512,6 +3512,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Effect\RenderableEffect.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\LightingPass\LightingPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PhysXDebug\PhysXDebugPass.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Service\DebugTools\debugSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Service\DebugTools\ImGuiSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\MenuBar.cpp" />
@@ -3550,7 +3551,6 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PlayerView\PlayerPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\RenderPassContext.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\ShadowMap\ShadowMapPass.cpp" />
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\C#ScriptSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderTarget\renderTarget.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Transform\transformSystem.cpp" />
@@ -3633,16 +3633,22 @@
     <None Include="Source\Shader\Material\MaterialDefine.hlsli" />
     <None Include="Source\Shader\Material\MaterialFunc.hlsli" />
     <None Include="Source\Shader\Material\PBRShader.hlsli" />
+    <None Include="Source\Shader\Material\PBRToonShader.hlsli" />
+    <None Include="Source\Shader\Material\ToonShader.hlsli" />
     <None Include="Source\Shader\Material\UnlitShader.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Source\Shader\AutoGen\DefferdRenderingPS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+    <FxCompile Include="Source\Shader\AutoGen\DeferredRenderingPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
     </FxCompile>
-    <FxCompile Include="Source\Shader\AutoGen\FowardRenderingPS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+    <FxCompile Include="Source\Shader\AutoGen\ForwardRenderingPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
     </FxCompile>
     <FxCompile Include="Source\Shader\commonVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>

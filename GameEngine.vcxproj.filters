@@ -2693,9 +2693,6 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Transform\transformSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderSystem.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="Source\GameApplication\Service\DebugTools\debugSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -3245,6 +3242,9 @@
     <ClCompile Include="Source\GameApplication\Engine\Editor\Analysis\AnalyzerManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderSystem.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\GameApplication\Backends\Assimp\color4.inl">
@@ -3284,12 +3284,14 @@
     <None Include="Asset\Shader\unlitColorVS.cso" />
     <None Include="Asset\Shader\pixelLightingBlinnPhongVS.cso" />
     <None Include="Source\GameApplication\Backends\yaml-cpp\contrib\yaml-cpp.natvis.md" />
-    <None Include="Source\Shader\Material\PBRShader.hlsli" />
-    <None Include="Source\Shader\Material\UnlitShader.hlsli" />
     <None Include="Source\Shader\Material\MaterialDefine.hlsli" />
     <None Include="Source\Shader\Material\MaterialFunc.hlsli" />
     <None Include="Source\Shader\Material\DeferredFunc.hlsli" />
     <None Include="Source\Shader\Material\FowardFunc.hlsli" />
+    <None Include="Source\Shader\Material\UnlitShader.hlsli" />
+    <None Include="Source\Shader\Material\PBRShader.hlsli" />
+    <None Include="Source\Shader\Material\ToonShader.hlsli" />
+    <None Include="Source\Shader\Material\PBRToonShader.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Shader\commonVS.hlsl" />
@@ -3309,9 +3311,9 @@
     <FxCompile Include="Source\Shader\shadowPS.hlsl" />
     <FxCompile Include="Source\Shader\GBufferPS.hlsl" />
     <FxCompile Include="Source\Shader\Compute\SkinningCS.hlsl" />
-    <FxCompile Include="Source\Shader\AutoGen\DefferdRenderingPS.hlsl" />
-    <FxCompile Include="Source\Shader\AutoGen\FowardRenderingPS.hlsl" />
     <FxCompile Include="Source\Shader\LightingVS.hlsl" />
+    <FxCompile Include="Source\Shader\AutoGen\ForwardRenderingPS.hlsl" />
+    <FxCompile Include="Source\Shader\AutoGen\DeferredRenderingPS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />

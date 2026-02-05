@@ -115,8 +115,8 @@ void RenderSystem::Initialize(){
 	auto m_FullScreenVS = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\PostEffectVS.cso");
 	auto m_FullScreenPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\PostEffectPS.cso");
 
-	DefferredPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DefferdRenderingPS.cso");
-	ForwardPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\FowardRenderingPS.cso");
+	DefferredPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DeferredRenderingPS.cso");
+	ForwardPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\ForwardRenderingPS.cso");
 
 #ifdef _EDITOR
 	ReCompilePixelShaders();
@@ -317,7 +317,7 @@ void RenderSystem::SystemSetting() {
 		if (ImGui::Button("Add Material")) {
 			// 新規追加（デフォルト）
 			ShaderMaterial def;
-			def.filePath = "NewMaterial.hlsli";
+			def.filePath = "NewShader.hlsli";
 			def.entryPoint = "ShadeMaterial_New";
 			config.ShaderMaterials.push_back(def);
 		}
@@ -565,17 +565,14 @@ void RenderSystem::ReCompilePixelShaders() {
 	// Deferred Rendering PS
 	// ============================================================
 	{
-		const std::filesystem::path outputPath =
-			shaderDir / "DeferredRenderingPS.hlsl";
-
+		const std::filesystem::path outputPath = shaderDir / "DeferredRenderingPS.hlsl";
 		std::ofstream ofs(outputPath, std::ios::trunc);
 		if (!ofs) {
 			OutputDebugStringA("Failed to create DeferredRenderingPS.hlsl\n");
 			return;
 		}
 
-		ofs <<
-			R"(#include "../commonDefine.h"
+		ofs << R"(#include "../commonDefine.h"
 #include "../common.hlsl"
 #include "../Material/MaterialDefine.hlsli"
 #include "../Material/DeferredFunc.hlsli"
@@ -587,45 +584,42 @@ void RenderSystem::ReCompilePixelShaders() {
 			ofs << "#include \"../Material/" << mat.filePath << "\"\n";
 		}
 
-		ofs <<
-			R"(
-
+		ofs << R"(
 float4 main(PS_IN In) : SV_Target
 {
     MaterialInput input = GetMaterialInput(In);
     float4 Result = float4(1, 0, 1, 1);
 
-    switch (input.materialID)
-    {
 )";
 
+		// [branch] if を使用してマテリアルごとに隔離生成
 		for (size_t i = 0; i < config.ShaderMaterials.size(); ++i) {
 			const auto& mat = config.ShaderMaterials[i];
-			ofs <<
-				"        case " << i << ":\n"
-				"            Result = " << mat.entryPoint << "(input);\n"
-				"            break;\n";
+			if (i == 0) {
+				ofs << "    [branch] if (input.materialID == " << i << ")\n";
+			} else {
+				ofs << "    else if (input.materialID == " << i << ")\n";
+			}
+			ofs << "    {\n"
+				"        Result = " << mat.entryPoint << "(input);\n"
+				"    }\n";
 		}
 
-		ofs <<
-			R"(        default:
-            break;
-    }
+		ofs << R"(    else { /* default */ }
 
     return Result;
 }
 )";
 		ofs.close();
 
-		auto newPS =
-			m_context->resource->Load<PixelShaderData>(
-				outputPath.string().c_str());
+		DefferredPS.reset();
+		m_context->resource->Unload<PixelShaderData>(outputPath.string().c_str());
+		auto newPS = m_context->resource->Load<PixelShaderData>(outputPath.string().c_str());
 
 		if (!newPS) {
 			OutputDebugStringA("DeferredRenderingPS compile failed\n");
 			return;
 		}
-
 		DefferredPS = newPS;
 	}
 
@@ -633,17 +627,14 @@ float4 main(PS_IN In) : SV_Target
 	// Forward Rendering PS
 	// ============================================================
 	{
-		const std::filesystem::path outputPath =
-			shaderDir / "ForwardRenderingPS.hlsl";
-
+		const std::filesystem::path outputPath = shaderDir / "ForwardRenderingPS.hlsl";
 		std::ofstream ofs(outputPath, std::ios::trunc);
 		if (!ofs) {
 			OutputDebugStringA("Failed to create ForwardRenderingPS.hlsl\n");
 			return;
 		}
 
-		ofs <<
-			R"(#include "../commonDefine.h"
+		ofs << R"(#include "../commonDefine.h"
 #include "../common.hlsl"
 #include "../Material/MaterialDefine.hlsli"
 #include "../Material/FowardFunc.hlsli"
@@ -655,30 +646,28 @@ float4 main(PS_IN In) : SV_Target
 			ofs << "#include \"../Material/" << mat.filePath << "\"\n";
 		}
 
-		ofs <<
-			R"(
-
+		ofs << R"(
 float4 main(PS_IN In) : SV_Target
 {
     MaterialInput input = GetMaterialInput(In);
     float4 Result = float4(1, 0, 1, 1);
 
-    switch (input.materialID)
-    {
 )";
 
+		// Forward側も同様に [branch] if で生成
 		for (size_t i = 0; i < config.ShaderMaterials.size(); ++i) {
 			const auto& mat = config.ShaderMaterials[i];
-			ofs <<
-				"        case " << i << ":\n"
-				"            Result = " << mat.entryPoint << "(input);\n"
-				"            break;\n";
+			if (i == 0) {
+				ofs << "    [branch] if (input.materialID == " << i << ")\n";
+			} else {
+				ofs << "    else if (input.materialID == " << i << ")\n";
+			}
+			ofs << "    {\n"
+				"        Result = " << mat.entryPoint << "(input);\n"
+				"    }\n";
 		}
 
-		ofs <<
-			R"(        default:
-            break;
-    }
+		ofs << R"(    else { /* default */ }
 
     if (Result.a <= ALPHA_CLIP_THRESHOLD)
     {
@@ -690,19 +679,17 @@ float4 main(PS_IN In) : SV_Target
 )";
 		ofs.close();
 
-		auto newPS =
-			m_context->resource->Load<PixelShaderData>(
-				outputPath.string().c_str());
+		ForwardPS.reset();
+		m_context->resource->Unload<PixelShaderData>(outputPath.string().c_str());
+		auto newPS = m_context->resource->Load<PixelShaderData>(outputPath.string().c_str());
 
 		if (!newPS) {
 			OutputDebugStringA("ForwardRenderingPS compile failed\n");
 			return;
 		}
-
 		ForwardPS = newPS;
 	}
 }
-
 
 
 void RenderSystem::EditorView(){
