@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <mutex>
 
 #include "Backends/myVector2.h"
 #include "Backends/myVector3.h"
@@ -78,6 +79,15 @@ public:
 	true, true, true, true, true, true, true,
 	};
 
+	void ReCompilePixelShaders();
+
+	PixelShaderData* GetDefferredPS() {
+		return DefferredPS.get();
+	}
+	PixelShaderData* GetForwardPS() {
+		return ForwardPS.get();
+	}
+
 private:
 
 	const CameraEntityData FindCameraEntity();
@@ -98,4 +108,7 @@ private:
 	std::shared_ptr<TextureData> PauseButtonTexture;
 	std::shared_ptr<TextureData> StopButtonTexture;
 	std::shared_ptr<TextureData> StepButtonTexture;
+
+	std::shared_ptr<PixelShaderData> DefferredPS;
+	std::shared_ptr<PixelShaderData> ForwardPS;
 };

@@ -405,7 +405,7 @@ void BRAIN::Draw(const EditorDrawContext){
 
 		ImGui::Text("Token: %d / %d", used, max);
 
-		// 使用率バー（おすすめ）
+		// 使用率バー
 		float rate = m_mainAgent->GetTokenUsageRate();
 		ImGui::ProgressBar(
 			rate,

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <queue>
+#include <thread>
 
 #include <DirectXMath.h>
 
@@ -71,6 +72,9 @@
 #include <Editor/UI/ViewWindow.h>
 #include "Renderable/Effect/RenderableEffect.h"
 
+#include "Service/Config/configSystem.h"
+#include "Service/Config/appConfig.h"
+
 void RenderSystem::Initialize(){
 	m_context->debug->LOG_DEBUG("RenderSystemを初期化中...");
 
@@ -111,6 +115,13 @@ void RenderSystem::Initialize(){
 	auto m_FullScreenVS = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\PostEffectVS.cso");
 	auto m_FullScreenPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\PostEffectPS.cso");
 
+	DefferredPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DefferdRenderingPS.cso");
+	ForwardPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\FowardRenderingPS.cso");
+
+#ifdef _EDITOR
+	ReCompilePixelShaders();
+#endif // _EDITOR
+
 	copyShader = new PostEffectShader();
 	copyShader->m_VS = m_FullScreenVS->m_VertexShader; // フルスクリーンVS
 	copyShader->m_PS = m_FullScreenPS->m_PixelShader; // 単純に SRV → out を返す PS
@@ -136,10 +147,12 @@ void RenderSystem::Finalize(){
 		renderable->Finalize();
 	}
 	m_renderables.clear();
+
+	m_context->debug->LOG_DEBUG("RenderSystemの終了処理が完了しました。");
 }
 
 void RenderSystem::Update(float deltaTime) {
-
+	
 	// コンポーネントを持つエンティティの検索
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
@@ -294,6 +307,117 @@ void RenderSystem::SystemSetting() {
 		}
 		ImGui::TreePop();
 	}
+
+	// appConfig の参照
+	APPCONFIG& config = m_context->config->appConfig;
+
+	// Safety checks
+	if (config.ShaderMaterials.empty()) {
+		ImGui::TextDisabled("No shader materials configured.");
+		if (ImGui::Button("Add Material")) {
+			// 新規追加（デフォルト）
+			ShaderMaterial def;
+			def.filePath = "NewMaterial.hlsli";
+			def.entryPoint = "ShadeMaterial_New";
+			config.ShaderMaterials.push_back(def);
+		}
+		return;
+	}
+
+	// 左側：リスト、右側：編集パネル
+	ImGui::Columns(2, "MaterialColumns", true);
+	ImGui::BeginChild("MaterialList", ImVec2(0, 0), false);
+
+	static int selectedIndex = 0;
+	for (int i = 0; i < (int)config.ShaderMaterials.size(); ++i) {
+		const auto& mat = config.ShaderMaterials[i];
+		char label[128];
+		snprintf(label, sizeof(label), "%02d: %s", i, mat.filePath.c_str());
+		if (ImGui::Selectable(label, selectedIndex == i)) {
+			selectedIndex = i;
+		}
+	}
+
+	if (ImGui::Button("Add")) {
+		ShaderMaterial def;
+		def.filePath = "NewMaterial.hlsli";
+		def.entryPoint = "ShadeMaterial_New";
+		config.ShaderMaterials.push_back(def);
+		selectedIndex = (int)config.ShaderMaterials.size() - 1;
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Remove") && selectedIndex >= 0 && selectedIndex < (int)config.ShaderMaterials.size()) {
+		config.ShaderMaterials.erase(config.ShaderMaterials.begin() + selectedIndex);
+		selectedIndex = std::clamp(selectedIndex - 1, 0, (int)config.ShaderMaterials.size() - 1);
+	}
+
+	ImGui::SameLine();
+	if (ImGui::Button("Duplicate") && selectedIndex >= 0 && selectedIndex < (int)config.ShaderMaterials.size()) {
+		config.ShaderMaterials.push_back(config.ShaderMaterials[selectedIndex]);
+	}
+
+	// Move up / down
+	ImGui::SameLine();
+	if (ImGui::Button("Up") && selectedIndex > 0) {
+		std::swap(config.ShaderMaterials[selectedIndex], config.ShaderMaterials[selectedIndex - 1]);
+		--selectedIndex;
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Down") && selectedIndex + 1 < (int)config.ShaderMaterials.size()) {
+		std::swap(config.ShaderMaterials[selectedIndex], config.ShaderMaterials[selectedIndex + 1]);
+		++selectedIndex;
+	}
+
+	ImGui::EndChild();
+	ImGui::NextColumn();
+
+	// 右側：選択中の編集
+	ImGui::BeginChild("MaterialEditor", ImVec2(0, 0), false);
+	if (selectedIndex >= 0 && selectedIndex < (int)config.ShaderMaterials.size()) {
+		auto& mat = config.ShaderMaterials[selectedIndex];
+
+		ImGui::Text("Index: %d", selectedIndex);
+
+		// filePath 編集（単純なバッファ方式）
+		{
+			char buf[512];
+			strncpy(buf, mat.filePath.c_str(), sizeof(buf));
+			buf[sizeof(buf) - 1] = '\0';
+			if (ImGui::InputText("File Path", buf, sizeof(buf))) {
+				mat.filePath.assign(buf);
+			}
+		}
+
+		// entryPoint 編集
+		{
+			char buf[128];
+			strncpy(buf, mat.entryPoint.c_str(), sizeof(buf));
+			buf[sizeof(buf) - 1] = '\0';
+			if (ImGui::InputText("Entry Point", buf, sizeof(buf))) {
+				mat.entryPoint.assign(buf);
+			}
+		}
+
+		ImGui::Separator();
+
+		// アクション
+		if (ImGui::Button("Save Config")) {
+			// TODO: 実際の Config の保存関数を呼んでください
+			// 例: m_context->config->SaveAppConfig();
+			m_context->config->SaveConfig(CONFIG_PATH);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Recompile")) {
+			ReCompilePixelShaders();
+		}
+
+	} else {
+		ImGui::Text("No selection");
+	}
+
+	ImGui::EndChild();
+
+	ImGui::Columns(1);
 }
 
 void RenderSystem::DrawRenderLayerToggleUI() {
@@ -429,6 +553,158 @@ void RenderSystem::PlayerView(){
 		1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView()
 	);
 }
+
+void RenderSystem::ReCompilePixelShaders() {
+	const auto& config = m_context->config->appConfig;
+
+	// Shader/AutoGen
+	const std::filesystem::path shaderDir = config.ShaderPath;
+	std::filesystem::create_directories(shaderDir);
+
+	// ============================================================
+	// Deferred Rendering PS
+	// ============================================================
+	{
+		const std::filesystem::path outputPath =
+			shaderDir / "DeferredRenderingPS.hlsl";
+
+		std::ofstream ofs(outputPath, std::ios::trunc);
+		if (!ofs) {
+			OutputDebugStringA("Failed to create DeferredRenderingPS.hlsl\n");
+			return;
+		}
+
+		ofs <<
+			R"(#include "../commonDefine.h"
+#include "../common.hlsl"
+#include "../Material/MaterialDefine.hlsli"
+#include "../Material/DeferredFunc.hlsli"
+#include "../Material/MaterialFunc.hlsli"
+
+)";
+
+		for (const auto& mat : config.ShaderMaterials) {
+			ofs << "#include \"../Material/" << mat.filePath << "\"\n";
+		}
+
+		ofs <<
+			R"(
+
+float4 main(PS_IN In) : SV_Target
+{
+    MaterialInput input = GetMaterialInput(In);
+    float4 Result = float4(1, 0, 1, 1);
+
+    switch (input.materialID)
+    {
+)";
+
+		for (size_t i = 0; i < config.ShaderMaterials.size(); ++i) {
+			const auto& mat = config.ShaderMaterials[i];
+			ofs <<
+				"        case " << i << ":\n"
+				"            Result = " << mat.entryPoint << "(input);\n"
+				"            break;\n";
+		}
+
+		ofs <<
+			R"(        default:
+            break;
+    }
+
+    return Result;
+}
+)";
+		ofs.close();
+
+		auto newPS =
+			m_context->resource->Load<PixelShaderData>(
+				outputPath.string().c_str());
+
+		if (!newPS) {
+			OutputDebugStringA("DeferredRenderingPS compile failed\n");
+			return;
+		}
+
+		DefferredPS = newPS;
+	}
+
+	// ============================================================
+	// Forward Rendering PS
+	// ============================================================
+	{
+		const std::filesystem::path outputPath =
+			shaderDir / "ForwardRenderingPS.hlsl";
+
+		std::ofstream ofs(outputPath, std::ios::trunc);
+		if (!ofs) {
+			OutputDebugStringA("Failed to create ForwardRenderingPS.hlsl\n");
+			return;
+		}
+
+		ofs <<
+			R"(#include "../commonDefine.h"
+#include "../common.hlsl"
+#include "../Material/MaterialDefine.hlsli"
+#include "../Material/FowardFunc.hlsli"
+#include "../Material/MaterialFunc.hlsli"
+
+)";
+
+		for (const auto& mat : config.ShaderMaterials) {
+			ofs << "#include \"../Material/" << mat.filePath << "\"\n";
+		}
+
+		ofs <<
+			R"(
+
+float4 main(PS_IN In) : SV_Target
+{
+    MaterialInput input = GetMaterialInput(In);
+    float4 Result = float4(1, 0, 1, 1);
+
+    switch (input.materialID)
+    {
+)";
+
+		for (size_t i = 0; i < config.ShaderMaterials.size(); ++i) {
+			const auto& mat = config.ShaderMaterials[i];
+			ofs <<
+				"        case " << i << ":\n"
+				"            Result = " << mat.entryPoint << "(input);\n"
+				"            break;\n";
+		}
+
+		ofs <<
+			R"(        default:
+            break;
+    }
+
+    if (Result.a <= ALPHA_CLIP_THRESHOLD)
+    {
+        discard;
+    }
+
+    return Result;
+}
+)";
+		ofs.close();
+
+		auto newPS =
+			m_context->resource->Load<PixelShaderData>(
+				outputPath.string().c_str());
+
+		if (!newPS) {
+			OutputDebugStringA("ForwardRenderingPS compile failed\n");
+			return;
+		}
+
+		ForwardPS = newPS;
+	}
+}
+
+
+
 void RenderSystem::EditorView(){
 
 	GraphicsContext* graphicsContext = m_context->graphics;

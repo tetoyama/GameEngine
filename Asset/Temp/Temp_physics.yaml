@@ -389,7 +389,7 @@ Entities:
             y: 1
             z: 1
             w: 1
-          Metallic: 1
+          Metallic: 0
           Roughness: 0
           AO: 0
           EmissiveColor:
@@ -418,20 +418,20 @@ Entities:
           - -0.230363727
           - 0.971344054
         Scale:
-          x: 1
-          y: 1
-          z: 1
+          x: 3
+          y: 3
+          z: 3
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
         autoMass: true
         Mass: 1
         colliders:
-          - type: 0
+          - type: 1
             size: [1, 1, 1]
             offset: [0, 0, 0]
             rotationOffset: [0, 0, 0]
-            radius: 0.5
+            radius: 0.200000003
             height: 1
             staticFriction: 0
             dynamicFriction: 2
@@ -445,8 +445,8 @@ Entities:
         Material:
           BaseColor:
             x: 1
-            y: 1
-            z: 1
+            y: 0
+            z: 0
             w: 1
           Metallic: 1
           Roughness: 0.5
@@ -459,7 +459,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
       - Component: ModelRendererComponent
-        FilePath: Asset/Model\cube.obj
+        FilePath: Asset/Model\ball.fbx
         isBlender: false
         AnimationTime: 86.696022
   - Entity: 8
@@ -503,12 +503,12 @@ Entities:
         ShaderID: 1
         Material:
           BaseColor:
-            x: 1
+            x: 0
             y: 1
-            z: 1
+            z: 0
             w: 1
-          Metallic: 0
-          Roughness: 0
+          Metallic: 1
+          Roughness: 0.25
           AO: 0
           EmissiveColor:
             x: 0
@@ -562,12 +562,12 @@ Entities:
         ShaderID: 1
         Material:
           BaseColor:
-            x: 1
-            y: 1
+            x: 0
+            y: 0
             z: 1
-            w: 1
-          Metallic: 1
-          Roughness: 0.699999988
+            w: 0.600000024
+          Metallic: 0
+          Roughness: 0
           AO: 0
           EmissiveColor:
             x: 0
@@ -576,11 +576,6 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
-      - Component: TextureComponent
-        FilePath: Asset/Texture\water.png
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset/Model\ball.fbx
         isBlender: false

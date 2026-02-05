@@ -10,12 +10,23 @@
 #include "UI/SystemSetting.h"
 #include "UI/BRAIN.h"
 
+#include "Analysis/AnalyzerManager.h"
+
 void EditorService::Initialize(EditorServiceContext context) {
 
 	debugLogSystem = context.debugLogSystem;
 	resourceService = context.resourceService;
 	sceneManager = context.sceneManager;
 	llamaService = context.llamaService;
+
+	analyzer = new AnalyzerManager();
+	if (analyzer) {
+
+		AnalyzerManagerContext ctx;
+		ctx.debug = debugLogSystem;
+
+		analyzer->Initialize(ctx);
+	}
 
 	UIs.clear();
 	UIs.push_back(new MenuBar());
@@ -40,6 +51,13 @@ void EditorService::Draw(EditorDrawContext ctx) {
 }
 
 void EditorService::Shutdown() {
+
+	if (analyzer) {
+		analyzer->Finalize();
+		delete analyzer;
+		analyzer = nullptr;
+	}
+
 	for (auto ui : UIs) {
 		ui->Finalize();
 		delete ui;

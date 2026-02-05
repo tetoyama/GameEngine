@@ -2616,7 +2616,10 @@
     <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\token.h" />
     <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\traits.h" />
     <ClInclude Include="Source\GameApplication\Backends\yaml-cpp\yaml.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Editor\Analysis\AnalyzerManager.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Editor\Analysis\SourceAnalyzer.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\editorService.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Editor\InterFace\IAnalyzer.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\InterFace\IEditorUI.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\UI\AssetsBrowser.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\UI\BRAIN.h" />
@@ -3494,6 +3497,7 @@
     <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\singledocparser.cpp" />
     <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\stream.cpp" />
     <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\tag.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Editor\Analysis\AnalyzerManager.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\editorService.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\AssetsBrowser.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\BRAIN.cpp" />

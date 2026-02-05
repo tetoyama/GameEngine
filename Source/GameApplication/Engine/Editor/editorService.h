@@ -11,6 +11,8 @@ class DebugLogSystem;
 class SceneManager;
 class LLAMAService;
 
+class AnalyzerManager;
+
 struct SceneManagerContext;
 
 struct EditorServiceContext {
@@ -43,6 +45,8 @@ public:
 	ResourceService* resourceService = nullptr;
 	SceneManager* sceneManager = nullptr;
 	LLAMAService* llamaService = nullptr;
+
+	AnalyzerManager* analyzer = nullptr;
 
 private:
 

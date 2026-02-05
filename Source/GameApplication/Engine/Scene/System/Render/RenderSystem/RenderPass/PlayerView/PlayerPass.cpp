@@ -46,7 +46,6 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	m_context = context;
 
 	m_RenderableVertexShader= m_context->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-	m_RenderablePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\FowardRenderingPS.cso");
 
 	shadowMapPass = new ShadowMapPass();
 	shadowMapPass->Initialize(
@@ -85,7 +84,6 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 
 void PlayerPass::Finalize() {
 
-	m_RenderablePixelShader.reset();
 	m_RenderableVertexShader.reset();
 
 	lightingPass->Finalize();
@@ -145,7 +143,8 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	
 	deviceContext->VSSetShader(m_RenderableVertexShader->m_VertexShader.Get(), nullptr, 0);
 	deviceContext->IASetInputLayout(m_RenderableVertexShader->m_VertexLayout.Get());
-	deviceContext->PSSetShader(m_RenderablePixelShader->m_PixelShader.Get(), nullptr, 0);
+	PixelShaderData* ps = m_renderSystem->GetForwardPS();
+	deviceContext->PSSetShader(ps ? ps->m_PixelShader.Get() : nullptr, nullptr, 0);
 
 	D3D11_VIEWPORT vp = {};
 	vp.Width = ctx.screenSize.x;

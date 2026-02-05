@@ -34,6 +34,19 @@ GameApplication
    │       ├── PixelShaderData												【実装済み】
    │       ├── AudioData													【実装済み】
    │       └── EffectData													【実装済み】
+   ├── LLAMAService
+   │   └── LLAMAAgent														【実装済み】
+   ├── EditorService
+   │   └── IEditorUI														【実装済み】
+   │       ├── AssetsBrowser												【実装済み】
+   │       ├── DebugLogWindow												【実装済み】
+   │       ├── TextureData													【実装済み】
+   │       ├── Hierarchy													【実装済み】
+   │       ├── Inspector													【実装済み】
+   │       ├── MenuBar														【実装済み】
+   │       ├── PerformanceMonitor											【実装済み】
+   │       ├── SystemSetting												【実装済み】
+   │       └── ViewWindow													【実装済み】
    ├── DebugTools
    │   ├── DebugSystem														【実装済み】
    │   └── ImGuiService（Dear ImGui）										【実装済み】

@@ -22,11 +22,8 @@ public:
 	void Finalize() override;
 	void Execute(const RenderPassContext& ctx) override;
 
-	void ReloadShader();
-
 	void SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shadowMapPass, GraphicsContext* gc);
 
-	std::shared_ptr<PixelShaderData> m_LightingPixelShader;
 	std::shared_ptr<VertexShaderData> m_LightingVertexShader;
 
 	ID3D11SamplerState* m_LinearSampler;

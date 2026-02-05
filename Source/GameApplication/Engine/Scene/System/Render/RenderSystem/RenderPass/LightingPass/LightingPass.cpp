@@ -40,18 +40,17 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 	desc.MaxLOD = D3D11_FLOAT32_MAX;
 	m_context->graphics->GetDevice()->CreateSamplerState(&desc, &m_LinearSampler);
 
-	ReloadShader();
-
 	Vector2 size = Vector2((float)context->graphics->m_width, (float)context->graphics->m_height);
 
 	// ----- RenderTargets -----
 	pRenderTarget = new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR_UNORM);
+
+	m_LightingVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\LightingVS.cso");
 }
 
 void LightingPass::Finalize() {
 
 	m_LightingVertexShader.reset();
-	m_LightingPixelShader.reset();
 
 	delete pRenderTarget;
 	pRenderTarget = nullptr;
@@ -98,8 +97,8 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 
 	dc->VSSetShader(m_LightingVertexShader->m_VertexShader.Get(), nullptr, 0);
 	dc->IASetInputLayout(m_LightingVertexShader->m_VertexLayout.Get());
-	dc->PSSetShader(m_LightingPixelShader->m_PixelShader.Get(), nullptr, 0);
-
+	PixelShaderData* ps = m_renderSystem->GetDefferredPS();
+	dc->PSSetShader(ps ? ps->m_PixelShader.Get() : nullptr, nullptr, 0);
 	D3D11_VIEWPORT vp = {};
 	vp.Width = ctx.screenSize.x;
 	vp.Height = ctx.screenSize.y;
@@ -141,7 +140,3 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 	}
 }
 
-void LightingPass::ReloadShader(){
-	m_LightingVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\LightingVS.cso");
-	m_LightingPixelShader = m_context->resource->Load<PixelShaderData>("Source\\Shader\\AutoGen\\DefferdRenderingPS.hlsl");
-}

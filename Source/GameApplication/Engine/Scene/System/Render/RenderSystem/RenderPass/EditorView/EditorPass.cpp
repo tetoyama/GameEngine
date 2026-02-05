@@ -48,7 +48,6 @@ void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	m_context = context;
 
 	m_RenderableVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-	m_RenderablePixelShader = m_context->resource->Load<PixelShaderData>("Source\\Shader\\AutoGen\\FowardRenderingPS.hlsl");
 
 	renderables.clear();
 	renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
@@ -81,7 +80,6 @@ void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 
 void EditorPass::Finalize() {
 
-	m_RenderablePixelShader.reset();
 	m_RenderableVertexShader.reset();
 
 	shadowMapPass->Finalize();
@@ -137,7 +135,8 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 	m_context->imgui->SetViewProjectionMatrix(ctx.viewMatrix, ctx.projectionMatrix);
 
 	// シェーダーセット
-	deviceContext->PSSetShader(m_RenderablePixelShader->m_PixelShader.Get(), nullptr, 0);
+	PixelShaderData* ps = m_renderSystem->GetForwardPS();
+	deviceContext->PSSetShader(ps ? ps->m_PixelShader.Get() : nullptr, nullptr, 0);
 
 	for(int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++){
 

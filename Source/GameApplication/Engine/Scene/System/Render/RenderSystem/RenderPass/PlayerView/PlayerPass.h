@@ -23,7 +23,6 @@ public:
 	std::vector<IRenderable*> renderables;
 	RenderTarget* editorRenderTarget = nullptr;
 
-	std::shared_ptr<PixelShaderData> m_RenderablePixelShader;
 	std::shared_ptr<VertexShaderData> m_RenderableVertexShader;
 
 	ID3D11ShaderResourceView* result = nullptr;
