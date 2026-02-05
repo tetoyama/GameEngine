@@ -57,10 +57,8 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
 
     float3 N = normalize(input.normal);
     float3 V = normalize(CameraPosition.xyz - input.worldPos);
-
     float roughness = saturate(input.Roughness);
     float metallic = saturate(input.Metallic);
-
     float3 F0 = lerp(float3(0.04, 0.04, 0.04), float3(1.0, 1.0, 1.0), metallic);
 
     int shadowMapNum = 0;
@@ -75,9 +73,9 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         float3 L;
         float attenuation = 1.0;
 
+        // --- ライト方向と減衰の計算 ---
         if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
         {
-          // 平行光
             L = normalize(-light.Direction.xyz);
         }
         else
@@ -85,61 +83,50 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
             float3 toL = light.Position.xyz - input.worldPos;
             float dist = length(toL);
             L = toL / max(dist, 0.001);
-
-             // 距離減衰（POINT / SPOT 共通）
-            float rangeAtten = saturate(1.0 - dist / max(light.Param.x, 0.001));
-            attenuation = rangeAtten;
+            attenuation = saturate(1.0 - dist / max(light.Param.x, 0.001));
 
             if (light.LightType == LIGHT_TYPE_SPOT)
             {
-                // スポット方向（ライトの forward）
                 float3 spotDir = normalize(-light.Direction.xyz);
-
-                // 角度判定
                 float cosTheta = dot(L, spotDir);
-
-                // inner / outer（度 → cos）
                 float innerCos = cos(radians(light.Param.y));
                 float outerCos = cos(radians(light.Param.z));
-
-                // 滑らかな角度減衰
-                float spotAtten =
-                    saturate((cosTheta - outerCos) / max(innerCos - outerCos, 0.001));
-
-                attenuation *= spotAtten;
+                attenuation *= saturate((cosTheta - outerCos) / max(innerCos - outerCos, 0.001));
             }
         }
-
-
-
-        float ambientStrength =
-            saturate(max(light.Ambient.r, max(light.Ambient.g, light.Ambient.b)));
 
         float NdotL = saturate(dot(N, L));
         float NdotV = saturate(dot(N, V));
 
-
+        // --- シャドウマップ計算 ---
         float shadow = 1.0;
         if (light.CastShadow)
+        {
             shadow = ShadowFactor(input.worldPos, light, shadowMapNum++, shadowParam);
+        }
 
-        float shade = NdotL * shadow + ambientStrength * (1.0 - NdotL * shadow);
+        // ★【修正ポイント】影を真っ黒にしないための処理
+        // shadowが0になっても、0.1の明るさを保証する。
+        // これにより、影の中にも「弱い光」が残り、Toonシェーダー側で「影色」として描画されます。
+        // (スペキュラ用には元のshadowを使うので、変数を分けます)
+        float toonShadow = lerp(0.1, 1.0, shadow);
 
-        float3 diffuse =
-            light.Diffuse.rgb * attenuation * shade;
+        // --- Diffuse計算 ---
+        // 修正した toonShadow を使うことで、真っ黒回避
+        float3 diffuse = light.Diffuse.rgb * attenuation * NdotL * toonShadow;
 
+        // --- Specular計算 ---
+        // スペキュラは影の中で光ってほしくないので、元の shadow (0になる) を使う
         float3 H = normalize(V + L);
         float NdotH = saturate(dot(N, H));
-
         float3 F = FresnelSchlick(saturate(dot(V, H)), F0);
         float G = G_Smith(N, V, L, roughness);
         float D = D_GTR2(NdotH, roughness);
 
-        float3 specular =
-            (D * G * F) / max(4.0 * NdotL * NdotV, 0.001)
-            * attenuation * shadow
-            * (1.0 - ambientStrength);
+        float3 specular = (D * G * F) / max(4.0 * NdotL * NdotV, 0.001)
+                          * attenuation * shadow;
 
+        // POINTライト等の補正
         if (light.LightType == LIGHT_TYPE_POINT && light.CastShadow)
         {
             diffuse /= 6.0f;
@@ -147,7 +134,6 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
             light.Ambient.rgb /= 6.0f;
         }
 
-        
         result.diffuse += diffuse;
         result.specular += specular;
         result.ambient += light.Ambient.rgb;
@@ -155,6 +141,4 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
 
     return result;
 }
-
-
 #endif

@@ -41,8 +41,7 @@ float4 ShadeMaterial_PBRToon(MaterialInput materialInput)
 
     // 最終カラー計算
     float3 finalColor = (lighting.diffuse * toonDiff + lighting.ambient) * surfaceColor
-                        + (lighting.specular * toonSpec)
-                        + rimLight; // リムライトを最後に加算
+                        + (lighting.specular * toonSpec);
 
     return float4(saturate(finalColor), materialInput.baseColor.a);
 }

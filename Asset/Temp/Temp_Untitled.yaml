@@ -37,7 +37,7 @@ Entities:
             lockRotY: false
             lockRotZ: false
       - Component: MaterialComponent
-        ShaderID: 1
+        ShaderID: 3
         Material:
           BaseColor:
             x: 1
@@ -237,12 +237,12 @@ Entities:
             lockRotY: true
             lockRotZ: true
       - Component: MaterialComponent
-        ShaderID: 1
+        ShaderID: 4
         Material:
           BaseColor:
             x: 1
-            y: 1
-            z: 1
+            y: 0
+            z: 0
             w: 1
           Metallic: 0
           Roughness: 0
@@ -344,3 +344,44 @@ Entities:
         rotateSpeed: 1.5
         minPitch: 0
         maxPitch: 0.785398185
+  - Entity: 6
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 15.2799997
+          y: 15.2800016
+          z: 15.2800016
+        Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 3
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+      - Component: ModelRendererComponent
+        FilePath: Asset/Model\ball.fbx
+        isBlender: false
+        AnimationTime: 0

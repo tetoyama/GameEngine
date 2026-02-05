@@ -3634,6 +3634,7 @@
     <None Include="Source\Shader\Material\MaterialFunc.hlsli" />
     <None Include="Source\Shader\Material\PBRShader.hlsli" />
     <None Include="Source\Shader\Material\PBRToonShader.hlsli" />
+    <None Include="Source\Shader\Material\RimToonShader.hlsli" />
     <None Include="Source\Shader\Material\ToonShader.hlsli" />
     <None Include="Source\Shader\Material\UnlitShader.hlsli" />
   </ItemGroup>

@@ -2,7 +2,7 @@
 #include "MaterialFunc.hlsli"
 #endif
 
-float4 ShadeMaterial_Toon(MaterialInput materialInput)
+float4 ShadeMaterial_RimToon(MaterialInput materialInput)
 {
     // --- 1. ライティング基礎値 ---
     ShadowPCFParams pcf;
@@ -37,6 +37,23 @@ float4 ShadeMaterial_Toon(MaterialInput materialInput)
     float toonSpec = smoothstep(0.45, 0.55, specIntensity);
     float3 finalSpecular = lighting.specular * toonSpec * (materialInput.baseColor.rgb + 0.5);
 
+    // --- 【変更】常時リムライト計算 ---
+    float3 N = normalize(materialInput.normal);
+    float3 V = normalize(materialInput.viewDir);
+    
+    // 1. 基本のフチ（Fresnel）
+    float rimTerm = 1.0 - saturate(dot(N, V));
+
+    // 2. リムの太さ調整（逆光判定を削除し、純粋な角度のみで計算）
+    // 数値を大きくする(3.0など)と細く鋭くなり、小さくする(2.0など)と太く柔らかくなります
+    float rimWeight = pow(rimTerm, 3.0);
+
+    // 輪郭をクッキリさせる（しきい値でパキッと切る）
+    float rimLogic = smoothstep(0.1, 0.15, rimWeight);
+
+    // 色を決定（強さは 3.0倍 くらいが常時表示には丁度いいです）
+    float3 rimColor = saturate(materialInput.baseColor.rgb + 0.8) * 3.0 * rimLogic;
+
     // --- 5. カラー合成 ---
     float3 baseColor = materialInput.baseColor.rgb;
     float3 shadowColor = baseColor * float3(0.8, 0.85, 0.95);
@@ -47,6 +64,9 @@ float4 ShadeMaterial_Toon(MaterialInput materialInput)
 
     // 合成
     float3 finalColor = (lighting.diffuse * toonDiff + minAmbient) * surfaceColor + finalSpecular;
+
+    // リムライトを加算（常にフチが光る）
+    finalColor += rimColor;
 
     return float4(saturate(finalColor), materialInput.baseColor.a);
 }

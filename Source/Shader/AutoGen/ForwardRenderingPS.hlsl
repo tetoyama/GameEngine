@@ -7,6 +7,8 @@
 #include "../Material/UnlitShader.hlsli"
 #include "../Material/PBRShader.hlsli"
 #include "../Material/PBRToonShader.hlsli"
+#include "../Material/ToonShader.hlsli"
+#include "../Material/RimToonShader.hlsli"
 
 float4 main(PS_IN In) : SV_Target
 {
@@ -24,6 +26,14 @@ float4 main(PS_IN In) : SV_Target
     else if (input.materialID == 2)
     {
         Result = ShadeMaterial_PBRToon(input);
+    }
+    else if (input.materialID == 3)
+    {
+        Result = ShadeMaterial_Toon(input);
+    }
+    else if (input.materialID == 4)
+    {
+        Result = ShadeMaterial_RimToon(input);
     }
     else { /* default */ }
 

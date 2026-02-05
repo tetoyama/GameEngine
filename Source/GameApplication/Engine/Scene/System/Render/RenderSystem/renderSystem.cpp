@@ -119,7 +119,7 @@ void RenderSystem::Initialize(){
 	ForwardPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\ForwardRenderingPS.cso");
 
 #ifdef _EDITOR
-	ReCompilePixelShaders();
+	//ReCompilePixelShaders();
 #endif // _EDITOR
 
 	copyShader = new PostEffectShader();

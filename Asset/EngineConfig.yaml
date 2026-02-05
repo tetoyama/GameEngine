@@ -6,6 +6,8 @@ ShaderMaterial:
   UnlitShader.hlsli: ShadeMaterial_Unlit
   PBRShader.hlsli: ShadeMaterial_PBR
   PBRToonShader.hlsli: ShadeMaterial_PBRToon
+  ToonShader.hlsli: ShadeMaterial_Toon
+  RimToonShader.hlsli: ShadeMaterial_RimToon
 FullScreen: false
 Width: 1500
 Height: 800

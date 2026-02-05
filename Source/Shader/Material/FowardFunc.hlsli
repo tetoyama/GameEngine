@@ -52,7 +52,9 @@ MaterialInput GetMaterialInput(PS_IN In)
     input.materialID = ShaderID;
     input.objectID = ObjectID;
     input.sceneID = SceneID;
-
+    
+    BaseColorTex.GetDimensions(input.screenSize.x, input.screenSize.y);
+    
     return input;
 }
 
@@ -62,10 +64,6 @@ float ShadowFactor(
     int lightIndex,
     ShadowPCFParams pcf)
 {
-    if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
-    {
-    }
-    
     // ---- Light Space ----
     float4 sp = mul(float4(worldPos, 1.0), light.LightView);
     sp = mul(sp, light.LightProjection);
