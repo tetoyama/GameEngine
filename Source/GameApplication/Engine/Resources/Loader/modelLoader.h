@@ -389,18 +389,20 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 	}
 	return model;
 }
-
 template<>
-inline void ResourceLoader<ModelData>::SetupLoadFunc(void* contextPtr){
+inline void ResourceLoader<ModelData>::SetupLoadFunc(void* contextPtr) {
 	OutputDebugStringA("SetupLoadFunc ModelData called\n");
 	auto context = static_cast<GraphicsContext*>(contextPtr);
-	SetLoadFunction([=](const std::string& path, void* argsPtr) -> std::shared_ptr<ModelData>{
-		using ArgsTuple = std::tuple<std::decay_t<bool>>;
+
+	SetLoadFunction([=](const std::string& path, std::shared_ptr<void> argsPtr) -> std::shared_ptr<ModelData> {
 		bool isBlender = false;
-		if(argsPtr){
-			auto tup = static_cast<ArgsTuple*>(argsPtr);
+
+		if (argsPtr) {
+			using ArgsTuple = std::tuple<std::decay_t<bool>>;
+			auto tup = static_cast<ArgsTuple*>(argsPtr.get());
 			isBlender = std::get<0>(*tup);
 		}
+
 		return LoadModelFromFile(path, isBlender, context);
 	});
 }

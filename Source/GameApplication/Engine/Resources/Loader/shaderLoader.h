@@ -100,7 +100,7 @@ inline void ResourceLoader<VertexShaderData>::SetupLoadFunc(void* contextPtr) {
 	OutputDebugStringA("SetupLoadFunc VertexShaderData called\n");
 
 	auto context = static_cast<GraphicsContext*>(contextPtr);
-	SetLoadFunction([=](const std::string& path, void*) {
+	SetLoadFunction([=](const std::string& path, std::shared_ptr<void> /*args*/) {
 		return LoadVertexShaderFromFile(path, context);
 	});
 }
@@ -110,7 +110,7 @@ inline void ResourceLoader<PixelShaderData>::SetupLoadFunc(void* contextPtr) {
 	OutputDebugStringA("SetupLoadFunc PixelShaderData called\n");
 
 	auto context = static_cast<GraphicsContext*>(contextPtr);
-	SetLoadFunction([=](const std::string& path, void*) {
+	SetLoadFunction([=](const std::string& path, std::shared_ptr<void> /*args*/) {
 		return LoadPixelShaderFromFile(path, context);
 	});
 }

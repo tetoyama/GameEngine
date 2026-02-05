@@ -19,9 +19,11 @@ inline std::shared_ptr<LLAMAModelData> LoadLLAMAModelFromFile(const std::string&
     llama_model_params mParams = llama_model_default_params();
     mParams.n_gpu_layers = 0; // GPUなし
 
-    modelData->m_model = llama_model_load_from_file(filePath.c_str(), mParams);
-    if (!modelData->m_model) {
-        OutputDebugStringA(("Failed to load LLAMA model: " + filePath + "\n").c_str());
+    try {
+        modelData->m_model = llama_model_load_from_file(filePath.c_str(), mParams);
+    }
+    catch (const std::runtime_error& e) {
+        OutputDebugStringA(("LLAMA load failed: " + std::string(e.what()) + "\n").c_str());
         return nullptr;
     }
 
@@ -36,7 +38,7 @@ template<>
 inline void ResourceLoader<LLAMAModelData>::SetupLoadFunc(void* /*unused*/) {
     OutputDebugStringA("SetupLoadFunc LLAMAModelData called\n");
 
-    SetLoadFunction([](const std::string& path, void*) {
+    SetLoadFunction([](const std::string& path, std::shared_ptr<void> /*args*/) {
         return LoadLLAMAModelFromFile(path);
     });
 }

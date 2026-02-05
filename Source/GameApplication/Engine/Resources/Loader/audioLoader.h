@@ -72,7 +72,7 @@ inline void ResourceLoader<AudioData>::SetupLoadFunc(void* contextPtr){
 	OutputDebugStringA("SetupLoadFunc AudioData called\n");
 
 	auto context = static_cast<AudioContext*>(contextPtr);
-	SetLoadFunction([=](const std::string& path, void*){
+	SetLoadFunction([=](const std::string& path, std::shared_ptr<void> /*args*/) {
 		return LoadAudioFromWav(path, context);
 	});
 }

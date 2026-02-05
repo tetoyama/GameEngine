@@ -93,6 +93,11 @@ bool LLAMAService::LoadModel(const std::string& path){
 std::shared_ptr<LLAMAModelData> LLAMAService::GetModel(const std::string& path) {
     std::lock_guard<std::mutex> lock(m_modelMutex);
     auto it = m_models.find(path);
+
+	if (it != m_models.end()) {
+		OutputDebugStringA(("LLAMAService: Model found: " + path + "\n").c_str());
+	}
+
     return (it != m_models.end()) ? it->second : nullptr;
 }
 

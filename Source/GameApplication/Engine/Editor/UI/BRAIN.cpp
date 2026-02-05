@@ -67,9 +67,23 @@ void BRAIN::Initialize(EditorService* editor){
 		"Asset/BRAIN/model/qwen2.5-coder-7b-instruct-q4_k_m.gguf",
 		[this](bool success){
 			if(!success){
+				m_editor->debugLogSystem->LOG_ERROR(
+					"B.R.A.I.N.: Failed to load LLM model."
+				);
 				// ロード失敗
 				m_llamaModel.reset();
 				return;
+			} else {
+
+				m_editor->debugLogSystem->LOG_TRACE(
+					"B.R.A.I.N.: Success to load LLM model."
+				);
+
+				m_llamaModel =
+					m_editor->llamaService
+					->GetModel(
+						"Asset/BRAIN/model/qwen2.5-coder-7b-instruct-q4_k_m.gguf");
+
 			}
 		}
 	);
@@ -102,14 +116,11 @@ void BRAIN::Finalize(){
 	m_agentConfig.reset();
 }
 
-// --------------------------------------------
-// WorkerLoop
-// --------------------------------------------
-// ===========================
-// BRAIN::WorkerLoop (修正版)
-// ===========================
-void BRAIN::WorkerLoop(){
-	while(true){
+// -------------------------------------------- 
+// WorkerLoop 
+// -------------------------------------------- 
+void BRAIN::WorkerLoop() {
+	while (true) {
 
 		LLMJob job;
 		bool hasJob = false;
@@ -121,22 +132,22 @@ void BRAIN::WorkerLoop(){
 			m_jobCV.wait_for(
 				lock,
 				std::chrono::milliseconds(100),
-				[&](){
-					return m_exitRequested.load()
-						|| m_requestReset.load()
-						|| !m_jobQueue.empty();
-				});
+				[&]() {
+				return m_exitRequested.load()
+					|| m_requestReset.load()
+					|| !m_jobQueue.empty();
+			});
 
-			if(m_exitRequested.load()){
+			if (m_exitRequested.load()) {
 				return;
 			}
 
-			if(m_requestReset.load()){
+			if (m_requestReset.load()) {
 				m_requestReset.store(false);
 				doReset = true;
 			}
 
-			if(!m_jobQueue.empty()){
+			if (!m_jobQueue.empty()) {
 				job = std::move(m_jobQueue.front());
 				m_jobQueue.pop();
 				hasJob = true;
@@ -147,9 +158,9 @@ void BRAIN::WorkerLoop(){
 		// ---------------------------
 		// Reset 処理
 		// ---------------------------
-		if(doReset){
-			if(m_mainAgent){
-				while(m_mainAgent->GetState() == LLAMAAgent::State::Running){
+		if (doReset) {
+			if (m_mainAgent) {
+				while (m_mainAgent->GetState() == LLAMAAgent::State::Running) {
 					std::this_thread::sleep_for(std::chrono::milliseconds(1));
 				}
 				m_mainAgent->ResetContext();
@@ -170,19 +181,19 @@ void BRAIN::WorkerLoop(){
 		// ---------------------------
 		// Agent 初期化
 		// ---------------------------
-		if(!m_mainAgent){
+		if (!m_mainAgent) {
 			m_llamaModel =
 				m_editor->llamaService->GetModel(
 					"Asset/BRAIN/model/qwen2.5-coder-7b-instruct-q4_k_m.gguf");
 
-			if(m_llamaModel){
+			if (m_llamaModel) {
 				m_mainAgent =
 					m_editor->llamaService
 					->CreateAgent(m_llamaModel, m_agentConfig);
 			}
 		}
 
-		if(!hasJob || !m_mainAgent){
+		if (!hasJob || !m_mainAgent) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			continue;
 		}
@@ -192,7 +203,7 @@ void BRAIN::WorkerLoop(){
 		// ---------------------------
 		{
 			std::lock_guard<std::mutex> lock(m_outputMutex);
-			m_chatLog.push_back({ChatEntry::Role::User, job.prompt});
+			m_chatLog.push_back({ ChatEntry::Role::User, job.prompt });
 			m_scrollToBottom = true;
 		}
 
@@ -203,16 +214,15 @@ void BRAIN::WorkerLoop(){
 
 		{
 			std::lock_guard<std::mutex> lock(m_outputMutex);
-			m_chatLog.push_back({ChatEntry::Role::Assistant, std::string()});
+			m_chatLog.push_back({ ChatEntry::Role::Assistant, std::string() });
 			m_scrollToBottom = true;
 		}
-		while(m_mainAgent->GetState() != LLAMAAgent::State::Running){
-		}
+
 		// ---------------------------
 		// 出力監視ループ（Running状態監視一本化）
 		// ---------------------------
-		while(m_mainAgent->GetState() == LLAMAAgent::State::Running){
-			if(m_stopRequested.load()){
+		while (m_mainAgent->GetState() == LLAMAAgent::State::Running) {
+			if (m_stopRequested.load()) {
 				m_mainAgent->Stop();
 				m_stopRequested.store(false);
 				break;
@@ -221,7 +231,7 @@ void BRAIN::WorkerLoop(){
 			std::string out = m_mainAgent->GetOutput();
 			{
 				std::lock_guard<std::mutex> lock(m_outputMutex);
-				if(!m_chatLog.empty() && m_chatLog.back().role == ChatEntry::Role::Assistant){
+				if (!m_chatLog.empty() && m_chatLog.back().role == ChatEntry::Role::Assistant) {
 					m_chatLog.back().text = out;
 					m_scrollToBottom = true;
 				}
@@ -233,6 +243,7 @@ void BRAIN::WorkerLoop(){
 		m_isRunning.store(false);
 	}
 }
+
 
 // --------------------------------------------
 // Draw

@@ -26,7 +26,7 @@ inline void ResourceLoader<EffectData>::SetupLoadFunc(void* contextPtr) {
 	OutputDebugStringA("SetupLoadFunc TextureData called\n");
 
 	auto context = static_cast<GraphicsContext*>(contextPtr);
-	SetLoadFunction([=](const std::string& path, void*) {
+	SetLoadFunction([=](const std::string& path, std::shared_ptr<void> /*args*/) {
 		return LoadEffectFromFile(path, context);
 	});
 }
