@@ -62,12 +62,8 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 		graphicsContext->SetUVMatrix(uv);
 
 	} else {
-		// マテリアル設定
-		material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-
 		UVMatrix uv;
 		graphicsContext->SetUVMatrix(uv);
-
 	}
 	graphicsContext->SetMaterial(material);
 
@@ -89,6 +85,13 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 		if (pModel->SetTexture) {
 			if(!pTexture){
 				MATERIAL materialData;
+
+				if (pMaterial) {
+					materialData = pMaterial->Material;
+				} else {
+					materialData.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+				}
+
 				material.MaterialFlags = 0;
 
 				aiMaterial* aiMat = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
@@ -101,9 +104,6 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 						materialData.BaseColor.y *= pMaterial->Material.BaseColor.y;
 						materialData.BaseColor.z *= pMaterial->Material.BaseColor.z;
 						materialData.BaseColor.w *= pMaterial->Material.BaseColor.w;
-
-
-
 					}
 				}
 

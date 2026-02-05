@@ -374,8 +374,8 @@ Entities:
             rotationOffset: [0, 0, 0]
             radius: 0.5
             height: 1
-            staticFriction: 0
-            dynamicFriction: 0
+            staticFriction: 2
+            dynamicFriction: 2
             restitution: 0
             collisionLayer: 0
             lockRotX: false
@@ -389,7 +389,7 @@ Entities:
             y: 1
             z: 1
             w: 1
-          Metallic: 0
+          Metallic: 1
           Roughness: 0
           AO: 0
           EmissiveColor:
@@ -434,7 +434,7 @@ Entities:
             radius: 0.5
             height: 1
             staticFriction: 0
-            dynamicFriction: 0
+            dynamicFriction: 2
             restitution: 0
             collisionLayer: 0
             lockRotX: false
@@ -448,8 +448,8 @@ Entities:
             y: 1
             z: 1
             w: 1
-          Metallic: 0
-          Roughness: 0
+          Metallic: 1
+          Roughness: 0.5
           AO: 0
           EmissiveColor:
             x: 0
@@ -493,7 +493,7 @@ Entities:
             radius: 0.5
             height: 1
             staticFriction: 0
-            dynamicFriction: 0
+            dynamicFriction: 2
             restitution: 0
             collisionLayer: 0
             lockRotX: false
@@ -536,23 +536,23 @@ Entities:
           - 8.64619651e-05
           - 0.999813676
         Scale:
-          x: 1
-          y: 1
-          z: 1
+          x: 2.5
+          y: 2.50000119
+          z: 2.50000119
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
         autoMass: true
         Mass: 1
         colliders:
-          - type: 0
+          - type: 1
             size: [1, 1, 1]
             offset: [0, 0, 0]
             rotationOffset: [0, 0, 0]
-            radius: 0.5
+            radius: 0.200000003
             height: 1
             staticFriction: 0
-            dynamicFriction: 0
+            dynamicFriction: 2
             restitution: 0
             collisionLayer: 0
             lockRotX: false
@@ -566,8 +566,8 @@ Entities:
             y: 1
             z: 1
             w: 1
-          Metallic: 0
-          Roughness: 0
+          Metallic: 1
+          Roughness: 1
           AO: 0
           EmissiveColor:
             x: 0
@@ -577,6 +577,6 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
       - Component: ModelRendererComponent
-        FilePath: Asset/Model\cube.obj
+        FilePath: Asset/Model\ball.fbx
         isBlender: false
         AnimationTime: 86.696022
