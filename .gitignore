@@ -360,3 +360,6 @@ FodyWeavers.xsd
 
 # GGUF model files
 *.gguf
+
+# ImGui configuration file
+Asset/imgui.ini
