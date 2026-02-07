@@ -10,62 +10,75 @@ float4 ShadeMaterial_RimToon(MaterialInput materialInput)
     pcf.StepTexel = 1;
     LightingResult lighting = ComputeLightingFromMaterialInput(materialInput, pcf);
 
-    // --- 2. 階調化 ---
+    // 光の強さ (0.1:シャドウマップ影 ～ 1.0:直射日光)
     float diffIntensity = length(lighting.diffuse);
-    float toonDiff = lerp(0.15, 1.0,
-        smoothstep(0.15, 0.20, diffIntensity) * 0.5 +
-        smoothstep(0.50, 0.60, diffIntensity) * 0.5
-    );
 
-    // --- 3. ジグザグドット生成 ---
-    float dotDensity = 15.0;
-    float2 pixelPos = (materialInput.uv * materialInput.screenSize.xy) / dotDensity;
+    // --- 2. ドット座標計算（45度回転） ---
+    float dotDensity = 10.0; // ドットが小さい場合はここを下げてください（例: 15.0 -> 10.0）
+    
+    float c = 0.7071;
+    float s = 0.7071;
+    float2x2 rotMat = float2x2(c, -s, s, c);
+    float2 screenUV = materialInput.uv * materialInput.screenSize.xy;
+    float2 rotatedPos = mul(screenUV, rotMat);
+    float2 pixelPos = rotatedPos / dotDensity;
     float rowIndex = floor(pixelPos.y);
     pixelPos.x += frac(rowIndex * 0.5) > 0.0 ? 0.5 : 0.0;
     float2 dotUV = frac(pixelPos) - 0.5;
+    
+    // 中心からの距離 (円形ドット用)
     float dist = length(dotUV);
 
-    float shadowDotRadius = 0.3;
-    float shadowDotPattern = smoothstep(shadowDotRadius + 0.1, shadowDotRadius - 0.1, dist);
-    float patternMask = smoothstep(0.5, 0.3, toonDiff);
+    // --- 【重要】ドットサイズ（光の半径）の計算 ---
     
-    // ドットの隙間の明るさ
-    float shadowDotTone = lerp(1.0, 0.5 + shadowDotPattern * 0.5, patternMask);
+    // ★ポイント1：シャドウマップ対策（足切り）
+    // diffIntensity が 0.2 以下の時は、強制的に半径 0.0 にする。
+    // これにより、シャドウマップ(0.1)の部分は「光のドット」が一切描かれない＝完全な影色になる。
+    
+    // ★ポイント2：ドットの巨大化
+    // 明るくなるにつれて半径を大きくし、最終的に 0.8 以上にして隙間をなくす（ベタ塗りの日向にする）。
+    
+    // 0.15(暗) -> 半径0.0 (消滅)
+    // 0.60(明) -> 半径0.9 (巨大化して隣と融合)
+    float dotRadius = smoothstep(0.15, 0.60, diffIntensity) * 0.9;
+
+    // ドットを描画（dist が radius より小さい場所が「光」になる）
+    // smoothstepを使って少し輪郭を滑らかにする
+    float lightDot = 1.0 - smoothstep(dotRadius - 0.05, dotRadius + 0.05, dist);
+
+    // --- 3. 影色と表面色の合成 ---
+    float3 baseColor = materialInput.baseColor.rgb;
+    
+    // リッチな影色（彩度高め）
+    float3 shadowBase = pow(baseColor, 1.5) * float3(0.9, 0.9, 1.1);
+    float3 shadowColor = lerp(baseColor * 0.5, shadowBase, 0.7);
+
+    // ★合成ロジック：ベースは「影色」。そこに「光ドット」を上書きする。
+    // これにより、ドットがない場所（深い影）は自然とshadowColorだけが残る。
+    float3 surfaceColor = lerp(shadowColor, baseColor, lightDot);
 
     // --- 4. スペキュラ ---
     float specIntensity = length(lighting.specular);
     float toonSpec = smoothstep(0.45, 0.55, specIntensity);
     float3 finalSpecular = lighting.specular * toonSpec * (materialInput.baseColor.rgb + 0.5);
 
-    // --- 【変更】常時リムライト計算 ---
+    // --- 5. リムライト ---
     float3 N = normalize(materialInput.normal);
     float3 V = normalize(materialInput.viewDir);
-    
-    // 1. 基本のフチ（Fresnel）
     float rimTerm = 1.0 - saturate(dot(N, V));
-
-    // 2. リムの太さ調整（逆光判定を削除し、純粋な角度のみで計算）
-    // 数値を大きくする(3.0など)と細く鋭くなり、小さくする(2.0など)と太く柔らかくなります
     float rimWeight = pow(rimTerm, 3.0);
-
-    // 輪郭をクッキリさせる（しきい値でパキッと切る）
     float rimLogic = smoothstep(0.1, 0.15, rimWeight);
-
-    // 色を決定（強さは 3.0倍 くらいが常時表示には丁度いいです）
     float3 rimColor = saturate(materialInput.baseColor.rgb + 0.8) * 3.0 * rimLogic;
 
-    // --- 5. カラー合成 ---
-    float3 baseColor = materialInput.baseColor.rgb;
-    float3 shadowColor = baseColor * float3(0.8, 0.85, 0.95);
-    float3 surfaceColor = lerp(shadowColor, baseColor, toonDiff) * shadowDotTone;
-
+    // --- 6. 最終合成 ---
     // アンビエント底上げ
     float3 minAmbient = max(lighting.ambient, float3(0.4, 0.4, 0.4));
 
-    // 合成
-    float3 finalColor = (lighting.diffuse * toonDiff + minAmbient) * surfaceColor + finalSpecular;
-
-    // リムライトを加算（常にフチが光る）
+    // ライティング計算
+    // ドット(lightDot)自体が明るさ情報を持っているので、diffIntensityを直接乗算する必要はないが、
+    // 全体の陰影を馴染ませるために ambient と混ぜたものを乗せる
+    float3 finalColor = (minAmbient + 0.5 * lightDot) * surfaceColor + finalSpecular;
+    
     finalColor += rimColor;
 
     return float4(saturate(finalColor), materialInput.baseColor.a);

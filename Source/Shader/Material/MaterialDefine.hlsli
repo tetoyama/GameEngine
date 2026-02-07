@@ -20,6 +20,7 @@ struct MaterialInput
     int sceneID;
     
     float2 screenSize;
+    float2 screenUV;
 };
 
 struct ShadowPCFParams

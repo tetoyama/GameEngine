@@ -61,6 +61,7 @@ MaterialInput GetMaterialInput(PS_IN In)
     input.materialID = param.z;
 
     GAlbedo.GetDimensions(input.screenSize.x, input.screenSize.y);
+    input.screenUV = In.TexCoord;
 
     return input;
 }
