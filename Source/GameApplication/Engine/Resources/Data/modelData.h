@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <d3d11.h>
 #include <DirectXMath.h>
-#include "Shader/CommonBuffer.h"
+#include "Shader/Common.hlsl"
 
 #include "assimp/cimport.h"
 #include "assimp/scene.h"

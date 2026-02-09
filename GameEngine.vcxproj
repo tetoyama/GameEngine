@@ -2756,7 +2756,6 @@
     <ClInclude Include="Source\GameApplication\Backends\ImGuiFunc.h" />
     <ClInclude Include="Source\GameApplication\Service\IService.h" />
     <ClInclude Include="Source\GameApplication\Backends\YAMLConverters.h" />
-    <ClInclude Include="Source\Shader\CommonBuffer.h" />
     <ClInclude Include="Source\Shader\commonDefine.h" />
   </ItemGroup>
   <ItemGroup>

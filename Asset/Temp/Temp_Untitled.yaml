@@ -108,9 +108,9 @@ Entities:
           w: 1
         Param:
           x: 500
-          y: 0
-          z: 0
-          w: 0
+          y: -107374176
+          z: -107374176
+          w: -107374176
         LightView:
           -
             - 0.540302277
@@ -277,7 +277,7 @@ Entities:
   - Entity: 5
     Components:
       - Component: NameComponent
-        Name: Camera
+        Name: CameraBuffer
       - Component: TransformComponent
         Position:
           x: 0

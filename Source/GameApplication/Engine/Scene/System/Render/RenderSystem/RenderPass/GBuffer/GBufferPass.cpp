@@ -141,10 +141,10 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 	newCtx.renderLayerVisibility[RenderLayer::Transparent3D] = false;
 	newCtx.renderLayerVisibility[RenderLayer::OverlayUI] = false;
 
-	// ----- Camera -----
-	CAMERA cam{};
-	cam.CameraPosition = ctx.cameraPosition;
-	gc->SetCamera(cam);
+	// ----- CameraBuffer -----
+	CameraBuffer cam{};
+	cam.CameraPosition = ctx.CameraPosition;
+	gc->SetCameraBuffer(cam);
 	gc->SetViewMatrix(ctx.viewMatrix);
 	gc->SetProjectionMatrix(ctx.projectionMatrix);
 
@@ -185,7 +185,7 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 					ObjectInfo info;
 					info.SceneID = (unsigned int)sctx;
 					info.ObjectID = ent;
-					info.MaterialID = materialID;
+					info.ShaderID = materialID;
 					m_context->graphics->SetObjectInfo(info);
 
 					r->Execute(newCtx, sctx, ent);

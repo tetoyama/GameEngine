@@ -88,7 +88,7 @@ GameApplication
    │                ├── OutlineComponent									【未実装】
    │                ├── ParticleComponent									【実装済み】
    │                ├── EffectComponent										【実装済み】
-   │                ├── CameraComponent										【実装済み】
+   │                ├── cameraComponent										【実装済み】
    │                ├── CustomScriptComponent								【実装済み】
    │                ├── CSharpScriptComponent								【実装済み】
    │                │

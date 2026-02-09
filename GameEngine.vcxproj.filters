@@ -2394,9 +2394,6 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderLayer.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Shader\CommonBuffer.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Shader\commonDefine.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>

@@ -31,7 +31,7 @@ void RenderableMesh::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 		if(meshRenderer->mesh.m_TextureData){
 			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
 
-			MATERIAL material;
+			MATERIAL material{};
 			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 
 			material.BaseColor = DirectX::XMFLOAT4(1, 1, 1, 1);

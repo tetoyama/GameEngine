@@ -11,14 +11,19 @@
 #include <DirectXMath.h>
 #include "Backends/myVector2.h"
 #include "Backends/myVector3.h"
+
 #include "Resources/Data/textureData.h"
+
+#include "Shader/Common.hlsl"
+
 #include "Graphics/graphicsContext.h"
+
 
 namespace YAML {
 
 	template<>
-	struct convert<DirectX::XMFLOAT4> {
-		static Node encode(const DirectX::XMFLOAT4& v){
+	struct convert<float4> {
+		static Node encode(const float4& v){
 			Node node;
 			node["x"] = v.x;
 			node["y"] = v.y;
@@ -27,7 +32,7 @@ namespace YAML {
 			return node;
 		}
 
-		static bool decode(const Node& node, DirectX::XMFLOAT4& v){
+		static bool decode(const Node& node, float4& v){
 			if(!node.IsMap()) return false;
 			v.x = node["x"].as<float>();
 			v.y = node["y"].as<float>();
@@ -39,8 +44,8 @@ namespace YAML {
 
 
 	template<>
-	struct convert<DirectX::XMFLOAT3> {
-		static Node encode(const DirectX::XMFLOAT3& v) {
+	struct convert<float3> {
+		static Node encode(const float3& v) {
 			Node node;
 			node["x"] = v.x;
 			node["y"] = v.y;
@@ -48,11 +53,28 @@ namespace YAML {
 			return node;
 		}
 
-		static bool decode(const Node& node, DirectX::XMFLOAT3& v) {
+		static bool decode(const Node& node, float3& v) {
 			if (!node.IsMap()) return false;
 			v.x = node["x"].as<float>();
 			v.y = node["y"].as<float>();
 			v.z = node["z"].as<float>();
+			return true;
+		}
+	};
+
+	template<>
+	struct convert<float2> {
+		static Node encode(const float2& v) {
+			Node node;
+			node["x"] = v.x;
+			node["y"] = v.y;
+			return node;
+		}
+
+		static bool decode(const Node& node, float2& v) {
+			if (!node.IsMap()) return false;
+			v.x = node["x"].as<float>();
+			v.y = node["y"].as<float>();
 			return true;
 		}
 	};

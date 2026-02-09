@@ -34,7 +34,7 @@ class PlayerController: public CustomScriptComponent {
 	bool isJumpPressed = false;
 
 	TransformComponent* transform = nullptr;
-	TransformComponent* cameraTransform = nullptr;
+	TransformComponent* CameraBufferTransform = nullptr;
 	GameTimeManager* gameTime = nullptr;
 	ModelRendererComponent* model = nullptr;
 	TransformComponent* ballTransform = nullptr;
@@ -70,9 +70,9 @@ public:
 
 		transform = GetComponent<TransformComponent>();
 		model = GetComponent<ModelRendererComponent>();
-		auto cameraEntities = m_context->component->FindEntitiesWithComponent<CameraComponent>();
-		if(!cameraEntities.empty()){
-			cameraTransform = m_context->component->GetComponent<TransformComponent>(cameraEntities[0]);
+		auto CameraBufferEntities = m_context->component->FindEntitiesWithComponent<CameraComponent>();
+		if(!CameraBufferEntities.empty()){
+			CameraBufferTransform = m_context->component->GetComponent<TransformComponent>(CameraBufferEntities[0]);
 		}
 
 		auto timerEntities = m_context->component->FindEntitiesWithComponent<GameTimeManager>();
@@ -129,7 +129,7 @@ public:
 			model->blendedAnimations[2].isLoop = false;
 			model->blendedAnimations[3].isLoop = false;
 		}
-		if(!transform || !cameraTransform) return;
+		if(!transform || !CameraBufferTransform) return;
 		if(gameTime && gameTime->CountDownTimer > 0.0f)return;
 
 
@@ -160,8 +160,8 @@ public:
 		}
 
 		// --- カメラ基準の移動 ---
-		Vector3 camForward = cameraTransform->front();
-		Vector3 camRight = cameraTransform->right();
+		Vector3 camForward = CameraBufferTransform->front();
+		Vector3 camRight = CameraBufferTransform->right();
 		camForward.y = 0; camRight.y = 0;
 		camForward = camForward.normalize();
 		camRight = camRight.normalize();

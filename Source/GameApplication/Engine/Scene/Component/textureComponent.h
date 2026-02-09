@@ -258,7 +258,6 @@ public:
             ImGui::SameLine(0.0f, spacing);
 
             ImGui::BeginGroup();
-            UVMatrix uv;
             ImVec2 start, end;
 
             start.x = (float)(AnimationNum % UV_Slice_X) / (float)UV_Slice_X;

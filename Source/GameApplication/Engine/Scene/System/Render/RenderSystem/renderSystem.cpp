@@ -49,11 +49,11 @@
 
 #include "Component/RenderLayerComponent.h"
 #include "Component/transformComponent.h"
-#include "Component/cameraComponent.h"
+#include "Component/CameraComponent.h"
 #include <Component/modelRendererComponent.h>
 #include <Component/LightComponent.h>
 
-#include "cameraEntityData.h"
+#include "CameraEntityData.h"
 #include "renderPhase.h"
 #include "RenderTarget/renderTarget.h"
 #include "Renderable/Mesh/RenderableMesh.h"
@@ -457,7 +457,7 @@ const CameraEntityData RenderSystem::FindCameraEntity() {
 		}
 		cameraData.sceneContext = context;
 		cameraData.entity = entities[0];
-		cameraData.cameraComponent = context->component->GetComponent<CameraComponent>(cameraData.entity);
+		cameraData.CameraComponent = context->component->GetComponent<CameraComponent>(cameraData.entity);
 		cameraData.transformComponent = context->component->GetComponent<TransformComponent>(cameraData.entity);
 		return cameraData;
 	}
@@ -525,8 +525,8 @@ void RenderSystem::PlayerView(){
 
 	// カメラコンポーネントを持つエンティティ取得
 	const CameraEntityData& cameraData = FindCameraEntity();
-	if(!cameraData.cameraComponent){
-		ImGui::Text("No Camera Component found.");
+	if(!cameraData.CameraComponent){
+		ImGui::Text("No CameraBuffer Component found.");
 		ImGui::End();
 		return;
 	}
@@ -701,7 +701,7 @@ void RenderSystem::EditorView(){
 
 	TransformComponent editorCameraTransform;
 	editorCameraTransform.position = viewWindow->m_EditorCameraPosition;
-	editorCameraTransform.SetRotationEuler(viewWindow->m_EditorCameraRotation);
+	editorCameraTransform.SetRotationEuler(viewWindow->m_editorCameraRotation);
 
 	CameraComponent editorCamera;
 	editorCamera.FOV = DirectX::XM_PIDIV4;
@@ -716,7 +716,7 @@ void RenderSystem::EditorView(){
 	CameraEntityData cameraData;
 	cameraData.entity = 0;
 	cameraData.sceneContext = nullptr;
-	cameraData.cameraComponent = &editorCamera;
+	cameraData.CameraComponent = &editorCamera;
 	cameraData.transformComponent = &editorCameraTransform;
 
 	RenderPassContext renderPassContext(

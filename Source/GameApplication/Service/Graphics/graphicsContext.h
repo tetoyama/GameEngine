@@ -9,7 +9,7 @@
 #include <fstream>
 
 #include "Service/IService.h"
-#include "Shader/CommonBuffer.h"
+#include "Shader/Common.hlsl"
 
 #include "Backends/Effekseer/Effekseer.h"
 #include "Backends/Effekseer/EffekseerRendererDX11.h"
@@ -104,7 +104,7 @@ public:
 	Effekseer::ManagerRef GetEffectManager();
 	EffekseerRendererDX11::RendererRef GetEffectRenderer();
 
-	LIGHT_BUFFER* GetLight() { return &m_LightData; }
+	LightBuffer* GetLight() { return &m_LightData; }
 
 	// セッター
 	void SetDepthMode(const DepthMode& mode);
@@ -112,11 +112,11 @@ public:
 	void SetWorldMatrix(const DirectX::XMMATRIX& WorldMatrix);
 	void SetViewMatrix(const DirectX::XMMATRIX& ViewMatrix);
 	void SetProjectionMatrix(const DirectX::XMMATRIX& ProjectionMatrix);
-	void SetUVMatrix(const UVMatrix& uv);
+	void SetUVMatrixBuffer(const UVMatrixBuffer& uv);
 	void SetMaterial(const MATERIAL& Material);
-	void SetLight(LIGHT_BUFFER* Light);
-	void SetCamera(const CAMERA& Camera);
-	void SetParameter(const Parameter& Parameter);
+	void SetLight(LightBuffer* Light);
+	void SetCameraBuffer(const CameraBuffer& CameraBuffer);
+	void SetParameter(const ParameterBuffer& Parameter);
 	void SetObjectInfo(const ObjectInfo& ObjectInfo);
 
 	void ResetViewport();
@@ -218,5 +218,5 @@ private:
 
 	RenderEffectSystem* m_EffectSystem = nullptr;
 
-	LIGHT_BUFFER m_LightData;
+	LightBuffer m_LightData;
 };

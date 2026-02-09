@@ -16,7 +16,7 @@ public:
 	float pitch = 0.0f;
 
 	TransformComponent* transform = nullptr;
-	CameraComponent* camera = nullptr;
+	CameraComponent* CameraBuffer = nullptr;
 	Entity playerEntity = -1;
 	Entity ballEntity = -1;
 	GameTimeManager* gameTime = nullptr;
@@ -41,7 +41,7 @@ public:
 
 	void OnStart() override{
 		transform = GetComponent<TransformComponent>();
-		camera = GetComponent<CameraComponent>();
+		CameraBuffer = GetComponent<CameraComponent>();
 		auto playerEntities = m_context->component->FindEntitiesWithComponent<PlayerController>();
 		if(playerEntities.empty()){
 			return;
@@ -101,8 +101,8 @@ public:
 		transform->position = Vector3(pos.x, pos.y, pos.z);
 		transform->SetRotationEuler(Vector3(pitch, yaw, 0));
 
-		camera->isLock = true;
-		camera->Target = targetTransform->position;
+		CameraBuffer->isLock = true;
+		CameraBuffer->Target = targetTransform->position;
 
 		// --- プレイヤー方向を向く ---
 		Vector3 forward = (targetTransform->position - transform->position - Vector3(0,-height,0)).normalize();

@@ -8,7 +8,7 @@ class TransformComponent;
 
 struct CameraEntityData {
 
-	CameraComponent* cameraComponent = nullptr;
+	CameraComponent* CameraComponent = nullptr;
 	TransformComponent* transformComponent = nullptr;
 
 	// 念のためエンティティも保持

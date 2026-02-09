@@ -1,6 +1,6 @@
 #include "RenderPassContext.h"
 #include "Component/transformComponent.h"
-#include "Component/cameraComponent.h"
+#include "Component/CameraComponent.h"
 
 RenderPassContext::RenderPassContext(const RenderPhase& renderPass, bool* renderLayer, const CameraEntityData& data, const Vector2& setScreenSize) {
 	for(int i = 0; i < RenderLayer::MaxRenderLayer; i++){
@@ -9,10 +9,10 @@ RenderPassContext::RenderPassContext(const RenderPhase& renderPass, bool* render
 	passPhase = renderPass;
 	cameraData = data;
 	screenSize = setScreenSize;
-	if (data.cameraComponent && data.transformComponent) {
+	if (data.CameraComponent && data.transformComponent) {
 		DirectX::XMVECTOR camPos = data.transformComponent->position.ToXMVECTOR();
-		DirectX::XMStoreFloat4(&cameraPosition, camPos);
-		projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(data.cameraComponent->FOV, screenSize.x / screenSize.y, data.cameraComponent->NearClip, data.cameraComponent->FarClip);
-		viewMatrix = data.cameraComponent->viewMatrix;
+		DirectX::XMStoreFloat4(&CameraPosition, camPos);
+		projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(data.CameraComponent->FOV, screenSize.x / screenSize.y, data.CameraComponent->NearClip, data.CameraComponent->FarClip);
+		viewMatrix = data.CameraComponent->viewMatrix;
 	}
 }

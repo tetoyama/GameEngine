@@ -1,4 +1,4 @@
-#include "cameraSystem.h"
+#include "CameraSystem.h"
 
 #include <DirectXMath.h>
 #include "Backends/myVector3.h"
@@ -19,7 +19,7 @@
 #include "Registry/entityRegistry.h"
 #include "Registry/componentRegistry.h"
 
-#include "Component/cameraComponent.h"
+#include "Component/CameraComponent.h"
 #include "Component/transformComponent.h"
 
 void CameraSystem::Initialize(){
@@ -30,20 +30,20 @@ void CameraSystem::Draw() {
 
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
-		auto cameras = context->component->GetAllBaseComponents<CameraComponent>();
-		for (auto& [entity, camera] : cameras) {
+		auto CameraBuffers = context->component->GetAllBaseComponents<CameraComponent>();
+		for (auto& [entity, CameraBuffer] : CameraBuffers) {
 			TransformComponent* transform = context->component->GetComponent<TransformComponent>(entity);
 			if (transform) {
-				if (camera->isLock) {
-					camera->viewMatrix = DirectX::XMMatrixLookAtLH(
+				if (CameraBuffer->isLock) {
+					CameraBuffer->viewMatrix = DirectX::XMMatrixLookAtLH(
 						transform->position.ToXMVECTOR(),
-						camera->Target.ToXMVECTOR(),
+						CameraBuffer->Target.ToXMVECTOR(),
 						{ 0.0f, 1.0f, 0.0f }
 					);
 
 				} else {
 
-					camera->viewMatrix = DirectX::XMMatrixLookAtLH(
+					CameraBuffer->viewMatrix = DirectX::XMMatrixLookAtLH(
 						transform->position.ToXMVECTOR(),
 						(transform->position + transform->front()).ToXMVECTOR(),
 						{0.0f, 1.0f, 0.0f}

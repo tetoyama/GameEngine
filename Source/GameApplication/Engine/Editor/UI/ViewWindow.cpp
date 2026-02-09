@@ -109,28 +109,28 @@ void ViewWindow::EditorView(const EditorDrawContext ctx) {
 	if (mouseOnEditor) {
 		ImGuiIO& io = ImGui::GetIO();
 		// マウス右クリックで操作有効
-		static bool isCameraActive = false;
+		static bool isCameraBufferActive = false;
 		if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
-			isCameraActive = true;
+			isCameraBufferActive = true;
 		} else if (!ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
-			isCameraActive = false;
+			isCameraBufferActive = false;
 		}
 		// 入力で動かすベクトル
 		Vector3 velocity = { 0,0,0 };
 		float speed = 1.0f;
-		if (isCameraActive) {
+		if (isCameraBufferActive) {
 			// ------ 1. マウス移動で回転 ------
 			float mouseSensitivity = 0.005f;
-			m_EditorCameraRotation.y += io.MouseDelta.x * mouseSensitivity; // yaw
-			m_EditorCameraRotation.x += io.MouseDelta.y * mouseSensitivity; // pitch
+			m_editorCameraRotation.y += io.MouseDelta.x * mouseSensitivity; // yaw
+			m_editorCameraRotation.x += io.MouseDelta.y * mouseSensitivity; // pitch
 			// ピッチ制限
 			const float pitchLimit = DirectX::XM_PIDIV2 - 0.01f;
-			if (m_EditorCameraRotation.x > pitchLimit) m_EditorCameraRotation.x = pitchLimit;
-			if (m_EditorCameraRotation.x < -pitchLimit) m_EditorCameraRotation.x = -pitchLimit;
+			if (m_editorCameraRotation.x > pitchLimit) m_editorCameraRotation.x = pitchLimit;
+			if (m_editorCameraRotation.x < -pitchLimit) m_editorCameraRotation.x = -pitchLimit;
 			// 回転から方向ベクトル取得
 			TransformComponent transform;
 			transform.position = m_EditorCameraPosition;
-			transform.SetRotationEuler(m_EditorCameraRotation);
+			transform.SetRotationEuler(m_editorCameraRotation);
 			Vector3 front = transform.front();
 			Vector3 right = transform.right();
 			Vector3 up = Vector3(0, 1, 0);
@@ -146,7 +146,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx) {
 		} else {
 			TransformComponent transform;
 			transform.position = m_EditorCameraPosition;
-			transform.SetRotationEuler(m_EditorCameraRotation);
+			transform.SetRotationEuler(m_editorCameraRotation);
 			Vector3 front = transform.front();
 			Vector3 right = transform.right();
 			Vector3 up = transform.up();

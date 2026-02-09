@@ -18,7 +18,7 @@
 #include "Graphics/graphicsContext.h"
 #include "Registry/systemRegistry.h"
 
-#include "Component/cameraComponent.h"
+#include "Component/CameraComponent.h"
 #include "Component/LightComponent.h"
 
 #include "System/Render/RenderSystem/Renderable/Model/RenderableModel.h"
@@ -116,9 +116,9 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 
 	ID3D11ShaderResourceView* initialSRV = editorRenderTarget->srv.Get();
 
-	CAMERA camera{};
-	camera.CameraPosition = ctx.cameraPosition;
-	graphicsContext->SetCamera(camera);
+	CameraBuffer CameraBuffer{};
+	CameraBuffer.CameraPosition = ctx.CameraPosition;
+	graphicsContext->SetCameraBuffer(CameraBuffer);
 
 	graphicsContext->SetViewMatrix(ctx.viewMatrix);
 	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
@@ -173,7 +173,7 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 					}
 
 					Vector3 worldPos = transform->GetWorldPosition(context->component);
-					Vector3 diff = worldPos - Vector3(ctx.cameraPosition.x, ctx.cameraPosition.y, ctx.cameraPosition.z);
+					Vector3 diff = worldPos - Vector3(ctx.CameraPosition.x, ctx.CameraPosition.y, ctx.CameraPosition.z);
 
 					TransparentDrawItem item;
 					item.entity = entity;
@@ -195,7 +195,7 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 						ObjectInfo info;
 						info.SceneID = (unsigned int)context;
 						info.ObjectID = entity;
-						info.MaterialID = materialID;
+						info.ShaderID = materialID;
 						m_context->graphics->SetObjectInfo(info);
 
 						renderable->Execute(ctx, context, entity);
@@ -234,7 +234,7 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 					ObjectInfo info;
 					info.SceneID = (unsigned int)item.context;
 					info.ObjectID = entity;
-					info.MaterialID = materialID;
+					info.ShaderID = materialID;
 					m_context->graphics->SetObjectInfo(info);
 
 					renderable->Execute(ctx, item.context, entity);

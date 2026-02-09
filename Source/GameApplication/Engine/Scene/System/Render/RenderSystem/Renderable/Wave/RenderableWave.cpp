@@ -27,7 +27,7 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 
 	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
 	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
-	MATERIAL material;
+	MATERIAL material{};
 	if (pMaterial) {
 		material = pMaterial->Material;
 	}

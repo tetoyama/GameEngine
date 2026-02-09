@@ -6,7 +6,7 @@
 #include "Resources/Data/shaderData.h"
 #include "../renderPhase.h"
 #include "../renderLayer.h"
-#include "../cameraEntityData.h"
+#include "../CameraEntityData.h"
 
 struct RenderPassContext {
 
@@ -20,7 +20,7 @@ struct RenderPassContext {
 	bool renderLayerVisibility[RenderLayer::MaxRenderLayer];
 	RenderPhase passPhase = RenderPhase::PHASE_SHADOW;
 
-	DirectX::XMFLOAT4 cameraPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	DirectX::XMFLOAT4 CameraPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	DirectX::XMMATRIX viewMatrix = DirectX::XMMatrixIdentity();
 	DirectX::XMMATRIX projectionMatrix = DirectX::XMMatrixIdentity();

@@ -1,7 +1,8 @@
 #pragma once
 #include "Interface/IComponent.h"
 #include "BackEnds/YAMLConverters.h"
-#include "Shader/CommonBuffer.h"
+#include "Shader/Common.hlsl"
+#include "Shader/CommonDefine.h"
 
 class LightComponent: public IComponent {
 public:

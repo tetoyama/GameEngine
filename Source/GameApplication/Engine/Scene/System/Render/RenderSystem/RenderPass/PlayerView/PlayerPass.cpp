@@ -19,7 +19,7 @@
 #include "Graphics/graphicsContext.h"
 #include "Registry/systemRegistry.h"
 
-#include "Component/cameraComponent.h"
+#include "Component/CameraComponent.h"
 #include "Component/LightComponent.h"
 
 #include "System/Render/RenderSystem/Renderable/Model/RenderableModel.h"
@@ -122,9 +122,9 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	shadowMapPass->Execute(ctx);
 
 
-	CAMERA camera{};
-	camera.CameraPosition = ctx.cameraPosition;
-	graphicsContext->SetCamera(camera);
+	CameraBuffer CameraBuffer{};
+	CameraBuffer.CameraPosition = ctx.CameraPosition;
+	graphicsContext->SetCameraBuffer(CameraBuffer);
 	graphicsContext->SetViewMatrix(ctx.viewMatrix);
 	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
 
@@ -206,7 +206,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 					}
 
 					Vector3 worldPos = transform->GetWorldPosition(context->component);
-					Vector3 diff = worldPos - Vector3(ctx.cameraPosition.x, ctx.cameraPosition.y, ctx.cameraPosition.z);
+					Vector3 diff = worldPos - Vector3(ctx.CameraPosition.x, ctx.CameraPosition.y, ctx.CameraPosition.z);
 
 					TransparentDrawItem item;
 					item.entity = entity;
@@ -247,7 +247,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 						ObjectInfo info;
 						info.SceneID = (unsigned int)context;
 						info.ObjectID = entity;
-						info.MaterialID = materialID;
+						info.ShaderID = materialID;
 						m_context->graphics->SetObjectInfo(info);
 
 						renderable->Execute(ctx, context, entity);
@@ -286,7 +286,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 					ObjectInfo info;
 					info.SceneID = (unsigned int)item.context;
 					info.ObjectID = entity;
-					info.MaterialID = materialID;
+					info.ShaderID = materialID;
 					m_context->graphics->SetObjectInfo(info);
 
 					renderable->Execute(ctx, item.context, entity);
@@ -322,7 +322,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 					ObjectInfo info;
 					info.SceneID = (unsigned int)item.context;
 					info.ObjectID = entity;
-					info.MaterialID = materialID;
+					info.ShaderID = materialID;
 					m_context->graphics->SetObjectInfo(info);
 
 					renderable->Execute(ctx, item.context, entity);
@@ -337,19 +337,19 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);
 
 	std::vector<PostProcessNode> postNodes;
-	std::unordered_map<int, int> effectIndexToPostNodeIndex; // camera->postEffects idx → postNodes idx
+	std::unordered_map<int, int> effectIndexToPostNodeIndex; // CameraBuffer->postEffects idx → postNodes idx
 
 	DirectX::XMFLOAT4 clearColor = { 0,0,0,1 };
 
-	CameraComponent* cameraComponent = ctx.cameraData.cameraComponent;
+	CameraComponent* CameraComponent = ctx.cameraData.CameraComponent;
 
-	if (cameraComponent) {
-		auto sortedIndices = cameraComponent->TopologicalSortPostEffects();
+	if (CameraComponent) {
+		auto sortedIndices = CameraComponent->TopologicalSortPostEffects();
 
 		for (int idx : sortedIndices) {
 			if (idx < 0) continue; // -1/-2 は描画対象としてノード作らない
 
-			auto& e = cameraComponent->postEffects[idx];
+			auto& e = CameraComponent->postEffects[idx];
 			if (!e.enabled || !e.ps || !e.vs ) continue;
 
 			PostProcessNode node{};
@@ -377,7 +377,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 		// リンクを後から追加（マッピングが揃った後に行う）
 		for (auto& node : postNodes) {
 			int effectIdx = node.id;
-			for (auto& link : cameraComponent->postEffectLinks) {
+			for (auto& link : CameraComponent->postEffectLinks) {
 				if (link.endNode == effectIdx) {
 					if (link.startNode < 0) {
 						node.inputs.push_back(-2); // 初期SRV

@@ -102,15 +102,15 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 	newContext.screenSize = Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE);
 
 	// ======== メインカメラ取得 ========
-	Vector3 mainCamPos = Vector3(ctx.cameraPosition.x, ctx.cameraPosition.y, ctx.cameraPosition.z);
+	Vector3 mainCamPos = Vector3(ctx.CameraPosition.x, ctx.CameraPosition.y, ctx.CameraPosition.z);
 	Vector3 mainCamFront = ctx.cameraData.transformComponent->front();
 
 	// ======== Directional Light 取得 ========
-	LIGHT_BUFFER light;
+	LightBuffer light;
 
 	// 全ライトを無効化で初期化
 	for(int i = 0; i < LIGHT_MAX_COUNT; i++){
-		light.lights[i].Enable = false;
+		light.Lights[i].Enable = false;
 	}
 	int lightCount = 0;
 	int shadowCount = 0;
@@ -157,10 +157,10 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 						XMFLOAT3 lightCamPos;
 						XMStoreFloat3(&lightCamPos, eyev);
-						newContext.cameraPosition = XMFLOAT4(lightCamPos.x, lightCamPos.y, lightCamPos.z, 0);
+						newContext.CameraPosition = XMFLOAT4(lightCamPos.x, lightCamPos.y, lightCamPos.z, 0);
 						newContext.viewMatrix = lightView;
 						newContext.projectionMatrix = lightProj;
-						lightcomp->light.Position = newContext.cameraPosition;
+						lightcomp->light.Position = newContext.CameraPosition;
 						XMStoreFloat4x4(&lightcomp->light.LightView, DirectX::XMMatrixTranspose(newContext.viewMatrix));
 						XMStoreFloat4x4(&lightcomp->light.LightProjection, DirectX::XMMatrixTranspose(newContext.projectionMatrix));
 
@@ -244,8 +244,8 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 							);
 
 							// Light配列に直接積む
-							light.lights[lightCount] = faceLight;
-							light.lights[lightCount].Enable = true;
+							light.Lights[lightCount] = faceLight;
+							light.Lights[lightCount].Enable = true;
 
 							lightCount++;
 							shadowCount++;
@@ -257,7 +257,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 				}
 			}
 			// 現在のライトスロットにコピー
-			light.lights[lightCount] = lightcomp->light;
+			light.Lights[lightCount] = lightcomp->light;
 			lightCount++;
 			if(lightcomp->light.CastShadow){
 				shadowCount++;
@@ -288,17 +288,17 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 		int tileX = gx * TILE_SIZE;
 		int tileY = gy * TILE_SIZE;
 
-		if(light.lights[i].Enable && light.lights[i].CastShadow){
+		if(light.Lights[i].Enable && light.Lights[i].CastShadow){
 
 			// ======== GraphicsContext に反映 ========
-			newContext.cameraPosition = light.lights[i].Position;
-			newContext.viewMatrix = DirectX::XMMatrixTranspose(XMLoadFloat4x4(&light.lights[i].LightView));
-			newContext.projectionMatrix = DirectX::XMMatrixTranspose(XMLoadFloat4x4(&light.lights[i].LightProjection));
+			newContext.CameraPosition = light.Lights[i].Position;
+			newContext.viewMatrix = DirectX::XMMatrixTranspose(XMLoadFloat4x4(&light.Lights[i].LightView));
+			newContext.projectionMatrix = DirectX::XMMatrixTranspose(XMLoadFloat4x4(&light.Lights[i].LightProjection));
 
 			// GraphicsContext に反映
-			CAMERA camSetter{};
-			camSetter.CameraPosition = newContext.cameraPosition;
-			graphicsContext->SetCamera(camSetter);
+			CameraBuffer camSetter{};
+			camSetter.CameraPosition = newContext.CameraPosition;
+			graphicsContext->SetCameraBuffer(camSetter);
 			graphicsContext->SetViewMatrix(newContext.viewMatrix);
 			graphicsContext->SetProjectionMatrix(newContext.projectionMatrix);
 

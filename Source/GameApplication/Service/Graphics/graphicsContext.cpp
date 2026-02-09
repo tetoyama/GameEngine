@@ -154,7 +154,7 @@ void GraphicsContext::SetProjectionMatrix(const DirectX::XMMATRIX& proj){
 	m_DeviceContext->UpdateSubresource(m_ProjectionBuffer, 0, nullptr, &projf, 0, 0);
 }
 
-void GraphicsContext::SetUVMatrix(const UVMatrix& uv) {
+void GraphicsContext::SetUVMatrixBuffer(const UVMatrixBuffer& uv) {
 	m_DeviceContext->UpdateSubresource(m_UVMatrixBuffer, 0, nullptr, &uv, 0, 0);
 }
 
@@ -163,17 +163,17 @@ void GraphicsContext::SetMaterial(const MATERIAL& material){
    m_DeviceContext->UpdateSubresource(m_MaterialBuffer, 0, nullptr, &material, 0, 0);
 }
 
-void GraphicsContext::SetLight(LIGHT_BUFFER* light){
+void GraphicsContext::SetLight(LightBuffer* light){
 
 	m_LightData = *light;
 	m_DeviceContext->UpdateSubresource(m_LightBuffer, 0, nullptr, light, 0, 0);
 }
 
-void GraphicsContext::SetCamera(const CAMERA& Camera){
-	m_DeviceContext->UpdateSubresource(m_CameraBuffer, 0, nullptr, &Camera, 0, 0);
+void GraphicsContext::SetCameraBuffer(const CameraBuffer& CameraBuffer){
+	m_DeviceContext->UpdateSubresource(m_CameraBuffer, 0, nullptr, &CameraBuffer, 0, 0);
 }
 
-void GraphicsContext::SetParameter(const Parameter& Parameter){
+void GraphicsContext::SetParameter(const ParameterBuffer& Parameter){
 	m_DeviceContext->UpdateSubresource(m_ParameterBuffer, 0, nullptr, &Parameter, 0, 0);
 }
 
@@ -393,27 +393,27 @@ bool GraphicsContext::CreateConstantBuffers(){
 	m_DeviceContext->PSSetConstantBuffers(3, 1, &m_MaterialBuffer);
 	assert(SUCCEEDED(hr));
 
-	bufferDesc.ByteWidth = sizeof(UVMatrix);
+	bufferDesc.ByteWidth = sizeof(UVMatrixBuffer);
 	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_UVMatrixBuffer);
 	m_DeviceContext->VSSetConstantBuffers(4, 1, &m_UVMatrixBuffer);
 	m_DeviceContext->PSSetConstantBuffers(4, 1, &m_UVMatrixBuffer);
 	assert(SUCCEEDED(hr));
 
-	bufferDesc.ByteWidth = sizeof(LIGHT_BUFFER);
+	bufferDesc.ByteWidth = sizeof(LightBuffer);
 
 	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_LightBuffer);
 	m_DeviceContext->VSSetConstantBuffers(5, 1, &m_LightBuffer);
 	m_DeviceContext->PSSetConstantBuffers(5, 1, &m_LightBuffer);
 	assert(SUCCEEDED(hr));
 
-	bufferDesc.ByteWidth = sizeof(CAMERA);
+	bufferDesc.ByteWidth = sizeof(CameraBuffer);
 
 	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_CameraBuffer);
 	m_DeviceContext->VSSetConstantBuffers(6, 1, &m_CameraBuffer);
 	m_DeviceContext->PSSetConstantBuffers(6, 1, &m_CameraBuffer);
 	assert(SUCCEEDED(hr));
 
-	bufferDesc.ByteWidth = sizeof(Parameter);
+	bufferDesc.ByteWidth = sizeof(ParameterBuffer);
 
 	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_ParameterBuffer);
 	m_DeviceContext->VSSetConstantBuffers(7, 1, &m_ParameterBuffer);
@@ -428,12 +428,12 @@ bool GraphicsContext::CreateConstantBuffers(){
 	assert(SUCCEEDED(hr));
 
 	// ライト初期化
-	LIGHT_BUFFER light;
-	light.lights[0].Enable = true;
-	light.lights[0].Direction	= DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
-	light.lights[0].Ambient	= DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	light.lights[0].Diffuse	= DirectX::XMFLOAT4(1.5f, 1.5f, 1.5f, 1.0f);
-	light.lights[0].Position = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	LightBuffer light;
+	light.Lights[0].Enable = true;
+	light.Lights[0].Direction	= DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
+	light.Lights[0].Ambient	= DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	light.Lights[0].Diffuse	= DirectX::XMFLOAT4(1.5f, 1.5f, 1.5f, 1.0f);
+	light.Lights[0].Position = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	SetLight(&light);
 
@@ -443,9 +443,9 @@ bool GraphicsContext::CreateConstantBuffers(){
 	SetMaterial(material);
 
 	// カメラ初期化
-	CAMERA camera{};
-	camera.CameraPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	SetCamera(camera);
+	CameraBuffer CameraBuffer{};
+	CameraBuffer.CameraPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	SetCameraBuffer(CameraBuffer);
 
 	return (SUCCEEDED(hr));
 }
@@ -842,7 +842,7 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 			}
 			m_DeviceContext->PSSetShaderResources(static_cast<UINT>(i), 1, &inputSRV);
 		}
-		Parameter param;
+		ParameterBuffer param;
 		param.Parameter = node.param;
 		SetParameter(param);
 

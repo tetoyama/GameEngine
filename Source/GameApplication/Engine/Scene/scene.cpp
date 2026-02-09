@@ -36,7 +36,7 @@
 
 #include "Component/entityNameComponent.h"
 #include "Component/transformComponent.h"
-#include "Component/cameraComponent.h"
+#include "Component/CameraComponent.h"
 #include "Component/modelRendererComponent.h"
 #include "Component/meshRendererComponent.h"
 #include "Component/BillBoardRendererComponent.h"
@@ -349,6 +349,7 @@ void Scene::BuildDefaultScene(){
 
 		// マテリアルコンポーネントを追加
 		auto* material = componentRegistry->AddComponent<MaterialComponent>(entity);
+		material->Material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		material->ShaderID = 1;
 	}
 
@@ -356,7 +357,7 @@ void Scene::BuildDefaultScene(){
 		Entity entity = entityRegistry->Create();
 
 		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
-		name->name = "Camera";
+		name->name = "CameraBuffer";
 
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
@@ -365,7 +366,7 @@ void Scene::BuildDefaultScene(){
 		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
 		// CameraComponentを追加
-		auto* camera = componentRegistry->AddComponent<CameraComponent>(entity);
+		auto* CameraBuffer = componentRegistry->AddComponent<CameraComponent>(entity);
 
 		// CameraControllerスクリプトを追加
 		auto* cameraController = componentRegistry->AddComponent<CameraController>(entity);

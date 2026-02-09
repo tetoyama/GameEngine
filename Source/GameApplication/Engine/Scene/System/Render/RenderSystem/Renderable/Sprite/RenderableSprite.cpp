@@ -89,7 +89,7 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 	ComponentRegistry* componentRegistry = sceneContext->component;
 
 
-	MATERIAL material;
+	MATERIAL material{};
 	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
 	if (pMaterial) {
 		material = pMaterial->Material;
@@ -106,24 +106,24 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 
 		graphicsContext->SetMaterial(material);
 
-		UVMatrix uv;
+		UVMatrixBuffer uv;
 		if (pTexture->UV_Slice_X != 0 && pTexture->UV_Slice_Y != 0) {
-			uv.Start.x = (float)(pTexture->AnimationNum % pTexture->UV_Slice_X) * 1.0f / (float)pTexture->UV_Slice_X;
-			uv.Start.y = (float)(pTexture->AnimationNum / pTexture->UV_Slice_X) * 1.0f / (float)pTexture->UV_Slice_Y;
+			uv.UVStart.x = (float)(pTexture->AnimationNum % pTexture->UV_Slice_X) * 1.0f / (float)pTexture->UV_Slice_X;
+			uv.UVStart.y = (float)(pTexture->AnimationNum / pTexture->UV_Slice_X) * 1.0f / (float)pTexture->UV_Slice_Y;
 
-			uv.End.x = (float)uv.Start.x + 1.0f / (float)pTexture->UV_Slice_X;
-			uv.End.y = (float)uv.Start.y + 1.0f / (float)pTexture->UV_Slice_Y;
+			uv.UVEnd.x = (float)uv.UVStart.x + 1.0f / (float)pTexture->UV_Slice_X;
+			uv.UVEnd.y = (float)uv.UVStart.y + 1.0f / (float)pTexture->UV_Slice_Y;
 		}
-		graphicsContext->SetUVMatrix(uv);
+		graphicsContext->SetUVMatrixBuffer(uv);
 
 	} else {
 		// マテリアル設定
-		MATERIAL material;
+		MATERIAL material{};
 		material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		graphicsContext->SetMaterial(material);
 
-		UVMatrix uv;
-		graphicsContext->SetUVMatrix(uv);
+		UVMatrixBuffer uv;
+		graphicsContext->SetUVMatrixBuffer(uv);
 
 	}
 	if(m_spriteMesh->mesh.m_VertexLayout){

@@ -16,7 +16,7 @@
 #include "System/Transform/transformSystem.h"
 
 #include "System/Render/RenderSystem/renderSystem.h"
-#include "System/Render/Camera/cameraSystem.h"
+#include "System/Render/Camera/CameraSystem.h"
 #include "System/Render/Effect/effectSystem.h"
 #include "System/Render/Terrain/waveSystem.h"
 #include "System/Render/Terrain/terrainSystem.h"
