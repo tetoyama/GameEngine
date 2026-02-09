@@ -237,7 +237,7 @@ Entities:
             lockRotY: true
             lockRotZ: true
       - Component: MaterialComponent
-        ShaderID: 2
+        ShaderID: 1
         Material:
           BaseColor:
             x: 1

@@ -27,11 +27,6 @@
 #include "DebugTools/DebugSystem.h"
 
 // --------------------------------------------
-// 定数
-// --------------------------------------------
-static constexpr int MAX_CONTEXT_TOKEN = 4096;
-
-// --------------------------------------------
 // Initialize
 // --------------------------------------------
 void BRAIN::Initialize(EditorService* editor){

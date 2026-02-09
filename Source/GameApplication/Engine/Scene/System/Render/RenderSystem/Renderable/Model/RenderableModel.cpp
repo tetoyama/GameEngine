@@ -85,15 +85,14 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 
 		if (pModel->SetTexture) {
 			if(!pTexture){
-				MATERIAL materialData;
+				MATERIAL materialData = material;
 
 				if (pMaterial) {
 					materialData = pMaterial->Material;
+					materialData.MaterialFlags = material.MaterialFlags;
 				} else {
 					materialData.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 				}
-
-				material.MaterialFlags = 0;
 
 				aiMaterial* aiMat = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
 				aiColor4D color;

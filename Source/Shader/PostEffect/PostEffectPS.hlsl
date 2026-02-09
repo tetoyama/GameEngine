@@ -1,3 +1,20 @@
+//#include "PostEffectFunc.hlsli"
+
+//POST_PS_OUT main(PS_IN In)
+//{
+//    POST_PS_OUT Out;
+
+//    float4 albedo = GetAlbedo(In.TexCoord);
+//    float3 normal = GetWorldNormal(In.TexCoord);
+//    float4 emissive = GetEmissive(In.TexCoord);
+
+//    // 例: アルベド + エミッシブ
+//    Out.Color = albedo;
+//    Out.Normal = float4(normal, 1.0);
+//    Out.Emissive = emissive;
+
+//    return Out;
+//}
 
 #include "../common.hlsl"
 

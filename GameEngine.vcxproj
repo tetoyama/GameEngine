@@ -2636,6 +2636,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderLayer.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\LightingPass\LightingPass.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PhysXDebug\PhysXDebugPass.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\PostEffectPass.h" />
     <ClInclude Include="Source\GameApplication\Service\Audio\audioContext.h" />
     <ClInclude Include="Source\GameApplication\Service\Config\appConfig.h" />
     <ClInclude Include="Source\GameApplication\Service\DebugTools\debugSystem.h" />
