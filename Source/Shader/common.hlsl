@@ -184,6 +184,14 @@ struct PS_IN
     float2 TexCoord : TEXCOORD0;
     float4 WorldPosition : TEXCOORD1;
 };
+
+struct PS_OUT
+{
+    float4 Color : SV_Target0;
+    float4 Emmisive : SV_Target1;
+    float4 Normal : SV_Target2;
+};
+
 #endif // __cplusplus
 
 #endif // COMMON_HLSL

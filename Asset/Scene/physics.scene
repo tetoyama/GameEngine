@@ -324,7 +324,7 @@ Entities:
             - 6.32452393
             - 1
         nextLinkId: 1
-        nextPinId: 1
+        nextPinId: 2
         ScreenInput:
           Name: ""
           NodePos:
@@ -337,7 +337,7 @@ Entities:
             x: -1
             y: -1
           InputPins:
-            []
+            - 1
       - Component: CameraController
         distance: 6
         height: 2
@@ -441,7 +441,7 @@ Entities:
             lockRotY: false
             lockRotZ: false
       - Component: MaterialComponent
-        ShaderID: 1
+        ShaderID: 3
         Material:
           BaseColor:
             x: 1
@@ -500,7 +500,7 @@ Entities:
             lockRotY: false
             lockRotZ: false
       - Component: MaterialComponent
-        ShaderID: 1
+        ShaderID: 2
         Material:
           BaseColor:
             x: 0

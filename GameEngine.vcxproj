@@ -3636,6 +3636,7 @@
     <None Include="Source\Shader\Material\RimToonShader.hlsli" />
     <None Include="Source\Shader\Material\ToonShader.hlsli" />
     <None Include="Source\Shader\Material\UnlitShader.hlsli" />
+    <None Include="Source\Shader\PostEffect\PostEffectFunc.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Shader\AutoGen\DeferredRenderingPS.hlsl">

@@ -64,7 +64,7 @@
 
 
 #ifdef LOW_RESOLUTION
-#define SHADOWMAP_SIZE			(4096)
+#define SHADOWMAP_SIZE			(2048)
 #define LIGHT_MAX_COUNT			(64)
 #else
 #define SHADOWMAP_SIZE			(16384)

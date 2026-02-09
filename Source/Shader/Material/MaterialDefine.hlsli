@@ -23,6 +23,13 @@ struct MaterialInput
     float2 screenUV;
 };
 
+struct MaterialOutput
+{
+    float4 color;
+    float4 emissive;
+    float4 normal;
+};
+
 struct ShadowPCFParams
 {
     int KernelRadius; // 1 = 3x3, 2 = 5x5
