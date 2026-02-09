@@ -54,6 +54,7 @@ MaterialInput GetMaterialInput(PS_IN In)
     input.sceneID = SceneID;
     
     BaseColorTex.GetDimensions(input.screenSize.x, input.screenSize.y);
+    input.screenUV = In.Position.xy / float2(input.screenSize.x, input.screenSize.y);
     
     return input;
 }

@@ -237,6 +237,10 @@ void ModelData::LoadAnimation(const char* FileName, const char* Name){
 	}
 }
 
+static float QuaternionDot(const aiQuaternion& a, const aiQuaternion& b){
+	return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+}
+
 void ModelData::UpdateBoneAnimation(
 	const std::vector<AnimationBlend>& anims,
 	float frame
@@ -249,13 +253,9 @@ void ModelData::UpdateBoneAnimation(
 
 	const size_t boneCount = m_Bones.size();
 
-	// 一時バッファ
-	std::vector<aiQuaternion> accumRot(
-		boneCount, aiQuaternion(0, 0, 0, 0)
-	);
-	std::vector<aiVector3D> accumPos(
-		boneCount, aiVector3D(0, 0, 0)
-	);
+	std::vector<aiQuaternion> accumRot(boneCount, aiQuaternion(0, 0, 0, 0));
+	std::vector<aiVector3D>  accumPos(boneCount, aiVector3D(0, 0, 0));
+	std::vector<bool>        hasRot(boneCount, false);
 
 	for(const auto& anim : anims){
 		if(anim.weight <= 0.0f) continue;
@@ -266,33 +266,22 @@ void ModelData::UpdateBoneAnimation(
 		aiAnimation* animation = itAnim->second.Animation;
 		if(!animation) continue;
 
-		float animTime = 0.0f;
+		float time = frame + anim.animationStartTime;
+		float duration = (float)animation->mDuration;
 
-		const float duration = static_cast<float>(animation->mDuration);
-		const float time = frame + anim.animationStartTime;
-
+		float animTime;
 		if(anim.isLoop){
-			// ループあり：周期で回す
 			animTime = fmod(time, duration);
 		} else{
-			// ループなし：最後のフレームで止める
-			if(time >= duration){
-				animTime = duration;
-			} else if(time <= 0.0f){
-				animTime = 0.0f;
-			} else{
-				animTime = time;
-			}
+			animTime = std::clamp(time, 0.0f, duration);
 		}
-
 
 		float w = anim.weight / totalWeight;
 
 		for(unsigned int c = 0; c < animation->mNumChannels; c++){
 			aiNodeAnim* nodeAnim = animation->mChannels[c];
-			const char* boneName = nodeAnim->mNodeName.C_Str();
 
-			auto itBone = m_BoneIndexMap.find(boneName);
+			auto itBone = m_BoneIndexMap.find(nodeAnim->mNodeName.C_Str());
 			if(itBone == m_BoneIndexMap.end()) continue;
 
 			uint32_t idx = itBone->second;
@@ -300,19 +289,31 @@ void ModelData::UpdateBoneAnimation(
 			aiQuaternion rot = InterpolateRotation(animTime, nodeAnim);
 			aiVector3D  pos = InterpolatePosition(animTime, nodeAnim);
 
+			// ---- Quaternion Lerp (符号補正あり) ----
+			if(hasRot[idx]){
+				if(QuaternionDot(accumRot[idx], rot) < 0.0f){
+					rot = aiQuaternion(-rot.x, -rot.y, -rot.z, -rot.w);
+				}
+			}
+
 			accumRot[idx].x += rot.x * w;
 			accumRot[idx].y += rot.y * w;
 			accumRot[idx].z += rot.z * w;
 			accumRot[idx].w += rot.w * w;
+			hasRot[idx] = true;
 
 			accumPos[idx] += pos * w;
 		}
 	}
 
-	// AnimationMatrix へ反映
+	// 行列化
 	for(size_t i = 0; i < boneCount; i++){
 		aiQuaternion r = accumRot[i];
-		r.Normalize();
+		if(hasRot[i]){
+			r.Normalize();
+		} else{
+			r = aiQuaternion(); // identity
+		}
 
 		m_Bones[i].AnimationMatrix =
 			aiMatrix4x4(aiVector3D(1, 1, 1), r, accumPos[i]);
@@ -326,6 +327,8 @@ void ModelData::UpdateBoneAnimation(
 
 	UpdateBoneMatrix(AiScene->mRootNode, rootMatrix);
 }
+
+
 
 void ModelData::CPU_Skinning(
 	const std::vector<DEFORM_VERTEX>& deformVertices,

@@ -19,7 +19,7 @@ float4 ShadeMaterial_RimToon(MaterialInput materialInput)
     float c = 0.7071;
     float s = 0.7071;
     float2x2 rotMat = float2x2(c, -s, s, c);
-    float2 screenUV = materialInput.uv * materialInput.screenSize.xy;
+    float2 screenUV = materialInput.screenUV * materialInput.screenSize.xy;
     float2 rotatedPos = mul(screenUV, rotMat);
     float2 pixelPos = rotatedPos / dotDensity;
     float rowIndex = floor(pixelPos.y);

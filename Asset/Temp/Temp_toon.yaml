@@ -37,15 +37,15 @@ Entities:
             lockRotY: false
             lockRotZ: false
       - Component: MaterialComponent
-        ShaderID: 3
+        ShaderID: 2
         Material:
           BaseColor:
             x: 0.526226997
             y: 0.720619678
             z: 0.900432885
             w: 1
-          Metallic: 0
-          Roughness: 0
+          Metallic: 1
+          Roughness: 0.289999992
           AO: 0
           EmissiveColor:
             x: 0
@@ -102,9 +102,9 @@ Entities:
           z: 1
           w: 1
         Ambient:
-          x: 0.0500000007
-          y: 0.0500000007
-          z: 0.0500000007
+          x: 0.617021263
+          y: 0.617021263
+          z: 0.617021263
           w: 1
         Param:
           x: 500
@@ -371,8 +371,8 @@ Entities:
             y: 1
             z: 0
             w: 1
-          Metallic: 0
-          Roughness: 0
+          Metallic: 1
+          Roughness: 0.5
           AO: 0
           EmissiveColor:
             x: 0

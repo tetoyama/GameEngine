@@ -297,12 +297,12 @@ public:
 				if(model->blendedAnimations[2].weight <= 0.0f){
 					model->blendedAnimations[2].animationStartTime = -model->animationTime + 25.0f;
 				}
-				model->blendedAnimations[2].weight += 0.225f;
+				model->blendedAnimations[2].weight += 0.15f;
 				if(model->blendedAnimations[2].weight > 1.0f){
 					model->blendedAnimations[2].weight = 1.0f;
 				}
-				model->blendedAnimations[0].weight *= 1.0f - model->blendedAnimations[2].weight;
-				model->blendedAnimations[1].weight *= 1.0f - model->blendedAnimations[2].weight;
+				model->blendedAnimations[0].weight *= 0.5f * (1.0f - model->blendedAnimations[2].weight);
+				model->blendedAnimations[1].weight *= 0.5f * (1.0f - model->blendedAnimations[2].weight);
 				model->blendedAnimations[3].weight = 0.0f;
 			} else{
 
@@ -310,12 +310,12 @@ public:
 					model->blendedAnimations[3].animationStartTime = -model->animationTime;
 				}
 
-				model->blendedAnimations[2].weight -= 0.05f;
+				model->blendedAnimations[2].weight -= 0.01f;
 				if(model->blendedAnimations[2].weight < 0.0f){
 					model->blendedAnimations[2].weight = 0.0f;
 				}
 
-				model->blendedAnimations[3].weight += 0.225f;
+				model->blendedAnimations[3].weight += 0.15f;
 				if(model->blendedAnimations[2].weight + model->blendedAnimations[3].weight > 1.0f){
 					model->blendedAnimations[3].weight = 1.0f - model->blendedAnimations[2].weight;
 				}
@@ -323,11 +323,11 @@ public:
 				model->blendedAnimations[1].weight *= 1.0f - (model->blendedAnimations[2].weight + model->blendedAnimations[3].weight);
 			}
 		} else{
-			model->blendedAnimations[2].weight -= 0.225f;
+			model->blendedAnimations[2].weight -= 0.125f;
 			if(model->blendedAnimations[2].weight < 0.0f){
 				model->blendedAnimations[2].weight = 0.0f;
 			}
-			model->blendedAnimations[3].weight -= 0.225f;
+			model->blendedAnimations[3].weight -= 0.2f;
 			if(model->blendedAnimations[3].weight < 0.0f){
 				model->blendedAnimations[3].weight = 0.0f;
 			}
