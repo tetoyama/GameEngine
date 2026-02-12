@@ -34,45 +34,9 @@
 #include "Registry/componentRegistry.h"
 #include "Registry/systemRegistry.h"
 
-#include "Component/entityNameComponent.h"
-#include "Component/transformComponent.h"
-#include "Component/CameraComponent.h"
-#include "Component/modelRendererComponent.h"
-#include "Component/meshRendererComponent.h"
-#include "Component/BillBoardRendererComponent.h"
-#include "Component/terrainComponent.h"
-#include "Component/textureComponent.h"
-#include "Component/CustomScriptComponent.h"
-#include "Component/C#ScriptComponent.h"
-#include "Component/bumpMapComponent.h"
-#include "Component/2DspriteRendererComponent.h"
-#include "Component/RenderLayerComponent.h"
-#include "Component/LightComponent.h"
-#include "Component/particleComponent.h"
-#include "Component/audioComponent.h"
-#include "Component/outlineComponent.h"
-#include "Component/waveComponent.h"
-#include "Component/EffectComponent.h"
-#include "Component/ColliderComponent.h"
-
-#include "Script/SetScene.h"
-#include "Script/ScoreManager.h"
-#include "Script/ScoreSprite.h"
-#include "Script/PlayerController.h"
-#include "Script/GameTimeManager.h"
-#include "Script/TimerSprite.h"
-#include "Script/BallController.h"
-#include "Script/EnemyController.h"
-#include "Script/FadeInSprite.h"
-#include "Script/FadeOutSprite.h"
-#include "Script/FadeSetScene.h"
-#include "Script/CameraController.h"
-#include <Script/GN31.h>
-#include <Component/materialComponent.h>
-
+#include "Component/componentList.h"
 
 Scene::Scene(){
-
 }
 
 Scene::~Scene(){
@@ -89,66 +53,12 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_entityRegistry = std::make_shared<EntityRegistry>();
 	m_componentRegistry = std::make_shared<ComponentRegistry>(m_entityRegistry.get(),&m_SceneContext);
 
-	// コンポーネントを登録（Archetype or Sparse を選択）
-	// ボトルネックが見つかったコンポーネントから ArchetypeStorage<T> に移行
 
-	// 名前
-	m_componentRegistry->RegisterYAMLComponent<NameComponent>("NameComponent", false);
-
-	// トランスフォーム
-	m_componentRegistry->RegisterYAMLComponent<TransformComponent>("TransformComponent", false);
-
-	// コライダー
-	m_componentRegistry->RegisterYAMLComponent<ColliderComponent>("ColliderComponent", false);
-
-	// オーディオ
-	m_componentRegistry->RegisterYAMLComponent<AudioComponent>("AudioComponent", false);
-
-
-	// 描画レイヤー
-	m_componentRegistry->RegisterYAMLComponent<RenderLayerComponent>("RenderLayerComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<OrderInLayerComponent>("OrderInLayerComponent", false);
-
-	// テクスチャ
-	m_componentRegistry->RegisterYAMLComponent<MaterialComponent>("MaterialComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<TextureComponent>("TextureComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<BumpMapComponent>("BumpMapComponent", false);
-
-	// ライティング
-	m_componentRegistry->RegisterYAMLComponent<LightComponent>("LightComponent", false);
-
-	// レンダリング
-	m_componentRegistry->RegisterYAMLComponent<MeshRendererComponent>("MeshRendererComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<ModelRendererComponent>("ModelRendererComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<BillBoardRendererComponent>("BillBoardRendererComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<SpriteRendererComponent>("SpriteRendererComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<TerrainComponent>("TerrainComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<WaveComponent>("WaveComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<OutlineComponent>("OutlineComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<ParticleComponent>("ParticleComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<EffectComponent>("EffectComponent", false);
-
-	// カメラ
-	m_componentRegistry->RegisterYAMLComponent<CameraComponent>("CameraComponent", false);
-
-	// カスタムスクリプト
-	m_componentRegistry->RegisterYAMLComponent<CustomScriptComponent>("CustomScriptComponent", false);
-	m_componentRegistry->RegisterYAMLComponent<CSharpScriptComponent>("CSharpScriptComponent", false);
-
-	// ユーザー定義のスクリプトコンポーネントを登録
-	m_componentRegistry->RegisterYAMLComponent<SetScene>("SetScene", false);
-	m_componentRegistry->RegisterYAMLComponent<ScoreManager>("ScoreManager", false);
-	m_componentRegistry->RegisterYAMLComponent<ScoreSprite>("ScoreSprite", false);
-	m_componentRegistry->RegisterYAMLComponent<PlayerController>("PlayerController", false);
-	m_componentRegistry->RegisterYAMLComponent<GameTimeManager>("GameTimeManager", false);
-	m_componentRegistry->RegisterYAMLComponent<TimerSprite>("TimerSprite", false);
-	m_componentRegistry->RegisterYAMLComponent<CameraController>("CameraController", false);
-	m_componentRegistry->RegisterYAMLComponent<BallController>("BallController", false);
-	m_componentRegistry->RegisterYAMLComponent<EnemyController>("EnemyController", false);
-	m_componentRegistry->RegisterYAMLComponent<FadeInSprite>("FadeInSprite", false);
-	m_componentRegistry->RegisterYAMLComponent<FadeOutSprite>("FadeOutSprite", false);
-	m_componentRegistry->RegisterYAMLComponent<FadeSetScene>("FadeSetScene", false);
-	m_componentRegistry->RegisterYAMLComponent<GN31>("GN31", false);
+	// コンポーネントの登録
+#define REGISTER(T, STORAGE) \
+    m_componentRegistry->RegisterYAMLComponent<T>(#T, STORAGE == COMPONENT_ARCHETYPE);
+	COMPONENT_LIST(REGISTER)
+#undef REGISTER
 
 	// シーンコンテキストの初期化
 	auto Renderer = m_SceneManagerContext->renderer;
@@ -159,9 +69,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_SceneContext.component = m_componentRegistry.get();
 
 	auto graphicsContext = Renderer->GetGraphicsContext();
-	// ライティングの仮設定
-	//LIGHT light[LIGHT_MAX_COUNT];
-	//graphicsContext->SetLight(light);
+
 	graphicsContext->SetDepthMode(DepthMode::Write);
 
 	// デフォルトのシーンを構築
@@ -174,19 +82,12 @@ void Scene::Initialize(SceneManagerContext* set){
 }
 
 void Scene::Update(float deltaTime){
-
-	//m_systemRegistry->UpdateAll(deltaTime);
-	//m_systemRegistry->EditorUpdateAll(deltaTime);
 }
 
 void Scene::FixedUpdate(float fixedDeltaTime){
-
-	//m_systemRegistry->FixedUpdateAll(fixedDeltaTime);
 }
 
 void Scene::Draw(){
-
-	//m_systemRegistry->DrawAll();
 }
 
 void Scene::Shutdown(){

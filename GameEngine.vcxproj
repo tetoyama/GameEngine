@@ -110,7 +110,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)/Source;$(ProjectDir)/Source/GameApplication;$(ProjectDir)/Source/GameApplication/Service;$(ProjectDir)/Source/GameApplication/Backends;$(ProjectDir)/Source/GameApplication/Engine;$(ProjectDir)/Source/GameApplication/Engine/Scene</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)/Source;$(ProjectDir)/Source/GameApplication;$(ProjectDir)/Source/GameApplication/Service;$(ProjectDir)/Source/GameApplication/Backends;$(ProjectDir)/Source/GameApplication/Engine;$(ProjectDir)/Source/GameApplication/Backends/LLVM/include;$(ProjectDir)/Source/GameApplication/Engine/Scene</AdditionalIncludeDirectories>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -124,7 +124,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>\Source\GameApplication\Backends\PhysX\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\Source\GameApplication\Backends\PhysX\lib;$(ProjectDir)\Source\GameApplication\Backends\LLVM\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ObjectFileOutput>Asset\Shader\%(Filename).cso</ObjectFileOutput>
@@ -139,7 +139,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)/Source/GameApplication/Engine/Scene;$(ProjectDir);$(ProjectDir)/Source;$(ProjectDir)/Source/GameApplication;$(ProjectDir)/Source/GameApplication/Service;$(ProjectDir)/Source/GameApplication/Backends;$(ProjectDir)/Source/GameApplication/Engine</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/Source/GameApplication/Engine/Scene;$(ProjectDir);$(ProjectDir)/Source;$(ProjectDir)/Source/GameApplication;$(ProjectDir)/Source/GameApplication/Service;$(ProjectDir)/Source/GameApplication/Backends;$(ProjectDir)/Source/GameApplication/Engine;$(ProjectDir)/Source/GameApplication/Backends/LLVM/include</AdditionalIncludeDirectories>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -155,7 +155,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>\Source\GameApplication\Backends\PhysX\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\Source\GameApplication\Backends\PhysX\lib;$(ProjectDir)\Source\GameApplication\Backends\LLVM\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ObjectFileOutput>Asset\Shader\%(Filename).cso</ObjectFileOutput>
@@ -2631,12 +2631,16 @@
     <ClInclude Include="Source\GameApplication\Engine\Editor\UI\ViewWindow.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\llamaModelData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\llamaModelLoader.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\componentList.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\materialComponent.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\scriptComponent.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\IScriptComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Effect\RenderableEffect.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderLayer.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\LightingPass\LightingPass.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PhysXDebug\PhysXDebugPass.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\PostEffectPass.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Script\ScriptSystem.h" />
     <ClInclude Include="Source\GameApplication\Service\Audio\audioContext.h" />
     <ClInclude Include="Source\GameApplication\Service\Config\appConfig.h" />
     <ClInclude Include="Source\GameApplication\Service\DebugTools\debugSystem.h" />
@@ -2694,7 +2698,6 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\outlineComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\particleComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\RenderLayerComponent.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\C#ScriptComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\terrainComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\textureComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\waveComponent.h" />
@@ -2746,7 +2749,6 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\ShadowMap\ShadowMapPass.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderPhase.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderSystem.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Script\C#ScriptSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderTarget\renderTarget.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Terrain\terrainSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Transform\transformSystem.h" />
@@ -3498,6 +3500,7 @@
     <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\stream.cpp" />
     <ClCompile Include="Source\GameApplication\Backends\yaml-cpp\tag.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\Analysis\AnalyzerManager.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Editor\Analysis\SourceAnalyzer.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\editorService.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\AssetsBrowser.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\BRAIN.cpp" />
@@ -3509,10 +3512,12 @@
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\ViewWindow.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Resources\Data\llamaModelData.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Resources\resourceService.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\Component\scriptComponent.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Effect\RenderableEffect.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\LightingPass\LightingPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PhysXDebug\PhysXDebugPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderSystem.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\ScriptSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Service\DebugTools\debugSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Service\DebugTools\ImGuiSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\MenuBar.cpp" />
@@ -3551,7 +3556,6 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PlayerView\PlayerPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\RenderPassContext.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\ShadowMap\ShadowMapPass.cpp" />
-    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\C#ScriptSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderTarget\renderTarget.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Transform\transformSystem.cpp" />
     <ClCompile Include="Source\GameApplication\gameApplication.cpp" />

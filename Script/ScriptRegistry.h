@@ -1,0 +1,49 @@
+#pragma once
+#include <unordered_map>
+#include <functional>
+#include <string>
+
+#include "Scene/Interface/IScriptComponent.h"
+#include "Backends/yaml-cpp/yaml.h"
+#include "Backends/ImGui/imgui.h"
+
+#define REGISTER_SCRIPT(NAME, TYPE) \
+	namespace { \
+		struct TYPE##AutoRegister { \
+			TYPE##AutoRegister() { \
+				ScriptRegistry::Instance().Register( \
+					NAME, []() { return new TYPE(); }); \
+			} \
+		}; \
+		static TYPE##AutoRegister s_##TYPE##AutoRegister; \
+	}
+
+class ScriptRegistry
+{
+public:
+	using Factory = std::function<IScriptComponent* ()>;
+
+	static ScriptRegistry& Instance(){
+		static ScriptRegistry instance;
+		return instance;
+	}
+
+	void Register(const char* name, Factory factory){
+		m_factories[name] = factory;
+	}
+
+	IScriptComponent* Create(const char* name){
+
+		OutputDebugStringA(("ScriptRegistry: Create Script [" + std::string(name) + "]\n").c_str());
+
+		auto it = m_factories.find(name);
+		if(it == m_factories.end()){
+			OutputDebugStringA(("ScriptRegistry: Script [" + std::string(name) + "] not found!\n").c_str());
+			return nullptr;
+		}
+		return it->second();
+	}
+
+private:
+	std::unordered_map<std::string, Factory> m_factories;
+};

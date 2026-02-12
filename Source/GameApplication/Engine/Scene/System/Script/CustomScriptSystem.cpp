@@ -1,7 +1,6 @@
 #include "CustomScriptSystem.h"
 #include "Component/CustomScriptComponent.h"
 
-#include "C#ScriptSystem.h"
 #include "Scene.h"
 #include "sceneManager.h"
 #include "DebugTools/debugSystem.h"

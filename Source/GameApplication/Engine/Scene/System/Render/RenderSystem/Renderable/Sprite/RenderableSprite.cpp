@@ -90,6 +90,7 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 
 
 	MATERIAL material{};
+	material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
 	if (pMaterial) {
 		material = pMaterial->Material;

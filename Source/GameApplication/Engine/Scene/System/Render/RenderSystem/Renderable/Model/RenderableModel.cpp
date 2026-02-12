@@ -87,13 +87,6 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 			if(!pTexture){
 				MATERIAL materialData = material;
 
-				if (pMaterial) {
-					materialData = pMaterial->Material;
-					materialData.MaterialFlags = material.MaterialFlags;
-				} else {
-					materialData.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-				}
-
 				aiMaterial* aiMat = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
 				aiColor4D color;
 				if(aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS){
@@ -107,24 +100,21 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 					}
 				}
 
-				aiMaterial* material = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
+				aiMaterial* aimaterial = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
 				aiString texName;
-				if(material->GetTexture(aiTextureType_DIFFUSE, 0, &texName) == AI_SUCCESS && texName.length > 0){
+				if(aimaterial->GetTexture(aiTextureType_DIFFUSE, 0, &texName) == AI_SUCCESS && texName.length > 0){
 					auto it = pModel->m_Texture.find(texName.C_Str());
 					if(it != pModel->m_Texture.end()){
-						deviceContext->PSSetShaderResources(0, 1, &it->second);
+						deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, &it->second);
 						materialData.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 					}
 				}
-				if(material->GetTexture(aiTextureType_NORMALS, 0, &texName) == AI_SUCCESS && texName.length > 0){
+				if(aimaterial->GetTexture(aiTextureType_NORMALS, 0, &texName) == AI_SUCCESS && texName.length > 0){
 					auto it = pModel->m_Texture.find(texName.C_Str());
 					if(it != pModel->m_Texture.end()){
 						deviceContext->PSSetShaderResources(1, 1, &it->second);
 						materialData.MaterialFlags |= MATERIAL_FLAG_USE_NORMAL_TEXTURE;
 					}
-				}
-
-				if(pModel->SetTexture){
 				}
 				graphicsContext->SetMaterial(materialData);
 			} else{

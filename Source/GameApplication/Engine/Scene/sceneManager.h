@@ -76,7 +76,7 @@ public:
 
 	void SaveScenes();
 
-	std::unordered_map<std::string, std::shared_ptr<Scene>>& GetActiveScenes() { return m_activeScenes; }
+	const std::unordered_map<std::string, std::shared_ptr<Scene>>& GetActiveScenes() const { return m_activeScenes; }
 
 	std::shared_ptr<Scene> OpenFromYAMLFile();
 	std::shared_ptr<Scene> LoadFromFilePath(const std::string& filePath);

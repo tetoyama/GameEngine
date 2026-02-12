@@ -22,12 +22,13 @@
 #include "System/Render/Terrain/terrainSystem.h"
 #include "System/Render/Particle/particleSystem.h"
 
-#include "System/Script/C#ScriptSystem.h"
 #include "System/Script/CustomScriptSystem.h"
 
 #include "System/Audio/audioSystem.h"
 
 #include "System/Physic/physicSystem.h"
+#include "System/Script/ScriptSystem.h"
+
 #include "Editor/editorService.h"
 #include <Editor/UI/Inspector.h>
 #include <Editor/UI/Hierarchy.h>
@@ -60,9 +61,9 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 	systemRegistry->RegisterSystem(std::make_unique<EffectSystem>(&m_SceneContext));
 	systemRegistry->RegisterSystem(std::make_unique<TerrainSystem>(&m_SceneContext));
 	systemRegistry->RegisterSystem(std::make_unique<PhysicSystem>(&m_SceneContext));
-	systemRegistry->RegisterSystem(std::make_unique<CSharpScriptSystem>(&m_SceneContext));
 	systemRegistry->RegisterSystem(std::make_unique<CustomScriptSystem>(&m_SceneContext));
 	systemRegistry->RegisterSystem(std::make_unique<WaveSystem>(&m_SceneContext));
+	systemRegistry->RegisterSystem(std::make_unique<ScriptSystem>(&m_SceneContext));
 
 	// システムの初期化
 	systemRegistry->InitializeAll();

@@ -4,15 +4,10 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.12.35514.174
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GameEngine", "GameEngine.vcxproj", "{4F91E03F-271A-4F73-B07A-2B214D8F4F72}"
-	ProjectSection(ProjectDependencies) = postProject
-		{D03A92A3-5586-C272-E502-32F049B2F7B4} = {D03A92A3-5586-C272-E502-32F049B2F7B4}
-	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClassLibrary", "Source\GameApplication\Backends\ClassLibrary\ClassLibrary.csproj", "{B54809CA-C49C-4D6E-B748-1A5484EF3A72}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ScriptWrapper", "Source\GameApplication\Backends\ScriptWrapper\ScriptWrapper.vcxproj", "{D03A92A3-5586-C272-E502-32F049B2F7B4}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Script", "Script\Script.vcxproj", "{80362F2A-5F73-48FC-AF23-CEFCAA725ED0}"
 	ProjectSection(ProjectDependencies) = postProject
-		{B54809CA-C49C-4D6E-B748-1A5484EF3A72} = {B54809CA-C49C-4D6E-B748-1A5484EF3A72}
+		{4F91E03F-271A-4F73-B07A-2B214D8F4F72} = {4F91E03F-271A-4F73-B07A-2B214D8F4F72}
 	EndProjectSection
 EndProject
 Global
@@ -25,13 +20,10 @@ Global
 		{4F91E03F-271A-4F73-B07A-2B214D8F4F72}.Debug|x64.Build.0 = Debug|x64
 		{4F91E03F-271A-4F73-B07A-2B214D8F4F72}.Release|x64.ActiveCfg = Release|x64
 		{4F91E03F-271A-4F73-B07A-2B214D8F4F72}.Release|x64.Build.0 = Release|x64
-		{B54809CA-C49C-4D6E-B748-1A5484EF3A72}.Debug|x64.ActiveCfg = Debug|x64
-		{B54809CA-C49C-4D6E-B748-1A5484EF3A72}.Debug|x64.Build.0 = Debug|x64
-		{B54809CA-C49C-4D6E-B748-1A5484EF3A72}.Release|x64.ActiveCfg = Release|x64
-		{D03A92A3-5586-C272-E502-32F049B2F7B4}.Debug|x64.ActiveCfg = Debug|x64
-		{D03A92A3-5586-C272-E502-32F049B2F7B4}.Debug|x64.Build.0 = Debug|x64
-		{D03A92A3-5586-C272-E502-32F049B2F7B4}.Release|x64.ActiveCfg = Release|x64
-		{D03A92A3-5586-C272-E502-32F049B2F7B4}.Release|x64.Build.0 = Release|x64
+		{80362F2A-5F73-48FC-AF23-CEFCAA725ED0}.Debug|x64.ActiveCfg = Debug|x64
+		{80362F2A-5F73-48FC-AF23-CEFCAA725ED0}.Debug|x64.Build.0 = Debug|x64
+		{80362F2A-5F73-48FC-AF23-CEFCAA725ED0}.Release|x64.ActiveCfg = Release|x64
+		{80362F2A-5F73-48FC-AF23-CEFCAA725ED0}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

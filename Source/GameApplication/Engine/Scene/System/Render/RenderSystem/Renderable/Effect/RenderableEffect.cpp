@@ -18,7 +18,7 @@ void RenderableEffect::Execute(const RenderPassContext& ctx, SceneContext* scene
 	Effekseer::Matrix44 effekseerViewMatrix = ConvertXMMATRIXToMatrix44(ctx.viewMatrix);
 
 	m_context->graphics->GetEffectRenderer()->SetProjectionMatrix(effekseerProjectionMatrix);
-	m_context->graphics->GetEffectRenderer()->SetCameraBufferMatrix(effekseerViewMatrix);
+	m_context->graphics->GetEffectRenderer()->SetCameraMatrix(effekseerViewMatrix);
 
 	m_context->graphics->GetEffectRenderer()->BeginRendering();
 	m_context->graphics->GetEffectManager()->DrawHandle(effect->m_Handle);
