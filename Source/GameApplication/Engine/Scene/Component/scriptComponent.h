@@ -7,6 +7,7 @@
 #include "Scene/sceneManager.h"
 #include "Registry/systemRegistry.h"
 #include "System/Script/ScriptSystem.h"
+#include <variant>
 
 class ScriptComponent: public IComponent {
 public:

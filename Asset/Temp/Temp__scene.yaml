@@ -276,7 +276,7 @@ Entities:
         Stamina: 5
       - Component: ScriptComponent
         Character:
-          speed: 5
+          speed: 6
           hp: 100
           isAlive: true
   - Entity: 5

@@ -1,218 +1,209 @@
 #pragma once
-#include <backends/yaml-cpp/yaml.h>
-#include <backends/ImGui/imgui.h>
-#include <backends/myVector3.h>
-#include "BackEnds/ImGuiFunc.h"
-#include "BackEnds/YAMLConverters.h"
 
+#include <vector>
+#include <string>
+#include <variant>
+#include <functional>
+
+#include <backends/yaml-cpp/yaml.h>
 #include <Scene/scene.h>
 
-class IScriptComponent
-{
+// ================================
+// Param system
+// ================================
+
+using ParamValue = std::variant<int, float, bool, std::string>;
+
+struct ScriptParam {
+    std::string name;
+    ParamValue  value;
+    void* ptr;   // 実体メンバへのポインタ
+};
+
+// ================================
+// IScriptComponent
+// ================================
+
+class IScriptComponent {
 public:
-	virtual ~IScriptComponent(){}
+    virtual ~IScriptComponent() = default;
 
-	// Script 識別子（唯一の契約）
-	virtual const char* GetScriptName() const = 0;
+    // Script ID
+    virtual const char* GetScriptName() const = 0;
 
-	void Start(){
-		if(!isInitialized){
-			OnStart();
-			isInitialized = true;
-		}
-	}
-	void Update(float dt){
-		if(isInitialized){
-			OnUpdate(dt);
-		}
-	}
-	void FixedUpdate(float dt){
-		if(isInitialized){
-			OnFixedUpdate(dt);
-		}
-	}
-	void Draw(){
-		if(isInitialized){
-			OnDraw();
-		}
-	}
-	void EditorUpdate(float dt){
-		if(isInitialized){
-			OnEditorUpdate(dt);
-		}
-	}
-	void Stop(){
-		if(isInitialized){
-			OnStop();
-			isInitialized = false;
-		}
-	}
+    // ----------------------------
+    // Life cycle
+    // ----------------------------
+    void Start() {
+        if (!isInitialized) {
+            OnStart();
+            isInitialized = true;
+        }
+    }
 
-	virtual YAML::Node Encode(){
-		return {};
-	}
-	virtual void Decode(const YAML::Node&){}
-	virtual void Inspector(){}
+    void Update(float dt) {
+        if (isInitialized) OnUpdate(dt);
+    }
 
-	Entity entity{};
-	SceneContext* context{};
+    void FixedUpdate(float dt) {
+        if (isInitialized) OnFixedUpdate(dt);
+    }
+
+    void Draw() {
+        if (isInitialized) OnDraw();
+    }
+
+    void EditorUpdate(float dt) {
+        if (isInitialized) OnEditorUpdate(dt);
+    }
+
+    void Stop() {
+        if (isInitialized) {
+            OnStop();
+            isInitialized = false;
+        }
+    }
+
+    // ----------------------------
+    // YAML
+    // ----------------------------
+    virtual YAML::Node Encode() { return {}; }
+    virtual void Decode(const YAML::Node&) {}
+
+    // ----------------------------
+    // Param access
+    // ----------------------------
+    std::vector<ScriptParam>& GetParams() { return params; }
+
+    void SetParam(const std::string& name, const ParamValue& value) {
+        for (auto& p : params) {
+            if (p.name == name) {
+                p.value = value;
+
+                // 実体へ反映
+                if (p.ptr) {
+                    std::visit([&](auto&& v) {
+                        using T = std::decay_t<decltype(v)>;
+                        *reinterpret_cast<T*>(p.ptr) = v;
+                    }, value);
+                }
+                return;
+            }
+        }
+    }
+
+    Entity entity{};
+    SceneContext* context{};
 
 protected:
+    // ----------------------------
+    // Overridable
+    // ----------------------------
+    virtual void OnStart() {}
+    virtual void OnStop() {}
+    virtual void OnUpdate(float) {}
+    virtual void OnFixedUpdate(float) {}
+    virtual void OnEditorUpdate(float) {}
+    virtual void OnDraw() {}
 
-	// ライフサイクル
-	virtual void OnStart(){}
-	virtual void OnStop(){}
-	virtual void OnUpdate(float dt){}
-	virtual void OnFixedUpdate(float dt){}
-	virtual void OnEditorUpdate(float dt){}
-	virtual void OnDraw(){}
+    bool isInitialized = false;
 
-
-	std::string scriptName = "ScriptComponent";
-	bool isInitialized = false; // 初期化フラグ
-
-public:
-	void DragFloat(const char* label, float& value){
-		ImGui::DragFloat(label, &value, 0.1f);
-	}
+    // Editor/YAML 用キャッシュ
+    std::vector<ScriptParam> params;
 };
+
+// ================================
+// Reflection system
+// ================================
 
 enum ScriptReflectFlags {
-	SCRIPT_REFLECT_NONE = 0,
-	SCRIPT_REFLECT_INSPECTOR = 1 << 0,
-	SCRIPT_REFLECT_ENCODE = 1 << 1,
-	SCRIPT_REFLECT_DECODE = 1 << 2,
-	SCRIPT_REFLECT_ALL = SCRIPT_REFLECT_INSPECTOR | SCRIPT_REFLECT_ENCODE | SCRIPT_REFLECT_DECODE
-};
-
-template<typename T>
-struct ScriptFieldHandler;
-
-// float
-template<>
-struct ScriptFieldHandler<float> {
-	static void Decode(const YAML::Node& node, IScriptComponent*, float& v, const char* name){
-		if(node[name]) v = node[name].as<float>();
-	}
-	static void Encode(YAML::Node& node, IScriptComponent*, float& v, const char* name){
-		node[name] = v;
-	}
-	static void Inspector(IScriptComponent* component, float& v, const char* name){
-		component->DragFloat(name, v);
-	}
-};
-
-// int
-template<>
-struct ScriptFieldHandler<int> {
-	static void Decode(const YAML::Node& node, IScriptComponent*, int& v, const char* name){
-		if(node[name]) v = node[name].as<int>();
-	}
-	static void Encode(YAML::Node& node, IScriptComponent*, int& v, const char* name){
-		node[name] = v;
-	}
-	static void Inspector(IScriptComponent*, int& v, const char* name){
-		//ImGui::DragInt(name, &v);
-	}
-};
-
-// bool
-template<>
-struct ScriptFieldHandler<bool> {
-	static void Decode(const YAML::Node& node, IScriptComponent*, bool& v, const char* name){
-		if(node[name]) v = node[name].as<bool>();
-	}
-	static void Encode(YAML::Node& node, IScriptComponent*, bool& v, const char* name){
-		node[name] = v;
-	}
-	static void Inspector(IScriptComponent*, bool& v, const char* name){
-		//ImGui::Checkbox(name, &v);
-	}
-};
-
-// Vector3
-template<>
-struct ScriptFieldHandler<Vector3> {
-	static void Decode(const YAML::Node& node, IScriptComponent*, Vector3& v, const char* name){
-		if(node[name]) v = node[name].as<Vector3>();
-	}
-	static void Encode(YAML::Node& node, IScriptComponent*, Vector3& v, const char* name){
-		node[name] = v;
-	}
-	static void Inspector(IScriptComponent*, Vector3& v, const char* name){
-		//ImGui::DragVec3(name, v);
-	}
-};
-
-// string
-template<>
-struct ScriptFieldHandler<std::string> {
-	static void Decode(const YAML::Node& node, IScriptComponent*, std::string& v, const char* name){
-		if(node[name]) v = node[name].as<std::string>();
-	}
-	static void Encode(YAML::Node& node, IScriptComponent*, std::string& v, const char* name){
-		node[name] = v;
-	}
-	static void Inspector(IScriptComponent*, std::string& v, const char* name){
-		//ImGui::InputText(name, v.data(), v.capacity() + 1);
-	}
+    SCRIPT_REFLECT_NONE = 0,
+    SCRIPT_REFLECT_INSPECTOR = 1 << 0,
+    SCRIPT_REFLECT_ENCODE = 1 << 1,
+    SCRIPT_REFLECT_DECODE = 1 << 2,
+    SCRIPT_REFLECT_ALL =
+    SCRIPT_REFLECT_INSPECTOR |
+    SCRIPT_REFLECT_ENCODE |
+    SCRIPT_REFLECT_DECODE
 };
 
 struct ScriptFieldInfo {
-	std::string name;
-	size_t offset;
-	std::function<void(IScriptComponent*, void*)> inspectorFunc;
-	std::function<void(YAML::Node&, IScriptComponent*, void*)> encodeFunc;
-	std::function<void(const YAML::Node&, IScriptComponent*, void*)> decodeFunc;
-	int flags;
+    const char* name;
+    size_t offset;
+    std::function<void(IScriptComponent*)> inspector;
+    std::function<void(YAML::Node&, IScriptComponent*)> encode;
+    std::function<void(const YAML::Node&, IScriptComponent*)> decode;
+    int flags;
 };
+
+// ================================
+// Macros
+// ================================
 
 #define BEGIN_SCRIPT_REFLECT(ClassName) \
 public: \
-	using ThisType = ClassName; \
-	static std::vector<ScriptFieldInfo>& GetMetaStatic(){ \
-		static std::vector<ScriptFieldInfo> fields; \
-		return fields; \
-	}
+    using ThisType = ClassName; \
+    static std::vector<ScriptFieldInfo>& GetMetaStatic() { \
+        static std::vector<ScriptFieldInfo> fields; \
+        return fields; \
+    }
 
-#define SCRIPT_REFLECT_FIELD(Type, Name, ...) \
-	Type Name = __VA_ARGS__; \
-	struct AutoRegister_##Name { \
-		AutoRegister_##Name(){ \
-			static bool registered = false; \
-			if(!registered){ \
-				ThisType::GetMetaStatic().push_back({ \
-					#Name, offsetof(ThisType, Name), \
-					[](IScriptComponent* c, void*){ \
-						auto* f = reinterpret_cast<Type*>(reinterpret_cast<char*>(c) + offsetof(ThisType, Name)); \
-						ScriptFieldHandler<Type>::Inspector(c, *f, #Name); \
-					}, \
-					[](YAML::Node& n, IScriptComponent* c, void*){ \
-						auto* f = reinterpret_cast<Type*>(reinterpret_cast<char*>(c) + offsetof(ThisType, Name)); \
-						ScriptFieldHandler<Type>::Encode(n, c, *f, #Name); \
-					}, \
-					[](const YAML::Node& n, IScriptComponent* c, void*){ \
-						auto* f = reinterpret_cast<Type*>(reinterpret_cast<char*>(c) + offsetof(ThisType, Name)); \
-						ScriptFieldHandler<Type>::Decode(n, c, *f, #Name); \
-					}, \
-					SCRIPT_REFLECT_ALL \
-				}); \
-				registered = true; \
-			} \
-		} \
-	} _autoRegister_##Name;
+#define SCRIPT_REFLECT_FIELD(Type, Name, DefaultValue) \
+    Type Name = DefaultValue; \
+    struct AutoRegister_##Name { \
+        AutoRegister_##Name() { \
+            static bool registered = false; \
+            if (!registered) { \
+                ThisType::GetMetaStatic().push_back({ \
+                    #Name, offsetof(ThisType, Name), \
+                    /* Inspector */ \
+                    [](IScriptComponent* c) { \
+                        auto* self = static_cast<ThisType*>(c); \
+                        auto* ptr = &self->Name; \
+                        auto& params = c->GetParams(); \
+                        bool found = false; \
+                        for (auto& p : params) { \
+                            if (p.name == #Name) { \
+                                p.ptr = ptr; \
+                                p.value = *ptr; \
+                                found = true; \
+                                break; \
+                            } \
+                        } \
+                        if (!found) { \
+                            params.push_back({ #Name, *ptr, ptr }); \
+                        } \
+                    }, \
+                    /* Encode */ \
+                    [](YAML::Node& n, IScriptComponent* c) { \
+                        auto* self = static_cast<ThisType*>(c); \
+                        n[#Name] = self->Name; \
+                    }, \
+                    /* Decode */ \
+                    [](const YAML::Node& n, IScriptComponent* c) { \
+                        if (!n[#Name]) return; \
+                        auto* self = static_cast<ThisType*>(c); \
+                        self->Name = n[#Name].as<Type>(); \
+                        c->SetParam(#Name, self->Name); \
+                    }, \
+                    SCRIPT_REFLECT_ALL \
+                }); \
+                registered = true; \
+            } \
+        } \
+    } _autoRegister_##Name;
 
 #define SCRIPT_INSPECTOR_FIELDS() \
-	for(auto& f : ThisType::GetMetaStatic()) \
-		if(f.flags & SCRIPT_REFLECT_INSPECTOR && f.inspectorFunc) \
-			f.inspectorFunc(this, nullptr)
+    for (auto& f : ThisType::GetMetaStatic()) \
+        if (f.flags & SCRIPT_REFLECT_INSPECTOR) \
+            f.inspector(this)
 
 #define SCRIPT_ENCODE_FIELDS(Node) \
-	for(auto& f : ThisType::GetMetaStatic()) \
-		if(f.flags & SCRIPT_REFLECT_ENCODE && f.encodeFunc) \
-			f.encodeFunc(Node, this, nullptr)
+    for (auto& f : ThisType::GetMetaStatic()) \
+        if (f.flags & SCRIPT_REFLECT_ENCODE) \
+            f.encode(Node, this)
 
 #define SCRIPT_DECODE_FIELDS(Node) \
-	for(auto& f : ThisType::GetMetaStatic()) \
-		if(f.flags & SCRIPT_REFLECT_DECODE && f.decodeFunc) \
-			f.decodeFunc(Node, this, nullptr)
+    for (auto& f : ThisType::GetMetaStatic()) \
+        if (f.flags & SCRIPT_REFLECT_DECODE) \
+            f.decode(Node, this)

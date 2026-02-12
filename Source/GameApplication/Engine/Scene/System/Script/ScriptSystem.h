@@ -10,6 +10,8 @@
 #include "Scene/Component/ScriptComponent.h"
 #include "Scene/Registry/componentRegistry.h"
 
+using SetImGuiContextFunc = void(*)(void*);
+
 class ScriptSystem: public ISystem
 {
 public:
@@ -80,6 +82,12 @@ public:
 			: static_cast<ComponentTypeID>(-1);
 	}
 
+	void SystemSetting() override {
+		if (ImGui::Button("Reload Script DLL")) {
+			ReloadScriptDLL("Script.dll");
+		}
+	}
+
 private:
 	SceneManagerContext* m_context = nullptr;
 
@@ -92,7 +100,9 @@ private:
 	// Script型 → Engine ComponentTypeID
 	std::unordered_map<std::type_index, ComponentTypeID> m_engineTypeIDs;
 
-	std::function<IScriptComponent*(const char*)> m_scriptBridge;
+	std::function<IScriptComponent*(const char*)> m_scriptBridge = nullptr;
+
+	std::function<void(void*)> m_setImGuiContextFunc = nullptr;
 
 	HMODULE m_scriptModule = nullptr;
 

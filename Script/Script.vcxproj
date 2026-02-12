@@ -149,11 +149,13 @@
   <ItemGroup>
     <ClInclude Include="Character.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="HelloWorld.h" />
     <ClInclude Include="ScriptRegistry.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Character.cpp" />
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="HelloWorld.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\Source\GameApplication\Backends\yaml-cpp\yaml-cpp.lib">
@@ -164,11 +166,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </Library>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\GameEngine.vcxproj">
-      <Project>{4f91e03f-271a-4f73-b07a-2b214d8f4f72}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

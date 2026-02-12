@@ -53,6 +53,8 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 
 	systemRegistry = std::make_shared<SystemRegistry>();
 
+	systemRegistry->RegisterSystem(std::make_unique<ScriptSystem>(&m_SceneContext));
+
 	systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
 	systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
 	systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
@@ -63,7 +65,6 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 	systemRegistry->RegisterSystem(std::make_unique<PhysicSystem>(&m_SceneContext));
 	systemRegistry->RegisterSystem(std::make_unique<CustomScriptSystem>(&m_SceneContext));
 	systemRegistry->RegisterSystem(std::make_unique<WaveSystem>(&m_SceneContext));
-	systemRegistry->RegisterSystem(std::make_unique<ScriptSystem>(&m_SceneContext));
 
 	// システムの初期化
 	systemRegistry->InitializeAll();

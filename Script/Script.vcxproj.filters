@@ -27,12 +27,18 @@
     <ClInclude Include="Character.h">
       <Filter>Script</Filter>
     </ClInclude>
+    <ClInclude Include="HelloWorld.h">
+      <Filter>Script</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Character.cpp">
+      <Filter>Script</Filter>
+    </ClCompile>
+    <ClCompile Include="HelloWorld.cpp">
       <Filter>Script</Filter>
     </ClCompile>
   </ItemGroup>

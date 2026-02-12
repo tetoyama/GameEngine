@@ -3257,6 +3257,9 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\Component\scriptComponent.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Scene\Interface\IScriptComponent.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\GameApplication\Backends\Assimp\color4.inl">

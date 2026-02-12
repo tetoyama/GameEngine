@@ -5,7 +5,6 @@
 
 #include "Scene/Interface/IScriptComponent.h"
 #include "Backends/yaml-cpp/yaml.h"
-#include "Backends/ImGui/imgui.h"
 
 #define REGISTER_SCRIPT(NAME, TYPE) \
 	namespace { \
@@ -42,6 +41,10 @@ public:
 			return nullptr;
 		}
 		return it->second();
+	}
+
+	void Destroy(IScriptComponent* script) {
+		delete script;
 	}
 
 private:

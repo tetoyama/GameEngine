@@ -1,4 +1,5 @@
 // dllmain.cpp : DLL アプリケーションのエントリ ポイントを定義します。
+
 #include "ScriptRegistry.h"
 
 extern "C" __declspec(dllexport)
@@ -8,4 +9,3 @@ IScriptComponent* CreateScript(const char* name){
 
 	return ScriptRegistry::Instance().Create(name);
 }
-

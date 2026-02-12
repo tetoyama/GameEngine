@@ -33,6 +33,12 @@ void ScriptSystem::EditorUpdate(float deltaTime){
 }
 
 void ScriptSystem::Draw(){
+
+	if (m_setImGuiContextFunc) {
+		// ImGui コンテキストをスクリプト側にセット
+		m_setImGuiContextFunc((void*)ImGui::GetCurrentContext());
+	}
+
 	ForEachScript([](IScriptComponent* script){
 		script->Draw();
 				  });
@@ -79,6 +85,13 @@ bool ScriptSystem::ReloadScriptDLL(const char* dllPath){
 			? (IScriptComponent*)(raw)
 			: nullptr;
 		};
+
+	auto rawFunc = reinterpret_cast<SetImGuiContextFunc>(
+		GetProcAddress(m_scriptModule, "SetImGuiContext"));
+
+	m_setImGuiContextFunc = [rawFunc](void* ctx) {
+		if (rawFunc) rawFunc(ctx);
+	};
 
 	return true;
 }
