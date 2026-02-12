@@ -70,6 +70,11 @@ protected:
 
 	std::string scriptName = "ScriptComponent";
 	bool isInitialized = false; // 初期化フラグ
+
+public:
+	void DragFloat(const char* label, float& value){
+		ImGui::DragFloat(label, &value, 0.1f);
+	}
 };
 
 enum ScriptReflectFlags {
@@ -92,8 +97,8 @@ struct ScriptFieldHandler<float> {
 	static void Encode(YAML::Node& node, IScriptComponent*, float& v, const char* name){
 		node[name] = v;
 	}
-	static void Inspector(IScriptComponent*, float& v, const char* name){
-		//ImGui::DragFloat(name, &v, 0.1f);
+	static void Inspector(IScriptComponent* component, float& v, const char* name){
+		component->DragFloat(name, v);
 	}
 };
 

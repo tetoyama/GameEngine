@@ -165,6 +165,11 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </Library>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GameEngine.vcxproj">
+      <Project>{4f91e03f-271a-4f73-b07a-2b214d8f4f72}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
