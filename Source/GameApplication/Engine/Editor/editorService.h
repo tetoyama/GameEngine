@@ -7,7 +7,7 @@ struct EditorDrawContext;
 class EditorService;
 
 class ResourceService;
-class DebugLogSystem;
+class DebugLogService;
 class SceneManager;
 class LLAMAService;
 
@@ -16,7 +16,7 @@ class AnalyzerManager;
 struct SceneManagerContext;
 
 struct EditorServiceContext {
-	DebugLogSystem* debugLogSystem = nullptr;
+	DebugLogService* debugLogSystem = nullptr;
 	ResourceService* resourceService = nullptr;
 	SceneManager* sceneManager = nullptr;
 	LLAMAService* llamaService = nullptr;
@@ -41,7 +41,7 @@ public:
 		return nullptr;
 	}
 
-	DebugLogSystem* debugLogSystem = nullptr;
+	DebugLogService* debugLogSystem = nullptr;
 	ResourceService* resourceService = nullptr;
 	SceneManager* sceneManager = nullptr;
 	LLAMAService* llamaService = nullptr;

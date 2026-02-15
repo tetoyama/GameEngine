@@ -218,6 +218,9 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 						float nearZ = 0.1f;
 						float farZ = lightcomp->light.Param.x;
+						if(farZ <= nearZ){
+							farZ = nearZ + 0.1f;
+						}
 
 						XMMATRIX lightProj =
 							XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, nearZ, farZ);

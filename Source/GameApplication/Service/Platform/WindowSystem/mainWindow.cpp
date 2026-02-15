@@ -252,16 +252,11 @@ LRESULT MainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 			}
 			break;
 		case WM_CLOSE://ウィンドウを閉じたい
-			#ifdef _DEBUG_BUILD
+			if(IDOK == MessageBox(hwnd, L"本当に終了してよろしいですか？", L"確認", MB_OKCANCEL | MB_DEFBUTTON2 | MB_ICONQUESTION)){	//OKが押された
 				DestroyWindow(hwnd);//終了する手続きをリクエスト
-				break;
-			#endif
-				if(IDOK == MessageBox(hwnd, L"本当に終了してよろしいですか？", L"確認", MB_OKCANCEL | MB_DEFBUTTON2 | MB_ICONQUESTION)){	//OKが押された
-					DestroyWindow(hwnd);//終了する手続きをリクエスト
-
-				} else{//キャンセル
-					return 0;
-				}
+			} else{//キャンセル
+				return 0;
+			}
 			break;
 	}
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);

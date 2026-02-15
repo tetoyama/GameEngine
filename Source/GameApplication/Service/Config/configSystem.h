@@ -1,4 +1,4 @@
-// ConfigSystem.h
+// ConfigService.h
 #pragma once
 #include <vector>
 #include <string>
@@ -8,11 +8,11 @@
 #include "buildSetting.h"
 #include "appConfig.h"
 
-class ConfigSystem: public IService {
+class ConfigService: public IService {
 public:
-	ConfigSystem(){
+	ConfigService(){
 	}
-	~ConfigSystem(){
+	~ConfigService(){
 	}
 
 	bool Initialize(){

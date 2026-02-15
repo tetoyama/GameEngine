@@ -2,7 +2,6 @@
 #include "Scene/scene.h"
 #include "Scene/sceneManager.h"
 #include "DebugTools/DebugSystem.h"
-#include "DebugTools/DebugSystem.cpp"
 
 #include <string>
 

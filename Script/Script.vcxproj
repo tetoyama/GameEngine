@@ -119,6 +119,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)../Source;$(ProjectDir)../Source/GameApplication;$(ProjectDir)../Source/GameApplication/Service;$(ProjectDir)../Source/GameApplication/Backends;$(ProjectDir)../Source/GameApplication/Engine;$(ProjectDir)../Source/GameApplication/Backends/LLVM/include;$(ProjectDir)../Source/GameApplication/Engine/Scene</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -139,6 +140,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)../Source;$(ProjectDir)../Source/GameApplication;$(ProjectDir)../Source/GameApplication/Service;$(ProjectDir)../Source/GameApplication/Backends;$(ProjectDir)../Source/GameApplication/Engine;$(ProjectDir)../Source/GameApplication/Backends/LLVM/include;$(ProjectDir)../Source/GameApplication/Engine/Scene</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -147,15 +149,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Character.h" />
-    <ClInclude Include="framework.h" />
-    <ClInclude Include="HelloWorld.h" />
+    <ClInclude Include="Script\Character.h" />
+    <ClInclude Include="Script\HelloWorld.h" />
     <ClInclude Include="ScriptRegistry.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Character.cpp" />
+    <ClCompile Include="Script\Character.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="HelloWorld.cpp" />
+    <ClCompile Include="Script\HelloWorld.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\Source\GameApplication\Backends\yaml-cpp\yaml-cpp.lib">

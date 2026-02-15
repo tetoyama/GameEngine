@@ -12,6 +12,8 @@
 #include <string>
 #include <myVector3.h>
 
+#define IMGUI_LABEL_WIDTH	(120.0f)
+
 // -----------------------------------------------------------------------
 // ImGui::DragVec3
 // 

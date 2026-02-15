@@ -14,7 +14,7 @@ float4 ShadeMaterial_RimToon(MaterialInput materialInput)
     float diffIntensity = length(lighting.diffuse);
 
     // --- 2. ドット座標計算（45度回転） ---
-    float dotDensity = 10.0; // ドットが小さい場合はここを下げてください（例: 15.0 -> 10.0）
+    float dotDensity = 5.0;
     
     float c = 0.7071;
     float s = 0.7071;
@@ -29,13 +29,13 @@ float4 ShadeMaterial_RimToon(MaterialInput materialInput)
     // 中心からの距離 (円形ドット用)
     float dist = length(dotUV);
 
-    // --- 【重要】ドットサイズ（光の半径）の計算 ---
+    // --- ドットサイズ（光の半径）の計算 ---
     
-    // ★ポイント1：シャドウマップ対策（足切り）
+    // シャドウマップ対策（足切り）
     // diffIntensity が 0.2 以下の時は、強制的に半径 0.0 にする。
     // これにより、シャドウマップ(0.1)の部分は「光のドット」が一切描かれない＝完全な影色になる。
     
-    // ★ポイント2：ドットの巨大化
+    // ドットの巨大化
     // 明るくなるにつれて半径を大きくし、最終的に 0.8 以上にして隙間をなくす（ベタ塗りの日向にする）。
     
     // 0.15(暗) -> 半径0.0 (消滅)
