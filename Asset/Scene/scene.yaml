@@ -86,9 +86,9 @@ Entities:
           z: 1
           w: 1
         Ambient:
-          x: 0.11063832
-          y: 0.11063832
-          z: 0.11063832
+          x: 0.565957427
+          y: 0.565957427
+          z: 0.565957427
           w: 1
         Param:
           x: 500
@@ -203,7 +203,7 @@ Entities:
             lockRotY: true
             lockRotZ: true
       - Component: MaterialComponent
-        ShaderID: 1
+        ShaderID: 4
         Material:
           BaseColor:
             x: 0
@@ -423,15 +423,15 @@ Entities:
             rotationOffset: [0, 0, 0]
             radius: 0.200000003
             height: 1
-            staticFriction: 0.5
+            staticFriction: 0
             dynamicFriction: 0.5
-            restitution: 0.100000001
+            restitution: 0
             collisionLayer: 0
             lockRotX: false
             lockRotY: false
             lockRotZ: false
       - Component: MaterialComponent
-        ShaderID: 1
+        ShaderID: 4
         Material:
           BaseColor:
             x: 1
@@ -454,7 +454,7 @@ Entities:
         AnimationTime: 68314.1172
       - Component: BallController
         friction: 0.949999988
-        knockbackPower: 5
+        knockbackPower: 0.75
   - Entity: 7
     Components:
       - Component: NameComponent
@@ -1135,7 +1135,7 @@ Entities:
             lockRotY: true
             lockRotZ: true
       - Component: MaterialComponent
-        ShaderID: 1
+        ShaderID: 4
         Material:
           BaseColor:
             x: 1

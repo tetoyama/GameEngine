@@ -2,6 +2,7 @@
 #include "Component/CustomScriptComponent.h"
 #include "Backends/checkFileExtention.h"
 #include "Component/TransformComponent.h"
+#include "Component/ColliderComponent.h"
 #include "ScoreManager.h"
 
 class BallController: public CustomScriptComponent {
@@ -13,6 +14,7 @@ public:
 
 	Vector3 velocity = Vector3(0, 0, 0); // ボールの速度
 	TransformComponent* transform = nullptr;
+	ColliderComponent* collider = nullptr;
 	ScoreManager* scoreManager = nullptr;
 
 	BallController(): CustomScriptComponent("BallController"){}
@@ -33,6 +35,7 @@ public:
 
 	void OnStart() override{
 		transform = GetComponent<TransformComponent>();
+		collider = GetComponent<ColliderComponent>();
 		auto entity = m_context->component->FindEntitiesWithComponent<ScoreManager>();
 		if(!entity.empty()){
 			scoreManager = m_context->component->GetComponent<ScoreManager>(entity[0]);
@@ -40,11 +43,6 @@ public:
 	}
 
 	void OnUpdate(float dt) override{
-		// --- 移動 ---
-		transform->position += velocity * dt;
-
-		// 摩擦による減速
-		velocity *= powf(friction, dt * 60.0f); // フレームレート補正付き
 
 		// ゴール判定
 		if(transform->position.x > 5.5f && abs(transform->position.z) < 0.7f){
@@ -65,14 +63,31 @@ public:
 		}
 	}
 
-	void OnFixedUpdate(float dt) override{}
+	void OnFixedUpdate(float dt) override{
+		physx::PxRigidDynamic* rigid = collider->pRigidbodyDynamic;
+		if(rigid){
+			physx::PxVec3 pxVelocity = rigid->getLinearVelocity();
+			velocity = Vector3(pxVelocity.x, pxVelocity.y, pxVelocity.z);
+		}
+	}
 	void OnDraw() override{}
 	void OnEditorUpdate(float dt) override{}
 	void OnStop() override{}
 
 	// --- エネミーやプレイヤーから呼ばれる: ボールに力を加える ---
 	void ApplyForce(const Vector3& dir){
+		physx::PxRigidDynamic* rigid = collider->pRigidbodyDynamic;
+
+		physx::PxVec3 pxVelocity;
+
 		velocity += dir.normalize() * knockbackPower;
+
+		pxVelocity.x = velocity.x;
+		pxVelocity.y = velocity.y;
+		pxVelocity.z = velocity.z;
+
+		rigid->setLinearVelocity(pxVelocity);
+
 	}
 
 private:

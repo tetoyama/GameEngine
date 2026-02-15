@@ -353,9 +353,11 @@ Entities:
         Parent: 0
       - Component: EffectComponent
         FilePath: Asset/Effect\Laser01.efkefc
-        Loop: false
+        Loop: true
         Volume: 1
         PlayOnStart: true
+        TimeScale: 1
+        MaxPlayTime: 1.38999999
   - Entity: 7
     Components:
       - Component: NameComponent
