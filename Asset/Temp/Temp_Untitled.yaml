@@ -237,7 +237,7 @@ Entities:
             lockRotY: true
             lockRotZ: true
       - Component: MaterialComponent
-        ShaderID: 1
+        ShaderID: 4
         Material:
           BaseColor:
             x: 1
@@ -272,6 +272,7 @@ Entities:
         stamina: 5
         staminaConsumeRate: 1.5
         staminaRecoverRate: 1
+        aaa: 1
         jumpPower: 4
         Stamina: 5
   - Entity: 5

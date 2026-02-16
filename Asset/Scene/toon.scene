@@ -254,6 +254,11 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+      - Component: TextureComponent
+        FilePath: Asset/Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Y Bot.fbx
         isBlender: false
@@ -272,6 +277,7 @@ Entities:
         stamina: 5
         staminaConsumeRate: 1.5
         staminaRecoverRate: 1
+        aaa: 1
         jumpPower: 4
         Stamina: 5
   - Entity: 5

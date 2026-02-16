@@ -374,6 +374,8 @@ Entities:
           y: 1
           z: 1
         Parent: 0
+      - Component: OrderInLayerComponent
+        layer: -1
       - Component: MaterialComponent
         ShaderID: 0
         Material:
