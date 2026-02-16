@@ -277,7 +277,7 @@ Entities:
   - Entity: 5
     Components:
       - Component: NameComponent
-        Name: CameraBuffer
+        Name: Camera
       - Component: TransformComponent
         Position:
           x: 0
