@@ -4,6 +4,7 @@
 #include "BackEnds/ImGuiFunc.h"
 #include "Backends/myVector2.h"
 #include "registry/SystemRegistry.h"
+#include "System/Physic/physicSystem.h"
 #include "BackEnds/PhysX/PxPhysicsAPI.h"
 
 enum class ColliderType {
@@ -33,6 +34,8 @@ struct ColliderShape {
 	bool lockRotX = false;
 	bool lockRotY = false;
 	bool lockRotZ = false;
+
+	bool isTrigger = false;
 
 	physx::PxShape* pxShape = nullptr;
 	physx::PxMaterial* pxMaterial = nullptr;
@@ -103,6 +106,8 @@ public:
 			colNode["lockRotY"] = col.lockRotY;
 			colNode["lockRotZ"] = col.lockRotZ;
 
+			colNode["isTrigger"] = col.isTrigger;
+
 			node["colliders"].push_back(colNode);
 		}
 		return node;
@@ -140,6 +145,9 @@ public:
 				col.lockRotY = colNode["lockRotY"].as<bool>();
 				col.lockRotZ = colNode["lockRotZ"].as<bool>();
 
+				if (colNode["isTrigger"]) {
+					col.isTrigger = colNode["isTrigger"].as<bool>();
+				}
 				colliders.push_back(col);
 			}
 		}
@@ -209,6 +217,36 @@ public:
 							colliders[i].type = static_cast<ColliderType>(type);
 							needsUpdate = true;
 						}
+						ImGui::Text("Is Trigger");
+						ImGui::SameLine(XPos);
+						if (ImGui::Checkbox(("##IsTrigger" + std::to_string(i)).c_str(), &colliders[i].isTrigger)) {
+							needsUpdate = true;
+						}
+
+						auto phys = context->system->GetSystem<PhysicSystem>();
+						const auto& layers = phys->GetLayers();
+
+						int current = 0;
+						for (int j = 0; j < layers.size(); ++j) {
+							if (colliders[i].collisionLayer == layers[j].bit) {
+								current = j;
+								break;
+							}
+						}
+						ImGui::Text("Collision Layer");
+						ImGui::SameLine(XPos);
+
+						if (ImGui::BeginCombo("##Collision Layer", layers[current].name.c_str())) {
+							for (int j = 0; j < layers.size(); ++j) {
+								bool selected = (i == current);
+								if (ImGui::Selectable(layers[j].name.c_str(), selected)) {
+									colliders[i].collisionLayer = layers[j].bit;
+									needsUpdate = true;
+								}
+							}
+							ImGui::EndCombo();
+						}
+
 
 						if(colliders[i].type == ColliderType::Box){
 							ImGui::Text("Size");

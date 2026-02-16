@@ -36,6 +36,7 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -236,6 +237,7 @@ Entities:
             lockRotX: true
             lockRotY: true
             lockRotZ: true
+            isTrigger: false
       - Component: MaterialComponent
         ShaderID: 4
         Material:
@@ -365,7 +367,7 @@ Entities:
           z: 1
         Parent: 0
       - Component: ColliderComponent
-        isDynamic: true
+        isDynamic: false
         autoMass: true
         Mass: 1
         colliders:
@@ -382,6 +384,7 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: true
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -441,6 +444,7 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
       - Component: MaterialComponent
         ShaderID: 3
         Material:
@@ -500,6 +504,7 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
       - Component: MaterialComponent
         ShaderID: 2
         Material:
@@ -559,6 +564,7 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
       - Component: MaterialComponent
         ShaderID: 1
         Material:

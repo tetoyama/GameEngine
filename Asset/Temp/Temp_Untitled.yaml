@@ -36,6 +36,7 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -232,12 +233,13 @@ Entities:
             staticFriction: 0
             dynamicFriction: 0
             restitution: 0
-            collisionLayer: 0
+            collisionLayer: 2
             lockRotX: true
             lockRotY: true
             lockRotZ: true
+            isTrigger: false
       - Component: MaterialComponent
-        ShaderID: 4
+        ShaderID: 1
         Material:
           BaseColor:
             x: 1

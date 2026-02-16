@@ -16,6 +16,30 @@
 #pragma comment(lib, "SceneQuery_static_64.lib")
 #pragma comment(lib, "SimulationController_static_64.lib")
 
+PhysicSystem* g_physicSystem = nullptr;
+
+physx::PxFilterFlags PhysicsFilterShader(
+	physx::PxFilterObjectAttributes attr0, physx::PxFilterData data0,
+	physx::PxFilterObjectAttributes attr1, physx::PxFilterData data1,
+	physx::PxPairFlags& pairFlags,
+	const void*, physx::PxU32) {
+
+	int layerA = g_physicSystem->FindLayerIndex(data0.word0);
+	int layerB = g_physicSystem->FindLayerIndex(data1.word0);
+
+	if (layerA < 0 || layerB < 0)
+		return physx::PxFilterFlag::eSUPPRESS;
+
+	if (!g_physicSystem->GetCollisionEnabled(layerA, layerB))
+		return physx::PxFilterFlag::eSUPPRESS;
+
+	pairFlags =
+		physx::PxPairFlag::eCONTACT_DEFAULT |
+		physx::PxPairFlag::eDETECT_DISCRETE_CONTACT;
+
+	return physx::PxFilterFlag::eDEFAULT;
+}
+
 physx::PxRigidDynamic* PhysicSystem::CreateDynamic(const physx::PxTransform& t, const physx::PxGeometry& geometry, physx::PxMaterial& material, physx::PxReal density){
 	physx::PxRigidDynamic* rigid_dynamic = PxCreateDynamic(*g_pPhysics, t, geometry, material, density);
 	g_pScene->addActor(*rigid_dynamic);
@@ -157,11 +181,23 @@ void PhysicSystem::UpdateColliderParam(TransformComponent* transform, ColliderCo
 	col.pxShape = newShape;
 
 	// 6) レイヤー設定
-	if(newShape){
+	if (newShape) {
 		physx::PxFilterData fd;
 		fd.word0 = col.collisionLayer;
+
 		newShape->setSimulationFilterData(fd);
+		newShape->setQueryFilterData(fd);
+
+		if (col.isTrigger) {
+			newShape->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, false);
+			newShape->setFlag(physx::PxShapeFlag::eTRIGGER_SHAPE, true);
+		} else {
+			newShape->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, true);
+			newShape->setFlag(physx::PxShapeFlag::eTRIGGER_SHAPE, false);
+		}
+
 	}
+
 
 	// 7) 回転ロック設定
 	if(collider->isDynamic){
@@ -173,12 +209,37 @@ void PhysicSystem::UpdateColliderParam(TransformComponent* transform, ColliderCo
 		dyn->setRigidDynamicLockFlags(lockFlags);
 	}
 
+	if (col.isTrigger) {
+		newShape->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, false);
+		newShape->setFlag(physx::PxShapeFlag::eTRIGGER_SHAPE, true);
+	} else {
+		newShape->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, true);
+		newShape->setFlag(physx::PxShapeFlag::eTRIGGER_SHAPE, false);
+	}
+
+
 	g_pScene->unlockWrite();
 }
 
 
 
 void PhysicSystem::Initialize(){
+
+	g_physicSystem = this;
+
+	// --- デフォルトレイヤー ---
+	m_layers.clear();
+	m_layers.push_back({ "Default",  1u << 0 });
+	m_layers.push_back({ "Player",   1u << 1 });
+	m_layers.push_back({ "Enemy",    1u << 2 });
+	m_layers.push_back({ "Environment", 1u << 3 });
+
+	for (uint32_t i = 0; i < kMaxPhysicsLayers; ++i) {
+		for (uint32_t j = 0; j < kMaxPhysicsLayers; ++j) {
+			m_collisionMatrix[i][j] = true; // デフォルトは全衝突
+		}
+	}
+
 	UpdatingPhysics = false;
 	g_pFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, g_defaultAllocator, g_defaultErrorCallback);
 
@@ -197,7 +258,7 @@ void PhysicSystem::Initialize(){
 	g_pDispatcher = physx::PxDefaultCpuDispatcherCreate(8);
 	physx::PxSceneDesc scene_desc(g_pPhysics->getTolerancesScale());
 	scene_desc.gravity = physx::PxVec3(0, Gravity, 0);
-	scene_desc.filterShader = physx::PxDefaultSimulationFilterShader;
+	scene_desc.filterShader = PhysicsFilterShader;
 	scene_desc.cpuDispatcher = g_pDispatcher;
 
 	g_pScene = g_pPhysics->createScene(scene_desc);
@@ -278,6 +339,8 @@ void PhysicSystem::Finalize(){
 		g_pFoundation->release();
 		g_pFoundation = nullptr;
 	}
+
+	g_physicSystem = nullptr;
 }
 
 void PhysicSystem::Stop(){
@@ -320,6 +383,80 @@ void PhysicSystem::Stop(){
 	g_pScene->unlockRead();
 }
 
+YAML::Node PhysicSystem::encode() {
+	YAML::Node node;
+	for (auto& layer : m_layers) {
+		YAML::Node l;
+		l["name"] = layer.name;
+		l["bit"] = layer.bit;
+		node["layers"].push_back(l);
+	}
+
+	const int count = static_cast<int>(m_layers.size());
+
+	for (int y = 0; y < count; ++y) {
+		for (int x = 0; x < count; ++x) {
+			node["collision"][y][x] = m_collisionMatrix[y][x];
+		}
+	}
+
+	return node;
+}
+
+bool PhysicSystem::decode(const YAML::Node& node) {
+	if (!node["layers"]) return true;
+
+	m_layers.clear();
+	for (auto& l : node["layers"]) {
+		PhysicsLayer layer;
+		layer.name = l["name"].as<std::string>();
+		layer.bit = l["bit"].as<uint32_t>();
+		m_layers.push_back(layer);
+	}
+	return true;
+}
+
+void PhysicSystem::SystemSetting() {
+	const int count = static_cast<int>(m_layers.size());
+
+	ImGui::Text("Layer Collision Matrix");
+
+	ImGui::Separator();
+
+	// ヘッダ
+	ImGui::Text(" ");
+	ImGui::SameLine();
+	for (int x = 0; x < count; ++x) {
+		ImGui::SameLine();
+		ImGui::Text("%s", m_layers[x].name.c_str());
+	}
+
+	// 本体
+	for (int y = 0; y < count; ++y) {
+		ImGui::Text("%s", m_layers[y].name.c_str());
+		ImGui::SameLine();
+
+		for (int x = 0; x < count; ++x) {
+			ImGui::SameLine();
+			ImGui::PushID(y * 100 + x);
+
+			bool v = m_collisionMatrix[y][x];
+			if (ImGui::Checkbox("", &v)) {
+				m_collisionMatrix[y][x] = v;
+				m_collisionMatrix[x][y] = v; // 対称保証
+			}
+
+			ImGui::PopID();
+		}
+	}
+}
+
+
+bool PhysicSystem::GetCollisionEnabled(uint32_t a, uint32_t b) const {
+	return m_collisionMatrix[a][b];
+}
+
+
 RayHit PhysicSystem::RaycastWithMask(const physx::PxVec3& origin, const physx::PxVec3& direction, physx::PxReal maxDistance, physx::PxU32 layerMask) {
 	RayHit result{};
 	result.hit = false;
@@ -351,6 +488,10 @@ RayHit PhysicSystem::RaycastWithMask(const physx::PxVec3& origin, const physx::P
 		result.hitActor = b.actor;
 	}
 	return result;
+}
+
+uint32_t PhysicSystem::GetLayerBit(const std::string& name) const {
+	return 0;
 }
 
 void PhysicSystem::Start(){
@@ -498,15 +639,16 @@ void PhysicSystem::UpdateCollider() {
 
 void PhysicSystem::FixedUpdate(float deltaTime) {
 
-
 	UpdateCollider();
 
 	g_pScene->lockWrite();
-	g_pScene->lockRead();
 	g_pScene->simulate(deltaTime);
-	g_pScene->fetchResults(true);
 	g_pScene->unlockWrite();
+
+	g_pScene->lockRead();
+	g_pScene->fetchResults(true);
 	g_pScene->unlockRead();
+
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();

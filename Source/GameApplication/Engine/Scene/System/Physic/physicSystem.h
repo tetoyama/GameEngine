@@ -29,6 +29,13 @@ struct RayHit {
     physx::PxRigidActor* hitActor;
 };
 
+struct PhysicsLayer {
+	std::string name;
+	uint32_t bit;   // 1 << index
+};
+
+constexpr uint32_t kMaxPhysicsLayers = 32;
+
 class PhysicSystem: public ISystem {
 public:
 	PhysicSystem(SceneManagerContext* context): m_context(context){}
@@ -43,6 +50,11 @@ public:
 
 	void Stop() override;
 
+	YAML::Node encode() override;
+	bool decode(const YAML::Node& node) override;
+
+	void SystemSetting() override;
+
 	physx::PxPhysics* GetPhysics(){
 		return g_pPhysics;
 	}
@@ -50,16 +62,29 @@ public:
 
 		return g_pScene->getRenderBuffer();
 	}
+	bool GetCollisionEnabled(uint32_t layerA, uint32_t layerB) const;
+
 
 	RayHit RaycastWithMask(const physx::PxVec3& origin,
 						   const physx::PxVec3& direction,
 						   physx::PxReal maxDistance,
 						   physx::PxU32 layerMask /* ここが “どのレイヤーを当たり対象にするか” */);
 
-	float Gravity = -9.0f;
+	const std::vector<PhysicsLayer>& GetLayers() const { return m_layers; }
+	uint32_t GetLayerBit(const std::string& name) const;
 
+	float Gravity = -9.0f;
+	int FindLayerIndex(uint32_t bit) const {
+		for (int i = 0; i < m_layers.size(); ++i) {
+			if (m_layers[i].bit == bit)
+				return i;
+		}
+		return -1;
+	}
 private:
 	SceneManagerContext* m_context;
+	std::vector<PhysicsLayer> m_layers;
+	bool m_collisionMatrix[kMaxPhysicsLayers][kMaxPhysicsLayers]{};
 
 	// PhysX 内で利用するアロケーターやコールバック
 	physx::PxDefaultAllocator g_defaultAllocator;
@@ -80,4 +105,7 @@ private:
 
 	void UpdateColliderParam(TransformComponent* transform, ColliderComponent* collider, size_t entity ,size_t index);
 	physx::PxShape* CreatePxShape(physx::PxRigidActor* actor, const ColliderShape& col, const Vector3& scale, physx::PxMaterial& material);
+
+
+
 };
