@@ -233,7 +233,7 @@ Entities:
             staticFriction: 0
             dynamicFriction: 0
             restitution: 0
-            collisionLayer: 2
+            collisionLayer: 0
             lockRotX: true
             lockRotY: true
             lockRotZ: true

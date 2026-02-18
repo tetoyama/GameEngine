@@ -15,7 +15,9 @@ using SetImGuiContextFunc = void(*)(void*);
 class ScriptSystem: public ISystem
 {
 public:
-
+	const char* GetSystemName() const override{
+		return "ScriptSystem";
+	}
 	ScriptSystem(SceneManagerContext* context)
 		: m_context(context){}
 

@@ -8,6 +8,10 @@
 
 class AudioSystem: public ISystem {
 public:
+
+	const char* GetSystemName() const override{
+		return "AudioSystem";
+	}
 	AudioSystem(SceneManagerContext* context)
 		: m_context(context){}
 

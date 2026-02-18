@@ -23,7 +23,7 @@ physx::PxFilterFlags PhysicsFilterShader(
 	physx::PxFilterObjectAttributes attr1, physx::PxFilterData data1,
 	physx::PxPairFlags& pairFlags,
 	const void*, physx::PxU32) {
-
+	
 	int layerA = g_physicSystem->FindLayerIndex(data0.word0);
 	int layerB = g_physicSystem->FindLayerIndex(data1.word0);
 
@@ -492,6 +492,18 @@ RayHit PhysicSystem::RaycastWithMask(const physx::PxVec3& origin, const physx::P
 
 uint32_t PhysicSystem::GetLayerBit(const std::string& name) const {
 	return 0;
+}
+
+int PhysicSystem::FindLayerIndex(uint32_t bit) const{
+	if(bit == 0){
+		return 0;
+	}
+
+	for(int i = 0; i < m_layers.size(); ++i){
+		if(m_layers[i].bit == bit)
+			return i;
+	}
+	return -1;
 }
 
 void PhysicSystem::Start(){

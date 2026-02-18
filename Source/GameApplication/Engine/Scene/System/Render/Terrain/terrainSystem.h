@@ -14,6 +14,10 @@
 
 class TerrainSystem : public ISystem {
 public:
+	const char* GetSystemName() const override{
+		return "TerrainSystem";
+	}
+
 	TerrainSystem(SceneManagerContext* context)
 		: m_context(context) {}
 

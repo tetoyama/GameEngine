@@ -195,7 +195,7 @@ public:
 			RayHit hit = m_context->manager
 				->systemRegistry
 				->GetSystem<PhysicSystem>()
-				->RaycastWithMask(rayPos, rayDir, 0.3f, physx::PxU32());
+				->RaycastWithMask(rayPos, rayDir, 0.3f, 0);
 
 			isGround = hit.hit && hit.distance < 0.05f;
 

@@ -436,7 +436,7 @@ void RenderSystem::SystemSetting() {
 				ImGui::Separator();
 
 				if(ImGui::Button("Save Config")){
-					m_context->config->SaveConfig(CONFIG_PATH);
+					m_context->config->SaveApplicationConfig(APPLICATION_CONFIG_PATH);
 				}
 				ImGui::SameLine();
 				if(ImGui::Button("Recompile")){

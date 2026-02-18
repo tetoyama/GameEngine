@@ -12,14 +12,6 @@ class ColliderComponent;
 class TransformComponent;
 class Vector3;
 
-enum RayLayer : physx::PxU32 {
-    LAYER_DEFAULT = (1u << 0),
-    LAYER_PLAYER = (1u << 1),
-    LAYER_ENEMY = (1u << 2),
-    LAYER_ENVIRON = (1u << 3),
-    // 必要に応じて増やす
-};
-
 struct RayHit {
     bool hit;
     physx::PxVec3 position;
@@ -49,7 +41,9 @@ public:
 	void Draw() override;
 
 	void Stop() override;
-
+	const char* GetSystemName() const override{
+		return "PhysicSystem";
+	}
 	YAML::Node encode() override;
 	bool decode(const YAML::Node& node) override;
 
@@ -74,13 +68,7 @@ public:
 	uint32_t GetLayerBit(const std::string& name) const;
 
 	float Gravity = -9.0f;
-	int FindLayerIndex(uint32_t bit) const {
-		for (int i = 0; i < m_layers.size(); ++i) {
-			if (m_layers[i].bit == bit)
-				return i;
-		}
-		return -1;
-	}
+	int FindLayerIndex(uint32_t bit) const;
 private:
 	SceneManagerContext* m_context;
 	std::vector<PhysicsLayer> m_layers;

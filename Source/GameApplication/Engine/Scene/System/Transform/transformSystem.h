@@ -6,6 +6,10 @@ struct SceneManagerContext;
 
 class TransformSystem : public ISystem{
 public:
+
+	const char* GetSystemName() const override{
+		return "TransformSystem";
+	}
 	TransformSystem(SceneManagerContext* context): m_context(context){}
 	~TransformSystem(){}
 

@@ -42,6 +42,11 @@ struct PostEffect {
 
 class RenderSystem : public ISystem{
 public:
+
+	const char* GetSystemName() const override{
+		return "RenderSystem";
+	}
+
 	RenderSystem(SceneManagerContext* context): m_context(context){}
 	~RenderSystem(){}
 

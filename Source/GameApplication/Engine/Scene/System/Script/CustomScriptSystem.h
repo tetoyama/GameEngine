@@ -10,6 +10,11 @@ struct SceneManagerContext;
 
 class CustomScriptSystem: public ISystem {
 public:
+
+	const char* GetSystemName() const override{
+		return "CustomScriptSystem";
+	}
+
 	CustomScriptSystem(SceneManagerContext* context): m_context(context){}
 	~CustomScriptSystem(){}
 

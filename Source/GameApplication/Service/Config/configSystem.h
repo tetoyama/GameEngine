@@ -16,16 +16,39 @@ public:
 	}
 
 	bool Initialize(){
-		return LoadConfig(CONFIG_PATH);;
+		return LoadApplicationConfig(APPLICATION_CONFIG_PATH);;
 	}
 
 	void Shutdown() override{
-		SaveConfig(CONFIG_PATH);
+		SaveApplicationConfig(APPLICATION_CONFIG_PATH);
 	}
 
 	APPCONFIG appConfig;
+	YAML::Node editorConfig;
 
-	bool LoadConfig(const std::wstring& file){
+	bool LoadEditorConfig(const std::wstring& file){
+		std::ifstream fin(file);
+		if(!fin){
+			OutputDebugStringW((L"Config file not found: " + file).c_str());
+			return false;
+		}
+
+		editorConfig = YAML::Load(fin);
+
+		return true;
+	}
+
+	void SaveEditorConfig(const std::wstring& file){
+		std::ofstream fout(file);
+		if(!fout){
+			OutputDebugStringW((L"Failed to save config file:" + file).c_str());
+			return;
+		}
+		fout << editorConfig;
+		fout.close();
+	}
+
+	bool LoadApplicationConfig(const std::wstring& file){
 
 		std::ifstream fin(file);
 		if(!fin){
@@ -80,7 +103,7 @@ public:
 		return true;
 	}
 
-	void SaveConfig(const std::wstring& file){
+	void SaveApplicationConfig(const std::wstring& file){
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;

@@ -11,6 +11,10 @@
 
 class EffectSystem: public ISystem {
 public:
+
+	const char* GetSystemName() const override{
+		return "EffectSystem";
+	}
 	EffectSystem(SceneManagerContext* context)
 		: m_context(context){}
 

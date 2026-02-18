@@ -6,7 +6,9 @@ struct SceneManagerContext;
 class CameraSystem : public ISystem {
 
 public:
-
+	const char* GetSystemName() const override{
+		return "CameraSystem";
+	}
 	CameraSystem(SceneManagerContext* context): m_context(context){}
 
 	void Initialize() override;

@@ -62,7 +62,7 @@ bool ImGui::DragVec3(const char* label, Vector3& Vec3, bool readOnly){
 		if(!isLast) ImGui::SameLine();
 
 		if(changed) isChanged = true;
-		};
+	};
 
 	DrawComponent("X", Vec3.x, colorX, (std::string(label) + "X").c_str(), false);
 	DrawComponent("Y", Vec3.y, colorY, (std::string(label) + "Y").c_str(), false);
