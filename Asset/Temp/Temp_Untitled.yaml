@@ -53,8 +53,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
+          UseDiffuseTexture: false
+          UseNormalTexture: false
       - Component: TextureComponent
         FilePath: Asset\Texture\mesh.png
         UV_Slice_X: 1
@@ -189,8 +189,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
+          UseDiffuseTexture: false
+          UseNormalTexture: false
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
         UV_Slice_X: 1
@@ -233,7 +233,7 @@ Entities:
             staticFriction: 0
             dynamicFriction: 0
             restitution: 0
-            collisionLayer: 2
+            collisionLayer: 0
             lockRotX: true
             lockRotY: true
             lockRotZ: true
@@ -254,8 +254,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
+          UseDiffuseTexture: false
+          UseNormalTexture: false
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Y Bot.fbx
         isBlender: false
@@ -347,3 +347,25 @@ Entities:
         rotateSpeed: 1.5
         minPitch: 0
         maxPitch: 0.785398185
+  - Entity: 6
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: ScriptComponent
+        HelloWorld:
+          text: Hello World!

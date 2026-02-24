@@ -4,7 +4,7 @@
 #include "DebugTools/DebugSystem.h"
 
 void HelloWorld::OnStart() {
-	context->manager->debug->LOG_INFO(text.c_str());
+	context->manager->debug->LOG_INFO((text + std::string("")).c_str());
 }
 
 REGISTER_SCRIPT("HelloWorld", HelloWorld)

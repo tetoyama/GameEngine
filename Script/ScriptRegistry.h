@@ -46,7 +46,7 @@ public:
 	void Destroy(IScriptComponent* script) {
 		delete script;
 	}
+	std::unordered_map<std::string, Factory> m_factories;
 
 private:
-	std::unordered_map<std::string, Factory> m_factories;
 };

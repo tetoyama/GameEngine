@@ -86,7 +86,7 @@ public:
 
 	void SystemSetting() override {
 		if (ImGui::Button("Reload Script DLL")) {
-			ReloadScriptDLL("Script.dll");
+			ReloadScriptDLL("Script/Script.dll");
 		}
 	}
 

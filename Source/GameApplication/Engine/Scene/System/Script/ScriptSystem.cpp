@@ -44,58 +44,48 @@ void ScriptSystem::Draw(){
 				  });
 }
 
-bool ScriptSystem::ReloadScriptDLL(const char* dllPath){
-	// =========================
-	// 1. 既存 DLL を解放
-	// =========================
+bool ScriptSystem::ReloadScriptDLL(const char* originalPath){
+	const char* loadedPath = "Script_loaded.dll";
+
+	// 1. 既存DLL解放
 	if(m_scriptModule){
+		m_scriptBridge = nullptr;
+		m_setImGuiContextFunc = nullptr;
 		FreeLibrary(m_scriptModule);
 		m_scriptModule = nullptr;
-		m_scriptBridge = nullptr;
 	}
 
-	// =========================
-	// 2. DLL をロード
-	// =========================
-	m_scriptModule = LoadLibraryA(dllPath);
-	if(!m_scriptModule){
+	// 2. コピー（上書き）
+	CopyFileA(originalPath, loadedPath, FALSE);
+
+	// 3. ロード
+	m_scriptModule = LoadLibraryA(loadedPath);
+	if(!m_scriptModule)
 		return false;
-	}
 
-	// =========================
-	// 3. CreateScript 関数取得
-	// =========================
 	auto createFunc =
 		reinterpret_cast<CreateScriptFunc>(
 			GetProcAddress(m_scriptModule, "CreateScript"));
 
-	if(!createFunc){
-		FreeLibrary(m_scriptModule);
-		m_scriptModule = nullptr;
+	if(!createFunc)
 		return false;
-	}
 
-	// =========================
-	// 4. ScriptBridge を差し替え
-	// =========================
 	m_scriptBridge =
 		[createFunc](const char* scriptName){
-		IScriptComponent* raw = createFunc(scriptName);
-		return raw
-			? (IScriptComponent*)(raw)
-			: nullptr;
+		return createFunc(scriptName);
 		};
 
-	auto rawFunc = reinterpret_cast<SetImGuiContextFunc>(
-		GetProcAddress(m_scriptModule, "SetImGuiContext"));
+	auto rawFunc =
+		reinterpret_cast<SetImGuiContextFunc>(
+			GetProcAddress(m_scriptModule, "SetImGuiContext"));
 
-	m_setImGuiContextFunc = [rawFunc](void* ctx) {
-		if (rawFunc) rawFunc(ctx);
-	};
+	m_setImGuiContextFunc =
+		[rawFunc](void* ctx){
+		if(rawFunc) rawFunc(ctx);
+		};
 
 	return true;
 }
-
 
 void ScriptSystem::Initialize(){
 
@@ -105,7 +95,7 @@ void ScriptSystem::Initialize(){
 	COMPONENT_LIST(REGISTER)
 #undef REGISTER
 
-	ReloadScriptDLL("Script.dll");
+	ReloadScriptDLL("Script/Script.dll");
 }
 
 void ScriptSystem::Finalize(){
