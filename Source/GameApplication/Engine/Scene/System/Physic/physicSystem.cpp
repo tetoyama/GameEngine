@@ -6,6 +6,8 @@
 #include <Scene/Component/transformComponent.h>
 #include <d3dcompiler.h>
 
+#include "Backends/ImGuiFunc.h"
+
 #pragma comment(lib, "PhysX_64.lib")
 #pragma comment(lib, "PhysXCommon_64.lib")
 #pragma comment(lib, "PhysXCooking_64.lib")
@@ -416,41 +418,82 @@ bool PhysicSystem::decode(const YAML::Node& node) {
 	return true;
 }
 
-void PhysicSystem::SystemSetting() {
+void PhysicSystem::SystemSetting(){
+
+	DrawLayerEditor();
+
 	const int count = static_cast<int>(m_layers.size());
+	if(count == 0)
+		return;
 
-	ImGui::Text("Layer Collision Matrix");
+	if(ImGui::TreeNode("Layer Collision Matrix")){
 
-	ImGui::Separator();
 
-	// ヘッダ
-	ImGui::Text(" ");
-	ImGui::SameLine();
-	for (int x = 0; x < count; ++x) {
-		ImGui::SameLine();
-		ImGui::Text("%s", m_layers[x].name.c_str());
-	}
 
-	// 本体
-	for (int y = 0; y < count; ++y) {
-		ImGui::Text("%s", m_layers[y].name.c_str());
-		ImGui::SameLine();
+		const int columnCount = count + 1;
 
-		for (int x = 0; x < count; ++x) {
-			ImGui::SameLine();
-			ImGui::PushID(y * 100 + x);
+		ImVec2 tableSize = ImVec2(0.0f, 400.0f);
 
-			bool v = m_collisionMatrix[y][x];
-			if (ImGui::Checkbox("", &v)) {
-				m_collisionMatrix[y][x] = v;
-				m_collisionMatrix[x][y] = v; // 対称保証
+		if(ImGui::BeginTable("CollisionMatrixTable",
+							 columnCount,
+							 ImGuiTableFlags_Borders |
+							 ImGuiTableFlags_RowBg |
+							 ImGuiTableFlags_SizingFixedFit |
+							 ImGuiTableFlags_ScrollX |
+							 ImGuiTableFlags_ScrollY
+							 //ImGuiTableFlags_ScrollFreezeTopRow
+							 ,
+							 tableSize)){
+			// 列定義
+			ImGui::TableSetupColumn("Layer",
+									ImGuiTableColumnFlags_WidthFixed,
+									120.0f);
+
+			for(int i = 0; i < count; ++i){
+				ImGui::TableSetupColumn("##col",
+										ImGuiTableColumnFlags_WidthFixed,
+										40.0f);
 			}
 
-			ImGui::PopID();
+			// ヘッダ行（高さ固定）
+			ImGui::TableNextRow(ImGuiTableRowFlags_None, 80.0f);
+
+			ImGui::TableSetColumnIndex(0);
+			ImGui::Text("Layer");
+
+			for(int i = 0; i < count; ++i){
+				ImGui::TableSetColumnIndex(i + 1);
+				ImGui::DrawVerticalText(m_layers[i].name.c_str());
+			}
+
+			// 本体
+			for(int y = 0; y < count; ++y){
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("%s", m_layers[y].name.c_str());
+
+				for(int x = 0; x < count; ++x){
+					ImGui::TableSetColumnIndex(x + 1);
+
+					ImGui::PushID(y * 1000 + x);
+
+					bool v = m_collisionMatrix[y][x];
+
+					if(ImGui::Checkbox("##chk", &v)){
+						m_collisionMatrix[y][x] = v;
+						m_collisionMatrix[x][y] = v;
+					}
+
+					ImGui::PopID();
+				}
+			}
+
+			ImGui::EndTable();
 		}
+		ImGui::TreePop();
 	}
 }
-
 
 bool PhysicSystem::GetCollisionEnabled(uint32_t a, uint32_t b) const {
 	return m_collisionMatrix[a][b];
@@ -506,6 +549,87 @@ int PhysicSystem::FindLayerIndex(uint32_t bit) const{
 	return -1;
 }
 
+// bit再構築
+void PhysicSystem::RebuildLayerBits(){
+	for(int i = 0; i < (int)m_layers.size(); ++i){
+		m_layers[i].bit = (1u << i);
+	}
+}
+
+// マトリクス再構築
+void PhysicSystem::RebuildCollisionMatrix(){
+	const int count = (int)m_layers.size();
+
+	// 一旦バックアップ
+	bool old[kMaxPhysicsLayers][kMaxPhysicsLayers]{};
+
+	for(int y = 0; y < kMaxPhysicsLayers; ++y)
+		for(int x = 0; x < kMaxPhysicsLayers; ++x)
+			old[y][x] = m_collisionMatrix[y][x];
+
+	// 全初期化
+	for(int y = 0; y < kMaxPhysicsLayers; ++y)
+		for(int x = 0; x < kMaxPhysicsLayers; ++x)
+			m_collisionMatrix[y][x] = false;
+
+	// 有効範囲だけ復元
+	for(int y = 0; y < count; ++y){
+		for(int x = 0; x < count; ++x){
+			m_collisionMatrix[y][x] = old[y][x];
+		}
+	}
+}
+
+void PhysicSystem::RemoveLayer(int removeIndex){
+	const int count = (int)m_layers.size();
+	if(removeIndex < 0 || removeIndex >= count)
+		return;
+
+	// レイヤー削除
+	m_layers.erase(m_layers.begin() + removeIndex);
+
+	// 行シフト
+	for(int y = removeIndex; y < count - 1; ++y){
+		for(int x = 0; x < count; ++x){
+			m_collisionMatrix[y][x] = m_collisionMatrix[y + 1][x];
+		}
+	}
+
+	// 列シフト
+	for(int x = removeIndex; x < count - 1; ++x){
+		for(int y = 0; y < count - 1; ++y){
+			m_collisionMatrix[y][x] = m_collisionMatrix[y][x + 1];
+		}
+	}
+
+	// 末尾クリア
+	for(int i = 0; i < kMaxPhysicsLayers; ++i){
+		m_collisionMatrix[count - 1][i] = false;
+		m_collisionMatrix[i][count - 1] = false;
+	}
+
+	RebuildLayerBits();
+}
+void PhysicSystem::AddLayer(const std::string& name){
+	if((int)m_layers.size() >= kMaxPhysicsLayers)
+		return;
+
+	PhysicsLayer layer;
+	layer.name = name;
+	layer.bit = 0;
+
+	m_layers.push_back(layer);
+
+	int newIndex = (int)m_layers.size() - 1;
+
+	// 新規レイヤーは全衝突ONにする例
+	for(int i = 0; i <= newIndex; ++i){
+		m_collisionMatrix[newIndex][i] = true;
+		m_collisionMatrix[i][newIndex] = true;
+	}
+
+	RebuildLayerBits();
+}
 void PhysicSystem::Start(){
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
@@ -683,4 +807,103 @@ void PhysicSystem::FixedUpdate(float deltaTime) {
 void PhysicSystem::Draw(){
 	if(!g_pScene) return;
 	// PhysX の可視化デバッグは g_pScene->getRenderBuffer() などで取得可能
+}
+
+void PhysicSystem::DrawLayerEditor(){
+
+	if(ImGui::TreeNode("Physics Layers")){
+
+		// 追加ボタン
+		if((int)m_layers.size() < kMaxPhysicsLayers){
+			if(ImGui::Button("Add")){
+				PhysicsLayer layer;
+				layer.name = "NewLayer";
+				layer.bit = 0;
+
+				m_layers.push_back(layer);
+
+				RebuildLayerBits();
+				RebuildCollisionMatrix();
+			}
+		} else{
+			ImGui::TextDisabled("Max 32 layers reached");
+		}
+
+		ImGui::Spacing();
+
+		// -------------------------
+		// 一覧テーブル
+		// -------------------------
+		if(ImGui::BeginTable("LayerEditorTable", 5,
+							 ImGuiTableFlags_Borders |
+							 ImGuiTableFlags_RowBg |
+							 ImGuiTableFlags_SizingFixedFit)){
+			ImGui::TableSetupColumn("Index", ImGuiTableColumnFlags_WidthFixed, 50.0f);
+			ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn("Bit", ImGuiTableColumnFlags_WidthFixed, 110.0f);
+			ImGui::TableSetupColumn("Mask", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+			ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 70.0f);
+
+			ImGui::TableHeadersRow();
+
+			for(int i = 0; i < (int)m_layers.size(); ++i){
+				ImGui::PushID(i);
+				ImGui::TableNextRow();
+
+				// Index
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("%d", i);
+
+				// Name
+				ImGui::TableSetColumnIndex(1);
+
+				char buffer[64];
+				strncpy(buffer, m_layers[i].name.c_str(), sizeof(buffer));
+				buffer[sizeof(buffer) - 1] = '\0';
+
+				if(ImGui::InputText("##name", buffer, sizeof(buffer))){
+					bool duplicated = false;
+
+					for(int j = 0; j < (int)m_layers.size(); ++j){
+						if(j != i && m_layers[j].name == buffer){
+							duplicated = true;
+							break;
+						}
+					}
+
+					if(!duplicated)
+						m_layers[i].name = buffer;
+				}
+
+				// Bit
+				ImGui::TableSetColumnIndex(2);
+				ImGui::Text("0x%08X", m_layers[i].bit);
+
+				// Mask preview（衝突数表示）
+				ImGui::TableSetColumnIndex(3);
+
+				int collideCount = 0;
+				for(int x = 0; x < (int)m_layers.size(); ++x)
+					if(m_collisionMatrix[i][x])
+						++collideCount;
+
+				ImGui::Text("%d links", collideCount);
+
+				// Delete
+				ImGui::TableSetColumnIndex(4);
+
+				if(ImGui::SmallButton("Delete")){
+					RemoveLayer(i);   // ← 前回提示の安全削除関数
+					ImGui::PopID();
+					break;
+				}
+
+				ImGui::PopID();
+			}
+
+			ImGui::EndTable();
+		}
+
+		ImGui::TreePop();
+	}
 }

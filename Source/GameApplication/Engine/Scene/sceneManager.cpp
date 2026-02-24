@@ -70,7 +70,7 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 
 	// システムの初期化
 	systemRegistry->InitializeAll();
-	systemRegistry->EncodeAll(m_SceneContext.config->editorConfig);
+	systemRegistry->DecodeAll(m_SceneContext.config->editorConfig);
 
 	m_SceneContext.systemRegistry = systemRegistry.get();
 
@@ -187,7 +187,7 @@ void SceneManager::Shutdown(){
 		scene.reset();
 	}
 	m_activeScenes.clear();
-	systemRegistry->DecodeAll(m_SceneContext.config->editorConfig);
+	systemRegistry->EncodeAll(m_SceneContext.config->editorConfig);
 
 	systemRegistry->FinalizeAll();
 	systemRegistry.reset();

@@ -35,7 +35,7 @@ float4 ShadeMaterial_Toon(MaterialInput materialInput)
     float dist = length(dotUV);
 
     float dotRadius =
-        smoothstep(0.15, 0.60, diffIntensity) * 0.9;
+        smoothstep(0, 1.5, diffIntensity) * 0.9;
 
     float lightDot =
         1.0 - smoothstep(dotRadius - 0.05,

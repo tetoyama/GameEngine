@@ -16,10 +16,27 @@ public:
 	}
 
 	bool Initialize(){
-		return LoadApplicationConfig(APPLICATION_CONFIG_PATH);;
+
+		if(LoadEditorConfig(EDITOR_CONFIG_PATH)){
+			OutputDebugStringW(L"Editor config loaded successfully.\n");
+		} else{
+			OutputDebugStringW(L"Failed to load editor config. Using default settings.\n");
+			return false;
+		}
+
+		if(LoadApplicationConfig(APPLICATION_CONFIG_PATH)){
+			OutputDebugStringW(L"Application config loaded successfully.\n");
+		} else{
+			OutputDebugStringW(L"Failed to load application config. Using default settings.\n");
+			return false;
+		}
+
+		return true;
 	}
 
 	void Shutdown() override{
+
+		SaveEditorConfig(EDITOR_CONFIG_PATH);
 		SaveApplicationConfig(APPLICATION_CONFIG_PATH);
 	}
 
@@ -67,21 +84,6 @@ public:
 		if(root["Vsync"])
 			appConfig.Vsync = root["Vsync"].as<bool>();
 
-		if(root["ShaderPath"])
-			appConfig.ShaderPath = root["ShaderPath"].as<std::string>();
-
-		if(root["ShaderMaterial"]){
-			appConfig.ShaderMaterials.clear();
-			YAML::Node materialsNode = root["ShaderMaterial"];
-			for(auto material : materialsNode){
-				ShaderMaterial shaderMaterial;
-				shaderMaterial.filePath = material.first.as<std::string>();
-				shaderMaterial.entryPoint = material.second.as<std::string>();
-				appConfig.ShaderMaterials.push_back(shaderMaterial);
-			}
-		}
-
-
 		if(root["FullScreen"])
 			appConfig.FullScreen = root["FullScreen"].as<bool>();
 
@@ -111,19 +113,6 @@ public:
 		out << YAML::Key << "AppType" << YAML::Value << static_cast<int>(appConfig.AppType);
 		out << YAML::Key << "StartScene" << YAML::Value << appConfig.startSceneFilePath;
 		out << YAML::Key << "Vsync" << YAML::Value << appConfig.Vsync;
-		out << YAML::Key << "ShaderPath" << YAML::Value << appConfig.ShaderPath;
-
-		out << YAML::Key << "ShaderMaterial";
-		out << YAML::Value << YAML::BeginMap;
-
-		for(const auto& material : appConfig.ShaderMaterials){
-			out << YAML::Key << material.filePath;
-			out << YAML::Value << material.entryPoint;
-		}
-
-		out << YAML::EndMap;
-
-
 		out << YAML::Key << "FullScreen" << YAML::Value << appConfig.FullScreen;
 		out << YAML::Key << "Width" << YAML::Value << appConfig.Width;
 		out << YAML::Key << "Height" << YAML::Value << appConfig.Height;

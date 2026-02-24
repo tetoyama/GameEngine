@@ -256,6 +256,39 @@ void RenderSystem::Draw(){
 	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
 }
 
+bool RenderSystem::decode(const YAML::Node& node){
+	if(node["ShaderPath"])
+		ShaderPath = node["ShaderPath"].as<std::string>();
+
+	if(node["ShaderMaterial"]){
+		ShaderMaterials.clear();
+		YAML::Node materialsNode = node["ShaderMaterial"];
+		for(auto material : materialsNode){
+			ShaderMaterial shaderMaterial;
+			shaderMaterial.filePath = material.first.as<std::string>();
+			shaderMaterial.entryPoint = material.second.as<std::string>();
+			ShaderMaterials.push_back(shaderMaterial);
+		}
+	}
+
+	return true;
+}
+
+YAML::Node RenderSystem::encode(){
+
+	YAML::Node node;
+	node["ShaderPath"] = ShaderPath;
+
+	YAML::Node materialsNode;
+	for(const auto& material : ShaderMaterials){
+		materialsNode[material.filePath] = material.entryPoint;
+	}
+
+	node["ShaderMaterial"] = materialsNode;
+
+	return node;
+}
+
 void RenderSystem::SystemSetting() {
 
 	float width = ImGui::GetContentRegionAvail().x;
@@ -314,13 +347,13 @@ void RenderSystem::SystemSetting() {
 		const float childChildHeight = 200.0f;
 
 		// Safety checks
-		if(config.ShaderMaterials.empty()){
+		if(ShaderMaterials.empty()){
 			ImGui::TextDisabled("No shader materials configured.");
 			if(ImGui::Button("Add Material")){
 				ShaderMaterial def;
 				def.filePath = "NewShader.hlsli";
 				def.entryPoint = "ShadeMaterial_New";
-				config.ShaderMaterials.push_back(def);
+				ShaderMaterials.push_back(def);
 			}
 			return;
 		}
@@ -348,8 +381,8 @@ void RenderSystem::SystemSetting() {
 			ImGui::BeginChild("MaterialList", ImVec2(0, childHeight), true);
 			ImGui::BeginChild("Materials", ImVec2(0, childChildHeight), true);
 
-			for(int i = 0; i < (int)config.ShaderMaterials.size(); ++i){
-				const auto& mat = config.ShaderMaterials[i];
+			for(int i = 0; i < (int)ShaderMaterials.size(); ++i){
+				const auto& mat = ShaderMaterials[i];
 				char label[256];
 				snprintf(label, sizeof(label), "%02d: %s", i, mat.filePath.c_str());
 				if(ImGui::Selectable(label, selectedIndex == i)){
@@ -363,40 +396,40 @@ void RenderSystem::SystemSetting() {
 				ShaderMaterial def;
 				def.filePath = "NewShader.hlsli";
 				def.entryPoint = "ShadeMaterial_New";
-				config.ShaderMaterials.push_back(def);
-				selectedIndex = (int)config.ShaderMaterials.size() - 1;
+				ShaderMaterials.push_back(def);
+				selectedIndex = (int)ShaderMaterials.size() - 1;
 			}
 			ImGui::SameLine();
 			if(ImGui::Button("Remove") &&
 			   selectedIndex >= 0 &&
-			   selectedIndex < (int)config.ShaderMaterials.size()){
-				config.ShaderMaterials.erase(
-					config.ShaderMaterials.begin() + selectedIndex);
+			   selectedIndex < (int)ShaderMaterials.size()){
+				ShaderMaterials.erase(
+					ShaderMaterials.begin() + selectedIndex);
 				selectedIndex = std::clamp(
 					selectedIndex - 1, 0,
-					(int)config.ShaderMaterials.size() - 1);
+					(int)ShaderMaterials.size() - 1);
 			}
 			ImGui::SameLine();
 
 			if(ImGui::Button("Duplicate") &&
 			   selectedIndex >= 0 &&
-			   selectedIndex < (int)config.ShaderMaterials.size()){
-				config.ShaderMaterials.push_back(
-					config.ShaderMaterials[selectedIndex]);
+			   selectedIndex < (int)ShaderMaterials.size()){
+				ShaderMaterials.push_back(
+					ShaderMaterials[selectedIndex]);
 			}
 
 			ImGui::Separator();
 
 			if(ImGui::Button("Up") && selectedIndex > 0){
-				std::swap(config.ShaderMaterials[selectedIndex],
-						  config.ShaderMaterials[selectedIndex - 1]);
+				std::swap(ShaderMaterials[selectedIndex],
+						  ShaderMaterials[selectedIndex - 1]);
 				--selectedIndex;
 			}
 			ImGui::SameLine();
 			if(ImGui::Button("Down") &&
-			   selectedIndex + 1 < (int)config.ShaderMaterials.size()){
-				std::swap(config.ShaderMaterials[selectedIndex],
-						  config.ShaderMaterials[selectedIndex + 1]);
+			   selectedIndex + 1 < (int)ShaderMaterials.size()){
+				std::swap(ShaderMaterials[selectedIndex],
+						  ShaderMaterials[selectedIndex + 1]);
 				++selectedIndex;
 			}
 
@@ -409,8 +442,8 @@ void RenderSystem::SystemSetting() {
 			ImGui::BeginChild("MaterialEditor", ImVec2(0, childHeight), true);
 
 			if(selectedIndex >= 0 &&
-			   selectedIndex < (int)config.ShaderMaterials.size()){
-				auto& mat = config.ShaderMaterials[selectedIndex];
+			   selectedIndex < (int)ShaderMaterials.size()){
+				auto& mat = ShaderMaterials[selectedIndex];
 
 				ImGui::Text("Index: %d", selectedIndex);
 				ImGui::Separator();
@@ -592,7 +625,7 @@ void RenderSystem::ReCompilePixelShaders() {
 	const auto& config = m_context->config->appConfig;
 
 	// Shader/AutoGen
-	const std::filesystem::path shaderDir = config.ShaderPath;
+	const std::filesystem::path shaderDir = ShaderPath;
 	std::filesystem::create_directories(shaderDir);
 
 	// ============================================================
@@ -614,7 +647,7 @@ void RenderSystem::ReCompilePixelShaders() {
 
 )";
 
-		for (const auto& mat : config.ShaderMaterials) {
+		for (const auto& mat : ShaderMaterials) {
 			ofs << "#include \"../Material/" << mat.filePath << "\"\n";
 		}
 
@@ -627,8 +660,8 @@ float4 main(PS_IN In) : SV_Target
 )";
 
 		// [branch] if を使用してマテリアルごとに隔離生成
-		for (size_t i = 0; i < config.ShaderMaterials.size(); ++i) {
-			const auto& mat = config.ShaderMaterials[i];
+		for (size_t i = 0; i < ShaderMaterials.size(); ++i) {
+			const auto& mat = ShaderMaterials[i];
 			if (i == 0) {
 				ofs << "    [branch] if (input.materialID == " << i << ")\n";
 			} else {
@@ -676,7 +709,7 @@ float4 main(PS_IN In) : SV_Target
 
 )";
 
-		for (const auto& mat : config.ShaderMaterials) {
+		for (const auto& mat : ShaderMaterials) {
 			ofs << "#include \"../Material/" << mat.filePath << "\"\n";
 		}
 
@@ -689,8 +722,8 @@ float4 main(PS_IN In) : SV_Target
 )";
 
 		// Forward側も同様に [branch] if で生成
-		for (size_t i = 0; i < config.ShaderMaterials.size(); ++i) {
-			const auto& mat = config.ShaderMaterials[i];
+		for (size_t i = 0; i < ShaderMaterials.size(); ++i) {
+			const auto& mat = ShaderMaterials[i];
 			if (i == 0) {
 				ofs << "    [branch] if (input.materialID == " << i << ")\n";
 			} else {

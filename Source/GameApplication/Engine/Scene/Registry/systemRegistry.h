@@ -119,7 +119,7 @@ public:
 			if(!name) continue;
 
 			YAML::Node sysNode;
-			sys->encode();
+			sysNode = sys->encode();
 
 			systemsNode[name] = sysNode;
 		}

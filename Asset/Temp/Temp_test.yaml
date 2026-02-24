@@ -36,6 +36,7 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
       - Component: MaterialComponent
         ShaderID: 2
         Material:
@@ -218,8 +219,9 @@ Entities:
             lockRotX: true
             lockRotY: true
             lockRotZ: true
+            isTrigger: false
       - Component: MaterialComponent
-        ShaderID: 4
+        ShaderID: 3
         Material:
           BaseColor:
             x: 1
@@ -254,6 +256,7 @@ Entities:
         stamina: 4.24165106
         staminaConsumeRate: 1.5
         staminaRecoverRate: 1
+        aaa: 1
         jumpPower: 5
         Stamina: 4.24165106
   - Entity: 5
@@ -395,6 +398,7 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -533,6 +537,7 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
       - Component: TextureComponent
         FilePath: Asset/Texture\tree.png
         UV_Slice_X: 1
@@ -579,6 +584,7 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
       - Component: MaterialComponent
         ShaderID: 3
         Material:

@@ -28,7 +28,7 @@ public:
 	float Volume = 1.0f;
 
 	float TimeScale = 1.0f;     // 再生速度倍率
-	float MaxPlayTime = 3.0f;  // 秒 / <0 = 無制限
+	float MaxPlayTime = 0.0f;  // 秒
 
 	// --------------------
 	// Runtime state
@@ -79,13 +79,6 @@ public:
 			FilePath = buffer;
 		}
 		ImGui::PopItemWidth();
-
-		ImGui::SameLine();
-		if(ImGui::SmallButton("x")){
-			FilePath.clear();
-			m_EffectData.reset();
-		}
-
 		if(ImGui::BeginDragDropTarget()){
 			if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
 				FilePath = (const char*)payload->Data;
@@ -93,6 +86,13 @@ public:
 			}
 			ImGui::EndDragDropTarget();
 		}
+		ImGui::SameLine();
+		if(ImGui::SmallButton("x")){
+			FilePath.clear();
+			m_EffectData.reset();
+		}
+
+
 
 		ImGui::Checkbox("Loop", &Loop);
 		ImGui::SameLine();
@@ -103,7 +103,7 @@ public:
 		ImGui::SliderFloat("Time Scale", &TimeScale, 0.0f, 3.0f);
 		ImGui::DragFloat("Max Play Time (sec)", &MaxPlayTime,0.01f, 0.0f, 0.0f);
 
-		if(ImGui::DragFloat("Current Time", &CurrentPlayTime,0.01f,0.0f,MaxPlayTime)){
+		if(ImGui::SliderFloat("Current Time", &CurrentPlayTime,0.0f,MaxPlayTime)){
 			SeekForEditor(context, CurrentPlayTime);
 		}
 
@@ -145,7 +145,9 @@ public:
 	void Update(SceneContext* sceneContext, float deltaTime){
 		if(!Playing){
 			if(CurrentPlayTime > 0.0f){
-				MaxPlayTime = CurrentPlayTime;
+				if(MaxPlayTime <= 0.0f || CurrentPlayTime < MaxPlayTime){
+					MaxPlayTime = CurrentPlayTime;
+				}
 			}
 			if(Loop){
 				Play(sceneContext);
@@ -169,7 +171,7 @@ public:
 		// エンジン側で時間管理
 		CurrentPlayTime += deltaTime * TimeScale;
 
-		if(MaxPlayTime >= 0.0f && CurrentPlayTime >= MaxPlayTime){
+		if(MaxPlayTime > 0.0f && CurrentPlayTime >= MaxPlayTime){
 			Stop(sceneContext);
 		}
 	}

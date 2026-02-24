@@ -1,14 +1,39 @@
 //========================================================================
-// Header file for file extension checking functions
+// File Extension Utility - Header
+// ファイルパスから拡張子を取得・判定するための関数群
 //========================================================================
 #pragma once
-#include <iostream>
+
 #include <string>
 
-std::string GetFileExtension(const std::string& filePath); 
+//---------------------------------------------------------------------
+// @brief  指定されたファイルパスから拡張子を取得する（std::string 版）
+// @param  filePath  拡張子を含む可能性のあるファイルパス
+// @return 先頭の '.' を含む拡張子文字列
+//         拡張子が存在しない場合は空文字列を返す
+//---------------------------------------------------------------------
+std::string GetFileExtension(const std::string& filePath);
 
+//---------------------------------------------------------------------
+// @brief  指定された拡張子を持っているかを判定する（std::string 版）
+// @param  filePath   判定対象のファイルパス
+// @param  extension  判定したい拡張子（例: ".png"）
+// @return 拡張子が一致すれば true
+//---------------------------------------------------------------------
 bool HasExtension(const std::string& filePath, const std::string& extension);
 
+//---------------------------------------------------------------------
+// @brief  指定されたファイルパスから拡張子を取得する（std::wstring 版）
+// @param  filePath  拡張子を含む可能性のあるファイルパス
+// @return 先頭の L'.' を含む拡張子文字列
+//         拡張子が存在しない場合は空文字列を返す
+//---------------------------------------------------------------------
 std::wstring GetFileExtension(const std::wstring& filePath);
 
+//---------------------------------------------------------------------
+// @brief  指定された拡張子を持っているかを判定する（std::wstring 版）
+// @param  filePath   判定対象のファイルパス
+// @param  extension  判定したい拡張子（例: L".png"）
+// @return 拡張子が一致すれば true
+//---------------------------------------------------------------------
 bool HasExtension(const std::wstring& filePath, const std::wstring& extension);

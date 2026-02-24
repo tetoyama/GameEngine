@@ -53,8 +53,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset\Texture\mesh.png
         UV_Slice_X: 1
@@ -189,8 +189,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
         UV_Slice_X: 1
@@ -233,7 +233,7 @@ Entities:
             staticFriction: 0
             dynamicFriction: 0
             restitution: 0
-            collisionLayer: 0
+            collisionLayer: 2
             lockRotX: true
             lockRotY: true
             lockRotZ: true
@@ -254,8 +254,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Y Bot.fbx
         isBlender: false

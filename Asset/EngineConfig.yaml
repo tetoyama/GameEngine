@@ -1,16 +1,49 @@
-AppType: 0
-StartScene: Asset\Scene\scene_title.yaml
-Vsync: false
-ShaderPath: Source/Shader/AutoGen/
-ShaderMaterial:
-  UnlitShader.hlsli: ShadeMaterial_Unlit
-  PBRShader.hlsli: ShadeMaterial_PBR
-  PBRToonShader.hlsli: ShadeMaterial_PBRToon
-  ToonShader.hlsli: ShadeMaterial_Toon
-  RimToonShader.hlsli: ShadeMaterial_RimToon
-FullScreen: false
-Width: 1500
-Height: 800
-MasterVolume: 1
-BGMVolume: 1
-SEVolume: 1
+Systems:
+  ScriptSystem: ~
+  TransformSystem: ~
+  CameraSystem: ~
+  RenderSystem:
+    ShaderPath: Shader/AutoGen/
+    ShaderMaterial:
+      UnlitShader.hlsli: ShadeMaterial_Unlit
+      PBRShader.hlsli: ShadeMaterial_PBR
+      PBRToonShader.hlsli: ShadeMaterial_PBRToon
+      ToonShader.hlsli: ShadeMaterial_Toon
+      RimToonShader.hlsli: ShadeMaterial_RimToon
+  AudioSystem: ~
+  ParticleSystem: ~
+  EffectSystem: ~
+  TerrainSystem: ~
+  PhysicSystem:
+    layers:
+      - name: Default
+        bit: 1
+      - name: Player
+        bit: 2
+      - name: Enemy
+        bit: 4
+      - name: Environment
+        bit: 8
+    collision:
+      -
+        - true
+        - true
+        - true
+        - true
+      -
+        - true
+        - true
+        - true
+        - true
+      -
+        - true
+        - true
+        - true
+        - true
+      -
+        - true
+        - true
+        - true
+        - true
+  CustomScriptSystem: ~
+  WaveSystem: ~

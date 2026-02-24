@@ -1,13 +1,6 @@
 AppType: 0
 StartScene: Asset\Scene\scene_title.yaml
 Vsync: false
-ShaderPath: Shader/AutoGen/
-ShaderMaterial:
-  UnlitShader.hlsli: ShadeMaterial_Unlit
-  PBRShader.hlsli: ShadeMaterial_PBR
-  PBRToonShader.hlsli: ShadeMaterial_PBRToon
-  ToonShader.hlsli: ShadeMaterial_Toon
-  RimToonShader.hlsli: ShadeMaterial_RimToon
 FullScreen: false
 Width: 1280
 Height: 720
