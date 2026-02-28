@@ -1,4 +1,4 @@
-// DebugSystem.h
+﻿// DebugSystem.h
 #pragma once
 #include <string>
 #include <chrono>

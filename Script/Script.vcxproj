@@ -123,12 +123,15 @@
       <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)../Source;$(ProjectDir)../Source/GameApplication;$(ProjectDir)../Source/GameApplication/Service;$(ProjectDir)../Source/GameApplication/Backends;$(ProjectDir)../Source/GameApplication/Engine;$(ProjectDir)../Source/GameApplication/Backends/LLVM/include;$(ProjectDir)../Source/GameApplication/Engine/Scene</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
+      <SupportJustMyCode>false</SupportJustMyCode>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ProgramDatabaseFile>$(OutDir)$(TargetName)_$(Configuration)_$(Platform).pdb</ProgramDatabaseFile>
+      <ProgramDatabaseFile>
+      </ProgramDatabaseFile>
       <EnableUAC>false</EnableUAC>
     </Link>
   </ItemDefinitionGroup>
@@ -145,12 +148,13 @@
       <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)../Source;$(ProjectDir)../Source/GameApplication;$(ProjectDir)../Source/GameApplication/Service;$(ProjectDir)../Source/GameApplication/Backends;$(ProjectDir)../Source/GameApplication/Engine;$(ProjectDir)../Source/GameApplication/Backends/LLVM/include;$(ProjectDir)../Source/GameApplication/Engine/Scene</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ProgramDatabaseFile>$(OutDir)$(TargetName)_$(Configuration)_$(Platform).pdb</ProgramDatabaseFile>
+      <ProgramDatabaseFile>
+      </ProgramDatabaseFile>
       <EnableUAC>false</EnableUAC>
     </Link>
   </ItemDefinitionGroup>

@@ -1,4 +1,4 @@
-// Scene/SceneManager.h
+﻿// Scene/SceneManager.h
 #pragma once
 #include "buildSetting.h"
 #include <memory>

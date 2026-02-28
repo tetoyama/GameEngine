@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Scene/Interface/IScriptComponent.h"
 #include "ScriptRegistry.h"
@@ -30,5 +30,4 @@ public:
 
 	void OnStart() override;
 };
-
-
+REGISTER_SCRIPT("HelloWorld", HelloWorld)

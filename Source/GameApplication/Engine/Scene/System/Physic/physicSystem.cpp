@@ -1,4 +1,4 @@
-#include "physicSystem.h"
+﻿#include "physicSystem.h"
 #include <mutex>
 #include <Scene/scene.h>
 #include <Scene/sceneManager.h>
@@ -834,15 +834,12 @@ void PhysicSystem::DrawLayerEditor(){
 		// -------------------------
 		// 一覧テーブル
 		// -------------------------
-		if(ImGui::BeginTable("LayerEditorTable", 5,
+		if(ImGui::BeginTable("LayerEditorTable", 3,
 							 ImGuiTableFlags_Borders |
 							 ImGuiTableFlags_RowBg |
 							 ImGuiTableFlags_SizingFixedFit)){
 			ImGui::TableSetupColumn("Index", ImGuiTableColumnFlags_WidthFixed, 50.0f);
 			ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
-			ImGui::TableSetupColumn("Bit", ImGuiTableColumnFlags_WidthFixed, 110.0f);
-			ImGui::TableSetupColumn("Mask", ImGuiTableColumnFlags_WidthFixed, 80.0f);
-			ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 70.0f);
 
 			ImGui::TableHeadersRow();
 
@@ -877,20 +874,12 @@ void PhysicSystem::DrawLayerEditor(){
 
 				// Bit
 				ImGui::TableSetColumnIndex(2);
-				ImGui::Text("0x%08X", m_layers[i].bit);
 
-				// Mask preview（衝突数表示）
-				ImGui::TableSetColumnIndex(3);
 
 				int collideCount = 0;
 				for(int x = 0; x < (int)m_layers.size(); ++x)
 					if(m_collisionMatrix[i][x])
 						++collideCount;
-
-				ImGui::Text("%d links", collideCount);
-
-				// Delete
-				ImGui::TableSetColumnIndex(4);
 
 				if(ImGui::SmallButton("Delete")){
 					RemoveLayer(i);   // ← 前回提示の安全削除関数

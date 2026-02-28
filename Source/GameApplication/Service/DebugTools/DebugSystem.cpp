@@ -1,4 +1,4 @@
-// DebugSystem.cpp
+﻿// DebugSystem.cpp
 #include "DebugSystem.h"
 #include <algorithm>
 #include <iostream>

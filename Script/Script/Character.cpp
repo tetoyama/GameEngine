@@ -1,4 +1,4 @@
-#include "Character.h"
+﻿#include "Character.h"
 #include "Scene/scene.h"
 #include "Scene/sceneManager.h"
 #include "DebugTools/DebugSystem.h"
@@ -14,4 +14,3 @@ void Character::OnUpdate(float dt){
 	context->manager->debug->LOG_INFO(("Character Speed: " + std::to_string(speed)).c_str());
 }
 
-REGISTER_SCRIPT("Character", Character)

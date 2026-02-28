@@ -56,10 +56,10 @@ bool ScriptSystem::ReloadScriptDLL(const char* originalPath){
 	}
 
 	// 2. コピー（上書き）
-	CopyFileA(originalPath, loadedPath, FALSE);
+	//CopyFileA(originalPath, loadedPath, FALSE);
 
 	// 3. ロード
-	m_scriptModule = LoadLibraryA(loadedPath);
+	m_scriptModule = LoadLibraryA(originalPath);
 	if(!m_scriptModule)
 		return false;
 

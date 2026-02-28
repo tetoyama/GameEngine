@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <unordered_map>
 #include <functional>
 #include <string>
@@ -7,15 +7,13 @@
 #include "Backends/yaml-cpp/yaml.h"
 
 #define REGISTER_SCRIPT(NAME, TYPE) \
-	namespace { \
-		struct TYPE##AutoRegister { \
-			TYPE##AutoRegister() { \
-				ScriptRegistry::Instance().Register( \
-					NAME, []() { return new TYPE(); }); \
-			} \
-		}; \
-		static TYPE##AutoRegister s_##TYPE##AutoRegister; \
-	}
+namespace { \
+    inline const bool TYPE##_auto_registered = []() { \
+        ScriptRegistry::Instance().Register( \
+            NAME, []() -> IScriptComponent* { return new TYPE(); }); \
+        return true; \
+    }(); \
+}
 
 class ScriptRegistry
 {
@@ -50,3 +48,4 @@ public:
 
 private:
 };
+
