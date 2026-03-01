@@ -8,7 +8,6 @@
 #include <unordered_set>
 #include <string>
 #include "Entity/Entity.h"
-#include "Scene/Reference/EntityRef.h"
 
 struct SceneContext;
 
@@ -31,8 +30,6 @@ private:
 
 	Entity deleteEntity = 0;
 	Entity pendingRenameEntity = 0;
-	bool m_openSavePrefabPopup = false;
-	EntityRef m_savePrefabRef;
 
 	char renameBuffer[256] = "";
 };

@@ -99,37 +99,6 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 			ImGui::TreePop();
 		}
 	}
-	// SavePrefabPopup を一度だけ開く
-	if(m_openSavePrefabPopup){
-		ImGui::OpenPopup("SavePrefabPopup");
-		m_openSavePrefabPopup = false;
-	}
-	// --- Prefab保存ダイアログ（フレームに一度だけ描画）---
-	if(ImGui::BeginPopup("SavePrefabPopup")){
-		static char prefabName[128] = "";
-		if(ImGui::IsWindowAppearing()){
-			prefabName[0] = '\0';
-		}
-		ImGui::Text("Prefab名を入力してください");
-		ImGui::InputText("Name", prefabName, sizeof(prefabName));
-		if(ImGui::Button("保存") && prefabName[0] != '\0'){
-			if(m_savePrefabRef && m_savePrefabRef.GetScene() && m_savePrefabRef.GetScene()->prefab){
-				std::string dir = "Asset/Prefab/";
-				std::filesystem::create_directories(dir);
-				std::string filePath = dir + prefabName + ".prefab";
-				m_savePrefabRef.GetScene()->prefab->SavePrefab(m_savePrefabRef, filePath);
-			}
-			prefabName[0] = '\0';
-			ImGui::CloseCurrentPopup();
-		}
-		ImGui::SameLine();
-		if(ImGui::Button("キャンセル")){
-			prefabName[0] = '\0';
-			ImGui::CloseCurrentPopup();
-		}
-		ImGui::EndPopup();
-	}
-
 	ImGui::End();
 }
 
@@ -205,8 +174,25 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 
 		if(ImGui::BeginMenu("Prefab")){
 			if(ImGui::MenuItem("Prefabとして保存")){
-				m_openSavePrefabPopup = true;
-				m_savePrefabRef = EntityRef(entity, context);
+				if(context->prefab){
+					auto* nameComp = context->component->GetComponent<NameComponent>(entity);
+					std::string defaultName = ((nameComp && !nameComp->name.empty()) ? nameComp->name : "Entity") + ".prefab";
+					char szFile[MAX_PATH] = {};
+					strncpy(szFile, defaultName.c_str(), MAX_PATH - 1);
+
+					OPENFILENAMEA ofn = {};
+					ofn.lStructSize = sizeof(ofn);
+					ofn.lpstrFilter = "Prefab Files (*.prefab)\0*.prefab\0All Files (*.*)\0*.*\0";
+					ofn.lpstrFile = szFile;
+					ofn.nMaxFile = MAX_PATH;
+					ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+					ofn.lpstrDefExt = "prefab";
+					if(GetSaveFileNameA(&ofn)){
+						std::string dir = std::filesystem::path(szFile).parent_path().string();
+						if(!dir.empty()) std::filesystem::create_directories(dir);
+						context->prefab->SavePrefab(EntityRef(entity, context), std::string(szFile));
+					}
+				}
 			}
 			if(ImGui::MenuItem("Prefabからインスタンス化")){
 				// ファイルダイアログを開いてプレファブを選択し、同シーンにインスタンス化する
