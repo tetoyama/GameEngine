@@ -4,18 +4,25 @@
 #include "Registry/entityRegistry.h"
 
 // エンティティへの安全なリファレンス
-// SceneContext と EntityID の組で識別するため、マルチシーン環境でも安全に扱える
-// エンティティが破棄された後でも安全にアクセスできる
+// SceneContext・EntityID・世代番号の3つで識別する
+//   - SceneContext で所属シーンを区別する（マルチシーン対応）
+//   - 世代番号で EntityID の使いまわしを検出する
+//     例: entity 5 を破棄 → ID 5 を再利用して新エンティティを作成した場合、
+//         古いリファレンスの世代番号が一致しないため IsValid() が false を返す
 struct EntityRef {
 	EntityRef() = default;
 
 	EntityRef(Entity e, SceneContext* ctx)
-		: m_entity(e), m_context(ctx) {}
+		: m_entity(e)
+		, m_context(ctx)
+		, m_generation(ctx && ctx->entity ? ctx->entity->GetGeneration(e) : 0)
+	{}
 
 	// リファレンスが有効かどうかを確認する
+	// エンティティが生存中かつ世代番号が一致する場合のみ true を返す
 	bool IsValid() const {
 		if (!m_context || !m_context->entity) return false;
-		return m_context->entity->IsAlive(m_entity);
+		return m_context->entity->IsAliveWithGeneration(m_entity, m_generation);
 	}
 
 	// エンティティIDを取得する（無効な場合は 0 を返す）
@@ -33,9 +40,11 @@ struct EntityRef {
 		return IsValid();
 	}
 
-	// SceneContext と EntityID の両方が一致するときのみ等値とみなす
+	// SceneContext・EntityID・世代番号の3つが全て一致する場合のみ等値とみなす
 	bool operator==(const EntityRef& other) const {
-		return m_entity == other.m_entity && m_context == other.m_context;
+		return m_entity     == other.m_entity
+			&& m_generation == other.m_generation
+			&& m_context    == other.m_context;
 	}
 
 	bool operator!=(const EntityRef& other) const {
@@ -43,19 +52,7 @@ struct EntityRef {
 	}
 
 private:
-	Entity m_entity = 0;
-	SceneContext* m_context = nullptr;
+	Entity       m_entity     = 0;
+	uint32_t     m_generation = 0;
+	SceneContext* m_context   = nullptr;
 };
-
-// EntityRef を unordered_map / unordered_set のキーとして使えるようにハッシュを提供する
-namespace std {
-template<>
-struct hash<EntityRef> {
-	size_t operator()(const EntityRef& ref) const noexcept {
-		size_t h1 = std::hash<Entity>{}(ref.GetEntityID());
-		size_t h2 = std::hash<SceneContext*>{}(ref.GetScene());
-		// boost::hash_combine と同等の混合式
-		return h1 ^ (h2 + 0x9e3779b9u + (h1 << 6) + (h1 >> 2));
-	}
-};
-} // namespace std

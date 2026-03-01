@@ -3,26 +3,31 @@
 #include "Registry/componentRegistry.h"
 
 // コンポーネントへの安全なリファレンス
-// SceneContext と EntityID の組で識別するため、マルチシーン環境でも安全に扱える
-// エンティティが破棄された後でも安全にアクセスできる
+// SceneContext・EntityID・世代番号の3つで識別する
+//   - SceneContext で所属シーンを区別する（マルチシーン対応）
+//   - 世代番号で EntityID の使いまわしを検出する
 template<typename T>
 struct ComponentRef {
 	ComponentRef() = default;
 
 	ComponentRef(Entity e, SceneContext* ctx)
-		: m_entity(e), m_context(ctx) {}
+		: m_entity(e)
+		, m_context(ctx)
+		, m_generation(ctx && ctx->entity ? ctx->entity->GetGeneration(e) : 0)
+	{}
 
-	// リファレンスが有効かどうかを確認する（エンティティが生存中かつコンポーネントが存在する）
+	// リファレンスが有効かどうかを確認する
+	// エンティティが生存中・世代番号が一致・コンポーネントが存在する場合のみ true を返す
 	bool IsValid() const {
 		if (!m_context || !m_context->entity || !m_context->component) return false;
-		if (!m_context->entity->IsAlive(m_entity)) return false;
+		if (!m_context->entity->IsAliveWithGeneration(m_entity, m_generation)) return false;
 		return m_context->component->GetComponent<T>(m_entity) != nullptr;
 	}
 
 	// コンポーネントのポインタを取得する（無効な場合は nullptr を返す）
 	T* Get() const {
 		if (!m_context || !m_context->entity || !m_context->component) return nullptr;
-		if (!m_context->entity->IsAlive(m_entity)) return nullptr;
+		if (!m_context->entity->IsAliveWithGeneration(m_entity, m_generation)) return nullptr;
 		return m_context->component->GetComponent<T>(m_entity);
 	}
 
@@ -40,9 +45,11 @@ struct ComponentRef {
 	// このリファレンスが属するシーンコンテキストを返す
 	SceneContext* GetScene() const { return m_context; }
 
-	// SceneContext と EntityID の両方が一致するときのみ等値とみなす
+	// SceneContext・EntityID・世代番号の3つが全て一致する場合のみ等値とみなす
 	bool operator==(const ComponentRef& other) const {
-		return m_entity == other.m_entity && m_context == other.m_context;
+		return m_entity     == other.m_entity
+			&& m_generation == other.m_generation
+			&& m_context    == other.m_context;
 	}
 
 	bool operator!=(const ComponentRef& other) const {
@@ -50,6 +57,7 @@ struct ComponentRef {
 	}
 
 private:
-	Entity m_entity = 0;
-	SceneContext* m_context = nullptr;
+	Entity        m_entity     = 0;
+	uint32_t      m_generation = 0;
+	SceneContext*  m_context   = nullptr;
 };
