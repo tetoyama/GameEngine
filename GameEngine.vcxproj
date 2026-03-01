@@ -3519,7 +3519,6 @@
     <ClCompile Include="Source\GameApplication\Engine\Resources\Data\llamaModelData.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Resources\resourceService.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\Component\scriptComponent.cpp" />
-    <ClCompile Include="Source\GameApplication\Engine\Scene\Interface\IScriptComponent.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Effect\RenderableEffect.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\LightingPass\LightingPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PhysXDebug\PhysXDebugPass.cpp" />

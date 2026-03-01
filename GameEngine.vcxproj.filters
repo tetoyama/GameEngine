@@ -1845,12 +1845,6 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Prefab\PrefabSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\Entity\EntityRef.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Scene\Entity\ComponentRef.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Registry\entityRegistry.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -3273,9 +3267,6 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Scene\Component\scriptComponent.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Scene\Interface\IScriptComponent.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>

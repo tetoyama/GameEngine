@@ -1,9 +1,10 @@
-#pragma once
+﻿#pragma once
 #include "Interface/IComponent.h"
 #include "BackEnds/YAMLConverters.h"
 #include "BackEnds/ImGuiFunc.h"
 #include "Backends/myVector2.h"
 #include "registry/SystemRegistry.h"
+#include "registry/componentRegistry.h"
 #include "System/Physic/physicSystem.h"
 #include "BackEnds/PhysX/PxPhysicsAPI.h"
 #include "Component/modelRendererComponent.h"
