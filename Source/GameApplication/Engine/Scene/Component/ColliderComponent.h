@@ -47,17 +47,17 @@ struct ColliderShape {
 class ColliderComponent: public IComponent {
 public:
 	~ColliderComponent(){
-		for(auto& col : colliders){
-			if (pRigidbodyStatic) {
-				OutputDebugStringA(("Finalize Release Static Actor: " + std::to_string((uintptr_t)pRigidbodyStatic) + "\n").c_str());
-				pRigidbodyStatic->release();
-				pRigidbodyStatic = nullptr;
-			}
-			if (pRigidbodyDynamic) {
-				OutputDebugStringA(("Finalize Release Dynamic Actor: " + std::to_string((uintptr_t)pRigidbodyDynamic) + "\n").c_str());
-				pRigidbodyDynamic->release();
-				pRigidbodyDynamic = nullptr;
-			}
+		if (pRigidbodyStatic) {
+			if (pRigidbodyStatic->userData)
+				delete static_cast<ActorEntityInfo*>(pRigidbodyStatic->userData);
+			pRigidbodyStatic->release();
+			pRigidbodyStatic = nullptr;
+		}
+		if (pRigidbodyDynamic) {
+			if (pRigidbodyDynamic->userData)
+				delete static_cast<ActorEntityInfo*>(pRigidbodyDynamic->userData);
+			pRigidbodyDynamic->release();
+			pRigidbodyDynamic = nullptr;
 		}
 	}
 

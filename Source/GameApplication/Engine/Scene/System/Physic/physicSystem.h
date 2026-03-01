@@ -2,6 +2,7 @@
 
 #include "Interface/ISystem.h"
 #include "BackEnds/PhysX/PxPhysicsAPI.h"
+#include "Scene/Entity/Entity.h"
 
 #include <mutex>
 #include <vector>
@@ -10,11 +11,20 @@
 #include <d3d11.h>
 
 struct SceneManagerContext;
+struct SceneContext;
 struct ColliderShape;
 class ColliderComponent;
 class TransformComponent;
 class Vector3;
 class PhysicsSimulationCallback;
+
+//======================================================================
+// アクターとエンティティを関連付けるユーザーデータ
+//======================================================================
+struct ActorEntityInfo {
+	Entity        entity;
+	SceneContext* context;
+};
 
 //======================================================================
 // レイキャスト結果情報

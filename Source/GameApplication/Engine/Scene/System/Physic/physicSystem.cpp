@@ -53,12 +53,6 @@ physx::PxFilterFlags PhysicsFilterShader(
 	return physx::PxFilterFlag::eDEFAULT;
 }
 
-// アクターとエンティティを関連付けるユーザーデータ
-struct ActorEntityInfo {
-	Entity       entity;
-	SceneContext* context;
-};
-
 // PhysX シミュレーションイベントコールバック
 class PhysicsSimulationCallback : public physx::PxSimulationEventCallback {
 
@@ -81,6 +75,10 @@ public:
 				   physx::PxU32 nbPairs) override
 	{
 		if (!m_active) return;
+		// 削除されたアクターへのアクセスを防ぐ
+		if (pairHeader.flags & (physx::PxContactPairHeaderFlag::eREMOVED_ACTOR_0 |
+								physx::PxContactPairHeaderFlag::eREMOVED_ACTOR_1))
+			return;
 		auto* infoA = static_cast<ActorEntityInfo*>(pairHeader.actors[0]->userData);
 		auto* infoB = static_cast<ActorEntityInfo*>(pairHeader.actors[1]->userData);
 		if (!infoA || !infoB) return;
@@ -90,6 +88,10 @@ public:
 
 		for (physx::PxU32 i = 0; i < nbPairs; ++i) {
 			const physx::PxContactPair& pair = pairs[i];
+			// 削除されたシェイプへのアクセスを防ぐ
+			if (pair.flags & (physx::PxContactPairFlag::eREMOVED_SHAPE_0 |
+							  physx::PxContactPairFlag::eREMOVED_SHAPE_1))
+				continue;
 			uint32_t layerA = pair.shapes[0]->getSimulationFilterData().word0;
 			uint32_t layerB = pair.shapes[1]->getSimulationFilterData().word0;
 
