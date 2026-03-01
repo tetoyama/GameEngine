@@ -219,6 +219,7 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 
 			for(auto& item : transparentList){
 
+				if(!item.ref.IsValid()) continue;
 				Entity entity = item.ref.GetEntityID();
 				SceneContext* itemCtx = item.ref.GetScene();
 

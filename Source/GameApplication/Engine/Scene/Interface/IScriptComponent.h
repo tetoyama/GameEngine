@@ -7,7 +7,7 @@
 
 #include <backends/yaml-cpp/yaml.h>
 #include <Scene/scene.h>
-#include <Scene/Entity/EntityRef.h>
+#include <Scene/Reference/EntityRef.h>
 
 // ================================
 // Param system

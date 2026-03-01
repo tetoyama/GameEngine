@@ -8,8 +8,8 @@
 #include "Scene.h"
 #include "SceneManager.h"
 #include "Entity/Entity.h"
-#include "Entity/EntityRef.h"
-#include "Entity/ComponentRef.h"
+#include "../Reference/EntityRef.h"
+#include "../Reference/ComponentRef.h"
 #include "Registry/ComponentRegistry.h"
 #include "Platform/InputSystem/InputSystem.h"
 
@@ -99,13 +99,13 @@ public:
 	// UnityライクなAPI
 	template<typename T>
 	T* GetComponent(){
-		if(!m_ref.GetScene() || !m_ref.GetScene()->component) return nullptr;
+		if(!m_ref.IsValid()) return nullptr;
 		return m_ref.GetScene()->component->GetComponent<T>(m_ref.GetEntityID());
 	}
 
 	template<typename T, typename... Args>
 	T* AddComponent(Args&&... args){
-		if(!m_ref.GetScene() || !m_ref.GetScene()->component) return nullptr;
+		if(!m_ref.IsValid()) return nullptr;
 		return m_ref.GetScene()->component->AddComponent<T>(m_ref.GetEntityID(), std::forward<Args>(args)...);
 	}
 

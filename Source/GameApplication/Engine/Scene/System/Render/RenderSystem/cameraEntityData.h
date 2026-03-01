@@ -1,5 +1,5 @@
 #pragma once
-#include "Scene/Entity/EntityRef.h"
+#include "Scene/Reference/EntityRef.h"
 
 struct SceneContext;
 
