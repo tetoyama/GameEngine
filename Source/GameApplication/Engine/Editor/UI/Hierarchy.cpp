@@ -167,8 +167,15 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 	}
 
-	// --- ノード描画 ---
+	// --- ノード描画（グループで DnD エリアを (Prefab) ラベルまで拡張） ---
+	bool inRenameMode = (pendingRenameEntity != 0 && selectedEntity == entity && sceneContext == context);
+	ImGui::BeginGroup();
 	bool opened = ImGui::TreeNodeEx((void*)(intptr_t)entity, flags, "%s", displayName.c_str());
+	if(!inRenameMode && context->component->GetComponent<PrefabComponent>(entity)){
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "(Prefab)");
+	}
+	ImGui::EndGroup();
 
 	if(ImGui::IsItemClicked()){
 		selectedEntity = entity;
@@ -260,8 +267,28 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		ImGui::EndPopup();
 	}
 
-	// --- 名前変更UI / Prefab ラベル ---
-	if(pendingRenameEntity != 0 && selectedEntity == entity && sceneContext == context){
+	// --- Drag & Drop ---
+	if(ImGui::BeginDragDropSource()){
+		ImGui::SetDragDropPayload("ENTITY_DRAG_DROP", &entity, sizeof(Entity));
+		ImGui::Text("Move Entity");
+		ImGui::EndDragDropSource();
+	}
+	if(ImGui::BeginDragDropTarget()){
+		if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG_DROP")){
+			IM_ASSERT(payload->DataSize == sizeof(Entity));
+			Entity draggedEntity = *(const Entity*)payload->Data;
+			if(draggedEntity != entity){
+				auto* transform = context->component->GetComponent<TransformComponent>(draggedEntity);
+				if(transform){
+					transform->parent = entity;
+				}
+			}
+		}
+		ImGui::EndDragDropTarget();
+	}
+
+	// --- 名前変更UI ---
+	if(inRenameMode){
 
 		if(pendingRenameEntity != entity){
 			if(name){
@@ -284,30 +311,6 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			pendingRenameEntity = 0;
 		}
 		ImGui::PopItemWidth();
-	} else if(context->component->GetComponent<PrefabComponent>(entity)){
-		// PrefabComponent がある場合は (Prefab) ラベルを表示
-		ImGui::SameLine();
-		ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "(Prefab)");
-	}
-
-	// --- Drag & Drop ---
-	if(ImGui::BeginDragDropSource()){
-		ImGui::SetDragDropPayload("ENTITY_DRAG_DROP", &entity, sizeof(Entity));
-		ImGui::Text("Move Entity");
-		ImGui::EndDragDropSource();
-	}
-	if(ImGui::BeginDragDropTarget()){
-		if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG_DROP")){
-			IM_ASSERT(payload->DataSize == sizeof(Entity));
-			Entity draggedEntity = *(const Entity*)payload->Data;
-			if(draggedEntity != entity){
-				auto* transform = context->component->GetComponent<TransformComponent>(draggedEntity);
-				if(transform){
-					transform->parent = entity;
-				}
-			}
-		}
-		ImGui::EndDragDropTarget();
 	}
 
 	// --- 子描画 ---
