@@ -66,15 +66,21 @@ void PhysXDebugPass::Execute(const RenderPassContext& ctx){
 	};
 
 	// Normal/Tangent/TexCoord はデバッグライン描画では不使用のため 0 初期化のまま
-	std::vector<VERTEX_3D> vertices(nbLines * 2);
+	std::vector<VERTEX_3D> vertices;
+	vertices.reserve(nbLines * 2);
 	for(physx::PxU32 i = 0; i < nbLines; i++){
 		const physx::PxDebugLine& line = rb.getLines()[i];
 
-		vertices[i * 2].Position     = DirectX::XMFLOAT3(line.pos0.x, line.pos0.y, line.pos0.z);
-		vertices[i * 2].Diffuse      = ConvertColor(line.color0);
+		VERTEX_3D v0{};
+		v0.Position = DirectX::XMFLOAT3(line.pos0.x, line.pos0.y, line.pos0.z);
+		v0.Diffuse  = ConvertColor(line.color0);
 
-		vertices[i * 2 + 1].Position = DirectX::XMFLOAT3(line.pos1.x, line.pos1.y, line.pos1.z);
-		vertices[i * 2 + 1].Diffuse  = ConvertColor(line.color1);
+		VERTEX_3D v1{};
+		v1.Position = DirectX::XMFLOAT3(line.pos1.x, line.pos1.y, line.pos1.z);
+		v1.Diffuse  = ConvertColor(line.color1);
+
+		vertices.push_back(v0);
+		vertices.push_back(v1);
 	}
 
 	auto graphicsContext = m_context->graphics;
