@@ -71,17 +71,17 @@ public:
 
 		transform = GetComponentRef<TransformComponent>();
 		model = GetComponentRef<ModelRendererComponent>();
-		auto CameraBufferEntities = m_context->component->FindEntitiesWithComponent<CameraComponent>();
+		auto CameraBufferEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<CameraComponent>();
 		if(!CameraBufferEntities.empty()){
 			CameraBufferTransform = GetComponentRefFor<TransformComponent>(CameraBufferEntities[0]);
 		}
 
-		auto timerEntities = m_context->component->FindEntitiesWithComponent<GameTimeManager>();
+		auto timerEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<GameTimeManager>();
 		if(!timerEntities.empty()){
 			gameTime = GetComponentRefFor<GameTimeManager>(timerEntities[0]);
 		}
 
-		auto ballEntities = m_context->component->FindEntitiesWithComponent<BallController>();
+		auto ballEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<BallController>();
 		if(!ballEntities.empty()){
 			ballController = GetComponentRefFor<BallController>(ballEntities[0]);
 			ballTransform = GetComponentRefFor<TransformComponent>(ballEntities[0]);
@@ -192,7 +192,7 @@ public:
 
 			physx::PxVec3 rayDir(0.0f, -1.0f, 0.0f);
 
-			RayHit hit = m_context->manager
+			RayHit hit = m_ref.GetScene()->manager
 				->systemRegistry
 				->GetSystem<PhysicSystem>()
 				->RaycastWithMask(rayPos, rayDir, 0.3f, 0);

@@ -69,11 +69,11 @@ public:
 		transform = GetComponentRef<TransformComponent>();
 		model = GetComponentRef<ModelRendererComponent>();
 
-		auto timers = m_context->component->FindEntitiesWithComponent<GameTimeManager>();
+		auto timers = m_ref.GetScene()->component->FindEntitiesWithComponent<GameTimeManager>();
 		if(!timers.empty())
 			gameTime = GetComponentRefFor<GameTimeManager>(timers[0]);
 
-		auto balls = m_context->component->FindEntitiesWithComponent<BallController>();
+		auto balls = m_ref.GetScene()->component->FindEntitiesWithComponent<BallController>();
 		if(!balls.empty()){
 			ballController = GetComponentRefFor<BallController>(balls[0]);
 			ballTransform = GetComponentRefFor<TransformComponent>(balls[0]);

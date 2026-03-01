@@ -78,46 +78,46 @@ private:
 
 				break;
 			case NETWORKSTATE_START:
-				m_context->manager->debug->LOG_DEBUG("GN31 Started");
+				m_ref.GetScene()->manager->debug->LOG_DEBUG("GN31 Started");
 
-				m_context->manager->debug->LOG_DEBUG(("ポート番号 : " + std::to_string(port)));
+				m_ref.GetScene()->manager->debug->LOG_DEBUG(("ポート番号 : " + std::to_string(port)));
 
 				if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-					m_context->manager->debug->LOG_ERROR("WSAStartup failed");
+					m_ref.GetScene()->manager->debug->LOG_ERROR("WSAStartup failed");
 					return;
 				}
 				// 初期化情報を表示（学習用）
 				sprintf_s(debugString, "wVersion = %d.%d", LOBYTE(wsaData.wVersion), HIBYTE(wsaData.wVersion));
-				m_context->manager->debug->LOG_DEBUG(debugString);
+				m_ref.GetScene()->manager->debug->LOG_DEBUG(debugString);
 				sprintf_s(debugString, "wHighVersion = %d.%d", LOBYTE(wsaData.wHighVersion), HIBYTE(wsaData.wHighVersion));
-				m_context->manager->debug->LOG_DEBUG(debugString);
+				m_ref.GetScene()->manager->debug->LOG_DEBUG(debugString);
 				sprintf_s(debugString, "szDescription = %s", wsaData.szDescription);
-				m_context->manager->debug->LOG_DEBUG(debugString);
+				m_ref.GetScene()->manager->debug->LOG_DEBUG(debugString);
 				sprintf_s(debugString, "szSystemStatus = %s", wsaData.szSystemStatus);
-				m_context->manager->debug->LOG_DEBUG(debugString);
+				m_ref.GetScene()->manager->debug->LOG_DEBUG(debugString);
 				sprintf_s(debugString, "iMaxSockets= %d", wsaData.iMaxSockets);
-				m_context->manager->debug->LOG_DEBUG(debugString);
+				m_ref.GetScene()->manager->debug->LOG_DEBUG(debugString);
 				sprintf_s(debugString, "iMaxUdpDg = %d", wsaData.iMaxUdpDg);
-				m_context->manager->debug->LOG_DEBUG(debugString);
-				m_context->manager->debug->LOG_DEBUG("WSAStartup成功です");
+				m_ref.GetScene()->manager->debug->LOG_DEBUG(debugString);
+				m_ref.GetScene()->manager->debug->LOG_DEBUG("WSAStartup成功です");
 
 				// 自分のホスト名とIPアドレスを取得（確認用）
 				gethostname(hostName, (int)sizeof(hostName));
 				hostInfo = (struct hostent*)gethostbyname(hostName);
 				sprintf_s(debugString, "ホスト名=%s", hostName);
-				m_context->manager->debug->LOG_DEBUG(debugString);
+				m_ref.GetScene()->manager->debug->LOG_DEBUG(debugString);
 
 				memcpy(&ipAddr, hostInfo->h_addr_list[0], 4);
 				strcpy_s(ipAddress, inet_ntoa(ipAddr));
 				sprintf_s(debugString, "IPアドレス=%s", ipAddress);
-				m_context->manager->debug->LOG_DEBUG(debugString);
+				m_ref.GetScene()->manager->debug->LOG_DEBUG(debugString);
 
 				// ③ ソケット作成（TCP通信）
 				// AF_INET: IPv4, SOCK_STREAM: TCP, 0: プロトコル自動選択
 				listenSocket = socket(AF_INET, SOCK_STREAM, 0);
 				if (listenSocket == INVALID_SOCKET
 					) {
-					m_context->manager->debug->LOG_DEBUG("ソケットオープンエラー\n");
+					m_ref.GetScene()->manager->debug->LOG_DEBUG("ソケットオープンエラー\n");
 					WSACleanup();
 					exit(-5);
 				}
@@ -128,7 +128,7 @@ private:
 				serverAddr.sin_port = htons(port); // ポート番号をネットワークバイトオーダーに変換
 				serverAddr.sin_addr.s_addr = INADDR_ANY; // どのIPからの接続も受け付ける
 				if (bind(listenSocket, (SOCKADDR*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
-					m_context->manager->debug->LOG_DEBUG("バインドエラー\n");
+					m_ref.GetScene()->manager->debug->LOG_DEBUG("バインドエラー\n");
 					closesocket(listenSocket);
 					WSACleanup();
 					m_NetWorkState = NETWORKSTATE_CLOSE;
@@ -137,7 +137,7 @@ private:
 				// ⑤ ソケットを待機状態に変更（listen）
 				 // SOMAXCONN: 最大接続数をOSに任せる
 				if (listen(listenSocket, SOMAXCONN) == SOCKET_ERROR) {
-					m_context->manager->debug->LOG_DEBUG("待機状態変更失敗\n");
+					m_ref.GetScene()->manager->debug->LOG_DEBUG("待機状態変更失敗\n");
 					closesocket(listenSocket);
 					WSACleanup();
 					m_NetWorkState = NETWORKSTATE_CLOSE;
@@ -149,15 +149,15 @@ private:
 				if (clientSocket == INVALID_SOCKET
 					) {
 
-					m_context->manager->debug->LOG_DEBUG("accept error\n");
+					m_ref.GetScene()->manager->debug->LOG_DEBUG("accept error\n");
 					closesocket(listenSocket);
 					WSACleanup();
 					m_NetWorkState = NETWORKSTATE_CLOSE;
 					return;
 				}
 				sprintf_s(debugString, "%sが接続してきました\n", inet_ntoa(clientAddr.sin_addr));
-				m_context->manager->debug->LOG_DEBUG(debugString);
-				m_context->manager->debug->LOG_DEBUG("受信を開始します\n終了は end です\n");
+				m_ref.GetScene()->manager->debug->LOG_DEBUG(debugString);
+				m_ref.GetScene()->manager->debug->LOG_DEBUG("受信を開始します\n終了は end です\n");
 
 				m_NetWorkState = NETWORKSTATE_RECV;
 
@@ -170,17 +170,17 @@ private:
 
 					int recvSize = recv(clientSocket, recvBuffer, sizeof(recvBuffer) - 1, 0);
 					if (recvSize == SOCKET_ERROR) {
-						//m_context->manager->debug->LOG_DEBUG("受信エラーです\n");
+						//m_ref.GetScene()->manager->debug->LOG_DEBUG("受信エラーです\n");
 						return;
 					}
 					recvBuffer[recvSize] = '\0'; // 文字列終端を追加
 					if (strcmp(recvBuffer, "end") == 0) {
-						m_context->manager->debug->LOG_DEBUG("クライアントが接続を切りました\n");
+						m_ref.GetScene()->manager->debug->LOG_DEBUG("クライアントが接続を切りました\n");
 						m_NetWorkState = NETWORKSTATE_CLOSE;
 						return;
 					}
 					sprintf_s(debugString, "受信:%s\n", recvBuffer);
-					m_context->manager->debug->LOG_DEBUG(debugString);
+					m_ref.GetScene()->manager->debug->LOG_DEBUG(debugString);
 
 					send(clientSocket, recvBuffer, (int)strlen(recvBuffer), 0);
 					break;
@@ -208,7 +208,7 @@ private:
 			closesocket(listenSocket);
 			WSACleanup();
 
-			m_context->manager->debug->LOG_DEBUG("GN31 Stopped");
+			m_ref.GetScene()->manager->debug->LOG_DEBUG("GN31 Stopped");
 		}
 	}
 };
