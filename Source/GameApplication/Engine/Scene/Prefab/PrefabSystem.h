@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <memory>
-#include "Entity/EntityRef.h"
+#include "../Reference/EntityRef.h"
 
 struct SceneContext;
 struct PrefabData;

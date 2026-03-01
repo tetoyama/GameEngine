@@ -1,7 +1,7 @@
 #include "ScriptSystem.h"
 #include "Scene/Component/ScriptComponent.h"
 #include "Component/componentList.h"
-#include "Scene/Entity/EntityRef.h"
+#include "Scene/Reference/EntityRef.h"
 
 void ScriptSystem::Start(){
 	ForEachScript([](IScriptComponent* script){

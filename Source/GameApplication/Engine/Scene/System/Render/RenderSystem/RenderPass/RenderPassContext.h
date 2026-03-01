@@ -7,7 +7,7 @@
 #include "../renderPhase.h"
 #include "../renderLayer.h"
 #include "../CameraEntityData.h"
-#include "Scene/Entity/EntityRef.h"
+#include "Scene/Reference/EntityRef.h"
 
 struct RenderPassContext {
 

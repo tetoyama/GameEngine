@@ -270,6 +270,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 
 			for(auto& item : transparentList){
 
+				if(!item.ref.IsValid()) continue;
 				Entity entity = item.ref.GetEntityID();
 				SceneContext* itemCtx = item.ref.GetScene();
 
@@ -307,6 +308,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 
 			for (auto& item : spriteList) {
 
+				if(!item.ref.IsValid()) continue;
 				Entity entity = item.ref.GetEntityID();
 				SceneContext* itemCtx = item.ref.GetScene();
 
