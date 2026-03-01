@@ -470,15 +470,6 @@ void PhysicSystem::UpdateColliderParam(TransformComponent* transform, ColliderCo
 		dyn->setRigidDynamicLockFlags(lockFlags);
 	}
 
-	if (col.isTrigger) {
-		newShape->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, false);
-		newShape->setFlag(physx::PxShapeFlag::eTRIGGER_SHAPE, true);
-	} else {
-		newShape->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, true);
-		newShape->setFlag(physx::PxShapeFlag::eTRIGGER_SHAPE, false);
-	}
-
-
 	g_pScene->unlockWrite();
 }
 
