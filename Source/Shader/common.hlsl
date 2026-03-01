@@ -65,22 +65,8 @@ float2 TransformUV(float2 In, float2 start, float2 end)
 #endif // __cplusplus
 
 // ==========================================
-// 定数バッファと構造体
+// 共通構造体
 // ==========================================
-
-// ワールド / ビュー / プロジェクション行列
-CBUFFER(WorldBuffer, 0)
-{
-    float4x4 World;
-};
-CBUFFER(ViewBuffer, 1)
-{
-    float4x4 View;
-};
-CBUFFER(ProjectionBuffer, 2)
-{
-    float4x4 Projection;
-};
 
 // マテリアル構造体
 struct MATERIAL
@@ -96,18 +82,6 @@ struct MATERIAL
 
     uint MaterialFlags;
     uint3 Pad1;
-};
-
-CBUFFER(MaterialBuffer, 3)
-{
-    MATERIAL Material;
-};
-
-// UV マトリクス
-CBUFFER(UVMatrixBuffer, 4)
-{
-    float2 UVStart;
-    float2 UVEnd;
 };
 
 // ライト構造体
@@ -130,34 +104,50 @@ struct LIGHT
     float4 Param;
 };
 
-CBUFFER(LightBuffer, 5)
+// ==========================================
+// 定数バッファ (更新頻度順)
+// ==========================================
+
+// b0: フレームごとに更新 (ライト情報)
+CBUFFER(CbPerFrame, 0)
 {
     int ActiveLightCount;
     int ShadowAtlasCount;
-    int2 Dummy;
+    int2 _LightPad;
     LIGHT Lights[LIGHT_MAX_COUNT];
 };
 
-// カメラ情報
-CBUFFER(CameraBuffer, 6)
+// b1: カメラ/パスごとに更新 (ビュー・プロジェクション・カメラ位置)
+CBUFFER(CbPerCamera, 1)
 {
+    float4x4 View;
+    float4x4 Projection;
     float4 CameraPosition;
 };
 
-// 汎用パラメータ
-CBUFFER(ParameterBuffer, 7)
+// b2: オブジェクトごとに更新 (ワールド・マテリアル・UV・パラメータ・オブジェクト情報)
+CBUFFER(CbPerObject, 2)
 {
+    float4x4 World;
+    MATERIAL Material;
+    float2 UVStart;
+    float2 UVEnd;
     float4 Parameter;
-};
-
-// オブジェクト情報
-CBUFFER(ObjectInfo, 8)
-{
     uint SceneID;
     uint ObjectID;
     uint ShaderID;
-    uint _pad;
+    uint _ObjPad;
 };
+
+#ifdef __cplusplus
+// C++ 後方互換: セッター関数の引数として使う個別パラメータ構造体
+struct UVMatrixBuffer { float2 UVStart; float2 UVEnd; };
+struct CameraBuffer   { float4 CameraPosition; };
+struct ParameterBuffer{ float4 Parameter; };
+struct ObjectInfo     { uint SceneID; uint ObjectID; uint ShaderID; uint _pad; };
+// LightBuffer は CbPerFrame と同一レイアウト
+using LightBuffer = CbPerFrame;
+#endif
 #ifndef __cplusplus
 
 // ------------------------------------------

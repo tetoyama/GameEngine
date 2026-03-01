@@ -78,15 +78,9 @@ void GraphicsContext::Shutdown(){
 	delete m_EffectSystem;
 	m_EffectSystem = nullptr;
 
-	SAFE_RELEASE(m_WorldBuffer);
-	SAFE_RELEASE(m_ViewBuffer);
-	SAFE_RELEASE(m_ProjectionBuffer);
-	SAFE_RELEASE(m_MaterialBuffer);
-	SAFE_RELEASE(m_UVMatrixBuffer);
-	SAFE_RELEASE(m_LightBuffer);
-	SAFE_RELEASE(m_CameraBuffer);
-	SAFE_RELEASE(m_ParameterBuffer);
-	SAFE_RELEASE(m_ObjectInfoBuffer);
+	SAFE_RELEASE(m_CbPerFrame);
+	SAFE_RELEASE(m_CbPerCamera);
+	SAFE_RELEASE(m_CbPerObject);
 
 	SAFE_RELEASE(m_RenderTargetView);
 	SAFE_RELEASE(m_DepthStencilView);
@@ -136,49 +130,55 @@ void GraphicsContext::SetBlendMode(const BlendMode& mode){
 	m_DeviceContext->OMSetBlendState(m_BlendStates[(int)mode].Get(), blendFactor, 0xffffffff);
 }
 
+// --- CbPerObject セッター ---
+// 各セッターは CPU ミラーの該当フィールドを更新してから CbPerObject 全体をアップロードする。
+// 同一フレーム内で複数フィールドを変更する場合は呼び出し順に注意すること。
 void GraphicsContext::SetWorldMatrix(const DirectX::XMMATRIX& world){
-	DirectX::XMFLOAT4X4 worldf;
-	XMStoreFloat4x4(&worldf, XMMatrixTranspose(world));
-	m_DeviceContext->UpdateSubresource(m_WorldBuffer, 0, nullptr, &worldf, 0, 0);
+	XMStoreFloat4x4(&m_CbPerObjectData.World, XMMatrixTranspose(world));
+	m_DeviceContext->UpdateSubresource(m_CbPerObject, 0, nullptr, &m_CbPerObjectData, 0, 0);
 }
 
 void GraphicsContext::SetViewMatrix(const DirectX::XMMATRIX& view){
-	DirectX::XMFLOAT4X4 viewf;
-	XMStoreFloat4x4(&viewf, XMMatrixTranspose(view));
-	m_DeviceContext->UpdateSubresource(m_ViewBuffer, 0, nullptr, &viewf, 0, 0);
+	XMStoreFloat4x4(&m_CbPerCameraData.View, XMMatrixTranspose(view));
+	m_DeviceContext->UpdateSubresource(m_CbPerCamera, 0, nullptr, &m_CbPerCameraData, 0, 0);
 }
 
 void GraphicsContext::SetProjectionMatrix(const DirectX::XMMATRIX& proj){
-	DirectX::XMFLOAT4X4 projf;
-	XMStoreFloat4x4(&projf, XMMatrixTranspose(proj));
-	m_DeviceContext->UpdateSubresource(m_ProjectionBuffer, 0, nullptr, &projf, 0, 0);
+	XMStoreFloat4x4(&m_CbPerCameraData.Projection, XMMatrixTranspose(proj));
+	m_DeviceContext->UpdateSubresource(m_CbPerCamera, 0, nullptr, &m_CbPerCameraData, 0, 0);
 }
 
 void GraphicsContext::SetUVMatrixBuffer(const UVMatrixBuffer& uv) {
-	m_DeviceContext->UpdateSubresource(m_UVMatrixBuffer, 0, nullptr, &uv, 0, 0);
+	m_CbPerObjectData.UVStart = uv.UVStart;
+	m_CbPerObjectData.UVEnd   = uv.UVEnd;
+	m_DeviceContext->UpdateSubresource(m_CbPerObject, 0, nullptr, &m_CbPerObjectData, 0, 0);
 }
 
-void GraphicsContext::SetMaterial(const MATERIAL& material){  
-
-   m_DeviceContext->UpdateSubresource(m_MaterialBuffer, 0, nullptr, &material, 0, 0);
+void GraphicsContext::SetMaterial(const MATERIAL& material){
+	m_CbPerObjectData.Material = material;
+	m_DeviceContext->UpdateSubresource(m_CbPerObject, 0, nullptr, &m_CbPerObjectData, 0, 0);
 }
 
 void GraphicsContext::SetLight(LightBuffer* light){
-
-	m_LightData = *light;
-	m_DeviceContext->UpdateSubresource(m_LightBuffer, 0, nullptr, light, 0, 0);
+	m_CbPerFrameData = *light;
+	m_DeviceContext->UpdateSubresource(m_CbPerFrame, 0, nullptr, &m_CbPerFrameData, 0, 0);
 }
 
-void GraphicsContext::SetCameraBuffer(const CameraBuffer& CameraBuffer){
-	m_DeviceContext->UpdateSubresource(m_CameraBuffer, 0, nullptr, &CameraBuffer, 0, 0);
+void GraphicsContext::SetCameraBuffer(const CameraBuffer& cameraBuffer){
+	m_CbPerCameraData.CameraPosition = cameraBuffer.CameraPosition;
+	m_DeviceContext->UpdateSubresource(m_CbPerCamera, 0, nullptr, &m_CbPerCameraData, 0, 0);
 }
 
-void GraphicsContext::SetParameter(const ParameterBuffer& Parameter){
-	m_DeviceContext->UpdateSubresource(m_ParameterBuffer, 0, nullptr, &Parameter, 0, 0);
+void GraphicsContext::SetParameter(const ParameterBuffer& parameter){
+	m_CbPerObjectData.Parameter = parameter.Parameter;
+	m_DeviceContext->UpdateSubresource(m_CbPerObject, 0, nullptr, &m_CbPerObjectData, 0, 0);
 }
 
-void GraphicsContext::SetObjectInfo(const ObjectInfo& ObjectInfo) {
-	m_DeviceContext->UpdateSubresource(m_ObjectInfoBuffer, 0, nullptr, &ObjectInfo, 0, 0);
+void GraphicsContext::SetObjectInfo(const ObjectInfo& objectInfo) {
+	m_CbPerObjectData.SceneID  = objectInfo.SceneID;
+	m_CbPerObjectData.ObjectID = objectInfo.ObjectID;
+	m_CbPerObjectData.ShaderID = objectInfo.ShaderID;
+	m_DeviceContext->UpdateSubresource(m_CbPerObject, 0, nullptr, &m_CbPerObjectData, 0, 0);
 }
 
 void GraphicsContext::ResetViewport(){
@@ -362,92 +362,60 @@ bool GraphicsContext::CreateSamplerstate(){
 }
 
 bool GraphicsContext::CreateConstantBuffers(){
-	// 定数バッファ生成
 	D3D11_BUFFER_DESC bufferDesc{};
-	bufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4X4);
-	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.Usage          = D3D11_USAGE_DEFAULT;
+	bufferDesc.BindFlags      = D3D11_BIND_CONSTANT_BUFFER;
 	bufferDesc.CPUAccessFlags = 0;
-	bufferDesc.MiscFlags = 0;
-	bufferDesc.StructureByteStride = sizeof(float);
+	bufferDesc.MiscFlags      = 0;
 
 	HRESULT hr;
 
-	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_WorldBuffer);
-	m_DeviceContext->VSSetConstantBuffers(0, 1, &m_WorldBuffer);
+	// b0: CbPerFrame — フレームごとに更新 (ライト情報)
+	bufferDesc.ByteWidth = sizeof(CbPerFrame);
+	hr = m_Device->CreateBuffer(&bufferDesc, nullptr, &m_CbPerFrame);
 	assert(SUCCEEDED(hr));
+	m_DeviceContext->VSSetConstantBuffers(0, 1, &m_CbPerFrame);
+	m_DeviceContext->PSSetConstantBuffers(0, 1, &m_CbPerFrame);
 
-	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_ViewBuffer);
-	m_DeviceContext->VSSetConstantBuffers(1, 1, &m_ViewBuffer);
+	// b1: CbPerCamera — カメラ/パスごとに更新 (View・Projection・CameraPosition)
+	bufferDesc.ByteWidth = sizeof(CbPerCamera);
+	hr = m_Device->CreateBuffer(&bufferDesc, nullptr, &m_CbPerCamera);
 	assert(SUCCEEDED(hr));
+	m_DeviceContext->VSSetConstantBuffers(1, 1, &m_CbPerCamera);
+	m_DeviceContext->PSSetConstantBuffers(1, 1, &m_CbPerCamera);
 
-	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_ProjectionBuffer);
-	m_DeviceContext->VSSetConstantBuffers(2, 1, &m_ProjectionBuffer);
+	// b2: CbPerObject — オブジェクトごとに更新 (World・Material・UV・Parameter・ObjectInfo)
+	bufferDesc.ByteWidth = sizeof(CbPerObject);
+	hr = m_Device->CreateBuffer(&bufferDesc, nullptr, &m_CbPerObject);
 	assert(SUCCEEDED(hr));
-
-
-	bufferDesc.ByteWidth = sizeof(MATERIAL);
-
-	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_MaterialBuffer);
-	m_DeviceContext->VSSetConstantBuffers(3, 1, &m_MaterialBuffer);
-	m_DeviceContext->PSSetConstantBuffers(3, 1, &m_MaterialBuffer);
-	assert(SUCCEEDED(hr));
-
-	bufferDesc.ByteWidth = sizeof(UVMatrixBuffer);
-	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_UVMatrixBuffer);
-	m_DeviceContext->VSSetConstantBuffers(4, 1, &m_UVMatrixBuffer);
-	m_DeviceContext->PSSetConstantBuffers(4, 1, &m_UVMatrixBuffer);
-	assert(SUCCEEDED(hr));
-
-	bufferDesc.ByteWidth = sizeof(LightBuffer);
-
-	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_LightBuffer);
-	m_DeviceContext->VSSetConstantBuffers(5, 1, &m_LightBuffer);
-	m_DeviceContext->PSSetConstantBuffers(5, 1, &m_LightBuffer);
-	assert(SUCCEEDED(hr));
-
-	bufferDesc.ByteWidth = sizeof(CameraBuffer);
-
-	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_CameraBuffer);
-	m_DeviceContext->VSSetConstantBuffers(6, 1, &m_CameraBuffer);
-	m_DeviceContext->PSSetConstantBuffers(6, 1, &m_CameraBuffer);
-	assert(SUCCEEDED(hr));
-
-	bufferDesc.ByteWidth = sizeof(ParameterBuffer);
-
-	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_ParameterBuffer);
-	m_DeviceContext->VSSetConstantBuffers(7, 1, &m_ParameterBuffer);
-	m_DeviceContext->PSSetConstantBuffers(7, 1, &m_ParameterBuffer);
-	assert(SUCCEEDED(hr));
-
-	bufferDesc.ByteWidth = sizeof(ObjectInfo);
-
-	hr = m_Device->CreateBuffer(&bufferDesc, NULL, &m_ObjectInfoBuffer);
-	m_DeviceContext->VSSetConstantBuffers(8, 1, &m_ObjectInfoBuffer);
-	m_DeviceContext->PSSetConstantBuffers(8, 1, &m_ObjectInfoBuffer);
-	assert(SUCCEEDED(hr));
+	m_DeviceContext->VSSetConstantBuffers(2, 1, &m_CbPerObject);
+	m_DeviceContext->PSSetConstantBuffers(2, 1, &m_CbPerObject);
 
 	// ライト初期化
-	LightBuffer light;
-	light.Lights[0].Enable = true;
-	light.Lights[0].Direction	= DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
-	light.Lights[0].Ambient	= DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	light.Lights[0].Diffuse	= DirectX::XMFLOAT4(1.5f, 1.5f, 1.5f, 1.0f);
-	light.Lights[0].Position = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-
+	LightBuffer light{};
+	light.Lights[0].Enable    = true;
+	light.Lights[0].Direction = DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
+	light.Lights[0].Ambient   = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	light.Lights[0].Diffuse   = DirectX::XMFLOAT4(1.5f, 1.5f, 1.5f, 1.0f);
+	light.Lights[0].Position  = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 	SetLight(&light);
 
 	// マテリアル初期化
 	MATERIAL material{};
-	material.BaseColor	= DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	SetMaterial(material);
 
-	// カメラ初期化
-	CameraBuffer CameraBuffer{};
-	CameraBuffer.CameraPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	SetCameraBuffer(CameraBuffer);
+	// UV 初期化 (フルテクスチャ範囲)
+	UVMatrixBuffer uv{};
+	uv.UVEnd = DirectX::XMFLOAT2(1.0f, 1.0f);
+	SetUVMatrixBuffer(uv);
 
-	return (SUCCEEDED(hr));
+	// カメラ初期化
+	CameraBuffer cam{};
+	cam.CameraPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	SetCameraBuffer(cam);
+
+	return SUCCEEDED(hr);
 }
 
 bool GraphicsContext::CreateRasterizerState(){

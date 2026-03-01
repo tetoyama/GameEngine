@@ -99,12 +99,12 @@ public:
 	ID2D1Factory* GetD2DFactory() const{return m_d2dFactory.Get();}
 	IDWriteFactory* GetDWriteFactory() const{return m_dwriteFactory.Get();}
 
-    ID3D11Buffer* GetWorldConstantBuffer() {return m_WorldBuffer;}
+    ID3D11Buffer* GetWorldConstantBuffer() { return m_CbPerObject; }
 
 	Effekseer::ManagerRef GetEffectManager();
 	EffekseerRendererDX11::RendererRef GetEffectRenderer();
 
-	LightBuffer* GetLight() { return &m_LightData; }
+	LightBuffer* GetLight() { return &m_CbPerFrameData; }
 
 	// セッター
 	void SetDepthMode(const DepthMode& mode);
@@ -186,15 +186,13 @@ private:
 	ID3D11RenderTargetView*							m_RenderTargetView;
 	ID3D11DepthStencilView*							m_DepthStencilView;
 
-	ID3D11Buffer* m_WorldBuffer = nullptr;
-	ID3D11Buffer* m_ViewBuffer = nullptr;
-	ID3D11Buffer* m_ProjectionBuffer = nullptr;
-	ID3D11Buffer* m_UVMatrixBuffer = nullptr;
-	ID3D11Buffer* m_MaterialBuffer = nullptr;
-	ID3D11Buffer* m_LightBuffer = nullptr;
-	ID3D11Buffer* m_CameraBuffer = nullptr;
-	ID3D11Buffer* m_ParameterBuffer = nullptr;
-	ID3D11Buffer* m_ObjectInfoBuffer = nullptr;
+	ID3D11Buffer* m_CbPerFrame  = nullptr;   // b0: フレームごと (ライト)
+	ID3D11Buffer* m_CbPerCamera = nullptr;   // b1: カメラ/パスごと (View, Proj, CamPos)
+	ID3D11Buffer* m_CbPerObject = nullptr;   // b2: オブジェクトごと (World, Material, UV, Param, ObjInfo)
+
+	CbPerFrame  m_CbPerFrameData{};
+	CbPerCamera m_CbPerCameraData{};
+	CbPerObject m_CbPerObjectData{};
 
 	ID3D11ComputeShader* csSkinning = nullptr;
 
@@ -217,6 +215,4 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_FullScreenIB;
 
 	RenderEffectSystem* m_EffectSystem = nullptr;
-
-	LightBuffer m_LightData;
 };
