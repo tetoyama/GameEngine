@@ -1851,6 +1851,9 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Transform\transformSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Transform\followSystem.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -2445,6 +2448,9 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\scriptComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\followComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\IScriptComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -2709,6 +2715,9 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Transform\transformSystem.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Transform\followSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Service\DebugTools\debugSystem.cpp">

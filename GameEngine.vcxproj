@@ -2637,6 +2637,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\componentList.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\materialComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\scriptComponent.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\followComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\IScriptComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Effect\RenderableEffect.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderLayer.h" />
@@ -2758,6 +2759,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderTarget\renderTarget.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Terrain\terrainSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Transform\transformSystem.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Transform\followSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Terrain\waveSystem.h" />
     <ClInclude Include="Source\GameApplication\gameApplication.h" />
     <ClInclude Include="Source\main.h" />
@@ -3565,6 +3567,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\ShadowMap\ShadowMapPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderTarget\renderTarget.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Transform\transformSystem.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Transform\followSystem.cpp" />
     <ClCompile Include="Source\GameApplication\gameApplication.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\GameApplication\Backends\ImGuiFunc.cpp" />
