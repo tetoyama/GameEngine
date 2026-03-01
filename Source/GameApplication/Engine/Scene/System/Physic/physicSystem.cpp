@@ -1119,9 +1119,23 @@ void PhysicSystem::Draw(){
 	// PhysX の可視化デバッグは g_pScene->getRenderBuffer() などで取得可能
 }
 
-void PhysicSystem::EditorUpdate(float /*deltaTime*/){
-	// FixedUpdate がシミュレーションとレンダーバッファの更新を担う
-	// simulate(0.0f) は PhysX に拒否されるためここでは呼ばない
+void PhysicSystem::EditorUpdate(float deltaTime){
+	if(!g_pScene) return;
+	if(m_isSimulating) return;
+	// ゲームプレイ中は FixedUpdate がシミュレーションを担う
+	if(m_context->sceneManager->State == SceneManagerState::Playing) return;
+	// PhysX は elapsed time > 0 を要求する
+	if(deltaTime <= 0.0f) return;
+
+	// デバッグ描画用にシミュレーションを進め、レンダーバッファを更新する
+	m_isSimulating = true;
+	g_pScene->lockWrite();
+	g_pScene->simulate(deltaTime);
+	g_pScene->unlockWrite();
+	g_pScene->lockRead();
+	g_pScene->fetchResults(true);
+	g_pScene->unlockRead();
+	m_isSimulating = false;
 }
 
 void PhysicSystem::DrawLayerEditor(){
