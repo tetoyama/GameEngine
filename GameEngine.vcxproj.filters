@@ -2445,6 +2445,9 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\PostEffectPass.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\Forward\ForwardPass.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\componentList.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -2930,6 +2933,12 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\LightingPass\LightingPass.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\Forward\ForwardPass.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\PostEffectPass.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\systemSetting.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -3337,6 +3346,7 @@
     <FxCompile Include="Source\Shader\PhysX\DebugLinePS.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\PostEffectVS.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\PostEffectPS.hlsl" />
+    <FxCompile Include="Source\Shader\PostEffect\DepthFog.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\Mosaic.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\Blur.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\Grayscale.hlsl" />
