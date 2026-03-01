@@ -231,7 +231,7 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 			// 高さの最大絶対値を求めて int16 への量子化スケールを決定
 			float maxAbsH = 0.0f;
 			for (float h : *col.heightMapData)
-				maxAbsH = std::max(maxAbsH, std::abs(h));
+				maxAbsH = (std::max)(maxAbsH, std::abs(h));
 			float hScale = (maxAbsH < 1e-6f) ? 1.0f : maxAbsH / 32767.0f;
 
 			// ハイトフィールドサンプルを構築
