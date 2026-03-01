@@ -184,14 +184,15 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 						XMMATRIX invCameraView = XMMatrixInverse(nullptr, ctx.viewMatrix);
 
 						// カスケードスプリット深度を PSSM (対数+線形ブレンド) で計算
-						// near を 10m に固定し、近距離カスケードの精度を高める
-						constexpr float csmNear   = 10.0f;
-						constexpr float csmLambda = 0.5f; // 0.0=完全線形(等間隔), 1.0=完全対数(近距離重視)
+						// カメラ nearClip を始点、FarClip の 50% を終点とし近距離精度を高める
+						const float     csmNear   = max(cameraNear, 0.1f); // カメラ nearClip を使用 (最低 0.1m)
+						const float     csmFar    = cameraFar * 0.5f;      // FarClip の 50% まで
+						constexpr float csmLambda = 0.85f; // 0.0=完全線形(等間隔), 1.0=完全対数(近距離重視)
 						float splitDepths[DIRECTIONAL_CSM_CASCADE_COUNT];
 						for(int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT; c++){
 							float p        = (float)(c + 1) / (float)DIRECTIONAL_CSM_CASCADE_COUNT;
-							float logSplit = csmNear * powf(cameraFar / csmNear, p);
-							float uniSplit = csmNear + (cameraFar - csmNear) * p;
+							float logSplit = csmNear * powf(csmFar / csmNear, p);
+							float uniSplit = csmNear + (csmFar - csmNear) * p;
 							splitDepths[c] = csmLambda * logSplit + (1.0f - csmLambda) * uniSplit;
 						}
 
@@ -269,8 +270,9 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 							// 縮退した射影行列を避けるための最小深度レンジ保証
 							if(maxZ <= minZ) maxZ = minZ + 1.0f;
 
+							// nearClip を 0 に設定: フラスタム外の shadow caster も捕捉する
 							XMMATRIX cascadeProj = XMMatrixOrthographicOffCenterLH(
-								minX, maxX, minY, maxY, minZ, maxZ);
+								minX, maxX, minY, maxY, 0.0f, maxZ);
 
 							// 転置して格納 (シェーダーの mul(v, M) 規約に合わせる)
 							XMStoreFloat4x4(&csmData.CsmViews[c],       XMMatrixTranspose(cascadeView));

@@ -15,7 +15,7 @@ public:
 		light.CastShadow = true;
 		light.Ambient = float4(0, 0, 0, 0);
 		light.Diffuse = float4(1, 1, 1, 1);
-		light.Param = float4(10, 0, 0, 0.001f);
+		light.Param = float4(10, 0, 0, DEPTH_BIAS_CONSTANT); // x: 範囲, y: 内側コーン角度(Spot), z: 外側コーン角度(Spot), w: シャドウバイアス
 	}
 
 	YAML::Node encode() override{

@@ -11,7 +11,7 @@
 
 #define ALPHA_CLIP_THRESHOLD		(0.01f)
 #define PI							(3.14159265359f)
-#define DEPTH_BIAS_CONSTANT			(0.001f)
+#define DEPTH_BIAS_CONSTANT			(0.005f)
 #define DEPTH_SLOPE_BIAS			(0.003f)
 
 #define BONE_MAX_COUNT			(256)
