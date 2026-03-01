@@ -3340,6 +3340,7 @@
     <FxCompile Include="Source\Shader\LightingVS.hlsl" />
     <FxCompile Include="Source\Shader\AutoGen\ForwardRenderingPS.hlsl" />
     <FxCompile Include="Source\Shader\AutoGen\DeferredRenderingPS.hlsl" />
+    <FxCompile Include="Source\Shader\PhysX\DebugLineVS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />
