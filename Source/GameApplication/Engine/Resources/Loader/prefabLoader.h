@@ -17,8 +17,8 @@ inline void ResourceLoader<PrefabData>::SetupLoadFunc(void* /*contextPtr*/) {
 		data->filePath = path;
 		data->root = YAML::Load(fin);
 
-		// "Components" シーケンスが存在しない場合は無効なプレファブとみなす
-		if (!data->root["Components"] || !data->root["Components"].IsSequence()) return nullptr;
+		// "Entities" シーケンスが存在しない場合は無効なプレファブとみなす
+		if (!data->root["Entities"] || !data->root["Entities"].IsSequence()) return nullptr;
 
 		return data;
 	});
