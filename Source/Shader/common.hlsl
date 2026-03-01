@@ -101,10 +101,8 @@ struct LIGHT
     float4x4 LightView;
     float4x4 LightProjection;
 
+    // x: 範囲(Point/Spot), y: 内側コーン角度(Spot), z: 外側コーン角度(Spot), w: シャドウバイアス
     float4 Param;
-
-    // x: 定数バイアス, y: スロープスケールバイアス, zw: 未使用
-    float4 ShadowBias;
 };
 
 // ==========================================

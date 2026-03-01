@@ -74,7 +74,6 @@ MaterialInput GetMaterialInput(PS_IN In)
 float ShadowFactorCSM(
     float3 worldPos,
     LIGHT  light,
-    float  NdotL,
     ShadowPCFParams pcf)
 {
     // ---- ビュー空間深度でカスケード選択 ----
@@ -113,9 +112,9 @@ float ShadowFactorCSM(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    // ---- 法線傾斜バイアス (シャドウアクネ対策) ----
-    // NdotL が小さい（ライトが浅い角度）ほど大きなバイアスを適用する
-    float bias = light.ShadowBias.x + light.ShadowBias.y * (1.0 - saturate(NdotL));
+    // ---- シャドウバイアス (シャドウアクネ対策) ----
+    // Param.w で調整可能: 値を大きくするとアクネが減り、小さくするとピーターパン現象が減る
+    float bias = light.Param.w;
     float depth = saturate(sp.z - bias);
 
     // ---- アトラスタイル計算 ----
@@ -163,7 +162,6 @@ float ShadowFactor(
     float3 worldPos,
     LIGHT light,
     int lightIndex,
-    float NdotL,
     ShadowPCFParams pcf)
 {
     // ---- Light Space ----
@@ -181,8 +179,9 @@ float ShadowFactor(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    // ---- 法線傾斜バイアス (シャドウアクネ対策) ----
-    float bias = light.ShadowBias.x + light.ShadowBias.y * (1.0 - saturate(NdotL));
+    // ---- シャドウバイアス (シャドウアクネ対策) ----
+    // Param.w で調整可能: 値を大きくするとアクネが減り、小さくするとピーターパン現象が減る
+    float bias = light.Param.w;
     float depth = saturate(sp.z - bias);
 
     // ---- Atlas ----

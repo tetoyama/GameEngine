@@ -15,8 +15,7 @@ public:
 		light.CastShadow = true;
 		light.Ambient = float4(0, 0, 0, 0);
 		light.Diffuse = float4(1, 1, 1, 1);
-		light.Param = float4(10, 0, 0, 0);
-		light.ShadowBias = float4(0.001f, 0.003f, 0.0f, 0.0f);
+		light.Param = float4(10, 0, 0, 0.001f);
 	}
 
 	YAML::Node encode() override{
@@ -34,7 +33,6 @@ public:
 		node["Ambient"] = light.Ambient;
 
 		node["Param"] = light.Param;
-		node["ShadowBias"] = light.ShadowBias;
 
 		node["LightView"] = light.LightView;
 		node["LightProjection"] = light.LightProjection;
@@ -71,9 +69,6 @@ public:
 		if(node["Param"])
 			light.Param = node["Param"].as<DirectX::XMFLOAT4>();
 
-		if(node["ShadowBias"])
-			light.ShadowBias = node["ShadowBias"].as<DirectX::XMFLOAT4>();
-
 		if(node["LightView"])
 			light.LightView = node["LightView"].as<DirectX::XMFLOAT4X4>();
 
@@ -101,15 +96,8 @@ public:
 		ImGui::ColorEdit4("Diffuse", reinterpret_cast<float*>(&light.Diffuse));
 		ImGui::ColorEdit4("Ambient", reinterpret_cast<float*>(&light.Ambient));
 
-		// パラメータ (例: Point Light の範囲、減衰など)
+		// パラメータ (x: 範囲, y: 内側コーン角度(Spot), z: 外側コーン角度(Spot), w: シャドウバイアス)
 		ImGui::DragFloat4("Param", reinterpret_cast<float*>(&light.Param), 0.1f);
-
-		// シャドウバイアス (x: 定数バイアス, y: スロープスケールバイアス)
-		if (light.CastShadow)
-		{
-			ImGui::DragFloat("Shadow Constant Bias", &light.ShadowBias.x, 0.0001f, 0.0f, 0.1f, "%.5f");
-			ImGui::DragFloat("Shadow Slope Bias",    &light.ShadowBias.y, 0.0001f, 0.0f, 0.1f, "%.5f");
-		}
 
 		ImGui::PopStyleVar();
 	}

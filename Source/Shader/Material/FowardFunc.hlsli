@@ -63,7 +63,6 @@ float ShadowFactor(
     float3 worldPos,
     LIGHT light,
     int lightIndex,
-    float NdotL,
     ShadowPCFParams pcf)
 {
     // ---- Light Space ----
@@ -81,8 +80,9 @@ float ShadowFactor(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    // ---- 法線傾斜バイアス (シャドウアクネ対策) ----
-    float bias = light.ShadowBias.x + light.ShadowBias.y * (1.0 - saturate(NdotL));
+    // ---- シャドウバイアス (シャドウアクネ対策) ----
+    // Param.w で調整可能: 値を大きくするとアクネが減り、小さくするとピーターパン現象が減る
+    float bias = light.Param.w;
     float depth = saturate(sp.z - bias);
 
     // ---- Atlas ----
@@ -134,7 +134,6 @@ float ShadowFactor(
 float ShadowFactorCSM(
     float3 worldPos,
     LIGHT  light,
-    float  NdotL,
     ShadowPCFParams pcf)
 {
     float4 viewPos = mul(float4(worldPos, 1.0), View);
@@ -171,8 +170,9 @@ float ShadowFactorCSM(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    // ---- 法線傾斜バイアス (シャドウアクネ対策) ----
-    float bias = light.ShadowBias.x + light.ShadowBias.y * (1.0 - saturate(NdotL));
+    // ---- シャドウバイアス (シャドウアクネ対策) ----
+    // Param.w で調整可能: 値を大きくするとアクネが減り、小さくするとピーターパン現象が減る
+    float bias = light.Param.w;
     float depth = saturate(sp.z - bias);
 
     int tileIndex = CsmAtlasOffset + cascade;
