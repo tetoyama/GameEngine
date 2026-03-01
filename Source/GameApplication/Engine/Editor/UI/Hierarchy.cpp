@@ -104,8 +104,7 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 
 void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities){
 	static bool s_openSavePrefabPopup = false;
-	static Entity s_savePrefabEntity = 0;
-	static SceneContext* s_savePrefabContext = nullptr;
+	static EntityRef s_savePrefabRef;
 	float offsetX = ImGui::GetCursorPosX();
 
 	ImGui::SetCursorPosX(10.0f);
@@ -178,8 +177,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		if(ImGui::BeginMenu("Prefab")){
 			if(ImGui::MenuItem("Prefabとして保存")){
 				s_openSavePrefabPopup = true;
-				s_savePrefabEntity = entity;
-				s_savePrefabContext = context;
+				s_savePrefabRef = EntityRef(entity, context);
 			}
 			if(ImGui::MenuItem("Prefabからインスタンス化")){
 				// ファイルダイアログを開いてプレファブを選択し、同シーンにインスタンス化する
@@ -239,11 +237,11 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		ImGui::Text("Prefab名を入力してください");
 		ImGui::InputText("Name", prefabName, sizeof(prefabName));
 		if(ImGui::Button("保存") && prefabName[0] != '\0'){
-			if(s_savePrefabContext && s_savePrefabContext->prefab){
+			if(s_savePrefabRef && s_savePrefabRef.GetScene()->prefab){
 				std::string dir = "Asset/Prefab/";
 				std::filesystem::create_directories(dir);
 				std::string filePath = dir + prefabName + ".prefab";
-				s_savePrefabContext->prefab->SavePrefab(EntityRef(s_savePrefabEntity, s_savePrefabContext), filePath);
+				s_savePrefabRef.GetScene()->prefab->SavePrefab(s_savePrefabRef, filePath);
 			}
 			prefabName[0] = '\0';
 			ImGui::CloseCurrentPopup();
