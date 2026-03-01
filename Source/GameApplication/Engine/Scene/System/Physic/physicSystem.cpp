@@ -221,6 +221,63 @@ static void BuildTerrainHeightField(ColliderShape& col, TerrainComponent* terrai
 }
 
 
+void PhysicSystem::BuildMeshCollider(ColliderShape& col, ModelRendererComponent* modelRenderer) {
+	if (!modelRenderer || !modelRenderer->model || !modelRenderer->model->AiScene) return;
+
+	// 古いメッシュを解放
+	if (col.pxTriangleMesh) {
+		col.pxTriangleMesh->release();
+		col.pxTriangleMesh = nullptr;
+	}
+
+	const aiScene* scene = modelRenderer->model->AiScene;
+
+	// 全メッシュの頂点・インデックスを収集
+	std::vector<physx::PxVec3> vertices;
+	std::vector<physx::PxU32>  indices;
+
+	for (unsigned int m = 0; m < scene->mNumMeshes; ++m) {
+		const aiMesh* mesh = scene->mMeshes[m];
+		physx::PxU32 baseIndex = static_cast<physx::PxU32>(vertices.size());
+
+		for (unsigned int v = 0; v < mesh->mNumVertices; ++v) {
+			const aiVector3D& p = mesh->mVertices[v];
+			vertices.push_back(physx::PxVec3(p.x, p.y, p.z));
+		}
+		for (unsigned int f = 0; f < mesh->mNumFaces; ++f) {
+			const aiFace& face = mesh->mFaces[f];
+			if (face.mNumIndices != 3) continue;
+			indices.push_back(baseIndex + face.mIndices[0]);
+			indices.push_back(baseIndex + face.mIndices[1]);
+			indices.push_back(baseIndex + face.mIndices[2]);
+		}
+	}
+
+	if (vertices.empty() || indices.empty()) return;
+
+	physx::PxTriangleMeshDesc meshDesc;
+	meshDesc.points.count  = (physx::PxU32)vertices.size();
+	meshDesc.points.stride = sizeof(physx::PxVec3);
+	meshDesc.points.data   = vertices.data();
+
+	meshDesc.triangles.count  = (physx::PxU32)(indices.size() / 3);
+	meshDesc.triangles.stride = sizeof(physx::PxU32) * 3;
+	meshDesc.triangles.data   = indices.data();
+
+	physx::PxCookingParams params(g_pPhysics->getTolerancesScale());
+
+	col.pxTriangleMesh = PxCreateTriangleMesh(
+		params,
+		meshDesc,
+		g_pPhysics->getPhysicsInsertionCallback()
+	);
+
+	if (!col.pxTriangleMesh) {
+		OutputDebugStringA("BuildMeshCollider: PxCreateTriangleMesh failed\n");
+	}
+}
+
+
 physx::PxShape* PhysicSystem::CreatePxShape(
 	physx::PxRigidActor* actor,
 	const ColliderShape& col,
@@ -266,7 +323,14 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 		}
 
 		case ColliderType::Mesh:
-			// Mesh は Cooking 必須なので別処理
+			if (col.pxTriangleMesh) {
+				physx::PxTriangleMeshGeometry geom(
+					col.pxTriangleMesh,
+					physx::PxMeshScale(physx::PxVec3(scale.x, scale.y, scale.z)),
+					physx::PxMeshGeometryFlags(physx::PxMeshGeometryFlag::eDOUBLE_SIDED)
+				);
+				shape = physx::PxRigidActorExt::createExclusiveShape(*actor, geom, material);
+			}
 			break;
 
 		case ColliderType::HeightMap:
@@ -945,6 +1009,11 @@ void PhysicSystem::UpdateCollider() {
 						auto* terrain = context->component->GetComponent<TerrainComponent>(entity);
 						BuildTerrainHeightField(col, terrain);
 					}
+					// Mesh タイプは ModelRendererComponent からトライアングルメッシュを構築
+					if (col.type == ColliderType::Mesh) {
+						auto* mr = context->component->GetComponent<ModelRendererComponent>(entity);
+						BuildMeshCollider(col, mr);
+					}
 
 					// マテリアル作成して保存
 					physx::PxMaterial* material = g_pPhysics->createMaterial(col.staticFriction, col.dynamicFriction, col.restitution);
@@ -987,6 +1056,11 @@ void PhysicSystem::UpdateCollider() {
 						auto* terrain = context->component->GetComponent<TerrainComponent>(entity);
 						BuildTerrainHeightField(col, terrain);
 					}
+					// Mesh タイプは ModelRendererComponent からトライアングルメッシュを構築
+					if (col.type == ColliderType::Mesh) {
+						auto* mr = context->component->GetComponent<ModelRendererComponent>(entity);
+						BuildMeshCollider(col, mr);
+					}
 
 					// マテリアル作成して保存
 					physx::PxMaterial* material = g_pPhysics->createMaterial(col.staticFriction, col.dynamicFriction, col.restitution);
@@ -1020,6 +1094,11 @@ void PhysicSystem::UpdateCollider() {
 					if (Collider->colliders[i].type == ColliderType::HeightMap) {
 						auto* terrain = context->component->GetComponent<TerrainComponent>(entity);
 						BuildTerrainHeightField(Collider->colliders[i], terrain);
+					}
+					// Mesh タイプは ModelRendererComponent からトライアングルメッシュを再構築
+					if (Collider->colliders[i].type == ColliderType::Mesh) {
+						auto* mr = context->component->GetComponent<ModelRendererComponent>(entity);
+						BuildMeshCollider(Collider->colliders[i], mr);
 					}
 					UpdateColliderParam(Transform, Collider, entity, i);
 				}

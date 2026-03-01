@@ -14,6 +14,7 @@ struct SceneManagerContext;
 struct SceneContext;
 struct ColliderShape;
 class ColliderComponent;
+class ModelRendererComponent;
 class TransformComponent;
 class Vector3;
 class PhysicsSimulationCallback;
@@ -199,6 +200,8 @@ private:
 		const ColliderShape& col,
 		const Vector3& scale,
 		physx::PxMaterial& material);
+
+	void BuildMeshCollider(ColliderShape& col, ModelRendererComponent* modelRenderer);
 
 	//------------------------------------------------------------------
 	// レイヤー編集 UI

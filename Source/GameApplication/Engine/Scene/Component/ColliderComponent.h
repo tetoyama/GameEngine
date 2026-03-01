@@ -45,6 +45,7 @@ struct ColliderShape {
 	physx::PxShape* pxShape = nullptr;
 	physx::PxMaterial* pxMaterial = nullptr;
 	physx::PxHeightField* pxHeightField = nullptr;
+	physx::PxTriangleMesh* pxTriangleMesh = nullptr;
 };
 
 class ColliderComponent: public IComponent {
