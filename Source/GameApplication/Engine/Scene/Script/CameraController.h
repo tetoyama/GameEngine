@@ -10,7 +10,7 @@ public:
 		REFLECT_FIELD(float, distance, 6.0f)
 		REFLECT_FIELD(float, height, 2.0f)
 		REFLECT_FIELD(float, rotateSpeed, 1.5f)
-		REFLECT_FIELD(float, minPitch, 0)
+		REFLECT_FIELD(float, minPitch, DirectX::XM_PIDIV2 * -0.5f)
 		REFLECT_FIELD(float, maxPitch, DirectX::XM_PIDIV2 * 0.5f)
 		REFLECT_FIELD(float, minDistance, 1.0f)
 
@@ -134,7 +134,7 @@ public:
 				DirectX::XMStoreFloat3(&dirFloat, DirectX::XMVector3Normalize(offset));
 				physx::PxVec3 rayOrigin(
 					targetTransform->position.x,
-					targetTransform->position.y,
+					targetTransform->position.y + height,
 					targetTransform->position.z);
 				physx::PxVec3 rayDir(dirFloat.x, dirFloat.y, dirFloat.z);
 				RayHit occHit = phys->RaycastWithMask(rayOrigin, rayDir, offsetLen, selfLayerBit);
