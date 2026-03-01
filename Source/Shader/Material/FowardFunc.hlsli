@@ -63,6 +63,7 @@ float ShadowFactor(
     float3 worldPos,
     LIGHT light,
     int lightIndex,
+    float NdotL,
     ShadowPCFParams pcf)
 {
     // ---- Light Space ----
@@ -80,7 +81,9 @@ float ShadowFactor(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    float depth = saturate(sp.z - DEPTH_BIAS_CONSTANT);
+    // ---- 法線傾斜バイアス (シャドウアクネ対策) ----
+    float bias = DEPTH_BIAS_CONSTANT + DEPTH_SLOPE_BIAS * (1.0 - saturate(NdotL));
+    float depth = saturate(sp.z - bias);
 
     // ---- Atlas ----
     uint grid = (uint) ceil(sqrt((float) ShadowAtlasCount));
@@ -130,6 +133,7 @@ float ShadowFactor(
 // =====================================================
 float ShadowFactorCSM(
     float3 worldPos,
+    float  NdotL,
     ShadowPCFParams pcf)
 {
     float4 viewPos = mul(float4(worldPos, 1.0), View);
@@ -166,7 +170,9 @@ float ShadowFactorCSM(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    float depth = saturate(sp.z - DEPTH_BIAS_CONSTANT);
+    // ---- 法線傾斜バイアス (シャドウアクネ対策) ----
+    float bias = DEPTH_BIAS_CONSTANT + DEPTH_SLOPE_BIAS * (1.0 - saturate(NdotL));
+    float depth = saturate(sp.z - bias);
 
     int tileIndex = CsmAtlasOffset + cascade;
     uint grid = (uint) ceil(sqrt((float) ShadowAtlasCount));

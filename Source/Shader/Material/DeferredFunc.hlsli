@@ -73,6 +73,7 @@ MaterialInput GetMaterialInput(PS_IN In)
 // =====================================================
 float ShadowFactorCSM(
     float3 worldPos,
+    float  NdotL,
     ShadowPCFParams pcf)
 {
     // ---- ビュー空間深度でカスケード選択 ----
@@ -111,7 +112,10 @@ float ShadowFactorCSM(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    float depth = saturate(sp.z - DEPTH_BIAS_CONSTANT);
+    // ---- 法線傾斜バイアス (シャドウアクネ対策) ----
+    // NdotL が小さい（ライトが浅い角度）ほど大きなバイアスを適用する
+    float bias = DEPTH_BIAS_CONSTANT + DEPTH_SLOPE_BIAS * (1.0 - saturate(NdotL));
+    float depth = saturate(sp.z - bias);
 
     // ---- アトラスタイル計算 ----
     int tileIndex = CsmAtlasOffset + cascade;
@@ -158,6 +162,7 @@ float ShadowFactor(
     float3 worldPos,
     LIGHT light,
     int lightIndex,
+    float NdotL,
     ShadowPCFParams pcf)
 {
     // ---- Light Space ----
@@ -175,7 +180,9 @@ float ShadowFactor(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    float depth = saturate(sp.z - DEPTH_BIAS_CONSTANT);
+    // ---- 法線傾斜バイアス (シャドウアクネ対策) ----
+    float bias = DEPTH_BIAS_CONSTANT + DEPTH_SLOPE_BIAS * (1.0 - saturate(NdotL));
+    float depth = saturate(sp.z - bias);
 
     // ---- Atlas ----
     uint grid = (uint) ceil(sqrt((float) ShadowAtlasCount));
