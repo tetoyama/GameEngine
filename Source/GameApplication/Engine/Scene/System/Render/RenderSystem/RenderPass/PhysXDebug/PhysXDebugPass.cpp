@@ -38,7 +38,7 @@ void PhysXDebugPass::Finalize(){
 
 void PhysXDebugPass::Execute(const RenderPassContext& ctx){
 	auto graphicsContext = m_context->graphics;
-	//graphicsContext->SetDepthMode(DepthMode::Disable);
+	graphicsContext->SetDepthMode(DepthMode::Disable);
 
 	if(ctx.renderLayerVisibility[(int)RenderLayer::Debug]){
 
@@ -79,6 +79,8 @@ void PhysXDebugPass::Execute(const RenderPassContext& ctx){
 			memcpy(mapped.pData, vertices.data(), sizeof(VERTEX_3D) * vertices.size());
 			deviceContext->Unmap(pPhysicsDebugLineVB, 0);
 
+			graphicsContext->SetViewMatrix(ctx.viewMatrix);
+			graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
 			graphicsContext->SetWorldMatrix(DirectX::XMMatrixIdentity());
 
 			UINT stride = sizeof(VERTEX_3D);
@@ -96,5 +98,5 @@ void PhysXDebugPass::Execute(const RenderPassContext& ctx){
 		}
 	}
 
-	//graphicsContext->SetDepthMode(DepthMode::Write);
+	graphicsContext->SetDepthMode(DepthMode::Write);
 }
