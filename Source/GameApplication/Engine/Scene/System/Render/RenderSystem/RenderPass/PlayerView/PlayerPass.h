@@ -13,6 +13,8 @@ struct VertexShaderData;
 class ShadowMapPass;
 class GBufferPass;
 class LightingPass;
+class ForwardPass;
+class PostEffectPass;
 
 class PlayerPass : public IRenderPass {
 public:
@@ -20,14 +22,13 @@ public:
 	void Finalize() override;
 	void Execute(const RenderPassContext& ctx) override;
 
-	std::vector<IRenderable*> renderables;
 	RenderTarget* editorRenderTarget = nullptr;
-
-	std::shared_ptr<VertexShaderData> m_RenderableVertexShader;
 
 	ID3D11ShaderResourceView* result = nullptr;
 
-	ShadowMapPass* shadowMapPass;
-	GBufferPass* gBufferPass;
-	LightingPass* lightingPass;
+	ShadowMapPass*  shadowMapPass  = nullptr;
+	GBufferPass*    gBufferPass    = nullptr;
+	LightingPass*   lightingPass   = nullptr;
+	ForwardPass*    forwardPass    = nullptr;
+	PostEffectPass* postEffectPass = nullptr;
 };
