@@ -167,8 +167,15 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 	}
 
-	// --- ノード描画 ---
+	// --- ノード描画（グループで DnD エリアを (Prefab) ラベルまで拡張） ---
+	bool inRenameMode = (pendingRenameEntity != 0 && selectedEntity == entity && sceneContext == context);
+	ImGui::BeginGroup();
 	bool opened = ImGui::TreeNodeEx((void*)(intptr_t)entity, flags, "%s", displayName.c_str());
+	if(!inRenameMode && context->component->GetComponent<PrefabComponent>(entity)){
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "(Prefab)");
+	}
+	ImGui::EndGroup();
 
 	if(ImGui::IsItemClicked()){
 		selectedEntity = entity;
@@ -280,8 +287,8 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		ImGui::EndDragDropTarget();
 	}
 
-	// --- 名前変更UI / Prefab ラベル ---
-	if(pendingRenameEntity != 0 && selectedEntity == entity && sceneContext == context){
+	// --- 名前変更UI ---
+	if(inRenameMode){
 
 		if(pendingRenameEntity != entity){
 			if(name){
@@ -304,10 +311,6 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			pendingRenameEntity = 0;
 		}
 		ImGui::PopItemWidth();
-	} else if(context->component->GetComponent<PrefabComponent>(entity)){
-		// PrefabComponent がある場合は (Prefab) ラベルを表示
-		ImGui::SameLine();
-		ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "(Prefab)");
 	}
 
 	// --- 子描画 ---
