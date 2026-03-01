@@ -13,9 +13,9 @@ public:
 		REFLECT_FIELD(float, knockbackPower, 5.0f)		// 吹っ飛びの強さ
 
 	Vector3 velocity = Vector3(0, 0, 0); // ボールの速度
-	TransformComponent* transform = nullptr;
-	ColliderComponent* collider = nullptr;
-	ScoreManager* scoreManager = nullptr;
+	ComponentRef<TransformComponent> transform;
+	ComponentRef<ColliderComponent> collider;
+	ComponentRef<ScoreManager> scoreManager;
 
 	BallController(): CustomScriptComponent("BallController"){}
 
@@ -34,11 +34,11 @@ public:
 	}
 
 	void OnStart() override{
-		transform = GetComponent<TransformComponent>();
-		collider = GetComponent<ColliderComponent>();
+		transform = GetComponentRef<TransformComponent>();
+		collider = GetComponentRef<ColliderComponent>();
 		auto entity = m_context->component->FindEntitiesWithComponent<ScoreManager>();
 		if(!entity.empty()){
-			scoreManager = m_context->component->GetComponent<ScoreManager>(entity[0]);
+			scoreManager = GetComponentRefFor<ScoreManager>(entity[0]);
 		}
 	}
 

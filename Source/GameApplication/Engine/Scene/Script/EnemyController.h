@@ -30,12 +30,12 @@ class EnemyController: public CustomScriptComponent {
 	bool canDash = true;
 	float CurrentSpeed = 0.0f;
 
-	TransformComponent* transform = nullptr;
-	ModelRendererComponent* model = nullptr;
-	GameTimeManager* gameTime = nullptr;
+	ComponentRef<TransformComponent> transform;
+	ComponentRef<ModelRendererComponent> model;
+	ComponentRef<GameTimeManager> gameTime;
 
-	TransformComponent* ballTransform = nullptr;
-	BallController* ballController = nullptr;
+	ComponentRef<TransformComponent> ballTransform;
+	ComponentRef<BallController> ballController;
 
 public:
 	EnemyController(): CustomScriptComponent("EnemyController"){}
@@ -66,17 +66,17 @@ public:
 
 	// ---------------- Lifecycle ----------------
 	void OnStart() override{
-		transform = GetComponent<TransformComponent>();
-		model = GetComponent<ModelRendererComponent>();
+		transform = GetComponentRef<TransformComponent>();
+		model = GetComponentRef<ModelRendererComponent>();
 
 		auto timers = m_context->component->FindEntitiesWithComponent<GameTimeManager>();
 		if(!timers.empty())
-			gameTime = m_context->component->GetComponent<GameTimeManager>(timers[0]);
+			gameTime = GetComponentRefFor<GameTimeManager>(timers[0]);
 
 		auto balls = m_context->component->FindEntitiesWithComponent<BallController>();
 		if(!balls.empty()){
-			ballController = m_context->component->GetComponent<BallController>(balls[0]);
-			ballTransform = m_context->component->GetComponent<TransformComponent>(balls[0]);
+			ballController = GetComponentRefFor<BallController>(balls[0]);
+			ballTransform = GetComponentRefFor<TransformComponent>(balls[0]);
 		}
 
 		stamina = maxStamina;

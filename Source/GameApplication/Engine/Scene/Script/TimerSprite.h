@@ -8,6 +8,8 @@ public:
 		REFLECT_FIELD(bool, isBlue, false)
 		REFLECT_FIELD(int, Degit, 0)
 
+	ComponentRef<GameTimeManager> m_gameTime;
+	ComponentRef<TextureComponent> m_texture;
 	TimerSprite(): CustomScriptComponent("TimerSprite"){}
 
 	YAML::Node encode() override{
@@ -25,27 +27,20 @@ public:
 		INSPECTOR_FIELDS();
 	}
 
-	void OnStart() override{}
-	void OnUpdate(float dt) override{
-		// ScoreManagerのコンポーネントを持つエンティティを取得
-		auto entity = m_context->component->FindEntitiesWithComponent<GameTimeManager>();
-		if(entity.empty()){
-			return;
+	void OnStart() override{
+		auto entities = m_context->component->FindEntitiesWithComponent<GameTimeManager>();
+		if(!entities.empty()){
+			m_gameTime = GetComponentRefFor<GameTimeManager>(entities[0]);
 		}
-		if(0 < Degit){
-			// ScoreManagerのコンポーネントからスコアを取得
-			int Score;
-			Score = (int)m_context->component->GetComponent<GameTimeManager>(entity[0])->Timer;
-
-			Score = Score / (int)pow(10, (double)(Degit - 1));
-			int SetNum = Score % 10;
-
-			// ScoreSpriteのコンポーネントを取得
-			auto Texture = GetComponent<TextureComponent>();
-			if(Texture){
-				// スコアに応じてテクスチャを設定
-				Texture->AnimationNum = SetNum;
-			}
+		m_texture = GetComponentRef<TextureComponent>();
+	}
+	void OnUpdate(float dt) override{
+		if(!m_gameTime || Degit <= 0) return;
+		int Score = (int)m_gameTime->Timer;
+		Score = Score / (int)pow(10, (double)(Degit - 1));
+		int SetNum = Score % 10;
+		if(m_texture){
+			m_texture->AnimationNum = SetNum;
 		}
 	}
 	void OnFixedUpdate(float dt)override{}

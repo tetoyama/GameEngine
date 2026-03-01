@@ -15,11 +15,11 @@ public:
 	float yaw = 0.0f;
 	float pitch = 0.0f;
 
-	TransformComponent* transform = nullptr;
-	CameraComponent* CameraBuffer = nullptr;
-	Entity playerEntity = -1;
-	Entity ballEntity = -1;
-	GameTimeManager* gameTime = nullptr;
+	ComponentRef<TransformComponent> transform;
+	ComponentRef<CameraComponent> CameraBuffer;
+	ComponentRef<TransformComponent> playerTransform;
+	EntityRef ballEntity;
+	ComponentRef<GameTimeManager> gameTime;
 
 		CameraController(): CustomScriptComponent("CameraController"){}
 
@@ -40,27 +40,21 @@ public:
 	}
 
 	void OnStart() override{
-		transform = GetComponent<TransformComponent>();
-		CameraBuffer = GetComponent<CameraComponent>();
+		transform = GetComponentRef<TransformComponent>();
+		CameraBuffer = GetComponentRef<CameraComponent>();
 		auto playerEntities = m_context->component->FindEntitiesWithComponent<PlayerController>();
-		if(playerEntities.empty()){
-			return;
-		} else{
-			playerEntity = playerEntities[0];
+		if(!playerEntities.empty()){
+			playerTransform = GetComponentRefFor<TransformComponent>(playerEntities[0]);
 		}
 
 		auto ballEntities = m_context->component->FindEntitiesWithComponent<BallController>();
-		if(playerEntities.empty()){
-			return;
-		} else{
-			playerEntity = playerEntities[0];
+		if(!ballEntities.empty()){
+			ballEntity = GetEntityRefFor(ballEntities[0]);
 		}
 
 		auto timerEntities = m_context->component->FindEntitiesWithComponent<GameTimeManager>();
-		if(timerEntities.empty()){
-			return;
-		} else{
-			gameTime = m_context->component->GetComponent<GameTimeManager>(timerEntities[0]);
+		if(!timerEntities.empty()){
+			gameTime = GetComponentRefFor<GameTimeManager>(timerEntities[0]);
 		}
 	}
 
@@ -69,9 +63,9 @@ public:
 	}
 	void OnFixedUpdate(float dt)override{
 
-		if(!transform || playerEntity < 0) return;
+		if(!transform || !playerTransform) return;
 
-		auto* targetTransform = m_context->component->GetComponent<TransformComponent>(playerEntity);
+		auto* targetTransform = playerTransform.Get();
 		if(!targetTransform) return;
 
 		// --- キーボード入力で yaw/pitch 更新 ---

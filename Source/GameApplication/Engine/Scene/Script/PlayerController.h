@@ -34,12 +34,12 @@ class PlayerController: public CustomScriptComponent {
 	float CurrentSpeed = 0.0f;
 	bool isJumpPressed = false;
 
-	TransformComponent* transform = nullptr;
-	TransformComponent* CameraBufferTransform = nullptr;
-	GameTimeManager* gameTime = nullptr;
-	ModelRendererComponent* model = nullptr;
-	TransformComponent* ballTransform = nullptr;
-	BallController* ballController = nullptr;
+	ComponentRef<TransformComponent> transform;
+	ComponentRef<TransformComponent> CameraBufferTransform;
+	ComponentRef<GameTimeManager> gameTime;
+	ComponentRef<ModelRendererComponent> model;
+	ComponentRef<TransformComponent> ballTransform;
+	ComponentRef<BallController> ballController;
 public:
 
 	float velY = 0.0f;
@@ -69,22 +69,22 @@ public:
 	void OnStart() override{
 		velY = 0.0f;
 
-		transform = GetComponent<TransformComponent>();
-		model = GetComponent<ModelRendererComponent>();
+		transform = GetComponentRef<TransformComponent>();
+		model = GetComponentRef<ModelRendererComponent>();
 		auto CameraBufferEntities = m_context->component->FindEntitiesWithComponent<CameraComponent>();
 		if(!CameraBufferEntities.empty()){
-			CameraBufferTransform = m_context->component->GetComponent<TransformComponent>(CameraBufferEntities[0]);
+			CameraBufferTransform = GetComponentRefFor<TransformComponent>(CameraBufferEntities[0]);
 		}
 
 		auto timerEntities = m_context->component->FindEntitiesWithComponent<GameTimeManager>();
 		if(!timerEntities.empty()){
-			gameTime = m_context->component->GetComponent<GameTimeManager>(timerEntities[0]);
+			gameTime = GetComponentRefFor<GameTimeManager>(timerEntities[0]);
 		}
 
 		auto ballEntities = m_context->component->FindEntitiesWithComponent<BallController>();
 		if(!ballEntities.empty()){
-			ballController = m_context->component->GetComponent<BallController>(ballEntities[0]);
-			ballTransform = m_context->component->GetComponent<TransformComponent>(ballEntities[0]);
+			ballController = GetComponentRefFor<BallController>(ballEntities[0]);
+			ballTransform = GetComponentRefFor<TransformComponent>(ballEntities[0]);
 		}
 
 		canDash = true;
@@ -345,7 +345,5 @@ public:
 	void OnStop() override{}
 
 private:
-	TransformComponent* m_transform = nullptr;
-
 
 };
