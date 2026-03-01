@@ -90,6 +90,8 @@ bool PrefabSystem::SavePrefab(EntityRef ref, const std::string& filePath) {
 		YAML::Node componentsSeq = YAML::Node(YAML::NodeType::Sequence);
 		for (IComponent* comp : context->component->GetAllComponentsOfEntitySorted(e)) {
 			if (!comp) continue;
+			// PrefabComponent はランタイム管理用のため、プレファブファイルには書き出さない
+			if (dynamic_cast<PrefabComponent*>(comp)) continue;
 
 			std::type_index ti(typeid(*comp));
 			ComponentTypeID compId = context->component->GetComponentIDByTypeIndex(ti);
@@ -119,13 +121,29 @@ bool PrefabSystem::SavePrefab(EntityRef ref, const std::string& filePath) {
 
 	root["Entities"] = entitiesSeq;
 
+	// YAML を一度文字列にシリアライズして、ファイル書き出しと PrefabComponent 両方に使う
+	std::ostringstream ss;
+	ss << root;
+	const std::string savedYaml = ss.str();
+
 	std::ofstream fout(filePath);
 	if (!fout.is_open()) return false;
-	fout << root;
+	fout << savedYaml;
 
 	// 保存後にキャッシュを無効化する（次回ロード時に最新の内容が使われるよう）
 	if (context->manager && context->manager->resource) {
 		context->manager->resource->Unload<PrefabData>(filePath);
+	}
+
+	// ルートエンティティに PrefabComponent を付与・更新する
+	// すでに付いている場合はパスと YAML スナップショットを最新の保存内容で上書きする
+	auto* prefabComp = context->component->GetComponent<PrefabComponent>(entity);
+	if (!prefabComp) {
+		prefabComp = context->component->AddComponent<PrefabComponent>(entity);
+	}
+	if (prefabComp) {
+		prefabComp->filePath   = filePath;
+		prefabComp->sourceYaml = savedYaml;
 	}
 
 	return true;
