@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <filesystem>
+#include <sstream>
 #include <backends/yaml-cpp/yaml.h>
 
 #include "Resources/Data/prefabData.h"
@@ -12,6 +13,7 @@
 #include "Registry/entityRegistry.h"
 #include "Interface/IComponent.h"
 #include "Component/transformComponent.h"
+#include "Component/PrefabComponent.h"
 
 // ルートエンティティから Transform 親子関係をたどり、
 // 階層全体を BFS 順（親が子より先）で収集する
@@ -190,6 +192,18 @@ EntityRef PrefabSystem::Instantiate(SceneContext* context, const std::shared_ptr
 
 	// 親子リストを再構築する
 	RebuildTransformChildren(context->component);
+
+	// PrefabComponent をルートエンティティに付与する
+	// filePath は上書き保存に、sourceYaml はインスタンス化時の状態記録（差分検出の基準値）に使用する
+	if (!data->filePath.empty()) {
+		auto* prefabComp = context->component->AddComponent<PrefabComponent>(newEntities[0]);
+		if (prefabComp) {
+			prefabComp->filePath = data->filePath;
+			std::ostringstream ss;
+			ss << data->root;
+			prefabComp->sourceYaml = ss.str();
+		}
+	}
 
 	return EntityRef(newEntities[0], context);
 }

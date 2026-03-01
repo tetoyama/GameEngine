@@ -7,6 +7,7 @@
 #include <scene.h>
 #include <Component/transformComponent.h>
 #include <Component/entityNameComponent.h>
+#include <Component/PrefabComponent.h>
 #include "Prefab/PrefabSystem.h"
 #include <commdlg.h>
 #include <filesystem>
@@ -61,12 +62,45 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 			ImGui::SetCursorPos(ImVec2(10, ImGui::GetCursorPos().y));
 			// ツールバー
 			if(ImGui::Button("+ Add")){
-				Entity newEntity = registry->Create(); // 新しいエンティティを追加
-				selectedEntity = newEntity;
-				NameComponent* name = context->component->AddComponent<NameComponent>(newEntity); // 名前コンポーネントを追加
-				name->name = "Entity"; // デフォルトの名前を設定
-
-				context->component->AddComponent<TransformComponent>(newEntity);
+				ImGui::OpenPopup("##AddEntityPopup");
+			}
+			if(ImGui::BeginPopup("##AddEntityPopup")){
+				if(ImGui::MenuItem("Empty")){
+					Entity newEntity = registry->Create();
+					selectedEntity = newEntity;
+					sceneContext = context;
+					auto* n = context->component->AddComponent<NameComponent>(newEntity);
+					n->name = "Entity";
+					context->component->AddComponent<TransformComponent>(newEntity);
+				}
+				if(ImGui::MenuItem("Template")){
+					Entity newEntity = registry->Create();
+					selectedEntity = newEntity;
+					sceneContext = context;
+					auto* n = context->component->AddComponent<NameComponent>(newEntity);
+					n->name = "Template";
+					context->component->AddComponent<TransformComponent>(newEntity);
+				}
+				if(ImGui::MenuItem("Prefab")){
+					if(context->prefab){
+						OPENFILENAMEA ofn = {};
+						char filename[MAX_PATH] = "";
+						ofn.lStructSize = sizeof(ofn);
+						ofn.lpstrFilter = "Prefab Files (*.prefab)\0*.prefab\0All Files (*.*)\0*.*\0";
+						ofn.lpstrFile = filename;
+						ofn.nMaxFile = MAX_PATH;
+						ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+						ofn.lpstrDefExt = "prefab";
+						if(GetOpenFileNameA(&ofn)){
+							EntityRef spawned = context->prefab->InstantiatePrefab(context, std::string(filename));
+							if(spawned){
+								selectedEntity = spawned.GetEntityID();
+								sceneContext = spawned.GetScene();
+							}
+						}
+					}
+				}
+				ImGui::EndPopup();
 			}
 			ImGui::SameLine();
 
@@ -194,24 +228,11 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 					}
 				}
 			}
-			if(ImGui::MenuItem("Prefabからインスタンス化")){
-				// ファイルダイアログを開いてプレファブを選択し、同シーンにインスタンス化する
-				if(context->prefab){
-					OPENFILENAMEA ofn = {};
-					char filename[MAX_PATH] = "";
-					ofn.lStructSize = sizeof(ofn);
-					ofn.lpstrFilter = "Prefab Files (*.prefab)\0*.prefab\0All Files (*.*)\0*.*\0";
-					ofn.lpstrFile = filename;
-					ofn.nMaxFile = MAX_PATH;
-					ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
-					ofn.lpstrDefExt = "prefab";
-					if(GetOpenFileNameA(&ofn)){
-						EntityRef spawned = context->prefab->InstantiatePrefab(context, std::string(filename));
-						if(spawned){
-							selectedEntity = spawned.GetEntityID();
-							sceneContext = spawned.GetScene();
-						}
-					}
+			auto* prefabComp = context->component->GetComponent<PrefabComponent>(entity);
+			bool hasPrefabSource = prefabComp && !prefabComp->filePath.empty();
+			if(ImGui::MenuItem("Prefabを上書き", nullptr, false, hasPrefabSource)){
+				if(hasPrefabSource && context->prefab){
+					context->prefab->SavePrefab(EntityRef(entity, context), prefabComp->filePath);
 				}
 			}
 			ImGui::EndMenu();

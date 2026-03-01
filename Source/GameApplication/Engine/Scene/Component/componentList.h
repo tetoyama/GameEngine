@@ -20,6 +20,7 @@
 #include "Component/ColliderComponent.h"
 #include "Component/materialComponent.h"
 #include "Component/scriptComponent.h"
+#include "Component/PrefabComponent.h"
 
 #include "Script/SetScene.h"
 #include "Script/ScoreManager.h"
@@ -78,4 +79,5 @@ enum ComponentStorageType {
     X(FadeOutSprite,COMPONENT_SPARSE)\
     X(FadeSetScene,COMPONENT_SPARSE)\
     X(ScriptComponent,COMPONENT_SPARSE)\
-    X(GN31,COMPONENT_SPARSE)
+    X(GN31,COMPONENT_SPARSE)\
+    X(PrefabComponent,COMPONENT_SPARSE)
