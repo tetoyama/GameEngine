@@ -28,9 +28,9 @@ struct ColliderShape {
 	float radius = 0.5f;
 	float height = 1.0f;
 
-	float staticFriction = 0.0f;
-	float dynamicFriction = 0.0f;
-	float restitution = 0.0f;
+	float staticFriction = 0.6f;
+	float dynamicFriction = 0.6f;
+	float restitution = 0.1f;
 
 	uint32_t collisionLayer = 0;
 
@@ -45,6 +45,8 @@ struct ColliderShape {
 	physx::PxShape* pxShape = nullptr;
 	physx::PxMaterial* pxMaterial = nullptr;
 	physx::PxHeightField* pxHeightField = nullptr;
+	physx::PxTriangleMesh* pxTriangleMesh = nullptr;
+	physx::PxConvexMesh* pxConvexMesh = nullptr;
 };
 
 class ColliderComponent: public IComponent {

@@ -221,6 +221,86 @@ static void BuildTerrainHeightField(ColliderShape& col, TerrainComponent* terrai
 }
 
 
+void PhysicSystem::BuildMeshCollider(ColliderShape& col, ModelRendererComponent* modelRenderer) {
+	if (!modelRenderer || !modelRenderer->model || !modelRenderer->model->AiScene) return;
+
+	// 古いメッシュを解放
+	if (col.pxTriangleMesh) {
+		col.pxTriangleMesh->release();
+		col.pxTriangleMesh = nullptr;
+	}
+	if (col.pxConvexMesh) {
+		col.pxConvexMesh->release();
+		col.pxConvexMesh = nullptr;
+	}
+
+	const aiScene* scene = modelRenderer->model->AiScene;
+
+	// 全メッシュの頂点・インデックスを収集
+	std::vector<physx::PxVec3> vertices;
+	std::vector<physx::PxU32>  indices;
+
+	for (unsigned int m = 0; m < scene->mNumMeshes; ++m) {
+		const aiMesh* mesh = scene->mMeshes[m];
+		physx::PxU32 baseIndex = static_cast<physx::PxU32>(vertices.size());
+
+		for (unsigned int v = 0; v < mesh->mNumVertices; ++v) {
+			const aiVector3D& p = mesh->mVertices[v];
+			vertices.push_back(physx::PxVec3(p.x, p.y, p.z));
+		}
+		for (unsigned int f = 0; f < mesh->mNumFaces; ++f) {
+			const aiFace& face = mesh->mFaces[f];
+			if (face.mNumIndices != 3) continue;
+			indices.push_back(baseIndex + face.mIndices[0]);
+			indices.push_back(baseIndex + face.mIndices[1]);
+			indices.push_back(baseIndex + face.mIndices[2]);
+		}
+	}
+
+	if (vertices.empty() || indices.empty()) return;
+
+	physx::PxCookingParams params(g_pPhysics->getTolerancesScale());
+
+	// Triangle mesh (used for static actors)
+	physx::PxTriangleMeshDesc meshDesc;
+	meshDesc.points.count  = (physx::PxU32)vertices.size();
+	meshDesc.points.stride = sizeof(physx::PxVec3);
+	meshDesc.points.data   = vertices.data();
+
+	meshDesc.triangles.count  = (physx::PxU32)(indices.size() / 3);
+	meshDesc.triangles.stride = sizeof(physx::PxU32) * 3;
+	meshDesc.triangles.data   = indices.data();
+
+	col.pxTriangleMesh = PxCreateTriangleMesh(
+		params,
+		meshDesc,
+		g_pPhysics->getPhysicsInsertionCallback()
+	);
+
+	if (!col.pxTriangleMesh) {
+		OutputDebugStringA("BuildMeshCollider: PxCreateTriangleMesh failed\n");
+	}
+
+	// Convex mesh (used for dynamic actors — convex hulls support non-kinematic PxRigidDynamic)
+	// eCOMPUTE_CONVEX tells PhysX to compute the convex hull from the supplied vertices.
+	physx::PxConvexMeshDesc convexDesc;
+	convexDesc.points.count  = (physx::PxU32)vertices.size();
+	convexDesc.points.stride = sizeof(physx::PxVec3);
+	convexDesc.points.data   = vertices.data();
+	convexDesc.flags         = physx::PxConvexFlag::eCOMPUTE_CONVEX;
+
+	col.pxConvexMesh = PxCreateConvexMesh(
+		params,
+		convexDesc,
+		g_pPhysics->getPhysicsInsertionCallback()
+	);
+
+	if (!col.pxConvexMesh) {
+		OutputDebugStringA("BuildMeshCollider: PxCreateConvexMesh failed\n");
+	}
+}
+
+
 physx::PxShape* PhysicSystem::CreatePxShape(
 	physx::PxRigidActor* actor,
 	const ColliderShape& col,
@@ -266,12 +346,39 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 		}
 
 		case ColliderType::Mesh:
-			// Mesh は Cooking 必須なので別処理
+			if (actor->getType() == physx::PxActorType::eRIGID_DYNAMIC) {
+				// Dynamic actors require a convex mesh — triangle meshes are not supported as
+				// eSIMULATION_SHAPE on non-kinematic PxRigidDynamic. A convex hull allows
+				// gravity and forces to apply normally.
+				if (col.pxConvexMesh) {
+					physx::PxConvexMeshGeometry geom(
+						col.pxConvexMesh,
+						physx::PxMeshScale(physx::PxVec3(scale.x, scale.y, scale.z))
+					);
+					shape = physx::PxRigidActorExt::createExclusiveShape(*actor, geom, material);
+				}
+			} else {
+				// Static actors support the full triangle mesh for exact collision.
+				if (col.pxTriangleMesh) {
+					physx::PxTriangleMeshGeometry geom(
+						col.pxTriangleMesh,
+						physx::PxMeshScale(physx::PxVec3(scale.x, scale.y, scale.z)),
+						physx::PxMeshGeometryFlags(physx::PxMeshGeometryFlag::eDOUBLE_SIDED)
+					);
+					shape = physx::PxRigidActorExt::createExclusiveShape(*actor, geom, material);
+				}
+			}
 			break;
 
 		case ColliderType::HeightMap:
 		{
 			if (col.pxHeightField) {
+				// Heightfield shapes cannot be used as eSIMULATION_SHAPE on a non-kinematic
+				// PxRigidDynamic. Promote the actor to kinematic before attaching.
+				if (actor->getType() == physx::PxActorType::eRIGID_DYNAMIC) {
+					static_cast<physx::PxRigidDynamic*>(actor)->setRigidBodyFlag(
+						physx::PxRigidBodyFlag::eKINEMATIC, true);
+				}
 				physx::PxU32 nbRows    = col.pxHeightField->getNbRows();
 				physx::PxU32 nbCols    = col.pxHeightField->getNbColumns();
 				int gridSize = (int)nbRows - 1;
@@ -405,15 +512,6 @@ void PhysicSystem::UpdateColliderParam(TransformComponent* transform, ColliderCo
 		if(col.lockRotZ) lockFlags |= physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_Z;
 		dyn->setRigidDynamicLockFlags(lockFlags);
 	}
-
-	if (col.isTrigger) {
-		newShape->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, false);
-		newShape->setFlag(physx::PxShapeFlag::eTRIGGER_SHAPE, true);
-	} else {
-		newShape->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, true);
-		newShape->setFlag(physx::PxShapeFlag::eTRIGGER_SHAPE, false);
-	}
-
 
 	g_pScene->unlockWrite();
 }
@@ -945,6 +1043,11 @@ void PhysicSystem::UpdateCollider() {
 						auto* terrain = context->component->GetComponent<TerrainComponent>(entity);
 						BuildTerrainHeightField(col, terrain);
 					}
+					// Mesh タイプは ModelRendererComponent からトライアングルメッシュを構築
+					if (col.type == ColliderType::Mesh) {
+						auto* mr = context->component->GetComponent<ModelRendererComponent>(entity);
+						BuildMeshCollider(col, mr);
+					}
 
 					// マテリアル作成して保存
 					physx::PxMaterial* material = g_pPhysics->createMaterial(col.staticFriction, col.dynamicFriction, col.restitution);
@@ -987,6 +1090,11 @@ void PhysicSystem::UpdateCollider() {
 						auto* terrain = context->component->GetComponent<TerrainComponent>(entity);
 						BuildTerrainHeightField(col, terrain);
 					}
+					// Mesh タイプは ModelRendererComponent からトライアングルメッシュを構築
+					if (col.type == ColliderType::Mesh) {
+						auto* mr = context->component->GetComponent<ModelRendererComponent>(entity);
+						BuildMeshCollider(col, mr);
+					}
 
 					// マテリアル作成して保存
 					physx::PxMaterial* material = g_pPhysics->createMaterial(col.staticFriction, col.dynamicFriction, col.restitution);
@@ -1020,6 +1128,11 @@ void PhysicSystem::UpdateCollider() {
 					if (Collider->colliders[i].type == ColliderType::HeightMap) {
 						auto* terrain = context->component->GetComponent<TerrainComponent>(entity);
 						BuildTerrainHeightField(Collider->colliders[i], terrain);
+					}
+					// Mesh タイプは ModelRendererComponent からトライアングルメッシュを再構築
+					if (Collider->colliders[i].type == ColliderType::Mesh) {
+						auto* mr = context->component->GetComponent<ModelRendererComponent>(entity);
+						BuildMeshCollider(Collider->colliders[i], mr);
 					}
 					UpdateColliderParam(Transform, Collider, entity, i);
 				}
