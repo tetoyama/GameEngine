@@ -14,7 +14,7 @@
 #include "Resources/resourceService.h"
 #include "Audio/audioContext.h"
 #include "Config/ConfigSystem.h"
-#include "Engine/Editor/editorService.h"
+#include "Editor/editorService.h"
 #include "LlamaService/LLAMAService.h"
 
 std::shared_ptr<EngineContext> EngineContextBuilder::Build(){

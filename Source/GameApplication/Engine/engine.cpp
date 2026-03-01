@@ -5,8 +5,8 @@
 
 #include "Platform/WindowSystem/windowSystem.h"
 
-#include "../Backends/Icon/icon.h"
-#include "../Backends/Taskbar/taskbar.h"
+#include "Icon/icon.h"
+#include "Taskbar/taskbar.h"
 
 #include "Runtime/TimeService/timeService.h"
 
@@ -26,7 +26,7 @@
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
 
-#include "../../Service/Config/ConfigSystem.h"
+#include "Config/ConfigSystem.h"
 
 #include "LlamaService/LLAMAService.h"
 

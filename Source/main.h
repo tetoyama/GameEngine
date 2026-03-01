@@ -56,6 +56,7 @@ GameApplication
    │   └── SceneManager
    │        ├── SystemRegistry												【実装済み】
    │        │   ├── TransformSystem										【実装済み】
+   │        │   ├── FollowSystem											【実装済み】
    │        │   ├── CameraSystem											【実装済み】
    │        │   ├── RenderSystem											【実装済み】
    │        │   ├── AudioSystem											【実装済み】
@@ -63,7 +64,7 @@ GameApplication
    │        │   ├── EffectSystem											【実装済み】
    │        │   ├── TerrainSystem											【実装済み】
    │        │   ├── PhysicSystem											【実装済み】
-   │        │   ├── CSharpScriptSystem										【実装済み】
+   │        │   ├── ScriptSystem（CSharp DLL）								【実装済み】
    │        │   ├── CustomScriptSystem										【実装済み】
    │        │   └── WaveSystem												【実装済み】
    │        └── Active Scenes												【実装済み】
@@ -88,9 +89,11 @@ GameApplication
    │                ├── OutlineComponent									【未実装】
    │                ├── ParticleComponent									【実装済み】
    │                ├── EffectComponent										【実装済み】
-   │                ├── cameraComponent										【実装済み】
+   │                ├── CameraComponent										【実装済み】
+   │                ├── FollowComponent										【実装済み】
+   │                ├── PrefabComponent										【実装済み】
    │                ├── CustomScriptComponent								【実装済み】
-   │                ├── CSharpScriptComponent								【実装済み】
+   │                ├── ScriptComponent（CSharp DLL）						【実装済み】
    │                │
    │                │ // CustomScript
    │                ├── SetScene											【実装済み】
