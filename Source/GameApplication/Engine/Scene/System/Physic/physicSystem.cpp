@@ -733,9 +733,9 @@ RayHit PhysicSystem::RaycastWithMask(const physx::PxVec3& origin, const physx::P
 		origin,
 		dirNorm,
 		maxDistance,
-		hitBuffer,										// ← ここ
-		physx::PxHitFlags(physx::PxHitFlag::eDEFAULT),	// ← 取得したいフラグ
-		filterData										// ← フィルタ
+		hitBuffer,																			// ← ここ
+		physx::PxHitFlags(physx::PxHitFlag::eDEFAULT | physx::PxHitFlag::eMESH_BOTH_SIDES),// ← HeightField 両面検出
+		filterData																			// ← フィルタ
 	);
 
 	if (status && hitBuffer.hasBlock) {
