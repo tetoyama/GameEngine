@@ -56,23 +56,19 @@ void PhysXDebugPass::Execute(const RenderPassContext& ctx){
 				return DirectX::XMFLOAT4(r, g, b, a);
 				};
 
-			std::vector<VERTEX_3D> vertices;
-			for(physx::PxU32 i = 0; i < rb.getNbLines(); i++){
+			physx::PxU32 nbLines = std::min(rb.getNbLines(), static_cast<physx::PxU32>(maxLineCount));
+			std::vector<VERTEX_3D> vertices(nbLines * 2);
+			for(physx::PxU32 i = 0; i < nbLines; i++){
 				const physx::PxDebugLine& line = rb.getLines()[i];
 
-				VERTEX_3D v0;
-				v0.Position = DirectX::XMFLOAT3(line.pos0.x, line.pos0.y, line.pos0.z);
-				v0.Diffuse = ConvertColor(line.color0);
+				vertices[i * 2].Position = DirectX::XMFLOAT3(line.pos0.x, line.pos0.y, line.pos0.z);
+				vertices[i * 2].Diffuse = ConvertColor(line.color0);
 
-				VERTEX_3D v1;
-				v1.Position = DirectX::XMFLOAT3(line.pos1.x, line.pos1.y, line.pos1.z);
-				v1.Diffuse = ConvertColor(line.color1);
-
-				vertices.push_back(v0);
-				vertices.push_back(v1);
+				vertices[i * 2 + 1].Position = DirectX::XMFLOAT3(line.pos1.x, line.pos1.y, line.pos1.z);
+				vertices[i * 2 + 1].Diffuse = ConvertColor(line.color1);
 			}
 
-			if(vertices.empty() || vertices.size() >= maxLineCount) continue;
+			if(vertices.empty()) continue;
 
 			ID3D11Device* device = graphicsContext->GetDevice();
 			ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
@@ -92,6 +88,7 @@ void PhysXDebugPass::Execute(const RenderPassContext& ctx){
 
 			// シェーダーをセット（通常のカラー付き頂点用のものを使用）
 			deviceContext->VSSetShader(m_LineVertexShader->m_VertexShader.Get(), nullptr, 0);
+			deviceContext->IASetInputLayout(m_LineVertexShader->m_VertexLayout.Get());
 			deviceContext->PSSetShader(m_LinePixelShader->m_PixelShader.Get(), nullptr, 0);
 
 			// 描画
