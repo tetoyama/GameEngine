@@ -47,3 +47,4 @@ Systems:
         - true
   CustomScriptSystem: ~
   WaveSystem: ~
+  FollowSystem: ~

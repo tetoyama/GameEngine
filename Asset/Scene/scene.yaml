@@ -36,6 +36,8 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
+            boneName: ""
       - Component: AudioComponent
         FilePath: Asset\Audio\BGM.wav
         Loop: true
@@ -68,12 +70,12 @@ Entities:
         Parent: 0
       - Component: LightComponent
         Enable: 1
-        LightType: 1
+        LightType: 4
         CastShadow: 1
         Position:
-          x: 1.50484014
-          y: 44.9231796
-          z: -29.9033184
+          x: 1.50484002
+          y: 21.2949944
+          z: -7.00545692
           w: 0
         Direction:
           x: 0
@@ -94,23 +96,23 @@ Entities:
           x: 500
           y: 0
           z: 0
-          w: 0
+          w: 0.00499999989
         LightView:
           -
             - 1
             - 0
             - -0
-            - -1.50484014
+            - -1.50484002
           -
             - 0
             - 0.540302277
             - 0.841471016
-            - 0.890678406
+            - -5.61084461
           -
             - 0
             - -0.841471016
             - 0.540302277
-            - 53.9583817
+            - 21.7041855
           -
             - 0
             - 0
@@ -118,20 +120,20 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0399999991
+            - 0.0833968371
             - 0
             - 0
-            - 0
+            - -0
           -
             - 0
-            - 0.0399999991
+            - 0.140438706
             - 0
-            - 0
+            - -0.0991822481
           -
             - 0
             - 0
-            - 0.0100100096
-            - -0.00100100099
+            - 0.0450641885
+            - -0
           -
             - 0
             - 0
@@ -198,10 +200,12 @@ Entities:
             staticFriction: 0.5
             dynamicFriction: 0.5
             restitution: 0.100000001
-            collisionLayer: 0
+            collisionLayer: 2
             lockRotX: true
             lockRotY: true
             lockRotZ: true
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 4
         Material:
@@ -248,6 +252,7 @@ Entities:
         aaa: 1
         jumpPower: 4
         Stamina: 5
+        SelfLayerBit: 2
   - Entity: 5
     Components:
       - Component: NameComponent
@@ -297,95 +302,90 @@ Entities:
             - -4.05636024
             - 0.0897465944
             - 1
-        nextLinkId: 9
-        nextPinId: 13
+        nextLinkId: 14
+        nextPinId: 19
         PostEffects:
-          - Name: BrightPass
-            Enabled: false
-            VS: Asset\Shader\PostEffectVS.cso
-            PS: Asset\Shader\BrightPass.cso
-            NodePos:
-              x: -317.011353
-              y: 27.7460022
-            InputPins:
-              - 3
-              - 5
-            OutputPin: 4
-            Param:
-              x: 0.800000012
-              y: 0
-              z: 0
-              w: 0
-          - Name: Blur
-            Enabled: false
-            VS: Asset\Shader\PostEffectVS.cso
-            PS: Asset\Shader\Blur.cso
-            NodePos:
-              x: -83.011322
-              y: 28.7460022
-            InputPins:
-              - 6
-              - 8
-            OutputPin: 7
-            Param:
-              x: 4
-              y: 0
-              z: 0
-              w: 0
           - Name: CompositeBloom
-            Enabled: false
+            Enabled: true
             VS: Asset\Shader\PostEffectVS.cso
-            PS: Asset\Shader\CompositeBloom.cso
+            PS: Asset/Shader\OutlineByShaderID.cso
             NodePos:
-              x: 150
-              y: 76
+              x: -78.2164001
+              y: 3.54425812
             InputPins:
               - 9
               - 11
               - 12
             OutputPin: 10
             Param:
-              x: 0
+              x: 4
+              y: 2
+              z: 0
+              w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\DepthBlur.cso
+            NodePos:
+              x: 456
+              y: 19.0000076
+            InputPins:
+              - 13
+              - 15
+            OutputPin: 14
+            Param:
+              x: 0.200000003
               y: 0
               z: 0
               w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\SSAO.cso
+            NodePos:
+              x: 185.794922
+              y: 14.7982559
+            InputPins:
+              - 16
+              - 18
+            OutputPin: 17
+            Param:
+              x: 1
+              y: 0.100000001
+              z: 0.5
+              w: 0
         PostEffectLinks:
-          - ID: 1
+          - ID: 7
             StartNode: -1
             EndNode: 0
             StartAttr: 1
-            EndAttr: 3
-          - ID: 3
-            StartNode: 0
-            EndNode: 1
-            StartAttr: 4
-            EndAttr: 6
-          - ID: 6
-            StartNode: 1
-            EndNode: 2
-            StartAttr: 7
-            EndAttr: 9
-          - ID: 7
-            StartNode: -1
-            EndNode: 2
-            StartAttr: 1
             EndAttr: 11
-          - ID: 8
-            StartNode: 2
+          - ID: 10
+            StartNode: 1
             EndNode: -2
-            StartAttr: 10
+            StartAttr: 14
             EndAttr: 2
+          - ID: 12
+            StartNode: 0
+            EndNode: 2
+            StartAttr: 10
+            EndAttr: 16
+          - ID: 13
+            StartNode: 2
+            EndNode: 1
+            StartAttr: 17
+            EndAttr: 13
         ScreenInput:
           Name: ""
           NodePos:
-            x: -422.011353
-            y: 294.745972
+            x: -183.2164
+            y: 270.54422
           OutputPin: 1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 369.988647
-            y: 274.745972
+            x: 704.988647
+            y: 201.745972
           InputPins:
             - 2
       - Component: CameraController
@@ -394,6 +394,7 @@ Entities:
         rotateSpeed: 1.5
         minPitch: 0
         maxPitch: 0.785398185
+        minDistance: 1
   - Entity: 6
     Components:
       - Component: NameComponent
@@ -431,6 +432,8 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 4
         Material:
@@ -677,6 +680,8 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
+            boneName: ""
           - type: 0
             size: [10, 10, 10]
             offset: [-10.6000004, 7.69999981, 0]
@@ -690,6 +695,8 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
+            boneName: ""
           - type: 0
             size: [15, 10, 15]
             offset: [0, 7.69999981, 11.6000004]
@@ -703,6 +710,8 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
+            boneName: ""
           - type: 0
             size: [15, 10, 15]
             offset: [0, 7.69999981, -11.6999998]
@@ -716,6 +725,8 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
+            boneName: ""
   - Entity: 12
     Components:
       - Component: NameComponent
@@ -1131,10 +1142,12 @@ Entities:
             staticFriction: 0.5
             dynamicFriction: 0.5
             restitution: 0.100000001
-            collisionLayer: 0
+            collisionLayer: 4
             lockRotX: true
             lockRotY: true
             lockRotZ: true
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 4
         Material:

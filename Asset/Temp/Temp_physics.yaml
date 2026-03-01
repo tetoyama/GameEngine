@@ -265,20 +265,20 @@ Entities:
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           Run: Asset\Model\Akai_Run.fbx
-      - Component: PlayerController
-        moveSpeed: 6
-        health: 0
-        isInvincible: false
-        dashMultiplier: 2
-        accel: 10
-        rotateSpeed: 8
-        maxStamina: 5
-        stamina: 5
-        staminaConsumeRate: 1.5
-        staminaRecoverRate: 1
-        aaa: 1
+      - Component: CharacterController
+        moveSpeed: 5
+        dashMultiplier: 2.5
         jumpPower: 5
-        Stamina: 5
+        accel: 12
+        rotateSpeed: 8
+        groundRayLength: 0.300000012
+        slopeLimit: 45
+        gravity: 9
+        idleAnimFile: Asset/Model/Akai_Idle.fbx
+        runAnimFile: Asset/Model/Akai_Run.fbx
+        jumpUpAnimFile: Asset/Model/Jumping Up.fbx
+        jumpDownAnimFile: Asset/Model/Jumping Down.fbx
+        SelfLayerBit: 2
   - Entity: 5
     Components:
       - Component: NameComponent
@@ -328,16 +328,16 @@ Entities:
             - -1.03712082e-05
             - 6.32452393
             - 1
-        nextLinkId: 6
-        nextPinId: 11
+        nextLinkId: 11
+        nextPinId: 14
         PostEffects:
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\OutlineByShaderID.cso
             NodePos:
-              x: -196.011963
-              y: 74.6255875
+              x: -382.472473
+              y: 49.5206909
             InputPins:
               - 2
               - 4
@@ -352,8 +352,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\SSAO.cso
             NodePos:
-              x: 35.6422119
-              y: 74.5224991
+              x: -150.818298
+              y: 49.4176025
             InputPins:
               - 5
               - 7
@@ -361,24 +361,40 @@ Entities:
             Param:
               x: 1
               y: 0.100000001
-              z: 0.200000003
+              z: 0.5
               w: 0
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\DepthBlur.cso
             NodePos:
-              x: 270.642212
-              y: 64.5224991
+              x: 327.08374
+              y: 47.3669052
             InputPins:
               - 8
               - 10
             OutputPin: 9
             Param:
-              x: 1
+              x: 2
               y: 0
               z: 0
               w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\DepthFog.cso
+            NodePos:
+              x: 88.5395508
+              y: 44.8951035
+            InputPins:
+              - 11
+              - 13
+            OutputPin: 12
+            Param:
+              x: 0
+              y: 1000
+              z: 1
+              w: 1
         PostEffectLinks:
           - ID: 2
             StartNode: -1
@@ -390,12 +406,17 @@ Entities:
             EndNode: 1
             StartAttr: 3
             EndAttr: 5
-          - ID: 4
+          - ID: 8
             StartNode: 1
-            EndNode: 2
+            EndNode: 3
             StartAttr: 6
+            EndAttr: 11
+          - ID: 9
+            StartNode: 3
+            EndNode: 2
+            StartAttr: 12
             EndAttr: 8
-          - ID: 5
+          - ID: 10
             StartNode: 2
             EndNode: -2
             StartAttr: 9
@@ -403,14 +424,14 @@ Entities:
         ScreenInput:
           Name: ""
           NodePos:
-            x: -298.011963
-            y: 15.6255856
+            x: -484.472473
+            y: -9.47931099
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 579.203857
-            y: 232.1138
+            x: 884.743347
+            y: 252.008881
           InputPins:
             - 1
       - Component: CameraController
@@ -419,6 +440,7 @@ Entities:
         rotateSpeed: 1.5
         minPitch: 0
         maxPitch: 0.785398185
+        minDistance: 1
   - Entity: 6
     Components:
       - Component: NameComponent
@@ -734,3 +756,64 @@ Entities:
         FilePath: Asset/Model\ball.fbx
         isBlender: false
         AnimationTime: 86.696022
+  - Entity: 10
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: -4.89383936
+          y: 1.34399998
+          z: 0
+        Rotation:
+          - 0.129979625
+          - -0.164447561
+          - -0.021865936
+          - 0.977539837
+        Scale:
+          x: 0.329999983
+          y: 0.330000043
+          z: 0.330000013
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: true
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 3
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0.600000024
+            dynamicFriction: 0.600000024
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+      - Component: ModelRendererComponent
+        FilePath: Asset/Model\bear.fbx
+        isBlender: false
+        AnimationTime: 0

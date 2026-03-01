@@ -54,8 +54,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
+          UseDiffuseTexture: false
+          UseNormalTexture: false
       - Component: TextureComponent
         FilePath: Asset\Texture\mesh.png
         UV_Slice_X: 1
@@ -89,9 +89,9 @@ Entities:
         LightType: 4
         CastShadow: 1
         Position:
-          x: -64.5447311
-          y: 76.4577866
-          z: -13.7528419
+          x: -10.4619284
+          y: 16.5824509
+          z: -15.0848351
           w: 0
         Direction:
           x: 0.61569488
@@ -111,24 +111,24 @@ Entities:
         Param:
           x: 500
           y: 0
-          z: 0.00999999978
-          w: 0.00400000019
+          z: 0
+          w: 0.00499999989
         LightView:
           -
             - 0.540302277
             - 0
-            - -0.841471016
-            - 23.3010483
+            - -0.841471076
+            - -7.04084921
           -
-            - 0.573579252
-            - 0.731688797
-            - 0.368290991
-            - -13.856739
+            - 0.573579371
+            - 0.731688976
+            - 0.36829102
+            - -0.576841354
           -
-            - 0.61569488
-            - -0.681638777
-            - 0.395333111
-            - 97.2934036
+            - 0.615695
+            - -0.681638837
+            - 0.395333171
+            - 23.7081356
           -
             - 0
             - 0
@@ -136,20 +136,20 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0171913337
+            - 0.111674465
             - 0
             - 0
-            - 0.382488757
+            - 0.38029623
           -
             - 0
-            - 0.0122896815
+            - 0.0796931759
             - 0
-            - -0.193181157
+            - -0.191736132
           -
             - 0
             - 0
-            - 0.00606033159
-            - -0.237575561
+            - 0.0309618991
+            - -0
           -
             - 0
             - 0
@@ -190,8 +190,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
+          UseDiffuseTexture: false
+          UseNormalTexture: false
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
         UV_Slice_X: 1
@@ -256,8 +256,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
+          UseDiffuseTexture: false
+          UseNormalTexture: false
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Y Bot.fbx
         isBlender: false
@@ -330,7 +330,7 @@ Entities:
             - 15
             - 1
         nextLinkId: 1
-        nextPinId: 2
+        nextPinId: 1
         ScreenInput:
           Name: ""
           NodePos:
@@ -343,7 +343,7 @@ Entities:
             x: -1
             y: -1
           InputPins:
-            - 1
+            []
       - Component: CameraController
         distance: 6
         height: 2
