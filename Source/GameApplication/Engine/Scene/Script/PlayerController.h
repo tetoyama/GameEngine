@@ -226,7 +226,7 @@ public:
 				->GetSystem<PhysicSystem>()
 				->RaycastWithMask(rayPos, rayDir, 0.3f, selfLayerBit); // 自身のレイヤーを除外
 
-			isGround = hit.hit && hit.distance < 0.1f;
+			isGround = hit.hit && hit.distance < 0.1f && velY <= 0.0f;
 
 			// 入力方向（正規化済み想定）
 			physx::PxVec3 wishDir(dir.x, 0.0f, dir.z);

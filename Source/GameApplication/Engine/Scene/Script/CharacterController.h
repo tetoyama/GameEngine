@@ -195,7 +195,7 @@ public:
 				->GetSystem<PhysicSystem>()
 				->RaycastWithMask(rayPos, rayDir, groundRayLength + 0.1f, selfLayerBit);
 
-			isGrounded = hit.hit && (hit.distance < (groundRayLength + 0.05f));
+			isGrounded = hit.hit && (hit.distance < (groundRayLength + 0.05f)) && velY <= 0.0f;
 
 			// 坂道角度チェック
 			bool isWalkable = true;
