@@ -499,6 +499,23 @@ void Scene::LoadSceneFromYAML(std::string path) {
 			IComponent* comp = m_componentRegistry->CreateFromYAML(compType, entity, compNode);  
 		}
 	}
+
+	// 全エンティティのロードが完了した後で children リストを再構築する
+	RebuildTransformChildren();
+}
+
+void Scene::RebuildTransformChildren() {
+	auto entities = m_componentRegistry->FindEntitiesWithComponent<TransformComponent>();
+	for (Entity e : entities) {
+		auto* tc = m_componentRegistry->GetComponent<TransformComponent>(e);
+		if (tc) tc->children.clear();
+	}
+	for (Entity e : entities) {
+		auto* tc = m_componentRegistry->GetComponent<TransformComponent>(e);
+		if (!tc || tc->parent == 0) continue;
+		auto* parentTc = m_componentRegistry->GetComponent<TransformComponent>(tc->parent);
+		if (parentTc) parentTc->children.push_back(e);
+	}
 }
 
 std::string Scene::LoadSceneFileDialog() {

@@ -1,34 +1,35 @@
 #pragma once
-#include "Entity.h"
+#include "EntityRef.h"
 #include "Registry/componentRegistry.h"
 
 // コンポーネントへの安全なリファレンス
-// SceneContext・EntityID・世代番号の3つで識別する
-//   - SceneContext で所属シーンを区別する（マルチシーン対応）
-//   - 世代番号で EntityID の使いまわしを検出する
+// エンティティの有効性チェックは内包する EntityRef に委譲する
+// SceneContext と EntityID の組で識別するため、マルチシーン環境でも安全に扱える
 template<typename T>
 struct ComponentRef {
 	ComponentRef() = default;
 
 	ComponentRef(Entity e, SceneContext* ctx)
-		: m_entity(e)
-		, m_context(ctx)
-		, m_generation(ctx && ctx->entity ? ctx->entity->GetGeneration(e) : 0)
-	{}
+		: m_entityRef(e, ctx) {}
 
-	// リファレンスが有効かどうかを確認する
-	// エンティティが生存中・世代番号が一致・コンポーネントが存在する場合のみ true を返す
+	// EntityRef から直接構築する
+	explicit ComponentRef(EntityRef ref)
+		: m_entityRef(ref) {}
+
+	// リファレンスが有効かどうかを確認する（エンティティが生存中かつコンポーネントが存在する）
 	bool IsValid() const {
-		if (!m_context || !m_context->entity || !m_context->component) return false;
-		if (!m_context->entity->IsAliveWithGeneration(m_entity, m_generation)) return false;
-		return m_context->component->GetComponent<T>(m_entity) != nullptr;
+		if (!m_entityRef.IsValid()) return false;
+		SceneContext* ctx = m_entityRef.GetScene();
+		if (!ctx->component) return false;
+		return ctx->component->GetComponent<T>(m_entityRef.GetEntityID()) != nullptr;
 	}
 
 	// コンポーネントのポインタを取得する（無効な場合は nullptr を返す）
 	T* Get() const {
-		if (!m_context || !m_context->entity || !m_context->component) return nullptr;
-		if (!m_context->entity->IsAliveWithGeneration(m_entity, m_generation)) return nullptr;
-		return m_context->component->GetComponent<T>(m_entity);
+		if (!m_entityRef.IsValid()) return nullptr;
+		SceneContext* ctx = m_entityRef.GetScene();
+		if (!ctx->component) return nullptr;
+		return ctx->component->GetComponent<T>(m_entityRef.GetEntityID());
 	}
 
 	T* operator->() const {
@@ -40,16 +41,17 @@ struct ComponentRef {
 	}
 
 	// 生の Entity ID を取得する（有効性チェックなし）
-	Entity GetEntityID() const { return m_entity; }
+	Entity GetEntityID() const { return m_entityRef.GetEntityID(); }
 
 	// このリファレンスが属するシーンコンテキストを返す
-	SceneContext* GetScene() const { return m_context; }
+	SceneContext* GetScene() const { return m_entityRef.GetScene(); }
 
-	// SceneContext・EntityID・世代番号の3つが全て一致する場合のみ等値とみなす
+	// 内包する EntityRef を返す
+	const EntityRef& GetEntityRef() const { return m_entityRef; }
+
+	// 内包する EntityRef が一致するときのみ等値とみなす
 	bool operator==(const ComponentRef& other) const {
-		return m_entity     == other.m_entity
-			&& m_generation == other.m_generation
-			&& m_context    == other.m_context;
+		return m_entityRef == other.m_entityRef;
 	}
 
 	bool operator!=(const ComponentRef& other) const {
@@ -57,7 +59,5 @@ struct ComponentRef {
 	}
 
 private:
-	Entity        m_entity     = 0;
-	uint32_t      m_generation = 0;
-	SceneContext*  m_context   = nullptr;
+	EntityRef m_entityRef;
 };

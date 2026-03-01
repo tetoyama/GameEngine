@@ -66,6 +66,9 @@ private:
 	std::string LoadSceneFileDialog();
 	bool SaveSceneFileDialog(std::wstring& outPath);
 
+	// TransformComponent の children リストを parent 参照から再構築する
+	void RebuildTransformChildren();
+
 	// マネージャコンテキスト
 	SceneManagerContext* m_SceneManagerContext = nullptr;
 	SceneContext m_SceneContext{};

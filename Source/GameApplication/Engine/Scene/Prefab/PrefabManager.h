@@ -10,23 +10,26 @@ struct PrefabData;
 // ロードは ResourceService を経由するため、同じファイルへの複数回のロードはキャッシュから返される
 class PrefabManager {
 public:
-	// エンティティを YAML プレファブファイルとして保存する
-	// @param entity  保存対象のエンティティ
-	// @param context シーンコンテキスト
+	// エンティティ（およびその Transform 階層配下の全子孫）を YAML プレファブファイルとして保存する
+	// 親子関係は PrefabParent ローカルインデックスとして記録されるため、
+	// インスタンス化時に正しく再現される
+	// @param entity  保存対象のルートエンティティ
+	// @param context シーンコンテキスト（context->component->FindEntitiesWithComponent を使用）
 	// @param filePath 保存先のファイルパス（例: "Asset/Prefab/Player.prefab"）
 	// @return 成功した場合は true
 	bool SavePrefab(Entity entity, SceneContext* context, const std::string& filePath);
 
-	// リソースシステム経由でプレファブをロードしてエンティティをインスタンス化する
+	// リソースシステム経由でプレファブをロードしてエンティティ階層をインスタンス化する
 	// ロード結果は ResourceService にキャッシュされる
 	// @param context シーンコンテキスト（context->manager->resource を使用）
 	// @param filePath プレファブファイルのパス
-	// @return 生成されたエンティティ（失敗時は 0）
+	// @return 生成されたルートエンティティ（失敗時は 0）
 	Entity InstantiatePrefab(SceneContext* context, const std::string& filePath);
 
-	// 既にロード済みの PrefabData からエンティティをインスタンス化する
+	// 既にロード済みの PrefabData からエンティティ階層をインスタンス化する
+	// TransformComponent の children リストはインスタンス化後に自動で再構築される
 	// @param context シーンコンテキスト
 	// @param data    ロード済みのプレファブデータ
-	// @return 生成されたエンティティ（失敗時は 0）
+	// @return 生成されたルートエンティティ（失敗時は 0）
 	Entity Instantiate(SceneContext* context, const std::shared_ptr<PrefabData>& data);
 };
