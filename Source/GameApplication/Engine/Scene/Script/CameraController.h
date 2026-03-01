@@ -1,6 +1,7 @@
 #pragma once
 #include "Component/CustomScriptComponent.h"
 #include "Backends/checkFileExtention.h"
+#include <System/Physic/physicSystem.h>
 
 
 class CameraController: public CustomScriptComponent {
@@ -9,11 +10,15 @@ public:
 		REFLECT_FIELD(float, distance, 6.0f)
 		REFLECT_FIELD(float, height, 2.0f)
 		REFLECT_FIELD(float, rotateSpeed, 1.5f)
-		REFLECT_FIELD(float, minPitch, 0)
+		REFLECT_FIELD(float, minPitch, DirectX::XM_PIDIV2 * -0.5f)
 		REFLECT_FIELD(float, maxPitch, DirectX::XM_PIDIV2 * 0.5f)
+		REFLECT_FIELD(float, minDistance, 1.0f)
 
 	float yaw = 0.0f;
 	float pitch = 0.0f;
+
+	// RayCast 時に除外するレイヤービット（プレイヤーレイヤー固定）
+	uint32_t selfLayerBit = 1u << 1;
 
 	ComponentRef<TransformComponent> transform;
 	ComponentRef<CameraComponent> CameraBuffer;
@@ -26,12 +31,10 @@ public:
 	YAML::Node encode() override{
 		YAML::Node node;
 		ENCODE_FIELDS(node);
-
 		return node;
 	}
 	bool decode(SceneContext* context, const YAML::Node& node) override{
 		DECODE_FIELDS(node);
-
 		return true;
 	}
 
@@ -42,9 +45,16 @@ public:
 	void OnStart() override{
 		transform = GetComponentRef<TransformComponent>();
 		CameraBuffer = GetComponentRef<CameraComponent>();
-		auto playerEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<PlayerController>();
-		if(!playerEntities.empty()){
-			playerTransform = GetComponentRefFor<TransformComponent>(playerEntities[0]);
+
+		// CharacterController を優先して探し、なければ PlayerController を使う
+		auto charEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<CharacterController>();
+		if (!charEntities.empty()) {
+			playerTransform = GetComponentRefFor<TransformComponent>(charEntities[0]);
+		} else {
+			auto playerEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<PlayerController>();
+			if (!playerEntities.empty()) {
+				playerTransform = GetComponentRefFor<TransformComponent>(playerEntities[0]);
+			}
 		}
 
 		auto ballEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<BallController>();
@@ -89,9 +99,51 @@ public:
 			1.0f
 		);
 
-		DirectX::XMVECTOR camPos = DirectX::XMVectorAdd(targetPos, offset);
+		// --- カメラ遮蔽判定（遮蔽物があればカメラを近づける） ---
+		constexpr float occlusionPadding   = 0.1f;  // 遮蔽面からの安全マージン
+		constexpr float minGroundClearance = 0.3f;  // ターゲット足元からの最低高さ
+		auto* phys = m_ref.GetScene()->manager
+			->systemRegistry
+			->GetSystem<PhysicSystem>();
+
 		DirectX::XMFLOAT3 pos;
+		DirectX::XMVECTOR camPos = DirectX::XMVectorAdd(targetPos, offset);
+		if (phys) {
+			// 視点位置: ターゲットの中心付近（足元ヒットを避けるため高さ半分）
+			DirectX::XMVECTOR eyePos = DirectX::XMVectorSet(
+				targetTransform->position.x,
+				targetTransform->position.y + height * 0.5f,
+				targetTransform->position.z,
+				1.0f);
+
+			DirectX::XMVECTOR toCamera = DirectX::XMVectorSubtract(camPos, eyePos);
+			float toCamLen = DirectX::XMVectorGetX(DirectX::XMVector3Length(toCamera));
+
+			if (toCamLen > 0.001f) {
+				DirectX::XMFLOAT3 eyeF, dirF;
+				DirectX::XMStoreFloat3(&eyeF, eyePos);
+				DirectX::XMStoreFloat3(&dirF, DirectX::XMVector3Normalize(toCamera));
+
+				RayHit occHit = phys->RaycastWithMask(
+					physx::PxVec3(eyeF.x, eyeF.y, eyeF.z),
+					physx::PxVec3(dirF.x, dirF.y, dirF.z),
+					toCamLen,
+					selfLayerBit);
+
+				if (occHit.hit) {
+					float safeLen = (std::max)(occHit.distance - occlusionPadding, minDistance);
+					camPos = DirectX::XMVectorSet(
+						eyeF.x + dirF.x * safeLen,
+						eyeF.y + dirF.y * safeLen,
+						eyeF.z + dirF.z * safeLen,
+						1.0f);
+				}
+			}
+		}
+
 		DirectX::XMStoreFloat3(&pos, camPos);
+		// 地面めり込み防止: カメラ Y がターゲット足元を下回らないようにする
+		pos.y = (std::max)(pos.y, targetTransform->position.y + minGroundClearance);
 		transform->position = Vector3(pos.x, pos.y, pos.z);
 		transform->SetRotationEuler(Vector3(pitch, yaw, 0));
 
