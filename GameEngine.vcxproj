@@ -2728,6 +2728,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\GameTimeManager.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\GN31.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\PlayerController.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Script\CharacterController.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\ScoreManager.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\ScoreSprite.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\SetScene.h" />

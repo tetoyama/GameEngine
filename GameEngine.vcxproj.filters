@@ -2238,6 +2238,9 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\PlayerController.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Script\CharacterController.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Physic\physicSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
