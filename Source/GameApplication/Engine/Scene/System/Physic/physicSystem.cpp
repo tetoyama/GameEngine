@@ -1120,20 +1120,8 @@ void PhysicSystem::Draw(){
 }
 
 void PhysicSystem::EditorUpdate(float /*deltaTime*/){
-	if(!g_pScene) return;
-	if(m_isSimulating) return;
-	// ゲームプレイ中は FixedUpdate がシミュレーションを担う
-	if(m_context->sceneManager->State == SceneManagerState::Playing) return;
-
-	// エディタ停止中もデバッグ描画用にレンダーバッファを更新する
-	m_isSimulating = true;
-	g_pScene->lockWrite();
-	g_pScene->simulate(0.0f);
-	g_pScene->unlockWrite();
-	g_pScene->lockRead();
-	g_pScene->fetchResults(true);
-	g_pScene->unlockRead();
-	m_isSimulating = false;
+	// FixedUpdate がシミュレーションとレンダーバッファの更新を担う
+	// simulate(0.0f) は PhysX に拒否されるためここでは呼ばない
 }
 
 void PhysicSystem::DrawLayerEditor(){
