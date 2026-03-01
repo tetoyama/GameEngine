@@ -301,6 +301,9 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 	//  回転オフセットの反映（オイラー角 → PxQuat）
 	// =============================================================
 	if(shape){
+		// デバッグ描画を明示的に有効化する
+		shape->setFlag(physx::PxShapeFlag::eVISUALIZATION, true);
+
 		physx::PxVec3 offset(
 			col.offset.x * scale.x,
 			col.offset.y * scale.y,

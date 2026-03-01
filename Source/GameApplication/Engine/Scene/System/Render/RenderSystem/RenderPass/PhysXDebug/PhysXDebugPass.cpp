@@ -37,66 +37,78 @@ void PhysXDebugPass::Finalize(){
 }
 
 void PhysXDebugPass::Execute(const RenderPassContext& ctx){
-	auto graphicsContext = m_context->graphics;
-	graphicsContext->SetDepthMode(DepthMode::Disable);
-
-	if(ctx.renderLayerVisibility[(int)RenderLayer::Debug]){
-
-		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
-			auto context = scene->GetSceneContext();
-			auto physics = m_context->systemRegistry->GetSystem<PhysicSystem>();
-			const physx::PxRenderBuffer& rb = physics->GetRenderBuffer();
-
-			// 色変換関数
-			auto ConvertColor = [](physx::PxU32 c){
-				float a = ((c >> 24) & 0xFF) / 255.0f;
-				float r = ((c >> 16) & 0xFF) / 255.0f;
-				float g = ((c >> 8) & 0xFF) / 255.0f;
-				float b = ((c >> 0) & 0xFF) / 255.0f;
-				return DirectX::XMFLOAT4(r, g, b, a);
-				};
-
-			physx::PxU32 nbLines = (std::min)(rb.getNbLines(), static_cast<physx::PxU32>(maxLineCount));
-			std::vector<VERTEX_3D> vertices(nbLines * 2);
-			for(physx::PxU32 i = 0; i < nbLines; i++){
-				const physx::PxDebugLine& line = rb.getLines()[i];
-
-				vertices[i * 2].Position = DirectX::XMFLOAT3(line.pos0.x, line.pos0.y, line.pos0.z);
-				vertices[i * 2].Diffuse = ConvertColor(line.color0);
-
-				vertices[i * 2 + 1].Position = DirectX::XMFLOAT3(line.pos1.x, line.pos1.y, line.pos1.z);
-				vertices[i * 2 + 1].Diffuse = ConvertColor(line.color1);
-			}
-
-			if(vertices.empty()) continue;
-
-			ID3D11Device* device = graphicsContext->GetDevice();
-			ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-
-			// 頂点バッファ更新
-			D3D11_MAPPED_SUBRESOURCE mapped;
-			deviceContext->Map(pPhysicsDebugLineVB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-			memcpy(mapped.pData, vertices.data(), sizeof(VERTEX_3D) * vertices.size());
-			deviceContext->Unmap(pPhysicsDebugLineVB, 0);
-
-			graphicsContext->SetViewMatrix(ctx.viewMatrix);
-			graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
-			graphicsContext->SetWorldMatrix(DirectX::XMMatrixIdentity());
-
-			UINT stride = sizeof(VERTEX_3D);
-			UINT offset = 0;
-			deviceContext->IASetVertexBuffers(0, 1, &pPhysicsDebugLineVB, &stride, &offset);
-			deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-
-			// シェーダーをセット（通常のカラー付き頂点用のものを使用）
-			deviceContext->VSSetShader(m_LineVertexShader->m_VertexShader.Get(), nullptr, 0);
-			deviceContext->IASetInputLayout(m_LineVertexShader->m_VertexLayout.Get());
-			deviceContext->PSSetShader(m_LinePixelShader->m_PixelShader.Get(), nullptr, 0);
-
-			// 描画
-			deviceContext->Draw(static_cast<UINT>(vertices.size()), 0);
-		}
+	// プレイ中のみデバッグ描画を実行する
+	if(m_context->sceneManager->State != SceneManagerState::Playing){
+		return;
 	}
 
+	if(!ctx.renderLayerVisibility[(int)RenderLayer::Debug]){
+		return;
+	}
+
+	auto physics = m_context->systemRegistry->GetSystem<PhysicSystem>();
+	if(!physics) return;
+
+	const physx::PxRenderBuffer& rb = physics->GetRenderBuffer();
+
+	physx::PxU32 nbLines = (std::min)(rb.getNbLines(), static_cast<physx::PxU32>(maxLineCount));
+	if(nbLines == 0) return;
+
+	// 色変換関数（PhysX の ARGB 形式を XMFLOAT4 に変換）
+	auto ConvertColor = [](physx::PxU32 c) -> DirectX::XMFLOAT4 {
+		float a = ((c >> 24) & 0xFF) / 255.0f;
+		float r = ((c >> 16) & 0xFF) / 255.0f;
+		float g = ((c >>  8) & 0xFF) / 255.0f;
+		float b = ((c >>  0) & 0xFF) / 255.0f;
+		// アルファが 0 の場合は不透明として扱う
+		if(a == 0.0f) a = 1.0f;
+		return DirectX::XMFLOAT4(r, g, b, a);
+	};
+
+	// Normal/Tangent/TexCoord はデバッグライン描画では不使用のため 0 初期化のまま
+	std::vector<VERTEX_3D> vertices(nbLines * 2);
+	for(physx::PxU32 i = 0; i < nbLines; i++){
+		const physx::PxDebugLine& line = rb.getLines()[i];
+
+		vertices[i * 2].Position     = DirectX::XMFLOAT3(line.pos0.x, line.pos0.y, line.pos0.z);
+		vertices[i * 2].Diffuse      = ConvertColor(line.color0);
+
+		vertices[i * 2 + 1].Position = DirectX::XMFLOAT3(line.pos1.x, line.pos1.y, line.pos1.z);
+		vertices[i * 2 + 1].Diffuse  = ConvertColor(line.color1);
+	}
+
+	auto graphicsContext = m_context->graphics;
+	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+
+	// 頂点バッファ更新
+	D3D11_MAPPED_SUBRESOURCE mapped;
+	if(FAILED(deviceContext->Map(pPhysicsDebugLineVB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped))){
+		return;
+	}
+	memcpy(mapped.pData, vertices.data(), sizeof(VERTEX_3D) * vertices.size());
+	deviceContext->Unmap(pPhysicsDebugLineVB, 0);
+
+	// レンダーステートを設定
+	graphicsContext->SetDepthMode(DepthMode::Disable);
+	graphicsContext->SetBlendMode(BlendMode::None);
+
+	graphicsContext->SetWorldMatrix(DirectX::XMMatrixIdentity());
+	graphicsContext->SetViewMatrix(ctx.viewMatrix);
+	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
+
+	UINT stride = sizeof(VERTEX_3D);
+	UINT offset = 0;
+	deviceContext->IASetVertexBuffers(0, 1, &pPhysicsDebugLineVB, &stride, &offset);
+	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+
+	// シェーダーをセット
+	deviceContext->VSSetShader(m_LineVertexShader->m_VertexShader.Get(), nullptr, 0);
+	deviceContext->IASetInputLayout(m_LineVertexShader->m_VertexLayout.Get());
+	deviceContext->PSSetShader(m_LinePixelShader->m_PixelShader.Get(), nullptr, 0);
+
+	// 描画
+	deviceContext->Draw(static_cast<UINT>(vertices.size()), 0);
+
+	// レンダーステートを元に戻す
 	graphicsContext->SetDepthMode(DepthMode::Write);
 }
