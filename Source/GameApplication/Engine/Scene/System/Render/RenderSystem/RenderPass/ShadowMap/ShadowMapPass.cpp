@@ -184,11 +184,12 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 						XMMATRIX invCameraView = XMMatrixInverse(nullptr, ctx.viewMatrix);
 
 						// カスケードスプリット深度を等間隔（線形）で計算
-						// cameraNear と cameraFar を変えずに均等配置する
+						// 精度確保のため near を 10m に固定し、cameraFar まで均等配置する
+						constexpr float csmNear = 10.0f;
 						float splitDepths[DIRECTIONAL_CSM_CASCADE_COUNT];
 						for(int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT; c++){
 							float p = (float)(c + 1) / (float)DIRECTIONAL_CSM_CASCADE_COUNT;
-							splitDepths[c] = cameraNear + (cameraFar - cameraNear) * p;
+							splitDepths[c] = csmNear + (cameraFar - csmNear) * p;
 						}
 
 						// CbCSM にスプリット深度を格納 (float4 2本にパック)
@@ -204,7 +205,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 						}
 
 						// 各カスケードの行列を計算
-						float prevSplit = cameraNear;
+						float prevSplit = csmNear;
 						for(int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT; c++){
 							float currSplit = splitDepths[c];
 
