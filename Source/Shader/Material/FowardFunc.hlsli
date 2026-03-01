@@ -82,7 +82,7 @@ float ShadowFactor(
         return 1.0;
 
     // ---- 法線傾斜バイアス (シャドウアクネ対策) ----
-    float bias = DEPTH_BIAS_CONSTANT + DEPTH_SLOPE_BIAS * (1.0 - saturate(NdotL));
+    float bias = light.ShadowBias.x + light.ShadowBias.y * (1.0 - saturate(NdotL));
     float depth = saturate(sp.z - bias);
 
     // ---- Atlas ----
@@ -133,6 +133,7 @@ float ShadowFactor(
 // =====================================================
 float ShadowFactorCSM(
     float3 worldPos,
+    LIGHT  light,
     float  NdotL,
     ShadowPCFParams pcf)
 {
@@ -171,7 +172,7 @@ float ShadowFactorCSM(
         return 1.0;
 
     // ---- 法線傾斜バイアス (シャドウアクネ対策) ----
-    float bias = DEPTH_BIAS_CONSTANT + DEPTH_SLOPE_BIAS * (1.0 - saturate(NdotL));
+    float bias = light.ShadowBias.x + light.ShadowBias.y * (1.0 - saturate(NdotL));
     float depth = saturate(sp.z - bias);
 
     int tileIndex = CsmAtlasOffset + cascade;

@@ -102,6 +102,9 @@ struct LIGHT
     float4x4 LightProjection;
 
     float4 Param;
+
+    // x: 定数バイアス, y: スロープスケールバイアス, zw: 未使用
+    float4 ShadowBias;
 };
 
 // ==========================================

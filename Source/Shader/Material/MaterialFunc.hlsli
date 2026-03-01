@@ -108,7 +108,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         {
             if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM)
             {
-                shadow = ShadowFactorCSM(input.worldPos, NdotL, shadowParam);
+                shadow = ShadowFactorCSM(input.worldPos, light, NdotL, shadowParam);
                 shadowMapNum += DIRECTIONAL_CSM_CASCADE_COUNT;
             }
             else

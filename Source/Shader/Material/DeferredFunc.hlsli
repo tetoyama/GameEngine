@@ -73,6 +73,7 @@ MaterialInput GetMaterialInput(PS_IN In)
 // =====================================================
 float ShadowFactorCSM(
     float3 worldPos,
+    LIGHT  light,
     float  NdotL,
     ShadowPCFParams pcf)
 {
@@ -114,7 +115,7 @@ float ShadowFactorCSM(
 
     // ---- 法線傾斜バイアス (シャドウアクネ対策) ----
     // NdotL が小さい（ライトが浅い角度）ほど大きなバイアスを適用する
-    float bias = DEPTH_BIAS_CONSTANT + DEPTH_SLOPE_BIAS * (1.0 - saturate(NdotL));
+    float bias = light.ShadowBias.x + light.ShadowBias.y * (1.0 - saturate(NdotL));
     float depth = saturate(sp.z - bias);
 
     // ---- アトラスタイル計算 ----
@@ -181,7 +182,7 @@ float ShadowFactor(
         return 1.0;
 
     // ---- 法線傾斜バイアス (シャドウアクネ対策) ----
-    float bias = DEPTH_BIAS_CONSTANT + DEPTH_SLOPE_BIAS * (1.0 - saturate(NdotL));
+    float bias = light.ShadowBias.x + light.ShadowBias.y * (1.0 - saturate(NdotL));
     float depth = saturate(sp.z - bias);
 
     // ---- Atlas ----
