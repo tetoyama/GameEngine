@@ -268,7 +268,8 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 	}
 
 	// --- Drag & Drop ---
-	if(ImGui::BeginDragDropSource()){
+	// SourceAllowNullID is required because LastItemData.ID becomes 0 after BeginGroup
+	if(ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)){
 		ImGui::SetDragDropPayload("ENTITY_DRAG_DROP", &entity, sizeof(Entity));
 		ImGui::Text("Move Entity");
 		ImGui::EndDragDropSource();
