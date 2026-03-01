@@ -169,6 +169,12 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 	// --- ノード描画 ---
 	bool opened = ImGui::TreeNodeEx((void*)(intptr_t)entity, flags, "%s", displayName.c_str());
 
+	// PrefabComponent がある場合は (Prefab) ラベルを表示
+	if(context->component->GetComponent<PrefabComponent>(entity)){
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "(Prefab)");
+	}
+
 	if(ImGui::IsItemClicked()){
 		selectedEntity = entity;
 		sceneContext = context;
