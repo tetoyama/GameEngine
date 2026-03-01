@@ -1,6 +1,7 @@
 #pragma once
 #include "Component/CustomScriptComponent.h"
 #include "Backends/checkFileExtention.h"
+#include <System/Physic/physicSystem.h>
 
 
 class CameraController: public CustomScriptComponent {
@@ -11,9 +12,14 @@ public:
 		REFLECT_FIELD(float, rotateSpeed, 1.5f)
 		REFLECT_FIELD(float, minPitch, 0)
 		REFLECT_FIELD(float, maxPitch, DirectX::XM_PIDIV2 * 0.5f)
+		REFLECT_FIELD(float, minDistance, 1.0f)
 
 	float yaw = 0.0f;
 	float pitch = 0.0f;
+
+	// RayCast 時に除外する自身のレイヤービット（インスペクターで設定）
+	// デフォルトはデフォルトのプレイヤーレイヤー (1u << 1)
+	uint32_t selfLayerBit = 1u << 1;
 
 	ComponentRef<TransformComponent> transform;
 	ComponentRef<CameraComponent> CameraBuffer;
@@ -26,25 +32,53 @@ public:
 	YAML::Node encode() override{
 		YAML::Node node;
 		ENCODE_FIELDS(node);
-
+		node["SelfLayerBit"] = selfLayerBit;
 		return node;
 	}
 	bool decode(SceneContext* context, const YAML::Node& node) override{
 		DECODE_FIELDS(node);
-
+		if(node["SelfLayerBit"]) selfLayerBit = node["SelfLayerBit"].as<uint32_t>();
 		return true;
 	}
 
 	void inspector(SceneContext* context) override{
 		INSPECTOR_FIELDS();
+
+		// 自身のレイヤー選択（RayCast 除外用）
+		auto* phys = context->system->GetSystem<PhysicSystem>();
+		if (phys) {
+			const auto& layers = phys->GetLayers();
+			const char* previewLabel = "(none)";
+			for (const auto& layer : layers) {
+				if (selfLayerBit == layer.bit) { previewLabel = layer.name.c_str(); break; }
+			}
+			ImGui::Text("Self Layer (RayCast exclude)");
+			if (ImGui::BeginCombo("##SelfLayer", previewLabel)) {
+				if (ImGui::Selectable("(none)", selfLayerBit == 0)) selfLayerBit = 0;
+				if (selfLayerBit == 0) ImGui::SetItemDefaultFocus();
+				for (const auto& layer : layers) {
+					bool sel = (selfLayerBit == layer.bit);
+					if (ImGui::Selectable(layer.name.c_str(), sel)) selfLayerBit = layer.bit;
+					if (sel) ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+		}
 	}
 
 	void OnStart() override{
 		transform = GetComponentRef<TransformComponent>();
 		CameraBuffer = GetComponentRef<CameraComponent>();
-		auto playerEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<PlayerController>();
-		if(!playerEntities.empty()){
-			playerTransform = GetComponentRefFor<TransformComponent>(playerEntities[0]);
+
+		// CharacterController を優先して探し、なければ PlayerController を使う
+		auto charEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<CharacterController>();
+		if (!charEntities.empty()) {
+			playerTransform = GetComponentRefFor<TransformComponent>(charEntities[0]);
+		} else {
+			auto playerEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<PlayerController>();
+			if (!playerEntities.empty()) {
+				playerTransform = GetComponentRefFor<TransformComponent>(playerEntities[0]);
+			}
 		}
 
 		auto ballEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<BallController>();
@@ -88,6 +122,28 @@ public:
 			targetTransform->position.z,
 			1.0f
 		);
+
+		// --- カメラ遮蔽判定（遮蔽物があればカメラを近づける） ---
+		auto* phys = m_ref.GetScene()->manager
+			->systemRegistry
+			->GetSystem<PhysicSystem>();
+		if (phys) {
+			float offsetLen = DirectX::XMVectorGetX(DirectX::XMVector3Length(offset));
+			if (offsetLen > 0.001f) {
+				DirectX::XMFLOAT3 dirFloat;
+				DirectX::XMStoreFloat3(&dirFloat, DirectX::XMVector3Normalize(offset));
+				physx::PxVec3 rayOrigin(
+					targetTransform->position.x,
+					targetTransform->position.y,
+					targetTransform->position.z);
+				physx::PxVec3 rayDir(dirFloat.x, dirFloat.y, dirFloat.z);
+				RayHit occHit = phys->RaycastWithMask(rayOrigin, rayDir, offsetLen, selfLayerBit);
+				if (occHit.hit) {
+					float safeDistance = (std::max)(occHit.distance - 0.2f, minDistance);
+					offset = DirectX::XMVectorScale(offset, safeDistance / offsetLen);
+				}
+			}
+		}
 
 		DirectX::XMVECTOR camPos = DirectX::XMVectorAdd(targetPos, offset);
 		DirectX::XMFLOAT3 pos;
