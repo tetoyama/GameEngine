@@ -65,8 +65,22 @@ float2 TransformUV(float2 In, float2 start, float2 end)
 #endif // __cplusplus
 
 // ==========================================
-// 共有構造体
+// 定数バッファと構造体
 // ==========================================
+
+// ワールド / ビュー / プロジェクション行列
+CBUFFER(WorldBuffer, 0)
+{
+    float4x4 World;
+};
+CBUFFER(ViewBuffer, 1)
+{
+    float4x4 View;
+};
+CBUFFER(ProjectionBuffer, 2)
+{
+    float4x4 Projection;
+};
 
 // マテリアル構造体
 struct MATERIAL
@@ -82,6 +96,18 @@ struct MATERIAL
 
     uint MaterialFlags;
     uint3 Pad1;
+};
+
+CBUFFER(MaterialBuffer, 3)
+{
+    MATERIAL Material;
+};
+
+// UV マトリクス
+CBUFFER(UVMatrixBuffer, 4)
+{
+    float2 UVStart;
+    float2 UVEnd;
 };
 
 // ライト構造体
@@ -104,12 +130,7 @@ struct LIGHT
     float4 Param;
 };
 
-// ==========================================
-// 定数バッファ (更新タイミング別)
-// ==========================================
-
-// フレームごとに更新 (ライト情報)
-CBUFFER(CbPerFrame, 0)
+CBUFFER(LightBuffer, 5)
 {
     int ActiveLightCount;
     int ShadowAtlasCount;
@@ -117,60 +138,26 @@ CBUFFER(CbPerFrame, 0)
     LIGHT Lights[LIGHT_MAX_COUNT];
 };
 
-// カメラ/パスごとに更新 (ビュー・プロジェクション・カメラ位置)
-CBUFFER(CbPerCamera, 1)
+// カメラ情報
+CBUFFER(CameraBuffer, 6)
 {
-    float4x4 View;
-    float4x4 Projection;
     float4 CameraPosition;
 };
 
-// オブジェクトごとに更新 (ワールド・マテリアル・UV・オブジェクト情報・パラメータ)
-CBUFFER(CbPerObject, 2)
+// 汎用パラメータ
+CBUFFER(ParameterBuffer, 7)
 {
-    float4x4 World;
-    MATERIAL Material;
-    float2 UVStart;
-    float2 UVEnd;
+    float4 Parameter;
+};
+
+// オブジェクト情報
+CBUFFER(ObjectInfo, 8)
+{
     uint SceneID;
     uint ObjectID;
     uint ShaderID;
     uint _pad;
-    float4 Parameter;
 };
-
-#ifdef __cplusplus
-// ==========================================
-// C++ ヘルパー構造体 (後方互換性のため維持)
-// ==========================================
-
-// LightBuffer は CbPerFrame の別名
-using LightBuffer = CbPerFrame;
-
-struct CameraBuffer
-{
-    float4 CameraPosition{ 0.0f, 0.0f, 0.0f, 0.0f };
-};
-
-struct UVMatrixBuffer
-{
-    float2 UVStart{ 0.0f, 0.0f };
-    float2 UVEnd{ 1.0f, 1.0f };
-};
-
-struct ObjectInfo
-{
-    uint SceneID = 0;
-    uint ObjectID = 0;
-    uint ShaderID = 0;
-    uint _pad = 0;
-};
-
-struct ParameterBuffer
-{
-    float4 Parameter{ 0.0f, 0.0f, 0.0f, 0.0f };
-};
-#endif // __cplusplus
 #ifndef __cplusplus
 
 // ------------------------------------------
