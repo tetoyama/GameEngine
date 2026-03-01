@@ -6,6 +6,7 @@
 #include "registry/SystemRegistry.h"
 #include "System/Physic/physicSystem.h"
 #include "BackEnds/PhysX/PxPhysicsAPI.h"
+#include "Component/modelRendererComponent.h"
 
 enum class ColliderType {
 	Box,
@@ -283,12 +284,51 @@ public:
 					if(ImGui::TreeNodeEx("Offset")){
 						ImGui::BeginChild("OffsetChild", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY);
 
+						// ボーン名コンボボックス：同エンティティの ModelRendererComponent からボーン一覧を取得
 						ImGui::Text("Bone Name");
 						ImGui::SameLine(XPos);
-						char boneNameBuf[128] = "";
-						strncpy_s(boneNameBuf, sizeof(boneNameBuf), colliders[i].boneName.c_str(), _TRUNCATE);
-						if(ImGui::InputText(("##BoneName" + std::to_string(i)).c_str(), boneNameBuf, sizeof(boneNameBuf))){
-							colliders[i].boneName = boneNameBuf;
+						{
+							// このコンポーネントを持つエンティティを特定
+							ModelRendererComponent* mr = nullptr;
+							const auto& colEntities = context->component->FindEntitiesWithComponent<ColliderComponent>();
+							for(Entity ce : colEntities){
+								if(context->component->GetComponent<ColliderComponent>(ce) == this){
+									mr = context->component->GetComponent<ModelRendererComponent>(ce);
+									break;
+								}
+							}
+
+							const std::string& currentBone = colliders[i].boneName;
+							const char* previewLabel = currentBone.empty() ? "(none)" : currentBone.c_str();
+
+							if(mr && mr->model && !mr->model->m_BoneIndexMap.empty()){
+								if(ImGui::BeginCombo(("##BoneName" + std::to_string(i)).c_str(), previewLabel)){
+									// ボーン名をソート済みリストとして収集（コンボが開いている間のみ）
+									std::vector<std::string> boneNames;
+									boneNames.emplace_back(""); // 空 = なし
+									for(const auto& [name, idx] : mr->model->m_BoneIndexMap){
+										boneNames.push_back(name);
+									}
+									std::sort(boneNames.begin() + 1, boneNames.end());
+
+									for(const auto& bname : boneNames){
+										const char* displayName = bname.empty() ? "(none)" : bname.c_str();
+										bool selected = (currentBone == bname);
+										if(ImGui::Selectable(displayName, selected)){
+											colliders[i].boneName = bname;
+										}
+										if(selected) ImGui::SetItemDefaultFocus();
+									}
+									ImGui::EndCombo();
+								}
+							} else {
+								// モデルがない場合はテキスト入力にフォールバック
+								char boneNameBuf[128] = "";
+								strncpy_s(boneNameBuf, sizeof(boneNameBuf), currentBone.c_str(), _TRUNCATE);
+								if(ImGui::InputText(("##BoneName" + std::to_string(i)).c_str(), boneNameBuf, sizeof(boneNameBuf))){
+									colliders[i].boneName = boneNameBuf;
+								}
+							}
 						}
 
 						ImGui::Text("Position");
