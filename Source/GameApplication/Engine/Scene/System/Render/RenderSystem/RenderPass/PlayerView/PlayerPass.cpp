@@ -425,12 +425,13 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 		deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);
 
 		// GBuffer SRV を収集してポストエフェクトチェーンに渡す
-		ID3D11ShaderResourceView* gbufferSRVs[GBufferSlot_Max] = {};
+		ID3D11ShaderResourceView* gbufferSRVs[PostEffectGBufferSlot_Count] = {};
 		for(int g = 0; g < GBufferSlot_Max; ++g){
 			gbufferSRVs[g] = gBufferPass->pRenderTargets[g]->srv.Get();
 		}
+		gbufferSRVs[PostEffectGBufferSlot_Depth - PostEffectGBufferSlot_Start] = gBufferPass->pDepthTarget->srv.Get(); // 深度 → t14
 
-		graphics->ApplyPostProcessChain(postNodes, initialSRV, gbufferSRVs, GBufferSlot_Max);
+		graphics->ApplyPostProcessChain(postNodes, initialSRV, gbufferSRVs, PostEffectGBufferSlot_Count);
 
 		result = graphics->m_CurrentSRV;
 	} else {

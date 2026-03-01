@@ -55,7 +55,8 @@
 #define PostEffectGBufferSlot_Material  (11)
 #define PostEffectGBufferSlot_Emissive  (12)
 #define PostEffectGBufferSlot_Param     (13)
-#define PostEffectGBufferSlot_Count     (6)
+#define PostEffectGBufferSlot_Depth     (14)
+#define PostEffectGBufferSlot_Count     (7)
 
 
 #define LIGHT_TYPE_NONE				(0)
