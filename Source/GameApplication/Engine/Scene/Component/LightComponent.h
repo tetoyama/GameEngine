@@ -86,7 +86,7 @@ public:
 		ImGui::Checkbox("CastShadow", (bool*)&light.CastShadow);
 
 		// ライトの種類
-		const char* lightTypes[] = {"None","Directional", "Point", "Spot"};
+		const char* lightTypes[] = {"None","Directional", "Point", "Spot", "DirectionalCSM"};
 		int selected = static_cast<int>(light.LightType);
 		if(ImGui::Combo("Light Type", &selected, lightTypes, IM_ARRAYSIZE(lightTypes))){
 			light.LightType = selected;
