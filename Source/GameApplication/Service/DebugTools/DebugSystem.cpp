@@ -1,4 +1,4 @@
-// DebugSystem.cpp
+﻿// DebugSystem.cpp
 #include "DebugSystem.h"
 #include <algorithm>
 #include <iostream>
@@ -11,32 +11,32 @@ void DebugLog(std::string Message){
 	OutputDebugStringA(Message.c_str());
 }
 
-void DebugLogSystem::Initialize(){
+void DebugLogService::Initialize(){
 
 	// 必要であればファイルログなどの初期化
 	auto memorySink = std::make_shared<MemoryLogSink>();
 	AddSink(memorySink);
 }
 
-void DebugLogSystem::Shutdown(){
+void DebugLogService::Shutdown(){
 	std::lock_guard<std::mutex> lock(mutex);
 	sinks.clear();
 }
-void DebugLogSystem::Draw(){
+void DebugLogService::Draw(){
 
 }
 
-void DebugLogSystem::AddSink(std::shared_ptr<ILogSink> sink){
+void DebugLogService::AddSink(std::shared_ptr<ILogSink> sink){
 	std::lock_guard<std::mutex> lock(mutex);
 	sinks.push_back(sink);
 }
 
-void DebugLogSystem::RemoveSink(std::shared_ptr<ILogSink> sink){
+void DebugLogService::RemoveSink(std::shared_ptr<ILogSink> sink){
 	std::lock_guard<std::mutex> lock(mutex);
 	sinks.erase(std::remove(sinks.begin(), sinks.end(), sink), sinks.end());
 }
 
-void DebugLogSystem::Log(LogLevel level,
+void DebugLogService::Log(LogLevel level,
 						 const std::string& message,
 						 const std::string& function,
 						 const std::string& file,
@@ -57,16 +57,16 @@ void DebugLogSystem::Log(LogLevel level,
 	}
 }
 
-void DebugLogSystem::Log(LogLevel level, const char8_t* message, const std::string& function, const std::string& file, int line) {
+void DebugLogService::Log(LogLevel level, const char8_t* message, const std::string& function, const std::string& file, int line) {
 	std::string str = reinterpret_cast<const char*>(message);
 	Log(level, str, function, file, line);
 }
 
-void DebugLogSystem::Info(const std::string& message, const std::string& source){
+void DebugLogService::Info(const std::string& message, const std::string& source){
 	Log(LogLevel::Info, message, source, source, 0);
 }
 
-void DebugLogSystem::Error(const std::string& message, const std::string& source){
+void DebugLogService::Error(const std::string& message, const std::string& source){
 	Log(LogLevel::Error, message, source, source, 0);
 }
 

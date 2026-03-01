@@ -105,6 +105,44 @@ public:
 		return m_systems;
 	}
 
+	// -------------------------
+   // YAML Encode / Decode
+   // -------------------------
+
+   // 保存
+	void EncodeAll(YAML::Node& rootNode) const{
+		YAML::Node systemsNode = rootNode["Systems"];
+
+		for(const auto& sys : m_systems){
+
+			const char* name = sys->GetSystemName();
+			if(!name) continue;
+
+			YAML::Node sysNode;
+			sysNode = sys->encode();
+
+			systemsNode[name] = sysNode;
+		}
+
+		rootNode["Systems"] = systemsNode;
+	}
+
+	// 読み込み
+	void DecodeAll(const YAML::Node& rootNode){
+		if(!rootNode["Systems"]) return;
+
+		const YAML::Node systemsNode = rootNode["Systems"];
+
+		for(auto& sys : m_systems){
+			const char* name = sys->GetSystemName();
+			if(!name) continue;
+
+			const YAML::Node sysNode = systemsNode[name];
+			if(!sysNode) continue;
+
+			sys->decode(sysNode);
+		}
+	}
 private:
 	std::vector<std::unique_ptr<ISystem>> m_systems;
 };

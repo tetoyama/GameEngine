@@ -1,10 +1,13 @@
-#pragma once
+﻿#pragma once
 #include "Interface/IComponent.h"
 #include "BackEnds/YAMLConverters.h"
 #include "BackEnds/ImGuiFunc.h"
 #include "Backends/myVector2.h"
 #include "registry/SystemRegistry.h"
+#include "registry/componentRegistry.h"
+#include "System/Physic/physicSystem.h"
 #include "BackEnds/PhysX/PxPhysicsAPI.h"
+#include "Component/modelRendererComponent.h"
 
 enum class ColliderType {
 	Box,
@@ -34,6 +37,10 @@ struct ColliderShape {
 	bool lockRotY = false;
 	bool lockRotZ = false;
 
+	bool isTrigger = false;
+
+	std::string boneName = "";  // スキニングアニメーション時にオフセットの基準となるボーン名
+
 	physx::PxShape* pxShape = nullptr;
 	physx::PxMaterial* pxMaterial = nullptr;
 };
@@ -41,17 +48,17 @@ struct ColliderShape {
 class ColliderComponent: public IComponent {
 public:
 	~ColliderComponent(){
-		for(auto& col : colliders){
-			if (pRigidbodyStatic) {
-				OutputDebugStringA(("Finalize Release Static Actor: " + std::to_string((uintptr_t)pRigidbodyStatic) + "\n").c_str());
-				pRigidbodyStatic->release();
-				pRigidbodyStatic = nullptr;
-			}
-			if (pRigidbodyDynamic) {
-				OutputDebugStringA(("Finalize Release Dynamic Actor: " + std::to_string((uintptr_t)pRigidbodyDynamic) + "\n").c_str());
-				pRigidbodyDynamic->release();
-				pRigidbodyDynamic = nullptr;
-			}
+		if (pRigidbodyStatic) {
+			if (pRigidbodyStatic->userData)
+				delete static_cast<ActorEntityInfo*>(pRigidbodyStatic->userData);
+			pRigidbodyStatic->release();
+			pRigidbodyStatic = nullptr;
+		}
+		if (pRigidbodyDynamic) {
+			if (pRigidbodyDynamic->userData)
+				delete static_cast<ActorEntityInfo*>(pRigidbodyDynamic->userData);
+			pRigidbodyDynamic->release();
+			pRigidbodyDynamic = nullptr;
 		}
 	}
 
@@ -103,6 +110,10 @@ public:
 			colNode["lockRotY"] = col.lockRotY;
 			colNode["lockRotZ"] = col.lockRotZ;
 
+			colNode["isTrigger"] = col.isTrigger;
+
+			colNode["boneName"] = col.boneName;
+
 			node["colliders"].push_back(colNode);
 		}
 		return node;
@@ -140,6 +151,12 @@ public:
 				col.lockRotY = colNode["lockRotY"].as<bool>();
 				col.lockRotZ = colNode["lockRotZ"].as<bool>();
 
+				if (colNode["isTrigger"]) {
+					col.isTrigger = colNode["isTrigger"].as<bool>();
+				}
+				if (colNode["boneName"]) {
+					col.boneName = colNode["boneName"].as<std::string>();
+				}
 				colliders.push_back(col);
 			}
 		}
@@ -209,6 +226,36 @@ public:
 							colliders[i].type = static_cast<ColliderType>(type);
 							needsUpdate = true;
 						}
+						ImGui::Text("Is Trigger");
+						ImGui::SameLine(XPos);
+						if (ImGui::Checkbox(("##IsTrigger" + std::to_string(i)).c_str(), &colliders[i].isTrigger)) {
+							needsUpdate = true;
+						}
+
+						auto phys = context->system->GetSystem<PhysicSystem>();
+						const auto& layers = phys->GetLayers();
+
+						int current = 0;
+						for (int j = 0; j < layers.size(); ++j) {
+							if (colliders[i].collisionLayer == layers[j].bit) {
+								current = j;
+								break;
+							}
+						}
+						ImGui::Text("Collision Layer");
+						ImGui::SameLine(XPos);
+
+						if (ImGui::BeginCombo("##Collision Layer", layers[current].name.c_str())) {
+							for (int j = 0; j < layers.size(); ++j) {
+								bool selected = (i == current);
+								if (ImGui::Selectable(layers[j].name.c_str(), selected)) {
+									colliders[i].collisionLayer = layers[j].bit;
+									needsUpdate = true;
+								}
+							}
+							ImGui::EndCombo();
+						}
+
 
 						if(colliders[i].type == ColliderType::Box){
 							ImGui::Text("Size");
@@ -237,6 +284,53 @@ public:
 					}
 					if(ImGui::TreeNodeEx("Offset")){
 						ImGui::BeginChild("OffsetChild", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY);
+
+						// ボーン名コンボボックス：同エンティティの ModelRendererComponent からボーン一覧を取得
+						ImGui::Text("Bone Name");
+						ImGui::SameLine(XPos);
+						{
+							// このコンポーネントを持つエンティティを特定
+							ModelRendererComponent* mr = nullptr;
+							const auto& colEntities = context->component->FindEntitiesWithComponent<ColliderComponent>();
+							for(Entity ce : colEntities){
+								if(context->component->GetComponent<ColliderComponent>(ce) == this){
+									mr = context->component->GetComponent<ModelRendererComponent>(ce);
+									break;
+								}
+							}
+
+							const std::string& currentBone = colliders[i].boneName;
+							const char* previewLabel = currentBone.empty() ? "(none)" : currentBone.c_str();
+
+							if(mr && mr->model && !mr->model->m_BoneIndexMap.empty()){
+								if(ImGui::BeginCombo(("##BoneName" + std::to_string(i)).c_str(), previewLabel)){
+									// ボーン名をソート済みリストとして収集（コンボが開いている間のみ）
+									std::vector<std::string> boneNames;
+									boneNames.emplace_back(""); // 空 = なし
+									for(const auto& [name, idx] : mr->model->m_BoneIndexMap){
+										boneNames.push_back(name);
+									}
+									std::sort(boneNames.begin() + 1, boneNames.end());
+
+									for(const auto& bname : boneNames){
+										const char* displayName = bname.empty() ? "(none)" : bname.c_str();
+										bool selected = (currentBone == bname);
+										if(ImGui::Selectable(displayName, selected)){
+											colliders[i].boneName = bname;
+										}
+										if(selected) ImGui::SetItemDefaultFocus();
+									}
+									ImGui::EndCombo();
+								}
+							} else {
+								// モデルがない場合はテキスト入力にフォールバック
+								char boneNameBuf[128] = "";
+								strncpy_s(boneNameBuf, sizeof(boneNameBuf), currentBone.c_str(), _TRUNCATE);
+								if(ImGui::InputText(("##BoneName" + std::to_string(i)).c_str(), boneNameBuf, sizeof(boneNameBuf))){
+									colliders[i].boneName = boneNameBuf;
+								}
+							}
+						}
 
 						ImGui::Text("Position");
 						ImGui::SameLine(XPos);

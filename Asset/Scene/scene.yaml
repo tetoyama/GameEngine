@@ -86,9 +86,9 @@ Entities:
           z: 1
           w: 1
         Ambient:
-          x: 0.11063832
-          y: 0.11063832
-          z: 0.11063832
+          x: 0.565957427
+          y: 0.565957427
+          z: 0.565957427
           w: 1
         Param:
           x: 500
@@ -203,7 +203,7 @@ Entities:
             lockRotY: true
             lockRotZ: true
       - Component: MaterialComponent
-        ShaderID: 1
+        ShaderID: 4
         Material:
           BaseColor:
             x: 0
@@ -245,6 +245,7 @@ Entities:
         stamina: 5
         staminaConsumeRate: 1.5
         staminaRecoverRate: 3
+        aaa: 1
         jumpPower: 4
         Stamina: 5
   - Entity: 5
@@ -423,15 +424,15 @@ Entities:
             rotationOffset: [0, 0, 0]
             radius: 0.200000003
             height: 1
-            staticFriction: 0.5
+            staticFriction: 0
             dynamicFriction: 0.5
-            restitution: 0.100000001
+            restitution: 0
             collisionLayer: 0
             lockRotX: false
             lockRotY: false
             lockRotZ: false
       - Component: MaterialComponent
-        ShaderID: 1
+        ShaderID: 4
         Material:
           BaseColor:
             x: 1
@@ -454,7 +455,7 @@ Entities:
         AnimationTime: 68314.1172
       - Component: BallController
         friction: 0.949999988
-        knockbackPower: 5
+        knockbackPower: 0.75
   - Entity: 7
     Components:
       - Component: NameComponent
@@ -733,7 +734,7 @@ Entities:
           x: 0.100000001
           y: 0.100000001
           z: 0.100000001
-        Parent: 0
+        Parent: 25
       - Component: TextureComponent
         FilePath: Asset\Texture\number.png
         UV_Slice_X: 5
@@ -767,7 +768,7 @@ Entities:
           x: 0.100000001
           y: 0.100000001
           z: 0.100000001
-        Parent: 0
+        Parent: 25
       - Component: TextureComponent
         FilePath: Asset\Texture\number.png
         UV_Slice_X: 5
@@ -801,7 +802,7 @@ Entities:
           x: 0.100000001
           y: 0.100000001
           z: 0.100000001
-        Parent: 0
+        Parent: 25
       - Component: TextureComponent
         FilePath: Asset\Texture\number.png
         UV_Slice_X: 5
@@ -835,7 +836,7 @@ Entities:
           x: 0.100000001
           y: 0.100000001
           z: 0.100000001
-        Parent: 0
+        Parent: 25
       - Component: TextureComponent
         FilePath: Asset\Texture\number.png
         UV_Slice_X: 5
@@ -869,7 +870,7 @@ Entities:
           x: 0.340000004
           y: 0.15866667
           z: 0
-        Parent: 0
+        Parent: 25
       - Component: MaterialComponent
         ShaderID: 0
         Material:
@@ -918,7 +919,7 @@ Entities:
           x: 0.0500000007
           y: 0.0500000007
           z: 0
-        Parent: 0
+        Parent: 25
       - Component: TextureComponent
         FilePath: Asset\Texture\number.png
         UV_Slice_X: 5
@@ -949,7 +950,7 @@ Entities:
           x: 0.239999995
           y: 0.0459574461
           z: 0.0459574461
-        Parent: 0
+        Parent: 25
       - Component: MaterialComponent
         ShaderID: 0
         Material:
@@ -998,7 +999,7 @@ Entities:
           x: 0.246000007
           y: 0.0460000001
           z: 0.0460000001
-        Parent: 0
+        Parent: 25
       - Component: MaterialComponent
         ShaderID: 0
         Material:
@@ -1047,7 +1048,7 @@ Entities:
           x: 0.100000001
           y: 0.100000001
           z: 0.100000001
-        Parent: 0
+        Parent: 25
       - Component: TextureComponent
         FilePath: Asset\Texture\number.png
         UV_Slice_X: 5
@@ -1081,7 +1082,7 @@ Entities:
           x: 0.100000001
           y: 0.100000001
           z: 0.100000001
-        Parent: 0
+        Parent: 25
       - Component: TextureComponent
         FilePath: Asset\Texture\number.png
         UV_Slice_X: 5
@@ -1135,7 +1136,7 @@ Entities:
             lockRotY: true
             lockRotZ: true
       - Component: MaterialComponent
-        ShaderID: 1
+        ShaderID: 4
         Material:
           BaseColor:
             x: 1
@@ -1183,7 +1184,7 @@ Entities:
   - Entity: 23
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: FadeIn
       - Component: TransformComponent
         Position:
           x: 0
@@ -1198,7 +1199,9 @@ Entities:
           x: 5.30999994
           y: 1
           z: 1
-        Parent: 0
+        Parent: 25
+      - Component: OrderInLayerComponent
+        layer: -1
       - Component: MaterialComponent
         ShaderID: 0
         Material:
@@ -1234,7 +1237,7 @@ Entities:
   - Entity: 24
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: FadeOut
       - Component: TransformComponent
         Position:
           x: 0
@@ -1249,7 +1252,7 @@ Entities:
           x: 2.67000008
           y: 1
           z: 1
-        Parent: 0
+        Parent: 25
       - Component: MaterialComponent
         ShaderID: 0
         Material:
@@ -1282,3 +1285,22 @@ Entities:
           y: 0
       - Component: FadeOutSprite
         FadeTime: 1
+  - Entity: 25
+    Components:
+      - Component: NameComponent
+        Name: UI
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0

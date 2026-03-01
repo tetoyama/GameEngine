@@ -1,10 +1,14 @@
-#include "physicSystem.h"
+﻿#include "physicSystem.h"
 #include <mutex>
 #include <Scene/scene.h>
 #include <Scene/sceneManager.h>
 #include <Scene/Component/ColliderComponent.h>
 #include <Scene/Component/transformComponent.h>
+#include <Scene/Component/modelRendererComponent.h>
+#include <Scene/Component/CustomScriptComponent.h>
 #include <d3dcompiler.h>
+
+#include "Backends/ImGuiFunc.h"
 
 #pragma comment(lib, "PhysX_64.lib")
 #pragma comment(lib, "PhysXCommon_64.lib")
@@ -15,6 +19,142 @@
 #pragma comment(lib, "PhysXTask_static_64.lib")
 #pragma comment(lib, "SceneQuery_static_64.lib")
 #pragma comment(lib, "SimulationController_static_64.lib")
+
+PhysicSystem* g_physicSystem = nullptr;
+
+physx::PxFilterFlags PhysicsFilterShader(
+	physx::PxFilterObjectAttributes attr0, physx::PxFilterData data0,
+	physx::PxFilterObjectAttributes attr1, physx::PxFilterData data1,
+	physx::PxPairFlags& pairFlags,
+	const void*, physx::PxU32) {
+	
+	int layerA = g_physicSystem->FindLayerIndex(data0.word0);
+	int layerB = g_physicSystem->FindLayerIndex(data1.word0);
+
+	if (layerA < 0 || layerB < 0)
+		return physx::PxFilterFlag::eSUPPRESS;
+
+	if (!g_physicSystem->GetCollisionEnabled(layerA, layerB))
+		return physx::PxFilterFlag::eSUPPRESS;
+
+	// トリガーシェイプが含まれるペアはコンタクトではなくトリガーイベントとして処理する
+	if (physx::PxFilterObjectIsTrigger(attr0) || physx::PxFilterObjectIsTrigger(attr1)) {
+		pairFlags = physx::PxPairFlag::eTRIGGER_DEFAULT;
+		return physx::PxFilterFlag::eDEFAULT;
+	}
+
+	pairFlags =
+		physx::PxPairFlag::eCONTACT_DEFAULT |
+		physx::PxPairFlag::eDETECT_DISCRETE_CONTACT |
+		physx::PxPairFlag::eNOTIFY_TOUCH_FOUND |
+		physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS |
+		physx::PxPairFlag::eNOTIFY_TOUCH_LOST;
+
+	return physx::PxFilterFlag::eDEFAULT;
+}
+
+// PhysX シミュレーションイベントコールバック
+class PhysicsSimulationCallback : public physx::PxSimulationEventCallback {
+
+	static std::vector<CustomScriptComponent*> GetScripts(SceneContext* ctx, Entity entity) {
+		std::vector<CustomScriptComponent*> result;
+		if (!ctx) return result;
+		for (auto& [e, script] : ctx->component->GetAllBaseComponents<CustomScriptComponent>()) {
+			if (e == entity && script && script->IsInitialized())
+				result.push_back(script);
+		}
+		return result;
+	}
+
+public:
+	// Stop/Finalize 前に false にセットすることでコールバックを無効化する
+	bool m_active = true;
+
+	void onContact(const physx::PxContactPairHeader& pairHeader,
+				   const physx::PxContactPair* pairs,
+				   physx::PxU32 nbPairs) override
+	{
+		if (!m_active) return;
+		// 削除されたアクターへのアクセスを防ぐ
+		if (pairHeader.flags & (physx::PxContactPairHeaderFlag::eREMOVED_ACTOR_0 |
+								physx::PxContactPairHeaderFlag::eREMOVED_ACTOR_1))
+			return;
+		auto* infoA = static_cast<ActorEntityInfo*>(pairHeader.actors[0]->userData);
+		auto* infoB = static_cast<ActorEntityInfo*>(pairHeader.actors[1]->userData);
+		if (!infoA || !infoB) return;
+
+		EntityRef refA(infoA->entity, infoA->context);
+		EntityRef refB(infoB->entity, infoB->context);
+
+		for (physx::PxU32 i = 0; i < nbPairs; ++i) {
+			const physx::PxContactPair& pair = pairs[i];
+			// 削除されたシェイプへのアクセスを防ぐ
+			if (pair.flags & (physx::PxContactPairFlag::eREMOVED_SHAPE_0 |
+							  physx::PxContactPairFlag::eREMOVED_SHAPE_1))
+				continue;
+			uint32_t layerA = pair.shapes[0]->getSimulationFilterData().word0;
+			uint32_t layerB = pair.shapes[1]->getSimulationFilterData().word0;
+
+			HitInfo hitForA{ refB, layerB };
+			HitInfo hitForB{ refA, layerA };
+
+			auto scriptsA = GetScripts(infoA->context, infoA->entity);
+			auto scriptsB = GetScripts(infoB->context, infoB->entity);
+
+			if (pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND) {
+				for (auto* s : scriptsA) s->CollisionEnter(hitForA);
+				for (auto* s : scriptsB) s->CollisionEnter(hitForB);
+			}
+			if (pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS) {
+				for (auto* s : scriptsA) s->CollisionStay(hitForA);
+				for (auto* s : scriptsB) s->CollisionStay(hitForB);
+			}
+			if (pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_LOST) {
+				for (auto* s : scriptsA) s->CollisionExit(hitForA);
+				for (auto* s : scriptsB) s->CollisionExit(hitForB);
+			}
+		}
+	}
+
+	void onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count) override {
+		if (!m_active) return;
+		for (physx::PxU32 i = 0; i < count; ++i) {
+			const physx::PxTriggerPair& pair = pairs[i];
+			if (pair.flags & (physx::PxTriggerPairFlag::eREMOVED_SHAPE_TRIGGER |
+							  physx::PxTriggerPairFlag::eREMOVED_SHAPE_OTHER))
+				continue;
+
+			auto* triggerInfo = static_cast<ActorEntityInfo*>(pair.triggerActor->userData);
+			auto* otherInfo   = static_cast<ActorEntityInfo*>(pair.otherActor->userData);
+			if (!triggerInfo || !otherInfo) continue;
+
+			uint32_t triggerLayer = pair.triggerShape->getSimulationFilterData().word0;
+			uint32_t otherLayer   = pair.otherShape->getSimulationFilterData().word0;
+
+			EntityRef refTrigger(triggerInfo->entity, triggerInfo->context);
+			EntityRef refOther  (otherInfo->entity,   otherInfo->context);
+
+			HitInfo hitForTrigger{ refOther,   otherLayer   };
+			HitInfo hitForOther  { refTrigger, triggerLayer };
+
+			auto scriptsTrigger = GetScripts(triggerInfo->context, triggerInfo->entity);
+			auto scriptsOther   = GetScripts(otherInfo->context,   otherInfo->entity);
+
+			if (pair.status & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND) {
+				for (auto* s : scriptsTrigger) s->TriggerEnter(hitForTrigger);
+				for (auto* s : scriptsOther)   s->TriggerEnter(hitForOther);
+			} else if (pair.status & physx::PxPairFlag::eNOTIFY_TOUCH_LOST) {
+				for (auto* s : scriptsTrigger) s->TriggerExit(hitForTrigger);
+				for (auto* s : scriptsOther)   s->TriggerExit(hitForOther);
+			}
+		}
+	}
+
+	void onConstraintBreak(physx::PxConstraintInfo*, physx::PxU32) override {}
+	void onWake(physx::PxActor**, physx::PxU32) override {}
+	void onSleep(physx::PxActor**, physx::PxU32) override {}
+	void onAdvance(const physx::PxRigidBody* const*, const physx::PxTransform*, physx::PxU32) override {}
+};
 
 physx::PxRigidDynamic* PhysicSystem::CreateDynamic(const physx::PxTransform& t, const physx::PxGeometry& geometry, physx::PxMaterial& material, physx::PxReal density){
 	physx::PxRigidDynamic* rigid_dynamic = PxCreateDynamic(*g_pPhysics, t, geometry, material, density);
@@ -157,11 +297,23 @@ void PhysicSystem::UpdateColliderParam(TransformComponent* transform, ColliderCo
 	col.pxShape = newShape;
 
 	// 6) レイヤー設定
-	if(newShape){
+	if (newShape) {
 		physx::PxFilterData fd;
 		fd.word0 = col.collisionLayer;
+
 		newShape->setSimulationFilterData(fd);
+		newShape->setQueryFilterData(fd);
+
+		if (col.isTrigger) {
+			newShape->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, false);
+			newShape->setFlag(physx::PxShapeFlag::eTRIGGER_SHAPE, true);
+		} else {
+			newShape->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, true);
+			newShape->setFlag(physx::PxShapeFlag::eTRIGGER_SHAPE, false);
+		}
+
 	}
+
 
 	// 7) 回転ロック設定
 	if(collider->isDynamic){
@@ -173,12 +325,37 @@ void PhysicSystem::UpdateColliderParam(TransformComponent* transform, ColliderCo
 		dyn->setRigidDynamicLockFlags(lockFlags);
 	}
 
+	if (col.isTrigger) {
+		newShape->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, false);
+		newShape->setFlag(physx::PxShapeFlag::eTRIGGER_SHAPE, true);
+	} else {
+		newShape->setFlag(physx::PxShapeFlag::eSIMULATION_SHAPE, true);
+		newShape->setFlag(physx::PxShapeFlag::eTRIGGER_SHAPE, false);
+	}
+
+
 	g_pScene->unlockWrite();
 }
 
 
 
 void PhysicSystem::Initialize(){
+
+	g_physicSystem = this;
+
+	// --- デフォルトレイヤー ---
+	m_layers.clear();
+	m_layers.push_back({ "Default",  1u << 0 });
+	m_layers.push_back({ "Player",   1u << 1 });
+	m_layers.push_back({ "Enemy",    1u << 2 });
+	m_layers.push_back({ "Environment", 1u << 3 });
+
+	for (uint32_t i = 0; i < kMaxPhysicsLayers; ++i) {
+		for (uint32_t j = 0; j < kMaxPhysicsLayers; ++j) {
+			m_collisionMatrix[i][j] = true; // デフォルトは全衝突
+		}
+	}
+
 	UpdatingPhysics = false;
 	g_pFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, g_defaultAllocator, g_defaultErrorCallback);
 
@@ -197,8 +374,10 @@ void PhysicSystem::Initialize(){
 	g_pDispatcher = physx::PxDefaultCpuDispatcherCreate(8);
 	physx::PxSceneDesc scene_desc(g_pPhysics->getTolerancesScale());
 	scene_desc.gravity = physx::PxVec3(0, Gravity, 0);
-	scene_desc.filterShader = physx::PxDefaultSimulationFilterShader;
+	scene_desc.filterShader = PhysicsFilterShader;
 	scene_desc.cpuDispatcher = g_pDispatcher;
+	m_simCallback = new PhysicsSimulationCallback();
+	scene_desc.simulationEventCallback = m_simCallback;
 
 	g_pScene = g_pPhysics->createScene(scene_desc);
 	if(g_pScene){
@@ -216,6 +395,7 @@ void PhysicSystem::Initialize(){
 }
 void PhysicSystem::Finalize(){
 	OutputDebugStringA("PhysicSystem::Finalize\n");
+	if (m_simCallback) m_simCallback->m_active = false;
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
@@ -234,11 +414,13 @@ void PhysicSystem::Finalize(){
 			}
 			if (Collider->pRigidbodyStatic) {
 				OutputDebugStringA(("Finalize Release Static Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyStatic) + "\n").c_str());
+				delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyStatic->userData);
 				Collider->pRigidbodyStatic->release();
 				Collider->pRigidbodyStatic = nullptr;
 			}
 			if (Collider->pRigidbodyDynamic) {
 				OutputDebugStringA(("Finalize Release Dynamic Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyDynamic) + "\n").c_str());
+				delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyDynamic->userData);
 				Collider->pRigidbodyDynamic->release();
 				Collider->pRigidbodyDynamic = nullptr;
 			}
@@ -278,9 +460,18 @@ void PhysicSystem::Finalize(){
 		g_pFoundation->release();
 		g_pFoundation = nullptr;
 	}
+
+	g_physicSystem = nullptr;
+
+	delete m_simCallback;
+	m_simCallback = nullptr;
 }
 
 void PhysicSystem::Stop(){
+	// コールバックを無効化してから Actor を解放する
+	// （fetchResults が後で発火しても onContact/onTrigger を呼ばないようにする）
+	if (m_simCallback) m_simCallback->m_active = false;
+
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
@@ -301,11 +492,13 @@ void PhysicSystem::Stop(){
 
 			if (Collider->pRigidbodyStatic) {
 				OutputDebugStringA(("Stop Release Static Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyStatic) + "\n").c_str());
+				delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyStatic->userData);
 				Collider->pRigidbodyStatic->release();
 				Collider->pRigidbodyStatic = nullptr;
 			}
 			if (Collider->pRigidbodyDynamic) {
 				OutputDebugStringA(("Stop Release Dynamic Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyDynamic) + "\n").c_str());
+				delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyDynamic->userData);
 				Collider->pRigidbodyDynamic->release();
 				Collider->pRigidbodyDynamic = nullptr;
 			}
@@ -319,6 +512,121 @@ void PhysicSystem::Stop(){
 	g_pScene->unlockWrite();
 	g_pScene->unlockRead();
 }
+
+YAML::Node PhysicSystem::encode() {
+	YAML::Node node;
+	for (auto& layer : m_layers) {
+		YAML::Node l;
+		l["name"] = layer.name;
+		l["bit"] = layer.bit;
+		node["layers"].push_back(l);
+	}
+
+	const int count = static_cast<int>(m_layers.size());
+
+	for (int y = 0; y < count; ++y) {
+		for (int x = 0; x < count; ++x) {
+			node["collision"][y][x] = m_collisionMatrix[y][x];
+		}
+	}
+
+	return node;
+}
+
+bool PhysicSystem::decode(const YAML::Node& node) {
+	if (!node["layers"]) return true;
+
+	m_layers.clear();
+	for (auto& l : node["layers"]) {
+		PhysicsLayer layer;
+		layer.name = l["name"].as<std::string>();
+		layer.bit = l["bit"].as<uint32_t>();
+		m_layers.push_back(layer);
+	}
+	return true;
+}
+
+void PhysicSystem::SystemSetting(){
+
+	DrawLayerEditor();
+
+	const int count = static_cast<int>(m_layers.size());
+	if(count == 0)
+		return;
+
+	if(ImGui::TreeNode("Layer Collision Matrix")){
+
+
+
+		const int columnCount = count + 1;
+
+		ImVec2 tableSize = ImVec2(0.0f, 400.0f);
+
+		if(ImGui::BeginTable("CollisionMatrixTable",
+							 columnCount,
+							 ImGuiTableFlags_Borders |
+							 ImGuiTableFlags_RowBg |
+							 ImGuiTableFlags_SizingFixedFit |
+							 ImGuiTableFlags_ScrollX |
+							 ImGuiTableFlags_ScrollY
+							 //ImGuiTableFlags_ScrollFreezeTopRow
+							 ,
+							 tableSize)){
+			// 列定義
+			ImGui::TableSetupColumn("Layer",
+									ImGuiTableColumnFlags_WidthFixed,
+									120.0f);
+
+			for(int i = 0; i < count; ++i){
+				ImGui::TableSetupColumn("##col",
+										ImGuiTableColumnFlags_WidthFixed,
+										40.0f);
+			}
+
+			// ヘッダ行（高さ固定）
+			ImGui::TableNextRow(ImGuiTableRowFlags_None, 80.0f);
+
+			ImGui::TableSetColumnIndex(0);
+			ImGui::Text("Layer");
+
+			for(int i = 0; i < count; ++i){
+				ImGui::TableSetColumnIndex(i + 1);
+				ImGui::DrawVerticalText(m_layers[i].name.c_str());
+			}
+
+			// 本体
+			for(int y = 0; y < count; ++y){
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("%s", m_layers[y].name.c_str());
+
+				for(int x = 0; x < count; ++x){
+					ImGui::TableSetColumnIndex(x + 1);
+
+					ImGui::PushID(y * 1000 + x);
+
+					bool v = m_collisionMatrix[y][x];
+
+					if(ImGui::Checkbox("##chk", &v)){
+						m_collisionMatrix[y][x] = v;
+						m_collisionMatrix[x][y] = v;
+					}
+
+					ImGui::PopID();
+				}
+			}
+
+			ImGui::EndTable();
+		}
+		ImGui::TreePop();
+	}
+}
+
+bool PhysicSystem::GetCollisionEnabled(uint32_t a, uint32_t b) const {
+	return m_collisionMatrix[a][b];
+}
+
 
 RayHit PhysicSystem::RaycastWithMask(const physx::PxVec3& origin, const physx::PxVec3& direction, physx::PxReal maxDistance, physx::PxU32 layerMask) {
 	RayHit result{};
@@ -353,7 +661,107 @@ RayHit PhysicSystem::RaycastWithMask(const physx::PxVec3& origin, const physx::P
 	return result;
 }
 
+uint32_t PhysicSystem::GetLayerBit(const std::string& name) const {
+	return 0;
+}
+
+int PhysicSystem::FindLayerIndex(uint32_t bit) const{
+	if(bit == 0){
+		return 0;
+	}
+
+	for(int i = 0; i < m_layers.size(); ++i){
+		if(m_layers[i].bit == bit)
+			return i;
+	}
+	return -1;
+}
+
+// bit再構築
+void PhysicSystem::RebuildLayerBits(){
+	for(int i = 0; i < (int)m_layers.size(); ++i){
+		m_layers[i].bit = (1u << i);
+	}
+}
+
+// マトリクス再構築
+void PhysicSystem::RebuildCollisionMatrix(){
+	const int count = (int)m_layers.size();
+
+	// 一旦バックアップ
+	bool old[kMaxPhysicsLayers][kMaxPhysicsLayers]{};
+
+	for(int y = 0; y < kMaxPhysicsLayers; ++y)
+		for(int x = 0; x < kMaxPhysicsLayers; ++x)
+			old[y][x] = m_collisionMatrix[y][x];
+
+	// 全初期化
+	for(int y = 0; y < kMaxPhysicsLayers; ++y)
+		for(int x = 0; x < kMaxPhysicsLayers; ++x)
+			m_collisionMatrix[y][x] = false;
+
+	// 有効範囲だけ復元
+	for(int y = 0; y < count; ++y){
+		for(int x = 0; x < count; ++x){
+			m_collisionMatrix[y][x] = old[y][x];
+		}
+	}
+}
+
+void PhysicSystem::RemoveLayer(int removeIndex){
+	const int count = (int)m_layers.size();
+	if(removeIndex < 0 || removeIndex >= count)
+		return;
+
+	// レイヤー削除
+	m_layers.erase(m_layers.begin() + removeIndex);
+
+	// 行シフト
+	for(int y = removeIndex; y < count - 1; ++y){
+		for(int x = 0; x < count; ++x){
+			m_collisionMatrix[y][x] = m_collisionMatrix[y + 1][x];
+		}
+	}
+
+	// 列シフト
+	for(int x = removeIndex; x < count - 1; ++x){
+		for(int y = 0; y < count - 1; ++y){
+			m_collisionMatrix[y][x] = m_collisionMatrix[y][x + 1];
+		}
+	}
+
+	// 末尾クリア
+	for(int i = 0; i < kMaxPhysicsLayers; ++i){
+		m_collisionMatrix[count - 1][i] = false;
+		m_collisionMatrix[i][count - 1] = false;
+	}
+
+	RebuildLayerBits();
+}
+void PhysicSystem::AddLayer(const std::string& name){
+	if((int)m_layers.size() >= kMaxPhysicsLayers)
+		return;
+
+	PhysicsLayer layer;
+	layer.name = name;
+	layer.bit = 0;
+
+	m_layers.push_back(layer);
+
+	int newIndex = (int)m_layers.size() - 1;
+
+	// 新規レイヤーは全衝突ONにする例
+	for(int i = 0; i <= newIndex; ++i){
+		m_collisionMatrix[newIndex][i] = true;
+		m_collisionMatrix[i][newIndex] = true;
+	}
+
+	RebuildLayerBits();
+}
 void PhysicSystem::Start(){
+	// コールバックを有効化する（Stop 後の再起動にも対応）
+	if (m_simCallback) m_simCallback->m_active = true;
+
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
@@ -391,6 +799,7 @@ void PhysicSystem::UpdateCollider() {
 			if (Collider->isDynamic) {
 
 				if (Collider->pRigidbodyStatic) {
+					delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyStatic->userData);
 					Collider->pRigidbodyStatic->release();
 					Collider->pRigidbodyStatic = nullptr;
 				}
@@ -400,6 +809,7 @@ void PhysicSystem::UpdateCollider() {
 				}
 
 				Collider->pRigidbodyDynamic = g_pPhysics->createRigidDynamic(pxTransform);
+				Collider->pRigidbodyDynamic->userData = new ActorEntityInfo{ entity, context };
 				g_pScene->addActor(*Collider->pRigidbodyDynamic);
 
 				for (auto& col : Collider->colliders) {
@@ -424,6 +834,7 @@ void PhysicSystem::UpdateCollider() {
 			} else {
 
 				if (Collider->pRigidbodyDynamic) {
+					delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyDynamic->userData);
 					Collider->pRigidbodyDynamic->release();
 					Collider->pRigidbodyDynamic = nullptr;
 				}
@@ -433,6 +844,7 @@ void PhysicSystem::UpdateCollider() {
 				}
 
 				Collider->pRigidbodyStatic = g_pPhysics->createRigidStatic(pxTransform);
+				Collider->pRigidbodyStatic->userData = new ActorEntityInfo{ entity, context };
 				g_pScene->addActor(*Collider->pRigidbodyStatic);
 
 				for (auto& col : Collider->colliders) {
@@ -481,6 +893,57 @@ void PhysicSystem::UpdateCollider() {
 			if (Collider->pRigidbodyDynamic) Collider->pRigidbodyDynamic->setGlobalPose(pxTransform);
 			if (Collider->pRigidbodyStatic) Collider->pRigidbodyStatic->setGlobalPose(pxTransform);
 
+			// ボーン名が指定されているコライダシェイプのローカルポーズをボーンのワールド変換から更新
+			auto* ModelRenderer = context->component->GetComponent<ModelRendererComponent>(entity);
+			if (ModelRenderer && ModelRenderer->model) {
+				bool hasBoneShape = false;
+				for (const auto& col : Collider->colliders) {
+					if (!col.boneName.empty() && col.pxShape) { hasBoneShape = true; break; }
+				}
+				if (hasBoneShape) {
+					g_pScene->lockWrite();
+					for (auto& col : Collider->colliders) {
+						if (col.boneName.empty() || !col.pxShape) continue;
+
+						auto& boneIndexMap = ModelRenderer->model->m_BoneIndexMap;
+						auto boneIt = boneIndexMap.find(col.boneName);
+						if (boneIt == boneIndexMap.end()) continue;
+
+						uint32_t boneIdx = boneIt->second;
+						// WorldMatrix はモデル空間（ルート補正済み、スケール未適用）のボーン変換
+						const aiMatrix4x4& boneModelMat = ModelRenderer->model->m_Bones[boneIdx].WorldMatrix;
+
+						// ボーンのモデル空間変換を位置とクォータニオンに分解
+						aiVector3D boneScale, bonePos;
+						aiQuaternion boneRot;
+						boneModelMat.Decompose(boneScale, boneRot, bonePos);
+
+						// エンティティのスケールをボーン位置に乗算して描画と一致させる
+						// （GPU はワールド行列に含まれるスケールを適用するが PhysX アクターは T×R のみ保持）
+						const Vector3& entityScale = Transform->scale;
+						physx::PxTransform boneWorldPose(
+							physx::PxVec3(bonePos.x * entityScale.x, bonePos.y * entityScale.y, bonePos.z * entityScale.z),
+							physx::PxQuat(boneRot.x, boneRot.y, boneRot.z, boneRot.w)
+						);
+
+						// ユーザー定義のローカルオフセット（ボーンローカル空間、同様にスケール適用）
+						physx::PxVec3 userOffset(col.offset.x * entityScale.x, col.offset.y * entityScale.y, col.offset.z * entityScale.z);
+						const float DegToRad = physx::PxPi / 180.0f;
+						physx::PxQuat qx(col.rotationOffset.x * DegToRad, physx::PxVec3(1, 0, 0));
+						physx::PxQuat qy(col.rotationOffset.y * DegToRad, physx::PxVec3(0, 1, 0));
+						physx::PxQuat qz(col.rotationOffset.z * DegToRad, physx::PxVec3(0, 0, 1));
+						physx::PxTransform localOffsetPose(userOffset, qz * qy * qx);
+
+						// bone.WorldMatrix はモデル空間（アクターローカル空間）なので、
+						// そのままシェイプローカルポーズとして使用する（エンティティ変換の逆行列は不要）
+						physx::PxTransform shapeLocalPose = boneWorldPose.transform(localOffsetPose);
+
+						col.pxShape->setLocalPose(shapeLocalPose);
+					}
+					g_pScene->unlockWrite();
+				}
+			}
+
 			if (Collider->autoMass) {
 				if (Collider->pRigidbodyDynamic) {
 					Collider->Mass = Collider->pRigidbodyDynamic->getMass();
@@ -498,15 +961,16 @@ void PhysicSystem::UpdateCollider() {
 
 void PhysicSystem::FixedUpdate(float deltaTime) {
 
-
 	UpdateCollider();
 
 	g_pScene->lockWrite();
-	g_pScene->lockRead();
 	g_pScene->simulate(deltaTime);
-	g_pScene->fetchResults(true);
 	g_pScene->unlockWrite();
+
+	g_pScene->lockRead();
+	g_pScene->fetchResults(true);
 	g_pScene->unlockRead();
+
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
@@ -529,4 +993,92 @@ void PhysicSystem::FixedUpdate(float deltaTime) {
 void PhysicSystem::Draw(){
 	if(!g_pScene) return;
 	// PhysX の可視化デバッグは g_pScene->getRenderBuffer() などで取得可能
+}
+
+void PhysicSystem::DrawLayerEditor(){
+
+	if(ImGui::TreeNode("Physics Layers")){
+
+		// 追加ボタン
+		if((int)m_layers.size() < kMaxPhysicsLayers){
+			if(ImGui::Button("Add")){
+				PhysicsLayer layer;
+				layer.name = "NewLayer";
+				layer.bit = 0;
+
+				m_layers.push_back(layer);
+
+				RebuildLayerBits();
+				RebuildCollisionMatrix();
+			}
+		} else{
+			ImGui::TextDisabled("Max 32 layers reached");
+		}
+
+		ImGui::Spacing();
+
+		// -------------------------
+		// 一覧テーブル
+		// -------------------------
+		if(ImGui::BeginTable("LayerEditorTable", 3,
+							 ImGuiTableFlags_Borders |
+							 ImGuiTableFlags_RowBg |
+							 ImGuiTableFlags_SizingFixedFit)){
+			ImGui::TableSetupColumn("Index", ImGuiTableColumnFlags_WidthFixed, 50.0f);
+			ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
+
+			ImGui::TableHeadersRow();
+
+			for(int i = 0; i < (int)m_layers.size(); ++i){
+				ImGui::PushID(i);
+				ImGui::TableNextRow();
+
+				// Index
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("%d", i);
+
+				// Name
+				ImGui::TableSetColumnIndex(1);
+
+				char buffer[64];
+				strncpy(buffer, m_layers[i].name.c_str(), sizeof(buffer));
+				buffer[sizeof(buffer) - 1] = '\0';
+
+				if(ImGui::InputText("##name", buffer, sizeof(buffer))){
+					bool duplicated = false;
+
+					for(int j = 0; j < (int)m_layers.size(); ++j){
+						if(j != i && m_layers[j].name == buffer){
+							duplicated = true;
+							break;
+						}
+					}
+
+					if(!duplicated)
+						m_layers[i].name = buffer;
+				}
+
+				// Bit
+				ImGui::TableSetColumnIndex(2);
+
+
+				int collideCount = 0;
+				for(int x = 0; x < (int)m_layers.size(); ++x)
+					if(m_collisionMatrix[i][x])
+						++collideCount;
+
+				if(ImGui::SmallButton("Delete")){
+					RemoveLayer(i);   // ← 前回提示の安全削除関数
+					ImGui::PopID();
+					break;
+				}
+
+				ImGui::PopID();
+			}
+
+			ImGui::EndTable();
+		}
+
+		ImGui::TreePop();
+	}
 }

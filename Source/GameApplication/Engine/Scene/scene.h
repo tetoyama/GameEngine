@@ -1,4 +1,4 @@
-// Scene/Scene.h
+﻿// Scene/Scene.h
 #pragma once
 #include <memory>
 #include <vector>
@@ -15,6 +15,7 @@ struct SceneManagerContext;
 class EntityRegistry;
 class ComponentRegistry;
 class SystemRegistry;
+class PrefabSystem;
 
 struct SceneContext{
 
@@ -25,6 +26,9 @@ struct SceneContext{
 	EntityRegistry* entity = nullptr;
 	ComponentRegistry* component = nullptr;
 	SystemRegistry* system = nullptr;
+
+	// プレファブシステム
+	PrefabSystem* prefab = nullptr;
 };
 
 class Scene {
@@ -62,6 +66,9 @@ private:
 	std::string LoadSceneFileDialog();
 	bool SaveSceneFileDialog(std::wstring& outPath);
 
+	// TransformComponent の children リストを parent 参照から再構築する
+	void RebuildTransformChildren();
+
 	// マネージャコンテキスト
 	SceneManagerContext* m_SceneManagerContext = nullptr;
 	SceneContext m_SceneContext{};
@@ -69,4 +76,5 @@ private:
 	// レジストリ
 	std::shared_ptr<EntityRegistry> m_entityRegistry;
 	std::shared_ptr<ComponentRegistry> m_componentRegistry;
+	std::shared_ptr<PrefabSystem> m_prefabSystem;
 };

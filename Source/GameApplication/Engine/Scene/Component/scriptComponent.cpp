@@ -50,12 +50,18 @@ void ScriptComponent::inspector(SceneContext* context) {
 						if (ImGui::Checkbox(p.name.c_str(), &tmp)) {
 							script->SetParam(p.name, tmp);
 						}
+					} else if constexpr (std::is_same_v<T, std::string>) {
+						char buffer[256] = {};
+
+						// string → char buffer
+						std::strncpy(buffer, val.c_str(), 256 - 1);
+
+						if (ImGui::InputText(p.name.c_str(), buffer, 256)) {
+							script->SetParam(p.name, std::string(buffer));
+						}
 					}
 				}, p.value);
 			}
-
-
-
 
 			ImGui::TreePop();
 		}

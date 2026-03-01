@@ -87,9 +87,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: -50.4469109
+          x: -15.8578348
           y: 36.0819397
-          z: -2.56875801
+          z: -22.1825371
           w: 0
         Direction:
           x: 0.61569488
@@ -116,17 +116,17 @@ Entities:
             - 0.540302277
             - 0
             - -0.841470957
-            - 25.0950451
+            - -10.0979357
           -
             - 0.573579311
             - 0.731688797
             - 0.36829102
-            - 3.48060417
+            - -9.135396
           -
             - 0.61569494
             - -0.681638837
             - 0.395333141
-            - 56.6702728
+            - 43.1279335
           -
             - 0
             - 0
@@ -254,6 +254,11 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+      - Component: TextureComponent
+        FilePath: Asset/Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Y Bot.fbx
         isBlender: false
@@ -272,6 +277,7 @@ Entities:
         stamina: 5
         staminaConsumeRate: 1.5
         staminaRecoverRate: 1
+        aaa: 1
         jumpPower: 4
         Stamina: 5
   - Entity: 5

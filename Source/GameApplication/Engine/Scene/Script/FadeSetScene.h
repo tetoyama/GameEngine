@@ -6,7 +6,7 @@ class FadeSetScene: public CustomScriptComponent {
 public:
 
 	FadeSetScene(): CustomScriptComponent("FadeSetScene"){}
-	FadeOutSprite* fade = nullptr;
+	ComponentRef<FadeOutSprite> fade;
 	YAML::Node encode() override{
 		YAML::Node node;
 		node["ScriptName"] = scriptName;
@@ -37,9 +37,9 @@ public:
 	}
 
 	void OnStart() override{
-		auto fadeEntities = m_context->component->FindEntitiesWithComponent<FadeOutSprite>();
+		auto fadeEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<FadeOutSprite>();
 		if(!fadeEntities.empty()){
-			fade = m_context->component->GetComponent<FadeOutSprite>(fadeEntities[0]);
+			fade = GetComponentRefFor<FadeOutSprite>(fadeEntities[0]);
 		}
 	}
 	void OnUpdate(float dt) override{

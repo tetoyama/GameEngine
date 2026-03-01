@@ -1,0 +1,9 @@
+#pragma once
+#include "../Reference/EntityRef.h"
+#include <cstdint>
+
+// コリジョン・トリガーイベントの情報
+struct HitInfo {
+	EntityRef other;      // 衝突した相手エンティティへの安全なリファレンス
+	uint32_t  layer = 0;  // 相手コライダのレイヤービット
+};

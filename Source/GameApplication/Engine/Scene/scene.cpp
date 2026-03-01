@@ -33,6 +33,7 @@
 #include "Registry/entityRegistry.h"
 #include "Registry/componentRegistry.h"
 #include "Registry/systemRegistry.h"
+#include "Prefab/PrefabSystem.h"
 
 #include "Component/componentList.h"
 
@@ -52,6 +53,7 @@ void Scene::Initialize(SceneManagerContext* set){
 
 	m_entityRegistry = std::make_shared<EntityRegistry>();
 	m_componentRegistry = std::make_shared<ComponentRegistry>(m_entityRegistry.get(),&m_SceneContext);
+	m_prefabSystem = std::make_shared<PrefabSystem>();
 
 
 	// コンポーネントの登録
@@ -67,6 +69,7 @@ void Scene::Initialize(SceneManagerContext* set){
 
 	m_SceneContext.entity = m_entityRegistry.get();
 	m_SceneContext.component = m_componentRegistry.get();
+	m_SceneContext.prefab = m_prefabSystem.get();
 
 	auto graphicsContext = Renderer->GetGraphicsContext();
 
@@ -106,6 +109,7 @@ void Scene::Shutdown(){
 	// レジストリの終了処理
 	m_entityRegistry.reset();
 	m_componentRegistry.reset();
+	m_prefabSystem.reset();
 	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を終了しました").c_str());
 }
 
@@ -258,7 +262,7 @@ void Scene::BuildDefaultScene(){
 		Entity entity = entityRegistry->Create();
 
 		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
-		name->name = "CameraBuffer";
+		name->name = "Camera";
 
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
@@ -495,6 +499,23 @@ void Scene::LoadSceneFromYAML(std::string path) {
 			IComponent* comp = m_componentRegistry->CreateFromYAML(compType, entity, compNode);  
 		}
 	}
+
+	// 全エンティティのロードが完了した後で children リストを再構築する
+	RebuildTransformChildren();
+}
+
+void Scene::RebuildTransformChildren() {
+	auto entities = m_componentRegistry->FindEntitiesWithComponent<TransformComponent>();
+	for (Entity e : entities) {
+		auto* tc = m_componentRegistry->GetComponent<TransformComponent>(e);
+		if (tc) tc->children.clear();
+	}
+	for (Entity e : entities) {
+		auto* tc = m_componentRegistry->GetComponent<TransformComponent>(e);
+		if (!tc || tc->parent == 0) continue;
+		auto* parentTc = m_componentRegistry->GetComponent<TransformComponent>(tc->parent);
+		if (parentTc) parentTc->children.push_back(e);
+	}
 }
 
 std::string Scene::LoadSceneFileDialog() {
@@ -548,11 +569,8 @@ RenderLayer Scene::GetRenderLayerFromEntity(Entity entity) {
 		return RenderLayer::OverlayUI;
 	}
 	if(registry->HasComponent<BillBoardRendererComponent>(entity)){
-		auto* material = registry->GetComponent<MaterialComponent>(entity);
-		if(material && material->Material.BaseColor.w < 1.0f){
-			return RenderLayer::SortTransparent3D;
-		}
-		return RenderLayer::Transparent3D;
+		return RenderLayer::SortTransparent3D;
+
 	}
 	if(registry->HasComponent<EffectComponent>(entity)){
 		return RenderLayer::SortTransparent3D;

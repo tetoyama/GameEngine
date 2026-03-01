@@ -256,6 +256,39 @@ void RenderSystem::Draw(){
 	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
 }
 
+bool RenderSystem::decode(const YAML::Node& node){
+	if(node["ShaderPath"])
+		ShaderPath = node["ShaderPath"].as<std::string>();
+
+	if(node["ShaderMaterial"]){
+		ShaderMaterials.clear();
+		YAML::Node materialsNode = node["ShaderMaterial"];
+		for(auto material : materialsNode){
+			ShaderMaterial shaderMaterial;
+			shaderMaterial.filePath = material.first.as<std::string>();
+			shaderMaterial.entryPoint = material.second.as<std::string>();
+			ShaderMaterials.push_back(shaderMaterial);
+		}
+	}
+
+	return true;
+}
+
+YAML::Node RenderSystem::encode(){
+
+	YAML::Node node;
+	node["ShaderPath"] = ShaderPath;
+
+	YAML::Node materialsNode;
+	for(const auto& material : ShaderMaterials){
+		materialsNode[material.filePath] = material.entryPoint;
+	}
+
+	node["ShaderMaterial"] = materialsNode;
+
+	return node;
+}
+
 void RenderSystem::SystemSetting() {
 
 	float width = ImGui::GetContentRegionAvail().x;
@@ -307,117 +340,151 @@ void RenderSystem::SystemSetting() {
 		}
 		ImGui::TreePop();
 	}
+	if(ImGui::TreeNode("ShaderMaterials")){
 
-	// appConfig の参照
-	APPCONFIG& config = m_context->config->appConfig;
+		APPCONFIG& config = m_context->config->appConfig;
+		const float childHeight = 300.0f;
+		const float childChildHeight = 200.0f;
 
-	// Safety checks
-	if (config.ShaderMaterials.empty()) {
-		ImGui::TextDisabled("No shader materials configured.");
-		if (ImGui::Button("Add Material")) {
-			// 新規追加（デフォルト）
-			ShaderMaterial def;
-			def.filePath = "NewShader.hlsli";
-			def.entryPoint = "ShadeMaterial_New";
-			config.ShaderMaterials.push_back(def);
-		}
-		return;
-	}
-
-	// 左側：リスト、右側：編集パネル
-	ImGui::Columns(2, "MaterialColumns", true);
-	ImGui::BeginChild("MaterialList", ImVec2(0, 0), false);
-
-	static int selectedIndex = 0;
-	for (int i = 0; i < (int)config.ShaderMaterials.size(); ++i) {
-		const auto& mat = config.ShaderMaterials[i];
-		char label[128];
-		snprintf(label, sizeof(label), "%02d: %s", i, mat.filePath.c_str());
-		if (ImGui::Selectable(label, selectedIndex == i)) {
-			selectedIndex = i;
-		}
-	}
-
-	if (ImGui::Button("Add")) {
-		ShaderMaterial def;
-		def.filePath = "NewMaterial.hlsli";
-		def.entryPoint = "ShadeMaterial_New";
-		config.ShaderMaterials.push_back(def);
-		selectedIndex = (int)config.ShaderMaterials.size() - 1;
-	}
-	ImGui::SameLine();
-	if (ImGui::Button("Remove") && selectedIndex >= 0 && selectedIndex < (int)config.ShaderMaterials.size()) {
-		config.ShaderMaterials.erase(config.ShaderMaterials.begin() + selectedIndex);
-		selectedIndex = std::clamp(selectedIndex - 1, 0, (int)config.ShaderMaterials.size() - 1);
-	}
-
-	ImGui::SameLine();
-	if (ImGui::Button("Duplicate") && selectedIndex >= 0 && selectedIndex < (int)config.ShaderMaterials.size()) {
-		config.ShaderMaterials.push_back(config.ShaderMaterials[selectedIndex]);
-	}
-
-	// Move up / down
-	ImGui::SameLine();
-	if (ImGui::Button("Up") && selectedIndex > 0) {
-		std::swap(config.ShaderMaterials[selectedIndex], config.ShaderMaterials[selectedIndex - 1]);
-		--selectedIndex;
-	}
-	ImGui::SameLine();
-	if (ImGui::Button("Down") && selectedIndex + 1 < (int)config.ShaderMaterials.size()) {
-		std::swap(config.ShaderMaterials[selectedIndex], config.ShaderMaterials[selectedIndex + 1]);
-		++selectedIndex;
-	}
-
-	ImGui::EndChild();
-	ImGui::NextColumn();
-
-	// 右側：選択中の編集
-	ImGui::BeginChild("MaterialEditor", ImVec2(0, 0), false);
-	if (selectedIndex >= 0 && selectedIndex < (int)config.ShaderMaterials.size()) {
-		auto& mat = config.ShaderMaterials[selectedIndex];
-
-		ImGui::Text("Index: %d", selectedIndex);
-
-		// filePath 編集（単純なバッファ方式）
-		{
-			char buf[512];
-			strncpy(buf, mat.filePath.c_str(), sizeof(buf));
-			buf[sizeof(buf) - 1] = '\0';
-			if (ImGui::InputText("File Path", buf, sizeof(buf))) {
-				mat.filePath.assign(buf);
+		// Safety checks
+		if(ShaderMaterials.empty()){
+			ImGui::TextDisabled("No shader materials configured.");
+			if(ImGui::Button("Add Material")){
+				ShaderMaterial def;
+				def.filePath = "NewShader.hlsli";
+				def.entryPoint = "ShadeMaterial_New";
+				ShaderMaterials.push_back(def);
 			}
+			return;
 		}
 
-		// entryPoint 編集
-		{
-			char buf[128];
-			strncpy(buf, mat.entryPoint.c_str(), sizeof(buf));
-			buf[sizeof(buf) - 1] = '\0';
-			if (ImGui::InputText("Entry Point", buf, sizeof(buf))) {
-				mat.entryPoint.assign(buf);
+		static int selectedIndex = 0;
+
+		//------------------------------------
+		// 2カラム Table レイアウト
+		//------------------------------------
+		if(ImGui::BeginTable("MaterialTable", 2,
+							 ImGuiTableFlags_Resizable |
+							 ImGuiTableFlags_BordersInnerV |
+							 ImGuiTableFlags_SizingStretchProp)){
+			// 左：固定幅
+			ImGui::TableSetupColumn("List", ImGuiTableColumnFlags_WidthFixed, 260.0f);
+			// 右：残り全部
+			ImGui::TableSetupColumn("Editor", ImGuiTableColumnFlags_WidthStretch);
+
+			ImGui::TableNextRow();
+
+			//====================================
+			// 左ペイン：Material List
+			//====================================
+			ImGui::TableSetColumnIndex(0);
+			ImGui::BeginChild("MaterialList", ImVec2(0, childHeight), true);
+			ImGui::BeginChild("Materials", ImVec2(0, childChildHeight), true);
+
+			for(int i = 0; i < (int)ShaderMaterials.size(); ++i){
+				const auto& mat = ShaderMaterials[i];
+				char label[256];
+				snprintf(label, sizeof(label), "%02d: %s", i, mat.filePath.c_str());
+				if(ImGui::Selectable(label, selectedIndex == i)){
+					selectedIndex = i;
+				}
 			}
-		}
+			ImGui::EndChild();
+			ImGui::Separator();
 
-		ImGui::Separator();
+			if(ImGui::Button("Add")){
+				ShaderMaterial def;
+				def.filePath = "NewShader.hlsli";
+				def.entryPoint = "ShadeMaterial_New";
+				ShaderMaterials.push_back(def);
+				selectedIndex = (int)ShaderMaterials.size() - 1;
+			}
+			ImGui::SameLine();
+			if(ImGui::Button("Remove") &&
+			   selectedIndex >= 0 &&
+			   selectedIndex < (int)ShaderMaterials.size()){
+				ShaderMaterials.erase(
+					ShaderMaterials.begin() + selectedIndex);
+				selectedIndex = std::clamp(
+					selectedIndex - 1, 0,
+					(int)ShaderMaterials.size() - 1);
+			}
+			ImGui::SameLine();
 
-		// アクション
-		if (ImGui::Button("Save Config")) {
-			// TODO: 実際の Config の保存関数を呼んでください
-			// 例: m_context->config->SaveAppConfig();
-			m_context->config->SaveConfig(CONFIG_PATH);
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Recompile")) {
-			ReCompilePixelShaders();
-		}
+			if(ImGui::Button("Duplicate") &&
+			   selectedIndex >= 0 &&
+			   selectedIndex < (int)ShaderMaterials.size()){
+				ShaderMaterials.push_back(
+					ShaderMaterials[selectedIndex]);
+			}
 
-	} else {
-		ImGui::Text("No selection");
+			ImGui::Separator();
+
+			if(ImGui::Button("Up") && selectedIndex > 0){
+				std::swap(ShaderMaterials[selectedIndex],
+						  ShaderMaterials[selectedIndex - 1]);
+				--selectedIndex;
+			}
+			ImGui::SameLine();
+			if(ImGui::Button("Down") &&
+			   selectedIndex + 1 < (int)ShaderMaterials.size()){
+				std::swap(ShaderMaterials[selectedIndex],
+						  ShaderMaterials[selectedIndex + 1]);
+				++selectedIndex;
+			}
+
+			ImGui::EndChild();
+
+			//====================================
+			// 右ペイン：Editor
+			//====================================
+			ImGui::TableSetColumnIndex(1);
+			ImGui::BeginChild("MaterialEditor", ImVec2(0, childHeight), true);
+
+			if(selectedIndex >= 0 &&
+			   selectedIndex < (int)ShaderMaterials.size()){
+				auto& mat = ShaderMaterials[selectedIndex];
+
+				ImGui::Text("Index: %d", selectedIndex);
+				ImGui::Separator();
+
+				// File Path
+				{
+					char buf[512] = {};
+					strncpy(buf, mat.filePath.c_str(), sizeof(buf) - 1);
+					if(ImGui::InputText("File Path", buf, sizeof(buf))){
+						mat.filePath = buf;
+					}
+				}
+
+				// Entry Point
+				{
+					char buf[128] = {};
+					strncpy(buf, mat.entryPoint.c_str(), sizeof(buf) - 1);
+					if(ImGui::InputText("Entry Point", buf, sizeof(buf))){
+						mat.entryPoint = buf;
+					}
+				}
+
+				ImGui::Separator();
+
+				if(ImGui::Button("Save Config")){
+					m_context->config->SaveApplicationConfig(APPLICATION_CONFIG_PATH);
+				}
+				ImGui::SameLine();
+				if(ImGui::Button("Recompile")){
+					ReCompilePixelShaders();
+				}
+			} else{
+				ImGui::TextDisabled("No selection");
+			}
+
+			ImGui::EndChild();
+
+			ImGui::EndTable();
+		}
+		ImGui::TreePop();
 	}
-
-	ImGui::EndChild();
-
-	ImGui::Columns(1);
 }
 
 void RenderSystem::DrawRenderLayerToggleUI() {
@@ -455,10 +522,9 @@ const CameraEntityData RenderSystem::FindCameraEntity() {
 		if (entities.empty()) {
 			continue;
 		}
-		cameraData.sceneContext = context;
-		cameraData.entity = entities[0];
-		cameraData.CameraComponent = context->component->GetComponent<CameraComponent>(cameraData.entity);
-		cameraData.transformComponent = context->component->GetComponent<TransformComponent>(cameraData.entity);
+		cameraData.ref = EntityRef(entities[0], context);
+		cameraData.CameraComponent = context->component->GetComponent<CameraComponent>(cameraData.ref.GetEntityID());
+		cameraData.transformComponent = context->component->GetComponent<TransformComponent>(cameraData.ref.GetEntityID());
 		return cameraData;
 	}
 	return cameraData;
@@ -558,7 +624,7 @@ void RenderSystem::ReCompilePixelShaders() {
 	const auto& config = m_context->config->appConfig;
 
 	// Shader/AutoGen
-	const std::filesystem::path shaderDir = config.ShaderPath;
+	const std::filesystem::path shaderDir = ShaderPath;
 	std::filesystem::create_directories(shaderDir);
 
 	// ============================================================
@@ -580,7 +646,7 @@ void RenderSystem::ReCompilePixelShaders() {
 
 )";
 
-		for (const auto& mat : config.ShaderMaterials) {
+		for (const auto& mat : ShaderMaterials) {
 			ofs << "#include \"../Material/" << mat.filePath << "\"\n";
 		}
 
@@ -593,8 +659,8 @@ float4 main(PS_IN In) : SV_Target
 )";
 
 		// [branch] if を使用してマテリアルごとに隔離生成
-		for (size_t i = 0; i < config.ShaderMaterials.size(); ++i) {
-			const auto& mat = config.ShaderMaterials[i];
+		for (size_t i = 0; i < ShaderMaterials.size(); ++i) {
+			const auto& mat = ShaderMaterials[i];
 			if (i == 0) {
 				ofs << "    [branch] if (input.materialID == " << i << ")\n";
 			} else {
@@ -642,7 +708,7 @@ float4 main(PS_IN In) : SV_Target
 
 )";
 
-		for (const auto& mat : config.ShaderMaterials) {
+		for (const auto& mat : ShaderMaterials) {
 			ofs << "#include \"../Material/" << mat.filePath << "\"\n";
 		}
 
@@ -655,8 +721,8 @@ float4 main(PS_IN In) : SV_Target
 )";
 
 		// Forward側も同様に [branch] if で生成
-		for (size_t i = 0; i < config.ShaderMaterials.size(); ++i) {
-			const auto& mat = config.ShaderMaterials[i];
+		for (size_t i = 0; i < ShaderMaterials.size(); ++i) {
+			const auto& mat = ShaderMaterials[i];
 			if (i == 0) {
 				ofs << "    [branch] if (input.materialID == " << i << ")\n";
 			} else {
@@ -714,8 +780,6 @@ void RenderSystem::EditorView(){
 		{ 0.0f, 1.0f, 0.0f }
 	);
 	CameraEntityData cameraData;
-	cameraData.entity = 0;
-	cameraData.sceneContext = nullptr;
 	cameraData.CameraComponent = &editorCamera;
 	cameraData.transformComponent = &editorCameraTransform;
 

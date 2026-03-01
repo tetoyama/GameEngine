@@ -209,9 +209,8 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 					Vector3 diff = worldPos - Vector3(ctx.CameraPosition.x, ctx.CameraPosition.y, ctx.CameraPosition.z);
 
 					TransparentDrawItem item;
-					item.entity = entity;
+					item.ref = EntityRef(entity, context);
 					item.distanceSq = diff.dot(diff);
-					item.context = context;
 					transparentList.push_back(item);
 
 				} else if (layer == RenderLayer::OverlayUI) {
@@ -223,13 +222,12 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 					}
 
 					SpriteDrawItem item;
-					item.entity = entity;
+					item.ref = EntityRef(entity, context);
 					item.orderInLayer = 0;
 					OrderInLayerComponent* layer = context->component->GetComponent<OrderInLayerComponent>(entity);
 					if (layer) {
 						item.orderInLayer = layer->order;
 					}
-					item.context = context;
 					spriteList.push_back(item);
 
 				} else {
@@ -272,24 +270,26 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 
 			for(auto& item : transparentList){
 
-				Entity entity = item.entity;
+				if(!item.ref.IsValid()) continue;
+				Entity entity = item.ref.GetEntityID();
+				SceneContext* itemCtx = item.ref.GetScene();
 
 				for(auto renderable : renderables){
 
 					int materialID = 0;
 					auto material =
-						item.context->component->GetComponent<MaterialComponent>(entity);
+						itemCtx->component->GetComponent<MaterialComponent>(entity);
 					if(material){
 						materialID = material->ShaderID;
 					}
 
 					ObjectInfo info;
-					info.SceneID = (unsigned int)item.context;
+					info.SceneID = (unsigned int)itemCtx;
 					info.ObjectID = entity;
 					info.ShaderID = materialID;
 					m_context->graphics->SetObjectInfo(info);
 
-					renderable->Execute(ctx, item.context, entity);
+					renderable->Execute(ctx, itemCtx, entity);
 				}
 			}
 
@@ -308,24 +308,26 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 
 			for (auto& item : spriteList) {
 
-				Entity entity = item.entity;
+				if(!item.ref.IsValid()) continue;
+				Entity entity = item.ref.GetEntityID();
+				SceneContext* itemCtx = item.ref.GetScene();
 
 				for (auto renderable : renderables) {
 
 					int materialID = 0;
 					auto material =
-						item.context->component->GetComponent<MaterialComponent>(entity);
+						itemCtx->component->GetComponent<MaterialComponent>(entity);
 					if (material) {
 						materialID = material->ShaderID;
 					}
 
 					ObjectInfo info;
-					info.SceneID = (unsigned int)item.context;
+					info.SceneID = (unsigned int)itemCtx;
 					info.ObjectID = entity;
 					info.ShaderID = materialID;
 					m_context->graphics->SetObjectInfo(info);
 
-					renderable->Execute(ctx, item.context, entity);
+					renderable->Execute(ctx, itemCtx, entity);
 				}
 			}
 		}

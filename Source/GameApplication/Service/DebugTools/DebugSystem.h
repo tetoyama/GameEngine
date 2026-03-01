@@ -1,4 +1,4 @@
-// DebugSystem.h
+﻿// DebugSystem.h
 #pragma once
 #include <string>
 #include <chrono>
@@ -44,7 +44,7 @@ public:
 	virtual void Write(const LogEntry& entry) = 0;
 };
 
-class DebugLogSystem : public IService {
+class DebugLogService : public IService {
 public:
 	void Initialize(); // 必要ならファイルパスなど渡す
 	void Shutdown() override;

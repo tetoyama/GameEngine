@@ -1,0 +1,10 @@
+﻿#include "HelloWorld.h"
+//#include "Scene/scene.h"
+//#include "Scene/sceneManager.h"
+//#include "DebugTools/DebugSystem.h"
+
+void HelloWorld::OnStart() {
+	//ref.GetScene()->manager->debug->LOG_INFO((text + std::string("")).c_str());
+	int a = 1;
+	a = 2;
+}

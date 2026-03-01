@@ -188,6 +188,7 @@ void ModelData::UpdateBoneMatrix(aiNode* node, aiMatrix4x4 Matrix) {
 	aiMatrix4x4 worldMatrix = Matrix;
 	if(enableRootMotion || node != AiScene->mRootNode){
 		worldMatrix = Matrix * bone.AnimationMatrix;
+		bone.WorldMatrix = worldMatrix;
 		bone.Matrix = worldMatrix * bone.OffsetMatrix;
 	}
 	for (unsigned int i = 0; i < node->mNumChildren; i++) {

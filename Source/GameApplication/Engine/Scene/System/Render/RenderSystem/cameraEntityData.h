@@ -1,5 +1,5 @@
 #pragma once
-#include "Scene/Entity/Entity.h"
+#include "Scene/Reference/EntityRef.h"
 
 struct SceneContext;
 
@@ -11,7 +11,6 @@ struct CameraEntityData {
 	CameraComponent* CameraComponent = nullptr;
 	TransformComponent* transformComponent = nullptr;
 
-	// 念のためエンティティも保持
-	Entity entity = 0;
-	SceneContext* sceneContext = nullptr;
+	// エンティティへの安全なリファレンス
+	EntityRef ref;
 };

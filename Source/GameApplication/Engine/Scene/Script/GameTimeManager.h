@@ -14,8 +14,8 @@ public:
 		REFLECT_FIELD(int, InGameTime, 60)
 
 	bool init = false;
-	FadeOutSprite* fade = nullptr;
-	ScoreManager* score = nullptr;
+	ComponentRef<FadeOutSprite> fade;
+	ComponentRef<ScoreManager> score;
 	GameTimeManager(): CustomScriptComponent("GameTimeManager"){}
 
 	YAML::Node encode() override{
@@ -37,14 +37,14 @@ public:
 		CountDownTimer = (float)CountDownTime;
 		ShutDownTimer = 0.0f;
 
-		auto fadeEntities = m_context->component->FindEntitiesWithComponent<FadeOutSprite>();
+		auto fadeEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<FadeOutSprite>();
 		if(!fadeEntities.empty()){
-			fade = m_context->component->GetComponent<FadeOutSprite>(fadeEntities[0]);
+			fade = GetComponentRefFor<FadeOutSprite>(fadeEntities[0]);
 		}
 
-		auto scoreEntities = m_context->component->FindEntitiesWithComponent<ScoreManager>();
+		auto scoreEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<ScoreManager>();
 		if(!scoreEntities.empty()){
-			score = m_context->component->GetComponent<ScoreManager>(scoreEntities[0]);
+			score = GetComponentRefFor<ScoreManager>(scoreEntities[0]);
 		}
 	}
 	void OnUpdate(float dt) override{
@@ -65,24 +65,22 @@ public:
 
 				if(fade->Active && fade->FadeTime <= fade->Timer){
 					if(score){
-
-
 						if(score->BlueScore >= score->RedScore){
 							LoadScene("Asset/Scene/scene_win.yaml");
 						} else{
 							LoadScene("Asset/Scene/scene_lose.yaml");
 						}
 					} else{
-						auto scoreEntities = m_context->component->FindEntitiesWithComponent<ScoreManager>();
+						auto scoreEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<ScoreManager>();
 						if(!scoreEntities.empty()){
-							score = m_context->component->GetComponent<ScoreManager>(scoreEntities[0]);
+							score = GetComponentRefFor<ScoreManager>(scoreEntities[0]);
 						}
 					}
 				}
 			} else{
-				auto fadeEntities = m_context->component->FindEntitiesWithComponent<FadeOutSprite>();
+				auto fadeEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<FadeOutSprite>();
 				if(!fadeEntities.empty()){
-					fade = m_context->component->GetComponent<FadeOutSprite>(fadeEntities[0]);
+					fade = GetComponentRefFor<FadeOutSprite>(fadeEntities[0]);
 				}
 			}
 		}

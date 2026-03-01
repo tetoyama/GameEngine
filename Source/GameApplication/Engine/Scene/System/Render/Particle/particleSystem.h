@@ -8,6 +8,11 @@ class TransformComponent;
 class SpriteRendererComponent;
 class ParticleSystem : public ISystem {
 public:
+
+	const char* GetSystemName() const override{
+		return "ParticleSystem";
+	}
+
 	ParticleSystem(SceneManagerContext* context) : m_context(context) {}
 	~ParticleSystem() {}
 	void Initialize() override;

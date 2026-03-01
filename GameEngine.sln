@@ -4,11 +4,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.12.35514.174
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GameEngine", "GameEngine.vcxproj", "{4F91E03F-271A-4F73-B07A-2B214D8F4F72}"
+	ProjectSection(ProjectDependencies) = postProject
+		{80362F2A-5F73-48FC-AF23-CEFCAA725ED0} = {80362F2A-5F73-48FC-AF23-CEFCAA725ED0}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Script", "Script\Script.vcxproj", "{80362F2A-5F73-48FC-AF23-CEFCAA725ED0}"
-	ProjectSection(ProjectDependencies) = postProject
-		{4F91E03F-271A-4F73-B07A-2B214D8F4F72} = {4F91E03F-271A-4F73-B07A-2B214D8F4F72}
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

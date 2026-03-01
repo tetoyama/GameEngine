@@ -141,4 +141,11 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
 
     return result;
 }
+
+float Quantize4(float v)
+{
+    v = saturate(v);
+    return floor(v * 4.0) / 3.0;
+}
+
 #endif

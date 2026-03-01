@@ -7,7 +7,7 @@
 
 #include "../InterFace/IAnalyzer.h"
 
-class DebugLogSystem;
+class DebugLogService;
 
 struct AnalyzerEntry {
     std::string name;                      // 外部識別子
@@ -15,7 +15,7 @@ struct AnalyzerEntry {
 };
 
 struct AnalyzerManagerContext {
-    DebugLogSystem* debug;
+    DebugLogService* debug;
 };
 
 class AnalyzerManager {
@@ -51,5 +51,5 @@ private:
 private:
     std::unordered_map<std::type_index, AnalyzerEntry> m_analyzers;
 
-    DebugLogSystem* debug;
+    DebugLogService* debug;
 };

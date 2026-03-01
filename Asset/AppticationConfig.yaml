@@ -1,0 +1,10 @@
+AppType: 0
+StartScene: Asset\Scene\scene_title.yaml
+Vsync: false
+FullScreen: false
+Width: 1280
+Height: 720
+MasterVolume: 1
+BGMVolume: 1
+SEVolume: 1
+TemplateDir: Asset/Prefab/template

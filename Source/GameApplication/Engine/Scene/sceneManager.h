@@ -1,4 +1,4 @@
-// Scene/SceneManager.h
+﻿// Scene/SceneManager.h
 #pragma once
 #include "buildSetting.h"
 #include <memory>
@@ -14,9 +14,9 @@ class GraphicsContext;
 class AudioContext;
 class InputService;
 class ResourceService;
-class DebugLogSystem;
+class DebugLogService;
 class ImGuiService;
-class ConfigSystem;
+class ConfigService;
 class EditorService;
 
 class SystemRegistry;
@@ -38,9 +38,9 @@ struct SceneManagerContext {
 	MainRenderer* renderer = nullptr;
 	InputService* input = nullptr;
 	ResourceService* resource = nullptr;
-	DebugLogSystem* debug = nullptr;
+	DebugLogService* debug = nullptr;
 	ImGuiService* imgui = nullptr;
-	ConfigSystem* config = nullptr;
+	ConfigService* config = nullptr;
 	EditorService* editor = nullptr;
 	HWND hwnd = nullptr;
 };

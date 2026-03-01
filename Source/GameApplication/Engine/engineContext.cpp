@@ -21,9 +21,9 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 
 	std::shared_ptr<EngineContext> context = std::make_shared<EngineContext>();
 
-	// ConfigSystem 登録
-	auto configSystem = std::make_shared<ConfigSystem>();
-	context->Register<ConfigSystem>(configSystem);
+	// ConfigService 登録
+	auto configSystem = std::make_shared<ConfigService>();
+	context->Register<ConfigService>(configSystem);
 
 	// WindowService 登録
 	auto windowSystem = std::make_shared<WindowService>();
@@ -57,9 +57,9 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 	auto sceneManager = std::make_shared<SceneManager>();
 	context->Register<SceneManager>(sceneManager);
 
-	// DebugLogSystem 登録
-	auto debugLogSystem = std::make_shared<DebugLogSystem>();
-	context->Register<DebugLogSystem>(debugLogSystem);
+	// DebugLogService 登録
+	auto debugLogSystem = std::make_shared<DebugLogService>();
+	context->Register<DebugLogService>(debugLogSystem);
 
 	// imgui 登録
 	auto imgui = std::make_shared<ImGuiService>();

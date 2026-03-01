@@ -10,7 +10,6 @@ public:
 		REFLECT_FIELD(float, FadeTime, 1.0f)
 		REFLECT_FIELD_INIT(bool, Active, false,REFLECT_INSPECTOR)
 
-
 		float Timer = 0.0f;
 	FadeOutSprite(): CustomScriptComponent("FadeOutSprite"){}
 
@@ -32,19 +31,13 @@ public:
 	void OnStart() override{
 		Timer = 0.0f;
 		Active = false;
-
+		material = GetComponentRef<MaterialComponent>();
 	}
 	void OnUpdate(float dt) override{
-		if(!Active){
-			return;
-		}
+		if(!Active) return;
 		Timer += dt;
-		// ScoreSpriteのコンポーネントを取得
-		auto Texture = GetComponent<TextureComponent>();
-		auto Material = GetComponent<MaterialComponent>();
-		if(Material){
-			// スコアに応じてテクスチャを設定
-			Material->Material.BaseColor.w = Timer / FadeTime;
+		if(material){
+			material->Material.BaseColor.w = Timer / FadeTime;
 		}
 	}
 	void OnFixedUpdate(float dt)override{}
@@ -52,4 +45,5 @@ public:
 	void OnEditorUpdate(float dt)override{}
 	void OnStop() override{}
 private:
+	ComponentRef<MaterialComponent> material;
 };

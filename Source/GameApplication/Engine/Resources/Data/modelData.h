@@ -36,6 +36,7 @@ struct BONE {
 	aiMatrix4x4 Matrix;
 	aiMatrix4x4 AnimationMatrix;
 	aiMatrix4x4 OffsetMatrix;
+	aiMatrix4x4 WorldMatrix;  // ボーンのワールド変換行列（OffsetMatrixを乗算する前）
 };
 
 struct AnimationBlend {

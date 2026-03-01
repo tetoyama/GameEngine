@@ -25,6 +25,7 @@ class PlayerController: public CustomScriptComponent {
 		REFLECT_FIELD(float, stamina, 5.0f)
 		REFLECT_FIELD(float, staminaConsumeRate, 1.5f)
 		REFLECT_FIELD(float, staminaRecoverRate, 1.0f)
+		REFLECT_FIELD(float, aaa, 1.0f)
 
 		REFLECT_FIELD(float, jumpPower, 4.0f)
 
@@ -33,12 +34,12 @@ class PlayerController: public CustomScriptComponent {
 	float CurrentSpeed = 0.0f;
 	bool isJumpPressed = false;
 
-	TransformComponent* transform = nullptr;
-	TransformComponent* CameraBufferTransform = nullptr;
-	GameTimeManager* gameTime = nullptr;
-	ModelRendererComponent* model = nullptr;
-	TransformComponent* ballTransform = nullptr;
-	BallController* ballController = nullptr;
+	ComponentRef<TransformComponent> transform;
+	ComponentRef<TransformComponent> CameraBufferTransform;
+	ComponentRef<GameTimeManager> gameTime;
+	ComponentRef<ModelRendererComponent> model;
+	ComponentRef<TransformComponent> ballTransform;
+	ComponentRef<BallController> ballController;
 public:
 
 	float velY = 0.0f;
@@ -68,22 +69,22 @@ public:
 	void OnStart() override{
 		velY = 0.0f;
 
-		transform = GetComponent<TransformComponent>();
-		model = GetComponent<ModelRendererComponent>();
-		auto CameraBufferEntities = m_context->component->FindEntitiesWithComponent<CameraComponent>();
+		transform = GetComponentRef<TransformComponent>();
+		model = GetComponentRef<ModelRendererComponent>();
+		auto CameraBufferEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<CameraComponent>();
 		if(!CameraBufferEntities.empty()){
-			CameraBufferTransform = m_context->component->GetComponent<TransformComponent>(CameraBufferEntities[0]);
+			CameraBufferTransform = GetComponentRefFor<TransformComponent>(CameraBufferEntities[0]);
 		}
 
-		auto timerEntities = m_context->component->FindEntitiesWithComponent<GameTimeManager>();
+		auto timerEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<GameTimeManager>();
 		if(!timerEntities.empty()){
-			gameTime = m_context->component->GetComponent<GameTimeManager>(timerEntities[0]);
+			gameTime = GetComponentRefFor<GameTimeManager>(timerEntities[0]);
 		}
 
-		auto ballEntities = m_context->component->FindEntitiesWithComponent<BallController>();
+		auto ballEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<BallController>();
 		if(!ballEntities.empty()){
-			ballController = m_context->component->GetComponent<BallController>(ballEntities[0]);
-			ballTransform = m_context->component->GetComponent<TransformComponent>(ballEntities[0]);
+			ballController = GetComponentRefFor<BallController>(ballEntities[0]);
+			ballTransform = GetComponentRefFor<TransformComponent>(ballEntities[0]);
 		}
 
 		canDash = true;
@@ -191,10 +192,10 @@ public:
 
 			physx::PxVec3 rayDir(0.0f, -1.0f, 0.0f);
 
-			RayHit hit = m_context->manager
+			RayHit hit = m_ref.GetScene()->manager
 				->systemRegistry
 				->GetSystem<PhysicSystem>()
-				->RaycastWithMask(rayPos, rayDir, 0.3f, physx::PxU32());
+				->RaycastWithMask(rayPos, rayDir, 0.3f, 0);
 
 			isGround = hit.hit && hit.distance < 0.05f;
 
@@ -344,7 +345,5 @@ public:
 	void OnStop() override{}
 
 private:
-	TransformComponent* m_transform = nullptr;
-
 
 };

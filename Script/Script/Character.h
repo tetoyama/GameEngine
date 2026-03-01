@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Scene/Interface/IScriptComponent.h"
 #include "ScriptRegistry.h"
@@ -34,5 +34,4 @@ public:
 
 	void OnUpdate(float dt) override;
 };
-
-
+REGISTER_SCRIPT("Character", Character)

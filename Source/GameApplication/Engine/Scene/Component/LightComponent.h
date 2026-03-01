@@ -13,6 +13,9 @@ public:
 		light.Enable = true;
 		light.LightType = LIGHT_TYPE_POINT;
 		light.CastShadow = true;
+		light.Ambient = float4(0, 0, 0, 0);
+		light.Diffuse = float4(1, 1, 1, 1);
+		light.Param = float4(10, 0, 0, 0);
 	}
 
 	YAML::Node encode() override{

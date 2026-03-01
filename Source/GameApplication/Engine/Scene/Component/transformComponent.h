@@ -24,6 +24,7 @@ public:
 	Vector3 position = Vector3(0, 0, 0);
 	Vector3 scale = Vector3(1, 1, 1);
 	Entity parent = 0;
+	std::vector<Entity> children; // 子エンティティのリスト（シリアライズ対象外・Scene が再構築する）
 	// rotation を XMVECTOR として取得
 	DirectX::XMVECTOR rotationVector() const{
 		return DirectX::XMLoadFloat4(&rotation);
@@ -204,6 +205,18 @@ public:
 
 
 		ImGui::InputInt("Parent Entity", (int*)&parent);
+
+		// 子エンティティを読み取り専用で表示
+		if (!children.empty()) {
+			ImGui::Text("Children (%d):", (int)children.size());
+			ImGui::Indent();
+			for (Entity child : children) {
+				ImGui::Text("Entity %u", child);
+			}
+			ImGui::Unindent();
+		} else {
+			ImGui::Text("Children: none");
+		}
 
 		ImGui::PopStyleVar(); // ItemSpacing
 	}

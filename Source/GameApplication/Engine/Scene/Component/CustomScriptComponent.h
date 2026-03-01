@@ -8,8 +8,11 @@
 #include "Scene.h"
 #include "SceneManager.h"
 #include "Entity/Entity.h"
+#include "../Reference/EntityRef.h"
+#include "../Reference/ComponentRef.h"
 #include "Registry/ComponentRegistry.h"
 #include "Platform/InputSystem/InputSystem.h"
+#include "HitInfo.h"
 
 class ComponentRegistry;
 
@@ -59,6 +62,13 @@ public:
 		}
 	}
 
+	// PhysicSystem から呼び出されるコリジョン / トリガーイベントディスパッチャ
+	void CollisionEnter(const HitInfo& hit) { if(isInitialized) OnCollisionEnter(hit); }
+	void CollisionStay(const HitInfo& hit)  { if(isInitialized) OnCollisionStay(hit); }
+	void CollisionExit(const HitInfo& hit)  { if(isInitialized) OnCollisionExit(hit); }
+	void TriggerEnter(const HitInfo& hit)   { if(isInitialized) OnTriggerEnter(hit); }
+	void TriggerExit(const HitInfo& hit)    { if(isInitialized) OnTriggerExit(hit); }
+
 	// 派生クラスでオーバーライド可能な仮想関数
 	virtual void OnInitialize() {}
 	virtual void OnStart() {}
@@ -67,6 +77,13 @@ public:
 	virtual void OnDraw(){}
 	virtual void OnEditorUpdate(float dt){}
 	virtual void OnStop(){}
+
+	// コリジョン / トリガーイベント（PhysicSystem が呼び出す）
+	virtual void OnCollisionEnter(const HitInfo& hit) {}
+	virtual void OnCollisionStay(const HitInfo& hit)  {}
+	virtual void OnCollisionExit(const HitInfo& hit)  {}
+	virtual void OnTriggerEnter(const HitInfo& hit)   {}
+	virtual void OnTriggerExit(const HitInfo& hit)    {}
 
 	// 共通のプロパティやメソッド
 	virtual YAML::Node encode() override{
@@ -97,47 +114,73 @@ public:
 	// UnityライクなAPI
 	template<typename T>
 	T* GetComponent(){
-		if(!m_context || !m_context->component) return nullptr;
-		return m_context->component->GetComponent<T>(m_entity);
+		if(!m_ref.IsValid()) return nullptr;
+		return m_ref.GetScene()->component->GetComponent<T>(m_ref.GetEntityID());
 	}
 
 	template<typename T, typename... Args>
 	T* AddComponent(Args&&... args){
-		if(!m_context || !m_context->component) return nullptr;
-		return m_context->component->AddComponent<T>(m_entity, std::forward<Args>(args)...);
+		if(!m_ref.IsValid()) return nullptr;
+		return m_ref.GetScene()->component->AddComponent<T>(m_ref.GetEntityID(), std::forward<Args>(args)...);
+	}
+
+	// 自分自身の Entity への安全なリファレンスを返す
+	// マルチシーンでも SceneContext で識別されるため一意に扱える
+	EntityRef GetEntityRef() const {
+		return m_ref;
+	}
+
+	// 自分自身の指定コンポーネントへの安全なリファレンスを返す
+	template<typename T>
+	ComponentRef<T> GetComponentRef() const {
+		return ComponentRef<T>(m_ref.GetEntityID(), m_ref.GetScene());
+	}
+
+	// 任意のエンティティへの安全なリファレンスを作成する（同一シーン内）
+	EntityRef GetEntityRefFor(Entity e) const {
+		return EntityRef(e, m_ref.GetScene());
+	}
+
+	// 任意のエンティティのコンポーネントへの安全なリファレンスを作成する（同一シーン内）
+	template<typename T>
+	ComponentRef<T> GetComponentRefFor(Entity e) const {
+		return ComponentRef<T>(e, m_ref.GetScene());
 	}
 
 	void LoadScene(const std::string& scenePath){
-		auto setScene = m_context->manager->sceneManager->LoadFromFilePath(scenePath);
-		m_context->manager->sceneManager->DeferredLoadScene(setScene);
+		auto* ctx = m_ref.GetScene();
+		if(!ctx || !ctx->manager || !ctx->manager->sceneManager) return;
+		auto setScene = ctx->manager->sceneManager->LoadFromFilePath(scenePath);
+		ctx->manager->sceneManager->DeferredLoadScene(setScene);
 	}
 
 	bool GetKeyUp(int keyCode) const{
-		if(!m_context || !m_context->manager || !m_context->manager->input) return false;
-		return m_context->manager->input->IsKeyUp(m_context->manager->hwnd, keyCode);
+		auto* ctx = m_ref.GetScene();
+		if(!ctx || !ctx->manager || !ctx->manager->input) return false;
+		return ctx->manager->input->IsKeyUp(ctx->manager->hwnd, keyCode);
 	}
 
 	bool GetKeyDown(int keyCode) const {
-		if(!m_context || !m_context->manager || !m_context->manager->input) return false;
-		return m_context->manager->input->IsKeyDown(m_context->manager->hwnd, keyCode);
+		auto* ctx = m_ref.GetScene();
+		if(!ctx || !ctx->manager || !ctx->manager->input) return false;
+		return ctx->manager->input->IsKeyDown(ctx->manager->hwnd, keyCode);
 	}
 
 	bool GetKey(int keyCode) const{
-		if(!m_context || !m_context->manager || !m_context->manager->input) return false;
-		return m_context->manager->input->IsKey(m_context->manager->hwnd, keyCode);
+		auto* ctx = m_ref.GetScene();
+		if(!ctx || !ctx->manager || !ctx->manager->input) return false;
+		return ctx->manager->input->IsKey(ctx->manager->hwnd, keyCode);
 	}
 
 	// 所属エンティティとコンテキストのセット
 	void SetContext(SceneContext* context, Entity entity){
-		m_context = context;
-		m_entity = entity;
+		m_ref = EntityRef(entity, context);
 	}
 
 protected:
 	std::string scriptName = "CustomScript";
 	bool isInitialized = false; // 初期化フラグ
-	SceneContext* m_context = nullptr;
-	Entity m_entity = 0;
+	EntityRef m_ref;
 
 private:
 

@@ -7,6 +7,7 @@
 #include <scene.h>
 #include <Component/transformComponent.h>
 #include <Component/entityNameComponent.h>
+#include <Component/PrefabComponent.h>
 #include "Hierarchy.h"
 
 void Inspector::Draw(const EditorDrawContext ctx){
@@ -58,6 +59,11 @@ void Inspector::Draw(const EditorDrawContext ctx){
 			if(ImGui::InputText("##Name", nameBuffer, sizeof(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)){
 				// Update the std::string with the modified buffer
 				name->name = nameBuffer;
+			}
+			// PrefabComponent がある場合はエンティティが Prefab インスタンスであることを明示する
+			if(context->component->GetComponent<PrefabComponent>(selectedEntity)){
+				ImGui::SameLine();
+				ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "(Prefab)");
 			}
 		}
 	}

@@ -1,4 +1,3 @@
-// AudioSystem.h
 #pragma once
 #include "Interface/ISystem.h"
 #include "Resources/resourceService.h"
@@ -10,117 +9,141 @@
 #include "Audio/audioContext.h"
 #include "Scene/component/transformComponent.h"
 
-
-class EffectSystem : public ISystem {
+class EffectSystem: public ISystem {
 public:
+
+	const char* GetSystemName() const override{
+		return "EffectSystem";
+	}
 	EffectSystem(SceneManagerContext* context)
-		: m_context(context) {}
+		: m_context(context){}
 
-	~EffectSystem() {}
-
-	void Initialize() override {
+	void Initialize() override{
 		m_audioContext = m_context->audio;
 	}
 
-	void Finalize() override {
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	void Finalize() override{
+		auto manager = m_context->graphics->GetEffectManager();
+
+		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
 			auto context = scene->GetSceneContext();
-			m_context->graphics->GetEffectManager()->StopAllEffects();
 
 			auto entities = context->component->FindEntitiesWithComponent<EffectComponent>();
-			for (auto entity : entities) {
-				auto* comp = context->component->GetComponent<EffectComponent>(entity);
-				if (comp) {
+			for(auto entity : entities){
+				if(auto* comp = context->component->GetComponent<EffectComponent>(entity)){
 					comp->Stop(context);
 				}
 			}
-			m_context->graphics->GetEffectManager()->Update(0.0f);
 		}
+
+		manager->StopAllEffects();
+		manager->Update(0.0f);
 	}
 
-	void Start() override {
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	void Start() override{
+		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<EffectComponent>();
-			for (auto entity : entities) {
-				auto* comp = context->component->GetComponent<EffectComponent>(entity);
-				if (!comp) continue;
 
-				// EffectDataロードはSystem側でやる
-				if (!comp->m_EffectData && !comp->FilePath.empty()) {
-					comp->m_EffectData = m_context->resource->Load<EffectData>(comp->FilePath);
+			for(auto entity : entities){
+				auto* comp = context->component->GetComponent<EffectComponent>(entity);
+				if(!comp) continue;
+
+				if(!comp->m_EffectData && !comp->FilePath.empty()){
+					comp->m_EffectData =
+						m_context->resource->Load<EffectData>(comp->FilePath);
+				}
+
+				if(comp->PlayOnStart){
+					comp->Play(context);
 				}
 			}
 		}
 	}
 
-	void Update(float dt) override {
-		m_context->graphics->GetEffectManager()->Update(dt * 60.0f);
-	}
+	void Update(float dt) override{
 
-	void EditorUpdate(float dt) override {
-		m_context->graphics->GetEffectManager()->BeginUpdate();
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		auto manager = m_context->graphics->GetEffectManager();
+
+		manager->BeginUpdate();
+
+		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<EffectComponent>();
-			for (auto entity : entities) {
+
+			for(auto entity : entities){
 				auto* comp = context->component->GetComponent<EffectComponent>(entity);
-				if (!comp) continue;
+				if(!comp) continue;
 
-				if (comp->Playing) {
-					if (!m_context->graphics->GetEffectManager()->Exists(comp->m_Handle)) {
-						comp->Playing = false;
-						continue;
-					}
+				// --------------------
+				// 再生状態更新（時間・TimeScale・停止）
+				// --------------------
+				comp->Update(context, dt);
+				
+			}
+		}
 
-					auto* transform = context->component->GetComponent<TransformComponent>(entity);
-					if (transform) {
+		manager->EndUpdate();
+	}
 
-						Vector3 m_Pos = transform->position;
-						DirectX::XMFLOAT4 m_RotQuat = transform->GetRotation(); // クォータニオン
-						Vector3 m_Scale = transform->scale;
+	void EditorUpdate(float dt) override{
+		auto manager = m_context->graphics->GetEffectManager();
 
-						Effekseer::Matrix43 Matrix, MatrixRot;
-						MatrixRot.Indentity(); // 単位行列取得
+		manager->BeginUpdate();
 
-						// クォータニオンを回転行列に変換
-						DirectX::XMVECTOR q = DirectX::XMLoadFloat4(&m_RotQuat);
-						DirectX::XMMATRIX rotMat = DirectX::XMMatrixRotationQuaternion(q);
+		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
+			auto context = scene->GetSceneContext();
+			auto entities = context->component->FindEntitiesWithComponent<EffectComponent>();
 
-						// XMMATRIX から Effekseer::Matrix43 に変換
-						DirectX::XMFLOAT4X4 rotMatF;
-						DirectX::XMStoreFloat4x4(&rotMatF, rotMat);
+			for(auto entity : entities){
+				auto* comp = context->component->GetComponent<EffectComponent>(entity);
+				if(!comp) continue;
+				comp->Update(context, 0.0f);
 
-						for (int i = 0; i < 3; ++i) {
-							for (int j = 0; j < 3; ++j) {
-								MatrixRot.Value[i][j] = rotMatF.m[i][j];
-							}
-						}
+				if(!comp->Playing)
+					continue;
 
-						// スケール・位置ベクトルを Effekseer 用に作成
-						Effekseer::Vector3D vec3Ds(m_Scale.x, m_Scale.y, m_Scale.z);
-						Effekseer::Vector3D vec3Dt(m_Pos.x, m_Pos.y, m_Pos.z);
+				if(!manager->Exists(comp->m_Handle)){
+					comp->Playing = false;
+					continue;
+				}
 
-						// SRT 行列作成
-						Matrix.SetSRT(
-							vec3Ds,
-							MatrixRot,
-							vec3Dt
-						);
+				// --------------------
+				// Transform 反映
+				// --------------------
+				if(auto* transform =
+				   context->component->GetComponent<TransformComponent>(entity)){
 
-						// エフェクトに適用
-						m_context->graphics->GetEffectManager()->SetBaseMatrix(comp->m_Handle, Matrix);
-					}
+					const auto& pos = transform->position;
+					const auto& scale = transform->scale;
+					const auto rotQuat = transform->GetRotation();
 
-					m_context->graphics->GetEffectManager()->UpdateHandle(comp->m_Handle, 0.0f);
-				} else {
-					if (comp->Loop || comp->PlayOnStart) {
-						comp->Play(context);
-					}
+					Effekseer::Matrix43 matRot;
+					matRot.Indentity();
+
+					DirectX::XMVECTOR q = DirectX::XMLoadFloat4(&rotQuat);
+					DirectX::XMMATRIX rotMat = DirectX::XMMatrixRotationQuaternion(q);
+
+					DirectX::XMFLOAT4X4 rotF;
+					DirectX::XMStoreFloat4x4(&rotF, rotMat);
+
+					for(int i = 0; i < 3; ++i)
+						for(int j = 0; j < 3; ++j)
+							matRot.Value[i][j] = rotF.m[i][j];
+
+					Effekseer::Matrix43 mat;
+					mat.SetSRT(
+						Effekseer::Vector3D(scale.x, scale.y, scale.z),
+						matRot,
+						Effekseer::Vector3D(pos.x, pos.y, pos.z)
+					);
+
+					manager->SetBaseMatrix(comp->m_Handle, mat);
 				}
 			}
 		}
-		m_context->graphics->GetEffectManager()->EndUpdate();
+
+		manager->EndUpdate();
 	}
 
 private:

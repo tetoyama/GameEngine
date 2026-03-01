@@ -11,6 +11,9 @@
 #include <ImGui/imgui.h>
 #include <string>
 #include <myVector3.h>
+#include <ImGui/imgui_internal.h>
+
+#define IMGUI_LABEL_WIDTH	(120.0f)
 
 // -----------------------------------------------------------------------
 // ImGui::DragVec3
@@ -60,12 +63,43 @@ bool ImGui::DragVec3(const char* label, Vector3& Vec3, bool readOnly){
 		if(!isLast) ImGui::SameLine();
 
 		if(changed) isChanged = true;
-		};
+	};
 
 	DrawComponent("X", Vec3.x, colorX, (std::string(label) + "X").c_str(), false);
 	DrawComponent("Y", Vec3.y, colorY, (std::string(label) + "Y").c_str(), false);
 	DrawComponent("Z", Vec3.z, colorZ, (std::string(label) + "Z").c_str(), true);
 
 	return isChanged;
+}
+
+void ImGui::DrawVerticalText(const char* text){
+	ImFont* font = ImGui::GetFont();
+	float fontSize = ImGui::GetFontSize();
+
+	ImVec2 start = ImGui::GetCursorScreenPos();
+	ImDrawList* draw = ImGui::GetWindowDrawList();
+
+	float yOffset = 0.0f;
+	float maxWidth = 0.0f;
+
+	for(const char* p = text; *p; ++p){
+		char buf[2] = {*p, 0};
+
+		ImVec2 size = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, buf);
+
+		draw->AddText(
+			font,
+			fontSize,
+			ImVec2(start.x, start.y + yOffset),
+			ImGui::GetColorU32(ImGuiCol_Text),
+			buf
+		);
+
+		yOffset += size.y;
+		maxWidth = ImMax(maxWidth, size.x);
+	}
+
+	// レイアウト確保
+	ImGui::Dummy(ImVec2(maxWidth, yOffset));
 }
 

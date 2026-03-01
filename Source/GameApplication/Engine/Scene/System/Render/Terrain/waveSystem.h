@@ -9,6 +9,11 @@
 
 class WaveSystem: public ISystem {
 public:
+
+	const char* GetSystemName() const override{
+		return "WaveSystem";
+	}
+
 	WaveSystem(SceneManagerContext* context)
 		: m_context(context){}
 

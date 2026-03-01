@@ -36,6 +36,7 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -236,6 +237,7 @@ Entities:
             lockRotX: true
             lockRotY: true
             lockRotZ: true
+            isTrigger: false
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -272,11 +274,12 @@ Entities:
         stamina: 5
         staminaConsumeRate: 1.5
         staminaRecoverRate: 1
+        aaa: 1
         jumpPower: 4
         Stamina: 5
       - Component: ScriptComponent
         Character:
-          speed: 6
+          speed: 5
           hp: 100
           isAlive: true
   - Entity: 5

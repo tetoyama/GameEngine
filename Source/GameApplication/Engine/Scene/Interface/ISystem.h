@@ -20,6 +20,10 @@ public:
 	
 	virtual void Stop(){}
 
+	virtual const char* GetSystemName() const{
+		return nullptr;
+	}
+
 	virtual YAML::Node encode() { return YAML::Node(); }
 
 	virtual bool decode(const YAML::Node& node) { return true; }

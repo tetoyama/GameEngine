@@ -13,6 +13,8 @@
 
 #include "Registry/systemRegistry.h"
 
+#include "Service/Config/configSystem.h"
+
 #include "System/Transform/transformSystem.h"
 
 #include "System/Render/RenderSystem/renderSystem.h"
@@ -68,6 +70,8 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 
 	// システムの初期化
 	systemRegistry->InitializeAll();
+	systemRegistry->DecodeAll(m_SceneContext.config->editorConfig);
+
 	m_SceneContext.systemRegistry = systemRegistry.get();
 
 	for (auto& [name, scene] : m_activeScenes) {
@@ -183,6 +187,7 @@ void SceneManager::Shutdown(){
 		scene.reset();
 	}
 	m_activeScenes.clear();
+	systemRegistry->EncodeAll(m_SceneContext.config->editorConfig);
 
 	systemRegistry->FinalizeAll();
 	systemRegistry.reset();

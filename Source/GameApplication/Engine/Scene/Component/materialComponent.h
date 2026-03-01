@@ -45,9 +45,9 @@ public:
 
 // ShaderMaterials から表示用リストを作る（毎フレームでもOKだが、可能ならキャッシュ）
 		std::vector<std::string> shaderNames;
-		shaderNames.reserve(context->manager->config->appConfig.ShaderMaterials.size());
+		shaderNames.reserve(context->system->GetSystem<RenderSystem>()->ShaderMaterials.size());
 
-		for (const auto& mat : context->manager->config->appConfig.ShaderMaterials) {
+		for (const auto& mat : context->system->GetSystem<RenderSystem>()->ShaderMaterials) {
 			shaderNames.push_back(mat.entryPoint);
 		}
 

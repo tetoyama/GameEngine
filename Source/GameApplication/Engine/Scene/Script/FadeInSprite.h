@@ -6,8 +6,9 @@ class FadeInSprite: public CustomScriptComponent {
 public:
 	BEGIN_REFLECT(FadeInSprite)
 		REFLECT_FIELD(float, FadeTime, 1.0f)
+
 		float Timer = 0.0f;
-		FadeInSprite(): CustomScriptComponent("FadeInSprite"){}
+	FadeInSprite(): CustomScriptComponent("FadeInSprite"){}
 
 	YAML::Node encode() override{
 		YAML::Node node;
@@ -26,14 +27,12 @@ public:
 
 	void OnStart() override{
 		Timer = 0.0f;
+		material = GetComponentRef<MaterialComponent>();
 	}
 	void OnUpdate(float dt) override{
 		Timer += dt;
-		// ScoreSpriteのコンポーネントを取得
-		auto Material = GetComponent<MaterialComponent>();
-		if (Material) {
-			// スコアに応じてテクスチャを設定
-			Material->Material.BaseColor.w = 1.0f - Timer / FadeTime;
+		if(material){
+			material->Material.BaseColor.w = 1.0f - Timer / FadeTime;
 		}
 	}
 	void OnFixedUpdate(float dt)override{}
@@ -41,4 +40,5 @@ public:
 	void OnEditorUpdate(float dt)override{}
 	void OnStop() override{}
 private:
+	ComponentRef<MaterialComponent> material;
 };

@@ -36,16 +36,17 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
       - Component: MaterialComponent
-        ShaderID: 1
+        ShaderID: 3
         Material:
           BaseColor:
-            x: 1
-            y: 1
+            x: 0.679653645
+            y: 0.771181285
             z: 1
             w: 1
-          Metallic: 0.25
-          Roughness: 0.5
+          Metallic: 0
+          Roughness: 0.150000006
           AO: 0
           EmissiveColor:
             x: 0
@@ -236,8 +237,9 @@ Entities:
             lockRotX: true
             lockRotY: true
             lockRotZ: true
+            isTrigger: false
       - Component: MaterialComponent
-        ShaderID: 1
+        ShaderID: 4
         Material:
           BaseColor:
             x: 1
@@ -272,6 +274,7 @@ Entities:
         stamina: 5
         staminaConsumeRate: 1.5
         staminaRecoverRate: 1
+        aaa: 1
         jumpPower: 5
         Stamina: 5
   - Entity: 5
@@ -381,16 +384,17 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
       - Component: MaterialComponent
-        ShaderID: 1
+        ShaderID: 3
         Material:
           BaseColor:
             x: 1
             y: 1
             z: 1
             w: 1
-          Metallic: 0
-          Roughness: 0
+          Metallic: 1
+          Roughness: 0.200000003
           AO: 0
           EmissiveColor:
             x: 0
@@ -440,8 +444,9 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
       - Component: MaterialComponent
-        ShaderID: 3
+        ShaderID: 4
         Material:
           BaseColor:
             x: 1
@@ -499,6 +504,7 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
       - Component: MaterialComponent
         ShaderID: 2
         Material:
@@ -527,18 +533,18 @@ Entities:
         Name: Entity
       - Component: TransformComponent
         Position:
-          x: 0.937683702
-          y: 0.500114441
-          z: 0.260376722
+          x: 0.898215055
+          y: 1.33877182
+          z: 1.27848279
         Rotation:
-          - 2.68443255e-05
-          - -0.0193022825
-          - 8.64619651e-05
+          - 2.68435342e-05
+          - -0.0193016529
+          - 8.6459484e-05
           - 0.999813676
         Scale:
-          x: 2.5
-          y: 2.50000119
-          z: 2.50000119
+          x: 6.65999985
+          y: 6.6600008
+          z: 6.6600008
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
@@ -558,15 +564,16 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
       - Component: MaterialComponent
-        ShaderID: 1
+        ShaderID: 4
         Material:
           BaseColor:
             x: 0
-            y: 0
-            z: 1
+            y: 2.36354353e-07
+            z: 0.991342008
             w: 0.600000024
-          Metallic: 0
+          Metallic: 1
           Roughness: 0
           AO: 0
           EmissiveColor:
@@ -576,6 +583,77 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+      - Component: LightComponent
+        Enable: 1
+        LightType: 2
+        CastShadow: 0
+        Position:
+          x: 0.898215055
+          y: 1.33877182
+          z: 1.27848279
+          w: 0
+        Direction:
+          x: -0.0385961086
+          y: -5.70146876e-05
+          z: 0.999254882
+          w: 0
+        Diffuse:
+          x: 0.502127647
+          y: 0.502127767
+          z: 1
+          w: 1
+        Ambient:
+          x: 0
+          y: 0
+          z: 0
+          w: 0
+        Param:
+          x: 5
+          y: 0
+          z: 0
+          w: 0
+        LightView:
+          -
+            - -107374176
+            - -107374176
+            - -107374176
+            - -107374176
+          -
+            - -107374176
+            - -107374176
+            - -107374176
+            - -107374176
+          -
+            - -107374176
+            - -107374176
+            - -107374176
+            - -107374176
+          -
+            - -107374176
+            - -107374176
+            - -107374176
+            - -107374176
+        LightProjection:
+          -
+            - -107374176
+            - -107374176
+            - -107374176
+            - -107374176
+          -
+            - -107374176
+            - -107374176
+            - -107374176
+            - -107374176
+          -
+            - -107374176
+            - -107374176
+            - -107374176
+            - -107374176
+          -
+            - -107374176
+            - -107374176
+            - -107374176
+            - -107374176
       - Component: ModelRendererComponent
         FilePath: Asset/Model\ball.fbx
         isBlender: false

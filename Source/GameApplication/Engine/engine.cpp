@@ -40,12 +40,12 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
         OutputDebugStringA("EngineContext が nullptr です。\n");
         return;
     }
-    auto debugLogSystem = context->Get<DebugLogSystem>();
+    auto debugLogSystem = context->Get<DebugLogService>();
 	auto imguiService = context->Get<ImGuiService>();
 	auto editorService = context->Get<EditorService>();
 	auto inputService = context->Get<InputService>();
 	auto windowService = context->Get<WindowService>();
-	auto configSystem = context->Get<ConfigSystem>();
+	auto configSystem = context->Get<ConfigService>();
 	auto timeService = context->Get<TimeService>();
 	auto graphicsContext = context->Get<GraphicsContext>();
 	auto resourceService = context->Get<ResourceService>();
@@ -193,59 +193,19 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		OutputDebugStringA("EngineContext が nullptr です。\n");
 		return;
 	}
-	auto debugLogSystem = context->Get<DebugLogSystem>();
-	if(!debugLogSystem){
-		OutputDebugStringA("DebugLogSystem サービスの取得に失敗しました。\n");
-		return;
-	}
+	auto debugLogSystem = context->Get<DebugLogService>();
+
 	debugLogSystem->LOG_DEBUG("Engineの実行を開始します...");
 
 	auto windowService = context->Get<WindowService>();
-	if (!windowService) {
-		OutputDebugStringA("WindowService サービスの取得に失敗しました。\n");
-		return;
-	}
-	auto configSystem = context->Get<ConfigSystem>();
-	if(!configSystem){
-		OutputDebugStringA("ConfigSystem サービスの取得に失敗しました。\n");
-		return;
-	}
+	auto configSystem = context->Get<ConfigService>();
 	auto timeService = context->Get<TimeService>();
-	if (!timeService) {
-		OutputDebugStringA("TimeService サービスの取得に失敗しました。\n");
-		return;
-	}
 	auto graphicsContext = context->Get<GraphicsContext>();
-	if (!graphicsContext) {
-		OutputDebugStringA("GraphicsContext サービスの取得に失敗しました。\n");
-		return;
-	}
 	auto inputService = context->Get<InputService>();
-	if (!inputService) {
-		OutputDebugStringA("InputService サービスの取得に失敗しました。\n");
-		return;
-	}
 	auto imguiService = context->Get<ImGuiService>();
-	if (!imguiService) {
-		OutputDebugStringA("ImGuiService サービスの取得に失敗しました。\n");
-		return;
-	}
 	auto mainRenderer = context->Get<MainRenderer>();
-	if (!mainRenderer) {
-		OutputDebugStringA("MainRenderer サービスの取得に失敗しました。\n");
-		return;
-	}
 	auto sceneManager = context->Get<SceneManager>();
-	if (!sceneManager) {
-		OutputDebugStringA("SceneManager サービスの取得に失敗しました。\n");
-		return;
-	}
-
 	auto editorService = context->Get<EditorService>();
-	if (!editorService) {
-		OutputDebugStringA("EditorService サービスの取得に失敗しました。\n");
-		//return;
-	}
 
 	debugLogSystem->LOG_DEBUG("EngineContextの取得が完了しました");
 

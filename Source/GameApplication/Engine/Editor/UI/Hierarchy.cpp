@@ -1,12 +1,21 @@
 #include "Hierarchy.h"
 #include <ImGui/imgui_internal.h>
 #include <memory>
+#include <vector>
+#include <algorithm>
+#include <typeindex>
+#include <cinttypes>
 #include <sceneManager.h>
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
 #include <scene.h>
 #include <Component/transformComponent.h>
 #include <Component/entityNameComponent.h>
+#include <Component/PrefabComponent.h>
+#include "Prefab/PrefabSystem.h"
+#include <commdlg.h>
+#include <filesystem>
+#include "Service/Config/configSystem.h"
 
 void Hierarchy::Draw(EditorDrawContext ctx){
 
@@ -16,7 +25,6 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 	bool* showSceneHierarchy = &m_editor->GetUI<MenuBar>()->showSceneHierarchy;
 	SceneManagerContext* sceneManagerContext = m_editor->sceneManager->GetContext();
 	std::shared_ptr<Scene> sceneToDelete = nullptr;
-	Entity deleteEntity = 0;
 
 	if(!showSceneHierarchy || !*showSceneHierarchy){
 		return;
@@ -55,15 +63,83 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 				ImGui::EndPopup();
 			}
 
+			// .prefab ファイルをヒエラルキーへドラッグアンドドロップ
+			if(ImGui::BeginDragDropTarget()){
+				if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
+					if(payload->DataSize > 0 && context->prefab){
+						std::string path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+						if(std::filesystem::path(path).extension() == ".prefab"){
+							EntityRef spawned = context->prefab->InstantiatePrefab(context, path);
+							if(spawned){
+								selectedEntity = spawned.GetEntityID();
+								sceneContext = spawned.GetScene();
+							}
+						}
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+
 			ImGui::SetCursorPos(ImVec2(10, ImGui::GetCursorPos().y));
 			// ツールバー
 			if(ImGui::Button("+ Add")){
-				Entity newEntity = registry->Create(); // 新しいエンティティを追加
-				selectedEntity = newEntity;
-				NameComponent* name = context->component->AddComponent<NameComponent>(newEntity); // 名前コンポーネントを追加
-				name->name = "Entity"; // デフォルトの名前を設定
-
-				context->component->AddComponent<TransformComponent>(newEntity);
+				ImGui::OpenPopup("##AddEntityPopup");
+			}
+			if(ImGui::BeginPopup("##AddEntityPopup")){
+				if(ImGui::MenuItem("Empty")){
+					Entity newEntity = registry->Create();
+					selectedEntity = newEntity;
+					sceneContext = context;
+					auto* n = context->component->AddComponent<NameComponent>(newEntity);
+					n->name = "Entity";
+					context->component->AddComponent<TransformComponent>(newEntity);
+				}
+				if(ImGui::BeginMenu("Template")){
+					ConfigService* cfg = m_editor->sceneManager->GetContext()->config;
+					const std::string& tplDir = cfg ? cfg->appConfig.templateDir : APPCONFIG{}.templateDir;
+					std::error_code ec;
+					if(std::filesystem::exists(tplDir, ec) && !ec){
+						for(const auto& entry : std::filesystem::directory_iterator(tplDir, ec)){
+							if(ec) break;
+							if(entry.path().extension() == ".prefab"){
+								std::string stem = entry.path().stem().string();
+								if(ImGui::MenuItem(stem.c_str())){
+									if(context->prefab){
+										EntityRef spawned = context->prefab->InstantiatePrefab(context, entry.path().string());
+										if(spawned){
+											context->component->RemoveComponent<PrefabComponent>(spawned.GetEntityID());
+											selectedEntity = spawned.GetEntityID();
+											sceneContext = spawned.GetScene();
+										}
+									}
+								}
+							}
+						}
+					} else{
+						ImGui::TextDisabled("(no templates found)");
+					}
+					ImGui::EndMenu();
+				}
+				if(ImGui::MenuItem("Prefab")){
+					if(context->prefab){
+						OPENFILENAMEA ofn = {};
+						char filename[MAX_PATH] = "";
+						ofn.lStructSize = sizeof(ofn);
+						ofn.lpstrFilter = "Prefab Files (*.prefab)\0*.prefab\0All Files (*.*)\0*.*\0";
+						ofn.lpstrFile = filename;
+						ofn.nMaxFile = MAX_PATH;
+						ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+						ofn.lpstrDefExt = "prefab";
+						if(GetOpenFileNameA(&ofn)){
+							EntityRef spawned = context->prefab->InstantiatePrefab(context, std::string(filename));
+							if(spawned){
+								selectedEntity = spawned.GetEntityID();
+								sceneContext = spawned.GetScene();
+							}
+						}
+					}
+				}
+				ImGui::EndPopup();
 			}
 			ImGui::SameLine();
 
@@ -88,8 +164,7 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 			}
 
 			if(deleteEntity != 0){
-				context->entity->Destroy(deleteEntity);
-				context->component->OnEntityDestroyed(deleteEntity);
+				DestroyEntityRecursive(deleteEntity, context);
 				deleteEntity = 0;
 			}
 
@@ -97,6 +172,95 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 		}
 	}
 	ImGui::End();
+}
+
+void Hierarchy::DestroyEntityRecursive(Entity entity, SceneContext* context){
+	// 親の children リストからこのエンティティを削除する
+	auto* transform = context->component->GetComponent<TransformComponent>(entity);
+	if(transform && transform->parent != 0){
+		auto* parentTransform = context->component->GetComponent<TransformComponent>(transform->parent);
+		if(parentTransform){
+			auto& ch = parentTransform->children;
+			ch.erase(std::remove(ch.begin(), ch.end(), entity), ch.end());
+		}
+	}
+	// 子エンティティを先に収集（Destroy中にセットを変更しないため）
+	std::vector<Entity> children;
+	for(Entity child : context->entity->GetAllAlive()){
+		auto* t = context->component->GetComponent<TransformComponent>(child);
+		if(t && t->parent == entity){
+			children.push_back(child);
+		}
+	}
+	for(Entity child : children){
+		DestroyEntityRecursive(child, context);
+	}
+	context->entity->Destroy(entity);
+	context->component->OnEntityDestroyed(entity);
+}
+
+void Hierarchy::SetParent(Entity child, Entity newParent, SceneContext* context){
+	auto* childTransform = context->component->GetComponent<TransformComponent>(child);
+	if(!childTransform) return;
+
+	// 旧親の children リストから削除
+	Entity oldParent = childTransform->parent;
+	if(oldParent != 0){
+		auto* oldParentTransform = context->component->GetComponent<TransformComponent>(oldParent);
+		if(oldParentTransform){
+			auto& ch = oldParentTransform->children;
+			ch.erase(std::remove(ch.begin(), ch.end(), child), ch.end());
+		}
+	}
+
+	childTransform->parent = newParent;
+
+	// 新親の children リストに追加
+	if(newParent != 0){
+		auto* newParentTransform = context->component->GetComponent<TransformComponent>(newParent);
+		if(newParentTransform){
+			newParentTransform->children.push_back(child);
+		}
+	}
+}
+
+Entity Hierarchy::DuplicateEntityRecursive(Entity src, Entity newParent, SceneContext* context){
+	Entity newEntity = context->entity->Create();
+
+	// YAML encode/decode で全コンポーネントをコピー
+	const auto& idToName = context->component->GetComponentIDToNameMap();
+	auto components = context->component->GetAllComponentsOfEntitySorted(src);
+	for(IComponent* comp : components){
+		ComponentTypeID typeID = context->component->GetComponentIDByTypeIndex(std::type_index(typeid(*comp)));
+		if(typeID == static_cast<ComponentTypeID>(-1)) continue;
+		auto nameIt = idToName.find(typeID);
+		if(nameIt == idToName.end()) continue;
+		YAML::Node node = comp->encode();
+		context->component->CreateFromYAML(nameIt->second, newEntity, node);
+	}
+
+	// TransformComponent の parent/children を修正
+	auto* newTransform = context->component->GetComponent<TransformComponent>(newEntity);
+	if(newTransform){
+		newTransform->children.clear();
+		newTransform->parent = newParent;
+		if(newParent != 0){
+			auto* parentTransform = context->component->GetComponent<TransformComponent>(newParent);
+			if(parentTransform){
+				parentTransform->children.push_back(newEntity);
+			}
+		}
+	}
+
+	// 子エンティティを再帰的に複製
+	auto* srcTransform = context->component->GetComponent<TransformComponent>(src);
+	if(srcTransform){
+		for(Entity srcChild : srcTransform->children){
+			DuplicateEntityRecursive(srcChild, newEntity, context);
+		}
+	}
+
+	return newEntity;
 }
 
 void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities){
@@ -129,15 +293,24 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 	}
 
-	// --- ノード描画 ---
+	// --- ノード描画（グループで DnD エリアを (Prefab) ラベルまで拡張） ---
+	bool inRenameMode = (pendingRenameEntity != 0 && selectedEntity == entity && sceneContext == context);
+	ImGui::BeginGroup();
 	bool opened = ImGui::TreeNodeEx((void*)(intptr_t)entity, flags, "%s", displayName.c_str());
+	if(!inRenameMode && context->component->GetComponent<PrefabComponent>(entity)){
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "(Prefab)");
+	}
+	ImGui::EndGroup();
 
 	if(ImGui::IsItemClicked()){
 		selectedEntity = entity;
 		sceneContext = context;
 	}
 	// --- 右クリックメニュー ---
-	if(ImGui::BeginPopupContextItem()){
+	char popupId[32];
+	snprintf(popupId, sizeof(popupId), "##NodeCtx%" PRIu32, (uint32_t)entity);
+	if(ImGui::BeginPopupContextItem(popupId)){
 
 		if(ImGui::MenuItem("名前変更")){
 			pendingRenameEntity = entity;
@@ -151,33 +324,55 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			if(ImGui::MenuItem("EmptyParent")){
 				// 子を持つ空の親エンティティを作成（例）
 				Entity newEntity = context->entity->Create();
-				auto* newtransform = context->component->AddComponent<TransformComponent>(newEntity);
+				context->component->AddComponent<TransformComponent>(newEntity);
 
-				auto* transform = context->component->GetComponent<TransformComponent>(entity);
-				if(transform) transform->parent = newEntity; // ルートに置く
+				SetParent(entity, newEntity, context);
 			}
 			if(ImGui::MenuItem("EmptyChild")){
 				// 選択ノードの子エンティティを作成
 				Entity newEntity = context->entity->Create();
-				auto* transform = context->component->AddComponent<TransformComponent>(newEntity);
-				if(transform) transform->parent = entity;
+				context->component->AddComponent<TransformComponent>(newEntity);
+				SetParent(newEntity, entity, context);
 			}
 			ImGui::EndMenu();
 		}
 
 		if(ImGui::MenuItem("複製")){
-			//context->component->DuplicateEntity(entity);
+			auto* transform = context->component->GetComponent<TransformComponent>(entity);
+			Entity newParent = transform ? transform->parent : 0;
+			Entity dup = DuplicateEntityRecursive(entity, newParent, context);
+			selectedEntity = dup;
+			sceneContext = context;
 		}
 
 		if(ImGui::BeginMenu("Prefab")){
 			if(ImGui::MenuItem("Prefabとして保存")){
-				ImGui::OpenPopup("SavePrefabPopup");
+				if(context->prefab){
+					auto* nameComp = context->component->GetComponent<NameComponent>(entity);
+					std::string defaultName = ((nameComp && !nameComp->name.empty()) ? nameComp->name : "Entity") + ".prefab";
+					char szFile[MAX_PATH] = {};
+					strncpy(szFile, defaultName.c_str(), MAX_PATH - 1);
+
+					OPENFILENAMEA ofn = {};
+					ofn.lStructSize = sizeof(ofn);
+					ofn.lpstrFilter = "Prefab Files (*.prefab)\0*.prefab\0All Files (*.*)\0*.*\0";
+					ofn.lpstrFile = szFile;
+					ofn.nMaxFile = MAX_PATH;
+					ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+					ofn.lpstrDefExt = "prefab";
+					if(GetSaveFileNameA(&ofn)){
+						std::string dir = std::filesystem::path(szFile).parent_path().string();
+						if(!dir.empty()) std::filesystem::create_directories(dir);
+						context->prefab->SavePrefab(EntityRef(entity, context), std::string(szFile));
+					}
+				}
 			}
-			if(ImGui::MenuItem("Prefabからリセット")){
-				// まだ処理未実装。プレースホルダ
-			}
-			if(ImGui::MenuItem("Prefabへ適用")){
-				// まだ処理未実装。プレースホルダ
+			auto* prefabComp = context->component->GetComponent<PrefabComponent>(entity);
+			bool hasPrefabSource = prefabComp && !prefabComp->filePath.empty();
+			if(ImGui::MenuItem("Prefabを上書き", nullptr, false, hasPrefabSource)){
+				if(hasPrefabSource && context->prefab){
+					context->prefab->SavePrefab(EntityRef(entity, context), prefabComp->filePath);
+				}
 			}
 			ImGui::EndMenu();
 		}
@@ -188,12 +383,13 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			if(selectedEntity == entity){
 				selectedEntity = 0;
 			}
+			if(pendingRenameEntity == entity){
+				pendingRenameEntity = 0;
+			}
 
-			//context->entity->Destroy(entity);
-			//context->component->OnEntityDestroyed(entity);
 			ImGui::EndPopup();
-			if(opened){
-				//ImGui::TreePop();
+			if(opened && hasChildren){
+				ImGui::TreePop();
 			}
 			return;
 		}
@@ -201,24 +397,26 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		ImGui::EndPopup();
 	}
 
-	// --- Prefab保存ダイアログ（見た目だけ） ---
-	if(ImGui::BeginPopup("SavePrefabPopup")){
-		ImGui::Text("Prefab saving is not implemented yet.");
-		static char prefabName[128] = "";
-		ImGui::InputText("Name", prefabName, sizeof(prefabName));
-		if(ImGui::Button("OK")){
-			// 保存処理が実装されるまでは閉じるだけ
-			ImGui::CloseCurrentPopup();
+	// --- Drag & Drop ---
+	// SourceAllowNullID is required because LastItemData.ID becomes 0 after BeginGroup
+	if(ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)){
+		ImGui::SetDragDropPayload("ENTITY_DRAG_DROP", &entity, sizeof(Entity));
+		ImGui::Text("Move Entity");
+		ImGui::EndDragDropSource();
+	}
+	if(ImGui::BeginDragDropTarget()){
+		if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG_DROP")){
+			IM_ASSERT(payload->DataSize == sizeof(Entity));
+			Entity draggedEntity = *(const Entity*)payload->Data;
+			if(draggedEntity != entity){
+				SetParent(draggedEntity, entity, context);
+			}
 		}
-		ImGui::SameLine();
-		if(ImGui::Button("Cancel")){
-			ImGui::CloseCurrentPopup();
-		}
-		ImGui::EndPopup();
+		ImGui::EndDragDropTarget();
 	}
 
 	// --- 名前変更UI ---
-	if(pendingRenameEntity != 0 && selectedEntity == entity && sceneContext == context){
+	if(inRenameMode){
 
 		if(pendingRenameEntity != entity){
 			if(name){
@@ -241,26 +439,6 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			pendingRenameEntity = 0;
 		}
 		ImGui::PopItemWidth();
-	}
-
-	// --- Drag & Drop ---
-	if(ImGui::BeginDragDropSource()){
-		ImGui::SetDragDropPayload("ENTITY_DRAG_DROP", &entity, sizeof(Entity));
-		ImGui::Text("Move Entity");
-		ImGui::EndDragDropSource();
-	}
-	if(ImGui::BeginDragDropTarget()){
-		if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG_DROP")){
-			IM_ASSERT(payload->DataSize == sizeof(Entity));
-			Entity draggedEntity = *(const Entity*)payload->Data;
-			if(draggedEntity != entity){
-				auto* transform = context->component->GetComponent<TransformComponent>(draggedEntity);
-				if(transform){
-					transform->parent = entity;
-				}
-			}
-		}
-		ImGui::EndDragDropTarget();
 	}
 
 	// --- 子描画 ---

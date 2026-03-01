@@ -15,7 +15,9 @@ using SetImGuiContextFunc = void(*)(void*);
 class ScriptSystem: public ISystem
 {
 public:
-
+	const char* GetSystemName() const override{
+		return "ScriptSystem";
+	}
 	ScriptSystem(SceneManagerContext* context)
 		: m_context(context){}
 
@@ -84,7 +86,7 @@ public:
 
 	void SystemSetting() override {
 		if (ImGui::Button("Reload Script DLL")) {
-			ReloadScriptDLL("Script.dll");
+			ReloadScriptDLL("Script/Script.dll");
 		}
 	}
 

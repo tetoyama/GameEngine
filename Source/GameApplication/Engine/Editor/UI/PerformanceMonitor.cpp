@@ -85,9 +85,11 @@ void PerformanceMonitor::Draw(EditorDrawContext ctx) {
 			char Texts[64]{};
 			ImGui::Text("-FPS計測-");
 			sprintf(Texts, "Fixed:%.2f Avg:%.2f", FixedFpsSamples[SAMPLE_LENGTH - 1], FixedFPSAvg);
-			ImGui::PlotLines(Texts, FixedFpsSamples, SAMPLE_LENGTH, 0, "", 0.0f);
+			ImGui::Text(Texts);
+			ImGui::PlotLines("##Fixed", FixedFpsSamples, SAMPLE_LENGTH, 0, "", 0.0f);
 			sprintf(Texts, "Delta:%.2f Avg:%.2f", DeltaFpsSamples[SAMPLE_LENGTH - 1], DeltaFPSAvg);
-			ImGui::PlotLines(Texts, DeltaFpsSamples, SAMPLE_LENGTH, 0, "", 0.0f);
+			ImGui::Text(Texts);
+			ImGui::PlotLines("##Delta", DeltaFpsSamples, SAMPLE_LENGTH, 0, "", 0.0f);
 			ImGui::Text("-更新処理-");
 			sprintf(Texts, "Update:Avg:%.4fms", UpdateAvg);
 			ImGui::PlotLines(Texts, UpdateSamples, SAMPLE_LENGTH, 0, "", 0.0f, 1000.0f / 60.0f);
