@@ -640,10 +640,10 @@ void PhysicSystem::UpdateCharacterControllers(float deltaTime) {
 			physx::PxControllerFilters filters;
 			physx::PxControllerCollisionFlags flags = cc->pxController->move(disp, 0.001f, deltaTime, filters);
 
-			cc->isGrounded = (flags & physx::PxControllerCollisionFlag::eCOLLISION_DOWN) != 0;
+			cc->isGrounded = flags.isSet(physx::PxControllerCollisionFlag::eCOLLISION_DOWN);
 
 			// 天井衝突で上昇速度をリセット
-			if (flags & physx::PxControllerCollisionFlag::eCOLLISION_UP) {
+			if (flags.isSet(physx::PxControllerCollisionFlag::eCOLLISION_UP)) {
 				if (cc->verticalVelocity > 0.0f) cc->verticalVelocity = 0.0f;
 			}
 
