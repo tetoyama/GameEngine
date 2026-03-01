@@ -2,6 +2,7 @@
 #include <ImGui/imgui_internal.h>
 #include <memory>
 #include <vector>
+#include <algorithm>
 #include <cinttypes>
 #include <sceneManager.h>
 #include "Editor/editorService.h"
@@ -173,6 +174,15 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 }
 
 void Hierarchy::DestroyEntityRecursive(Entity entity, SceneContext* context){
+	// 親の children リストからこのエンティティを削除する
+	auto* transform = context->component->GetComponent<TransformComponent>(entity);
+	if(transform && transform->parent != 0){
+		auto* parentTransform = context->component->GetComponent<TransformComponent>(transform->parent);
+		if(parentTransform){
+			auto& ch = parentTransform->children;
+			ch.erase(std::remove(ch.begin(), ch.end(), entity), ch.end());
+		}
+	}
 	// 子エンティティを先に収集（Destroy中にセットを変更しないため）
 	std::vector<Entity> children;
 	for(Entity child : context->entity->GetAllAlive()){
@@ -186,6 +196,31 @@ void Hierarchy::DestroyEntityRecursive(Entity entity, SceneContext* context){
 	}
 	context->entity->Destroy(entity);
 	context->component->OnEntityDestroyed(entity);
+}
+
+void Hierarchy::SetParent(Entity child, Entity newParent, SceneContext* context){
+	auto* childTransform = context->component->GetComponent<TransformComponent>(child);
+	if(!childTransform) return;
+
+	// 旧親の children リストから削除
+	Entity oldParent = childTransform->parent;
+	if(oldParent != 0){
+		auto* oldParentTransform = context->component->GetComponent<TransformComponent>(oldParent);
+		if(oldParentTransform){
+			auto& ch = oldParentTransform->children;
+			ch.erase(std::remove(ch.begin(), ch.end(), child), ch.end());
+		}
+	}
+
+	childTransform->parent = newParent;
+
+	// 新親の children リストに追加
+	if(newParent != 0){
+		auto* newParentTransform = context->component->GetComponent<TransformComponent>(newParent);
+		if(newParentTransform){
+			newParentTransform->children.push_back(child);
+		}
+	}
 }
 
 void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities){
@@ -249,16 +284,15 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			if(ImGui::MenuItem("EmptyParent")){
 				// 子を持つ空の親エンティティを作成（例）
 				Entity newEntity = context->entity->Create();
-				auto* newtransform = context->component->AddComponent<TransformComponent>(newEntity);
+				context->component->AddComponent<TransformComponent>(newEntity);
 
-				auto* transform = context->component->GetComponent<TransformComponent>(entity);
-				if(transform) transform->parent = newEntity; // ルートに置く
+				SetParent(entity, newEntity, context);
 			}
 			if(ImGui::MenuItem("EmptyChild")){
 				// 選択ノードの子エンティティを作成
 				Entity newEntity = context->entity->Create();
-				auto* transform = context->component->AddComponent<TransformComponent>(newEntity);
-				if(transform) transform->parent = entity;
+				context->component->AddComponent<TransformComponent>(newEntity);
+				SetParent(newEntity, entity, context);
 			}
 			ImGui::EndMenu();
 		}
@@ -331,10 +365,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			IM_ASSERT(payload->DataSize == sizeof(Entity));
 			Entity draggedEntity = *(const Entity*)payload->Data;
 			if(draggedEntity != entity){
-				auto* transform = context->component->GetComponent<TransformComponent>(draggedEntity);
-				if(transform){
-					transform->parent = entity;
-				}
+				SetParent(draggedEntity, entity, context);
 			}
 		}
 		ImGui::EndDragDropTarget();
