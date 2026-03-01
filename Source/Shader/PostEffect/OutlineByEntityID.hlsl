@@ -7,11 +7,12 @@ Texture2D g_Texture : register(t0);
 
 // Parameter.x : アウトライン強度 (0.0〜1.0, 推奨値 1.0)
 // Parameter.y : エッジ幅ピクセル数 (推奨値 1.0)
+// Parameter.z : アウトライン対象の ShaderID (uint キャスト, 0 = 無効)
 //
 // GBuffer GParam (t13) の ShaderID と ObjectID を使ったエッジ検出。
-// ShaderID (= MaterialID, z チャンネル) が一致し、
-// ObjectID (= EntityID,   x チャンネル) が異なる隣接ピクセル境界にアウトラインを描画する。
-// これにより同じマテリアルを使うオブジェクト同士の境界のみを縁取ることができる。
+// Parameter.z で指定した ShaderID を持つピクセルのうち、
+// 隣接ピクセルの ObjectID (= EntityID) が異なる境界にアウトラインを描画する。
+// これにより特定のマテリアル (ShaderID) を使うオブジェクト同士の境界を縁取ることができる。
 
 void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 {
@@ -32,8 +33,15 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     int2 centerCoord = int2(uv * float2(texWidth, texHeight) - 0.5f);
     uint4 centerParam = GetObjParam(centerCoord);
 
-    // 背景ピクセル (ObjectID == 0) はアウトライン対象外
-    if (centerParam.x == 0u)
+    // Parameter.z == 0 のときはアウトライン無効
+    if ((uint)Parameter.z == 0u)
+    {
+        outDiffuse = sceneColor;
+        return;
+    }
+
+    // Parameter.z で指定された ShaderID に一致しないピクセルはアウトライン対象外
+    if (centerParam.z != (uint)Parameter.z)
     {
         outDiffuse = sceneColor;
         return;
@@ -54,7 +62,8 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
         int2 neighborCoord = clamp(centerCoord + offsets[i], int2(0, 0), maxCoord);
         uint4 neighborParam = GetObjParam(neighborCoord);
 
-        // ShaderID 一致 かつ ObjectID 不一致 → エッジ
+        // 隣接ピクセルも同じ ShaderID かつ ObjectID が異なる → エッジ
+        // (neighborParam.z のチェックは center 側のみフィルタ済みのため残す)
         if (neighborParam.z == centerParam.z && neighborParam.x != centerParam.x)
         {
             isEdge = true;
