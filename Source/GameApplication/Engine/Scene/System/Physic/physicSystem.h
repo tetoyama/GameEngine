@@ -14,6 +14,7 @@ struct ColliderShape;
 class ColliderComponent;
 class TransformComponent;
 class Vector3;
+class PhysicsSimulationCallback;
 
 //======================================================================
 // レイキャスト結果情報
@@ -154,6 +155,7 @@ private:
 	//------------------------------------------------------------------
 	std::mutex mtx;
 	bool       UpdatingPhysics = false;
+	PhysicsSimulationCallback* m_simCallback = nullptr;
 
 private:
 

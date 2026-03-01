@@ -5,6 +5,7 @@
 #include <Scene/Component/ColliderComponent.h>
 #include <Scene/Component/transformComponent.h>
 #include <Scene/Component/modelRendererComponent.h>
+#include <Scene/Component/CustomScriptComponent.h>
 #include <d3dcompiler.h>
 
 #include "Backends/ImGuiFunc.h"
@@ -36,12 +37,117 @@ physx::PxFilterFlags PhysicsFilterShader(
 	if (!g_physicSystem->GetCollisionEnabled(layerA, layerB))
 		return physx::PxFilterFlag::eSUPPRESS;
 
+	// トリガーシェイプが含まれるペアはコンタクトではなくトリガーイベントとして処理する
+	if (physx::PxFilterObjectIsTrigger(attr0) || physx::PxFilterObjectIsTrigger(attr1)) {
+		pairFlags = physx::PxPairFlag::eTRIGGER_DEFAULT;
+		return physx::PxFilterFlag::eDEFAULT;
+	}
+
 	pairFlags =
 		physx::PxPairFlag::eCONTACT_DEFAULT |
-		physx::PxPairFlag::eDETECT_DISCRETE_CONTACT;
+		physx::PxPairFlag::eDETECT_DISCRETE_CONTACT |
+		physx::PxPairFlag::eNOTIFY_TOUCH_FOUND |
+		physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS |
+		physx::PxPairFlag::eNOTIFY_TOUCH_LOST;
 
 	return physx::PxFilterFlag::eDEFAULT;
 }
+
+// アクターとエンティティを関連付けるユーザーデータ
+struct ActorEntityInfo {
+	Entity       entity;
+	SceneContext* context;
+};
+
+// PhysX シミュレーションイベントコールバック
+class PhysicsSimulationCallback : public physx::PxSimulationEventCallback {
+
+	static std::vector<CustomScriptComponent*> GetScripts(SceneContext* ctx, Entity entity) {
+		std::vector<CustomScriptComponent*> result;
+		if (!ctx) return result;
+		for (auto& [e, script] : ctx->component->GetAllBaseComponents<CustomScriptComponent>()) {
+			if (e == entity && script && script->IsInitialized())
+				result.push_back(script);
+		}
+		return result;
+	}
+
+public:
+	void onContact(const physx::PxContactPairHeader& pairHeader,
+				   const physx::PxContactPair* pairs,
+				   physx::PxU32 nbPairs) override
+	{
+		auto* infoA = static_cast<ActorEntityInfo*>(pairHeader.actors[0]->userData);
+		auto* infoB = static_cast<ActorEntityInfo*>(pairHeader.actors[1]->userData);
+		if (!infoA || !infoB) return;
+
+		EntityRef refA(infoA->entity, infoA->context);
+		EntityRef refB(infoB->entity, infoB->context);
+
+		for (physx::PxU32 i = 0; i < nbPairs; ++i) {
+			const physx::PxContactPair& pair = pairs[i];
+			uint32_t layerA = pair.shapes[0]->getSimulationFilterData().word0;
+			uint32_t layerB = pair.shapes[1]->getSimulationFilterData().word0;
+
+			HitInfo hitForA{ refB, layerB };
+			HitInfo hitForB{ refA, layerA };
+
+			auto scriptsA = GetScripts(infoA->context, infoA->entity);
+			auto scriptsB = GetScripts(infoB->context, infoB->entity);
+
+			if (pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND) {
+				for (auto* s : scriptsA) s->CollisionEnter(hitForA);
+				for (auto* s : scriptsB) s->CollisionEnter(hitForB);
+			}
+			if (pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS) {
+				for (auto* s : scriptsA) s->CollisionStay(hitForA);
+				for (auto* s : scriptsB) s->CollisionStay(hitForB);
+			}
+			if (pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_LOST) {
+				for (auto* s : scriptsA) s->CollisionExit(hitForA);
+				for (auto* s : scriptsB) s->CollisionExit(hitForB);
+			}
+		}
+	}
+
+	void onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count) override {
+		for (physx::PxU32 i = 0; i < count; ++i) {
+			const physx::PxTriggerPair& pair = pairs[i];
+			if (pair.flags & (physx::PxTriggerPairFlag::eREMOVED_SHAPE_TRIGGER |
+							  physx::PxTriggerPairFlag::eREMOVED_SHAPE_OTHER))
+				continue;
+
+			auto* triggerInfo = static_cast<ActorEntityInfo*>(pair.triggerActor->userData);
+			auto* otherInfo   = static_cast<ActorEntityInfo*>(pair.otherActor->userData);
+			if (!triggerInfo || !otherInfo) continue;
+
+			uint32_t triggerLayer = pair.triggerShape->getSimulationFilterData().word0;
+			uint32_t otherLayer   = pair.otherShape->getSimulationFilterData().word0;
+
+			EntityRef refTrigger(triggerInfo->entity, triggerInfo->context);
+			EntityRef refOther  (otherInfo->entity,   otherInfo->context);
+
+			HitInfo hitForTrigger{ refOther,   otherLayer   };
+			HitInfo hitForOther  { refTrigger, triggerLayer };
+
+			auto scriptsTrigger = GetScripts(triggerInfo->context, triggerInfo->entity);
+			auto scriptsOther   = GetScripts(otherInfo->context,   otherInfo->entity);
+
+			if (pair.status & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND) {
+				for (auto* s : scriptsTrigger) s->TriggerEnter(hitForTrigger);
+				for (auto* s : scriptsOther)   s->TriggerEnter(hitForOther);
+			} else if (pair.status & physx::PxPairFlag::eNOTIFY_TOUCH_LOST) {
+				for (auto* s : scriptsTrigger) s->TriggerExit(hitForTrigger);
+				for (auto* s : scriptsOther)   s->TriggerExit(hitForOther);
+			}
+		}
+	}
+
+	void onConstraintBreak(physx::PxConstraintInfo*, physx::PxU32) override {}
+	void onWake(physx::PxActor**, physx::PxU32) override {}
+	void onSleep(physx::PxActor**, physx::PxU32) override {}
+	void onAdvance(const physx::PxRigidBody* const*, const physx::PxTransform*, physx::PxU32) override {}
+};
 
 physx::PxRigidDynamic* PhysicSystem::CreateDynamic(const physx::PxTransform& t, const physx::PxGeometry& geometry, physx::PxMaterial& material, physx::PxReal density){
 	physx::PxRigidDynamic* rigid_dynamic = PxCreateDynamic(*g_pPhysics, t, geometry, material, density);
@@ -263,6 +369,8 @@ void PhysicSystem::Initialize(){
 	scene_desc.gravity = physx::PxVec3(0, Gravity, 0);
 	scene_desc.filterShader = PhysicsFilterShader;
 	scene_desc.cpuDispatcher = g_pDispatcher;
+	m_simCallback = new PhysicsSimulationCallback();
+	scene_desc.simulationEventCallback = m_simCallback;
 
 	g_pScene = g_pPhysics->createScene(scene_desc);
 	if(g_pScene){
@@ -298,11 +406,13 @@ void PhysicSystem::Finalize(){
 			}
 			if (Collider->pRigidbodyStatic) {
 				OutputDebugStringA(("Finalize Release Static Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyStatic) + "\n").c_str());
+				delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyStatic->userData);
 				Collider->pRigidbodyStatic->release();
 				Collider->pRigidbodyStatic = nullptr;
 			}
 			if (Collider->pRigidbodyDynamic) {
 				OutputDebugStringA(("Finalize Release Dynamic Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyDynamic) + "\n").c_str());
+				delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyDynamic->userData);
 				Collider->pRigidbodyDynamic->release();
 				Collider->pRigidbodyDynamic = nullptr;
 			}
@@ -344,6 +454,9 @@ void PhysicSystem::Finalize(){
 	}
 
 	g_physicSystem = nullptr;
+
+	delete m_simCallback;
+	m_simCallback = nullptr;
 }
 
 void PhysicSystem::Stop(){
@@ -367,11 +480,13 @@ void PhysicSystem::Stop(){
 
 			if (Collider->pRigidbodyStatic) {
 				OutputDebugStringA(("Stop Release Static Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyStatic) + "\n").c_str());
+				delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyStatic->userData);
 				Collider->pRigidbodyStatic->release();
 				Collider->pRigidbodyStatic = nullptr;
 			}
 			if (Collider->pRigidbodyDynamic) {
 				OutputDebugStringA(("Stop Release Dynamic Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyDynamic) + "\n").c_str());
+				delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyDynamic->userData);
 				Collider->pRigidbodyDynamic->release();
 				Collider->pRigidbodyDynamic = nullptr;
 			}
@@ -669,6 +784,7 @@ void PhysicSystem::UpdateCollider() {
 			if (Collider->isDynamic) {
 
 				if (Collider->pRigidbodyStatic) {
+					delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyStatic->userData);
 					Collider->pRigidbodyStatic->release();
 					Collider->pRigidbodyStatic = nullptr;
 				}
@@ -678,6 +794,7 @@ void PhysicSystem::UpdateCollider() {
 				}
 
 				Collider->pRigidbodyDynamic = g_pPhysics->createRigidDynamic(pxTransform);
+				Collider->pRigidbodyDynamic->userData = new ActorEntityInfo{ entity, context };
 				g_pScene->addActor(*Collider->pRigidbodyDynamic);
 
 				for (auto& col : Collider->colliders) {
@@ -702,6 +819,7 @@ void PhysicSystem::UpdateCollider() {
 			} else {
 
 				if (Collider->pRigidbodyDynamic) {
+					delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyDynamic->userData);
 					Collider->pRigidbodyDynamic->release();
 					Collider->pRigidbodyDynamic = nullptr;
 				}
@@ -711,6 +829,7 @@ void PhysicSystem::UpdateCollider() {
 				}
 
 				Collider->pRigidbodyStatic = g_pPhysics->createRigidStatic(pxTransform);
+				Collider->pRigidbodyStatic->userData = new ActorEntityInfo{ entity, context };
 				g_pScene->addActor(*Collider->pRigidbodyStatic);
 
 				for (auto& col : Collider->colliders) {

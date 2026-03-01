@@ -12,6 +12,7 @@
 #include "../Reference/ComponentRef.h"
 #include "Registry/ComponentRegistry.h"
 #include "Platform/InputSystem/InputSystem.h"
+#include "HitInfo.h"
 
 class ComponentRegistry;
 
@@ -61,6 +62,13 @@ public:
 		}
 	}
 
+	// PhysicSystem から呼び出されるコリジョン / トリガーイベントディスパッチャ
+	void CollisionEnter(const HitInfo& hit) { if(isInitialized) OnCollisionEnter(hit); }
+	void CollisionStay(const HitInfo& hit)  { if(isInitialized) OnCollisionStay(hit); }
+	void CollisionExit(const HitInfo& hit)  { if(isInitialized) OnCollisionExit(hit); }
+	void TriggerEnter(const HitInfo& hit)   { if(isInitialized) OnTriggerEnter(hit); }
+	void TriggerExit(const HitInfo& hit)    { if(isInitialized) OnTriggerExit(hit); }
+
 	// 派生クラスでオーバーライド可能な仮想関数
 	virtual void OnInitialize() {}
 	virtual void OnStart() {}
@@ -69,6 +77,13 @@ public:
 	virtual void OnDraw(){}
 	virtual void OnEditorUpdate(float dt){}
 	virtual void OnStop(){}
+
+	// コリジョン / トリガーイベント（PhysicSystem が呼び出す）
+	virtual void OnCollisionEnter(const HitInfo& hit) {}
+	virtual void OnCollisionStay(const HitInfo& hit)  {}
+	virtual void OnCollisionExit(const HitInfo& hit)  {}
+	virtual void OnTriggerEnter(const HitInfo& hit)   {}
+	virtual void OnTriggerExit(const HitInfo& hit)    {}
 
 	// 共通のプロパティやメソッド
 	virtual YAML::Node encode() override{
