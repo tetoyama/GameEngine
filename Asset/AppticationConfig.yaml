@@ -7,3 +7,4 @@ Height: 720
 MasterVolume: 1
 BGMVolume: 1
 SEVolume: 1
+TemplateDir: Asset/Prefab/template
