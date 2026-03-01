@@ -10,7 +10,7 @@
 // ============================================================
 // CharacterController
 //
-// WASD移動・スペースジャンプ・Ctrlスタミナ無しダッシュ・
+// WASD移動・スペースジャンプ・LSHIFTスタミナ無しダッシュ・
 // モーションブレンドスキニングアニメーション・坂道対応
 // ============================================================
 class CharacterController : public CustomScriptComponent {
@@ -136,8 +136,8 @@ public:
 		if (GetKey('A')) moveInput.x -= 1.0f;
 		if (GetKey('D')) moveInput.x += 1.0f;
 
-		// Ctrl でスタミナ無しダッシュ
-		bool isDashing = GetKey(VK_CONTROL);
+		// LSHIFT でスタミナ無しダッシュ
+		bool isDashing = GetKey(VK_LSHIFT);
 
 		// --------------------------------------------------
 		// 移動方向（カメラ基準 / 無ければキャラクター基準）
