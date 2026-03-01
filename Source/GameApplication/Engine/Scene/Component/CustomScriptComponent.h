@@ -160,12 +160,14 @@ public:
 	// 所属エンティティとコンテキストのセット
 	void SetContext(SceneContext* context, Entity entity){
 		m_ref = EntityRef(entity, context);
+		m_context = context;
 	}
 
 protected:
 	std::string scriptName = "CustomScript";
 	bool isInitialized = false; // 初期化フラグ
 	EntityRef m_ref;
+	SceneContext* m_context = nullptr; // 後方互換性のために保持（読み取り専用。SetContext() 以外で変更しないこと）
 
 private:
 
