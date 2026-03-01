@@ -278,6 +278,9 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 			shape = physx::PxRigidActorExt::createExclusiveShape(*actor, hfGeom, material);
 
 			if (shape) {
+				// HeightField の debug 描画を無効化（大量のラインでバッファを占有しないよう）
+				shape->setFlag(physx::PxShapeFlag::eVISUALIZATION, false);
+
 				// HeightField は (0,0) から始まるのでエンティティ中心に合わせるためオフセット
 				physx::PxVec3 hfOffset(
 					col.offset.x * scale.x - scale.x * 0.5f,
