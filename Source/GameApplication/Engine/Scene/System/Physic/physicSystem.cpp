@@ -776,12 +776,13 @@ void PhysicSystem::UpdateCollider() {
 						if (boneIt == boneIndexMap.end()) continue;
 
 						uint32_t boneIdx = boneIt->second;
-						const aiMatrix4x4& boneWorldMat = ModelRenderer->model->m_Bones[boneIdx].WorldMatrix;
+						// WorldMatrix はモデル空間（ルート補正済み）のボーン変換
+						const aiMatrix4x4& boneModelMat = ModelRenderer->model->m_Bones[boneIdx].WorldMatrix;
 
-						// ボーンのワールド変換を位置とクォータニオンに分解
+						// ボーンのモデル空間変換を位置とクォータニオンに分解
 						aiVector3D boneScale, bonePos;
 						aiQuaternion boneRot;
-						boneWorldMat.Decompose(boneScale, boneRot, bonePos);
+						boneModelMat.Decompose(boneScale, boneRot, bonePos);
 
 						physx::PxTransform boneWorldPose(
 							physx::PxVec3(bonePos.x, bonePos.y, bonePos.z),
@@ -796,9 +797,9 @@ void PhysicSystem::UpdateCollider() {
 						physx::PxQuat qz(col.rotationOffset.z * DegToRad, physx::PxVec3(0, 0, 1));
 						physx::PxTransform localOffsetPose(userOffset, qz * qy * qx);
 
-						// シェイプのローカルポーズ = inv(エンティティ変換) * ボーンワールド * ユーザーオフセット
-						physx::PxTransform shapeWorldPose = boneWorldPose.transform(localOffsetPose);
-						physx::PxTransform shapeLocalPose = pxTransform.getInverse().transform(shapeWorldPose);
+						// bone.WorldMatrix はモデル空間（アクターローカル空間）なので、
+						// そのままシェイプローカルポーズとして使用する（エンティティ変換の逆行列は不要）
+						physx::PxTransform shapeLocalPose = boneWorldPose.transform(localOffsetPose);
 
 						col.pxShape->setLocalPose(shapeLocalPose);
 					}
