@@ -75,10 +75,10 @@ Entities:
           y: 25
           z: 0
         Rotation:
-          - 0.402375996
-          - 0.495444953
-          - -0.718010068
-          - 0.277649492
+          - 0.843857229
+          - -0.0482555218
+          - 0.528816462
+          - 0.07700371
         Scale:
           x: 1
           y: 1
@@ -86,17 +86,17 @@ Entities:
         Parent: 0
       - Component: LightComponent
         Enable: 1
-        LightType: 1
+        LightType: 4
         CastShadow: 1
         Position:
-          x: 27.6229591
-          y: 49.990921
-          z: -11.8387737
+          x: -117.610649
+          y: 11.0343752
+          z: 49.1872444
           w: 0
         Direction:
-          x: -0.302699924
-          y: -0.934907913
-          z: 0.185255557
+          x: 0.885059476
+          y: -0.180996895
+          z: -0.428847194
           w: 0
         Diffuse:
           x: 1
@@ -112,23 +112,23 @@ Entities:
           x: 100
           y: 0
           z: 0
-          w: 0
+          w: 0.00999999978
         LightView:
           -
-            - 0.522008479
-            - -0
-            - 0.852940321
-            - -4.32165146
+            - -0.436049134
+            - 0
+            - -0.899922907
+            - -7.01929474
           -
-            - -0.79742074
-            - 0.354890019
-            - 0.488029927
-            - 10.0635166
+            - 0.162883252
+            - 0.983483672
+            - -0.0789235383
+            - 12.1867085
           -
-            - -0.302699983
-            - -0.934908032
-            - 0.185255587
-            - 57.2915802
+            - 0.885059416
+            - -0.180996895
+            - -0.428847164
+            - 127.183411
           -
             - 0
             - 0
@@ -136,20 +136,20 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0399999991
+            - 0.0127873579
             - 0
             - 0
-            - 0
+            - -0.129715949
           -
             - 0
-            - 0.0399999991
+            - 0.0217940733
             - 0
-            - 0
+            - 0.383834749
           -
             - 0
             - 0
-            - 0.0100100096
-            - -0.00100100099
+            - 0.00885187276
+            - -0.228187934
           -
             - 0
             - 0
@@ -300,6 +300,7 @@ Entities:
         rotateSpeed: 1.5
         minPitch: 0
         maxPitch: 1
+        minDistance: 1
   - Entity: 5
     Components:
       - Component: NameComponent
@@ -365,20 +366,20 @@ Entities:
           Idle: Asset\Model\Akai_Idle.fbx
           mixamo.com: Asset\Model\Akai_Run.fbx
           Run: Asset\Model\Akai_Run.fbx
-      - Component: PlayerController
-        moveSpeed: 6
-        health: 0
-        isInvincible: false
-        dashMultiplier: 2
-        accel: 10
-        rotateSpeed: 8
-        maxStamina: 5
-        stamina: 5
-        staminaConsumeRate: 1.5
-        staminaRecoverRate: 1
-        aaa: 1
+      - Component: CharacterController
+        moveSpeed: 5
+        dashMultiplier: 2.5
         jumpPower: 5
-        Stamina: 5
+        accel: 12
+        rotateSpeed: 8
+        groundRayLength: 0.300000012
+        slopeLimit: 45
+        gravity: 9
+        idleAnimFile: Asset/Model/Akai_Idle.fbx
+        runAnimFile: Asset/Model/Akai_Run.fbx
+        jumpUpAnimFile: Asset/Model/Jumping Up.fbx
+        jumpDownAnimFile: Asset/Model/Jumping Down.fbx
+        SelfLayerBit: 2
   - Entity: 6
     Components:
       - Component: NameComponent

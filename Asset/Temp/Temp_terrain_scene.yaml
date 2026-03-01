@@ -36,6 +36,8 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -73,10 +75,10 @@ Entities:
           y: 25
           z: 0
         Rotation:
-          - 0.484371454
-          - -0.118098937
-          - 0.864324331
-          - 0.066183202
+          - 0.843857229
+          - -0.0482555218
+          - 0.528816462
+          - 0.07700371
         Scale:
           x: 1
           y: 1
@@ -84,17 +86,17 @@ Entities:
         Parent: 0
       - Component: LightComponent
         Enable: 1
-        LightType: 1
+        LightType: 4
         CastShadow: 1
         Position:
-          x: -28.5958252
-          y: 16.6588287
-          z: -27.719677
+          x: -117.610649
+          y: 11.0343752
+          z: 49.1872444
           w: 0
         Direction:
-          x: 0.821675718
-          y: -0.268266082
-          z: 0.502873659
+          x: 0.885059476
+          y: -0.180996895
+          z: -0.428847194
           w: 0
         Diffuse:
           x: 1
@@ -110,23 +112,23 @@ Entities:
           x: 100
           y: 0
           z: 0
-          w: 0
+          w: 0.00999999978
         LightView:
           -
-            - 0.522008002
+            - -0.436049134
             - 0
-            - -0.852940619
-            - -8.71598816
+            - -0.899922907
+            - -7.01929474
           -
-            - 0.228815094
-            - 0.963344872
-            - 0.140037075
-            - -5.62325764
+            - 0.162883252
+            - 0.983483672
+            - -0.0789235383
+            - 12.1867085
           -
-            - 0.821675897
-            - -0.268266141
-            - 0.502873719
-            - 41.9049988
+            - 0.885059416
+            - -0.180996895
+            - -0.428847164
+            - 127.183411
           -
             - 0
             - 0
@@ -134,20 +136,20 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0399999991
+            - 0.0127873579
             - 0
             - 0
-            - 0
+            - -0.129715949
           -
             - 0
-            - 0.0399999991
+            - 0.0217940733
             - 0
-            - 0
+            - 0.383834749
           -
             - 0
             - 0
-            - 0.0100100096
-            - -0.00100100099
+            - 0.00885187276
+            - -0.228187934
           -
             - 0
             - 0
@@ -251,7 +253,6 @@ Entities:
               w: 0
           - Name: Grayscale
             Enabled: false
-            VS: Asset\Shader\PostEffects\PostEffectVS.cso
             NodePos:
               x: 288.542786
               y: 24.0898819
@@ -299,6 +300,7 @@ Entities:
         rotateSpeed: 1.5
         minPitch: 0
         maxPitch: 1
+        minDistance: 1
   - Entity: 5
     Components:
       - Component: NameComponent
@@ -306,17 +308,17 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 8.22683716
-          y: 1.245525
+          y: 5.47900009
           z: 1.64808095
         Rotation:
-          - -4.20389539e-45
-          - 0.361448079
-          - 4.20389539e-45
-          - 0.932392359
+          - -0
+          - 0.361448139
+          - -0
+          - 0.93239224
         Scale:
-          x: 0.00999999885
+          x: 0.00999999978
           y: 0.00999999978
-          z: 0.00999999885
+          z: 0.00999999978
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
@@ -332,10 +334,12 @@ Entities:
             staticFriction: 0
             dynamicFriction: 0
             restitution: 0
-            collisionLayer: 0
+            collisionLayer: 2
             lockRotX: true
             lockRotY: true
             lockRotZ: true
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -362,37 +366,38 @@ Entities:
           Idle: Asset\Model\Akai_Idle.fbx
           mixamo.com: Asset\Model\Akai_Run.fbx
           Run: Asset\Model\Akai_Run.fbx
-      - Component: PlayerController
-        moveSpeed: 6
-        health: 0
-        isInvincible: false
-        dashMultiplier: 2
-        accel: 10
-        rotateSpeed: 8
-        maxStamina: 5
-        stamina: 5
-        staminaConsumeRate: 1.5
-        staminaRecoverRate: 1
+      - Component: CharacterController
+        moveSpeed: 5
+        dashMultiplier: 2.5
         jumpPower: 5
-        Stamina: 5
+        accel: 12
+        rotateSpeed: 8
+        groundRayLength: 0.300000012
+        slopeLimit: 45
+        gravity: 9
+        idleAnimFile: Asset/Model/Akai_Idle.fbx
+        runAnimFile: Asset/Model/Akai_Run.fbx
+        jumpUpAnimFile: Asset/Model/Jumping Up.fbx
+        jumpDownAnimFile: Asset/Model/Jumping Down.fbx
+        SelfLayerBit: 2
   - Entity: 6
     Components:
       - Component: NameComponent
         Name: PushCube
       - Component: TransformComponent
         Position:
-          x: 2.67906618
-          y: 1.17004943
-          z: 1.23769808
+          x: 0.0741159916
+          y: 5.64706135
+          z: -5.96220398
         Rotation:
-          - -0.890922308
-          - -4.72146979e-07
-          - 0.454155833
-          - 1.6991047e-06
+          - 0.890922308
+          - 4.72133877e-07
+          - -0.454155743
+          - -1.69914586e-06
         Scale:
           x: 2.34000015
-          y: 2.34009933
-          z: 2.34002757
+          y: 2.3399713
+          z: 2.34002805
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
@@ -412,6 +417,8 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -446,7 +453,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 9.39099979
-          y: -1.15999997
+          y: 2.8499999
           z: 2.35100007
         Rotation:
           - -0.248502776
@@ -476,6 +483,8 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -510,7 +519,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 0.0199999996
+          y: 3.97373867
           z: 0
         Rotation:
           - -0
@@ -522,6 +531,26 @@ Entities:
           y: 50
           z: 50
         Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 4
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 1
         Material:
