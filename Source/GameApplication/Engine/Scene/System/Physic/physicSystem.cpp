@@ -776,7 +776,7 @@ void PhysicSystem::UpdateCollider() {
 						if (boneIt == boneIndexMap.end()) continue;
 
 						uint32_t boneIdx = boneIt->second;
-						// WorldMatrix はモデル空間（ルート補正済み）のボーン変換
+						// WorldMatrix はモデル空間（ルート補正済み、スケール未適用）のボーン変換
 						const aiMatrix4x4& boneModelMat = ModelRenderer->model->m_Bones[boneIdx].WorldMatrix;
 
 						// ボーンのモデル空間変換を位置とクォータニオンに分解
@@ -784,13 +784,16 @@ void PhysicSystem::UpdateCollider() {
 						aiQuaternion boneRot;
 						boneModelMat.Decompose(boneScale, boneRot, bonePos);
 
+						// エンティティのスケールをボーン位置に乗算して描画と一致させる
+						// （GPU はワールド行列に含まれるスケールを適用するが PhysX アクターは T×R のみ保持）
+						const Vector3& entityScale = Transform->scale;
 						physx::PxTransform boneWorldPose(
-							physx::PxVec3(bonePos.x, bonePos.y, bonePos.z),
+							physx::PxVec3(bonePos.x * entityScale.x, bonePos.y * entityScale.y, bonePos.z * entityScale.z),
 							physx::PxQuat(boneRot.x, boneRot.y, boneRot.z, boneRot.w)
 						);
 
-						// ユーザー定義のローカルオフセット（ボーンローカル空間）
-						physx::PxVec3 userOffset(col.offset.x, col.offset.y, col.offset.z);
+						// ユーザー定義のローカルオフセット（ボーンローカル空間、同様にスケール適用）
+						physx::PxVec3 userOffset(col.offset.x * entityScale.x, col.offset.y * entityScale.y, col.offset.z * entityScale.z);
 						const float DegToRad = physx::PxPi / 180.0f;
 						physx::PxQuat qx(col.rotationOffset.x * DegToRad, physx::PxVec3(1, 0, 0));
 						physx::PxQuat qy(col.rotationOffset.y * DegToRad, physx::PxVec3(0, 1, 0));
