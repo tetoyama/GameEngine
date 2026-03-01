@@ -234,7 +234,7 @@ Entities:
             staticFriction: 0
             dynamicFriction: 0
             restitution: 0
-            collisionLayer: 0
+            collisionLayer: 2
             lockRotX: true
             lockRotY: true
             lockRotZ: true
@@ -692,3 +692,64 @@ Entities:
         FilePath: Asset/Model\ball.fbx
         isBlender: false
         AnimationTime: 86.696022
+  - Entity: 10
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: -4.89383936
+          y: 1.34399998
+          z: 0
+        Rotation:
+          - 0.129979625
+          - -0.164447561
+          - -0.021865936
+          - 0.977539837
+        Scale:
+          x: 0.329999983
+          y: 0.330000043
+          z: 0.330000013
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: true
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 3
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0.600000024
+            dynamicFriction: 0.600000024
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+      - Component: ModelRendererComponent
+        FilePath: Asset/Model\bear.fbx
+        isBlender: false
+        AnimationTime: 0
