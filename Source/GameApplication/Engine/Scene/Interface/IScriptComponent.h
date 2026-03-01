@@ -7,6 +7,7 @@
 
 #include <backends/yaml-cpp/yaml.h>
 #include <Scene/scene.h>
+#include <Scene/Entity/EntityRef.h>
 
 // ================================
 // Param system
@@ -92,8 +93,7 @@ public:
         }
     }
 
-    Entity entity{};
-    SceneContext* context{};
+    EntityRef ref{};
 
 protected:
     // ----------------------------

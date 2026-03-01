@@ -522,10 +522,9 @@ const CameraEntityData RenderSystem::FindCameraEntity() {
 		if (entities.empty()) {
 			continue;
 		}
-		cameraData.sceneContext = context;
-		cameraData.entity = entities[0];
-		cameraData.CameraComponent = context->component->GetComponent<CameraComponent>(cameraData.entity);
-		cameraData.transformComponent = context->component->GetComponent<TransformComponent>(cameraData.entity);
+		cameraData.ref = EntityRef(entities[0], context);
+		cameraData.CameraComponent = context->component->GetComponent<CameraComponent>(cameraData.ref.GetEntityID());
+		cameraData.transformComponent = context->component->GetComponent<TransformComponent>(cameraData.ref.GetEntityID());
 		return cameraData;
 	}
 	return cameraData;
@@ -781,8 +780,6 @@ void RenderSystem::EditorView(){
 		{ 0.0f, 1.0f, 0.0f }
 	);
 	CameraEntityData cameraData;
-	cameraData.entity = 0;
-	cameraData.sceneContext = nullptr;
 	cameraData.CameraComponent = &editorCamera;
 	cameraData.transformComponent = &editorCameraTransform;
 

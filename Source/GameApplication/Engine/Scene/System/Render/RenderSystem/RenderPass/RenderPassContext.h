@@ -7,6 +7,7 @@
 #include "../renderPhase.h"
 #include "../renderLayer.h"
 #include "../CameraEntityData.h"
+#include "Scene/Entity/EntityRef.h"
 
 struct RenderPassContext {
 
@@ -30,13 +31,11 @@ struct RenderPassContext {
 };
 
 struct TransparentDrawItem {
-	Entity entity;
+	EntityRef ref;
 	float distanceSq;
-	SceneContext* context;
 };
 
 struct SpriteDrawItem {
-	Entity entity;
+	EntityRef ref;
 	int orderInLayer;
-	SceneContext* context;
 };

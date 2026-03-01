@@ -1,7 +1,6 @@
 #pragma once
 #include <string>
 #include <memory>
-#include "Entity/Entity.h"
 #include "Entity/EntityRef.h"
 
 struct SceneContext;
@@ -14,11 +13,10 @@ public:
 	// エンティティ（およびその Transform 階層配下の全子孫）を YAML プレファブファイルとして保存する
 	// 親子関係は PrefabParent ローカルインデックスとして記録されるため、
 	// インスタンス化時に正しく再現される
-	// @param entity  保存対象のルートエンティティ
-	// @param context シーンコンテキスト（context->component->FindEntitiesWithComponent を使用）
+	// @param ref     保存対象のルートエンティティへの EntityRef
 	// @param filePath 保存先のファイルパス（例: "Asset/Prefab/Player.prefab"）
 	// @return 成功した場合は true
-	bool SavePrefab(Entity entity, SceneContext* context, const std::string& filePath);
+	bool SavePrefab(EntityRef ref, const std::string& filePath);
 
 	// リソースシステム経由でプレファブをロードしてエンティティ階層をインスタンス化する
 	// ロード結果は ResourceService にキャッシュされる

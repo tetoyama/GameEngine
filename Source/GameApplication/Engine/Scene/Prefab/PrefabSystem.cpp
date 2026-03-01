@@ -47,7 +47,9 @@ static void RebuildTransformChildren(ComponentRegistry* registry) {
 	}
 }
 
-bool PrefabSystem::SavePrefab(Entity entity, SceneContext* context, const std::string& filePath) {
+bool PrefabSystem::SavePrefab(EntityRef ref, const std::string& filePath) {
+	SceneContext* context = ref.GetScene();
+	Entity entity = ref.GetEntityID();
 	if (!context || !context->entity || !context->component) return false;
 	if (!context->entity->IsAlive(entity)) return false;
 

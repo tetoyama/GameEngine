@@ -232,7 +232,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 				std::string dir = "Asset/Prefab/";
 				std::filesystem::create_directories(dir);
 				std::string filePath = dir + prefabName + ".prefab";
-				context->prefab->SavePrefab(entity, context, filePath);
+				context->prefab->SavePrefab(EntityRef(entity, context), filePath);
 			}
 			prefabName[0] = '\0';
 			ImGui::CloseCurrentPopup();

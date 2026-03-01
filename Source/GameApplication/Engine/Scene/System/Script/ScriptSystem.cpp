@@ -1,6 +1,7 @@
 #include "ScriptSystem.h"
 #include "Scene/Component/ScriptComponent.h"
 #include "Component/componentList.h"
+#include "Scene/Entity/EntityRef.h"
 
 void ScriptSystem::Start(){
 	ForEachScript([](IScriptComponent* script){
@@ -116,8 +117,7 @@ void ScriptSystem::ForEachScript(Func&& func){
 			for(auto& [_, script] : sc->scripts){
 				if(!script) continue;
 
-				script->entity = e;
-				script->context = ctx;
+				script->ref = EntityRef(e, ctx);
 
 				func(script);
 			}
