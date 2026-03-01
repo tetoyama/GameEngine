@@ -229,6 +229,10 @@ void PhysicSystem::BuildMeshCollider(ColliderShape& col, ModelRendererComponent*
 		col.pxTriangleMesh->release();
 		col.pxTriangleMesh = nullptr;
 	}
+	if (col.pxConvexMesh) {
+		col.pxConvexMesh->release();
+		col.pxConvexMesh = nullptr;
+	}
 
 	const aiScene* scene = modelRenderer->model->AiScene;
 
@@ -255,6 +259,9 @@ void PhysicSystem::BuildMeshCollider(ColliderShape& col, ModelRendererComponent*
 
 	if (vertices.empty() || indices.empty()) return;
 
+	physx::PxCookingParams params(g_pPhysics->getTolerancesScale());
+
+	// Triangle mesh (used for static actors)
 	physx::PxTriangleMeshDesc meshDesc;
 	meshDesc.points.count  = (physx::PxU32)vertices.size();
 	meshDesc.points.stride = sizeof(physx::PxVec3);
@@ -264,8 +271,6 @@ void PhysicSystem::BuildMeshCollider(ColliderShape& col, ModelRendererComponent*
 	meshDesc.triangles.stride = sizeof(physx::PxU32) * 3;
 	meshDesc.triangles.data   = indices.data();
 
-	physx::PxCookingParams params(g_pPhysics->getTolerancesScale());
-
 	col.pxTriangleMesh = PxCreateTriangleMesh(
 		params,
 		meshDesc,
@@ -274,6 +279,24 @@ void PhysicSystem::BuildMeshCollider(ColliderShape& col, ModelRendererComponent*
 
 	if (!col.pxTriangleMesh) {
 		OutputDebugStringA("BuildMeshCollider: PxCreateTriangleMesh failed\n");
+	}
+
+	// Convex mesh (used for dynamic actors — convex hulls support non-kinematic PxRigidDynamic)
+	// eCOMPUTE_CONVEX tells PhysX to compute the convex hull from the supplied vertices.
+	physx::PxConvexMeshDesc convexDesc;
+	convexDesc.points.count  = (physx::PxU32)vertices.size();
+	convexDesc.points.stride = sizeof(physx::PxVec3);
+	convexDesc.points.data   = vertices.data();
+	convexDesc.flags         = physx::PxConvexFlag::eCOMPUTE_CONVEX;
+
+	col.pxConvexMesh = PxCreateConvexMesh(
+		params,
+		convexDesc,
+		g_pPhysics->getPhysicsInsertionCallback()
+	);
+
+	if (!col.pxConvexMesh) {
+		OutputDebugStringA("BuildMeshCollider: PxCreateConvexMesh failed\n");
 	}
 }
 
@@ -323,19 +346,27 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 		}
 
 		case ColliderType::Mesh:
-			if (col.pxTriangleMesh) {
-				// Triangle mesh shapes cannot be used as eSIMULATION_SHAPE on a non-kinematic
-				// PxRigidDynamic. Promote the actor to kinematic before attaching.
-				if (actor->getType() == physx::PxActorType::eRIGID_DYNAMIC) {
-					static_cast<physx::PxRigidDynamic*>(actor)->setRigidBodyFlag(
-						physx::PxRigidBodyFlag::eKINEMATIC, true);
+			if (actor->getType() == physx::PxActorType::eRIGID_DYNAMIC) {
+				// Dynamic actors require a convex mesh — triangle meshes are not supported as
+				// eSIMULATION_SHAPE on non-kinematic PxRigidDynamic. A convex hull allows
+				// gravity and forces to apply normally.
+				if (col.pxConvexMesh) {
+					physx::PxConvexMeshGeometry geom(
+						col.pxConvexMesh,
+						physx::PxMeshScale(physx::PxVec3(scale.x, scale.y, scale.z))
+					);
+					shape = physx::PxRigidActorExt::createExclusiveShape(*actor, geom, material);
 				}
-				physx::PxTriangleMeshGeometry geom(
-					col.pxTriangleMesh,
-					physx::PxMeshScale(physx::PxVec3(scale.x, scale.y, scale.z)),
-					physx::PxMeshGeometryFlags(physx::PxMeshGeometryFlag::eDOUBLE_SIDED)
-				);
-				shape = physx::PxRigidActorExt::createExclusiveShape(*actor, geom, material);
+			} else {
+				// Static actors support the full triangle mesh for exact collision.
+				if (col.pxTriangleMesh) {
+					physx::PxTriangleMeshGeometry geom(
+						col.pxTriangleMesh,
+						physx::PxMeshScale(physx::PxVec3(scale.x, scale.y, scale.z)),
+						physx::PxMeshGeometryFlags(physx::PxMeshGeometryFlag::eDOUBLE_SIDED)
+					);
+					shape = physx::PxRigidActorExt::createExclusiveShape(*actor, geom, material);
+				}
 			}
 			break;
 
