@@ -234,7 +234,7 @@ Entities:
             staticFriction: 0
             dynamicFriction: 0
             restitution: 0
-            collisionLayer: 0
+            collisionLayer: 2
             lockRotX: true
             lockRotY: true
             lockRotZ: true
@@ -328,16 +328,16 @@ Entities:
             - -1.03712082e-05
             - 6.32452393
             - 1
-        nextLinkId: 3
-        nextPinId: 5
+        nextLinkId: 6
+        nextPinId: 11
         PostEffects:
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\OutlineByShaderID.cso
             NodePos:
-              x: 101
-              y: 58
+              x: -196.011963
+              y: 74.6255875
             InputPins:
               - 2
               - 4
@@ -347,28 +347,70 @@ Entities:
               y: 3
               z: 0
               w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\SSAO.cso
+            NodePos:
+              x: 35.6422119
+              y: 74.5224991
+            InputPins:
+              - 5
+              - 7
+            OutputPin: 6
+            Param:
+              x: 1
+              y: 0.100000001
+              z: 0.200000003
+              w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\DepthBlur.cso
+            NodePos:
+              x: 270.642212
+              y: 64.5224991
+            InputPins:
+              - 8
+              - 10
+            OutputPin: 9
+            Param:
+              x: 1
+              y: 0
+              z: 0
+              w: 0
         PostEffectLinks:
-          - ID: 1
-            StartNode: 0
-            EndNode: -2
-            StartAttr: 3
-            EndAttr: 1
           - ID: 2
             StartNode: -1
             EndNode: 0
             StartAttr: -1
             EndAttr: 2
+          - ID: 3
+            StartNode: 0
+            EndNode: 1
+            StartAttr: 3
+            EndAttr: 5
+          - ID: 4
+            StartNode: 1
+            EndNode: 2
+            StartAttr: 6
+            EndAttr: 8
+          - ID: 5
+            StartNode: 2
+            EndNode: -2
+            StartAttr: 9
+            EndAttr: 1
         ScreenInput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: -298.011963
+            y: 15.6255856
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 345
-            y: 44
+            x: 579.203857
+            y: 232.1138
           InputPins:
             - 1
       - Component: CameraController
