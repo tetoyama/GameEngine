@@ -73,10 +73,14 @@ class PhysicsSimulationCallback : public physx::PxSimulationEventCallback {
 	}
 
 public:
+	// Stop/Finalize 前に false にセットすることでコールバックを無効化する
+	bool m_active = true;
+
 	void onContact(const physx::PxContactPairHeader& pairHeader,
 				   const physx::PxContactPair* pairs,
 				   physx::PxU32 nbPairs) override
 	{
+		if (!m_active) return;
 		auto* infoA = static_cast<ActorEntityInfo*>(pairHeader.actors[0]->userData);
 		auto* infoB = static_cast<ActorEntityInfo*>(pairHeader.actors[1]->userData);
 		if (!infoA || !infoB) return;
@@ -111,6 +115,7 @@ public:
 	}
 
 	void onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count) override {
+		if (!m_active) return;
 		for (physx::PxU32 i = 0; i < count; ++i) {
 			const physx::PxTriggerPair& pair = pairs[i];
 			if (pair.flags & (physx::PxTriggerPairFlag::eREMOVED_SHAPE_TRIGGER |
@@ -388,6 +393,7 @@ void PhysicSystem::Initialize(){
 }
 void PhysicSystem::Finalize(){
 	OutputDebugStringA("PhysicSystem::Finalize\n");
+	if (m_simCallback) m_simCallback->m_active = false;
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
@@ -460,6 +466,10 @@ void PhysicSystem::Finalize(){
 }
 
 void PhysicSystem::Stop(){
+	// コールバックを無効化してから Actor を解放する
+	// （fetchResults が後で発火しても onContact/onTrigger を呼ばないようにする）
+	if (m_simCallback) m_simCallback->m_active = false;
+
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
@@ -747,6 +757,9 @@ void PhysicSystem::AddLayer(const std::string& name){
 	RebuildLayerBits();
 }
 void PhysicSystem::Start(){
+	// コールバックを有効化する（Stop 後の再起動にも対応）
+	if (m_simCallback) m_simCallback->m_active = true;
+
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
