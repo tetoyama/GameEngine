@@ -34,6 +34,9 @@ class PlayerController: public CustomScriptComponent {
 	float CurrentSpeed = 0.0f;
 	bool isJumpPressed = false;
 
+	// RayCast 時に除外する自身のレイヤービット（インスペクターで設定）
+	uint32_t selfLayerBit = 0;
+
 	ComponentRef<TransformComponent> transform;
 	ComponentRef<TransformComponent> CameraBufferTransform;
 	ComponentRef<GameTimeManager> gameTime;
@@ -50,17 +53,40 @@ public:
 		YAML::Node node;
 		ENCODE_FIELDS(node);
 		node["Stamina"] = stamina;
+		node["SelfLayerBit"] = selfLayerBit;
 		return node;
 	}
 	bool decode(SceneContext* context, const YAML::Node& node) override{
 		DECODE_FIELDS(node);
 		if(node["Stamina"]) stamina = node["Stamina"].as<float>();
+		if(node["SelfLayerBit"]) selfLayerBit = node["SelfLayerBit"].as<uint32_t>();
 		return true;
 	}
 
 	void inspector(SceneContext* context) override{
 		ImGui::Text(scriptName.c_str());
 		INSPECTOR_FIELDS();
+
+		// 自身のレイヤー選択（RayCast 除外用）
+		auto* phys = context->system->GetSystem<PhysicSystem>();
+		if (phys) {
+			const auto& layers = phys->GetLayers();
+			const char* previewLabel = "(none)";
+			for (const auto& layer : layers) {
+				if (selfLayerBit == layer.bit) { previewLabel = layer.name.c_str(); break; }
+			}
+			ImGui::Text("Self Layer (RayCast exclude)");
+			if (ImGui::BeginCombo("##SelfLayer", previewLabel)) {
+				if (ImGui::Selectable("(none)", selfLayerBit == 0)) selfLayerBit = 0;
+				if (selfLayerBit == 0) ImGui::SetItemDefaultFocus();
+				for (const auto& layer : layers) {
+					bool sel = (selfLayerBit == layer.bit);
+					if (ImGui::Selectable(layer.name.c_str(), sel)) selfLayerBit = layer.bit;
+					if (sel) ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+		}
 
 		// スタミナ表示
 		ImGui::ProgressBar(stamina / maxStamina, ImVec2(0.0f, 0.0f), "Stamina");
@@ -197,7 +223,7 @@ public:
 			RayHit hit = m_ref.GetScene()->manager
 				->systemRegistry
 				->GetSystem<PhysicSystem>()
-				->RaycastWithMask(rayPos, rayDir, 0.3f, 1u << 1); // プレイヤーレイヤーを除外
+				->RaycastWithMask(rayPos, rayDir, 0.3f, selfLayerBit); // 自身のレイヤーを除外
 
 			isGround = hit.hit && hit.distance < 0.1f;
 

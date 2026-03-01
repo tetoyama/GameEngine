@@ -41,6 +41,9 @@ class CharacterController : public CustomScriptComponent {
 	bool   isGrounded     = false;
 	bool   animsReady     = false;
 
+	// RayCast 時に除外する自身のレイヤービット（インスペクターで設定）
+	uint32_t selfLayerBit = 0;
+
 	ComponentRef<TransformComponent>    transform;
 	ComponentRef<ModelRendererComponent> model;
 	ComponentRef<TransformComponent>    cameraTransform;
@@ -54,11 +57,13 @@ public:
 	YAML::Node encode() override {
 		YAML::Node node;
 		ENCODE_FIELDS(node);
+		node["SelfLayerBit"] = selfLayerBit;
 		return node;
 	}
 
 	bool decode(SceneContext* context, const YAML::Node& node) override {
 		DECODE_FIELDS(node);
+		if(node["SelfLayerBit"]) selfLayerBit = node["SelfLayerBit"].as<uint32_t>();
 		return true;
 	}
 
@@ -68,6 +73,27 @@ public:
 	void inspector(SceneContext* context) override {
 		ImGui::Text(scriptName.c_str());
 		INSPECTOR_FIELDS();
+
+		// 自身のレイヤー選択（RayCast 除外用）
+		auto* phys = context->system->GetSystem<PhysicSystem>();
+		if (phys) {
+			const auto& layers = phys->GetLayers();
+			const char* previewLabel = "(none)";
+			for (const auto& layer : layers) {
+				if (selfLayerBit == layer.bit) { previewLabel = layer.name.c_str(); break; }
+			}
+			ImGui::Text("Self Layer (RayCast exclude)");
+			if (ImGui::BeginCombo("##SelfLayer", previewLabel)) {
+				if (ImGui::Selectable("(none)", selfLayerBit == 0)) selfLayerBit = 0;
+				if (selfLayerBit == 0) ImGui::SetItemDefaultFocus();
+				for (const auto& layer : layers) {
+					bool sel = (selfLayerBit == layer.bit);
+					if (ImGui::Selectable(layer.name.c_str(), sel)) selfLayerBit = layer.bit;
+					if (sel) ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+		}
 	}
 
 	// =====================================================
@@ -162,11 +188,11 @@ public:
 			);
 			physx::PxVec3 rayDir(0.0f, -1.0f, 0.0f);
 
-			// 全レイヤーを対象にレイキャスト
+			// 全レイヤーを対象に、自身のレイヤーだけ除外してレイキャスト
 			RayHit hit = m_ref.GetScene()->manager
 				->systemRegistry
 				->GetSystem<PhysicSystem>()
-				->RaycastWithMask(rayPos, rayDir, groundRayLength + 0.1f, ~0u);
+				->RaycastWithMask(rayPos, rayDir, groundRayLength + 0.1f, selfLayerBit);
 
 			isGrounded = hit.hit && (hit.distance < (groundRayLength + 0.05f));
 
