@@ -4,6 +4,7 @@
 #include <Scene/sceneManager.h>
 #include <Scene/Component/ColliderComponent.h>
 #include <Scene/Component/transformComponent.h>
+#include <Scene/Component/modelRendererComponent.h>
 #include <d3dcompiler.h>
 
 #include "Backends/ImGuiFunc.h"
@@ -757,6 +758,53 @@ void PhysicSystem::UpdateCollider() {
 
 			if (Collider->pRigidbodyDynamic) Collider->pRigidbodyDynamic->setGlobalPose(pxTransform);
 			if (Collider->pRigidbodyStatic) Collider->pRigidbodyStatic->setGlobalPose(pxTransform);
+
+			// ボーン名が指定されているコライダシェイプのローカルポーズをボーンのワールド変換から更新
+			auto* ModelRenderer = context->component->GetComponent<ModelRendererComponent>(entity);
+			if (ModelRenderer && ModelRenderer->model) {
+				bool hasBoneShape = false;
+				for (const auto& col : Collider->colliders) {
+					if (!col.boneName.empty() && col.pxShape) { hasBoneShape = true; break; }
+				}
+				if (hasBoneShape) {
+					g_pScene->lockWrite();
+					for (auto& col : Collider->colliders) {
+						if (col.boneName.empty() || !col.pxShape) continue;
+
+						auto& boneIndexMap = ModelRenderer->model->m_BoneIndexMap;
+						auto boneIt = boneIndexMap.find(col.boneName);
+						if (boneIt == boneIndexMap.end()) continue;
+
+						uint32_t boneIdx = boneIt->second;
+						const aiMatrix4x4& boneWorldMat = ModelRenderer->model->m_Bones[boneIdx].WorldMatrix;
+
+						// ボーンのワールド変換を位置とクォータニオンに分解
+						aiVector3D boneScale, bonePos;
+						aiQuaternion boneRot;
+						boneWorldMat.Decompose(boneScale, boneRot, bonePos);
+
+						physx::PxTransform boneWorldPose(
+							physx::PxVec3(bonePos.x, bonePos.y, bonePos.z),
+							physx::PxQuat(boneRot.x, boneRot.y, boneRot.z, boneRot.w)
+						);
+
+						// ユーザー定義のローカルオフセット（ボーンローカル空間）
+						physx::PxVec3 userOffset(col.offset.x, col.offset.y, col.offset.z);
+						const float DegToRad = physx::PxPi / 180.0f;
+						physx::PxQuat qx(col.rotationOffset.x * DegToRad, physx::PxVec3(1, 0, 0));
+						physx::PxQuat qy(col.rotationOffset.y * DegToRad, physx::PxVec3(0, 1, 0));
+						physx::PxQuat qz(col.rotationOffset.z * DegToRad, physx::PxVec3(0, 0, 1));
+						physx::PxTransform localOffsetPose(userOffset, qz * qy * qx);
+
+						// シェイプのローカルポーズ = inv(エンティティ変換) * ボーンワールド * ユーザーオフセット
+						physx::PxTransform shapeWorldPose = boneWorldPose.transform(localOffsetPose);
+						physx::PxTransform shapeLocalPose = pxTransform.getInverse().transform(shapeWorldPose);
+
+						col.pxShape->setLocalPose(shapeLocalPose);
+					}
+					g_pScene->unlockWrite();
+				}
+			}
 
 			if (Collider->autoMass) {
 				if (Collider->pRigidbodyDynamic) {

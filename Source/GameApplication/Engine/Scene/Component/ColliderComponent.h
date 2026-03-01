@@ -37,6 +37,8 @@ struct ColliderShape {
 
 	bool isTrigger = false;
 
+	std::string boneName = "";  // スキニングアニメーション時にオフセットの基準となるボーン名
+
 	physx::PxShape* pxShape = nullptr;
 	physx::PxMaterial* pxMaterial = nullptr;
 };
@@ -108,6 +110,8 @@ public:
 
 			colNode["isTrigger"] = col.isTrigger;
 
+			colNode["boneName"] = col.boneName;
+
 			node["colliders"].push_back(colNode);
 		}
 		return node;
@@ -147,6 +151,9 @@ public:
 
 				if (colNode["isTrigger"]) {
 					col.isTrigger = colNode["isTrigger"].as<bool>();
+				}
+				if (colNode["boneName"]) {
+					col.boneName = colNode["boneName"].as<std::string>();
 				}
 				colliders.push_back(col);
 			}
@@ -275,6 +282,14 @@ public:
 					}
 					if(ImGui::TreeNodeEx("Offset")){
 						ImGui::BeginChild("OffsetChild", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY);
+
+						ImGui::Text("Bone Name");
+						ImGui::SameLine(XPos);
+						char boneNameBuf[128] = "";
+						strncpy_s(boneNameBuf, sizeof(boneNameBuf), colliders[i].boneName.c_str(), _TRUNCATE);
+						if(ImGui::InputText(("##BoneName" + std::to_string(i)).c_str(), boneNameBuf, sizeof(boneNameBuf))){
+							colliders[i].boneName = boneNameBuf;
+						}
 
 						ImGui::Text("Position");
 						ImGui::SameLine(XPos);
