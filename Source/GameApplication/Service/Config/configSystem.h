@@ -102,6 +102,9 @@ public:
 		if(root["SEVolume"])
 			appConfig.SEVolume = root["SEVolume"].as<float>();
 
+		if(root["TemplateDir"])
+			appConfig.templateDir = root["TemplateDir"].as<std::string>();
+
 		return true;
 	}
 
@@ -119,6 +122,7 @@ public:
 		out << YAML::Key << "MasterVolume" << YAML::Value << appConfig.MasterVolume;
 		out << YAML::Key << "BGMVolume" << YAML::Value << appConfig.BGMVolume;
 		out << YAML::Key << "SEVolume" << YAML::Value << appConfig.SEVolume;
+		out << YAML::Key << "TemplateDir" << YAML::Value << appConfig.templateDir;
 
 		out << YAML::EndMap;
 

@@ -12,6 +12,7 @@
 #include "Prefab/PrefabSystem.h"
 #include <commdlg.h>
 #include <filesystem>
+#include "Service/Config/configSystem.h"
 
 void Hierarchy::Draw(EditorDrawContext ctx){
 
@@ -74,13 +75,31 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 					n->name = "Entity";
 					context->component->AddComponent<TransformComponent>(newEntity);
 				}
-				if(ImGui::MenuItem("Template")){
-					Entity newEntity = registry->Create();
-					selectedEntity = newEntity;
-					sceneContext = context;
-					auto* n = context->component->AddComponent<NameComponent>(newEntity);
-					n->name = "Template";
-					context->component->AddComponent<TransformComponent>(newEntity);
+				if(ImGui::BeginMenu("Template")){
+					ConfigService* cfg = m_editor->sceneManager->GetContext()->config;
+					const std::string& tplDir = cfg ? cfg->appConfig.templateDir : APPCONFIG{}.templateDir;
+					std::error_code ec;
+					if(std::filesystem::exists(tplDir, ec) && !ec){
+						for(const auto& entry : std::filesystem::directory_iterator(tplDir, ec)){
+							if(ec) break;
+							if(entry.path().extension() == ".prefab"){
+								std::string stem = entry.path().stem().string();
+								if(ImGui::MenuItem(stem.c_str())){
+									if(context->prefab){
+										EntityRef spawned = context->prefab->InstantiatePrefab(context, entry.path().string());
+										if(spawned){
+											context->component->RemoveComponent<PrefabComponent>(spawned.GetEntityID());
+											selectedEntity = spawned.GetEntityID();
+											sceneContext = spawned.GetScene();
+										}
+									}
+								}
+							}
+						}
+					} else{
+						ImGui::TextDisabled("(no templates found)");
+					}
+					ImGui::EndMenu();
 				}
 				if(ImGui::MenuItem("Prefab")){
 					if(context->prefab){

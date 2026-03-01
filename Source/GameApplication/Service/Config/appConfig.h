@@ -34,5 +34,6 @@ struct APPCONFIG
 	float SEVolume = 1.0f;
 
 	// Other Settings
+	std::string templateDir = "Asset/Prefab/template";
 
 };
