@@ -9,8 +9,9 @@ Texture2D g_Texture : register(t0);
 // Parameter.y : エッジ幅ピクセル数 (推奨値 1.0)
 //
 // GBuffer GParam (t13) の ShaderID と ObjectID を使ったエッジ検出。
-// Parameter.x で指定した ShaderID を持つピクセルのうち、
+// Parameter.x で指定した ShaderID を持つピクセルを対象とし、
 // 隣接ピクセルの ObjectID (= EntityID) が異なる境界にアウトラインを描画する。
+// エッジ判定は EntityID のみで行うため、隣接ピクセルの ShaderID は問わない。
 
 void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 {
@@ -46,7 +47,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     }
 
     // 4 方向の隣接ピクセルを確認
-    // 隣接ピクセルも同じ ShaderID かつ ObjectID が異なる → エッジ
+    // 隣接ピクセルの ObjectID (EntityID) が異なればエッジ (ShaderID は問わない)
     const int2 offsets[4] = {
         int2( step,  0),
         int2(-step,  0),
@@ -60,7 +61,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
         int2 neighborCoord = clamp(centerCoord + offsets[i], int2(0, 0), maxCoord);
         uint4 neighborParam = GetObjParam(neighborCoord);
 
-        if (neighborParam.z == centerParam.z && neighborParam.x != centerParam.x)
+        if (neighborParam.x != centerParam.x)
         {
             isEdge = true;
             break;
