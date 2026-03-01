@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <algorithm>
+#include <typeindex>
 #include <cinttypes>
 #include <sceneManager.h>
 #include "Editor/editorService.h"
@@ -223,6 +224,45 @@ void Hierarchy::SetParent(Entity child, Entity newParent, SceneContext* context)
 	}
 }
 
+Entity Hierarchy::DuplicateEntityRecursive(Entity src, Entity newParent, SceneContext* context){
+	Entity newEntity = context->entity->Create();
+
+	// YAML encode/decode で全コンポーネントをコピー
+	const auto& idToName = context->component->GetComponentIDToNameMap();
+	auto components = context->component->GetAllComponentsOfEntitySorted(src);
+	for(IComponent* comp : components){
+		ComponentTypeID typeID = context->component->GetComponentIDByTypeIndex(std::type_index(typeid(*comp)));
+		if(typeID == static_cast<ComponentTypeID>(-1)) continue;
+		auto nameIt = idToName.find(typeID);
+		if(nameIt == idToName.end()) continue;
+		YAML::Node node = comp->encode();
+		context->component->CreateFromYAML(nameIt->second, newEntity, node);
+	}
+
+	// TransformComponent の parent/children を修正
+	auto* newTransform = context->component->GetComponent<TransformComponent>(newEntity);
+	if(newTransform){
+		newTransform->children.clear();
+		newTransform->parent = newParent;
+		if(newParent != 0){
+			auto* parentTransform = context->component->GetComponent<TransformComponent>(newParent);
+			if(parentTransform){
+				parentTransform->children.push_back(newEntity);
+			}
+		}
+	}
+
+	// 子エンティティを再帰的に複製
+	auto* srcTransform = context->component->GetComponent<TransformComponent>(src);
+	if(srcTransform){
+		for(Entity srcChild : srcTransform->children){
+			DuplicateEntityRecursive(srcChild, newEntity, context);
+		}
+	}
+
+	return newEntity;
+}
+
 void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities){
 	float offsetX = ImGui::GetCursorPosX();
 
@@ -298,7 +338,11 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		}
 
 		if(ImGui::MenuItem("複製")){
-			//context->component->DuplicateEntity(entity);
+			auto* transform = context->component->GetComponent<TransformComponent>(entity);
+			Entity newParent = transform ? transform->parent : 0;
+			Entity dup = DuplicateEntityRecursive(entity, newParent, context);
+			selectedEntity = dup;
+			sceneContext = context;
 		}
 
 		if(ImGui::BeginMenu("Prefab")){
