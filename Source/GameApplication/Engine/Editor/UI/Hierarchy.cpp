@@ -99,12 +99,41 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 			ImGui::TreePop();
 		}
 	}
+	// SavePrefabPopup を一度だけ開く
+	if(m_openSavePrefabPopup){
+		ImGui::OpenPopup("SavePrefabPopup");
+		m_openSavePrefabPopup = false;
+	}
+	// --- Prefab保存ダイアログ（フレームに一度だけ描画）---
+	if(ImGui::BeginPopup("SavePrefabPopup")){
+		static char prefabName[128] = "";
+		if(ImGui::IsWindowAppearing()){
+			prefabName[0] = '\0';
+		}
+		ImGui::Text("Prefab名を入力してください");
+		ImGui::InputText("Name", prefabName, sizeof(prefabName));
+		if(ImGui::Button("保存") && prefabName[0] != '\0'){
+			if(m_savePrefabRef && m_savePrefabRef.GetScene() && m_savePrefabRef.GetScene()->prefab){
+				std::string dir = "Asset/Prefab/";
+				std::filesystem::create_directories(dir);
+				std::string filePath = dir + prefabName + ".prefab";
+				m_savePrefabRef.GetScene()->prefab->SavePrefab(m_savePrefabRef, filePath);
+			}
+			prefabName[0] = '\0';
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine();
+		if(ImGui::Button("キャンセル")){
+			prefabName[0] = '\0';
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	}
+
 	ImGui::End();
 }
 
 void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities){
-	static bool s_openSavePrefabPopup = false;
-	static EntityRef s_savePrefabRef;
 	float offsetX = ImGui::GetCursorPosX();
 
 	ImGui::SetCursorPosX(10.0f);
@@ -176,8 +205,8 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 
 		if(ImGui::BeginMenu("Prefab")){
 			if(ImGui::MenuItem("Prefabとして保存")){
-				s_openSavePrefabPopup = true;
-				s_savePrefabRef = EntityRef(entity, context);
+				m_openSavePrefabPopup = true;
+				m_savePrefabRef = EntityRef(entity, context);
 			}
 			if(ImGui::MenuItem("Prefabからインスタンス化")){
 				// ファイルダイアログを開いてプレファブを選択し、同シーンにインスタンス化する
@@ -218,39 +247,6 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			return;
 		}
 
-		ImGui::EndPopup();
-	}
-
-	// SavePrefabPopup を正しいレベルで開く（BeginMenu 内の OpenPopup は ID スタックが異なるため機能しない）
-	if(s_openSavePrefabPopup){
-		ImGui::OpenPopup("SavePrefabPopup");
-		s_openSavePrefabPopup = false;
-	}
-
-	// --- Prefab保存ダイアログ ---
-	if(ImGui::BeginPopup("SavePrefabPopup")){
-		static char prefabName[128] = "";
-		// ポップアップが開いたフレームにバッファを初期化する
-		if(ImGui::IsWindowAppearing()){
-			prefabName[0] = '\0';
-		}
-		ImGui::Text("Prefab名を入力してください");
-		ImGui::InputText("Name", prefabName, sizeof(prefabName));
-		if(ImGui::Button("保存") && prefabName[0] != '\0'){
-			if(s_savePrefabRef && s_savePrefabRef.GetScene()->prefab){
-				std::string dir = "Asset/Prefab/";
-				std::filesystem::create_directories(dir);
-				std::string filePath = dir + prefabName + ".prefab";
-				s_savePrefabRef.GetScene()->prefab->SavePrefab(s_savePrefabRef, filePath);
-			}
-			prefabName[0] = '\0';
-			ImGui::CloseCurrentPopup();
-		}
-		ImGui::SameLine();
-		if(ImGui::Button("キャンセル")){
-			prefabName[0] = '\0';
-			ImGui::CloseCurrentPopup();
-		}
 		ImGui::EndPopup();
 	}
 
