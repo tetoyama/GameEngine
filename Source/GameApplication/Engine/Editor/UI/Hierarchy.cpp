@@ -1,6 +1,7 @@
 #include "Hierarchy.h"
 #include <ImGui/imgui_internal.h>
 #include <memory>
+#include <cinttypes>
 #include <sceneManager.h>
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
@@ -169,18 +170,14 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 	// --- ノード描画 ---
 	bool opened = ImGui::TreeNodeEx((void*)(intptr_t)entity, flags, "%s", displayName.c_str());
 
-	// PrefabComponent がある場合は (Prefab) ラベルを表示
-	if(context->component->GetComponent<PrefabComponent>(entity)){
-		ImGui::SameLine();
-		ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "(Prefab)");
-	}
-
 	if(ImGui::IsItemClicked()){
 		selectedEntity = entity;
 		sceneContext = context;
 	}
 	// --- 右クリックメニュー ---
-	if(ImGui::BeginPopupContextItem()){
+	char popupId[32];
+	snprintf(popupId, sizeof(popupId), "##NodeCtx%" PRIu32, (uint32_t)entity);
+	if(ImGui::BeginPopupContextItem(popupId)){
 
 		if(ImGui::MenuItem("名前変更")){
 			pendingRenameEntity = entity;
@@ -263,7 +260,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		ImGui::EndPopup();
 	}
 
-	// --- 名前変更UI ---
+	// --- 名前変更UI / Prefab ラベル ---
 	if(pendingRenameEntity != 0 && selectedEntity == entity && sceneContext == context){
 
 		if(pendingRenameEntity != entity){
@@ -287,6 +284,10 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			pendingRenameEntity = 0;
 		}
 		ImGui::PopItemWidth();
+	} else if(context->component->GetComponent<PrefabComponent>(entity)){
+		// PrefabComponent がある場合は (Prefab) ラベルを表示
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "(Prefab)");
 	}
 
 	// --- Drag & Drop ---
