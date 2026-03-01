@@ -21,5 +21,5 @@ public:
 
 	ID3D11ShaderResourceView* result = nullptr;
 
-	int maxLineCount = 99999;
+	int maxLineCount = 999999;
 };
