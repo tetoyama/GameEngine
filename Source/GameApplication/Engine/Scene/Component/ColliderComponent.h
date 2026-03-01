@@ -28,9 +28,9 @@ struct ColliderShape {
 	float radius = 0.5f;
 	float height = 1.0f;
 
-	float staticFriction = 0.0f;
-	float dynamicFriction = 0.0f;
-	float restitution = 0.0f;
+	float staticFriction = 0.6f;
+	float dynamicFriction = 0.6f;
+	float restitution = 0.1f;
 
 	uint32_t collisionLayer = 0;
 
