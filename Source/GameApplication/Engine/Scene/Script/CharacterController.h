@@ -176,7 +176,7 @@ public:
 			if (isGrounded) {
 				surfaceNormal = hit.normal;
 				float cosAngle    = surfaceNormal.dot(physx::PxVec3(0.0f, 1.0f, 0.0f));
-				float slopeAngle  = acosf(std::max(-1.0f, std::min(1.0f, cosAngle)))
+				float slopeAngle = acosf((std::max)(-1.0f, (std::min)(1.0f, cosAngle)))
 				                    * (180.0f / 3.14159265f);
 				isWalkable = (slopeAngle <= slopeLimit);
 			}
@@ -281,7 +281,7 @@ private:
 
 		float maxSpeed  = moveSpeed * dashMultiplier;
 		float runWeight = (maxSpeed > 0.0f) ? (currentSpeed / maxSpeed) : 0.0f;
-		runWeight = std::max(0.0f, std::min(1.0f, runWeight));
+		runWeight = (std::max)(0.0f, (std::min)(1.0f, runWeight));
 		float idleWeight = 1.0f - runWeight;
 
 		if (grounded) {
