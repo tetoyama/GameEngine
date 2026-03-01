@@ -1,6 +1,7 @@
 #include "Hierarchy.h"
 #include <ImGui/imgui_internal.h>
 #include <memory>
+#include <vector>
 #include <cinttypes>
 #include <sceneManager.h>
 #include "Editor/editorService.h"
@@ -22,7 +23,6 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 	bool* showSceneHierarchy = &m_editor->GetUI<MenuBar>()->showSceneHierarchy;
 	SceneManagerContext* sceneManagerContext = m_editor->sceneManager->GetContext();
 	std::shared_ptr<Scene> sceneToDelete = nullptr;
-	Entity deleteEntity = 0;
 
 	if(!showSceneHierarchy || !*showSceneHierarchy){
 		return;
@@ -162,8 +162,7 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 			}
 
 			if(deleteEntity != 0){
-				context->entity->Destroy(deleteEntity);
-				context->component->OnEntityDestroyed(deleteEntity);
+				DestroyEntityRecursive(deleteEntity, context);
 				deleteEntity = 0;
 			}
 
@@ -171,6 +170,22 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 		}
 	}
 	ImGui::End();
+}
+
+void Hierarchy::DestroyEntityRecursive(Entity entity, SceneContext* context){
+	// 子エンティティを先に収集（Destroy中にセットを変更しないため）
+	std::vector<Entity> children;
+	for(Entity child : context->entity->GetAllAlive()){
+		auto* t = context->component->GetComponent<TransformComponent>(child);
+		if(t && t->parent == entity){
+			children.push_back(child);
+		}
+	}
+	for(Entity child : children){
+		DestroyEntityRecursive(child, context);
+	}
+	context->entity->Destroy(entity);
+	context->component->OnEntityDestroyed(entity);
 }
 
 void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities){
@@ -290,12 +305,13 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			if(selectedEntity == entity){
 				selectedEntity = 0;
 			}
+			if(pendingRenameEntity == entity){
+				pendingRenameEntity = 0;
+			}
 
-			//context->entity->Destroy(entity);
-			//context->component->OnEntityDestroyed(entity);
 			ImGui::EndPopup();
-			if(opened){
-				//ImGui::TreePop();
+			if(opened && hasChildren){
+				ImGui::TreePop();
 			}
 			return;
 		}
