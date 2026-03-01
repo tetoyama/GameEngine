@@ -7,7 +7,7 @@
 #include <scene.h>
 #include <Component/transformComponent.h>
 #include <Component/entityNameComponent.h>
-#include "System/Prefab/PrefabSystem.h"
+#include "Prefab/PrefabSystem.h"
 #include <commdlg.h>
 #include <filesystem>
 

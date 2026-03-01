@@ -33,7 +33,7 @@
 #include "Registry/entityRegistry.h"
 #include "Registry/componentRegistry.h"
 #include "Registry/systemRegistry.h"
-#include "System/Prefab/PrefabSystem.h"
+#include "Prefab/PrefabSystem.h"
 
 #include "Component/componentList.h"
 
