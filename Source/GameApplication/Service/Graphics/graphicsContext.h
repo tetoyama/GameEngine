@@ -141,7 +141,10 @@ public:
 		return csSkinning;
 	}
 	// 描画
-	void ApplyPostProcessChain(std::vector<PostProcessNode>& effects, ID3D11ShaderResourceView* initialSRV);
+	void ApplyPostProcessChain(std::vector<PostProcessNode>& effects,
+	                           ID3D11ShaderResourceView* initialSRV,
+	                           ID3D11ShaderResourceView* const* gbufferSRVs = nullptr,
+	                           int gbufferCount = 0);
 
 	ID3D11ShaderResourceView* GetPostProcessResultSRV() const{
 		return GetCurrentSRV();

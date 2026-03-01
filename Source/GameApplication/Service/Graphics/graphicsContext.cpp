@@ -791,7 +791,8 @@ void GraphicsContext::ResetBuffer(const float clearColor[4]){
 	m_DeviceContext->OMSetRenderTargets(1, m_RTV.GetAddressOf(), m_DepthStencilView);
 }
 
-void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effects, ID3D11ShaderResourceView* initialSRV){
+void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effects, ID3D11ShaderResourceView* initialSRV,
+                                             ID3D11ShaderResourceView* const* gbufferSRVs, int gbufferCount){
 	for(auto& node : effects){
 
 		ID3D11ShaderResourceView* nullSRV[TextureSlot_Max] = {nullptr};
@@ -808,9 +809,24 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 			}
 			m_DeviceContext->PSSetShaderResources(static_cast<UINT>(i), 1, &inputSRV);
 		}
+
+		// GBuffer を固定スロット (PostEffectGBufferSlot_Start 以降) にバインド
+		if(gbufferSRVs && gbufferCount > 0){
+			for(int g = 0; g < gbufferCount; ++g){
+				m_DeviceContext->PSSetShaderResources(PostEffectGBufferSlot_Start + g, 1, &gbufferSRVs[g]);
+			}
+		}
+
 		SetParameter(node.param);
 
 		DrawQuad(&node.shader, nullptr); // SRV はすでに PSSetShaderResources でセット済み
+	}
+
+	// GBuffer スロットを解除
+	if(gbufferSRVs && gbufferCount > 0){
+		ID3D11ShaderResourceView* nullGBuf[PostEffectGBufferSlot_Count] = {nullptr};
+		int unbindCount = (gbufferCount < PostEffectGBufferSlot_Count) ? gbufferCount : PostEffectGBufferSlot_Count;
+		m_DeviceContext->PSSetShaderResources(PostEffectGBufferSlot_Start, unbindCount, nullGBuf);
 	}
 
 	if(!effects.empty()){

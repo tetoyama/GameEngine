@@ -47,6 +47,16 @@
 
 #define LightingSlot_Max        (7)
 
+// ポストエフェクト用 GBuffer スロット (TextureSlot_Max 以降の固定スロット)
+#define PostEffectGBufferSlot_Start     (8)
+#define PostEffectGBufferSlot_Albedo    (8)
+#define PostEffectGBufferSlot_Normal    (9)
+#define PostEffectGBufferSlot_Position  (10)
+#define PostEffectGBufferSlot_Material  (11)
+#define PostEffectGBufferSlot_Emissive  (12)
+#define PostEffectGBufferSlot_Param     (13)
+#define PostEffectGBufferSlot_Count     (6)
+
 
 #define LIGHT_TYPE_NONE				(0)
 #define LIGHT_TYPE_DIRECTIONAL		(1)

@@ -411,7 +411,13 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 		ID3D11RenderTargetView* nullRTV[1] = {nullptr};
 		deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);
 
-		graphics->ApplyPostProcessChain(postNodes, initialSRV);
+		// GBuffer SRV を収集してポストエフェクトチェーンに渡す
+		ID3D11ShaderResourceView* gbufferSRVs[GBufferSlot_Max] = {};
+		for(int g = 0; g < GBufferSlot_Max; ++g){
+			gbufferSRVs[g] = gBufferPass->pRenderTargets[g]->srv.Get();
+		}
+
+		graphics->ApplyPostProcessChain(postNodes, initialSRV, gbufferSRVs, GBufferSlot_Max);
 
 		result = graphics->m_CurrentSRV;
 	} else {

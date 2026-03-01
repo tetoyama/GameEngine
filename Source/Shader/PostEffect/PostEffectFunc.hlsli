@@ -5,12 +5,13 @@
 //======================================================
 // G-Buffer 定義
 //======================================================
-Texture2D GAlbedo : register(t0);
-Texture2D GNormal : register(t1);
-Texture2D GPosition : register(t2);
-Texture2D GMaterial : register(t3);
-Texture2D GEmissive : register(t4);
-Texture2D<uint4> GParam : register(t5);
+// GBuffer テクスチャ - ポストエフェクト用固定スロット (see PostEffectGBufferSlot_* in commonDefine.h)
+Texture2D GAlbedo   : register(t8);   // PostEffectGBufferSlot_Albedo
+Texture2D GNormal   : register(t9);   // PostEffectGBufferSlot_Normal
+Texture2D GPosition : register(t10);  // PostEffectGBufferSlot_Position
+Texture2D GMaterial : register(t11);  // PostEffectGBufferSlot_Material
+Texture2D GEmissive : register(t12);  // PostEffectGBufferSlot_Emissive
+Texture2D<uint4> GParam : register(t13); // PostEffectGBufferSlot_Param
 
 SamplerState LinearSampler : register(s0);
 
