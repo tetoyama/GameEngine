@@ -324,6 +324,12 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 
 		case ColliderType::Mesh:
 			if (col.pxTriangleMesh) {
+				// Triangle mesh shapes cannot be used as eSIMULATION_SHAPE on a non-kinematic
+				// PxRigidDynamic. Promote the actor to kinematic before attaching.
+				if (actor->getType() == physx::PxActorType::eRIGID_DYNAMIC) {
+					static_cast<physx::PxRigidDynamic*>(actor)->setRigidBodyFlag(
+						physx::PxRigidBodyFlag::eKINEMATIC, true);
+				}
 				physx::PxTriangleMeshGeometry geom(
 					col.pxTriangleMesh,
 					physx::PxMeshScale(physx::PxVec3(scale.x, scale.y, scale.z)),
@@ -336,6 +342,12 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 		case ColliderType::HeightMap:
 		{
 			if (col.pxHeightField) {
+				// Heightfield shapes cannot be used as eSIMULATION_SHAPE on a non-kinematic
+				// PxRigidDynamic. Promote the actor to kinematic before attaching.
+				if (actor->getType() == physx::PxActorType::eRIGID_DYNAMIC) {
+					static_cast<physx::PxRigidDynamic*>(actor)->setRigidBodyFlag(
+						physx::PxRigidBodyFlag::eKINEMATIC, true);
+				}
 				physx::PxU32 nbRows    = col.pxHeightField->getNbRows();
 				physx::PxU32 nbCols    = col.pxHeightField->getNbColumns();
 				int gridSize = (int)nbRows - 1;
