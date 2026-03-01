@@ -115,8 +115,8 @@ public:
 	void SetUVMatrixBuffer(const UVMatrixBuffer& uv);
 	void SetMaterial(const MATERIAL& Material);
 	void SetLight(LightBuffer* Light);
-	void SetCameraBuffer(const CameraBuffer& CameraBuffer);
-	void SetParameter(const ParameterBuffer& Parameter);
+	void SetCameraPosition(const float4& cameraPosition);
+	void SetParameter(const float4& param);
 	void SetObjectInfo(const ObjectInfo& ObjectInfo);
 
 	void ResetViewport();

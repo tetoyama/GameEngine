@@ -299,9 +299,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 			newContext.projectionMatrix = DirectX::XMMatrixTranspose(XMLoadFloat4x4(&light.Lights[i].LightProjection));
 
 			// GraphicsContext に反映
-			CameraBuffer camSetter{};
-			camSetter.CameraPosition = newContext.CameraPosition;
-			graphicsContext->SetCameraBuffer(camSetter);
+			graphicsContext->SetCameraPosition(newContext.CameraPosition);
 			graphicsContext->SetViewMatrix(newContext.viewMatrix);
 			graphicsContext->SetProjectionMatrix(newContext.projectionMatrix);
 

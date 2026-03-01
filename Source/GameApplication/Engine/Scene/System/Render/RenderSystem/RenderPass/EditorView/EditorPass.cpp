@@ -116,9 +116,7 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 
 	ID3D11ShaderResourceView* initialSRV = editorRenderTarget->srv.Get();
 
-	CameraBuffer CameraBuffer{};
-	CameraBuffer.CameraPosition = ctx.CameraPosition;
-	graphicsContext->SetCameraBuffer(CameraBuffer);
+	graphicsContext->SetCameraPosition(ctx.CameraPosition);
 
 	graphicsContext->SetViewMatrix(ctx.viewMatrix);
 	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);

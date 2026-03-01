@@ -142,9 +142,7 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 	newCtx.renderLayerVisibility[RenderLayer::OverlayUI] = false;
 
 	// ----- CameraBuffer -----
-	CameraBuffer cam{};
-	cam.CameraPosition = ctx.CameraPosition;
-	gc->SetCameraBuffer(cam);
+	gc->SetCameraPosition(ctx.CameraPosition);
 	gc->SetViewMatrix(ctx.viewMatrix);
 	gc->SetProjectionMatrix(ctx.projectionMatrix);
 

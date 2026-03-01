@@ -122,9 +122,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	shadowMapPass->Execute(ctx);
 
 
-	CameraBuffer CameraBuffer{};
-	CameraBuffer.CameraPosition = ctx.CameraPosition;
-	graphicsContext->SetCameraBuffer(CameraBuffer);
+	graphicsContext->SetCameraPosition(ctx.CameraPosition);
 	graphicsContext->SetViewMatrix(ctx.viewMatrix);
 	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
 

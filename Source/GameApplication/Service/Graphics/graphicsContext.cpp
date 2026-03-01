@@ -164,13 +164,13 @@ void GraphicsContext::SetLight(LightBuffer* light){
 	m_DeviceContext->UpdateSubresource(m_CbPerFrame, 0, nullptr, &m_CbPerFrameData, 0, 0);
 }
 
-void GraphicsContext::SetCameraBuffer(const CameraBuffer& cameraBuffer){
-	m_CbPerCameraData.CameraPosition = cameraBuffer.CameraPosition;
+void GraphicsContext::SetCameraPosition(const float4& cameraPosition){
+	m_CbPerCameraData.CameraPosition = cameraPosition;
 	m_DeviceContext->UpdateSubresource(m_CbPerCamera, 0, nullptr, &m_CbPerCameraData, 0, 0);
 }
 
-void GraphicsContext::SetParameter(const ParameterBuffer& parameter){
-	m_CbPerObjectData.Parameter = parameter.Parameter;
+void GraphicsContext::SetParameter(const float4& param){
+	m_CbPerObjectData.Parameter = param;
 	m_DeviceContext->UpdateSubresource(m_CbPerObject, 0, nullptr, &m_CbPerObjectData, 0, 0);
 }
 
@@ -411,9 +411,7 @@ bool GraphicsContext::CreateConstantBuffers(){
 	SetUVMatrixBuffer(uv);
 
 	// カメラ初期化
-	CameraBuffer cam{};
-	cam.CameraPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	SetCameraBuffer(cam);
+	SetCameraPosition(DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f));
 
 	return SUCCEEDED(hr);
 }
@@ -810,9 +808,7 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 			}
 			m_DeviceContext->PSSetShaderResources(static_cast<UINT>(i), 1, &inputSRV);
 		}
-		ParameterBuffer param;
-		param.Parameter = node.param;
-		SetParameter(param);
+		SetParameter(node.param);
 
 		DrawQuad(&node.shader, nullptr); // SRV はすでに PSSetShaderResources でセット済み
 	}

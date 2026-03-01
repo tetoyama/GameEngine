@@ -140,12 +140,11 @@ CBUFFER(CbPerObject, 2)
 };
 
 #ifdef __cplusplus
-// C++ 後方互換: セッター関数の引数として使う個別パラメータ構造体
+// UV スライス情報 (UVStart/UVEnd の 2フィールドをまとめる)
 struct UVMatrixBuffer { float2 UVStart; float2 UVEnd; };
-struct CameraBuffer   { float4 CameraPosition; };
-struct ParameterBuffer{ float4 Parameter; };
+// オブジェクト識別情報 (SceneID / ObjectID / ShaderID をまとめる)
 struct ObjectInfo     { uint SceneID; uint ObjectID; uint ShaderID; uint _pad; };
-// LightBuffer は CbPerFrame と同一レイアウト
+// LightBuffer は CbPerFrame と同一 (親しみのある型名を維持)
 using LightBuffer = CbPerFrame;
 #endif
 #ifndef __cplusplus
