@@ -13,7 +13,8 @@ inline std::shared_ptr<VertexShaderData> LoadVertexShaderFromFile(const std::str
 	if (!HasExtension(path, "cso")) return nullptr;
 
 	auto shader = std::make_shared<VertexShaderData>();
-	context->CreateVertexShader(path.c_str(), &shader->m_VertexShader, &shader->m_VertexLayout);
+	if (!context->CreateVertexShader(path.c_str(), &shader->m_VertexShader, &shader->m_VertexLayout))
+		return nullptr;
 	shader->FilePath = path;
 	return shader;
 }

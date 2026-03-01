@@ -37,6 +37,8 @@ void PhysXDebugPass::Finalize(){
 }
 
 void PhysXDebugPass::Execute(const RenderPassContext& ctx){
+	if (!m_LineVertexShader || !m_LinePixelShader) return;
+
 	auto graphicsContext = m_context->graphics;
 	//graphicsContext->SetDepthMode(DepthMode::Disable);
 
