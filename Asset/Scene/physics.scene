@@ -37,6 +37,7 @@ Entities:
             lockRotY: false
             lockRotZ: false
             isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 3
         Material:
@@ -238,6 +239,7 @@ Entities:
             lockRotY: true
             lockRotZ: true
             isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 4
         Material:
@@ -326,8 +328,36 @@ Entities:
             - -1.03712082e-05
             - 6.32452393
             - 1
-        nextLinkId: 1
-        nextPinId: 2
+        nextLinkId: 3
+        nextPinId: 5
+        PostEffects:
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\OutlineByShaderID.cso
+            NodePos:
+              x: 101
+              y: 58
+            InputPins:
+              - 2
+              - 4
+            OutputPin: 3
+            Param:
+              x: 4
+              y: 3
+              z: 0
+              w: 0
+        PostEffectLinks:
+          - ID: 1
+            StartNode: 0
+            EndNode: -2
+            StartAttr: 3
+            EndAttr: 1
+          - ID: 2
+            StartNode: -1
+            EndNode: 0
+            StartAttr: -1
+            EndAttr: 2
         ScreenInput:
           Name: ""
           NodePos:
@@ -337,8 +367,8 @@ Entities:
         ScreenOutput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: 345
+            y: 44
           InputPins:
             - 1
       - Component: CameraController
@@ -385,6 +415,7 @@ Entities:
             lockRotY: false
             lockRotZ: false
             isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 3
         Material:
@@ -445,8 +476,9 @@ Entities:
             lockRotY: false
             lockRotZ: false
             isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
-        ShaderID: 4
+        ShaderID: 3
         Material:
           BaseColor:
             x: 1
@@ -505,6 +537,7 @@ Entities:
             lockRotY: false
             lockRotZ: false
             isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 2
         Material:
@@ -565,6 +598,7 @@ Entities:
             lockRotY: false
             lockRotZ: false
             isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 4
         Material:

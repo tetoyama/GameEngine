@@ -36,6 +36,8 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -62,7 +64,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 2525.58594
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -87,9 +89,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: -30.7847443
-          y: 39.0819397
-          z: -34.766655
+          x: -29.0529213
+          y: 36.0819397
+          z: -24.9116287
           w: 0
         Direction:
           x: 0.61569488
@@ -116,17 +118,17 @@ Entities:
             - 0.540302277
             - 0
             - -0.841470957
-            - -12.6220627
+            - -5.2650528
           -
             - 0.573579311
             - 0.731688797
             - 0.36829102
-            - 1.86592102
+            - -0.561867714
           -
             - 0.61569494
             - -0.681638837
             - 0.395333141
-            - 59.338192
+            - 52.3309822
           -
             - 0
             - 0
@@ -198,21 +200,21 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\sky.fbx
         isBlender: true
-        AnimationTime: 0
+        AnimationTime: 2525.58594
   - Entity: 4
     Components:
       - Component: NameComponent
         Name: Player
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 0
-          z: 0
+          x: 1.73182213
+          y: -7.70727638e-07
+          z: 0.855025053
         Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
+          - -1.75877545e-07
+          - 0.934560895
+          - 1.73918025e-07
+          - -0.355803341
         Scale:
           x: 0.00999999978
           y: 0.00999999978
@@ -221,7 +223,7 @@ Entities:
       - Component: ColliderComponent
         isDynamic: true
         autoMass: true
-        Mass: 0
+        Mass: 1
         colliders:
           - type: 2
             size: [1, 1, 1]
@@ -236,6 +238,23 @@ Entities:
             lockRotX: true
             lockRotY: true
             lockRotZ: true
+            isTrigger: false
+            boneName: ""
+          - type: 1
+            size: [20, 20, 20]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 18.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: true
+            lockRotY: true
+            lockRotZ: true
+            isTrigger: true
+            boneName: mixamorig:LeftHand
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -257,7 +276,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Y Bot.fbx
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 2525.58594
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           Run: Asset\Model\Akai_Run.fbx
@@ -272,6 +291,7 @@ Entities:
         stamina: 5
         staminaConsumeRate: 1.5
         staminaRecoverRate: 1
+        aaa: 1
         jumpPower: 4
         Stamina: 5
       - Component: ScriptComponent
@@ -285,9 +305,9 @@ Entities:
         Name: CameraBuffer
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 5
-          z: -15
+          x: 1.73182213
+          y: 1.99999928
+          z: -5.14497471
         Rotation:
           - 0
           - 0
@@ -299,11 +319,11 @@ Entities:
           z: 1
         Parent: 0
       - Component: CameraComponent
-        isLock: false
+        isLock: true
         Target:
-          x: 0
-          y: 0
-          z: 0
+          x: 1.73182213
+          y: -7.70727638e-07
+          z: 0.855025053
         NearClip: 0.00999999978
         FarClip: 1024
         FOV: 1
@@ -315,18 +335,18 @@ Entities:
             - 0
           -
             - 0
-            - 1
-            - 0
-            - 0
-          -
-            - 0
-            - 0
-            - 1
+            - 0.948683262
+            - -0.316227764
             - 0
           -
+            - -0
+            - 0.316227764
+            - 0.948683262
             - 0
-            - -5
-            - 15
+          -
+            - -1.73182213
+            - -0.270381927
+            - 5.51340675
             - 1
         nextLinkId: 1
         nextPinId: 1

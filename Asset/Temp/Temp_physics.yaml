@@ -201,6 +201,84 @@ Entities:
         FilePath: Asset\Model\sky.fbx
         isBlender: true
         AnimationTime: 86.696022
+  - Entity: 4
+    Components:
+      - Component: NameComponent
+        Name: Player
+      - Component: TransformComponent
+        Position:
+          x: -0.345527351
+          y: 1.14242242e-08
+          z: 3.28306087e-05
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.00999999978
+          y: 0.00999999978
+          z: 0.00999999978
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: true
+        autoMass: true
+        Mass: 1
+        colliders:
+          - type: 2
+            size: [1, 1, 1]
+            offset: [0, 75, 0]
+            rotationOffset: [0, 0, 90]
+            radius: 25
+            height: 100
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: true
+            lockRotY: true
+            lockRotZ: true
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 4
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\Y Bot.fbx
+        isBlender: false
+        AnimationTime: 86.696022
+        Animations:
+          Idle: Asset\Model\Akai_Idle.fbx
+          Run: Asset\Model\Akai_Run.fbx
+      - Component: PlayerController
+        moveSpeed: 6
+        health: 0
+        isInvincible: false
+        dashMultiplier: 2
+        accel: 10
+        rotateSpeed: 8
+        maxStamina: 5
+        stamina: 5
+        staminaConsumeRate: 1.5
+        staminaRecoverRate: 1
+        aaa: 1
+        jumpPower: 5
+        Stamina: 5
   - Entity: 5
     Components:
       - Component: NameComponent
@@ -250,8 +328,36 @@ Entities:
             - -1.03712082e-05
             - 6.32452393
             - 1
-        nextLinkId: 1
-        nextPinId: 2
+        nextLinkId: 3
+        nextPinId: 5
+        PostEffects:
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\OutlineByShaderID.cso
+            NodePos:
+              x: 101
+              y: 58
+            InputPins:
+              - 2
+              - 4
+            OutputPin: 3
+            Param:
+              x: 4
+              y: 3
+              z: 0
+              w: 0
+        PostEffectLinks:
+          - ID: 1
+            StartNode: 0
+            EndNode: -2
+            StartAttr: 3
+            EndAttr: 1
+          - ID: 2
+            StartNode: -1
+            EndNode: 0
+            StartAttr: -1
+            EndAttr: 2
         ScreenInput:
           Name: ""
           NodePos:
@@ -261,8 +367,8 @@ Entities:
         ScreenOutput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: 345
+            y: 44
           InputPins:
             - 1
       - Component: CameraController
@@ -372,7 +478,7 @@ Entities:
             isTrigger: false
             boneName: ""
       - Component: MaterialComponent
-        ShaderID: 4
+        ShaderID: 3
         Material:
           BaseColor:
             x: 1
@@ -586,99 +692,3 @@ Entities:
         FilePath: Asset/Model\ball.fbx
         isBlender: false
         AnimationTime: 86.696022
-  - Entity: 4
-    Components:
-      - Component: NameComponent
-        Name: Player
-      - Component: TransformComponent
-        Position:
-          x: 1.30621755
-          y: -6.51518349e-07
-          z: 9.11010361
-        Rotation:
-          - 1.23091172e-16
-          - 0.932829142
-          - 9.51927638e-18
-          - -0.360319078
-        Scale:
-          x: 0.00999999978
-          y: 0.00999999978
-          z: 0.00999999978
-        Parent: 0
-      - Component: ColliderComponent
-        isDynamic: true
-        autoMass: true
-        Mass: 1
-        colliders:
-          - type: 2
-            size: [1, 1, 1]
-            offset: [0, 75, 0]
-            rotationOffset: [0, 0, 90]
-            radius: 25
-            height: 100
-            staticFriction: 0
-            dynamicFriction: 0
-            restitution: 0
-            collisionLayer: 0
-            lockRotX: true
-            lockRotY: true
-            lockRotZ: true
-            isTrigger: false
-            boneName: ""
-          - type: 1
-            size: [1, 1, 1]
-            offset: [0, 0, 0]
-            rotationOffset: [0, 0, 0]
-            radius: 14.3999996
-            height: 1
-            staticFriction: 0
-            dynamicFriction: 0
-            restitution: 0
-            collisionLayer: 0
-            lockRotX: true
-            lockRotY: true
-            lockRotZ: true
-            isTrigger: true
-            boneName: mixamorig:LeftHand
-      - Component: MaterialComponent
-        ShaderID: 1
-        Material:
-          BaseColor:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Metallic: 0
-          Roughness: 0
-          AO: 0
-          EmissiveColor:
-            x: 0
-            y: 0
-            z: 0
-          EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\Y Bot.fbx
-        isBlender: false
-        AnimationTime: 3436.77515
-        Animations:
-          Idle: Asset\Model\Akai_Idle.fbx
-          Run: Asset\Model\Akai_Run.fbx
-      - Component: PlayerController
-        moveSpeed: 6
-        health: 0
-        isInvincible: false
-        dashMultiplier: 2
-        accel: 10
-        rotateSpeed: 8
-        maxStamina: 5
-        stamina: 5
-        staminaConsumeRate: 1.5
-        staminaRecoverRate: 1
-        aaa: 1
-        jumpPower: 4
-        Stamina: 5
-      - Component: PrefabComponent
-        FilePath: C:\Users\teto_\source\repos\GameEngine\Asset\Prefab\Player.prefab
-        SourceYaml: "Entities:\n  - LocalID: 0\n    Components:\n      - Component: NameComponent\n        Name: Player\n      - Component: TransformComponent\n        Position:\n          x: 1.30621755\n          y: -6.51518349e-07\n          z: 9.11010361\n        Rotation:\n          - 1.23091172e-16\n          - 0.932829142\n          - 9.51927638e-18\n          - -0.360319078\n        Scale:\n          x: 0.00999999978\n          y: 0.00999999978\n          z: 0.00999999978\n        Parent: 0\n      - Component: ColliderComponent\n        isDynamic: true\n        autoMass: true\n        Mass: 1\n        colliders:\n          - type: 2\n            size: [1, 1, 1]\n            offset: [0, 75, 0]\n            rotationOffset: [0, 0, 90]\n            radius: 25\n            height: 100\n            staticFriction: 0\n            dynamicFriction: 0\n            restitution: 0\n            collisionLayer: 0\n            lockRotX: true\n            lockRotY: true\n            lockRotZ: true\n            isTrigger: false\n            boneName: \"\"\n          - type: 1\n            size: [1, 1, 1]\n            offset: [0, 0, 0]\n            rotationOffset: [0, 0, 0]\n            radius: 14.3999996\n            height: 1\n            staticFriction: 0\n            dynamicFriction: 0\n            restitution: 0\n            collisionLayer: 0\n            lockRotX: true\n            lockRotY: true\n            lockRotZ: true\n            isTrigger: true\n            boneName: mixamorig:LeftHand\n      - Component: MaterialComponent\n        ShaderID: 1\n        Material:\n          BaseColor:\n            x: 1\n            y: 1\n            z: 1\n            w: 1\n          Metallic: 0\n          Roughness: 0\n          AO: 0\n          EmissiveColor:\n            x: 0\n            y: 0\n            z: 0\n          EmissiveIntensity: 0\n          UseDiffuseTexture: false\n          UseNormalTexture: false\n      - Component: ModelRendererComponent\n        FilePath: Asset\\Model\\Y Bot.fbx\n        isBlender: false\n        AnimationTime: 3436.77515\n        Animations:\n          Idle: Asset\\Model\\Akai_Idle.fbx\n          Run: Asset\\Model\\Akai_Run.fbx\n      - Component: PlayerController\n        moveSpeed: 6\n        health: 0\n        isInvincible: false\n        dashMultiplier: 2\n        accel: 10\n        rotateSpeed: 8\n        maxStamina: 5\n        stamina: 5\n        staminaConsumeRate: 1.5\n        staminaRecoverRate: 1\n        aaa: 1\n        jumpPower: 4\n        Stamina: 5"

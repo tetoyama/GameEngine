@@ -37,6 +37,7 @@ Entities:
             lockRotY: false
             lockRotZ: false
             isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -238,6 +239,7 @@ Entities:
             lockRotY: true
             lockRotZ: true
             isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 1
         Material:
