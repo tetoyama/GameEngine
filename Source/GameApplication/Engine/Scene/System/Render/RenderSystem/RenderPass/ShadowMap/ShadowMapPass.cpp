@@ -193,6 +193,15 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 							splitDepths[c] = logSplit * csmLambda + uniSplit * (1.0f - csmLambda);
 						}
 
+						// 最短カスケードのみ対数寄りに補正して近距離精度を向上
+						{
+							constexpr float nearestCascadeLambda = 0.75f;
+							float p0 = 1.0f / (float)DIRECTIONAL_CSM_CASCADE_COUNT;
+							float logSplit0 = cameraNear * powf(cameraFar / cameraNear, p0);
+							float uniSplit0 = cameraNear + (cameraFar - cameraNear) * p0;
+							splitDepths[0] = logSplit0 * nearestCascadeLambda + uniSplit0 * (1.0f - nearestCascadeLambda);
+						}
+
 						// CbCSM にスプリット深度を格納 (float4 2本にパック)
 						csmData.CsmSplitDepths[0] = XMFLOAT4(
 							splitDepths[0], splitDepths[1], splitDepths[2], splitDepths[3]);
