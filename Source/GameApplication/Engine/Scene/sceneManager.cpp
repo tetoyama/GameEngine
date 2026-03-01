@@ -16,6 +16,7 @@
 #include "Service/Config/configSystem.h"
 
 #include "System/Transform/transformSystem.h"
+#include "System/Transform/followSystem.h"
 
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "System/Render/Camera/CameraSystem.h"
@@ -58,6 +59,7 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 	systemRegistry->RegisterSystem(std::make_unique<ScriptSystem>(&m_SceneContext));
 
 	systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
+	systemRegistry->RegisterSystem(std::make_unique<FollowSystem>(&m_SceneContext));
 	systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
 	systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
 	systemRegistry->RegisterSystem(std::make_unique<AudioSystem>(&m_SceneContext));
