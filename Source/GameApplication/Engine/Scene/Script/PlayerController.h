@@ -184,9 +184,11 @@ public:
 			physx::PxVec3 velocity = rigid->getLinearVelocity();
 
 			// Raycast（足元）
+			// アクター原点はカプセル底部とほぼ同じ高さのためレイ始点を少し上に置き、
+			// HeightField（サーフェスメッシュ）を上方から正しく検出できるようにする。
 			physx::PxVec3 rayPos(
 				transform->position.x,
-				transform->position.y - 0.05f,
+				transform->position.y + 0.05f,
 				transform->position.z
 			);
 
@@ -197,7 +199,7 @@ public:
 				->GetSystem<PhysicSystem>()
 				->RaycastWithMask(rayPos, rayDir, 0.3f, 0);
 
-			isGround = hit.hit && hit.distance < 0.05f;
+			isGround = hit.hit && hit.distance < 0.1f;
 
 			// 入力方向（正規化済み想定）
 			physx::PxVec3 wishDir(dir.x, 0.0f, dir.z);
