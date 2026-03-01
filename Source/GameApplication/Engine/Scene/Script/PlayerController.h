@@ -35,7 +35,8 @@ class PlayerController: public CustomScriptComponent {
 	bool isJumpPressed = false;
 
 	// RayCast 時に除外する自身のレイヤービット（インスペクターで設定）
-	uint32_t selfLayerBit = 0;
+	// デフォルトはデフォルトのプレイヤーレイヤー (1u << 1)
+	uint32_t selfLayerBit = 1u << 1;
 
 	ComponentRef<TransformComponent> transform;
 	ComponentRef<TransformComponent> CameraBufferTransform;
