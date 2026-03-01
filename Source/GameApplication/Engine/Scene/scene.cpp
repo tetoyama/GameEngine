@@ -180,7 +180,7 @@ void Scene::BuildDefaultScene(){
 
 		// LightComponentを追加
 		auto* light = componentRegistry->AddComponent<LightComponent>(entity);
-		light->light.LightType = LIGHT_TYPE_DIRECTIONAL;
+		light->light.LightType = LIGHT_TYPE_DIRECTIONAL_CSM;
 		light->light.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		light->light.Ambient = DirectX::XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
 		light->light.Param.x = 500.0f;

@@ -64,6 +64,17 @@ void ShadowMapPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* 
 
 	m_RenderablePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\shadowPS.cso");
 
+	// DepthClipEnable=FALSE のラスタライザステートを作成
+	// フラスタム外の shadow caster が light-space Z < 0 でもクリップされず、
+	// near plane にクランプされることで正しく影を落とせるようにする
+	D3D11_RASTERIZER_DESC rsDesc = {};
+	rsDesc.FillMode = D3D11_FILL_SOLID;
+	rsDesc.CullMode = D3D11_CULL_BACK;
+	rsDesc.DepthClipEnable = FALSE;
+	rsDesc.MultisampleEnable = FALSE;
+	HRESULT hr = context->graphics->GetDevice()->CreateRasterizerState(&rsDesc, &depthClampRS);
+	assert(SUCCEEDED(hr));
+
 }
 
 void ShadowMapPass::Finalize() {
@@ -71,6 +82,11 @@ void ShadowMapPass::Finalize() {
 
 	shadowSampler->Release();
 	shadowSampler = nullptr;
+
+	if (depthClampRS){
+		depthClampRS->Release();
+		depthClampRS = nullptr;
+	}
 
 	delete shadowRenderTarget;
 	shadowRenderTarget = nullptr;
@@ -96,6 +112,10 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 		deviceContext->ClearDepthStencilView(shadowRenderTarget->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		deviceContext->OMSetRenderTargets(1, shadowRenderTarget->rtv.GetAddressOf(), shadowRenderTarget->dsv.Get());
 	}
+
+	// DepthClipEnable=FALSE で shadow caster をレンダリング:
+	// light-space Z < 0 の caster (視錐台より光源側にある高い物体等) を near plane にクランプして影を正しく描画する
+	deviceContext->RSSetState(depthClampRS);
 
 	RenderPassContext newContext = ctx;
 	newContext.passPhase = RenderPhase::PHASE_SHADOW;
@@ -533,6 +553,9 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 	if(hasCsmLight){
 		graphicsContext->SetCSM(csmData);
 	}
+
+	// デフォルトのラスタライザステートに戻す (DepthClipEnable=TRUE)
+	deviceContext->RSSetState(nullptr);
 
 	deviceContext->OMSetRenderTargets(0, nullptr, nullptr);
 	//deviceContext->PSSetShaderResources(TextureSlot_ShadowMap, 1, nullSRV);
