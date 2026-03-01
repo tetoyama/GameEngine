@@ -90,8 +90,6 @@ bool PrefabSystem::SavePrefab(EntityRef ref, const std::string& filePath) {
 		YAML::Node componentsSeq = YAML::Node(YAML::NodeType::Sequence);
 		for (IComponent* comp : context->component->GetAllComponentsOfEntitySorted(e)) {
 			if (!comp) continue;
-			// PrefabComponent はランタイム管理用のため、プレファブファイルには書き出さない
-			if (dynamic_cast<PrefabComponent*>(comp)) continue;
 
 			std::type_index ti(typeid(*comp));
 			ComponentTypeID compId = context->component->GetComponentIDByTypeIndex(ti);
