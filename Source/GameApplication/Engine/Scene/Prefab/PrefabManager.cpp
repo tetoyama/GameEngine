@@ -4,6 +4,9 @@
 #include <filesystem>
 #include <backends/yaml-cpp/yaml.h>
 
+#include "Resources/Data/prefabData.h"
+#include "Resources/resourceService.h"
+#include "sceneManager.h"
 #include "Registry/componentRegistry.h"
 #include "Registry/entityRegistry.h"
 #include "Interface/IComponent.h"
@@ -42,24 +45,45 @@ bool PrefabManager::SavePrefab(Entity entity, SceneContext* context, const std::
 	}
 	root["Components"] = componentsNode;
 
-	std::ofstream fout(filePath, std::ios::binary);
+	std::ofstream fout(filePath);
 	if (!fout.is_open()) return false;
 	fout << root;
+
+	// 保存後にキャッシュを無効化する（次回ロード時に最新の内容が使われるよう）
+	if (context->manager && context->manager->resource) {
+		context->manager->resource->Unload<PrefabData>(filePath);
+	}
+
 	return true;
 }
 
 Entity PrefabManager::InstantiatePrefab(SceneContext* context, const std::string& filePath) {
-	if (!context || !context->entity || !context->component) return 0;
+	if (!context) return 0;
 
+	// リソースシステム経由でロード（キャッシュが効く）
+	if (context->manager && context->manager->resource) {
+		auto data = context->manager->resource->Load<PrefabData>(filePath);
+		if (!data) return 0;
+		return Instantiate(context, data);
+	}
+
+	// リソースシステムが使えない場合は直接ロード（フォールバック）
 	std::ifstream fin(filePath);
 	if (!fin.is_open()) return 0;
+	auto data = std::make_shared<PrefabData>();
+	data->filePath = filePath;
+	data->root = YAML::Load(fin);
+	if (!data->root["Components"] || !data->root["Components"].IsSequence()) return 0;
+	return Instantiate(context, data);
+}
 
-	YAML::Node root = YAML::Load(fin);
-	if (!root["Components"] || !root["Components"].IsSequence()) return 0;
+Entity PrefabManager::Instantiate(SceneContext* context, const std::shared_ptr<PrefabData>& data) {
+	if (!context || !context->entity || !context->component) return 0;
+	if (!data || !data->root["Components"] || !data->root["Components"].IsSequence()) return 0;
 
 	Entity newEntity = context->entity->Create();
 
-	for (const auto& compNode : root["Components"]) {
+	for (const auto& compNode : data->root["Components"]) {
 		if (!compNode["Component"]) continue;
 		const std::string compType = compNode["Component"].as<std::string>();
 		context->component->CreateFromYAML(compType, newEntity, compNode);

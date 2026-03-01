@@ -54,7 +54,8 @@ struct hash<EntityRef> {
 	size_t operator()(const EntityRef& ref) const noexcept {
 		size_t h1 = std::hash<Entity>{}(ref.GetEntityID());
 		size_t h2 = std::hash<SceneContext*>{}(ref.GetScene());
-		return h1 ^ (h2 << 32 | h2 >> 32);
+		// boost::hash_combine と同等の混合式
+		return h1 ^ (h2 + 0x9e3779b9u + (h1 << 6) + (h1 >> 2));
 	}
 };
 } // namespace std

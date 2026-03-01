@@ -8,6 +8,7 @@
 #include "Data/audioData.h"
 #include "Data/effectData.h"
 #include "Data/llamaModelData.h"
+#include "Data/prefabData.h"
 
 #include "Loader/textureLoader.h"
 #include "Loader/shaderLoader.h"
@@ -15,6 +16,7 @@
 #include "Loader/audioLoader.h"
 #include "Loader/effectLoader.h"
 #include "Loader/llamaModelLoader.h"
+#include "Loader/prefabLoader.h"
 
 void ResourceService::Initialize(GraphicsContext* graphics, AudioContext* audio){
 	m_Graphics = graphics;
@@ -27,6 +29,7 @@ void ResourceService::Initialize(GraphicsContext* graphics, AudioContext* audio)
 	RegisterLoader<AudioData>();
 	RegisterLoader<EffectData>();
 	RegisterLoader<LLAMAModelData>();
+	RegisterLoader<PrefabData>();
 }
 
 void ResourceService::Shutdown(){

@@ -221,6 +221,10 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 	// --- Prefab保存ダイアログ ---
 	if(ImGui::BeginPopup("SavePrefabPopup")){
 		static char prefabName[128] = "";
+		// ポップアップが開いたフレームにバッファを初期化する
+		if(ImGui::IsWindowAppearing()){
+			prefabName[0] = '\0';
+		}
 		ImGui::Text("Prefab名を入力してください");
 		ImGui::InputText("Name", prefabName, sizeof(prefabName));
 		if(ImGui::Button("保存") && prefabName[0] != '\0'){

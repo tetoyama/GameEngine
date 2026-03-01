@@ -1893,6 +1893,9 @@
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\modelLoader.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\prefabLoader.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
     <ClInclude Include="Source\GameApplication\Service\DebugTools\debugSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -1909,6 +1912,9 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\textureData.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Data\prefabData.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\vertexShaderData.h">

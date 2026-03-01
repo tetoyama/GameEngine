@@ -2669,6 +2669,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\effectData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\modelData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\pixelShaderData.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Data\prefabData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\shaderData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\textureData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\vertexShaderData.h" />
@@ -2681,6 +2682,7 @@
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\effectLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\modelLoader.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\prefabLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\IResourceLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\resourceLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\resourceService.h" />
