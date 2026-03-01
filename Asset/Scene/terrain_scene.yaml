@@ -36,6 +36,8 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -52,8 +54,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -251,7 +253,6 @@ Entities:
               w: 0
           - Name: Grayscale
             Enabled: false
-            VS: Asset\Shader\PostEffects\PostEffectVS.cso
             NodePos:
               x: 288.542786
               y: 24.0898819
@@ -336,6 +337,8 @@ Entities:
             lockRotX: true
             lockRotY: true
             lockRotZ: true
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -352,8 +355,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
         isBlender: false
@@ -373,6 +376,7 @@ Entities:
         stamina: 5
         staminaConsumeRate: 1.5
         staminaRecoverRate: 1
+        aaa: 1
         jumpPower: 5
         Stamina: 5
   - Entity: 6
@@ -412,6 +416,8 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -428,8 +434,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset\Texture\field.jpg
         UV_Slice_X: 10
@@ -476,6 +482,8 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -492,8 +500,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -522,6 +530,26 @@ Entities:
           y: 50
           z: 50
         Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 4
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -538,8 +566,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset\Texture\grass.jpg
         UV_Slice_X: 1
