@@ -17,8 +17,7 @@ public:
 	float yaw = 0.0f;
 	float pitch = 0.0f;
 
-	// RayCast 時に除外する自身のレイヤービット（インスペクターで設定）
-	// デフォルトはデフォルトのプレイヤーレイヤー (1u << 1)
+	// RayCast 時に除外するレイヤービット（プレイヤーレイヤー固定）
 	uint32_t selfLayerBit = 1u << 1;
 
 	ComponentRef<TransformComponent> transform;
@@ -32,38 +31,15 @@ public:
 	YAML::Node encode() override{
 		YAML::Node node;
 		ENCODE_FIELDS(node);
-		node["SelfLayerBit"] = selfLayerBit;
 		return node;
 	}
 	bool decode(SceneContext* context, const YAML::Node& node) override{
 		DECODE_FIELDS(node);
-		if(node["SelfLayerBit"]) selfLayerBit = node["SelfLayerBit"].as<uint32_t>();
 		return true;
 	}
 
 	void inspector(SceneContext* context) override{
 		INSPECTOR_FIELDS();
-
-		// 自身のレイヤー選択（RayCast 除外用）
-		auto* phys = context->system->GetSystem<PhysicSystem>();
-		if (phys) {
-			const auto& layers = phys->GetLayers();
-			const char* previewLabel = "(none)";
-			for (const auto& layer : layers) {
-				if (selfLayerBit == layer.bit) { previewLabel = layer.name.c_str(); break; }
-			}
-			ImGui::Text("Self Layer (RayCast exclude)");
-			if (ImGui::BeginCombo("##SelfLayer", previewLabel)) {
-				if (ImGui::Selectable("(none)", selfLayerBit == 0)) selfLayerBit = 0;
-				if (selfLayerBit == 0) ImGui::SetItemDefaultFocus();
-				for (const auto& layer : layers) {
-					bool sel = (selfLayerBit == layer.bit);
-					if (ImGui::Selectable(layer.name.c_str(), sel)) selfLayerBit = layer.bit;
-					if (sel) ImGui::SetItemDefaultFocus();
-				}
-				ImGui::EndCombo();
-			}
-		}
 	}
 
 	void OnStart() override{
@@ -124,30 +100,50 @@ public:
 		);
 
 		// --- カメラ遮蔽判定（遮蔽物があればカメラを近づける） ---
+		constexpr float occlusionPadding   = 0.1f;  // 遮蔽面からの安全マージン
+		constexpr float minGroundClearance = 0.3f;  // ターゲット足元からの最低高さ
 		auto* phys = m_ref.GetScene()->manager
 			->systemRegistry
 			->GetSystem<PhysicSystem>();
+
+		DirectX::XMFLOAT3 pos;
+		DirectX::XMVECTOR camPos = DirectX::XMVectorAdd(targetPos, offset);
 		if (phys) {
-			float offsetLen = DirectX::XMVectorGetX(DirectX::XMVector3Length(offset));
-			if (offsetLen > 0.001f) {
-				DirectX::XMFLOAT3 dirFloat;
-				DirectX::XMStoreFloat3(&dirFloat, DirectX::XMVector3Normalize(offset));
-				physx::PxVec3 rayOrigin(
-					targetTransform->position.x,
-					targetTransform->position.y + height,
-					targetTransform->position.z);
-				physx::PxVec3 rayDir(dirFloat.x, dirFloat.y, dirFloat.z);
-				RayHit occHit = phys->RaycastWithMask(rayOrigin, rayDir, offsetLen, selfLayerBit);
+			// 視点位置: ターゲットの中心付近（足元ヒットを避けるため高さ半分）
+			DirectX::XMVECTOR eyePos = DirectX::XMVectorSet(
+				targetTransform->position.x,
+				targetTransform->position.y + height * 0.5f,
+				targetTransform->position.z,
+				1.0f);
+
+			DirectX::XMVECTOR toCamera = DirectX::XMVectorSubtract(camPos, eyePos);
+			float toCamLen = DirectX::XMVectorGetX(DirectX::XMVector3Length(toCamera));
+
+			if (toCamLen > 0.001f) {
+				DirectX::XMFLOAT3 eyeF, dirF;
+				DirectX::XMStoreFloat3(&eyeF, eyePos);
+				DirectX::XMStoreFloat3(&dirF, DirectX::XMVector3Normalize(toCamera));
+
+				RayHit occHit = phys->RaycastWithMask(
+					physx::PxVec3(eyeF.x, eyeF.y, eyeF.z),
+					physx::PxVec3(dirF.x, dirF.y, dirF.z),
+					toCamLen,
+					selfLayerBit);
+
 				if (occHit.hit) {
-					float safeDistance = (std::max)(occHit.distance - 0.2f, minDistance);
-					offset = DirectX::XMVectorScale(offset, safeDistance / offsetLen);
+					float safeLen = (std::max)(occHit.distance - occlusionPadding, minDistance);
+					camPos = DirectX::XMVectorSet(
+						eyeF.x + dirF.x * safeLen,
+						eyeF.y + dirF.y * safeLen,
+						eyeF.z + dirF.z * safeLen,
+						1.0f);
 				}
 			}
 		}
 
-		DirectX::XMVECTOR camPos = DirectX::XMVectorAdd(targetPos, offset);
-		DirectX::XMFLOAT3 pos;
 		DirectX::XMStoreFloat3(&pos, camPos);
+		// 地面めり込み防止: カメラ Y がターゲット足元を下回らないようにする
+		pos.y = (std::max)(pos.y, targetTransform->position.y + minGroundClearance);
 		transform->position = Vector3(pos.x, pos.y, pos.z);
 		transform->SetRotationEuler(Vector3(pitch, yaw, 0));
 
