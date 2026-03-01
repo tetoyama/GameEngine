@@ -118,7 +118,6 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 	// ======== CSM データ ========
 	CbCSM csmData{};
 	bool hasCsmLight = false;
-	const float csmLambda = 0.5f; // ログ分割と均等分割のブレンド係数
 
 	bool foundLight = false;
 	for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
@@ -184,24 +183,12 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 						XMMATRIX invCameraView = XMMatrixInverse(nullptr, ctx.viewMatrix);
 
-						// カスケードスプリット深度をログ・線形ブレンドで計算
+						// カスケードスプリット深度を等間隔（線形）で計算
+						// cameraNear と cameraFar を変えずに均等配置する
 						float splitDepths[DIRECTIONAL_CSM_CASCADE_COUNT];
 						for(int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT; c++){
-							float p       = (float)(c + 1) / (float)DIRECTIONAL_CSM_CASCADE_COUNT;
-							float logSplit = cameraNear * powf(cameraFar / cameraNear, p);
-							float uniSplit = cameraNear + (cameraFar - cameraNear) * p;
-							splitDepths[c] = logSplit * csmLambda + uniSplit * (1.0f - csmLambda);
-						}
-
-						// 最短カスケードのみ対数寄りに補正し、さらに精度を8倍に向上
-						{
-							constexpr float nearestCascadeLambda     = 0.75f;
-							constexpr float nearestCascadePrecisionScale = 8.0f; // 最短カスケードのカバー範囲を1/8にして精度を8倍に向上
-							float p0 = 1.0f / (float)DIRECTIONAL_CSM_CASCADE_COUNT;
-							float logSplit0 = cameraNear * powf(cameraFar / cameraNear, p0);
-							float uniSplit0 = cameraNear + (cameraFar - cameraNear) * p0;
-							float baseSplit0 = logSplit0 * nearestCascadeLambda + uniSplit0 * (1.0f - nearestCascadeLambda);
-							splitDepths[0] = cameraNear + (baseSplit0 - cameraNear) / nearestCascadePrecisionScale;
+							float p = (float)(c + 1) / (float)DIRECTIONAL_CSM_CASCADE_COUNT;
+							splitDepths[c] = cameraNear + (cameraFar - cameraNear) * p;
 						}
 
 						// CbCSM にスプリット深度を格納 (float4 2本にパック)
