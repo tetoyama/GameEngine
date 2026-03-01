@@ -61,6 +61,23 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 				ImGui::EndPopup();
 			}
 
+			// .prefab ファイルをヒエラルキーへドラッグアンドドロップ
+			if(ImGui::BeginDragDropTarget()){
+				if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
+					if(payload->DataSize > 0 && context->prefab){
+						std::string path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+						if(std::filesystem::path(path).extension() == ".prefab"){
+							EntityRef spawned = context->prefab->InstantiatePrefab(context, path);
+							if(spawned){
+								selectedEntity = spawned.GetEntityID();
+								sceneContext = spawned.GetScene();
+							}
+						}
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+
 			ImGui::SetCursorPos(ImVec2(10, ImGui::GetCursorPos().y));
 			// ツールバー
 			if(ImGui::Button("+ Add")){
