@@ -197,7 +197,7 @@ public:
 			RayHit hit = m_ref.GetScene()->manager
 				->systemRegistry
 				->GetSystem<PhysicSystem>()
-				->RaycastWithMask(rayPos, rayDir, 0.3f, 0);
+				->RaycastWithMask(rayPos, rayDir, 0.3f, 1u << 1); // プレイヤーレイヤーを除外
 
 			isGround = hit.hit && hit.distance < 0.1f;
 

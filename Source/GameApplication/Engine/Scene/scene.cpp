@@ -247,6 +247,7 @@ void Scene::BuildDefaultScene(){
 		col.lockRotX = true;
 		col.lockRotY = true;
 		col.lockRotZ = true;
+		col.collisionLayer = 1u << 1;	// Player レイヤー
 		collider->colliders.push_back(col);
 
 		// PlayerControllerスクリプトを追加

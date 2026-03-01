@@ -717,6 +717,30 @@ bool PhysicSystem::GetCollisionEnabled(uint32_t a, uint32_t b) const {
 }
 
 
+// レイキャスト用除外フィルタ: layerMask に含まれるレイヤーを持つ Shape を除外する
+// layerMask = 0 の場合はすべての Shape がヒット対象になる
+class ExcludeMaskFilter : public physx::PxQueryFilterCallback {
+	physx::PxU32 m_excludeMask;
+public:
+	explicit ExcludeMaskFilter(physx::PxU32 excludeMask) : m_excludeMask(excludeMask) {}
+
+	physx::PxQueryHitType::Enum preFilter(
+		const physx::PxFilterData&, const physx::PxShape* shape,
+		const physx::PxRigidActor*, physx::PxHitFlags&) override
+	{
+		if (m_excludeMask != 0 && (shape->getQueryFilterData().word0 & m_excludeMask) != 0)
+			return physx::PxQueryHitType::eNONE;
+		return physx::PxQueryHitType::eBLOCK;
+	}
+
+	physx::PxQueryHitType::Enum postFilter(
+		const physx::PxFilterData&, const physx::PxQueryHit&,
+		const physx::PxShape*, const physx::PxRigidActor*) override
+	{
+		return physx::PxQueryHitType::eBLOCK;
+	}
+};
+
 RayHit PhysicSystem::RaycastWithMask(const physx::PxVec3& origin, const physx::PxVec3& direction, physx::PxReal maxDistance, physx::PxU32 layerMask) {
 	RayHit result{};
 	result.hit = false;
@@ -724,18 +748,25 @@ RayHit PhysicSystem::RaycastWithMask(const physx::PxVec3& origin, const physx::P
 	physx::PxVec3 dirNorm = direction;
 	if (dirNorm.normalize() < 1e-6f) return result;
 
+	// layerMask は「除外」マスク: 対応するビットを持つレイヤーの Shape を除外する
+	// eDISABLE_HARDCODED_FILTER を使い word0=0 の Shape（地形など）が
+	// ハードコードフィルタでスキップされないようにする
 	physx::PxQueryFilterData filterData;
-	filterData.data.word0 = layerMask;
+	filterData.data.word0 = 0;
+	filterData.flags |= physx::PxQueryFlag::ePREFILTER
+					 |  physx::PxQueryFlag::eDISABLE_HARDCODED_FILTER;
 
+	ExcludeMaskFilter filter(layerMask);
 	physx::PxRaycastBuffer hitBuffer;
 
 	bool status = g_pScene->raycast(
 		origin,
 		dirNorm,
 		maxDistance,
-		hitBuffer,																			// ← ここ
-		physx::PxHitFlags(physx::PxHitFlag::eDEFAULT | physx::PxHitFlag::eMESH_BOTH_SIDES),// ← HeightField 両面検出
-		filterData																			// ← フィルタ
+		hitBuffer,
+		physx::PxHitFlags(physx::PxHitFlag::eDEFAULT | physx::PxHitFlag::eMESH_BOTH_SIDES),
+		filterData,
+		&filter
 	);
 
 	if (status && hitBuffer.hasBlock) {
@@ -751,6 +782,10 @@ RayHit PhysicSystem::RaycastWithMask(const physx::PxVec3& origin, const physx::P
 }
 
 uint32_t PhysicSystem::GetLayerBit(const std::string& name) const {
+	for (const auto& layer : m_layers) {
+		if (layer.name == name)
+			return layer.bit;
+	}
 	return 0;
 }
 
