@@ -16,7 +16,7 @@
 Texture2D            GAlbedo   : register(t8);   // アルベド (BaseColor)
 Texture2D            GNormal   : register(t9);   // ワールド法線 ([0,1] エンコード済み)
 Texture2D            GPosition : register(t10);  // ワールド座標
-Texture2D            GMaterial : register(t11);  // マテリアル (x:Roughness, y:Metallic, z:AO)
+Texture2D            GMaterial : register(t11);  // マテリアル (x:Metallic, y:Roughness, z:AO)
 Texture2D            GEmissive : register(t12);  // エミッシブ
 Texture2D<uint4>     GParam    : register(t13);  // per-object 整数パラメータ
 
@@ -45,7 +45,7 @@ float3 GetWorldPosition(float2 uv)
     return GPosition.Sample(g_SamplerState, uv).xyz;
 }
 
-// マテリアルパラメータ取得 (x: Roughness, y: Metallic, z: AO, w: 予備)
+// マテリアルパラメータ取得 (x: Metallic, y: Roughness, z: AO, w: 0 (未使用))
 float4 GetMaterial(float2 uv)
 {
     return GMaterial.Sample(g_SamplerState, uv);
@@ -57,7 +57,7 @@ float4 GetEmissive(float2 uv)
     return GEmissive.Sample(g_SamplerState, uv);
 }
 
-// per-object 整数パラメータ取得 (x: ObjectID, y: SceneID, z: ShaderID)
+// per-object 整数パラメータ取得 (x: ObjectID, y: SceneID, z: ShaderID, w: 0 (未使用))
 uint4 GetObjParam(int2 pixelCoord)
 {
     return GParam.Load(int3(pixelCoord, 0));

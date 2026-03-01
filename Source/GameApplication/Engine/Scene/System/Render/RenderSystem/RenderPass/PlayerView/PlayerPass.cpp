@@ -374,20 +374,33 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 			postNodes.push_back(std::move(node));
 		}
 
-		// リンクを後から追加（マッピングが揃った後に行う）
+		// リンクを後から追加（endAttr でピンスロット順に正しく割り当て）
 		for (auto& node : postNodes) {
 			int effectIdx = node.id;
+			auto& effect = CameraComponent->postEffects[effectIdx];
+
+			// inputPins の数だけスロットを確保（-1 = 未接続）
+			node.inputs.assign(effect.inputPins.size(), -1);
+
 			for (auto& link : CameraComponent->postEffectLinks) {
-				if (link.endNode == effectIdx) {
-					if (link.startNode < 0) {
-						node.inputs.push_back(-2); // 初期SRV
-					} else {
-						auto it = effectIndexToPostNodeIndex.find(link.startNode);
-						if (it != effectIndexToPostNodeIndex.end()) {
-							node.inputs.push_back(it->second);
-						}
-						// else: 無効な startNode は無視（スキップされたノードの可能性あり）
+				if (link.endNode != effectIdx) continue;
+
+				// endAttr が inputPins のどのスロットに対応するかを探す
+				auto pinIt = std::find(effect.inputPins.begin(), effect.inputPins.end(), link.endAttr);
+				if (pinIt == effect.inputPins.end()){
+					OutputDebugStringA("PostEffect: link.endAttr does not match any inputPin (data inconsistency)\n");
+					continue;
+				}
+
+				int slotIndex = (int)(pinIt - effect.inputPins.begin());
+				if (link.startNode < 0) {
+					node.inputs[slotIndex] = -2; // 初期SRV (ScreenInput)
+				} else {
+					auto it = effectIndexToPostNodeIndex.find(link.startNode);
+					if (it != effectIndexToPostNodeIndex.end()) {
+						node.inputs[slotIndex] = it->second;
 					}
+					// else: startNode が無効（無効化・シェーダー未設定・削除済みノードの可能性あり）
 				}
 			}
 		}
