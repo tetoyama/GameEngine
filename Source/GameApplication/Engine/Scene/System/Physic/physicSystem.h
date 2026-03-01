@@ -75,6 +75,7 @@ public:
 
 	void Start() override;
 	void FixedUpdate(float fixedDeltaTime) override;
+	void EditorUpdate(float deltaTime) override;
 	void Draw() override;
 
 	void Stop() override;
@@ -160,6 +161,7 @@ private:
 	physx::PxDefaultCpuDispatcher* g_pDispatcher = nullptr;
 	physx::PxScene* g_pScene = nullptr;
 	physx::PxPvd* g_pPvd = nullptr;
+	bool m_isSimulating = false;
 
 	//------------------------------------------------------------------
 	// 状態管理

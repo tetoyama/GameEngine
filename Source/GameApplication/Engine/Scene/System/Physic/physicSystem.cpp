@@ -480,9 +480,11 @@ void PhysicSystem::Initialize(){
 
 	if(g_pScene){
 		physx::PxPvdSceneClient* pvd_client = g_pScene->getScenePvdClient();
-		pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONSTRAINTS, true);
-		pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
-		pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
+		if(pvd_client){
+			pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONSTRAINTS, true);
+			pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
+			pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
+		}
 	}
 }
 void PhysicSystem::Finalize(){
@@ -605,12 +607,14 @@ void PhysicSystem::Stop(){
 		}
 	}
 
+	m_isSimulating = true;
 	g_pScene->lockWrite();
 	g_pScene->lockRead();
 	g_pScene->simulate(1.0f);
 	g_pScene->fetchResults(true);
 	g_pScene->unlockWrite();
 	g_pScene->unlockRead();
+	m_isSimulating = false;
 }
 
 YAML::Node PhysicSystem::encode() {
@@ -1081,6 +1085,7 @@ void PhysicSystem::FixedUpdate(float deltaTime) {
 
 	UpdateCollider();
 
+	m_isSimulating = true;
 	g_pScene->lockWrite();
 	g_pScene->simulate(deltaTime);
 	g_pScene->unlockWrite();
@@ -1088,6 +1093,7 @@ void PhysicSystem::FixedUpdate(float deltaTime) {
 	g_pScene->lockRead();
 	g_pScene->fetchResults(true);
 	g_pScene->unlockRead();
+	m_isSimulating = false;
 
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
@@ -1111,6 +1117,23 @@ void PhysicSystem::FixedUpdate(float deltaTime) {
 void PhysicSystem::Draw(){
 	if(!g_pScene) return;
 	// PhysX の可視化デバッグは g_pScene->getRenderBuffer() などで取得可能
+}
+
+void PhysicSystem::EditorUpdate(float /*deltaTime*/){
+	if(!g_pScene) return;
+	if(m_isSimulating) return;
+	// ゲームプレイ中は FixedUpdate がシミュレーションを担う
+	if(m_context->sceneManager->State == SceneManagerState::Playing) return;
+
+	// エディタ停止中もデバッグ描画用にレンダーバッファを更新する
+	m_isSimulating = true;
+	g_pScene->lockWrite();
+	g_pScene->simulate(0.0f);
+	g_pScene->unlockWrite();
+	g_pScene->lockRead();
+	g_pScene->fetchResults(true);
+	g_pScene->unlockRead();
+	m_isSimulating = false;
 }
 
 void PhysicSystem::DrawLayerEditor(){
