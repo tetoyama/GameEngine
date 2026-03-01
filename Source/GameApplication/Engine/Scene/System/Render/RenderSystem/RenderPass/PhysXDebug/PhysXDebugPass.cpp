@@ -56,7 +56,7 @@ void PhysXDebugPass::Execute(const RenderPassContext& ctx){
 				return DirectX::XMFLOAT4(r, g, b, a);
 				};
 
-			physx::PxU32 nbLines = std::min(rb.getNbLines(), static_cast<physx::PxU32>(maxLineCount));
+			physx::PxU32 nbLines = (std::min)(rb.getNbLines(), static_cast<physx::PxU32>(maxLineCount));
 			std::vector<VERTEX_3D> vertices(nbLines * 2);
 			for(physx::PxU32 i = 0; i < nbLines; i++){
 				const physx::PxDebugLine& line = rb.getLines()[i];
