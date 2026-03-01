@@ -7,7 +7,7 @@
 #include <scene.h>
 #include <Component/transformComponent.h>
 #include <Component/entityNameComponent.h>
-#include "Prefab/PrefabManager.h"
+#include "System/Prefab/PrefabSystem.h"
 #include <commdlg.h>
 #include <filesystem>
 
@@ -188,10 +188,10 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 					ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
 					ofn.lpstrDefExt = "prefab";
 					if(GetOpenFileNameA(&ofn)){
-						Entity spawned = context->prefab->InstantiatePrefab(context, std::string(filename));
-						if(spawned != 0){
-							selectedEntity = spawned;
-							sceneContext = context;
+						EntityRef spawned = context->prefab->InstantiatePrefab(context, std::string(filename));
+						if(spawned){
+							selectedEntity = spawned.GetEntityID();
+							sceneContext = spawned.GetScene();
 						}
 					}
 				}

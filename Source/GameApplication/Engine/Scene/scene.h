@@ -15,7 +15,7 @@ struct SceneManagerContext;
 class EntityRegistry;
 class ComponentRegistry;
 class SystemRegistry;
-class PrefabManager;
+class PrefabSystem;
 
 struct SceneContext{
 
@@ -27,8 +27,8 @@ struct SceneContext{
 	ComponentRegistry* component = nullptr;
 	SystemRegistry* system = nullptr;
 
-	// プレファブマネージャ
-	PrefabManager* prefab = nullptr;
+	// プレファブシステム
+	PrefabSystem* prefab = nullptr;
 };
 
 class Scene {
@@ -76,5 +76,5 @@ private:
 	// レジストリ
 	std::shared_ptr<EntityRegistry> m_entityRegistry;
 	std::shared_ptr<ComponentRegistry> m_componentRegistry;
-	std::shared_ptr<PrefabManager> m_prefabManager;
+	std::shared_ptr<PrefabSystem> m_prefabSystem;
 };

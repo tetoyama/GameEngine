@@ -1,4 +1,5 @@
-#include "PrefabManager.h"
+#include "PrefabSystem.h"
+#include "scene.h"
 
 #include <fstream>
 #include <filesystem>
@@ -46,7 +47,7 @@ static void RebuildTransformChildren(ComponentRegistry* registry) {
 	}
 }
 
-bool PrefabManager::SavePrefab(Entity entity, SceneContext* context, const std::string& filePath) {
+bool PrefabSystem::SavePrefab(Entity entity, SceneContext* context, const std::string& filePath) {
 	if (!context || !context->entity || !context->component) return false;
 	if (!context->entity->IsAlive(entity)) return false;
 
@@ -126,32 +127,32 @@ bool PrefabManager::SavePrefab(Entity entity, SceneContext* context, const std::
 	return true;
 }
 
-Entity PrefabManager::InstantiatePrefab(SceneContext* context, const std::string& filePath) {
-	if (!context) return 0;
+EntityRef PrefabSystem::InstantiatePrefab(SceneContext* context, const std::string& filePath) {
+	if (!context) return EntityRef{};
 
 	// リソースシステム経由でロード（キャッシュが効く）
 	if (context->manager && context->manager->resource) {
 		auto data = context->manager->resource->Load<PrefabData>(filePath);
-		if (!data) return 0;
+		if (!data) return EntityRef{};
 		return Instantiate(context, data);
 	}
 
 	// リソースシステムが使えない場合は直接ロード（フォールバック）
 	std::ifstream fin(filePath);
-	if (!fin.is_open()) return 0;
+	if (!fin.is_open()) return EntityRef{};
 	auto data = std::make_shared<PrefabData>();
 	data->filePath = filePath;
 	data->root = YAML::Load(fin);
-	if (!data->root["Entities"] || !data->root["Entities"].IsSequence()) return 0;
+	if (!data->root["Entities"] || !data->root["Entities"].IsSequence()) return EntityRef{};
 	return Instantiate(context, data);
 }
 
-Entity PrefabManager::Instantiate(SceneContext* context, const std::shared_ptr<PrefabData>& data) {
-	if (!context || !context->entity || !context->component) return 0;
-	if (!data || !data->root["Entities"] || !data->root["Entities"].IsSequence()) return 0;
+EntityRef PrefabSystem::Instantiate(SceneContext* context, const std::shared_ptr<PrefabData>& data) {
+	if (!context || !context->entity || !context->component) return EntityRef{};
+	if (!data || !data->root["Entities"] || !data->root["Entities"].IsSequence()) return EntityRef{};
 
 	const YAML::Node& entitiesSeq = data->root["Entities"];
-	if (entitiesSeq.size() == 0) return 0;
+	if (entitiesSeq.size() == 0) return EntityRef{};
 
 	// Pass 1: エンティティを生成し LocalID → 新 Entity マッピングを構築する
 	std::vector<Entity> newEntities;
@@ -188,6 +189,6 @@ Entity PrefabManager::Instantiate(SceneContext* context, const std::shared_ptr<P
 	// 親子リストを再構築する
 	RebuildTransformChildren(context->component);
 
-	return newEntities[0];
+	return EntityRef(newEntities[0], context);
 }
 
