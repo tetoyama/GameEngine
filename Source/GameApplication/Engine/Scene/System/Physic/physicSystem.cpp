@@ -201,7 +201,7 @@ static void BuildTerrainHeightField(ColliderShape& col, TerrainComponent* terrai
 			// terrain の HeightMap インデックス: x + (gridSize - z) * (gridSize + 1)
 			int hmIdx = (int)r + (gridSize - (int)c) * (gridSize + 1);
 			float h = (hmIdx >= 0 && hmIdx < (int)hm.size()) ? hm[hmIdx] : 0.0f;
-			samples[r * nbCols + c].height = (physx::PxI16)std::clamp(h * 100.0f, -32768.0f, 32767.0f);
+			samples[r * nbCols + c].height = (physx::PxI16)std::clamp(std::round(h * 100.0f), -32768.0f, 32767.0f);
 			samples[r * nbCols + c].materialIndex0 = 0;
 			samples[r * nbCols + c].materialIndex1 = 0;
 		}
@@ -285,7 +285,7 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 
 					physx::PxHeightFieldGeometry hfGeom(
 						col.pxHeightField,
-						physx::PxMeshGeometryFlags(),
+						physx::PxMeshGeometryFlags(physx::PxMeshGeometryFlag::eDOUBLE_SIDED),
 						heightScale, rowScale, colScaleVal
 					);
 					shape = physx::PxRigidActorExt::createExclusiveShape(*actor, hfGeom, material);
@@ -924,6 +924,7 @@ void PhysicSystem::UpdateCollider() {
 						physx::PxFilterData fd;
 						fd.word0 = col.collisionLayer;
 						shape->setSimulationFilterData(fd);
+						shape->setQueryFilterData(fd);
 					}
 				}
 			} else {
@@ -965,6 +966,7 @@ void PhysicSystem::UpdateCollider() {
 						physx::PxFilterData fd;
 						fd.word0 = col.collisionLayer;
 						shape->setSimulationFilterData(fd);
+						shape->setQueryFilterData(fd);
 					}
 				}
 			}
