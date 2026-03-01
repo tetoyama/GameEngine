@@ -15,6 +15,7 @@ struct SceneContext;
 struct ColliderShape;
 class ColliderComponent;
 class TransformComponent;
+class TerrainComponent;
 class Vector3;
 class PhysicsSimulationCallback;
 
@@ -189,6 +190,7 @@ private:
 	void UpdateCollider();
 
 	void UpdateColliderParam(
+		SceneContext* context,
 		TransformComponent* transform,
 		ColliderComponent* collider,
 		size_t entity,
@@ -196,7 +198,7 @@ private:
 
 	physx::PxShape* CreatePxShape(
 		physx::PxRigidActor* actor,
-		const ColliderShape& col,
+		ColliderShape& col,
 		const Vector3& scale,
 		physx::PxMaterial& material);
 

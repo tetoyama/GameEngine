@@ -13,7 +13,8 @@ enum class ColliderType {
 	Box,
 	Sphere,
 	Capsule,
-	Mesh
+	Mesh,
+	HeightMap
 };
 
 struct ColliderShape {
@@ -43,6 +44,11 @@ struct ColliderShape {
 
 	physx::PxShape* pxShape = nullptr;
 	physx::PxMaterial* pxMaterial = nullptr;
+	physx::PxHeightField* pxHeightField = nullptr;  // HeightMap コライダ用
+
+	// HeightMap コライダ構築用（PhysicSystem が設定する、非所有ポインタ）
+	const std::vector<float>* heightMapData = nullptr;
+	int heightMapScale = 0;
 };
 
 class ColliderComponent: public IComponent {
@@ -222,7 +228,7 @@ public:
 
 						ImGui::Text("Type");
 						ImGui::SameLine(XPos);
-						if(ImGui::Combo(("##Type" + std::to_string(i)).c_str(), &type, "Box\0Sphere\0Capsule\0Mesh\0")){
+						if(ImGui::Combo(("##Type" + std::to_string(i)).c_str(), &type, "Box\0Sphere\0Capsule\0Mesh\0HeightMap\0")){
 							colliders[i].type = static_cast<ColliderType>(type);
 							needsUpdate = true;
 						}
@@ -278,6 +284,8 @@ public:
 							if(ImGui::DragFloat(("##Height" + std::to_string(i)).c_str(), &colliders[i].height, 0.1f)){
 								needsUpdate = true;
 							}
+						} else if(colliders[i].type == ColliderType::HeightMap){
+							ImGui::TextDisabled("(Uses TerrainComponent HeightMap)");
 						}
 						ImGui::EndChild();
 						ImGui::TreePop();

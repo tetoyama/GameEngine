@@ -4,6 +4,7 @@
 #include <Scene/sceneManager.h>
 #include <Scene/Component/ColliderComponent.h>
 #include <Scene/Component/transformComponent.h>
+#include <Scene/Component/terrainComponent.h>
 #include <Scene/Component/modelRendererComponent.h>
 #include <Scene/Component/CustomScriptComponent.h>
 #include <d3dcompiler.h>
@@ -173,7 +174,7 @@ physx::PxRigidStatic* PhysicSystem::CreateStatic(const physx::PxTransform& t, co
 // =============================================================
 physx::PxShape* PhysicSystem::CreatePxShape(
 	physx::PxRigidActor* actor,
-	const ColliderShape& col,
+	ColliderShape& col,
 	const Vector3& scale,
 	physx::PxMaterial& material){
 	if(!actor) return nullptr;
@@ -218,6 +219,79 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 		case ColliderType::Mesh:
 			// Mesh は Cooking 必須なので別処理
 			break;
+
+		case ColliderType::HeightMap:
+		{
+			if (!col.heightMapData || col.heightMapData->empty() || col.heightMapScale < 1) break;
+
+			int gridSize = col.heightMapScale;
+			int nbRows = gridSize + 1;
+			int nbCols = gridSize + 1;
+
+			// 高さの最大絶対値を求めて int16 への量子化スケールを決定
+			float maxAbsH = 0.0f;
+			for (float h : *col.heightMapData)
+				maxAbsH = std::max(maxAbsH, std::abs(h));
+			float hScale = (maxAbsH < 1e-6f) ? 1.0f : maxAbsH / 32767.0f;
+
+			// ハイトフィールドサンプルを構築
+			// PhysX: row→X 方向, col→Z 方向
+			// Terrain: vertex(gx,gz).y = HeightMap[gx + (gridSize-gz)*(gridSize+1)]
+			// → sample(row=gx, col=gz).height = quantized(HeightMap[gx + (gridSize-gz)*nbCols])
+			std::vector<physx::PxHeightFieldSample> samples(nbRows * nbCols);
+			for (int r = 0; r < nbRows; ++r) {
+				for (int c = 0; c < nbCols; ++c) {
+					int hmIdx = r + (gridSize - c) * nbCols;
+					float h = (*col.heightMapData)[hmIdx];
+					samples[r * nbCols + c].height =
+						static_cast<physx::PxI16>(std::clamp(h / hScale, -32768.0f, 32767.0f));
+					samples[r * nbCols + c].materialIndex0 = physx::PxBitAndByte(0, false);
+					samples[r * nbCols + c].materialIndex1 = physx::PxBitAndByte(0, false);
+				}
+			}
+
+			physx::PxHeightFieldDesc hfDesc;
+			hfDesc.nbRows    = static_cast<physx::PxU32>(nbRows);
+			hfDesc.nbColumns = static_cast<physx::PxU32>(nbCols);
+			hfDesc.samples.data   = samples.data();
+			hfDesc.samples.stride = sizeof(physx::PxHeightFieldSample);
+
+			physx::PxHeightField* heightField =
+				PxCreateHeightField(hfDesc, g_pPhysics->getPhysicsInsertionCallback());
+			if (!heightField) break;
+
+			col.pxHeightField = heightField;
+
+			// ジオメトリスケール: row→X, col→Z
+			float rowScaleVal    = scale.x / static_cast<float>(gridSize);
+			float colScaleVal    = scale.z / static_cast<float>(gridSize);
+			float heightScaleVal = hScale * scale.y;
+
+			physx::PxHeightFieldGeometry hfGeom(
+				heightField,
+				physx::PxMeshGeometryFlags(),
+				heightScaleVal,
+				rowScaleVal,
+				colScaleVal
+			);
+
+			shape = physx::PxRigidActorExt::createExclusiveShape(*actor, hfGeom, material);
+
+			if (shape) {
+				// HeightField は (0,0) から始まるのでエンティティ中心に合わせるためオフセット
+				physx::PxVec3 hfOffset(
+					col.offset.x * scale.x - scale.x * 0.5f,
+					col.offset.y * scale.y,
+					col.offset.z * scale.z - scale.z * 0.5f
+				);
+				const float DegToRad = physx::PxPi / 180.0f;
+				physx::PxQuat qx(col.rotationOffset.x * DegToRad, physx::PxVec3(1, 0, 0));
+				physx::PxQuat qy(col.rotationOffset.y * DegToRad, physx::PxVec3(0, 1, 0));
+				physx::PxQuat qz(col.rotationOffset.z * DegToRad, physx::PxVec3(0, 0, 1));
+				shape->setLocalPose(physx::PxTransform(hfOffset, qz * qy * qx));
+			}
+			return shape;  // ローカルポーズは上で設定済みなので早期リターン
+		}
 	}
 
 	// =============================================================
@@ -256,7 +330,7 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 // =============================================================
 // Collider の更新（PhysXへの反映）
 // =============================================================
-void PhysicSystem::UpdateColliderParam(TransformComponent* transform, ColliderComponent* collider, size_t entity, size_t index){
+void PhysicSystem::UpdateColliderParam(SceneContext* context, TransformComponent* transform, ColliderComponent* collider, size_t entity, size_t index){
 	OutputDebugStringA("PhysicSystem::UpdateColliderParam\n");
 
 	if(!collider) return;
@@ -277,22 +351,37 @@ void PhysicSystem::UpdateColliderParam(TransformComponent* transform, ColliderCo
 		col.pxShape = nullptr;
 	}
 
-	// 2) 古い material 解放
+	// 2) 古い HeightField 解放（detach 後なのでシェイプ参照が消えている）
+	if(col.pxHeightField){
+		col.pxHeightField->release();
+		col.pxHeightField = nullptr;
+	}
+
+	// 3) 古い material 解放
 	if(col.pxMaterial){
 		col.pxMaterial->release();
 		col.pxMaterial = nullptr;
 	}
 
-	// 3) 新しい material 作成
+	// 4) 新しい material 作成
 	physx::PxMaterial* material = g_pPhysics->createMaterial(
 		col.staticFriction, col.dynamicFriction, col.restitution
 	);
 	col.pxMaterial = material;
 
-	// 4) Transform スケール取得
+	// 5) Transform スケール取得
 	Vector3 scale = transform ? transform->scale : Vector3{1.0f, 1.0f, 1.0f};
 
-	// 5) 新しい shape 作成
+	// 6) HeightMap タイプの場合は TerrainComponent からデータを取得
+	if (col.type == ColliderType::HeightMap && context) {
+		auto* terrain = context->component->GetComponent<TerrainComponent>(entity);
+		if (terrain) {
+			col.heightMapData  = &terrain->HeightMap;
+			col.heightMapScale = terrain->Scale;
+		}
+	}
+
+	// 7) 新しい shape 作成
 	physx::PxShape* newShape = CreatePxShape(actor, col, scale, *material);
 	col.pxShape = newShape;
 
@@ -411,6 +500,10 @@ void PhysicSystem::Finalize(){
 					OutputDebugStringA(("Finalize Shape Pointer Clear: " + std::to_string((uintptr_t)col.pxShape) + "\n").c_str());
 					col.pxShape = nullptr; // Actor release に任せる
 				}
+				if (col.pxHeightField) {
+					col.pxHeightField->release();
+					col.pxHeightField = nullptr;
+				}
 			}
 			if (Collider->pRigidbodyStatic) {
 				OutputDebugStringA(("Finalize Release Static Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyStatic) + "\n").c_str());
@@ -487,6 +580,10 @@ void PhysicSystem::Stop(){
 				if (col.pxShape) {
 					OutputDebugStringA(("Stop Shape Pointer Clear: " + std::to_string((uintptr_t)col.pxShape) + "\n").c_str());
 					col.pxShape = nullptr;
+				}
+				if (col.pxHeightField) {
+					col.pxHeightField->release();
+					col.pxHeightField = nullptr;
 				}
 			}
 
@@ -816,6 +913,15 @@ void PhysicSystem::UpdateCollider() {
 					// 既存の scale を使う
 					Vector3 scale = Transform->scale;
 
+					// HeightMap タイプの場合は TerrainComponent からデータを取得
+					if (col.type == ColliderType::HeightMap) {
+						auto* terrain = context->component->GetComponent<TerrainComponent>(entity);
+						if (terrain) {
+							col.heightMapData  = &terrain->HeightMap;
+							col.heightMapScale = terrain->Scale;
+						}
+					}
+
 					// マテリアル作成して保存
 					physx::PxMaterial* material = g_pPhysics->createMaterial(col.staticFriction, col.dynamicFriction, col.restitution);
 					col.pxMaterial = material;
@@ -851,6 +957,15 @@ void PhysicSystem::UpdateCollider() {
 					// 既存の scale を使う
 					Vector3 scale = Transform->scale;
 
+					// HeightMap タイプの場合は TerrainComponent からデータを取得
+					if (col.type == ColliderType::HeightMap) {
+						auto* terrain = context->component->GetComponent<TerrainComponent>(entity);
+						if (terrain) {
+							col.heightMapData  = &terrain->HeightMap;
+							col.heightMapScale = terrain->Scale;
+						}
+					}
+
 					// マテリアル作成して保存
 					physx::PxMaterial* material = g_pPhysics->createMaterial(col.staticFriction, col.dynamicFriction, col.restitution);
 					col.pxMaterial = material;
@@ -878,7 +993,7 @@ void PhysicSystem::UpdateCollider() {
 
 			if (Collider->needsUpdate) {
 				for (size_t i = 0; i < Collider->colliders.size(); ++i) {
-					UpdateColliderParam(Transform, Collider, entity, i);
+					UpdateColliderParam(context, Transform, Collider, entity, i);
 				}
 				Collider->needsUpdate = false;
 			}
