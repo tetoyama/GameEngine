@@ -3,6 +3,7 @@
 #include <Scene/scene.h>
 #include <Scene/sceneManager.h>
 #include <Scene/Component/ColliderComponent.h>
+#include <Scene/Component/CharacterControllerComponent.h>
 #include <Scene/Component/transformComponent.h>
 #include <d3dcompiler.h>
 
@@ -213,6 +214,9 @@ void PhysicSystem::Initialize(){
 		pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
 		pvd_client->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
 	}
+
+	// CCT (Character Controller Toolkit) マネージャーを生成
+	g_pControllerManager = PxCreateControllerManager(*g_pScene);
 }
 void PhysicSystem::Finalize(){
 	OutputDebugStringA("PhysicSystem::Finalize\n");
@@ -245,6 +249,12 @@ void PhysicSystem::Finalize(){
 		}
 	}
 	PxCloseExtensions();
+	// CCT マネージャーを解放（PxScene より先に解放する必要がある）
+	if (g_pControllerManager) {
+		OutputDebugStringA(("Finalize Release ControllerManager: " + std::to_string((uintptr_t)g_pControllerManager) + "\n").c_str());
+		g_pControllerManager->release();
+		g_pControllerManager = nullptr;
+	}
 	if(g_pScene){
 		OutputDebugStringA(("Finalize Release Scene: " + std::to_string((uintptr_t)g_pScene) + "\n").c_str());
 		g_pScene->release();
@@ -312,6 +322,25 @@ void PhysicSystem::Stop(){
 		}
 	}
 
+	// CharacterControllerComponent の PxController を解放
+	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		auto context = scene->GetSceneContext();
+		const auto& cctEntities = context->component->FindEntitiesWithComponent<CharacterControllerComponent>();
+		for (Entity entity : cctEntities) {
+			auto* cc = context->component->GetComponent<CharacterControllerComponent>(entity);
+			if (cc->pxMaterial) {
+				cc->pxMaterial->release();
+				cc->pxMaterial = nullptr;
+			}
+			// pxController は PxControllerManager::purgeControllers() で一括解放
+			cc->pxController = nullptr;
+			cc->needsCreate  = true;
+		}
+	}
+	if (g_pControllerManager) {
+		g_pControllerManager->purgeControllers();
+	}
+
 	g_pScene->lockWrite();
 	g_pScene->lockRead();
 	g_pScene->simulate(1.0f);
@@ -365,6 +394,7 @@ void PhysicSystem::Start(){
 		}
 	}
 	UpdateCollider();
+	UpdateCharacterControllers(0.0f);
 }
 
 void PhysicSystem::UpdateCollider() {
@@ -501,6 +531,9 @@ void PhysicSystem::FixedUpdate(float deltaTime) {
 
 	UpdateCollider();
 
+	// CCT の移動を適用（g_pScene->simulate の前に移動させる）
+	UpdateCharacterControllers(deltaTime);
+
 	g_pScene->lockWrite();
 	g_pScene->lockRead();
 	g_pScene->simulate(deltaTime);
@@ -522,6 +555,106 @@ void PhysicSystem::FixedUpdate(float deltaTime) {
 
 			Transform->position = Vector3(TmpTransform.p.x, TmpTransform.p.y, TmpTransform.p.z);
 			Transform->SetRotation(DirectX::XMFLOAT4(TmpTransform.q.x, TmpTransform.q.y, TmpTransform.q.z, TmpTransform.q.w));
+		}
+	}
+}
+
+// =============================================================
+// CharacterControllerComponent の生成・更新
+// =============================================================
+void PhysicSystem::UpdateCharacterControllers(float deltaTime) {
+	if (!g_pControllerManager || !g_pPhysics) return;
+
+	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		auto context = scene->GetSceneContext();
+		const auto& cctEntities = context->component->FindEntitiesWithComponent<CharacterControllerComponent>();
+
+		for (Entity entity : cctEntities) {
+			auto* cc        = context->component->GetComponent<CharacterControllerComponent>(entity);
+			auto* transform = context->component->GetComponent<TransformComponent>(entity);
+			if (!cc || !transform) continue;
+
+			// ----------------------------------------------------------------
+			// 1) 初回 or needsCreate: PxCapsuleController を生成
+			// ----------------------------------------------------------------
+			if (cc->needsCreate || !cc->pxController) {
+				// 既存のコントローラーを解放
+				if (cc->pxController) {
+					cc->pxController->release();
+					cc->pxController = nullptr;
+				}
+				if (cc->pxMaterial) {
+					cc->pxMaterial->release();
+					cc->pxMaterial = nullptr;
+				}
+
+				cc->pxMaterial = g_pPhysics->createMaterial(0.0f, 0.0f, 0.0f);
+
+				physx::PxCapsuleControllerDesc desc;
+				desc.radius      = cc->radius;
+				desc.height      = cc->height;
+				desc.stepOffset  = cc->stepOffset;
+				desc.slopeLimit  = cosf(cc->slopeLimit * physx::PxPi / 180.0f);
+				desc.upDirection = physx::PxVec3(0.0f, 1.0f, 0.0f);
+				desc.position    = physx::PxExtendedVec3(
+					(physx::PxExtended)transform->position.x,
+					(physx::PxExtended)(transform->position.y + cc->height * 0.5f + cc->radius),
+					(physx::PxExtended)transform->position.z);
+				desc.material         = cc->pxMaterial;
+				desc.climbingMode     = physx::PxCapsuleClimbingMode::eEASY;
+				desc.nonWalkableMode  = physx::PxControllerNonWalkableMode::ePREVENT_CLIMBING_AND_FORCE_SLIDING;
+				desc.contactOffset    = 0.01f;
+
+				if (desc.isValid()) {
+					cc->pxController = g_pControllerManager->createController(desc);
+				}
+				cc->needsCreate       = false;
+				cc->verticalVelocity  = 0.0f;
+				cc->isGrounded        = false;
+			}
+
+			if (!cc->pxController) continue;
+
+			// ----------------------------------------------------------------
+			// 2) 重力・ジャンプを垂直速度に反映
+			// ----------------------------------------------------------------
+			if (cc->isGrounded) {
+				if (cc->jumpPressed) {
+					cc->verticalVelocity = cc->jumpPower;
+				} else {
+					cc->verticalVelocity = 0.0f;
+				}
+			} else {
+				// 空中は重力を加算
+				cc->verticalVelocity += cc->gravity * deltaTime;
+			}
+
+			// ----------------------------------------------------------------
+			// 3) CCT::move() で移動
+			// ----------------------------------------------------------------
+			physx::PxVec3 disp(
+				cc->inputVelocityX * deltaTime,
+				cc->verticalVelocity  * deltaTime,
+				cc->inputVelocityZ * deltaTime);
+
+			physx::PxControllerFilters filters;
+			physx::PxControllerCollisionFlags flags = cc->pxController->move(disp, 0.001f, deltaTime, filters);
+
+			cc->isGrounded = (flags & physx::PxControllerCollisionFlag::eCOLLISION_DOWN) != 0;
+
+			// 天井衝突で上昇速度をリセット
+			if (flags & physx::PxControllerCollisionFlag::eCOLLISION_UP) {
+				if (cc->verticalVelocity > 0.0f) cc->verticalVelocity = 0.0f;
+			}
+
+			// ----------------------------------------------------------------
+			// 4) CCT の位置を Transform に反映
+			// ----------------------------------------------------------------
+			physx::PxExtendedVec3 pos = cc->pxController->getPosition();
+			transform->position = Vector3(
+				(float)pos.x,
+				(float)(pos.y - cc->height * 0.5f - cc->radius),
+				(float)pos.z);
 		}
 	}
 }

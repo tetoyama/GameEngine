@@ -18,6 +18,7 @@
 #include "Component/waveComponent.h"
 #include "Component/EffectComponent.h"
 #include "Component/ColliderComponent.h"
+#include "Component/CharacterControllerComponent.h"
 #include "Component/materialComponent.h"
 #include "Component/scriptComponent.h"
 
@@ -25,6 +26,7 @@
 #include "Script/ScoreManager.h"
 #include "Script/ScoreSprite.h"
 #include "Script/PlayerController.h"
+#include "Script/PlayerControllerScript.h"
 #include "Script/GameTimeManager.h"
 #include "Script/TimerSprite.h"
 #include "Script/BallController.h"
@@ -48,6 +50,7 @@ enum ComponentStorageType {
     X(TransformComponent,COMPONENT_SPARSE)\
     X(CustomScriptComponent,COMPONENT_SPARSE)\
     X(ColliderComponent,COMPONENT_SPARSE)\
+    X(CharacterControllerComponent,COMPONENT_SPARSE)\
     X(AudioComponent,COMPONENT_SPARSE)\
     X(RenderLayerComponent,COMPONENT_SPARSE)\
     X(OrderInLayerComponent,COMPONENT_SPARSE)\
@@ -69,6 +72,7 @@ enum ComponentStorageType {
     X(ScoreManager,COMPONENT_SPARSE)\
     X(ScoreSprite,COMPONENT_SPARSE)\
     X(PlayerController,COMPONENT_SPARSE)\
+    X(PlayerControllerScript,COMPONENT_SPARSE)\
     X(GameTimeManager,COMPONENT_SPARSE)\
     X(TimerSprite,COMPONENT_SPARSE)\
     X(CameraController,COMPONENT_SPARSE)\

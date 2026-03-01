@@ -9,6 +9,7 @@
 struct SceneManagerContext;
 struct ColliderShape;
 class ColliderComponent;
+class CharacterControllerComponent;
 class TransformComponent;
 class Vector3;
 
@@ -46,6 +47,9 @@ public:
 	physx::PxPhysics* GetPhysics(){
 		return g_pPhysics;
 	}
+	physx::PxControllerManager* GetControllerManager(){
+		return g_pControllerManager;
+	}
 	const physx::PxRenderBuffer& GetRenderBuffer(){
 
 		return g_pScene->getRenderBuffer();
@@ -69,6 +73,7 @@ private:
 	physx::PxDefaultCpuDispatcher* g_pDispatcher = nullptr;
 	physx::PxScene* g_pScene = nullptr;
 	physx::PxPvd* g_pPvd = nullptr;
+	physx::PxControllerManager* g_pControllerManager = nullptr;
 
 	std::mutex mtx;
 	bool UpdatingPhysics = false;
@@ -77,6 +82,7 @@ private:
 	physx::PxRigidStatic* CreateStatic(const physx::PxTransform& t, const physx::PxGeometry& geometry, physx::PxMaterial& material);
 
 	void UpdateCollider();
+	void UpdateCharacterControllers(float deltaTime);
 
 	void UpdateColliderParam(TransformComponent* transform, ColliderComponent* collider, size_t entity ,size_t index);
 	physx::PxShape* CreatePxShape(physx::PxRigidActor* actor, const ColliderShape& col, const Vector3& scale, physx::PxMaterial& material);
