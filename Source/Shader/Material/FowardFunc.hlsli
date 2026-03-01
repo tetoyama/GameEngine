@@ -139,9 +139,12 @@ float ShadowFactorCSM(
     float4 viewPos = mul(float4(worldPos, 1.0), View);
     float viewDepth = viewPos.z;
 
+    // 遠→近の順に走査し、条件を満たす最も近いカスケードを確実に選択する。
+    // [unroll]+break はコンパイラの述語化により遠いカスケードが上書きされる場合があるため、
+    // break を使わず最後の書き込みが最短カスケードになるようにしている。
     int cascade = DIRECTIONAL_CSM_CASCADE_COUNT - 1;
     [unroll]
-    for (int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT; c++)
+    for (int c = DIRECTIONAL_CSM_CASCADE_COUNT - 1; c >= 0; c--)
     {
         float splitDepth;
         if (c < 4)
@@ -150,10 +153,7 @@ float ShadowFactorCSM(
             splitDepth = CsmSplitDepths[1][c - 4];
 
         if (viewDepth < splitDepth)
-        {
             cascade = c;
-            break;
-        }
     }
 
     float4 sp = mul(float4(worldPos, 1.0), CsmViews[cascade]);
