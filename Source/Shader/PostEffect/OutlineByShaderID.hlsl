@@ -8,12 +8,11 @@ Texture2D g_Texture : register(t0);
 // Parameter.x : アウトライン対象の ShaderID (uint キャスト, 0 = 無効)
 // Parameter.y : エッジ幅ピクセル数 (推奨値 1.0)
 //
-// GBuffer GParam (t13) の ShaderID と ObjectID を使ったエッジ検出。
+// GBuffer GParam (t13) の ShaderID を使ったエッジ検出。
 // Parameter.x で指定した ShaderID を持つピクセルを対象とし、
-// 隣接ピクセルの ObjectID (= EntityID) が異なる境界にアウトラインを描画する。
-// 同一 ShaderID 同士の境界では二重アウトラインを防ぐため、
-// EntityID が小さい側のピクセルのみエッジとして扱う。
-// 隣接ピクセルの ShaderID が異なる場合は EntityID が異なれば常にエッジとして扱う。
+// 隣接ピクセルの ShaderID が対象 ShaderID と異なる境界にのみアウトラインを描画する。
+// 同一 ShaderID を持つピクセル同士はグループとして扱い、内部境界にはアウトラインを描画しない。
+// これにより、複数 Entity が同じ ShaderID を持つ場合でも二重アウトラインや隙間が生じない。
 
 void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 {
@@ -49,9 +48,9 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     }
 
     // 4 方向の隣接ピクセルを確認
-    // ・隣接ピクセルの ShaderID が中心と同じ (同一シェーダ同士) かつ EntityID が異なる場合は、
-    //   中心の EntityID が小さい側のみエッジとして扱う (二重アウトライン防止)
-    // ・隣接ピクセルの ShaderID が中心と異なる場合は EntityID が異なればエッジ
+    // 隣接ピクセルの ShaderID が対象 ShaderID と異なる場合のみエッジとする。
+    // 同一 ShaderID を持つ隣接ピクセルはグループ内部とみなしエッジにしない。
+    // → 同一 ShaderID の複数 Entity が隣接しても二重アウトラインや隙間は生じない。
     const int2 offsets[4] = {
         int2( step,  0),
         int2(-step,  0),
@@ -65,12 +64,8 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
         int2 neighborCoord = clamp(centerCoord + offsets[i], int2(0, 0), maxCoord);
         uint4 neighborParam = GetObjParam(neighborCoord);
 
-        if (neighborParam.x != centerParam.x)
+        if (neighborParam.z != centerParam.z)
         {
-            // 隣接ピクセルが同じ ShaderID の場合は小さい EntityID 側だけエッジとする
-            if (neighborParam.z == (uint)Parameter.x && centerParam.x > neighborParam.x)
-                continue;
-
             isEdge = true;
             break;
         }
