@@ -2717,6 +2717,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Registry\systemRegistry.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\scene.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\sceneManager.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Prefab\PrefabSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\BallController.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\CameraController.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Script\EnemyController.h" />
@@ -3546,6 +3547,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\Registry\componentRegistry.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\scene.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\sceneManager.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\Prefab\PrefabSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\Camera\cameraSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\customScriptSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\Particle\particleSystem.cpp" />

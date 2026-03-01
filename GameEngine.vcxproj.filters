@@ -1842,6 +1842,9 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\scene.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Prefab\PrefabSystem.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Entity\EntityRef.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -2706,6 +2709,9 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Scene\sceneManager.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Scene\Prefab\PrefabSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Transform\transformSystem.cpp">
