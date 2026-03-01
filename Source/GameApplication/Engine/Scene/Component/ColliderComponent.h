@@ -13,7 +13,8 @@ enum class ColliderType {
 	Box,
 	Sphere,
 	Capsule,
-	Mesh
+	Mesh,
+	HeightMap
 };
 
 struct ColliderShape {
@@ -43,6 +44,7 @@ struct ColliderShape {
 
 	physx::PxShape* pxShape = nullptr;
 	physx::PxMaterial* pxMaterial = nullptr;
+	physx::PxHeightField* pxHeightField = nullptr;
 };
 
 class ColliderComponent: public IComponent {
@@ -222,7 +224,7 @@ public:
 
 						ImGui::Text("Type");
 						ImGui::SameLine(XPos);
-						if(ImGui::Combo(("##Type" + std::to_string(i)).c_str(), &type, "Box\0Sphere\0Capsule\0Mesh\0")){
+						if(ImGui::Combo(("##Type" + std::to_string(i)).c_str(), &type, "Box\0Sphere\0Capsule\0Mesh\0HeightMap\0")){
 							colliders[i].type = static_cast<ColliderType>(type);
 							needsUpdate = true;
 						}
