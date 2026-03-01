@@ -36,7 +36,7 @@ public:
 	void OnStart() override{
 		transform = GetComponentRef<TransformComponent>();
 		collider = GetComponentRef<ColliderComponent>();
-		auto entity = m_context->component->FindEntitiesWithComponent<ScoreManager>();
+		auto entity = m_ref.GetScene()->component->FindEntitiesWithComponent<ScoreManager>();
 		if(!entity.empty()){
 			scoreManager = GetComponentRefFor<ScoreManager>(entity[0]);
 		}

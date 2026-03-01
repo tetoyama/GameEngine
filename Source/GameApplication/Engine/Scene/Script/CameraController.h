@@ -42,17 +42,17 @@ public:
 	void OnStart() override{
 		transform = GetComponentRef<TransformComponent>();
 		CameraBuffer = GetComponentRef<CameraComponent>();
-		auto playerEntities = m_context->component->FindEntitiesWithComponent<PlayerController>();
+		auto playerEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<PlayerController>();
 		if(!playerEntities.empty()){
 			playerTransform = GetComponentRefFor<TransformComponent>(playerEntities[0]);
 		}
 
-		auto ballEntities = m_context->component->FindEntitiesWithComponent<BallController>();
+		auto ballEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<BallController>();
 		if(!ballEntities.empty()){
 			ballEntity = GetEntityRefFor(ballEntities[0]);
 		}
 
-		auto timerEntities = m_context->component->FindEntitiesWithComponent<GameTimeManager>();
+		auto timerEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<GameTimeManager>();
 		if(!timerEntities.empty()){
 			gameTime = GetComponentRefFor<GameTimeManager>(timerEntities[0]);
 		}
