@@ -1127,6 +1127,10 @@ void PhysicSystem::EditorUpdate(float deltaTime){
 	// PhysX は elapsed time > 0 を要求する
 	if(deltaTime <= 0.0f) return;
 
+	// エディタモードではコライダーアクターが未作成のため、ここで生成する
+	// （FixedUpdate は Playing 状態のみ呼ばれるため）
+	UpdateCollider();
+
 	// デバッグ描画用にシミュレーションを進め、レンダーバッファを更新する
 	m_isSimulating = true;
 	g_pScene->lockWrite();
