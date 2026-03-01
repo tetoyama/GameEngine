@@ -8,6 +8,8 @@
 #include "Scene.h"
 #include "SceneManager.h"
 #include "Entity/Entity.h"
+#include "Entity/EntityRef.h"
+#include "Entity/ComponentRef.h"
 #include "Registry/ComponentRegistry.h"
 #include "Platform/InputSystem/InputSystem.h"
 
@@ -105,6 +107,29 @@ public:
 	T* AddComponent(Args&&... args){
 		if(!m_context || !m_context->component) return nullptr;
 		return m_context->component->AddComponent<T>(m_entity, std::forward<Args>(args)...);
+	}
+
+	// 自分自身の Entity への安全なリファレンスを返す
+	// マルチシーンでも SceneContext で識別されるため一意に扱える
+	EntityRef GetEntityRef() const {
+		return EntityRef(m_entity, m_context);
+	}
+
+	// 自分自身の指定コンポーネントへの安全なリファレンスを返す
+	template<typename T>
+	ComponentRef<T> GetComponentRef() const {
+		return ComponentRef<T>(m_entity, m_context);
+	}
+
+	// 任意のエンティティへの安全なリファレンスを作成する（同一シーン内）
+	EntityRef GetEntityRefFor(Entity e) const {
+		return EntityRef(e, m_context);
+	}
+
+	// 任意のエンティティのコンポーネントへの安全なリファレンスを作成する（同一シーン内）
+	template<typename T>
+	ComponentRef<T> GetComponentRefFor(Entity e) const {
+		return ComponentRef<T>(e, m_context);
 	}
 
 	void LoadScene(const std::string& scenePath){

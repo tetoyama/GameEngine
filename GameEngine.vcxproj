@@ -3542,6 +3542,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Resources\Data\modelData.cpp" />
     <ClCompile Include="Source\GameApplication\Service\Runtime\TimeService\timeService.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\Registry\componentRegistry.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\Prefab\PrefabManager.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\scene.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\sceneManager.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\Camera\cameraSystem.cpp" />

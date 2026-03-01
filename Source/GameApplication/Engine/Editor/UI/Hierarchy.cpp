@@ -7,6 +7,9 @@
 #include <scene.h>
 #include <Component/transformComponent.h>
 #include <Component/entityNameComponent.h>
+#include "Prefab/PrefabManager.h"
+#include <commdlg.h>
+#include <filesystem>
 
 void Hierarchy::Draw(EditorDrawContext ctx){
 
@@ -173,11 +176,25 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			if(ImGui::MenuItem("Prefabとして保存")){
 				ImGui::OpenPopup("SavePrefabPopup");
 			}
-			if(ImGui::MenuItem("Prefabからリセット")){
-				// まだ処理未実装。プレースホルダ
-			}
-			if(ImGui::MenuItem("Prefabへ適用")){
-				// まだ処理未実装。プレースホルダ
+			if(ImGui::MenuItem("Prefabからインスタンス化")){
+				// ファイルダイアログを開いてプレファブを選択し、同シーンにインスタンス化する
+				if(context->prefab){
+					OPENFILENAMEA ofn = {};
+					char filename[MAX_PATH] = "";
+					ofn.lStructSize = sizeof(ofn);
+					ofn.lpstrFilter = "Prefab Files (*.prefab)\0*.prefab\0All Files (*.*)\0*.*\0";
+					ofn.lpstrFile = filename;
+					ofn.nMaxFile = MAX_PATH;
+					ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+					ofn.lpstrDefExt = "prefab";
+					if(GetOpenFileNameA(&ofn)){
+						Entity spawned = context->prefab->InstantiatePrefab(context, std::string(filename));
+						if(spawned != 0){
+							selectedEntity = spawned;
+							sceneContext = context;
+						}
+					}
+				}
 			}
 			ImGui::EndMenu();
 		}
@@ -201,17 +218,24 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		ImGui::EndPopup();
 	}
 
-	// --- Prefab保存ダイアログ（見た目だけ） ---
+	// --- Prefab保存ダイアログ ---
 	if(ImGui::BeginPopup("SavePrefabPopup")){
-		ImGui::Text("Prefab saving is not implemented yet.");
 		static char prefabName[128] = "";
+		ImGui::Text("Prefab名を入力してください");
 		ImGui::InputText("Name", prefabName, sizeof(prefabName));
-		if(ImGui::Button("OK")){
-			// 保存処理が実装されるまでは閉じるだけ
+		if(ImGui::Button("保存") && prefabName[0] != '\0'){
+			if(context->prefab){
+				std::string dir = "Asset/Prefab/";
+				std::filesystem::create_directories(dir);
+				std::string filePath = dir + prefabName + ".prefab";
+				context->prefab->SavePrefab(entity, context, filePath);
+			}
+			prefabName[0] = '\0';
 			ImGui::CloseCurrentPopup();
 		}
 		ImGui::SameLine();
-		if(ImGui::Button("Cancel")){
+		if(ImGui::Button("キャンセル")){
+			prefabName[0] = '\0';
 			ImGui::CloseCurrentPopup();
 		}
 		ImGui::EndPopup();

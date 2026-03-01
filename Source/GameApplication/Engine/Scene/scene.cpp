@@ -33,6 +33,7 @@
 #include "Registry/entityRegistry.h"
 #include "Registry/componentRegistry.h"
 #include "Registry/systemRegistry.h"
+#include "Prefab/PrefabManager.h"
 
 #include "Component/componentList.h"
 
@@ -52,6 +53,7 @@ void Scene::Initialize(SceneManagerContext* set){
 
 	m_entityRegistry = std::make_shared<EntityRegistry>();
 	m_componentRegistry = std::make_shared<ComponentRegistry>(m_entityRegistry.get(),&m_SceneContext);
+	m_prefabManager = std::make_shared<PrefabManager>();
 
 
 	// コンポーネントの登録
@@ -67,6 +69,7 @@ void Scene::Initialize(SceneManagerContext* set){
 
 	m_SceneContext.entity = m_entityRegistry.get();
 	m_SceneContext.component = m_componentRegistry.get();
+	m_SceneContext.prefab = m_prefabManager.get();
 
 	auto graphicsContext = Renderer->GetGraphicsContext();
 
@@ -106,6 +109,7 @@ void Scene::Shutdown(){
 	// レジストリの終了処理
 	m_entityRegistry.reset();
 	m_componentRegistry.reset();
+	m_prefabManager.reset();
 	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を終了しました").c_str());
 }
 

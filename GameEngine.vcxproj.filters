@@ -1842,6 +1842,15 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\scene.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Entity\EntityRef.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Entity\ComponentRef.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Prefab\PrefabManager.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\Registry\entityRegistry.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
