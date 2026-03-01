@@ -157,7 +157,7 @@ public:
         ImGui::PushItemWidth(inputWidthX);
         ImGui::PushStyleColor(ImGuiCol_Border, colorR);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
-        ImGui::DragInt("##UVSliceX", &UV_Slice_X, 1, 1, 256);
+        ImGui::UndoDragInt("##UVSliceX", &UV_Slice_X, 1, 1, 256);
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();
@@ -170,7 +170,7 @@ public:
         ImGui::PushItemWidth(inputWidthY);
         ImGui::PushStyleColor(ImGuiCol_Border, colorG);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
-        ImGui::DragInt("##UVSliceY", &UV_Slice_Y, 1, 1, 256);
+        ImGui::UndoDragInt("##UVSliceY", &UV_Slice_Y, 1, 1, 256);
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();
@@ -206,7 +206,7 @@ public:
 
 		// 数値入力（右）
 		ImGui::PushItemWidth(inputWidth);
-		if(ImGui::DragInt("##FrameInput", &AnimationNum, 1, 0, maxFrame)){
+		if(ImGui::UndoDragInt("##FrameInput", &AnimationNum, 1, 0, maxFrame)){
 			if(AnimationNum < 0) AnimationNum = 0;
 		}
 		ImGui::PopItemWidth();

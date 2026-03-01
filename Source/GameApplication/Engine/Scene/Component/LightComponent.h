@@ -82,8 +82,8 @@ public:
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 6));
 
 		// ライト有効・無効
-		ImGui::Checkbox("Enable", (bool*)&light.Enable);
-		ImGui::Checkbox("CastShadow", (bool*)&light.CastShadow);
+		ImGui::UndoCheckbox("Enable", (bool*)&light.Enable);
+		ImGui::UndoCheckbox("CastShadow", (bool*)&light.CastShadow);
 
 		// ライトの種類
 		const char* lightTypes[] = {"None","Directional", "Point", "Spot", "DirectionalCSM"};
@@ -93,11 +93,11 @@ public:
 		}
 
 		// 色設定
-		ImGui::ColorEdit4("Diffuse", reinterpret_cast<float*>(&light.Diffuse));
-		ImGui::ColorEdit4("Ambient", reinterpret_cast<float*>(&light.Ambient));
+		ImGui::UndoColorEdit4("Diffuse", reinterpret_cast<float*>(&light.Diffuse));
+		ImGui::UndoColorEdit4("Ambient", reinterpret_cast<float*>(&light.Ambient));
 
 		// パラメータ (x: 範囲, y: 内側コーン角度(Spot), z: 外側コーン角度(Spot), w: シャドウバイアス)
-		ImGui::DragFloat4("Param", reinterpret_cast<float*>(&light.Param), 0.1f);
+		ImGui::UndoDragFloat4("Param", reinterpret_cast<float*>(&light.Param), 0.1f);
 
 		ImGui::PopStyleVar();
 	}

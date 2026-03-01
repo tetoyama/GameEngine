@@ -48,7 +48,7 @@ struct FieldHandler<float> {
 		node[name] = v;
 	}
 	static void Inspector(IComponent*, float& v, const char* name){
-		ImGui::DragFloat(name, &v, 0.1f);
+		ImGui::UndoDragFloat(name, &v, 0.1f);
 	}
 };
 
@@ -62,7 +62,7 @@ struct FieldHandler<int> {
 		node[name] = v;
 	}
 	static void Inspector(IComponent*, int& v, const char* name){
-		ImGui::DragInt(name, &v);
+		ImGui::UndoDragInt(name, &v);
 	}
 };
 
@@ -76,7 +76,7 @@ struct FieldHandler<bool> {
 		node[name] = v;
 	}
 	static void Inspector(IComponent*, bool& v, const char* name){
-		ImGui::Checkbox(name, &v);
+		ImGui::UndoCheckbox(name, &v);
 	}
 };
 
@@ -90,7 +90,7 @@ struct FieldHandler<Vector3> {
 		node[name] = v;
 	}
 	static void Inspector(IComponent*, Vector3& v, const char* name){
-		ImGui::DragVec3(name, v);
+		ImGui::UndoDragVec3(name, v);
 	}
 };
 

@@ -30,6 +30,8 @@
 
 #include "LlamaService/LLAMAService.h"
 
+#include "BackEnds/ImGuiFunc.h"
+
 #include <dxgidebug.h>
 #include "Audio/audioContext.h"
 #pragma comment(lib, "dxguid.lib")
@@ -150,6 +152,13 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 			manubar->Register(MenuEvent::File_Open, [sceneManager](){
 				sceneManager->AddScene(sceneManager->OpenFromYAMLFile());
 							  });
+			// アンドゥ／リドゥを CommandManager に接続
+			manubar->Register(MenuEvent::Edit_Undo, [editorService](){
+				editorService->commandManager.Undo();
+			});
+			manubar->Register(MenuEvent::Edit_Redo, [editorService](){
+				editorService->commandManager.Redo();
+			});
 		}
 	}
 
@@ -246,6 +255,11 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 			mainRenderer->BeginFrame();
 			imguiService->Begin();
 			{
+				// アンドゥ対応 ImGui ラッパーに CommandManager を設定
+				if (editorService) {
+					ImGui::SetCommandManager(&editorService->commandManager);
+				}
+
 				sceneManager->Draw();
 				debugLogSystem->Draw();
 

@@ -143,13 +143,13 @@ public:
 			ImGui::EndDragDropTarget();
 		}
 
-		if(ImGui::Checkbox("Loop", &Loop)){
+		if(ImGui::UndoCheckbox("Loop", &Loop)){
 			Reset();
 		}
 		
 		ImGui::SameLine();
 		
-		if(ImGui::Checkbox("Play On Start", &PlayOnStart)){
+		if(ImGui::UndoCheckbox("Play On Start", &PlayOnStart)){
 			Reset();
 		}
 

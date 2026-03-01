@@ -41,10 +41,10 @@ public:
 	void inspector(SceneContext* context) override{
 		ImGui::Text("Wave Component");
 		ImGui::Separator();
-		ImGui::DragInt("Resolution", &Resolution, 1, 5, 200);
-		ImGui::DragFloat("Amplitude", &Amplitude, 0.01f, 0.0f, 5.0f);
-		ImGui::DragFloat("Wavelength", &Wavelength, 0.01f, 0.1f, 10.0f);
-		ImGui::DragFloat("Speed", &Speed, 0.01f, 0.0f, 10.0f);
+		ImGui::UndoDragInt("Resolution", &Resolution, 1, 5, 200);
+		ImGui::UndoDragFloat("Amplitude", &Amplitude, 0.01f, 0.0f, 5.0f);
+		ImGui::UndoDragFloat("Wavelength", &Wavelength, 0.01f, 0.1f, 10.0f);
+		ImGui::UndoDragFloat("Speed", &Speed, 0.01f, 0.0f, 10.0f);
 
 		if(ImGui::Button("Rebuild Mesh")){
 			CurrentResolution = -1; // 再構築要求

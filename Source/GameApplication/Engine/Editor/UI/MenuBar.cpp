@@ -21,6 +21,15 @@ void MenuBar::Draw(EditorDrawContext ctx){
 		showSystemSetting = showMenuBar;
 	}
 
+	// Ctrl+Z でアンドゥ
+	if (ImGui::IsKeyPressed(ImGuiKey_Z, false) && ImGui::GetIO().KeyCtrl) {
+		Invoke(MenuEvent::Edit_Undo);
+	}
+	// Ctrl+Y でリドゥ
+	if (ImGui::IsKeyPressed(ImGuiKey_Y, false) && ImGui::GetIO().KeyCtrl) {
+		Invoke(MenuEvent::Edit_Redo);
+	}
+
 	if(showMenuBar && ImGui::BeginMainMenuBar()){
 		RenderFileMenu();
 		RenderEditMenu();

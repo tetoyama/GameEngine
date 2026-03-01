@@ -34,15 +34,15 @@ public:
 
 		ImGui::Text("Rotate X:");
 		ImGui::SameLine(100);
-		ImGui::Checkbox(("##RotateX_" + std::to_string(reinterpret_cast<std::uintptr_t>(this))).c_str(), &RotateXYZ.x);
+		ImGui::UndoCheckbox(("##RotateX_" + std::to_string(reinterpret_cast<std::uintptr_t>(this))).c_str(), &RotateXYZ.x);
 
 		ImGui::Text("Rotate Y:");
 		ImGui::SameLine(100);
-		ImGui::Checkbox(("##RotateY_" + std::to_string(reinterpret_cast<std::uintptr_t>(this))).c_str(), &RotateXYZ.y);
+		ImGui::UndoCheckbox(("##RotateY_" + std::to_string(reinterpret_cast<std::uintptr_t>(this))).c_str(), &RotateXYZ.y);
 
 		ImGui::Text("Rotate Z:");
 		ImGui::SameLine(100);
-		ImGui::Checkbox(("##RotateZ_" + std::to_string(reinterpret_cast<std::uintptr_t>(this))).c_str(), &RotateXYZ.z);
+		ImGui::UndoCheckbox(("##RotateZ_" + std::to_string(reinterpret_cast<std::uintptr_t>(this))).c_str(), &RotateXYZ.z);
 	}
 
 	// --- 回転設定 ---
