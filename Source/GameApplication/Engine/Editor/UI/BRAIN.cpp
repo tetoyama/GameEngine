@@ -62,14 +62,16 @@ void BRAIN::Initialize(EditorService* editor){
 		"an AI assistant embedded in a C++ game engine editor.\n"
 		"You can browse the engine's source code and asset folder to answer questions.\n\n"
 		"Available tools (output ONLY the XML tag — no preamble, no explanation before it):\n"
-		"  <tool_call name=\"list_directory\" path=\"Source/\"/>              -- list one directory level\n"
-		"  <tool_call name=\"search_files\" path=\"FileName\"/>               -- find files by name substring\n"
-		"  <tool_call name=\"grep_source\" path=\"keyword\"/>                 -- find keyword in source files\n"
-		"  <tool_call name=\"read_source_file\" path=\"Source/path/file.cpp\"/> -- read a file\n"
-		"  <tool_call name=\"list_assets\" path=\"Asset/\"/>                  -- list assets\n\n"
+		"  <tool_call name=\"list_directory\" path=\"SOURCE_OR_ASSET_DIR\"/>      -- list one directory level\n"
+		"  <tool_call name=\"search_files\" path=\"FILENAME_SUBSTRING\"/>         -- find files by name substring\n"
+		"  <tool_call name=\"grep_source\" path=\"CODE_KEYWORD\"/>                -- find keyword in source files\n"
+		"  <tool_call name=\"read_source_file\" path=\"SOURCE_OR_ASSET_PATH\"/>   -- read a file\n"
+		"  <tool_call name=\"list_assets\" path=\"ASSET_SUBDIR\"/>                -- list assets\n\n"
 		"Rules:\n"
+		"- Replace SOURCE_OR_ASSET_DIR, FILENAME_SUBSTRING, CODE_KEYWORD, SOURCE_OR_ASSET_PATH, ASSET_SUBDIR with REAL values.\n"
 		"- When you need a tool, output the tool_call tag IMMEDIATELY as the first thing in your response.\n"
 		"- Do NOT explain what you are about to do before calling a tool.\n"
+		"- Do NOT output more than one tool_call per response.\n"
 		"- To find a file: use search_files first, then read_source_file with the exact path.\n"
 		"- To find where something is defined: use grep_source.\n"
 		"- After receiving tool results, give a concise answer.";
@@ -336,6 +338,19 @@ void BRAIN::WorkerLoop() {
 			}
 
 			// 次のラウンド：ツール結果をプロンプトとして渡す
+			// 全ツール結果の合計サイズを制限する（per-tool 制限だけでは
+			// ツール数が多い場合に合計が n_batch を超えうる）。
+			// n_batch のデフォルトは 2048 トークン ≈ ~8192 chars。
+			// 6000 chars ≈ 1500 tokens はシステムプロンプト (~300t) と
+			// サマリー (~200t) を加えても n_batch (2048t) に収まる保守的な上限。
+			static constexpr char kTotalTruncMsg[] =
+				"\n[... total tool results truncated to prevent context overflow ...]";
+			static constexpr size_t kTotalTruncMsgLen = sizeof(kTotalTruncMsg) - 1;
+			static constexpr size_t kMaxTotalToolResultChars = 6000;
+			if (toolResults.size() > kMaxTotalToolResultChars - kTotalTruncMsgLen) {
+				toolResults.resize(kMaxTotalToolResultChars - kTotalTruncMsgLen);
+				toolResults += kTotalTruncMsg;
+			}
 			currentPrompt = toolResults;
 		}
 

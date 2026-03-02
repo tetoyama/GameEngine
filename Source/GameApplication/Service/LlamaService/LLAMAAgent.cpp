@@ -270,24 +270,37 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
     }
 
     // ---- decode NEW prompt tokens into existing context at position m_nPast ----
+    // llama_decode enforces  n_tokens <= n_batch  (GGML_ASSERT, abort on violation).
+    // n_batch defaults to 2048; a large tool-result prompt can exceed this easily.
+    // We chunk the decode exactly as SummarizeAndReset does, using the context's
+    // own n_batch as the chunk limit so it is always safe regardless of config.
     {
-        llama_batch b = llama_batch_init(n, 0, 1);
-        for (int i = 0; i < n; ++i) {
-            b.token[i] = tokens[i];
-            b.pos[i] = m_nPast + i;
-            b.seq_id[i][0] = 0;
-            b.n_seq_id[i] = 1;
-            b.logits[i] = (i == n - 1) ? 1 : 0;
-        }
-        b.n_tokens = n;
-        if (llama_decode(m_ctx, b) != 0) {
+        const int batch_size = static_cast<int>(llama_n_batch(m_ctx));
+        bool decodeOk = true;
+        for (int offset = 0; offset < n && decodeOk; offset += batch_size) {
+            int sz = (std::min)(batch_size, n - offset);
+            llama_batch b = llama_batch_init(sz, 0, 1);
+            for (int i = 0; i < sz; ++i) {
+                b.token[i] = tokens[offset + i];
+                b.pos[i] = m_nPast + offset + i;
+                b.seq_id[i][0] = 0;
+                b.n_seq_id[i] = 1;
+                // Only the very last token of the whole prompt needs logits
+                b.logits[i] = (offset + i == n - 1) ? 1 : 0;
+            }
+            b.n_tokens = sz;
+            int rc = llama_decode(m_ctx, b);
             llama_batch_free(b);
+            if (rc != 0) {
+                decodeOk = false;
+            }
+        }
+        if (!decodeOk) {
             OutputDebugStringA("LLAMAAgent::RunPromptInternal: decode(prompt) failed — resetting context\n");
             // Context is in an unknown state; reset so the next call starts clean.
             ResetContextUnlocked();
             return;
         }
-        llama_batch_free(b);
     }
 
     // append prompt tokens to history and update m_nPast
