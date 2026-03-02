@@ -171,8 +171,22 @@ private:
 
 				float y = A * sinf(k * r - omega * comp->Time);
 
+				// 法線計算 (波の方程式の偏微分)
+				float nx = 0.0f;
+				float nz = 0.0f;
+				if(r > 0.001f){
+					float cosArg = A * k * cosf(k * r - omega * comp->Time);
+					nx = -cosArg * dx / r;
+					nz = -cosArg * dz / r;
+				}
+				float ny = 1.0f;
+				float nLen = sqrtf(nx * nx + ny * ny + nz * nz);
+				nx /= nLen;
+				ny /= nLen;
+				nz /= nLen;
+
 				tempVertices[idx].Position = DirectX::XMFLOAT3(px, y, pz);
-				tempVertices[idx].Normal = DirectX::XMFLOAT3(0, 1, 0);
+				tempVertices[idx].Normal = DirectX::XMFLOAT3(nx, ny, nz);
 				tempVertices[idx].TexCoord = DirectX::XMFLOAT2((float)x / grid, (float)z / grid);
 				tempVertices[idx].Diffuse = DirectX::XMFLOAT4(0.3f, 0.6f, 1.0f, 1.0f);
 			}

@@ -21,20 +21,7 @@ GBUFFER_OUT main(PS_IN In)
     GBUFFER_OUT Out;
 
     // -----------------------------
-    // Albedo
-    // -----------------------------
-    float4 baseColor = Material.BaseColor;
-
-    // Diffuse Texture を使うか
-    if ((Material.MaterialFlags & MATERIAL_FLAG_USE_DIFFUSE_TEXTURE) != 0)
-    {
-        baseColor *= DiffuseTexture.Sample(LinearSampler, In.TexCoord);
-    }
-
-    Out.OutAlbedo = baseColor;
-
-    // -----------------------------
-    // Normal (World Space)
+    // Normal (World Space) - computed first for env map
     // -----------------------------
     float3 N = normalize(In.Normal.xyz);
     // Normal Texture を使うか
@@ -44,6 +31,38 @@ GBUFFER_OUT main(PS_IN In)
     }
     // World Normal [-1,1] → [0,1] encode
     Out.OutNormal = float4(N * 0.5f + 0.5f, 1.0f);
+
+    // -----------------------------
+    // Albedo
+    // -----------------------------
+    float4 baseColor = Material.BaseColor;
+
+    // Environment Map (SkyBox テクスチャを反射方向でサンプリング)
+    if ((Material.MaterialFlags & MATERIAL_FLAG_USE_ENV_MAP) != 0)
+    {
+        float3 V = normalize(CameraPosition.xyz - In.WorldPosition.xyz);
+        float3 R = reflect(-V, N);
+
+        // Equirectangular マッピング: 反射方向 → UV
+        float2 envUV;
+        envUV.x = atan2(R.z, R.x) / (2.0f * PI) + 0.5f;
+        envUV.y = 0.5f - R.y * 0.5f;
+
+        float4 envColor = DiffuseTexture.Sample(LinearSampler, envUV);
+
+        // Fresnel (水面: F0 ≈ 0.02)
+        float NdotV = saturate(dot(N, V));
+        float F = 0.02f + 0.98f * pow(1.0f - NdotV, 5.0f);
+
+        baseColor = lerp(baseColor, envColor, F);
+    }
+    // Diffuse Texture を使うか
+    else if ((Material.MaterialFlags & MATERIAL_FLAG_USE_DIFFUSE_TEXTURE) != 0)
+    {
+        baseColor *= DiffuseTexture.Sample(LinearSampler, In.TexCoord);
+    }
+
+    Out.OutAlbedo = baseColor;
 
     // -----------------------------
     // Position (World Space)

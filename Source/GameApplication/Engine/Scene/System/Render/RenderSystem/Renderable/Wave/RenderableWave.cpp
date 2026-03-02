@@ -35,7 +35,7 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	if(pTexture && pTexture->m_TextureData && pTexture->m_TextureData->pTexture){
 
 		sceneContext->manager->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
-		material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
+		material.MaterialFlags |= MATERIAL_FLAG_USE_ENV_MAP;
 
 	} else{
 

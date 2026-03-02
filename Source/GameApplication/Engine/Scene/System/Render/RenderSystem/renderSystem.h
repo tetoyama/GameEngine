@@ -86,8 +86,32 @@ public:
 		pbrMaterial.filePath = "PBRShader.hlsli";
 		pbrMaterial.entryPoint = "ShadeMaterial_PBR";
 
+		// PBRToon マテリアル
+		ShaderMaterial pbrToonMaterial;
+		pbrToonMaterial.filePath = "PBRToonShader.hlsli";
+		pbrToonMaterial.entryPoint = "ShadeMaterial_PBRToon";
+
+		// Toon マテリアル
+		ShaderMaterial toonMaterial;
+		toonMaterial.filePath = "ToonShader.hlsli";
+		toonMaterial.entryPoint = "ShadeMaterial_Toon";
+
+		// RimToon マテリアル
+		ShaderMaterial rimToonMaterial;
+		rimToonMaterial.filePath = "RimToonShader.hlsli";
+		rimToonMaterial.entryPoint = "ShadeMaterial_RimToon";
+
+		// WaterSurface マテリアル
+		ShaderMaterial waterMaterial;
+		waterMaterial.filePath = "WaterSurfaceShader.hlsli";
+		waterMaterial.entryPoint = "ShadeMaterial_WaterSurface";
+
 		ShaderMaterials.push_back(unlitMaterial);
 		ShaderMaterials.push_back(pbrMaterial);
+		ShaderMaterials.push_back(pbrToonMaterial);
+		ShaderMaterials.push_back(toonMaterial);
+		ShaderMaterials.push_back(rimToonMaterial);
+		ShaderMaterials.push_back(waterMaterial);
 	}
 
 	~RenderSystem(){}
