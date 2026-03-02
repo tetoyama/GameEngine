@@ -266,6 +266,12 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 					[this, context](Entity e, SceneContext*){
 						selectedEntity = e;
 						sceneContext   = context;
+					},
+					[this](){
+						if(sceneContext && !sceneContext->entity->IsAlive(selectedEntity))
+							selectedEntity = 0;
+						if(sceneContext && !sceneContext->entity->IsAlive(pendingRenameEntity))
+							pendingRenameEntity = 0;
 					});
 				m_editor->commandManager.Execute(std::move(cmd));
 			}
@@ -288,6 +294,12 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 				[this, context](Entity e, SceneContext*){
 					selectedEntity = e;
 					sceneContext   = context;
+				},
+				[this](){
+					if(sceneContext && !sceneContext->entity->IsAlive(selectedEntity))
+						selectedEntity = 0;
+					if(sceneContext && !sceneContext->entity->IsAlive(pendingRenameEntity))
+						pendingRenameEntity = 0;
 				});
 			m_editor->commandManager.Execute(std::move(cmd));
 		}

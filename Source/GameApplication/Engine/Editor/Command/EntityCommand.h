@@ -49,13 +49,16 @@ private:
 class EntityCreateCommand : public ICommand {
 public:
 	using PostCreateCallback = std::function<void(Entity, SceneContext*)>;
+	using PostUndoCallback   = std::function<void()>;
 
 	EntityCreateCommand(SceneContext* context, Entity parentEntity = 0,
-		PostCreateCallback onCreated = nullptr)
+		PostCreateCallback onCreated = nullptr,
+		PostUndoCallback   onUndone  = nullptr)
 		: m_context(context)
 		, m_parent(parentEntity)
 		, m_created(0)
 		, m_onCreated(onCreated)
+		, m_onUndone(onUndone)
 	{}
 
 	void Execute() override {
@@ -89,7 +92,11 @@ public:
 
 		m_context->component->OnEntityDestroyed(m_created);
 		m_context->entity->Destroy(m_created);
+		if (m_onUndone) m_onUndone();
 	}
+
+	// Undo でエンティティを破棄するため、Redo スタックの生ポインタを事前クリアする
+	bool ClearsRedoOnUndo() const override { return true; }
 
 	Entity GetCreatedEntity() const { return m_created; }
 
@@ -100,6 +107,7 @@ private:
 	Entity             m_parent;
 	Entity             m_created;
 	PostCreateCallback m_onCreated;
+	PostUndoCallback   m_onUndone;
 };
 
 // -----------------------------------------------------------------------
@@ -138,6 +146,10 @@ public:
 		EntityCommandHelper::RestoreAll(m_snapshots, m_context);
 		if (m_onRestored) m_onRestored(m_entity, m_context);
 	}
+
+	// エンティティを破棄することで、それ以前のコマンドのコンポーネントポインタを無効化する。
+	// Undo スタックを事前クリアしてダングリングポインタ使用を防ぐ。
+	bool ClearsUndoHistory() const override { return true; }
 
 	std::string GetDescription() const override { return "エンティティを削除: " + m_entityName; }
 
@@ -193,13 +205,17 @@ private:
 // -----------------------------------------------------------------------
 class EntityDuplicateCommand : public ICommand {
 public:
-	using PostCallback = std::function<void(Entity, SceneContext*)>;
+	using PostCallback     = std::function<void(Entity, SceneContext*)>;
+	using PostUndoCallback = std::function<void()>;
 
-	EntityDuplicateCommand(SceneContext* ctx, Entity src, PostCallback onDuplicated = nullptr)
+	EntityDuplicateCommand(SceneContext* ctx, Entity src,
+		PostCallback     onDuplicated = nullptr,
+		PostUndoCallback onUndone     = nullptr)
 		: m_context(ctx)
 		, m_src(src)
 		, m_duplicated(0)
 		, m_onDuplicated(onDuplicated)
+		, m_onUndone(onUndone)
 	{}
 
 	void Execute() override {
@@ -228,7 +244,11 @@ public:
 		if (!m_context || m_duplicated == 0) return;
 		if (!m_context->entity->IsAlive(m_duplicated)) return;
 		EntityCommandHelper::DestroyRecursive(m_duplicated, m_context);
+		if (m_onUndone) m_onUndone();
 	}
+
+	// Undo でエンティティを破棄するため、Redo スタックの生ポインタを事前クリアする
+	bool ClearsRedoOnUndo() const override { return true; }
 
 	std::string GetDescription() const override { return "エンティティを複製"; }
 
@@ -270,6 +290,7 @@ private:
 	Entity                                           m_duplicated;
 	std::vector<EntityCommandHelper::EntitySnapshot> m_snapshots;
 	PostCallback                                     m_onDuplicated;
+	PostUndoCallback                                 m_onUndone;
 };
 
 // -----------------------------------------------------------------------
@@ -278,14 +299,18 @@ private:
 // -----------------------------------------------------------------------
 class EmptyParentCommand : public ICommand {
 public:
-	using PostCallback = std::function<void(Entity, SceneContext*)>;
+	using PostCallback     = std::function<void(Entity, SceneContext*)>;
+	using PostUndoCallback = std::function<void()>;
 
-	EmptyParentCommand(SceneContext* ctx, Entity entity, PostCallback onCreated = nullptr)
+	EmptyParentCommand(SceneContext* ctx, Entity entity,
+		PostCallback     onCreated = nullptr,
+		PostUndoCallback onUndone  = nullptr)
 		: m_context(ctx)
 		, m_entity(entity)
 		, m_entityOldParent(0)
 		, m_newParent(0)
 		, m_onCreated(onCreated)
+		, m_onUndone(onUndone)
 	{
 		auto* t = ctx->component->GetComponent<TransformComponent>(entity);
 		m_entityOldParent = t ? t->parent : 0;
@@ -337,7 +362,11 @@ public:
 		// 新親エンティティを削除
 		m_context->component->OnEntityDestroyed(m_newParent);
 		m_context->entity->Destroy(m_newParent);
+		if (m_onUndone) m_onUndone();
 	}
+
+	// Undo でエンティティを破棄するため、Redo スタックの生ポインタを事前クリアする
+	bool ClearsRedoOnUndo() const override { return true; }
 
 	std::string GetDescription() const override { return "空の親エンティティを作成"; }
 
@@ -348,4 +377,5 @@ private:
 	Entity        m_newParent;
 	std::vector<std::pair<std::string, YAML::Node>> m_snapshot;
 	PostCallback  m_onCreated;
+	PostUndoCallback m_onUndone;
 };

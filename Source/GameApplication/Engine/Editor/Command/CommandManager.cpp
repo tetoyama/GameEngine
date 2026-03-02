@@ -7,6 +7,12 @@
 void CommandManager::Execute(std::unique_ptr<ICommand> cmd) {
 	if (!cmd) return;
 
+	// 構造的な削除操作（エンティティ削除など）はそれ以前のコマンドのポインタを
+	// 無効化するため、Undo スタックを事前にクリアする
+	if (cmd->ClearsUndoHistory()) {
+		while (!m_undoStack.empty()) m_undoStack.pop();
+	}
+
 	cmd->Execute();
 	m_undoStack.push(std::move(cmd));
 
@@ -25,6 +31,13 @@ void CommandManager::Undo() {
 	if (m_undoStack.empty()) return;
 
 	auto& cmd = m_undoStack.top();
+
+	// エンティティ作成系コマンドは Undo でエンティティを破棄するため、
+	// Redo スタックに残った当該エンティティへの生ポインタを事前にクリアする
+	if (cmd->ClearsRedoOnUndo()) {
+		while (!m_redoStack.empty()) m_redoStack.pop();
+	}
+
 	cmd->Undo();
 	m_redoStack.push(std::move(cmd));
 	m_undoStack.pop();

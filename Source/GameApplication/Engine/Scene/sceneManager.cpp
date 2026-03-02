@@ -163,6 +163,13 @@ void SceneManager::Update(float deltaTime){
 	for (auto it = m_activeScenes.begin(); it != m_activeScenes.end(); ) {
 		if (it->second->isDestroy) {
 
+			// シーン破棄前に CommandManager をクリアする。
+			// シーンの SceneContext* やコンポーネントポインタを保持するコマンドが
+			// Shutdown 後に Undo/Redo されてダングリングポインタ参照を起こすことを防ぐ。
+			if (m_SceneContext.editor) {
+				m_SceneContext.editor->commandManager.Clear();
+			}
+
 			it->second->Shutdown();
 			it->second.reset();
 
@@ -216,6 +223,11 @@ void SceneManager::AddScene(std::shared_ptr<Scene> scene) {
 	}
 
 	if (m_activeScenes[scene->SceneName]) {
+		// 既存シーンを上書きする際は CommandManager をクリアする。
+		// 古いシーンのポインタを保持するコマンドが残ると Undo/Redo でクラッシュする。
+		if (m_SceneContext.editor) {
+			m_SceneContext.editor->commandManager.Clear();
+		}
 		m_activeScenes[scene->SceneName]->Shutdown();
 		m_activeScenes[scene->SceneName] = nullptr;
 	}
@@ -227,6 +239,11 @@ void SceneManager::AddScene(std::shared_ptr<Scene> scene) {
 void SceneManager::LoadScene(std::shared_ptr<Scene> scene){
 
 	m_SceneContext.debug->LOG_INFO("Sceneを読み込みます...");
+
+	// シーン全置換前に CommandManager をクリアする（ダングリングポインタ防止）
+	if (m_SceneContext.editor) {
+		m_SceneContext.editor->commandManager.Clear();
+	}
 	
 	for (auto& [name, scene] : m_activeScenes) {
 		scene->Shutdown();

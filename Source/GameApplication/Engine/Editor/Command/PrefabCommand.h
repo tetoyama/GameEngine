@@ -69,6 +69,9 @@ public:
 		if (m_onUndone) m_onUndone();
 	}
 
+	// Undo でエンティティを破棄するため、Redo スタックの生ポインタを事前クリアする
+	bool ClearsRedoOnUndo() const override { return true; }
+
 	std::string GetDescription() const override { return "Prefabを配置"; }
 
 private:

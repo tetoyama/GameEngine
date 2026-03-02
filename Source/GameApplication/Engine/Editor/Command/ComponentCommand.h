@@ -74,6 +74,9 @@ public:
 		m_context->component->RemoveComponentByID(m_entity, id);
 	}
 
+	// Undo でコンポーネントを削除するため、Redo スタックの生ポインタを事前クリアする
+	bool ClearsRedoOnUndo() const override { return true; }
+
 	std::string GetDescription() const override { return "コンポーネントを追加: " + m_componentName; }
 
 private:
@@ -116,6 +119,10 @@ public:
 		if (m_componentName.empty()) return;
 		m_context->component->CreateFromYAML(m_componentName, m_entity, m_snapshot);
 	}
+
+	// コンポーネントを破棄することで、それ以前のコマンドのコンポーネントポインタを無効化する。
+	// Undo スタックを事前クリアしてダングリングポインタ使用を防ぐ。
+	bool ClearsUndoHistory() const override { return true; }
 
 	std::string GetDescription() const override { return "コンポーネントを削除: " + m_componentName; }
 
