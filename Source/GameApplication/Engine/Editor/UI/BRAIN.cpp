@@ -402,37 +402,117 @@ void BRAIN::Draw(const EditorDrawContext){
 		logCopy = m_chatLog;
 	}
 
+	int entryIdx = 0;
 	for(const auto& e : logCopy){
-		const char* label;
-		ImVec4 color;
+		ImGui::PushID(entryIdx);
 
 		switch(e.role){
 		case ChatEntry::Role::User:
-			label = "User";
-			color = ImVec4(0.7f, 0.8f, 1.0f, 1.0f);
+			{
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.8f, 1.0f, 1.0f));
+				ImGui::Text("User:");
+				const size_t chunkSize = 4096;
+				for(size_t offset = 0; offset < e.text.size(); offset += chunkSize){
+					ImGui::TextWrapped("%.*s",
+						(int)(std::min)(chunkSize, e.text.size() - offset),
+						e.text.c_str() + offset);
+				}
+				ImGui::PopStyleColor();
+			}
 			break;
+
 		case ChatEntry::Role::Tool:
-			label = "Tool";
-			color = ImVec4(1.0f, 0.85f, 0.4f, 1.0f);
+			{
+				// Format: "> tool_name \"path\"\n<result body>"
+				auto nlpos = e.text.find('\n');
+				std::string cmdLabel = (nlpos != std::string::npos)
+					? e.text.substr(0, nlpos) : e.text;
+				std::string resultBody = (nlpos != std::string::npos)
+					? e.text.substr(nlpos + 1) : std::string();
+
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.85f, 0.4f, 1.0f));
+				ImGui::SetNextItemOpen(false, ImGuiCond_Appearing);
+				if(ImGui::TreeNode("node", "%s", cmdLabel.c_str())){
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));
+					const size_t chunkSize = 4096;
+					for(size_t offset = 0; offset < resultBody.size(); offset += chunkSize){
+						ImGui::TextWrapped("%.*s",
+							(int)(std::min)(chunkSize, resultBody.size() - offset),
+							resultBody.c_str() + offset);
+					}
+					ImGui::PopStyleColor();
+					ImGui::TreePop();
+				}
+				ImGui::PopStyleColor();
+			}
 			break;
+
 		default: // Assistant
-			label = "Assistant";
-			color = ImVec4(0.8f, 1.0f, 0.8f, 1.0f);
+			{
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 1.0f, 0.8f, 1.0f));
+				ImGui::Text("Assistant:");
+
+				// Parse <think>...</think> blocks and render them as collapsible tree nodes
+				const std::string& text = e.text;
+				size_t searchPos = 0;
+				int thinkIdx = 0;
+				while(searchPos < text.size()){
+					size_t thinkStart = text.find("<think>", searchPos);
+					size_t textEnd = (thinkStart != std::string::npos) ? thinkStart : text.size();
+
+					// Render regular text before (or after all) <think> blocks
+					if(textEnd > searchPos){
+						std::string chunk = text.substr(searchPos, textEnd - searchPos);
+						if(chunk.find_first_not_of(" \t\n\r") != std::string::npos){
+							const size_t chunkSize = 4096;
+							for(size_t offset = 0; offset < chunk.size(); offset += chunkSize){
+								ImGui::TextWrapped("%.*s",
+									(int)(std::min)(chunkSize, chunk.size() - offset),
+									chunk.c_str() + offset);
+							}
+						}
+					}
+					if(thinkStart == std::string::npos) break;
+
+					size_t contentStart = thinkStart + 7; // skip "<think>"
+					size_t thinkEnd = text.find("</think>", contentStart);
+					std::string thinkContent;
+					if(thinkEnd != std::string::npos){
+						thinkContent = text.substr(contentStart, thinkEnd - contentStart);
+						searchPos = thinkEnd + 8; // skip "</think>"
+					} else {
+						// Incomplete tag (still streaming)
+						thinkContent = text.substr(contentStart);
+						searchPos = text.size(); // will not match next iteration
+					}
+
+					// Show thinking content as an expanded collapsible block
+					ImGui::PushID(thinkIdx);
+					ImGui::SetNextItemOpen(true, ImGuiCond_Appearing);
+					if(ImGui::TreeNode("think", "Thinking...")){
+						ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.7f, 1.0f));
+						if(thinkContent.find_first_not_of(" \t\n\r") != std::string::npos){
+							const size_t chunkSize = 4096;
+							for(size_t offset = 0; offset < thinkContent.size(); offset += chunkSize){
+								ImGui::TextWrapped("%.*s",
+									(int)(std::min)(chunkSize, thinkContent.size() - offset),
+									thinkContent.c_str() + offset);
+							}
+						}
+						ImGui::PopStyleColor();
+						ImGui::TreePop();
+					}
+					ImGui::PopID();
+					++thinkIdx;
+				}
+
+				ImGui::PopStyleColor();
+			}
 			break;
 		}
 
-		ImGui::PushStyleColor(ImGuiCol_Text, color);
-		ImGui::Text("%s:", label);
-		// 長すぎる文字列も分割表示
-		const size_t chunkSize = 4096;
-		for(size_t offset = 0; offset < e.text.size(); offset += chunkSize){
-			ImGui::TextWrapped("%.*s",
-							   (int)(std::min)(chunkSize, e.text.size() - offset),
-							   e.text.c_str() + offset
-			);
-		}
-
-		ImGui::PopStyleColor();
+		ImGui::PopID();
+		++entryIdx;
 	}
 
 	if(m_scrollToBottom){

@@ -208,9 +208,32 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
     const int safety_margin = 16;
     const int max_tokens_allowed = m_config->n_ctx - safety_margin;
 
+    // プロンプト単体が n_ctx を超える場合、末尾優先で切り詰める（ここを超えると decode でクラッシュする）
+    if (n > max_tokens_allowed) {
+        int skip = n - max_tokens_allowed;
+        tokens.erase(tokens.begin(), tokens.begin() + skip);
+        n = max_tokens_allowed;
+        OutputDebugStringA("LLAMAAgent::RunPromptInternal: prompt truncated to fit n_ctx\n");
+    }
+
     if (m_nPast + n > max_tokens_allowed && !m_isSummarizing) {
         OutputDebugStringA("LLAMAAgent::RunPromptInternal n_ctx 超過、SummarizeAndReset 呼び出し\n");
         SummarizeAndReset(); // 過去トークン圧縮
+    }
+
+    // SummarizeAndReset 後もまだ溢れる場合は再度切り詰め
+    if (m_nPast + n > max_tokens_allowed) {
+        int newN = max_tokens_allowed - m_nPast;
+        if (newN <= 0) {
+            // コンテキストが完全に埋まっている場合は強制リセット（m_nPast は 0 になる）
+            ResetContextUnlocked();
+            // n はすでに max_tokens_allowed 以下なので追加の切り詰め不要
+        } else {
+            int skip = n - newN;
+            tokens.erase(tokens.begin(), tokens.begin() + skip);
+            n = newN;
+            OutputDebugStringA("LLAMAAgent::RunPromptInternal: prompt re-truncated after SummarizeAndReset\n");
+        }
     }
 
     // ---- コンテキスト初期化 ----
