@@ -119,7 +119,7 @@ std::vector<BrainToolCall> BrainTools::ParseToolCalls(const std::string& respons
 	// または属性付き: <tool_call name="xxx" path="yyy"/>
 	// または対タグ:   <tool_call name="xxx"></tool_call>
 	std::regex re(
-		R"(<tool_call\s+name="([^"]+)"(?:\s+path="([^"]*)")?\s*(?:/>|>(?:[\s\S]*?)</tool_call>))"
+		R"re(<tool_call\s+name="([^"]+)"(?:\s+path="([^"]*)")?\s*(?:/>|>(?:[\s\S]*?)</tool_call>))re"
 	);
 
 	auto begin = std::sregex_iterator(response.begin(), response.end(), re);
@@ -160,7 +160,7 @@ std::string BrainTools::ExecuteToolCall(const BrainToolCall& call) {
 std::string BrainTools::StripToolCalls(const std::string& response) {
 	// ParseToolCalls と同じパターンを使用して一貫性を保つ
 	std::regex re(
-		R"(<tool_call\s+name="([^"]+)"(?:\s+path="([^"]*)")?\s*(?:/>|>(?:[\s\S]*?)</tool_call>))"
+		R"re(<tool_call\s+name="([^"]+)"(?:\s+path="([^"]*)")?\s*(?:/>|>(?:[\s\S]*?)</tool_call>))re"
 	);
 	return std::regex_replace(response, re, "");
 }
