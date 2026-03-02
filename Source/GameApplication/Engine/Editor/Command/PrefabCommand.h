@@ -10,6 +10,7 @@
 #include "Scene/scene.h"
 #include "Scene/Interface/IComponent.h"
 #include "Scene/Component/transformComponent.h"
+#include "Scene/Component/PrefabComponent.h"
 #include "Scene/Reference/EntityRef.h"
 #include "Scene/Prefab/PrefabSystem.h"
 #include <yaml-cpp/yaml.h>

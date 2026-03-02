@@ -225,7 +225,8 @@ void ViewWindow::EditorView(const EditorDrawContext ctx) {
 			}
 			bool isUsingNow = ImGuizmo::IsUsing();
 
-			// ギズモ開始時：変更前の Transform をキャプチャ			if (isUsingNow && !m_wasUsingGizmo) {
+			// ギズモ開始時：変更前の Transform をキャプチャ
+			if (isUsingNow && !m_wasUsingGizmo) {
 				m_gizmoEntity     = selectedEntity;
 				m_gizmoStartPos   = transform->position;
 				m_gizmoStartRot   = transform->GetRotation();
