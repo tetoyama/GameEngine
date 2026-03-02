@@ -24,6 +24,7 @@
 
 #include "Graphics/graphicsContext.h"
 #include "Resources/Data/shaderData.h"
+#include "Resources/resourceService.h"
 
 #include "Shader/commonDefine.h"
 
