@@ -193,6 +193,9 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 			}
 		}
 	}
+	// GBuffer RTVs と DSV を解除してから次パスで SRV として使用できるようにする
+	dc->OMSetRenderTargets(0, nullptr, nullptr);
+
 	{
 		return;
 		// ================================
