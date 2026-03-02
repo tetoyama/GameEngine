@@ -3,6 +3,8 @@
 // ImGuiFunc.h
 // -----------------------------------------------------------------------
 
+#include <string>
+
 // 前方宣言
 class Vector3;
 class CommandManager;
@@ -52,4 +54,12 @@ namespace ImGui{
 
 	// アンドゥ対応 ColorEdit4
 	bool UndoColorEdit4(const char* label, float col[4], int flags = 0);
+
+	// アンドゥ対応 SliderFloat
+	bool UndoSliderFloat(const char* label, float* v, float v_min, float v_max, const char* format = "%.3f");
+
+	// アンドゥ対応 InputText（std::string 対象）
+	// 編集完了（フォーカスアウト or Enter）時にコマンドを積む
+	bool UndoInputText(const char* label, std::string* str, size_t bufSize = 256,
+		ImGuiInputTextFlags flags = 0);
 }

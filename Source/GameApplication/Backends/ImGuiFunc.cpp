@@ -11,6 +11,7 @@
 #include <ImGui/imgui.h>
 #include <string>
 #include <unordered_map>
+#include <vector>
 #include <myVector3.h>
 #include <ImGui/imgui_internal.h>
 #include "Editor/Command/CommandManager.h"
@@ -349,6 +350,71 @@ bool ImGui::UndoColorEdit4(const char* label, float col[4], int flags)
 				std::make_unique<PropertyChangeCommand<Float4>>(cf, it->second, newValue, MakePropertyDesc(label))
 			);
 			s_capturedColors.erase(it);
+		}
+	}
+
+	return changed;
+}
+
+bool ImGui::UndoSliderFloat(const char* label, float* v, float v_min, float v_max, const char* format)
+{
+	static std::unordered_map<ImGuiID, float> s_capturedSliders;
+
+	float preValue = *v;
+	bool changed = ImGui::SliderFloat(label, v, v_min, v_max, format);
+	ImGuiID id = ImGui::GetItemID();
+
+	if (ImGui::IsItemActivated()) {
+		s_capturedSliders[id] = preValue;
+	}
+	if (ImGui::IsItemDeactivatedAfterEdit() && s_commandManager) {
+		auto it = s_capturedSliders.find(id);
+		if (it != s_capturedSliders.end()) {
+			float newValue = *v;
+			if (it->second != newValue) {
+				s_commandManager->Execute(
+					std::make_unique<PropertyChangeCommand<float>>(v, it->second, newValue, MakePropertyDesc(label))
+				);
+			}
+			s_capturedSliders.erase(it);
+		}
+	}
+
+	return changed;
+}
+
+bool ImGui::UndoInputText(const char* label, std::string* str, size_t bufSize, ImGuiInputTextFlags flags)
+{
+	static std::unordered_map<ImGuiID, std::string> s_capturedStrings;
+
+	std::vector<char> buf(bufSize);
+	buf[0] = '\0';
+	strncpy(buf.data(), str->c_str(), bufSize - 1);
+	buf[bufSize - 1] = '\0';
+
+	bool changed = ImGui::InputText(label, buf.data(), bufSize, flags);
+	ImGuiID id = ImGui::GetItemID();
+
+	if (ImGui::IsItemActivated()) {
+		s_capturedStrings[id] = *str;
+	}
+	if (changed) {
+		*str = buf.data();
+	}
+	if (ImGui::IsItemDeactivatedAfterEdit() && s_commandManager) {
+		auto it = s_capturedStrings.find(id);
+		if (it != s_capturedStrings.end()) {
+			std::string newValue = *str;
+			if (it->second != newValue) {
+				std::string capturedOld = it->second;
+				s_commandManager->Execute(
+					std::make_unique<PropertyChangeCommandWithSetter<std::string>>(
+						[str](const std::string& val){ *str = val; },
+						capturedOld, newValue, MakePropertyDesc(label)
+					)
+				);
+			}
+			s_capturedStrings.erase(it);
 		}
 	}
 

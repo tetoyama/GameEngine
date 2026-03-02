@@ -106,6 +106,7 @@ public:
 	YAML::Node encode() override;
 
 	void SystemSetting() override;
+	bool HasSystemSetting() const override { return true; }
 
 	//------------------------------------------------------------------
 	// 指定型の Renderable を取得

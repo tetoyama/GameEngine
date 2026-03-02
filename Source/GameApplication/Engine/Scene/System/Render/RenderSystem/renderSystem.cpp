@@ -74,6 +74,9 @@
 
 #include "Service/Config/configSystem.h"
 #include "Service/Config/appConfig.h"
+#include "BackEnds/ImGuiFunc.h"
+#include "Editor/Command/CommandManager.h"
+#include "Editor/Command/PropertyChangeCommand.h"
 
 void RenderSystem::Initialize(){
 	m_context->debug->LOG_DEBUG("RenderSystemを初期化中...");
@@ -449,22 +452,10 @@ void RenderSystem::SystemSetting() {
 				ImGui::Separator();
 
 				// File Path
-				{
-					char buf[512] = {};
-					strncpy(buf, mat.filePath.c_str(), sizeof(buf) - 1);
-					if(ImGui::InputText("File Path", buf, sizeof(buf))){
-						mat.filePath = buf;
-					}
-				}
+				ImGui::UndoInputText("File Path",   &mat.filePath,   512);
 
 				// Entry Point
-				{
-					char buf[128] = {};
-					strncpy(buf, mat.entryPoint.c_str(), sizeof(buf) - 1);
-					if(ImGui::InputText("Entry Point", buf, sizeof(buf))){
-						mat.entryPoint = buf;
-					}
-				}
+				ImGui::UndoInputText("Entry Point", &mat.entryPoint, 128);
 
 				ImGui::Separator();
 

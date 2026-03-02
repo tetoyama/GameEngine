@@ -4,6 +4,7 @@
 #include "BackEnds/PhysX/PxPhysicsAPI.h"
 #include "Scene/Entity/Entity.h"
 
+#include <cstring>
 #include <mutex>
 #include <vector>
 #include <string>
@@ -87,6 +88,7 @@ public:
 	bool decode(const YAML::Node& node) override;
 
 	void SystemSetting() override;
+	bool HasSystemSetting() const override { return true; }
 
 	//------------------------------------------------------------------
 	// PhysX 取得系
@@ -133,6 +135,31 @@ public:
 	void RebuildCollisionMatrix();
 	void RemoveLayer(int removeIndex);
 	void AddLayer(const std::string& name);
+
+	//------------------------------------------------------------------
+	// Undo/Redo 用スナップショット
+	//------------------------------------------------------------------
+	struct LayerSnapshot {
+		std::vector<PhysicsLayer> layers;
+		bool matrix[kMaxPhysicsLayers][kMaxPhysicsLayers]{};
+	};
+
+	LayerSnapshot TakeLayerSnapshot() const {
+		LayerSnapshot snap;
+		snap.layers = m_layers;
+		for (int y = 0; y < (int)kMaxPhysicsLayers; ++y)
+			for (int x = 0; x < (int)kMaxPhysicsLayers; ++x)
+				snap.matrix[y][x] = m_collisionMatrix[y][x];
+		return snap;
+	}
+
+	void RestoreLayerSnapshot(const LayerSnapshot& snap) {
+		m_layers = snap.layers;
+		for (int y = 0; y < (int)kMaxPhysicsLayers; ++y)
+			for (int x = 0; x < (int)kMaxPhysicsLayers; ++x)
+				m_collisionMatrix[y][x] = snap.matrix[y][x];
+		RebuildLayerBits();
+	}
 
 private:
 
