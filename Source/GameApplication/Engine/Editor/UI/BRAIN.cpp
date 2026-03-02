@@ -62,12 +62,16 @@ void BRAIN::Initialize(EditorService* editor){
 		"an AI assistant embedded in a C++ game engine editor.\n"
 		"You can browse the engine's source code and asset folder to answer questions.\n\n"
 		"Available tools (output ONLY the XML tag — no preamble, no explanation before it):\n"
-		"  <tool_call name=\"list_source_files\"/>\n"
-		"  <tool_call name=\"read_source_file\" path=\"Source/path/to/file.cpp\"/>\n"
-		"  <tool_call name=\"list_assets\" path=\"Asset/\"/>\n\n"
+		"  <tool_call name=\"list_directory\" path=\"Source/\"/>              -- list one directory level\n"
+		"  <tool_call name=\"search_files\" path=\"FileName\"/>               -- find files by name substring\n"
+		"  <tool_call name=\"grep_source\" path=\"keyword\"/>                 -- find keyword in source files\n"
+		"  <tool_call name=\"read_source_file\" path=\"Source/path/file.cpp\"/> -- read a file\n"
+		"  <tool_call name=\"list_assets\" path=\"Asset/\"/>                  -- list assets\n\n"
 		"Rules:\n"
 		"- When you need a tool, output the tool_call tag IMMEDIATELY as the first thing in your response.\n"
 		"- Do NOT explain what you are about to do before calling a tool.\n"
+		"- To find a file: use search_files first, then read_source_file with the exact path.\n"
+		"- To find where something is defined: use grep_source.\n"
 		"- After receiving tool results, give a concise answer.";
 
 	// ---------------------------------
@@ -317,8 +321,17 @@ void BRAIN::WorkerLoop() {
 					m_scrollToBottom = true;
 				}
 
+				// LLM に戻す前にツール結果を切り説め（コンテキスト溢れ防止）
+				// n_ctx=8192、システムプロンプト分を引いた安全な上限 (~3000 chars ≈ ~750 tokens)
+				static constexpr size_t kMaxToolResultChars = 3000;
+				std::string truncatedResult = result;
+				if (truncatedResult.size() > kMaxToolResultChars) {
+					truncatedResult.resize(kMaxToolResultChars);
+					truncatedResult += "\n[... truncated to prevent context overflow ...]";
+				}
+
 				toolResults += "<tool_result name=\"" + call.name + "\">\n";
-				toolResults += result;
+				toolResults += truncatedResult;
 				toolResults += "\n</tool_result>\n";
 			}
 

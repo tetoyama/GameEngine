@@ -17,8 +17,146 @@ std::string BrainTools::ListSourceFiles() {
 }
 
 // ============================
-// ListAssets
+// ListDirectory
 // ============================
+std::string BrainTools::ListDirectory(const std::string& path) {
+	fs::path dir = path.empty() ? fs::path("Source") : fs::path(path);
+	std::error_code ec;
+
+	if (!fs::exists(dir, ec) || !fs::is_directory(dir, ec)) {
+		return "[ERROR] Directory not found: " + path;
+	}
+
+	std::ostringstream ss;
+	ss << dir.generic_string() << "/\n";
+
+	std::vector<fs::directory_entry> entries;
+	for (const auto& e : fs::directory_iterator(dir, ec)) {
+		entries.push_back(e);
+	}
+	std::sort(entries.begin(), entries.end(), [](const auto& a, const auto& b) {
+		if (a.is_directory() != b.is_directory()) return a.is_directory();
+		return a.path().filename().string() < b.path().filename().string();
+	});
+
+	for (const auto& e : entries) {
+		std::string name = e.path().filename().string();
+		if (e.is_directory(ec)) {
+			ss << "  [" << name << "]/\n";
+		} else if (e.is_regular_file(ec)) {
+			ss << "  " << name << "\n";
+		}
+	}
+	return ss.str();
+}
+
+// ============================
+// SearchFiles
+// ============================
+std::string BrainTools::SearchFiles(const std::string& query) {
+	if (query.empty()) {
+		return "[ERROR] query must not be empty";
+	}
+
+	// 大文字小文字を無視した部分一致検索
+	std::string lowerQuery = query;
+	std::transform(lowerQuery.begin(), lowerQuery.end(), lowerQuery.begin(),
+		[](unsigned char c){ return (char)std::tolower(c); });
+
+	fs::path root("Source");
+	std::error_code ec;
+	if (!fs::exists(root, ec)) {
+		return "[ERROR] Source directory not found";
+	}
+
+	std::ostringstream ss;
+	int found = 0;
+	for (const auto& entry : fs::recursive_directory_iterator(root, ec)) {
+		if (!entry.is_regular_file(ec)) continue;
+		std::string name = entry.path().filename().string();
+		std::string lowerName = name;
+		std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(),
+			[](unsigned char c){ return (char)std::tolower(c); });
+		if (lowerName.find(lowerQuery) != std::string::npos) {
+			ss << entry.path().generic_string() << "\n";
+			++found;
+		}
+	}
+
+	if (found == 0) {
+		return "[No files found matching: " + query + "]";
+	}
+	return ss.str();
+}
+
+// ============================
+// GrepSource
+// ============================
+std::string BrainTools::GrepSource(const std::string& keyword) {
+	if (keyword.empty()) {
+		return "[ERROR] keyword must not be empty";
+	}
+
+	// 大文字小文字を無視した検索
+	std::string lowerKeyword = keyword;
+	std::transform(lowerKeyword.begin(), lowerKeyword.end(), lowerKeyword.begin(),
+		[](unsigned char c){ return (char)std::tolower(c); });
+
+	fs::path root("Source");
+	std::error_code ec;
+	if (!fs::exists(root, ec)) {
+		return "[ERROR] Source directory not found";
+	}
+
+	std::ostringstream ss;
+	int matchCount = 0;
+	static constexpr int kMaxMatches = 30;      // 結果が多すぎる場合に切り詰め
+	static constexpr int kContextLines = 2;     // マッチ前後の表示行数
+
+	for (const auto& entry : fs::recursive_directory_iterator(root, ec)) {
+		if (!entry.is_regular_file(ec)) continue;
+		std::string ext = entry.path().extension().string();
+		// ソースファイルのみ対象
+		if (ext != ".cpp" && ext != ".h" && ext != ".hpp" && ext != ".c") continue;
+
+		std::ifstream ifs(entry.path());
+		if (!ifs.is_open()) continue;
+
+		std::vector<std::string> lines;
+		std::string line;
+		while (std::getline(ifs, line)) {
+			lines.push_back(line);
+		}
+
+		for (int i = 0; i < (int)lines.size(); ++i) {
+			std::string lowerLine = lines[i];
+			std::transform(lowerLine.begin(), lowerLine.end(), lowerLine.begin(),
+				[](unsigned char c){ return (char)std::tolower(c); });
+			if (lowerLine.find(lowerKeyword) == std::string::npos) continue;
+
+			if (matchCount >= kMaxMatches) {
+				ss << "[... more matches omitted (limit " << kMaxMatches << ") ...]\n";
+				return ss.str();
+			}
+
+			ss << entry.path().generic_string() << ":" << (i + 1) << "\n";
+			int startLine = (std::max)(0, i - kContextLines);
+			int endLine   = (std::min)((int)lines.size() - 1, i + kContextLines);
+			for (int j = startLine; j <= endLine; ++j) {
+				ss << (j == i ? ">> " : "   ") << (j + 1) << ": " << lines[j] << "\n";
+			}
+			ss << "\n";
+			++matchCount;
+		}
+	}
+
+	if (matchCount == 0) {
+		return "[No matches found for: " + keyword + "]";
+	}
+	return ss.str();
+}
+
+
 std::string BrainTools::ListAssets(const std::string& subPath) {
 	std::string path = subPath.empty() ? "Asset" : subPath;
 	// アセットは深さ4階層まで
@@ -141,6 +279,15 @@ std::vector<BrainToolCall> BrainTools::ParseToolCalls(const std::string& respons
 std::string BrainTools::ExecuteToolCall(const BrainToolCall& call) {
 	if (call.name == "list_source_files") {
 		return ListSourceFiles();
+	}
+	if (call.name == "list_directory") {
+		return ListDirectory(call.path);
+	}
+	if (call.name == "search_files") {
+		return SearchFiles(call.path);
+	}
+	if (call.name == "grep_source") {
+		return GrepSource(call.path);
 	}
 	if (call.name == "read_source_file" || call.name == "read_file") {
 		if (call.path.empty()) {

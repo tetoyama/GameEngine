@@ -544,6 +544,7 @@ void LLAMAAgent::SummarizeAndReset() {
         // decode compressedTokens into the newly created m_ctx in batches with contiguous positions
         int pos = 0;
         const int batch_size = 64;
+        bool decodeOk = true;
         for (size_t offset = 0; offset < compressedTokens.size(); offset += batch_size) {
             int sz = (int)(std::min)(batch_size, (int)compressedTokens.size() - (int)offset);
             llama_batch b = llama_batch_init(sz, 0, 1);
@@ -559,17 +560,18 @@ void LLAMAAgent::SummarizeAndReset() {
             llama_batch_free(b);
             if (rc != 0) {
                 OutputDebugStringA("SummarizeAndReset: decode(compressed) failed rc != 0\n");
-                // if decoding compressedTokens fails, clear and bail to consistent state
-                m_pastTokens.clear();
-                m_nPast = 0;
+                decodeOk = false;
                 break;
             }
             pos += sz;
         }
-        // restore history if decode succeeded
-        if (!compressedTokens.empty()) {
+        // restore history only if ALL batches decoded successfully
+        if (decodeOk) {
             m_pastTokens = compressedTokens;
             m_nPast = (int)m_pastTokens.size();
+        } else {
+            // partial decode — context is in inconsistent state; full reset
+            ResetContextUnlocked();
         }
     } else {
         m_pastTokens.clear();

@@ -20,6 +20,9 @@ struct BrainToolCall {
 //
 // 【AIツール呼び出し書式】AIレスポンス内で使用:
 //   <tool_call name="list_source_files"/>
+//   <tool_call name="list_directory" path="Source/some/path/"/>
+//   <tool_call name="search_files" path="FileName"/>
+//   <tool_call name="grep_source" path="keyword"/>
 //   <tool_call name="read_source_file" path="Source/path/to/file.cpp"/>
 //   <tool_call name="list_assets" path="Asset/"/>
 //
@@ -33,6 +36,15 @@ public:
 
 	// ソースファイル一覧（Source/ 以下）
 	static std::string ListSourceFiles();
+
+	// ディレクトリの直下一覧（非再帰、一段のみ）
+	static std::string ListDirectory(const std::string& path);
+
+	// ファイル名によるファイル検索（Source/ 以下、部分一致）
+	static std::string SearchFiles(const std::string& query);
+
+	// ソースコード内容のキーワード検索（Source/ 以下）
+	static std::string GrepSource(const std::string& keyword);
 
 	// アセット一覧（Asset/ 以下、サブパス指定可能）
 	static std::string ListAssets(const std::string& subPath = "");
