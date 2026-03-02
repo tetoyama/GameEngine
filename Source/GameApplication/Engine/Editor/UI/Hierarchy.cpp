@@ -166,10 +166,16 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 			ImGui::SetCursorPos(ImVec2(10, ImGui::GetCursorPos().y));
 			ImGui::Separator();
 
-			const auto& entities = registry->GetAllAlive();
+			// GetAllAlive() の参照ではなくコピーを取得する。
+			// DrawHierarchyNode 内でエンティティを削除すると EntityRegistry::Destroy() が
+			// m_alive を書き換えるため、参照のままだとイテレータが無効化されクラッシュする。
+			const auto entities = registry->GetAllAlive();
 
 			// --- ルートエンティティの描画（親を持たないもの） ---
 			for(const Entity& entity : entities){
+
+				// 同一フレーム内で削除済みのエンティティを飛ばす
+				if(!registry->IsAlive(entity)) continue;
 
 				auto* transform = context->component->GetComponent<TransformComponent>(entity);
 				if(transform && transform->parent != 0){
@@ -310,9 +316,13 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		if(ImGui::MenuItem("削除")){
 			auto cmd = std::make_unique<EntityDeleteCommand>(
 				context, entity,
-				[this, entity](){
-					if(selectedEntity == entity) selectedEntity = 0;
-					if(pendingRenameEntity == entity) pendingRenameEntity = 0;
+				[this](){
+					// 削除後、選択中エンティティが生存していなければ選択を解除する
+					// （削除対象の親だけでなく子エンティティが選択されていた場合も対応）
+					if(this->sceneContext && !this->sceneContext->entity->IsAlive(this->selectedEntity))
+						this->selectedEntity = 0;
+					if(this->sceneContext && !this->sceneContext->entity->IsAlive(this->pendingRenameEntity))
+						this->pendingRenameEntity = 0;
 				},
 				[this](Entity e, SceneContext* ctx){
 					selectedEntity = e;

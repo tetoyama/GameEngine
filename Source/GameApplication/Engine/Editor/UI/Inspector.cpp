@@ -34,7 +34,8 @@ void Inspector::Draw(const EditorDrawContext ctx){
 	} else {
 		bool alive = context->entity->IsAlive(selectedEntity); // 選択されたエンティティが生存しているか確認
 		if(!alive){
-			selectedEntity = 0; // 生存していない場合は選択を解除
+			// ローカル変数だけでなく Hierarchy の selectedEntity も解除する
+			m_editor->GetUI<Hierarchy>()->selectedEntity = 0;
 			ImGui::End();
 
 			return;
