@@ -168,7 +168,6 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 
 			const auto& entities = registry->GetAllAlive();
 
-			deleteEntity = 0;
 			// --- ルートエンティティの描画（親を持たないもの） ---
 			for(const Entity& entity : entities){
 
@@ -183,95 +182,6 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 		}
 	}
 	ImGui::End();
-}
-
-void Hierarchy::DestroyEntityRecursive(Entity entity, SceneContext* context){
-	// 親の children リストからこのエンティティを削除する
-	auto* transform = context->component->GetComponent<TransformComponent>(entity);
-	if(transform && transform->parent != 0){
-		auto* parentTransform = context->component->GetComponent<TransformComponent>(transform->parent);
-		if(parentTransform){
-			auto& ch = parentTransform->children;
-			ch.erase(std::remove(ch.begin(), ch.end(), entity), ch.end());
-		}
-	}
-	// 子エンティティを先に収集（Destroy中にセットを変更しないため）
-	std::vector<Entity> children;
-	for(Entity child : context->entity->GetAllAlive()){
-		auto* t = context->component->GetComponent<TransformComponent>(child);
-		if(t && t->parent == entity){
-			children.push_back(child);
-		}
-	}
-	for(Entity child : children){
-		DestroyEntityRecursive(child, context);
-	}
-	context->entity->Destroy(entity);
-	context->component->OnEntityDestroyed(entity);
-}
-
-void Hierarchy::SetParent(Entity child, Entity newParent, SceneContext* context){
-	auto* childTransform = context->component->GetComponent<TransformComponent>(child);
-	if(!childTransform) return;
-
-	// 旧親の children リストから削除
-	Entity oldParent = childTransform->parent;
-	if(oldParent != 0){
-		auto* oldParentTransform = context->component->GetComponent<TransformComponent>(oldParent);
-		if(oldParentTransform){
-			auto& ch = oldParentTransform->children;
-			ch.erase(std::remove(ch.begin(), ch.end(), child), ch.end());
-		}
-	}
-
-	childTransform->parent = newParent;
-
-	// 新親の children リストに追加
-	if(newParent != 0){
-		auto* newParentTransform = context->component->GetComponent<TransformComponent>(newParent);
-		if(newParentTransform){
-			newParentTransform->children.push_back(child);
-		}
-	}
-}
-
-Entity Hierarchy::DuplicateEntityRecursive(Entity src, Entity newParent, SceneContext* context){
-	Entity newEntity = context->entity->Create();
-
-	// YAML encode/decode で全コンポーネントをコピー
-	const auto& idToName = context->component->GetComponentIDToNameMap();
-	auto components = context->component->GetAllComponentsOfEntitySorted(src);
-	for(IComponent* comp : components){
-		ComponentTypeID typeID = context->component->GetComponentIDByTypeIndex(std::type_index(typeid(*comp)));
-		if(typeID == static_cast<ComponentTypeID>(-1)) continue;
-		auto nameIt = idToName.find(typeID);
-		if(nameIt == idToName.end()) continue;
-		YAML::Node node = comp->encode();
-		context->component->CreateFromYAML(nameIt->second, newEntity, node);
-	}
-
-	// TransformComponent の parent/children を修正
-	auto* newTransform = context->component->GetComponent<TransformComponent>(newEntity);
-	if(newTransform){
-		newTransform->children.clear();
-		newTransform->parent = newParent;
-		if(newParent != 0){
-			auto* parentTransform = context->component->GetComponent<TransformComponent>(newParent);
-			if(parentTransform){
-				parentTransform->children.push_back(newEntity);
-			}
-		}
-	}
-
-	// 子エンティティを再帰的に複製
-	auto* srcTransform = context->component->GetComponent<TransformComponent>(src);
-	if(srcTransform){
-		for(Entity srcChild : srcTransform->children){
-			DuplicateEntityRecursive(srcChild, newEntity, context);
-		}
-	}
-
-	return newEntity;
 }
 
 void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities){
