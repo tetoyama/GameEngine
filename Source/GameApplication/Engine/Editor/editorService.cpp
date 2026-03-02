@@ -37,7 +37,7 @@ void EditorService::Initialize(EditorServiceContext context) {
 	UIs.push_back(new DebugLogWindow());
 	UIs.push_back(new ViewWindow());
 	UIs.push_back(new SystemSetting());
-	//UIs.push_back(new BRAIN());
+	UIs.push_back(new BRAIN());
 
 	for (auto ui : UIs) {
 		ui->Initialize(this);
