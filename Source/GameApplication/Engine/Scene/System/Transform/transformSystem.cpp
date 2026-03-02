@@ -25,16 +25,13 @@ void TransformSystem::Draw(){
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
 
-		const auto& Entities = context->component->FindEntitiesWithComponent<TransformComponent>();
-		if (Entities.empty()) {
-			return;
-		} else {
-			for (Entity entity : Entities) {
-				auto* transform = context->component->GetComponent<TransformComponent>(entity);
-				if (transform->parent != 0 && !context->entity->IsAlive(transform->parent)) {
-					context->entity->Destroy(entity);
-					context->component->OnEntityDestroyed(entity);
-				}
+		const auto entities = context->component->FindEntitiesWithComponent<TransformComponent>();
+		for (Entity entity : entities) {
+			auto* transform = context->component->GetComponent<TransformComponent>(entity);
+			if (!transform) continue;
+			if (transform->parent != 0 && !context->entity->IsAlive(transform->parent)) {
+				context->component->OnEntityDestroyed(entity);
+				context->entity->Destroy(entity);
 			}
 		}
 	}

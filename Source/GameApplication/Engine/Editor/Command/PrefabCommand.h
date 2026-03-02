@@ -21,15 +21,18 @@
 class PrefabInstantiateCommand : public ICommand {
 public:
 	using PostInstantiateCallback = std::function<void(EntityRef)>;
+	using PostUndoCallback        = std::function<void()>;
 
 	PrefabInstantiateCommand(SceneContext* context, const std::string& filePath,
 		bool removePrefabComp = false,
-		PostInstantiateCallback onInstantiated = nullptr)
+		PostInstantiateCallback onInstantiated = nullptr,
+		PostUndoCallback        onUndone       = nullptr)
 		: m_context(context)
 		, m_filePath(filePath)
 		, m_removePrefabComp(removePrefabComp)
 		, m_spawned(0)
 		, m_onInstantiated(onInstantiated)
+		, m_onUndone(onUndone)
 	{}
 
 	void Execute() override {
@@ -63,6 +66,7 @@ public:
 		if (!m_context || m_spawned == 0) return;
 		if (!m_context->entity->IsAlive(m_spawned)) return;
 		EntityCommandHelper::DestroyRecursive(m_spawned, m_context);
+		if (m_onUndone) m_onUndone();
 	}
 
 	std::string GetDescription() const override { return "Prefabを配置"; }
@@ -74,4 +78,5 @@ private:
 	Entity                                           m_spawned;
 	std::vector<EntityCommandHelper::EntitySnapshot> m_snapshots;
 	PostInstantiateCallback                          m_onInstantiated;
+	PostUndoCallback                                 m_onUndone;
 };

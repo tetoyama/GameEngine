@@ -42,6 +42,14 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 
 		EntityRegistry* registry = context->entity;
 
+		// PrefabInstantiateCommand の Undo 後に選択状態をリセットする共通コールバック
+		auto onPrefabUndone = [this]() {
+			if(sceneContext && !sceneContext->entity->IsAlive(selectedEntity))
+				selectedEntity = 0;
+			if(sceneContext && !sceneContext->entity->IsAlive(pendingRenameEntity))
+				pendingRenameEntity = 0;
+		};
+
 		if(ImGui::TreeNodeEx((scenePair.second->SceneName + "##" + scenePair.first).c_str(), ImGuiTreeNodeFlags_DefaultOpen)){
 
 			if(ImGui::BeginPopupContextItem()){
@@ -78,7 +86,8 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 										selectedEntity = ref.GetEntityID();
 										sceneContext   = ref.GetScene();
 									}
-								});
+								},
+								onPrefabUndone);
 							m_editor->commandManager.Execute(std::move(cmd));
 						}
 					}
@@ -120,7 +129,8 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 													selectedEntity = ref.GetEntityID();
 													sceneContext   = ref.GetScene();
 												}
-											});
+											},
+											onPrefabUndone);
 										m_editor->commandManager.Execute(std::move(cmd));
 									}
 								}
@@ -150,7 +160,8 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 										selectedEntity = ref.GetEntityID();
 										sceneContext   = ref.GetScene();
 									}
-								});
+								},
+								onPrefabUndone);
 							m_editor->commandManager.Execute(std::move(cmd));
 						}
 					}
