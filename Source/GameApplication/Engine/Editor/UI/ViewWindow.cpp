@@ -16,6 +16,7 @@
 #include "Hierarchy.h"
 #include "Registry/componentRegistry.h"
 #include "Component/transformComponent.h"
+#include "Editor/Command/TransformChangeCommand.h"
 
 void ViewWindow::Initialize(EditorService* editor) {
 	ResourceService* resourceService = editor->resourceService;
@@ -222,7 +223,16 @@ void ViewWindow::EditorView(const EditorDrawContext ctx) {
 					Parent = 0;
 				}
 			}
-			if (ImGuizmo::IsUsing()) {
+			bool isUsingNow = ImGuizmo::IsUsing();
+
+			// ギズモ開始時：変更前の Transform をキャプチャ			if (isUsingNow && !m_wasUsingGizmo) {
+				m_gizmoEntity     = selectedEntity;
+				m_gizmoStartPos   = transform->position;
+				m_gizmoStartRot   = transform->GetRotation();
+				m_gizmoStartScale = transform->scale;
+			}
+
+			if (isUsingNow) {
 				// スケール、回転、並進を格納する変数
 				DirectX::XMVECTOR scale, rotationQuat, translation;
 
@@ -255,6 +265,21 @@ void ViewWindow::EditorView(const EditorDrawContext ctx) {
 					transform->scale = scale3;
 				}
 			}
+
+			// ギズモ終了時：変更をコマンドスタックに積む（Execute は既に適用済み）
+			if (!isUsingNow && m_wasUsingGizmo && m_gizmoEntity != 0) {
+				TransformComponent* t = registry->GetComponent<TransformComponent>(m_gizmoEntity);
+				if (t && hierarchy->sceneContext) {
+					auto cmd = std::make_unique<TransformChangeCommand>(
+						hierarchy->sceneContext, m_gizmoEntity,
+						m_gizmoStartPos, m_gizmoStartRot, m_gizmoStartScale,
+						t->position,     t->GetRotation(), t->scale);
+					m_editor->commandManager.Push(std::move(cmd));
+				}
+				m_gizmoEntity = 0;
+			}
+
+			m_wasUsingGizmo = isUsingNow;
 		}
 	}
 }

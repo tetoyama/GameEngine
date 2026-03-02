@@ -9,6 +9,7 @@
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
 #include "Editor/Command/EntityCommand.h"
+#include "Editor/Command/PrefabCommand.h"
 #include <scene.h>
 #include <Component/transformComponent.h>
 #include <Component/entityNameComponent.h>
@@ -70,11 +71,15 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 					if(payload->DataSize > 0 && context->prefab){
 						std::string path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
 						if(std::filesystem::path(path).extension() == ".prefab"){
-							EntityRef spawned = context->prefab->InstantiatePrefab(context, path);
-							if(spawned){
-								selectedEntity = spawned.GetEntityID();
-								sceneContext = spawned.GetScene();
-							}
+							auto cmd = std::make_unique<PrefabInstantiateCommand>(
+								context, path, false,
+								[this](EntityRef ref){
+									if(ref){
+										selectedEntity = ref.GetEntityID();
+										sceneContext   = ref.GetScene();
+									}
+								});
+							m_editor->commandManager.Execute(std::move(cmd));
 						}
 					}
 				}
@@ -107,12 +112,16 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 								std::string stem = entry.path().stem().string();
 								if(ImGui::MenuItem(stem.c_str())){
 									if(context->prefab){
-										EntityRef spawned = context->prefab->InstantiatePrefab(context, entry.path().string());
-										if(spawned){
-											context->component->RemoveComponent<PrefabComponent>(spawned.GetEntityID());
-											selectedEntity = spawned.GetEntityID();
-											sceneContext = spawned.GetScene();
-										}
+										std::string tplPath = entry.path().string();
+										auto cmd = std::make_unique<PrefabInstantiateCommand>(
+											context, tplPath, true,
+											[this](EntityRef ref){
+												if(ref){
+													selectedEntity = ref.GetEntityID();
+													sceneContext   = ref.GetScene();
+												}
+											});
+										m_editor->commandManager.Execute(std::move(cmd));
 									}
 								}
 							}
@@ -133,11 +142,16 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 						ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
 						ofn.lpstrDefExt = "prefab";
 						if(GetOpenFileNameA(&ofn)){
-							EntityRef spawned = context->prefab->InstantiatePrefab(context, std::string(filename));
-							if(spawned){
-								selectedEntity = spawned.GetEntityID();
-								sceneContext = spawned.GetScene();
-							}
+							std::string prefabPath(filename);
+							auto cmd = std::make_unique<PrefabInstantiateCommand>(
+								context, prefabPath, false,
+								[this](EntityRef ref){
+									if(ref){
+										selectedEntity = ref.GetEntityID();
+										sceneContext   = ref.GetScene();
+									}
+								});
+							m_editor->commandManager.Execute(std::move(cmd));
 						}
 					}
 				}
@@ -417,7 +431,10 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			IM_ASSERT(payload->DataSize == sizeof(Entity));
 			Entity draggedEntity = *(const Entity*)payload->Data;
 			if(draggedEntity != entity){
-				SetParent(draggedEntity, entity, context);
+				auto* draggedT = context->component->GetComponent<TransformComponent>(draggedEntity);
+				Entity oldParent = draggedT ? draggedT->parent : 0;
+				auto cmd = std::make_unique<SetParentCommand>(context, draggedEntity, oldParent, entity);
+				m_editor->commandManager.Execute(std::move(cmd));
 			}
 		}
 		ImGui::EndDragDropTarget();

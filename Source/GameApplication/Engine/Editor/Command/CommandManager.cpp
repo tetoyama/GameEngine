@@ -11,9 +11,14 @@ void CommandManager::Execute(std::unique_ptr<ICommand> cmd) {
 	m_undoStack.push(std::move(cmd));
 
 	// 新しい操作が入ったらリドゥスタックをクリア
-	while (!m_redoStack.empty()) {
-		m_redoStack.pop();
-	}
+	_ClearRedoStack();
+}
+
+void CommandManager::Push(std::unique_ptr<ICommand> cmd) {
+	if (!cmd) return;
+	// Execute は呼ばずにスタックに積む（操作は既に外部で適用済み）
+	m_undoStack.push(std::move(cmd));
+	_ClearRedoStack();
 }
 
 void CommandManager::Undo() {

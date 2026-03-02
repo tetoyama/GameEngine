@@ -49,6 +49,34 @@ inline void SetParent(Entity child, Entity newParent, SceneContext* ctx) {
 } // namespace EntityCommandHelper
 
 // -----------------------------------------------------------------------
+// SetParentCommand
+// D&D などで親子関係を変更するコマンド（Undo で旧親に戻す）
+// -----------------------------------------------------------------------
+class SetParentCommand : public ICommand {
+public:
+	SetParentCommand(SceneContext* context, Entity child, Entity oldParent, Entity newParent)
+		: m_context(context)
+		, m_child(child)
+		, m_oldParent(oldParent)
+		, m_newParent(newParent)
+	{}
+
+	void Execute() override {
+		if (m_context) EntityCommandHelper::SetParent(m_child, m_newParent, m_context);
+	}
+
+	void Undo() override {
+		if (m_context) EntityCommandHelper::SetParent(m_child, m_oldParent, m_context);
+	}
+
+private:
+	SceneContext* m_context;
+	Entity        m_child;
+	Entity        m_oldParent;
+	Entity        m_newParent;
+};
+
+// -----------------------------------------------------------------------
 // EntityCreateCommand
 // エンティティ作成コマンド（Undo で削除）
 // -----------------------------------------------------------------------
