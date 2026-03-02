@@ -1,4 +1,5 @@
 #include "BRAIN.h"
+#include "BrainTools.h"
 
 #include <thread>
 #include <mutex>
@@ -55,6 +56,24 @@ void BRAIN::Initialize(EditorService* editor){
 	//m_agentConfig->n_ctx = 256;
 	m_agentConfig->n_threads =
 		(std::max)(1u, std::thread::hardware_concurrency());
+
+	m_agentConfig->system_prompt =
+		"You are B.R.A.I.N. (Built-in Reasoning and Intelligence Node), "
+		"an AI assistant embedded in a C++ game engine editor.\n"
+		"You can browse the engine's source code and asset folder to answer questions.\n\n"
+		"Available tools:\n"
+		"  list_source_files              : List all source code files under Source/\n"
+		"  read_source_file path=\"<path>\" : Read a source file "
+		"(e.g., path=\"Source/GameApplication/Engine/Editor/UI/BRAIN.cpp\")\n"
+		"  list_assets path=\"<path>\"      : List asset folder contents "
+		"(e.g., path=\"Asset/\" or path=\"Asset/Model/\")\n\n"
+		"To call a tool, include the following tag in your response:\n"
+		"  <tool_call name=\"list_source_files\"/>\n"
+		"  <tool_call name=\"read_source_file\" path=\"Source/path/to/file.cpp\"/>\n"
+		"  <tool_call name=\"list_assets\" path=\"Asset/\"/>\n\n"
+		"You may use multiple tools in one response. "
+		"The results will be provided to you automatically. "
+		"After receiving the results, give a clear and helpful answer.";
 
 	// ---------------------------------
 	// モデルロード
@@ -189,7 +208,7 @@ void BRAIN::WorkerLoop() {
 			}
 		}
 
-		if (!hasJob || !m_mainAgent) {
+		if (!hasJob) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			continue;
 		}
@@ -204,39 +223,121 @@ void BRAIN::WorkerLoop() {
 		}
 
 		// ---------------------------
-		// 実行
+		// チャットコマンド処理（/ から始まる入力）
 		// ---------------------------
-		m_mainAgent->RunAsync(job.prompt);
-
 		{
-			std::lock_guard<std::mutex> lock(m_outputMutex);
-			m_chatLog.push_back({ ChatEntry::Role::Assistant, std::string() });
-			m_scrollToBottom = true;
+			auto cmd = BrainTools::ParseChatCommand(job.prompt);
+			if (cmd.isCommand) {
+				std::string result = BrainTools::ExecuteChatCommand(cmd);
+				{
+					std::lock_guard<std::mutex> lock(m_outputMutex);
+					m_chatLog.push_back({ ChatEntry::Role::Assistant, result });
+					m_scrollToBottom = true;
+				}
+				m_isRunning.store(false);
+				continue;
+			}
 		}
-		while (m_mainAgent->GetState() != LLAMAAgent::State::Running) {
+
+		// AIが未初期化の場合はスキップ
+		if (!m_mainAgent) {
+			{
+				std::lock_guard<std::mutex> lock(m_outputMutex);
+				m_chatLog.push_back({
+					ChatEntry::Role::Assistant,
+					"[B.R.A.I.N.] モデルがまだロード中です。しばらくお待ちください。\n"
+					"ファイル閲覧コマンドは今すぐ使えます（/help で確認）。"
+				});
+				m_scrollToBottom = true;
+			}
+			m_isRunning.store(false);
+			continue;
 		}
+
 		// ---------------------------
-		// 出力監視ループ（Running状態監視一本化）
+		// 実行（ツール呼び出しサポート、最大3ラウンド）
 		// ---------------------------
-		while (m_mainAgent->GetState() == LLAMAAgent::State::Running) {
-			if (m_stopRequested.load()) {
-				m_mainAgent->Stop();
-				m_stopRequested.store(false);
+		const int maxToolRounds = 3;
+		std::string currentPrompt = job.prompt;
+
+		for (int round = 0; round < maxToolRounds; ++round) {
+			m_mainAgent->RunAsync(currentPrompt);
+
+			{
+				std::lock_guard<std::mutex> lock(m_outputMutex);
+				m_chatLog.push_back({ ChatEntry::Role::Assistant, std::string() });
+				m_scrollToBottom = true;
+			}
+
+			// Running 状態になるまで待機
+			while (m_mainAgent->GetState() != LLAMAAgent::State::Running) {
+				if (m_stopRequested.load()) break;
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			}
+
+			// 出力監視ループ
+			while (m_mainAgent->GetState() == LLAMAAgent::State::Running) {
+				if (m_stopRequested.load()) {
+					m_mainAgent->Stop();
+					m_stopRequested.store(false);
+					break;
+				}
+
+				std::string out = m_mainAgent->GetOutput();
+				{
+					std::lock_guard<std::mutex> lock(m_outputMutex);
+					if (!m_chatLog.empty() && m_chatLog.back().role == ChatEntry::Role::Assistant) {
+						m_chatLog.back().text = out;
+						m_scrollToBottom = true;
+					}
+				}
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(50));
+			}
+
+			std::string output = m_mainAgent->GetOutput();
+			OutputDebugStringA(("BRAIN: Round " + std::to_string(round) +
+				" completed. Output length: " + std::to_string(output.size()) + "\n").c_str());
+
+			// ツール呼び出しを解析
+			auto toolCalls = BrainTools::ParseToolCalls(output);
+			if (toolCalls.empty()) {
+				// ツール呼び出しなし → 終了
+				break;
+			}
+			if (round == maxToolRounds - 1) {
+				// 最終ラウンド到達：残りのツール呼び出しを無視して終了
+				OutputDebugStringA("BRAIN: maxToolRounds reached; remaining tool calls ignored.\n");
 				break;
 			}
 
-			std::string out = m_mainAgent->GetOutput();
+			// ツール呼び出しを実行して結果を収集
+			std::string toolResults;
+			for (const auto& call : toolCalls) {
+				OutputDebugStringA(("BRAIN: Executing tool: " + call.name +
+					(call.path.empty() ? "" : " path=" + call.path) + "\n").c_str());
+
+				toolResults += "<tool_result name=\"" + call.name + "\">\n";
+				toolResults += BrainTools::ExecuteToolCall(call);
+				toolResults += "\n</tool_result>\n";
+			}
+
+			// 現在の回答からツール呼び出しタグを除去して表示
 			{
 				std::lock_guard<std::mutex> lock(m_outputMutex);
 				if (!m_chatLog.empty() && m_chatLog.back().role == ChatEntry::Role::Assistant) {
-					m_chatLog.back().text = out;
-					m_scrollToBottom = true;
+					m_chatLog.back().text = BrainTools::StripToolCalls(output);
 				}
+				m_scrollToBottom = true;
 			}
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+			// 次のラウンド：ツール結果をプロンプトとして渡す
+			currentPrompt = toolResults;
 		}
-		OutputDebugStringA(("BRAIN: LLM job completed. Output length: " + std::to_string(m_mainAgent->GetOutput().size()) + "\n" + m_mainAgent->GetOutput()).c_str());
+
+		OutputDebugStringA(("BRAIN: LLM job completed. Output length: " +
+			std::to_string(m_mainAgent->GetOutput().size()) + "\n" +
+			m_mainAgent->GetOutput()).c_str());
 
 		m_isRunning.store(false);
 	}
@@ -356,9 +457,11 @@ void BRAIN::Draw(const EditorDrawContext){
 		ImVec2(-1, 100)
 	);
 
-	bool running = m_isRunning.load();
-	bool canRun =
-		!running && m_mainAgent && m_llamaModel;
+	bool running  = m_isRunning.load();
+	// inputBuffer[0] != '\0' で空入力を除外してから / を確認
+	bool isCommand = (inputBuffer[0] != '\0') && (inputBuffer[0] == '/');
+	// コマンドはモデル未ロードでも実行可能、AI応答はモデルが必要
+	bool canRun = !running && (isCommand || (m_mainAgent && m_llamaModel));
 
 	ImGui::BeginDisabled(!canRun);
 	if(ImGui::Button("Run")){
@@ -371,6 +474,11 @@ void BRAIN::Draw(const EditorDrawContext){
 		m_jobCV.notify_one();
 	}
 	ImGui::EndDisabled();
+	if(ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)){
+		ImGui::SetTooltip(isCommand
+			? "コマンドを実行 (/ で始まる入力)"
+			: (m_mainAgent ? "AIに質問する" : "モデルをロード中... / コマンドは今すぐ使えます"));
+	}
 
 	ImGui::SameLine();
 	ImGui::BeginDisabled(!running);

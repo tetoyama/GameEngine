@@ -2415,6 +2415,9 @@
     <ClInclude Include="Source\GameApplication\Engine\Editor\UI\BRAIN.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Editor\UI\BrainTools.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
     <ClInclude Include="Source\GameApplication\Backends\llama\models\models.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -2952,6 +2955,9 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\BRAIN.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Editor\UI\BrainTools.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Backends\llama\models\xverse.cpp">
