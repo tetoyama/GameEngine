@@ -4,6 +4,8 @@
 #include <sceneManager.h>
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
+#include "Editor/Command/EntityCommand.h"
+#include "Editor/Command/ComponentCommand.h"
 #include <scene.h>
 #include <Component/transformComponent.h>
 #include <Component/entityNameComponent.h>
@@ -72,9 +74,21 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 	if(ImGui::Button("- Delete")){
 		if(selectedEntity != 0){
-			context->entity->Destroy(selectedEntity);
-			context->component->OnEntityDestroyed(selectedEntity);
-			selectedEntity = 0;
+			Hierarchy* hierarchy = m_editor->GetUI<Hierarchy>();
+			auto cmd = std::make_unique<EntityDeleteCommand>(
+				context, selectedEntity,
+				[hierarchy, selectedEntity](){
+					if(hierarchy && hierarchy->selectedEntity == selectedEntity){
+						hierarchy->selectedEntity = 0;
+					}
+				},
+				[hierarchy](Entity e, SceneContext* ctx){
+					if(hierarchy){
+						hierarchy->selectedEntity = e;
+						hierarchy->sceneContext   = ctx;
+					}
+				});
+			m_editor->commandManager.Execute(std::move(cmd));
 		}
 	}
 
@@ -111,7 +125,6 @@ void Inspector::Draw(const EditorDrawContext ctx){
 		if(ImGui::SmallButton(("Remove##" + compName).c_str())){
 			componentsToRemove.push_back(Component);
 		}
-
 		// 次の行に移動
 		if(open){
 			Component->inspector(context);
@@ -120,13 +133,10 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 	}
 
-	// 削除は後からまとめて
+	// 削除は後からまとめてコマンドで実行
 	for(IComponent* comp : componentsToRemove){
-		std::type_index ti(typeid(*comp));
-		ComponentTypeID id = context->component->GetComponentIDByTypeIndex(ti);
-		if(id != static_cast<ComponentTypeID>(-1)){
-			context->component->RemoveComponentByID(selectedEntity, id);
-		}
+		auto cmd = std::make_unique<ComponentRemoveCommand>(context, selectedEntity, comp);
+		m_editor->commandManager.Execute(std::move(cmd));
 	}
 
 
@@ -177,7 +187,8 @@ void Inspector::Draw(const EditorDrawContext ctx){
 			}
 
 			if(ImGui::MenuItem(name.c_str())){
-				func(selectedEntity);
+				auto cmd = std::make_unique<ComponentAddCommand>(context, selectedEntity, name, func);
+				m_editor->commandManager.Execute(std::move(cmd));
 			}
 		}
 

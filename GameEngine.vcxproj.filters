@@ -2451,6 +2451,12 @@
     <ClInclude Include="Source\GameApplication\Engine\Editor\Command\PropertyChangeCommand.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Editor\Command\EntityCommand.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Editor\Command\ComponentCommand.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\PostEffectPass.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>

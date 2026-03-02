@@ -8,6 +8,7 @@
 #include <sceneManager.h>
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
+#include "Editor/Command/EntityCommand.h"
 #include <scene.h>
 #include <Component/transformComponent.h>
 #include <Component/entityNameComponent.h>
@@ -87,12 +88,13 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 			}
 			if(ImGui::BeginPopup("##AddEntityPopup")){
 				if(ImGui::MenuItem("Empty")){
-					Entity newEntity = registry->Create();
-					selectedEntity = newEntity;
-					sceneContext = context;
-					auto* n = context->component->AddComponent<NameComponent>(newEntity);
-					n->name = "Entity";
-					context->component->AddComponent<TransformComponent>(newEntity);
+					auto cmd = std::make_unique<EntityCreateCommand>(
+						context, 0,
+						[this](Entity e, SceneContext* ctx){
+							selectedEntity = e;
+							sceneContext    = ctx;
+						});
+					m_editor->commandManager.Execute(std::move(cmd));
 				}
 				if(ImGui::BeginMenu("Template")){
 					ConfigService* cfg = m_editor->sceneManager->GetContext()->config;
@@ -161,11 +163,6 @@ void Hierarchy::Draw(EditorDrawContext ctx){
 					continue;
 				}
 				DrawHierarchyNode(entity, context, entities);
-			}
-
-			if(deleteEntity != 0){
-				DestroyEntityRecursive(deleteEntity, context);
-				deleteEntity = 0;
 			}
 
 			ImGui::TreePop();
@@ -322,17 +319,25 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 
 		if(ImGui::BeginMenu("作成")){
 			if(ImGui::MenuItem("EmptyParent")){
-				// 子を持つ空の親エンティティを作成（例）
-				Entity newEntity = context->entity->Create();
-				context->component->AddComponent<TransformComponent>(newEntity);
-
-				SetParent(entity, newEntity, context);
+				// 空の親エンティティを作成し、選択エンティティをその子にする
+				auto cmd = std::make_unique<EntityCreateCommand>(
+					context, 0,
+					[this, entity, context](Entity e, SceneContext*){
+						SetParent(entity, e, context);
+						selectedEntity = e;
+						sceneContext   = context;
+					});
+				m_editor->commandManager.Execute(std::move(cmd));
 			}
 			if(ImGui::MenuItem("EmptyChild")){
 				// 選択ノードの子エンティティを作成
-				Entity newEntity = context->entity->Create();
-				context->component->AddComponent<TransformComponent>(newEntity);
-				SetParent(newEntity, entity, context);
+				auto cmd = std::make_unique<EntityCreateCommand>(
+					context, entity,
+					[this, context](Entity e, SceneContext*){
+						selectedEntity = e;
+						sceneContext   = context;
+					});
+				m_editor->commandManager.Execute(std::move(cmd));
 			}
 			ImGui::EndMenu();
 		}
@@ -378,14 +383,17 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		}
 
 		if(ImGui::MenuItem("削除")){
-
-			deleteEntity = entity;
-			if(selectedEntity == entity){
-				selectedEntity = 0;
-			}
-			if(pendingRenameEntity == entity){
-				pendingRenameEntity = 0;
-			}
+			auto cmd = std::make_unique<EntityDeleteCommand>(
+				context, entity,
+				[this, entity](){
+					if(selectedEntity == entity) selectedEntity = 0;
+					if(pendingRenameEntity == entity) pendingRenameEntity = 0;
+				},
+				[this](Entity e, SceneContext* ctx){
+					selectedEntity = e;
+					sceneContext   = ctx;
+				});
+			m_editor->commandManager.Execute(std::move(cmd));
 
 			ImGui::EndPopup();
 			if(opened && hasChildren){

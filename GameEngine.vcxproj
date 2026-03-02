@@ -2624,6 +2624,8 @@
     <ClInclude Include="Source\GameApplication\Engine\Editor\Command\ICommand.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\Command\CommandManager.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\Command\PropertyChangeCommand.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Editor\Command\EntityCommand.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Editor\Command\ComponentCommand.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\editorService.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\InterFace\IAnalyzer.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\InterFace\IEditorUI.h" />
