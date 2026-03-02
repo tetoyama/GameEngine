@@ -1,4 +1,4 @@
-#include "GBufferPass.h"
+﻿#include "GBufferPass.h"
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "sceneManager.h"
 #include "../RenderPassContext.h"
@@ -15,6 +15,7 @@
 #include <System/Render/RenderSystem/Renderable/Model/RenderableModel.h>
 #include <System/Render/RenderSystem/Renderable/Terrain/RenderableTerrain.h>
 #include <System/Render/RenderSystem/Renderable/Wave/RenderableWave.h>
+#include <System/Render/RenderSystem/Renderable/BillBoard/RenderableBillBoard.h>
 
 #include "Resources/resourceService.h"
 #include "Resources/Data/shaderData.h"
@@ -66,6 +67,7 @@ void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* co
 	renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableTerrain>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableWave>());
+	renderables.push_back(renderSystem->GetRenderable<RenderableBillBoard>());
 }
 
 void GBufferPass::Finalize() {

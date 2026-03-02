@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <wrl/client.h>
 #include <d3d11.h>
 #include <d2d1.h>
@@ -165,6 +165,7 @@ public:
 	UINT m_width = 0;
 	UINT m_height = 0;
 	ID3D11ShaderResourceView* m_CurrentSRV = nullptr;
+	ID3D11RenderTargetView** m_CurrentRTV = nullptr;
 
 private:
 	bool CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT height);

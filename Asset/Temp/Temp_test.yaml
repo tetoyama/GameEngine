@@ -37,8 +37,9 @@ Entities:
             lockRotY: false
             lockRotZ: false
             isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
-        ShaderID: 2
+        ShaderID: 1
         Material:
           BaseColor:
             x: 1
@@ -63,7 +64,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 52514.0117
+        AnimationTime: 67704.9844
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -88,9 +89,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: -56.5851784
+          x: -29.6057205
           y: 25.9712772
-          z: -6.5100956
+          z: -18.5042953
           w: 0
         Direction:
           x: 0.738460243
@@ -111,23 +112,23 @@ Entities:
           x: 500
           y: 0
           z: 0
-          w: 0
+          w: 0.00300000003
         LightView:
           -
             - 0.540302277
             - 0
             - -0.841470957
-            - 25.0950451
+            - 0.425210953
           -
             - 0.403422713
             - 0.87758255
             - 0.259034723
-            - 1.72214746
+            - -6.0550642
           -
             - 0.738460302
             - -0.479425579
             - 0.474159896
-            - 57.324028
+            - 43.0879402
           -
             - 0
             - 0
@@ -181,21 +182,21 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\sky.fbx
         isBlender: true
-        AnimationTime: 52514.0117
+        AnimationTime: 67704.9844
   - Entity: 4
     Components:
       - Component: NameComponent
         Name: Player
       - Component: TransformComponent
         Position:
-          x: -15.2540321
-          y: 3.88012268e-07
-          z: 13.1274738
+          x: 1.32610416
+          y: 3.99436516e-07
+          z: 4.87864113
         Rotation:
           - 0
-          - 0.352069557
+          - -0.23055245
           - 0
-          - 0.935973883
+          - -0.973060012
         Scale:
           x: 0.00999999978
           y: 0.00999999978
@@ -215,11 +216,12 @@ Entities:
             staticFriction: 0
             dynamicFriction: 0
             restitution: 0.100000001
-            collisionLayer: 0
+            collisionLayer: 2
             lockRotX: true
             lockRotY: true
             lockRotZ: true
             isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 3
         Material:
@@ -241,7 +243,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
         isBlender: false
-        AnimationTime: 52514.0117
+        AnimationTime: 67704.9844
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           Run: Asset\Model\Akai_Run.fbx
@@ -253,26 +255,27 @@ Entities:
         accel: 10
         rotateSpeed: 8
         maxStamina: 5
-        stamina: 4.24165106
+        stamina: 5
         staminaConsumeRate: 1.5
         staminaRecoverRate: 1
         aaa: 1
         jumpPower: 5
-        Stamina: 4.24165106
+        Stamina: 5
+        SelfLayerBit: 2
   - Entity: 5
     Components:
       - Component: NameComponent
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: -19.6621666
-          y: 2.00000048
-          z: 17.197897
+          x: 7.31729221
+          y: 2.00000024
+          z: 5.20369816
         Rotation:
-          - 0
-          - 0.91607964
-          - 0
-          - 0.400996327
+          - -6.83154644e-09
+          - -0.726008296
+          - -7.21224547e-09
+          - 0.687685907
         Scale:
           x: 1
           y: 1
@@ -281,40 +284,62 @@ Entities:
       - Component: CameraComponent
         isLock: true
         Target:
-          x: -15.2540321
-          y: 3.88012268e-07
-          z: 13.1274738
+          x: 1.32610416
+          y: 3.99436516e-07
+          z: 4.87864113
         NearClip: 0.00999999978
         FarClip: 1024
         FOV: 1
         viewMatrix:
           -
-            - -0.678403914
-            - 0.232329115
-            - 0.696987271
+            - -0.0541761704
+            - -0.315763354
+            - -0.947290063
             - 0
           -
             - 0
-            - 0.948683262
-            - -0.316227794
+            - 0.948683321
+            - -0.316227764
             - 0
           -
-            - -0.734689116
-            - -0.21453017
-            - -0.64359045
+            - 0.998531401
+            - -0.0171320084
+            - -0.0513960309
             - 0
           -
-            - -0.703783035
-            - 6.36019421
-            - 25.405138
+            - -4.79963303
+            - 0.50231576
+            - 7.83150291
             - 1
-        nextLinkId: 2
-        nextPinId: 2
+        nextLinkId: 4
+        nextPinId: 5
+        PostEffects:
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\DepthBlur.cso
+            NodePos:
+              x: 131
+              y: 7
+            InputPins:
+              - 2
+              - 4
+            OutputPin: 3
+            Param:
+              x: 2
+              y: 0
+              z: 0
+              w: 0
         PostEffectLinks:
-          - ID: 1
+          - ID: 2
             StartNode: -1
-            EndNode: -2
+            EndNode: 0
             StartAttr: -1
+            EndAttr: 2
+          - ID: 3
+            StartNode: 0
+            EndNode: -2
+            StartAttr: 3
             EndAttr: 1
         ScreenInput:
           Name: ""
@@ -325,8 +350,8 @@ Entities:
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 100
-            y: 0
+            x: 386
+            y: 43
           InputPins:
             - 1
       - Component: CameraController
@@ -335,6 +360,7 @@ Entities:
         rotateSpeed: 1.5
         minPitch: 0
         maxPitch: 0.785398185
+        minDistance: 1
   - Entity: 6
     Components:
       - Component: NameComponent
@@ -360,7 +386,7 @@ Entities:
         Volume: 1
         PlayOnStart: true
         TimeScale: 1
-        MaxPlayTime: 1.38999999
+        MaxPlayTime: 1.34161758
   - Entity: 7
     Components:
       - Component: NameComponent
@@ -399,6 +425,7 @@ Entities:
             lockRotY: false
             lockRotZ: false
             isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -425,7 +452,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.fbx
         isBlender: false
-        AnimationTime: 52514.0117
+        AnimationTime: 67704.9844
   - Entity: 8
     Components:
       - Component: NameComponent
@@ -472,7 +499,7 @@ Entities:
         IsLoop: true
         SpawnInterval: 0.00999999978
         SpawnCount: 100
-        SpawnTimer: 0.00269300677
+        SpawnTimer: 0.00504967384
         ParticleLifeTime: 1
         ParticleSize: 3
         ParticleSpeed: 1
@@ -538,6 +565,25 @@ Entities:
             lockRotY: false
             lockRotZ: false
             isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 0
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: TextureComponent
         FilePath: Asset/Texture\tree.png
         UV_Slice_X: 1
@@ -585,6 +631,7 @@ Entities:
             lockRotY: false
             lockRotZ: false
             isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 3
         Material:
@@ -606,4 +653,34 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\ball.fbx
         isBlender: false
-        AnimationTime: 16324.9678
+        AnimationTime: 31515.9492
+  - Entity: 11
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 0.439999998
+          y: 0.100000001
+          z: 4.40000057
+        Parent: 0
+      - Component: TextureComponent
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: SpriteRendererComponent
+        anchor:
+          x: 0
+          y: 0
+        pivot:
+          x: 0.5
+          y: 0.5

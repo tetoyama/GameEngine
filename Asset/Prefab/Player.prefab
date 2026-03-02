@@ -5,18 +5,18 @@ Entities:
         Name: Player
       - Component: TransformComponent
         Position:
-          x: 1.30621755
-          y: -6.51518349e-07
-          z: 9.11010361
+          x: 2.20148492
+          y: -2.04003527e-07
+          z: 12.0978708
         Rotation:
-          - 1.23091172e-16
-          - 0.932829142
-          - 9.51927638e-18
-          - -0.360319078
+          - 1.23091132e-16
+          - 0.932829201
+          - 9.51925984e-18
+          - -0.360318959
         Scale:
-          x: 0.00999999978
+          x: 0.0100000165
           y: 0.00999999978
-          z: 0.00999999978
+          z: 0.0100000165
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
@@ -32,7 +32,7 @@ Entities:
             staticFriction: 0
             dynamicFriction: 0
             restitution: 0
-            collisionLayer: 0
+            collisionLayer: 2
             lockRotX: true
             lockRotY: true
             lockRotZ: true
@@ -47,7 +47,7 @@ Entities:
             staticFriction: 0
             dynamicFriction: 0
             restitution: 0
-            collisionLayer: 0
+            collisionLayer: 2
             lockRotX: true
             lockRotY: true
             lockRotZ: true
@@ -69,8 +69,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Y Bot.fbx
         isBlender: false
@@ -78,17 +78,20 @@ Entities:
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           Run: Asset\Model\Akai_Run.fbx
-      - Component: PlayerController
-        moveSpeed: 6
-        health: 0
-        isInvincible: false
-        dashMultiplier: 2
-        accel: 10
+      - Component: CharacterController
+        moveSpeed: 5
+        dashMultiplier: 2.5
+        jumpPower: 5
+        accel: 12
         rotateSpeed: 8
-        maxStamina: 5
-        stamina: 5
-        staminaConsumeRate: 1.5
-        staminaRecoverRate: 1
-        aaa: 1
-        jumpPower: 4
-        Stamina: 5
+        groundRayLength: 0.300000012
+        slopeLimit: 45
+        gravity: 9
+        idleAnimFile: Asset/Model/Akai_Idle.fbx
+        runAnimFile: Asset/Model/Akai_Run.fbx
+        jumpUpAnimFile: Asset/Model/Jumping Up.fbx
+        jumpDownAnimFile: Asset/Model/Jumping Down.fbx
+        SelfLayerBit: 2
+      - Component: PrefabComponent
+        FilePath: C:\Users\äwçZóp\Documents\GitHub\GameEngine\Asset\Prefab\Player.prefab
+        SourceYaml: "Entities:\n  - LocalID: 0\n    Components:\n      - Component: NameComponent\n        Name: Player\n      - Component: TransformComponent\n        Position:\n          x: 5.16732931\n          y: -6.51518349e-07\n          z: 5.60419941\n        Rotation:\n          - 1.23091132e-16\n          - 0.932829201\n          - 9.51925984e-18\n          - -0.360318959\n        Scale:\n          x: 0.0100000165\n          y: 0.00999999978\n          z: 0.0100000165\n        Parent: 0\n      - Component: ColliderComponent\n        isDynamic: true\n        autoMass: true\n        Mass: 1\n        colliders:\n          - type: 2\n            size: [1, 1, 1]\n            offset: [0, 75, 0]\n            rotationOffset: [0, 0, 90]\n            radius: 25\n            height: 100\n            staticFriction: 0\n            dynamicFriction: 0\n            restitution: 0\n            collisionLayer: 2\n            lockRotX: true\n            lockRotY: true\n            lockRotZ: true\n            isTrigger: false\n            boneName: \"\"\n          - type: 1\n            size: [1, 1, 1]\n            offset: [0, 0, 0]\n            rotationOffset: [0, 0, 0]\n            radius: 14.3999996\n            height: 1\n            staticFriction: 0\n            dynamicFriction: 0\n            restitution: 0\n            collisionLayer: 2\n            lockRotX: true\n            lockRotY: true\n            lockRotZ: true\n            isTrigger: true\n            boneName: mixamorig:LeftHand\n      - Component: MaterialComponent\n        ShaderID: 1\n        Material:\n          BaseColor:\n            x: 1\n            y: 1\n            z: 1\n            w: 1\n          Metallic: 0\n          Roughness: 0\n          AO: 0\n          EmissiveColor:\n            x: 0\n            y: 0\n            z: 0\n          EmissiveIntensity: 0\n          UseDiffuseTexture: true\n          UseNormalTexture: true\n      - Component: ModelRendererComponent\n        FilePath: Asset\\Model\\Y Bot.fbx\n        isBlender: false\n        AnimationTime: 3436.77515\n        Animations:\n          Idle: Asset\\Model\\Akai_Idle.fbx\n          Run: Asset\\Model\\Akai_Run.fbx\n      - Component: CharacterController\n        moveSpeed: 5\n        dashMultiplier: 2.5\n        jumpPower: 5\n        accel: 12\n        rotateSpeed: 8\n        groundRayLength: 0.300000012\n        slopeLimit: 45\n        gravity: 9\n        idleAnimFile: Asset/Model/Akai_Idle.fbx\n        runAnimFile: Asset/Model/Akai_Run.fbx\n        jumpUpAnimFile: Asset/Model/Jumping Up.fbx\n        jumpDownAnimFile: Asset/Model/Jumping Down.fbx\n        SelfLayerBit: 2\n      - Component: PrefabComponent\n        FilePath: C:\\Users\\ÔøΩwÔøΩZÔøΩp\\Documents\\GitHub\\GameEngine\\Asset\\Prefab\\Player.prefab\n        SourceYaml: \"Entities:\\n  - LocalID: 0\\n    Components:\\n      - Component: NameComponent\\n        Name: Player\\n      - Component: TransformComponent\\n        Position:\\n          x: 1.30621755\\n          y: -6.51518349e-07\\n          z: 9.11010361\\n        Rotation:\\n          - 1.23091172e-16\\n          - 0.932829142\\n          - 9.51927638e-18\\n          - -0.360319078\\n        Scale:\\n          x: 0.00999999978\\n          y: 0.00999999978\\n          z: 0.00999999978\\n        Parent: 0\\n      - Component: ColliderComponent\\n        isDynamic: true\\n        autoMass: true\\n        Mass: 1\\n        colliders:\\n          - type: 2\\n            size: [1, 1, 1]\\n            offset: [0, 75, 0]\\n            rotationOffset: [0, 0, 90]\\n            radius: 25\\n            height: 100\\n            staticFriction: 0\\n            dynamicFriction: 0\\n            restitution: 0\\n            collisionLayer: 2\\n            lockRotX: true\\n            lockRotY: true\\n            lockRotZ: true\\n            isTrigger: false\\n            boneName: \\\"\\\"\\n          - type: 1\\n            size: [1, 1, 1]\\n            offset: [0, 0, 0]\\n            rotationOffset: [0, 0, 0]\\n            radius: 14.3999996\\n            height: 1\\n            staticFriction: 0\\n            dynamicFriction: 0\\n            restitution: 0\\n            collisionLayer: 2\\n            lockRotX: true\\n            lockRotY: true\\n            lockRotZ: true\\n            isTrigger: true\\n            boneName: mixamorig:LeftHand\\n      - Component: MaterialComponent\\n        ShaderID: 1\\n        Material:\\n          BaseColor:\\n            x: 1\\n            y: 1\\n            z: 1\\n            w: 1\\n          Metallic: 0\\n          Roughness: 0\\n          AO: 0\\n          EmissiveColor:\\n            x: 0\\n            y: 0\\n            z: 0\\n          EmissiveIntensity: 0\\n          UseDiffuseTexture: true\\n          UseNormalTexture: true\\n      - Component: ModelRendererComponent\\n        FilePath: Asset\\\\Model\\\\Y Bot.fbx\\n        isBlender: false\\n        AnimationTime: 3436.77515\\n        Animations:\\n          Idle: Asset\\\\Model\\\\Akai_Idle.fbx\\n          Run: Asset\\\\Model\\\\Akai_Run.fbx\\n      - Component: CharacterController\\n        moveSpeed: 5\\n        dashMultiplier: 2.5\\n        jumpPower: 5\\n        accel: 12\\n        rotateSpeed: 8\\n        groundRayLength: 0.300000012\\n        slopeLimit: 45\\n        gravity: 9\\n        idleAnimFile: Asset/Model/Akai_Idle.fbx\\n        runAnimFile: Asset/Model/Akai_Run.fbx\\n        jumpUpAnimFile: Asset/Model/Jumping Up.fbx\\n        jumpDownAnimFile: Asset/Model/Jumping Down.fbx\\n        SelfLayerBit: 2\\n      - Component: PrefabComponent\\n        FilePath: C:\\\\Users\\\\ÔøΩwÔøΩZÔøΩp\\\\Documents\\\\GitHub\\\\GameEngine\\\\Asset\\\\Prefab\\\\Player.prefab\\n        SourceYaml: \\\"Entities:\\\\n  - LocalID: 0\\\\n    Components:\\\\n      - Component: NameComponent\\\\n        Name: Player\\\\n      - Component: TransformComponent\\\\n        Position:\\\\n          x: 1.30621755\\\\n          y: -6.51518349e-07\\\\n          z: 9.11010361\\\\n        Rotation:\\\\n          - 1.23091172e-16\\\\n          - 0.932829142\\\\n          - 9.51927638e-18\\\\n          - -0.360319078\\\\n        Scale:\\\\n          x: 0.00999999978\\\\n          y: 0.00999999978\\\\n          z: 0.00999999978\\\\n        Parent: 0\\\\n      - Component: ColliderComponent\\\\n        isDynamic: true\\\\n        autoMass: true\\\\n        Mass: 1\\\\n        colliders:\\\\n          - type: 2\\\\n            size: [1, 1, 1]\\\\n            offset: [0, 75, 0]\\\\n            rotationOffset: [0, 0, 90]\\\\n            radius: 25\\\\n            height: 100\\\\n            staticFriction: 0\\\\n            dynamicFriction: 0\\\\n            restitution: 0\\\\n            collisionLayer: 0\\\\n            lockRotX: true\\\\n            lockRotY: true\\\\n            lockRotZ: true\\\\n            isTrigger: false\\\\n            boneName: \\\\\\\"\\\\\\\"\\\\n          - type: 1\\\\n            size: [1, 1, 1]\\\\n            offset: [0, 0, 0]\\\\n            rotationOffset: [0, 0, 0]\\\\n            radius: 14.3999996\\\\n            height: 1\\\\n            staticFriction: 0\\\\n            dynamicFriction: 0\\\\n            restitution: 0\\\\n            collisionLayer: 0\\\\n            lockRotX: true\\\\n            lockRotY: true\\\\n            lockRotZ: true\\\\n            isTrigger: true\\\\n            boneName: mixamorig:LeftHand\\\\n      - Component: MaterialComponent\\\\n        ShaderID: 1\\\\n        Material:\\\\n          BaseColor:\\\\n            x: 1\\\\n            y: 1\\\\n            z: 1\\\\n            w: 1\\\\n          Metallic: 0\\\\n          Roughness: 0\\\\n          AO: 0\\\\n          EmissiveColor:\\\\n            x: 0\\\\n            y: 0\\\\n            z: 0\\\\n          EmissiveIntensity: 0\\\\n          UseDiffuseTexture: true\\\\n          UseNormalTexture: true\\\\n      - Component: ModelRendererComponent\\\\n        FilePath: Asset\\\\\\\\Model\\\\\\\\Y Bot.fbx\\\\n        isBlender: false\\\\n        AnimationTime: 3436.77515\\\\n        Animations:\\\\n          Idle: Asset\\\\\\\\Model\\\\\\\\Akai_Idle.fbx\\\\n          Run: Asset\\\\\\\\Model\\\\\\\\Akai_Run.fbx\\\\n      - Component: CharacterController\\\\n        moveSpeed: 5\\\\n        dashMultiplier: 2.5\\\\n        jumpPower: 5\\\\n        accel: 12\\\\n        rotateSpeed: 8\\\\n        groundRayLength: 0.300000012\\\\n        slopeLimit: 45\\\\n        gravity: 9\\\\n        idleAnimFile: Asset/Model/Akai_Idle.fbx\\\\n        runAnimFile: Asset/Model/Akai_Run.fbx\\\\n        jumpUpAnimFile: Asset/Model/Jumping Up.fbx\\\\n        jumpDownAnimFile: Asset/Model/Jumping Down.fbx\\\\n        SelfLayerBit: 2\\\\n      - Component: PrefabComponent\\\\n        FilePath: C:\\\\\\\\Users\\\\\\\\ÔøΩwÔøΩZÔøΩp\\\\\\\\Documents\\\\\\\\GitHub\\\\\\\\GameEngine\\\\\\\\Asset\\\\\\\\Prefab\\\\\\\\Player.prefab\\\\n        SourceYaml: \\\\\\\"Entities:\\\\\\\\n  - LocalID: 0\\\\\\\\n    Components:\\\\\\\\n      - Component: NameComponent\\\\\\\\n        Name: Player\\\\\\\\n      - Component: TransformComponent\\\\\\\\n        Position:\\\\\\\\n          x: 1.30621755\\\\\\\\n          y: -6.51518349e-07\\\\\\\\n          z: 9.11010361\\\\\\\\n        Rotation:\\\\\\\\n          - 1.23091172e-16\\\\\\\\n          - 0.932829142\\\\\\\\n          - 9.51927638e-18\\\\\\\\n          - -0.360319078\\\\\\\\n        Scale:\\\\\\\\n          x: 0.00999999978\\\\\\\\n          y: 0.00999999978\\\\\\\\n          z: 0.00999999978\\\\\\\\n        Parent: 0\\\\\\\\n      - Component: ColliderComponent\\\\\\\\n        isDynamic: true\\\\\\\\n        autoMass: true\\\\\\\\n        Mass: 1\\\\\\\\n        colliders:\\\\\\\\n          - type: 2\\\\\\\\n            size: [1, 1, 1]\\\\\\\\n            offset: [0, 75, 0]\\\\\\\\n            rotationOffset: [0, 0, 90]\\\\\\\\n            radius: 25\\\\\\\\n            height: 100\\\\\\\\n            staticFriction: 0\\\\\\\\n            dynamicFriction: 0\\\\\\\\n            restitution: 0\\\\\\\\n            collisionLayer: 0\\\\\\\\n            lockRotX: true\\\\\\\\n            lockRotY: true\\\\\\\\n            lockRotZ: true\\\\\\\\n            isTrigger: false\\\\\\\\n            boneName: \\\\\\\\\\\\\\\"\\\\\\\\\\\\\\\"\\\\\\\\n          - type: 1\\\\\\\\n            size: [1, 1, 1]\\\\\\\\n            offset: [0, 0, 0]\\\\\\\\n            rotationOffset: [0, 0, 0]\\\\\\\\n            radius: 14.3999996\\\\\\\\n            height: 1\\\\\\\\n            staticFriction: 0\\\\\\\\n            dynamicFriction: 0\\\\\\\\n            restitution: 0\\\\\\\\n            collisionLayer: 0\\\\\\\\n            lockRotX: true\\\\\\\\n            lockRotY: true\\\\\\\\n            lockRotZ: true\\\\\\\\n            isTrigger: true\\\\\\\\n            boneName: mixamorig:LeftHand\\\\\\\\n      - Component: MaterialComponent\\\\\\\\n        ShaderID: 1\\\\\\\\n        Material:\\\\\\\\n          BaseColor:\\\\\\\\n            x: 1\\\\\\\\n            y: 1\\\\\\\\n            z: 1\\\\\\\\n            w: 1\\\\\\\\n          Metallic: 0\\\\\\\\n          Roughness: 0\\\\\\\\n          AO: 0\\\\\\\\n          EmissiveColor:\\\\\\\\n            x: 0\\\\\\\\n            y: 0\\\\\\\\n            z: 0\\\\\\\\n          EmissiveIntensity: 0\\\\\\\\n          UseDiffuseTexture: false\\\\\\\\n          UseNormalTexture: false\\\\\\\\n      - Component: ModelRendererComponent\\\\\\\\n        FilePath: Asset\\\\\\\\\\\\\\\\Model\\\\\\\\\\\\\\\\Y Bot.fbx\\\\\\\\n        isBlender: false\\\\\\\\n        AnimationTime: 3436.77515\\\\\\\\n        Animations:\\\\\\\\n          Idle: Asset\\\\\\\\\\\\\\\\Model\\\\\\\\\\\\\\\\Akai_Idle.fbx\\\\\\\\n          Run: Asset\\\\\\\\\\\\\\\\Model\\\\\\\\\\\\\\\\Akai_Run.fbx\\\\\\\\n      - Component: PlayerController\\\\\\\\n        moveSpeed: 6\\\\\\\\n        health: 0\\\\\\\\n        isInvincible: false\\\\\\\\n        dashMultiplier: 2\\\\\\\\n        accel: 10\\\\\\\\n        rotateSpeed: 8\\\\\\\\n        maxStamina: 5\\\\\\\\n        stamina: 5\\\\\\\\n        staminaConsumeRate: 1.5\\\\\\\\n        staminaRecoverRate: 1\\\\\\\\n        aaa: 1\\\\\\\\n        jumpPower: 4\\\\\\\\n        Stamina: 5\\\\\\\"\\\"\""

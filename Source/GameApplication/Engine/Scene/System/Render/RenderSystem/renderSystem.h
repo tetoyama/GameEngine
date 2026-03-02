@@ -135,7 +135,7 @@ public:
 	// 各 RenderLayer の表示状態（Player）
 	bool playerRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] =
 	{
-		true, true, true, true, true, true, false
+		true, true, true, true, true, false
 	};
 
 	EditorPass* m_EditorPass = nullptr;
@@ -144,7 +144,7 @@ public:
 	// 各 RenderLayer の表示状態（Editor）
 	bool editorRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] =
 	{
-		true, true, true, true, true, true, true,
+		true, true, true, true, true, true,
 	};
 
 	//------------------------------------------------------------------

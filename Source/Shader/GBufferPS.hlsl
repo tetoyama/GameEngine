@@ -31,6 +31,11 @@ GBUFFER_OUT main(PS_IN In)
         baseColor *= DiffuseTexture.Sample(LinearSampler, In.TexCoord);
     }
 
+    if (baseColor.a < 0.01f)
+    {
+        discard;
+    }
+
     Out.OutAlbedo = baseColor;
 
     // -----------------------------
