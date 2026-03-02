@@ -187,58 +187,87 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
     const llama_vocab* vocab = llama_model_get_vocab(m_model->m_model);
     if (!vocab) return;
 
-    // ---- fullPrompt 構築 ----
-    std::string fullPrompt;
-    if (!m_config->system_prompt.empty())
-        fullPrompt += m_config->system_prompt + "\n";
+    // Leave 256 tokens of headroom: prevents generation from filling the context
+    // to the brim and giving no room for the next prompt.
+    const int safety_margin = 256;
+    const int max_tokens_allowed = static_cast<int>(m_config->n_ctx) - safety_margin;
 
-    if (!m_summaryText.empty())
-        fullPrompt += "[Conversation Summary]\n" + m_summaryText + "\n";
+    // ---- Helper: build full prompt (reads m_summaryText, which may be updated by
+    //      SummarizeAndReset below, so it is called lazily via a lambda) ----
+    auto buildFullPrompt = [&]() -> std::string {
+        std::string fp;
+        if (!m_config->system_prompt.empty())
+            fp += m_config->system_prompt + "\n";
+        if (!m_summaryText.empty())
+            fp += "[Conversation Summary]\n" + m_summaryText + "\n";
+        fp += "<|user|>\n" + prompt + "\n<|assistant|>\n";
+        return fp;
+    };
 
-    fullPrompt += "<|user|>\n" + prompt + "\n<|assistant|>\n";
+    // ---- Helper: tokenize a string into tokens[], returns token count ----
+    // Buffer sized at (chars * 2 + 8): worst-case is ~1 token per byte for
+    // ASCII, the *2 guard handles multi-byte chars, +8 adds BOS/EOS slack.
+    auto tokenizeStr = [&](const std::string& s, std::vector<llama_token>& toks) -> int {
+        toks.assign(s.size() * 2 + 8, 0);
+        int cnt = llama_tokenize(vocab, s.c_str(), static_cast<int>(s.size()),
+                                 toks.data(), static_cast<int>(toks.size()), true, false);
+        if (cnt > 0) toks.resize(cnt);
+        return cnt;
+    };
 
-    // ---- トークン化 ----
-    std::vector<llama_token> tokens(fullPrompt.size() * 2 + 8);
-    int n = llama_tokenize(vocab, fullPrompt.c_str(), (int)fullPrompt.size(),
-                           tokens.data(), (int)tokens.size(), true, false);
+    // ---- Initial tokenization ----
+    std::string fullPrompt = buildFullPrompt();
+    std::vector<llama_token> tokens;
+    int n = tokenizeStr(fullPrompt, tokens);
     if (n <= 0) return;
-    tokens.resize(n);
 
-    // ---- n_ctx 超過対策 ----
-    const int safety_margin = 16;
-    const int max_tokens_allowed = m_config->n_ctx - safety_margin;
+    // ---- n_ctx 超過対策: 要約してリセット ----
+    if (m_nPast + n > max_tokens_allowed && !m_isSummarizing) {
+        OutputDebugStringA("LLAMAAgent::RunPromptInternal: context near limit, calling SummarizeAndReset\n");
+        SummarizeAndReset();
 
-    // プロンプト単体が n_ctx を超える場合、末尾優先で切り詰める（ここを超えると decode でクラッシュする）
+        // Re-build and re-tokenize NOW so the summary text is included in this
+        // call's prompt (not just the next call).  After SummarizeAndReset,
+        // m_nPast == 0 and m_summaryText is set.
+        fullPrompt = buildFullPrompt();
+        n = tokenizeStr(fullPrompt, tokens);
+        if (n <= 0) return;
+    }
+
+    // ---- プロンプト単体が max を超える場合、末尾優先で切り詰め ----
     if (n > max_tokens_allowed) {
         int skip = n - max_tokens_allowed;
         tokens.erase(tokens.begin(), tokens.begin() + skip);
-        n = max_tokens_allowed;
+        n = static_cast<int>(tokens.size());
         OutputDebugStringA("LLAMAAgent::RunPromptInternal: prompt truncated to fit n_ctx\n");
     }
 
-    if (m_nPast + n > max_tokens_allowed && !m_isSummarizing) {
-        OutputDebugStringA("LLAMAAgent::RunPromptInternal n_ctx 超過、SummarizeAndReset 呼び出し\n");
-        SummarizeAndReset(); // 過去トークン圧縮
-    }
-
-    // SummarizeAndReset 後もまだ溢れる場合は再度切り詰め
+    // ---- 要約後もまだ溢れる場合は強制リセット ----
     if (m_nPast + n > max_tokens_allowed) {
-        int newN = max_tokens_allowed - m_nPast;
-        if (newN <= 0) {
-            // コンテキストが完全に埋まっている場合は強制リセット（m_nPast は 0 になる）
-            ResetContextUnlocked();
-            // n はすでに max_tokens_allowed 以下なので追加の切り詰め不要
-        } else {
-            int skip = n - newN;
+        OutputDebugStringA("LLAMAAgent::RunPromptInternal: still overflowing after summarize, forcing hard reset\n");
+        ResetContextUnlocked();
+        // Clamp n in case it is somehow still too large
+        if (n > max_tokens_allowed) {
+            int skip = n - max_tokens_allowed;
             tokens.erase(tokens.begin(), tokens.begin() + skip);
-            n = newN;
-            OutputDebugStringA("LLAMAAgent::RunPromptInternal: prompt re-truncated after SummarizeAndReset\n");
+            n = static_cast<int>(tokens.size());
         }
     }
 
     // ---- コンテキスト初期化 ----
     if (!m_ctx) m_ctx = CreateContext();
     if (!m_sampler) m_sampler = CreateSampler();
+    if (!m_ctx) {
+        OutputDebugStringA("LLAMAAgent::RunPromptInternal: m_ctx is null, cannot proceed\n");
+        return;
+    }
+
+    // ---- Hard guard: must hold before every llama_decode call ----
+    if (m_nPast + n > static_cast<int>(m_config->n_ctx)) {
+        OutputDebugStringA("LLAMAAgent::RunPromptInternal: position would exceed n_ctx, aborting\n");
+        ResetContextUnlocked();
+        return;
+    }
 
     // ---- decode NEW prompt tokens into existing context at position m_nPast ----
     {
@@ -253,7 +282,9 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
         b.n_tokens = n;
         if (llama_decode(m_ctx, b) != 0) {
             llama_batch_free(b);
-            OutputDebugStringA("LLAMAAgent::RunPromptInternal: decode(prompt) failed\n");
+            OutputDebugStringA("LLAMAAgent::RunPromptInternal: decode(prompt) failed — resetting context\n");
+            // Context is in an unknown state; reset so the next call starts clean.
+            ResetContextUnlocked();
             return;
         }
         llama_batch_free(b);
@@ -290,6 +321,12 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
         }
         if (llama_vocab_is_eog(vocab, tok)) {
             OutputDebugStringA("RunPromptInternal: sampled EOG\n");
+            break;
+        }
+
+        // Hard guard before decode
+        if (m_nPast >= static_cast<int>(m_config->n_ctx)) {
+            OutputDebugStringA("RunPromptInternal: m_nPast reached n_ctx, stopping generation\n");
             break;
         }
 
@@ -359,12 +396,13 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
 }
 
 // =====================================================
-// SummarizeAndReset — 改善版
+// SummarizeAndReset
 //  - 履歴を末尾優先で切り詰めて安定化
 //  - 要約指示を明確化（2-3 文、短く）
 //  - 要約トークン数を上限で制限（既定 200）
 //  - 要約サンプラーは低温度で生成する（繰り返し軽減）
-//  - 圧縮トークンを新しいコンテキストに再デコードして復元
+//  - 要約テキストを m_summaryText に格納し、次の RunPromptInternal で
+//    プロンプトに組み込む（KV キャッシュへの raw トークン復元は行わない）
 // =====================================================
 void LLAMAAgent::SummarizeAndReset() {
     OutputDebugStringA("LLAMAAgent::SummarizeAndReset start\n");
@@ -487,9 +525,11 @@ void LLAMAAgent::SummarizeAndReset() {
     }
 
     // ---- sampling loop ----
-    std::vector<llama_token> compressedTokens;
     m_summaryText.clear();
-    const int max_summary_tokens = (std::min)(200, (int)m_config->max_tokens);
+    // Cap summary at 200 tokens; that is enough for 2-3 concise sentences and
+    // keeps the context impact of the injected summary predictably small.
+    constexpr int kMaxSummaryTokens = 200;
+    const int max_summary_tokens = (std::min)(kMaxSummaryTokens, (int)m_config->max_tokens);
     int gen_pos = n; // next decode position in temp ctx (prompt occupies 0..n-1)
 
     for (int i = 0; i < max_summary_tokens; ++i) {
@@ -505,7 +545,6 @@ void LLAMAAgent::SummarizeAndReset() {
 
         // ensure sampler state updated
         llama_sampler_accept(sampler, tok);
-        compressedTokens.push_back(tok);
 
         // append to summary text (ignore control tokens)
         if (!llama_vocab_is_control(vocab, tok)) {
@@ -537,46 +576,14 @@ void LLAMAAgent::SummarizeAndReset() {
     llama_sampler_free(sampler);
     llama_free(ctx);
 
-    // ---- reset main context and restore compressed tokens ----
-    ResetContextUnlocked(); // creates new m_ctx and resets main sampler
-
-    if (!compressedTokens.empty()) {
-        // decode compressedTokens into the newly created m_ctx in batches with contiguous positions
-        int pos = 0;
-        const int batch_size = 64;
-        bool decodeOk = true;
-        for (size_t offset = 0; offset < compressedTokens.size(); offset += batch_size) {
-            int sz = (int)(std::min)(batch_size, (int)compressedTokens.size() - (int)offset);
-            llama_batch b = llama_batch_init(sz, 0, 1);
-            for (int j = 0; j < sz; ++j) {
-                b.token[j] = compressedTokens[offset + j];
-                b.pos[j] = pos + j;
-                b.seq_id[j][0] = 0;
-                b.n_seq_id[j] = 1;
-                b.logits[j] = (j == sz - 1) ? 1 : 0;
-            }
-            b.n_tokens = sz;
-            int rc = llama_decode(m_ctx, b);
-            llama_batch_free(b);
-            if (rc != 0) {
-                OutputDebugStringA("SummarizeAndReset: decode(compressed) failed rc != 0\n");
-                decodeOk = false;
-                break;
-            }
-            pos += sz;
-        }
-        // restore history only if ALL batches decoded successfully
-        if (decodeOk) {
-            m_pastTokens = compressedTokens;
-            m_nPast = (int)m_pastTokens.size();
-        } else {
-            // partial decode — context is in inconsistent state; full reset
-            ResetContextUnlocked();
-        }
-    } else {
-        m_pastTokens.clear();
-        m_nPast = 0;
-    }
+    // ---- reset main context (clean start) ----
+    // The summary text is already captured in m_summaryText as human-readable text.
+    // RunPromptInternal will re-tokenize the full prompt (which now includes
+    // summaryText) so the model sees a coherent context:
+    //   [system_prompt][Conversation Summary: ...][<|user|>][new question][<|assistant|>]
+    // Restoring raw compressed tokens into the KV cache would create an incoherent
+    // sequence ([raw summary fragments][system_prompt][user]) and is avoided here.
+    ResetContextUnlocked(); // m_nPast = 0, fresh m_ctx
 
     // ---- debug print summary safely in chunks ----
     {
@@ -616,7 +623,14 @@ void LLAMAAgent::ResetContextUnlocked() {
     c.n_threads = m_config->n_threads;
 
     m_ctx = llama_init_from_model(m_model->m_model, c);
-    assert(m_ctx);
+    if (!m_ctx) {
+        // Context creation failed (OOM or other error).
+        // m_ctx stays null; RunPromptInternal will detect this and bail out safely.
+        OutputDebugStringA("LLAMAAgent::ResetContextUnlocked: llama_init_from_model returned null!\n");
+        m_pastTokens.clear();
+        m_nPast = 0;
+        return;
+    }
 
     if (m_sampler)
         llama_sampler_reset(m_sampler);
