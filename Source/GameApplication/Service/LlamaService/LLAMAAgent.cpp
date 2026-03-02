@@ -178,7 +178,12 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
     OutputDebugStringA("LLAMAAgent::RunPromptInternal start\n");
     if (prompt.empty()) return;
 
-    std::unique_lock<std::mutex> lock(m_mutex);
+    // NOTE: m_mutex is intentionally NOT held here.
+    // All state accessed below (m_ctx, m_sampler, m_pastTokens, m_nPast,
+    // m_isSummarizing) is exclusively owned by this worker thread.
+    // m_running / m_state are atomic.  m_output is guarded by m_outputMutex.
+    // Holding m_mutex throughout the generation loop would permanently block
+    // Stop() from setting m_running=false, causing a deadlock/hang.
     const llama_vocab* vocab = llama_model_get_vocab(m_model->m_model);
     if (!vocab) return;
 

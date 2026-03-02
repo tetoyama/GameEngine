@@ -61,19 +61,14 @@ void BRAIN::Initialize(EditorService* editor){
 		"You are B.R.A.I.N. (Built-in Reasoning and Intelligence Node), "
 		"an AI assistant embedded in a C++ game engine editor.\n"
 		"You can browse the engine's source code and asset folder to answer questions.\n\n"
-		"Available tools:\n"
-		"  list_source_files              : List all source code files under Source/\n"
-		"  read_source_file path=\"<path>\" : Read a source file "
-		"(e.g., path=\"Source/GameApplication/Engine/Editor/UI/BRAIN.cpp\")\n"
-		"  list_assets path=\"<path>\"      : List asset folder contents "
-		"(e.g., path=\"Asset/\" or path=\"Asset/Model/\")\n\n"
-		"To call a tool, include the following tag in your response:\n"
+		"Available tools (output ONLY the XML tag — no preamble, no explanation before it):\n"
 		"  <tool_call name=\"list_source_files\"/>\n"
 		"  <tool_call name=\"read_source_file\" path=\"Source/path/to/file.cpp\"/>\n"
 		"  <tool_call name=\"list_assets\" path=\"Asset/\"/>\n\n"
-		"You may use multiple tools in one response. "
-		"The results will be provided to you automatically. "
-		"After receiving the results, give a clear and helpful answer.";
+		"Rules:\n"
+		"- When you need a tool, output the tool_call tag IMMEDIATELY as the first thing in your response.\n"
+		"- Do NOT explain what you are about to do before calling a tool.\n"
+		"- After receiving tool results, give a concise answer.";
 
 	// ---------------------------------
 	// モデルロード
@@ -237,10 +232,15 @@ void BRAIN::WorkerLoop() {
 				m_scrollToBottom = true;
 			}
 
-			// Running 状態になるまで待機
-			while (m_mainAgent->GetState() != LLAMAAgent::State::Running) {
-				if (m_stopRequested.load()) break;
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			// Running 状態になるまで待機（タイムアウト付き：高速失敗時の無限スピン防止）
+			{
+				constexpr auto kStateTransitionTimeoutMs = std::chrono::milliseconds(500);
+				auto deadline = std::chrono::steady_clock::now() + kStateTransitionTimeoutMs;
+				while (m_mainAgent->GetState() != LLAMAAgent::State::Running) {
+					if (m_stopRequested.load()) break;
+					if (std::chrono::steady_clock::now() >= deadline) break;
+					std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				}
 			}
 
 			// 出力監視ループ（生出力をそのまま表示）
