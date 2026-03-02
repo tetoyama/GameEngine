@@ -1,0 +1,67 @@
+Entities:
+  - LocalID: 0
+    Components:
+      - Component: NameComponent
+        Name: Tree
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 2.17155266
+          z: 4.84706068
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 5.78999996
+          y: 5.79000187
+          z: 5.79000187
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 2
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 90]
+            radius: 0.100000001
+            height: 0.699999988
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 0
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+      - Component: TextureComponent
+        FilePath: Asset/Texture\tree.png
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: BillBoardRendererComponent
+        RotateX: false
+        RotateY: true
+        RotateZ: false

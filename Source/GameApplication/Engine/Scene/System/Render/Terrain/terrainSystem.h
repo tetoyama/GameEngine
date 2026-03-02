@@ -1,4 +1,4 @@
-// TerrainSystem.h
+﻿// TerrainSystem.h
 #pragma once
 #include "Interface/ISystem.h"
 #include "Resources/resourceService.h"
@@ -99,11 +99,20 @@ private:
 				for(int x = 0; x <= gridSize; ++x){
 					int i = z * (gridSize + 1) + x;
 
-					vertices[i].Position = {
-						(x - halfSize) / gridSize,
-						comp->HeightMap[x + (gridSize - z) * (gridSize + 1)],
-						(z - halfSize) / gridSize
-					};
+					if (comp->HeightMap.size() > 0) {
+						vertices[i].Position = {
+							(x - halfSize) / gridSize,
+							comp->HeightMap[x + (gridSize - z) * (gridSize + 1)],
+							(z - halfSize) / gridSize
+						};
+					} else {
+						vertices[i].Position = {
+							(x - halfSize) / gridSize,
+							0.0f,
+							(z - halfSize) / gridSize
+						};
+					}
+
 
 					vertices[i].Normal = {0,0,0};
 					vertices[i].Tangent = {1,0,0};

@@ -2649,6 +2649,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Effect\RenderableEffect.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderLayer.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\LightingPass\LightingPass.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\OverlayUI\OverlayUIPass.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PhysXDebug\PhysXDebugPass.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\PostEffectPass.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\Forward\ForwardPass.h" />
@@ -3534,6 +3535,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Effect\RenderableEffect.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\LightingPass\LightingPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\Forward\ForwardPass.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\OverlayUI\OverlayUIPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\PostEffectPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PhysXDebug\PhysXDebugPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderSystem.cpp" />

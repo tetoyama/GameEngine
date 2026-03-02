@@ -54,8 +54,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
+          UseDiffuseTexture: false
+          UseNormalTexture: false
       - Component: TextureComponent
         FilePath: Asset\Texture\mesh.png
         UV_Slice_X: 1
@@ -89,9 +89,9 @@ Entities:
         LightType: 4
         CastShadow: 1
         Position:
-          x: -10.1178789
-          y: 16.2015533
-          z: -14.8639231
+          x: -8.83952618
+          y: 14.7862825
+          z: -14.0431023
           w: 0
         Direction:
           x: 0.61569488
@@ -115,20 +115,20 @@ Entities:
           w: 0.00499999989
         LightView:
           -
-            - 0.540302277
+            - 0.540302217
             - 0
-            - -0.841471016
-            - -7.04084778
+            - -0.841470957
+            - -7.0408473
           -
             - 0.573579311
-            - 0.731688797
+            - 0.731688738
             - 0.36829102
-            - -0.576839447
+            - -0.576838493
           -
-            - 0.61569488
-            - -0.681638837
-            - 0.395333081
-            - 23.149334
+            - 0.61569494
+            - -0.681638896
+            - 0.395333111
+            - 21.0730591
           -
             - 0
             - 0
@@ -136,19 +136,19 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.114141963
+            - 0.125126451
             - 0
             - 0
-            - 0.366936624
+            - 0.3074646
           -
             - 0
-            - 0.0823708177
+            - 0.0950607881
             - 0
-            - -0.19817847
+            - -0.228709698
           -
             - 0
             - 0
-            - 0.031947758
+            - 0.0363832228
             - -0
           -
             - 0
@@ -190,8 +190,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
+          UseDiffuseTexture: false
+          UseNormalTexture: false
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
         UV_Slice_X: 1
@@ -256,8 +256,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
+          UseDiffuseTexture: false
+          UseNormalTexture: false
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Y Bot.fbx
         isBlender: false

@@ -569,10 +569,6 @@ RenderLayer Scene::GetRenderLayerFromEntity(Entity entity) {
 	if (registry->HasComponent<SpriteRendererComponent>(entity)) {
 		return RenderLayer::OverlayUI;
 	}
-	if(registry->HasComponent<BillBoardRendererComponent>(entity)){
-		return RenderLayer::SortTransparent3D;
-
-	}
 	if(registry->HasComponent<EffectComponent>(entity)){
 		return RenderLayer::SortTransparent3D;
 	}

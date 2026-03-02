@@ -2484,6 +2484,9 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Script\scriptSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\OverlayUI\OverlayUIPass.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\gameApplication.cpp">
@@ -3314,6 +3317,9 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\Component\scriptComponent.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\OverlayUI\OverlayUIPass.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\GameApplication\Backends\Assimp\color4.inl">
@@ -3387,6 +3393,11 @@
     <FxCompile Include="Source\Shader\AutoGen\ForwardRenderingPS.hlsl" />
     <FxCompile Include="Source\Shader\AutoGen\DeferredRenderingPS.hlsl" />
     <FxCompile Include="Source\Shader\PhysX\DebugLineVS.hlsl" />
+    <FxCompile Include="Source\Shader\PostEffect\DepthBlur.hlsl" />
+    <FxCompile Include="Source\Shader\PostEffect\OutlineByDepth.hlsl" />
+    <FxCompile Include="Source\Shader\PostEffect\OutlineByShaderID.hlsl" />
+    <FxCompile Include="Source\Shader\PostEffect\OutlineByNormal.hlsl" />
+    <FxCompile Include="Source\Shader\PostEffect\SSAO.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />
