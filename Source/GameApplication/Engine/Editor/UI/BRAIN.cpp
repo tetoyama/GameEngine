@@ -222,9 +222,9 @@ void BRAIN::WorkerLoop() {
 		}
 
 		// ---------------------------
-		// 実行（ツール呼び出しサポート、最大3ラウンド）
+		// 実行（ツール呼び出しサポート、最大16ラウンド）
 		// ---------------------------
-		const int maxToolRounds = 3;
+		const int maxToolRounds = 16;
 		std::string currentPrompt = job.prompt;
 
 		for (int round = 0; round < maxToolRounds; ++round) {
