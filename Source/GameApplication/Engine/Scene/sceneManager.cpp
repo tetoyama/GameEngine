@@ -96,6 +96,12 @@ void SceneManager::Update(float deltaTime){
 			systemRegistry->StopAll();
 
 			TempLoad(); // 一時保存の読み込み
+
+			// プレイ中に積まれたコマンドは TempLoad 後に無効なため全クリア
+			if (m_SceneContext.editor) {
+				m_SceneContext.editor->commandManager.Clear();
+			}
+
 			OldState = State;
 
 		} else if (State == SceneManagerState::Playing) {
@@ -103,6 +109,12 @@ void SceneManager::Update(float deltaTime){
 			if (OldState == SceneManagerState::Stopped) {
 
 				TempSave(); // 一時保存
+
+				// プレイ開始前のエディタ操作コマンドをクリア（プレイ中は Undo/Redo 無効）
+				if (m_SceneContext.editor) {
+					m_SceneContext.editor->commandManager.Clear();
+				}
+
 				m_SceneContext.debug->LOG_INFO("シーンを開始します");
 				systemRegistry->StartAll();
 
@@ -117,6 +129,9 @@ void SceneManager::Update(float deltaTime){
 
 			if (OldState == SceneManagerState::Stopped) {
 				TempSave(); // 一時保存
+				if (m_SceneContext.editor) {
+					m_SceneContext.editor->commandManager.Clear();
+				}
 				m_SceneContext.debug->LOG_INFO("シーンを開始します");
 				systemRegistry->StartAll();
 			}

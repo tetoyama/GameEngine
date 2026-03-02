@@ -334,10 +334,9 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		if(ImGui::BeginMenu("作成")){
 			if(ImGui::MenuItem("EmptyParent")){
 				// 空の親エンティティを作成し、選択エンティティをその子にする
-				auto cmd = std::make_unique<EntityCreateCommand>(
-					context, 0,
-					[this, entity, context](Entity e, SceneContext*){
-						SetParent(entity, e, context);
+				auto cmd = std::make_unique<EmptyParentCommand>(
+					context, entity,
+					[this, context](Entity e, SceneContext*){
 						selectedEntity = e;
 						sceneContext   = context;
 					});
@@ -357,11 +356,13 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		}
 
 		if(ImGui::MenuItem("複製")){
-			auto* transform = context->component->GetComponent<TransformComponent>(entity);
-			Entity newParent = transform ? transform->parent : 0;
-			Entity dup = DuplicateEntityRecursive(entity, newParent, context);
-			selectedEntity = dup;
-			sceneContext = context;
+			auto cmd = std::make_unique<EntityDuplicateCommand>(
+				context, entity,
+				[this, context](Entity e, SceneContext*){
+					selectedEntity = e;
+					sceneContext   = context;
+				});
+			m_editor->commandManager.Execute(std::move(cmd));
 		}
 
 		if(ImGui::BeginMenu("Prefab")){
@@ -459,7 +460,9 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 
 		if(ImGui::InputText("##Rename", renameBuffer, sizeof(renameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)){
 			if(name){
-				name->name = renameBuffer;
+				std::string oldName = name->name;
+				auto cmd = std::make_unique<RenameCommand>(context, entity, oldName, renameBuffer);
+				m_editor->commandManager.Execute(std::move(cmd));
 			}
 			pendingRenameEntity = 0;
 		}

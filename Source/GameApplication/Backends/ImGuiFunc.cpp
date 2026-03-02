@@ -123,6 +123,13 @@ void ImGui::DrawVerticalText(const char* text){
 // アンドゥ対応ラッパー実装
 // -----------------------------------------------------------------------
 
+// ## 始まりのラベルは ImGui 内部用なので除外し、それ以外はそのまま操作名として使う
+static std::string MakePropertyDesc(const char* label) {
+	if (!label || !label[0]) return "";
+	if (label[0] == '#' && label[1] != '\0' && label[1] == '#') return "";
+	return std::string(label);
+}
+
 bool ImGui::UndoDragFloat(const char* label, float* v, float speed,
 	float v_min, float v_max, const char* format)
 {
@@ -141,7 +148,7 @@ bool ImGui::UndoDragFloat(const char* label, float* v, float speed,
 			float oldValue = it->second;
 			float newValue = *v;
 			s_commandManager->Execute(
-				std::make_unique<PropertyChangeCommand<float>>(v, oldValue, newValue)
+				std::make_unique<PropertyChangeCommand<float>>(v, oldValue, newValue, MakePropertyDesc(label))
 			);
 			s_capturedFloats.erase(it);
 		}
@@ -170,7 +177,7 @@ bool ImGui::UndoDragFloat2(const char* label, float v[2], float speed,
 		if (it != s_capturedFloat2s.end()) {
 			Float2 newValue = *vf;
 			s_commandManager->Execute(
-				std::make_unique<PropertyChangeCommand<Float2>>(vf, it->second, newValue)
+				std::make_unique<PropertyChangeCommand<Float2>>(vf, it->second, newValue, MakePropertyDesc(label))
 			);
 			s_capturedFloat2s.erase(it);
 		}
@@ -199,7 +206,7 @@ bool ImGui::UndoDragFloat3(const char* label, float v[3], float speed,
 		if (it != s_capturedFloat3s.end()) {
 			Float3 newValue = *vf;
 			s_commandManager->Execute(
-				std::make_unique<PropertyChangeCommand<Float3>>(vf, it->second, newValue)
+				std::make_unique<PropertyChangeCommand<Float3>>(vf, it->second, newValue, MakePropertyDesc(label))
 			);
 			s_capturedFloat3s.erase(it);
 		}
@@ -228,7 +235,7 @@ bool ImGui::UndoDragFloat4(const char* label, float v[4], float speed,
 		if (it != s_capturedFloat4s.end()) {
 			Float4 newValue = *vf;
 			s_commandManager->Execute(
-				std::make_unique<PropertyChangeCommand<Float4>>(vf, it->second, newValue)
+				std::make_unique<PropertyChangeCommand<Float4>>(vf, it->second, newValue, MakePropertyDesc(label))
 			);
 			s_capturedFloat4s.erase(it);
 		}
@@ -253,7 +260,7 @@ bool ImGui::UndoDragInt(const char* label, int* v, float speed, int v_min, int v
 		if (it != s_capturedInts.end()) {
 			int newValue = *v;
 			s_commandManager->Execute(
-				std::make_unique<PropertyChangeCommand<int>>(v, it->second, newValue)
+				std::make_unique<PropertyChangeCommand<int>>(v, it->second, newValue, MakePropertyDesc(label))
 			);
 			s_capturedInts.erase(it);
 		}
@@ -269,7 +276,7 @@ bool ImGui::UndoCheckbox(const char* label, bool* v)
 
 	if (changed && s_commandManager) {
 		s_commandManager->Execute(
-			std::make_unique<PropertyChangeCommand<bool>>(v, oldValue, *v)
+			std::make_unique<PropertyChangeCommand<bool>>(v, oldValue, *v, MakePropertyDesc(label))
 		);
 	}
 
@@ -311,7 +318,7 @@ bool ImGui::UndoDragVec3(const char* label, Vector3& Vec3)
 		// &Vec3 は呼び出し元コンポーネントのメンバへの参照アドレスで安定している
 		if (!(st.captured == Vec3)) {
 			s_commandManager->Execute(
-				std::make_unique<PropertyChangeCommand<Vector3>>(&Vec3, st.captured, Vec3)
+				std::make_unique<PropertyChangeCommand<Vector3>>(&Vec3, st.captured, Vec3, MakePropertyDesc(label))
 			);
 		}
 	}
@@ -339,7 +346,7 @@ bool ImGui::UndoColorEdit4(const char* label, float col[4], int flags)
 		if (it != s_capturedColors.end()) {
 			Float4 newValue = *cf;
 			s_commandManager->Execute(
-				std::make_unique<PropertyChangeCommand<Float4>>(cf, it->second, newValue)
+				std::make_unique<PropertyChangeCommand<Float4>>(cf, it->second, newValue, MakePropertyDesc(label))
 			);
 			s_capturedColors.erase(it);
 		}

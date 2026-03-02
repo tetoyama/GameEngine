@@ -71,6 +71,8 @@ public:
 		_DestroyRecursive(m_spawned);
 	}
 
+	std::string GetDescription() const override { return "Prefabを配置"; }
+
 private:
 	struct EntitySnapshot {
 		Entity entity;

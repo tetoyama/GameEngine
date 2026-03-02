@@ -10,6 +10,7 @@
 #include "Scene/scene.h"
 #include "Scene/Interface/IComponent.h"
 #include "Scene/Component/transformComponent.h"
+#include "Scene/Component/entityNameComponent.h"
 #include <yaml-cpp/yaml.h>
 #include <string>
 #include <vector>
@@ -69,6 +70,8 @@ public:
 		if (m_context) EntityCommandHelper::SetParent(m_child, m_oldParent, m_context);
 	}
 
+	std::string GetDescription() const override { return "親子関係を変更"; }
+
 private:
 	SceneContext* m_context;
 	Entity        m_child;
@@ -127,6 +130,8 @@ public:
 
 	Entity GetCreatedEntity() const { return m_created; }
 
+	std::string GetDescription() const override { return "エンティティを作成"; }
+
 private:
 	SceneContext*      m_context;
 	Entity             m_parent;
@@ -152,6 +157,9 @@ public:
 		, m_onDeleted(onDeleted)
 		, m_onRestored(onRestored)
 	{
+		// 削除前にエンティティ名を記録（UI ヒント用）
+		auto* nameComp = context->component->GetComponent<NameComponent>(entity);
+		m_entityName = nameComp ? nameComp->name : std::to_string(static_cast<uint32_t>(entity));
 		// 構築時にスナップショット取得
 		_SnapshotRecursive(m_entity);
 	}
@@ -167,6 +175,8 @@ public:
 		_RestoreAll();
 		if (m_onRestored) m_onRestored(m_entity, m_context);
 	}
+
+	std::string GetDescription() const override { return "エンティティを削除: " + m_entityName; }
 
 private:
 	struct EntitySnapshot {
@@ -246,7 +256,262 @@ private:
 
 	SceneContext*               m_context;
 	Entity                      m_entity;
+	std::string                 m_entityName;
 	std::vector<EntitySnapshot> m_snapshots;
 	PostDeleteCallback          m_onDeleted;
 	PostRestoreCallback         m_onRestored;
+};
+
+// -----------------------------------------------------------------------
+// RenameCommand
+// エンティティ名変更コマンド（Undo で元の名前に戻す）
+// -----------------------------------------------------------------------
+class RenameCommand : public ICommand {
+public:
+	RenameCommand(SceneContext* context, Entity entity, std::string oldName, std::string newName)
+		: m_context(context)
+		, m_entity(entity)
+		, m_oldName(std::move(oldName))
+		, m_newName(std::move(newName))
+	{}
+
+	void Execute() override {
+		auto* name = _GetName();
+		if (name) name->name = m_newName;
+	}
+
+	void Undo() override {
+		auto* name = _GetName();
+		if (name) name->name = m_oldName;
+	}
+
+	std::string GetDescription() const override { return "名前変更: " + m_oldName + " → " + m_newName; }
+
+private:
+	NameComponent* _GetName() {
+		if (!m_context || !m_context->entity->IsAlive(m_entity)) return nullptr;
+		return m_context->component->GetComponent<NameComponent>(m_entity);
+	}
+
+	SceneContext* m_context;
+	Entity        m_entity;
+	std::string   m_oldName;
+	std::string   m_newName;
+};
+
+// -----------------------------------------------------------------------
+// EntityDuplicateCommand
+// エンティティ複製コマンド（Undo で複製エンティティを削除）
+// -----------------------------------------------------------------------
+class EntityDuplicateCommand : public ICommand {
+public:
+	using PostCallback = std::function<void(Entity, SceneContext*)>;
+
+	EntityDuplicateCommand(SceneContext* ctx, Entity src, PostCallback onDuplicated = nullptr)
+		: m_context(ctx)
+		, m_src(src)
+		, m_duplicated(0)
+		, m_onDuplicated(onDuplicated)
+	{}
+
+	void Execute() override {
+		if (!m_context) return;
+
+		if (m_duplicated != 0) {
+			// Redo: スナップショットから復元
+			_RestoreAll();
+			if (m_onDuplicated) m_onDuplicated(m_duplicated, m_context);
+			return;
+		}
+
+		// 初回: 複製
+		auto* t = m_context->component->GetComponent<TransformComponent>(m_src);
+		Entity newParent = t ? t->parent : 0;
+		m_duplicated = _DuplicateRecursive(m_src, newParent);
+
+		// Undo/Redo 用スナップショット
+		m_snapshots.clear();
+		_SnapshotRecursive(m_duplicated);
+
+		if (m_onDuplicated) m_onDuplicated(m_duplicated, m_context);
+	}
+
+	void Undo() override {
+		if (!m_context || m_duplicated == 0) return;
+		if (!m_context->entity->IsAlive(m_duplicated)) return;
+		_DestroyRecursive(m_duplicated);
+	}
+
+	std::string GetDescription() const override { return "エンティティを複製"; }
+
+private:
+	struct EntitySnapshot {
+		Entity entity;
+		std::vector<std::pair<std::string, YAML::Node>> components;
+	};
+
+	Entity _DuplicateRecursive(Entity src, Entity newParent) {
+		Entity newEntity = m_context->entity->Create();
+
+		const auto& idToName = m_context->component->GetComponentIDToNameMap();
+		auto comps = m_context->component->GetAllComponentsOfEntitySorted(src);
+		for (IComponent* comp : comps) {
+			ComponentTypeID tid = m_context->component->GetComponentIDByTypeIndex(std::type_index(typeid(*comp)));
+			if (tid == static_cast<ComponentTypeID>(-1)) continue;
+			auto nameIt = idToName.find(tid);
+			if (nameIt == idToName.end()) continue;
+			m_context->component->CreateFromYAML(nameIt->second, newEntity, comp->encode());
+		}
+
+		auto* newT = m_context->component->GetComponent<TransformComponent>(newEntity);
+		if (newT) {
+			newT->children.clear();
+			newT->parent = newParent;
+			if (newParent != 0) {
+				auto* parentT = m_context->component->GetComponent<TransformComponent>(newParent);
+				if (parentT) parentT->children.push_back(newEntity);
+			}
+		}
+
+		auto* srcT = m_context->component->GetComponent<TransformComponent>(src);
+		if (srcT) {
+			for (Entity srcChild : srcT->children)
+				_DuplicateRecursive(srcChild, newEntity);
+		}
+
+		return newEntity;
+	}
+
+	void _SnapshotRecursive(Entity e) {
+		EntitySnapshot snap;
+		snap.entity = e;
+		const auto& idToName = m_context->component->GetComponentIDToNameMap();
+		for (IComponent* comp : m_context->component->GetAllComponentsOfEntitySorted(e)) {
+			std::type_index ti(typeid(*comp));
+			ComponentTypeID tid = m_context->component->GetComponentIDByTypeIndex(ti);
+			if (tid == static_cast<ComponentTypeID>(-1)) continue;
+			auto nameIt = idToName.find(tid);
+			if (nameIt == idToName.end()) continue;
+			snap.components.emplace_back(nameIt->second, comp->encode());
+		}
+		m_snapshots.push_back(std::move(snap));
+		auto* t = m_context->component->GetComponent<TransformComponent>(e);
+		if (t) {
+			for (Entity child : t->children)
+				_SnapshotRecursive(child);
+		}
+	}
+
+	void _DestroyRecursive(Entity e) {
+		if (!m_context->entity->IsAlive(e)) return;
+		auto* t = m_context->component->GetComponent<TransformComponent>(e);
+		std::vector<Entity> children = t ? t->children : std::vector<Entity>{};
+		for (Entity child : children) _DestroyRecursive(child);
+		EntityCommandHelper::SetParent(e, 0, m_context);
+		m_context->component->OnEntityDestroyed(e);
+		m_context->entity->Destroy(e);
+	}
+
+	void _RestoreAll() {
+		for (auto& snap : m_snapshots) {
+			if (!m_context->entity->IsAlive(snap.entity))
+				m_context->entity->CreateID(snap.entity);
+		}
+		for (auto& snap : m_snapshots) {
+			for (auto& [name, node] : snap.components)
+				m_context->component->CreateFromYAML(name, snap.entity, node);
+		}
+		for (auto& snap : m_snapshots) {
+			auto* t = m_context->component->GetComponent<TransformComponent>(snap.entity);
+			if (!t || t->parent == 0) continue;
+			auto* parentT = m_context->component->GetComponent<TransformComponent>(t->parent);
+			if (!parentT) continue;
+			if (std::find(parentT->children.begin(), parentT->children.end(), snap.entity) == parentT->children.end())
+				parentT->children.push_back(snap.entity);
+		}
+	}
+
+	SceneContext*               m_context;
+	Entity                      m_src;
+	Entity                      m_duplicated;
+	std::vector<EntitySnapshot> m_snapshots;
+	PostCallback                m_onDuplicated;
+};
+
+// -----------------------------------------------------------------------
+// EmptyParentCommand
+// 選択エンティティの上に空の親エンティティを挿入するコマンド
+// -----------------------------------------------------------------------
+class EmptyParentCommand : public ICommand {
+public:
+	using PostCallback = std::function<void(Entity, SceneContext*)>;
+
+	EmptyParentCommand(SceneContext* ctx, Entity entity, PostCallback onCreated = nullptr)
+		: m_context(ctx)
+		, m_entity(entity)
+		, m_entityOldParent(0)
+		, m_newParent(0)
+		, m_onCreated(onCreated)
+	{
+		auto* t = ctx->component->GetComponent<TransformComponent>(entity);
+		m_entityOldParent = t ? t->parent : 0;
+	}
+
+	void Execute() override {
+		if (!m_context) return;
+
+		if (m_newParent != 0) {
+			// Redo: スナップショットから新親を復元
+			if (!m_context->entity->IsAlive(m_newParent))
+				m_context->entity->CreateID(m_newParent);
+			for (auto& [compName, node] : m_snapshot)
+				m_context->component->CreateFromYAML(compName, m_newParent, node);
+			EntityCommandHelper::SetParent(m_entity, m_newParent, m_context);
+			if (m_onCreated) m_onCreated(m_newParent, m_context);
+			return;
+		}
+
+		// 初回: 新しい空エンティティを作成
+		m_newParent = m_context->entity->Create();
+		YAML::Node nameNode; nameNode["Name"] = "Entity";
+		m_context->component->CreateFromYAML("NameComponent", m_newParent, nameNode);
+		m_context->component->CreateFromYAML("TransformComponent", m_newParent, YAML::Node());
+
+		// 元エンティティを新親の子にする
+		EntityCommandHelper::SetParent(m_entity, m_newParent, m_context);
+
+		// Redo 用スナップショット
+		const auto& idToName = m_context->component->GetComponentIDToNameMap();
+		for (IComponent* comp : m_context->component->GetAllComponentsOfEntitySorted(m_newParent)) {
+			std::type_index ti(typeid(*comp));
+			ComponentTypeID tid = m_context->component->GetComponentIDByTypeIndex(ti);
+			auto nameIt = idToName.find(tid);
+			if (nameIt != idToName.end())
+				m_snapshot.emplace_back(nameIt->second, comp->encode());
+		}
+
+		if (m_onCreated) m_onCreated(m_newParent, m_context);
+	}
+
+	void Undo() override {
+		if (!m_context || m_newParent == 0) return;
+		if (!m_context->entity->IsAlive(m_newParent)) return;
+
+		// 元エンティティの親を元に戻す
+		EntityCommandHelper::SetParent(m_entity, m_entityOldParent, m_context);
+
+		// 新親エンティティを削除
+		m_context->component->OnEntityDestroyed(m_newParent);
+		m_context->entity->Destroy(m_newParent);
+	}
+
+	std::string GetDescription() const override { return "空の親エンティティを作成"; }
+
+private:
+	SceneContext* m_context;
+	Entity        m_entity;
+	Entity        m_entityOldParent;
+	Entity        m_newParent;
+	std::vector<std::pair<std::string, YAML::Node>> m_snapshot;
+	PostCallback  m_onCreated;
 };

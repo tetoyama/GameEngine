@@ -231,6 +231,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx) {
 				m_gizmoStartPos   = transform->position;
 				m_gizmoStartRot   = transform->GetRotation();
 				m_gizmoStartScale = transform->scale;
+				m_gizmoStartState = m_editor->sceneManager->State; // ドラッグ開始時の状態を記録
 			}
 
 			if (isUsingNow) {
@@ -268,14 +269,18 @@ void ViewWindow::EditorView(const EditorDrawContext ctx) {
 			}
 
 			// ギズモ終了時：変更をコマンドスタックに積む（Execute は既に適用済み）
+			// エディタ停止状態でのみ記録（プレイ中ドラッグ→停止後 Undo エラーを防止）
 			if (!isUsingNow && m_wasUsingGizmo && m_gizmoEntity != 0) {
-				TransformComponent* t = registry->GetComponent<TransformComponent>(m_gizmoEntity);
-				if (t && hierarchy->sceneContext) {
-					auto cmd = std::make_unique<TransformChangeCommand>(
-						hierarchy->sceneContext, m_gizmoEntity,
-						m_gizmoStartPos, m_gizmoStartRot, m_gizmoStartScale,
-						t->position,     t->GetRotation(), t->scale);
-					m_editor->commandManager.Push(std::move(cmd));
+				if (m_gizmoStartState == SceneManagerState::Stopped &&
+					m_editor->sceneManager->State == SceneManagerState::Stopped) {
+					TransformComponent* t = registry->GetComponent<TransformComponent>(m_gizmoEntity);
+					if (t && hierarchy->sceneContext) {
+						auto cmd = std::make_unique<TransformChangeCommand>(
+							hierarchy->sceneContext, m_gizmoEntity,
+							m_gizmoStartPos, m_gizmoStartRot, m_gizmoStartScale,
+							t->position,     t->GetRotation(), t->scale);
+						m_editor->commandManager.Push(std::move(cmd));
+					}
 				}
 				m_gizmoEntity = 0;
 			}

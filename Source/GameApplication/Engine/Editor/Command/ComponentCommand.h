@@ -74,6 +74,8 @@ public:
 		m_context->component->RemoveComponentByID(m_entity, id);
 	}
 
+	std::string GetDescription() const override { return "コンポーネントを追加: " + m_componentName; }
+
 private:
 	SceneContext*               m_context;
 	Entity                      m_entity;
@@ -114,6 +116,8 @@ public:
 		if (m_componentName.empty()) return;
 		m_context->component->CreateFromYAML(m_componentName, m_entity, m_snapshot);
 	}
+
+	std::string GetDescription() const override { return "コンポーネントを削除: " + m_componentName; }
 
 private:
 	SceneContext*   m_context;

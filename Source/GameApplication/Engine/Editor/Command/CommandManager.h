@@ -33,6 +33,14 @@ public:
 	bool CanUndo() const { return !m_undoStack.empty(); }
 	bool CanRedo() const { return !m_redoStack.empty(); }
 
+	// スタック先頭コマンドの操作名を返す（UI ヒント用）
+	std::string PeekUndoDescription() const {
+		return m_undoStack.empty() ? "" : m_undoStack.top()->GetDescription();
+	}
+	std::string PeekRedoDescription() const {
+		return m_redoStack.empty() ? "" : m_redoStack.top()->GetDescription();
+	}
+
 private:
 	void _ClearRedoStack() {
 		while (!m_redoStack.empty()) m_redoStack.pop();

@@ -5,6 +5,8 @@
 // コマンドパターンの基底インターフェース
 // =======================================================================
 
+#include <string>
+
 class ICommand {
 public:
 	virtual ~ICommand() = default;
@@ -14,4 +16,7 @@ public:
 
 	// コマンドを元に戻す
 	virtual void Undo() = 0;
+
+	// UI 表示用の操作名（オーバーライド任意）
+	virtual std::string GetDescription() const { return ""; }
 };

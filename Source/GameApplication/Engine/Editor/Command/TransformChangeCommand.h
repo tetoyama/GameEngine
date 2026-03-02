@@ -39,6 +39,8 @@ public:
 		t->scale = m_oldScale;
 	}
 
+	std::string GetDescription() const override { return "トランスフォームを変更"; }
+
 private:
 	TransformComponent* _GetTransform() {
 		if (!m_context || !m_context->entity->IsAlive(m_entity)) return nullptr;

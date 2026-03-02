@@ -60,7 +60,9 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 			if(ImGui::InputText("##Name", nameBuffer, sizeof(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)){
 				// Update the std::string with the modified buffer
-				name->name = nameBuffer;
+				std::string oldName = name->name;
+				auto cmd = std::make_unique<RenameCommand>(context, selectedEntity, oldName, nameBuffer);
+				m_editor->commandManager.Execute(std::move(cmd));
 			}
 			// PrefabComponent がある場合はエンティティが Prefab インスタンスであることを明示する
 			if(context->component->GetComponent<PrefabComponent>(selectedEntity)){
