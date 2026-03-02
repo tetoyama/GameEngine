@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "../IRenderPass.h"
 #include <d3d11.h>
 #include <vector>
@@ -15,6 +15,7 @@ class GBufferPass;
 class LightingPass;
 class ForwardPass;
 class PostEffectPass;
+class OverlayUIPass;
 
 class PlayerPass : public IRenderPass {
 public:
@@ -22,7 +23,7 @@ public:
 	void Finalize() override;
 	void Execute(const RenderPassContext& ctx) override;
 
-	RenderTarget* editorRenderTarget = nullptr;
+	RenderTarget* playerRenderTarget = nullptr;
 
 	ID3D11ShaderResourceView* result = nullptr;
 
@@ -31,4 +32,5 @@ public:
 	LightingPass*   lightingPass   = nullptr;
 	ForwardPass*    forwardPass    = nullptr;
 	PostEffectPass* postEffectPass = nullptr;
+	OverlayUIPass*  overlayUIPass = nullptr;
 };

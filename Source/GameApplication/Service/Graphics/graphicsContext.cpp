@@ -1,4 +1,4 @@
-#include "graphicsContext.h"
+﻿#include "graphicsContext.h"
 
 
 #include <stdexcept>
@@ -844,6 +844,7 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 
 	if(!effects.empty()){
 		m_CurrentSRV = effects.back().srv;
+		m_CurrentRTV = effects.back().rtv;
 	}
 }
 

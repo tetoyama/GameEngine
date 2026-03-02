@@ -1,4 +1,4 @@
-// Scene/System/renderSystem.cpp
+﻿// Scene/System/renderSystem.cpp
 #include "renderSystem.h"
 #include "buildSetting.h"
 
@@ -314,7 +314,7 @@ void RenderSystem::SystemSetting() {
 
 			ImGui::Image(
 				m_PlayerPass->result,
-				ImVec2(width, m_PlayerPass->editorRenderTarget->size.y / m_PlayerPass->editorRenderTarget->size.x * width)
+				ImVec2(width, m_PlayerPass->playerRenderTarget->size.y / m_PlayerPass->playerRenderTarget->size.x * width)
 			);
 
 			ImGui::Text("ShadowMap Render Target");
@@ -332,7 +332,7 @@ void RenderSystem::SystemSetting() {
 				if (RT->type == RenderTargetType::RENDERTARGET_TYPE_COLOR_NO_DSV && RT->srv) {
 					ImGui::Image(
 						RT->srv.Get(),
-						ImVec2(width, m_PlayerPass->editorRenderTarget->size.y / m_PlayerPass->editorRenderTarget->size.x * width)
+						ImVec2(width, m_PlayerPass->playerRenderTarget->size.y / m_PlayerPass->playerRenderTarget->size.x * width)
 					);
 				}
 			}

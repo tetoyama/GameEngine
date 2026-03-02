@@ -1,4 +1,4 @@
-#include "PlayerPass.h"
+﻿#include "PlayerPass.h"
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "sceneManager.h"
 #include "../RenderPassContext.h"
@@ -9,6 +9,7 @@
 #include "../LightingPass/LightingPass.h"
 #include "../Forward/ForwardPass.h"
 #include "../PostEffect/PostEffectPass.h"
+#include "../OverlayUI/OverlayUIPass.h"
 
 #include "scene.h"
 #include "System/Render/RenderSystem/Renderable/IRenderable.h"
@@ -47,7 +48,10 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	postEffectPass = new PostEffectPass();
 	postEffectPass->Initialize(renderSystem, context);
 
-	editorRenderTarget = new RenderTarget(
+	overlayUIPass = new OverlayUIPass();
+	overlayUIPass->Initialize(renderSystem, context);
+
+	playerRenderTarget = new RenderTarget(
 		context->PlayerScreenSize,
 		context->graphics,
 		RenderTargetType::RENDERTARGET_TYPE_COLOR
@@ -76,8 +80,12 @@ void PlayerPass::Finalize() {
 	delete shadowMapPass;
 	shadowMapPass = nullptr;
 
-	delete editorRenderTarget;
-	editorRenderTarget = nullptr;
+	overlayUIPass->Finalize();
+	delete overlayUIPass;
+	overlayUIPass = nullptr;
+
+	delete playerRenderTarget;
+	playerRenderTarget = nullptr;
 }
 
 void PlayerPass::Execute(const RenderPassContext& ctx) {
@@ -105,15 +113,19 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 
 	// ポストエフェクトパス
 	ID3D11ShaderResourceView* initialSRV = lightingPass->pRenderTarget->srv.Get();
-	postEffectPass->SetInputs(initialSRV, gBufferPass);
+	ID3D11RenderTargetView** initialRTV = lightingPass->pRenderTarget->rtv.GetAddressOf();
+	postEffectPass->SetInputs(initialSRV, initialRTV,gBufferPass);
 	postEffectPass->Execute(ctx);
 
-	result = postEffectPass->result;
+	overlayUIPass->SetInputs(postEffectPass->resultRtv,lightingPass->pRenderTarget);
+	overlayUIPass->Execute(ctx);
+
+	result = postEffectPass->resultSrv;
 
 	// エディタ用レンダーターゲットをリサイズ (ウィンドウ描画に使用)
 	float clearCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
-	editorRenderTarget->Resize(ctx.screenSize, m_context->graphics);
-	editorRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearCol);
+	playerRenderTarget->Resize(ctx.screenSize, m_context->graphics);
+	playerRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearCol);
 }
 
 

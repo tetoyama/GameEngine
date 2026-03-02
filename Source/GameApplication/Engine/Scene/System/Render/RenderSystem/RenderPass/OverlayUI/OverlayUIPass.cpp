@@ -1,4 +1,4 @@
-#include "ForwardPass.h"
+﻿#include "OverlayUIPass.h"
 #include "Shader/commonDefine.h"
 
 #include "System/Render/RenderSystem/renderSystem.h"
@@ -37,35 +37,22 @@
 #include <Component/materialComponent.h>
 #include <Component/RenderLayerComponent.h>
 
-void ForwardPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
+void OverlayUIPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 
 	m_renderSystem = renderSystem;
 	m_context = context;
-
 	m_VertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
 
 	renderables.clear();
-	renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
-	renderables.push_back(renderSystem->GetRenderable<RenderableBillBoard>());
-	renderables.push_back(renderSystem->GetRenderable<RenderableMesh>());
-	renderables.push_back(renderSystem->GetRenderable<RenderableParticle>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableSprite>());
-	renderables.push_back(renderSystem->GetRenderable<RenderableTerrain>());
-	renderables.push_back(renderSystem->GetRenderable<RenderableWave>());
-	renderables.push_back(renderSystem->GetRenderable<RenderableEffect>());
 }
 
-void ForwardPass::Finalize() {
+void OverlayUIPass::Finalize() {
 	m_VertexShader.reset();
+
 }
 
-void ForwardPass::SetInputs(LightingPass* lightingPass, GBufferPass* gBufferPass, ShadowMapPass* shadowMapPass) {
-	m_lightingPass  = lightingPass;
-	m_gBufferPass   = gBufferPass;
-	m_shadowMapPass = shadowMapPass;
-}
-
-void ForwardPass::Execute(const RenderPassContext& ctx) {
+void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 
 	GraphicsContext* graphics = m_context->graphics;
 	ID3D11DeviceContext* deviceContext = graphics->GetDeviceContext();
@@ -73,13 +60,9 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 	// レンダーターゲット設定 (ライティング結果テクスチャに書き込む)
 	deviceContext->OMSetRenderTargets(
 		1,
-		m_lightingPass->pRenderTarget->rtv.GetAddressOf(),
-		m_gBufferPass->pDepthTarget->dsv.Get()
+		m_rtv,
+		m_dsv->dsv.Get()
 	);
-
-	// シャドウマップバインド
-	deviceContext->PSSetShaderResources(TextureSlot_ShadowMap, 1, m_shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
-	deviceContext->PSSetSamplers(1, 1, &m_shadowMapPass->shadowSampler);
 
 	// シェーダーセット
 	deviceContext->VSSetShader(m_VertexShader->m_VertexShader.Get(), nullptr, 0);
@@ -106,12 +89,11 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 			continue;
 		}
 
-		if (i != (int)RenderLayer::SortTransparent3D &&
-			i != (int)RenderLayer::Transparent3D) {
+		if (i != (int)RenderLayer::OverlayUI) {
 			continue;
 		}
 
-		std::vector<TransparentDrawItem> transparentList;
+		std::vector<SpriteDrawItem>      spriteList;
 
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 
@@ -128,39 +110,55 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 					continue;
 				}
 
-				if (layer == RenderLayer::SortTransparent3D) {
+				if (layer == RenderLayer::OverlayUI) {
 
 					auto transform = context->component->GetComponent<TransformComponent>(entity);
 					if (!transform) {
 						continue;
 					}
 
-					Vector3 worldPos = transform->GetWorldPosition(context->component);
-					Vector3 diff = worldPos - Vector3(ctx.CameraPosition.x, ctx.CameraPosition.y, ctx.CameraPosition.z);
-
-					TransparentDrawItem item;
+					SpriteDrawItem item;
 					item.ref = EntityRef(entity, context);
-					item.distanceSq = diff.dot(diff);
-					transparentList.push_back(item);
+					item.orderInLayer = 0;
+					OrderInLayerComponent* layerComp = context->component->GetComponent<OrderInLayerComponent>(entity);
+					if (layerComp) {
+						item.orderInLayer = layerComp->order;
+					}
+					spriteList.push_back(item);
 
+				} else {
 
+					for (auto renderable : renderables) {
+
+						int materialID = 0;
+						auto material = context->component->GetComponent<MaterialComponent>(entity);
+						if (material) {
+							materialID = material->ShaderID;
+						}
+
+						ObjectInfo info;
+						info.SceneID = (unsigned int)context;
+						info.ObjectID = entity;
+						info.ShaderID = materialID;
+						m_context->graphics->SetObjectInfo(info);
+
+						renderable->Execute(ctx, context, entity);
+					}
 				}
 			}
 		}
 
-		// Z ソートして半透明描画
-		if (!transparentList.empty()) {
-
-			m_context->graphics->SetDepthMode(DepthMode::ReadOnly);
+		// オーダーソートしてスプライト描画
+		if (!spriteList.empty()) {
 
 			std::sort(
-				transparentList.begin(), transparentList.end(),
-				[](const TransparentDrawItem& a, const TransparentDrawItem& b) {
-				return a.distanceSq > b.distanceSq; // 遠い→近い
+				spriteList.begin(), spriteList.end(),
+				[](const SpriteDrawItem& a, const SpriteDrawItem& b) {
+				return a.orderInLayer > b.orderInLayer;
 			}
 			);
 
-			for (auto& item : transparentList) {
+			for (auto& item : spriteList) {
 
 				if (!item.ref.IsValid()) continue;
 				Entity       entity = item.ref.GetEntityID();
@@ -183,12 +181,15 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 					renderable->Execute(ctx, itemCtx, entity);
 				}
 			}
-
-			m_context->graphics->SetDepthMode(DepthMode::Write);
 		}
 	}
 
 	// RTV を解除
 	ID3D11RenderTargetView* nullRTV[1] = { nullptr };
 	deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);
+}
+
+void OverlayUIPass::SetInputs(ID3D11RenderTargetView** setRTV, RenderTarget* setDSV) {
+	m_rtv = setRTV;
+	m_dsv = setDSV;
 }

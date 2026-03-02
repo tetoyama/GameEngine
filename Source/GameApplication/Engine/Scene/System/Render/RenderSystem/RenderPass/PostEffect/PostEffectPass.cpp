@@ -1,4 +1,4 @@
-#include "PostEffectPass.h"
+﻿#include "PostEffectPass.h"
 #include "Shader/commonDefine.h"
 
 #include "System/Render/RenderSystem/renderSystem.h"
@@ -20,8 +20,9 @@ void PostEffectPass::Initialize(RenderSystem* renderSystem, SceneManagerContext*
 void PostEffectPass::Finalize() {
 }
 
-void PostEffectPass::SetInputs(ID3D11ShaderResourceView* initialSRV, GBufferPass* gBufferPass) {
+void PostEffectPass::SetInputs(ID3D11ShaderResourceView* initialSRV, ID3D11RenderTargetView** initialRTV, GBufferPass* gBufferPass) {
 	m_initialSRV  = initialSRV;
+	m_initialRTV = initialRTV;
 	m_gBufferPass = gBufferPass;
 }
 
@@ -125,10 +126,12 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 			postNodes, m_initialSRV, gbufferSRVs, PostEffectGBufferSlot_Count
 		);
 
-		result = graphics->m_CurrentSRV;
+		resultSrv = graphics->m_CurrentSRV;
+		resultRtv = graphics->m_CurrentRTV;
 
 	} else {
-		result = m_initialSRV;
+		resultSrv = m_initialSRV;
+		resultRtv = m_initialRTV;
 	}
 
 	// クリーンアップ
