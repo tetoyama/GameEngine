@@ -72,6 +72,8 @@
 
 // デフォルト水面シェーダーのマテリアルID (EngineConfig.yaml の ShaderMaterial リストの順番に対応)
 #define WATER_SHADER_ID_DEFAULT		(5)
+// デフォルトスカイシェーダーのマテリアルID
+#define SKY_SHADER_ID_DEFAULT		(6)
 #define MATERIAL_FLAG_USE_DIFFUSE_TEXTURE		(1 << 0)
 #define MATERIAL_FLAG_USE_NORMAL_TEXTURE		(1 << 1)
 #define MATERIAL_FLAG_USE_ROUGHNESS_TEXTURE		(1 << 2)

@@ -25,10 +25,22 @@ GBUFFER_OUT main(PS_IN In)
     // -----------------------------
     float4 baseColor = Material.BaseColor;
 
+    // スカイドームの場合はエクイレクタングラー UV を使用する
+    // それ以外は通常のメッシュ UV を使用
+    // ※ 同じ計算式が SkyShader.hlsli にもある。両方を同時に変更すること。
+    float2 sampleUV = In.TexCoord;
+    if (ShaderID == SKY_SHADER_ID_DEFAULT)
+    {
+        float3 dir = normalize(In.WorldPosition.xyz - CameraPosition.xyz);
+        // U: 経度 [0,1]、V: 緯度 (0=北極, 0.5=赤道, 1=南極)
+        sampleUV.x = atan2(dir.z, dir.x) * (1.0 / (2.0 * PI)) + 0.5;
+        sampleUV.y = 0.5 - asin(dir.y) / PI;
+    }
+
     // Diffuse Texture を使うか
     if ((Material.MaterialFlags & MATERIAL_FLAG_USE_DIFFUSE_TEXTURE) != 0)
     {
-        baseColor *= DiffuseTexture.Sample(LinearSampler, In.TexCoord);
+        baseColor *= DiffuseTexture.Sample(LinearSampler, sampleUV);
     }
 
     if (baseColor.a < 0.01f)

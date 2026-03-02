@@ -36,6 +36,7 @@
 #include "Prefab/PrefabSystem.h"
 
 #include "Component/componentList.h"
+#include "Shader/commonDefine.h"
 
 Scene::Scene(){
 }
@@ -203,6 +204,8 @@ void Scene::BuildDefaultScene(){
 		auto* material = componentRegistry->AddComponent<MaterialComponent>(entity);
 
 		material->Material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		// エクイレクタングラーパノラマテクスチャを正しく表示するスカイシェーダーを使用
+		material->ShaderID = SKY_SHADER_ID_DEFAULT;
 
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);

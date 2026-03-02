@@ -40,6 +40,12 @@ float4 main(PS_IN In) : SV_Target
     {
         Result = ShadeMaterial_Water(input);
     }
+    else if (input.materialID == 6)
+    {
+        // スカイシェーダー: GBufferPass でエクイレクタングラー UV 変換済みの
+        // アルベドがそのまま GAlbedo に書き込まれているため Unlit で出力する
+        Result = ShadeMaterial_Unlit(input);
+    }
     else { /* default */ }
 
     return Result;
