@@ -21,6 +21,9 @@ struct MaterialInput
     
     float2 screenSize;
     float2 screenUV;
+
+    // 生のスクリーン座標 (SV_POSITION.xy) – 正確な screenUV 計算に使用
+    float2 rawScreenPos;
 };
 
 struct MaterialOutput

@@ -52,7 +52,10 @@ MaterialInput GetMaterialInput(PS_IN In)
     input.materialID = ShaderID;
     input.objectID = ObjectID;
     input.sceneID = SceneID;
-    
+
+    // 生のスクリーン座標を保存 (水面シェーダーでの正確な screenUV 計算に使用)
+    input.rawScreenPos = In.Position.xy;
+
     BaseColorTex.GetDimensions(input.screenSize.x, input.screenSize.y);
     input.screenUV = In.Position.xy / float2(input.screenSize.x, input.screenSize.y);
     

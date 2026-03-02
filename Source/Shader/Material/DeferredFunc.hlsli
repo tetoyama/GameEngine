@@ -62,6 +62,7 @@ MaterialInput GetMaterialInput(PS_IN In)
 
     GAlbedo.GetDimensions(input.screenSize.x, input.screenSize.y);
     input.screenUV = In.TexCoord;
+    input.rawScreenPos = float2(pixelCoord.x, pixelCoord.y);
 
     return input;
 }

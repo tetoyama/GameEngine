@@ -56,6 +56,11 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 		material.AO             = pWave->DistortionStrength;
 	}
 
+	// 鏡面ハイライトパラメータを設定
+	// Metallic に鏡面ハイライト強度、Pad0 に鋭さを格納（水シェーダー専用）
+	material.Metallic = pWave->SpecularStrength;
+	material.Pad0     = pWave->SpecularShininess;
+
 	sceneContext->manager->graphics->SetMaterial(material);
 
 	// マテリアルコンポーネントが未設定の場合、反射有効時は水面シェーダー(ID=5)を自動適用

@@ -19,6 +19,10 @@ public:
 	float ReflectionStrength    = 0.5f;   // 反射強度 (0=なし, 1=完全)
 	float DistortionStrength    = 0.02f;  // 波による歪み強度
 
+	// 水面鏡面ハイライトパラメータ
+	float SpecularStrength  = 1.0f;   // 鏡面ハイライト強度 (0=なし, 1=最大)
+	float SpecularShininess = 64.0f;  // 鏡面ハイライトの鋭さ (大きいほど鋭い光点)
+
 	~WaveComponent(){
 		if(meshRenderer){
 			delete meshRenderer;
@@ -35,6 +39,8 @@ public:
 		node["ReflectionEnabled"]  = ReflectionEnabled;
 		node["ReflectionStrength"] = ReflectionStrength;
 		node["DistortionStrength"] = DistortionStrength;
+		node["SpecularStrength"]   = SpecularStrength;
+		node["SpecularShininess"]  = SpecularShininess;
 		return node;
 	}
 
@@ -46,6 +52,8 @@ public:
 		if(node["ReflectionEnabled"])  ReflectionEnabled  = node["ReflectionEnabled"].as<bool>();
 		if(node["ReflectionStrength"]) ReflectionStrength = node["ReflectionStrength"].as<float>();
 		if(node["DistortionStrength"]) DistortionStrength = node["DistortionStrength"].as<float>();
+		if(node["SpecularStrength"])   SpecularStrength   = node["SpecularStrength"].as<float>();
+		if(node["SpecularShininess"])  SpecularShininess  = node["SpecularShininess"].as<float>();
 		return true;
 	}
 
@@ -70,5 +78,10 @@ public:
 			ImGui::DragFloat("Reflection Strength", &ReflectionStrength, 0.01f, 0.0f, 1.0f);
 			ImGui::DragFloat("Distortion Strength", &DistortionStrength, 0.001f, 0.0f, 0.2f);
 		}
+
+		ImGui::Separator();
+		ImGui::Text("Water Specular Highlight");
+		ImGui::DragFloat("Specular Strength",  &SpecularStrength,  0.01f,  0.0f, 1.0f);
+		ImGui::DragFloat("Specular Shininess", &SpecularShininess, 1.0f,   4.0f, 512.0f);
 	}
 };
