@@ -29,7 +29,8 @@ struct AgentConfig;
 struct ChatEntry {
 	enum class Role {
 		User,
-		Assistant
+		Assistant,
+		Tool        // AIが実行したツール呼び出しと結果
 	};
 
 	Role role;

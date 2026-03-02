@@ -13,47 +13,20 @@ struct BrainToolCall {
 };
 
 // ============================
-// BrainChatCommand
-// ============================
-// ユーザーが / から始まる文字列を入力したときのコマンド
-struct BrainChatCommand {
-	bool        isCommand = false; // / で始まるか
-	std::string name;              // コマンド名（/ を除いた部分）
-	std::string arg;               // コマンド引数（スペース以降）
-};
-
-// ============================
 // BrainTools
 // ============================
 // BRAIN AI用のファイルブラウジングツール
 // ソースコードとアセットフォルダの閲覧をサポート
-//
-// 【チャットコマンド】ユーザーが / から始まる入力を行うと直接実行:
-//   /help                    - 利用可能なコマンド一覧を表示
-//   /list_source             - Source/ 以下のファイル一覧
-//   /list_assets [path]      - Asset/ 以下のファイル・フォルダ一覧
-//   /read <path>             - ファイルの内容を表示
 //
 // 【AIツール呼び出し書式】AIレスポンス内で使用:
 //   <tool_call name="list_source_files"/>
 //   <tool_call name="read_source_file" path="Source/path/to/file.cpp"/>
 //   <tool_call name="list_assets" path="Asset/"/>
 //
+// ツールが呼び出されると、チャットログに "> コマンド名 引数" + 結果が表示される。
+//
 class BrainTools {
 public:
-	// ============================
-	// チャットコマンド
-	// ============================
-
-	// ユーザー入力をチャットコマンドとして解析（/ で始まる場合のみ有効）
-	static BrainChatCommand ParseChatCommand(const std::string& input);
-
-	// チャットコマンドを実行して結果テキストを返す
-	static std::string ExecuteChatCommand(const BrainChatCommand& cmd);
-
-	// 利用可能なコマンドのヘルプ文字列を返す
-	static std::string GetCommandHelp();
-
 	// ============================
 	// ファイルブラウジング
 	// ============================
