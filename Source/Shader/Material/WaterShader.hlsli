@@ -3,8 +3,8 @@
 #endif
 
 // 水面反射テクスチャ (TextureSlot_Reflection = 8)
+// サンプラーは FowardFunc.hlsli / DeferredFunc.hlsli で宣言済みの LinearSampler (s0) を共用する
 Texture2D WaterReflectionTex : register(t8);
-SamplerState WaterSampler    : register(s0);
 
 //=============================================================================
 // ShadeMaterial_Water
@@ -42,7 +42,7 @@ float4 ShadeMaterial_Water(MaterialInput input)
         );
         reflUV = saturate(reflUV);
 
-        float4 reflection = WaterReflectionTex.Sample(WaterSampler, reflUV);
+        float4 reflection = WaterReflectionTex.Sample(LinearSampler, reflUV);
 
         // フレネル項（水面に対して視線が浅い角度ほど反射が強い）
         float NdotV  = saturate(dot(normalize(input.normal), normalize(input.viewDir)));
