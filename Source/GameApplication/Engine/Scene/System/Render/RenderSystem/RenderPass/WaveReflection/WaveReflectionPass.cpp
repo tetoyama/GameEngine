@@ -111,11 +111,10 @@ void WaveReflectionPass::Execute(const RenderPassContext& ctx) {
 
 	// 反射 SRV を RenderableWave に渡す（反射なし時は nullptr）
 	RenderableWave* rw = m_renderSystem->GetRenderable<RenderableWave>();
-	if (rw) {
-		rw->reflectionSRV = hasReflection ? reflectionRT->srv.Get() : nullptr;
+	if (!hasReflection) {
+		if (rw) rw->reflectionSRV = nullptr;
+		return;
 	}
-
-	if (!hasReflection) return;
 
 	float waterY = GetWaterPlaneY(ctx);
 
@@ -231,6 +230,11 @@ void WaveReflectionPass::Execute(const RenderPassContext& ctx) {
 	gc->SetCameraPosition(ctx.CameraPosition);
 	gc->SetViewMatrix(ctx.viewMatrix);
 	gc->SetProjectionMatrix(ctx.projectionMatrix);
+
+	// 反射 SRV を更新（Resize 後の有効なポインタを設定）
+	if (rw) {
+		rw->reflectionSRV = reflectionRT->srv.Get();
+	}
 
 	// レンダーターゲットを解除
 	ID3D11RenderTargetView* nullRTV[1] = { nullptr };
