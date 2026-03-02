@@ -6,6 +6,7 @@
 
 #include "../ShadowMap/ShadowMapPass.h"
 #include "../PhysXDebug/PhysXDebugPass.h"
+#include "../WaveReflection/WaveReflectionPass.h"
 
 #include "scene.h"
 #include "System/Render/RenderSystem/Renderable/IRenderable.h"
@@ -76,6 +77,9 @@ void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 		renderSystem,
 		context
 	);
+
+	waveReflectionPass = new WaveReflectionPass();
+	waveReflectionPass->Initialize(renderSystem, context);
 }
 
 void EditorPass::Finalize() {
@@ -89,6 +93,10 @@ void EditorPass::Finalize() {
 	physXDebugPass->Finalize();
 	delete physXDebugPass;
 	physXDebugPass = nullptr;
+
+	waveReflectionPass->Finalize();
+	delete waveReflectionPass;
+	waveReflectionPass = nullptr;
 
 	delete editorRenderTarget;
 	editorRenderTarget = nullptr;
@@ -105,6 +113,14 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 	deviceContext->IASetInputLayout(m_RenderableVertexShader->m_VertexLayout.Get());
 
 	shadowMapPass->Execute(ctx);
+
+	// 水面反射パス（メイン描画の前に反射テクスチャを生成）
+	waveReflectionPass->SetInputs(shadowMapPass);
+	waveReflectionPass->Execute(ctx);
+
+	// 反射パスで変更された VS を元に戻す
+	deviceContext->VSSetShader(m_RenderableVertexShader->m_VertexShader.Get(), nullptr, 0);
+	deviceContext->IASetInputLayout(m_RenderableVertexShader->m_VertexLayout.Get());
 
 	float clearCol[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	editorRenderTarget->Resize(ctx.screenSize, m_context->graphics);

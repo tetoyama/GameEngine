@@ -26,8 +26,9 @@
 #define TextureSlot_HeightMap	(5)
 #define TextureSlot_EmissiveMap	(6)
 #define TextureSlot_ShadowMap	(7)
+#define TextureSlot_Reflection	(8)
 
-#define TextureSlot_Max			(8)
+#define TextureSlot_Max			(9)
 
 #define GBufferSlot_Albedo		(0)
 #define GBufferSlot_Normal		(1)
@@ -48,7 +49,8 @@
 
 #define LightingSlot_Max        (7)
 
-// ポストエフェクト用 GBuffer スロット (TextureSlot_Max 以降の固定スロット)
+// ポストエフェクト用 GBuffer スロット（ポストエフェクト専用シェーダー内の固定スロット）
+// ※ ForwardRenderingPS とは異なるシェーダープログラムのため、同じスロット番号でも競合しない
 #define PostEffectGBufferSlot_Start     (8)
 #define PostEffectGBufferSlot_Albedo    (8)
 #define PostEffectGBufferSlot_Normal    (9)
@@ -68,11 +70,13 @@
 
 #define DIRECTIONAL_CSM_CASCADE_COUNT	(6)
 
-// MaterialFlags 用のビットマスク
+// デフォルト水面シェーダーのマテリアルID (EngineConfig.yaml の ShaderMaterial リストの順番に対応)
+#define WATER_SHADER_ID_DEFAULT		(5)
 #define MATERIAL_FLAG_USE_DIFFUSE_TEXTURE		(1 << 0)
 #define MATERIAL_FLAG_USE_NORMAL_TEXTURE		(1 << 1)
 #define MATERIAL_FLAG_USE_ROUGHNESS_TEXTURE		(1 << 2)
 #define MATERIAL_FLAG_USE_METALLIC_TEXTURE		(1 << 3)
+#define MATERIAL_FLAG_USE_WATER_REFLECTION		(1 << 4)
 
 
 #ifdef LOW_RESOLUTION

@@ -10,6 +10,7 @@
 #include "../Forward/ForwardPass.h"
 #include "../PostEffect/PostEffectPass.h"
 #include "../OverlayUI/OverlayUIPass.h"
+#include "../WaveReflection/WaveReflectionPass.h"
 
 #include "scene.h"
 #include "System/Render/RenderSystem/Renderable/IRenderable.h"
@@ -51,6 +52,9 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	overlayUIPass = new OverlayUIPass();
 	overlayUIPass->Initialize(renderSystem, context);
 
+	waveReflectionPass = new WaveReflectionPass();
+	waveReflectionPass->Initialize(renderSystem, context);
+
 	playerRenderTarget = new RenderTarget(
 		context->PlayerScreenSize,
 		context->graphics,
@@ -84,6 +88,10 @@ void PlayerPass::Finalize() {
 	delete overlayUIPass;
 	overlayUIPass = nullptr;
 
+	waveReflectionPass->Finalize();
+	delete waveReflectionPass;
+	waveReflectionPass = nullptr;
+
 	delete playerRenderTarget;
 	playerRenderTarget = nullptr;
 }
@@ -92,11 +100,15 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 
 	GraphicsContext*     graphicsContext = m_context->renderer->GetGraphicsContext();
 
+	// シャドウマップパス（反射パスより先に実行して最新の影を反射にも利用する）
+	shadowMapPass->Execute(ctx);
+
+	// 水面反射パス（GBufferパスの前に反射テクスチャを生成）
+	waveReflectionPass->SetInputs(shadowMapPass);
+	waveReflectionPass->Execute(ctx);
+
 	// GBuffer パス
 	gBufferPass->Execute(ctx);
-
-	// シャドウマップパス
-	shadowMapPass->Execute(ctx);
 
 	// カメラ行列をセット (ライティング・フォワード両パスで共用)
 	graphicsContext->SetCameraPosition(ctx.CameraPosition);
@@ -127,5 +139,4 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	playerRenderTarget->Resize(ctx.screenSize, m_context->graphics);
 	playerRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearCol);
 }
-
 

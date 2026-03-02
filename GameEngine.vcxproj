@@ -2757,6 +2757,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PlayerView\PlayerPass.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\RenderPassContext.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\ShadowMap\ShadowMapPass.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\WaveReflection\WaveReflectionPass.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderPhase.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderSystem.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderTarget\renderTarget.h" />
@@ -3571,6 +3572,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PlayerView\PlayerPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\RenderPassContext.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\ShadowMap\ShadowMapPass.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\WaveReflection\WaveReflectionPass.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderTarget\renderTarget.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Transform\transformSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Transform\followSystem.cpp" />
@@ -3657,6 +3659,7 @@
     <None Include="Source\Shader\Material\RimToonShader.hlsli" />
     <None Include="Source\Shader\Material\ToonShader.hlsli" />
     <None Include="Source\Shader\Material\UnlitShader.hlsli" />
+    <None Include="Source\Shader\Material\WaterShader.hlsli" />
     <None Include="Source\Shader\PostEffect\PostEffectFunc.hlsli" />
   </ItemGroup>
   <ItemGroup>

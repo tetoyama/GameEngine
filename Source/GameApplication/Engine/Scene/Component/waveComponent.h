@@ -14,6 +14,11 @@ public:
 	int CurrentResolution = -1;  // 現在のメッシュ状態
 	MeshRendererComponent* meshRenderer = nullptr;
 
+	// 水面反射パラメータ
+	bool  ReflectionEnabled     = true;   // 水面反射を有効にするか
+	float ReflectionStrength    = 0.5f;   // 反射強度 (0=なし, 1=完全)
+	float DistortionStrength    = 0.02f;  // 波による歪み強度
+
 	~WaveComponent(){
 		if(meshRenderer){
 			delete meshRenderer;
@@ -27,6 +32,9 @@ public:
 		node["Amplitude"] = Amplitude;
 		node["Wavelength"] = Wavelength;
 		node["Speed"] = Speed;
+		node["ReflectionEnabled"]  = ReflectionEnabled;
+		node["ReflectionStrength"] = ReflectionStrength;
+		node["DistortionStrength"] = DistortionStrength;
 		return node;
 	}
 
@@ -35,6 +43,9 @@ public:
 		if(node["Amplitude"]) Amplitude = node["Amplitude"].as<float>();
 		if(node["Wavelength"]) Wavelength = node["Wavelength"].as<float>();
 		if(node["Speed"]) Speed = node["Speed"].as<float>();
+		if(node["ReflectionEnabled"])  ReflectionEnabled  = node["ReflectionEnabled"].as<bool>();
+		if(node["ReflectionStrength"]) ReflectionStrength = node["ReflectionStrength"].as<float>();
+		if(node["DistortionStrength"]) DistortionStrength = node["DistortionStrength"].as<float>();
 		return true;
 	}
 
@@ -51,5 +62,13 @@ public:
 		}
 
 		ImGui::Text("Current Time: %.2f", Time);
+
+		ImGui::Separator();
+		ImGui::Text("Water Reflection");
+		ImGui::Checkbox("Reflection Enabled", &ReflectionEnabled);
+		if(ReflectionEnabled){
+			ImGui::DragFloat("Reflection Strength", &ReflectionStrength, 0.01f, 0.0f, 1.0f);
+			ImGui::DragFloat("Distortion Strength", &DistortionStrength, 0.001f, 0.0f, 0.2f);
+		}
 	}
 };

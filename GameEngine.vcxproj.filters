@@ -2358,6 +2358,9 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PlayerView\PlayerPass.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\WaveReflection\WaveReflectionPass.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
     <ClInclude Include="Source\GameApplication\Backends\convertMatrix.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -2912,6 +2915,9 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\EditorView\EditorPass.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\WaveReflection\WaveReflectionPass.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Editor\editorService.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -3344,6 +3350,7 @@
     <None Include="Source\Shader\Material\ToonShader.hlsli" />
     <None Include="Source\Shader\Material\PBRToonShader.hlsli" />
     <None Include="Source\Shader\Material\RimToonShader.hlsli" />
+    <None Include="Source\Shader\Material\WaterShader.hlsli" />
     <None Include="Source\Shader\PostEffect\PostEffectFunc.hlsli" />
   </ItemGroup>
   <ItemGroup>

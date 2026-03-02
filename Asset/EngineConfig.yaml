@@ -10,6 +10,7 @@ Systems:
       PBRToonShader.hlsli: ShadeMaterial_PBRToon
       ToonShader.hlsli: ShadeMaterial_Toon
       RimToonShader.hlsli: ShadeMaterial_RimToon
+      WaterShader.hlsli: ShadeMaterial_Water
   AudioSystem: ~
   ParticleSystem: ~
   EffectSystem: ~

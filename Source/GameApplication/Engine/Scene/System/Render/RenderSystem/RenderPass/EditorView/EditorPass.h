@@ -9,6 +9,7 @@ struct RenderTarget;
 
 class ShadowMapPass;
 class PhysXDebugPass;
+class WaveReflectionPass;
 
 struct PixelShaderData;
 struct VertexShaderData;
@@ -26,6 +27,7 @@ public:
 
 	ID3D11ShaderResourceView* result = nullptr;
 
-	ShadowMapPass* shadowMapPass;
-	PhysXDebugPass* physXDebugPass;
+	ShadowMapPass*      shadowMapPass      = nullptr;
+	PhysXDebugPass*     physXDebugPass     = nullptr;
+	WaveReflectionPass* waveReflectionPass = nullptr;
 };

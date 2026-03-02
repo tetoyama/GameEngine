@@ -16,6 +16,7 @@ class LightingPass;
 class ForwardPass;
 class PostEffectPass;
 class OverlayUIPass;
+class WaveReflectionPass;
 
 class PlayerPass : public IRenderPass {
 public:
@@ -27,10 +28,11 @@ public:
 
 	ID3D11ShaderResourceView* result = nullptr;
 
-	ShadowMapPass*  shadowMapPass  = nullptr;
-	GBufferPass*    gBufferPass    = nullptr;
-	LightingPass*   lightingPass   = nullptr;
-	ForwardPass*    forwardPass    = nullptr;
-	PostEffectPass* postEffectPass = nullptr;
-	OverlayUIPass*  overlayUIPass = nullptr;
+	ShadowMapPass*        shadowMapPass        = nullptr;
+	GBufferPass*          gBufferPass          = nullptr;
+	LightingPass*         lightingPass         = nullptr;
+	ForwardPass*          forwardPass          = nullptr;
+	PostEffectPass*       postEffectPass       = nullptr;
+	OverlayUIPass*        overlayUIPass        = nullptr;
+	WaveReflectionPass*   waveReflectionPass   = nullptr;
 };

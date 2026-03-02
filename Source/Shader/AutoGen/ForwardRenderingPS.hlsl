@@ -9,6 +9,7 @@
 #include "../Material/PBRToonShader.hlsli"
 #include "../Material/ToonShader.hlsli"
 #include "../Material/RimToonShader.hlsli"
+#include "../Material/WaterShader.hlsli"
 
 float4 main(PS_IN In) : SV_Target
 {
@@ -34,6 +35,10 @@ float4 main(PS_IN In) : SV_Target
     else if (input.materialID == 4)
     {
         Result = ShadeMaterial_RimToon(input);
+    }
+    else if (input.materialID == 5)
+    {
+        Result = ShadeMaterial_Water(input);
     }
     else { /* default */ }
 
