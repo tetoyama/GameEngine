@@ -3358,6 +3358,7 @@
     <FxCompile Include="Source\Shader\PostEffect\Grayscale.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\Posterize.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\ChromaticAberration.hlsl" />
+    <FxCompile Include="Source\Shader\PostEffect\Kuwahara.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\Glitch.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\BrightPass.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\BlurHorizontal.hlsl" />
