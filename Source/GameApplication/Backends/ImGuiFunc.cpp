@@ -1,4 +1,4 @@
-// =======================================================================
+﻿// =======================================================================
 // 
 // ImGuiFunc.cpp
 // 
@@ -383,7 +383,7 @@ bool ImGui::UndoSliderFloat(const char* label, float* v, float v_min, float v_ma
 	return changed;
 }
 
-bool ImGui::UndoInputText(const char* label, std::string* str, size_t bufSize, ImGuiInputTextFlags flags)
+bool ImGui::UndoInputText(const char* label, std::string* str, size_t bufSize, int flags)
 {
 	static std::unordered_map<ImGuiID, std::string> s_capturedStrings;
 

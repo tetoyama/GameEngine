@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 // -----------------------------------------------------------------------
 // ImGuiFunc.h
 // -----------------------------------------------------------------------
@@ -61,5 +61,5 @@ namespace ImGui{
 	// アンドゥ対応 InputText（std::string 対象）
 	// 編集完了（フォーカスアウト or Enter）時にコマンドを積む
 	bool UndoInputText(const char* label, std::string* str, size_t bufSize = 256,
-		ImGuiInputTextFlags flags = 0);
+		int flags = 0);
 }

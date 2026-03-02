@@ -1,4 +1,4 @@
-#include "SystemSetting.h"
+﻿#include "SystemSetting.h"
 #include "Backends/ImGui/imgui.h"
 #include "DebugTools/ImGuiSystem.h"
 #include "Editor/UI/MenuBar.h"
@@ -6,6 +6,7 @@
 #include "Scene/Registry/systemRegistry.h"
 #include "Service/Config/configSystem.h"
 #include "BackEnds/ImGuiFunc.h"
+#include <ImGui/imgui_internal.h>
 
 void SystemSetting::Draw(const EditorDrawContext ctx) {
 	bool* showSystemSetting = &m_editor->GetUI<MenuBar>()->showSystemSetting;
