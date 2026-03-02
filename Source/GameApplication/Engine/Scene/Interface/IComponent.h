@@ -104,7 +104,7 @@ struct FieldHandler<std::string> {
         node[name] = v;
     }
     static void Inspector(IComponent*, std::string& v, const char* name) {
-        ImGui::InputText(name,(char*)v.c_str(),v.size());
+        ImGui::UndoInputText(name, &v);
     }
 };
 

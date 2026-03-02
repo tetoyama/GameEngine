@@ -421,3 +421,21 @@ bool ImGui::UndoInputText(const char* label, std::string* str, size_t bufSize, i
 	return changed;
 }
 
+void ImGui::RecordStringChange(std::string* target, const std::string& oldValue,
+	const std::string& newValue, const char* description)
+{
+	if (!target || oldValue == newValue) return;
+	if (s_commandManager) {
+		// コマンド経由で適用する（Execute() 内で *target = newValue が行われる）
+		s_commandManager->Execute(
+			std::make_unique<PropertyChangeCommandWithSetter<std::string>>(
+				[target](const std::string& val){ *target = val; },
+				oldValue, newValue, description ? description : ""
+			)
+		);
+	} else {
+		// CommandManager 未設定の場合はフォールバックで直接代入
+		*target = newValue;
+	}
+}
+

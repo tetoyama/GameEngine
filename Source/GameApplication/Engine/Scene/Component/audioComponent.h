@@ -157,7 +157,7 @@ public:
 		ImGui::Text("Volume");
 		ImGui::SameLine(100);
 		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-		if(ImGui::SliderFloat("##VolumeSlider", &Volume, 0.0f, 1.0f)){
+		if(ImGui::UndoSliderFloat("##VolumeSlider", &Volume, 0.0f, 1.0f)){
 			if(m_SourceVoice){
 				m_SourceVoice->SetVolume(Volume);
 			}

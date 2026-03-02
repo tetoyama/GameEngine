@@ -62,4 +62,9 @@ namespace ImGui{
 	// 編集完了（フォーカスアウト or Enter）時にコマンドを積む
 	bool UndoInputText(const char* label, std::string* str, size_t bufSize = 256,
 		int flags = 0);
+
+	// D&D などの離散的な文字列変更を CommandManager に登録する
+	// oldValue から newValue への変更を記録し、*target = newValue をコマンド経由で適用する
+	void RecordStringChange(std::string* target, const std::string& oldValue,
+		const std::string& newValue, const char* description = "");
 }

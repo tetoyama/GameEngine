@@ -23,13 +23,13 @@ public:
 
 	void inspector(SceneContext* context) override{
 		ImGui::Text(scriptName.c_str());
-		ImGui::InputText("Scene Name", &sceneName[0], sceneName.capacity() + 1);
+		ImGui::UndoInputText("Scene Name", &sceneName);
 		if(ImGui::BeginDragDropTarget()){
 			if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
 				const char* droppedPath = (const char*)payload->Data;
 				std::string _Path = std::string(droppedPath);
 				if(HasExtension(_Path, ".yaml")){
-					sceneName = _Path;
+					ImGui::RecordStringChange(&sceneName, sceneName, _Path, "Scene Name");
 				}
 			}
 			ImGui::EndDragDropTarget();
