@@ -81,6 +81,9 @@ float4 ShadeMaterial_Toon(MaterialInput materialInput)
         (minAmbient + 0.5 * lightDot) * surfaceColor
         + finalSpecular;
 
-    return float4(saturate(finalColor),
+    // Emissive contribution (HDR: not clamped, drives bloom)
+    float3 emissive = materialInput.Emissive.rgb * materialInput.Emissive.a;
+
+    return float4(saturate(finalColor) + emissive,
                   materialInput.baseColor.a);
 }
