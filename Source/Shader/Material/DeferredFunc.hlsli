@@ -150,7 +150,8 @@ float ShadowFactorCSM(
     // ---- シャドウバイアス (シャドウアクネ対策) ----
     // Param.w で調整可能: 値を大きくするとアクネが減り、小さくするとピーターパン現象が減る
     float bias = light.Param.w;
-    float depth = saturate(sp.z - bias);
+    float rawZ = sp.z; // saturate 前の深度を保持 (カスケード Z レンジ外判定に使用)
+    float depth = saturate(rawZ - bias);
 
     // ---- アトラスタイル計算 ----
     int tileIndex = CsmAtlasOffset + cascade;
@@ -175,10 +176,13 @@ float ShadowFactorCSM(
 
     // ---- カスケードフォールバック ----
     // 最精細カスケードが「影なし (shadow=1.0)」を返した場合、次のカスケードで遠方の
-    // shadow caster による影を検証する。最精細カスケードの Z レンジ外にある caster
-    // (カメラから大幅に離れた位置) はこのフォールバックで捕捉される。
+    // shadow caster による影を検証する。
+    // rawZ > 1.0 の条件により、受影点が最精細カスケードの Z レンジ内にある場合は
+    // フォールバックを実行しない。平行光源では受影点と遮蔽物は同一の (u,v) に投影
+    // されるため、Z レンジ内であれば最精細カスケードが権威的であり、coarser な
+    // カスケードの深度精度差による偽影 (つなぎ目アーティファクト) を防ぐ。
     [branch]
-    if (shadow >= 1.0 && cascade < DIRECTIONAL_CSM_CASCADE_COUNT - 1)
+    if (shadow >= 1.0 && cascade < DIRECTIONAL_CSM_CASCADE_COUNT - 1 && rawZ > 1.0)
     {
         int nextCascade = cascade + 1;
         float4 nsp = mul(float4(worldPos, 1.0), CsmViews[nextCascade]);
