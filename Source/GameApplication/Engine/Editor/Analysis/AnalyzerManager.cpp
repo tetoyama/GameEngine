@@ -1,3 +1,8 @@
+// =======================================================================
+// 
+// AnalyzerManager.cpp
+// 
+// =======================================================================
 #include "AnalyzerManager.h"
 #include "SourceAnalyzer.h"
 #include "DebugTools/DebugSystem.h"

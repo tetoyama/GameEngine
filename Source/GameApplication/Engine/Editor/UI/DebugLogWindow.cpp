@@ -1,3 +1,8 @@
+// =======================================================================
+// 
+// DebugLogWindow.cpp
+// 
+// =======================================================================
 #include "DebugLogWindow.h"
 #include "Hierarchy.h"
 #include <ImGui/imgui_internal.h>

@@ -1,3 +1,8 @@
+// =======================================================================
+// 
+// DebugLogWindow.h
+// 
+// =======================================================================
 #pragma once
 #include "Editor/InterFace/IEditorUI.h"
 #include "Service/DebugTools/DebugSystem.h"

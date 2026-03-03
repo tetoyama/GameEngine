@@ -1,3 +1,8 @@
+// =======================================================================
+// 
+// editorService.cpp
+// 
+// =======================================================================
 #include "editorService.h"
 #include "Editor/InterFace/IEditorUI.h"
 #include "UI/MenuBar.h"
