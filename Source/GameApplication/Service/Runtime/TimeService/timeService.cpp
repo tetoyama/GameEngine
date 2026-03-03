@@ -56,16 +56,16 @@ void TimeService::EndDeltaUpdate(){
 	prevDeltaTime_ = current;
 
 	deltaUpdateTimer_ += deltaUpdateTime_;
-	daltaUpdateFrameCount_++;
+	deltaUpdateFrameCount_++;
 
 	deltaUpdateTime_ = static_cast<double>(current - prevTime_) / static_cast<double>(frequency_);
 
 	if(1.0f <= deltaUpdateTimer_){
 
-		daltaUpdateFPS_ = static_cast<double>(daltaUpdateFrameCount_) / deltaUpdateTimer_;
+		deltaUpdateFPS_ = static_cast<double>(deltaUpdateFrameCount_) / deltaUpdateTimer_;
 
 		deltaUpdateTimer_ = 0.0f;
-		daltaUpdateFrameCount_ = 0;
+		deltaUpdateFrameCount_ = 0;
 	}
 }
 

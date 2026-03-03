@@ -138,25 +138,25 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 
     // ImGuiメニューバー操作にイベントを登録
 	if(editorService){
-		auto manubar = editorService->GetUI<MenuBar>();
-		if(manubar){
-			manubar->Register(MenuEvent::File_Exit, [windowService](){
+		auto menubar = editorService->GetUI<MenuBar>();
+		if(menubar){
+			menubar->Register(MenuEvent::File_Exit, [windowService](){
 				windowService->GetMainWindow()->Close();
 							  });
-			manubar->Register(MenuEvent::File_New, [sceneManager](){
+			menubar->Register(MenuEvent::File_New, [sceneManager](){
 				sceneManager->AddScene(std::make_shared<Scene>());
 							  });
-			manubar->Register(MenuEvent::File_Save, [sceneManager](){
+			menubar->Register(MenuEvent::File_Save, [sceneManager](){
 				sceneManager->SaveScenes();
 							  });
-			manubar->Register(MenuEvent::File_Open, [sceneManager](){
+			menubar->Register(MenuEvent::File_Open, [sceneManager](){
 				sceneManager->AddScene(sceneManager->OpenFromYAMLFile());
 							  });
 			// アンドゥ／リドゥを CommandManager に接続
-			manubar->Register(MenuEvent::Edit_Undo, [editorService](){
+			menubar->Register(MenuEvent::Edit_Undo, [editorService](){
 				editorService->commandManager.Undo();
 			});
-			manubar->Register(MenuEvent::Edit_Redo, [editorService](){
+			menubar->Register(MenuEvent::Edit_Redo, [editorService](){
 				editorService->commandManager.Redo();
 			});
 		}

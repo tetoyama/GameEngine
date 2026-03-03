@@ -33,7 +33,7 @@ public:
 	} // 前回の描画時間（秒）
 
 	double GetDeltaFPS() const{
-		return daltaUpdateFPS_;
+		return deltaUpdateFPS_;
 	} // 前回の更新FPS
 
 	double GetFixedUpdateFPS() const{
@@ -64,13 +64,13 @@ private:
 	double fixedUpdateTimer_ = 0.0f;	// 前回の固定更新時間（秒）
 	double drawTimer_ = 0.0f;			// 前回の描画時間（秒）
 
-	int fixedUpdateFrameCount_ = 0;			// フレームカウント
-	int daltaUpdateFrameCount_ = 0;		// フレームカウント
-	int drawFrameCount_ = 0;			// フレームカウント
+	int fixedUpdateFrameCount_ = 0;			// 固定更新フレームカウント
+	int deltaUpdateFrameCount_ = 0;		// 更新フレームカウント
+	int drawFrameCount_ = 0;			// 描画フレームカウント
 
-	double fixedUpdateFPS_ = 0;			// フレームカウント
-	double daltaUpdateFPS_ = 0;		// フレームカウント
-	double drawFPS_ = 0;			// フレームカウント
+	double fixedUpdateFPS_ = 0;			// 固定更新FPS
+	double deltaUpdateFPS_ = 0;		// 更新FPS
+	double drawFPS_ = 0;			// 描画FPS
 
 	// 固定更新用
 	float fixedDeltaTime_ = 1.0f / (float)TARGET_FPS;
