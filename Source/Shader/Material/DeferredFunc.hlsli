@@ -150,8 +150,7 @@ float ShadowFactorCSM(
     // ---- シャドウバイアス (シャドウアクネ対策) ----
     // Param.w で調整可能: 値を大きくするとアクネが減り、小さくするとピーターパン現象が減る
     float bias = light.Param.w;
-    float rawZ = sp.z; // saturate 前の深度を保持 (カスケード Z レンジ外判定に使用)
-    float depth = saturate(rawZ - bias);
+    float depth = saturate(sp.z - bias);
 
     // ---- アトラスタイル計算 ----
     int tileIndex = CsmAtlasOffset + cascade;
@@ -177,12 +176,13 @@ float ShadowFactorCSM(
     // ---- カスケードフォールバック ----
     // 最精細カスケードが「影なし (shadow=1.0)」を返した場合、次のカスケードで遠方の
     // shadow caster による影を検証する。
-    // rawZ > 1.0 の条件により、受影点が最精細カスケードの Z レンジ内にある場合は
-    // フォールバックを実行しない。平行光源では受影点と遮蔽物は同一の (u,v) に投影
-    // されるため、Z レンジ内であれば最精細カスケードが権威的であり、coarser な
-    // カスケードの深度精度差による偽影 (つなぎ目アーティファクト) を防ぐ。
+    //
+    // 次のカスケードで遮蔽物が見つかった場合、その遮蔽物のライトビュー Z を最精細
+    // カスケードの NDC 空間に変換し、最精細カスケードの Z 範囲 [0,1] 内かを確認する。
+    //   ・範囲内  → 最精細カスケードで捕捉可能なはず → 「影なし」の判定を優先して影を無視
+    //   ・範囲外  → 最精細カスケードでは描画不可の遮蔽物 → 次のカスケードの影を採用
     [branch]
-    if (shadow >= 1.0 && cascade < DIRECTIONAL_CSM_CASCADE_COUNT - 1 && rawZ > 1.0)
+    if (shadow >= 1.0 && cascade < DIRECTIONAL_CSM_CASCADE_COUNT - 1)
     {
         int nextCascade = cascade + 1;
         float4 nsp = mul(float4(worldPos, 1.0), CsmViews[nextCascade]);
@@ -199,7 +199,25 @@ float ShadowFactorCSM(
                 uint ngx = nTileIndex % grid;
                 uint ngy = nTileIndex / grid;
                 float2 nsuvBase = float2(ngx, ngy) * tile + nuv * tile;
-                shadow = min(shadow, SampleCascadePCF(nsuvBase, ndepth, texelSize, pcf.StepTexel, radius));
+
+                // 次のカスケードのシャドウマップから遮蔽物の生深度を読み取る
+                float occRawDepth = ShadowMap.SampleLevel(LinearSampler, nsuvBase, 0).r;
+
+                // 正射影: ndc_z = viewZ * P._33 + P._43  →  viewZ = (ndc_z - P._43) / P._33
+                // 遮蔽物のライトビュー Z を次のカスケードの行列から求め、
+                // 最精細カスケードの NDC Z に変換して描画範囲を確認する。
+                float p1_33 = CsmProjections[nextCascade]._33;
+                [branch]
+                if (abs(p1_33) > 1e-6)
+                {
+                    float occViewZ = (occRawDepth - CsmProjections[nextCascade]._43) / p1_33;
+                    float occNdcInFine = occViewZ * CsmProjections[cascade]._33 + CsmProjections[cascade]._43;
+
+                    if (occNdcInFine < 0.0 || occNdcInFine > 1.0)
+                    {
+                        shadow = min(shadow, SampleCascadePCF(nsuvBase, ndepth, texelSize, pcf.StepTexel, radius));
+                    }
+                }
             }
         }
     }
