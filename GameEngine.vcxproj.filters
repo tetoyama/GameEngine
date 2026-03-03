@@ -3381,6 +3381,7 @@
     <FxCompile Include="Source\Shader\PostEffect\OutlineByShaderID.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\OutlineByNormal.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\SSAO.hlsl" />
+    <FxCompile Include="Source\Shader\PostEffect\SSR.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />
