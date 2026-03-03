@@ -6,7 +6,7 @@
 #pragma once
 #include "Service/IService.h"
 #include "buildSetting.h"
-#include "gameapplication.h"
+#include "gameApplication.h"
 class TimeService : public IService
 {
 public:

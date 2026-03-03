@@ -11,7 +11,7 @@ void MenuBar::Register(MenuEvent event, const Callback& callback){
 	m_eventCallbacks[event] = callback;
 }
 
-void MenuBar::Draw(EditorDrawContext ctx){
+void MenuBar::Draw(const EditorDrawContext ctx){
 
 	if(ImGui::IsKeyPressed(ImGuiKey_F3, false)){
 		showMenuBar = !showMenuBar;

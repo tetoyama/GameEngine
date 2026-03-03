@@ -79,7 +79,7 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 
 void GraphicsContext::Shutdown(){
 
-	m_EffectSystem->ShutDown();
+	m_EffectSystem->Shutdown();
 	delete m_EffectSystem;
 	m_EffectSystem = nullptr;
 

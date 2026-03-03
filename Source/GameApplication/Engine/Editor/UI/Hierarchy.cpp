@@ -24,7 +24,7 @@
 #include <filesystem>
 #include "Service/Config/configSystem.h"
 
-void Hierarchy::Draw(EditorDrawContext ctx){
+void Hierarchy::Draw(const EditorDrawContext ctx){
 
 	ImGuiWindowClass window_class;
 	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;

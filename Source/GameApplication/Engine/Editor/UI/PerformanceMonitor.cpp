@@ -11,7 +11,7 @@
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
 
-void PerformanceMonitor::Draw(EditorDrawContext ctx) {
+void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 
 	double FPS = ctx.FPS;
 	double DeltaFPS = ctx.DeltaFPS;

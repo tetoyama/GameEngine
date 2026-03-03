@@ -49,7 +49,7 @@ bool RenderEffectSystem::Initialize(ID3D11Device* device, ID3D11DeviceContext* c
 	return true;
 }
 
-void RenderEffectSystem::ShutDown() {
+void RenderEffectSystem::Shutdown() {
 
 	renderer = nullptr;
 	manager.Reset();
