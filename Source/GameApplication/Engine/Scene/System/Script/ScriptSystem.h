@@ -90,6 +90,8 @@ public:
 		}
 	}
 
+	bool HasSystemSetting() const override { return true; }
+
 private:
 	SceneManagerContext* m_context = nullptr;
 

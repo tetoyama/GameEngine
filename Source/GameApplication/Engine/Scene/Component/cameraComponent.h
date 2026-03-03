@@ -266,21 +266,21 @@ public:
         ImGui::PushID(this);
 
         ImGui::Text("NearClip"); ImGui::SameLine(100);
-        ImGui::DragFloat("##NearClip", &NearClip, 0.01f, 0.01f, FarClip - 0.01f);
+        ImGui::UndoDragFloat("##NearClip", &NearClip, 0.01f, 0.01f, FarClip - 0.01f);
         ImGui::Text("FarClip"); ImGui::SameLine(100);
-        ImGui::DragFloat("##FarClip", &FarClip, 0.01f, NearClip + 0.01f, 4096.0f);
+        ImGui::UndoDragFloat("##FarClip", &FarClip, 0.01f, NearClip + 0.01f, 4096.0f);
         if (NearClip <= 0.0f) NearClip = 0.01f;
         if (FarClip <= NearClip) FarClip = NearClip + 0.01f;
 
         ImGui::Text("FOV"); ImGui::SameLine(100);
-        ImGui::DragFloat("##FOV", &FOV, 0.01f, 0.01f);
+        ImGui::UndoDragFloat("##FOV", &FOV, 0.01f, 0.01f);
         if (FOV <= 0.0f) FOV = 0.01f;
 
         ImGui::Text("isLock"); ImGui::SameLine(100);
         if (ImGui::Button(isLock ? "On" : "Off")) isLock = !isLock;
         if (isLock) {
             ImGui::Text("Target Position"); ImGui::SameLine(100);
-            ImGui::DragFloat3("##Target", &Target.x, 0.01f);
+            ImGui::UndoDragFloat3("##Target", &Target.x, 0.01f);
         }
 
         ImGui::Separator();
@@ -360,9 +360,9 @@ public:
                 effect.name = nameBuffer;
             ImNodes::EndNodeTitleBar();
 
-            ImGui::Checkbox("Enabled", &effect.enabled);
+            ImGui::UndoCheckbox("Enabled", &effect.enabled);
 
-			ImGui::DragFloat4("##Param", &effect.Param.x, 0.01f);
+			ImGui::UndoDragFloat4("##Param", &effect.Param.x, 0.01f);
 
             if (effect.ps) strncpy_s(filepathBuffer, sizeof(filepathBuffer), effect.ps->FilePath.c_str(), _TRUNCATE);
             else filepathBuffer[0] = '\0';

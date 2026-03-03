@@ -28,8 +28,8 @@ public:
 	void inspector(SceneContext* context) override{
 		ImGui::Text("RectTransform");
 
-		ImGui::DragFloat2("Anchor", &anchor.x, 0.01f, 0.0f, 1.0f, "%.2f");
-		ImGui::DragFloat2("Pivot", &pivot.x, 0.01f, -0.5f, 0.5f, "%.2f");
+		ImGui::UndoDragFloat2("Anchor", &anchor.x, 0.01f, 0.0f, 1.0f, "%.2f");
+		ImGui::UndoDragFloat2("Pivot", &pivot.x, 0.01f, -0.5f, 0.5f, "%.2f");
 
 	}
 };

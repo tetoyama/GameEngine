@@ -92,52 +92,52 @@ public:
 
 			ImGui::Text("isLoop?");
 			ImGui::SameLine(labelWidth);
-			ImGui::Checkbox("##isLoop", &isLoop);
+			ImGui::UndoCheckbox("##isLoop", &isLoop);
 
 			if(isLoop){
 				ImGui::AlignTextToFramePadding();
 				ImGui::Text("SpawnInterval");
 				ImGui::SameLine(labelWidth);
 				ImGui::PushItemWidth(dragWidth);
-				ImGui::DragFloat("##SpawnInterval", &SpawnInterval, 0.001f, 0.001f, 128.0f);
+				ImGui::UndoDragFloat("##SpawnInterval", &SpawnInterval, 0.001f, 0.001f, 128.0f);
 			} else{
 				ImGui::AlignTextToFramePadding();
 				ImGui::Text("SpawnCount");
 				ImGui::SameLine(labelWidth);
 				ImGui::PushItemWidth(dragWidth);
-				ImGui::DragInt("##SpawnCount", &SpawnCount, 0.1f, 1, MAXPARTICLE);
+				ImGui::UndoDragInt("##SpawnCount", &SpawnCount, 0.1f, 1, MAXPARTICLE);
 			}
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("particleLifeTime");
 			ImGui::SameLine(labelWidth);
 			ImGui::PushItemWidth(dragWidth);
-			ImGui::DragFloat("##particleLifeTime", &particleLifeTime, 0.01f, 0.01f, 128.0f);
+			ImGui::UndoDragFloat("##particleLifeTime", &particleLifeTime, 0.01f, 0.01f, 128.0f);
 
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("particleSize");
 			ImGui::SameLine(labelWidth);
 			ImGui::PushItemWidth(dragWidth);
-			ImGui::DragFloat("##particleSize", &particleSize, 0.01f, 0.01f, 128.0f);
+			ImGui::UndoDragFloat("##particleSize", &particleSize, 0.01f, 0.01f, 128.0f);
 			ImGui::TreePop();
 		}
 		if(ImGui::TreeNodeEx("Spawn Position", ImGuiTreeNodeFlags_DefaultOpen)){
 
-			ImGui::DragVec3("BasePositon", SpawnPosition);
-			ImGui::DragVec3("RandomPos", SpawnPositionRandom);
+			ImGui::UndoDragVec3("BasePositon", SpawnPosition);
+			ImGui::UndoDragVec3("RandomPos", SpawnPositionRandom);
 
 			ImGui::TreePop();
 		}
 		if(ImGui::TreeNodeEx("Initial Velocity", ImGuiTreeNodeFlags_DefaultOpen)){
 
-			ImGui::DragVec3("BaseSpeed", StartSpeed);
-			ImGui::DragVec3("RandomSpd", StartSpeedRandom);
+			ImGui::UndoDragVec3("BaseSpeed", StartSpeed);
+			ImGui::UndoDragVec3("RandomSpd", StartSpeedRandom);
 
 			ImGui::TreePop();
 		}
 		if(ImGui::TreeNodeEx("Motion", ImGuiTreeNodeFlags_DefaultOpen)){
 
-			ImGui::DragVec3("Acceleration", AddSpeed);
-			ImGui::DragVec3("Velocity Multiplier", MulSpeed);
+			ImGui::UndoDragVec3("Acceleration", AddSpeed);
+			ImGui::UndoDragVec3("Velocity Multiplier", MulSpeed);
 
 			ImGui::TreePop();
 		}

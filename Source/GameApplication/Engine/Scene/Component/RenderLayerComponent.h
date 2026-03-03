@@ -46,7 +46,7 @@ public:
 	}
 
 	void inspector(SceneContext* context) override{
-		ImGui::DragInt("Order In Layer", &order, 1.0f, -1000, 1000, "%d");
+		ImGui::UndoDragInt("Order In Layer", &order, 1.0f, -1000, 1000);
 
 	}
 };

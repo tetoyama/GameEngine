@@ -43,7 +43,7 @@ public:
 
     void inspector(SceneContext* context) override {
         ImGui::Text("Terrain Component");
-        ImGui::DragInt("Scale", &Scale, 1, 1, 1000);
+        ImGui::UndoDragInt("Scale", &Scale, 1, 1, 1000);
 
         if (HeightMap.size() != (Scale + 1)* (Scale + 1)) {
             HeightMap.resize((Scale + 1) * (Scale + 1), 0.0f);

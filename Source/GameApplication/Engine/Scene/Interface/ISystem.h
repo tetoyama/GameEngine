@@ -16,6 +16,10 @@ public:
 	virtual void Draw() {}
 	virtual void SystemSetting() {}
 
+	// SystemSetting() に有効な UI 実装があるかどうかを返す
+	// オーバーライドしてシステム設定 UI を提供するシステムは true を返す
+	virtual bool HasSystemSetting() const { return false; }
+
 	virtual void EditorUpdate(float deltaTime){}
 	
 	virtual void Stop(){}

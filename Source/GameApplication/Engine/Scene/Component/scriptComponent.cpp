@@ -3,6 +3,7 @@
 #include "Scene/sceneManager.h"
 #include "DebugTools/DebugSystem.h"
 #include "Interface/IScriptComponent.h"
+#include "BackEnds/ImGuiFunc.h"
 
 bool ScriptComponent::decode(SceneContext* context, const YAML::Node& node){
 	for(auto it : node){
@@ -47,7 +48,7 @@ void ScriptComponent::inspector(SceneContext* context) {
 						}
 					} else if constexpr (std::is_same_v<T, bool>) {
 						bool tmp = val;
-						if (ImGui::Checkbox(p.name.c_str(), &tmp)) {
+						if (ImGui::UndoCheckbox(p.name.c_str(), &tmp)) {
 							script->SetParam(p.name, tmp);
 						}
 					} else if constexpr (std::is_same_v<T, std::string>) {

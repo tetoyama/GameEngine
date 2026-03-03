@@ -97,7 +97,7 @@ public:
 				ImGui::PushItemWidth(sliderWidth);
 				ImGui::PushStyleColor(ImGuiCol_Border, ImVec4((i == 0) * 0.7f, (i == 1) * 0.7f, (i == 2) * 0.7f, 0.3f));
 				ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-				ImGui::DragFloat(("##" + (std::string)label).c_str(), &c[i], 0.01f, 0.0f, 1.0f);
+				ImGui::UndoDragFloat(("##" + (std::string)label).c_str(), &c[i], 0.01f, 0.0f, 1.0f);
 				ImGui::PopStyleVar(); ImGui::PopStyleColor(); ImGui::PopItemWidth(); ImGui::PopID();
 				ImGui::SameLine();
 			}
@@ -116,23 +116,23 @@ public:
 		ImGui::AlignTextToFramePadding();
 		ImGui::Text("Metallic");
 		ImGui::SameLine(100);
-		ImGui::DragFloat("##Metallic", &Material.Metallic, 0.01f, 0.0f, 1.0f);
+		ImGui::UndoDragFloat("##Metallic", &Material.Metallic, 0.01f, 0.0f, 1.0f);
 		// Material: Roughness
 		ImGui::AlignTextToFramePadding();
 		ImGui::Text("Roughness");
 		ImGui::SameLine(100);
-		ImGui::DragFloat("##Roughness", &Material.Roughness, 0.01f, 0.0f, 1.0f);
+		ImGui::UndoDragFloat("##Roughness", &Material.Roughness, 0.01f, 0.0f, 1.0f);
 		// Material: AO
 		ImGui::AlignTextToFramePadding();
 		ImGui::Text("AO");
 		ImGui::SameLine(100);
-		ImGui::DragFloat("##AO", &Material.AO, 0.5f);
+		ImGui::UndoDragFloat("##AO", &Material.AO, 0.5f);
 
 		// Emissive
 		ImGui::AlignTextToFramePadding();
 		ImGui::Text("Emissive");
 		ImGui::SameLine(100);
-		ImGui::DragFloat4("##Emissive", &Material.EmissiveColor.x, 0.01f, 0.0f, 1.0f);
+		ImGui::UndoDragFloat4("##Emissive", &Material.EmissiveColor.x, 0.01f, 0.0f, 1.0f);
 
 
 

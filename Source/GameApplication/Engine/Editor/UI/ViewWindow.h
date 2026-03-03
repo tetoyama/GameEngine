@@ -3,6 +3,7 @@
 
 #include "Editor/editorService.h"
 #include "Editor/InterFace/IEditorUI.h"
+#include "Scene/sceneManager.h"
 
 #include <unordered_set>
 #include <string>
@@ -10,6 +11,7 @@
 
 #include <Backends/myVector3.h>
 #include <memory>
+#include <DirectXMath.h>
 
 struct TextureData;
 struct SceneContext;
@@ -35,6 +37,14 @@ private:
 	void DrawRenderLayerToggleUI();
 
 	float m_MouseWheel = 0.0f;
+
+	// ImGuizmo ドラッグ追跡（Undo/Redo 用）
+	bool               m_wasUsingGizmo = false;
+	Entity             m_gizmoEntity   = 0;
+	SceneManagerState  m_gizmoStartState = SceneManagerState::Stopped; // ドラッグ開始時のシーン状態
+	Vector3            m_gizmoStartPos;
+	DirectX::XMFLOAT4  m_gizmoStartRot{0.f, 0.f, 0.f, 1.f};
+	Vector3            m_gizmoStartScale{1.f, 1.f, 1.f};
 
 	std::shared_ptr<TextureData> PlayButtonTexture;
 	std::shared_ptr<TextureData> PauseButtonTexture;

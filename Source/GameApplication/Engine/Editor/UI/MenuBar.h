@@ -29,7 +29,7 @@ class MenuBar : public IEditorUI {
 public:
 	MenuBar() {}
 	~MenuBar() {}
-	void Initialize(EditorService* editor) override {}
+	void Initialize(EditorService* editor) override { m_editor = editor; }
 	void Finalize() override {}
 	void Draw(const EditorDrawContext ctx) override;
 
@@ -48,6 +48,7 @@ public:
 	bool showSystemSetting = IMGUI_SHOW_DEFAULT;
 
 private:
+	EditorService* m_editor = nullptr;
 	bool showMenuBar = IMGUI_SHOW_DEFAULT;
 
 	std::unordered_map<MenuEvent, Callback> m_eventCallbacks;

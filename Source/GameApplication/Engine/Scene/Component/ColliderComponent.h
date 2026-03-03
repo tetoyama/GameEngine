@@ -232,7 +232,7 @@ public:
 						}
 						ImGui::Text("Is Trigger");
 						ImGui::SameLine(XPos);
-						if (ImGui::Checkbox(("##IsTrigger" + std::to_string(i)).c_str(), &colliders[i].isTrigger)) {
+						if (ImGui::UndoCheckbox(("##IsTrigger" + std::to_string(i)).c_str(), &colliders[i].isTrigger)) {
 							needsUpdate = true;
 						}
 
@@ -264,22 +264,22 @@ public:
 						if(colliders[i].type == ColliderType::Box){
 							ImGui::Text("Size");
 							ImGui::SameLine(XPos);
-							if(ImGui::DragFloat3(("##Size" + std::to_string(i)).c_str(), &colliders[i].size.x, 0.1f))
+							if(ImGui::UndoDragFloat3(("##Size" + std::to_string(i)).c_str(), &colliders[i].size.x, 0.1f))
 								needsUpdate = true;
 						} else if(colliders[i].type == ColliderType::Sphere){
 							ImGui::Text("Radius");
 							ImGui::SameLine(XPos);
-							if(ImGui::DragFloat(("##Radius" + std::to_string(i)).c_str(), &colliders[i].radius, 0.1f))
+							if(ImGui::UndoDragFloat(("##Radius" + std::to_string(i)).c_str(), &colliders[i].radius, 0.1f))
 								needsUpdate = true;
 						} else if(colliders[i].type == ColliderType::Capsule){
 							ImGui::Text("Radius");
 							ImGui::SameLine(XPos);
-							if(ImGui::DragFloat(("##Radius" + std::to_string(i)).c_str(), &colliders[i].radius, 0.1f)){
+							if(ImGui::UndoDragFloat(("##Radius" + std::to_string(i)).c_str(), &colliders[i].radius, 0.1f)){
 								needsUpdate = true;
 							}
 							ImGui::Text("Height");
 							ImGui::SameLine(XPos);
-							if(ImGui::DragFloat(("##Height" + std::to_string(i)).c_str(), &colliders[i].height, 0.1f)){
+							if(ImGui::UndoDragFloat(("##Height" + std::to_string(i)).c_str(), &colliders[i].height, 0.1f)){
 								needsUpdate = true;
 							}
 						}
@@ -338,25 +338,25 @@ public:
 
 						ImGui::Text("Position");
 						ImGui::SameLine(XPos);
-						if(ImGui::DragFloat3(("##Position" + std::to_string(i)).c_str(), &colliders[i].offset.x, 0.1f)){
+						if(ImGui::UndoDragFloat3(("##Position" + std::to_string(i)).c_str(), &colliders[i].offset.x, 0.1f)){
 							needsUpdate = true;
 						}
 						ImGui::Text("Rotation");
 						ImGui::SameLine(XPos);
-						if(ImGui::DragFloat3(("##Rotation" + std::to_string(i)).c_str(), &colliders[i].rotationOffset.x, 1.0f)){
+						if(ImGui::UndoDragFloat3(("##Rotation" + std::to_string(i)).c_str(), &colliders[i].rotationOffset.x, 1.0f)){
 							needsUpdate = true;
 						}
 						ImGui::Text("Lock Rotation");
 						ImGui::SameLine(XPos);
-						if(ImGui::Checkbox(("X##Lock Rot " + std::to_string(i)).c_str(), &colliders[i].lockRotX)){
+						if(ImGui::UndoCheckbox(("X##Lock Rot " + std::to_string(i)).c_str(), &colliders[i].lockRotX)){
 							needsUpdate = true;
 						}
 						ImGui::SameLine();
-						if(ImGui::Checkbox(("Y##Lock Rot " + std::to_string(i)).c_str(), &colliders[i].lockRotY)){
+						if(ImGui::UndoCheckbox(("Y##Lock Rot " + std::to_string(i)).c_str(), &colliders[i].lockRotY)){
 							needsUpdate = true;
 						}
 						ImGui::SameLine();
-						if(ImGui::Checkbox(("Z##Lock Rot" + std::to_string(i)).c_str(), &colliders[i].lockRotZ)){
+						if(ImGui::UndoCheckbox(("Z##Lock Rot" + std::to_string(i)).c_str(), &colliders[i].lockRotZ)){
 							needsUpdate = true;
 						}
 						ImGui::EndChild();
@@ -367,17 +367,17 @@ public:
 
 						ImGui::Text("Static");
 						ImGui::SameLine(XPos);
-						if(ImGui::DragFloat(("##Static" + std::to_string(i)).c_str(), &colliders[i].staticFriction, 0.01f, 0.0f, 1.0f)){
+						if(ImGui::UndoDragFloat(("##Static" + std::to_string(i)).c_str(), &colliders[i].staticFriction, 0.01f, 0.0f, 1.0f)){
 							needsUpdate = true;
 						}
 						ImGui::Text("Dynamic");
 						ImGui::SameLine(XPos);
-						if(ImGui::DragFloat(("##Dynamic" + std::to_string(i)).c_str(), &colliders[i].dynamicFriction, 0.01f, 0.0f, 1.0f)){
+						if(ImGui::UndoDragFloat(("##Dynamic" + std::to_string(i)).c_str(), &colliders[i].dynamicFriction, 0.01f, 0.0f, 1.0f)){
 							needsUpdate = true;
 						}
 						ImGui::Text("Restitution");
 						ImGui::SameLine(XPos);
-						if(ImGui::DragFloat(("##Restitution" + std::to_string(i)).c_str(), &colliders[i].restitution, 0.01f, 0.0f, 1.0f)){
+						if(ImGui::UndoDragFloat(("##Restitution" + std::to_string(i)).c_str(), &colliders[i].restitution, 0.01f, 0.0f, 1.0f)){
 							needsUpdate = true;
 						}
 						ImGui::EndChild();

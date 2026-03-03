@@ -159,10 +159,10 @@ public:
 		ImVec4 colorZ = ImVec4(0.4f, 0.4f, 0.7f, 0.3f);
 
 		// ----------- Position -----------
-		ImGui::DragVec3("Position", position);
+		ImGui::UndoDragVec3("Position", position);
 		// ----------- Rotation (Euler UI) -----------
 		{
-			if(ImGui::DragVec3("Rotation", rotationEular)){
+			if(ImGui::UndoDragVec3("Rotation", rotationEular)){
 				DirectX::XMVECTOR qNew = DirectX::XMQuaternionRotationRollPitchYaw(
 					rotationEular.x, rotationEular.y, rotationEular.z
 				);
@@ -173,15 +173,15 @@ public:
 
 
 		// ----------- Scale -----------
-		ImGui::Checkbox("##isUniformLocked", &isUniformLocked);
+		ImGui::UndoCheckbox("##isUniformLocked", &isUniformLocked);
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("isUniformLocked?");
 		ImGui::SameLine();
 		// 変更前のスケールを保存
 		Vector3 oldScale = scale;
 
-		// DragVec3 を呼ぶ
-		bool changed = ImGui::DragVec3("Scale", scale);
+		// UndoDragVec3 を呼ぶ
+		bool changed = ImGui::UndoDragVec3("Scale", scale);
 
 		if(isUniformLocked && changed){
 			// 比率を維持

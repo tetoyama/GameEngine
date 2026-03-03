@@ -96,6 +96,12 @@ void SceneManager::Update(float deltaTime){
 			systemRegistry->StopAll();
 
 			TempLoad(); // 一時保存の読み込み
+
+			// プレイ中に積まれたコマンドは TempLoad 後に無効なため全クリア
+			if (m_SceneContext.editor) {
+				m_SceneContext.editor->commandManager.Clear();
+			}
+
 			OldState = State;
 
 		} else if (State == SceneManagerState::Playing) {
@@ -103,6 +109,12 @@ void SceneManager::Update(float deltaTime){
 			if (OldState == SceneManagerState::Stopped) {
 
 				TempSave(); // 一時保存
+
+				// プレイ開始前のエディタ操作コマンドをクリア（プレイ中は Undo/Redo 無効）
+				if (m_SceneContext.editor) {
+					m_SceneContext.editor->commandManager.Clear();
+				}
+
 				m_SceneContext.debug->LOG_INFO("シーンを開始します");
 				systemRegistry->StartAll();
 
@@ -117,6 +129,9 @@ void SceneManager::Update(float deltaTime){
 
 			if (OldState == SceneManagerState::Stopped) {
 				TempSave(); // 一時保存
+				if (m_SceneContext.editor) {
+					m_SceneContext.editor->commandManager.Clear();
+				}
 				m_SceneContext.debug->LOG_INFO("シーンを開始します");
 				systemRegistry->StartAll();
 			}
@@ -147,6 +162,13 @@ void SceneManager::Update(float deltaTime){
 
 	for (auto it = m_activeScenes.begin(); it != m_activeScenes.end(); ) {
 		if (it->second->isDestroy) {
+
+			// シーン破棄前に CommandManager をクリアする。
+			// シーンの SceneContext* やコンポーネントポインタを保持するコマンドが
+			// Shutdown 後に Undo/Redo されてダングリングポインタ参照を起こすことを防ぐ。
+			if (m_SceneContext.editor) {
+				m_SceneContext.editor->commandManager.Clear();
+			}
 
 			it->second->Shutdown();
 			it->second.reset();
@@ -201,6 +223,11 @@ void SceneManager::AddScene(std::shared_ptr<Scene> scene) {
 	}
 
 	if (m_activeScenes[scene->SceneName]) {
+		// 既存シーンを上書きする際は CommandManager をクリアする。
+		// 古いシーンのポインタを保持するコマンドが残ると Undo/Redo でクラッシュする。
+		if (m_SceneContext.editor) {
+			m_SceneContext.editor->commandManager.Clear();
+		}
 		m_activeScenes[scene->SceneName]->Shutdown();
 		m_activeScenes[scene->SceneName] = nullptr;
 	}
@@ -212,6 +239,11 @@ void SceneManager::AddScene(std::shared_ptr<Scene> scene) {
 void SceneManager::LoadScene(std::shared_ptr<Scene> scene){
 
 	m_SceneContext.debug->LOG_INFO("Sceneを読み込みます...");
+
+	// シーン全置換前に CommandManager をクリアする（ダングリングポインタ防止）
+	if (m_SceneContext.editor) {
+		m_SceneContext.editor->commandManager.Clear();
+	}
 	
 	for (auto& [name, scene] : m_activeScenes) {
 		scene->Shutdown();

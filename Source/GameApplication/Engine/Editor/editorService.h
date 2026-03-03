@@ -2,6 +2,7 @@
 #include "Service/IService.h"
 #include <vector>
 #include "InterFace/IEditorUI.h"
+#include "Command/CommandManager.h"
 
 struct EditorDrawContext;
 class EditorService;
@@ -47,6 +48,8 @@ public:
 	LLAMAService* llamaService = nullptr;
 
 	AnalyzerManager* analyzer = nullptr;
+
+	CommandManager commandManager;
 
 private:
 

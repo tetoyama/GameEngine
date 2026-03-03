@@ -10,6 +10,8 @@
 #include <d3dcompiler.h>
 
 #include "Backends/ImGuiFunc.h"
+#include "Editor/Command/CommandManager.h"
+#include "Editor/Command/PropertyChangeCommand.h"
 
 #pragma comment(lib, "PhysX_64.lib")
 #pragma comment(lib, "PhysXCommon_64.lib")
@@ -794,10 +796,27 @@ void PhysicSystem::SystemSetting(){
 					ImGui::PushID(y * 1000 + x);
 
 					bool v = m_collisionMatrix[y][x];
+					bool oldV = v;
 
-					if(ImGui::Checkbox("##chk", &v)){
-						m_collisionMatrix[y][x] = v;
-						m_collisionMatrix[x][y] = v;
+					ImGui::Checkbox("##chk", &v);
+					if(ImGui::IsItemDeactivatedAfterEdit()){
+						if(v != oldV){
+							m_collisionMatrix[y][x] = v;
+							m_collisionMatrix[x][y] = v;
+							if(auto* mgr = ImGui::GetCommandManager()){
+								// 対称セル（y,x と x,y）を同時に変更するためセッター形式を使う
+								// 既に値は適用済みなので Push（Execute を呼ばない）で積む
+								auto* mat = &m_collisionMatrix;
+								int capturedY = y, capturedX = x;
+								mgr->Push(std::make_unique<PropertyChangeCommandWithSetter<bool>>(
+									[mat, capturedY, capturedX](const bool& val){
+										(*mat)[capturedY][capturedX] = val;
+										(*mat)[capturedX][capturedY] = val;
+									},
+									oldV, v, "衝突レイヤー設定"
+								));
+							}
+						}
 					}
 
 					ImGui::PopID();
@@ -1258,14 +1277,22 @@ void PhysicSystem::DrawLayerEditor(){
 		// 追加ボタン
 		if((int)m_layers.size() < kMaxPhysicsLayers){
 			if(ImGui::Button("Add")){
+				// スナップショットを取ってからレイヤーを追加しコマンドを積む
+				auto before = TakeLayerSnapshot();
 				PhysicsLayer layer;
 				layer.name = "NewLayer";
 				layer.bit = 0;
-
 				m_layers.push_back(layer);
-
 				RebuildLayerBits();
 				RebuildCollisionMatrix();
+				auto after = TakeLayerSnapshot();
+
+				if(auto* mgr = ImGui::GetCommandManager()){
+					mgr->Push(std::make_unique<PropertyChangeCommandWithSetter<LayerSnapshot>>(
+						[this](const LayerSnapshot& snap){ RestoreLayerSnapshot(snap); },
+						before, after, "物理レイヤーを追加"
+					));
+				}
 			}
 		} else{
 			ImGui::TextDisabled("Max 32 layers reached");
@@ -1285,6 +1312,7 @@ void PhysicSystem::DrawLayerEditor(){
 
 			ImGui::TableHeadersRow();
 
+			int deleteIndex = -1;
 			for(int i = 0; i < (int)m_layers.size(); ++i){
 				ImGui::PushID(i);
 				ImGui::TableNextRow();
@@ -1296,43 +1324,34 @@ void PhysicSystem::DrawLayerEditor(){
 				// Name
 				ImGui::TableSetColumnIndex(1);
 
-				char buffer[64];
-				strncpy(buffer, m_layers[i].name.c_str(), sizeof(buffer));
-				buffer[sizeof(buffer) - 1] = '\0';
-
-				if(ImGui::InputText("##name", buffer, sizeof(buffer))){
-					bool duplicated = false;
-
-					for(int j = 0; j < (int)m_layers.size(); ++j){
-						if(j != i && m_layers[j].name == buffer){
-							duplicated = true;
-							break;
-						}
-					}
-
-					if(!duplicated)
-						m_layers[i].name = buffer;
-				}
+				// UndoInputText でレイヤー名変更をUndo対応
+				ImGui::UndoInputText("##name", &m_layers[i].name, 64);
 
 				// Bit
 				ImGui::TableSetColumnIndex(2);
 
-
-				int collideCount = 0;
-				for(int x = 0; x < (int)m_layers.size(); ++x)
-					if(m_collisionMatrix[i][x])
-						++collideCount;
-
 				if(ImGui::SmallButton("Delete")){
-					RemoveLayer(i);   // ← 前回提示の安全削除関数
-					ImGui::PopID();
-					break;
+					deleteIndex = i;
 				}
 
 				ImGui::PopID();
 			}
 
 			ImGui::EndTable();
+
+			// テーブル外で削除処理（スナップショット方式）
+			if(deleteIndex >= 0){
+				auto before = TakeLayerSnapshot();
+				RemoveLayer(deleteIndex);
+				auto after = TakeLayerSnapshot();
+
+				if(auto* mgr = ImGui::GetCommandManager()){
+					mgr->Push(std::make_unique<PropertyChangeCommandWithSetter<LayerSnapshot>>(
+						[this](const LayerSnapshot& snap){ RestoreLayerSnapshot(snap); },
+						before, after, "物理レイヤーを削除"
+					));
+				}
+			}
 		}
 
 		ImGui::TreePop();

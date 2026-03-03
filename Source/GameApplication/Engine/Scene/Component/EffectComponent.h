@@ -94,16 +94,16 @@ public:
 
 
 
-		ImGui::Checkbox("Loop", &Loop);
+		ImGui::UndoCheckbox("Loop", &Loop);
 		ImGui::SameLine();
-		ImGui::Checkbox("Play On Start", &PlayOnStart);
+		ImGui::UndoCheckbox("Play On Start", &PlayOnStart);
 
 		ImGui::Separator();
 
-		ImGui::SliderFloat("Time Scale", &TimeScale, 0.0f, 3.0f);
-		ImGui::DragFloat("Max Play Time (sec)", &MaxPlayTime,0.01f, 0.0f, 0.0f);
+		ImGui::UndoSliderFloat("Time Scale", &TimeScale, 0.0f, 3.0f);
+		ImGui::UndoDragFloat("Max Play Time (sec)", &MaxPlayTime,0.01f, 0.0f, 0.0f);
 
-		if(ImGui::SliderFloat("Current Time", &CurrentPlayTime,0.0f,MaxPlayTime)){
+		if(ImGui::UndoSliderFloat("Current Time", &CurrentPlayTime,0.0f,MaxPlayTime)){
 			SeekForEditor(context, CurrentPlayTime);
 		}
 

@@ -115,11 +115,11 @@ public:
 		}
 
 		// --- 位置オフセット ---
-		ImGui::DragVec3("Offset", positionOffset);
+		ImGui::UndoDragVec3("Offset", positionOffset);
 
 		// --- 追従フラグ ---
-		ImGui::Checkbox("Follow Position", &followPosition);
+		ImGui::UndoCheckbox("Follow Position", &followPosition);
 		ImGui::SameLine();
-		ImGui::Checkbox("Follow Rotation", &followRotation);
+		ImGui::UndoCheckbox("Follow Rotation", &followRotation);
 	}
 };

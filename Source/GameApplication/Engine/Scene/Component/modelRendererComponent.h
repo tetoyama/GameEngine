@@ -120,7 +120,7 @@ public:
 
 		ImGui::Text("Model File Path");
 		ImGui::SameLine(100.0f);
-		if (ImGui::Checkbox("##isBlender", &isBlender)) {
+		if (ImGui::UndoCheckbox("##isBlender", &isBlender)) {
 			std::string path = model->FilePath;
 
 			ReleaseBuffers();
@@ -172,7 +172,7 @@ public:
 			// アニメーション一覧 + 削除ボタン
 			ImGui::Separator();
 
-			ImGui::DragFloat("Animation Time", &animationTime, 1.0f, 0, 0);
+			ImGui::UndoDragFloat("Animation Time", &animationTime, 1.0f, 0, 0);
 
 			static char newAnimFilePath[256] = "";
 			static char newAnimName[128] = "";
@@ -398,7 +398,7 @@ public:
 						ImGui::Text("Weight");
 						ImGui::SameLine(baseX + nameWidth);
 						ImGui::PushItemWidth(sliderWidth);
-						ImGui::DragFloat("##Weight", &blendEntry.weight, 0.01f, 0.0f, 1.0f);
+						ImGui::UndoDragFloat("##Weight", &blendEntry.weight, 0.01f, 0.0f, 1.0f);
 						ImGui::PopItemWidth();
 
 						// 開始時間スライダー
@@ -407,7 +407,7 @@ public:
 						ImGui::Text("StartTime");
 						ImGui::SameLine(baseX + nameWidth);
 						ImGui::PushItemWidth(sliderWidth);
-						ImGui::DragFloat("##StartTime", &blendEntry.animationStartTime, 0.0f, 0.0f,
+						ImGui::UndoDragFloat("##StartTime", &blendEntry.animationStartTime, 0.0f, 0.0f,
 										 (float)model->m_Animation[blendEntry.name].Scene->mAnimations[0]->mDuration);
 						ImGui::PopItemWidth();
 
