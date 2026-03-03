@@ -13,7 +13,7 @@ float4 ShadeMaterial_WaterSurface(MaterialInput materialInput)
     // GBuffer の albedo には環境マップの反射色が格納されている
     float3 envColor = materialInput.baseColor.rgb;
 
-    // 水の基本色（屈折光 = 水中から見える色）
+    // 水の基本色（屈折光 = 水中から見える深い海の色）
     float3 waterColor = float3(0.02, 0.08, 0.15);
 
     // Fresnel (水面: F0 ≈ 0.02)

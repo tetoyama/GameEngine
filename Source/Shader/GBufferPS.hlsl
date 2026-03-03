@@ -48,7 +48,7 @@ GBUFFER_OUT main(PS_IN In)
         // V: 反射の仰角を圧縮し、水平線付近の雲や空の特徴が見えるようにする
         float2 envUV;
         envUV.x = atan2(R.x, R.z) / (2.0f * PI) + 0.5f;
-        float scaledY = R.y * 0.45f;
+        float scaledY = R.y * 0.45f; // 仰角を圧縮して水平線〜雲の範囲を反射に含める
         envUV.y = acos(clamp(scaledY, -1.0f, 1.0f)) / PI;
 
         float4 envColor = DiffuseTexture.Sample(LinearSampler, envUV);
