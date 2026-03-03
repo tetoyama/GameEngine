@@ -6,7 +6,8 @@
 //
 // GBuffer から深度・法線・ワールド座標を取得し、
 // ビュー空間の半球サンプリングにより遮蔽度を算出する。
-// 結果をシーンカラーに乗算して出力する。
+// 結果はグレースケールの AO マスク (r=g=b=occlusion) として出力する。
+// シーンカラーとの合成は SSAOComposite パスで行う。
 //
 // Parameter.x : サンプリング半径    (推奨値: 0.5)
 // Parameter.y : 深度バイアス        (推奨値: 0.025)
@@ -36,14 +37,11 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 {
     float2 uv = In.TexCoord;
 
-    // シーンカラー取得
-    float4 sceneColor = g_Texture.Sample(g_SamplerState, uv);
-
-    // スカイボックス・未書き込みピクセルをスキップ
+    // スカイボックス・未書き込みピクセルはAO=1.0 (遮蔽なし) として出力
     float depth = GetDepth(uv);
     if (depth >= 1.0f)
     {
-        outDiffuse = sceneColor;
+        outDiffuse = float4(1.0f, 1.0f, 1.0f, 1.0f);
         return;
     }
 
@@ -114,5 +112,6 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     occlusion = 1.0f - (occlusion / float(SSAO_KERNEL_SIZE));
     occlusion = pow(saturate(occlusion), strength);
 
-    outDiffuse = float4(sceneColor.rgb * occlusion, sceneColor.a);
+    // AO マスクとして出力 (シーンカラーとの合成は SSAOComposite パスで行う)
+    outDiffuse = float4(occlusion, occlusion, occlusion, 1.0f);
 }
