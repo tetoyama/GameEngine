@@ -5,11 +5,12 @@
 // Water SSR (Screen Space Reflections) Post-Effect
 //
 // WaveComponent の水面ピクセルに対して SSR を適用し、
-// SSR が外れた場合はプロシージャルな空環境色にフォールバックする。
+// SSR が外れた場合もシーンカラーをそのまま出力する
+// （環境反射は WaterSurfaceShader で既に適用済み）
 //
-// Parameter.x : SSR ステップサイズ       (推奨値: 0.3)
-// Parameter.y : 反射強度                 (推奨値: 0.6)
-// Parameter.z : SSR 最大イテレーション数 (推奨値: 32)
+// Parameter.x : SSR ステップサイズ       (推奨値: 1.0)
+// Parameter.y : 反射強度                 (推奨値: 0.8)
+// Parameter.z : SSR 最大イテレーション数 (推奨値: 48)
 // Parameter.w : 水面の ShaderID          (水面マテリアルの ID と一致させる)
 // ============================================================
 
@@ -31,9 +32,9 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     }
 
     // ShaderID で水面ピクセルを識別
-    uint texWidth, texHeight;
-    g_Texture.GetDimensions(texWidth, texHeight);
-    int2 pixelCoord = int2(uv.x * texWidth, uv.y * texHeight);
+    uint paramW, paramH;
+    GParam.GetDimensions(paramW, paramH);
+    int2 pixelCoord = int2(uv.x * paramW, uv.y * paramH);
     uint4 param = GetObjParam(pixelCoord);
     uint shaderID = param.z;
     int waterShaderID = (int) Parameter.w;
@@ -50,21 +51,36 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     float3 viewDir = normalize(CameraPosition.xyz - worldPos);
     float3 reflDir = normalize(reflect(-viewDir, worldNormal));
 
-    float stepSize = max(Parameter.x, 0.05f);
+    float baseStepSize = max(Parameter.x, 0.1f);
     int maxSteps = clamp((int) Parameter.z, 8, SSR_MAX_STEPS);
     float intensity = saturate(Parameter.y);
 
-    // SSR レイマーチ
+    // 水面からカメラまでの距離に応じてステップサイズを調整
+    float distToCamera = length(CameraPosition.xyz - worldPos);
+    float adaptiveStep = baseStepSize * max(distToCamera * 0.05f, 0.5f);
+
+    // SSR レイマーチ（加速ステップ）
     float4 reflColor = float4(0, 0, 0, 0);
     bool hit = false;
+    float marchDist = 0.0f;
 
     [loop]
     for (int i = 1; i <= maxSteps; i++)
     {
-        float3 sampleWorldPos = worldPos + reflDir * stepSize * (float) i;
+        // 加速ステップ: 距離が遠くなるにつれてステップを大きくする
+        float step = adaptiveStep * (1.0f + float(i) * 0.15f);
+        marchDist += step;
 
-        // ワールド → クリップ空間
+        float3 sampleWorldPos = worldPos + reflDir * marchDist;
+
+        // ワールド → ビュー空間
         float4 viewPos4 = mul(float4(sampleWorldPos, 1.0f), View);
+
+        // カメラの後ろに行ったら中断
+        if (viewPos4.z <= 0.0f)
+            break;
+
+        // ビュー → クリップ空間
         float4 clipPos = mul(viewPos4, Projection);
 
         if (clipPos.w <= 0.0f)
@@ -82,13 +98,19 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
             sampleUV.y < 0.0f || sampleUV.y > 1.0f)
             break;
 
-        // 深度比較
-        float sampleDepth = GetLinearDepth(sampleUV);
-        float rayDepth = viewPos4.z;
+        // サンプル位置の深度を取得
+        float sampleDepth = GetDepth(sampleUV);
 
-        float depthDiff = rayDepth - sampleDepth;
+        // スカイボックスは無視
+        if (sampleDepth >= 1.0f)
+            continue;
 
-        if (depthDiff > 0.0f && depthDiff < stepSize * 2.0f)
+        float sampleLinearDepth = GetLinearDepth(sampleUV);
+        float rayLinearDepth = viewPos4.z;
+        float depthDiff = rayLinearDepth - sampleLinearDepth;
+
+        // レイが表面を通過した場合（手前側に超えた）→ ヒット判定
+        if (depthDiff > 0.0f && depthDiff < step * 3.0f)
         {
             // ヒット: 反射されたピクセルの色を取得
             reflColor = g_Texture.Sample(g_SamplerState, sampleUV);
@@ -97,30 +119,19 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
         }
     }
 
-    // Fresnel 計算
-    float NdotV = saturate(dot(worldNormal, viewDir));
-    float fresnel = 0.02f + 0.98f * pow(1.0f - NdotV, 5.0f);
-
     if (hit)
     {
-        // SSR ヒット: 反射色をブレンド
+        // Fresnel 計算
+        float NdotV = saturate(dot(worldNormal, viewDir));
+        float fresnel = 0.02f + 0.98f * pow(1.0f - NdotV, 5.0f);
+
+        // SSR ヒット: 反射色をシーンカラーにブレンド
+        // SSR の反射はマテリアルシェーダの環境マッピングを上書き
         outDiffuse = lerp(sceneColor, reflColor, fresnel * intensity);
     }
     else
     {
-        // SSR ミス: プロシージャルスカイ環境でフォールバック
-        float3 R = reflDir;
-
-        // 空のグラデーション (上=青空, 水平線=淡い色, 下=暗い海色)
-        float skyBlend = saturate(R.y);
-        float3 skyColor = lerp(
-            float3(0.6f, 0.7f, 0.8f),  // 水平線
-            float3(0.3f, 0.5f, 0.9f),  // 天頂
-            skyBlend
-        );
-
-        float3 envColor = skyColor;
-
-        outDiffuse = lerp(sceneColor, float4(envColor, 1.0f), fresnel * intensity * 0.5f);
+        // SSR ミス: マテリアルシェーダの環境マッピングがそのまま使用される
+        outDiffuse = sceneColor;
     }
 }

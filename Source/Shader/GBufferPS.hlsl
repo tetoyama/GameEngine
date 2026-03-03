@@ -44,17 +44,17 @@ GBUFFER_OUT main(PS_IN In)
         float3 R = reflect(-V, N);
 
         // Equirectangular マッピング: 反射方向 → UV
+        // U: +Z 方向が中心 (Blender→DirectX 座標変換に対応)
+        // V: 反射の仰角を圧縮し、水平線付近の雲や空の特徴が見えるようにする
         float2 envUV;
-        envUV.x = atan2(R.z, R.x) / (2.0f * PI) + 0.5f;
-        envUV.y = 0.5f - R.y * 0.5f;
+        envUV.x = atan2(R.x, R.z) / (2.0f * PI) + 0.5f;
+        float scaledY = R.y * 0.45f;
+        envUV.y = acos(clamp(scaledY, -1.0f, 1.0f)) / PI;
 
         float4 envColor = DiffuseTexture.Sample(LinearSampler, envUV);
 
-        // Fresnel (水面: F0 ≈ 0.02)
-        float NdotV = saturate(dot(N, V));
-        float F = 0.02f + 0.98f * pow(1.0f - NdotV, 5.0f);
-
-        baseColor = lerp(baseColor, envColor, F);
+        // 環境色をそのままアルベドに格納（Fresnel は WaterSurfaceShader で適用）
+        baseColor = envColor;
     }
     // Diffuse Texture を使うか
     else if ((Material.MaterialFlags & MATERIAL_FLAG_USE_DIFFUSE_TEXTURE) != 0)
