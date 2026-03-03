@@ -247,7 +247,10 @@ void RenderSystem::UpdateSkyBoxEnvironmentMap() {
 	}
 
 	// EnvironmentMapComponent を持つエンティティの TextureComponent を環境マップとして設定する
+	std::shared_ptr<TextureData> envTexture;
+	bool found = false;
 	for(auto& [sceneName, scene] : m_context->sceneManager->GetActiveScenes()){
+		if(found) break;
 		auto ctx = scene->GetSceneContext();
 		auto entities = ctx->component->FindEntitiesWithComponent<EnvironmentMapComponent>();
 		for(Entity ent : entities){
@@ -255,21 +258,23 @@ void RenderSystem::UpdateSkyBoxEnvironmentMap() {
 			if(!envComp || !envComp->enabled) continue;
 
 			auto* texComp = ctx->component->GetComponent<TextureComponent>(ent);
-			if(!texComp || !texComp->m_TextureData){
-				m_PlayerPass->lightingPass->m_EnvironmentMap.reset();
-				return;
+			if(texComp && texComp->m_TextureData){
+				envTexture = texComp->m_TextureData;
 			}
-
-			// テクスチャが変わった場合のみ更新
-			if(m_PlayerPass->lightingPass->m_EnvironmentMap != texComp->m_TextureData){
-				m_PlayerPass->lightingPass->m_EnvironmentMap = texComp->m_TextureData;
-			}
-			return;
+			found = true;
+			break;
 		}
 	}
 
-	// EnvironmentMapComponent が見つからなければ環境マップをクリア
-	m_PlayerPass->lightingPass->m_EnvironmentMap.reset();
+	// PlayerPass と EditorPass の両方に同期
+	if(m_PlayerPass->lightingPass->m_EnvironmentMap != envTexture){
+		m_PlayerPass->lightingPass->m_EnvironmentMap = envTexture;
+	}
+	if(m_EditorPass && m_EditorPass->lightingPass){
+		if(m_EditorPass->lightingPass->m_EnvironmentMap != envTexture){
+			m_EditorPass->lightingPass->m_EnvironmentMap = envTexture;
+		}
+	}
 }
 
 
@@ -372,7 +377,7 @@ void RenderSystem::SystemSetting() {
 			width = ImGui::GetContentRegionAvail().x;
 			ImGui::Image(
 				m_EditorPass->result,
-				ImVec2(width, m_EditorPass->editorRenderTarget->size.y / m_EditorPass->editorRenderTarget->size.x * width)
+				ImVec2(width, m_EditorPass->lightingPass->pRenderTarget->size.y / m_EditorPass->lightingPass->pRenderTarget->size.x * width)
 			);
 
 			ImGui::Text("ShadowMap Render Target");

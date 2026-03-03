@@ -14,6 +14,7 @@
 #include "Scene/Component/transformComponent.h"
 #include "Scene/Component/textureComponent.h"
 #include <Component/materialComponent.h>
+#include "Shader/commonDefine.h"
 
 
 void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity) {
@@ -41,6 +42,18 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 
 		material.BaseColor = DirectX::XMFLOAT4(1, 1, 1, 1);
 	}
+
+	// 環境マッピング: WaveComponent の UseEnvironmentMap が有効なら PBR シェーダーで環境マップを適用
+	if(pWave->UseEnvironmentMap){
+		material.MaterialFlags |= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
+		// 環境マップは PBR シェーダー (ShaderID=1) でのみ機能する
+		ObjectInfo info;
+		info.SceneID  = (unsigned int)sceneContext;
+		info.ObjectID = entity;
+		info.ShaderID = 1; // PBR
+		sceneContext->manager->graphics->SetObjectInfo(info);
+	}
+
 	sceneContext->manager->graphics->SetMaterial(material);
 
 	auto meshRenderer = pWave->meshRenderer;

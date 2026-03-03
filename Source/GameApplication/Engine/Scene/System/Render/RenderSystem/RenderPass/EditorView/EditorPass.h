@@ -1,17 +1,17 @@
 #pragma once
 #include "../IRenderPass.h"
 #include <d3d11.h>
-#include <vector>
 #include <memory>
 
-class IRenderable;
 struct RenderTarget;
 
 class ShadowMapPass;
+class GBufferPass;
+class LightingPass;
+class ForwardPass;
+class PostEffectPass;
+class OverlayUIPass;
 class PhysXDebugPass;
-
-struct PixelShaderData;
-struct VertexShaderData;
 
 class EditorPass : public IRenderPass {
 public:
@@ -19,13 +19,13 @@ public:
 	void Finalize() override;
 	void Execute(const RenderPassContext& ctx) override;
 
-	std::vector<IRenderable*> renderables;
-	RenderTarget* editorRenderTarget = nullptr;
-
-	std::shared_ptr<VertexShaderData> m_RenderableVertexShader;
-
 	ID3D11ShaderResourceView* result = nullptr;
 
-	ShadowMapPass* shadowMapPass;
-	PhysXDebugPass* physXDebugPass;
+	ShadowMapPass*  shadowMapPass  = nullptr;
+	GBufferPass*    gBufferPass    = nullptr;
+	LightingPass*   lightingPass   = nullptr;
+	ForwardPass*    forwardPass    = nullptr;
+	PostEffectPass* postEffectPass = nullptr;
+	OverlayUIPass*  overlayUIPass  = nullptr;
+	PhysXDebugPass* physXDebugPass = nullptr;
 };

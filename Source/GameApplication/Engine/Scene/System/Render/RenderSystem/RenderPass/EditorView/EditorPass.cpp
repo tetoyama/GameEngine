@@ -5,41 +5,15 @@
 #include "../../renderPhase.h"
 
 #include "../ShadowMap/ShadowMapPass.h"
+#include "../GBuffer/GBufferPass.h"
+#include "../LightingPass/LightingPass.h"
+#include "../Forward/ForwardPass.h"
+#include "../PostEffect/PostEffectPass.h"
+#include "../OverlayUI/OverlayUIPass.h"
 #include "../PhysXDebug/PhysXDebugPass.h"
 
-#include "scene.h"
-#include "System/Render/RenderSystem/Renderable/IRenderable.h"
-#include "System/Render/RenderSystem/RenderTarget/renderTarget.h"
-#include "Component/transformComponent.h"
-#include "Registry/componentRegistry.h"
-
-#include "Shader/commonDefine.h"
-
 #include "Graphics/graphicsContext.h"
-#include "Registry/systemRegistry.h"
-
-#include "Component/CameraComponent.h"
-#include "Component/LightComponent.h"
-
-#include "System/Render/RenderSystem/Renderable/Model/RenderableModel.h"
-#include "System/Render/RenderSystem/Renderable/BillBoard/RenderableBillBoard.h"
-#include "System/Render/RenderSystem/Renderable/Mesh/RenderableMesh.h"
-#include "System/Render/RenderSystem/Renderable/Particle/RenderableParticle.h"
-#include "System/Render/RenderSystem/Renderable/Sprite/RenderableSprite.h"
-#include "System/Render/RenderSystem/Renderable/Terrain/RenderableTerrain.h"
-#include "System/Render/RenderSystem/Renderable/Wave/RenderableWave.h"
-
-#include <queue>
-#include <Component/outlineComponent.h>
-#include <Component/bumpMapComponent.h>
-#include <PhysX/PxScene.h>
-#include <System/Physic/physicSystem.h>
-#include <Component/textureComponent.h>
-
-
-#include "Backends/convertMatrix.h"
-#include <Component/materialComponent.h>
-#include <System/Render/RenderSystem/Renderable/Effect/RenderableEffect.h>
+#include "DebugTools/ImGuiSystem.h"
 
 
 void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
@@ -47,40 +21,49 @@ void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 	m_renderSystem = renderSystem;
 	m_context = context;
 
-	m_RenderableVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-
-	renderables.clear();
-	renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
-	renderables.push_back(renderSystem->GetRenderable<RenderableBillBoard>());
-	renderables.push_back(renderSystem->GetRenderable<RenderableMesh>());
-	renderables.push_back(renderSystem->GetRenderable<RenderableParticle>());
-	renderables.push_back(renderSystem->GetRenderable<RenderableSprite>());
-	renderables.push_back(renderSystem->GetRenderable<RenderableTerrain>());
-	renderables.push_back(renderSystem->GetRenderable<RenderableWave>());
-	renderables.push_back(renderSystem->GetRenderable<RenderableEffect>());
-
-	editorRenderTarget = new RenderTarget(
-		context->PlayerScreenSize,
-		context->graphics,
-		RenderTargetType::RENDERTARGET_TYPE_COLOR_UNORM
-	);
-
 	shadowMapPass = new ShadowMapPass();
-	shadowMapPass->Initialize(
-		renderSystem,
-		context
-	);
+	shadowMapPass->Initialize(renderSystem, context);
+
+	gBufferPass = new GBufferPass();
+	gBufferPass->Initialize(renderSystem, context);
+
+	lightingPass = new LightingPass();
+	lightingPass->Initialize(renderSystem, context);
+
+	forwardPass = new ForwardPass();
+	forwardPass->Initialize(renderSystem, context);
+
+	postEffectPass = new PostEffectPass();
+	postEffectPass->Initialize(renderSystem, context);
+
+	overlayUIPass = new OverlayUIPass();
+	overlayUIPass->Initialize(renderSystem, context);
 
 	physXDebugPass = new PhysXDebugPass();
-	physXDebugPass->Initialize(
-		renderSystem,
-		context
-	);
+	physXDebugPass->Initialize(renderSystem, context);
 }
 
 void EditorPass::Finalize() {
 
-	m_RenderableVertexShader.reset();
+	postEffectPass->Finalize();
+	delete postEffectPass;
+	postEffectPass = nullptr;
+
+	overlayUIPass->Finalize();
+	delete overlayUIPass;
+	overlayUIPass = nullptr;
+
+	forwardPass->Finalize();
+	delete forwardPass;
+	forwardPass = nullptr;
+
+	lightingPass->Finalize();
+	delete lightingPass;
+	lightingPass = nullptr;
+
+	gBufferPass->Finalize();
+	delete gBufferPass;
+	gBufferPass = nullptr;
 
 	shadowMapPass->Finalize();
 	delete shadowMapPass;
@@ -89,176 +72,51 @@ void EditorPass::Finalize() {
 	physXDebugPass->Finalize();
 	delete physXDebugPass;
 	physXDebugPass = nullptr;
-
-	delete editorRenderTarget;
-	editorRenderTarget = nullptr;
 }
 
 void EditorPass::Execute(const RenderPassContext& ctx) {
 
-	// コンテキストの取得
-	GraphicsContext* graphics = m_context->graphics;
 	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
-	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-	deviceContext->VSSetShader(m_RenderableVertexShader->m_VertexShader.Get(), nullptr, 0);
-	deviceContext->IASetInputLayout(m_RenderableVertexShader->m_VertexLayout.Get());
+	// ImGuizmo 用のビュー・投影行列を設定
+	m_context->imgui->SetViewProjectionMatrix(ctx.viewMatrix, ctx.projectionMatrix);
 
+	// GBuffer パス
+	gBufferPass->Execute(ctx);
+
+	// シャドウマップパス
 	shadowMapPass->Execute(ctx);
 
-	float clearCol[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	editorRenderTarget->Resize(ctx.screenSize, m_context->graphics);
-	editorRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearCol);
-	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, editorRenderTarget->rtv.GetAddressOf(), editorRenderTarget->dsv.Get());
-
-	m_context->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_ShadowMap, 1, shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
-	m_context->graphics->GetDeviceContext()->PSSetSamplers(1, 1, &shadowMapPass->shadowSampler);
-
-	// 環境マップバインド (フォワードシェーダの t8 / s3)
-	{
-		auto envMap    = m_renderSystem->GetEnvironmentMap();
-		auto* envSampler = m_renderSystem->GetEnvMapSampler();
-		if(envMap && envMap->pTexture){
-			deviceContext->PSSetShaderResources(TextureSlot_EnvironmentMap, 1, envMap->pTexture.GetAddressOf());
-		}
-		if(envSampler){
-			deviceContext->PSSetSamplers(3, 1, &envSampler);
-		}
-	}
-
-	ID3D11ShaderResourceView* initialSRV = editorRenderTarget->srv.Get();
-
+	// カメラ行列をセット (ライティング・フォワード両パスで共用)
 	graphicsContext->SetCameraPosition(ctx.CameraPosition);
-
 	graphicsContext->SetViewMatrix(ctx.viewMatrix);
 	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
 
-	D3D11_VIEWPORT vp = {};
-	vp.Width = ctx.screenSize.x;
-	vp.Height = ctx.screenSize.y;
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
-	deviceContext->RSSetViewports(1, &vp);
+	// ライティングパス (Deferred)
+	lightingPass->SetTextureSlot(gBufferPass, shadowMapPass, graphicsContext);
+	lightingPass->Execute(ctx);
 
-	m_context->imgui->SetViewProjectionMatrix(ctx.viewMatrix, ctx.projectionMatrix);
+	// フォワードパス (透明・UIレイヤー)
+	forwardPass->SetInputs(lightingPass, gBufferPass, shadowMapPass);
+	forwardPass->Execute(ctx);
 
-	// シェーダーセット
-	PixelShaderData* ps = m_renderSystem->GetForwardPS();
-	deviceContext->PSSetShader(ps ? ps->m_PixelShader.Get() : nullptr, nullptr, 0);
+	// ポストエフェクトパス
+	ID3D11ShaderResourceView* initialSRV = lightingPass->pRenderTarget->srv.Get();
+	ID3D11RenderTargetView** initialRTV  = lightingPass->pRenderTarget->rtv.GetAddressOf();
+	postEffectPass->SetInputs(initialSRV, initialRTV, gBufferPass);
+	postEffectPass->Execute(ctx);
 
-	for(int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++){
+	// オーバーレイUIパス
+	overlayUIPass->SetInputs(postEffectPass->resultRtv, lightingPass->pRenderTarget);
+	overlayUIPass->Execute(ctx);
 
-		if(!ctx.renderLayerVisibility[i]){
-			continue;
-		}
-		// --- Transparent 用の一時バッファ ---
-		std::vector<TransparentDrawItem> transparentList;
-
-		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
-
-			auto context = scene->GetSceneContext();
-			std::vector<Entity> entities =
-				context->component->FindEntitiesWithComponent<TransformComponent>();
-
-			if(entities.empty()){
-				continue;
-			}
-
-			for(Entity entity : entities){
-
-				RenderLayer layer = scene->GetRenderLayerFromEntity(entity);
-				if((int)layer != i){
-					continue;
-				}
-
-				// SortTransparent3D の場合は一旦貯める
-				if(layer == RenderLayer::SortTransparent3D){
-
-					auto transform =
-						context->component->GetComponent<TransformComponent>(entity);
-					if(!transform){
-						continue;
-					}
-
-					Vector3 worldPos = transform->GetWorldPosition(context->component);
-					Vector3 diff = worldPos - Vector3(ctx.CameraPosition.x, ctx.CameraPosition.y, ctx.CameraPosition.z);
-
-					TransparentDrawItem item;
-					item.ref = EntityRef(entity, context);
-					item.distanceSq = diff.dot(diff);
-					transparentList.push_back(item);
-
-				} else{
-					// 通常描画（不透明など）
-					for(auto renderable : renderables){
-
-						int materialID = 0;
-						auto material =
-							context->component->GetComponent<MaterialComponent>(entity);
-						if(material){
-							materialID = material->ShaderID;
-						}
-
-						ObjectInfo info;
-						info.SceneID = (unsigned int)context;
-						info.ObjectID = entity;
-						info.ShaderID = materialID;
-						m_context->graphics->SetObjectInfo(info);
-
-						renderable->Execute(ctx, context, entity);
-					}
-				}
-			}
-
-		}
-
-		// --- Z ソートして描画 ---
-		if(!transparentList.empty()){
-
-			m_context->graphics->SetDepthMode(DepthMode::ReadOnly);
-
-			std::sort(
-				transparentList.begin(),
-				transparentList.end(),
-				[](const TransparentDrawItem& a,
-				   const TransparentDrawItem& b){
-					   return a.distanceSq > b.distanceSq; // 遠い→近い
-				});
-
-			for(auto& item : transparentList){
-
-				if(!item.ref.IsValid()) continue;
-				Entity entity = item.ref.GetEntityID();
-				SceneContext* itemCtx = item.ref.GetScene();
-
-				for(auto renderable : renderables){
-
-					int materialID = 0;
-					auto material =
-						itemCtx->component->GetComponent<MaterialComponent>(entity);
-					if(material){
-						materialID = material->ShaderID;
-					}
-
-					ObjectInfo info;
-					info.SceneID = (unsigned int)itemCtx;
-					info.ObjectID = entity;
-					info.ShaderID = materialID;
-					m_context->graphics->SetObjectInfo(info);
-
-					renderable->Execute(ctx, itemCtx, entity);
-				}
-			}
-
-			m_context->graphics->SetDepthMode(DepthMode::Write);
-		}
-	}
-
-	//PhysX
+	// PhysX デバッグ描画 (ポストエフェクト後のバッファに直接描画)
+	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, postEffectPass->resultRtv, gBufferPass->pDepthTarget->dsv.Get());
 	physXDebugPass->Execute(ctx);
+	ID3D11RenderTargetView* nullRTV[1] = { nullptr };
+	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, nullRTV, nullptr);
 
-	result = initialSRV;
+	result = postEffectPass->resultSrv;
 }
+
 
