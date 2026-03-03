@@ -22,6 +22,7 @@
 #include "Component/scriptComponent.h"
 #include "Component/PrefabComponent.h"
 #include "Component/followComponent.h"
+#include "Component/environmentMapComponent.h"
 
 #include "Script/SetScene.h"
 #include "Script/ScoreManager.h"
@@ -84,4 +85,5 @@ enum ComponentStorageType {
     X(ScriptComponent,COMPONENT_SPARSE)\
     X(GN31,COMPONENT_SPARSE)\
     X(PrefabComponent,COMPONENT_SPARSE)\
-    X(FollowComponent,COMPONENT_SPARSE)
+    X(FollowComponent,COMPONENT_SPARSE)\
+    X(EnvironmentMapComponent,COMPONENT_SPARSE)

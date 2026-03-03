@@ -53,8 +53,8 @@
 #include "Component/CameraComponent.h"
 #include <Component/modelRendererComponent.h>
 #include <Component/LightComponent.h>
-#include <Component/entityNameComponent.h>
 #include <Component/textureComponent.h>
+#include <Component/environmentMapComponent.h>
 
 #include "CameraEntityData.h"
 #include "renderPhase.h"
@@ -233,14 +233,13 @@ void RenderSystem::UpdateSkyBoxEnvironmentMap() {
 		return;
 	}
 
-	// アクティブなシーンから "SkyBox" という名前のエンティティを探し、
-	// そのTextureComponentのテクスチャを環境マップとして設定する
+	// EnvironmentMapComponent を持つエンティティの TextureComponent を環境マップとして設定する
 	for(auto& [sceneName, scene] : m_context->sceneManager->GetActiveScenes()){
 		auto ctx = scene->GetSceneContext();
-		auto entities = ctx->component->FindEntitiesWithComponent<NameComponent>();
+		auto entities = ctx->component->FindEntitiesWithComponent<EnvironmentMapComponent>();
 		for(Entity ent : entities){
-			auto* nameComp = ctx->component->GetComponent<NameComponent>(ent);
-			if(!nameComp || nameComp->name != "SkyBox") continue;
+			auto* envComp = ctx->component->GetComponent<EnvironmentMapComponent>(ent);
+			if(!envComp || !envComp->enabled) continue;
 
 			auto* texComp = ctx->component->GetComponent<TextureComponent>(ent);
 			if(!texComp || !texComp->m_TextureData){
@@ -256,7 +255,7 @@ void RenderSystem::UpdateSkyBoxEnvironmentMap() {
 		}
 	}
 
-	// SkyBoxが見つからなければ環境マップをクリア
+	// EnvironmentMapComponent が見つからなければ環境マップをクリア
 	m_PlayerPass->lightingPass->m_EnvironmentMap.reset();
 }
 
@@ -340,7 +339,7 @@ void RenderSystem::SystemSetting() {
 	if(ImGui::TreeNode("EnvironmentMap")){
 		std::shared_ptr<TextureData> envTex = m_PlayerPass ? m_PlayerPass->lightingPass->m_EnvironmentMap : nullptr;
 		if(envTex && envTex->pTexture){
-			ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Using SkyBox texture:");
+			ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Using environment map texture:");
 			ImGui::TextWrapped("%s", envTex->FilePath.c_str());
 			float previewWidth = ImGui::GetContentRegionAvail().x;
 			ImGui::Image(
@@ -348,8 +347,8 @@ void RenderSystem::SystemSetting() {
 				ImVec2(previewWidth, previewWidth * 0.5f)
 			);
 		} else {
-			ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.4f, 1.0f), "No SkyBox entity found in scene.");
-			ImGui::TextDisabled("Add an entity named \"SkyBox\" with a TextureComponent.");
+			ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.4f, 1.0f), "No environment map source found in scene.");
+			ImGui::TextDisabled("Add EnvironmentMapComponent + TextureComponent to an entity.");
 		}
 		ImGui::TreePop();
 	}

@@ -8,7 +8,8 @@ float2 DirToSkyUV(float3 dir)
     float phi   = atan2(dir.x, dir.z);                    // -PI to PI
     float theta = asin(clamp(dir.y, -1.0, 1.0));          // -PI/2 to PI/2
     float u = phi / (2.0 * PI) + 0.5;
-    float v = 0.5 - theta / PI;                            // Y軸反転でスカイスフィアUVと一致
+    // V: 上半球(theta>0) → v<0.5, 下半球(theta<0) → v>0.5 (テクスチャの上方向が空)
+    float v = 0.5 - theta / PI;
     return float2(u, v);
 }
 
