@@ -181,9 +181,10 @@ float ShadowFactorCSM(
         float4 csp = mul(float4(worldPos, 1.0), CsmViews[c]);
         csp = mul(csp, CsmProjections[c]);
         if (csp.w <= 0.0) continue; // w <= 0 はゼロ除算防止 (正射影では通常 w=1)
-        float2 cuv = csp.xy / csp.w * 0.5 + 0.5;
+        float3 cndc = csp.xyz / csp.w;
+        float2 cuv = cndc.xy * 0.5 + 0.5;
         cuv.y = 1.0 - cuv.y;
-        if (all(cuv >= 0.0) && all(cuv <= 1.0))
+        if (all(cuv >= 0.0) && all(cuv <= 1.0) && cndc.z >= 0.0 && cndc.z <= 1.0)
         {
             cascade = c;
             sp = csp;
