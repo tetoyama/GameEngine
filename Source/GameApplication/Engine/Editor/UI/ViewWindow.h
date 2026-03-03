@@ -21,6 +21,7 @@
 struct TextureData;
 struct SceneContext;
 
+// ビューウィンドウ（シーンプレビュー）UI
 class ViewWindow : public IEditorUI {
 
 public:

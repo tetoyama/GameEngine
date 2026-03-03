@@ -30,6 +30,7 @@ enum class MenuEvent
 	// 必要に応じて追加
 };
 
+// メインメニューバーUI
 class MenuBar : public IEditorUI {
 public:
 	MenuBar() {}

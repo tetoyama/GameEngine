@@ -32,6 +32,7 @@ enum FileIconType {
 	FILE_MAX,
 };
 
+// アセットブラウザUI
 class AssetsBrowser: public IEditorUI{
 
 public:

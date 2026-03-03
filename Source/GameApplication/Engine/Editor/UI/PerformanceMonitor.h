@@ -12,6 +12,7 @@
 #include "Editor/editorService.h"
 #include "Editor/InterFace/IEditorUI.h"
 
+// パフォーマンスモニタUI
 class PerformanceMonitor: public IEditorUI{
 
 public:

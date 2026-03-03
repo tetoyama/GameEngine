@@ -15,6 +15,7 @@
 
 struct SceneContext;
 
+// システム設定UI
 class SystemSetting : public IEditorUI {
 
 public:

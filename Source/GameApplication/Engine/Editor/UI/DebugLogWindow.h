@@ -7,6 +7,7 @@
 #include "Editor/InterFace/IEditorUI.h"
 #include "Service/DebugTools/DebugSystem.h"
 
+// デバッグログ表示ウィンドウ
 class DebugLogWindow: public IEditorUI{
 public:
 	void Initialize(EditorService* editor) override;
