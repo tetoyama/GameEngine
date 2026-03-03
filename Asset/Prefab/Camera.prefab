@@ -1,0 +1,163 @@
+Entities:
+  - LocalID: 0
+    Components:
+      - Component: NameComponent
+        Name: Camera
+      - Component: TransformComponent
+        Position:
+          x: -0.345527351
+          y: 2
+          z: -5.9999671
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: CameraComponent
+        isLock: true
+        Target:
+          x: -0.345527351
+          y: 1.14242242e-08
+          z: 3.28306087e-05
+        NearClip: 0.00999999978
+        FarClip: 1024
+        FOV: 1
+        viewMatrix:
+          -
+            - 1
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0.948683262
+            - -0.316227764
+            - 0
+          -
+            - -0
+            - 0.316227764
+            - 0.948683262
+            - 0
+          -
+            - 0.345527351
+            - -1.03712082e-05
+            - 6.32452393
+            - 1
+        nextLinkId: 11
+        nextPinId: 14
+        PostEffects:
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\OutlineByShaderID.cso
+            NodePos:
+              x: 36.5275269
+              y: 24.5206909
+            InputPins:
+              - 2
+              - 4
+            OutputPin: 3
+            Param:
+              x: 4
+              y: 1
+              z: 0
+              w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\SSAO.cso
+            NodePos:
+              x: 268.181702
+              y: 24.4176025
+            InputPins:
+              - 5
+              - 7
+            OutputPin: 6
+            Param:
+              x: 1
+              y: 0.100000001
+              z: 0.5
+              w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\DepthBlur.cso
+            NodePos:
+              x: 746.08374
+              y: 22.3669052
+            InputPins:
+              - 8
+              - 10
+            OutputPin: 9
+            Param:
+              x: 0.5
+              y: 0
+              z: 0
+              w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\DepthFog.cso
+            NodePos:
+              x: 507.539551
+              y: 19.8951035
+            InputPins:
+              - 11
+              - 13
+            OutputPin: 12
+            Param:
+              x: 0
+              y: 1000
+              z: 1
+              w: 1
+        PostEffectLinks:
+          - ID: 2
+            StartNode: -1
+            EndNode: 0
+            StartAttr: -1
+            EndAttr: 2
+          - ID: 3
+            StartNode: 0
+            EndNode: 1
+            StartAttr: 3
+            EndAttr: 5
+          - ID: 8
+            StartNode: 1
+            EndNode: 3
+            StartAttr: 6
+            EndAttr: 11
+          - ID: 9
+            StartNode: 3
+            EndNode: 2
+            StartAttr: 12
+            EndAttr: 8
+          - ID: 10
+            StartNode: 2
+            EndNode: -2
+            StartAttr: 9
+            EndAttr: 1
+        ScreenInput:
+          Name: ""
+          NodePos:
+            x: -65.4724121
+            y: -34.4793091
+          OutputPin: -1
+        ScreenOutput:
+          Name: ""
+          NodePos:
+            x: 1303.74341
+            y: 227.008881
+          InputPins:
+            - 1
+      - Component: CameraController
+        distance: 6
+        height: 2
+        rotateSpeed: 1.5
+        minPitch: 0
+        maxPitch: 0.785398185
+        minDistance: 1

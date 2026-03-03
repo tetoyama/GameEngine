@@ -2,21 +2,21 @@ Entities:
   - Entity: 1
     Components:
       - Component: NameComponent
-        Name: System
+        Name: Field
       - Component: TransformComponent
         Position:
           x: 0
-          y: -2.4000001
+          y: -25
           z: 0
         Rotation:
-          - -0
           - 0
-          - -0
+          - 0
+          - 0
           - 1
         Scale:
-          x: 13.79
-          y: 10
-          z: 11.1300001
+          x: 500
+          y: 50
+          z: 500
         Parent: 0
       - Component: ColliderComponent
         isDynamic: false
@@ -29,40 +29,56 @@ Entities:
             rotationOffset: [0, 0, 0]
             radius: 0.5
             height: 1
-            staticFriction: 0.5
-            dynamicFriction: 0.5
-            restitution: 0.100000001
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
             collisionLayer: 0
             lockRotX: false
             lockRotY: false
             lockRotZ: false
             isTrigger: false
             boneName: ""
-      - Component: AudioComponent
-        FilePath: Asset\Audio\BGM.wav
-        Loop: true
-        Volume: 0.0989999995
-        PlayOnStart: true
-      - Component: ScoreManager
-        RedScore: 0
-        BlueScore: 0
-      - Component: GameTimeManager
-        CountDownTime: 5
-        InGameTime: 20
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 0.870129883
+            y: 0.910608888
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0.699999988
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+      - Component: TextureComponent
+        FilePath: Asset/Texture\mesh.png
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 123015.484
   - Entity: 2
     Components:
       - Component: NameComponent
         Name: Light
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 25
+          x: -20
+          y: 50
           z: 0
         Rotation:
-          - 0.47942555
-          - 0
-          - 0
-          - 0.87758255
+          - 0.271889538
+          - 0.455836058
+          - -0.148533911
+          - 0.834402323
         Scale:
           x: 1
           y: 1
@@ -73,24 +89,24 @@ Entities:
         LightType: 4
         CastShadow: 1
         Position:
-          x: 1.50484002
-          y: 21.2949944
-          z: -7.00545692
+          x: -11.3199711
+          y: 9.41165543
+          z: -6.75425339
           w: 0
         Direction:
-          x: 0
-          y: -0.841471016
-          z: 0.540302277
+          x: 0.6799317
+          y: -0.589144766
+          z: 0.436579108
           w: 0
         Diffuse:
-          x: 0.899999976
-          y: 0.899999976
+          x: 1
+          y: 1
           z: 1
           w: 1
         Ambient:
-          x: 0.565957427
-          y: 0.565957427
-          z: 0.565957427
+          x: 0.0765957236
+          y: 0.0759438425
+          z: 0.0759438425
           w: 1
         Param:
           x: 500
@@ -99,20 +115,20 @@ Entities:
           w: 0.00499999989
         LightView:
           -
-            - 1
-            - 0
-            - -0
-            - -1.50484002
-          -
-            - 0
             - 0.540302277
-            - 0.841471016
-            - -5.61084461
-          -
             - 0
-            - -0.841471016
-            - 0.540302277
-            - 21.7041855
+            - -0.841470957
+            - 0.43269825
+          -
+            - 0.495748222
+            - 0.808027446
+            - 0.318316251
+            - 0.156968117
+          -
+            - 0.6799317
+            - -0.589144766
+            - 0.436579108
+            - 16.1904011
           -
             - 0
             - 0
@@ -120,19 +136,19 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0833968371
+            - 0.107067645
             - 0
             - 0
-            - -0
+            - 0.434985995
           -
             - 0
-            - 0.140438706
+            - 0.0833767205
             - 0
-            - -0.0991822481
+            - -0.0253059231
           -
             - 0
             - 0
-            - 0.0450641885
+            - 0.0322734006
             - -0
           -
             - 0
@@ -166,40 +182,40 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\sky.fbx
         isBlender: true
-        AnimationTime: 69565.8516
+        AnimationTime: 123015.484
   - Entity: 4
     Components:
       - Component: NameComponent
         Name: Player
       - Component: TransformComponent
         Position:
-          x: 1.50484049
-          y: 2.60837793
-          z: -0.0700856149
+          x: -4.35941601
+          y: 1.31322575
+          z: 6.93325901
         Rotation:
-          - -0.000918874284
-          - 0.725822508
-          - 0.00104804314
-          - -0.687880635
+          - 0
+          - 0.0662596002
+          - 0
+          - 0.997802496
         Scale:
-          x: 0.00300000631
-          y: 0.00300000026
-          z: 0.00299999933
+          x: 0.0100000016
+          y: 0.00999999978
+          z: 0.0100000016
         Parent: 0
       - Component: ColliderComponent
         isDynamic: true
         autoMass: true
-        Mass: 0
+        Mass: 1
         colliders:
-          - type: 0
-            size: [30, 165.699997, 30]
-            offset: [0, 80.0999985, 0]
-            rotationOffset: [0, 0, 0]
-            radius: 0.5
-            height: 1
-            staticFriction: 0.5
-            dynamicFriction: 0.5
-            restitution: 0.100000001
+          - type: 2
+            size: [1, 1, 1]
+            offset: [0, 75, 0]
+            rotationOffset: [0, 0, 90]
+            radius: 25
+            height: 100
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
             collisionLayer: 2
             lockRotX: true
             lockRotY: true
@@ -207,11 +223,11 @@ Entities:
             isTrigger: false
             boneName: ""
       - Component: MaterialComponent
-        ShaderID: 4
+        ShaderID: 1
         Material:
           BaseColor:
-            x: 0
-            y: 0
+            x: 1
+            y: 1
             z: 1
             w: 1
           Metallic: 0
@@ -219,27 +235,21 @@ Entities:
           AO: 0
           EmissiveColor:
             x: 0
-            y: 0
-            z: 0
-          EmissiveIntensity: 0
+            y: 4.59037351e-41
+            z: 1.10296875e-24
+          EmissiveIntensity: 4.38606419e-43
           UseDiffuseTexture: true
           UseNormalTexture: true
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
         isBlender: false
-        AnimationTime: 69565.8516
+        AnimationTime: 123015.484
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           mixamo.com: Asset\Model\Akai_Run.fbx
           Run: Asset\Model\Akai_Run.fbx
-      - Component: OutlineComponent
       - Component: PlayerController
-        moveSpeed: 2
+        moveSpeed: 6
         health: 0
         isInvincible: false
         dashMultiplier: 2
@@ -248,36 +258,595 @@ Entities:
         maxStamina: 5
         stamina: 5
         staminaConsumeRate: 1.5
-        staminaRecoverRate: 3
+        staminaRecoverRate: 1
         aaa: 1
-        jumpPower: 4
+        jumpPower: 5
         Stamina: 5
         SelfLayerBit: 2
   - Entity: 5
     Components:
       - Component: NameComponent
+        Name: Roof
+      - Component: TransformComponent
+        Position:
+          x: -0.0179999992
+          y: 12.3310642
+          z: 1.97791302
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 28.5874043
+          y: 1
+          z: 30.7935829
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 0
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 123015.484
+  - Entity: 6
+    Components:
+      - Component: NameComponent
+        Name: SpotLight
+      - Component: TransformComponent
+        Position:
+          x: 4.47810841
+          y: 2.79885888
+          z: -0.379267871
+        Rotation:
+          - 0.699716091
+          - 0
+          - -0
+          - 0.714421034
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 3
+        CastShadow: 1
+        Position:
+          x: 4.47810841
+          y: 2.79885888
+          z: -0.379267871
+          w: 0
+        Direction:
+          x: 0
+          y: -0.999783814
+          z: 0.0207948387
+          w: 0
+        Diffuse:
+          x: 0.978723526
+          y: 1
+          z: 0
+          w: 1
+        Ambient:
+          x: 0
+          y: 0
+          z: 0
+          w: 1
+        Param:
+          x: 100
+          y: 0
+          z: 71.6999969
+          w: 0
+        LightView:
+          -
+            - 0
+            - -0.0207948387
+            - -0.999783754
+            - -0.320984036
+          -
+            - 1
+            - 0
+            - 0
+            - -4.47810841
+          -
+            - 0
+            - -0.999783754
+            - 0.0207948387
+            - 2.80614042
+          -
+            - 0
+            - 0
+            - 0
+            - 1
+        LightProjection:
+          -
+            - 0.330718368
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0.330718368
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1.00001001
+            - -1.00001001
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+  - Entity: 7
+    Components:
+      - Component: NameComponent
+        Name: PointLightB
+      - Component: TransformComponent
+        Position:
+          x: 2.6928165
+          y: 4
+          z: 6.76027012
+        Rotation:
+          - 0.706825197
+          - 0
+          - -0
+          - 0.707388222
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 2
+        CastShadow: 0
+        Position:
+          x: 2.6928165
+          y: 4
+          z: 6.76027012
+          w: 0
+        Direction:
+          x: 0
+          y: -0.999999642
+          z: 0.000796228647
+          w: 0
+        Diffuse:
+          x: 0
+          y: 2.38418579e-07
+          z: 1
+          w: 1
+        Ambient:
+          x: 0.00999999978
+          y: 0.00999999978
+          z: 0.00999999978
+          w: 1
+        Param:
+          x: 10
+          y: 0
+          z: 0
+          w: 0
+        LightView:
+          -
+            - 0
+            - -0.000796318054
+            - -0.999999762
+            - 6.76345396
+          -
+            - 1.00000012
+            - 0
+            - 0
+            - -2.69281673
+          -
+            - 0
+            - -0.999999762
+            - 0.000796318054
+            - 3.99461579
+          -
+            - 0
+            - 0
+            - 0
+            - 1
+        LightProjection:
+          -
+            - 0.414213568
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0.414213568
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1.00010002
+            - -1.00010002
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+  - Entity: 8
+    Components:
+      - Component: NameComponent
+        Name: PointLightR
+      - Component: TransformComponent
+        Position:
+          x: 8.2638216
+          y: 4
+          z: 9.52341461
+        Rotation:
+          - 0.706825197
+          - 0
+          - -0
+          - 0.707388222
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 2
+        CastShadow: 0
+        Position:
+          x: 8.2638216
+          y: 4
+          z: 9.52341461
+          w: 0
+        Direction:
+          x: 0
+          y: -0.999999642
+          z: 0.000796228647
+          w: 0
+        Diffuse:
+          x: 1
+          y: 0
+          z: 0
+          w: 1
+        Ambient:
+          x: 0.00999999978
+          y: 0.00999999978
+          z: 0.00999999978
+          w: 1
+        Param:
+          x: 10
+          y: 0
+          z: 0
+          w: 0
+        LightView:
+          -
+            - 0
+            - -0.000796318054
+            - -0.999999762
+            - 9.52659798
+          -
+            - 1.00000012
+            - 0
+            - 0
+            - -8.26382256
+          -
+            - 0
+            - -0.999999762
+            - 0.000796318054
+            - 3.99241543
+          -
+            - 0
+            - 0
+            - 0
+            - 1
+        LightProjection:
+          -
+            - 0.414213568
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0.414213568
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1.00010002
+            - -1.00010002
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+  - Entity: 9
+    Components:
+      - Component: NameComponent
+        Name: PointLightG
+      - Component: TransformComponent
+        Position:
+          x: 3.81178188
+          y: 4
+          z: 14.7731266
+        Rotation:
+          - 0.706825197
+          - 0
+          - -0
+          - 0.707388222
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 2
+        CastShadow: 0
+        Position:
+          x: 3.81178188
+          y: 4
+          z: 14.7731266
+          w: 0
+        Direction:
+          x: 0
+          y: -0.999999642
+          z: 0.000796228647
+          w: 0
+        Diffuse:
+          x: 0
+          y: 1
+          z: 0
+          w: 1
+        Ambient:
+          x: 0.00999999978
+          y: 0.00999999978
+          z: 0.00999999978
+          w: 1
+        Param:
+          x: 10
+          y: 0
+          z: 0
+          w: 0
+        LightView:
+          -
+            - 0
+            - -0.000796318054
+            - -0.999999762
+            - 14.7763081
+          -
+            - 1.00000012
+            - 0
+            - 0
+            - -3.81178236
+          -
+            - 0
+            - -0.999999762
+            - 0.000796318054
+            - 3.988235
+          -
+            - 0
+            - 0
+            - 0
+            - 1
+        LightProjection:
+          -
+            - 0.414213568
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0.414213568
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1.00010002
+            - -1.00010002
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+  - Entity: 10
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: -12.0486889
+          y: 4.29865694
+          z: -6.9068222
+        Rotation:
+          - 6.98615499e-10
+          - 0.104807027
+          - 6.62903243e-09
+          - 0.99449259
+        Scale:
+          x: 0.999999881
+          y: 0.999971926
+          z: 0.999970436
+        Parent: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 3
+        CastShadow: 1
+        Position:
+          x: -12.0486889
+          y: 4.29865694
+          z: -6.9068222
+          w: 0
+        Direction:
+          x: 0.208459616
+          y: 2.55351296e-15
+          z: 0.97803098
+          w: 0
+        Diffuse:
+          x: 0.899999976
+          y: 0.899999976
+          z: 1
+          w: 1
+        Ambient:
+          x: 0.00999999978
+          y: 0.00999999978
+          z: 0.00999999978
+          w: 1
+        Param:
+          x: 100
+          y: 0
+          z: 45
+          w: 0
+        LightView:
+          -
+            - 0.97803098
+            - -5.29395643e-22
+            - -0.208459824
+            - 10.3441963
+          -
+            - 5.17765283e-22
+            - 1
+            - -1.10357715e-22
+            - -4.29865694
+          -
+            - 0.208459809
+            - 0
+            - 0.97803092
+            - 9.2667532
+          -
+            - 0
+            - 0
+            - 0
+            - 1
+        LightProjection:
+          -
+            - 0.99999994
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0.99999994
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1.00001001
+            - -1.00001001
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+  - Entity: 11
+    Components:
+      - Component: NameComponent
+        Name: Cube
+      - Component: TransformComponent
+        Position:
+          x: -4.06946087
+          y: -0.646774054
+          z: 6.99680424
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 3.92000103
+          y: 3.92000008
+          z: 3.92000103
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 0
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 0
+            z: 0
+            w: 0.515151501
+          Metallic: 1
+          Roughness: 1
+          AO: 0
+          EmissiveColor:
+            x: 1.75994839e+10
+            y: 4.59037351e-41
+            z: 1.10272578e-24
+          EmissiveIntensity: 4.38606419e-43
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 117407.305
+  - Entity: 12
+    Components:
+      - Component: NameComponent
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: 1.50484014
-          y: 2.84962869
-          z: -2.88820529
+          x: -0.345527351
+          y: 2
+          z: -5.9999671
         Rotation:
-          - -0.375559121
           - 0
           - 0
-          - 0.926798463
+          - 0
+          - 1
         Scale:
           x: 1
           y: 1
           z: 1
         Parent: 0
       - Component: CameraComponent
-        isLock: false
+        isLock: true
         Target:
-          x: 0
-          y: 0.200000003
-          z: 0
+          x: -0.345527351
+          y: 1.14242242e-08
+          z: 3.28306087e-05
         NearClip: 0.00999999978
         FarClip: 1024
         FOV: 1
@@ -289,53 +858,36 @@ Entities:
             - 0
           -
             - 0
-            - 0.717910707
-            - 0.696135223
+            - 0.948683262
+            - -0.316227764
             - 0
           -
-            - 0
-            - -0.696135223
-            - 0.717910707
+            - -0
+            - 0.316227764
+            - 0.948683262
             - 0
           -
-            - -1.50484014
-            - -4.05636024
-            - 0.0897465944
+            - 0.345527351
+            - -1.03712082e-05
+            - 6.32452393
             - 1
-        nextLinkId: 14
-        nextPinId: 19
+        nextLinkId: 11
+        nextPinId: 14
         PostEffects:
-          - Name: CompositeBloom
-            Enabled: true
-            VS: Asset\Shader\PostEffectVS.cso
-            PS: Asset/Shader\OutlineByShaderID.cso
-            NodePos:
-              x: -78.2164001
-              y: 3.54425812
-            InputPins:
-              - 9
-              - 11
-              - 12
-            OutputPin: 10
-            Param:
-              x: 4
-              y: 2
-              z: 0
-              w: 0
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
-            PS: Asset/Shader\DepthBlur.cso
+            PS: Asset/Shader\OutlineByShaderID.cso
             NodePos:
-              x: 456
-              y: 19.0000076
+              x: 36.5275269
+              y: 24.5206909
             InputPins:
-              - 13
-              - 15
-            OutputPin: 14
+              - 2
+              - 4
+            OutputPin: 3
             Param:
-              x: 0.200000003
-              y: 0
+              x: 4
+              y: 1
               z: 0
               w: 0
           - Name: NewEffect
@@ -343,977 +895,95 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\SSAO.cso
             NodePos:
-              x: 185.794922
-              y: 14.7982559
+              x: 268.181702
+              y: 24.4176025
             InputPins:
-              - 16
-              - 18
-            OutputPin: 17
+              - 5
+              - 7
+            OutputPin: 6
             Param:
               x: 1
               y: 0.100000001
               z: 0.5
               w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\DepthBlur.cso
+            NodePos:
+              x: 746.08374
+              y: 22.3669052
+            InputPins:
+              - 8
+              - 10
+            OutputPin: 9
+            Param:
+              x: 0.5
+              y: 0
+              z: 0
+              w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\DepthFog.cso
+            NodePos:
+              x: 507.539551
+              y: 19.8951035
+            InputPins:
+              - 11
+              - 13
+            OutputPin: 12
+            Param:
+              x: 0
+              y: 1000
+              z: 1
+              w: 1
         PostEffectLinks:
-          - ID: 7
+          - ID: 2
             StartNode: -1
             EndNode: 0
-            StartAttr: 1
-            EndAttr: 11
-          - ID: 10
-            StartNode: 1
-            EndNode: -2
-            StartAttr: 14
+            StartAttr: -1
             EndAttr: 2
-          - ID: 12
+          - ID: 3
             StartNode: 0
-            EndNode: 2
-            StartAttr: 10
-            EndAttr: 16
-          - ID: 13
-            StartNode: 2
             EndNode: 1
-            StartAttr: 17
-            EndAttr: 13
+            StartAttr: 3
+            EndAttr: 5
+          - ID: 8
+            StartNode: 1
+            EndNode: 3
+            StartAttr: 6
+            EndAttr: 11
+          - ID: 9
+            StartNode: 3
+            EndNode: 2
+            StartAttr: 12
+            EndAttr: 8
+          - ID: 10
+            StartNode: 2
+            EndNode: -2
+            StartAttr: 9
+            EndAttr: 1
         ScreenInput:
           Name: ""
           NodePos:
-            x: -183.2164
-            y: 270.54422
-          OutputPin: 1
+            x: -65.4724121
+            y: -34.4793091
+          OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 704.988647
-            y: 201.745972
+            x: 1303.74341
+            y: 227.008881
           InputPins:
-            - 2
+            - 1
       - Component: CameraController
-        distance: 3
-        height: 1
+        distance: 6
+        height: 2
         rotateSpeed: 1.5
         minPitch: 0
         maxPitch: 0.785398185
         minDistance: 1
-  - Entity: 6
-    Components:
-      - Component: NameComponent
-        Name: Ball
-      - Component: TransformComponent
-        Position:
-          x: 0.140117407
-          y: 2.77743649
-          z: -0.0870421678
-        Rotation:
-          - -0.0302640088
-          - 0.00279241591
-          - -0.0917858556
-          - 0.995314837
-        Scale:
-          x: 0.620000005
-          y: 0.620000362
-          z: 0.620000422
-        Parent: 0
-      - Component: ColliderComponent
-        isDynamic: true
-        autoMass: true
-        Mass: 0
-        colliders:
-          - type: 1
-            size: [1, 1, 1]
-            offset: [0, 0, 0]
-            rotationOffset: [0, 0, 0]
-            radius: 0.200000003
-            height: 1
-            staticFriction: 0
-            dynamicFriction: 0.5
-            restitution: 0
-            collisionLayer: 0
-            lockRotX: false
-            lockRotY: false
-            lockRotZ: false
-            isTrigger: false
-            boneName: ""
-      - Component: MaterialComponent
-        ShaderID: 4
-        Material:
-          BaseColor:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Metallic: 0
-          Roughness: 0
-          AO: 0
-          EmissiveColor:
-            x: 0
-            y: 0
-            z: 0
-          EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-      - Component: ModelRendererComponent
-        FilePath: Asset/Model\ball.fbx
-        isBlender: false
-        AnimationTime: 68314.1172
-      - Component: BallController
-        friction: 0.949999988
-        knockbackPower: 0.75
-  - Entity: 7
-    Components:
-      - Component: NameComponent
-        Name: Stadium
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: MaterialComponent
-        ShaderID: 1
-        Material:
-          BaseColor:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Metallic: 0
-          Roughness: 7.53898574e-43
-          AO: 0
-          EmissiveColor:
-            x: 3.26552768e-25
-            y: 4.59051364e-41
-            z: 0
-          EmissiveIntensity: 7.53898574e-43
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-      - Component: TextureComponent
-        FilePath: Asset\Model\football-stadium-with-surrounding-area\textures\Etaj4.jpeg
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\football-stadium-with-surrounding-area\stadion_floor.fbx
-        isBlender: true
-        AnimationTime: 68314.1172
-  - Entity: 8
-    Components:
-      - Component: NameComponent
-        Name: Roof
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 7
-      - Component: MaterialComponent
-        ShaderID: 0
-        Material:
-          BaseColor:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Metallic: 0
-          Roughness: 7.53898574e-43
-          AO: 0
-          EmissiveColor:
-            x: 3.26552768e-25
-            y: 4.59051364e-41
-            z: 0
-          EmissiveIntensity: 7.53898574e-43
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-      - Component: TextureComponent
-        FilePath: Asset\Model\football-stadium-with-surrounding-area\textures\Krysha3.jpeg
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\football-stadium-with-surrounding-area\stadion_roof.fbx
-        isBlender: true
-        AnimationTime: 68314.1172
-  - Entity: 9
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 7
-      - Component: MaterialComponent
-        ShaderID: 1
-        Material:
-          BaseColor:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Metallic: 0
-          Roughness: 7.53898574e-43
-          AO: 0
-          EmissiveColor:
-            x: 3.26552768e-25
-            y: 4.59051364e-41
-            z: 0
-          EmissiveIntensity: 7.53898574e-43
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-      - Component: TextureComponent
-        FilePath: Asset\Model\football-stadium-with-surrounding-area\textures\Opory2.jpeg
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\football-stadium-with-surrounding-area\stadion_hasira.fbx
-        isBlender: true
-        AnimationTime: 68314.1172
-  - Entity: 10
-    Components:
-      - Component: NameComponent
-        Name: Entity
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 7
-      - Component: MaterialComponent
-        ShaderID: 1
-        Material:
-          BaseColor:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Metallic: 0
-          Roughness: 0
-          AO: 0
-          EmissiveColor:
-            x: 0
-            y: 0
-            z: 0
-          EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-      - Component: TextureComponent
-        FilePath: Asset\Model\football-stadium-with-surrounding-area\textures\Tribuny2.jpeg
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\football-stadium-with-surrounding-area\stadion_seki.fbx
-        isBlender: true
-        AnimationTime: 68314.1172
-  - Entity: 11
-    Components:
-      - Component: NameComponent
-        Name: Wall
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: ColliderComponent
-        isDynamic: false
-        autoMass: true
-        Mass: 0
-        colliders:
-          - type: 0
-            size: [10, 10, 10]
-            offset: [11, 7.69999981, 0]
-            rotationOffset: [0, 0, 0]
-            radius: 0.5
-            height: 1
-            staticFriction: 0.5
-            dynamicFriction: 0.5
-            restitution: 0.100000001
-            collisionLayer: 0
-            lockRotX: false
-            lockRotY: false
-            lockRotZ: false
-            isTrigger: false
-            boneName: ""
-          - type: 0
-            size: [10, 10, 10]
-            offset: [-10.6000004, 7.69999981, 0]
-            rotationOffset: [0, 0, 0]
-            radius: 0.5
-            height: 1
-            staticFriction: 0.5
-            dynamicFriction: 0.5
-            restitution: 0.100000001
-            collisionLayer: 0
-            lockRotX: false
-            lockRotY: false
-            lockRotZ: false
-            isTrigger: false
-            boneName: ""
-          - type: 0
-            size: [15, 10, 15]
-            offset: [0, 7.69999981, 11.6000004]
-            rotationOffset: [0, 0, 0]
-            radius: 0.5
-            height: 1
-            staticFriction: 0.5
-            dynamicFriction: 0.5
-            restitution: 0.100000001
-            collisionLayer: 0
-            lockRotX: false
-            lockRotY: false
-            lockRotZ: false
-            isTrigger: false
-            boneName: ""
-          - type: 0
-            size: [15, 10, 15]
-            offset: [0, 7.69999981, -11.6999998]
-            rotationOffset: [0, 0, 0]
-            radius: 0.5
-            height: 1
-            staticFriction: 0.5
-            dynamicFriction: 0.5
-            restitution: 0.100000001
-            collisionLayer: 0
-            lockRotX: false
-            lockRotY: false
-            lockRotZ: false
-            isTrigger: false
-            boneName: ""
-  - Entity: 12
-    Components:
-      - Component: NameComponent
-        Name: Blue-2
-      - Component: TransformComponent
-        Position:
-          x: -0.319686174
-          y: -0.402728826
-          z: 0
-        Rotation:
-          - -0
-          - 0
-          - -0
-          - 1
-        Scale:
-          x: 0.100000001
-          y: 0.100000001
-          z: 0.100000001
-        Parent: 25
-      - Component: TextureComponent
-        FilePath: Asset\Texture\number.png
-        UV_Slice_X: 5
-        UV_Slice_Y: 5
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
-      - Component: ScoreSprite
-        isBlue: true
-        Degit: 2
-  - Entity: 13
-    Components:
-      - Component: NameComponent
-        Name: Blue-1
-      - Component: TransformComponent
-        Position:
-          x: -0.250085473
-          y: -0.401640862
-          z: 0
-        Rotation:
-          - -0
-          - 0
-          - -0
-          - 1
-        Scale:
-          x: 0.100000001
-          y: 0.100000001
-          z: 0.100000001
-        Parent: 25
-      - Component: TextureComponent
-        FilePath: Asset\Texture\number.png
-        UV_Slice_X: 5
-        UV_Slice_Y: 5
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
-      - Component: ScoreSprite
-        isBlue: true
-        Degit: 1
-  - Entity: 14
-    Components:
-      - Component: NameComponent
-        Name: Red-2
-      - Component: TransformComponent
-        Position:
-          x: 0.251814187
-          y: -0.402727872
-          z: 0
-        Rotation:
-          - -0
-          - 0
-          - -0
-          - 1
-        Scale:
-          x: 0.100000001
-          y: 0.100000001
-          z: 0.100000001
-        Parent: 25
-      - Component: TextureComponent
-        FilePath: Asset\Texture\number.png
-        UV_Slice_X: 5
-        UV_Slice_Y: 5
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
-      - Component: ScoreSprite
-        isBlue: false
-        Degit: 2
-  - Entity: 15
-    Components:
-      - Component: NameComponent
-        Name: Red-1
-      - Component: TransformComponent
-        Position:
-          x: 0.327807873
-          y: -0.402728826
-          z: 0
-        Rotation:
-          - -0
-          - 0
-          - -0
-          - 1
-        Scale:
-          x: 0.100000001
-          y: 0.100000001
-          z: 0.100000001
-        Parent: 25
-      - Component: TextureComponent
-        FilePath: Asset\Texture\number.png
-        UV_Slice_X: 5
-        UV_Slice_Y: 5
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
-      - Component: ScoreSprite
-        isBlue: false
-        Degit: 1
-  - Entity: 16
-    Components:
-      - Component: NameComponent
-        Name: TimerBack
-      - Component: TransformComponent
-        Position:
-          x: 0.00518136192
-          y: -0.43900001
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 0.340000004
-          y: 0.15866667
-          z: 0
-        Parent: 25
-      - Component: MaterialComponent
-        ShaderID: 0
-        Material:
-          BaseColor:
-            x: 0
-            y: 0
-            z: 0
-            w: 0.550000012
-          Metallic: 0
-          Roughness: 0
-          AO: 0
-          EmissiveColor:
-            x: 0
-            y: 0
-            z: 0
-          EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-      - Component: TextureComponent
-        FilePath: Asset\Texture\block.png
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
-  - Entity: 17
-    Components:
-      - Component: NameComponent
-        Name: TimerIcon
-      - Component: TransformComponent
-        Position:
-          x: 0.00999999978
-          y: -0.472000003
-          z: 0
-        Rotation:
-          - -0
-          - 0
-          - -0
-          - 1
-        Scale:
-          x: 0.0500000007
-          y: 0.0500000007
-          z: 0
-        Parent: 25
-      - Component: TextureComponent
-        FilePath: Asset\Texture\number.png
-        UV_Slice_X: 5
-        UV_Slice_Y: 5
-        AnimationNum: 12
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
-  - Entity: 18
-    Components:
-      - Component: NameComponent
-        Name: REDTEAM
-      - Component: TransformComponent
-        Position:
-          x: 0.295337617
-          y: -0.471501797
-          z: 0
-        Rotation:
-          - -0
-          - 0
-          - -0
-          - 1
-        Scale:
-          x: 0.239999995
-          y: 0.0459574461
-          z: 0.0459574461
-        Parent: 25
-      - Component: MaterialComponent
-        ShaderID: 0
-        Material:
-          BaseColor:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Metallic: 0
-          Roughness: 0
-          AO: 0
-          EmissiveColor:
-            x: 0
-            y: 0
-            z: 0
-          EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-      - Component: TextureComponent
-        FilePath: Asset\Texture\RedTeam.png
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
-  - Entity: 19
-    Components:
-      - Component: NameComponent
-        Name: BLUETEAM
-      - Component: TransformComponent
-        Position:
-          x: -0.284972906
-          y: -0.466321349
-          z: 0
-        Rotation:
-          - -0
-          - 0
-          - -0
-          - 1
-        Scale:
-          x: 0.246000007
-          y: 0.0460000001
-          z: 0.0460000001
-        Parent: 25
-      - Component: MaterialComponent
-        ShaderID: 0
-        Material:
-          BaseColor:
-            x: 0
-            y: 0
-            z: 1
-            w: 1
-          Metallic: 0
-          Roughness: 0
-          AO: 0
-          EmissiveColor:
-            x: 0
-            y: 0
-            z: 0
-          EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-      - Component: TextureComponent
-        FilePath: Asset\Texture\BlueTeam.png
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
-  - Entity: 20
-    Components:
-      - Component: NameComponent
-        Name: Timer-2
-      - Component: TransformComponent
-        Position:
-          x: -0.0328153521
-          y: -0.412780762
-          z: 0
-        Rotation:
-          - -0
-          - 0
-          - -0
-          - 1
-        Scale:
-          x: 0.100000001
-          y: 0.100000001
-          z: 0.100000001
-        Parent: 25
-      - Component: TextureComponent
-        FilePath: Asset\Texture\number.png
-        UV_Slice_X: 5
-        UV_Slice_Y: 5
-        AnimationNum: 4
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
-      - Component: TimerSprite
-        isBlue: false
-        Degit: 2
-  - Entity: 21
-    Components:
-      - Component: NameComponent
-        Name: Timer-1
-      - Component: TransformComponent
-        Position:
-          x: 0.0449049473
-          y: -0.412780702
-          z: 0
-        Rotation:
-          - -0
-          - 0
-          - -0
-          - 1
-        Scale:
-          x: 0.100000001
-          y: 0.100000001
-          z: 0.100000001
-        Parent: 25
-      - Component: TextureComponent
-        FilePath: Asset\Texture\number.png
-        UV_Slice_X: 5
-        UV_Slice_Y: 5
-        AnimationNum: 8
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
-      - Component: TimerSprite
-        isBlue: false
-        Degit: 1
-  - Entity: 22
-    Components:
-      - Component: NameComponent
-        Name: Enemy
-      - Component: TransformComponent
-        Position:
-          x: -1.30306208
-          y: 2.61291432
-          z: 0
-        Rotation:
-          - -0
-          - 0.553362548
-          - -0
-          - 0.832940519
-        Scale:
-          x: 0.00300002261
-          y: 0.00300000003
-          z: 0.00300002261
-        Parent: 0
-      - Component: ColliderComponent
-        isDynamic: true
-        autoMass: true
-        Mass: 0
-        colliders:
-          - type: 0
-            size: [30, 165, 30]
-            offset: [0, 80, 0]
-            rotationOffset: [0, 0, 0]
-            radius: 0.5
-            height: 1
-            staticFriction: 0.5
-            dynamicFriction: 0.5
-            restitution: 0.100000001
-            collisionLayer: 4
-            lockRotX: true
-            lockRotY: true
-            lockRotZ: true
-            isTrigger: false
-            boneName: ""
-      - Component: MaterialComponent
-        ShaderID: 4
-        Material:
-          BaseColor:
-            x: 1
-            y: 0
-            z: 0
-            w: 1
-          Metallic: 0
-          Roughness: 0
-          AO: 0
-          EmissiveColor:
-            x: 0
-            y: 0
-            z: 0
-          EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\Akai (1).fbx
-        isBlender: false
-        AnimationTime: 0
-        Animations:
-          Idle: Asset\Model\Akai_Idle.fbx
-          mixamo.com: Asset\Model\Akai_Run.fbx
-          Run: Asset\Model\Akai_Run.fbx
-      - Component: OutlineComponent
-      - Component: EnemyController
-        moveSpeed: 1
-        dashMultiplier: 2
-        accel: 10
-        rotateSpeed: 8
-        maxStamina: 5
-        stamina: 5
-        staminaConsumeRate: 1.5
-        staminaRecoverRate: 1
-        goalPosition:
-          x: 5.5
-          y: 0
-          z: 0
-        Stamina: 5
-  - Entity: 23
-    Components:
-      - Component: NameComponent
-        Name: FadeIn
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 5.30999994
-          y: 1
-          z: 1
-        Parent: 25
-      - Component: OrderInLayerComponent
-        layer: -1
-      - Component: MaterialComponent
-        ShaderID: 0
-        Material:
-          BaseColor:
-            x: 0
-            y: 0
-            z: 0
-            w: 1
-          Metallic: 0
-          Roughness: 0
-          AO: 0
-          EmissiveColor:
-            x: 0
-            y: 0
-            z: 0
-          EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
-      - Component: FadeInSprite
-        FadeTime: 1
-  - Entity: 24
-    Components:
-      - Component: NameComponent
-        Name: FadeOut
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 2.67000008
-          y: 1
-          z: 1
-        Parent: 25
-      - Component: MaterialComponent
-        ShaderID: 0
-        Material:
-          BaseColor:
-            x: 0
-            y: 0
-            z: 0
-            w: 0
-          Metallic: 0
-          Roughness: 0
-          AO: 0
-          EmissiveColor:
-            x: 0
-            y: 0
-            z: 0
-          EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: SpriteRendererComponent
-        anchor:
-          x: 0.5
-          y: 0.5
-        pivot:
-          x: 0
-          y: 0
-      - Component: FadeOutSprite
-        FadeTime: 1
-  - Entity: 25
-    Components:
-      - Component: NameComponent
-        Name: UI
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 0
-          z: 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
+      - Component: PrefabComponent
+        FilePath: C:\Users\teto_\source\repos\GameEngine\Asset\Prefab\Camera.prefab
+        SourceYaml: "Entities:\n  - LocalID: 0\n    Components:\n      - Component: NameComponent\n        Name: Camera\n      - Component: TransformComponent\n        Position:\n          x: -0.345527351\n          y: 2\n          z: -5.9999671\n        Rotation:\n          - 0\n          - 0\n          - 0\n          - 1\n        Scale:\n          x: 1\n          y: 1\n          z: 1\n        Parent: 0\n      - Component: CameraComponent\n        isLock: true\n        Target:\n          x: -0.345527351\n          y: 1.14242242e-08\n          z: 3.28306087e-05\n        NearClip: 0.00999999978\n        FarClip: 1024\n        FOV: 1\n        viewMatrix:\n          -\n            - 1\n            - 0\n            - 0\n            - 0\n          -\n            - 0\n            - 0.948683262\n            - -0.316227764\n            - 0\n          -\n            - -0\n            - 0.316227764\n            - 0.948683262\n            - 0\n          -\n            - 0.345527351\n            - -1.03712082e-05\n            - 6.32452393\n            - 1\n        nextLinkId: 11\n        nextPinId: 14\n        PostEffects:\n          - Name: NewEffect\n            Enabled: true\n            VS: Asset/Shader/PostEffectVS.cso\n            PS: Asset/Shader\\OutlineByShaderID.cso\n            NodePos:\n              x: 36.5275269\n              y: 24.5206909\n            InputPins:\n              - 2\n              - 4\n            OutputPin: 3\n            Param:\n              x: 4\n              y: 1\n              z: 0\n              w: 0\n          - Name: NewEffect\n            Enabled: true\n            VS: Asset/Shader/PostEffectVS.cso\n            PS: Asset/Shader\\SSAO.cso\n            NodePos:\n              x: 268.181702\n              y: 24.4176025\n            InputPins:\n              - 5\n              - 7\n            OutputPin: 6\n            Param:\n              x: 1\n              y: 0.100000001\n              z: 0.5\n              w: 0\n          - Name: NewEffect\n            Enabled: true\n            VS: Asset/Shader/PostEffectVS.cso\n            PS: Asset/Shader\\DepthBlur.cso\n            NodePos:\n              x: 746.08374\n              y: 22.3669052\n            InputPins:\n              - 8\n              - 10\n            OutputPin: 9\n            Param:\n              x: 0.5\n              y: 0\n              z: 0\n              w: 0\n          - Name: NewEffect\n            Enabled: true\n            VS: Asset/Shader/PostEffectVS.cso\n            PS: Asset/Shader\\DepthFog.cso\n            NodePos:\n              x: 507.539551\n              y: 19.8951035\n            InputPins:\n              - 11\n              - 13\n            OutputPin: 12\n            Param:\n              x: 0\n              y: 1000\n              z: 1\n              w: 1\n        PostEffectLinks:\n          - ID: 2\n            StartNode: -1\n            EndNode: 0\n            StartAttr: -1\n            EndAttr: 2\n          - ID: 3\n            StartNode: 0\n            EndNode: 1\n            StartAttr: 3\n            EndAttr: 5\n          - ID: 8\n            StartNode: 1\n            EndNode: 3\n            StartAttr: 6\n            EndAttr: 11\n          - ID: 9\n            StartNode: 3\n            EndNode: 2\n            StartAttr: 12\n            EndAttr: 8\n          - ID: 10\n            StartNode: 2\n            EndNode: -2\n            StartAttr: 9\n            EndAttr: 1\n        ScreenInput:\n          Name: \"\"\n          NodePos:\n            x: -65.4724121\n            y: -34.4793091\n          OutputPin: -1\n        ScreenOutput:\n          Name: \"\"\n          NodePos:\n            x: 1303.74341\n            y: 227.008881\n          InputPins:\n            - 1\n      - Component: CameraController\n        distance: 6\n        height: 2\n        rotateSpeed: 1.5\n        minPitch: 0\n        maxPitch: 0.785398185\n        minDistance: 1"
