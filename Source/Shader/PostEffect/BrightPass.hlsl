@@ -1,7 +1,9 @@
 #include "../common.hlsl"
+#include "PostEffectFunc.hlsli"
 
+// シーンカラー (ライティング済み)
+// g_SamplerState は PostEffectFunc.hlsli で定義済み
 Texture2D g_Texture : register(t0);
-SamplerState g_SamplerState : register(s0);
 
 float4 main(PS_IN In) : SV_Target
 {
@@ -32,6 +34,11 @@ float4 main(PS_IN In) : SV_Target
         weight = max(rq, luminance - Threshold) / max(luminance, EPSILON);
     }
 
-    return float4(color.rgb * weight, 1.0f);
+    // GBuffer エミッシブを直接ブルームに加算（輝度閾値をバイパス）
+    // EmissiveColor (RGB) × EmissiveIntensity (A) が実際の発光量
+    float4 emissive      = GetEmissive(In.TexCoord);
+    float3 emissiveBloom = emissive.rgb * emissive.a;
+
+    return float4(color.rgb * weight + emissiveBloom, 1.0f);
 }
 
