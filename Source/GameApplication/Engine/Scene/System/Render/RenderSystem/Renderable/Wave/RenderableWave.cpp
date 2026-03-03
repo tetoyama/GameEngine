@@ -18,6 +18,7 @@
 
 
 void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity) {
+	(void)ctx;
 	auto componentRegistry = sceneContext->component;
 	auto pTransform = componentRegistry->GetComponent<TransformComponent>(entity);
 	auto pWave = componentRegistry->GetComponent<WaveComponent>(entity);
@@ -70,8 +71,4 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	deviceContext->IASetIndexBuffer(*meshRenderer->mesh.m_IndexBuffer.GetAddressOf(), DXGI_FORMAT_R32_UINT, 0);
 
 	deviceContext->DrawIndexed(meshRenderer->mesh.indexCount, 0, 0);
-
-	graphicsContext->SetDepthMode(DepthMode::Write);
-	graphicsContext->SetViewMatrix(ctx.viewMatrix);
-	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
 }
