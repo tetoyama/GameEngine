@@ -227,13 +227,9 @@ float ShadowFactorCSM(
     float shadow = SampleCascadePCF(suvBase, depth, texelSize, pcf.StepTexel, radius);
 
     // ---- カスケードフォールバック ----
-    // 最精細カスケードが「影なし (shadow=1.0)」を返した場合、次のカスケードで遠方の
-    // shadow caster による影を検証する。
-    //
-    // 次のカスケードで遮蔽物が見つかった場合、その遮蔽物のライトビュー Z を最精細
-    // カスケードの NDC 空間に変換し、最精細カスケードの Z 範囲 [0,1] 内かを確認する。
-    //   ・範囲内  → 最精細カスケードで捕捉可能なはず → 「影なし」の判定を優先して影を無視
-    //   ・範囲外  → 最精細カスケードでは描画不可の遮蔽物 → 次のカスケードの影を採用
+    // 精細カスケードが「影なし (shadow=1.0)」を返した場合、次のカスケードを参照して
+    // 精細カスケードの XY 範囲外にある遮蔽物による影を検出する。
+    // 受影点が次のカスケードの XY・Z 両方の有効範囲内にある場合のみサンプルを採用する。
     [branch]
     if (shadow >= 1.0 && cascade < DIRECTIONAL_CSM_CASCADE_COUNT - 1)
     {
@@ -245,32 +241,14 @@ float ShadowFactorCSM(
             nsp.xyz /= nsp.w;
             float2 nuv = nsp.xy * 0.5 + 0.5;
             nuv.y = 1.0 - nuv.y;
-            if (all(nuv >= 0.0) && all(nuv <= 1.0))
+            if (all(nuv >= 0.0) && all(nuv <= 1.0) && nsp.z >= 0.0 && nsp.z <= 1.0)
             {
                 float ndepth = saturate(nsp.z - bias);
                 int nTileIndex = CsmAtlasOffset + nextCascade;
                 uint ngx = nTileIndex % grid;
                 uint ngy = nTileIndex / grid;
                 float2 nsuvBase = float2(ngx, ngy) * tile + nuv * tile;
-
-                // 次のカスケードのシャドウマップから遮蔽物の生深度を読み取る
-                float occRawDepth = ShadowMap.SampleLevel(LinearSampler, nsuvBase, 0).r;
-
-                // 正射影: ndc_z = viewZ * P._33 + P._43  →  viewZ = (ndc_z - P._43) / P._33
-                // 遮蔽物のライトビュー Z を次のカスケードの行列から求め、
-                // 最精細カスケードの NDC Z に変換して描画範囲を確認する。
-                float p1_33 = CsmProjections[nextCascade]._33;
-                [branch]
-                if (abs(p1_33) > 1e-6)
-                {
-                    float occViewZ = (occRawDepth - CsmProjections[nextCascade]._43) / p1_33;
-                    float occNdcInFine = occViewZ * CsmProjections[cascade]._33 + CsmProjections[cascade]._43;
-
-                    if (occNdcInFine < 0.0 || occNdcInFine > 1.0)
-                    {
-                        shadow = min(shadow, SampleCascadePCF(nsuvBase, ndepth, texelSize, pcf.StepTexel, radius));
-                    }
-                }
+                shadow = min(shadow, SampleCascadePCF(nsuvBase, ndepth, texelSize, pcf.StepTexel, radius));
             }
         }
     }
