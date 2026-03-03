@@ -302,8 +302,8 @@ Entities:
             - -4.05636024
             - 0.0897465944
             - 1
-        nextLinkId: 14
-        nextPinId: 19
+        nextLinkId: 18
+        nextPinId: 24
         PostEffects:
           - Name: CompositeBloom
             Enabled: true
@@ -347,12 +347,42 @@ Entities:
               y: 14.7982559
             InputPins:
               - 16
-              - 18
             OutputPin: 17
             Param:
               x: 1
               y: 0.100000001
               z: 0.5
+              w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\Blur.cso
+            NodePos:
+              x: 420
+              y: 14.7982559
+            InputPins:
+              - 19
+            OutputPin: 20
+            Param:
+              x: 0.30000001
+              y: 0
+              z: 0
+              w: 0
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\SSAOComposite.cso
+            NodePos:
+              x: 655
+              y: 14.7982559
+            InputPins:
+              - 21
+              - 22
+            OutputPin: 23
+            Param:
+              x: 0
+              y: 0
+              z: 0
               w: 0
         PostEffectLinks:
           - ID: 7
@@ -371,10 +401,25 @@ Entities:
             StartAttr: 10
             EndAttr: 16
           - ID: 13
-            StartNode: 2
+            StartNode: 4
             EndNode: 1
-            StartAttr: 17
+            StartAttr: 23
             EndAttr: 13
+          - ID: 14
+            StartNode: 2
+            EndNode: 3
+            StartAttr: 17
+            EndAttr: 19
+          - ID: 15
+            StartNode: 3
+            EndNode: 4
+            StartAttr: 20
+            EndAttr: 22
+          - ID: 16
+            StartNode: 0
+            EndNode: 4
+            StartAttr: 10
+            EndAttr: 21
         ScreenInput:
           Name: ""
           NodePos:

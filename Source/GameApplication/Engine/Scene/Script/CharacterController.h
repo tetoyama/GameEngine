@@ -39,6 +39,7 @@ class CharacterController : public CustomScriptComponent {
 	float  velY           = 0.0f;
 	bool   isJumpPressed  = false;
 	bool   isGrounded     = false;
+	bool   isInJump       = false;   // ジャンプ中フラグ（坂道登りの上向き速度と区別するため）
 	bool   animsReady     = false;
 
 	// RayCast 時に除外する自身のレイヤービット（インスペクターで設定）
@@ -105,6 +106,7 @@ public:
 		currentSpeed  = 0.0f;
 		isJumpPressed = false;
 		isGrounded    = false;
+		isInJump      = false;
 		animsReady    = false;
 
 		transform = GetComponentRef<TransformComponent>();
@@ -195,7 +197,7 @@ public:
 				->GetSystem<PhysicSystem>()
 				->RaycastWithMask(rayPos, rayDir, groundRayLength + 0.1f, selfLayerBit);
 
-			isGrounded = hit.hit && (hit.distance < (groundRayLength + 0.05f)) && velY <= 0.0f;
+			isGrounded = hit.hit && (hit.distance < (groundRayLength + 0.05f)) && !isInJump;
 
 			// 坂道角度チェック
 			bool isWalkable = true;
@@ -220,8 +222,15 @@ public:
 				if (GetKey(VK_SPACE) && !isJumpPressed) {
 					velY = jumpPower;
 					transform->position.y += 0.05f;
+					isInJump = true;
 				} else {
-					velY = 0.0f;
+					// 着地確認：ジャンプフラグを確実にリセット
+					isInJump = false;
+					// 坂面に沿った Y 速度を使い、坂道では接地スナップを加えて
+					// 上り坂・下り坂どちらも滑らかに追従する。
+					// 平坦面（surfaceNormal.y ≒ 1）ではスナップ不要なのでゼロにする。
+					float slopeSnap = (surfaceNormal.y < 0.999f) ? -gravity * dt : 0.0f;
+					velY = horizontalVel.y + slopeSnap;
 				}
 			} else {
 				// 空中 or 急斜面：重力適用
@@ -230,6 +239,8 @@ public:
 					horizontalVel = physx::PxVec3(0.0f, 0.0f, 0.0f);
 				}
 				velY -= gravity * dt;
+				// 頂点を過ぎて下降に転じたらジャンプフラグを解除
+				if (velY <= 0.0f) isInJump = false;
 			}
 
 			// 最終速度合成
