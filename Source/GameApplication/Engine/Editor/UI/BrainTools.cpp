@@ -1,5 +1,5 @@
 #include "BrainTools.h"
-
+#include "SourceIndex.h"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -318,6 +318,9 @@ std::vector<BrainToolCall> BrainTools::ParseToolCalls(const std::string& respons
 // ExecuteToolCall
 // ============================
 std::string BrainTools::ExecuteToolCall(const BrainToolCall& call) {
+	if (call.name == "search_index") {
+		return SourceIndex::SearchByKeyword(call.path);
+	}
 	if (call.name == "get_file_index") {
 		return GetFileIndex();
 	}

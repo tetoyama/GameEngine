@@ -1,5 +1,6 @@
 #include "BRAIN.h"
 #include "BrainTools.h"
+#include "SourceIndex.h"
 
 #include <thread>
 #include <mutex>
@@ -62,16 +63,17 @@ void BRAIN::Initialize(EditorService* editor){
 		"an AI assistant embedded in a C++ game engine editor.\n"
 		"You can browse the engine's source code and asset folder to answer questions.\n\n"
 		"Available tools (output ONLY the XML tag — no preamble, no explanation before it):\n"
-		"  <tool_call name=\"get_file_index\"/>                                    -- get a cached flat list of ALL source files (use this first for any abstract question)\n"
+		"  <tool_call name=\"search_index\" path=\"KEYWORD\"/>                      -- search the pre-built source index for files related to a keyword (FASTEST — use this first for any abstract question)\n"
+		"  <tool_call name=\"get_file_index\"/>                                    -- get a flat list of ALL source file paths\n"
 		"  <tool_call name=\"list_directory\" path=\"SOURCE_OR_ASSET_DIR\"/>        -- list one directory level\n"
 		"  <tool_call name=\"search_files\" path=\"FILENAME_SUBSTRING\"/>           -- find files by name substring\n"
-		"  <tool_call name=\"grep_source\" path=\"CODE_KEYWORD\"/>                  -- find keyword in source files\n"
+		"  <tool_call name=\"grep_source\" path=\"CODE_KEYWORD\"/>                  -- find keyword in source file contents\n"
 		"  <tool_call name=\"read_source_file\" path=\"SOURCE_OR_ASSET_PATH\"/>     -- read a file\n"
 		"  <tool_call name=\"list_assets\" path=\"ASSET_SUBDIR\"/>                  -- list assets\n\n"
 		"Rules:\n"
-		"- Replace SOURCE_OR_ASSET_DIR, FILENAME_SUBSTRING, CODE_KEYWORD, SOURCE_OR_ASSET_PATH, ASSET_SUBDIR with REAL values.\n"
-		"- For any question about where a feature is implemented, call get_file_index FIRST to see all source files, then read the relevant ones.\n"
-		"- To find where a symbol or pattern is defined: use grep_source with the class/function name.\n"
+		"- Replace KEYWORD, SOURCE_OR_ASSET_DIR, FILENAME_SUBSTRING, CODE_KEYWORD, SOURCE_OR_ASSET_PATH, ASSET_SUBDIR with REAL values.\n"
+		"- For any abstract question (e.g. 'where is audio?', 'how does physics work?'), use search_index FIRST with a relevant keyword.\n"
+		"- To find where a specific symbol or pattern is defined in code: use grep_source with the class/function name.\n"
 		"- When you need a tool, output the tool_call tag IMMEDIATELY as the first thing in your response.\n"
 		"- Do NOT explain what you are about to do before calling a tool.\n"
 		"- Do NOT output more than one tool_call per response.\n"
@@ -104,6 +106,12 @@ void BRAIN::Initialize(EditorService* editor){
 			}
 		}
 	);
+
+	// ---------------------------------
+	// Source index（バックグラウンドで起動時に一度全走査し、
+	// キーワード辞書をビルドしてディスクにキャッシュ。次回起動は差分のみ）
+	// ---------------------------------
+	SourceIndex::BuildAsync();
 
 	// ---------------------------------
 	// Worker thread

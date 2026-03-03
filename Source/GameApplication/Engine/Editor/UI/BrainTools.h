@@ -19,6 +19,8 @@ struct BrainToolCall {
 // ソースコードとアセットフォルダの閲覧をサポート
 //
 // 【AIツール呼び出し書式】AIレスポンス内で使用:
+//   <tool_call name="search_index" path="keyword"/>
+//   <tool_call name="get_file_index"/>
 //   <tool_call name="list_source_files"/>
 //   <tool_call name="list_directory" path="Source/some/path/"/>
 //   <tool_call name="search_files" path="FileName"/>
