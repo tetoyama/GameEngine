@@ -90,9 +90,9 @@ Entities:
         LightType: 4
         CastShadow: 1
         Position:
-          x: -23.2957706
-          y: 10.9316225
-          z: -2.2304759
+          x: -22.9985771
+          y: 10.6025972
+          z: -2.03964949
           w: 0
         Direction:
           x: 0.61569488
@@ -116,20 +116,20 @@ Entities:
           w: 0.00499999989
         LightView:
           -
-            - 0.540302277
+            - 0.540302217
             - 0
-            - -0.841470957
-            - 10.709877
+            - -0.841471076
+            - 10.7098761
           -
             - 0.573579311
-            - 0.731688797
-            - 0.36829102
+            - 0.731688857
+            - 0.368290931
             - 6.18489027
           -
-            - 0.61569494
-            - -0.681638837
-            - 0.395333141
-            - 22.6762867
+            - 0.615695
+            - -0.681638777
+            - 0.395333111
+            - 22.1935902
           -
             - 0
             - 0
@@ -137,19 +137,19 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.08406955
+            - 0.0884459019
             - 0
             - 0
-            - -0.189378768
+            - -0.199237004
           -
             - 0
-            - 0.104235686
+            - 0.106022939
             - 0
-            - -0.204524964
+            - -0.208031759
           -
             - 0
             - 0
-            - 0.0358949751
+            - 0.0367609784
             - -0
           -
             - 0
@@ -1140,26 +1140,27 @@ Entities:
           z: 50
         Parent: 0
       - Component: MaterialComponent
-        ShaderID: 0
+        ShaderID: 1
         Material:
           BaseColor:
-            x: 1
-            y: 1
+            x: 0.333333313
+            y: 0.731601715
             z: 1
             w: 1
-          Metallic: 1
-          Roughness: 0
+          Metallic: 0.5
+          Roughness: 0.200000003
           AO: 0
           EmissiveColor:
             x: 0
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: WaveComponent
         Resolution: 50
         Amplitude: 0.200000003
         Wavelength: 2
         Speed: 0.100000001
+        UseEnvironmentMap: false
