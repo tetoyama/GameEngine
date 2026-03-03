@@ -29,7 +29,6 @@ public:
 		node["Amplitude"] = Amplitude;
 		node["Wavelength"] = Wavelength;
 		node["Speed"] = Speed;
-		node["UseEnvironmentMap"] = UseEnvironmentMap;
 		return node;
 	}
 
@@ -38,7 +37,6 @@ public:
 		if(node["Amplitude"]) Amplitude = node["Amplitude"].as<float>();
 		if(node["Wavelength"]) Wavelength = node["Wavelength"].as<float>();
 		if(node["Speed"]) Speed = node["Speed"].as<float>();
-		if(node["UseEnvironmentMap"]) UseEnvironmentMap = node["UseEnvironmentMap"].as<bool>();
 		return true;
 	}
 
@@ -55,7 +53,6 @@ public:
 		}
 
 		ImGui::Separator();
-		ImGui::Checkbox("Environment Map", &UseEnvironmentMap);
 
 		ImGui::Text("Current Time: %.2f", Time);
 	}

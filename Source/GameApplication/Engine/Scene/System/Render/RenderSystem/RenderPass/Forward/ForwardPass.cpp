@@ -108,6 +108,7 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 	deviceContext->RSSetViewports(1, &vp);
 
 	graphics->SetBlendMode(BlendMode::Alpha);
+	m_context->graphics->SetDepthMode(DepthMode::ReadOnly);
 
 	// 透明・UIレイヤーのみ描画
 	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++) {
@@ -154,6 +155,20 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 					transparentList.push_back(item);
 
 
+				} else{
+					for (auto renderable : renderables) {
+						int materialID = 0;
+						auto material = context->component->GetComponent<MaterialComponent>(entity);
+						if (material) {
+							materialID = material->ShaderID;
+						}
+						ObjectInfo info;
+						info.SceneID = (unsigned int)context;
+						info.ObjectID = entity;
+						info.ShaderID = materialID;
+						m_context->graphics->SetObjectInfo(info);
+						renderable->Execute(ctx, context, entity);
+					}
 				}
 			}
 		}
@@ -161,7 +176,6 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 		// Z ソートして半透明描画
 		if (!transparentList.empty()) {
 
-			m_context->graphics->SetDepthMode(DepthMode::ReadOnly);
 
 			std::sort(
 				transparentList.begin(), transparentList.end(),
@@ -194,10 +208,10 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 				}
 			}
 
-			m_context->graphics->SetDepthMode(DepthMode::Write);
 		}
 	}
 
+	m_context->graphics->SetDepthMode(DepthMode::Write);
 	// RTV を解除
 	ID3D11RenderTargetView* nullRTV[1] = { nullptr };
 	deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);

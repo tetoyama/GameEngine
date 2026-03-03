@@ -31,6 +31,7 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	MATERIAL material;
 	if (pMaterial) {
 		material = pMaterial->Material;
+		material.MaterialFlags &= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
 	}
 
 	if(pTexture && pTexture->m_TextureData && pTexture->m_TextureData->pTexture){
@@ -38,17 +39,6 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 		// sceneContext->manager->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 		material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 
-	}
-
-	// 環境マッピング: WaveComponent の UseEnvironmentMap が有効なら PBR シェーダーで環境マップを適用
-	if(pWave->UseEnvironmentMap){
-		material.MaterialFlags |= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
-		// 環境マップは PBR シェーダー (ShaderID=1) でのみ機能する
-		ObjectInfo info;
-		info.SceneID  = (unsigned int)sceneContext;
-		info.ObjectID = entity;
-		info.ShaderID = 1; // PBR
-		sceneContext->manager->graphics->SetObjectInfo(info);
 	}
 
 	sceneContext->manager->graphics->SetMaterial(material);
@@ -61,6 +51,7 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 
 	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, componentRegistry);
 
+	graphicsContext->SetCullMode(CullMode::Back);
 	graphicsContext->SetWorldMatrix(World);
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
@@ -71,7 +62,7 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 
 	deviceContext->DrawIndexed(meshRenderer->mesh.indexCount, 0, 0);
 
-	graphicsContext->SetDepthMode(DepthMode::Write);
-	graphicsContext->SetViewMatrix(ctx.viewMatrix);
-	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
+	//graphicsContext->SetDepthMode(DepthMode::Write);
+	//graphicsContext->SetViewMatrix(ctx.viewMatrix);
+	//graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
 }

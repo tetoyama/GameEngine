@@ -19,6 +19,12 @@ public:
 	int ShaderID = 0;
 	MATERIAL Material;
 
+	MaterialComponent(){
+		MATERIAL defaultMat = {};
+		Material = defaultMat;
+		Material.BaseColor = float4(1, 1, 1, 1);
+	}
+
 	YAML::Node encode() override{
 		YAML::Node node;
 		node["ShaderID"] = ShaderID;
