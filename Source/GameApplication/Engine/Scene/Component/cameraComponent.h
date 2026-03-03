@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Interface/IComponent.h"
 #include "BackEnds/YAMLConverters.h"
 #include "Backends/myVector2.h"
@@ -29,6 +29,8 @@ struct CameraPostEffect {
     bool initialized = false;
     std::vector<int> inputPins;
     int outputPin = -1;
+
+	float resolutionScale = 1.0f;
 
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> tex;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv;
@@ -133,6 +135,7 @@ public:
             e["InputPins"] = effect.inputPins;
             e["OutputPin"] = effect.outputPin;
 			e["Param"] = effect.Param;
+			e["ResolutionScale"] = effect.resolutionScale;
 
             node["PostEffects"].push_back(e);
         }
@@ -199,6 +202,7 @@ public:
                 if (effect.inputPins.empty()) effect.inputPins.push_back(nextPinId++);
 				if(eNode["OutputPin"]) effect.outputPin = eNode["OutputPin"].as<int>();
 				if(eNode["Param"]) effect.Param = eNode["Param"].as < DirectX::XMFLOAT4 > ();
+				if(eNode["ResolutionScale"]) effect.resolutionScale = eNode["ResolutionScale"].as<float>();
 				if (effect.outputPin <= 0) effect.outputPin = nextPinId++;
                 effect.initialized = true;
                 postEffects.push_back(effect);
@@ -363,6 +367,7 @@ public:
             ImGui::UndoCheckbox("Enabled", &effect.enabled);
 
 			ImGui::UndoDragFloat4("##Param", &effect.Param.x, 0.01f);
+			ImGui::UndoDragFloat("Scale", &effect.resolutionScale, 0.01f, 0.1f, 1.0f);
 
             if (effect.ps) strncpy_s(filepathBuffer, sizeof(filepathBuffer), effect.ps->FilePath.c_str(), _TRUNCATE);
             else filepathBuffer[0] = '\0';

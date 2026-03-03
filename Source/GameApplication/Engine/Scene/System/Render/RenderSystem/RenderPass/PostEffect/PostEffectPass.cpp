@@ -52,8 +52,11 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 			node.shader.m_PS         = e.ps->m_PixelShader;
 			node.shader.m_InputLayout = e.vs->m_VertexLayout;
 			node.param               = e.Param;
+			node.resolutionScale     = e.resolutionScale;
 
-			e.ResizeTexture(graphics->GetDevice(), ctx.screenSize);
+			float scale = max(0.1f, min(1.0f, e.resolutionScale));
+			Vector2 scaledSize{ ctx.screenSize.x * scale, ctx.screenSize.y * scale };
+			e.ResizeTexture(graphics->GetDevice(), scaledSize);
 			e.Clear(graphics->GetDeviceContext(), &clearColor.x);
 			node.rtv = e.rtv.GetAddressOf();
 			node.srv = e.srv.Get();

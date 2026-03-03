@@ -813,6 +813,20 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 
 		m_DeviceContext->OMSetRenderTargets(1, node.rtv, nullptr);
 
+		// ダウンサンプリング: レンダーターゲットのサイズに合わせてビューポートを設定
+		if(node.tex){
+			D3D11_TEXTURE2D_DESC desc;
+			node.tex->GetDesc(&desc);
+			D3D11_VIEWPORT vp{};
+			vp.TopLeftX = 0.0f;
+			vp.TopLeftY = 0.0f;
+			vp.Width    = static_cast<float>(desc.Width);
+			vp.Height   = static_cast<float>(desc.Height);
+			vp.MinDepth = 0.0f;
+			vp.MaxDepth = 1.0f;
+			m_DeviceContext->RSSetViewports(1, &vp);
+		}
+
 		for(size_t i = 0; i < node.inputs.size(); ++i){
 			ID3D11ShaderResourceView* inputSRV = nullptr;
 			if(node.inputs[i] == -2){
@@ -846,6 +860,9 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 		m_CurrentSRV = effects.back().srv;
 		m_CurrentRTV = effects.back().rtv;
 	}
+
+	// ポストプロセス後にビューポートをフルスクリーンに戻す
+	ResetViewport();
 }
 
 
