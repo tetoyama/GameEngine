@@ -1,4 +1,8 @@
-// GameScene/System/inspectorSystem.h
+// =======================================================================
+// 
+// particleSystem.h
+// 
+// =======================================================================
 #pragma once
 #include "Interface/ISystem.h"
 #include "Entity/Entity.h" // Entityの定義をインクルード

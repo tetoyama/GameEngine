@@ -1,3 +1,8 @@
+// =======================================================================
+// 
+// ScriptSystem.cpp
+// 
+// =======================================================================
 #include "ScriptSystem.h"
 #include "Scene/Component/ScriptComponent.h"
 #include "Component/componentList.h"

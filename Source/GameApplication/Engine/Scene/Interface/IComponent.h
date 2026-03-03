@@ -1,4 +1,8 @@
-// Scene/Interface/IComponent.h
+// =======================================================================
+// 
+// IComponent.h
+// 
+// =======================================================================
 #pragma once
 #include <backends/yaml-cpp/yaml.h>
 #include <backends/ImGui/imgui.h>

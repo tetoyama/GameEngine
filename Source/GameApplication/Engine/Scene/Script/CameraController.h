@@ -1,3 +1,8 @@
+// =======================================================================
+// 
+// CameraController.h
+// 
+// =======================================================================
 #pragma once
 #include "Component/CustomScriptComponent.h"
 #include "Backends/checkFileExtention.h"

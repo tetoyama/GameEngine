@@ -1,3 +1,8 @@
+// =======================================================================
+// 
+// CustomScriptSystem.cpp
+// 
+// =======================================================================
 #include "CustomScriptSystem.h"
 #include "Component/CustomScriptComponent.h"
 
