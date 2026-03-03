@@ -175,7 +175,7 @@ Entities:
           z: 500
         Parent: 0
       - Component: MaterialComponent
-        ShaderID: 0
+        ShaderID: 6
         Material:
           BaseColor:
             x: 1
@@ -329,21 +329,49 @@ Entities:
             - -5
             - 15
             - 1
-        nextLinkId: 1
-        nextPinId: 1
+        nextLinkId: 4
+        nextPinId: 5
+        PostEffects:
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\SSR.cso
+            NodePos:
+              x: 119
+              y: 76
+            InputPins:
+              - 2
+              - 4
+            OutputPin: 3
+            Param:
+              x: 0
+              y: 0
+              z: 0
+              w: 0
+        PostEffectLinks:
+          - ID: 2
+            StartNode: -1
+            EndNode: 0
+            StartAttr: -1
+            EndAttr: 2
+          - ID: 3
+            StartNode: 0
+            EndNode: -2
+            StartAttr: 3
+            EndAttr: 1
         ScreenInput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: 0
+            y: 0
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: 376
+            y: 21
           InputPins:
-            []
+            - 1
       - Component: CameraController
         distance: 6
         height: 2
@@ -358,7 +386,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 1
+          y: 0.501693606
           z: 0
         Rotation:
           - -0
@@ -367,8 +395,8 @@ Entities:
           - 1
         Scale:
           x: 25
-          y: 25.000021
-          z: 25.000021
+          y: 1
+          z: 25
         Parent: 0
       - Component: MaterialComponent
         ShaderID: 5
@@ -388,13 +416,18 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+      - Component: TextureComponent
+        FilePath: Asset/Texture\Daylight.png
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
       - Component: WaveComponent
         Resolution: 50
-        Amplitude: 0.0399999991
+        Amplitude: 0.200000003
         Wavelength: 2
-        Speed: 0.219999999
+        Speed: 0.100000001
         ReflectionEnabled: true
-        ReflectionStrength: 1
+        ReflectionStrength: 0.5
         DistortionStrength: 0.0199999996
         SpecularStrength: 1
         SpecularShininess: 64
