@@ -402,7 +402,7 @@ Entities:
       - Component: NameComponent
         Name: Water
       - Component: RenderLayerComponent
-        layer: 1
+        layer: 3
       - Component: TransformComponent
         Position:
           x: 0

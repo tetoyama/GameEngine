@@ -36,7 +36,7 @@ MaterialInput GetMaterialInput(PS_IN In)
     // ===== Material =====
     input.baseColor = Material.BaseColor;
     // Diffuse Texture を使うか
-    if (Material.MaterialFlags & MATERIAL_FLAG_USE_DIFFUSE_TEXTURE != 0)
+    if ((Material.MaterialFlags & MATERIAL_FLAG_USE_DIFFUSE_TEXTURE) != 0)
     {
         input.baseColor *= BaseColorTex.Sample(LinearSampler, In.TexCoord);
     }
