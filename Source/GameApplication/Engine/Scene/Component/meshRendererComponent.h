@@ -1,3 +1,8 @@
+// =======================================================================
+// 
+// meshRendererComponent.h
+// 
+// =======================================================================
 // Scene/Component/meshRendererComponent.h
 #pragma once
 #include "Interface/IComponent.h"

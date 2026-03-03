@@ -1,3 +1,8 @@
+// =======================================================================
+// 
+// scriptComponent.cpp
+// 
+// =======================================================================
 #include "scriptComponent.h"
 #include "Scene/scene.h"
 #include "Scene/sceneManager.h"

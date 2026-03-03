@@ -1,3 +1,8 @@
+// =======================================================================
+// 
+// environmentMapComponent.h
+// 
+// =======================================================================
 #pragma once
 #include "Interface/IComponent.h"
 #include "BackEnds/YAMLConverters.h"

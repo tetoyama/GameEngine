@@ -1,3 +1,8 @@
+// =======================================================================
+// 
+// componentList.h
+// 
+// =======================================================================
 #pragma once
 #include "Component/entityNameComponent.h"
 #include "Component/transformComponent.h"

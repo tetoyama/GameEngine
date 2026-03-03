@@ -1,3 +1,8 @@
+// =======================================================================
+// 
+// scriptComponent.h
+// 
+// =======================================================================
 #pragma once
 #include "Interface/IComponent.h"
 #include "Interface/IScriptComponent.h"

@@ -1,4 +1,9 @@
-﻿#pragma once
+﻿// =======================================================================
+// 
+// cameraComponent.h
+// 
+// =======================================================================
+#pragma once
 #include "Interface/IComponent.h"
 #include "BackEnds/YAMLConverters.h"
 #include "Backends/myVector2.h"
