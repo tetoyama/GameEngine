@@ -200,10 +200,10 @@ namespace YAML{
 			// bool 値からビットマスクを再構築
 			mat.MaterialFlags = 0;
 
-			if(node["UseDiffuseTexture"])
+			if(node["UseDiffuseTexture"] && node["UseDiffuseTexture"].as<bool>())
 				mat.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 
-			if(node["UseNormalTexture"])
+			if(node["UseNormalTexture"] && node["UseNormalTexture"].as<bool>())
 				mat.MaterialFlags |= MATERIAL_FLAG_USE_NORMAL_TEXTURE;
 
 			return true;
