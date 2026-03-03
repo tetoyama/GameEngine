@@ -25,8 +25,9 @@ Texture2D g_Texture : register(t0);
 // スクリーン端フェード — 端に近い反射サンプルを減衰させてちらつきを防ぐ
 float ScreenEdgeFade(float2 uv)
 {
-    float2 fade = smoothstep(0.0f, SSR_EDGE_FADE_START, uv)
-               * (1.0f - smoothstep(SSR_EDGE_FADE_END, 1.0f, uv));
+    float2 suv = saturate(uv);
+    float2 fade = smoothstep(0.0f, SSR_EDGE_FADE_START, suv)
+               * (1.0f - smoothstep(SSR_EDGE_FADE_END, 1.0f, suv));
     return fade.x * fade.y;
 }
 

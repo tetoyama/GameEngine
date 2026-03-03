@@ -231,8 +231,8 @@ private:
 					float cosP = cosf(phase);
 
 					// Gerstner 変位: Q が 0 なら純粋な正弦波、1 に近づくほど鋭い波頭
-					float Qi = Q / (k * baseA * WAVE_COUNT);  // 波ごとに正規化して自己交差を防ぐ
-					Qi = std::min(Qi, 1.0f / (k * A * WAVE_COUNT + 0.001f));
+					// Qi を波ごとの kA で正規化し、全波合計での自己交差を防ぐ
+					float Qi = Q / (k * A * WAVE_COUNT + 0.001f);
 
 					sumX += Qi * A * dx * cosP;
 					sumZ += Qi * A * dz * cosP;
