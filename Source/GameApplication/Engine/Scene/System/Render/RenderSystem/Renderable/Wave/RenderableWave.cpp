@@ -17,8 +17,7 @@
 #include "Shader/commonDefine.h"
 
 
-void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity) {
-	(void)ctx;
+void RenderableWave::Execute(const RenderPassContext& /*ctx*/, SceneContext* sceneContext, const Entity& entity) {
 	auto componentRegistry = sceneContext->component;
 	auto pTransform = componentRegistry->GetComponent<TransformComponent>(entity);
 	auto pWave = componentRegistry->GetComponent<WaveComponent>(entity);
