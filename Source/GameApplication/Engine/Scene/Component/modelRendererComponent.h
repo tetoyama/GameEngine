@@ -22,6 +22,7 @@
 
 #include "DebugTools/DebugSystem.h"
 
+// 3Dモデルの描画を管理するコンポーネント
 class ModelRendererComponent: public IComponent {
 public:
 	

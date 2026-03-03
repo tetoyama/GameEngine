@@ -19,6 +19,7 @@
 
 class AudioContext;
 
+// オーディオの再生を管理するコンポーネント
 class AudioComponent: public IComponent {
 public:
 	std::shared_ptr<AudioData> m_AudioData;

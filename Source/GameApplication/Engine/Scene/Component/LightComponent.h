@@ -9,6 +9,7 @@
 #include "Shader/Common.hlsl"
 #include "Shader/CommonDefine.h"
 
+// ライティングを管理するコンポーネント
 class LightComponent: public IComponent {
 public:
 	float moveSpeed = 5.0f;

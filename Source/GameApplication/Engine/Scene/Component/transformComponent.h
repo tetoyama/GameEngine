@@ -20,6 +20,7 @@
 
 #include <DirectXMath.h>
 
+// エンティティの位置・回転・スケールを管理するコンポーネント
 class TransformComponent: public IComponent {
 private:
 	Vector3 rotationEular;

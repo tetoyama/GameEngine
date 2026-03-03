@@ -14,6 +14,7 @@
 #include "System/Script/ScriptSystem.h"
 #include <variant>
 
+// C#スクリプトの実行を管理するコンポーネント
 class ScriptComponent: public IComponent {
 public:
 	ScriptComponent() = default;

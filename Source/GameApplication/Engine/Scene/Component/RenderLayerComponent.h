@@ -8,6 +8,7 @@
 #include "BackEnds/YAMLConverters.h"
 #include "System/Render/RenderSystem/renderLayer.h"
 
+// 描画レイヤーを管理するコンポーネント
 class RenderLayerComponent: public IComponent {
 public:
 	YAML::Node encode() override{
@@ -34,6 +35,7 @@ public:
 	RenderLayer layer = RenderLayer::Opaque3D;
 };
 
+// レイヤー内の描画順序を管理するコンポーネント
 class OrderInLayerComponent: public IComponent {
 public:
 	int order = 0;

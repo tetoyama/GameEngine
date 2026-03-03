@@ -10,6 +10,7 @@
 #include "meshRendererComponent.h"
 
 
+// 地形の生成と編集を管理するコンポーネント
 class TerrainComponent : public IComponent {
 public:
 	int Scale = 10;

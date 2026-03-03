@@ -9,6 +9,7 @@
 #include "Backends/myVector2.h"
 #include "meshRendererComponent.h"
 
+// 波のシミュレーションを管理するコンポーネント
 class WaveComponent: public IComponent {
 public:
 	int Resolution = 50;         // グリッド解像度（途中変更可）

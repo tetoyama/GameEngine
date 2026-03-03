@@ -9,6 +9,7 @@
 
 #include <string>
 
+// エンティティの名前を管理するコンポーネント
 class NameComponent: public IComponent {
 public:
 

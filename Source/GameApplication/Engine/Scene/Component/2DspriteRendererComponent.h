@@ -8,6 +8,7 @@
 #include "BackEnds/YAMLConverters.h"
 #include "Backends/myVector2.h"
 
+// 2Dスプライトの描画を管理するコンポーネント
 class SpriteRendererComponent: public IComponent {
 public:
 	Vector2 anchor = {0.5f, 0.5f}; // 中央

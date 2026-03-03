@@ -10,6 +10,7 @@
 
 #define MAXPARTICLE 512
 
+// 個々のパーティクルの状態を保持する構造体
 struct PARTICLE
 {
 	Vector3 Position = Vector3(0,0,0);
@@ -17,6 +18,7 @@ struct PARTICLE
 	float LifeTime = 0.0f;
 };
 
+// パーティクルエフェクトを管理するコンポーネント
 class ParticleComponent : public IComponent {
 public:
 	PARTICLE Particle[MAXPARTICLE];

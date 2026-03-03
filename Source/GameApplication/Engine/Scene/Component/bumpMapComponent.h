@@ -15,6 +15,7 @@
 #include "Resources/resourceService.h"
 #include "Resources/Loader/textureLoader.h"
 #include "Resources/Data/TextureData.h"
+// バンプマップテクスチャを管理するコンポーネント
 class BumpMapComponent: public IComponent {
 public:
 	~BumpMapComponent() {

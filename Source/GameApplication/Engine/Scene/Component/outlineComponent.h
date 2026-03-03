@@ -11,6 +11,7 @@
 #include "DebugTools/ImGuiSystem.h"
 
 
+// アウトライン描画を管理するコンポーネント
 class OutlineComponent: public IComponent{
 
 public:
