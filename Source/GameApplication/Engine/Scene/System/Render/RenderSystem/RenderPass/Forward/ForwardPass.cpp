@@ -152,8 +152,23 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 					item.ref = EntityRef(entity, context);
 					item.distanceSq = diff.dot(diff);
 					transparentList.push_back(item);
+				} else {
+					for (auto renderable : renderables) {
 
+						int materialID = 0;
+						auto material = context->component->GetComponent<MaterialComponent>(entity);
+						if (material) {
+							materialID = material->ShaderID;
+						}
 
+						ObjectInfo info;
+						info.SceneID = (unsigned int)context;
+						info.ObjectID = entity;
+						info.ShaderID = materialID;
+						m_context->graphics->SetObjectInfo(info);
+
+						renderable->Execute(ctx, context, entity);
+					}
 				}
 			}
 		}

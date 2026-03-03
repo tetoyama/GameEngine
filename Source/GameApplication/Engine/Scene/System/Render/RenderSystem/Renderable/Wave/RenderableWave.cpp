@@ -22,13 +22,14 @@ void RenderableWave::Execute(const RenderPassContext& /*ctx*/, SceneContext* sce
 	auto pTransform = componentRegistry->GetComponent<TransformComponent>(entity);
 	auto pWave = componentRegistry->GetComponent<WaveComponent>(entity);
 
-	if (!pWave || !pWave->meshRenderer) {
+	if (!pTransform || !pWave || !pWave->meshRenderer) {
 		return;
 	}
 
 	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
 	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
-	MATERIAL material;
+	MATERIAL material{};
+	material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	if (pMaterial) {
 		material = pMaterial->Material;
 	}
@@ -61,6 +62,7 @@ void RenderableWave::Execute(const RenderPassContext& /*ctx*/, SceneContext* sce
 
 	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, componentRegistry);
 
+	graphicsContext->SetCullMode(CullMode::None);
 	graphicsContext->SetWorldMatrix(World);
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
