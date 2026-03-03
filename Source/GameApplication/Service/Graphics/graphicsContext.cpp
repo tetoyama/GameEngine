@@ -1,4 +1,9 @@
-﻿#include "graphicsContext.h"
+﻿// =======================================================================
+// 
+// graphicsContext.cpp
+// 
+// =======================================================================
+#include "graphicsContext.h"
 
 
 #include <stdexcept>

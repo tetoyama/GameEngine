@@ -1,3 +1,8 @@
+// =======================================================================
+// 
+// renderEffectSystem.cpp
+// 
+// =======================================================================
 #include "buildSetting.h"
 #include "renderEffectSystem.h"
 #include "graphicsContext.h"
