@@ -28,7 +28,7 @@ Texture2D ShadowMap : register(t6);
 SamplerComparisonState ShadowSampler : register(s1);
 
 // ================= Environment Map =================
-TextureCube EnvironmentMap : register(t7);
+Texture2D EnvironmentMap : register(t7);
 SamplerState EnvSampler : register(s3);
 
 // ================= Implement =================
