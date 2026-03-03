@@ -7,6 +7,9 @@
 #include "Component/meshRendererComponent.h"
 #include "Component/waveComponent.h"
 
+#include <cmath>
+#include <algorithm>
+
 class WaveSystem: public ISystem {
 public:
 
@@ -48,7 +51,40 @@ public:
 		}
 	}
 
+	void Update(float dt) override{
+		UpdateAllWaves(dt);
+	}
+
 	void EditorUpdate(float dt) override{
+		UpdateAllWaves(dt);
+	}
+
+private:
+	SceneManagerContext* m_context = nullptr;
+	GraphicsContext* m_graphicContext = nullptr;
+
+	// ============================================================
+	// Gerstner Wave パラメータ
+	// ============================================================
+	static constexpr int WAVE_COUNT = 4;
+
+	struct GerstnerWave {
+		float dirX, dirZ;   // 正規化された波の進行方向
+		float amplitude;     // 振幅（基準の倍率）
+		float wavelength;    // 波長（基準の倍率）
+		float speed;         // 速度（基準の倍率）
+	};
+
+	// 4つのオクターブ — 異なる方向・スケールを重ね合わせて自然な波面を作る
+	static constexpr GerstnerWave kWaves[WAVE_COUNT] = {
+		{  0.7f,  0.7f,   1.00f, 1.00f, 1.0f },   // メイン波（対角方向）
+		{ -0.4f,  0.9f,   0.50f, 0.60f, 1.3f },   // サブ波（少しずれた方向）
+		{  0.9f, -0.3f,   0.25f, 0.35f, 0.8f },   // 細波（横方向）
+		{ -0.6f, -0.8f,   0.12f, 0.22f, 1.6f },   // さざ波（逆方向）
+	};
+
+	// ============================================================
+	void UpdateAllWaves(float dt){
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<WaveComponent>();
@@ -59,14 +95,10 @@ public:
 				if (!comp->meshRenderer || comp->Resolution != comp->CurrentResolution) {
 					CreateMesh(context,entity);
 				}
-				UpdateWaveVertices(comp);
+				UpdateWaveVertices(comp, dt);
 			}
 		}
 	}
-
-private:
-	SceneManagerContext* m_context = nullptr;
-	GraphicsContext* m_graphicContext = nullptr;
 
 	void CreateMesh(SceneContext* context, Entity entity){
 
@@ -85,8 +117,6 @@ private:
 		int indexCount = grid * grid * 6;
 		std::vector<VERTEX_3D> vertices(vertexCount);
 		std::vector<unsigned int> indices(indexCount);
-
-		float half = 1.0f;
 
 		for(int z = 0; z <= grid; ++z){
 			for(int x = 0; x <= grid; ++x){
@@ -139,7 +169,14 @@ private:
 		comp->CurrentResolution = comp->Resolution;
 	}
 
-	void UpdateWaveVertices(WaveComponent* comp){
+	// ============================================================
+	// Gerstner Wave 頂点更新
+	//
+	// 各頂点に対して WAVE_COUNT 個の波を合成する。
+	// Gerstner 波は水平方向にも頂点を移動させるため、
+	// 通常の正弦波よりリアルな鋭い波頭と平らな谷を再現する。
+	// ============================================================
+	void UpdateWaveVertices(WaveComponent* comp, float dt){
 		if(!comp->meshRenderer) return;
 		ID3D11Buffer* vbuf = comp->meshRenderer->mesh.m_VertexBuffer.Get();
 		if(!vbuf) return;
@@ -150,42 +187,82 @@ private:
 		static std::vector<VERTEX_3D> tempVertices;
 		tempVertices.resize(vertexCount);
 
-		float lambda = comp->Wavelength;
-		float T = 1.0f;
-		float A = comp->Amplitude;
-		float omega = 2.0f * DirectX::XM_PI / T;
-		float k = 2.0f * DirectX::XM_PI / lambda;
-
-		float cx = 0.0f;
-		float cz = 0.0f;
+		const float baseA = comp->Amplitude;
+		const float baseLambda = std::max(comp->Wavelength, 0.01f);
+		const float baseSpeed = comp->Speed;
+		const float Q = std::clamp(comp->Steepness, 0.0f, 1.0f);
+		const float t = comp->Time;
 
 		for(int z = 0; z <= grid; ++z){
 			for(int x = 0; x <= grid; ++x){
 				int idx = z * (grid + 1) + x;
-				float px = ((float)x / grid - 0.5f) * 2.0f;
-				float pz = ((float)z / grid - 0.5f) * 2.0f;
+				float px0 = ((float)x / grid - 0.5f) * 2.0f;
+				float pz0 = ((float)z / grid - 0.5f) * 2.0f;
 
-				float dx = px - cx;
-				float dz = pz - cz;
-				float r = sqrtf(dx * dx + dz * dz);
+				// Gerstner 波の合成
+				float sumX = 0.0f;
+				float sumY = 0.0f;
+				float sumZ = 0.0f;
 
-				float y = A * sinf(k * r - omega * comp->Time);
+				// 法線用の偏微分蓄積
+				float sumNx = 0.0f;
+				float sumNy = 0.0f;
+				float sumNz = 0.0f;
 
-				// 法線計算 (波の方程式の偏微分)
-				float nx = 0.0f;
-				float nz = 0.0f;
-				if(r > 0.001f){
-					float cosArg = A * k * cosf(k * r - omega * comp->Time);
-					nx = -cosArg * dx / r;
-					nz = -cosArg * dz / r;
+				for(int w = 0; w < WAVE_COUNT; ++w){
+					const auto& wave = kWaves[w];
+
+					// 方向を正規化
+					float len = sqrtf(wave.dirX * wave.dirX + wave.dirZ * wave.dirZ);
+					float dx = (len > 0.001f) ? wave.dirX / len : 1.0f;
+					float dz = (len > 0.001f) ? wave.dirZ / len : 0.0f;
+
+					float A   = baseA * wave.amplitude;
+					float lam = baseLambda * wave.wavelength;
+					float k   = 2.0f * DirectX::XM_PI / lam;
+					float spd = baseSpeed * wave.speed;
+					float omega = sqrtf(9.81f * k) * spd;   // 分散関係 ω = √(gk)
+
+					// dot(D, P0)
+					float dotDP = dx * px0 + dz * pz0;
+					float phase = k * dotDP - omega * t;
+
+					float sinP = sinf(phase);
+					float cosP = cosf(phase);
+
+					// Gerstner 変位: Q が 0 なら純粋な正弦波、1 に近づくほど鋭い波頭
+					float Qi = Q / (k * baseA * WAVE_COUNT);  // 波ごとに正規化して自己交差を防ぐ
+					Qi = std::min(Qi, 1.0f / (k * A * WAVE_COUNT + 0.001f));
+
+					sumX += Qi * A * dx * cosP;
+					sumZ += Qi * A * dz * cosP;
+					sumY += A * sinP;
+
+					// 法線蓄積 (Gerstner 解析導関数)
+					float wA = k * A;
+					sumNx += dx * wA * cosP;
+					sumNz += dz * wA * cosP;
+					sumNy += Qi * wA * sinP;
 				}
-				float ny = 1.0f;
-				float nLen = sqrtf(nx * nx + ny * ny + nz * nz);
-				nx /= nLen;
-				ny /= nLen;
-				nz /= nLen;
 
-				tempVertices[idx].Position = DirectX::XMFLOAT3(px, y, pz);
+				float finalX = px0 - sumX;
+				float finalY = sumY;
+				float finalZ = pz0 - sumZ;
+
+				// 法線 (Gerstner の解析的法線)
+				float nx = -sumNx;
+				float ny = 1.0f - sumNy;
+				float nz = -sumNz;
+				float nLen = sqrtf(nx * nx + ny * ny + nz * nz);
+				if(nLen > 0.001f){
+					nx /= nLen;
+					ny /= nLen;
+					nz /= nLen;
+				} else {
+					nx = 0.0f; ny = 1.0f; nz = 0.0f;
+				}
+
+				tempVertices[idx].Position = DirectX::XMFLOAT3(finalX, finalY, finalZ);
 				tempVertices[idx].Normal = DirectX::XMFLOAT3(nx, ny, nz);
 				tempVertices[idx].TexCoord = DirectX::XMFLOAT2((float)x / grid, (float)z / grid);
 				tempVertices[idx].Diffuse = DirectX::XMFLOAT4(0.3f, 0.6f, 1.0f, 1.0f);
@@ -199,6 +276,6 @@ private:
 			ctx->Unmap(vbuf, 0);
 		}
 
-		comp->Time += 0.02f * comp->Speed;
+		comp->Time += dt * comp->Speed;
 	}
 };

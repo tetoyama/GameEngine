@@ -10,6 +10,7 @@ public:
 	float Amplitude = 0.2f;      // 波の振幅
 	float Wavelength = 2.0f;     // 波長
 	float Speed = 1.0f;          // 波の進行速度
+	float Steepness = 0.4f;      // 波の尖り具合 (0=正弦波, ~1=Gerstner最大)
 	float Time = 0.0f;           // 経過時間
 	int CurrentResolution = -1;  // 現在のメッシュ状態
 	MeshRendererComponent* meshRenderer = nullptr;
@@ -27,6 +28,7 @@ public:
 		node["Amplitude"] = Amplitude;
 		node["Wavelength"] = Wavelength;
 		node["Speed"] = Speed;
+		node["Steepness"] = Steepness;
 		return node;
 	}
 
@@ -35,6 +37,7 @@ public:
 		if(node["Amplitude"]) Amplitude = node["Amplitude"].as<float>();
 		if(node["Wavelength"]) Wavelength = node["Wavelength"].as<float>();
 		if(node["Speed"]) Speed = node["Speed"].as<float>();
+		if(node["Steepness"]) Steepness = node["Steepness"].as<float>();
 		return true;
 	}
 
@@ -45,6 +48,7 @@ public:
 		ImGui::DragFloat("Amplitude", &Amplitude, 0.01f, 0.0f, 5.0f);
 		ImGui::DragFloat("Wavelength", &Wavelength, 0.01f, 0.1f, 10.0f);
 		ImGui::DragFloat("Speed", &Speed, 0.01f, 0.0f, 10.0f);
+		ImGui::DragFloat("Steepness", &Steepness, 0.01f, 0.0f, 1.0f);
 
 		if(ImGui::Button("Rebuild Mesh")){
 			CurrentResolution = -1; // 再構築要求
