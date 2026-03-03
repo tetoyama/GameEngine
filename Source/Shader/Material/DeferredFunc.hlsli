@@ -76,32 +76,36 @@ float ShadowFactorCSM(
     LIGHT  light,
     ShadowPCFParams pcf)
 {
-    // ---- ビュー空間深度でカスケード選択 ----
-    float4 viewPos = mul(float4(worldPos, 1.0), View);
-    float viewDepth = viewPos.z;
+    // ---- カスケード選択 + ライトスペース変換 (投影UV判定) ----
+    // スプリット深度に依存せず、各カスケードの実際の投影 UV [0,1] 内に収まるかを
+    // 近→遠の順に検査し、最初にカバーされる（最も精細な）カスケードを選択する。
+    // スプリット深度は C++ 側でのカスケード錐台計算にのみ使用し、
+    // シェーダ側の選択は行列投影ベースで行うことで精度を最大化する。
+    // ※ CSM は正射影なので csp.w は常に 1 だが、念のため w <= 0 は skip する。
 
-    // 近→遠の順に走査し、viewDepth が分割深度より小さい最初のカスケードを選択する。
-    // [loop] によりコンパイラのループ展開（述語化）を抑制し、break が確実に動作するようにする。
-    int cascade = DIRECTIONAL_CSM_CASCADE_COUNT - 1; // デフォルトは最遠カスケード (splitDepths 外の場合のフォールバック)
+    // デフォルトとして最遠カスケードで sp を事前計算 (どのカスケードもカバーしない場合のフォールバック)
+    int cascade = DIRECTIONAL_CSM_CASCADE_COUNT - 1;
+    float4 sp = mul(float4(worldPos, 1.0), CsmViews[cascade]);
+    sp = mul(sp, CsmProjections[cascade]);
+
+    // 近→遠の順で走査し、UV 内に収まる最初（最も精細）のカスケードを使う。
+    // 遠→近にすると「最も粗い」カスケードが選ばれてしまい精度が下がるため、
+    // 精度最大化のために近→遠の方向で break を使う設計とする。
     [loop]
-    for (int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT; c++)
+    for (int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT - 1; c++)
     {
-        float splitDepth;
-        if (c < 4)
-            splitDepth = CsmSplitDepths[0][c];
-        else
-            splitDepth = CsmSplitDepths[1][c - 4];
-
-        if (viewDepth < splitDepth)
+        float4 csp = mul(float4(worldPos, 1.0), CsmViews[c]);
+        csp = mul(csp, CsmProjections[c]);
+        if (csp.w <= 0.0) continue; // w <= 0 はゼロ除算防止 (正射影では通常 w=1)
+        float2 cuv = csp.xy / csp.w * 0.5 + 0.5;
+        cuv.y = 1.0 - cuv.y;
+        if (all(cuv >= 0.0) && all(cuv <= 1.0))
         {
             cascade = c;
+            sp = csp;
             break;
         }
     }
-
-    // ---- ライトスペース変換 ----
-    float4 sp = mul(float4(worldPos, 1.0), CsmViews[cascade]);
-    sp = mul(sp, CsmProjections[cascade]);
 
     if (sp.w <= 0.0)
         return 1.0;
