@@ -9,6 +9,7 @@
 
 #pragma comment(lib, "xaudio2.lib")
 
+// XAudio2を用いたオーディオエンジンの管理クラス
 class AudioContext: public IService {
 private:
 	IXAudio2* m_XAudio = nullptr;

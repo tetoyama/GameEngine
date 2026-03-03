@@ -6,6 +6,7 @@
 #pragma once
 #include <backends/yaml-cpp/yaml.h>
 
+// ECSのシステム基底インターフェース
 class ISystem
 {
 public:

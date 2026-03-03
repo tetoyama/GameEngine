@@ -18,6 +18,7 @@
 class GraphicsContext;
 class AudioContext;
 
+// リソースの読み込み・キャッシュ・解放を管理するサービス
 class ResourceService : public IService {
 public:
 	void Initialize(GraphicsContext* graphics, AudioContext* audio);

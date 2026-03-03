@@ -12,11 +12,13 @@
 #include <vector>
 #include "Service/IService.h"
 
+// サービスの依存注入コンテナ（DIコンテナ）
 class EngineContext{
 
 public:
 	void Shutdown();
 
+	// 指定した型のサービスをコンテナに登録する
 	template<typename T>
 	void Register(std::shared_ptr<T> instance) {
 		static_assert(std::is_base_of<IService, T>::value, "サービスはIServiceを継承してください");
@@ -27,6 +29,7 @@ public:
 		m_ServiceOrder.push_back(type);
 	}
 
+	// 指定した型のサービスをコンテナから取得する
 	template<typename T>
 	inline std::shared_ptr<T> Get() const{
 		auto it = m_Services.find(std::type_index(typeid(T)));
@@ -42,6 +45,7 @@ private:
     std::vector<std::type_index> m_ServiceOrder;
 };
 
+// EngineContextの構築を行うビルダークラス
 class EngineContextBuilder
 {
 public:

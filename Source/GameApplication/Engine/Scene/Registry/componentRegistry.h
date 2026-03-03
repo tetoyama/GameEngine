@@ -34,6 +34,7 @@ public:
 private:
 	static std::atomic<ComponentTypeID> s_nextID;
 };
+// コンポーネントの登録・追加・取得・削除およびクエリを管理するレジストリ
 class ComponentRegistry {
 public:
 	using YAMLCreator = std::function<IComponent* (Entity, const YAML::Node&)>;

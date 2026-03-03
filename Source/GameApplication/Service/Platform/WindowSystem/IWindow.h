@@ -8,6 +8,7 @@
 
 struct APPCONFIG;
 
+// ウィンドウの基底インターフェース
 class IWindow  
 {  
 public:  

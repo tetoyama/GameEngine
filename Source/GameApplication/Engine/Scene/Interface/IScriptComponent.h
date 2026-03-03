@@ -30,6 +30,7 @@ struct ScriptParam {
 // IScriptComponent
 // ================================
 
+// ユーザー定義スクリプトの基底インターフェース
 class IScriptComponent {
 public:
     virtual ~IScriptComponent() = default;

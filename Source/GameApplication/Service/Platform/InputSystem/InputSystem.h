@@ -20,6 +20,7 @@ struct WindowInputState {
 	std::unordered_map<int, KeyState> keyStates;
 };
 
+// キーボード・マウス・ゲームパッドの入力を管理するサービス
 class InputService: public IService{
 public:
 	InputService();

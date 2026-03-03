@@ -4,6 +4,7 @@
 // 
 // =======================================================================
 #pragma once
+// 全サービスの基底インターフェース
 class IService {
 public:
     virtual ~IService() = default;

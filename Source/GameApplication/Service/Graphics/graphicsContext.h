@@ -83,6 +83,7 @@ enum class PostProcessBufferID {
 	BufferB
 };
 
+// DirectX 11のデバイス・コンテキスト・スワップチェーンを管理する描画サービス
 class GraphicsContext : public IService {
 public:
 	bool Initialize(HWND hwnd, UINT width, UINT height);

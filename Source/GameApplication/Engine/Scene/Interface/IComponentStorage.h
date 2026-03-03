@@ -13,6 +13,7 @@ using ComponentTypeID = uint32_t;
 constexpr size_t MAX_COMPONENTS = 64;  // 必要に応じて調整
 using ComponentMask = std::bitset<MAX_COMPONENTS>;
 
+// コンポーネントストレージの基底インターフェース
 struct IComponentStorage {
 	virtual ~IComponentStorage() = default;
 	virtual void Remove(Entity e) = 0;
@@ -20,6 +21,7 @@ struct IComponentStorage {
 	virtual IComponent* GetEntityComponent(Entity) = 0;
 };
 
+// 配列ベースの高速なコンポーネントストレージ（Archetype方式）
 template<typename T>
 class ArchetypeStorage: public IComponentStorage {
 	static_assert(std::is_base_of<IComponent, T>::value, "T must inherit from IComponent");
@@ -70,6 +72,7 @@ private:
 	std::vector<Entity> m_entities;
 };
 
+// ハッシュマップベースのコンポーネントストレージ（Sparse方式）
 template<typename T>
 class SparseStorage: public IComponentStorage {
 	static_assert(std::is_base_of<IComponent, T>::value, "T must inherit from IComponent");

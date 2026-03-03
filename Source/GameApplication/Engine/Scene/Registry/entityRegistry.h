@@ -11,6 +11,7 @@
 
 #include "Entity/Entity.h"
 
+// エンティティの生成・破棄・生存管理を行うレジストリ
 class EntityRegistry {
 public:
 	EntityRegistry() = default;
