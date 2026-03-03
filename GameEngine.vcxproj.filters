@@ -3326,6 +3326,7 @@
     <None Include="Source\Shader\Material\ToonShader.hlsli" />
     <None Include="Source\Shader\Material\PBRToonShader.hlsli" />
     <None Include="Source\Shader\Material\RimToonShader.hlsli" />
+    <None Include="Source\Shader\Material\WaterSurfaceShader.hlsli" />
     <None Include="Source\Shader\PostEffect\PostEffectFunc.hlsli" />
   </ItemGroup>
   <ItemGroup>
@@ -3349,6 +3350,7 @@
     <FxCompile Include="Source\Shader\LightingVS.hlsl" />
     <FxCompile Include="Source\Shader\AutoGen\ForwardRenderingPS.hlsl" />
     <FxCompile Include="Source\Shader\AutoGen\DeferredRenderingPS.hlsl" />
+    <FxCompile Include="Source\Shader\PostEffect\WaterSSR.hlsl" />
     <FxCompile Include="Source\Shader\PhysX\DebugLineVS.hlsl" />
   </ItemGroup>
   <ItemGroup>

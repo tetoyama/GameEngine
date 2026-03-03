@@ -32,12 +32,16 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     }
 
     // ShaderID で水面ピクセルを識別
+    // Parameter.w が未設定 (0) の場合はデフォルトで ShaderID=5 (WaterSurface) を使用
+    int waterShaderID = (int) Parameter.w;
+    if (waterShaderID <= 0)
+        waterShaderID = 5;
+
     uint paramW, paramH;
     GParam.GetDimensions(paramW, paramH);
     int2 pixelCoord = int2(uv.x * paramW, uv.y * paramH);
     uint4 param = GetObjParam(pixelCoord);
     uint shaderID = param.z;
-    int waterShaderID = (int) Parameter.w;
 
     if ((int) shaderID != waterShaderID)
     {

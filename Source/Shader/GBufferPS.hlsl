@@ -44,12 +44,9 @@ GBUFFER_OUT main(PS_IN In)
         float3 R = reflect(-V, N);
 
         // Equirectangular マッピング: 反射方向 → UV
-        // U: +Z 方向が中心 (Blender→DirectX 座標変換に対応)
-        // V: 反射の仰角を圧縮し、水平線付近の雲や空の特徴が見えるようにする
         float2 envUV;
         envUV.x = atan2(R.x, R.z) / (2.0f * PI) + 0.5f;
-        float scaledY = R.y * 0.45f; // 仰角を圧縮して水平線〜雲の範囲を反射に含める
-        envUV.y = acos(clamp(scaledY, -1.0f, 1.0f)) / PI;
+        envUV.y = acos(clamp(R.y, -1.0f, 1.0f)) / PI;
 
         float4 envColor = DiffuseTexture.Sample(LinearSampler, envUV);
 

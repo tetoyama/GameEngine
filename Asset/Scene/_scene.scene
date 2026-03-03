@@ -348,24 +348,99 @@ Entities:
             - -0.270381927
             - 5.51340675
             - 1
-        nextLinkId: 1
-        nextPinId: 1
+        nextLinkId: 4
+        nextPinId: 5
+        PostEffects:
+          - Name: WaterSSR
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader/WaterSSR.cso
+            NodePos:
+              x: 100
+              y: 50
+            InputPins:
+              - 2
+              - 4
+            OutputPin: 3
+            Param:
+              x: 1
+              y: 0.800000012
+              z: 48
+              w: 5
+        PostEffectLinks:
+          - ID: 1
+            StartNode: -1
+            EndNode: 0
+            StartAttr: -1
+            EndAttr: 2
+          - ID: 2
+            StartNode: 0
+            EndNode: -2
+            StartAttr: 3
+            EndAttr: 1
         ScreenInput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: -100
+            y: 50
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: -1
-            y: -1
+            x: 400
+            y: 50
           InputPins:
-            []
+            - 1
       - Component: CameraController
         distance: 6
         height: 2
         rotateSpeed: 1.5
         minPitch: 0
         maxPitch: 0.785398185
+  - Entity: 6
+    Components:
+      - Component: NameComponent
+        Name: Water
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: -1
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 100
+          y: 1
+          z: 100
+        Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 5
+        Material:
+          BaseColor:
+            x: 0.0199999996
+            y: 0.0799999982
+            z: 0.150000006
+            w: 0.949999988
+          Metallic: 0
+          Roughness: 0.100000001
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+      - Component: TextureComponent
+        FilePath: Asset\Texture\Daylight.png
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: WaveComponent
+        Resolution: 80
+        Amplitude: 0.150000006
+        Wavelength: 3
+        Speed: 1
