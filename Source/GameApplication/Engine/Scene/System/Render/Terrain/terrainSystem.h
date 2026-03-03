@@ -10,6 +10,7 @@
 #include "Audio/audioContext.h"
 #include "Scene/component/transformComponent.h"
 #include <Component/terrainComponent.h>
+#include <Component/ColliderComponent.h>
 
 
 class TerrainSystem : public ISystem {
@@ -213,6 +214,11 @@ private:
 			comp->meshRenderer->mesh.meshCount = vertexCount;
 			comp->meshRenderer->mesh.indexCount = indexCount;
 			comp->CurrentScale = comp->Scale;
+
+			// ビジュアルメッシュを再構築したので物理コライダも再構築を要求する
+			// （HeightMapの頂点位置とコライダの頂点位置が一致するよう同期させる）
+			auto* col = context->component->GetComponent<ColliderComponent>(entity);
+			if (col) col->needsUpdate = true;
 		}
 	}
 };
