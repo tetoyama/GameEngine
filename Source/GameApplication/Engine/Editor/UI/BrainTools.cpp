@@ -5,13 +5,54 @@
 #include <sstream>
 #include <algorithm>
 #include <functional>
+#include <mutex>
 #include <regex>
 
 namespace fs = std::filesystem;
 
 // ============================
-// ListSourceFiles
+// GetFileIndex (cached)
 // ============================
+// Source/ 以下のすべてのソースファイルを初回呼び出し時に走査してキャッシュする。
+// LLM が抽象的な質問（"オーディオ再生はどこ？"など）に答える際に、
+// 何度も list_directory を繰り返す必要なく正確なファイルパスを参照できる。
+
+static std::string s_fileIndexCache;
+static std::once_flag s_fileIndexOnce;
+
+std::string BrainTools::GetFileIndex() {
+	std::call_once(s_fileIndexOnce, []() {
+		std::vector<std::string> paths;
+		try {
+			std::error_code ec;
+			fs::path srcRoot("Source");
+
+			if (fs::exists(srcRoot, ec) && !ec) {
+				for (const auto& entry : fs::recursive_directory_iterator(srcRoot, ec)) {
+					std::error_code ec2;
+					if (!entry.is_regular_file(ec2) || ec2) continue;
+					std::string ext = entry.path().extension().string();
+					if (ext == ".cpp" || ext == ".h" || ext == ".hpp" || ext == ".c") {
+						paths.push_back(entry.path().generic_string());
+					}
+				}
+			}
+		} catch (...) {
+			// ファイルシステムエラーが発生しても収集済みのパスでキャッシュを構築する
+		}
+		std::sort(paths.begin(), paths.end());
+
+		std::ostringstream ss;
+		ss << "[Source file index — " << paths.size() << " files]\n";
+		for (const auto& p : paths) {
+			ss << p << "\n";
+		}
+		s_fileIndexCache = ss.str();
+	});
+	return s_fileIndexCache;
+}
+
+
 std::string BrainTools::ListSourceFiles() {
 	return ListFilesRecursive("Source");
 }
@@ -277,6 +318,9 @@ std::vector<BrainToolCall> BrainTools::ParseToolCalls(const std::string& respons
 // ExecuteToolCall
 // ============================
 std::string BrainTools::ExecuteToolCall(const BrainToolCall& call) {
+	if (call.name == "get_file_index") {
+		return GetFileIndex();
+	}
 	if (call.name == "list_source_files") {
 		return ListSourceFiles();
 	}

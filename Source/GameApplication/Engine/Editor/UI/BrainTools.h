@@ -56,6 +56,10 @@ public:
 	// AIツール呼び出し
 	// ============================
 
+	// Source/ 以下の全ソースファイル一覧（初回呼び出し時に構築してキャッシュ）
+	// 抽象的な質問でも正確なファイルパスをすぐに参照できるようにするための索引
+	static std::string GetFileIndex();
+
 	// AIレスポンスからツール呼び出しを解析
 	static std::vector<BrainToolCall> ParseToolCalls(const std::string& response);
 
