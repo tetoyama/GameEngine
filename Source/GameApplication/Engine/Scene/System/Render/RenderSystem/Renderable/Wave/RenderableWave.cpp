@@ -72,4 +72,5 @@ void RenderableWave::Execute(const RenderPassContext& /*ctx*/, SceneContext* sce
 	deviceContext->IASetIndexBuffer(*meshRenderer->mesh.m_IndexBuffer.GetAddressOf(), DXGI_FORMAT_R32_UINT, 0);
 
 	deviceContext->DrawIndexed(meshRenderer->mesh.indexCount, 0, 0);
+	graphicsContext->SetCullMode(CullMode::Back);
 }

@@ -153,7 +153,7 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 					item.distanceSq = diff.dot(diff);
 					transparentList.push_back(item);
 				} else {
-					for (auto renderable : renderables) {
+					for (const auto& renderable : renderables) {
 
 						int materialID = 0;
 						auto material = context->component->GetComponent<MaterialComponent>(entity);
@@ -191,7 +191,7 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 				Entity       entity = item.ref.GetEntityID();
 				SceneContext* itemCtx = item.ref.GetScene();
 
-				for (auto renderable : renderables) {
+				for (const auto& renderable : renderables) {
 
 					int materialID = 0;
 					auto material = itemCtx->component->GetComponent<MaterialComponent>(entity);
