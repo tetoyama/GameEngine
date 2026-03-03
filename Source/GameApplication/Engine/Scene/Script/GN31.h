@@ -24,6 +24,7 @@ enum NetworkState {
 	NETWORKSTATE_RECV,
 };
 
+// GN31スクリプト
 class GN31 : public CustomScriptComponent {
 public:
 

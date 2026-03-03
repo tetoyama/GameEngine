@@ -7,6 +7,7 @@
 #include "Component/CustomScriptComponent.h"
 #include "Backends/checkFileExtention.h"
 
+// フェードインスプライトスクリプト
 class FadeInSprite: public CustomScriptComponent {
 public:
 	BEGIN_REFLECT(FadeInSprite)

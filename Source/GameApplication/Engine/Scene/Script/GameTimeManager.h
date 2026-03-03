@@ -9,6 +9,7 @@
 #include "fadeOutSprite.h"
 #include "scoreManager.h"
 
+// ゲーム時間管理スクリプト
 class GameTimeManager: public CustomScriptComponent {
 public:
 	BEGIN_REFLECT(GameTimeManager)

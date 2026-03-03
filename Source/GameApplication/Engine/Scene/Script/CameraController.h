@@ -9,6 +9,7 @@
 #include <System/Physic/physicSystem.h>
 
 
+// カメラ制御スクリプト
 class CameraController: public CustomScriptComponent {
 public:
 	BEGIN_REFLECT(CameraController)

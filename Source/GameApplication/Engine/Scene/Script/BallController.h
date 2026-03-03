@@ -10,6 +10,7 @@
 #include "Component/ColliderComponent.h"
 #include "ScoreManager.h"
 
+// ボール制御スクリプト
 class BallController: public CustomScriptComponent {
 public:
 	BEGIN_REFLECT(BallController)

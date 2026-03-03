@@ -7,6 +7,7 @@
 #include "Component/CustomScriptComponent.h"
 #include "Backends/checkFileExtention.h"
 
+// タイマー表示スプライトスクリプト
 class TimerSprite: public CustomScriptComponent {
 public:
 	BEGIN_REFLECT(TimerSprite)

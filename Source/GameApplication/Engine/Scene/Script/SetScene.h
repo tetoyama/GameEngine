@@ -7,6 +7,7 @@
 #include "Component/CustomScriptComponent.h"
 #include "Backends/checkFileExtention.h"
 
+// シーン遷移スクリプト
 class SetScene: public CustomScriptComponent {
 public:
 

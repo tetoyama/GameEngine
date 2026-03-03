@@ -6,6 +6,7 @@
 #pragma once
 #include "Component/CustomScriptComponent.h"
 
+// スコア管理スクリプト
 class ScoreManager: public CustomScriptComponent {
 public:
 	BEGIN_REFLECT(ScoreManager)

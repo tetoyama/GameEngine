@@ -9,6 +9,7 @@
 #include <Component/materialComponent.h>
 #include <Component/textureComponent.h>
 
+// フェードアウトスプライトスクリプト
 class FadeOutSprite: public CustomScriptComponent {
 public:
 	BEGIN_REFLECT(FadeOutSprite)

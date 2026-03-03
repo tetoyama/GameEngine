@@ -7,6 +7,7 @@
 #include "Component/CustomScriptComponent.h"
 #include "Backends/checkFileExtention.h"
 
+// スコア表示スプライトスクリプト
 class ScoreSprite: public CustomScriptComponent {
 public:
 	BEGIN_REFLECT(ScoreSprite)

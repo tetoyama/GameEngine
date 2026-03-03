@@ -13,6 +13,7 @@
 #include "Component/ColliderComponent.h"
 #include <System/Physic/physicSystem.h>
 
+// プレイヤー制御スクリプト
 class PlayerController: public CustomScriptComponent {
 	BEGIN_REFLECT(PlayerController)
 

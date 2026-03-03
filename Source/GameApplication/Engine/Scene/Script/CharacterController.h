@@ -18,6 +18,7 @@
 // WASD移動・スペースジャンプ・LSHIFTスタミナ無しダッシュ・
 // モーションブレンドスキニングアニメーション・坂道対応
 // ============================================================
+// キャラクター制御スクリプト
 class CharacterController : public CustomScriptComponent {
 	BEGIN_REFLECT(CharacterController)
 

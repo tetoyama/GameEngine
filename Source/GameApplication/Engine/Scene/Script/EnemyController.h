@@ -10,6 +10,7 @@
 #include "Component/modelRendererComponent.h"
 #include "BallController.h"
 
+// 敵キャラクター制御スクリプト
 class EnemyController: public CustomScriptComponent {
 	BEGIN_REFLECT(EnemyController)
 

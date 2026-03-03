@@ -6,4 +6,5 @@
 #pragma once
 #include <cstdint>
 
+// エンティティIDの型定義（32ビット符号なし整数）
 using Entity = uint32_t;

@@ -7,6 +7,7 @@
 #include "Component/CustomScriptComponent.h"
 #include "Backends/checkFileExtention.h"
 
+// フェードによるシーン遷移スクリプト
 class FadeSetScene: public CustomScriptComponent {
 public:
 
