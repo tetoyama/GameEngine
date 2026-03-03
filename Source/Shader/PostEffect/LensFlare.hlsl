@@ -240,6 +240,10 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
         LIGHT light = Lights[li];
         if (!light.Enable) continue;
 
+        // 方向ライト系以外はレンズフレアを無効化
+        if (light.LightType != LIGHT_TYPE_DIRECTIONAL &&
+            light.LightType != LIGHT_TYPE_DIRECTIONAL_CSM) continue;
+
         // ライトのスクリーン UV + NDC 深度を取得
         // clip.w <= 0 の場合はカメラ背後 → スキップ
         float4 screenData = GetLightScreenData(light);
