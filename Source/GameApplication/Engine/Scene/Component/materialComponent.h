@@ -13,6 +13,9 @@
 #include "Registry/systemRegistry.h"
 #include "System/Render/RenderSystem/renderSystem.h"
 
+// Corresponds to materialID=1 (PBR) in AutoGen/ForwardRenderingPS.hlsl / DeferredRenderingPS.hlsl
+constexpr int MATERIAL_SHADER_ID_PBR = 1;
+
 class MaterialComponent: public IComponent {
 public:
 

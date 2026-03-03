@@ -183,7 +183,8 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 					if (material) {
 						materialID = material->ShaderID;
 						if ((material->Material.MaterialFlags & MATERIAL_FLAG_USE_ENVIRONMENT_MAP) != 0) {
-							materialID = 1; // PBR
+							// Environment map shading is implemented in the PBR branch.
+							materialID = MATERIAL_SHADER_ID_PBR;
 						}
 					}
 
