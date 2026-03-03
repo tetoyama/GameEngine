@@ -18,11 +18,15 @@ Texture2D g_Texture : register(t0);
 
 #define SSR_MAX_STEPS 64
 #define DEFAULT_TARGET_SHADER_ID 5
+#define SSR_EDGE_FADE_START 0.05f
+#define SSR_EDGE_FADE_END   0.95f
+#define SSR_ROUGHNESS_SCALE 2.0f
 
 // スクリーン端フェード — 端に近い反射サンプルを減衰させてちらつきを防ぐ
 float ScreenEdgeFade(float2 uv)
 {
-    float2 fade = smoothstep(0.0f, 0.05f, uv) * (1.0f - smoothstep(0.95f, 1.0f, uv));
+    float2 fade = smoothstep(0.0f, SSR_EDGE_FADE_START, uv)
+               * (1.0f - smoothstep(SSR_EDGE_FADE_END, 1.0f, uv));
     return fade.x * fade.y;
 }
 
@@ -148,7 +152,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
         float fresnel = 0.02f + 0.98f * pow(1.0f - NdotV, 5.0f);
 
         // Roughness で SSR 強度を減衰（粗い表面ほど SSR が弱い）
-        float roughnessFade = 1.0f - saturate(roughness * 2.0f);
+        float roughnessFade = 1.0f - saturate(roughness * SSR_ROUGHNESS_SCALE);
 
         // SSR ヒット: 反射色をシーンカラーにブレンド
         float blend = fresnel * intensity * hitFade * roughnessFade;

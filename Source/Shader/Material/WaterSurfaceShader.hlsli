@@ -32,8 +32,9 @@ float4 ShadeMaterial_WaterSurface(MaterialInput materialInput)
     float3 refraction = saturate(lighting.diffuse + lighting.ambient) * waterColor;
 
     // 反射成分: 環境マップの色（Roughness に応じて減衰）
+    static const float ENV_ROUGHNESS_ATTEN = 0.6;
     float roughness = saturate(materialInput.Roughness);
-    float envStrength = 1.0 - roughness * 0.6;
+    float envStrength = 1.0 - roughness * ENV_ROUGHNESS_ATTEN;
     float3 reflection = envColor * envStrength;
 
     // スペキュラハイライト（太陽光のきらめき）
