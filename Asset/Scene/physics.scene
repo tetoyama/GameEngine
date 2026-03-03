@@ -90,9 +90,9 @@ Entities:
         LightType: 4
         CastShadow: 1
         Position:
-          x: -22.9985771
-          y: 10.6025972
-          z: -2.03964949
+          x: -23.2957706
+          y: 10.9316225
+          z: -2.2304759
           w: 0
         Direction:
           x: 0.61569488
@@ -116,20 +116,20 @@ Entities:
           w: 0.00499999989
         LightView:
           -
-            - 0.540302217
+            - 0.540302277
             - 0
-            - -0.841471076
-            - 10.7098761
+            - -0.841470957
+            - 10.709877
           -
             - 0.573579311
-            - 0.731688857
-            - 0.368290931
+            - 0.731688797
+            - 0.36829102
             - 6.18489027
           -
-            - 0.615695
-            - -0.681638777
-            - 0.395333111
-            - 22.1935902
+            - 0.61569494
+            - -0.681638837
+            - 0.395333141
+            - 22.6762867
           -
             - 0
             - 0
@@ -137,19 +137,19 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0884459019
+            - 0.08406955
             - 0
             - 0
-            - -0.199237004
+            - -0.189378768
           -
             - 0
-            - 0.106022939
+            - 0.104235686
             - 0
-            - -0.208031759
+            - -0.204524964
           -
             - 0
             - 0
-            - 0.0367609784
+            - 0.0358949751
             - -0
           -
             - 0
@@ -900,16 +900,16 @@ Entities:
             - 4.86325216
             - 17.9322453
             - 1
-        nextLinkId: 39
-        nextPinId: 31
+        nextLinkId: 41
+        nextPinId: 34
         PostEffects:
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\OutlineByShaderID.cso
             NodePos:
-              x: 326.717529
-              y: -205.507507
+              x: -304.7854
+              y: -25.4870911
             InputPins:
               - 2
               - 4
@@ -925,8 +925,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\SSAO.cso
             NodePos:
-              x: -961.621826
-              y: 334.637665
+              x: -1593.12476
+              y: 514.658081
             InputPins:
               - 5
               - 7
@@ -942,8 +942,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\DepthBlur.cso
             NodePos:
-              x: 639.11792
-              y: -110.706207
+              x: -44.3850098
+              y: -26.685791
             InputPins:
               - 8
               - 10
@@ -959,8 +959,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\SSAOComposite.cso
             NodePos:
-              x: 11.8253174
-              y: -269.656433
+              x: -619.677612
+              y: -89.6360168
             InputPins:
               - 14
               - 19
@@ -977,8 +977,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\Blur.cso
             NodePos:
-              x: -724.791504
-              y: -16.7798157
+              x: -1356.29443
+              y: 163.240601
             InputPins:
               - 16
               - 18
@@ -994,8 +994,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\BrightPass.cso
             NodePos:
-              x: -1002.53857
-              y: -14.2096863
+              x: -1634.0415
+              y: 165.81073
             InputPins:
               - 21
               - 23
@@ -1011,8 +1011,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\Blur.cso
             NodePos:
-              x: -635.325012
-              y: 330.94101
+              x: -1266.82788
+              y: 510.961426
             InputPins:
               - 24
               - 26
@@ -1028,8 +1028,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\CompositeBloom.cso
             NodePos:
-              x: -397.52771
-              y: -375.991241
+              x: -1029.03064
+              y: -195.970825
             InputPins:
               - 27
               - 29
@@ -1041,12 +1041,24 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\Kuwahara.cso
+            NodePos:
+              x: 247.778076
+              y: -1.07720947
+            InputPins:
+              - 31
+              - 33
+            OutputPin: 32
+            Param:
+              x: 0
+              y: 0
+              z: 0
+              w: 0
+            ResolutionScale: 1
         PostEffectLinks:
-          - ID: 10
-            StartNode: 2
-            EndNode: -2
-            StartAttr: 9
-            EndAttr: 1
           - ID: 27
             StartNode: -1
             EndNode: 1
@@ -1097,17 +1109,27 @@ Entities:
             EndNode: 2
             StartAttr: 3
             EndAttr: 8
+          - ID: 39
+            StartNode: 8
+            EndNode: -2
+            StartAttr: 32
+            EndAttr: 1
+          - ID: 40
+            StartNode: 2
+            EndNode: 8
+            StartAttr: 9
+            EndAttr: 31
         ScreenInput:
           Name: ""
           NodePos:
-            x: -1444.30676
-            y: -211.447678
+            x: -2075.80957
+            y: -31.4272614
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 898.768066
-            y: 260.203552
+            x: 531.768066
+            y: 206.203552
           InputPins:
             - 1
       - Component: CameraController
