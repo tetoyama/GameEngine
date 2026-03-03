@@ -7,6 +7,7 @@
 #include <typeinfo>
 #include <string>
 
+// リソースローダーの基底インターフェース
 class IResourceLoader {
 public:
 	virtual ~IResourceLoader() = default;

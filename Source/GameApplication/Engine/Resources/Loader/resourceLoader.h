@@ -17,6 +17,7 @@
 
 #include "IResourceLoader.h"
 
+// 汎用リソースローダーのテンプレートクラス
 template<typename T>
 class ResourceLoader : public IResourceLoader {
 public:

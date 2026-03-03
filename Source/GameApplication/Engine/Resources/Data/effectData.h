@@ -10,6 +10,7 @@
 #include "Backends/Effekseer/Effekseer.h"
 #include "Backends/Effekseer/EffekseerRendererDX11.h"
 
+// エフェクトリソースデータを保持するクラス
 class EffectData {
 public:
 	std::string FilePath = "";

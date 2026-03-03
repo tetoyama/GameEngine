@@ -9,6 +9,7 @@
 #include <wrl/client.h> 
 class GraphicsContext;
 
+// 頂点シェーダーデータを保持する構造体
 struct VertexShaderData
 {
 public:

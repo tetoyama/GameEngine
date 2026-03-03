@@ -9,6 +9,7 @@
 #include <wrl/client.h> 
 class GraphicsContext;
 
+// ピクセルシェーダーデータを保持する構造体
 struct PixelShaderData
 {
 public:

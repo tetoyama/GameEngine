@@ -6,6 +6,7 @@
 #pragma once
 #include <xaudio2.h>
 #include <string>
+// オーディオリソースデータを保持するクラス
 class AudioData {
 public:
 	std::string FilePath = "";
