@@ -58,7 +58,7 @@ void ShadowMapPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* 
 	renderables.clear();
 	renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableTerrain>());
-	renderables.push_back(renderSystem->GetRenderable<RenderableWave>());
+	//renderables.push_back(renderSystem->GetRenderable<RenderableWave>());
 	//renderables.push_back(renderSystem->GetRenderable<RenderableParticle>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableBillBoard>());
 
