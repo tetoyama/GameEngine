@@ -3,6 +3,7 @@
 #include "sceneManager.h"
 #include "../RenderPassContext.h"
 #include "../../renderPhase.h"
+#include "../../RenderTarget/renderTarget.h"
 
 #include "../ShadowMap/ShadowMapPass.h"
 #include "../GBuffer/GBufferPass.h"
@@ -14,6 +15,7 @@
 
 #include "Graphics/graphicsContext.h"
 #include "DebugTools/ImGuiSystem.h"
+#include "Service/Graphics/mainRenderer.h"
 
 
 void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
