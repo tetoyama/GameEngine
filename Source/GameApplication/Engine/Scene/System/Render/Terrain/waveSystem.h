@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Interface/ISystem.h"
 #include "Graphics/GraphicsContext.h"
 #include "Scene/scene.h"
@@ -188,7 +188,7 @@ private:
 		tempVertices.resize(vertexCount);
 
 		const float baseA = comp->Amplitude;
-		const float baseLambda = std::max(comp->Wavelength, 0.01f);
+		const float baseLambda = (std::max)(comp->Wavelength, 0.01f);
 		const float baseSpeed = comp->Speed;
 		const float Q = std::clamp(comp->Steepness, 0.0f, 1.0f);
 		const float t = comp->Time;
