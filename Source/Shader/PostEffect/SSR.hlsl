@@ -4,6 +4,9 @@
 // ライティング済みシーンテクスチャ (t0)
 Texture2D g_Texture : register(t0);
 
+static const float SSR_SCHLICK_EXPONENT = 5.0f;
+static const float SSR_DIELECTRIC_F0 = 0.04f;
+
 // Parameter.x : 反射強度 (推奨 1.0)
 // Parameter.y : 最大レイ長 (view-space, 推奨 40.0)
 // Parameter.z : レイマーチステップ数 (推奨 32)
@@ -70,7 +73,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
         }
     }
 
-    float fresnel = pow(1.0f - saturate(dot(worldNormal, viewDirWS)), 5.0f);
-    float reflection = saturate(Parameter.x) * metallic * (0.04f + 0.96f * fresnel);
+    float fresnel = pow(1.0f - saturate(dot(worldNormal, viewDirWS)), SSR_SCHLICK_EXPONENT);
+    float reflection = saturate(Parameter.x) * metallic * (SSR_DIELECTRIC_F0 + (1.0f - SSR_DIELECTRIC_F0) * fresnel);
     outDiffuse = float4(lerp(sceneColor.rgb, reflectedColor, hit ? reflection : 0.0f), sceneColor.a);
 }
