@@ -153,6 +153,7 @@ void Scene::BuildDefaultScene(){
 		material->Material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		material->Material.Metallic = 0.25f;
 		material->Material.Roughness = 0.5f;
+		material->Material.MaterialFlags |= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
 
 		// ColliderComponentを追加
 		auto* collider = componentRegistry->AddComponent<ColliderComponent>(entity);
@@ -208,6 +209,9 @@ void Scene::BuildDefaultScene(){
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->isBlender = true;
 		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\sky.fbx", true);
+
+		auto* env = componentRegistry->AddComponent<EnvironmentMapComponent>(entity);
+		env->enabled = true;
 	}
 	{
 		Entity entity = entityRegistry->Create();
