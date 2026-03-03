@@ -44,5 +44,5 @@ float4 ShadeMaterial_WaterSurface(MaterialInput materialInput)
     // Fresnel で屈折と反射をブレンド
     float3 finalColor = lerp(refraction, reflection, fresnel) + specular;
 
-    return float4(saturate(finalColor), 0.95);
+    return float4(saturate(finalColor), 1.0);
 }

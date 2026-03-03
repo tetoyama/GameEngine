@@ -401,6 +401,8 @@ Entities:
     Components:
       - Component: NameComponent
         Name: Water
+      - Component: RenderLayerComponent
+        layer: 1
       - Component: TransformComponent
         Position:
           x: 0
@@ -423,7 +425,7 @@ Entities:
             x: 0.0199999996
             y: 0.0799999982
             z: 0.150000006
-            w: 0.949999988
+            w: 1
           Metallic: 0
           Roughness: 0.100000001
           AO: 0
