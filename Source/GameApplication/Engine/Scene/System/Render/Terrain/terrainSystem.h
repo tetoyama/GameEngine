@@ -100,7 +100,7 @@ private:
 				for(int x = 0; x <= gridSize; ++x){
 					int i = z * (gridSize + 1) + x;
 
-					if (comp->HeightMap.size() > 0) {
+					if ((int)comp->HeightMap.size() >= vertexCount) {
 						vertices[i].Position = {
 							(x - halfSize) / gridSize,
 							comp->HeightMap[x + (gridSize - z) * (gridSize + 1)],
