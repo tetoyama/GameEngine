@@ -138,7 +138,7 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 					continue;
 				}
 
-				if (layer == RenderLayer::SortTransparent3D) {
+				if (layer == RenderLayer::SortTransparent3D || layer == RenderLayer::Transparent3D) {
 
 					auto transform = context->component->GetComponent<TransformComponent>(entity);
 					if (!transform) {
