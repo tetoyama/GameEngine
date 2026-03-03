@@ -39,15 +39,15 @@ Entities:
             isTrigger: false
             boneName: ""
       - Component: MaterialComponent
-        ShaderID: 3
+        ShaderID: 1
         Material:
           BaseColor:
             x: 0.679653645
             y: 0.771181285
             z: 1
             w: 1
-          Metallic: 0
-          Roughness: 0.150000006
+          Metallic: 0.439999998
+          Roughness: 0.600000024
           AO: 0
           EmissiveColor:
             x: 0
@@ -89,9 +89,9 @@ Entities:
         LightType: 4
         CastShadow: 1
         Position:
-          x: -22.8585148
-          y: 10.4475355
-          z: -1.94971752
+          x: -22.5950851
+          y: 10.1558905
+          z: -1.78057051
           w: 0
         Direction:
           x: 0.61569488
@@ -115,20 +115,20 @@ Entities:
           w: 0.00499999989
         LightView:
           -
-            - 0.540302277
+            - 0.540302217
             - 0
             - -0.841470957
-            - 10.709877
+            - 10.7098761
           -
             - 0.573579311
-            - 0.731688797
-            - 0.36829102
-            - 6.18488932
+            - 0.731688738
+            - 0.368290961
+            - 6.18489075
           -
             - 0.61569494
             - -0.681638837
-            - 0.395333141
-            - 21.9661064
+            - 0.395333111
+            - 21.5382462
           -
             - 0
             - 0
@@ -136,19 +136,19 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0907120183
+            - 0.095396623
             - 0
             - 0
-            - -0.204341888
+            - -0.214894593
           -
             - 0
-            - 0.10690254
+            - 0.10862989
             - 0
-            - -0.209757626
+            - -0.213147059
           -
             - 0
             - 0
-            - 0.0371858217
+            - 0.0380163901
             - -0
           -
             - 0
@@ -279,7 +279,7 @@ Entities:
         jumpUpAnimFile: Asset/Model/Jumping Up.fbx
         jumpDownAnimFile: Asset/Model/Jumping Down.fbx
         SelfLayerBit: 2
-  - Entity: 6
+  - Entity: 5
     Components:
       - Component: NameComponent
         Name: Entity
@@ -340,7 +340,7 @@ Entities:
         FilePath: Asset/Model\cube.obj
         isBlender: false
         AnimationTime: 4109.03467
-  - Entity: 7
+  - Entity: 6
     Components:
       - Component: NameComponent
         Name: Entity
@@ -401,7 +401,7 @@ Entities:
         FilePath: Asset/Model\ball.fbx
         isBlender: false
         AnimationTime: 4109.03467
-  - Entity: 8
+  - Entity: 7
     Components:
       - Component: NameComponent
         Name: Entity
@@ -462,7 +462,7 @@ Entities:
         FilePath: Asset/Model\cube.obj
         isBlender: false
         AnimationTime: 4109.03467
-  - Entity: 9
+  - Entity: 8
     Components:
       - Component: NameComponent
         Name: Entity
@@ -594,7 +594,7 @@ Entities:
         FilePath: Asset/Model\ball.fbx
         isBlender: false
         AnimationTime: 4109.03467
-  - Entity: 10
+  - Entity: 9
     Components:
       - Component: NameComponent
         Name: Entity
@@ -655,7 +655,7 @@ Entities:
         FilePath: Asset/Model\bear.fbx
         isBlender: false
         AnimationTime: 4022.33789
-  - Entity: 11
+  - Entity: 10
     Components:
       - Component: NameComponent
         Name: Entity
@@ -698,9 +698,9 @@ Entities:
         ShaderID: 1
         Material:
           BaseColor:
-            x: 1
+            x: 0.679597378
             y: 1
-            z: 1
+            z: 0.398268402
             w: 1
           Metallic: 0
           Roughness: 0
@@ -712,6 +712,10 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+      - Component: TextureComponent
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
       - Component: TerrainComponent
         Scale: 10
         HeightMap:
@@ -836,7 +840,7 @@ Entities:
           - 0.0398730002
           - 0.0287945308
           - 0.0152101684
-  - Entity: 5
+  - Entity: 11
     Components:
       - Component: NameComponent
         Name: Camera
@@ -893,8 +897,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\OutlineByShaderID.cso
             NodePos:
-              x: 1189.8313
-              y: 120.677002
+              x: 1053.8313
+              y: -251.322998
             InputPins:
               - 2
               - 4
@@ -909,15 +913,15 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\SSAO.cso
             NodePos:
-              x: 175.369873
-              y: 419.227417
+              x: 39.369873
+              y: 47.227417
             InputPins:
               - 5
               - 7
             OutputPin: 6
             Param:
               x: 1
-              y: 0.100000001
+              y: 0.300000012
               z: 0.5
               w: 0
           - Name: NewEffect
@@ -925,8 +929,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\DepthBlur.cso
             NodePos:
-              x: 1696.10962
-              y: 142.883545
+              x: 1560.10962
+              y: -229.116455
             InputPins:
               - 8
               - 10
@@ -941,8 +945,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\DepthFog.cso
             NodePos:
-              x: 1457.56543
-              y: 140.411743
+              x: 1321.56543
+              y: -231.588257
             InputPins:
               - 11
               - 13
@@ -957,8 +961,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\SSAOComposite.cso
             NodePos:
-              x: 922.200195
-              y: 175.809937
+              x: 786.200195
+              y: -196.190063
             InputPins:
               - 14
               - 19
@@ -974,14 +978,14 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\Blur.cso
             NodePos:
-              x: 427.188232
-              y: 416.809814
+              x: 291.188232
+              y: 44.8098145
             InputPins:
               - 16
               - 18
             OutputPin: 17
             Param:
-              x: 1.48000002
+              x: 1.5
               y: 0
               z: 0
               w: 0
@@ -990,8 +994,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\BrightPass.cso
             NodePos:
-              x: 224.988037
-              y: 117.999878
+              x: 88.9880371
+              y: -254.000122
             InputPins:
               - 21
               - 23
@@ -1006,8 +1010,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\Blur.cso
             NodePos:
-              x: 461.987976
-              y: 118.999863
+              x: 325.987976
+              y: -253.000137
             InputPins:
               - 24
               - 26
@@ -1022,8 +1026,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\CompositeBloom.cso
             NodePos:
-              x: 700.023865
-              y: -133.563354
+              x: 564.023865
+              y: -505.563354
             InputPins:
               - 27
               - 29
@@ -1098,14 +1102,14 @@ Entities:
         ScreenInput:
           Name: ""
           NodePos:
-            x: -79.7241211
-            y: 63.1654358
+            x: -215.724121
+            y: -308.834564
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 2047.75989
-            y: 394.793304
+            x: 1911.75977
+            y: 22.7933044
           InputPins:
             - 1
       - Component: CameraController
