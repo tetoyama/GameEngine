@@ -28,19 +28,16 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 
 	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
 	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
-	MATERIAL material{};
+	MATERIAL material;
 	if (pMaterial) {
 		material = pMaterial->Material;
 	}
 
 	if(pTexture && pTexture->m_TextureData && pTexture->m_TextureData->pTexture){
 
-		sceneContext->manager->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+		// sceneContext->manager->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 		material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 
-	} else{
-
-		material.BaseColor = DirectX::XMFLOAT4(1, 1, 1, 1);
 	}
 
 	// 環境マッピング: WaveComponent の UseEnvironmentMap が有効なら PBR シェーダーで環境マップを適用
