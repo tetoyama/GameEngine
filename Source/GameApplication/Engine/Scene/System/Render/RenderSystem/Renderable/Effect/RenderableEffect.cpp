@@ -1,3 +1,8 @@
+// =======================================================================
+// 
+// RenderableEffect.cpp
+// 
+// =======================================================================
 #include "RenderableEffect.h"
 #include "Backends/convertMatrix.h"
 #include "Graphics/graphicsContext.h"

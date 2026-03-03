@@ -1,3 +1,8 @@
+// =======================================================================
+// 
+// EditorPass.cpp
+// 
+// =======================================================================
 #include "EditorPass.h"
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "sceneManager.h"
@@ -120,5 +125,3 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 
 	result = postEffectPass->resultSrv;
 }
-
-

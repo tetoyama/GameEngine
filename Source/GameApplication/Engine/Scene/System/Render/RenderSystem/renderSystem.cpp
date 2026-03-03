@@ -1,4 +1,8 @@
-﻿// Scene/System/renderSystem.cpp
+﻿// =======================================================================
+// 
+// renderSystem.cpp
+// 
+// =======================================================================
 #include "renderSystem.h"
 #include "buildSetting.h"
 
@@ -858,4 +862,3 @@ void RenderSystem::EditorView(){
 	);
 	m_EditorPass->Execute(renderPassContext);
 }
-

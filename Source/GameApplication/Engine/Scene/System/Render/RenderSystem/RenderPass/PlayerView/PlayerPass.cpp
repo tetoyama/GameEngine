@@ -1,4 +1,9 @@
-﻿#include "PlayerPass.h"
+﻿// =======================================================================
+// 
+// PlayerPass.cpp
+// 
+// =======================================================================
+#include "PlayerPass.h"
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "sceneManager.h"
 #include "../RenderPassContext.h"
@@ -127,5 +132,3 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	playerRenderTarget->Resize(ctx.screenSize, m_context->graphics);
 	playerRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearCol);
 }
-
-

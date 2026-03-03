@@ -1,3 +1,8 @@
+// =======================================================================
+// 
+// LightingPass.cpp
+// 
+// =======================================================================
 #include "LightingPass.h"
 #include "Shader/commonDefine.h"
 
@@ -166,4 +171,3 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 		ImGui::End();
 	}
 }
-

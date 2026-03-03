@@ -1,4 +1,9 @@
-﻿#include "PostEffectPass.h"
+﻿// =======================================================================
+// 
+// PostEffectPass.cpp
+// 
+// =======================================================================
+#include "PostEffectPass.h"
 #include "Shader/commonDefine.h"
 
 #include "System/Render/RenderSystem/renderSystem.h"

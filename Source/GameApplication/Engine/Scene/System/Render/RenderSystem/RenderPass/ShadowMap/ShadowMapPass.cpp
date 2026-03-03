@@ -1,3 +1,8 @@
+// =======================================================================
+// 
+// ShadowMapPass.cpp
+// 
+// =======================================================================
 #include "ShadowMapPass.h"
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "sceneManager.h"
@@ -562,4 +567,3 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 	//ImGui::Image((ImTextureRef)shadowRenderTarget->srv.Get(), ImVec2(200, 200));
 }
-

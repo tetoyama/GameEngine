@@ -1,4 +1,9 @@
-﻿#include "GBufferPass.h"
+﻿// =======================================================================
+// 
+// GBufferPass.cpp
+// 
+// =======================================================================
+#include "GBufferPass.h"
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "sceneManager.h"
 #include "../RenderPassContext.h"
