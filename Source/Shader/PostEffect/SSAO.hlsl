@@ -17,7 +17,7 @@
 Texture2D g_Texture : register(t0);
 
 // サンプルカーネル数
-#define SSAO_KERNEL_SIZE 16
+#define SSAO_KERNEL_SIZE 32
 
 // 接線空間における半球サンプルを生成する
 // i      : サンプルインデックス [0, SSAO_KERNEL_SIZE)
