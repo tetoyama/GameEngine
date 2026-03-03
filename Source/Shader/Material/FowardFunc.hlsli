@@ -129,6 +129,30 @@ float ShadowFactor(
 }
 
 // =====================================================
+// CSM PCF サンプリングヘルパー
+// =====================================================
+float SampleCascadePCF(float2 suvBase, float depth, float2 texelSize, float stepTexel, int radius)
+{
+    float shadow = 0.0;
+    int count = 0;
+    [loop]
+    for (int sy = -radius; sy <= radius; sy++)
+    {
+        [loop]
+        for (int sx = -radius; sx <= radius; sx++)
+        {
+            shadow += ShadowMap.SampleCmpLevelZero(
+                ShadowSampler,
+                suvBase + float2(sx, sy) * texelSize * stepTexel,
+                depth);
+            count++;
+        }
+    }
+    return shadow / max(count, 1);
+}
+
+
+// =====================================================
 // CSM (Cascaded Shadow Maps) シャドウファクター (Forward)
 // =====================================================
 float ShadowFactorCSM(
@@ -193,23 +217,37 @@ float ShadowFactorCSM(
     texelSize = 1.0 / texelSize;
     texelSize *= tile;
 
-    float shadow = 0.0;
     int radius = max(pcf.KernelRadius, 0);
-    int count = 0;
+    float shadow = SampleCascadePCF(suvBase, depth, texelSize, pcf.StepTexel, radius);
 
-    [loop]
-    for (int y = -radius; y <= radius; y++)
+    // ---- カスケードフォールバック ----
+    // 最精細カスケードが「影なし (shadow=1.0)」を返した場合、次のカスケードで遠方の
+    // shadow caster による影を検証する。最精細カスケードの Z レンジ外にある caster
+    // (カメラから大幅に離れた位置) はこのフォールバックで捕捉される。
+    [branch]
+    if (shadow >= 1.0 && cascade < DIRECTIONAL_CSM_CASCADE_COUNT - 1)
     {
-        [loop]
-        for (int x = -radius; x <= radius; x++)
+        int nextCascade = cascade + 1;
+        float4 nsp = mul(float4(worldPos, 1.0), CsmViews[nextCascade]);
+        nsp = mul(nsp, CsmProjections[nextCascade]);
+        if (nsp.w > 0.0)
         {
-            float2 offset = float2(x, y) * texelSize * pcf.StepTexel;
-            shadow += ShadowMap.SampleCmpLevelZero(ShadowSampler, suvBase + offset, depth);
-            count++;
+            nsp.xyz /= nsp.w;
+            float2 nuv = nsp.xy * 0.5 + 0.5;
+            nuv.y = 1.0 - nuv.y;
+            if (all(nuv >= 0.0) && all(nuv <= 1.0))
+            {
+                float ndepth = saturate(nsp.z - bias);
+                int nTileIndex = CsmAtlasOffset + nextCascade;
+                uint ngx = nTileIndex % grid;
+                uint ngy = nTileIndex / grid;
+                float2 nsuvBase = float2(ngx, ngy) * tile + nuv * tile;
+                shadow = min(shadow, SampleCascadePCF(nsuvBase, ndepth, texelSize, pcf.StepTexel, radius));
+            }
         }
     }
 
-    return shadow / max(count, 1);
+    return shadow;
 }
 
 
