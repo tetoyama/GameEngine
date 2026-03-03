@@ -182,6 +182,9 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 					auto material = itemCtx->component->GetComponent<MaterialComponent>(entity);
 					if (material) {
 						materialID = material->ShaderID;
+						if ((material->Material.MaterialFlags & MATERIAL_FLAG_USE_ENVIRONMENT_MAP) != 0) {
+							materialID = 1; // PBR
+						}
 					}
 
 					ObjectInfo info;

@@ -180,6 +180,9 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 						sctx->component->GetComponent<MaterialComponent>(ent);
 					if(material){
 						materialID = material->ShaderID;
+						if ((material->Material.MaterialFlags & MATERIAL_FLAG_USE_ENVIRONMENT_MAP) != 0) {
+							materialID = 1; // PBR
+						}
 					}
 
 					ObjectInfo info;
