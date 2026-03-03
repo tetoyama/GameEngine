@@ -25,6 +25,9 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	if (!pWave || !pWave->meshRenderer) {
 		return;
 	}
+	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
+	ID3D11Device* device = graphicsContext->GetDevice();
+	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
 	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
@@ -35,6 +38,7 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	}
 
 	if(pTexture && pTexture->m_TextureData && pTexture->m_TextureData->pTexture){
+		deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 
 		// sceneContext->manager->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 		material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
@@ -46,8 +50,6 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	auto meshRenderer = pWave->meshRenderer;
 	auto transform = pTransform;
 
-	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
-	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, componentRegistry);
 

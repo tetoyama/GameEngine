@@ -36,6 +36,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset/Texture\03626073-9e02-40ca-ac27-43c12f45e821.png
         UV_Slice_X: 1
@@ -157,6 +158,25 @@ Entities:
           y: 500
           z: 500
         Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 0
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
         UV_Slice_X: 1
@@ -234,6 +254,7 @@ Entities:
               y: 0
               z: 0
               w: 0
+            ResolutionScale: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset\Shader\PostEffectVS.cso
@@ -250,6 +271,7 @@ Entities:
               y: 0
               z: 0
               w: 0
+            ResolutionScale: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset\Shader\PostEffectVS.cso
@@ -267,6 +289,7 @@ Entities:
               y: 0
               z: 0
               w: 0
+            ResolutionScale: 1
         PostEffectLinks:
           - ID: 3
             StartNode: 1
@@ -343,6 +366,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset\Texture\SOCCERGAME.png
         UV_Slice_X: 1
@@ -375,7 +399,7 @@ Entities:
           z: 1
         Parent: 0
       - Component: OrderInLayerComponent
-        layer: -1
+        layer: -11
       - Component: MaterialComponent
         ShaderID: 0
         Material:
@@ -394,6 +418,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -445,6 +470,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset\Texture\PRESSENTER.png
         UV_Slice_X: 1
@@ -494,6 +520,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -530,6 +557,25 @@ Entities:
           y: 1
           z: 1
         Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+          UseEnvironmentMap: false
       - Component: TextureComponent
         FilePath: Asset/Model\football-stadium-with-surrounding-area\textures\Etaj4.jpeg
         UV_Slice_X: 1
@@ -558,6 +604,25 @@ Entities:
           y: 1
           z: 1
         Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+          UseEnvironmentMap: false
       - Component: TextureComponent
         FilePath: Asset/Model\football-stadium-with-surrounding-area\textures\Opory2.jpeg
         UV_Slice_X: 1
@@ -586,6 +651,25 @@ Entities:
           y: 1
           z: 1
         Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+          UseEnvironmentMap: false
       - Component: TextureComponent
         FilePath: Asset/Model\football-stadium-with-surrounding-area\textures\Krysha3.jpeg
         UV_Slice_X: 1
@@ -614,6 +698,25 @@ Entities:
           y: 1
           z: 1
         Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+          UseEnvironmentMap: false
   - Entity: 13
     Components:
       - Component: NameComponent
@@ -745,6 +848,25 @@ Entities:
           y: 0.00999999978
           z: 0.00999999978
         Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 4
+        Material:
+          BaseColor:
+            x: 1
+            y: 0
+            z: 0
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+          UseEnvironmentMap: false
       - Component: TextureComponent
         FilePath: Asset/Texture\white.tga
         UV_Slice_X: 1
@@ -776,7 +898,27 @@ Entities:
           y: 0.00999999978
           z: 0.0100000054
         Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 4
+        Material:
+          BaseColor:
+            x: 0
+            y: 0
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+          UseEnvironmentMap: false
       - Component: TextureComponent
+        FilePath: Asset/Texture\white.tga
         UV_Slice_X: 1
         UV_Slice_Y: 1
         AnimationNum: 0
