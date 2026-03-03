@@ -74,6 +74,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     }
 
     float fresnel = pow(1.0f - saturate(dot(worldNormal, viewDirWS)), SSR_SCHLICK_EXPONENT);
-    float reflection = saturate(Parameter.x) * metallic * (SSR_DIELECTRIC_F0 + (1.0f - SSR_DIELECTRIC_F0) * fresnel);
+    float fresnelTerm = SSR_DIELECTRIC_F0 + (1.0f - SSR_DIELECTRIC_F0) * fresnel;
+    float reflection = saturate(Parameter.x) * metallic * fresnelTerm;
     outDiffuse = float4(lerp(sceneColor.rgb, reflectedColor, hit ? reflection : 0.0f), sceneColor.a);
 }
