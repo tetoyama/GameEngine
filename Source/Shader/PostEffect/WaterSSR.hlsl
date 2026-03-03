@@ -4,20 +4,27 @@
 // ============================================================
 // Water SSR (Screen Space Reflections) Post-Effect
 //
-// WaveComponent の水面ピクセルに対して SSR を適用し、
-// SSR が外れた場合もシーンカラーをそのまま出力する
+// Parameter.w で指定した ShaderID のピクセルにのみ SSR を適用する。
+// SSR が外れた場合はシーンカラーをそのまま出力する
 // （環境反射は WaterSurfaceShader で既に適用済み）
 //
 // Parameter.x : SSR ステップサイズ       (推奨値: 1.0)
 // Parameter.y : 反射強度                 (推奨値: 0.8)
 // Parameter.z : SSR 最大イテレーション数 (推奨値: 48)
-// Parameter.w : 水面の ShaderID          (水面マテリアルの ID と一致させる)
+// Parameter.w : 対象の ShaderID          (0 以下ならデフォルト 5)
 // ============================================================
 
 Texture2D g_Texture : register(t0);
 
 #define SSR_MAX_STEPS 64
-#define WATER_SURFACE_SHADER_ID 5
+#define DEFAULT_TARGET_SHADER_ID 5
+
+// スクリーン端フェード — 端に近い反射サンプルを減衰させてちらつきを防ぐ
+float ScreenEdgeFade(float2 uv)
+{
+    float2 fade = smoothstep(0.0f, 0.05f, uv) * (1.0f - smoothstep(0.95f, 1.0f, uv));
+    return fade.x * fade.y;
+}
 
 void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 {
@@ -32,11 +39,11 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
         return;
     }
 
-    // ShaderID で水面ピクセルを識別
-    // Parameter.w が未設定 (0) の場合はデフォルトで WaterSurface の ShaderID を使用
-    int waterShaderID = (int) Parameter.w;
-    if (waterShaderID <= 0)
-        waterShaderID = WATER_SURFACE_SHADER_ID;
+    // ShaderID でピクセルを識別
+    // Parameter.w が未設定 (0) の場合はデフォルト ShaderID を使用
+    int targetShaderID = (int) Parameter.w;
+    if (targetShaderID <= 0)
+        targetShaderID = DEFAULT_TARGET_SHADER_ID;
 
     uint paramW, paramH;
     GParam.GetDimensions(paramW, paramH);
@@ -44,13 +51,13 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     uint4 param = GetObjParam(pixelCoord);
     uint shaderID = param.z;
 
-    if ((int) shaderID != waterShaderID)
+    if ((int) shaderID != targetShaderID)
     {
         outDiffuse = sceneColor;
         return;
     }
 
-    // ---- 水面ピクセル: SSR 実行 ----
+    // ---- 対象ピクセル: SSR 実行 ----
     float3 worldPos = GetWorldPosition(uv);
     float3 worldNormal = normalize(GetWorldNormal(uv));
     float3 viewDir = normalize(CameraPosition.xyz - worldPos);
@@ -60,14 +67,19 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     int maxSteps = clamp((int) Parameter.z, 8, SSR_MAX_STEPS);
     float intensity = saturate(Parameter.y);
 
-    // 水面からカメラまでの距離に応じてステップサイズを調整
+    // カメラ距離に応じてステップサイズを調整
     float distToCamera = length(CameraPosition.xyz - worldPos);
     float adaptiveStep = baseStepSize * max(distToCamera * 0.05f, 0.5f);
+
+    // Roughness を取得してぼかし量を決定
+    float4 matParams = GetMaterial(uv);
+    float roughness = saturate(matParams.g);
 
     // SSR レイマーチ（加速ステップ）
     float4 reflColor = float4(0, 0, 0, 0);
     bool hit = false;
     float marchDist = 0.0f;
+    float hitFade = 1.0f;
 
     [loop]
     for (int i = 1; i <= maxSteps; i++)
@@ -117,8 +129,13 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
         // レイが表面を通過した場合（手前側に超えた）→ ヒット判定
         if (depthDiff > 0.0f && depthDiff < step * 3.0f)
         {
-            // ヒット: 反射されたピクセルの色を取得
             reflColor = g_Texture.Sample(g_SamplerState, sampleUV);
+
+            // スクリーン端フェードとレイ距離フェードを計算
+            float edgeFade = ScreenEdgeFade(sampleUV);
+            float distFade = 1.0f - saturate(float(i) / float(maxSteps));
+            hitFade = edgeFade * distFade;
+
             hit = true;
             break;
         }
@@ -130,9 +147,12 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
         float NdotV = saturate(dot(worldNormal, viewDir));
         float fresnel = 0.02f + 0.98f * pow(1.0f - NdotV, 5.0f);
 
+        // Roughness で SSR 強度を減衰（粗い表面ほど SSR が弱い）
+        float roughnessFade = 1.0f - saturate(roughness * 2.0f);
+
         // SSR ヒット: 反射色をシーンカラーにブレンド
-        // SSR の反射はマテリアルシェーダの環境マッピングを上書き
-        outDiffuse = lerp(sceneColor, reflColor, fresnel * intensity);
+        float blend = fresnel * intensity * hitFade * roughnessFade;
+        outDiffuse = lerp(sceneColor, reflColor, blend);
     }
     else
     {
