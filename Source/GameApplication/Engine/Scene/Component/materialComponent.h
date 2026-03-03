@@ -134,6 +134,18 @@ public:
 		ImGui::SameLine(100);
 		ImGui::UndoDragFloat4("##Emissive", &Material.EmissiveColor.x, 0.01f, 0.0f, 1.0f);
 
+		// Environment Map
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("Env Map");
+		ImGui::SameLine(100);
+		bool useEnvMap = (Material.MaterialFlags & MATERIAL_FLAG_USE_ENVIRONMENT_MAP) != 0;
+		if (ImGui::Checkbox("##UseEnvMap", &useEnvMap)) {
+			if (useEnvMap)
+				Material.MaterialFlags |= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
+			else
+				Material.MaterialFlags &= ~MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
+		}
+
 
 
 		ImGui::PopID(); // コンポーネントのIDをポップ

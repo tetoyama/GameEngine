@@ -26,8 +26,9 @@
 #define TextureSlot_HeightMap	(5)
 #define TextureSlot_EmissiveMap	(6)
 #define TextureSlot_ShadowMap	(7)
+#define TextureSlot_EnvironmentMap (8)
 
-#define TextureSlot_Max			(8)
+#define TextureSlot_Max			(9)
 
 #define GBufferSlot_Albedo		(0)
 #define GBufferSlot_Normal		(1)
@@ -45,10 +46,11 @@
 #define LightingSlot_GEmissive  (4)
 #define LightingSlot_GParam     (5)
 #define LightingSlot_ShadowMap  (6)
+#define LightingSlot_EnvironmentMap (7)
 
-#define LightingSlot_Max        (7)
+#define LightingSlot_Max        (8)
 
-// ポストエフェクト用 GBuffer スロット (TextureSlot_Max 以降の固定スロット)
+// ポストエフェクト用 GBuffer スロット (フォワードパスのテクスチャスロット後に続く固定スロット)
 #define PostEffectGBufferSlot_Start     (8)
 #define PostEffectGBufferSlot_Albedo    (8)
 #define PostEffectGBufferSlot_Normal    (9)
@@ -73,6 +75,7 @@
 #define MATERIAL_FLAG_USE_NORMAL_TEXTURE		(1 << 1)
 #define MATERIAL_FLAG_USE_ROUGHNESS_TEXTURE		(1 << 2)
 #define MATERIAL_FLAG_USE_METALLIC_TEXTURE		(1 << 3)
+#define MATERIAL_FLAG_USE_ENVIRONMENT_MAP		(1 << 4)
 
 
 #ifdef LOW_RESOLUTION

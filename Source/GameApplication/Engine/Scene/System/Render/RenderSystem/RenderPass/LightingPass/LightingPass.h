@@ -7,6 +7,7 @@
 
 class IRenderable;
 struct RenderTarget;
+struct TextureData;
 
 class GBufferPass;
 class ShadowMapPass;
@@ -27,6 +28,9 @@ public:
 	std::shared_ptr<VertexShaderData> m_LightingVertexShader;
 
 	ID3D11SamplerState* m_LinearSampler;
+	ID3D11SamplerState* m_EnvMapSampler = nullptr;
+
+	std::shared_ptr<TextureData> m_EnvironmentMap;
 
 	RenderTarget* pRenderTarget;
 };

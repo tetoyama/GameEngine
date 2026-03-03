@@ -168,6 +168,14 @@ public:
 	//------------------------------------------------------------------
 	std::vector<ShaderMaterial> ShaderMaterials;
 
+	//------------------------------------------------------------------
+	// 環境マップ管理
+	//------------------------------------------------------------------
+	std::string m_EnvironmentMapPath;
+	std::shared_ptr<TextureData> m_EnvironmentMapTexture;
+
+	void SetEnvironmentMap(const std::string& path);
+
 private:
 
 	//------------------------------------------------------------------

@@ -21,6 +21,10 @@ SamplerState LinearSampler : register(s0);
 Texture2D ShadowMap : register(t7);
 SamplerComparisonState ShadowSampler : register(s1);
 
+// ================= Environment Map =================
+TextureCube EnvironmentMap : register(t8);
+SamplerState EnvSampler : register(s3);
+
 // ============================================================================
 // Forward : MaterialInput
 // ============================================================================
@@ -52,6 +56,7 @@ MaterialInput GetMaterialInput(PS_IN In)
     input.materialID = ShaderID;
     input.objectID = ObjectID;
     input.sceneID = SceneID;
+    input.materialFlags = Material.MaterialFlags;
     
     BaseColorTex.GetDimensions(input.screenSize.x, input.screenSize.y);
     input.screenUV = In.Position.xy / float2(input.screenSize.x, input.screenSize.y);

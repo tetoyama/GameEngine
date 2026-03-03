@@ -171,6 +171,9 @@ namespace YAML{
 			node["UseNormalTexture"] =
 				(mat.MaterialFlags & MATERIAL_FLAG_USE_NORMAL_TEXTURE) != 0;
 
+			node["UseEnvironmentMap"] =
+				(mat.MaterialFlags & MATERIAL_FLAG_USE_ENVIRONMENT_MAP) != 0;
+
 			return node;
 		}
 
@@ -205,6 +208,9 @@ namespace YAML{
 
 			if(node["UseNormalTexture"])
 				mat.MaterialFlags |= MATERIAL_FLAG_USE_NORMAL_TEXTURE;
+
+			if(node["UseEnvironmentMap"])
+				mat.MaterialFlags |= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
 
 			return true;
 		}

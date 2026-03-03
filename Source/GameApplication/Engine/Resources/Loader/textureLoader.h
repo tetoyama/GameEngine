@@ -23,6 +23,7 @@ inline std::shared_ptr<TextureData> LoadTextureFromFile(const std::string& fileP
 	tex->FilePath = filePath;
 
 	bool isTgaFile = HasExtension(filePath, "tga");
+	bool isDdsFile = HasExtension(filePath, "dds");
 
 	// UTF-8 → UTF-16 変換
 	int size_needed = MultiByteToWideChar(CP_UTF8, 0, filePath.c_str(), -1, NULL, 0);
@@ -35,6 +36,8 @@ inline std::shared_ptr<TextureData> LoadTextureFromFile(const std::string& fileP
 	HRESULT hr = S_OK;
 	if (isTgaFile) {
 		hr = DirectX::LoadFromTGAFile(w_FilePath.c_str(), &metadata, image);
+	} else if (isDdsFile) {
+		hr = DirectX::LoadFromDDSFile(w_FilePath.c_str(), DirectX::DDS_FLAGS_NONE, &metadata, image);
 	} else {
 		hr = DirectX::LoadFromWICFile(w_FilePath.c_str(), DirectX::WIC_FLAGS_NONE, &metadata, image);
 	}

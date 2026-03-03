@@ -23,6 +23,7 @@
 
 #include "Resources/resourceService.h"
 #include "Resources/Data/shaderData.h"
+#include "Resources/Data/textureData.h"
 #include <ImGui/imgui_impl_dx11.h>
 
 void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
@@ -39,6 +40,16 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 	desc.MinLOD = 0;
 	desc.MaxLOD = D3D11_FLOAT32_MAX;
 	m_context->graphics->GetDevice()->CreateSamplerState(&desc, &m_LinearSampler);
+
+	// Environment map sampler (trilinear + wrap for cubemap)
+	D3D11_SAMPLER_DESC envDesc{};
+	envDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	envDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	envDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	envDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	envDesc.MinLOD = 0;
+	envDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	m_context->graphics->GetDevice()->CreateSamplerState(&envDesc, &m_EnvMapSampler);
 
 	Vector2 size = Vector2((float)context->graphics->m_width, (float)context->graphics->m_height);
 
@@ -59,6 +70,13 @@ void LightingPass::Finalize() {
 	m_LinearSampler->Release();
 	m_LinearSampler = nullptr;
 
+	if (m_EnvMapSampler) {
+		m_EnvMapSampler->Release();
+		m_EnvMapSampler = nullptr;
+	}
+
+	m_EnvironmentMap.reset();
+
 }
 
 void LightingPass::SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shadowMapPass, GraphicsContext* gc) {
@@ -76,11 +94,19 @@ void LightingPass::SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shado
 	dc->PSSetShaderResources(LightingSlot_GParam, 1, gBufferPass->pRenderTargets[GBufferSlot_Param]->srv.GetAddressOf());
 	dc->PSSetShaderResources(LightingSlot_ShadowMap, 1, shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
 
+	if (m_EnvironmentMap && m_EnvironmentMap->pTexture) {
+		dc->PSSetShaderResources(LightingSlot_EnvironmentMap, 1, m_EnvironmentMap->pTexture.GetAddressOf());
+	}
+
 	ID3D11SamplerState* samplers[] =
 	{
 		m_LinearSampler					// s2
 	};
 	dc->PSSetSamplers(2, 1, samplers);
+
+	if (m_EnvMapSampler) {
+		dc->PSSetSamplers(3, 1, &m_EnvMapSampler);	// s3
+	}
 }
 
 
@@ -114,8 +140,8 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 	ID3D11ShaderResourceView* nullSRV[LightingSlot_Max] = {};
 	dc->PSSetShaderResources(0, LightingSlot_Max, nullSRV);
 
-	ID3D11SamplerState* nullSampler[1] = { nullptr };
-	dc->PSSetSamplers(2, 1, nullSampler);
+	ID3D11SamplerState* nullSampler[2] = { nullptr, nullptr };
+	dc->PSSetSamplers(2, 2, nullSampler);
 
 	{
 		return;

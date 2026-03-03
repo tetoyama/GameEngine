@@ -87,7 +87,7 @@ GBUFFER_OUT main(PS_IN In)
         ObjectID,   // ObjectID
         SceneID,    // SceneID
         ShaderID,   // ShaderID
-        0 // Flags
+        Material.MaterialFlags // MaterialFlags
     );
 
     return Out;

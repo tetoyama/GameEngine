@@ -18,6 +18,7 @@ struct MaterialInput
     int materialID;
     int objectID;
     int sceneID;
+    uint materialFlags;
     
     float2 screenSize;
     float2 screenUV;

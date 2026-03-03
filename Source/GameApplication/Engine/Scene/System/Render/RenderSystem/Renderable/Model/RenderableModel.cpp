@@ -41,7 +41,8 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 	material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	if (pMaterial) {
 		material = pMaterial->Material;
-		material.MaterialFlags = 0;
+		// Preserve user-defined flags (env map), clear auto-computed texture flags
+		material.MaterialFlags &= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
 	}
 
 	if (pTexture) {
@@ -80,7 +81,8 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 
 		if(!pTexture || !pTexture->m_TextureData){
 			MATERIAL materialData = material;
-			materialData.MaterialFlags = 0;
+			// Preserve user-defined flags (env map), clear auto-computed texture flags
+			materialData.MaterialFlags &= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
 			aiMaterial* aiMat = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
 			aiColor4D color;
 			if(aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS){

@@ -27,6 +27,10 @@ SamplerState PointSampler : register(s2);
 Texture2D ShadowMap : register(t6);
 SamplerComparisonState ShadowSampler : register(s1);
 
+// ================= Environment Map =================
+TextureCube EnvironmentMap : register(t7);
+SamplerState EnvSampler : register(s3);
+
 // ================= Implement =================
 MaterialInput GetMaterialInput(PS_IN In)
 {
@@ -59,6 +63,7 @@ MaterialInput GetMaterialInput(PS_IN In)
     input.sceneID = param.x;
     input.objectID = param.y;
     input.materialID = param.z;
+    input.materialFlags = param.w;
 
     GAlbedo.GetDimensions(input.screenSize.x, input.screenSize.y);
     input.screenUV = In.TexCoord;

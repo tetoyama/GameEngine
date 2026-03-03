@@ -36,6 +36,7 @@
 #include "Resources/resourceService.h"
 #include "Resources/Data/vertexShaderData.h"
 #include "Resources/Data/pixelShaderData.h"
+#include "Resources/Data/textureData.h"
 
 #include "Scene.h"
 #include "SceneManager.h"
@@ -66,6 +67,7 @@
 
 #include "RenderPass/GBuffer/GBufferPass.h"
 #include "RenderPass/ShadowMap/ShadowMapPass.h"
+#include "RenderPass/LightingPass/LightingPass.h"
 #include "RenderPass/PlayerView/PlayerPass.h"
 #include "RenderPass/EditorView/EditorPass.h"
 #include "Renderable/Wave/RenderableWave.h"
@@ -152,6 +154,19 @@ void RenderSystem::Finalize(){
 	m_renderables.clear();
 
 	m_context->debug->LOG_DEBUG("RenderSystemの終了処理が完了しました。");
+}
+
+void RenderSystem::SetEnvironmentMap(const std::string& path) {
+	m_EnvironmentMapPath = path;
+	if(path.empty()){
+		m_EnvironmentMapTexture.reset();
+	} else {
+		m_EnvironmentMapTexture = m_context->resource->Load<TextureData>(path);
+	}
+	// Update all lighting passes
+	if(m_PlayerPass && m_PlayerPass->lightingPass){
+		m_PlayerPass->lightingPass->m_EnvironmentMap = m_EnvironmentMapTexture;
+	}
 }
 
 void RenderSystem::Update(float deltaTime) {
@@ -274,6 +289,13 @@ bool RenderSystem::decode(const YAML::Node& node){
 		}
 	}
 
+	if(node["EnvironmentMapPath"]){
+		std::string path = node["EnvironmentMapPath"].as<std::string>();
+		if(!path.empty()){
+			SetEnvironmentMap(path);
+		}
+	}
+
 	return true;
 }
 
@@ -288,6 +310,7 @@ YAML::Node RenderSystem::encode(){
 	}
 
 	node["ShaderMaterial"] = materialsNode;
+	node["EnvironmentMapPath"] = m_EnvironmentMapPath;
 
 	return node;
 }
@@ -295,6 +318,38 @@ YAML::Node RenderSystem::encode(){
 void RenderSystem::SystemSetting() {
 
 	float width = ImGui::GetContentRegionAvail().x;
+
+	// EnvironmentMap settings
+	if(ImGui::TreeNode("EnvironmentMap")){
+		ImGui::Text("Path");
+		ImGui::SameLine(80);
+		float inputWidth = ImGui::GetContentRegionAvail().x - 50.0f;
+		char envBuf[512] = "";
+		strncpy_s(envBuf, sizeof(envBuf), m_EnvironmentMapPath.c_str(), _TRUNCATE);
+		ImGui::PushItemWidth(inputWidth);
+		if(ImGui::InputText("##EnvMapPath", envBuf, sizeof(envBuf), ImGuiInputTextFlags_EnterReturnsTrue)){
+			SetEnvironmentMap(std::string(envBuf));
+		}
+		ImGui::PopItemWidth();
+		ImGui::SameLine();
+		if(ImGui::SmallButton("x")){
+			SetEnvironmentMap("");
+		}
+		// Drag-and-drop support
+		if(ImGui::BeginDragDropTarget()){
+			if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
+				SetEnvironmentMap(std::string((const char*)payload->Data));
+			}
+			ImGui::EndDragDropTarget();
+		}
+		if(m_EnvironmentMapTexture && m_EnvironmentMapTexture->pTexture){
+			ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Loaded");
+		} else if(!m_EnvironmentMapPath.empty()){
+			ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Not loaded");
+		}
+		ImGui::TreePop();
+	}
+	ImGui::Separator();
 
 	if (ImGui::TreeNode("RenderDebug")) {
 		if (ImGui::TreeNode("Editor View")) {

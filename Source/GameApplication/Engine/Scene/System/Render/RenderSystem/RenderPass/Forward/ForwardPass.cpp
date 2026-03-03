@@ -23,6 +23,8 @@
 #include "Component/CameraComponent.h"
 #include "Component/LightComponent.h"
 
+#include "Resources/Data/textureData.h"
+
 #include "System/Render/RenderSystem/Renderable/Model/RenderableModel.h"
 #include "System/Render/RenderSystem/Renderable/BillBoard/RenderableBillBoard.h"
 #include "System/Render/RenderSystem/Renderable/Mesh/RenderableMesh.h"
@@ -80,6 +82,14 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 	// シャドウマップバインド
 	deviceContext->PSSetShaderResources(TextureSlot_ShadowMap, 1, m_shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
 	deviceContext->PSSetSamplers(1, 1, &m_shadowMapPass->shadowSampler);
+
+	// 環境マップバインド (メタリックオブジェクト用)
+	if(m_lightingPass->m_EnvironmentMap && m_lightingPass->m_EnvironmentMap->pTexture){
+		deviceContext->PSSetShaderResources(TextureSlot_EnvironmentMap, 1, m_lightingPass->m_EnvironmentMap->pTexture.GetAddressOf());
+	}
+	if(m_lightingPass->m_EnvMapSampler){
+		deviceContext->PSSetSamplers(3, 1, &m_lightingPass->m_EnvMapSampler);
+	}
 
 	// シェーダーセット
 	deviceContext->VSSetShader(m_VertexShader->m_VertexShader.Get(), nullptr, 0);
