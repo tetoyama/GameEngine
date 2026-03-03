@@ -204,9 +204,9 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 						XMMATRIX invCameraView = XMMatrixInverse(nullptr, ctx.viewMatrix);
 
 						// カスケードスプリット深度を PSSM (対数+線形ブレンド) で計算
-						// カメラ nearClip を始点、FarClip の 50% を終点とし近距離精度を高める
+						// カメラ nearClip を始点、FarClip を終点とする
 						const float     csmNear   = max(cameraNear, 0.1f); // カメラ nearClip を使用 (最低 0.1m)
-						const float     csmFar    = cameraFar * 0.5f;      // FarClip の 50% まで
+						const float     csmFar    = cameraFar;              // FarClip まで
 						constexpr float csmLambda = 0.85f; // 0.0=完全線形(等間隔), 1.0=完全対数(近距離重視)
 						float splitDepths[DIRECTIONAL_CSM_CASCADE_COUNT];
 						for(int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT; c++){

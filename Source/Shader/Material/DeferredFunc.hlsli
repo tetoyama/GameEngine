@@ -74,6 +74,35 @@ MaterialInput GetMaterialInput(PS_IN In)
 
 
 // =====================================================
+// CSM PCF サンプリングヘルパー
+// =====================================================
+// suvBase   : アトラス内タイル起点 UV
+// depth     : 比較深度
+// texelSize : タイルサイズ込みのテクセルサイズ
+// stepTexel : PCF ステップ倍率 (pcf.StepTexel)
+// radius    : PCF カーネル半径
+float SampleCascadePCF(float2 suvBase, float depth, float2 texelSize, float stepTexel, int radius)
+{
+    float shadow = 0.0;
+    int count = 0;
+    [loop]
+    for (int sy = -radius; sy <= radius; sy++)
+    {
+        [loop]
+        for (int sx = -radius; sx <= radius; sx++)
+        {
+            shadow += ShadowMap.SampleCmpLevelZero(
+                ShadowSampler,
+                suvBase + float2(sx, sy) * texelSize * stepTexel,
+                depth);
+            count++;
+        }
+    }
+    return shadow / max(count, 1);
+}
+
+
+// =====================================================
 // CSM (Cascaded Shadow Maps) シャドウファクター
 // =====================================================
 float ShadowFactorCSM(
@@ -81,30 +110,36 @@ float ShadowFactorCSM(
     LIGHT  light,
     ShadowPCFParams pcf)
 {
-    // ---- ビュー空間深度でカスケード選択 ----
-    float4 viewPos = mul(float4(worldPos, 1.0), View);
-    float viewDepth = viewPos.z;
+    // ---- カスケード選択 + ライトスペース変換 (投影UV判定) ----
+    // スプリット深度に依存せず、各カスケードの実際の投影 UV [0,1] 内に収まるかを
+    // 近→遠の順に検査し、最初にカバーされる（最も精細な）カスケードを選択する。
+    // スプリット深度は C++ 側でのカスケード錐台計算にのみ使用し、
+    // シェーダ側の選択は行列投影ベースで行うことで精度を最大化する。
+    // ※ CSM は正射影なので csp.w は常に 1 だが、念のため w <= 0 は skip する。
 
-    // 遠→近の順に走査し、条件を満たす最も近いカスケードを確実に選択する。
-    // [unroll]+break はコンパイラの述語化により遠いカスケードが上書きされる場合があるため、
-    // break を使わず最後の書き込みが最短カスケードになるようにしている。
-    int cascade = DIRECTIONAL_CSM_CASCADE_COUNT - 1; // デフォルトは最遠カスケード
-    [unroll]
-    for (int c = DIRECTIONAL_CSM_CASCADE_COUNT - 1; c >= 0; c--)
-    {
-        float splitDepth;
-        if (c < 4)
-            splitDepth = CsmSplitDepths[0][c];
-        else
-            splitDepth = CsmSplitDepths[1][c - 4];
-
-        if (viewDepth < splitDepth)
-            cascade = c;
-    }
-
-    // ---- ライトスペース変換 ----
+    // デフォルトとして最遠カスケードで sp を事前計算 (どのカスケードもカバーしない場合のフォールバック)
+    int cascade = DIRECTIONAL_CSM_CASCADE_COUNT - 1;
     float4 sp = mul(float4(worldPos, 1.0), CsmViews[cascade]);
     sp = mul(sp, CsmProjections[cascade]);
+
+    // 近→遠の順で走査し、UV 内に収まる最初（最も精細）のカスケードを使う。
+    // 遠→近にすると「最も粗い」カスケードが選ばれてしまい精度が下がるため、
+    // 精度最大化のために近→遠の方向で break を使う設計とする。
+    [loop]
+    for (int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT - 1; c++)
+    {
+        float4 csp = mul(float4(worldPos, 1.0), CsmViews[c]);
+        csp = mul(csp, CsmProjections[c]);
+        if (csp.w <= 0.0) continue; // w <= 0 はゼロ除算防止 (正射影では通常 w=1)
+        float2 cuv = csp.xy / csp.w * 0.5 + 0.5;
+        cuv.y = 1.0 - cuv.y;
+        if (all(cuv >= 0.0) && all(cuv <= 1.0))
+        {
+            cascade = c;
+            sp = csp;
+            break;
+        }
+    }
 
     if (sp.w <= 0.0)
         return 1.0;
@@ -140,26 +175,59 @@ float ShadowFactorCSM(
     texelSize *= tile;
 
     // ---- PCF ----
-    float shadow = 0.0;
     int radius = max(pcf.KernelRadius, 0);
-    int count = 0;
+    float shadow = SampleCascadePCF(suvBase, depth, texelSize, pcf.StepTexel, radius);
 
-    [loop]
-    for (int y = -radius; y <= radius; y++)
+    // ---- カスケードフォールバック ----
+    // 最精細カスケードが「影なし (shadow=1.0)」を返した場合、次のカスケードで遠方の
+    // shadow caster による影を検証する。
+    //
+    // 次のカスケードで遮蔽物が見つかった場合、その遮蔽物のライトビュー Z を最精細
+    // カスケードの NDC 空間に変換し、最精細カスケードの Z 範囲 [0,1] 内かを確認する。
+    //   ・範囲内  → 最精細カスケードで捕捉可能なはず → 「影なし」の判定を優先して影を無視
+    //   ・範囲外  → 最精細カスケードでは描画不可の遮蔽物 → 次のカスケードの影を採用
+    [branch]
+    if (shadow >= 1.0 && cascade < DIRECTIONAL_CSM_CASCADE_COUNT - 1)
     {
-        [loop]
-        for (int x = -radius; x <= radius; x++)
+        int nextCascade = cascade + 1;
+        float4 nsp = mul(float4(worldPos, 1.0), CsmViews[nextCascade]);
+        nsp = mul(nsp, CsmProjections[nextCascade]);
+        if (nsp.w > 0.0)
         {
-            float2 offset = float2(x, y) * texelSize * pcf.StepTexel;
-            shadow += ShadowMap.SampleCmpLevelZero(
-                ShadowSampler,
-                suvBase + offset,
-                depth);
-            count++;
+            nsp.xyz /= nsp.w;
+            float2 nuv = nsp.xy * 0.5 + 0.5;
+            nuv.y = 1.0 - nuv.y;
+            if (all(nuv >= 0.0) && all(nuv <= 1.0))
+            {
+                float ndepth = saturate(nsp.z - bias);
+                int nTileIndex = CsmAtlasOffset + nextCascade;
+                uint ngx = nTileIndex % grid;
+                uint ngy = nTileIndex / grid;
+                float2 nsuvBase = float2(ngx, ngy) * tile + nuv * tile;
+
+                // 次のカスケードのシャドウマップから遮蔽物の生深度を読み取る
+                float occRawDepth = ShadowMap.SampleLevel(LinearSampler, nsuvBase, 0).r;
+
+                // 正射影: ndc_z = viewZ * P._33 + P._43  →  viewZ = (ndc_z - P._43) / P._33
+                // 遮蔽物のライトビュー Z を次のカスケードの行列から求め、
+                // 最精細カスケードの NDC Z に変換して描画範囲を確認する。
+                float p1_33 = CsmProjections[nextCascade]._33;
+                [branch]
+                if (abs(p1_33) > 1e-6)
+                {
+                    float occViewZ = (occRawDepth - CsmProjections[nextCascade]._43) / p1_33;
+                    float occNdcInFine = occViewZ * CsmProjections[cascade]._33 + CsmProjections[cascade]._43;
+
+                    if (occNdcInFine < 0.0 || occNdcInFine > 1.0)
+                    {
+                        shadow = min(shadow, SampleCascadePCF(nsuvBase, ndepth, texelSize, pcf.StepTexel, radius));
+                    }
+                }
+            }
         }
     }
 
-    return shadow / max(count, 1);
+    return shadow;
 }
 
 
