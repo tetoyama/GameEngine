@@ -17,6 +17,7 @@
 Texture2D g_Texture : register(t0);
 
 #define SSR_MAX_STEPS 64
+#define WATER_SURFACE_SHADER_ID 5
 
 void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 {
@@ -32,10 +33,10 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     }
 
     // ShaderID で水面ピクセルを識別
-    // Parameter.w が未設定 (0) の場合はデフォルトで ShaderID=5 (WaterSurface) を使用
+    // Parameter.w が未設定 (0) の場合はデフォルトで WaterSurface の ShaderID を使用
     int waterShaderID = (int) Parameter.w;
     if (waterShaderID <= 0)
-        waterShaderID = 5;
+        waterShaderID = WATER_SURFACE_SHADER_ID;
 
     uint paramW, paramH;
     GParam.GetDimensions(paramW, paramH);
