@@ -3403,6 +3403,7 @@
     <FxCompile Include="Source\Shader\PostEffect\SSAOComposite.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\SSR.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\GodLay.hlsl" />
+    <FxCompile Include="Source\Shader\PostEffect\LensFlare.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Source\GameApplication\Backends\DirectX11\DirectXTex_Debug.lib" />
