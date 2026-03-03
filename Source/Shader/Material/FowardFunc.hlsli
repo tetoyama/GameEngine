@@ -227,11 +227,12 @@ float ShadowFactorCSM(
     float shadow = SampleCascadePCF(suvBase, depth, texelSize, pcf.StepTexel, radius);
 
     // ---- カスケードフォールバック ----
-    // 精細カスケードが「影なし (shadow=1.0)」を返した場合、次のカスケードを参照して
-    // 精細カスケードの XY 範囲外にある遮蔽物による影を検出する。
+    // 次のカスケードがより濃い影 (小さい値) を持つ場合に採用する。
+    // 精細カスケードの結果にかかわらず min を取ることで、精細カスケードの XY/Z
+    // 範囲外の遮蔽物による影も正しく反映できる。
     // 受影点が次のカスケードの XY・Z 両方の有効範囲内にある場合のみサンプルを採用する。
     [branch]
-    if (shadow >= 1.0 && cascade < DIRECTIONAL_CSM_CASCADE_COUNT - 1)
+    if (shadow > 0.0 && cascade < DIRECTIONAL_CSM_CASCADE_COUNT - 1)
     {
         int nextCascade = cascade + 1;
         float4 nsp = mul(float4(worldPos, 1.0), CsmViews[nextCascade]);
