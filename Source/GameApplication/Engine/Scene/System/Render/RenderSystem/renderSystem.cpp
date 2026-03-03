@@ -228,6 +228,19 @@ void RenderSystem::EditorUpdate(float deltaTime)
 }
 
 
+std::shared_ptr<TextureData> RenderSystem::GetEnvironmentMap() const {
+	if(m_PlayerPass && m_PlayerPass->lightingPass)
+		return m_PlayerPass->lightingPass->m_EnvironmentMap;
+	return nullptr;
+}
+
+ID3D11SamplerState* RenderSystem::GetEnvMapSampler() const {
+	if(m_PlayerPass && m_PlayerPass->lightingPass)
+		return m_PlayerPass->lightingPass->m_EnvMapSampler;
+	return nullptr;
+}
+
+
 void RenderSystem::UpdateSkyBoxEnvironmentMap() {
 	if(!m_PlayerPass || !m_PlayerPass->lightingPass){
 		return;

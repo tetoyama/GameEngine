@@ -163,6 +163,10 @@ public:
 		return ForwardPS.get();
 	}
 
+	// フォワードパス向けに環境マップテクスチャ・サンプラーを返す
+	std::shared_ptr<TextureData> GetEnvironmentMap() const;
+	ID3D11SamplerState*          GetEnvMapSampler()  const;
+
 	//------------------------------------------------------------------
 	// 登録済みシェーダマテリアル一覧
 	//------------------------------------------------------------------

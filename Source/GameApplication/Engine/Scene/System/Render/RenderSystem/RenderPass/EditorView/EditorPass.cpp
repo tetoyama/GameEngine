@@ -114,6 +114,18 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 	m_context->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_ShadowMap, 1, shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
 	m_context->graphics->GetDeviceContext()->PSSetSamplers(1, 1, &shadowMapPass->shadowSampler);
 
+	// 環境マップバインド (フォワードシェーダの t8 / s3)
+	{
+		auto envMap    = m_renderSystem->GetEnvironmentMap();
+		auto* envSampler = m_renderSystem->GetEnvMapSampler();
+		if(envMap && envMap->pTexture){
+			deviceContext->PSSetShaderResources(TextureSlot_EnvironmentMap, 1, envMap->pTexture.GetAddressOf());
+		}
+		if(envSampler){
+			deviceContext->PSSetSamplers(3, 1, &envSampler);
+		}
+	}
+
 	ID3D11ShaderResourceView* initialSRV = editorRenderTarget->srv.Get();
 
 	graphicsContext->SetCameraPosition(ctx.CameraPosition);
