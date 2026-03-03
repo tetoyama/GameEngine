@@ -4,5 +4,7 @@
 
 float4 ShadeMaterial_Unlit(MaterialInput input)
 {
-    return input.baseColor;
+    // Emissive contribution (HDR: not clamped, drives bloom)
+    float3 emissive = input.Emissive.rgb * input.Emissive.a;
+    return float4(input.baseColor.rgb + emissive, input.baseColor.a);
 }

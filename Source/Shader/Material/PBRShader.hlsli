@@ -14,9 +14,12 @@ float4 ShadeMaterial_PBR(MaterialInput materialInput)
 
     float3 specularColor = lighting.specular;
 
-    float3 finalColor = saturate(lighting.diffuse + lighting.ambient) * baseColor + specularColor;
+    float3 litColor = saturate(lighting.diffuse + lighting.ambient) * baseColor + specularColor;
 
-    return float4(saturate(finalColor), materialInput.baseColor.a);
+    // Emissive contribution (HDR: not clamped, drives bloom)
+    float3 emissive = materialInput.Emissive.rgb * materialInput.Emissive.a;
+
+    return float4(saturate(litColor) + emissive, materialInput.baseColor.a);
 }
 
 

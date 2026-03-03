@@ -43,7 +43,8 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 	Vector2 size = Vector2((float)context->graphics->m_width, (float)context->graphics->m_height);
 
 	// ----- RenderTargets -----
-	pRenderTarget = new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR_UNORM);
+	// HDR float16 バッファ: エミッシブ HDR 値を保持しブルーム入力に使用する
+	pRenderTarget = new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR);
 
 	m_LightingVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\LightingVS.cso");
 }

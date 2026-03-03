@@ -43,5 +43,8 @@ float4 ShadeMaterial_PBRToon(MaterialInput materialInput)
     float3 finalColor = (lighting.diffuse * toonDiff + lighting.ambient) * surfaceColor
                         + (lighting.specular * toonSpec);
 
-    return float4(saturate(finalColor), materialInput.baseColor.a);
+    // Emissive contribution (HDR: not clamped, drives bloom)
+    float3 emissive = materialInput.Emissive.rgb * materialInput.Emissive.a;
+
+    return float4(saturate(finalColor) + emissive, materialInput.baseColor.a);
 }
