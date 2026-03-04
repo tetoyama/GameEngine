@@ -8,6 +8,7 @@ GameApplication
 ├── Services（Service/）
 │   ├── IService						（サービス基底インターフェース）		【実装済み】
 │   ├── ConfigService					（yaml-cpp）							【実装済み】
+│   │   └── APPCONFIG					（アプリケーション設定構造体）			【実装済み】
 │   ├── AudioContext					（XAudio2）								【実装済み】
 │   ├── Runtime
 │   │   ├── TimeService					（QueryPerformanceCounter）				【実装済み】
@@ -16,8 +17,10 @@ GameApplication
 │   │   ├── WindowSystem
 │   │   │   ├── IWindow					（ウィンドウインターフェース）			【実装済み】
 │   │   │   ├── MainWindow				（メインウィンドウ実装）					【実装済み】
+│   │   │   ├── WindowService			（ウィンドウ管理サービス）				【実装済み】
 │   │   │   └── SubWindow													【未実装】
-│   │   ├── InputSystem														【実装済み】
+│   │   ├── InputSystem					（キーボード・マウス・ゲームパッド）		【実装済み】
+│   │   │   └── KeyState / MouseState	（入力状態構造体）						【実装済み】
 │   │   └── NetworkSystem				（ASIO, Winsock2）						【未実装】
 │   ├── Graphics
 │   │   ├── GraphicsContext				（DirectX 11 デバイス・コンテキスト）	【実装済み】

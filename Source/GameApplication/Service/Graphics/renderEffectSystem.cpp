@@ -24,8 +24,8 @@ bool RenderEffectSystem::Initialize(ID3D11Device* device, ID3D11DeviceContext* c
 
     //Effekseerのレンダラーとマネージャーを作成
     manager = Effekseer::Manager::Create(9999);
-    auto grapth = ::EffekseerRendererDX11::CreateGraphicsDevice(device, context);
-    renderer = EffekseerRendererDX11::Renderer::Create(grapth, 9999);
+    auto graphicsDevice = ::EffekseerRendererDX11::CreateGraphicsDevice(device, context);
+    renderer = EffekseerRendererDX11::Renderer::Create(graphicsDevice, 9999);
 
     if (manager == nullptr) {
         MessageBox(NULL, L"マネージャーがNULLです", L"エラー", MB_OK);
