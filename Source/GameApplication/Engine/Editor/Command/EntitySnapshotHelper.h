@@ -1,10 +1,9 @@
-#pragma once
-
 // =======================================================================
+// 
 // EntitySnapshotHelper.h
-// エンティティの親子関係操作・スナップショット・削除・復元の共通ユーティリティ
-// EntityDeleteCommand / EntityDuplicateCommand / PrefabInstantiateCommand で共有
+// 
 // =======================================================================
+#pragma once
 
 #include "Entity/Entity.h"
 #include "Scene/scene.h"

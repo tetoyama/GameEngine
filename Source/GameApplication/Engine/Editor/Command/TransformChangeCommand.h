@@ -1,9 +1,9 @@
-#pragma once
-
 // =======================================================================
+// 
 // TransformChangeCommand.h
-// ImGuizmo 等によるトランスフォーム変更を Undo/Redo するコマンド
+// 
 // =======================================================================
+#pragma once
 
 #include "ICommand.h"
 #include "Entity/Entity.h"
