@@ -226,14 +226,14 @@ void SceneManager::AddScene(std::shared_ptr<Scene> scene) {
 		return;
 	}
 
-	if (m_activeScenes[scene->SceneName]) {
+	auto existing = m_activeScenes.find(scene->SceneName);
+	if (existing != m_activeScenes.end() && existing->second) {
 		// 既存シーンを上書きする際は CommandManager をクリアする。
 		// 古いシーンのポインタを保持するコマンドが残ると Undo/Redo でクラッシュする。
 		if (m_SceneContext.editor) {
 			m_SceneContext.editor->commandManager.Clear();
 		}
-		m_activeScenes[scene->SceneName]->Shutdown();
-		m_activeScenes[scene->SceneName] = nullptr;
+		existing->second->Shutdown();
 	}
 
 	m_activeScenes[scene->SceneName] = scene;

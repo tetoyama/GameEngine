@@ -15,8 +15,9 @@
 // 方向ライト (Directional / DirectionalCSM):
 //   Direction の逆方向の遠距離点を投影してスクリーン UV を求める。
 //   スクリーン内に太陽位置がある場合のみ描画する。
-// 点光源 / スポットライト (Point / Spot):
+// 点光源 / スポットライト (Point / Spot):          ※将来対応予定
 //   ワールド座標を直接投影。深度バッファで遮蔽チェックを行う。
+//   現在はメインループで方向ライト以外をスキップしている。
 //
 // Parameter.x : フレア全体の強度 (推奨値: 0.5 〜 2.0)
 // Parameter.y : ハロ強度         (推奨値: 0.0 〜 1.0)
@@ -267,6 +268,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
                 float sceneDepth = GetDepth(lightPos);
                 occlusion = (sceneDepth >= SKY_DEPTH_THRESHOLD) ? 1.0f : 0.0f;
             }
+            // TODO: 現在メインループで方向ライト以外はスキップされるため到達しない
             else if (light.LightType == LIGHT_TYPE_POINT ||
                      light.LightType == LIGHT_TYPE_SPOT)
             {

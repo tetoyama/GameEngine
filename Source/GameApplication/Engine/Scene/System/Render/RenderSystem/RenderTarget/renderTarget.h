@@ -10,6 +10,7 @@
 
 class GraphicsContext;
 
+// レンダーターゲットの種別を定義する列挙型
 enum RenderTargetType
 {
 	RENDERTARGET_TYPE_COLOR,
@@ -19,6 +20,7 @@ enum RenderTargetType
 	RENDERTARGET_TYPE_UINT4,
 };
 
+// テクスチャ・ビューを持つレンダーターゲット
 struct RenderTarget {
 
 	RenderTarget(const Vector2& _size, GraphicsContext* _graphicsContext,const RenderTargetType& type);

@@ -85,7 +85,8 @@ void TimeService::EndFixedUpdate(){
 	fixedUpdateTimer_ += fixedUpdateTime_;
 	fixedUpdateFrameCount_++;
 
-	fixedUpdateTime_ = static_cast<double>(current - prevTime_ - deltaUpdateTime_) / static_cast<double>(frequency_);
+	// フレーム内での固定更新フェーズの所要時間（秒）
+	fixedUpdateTime_ = static_cast<double>(current - prevTime_) / static_cast<double>(frequency_) - deltaUpdateTime_;
 
 	if(1.0f <= fixedUpdateTimer_){
 		fixedUpdateFPS_ = static_cast<double>(fixedUpdateFrameCount_) / fixedUpdateTimer_;
@@ -106,7 +107,8 @@ void TimeService::EndDraw(){
 	drawTimer_ += drawTime_;
 	drawFrameCount_++;
 
-	drawTime_ = static_cast<double>(current - prevTime_ - deltaUpdateTime_) / static_cast<double>(frequency_);
+	// フレーム内での描画フェーズの所要時間（秒）
+	drawTime_ = static_cast<double>(current - prevTime_) / static_cast<double>(frequency_) - deltaUpdateTime_;
 
 	if(1.0f <= drawTimer_){
 		drawFPS_ = static_cast<double>(drawFrameCount_) / drawTimer_;

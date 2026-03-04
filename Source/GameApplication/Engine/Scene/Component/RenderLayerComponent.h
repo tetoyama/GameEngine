@@ -42,13 +42,19 @@ public:
 
 	YAML::Node encode() override{
 		YAML::Node node;
-		node["layer"] = order;
+		node["order"] = order;
 		return node;
 	}
 
 	bool decode(SceneContext* context, const YAML::Node& node) override{
-		if(!node["layer"]) return false;
-		order = node["layer"].as<int>();
+		// 後方互換: 旧キー "layer" もフォールバックで読み込む
+		if(node["order"]){
+			order = node["order"].as<int>();
+		} else if(node["layer"]){
+			order = node["layer"].as<int>();
+		} else{
+			return false;
+		}
 		return true;
 	}
 

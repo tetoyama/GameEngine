@@ -27,7 +27,7 @@ inline std::shared_ptr<EffectData> LoadEffectFromFile(const std::string& filePat
 
 template<>
 inline void ResourceLoader<EffectData>::SetupLoadFunc(void* contextPtr) {
-	OutputDebugStringA("SetupLoadFunc TextureData called\n");
+	OutputDebugStringA("SetupLoadFunc EffectData called\n");
 
 	auto context = static_cast<GraphicsContext*>(contextPtr);
 	SetLoadFunction([=](const std::string& path, std::shared_ptr<void> /*args*/) {

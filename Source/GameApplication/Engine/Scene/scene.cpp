@@ -332,8 +332,6 @@ void Scene::Save(){
 		YAML::Node componentsNode = YAML::Node(YAML::NodeType::Sequence);
 		for (IComponent* comp : m_componentRegistry->GetAllComponentsOfEntitySorted(e)) {
 			if (comp) {
-				YAML::Node compNode;
-
 				// 型情報を取得
 				std::type_index ti(typeid(*comp));
 				// 型IDを取得
@@ -342,28 +340,19 @@ void Scene::Save(){
 				const auto& idToName = m_componentRegistry->GetComponentIDToNameMap();
 				auto it = idToName.find(compId);
 				if(it != idToName.end()){
-					const std::string& compName = it->second;
 					YAML::Node compNode;
-					if(it != idToName.end()){
-						const std::string& compName = it->second;
-						compNode["Component"] = compName;
-					}
+					compNode["Component"] = it->second;
+
 					YAML::Node encoded = comp->encode();
 					// encodedの内容をcompNodeにマージ
 					if(encoded && encoded.IsMap()){
-						for(auto it = encoded.begin(); it != encoded.end(); ++it){
-							compNode[it->first.as<std::string>()] = it->second;
+						for(auto encIt = encoded.begin(); encIt != encoded.end(); ++encIt){
+							compNode[encIt->first.as<std::string>()] = encIt->second;
 						}
 					}
 					if(compNode && compNode.IsMap()){
 						componentsNode.push_back(compNode);
 					}
-				}
-				YAML::Node compNode2 = comp->encode();
-
-				compNode.push_back(compNode2);  // 各コンポーネントがTypeキーを含むマップを返す
-				if (compNode && compNode.IsMap()) {
-					componentsNode.push_back(compNode);
 				}
 			}
 		}
@@ -374,7 +363,7 @@ void Scene::Save(){
 
 	root["Entities"] = entitiesNode;
 
-    std::string utf8Path = std::filesystem::path(savePath).string();
+	std::string utf8Path = std::filesystem::path(savePath).string();
 
 
 	std::ofstream fout(utf8Path, std::ios::binary);
@@ -404,8 +393,6 @@ void Scene::TempSave(){
 		YAML::Node componentsNode = YAML::Node(YAML::NodeType::Sequence);
 		for(IComponent* comp : m_componentRegistry->GetAllComponentsOfEntitySorted(e)){
 			if(comp){
-				YAML::Node compNode;
-
 				// 型情報を取得
 				std::type_index ti(typeid(*comp));
 				// 型IDを取得
@@ -414,28 +401,19 @@ void Scene::TempSave(){
 				const auto& idToName = m_componentRegistry->GetComponentIDToNameMap();
 				auto it = idToName.find(compId);
 				if(it != idToName.end()){
-					const std::string& compName = it->second;
 					YAML::Node compNode;
-					if(it != idToName.end()){
-						const std::string& compName = it->second;
-						compNode["Component"] = compName;
-					}
+					compNode["Component"] = it->second;
+
 					YAML::Node encoded = comp->encode();
 					// encodedの内容をcompNodeにマージ
 					if(encoded && encoded.IsMap()){
-						for(auto it = encoded.begin(); it != encoded.end(); ++it){
-							compNode[it->first.as<std::string>()] = it->second;
+						for(auto encIt = encoded.begin(); encIt != encoded.end(); ++encIt){
+							compNode[encIt->first.as<std::string>()] = encIt->second;
 						}
 					}
 					if(compNode && compNode.IsMap()){
 						componentsNode.push_back(compNode);
 					}
-				}
-				YAML::Node compNode2 = comp->encode();
-
-				compNode.push_back(compNode2);  // 各コンポーネントがTypeキーを含むマップを返す
-				if(compNode && compNode.IsMap()){
-					componentsNode.push_back(compNode);
 				}
 			}
 		}
