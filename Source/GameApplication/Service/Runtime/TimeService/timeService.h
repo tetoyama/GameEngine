@@ -7,6 +7,7 @@
 #include "Service/IService.h"
 #include "buildSetting.h"
 #include "gameApplication.h"
+// フレームタイミング・デルタ時間・FPS計測を管理するサービス
 class TimeService : public IService
 {
 public:

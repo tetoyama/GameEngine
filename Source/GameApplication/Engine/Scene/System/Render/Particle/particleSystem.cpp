@@ -61,7 +61,7 @@ void ParticleSystem::Update(float deltaTime){
 		auto context = scene->GetSceneContext();
 		const auto& Entities = context->component->FindEntitiesWithComponent<ParticleComponent>();
 		if (Entities.empty()) {
-			return;
+			continue;
 		}
 		for (Entity entity : Entities) {
 			ParticleComponent* particle = context->component->GetComponent<ParticleComponent>(entity);

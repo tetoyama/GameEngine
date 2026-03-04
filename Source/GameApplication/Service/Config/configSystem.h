@@ -12,6 +12,7 @@
 #include "buildSetting.h"
 #include "appConfig.h"
 
+// アプリケーション・エディタ設定ファイルの読み込み・保存を管理するサービス
 class ConfigService: public IService {
 public:
 	ConfigService(){

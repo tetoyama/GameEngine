@@ -31,11 +31,13 @@ void CustomScriptSystem::Finalize() {
 		auto context = scene->GetSceneContext();
 		auto scripts = context->component->GetAllBaseComponents<CustomScriptComponent>();
 		for (auto& [entity, script] : scripts) {
-			if (script && !script->IsInitialized()) {
-				script->SetContext(context, entity);
-				script->Initialize();
+			if (script) {
+				if (!script->IsInitialized()) {
+					script->SetContext(context, entity);
+					script->Initialize();
+				}
+				script->Stop();
 			}
-			script->Stop();
 		}
 	}
 }

@@ -42,12 +42,14 @@ struct LogEntry {
 };
 
 
+// ログ出力先の基底インターフェース
 class ILogSink {
 public:
 	virtual ~ILogSink() = default;
 	virtual void Write(const LogEntry& entry) = 0;
 };
 
+// デバッグログの収集・配信を管理するサービス
 class DebugLogService : public IService {
 public:
 	void Initialize(); // 必要ならファイルパスなど渡す
@@ -96,6 +98,7 @@ private:
 	}
 };
 
+// メモリ上にログエントリを蓄積するシンク実装
 class MemoryLogSink: public ILogSink {
 public:
 	void Write(const LogEntry& entry) override{

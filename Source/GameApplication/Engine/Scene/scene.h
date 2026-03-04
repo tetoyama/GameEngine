@@ -21,6 +21,7 @@ class ComponentRegistry;
 class SystemRegistry;
 class PrefabSystem;
 
+// シーン内の各レジストリ・マネージャへのポインタをまとめたコンテキスト
 struct SceneContext{
 
 	// マネージャコンテキスト
@@ -35,6 +36,7 @@ struct SceneContext{
 	PrefabSystem* prefab = nullptr;
 };
 
+// シーンの生成・読み込み・保存・破棄を行うクラス
 class Scene {
 public:
 	Scene();

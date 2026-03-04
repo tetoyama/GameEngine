@@ -28,6 +28,7 @@ class SystemRegistry;
 class SceneManager;
 class Scene;
 
+// シーンマネージャと各サービスへのポインタをまとめたコンテキスト
 struct SceneManagerContext {
 	SceneManager* sceneManager = nullptr;
 
@@ -58,6 +59,7 @@ enum SceneManagerState
 	Step,		// 1フレーム進める
 };
 
+// 複数シーンの管理と再生状態の制御を行うサービス
 class SceneManager : public IService {
 public:
 	SceneManager() = default;
