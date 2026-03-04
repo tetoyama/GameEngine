@@ -19,6 +19,7 @@
 #include "Resources/Data/TextureData.h"
 
 
+// テクスチャリソースを管理するコンポーネント
 class TextureComponent : public IComponent {
 public:
 	//~TextureComponent() {

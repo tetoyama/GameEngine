@@ -22,6 +22,7 @@ enum class ColliderType {
 	HeightMap
 };
 
+// コライダー形状の定義を保持する構造体
 struct ColliderShape {
 	ColliderType type = ColliderType::Box;
 
@@ -54,6 +55,7 @@ struct ColliderShape {
 	physx::PxConvexMesh* pxConvexMesh = nullptr;
 };
 
+// 物理コライダーを管理するコンポーネント
 class ColliderComponent: public IComponent {
 public:
 	~ColliderComponent(){

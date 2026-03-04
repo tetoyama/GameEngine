@@ -11,6 +11,7 @@ struct SceneContext;
 class CameraComponent;
 class TransformComponent;
 
+// カメラエンティティの参照データを保持する構造体
 struct CameraEntityData {
 
 	CameraComponent* CameraComponent = nullptr;

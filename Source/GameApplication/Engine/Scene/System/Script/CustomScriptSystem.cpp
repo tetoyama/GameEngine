@@ -31,13 +31,12 @@ void CustomScriptSystem::Finalize() {
 		auto context = scene->GetSceneContext();
 		auto scripts = context->component->GetAllBaseComponents<CustomScriptComponent>();
 		for (auto& [entity, script] : scripts) {
-			if (script) {
-				if (!script->IsInitialized()) {
-					script->SetContext(context, entity);
-					script->Initialize();
-				}
-				script->Stop();
+			if (!script) { continue; }
+			if (!script->IsInitialized()) {
+				script->SetContext(context, entity);
+				script->Initialize();
 			}
+			script->Stop();
 		}
 	}
 }
@@ -47,7 +46,8 @@ void CustomScriptSystem::Start(){
 		auto context = scene->GetSceneContext();
 		auto scripts = context->component->GetAllBaseComponents<CustomScriptComponent>();
 		for (auto& [entity, script] : scripts) {
-			if (script && !script->IsInitialized()) {
+			if (!script) { continue; }
+			if (!script->IsInitialized()) {
 				script->SetContext(context, entity);
 				script->Initialize();
 			}

@@ -8,12 +8,14 @@
 #include "Backends/YAMLConverters.h"
 #include <string>
 
+// ビルボード回転軸の設定
 struct RotateAxis {
 	bool x = true;
 	bool y = true;
 	bool z = true;
 };
 
+// ビルボード描画を管理するコンポーネント
 class BillBoardRendererComponent: public IComponent {
 public:
 	// --- YAMLエンコード ---

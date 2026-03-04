@@ -17,6 +17,7 @@
 #include "Backends/Effekseer/Effekseer.h"
 #include "Backends/Effekseer/EffekseerRendererDX11.h"
 
+// Effekseerエフェクトを管理するコンポーネント
 class EffectComponent: public IComponent {
 public:
 	// --------------------

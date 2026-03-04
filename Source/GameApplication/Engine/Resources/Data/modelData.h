@@ -19,6 +19,7 @@
 class GraphicsContext;
 struct aiScene;
 
+// GPUスキニング用の入力頂点構造体
 struct SKINNING_INPUT_VERTEX {
 	DirectX::XMFLOAT3 Position;
 	DirectX::XMFLOAT3 Normal;
@@ -44,6 +45,7 @@ struct BONE {
 	aiMatrix4x4 WorldMatrix;  // ボーンのワールド変換行列（OffsetMatrixを乗算する前）
 };
 
+// アニメーションブレンド情報を保持する構造体
 struct AnimationBlend {
 	std::string name;
 	float weight = 0.0f;
@@ -51,6 +53,7 @@ struct AnimationBlend {
 	bool isLoop = true;
 };
 
+// アニメーションリソースを保持する構造体
 struct AnimationData {
 	std::string FilePath;
 	const aiScene* Scene = nullptr;
@@ -67,6 +70,7 @@ struct AnimationData {
 	}
 };
 
+// 3Dモデルのリソースデータを保持する構造体
 struct ModelData {
 public:
 	ModelData(){

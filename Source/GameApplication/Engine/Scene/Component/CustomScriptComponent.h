@@ -21,6 +21,7 @@
 
 class ComponentRegistry;
 
+// ユーザー定義スクリプトの基底コンポーネント
 class CustomScriptComponent: public IComponent {
 
 public:

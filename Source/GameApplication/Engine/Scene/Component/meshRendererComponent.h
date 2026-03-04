@@ -14,6 +14,7 @@
 
 class GraphicsContext;
 
+// メッシュ描画用のバッファデータを保持する構造体
 struct MeshData {
 	TextureData* m_TextureData = nullptr;
 
@@ -27,6 +28,7 @@ struct MeshData {
 	int indexCount = 0;
 };
 
+// メッシュの描画を管理するコンポーネント
 class MeshRendererComponent: public IComponent {
 public:
 	YAML::Node encode() override{
