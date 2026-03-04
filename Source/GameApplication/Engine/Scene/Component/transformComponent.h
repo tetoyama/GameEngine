@@ -6,8 +6,8 @@
 #pragma once
 #include "Interface/IComponent.h"
 #include "Backends/myVector3.h"
-#include "BackEnds/YAMLConverters.h"
-#include "BackEnds/ImGuiFunc.h"
+#include "Backends/YAMLConverters.h"
+#include "Backends/ImGuiFunc.h"
 #include "Registry/componentRegistry.h"
 #include "Graphics/mainRenderer.h"
 #include "Scene/scene.h"

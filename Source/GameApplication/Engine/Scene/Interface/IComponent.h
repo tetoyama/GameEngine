@@ -7,8 +7,8 @@
 #include <backends/yaml-cpp/yaml.h>
 #include <backends/ImGui/imgui.h>
 #include <backends/myVector3.h>
-#include "BackEnds/ImGuiFunc.h"
-#include "BackEnds/YAMLConverters.h"
+#include "Backends/ImGuiFunc.h"
+#include "Backends/YAMLConverters.h"
 #include <functional>
 struct SceneContext;
 

@@ -10,7 +10,7 @@
 #include "Scene/sceneManager.h"
 #include "Scene/Registry/systemRegistry.h"
 #include "Service/Config/configSystem.h"
-#include "BackEnds/ImGuiFunc.h"
+#include "Backends/ImGuiFunc.h"
 #include <ImGui/imgui_internal.h>
 
 void SystemSetting::Draw(const EditorDrawContext ctx) {

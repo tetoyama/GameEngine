@@ -3,7 +3,6 @@
 // audioComponent.h
 // 
 // =======================================================================
-// AudioComponent.h
 #pragma once
 #include <memory>
 #include <string>

@@ -8,7 +8,7 @@
 #include "Scene/sceneManager.h"
 #include "DebugTools/DebugSystem.h"
 #include "Interface/IScriptComponent.h"
-#include "BackEnds/ImGuiFunc.h"
+#include "Backends/ImGuiFunc.h"
 
 bool ScriptComponent::decode(SceneContext* context, const YAML::Node& node){
 	for(auto it : node){

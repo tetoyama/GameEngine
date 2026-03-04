@@ -3,7 +3,6 @@
 // meshRendererComponent.h
 // 
 // =======================================================================
-// Scene/Component/meshRendererComponent.h
 #pragma once
 #include "Interface/IComponent.h"
 #include <string>
@@ -11,7 +10,7 @@
 #include <wrl/client.h>
 #include <d3d11.h>
 #include "Resources/Data/textureData.h"
-#include "BackEnds/YAMLConverters.h"
+#include "Backends/YAMLConverters.h"
 
 class GraphicsContext;
 

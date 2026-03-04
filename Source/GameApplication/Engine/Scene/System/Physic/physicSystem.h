@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Interface/ISystem.h"
-#include "BackEnds/PhysX/PxPhysicsAPI.h"
+#include "Backends/PhysX/PxPhysicsAPI.h"
 #include "Scene/Entity/Entity.h"
 
 #include <cstring>

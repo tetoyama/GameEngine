@@ -5,13 +5,13 @@
 // =======================================================================
 #pragma once
 #include "Interface/IComponent.h"
-#include "BackEnds/YAMLConverters.h"
-#include "BackEnds/ImGuiFunc.h"
+#include "Backends/YAMLConverters.h"
+#include "Backends/ImGuiFunc.h"
 #include "Backends/myVector2.h"
 #include "registry/SystemRegistry.h"
 #include "registry/componentRegistry.h"
 #include "System/Physic/physicSystem.h"
-#include "BackEnds/PhysX/PxPhysicsAPI.h"
+#include "Backends/PhysX/PxPhysicsAPI.h"
 #include "Component/modelRendererComponent.h"
 
 enum class ColliderType {

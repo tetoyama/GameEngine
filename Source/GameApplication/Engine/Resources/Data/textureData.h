@@ -8,7 +8,7 @@
 #include <d3d11.h>
 #include <wrl/client.h> 
 
-
+// テクスチャリソースのデータを保持する構造体
 struct TextureData {
 	TextureData(){
 		OutputDebugStringA("Created TextureData\n");

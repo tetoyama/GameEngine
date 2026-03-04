@@ -8,6 +8,7 @@
 
 struct SceneManagerContext;
 
+// トランスフォームの描画補助を行うシステム
 class TransformSystem : public ISystem{
 public:
 

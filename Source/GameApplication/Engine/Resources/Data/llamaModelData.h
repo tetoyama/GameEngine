@@ -12,6 +12,7 @@
 struct llama_model;
 struct llama_vocab;
 
+// LLAMAモデルのロード済みデータを保持する構造体
 struct LLAMAModelData {
 public:
     LLAMAModelData();
