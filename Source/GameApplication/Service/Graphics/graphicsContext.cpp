@@ -52,9 +52,9 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 
 	if(!CreateBlendState()){return false;}
 
-	if(!CreateDepthStencilstate()){return false;}
+	if(!CreateDepthStencilState()){return false;}
 
-	if(!CreateSamplerstate()){return false;}
+	if(!CreateSamplerState()){return false;}
 
 	if(!CreateConstantBuffers()){return false;}
 
@@ -302,7 +302,7 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 	return true;
 }
 
-bool GraphicsContext::CreateDepthStencilstate(){
+bool GraphicsContext::CreateDepthStencilState(){
 	HRESULT hr;
 	D3D11_DEPTH_STENCIL_DESC desc{};
 	desc.StencilEnable = FALSE;
@@ -349,7 +349,7 @@ bool GraphicsContext::CreateDepthStencilstate(){
 	return true;
 }
 
-bool GraphicsContext::CreateSamplerstate(){
+bool GraphicsContext::CreateSamplerState(){
 	// サンプラーステート設定
 	D3D11_SAMPLER_DESC samplerDesc{};
 	samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;

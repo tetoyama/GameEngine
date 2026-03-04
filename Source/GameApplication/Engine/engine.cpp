@@ -274,7 +274,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 					editorDrawContext.UpdateTime = timeService->GetDeltaUpdateTime();
 					editorDrawContext.DrawTime = timeService->GetDrawTime();
 					editorDrawContext.FPS = timeService->GetDeltaFPS();
-					editorDrawContext.DeltaFPS = timeService->GetFixedUpdateFPS();
+					editorDrawContext.FixedUpdateFPS = timeService->GetFixedUpdateFPS();
 					editorService->Draw(editorDrawContext);
 				}
 			}

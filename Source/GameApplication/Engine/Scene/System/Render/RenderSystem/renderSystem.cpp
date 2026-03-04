@@ -126,7 +126,7 @@ void RenderSystem::Initialize(){
 	auto m_FullScreenVS = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\PostEffectVS.cso");
 	auto m_FullScreenPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\PostEffectPS.cso");
 
-	DefferredPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DeferredRenderingPS.cso");
+	DeferredPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DeferredRenderingPS.cso");
 	ForwardPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\ForwardRenderingPS.cso");
 
 #ifdef _EDITOR
@@ -601,7 +601,7 @@ const CameraEntityData RenderSystem::FindCameraEntity() {
 	return cameraData;
 }
 
-void RenderSystem::ControllButton(){
+void RenderSystem::ControlButton(){
 
 	if(!PlayButtonTexture.get()->pTexture){
 		return;
@@ -656,8 +656,8 @@ void RenderSystem::PlayerView(){
 
 	ImGui::Begin("Play View", showPlayer, 0);
 
-	// 共通UI（元のControllButtonやSeparatorなど）
-	ControllButton();
+	// 共通UI（元のControlButtonやSeparatorなど）
+	ControlButton();
 	ImGui::Separator();
 
 	// カメラコンポーネントを持つエンティティ取得
@@ -749,7 +749,7 @@ float4 main(PS_IN In) : SV_Target
 )";
 		ofs.close();
 
-		DefferredPS.reset();
+		DeferredPS.reset();
 		m_context->resource->Unload<PixelShaderData>(outputPath.string().c_str());
 		auto newPS = m_context->resource->Load<PixelShaderData>(outputPath.string().c_str());
 
@@ -757,7 +757,7 @@ float4 main(PS_IN In) : SV_Target
 			OutputDebugStringA("DeferredRenderingPS compile failed\n");
 			return;
 		}
-		DefferredPS = newPS;
+		DeferredPS = newPS;
 	}
 
 	// ============================================================

@@ -39,7 +39,7 @@ private:
 
 	void EditorView(const EditorDrawContext ctx);
 
-	void ControllButton();
+	void ControlButton();
 	void DrawRenderLayerToggleUI();
 
 	float m_MouseWheel = 0.0f;

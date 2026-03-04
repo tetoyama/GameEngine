@@ -129,7 +129,7 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 
 	dc->VSSetShader(m_LightingVertexShader->m_VertexShader.Get(), nullptr, 0);
 	dc->IASetInputLayout(m_LightingVertexShader->m_VertexLayout.Get());
-	PixelShaderData* ps = m_renderSystem->GetDefferredPS();
+	PixelShaderData* ps = m_renderSystem->GetDeferredPS();
 	dc->PSSetShader(ps ? ps->m_PixelShader.Get() : nullptr, nullptr, 0);
 	D3D11_VIEWPORT vp = {};
 	vp.Width = ctx.screenSize.x;

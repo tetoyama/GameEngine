@@ -22,7 +22,7 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 		showAssetsBrowser = showMenuBar;
 		showEditorView = showMenuBar;
 		showPlayerView = showMenuBar;
-		showParformanceMonitor = showMenuBar;
+		showPerformanceMonitor = showMenuBar;
 		showSystemSetting = showMenuBar;
 	}
 
@@ -59,8 +59,8 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 			if(ImGui::MenuItem("Player View", nullptr, showPlayerView)){
 				showPlayerView = !showPlayerView;
 			}
-			if(ImGui::MenuItem("ParformanceMonitor", nullptr, showParformanceMonitor)){
-				showParformanceMonitor = !showParformanceMonitor;
+			if(ImGui::MenuItem("PerformanceMonitor", nullptr, showPerformanceMonitor)){
+				showPerformanceMonitor = !showPerformanceMonitor;
 			}
 			if (ImGui::MenuItem("SystemSetting", nullptr, showSystemSetting)) {
 				showSystemSetting = !showSystemSetting;

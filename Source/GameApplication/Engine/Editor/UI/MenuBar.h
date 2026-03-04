@@ -50,7 +50,7 @@ public:
 	bool showAssetsBrowser = IMGUI_SHOW_DEFAULT;
 	bool showEditorView = IMGUI_SHOW_DEFAULT;
 	bool showPlayerView = IMGUI_SHOW_DEFAULT;
-	bool showParformanceMonitor = IMGUI_SHOW_DEFAULT;
+	bool showPerformanceMonitor = IMGUI_SHOW_DEFAULT;
 	bool showSystemSetting = IMGUI_SHOW_DEFAULT;
 
 private:

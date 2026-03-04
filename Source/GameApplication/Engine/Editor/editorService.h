@@ -62,8 +62,8 @@ private:
 };
 
 struct EditorDrawContext {
-	double UpdateTime;
-	double DrawTime;
-	double FPS;
-	double DeltaFPS;
+	double UpdateTime;		// 更新時間
+	double DrawTime;		// 描画時間
+	double FPS;				// 更新FPS
+	double FixedUpdateFPS;	// 固定更新FPS
 };

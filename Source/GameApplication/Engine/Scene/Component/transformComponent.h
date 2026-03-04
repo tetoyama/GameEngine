@@ -23,7 +23,7 @@
 // エンティティの位置・回転・スケールを管理するコンポーネント
 class TransformComponent: public IComponent {
 private:
-	Vector3 rotationEular;
+	Vector3 rotationEuler;
 	DirectX::XMFLOAT4 rotation = {0, 0, 0, 1}; // クォータニオン
 
 public:
@@ -74,7 +74,7 @@ public:
 
 	// オイラー角 (ラジアン) から回転を設定する
 	void SetRotationEuler(const Vector3& euler){
-		rotationEular = euler;
+		rotationEuler = euler;
 		DirectX::XMVECTOR q = DirectX::XMQuaternionRotationRollPitchYaw(
 			euler.x, // Pitch (X軸)
 			euler.y, // Yaw   (Y軸)
@@ -85,7 +85,7 @@ public:
 
 	void SetRotation(const DirectX::XMFLOAT4 q){
 		rotation = q;
-		rotationEular = GetRotationEuler();
+		rotationEuler = GetRotationEuler();
 	}
 
 	const DirectX::XMFLOAT4& GetRotation() const{
@@ -136,7 +136,7 @@ public:
 		if(node["Rotation"] && node["Rotation"].IsSequence() && node["Rotation"].size() == 4){
 			auto q = node["Rotation"].as<std::vector<float>>();
 			rotation = {q[0], q[1], q[2], q[3]};
-			rotationEular = GetRotationEuler();
+			rotationEuler = GetRotationEuler();
 		}
 		if(node["Scale"]){
 			scale = node["Scale"].as<Vector3>();
@@ -168,9 +168,9 @@ public:
 		ImGui::UndoDragVec3("Position", position);
 		// ----------- Rotation (Euler UI) -----------
 		{
-			if(ImGui::UndoDragVec3("Rotation", rotationEular)){
+			if(ImGui::UndoDragVec3("Rotation", rotationEuler)){
 				DirectX::XMVECTOR qNew = DirectX::XMQuaternionRotationRollPitchYaw(
-					rotationEular.x, rotationEular.y, rotationEular.z
+					rotationEuler.x, rotationEuler.y, rotationEuler.z
 				);
 				DirectX::XMStoreFloat4(&rotation, qNew);
 			}

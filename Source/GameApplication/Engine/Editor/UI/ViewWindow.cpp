@@ -55,7 +55,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx) {
 	//toolbar_window_flags |= ImGuiWindowFlags_NoCollapse;
 	ImGui::Begin("Editor View", showEditor, toolbar_window_flags);
 
-	ControllButton();
+	ControlButton();
 	DrawRenderLayerToggleUI();
 
 	ImGui::Separator();
@@ -295,7 +295,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx) {
 	}
 }
 
-void ViewWindow::ControllButton() {
+void ViewWindow::ControlButton() {
 
 	if (!PlayButtonTexture) {
 		return;

@@ -175,8 +175,8 @@ public:
 
 private:
 	bool CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT height);
-	bool CreateDepthStencilstate();
-	bool CreateSamplerstate();
+	bool CreateDepthStencilState();
+	bool CreateSamplerState();
 	bool CreateConstantBuffers();
 	bool CreateRasterizerState();
 	bool CreateRenderTargetView();

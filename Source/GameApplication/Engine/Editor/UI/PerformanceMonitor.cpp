@@ -14,10 +14,10 @@
 void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 
 	double FPS = ctx.FPS;
-	double DeltaFPS = ctx.DeltaFPS;
+	double FixedFPS = ctx.FixedUpdateFPS;
 	double Draw = ctx.DrawTime;
 	double Update = ctx.UpdateTime;
-	bool showParformanceMonitor = m_editor->GetUI<MenuBar>()->showParformanceMonitor;
+	bool showPerformanceMonitor = m_editor->GetUI<MenuBar>()->showPerformanceMonitor;
 
 	HANDLE hProc = GetCurrentProcess();
 	PROCESS_MEMORY_COUNTERS_EX pmc;
@@ -40,7 +40,7 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 			CommitSizeSamples[n] = CommitSizeSamples[n + 1];
 			WorkingSetSizeSamples[n] = WorkingSetSizeSamples[n + 1];
 		}
-		FixedFpsSamples[SAMPLE_LENGTH - 1] = (float)DeltaFPS;
+		FixedFpsSamples[SAMPLE_LENGTH - 1] = (float)FixedFPS;
 		DeltaFpsSamples[SAMPLE_LENGTH - 1] = (float)FPS;
 
 		UsageSamples[SAMPLE_LENGTH - 1] = 100.0f * pmc.WorkingSetSize / (pmc.WorkingSetSize + pmc.WorkingSetSize);
@@ -54,7 +54,7 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 	UpdateSamples[SAMPLE_LENGTH - 1] = (float)Update;
 	DrawSamples[SAMPLE_LENGTH - 1] = (float)Draw;
 
-	if (showParformanceMonitor) {
+	if (showPerformanceMonitor) {
 		ImGuiWindowClass window_class;
 		window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
 		ImGui::SetNextWindowClass(&window_class);
@@ -62,7 +62,7 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 		//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
 		ImGuiWindowFlags toolbar_window_flags = 0;
 
-		ImGui::Begin("Performance Monitor", &showParformanceMonitor, toolbar_window_flags);
+		ImGui::Begin("Performance Monitor", &showPerformanceMonitor, toolbar_window_flags);
 
 		if (ImGui::TreeNodeEx("負荷計測", ImGuiTreeNodeFlags_DefaultOpen)) {
 

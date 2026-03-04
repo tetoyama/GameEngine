@@ -159,8 +159,8 @@ public:
 	//------------------------------------------------------------------
 	// 使用中のシェーダ取得
 	//------------------------------------------------------------------
-	PixelShaderData* GetDefferredPS(){
-		return DefferredPS.get();
+	PixelShaderData* GetDeferredPS(){
+		return DeferredPS.get();
 	}
 
 	PixelShaderData* GetForwardPS(){
@@ -191,7 +191,7 @@ private:
 	//------------------------------------------------------------------
 	// UI 制御関連
 	//------------------------------------------------------------------
-	void ControllButton();
+	void ControlButton();
 	void DrawRenderLayerToggleUI();
 
 	void EditorView();
@@ -217,6 +217,6 @@ private:
 	std::shared_ptr<TextureData> StepButtonTexture;
 
 	// 描画パイプライン用ピクセルシェーダ
-	std::shared_ptr<PixelShaderData> DefferredPS;
+	std::shared_ptr<PixelShaderData> DeferredPS;
 	std::shared_ptr<PixelShaderData> ForwardPS;
 };
