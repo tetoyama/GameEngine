@@ -12,6 +12,7 @@
 #include "Component/meshRendererComponent.h"
 #include "Component/waveComponent.h"
 
+// 波メッシュの生成・更新を管理するシステム
 class WaveSystem: public ISystem {
 public:
 

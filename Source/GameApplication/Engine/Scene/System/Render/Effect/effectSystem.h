@@ -14,6 +14,7 @@
 #include "Audio/audioContext.h"
 #include "Scene/component/transformComponent.h"
 
+// Effekseerエフェクトの更新・管理を行うシステム
 class EffectSystem: public ISystem {
 public:
 

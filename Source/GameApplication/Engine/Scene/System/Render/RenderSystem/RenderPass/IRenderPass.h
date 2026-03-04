@@ -10,6 +10,7 @@ struct SceneManagerContext;
 
 struct RenderPassContext;
 
+// レンダーパスの基底インターフェース
 class IRenderPass {
 public:
 	virtual ~IRenderPass() = default;

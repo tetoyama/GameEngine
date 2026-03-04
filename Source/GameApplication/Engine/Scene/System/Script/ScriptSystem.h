@@ -17,6 +17,7 @@
 
 using SetImGuiContextFunc = void(*)(void*);
 
+// C#スクリプトDLLとの連携を管理するシステム
 class ScriptSystem: public ISystem
 {
 public:

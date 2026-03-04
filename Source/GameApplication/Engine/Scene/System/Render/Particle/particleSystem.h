@@ -10,6 +10,7 @@
 struct SceneManagerContext;
 class TransformComponent;
 class SpriteRendererComponent;
+// パーティクルの生成・更新を管理するシステム
 class ParticleSystem : public ISystem {
 public:
 

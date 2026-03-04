@@ -17,6 +17,7 @@
 #include <Component/ColliderComponent.h>
 
 
+// 地形メッシュの生成・更新を管理するシステム
 class TerrainSystem : public ISystem {
 public:
 	const char* GetSystemName() const override{

@@ -10,6 +10,7 @@
 #include "Component/audioComponent.h"
 #include "Audio/audioContext.h"
 
+// オーディオの再生・停止を管理するシステム
 class AudioSystem: public ISystem {
 public:
 
