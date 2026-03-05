@@ -14,6 +14,8 @@
 #include "../CameraEntityData.h"
 #include "Scene/Reference/EntityRef.h"
 
+// 1 フレームのレンダーパス実行に必要なコンテキスト情報
+// カメラのビュー/プロジェクション行列・レイヤー表示設定・スクリーンサイズを保持する
 struct RenderPassContext {
 
 	RenderPassContext(
@@ -23,24 +25,26 @@ struct RenderPassContext {
 		const Vector2& setScreenSize
 	);
 
-	bool renderLayerVisibility[RenderLayer::MaxRenderLayer];
-	RenderPhase passPhase = RenderPhase::PHASE_SHADOW;
+	bool renderLayerVisibility[RenderLayer::MaxRenderLayer]; // 各レンダーレイヤーの表示フラグ
+	RenderPhase passPhase = RenderPhase::PHASE_SHADOW;       // このパスで処理するフェーズ
 
-	DirectX::XMFLOAT4 CameraPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	DirectX::XMFLOAT4 CameraPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f); // カメラのワールド位置
 
-	DirectX::XMMATRIX viewMatrix = DirectX::XMMatrixIdentity();
-	DirectX::XMMATRIX projectionMatrix = DirectX::XMMatrixIdentity();
+	DirectX::XMMATRIX viewMatrix       = DirectX::XMMatrixIdentity(); // ビュー行列
+	DirectX::XMMATRIX projectionMatrix = DirectX::XMMatrixIdentity(); // プロジェクション行列
 
-	CameraEntityData cameraData;
-	Vector2 screenSize = Vector2(1280.0f, 720.0f);
+	CameraEntityData cameraData;                         // カメラエンティティのデータ（ポストエフェクト等）
+	Vector2 screenSize = Vector2(1280.0f, 720.0f);       // レンダリング解像度
 };
 
+// 半透明オブジェクトのソート用データ（カメラからの距離二乗で降順ソートする）
 struct TransparentDrawItem {
-	EntityRef ref;
-	float distanceSq;
+	EntityRef ref;       // 描画対象エンティティ
+	float distanceSq;    // カメラからの距離の二乗（降順ソートに使用）
 };
 
+// スプライト（2D UI）のソート用データ（OrderInLayer で昇順ソートする）
 struct SpriteDrawItem {
-	EntityRef ref;
-	int orderInLayer;
+	EntityRef ref;        // 描画対象エンティティ
+	int orderInLayer;     // レイヤー内の描画順序
 };

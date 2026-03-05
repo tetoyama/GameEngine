@@ -17,35 +17,37 @@
 #include "Backends/Effekseer/Effekseer.h"
 #include "Backends/Effekseer/EffekseerRendererDX11.h"
 
-// Effekseerエフェクトを管理するコンポーネント
+// Effekseer エフェクトの再生を管理するコンポーネント
+// EffectSystem によって毎フレーム Update が呼ばれ、
+// PlayOnStart=true の場合はシーン再生開始時に自動再生する
 class EffectComponent: public IComponent {
 public:
 	// --------------------
-	// Resource
+	// Resource（リソース）
 	// --------------------
-	std::shared_ptr<EffectData> m_EffectData;
-	std::string FilePath;
+	std::shared_ptr<EffectData> m_EffectData;  // ロード済みエフェクトデータ
+	std::string FilePath;                       // エフェクトファイルのパス（YAML 保存用）
 
 	// --------------------
-	// Playback settings
+	// Playback settings（再生設定）
 	// --------------------
-	bool Loop = false;
-	bool PlayOnStart = false;
-	float Volume = 1.0f;
+	bool Loop = false;        // ループ再生するか
+	bool PlayOnStart = false; // シーン再生開始時に自動再生するか
+	float Volume = 1.0f;      // エフェクトの音量
 
-	float TimeScale = 1.0f;     // 再生速度倍率
-	float MaxPlayTime = 0.0f;  // 秒
-
-	// --------------------
-	// Runtime state
-	// --------------------
-	bool Playing = false;
-	float CurrentPlayTime = 0.0f;
-
-	Effekseer::Handle m_Handle = -1;
+	float TimeScale = 1.0f;    // 再生速度倍率（1.0 = 通常速度）
+	float MaxPlayTime = 0.0f;  // 最大再生時間（秒、0.0 = 無制限）
 
 	// --------------------
-	// Serialize
+	// Runtime state（実行時状態）
+	// --------------------
+	bool Playing = false;         // 現在再生中かどうか
+	float CurrentPlayTime = 0.0f; // 現在の再生経過時間（秒）
+
+	Effekseer::Handle m_Handle = -1; // Effekseer 再生ハンドル（-1 = 未再生）
+
+	// --------------------
+	// Serialize（シリアライズ）
 	// --------------------
 	YAML::Node encode() override{
 		YAML::Node node;

@@ -33,25 +33,27 @@ enum class BlendMode
 };
 
 enum class DepthMode {
-	Write,		// 不透明
-	ReadOnly,	// 半透明
-	Disable,		// UI
+	Write,		// 不透明（深度書き込みあり・テストあり）
+	ReadOnly,	// 半透明（深度書き込みなし・テストあり）
+	Disable,	// UI 等（深度無効）
 	COUNT		
 };
 
 enum class CullMode
 {
-	Back,	
-	Front,
-	None
+	Back,   // 背面カリング（通常）
+	Front,  // 前面カリング（シャドウマップ描画等）
+	None    // カリングなし（両面描画）
 };
 
+// ポストエフェクト描画に使用するシェーダーセット（VS + PS + InputLayout）
 class PostEffectShader {
 public:
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VS;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader>  m_PS;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout>  m_InputLayout;
 
+	// シェーダーと入力レイアウトをデバイスコンテキストにバインドする
 	void Bind(ID3D11DeviceContext* context){
 		context->VSSetShader(m_VS.Get(), nullptr, 0);
 		context->PSSetShader(m_PS.Get(), nullptr, 0);
@@ -59,6 +61,7 @@ public:
 	}
 };
 
+// ポストプロセスパイプラインの 1 ノードを表す構造体（現在は未使用）
 struct PostProcessNode {
 	int id;
 	std::string shaderPath;
@@ -78,21 +81,36 @@ struct PostProcessNode {
 
 struct CameraPostEffect;
 
+// ポストプロセスバッファの識別子（ピンポンバッファ方式で 2 つを交互に使用）
 enum class PostProcessBufferID {
 	BufferA,
 	BufferB
 };
 
-// DirectX 11のデバイス・コンテキスト・スワップチェーンを管理する描画サービス
+// DirectX 11 のデバイス・デバイスコンテキスト・スワップチェーンを管理する描画サービス
+// ブレンドモード・デプスモード・カリングモードのステート管理と
+// レンダーターゲット・デプスバッファの管理を担当する
 class GraphicsContext : public IService {
 public:
+	// DirectX 11 デバイスとスワップチェーンを初期化する
 	bool Initialize(HWND hwnd, UINT width, UINT height);
+
+	// グラフィクスリソースを全て解放する
 	void Shutdown() override;
+
+	// バックバッファとデプスバッファを指定色でクリアする
 	void Clear(const float clearColor[4]);
+
+	// スワップチェーンに Present を呼び出してフレームを表示する
 	void Present(bool vsync);
 
+	// DirectX 11 デバイスを返す（バッファ・テクスチャ・シェーダーの生成に使用）
 	ID3D11Device* GetDevice() const{return m_Device.Get();}
+
+	// DirectX 11 デバイスコンテキストを返す（描画コマンドの発行に使用）
 	ID3D11DeviceContext* GetDeviceContext() const{return m_DeviceContext.Get();}
+
+	// DXGI スワップチェーンを返す
 	IDXGISwapChain* GetSwapChain() const{return m_SwapChain.Get();}
 
 	ID3D11RenderTargetView* GetRenderTargetView() {return m_RenderTargetView;}

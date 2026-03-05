@@ -4,10 +4,12 @@
 // 
 // =======================================================================
 #pragma once
+
 // 描画パイプラインの各フェーズを定義する列挙型
+// RenderPassContext でパスに渡され、Renderable がどのフェーズで描画するかを判断するために使用する
 enum RenderPhase {
-	PHASE_SHADOW = 0,
-	PHASE_GBUFFER,
-	PHASE_LIGHTING,
-	PHASE_FORWARD,
+	PHASE_SHADOW  = 0,  // シャドウマップ生成パス（ライト視点でシーンをレンダリング）
+	PHASE_GBUFFER,      // G-Buffer 書き込みパス（不透明オブジェクトの幾何情報を書き込む）
+	PHASE_LIGHTING,     // ディファードライティングパス（G-Buffer を参照して最終色を計算）
+	PHASE_FORWARD,      // フォワードレンダリングパス（半透明・エフェクト等）
 };
