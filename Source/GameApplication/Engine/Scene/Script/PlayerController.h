@@ -253,7 +253,7 @@ public:
 					velY = 0.0f;
 				}
 			} else {
-				velY -= 9.0f *dt;
+				velY -= 9.0f * dt;
 			}
 
 			// 最終速度合成

@@ -11,6 +11,7 @@ struct RenderPassContext;
 struct SceneManagerContext;
 class MeshRendererComponent;
 
+// パーティクルの描画を行うレンダラブル
 class RenderableParticle: public IRenderable {
 public:
 	void Initialize(SceneManagerContext* context) override;

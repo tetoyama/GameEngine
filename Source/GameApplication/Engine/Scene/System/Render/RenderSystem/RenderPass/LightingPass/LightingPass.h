@@ -22,6 +22,7 @@ class GraphicsContext;
 struct PixelShaderData;
 struct VertexShaderData;
 
+// ディファードライティング計算パス
 class LightingPass : public IRenderPass {
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;

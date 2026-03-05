@@ -11,6 +11,7 @@ struct RenderPassContext;
 struct SceneManagerContext;
 class MeshRendererComponent;
 
+// 2Dスプライトの描画を行うレンダラブル
 class RenderableSprite: public IRenderable {
 public:
 	void Initialize(SceneManagerContext* context) override;

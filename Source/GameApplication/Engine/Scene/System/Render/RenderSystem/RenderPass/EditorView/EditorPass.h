@@ -18,6 +18,7 @@ class PostEffectPass;
 class OverlayUIPass;
 class PhysXDebugPass;
 
+// エディタビュー用の統合レンダリングパス
 class EditorPass : public IRenderPass {
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;

@@ -31,7 +31,7 @@ GBUFFER_OUT main(PS_IN In)
         baseColor *= DiffuseTexture.Sample(LinearSampler, In.TexCoord);
     }
 
-    if (baseColor.a < 0.01f)
+    if (baseColor.a < ALPHA_CLIP_THRESHOLD)
     {
         discard;
     }
@@ -42,11 +42,11 @@ GBUFFER_OUT main(PS_IN In)
     // Normal (World Space)
     // -----------------------------
     float3 N = normalize(In.Normal.xyz);
-    // Normal Texture を使うか
-    if ((Material.MaterialFlags & MATERIAL_FLAG_USE_NORMAL_TEXTURE) != 0)
-    {
-        //N = normalize(N + NormalMap.Sample(LinearSampler, In.TexCoord).xyz * 2 - 1);
-    }
+    // Normal Texture を使うか (TODO: 法線マッピング未実装 — タンジェント空間変換が必要)
+    // if ((Material.MaterialFlags & MATERIAL_FLAG_USE_NORMAL_TEXTURE) != 0)
+    // {
+    //     N = normalize(N + NormalMap.Sample(LinearSampler, In.TexCoord).xyz * 2 - 1);
+    // }
     // World Normal [-1,1] → [0,1] encode
     Out.OutNormal = float4(N * 0.5f + 0.5f, 1.0f);
 

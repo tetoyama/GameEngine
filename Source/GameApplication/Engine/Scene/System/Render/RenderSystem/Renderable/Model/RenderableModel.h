@@ -12,6 +12,7 @@ class ComponentRegistry;
 struct RenderPassContext;
 struct SceneManagerContext;
 
+// 3Dモデルの描画を行うレンダラブル
 class RenderableModel :public IRenderable {
 public:
 	void Initialize(SceneManagerContext* context) override{}

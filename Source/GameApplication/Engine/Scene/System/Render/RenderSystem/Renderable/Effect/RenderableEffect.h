@@ -9,6 +9,7 @@ class ComponentRegistry;
 
 struct RenderPassContext;
 struct SceneManagerContext;
+// エフェクトの描画を行うレンダラブル
 class RenderableEffect : public IRenderable {
 public:
 	void Initialize(SceneManagerContext* context) override { m_context = context; }

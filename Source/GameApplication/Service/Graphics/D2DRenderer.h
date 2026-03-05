@@ -13,6 +13,7 @@
 // GraphicsContext クラスの前方宣言
 class GraphicsContext;
 
+// Direct2D を用いた2Dテキスト描画クラス
 class D2DRenderer {
 public:
 	D2DRenderer(GraphicsContext* context, HWND hwnd);

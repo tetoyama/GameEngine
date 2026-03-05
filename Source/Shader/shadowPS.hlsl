@@ -1,4 +1,5 @@
 #include "common.hlsl"
+#include "commonDefine.h"
 Texture2D g_Texture : register(t0);
 SamplerState g_SamplerState : register(s0);
 
@@ -9,7 +10,7 @@ void main(in PS_IN In)
     {
         outDiffuse *= g_Texture.Sample(g_SamplerState, In.TexCoord);
     }
-    if (outDiffuse.a <= 0.1f)
+    if (outDiffuse.a <= ALPHA_CLIP_THRESHOLD)
     {
         discard;
     }

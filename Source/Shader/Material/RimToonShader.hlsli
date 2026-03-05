@@ -70,6 +70,7 @@ float4 ShadeMaterial_RimToon(MaterialInput materialInput)
     float rimWeight = pow(rimTerm, 3.0);
     float rimLogic = smoothstep(0.1, 0.15, rimWeight);
 
+    // リム色: ToonShader (0.8) より控えめなオフセット (0.1) でリムを暗めに表現
     float3 rimColor =
         saturate(baseColor + 0.1) * 3.0 * rimLogic;
 

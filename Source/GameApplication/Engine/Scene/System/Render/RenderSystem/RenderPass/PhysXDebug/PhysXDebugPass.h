@@ -14,6 +14,7 @@ struct VertexShaderData;
 
 class CameraComponent;
 
+// PhysXデバッグライン描画パス
 class PhysXDebugPass: public IRenderPass {
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;

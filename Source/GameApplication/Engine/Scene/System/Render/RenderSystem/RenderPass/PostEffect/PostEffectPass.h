@@ -9,6 +9,7 @@
 
 class GBufferPass;
 
+// ポストエフェクト処理パス
 class PostEffectPass : public IRenderPass {
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;

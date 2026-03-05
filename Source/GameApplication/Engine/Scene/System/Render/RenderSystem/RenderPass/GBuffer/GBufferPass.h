@@ -16,6 +16,7 @@ struct RenderTarget;
 struct PixelShaderData;
 struct VertexShaderData;
 
+// ジオメトリバッファ (GBuffer) への書き込みパス
 class GBufferPass : public IRenderPass {
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;

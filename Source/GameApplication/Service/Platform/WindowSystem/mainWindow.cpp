@@ -209,7 +209,7 @@ LRESULT MainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 	switch(uMsg){
 		case WM_SETICON:
-			OutputDebugStringA(("SetIcon wParam:" + std::to_string(wParam) + " lParam:" + std::to_string(wParam) + "\n").c_str());
+			OutputDebugStringA(("SetIcon wParam:" + std::to_string(wParam) + " lParam:" + std::to_string(lParam) + "\n").c_str());
 			break;
 		case WM_DESTROY:
 			PostQuitMessage(0);

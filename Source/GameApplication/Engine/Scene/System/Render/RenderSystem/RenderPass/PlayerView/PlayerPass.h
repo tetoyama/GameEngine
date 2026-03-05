@@ -22,6 +22,7 @@ class ForwardPass;
 class PostEffectPass;
 class OverlayUIPass;
 
+// プレイヤービュー用の統合レンダリングパス
 class PlayerPass : public IRenderPass {
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;

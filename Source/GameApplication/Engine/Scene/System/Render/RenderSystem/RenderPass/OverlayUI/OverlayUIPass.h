@@ -18,6 +18,7 @@ class GBufferPass;
 class LightingPass;
 class ShadowMapPass;
 
+// オーバーレイUI描画パス
 class OverlayUIPass : public IRenderPass {
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;

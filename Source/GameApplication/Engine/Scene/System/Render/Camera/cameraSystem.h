@@ -8,6 +8,7 @@
 
 struct SceneManagerContext;
 
+// カメラのビュー・プロジェクション行列を更新するシステム
 class CameraSystem : public ISystem {
 
 public:

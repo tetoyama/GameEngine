@@ -13,6 +13,7 @@
 class GraphicsContext;
 class IWindow;
 
+// ImGuiの初期化・終了・描画補助を管理するサービス
 class ImGuiService : public IService
 {
 public:

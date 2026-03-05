@@ -18,6 +18,7 @@ class GBufferPass;
 class LightingPass;
 class ShadowMapPass;
 
+// フォワードレンダリングパス（透過オブジェクト等）
 class ForwardPass : public IRenderPass {
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;

@@ -16,6 +16,7 @@
 
 #include "Platform/WindowSystem/mainWindow.h"
 
+// メインウィンドウへの描画を管理するレンダラー
 class MainRenderer : public IService{
 public:
 	MainRenderer(){}
