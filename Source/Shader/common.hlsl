@@ -188,7 +188,7 @@ struct PS_IN
 struct PS_OUT
 {
     float4 Color : SV_Target0;
-    float4 Emmisive : SV_Target1;
+    float4 Emissive : SV_Target1;
     float4 Normal : SV_Target2;
 };
 

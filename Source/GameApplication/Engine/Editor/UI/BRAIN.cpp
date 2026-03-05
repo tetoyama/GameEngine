@@ -253,7 +253,7 @@ void BRAIN::WorkerLoop() {
 // --------------------------------------------
 void BRAIN::Draw(const EditorDrawContext){
 	bool* show =
-		&m_editor->GetUI<MenuBar>()->showAssetsBrowser;
+		&m_editor->GetUI<MenuBar>()->showBRAIN;
 	if(!show || !*show) return;
 
 	ImGui::Begin("B.R.A.I.N.", show);

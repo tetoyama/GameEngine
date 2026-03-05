@@ -43,7 +43,7 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 		FixedFpsSamples[SAMPLE_LENGTH - 1] = (float)FixedFPS;
 		DeltaFpsSamples[SAMPLE_LENGTH - 1] = (float)FPS;
 
-		UsageSamples[SAMPLE_LENGTH - 1] = 100.0f * pmc.WorkingSetSize / (pmc.WorkingSetSize + pmc.WorkingSetSize);
+		UsageSamples[SAMPLE_LENGTH - 1] = 100.0f * pmc.WorkingSetSize / (pmc.WorkingSetSize + pmc.PagefileUsage);
 		CommitSizeSamples[SAMPLE_LENGTH - 1] = pmc.PagefileUsage / 1000000.0f;
 		WorkingSetSizeSamples[SAMPLE_LENGTH - 1] = pmc.WorkingSetSize / 1000000.0f;
 	}

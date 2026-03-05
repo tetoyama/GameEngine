@@ -385,7 +385,7 @@ void AssetsBrowser::DrawAssetsInDirectory(std::string& selectedPath){
 				ImageColor = ImVec4(1, 1, 1, 0.5f);
 			}
 			if(ImGui::IsItemActive()){
-				ImVec4(1, 1, 1, 0.5f);
+				ImageColor = ImVec4(1, 1, 1, 0.5f);
 			}
 			ImGui::Image(GetIconTexture(path)->pTexture.Get(), IconSize, ImVec2(0, 0), ImVec2(1, 1), ImageColor, ImVec4(0, 0, 0, 0));
 			ImGui::SetCursorPos(AfterCursorPos);

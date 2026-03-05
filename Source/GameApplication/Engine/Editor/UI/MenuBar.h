@@ -48,6 +48,7 @@ public:
 	bool showInspector = IMGUI_SHOW_DEFAULT;
 	bool showConsole = IMGUI_SHOW_DEFAULT;
 	bool showAssetsBrowser = IMGUI_SHOW_DEFAULT;
+	bool showBRAIN = IMGUI_SHOW_DEFAULT;
 	bool showEditorView = IMGUI_SHOW_DEFAULT;
 	bool showPlayerView = IMGUI_SHOW_DEFAULT;
 	bool showPerformanceMonitor = IMGUI_SHOW_DEFAULT;
