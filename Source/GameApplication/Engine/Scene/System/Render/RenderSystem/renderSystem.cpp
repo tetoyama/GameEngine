@@ -594,7 +594,7 @@ const CameraEntityData RenderSystem::FindCameraEntity() {
 			continue;
 		}
 		cameraData.ref = EntityRef(entities[0], context);
-		cameraData.CameraComponent = context->component->GetComponent<CameraComponent>(cameraData.ref.GetEntityID());
+		cameraData.cameraComponent = context->component->GetComponent<CameraComponent>(cameraData.ref.GetEntityID());
 		cameraData.transformComponent = context->component->GetComponent<TransformComponent>(cameraData.ref.GetEntityID());
 		return cameraData;
 	}
@@ -662,7 +662,7 @@ void RenderSystem::PlayerView(){
 
 	// カメラコンポーネントを持つエンティティ取得
 	const CameraEntityData& cameraData = FindCameraEntity();
-	if(!cameraData.CameraComponent){
+	if(!cameraData.cameraComponent){
 		ImGui::Text("No CameraBuffer Component found.");
 		ImGui::End();
 		return;
@@ -851,7 +851,7 @@ void RenderSystem::EditorView(){
 		{ 0.0f, 1.0f, 0.0f }
 	);
 	CameraEntityData cameraData;
-	cameraData.CameraComponent = &editorCamera;
+	cameraData.cameraComponent = &editorCamera;
 	cameraData.transformComponent = &editorCameraTransform;
 
 	RenderPassContext renderPassContext(

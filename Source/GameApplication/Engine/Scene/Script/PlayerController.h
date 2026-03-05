@@ -31,7 +31,6 @@ class PlayerController: public CustomScriptComponent {
 		REFLECT_FIELD(float, stamina, 5.0f)
 		REFLECT_FIELD(float, staminaConsumeRate, 1.5f)
 		REFLECT_FIELD(float, staminaRecoverRate, 1.0f)
-		REFLECT_FIELD(float, aaa, 1.0f)
 
 		REFLECT_FIELD(float, jumpPower, 4.0f)
 

@@ -89,7 +89,7 @@
 #else
 #define SHADOWMAP_SIZE			(16384)
 #define LIGHT_MAX_COUNT			(64)
-#endif // LOWRESOLUTION
+#endif // LOW_RESOLUTION
 
 #endif // !COMMON_DEFINE_H
 

@@ -44,7 +44,6 @@ public:
 
 	void OnStart() override {}
 	void OnUpdate(float dt) override{
-		auto* comp = GetComponent<CustomScriptComponent>();
 		if(GetKeyDown(VK_RETURN)){
 			LoadScene(sceneName);
 		}

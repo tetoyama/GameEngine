@@ -84,7 +84,7 @@ public:
 		return true;
 	}
 
-	void inspector(SceneContext* context){
+	void inspector(SceneContext* context) override{
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 6));
 
 		// ライト有効・無効

@@ -41,7 +41,7 @@ public:
 	void Draw(const EditorDrawContext ctx) override;
 
 private:
-	void ClearPreviewChache();
+	void ClearPreviewCache();
 	void DrawDirectoryTree(const std::filesystem::path& directory, std::string& selectedPath);
 	void DrawAssetsInDirectory(std::string& selectedPath);
 	TextureData* GetIconTexture(std::string filepath);

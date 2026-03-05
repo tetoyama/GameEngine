@@ -40,7 +40,7 @@ void AssetsBrowser::Finalize(){
 	for(int i = 0; i < FileIconType::FILE_MAX; i++){
 		fileIcon[i].reset();
 	}
-	ClearPreviewChache();
+	ClearPreviewCache();
 }
 
 void AssetsBrowser::Draw(const EditorDrawContext ctx){
@@ -93,7 +93,7 @@ void AssetsBrowser::Draw(const EditorDrawContext ctx){
 		ImGui::PushID("AssetsRoot");
 		if(ImGui::TreeNodeEx("Assets", ImGuiTreeNodeFlags_DefaultOpen)){
 			if(ImGui::IsItemClicked()){
-				ClearPreviewChache();
+				ClearPreviewCache();
 				selectedPath = ASSETS_ROOT.string(); // ルート選択
 			}
 			// --- 右クリックメニュー追加 ---
@@ -132,7 +132,7 @@ void AssetsBrowser::Draw(const EditorDrawContext ctx){
 	ImGui::End();
 }
 
-void AssetsBrowser::ClearPreviewChache(){
+void AssetsBrowser::ClearPreviewCache(){
 	for(auto& [key, tex] : previewCache){
 		previewCache[key].reset();
 		resourceService->Unload<TextureData>(key);
@@ -234,7 +234,7 @@ void AssetsBrowser::DrawDirectoryTree(const std::filesystem::path& directory, st
 			std::error_code ec;
 			if(std::filesystem::exists(path, ec) && std::filesystem::is_directory(path, ec)){
 				selectedPath = path.string();
-				ClearPreviewChache();
+				ClearPreviewCache();
 			}
 		}
 
@@ -349,7 +349,7 @@ void AssetsBrowser::DrawAssetsInDirectory(std::string& selectedPath){
 		if(entry.is_directory(ec)){
 			if(ImGui::Button("##Folder", ImVec2(itemSize, itemSize))){
 
-				ClearPreviewChache();
+				ClearPreviewCache();
 
 				selectedPath = entry.path().string();
 			}

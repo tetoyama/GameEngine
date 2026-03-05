@@ -50,31 +50,27 @@ void Inspector::Draw(const EditorDrawContext ctx){
 	auto* registry = context->component;
 
 	// オブジェクト名とアクティブ状態
-	auto nameComp = registry->GetComponent<NameComponent>(selectedEntity);
 	static bool objectActive = true; // TODO: link to actual component property
 	ImGui::Checkbox("##active", &objectActive);
 	ImGui::SameLine();
 
-
-	NameComponent* name = context->component->GetComponent<NameComponent>(selectedEntity);
+	NameComponent* name = registry->GetComponent<NameComponent>(selectedEntity);
 	if(name){
-		if(name){
-			// Convert std::string to char buffer for ImGui::InputText
-			static char nameBuffer[256];
-			strncpy(nameBuffer, name->name.c_str(), sizeof(nameBuffer));
-			nameBuffer[sizeof(nameBuffer) - 1] = '\0'; // Ensure null termination
+		// Convert std::string to char buffer for ImGui::InputText
+		static char nameBuffer[256];
+		strncpy(nameBuffer, name->name.c_str(), sizeof(nameBuffer));
+		nameBuffer[sizeof(nameBuffer) - 1] = '\0'; // Ensure null termination
 
-			if(ImGui::InputText("##Name", nameBuffer, sizeof(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)){
-				// Update the std::string with the modified buffer
-				std::string oldName = name->name;
-				auto cmd = std::make_unique<RenameCommand>(context, selectedEntity, oldName, nameBuffer);
-				m_editor->commandManager.Execute(std::move(cmd));
-			}
-			// PrefabComponent がある場合はエンティティが Prefab インスタンスであることを明示する
-			if(context->component->GetComponent<PrefabComponent>(selectedEntity)){
-				ImGui::SameLine();
-				ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "(Prefab)");
-			}
+		if(ImGui::InputText("##Name", nameBuffer, sizeof(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)){
+			// Update the std::string with the modified buffer
+			std::string oldName = name->name;
+			auto cmd = std::make_unique<RenameCommand>(context, selectedEntity, oldName, nameBuffer);
+			m_editor->commandManager.Execute(std::move(cmd));
+		}
+		// PrefabComponent がある場合はエンティティが Prefab インスタンスであることを明示する
+		if(context->component->GetComponent<PrefabComponent>(selectedEntity)){
+			ImGui::SameLine();
+			ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "(Prefab)");
 		}
 	}
 	ImGui::SameLine();

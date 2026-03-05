@@ -195,13 +195,13 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 						foundLight = true;
 					} else if (lightcomp->light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && !hasCsmLight
-					           && ctx.cameraData.CameraComponent && ctx.cameraData.CameraComponent->FarClip > ctx.cameraData.CameraComponent->NearClip) {
+					           && ctx.cameraData.cameraComponent && ctx.cameraData.cameraComponent->FarClip > ctx.cameraData.cameraComponent->NearClip) {
 						// ======== CSM カスケード計算 ========
 						XMVECTOR lightDir = XMVector3Normalize(transform->front().ToXMVECTOR());
 
-						float cameraNear  = ctx.cameraData.CameraComponent->NearClip;
-						float cameraFar   = ctx.cameraData.CameraComponent->FarClip;
-						float fov         = ctx.cameraData.CameraComponent->FOV;
+						float cameraNear  = ctx.cameraData.cameraComponent->NearClip;
+						float cameraFar   = ctx.cameraData.cameraComponent->FarClip;
+						float fov         = ctx.cameraData.cameraComponent->FOV;
 						float aspect      = (ctx.screenSize.y > 0.0f) ? (ctx.screenSize.x / ctx.screenSize.y) : 1.0f;
 						float tanHalfFovV = tanf(fov * 0.5f);
 						float tanHalfFovH = tanHalfFovV * aspect;
