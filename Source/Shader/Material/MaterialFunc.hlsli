@@ -57,8 +57,10 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
 
     float3 N = normalize(input.normal);
     float3 V = normalize(CameraPosition.xyz - input.worldPos);
+
     float roughness = saturate(input.Roughness);
     float metallic = saturate(input.Metallic);
+
     float3 F0 = lerp(float3(0.04, 0.04, 0.04), float3(1.0, 1.0, 1.0), metallic);
 
     int shadowMapNum = 0;
@@ -70,15 +72,16 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         if (light.Enable == 0)
             continue;
 
-        // CSM カスケードの 2 番目以降のエントリはスキップ。
-        // Dummy == 1 の最初のカスケードが全カスケードのシャドウ計算をまとめて行う。
         if (light.Dummy >= 2)
             continue;
 
         float3 L;
         float attenuation = 1.0;
 
-        // --- ライト方向と減衰の計算 ---
+        // -----------------------------
+        // Light direction
+        // -----------------------------
+
         if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
         {
             L = normalize(-light.Direction.xyz);
@@ -87,15 +90,20 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         {
             float3 toL = light.Position.xyz - input.worldPos;
             float dist = length(toL);
+
             L = toL / max(dist, 0.001);
+
             attenuation = saturate(1.0 - dist / max(light.Param.x, 0.001));
 
             if (light.LightType == LIGHT_TYPE_SPOT)
             {
                 float3 spotDir = normalize(-light.Direction.xyz);
+
                 float cosTheta = dot(L, spotDir);
+
                 float innerCos = cos(radians(light.Param.y));
                 float outerCos = cos(radians(light.Param.z));
+
                 attenuation *= saturate((cosTheta - outerCos) / max(innerCos - outerCos, 0.001));
             }
         }
@@ -103,51 +111,91 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         float NdotL = saturate(dot(N, L));
         float NdotV = saturate(dot(N, V));
 
-        // --- シャドウマップ計算 ---
+        if (NdotL <= 0)
+            continue;
+
+        // -----------------------------
+        // Shadow
+        // -----------------------------
+
         float shadow = 1.0;
+
         if (light.CastShadow)
         {
             if (light.Dummy == 1)
             {
-                // CSM カスケード先頭エントリ: 全カスケードを参照してシャドウを計算
-                // Position.w にカスケード総数が格納されている
-                int cascadeCount = (int)round(light.Position.w);
-                shadow = ShadowFactorCascades(input.worldPos, i, cascadeCount, shadowMapNum, shadowParam);
+                int cascadeCount = (int) round(light.Position.w);
+
+                shadow = ShadowFactorCascades(
+                    input.worldPos,
+                    i,
+                    cascadeCount,
+                    shadowMapNum,
+                    shadowParam);
+
                 shadowMapNum += cascadeCount;
             }
             else
             {
-                shadow = ShadowFactor(input.worldPos, light, shadowMapNum++, shadowParam);
+                shadow = ShadowFactor(
+                    input.worldPos,
+                    light,
+                    shadowMapNum++,
+                    shadowParam);
             }
         }
 
-        // ★【修正ポイント】影を真っ黒にしないための処理
-        // shadowが0になっても、0.1の明るさを保証する。
-        // これにより、影の中にも「弱い光」が残り、Toonシェーダー側で「影色」として描画されます。
-        // (スペキュラ用には元のshadowを使うので、変数を分けます)
+        // -----------------------------
+        // Toon shadow
+        // -----------------------------
+
         float toonShadow = lerp(0.1, 1.0, shadow);
 
-        // --- Diffuse計算 ---
-        // 修正した toonShadow を使うことで、真っ黒回避
-        float3 diffuse = light.Diffuse.rgb * attenuation * NdotL * toonShadow;
+        // -----------------------------
+        // Diffuse
+        // -----------------------------
 
-        // --- Specular計算 ---
-        // スペキュラは影の中で光ってほしくないので、元の shadow (0になる) を使う
+        float3 diffuse =
+            light.Diffuse.rgb *
+            attenuation *
+            NdotL *
+            toonShadow;
+
+        // -----------------------------
+        // Specular
+        // -----------------------------
+
         float3 H = normalize(V + L);
+
         float NdotH = saturate(dot(N, H));
+
         float3 F = FresnelSchlick(saturate(dot(V, H)), F0);
+
         float G = G_Smith(N, V, L, roughness);
+
         float D = D_GTR2(NdotH, roughness);
 
-        float3 specular = (D * G * F) / max(4.0 * NdotL * NdotV, 0.001)
-                          * attenuation * shadow;
+        float3 specBRDF = (D * G * F) / max(4.0 * NdotL * NdotV, 0.001);
 
-        // POINTライト等の補正
+        // roughnessが高いと影の影響を弱くする
+        float specularShadow = lerp(1.0, shadow, saturate(1.0 - roughness));
+
+        float3 specular =
+            specBRDF *
+            light.Diffuse.rgb *
+            attenuation *
+            NdotL *
+            specularShadow;
+
+        // -----------------------------
+        // Point light fix
+        // -----------------------------
+
         if (light.LightType == LIGHT_TYPE_POINT && light.CastShadow)
         {
-            diffuse /= 6.0f;
-            specular /= 6.0f;
-            light.Ambient.rgb /= 6.0f;
+            diffuse /= 6.0;
+            specular /= 6.0;
+            light.Ambient.rgb /= 6.0;
         }
 
         result.diffuse += diffuse;
@@ -157,7 +205,6 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
 
     return result;
 }
-
 float Quantize4(float v)
 {
     v = saturate(v);

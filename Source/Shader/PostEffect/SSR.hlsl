@@ -1,5 +1,5 @@
 #include "../common.hlsl"
-#include "PostEffectFunc.hlsli"
+#include "PostEffectFunc.hlsli" 
 
 // ============================================================
 // SSR (Screen Space Reflections) Pixel Shader
@@ -8,13 +8,19 @@
 // スクリーン上で交差したピクセルの色を反射色として合成する。
 // フレネル係数とスクリーン端フェードにより自然な反射を実現する。
 //
-// Parameter.x : レイマーチ最大ステップ数 (推奨値: 32)
-// Parameter.y : 1ステップの移動量 (ビュー空間, 推奨値: 0.2)
-// Parameter.z : 交差判定の厚みしきい値 (推奨値: 0.3)
+// Parameter.x : レイマーチ最大ステップ数 (推奨値: 16)
+// Parameter.y : 1ステップの移動量 (ビュー空間, 推奨値: 2)
+// Parameter.z : 交差判定の厚みしきい値 (推奨値: 8)
 // ============================================================
-
 // ライティング済みシーンテクスチャ (t0)
 Texture2D g_Texture : register(t0);
+// 疑似乱数生成関数 (IGN: Interleaved Gradient Noise)
+// ラフネスによるレイの分散に使用
+float InterleavedGradientNoise(float2 uv)
+{
+    float3 magic = float3(0.06711056f, 0.00583715f, 52.9829189f);
+    return frac(magic.z * frac(dot(uv, magic.xy)));
+}
 
 void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 {
@@ -31,27 +37,38 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
         return;
     }
 
-    // GBuffer からワールド空間の情報を取得
+    // GBuffer から情報を取得
     float3 worldPos = GetWorldPosition(uv);
     float3 worldNormal = normalize(GetWorldNormal(uv));
     float3 viewDir = normalize(CameraPosition.xyz - worldPos);
 
-    // フレネル係数: 視線と法線の角度が大きいほど反射が強い（Schlick 近似, 指数 4.0）
-    // ※ 純粋な Schlick は指数 5.0 だが, 4.0 はエンジン既存シェーダーとの統一値
+    // マテリアル情報の取得
+    float4 material = GetMaterial(uv);
+    float metallic = material.x;
+    float roughness = material.y;
+    float reflStrength = saturate(metallic); // メタリック度を反射強度として使用
+
+    // フレネル係数: ラフネスを考慮した Schlick-GGX 近似に近い形に調整
     float fresnel = pow(1.0f - saturate(dot(worldNormal, viewDir)), 4.0f) * 0.98f + 0.02f;
+    // ラフネスが強いほどフレネル反射も微弱に拡散するため、少し減衰させる処理
+    fresnel *= (1.0f - roughness * 0.5f);
 
     // ビュー空間へ変換
     float3 viewPos = mul(float4(worldPos, 1.0f), View).xyz;
     float3 viewNormal = normalize(mul(float4(worldNormal, 0.0f), View).xyz);
     float3 viewDirVS = normalize(mul(float4(viewDir, 0.0f), View).xyz);
 
-    // ビュー空間の反射方向
-    float3 reflDir = normalize(reflect(-viewDirVS, viewNormal));
+    // ---- ラフネスによる反射ベクトルのジッタリング ----
+    float3 reflDir = reflect(-viewDirVS, viewNormal);
+    
+    // 疑似乱数を用いて反射方向をラフネスに応じて散らす
+    float noise = InterleavedGradientNoise(In.Position.xy);
+    float3 jitter = (noise * 2.0f - 1.0f) * roughness * 0.1f; // 0.1は拡散の影響度調整
+    reflDir = normalize(reflDir + jitter);
 
     // パラメータ取得
     int maxSteps = (int) clamp(Parameter.x, 4.0f, 64.0f);
     float stepSize = max(Parameter.y, 0.001f);
-    float reflStrength = saturate(GetMaterial(In.TexCoord).x);
     float thickness = max(Parameter.z, 0.01f);
 
     // ---- レイマーチ ----
@@ -62,12 +79,9 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     [loop]
     for (int i = 0; i < maxSteps; i++)
     {
-        // 加速ステップ: t が 0→1 に増えるにつれて移動量が stepSize × 1.0 〜 3.0 倍に増える
-        // (近くは細かく判定、遠くは大きく進む)
         float t = (float) (i + 1) / (float) maxSteps;
         currentPos += reflDir * stepSize * (1.0f + t * 2.0f);
 
-        // ビュー空間 → クリップ空間 → NDC → UV
         float4 clipPos = mul(float4(currentPos, 1.0f), Projection);
         if (clipPos.w <= 0.0f)
             break;
@@ -78,17 +92,13 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
             -clipPos.y * 0.5f + 0.5f
         );
 
-        // スクリーン外は打ち切り
         if (sampleUV.x < 0.0f || sampleUV.x > 1.0f ||
             sampleUV.y < 0.0f || sampleUV.y > 1.0f)
             break;
 
-        // GBuffer からサンプル位置のビュー空間 Z 深度を取得
         float3 sampleWorldPos = GetWorldPosition(sampleUV);
         float sampleViewZ = mul(float4(sampleWorldPos, 1.0f), View).z;
 
-        // 深度差で交差判定
-        // currentPos.z > sampleViewZ : レイが GBuffer 表面の後ろに回った
         float depthDiff = currentPos.z - sampleViewZ;
         if (depthDiff > 0.0f && depthDiff < thickness)
         {
@@ -100,13 +110,25 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 
     if (hit)
     {
-        float4 reflColor = g_Texture.Sample(g_SamplerState, hitUV);
+        // ---- ラフネスによるぼかし (Mipmap Sampling) ----
+        // ラフネスが高いほど、解像度の低い（ぼけた）ミップレベルをサンプリングする
+        // ※g_Texture にミップマップが生成されていることが前提
+        float maxMipLevel = 5.0f; // ぼかしの最大深度
+        float mipLevel = roughness * maxMipLevel;
+        float4 reflColor = g_Texture.SampleLevel(g_SamplerState, hitUV, mipLevel);
 
-        // スクリーン端フェードアウト: 端に近いほど反射を薄くする
+        // スクリーン端フェードアウト
         float2 edgeFade2 = min(hitUV, 1.0f - hitUV) * 5.0f;
         float edgeFade = saturate(min(edgeFade2.x, edgeFade2.y));
 
-        float blendFactor = fresnel * reflStrength * edgeFade;
+        // 反射ベクトルの向きがカメラ方向を向いている場合の減衰 (セルフリフレクション防止)
+        float viewFacingFade = saturate(1.0f - max(0.0f, dot(reflDir, viewDirVS)));
+
+        float blendFactor = fresnel * reflStrength * edgeFade * viewFacingFade;
+        
+        // ラフネスが非常に高い場合は反射をさらに弱める
+        blendFactor *= (1.0f - roughness * roughness);
+
         outDiffuse = lerp(sceneColor, reflColor, blendFactor);
     }
     else

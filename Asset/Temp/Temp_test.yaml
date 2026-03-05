@@ -46,8 +46,8 @@ Entities:
             y: 1
             z: 1
             w: 1
-          Metallic: 0
-          Roughness: 0
+          Metallic: 0.25
+          Roughness: 0.5
           AO: 0
           EmissiveColor:
             x: 0
@@ -56,6 +56,7 @@ Entities:
           EmissiveIntensity: 4.37205121e-43
           UseDiffuseTexture: true
           UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset\Texture\mesh.png
         UV_Slice_X: 1
@@ -86,12 +87,12 @@ Entities:
         Parent: 0
       - Component: LightComponent
         Enable: 1
-        LightType: 1
+        LightType: 4
         CastShadow: 1
         Position:
-          x: -29.6057205
-          y: 25.9712772
-          z: -18.5042953
+          x: -20
+          y: 50
+          z: 0
           w: 0
         Direction:
           x: 0.738460243
@@ -112,7 +113,7 @@ Entities:
           x: 500
           y: 0
           z: 0
-          w: 0.00300000003
+          w: 0.00499999989
         LightView:
           -
             - 0.540302277
@@ -174,6 +175,25 @@ Entities:
           y: 500
           z: 500
         Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 0
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
         UV_Slice_X: 1
@@ -183,6 +203,8 @@ Entities:
         FilePath: Asset\Model\sky.fbx
         isBlender: true
         AnimationTime: 67704.9844
+      - Component: EnvironmentMapComponent
+        enabled: true
   - Entity: 4
     Components:
       - Component: NameComponent
@@ -240,6 +262,7 @@ Entities:
           EmissiveIntensity: 4.37205121e-43
           UseDiffuseTexture: true
           UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
         isBlender: false
@@ -258,7 +281,6 @@ Entities:
         stamina: 5
         staminaConsumeRate: 1.5
         staminaRecoverRate: 1
-        aaa: 1
         jumpPower: 5
         Stamina: 5
         SelfLayerBit: 2
@@ -311,16 +333,16 @@ Entities:
             - 0.50231576
             - 7.83150291
             - 1
-        nextLinkId: 4
-        nextPinId: 5
+        nextLinkId: 16
+        nextPinId: 18
         PostEffects:
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\DepthBlur.cso
             NodePos:
-              x: 131
-              y: 7
+              x: 1224.2041
+              y: -297.145325
             InputPins:
               - 2
               - 4
@@ -330,13 +352,108 @@ Entities:
               y: 0
               z: 0
               w: 0
+            ResolutionScale: 1
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\SSAO.cso
+            NodePos:
+              x: 48.0766602
+              y: -23.4232788
+            InputPins:
+              - 5
+              - 7
+            OutputPin: 6
+            Param:
+              x: 1
+              y: 0.25
+              z: 1
+              w: 0
+            ResolutionScale: 0.5
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\SSAOComposite.cso
+            NodePos:
+              x: 646.14856
+              y: -296.611938
+            InputPins:
+              - 8
+              - 10
+              - 11
+            OutputPin: 9
+            Param:
+              x: 0
+              y: 0
+              z: 0
+              w: 0
+            ResolutionScale: 1
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\SSR.cso
+            NodePos:
+              x: 913.17395
+              y: -297.850769
+            InputPins:
+              - 12
+              - 14
+            OutputPin: 13
+            Param:
+              x: 16
+              y: 2
+              z: 8
+              w: 0
+            ResolutionScale: 1
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\Blur.cso
+            NodePos:
+              x: 345
+              y: -21
+            InputPins:
+              - 15
+              - 17
+            OutputPin: 16
+            Param:
+              x: 2
+              y: 0
+              z: 0
+              w: 0
+            ResolutionScale: 0.100000001
         PostEffectLinks:
-          - ID: 2
+          - ID: 4
             StartNode: -1
-            EndNode: 0
+            EndNode: 1
             StartAttr: -1
+            EndAttr: 5
+          - ID: 5
+            StartNode: -1
+            EndNode: 2
+            StartAttr: -1
+            EndAttr: 8
+          - ID: 7
+            StartNode: 2
+            EndNode: 3
+            StartAttr: 9
+            EndAttr: 12
+          - ID: 9
+            StartNode: 4
+            EndNode: 2
+            StartAttr: 16
+            EndAttr: 10
+          - ID: 10
+            StartNode: 1
+            EndNode: 4
+            StartAttr: 6
+            EndAttr: 15
+          - ID: 14
+            StartNode: 3
+            EndNode: 0
+            StartAttr: 13
             EndAttr: 2
-          - ID: 3
+          - ID: 15
             StartNode: 0
             EndNode: -2
             StartAttr: 3
@@ -344,14 +461,14 @@ Entities:
         ScreenInput:
           Name: ""
           NodePos:
-            x: 0
-            y: 0
+            x: -114.582031
+            y: -81.1902161
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 386
-            y: 43
+            x: 1586.97449
+            y: -158.940063
           InputPins:
             - 1
       - Component: CameraController
@@ -444,6 +561,7 @@ Entities:
           EmissiveIntensity: 4.37205121e-43
           UseDiffuseTexture: true
           UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset/Texture\white.tga
         UV_Slice_X: 1
@@ -459,9 +577,9 @@ Entities:
         Name: Entity
       - Component: TransformComponent
         Position:
-          x: 6.54619646
+          x: -17.6817169
           y: 4.05051708
-          z: 0
+          z: -13.4322901
         Rotation:
           - -0
           - 0
@@ -490,6 +608,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset/Texture\particle.png
         UV_Slice_X: 1
@@ -584,6 +703,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset/Texture\tree.png
         UV_Slice_X: 1
@@ -650,6 +770,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: ModelRendererComponent
         FilePath: Asset/Model\ball.fbx
         isBlender: false
@@ -684,3 +805,97 @@ Entities:
         pivot:
           x: 0.5
           y: 0.5
+  - Entity: 12
+    Components:
+      - Component: NameComponent
+        Name: Cube
+      - Component: TransformComponent
+        Position:
+          x: 11.2730541
+          y: 0.196280345
+          z: 0.57032311
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 4.71999979
+          y: 4.72000074
+          z: 4.72000074
+        Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset/Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset/Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 13
+    Components:
+      - Component: NameComponent
+        Name: Ball
+      - Component: TransformComponent
+        Position:
+          x: 12.7552938
+          y: 2.90968704
+          z: 2.92514563
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 14.25
+          y: 14.2499771
+          z: 14.2499771
+        Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0.519999981
+          Roughness: 0.150000006
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset/Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset/Model\ball.fbx
+        isBlender: false
+        AnimationTime: 0

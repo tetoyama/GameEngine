@@ -399,7 +399,7 @@ Entities:
           z: 1
         Parent: 0
       - Component: OrderInLayerComponent
-        layer: -11
+        order: -11
       - Component: MaterialComponent
         ShaderID: 0
         Material:
@@ -573,9 +573,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset/Model\football-stadium-with-surrounding-area\textures\Etaj4.jpeg
         UV_Slice_X: 1
@@ -620,9 +620,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset/Model\football-stadium-with-surrounding-area\textures\Opory2.jpeg
         UV_Slice_X: 1
@@ -667,9 +667,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset/Model\football-stadium-with-surrounding-area\textures\Krysha3.jpeg
         UV_Slice_X: 1
@@ -714,9 +714,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
   - Entity: 13
     Components:
       - Component: NameComponent
@@ -864,9 +864,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset/Texture\white.tga
         UV_Slice_X: 1
@@ -914,9 +914,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset/Texture\white.tga
         UV_Slice_X: 1

@@ -158,27 +158,30 @@ float SampleCascadePCF(float2 suvBase, float depth, float2 texelSize, float step
 
 
 // =====================================================
-// CSM シャドウファクター (アトラス統合版、Forward 用)
-// LIGHT 配列から各カスケードのビュー/射影行列を直接参照する。
-// CbCSM 専用バッファは不要。
+// CSM シャドウファクター (Cascade Blending 版)
 // =====================================================
-// firstLightIdx : LIGHT 配列内の最初のカスケードエントリインデックス
-// cascadeCount  : カスケード数
-// atlasOffset   : シャドウアトラス内の開始タイルインデックス
+
 float ShadowFactorCascades(
-    float3          worldPos,
-    int             firstLightIdx,
-    int             cascadeCount,
-    int             atlasOffset,
+    float3 worldPos,
+    int firstLightIdx,
+    int cascadeCount,
+    int atlasOffset,
     ShadowPCFParams pcf)
 {
-    // ---- 最精細カスケードを近→遠の順で UV カバレッジ判定 ----
-    int  selectedCascade = cascadeCount - 1;
+    const float BlendWidth = 0.08;
+
+    //--------------------------------------------------
+    // Cascade選択
+    //--------------------------------------------------
+
+    int selectedCascade = cascadeCount - 1;
     float4 sp;
+
     {
         int safeIdx = min(firstLightIdx + cascadeCount - 1, LIGHT_MAX_COUNT - 1);
         LIGHT cLight = Lights[safeIdx];
-        sp = mul(float4(worldPos, 1.0), cLight.LightView);
+
+        sp = mul(float4(worldPos, 1), cLight.LightView);
         sp = mul(sp, cLight.LightProjection);
     }
 
@@ -187,12 +190,17 @@ float ShadowFactorCascades(
     {
         int safeIdx = min(firstLightIdx + c, LIGHT_MAX_COUNT - 1);
         LIGHT cLight = Lights[safeIdx];
-        float4 csp = mul(float4(worldPos, 1.0), cLight.LightView);
+
+        float4 csp = mul(float4(worldPos, 1), cLight.LightView);
         csp = mul(csp, cLight.LightProjection);
-        if (csp.w <= 0.0) continue;
+
+        if (csp.w < 0.0)
+            continue;
+
         float2 cuv = csp.xy / csp.w * 0.5 + 0.5;
         cuv.y = 1.0 - cuv.y;
-        if (all(cuv >= 0.0) && all(cuv <= 1.0))
+
+        if (all(cuv > 0.0) && all(cuv <= 1.0))
         {
             selectedCascade = c;
             sp = csp;
@@ -203,72 +211,169 @@ float ShadowFactorCascades(
     if (sp.w <= 0.0)
         return 1.0;
 
+    //--------------------------------------------------
+    // UV
+    //--------------------------------------------------
+
     sp.xyz /= sp.w;
+
     float2 uv = sp.xy * 0.5 + 0.5;
     uv.y = 1.0 - uv.y;
 
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
+    //--------------------------------------------------
+    // selected cascade
+    //--------------------------------------------------
+
     LIGHT selectedLight = Lights[min(firstLightIdx + selectedCascade, LIGHT_MAX_COUNT - 1)];
-    float bias  = selectedLight.Param.w;
+
+    float bias = selectedLight.Param.w;
     float depth = saturate(sp.z - bias);
 
-    int   tileIndex = atlasOffset + selectedCascade;
-    uint  grid      = (uint)ceil(sqrt((float)ShadowAtlasCount));
-    float tile      = 1.0 / grid;
-    uint  gx        = tileIndex % grid;
-    uint  gy        = tileIndex / grid;
-    float2 tileMin  = float2(gx, gy) * tile;
-    float2 suvBase  = tileMin + uv * tile;
+    //--------------------------------------------------
+    // atlas
+    //--------------------------------------------------
+
+    int tileIndex = atlasOffset + selectedCascade;
+
+    uint grid = (uint) ceil(sqrt((float) ShadowAtlasCount));
+    float tile = 1.0 / grid;
+
+    uint gx = tileIndex % grid;
+    uint gy = tileIndex / grid;
+
+    float2 tileMin = float2(gx, gy) * tile;
+    float2 suvBase = tileMin + uv * tile;
+
+    //--------------------------------------------------
+    // texel size
+    //--------------------------------------------------
 
     float2 texelSize;
+
     ShadowMap.GetDimensions(texelSize.x, texelSize.y);
+
     texelSize = 1.0 / texelSize;
     texelSize *= tile;
 
-    int   radius = max(pcf.KernelRadius, 0);
-    float shadow = SampleCascadePCF(suvBase, depth, texelSize, pcf.StepTexel, radius);
+    //--------------------------------------------------
+    // PCF
+    //--------------------------------------------------
 
-    // ---- カスケードフォールバック ----
+    int radius = max(pcf.KernelRadius, 0);
+
+    float shadow = SampleCascadePCF(
+        suvBase,
+        depth,
+        texelSize,
+        pcf.StepTexel,
+        radius
+    );
+
+    //--------------------------------------------------
+    // Cascade Blending
+    //--------------------------------------------------
+
+    if (selectedCascade < cascadeCount - 1)
+    {
+        float edgeDist = min(
+            min(uv.x, 1.0 - uv.x),
+            min(uv.y, 1.0 - uv.y)
+        );
+
+        float blend = saturate(edgeDist / BlendWidth);
+
+        if (blend < 1.0)
+        {
+            int nextCascade = selectedCascade + 1;
+
+            LIGHT nextLight = Lights[min(firstLightIdx + nextCascade, LIGHT_MAX_COUNT - 1)];
+
+            float4 nsp = mul(float4(worldPos, 1), nextLight.LightView);
+            nsp = mul(nsp, nextLight.LightProjection);
+
+            if (nsp.w > 0.0)
+            {
+                nsp.xyz /= nsp.w;
+
+                float2 nuv = nsp.xy * 0.5 + 0.5;
+                nuv.y = 1.0 - nuv.y;
+
+                if (all(nuv >= 0.0) && all(nuv <= 1.0))
+                {
+                    float nextBias = nextLight.Param.w;
+                    float ndepth = saturate(nsp.z - nextBias);
+
+                    int nTileIdx = atlasOffset + nextCascade;
+
+                    uint ngx = nTileIdx % grid;
+                    uint ngy = nTileIdx / grid;
+
+                    float2 nsuvBase = float2(ngx, ngy) * tile + nuv * tile;
+
+                    float shadowNext = SampleCascadePCF(
+                        nsuvBase,
+                        ndepth,
+                        texelSize,
+                        pcf.StepTexel,
+                        radius
+                    );
+
+                    shadow = lerp(shadowNext, shadow, blend);
+                }
+            }
+        }
+    }
+
+    //--------------------------------------------------
+    // カスケードフォールバック（既存）
+    //--------------------------------------------------
+
     [branch]
     if (shadow >= 1.0 && selectedCascade < cascadeCount - 1)
     {
-        int   nextCascade = selectedCascade + 1;
-        LIGHT nextLight   = Lights[min(firstLightIdx + nextCascade, LIGHT_MAX_COUNT - 1)];
+        int nextCascade = selectedCascade + 1;
+
+        LIGHT nextLight = Lights[min(firstLightIdx + nextCascade, LIGHT_MAX_COUNT - 1)];
+
         float4 nsp = mul(float4(worldPos, 1.0), nextLight.LightView);
         nsp = mul(nsp, nextLight.LightProjection);
+
         if (nsp.w > 0.0)
         {
             nsp.xyz /= nsp.w;
+
             float2 nuv = nsp.xy * 0.5 + 0.5;
             nuv.y = 1.0 - nuv.y;
+
             if (all(nuv >= 0.0) && all(nuv <= 1.0))
             {
-                float  ndepth   = saturate(nsp.z - bias);
-                int    nTileIdx = atlasOffset + nextCascade;
-                uint   ngx      = nTileIdx % grid;
-                uint   ngy      = nTileIdx / grid;
+                float ndepth = saturate(nsp.z - nextLight.Param.w);
+
+                int nTileIdx = atlasOffset + nextCascade;
+
+                uint ngx = nTileIdx % grid;
+                uint ngy = nTileIdx / grid;
+
                 float2 nsuvBase = float2(ngx, ngy) * tile + nuv * tile;
 
-                float occRawDepth = ShadowMap.SampleLevel(LinearSampler, nsuvBase, 0).r;
-                float p1_33 = nextLight.LightProjection._33;
-                [branch]
-                if (abs(p1_33) > 1e-6)
-                {
-                    float occViewZ     = (occRawDepth - nextLight.LightProjection._43) / p1_33;
-                    float occNdcInFine = occViewZ * selectedLight.LightProjection._33 + selectedLight.LightProjection._43;
-                    if (occNdcInFine < 0.0 || occNdcInFine > 1.0)
-                    {
-                        shadow = min(shadow, SampleCascadePCF(nsuvBase, ndepth, texelSize, pcf.StepTexel, radius));
-                    }
-                }
+                shadow = min(
+                    shadow,
+                    SampleCascadePCF(
+                        nsuvBase,
+                        ndepth,
+                        texelSize,
+                        pcf.StepTexel,
+                        radius
+                    )
+                );
             }
         }
     }
 
     return shadow;
 }
-
 
 #endif
