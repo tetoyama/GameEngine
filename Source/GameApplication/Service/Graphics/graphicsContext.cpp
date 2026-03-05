@@ -81,7 +81,6 @@ void GraphicsContext::Shutdown(){
 	SAFE_RELEASE(m_CbPerFrame);
 	SAFE_RELEASE(m_CbPerCamera);
 	SAFE_RELEASE(m_CbPerObject);
-	SAFE_RELEASE(m_CbCSM);
 
 	SAFE_RELEASE(m_RenderTargetView);
 	SAFE_RELEASE(m_DepthStencilView);
@@ -180,11 +179,6 @@ void GraphicsContext::SetObjectInfo(const ObjectInfo& objectInfo) {
 	m_CbPerObjectData.ObjectID = objectInfo.ObjectID;
 	m_CbPerObjectData.ShaderID = objectInfo.ShaderID;
 	m_DeviceContext->UpdateSubresource(m_CbPerObject, 0, nullptr, &m_CbPerObjectData, 0, 0);
-}
-
-void GraphicsContext::SetCSM(const CbCSM& csm) {
-	m_CbCSMData = csm;
-	m_DeviceContext->UpdateSubresource(m_CbCSM, 0, nullptr, &m_CbCSMData, 0, 0);
 }
 
 void GraphicsContext::ResetViewport(){
@@ -396,13 +390,6 @@ bool GraphicsContext::CreateConstantBuffers(){
 	assert(SUCCEEDED(hr));
 	m_DeviceContext->VSSetConstantBuffers(2, 1, &m_CbPerObject);
 	m_DeviceContext->PSSetConstantBuffers(2, 1, &m_CbPerObject);
-
-	// b3: CbCSM — CSM カスケードデータ
-	bufferDesc.ByteWidth = sizeof(CbCSM);
-	hr = m_Device->CreateBuffer(&bufferDesc, nullptr, &m_CbCSM);
-	assert(SUCCEEDED(hr));
-	m_DeviceContext->VSSetConstantBuffers(3, 1, &m_CbCSM);
-	m_DeviceContext->PSSetConstantBuffers(3, 1, &m_CbCSM);
 
 	// ライト初期化
 	LightBuffer light{};

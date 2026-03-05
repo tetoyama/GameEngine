@@ -118,7 +118,6 @@ public:
 	void SetCameraPosition(const float4& cameraPosition);
 	void SetParameter(const float4& param);
 	void SetObjectInfo(const ObjectInfo& ObjectInfo);
-	void SetCSM(const CbCSM& csm);
 
 	void ResetViewport();
 	void ResetBuffer(const float clearColor[4]);
@@ -194,12 +193,10 @@ private:
 	ID3D11Buffer* m_CbPerFrame  = nullptr;   // b0: フレームごと (ライト)
 	ID3D11Buffer* m_CbPerCamera = nullptr;   // b1: カメラ/パスごと (View, Proj, CamPos)
 	ID3D11Buffer* m_CbPerObject = nullptr;   // b2: オブジェクトごと (World, Material, UV, Param, ObjInfo)
-	ID3D11Buffer* m_CbCSM       = nullptr;   // b3: CSM カスケードデータ
 
 	CbPerFrame  m_CbPerFrameData{};
 	CbPerCamera m_CbPerCameraData{};
 	CbPerObject m_CbPerObjectData{};
-	CbCSM       m_CbCSMData{};
 
 	ID3D11ComputeShader* csSkinning = nullptr;
 

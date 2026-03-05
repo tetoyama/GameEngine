@@ -63,6 +63,9 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
 
     int shadowMapNum = 0;
 
+    // ビュー空間深度 (ディレクショナルライトのカスケード選択に使用)
+    float viewDepth = mul(float4(input.worldPos, 1.0), View).z;
+
     [loop]
     for (int i = 0; i < ActiveLightCount; i++)
     {
@@ -102,7 +105,24 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         float shadow = 1.0;
         if (light.CastShadow)
         {
-            shadow = ShadowFactor(input.worldPos, light, shadowMapNum++, shadowParam);
+            if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
+            {
+                // カスケード選択: Direction.w = カスケード近距離, Position.w = カスケード遠距離
+                float cascadeNear = light.Direction.w;
+                float cascadeFar  = light.Position.w;
+                if (viewDepth < cascadeNear || viewDepth >= cascadeFar)
+                {
+                    // このカスケードの深度範囲外 — アンビエントのみ積算してスキップ
+                    result.ambient += light.Ambient.rgb;
+                    shadowMapNum++;
+                    continue;
+                }
+                shadow = ShadowFactor(input.worldPos, light, shadowMapNum++, shadowParam);
+            }
+            else
+            {
+                shadow = ShadowFactor(input.worldPos, light, shadowMapNum++, shadowParam);
+            }
         }
 
         // ★【修正ポイント】影を真っ黒にしないための処理
