@@ -55,10 +55,9 @@ float3 WorldToScreenUVWithDepth(float3 worldPos)
 // 戻り値: (uv.x, uv.y, clip.w)  — clip.w <= 0 の場合は無効
 float3 GetLightScreenUV(LIGHT light)
 {
-    if (light.LightType == LIGHT_TYPE_DIRECTIONAL ||
-        light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM)
+    // 方向ライト (通常 / CSM カスケード先頭): Direction の逆方向が「太陽」の向き
+    if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
     {
-        // 方向ライト: Direction の逆方向が「太陽」の向き
         float3 sunDir      = -normalize(light.Direction.xyz);
         float3 sunWorldPos = CameraPosition.xyz + sunDir * DIRECTIONAL_LIGHT_DISTANCE;
         return WorldToScreenUVWithDepth(sunWorldPos);
@@ -147,6 +146,9 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     {
         LIGHT light = Lights[li];
         if (!light.Enable) continue;
+
+        // CSM カスケードの 2 番目以降エントリはスキップ (重複処理回避)
+        if (light.Dummy >= 2) continue;
 
         // ライトのスクリーン UV を取得 (カメラ背後は clip.w <= 0 でスキップ)
         float3 screenResult = GetLightScreenUV(light);

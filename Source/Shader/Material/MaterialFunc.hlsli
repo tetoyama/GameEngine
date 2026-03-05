@@ -70,15 +70,16 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         if (light.Enable == 0)
             continue;
 
+        // CSM カスケードの 2 番目以降のエントリはスキップ。
+        // Dummy == 1 の最初のカスケードが全カスケードのシャドウ計算をまとめて行う。
+        if (light.Dummy >= 2)
+            continue;
+
         float3 L;
         float attenuation = 1.0;
 
         // --- ライト方向と減衰の計算 ---
         if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
-        {
-            L = normalize(-light.Direction.xyz);
-        }
-        else if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM)
         {
             L = normalize(-light.Direction.xyz);
         }
@@ -106,10 +107,13 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         float shadow = 1.0;
         if (light.CastShadow)
         {
-            if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM)
+            if (light.Dummy == 1)
             {
-                shadow = ShadowFactorCSM(input.worldPos, light, shadowParam);
-                shadowMapNum += DIRECTIONAL_CSM_CASCADE_COUNT;
+                // CSM カスケード先頭エントリ: 全カスケードを参照してシャドウを計算
+                // Position.w にカスケード総数が格納されている
+                int cascadeCount = (int)round(light.Position.w);
+                shadow = ShadowFactorCascades(input.worldPos, i, cascadeCount, shadowMapNum, shadowParam);
+                shadowMapNum += cascadeCount;
             }
             else
             {

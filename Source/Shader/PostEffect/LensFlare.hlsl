@@ -111,8 +111,8 @@ float4 WorldToScreenData(float3 worldPos)
 // LIGHT 構造体 → (uv.x, uv.y, ndcDepth, clip.w)
 float4 GetLightScreenData(LIGHT light)
 {
-    if (light.LightType == LIGHT_TYPE_DIRECTIONAL ||
-        light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM)
+    // 方向ライト (通常 / CSM カスケード先頭) は太陽方向を仮想ワールド座標に変換
+    if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
     {
         float3 sunDir      = -normalize(light.Direction.xyz);
         float3 sunWorldPos = CameraPosition.xyz + sunDir * DIRECTIONAL_LIGHT_DISTANCE;
@@ -241,9 +241,10 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
         LIGHT light = Lights[li];
         if (!light.Enable) continue;
 
-        // 方向ライト系以外はレンズフレアを無効化
-        if (light.LightType != LIGHT_TYPE_DIRECTIONAL &&
-            light.LightType != LIGHT_TYPE_DIRECTIONAL_CSM) continue;
+        // 方向ライト以外はレンズフレアを無効化
+        // CSM カスケードの 2 番目以降エントリ (Dummy >= 2) は重複処理を避けるためスキップ
+        if (light.LightType != LIGHT_TYPE_DIRECTIONAL) continue;
+        if (light.Dummy >= 2) continue;
 
         // ライトのスクリーン UV + NDC 深度を取得
         // clip.w <= 0 の場合はカメラ背後 → スキップ
@@ -261,8 +262,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 
         if (all(lightPos >= 0.0f) && all(lightPos <= 1.0f))
         {
-            if (light.LightType == LIGHT_TYPE_DIRECTIONAL ||
-                light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM)
+            if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
             {
                 // 方向ライト: ライト位置の深度がスカイ (≈1.0) ならば可視
                 float sceneDepth = GetDepth(lightPos);

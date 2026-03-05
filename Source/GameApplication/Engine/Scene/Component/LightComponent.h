@@ -92,7 +92,9 @@ public:
 		ImGui::UndoCheckbox("CastShadow", (bool*)&light.CastShadow);
 
 		// ライトの種類
-		const char* lightTypes[] = {"None","Directional", "Point", "Spot", "DirectionalCSM"};
+		// DirectionalCSM はシャドウマップアトラスに統合された CSM (カスケードシャドウマップ) 平行光。
+		// GPU バッファ上では DIRECTIONAL_CSM_CASCADE_COUNT 個の Directional エントリに自動展開される。
+		const char* lightTypes[] = {"None","Directional", "Point", "Spot", "DirectionalCSM (Cascaded)"};
 		int selected = static_cast<int>(light.LightType);
 		if(ImGui::Combo("Light Type", &selected, lightTypes, IM_ARRAYSIZE(lightTypes))){
 			light.LightType = selected;

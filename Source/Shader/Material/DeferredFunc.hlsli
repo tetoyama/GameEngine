@@ -103,39 +103,44 @@ float SampleCascadePCF(float2 suvBase, float depth, float2 texelSize, float step
 
 
 // =====================================================
-// CSM (Cascaded Shadow Maps) シャドウファクター
+// CSM シャドウファクター (アトラス統合版)
+// LIGHT 配列から各カスケードのビュー/射影行列を直接参照する。
+// CbCSM 専用バッファは不要。
 // =====================================================
-float ShadowFactorCSM(
-    float3 worldPos,
-    LIGHT  light,
+// firstLightIdx : LIGHT 配列内の最初のカスケードエントリインデックス
+// cascadeCount  : カスケード数
+// atlasOffset   : シャドウアトラス内の開始タイルインデックス
+float ShadowFactorCascades(
+    float3         worldPos,
+    int            firstLightIdx,
+    int            cascadeCount,
+    int            atlasOffset,
     ShadowPCFParams pcf)
 {
-    // ---- カスケード選択 + ライトスペース変換 (投影UV判定) ----
-    // スプリット深度に依存せず、各カスケードの実際の投影 UV [0,1] 内に収まるかを
-    // 近→遠の順に検査し、最初にカバーされる（最も精細な）カスケードを選択する。
-    // スプリット深度は C++ 側でのカスケード錐台計算にのみ使用し、
-    // シェーダ側の選択は行列投影ベースで行うことで精度を最大化する。
-    // ※ CSM は正射影なので csp.w は常に 1 だが、念のため w <= 0 は skip する。
-
-    // デフォルトとして最遠カスケードで sp を事前計算 (どのカスケードもカバーしない場合のフォールバック)
-    int cascade = DIRECTIONAL_CSM_CASCADE_COUNT - 1;
-    float4 sp = mul(float4(worldPos, 1.0), CsmViews[cascade]);
-    sp = mul(sp, CsmProjections[cascade]);
-
-    // 近→遠の順で走査し、UV 内に収まる最初（最も精細）のカスケードを使う。
-    // 遠→近にすると「最も粗い」カスケードが選ばれてしまい精度が下がるため、
-    // 精度最大化のために近→遠の方向で break を使う設計とする。
-    [loop]
-    for (int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT - 1; c++)
+    // ---- 最精細カスケードを近→遠の順で UV カバレッジ判定 ----
+    // 最遠カスケードをフォールバックとして事前計算する
+    int  selectedCascade = cascadeCount - 1;
+    float4 sp;
     {
-        float4 csp = mul(float4(worldPos, 1.0), CsmViews[c]);
-        csp = mul(csp, CsmProjections[c]);
-        if (csp.w <= 0.0) continue; // w <= 0 はゼロ除算防止 (正射影では通常 w=1)
+        int safeIdx = min(firstLightIdx + cascadeCount - 1, LIGHT_MAX_COUNT - 1);
+        LIGHT cLight = Lights[safeIdx];
+        sp = mul(float4(worldPos, 1.0), cLight.LightView);
+        sp = mul(sp, cLight.LightProjection);
+    }
+
+    [loop]
+    for (int c = 0; c < cascadeCount - 1; c++)
+    {
+        int safeIdx = min(firstLightIdx + c, LIGHT_MAX_COUNT - 1);
+        LIGHT cLight = Lights[safeIdx];
+        float4 csp = mul(float4(worldPos, 1.0), cLight.LightView);
+        csp = mul(csp, cLight.LightProjection);
+        if (csp.w <= 0.0) continue;
         float2 cuv = csp.xy / csp.w * 0.5 + 0.5;
         cuv.y = 1.0 - cuv.y;
         if (all(cuv >= 0.0) && all(cuv <= 1.0))
         {
-            cascade = c;
+            selectedCascade = c;
             sp = csp;
             break;
         }
@@ -145,53 +150,42 @@ float ShadowFactorCSM(
         return 1.0;
 
     sp.xyz /= sp.w;
-
     float2 uv = sp.xy * 0.5 + 0.5;
     uv.y = 1.0 - uv.y;
 
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    // ---- シャドウバイアス (シャドウアクネ対策) ----
-    // Param.w で調整可能: 値を大きくするとアクネが減り、小さくするとピーターパン現象が減る
-    float bias = light.Param.w;
+    LIGHT selectedLight = Lights[min(firstLightIdx + selectedCascade, LIGHT_MAX_COUNT - 1)];
+    float bias  = selectedLight.Param.w;
     float depth = saturate(sp.z - bias);
 
-    // ---- アトラスタイル計算 ----
-    int tileIndex = CsmAtlasOffset + cascade;
-    uint grid = (uint) ceil(sqrt((float) ShadowAtlasCount));
-    float tile = 1.0 / grid;
+    int   tileIndex = atlasOffset + selectedCascade;
+    uint  grid      = (uint)ceil(sqrt((float)ShadowAtlasCount));
+    float tile      = 1.0 / grid;
+    uint  gx        = tileIndex % grid;
+    uint  gy        = tileIndex / grid;
+    float2 tileMin  = float2(gx, gy) * tile;
+    float2 suvBase  = tileMin + uv * tile;
 
-    uint gx = tileIndex % grid;
-    uint gy = tileIndex / grid;
-
-    float2 tileMin = float2(gx, gy) * tile;
-    float2 suvBase = tileMin + uv * tile;
-
-    // ---- テクセルサイズ ----
     float2 texelSize;
     ShadowMap.GetDimensions(texelSize.x, texelSize.y);
     texelSize = 1.0 / texelSize;
     texelSize *= tile;
 
-    // ---- PCF ----
-    int radius = max(pcf.KernelRadius, 0);
+    int   radius = max(pcf.KernelRadius, 0);
     float shadow = SampleCascadePCF(suvBase, depth, texelSize, pcf.StepTexel, radius);
 
     // ---- カスケードフォールバック ----
     // 最精細カスケードが「影なし (shadow=1.0)」を返した場合、次のカスケードで遠方の
     // shadow caster による影を検証する。
-    //
-    // 次のカスケードで遮蔽物が見つかった場合、その遮蔽物のライトビュー Z を最精細
-    // カスケードの NDC 空間に変換し、最精細カスケードの Z 範囲 [0,1] 内かを確認する。
-    //   ・範囲内  → 最精細カスケードで捕捉可能なはず → 「影なし」の判定を優先して影を無視
-    //   ・範囲外  → 最精細カスケードでは描画不可の遮蔽物 → 次のカスケードの影を採用
     [branch]
-    if (shadow >= 1.0 && cascade < DIRECTIONAL_CSM_CASCADE_COUNT - 1)
+    if (shadow >= 1.0 && selectedCascade < cascadeCount - 1)
     {
-        int nextCascade = cascade + 1;
-        float4 nsp = mul(float4(worldPos, 1.0), CsmViews[nextCascade]);
-        nsp = mul(nsp, CsmProjections[nextCascade]);
+        int   nextCascade = selectedCascade + 1;
+        LIGHT nextLight   = Lights[min(firstLightIdx + nextCascade, LIGHT_MAX_COUNT - 1)];
+        float4 nsp = mul(float4(worldPos, 1.0), nextLight.LightView);
+        nsp = mul(nsp, nextLight.LightProjection);
         if (nsp.w > 0.0)
         {
             nsp.xyz /= nsp.w;
@@ -199,25 +193,20 @@ float ShadowFactorCSM(
             nuv.y = 1.0 - nuv.y;
             if (all(nuv >= 0.0) && all(nuv <= 1.0))
             {
-                float ndepth = saturate(nsp.z - bias);
-                int nTileIndex = CsmAtlasOffset + nextCascade;
-                uint ngx = nTileIndex % grid;
-                uint ngy = nTileIndex / grid;
+                float  ndepth   = saturate(nsp.z - bias);
+                int    nTileIdx = atlasOffset + nextCascade;
+                uint   ngx      = nTileIdx % grid;
+                uint   ngy      = nTileIdx / grid;
                 float2 nsuvBase = float2(ngx, ngy) * tile + nuv * tile;
 
-                // 次のカスケードのシャドウマップから遮蔽物の生深度を読み取る
                 float occRawDepth = ShadowMap.SampleLevel(LinearSampler, nsuvBase, 0).r;
 
-                // 正射影: ndc_z = viewZ * P._33 + P._43  →  viewZ = (ndc_z - P._43) / P._33
-                // 遮蔽物のライトビュー Z を次のカスケードの行列から求め、
-                // 最精細カスケードの NDC Z に変換して描画範囲を確認する。
-                float p1_33 = CsmProjections[nextCascade]._33;
+                float p1_33 = nextLight.LightProjection._33;
                 [branch]
                 if (abs(p1_33) > 1e-6)
                 {
-                    float occViewZ = (occRawDepth - CsmProjections[nextCascade]._43) / p1_33;
-                    float occNdcInFine = occViewZ * CsmProjections[cascade]._33 + CsmProjections[cascade]._43;
-
+                    float occViewZ     = (occRawDepth - nextLight.LightProjection._43) / p1_33;
+                    float occNdcInFine = occViewZ * selectedLight.LightProjection._33 + selectedLight.LightProjection._43;
                     if (occNdcInFine < 0.0 || occNdcInFine > 1.0)
                     {
                         shadow = min(shadow, SampleCascadePCF(nsuvBase, ndepth, texelSize, pcf.StepTexel, radius));

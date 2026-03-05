@@ -90,9 +90,19 @@ struct LIGHT
     int Enable;
     int LightType;
     int CastShadow;
+    // CSM カスケードマーカー:
+    //   0 = 通常ライト (Point / Spot / Directional 非 CSM)
+    //   1 = CSM 最精細カスケード (cascade index 0)
+    //   2..N = CSM 2 番目以降のカスケード (cascade index Dummy-1)
+    // ※ GPU ライトバッファ上に LIGHT_TYPE_DIRECTIONAL_CSM は存在しない。
+    //   ShadowMapPass が N 個の LIGHT_TYPE_DIRECTIONAL エントリに展開する。
     int Dummy;
 
+    // Position.xyz : ライト位置 (Point/Spot) / CSM カスケードのライトカメラ eye 座標
+    // Position.w   : Dummy==1 のカスケード先頭エントリのみ使用 → カスケード総数 (float)
     float4 Position;
+    // Direction.xyz : ライト方向 (Directional/Spot)
+    // Direction.w   : 未使用 (常に 0)
     float4 Direction;
 
     float4 Diffuse;
@@ -138,16 +148,6 @@ CBUFFER(CbPerObject, 2)
     uint ObjectID;
     uint ShaderID;
     uint _ObjPad;
-};
-
-// b3: CSM (Cascaded Shadow Maps) カスケードデータ
-CBUFFER(CbCSM, 3)
-{
-    float4x4 CsmViews[DIRECTIONAL_CSM_CASCADE_COUNT];       // カスケードごとのライトビュー行列 (転置済み)
-    float4x4 CsmProjections[DIRECTIONAL_CSM_CASCADE_COUNT]; // カスケードごとのライト射影行列 (転置済み)
-    float4   CsmSplitDepths[2]; // ビュー空間スプリット深度 (packed: [0]=(d0,d1,d2,d3), [1]=(d4,d5,0,0))
-    int      CsmAtlasOffset;    // シャドウアトラス内の CSM 開始タイルインデックス
-    int3     _CsmPad;
 };
 
 #ifdef __cplusplus

@@ -71,6 +71,10 @@
 #define LIGHT_TYPE_DIRECTIONAL		(1)
 #define LIGHT_TYPE_POINT			(2)
 #define LIGHT_TYPE_SPOT				(3)
+// LightComponent のユーザー向けライトタイプ識別子。
+// GPU ライトバッファ (CbPerFrame.Lights[]) には LIGHT_TYPE_DIRECTIONAL_CSM エントリは存在しない。
+// ShadowMapPass がこのタイプを検出すると DIRECTIONAL_CSM_CASCADE_COUNT 個の
+// LIGHT_TYPE_DIRECTIONAL エントリに展開してアトラスに統合する。
 #define LIGHT_TYPE_DIRECTIONAL_CSM	(4)
 
 #define DIRECTIONAL_CSM_CASCADE_COUNT	(6)
