@@ -10,21 +10,35 @@
 #include "Interface/IScriptComponent.h"
 #include "Backends/ImGuiFunc.h"
 
+// -----------------------------------------------------------------------
+// ScriptComponent::decode
+// YAML ノードからスクリプトを復元する
+// ノードの各キーがスクリプト名、値がスクリプト固有のパラメーター
+// -----------------------------------------------------------------------
 bool ScriptComponent::decode(SceneContext* context, const YAML::Node& node){
 	for(auto it : node){
 		const std::string name = it.first.as<std::string>();
+		// ScriptSystem::Create でスクリプト名に対応するインスタンスを生成
 		auto script = context->manager->systemRegistry->GetSystem<ScriptSystem>()->Create(name.c_str());
 		if(!script) continue;
 
+		// スクリプト固有パラメーターを復元
 		script->Decode(it.second);
 		scripts[name] = std::move(script);
 	}
 	return true;
 }
 
+// -----------------------------------------------------------------------
+// ScriptComponent::inspector
+// インスペクター UI を描画する
+// - スクリプト追加ボタンとテキスト入力
+// - 各スクリプトのパラメーター（int / float / bool / string）を ImGui で編集
+// -----------------------------------------------------------------------
 void ScriptComponent::inspector(SceneContext* context) {
 	ImGui::Text("Script Component");
 
+	// スクリプト追加 UI
 	static char scriptNameInput[128] = {};
 	ImGui::InputText("Add Script", scriptNameInput, sizeof(scriptNameInput));
 	ImGui::SameLine();
@@ -32,13 +46,13 @@ void ScriptComponent::inspector(SceneContext* context) {
 		AddScript(scriptNameInput, context);
 	}
 
+	// 各スクリプトのパラメーターを TreeNode で展開表示
 	for (auto& [name, script] : scripts) {
 		if (ImGui::TreeNode(name.c_str())) {
-			// Script 側のパラメータを ImGui で描画
 
 			auto& params = script->GetParams();
 			for (auto& p : params) {
-				// コピーで取る
+				// std::variant を型別に展開して対応する ImGui ウィジェットを表示
 				std::visit([&](auto& val) {
 					using T = std::decay_t<decltype(val)>;
 					if constexpr (std::is_same_v<T, int>) {
@@ -59,7 +73,7 @@ void ScriptComponent::inspector(SceneContext* context) {
 					} else if constexpr (std::is_same_v<T, std::string>) {
 						char buffer[256] = {};
 
-						// string → char buffer
+						// string → char buffer にコピーして InputText で編集
 						std::strncpy(buffer, val.c_str(), 256 - 1);
 
 						if (ImGui::InputText(p.name.c_str(), buffer, 256)) {
@@ -74,17 +88,29 @@ void ScriptComponent::inspector(SceneContext* context) {
 	}
 }
 
+// -----------------------------------------------------------------------
+// ScriptComponent::AddScript
+// 指定した名前のスクリプトをこのコンポーネントに追加する
+// ScriptSystem::Create を通じてスクリプトインスタンスを生成する
+// 引数:
+//   scriptName - 追加するスクリプトのクラス名
+//   context    - シーンコンテキスト（ScriptSystem の取得に使用）
+// 戻り値: 追加に成功した場合 true、失敗した場合 false
+// -----------------------------------------------------------------------
 bool ScriptComponent::AddScript(const char* scriptName, SceneContext* context){
+	// スクリプト名が空の場合は追加しない
 	if(!scriptName || scriptName[0] == '\0'){
 		context->manager->debug->LOG_DEBUG("Script name empty");
 		return false;
 	}
 
+	// 既に同名のスクリプトが存在する場合は重複追加しない
 	if(scripts.find(scriptName) != scripts.end()){
 		context->manager->debug->LOG_DEBUG("Script already exists");
 		return false;
 	}
 
+	// ScriptSystem を取得してスクリプトインスタンスを生成
 	auto* scriptSystem = context->system->GetSystem<ScriptSystem>();
 	if(!scriptSystem){
 		context->manager->debug->LOG_DEBUG("ScriptSystem not found");
@@ -98,7 +124,6 @@ bool ScriptComponent::AddScript(const char* scriptName, SceneContext* context){
 	}
 
 	IScriptComponent* script(raw);
-	//script->context = context;
 
 	scripts.emplace(scriptName, std::move(script));
 	return true;

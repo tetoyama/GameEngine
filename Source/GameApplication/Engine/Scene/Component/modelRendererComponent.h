@@ -23,20 +23,21 @@
 #include "DebugTools/DebugSystem.h"
 
 // 3Dモデルの描画を管理するコンポーネント
+// スキニングアニメーション・モーションブレンド・動的頂点バッファの更新を担当する
 class ModelRendererComponent: public IComponent {
 public:
 	
-	std::shared_ptr<ModelData>model = nullptr;
+	std::shared_ptr<ModelData> model = nullptr;  // ロード済みモデルデータ（メッシュ・ボーン・アニメーション）
 
-	std::string modelFilePath;
-	std::vector<std::pair<std::string,std::string>> animations;
-	std::vector<AnimationBlend> blendedAnimations;
+	std::string modelFilePath;                                    // モデルファイルのパス（YAML保存用）
+	std::vector<std::pair<std::string,std::string>> animations;   // <アニメーション名, ファイルパス> の登録リスト
+	std::vector<AnimationBlend> blendedAnimations;                // モーションブレンドのブレンドエントリ一覧
 
-	// 描画用（Dynamic）
+	// スキニング計算後の頂点を書き込む動的頂点バッファ（メッシュ毎に1つ）
 	std::vector<ID3D11Buffer*> dynamicVertexBuffers;
 
-	bool isBlender = false;
-	float animationTime = 0.0f;
+	bool isBlender = false;       // Blender 座標系（Y-up）のモデルかどうか（座標変換に影響）
+	float animationTime = 0.0f;   // 現在のアニメーション再生時間（秒）
 
 	ModelRendererComponent() = default;
 
@@ -77,24 +78,30 @@ public:
 		return node;
 	}
 
+	// モデルをロードして動的頂点バッファを生成する
+	// 既存のモデルがある場合はバッファを解放してから再生成する
 	void CreateModel(SceneContext* context){
 
 		if(modelFilePath.empty()){
 			return;
 		}
+		// 既存モデルの解放（バッファ→shared_ptr の順で解放）
 		if(model){
 			ReleaseBuffers();
 			model.reset();
 		}
 
+		// ResourceService 経由でモデルをロード（キャッシュヒット時は既存データを返す）
 		model = context->manager->resource->Load<ModelData>(modelFilePath, isBlender);
 
+		// 追加アニメーションをモデルデータに読み込む
 		for(const auto& animNode : animations){
 			std::string animName = animNode.first;
 			std::string animFile = animNode.second;
 			model->LoadAnimation(animFile.c_str(), animName.c_str());
 		}
 
+		// メッシュ毎に動的頂点バッファを生成（スキニング結果を書き込む CPU 書き込み可能バッファ）
 		dynamicVertexBuffers.clear();
 		dynamicVertexBuffers.resize(model->AiScene->mNumMeshes);
 
@@ -102,10 +109,10 @@ public:
 			aiMesh* mesh = model->AiScene->mMeshes[i];
 
 			D3D11_BUFFER_DESC desc{};
-			desc.Usage = D3D11_USAGE_DYNAMIC;
+			desc.Usage = D3D11_USAGE_DYNAMIC;              // CPU 書き込み可能
 			desc.ByteWidth = sizeof(VERTEX_3D) * mesh->mNumVertices;
 			desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-			desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;  // Map/Unmap によるスキニング結果の書き込みを許可
 
 			HRESULT hr = context->manager->graphics->GetDevice()->CreateBuffer(
 				&desc, nullptr, &dynamicVertexBuffers[i]
@@ -115,6 +122,7 @@ public:
 
 	}
 
+	// 全メッシュの動的頂点バッファを解放する
 	void ReleaseBuffers(){
 		for(auto* vb : dynamicVertexBuffers){
 			if(vb) vb->Release();

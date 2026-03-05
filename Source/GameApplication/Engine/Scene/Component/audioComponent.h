@@ -19,20 +19,24 @@
 class AudioContext;
 
 // オーディオの再生を管理するコンポーネント
+// XAudio2 の IXAudio2SourceVoice を通じて音声の再生・停止・音量制御を行う
+// AudioSystem が PlayOnStart フラグを見て再生を開始する
 class AudioComponent: public IComponent {
 public:
-	std::shared_ptr<AudioData> m_AudioData;
-	std::string FilePath;
+	std::shared_ptr<AudioData> m_AudioData;        // ロード済みオーディオデータ
+	std::string FilePath;                           // オーディオファイルのパス（YAML 保存用）
 
-	bool Loop = false;
-	float Volume = 1.0f;
-	bool PlayOnStart = false;
-	bool Playing = false;
-	bool isInitialized = false;
+	bool Loop = false;          // ループ再生するか
+	float Volume = 1.0f;        // 音量（0.0〜1.0）
+	bool PlayOnStart = false;   // シーン開始時に自動再生するか
+	bool Playing = false;       // 現在再生中かどうか
+	bool isInitialized = false; // AudioSystem によって初期化済みかどうか
 
-	IXAudio2SourceVoice* m_SourceVoice = nullptr; // 再生ハンドルは実行時に取得する
+	IXAudio2SourceVoice* m_SourceVoice = nullptr; // 再生ハンドル（AudioSystem が生成・管理）
 
 	AudioComponent() = default;
+
+	// デストラクタ: ソースボイスを停止・解放する
 	~AudioComponent(){
 		if(m_SourceVoice){
 			m_SourceVoice->Stop();
@@ -41,20 +45,27 @@ public:
 		}
 	}
 
-	// AudioContextを外から渡して再生開始
+	// AudioContext を渡して音声を再生する
+	// 既存のソースボイスがある場合は停止・解放してから新規生成する
+	// 引数:
+	//   audioContext - XAudio2 マスタリングボイスを保持するコンテキスト
+	// 戻り値: 再生開始に成功した場合 true
 	bool Play(AudioContext* audioContext){
 		if(!m_AudioData || !m_AudioData->m_SoundData || !audioContext)
 			return false;
 
+		// 既存ボイスを破棄して新規ボイスを作成
 		if(m_SourceVoice){
 			m_SourceVoice->Stop();
 			m_SourceVoice->DestroyVoice();
 			m_SourceVoice = nullptr;
 		}
 
+		// オーディオフォーマットに合ったソースボイスを生成
 		m_SourceVoice = audioContext->CreateSourceVoice(&m_AudioData->m_Format);
 		if(!m_SourceVoice) return false;
 
+		// バッファを設定してソースボイスに送信
 		XAUDIO2_BUFFER buffer = {};
 		buffer.AudioBytes = m_AudioData->m_Length;
 		buffer.pAudioData = m_AudioData->m_SoundData;
@@ -62,6 +73,7 @@ public:
 		buffer.PlayLength = m_AudioData->m_PlayLength;
 		buffer.Flags = XAUDIO2_END_OF_STREAM;
 
+		// ループ設定: 無限ループの場合はバッファ全体を繰り返す
 		if(Loop){
 			buffer.LoopBegin = 0;
 			buffer.LoopLength = m_AudioData->m_PlayLength;
@@ -82,16 +94,19 @@ public:
 		return true;
 	}
 
+	// 再生中の音声を停止してソースボイスを解放する
 	void Stop(){
 		if(m_SourceVoice){
 			m_SourceVoice->Stop();
-			m_SourceVoice->FlushSourceBuffers();
+			m_SourceVoice->FlushSourceBuffers(); // バッファをフラッシュして再生残を破棄
 			m_SourceVoice->DestroyVoice();
 			m_SourceVoice = nullptr;
 		}
 		Playing = false;
 	}
 
+	// 音声を完全にリセットする（ファイルロードし直し時に呼ぶ）
+	// 停止・初期化フラグクリア・オーディオデータの解放を行う
 	void Reset(){
 		Stop();
 		isInitialized = false;
