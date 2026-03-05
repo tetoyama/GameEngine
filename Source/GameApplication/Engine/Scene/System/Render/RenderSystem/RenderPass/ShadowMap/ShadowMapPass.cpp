@@ -135,10 +135,6 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 	int lightCount = 0;
 	int shadowCount = 0;
 
-	// ======== CSM データ ========
-	CbCSM csmData{};
-	bool hasCsmLight = false;
-
 	bool foundLight = false;
 	for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
 		auto sctx = scene->GetSceneContext();

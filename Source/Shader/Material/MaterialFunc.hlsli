@@ -78,10 +78,6 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         {
             L = normalize(-light.Direction.xyz);
         }
-        else if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM)
-        {
-            L = normalize(-light.Direction.xyz);
-        }
         else
         {
             float3 toL = light.Position.xyz - input.worldPos;
@@ -106,15 +102,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         float shadow = 1.0;
         if (light.CastShadow)
         {
-            if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM)
-            {
-                shadow = ShadowFactorCSM(input.worldPos, light, shadowParam);
-                shadowMapNum += DIRECTIONAL_CSM_CASCADE_COUNT;
-            }
-            else
-            {
-                shadow = ShadowFactor(input.worldPos, light, shadowMapNum++, shadowParam);
-            }
+            shadow = ShadowFactor(input.worldPos, light, shadowMapNum++, shadowParam);
         }
 
         // ★【修正ポイント】影を真っ黒にしないための処理

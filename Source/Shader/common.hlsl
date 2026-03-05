@@ -140,16 +140,6 @@ CBUFFER(CbPerObject, 2)
     uint _ObjPad;
 };
 
-// b3: CSM (Cascaded Shadow Maps) カスケードデータ
-CBUFFER(CbCSM, 3)
-{
-    float4x4 CsmViews[DIRECTIONAL_CSM_CASCADE_COUNT];       // カスケードごとのライトビュー行列 (転置済み)
-    float4x4 CsmProjections[DIRECTIONAL_CSM_CASCADE_COUNT]; // カスケードごとのライト射影行列 (転置済み)
-    float4   CsmSplitDepths[2]; // ビュー空間スプリット深度 (packed: [0]=(d0,d1,d2,d3), [1]=(d4,d5,0,0))
-    int      CsmAtlasOffset;    // シャドウアトラス内の CSM 開始タイルインデックス
-    int3     _CsmPad;
-};
-
 #ifdef __cplusplus
 // UV スライス情報 (UVStart/UVEnd の 2フィールドをまとめる)
 struct UVMatrixBuffer { float2 UVStart; float2 UVEnd; };

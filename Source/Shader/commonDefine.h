@@ -64,9 +64,6 @@
 #define LIGHT_TYPE_DIRECTIONAL		(1)
 #define LIGHT_TYPE_POINT			(2)
 #define LIGHT_TYPE_SPOT				(3)
-#define LIGHT_TYPE_DIRECTIONAL_CSM	(4)
-
-#define DIRECTIONAL_CSM_CASCADE_COUNT	(6)
 
 // MaterialFlags 用のビットマスク
 #define MATERIAL_FLAG_USE_DIFFUSE_TEXTURE		(1 << 0)
