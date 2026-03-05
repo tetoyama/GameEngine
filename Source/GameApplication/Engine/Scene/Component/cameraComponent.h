@@ -24,24 +24,28 @@
 #include <vector>
 
 
+// 1 つのポストエフェクトパスを表す構造体
+// ノードエディターの 1 ノードに対応し、シェーダー・テクスチャ・接続情報を保持する
 struct CameraPostEffect {
-    std::shared_ptr<PixelShaderData> ps;
-    std::shared_ptr<VertexShaderData> vs;
-    std::string name;
-    bool enabled = true;
-    Vector2 nodePos{ -1, -1 };
-	DirectX::XMFLOAT4 Param{0,0,0,0};
-    bool initialized = false;
-    std::vector<int> inputPins;
-    int outputPin = -1;
+    std::shared_ptr<PixelShaderData>  ps;             // ピクセルシェーダー（エフェクト処理）
+    std::shared_ptr<VertexShaderData> vs;             // バーテックスシェーダー（通常はフルスクリーンクワッド用）
+    std::string name;                                 // ノード名（UI 表示用）
+    bool enabled = true;                              // このパスを描画するか
+    Vector2 nodePos{ -1, -1 };                        // ノードエディター上のノード座標
+	DirectX::XMFLOAT4 Param{0,0,0,0};                // シェーダーに渡す汎用パラメーター
+    bool initialized = false;                         // テクスチャ・RTV・SRV が生成済みかどうか
+    std::vector<int> inputPins;                       // このノードへの入力ピン ID リスト
+    int outputPin = -1;                               // このノードからの出力ピン ID
 
-	float resolutionScale = 1.0f;
+	float resolutionScale = 1.0f;                     // テクスチャ解像度のスケール倍率（1.0 = フルサイズ）
 
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> tex;
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
-	Vector2 resolution{1280, 720};
+	Microsoft::WRL::ComPtr<ID3D11Texture2D>          tex;  // ポストエフェクト用中間テクスチャ
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   rtv;  // 描画先レンダーターゲットビュー
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;  // 次パスへの入力シェーダーリソースビュー
+	Vector2 resolution{1280, 720};                         // テクスチャの実解像度（ピクセル）
 
+	// テクスチャ・RTV・SRV を生成する（未生成の場合のみ実行）
+	// 画面サイズに応じて HDR float16 フォーマットでテクスチャを生成する
 	void CreateTexture(ID3D11Device* device, const Vector2& screenSize){
 		if (tex) return;
 		resolution = screenSize;
@@ -81,6 +85,8 @@ struct CameraPostEffect {
 		}
 	}
 
+	// 解像度変更時にテクスチャを再生成する
+	// サイズが同一で全リソースが有効な場合はスキップする
 	void ResizeTexture(ID3D11Device* device, const Vector2& screenSize){
 		if (resolution.x == screenSize.x && resolution.y == screenSize.y && tex && rtv && srv) return;
 		tex = nullptr;
@@ -89,6 +95,7 @@ struct CameraPostEffect {
 		CreateTexture(device, screenSize);
 	}
 
+	// レンダーターゲットをバインドして指定色でクリアする
 	void Clear(ID3D11DeviceContext* context, const float clearColor[4]){
 		if (rtv) {
 			context->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
@@ -97,28 +104,33 @@ struct CameraPostEffect {
 	}
 };
 
+// ポストエフェクトノード間の接続（エッジ）を表す構造体
+// imnodes ライブラリのリンクとして管理される
 struct CameraPostEffectLink {
-    int id = -1;
-    int startNode = -1;
-    int endNode = -1;
-    int startAttr = -1;
-    int endAttr = -1;
+    int id        = -1;  // リンクの一意 ID
+    int startNode = -1;  // 始点ノードのインデックス
+    int endNode   = -1;  // 終点ノードのインデックス
+    int startAttr = -1;  // 始点の出力ピン ID
+    int endAttr   = -1;  // 終点の入力ピン ID
 };
 
+// カメラのビュー/プロジェクション行列とポストエフェクトグラフを管理するコンポーネント
+// ポストエフェクトはノードエディター（imnodes）で構築され、
+// トポロジカルソートされた順序で適用される
 class CameraComponent : public IComponent {
 public:
-    SceneContext* context = nullptr;
+    SceneContext* context = nullptr;  // シーンコンテキストへのキャッシュ（デコード時に設定）
 
-    std::vector<CameraPostEffect> postEffects;
-    std::vector<CameraPostEffectLink> postEffectLinks;
+    std::vector<CameraPostEffect>     postEffects;      // ポストエフェクトノードのリスト
+    std::vector<CameraPostEffectLink> postEffectLinks;  // ノード間の接続リスト
 
-    CameraPostEffect screenInputNode;
-    CameraPostEffect screenOutputNode;
+    CameraPostEffect screenInputNode;   // スクリーン入力ノード（シーンレンダリング結果が入力される）
+    CameraPostEffect screenOutputNode;  // スクリーン出力ノード（最終的な描画結果の出力先）
 
-    int nextLinkId = 1;
-    int nextPinId = 1;
+    int nextLinkId = 1;  // 次に発行するリンク ID
+    int nextPinId  = 1;  // 次に発行するピン ID
 
-	bool initialized = false;
+	bool initialized = false;  // カメラコンポーネントが初期化済みかどうか
 
     YAML::Node encode() override {
         YAML::Node node;
@@ -546,21 +558,27 @@ public:
         ImGui::PopID();
     }
 
-    bool isLock = false;
-    Vector3 Target{ 0,0,0 };
-    float NearClip = 0.01f;
-    float FarClip = 1024.0f;
-    float FOV = 1.0f;
-    DirectX::XMMATRIX viewMatrix{};
+    // --- カメラパラメーター ---
+    bool isLock = false;        // カメラ操作をロックするか（エディター専用）
+    Vector3 Target{ 0,0,0 };   // 注視点（isLock 時に使用）
+    float NearClip = 0.01f;    // ニアクリップ距離（単位: m）
+    float FarClip = 1024.0f;   // ファークリップ距離（単位: m）
+    float FOV = 1.0f;           // 垂直視野角（ラジアン）
+    DirectX::XMMATRIX viewMatrix{};  // 現在のビュー行列（CameraSystem が毎フレーム更新）
 
 
+    // ポストエフェクトノードグラフをトポロジカルソートして描画順を決定する
+    // Kahn's アルゴリズム（BFS ベース）を使用し、DAG を入力ノード→出力ノードの順に並べる
+    // 循環グラフが検出された場合はデバッグ警告を出力し、未処理ノードを末尾に追加する
+    // 戻り値: ポストエフェクトの描画順インデックス配列
     std::vector<int> TopologicalSortPostEffects() {
         std::vector<int> sortedIndices;
 
         int n = static_cast<int>(postEffects.size());
-        int INPUT_NODE = n;     // -1 の代わり
-        int OUTPUT_NODE = n + 1;   // -2 の代わり
+        int INPUT_NODE  = n;       // screenInputNode の仮 ID（-1 の代わり）
+        int OUTPUT_NODE = n + 1;   // screenOutputNode の仮 ID（-2 の代わり）
 
+        // 隣接リストと入次数を構築
         std::unordered_map<int, std::vector<int>> adj;
         std::unordered_map<int, int> indegree;
         std::unordered_set<int> nodes;
@@ -569,6 +587,7 @@ public:
             int start = link.startNode;
             int end = link.endNode;
 
+            // 特殊ノード ID を仮 ID に変換
             if (start == -1) start = INPUT_NODE;
             if (end == -2) end = OUTPUT_NODE;
 
@@ -580,6 +599,7 @@ public:
             }
         }
 
+        // 入次数 0 のノードをキューに積む（Kahn's アルゴリズム開始）
         std::queue<int> q;
         for (int node : nodes) {
             if (indegree.find(node) == indegree.end()) q.push(node);
@@ -595,9 +615,10 @@ public:
             }
         }
 
-        // サイクル検出
+        // サイクル検出: 全ノードが処理されていない場合はサイクルが存在する
         if (sortedIndices.size() != nodes.size()) {
             OutputDebugStringA("Warning: post effect graph has cycles!\n");
+            // サイクルに含まれるノードを末尾に追加して続行
             for (int node : nodes) {
                 if (std::find(sortedIndices.begin(), sortedIndices.end(), node) == sortedIndices.end()) {
                     sortedIndices.push_back(node);

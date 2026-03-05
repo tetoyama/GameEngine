@@ -19,12 +19,15 @@
 #include "System/Render/RenderSystem/renderSystem.h"
 
 // マテリアル設定を管理するコンポーネント
+// シェーダー ID（RenderSystem に登録されたシェーダーのインデックス）と
+// MATERIAL 構造体（色・粗さ・金属度等の PBR パラメーター）を保持する
 class MaterialComponent: public IComponent {
 public:
 
-	int ShaderID = 0;
-	MATERIAL Material;
+	int ShaderID = 0;    // 使用するシェーダーのインデックス（RenderSystem::ShaderMaterials への参照）
+	MATERIAL Material;   // PBR マテリアルパラメーター（色・粗さ・金属度等）
 
+	// デフォルトマテリアル: 白色・アルファ 1.0 で初期化
 	MaterialComponent(){
 		MATERIAL defaultMat = {};
 		Material = defaultMat;
@@ -84,6 +87,7 @@ public:
 
 
 		// 色定義
+		// 各チャンネルの背景色テーマ（軽い色でチャンネルを視覚的に区別）
 		ImVec4 colorR = ImVec4(0.7f, 0.4f, 0.4f, 0.3f); // R
 		ImVec4 colorG = ImVec4(0.4f, 0.7f, 0.4f, 0.3f); // G
 		ImVec4 colorB = ImVec4(0.4f, 0.4f, 0.7f, 0.3f); // B
@@ -93,6 +97,8 @@ public:
 
 		// --- Material Properties ---
 
+		// 色プロパティを 4 チャンネルのドラッグスライダー + カラーピッカーで描画するヘルパーラムダ
+		// label: 表示名, c: RGBA フロート配列の先頭ポインタ
 		auto DrawColorProperty = [](const char* label, float* c) {
 			ImGui::AlignTextToFramePadding();
 			ImGui::TextUnformatted(label);
@@ -101,12 +107,14 @@ public:
 			float spacing = ImGui::GetStyle().ItemSpacing.x;
 			float pickerWidth = 24.0f;
 			int sliderCount = 4;
+			// 利用可能幅からカラーボタンとスペーシングを引いた残りを 4 等分してスライダー幅とする
 			float sliderWidth = (totalWidth - pickerWidth - spacing * (sliderCount)) / sliderCount;
 
 			const char* labels[] = { "R", "G", "B", "A" };
 			for (int i = 0; i < 4; ++i) {
 				ImGui::PushID((std::to_string(i) + label).c_str());
 				ImGui::PushItemWidth(sliderWidth);
+				// 対応するチャンネル色のボーダーでスライダーを着色
 				ImGui::PushStyleColor(ImGuiCol_Border, ImVec4((i == 0) * 0.7f, (i == 1) * 0.7f, (i == 2) * 0.7f, 0.3f));
 				ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
 				ImGui::UndoDragFloat(("##" + (std::string)label).c_str(), &c[i], 0.01f, 0.0f, 1.0f);
@@ -114,6 +122,7 @@ public:
 				ImGui::SameLine();
 			}
 
+			// カラーボタン: クリックするとカラーピッカーポップアップを開く
 			if (ImGui::ColorButton(("##ColorBtn" + (std::string)label).c_str(), ImVec4(c[0], c[1], c[2], c[3]), ImGuiColorEditFlags_NoTooltip)) {
 				ImGui::OpenPopup(("ColorPickerPopup" + (std::string)label).c_str());
 			}

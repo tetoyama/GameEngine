@@ -19,15 +19,17 @@
 #include "Resources/Data/TextureData.h"
 
 
-// テクスチャリソースを管理するコンポーネント
+// テクスチャリソースと UV スライスアニメーションを管理するコンポーネント
+// UV_Slice_X / UV_Slice_Y でテクスチャを格子状に分割し、
+// AnimationNum で表示するセルを選択するスプライトシート方式をサポートする
 class TextureComponent : public IComponent {
 public:
-	int UV_Slice_X = 1;
-	int UV_Slice_Y = 1;
+	int UV_Slice_X = 1;  // テクスチャを横方向に分割する数
+	int UV_Slice_Y = 1;  // テクスチャを縦方向に分割する数
 
-	int AnimationNum = 0;
+	int AnimationNum = 0;  // 表示するセルのインデックス（0 から UV_Slice_X * UV_Slice_Y - 1）
 
-	std::shared_ptr<TextureData> m_TextureData;
+	std::shared_ptr<TextureData> m_TextureData;  // ロード済みテクスチャデータ
 
 	YAML::Node encode() override{
 		YAML::Node node;
@@ -188,11 +190,14 @@ public:
             ImGui::BeginGroup();
             ImVec2 start, end;
 
-            start.x = (float)(AnimationNum % UV_Slice_X) / (float)UV_Slice_X;
-            start.y = (float)(AnimationNum / UV_Slice_X) / (float)UV_Slice_Y;
+            // AnimationNum からスプライトシートの UV 座標を計算する
+            // AnimationNum を行列インデックスに変換: 列 = AnimationNum % UV_Slice_X, 行 = AnimationNum / UV_Slice_X
+            start.x = (float)(AnimationNum % UV_Slice_X) / (float)UV_Slice_X;  // セルの左端 UV（0.0〜1.0）
+            start.y = (float)(AnimationNum / UV_Slice_X) / (float)UV_Slice_Y;  // セルの上端 UV（0.0〜1.0）
 
-            end.x = start.x + 1.0f / (float)UV_Slice_X;
-            end.y = start.y + 1.0f / (float)UV_Slice_Y;
+            // 1 セルの UV サイズ: 1/スライス数
+            end.x = start.x + 1.0f / (float)UV_Slice_X;  // セルの右端 UV
+            end.y = start.y + 1.0f / (float)UV_Slice_Y;  // セルの下端 UV
 
             ImGui::Image(
                 (ImTextureID)m_TextureData->pTexture.Get(),

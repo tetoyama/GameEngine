@@ -21,28 +21,28 @@ struct PARTICLE
 // パーティクルエフェクトを管理するコンポーネント
 class ParticleComponent : public IComponent {
 public:
-	PARTICLE Particle[MAXPARTICLE];
+	PARTICLE Particle[MAXPARTICLE];  // 全パーティクル状態の配列（固定サイズ MAXPARTICLE）
 
-	bool isLoop = true;
+	bool isLoop = true;              // パーティクルをループ生成するか
 
-	float SpawnInterval = 0.05f;
+	float SpawnInterval = 0.05f;    // パーティクルを生成する時間間隔（秒）
 
-	int SpawnCount = 100;
+	int SpawnCount = 100;           // 1 回のスポーンで生成するパーティクル数
 
-	float particleLifeTime = 1.0f; // パーティクルのライフタイム
-	float particleSize = 1.0f; // パーティクルのサイズ
-	float particleSpeed = 1.0f; // パーティクルの速度
+	float particleLifeTime = 1.0f;  // パーティクルのライフタイム（秒）
+	float particleSize = 1.0f;      // パーティクルの表示サイズ
+	float particleSpeed = 1.0f;     // パーティクルの速度スケール係数
 	
-	float SpawnTimer = 0.0f;
+	float SpawnTimer = 0.0f;        // 次のスポーンまでの残り時間カウンター
 
-	Vector3 SpawnPosition = Vector3(0, 0, 0);
-	Vector3 SpawnPositionRandom = Vector3(0, 0, 0);
+	Vector3 SpawnPosition       = Vector3(0, 0, 0); // スポーン基準位置のオフセット
+	Vector3 SpawnPositionRandom = Vector3(0, 0, 0); // スポーン位置のランダムブレ幅（±方向それぞれ）
 
-	Vector3 StartSpeed = Vector3(0, 10, 0);
-	Vector3 StartSpeedRandom = Vector3(3, 0, 3);
+	Vector3 StartSpeed       = Vector3(0, 10, 0);   // パーティクル初期速度（基本値）
+	Vector3 StartSpeedRandom = Vector3(3, 0, 3);    // 初期速度のランダムブレ幅
 
-	Vector3 AddSpeed = Vector3(0, -15, 0);
-	Vector3 MulSpeed = Vector3(1, 1, 1);
+	Vector3 AddSpeed = Vector3(0, -15, 0); // 毎フレーム加算する速度（重力相当）
+	Vector3 MulSpeed = Vector3(1, 1, 1);   // 毎フレーム乗算する速度スケール（空気抵抗相当）
 
 	YAML::Node encode() override{
 		YAML::Node node;

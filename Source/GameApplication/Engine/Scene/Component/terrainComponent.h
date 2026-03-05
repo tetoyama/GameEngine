@@ -11,15 +11,18 @@
 
 
 // 地形の生成と編集を管理するコンポーネント
+// Scale × Scale グリッドのハイトマップを保持し、TerrainSystem がメッシュを生成する
+// エディターから ブラシツールでハイトマップを直接編集可能
 class TerrainComponent : public IComponent {
 public:
-	int Scale = 10;
+	int Scale = 10;           // グリッド分割数（Scale+1 × Scale+1 の頂点数になる）
 
-	int CurrentScale = -1;
-	std::vector<float> HeightMap;
+	int CurrentScale = -1;    // 現在のメッシュ状態（-1 = 再構築要求）
+	std::vector<float> HeightMap;  // 高さマップデータ（(Scale+1)*(Scale+1) 個のフロート値）
 
-	MeshRendererComponent* meshRenderer = nullptr;
+	MeshRendererComponent* meshRenderer = nullptr;  // 生成されたメッシュを保持するレンダラー
 
+	// デストラクタ: メッシュレンダラーを解放する
 	~TerrainComponent() {
 		if (meshRenderer) {
 			delete meshRenderer;

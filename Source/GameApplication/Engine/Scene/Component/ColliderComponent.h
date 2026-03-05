@@ -14,52 +14,58 @@
 #include "Backends/PhysX/PxPhysicsAPI.h"
 #include "Component/modelRendererComponent.h"
 
+// コライダーの形状を表す列挙型
 enum class ColliderType {
-	Box,
-	Sphere,
-	Capsule,
-	Mesh,
-	HeightMap
+	Box,        // ボックス形状
+	Sphere,     // スフィア形状
+	Capsule,    // カプセル形状
+	Mesh,       // 三角形メッシュ（静的専用）またはコンベックスメッシュ（動的可能）
+	HeightMap   // ハイトマップ地形（静的専用）
 };
 
-// コライダー形状の定義を保持する構造体
+// コライダー形状の定義と PhysX リソースを保持する構造体
+// 1 つの ColliderComponent に複数の ColliderShape を追加可能（複合コライダー）
 struct ColliderShape {
-	ColliderType type = ColliderType::Box;
+	ColliderType type = ColliderType::Box;  // このシェイプの形状タイプ
 
-	Vector3 size = {1.0f, 1.0f, 1.0f};
-	Vector3 offset = {0.0f, 0.0f, 0.0f};
+	Vector3 size     = {1.0f, 1.0f, 1.0f}; // ボックスのハーフサイズ（X/Y/Z それぞれ半辺長）
+	Vector3 offset   = {0.0f, 0.0f, 0.0f}; // コライダー中心のローカルオフセット
+	Vector3 rotationOffset = {0.0f, 0.0f, 0.0f}; // コライダーのローカル回転オフセット（ラジアン）
 
-	Vector3 rotationOffset = {0.0f, 0.0f, 0.0f};
+	float radius = 0.5f;  // スフィア・カプセルの半径
+	float height = 1.0f;  // カプセルの全高（両端のキャップを含む）
 
-	float radius = 0.5f;
-	float height = 1.0f;
+	float staticFriction  = 0.6f;  // 静止摩擦係数（PxMaterial に設定）
+	float dynamicFriction = 0.6f;  // 動摩擦係数（PxMaterial に設定）
+	float restitution     = 0.1f;  // 反発係数（0=完全非弾性, 1=完全弾性）
 
-	float staticFriction = 0.6f;
-	float dynamicFriction = 0.6f;
-	float restitution = 0.1f;
+	uint32_t collisionLayer = 0;  // 衝突レイヤービットマスク（ビット AND でフィルタリング）
 
-	uint32_t collisionLayer = 0;
+	bool lockRotX = false;  // X 軸方向の回転をロックするか（剛体のみ有効）
+	bool lockRotY = false;  // Y 軸方向の回転をロックするか（剛体のみ有効）
+	bool lockRotZ = false;  // Z 軸方向の回転をロックするか（剛体のみ有効）
 
-	bool lockRotX = false;
-	bool lockRotY = false;
-	bool lockRotZ = false;
-
-	bool isTrigger = false;
+	bool isTrigger = false; // トリガーとして動作するか（衝突解決を行わずコールバックのみ）
 
 	std::string boneName = "";  // スキニングアニメーション時にオフセットの基準となるボーン名
 
-	physx::PxShape* pxShape = nullptr;
-	physx::PxMaterial* pxMaterial = nullptr;
-	physx::PxHeightField* pxHeightField = nullptr;
-	physx::PxTriangleMesh* pxTriangleMesh = nullptr;
-	physx::PxConvexMesh* pxConvexMesh = nullptr;
+	// PhysX ネイティブオブジェクト（PhysicSystem が生成・管理する。YAML 保存対象外）
+	physx::PxShape*        pxShape        = nullptr;  // PhysX シェイプ
+	physx::PxMaterial*     pxMaterial     = nullptr;  // PhysX マテリアル
+	physx::PxHeightField*  pxHeightField  = nullptr;  // ハイトフィールドメッシュ（HeightMap 専用）
+	physx::PxTriangleMesh* pxTriangleMesh = nullptr;  // 三角形メッシュ（Mesh 静的コライダー専用）
+	physx::PxConvexMesh*   pxConvexMesh   = nullptr;  // コンベックスメッシュ（Mesh 動的コライダー専用）
 };
 
 // 物理コライダーを管理するコンポーネント
+// PhysX の剛体（PxRigidStatic/PxRigidDynamic）と複数の ColliderShape を保持し、
+// PhysicSystem によって毎フレームトランスフォームと同期される
 class ColliderComponent: public IComponent {
 public:
+	// デストラクタ: PhysX アクターのユーザーデータを解放してからリリースする
 	~ColliderComponent(){
 		if (pRigidbodyStatic) {
+			// userData に格納されたエンティティ情報を解放してから PhysX アクターを解放
 			if (pRigidbodyStatic->userData)
 				delete static_cast<ActorEntityInfo*>(pRigidbodyStatic->userData);
 			pRigidbodyStatic->release();
@@ -73,16 +79,19 @@ public:
 		}
 	}
 
-	physx::PxRigidDynamic* pRigidbodyDynamic = nullptr;
-	physx::PxRigidStatic* pRigidbodyStatic = nullptr;
-	bool needsUpdate = true;
+	physx::PxRigidDynamic* pRigidbodyDynamic = nullptr; // 動的剛体（isDynamic=true 時に使用）
+	physx::PxRigidStatic*  pRigidbodyStatic  = nullptr; // 静的剛体（isDynamic=false 時に使用）
+	bool needsUpdate = true;  // PhysicSystem が PhysX アクターを再生成する必要があるかどうか
 
+	// REFLECT マクロによるリフレクション設定
+	// BEGIN_REFLECT から std::vector<ColliderShape> までのフィールドは自動的に
+	// encode/decode/inspector が生成される
 	BEGIN_REFLECT(ColliderComponent)
-		REFLECT_FIELD(bool, isDynamic, false)
-		REFLECT_FIELD(bool, autoMass, true)
-		REFLECT_FIELD(float, Mass, false)
+		REFLECT_FIELD(bool, isDynamic, false)  // true=動的剛体, false=静的剛体
+		REFLECT_FIELD(bool, autoMass, true)    // true=PhysX が質量を自動計算, false=手動指定
+		REFLECT_FIELD(float, Mass, false)      // isDynamic=true かつ autoMass=false 時の質量（kg）
 
-	std::vector<ColliderShape> colliders;
+	std::vector<ColliderShape> colliders;  // このコンポーネントが保持するコライダー形状のリスト
 
 	// =====================================================
 	// YAML Encode
