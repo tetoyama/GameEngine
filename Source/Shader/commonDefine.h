@@ -92,7 +92,3 @@
 #endif // LOW_RESOLUTION
 
 #endif // !COMMON_DEFINE_H
-
-
-
-

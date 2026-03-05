@@ -60,8 +60,8 @@ MaterialInput GetMaterialInput(PS_IN In)
     input.Emissive = GEmissive.Sample(PointSampler, input.uv);
 
     uint4 param = GParam.Load(int3(pixelCoord, 0));
-    input.objectID = param.x;
-    input.sceneID = param.y;
+    input.sceneID = param.x;
+    input.objectID = param.y;
     input.materialID = param.z;
     input.materialFlags = param.w;
 

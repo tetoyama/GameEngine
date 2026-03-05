@@ -125,7 +125,7 @@ public:
 					const auto rotQuat = transform->GetRotation();
 
 					Effekseer::Matrix43 matRot;
-					matRot.Identity();
+					matRot.Indentity();
 
 					DirectX::XMVECTOR q = DirectX::XMLoadFloat4(&rotQuat);
 					DirectX::XMMATRIX rotMat = DirectX::XMMatrixRotationQuaternion(q);

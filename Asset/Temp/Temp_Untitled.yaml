@@ -56,6 +56,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: false
           UseNormalTexture: false
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset\Texture\mesh.png
         UV_Slice_X: 1
@@ -89,9 +90,9 @@ Entities:
         LightType: 4
         CastShadow: 1
         Position:
-          x: -9.93762875
-          y: 16.0019951
-          z: -14.7481861
+          x: -18.4548721
+          y: 25.4314785
+          z: -13.7954388
           w: 0
         Direction:
           x: 0.61569488
@@ -118,17 +119,17 @@ Entities:
             - 0.540302277
             - 0
             - -0.841470957
-            - -7.0408473
+            - -1.63725185
           -
-            - 0.573579252
-            - 0.731688857
-            - 0.368290991
-            - -0.576840401
+            - 0.573579311
+            - 0.731688797
+            - 0.36829102
+            - -2.94185829
           -
             - 0.61569494
-            - -0.681638777
-            - 0.395333171
-            - 22.856575
+            - -0.681638837
+            - 0.395333141
+            - 34.1514473
           -
             - 0
             - 0
@@ -136,19 +137,19 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.115502886
+            - 0.0595995076
             - 0
             - 0
-            - 0.359568417
+            - 0.347642034
           -
             - 0
-            - 0.0838735998
+            - 0.0438049212
             - 0
-            - -0.201794013
+            - -0.208991185
           -
             - 0
             - 0
-            - 0.0324940607
+            - 0.0172041506
             - -0
           -
             - 0
@@ -192,6 +193,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: false
           UseNormalTexture: false
+          UseEnvironmentMap: false
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
         UV_Slice_X: 1
@@ -201,6 +203,8 @@ Entities:
         FilePath: Asset\Model\sky.fbx
         isBlender: true
         AnimationTime: 0
+      - Component: EnvironmentMapComponent
+        enabled: true
   - Entity: 4
     Components:
       - Component: NameComponent
@@ -258,6 +262,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: false
           UseNormalTexture: false
+          UseEnvironmentMap: false
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Y Bot.fbx
         isBlender: false
@@ -276,7 +281,6 @@ Entities:
         stamina: 5
         staminaConsumeRate: 1.5
         staminaRecoverRate: 1
-        aaa: 1
         jumpPower: 4
         Stamina: 5
         SelfLayerBit: 2
