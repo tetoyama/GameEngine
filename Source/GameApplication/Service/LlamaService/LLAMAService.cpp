@@ -28,6 +28,10 @@
 void LLAMAService::Initialize(LLAMAServiceContext context){
 
 	m_resourceService = context.resourceService;
+	if(!m_resourceService){
+		LLAMA_SERVICE_LOG(LogLevel::Error, "LLAMAService の初期化に失敗しました: ResourceService が未設定です");
+		return;
+	}
 
 	LLAMA_SERVICE_LOG(LogLevel::Info, "LLAMAService の初期化を開始します");
 	OutputDebugStringA("LLAMAService: Initialize called\n");

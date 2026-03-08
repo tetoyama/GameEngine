@@ -292,22 +292,36 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 	);
 
 	if (FAILED(hr)) {
-		pSelectedAdapter->Release();
-		pFactory->Release();
+		if(pSelectedAdapter){
+			pSelectedAdapter->Release();
+			pSelectedAdapter = nullptr;
+		}
+		if(pFactory){
+			pFactory->Release();
+			pFactory = nullptr;
+		}
 		GRAPHICS_LOG(LogLevel::Error, "スワップチェーンの作成に失敗しました");
 		OutputDebugStringA("スワップチェーンの作成に失敗しました。\n");
 		return false;
 	}
 
-	pSelectedAdapter->Release();
-	pFactory->Release();
+	if(pSelectedAdapter){
+		pSelectedAdapter->Release();
+		pSelectedAdapter = nullptr;
+	}
+	if(pFactory){
+		pFactory->Release();
+		pFactory = nullptr;
+	}
 
-	// ALT + Enterで排他的フルスクリーンモード切り替えを無効にする
+	// ALT+ENTERで排他的フルスクリーンモード切り替えを無効にする
 	IDXGIFactory* pfac = nullptr;
 	hr = m_SwapChain->GetParent(__uuidof(IDXGIFactory), (void**)&pfac);
 	if(SUCCEEDED(hr) && pfac){
 		pfac->MakeWindowAssociation(hwnd, DXGI_MWA_NO_WINDOW_CHANGES | DXGI_MWA_NO_ALT_ENTER);
 		pfac->Release();
+	} else{
+		GRAPHICS_LOG(LogLevel::Warning, "IDXGIFactory 親オブジェクトの取得に失敗したため ALT+ENTER の無効化をスキップします");
 	}
 	GRAPHICS_LOG(LogLevel::Debug, "デバイスとスワップチェーンの初期化が完了しました");
 	return true;
