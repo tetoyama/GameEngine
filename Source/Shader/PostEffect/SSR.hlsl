@@ -1,19 +1,13 @@
 #include "../common.hlsl"
-#include "PostEffectFunc.hlsli" 
+#include "PostEffectFunc.hlsli"
 
 // ============================================================
-// SSR (Screen Space Reflections) Pixel Shader
-//
-// GBuffer のワールド座標・法線からビュー空間で反射レイをマーチし、
-// スクリーン上で交差したピクセルの色を反射色として合成する。
-// フレネル係数とスクリーン端フェードにより自然な反射を実現する。
-//
-// Parameter.x : レイマーチ最大ステップ数 (推奨値: 16)
-// Parameter.y : 1ステップの移動量 (ビュー空間, 推奨値: 2)
-// Parameter.z : 交差判定の厚みしきい値 (推奨値: 8)
+// SSR (Screen Space Reflections) Pixel Shader - Roughness Support
 // ============================================================
+
 // ライティング済みシーンテクスチャ (t0)
 Texture2D g_Texture : register(t0);
+
 // 疑似乱数生成関数 (IGN: Interleaved Gradient Noise)
 // ラフネスによるレイの分散に使用
 float InterleavedGradientNoise(float2 uv)

@@ -46,8 +46,8 @@ Entities:
             y: 0.771181285
             z: 1
             w: 1
-          Metallic: 1
-          Roughness: 0.0700000003
+          Metallic: 0.5
+          Roughness: 0.200000003
           AO: 0
           EmissiveColor:
             x: 0
@@ -76,10 +76,10 @@ Entities:
           y: 50
           z: 0
         Rotation:
-          - 0.431133509
-          - 0.174052939
-          - -0.0851531103
-          - 0.881236911
+          - 0.289919436
+          - 0.185112253
+          - -0.0572619401
+          - 0.937230706
         Scale:
           x: 1
           y: 1
@@ -95,9 +95,9 @@ Entities:
           z: 0
           w: 0
         Direction:
-          x: 0.233339012
-          y: -0.789503813
-          z: 0.56765902
+          x: 0.313783079
+          y: -0.564642549
+          z: 0.7633605
           w: 0
         Diffuse:
           x: 1
@@ -1274,7 +1274,7 @@ Entities:
             - -0.95816946
             - -7.41639996
             - 1
-        nextLinkId: 52
+        nextLinkId: 53
         nextPinId: 43
         PostEffects:
           - Name: NewEffect
@@ -1282,8 +1282,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\OutlineByShaderID.cso
             NodePos:
-              x: 320.721191
-              y: 6.41290283
+              x: -719.546387
+              y: -7.23981476
             InputPins:
               - 2
               - 4
@@ -1299,8 +1299,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\SSAO.cso
             NodePos:
-              x: -1081.96094
-              y: 623.427734
+              x: -2119.22852
+              y: 598.775024
             InputPins:
               - 5
               - 7
@@ -1316,8 +1316,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\DepthBlur.cso
             NodePos:
-              x: 581.121582
-              y: 7.21417236
+              x: -456.145996
+              y: -17.4385452
             InputPins:
               - 8
               - 10
@@ -1333,8 +1333,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\SSAOComposite.cso
             NodePos:
-              x: -205.513916
-              y: 118.133667
+              x: -1242.78149
+              y: 93.4809494
             InputPins:
               - 14
               - 19
@@ -1351,8 +1351,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\Blur.cso
             NodePos:
-              x: -807.130859
-              y: 310.010254
+              x: -1844.39844
+              y: 285.357544
             InputPins:
               - 16
               - 18
@@ -1368,8 +1368,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\BrightPass.cso
             NodePos:
-              x: -1084.87793
-              y: 312.580444
+              x: -2122.14551
+              y: 287.927734
             InputPins:
               - 21
               - 23
@@ -1385,8 +1385,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\Blur.cso
             NodePos:
-              x: -811.664062
-              y: 618.731079
+              x: -1848.93164
+              y: 594.078369
             InputPins:
               - 24
               - 26
@@ -1402,8 +1402,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\CompositeBloom.cso
             NodePos:
-              x: -503.866943
-              y: 27.7988281
+              x: -1541.13452
+              y: 3.14611053
             InputPins:
               - 27
               - 29
@@ -1418,35 +1418,18 @@ Entities:
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
-            PS: Asset/Shader\Kuwahara.cso
-            NodePos:
-              x: 1116.28455
-              y: 4.82275391
-            InputPins:
-              - 31
-              - 33
-            OutputPin: 32
-            Param:
-              x: 0
-              y: 0
-              z: 0
-              w: 0
-            ResolutionScale: 1
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\SSR.cso
             NodePos:
-              x: 842.972656
-              y: 1.5118103
+              x: -198.048828
+              y: -21.4119034
             InputPins:
               - 34
               - 36
             OutputPin: 35
             Param:
               x: 16
-              y: 2
-              z: 4
+              y: 0.25
+              z: 0.75
               w: 0
             ResolutionScale: 1
           - Name: NewEffect
@@ -1454,8 +1437,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\GodLay.cso
             NodePos:
-              x: 54.6992188
-              y: 63.7799377
+              x: -974.073486
+              y: -8.95661163
             InputPins:
               - 37
               - 39
@@ -1471,8 +1454,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\LensFlare.cso
             NodePos:
-              x: 1373.56189
-              y: 5.10189819
+              x: 61.640625
+              y: -19.3222733
             InputPins:
               - 40
               - 42
@@ -1529,47 +1512,42 @@ Entities:
             EndNode: 2
             StartAttr: 3
             EndAttr: 8
-          - ID: 42
-            StartNode: 9
-            EndNode: 8
-            StartAttr: 35
-            EndAttr: 31
           - ID: 43
             StartNode: 2
-            EndNode: 9
+            EndNode: 8
             StartAttr: 9
             EndAttr: 34
           - ID: 48
             StartNode: 3
-            EndNode: 10
+            EndNode: 9
             StartAttr: 15
             EndAttr: 37
           - ID: 49
-            StartNode: 10
+            StartNode: 9
             EndNode: 0
             StartAttr: 38
             EndAttr: 2
-          - ID: 50
-            StartNode: 8
-            EndNode: 11
-            StartAttr: 32
-            EndAttr: 40
           - ID: 51
-            StartNode: 11
+            StartNode: 10
             EndNode: -2
             StartAttr: 41
             EndAttr: 1
+          - ID: 52
+            StartNode: 8
+            EndNode: 10
+            StartAttr: 35
+            EndAttr: 40
         ScreenInput:
           Name: ""
           NodePos:
-            x: -1271.646
-            y: 243.342407
+            x: -2308.91357
+            y: 218.689697
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 1631.33997
-            y: 226.411194
+            x: 335.244873
+            y: 204.06073
           InputPins:
             - 1
       - Component: CameraController

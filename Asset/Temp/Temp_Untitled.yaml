@@ -46,8 +46,8 @@ Entities:
             y: 1
             z: 1
             w: 1
-          Metallic: 0.25
-          Roughness: 0.5
+          Metallic: 1
+          Roughness: 0.620000005
           AO: 0
           EmissiveColor:
             x: 0
