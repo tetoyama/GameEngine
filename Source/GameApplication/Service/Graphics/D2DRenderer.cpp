@@ -43,15 +43,13 @@ void D2DRenderer::Initialize2DResources(){
 	}
 
 	// DPI取得
-	UINT dpi = GetDpiForWindow(m_hwnd);
-	FLOAT dpiX = static_cast<FLOAT>(dpi);
-	FLOAT dpiY = static_cast<FLOAT>(dpi);
+	FLOAT dpi = static_cast<FLOAT>(GetDpiForWindow(m_hwnd));
 
 	// RenderTarget作成
 	D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
 		D2D1_RENDER_TARGET_TYPE_DEFAULT,
 		D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_IGNORE),
-		dpiX, dpiY
+		dpi, dpi
 	);
 	hr = d2dFactory->CreateDxgiSurfaceRenderTarget(dxgiSurface.Get(), &props, &m_d2dRenderTarget);
 	if(FAILED(hr)){

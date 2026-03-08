@@ -120,16 +120,11 @@ void Scene::Shutdown(){
 void Scene::BuildDefaultScene(){
 	auto entityRegistry = m_SceneContext.entity;
 	auto componentRegistry = m_SceneContext.component;
-	auto systemRegistry = m_SceneContext.system;
 
-	auto Renderer = m_SceneManagerContext->renderer;
-	auto graphicsContext = Renderer->GetGraphicsContext();
-
-	auto resource = m_SceneManagerContext->resource;
+	auto renderer = m_SceneManagerContext->renderer;
+	auto graphicsContext = renderer->GetGraphicsContext();
 
 	graphicsContext->SetDepthMode(DepthMode::Write);
-
-	//return;
 
 	{
 		Entity entity = entityRegistry->Create();

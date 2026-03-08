@@ -100,9 +100,10 @@ std::shared_ptr<LLAMAModelData> LLAMAService::GetModel(const std::string& path) 
 
 	if (it != m_models.end()) {
 		OutputDebugStringA(("LLAMAService: Model found: " + path + "\n").c_str());
+		return it->second;
 	}
 
-    return (it != m_models.end()) ? it->second : nullptr;
+    return nullptr;
 }
 
 std::vector<std::shared_ptr<LLAMAModelData>> LLAMAService::GetLoadedModels() const {
@@ -120,17 +121,16 @@ std::vector<std::shared_ptr<LLAMAModelData>> LLAMAService::GetLoadedModels() con
 void LLAMAService::LoadModelAsync(
 	const std::string& path,
 	std::function<void(bool)> callback){
+		bool shouldQueueJob = false;
 		{
 			std::lock_guard<std::mutex> lock(m_modelMutex);
 
-			if(m_models.contains(path)){
-				m_pendingCallbacks[path].push_back(callback);
-			} else if(m_pendingCallbacks.contains(path)){
-				m_pendingCallbacks[path].push_back(callback);
-				return;
-			} else{
-				m_pendingCallbacks[path].push_back(callback);
-			}
+			shouldQueueJob = !m_models.contains(path) && !m_pendingCallbacks.contains(path);
+			m_pendingCallbacks[path].push_back(callback);
+		}
+
+		if(!shouldQueueJob){
+			return;
 		}
 
 		{
