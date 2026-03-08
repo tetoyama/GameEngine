@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <algorithm>
 
 
 // 1 つのポストエフェクトパスを表す構造体
@@ -131,6 +132,9 @@ public:
     int nextPinId  = 1;  // 次に発行するピン ID
 
 	bool initialized = false;  // カメラコンポーネントが初期化済みかどうか
+	bool postEffectGraphDirty = true;  // ポストエフェクトグラフキャッシュが無効かどうか
+	std::vector<int> cachedSortedPostEffectIndices;  // トポロジカルソート済みのノード順
+	std::vector<std::vector<int>> cachedResolvedPostEffectInputs;  // 各ノード入力の接続元キャッシュ
 
     YAML::Node encode() override {
         YAML::Node node;
@@ -257,7 +261,7 @@ public:
             screenInputNode.initialized = false;
         }
 
-        if (node["ScreenOutput"]) {
+		if (node["ScreenOutput"]) {
             auto e = node["ScreenOutput"];
             screenOutputNode.name = e["Name"].as<std::string>();
             if (e["NodePos"]) screenOutputNode.nodePos = e["NodePos"].as<Vector2>();
@@ -271,16 +275,96 @@ public:
             screenOutputNode.inputPins.push_back(nextPinId++);
             screenOutputNode.nodePos = Vector2(500, 50);
             screenOutputNode.initialized = false;
-        }
+		}
 
+		InvalidatePostEffectGraphCache();
         return true;
     }
+
+	void InvalidatePostEffectGraphCache() {
+		postEffectGraphDirty = true;
+	}
+
+	void RebuildPostEffectGraphCache() {
+		cachedSortedPostEffectIndices.clear();
+		cachedResolvedPostEffectInputs.assign(postEffects.size(), {});
+
+		for (size_t i = 0; i < postEffects.size(); ++i) {
+			cachedResolvedPostEffectInputs[i].assign(postEffects[i].inputPins.size(), -1);
+		}
+
+		int n = static_cast<int>(postEffects.size());
+		int INPUT_NODE = n;
+		int OUTPUT_NODE = n + 1;
+
+		std::unordered_map<int, std::vector<int>> adj;
+		std::unordered_map<int, int> indegree;
+		std::unordered_set<int> nodes;
+
+		for (const auto& link : postEffectLinks) {
+			int start = link.startNode;
+			int end = link.endNode;
+
+			if (end >= 0 && end < n) {
+				auto& effectInputs = cachedResolvedPostEffectInputs[end];
+				const auto& inputPins = postEffects[end].inputPins;
+				auto pinIt = std::find(inputPins.begin(), inputPins.end(), link.endAttr);
+				if (pinIt != inputPins.end()) {
+					int slotIndex = static_cast<int>(pinIt - inputPins.begin());
+					effectInputs[slotIndex] = (start < 0) ? -2 : start;
+				}
+			}
+
+			if (start == -1) start = INPUT_NODE;
+			if (end == -2) end = OUTPUT_NODE;
+
+			if (start >= 0 && start <= OUTPUT_NODE && end >= 0 && end <= OUTPUT_NODE) {
+				adj[start].push_back(end);
+				indegree[end]++;
+				nodes.insert(start);
+				nodes.insert(end);
+			}
+		}
+
+		std::queue<int> q;
+		for (int node : nodes) {
+			if (indegree.find(node) == indegree.end()) q.push(node);
+		}
+
+		while (!q.empty()) {
+			int node = q.front();
+			q.pop();
+			cachedSortedPostEffectIndices.push_back(node);
+
+			for (int neighbor : adj[node]) {
+				indegree[neighbor]--;
+				if (indegree[neighbor] == 0) q.push(neighbor);
+			}
+		}
+
+		if (cachedSortedPostEffectIndices.size() != nodes.size()) {
+			OutputDebugStringA("Warning: post effect graph has cycles!\n");
+			for (int node : nodes) {
+				if (std::find(cachedSortedPostEffectIndices.begin(), cachedSortedPostEffectIndices.end(), node) == cachedSortedPostEffectIndices.end()) {
+					cachedSortedPostEffectIndices.push_back(node);
+				}
+			}
+		}
+
+		for (auto& idx : cachedSortedPostEffectIndices) {
+			if (idx == INPUT_NODE) idx = -1;
+			if (idx == OUTPUT_NODE) idx = -2;
+		}
+
+		postEffectGraphDirty = false;
+	}
 
     void inspector(SceneContext* ctx) {
 
 		if(!initialized){
 			postEffectLinks.clear();
 			postEffectLinks.push_back({nextLinkId++, -1, -2, -1, 1});
+			InvalidatePostEffectGraphCache();
 			initialized = true;
 		}
 
@@ -341,7 +425,10 @@ public:
             ImNodes::BeginNodeTitleBar();
             ImGui::Text("%s", "ScreenOutput");
             ImNodes::EndNodeTitleBar();
-            if (screenOutputNode.inputPins.empty()) screenOutputNode.inputPins.push_back(nextPinId++);
+            if (screenOutputNode.inputPins.empty()) {
+				screenOutputNode.inputPins.push_back(nextPinId++);
+				InvalidatePostEffectGraphCache();
+			}
             ImNodes::BeginInputAttribute(screenOutputNode.inputPins[0]);
             ImGui::Text("Input");
             ImNodes::EndInputAttribute();
@@ -458,7 +545,10 @@ public:
                                        [&](const CameraPostEffectLink& link) { return link.endAttr == pinId; });
                 if (it == postEffectLinks.end()) { allConnected = false; break; }
             }
-            if (allConnected) effect.inputPins.push_back(nextPinId++);
+            if (allConnected) {
+				effect.inputPins.push_back(nextPinId++);
+				InvalidatePostEffectGraphCache();
+			}
 
 
             ImNodes::EndNode();
@@ -468,9 +558,10 @@ public:
 		// Links
 		for(auto it = postEffectLinks.begin(); it != postEffectLinks.end();){
 			ImNodes::Link(it->id, it->startAttr, it->endAttr);
-			if(ImNodes::IsLinkSelected(it->id) && ImGui::GetMouseClickedCount(0) > 1)
+			if(ImNodes::IsLinkSelected(it->id) && ImGui::GetMouseClickedCount(0) > 1) {
 				it = postEffectLinks.erase(it);
-			else ++it;
+				InvalidatePostEffectGraphCache();
+			} else ++it;
 		}
 
         ImNodes::MiniMap(0.2f, ImNodesMiniMapLocation_BottomRight);
@@ -497,6 +588,7 @@ public:
 
 						// --- ノード削除 ---
 						postEffects.erase(postEffects.begin() + effectIndex);
+						InvalidatePostEffectGraphCache();
 
 						// --- ID補正 ---
 						for(auto& link : postEffectLinks){
@@ -536,6 +628,7 @@ public:
                 if (std::find(effect.inputPins.begin(), effect.inputPins.end(), endAttr) != effect.inputPins.end()) newLink.endNode = i;
             }
             postEffectLinks.push_back(newLink);
+			InvalidatePostEffectGraphCache();
         }
 
         ImNodes::PopStyleVar(3);
@@ -553,6 +646,7 @@ public:
 			newEffect.ps = context->manager->resource->Load<PixelShaderData>(DEFAULT_WINDOW_POSTEFFECT_PS_PATH);
 
             postEffects.push_back(newEffect);
+			InvalidatePostEffectGraphCache();
         }
 
         ImGui::PopID();
@@ -571,67 +665,22 @@ public:
     // Kahn's アルゴリズム（BFS ベース）を使用し、DAG を入力ノード→出力ノードの順に並べる
     // 循環グラフが検出された場合はデバッグ警告を出力し、未処理ノードを末尾に追加する
     // 戻り値: ポストエフェクトの描画順インデックス配列
-    std::vector<int> TopologicalSortPostEffects() {
-        std::vector<int> sortedIndices;
-
-        int n = static_cast<int>(postEffects.size());
-        int INPUT_NODE  = n;       // screenInputNode の仮 ID（-1 の代わり）
-        int OUTPUT_NODE = n + 1;   // screenOutputNode の仮 ID（-2 の代わり）
-
-        // 隣接リストと入次数を構築
-        std::unordered_map<int, std::vector<int>> adj;
-        std::unordered_map<int, int> indegree;
-        std::unordered_set<int> nodes;
-
-        for (const auto& link : postEffectLinks) {
-            int start = link.startNode;
-            int end = link.endNode;
-
-            // 特殊ノード ID を仮 ID に変換
-            if (start == -1) start = INPUT_NODE;
-            if (end == -2) end = OUTPUT_NODE;
-
-            if (start >= 0 && start <= OUTPUT_NODE && end >= 0 && end <= OUTPUT_NODE) {
-                adj[start].push_back(end);
-                indegree[end]++;
-                nodes.insert(start);
-                nodes.insert(end);
-            }
-        }
-
-        // 入次数 0 のノードをキューに積む（Kahn's アルゴリズム開始）
-        std::queue<int> q;
-        for (int node : nodes) {
-            if (indegree.find(node) == indegree.end()) q.push(node);
-        }
-
-        while (!q.empty()) {
-            int node = q.front(); q.pop();
-            sortedIndices.push_back(node);
-
-            for (int neighbor : adj[node]) {
-                indegree[neighbor]--;
-                if (indegree[neighbor] == 0) q.push(neighbor);
-            }
-        }
-
-        // サイクル検出: 全ノードが処理されていない場合はサイクルが存在する
-        if (sortedIndices.size() != nodes.size()) {
-            OutputDebugStringA("Warning: post effect graph has cycles!\n");
-            // サイクルに含まれるノードを末尾に追加して続行
-            for (int node : nodes) {
-                if (std::find(sortedIndices.begin(), sortedIndices.end(), node) == sortedIndices.end()) {
-                    sortedIndices.push_back(node);
-                }
-            }
-        }
-
-        // 仮IDを元に戻す
-        for (auto& idx : sortedIndices) {
-            if (idx == INPUT_NODE) idx = -1;
-            if (idx == OUTPUT_NODE) idx = -2;
-        }
-        return sortedIndices;
+    const std::vector<int>& TopologicalSortPostEffects() {
+		if (postEffectGraphDirty) {
+			RebuildPostEffectGraphCache();
+		}
+        return cachedSortedPostEffectIndices;
     }
+
+	const std::vector<int>& GetResolvedPostEffectInputs(int effectIndex) {
+		static const std::vector<int> empty;
+		if (postEffectGraphDirty) {
+			RebuildPostEffectGraphCache();
+		}
+		if (effectIndex < 0 || effectIndex >= static_cast<int>(cachedResolvedPostEffectInputs.size())) {
+			return empty;
+		}
+		return cachedResolvedPostEffectInputs[effectIndex];
+	}
 
 };

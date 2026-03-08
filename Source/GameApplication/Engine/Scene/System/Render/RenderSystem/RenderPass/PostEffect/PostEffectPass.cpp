@@ -43,7 +43,9 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 	CameraComponent* camera = ctx.cameraData.cameraComponent;
 
 	if (camera) {
-		auto sortedIndices = camera->TopologicalSortPostEffects();
+		const auto& sortedIndices = camera->TopologicalSortPostEffects();
+		postNodes.reserve(sortedIndices.size());
+		effectIndexToPostNodeIndex.reserve(sortedIndices.size());
 
 		for (int idx : sortedIndices) {
 			if (idx < 0) continue; // -1/-2 は ScreenInput/Output ノード
@@ -77,26 +79,16 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 		// リンクを後から解決
 		for (auto& node : postNodes) {
 			int   effectIdx = node.id;
-			auto& effect    = camera->postEffects[effectIdx];
+			const auto& resolvedInputs = camera->GetResolvedPostEffectInputs(effectIdx);
 
-			node.inputs.assign(effect.inputPins.size(), -1);
+			node.inputs.assign(resolvedInputs.size(), -1);
 
-			for (auto& link : camera->postEffectLinks) {
-				if (link.endNode != effectIdx) continue;
-
-				auto pinIt = std::find(
-					effect.inputPins.begin(), effect.inputPins.end(), link.endAttr
-				);
-				if (pinIt == effect.inputPins.end()) {
-					OutputDebugStringA("PostEffectPass: link.endAttr does not match any inputPin\n");
-					continue;
-				}
-
-				int slotIndex = (int)(pinIt - effect.inputPins.begin());
-				if (link.startNode < 0) {
-					node.inputs[slotIndex] = -2; // ScreenInput
+			for (size_t slotIndex = 0; slotIndex < resolvedInputs.size(); ++slotIndex) {
+				int inputSource = resolvedInputs[slotIndex];
+				if (inputSource == -2) {
+					node.inputs[slotIndex] = -2;
 				} else {
-					auto it = effectIndexToPostNodeIndex.find(link.startNode);
+					auto it = effectIndexToPostNodeIndex.find(inputSource);
 					if (it != effectIndexToPostNodeIndex.end()) {
 						node.inputs[slotIndex] = it->second;
 					}
