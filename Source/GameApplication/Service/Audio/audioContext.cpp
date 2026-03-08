@@ -47,14 +47,16 @@ bool AudioContext::Initialize(){
 			return false;
 		}
 	}
+	m_IsShutdown = false;
 	AUDIO_LOG(LogLevel::Info, "AudioContext の初期化が完了しました");
 	return true;
 }
 
 void AudioContext::Shutdown(){
-	if(!m_MasteringVoice && !m_XAudio){
+	if(m_IsShutdown){
 		return;
 	}
+	m_IsShutdown = true;
 
 	AUDIO_LOG(LogLevel::Info, "AudioContext を終了します");
 	if(m_MasteringVoice){

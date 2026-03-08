@@ -17,6 +17,7 @@ private:
 	IXAudio2* m_XAudio = nullptr;
 	IXAudio2MasteringVoice* m_MasteringVoice = nullptr;
 	DebugLogService* m_DebugLog = nullptr;
+	bool m_IsShutdown = true;
 
 public:
 	explicit AudioContext(DebugLogService* debugLog = nullptr);
