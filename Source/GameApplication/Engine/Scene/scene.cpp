@@ -207,7 +207,7 @@ void Scene::BuildDefaultScene(){
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->isBlender = true;
-		modelRenderer->model = resource->Load<ModelData>("Asset\\Model\\sky.fbx", true);
+		modelRenderer->model = m_SceneManagerContext->resource->Load<ModelData>("Asset\\Model\\sky.fbx", true);
 
 		auto* env = componentRegistry->AddComponent<EnvironmentMapComponent>(entity);
 		env->enabled = true;
