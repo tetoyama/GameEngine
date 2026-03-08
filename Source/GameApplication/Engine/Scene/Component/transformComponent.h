@@ -154,7 +154,7 @@ public:
 	void inspector(SceneContext* context) override{
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 6));
 
-		// スケールを一様倍率として扱うかどうかを UI 状態として保持する
+		// スケール一様ロックはインスペクタ全体で共有する UI 状態として保持する
 		static bool isUniformLocked = false;
 
 		// ----------- Position -----------
