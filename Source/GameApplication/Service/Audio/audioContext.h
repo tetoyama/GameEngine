@@ -19,11 +19,8 @@ private:
 	DebugLogService* m_DebugLog = nullptr;
 
 public:
-	AudioContext() = default;
-
-	void SetDebugLogService(DebugLogService* debugLog){
-		m_DebugLog = debugLog;
-	}
+	explicit AudioContext(DebugLogService* debugLog = nullptr)
+		: m_DebugLog(debugLog){}
 
 	~AudioContext(){
 		Shutdown();

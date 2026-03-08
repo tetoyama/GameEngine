@@ -23,8 +23,8 @@
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-MainWindow::MainWindow()
-	: m_HWND(nullptr), m_ShouldClose(false){}
+MainWindow::MainWindow(DebugLogService* debugLog)
+	: m_HWND(nullptr), m_ShouldClose(false), m_debugLog(debugLog){}
 
 MainWindow::~MainWindow(){
 	if(m_HWND){

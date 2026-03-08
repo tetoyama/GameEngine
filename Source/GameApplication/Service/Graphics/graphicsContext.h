@@ -93,11 +93,11 @@ enum class PostProcessBufferID {
 // レンダーターゲット・デプスバッファの管理を担当する
 class GraphicsContext : public IService {
 public:
+	explicit GraphicsContext(DebugLogService* debugLog = nullptr)
+		: m_DebugLog(debugLog){}
+
 	// DirectX 11 デバイスとスワップチェーンを初期化する
 	bool Initialize(HWND hwnd, UINT width, UINT height);
-	void SetDebugLogService(DebugLogService* debugLog){
-		m_DebugLog = debugLog;
-	}
 
 	// グラフィクスリソースを全て解放する
 	void Shutdown() override;

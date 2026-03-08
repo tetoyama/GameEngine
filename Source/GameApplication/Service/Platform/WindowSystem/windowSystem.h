@@ -14,7 +14,10 @@ class DebugLogService;
 class WindowService : public IService
 {
 public:
-	bool Initialize(const HINSTANCE hInstance, const int nCmdShow, const APPCONFIG appconfig, DebugLogService* debugLog = nullptr);
+	explicit WindowService(DebugLogService* debugLog = nullptr)
+		: m_DebugLog(debugLog){}
+
+	bool Initialize(const HINSTANCE hInstance, const int nCmdShow, const APPCONFIG appconfig);
 	void Shutdown()override {}
 
 	void PollEvents();
@@ -22,4 +25,5 @@ public:
 
 private:
 	std::shared_ptr<MainWindow> m_MainWindow;
+	DebugLogService* m_DebugLog = nullptr;
 };

@@ -32,7 +32,6 @@ struct AgentConfig;
 struct LLAMAServiceContext
 {
 	ResourceService* resourceService = nullptr;
-	DebugLogService* debugLog = nullptr;
 };
 
 // ============================
@@ -42,7 +41,8 @@ struct LLAMAServiceContext
 // 非同期ロード・生成をサポートし、スレッド安全性を厳密に管理
 class LLAMAService final : public IService {
 public:
-	LLAMAService() = default;
+	explicit LLAMAService(DebugLogService* debugLog = nullptr)
+		: m_debugLog(debugLog){}
 
     // ===== IService =====
     void Initialize(LLAMAServiceContext context);

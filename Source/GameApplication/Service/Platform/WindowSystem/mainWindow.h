@@ -16,7 +16,7 @@ class DebugLogService;
 class MainWindow: public IWindow
 {
 public:
-	MainWindow();
+	explicit MainWindow(DebugLogService* debugLog = nullptr);
 	~MainWindow();
 
 	bool Create(const HINSTANCE hInstance, const int nCmdShow, const APPCONFIG appconfig) override;
@@ -32,9 +32,6 @@ public:
 	}
 	void SetInputSystem(InputService* inputSystem){
 		m_inputSystem = inputSystem;
-	}
-	void SetDebugLogService(DebugLogService* debugLog){
-		m_debugLog = debugLog;
 	}
 	UINT GetHeight() const override{
 		return m_height;

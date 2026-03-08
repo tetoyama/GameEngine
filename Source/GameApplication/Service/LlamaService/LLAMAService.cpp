@@ -28,7 +28,6 @@
 void LLAMAService::Initialize(LLAMAServiceContext context){
 
 	m_resourceService = context.resourceService;
-	m_debugLog = context.debugLog;
 
 	LLAMA_SERVICE_LOG(LogLevel::Info, "LLAMAService の初期化を開始します");
 	OutputDebugStringA("LLAMAService: Initialize called\n");
