@@ -31,6 +31,10 @@ public:
 
 private:
 	void DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities);
+	// エンティティ選択状態を共通処理として更新する
+	void SelectEntity(Entity entity, SceneContext* context);
+	// 削除や Undo 後に無効化された選択状態を解除する
+	void ClearInvalidSelection();
 
 	EditorService* m_editor = nullptr;
 
