@@ -36,5 +36,6 @@ private:
 
 	Entity pendingRenameEntity = 0;
 
+	char searchBuffer[256] = "";
 	char renameBuffer[256] = "";
 };

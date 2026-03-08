@@ -111,15 +111,14 @@ float ShadowFactorCascades(
     int atlasOffset,
     ShadowPCFParams pcf)
 {
-    const float CascadeMargin = 0.02;
-    const float CascadeBlend = 0.08;
+    const float BlendWidth = 0.08;
+
+    //--------------------------------------------------
+    // Cascade選択
+    //--------------------------------------------------
 
     int selectedCascade = cascadeCount - 1;
     float4 sp;
-
-    //--------------------------------------------------
-    // far cascade fallback transform
-    //--------------------------------------------------
 
     {
         int safeIdx = min(firstLightIdx + cascadeCount - 1, LIGHT_MAX_COUNT - 1);
@@ -128,10 +127,6 @@ float ShadowFactorCascades(
         sp = mul(float4(worldPos, 1), cLight.LightView);
         sp = mul(sp, cLight.LightProjection);
     }
-
-    //--------------------------------------------------
-    // cascade selection
-    //--------------------------------------------------
 
     [loop]
     for (int c = 0; c < cascadeCount - 1; c++)
@@ -148,7 +143,8 @@ float ShadowFactorCascades(
         float2 cuv = csp.xy / csp.w * 0.5 + 0.5;
         cuv.y = 1.0 - cuv.y;
 
-        if (all(cuv >= -CascadeMargin) && all(cuv <= 1.0 + CascadeMargin))
+        // 境界安定化
+        if (all(cuv >= -0.001) && all(cuv <= 1.001))
         {
             selectedCascade = c;
             sp = csp;
@@ -159,22 +155,30 @@ float ShadowFactorCascades(
     if (sp.w <= 0.0)
         return 1.0;
 
+    //--------------------------------------------------
+    // UV
+    //--------------------------------------------------
+
     sp.xyz /= sp.w;
 
     float2 uv = sp.xy * 0.5 + 0.5;
     uv.y = 1.0 - uv.y;
 
+    if (any(uv < 0.0) || any(uv > 1.0))
+        return 1.0;
+
     //--------------------------------------------------
-    // selected cascade shadow
+    // selected cascade
     //--------------------------------------------------
 
-    LIGHT selectedLight =
-        Lights[min(firstLightIdx + selectedCascade, LIGHT_MAX_COUNT - 1)];
+    LIGHT selectedLight = Lights[min(firstLightIdx + selectedCascade, LIGHT_MAX_COUNT - 1)];
 
-    float bias =
-        selectedLight.Param.w * (1.0 + selectedCascade * 0.5);
-
+    float bias = selectedLight.Param.w;
     float depth = saturate(sp.z - bias);
+
+    //--------------------------------------------------
+    // atlas
+    //--------------------------------------------------
 
     int tileIndex = atlasOffset + selectedCascade;
 
@@ -185,48 +189,100 @@ float ShadowFactorCascades(
     uint gy = tileIndex / grid;
 
     float2 tileMin = float2(gx, gy) * tile;
+    float2 suvBase = tileMin + uv * tile;
 
-    float2 texelSize;
-    ShadowMap.GetDimensions(texelSize.x, texelSize.y);
-    texelSize = 1.0 / texelSize;
+    //--------------------------------------------------
+    // texel size
+    //--------------------------------------------------
+
+    uint texW, texH;
+    ShadowMap.GetDimensions(texW, texH);
+
+    float2 texelSize = float2(1.0 / texW, 1.0 / texH);
     texelSize *= tile;
+
+    //--------------------------------------------------
+    // PCF
+    //--------------------------------------------------
 
     int radius = max(pcf.KernelRadius, 0);
 
-    float safeMargin =
-        (radius * pcf.StepTexel + 1) * texelSize.x;
-
-    uv = clamp(uv, safeMargin, 1.0 - safeMargin);
-
-    float2 suvBase = tileMin + uv * tile;
-
-    float shadow =
-        SampleCascadePCF(
-            suvBase,
-            depth,
-            texelSize,
-            pcf.StepTexel,
-            radius
-        );
+    float shadow = SampleCascadePCF(
+        suvBase,
+        depth,
+        texelSize,
+        pcf.StepTexel,
+        radius
+    );
 
     //--------------------------------------------------
-    // fallback shadow
+    // Cascade Blending
     //--------------------------------------------------
-
-    float nextShadow = shadow;
 
     if (selectedCascade < cascadeCount - 1)
     {
+        float edgeDist = min(
+            min(uv.x, 1.0 - uv.x),
+            min(uv.y, 1.0 - uv.y)
+        );
+
+        float blend = saturate(1.0 - edgeDist / BlendWidth);
+
+        if (blend > 0.0)
+        {
+            int nextCascade = selectedCascade + 1;
+
+            LIGHT nextLight = Lights[min(firstLightIdx + nextCascade, LIGHT_MAX_COUNT - 1)];
+
+            float4 nsp = mul(float4(worldPos, 1), nextLight.LightView);
+            nsp = mul(nsp, nextLight.LightProjection);
+
+            if (nsp.w > 0.0)
+            {
+                nsp.xyz /= nsp.w;
+
+                float2 nuv = nsp.xy * 0.5 + 0.5;
+                nuv.y = 1.0 - nuv.y;
+
+                if (all(nuv >= 0.0) && all(nuv <= 1.0))
+                {
+                    float nextBias = nextLight.Param.w;
+                    float ndepth = saturate(nsp.z - nextBias);
+
+                    int nTileIdx = atlasOffset + nextCascade;
+
+                    uint ngx = nTileIdx % grid;
+                    uint ngy = nTileIdx / grid;
+
+                    float2 nsuvBase = float2(ngx, ngy) * tile + nuv * tile;
+
+                    float shadowNext = SampleCascadePCF(
+                        nsuvBase,
+                        ndepth,
+                        texelSize,
+                        pcf.StepTexel,
+                        radius
+                    );
+
+                    shadow = lerp(shadow, shadowNext, blend);
+                }
+            }
+        }
+    }
+
+    //--------------------------------------------------
+    // カスケードフォールバック
+    //--------------------------------------------------
+
+    [branch]
+    if (shadow > 0.99 && selectedCascade < cascadeCount - 1)
+    {
         int nextCascade = selectedCascade + 1;
 
-        LIGHT nextLight =
-            Lights[min(firstLightIdx + nextCascade, LIGHT_MAX_COUNT - 1)];
+        LIGHT nextLight = Lights[min(firstLightIdx + nextCascade, LIGHT_MAX_COUNT - 1)];
 
-        float4 nsp =
-            mul(float4(worldPos, 1), nextLight.LightView);
-
-        nsp =
-            mul(nsp, nextLight.LightProjection);
+        float4 nsp = mul(float4(worldPos, 1.0), nextLight.LightView);
+        nsp = mul(nsp, nextLight.LightProjection);
 
         if (nsp.w > 0.0)
         {
@@ -235,53 +291,29 @@ float ShadowFactorCascades(
             float2 nuv = nsp.xy * 0.5 + 0.5;
             nuv.y = 1.0 - nuv.y;
 
-            if (all(nuv >= -CascadeMargin) && all(nuv <= 1.0 + CascadeMargin))
+            if (all(nuv >= 0.0) && all(nuv <= 1.0))
             {
-                float nextBias =
-                    nextLight.Param.w * (1.0 + nextCascade * 0.5);
-
-                float ndepth =
-                    saturate(nsp.z - nextBias);
+                float ndepth = saturate(nsp.z - nextLight.Param.w);
 
                 int nTileIdx = atlasOffset + nextCascade;
 
                 uint ngx = nTileIdx % grid;
                 uint ngy = nTileIdx / grid;
 
-                float2 ntileMin =
-                    float2(ngx, ngy) * tile;
+                float2 nsuvBase = float2(ngx, ngy) * tile + nuv * tile;
 
-                nuv = clamp(nuv, safeMargin, 1.0 - safeMargin);
-
-                float2 nsuvBase =
-                    ntileMin + nuv * tile;
-
-                nextShadow =
+                shadow = min(
+                    shadow,
                     SampleCascadePCF(
                         nsuvBase,
                         ndepth,
                         texelSize,
                         pcf.StepTexel,
                         radius
-                    );
+                    )
+                );
             }
         }
-    }
-
-    //--------------------------------------------------
-    // cascade blend
-    //--------------------------------------------------
-
-    if (selectedCascade < cascadeCount - 1)
-    {
-        float edge =
-            min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
-
-        float blendWeight =
-            saturate(edge / CascadeBlend);
-
-        shadow =
-            lerp(nextShadow, shadow, blendWeight);
     }
 
     return shadow;

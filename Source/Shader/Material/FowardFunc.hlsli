@@ -194,13 +194,14 @@ float ShadowFactorCascades(
         float4 csp = mul(float4(worldPos, 1), cLight.LightView);
         csp = mul(csp, cLight.LightProjection);
 
-        if (csp.w < 0.0)
+        if (csp.w <= 0.0)
             continue;
 
         float2 cuv = csp.xy / csp.w * 0.5 + 0.5;
         cuv.y = 1.0 - cuv.y;
 
-        if (all(cuv > 0.0) && all(cuv <= 1.0))
+        // 境界安定化
+        if (all(cuv >= -0.001) && all(cuv <= 1.001))
         {
             selectedCascade = c;
             sp = csp;
@@ -251,11 +252,10 @@ float ShadowFactorCascades(
     // texel size
     //--------------------------------------------------
 
-    float2 texelSize;
+    uint texW, texH;
+    ShadowMap.GetDimensions(texW, texH);
 
-    ShadowMap.GetDimensions(texelSize.x, texelSize.y);
-
-    texelSize = 1.0 / texelSize;
+    float2 texelSize = float2(1.0 / texW, 1.0 / texH);
     texelSize *= tile;
 
     //--------------------------------------------------
@@ -283,9 +283,9 @@ float ShadowFactorCascades(
             min(uv.y, 1.0 - uv.y)
         );
 
-        float blend = saturate(edgeDist / BlendWidth);
+        float blend = saturate(1.0 - edgeDist / BlendWidth);
 
-        if (blend < 1.0)
+        if (blend > 0.0)
         {
             int nextCascade = selectedCascade + 1;
 
@@ -321,18 +321,18 @@ float ShadowFactorCascades(
                         radius
                     );
 
-                    shadow = lerp(shadowNext, shadow, blend);
+                    shadow = lerp(shadow, shadowNext, blend);
                 }
             }
         }
     }
 
     //--------------------------------------------------
-    // カスケードフォールバック（既存）
+    // カスケードフォールバック
     //--------------------------------------------------
 
     [branch]
-    if (shadow >= 1.0 && selectedCascade < cascadeCount - 1)
+    if (shadow > 0.99 && selectedCascade < cascadeCount - 1)
     {
         int nextCascade = selectedCascade + 1;
 

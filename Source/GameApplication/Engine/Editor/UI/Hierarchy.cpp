@@ -25,6 +25,59 @@
 #include <filesystem>
 #include "Service/Config/configSystem.h"
 
+// ------------------------------------------------------------
+// 検索文字列を小文字化
+// ------------------------------------------------------------
+static std::string ToLower(const std::string& s){
+	std::string r = s;
+	std::transform(r.begin(), r.end(), r.begin(),
+				   [](unsigned char c){ return (char)std::tolower(c); });
+	return r;
+}
+
+// ------------------------------------------------------------
+// Entity が検索にヒットするか
+// ------------------------------------------------------------
+static bool EntityMatchesSearch(
+	Entity entity,
+	SceneContext* context,
+	const std::string& search){
+	if(search.empty()) return true;
+
+	auto* name = context->component->GetComponent<NameComponent>(entity);
+
+	std::string entityName = name ? name->name : "Entity";
+
+	std::string lowerName = ToLower(entityName);
+	std::string lowerSearch = ToLower(search);
+
+	return lowerName.find(lowerSearch) != std::string::npos;
+}
+
+// ------------------------------------------------------------
+// 子が検索にヒットするか（再帰）
+// ------------------------------------------------------------
+static bool HasMatchingChild(
+	Entity entity,
+	SceneContext* context,
+	const std::unordered_set<Entity>& allEntities,
+	const std::string& search){
+	for(Entity child : allEntities){
+		auto* t = context->component->GetComponent<TransformComponent>(child);
+		if(!t) continue;
+
+		if(t->parent == entity){
+			if(EntityMatchesSearch(child, context, search))
+				return true;
+
+			if(HasMatchingChild(child, context, allEntities, search))
+				return true;
+		}
+	}
+
+	return false;
+}
+
 void Hierarchy::Draw(const EditorDrawContext ctx){
 
 	ImGuiWindowClass window_class;
@@ -174,7 +227,6 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 			}
 			ImGui::SameLine();
 
-			static char searchBuffer[256] = "";
 			ImGui::SetNextItemWidth(-1);
 			ImGui::InputTextWithHint("##search", "Search objects...", searchBuffer, sizeof(searchBuffer));
 
@@ -196,7 +248,14 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 				if(transform && transform->parent != 0){
 					continue;
 				}
-				DrawHierarchyNode(entity, context, entities);
+				std::string search = searchBuffer;
+
+				bool match = EntityMatchesSearch(entity, context, search);
+				bool childMatch = HasMatchingChild(entity, context, entities, search);
+
+				if(match || childMatch){
+					DrawHierarchyNode(entity, context, entities);
+				}
 			}
 
 			ImGui::TreePop();
@@ -421,7 +480,15 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		for(Entity child : allEntities){
 			auto* childTransform = context->component->GetComponent<TransformComponent>(child);
 			if(childTransform && childTransform->parent == entity){
-				DrawHierarchyNode(child, context, allEntities);
+
+				std::string search = searchBuffer;
+
+				bool match = EntityMatchesSearch(child, context, search);
+				bool childMatch = HasMatchingChild(child, context, allEntities, search);
+
+				if(match || childMatch){
+					DrawHierarchyNode(child, context, allEntities);
+				}
 			}
 		}
 		ImGui::TreePop();
