@@ -60,5 +60,8 @@ void ResourceService::Shutdown(){
 	m_Loaders.clear();
 	m_Graphics = nullptr;
 	m_Audio = nullptr;
+	if(m_DebugLog){
+		m_DebugLog->LOG_INFO("ResourceService の終了処理が完了しました");
+	}
 	m_DebugLog = nullptr;
 }
