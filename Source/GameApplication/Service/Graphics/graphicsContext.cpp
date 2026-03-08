@@ -283,6 +283,16 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 		D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0
 	};
 	D3D_FEATURE_LEVEL featureLevel;
+	auto releaseFactoryResources = [&]() {
+		if(pSelectedAdapter){
+			pSelectedAdapter->Release();
+			pSelectedAdapter = nullptr;
+		}
+		if(pFactory){
+			pFactory->Release();
+			pFactory = nullptr;
+		}
+	};
 
 	hr = D3D11CreateDeviceAndSwapChain(
 		pSelectedAdapter, D3D_DRIVER_TYPE_UNKNOWN, nullptr, flags,
@@ -292,27 +302,12 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 	);
 
 	if (FAILED(hr)) {
-		if(pSelectedAdapter){
-			pSelectedAdapter->Release();
-			pSelectedAdapter = nullptr;
-		}
-		if(pFactory){
-			pFactory->Release();
-			pFactory = nullptr;
-		}
+		releaseFactoryResources();
 		GRAPHICS_LOG(LogLevel::Error, "スワップチェーンの作成に失敗しました");
-		OutputDebugStringA("スワップチェーンの作成に失敗しました。\n");
 		return false;
 	}
 
-	if(pSelectedAdapter){
-		pSelectedAdapter->Release();
-		pSelectedAdapter = nullptr;
-	}
-	if(pFactory){
-		pFactory->Release();
-		pFactory = nullptr;
-	}
+	releaseFactoryResources();
 
 	// ALT+ENTERで排他的フルスクリーンモード切り替えを無効にする
 	IDXGIFactory* pfac = nullptr;
