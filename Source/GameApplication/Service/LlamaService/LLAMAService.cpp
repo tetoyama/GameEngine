@@ -11,6 +11,7 @@
 
 #include "LLAMAAgent.h"
 #include "AgentConfig.h"
+#include "DebugTools/DebugSystem.h"
 
 #include "Backends/llama/llama.h"
 #include "Backends/llama/llama-graph.h"
@@ -20,22 +21,27 @@
 #include "Resources/resourceService.h"
 
 #pragma comment(lib, "llama.lib")
+#define LLAMA_SERVICE_LOG(level, msg) do { if(m_debugLog) { m_debugLog->Log(level, msg, __FUNCTION__, __FILE__, __LINE__); } } while(0)
 // ============================
 // Initialize / Shutdown
 // ============================
 void LLAMAService::Initialize(LLAMAServiceContext context){
 
 	m_resourceService = context.resourceService;
+	m_debugLog = context.debugLog;
 
+	LLAMA_SERVICE_LOG(LogLevel::Info, "LLAMAService の初期化を開始します");
 	OutputDebugStringA("LLAMAService: Initialize called\n");
 
 	llama_backend_init();
 
 	m_threadRunning = true;
 	m_workerThread = std::thread(&LLAMAService::WorkerThreadMain, this);
+	LLAMA_SERVICE_LOG(LogLevel::Info, "LLAMAService の初期化が完了しました");
 }
 
 void LLAMAService::Shutdown(){
+	LLAMA_SERVICE_LOG(LogLevel::Info, "LLAMAService を終了します");
 	m_threadRunning = false;
 	m_jobCV.notify_all();
 
@@ -62,25 +68,38 @@ void LLAMAService::Shutdown(){
 	}
 
 	llama_backend_free();
+	LLAMA_SERVICE_LOG(LogLevel::Info, "LLAMAService の終了が完了しました");
+	m_debugLog = nullptr;
 }
 
 // ============================
 // モデル管理 (同期)
 // ============================
 bool LLAMAService::LoadModel(const std::string& path){
+	LLAMA_SERVICE_LOG(LogLevel::Info, ("LLAMA モデルのロードを開始します: " + path));
+	if(!m_resourceService){
+		LLAMA_SERVICE_LOG(LogLevel::Error, "ResourceService が未設定のため LLAMA モデルをロードできません");
+		return false;
+	}
 	{
 		std::lock_guard<std::mutex> lock(m_modelMutex);
 		if(m_models.contains(path)){
+			LLAMA_SERVICE_LOG(LogLevel::Debug, ("LLAMA モデルは既にロード済みです: " + path));
 			return true;
 		}
 	}
 	auto modelData = m_resourceService->Load<LLAMAModelData>(path);
+	if(!modelData){
+		LLAMA_SERVICE_LOG(LogLevel::Error, ("LLAMA モデルデータの取得に失敗しました: " + path));
+		return false;
+	}
 
 	llama_model_params params = llama_model_default_params();
 	params.n_gpu_layers = 0;
 
 	modelData->m_model = llama_model_load_from_file(path.c_str(), params);
 	if(!modelData->m_model){
+		LLAMA_SERVICE_LOG(LogLevel::Error, ("LLAMA モデルのロードに失敗しました: " + path));
 		return false;
 	}
 
@@ -91,6 +110,7 @@ bool LLAMAService::LoadModel(const std::string& path){
 		m_models[path] = modelData;
 	}
 
+	LLAMA_SERVICE_LOG(LogLevel::Info, ("LLAMA モデルのロードが完了しました: " + path));
 	return true;
 }
 
@@ -99,6 +119,7 @@ std::shared_ptr<LLAMAModelData> LLAMAService::GetModel(const std::string& path) 
     auto it = m_models.find(path);
 
 	if (it != m_models.end()) {
+		LLAMA_SERVICE_LOG(LogLevel::Trace, ("LLAMA モデルを取得しました: " + path));
 		OutputDebugStringA(("LLAMAService: Model found: " + path + "\n").c_str());
 		return it->second;
 	}
@@ -130,6 +151,7 @@ void LLAMAService::LoadModelAsync(
 		}
 
 		if(!shouldQueueJob){
+			LLAMA_SERVICE_LOG(LogLevel::Trace, ("LLAMA モデルの非同期ロード要求を既存ジョブへ合流しました: " + path));
 			return;
 		}
 
@@ -138,6 +160,7 @@ void LLAMAService::LoadModelAsync(
 			m_modelJobQueue.push({path, nullptr});
 		}
 
+		LLAMA_SERVICE_LOG(LogLevel::Debug, ("LLAMA モデルの非同期ロードをキューへ追加しました: " + path));
 		m_jobCV.notify_one();
 }
 
@@ -151,6 +174,7 @@ std::shared_ptr<LLAMAAgent> LLAMAService::CreateAgent(
 
     auto model = GetModel(modelPath);
     if (!model) {
+        LLAMA_SERVICE_LOG(LogLevel::Error, ("エージェント生成に必要なモデルが未ロードです: " + modelPath));
         OutputDebugStringA(("LLAMAService: Model not loaded: " + modelPath + "\n").c_str());
         return nullptr;
     }
@@ -162,6 +186,7 @@ std::shared_ptr<LLAMAAgent> LLAMAService::CreateAgent(
         m_agents.push_back(agent);
     }
 
+    LLAMA_SERVICE_LOG(LogLevel::Info, ("LLAMA エージェントを生成しました: " + modelPath));
     return agent;
 }
 
@@ -174,6 +199,7 @@ std::shared_ptr<LLAMAAgent> LLAMAService::CreateAgent(const std::shared_ptr<LLAM
 		m_agents.push_back(agent);
 	}
 
+	LLAMA_SERVICE_LOG(LogLevel::Info, "LLAMA エージェントを生成しました");
 	return agent;
 }
 
@@ -183,6 +209,7 @@ void LLAMAService::DestroyAgent(const std::shared_ptr<LLAMAAgent>& agent) {
     auto it = std::find(m_agents.begin(), m_agents.end(), agent);
     if (it != m_agents.end()) {
         m_agents.erase(it);
+        LLAMA_SERVICE_LOG(LogLevel::Debug, "LLAMA エージェントを破棄しました");
     }
 }
 
@@ -198,6 +225,7 @@ void LLAMAService::CreateAgentAsync(
             std::lock_guard<std::mutex> lock(m_jobMutex);
             m_agentJobQueue.push({ modelPath, config, callback });
         }
+        LLAMA_SERVICE_LOG(LogLevel::Debug, ("LLAMA エージェント生成ジョブをキューへ追加しました: " + modelPath));
         m_jobCV.notify_one();
 }
 
@@ -205,6 +233,7 @@ void LLAMAService::CreateAgentAsync(
 // ワーカースレッド
 // ============================
 void LLAMAService::WorkerThreadMain() {
+    LLAMA_SERVICE_LOG(LogLevel::Debug, "LLAMA ワーカースレッドを開始します");
     while (m_threadRunning) {
         ModelLoadJob modelJob;
         AgentCreateJob agentJob;
@@ -241,12 +270,14 @@ void LLAMAService::WorkerThreadMain() {
             ProcessAgentCreateJob(agentJob);
         }
     }
+    LLAMA_SERVICE_LOG(LogLevel::Debug, "LLAMA ワーカースレッドを終了します");
 }
 
 // ============================
 // 内部補助
 // ============================
 void LLAMAService::ProcessModelLoadJob(const ModelLoadJob& job){
+	LLAMA_SERVICE_LOG(LogLevel::Trace, ("LLAMA モデルロードジョブを処理します: " + job.path));
 	bool success = LoadModel(job.path);
 
 	std::vector<std::function<void(bool)>> callbacks;
@@ -269,9 +300,11 @@ void LLAMAService::ProcessModelLoadJob(const ModelLoadJob& job){
 									  });
 		}
 	}
+	LLAMA_SERVICE_LOG(LogLevel::Debug, ("LLAMA モデルロードジョブの処理が完了しました: " + job.path));
 }
 
 void LLAMAService::ProcessAgentCreateJob(const AgentCreateJob& job){
+	LLAMA_SERVICE_LOG(LogLevel::Trace, ("LLAMA エージェント生成ジョブを処理します: " + job.modelPath));
 	auto agent = CreateAgent(job.modelPath, job.config);
 
 	if(!job.callback || !m_threadRunning) return;
@@ -284,6 +317,7 @@ void LLAMAService::ProcessAgentCreateJob(const AgentCreateJob& job){
 			}
 		});
 	}
+	LLAMA_SERVICE_LOG(LogLevel::Debug, ("LLAMA エージェント生成ジョブの処理が完了しました: " + job.modelPath));
 }
 
 void LLAMAService::PumpCallbacks(){
@@ -294,8 +328,13 @@ void LLAMAService::PumpCallbacks(){
 		std::swap(local, m_completedCallbacks);
 	}
 
+	if(!local.empty()){
+		LLAMA_SERVICE_LOG(LogLevel::Trace, "LLAMA 完了コールバックをポンプします");
+	}
 	while(!local.empty()){
 		local.front().fn();
 		local.pop();
 	}
 }
+
+#undef LLAMA_SERVICE_LOG

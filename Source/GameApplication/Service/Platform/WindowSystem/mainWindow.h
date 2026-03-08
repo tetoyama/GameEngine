@@ -11,6 +11,7 @@ struct APPCONFIG;
 class MainRenderer;
 class ImGuiService;
 class InputService;
+class DebugLogService;
 
 class MainWindow: public IWindow
 {
@@ -31,6 +32,9 @@ public:
 	}
 	void SetInputSystem(InputService* inputSystem){
 		m_inputSystem = inputSystem;
+	}
+	void SetDebugLogService(DebugLogService* debugLog){
+		m_debugLog = debugLog;
 	}
 	UINT GetHeight() const override{
 		return m_height;
@@ -53,6 +57,7 @@ private:
 	MainRenderer* m_mainRenderer = nullptr;
 	ImGuiService* m_imguiSystem = nullptr;
 	InputService* m_inputSystem = nullptr;
+	DebugLogService* m_debugLog = nullptr;
 
 	bool m_resizing = false;
 

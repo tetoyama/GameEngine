@@ -13,11 +13,13 @@
 #include "windowSystem.h"
 
 #include "DebugTools/ImGuiSystem.h"
+#include "DebugTools/DebugSystem.h"
 #include "Graphics/mainRenderer.h"
 #include "Platform/InputSystem/InputSystem.h"
 #include <Icon/icon.h>
 #include "Config/appConfig.h"
 
+#define MAINWINDOW_LOG(level, msg) do { if(m_debugLog) { m_debugLog->Log(level, msg, __FUNCTION__, __FILE__, __LINE__); } } while(0)
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -33,6 +35,7 @@ MainWindow::~MainWindow(){
 }
 
 bool MainWindow::Create(const HINSTANCE hInstance, const int nCmdShow, const APPCONFIG appconfig){
+	MAINWINDOW_LOG(LogLevel::Info, "MainWindow の生成を開始します");
 
 	m_width = appconfig.Width;
 	m_height = appconfig.Height;
@@ -74,6 +77,7 @@ bool MainWindow::Create(const HINSTANCE hInstance, const int nCmdShow, const APP
 
 	// ウィンドウ生成失敗時
 	if(!m_HWND){
+		MAINWINDOW_LOG(LogLevel::Error, "ウィンドウの生成に失敗しました");
 		OutputDebugStringA("ウィンドウの生成に失敗しました。\n");
 		return false;
 	}
@@ -84,6 +88,7 @@ bool MainWindow::Create(const HINSTANCE hInstance, const int nCmdShow, const APP
 
 	// アイコンの設定
 	if(FAILED(InitIcon(m_HWND))){
+		MAINWINDOW_LOG(LogLevel::Error, "アイコンの初期化に失敗しました");
 		OutputDebugStringA("アイコンの初期化に失敗しました。\n");
 		return false;
 	}
@@ -92,6 +97,8 @@ bool MainWindow::Create(const HINSTANCE hInstance, const int nCmdShow, const APP
 	if(appconfig.FullScreen){
 		SetBorderlessFullscreen(true);
 	}
+
+	MAINWINDOW_LOG(LogLevel::Info, "MainWindow の生成が完了しました");
 
 	return true;
 }
@@ -119,6 +126,7 @@ void MainWindow::SetBorderlessFullscreen(bool enable){
 	if(!m_HWND) return;
 
 	if(enable && !m_fullscreen){
+		MAINWINDOW_LOG(LogLevel::Info, "ボーダーレスフルスクリーンへ切り替えます");
 		m_wpPrev.length = sizeof(WINDOWPLACEMENT);
 		GetWindowPlacement(m_HWND, &m_wpPrev);
 
@@ -150,8 +158,10 @@ void MainWindow::SetBorderlessFullscreen(bool enable){
 
 			m_fullscreen = true;
 			SetTimer(m_HWND, 1, 16, NULL); // 16msごと（約60fps）
+			MAINWINDOW_LOG(LogLevel::Debug, "ボーダーレスフルスクリーンへの切り替えが完了しました");
 		}
 	} else if(!enable && m_fullscreen){
+		MAINWINDOW_LOG(LogLevel::Info, "ウィンドウ表示へ復帰します");
 		// 復帰
 		SetWindowLong(m_HWND, GWL_STYLE, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
 
@@ -177,6 +187,7 @@ void MainWindow::SetBorderlessFullscreen(bool enable){
 
 		m_fullscreen = false;
 		KillTimer(m_HWND, 1);
+		MAINWINDOW_LOG(LogLevel::Debug, "ウィンドウ表示への復帰が完了しました");
 	}
 }
 
@@ -209,18 +220,22 @@ LRESULT MainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 	switch(uMsg){
 		case WM_SETICON:
+			MAINWINDOW_LOG(LogLevel::Trace, "WM_SETICON を受信しました");
 			OutputDebugStringA(("SetIcon wParam:" + std::to_string(wParam) + " lParam:" + std::to_string(lParam) + "\n").c_str());
 			break;
 		case WM_DESTROY:
+			MAINWINDOW_LOG(LogLevel::Info, "ウィンドウ破棄を開始します");
 			PostQuitMessage(0);
 			return 0;
 
 		case WM_ENTERSIZEMOVE:
 			m_resizing = true;
+			MAINWINDOW_LOG(LogLevel::Trace, "ウィンドウのサイズ変更を開始します");
 			break;
 
 		case WM_EXITSIZEMOVE:
 			m_resizing = false;
+			MAINWINDOW_LOG(LogLevel::Trace, "ウィンドウのサイズ変更を終了します");
 			if (m_mainRenderer) {
 				m_mainRenderer->OnResize(m_pendingWidth, m_pendingHeight);
 				if (m_imguiSystem) {
@@ -250,19 +265,26 @@ LRESULT MainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 		case WM_KEYDOWN:
 			if(wParam == VK_F11){
+				MAINWINDOW_LOG(LogLevel::Debug, "F11 によるフルスクリーン切り替えを要求しました");
 				SetBorderlessFullscreen(!m_fullscreen);
 			}
 			if(wParam == VK_ESCAPE){//エスケープキーが押された
+				MAINWINDOW_LOG(LogLevel::Debug, "ESC によるウィンドウ終了要求を受け取りました");
 				SendMessage(hwnd, WM_CLOSE, 0, 0);
 			}
 			break;
 		case WM_CLOSE://ウィンドウを閉じたい
+			MAINWINDOW_LOG(LogLevel::Info, "ウィンドウ終了確認ダイアログを表示します");
 			if(IDOK == MessageBox(hwnd, L"本当に終了してよろしいですか？", L"確認", MB_OKCANCEL | MB_DEFBUTTON2 | MB_ICONQUESTION)){	//OKが押された
+				MAINWINDOW_LOG(LogLevel::Info, "ウィンドウ終了が承認されました");
 				DestroyWindow(hwnd);//終了する手続きをリクエスト
 			} else{//キャンセル
+				MAINWINDOW_LOG(LogLevel::Debug, "ウィンドウ終了がキャンセルされました");
 				return 0;
 			}
 			break;
 	}
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
+
+#undef MAINWINDOW_LOG

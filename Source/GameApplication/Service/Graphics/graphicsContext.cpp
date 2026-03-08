@@ -13,6 +13,7 @@
 #include <windows.h> // GetDpiForWindowを使用するために必要
 
 #include "renderEffectSystem.h"
+#include "DebugTools/DebugSystem.h"
 
 #include <io.h>
 
@@ -43,8 +44,10 @@
 #pragma comment (lib, "dinput8.lib")
 
 #define SAFE_RELEASE(p) if(p){ p->Release(); p = nullptr;}
+#define GRAPHICS_LOG(level, msg) do { if(m_DebugLog) { m_DebugLog->Log(level, msg, __FUNCTION__, __FILE__, __LINE__); } } while(0)
 
 bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
+	GRAPHICS_LOG(LogLevel::Info, "GraphicsContext の初期化を開始します");
 
 	if(!CreateDeviceAndSwapChain(hwnd, width, height)){return false;}
 
@@ -73,15 +76,19 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 	Resize(width, height);
 
 	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
+	GRAPHICS_LOG(LogLevel::Info, "GraphicsContext の初期化が完了しました");
 
 	return true;
 }
 
 void GraphicsContext::Shutdown(){
+	GRAPHICS_LOG(LogLevel::Info, "GraphicsContext を終了します");
 
-	m_EffectSystem->Shutdown();
-	delete m_EffectSystem;
-	m_EffectSystem = nullptr;
+	if(m_EffectSystem){
+		m_EffectSystem->Shutdown();
+		delete m_EffectSystem;
+		m_EffectSystem = nullptr;
+	}
 
 	SAFE_RELEASE(m_CbPerFrame);
 	SAFE_RELEASE(m_CbPerCamera);
@@ -94,8 +101,10 @@ void GraphicsContext::Shutdown(){
 	}
 	SAFE_RELEASE(csSkinning);
 	
-	m_DeviceContext->ClearState();  // すべてのバインドリソースを解除
-	m_DeviceContext->Flush();       // GPU キューを空にする
+	if(m_DeviceContext){
+		m_DeviceContext->ClearState();  // すべてのバインドリソースを解除
+		m_DeviceContext->Flush();       // GPU キューを空にする
+	}
 
 	m_d2dFactory.Reset();
 	m_dwriteFactory.Reset();
@@ -103,7 +112,7 @@ void GraphicsContext::Shutdown(){
 	m_DeviceContext.Reset();
 	m_SwapChain.Reset();
 	m_Device.Reset();
-
+	GRAPHICS_LOG(LogLevel::Info, "GraphicsContext の終了が完了しました");
 
 }
 
@@ -211,6 +220,7 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 	IDXGIFactory* pFactory = nullptr;
 	HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&pFactory);
 	if (FAILED(hr)) {
+		GRAPHICS_LOG(LogLevel::Error, "DXGIFactory の作成に失敗しました");
 		OutputDebugStringA("DXGIFactoryの作成に失敗しました。\n");
 		return false;
 	}
@@ -244,6 +254,7 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 		if(SUCCEEDED(pFactory->EnumAdapters(0, &pSelectedAdapter))){
 			// ok
 		} else{
+			GRAPHICS_LOG(LogLevel::Error, "アダプタの取得に失敗しました");
 			OutputDebugStringA("アダプタの取得に失敗しました。\n");
 			return false;
 		}
@@ -283,16 +294,20 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 	pSelectedAdapter->Release();
 	pFactory->Release();
 
-	// ALT + Enterで排他的フルスクリーンモード切り替えを無効にする
-	IDXGIFactory* pfac = nullptr;
-	hr = m_SwapChain->GetParent(__uuidof(IDXGIFactory), (void**)&pfac);
-	pfac->MakeWindowAssociation(hwnd, DXGI_MWA_NO_WINDOW_CHANGES | DXGI_MWA_NO_ALT_ENTER);
-	pfac->Release();
-
 	if (FAILED(hr)) {
+		GRAPHICS_LOG(LogLevel::Error, "スワップチェーンの作成に失敗しました");
 		OutputDebugStringA("スワップチェーンの作成に失敗しました。\n");
 		return false;
 	}
+
+	// ALT + Enterで排他的フルスクリーンモード切り替えを無効にする
+	IDXGIFactory* pfac = nullptr;
+	hr = m_SwapChain->GetParent(__uuidof(IDXGIFactory), (void**)&pfac);
+	if(SUCCEEDED(hr) && pfac){
+		pfac->MakeWindowAssociation(hwnd, DXGI_MWA_NO_WINDOW_CHANGES | DXGI_MWA_NO_ALT_ENTER);
+		pfac->Release();
+	}
+	GRAPHICS_LOG(LogLevel::Debug, "デバイスとスワップチェーンの初期化が完了しました");
 	return true;
 }
 
@@ -359,6 +374,7 @@ bool GraphicsContext::CreateSamplerState(){
 	samplerState.Reset();
 
 	if(FAILED(hr)){
+		GRAPHICS_LOG(LogLevel::Error, "サンプラーステートの作成に失敗しました");
 		OutputDebugStringA("サンプラーステートの作成に失敗しました。\n");
 		return false;
 	}
@@ -621,6 +637,7 @@ bool GraphicsContext::CreateComputeSkinningShader() {
 	ID3DBlob* csBlob = nullptr;
 	HRESULT hr = D3DReadFileToBlob(L"Asset\\Shader\\SkinningCS.cso", &csBlob);
 	if (FAILED(hr)) {
+		GRAPHICS_LOG(LogLevel::Error, "SkinningCS.cso の読み込みに失敗しました");
 		OutputDebugStringA("Failed to load SkinningCS.cso\n");
 		return false;
 	}
@@ -628,10 +645,12 @@ bool GraphicsContext::CreateComputeSkinningShader() {
 	hr = m_Device->CreateComputeShader(csBlob->GetBufferPointer(), csBlob->GetBufferSize(), nullptr, &csSkinning);
 	csBlob->Release();
 	if (FAILED(hr)) {
+		GRAPHICS_LOG(LogLevel::Error, "スキニング用コンピュートシェーダーの生成に失敗しました");
 		OutputDebugStringA("Failed to create compute shader\n");
 		return false;
 	}
 
+	GRAPHICS_LOG(LogLevel::Debug, "スキニング用コンピュートシェーダーの生成が完了しました");
 	return true;
 }
 
@@ -750,6 +769,7 @@ bool GraphicsContext::CreatePixelShader(const char* fileName,ID3D11PixelShader**
 }
 
 void GraphicsContext::Resize(UINT width, UINT height){
+	GRAPHICS_LOG(LogLevel::Trace, ("GraphicsContext をリサイズします: width=" + std::to_string(width) + " height=" + std::to_string(height)));
 
 	if(m_SwapChain){
 		m_DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
@@ -764,14 +784,17 @@ void GraphicsContext::Resize(UINT width, UINT height){
 		
 		HRESULT hr = m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 		if(FAILED(hr)){
+			GRAPHICS_LOG(LogLevel::Error, "スワップチェーンのリサイズに失敗しました");
 			OutputDebugStringA("スワップチェーンのリサイズに失敗しました。\n");
 			return;
 		}
 		if(!CreateRenderTargetView()){
+			GRAPHICS_LOG(LogLevel::Error, "リサイズ後のレンダーターゲット生成に失敗しました");
 			OutputDebugStringA("スワップチェーンのリサイズに失敗しました。\n");
 			return;
 		}
 		if(!CreateDepthStencilBufferAndView(width, height)){
+			GRAPHICS_LOG(LogLevel::Error, "リサイズ後のデプスステンシル生成に失敗しました");
 			OutputDebugStringA("スワップチェーンのリサイズに失敗しました。\n");
 			return;
 		}
@@ -785,6 +808,7 @@ void GraphicsContext::Resize(UINT width, UINT height){
 
 		// ビューポートの設定
 		ResetViewport();
+		GRAPHICS_LOG(LogLevel::Debug, "GraphicsContext のリサイズが完了しました");
 	}
 }
 
@@ -914,3 +938,5 @@ void GraphicsContext::DrawQuad() {
 
 	context->DrawIndexed(3, 0, 0);
 }
+
+#undef GRAPHICS_LOG

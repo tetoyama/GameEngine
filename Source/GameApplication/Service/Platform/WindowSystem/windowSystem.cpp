@@ -7,8 +7,9 @@
 #include "mainWindow.h"
 #include "Config/appConfig.h"
 
-bool WindowService::Initialize(const HINSTANCE hInstance, const int nCmdShow, const APPCONFIG appconfig){
+bool WindowService::Initialize(const HINSTANCE hInstance, const int nCmdShow, const APPCONFIG appconfig, DebugLogService* debugLog){
 	m_MainWindow = std::make_shared<MainWindow>();
+	m_MainWindow->SetDebugLogService(debugLog);
 	return m_MainWindow->Create(hInstance, nCmdShow,appconfig);
 }
 

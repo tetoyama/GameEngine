@@ -90,7 +90,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	}
 
     // --- Step 3: ウィンドウ生成（設定ファイルに基づいて OS ウィンドウを作成）
-    if (!windowService || !windowService->Initialize(hInstance, nCmdShow,configSystem->appConfig)) {
+    if (!windowService || !windowService->Initialize(hInstance, nCmdShow,configSystem->appConfig, debugLogSystem.get())) {
         if(debugLogSystem){
 			debugLogSystem->LOG_ERROR("WindowService の初期化に失敗しました");
         }
@@ -112,6 +112,9 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	}
 
 	// --- Step 5: オーディオ初期化（XAudio2 エンジン起動）
+	if(audioContext){
+		audioContext->SetDebugLogService(debugLogSystem.get());
+	}
 	if(!audioContext || !audioContext->Initialize()){
 		if(debugLogSystem){
 			debugLogSystem->LOG_ERROR("AudioContext の初期化に失敗しました");
@@ -123,6 +126,9 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 
     // --- Step 6: DirectX 11 グラフィクスコンテキスト初期化
 	//             デバイス・デバイスコンテキスト・スワップチェーンを生成
+	if(graphicsContext){
+		graphicsContext->SetDebugLogService(debugLogSystem.get());
+	}
     if (!graphicsContext || 
         !graphicsContext->Initialize(windowService->GetMainWindow()->GetHWND(), mainWindow->GetWidth(), mainWindow->GetHeight())){
         if(debugLogSystem){
@@ -244,6 +250,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 
 		LLAMAServiceContext llamaContext{};
 		llamaContext.resourceService = resourceService.get();
+		llamaContext.debugLog = debugLogSystem.get();
 
 		llamaService->Initialize(llamaContext);
 		if(debugLogSystem){

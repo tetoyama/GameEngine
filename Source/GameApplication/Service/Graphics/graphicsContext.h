@@ -20,6 +20,7 @@
 #include "Backends/Effekseer/EffekseerRendererDX11.h"
 
 class RenderEffectSystem;
+class DebugLogService;
 
 enum class BlendMode
 {
@@ -94,6 +95,9 @@ class GraphicsContext : public IService {
 public:
 	// DirectX 11 デバイスとスワップチェーンを初期化する
 	bool Initialize(HWND hwnd, UINT width, UINT height);
+	void SetDebugLogService(DebugLogService* debugLog){
+		m_DebugLog = debugLog;
+	}
 
 	// グラフィクスリソースを全て解放する
 	void Shutdown() override;
@@ -217,6 +221,7 @@ private:
 	ID3D11Buffer* m_CbPerFrame  = nullptr;   // b0: フレームごと (ライト)
 	ID3D11Buffer* m_CbPerCamera = nullptr;   // b1: カメラ/パスごと (View, Proj, CamPos)
 	ID3D11Buffer* m_CbPerObject = nullptr;   // b2: オブジェクトごと (World, Material, UV, Param, ObjInfo)
+	DebugLogService* m_DebugLog = nullptr;
 
 	CbPerFrame  m_CbPerFrameData{};
 	CbPerCamera m_CbPerCameraData{};

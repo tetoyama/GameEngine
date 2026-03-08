@@ -9,10 +9,12 @@
 #include "IWindow.h"
 #include "mainWindow.h"
 
+class DebugLogService;
+
 class WindowService : public IService
 {
 public:
-	bool Initialize(const HINSTANCE hInstance, const int nCmdShow, const APPCONFIG appconfig);
+	bool Initialize(const HINSTANCE hInstance, const int nCmdShow, const APPCONFIG appconfig, DebugLogService* debugLog = nullptr);
 	void Shutdown()override {}
 
 	void PollEvents();

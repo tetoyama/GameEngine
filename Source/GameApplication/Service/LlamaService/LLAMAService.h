@@ -23,6 +23,7 @@
 // 前方宣言のみ
 // ============================
 class ResourceService;
+class DebugLogService;
 
 struct LLAMAModelData;
 class LLAMAAgent;
@@ -31,6 +32,7 @@ struct AgentConfig;
 struct LLAMAServiceContext
 {
 	ResourceService* resourceService = nullptr;
+	DebugLogService* debugLog = nullptr;
 };
 
 // ============================
@@ -80,6 +82,7 @@ public:
 private:
 
 	ResourceService* m_resourceService = nullptr;
+	DebugLogService* m_debugLog = nullptr;
 
     // ============================
     // 非同期ジョブ構造体
