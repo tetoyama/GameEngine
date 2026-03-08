@@ -68,18 +68,17 @@ void LLAMAService::Shutdown(){
 
 	llama_backend_free();
 	LLAMA_SERVICE_LOG(LogLevel::Info, "LLAMAService の終了が完了しました");
-	m_debugLog = nullptr;
 }
 
 // ============================
 // モデル管理 (同期)
 // ============================
 bool LLAMAService::LoadModel(const std::string& path){
-	LLAMA_SERVICE_LOG(LogLevel::Info, ("LLAMA モデルのロードを開始します: " + path));
 	if(!m_resourceService){
 		LLAMA_SERVICE_LOG(LogLevel::Error, "ResourceService が未設定のため LLAMA モデルをロードできません");
 		return false;
 	}
+	LLAMA_SERVICE_LOG(LogLevel::Info, ("LLAMA モデルのロードを開始します: " + path));
 	{
 		std::lock_guard<std::mutex> lock(m_modelMutex);
 		if(m_models.contains(path)){

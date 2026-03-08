@@ -291,14 +291,16 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 		m_Device.GetAddressOf(), &featureLevel, m_DeviceContext.GetAddressOf()
 	);
 
-	pSelectedAdapter->Release();
-	pFactory->Release();
-
 	if (FAILED(hr)) {
+		pSelectedAdapter->Release();
+		pFactory->Release();
 		GRAPHICS_LOG(LogLevel::Error, "スワップチェーンの作成に失敗しました");
 		OutputDebugStringA("スワップチェーンの作成に失敗しました。\n");
 		return false;
 	}
+
+	pSelectedAdapter->Release();
+	pFactory->Release();
 
 	// ALT + Enterで排他的フルスクリーンモード切り替えを無効にする
 	IDXGIFactory* pfac = nullptr;

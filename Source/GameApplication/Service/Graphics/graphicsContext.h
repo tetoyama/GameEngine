@@ -94,7 +94,8 @@ enum class PostProcessBufferID {
 class GraphicsContext : public IService {
 public:
 	explicit GraphicsContext(DebugLogService* debugLog = nullptr)
-		: m_DebugLog(debugLog){}
+		: m_DebugLog(debugLog)
+	{}
 
 	// DirectX 11 デバイスとスワップチェーンを初期化する
 	bool Initialize(HWND hwnd, UINT width, UINT height);

@@ -63,7 +63,6 @@ void AudioContext::Shutdown(){
 		m_XAudio = nullptr;
 	}
 	AUDIO_LOG(LogLevel::Info, "AudioContext の終了が完了しました");
-	m_DebugLog = nullptr;
 }
 
 IXAudio2SourceVoice* AudioContext::CreateSourceVoice(WAVEFORMATEX* wfx){

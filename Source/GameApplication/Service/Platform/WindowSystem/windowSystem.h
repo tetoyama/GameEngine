@@ -15,7 +15,8 @@ class WindowService : public IService
 {
 public:
 	explicit WindowService(DebugLogService* debugLog = nullptr)
-		: m_DebugLog(debugLog){}
+		: m_DebugLog(debugLog)
+	{}
 
 	bool Initialize(const HINSTANCE hInstance, const int nCmdShow, const APPCONFIG appconfig);
 	void Shutdown()override {}

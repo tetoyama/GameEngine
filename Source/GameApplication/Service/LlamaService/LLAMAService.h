@@ -42,7 +42,8 @@ struct LLAMAServiceContext
 class LLAMAService final : public IService {
 public:
 	explicit LLAMAService(DebugLogService* debugLog = nullptr)
-		: m_debugLog(debugLog){}
+		: m_debugLog(debugLog)
+	{}
 
     // ===== IService =====
     void Initialize(LLAMAServiceContext context);
