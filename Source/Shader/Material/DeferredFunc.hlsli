@@ -45,9 +45,9 @@ MaterialInput GetMaterialInput(PS_IN In)
     input.normal =
         normalize(GNormal.Sample(PointSampler, input.uv).rgb * 2.0 - 1.0);
 
-    uint width, height;
-    GPosition.GetDimensions(width, height);
-    int2 pixelCoord = int2(In.TexCoord.x * width, In.TexCoord.y * height);
+    uint textureWidth, textureHeight;
+    GPosition.GetDimensions(textureWidth, textureHeight);
+    int2 pixelCoord = int2(In.TexCoord.x * textureWidth, In.TexCoord.y * textureHeight);
 
     float3 worldPos = GPosition.Load(int3(pixelCoord, 0)).xyz;
     
