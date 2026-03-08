@@ -855,13 +855,13 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 	}
 
 	for(auto& node : effects){
-		for (UINT slot = 0; slot < TextureSlot_Max; ++slot) {
+		for (UINT slot = 0; slot < previousInputSlotCount && slot < PostEffectGBufferSlot_Start; ++slot) {
 			if (boundSRVs[slot] == node.srv) {
 				BindShaderResource(slot, nullptr);
 			}
 		}
 
-		ID3D11RenderTargetView* nextRTV = (node.rtv) ? *node.rtv : nullptr;
+		ID3D11RenderTargetView* nextRTV = (node.rtv) ? node.rtv[0] : nullptr;
 		if (boundRTV != nextRTV) {
 			deviceContext->OMSetRenderTargets(1, node.rtv, nullptr);
 			boundRTV = nextRTV;
@@ -883,6 +883,7 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 
 		UINT inputSlotCount = static_cast<UINT>(node.inputs.size());
 		if (inputSlotCount > PostEffectGBufferSlot_Start) {
+			OutputDebugStringA("PostProcess input slot count exceeds available texture slots\n");
 			inputSlotCount = PostEffectGBufferSlot_Start;
 		}
 
