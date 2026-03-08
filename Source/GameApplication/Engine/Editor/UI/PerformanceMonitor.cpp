@@ -17,7 +17,7 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 	double FixedFPS = ctx.FixedUpdateFPS;
 	double Draw = ctx.DrawTime;
 	double Update = ctx.UpdateTime;
-	bool showPerformanceMonitor = m_editor->GetUI<MenuBar>()->showPerformanceMonitor;
+	bool* showPerformanceMonitor = &m_editor->GetUI<MenuBar>()->showPerformanceMonitor;
 
 	HANDLE hProc = GetCurrentProcess();
 	PROCESS_MEMORY_COUNTERS_EX pmc;
@@ -54,17 +54,20 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 	UpdateSamples[SAMPLE_LENGTH - 1] = (float)Update;
 	DrawSamples[SAMPLE_LENGTH - 1] = (float)Draw;
 
-	if (showPerformanceMonitor) {
-		ImGuiWindowClass window_class;
-		window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
-		ImGui::SetNextWindowClass(&window_class);
+	if(!showPerformanceMonitor || !*showPerformanceMonitor) {
+		return;
+	}
 
-		//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
-		ImGuiWindowFlags toolbar_window_flags = 0;
+	ImGuiWindowClass window_class;
+	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
+	ImGui::SetNextWindowClass(&window_class);
 
-		ImGui::Begin("Performance Monitor", &showPerformanceMonitor, toolbar_window_flags);
+	//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
+	ImGuiWindowFlags toolbar_window_flags = 0;
 
-		if (ImGui::TreeNodeEx("負荷計測", ImGuiTreeNodeFlags_DefaultOpen)) {
+	ImGui::Begin("Performance Monitor", showPerformanceMonitor, toolbar_window_flags);
+
+	if (ImGui::TreeNodeEx("負荷計測", ImGuiTreeNodeFlags_DefaultOpen)) {
 
 			float FixedFPSAvg = 0.0f;
 			float DeltaFPSAvg = 0.0f;
@@ -102,8 +105,8 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 			sprintf(Texts, "Draw:Avg:%.4fms", DrawAvg);
 			ImGui::PlotLines(Texts, DrawSamples, SAMPLE_LENGTH, 0, "", 0.0f, 1000.0f / 60.0f);
 			ImGui::TreePop();
-		}
-		if (ImGui::TreeNodeEx("-メモリ使用量-", ImGuiTreeNodeFlags_DefaultOpen)) {
+	}
+	if (ImGui::TreeNodeEx("-メモリ使用量-", ImGuiTreeNodeFlags_DefaultOpen)) {
 			float UsageAvg = 0.0f;
 			int FPSCount = 0;
 
@@ -124,7 +127,6 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 			sprintf(Texts, "Working:%dMB", (int)(pmc.WorkingSetSize / 1000000));
 			ImGui::PlotLines(Texts, WorkingSetSizeSamples, SAMPLE_LENGTH, 0, "", 0.0f, pmc.PeakWorkingSetSize / 1000000.0f);
 			ImGui::TreePop();
-		}
-		ImGui::End();
 	}
+	ImGui::End();
 }

@@ -6,7 +6,6 @@
 #include "DebugLogWindow.h"
 #include "Hierarchy.h"
 #include <ImGui/imgui_internal.h>
-#include <memory>
 #include <sceneManager.h>
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
@@ -76,65 +75,63 @@ void DebugLogWindow::Initialize(EditorService* editor){
 void DebugLogWindow::Draw(const EditorDrawContext ctx){
 
 	bool* showDebugLogWindow = &m_editor->GetUI<MenuBar>()->showConsole;
-
-	if(showDebugLogWindow && *showDebugLogWindow){
-
-		ImGuiWindowClass window_class;
-		window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
-		ImGui::SetNextWindowClass(&window_class);
-
-		//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
-		ImGuiWindowFlags toolbar_window_flags = 0;
-		if(ImGui::Begin("Debug Log", showDebugLogWindow, toolbar_window_flags)){
-
-			ImGui::InputText("Search", searchBuffer, sizeof(searchBuffer));
-			ImGui::SameLine();
-			if(ImGui::Button("Clear") && logSink){
-				logSink->Clear();
-			}
-			ImGui::SameLine();
-			ImGui::Checkbox("Auto Scroll", &autoScroll);
-
-			ImGui::Separator();
-
-			for(int i = (int)LogLevel::Trace; i <= (int)LogLevel::Critical; ++i){
-				LogLevel level = static_cast<LogLevel>(i);
-				bool selected = levelFilter.find(level) != levelFilter.end();
-				if(ImGui::Checkbox(LevelFilterString(level).c_str(), &selected)){
-					if(selected)
-						levelFilter.insert(level);
-					else
-						levelFilter.erase(level);
-				}
-				if(i < (int)LogLevel::Critical) ImGui::SameLine();
-			}
-
-			if(ImGui::BeginChild("LogRegion", ImVec2(0, 0), false)){
-
-				if(logSink){
-					const auto& entries = logSink->GetEntries();
-					for(const auto& entry : entries){
-						if(!PassesFilter(entry)) continue;
-
-						ImVec4 color = GetColorForLevel(entry.level);
-						ImGui::PushStyleColor(ImGuiCol_Text, color);
-						ImGui::Text(ToU8String((const char*)u8"[%s] %s\n(関数名 %s,ファイル %s ,行 %d)").c_str(),
-									LevelToString(entry.level),
-									entry.message.c_str(),
-									entry.function.c_str(),
-									entry.file.c_str(),
-									entry.line);
-						ImGui::PopStyleColor();
-					}
-
-					if(autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 10.0f)
-						ImGui::SetScrollHereY(1.0f);
-				}
-
-
-			}
-			ImGui::EndChild();
-		}
-		ImGui::End();
+	if(!showDebugLogWindow || !*showDebugLogWindow){
+		return;
 	}
+
+	ImGuiWindowClass window_class;
+	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
+	ImGui::SetNextWindowClass(&window_class);
+
+	//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
+	ImGuiWindowFlags toolbar_window_flags = 0;
+	if(ImGui::Begin("Debug Log", showDebugLogWindow, toolbar_window_flags)){
+
+		ImGui::InputText("Search", searchBuffer, sizeof(searchBuffer));
+		ImGui::SameLine();
+		if(ImGui::Button("Clear") && logSink){
+			logSink->Clear();
+		}
+		ImGui::SameLine();
+		ImGui::Checkbox("Auto Scroll", &autoScroll);
+
+		ImGui::Separator();
+
+		for(int i = (int)LogLevel::Trace; i <= (int)LogLevel::Critical; ++i){
+			LogLevel level = static_cast<LogLevel>(i);
+			bool selected = levelFilter.find(level) != levelFilter.end();
+			if(ImGui::Checkbox(LevelFilterString(level).c_str(), &selected)){
+				if(selected)
+					levelFilter.insert(level);
+				else
+					levelFilter.erase(level);
+			}
+			if(i < (int)LogLevel::Critical) ImGui::SameLine();
+		}
+
+		if(ImGui::BeginChild("LogRegion", ImVec2(0, 0), false)){
+
+			if(logSink){
+				const auto& entries = logSink->GetEntries();
+				for(const auto& entry : entries){
+					if(!PassesFilter(entry)) continue;
+
+					ImVec4 color = GetColorForLevel(entry.level);
+					ImGui::PushStyleColor(ImGuiCol_Text, color);
+					ImGui::Text(ToU8String((const char*)u8"[%s] %s\n(関数名 %s,ファイル %s ,行 %d)").c_str(),
+								LevelToString(entry.level),
+								entry.message.c_str(),
+								entry.function.c_str(),
+								entry.file.c_str(),
+								entry.line);
+					ImGui::PopStyleColor();
+				}
+
+				if(autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 10.0f)
+					ImGui::SetScrollHereY(1.0f);
+			}
+		}
+		ImGui::EndChild();
+	}
+	ImGui::End();
 }

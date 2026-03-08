@@ -6,7 +6,6 @@
 #include "Backends/ImGui/imgui.h"
 #include "DebugTools/ImGuiSystem.h"
 #include "MenuBar.h"
-#include "UIHelpers.h"
 
 void MenuBar::Register(MenuEvent event, const Callback& callback){
 	m_eventCallbacks[event] = callback;
@@ -16,7 +15,15 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 
 	if(ImGui::IsKeyPressed(ImGuiKey_F3, false)){
 		showMenuBar = !showMenuBar;
-		SetMainWindowVisibility(showMenuBar);
+
+		showSceneHierarchy = showMenuBar;
+		showInspector = showMenuBar;
+		showConsole = showMenuBar;
+		showAssetsBrowser = showMenuBar;
+		showEditorView = showMenuBar;
+		showPlayerView = showMenuBar;
+		showPerformanceMonitor = showMenuBar;
+		showSystemSetting = showMenuBar;
 	}
 
 	// Ctrl+Z でアンドゥ
@@ -31,40 +38,41 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 	if(showMenuBar && ImGui::BeginMainMenuBar()){
 		RenderFileMenu();
 		RenderEditMenu();
-		RenderWindowMenu();
+
+		if(ImGui::BeginMenu("Window")){
+			if(ImGui::MenuItem("Scene Hierarchy", nullptr, showSceneHierarchy)){
+				showSceneHierarchy = !showSceneHierarchy;
+			}
+
+			if(ImGui::MenuItem("Inspector", nullptr, showInspector)){
+				showInspector = !showInspector;
+			}
+			if(ImGui::MenuItem("DebugLog", nullptr, showConsole)){
+				showConsole = !showConsole;
+			}
+			if(ImGui::MenuItem("Assets Browser", nullptr, showAssetsBrowser)){
+				showAssetsBrowser = !showAssetsBrowser;
+			}
+			if(ImGui::MenuItem("Editor View", nullptr, showEditorView)){
+				showEditorView = !showEditorView;
+			}
+			if(ImGui::MenuItem("Player View", nullptr, showPlayerView)){
+				showPlayerView = !showPlayerView;
+			}
+			if(ImGui::MenuItem("PerformanceMonitor", nullptr, showPerformanceMonitor)){
+				showPerformanceMonitor = !showPerformanceMonitor;
+			}
+			if(ImGui::MenuItem("SystemSetting", nullptr, showSystemSetting)){
+				showSystemSetting = !showSystemSetting;
+			}
+
+			ImGui::EndMenu();
+		}
 
 
 		ImGui::EndMainMenuBar();
 	}
 
-}
-
-void MenuBar::SetMainWindowVisibility(bool isVisible){
-	showSceneHierarchy = isVisible;
-	showInspector = isVisible;
-	showConsole = isVisible;
-	showAssetsBrowser = isVisible;
-	showEditorView = isVisible;
-	showPlayerView = isVisible;
-	showPerformanceMonitor = isVisible;
-	showSystemSetting = isVisible;
-}
-
-void MenuBar::RenderWindowMenu(){
-	if(!ImGui::BeginMenu("Window")){
-		return;
-	}
-
-	EditorUIHelpers::ToggleWindowMenuItem("Scene Hierarchy", showSceneHierarchy);
-	EditorUIHelpers::ToggleWindowMenuItem("Inspector", showInspector);
-	EditorUIHelpers::ToggleWindowMenuItem("DebugLog", showConsole);
-	EditorUIHelpers::ToggleWindowMenuItem("Assets Browser", showAssetsBrowser);
-	EditorUIHelpers::ToggleWindowMenuItem("Editor View", showEditorView);
-	EditorUIHelpers::ToggleWindowMenuItem("Player View", showPlayerView);
-	EditorUIHelpers::ToggleWindowMenuItem("PerformanceMonitor", showPerformanceMonitor);
-	EditorUIHelpers::ToggleWindowMenuItem("SystemSetting", showSystemSetting);
-
-	ImGui::EndMenu();
 }
 
 void MenuBar::Invoke(MenuEvent event){

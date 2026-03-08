@@ -7,7 +7,6 @@
 #include "buildSetting.h"
 #include <string>
 #include <unordered_map>
-#include <vector>
 #include <functional>
 
 #include "Editor/editorService.h"
@@ -60,10 +59,6 @@ private:
 
 	std::unordered_map<MenuEvent, Callback> m_eventCallbacks;
 
-	// F3 に連動する主要ウィンドウの表示状態を一括更新する
-	void SetMainWindowVisibility(bool isVisible);
-	// Window メニューの表示切り替え項目を描画する
-	void RenderWindowMenu();
 	void RenderFileMenu();
 	void RenderEditMenu();
 };

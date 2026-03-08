@@ -5,11 +5,11 @@
 // =======================================================================
 #include "Inspector.h"
 #include <ImGui/imgui_internal.h>
+#include <cstring>
 #include <memory>
 #include <sceneManager.h>
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
-#include "Editor/UI/UIHelpers.h"
 #include "Editor/Command/EntityCommand.h"
 #include "Editor/Command/ComponentCommand.h"
 #include <scene.h>
@@ -20,7 +20,9 @@
 
 void Inspector::Draw(const EditorDrawContext ctx){
 
-	EditorUIHelpers::PrepareDockWindow();
+	ImGuiWindowClass window_class;
+	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
+	ImGui::SetNextWindowClass(&window_class);
 	bool* showInspector = &m_editor->GetUI<MenuBar>()->showInspector;
 	Entity selectedEntity = m_editor->GetUI<Hierarchy>()->selectedEntity;
 	SceneContext* context = m_editor->GetUI<Hierarchy>()->sceneContext;
@@ -57,7 +59,8 @@ void Inspector::Draw(const EditorDrawContext ctx){
 	if(name){
 		// 名前編集用に std::string を ImGui の固定長バッファへ変換する
 		static char nameBuffer[256];
-		EditorUIHelpers::CopyStringToBuffer(nameBuffer, name->name);
+		strncpy(nameBuffer, name->name.c_str(), sizeof(nameBuffer));
+		nameBuffer[sizeof(nameBuffer) - 1] = '\0';
 
 		if(ImGui::InputText("##Name", nameBuffer, sizeof(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)){
 			// Enter 確定時のみコマンド経由で名前を更新する

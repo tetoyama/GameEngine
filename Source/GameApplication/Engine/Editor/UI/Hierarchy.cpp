@@ -10,12 +10,12 @@
 #include <algorithm>
 #include <typeindex>
 #include <cinttypes>
+#include <cstring>
 #include <sceneManager.h>
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
 #include "Editor/Command/EntityCommand.h"
 #include "Editor/Command/PrefabCommand.h"
-#include "Editor/UI/UIHelpers.h"
 #include <scene.h>
 #include <Component/transformComponent.h>
 #include <Component/entityNameComponent.h>
@@ -27,10 +27,10 @@
 
 void Hierarchy::Draw(const EditorDrawContext ctx){
 
-	EditorUIHelpers::PrepareDockWindow();
+	ImGuiWindowClass window_class;
+	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
+	ImGui::SetNextWindowClass(&window_class);
 	bool* showSceneHierarchy = &m_editor->GetUI<MenuBar>()->showSceneHierarchy;
-	SceneManagerContext* sceneManagerContext = m_editor->sceneManager->GetContext();
-	std::shared_ptr<Scene> sceneToDelete = nullptr;
 
 	if(!showSceneHierarchy || !*showSceneHierarchy){
 		return;
@@ -48,7 +48,10 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 
 		// PrefabInstantiateCommand の Undo 後に選択状態をリセットする共通コールバック
 		auto onPrefabUndone = [this]() {
-			ClearInvalidSelection();
+			if(sceneContext && !sceneContext->entity->IsAlive(selectedEntity))
+				selectedEntity = 0;
+			if(sceneContext && !sceneContext->entity->IsAlive(pendingRenameEntity))
+				pendingRenameEntity = 0;
 		};
 
 		if(ImGui::TreeNodeEx((scenePair.second->SceneName + "##" + scenePair.first).c_str(), ImGuiTreeNodeFlags_DefaultOpen)){
@@ -202,20 +205,6 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 	ImGui::End();
 }
 
-void Hierarchy::SelectEntity(Entity entity, SceneContext* context){
-	selectedEntity = entity;
-	sceneContext = context;
-}
-
-void Hierarchy::ClearInvalidSelection(){
-	if(sceneContext && !sceneContext->entity->IsAlive(selectedEntity)) {
-		selectedEntity = 0;
-	}
-	if(sceneContext && !sceneContext->entity->IsAlive(pendingRenameEntity)) {
-		pendingRenameEntity = 0;
-	}
-}
-
 void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities){
 	float offsetX = ImGui::GetCursorPosX();
 
@@ -257,7 +246,8 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 	ImGui::EndGroup();
 
 	if(ImGui::IsItemClicked()){
-		SelectEntity(entity, context);
+		selectedEntity = entity;
+		sceneContext = context;
 	}
 	// --- 右クリックメニュー ---
 	char popupId[32];
@@ -267,7 +257,8 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		if(ImGui::MenuItem("名前変更")){
 			pendingRenameEntity = entity;
 			if(name){
-				EditorUIHelpers::CopyStringToBuffer(renameBuffer, name->name);
+				strncpy(renameBuffer, name->name.c_str(), sizeof(renameBuffer));
+				renameBuffer[sizeof(renameBuffer) - 1] = '\0';
 			}
 		}
 
@@ -277,10 +268,14 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 				auto cmd = std::make_unique<EmptyParentCommand>(
 					context, entity,
 					[this, context](Entity e, SceneContext*){
-						SelectEntity(e, context);
+						selectedEntity = e;
+						sceneContext   = context;
 					},
 					[this](){
-						ClearInvalidSelection();
+						if(sceneContext && !sceneContext->entity->IsAlive(selectedEntity))
+							selectedEntity = 0;
+						if(sceneContext && !sceneContext->entity->IsAlive(pendingRenameEntity))
+							pendingRenameEntity = 0;
 					});
 				m_editor->commandManager.Execute(std::move(cmd));
 			}
@@ -289,7 +284,8 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 				auto cmd = std::make_unique<EntityCreateCommand>(
 					context, entity,
 					[this, context](Entity e, SceneContext*){
-						SelectEntity(e, context);
+						selectedEntity = e;
+						sceneContext   = context;
 					});
 				m_editor->commandManager.Execute(std::move(cmd));
 			}
@@ -300,10 +296,14 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			auto cmd = std::make_unique<EntityDuplicateCommand>(
 				context, entity,
 				[this, context](Entity e, SceneContext*){
-					SelectEntity(e, context);
+					selectedEntity = e;
+					sceneContext   = context;
 				},
 				[this](){
-					ClearInvalidSelection();
+					if(sceneContext && !sceneContext->entity->IsAlive(selectedEntity))
+						selectedEntity = 0;
+					if(sceneContext && !sceneContext->entity->IsAlive(pendingRenameEntity))
+						pendingRenameEntity = 0;
 				});
 			m_editor->commandManager.Execute(std::move(cmd));
 		}
@@ -314,7 +314,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 					auto* nameComp = context->component->GetComponent<NameComponent>(entity);
 					std::string defaultName = ((nameComp && !nameComp->name.empty()) ? nameComp->name : "Entity") + ".prefab";
 					char szFile[MAX_PATH] = {};
-					EditorUIHelpers::CopyStringToBuffer(szFile, defaultName);
+					strncpy(szFile, defaultName.c_str(), MAX_PATH - 1);
 
 					OPENFILENAMEA ofn = {};
 					ofn.lStructSize = sizeof(ofn);
@@ -346,10 +346,14 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 				[this](){
 					// 削除後、選択中エンティティが生存していなければ選択を解除する
 					// （削除対象の親だけでなく子エンティティが選択されていた場合も対応）
-					ClearInvalidSelection();
+					if(this->sceneContext && !this->sceneContext->entity->IsAlive(this->selectedEntity))
+						this->selectedEntity = 0;
+					if(this->sceneContext && !this->sceneContext->entity->IsAlive(this->pendingRenameEntity))
+						this->pendingRenameEntity = 0;
 				},
 				[this](Entity e, SceneContext* ctx){
-					SelectEntity(e, ctx);
+					selectedEntity = e;
+					sceneContext   = ctx;
 				});
 			m_editor->commandManager.Execute(std::move(cmd));
 
@@ -389,9 +393,10 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 
 		if(pendingRenameEntity != entity){
 			if(name){
-				EditorUIHelpers::CopyStringToBuffer(renameBuffer, name->name);
+				strncpy(renameBuffer, name->name.c_str(), sizeof(renameBuffer));
+				renameBuffer[sizeof(renameBuffer) - 1] = '\0';
 			} else{
-				EditorUIHelpers::ClearBuffer(renameBuffer);
+				renameBuffer[0] = '\0';
 			}
 			pendingRenameEntity = entity;
 		}
