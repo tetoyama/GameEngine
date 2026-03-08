@@ -34,7 +34,6 @@ void PostEffectPass::SetInputs(ID3D11ShaderResourceView* initialSRV, ID3D11Rende
 void PostEffectPass::Execute(const RenderPassContext& ctx) {
 
 	GraphicsContext*     graphics      = m_context->graphics;
-	ID3D11DeviceContext* deviceContext  = graphics->GetDeviceContext();
 
 	std::vector<PostProcessNode>      postNodes;
 	std::unordered_map<int, int>      effectIndexToPostNodeIndex;
@@ -65,6 +64,8 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 			Vector2 scaledSize{ ctx.screenSize.x * scale, ctx.screenSize.y * scale };
 			e.ResizeTexture(graphics->GetDevice(), scaledSize);
 			e.Clear(graphics->GetDeviceContext(), &clearColor.x);
+			node.outputWidth = static_cast<UINT>(e.resolution.x);
+			node.outputHeight = static_cast<UINT>(e.resolution.y);
 			node.rtv = e.rtv.GetAddressOf();
 			node.srv = e.srv.Get();
 			node.tex = e.tex.Get();
@@ -108,12 +109,6 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 			}
 		}
 
-		// SRV / RTV を全解除
-		ID3D11ShaderResourceView* nullSRV[TextureSlot_Max] = {nullptr};
-		deviceContext->PSSetShaderResources(0, TextureSlot_Max, nullSRV);
-		ID3D11RenderTargetView* nullRTV[1] = {nullptr};
-		deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);
-
 		// GBuffer SRV を収集
 		ID3D11ShaderResourceView* gbufferSRVs[PostEffectGBufferSlot_Count] = {};
 		for (int g = 0; g < GBufferSlot_Max; ++g) {
@@ -134,11 +129,4 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 		resultRtv = m_initialRTV;
 	}
 
-	// クリーンアップ
-	{
-		ID3D11ShaderResourceView* nullSRV[TextureSlot_Max] = {nullptr};
-		deviceContext->PSSetShaderResources(0, TextureSlot_Max, nullSRV);
-		ID3D11RenderTargetView* nullRTV[1] = {nullptr};
-		deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);
-	}
 }

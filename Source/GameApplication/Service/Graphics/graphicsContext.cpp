@@ -833,54 +833,92 @@ void GraphicsContext::ResetBuffer(const float clearColor[4]){
 
 void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effects, ID3D11ShaderResourceView* initialSRV,
                                              ID3D11ShaderResourceView* const* gbufferSRVs, int gbufferCount){
+	ID3D11DeviceContext* deviceContext = m_DeviceContext.Get();
+	ID3D11ShaderResourceView* boundSRVs[TextureSlot_Max] = {nullptr};
+	ID3D11RenderTargetView* boundRTV = nullptr;
+	UINT currentViewportWidth = 0;
+	UINT currentViewportHeight = 0;
+	UINT previousInputSlotCount = 0;
+
+	auto BindShaderResource = [&](UINT slot, ID3D11ShaderResourceView* srv) {
+		if (slot >= TextureSlot_Max || boundSRVs[slot] == srv) return;
+		deviceContext->PSSetShaderResources(slot, 1, &srv);
+		boundSRVs[slot] = srv;
+	};
+
+	int boundGBufferCount = 0;
+	if (gbufferSRVs && gbufferCount > 0) {
+		boundGBufferCount = (gbufferCount < PostEffectGBufferSlot_Count) ? gbufferCount : PostEffectGBufferSlot_Count;
+		for (int g = 0; g < boundGBufferCount; ++g) {
+			BindShaderResource(PostEffectGBufferSlot_Start + g, gbufferSRVs[g]);
+		}
+	}
+
 	for(auto& node : effects){
+		for (UINT slot = 0; slot < TextureSlot_Max; ++slot) {
+			if (boundSRVs[slot] == node.srv) {
+				BindShaderResource(slot, nullptr);
+			}
+		}
 
-		ID3D11ShaderResourceView* nullSRV[TextureSlot_Max] = {nullptr};
-		m_DeviceContext->PSSetShaderResources(0, 8, nullSRV); // まず全解除
+		ID3D11RenderTargetView* nextRTV = (node.rtv) ? *node.rtv : nullptr;
+		if (boundRTV != nextRTV) {
+			deviceContext->OMSetRenderTargets(1, node.rtv, nullptr);
+			boundRTV = nextRTV;
+		}
 
-		m_DeviceContext->OMSetRenderTargets(1, node.rtv, nullptr);
-
-		// ダウンサンプリング: レンダーターゲットのサイズに合わせてビューポートを設定
-		if(node.tex){
-			D3D11_TEXTURE2D_DESC desc;
-			node.tex->GetDesc(&desc);
+		if (node.outputWidth != 0 && node.outputHeight != 0 &&
+			(node.outputWidth != currentViewportWidth || node.outputHeight != currentViewportHeight)) {
 			D3D11_VIEWPORT vp{};
 			vp.TopLeftX = 0.0f;
 			vp.TopLeftY = 0.0f;
-			vp.Width    = static_cast<float>(desc.Width);
-			vp.Height   = static_cast<float>(desc.Height);
+			vp.Width = static_cast<float>(node.outputWidth);
+			vp.Height = static_cast<float>(node.outputHeight);
 			vp.MinDepth = 0.0f;
 			vp.MaxDepth = 1.0f;
-			m_DeviceContext->RSSetViewports(1, &vp);
+			deviceContext->RSSetViewports(1, &vp);
+			currentViewportWidth = node.outputWidth;
+			currentViewportHeight = node.outputHeight;
 		}
 
-		for(size_t i = 0; i < node.inputs.size(); ++i){
+		UINT inputSlotCount = static_cast<UINT>(node.inputs.size());
+		if (inputSlotCount > PostEffectGBufferSlot_Start) {
+			inputSlotCount = PostEffectGBufferSlot_Start;
+		}
+
+		for(UINT i = 0; i < inputSlotCount; ++i){
 			ID3D11ShaderResourceView* inputSRV = nullptr;
 			if(node.inputs[i] == -2){
 				inputSRV = initialSRV;
 			} else if(node.inputs[i] >= 0 && node.inputs[i] < static_cast<int>(effects.size())){
 				inputSRV = effects[node.inputs[i]].srv;
 			}
-			m_DeviceContext->PSSetShaderResources(static_cast<UINT>(i), 1, &inputSRV);
+			BindShaderResource(i, inputSRV);
 		}
 
-		// GBuffer を固定スロット (PostEffectGBufferSlot_Start 以降) にバインド
-		if(gbufferSRVs && gbufferCount > 0){
-			for(int g = 0; g < gbufferCount; ++g){
-				m_DeviceContext->PSSetShaderResources(PostEffectGBufferSlot_Start + g, 1, &gbufferSRVs[g]);
-			}
+		for (UINT i = inputSlotCount; i < previousInputSlotCount && i < PostEffectGBufferSlot_Start; ++i) {
+			BindShaderResource(i, nullptr);
 		}
+		previousInputSlotCount = inputSlotCount;
 
 		SetParameter(node.param);
 
 		DrawQuad(&node.shader, nullptr); // SRV はすでに PSSetShaderResources でセット済み
 	}
 
-	// GBuffer スロットを解除
-	if(gbufferSRVs && gbufferCount > 0){
-		ID3D11ShaderResourceView* nullGBuf[PostEffectGBufferSlot_Count] = {nullptr};
-		int unbindCount = (gbufferCount < PostEffectGBufferSlot_Count) ? gbufferCount : PostEffectGBufferSlot_Count;
-		m_DeviceContext->PSSetShaderResources(PostEffectGBufferSlot_Start, unbindCount, nullGBuf);
+	for (UINT i = 0; i < previousInputSlotCount && i < PostEffectGBufferSlot_Start; ++i) {
+		BindShaderResource(i, nullptr);
+	}
+
+	if(boundGBufferCount > 0){
+		for (int g = 0; g < boundGBufferCount; ++g) {
+			BindShaderResource(PostEffectGBufferSlot_Start + g, nullptr);
+		}
+	}
+
+	if (boundRTV) {
+		ID3D11RenderTargetView* nullRTV[1] = {nullptr};
+		deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);
 	}
 
 	if(!effects.empty()){
@@ -929,12 +967,14 @@ void GraphicsContext::DrawQuad(PostEffectShader* shader, ID3D11ShaderResourceVie
 	context->IASetIndexBuffer(m_FullScreenIB.Get(), DXGI_FORMAT_R32_UINT, 0);
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	if (inputSRV){
-	context->PSSetShaderResources(0, 1, &inputSRV);
+		context->PSSetShaderResources(0, 1, &inputSRV);
 	}
 	context->DrawIndexed(3, 0, 0);
 
-	ID3D11ShaderResourceView* nullSRV[1] = {nullptr};
-	context->PSSetShaderResources(0, 1, nullSRV);
+	if (inputSRV) {
+		ID3D11ShaderResourceView* nullSRV[1] = {nullptr};
+		context->PSSetShaderResources(0, 1, nullSRV);
+	}
 }
 
 

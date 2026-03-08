@@ -96,10 +96,9 @@ struct CameraPostEffect {
 		CreateTexture(device, screenSize);
 	}
 
-	// レンダーターゲットをバインドして指定色でクリアする
+	// 指定色でレンダーターゲットをクリアする
 	void Clear(ID3D11DeviceContext* context, const float clearColor[4]){
 		if (rtv) {
-			context->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
 			context->ClearRenderTargetView(rtv.Get(), clearColor);
 		}
 	}

@@ -67,6 +67,8 @@ struct PostProcessNode {
 	int id;
 	std::string shaderPath;
 	float resolutionScale = 1.0f;
+	UINT outputWidth = 0;
+	UINT outputHeight = 0;
 
 	DirectX::XMFLOAT4 param = {0,0,0,0};
 
