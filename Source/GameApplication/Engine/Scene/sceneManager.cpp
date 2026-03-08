@@ -57,6 +57,9 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 
 
 	m_SceneContext = sceneContext;
+	if(m_SceneContext.debug){
+		m_SceneContext.debug->LOG_INFO("SceneManager の初期化を開始します");
+	}
 
 	systemRegistry = std::make_shared<SystemRegistry>();
 
@@ -83,6 +86,10 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 	for (auto& [name, scene] : m_activeScenes) {
 		scene->Initialize(&m_SceneContext);
 	}
+
+	if(m_SceneContext.debug){
+		m_SceneContext.debug->LOG_INFO("SceneManager の初期化が完了しました");
+	}
 }
 
 void SceneManager::Update(float deltaTime){
@@ -90,12 +97,16 @@ void SceneManager::Update(float deltaTime){
 	if (OldState != State) {
 		if (State == SceneManagerState::Paused) {
 
-			m_SceneContext.debug->LOG_INFO("シーンを一時停止します");
+			if(m_SceneContext.debug){
+				m_SceneContext.debug->LOG_INFO("シーンを一時停止します");
+			}
 			OldState = State;
 
 		} else if (State == SceneManagerState::Stopped) {
 
-			m_SceneContext.debug->LOG_INFO("シーンを停止します");
+			if(m_SceneContext.debug){
+				m_SceneContext.debug->LOG_INFO("シーンを停止します");
+			}
 
 			systemRegistry->StopAll();
 
@@ -119,24 +130,32 @@ void SceneManager::Update(float deltaTime){
 					m_SceneContext.editor->commandManager.Clear();
 				}
 
-				m_SceneContext.debug->LOG_INFO("シーンを開始します");
+				if(m_SceneContext.debug){
+					m_SceneContext.debug->LOG_INFO("シーンを開始します");
+				}
 				systemRegistry->StartAll();
 
 			} else {
-				m_SceneContext.debug->LOG_INFO("シーンを再開します");
+				if(m_SceneContext.debug){
+					m_SceneContext.debug->LOG_INFO("シーンを再開します");
+				}
 			}
 			OldState = State;
 
 		} else if (State == SceneManagerState::Step) {
 
-			m_SceneContext.debug->LOG_INFO("シーンを1フレーム進めます");
+			if(m_SceneContext.debug){
+				m_SceneContext.debug->LOG_INFO("シーンを1フレーム進めます");
+			}
 
 			if (OldState == SceneManagerState::Stopped) {
 				TempSave(); // 一時保存
 				if (m_SceneContext.editor) {
 					m_SceneContext.editor->commandManager.Clear();
 				}
-				m_SceneContext.debug->LOG_INFO("シーンを開始します");
+				if(m_SceneContext.debug){
+					m_SceneContext.debug->LOG_INFO("シーンを開始します");
+				}
 				systemRegistry->StartAll();
 			}
 
@@ -176,6 +195,9 @@ void SceneManager::Update(float deltaTime){
 
 			it->second->Shutdown();
 			it->second.reset();
+			if(m_SceneContext.debug){
+				m_SceneContext.debug->LOG_INFO(("シーンを破棄しました: " + it->first).c_str());
+			}
 
 			it = m_activeScenes.erase(it);
 
@@ -185,6 +207,9 @@ void SceneManager::Update(float deltaTime){
 	}
 
 	if(m_NeedSceneChange){
+		if(m_SceneContext.debug && m_NextScene){
+			m_SceneContext.debug->LOG_INFO(("遅延シーン切り替えを適用します: " + m_NextScene->SceneName).c_str());
+		}
 
 		LoadScene(m_NextScene);
 
@@ -210,6 +235,9 @@ void SceneManager::Draw(){
 }
 
 void SceneManager::Shutdown(){
+	if(m_SceneContext.debug){
+		m_SceneContext.debug->LOG_INFO("SceneManager を終了します");
+	}
 	for(auto& [name, scene] : m_activeScenes){
 		scene->Shutdown();
 		scene.reset();
@@ -223,6 +251,9 @@ void SceneManager::Shutdown(){
 
 void SceneManager::AddScene(std::shared_ptr<Scene> scene) {
 	if (!scene) {
+		if(m_SceneContext.debug){
+			m_SceneContext.debug->LOG_WARNING("追加対象のシーンが nullptr です");
+		}
 		return;
 	}
 
@@ -238,11 +269,22 @@ void SceneManager::AddScene(std::shared_ptr<Scene> scene) {
 
 	m_activeScenes[scene->SceneName] = scene;
 	scene->Initialize(&m_SceneContext);
+	if(m_SceneContext.debug){
+		m_SceneContext.debug->LOG_INFO(("シーンを追加しました: " + scene->SceneName).c_str());
+	}
 }
 
 void SceneManager::LoadScene(std::shared_ptr<Scene> scene){
+	if(!scene){
+		if(m_SceneContext.debug){
+			m_SceneContext.debug->LOG_ERROR("LoadScene に nullptr が渡されました");
+		}
+		return;
+	}
 
-	m_SceneContext.debug->LOG_INFO("Sceneを読み込みます...");
+	if(m_SceneContext.debug){
+		m_SceneContext.debug->LOG_INFO("Sceneを読み込みます...");
+	}
 
 	// シーン全置換前に CommandManager をクリアする（ダングリングポインタ防止）
 	if (m_SceneContext.editor) {
@@ -258,6 +300,9 @@ void SceneManager::LoadScene(std::shared_ptr<Scene> scene){
 	m_activeScenes[scene->SceneName] = scene;
 
 	scene->Initialize(&m_SceneContext);
+	if(m_SceneContext.debug){
+		m_SceneContext.debug->LOG_INFO(("シーンの読み込みが完了しました: " + scene->SceneName).c_str());
+	}
 
 	m_SceneContext.resource->ClearAllUnused();
 }
@@ -266,11 +311,20 @@ void SceneManager::DeferredLoadScene(std::shared_ptr<Scene> scene){
 	m_NextScene.reset();
 	m_NeedSceneChange = true;
 	m_NextScene = scene;
+	if(m_SceneContext.debug && scene){
+		m_SceneContext.debug->LOG_DEBUG(("シーン切り替えを予約しました: " + scene->SceneName).c_str());
+	}
 }
 
 void SceneManager::SaveScenes(){
+	if(m_SceneContext.debug){
+		m_SceneContext.debug->LOG_INFO("アクティブシーンの保存を開始します");
+	}
 	for (auto& [name, scene] : m_activeScenes) {
 		scene->Save();
+	}
+	if(m_SceneContext.debug){
+		m_SceneContext.debug->LOG_INFO("アクティブシーンの保存が完了しました");
 	}
 }
 
@@ -279,9 +333,14 @@ std::shared_ptr<Scene>  SceneManager::OpenFromYAMLFile(){
 
 	scene->Initialize(&m_SceneContext);
 	if(scene->LoadFromYAMLFile()){
-
+		if(m_SceneContext.debug){
+			m_SceneContext.debug->LOG_INFO(("YAML からシーンを読み込みました: " + scene->SceneName).c_str());
+		}
 		m_SceneContext.resource->ClearAllUnused();
 		return scene;
+	}
+	if(m_SceneContext.debug){
+		m_SceneContext.debug->LOG_WARNING("YAML シーンの読み込みに失敗しました");
 	}
 	scene->Shutdown();
 	scene.reset();
@@ -290,7 +349,9 @@ std::shared_ptr<Scene>  SceneManager::OpenFromYAMLFile(){
 
 std::shared_ptr<Scene> SceneManager::LoadFromFilePath(const std::string& filePath){
 
-	m_SceneContext.debug->LOG_INFO(("Scene[" + filePath + "]を読み込みます...").c_str());
+	if(m_SceneContext.debug){
+		m_SceneContext.debug->LOG_INFO(("Scene[" + filePath + "]を読み込みます...").c_str());
+	}
 
 	auto scene = std::make_shared<Scene>();
 	scene->Initialize(&m_SceneContext);
@@ -298,6 +359,9 @@ std::shared_ptr<Scene> SceneManager::LoadFromFilePath(const std::string& filePat
 	scene->LoadSceneFromYAML(filePath);
 
 	m_activeScenes[scene->SceneName] = scene;
+	if(m_SceneContext.debug){
+		m_SceneContext.debug->LOG_INFO(("ファイルパスからシーンを読み込みました: " + scene->SceneName).c_str());
+	}
 
 	m_SceneContext.resource->ClearAllUnused();
 
@@ -305,6 +369,9 @@ std::shared_ptr<Scene> SceneManager::LoadFromFilePath(const std::string& filePat
 }
 
 void SceneManager::TempSave() {
+	if(m_SceneContext.debug){
+		m_SceneContext.debug->LOG_TRACE("シーンの一時保存を開始します");
+	}
 	YAML::Emitter out;
 	out << YAML::BeginMap;
 	out << YAML::Key << "Scenes" << YAML::Value << YAML::BeginSeq;
@@ -324,9 +391,15 @@ void SceneManager::TempSave() {
 	std::ofstream fout((std::string(TEMP_SAVE_PATH) + "TempSave.yaml").c_str());
 	fout << out.c_str();
 	fout.close();
+	if(m_SceneContext.debug){
+		m_SceneContext.debug->LOG_TRACE("シーンの一時保存が完了しました");
+	}
 }
 
 void SceneManager::TempLoad() {
+	if(m_SceneContext.debug){
+		m_SceneContext.debug->LOG_TRACE("シーンの一時復元を開始します");
+	}
 	// アクティブシーンを破棄
 	for (auto& [name, scene] : m_activeScenes) {
 		if (scene) {
@@ -368,4 +441,7 @@ void SceneManager::TempLoad() {
 	}
 
 	m_SceneContext.resource->ClearAllUnused();
+	if(m_SceneContext.debug){
+		m_SceneContext.debug->LOG_TRACE("シーンの一時復元が完了しました");
+	}
 }

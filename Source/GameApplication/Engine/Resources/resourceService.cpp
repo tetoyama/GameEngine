@@ -23,9 +23,14 @@
 #include "Loader/llamaModelLoader.h"
 #include "Loader/prefabLoader.h"
 
-void ResourceService::Initialize(GraphicsContext* graphics, AudioContext* audio){
+void ResourceService::Initialize(GraphicsContext* graphics, AudioContext* audio, DebugLogService* debugLog){
 	m_Graphics = graphics;
 	m_Audio = audio;
+	m_DebugLog = debugLog;
+
+	if(m_DebugLog){
+		m_DebugLog->LOG_INFO("ResourceService の初期化を開始します");
+	}
 
 	RegisterLoader<TextureData>();
 	RegisterLoader<ModelData>();
@@ -35,10 +40,16 @@ void ResourceService::Initialize(GraphicsContext* graphics, AudioContext* audio)
 	RegisterLoader<EffectData>();
 	RegisterLoader<LLAMAModelData>();
 	RegisterLoader<PrefabData>();
+
+	if(m_DebugLog){
+		m_DebugLog->LOG_INFO("ResourceService の初期化が完了しました");
+	}
 }
 
 void ResourceService::Shutdown(){
-	OutputDebugStringA("Shutdown ResourceService called\n");
+	if(m_DebugLog){
+		m_DebugLog->LOG_INFO("ResourceService を終了します");
+	}
 
 	ClearAllUnused();
 
@@ -48,4 +59,6 @@ void ResourceService::Shutdown(){
 
 	m_Loaders.clear();
 	m_Graphics = nullptr;
+	m_Audio = nullptr;
+	m_DebugLog = nullptr;
 }

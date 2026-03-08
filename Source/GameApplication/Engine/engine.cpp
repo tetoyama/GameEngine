@@ -76,16 +76,27 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	// --- Step 1: デバッグログ初期化（他のサービスより先に初期化し、ログ出力を有効化）
 	if(debugLogSystem){
 		debugLogSystem->Initialize();
+		debugLogSystem->LOG_INFO("Engine::Initialize を開始します");
 	}
 
 	// --- Step 2: アプリ設定の読み込み（ウィンドウサイズ・スタートシーン等の設定を取得）
 	if(!configSystem || !configSystem->Initialize()){
+		if(debugLogSystem){
+			debugLogSystem->LOG_ERROR("ConfigService の初期化に失敗しました");
+		}
 		OutputDebugStringA("configSystem の初期化に失敗しました。\n");
+	} else if(debugLogSystem){
+		debugLogSystem->LOG_INFO("ConfigService の初期化が完了しました");
 	}
 
     // --- Step 3: ウィンドウ生成（設定ファイルに基づいて OS ウィンドウを作成）
     if (!windowService || !windowService->Initialize(hInstance, nCmdShow,configSystem->appConfig)) {
+        if(debugLogSystem){
+			debugLogSystem->LOG_ERROR("WindowService の初期化に失敗しました");
+        }
         OutputDebugStringA("WindowService の初期化に失敗しました。\n");
+    } else if(debugLogSystem){
+		debugLogSystem->LOG_INFO("WindowService の初期化が完了しました");
     }
 	auto mainWindow = windowService->GetMainWindow();
 
@@ -95,39 +106,63 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	// --- Step 4: タイムサービス初期化（デルタタイム計測開始）
 	if(timeService){
 		timeService->Initialize();
+		if(debugLogSystem){
+			debugLogSystem->LOG_TRACE("TimeService の初期化が完了しました");
+		}
 	}
 
 	// --- Step 5: オーディオ初期化（XAudio2 エンジン起動）
 	if(!audioContext || !audioContext->Initialize()){
+		if(debugLogSystem){
+			debugLogSystem->LOG_ERROR("AudioContext の初期化に失敗しました");
+		}
 		OutputDebugStringA("AudioContext の初期化に失敗しました。\n");
+	} else if(debugLogSystem){
+		debugLogSystem->LOG_INFO("AudioContext の初期化が完了しました");
 	}
 
     // --- Step 6: DirectX 11 グラフィクスコンテキスト初期化
 	//             デバイス・デバイスコンテキスト・スワップチェーンを生成
     if (!graphicsContext || 
         !graphicsContext->Initialize(windowService->GetMainWindow()->GetHWND(), mainWindow->GetWidth(), mainWindow->GetHeight())){
+        if(debugLogSystem){
+			debugLogSystem->LOG_ERROR("GraphicsContext の初期化に失敗しました");
+        }
         OutputDebugStringA("GraphicsContext の初期化に失敗しました。\n");
+    } else if(debugLogSystem){
+		debugLogSystem->LOG_INFO("GraphicsContext の初期化が完了しました");
     }
 
 	// --- Step 7: リソースサービス初期化（テクスチャ・モデル・シェーダのローダー設定）
 	if(resourceService){
-		resourceService->Initialize(graphicsContext.get(), audioContext.get());
+		resourceService->Initialize(graphicsContext.get(), audioContext.get(), debugLogSystem.get());
 	}
 
 	// --- Step 8: 入力サービス初期化（DirectInput/Win32 メッセージによる入力ハンドラ設定）
 	if(inputService){
 		inputService->Initialize(windowService->GetMainWindow()->GetHWND());
+		if(debugLogSystem){
+			debugLogSystem->LOG_TRACE("InputService の初期化が完了しました");
+		}
 	}
 
 	// --- Step 9: ImGui 初期化（Dear ImGui のバックエンドをウィンドウと D3D11 デバイスに紐付け）
     if (!imguiService || 
         !imguiService->Initialize(windowService->GetMainWindow().get(), graphicsContext.get())) {
+        if(debugLogSystem){
+			debugLogSystem->LOG_ERROR("ImGuiService の初期化に失敗しました");
+        }
         OutputDebugStringA("ImGuiService の初期化に失敗しました。\n");
+    } else if(debugLogSystem){
+		debugLogSystem->LOG_INFO("ImGuiService の初期化が完了しました");
     }
 
 	// --- Step 10: メインレンダラー初期化（レンダーターゲット・デプスバッファ・ビューポート設定）
 	if(mainRenderer){
 		mainRenderer->Initialize(graphicsContext.get(), windowService->GetMainWindow().get());
+		if(debugLogSystem){
+			debugLogSystem->LOG_INFO("MainRenderer の初期化が完了しました");
+		}
 	}
 
     // メインウィンドウに各サービスを紐付け（ウィンドウリサイズ時の再初期化等に必要）
@@ -146,6 +181,9 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		editorContext.sceneManager = sceneManager.get();
 
 		editorService->Initialize(editorContext);
+		if(debugLogSystem){
+			debugLogSystem->LOG_INFO("EditorService の初期化が完了しました");
+		}
 	}
 
     // --- Step 12: シーンマネージャ初期化（ECS・レンダリングシステムの登録）
@@ -165,6 +203,9 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		sceneManagerContext.editor = editorService.get();
 		// SceneManagerの初期化（システムレジストリの構築とシステムの登録）
 		sceneManager->Initialize(sceneManagerContext);
+		if(debugLogSystem){
+			debugLogSystem->LOG_INFO("SceneManager の初期化が完了しました");
+		}
 	}
 
     // --- Step 13: メニューバーのイベント登録（File / Edit メニュー操作を各サービスにバインド）
@@ -205,9 +246,14 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 		llamaContext.resourceService = resourceService.get();
 
 		llamaService->Initialize(llamaContext);
+		if(debugLogSystem){
+			debugLogSystem->LOG_INFO("LLAMAService の初期化が完了しました");
+		}
 	}
 
-    debugLogSystem->LOG_INFO("EngineContextの初期化が完了しました");
+    if(debugLogSystem){
+		debugLogSystem->LOG_INFO("EngineContext の初期化が完了しました");
+    }
 }
 
 // -----------------------------------------------------------------------
@@ -259,7 +305,9 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 	}
 	auto debugLogSystem = context->Get<DebugLogService>();
 
-	debugLogSystem->LOG_DEBUG("Engineの実行を開始します...");
+	if(debugLogSystem){
+		debugLogSystem->LOG_INFO("Engine の実行を開始します");
+	}
 
 	// 必要なサービスを取得
 	auto windowService = context->Get<WindowService>();
@@ -272,7 +320,9 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 	auto sceneManager = context->Get<SceneManager>();
 	auto editorService = context->Get<EditorService>();
 
-	debugLogSystem->LOG_DEBUG("EngineContextの取得が完了しました");
+	if(debugLogSystem){
+		debugLogSystem->LOG_TRACE("EngineContext から実行時サービスを取得しました");
+	}
 
 	// 最初のシーンを作成・ロード
 	auto initialScene = std::make_shared<Scene>();
@@ -281,6 +331,9 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 #else
 	sceneManager->LoadFromFilePath(configSystem->appConfig.startSceneFilePath);
 #endif // _DEBUG_BUILD
+	if(debugLogSystem){
+		debugLogSystem->LOG_INFO("初期シーンのロードが完了しました");
+	}
 
 	// ウィンドウが閉じられるまでメインループを実行
 	while(!windowService->GetMainWindow()->ShouldClose()){
@@ -348,5 +401,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		// Draw フェーズの所要時間を記録
 		timeService->EndDraw();
 	}
-	debugLogSystem->LOG_DEBUG("Engineを終了します");
+	if(debugLogSystem){
+		debugLogSystem->LOG_INFO("Engine の実行ループを終了します");
+	}
 }
