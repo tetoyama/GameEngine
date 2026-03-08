@@ -2,6 +2,7 @@
 
 cbuffer CB_Bones : register(b0)
 {
+    // ボーン行列配列（モデル空間 -> スキニング後空間）
     float4x4 g_BoneMatrix[BONE_MAX_COUNT];
 };
 
@@ -38,11 +39,11 @@ RWStructuredBuffer<OutputVertex> g_Output : register(u0);
 [numthreads(64, 1, 1)]
 void main(uint3 dtid : SV_DispatchThreadID)
 {
-    uint id = dtid.x;
-    if (id >= g_VertexCount)
+    uint vertexIndex = dtid.x;
+    if (vertexIndex >= g_VertexCount)
         return;
 
-    InputVertex v = g_Input[id];
+    InputVertex v = g_Input[vertexIndex];
 
     float4 srcPos = float4(v.Position, 1.0f);
     float3 srcNor = v.Normal;
@@ -70,7 +71,7 @@ void main(uint3 dtid : SV_DispatchThreadID)
         outv.Tangent = float3(1.0f, 0.0f, 0.0f);
         outv.Diffuse = v.Diffuse;
         outv.TexCoord = v.TexCoord;
-        g_Output[id] = outv;
+        g_Output[vertexIndex] = outv;
         return;
     }
 
@@ -125,5 +126,5 @@ void main(uint3 dtid : SV_DispatchThreadID)
     outv.Diffuse = v.Diffuse;
     outv.TexCoord = v.TexCoord;
 
-    g_Output[id] = outv;
+    g_Output[vertexIndex] = outv;
 }

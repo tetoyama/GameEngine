@@ -24,6 +24,7 @@ public:
 	// 指定した型のサービスをコンテナに登録する
 	// 同じ型が既に登録されている場合は上書きしない
 	// T は IService を継承していなければならない
+	// 登録順は Shutdown 時の逆順破棄に利用される
 	template<typename T>
 	void Register(std::shared_ptr<T> instance) {
 		static_assert(std::is_base_of<IService, T>::value, "サービスはIServiceを継承してください");
@@ -58,5 +59,4 @@ public:
 	// 全サービスを登録した EngineContext を生成して返す
 	std::shared_ptr<EngineContext> Build();
 };
-
 

@@ -5,8 +5,10 @@
 // =======================================================================
 #pragma once
 // 全サービスの基底インターフェース
+// EngineContext に登録されるサービスはこの契約に従って終了処理を提供する
 class IService {
 public:
     virtual ~IService() = default;
+    // サービス固有のリソースを解放する
     virtual void Shutdown() = 0;
 };

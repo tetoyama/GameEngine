@@ -30,8 +30,8 @@ public:
 	// 既に外部で実行済みの操作（ImGuizmo など）に使う
 	void Push(std::unique_ptr<ICommand> cmd);
 
-	bool CanUndo() const { return !m_undoStack.empty(); }
-	bool CanRedo() const { return !m_redoStack.empty(); }
+	bool CanUndo() const { return !m_undoStack.empty(); } // Undo 可能な履歴があるか
+	bool CanRedo() const { return !m_redoStack.empty(); } // Redo 可能な履歴があるか
 
 	// スタック先頭コマンドの操作名を返す（UI ヒント用）
 	std::string PeekUndoDescription() const {

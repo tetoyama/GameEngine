@@ -1,5 +1,6 @@
 // ==========================================
 // COMMON_HLSL / CPP
+// C++ と HLSL の両方から共有する定義
 // ==========================================
 #ifndef COMMON_HLSL
 #define COMMON_HLSL
@@ -29,7 +30,7 @@ using int3 = DirectX::XMINT3;
 using uint3 = DirectX::XMUINT3;
 using uint4 = DirectX::XMUINT4;
 
-// マクロ置換
+// C++ 側では定数バッファ宣言を通常構造体へ置き換える
 #define CBUFFER(name, slot) struct alignas(16) name
 #define REGISTER_B(id)
 #define REGISTER_T(id)
@@ -85,6 +86,7 @@ struct MATERIAL
 };
 
 // ライト構造体
+// ShadowMapPass が GPU 向けに整形したライト配列をそのまま参照する
 struct LIGHT
 {
     int Enable;

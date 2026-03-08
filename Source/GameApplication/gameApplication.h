@@ -13,6 +13,6 @@ public:
 	GameApplication(){}
 	~GameApplication(){}
 
-	// アプリケーションの実行（エンジン起動、ループ処理など）
+	// アプリケーションを起動してエンジンの初期化・実行・終了までを一括で行う
 	int Run(HINSTANCE hInstance, int nCmdShow);
 };

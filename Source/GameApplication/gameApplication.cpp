@@ -23,8 +23,9 @@ int GameApplication::Run(HINSTANCE hInstance, int nCmdShow){
 	EngineContextBuilder builder;
 	std::shared_ptr<EngineContext> context = builder.Build();
 
-	// コンテキスト生成に失敗した場合は終了
+	// コンテキスト生成に失敗した場合は COM を解放して終了
 	if(!context){
+		CoUninitialize();
 		return -1;
 	}
 

@@ -5,9 +5,8 @@
 // 法線・接線・UV は使用しないため、定数値で初期化する。
 void main(in VS_IN In, out PS_IN Out)
 {
-    matrix wvp;
-    wvp = mul(World, View);
-    wvp = mul(wvp, Projection);
+    // デバッグ線分も通常描画と同じく World -> View -> Projection の順で変換する
+    matrix wvp = mul(mul(World, View), Projection);
     Out.Position = mul(In.Position, wvp);
 
     // デバッグラインはライティングを使用しないため、法線・接線・従法線は不使用

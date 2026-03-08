@@ -14,6 +14,7 @@
 #endif
 
 // ================= GBuffer =================
+// ライティングパスで参照する GBuffer 群
 Texture2D GAlbedo : register(t0);
 Texture2D GNormal : register(t1);
 Texture2D GPosition : register(t2);
@@ -32,6 +33,7 @@ Texture2D EnvironmentMap : register(t7);
 SamplerState EnvSampler : register(s3);
 
 // ================= Implement =================
+// GBuffer からマテリアル計算用の入力を復元する
 MaterialInput GetMaterialInput(PS_IN In)
 {
     MaterialInput input;
@@ -43,9 +45,9 @@ MaterialInput GetMaterialInput(PS_IN In)
     input.normal =
         normalize(GNormal.Sample(PointSampler, input.uv).rgb * 2.0 - 1.0);
 
-    uint w, h;
-    GPosition.GetDimensions(w, h);
-    int2 pixelCoord = int2(In.TexCoord.x * w, In.TexCoord.y * h);
+    uint width, height;
+    GPosition.GetDimensions(width, height);
+    int2 pixelCoord = int2(In.TexCoord.x * width, In.TexCoord.y * height);
 
     float3 worldPos = GPosition.Load(int3(pixelCoord, 0)).xyz;
     

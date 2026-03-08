@@ -74,7 +74,7 @@ float GetDepth(float2 uv)
 // 公式: viewZ = Projection._m32 / (ndcDepth - Projection._m22)
 float GetLinearDepth(float2 uv)
 {
-    float d = GDepth.Sample(g_SamplerState, uv).r;
+    float d = GetDepth(uv);
     float denom = d - Projection._m22;
     // |denom| が極端に小さい場合 (d=0.0 付近の遠平面) は near 距離を返す
     if (abs(denom) < 1e-5f) return -Projection._m32 / Projection._m22;

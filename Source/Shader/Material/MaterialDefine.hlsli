@@ -1,6 +1,7 @@
 #ifndef MATERIAL_DEFINE_HLSLI
 #define MATERIAL_DEFINE_HLSLI
 
+// マテリアル関数に渡す共通入力
 struct MaterialInput
 {
     float2 uv;
@@ -24,6 +25,7 @@ struct MaterialInput
     float2 screenUV;
 };
 
+// GBuffer / Forward 共通の出力形式
 struct MaterialOutput
 {
     float4 color;
@@ -31,12 +33,14 @@ struct MaterialOutput
     float4 normal;
 };
 
+// シャドウマップ PCF サンプリング設定
 struct ShadowPCFParams
 {
     int KernelRadius; // 1 = 3x3, 2 = 5x5
     float StepTexel; // 1.0 = 1ピクセル間隔
 };
 
+// ライティング計算の中間結果
 struct LightingResult
 {
     float3 diffuse; // 影込み Diffuse 強度（無色）

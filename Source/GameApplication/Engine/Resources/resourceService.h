@@ -21,6 +21,7 @@ class AudioContext;
 // リソースの読み込み・キャッシュ・解放を管理するサービス
 class ResourceService : public IService {
 public:
+	// 描画・音声コンテキストを受け取り、各種ローダーを登録する
 	void Initialize(GraphicsContext* graphics, AudioContext* audio);
 
 	void Shutdown() override;
@@ -51,6 +52,7 @@ public:
         }
     }
 
+	// キャッシュ中の未使用リソースを全ローダーに対して一括解放する
     void ClearAllUnused() {
         for (auto& [type, loader] : m_Loaders) {
             loader->ClearUnused();
@@ -64,8 +66,6 @@ public:
 private:
     template<typename T>
     void RegisterLoader() {
-		OutputDebugStringA("RegisterLoader called\n");
-
         auto loader = std::make_shared<ResourceLoader<T>>();
         loader->SetupLoadFunc(static_cast<void*>(m_Graphics));
         m_Loaders[std::type_index(typeid(T))] = loader;

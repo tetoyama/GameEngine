@@ -23,13 +23,13 @@
 // エンティティの位置・回転・スケールを管理するコンポーネント
 class TransformComponent: public IComponent {
 private:
-	Vector3 rotationEuler;
+	Vector3 rotationEuler; // インスペクタ表示や加算操作に使うオイラー角キャッシュ
 	DirectX::XMFLOAT4 rotation = {0, 0, 0, 1}; // クォータニオン
 
 public:
-	Vector3 position = Vector3(0, 0, 0);
-	Vector3 scale = Vector3(1, 1, 1);
-	Entity parent = 0;
+	Vector3 position = Vector3(0, 0, 0); // ローカル位置
+	Vector3 scale = Vector3(1, 1, 1);    // ローカルスケール
+	Entity parent = 0;                   // 親エンティティ ID（0 は親なし）
 	std::vector<Entity> children; // 子エンティティのリスト（シリアライズ対象外・Scene が再構築する）
 	// rotation を XMVECTOR として取得
 	DirectX::XMVECTOR rotationVector() const{
@@ -154,19 +154,8 @@ public:
 	void inspector(SceneContext* context) override{
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 6));
 
-		const float labelWidth = 100.0f;
-		const int axisCount = 3;
-		const float spacing = ImGui::GetStyle().ItemSpacing.x;
-		float totalRegion = ImGui::GetContentRegionAvail().x;
-		float fieldRegion = totalRegion - labelWidth - spacing * 2 * (axisCount);
-		float fieldWidth = fieldRegion / axisCount;
-
+		// スケールを一様倍率として扱うかどうかを UI 状態として保持する
 		static bool isUniformLocked = false;
-		static DirectX::XMFLOAT3 baseScale = {1.0f, 1.0f, 1.0f};
-
-		ImVec4 colorX = ImVec4(0.7f, 0.4f, 0.4f, 0.3f);
-		ImVec4 colorY = ImVec4(0.4f, 0.7f, 0.4f, 0.3f);
-		ImVec4 colorZ = ImVec4(0.4f, 0.4f, 0.7f, 0.3f);
 
 		// ----------- Position -----------
 		ImGui::UndoDragVec3("Position", position);

@@ -6,21 +6,23 @@
 #pragma once
 #include "Service/IService.h"
 #include "buildSetting.h"
-#include "gameApplication.h"
 // フレームタイミング・デルタ時間・FPS計測を管理するサービス
 class TimeService : public IService
 {
 public:
+	// 高精度タイマを初期化し、計測基準時刻を記録する
 	void Initialize();
 	void Shutdown()override {}
 
-	void Tick();                    // 毎フレーム更新
-	bool ShouldRunFixedUpdate();   // 固定更新すべきか
+	void Tick();                   // 毎フレーム更新
+	bool ShouldRunFixedUpdate();   // 固定更新を実行すべきか判定する
 
+	// 現在の時間情報を取得する
 	float GetDeltaTime() const;
 	float GetTotalTime() const;
 	float GetFixedDeltaTime() const;
 
+	// 各処理区間の計測を終了して所要時間/FPSを更新する
 	void EndDeltaUpdate();
 	void EndFixedUpdate();
 	void EndDraw();
