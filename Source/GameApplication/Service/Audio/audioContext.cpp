@@ -52,6 +52,10 @@ bool AudioContext::Initialize(){
 }
 
 void AudioContext::Shutdown(){
+	if(!m_MasteringVoice && !m_XAudio){
+		return;
+	}
+
 	AUDIO_LOG(LogLevel::Info, "AudioContext を終了します");
 	if(m_MasteringVoice){
 		m_MasteringVoice->DestroyVoice();
