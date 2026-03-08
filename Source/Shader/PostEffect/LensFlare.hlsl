@@ -243,7 +243,7 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 
         // 方向ライト以外はレンズフレアを無効化
         // CSM カスケードの 2 番目以降エントリ (Dummy >= 2) は重複処理を避けるためスキップ
-        if (light.LightType != LIGHT_TYPE_DIRECTIONAL) continue;
+        //if (light.LightType != LIGHT_TYPE_DIRECTIONAL) continue;
         if (light.Dummy >= 2) continue;
 
         // ライトのスクリーン UV + NDC 深度を取得
@@ -269,8 +269,9 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
                 occlusion = (sceneDepth >= SKY_DEPTH_THRESHOLD) ? 1.0f : 0.0f;
             }
             // TODO: 現在メインループで方向ライト以外はスキップされるため到達しない
-            else if (light.LightType == LIGHT_TYPE_POINT ||
-                     light.LightType == LIGHT_TYPE_SPOT)
+            else 
+                //if (light.LightType == LIGHT_TYPE_POINT ||
+                //     light.LightType == LIGHT_TYPE_SPOT)
             {
                 // 点光源/スポット: WorldToScreenData で既に求めた NDC 深度を再利用
                 // (余分な View×Projection 乗算なし)
