@@ -3549,6 +3549,7 @@
     <ClCompile Include="Source\GameApplication\Service\Graphics\renderEffectSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Service\Graphics\graphicsContext.cpp" />
     <ClCompile Include="Source\GameApplication\Service\Graphics\mainRenderer.cpp" />
+    <ClCompile Include="Source\GameApplication\Service\Audio\audioContext.cpp" />
     <ClCompile Include="Source\GameApplication\Service\LlamaService\LLAMAAgent.cpp" />
     <ClCompile Include="Source\GameApplication\Service\LlamaService\LLAMAService.cpp" />
     <ClCompile Include="Source\GameApplication\Service\Platform\InputSystem\inputSystem.cpp" />

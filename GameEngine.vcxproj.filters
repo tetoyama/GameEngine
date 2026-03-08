@@ -2507,6 +2507,9 @@
     <ClCompile Include="Source\GameApplication\Service\Platform\WindowSystem\windowSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Source\GameApplication\Service\Audio\audioContext.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
     <ClCompile Include="Source\GameApplication\Service\Runtime\TimeService\timeService.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
