@@ -5,6 +5,7 @@
 // =======================================================================
 #include "Inspector.h"
 #include <ImGui/imgui_internal.h>
+#include <cstring>
 #include <memory>
 #include <sceneManager.h>
 #include "Editor/editorService.h"
@@ -49,9 +50,9 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 	auto* registry = context->component;
 
-	// オブジェクト名とアクティブ状態
-	static bool objectActive = true; // TODO: link to actual component property
-	ImGui::Checkbox("##active", &objectActive);
+	// オブジェクト情報
+	ImGui::AlignTextToFramePadding();
+	ImGui::TextDisabled("ID: %u", selectedEntity);
 	ImGui::SameLine();
 
 	NameComponent* name = registry->GetComponent<NameComponent>(selectedEntity);
@@ -99,16 +100,10 @@ void Inspector::Draw(const EditorDrawContext ctx){
 	ImGui::Dummy(ImVec2(0, 10)); // 間隔を空ける
 	ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
-	auto Components = registry->GetAllComponentsOfEntitySorted(selectedEntity);
+	auto components = registry->GetAllComponentsOfEntitySorted(selectedEntity);
 	std::vector<IComponent*> componentsToRemove;
-	// ツリーノードヘッダー用カラー
-	ImVec4 headerBg = ImVec4(0.25f, 0.30f, 0.35f, 1.00f); // 通常時
-	ImVec4 headerBgHover = ImVec4(0.35f, 0.45f, 0.55f, 1.00f); // ホバー時
-	ImVec4 headerBgActive = ImVec4(0.30f, 0.40f, 0.50f, 1.00f); // 押下時
-	ImVec4 headerText = ImVec4(0.90f, 0.90f, 0.90f, 1.00f); // テキスト
-	auto& style = ImGui::GetStyle();
 	auto drawList = ImGui::GetWindowDrawList();
-	for(auto Component : Components){
+	for(auto Component : components){
 		std::string compName = typeid(*Component).name();
 
 		// 必要なImGui情報
