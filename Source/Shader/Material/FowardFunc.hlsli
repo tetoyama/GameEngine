@@ -126,21 +126,21 @@ float ShadowFactor(
     return SampleShadowAtlasPCF(uv, depth, lightIndex, pcf);
 }
 
-int SelectPointShadowFace(float3 dirToWorld)
+int SelectPointShadowFace(float3 direction)
 {
-    float3 absDir = abs(dirToWorld);
+    float3 absDir = abs(direction);
 
     if (absDir.x >= absDir.y && absDir.x >= absDir.z)
     {
-        return (dirToWorld.x >= 0.0) ? 0 : 1;
+        return (direction.x >= 0.0) ? 0 : 1;
     }
 
-    if (absDir.y >= absDir.x && absDir.y >= absDir.z)
+    if (absDir.y >= absDir.z)
     {
-        return (dirToWorld.y >= 0.0) ? 2 : 3;
+        return (direction.y >= 0.0) ? 2 : 3;
     }
 
-    return (dirToWorld.z >= 0.0) ? 4 : 5;
+    return (direction.z >= 0.0) ? 4 : 5;
 }
 
 float ShadowFactorPoint(
@@ -154,11 +154,11 @@ float ShadowFactorPoint(
         return 1.0;
 
     LIGHT firstFaceLight = Lights[firstLightIdx];
-    float3 dirToWorld = worldPos - firstFaceLight.Position.xyz;
-    int selectedFace = SelectPointShadowFace(dirToWorld);
+    float3 direction = worldPos - firstFaceLight.Position.xyz;
+    int selectedFace = SelectPointShadowFace(direction);
 
     if (selectedFace >= faceCount)
-        selectedFace = faceCount - 1;
+        return 1.0;
 
     int faceLightIdx = firstLightIdx + selectedFace;
     if (faceLightIdx >= LIGHT_MAX_COUNT)
