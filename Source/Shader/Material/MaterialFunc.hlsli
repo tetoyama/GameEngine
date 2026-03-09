@@ -72,10 +72,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         if (light.Enable == 0)
             continue;
 
-        if (light.Dummy >= 2)
-            continue;
-
-        if (light.LightType == LIGHT_TYPE_POINT && light.Dummy <= -2)
+        if (light.Dummy >= 2 || (light.LightType == LIGHT_TYPE_POINT && light.Dummy <= -2))
             continue;
 
         float3 L;
@@ -127,6 +124,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         {
             if (light.Dummy == 1)
             {
+                // 壊れたデータで 0 が入っても atlas 進行が崩れないよう最小値を 1 に保つ。
                 int cascadeCount = max((int) round(light.Position.w), 1);
 
                 shadow = ShadowFactorCascades(
@@ -140,6 +138,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
             }
             else if (light.LightType == LIGHT_TYPE_POINT && light.Dummy == -1)
             {
+                // 先頭 face の Position.w に実 face 数を格納。破損時でも最低 1 face として扱う。
                 int pointFaceCount = max((int) round(light.Position.w), 1);
 
                 shadow = ShadowFactorPoint(

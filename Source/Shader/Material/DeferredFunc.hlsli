@@ -394,7 +394,12 @@ float ShadowFactorPoint(
     [loop]
     for (int face = 0; face < faceCount; ++face)
     {
-        LIGHT faceLight = Lights[min(firstLightIdx + face, LIGHT_MAX_COUNT - 1)];
+        int faceLightIdx = firstLightIdx + face;
+        if (faceLightIdx >= LIGHT_MAX_COUNT)
+            break;
+
+        LIGHT faceLight = Lights[faceLightIdx];
+        // Point Shadow の face 展開エントリのみを参照する。
         if (!faceLight.Enable || !faceLight.CastShadow || faceLight.LightType != LIGHT_TYPE_POINT || faceLight.Dummy > -1)
         {
             continue;

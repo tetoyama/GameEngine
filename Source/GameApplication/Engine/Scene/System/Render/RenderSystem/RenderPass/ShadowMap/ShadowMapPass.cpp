@@ -410,9 +410,12 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 								XMMatrixLookAtLH(eye, at, s_PointFaces[face].up);
 
 							LIGHT faceLight = lightcomp->light;
+							// face 0 は親エントリ (-1)、2 面目以降は補助エントリ (-2..-6) として扱う。
 							faceLight.Dummy = -(face + 1);
 							faceLight.Position.w = 0.0f;
 							if (face > 0) {
+								// 2 面目以降は shadow sampling 専用。ライティング寄与は先頭 face のみが持つ。
+								faceLight.Diffuse = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 								faceLight.Ambient = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 							}
 
