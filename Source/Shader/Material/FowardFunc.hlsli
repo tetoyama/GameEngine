@@ -126,6 +126,23 @@ float ShadowFactor(
     return SampleShadowAtlasPCF(uv, depth, lightIndex, pcf);
 }
 
+int SelectPointShadowFace(float3 dirToWorld)
+{
+    float3 absDir = abs(dirToWorld);
+
+    if (absDir.x >= absDir.y && absDir.x >= absDir.z)
+    {
+        return (dirToWorld.x >= 0.0) ? 0 : 1;
+    }
+
+    if (absDir.y >= absDir.x && absDir.y >= absDir.z)
+    {
+        return (dirToWorld.y >= 0.0) ? 2 : 3;
+    }
+
+    return (dirToWorld.z >= 0.0) ? 4 : 5;
+}
+
 float ShadowFactorPoint(
     float3 worldPos,
     int firstLightIdx,
@@ -133,43 +150,40 @@ float ShadowFactorPoint(
     int atlasOffset,
     ShadowPCFParams pcf)
 {
-    float shadow = 1.0;
-    bool hasValidFace = false;
+    if (firstLightIdx >= LIGHT_MAX_COUNT || faceCount <= 0)
+        return 1.0;
 
-    [loop]
-    for (int face = 0; face < faceCount; ++face)
-    {
-        int faceLightIdx = firstLightIdx + face;
-        if (faceLightIdx >= LIGHT_MAX_COUNT)
-            break;
+    LIGHT firstFaceLight = Lights[firstLightIdx];
+    float3 dirToWorld = worldPos - firstFaceLight.Position.xyz;
+    int selectedFace = SelectPointShadowFace(dirToWorld);
 
-        LIGHT faceLight = Lights[faceLightIdx];
-        // Point Shadow の face 展開エントリのみを参照する。
-        if (!faceLight.Enable || !faceLight.CastShadow || faceLight.LightType != LIGHT_TYPE_POINT || faceLight.Dummy > -1)
-        {
-            continue;
-        }
+    if (selectedFace >= faceCount)
+        selectedFace = faceCount - 1;
 
-        float4 sp = mul(float4(worldPos, 1.0), faceLight.LightView);
-        sp = mul(sp, faceLight.LightProjection);
+    int faceLightIdx = firstLightIdx + selectedFace;
+    if (faceLightIdx >= LIGHT_MAX_COUNT)
+        return 1.0;
 
-        if (sp.w <= 0.0)
-            continue;
+    LIGHT faceLight = Lights[faceLightIdx];
+    if (!faceLight.Enable || !faceLight.CastShadow || faceLight.LightType != LIGHT_TYPE_POINT || faceLight.Dummy > -1)
+        return 1.0;
 
-        sp.xyz /= sp.w;
+    float4 sp = mul(float4(worldPos, 1.0), faceLight.LightView);
+    sp = mul(sp, faceLight.LightProjection);
 
-        float2 uv = sp.xy * 0.5 + 0.5;
-        uv.y = 1.0 - uv.y;
+    if (sp.w <= 0.0)
+        return 1.0;
 
-        if (any(uv < 0.0) || any(uv > 1.0))
-            continue;
+    sp.xyz /= sp.w;
 
-        float depth = saturate(sp.z - faceLight.Param.w);
-        shadow = min(shadow, SampleShadowAtlasPCF(uv, depth, atlasOffset + face, pcf));
-        hasValidFace = true;
-    }
+    float2 uv = sp.xy * 0.5 + 0.5;
+    uv.y = 1.0 - uv.y;
 
-    return hasValidFace ? shadow : 1.0;
+    if (any(uv < 0.0) || any(uv > 1.0))
+        return 1.0;
+
+    float depth = saturate(sp.z - faceLight.Param.w);
+    return SampleShadowAtlasPCF(uv, depth, atlasOffset + selectedFace, pcf);
 }
 
 // =====================================================
