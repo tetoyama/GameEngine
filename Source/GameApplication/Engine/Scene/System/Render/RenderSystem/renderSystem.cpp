@@ -860,5 +860,9 @@ void RenderSystem::EditorView(){
 		cameraData,
 		m_context->EditorScreenSize
 	);
+	const CameraEntityData sceneCameraData = FindCameraEntity();
+	if(sceneCameraData.cameraComponent){
+		renderPassContext.postEffectCameraComponent = sceneCameraData.cameraComponent;
+	}
 	m_EditorPass->Execute(renderPassContext);
 }
