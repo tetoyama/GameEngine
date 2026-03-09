@@ -834,14 +834,14 @@ void GraphicsContext::ResetBuffer(const float clearColor[4]){
 void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effects, ID3D11ShaderResourceView* initialSRV,
                                              ID3D11ShaderResourceView* const* gbufferSRVs, int gbufferCount){
 	ID3D11DeviceContext* deviceContext = m_DeviceContext.Get();
-	ID3D11ShaderResourceView* boundSRVs[TextureSlot_Max] = {nullptr};
+	ID3D11ShaderResourceView* boundSRVs[PostEffectTextureSlot_Max] = {nullptr};
 	ID3D11RenderTargetView* boundRTV = nullptr;
 	UINT currentViewportWidth = 0;
 	UINT currentViewportHeight = 0;
 	UINT previousInputSlotCount = 0;
 
 	auto BindShaderResource = [&](UINT slot, ID3D11ShaderResourceView* srv) {
-		if (slot >= TextureSlot_Max || boundSRVs[slot] == srv) return;
+		if (slot >= PostEffectTextureSlot_Max || boundSRVs[slot] == srv) return;
 		deviceContext->PSSetShaderResources(slot, 1, &srv);
 		boundSRVs[slot] = srv;
 	};

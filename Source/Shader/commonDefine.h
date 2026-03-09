@@ -65,6 +65,7 @@
 #define PostEffectGBufferSlot_Param     (13)
 #define PostEffectGBufferSlot_Depth     (14)
 #define PostEffectGBufferSlot_Count     (7)
+#define PostEffectTextureSlot_Max       (PostEffectGBufferSlot_Start + PostEffectGBufferSlot_Count)
 
 
 #define LIGHT_TYPE_NONE				(0)
