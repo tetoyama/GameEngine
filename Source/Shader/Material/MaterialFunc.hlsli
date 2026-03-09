@@ -75,6 +75,9 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         if (light.Dummy >= 2)
             continue;
 
+        if (light.LightType == LIGHT_TYPE_POINT && light.Dummy <= -2)
+            continue;
+
         float3 L;
         float attenuation = 1.0;
 
@@ -124,7 +127,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         {
             if (light.Dummy == 1)
             {
-                int cascadeCount = (int) round(light.Position.w);
+                int cascadeCount = max((int) round(light.Position.w), 1);
 
                 shadow = ShadowFactorCascades(
                     input.worldPos,
@@ -134,6 +137,19 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
                     shadowParam);
 
                 shadowMapNum += cascadeCount;
+            }
+            else if (light.LightType == LIGHT_TYPE_POINT && light.Dummy == -1)
+            {
+                int pointFaceCount = max((int) round(light.Position.w), 1);
+
+                shadow = ShadowFactorPoint(
+                    input.worldPos,
+                    i,
+                    pointFaceCount,
+                    shadowMapNum,
+                    shadowParam);
+
+                shadowMapNum += pointFaceCount;
             }
             else
             {
@@ -186,17 +202,6 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
             attenuation *
             NdotL *
             specularShadow;
-
-        // -----------------------------
-        // Point light fix
-        // -----------------------------
-
-        if (light.LightType == LIGHT_TYPE_POINT && light.CastShadow)
-        {
-            diffuse /= 6.0;
-            specular /= 6.0;
-            light.Ambient.rgb /= 6.0;
-        }
 
         result.diffuse += diffuse;
         result.specular += specular;

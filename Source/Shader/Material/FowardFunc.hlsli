@@ -64,6 +64,39 @@ MaterialInput GetMaterialInput(PS_IN In)
     return input;
 }
 
+float SampleCascadePCF(float2 suvBase, float depth, float2 texelSize, float stepTexel, int radius);
+
+float SampleShadowAtlasPCF(
+    float2 uv,
+    float depth,
+    int tileIndex,
+    ShadowPCFParams pcf)
+{
+    uint grid = (uint) ceil(sqrt((float) ShadowAtlasCount));
+    float tile = 1.0 / grid;
+
+    uint gx = tileIndex % grid;
+    uint gy = tileIndex / grid;
+
+    float2 tileMin = float2(gx, gy) * tile;
+    float2 suvBase = tileMin + uv * tile;
+
+    uint texW, texH;
+    ShadowMap.GetDimensions(texW, texH);
+
+    float2 texelSize = float2(1.0 / texW, 1.0 / texH);
+    texelSize *= tile;
+
+    int radius = max(pcf.KernelRadius, 0);
+    return SampleCascadePCF(
+        suvBase,
+        depth,
+        texelSize,
+        pcf.StepTexel,
+        radius
+    );
+}
+
 float ShadowFactor(
     float3 worldPos,
     LIGHT light,
@@ -90,47 +123,48 @@ float ShadowFactor(
     float bias = light.Param.w;
     float depth = saturate(sp.z - bias);
 
-    // ---- Atlas ----
-    uint grid = (uint) ceil(sqrt((float) ShadowAtlasCount));
-    float tile = 1.0 / grid;
+    return SampleShadowAtlasPCF(uv, depth, lightIndex, pcf);
+}
 
-    uint gx = lightIndex % grid;
-    uint gy = lightIndex / grid;
-
-    float2 tileMin = float2(gx, gy) * tile;
-    float2 suvBase = tileMin + uv * tile;
-
-    // ---- テクセルサイズ（1ピクセル）----
-    float2 texelSize;
-    ShadowMap.GetDimensions(texelSize.x, texelSize.y);
-    texelSize = 1.0 / texelSize;
-
-    texelSize *= tile; // アトラス対応
-
-    // ---- PCF ----
-    float shadow = 0.0;
-    int radius = max(pcf.KernelRadius, 0);
-    int count = 0;
+float ShadowFactorPoint(
+    float3 worldPos,
+    int firstLightIdx,
+    int faceCount,
+    int atlasOffset,
+    ShadowPCFParams pcf)
+{
+    float shadow = 1.0;
+    bool hasValidFace = false;
 
     [loop]
-    for (int y = -radius; y <= radius; y++)
+    for (int face = 0; face < faceCount; ++face)
     {
-        [loop]
-        for (int x = -radius; x <= radius; x++)
+        LIGHT faceLight = Lights[min(firstLightIdx + face, LIGHT_MAX_COUNT - 1)];
+        if (!faceLight.Enable || !faceLight.CastShadow || faceLight.LightType != LIGHT_TYPE_POINT || faceLight.Dummy > -1)
         {
-            float2 offset =
-                float2(x, y) * texelSize * pcf.StepTexel;
-
-            shadow += ShadowMap.SampleCmpLevelZero(
-                ShadowSampler,
-                suvBase + offset,
-                depth);
-
-            count++;
+            continue;
         }
+
+        float4 sp = mul(float4(worldPos, 1.0), faceLight.LightView);
+        sp = mul(sp, faceLight.LightProjection);
+
+        if (sp.w <= 0.0)
+            continue;
+
+        sp.xyz /= sp.w;
+
+        float2 uv = sp.xy * 0.5 + 0.5;
+        uv.y = 1.0 - uv.y;
+
+        if (any(uv < 0.0) || any(uv > 1.0))
+            continue;
+
+        float depth = saturate(sp.z - faceLight.Param.w);
+        shadow = min(shadow, SampleShadowAtlasPCF(uv, depth, atlasOffset + face, pcf));
+        hasValidFace = true;
     }
 
-    return shadow / max(count, 1);
+    return hasValidFace ? shadow : 1.0;
 }
 
 // =====================================================

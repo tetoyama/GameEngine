@@ -92,16 +92,18 @@ struct LIGHT
     int Enable;
     int LightType;
     int CastShadow;
-    // CSM カスケードマーカー:
-    //   0 = 通常ライト (Point / Spot / Directional 非 CSM)
-    //   1 = CSM 最精細カスケード (cascade index 0)
-    //   2..N = CSM 2 番目以降のカスケード (cascade index Dummy-1)
+    // シャドウ展開マーカー:
+    //   0     = 通常ライト (Point / Spot / Directional 非 CSM)
+    //   1     = CSM 最精細カスケード (cascade index 0)
+    //   2..N  = CSM 2 番目以降のカスケード (cascade index Dummy-1)
+    //   -1    = Point Shadow の先頭 face
+    //   -2..-N= Point Shadow の 2 面目以降
     // ※ GPU ライトバッファ上に LIGHT_TYPE_DIRECTIONAL_CSM は存在しない。
     //   ShadowMapPass が N 個の LIGHT_TYPE_DIRECTIONAL エントリに展開する。
     int Dummy;
 
     // Position.xyz : ライト位置 (Point/Spot) / CSM カスケードのライトカメラ eye 座標
-    // Position.w   : Dummy==1 のカスケード先頭エントリのみ使用 → カスケード総数 (float)
+    // Position.w   : Dummy==1 で CSM カスケード数 / Dummy==-1 で Point Shadow face 数
     float4 Position;
     // Direction.xyz : ライト方向 (Directional/Spot)
     // Direction.w   : 未使用 (常に 0)

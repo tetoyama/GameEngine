@@ -16,6 +16,7 @@ public:
 	LIGHT light;
 
 	LightComponent(){
+		light = {};
 		light.Enable = true;
 		light.LightType = LIGHT_TYPE_POINT;
 		light.CastShadow = true;

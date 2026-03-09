@@ -147,8 +147,8 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
         LIGHT light = Lights[li];
         if (!light.Enable) continue;
 
-        // CSM カスケードの 2 番目以降エントリはスキップ (重複処理回避)
-        if (light.Dummy >= 2) continue;
+        // CSM カスケードの 2 番目以降と Point Shadow の追加 face はスキップ (重複処理回避)
+        if (light.Dummy >= 2 || light.Dummy <= -2) continue;
 
         // ライトのスクリーン UV を取得 (カメラ背後は clip.w <= 0 でスキップ)
         float3 screenResult = GetLightScreenUV(light);

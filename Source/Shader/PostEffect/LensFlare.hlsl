@@ -242,9 +242,9 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
         if (!light.Enable) continue;
 
         // 方向ライト以外はレンズフレアを無効化
-        // CSM カスケードの 2 番目以降エントリ (Dummy >= 2) は重複処理を避けるためスキップ
+        // CSM カスケードの 2 番目以降と Point Shadow の追加 face は重複処理を避けるためスキップ
         //if (light.LightType != LIGHT_TYPE_DIRECTIONAL) continue;
-        if (light.Dummy >= 2) continue;
+        if (light.Dummy >= 2 || light.Dummy <= -2) continue;
 
         // ライトのスクリーン UV + NDC 深度を取得
         // clip.w <= 0 の場合はカメラ背後 → スキップ
@@ -297,4 +297,3 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     // シーンカラーにレンズフレアを加算合成
     outDiffuse = float4(sceneColor.rgb + totalFlare, sceneColor.a);
 }
-

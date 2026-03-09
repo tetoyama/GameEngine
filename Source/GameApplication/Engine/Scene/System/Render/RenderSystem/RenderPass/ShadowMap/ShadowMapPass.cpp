@@ -162,6 +162,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 			if(transform){
 				lightcomp->light.Position = DirectX::XMFLOAT4(transform->position.x, transform->position.y, transform->position.z, 0.0f);
 				lightcomp->light.Direction = DirectX::XMFLOAT4(transform->front().x, transform->front().y, transform->front().z, 0.0f);
+				lightcomp->light.Dummy = 0;
 				if(lightcomp->light.CastShadow){
 					if(lightcomp->light.LightType == LIGHT_TYPE_DIRECTIONAL){
 						// ======== シャドウカメラ計算 ========
@@ -396,6 +397,8 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 						XMMATRIX lightProj =
 							XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, nearZ, farZ);
 
+						int firstPointFaceSlot = lightCount;
+						int addedPointFaces = 0;
 						for (int face = 0; face < 6; face++) {
 
 							if (lightCount >= LIGHT_MAX_COUNT)
@@ -407,6 +410,11 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 								XMMatrixLookAtLH(eye, at, s_PointFaces[face].up);
 
 							LIGHT faceLight = lightcomp->light;
+							faceLight.Dummy = -(face + 1);
+							faceLight.Position.w = 0.0f;
+							if (face > 0) {
+								faceLight.Ambient = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+							}
 
 							XMStoreFloat4x4(
 								&faceLight.LightView,
@@ -423,6 +431,10 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 							lightCount++;
 							shadowCount++;
+							addedPointFaces++;
+						}
+						if (addedPointFaces > 0) {
+							light.Lights[firstPointFaceSlot].Position.w = (float)addedPointFaces;
 						}
 
 						foundLight = true;
@@ -459,7 +471,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 	const int TILE_SIZE = (ATLAS_GRID > 0) ? (ATLAS_SIZE / ATLAS_GRID) : ATLAS_SIZE;
 	int shadowNum = 0;
 
-	for(int i = 0; i < LIGHT_MAX_COUNT; i++){
+	for(int i = 0; i < lightCount; i++){
 
 		if(!light.Lights[i].Enable || !light.Lights[i].CastShadow){
 			continue;
