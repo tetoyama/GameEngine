@@ -90,9 +90,9 @@ Entities:
         LightType: 4
         CastShadow: 1
         Position:
-          x: -15.0045147
-          y: 26.1668549
-          z: 0.461767673
+          x: -20
+          y: 50
+          z: 0
           w: 0
         Direction:
           x: 0.249311805
@@ -282,7 +282,6 @@ Entities:
         stamina: 5
         staminaConsumeRate: 1.5
         staminaRecoverRate: 1
-        aaa: 1
         jumpPower: 5
         Stamina: 5
         SelfLayerBit: 2
@@ -465,7 +464,7 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 2
-        CastShadow: 0
+        CastShadow: 1
         Position:
           x: 2.6928165
           y: 4
@@ -555,7 +554,7 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 2
-        CastShadow: 0
+        CastShadow: 1
         Position:
           x: 8.2638216
           y: 4
@@ -645,7 +644,7 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 2
-        CastShadow: 0
+        CastShadow: 1
         Position:
           x: 3.81178188
           y: 4
