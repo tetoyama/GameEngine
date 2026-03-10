@@ -34,7 +34,6 @@ struct RenderPassContext {
 	DirectX::XMMATRIX projectionMatrix = DirectX::XMMatrixIdentity(); // プロジェクション行列
 
 	CameraEntityData cameraData;                         // カメラエンティティのデータ（ポストエフェクト等）
-	CameraComponent* postEffectCameraComponent = nullptr; // ポストエフェクト評価専用のカメラ。未設定時は cameraData.cameraComponent を使う
 	Vector2 screenSize = Vector2(1280.0f, 720.0f);       // レンダリング解像度
 };
 

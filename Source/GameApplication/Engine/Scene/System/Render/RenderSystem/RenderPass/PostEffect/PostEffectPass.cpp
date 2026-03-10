@@ -39,7 +39,7 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 	std::unordered_map<int, int>      effectIndexToPostNodeIndex;
 	const DirectX::XMFLOAT4          clearColor = {0, 0, 0, 1};
 
-	CameraComponent* camera = ctx.postEffectCameraComponent ? ctx.postEffectCameraComponent : ctx.cameraData.cameraComponent;
+	CameraComponent* camera = ctx.cameraData.cameraComponent;
 
 	if (camera) {
 		const auto& sortedIndices = camera->TopologicalSortPostEffects();
