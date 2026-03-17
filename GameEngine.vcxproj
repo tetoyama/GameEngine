@@ -2647,6 +2647,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\scriptComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\followComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\IScriptComponent.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Physic\HitInfo.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Effect\RenderableEffect.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\renderLayer.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\LightingPass\LightingPass.h" />

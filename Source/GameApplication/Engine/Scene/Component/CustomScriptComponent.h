@@ -17,7 +17,7 @@
 #include "../Reference/ComponentRef.h"
 #include "Registry/ComponentRegistry.h"
 #include "Platform/InputSystem/InputSystem.h"
-#include "HitInfo.h"
+#include "../System/Physic/HitInfo.h"
 
 class ComponentRegistry;
 

@@ -4,7 +4,7 @@
 // 
 // =======================================================================
 #pragma once
-#include "../Reference/EntityRef.h"
+#include "../../Reference/EntityRef.h"
 #include <cstdint>
 
 // コリジョン・トリガーイベントの情報
