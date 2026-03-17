@@ -208,7 +208,7 @@ private:
 	PostEffectShader* copyShader = nullptr;
 
 	// 自動生成シェーダ出力パス
-	std::string ShaderPath = "Shader/AutoGen/";
+	std::string ShaderPath = "Source/Shader/AutoGen/";
 
 	// UI ボタン用テクスチャ
 	std::shared_ptr<TextureData> PlayButtonTexture;
