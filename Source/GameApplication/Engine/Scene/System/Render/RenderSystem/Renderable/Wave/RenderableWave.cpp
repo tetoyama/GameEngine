@@ -166,16 +166,17 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 	static WaterShaderCache shaderCache;
-	if (!EnsureWaterShaderResources(graphicsContext, shaderCache)) {
-		return;
-	}
-	if (!EnsurePatchIndexBuffer(pWave, graphicsContext)) {
-		return;
-	}
+	const bool canUseTessellation =
+		EnsureWaterShaderResources(graphicsContext, shaderCache) &&
+		EnsurePatchIndexBuffer(pWave, graphicsContext);
 
 	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
 	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
 	MATERIAL material{};
+	material.BaseColor = DirectX::XMFLOAT4(0.25f, 0.45f, 0.75f, 1.0f);
+	material.Roughness = 0.12f;
+	material.Metallic = 0.0f;
+	material.AO = 1.0f;
 	if (pMaterial) {
 		material = pMaterial->Material;
 		material.MaterialFlags &= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
@@ -201,60 +202,64 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	graphicsContext->SetWorldMatrix(World);
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
-	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
-
 	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
-	deviceContext->IASetIndexBuffer(pWave->PatchIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-	deviceContext->IASetInputLayout(shaderCache.inputLayout.Get());
+	if (canUseTessellation) {
+		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
+		deviceContext->IASetIndexBuffer(pWave->PatchIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		deviceContext->IASetInputLayout(shaderCache.inputLayout.Get());
 
-	deviceContext->VSSetShader(shaderCache.vs.Get(), nullptr, 0);
-	deviceContext->HSSetShader(shaderCache.hs.Get(), nullptr, 0);
-	deviceContext->DSSetShader(shaderCache.ds.Get(), nullptr, 0);
-	deviceContext->PSSetShader(shaderCache.ps.Get(), nullptr, 0);
+		deviceContext->VSSetShader(shaderCache.vs.Get(), nullptr, 0);
+		deviceContext->HSSetShader(shaderCache.hs.Get(), nullptr, 0);
+		deviceContext->DSSetShader(shaderCache.ds.Get(), nullptr, 0);
+		deviceContext->PSSetShader(shaderCache.ps.Get(), nullptr, 0);
 
-	WaterTessellationCB waterCB{};
-	DirectX::XMStoreFloat4x4(&waterCB.World, World);
-	DirectX::XMStoreFloat4x4(&waterCB.View, ctx.viewMatrix);
-	DirectX::XMStoreFloat4x4(&waterCB.Projection, ctx.projectionMatrix);
-	waterCB.CameraPos = DirectX::XMFLOAT3(ctx.CameraPosition.x, ctx.CameraPosition.y, ctx.CameraPosition.z);
-	waterCB.Time = pWave->Time;
-	waterCB.TessellationMin = kTessellationMin;
-	waterCB.TessellationMax = kTessellationMax;
-	waterCB.TessellationMinDistance = kTessellationMinDistance;
-	waterCB.TessellationMaxDistance = kTessellationMaxDistance;
-	waterCB.WaveHeight = pWave->Amplitude;
-	const float waveLength = (pWave->Wavelength > kMinWaveLength) ? pWave->Wavelength : kMinWaveLength;
-	waterCB.WaveScale = 1.0f / waveLength;
-	waterCB.FlowDir1 = kFlowDir1;
-	waterCB.FlowDir2 = kFlowDir2;
-	waterCB.FlowSpeed1 = pWave->Speed;
-	waterCB.FlowSpeed2 = pWave->Speed * kFlowSpeedLayer2Rate;
-	waterCB.NormalDelta = kNormalDelta;
-	waterCB.FresnelPower = kFresnelPower;
+		WaterTessellationCB waterCB{};
+		DirectX::XMStoreFloat4x4(&waterCB.World, World);
+		DirectX::XMStoreFloat4x4(&waterCB.View, ctx.viewMatrix);
+		DirectX::XMStoreFloat4x4(&waterCB.Projection, ctx.projectionMatrix);
+		waterCB.CameraPos = DirectX::XMFLOAT3(ctx.CameraPosition.x, ctx.CameraPosition.y, ctx.CameraPosition.z);
+		waterCB.Time = pWave->Time;
+		waterCB.TessellationMin = kTessellationMin;
+		waterCB.TessellationMax = kTessellationMax;
+		waterCB.TessellationMinDistance = kTessellationMinDistance;
+		waterCB.TessellationMaxDistance = kTessellationMaxDistance;
+		waterCB.WaveHeight = pWave->Amplitude;
+		const float waveLength = (pWave->Wavelength > kMinWaveLength) ? pWave->Wavelength : kMinWaveLength;
+		waterCB.WaveScale = 1.0f / waveLength;
+		waterCB.FlowDir1 = kFlowDir1;
+		waterCB.FlowDir2 = kFlowDir2;
+		waterCB.FlowSpeed1 = pWave->Speed;
+		waterCB.FlowSpeed2 = pWave->Speed * kFlowSpeedLayer2Rate;
+		waterCB.NormalDelta = kNormalDelta;
+		waterCB.FresnelPower = kFresnelPower;
 
-	deviceContext->UpdateSubresource(shaderCache.waterCB.Get(), 0, nullptr, &waterCB, 0, 0);
-	ID3D11Buffer* waveConstantBuffer = shaderCache.waterCB.Get();
-	deviceContext->HSSetConstantBuffers(3, 1, &waveConstantBuffer);
-	deviceContext->DSSetConstantBuffers(3, 1, &waveConstantBuffer);
-	deviceContext->PSSetConstantBuffers(3, 1, &waveConstantBuffer);
+		deviceContext->UpdateSubresource(shaderCache.waterCB.Get(), 0, nullptr, &waterCB, 0, 0);
+		ID3D11Buffer* waveConstantBuffer = shaderCache.waterCB.Get();
+		deviceContext->HSSetConstantBuffers(3, 1, &waveConstantBuffer);
+		deviceContext->DSSetConstantBuffers(3, 1, &waveConstantBuffer);
+		deviceContext->PSSetConstantBuffers(3, 1, &waveConstantBuffer);
 
-	ID3D11SamplerState* waveSampler = shaderCache.sampler.Get();
-	deviceContext->DSSetSamplers(0, 1, &waveSampler);
-	deviceContext->PSSetSamplers(0, 1, &waveSampler);
+		ID3D11SamplerState* waveSampler = shaderCache.sampler.Get();
+		deviceContext->DSSetSamplers(0, 1, &waveSampler);
+		deviceContext->PSSetSamplers(0, 1, &waveSampler);
 
-	if (pTexture && pTexture->m_TextureData && pTexture->m_TextureData->pTexture) {
-		// HLSL の HeightTexture : register(t5) と TextureSlot_HeightMap(=5) を対応させる
-		deviceContext->DSSetShaderResources(TextureSlot_HeightMap, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+		if (pTexture && pTexture->m_TextureData && pTexture->m_TextureData->pTexture) {
+			// HLSL の HeightTexture : register(t5) と TextureSlot_HeightMap(=5) を対応させる
+			deviceContext->DSSetShaderResources(TextureSlot_HeightMap, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+		}
+
+		deviceContext->DrawIndexed(pWave->PatchIndexCount, 0, 0);
+
+		ID3D11ShaderResourceView* nullSRV = nullptr;
+		deviceContext->DSSetShaderResources(TextureSlot_HeightMap, 1, &nullSRV);
+		deviceContext->HSSetShader(nullptr, nullptr, 0);
+		deviceContext->DSSetShader(nullptr, nullptr, 0);
+		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	} else {
+		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		deviceContext->IASetIndexBuffer(*meshRenderer->mesh.m_IndexBuffer.GetAddressOf(), DXGI_FORMAT_R32_UINT, 0);
+		deviceContext->DrawIndexed(meshRenderer->mesh.indexCount, 0, 0);
 	}
-
-	deviceContext->DrawIndexed(pWave->PatchIndexCount, 0, 0);
-
-	ID3D11ShaderResourceView* nullSRV = nullptr;
-	deviceContext->DSSetShaderResources(TextureSlot_HeightMap, 1, &nullSRV);
-
-	deviceContext->HSSetShader(nullptr, nullptr, 0);
-	deviceContext->DSSetShader(nullptr, nullptr, 0);
-	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	//graphicsContext->SetDepthMode(DepthMode::Write);
 	//graphicsContext->SetViewMatrix(ctx.viewMatrix);
