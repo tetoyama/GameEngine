@@ -7,6 +7,7 @@
 
 
 #include <stdexcept>
+#include <sstream>
 #include <d2d1.h>
 #include <dwrite.h>
 #include <wrl/client.h>
@@ -28,6 +29,72 @@
 
 //テクスチャサポートライブラリ
 #include "Backends/DirectX11/DirectXTex.h"
+
+namespace {
+	bool CreateComputeShaderFromPaths(
+		ID3D11Device* device,
+		const wchar_t* csoPath,
+		const wchar_t* hlslPath,
+		const char* entryPoint,
+		ID3D11ComputeShader** outShader,
+		DebugLogService* debugLog,
+		const char* debugName)
+	{
+		if (!device || !outShader) {
+			return false;
+		}
+
+		Microsoft::WRL::ComPtr<ID3DBlob> csBlob;
+		HRESULT hr = D3DReadFileToBlob(csoPath, csBlob.GetAddressOf());
+		if (SUCCEEDED(hr)) {
+			hr = device->CreateComputeShader(csBlob->GetBufferPointer(), csBlob->GetBufferSize(), nullptr, outShader);
+			if (SUCCEEDED(hr)) {
+				return true;
+			}
+		}
+
+		Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
+		csBlob.Reset();
+		hr = D3DCompileFromFile(
+			hlslPath,
+			nullptr,
+			D3D_COMPILE_STANDARD_FILE_INCLUDE,
+			entryPoint,
+			"cs_5_0",
+			D3DCOMPILE_ENABLE_STRICTNESS,
+			0,
+			csBlob.GetAddressOf(),
+			errorBlob.GetAddressOf());
+
+		if (FAILED(hr)) {
+			if (debugLog) {
+				std::string message = "Failed to compile compute shader: ";
+				message += (debugName ? debugName : "");
+				if (errorBlob) {
+					message += " / ";
+					message.append(static_cast<const char*>(errorBlob->GetBufferPointer()), errorBlob->GetBufferSize());
+				}
+				debugLog->Log(LogLevel::Error, message, __FUNCTION__, __FILE__, __LINE__);
+			}
+			if (errorBlob) {
+				OutputDebugStringA(static_cast<const char*>(errorBlob->GetBufferPointer()));
+			}
+			return false;
+		}
+
+		hr = device->CreateComputeShader(csBlob->GetBufferPointer(), csBlob->GetBufferSize(), nullptr, outShader);
+		if (FAILED(hr)) {
+			if (debugLog) {
+				std::stringstream ss;
+				ss << "Failed to create compute shader: " << (debugName ? debugName : "") << " hr=0x" << std::hex << hr;
+				debugLog->Log(LogLevel::Error, ss.str(), __FUNCTION__, __FILE__, __LINE__);
+			}
+			return false;
+		}
+
+		return true;
+	}
+}
 
 //リンカーを使ってライブラリのリンクをしている
 // 2D
@@ -68,6 +135,7 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 	if(!CreateD2DResources(hwnd)){return false;}
 
 	if (!CreateComputeSkinningShader()) { return false; }
+	if (!CreateComputeParticleShader()) { return false; }
 
 	if (!CreateEffectSystem()) { return false; }
 
@@ -645,23 +713,39 @@ bool GraphicsContext::CreateDepthStencilBufferAndView(UINT width, UINT height){
 }
 
 bool GraphicsContext::CreateComputeSkinningShader() {
-	ID3DBlob* csBlob = nullptr;
-	HRESULT hr = D3DReadFileToBlob(L"Asset\\Shader\\SkinningCS.cso", &csBlob);
-	if (FAILED(hr)) {
-		GRAPHICS_LOG(LogLevel::Error, "SkinningCS.cso の読み込みに失敗しました");
-		OutputDebugStringA("Failed to load SkinningCS.cso\n");
+	if (!CreateComputeShaderFromPaths(
+		m_Device.Get(),
+		L"Asset\\Shader\\SkinningCS.cso",
+		L"Source\\Shader\\Compute\\SkinningCS.hlsl",
+		"main",
+		&csSkinning,
+		m_DebugLog,
+		"SkinningCS"))
+	{
+		GRAPHICS_LOG(LogLevel::Error, "Failed to create skinning compute shader");
+		OutputDebugStringA("Failed to create SkinningCS\n");
 		return false;
 	}
 
-	hr = m_Device->CreateComputeShader(csBlob->GetBufferPointer(), csBlob->GetBufferSize(), nullptr, &csSkinning);
-	csBlob->Release();
-	if (FAILED(hr)) {
-		GRAPHICS_LOG(LogLevel::Error, "スキニング用コンピュートシェーダーの生成に失敗しました");
-		OutputDebugStringA("Failed to create compute shader\n");
+	GRAPHICS_LOG(LogLevel::Debug, "Skinning compute shader creation completed");
+	return true;
+}
+
+bool GraphicsContext::CreateComputeParticleShader() {
+	if (!CreateComputeShaderFromPaths(
+		m_Device.Get(),
+		L"Asset\\Shader\\ParticleUpdateCS.cso",
+		L"Source\\Shader\\Compute\\ParticleUpdateCS.hlsl",
+		"main",
+		csParticleUpdate.GetAddressOf(),
+		m_DebugLog,
+		"ParticleUpdateCS"))
+	{
+		GRAPHICS_LOG(LogLevel::Error, "Failed to create particle update compute shader");
+		OutputDebugStringA("Failed to create ParticleUpdateCS\n");
 		return false;
 	}
 
-	GRAPHICS_LOG(LogLevel::Debug, "スキニング用コンピュートシェーダーの生成が完了しました");
 	return true;
 }
 

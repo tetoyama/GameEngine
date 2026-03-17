@@ -171,6 +171,9 @@ public:
 	ID3D11ComputeShader* GetSkinningShader() {
 		return csSkinning;
 	}
+	ID3D11ComputeShader* GetParticleUpdateShader() {
+		return csParticleUpdate.Get();
+	}
 	// 描画
 	void ApplyPostProcessChain(std::vector<PostProcessNode>& effects,
 	                           ID3D11ShaderResourceView* initialSRV,
@@ -207,6 +210,7 @@ private:
 	bool CreateBlendState();
 	bool CreateDepthStencilBufferAndView(UINT width, UINT height);
 	bool CreateComputeSkinningShader();
+	bool CreateComputeParticleShader();
 	bool CreateD2DResources(HWND hwnd);
 	bool CreateFullScreenQuad();
 	bool CreateBuffer(UINT width, UINT height);
@@ -231,6 +235,7 @@ private:
 	CbPerObject m_CbPerObjectData{};
 
 	ID3D11ComputeShader* csSkinning = nullptr;
+	Microsoft::WRL::ComPtr<ID3D11ComputeShader> csParticleUpdate;
 
 	ID3D11DepthStencilState*	m_DepthStates[(int)DepthMode::COUNT];
 
