@@ -8,7 +8,7 @@
 #include "Backends/YAMLConverters.h"
 #include "Backends/myVector2.h"
 #include "meshRendererComponent.h"
-
+#include <random>
 
 // 地形の生成と編集を管理するコンポーネント
 // Scale × Scale グリッドのハイトマップを保持し、TerrainSystem がメッシュを生成する
@@ -63,7 +63,30 @@ public:
         static float brushStrength = 0.01f;
         static int brushMode = 0; // 0=Raise, 1=Lower, 2=Smooth
 
+        ImGui::Separator();
+        ImGui::Text("Diamond-Square");
 
+        static float roughness = 1.0f;
+
+        ImGui::SliderFloat("Roughness", &roughness, 0.1f, 5.0f);
+
+        if (ImGui::Button("Generate")) {
+            // サイズ補正（2^n + 1 にする）
+            int target = 1;
+            while (target < Scale)
+                target *= 2;
+            target += 1;
+
+            Scale = target - 1;
+
+            int mapSize = Scale + 1;
+            HeightMap.clear();
+            HeightMap.resize(mapSize * mapSize, 0.0f);
+
+            GenerateDiamondSquare(HeightMap, mapSize, roughness);
+
+            CurrentScale = 0;
+        }
 
         ImGui::Separator();
         ImGui::Text("Brush Settings");
@@ -123,8 +146,14 @@ public:
                             float strength = (1.0f - dist / brushRadius) * brushStrength;
                             if (brushMode == 0) { // Raise
                                 HeightMap[idx] += strength;
+                                if (HeightMap[idx] > 1.0f) {
+                                    HeightMap[idx] = 1.0f;
+                                }
                             } else if (brushMode == 1) { // Lower
                                 HeightMap[idx] -= strength;
+                                if (HeightMap[idx] < 0.0f) {
+                                    HeightMap[idx] = 0.0f;
+                                }
                             } else if (brushMode == 2) { // Smooth
                                 float sum = 0.0f;
                                 int count = 0;
@@ -146,6 +175,83 @@ public:
                     }
                 }
             }
+        }
+    }
+    
+    // ------------------------------------------------------------
+    // ランダム生成
+    // ------------------------------------------------------------
+    float RandomRange(std::mt19937& rng, float range) {
+        std::uniform_real_distribution<float> dist(-range, range);
+        return dist(rng);
+    }
+
+    // ------------------------------------------------------------
+    // Diamond-Square 法
+    // ------------------------------------------------------------
+    void GenerateDiamondSquare(std::vector<float>& heightMap, int size, float roughness) {
+        std::mt19937 rng(std::random_device{}());
+
+        int step = size - 1;
+
+        // 初期コーナー
+        heightMap[0] = 0.0f;
+        heightMap[step] = 0.0f;
+        heightMap[step * size] = 0.0f;
+        heightMap[step * size + step] = 0.0f;
+
+        float scale = roughness;
+
+        while (step > 1) {
+            int half = step / 2;
+
+            // ------------------------------------------------------------
+            // Diamond Step
+            // ------------------------------------------------------------
+            for (int y = half; y < size - 1; y += step) {
+                for (int x = half; x < size - 1; x += step) {
+                    float a = heightMap[(y - half) * size + (x - half)];
+                    float b = heightMap[(y - half) * size + (x + half)];
+                    float c = heightMap[(y + half) * size + (x - half)];
+                    float d = heightMap[(y + half) * size + (x + half)];
+
+                    float avg = (a + b + c + d) * 0.25f;
+                    heightMap[y * size + x] = avg + RandomRange(rng, scale);
+                }
+            }
+
+            // ------------------------------------------------------------
+            // Square Step
+            // ------------------------------------------------------------
+            for (int y = 0; y < size; y += half) {
+                for (int x = (y + half) % step; x < size; x += step) {
+                    float sum = 0.0f;
+                    int count = 0;
+
+                    if (x - half >= 0) {
+                        sum += heightMap[y * size + (x - half)];
+                        count++;
+                    }
+                    if (x + half < size) {
+                        sum += heightMap[y * size + (x + half)];
+                        count++;
+                    }
+                    if (y - half >= 0) {
+                        sum += heightMap[(y - half) * size + x];
+                        count++;
+                    }
+                    if (y + half < size) {
+                        sum += heightMap[(y + half) * size + x];
+                        count++;
+                    }
+
+                    float avg = sum / count;
+                    heightMap[y * size + x] = avg + RandomRange(rng, scale);
+                }
+            }
+
+            step /= 2;
+            scale *= 0.5f; // 粗さ減衰
         }
     }
 };

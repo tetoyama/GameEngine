@@ -2642,6 +2642,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Resources\Data\llamaModelData.h" />
     <ClInclude Include="Source\GameApplication\Engine\Resources\Loader\llamaModelLoader.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\componentList.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\environmentMapComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\materialComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\scriptComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\followComponent.h" />

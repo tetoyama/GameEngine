@@ -113,13 +113,16 @@ float4 ShadeMaterial_PBR(MaterialInput materialInput)
     float3 kD = (1.0f - kS) * (1.0f - metallic);
 
     float3 diffuse =
-        saturate(lighting.diffuse + lighting.ambient) *
-        baseColor * kD;
+    saturate(lighting.diffuse) * baseColor;
+
+    float3 ambient =
+    lighting.ambient * baseColor * (1.0f - metallic);
 
     float3 litColor =
-        diffuse +
-        lighting.specular +
-        envSpecular;
+    diffuse +
+    ambient +
+    lighting.specular +
+    envSpecular;
 
     float3 emissive =
         materialInput.Emissive.rgb *

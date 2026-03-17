@@ -16,35 +16,21 @@ float4 ShadeMaterial_PBRToon(MaterialInput materialInput)
     toonDiff += smoothstep(0.20, 0.22, diffIntensity) * 0.35; // 影 -> 中間
     toonDiff += smoothstep(0.55, 0.57, diffIntensity) * 0.50; // 中間 -> 日向
 
-    // --- 2. リムライト (輪郭の光) ---
-    // 視線方向と法線の角度から、縁に近いほど強くなる係数を作る
-    float3 N = normalize(materialInput.normal);
-    float3 V = normalize(materialInput.viewDir);
-    float rim = 1.0 - saturate(dot(N, V));
-    
-    // powでリムの幅を鋭くし、smoothstepでパキッとさせる
-    rim = pow(rim, 4.0);
-    float3 rimLight = smoothstep(0.48, 0.52, rim) * float3(1, 1, 1) * 0.6;
-    
-    // 【こだわり】影側にはリムを出さないように NdotL でマスクする（お好みで）
-    // float NdotL = saturate(dot(N, normalize(-Lights[0].Direction.xyz)));
-    // rimLight *= NdotL; 
-
-    // --- 3. スペキュラ ---
+    // --- 2. スペキュラ ---
     float specIntensity = length(lighting.specular);
     float toonSpec = smoothstep(0.48, 0.52, specIntensity);
 
-    // --- 4. カラー合成 ---
+    // --- 3. カラー合成 ---
     float3 baseColor = materialInput.baseColor.rgb;
     float3 shadowColor = baseColor * float3(0.6, 0.6, 0.8);
     float3 surfaceColor = lerp(shadowColor, baseColor, toonDiff);
-
-    // 最終カラー計算
-    float3 finalColor = (lighting.diffuse * toonDiff + lighting.ambient) * surfaceColor
-                        + (lighting.specular * toonSpec);
-
+    
     // Emissive contribution (HDR: not clamped, drives bloom)
     float3 emissive = materialInput.Emissive.rgb * materialInput.Emissive.a;
+    
+    // 最終カラー計算
+    float3 finalColor = (lighting.diffuse * toonDiff + lighting.ambient) * surfaceColor
+                        + (lighting.specular * toonSpec) + emissive;
 
     return float4(saturate(finalColor) + emissive, materialInput.baseColor.a);
 }

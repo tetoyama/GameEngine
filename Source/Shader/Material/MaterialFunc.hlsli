@@ -202,7 +202,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
             NdotL *
             specularShadow;
 
-        result.diffuse += diffuse;
+        result.diffuse += saturate(diffuse);
         result.specular += specular;
         result.ambient += light.Ambient.rgb;
     }

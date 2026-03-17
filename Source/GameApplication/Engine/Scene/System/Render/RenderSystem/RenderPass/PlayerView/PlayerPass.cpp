@@ -1,4 +1,4 @@
-﻿// =======================================================================
+// =======================================================================
 // 
 // PlayerPass.cpp
 // 
@@ -95,6 +95,16 @@ void PlayerPass::Finalize() {
 
 void PlayerPass::Execute(const RenderPassContext& ctx) {
 
+	if (ctx.cameraData.cameraComponent == nullptr) {
+		result = nullptr;
+		return;
+	}
+
+	// レンダーターゲットをリサイズ (ウィンドウ描画に使用)
+	float clearCol[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
+	playerRenderTarget->Resize(ctx.screenSize, m_context->graphics);
+	playerRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearCol);
+
 	GraphicsContext*     graphicsContext = m_context->renderer->GetGraphicsContext();
 
 	// GBuffer パス
@@ -126,9 +136,4 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	overlayUIPass->Execute(ctx);
 
 	result = postEffectPass->resultSrv;
-
-	// エディタ用レンダーターゲットをリサイズ (ウィンドウ描画に使用)
-	float clearCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
-	playerRenderTarget->Resize(ctx.screenSize, m_context->graphics);
-	playerRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearCol);
 }

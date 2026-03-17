@@ -23,6 +23,7 @@
 #include "System/Render/RenderSystem/Renderable/Model/RenderableModel.h"
 #include <Component/LightComponent.h>
 #include <Component/cameraComponent.h>
+#include <Component/environmentMapComponent.h>
 #include <System/Render/RenderSystem/Renderable/Terrain/RenderableTerrain.h>
 #include <System/Render/RenderSystem/Renderable/Wave/RenderableWave.h>
 #include <System/Render/RenderSystem/Renderable/Particle/RenderableParticle.h>
@@ -521,6 +522,11 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 				if(entities.empty()) continue;
 
 				for(Entity ent : entities){
+
+					auto env = sctx->component->GetComponent<EnvironmentMapComponent>(ent);
+					if (env) {
+						continue; // EnvironmentMapComponent を持つエンティティはシャドウマップに描画しない
+					}
 
 					RenderLayer layer = scene->GetRenderLayerFromEntity(ent);
 					if((int)layer != j) continue;

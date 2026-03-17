@@ -177,7 +177,7 @@ float ShadowFactorCascades(
         cuv.y = 1.0 - cuv.y;
 
         // 境界安定化
-        if (all(cuv >= -0.001) && all(cuv <= 1.001))
+        if (all(cuv > 0.0) && all(cuv <= 1.0))
         {
             selectedCascade = c;
             sp = csp;
