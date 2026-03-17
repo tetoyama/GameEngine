@@ -59,6 +59,7 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 			node.shader.m_InputLayout = e.vs->m_VertexLayout;
 			node.param               = e.Param;
 			node.resolutionScale     = e.resolutionScale;
+			node.mipLevels           = e.mipLevels;
 
 			float scale = max(0.1f, min(1.0f, e.resolutionScale));
 			Vector2 scaledSize{ ctx.screenSize.x * scale, ctx.screenSize.y * scale };

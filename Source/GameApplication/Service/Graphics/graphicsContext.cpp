@@ -905,6 +905,14 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 		SetParameter(node.param);
 
 		DrawQuad(&node.shader, nullptr); // SRV はすでに PSSetShaderResources でセット済み
+
+		// ミップマップが複数の場合、RTV をアンバインドしてからミップを自動生成する
+		if (node.mipLevels > 1 && node.srv) {
+			ID3D11RenderTargetView* nullRTV[1] = { nullptr };
+			deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);
+			boundRTV = nullptr;
+			deviceContext->GenerateMips(node.srv);
+		}
 	}
 
 	for (UINT i = 0; i < previousInputSlotCount && i < PostEffectGBufferSlot_Start; ++i) {

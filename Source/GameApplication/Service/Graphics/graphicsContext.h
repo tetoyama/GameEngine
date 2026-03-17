@@ -69,6 +69,7 @@ struct PostProcessNode {
 	float resolutionScale = 1.0f;
 	UINT outputWidth = 0;
 	UINT outputHeight = 0;
+	int mipLevels = 1;  // 生成するミップマップレベル数（1 = ミップなし）
 
 	DirectX::XMFLOAT4 param = {0,0,0,0};
 
