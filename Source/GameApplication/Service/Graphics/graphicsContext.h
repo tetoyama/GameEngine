@@ -168,6 +168,16 @@ public:
 		ID3D11PixelShader** pixelShader
 	);
 
+	bool CreateHullShader(
+		const char* fileName,
+		ID3D11HullShader** hullShader
+	);
+
+	bool CreateDomainShader(
+		const char* fileName,
+		ID3D11DomainShader** domainShader
+	);
+
 	ID3D11ComputeShader* GetSkinningShader() {
 		return csSkinning;
 	}

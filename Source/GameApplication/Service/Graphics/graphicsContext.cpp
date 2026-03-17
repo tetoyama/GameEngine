@@ -779,6 +779,22 @@ bool GraphicsContext::CreatePixelShader(const char* fileName,ID3D11PixelShader**
 	return SUCCEEDED(hr);
 }
 
+bool GraphicsContext::CreateHullShader(const char* fileName, ID3D11HullShader** hullShader){
+	std::vector<char> buffer;
+	if(!ReadFileToBuffer(fileName, buffer)) return false;
+
+	HRESULT hr = m_Device->CreateHullShader(buffer.data(), buffer.size(), nullptr, hullShader);
+	return SUCCEEDED(hr);
+}
+
+bool GraphicsContext::CreateDomainShader(const char* fileName, ID3D11DomainShader** domainShader){
+	std::vector<char> buffer;
+	if(!ReadFileToBuffer(fileName, buffer)) return false;
+
+	HRESULT hr = m_Device->CreateDomainShader(buffer.data(), buffer.size(), nullptr, domainShader);
+	return SUCCEEDED(hr);
+}
+
 void GraphicsContext::Resize(UINT width, UINT height){
 	GRAPHICS_LOG(LogLevel::Trace, ("GraphicsContext をリサイズします: width=" + std::to_string(width) + " height=" + std::to_string(height)));
 

@@ -8,6 +8,8 @@
 #include "Backends/YAMLConverters.h"
 #include "Backends/myVector2.h"
 #include "meshRendererComponent.h"
+#include <d3d11.h>
+#include <wrl/client.h>
 
 // 波のシミュレーションを管理するコンポーネント
 class WaveComponent: public IComponent {
@@ -19,6 +21,9 @@ public:
 	float Time = 0.0f;           // 経過時間
 	int CurrentResolution = -1;  // 現在のメッシュ状態
 	MeshRendererComponent* meshRenderer = nullptr;
+	int PatchResolution = -1; // テッセレーション用インデックスバッファの解像度
+	int PatchIndexCount = 0; // テッセレーション用インデックス数
+	Microsoft::WRL::ComPtr<ID3D11Buffer> PatchIndexBuffer;
 
 	bool UseEnvironmentMap = false; // 環境マッピングを使用するか
 
@@ -27,6 +32,7 @@ public:
 			delete meshRenderer;
 			meshRenderer = nullptr;
 		}
+		PatchIndexBuffer.Reset();
 	}
 
 	YAML::Node encode() override{
