@@ -37,14 +37,16 @@ cbuffer WaterTessellationCB : register(b3)
     float FresnelPower;
 };
 
-Texture2D HeightTexture : register(t5);
+Texture2D HeightTexture : register(t5); // TextureSlot_HeightMap(=5) のグレースケール高さマップ
 SamplerState LinearSampler : register(s0);
+static const float kLayer2Scale = 1.37f;
+static const float2 kLayer2Offset = float2(17.31f, -23.79f);
 
 float SampleWaveHeight(float2 worldXZ)
 {
     float2 uvBase = worldXZ * WaveScale;
     float2 uv1 = uvBase + FlowDir1 * Time * FlowSpeed1;
-    float2 uv2 = uvBase * 1.37f + float2(17.31f, -23.79f) + FlowDir2 * Time * FlowSpeed2;
+    float2 uv2 = uvBase * kLayer2Scale + kLayer2Offset + FlowDir2 * Time * FlowSpeed2;
     float h1 = HeightTexture.SampleLevel(LinearSampler, uv1, 0).r;
     float h2 = HeightTexture.SampleLevel(LinearSampler, uv2, 0).r;
     return ((h1 + h2) - 1.0f) * WaveHeight;

@@ -6,7 +6,6 @@
 #include "RenderableWave.h"
 
 #include <d3d11.h>
-#include <algorithm>
 #include <vector>
 #include "../../RenderPass/RenderPassContext.h"
 
@@ -24,6 +23,17 @@
 #include "Shader/commonDefine.h"
 
 namespace {
+	constexpr float kTessellationMin = 2.0f;
+	constexpr float kTessellationMax = 12.0f;
+	constexpr float kTessellationMinDistance = 2.0f;
+	constexpr float kTessellationMaxDistance = 35.0f;
+	constexpr DirectX::XMFLOAT2 kFlowDir1 = DirectX::XMFLOAT2(0.96f, 0.28f);
+	constexpr DirectX::XMFLOAT2 kFlowDir2 = DirectX::XMFLOAT2(-0.42f, 0.91f);
+	constexpr float kFlowSpeedLayer2Rate = 0.63f;
+	constexpr float kNormalDelta = 0.08f;
+	constexpr float kFresnelPower = 5.0f;
+	constexpr float kMinWaveLength = 0.01f;
+
 	struct alignas(16) WaterTessellationCB {
 		DirectX::XMFLOAT4X4 World;
 		DirectX::XMFLOAT4X4 View;
@@ -208,18 +218,19 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	DirectX::XMStoreFloat4x4(&waterCB.Projection, ctx.projectionMatrix);
 	waterCB.CameraPos = DirectX::XMFLOAT3(ctx.CameraPosition.x, ctx.CameraPosition.y, ctx.CameraPosition.z);
 	waterCB.Time = pWave->Time;
-	waterCB.TessellationMin = 2.0f;
-	waterCB.TessellationMax = 12.0f;
-	waterCB.TessellationMinDistance = 2.0f;
-	waterCB.TessellationMaxDistance = 35.0f;
+	waterCB.TessellationMin = kTessellationMin;
+	waterCB.TessellationMax = kTessellationMax;
+	waterCB.TessellationMinDistance = kTessellationMinDistance;
+	waterCB.TessellationMaxDistance = kTessellationMaxDistance;
 	waterCB.WaveHeight = pWave->Amplitude;
-	waterCB.WaveScale = 1.0f / std::max(0.01f, pWave->Wavelength);
-	waterCB.FlowDir1 = DirectX::XMFLOAT2(0.96f, 0.28f);
-	waterCB.FlowDir2 = DirectX::XMFLOAT2(-0.42f, 0.91f);
+	const float waveLength = (pWave->Wavelength > kMinWaveLength) ? pWave->Wavelength : kMinWaveLength;
+	waterCB.WaveScale = 1.0f / waveLength;
+	waterCB.FlowDir1 = kFlowDir1;
+	waterCB.FlowDir2 = kFlowDir2;
 	waterCB.FlowSpeed1 = pWave->Speed;
-	waterCB.FlowSpeed2 = pWave->Speed * 0.63f;
-	waterCB.NormalDelta = 0.08f;
-	waterCB.FresnelPower = 5.0f;
+	waterCB.FlowSpeed2 = pWave->Speed * kFlowSpeedLayer2Rate;
+	waterCB.NormalDelta = kNormalDelta;
+	waterCB.FresnelPower = kFresnelPower;
 
 	deviceContext->UpdateSubresource(shaderCache.waterCB.Get(), 0, nullptr, &waterCB, 0, 0);
 	ID3D11Buffer* waveConstantBuffer = shaderCache.waterCB.Get();
@@ -232,6 +243,7 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	deviceContext->PSSetSamplers(0, 1, &waveSampler);
 
 	if (pTexture && pTexture->m_TextureData && pTexture->m_TextureData->pTexture) {
+		// HLSL の HeightTexture : register(t5) と TextureSlot_HeightMap(=5) を対応させる
 		deviceContext->DSSetShaderResources(TextureSlot_HeightMap, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 	}
 
