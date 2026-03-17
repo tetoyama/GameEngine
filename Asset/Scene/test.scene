@@ -574,7 +574,7 @@ Entities:
   - Entity: 8
     Components:
       - Component: NameComponent
-        Name: Entity
+        Name: Particle
       - Component: TransformComponent
         Position:
           x: -17.6817169

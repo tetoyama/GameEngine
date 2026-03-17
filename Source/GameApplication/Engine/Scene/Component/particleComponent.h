@@ -7,8 +7,7 @@
 #include "Interface/IComponent.h"
 #include "Backends/YAMLConverters.h"
 #include "Backends/ImGuiFunc.h"
-
-#define MAXPARTICLE 512
+#include "Shader/commonDefine.h"
 
 // 個々のパーティクルの状態を保持する構造体
 struct PARTICLE

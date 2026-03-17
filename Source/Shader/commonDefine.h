@@ -96,4 +96,6 @@
 #define LIGHT_MAX_COUNT			(64)
 #endif // LOW_RESOLUTION
 
+#define MAXPARTICLE 4096
+
 #endif // !COMMON_DEFINE_H

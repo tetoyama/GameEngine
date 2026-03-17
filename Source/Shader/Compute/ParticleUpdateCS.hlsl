@@ -3,7 +3,6 @@
 // パーティクルの更新をコンピュートシェーダーで行う
 // CPU 側の構造体（PARTICLE）とメモリ配置を一致させること
 // Keep this layout identical to the C++ PARTICLE struct to avoid silent corruption.
-#define MAXPARTICLE 512
 #define PARTICLE_THREAD_GROUP_SIZE 64
 struct ParticleData
 {
