@@ -6,6 +6,8 @@
 #include "RenderableSprite.h"
 
 #include <d3d11.h>
+#include <d3dcompiler.h>
+#include <DirectXMath.h>
 #include "../../RenderPass/RenderPassContext.h"
 
 #include "DebugTools/DebugSystem.h"
@@ -64,6 +66,48 @@ void RenderableSprite::Initialize(SceneManagerContext* context){
 		context->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_spriteMesh->mesh.m_VertexBuffer.GetAddressOf());
 		context->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\commonVS.cso", m_spriteMesh->mesh.m_VertexShader.GetAddressOf(), m_spriteMesh->mesh.m_VertexLayout.GetAddressOf());
 		context->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_spriteMesh->mesh.m_PixelShader.GetAddressOf());
+	}
+
+	// インスタンシング用バッファとシェーダー
+	ID3D11Device* device = context->renderer->GetGraphicsContext()->GetDevice();
+	if (device) {
+		D3D11_BUFFER_DESC instDesc{};
+		instDesc.Usage = D3D11_USAGE_DYNAMIC;
+		instDesc.ByteWidth = sizeof(DirectX::XMFLOAT4) * 4;
+		instDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		instDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		device->CreateBuffer(&instDesc, nullptr, m_instanceBuffer.GetAddressOf());
+
+		Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
+		Microsoft::WRL::ComPtr<ID3DBlob> vsErr;
+		HRESULT hr = D3DCompileFromFile(
+			L"Source\\Shader\\SpriteInstanceVS.hlsl",
+			nullptr,
+			D3D_COMPILE_STANDARD_FILE_INCLUDE,
+			"main",
+			"vs_5_0",
+			D3DCOMPILE_ENABLE_STRICTNESS,
+			0,
+			vsBlob.GetAddressOf(),
+			vsErr.GetAddressOf());
+		if (SUCCEEDED(hr)) {
+			device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, m_instanceVS.GetAddressOf());
+
+			D3D11_INPUT_ELEMENT_DESC layout[] =
+			{
+				{ "POSITION",	0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "NORMAL",		0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 4 * 3, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "TANGENT",	0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 4 * 6, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "COLOR",		0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, 4 * 9, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "TEXCOORD",	0, DXGI_FORMAT_R32G32_FLOAT,		0, 4 * 13, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+
+				{ "TEXCOORD",	1, DXGI_FORMAT_R32G32B32A32_FLOAT,	1, 0,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+				{ "TEXCOORD",	2, DXGI_FORMAT_R32G32B32A32_FLOAT,	1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+				{ "TEXCOORD",	3, DXGI_FORMAT_R32G32B32A32_FLOAT,	1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+				{ "TEXCOORD",	4, DXGI_FORMAT_R32G32B32A32_FLOAT,	1, 48, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+			};
+			device->CreateInputLayout(layout, ARRAYSIZE(layout), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), m_instanceLayout.GetAddressOf());
+		}
 	}
 }
 
@@ -133,9 +177,15 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 
 	}
 	if(m_spriteMesh->mesh.m_VertexLayout){
-		deviceContext->IASetInputLayout(m_spriteMesh->mesh.m_VertexLayout.Get());
+		if (m_instanceLayout) {
+			deviceContext->IASetInputLayout(m_instanceLayout.Get());
+		} else {
+			deviceContext->IASetInputLayout(m_spriteMesh->mesh.m_VertexLayout.Get());
+		}
 	}
-	if(m_spriteMesh->mesh.m_VertexShader){
+	if(m_instanceVS){
+		deviceContext->VSSetShader(m_instanceVS.Get(), NULL, 0);
+	} else if(m_spriteMesh->mesh.m_VertexShader){
 		deviceContext->VSSetShader(m_spriteMesh->mesh.m_VertexShader.Get(), NULL, 0);
 	}
 	if(m_spriteMesh->mesh.m_PixelShader){
@@ -145,17 +195,29 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 
 	graphicsContext->SetWorldViewProjection2D();
 	graphicsContext->SetWorldMatrix(World);
-	UINT stride = sizeof(VERTEX_3D);
-	UINT offset = 0;
+	UINT stride[2] = { sizeof(VERTEX_3D), sizeof(DirectX::XMFLOAT4) * 4 };
+	UINT offset[2] = { 0, 0 };
 
-	deviceContext->IASetVertexBuffers(0, 1, m_spriteMesh->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
+	ID3D11Buffer* buffers[2] = { m_spriteMesh->mesh.m_VertexBuffer.Get(), m_instanceBuffer.Get() };
+	deviceContext->IASetVertexBuffers(0, 2, buffers, stride, offset);
 
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	//if (ctx.passPhase == RenderPhase::PHASE_SHADOW) {
 	//	deviceContext->PSSetShader(nullptr, NULL, 0); // ピクセルシェーダー無効化
 	//}
-	deviceContext->Draw(m_spriteMesh->mesh.meshCount, 0);
+	if (m_instanceBuffer && m_instanceVS) {
+		D3D11_MAPPED_SUBRESOURCE mapped{};
+		if (SUCCEEDED(deviceContext->Map(m_instanceBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped))) {
+			DirectX::XMFLOAT4X4 mtx;
+			DirectX::XMStoreFloat4x4(&mtx, DirectX::XMMatrixTranspose(World));
+			memcpy(mapped.pData, &mtx, sizeof(DirectX::XMFLOAT4) * 4);
+			deviceContext->Unmap(m_instanceBuffer.Get(), 0);
+		}
+		deviceContext->DrawInstanced(m_spriteMesh->mesh.meshCount, 1, 0, 0);
+	} else {
+		deviceContext->Draw(m_spriteMesh->mesh.meshCount, 0);
+	}
 
 	graphicsContext->SetDepthMode(DepthMode::Write);
 	graphicsContext->SetViewMatrix(ctx.viewMatrix);

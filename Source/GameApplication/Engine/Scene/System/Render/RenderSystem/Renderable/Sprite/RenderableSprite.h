@@ -25,4 +25,7 @@ public:
 
 private:
 	MeshRendererComponent* m_spriteMesh = nullptr;
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_instanceVS;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_instanceLayout;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_instanceBuffer;
 };
