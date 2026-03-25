@@ -39,6 +39,7 @@ struct CameraPostEffect {
     int outputPin = -1;                               // このノードからの出力ピン ID
 
 	float resolutionScale = 1.0f;                     // テクスチャ解像度のスケール倍率（1.0 = フルサイズ）
+	int mipLevels = 1;                                // 生成するミップマップレベル数（1 = ミップなし）
 
 	Microsoft::WRL::ComPtr<ID3D11Texture2D>          tex;  // ポストエフェクト用中間テクスチャ
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   rtv;  // 描画先レンダーターゲットビュー
@@ -47,19 +48,25 @@ struct CameraPostEffect {
 
 	// テクスチャ・RTV・SRV を生成する（未生成の場合のみ実行）
 	// 画面サイズに応じて HDR float16 フォーマットでテクスチャを生成する
+	// mipLevels > 1 の場合はミップマップ対応テクスチャを生成する
 	void CreateTexture(ID3D11Device* device, const Vector2& screenSize){
 		if (tex) return;
 		resolution = screenSize;
+		UINT actualMipLevels = static_cast<UINT>(max(1, mipLevels));
 		D3D11_TEXTURE2D_DESC desc = {};
 		desc.Width = static_cast<UINT>(resolution.x);
 		desc.Height = static_cast<UINT>(resolution.y);
-		desc.MipLevels = 1;
+		desc.MipLevels = actualMipLevels;
 		desc.ArraySize = 1;
 		// HDR float16: エミッシブ / ブルームの HDR 値を保持する
 		desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 		desc.SampleDesc.Count = 1;
 		desc.Usage = D3D11_USAGE_DEFAULT;
 		desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+		// ミップマップが複数の場合は自動生成フラグを付与する
+		if (actualMipLevels > 1) {
+			desc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+		}
 		HRESULT hr = device->CreateTexture2D(&desc, nullptr, &tex);
 		if (FAILED(hr)) {
 			OutputDebugStringA("Failed to create post effect texture\n");
@@ -78,7 +85,7 @@ struct CameraPostEffect {
 		srvDesc.Format = desc.Format;
 		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 		srvDesc.Texture2D.MostDetailedMip = 0;
-		srvDesc.Texture2D.MipLevels = 1;
+		srvDesc.Texture2D.MipLevels = actualMipLevels;
 		hr = device->CreateShaderResourceView(tex.Get(), &srvDesc, &srv);
 		if (FAILED(hr)) {
 			OutputDebugStringA("Failed to create post effect SRV\n");
@@ -86,10 +93,17 @@ struct CameraPostEffect {
 		}
 	}
 
-	// 解像度変更時にテクスチャを再生成する
-	// サイズが同一で全リソースが有効な場合はスキップする
+	// 解像度変更またはミップレベル変更時にテクスチャを再生成する
+	// サイズとミップ数が同一で全リソースが有効な場合はスキップする
 	void ResizeTexture(ID3D11Device* device, const Vector2& screenSize){
-		if (resolution.x == screenSize.x && resolution.y == screenSize.y && tex && rtv && srv) return;
+		bool sameSize = (resolution.x == screenSize.x && resolution.y == screenSize.y && tex && rtv && srv);
+		bool sameMips = true;
+		if (sameSize && tex) {
+			D3D11_TEXTURE2D_DESC desc;
+			tex->GetDesc(&desc);
+			sameMips = (desc.MipLevels == static_cast<UINT>(max(1, mipLevels)));
+		}
+		if (sameSize && sameMips) return;
 		tex = nullptr;
 		rtv = nullptr;
 		srv = nullptr;
@@ -157,6 +171,7 @@ public:
             e["OutputPin"] = effect.outputPin;
 			e["Param"] = effect.Param;
 			e["ResolutionScale"] = effect.resolutionScale;
+			e["MipLevels"] = effect.mipLevels;
 
             node["PostEffects"].push_back(e);
         }
@@ -224,6 +239,7 @@ public:
 				if(eNode["OutputPin"]) effect.outputPin = eNode["OutputPin"].as<int>();
 				if(eNode["Param"]) effect.Param = eNode["Param"].as < DirectX::XMFLOAT4 > ();
 				if(eNode["ResolutionScale"]) effect.resolutionScale = eNode["ResolutionScale"].as<float>();
+				if(eNode["MipLevels"]) effect.mipLevels = eNode["MipLevels"].as<int>();
 				if (effect.outputPin <= 0) effect.outputPin = nextPinId++;
                 effect.initialized = true;
                 postEffects.push_back(effect);
@@ -472,6 +488,7 @@ public:
 
 			ImGui::UndoDragFloat4("##Param", &effect.Param.x, 0.01f);
 			ImGui::UndoDragFloat("Scale", &effect.resolutionScale, 0.01f, 0.1f, 1.0f);
+			ImGui::UndoDragInt("MipLevels", &effect.mipLevels, 1, 1, 8);
 
             if (effect.ps) strncpy_s(filepathBuffer, sizeof(filepathBuffer), effect.ps->FilePath.c_str(), _TRUNCATE);
             else filepathBuffer[0] = '\0';
