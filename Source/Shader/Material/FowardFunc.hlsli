@@ -253,8 +253,7 @@ float ShadowFactorCascades(
         float2 cuv = csp.xy / csp.w * 0.5 + 0.5;
         cuv.y = 1.0 - cuv.y;
 
-        // 境界安定化
-        if (all(cuv > 0.0) && all(cuv <= 1.0))
+        if (all(cuv >= 0.0) && all(cuv <= 1.0))
         {
             selectedCascade = c;
             sp = csp;
@@ -385,43 +384,52 @@ float ShadowFactorCascades(
     //--------------------------------------------------
 
     [branch]
-    if (shadow > 0.99 && selectedCascade < cascadeCount - 1)
+    if (shadow >= 1.0 && selectedCascade < cascadeCount - 1)
     {
-        int nextCascade = selectedCascade + 1;
+        // 修正点: 現在の座標が「選択されたカスケード(selectedCascade)」の
+        // 有効なUV範囲内(0~1)にあるかチェックします。
+        // すでに計算済みの uv 変数を使用します。
+        bool isInCurrentCascade = all(uv >= 0.0) && all(uv <= 1.0);
 
-        LIGHT nextLight = Lights[min(firstLightIdx + nextCascade, LIGHT_MAX_COUNT - 1)];
-
-        float4 nsp = mul(float4(worldPos, 1.0), nextLight.LightView);
-        nsp = mul(nsp, nextLight.LightProjection);
-
-        if (nsp.w > 0.0)
+        // 現在のカスケード範囲外である場合のみ、次のカスケードを確認する
+        if (!isInCurrentCascade)
         {
-            nsp.xyz /= nsp.w;
+            int nextCascade = selectedCascade + 1;
 
-            float2 nuv = nsp.xy * 0.5 + 0.5;
-            nuv.y = 1.0 - nuv.y;
+            LIGHT nextLight = Lights[min(firstLightIdx + nextCascade, LIGHT_MAX_COUNT - 1)];
 
-            if (all(nuv >= 0.0) && all(nuv <= 1.0))
+            float4 nsp = mul(float4(worldPos, 1.0), nextLight.LightView);
+            nsp = mul(nsp, nextLight.LightProjection);
+
+            if (nsp.w > 0.0)
             {
-                float ndepth = saturate(nsp.z - nextLight.Param.w);
+                nsp.xyz /= nsp.w;
 
-                int nTileIdx = atlasOffset + nextCascade;
+                float2 nuv = nsp.xy * 0.5 + 0.5;
+                nuv.y = 1.0 - nuv.y;
 
-                uint ngx = nTileIdx % grid;
-                uint ngy = nTileIdx / grid;
+                if (all(nuv >= 0.0) && all(nuv <= 1.0))
+                {
+                    float ndepth = saturate(nsp.z - nextLight.Param.w);
 
-                float2 nsuvBase = float2(ngx, ngy) * tile + nuv * tile;
+                    int nTileIdx = atlasOffset + nextCascade;
 
-                shadow = min(
-                    shadow,
-                    SampleCascadePCF(
-                        nsuvBase,
-                        ndepth,
-                        texelSize,
-                        pcf.StepTexel,
-                        radius
-                    )
-                );
+                    uint ngx = nTileIdx % grid;
+                    uint ngy = nTileIdx / grid;
+
+                    float2 nsuvBase = float2(ngx, ngy) * tile + nuv * tile;
+
+                    shadow = min(
+                        shadow,
+                        SampleCascadePCF(
+                            nsuvBase,
+                            ndepth,
+                            texelSize,
+                            pcf.StepTexel,
+                            radius
+                        )
+                    );
+                }
             }
         }
     }
