@@ -1,4 +1,4 @@
-﻿// =======================================================================
+// =======================================================================
 // 
 // GBufferPass.cpp
 // 
@@ -188,7 +188,7 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 					}
 
 					ObjectInfo info;
-					info.SceneID = (unsigned int)sctx;
+					info.SceneID = m_context->sceneManager->GetIDFromContext(sctx);
 					info.ObjectID = ent;
 					info.ShaderID = materialID;
 					m_context->graphics->SetObjectInfo(info);

@@ -249,6 +249,30 @@ void SceneManager::Shutdown(){
 	systemRegistry.reset();
 }
 
+uint32_t SceneManager::GetIDFromContext(SceneContext* ctx){
+	if(ctx == nullptr) return 0;
+
+	// 既に登録されているか確認
+	for(auto const& [id, registeredCtx] : m_contextRegistry){
+		if(registeredCtx == ctx) return id;
+	}
+
+	// 新規登録
+	uint32_t newID = m_nextContextID++;
+	m_contextRegistry[newID] = ctx;
+	return newID;
+}
+
+SceneContext* SceneManager::GetContextFromID(uint32_t id){
+	if(id == 0) return nullptr;
+
+	auto it = m_contextRegistry.find(id);
+	if(it != m_contextRegistry.end()){
+		return it->second;
+	}
+	return nullptr;
+}
+
 void SceneManager::AddScene(std::shared_ptr<Scene> scene) {
 	if (!scene) {
 		if(m_SceneContext.debug){

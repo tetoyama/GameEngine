@@ -36,8 +36,10 @@ Entities:
             lockRotX: false
             lockRotY: false
             lockRotZ: false
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
-        ShaderID: 3
+        ShaderID: 2
         Material:
           BaseColor:
             x: 0.526226997
@@ -54,6 +56,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+          UseEnvironmentMap: false
       - Component: TextureComponent
         FilePath: Asset\Texture\mesh.png
         UV_Slice_X: 1
@@ -110,7 +113,7 @@ Entities:
           x: 500
           y: 0
           z: 0
-          w: 0
+          w: 0.00100000005
         LightView:
           -
             - 0.540302277
@@ -190,6 +193,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+          UseEnvironmentMap: false
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
         UV_Slice_X: 1
@@ -236,6 +240,8 @@ Entities:
             lockRotX: true
             lockRotY: true
             lockRotZ: true
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 4
         Material:
@@ -254,6 +260,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+          UseEnvironmentMap: false
       - Component: TextureComponent
         FilePath: Asset/Texture\white.tga
         UV_Slice_X: 1
@@ -277,9 +284,9 @@ Entities:
         stamina: 5
         staminaConsumeRate: 1.5
         staminaRecoverRate: 1
-        aaa: 1
         jumpPower: 4
         Stamina: 5
+        SelfLayerBit: 2
   - Entity: 5
     Components:
       - Component: NameComponent
@@ -350,6 +357,7 @@ Entities:
         rotateSpeed: 1.5
         minPitch: 0
         maxPitch: 0.785398185
+        minDistance: 1
   - Entity: 6
     Components:
       - Component: NameComponent
@@ -387,6 +395,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+          UseEnvironmentMap: false
       - Component: ModelRendererComponent
         FilePath: Asset/Model\ball.fbx
         isBlender: false

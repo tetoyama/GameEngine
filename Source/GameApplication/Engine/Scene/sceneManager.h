@@ -1,4 +1,4 @@
-﻿// =======================================================================
+// =======================================================================
 // 
 // sceneManager.h
 // 
@@ -25,6 +25,7 @@ class EditorService;
 
 class SystemRegistry;
 
+struct SceneContext;
 class SceneManager;
 class Scene;
 
@@ -63,66 +64,54 @@ enum SceneManagerState
 
 // 複数シーンの管理と再生状態の制御を行うサービス
 // シーンの追加・ロード・保存・遷移を担当し、各フレームに Update/FixedUpdate/Draw を通知する
-class SceneManager : public IService {
+class SceneManager: public IService {
 public:
 	SceneManager() = default;
 	~SceneManager() = default;
 
-	// シーンマネージャを初期化する（ECS システムの登録とシステムレジストリの構築）
 	void Initialize(SceneManagerContext sceneContext);
-
-	// 毎フレームのゲームロジック更新（再生中のシーンのみ）
 	void Update(float deltaTime);
-
-	// 固定タイムステップでの物理シミュレーション更新
 	void FixedUpdate(float fixedDeltaTime);
-
-	// 全シーンのレンダリング処理
 	void Draw();
-
-	// シーンマネージャを終了する（全アクティブシーンを解放）
 	void Shutdown() override;
 
-	// シーンコンテキストへのポインタを返す（他のサービスからシーン情報にアクセスする際に使用）
 	SceneManagerContext* GetContext(){
 		return &m_SceneContext;
 	}
 
-	// 新しいシーンをアクティブシーンリストに追加する（シーン加算ロード）
+	// --- コンテキストとIDの相互変換 ---
+	// ポインタからIDを取得（未登録なら登録する）
+	uint32_t GetIDFromContext(SceneContext* ctx);
+	// IDからポインタを安全に取得
+	SceneContext* GetContextFromID(uint32_t id);
+
 	void AddScene(std::shared_ptr<Scene> scene);
-
-	// シーンをただちにロードして起動する
 	void LoadScene(std::shared_ptr<Scene> scene);
-
-	// シーンをフレーム終了後に遅延ロードする（現在の更新処理が完了してから切り替え）
 	void DeferredLoadScene(std::shared_ptr<Scene> scene);
-
-	// 全アクティブシーンを YAML ファイルに保存する
 	void SaveScenes();
 
-	// アクティブシーンのマップを返す（キーはシーン名）
-	const std::unordered_map<std::string, std::shared_ptr<Scene>>& GetActiveScenes() const { return m_activeScenes; }
+	const std::unordered_map<std::string, std::shared_ptr<Scene>>& GetActiveScenes() const{
+		return m_activeScenes;
+	}
 
-	// ファイル選択ダイアログを開き、選択した YAML シーンファイルを読み込む
 	std::shared_ptr<Scene> OpenFromYAMLFile();
-
-	// 指定されたファイルパスから YAML シーンを読み込む（起動時の初期シーンロードに使用）
 	std::shared_ptr<Scene> LoadFromFilePath(const std::string& filePath);
 
-	SceneManagerState State    = SceneManagerState::Stopped;   // 現在の再生状態
-	SceneManagerState OldState = SceneManagerState::Stopped;   // 直前の再生状態（状態遷移検出用）
+	SceneManagerState State = SceneManagerState::Stopped;
+	SceneManagerState OldState = SceneManagerState::Stopped;
 
-	std::shared_ptr<SystemRegistry> systemRegistry = nullptr;  // ECS システムレジストリ
-
+	std::shared_ptr<SystemRegistry> systemRegistry = nullptr;
 
 private:
+	void TempSave();
+	void TempLoad();
 
-	void TempSave(); // エディター再生開始前にシーン状態を一時保存する
-	void TempLoad(); // エディター再生停止後に一時保存したシーン状態を復元する
+	std::unordered_map<std::string, std::shared_ptr<Scene>> m_activeScenes;
+	SceneManagerContext m_SceneContext;
 
-	std::unordered_map<std::string, std::shared_ptr<Scene>> m_activeScenes; // アクティブシーンのマップ
-	SceneManagerContext m_SceneContext;                                      // 初期化時に受け取ったコンテキスト
+	std::unordered_map<uint32_t, SceneContext*> m_contextRegistry;
+	uint32_t m_nextContextID = 1;
 
-	bool m_NeedSceneChange = false;            // 遅延シーン遷移のフラグ
-	std::shared_ptr<Scene> m_NextScene = nullptr; // 遅延遷移先のシーン
+	bool m_NeedSceneChange = false;
+	std::shared_ptr<Scene> m_NextScene = nullptr;
 };

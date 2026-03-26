@@ -5,7 +5,7 @@
 // =======================================================================
 #include "renderTarget.h"
 #include "Graphics/graphicsContext.h"
-
+#include <algorithm>
 RenderTarget::RenderTarget(const Vector2& _size, GraphicsContext* _graphicsContext, const RenderTargetType& setType){
 	type = setType;
 	Resize(_size, _graphicsContext);
@@ -169,4 +169,90 @@ void RenderTarget::Clear(ID3D11DeviceContext* ctx, const float clearColor[4]) co
 	if(dsv){
 		ctx->ClearDepthStencilView(dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	}
+}
+
+PickResult RenderTarget::Pick(const Vector2& uv, GraphicsContext* graphicsContext){
+	PickResult result;
+	if(!tex) return result;
+
+	ID3D11Device* device = graphicsContext->GetDevice();
+	ID3D11DeviceContext* context = graphicsContext->GetDeviceContext();
+
+	// 1. テクスチャ情報の取得
+	D3D11_TEXTURE2D_DESC desc;
+	tex->GetDesc(&desc);
+
+	// 2. ピクセル座標の計算
+	UINT pixelX = (UINT)std::clamp(uv.x * size.x, 0.0f, size.x - 1.0f);
+	UINT pixelY = (UINT)std::clamp(uv.y * size.y, 0.0f, size.y - 1.0f);
+
+	// 3. 1x1のステージングテクスチャ作成
+	D3D11_TEXTURE2D_DESC stagingDesc = desc;
+	stagingDesc.Width = 1;
+	stagingDesc.Height = 1;
+	stagingDesc.MipLevels = 1;
+	stagingDesc.ArraySize = 1;
+	stagingDesc.Usage = D3D11_USAGE_STAGING;
+	stagingDesc.BindFlags = 0;
+	stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	stagingDesc.MiscFlags = 0;
+
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> stagingTex;
+	HRESULT hr = device->CreateTexture2D(&stagingDesc, nullptr, stagingTex.GetAddressOf());
+	if(FAILED(hr)) return result;
+
+	// 4. 指定座標の1ピクセルをコピー
+	D3D11_BOX srcBox = {pixelX, pixelY, 0, pixelX + 1, pixelY + 1, 1};
+	context->CopySubresourceRegion(stagingTex.Get(), 0, 0, 0, 0, tex.Get(), 0, &srcBox);
+
+	// 5. マップしてデータ取得
+	D3D11_MAPPED_SUBRESOURCE mapped;
+	hr = context->Map(stagingTex.Get(), 0, D3D11_MAP_READ, 0, &mapped);
+	if(SUCCEEDED(hr)){
+
+		switch(type){
+			case RENDERTARGET_TYPE_COLOR:
+			case RENDERTARGET_TYPE_COLOR_NO_DSV:
+			{
+				// DXGI_FORMAT_R16G16B16A16_FLOAT の場合
+				// CPUでは float16 を直接扱えないため HALF から float へ変換
+				const DirectX::PackedVector::HALF* pHalf = reinterpret_cast<const DirectX::PackedVector::HALF*>(mapped.pData);
+				result.f[0] = DirectX::PackedVector::XMConvertHalfToFloat(pHalf[0]);
+				result.f[1] = DirectX::PackedVector::XMConvertHalfToFloat(pHalf[1]);
+				result.f[2] = DirectX::PackedVector::XMConvertHalfToFloat(pHalf[2]);
+				result.f[3] = DirectX::PackedVector::XMConvertHalfToFloat(pHalf[3]);
+				break;
+			}
+			case RENDERTARGET_TYPE_COLOR_UNORM:
+			{
+				// DXGI_FORMAT_R8G8B8A8_UNORM の場合
+				const uint8_t* pByte = reinterpret_cast<const uint8_t*>(mapped.pData);
+				result.b[0] = pByte[0];
+				result.b[1] = pByte[1];
+				result.b[2] = pByte[2];
+				result.b[3] = pByte[3];
+				break;
+			}
+			case RENDERTARGET_TYPE_UINT4:
+			{
+				// DXGI_FORMAT_R32G32B32A32_UINT の場合
+				const uint32_t* pUint = reinterpret_cast<const uint32_t*>(mapped.pData);
+				result.u[0] = pUint[0];
+				result.u[1] = pUint[1];
+				result.u[2] = pUint[2];
+				result.u[3] = pUint[3];
+				break;
+			}
+			case RENDERTARGET_TYPE_DEPTH:
+			{
+				// DXGI_FORMAT_D32_FLOAT の場合 (SRV経由の読み取り想定)
+				result.f[0] = *reinterpret_cast<const float*>(mapped.pData);
+				break;
+			}
+		}
+
+		context->Unmap(stagingTex.Get(), 0);
+	}
+
+	return result;
 }

@@ -304,7 +304,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 	}
 	ImGui::EndGroup();
 
-	if(ImGui::IsItemClicked()){
+	if(ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)){
 		selectedEntity = entity;
 		sceneContext = context;
 	}

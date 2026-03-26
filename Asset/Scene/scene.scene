@@ -374,7 +374,7 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 3
-        CastShadow: 1
+        CastShadow: 0
         Position:
           x: 4.47810841
           y: 2.79885888
@@ -464,7 +464,7 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 2
-        CastShadow: 1
+        CastShadow: 0
         Position:
           x: 2.6928165
           y: 4
@@ -554,7 +554,7 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 2
-        CastShadow: 1
+        CastShadow: 0
         Position:
           x: 8.2638216
           y: 4
@@ -644,7 +644,7 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 2
-        CastShadow: 1
+        CastShadow: 0
         Position:
           x: 3.81178188
           y: 4
@@ -808,9 +808,9 @@ Entities:
         Name: Cube
       - Component: TransformComponent
         Position:
-          x: -4.06946087
+          x: -4.84274864
           y: -0.646774054
-          z: 6.99680424
+          z: 7.53346014
         Rotation:
           - -0
           - 0
@@ -938,6 +938,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -955,6 +956,7 @@ Entities:
               z: 0.5
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -972,6 +974,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -990,6 +993,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -1007,6 +1011,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -1024,6 +1029,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -1041,6 +1047,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -1059,6 +1066,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -1076,6 +1084,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
         PostEffectLinks:
           - ID: 27
             StartNode: -1
