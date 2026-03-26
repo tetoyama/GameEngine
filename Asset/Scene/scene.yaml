@@ -73,9 +73,9 @@ Entities:
         LightType: 4
         CastShadow: 1
         Position:
-          x: 23.0314007
-          y: 23.216753
-          z: -14.5754013
+          x: 0
+          y: 25
+          z: 0
           w: 0
         Direction:
           x: 0
@@ -250,7 +250,6 @@ Entities:
         stamina: 5
         staminaConsumeRate: 1.5
         staminaRecoverRate: 3
-        aaa: 1
         jumpPower: 4
         Stamina: 5
         SelfLayerBit: 2
@@ -624,7 +623,7 @@ Entities:
           y: 0
       - Component: ScoreSprite
         isBlue: true
-        Degit: 2
+        Digit: 2
   - Entity: 12
     Components:
       - Component: NameComponent
@@ -658,7 +657,7 @@ Entities:
           y: 0
       - Component: ScoreSprite
         isBlue: true
-        Degit: 1
+        Digit: 1
   - Entity: 13
     Components:
       - Component: NameComponent
@@ -692,7 +691,7 @@ Entities:
           y: 0
       - Component: ScoreSprite
         isBlue: false
-        Degit: 2
+        Digit: 2
   - Entity: 14
     Components:
       - Component: NameComponent
@@ -726,7 +725,7 @@ Entities:
           y: 0
       - Component: ScoreSprite
         isBlue: false
-        Degit: 1
+        Digit: 1
   - Entity: 15
     Components:
       - Component: NameComponent
@@ -941,7 +940,7 @@ Entities:
           y: 0
       - Component: TimerSprite
         isBlue: false
-        Degit: 2
+        Digit: 2
   - Entity: 20
     Components:
       - Component: NameComponent
@@ -975,7 +974,7 @@ Entities:
           y: 0
       - Component: TimerSprite
         isBlue: false
-        Degit: 1
+        Digit: 1
   - Entity: 21
     Components:
       - Component: NameComponent
@@ -1082,7 +1081,7 @@ Entities:
           z: 1
         Parent: 24
       - Component: OrderInLayerComponent
-        layer: -1
+        order: -1
       - Component: MaterialComponent
         ShaderID: 0
         Material:
@@ -1256,6 +1255,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -1273,6 +1273,7 @@ Entities:
               z: 0.5
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -1290,6 +1291,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -1308,6 +1310,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -1325,6 +1328,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -1342,6 +1346,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -1359,6 +1364,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -1377,6 +1383,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -1394,6 +1401,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -1411,6 +1419,7 @@ Entities:
               z: 0.300000012
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
         PostEffectLinks:
           - ID: 27
             StartNode: -1

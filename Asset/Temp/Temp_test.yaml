@@ -353,6 +353,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -370,6 +371,7 @@ Entities:
               z: 1
               w: 0
             ResolutionScale: 0.5
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -388,6 +390,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -405,6 +408,7 @@ Entities:
               z: 8
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
@@ -422,6 +426,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 0.100000001
+            MipLevels: 1
         PostEffectLinks:
           - ID: 4
             StartNode: -1

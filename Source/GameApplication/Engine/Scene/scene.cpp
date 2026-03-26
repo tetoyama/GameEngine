@@ -174,7 +174,7 @@ void Scene::BuildDefaultScene(){
 
 		// TransformComponentを追加
 		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
-		transform->position = Vector3(-20.0f, 50.0f,0.0f);
+		transform->position = Vector3(0.0f, 0.0f,0.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 		transform->SetRotationEuler(Vector3(0.75f, 1.0f, 0.0f));
 

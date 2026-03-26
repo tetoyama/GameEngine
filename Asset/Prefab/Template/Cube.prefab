@@ -6,7 +6,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 4.79047775
+          y: 0
           z: 0
         Rotation:
           - -0
@@ -36,7 +36,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
-          UseEnvironmentMap: false
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset/Texture\white.tga
         UV_Slice_X: 1

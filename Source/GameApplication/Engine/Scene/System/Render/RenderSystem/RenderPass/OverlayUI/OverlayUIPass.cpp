@@ -142,7 +142,7 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 						}
 
 						ObjectInfo info;
-						info.SceneID = (unsigned int)context;
+						info.SceneID = m_context->sceneManager->GetIDFromContext(context);
 						info.ObjectID = entity;
 						info.ShaderID = materialID;
 						m_context->graphics->SetObjectInfo(info);

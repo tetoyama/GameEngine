@@ -168,7 +168,7 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 							materialID = material->ShaderID;
 						}
 						ObjectInfo info;
-						info.SceneID = (unsigned int)context;
+						info.SceneID = m_context->sceneManager->GetIDFromContext(context);
 						info.ObjectID = entity;
 						info.ShaderID = materialID;
 						m_context->graphics->SetObjectInfo(info);
