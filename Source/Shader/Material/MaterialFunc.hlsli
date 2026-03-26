@@ -144,8 +144,8 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
             else if (light.LightType == LIGHT_TYPE_POINT && light.Dummy > -2)
             {
                 // 先頭 face の Position.w に実 face 数を格納。破損時でも最低 1 face として扱う。
-                int pointFaceCount = 6;
-
+                int pointFaceCount = max((int) round(light.Position.w), 1);
+                
                 shadow = ShadowFactorPoint(
                     input.worldPos,
                     i,
