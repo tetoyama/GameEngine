@@ -58,6 +58,9 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 
 	ControlButton();
 	DrawRenderLayerToggleUI();
+	ImGui::SameLine();
+	std::string speedText = ("CameraSpeed:" + std::to_string(cameraMoveSpeed));
+	ImGui::Text(speedText.c_str());
 
 	ImGui::Separator();
 
@@ -81,7 +84,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	ImGui::Image((ImTextureRef)renderSystem->m_EditorPass->result, avail);
 
 	// --- 修正ポイント：クリック判定の情報を一時保存（ギズモ干渉防止のため） ---
-	bool isImageClicked = ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+	bool isImageClicked = ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left);
 	ImVec2 clickedMousePos = ImGui::GetMousePos();
 	ImVec2 imagePos = ImGui::GetItemRectMin();
 	ImVec2 imageSize = ImGui::GetItemRectSize();
@@ -125,7 +128,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 		}
 
 		Vector3 velocity = {0,0,0};
-		float speed = 1.0f;
+		float speed = cameraMoveSpeed;
 		if(isCameraBufferActive){
 			float mouseSensitivity = 0.005f;
 			m_editorCameraRotation.y += io.MouseDelta.x * mouseSensitivity;
@@ -150,6 +153,10 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 			if(ImGui::IsKeyDown(ImGuiKey_E) || ImGui::IsKeyDown(ImGuiKey_Space)) velocity += up;
 			if(velocity.length() > 0.0f){
 				m_EditorCameraPosition += velocity.normalize() * speed * (float)(ctx.UpdateTime + ctx.DrawTime);
+			}
+
+			if(m_MouseWheel != 0.0f){
+				cameraMoveSpeed += m_MouseWheel * 0.25f;
 			}
 		} else{
 			TransformComponent transform;
@@ -261,7 +268,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 		}
 	}
 
-	// --- 修正ポイント：ギズモ操作が確定した後に最終的な Pick 処理を行う ---
+	// --- ギズモ操作が確定した後に最終的な Pick 処理を行う ---
 	if(isImageClicked && !ImGuizmo::IsOver() && !ImGuizmo::IsUsing()){
 
 		Vector2 uv;
@@ -286,7 +293,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 
 					// 選択した Entity にカメラを向ける
 					TransformComponent* transform = recoveredContext->component->GetComponent<TransformComponent>(hierarchy->selectedEntity);
-					if(transform){
+					if(transform && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)){
 						Vector3 targetPos = transform->position;
 						Vector3 direction = targetPos - m_EditorCameraPosition;
 						float distance = direction.length();

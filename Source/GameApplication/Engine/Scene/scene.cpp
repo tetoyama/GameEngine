@@ -254,7 +254,7 @@ void Scene::BuildDefaultScene(){
 		collider->colliders.push_back(col);
 
 		// PlayerControllerスクリプトを追加
-		auto* player = componentRegistry->AddComponent<PlayerController>(entity);
+		auto* player = componentRegistry->AddComponent<CharacterController>(entity);
 
 		// マテリアルコンポーネントを追加
 		auto* material = componentRegistry->AddComponent<MaterialComponent>(entity);

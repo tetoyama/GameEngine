@@ -1,7 +1,7 @@
 AppType: 0
 StartScene: Asset\Scene\scene_title.yaml
 Vsync: false
-FullScreen: false
+FullScreen: true
 Width: 1280
 Height: 720
 MasterVolume: 1

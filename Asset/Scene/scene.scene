@@ -42,8 +42,8 @@ Entities:
         ShaderID: 1
         Material:
           BaseColor:
-            x: 1
-            y: 1
+            x: 0.523809552
+            y: 0.647495389
             z: 1
             w: 1
           Metallic: 0.100000001
@@ -374,7 +374,7 @@ Entities:
       - Component: LightComponent
         Enable: 1
         LightType: 3
-        CastShadow: 0
+        CastShadow: 1
         Position:
           x: 4.47810841
           y: 2.79885888
@@ -449,8 +449,8 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 2.6928165
-          y: 4
-          z: 6.76027012
+          y: 7.16942263
+          z: 6.75774765
         Rotation:
           - 0.706825197
           - 0
@@ -458,17 +458,17 @@ Entities:
           - 0.707388222
         Scale:
           x: 1
-          y: 1
-          z: 1
+          y: 0.999992192
+          z: 0.999992192
         Parent: 0
       - Component: LightComponent
         Enable: 1
         LightType: 2
-        CastShadow: 0
+        CastShadow: 1
         Position:
           x: 2.6928165
-          y: 4
-          z: 6.76027012
+          y: 7.16942263
+          z: 6.75774765
           w: 0
         Direction:
           x: 0
@@ -539,8 +539,8 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 8.2638216
-          y: 4
-          z: 9.52341461
+          y: 7.57857561
+          z: 9.52057076
         Rotation:
           - 0.706825197
           - 0
@@ -548,17 +548,17 @@ Entities:
           - 0.707388222
         Scale:
           x: 1
-          y: 1
-          z: 1
+          y: 0.999987125
+          z: 0.999987125
         Parent: 0
       - Component: LightComponent
         Enable: 1
         LightType: 2
-        CastShadow: 0
+        CastShadow: 1
         Position:
           x: 8.2638216
-          y: 4
-          z: 9.52341461
+          y: 7.57857561
+          z: 9.52057076
           w: 0
         Direction:
           x: 0
@@ -629,8 +629,8 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 3.81178188
-          y: 4
-          z: 14.7731266
+          y: 7.03998137
+          z: 14.7707033
         Rotation:
           - 0.706825197
           - 0
@@ -638,17 +638,17 @@ Entities:
           - 0.707388222
         Scale:
           x: 1
-          y: 1
-          z: 1
+          y: 0.999991
+          z: 0.999991
         Parent: 0
       - Component: LightComponent
         Enable: 1
         LightType: 2
-        CastShadow: 0
+        CastShadow: 1
         Position:
           x: 3.81178188
-          y: 4
-          z: 14.7731266
+          y: 7.03998137
+          z: 14.7707033
           w: 0
         Direction:
           x: 0

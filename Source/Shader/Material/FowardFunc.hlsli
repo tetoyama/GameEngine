@@ -210,9 +210,6 @@ float SampleCascadePCF(float2 suvBase, float depth, float2 texelSize, float step
 }
 
 
-// =====================================================
-// CSM シャドウファクター (Cascade Blending 版)
-// =====================================================
 float ShadowFactorCascades(
     float3 worldPos,
     int firstLightIdx,
@@ -289,7 +286,7 @@ float ShadowFactorCascades(
         }
         
         //--------------------------------------------------
-        // ご要望の処理: 遮蔽物のワールド座標復元と無効化判定
+        // 遮蔽物のワールド座標復元と無効化判定
         //--------------------------------------------------
         if (shadow < 1.0 && c > 0)
         {

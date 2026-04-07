@@ -18,6 +18,26 @@ Entities:
           y: 2.4999969
           z: 2.4999969
         Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 1
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.200000003
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -36,6 +56,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
+          UseEnvironmentMap: false
       - Component: TextureComponent
         UV_Slice_X: 1
         UV_Slice_Y: 1

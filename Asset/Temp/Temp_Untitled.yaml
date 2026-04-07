@@ -54,8 +54,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
+          UseDiffuseTexture: false
+          UseNormalTexture: false
           UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset\Texture\mesh.png
@@ -191,9 +191,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-          UseEnvironmentMap: true
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+          UseEnvironmentMap: false
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
         UV_Slice_X: 1
@@ -260,9 +260,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-          UseEnvironmentMap: true
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+          UseEnvironmentMap: false
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Y Bot.fbx
         isBlender: false
@@ -270,19 +270,19 @@ Entities:
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           Run: Asset\Model\Akai_Run.fbx
-      - Component: PlayerController
-        moveSpeed: 6
-        health: 0
-        isInvincible: false
-        dashMultiplier: 2
-        accel: 10
+      - Component: CharacterController
+        moveSpeed: 5
+        dashMultiplier: 2.5
+        jumpPower: 5
+        accel: 12
         rotateSpeed: 8
-        maxStamina: 5
-        stamina: 5
-        staminaConsumeRate: 1.5
-        staminaRecoverRate: 1
-        jumpPower: 4
-        Stamina: 5
+        groundRayLength: 0.300000012
+        slopeLimit: 45
+        gravity: 9
+        idleAnimFile: Asset/Model/Akai_Idle.fbx
+        runAnimFile: Asset/Model/Akai_Run.fbx
+        jumpUpAnimFile: Asset/Model/Jumping Up.fbx
+        jumpDownAnimFile: Asset/Model/Jumping Down.fbx
         SelfLayerBit: 2
   - Entity: 5
     Components:
@@ -355,70 +355,3 @@ Entities:
         minPitch: -0.785398185
         maxPitch: 0.785398185
         minDistance: 1
-  - Entity: 6
-    Components:
-      - Component: NameComponent
-        Name: Cube
-      - Component: TransformComponent
-        Position:
-          x: 2.39668894
-          y: 0.604653656
-          z: 0
-        Rotation:
-          - -0
-          - 0
-          - -0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: ColliderComponent
-        isDynamic: false
-        autoMass: true
-        Mass: 0
-        colliders:
-          - type: 0
-            size: [1, 1, 1]
-            offset: [0, 0, 0]
-            rotationOffset: [0, 0, 0]
-            radius: 0.5
-            height: 1
-            staticFriction: 0.600000024
-            dynamicFriction: 0.600000024
-            restitution: 0.100000001
-            collisionLayer: 0
-            lockRotX: false
-            lockRotY: false
-            lockRotZ: false
-            isTrigger: false
-            boneName: ""
-      - Component: MaterialComponent
-        ShaderID: 1
-        Material:
-          BaseColor:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Metallic: 0
-          Roughness: 0
-          AO: 0
-          EmissiveColor:
-            x: 0
-            y: 0
-            z: 0
-          EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-          UseEnvironmentMap: true
-      - Component: TextureComponent
-        FilePath: Asset/Texture\white.tga
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset/Model\cube.obj
-        isBlender: false
-        AnimationTime: 0

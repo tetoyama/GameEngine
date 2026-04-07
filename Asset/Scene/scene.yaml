@@ -304,10 +304,10 @@ Entities:
           Roughness: 0
           AO: 0
           EmissiveColor:
-            x: 0
-            y: 0
-            z: 0
-          EmissiveIntensity: 0
+            x: 1
+            y: 1
+            z: 1
+          EmissiveIntensity: 0.25
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
@@ -1235,7 +1235,7 @@ Entities:
             - 9.11467075
             - 33.6685715
             - 1
-        nextLinkId: 44
+        nextLinkId: 45
         nextPinId: 37
         PostEffects:
           - Name: NewEffect
@@ -1243,8 +1243,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\OutlineByShaderID.cso
             NodePos:
-              x: -448.225861
-              y: -15.0584793
+              x: 1187.06348
+              y: 67.3050461
             InputPins:
               - 2
               - 4
@@ -1261,8 +1261,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\SSAO.cso
             NodePos:
-              x: -1736.56519
-              y: 525.08667
+              x: -101.275879
+              y: 607.450195
             InputPins:
               - 5
               - 7
@@ -1279,8 +1279,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\DepthBlur.cso
             NodePos:
-              x: -187.82547
-              y: -16.2571793
+              x: 1546.46387
+              y: 52.1063538
             InputPins:
               - 8
               - 10
@@ -1297,8 +1297,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\SSAOComposite.cso
             NodePos:
-              x: -763.118042
-              y: -79.2074051
+              x: 866.171265
+              y: 51.1561279
             InputPins:
               - 14
               - 19
@@ -1316,8 +1316,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\Blur.cso
             NodePos:
-              x: -1499.73486
-              y: 173.66922
+              x: 135.554443
+              y: 256.032745
             InputPins:
               - 16
               - 18
@@ -1334,8 +1334,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\BrightPass.cso
             NodePos:
-              x: -1777.48193
-              y: 176.239349
+              x: -142.192627
+              y: 258.602875
             InputPins:
               - 21
               - 23
@@ -1352,8 +1352,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\Blur.cso
             NodePos:
-              x: -1410.26831
-              y: 521.390015
+              x: 225.020996
+              y: 603.75354
             InputPins:
               - 24
               - 26
@@ -1370,8 +1370,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\CompositeBloom.cso
             NodePos:
-              x: -1172.47107
-              y: -185.542206
+              x: 462.818237
+              y: -103.17868
             InputPins:
               - 27
               - 29
@@ -1381,42 +1381,6 @@ Entities:
               x: 1
               y: 0
               z: 0
-              w: 0
-            ResolutionScale: 1
-            MipLevels: 1
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset/Shader/PostEffectVS.cso
-            PS: Asset/Shader\Kuwahara.cso
-            NodePos:
-              x: 502.337616
-              y: 1.35140228
-            InputPins:
-              - 31
-              - 33
-            OutputPin: 32
-            Param:
-              x: 0
-              y: 0
-              z: 0
-              w: 0
-            ResolutionScale: 1
-            MipLevels: 1
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset/Shader/PostEffectVS.cso
-            PS: Asset/Shader\SSR.cso
-            NodePos:
-              x: 181.025635
-              y: -6.95954132
-            InputPins:
-              - 34
-              - 36
-            OutputPin: 35
-            Param:
-              x: 64
-              y: 0.200000003
-              z: 0.300000012
               w: 0
             ResolutionScale: 1
             MipLevels: 1
@@ -1471,32 +1435,22 @@ Entities:
             EndNode: 2
             StartAttr: 3
             EndAttr: 8
-          - ID: 39
-            StartNode: 8
-            EndNode: -2
-            StartAttr: 32
-            EndAttr: 1
-          - ID: 42
-            StartNode: 9
-            EndNode: 8
-            StartAttr: 35
-            EndAttr: 31
-          - ID: 43
+          - ID: 44
             StartNode: 2
-            EndNode: 9
+            EndNode: -2
             StartAttr: 9
-            EndAttr: 34
+            EndAttr: 1
         ScreenInput:
           Name: ""
           NodePos:
-            x: -2219.25
-            y: -20.9986496
+            x: -519.960693
+            y: 130.364868
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 789.164917
-            y: 213.614044
+            x: 1839.16492
+            y: 315.614044
           InputPins:
             - 1
       - Component: CameraController

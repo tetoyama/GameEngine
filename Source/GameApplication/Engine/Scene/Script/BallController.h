@@ -50,30 +50,45 @@ public:
 
 	void OnUpdate(float dt) override{
 
+	}
+
+	void OnFixedUpdate(float dt) override{
+		physx::PxVec3 pxVelocity;
+		physx::PxRigidDynamic* rigid = collider->pRigidbodyDynamic;
+
+		if(rigid){
+			physx::PxVec3 pxVelocity = rigid->getLinearVelocity();
+			velocity = Vector3(pxVelocity.x, pxVelocity.y, pxVelocity.z);
+		}
+
 		// ゴール判定
 		if(transform->position.x > 5.5f && abs(transform->position.z) < 0.7f){
 			transform->position = Vector3(0.0f, 1.0f, 0.0f);
 			velocity = Vector3(0, 0, 0);
 			if(scoreManager) scoreManager->RedScore++;
+
+			pxVelocity.x = velocity.x;
+			pxVelocity.y = velocity.y;
+			pxVelocity.z = velocity.z;
+
+			rigid->setLinearVelocity(pxVelocity);
 		}
 
 		if(transform->position.x < -5.4f && abs(transform->position.z) < 0.7f){
 			transform->position = Vector3(0.0f, 1.0f, 0.0f);
 			velocity = Vector3(0, 0, 0);
 			if(scoreManager) scoreManager->BlueScore++;
+
+			pxVelocity.x = velocity.x;
+			pxVelocity.y = velocity.y;
+			pxVelocity.z = velocity.z;
+
+			rigid->setLinearVelocity(pxVelocity);
 		}
 
 		if(transform->position.y < -10.0f){
 			transform->position = Vector3(0.0f, 1.0f, 0.0f);
 
-		}
-	}
-
-	void OnFixedUpdate(float dt) override{
-		physx::PxRigidDynamic* rigid = collider->pRigidbodyDynamic;
-		if(rigid){
-			physx::PxVec3 pxVelocity = rigid->getLinearVelocity();
-			velocity = Vector3(pxVelocity.x, pxVelocity.y, pxVelocity.z);
 		}
 	}
 	void OnDraw() override{}
