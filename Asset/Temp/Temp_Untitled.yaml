@@ -63,7 +63,6 @@ Entities:
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
-        FilePath: Asset\Model\cube.obj
         isBlender: false
         AnimationTime: 0
   - Entity: 2
@@ -95,9 +94,9 @@ Entities:
           z: 0
           w: 0
         Direction:
-          x: 0.61569488
-          y: -0.681638777
-          z: 0.395333111
+          x: 0
+          y: 0
+          z: 0
           w: 0
         Diffuse:
           x: 1
@@ -314,25 +313,25 @@ Entities:
         FOV: 1
         viewMatrix:
           -
-            - 1
             - 0
             - 0
-            - 0
-          -
-            - 0
-            - 1
             - 0
             - 0
           -
             - 0
             - 0
-            - 1
+            - 0
             - 0
           -
             - 0
-            - -5
-            - 15
-            - 1
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
         nextLinkId: 1
         nextPinId: 1
         ScreenInput:

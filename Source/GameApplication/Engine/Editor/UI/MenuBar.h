@@ -52,6 +52,7 @@ public:
 	bool showPlayerView = IMGUI_SHOW_DEFAULT;
 	bool showPerformanceMonitor = IMGUI_SHOW_DEFAULT;
 	bool showSystemSetting = IMGUI_SHOW_DEFAULT;
+	bool showCB41 = IMGUI_SHOW_DEFAULT;
 
 private:
 	EditorService* m_editor = nullptr;

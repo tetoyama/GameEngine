@@ -14,6 +14,7 @@
 #include "UI/ViewWindow.h"
 #include "UI/SystemSetting.h"
 #include "UI/BRAIN.h"
+#include "UI/CB41.h"
 
 #include "Analysis/AnalyzerManager.h"
 
@@ -52,6 +53,7 @@ void EditorService::Initialize(EditorServiceContext context) {
 	UIs.push_back(new ViewWindow());        // シーンビューウィンドウ
 	UIs.push_back(new SystemSetting());     // システム設定ウィンドウ
 	//UIs.push_back(new BRAIN());           // LLM エージェントウィンドウ（開発中）
+	UIs.push_back(new CB41());				// CB41用
 
 	// 全パネルを初期化（editorService への参照を渡す）
 	for (auto ui : UIs) {

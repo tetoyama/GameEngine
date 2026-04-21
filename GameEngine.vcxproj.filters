@@ -2493,6 +2493,9 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Physic\HitInfo.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Editor\UI\CB41.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\gameApplication.cpp">
@@ -3327,6 +3330,9 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\OverlayUI\OverlayUIPass.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Engine\Editor\UI\CB41.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
