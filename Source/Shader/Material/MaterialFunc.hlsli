@@ -71,13 +71,15 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         
         if (light.Enable == 0)
             continue;
-
-        if (light.LightType == LIGHT_TYPE_POINT && light.Dummy < -1)
+        
+        if (light.CastShadow == 0)
             continue;
 
-        if(light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && light.Dummy > 1){
+        if (light.LightType == LIGHT_TYPE_POINT && light.Dummy > 0)
             continue;
-        }
+
+        if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && light.Dummy > 1)
+            continue;
         
         float3 L;
         float attenuation = 1.0;
@@ -141,7 +143,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
                 shadowMapNum += cascadeCount;
                 i += (cascadeCount - 1); // CSM は cascadeCount 分のライトエントリを占有するため、ループカウンタを進める
             }
-            else if (light.LightType == LIGHT_TYPE_POINT && light.Dummy == -2)
+            else if (light.LightType == LIGHT_TYPE_POINT)
             {
                 // 先頭 face の Position.w に実 face 数を格納。破損時でも最低 1 face として扱う。
                 int pointFaceCount = max((int) round(light.Position.w), 1);

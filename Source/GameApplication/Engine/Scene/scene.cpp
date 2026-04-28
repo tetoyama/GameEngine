@@ -184,6 +184,7 @@ void Scene::BuildDefaultScene(){
 		light->light.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		light->light.Ambient = DirectX::XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
 		light->light.Param.x = 500.0f;
+		light->light.Param.w = 0.005f;
 	}
 	{
 		Entity entity = entityRegistry->Create();
