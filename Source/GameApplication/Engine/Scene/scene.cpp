@@ -145,6 +145,8 @@ void Scene::BuildDefaultScene(){
 		// TextureComponentを追加
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
 		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\mesh.png");
+		texture->UV_Slice_X = 0.04f;
+		texture->UV_Slice_Y = 0.04f;
 
 		// MaterialComponentを追加
 		auto* material = componentRegistry->AddComponent<MaterialComponent>(entity);

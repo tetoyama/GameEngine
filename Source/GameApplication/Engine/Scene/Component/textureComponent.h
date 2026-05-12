@@ -24,8 +24,8 @@
 // AnimationNum で表示するセルを選択するスプライトシート方式をサポートする
 class TextureComponent : public IComponent {
 public:
-	int UV_Slice_X = 1;  // テクスチャを横方向に分割する数
-	int UV_Slice_Y = 1;  // テクスチャを縦方向に分割する数
+	float UV_Slice_X = 1.0f;  // テクスチャを横方向に分割する数
+	float UV_Slice_Y = 1.0f;  // テクスチャを縦方向に分割する数
 
 	int AnimationNum = 0;  // 表示するセルのインデックス（0 から UV_Slice_X * UV_Slice_Y - 1）
 
@@ -50,10 +50,10 @@ public:
 			m_TextureData = context->manager->resource->Load<TextureData>(node["FilePath"].as<std::string>().c_str());
 		}
 		if(node["UV_Slice_X"]){
-			UV_Slice_X = node["UV_Slice_X"].as<int>();
+			UV_Slice_X = node["UV_Slice_X"].as<float>();
 		}
 		if(node["UV_Slice_Y"]){
-			UV_Slice_Y = node["UV_Slice_Y"].as<int>();
+			UV_Slice_Y = node["UV_Slice_Y"].as<float>();
 		}
 		if(node["AnimationNum"]){
 			AnimationNum = node["AnimationNum"].as<int>();
@@ -87,7 +87,7 @@ public:
         ImGui::PushItemWidth(inputWidthX);
         ImGui::PushStyleColor(ImGuiCol_Border, colorR);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
-        ImGui::UndoDragInt("##UVSliceX", &UV_Slice_X, 1, 1, 256);
+        ImGui::UndoDragFloat("##UVSliceX", &UV_Slice_X, 1, 1, 256);
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();
@@ -100,7 +100,7 @@ public:
         ImGui::PushItemWidth(inputWidthY);
         ImGui::PushStyleColor(ImGuiCol_Border, colorG);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
-        ImGui::UndoDragInt("##UVSliceY", &UV_Slice_Y, 1, 1, 256);
+        ImGui::UndoDragFloat("##UVSliceY", &UV_Slice_Y, 1, 1, 256);
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();
@@ -115,7 +115,7 @@ public:
 		float sliderWidth = totalAvail * 0.6f;
 		float inputWidth = totalAvail - sliderWidth - ImGui::GetStyle().ItemSpacing.x * 2;
 
-		int maxFrame = UV_Slice_X * UV_Slice_Y - 1;
+		int maxFrame = (int)(UV_Slice_X * UV_Slice_Y) - 1;
 		if(maxFrame < 0) maxFrame = 0;
 
 		// スライダー（左）
@@ -190,15 +190,21 @@ public:
             ImGui::BeginGroup();
             ImVec2 start, end;
 
-            // AnimationNum からスプライトシートの UV 座標を計算する
-            // AnimationNum を行列インデックスに変換: 列 = AnimationNum % UV_Slice_X, 行 = AnimationNum / UV_Slice_X
-            start.x = (float)(AnimationNum % UV_Slice_X) / (float)UV_Slice_X;  // セルの左端 UV（0.0〜1.0）
-            start.y = (float)(AnimationNum / UV_Slice_X) / (float)UV_Slice_Y;  // セルの上端 UV（0.0〜1.0）
+			if (UV_Slice_X > 0.0f && UV_Slice_Y > 0.0f) {
+				// UV_Slice_X/Y は「1セルのUVサイズ」
+				// 例:
+				// 0.25f = 4分割
+				// 0.125f = 8分割
 
-            // 1 セルの UV サイズ: 1/スライス数
-            end.x = start.x + 1.0f / (float)UV_Slice_X;  // セルの右端 UV
-            end.y = start.y + 1.0f / (float)UV_Slice_Y;  // セルの下端 UV
+				int column = (int)(1.0f / UV_Slice_X);
 
+				start.x = (AnimationNum % column) * UV_Slice_X;
+				start.y = (AnimationNum / column) * UV_Slice_Y;
+
+				// 1 セルの UV サイズ: 1/スライス数
+				end.x = start.x + 1.0f / UV_Slice_X;  // セルの右端 UV
+				end.y = start.y + 1.0f / UV_Slice_Y;  // セルの下端 UV
+			}
             ImGui::Image(
                 (ImTextureID)m_TextureData->pTexture.Get(),
                 ImVec2(previewSize, previewSize),

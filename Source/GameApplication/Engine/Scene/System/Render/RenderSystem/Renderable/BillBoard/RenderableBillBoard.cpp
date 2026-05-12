@@ -101,12 +101,20 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 		graphicsContext->SetMaterial(material);
 
 		UVMatrixBuffer uv;
-		if (pTexture->UV_Slice_X != 0 && pTexture->UV_Slice_Y != 0) {
-			uv.UVStart.x = (float)(pTexture->AnimationNum % pTexture->UV_Slice_X) * 1.0f / (float)pTexture->UV_Slice_X;
-			uv.UVStart.y = (float)(pTexture->AnimationNum / pTexture->UV_Slice_X) * 1.0f / (float)pTexture->UV_Slice_Y;
+		if (pTexture->UV_Slice_X > 0.0f && pTexture->UV_Slice_Y > 0.0f) {
+			// UV_Slice_X/Y は「1セルのUVサイズ」
+			// 例:
+			// 0.25f = 4分割
+			// 0.125f = 8分割
 
-			uv.UVEnd.x = (float)uv.UVStart.x + 1.0f / (float)pTexture->UV_Slice_X;
-			uv.UVEnd.y = (float)uv.UVStart.y + 1.0f / (float)pTexture->UV_Slice_Y;
+			int column = (int)(1.0f / pTexture->UV_Slice_X);
+
+			uv.UVStart.x = (pTexture->AnimationNum % column) * pTexture->UV_Slice_X;
+			uv.UVStart.y = (pTexture->AnimationNum / column) * pTexture->UV_Slice_Y;
+
+			// 1 セルの UV サイズ: 1/スライス数
+			uv.UVEnd.x = uv.UVStart.x + 1.0f / pTexture->UV_Slice_X;  // セルの右端 UV
+			uv.UVEnd.y = uv.UVStart.y + 1.0f / pTexture->UV_Slice_Y;  // セルの下端 UV
 		}
 		graphicsContext->SetUVMatrixBuffer(uv);
 

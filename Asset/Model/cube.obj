@@ -49,43 +49,43 @@ v 0.5 0.5 -0.5
 
 # 下面
 vt 0 0
-vt 10 0
-vt 10 10
+vt 1 0
+vt 1 1
 vt 0 0
-vt 10 10
-vt 0 10
+vt 1 1
+vt 0 1
 
 # 上面
 vt 0 0
-vt 10 10
-vt 10 0
+vt 1 1
+vt 1 0
 vt 0 0
-vt 0 10
-vt 10 10
+vt 0 1
+vt 1 1
 
 # 前面
 vt 0 0
-vt 10 0
-vt 10 10
+vt 1 0
+vt 1 1
 vt 0 0
-vt 10 10
-vt 0 10
+vt 1 1
+vt 0 1
 
 # 左面
 vt 0 0
-vt 10 10
-vt 10 0
+vt 1 1
+vt 1 0
 vt 0 0
-vt 0 10
-vt 10 10
+vt 0 1
+vt 1 1
 
 # 右面
 vt 0 0
-vt 10 10
-vt 10 0
+vt 1 1
+vt 1 0
 vt 0 0
-vt 0 10
-vt 10 10
+vt 0 1
+vt 1 1
 
 # 背面
 vt 0 0
