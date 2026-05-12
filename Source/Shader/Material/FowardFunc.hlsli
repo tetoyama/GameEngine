@@ -165,7 +165,7 @@ float ShadowFactorPoint(
         return 1.0;
 
     LIGHT faceLight = Lights[faceLightIdx];
-    if (!faceLight.Enable || !faceLight.CastShadow || faceLight.LightType != LIGHT_TYPE_POINT)
+    if (!faceLight.Enable || !faceLight.CastShadow || faceLight.LightType != LIGHT_TYPE_POINT || faceLight.Dummy > -1)
         return 1.0;
 
     float4 sp = mul(float4(worldPos, 1.0), faceLight.LightView);

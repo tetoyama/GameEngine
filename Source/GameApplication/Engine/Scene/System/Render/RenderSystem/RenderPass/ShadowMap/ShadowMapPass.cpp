@@ -145,29 +145,27 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 	bool hasCsmLight = false;
 
 	bool foundLight = false;
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
 		auto sctx = scene->GetSceneContext();
 		const auto& lightEntities = sctx->component->FindEntitiesWithComponent<LightComponent>();
-		if (lightEntities.empty()) continue;
+		if(lightEntities.empty()) continue;
 
-		for (Entity ent : lightEntities) {
+		for(Entity ent : lightEntities){
 			LightComponent* lightcomp = sctx->component->GetComponent<LightComponent>(ent);
-			if (!lightcomp) continue;
-			if (!lightcomp->light.Enable) continue;
-			if (!lightcomp->light.CastShadow)continue;
+			if(!lightcomp) continue;
 
 			// 最大数を超えたら安全に打ち切る
-			if (lightCount >= LIGHT_MAX_COUNT) {
+			if(lightCount >= LIGHT_MAX_COUNT){
 				break;
 			}
 
 			TransformComponent* transform = sctx->component->GetComponent<TransformComponent>(ent);
-			if (transform) {
+			if(transform){
 				lightcomp->light.Position = DirectX::XMFLOAT4(transform->position.x, transform->position.y, transform->position.z, 0.0f);
 				lightcomp->light.Direction = DirectX::XMFLOAT4(transform->front().x, transform->front().y, transform->front().z, 0.0f);
 				lightcomp->light.Dummy = 0;
-				if (lightcomp->light.CastShadow) {
-					if (lightcomp->light.LightType == LIGHT_TYPE_DIRECTIONAL) {
+				if(lightcomp->light.CastShadow){
+					if(lightcomp->light.LightType == LIGHT_TYPE_DIRECTIONAL){
 						// ======== シャドウカメラ計算 ========
 						float shadowSize = lightcomp->light.Param.x / 10.0f;
 						if (shadowSize <= 50.0f) {
@@ -198,28 +196,28 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 						foundLight = true;
 					} else if (lightcomp->light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && !hasCsmLight
-							   && ctx.cameraData.cameraComponent && ctx.cameraData.cameraComponent->FarClip > ctx.cameraData.cameraComponent->NearClip) {
+					           && ctx.cameraData.cameraComponent && ctx.cameraData.cameraComponent->FarClip > ctx.cameraData.cameraComponent->NearClip) {
 						// ======== CSM カスケード計算 ========
 						// 各カスケードを個別の LIGHT エントリとしてアトラスに統合する。
 						// CbCSM 専用バッファは使用しない。
 						XMVECTOR lightDir = XMVector3Normalize(transform->front().ToXMVECTOR());
 
-						float cameraNear = ctx.cameraData.cameraComponent->NearClip;
-						float cameraFar = ctx.cameraData.cameraComponent->FarClip;
-						float fov = ctx.cameraData.cameraComponent->FOV;
-						float aspect = (ctx.screenSize.y > 0.0f) ? (ctx.screenSize.x / ctx.screenSize.y) : 1.0f;
+						float cameraNear  = ctx.cameraData.cameraComponent->NearClip;
+						float cameraFar   = ctx.cameraData.cameraComponent->FarClip;
+						float fov         = ctx.cameraData.cameraComponent->FOV;
+						float aspect      = (ctx.screenSize.y > 0.0f) ? (ctx.screenSize.x / ctx.screenSize.y) : 1.0f;
 						float tanHalfFovV = tanf(fov * 0.5f);
 						float tanHalfFovH = tanHalfFovV * aspect;
 
 						XMMATRIX invCameraView = XMMatrixInverse(nullptr, ctx.viewMatrix);
 
 						// カスケードスプリット深度を PSSM (対数+線形ブレンド) で計算
-						const float     csmNear = max(cameraNear, 0.1f);
-						const float     csmFar = cameraFar;
+						const float     csmNear   = max(cameraNear, 0.1f);
+						const float     csmFar    = cameraFar;
 						constexpr float csmLambda = 0.85f; // 0.0=完全線形, 1.0=完全対数(近距離重視)
 						float splitDepths[DIRECTIONAL_CSM_CASCADE_COUNT];
-						for (int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT; c++) {
-							float p = (float)(c + 1) / (float)DIRECTIONAL_CSM_CASCADE_COUNT;
+						for(int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT; c++){
+							float p        = (float)(c + 1) / (float)DIRECTIONAL_CSM_CASCADE_COUNT;
 							float logSplit = csmNear * powf(csmFar / csmNear, p);
 							float uniSplit = csmNear + (csmFar - csmNear) * p;
 							splitDepths[c] = csmLambda * logSplit + (1.0f - csmLambda) * uniSplit;
@@ -227,7 +225,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 						// ライト方向の up ベクトルを決定
 						XMVECTOR worldUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-						if (fabsf(XMVectorGetX(XMVector3Dot(lightDir, worldUp))) > 0.99f) {
+						if(fabsf(XMVectorGetX(XMVector3Dot(lightDir, worldUp))) > 0.99f){
 							worldUp = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 						}
 
@@ -235,9 +233,9 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 						float prevSplit = csmNear;
 						// 先頭カスケードのスロット番号を記録 (後で実際に追加されたカスケード数を Position.w に書き込むため)
 						int firstCascadeSlot = lightCount;
-						int addedCascades = 0;
-						for (int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT; c++) {
-							if (lightCount >= LIGHT_MAX_COUNT) break;
+						int addedCascades    = 0;
+						for(int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT; c++){
+							if(lightCount >= LIGHT_MAX_COUNT) break;
 
 							float currSplit = splitDepths[c];
 
@@ -250,42 +248,42 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 							XMVECTOR corners[8] = {
 								// Near
 								XMVectorSet(-nX,  nY, prevSplit, 1.0f),
-								XMVectorSet(nX,  nY, prevSplit, 1.0f),
+								XMVectorSet( nX,  nY, prevSplit, 1.0f),
 								XMVectorSet(-nX, -nY, prevSplit, 1.0f),
-								XMVectorSet(nX, -nY, prevSplit, 1.0f),
+								XMVectorSet( nX, -nY, prevSplit, 1.0f),
 								// Far
 								XMVectorSet(-fX,  fY, currSplit, 1.0f),
-								XMVectorSet(fX,  fY, currSplit, 1.0f),
+								XMVectorSet( fX,  fY, currSplit, 1.0f),
 								XMVectorSet(-fX, -fY, currSplit, 1.0f),
-								XMVectorSet(fX, -fY, currSplit, 1.0f),
+								XMVectorSet( fX, -fY, currSplit, 1.0f),
 							};
 
 							// ビュー空間 → ワールド空間
-							for (int k = 0; k < 8; k++) {
+							for(int k = 0; k < 8; k++){
 								corners[k] = XMVector4Transform(corners[k], invCameraView);
 							}
 
 							// カスケード中心を計算
 							XMVECTOR centroid = XMVectorZero();
-							for (int k = 0; k < 8; k++) {
+							for(int k = 0; k < 8; k++){
 								centroid = XMVectorAdd(centroid, corners[k]);
 							}
 							centroid = XMVectorScale(centroid, 1.0f / 8.0f);
 
 							// ライトビュー行列 (視錐台境界より少し後退させて near クリップを避ける)
 							float radius = 0.0f;
-							for (int k = 0; k < 8; k++) {
+							for(int k = 0; k < 8; k++){
 								float d = XMVectorGetX(XMVector3Length(corners[k] - centroid));
-								if (d > radius) radius = d;
+								if(d > radius) radius = d;
 							}
 							XMVECTOR eye = centroid - lightDir * (radius + 1.0f);
 							XMMATRIX cascadeView = XMMatrixLookAtLH(eye, centroid, worldUp);
 
 							// ライト空間での AABB を計算
-							float minX = FLT_MAX, maxX = -FLT_MAX;
-							float minY = FLT_MAX, maxY = -FLT_MAX;
-							float minZ = FLT_MAX, maxZ = -FLT_MAX;
-							for (int k = 0; k < 8; k++) {
+							float minX =  FLT_MAX, maxX = -FLT_MAX;
+							float minY =  FLT_MAX, maxY = -FLT_MAX;
+							float minZ =  FLT_MAX, maxZ = -FLT_MAX;
+							for(int k = 0; k < 8; k++){
 								XMVECTOR lc = XMVector4Transform(corners[k], cascadeView);
 								float lx = XMVectorGetX(lc);
 								float ly = XMVectorGetY(lc);
@@ -295,32 +293,32 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 								minZ = min(minZ, lz); maxZ = max(maxZ, lz);
 							}
 
-							if (maxZ <= minZ) maxZ = minZ + 1.0f;
+							if(maxZ <= minZ) maxZ = minZ + 1.0f;
 
 							// nearClip を 0 に設定: フラスタム外の shadow caster も捕捉する
 							XMMATRIX cascadeProj = XMMatrixOrthographicOffCenterLH(
 								minX, maxX, minY, maxY, 0.0f, maxZ);
 
 							// ======== カスケードを個別 LIGHT エントリとして登録 ========
-							LIGHT cascadeEntry = lightcomp->light;
+							LIGHT cascadeEntry         = lightcomp->light;
 							// GPU ライトバッファ上は LIGHT_TYPE_DIRECTIONAL として登録
-							cascadeEntry.LightType = LIGHT_TYPE_DIRECTIONAL;
-							cascadeEntry.Enable = true;
-							cascadeEntry.CastShadow = true;
+							cascadeEntry.LightType     = LIGHT_TYPE_DIRECTIONAL;
+							cascadeEntry.Enable        = true;
+							cascadeEntry.CastShadow    = true;
 							// Dummy = c+1: CSM カスケードマーカー (1=最精細, 2..N=それ以降)
-							cascadeEntry.Dummy = c + 1;
+							cascadeEntry.Dummy         = c + 1;
 
 							// Position.w はループ後に実際に追加されたカスケード数で更新するため 0 で初期化
 							// 以降のカスケード (c>0): アンビエントなし (最初のエントリのみ適用)
 							XMFLOAT3 eyePos;
 							XMStoreFloat3(&eyePos, eye);
 							cascadeEntry.Position = XMFLOAT4(eyePos.x, eyePos.y, eyePos.z, 0.0f);
-							if (c > 0) {
-								cascadeEntry.Ambient = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+							if(c > 0){
+								cascadeEntry.Ambient   = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 							}
 
 							// 転置して格納 (シェーダーの mul(v, M) 規約に合わせる)
-							XMStoreFloat4x4(&cascadeEntry.LightView, XMMatrixTranspose(cascadeView));
+							XMStoreFloat4x4(&cascadeEntry.LightView,       XMMatrixTranspose(cascadeView));
 							XMStoreFloat4x4(&cascadeEntry.LightProjection, XMMatrixTranspose(cascadeProj));
 
 							light.Lights[lightCount] = cascadeEntry;
@@ -333,12 +331,12 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 						// 先頭カスケードエントリの Position.w に実際に追加されたカスケード数を書き込む。
 						// シェーダーはこの値を使って LIGHT 配列から各カスケードを参照する。
-						if (addedCascades > 0) {
+						if(addedCascades > 0){
 							light.Lights[firstCascadeSlot].Position.w = (float)addedCascades;
 						}
 
 						hasCsmLight = true;
-						foundLight = true;
+						foundLight  = true;
 						continue;
 					} else if (lightcomp->light.LightType == LIGHT_TYPE_SPOT && lightcomp->light.CastShadow) {
 						// --- 位置と forward 取得 ---
@@ -392,8 +390,8 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 						XMVECTOR eye = transform->position.ToXMVECTOR();
 
 						float nearZ = 0.1f;
-						float farZ = lightcomp->light.Param.x * 2.0f;
-						if (farZ <= nearZ) {
+						float farZ = lightcomp->light.Param.x;
+						if(farZ <= nearZ){
 							farZ = nearZ + 0.1f;
 						}
 
@@ -414,8 +412,13 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 							LIGHT faceLight = lightcomp->light;
 							// face 0 は親エントリ (-1)、2 面目以降は補助エントリ (-2..-6) として扱う。
-							faceLight.Dummy = face;
+							faceLight.Dummy = -(face + 1);
 							faceLight.Position.w = 0.0f;
+							if (face > 0) {
+								// 2 面目以降は shadow sampling 専用。ライティング寄与は先頭 face のみが持つ。
+								faceLight.Diffuse = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+								faceLight.Ambient = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+							}
 
 							XMStoreFloat4x4(
 								&faceLight.LightView,
@@ -444,42 +447,18 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 				}
 			}
 			// 現在のライトスロットにコピー
+			// LIGHT_TYPE_DIRECTIONAL_CSM は上のブロックで continue 済みのためここには来ない。
+			// ただし hasCsmLight==true で 2 つ目以降の CSM が来た場合は GPU バッファに追加しない。
+			if(lightcomp->light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM){
+				continue;
+			}
 			light.Lights[lightCount] = lightcomp->light;
 			lightCount++;
-			if (lightcomp->light.CastShadow) {
+			if(lightcomp->light.CastShadow){
 				shadowCount++;
 			}
 		}
 	}
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-		auto sctx = scene->GetSceneContext();
-		const auto& lightEntities = sctx->component->FindEntitiesWithComponent<LightComponent>();
-		if (lightEntities.empty()) continue;
-
-		for (Entity ent : lightEntities) {
-			LightComponent* lightcomp = sctx->component->GetComponent<LightComponent>(ent);
-			if (!lightcomp) continue;
-			if (!lightcomp->light.Enable) continue;
-			if (lightcomp->light.CastShadow)continue;
-
-			// 最大数を超えたら安全に打ち切る
-			if (lightCount >= LIGHT_MAX_COUNT) {
-				break;
-			}
-
-			TransformComponent* transform = sctx->component->GetComponent<TransformComponent>(ent);
-			if (transform) {
-				lightcomp->light.Position = DirectX::XMFLOAT4(transform->position.x, transform->position.y, transform->position.z, 0.0f);
-				lightcomp->light.Direction = DirectX::XMFLOAT4(transform->front().x, transform->front().y, transform->front().z, 0.0f);
-				lightcomp->light.Dummy = 0;
-			}
-			// 現在のライトスロットにコピー
-			light.Lights[lightCount] = lightcomp->light;
-			lightCount++;
-		}
-	}
-
-
 	light.ActiveLightCount = lightCount;
 	light.ShadowAtlasCount = shadowCount;
 	graphicsContext->SetLight(&light);
