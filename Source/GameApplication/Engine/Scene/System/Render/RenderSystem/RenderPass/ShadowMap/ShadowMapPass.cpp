@@ -302,7 +302,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 							// ======== カスケードを個別 LIGHT エントリとして登録 ========
 							LIGHT cascadeEntry         = lightcomp->light;
 							// GPU ライトバッファ上は LIGHT_TYPE_DIRECTIONAL として登録
-							cascadeEntry.LightType     = LIGHT_TYPE_DIRECTIONAL;
+							cascadeEntry.LightType     = LIGHT_TYPE_DIRECTIONAL_CSM;
 							cascadeEntry.Enable        = true;
 							cascadeEntry.CastShadow    = true;
 							// Dummy = c+1: CSM カスケードマーカー (1=最精細, 2..N=それ以降)

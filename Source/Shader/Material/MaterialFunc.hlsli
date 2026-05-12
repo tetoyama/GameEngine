@@ -126,7 +126,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
 
         if (light.CastShadow)
         {
-            if ((light.LightType == LIGHT_TYPE_DIRECTIONAL || light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM) && light.Dummy == 1)
+            if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && light.Dummy == 1)
             {
                 // 壊れたデータで 0 が入っても atlas 進行が崩れないよう最小値を DIRECTIONAL_CSM_CASCADE_COUNT に保つ。
                 int cascadeCount = max((int) round(light.Position.w), 1);
@@ -139,9 +139,9 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
                     shadowParam);
 
                 shadowMapNum += cascadeCount;
-                i += (cascadeCount - 1); // CSM は cascadeCount 分のライトエントリを占有するため、ループカウンタを進める
+                //i += (cascadeCount - 1); // CSM は cascadeCount 分のライトエントリを占有するため、ループカウンタを進める
             }
-            else if (light.LightType == LIGHT_TYPE_POINT && light.Dummy == -2)
+            else if (light.LightType == LIGHT_TYPE_POINT && light.Dummy == -1)
             {
                 // 先頭 face の Position.w に実 face 数を格納。破損時でも最低 1 face として扱う。
                 int pointFaceCount = max((int) round(light.Position.w), 1);
@@ -154,7 +154,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
                     shadowParam);
 
                 shadowMapNum += pointFaceCount;
-                i += (pointFaceCount - 1); // Point Shadow は face 数分のライトエントリを占有するため、ループカウンタを進める
+                //i += (pointFaceCount - 1); // Point Shadow は face 数分のライトエントリを占有するため、ループカウンタを進める
             }
             else
             {
