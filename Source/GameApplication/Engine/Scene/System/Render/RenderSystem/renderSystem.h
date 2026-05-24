@@ -77,7 +77,7 @@ public:
 	// デフォルトのマテリアル設定を初期登録する
 	//------------------------------------------------------------------
 	RenderSystem(SceneManagerContext* context)
-		: m_context(context){
+		: m_pContext(context){
 		ShaderMaterials.clear();
 
 		// Unlit マテリアル
@@ -199,7 +199,7 @@ private:
 
 private:
 
-	SceneManagerContext* m_context = nullptr;
+	SceneManagerContext* m_pContext = nullptr;
 
 	// 登録済み Renderable 一覧
 	std::vector<std::shared_ptr<IRenderable>> m_Renderables;

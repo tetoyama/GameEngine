@@ -25,13 +25,13 @@ public:
 	bool ShouldClose() const override;
 
 	void SetMainRenderer(MainRenderer* renderer){
-		m_mainRenderer = renderer;
+		m_pMainRenderer = renderer;
 	}
 	void SetImGuiSystem(ImGuiService* imguiSystem){
-		m_imguiSystem = imguiSystem;
+		m_pImguiSystem = imguiSystem;
 	}
 	void SetInputSystem(InputService* inputSystem){
-		m_inputSystem = inputSystem;
+		m_pInputSystem = inputSystem;
 	}
 	UINT GetHeight() const override{
 		return height;
@@ -51,10 +51,10 @@ private:
 
 	HWND m_HWND;
 	bool m_ShouldClose;
-	MainRenderer* m_mainRenderer = nullptr;
-	ImGuiService* m_imguiSystem = nullptr;
-	InputService* m_inputSystem = nullptr;
-	DebugLogService* m_debugLog = nullptr;
+	MainRenderer* m_pMainRenderer = nullptr;
+	ImGuiService* m_pImguiSystem = nullptr;
+	InputService* m_pInputSystem = nullptr;
+	DebugLogService* m_pDebugLog = nullptr;
 
 	bool m_Resizing= false;
 

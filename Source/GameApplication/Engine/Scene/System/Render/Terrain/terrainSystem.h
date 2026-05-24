@@ -25,13 +25,13 @@ public:
 	}
 
 	TerrainSystem(SceneManagerContext* context)
-		: m_context(context) {}
+		: m_pContext(context) {}
 
 	~TerrainSystem() {}
 
 	void Initialize() override {
-		m_graphicContext = m_context->graphics;
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		m_pGraphicContext = m_pContext->graphics;
+		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<TerrainComponent>();
 			for (auto entity : entities) {
@@ -42,7 +42,7 @@ public:
 	}
 
 	void Finalize() override {
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<TerrainComponent>();
 			for (auto entity : entities) {
@@ -63,7 +63,7 @@ public:
 		}
 	}
 	void Draw() override {
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<TerrainComponent>();
 			for (auto entity : entities) {
@@ -74,8 +74,8 @@ public:
 	}
 
 private:
-	SceneManagerContext* m_context = nullptr;
-	GraphicsContext* m_graphicContext = nullptr;
+	SceneManagerContext* m_pContext = nullptr;
+	GraphicsContext* m_pGraphicContext = nullptr;
 
     void ComputeNormalsAndTangents(std::vector<VERTEX_3D>& vertices, const std::vector<unsigned int>& indices, bool invertNormals = false) {
         // 法線をゼロ初期化（念のため）
@@ -238,7 +238,7 @@ private:
             D3D11_SUBRESOURCE_DATA m_Sd{};
             sd.pSysMem = vertices.data();
 
-            hr = m_graphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.m_VertexBuffer.GetAddressOf());
+            hr = m_pGraphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.m_VertexBuffer.GetAddressOf());
             if (FAILED(hr)) {
 				// エラーハンドリング
                 return;
@@ -248,7 +248,7 @@ private:
             bd.ByteWidth = static_cast<UINT>(sizeof(unsigned int) * indexCount);
             sd.pSysMem = indices.data();
 
-            hr = m_graphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.m_IndexBuffer.GetAddressOf());
+            hr = m_pGraphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.m_IndexBuffer.GetAddressOf());
             if (FAILED(hr)) {
                 // エラーハンドリング
                 comp->meshRenderer->mesh.m_VertexBuffer.Reset();

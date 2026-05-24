@@ -13,7 +13,7 @@ class FollowSystem : public ISystem{
 public:
 	const char* GetSystemName() const override { return "FollowSystem"; }
 
-	FollowSystem(SceneManagerContext* context) : m_context(context) {}
+	FollowSystem(SceneManagerContext* context) : m_pContext(context) {}
 	~FollowSystem() {}
 
 	void Initialize() override;
@@ -23,5 +23,5 @@ public:
 private:
 	void ProcessFollow();
 
-	SceneManagerContext* m_context;
+	SceneManagerContext* m_pContext;
 };

@@ -25,8 +25,8 @@
 
 void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 
-	m_renderSystem = renderSystem;
-	m_context = context;
+	m_pRenderSystem = renderSystem;
+	m_pContext = context;
 
 	shadowMapPass = new ShadowMapPass();
 	shadowMapPass->Initialize(renderSystem, context);
@@ -83,10 +83,10 @@ void EditorPass::Finalize() {
 
 void EditorPass::Execute(const RenderPassContext& ctx) {
 
-	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
+	GraphicsContext* graphicsContext = m_pContext->renderer->GetGraphicsContext();
 
 	// ImGuizmo 用のビュー・投影行列を設定
-	m_context->imgui->SetViewProjectionMatrix(ctx.viewMatrix, ctx.projectionMatrix);
+	m_pContext->imgui->SetViewProjectionMatrix(ctx.viewMatrix, ctx.projectionMatrix);
 
 	// GBuffer パス
 	gBufferPass->Execute(ctx);

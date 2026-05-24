@@ -17,14 +17,14 @@ class PerformanceMonitor: public IEditorUI{
 
 public:
 	void Initialize(EditorService* editor) override {
-		m_editor = editor;
+		m_pEditor = editor;
 	}
 	void Finalize() override {}
 	void Draw(const EditorDrawContext ctx) override;
 
 private:
 
-	EditorService* m_editor = nullptr;
+	EditorService* m_pEditor = nullptr;
 
 	float m_FixedFpsSamples[SAMPLE_LENGTH]{};
 	float m_DeltaFpsSamples[SAMPLE_LENGTH]{};

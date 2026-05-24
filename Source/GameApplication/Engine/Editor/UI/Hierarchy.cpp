@@ -83,7 +83,7 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 	ImGuiWindowClass m_WindowClass;
 	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
 	ImGui::SetNextWindowClass(&window_class);
-	bool* showSceneHierarchy = &m_editor->GetUI<MenuBar>()->showSceneHierarchy;
+	bool* showSceneHierarchy = &m_pEditor->GetUI<MenuBar>()->showSceneHierarchy;
 
 	if(!showSceneHierarchy || !*showSceneHierarchy){
 		return;
@@ -93,7 +93,7 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 	ImGuiWindowFlags m_ToolbarWindowFlags= 0;
 	ImGui::Begin("Hierarchy", showSceneHierarchy, toolbar_window_flags);
 
-	for(auto& scenePair : m_editor->sceneManager->GetActiveScenes()){
+	for(auto& scenePair : m_pEditor->sceneManager->GetActiveScenes()){
 
 		SceneContext* context = scenePair.second->GetSceneContext();
 
@@ -145,7 +145,7 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 									}
 								},
 								onPrefabUndone);
-							m_editor->commandManager.Execute(std::move(cmd));
+							m_pEditor->commandManager.Execute(std::move(cmd));
 						}
 					}
 				}
@@ -165,10 +165,10 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 							selectedEntity = e;
 							sceneContext    = ctx;
 						});
-					m_editor->commandManager.Execute(std::move(cmd));
+					m_pEditor->commandManager.Execute(std::move(cmd));
 				}
 				if(ImGui::BeginMenu("Template")){
-					ConfigService* cfg = m_editor->sceneManager->GetContext()->config;
+					ConfigService* cfg = m_pEditor->sceneManager->GetContext()->config;
 					const std::string& tplDir = cfg ? cfg->appConfig.templateDir : APPCONFIG{}.templateDir;
 					std::error_code m_Ec;
 					if(std::filesystem::exists(tplDir, ec) && !ec){
@@ -188,7 +188,7 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 												}
 											},
 											onPrefabUndone);
-										m_editor->commandManager.Execute(std::move(cmd));
+										m_pEditor->commandManager.Execute(std::move(cmd));
 									}
 								}
 							}
@@ -219,7 +219,7 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 									}
 								},
 								onPrefabUndone);
-							m_editor->commandManager.Execute(std::move(cmd));
+							m_pEditor->commandManager.Execute(std::move(cmd));
 						}
 					}
 				}
@@ -336,7 +336,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 						if(sceneContext && !sceneContext->entity->IsAlive(pendingRenameEntity))
 							pendingRenameEntity = 0;
 					});
-				m_editor->commandManager.Execute(std::move(cmd));
+				m_pEditor->commandManager.Execute(std::move(cmd));
 			}
 			if(ImGui::MenuItem("EmptyChild")){
 				// 選択ノードの子エンティティを作成
@@ -346,7 +346,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 						selectedEntity = e;
 						sceneContext   = context;
 					});
-				m_editor->commandManager.Execute(std::move(cmd));
+				m_pEditor->commandManager.Execute(std::move(cmd));
 			}
 			ImGui::EndMenu();
 		}
@@ -364,7 +364,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 					if(sceneContext && !sceneContext->entity->IsAlive(pendingRenameEntity))
 						pendingRenameEntity = 0;
 				});
-			m_editor->commandManager.Execute(std::move(cmd));
+			m_pEditor->commandManager.Execute(std::move(cmd));
 		}
 
 		if(ImGui::BeginMenu("Prefab")){
@@ -414,7 +414,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 					selectedEntity = e;
 					sceneContext   = ctx;
 				});
-			m_editor->commandManager.Execute(std::move(cmd));
+			m_pEditor->commandManager.Execute(std::move(cmd));
 
 			ImGui::EndPopup();
 			if(opened && hasChildren){
@@ -441,7 +441,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 				auto* draggedT = context->component->GetComponent<TransformComponent>(draggedEntity);
 				Entity m_OldParent= draggedT ? draggedT->parent : 0;
 				auto m_Cmd= std::make_unique<SetParentCommand>(context, draggedEntity, oldParent, entity);
-				m_editor->commandManager.Execute(std::move(cmd));
+				m_pEditor->commandManager.Execute(std::move(cmd));
 			}
 		}
 		ImGui::EndDragDropTarget();
@@ -468,7 +468,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			if(name){
 				std::string m_OldName= name->name;
 				auto m_Cmd= std::make_unique<RenameCommand>(context, entity, oldName, renameBuffer);
-				m_editor->commandManager.Execute(std::move(cmd));
+				m_pEditor->commandManager.Execute(std::move(cmd));
 			}
 			pendingRenameEntity = 0;
 		}

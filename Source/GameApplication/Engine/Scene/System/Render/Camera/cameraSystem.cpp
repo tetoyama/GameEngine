@@ -28,12 +28,12 @@
 #include "Component/transformComponent.h"
 
 void CameraSystem::Initialize(){
-	m_context->debug->LOG_DEBUG("CameraSystemを初期化中...");
+	m_pContext->debug->LOG_DEBUG("CameraSystemを初期化中...");
 }
 
 void CameraSystem::Draw() {
 
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
 		auto m_CameraBuffers= context->component->GetAllBaseComponents<CameraComponent>();
 		for (auto& [entity, CameraBuffer] : CameraBuffers) {

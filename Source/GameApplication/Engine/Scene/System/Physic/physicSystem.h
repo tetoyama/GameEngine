@@ -69,7 +69,7 @@ public:
 	// コンストラクタ / デストラクタ
 	//------------------------------------------------------------------
 	PhysicSystem(SceneManagerContext* context)
-		: m_context(context){}
+		: m_pContext(context){}
 
 	~PhysicSystem(){}
 
@@ -171,7 +171,7 @@ private:
 	//------------------------------------------------------------------
 	// コンテキスト
 	//------------------------------------------------------------------
-	SceneManagerContext* m_context = nullptr;
+	SceneManagerContext* m_pContext = nullptr;
 
 	//------------------------------------------------------------------
 	// レイヤー管理
@@ -198,7 +198,7 @@ private:
 	//------------------------------------------------------------------
 	std::mutex m_Mtx;
 	bool m_UpdatingPhysics= false;
-	PhysicsSimulationCallback* m_simCallback = nullptr;
+	PhysicsSimulationCallback* m_pSimCallback = nullptr;
 
 private:
 

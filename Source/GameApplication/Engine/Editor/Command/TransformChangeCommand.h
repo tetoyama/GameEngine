@@ -17,7 +17,7 @@ public:
 	TransformChangeCommand(SceneContext* context, Entity entity,
 		Vector3 oldPos, DirectX::XMFLOAT4 oldRot, Vector3 oldScale,
 		Vector3 newPos, DirectX::XMFLOAT4 newRot, Vector3 newScale)
-		: m_context(context)
+		: m_pContext(context)
 		, m_entity(entity)
 		, m_oldPos(oldPos), m_oldRot(oldRot), m_oldScale(oldScale)
 		, m_newPos(newPos), m_newRot(newRot), m_newScale(newScale)
@@ -43,11 +43,11 @@ public:
 
 private:
 	TransformComponent* _GetTransform() {
-		if (!m_context || !m_context->entity->IsAlive(m_entity)) return nullptr;
-		return m_context->component->GetComponent<TransformComponent>(m_entity);
+		if (!m_pContext || !m_pContext->entity->IsAlive(m_entity)) return nullptr;
+		return m_pContext->component->GetComponent<TransformComponent>(m_entity);
 	}
 
-	SceneContext*        m_context;
+	SceneContext*        m_pContext;
 	Entity m_Entity;
 	Vector3              m_oldPos, m_NewPos;
 	DirectX::XMFLOAT4   m_oldRot, m_NewRot;

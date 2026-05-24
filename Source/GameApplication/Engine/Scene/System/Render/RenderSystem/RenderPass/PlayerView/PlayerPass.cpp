@@ -35,8 +35,8 @@
 
 void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 
-	m_renderSystem = renderSystem;
-	m_context = context;
+	m_pRenderSystem = renderSystem;
+	m_pContext = context;
 
 	shadowMapPass = new ShadowMapPass();
 	shadowMapPass->Initialize(renderSystem, context);
@@ -102,10 +102,10 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 
 	// レンダーターゲットをリサイズ (ウィンドウ描画に使用)
 	float m_ClearCol[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
-	playerRenderTarget->Resize(ctx.screenSize, m_context->graphics);
-	playerRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearCol);
+	playerRenderTarget->Resize(ctx.screenSize, m_pContext->graphics);
+	playerRenderTarget->Clear(m_pContext->graphics->GetDeviceContext(), clearCol);
 
-	GraphicsContext*     graphicsContext = m_context->renderer->GetGraphicsContext();
+	GraphicsContext*     graphicsContext = m_pContext->renderer->GetGraphicsContext();
 
 	// GBuffer パス
 	gBufferPass->Execute(ctx);

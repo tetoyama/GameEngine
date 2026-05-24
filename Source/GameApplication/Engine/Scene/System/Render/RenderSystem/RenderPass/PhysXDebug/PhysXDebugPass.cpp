@@ -15,10 +15,10 @@
 
 void PhysXDebugPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context){
 
-	m_context = context;
+	m_pContext = context;
 
-	m_LineVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\DebugLineVS.cso");
-	m_LinePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DebugLinePS.cso");
+	m_LineVertexShader = m_pContext->resource->Load<VertexShaderData>("Asset\\Shader\\DebugLineVS.cso");
+	m_LinePixelShader = m_pContext->resource->Load<PixelShaderData>("Asset\\Shader\\DebugLinePS.cso");
 
 	D3D11_BUFFER_DESC m_Bd{};
 	bd.Usage = D3D11_USAGE_DYNAMIC;
@@ -44,14 +44,14 @@ void PhysXDebugPass::Finalize(){
 void PhysXDebugPass::Execute(const RenderPassContext& ctx){
 	if (!m_LineVertexShader || !m_LinePixelShader) return;
 
-	auto m_GraphicsContext= m_context->graphics;
+	auto m_GraphicsContext= m_pContext->graphics;
 	//graphicsContext->SetDepthMode(DepthMode::Disable);
 
 	if(ctx.renderLayerVisibility[(int)RenderLayer::Debug]){
 
 		//return;
 
-		auto m_Physics= m_context->systemRegistry->GetSystem<PhysicSystem>();
+		auto m_Physics= m_pContext->systemRegistry->GetSystem<PhysicSystem>();
 		const physx::PxRenderBuffer& rb = physics->GetRenderBuffer();
 
 		// 色変換関数

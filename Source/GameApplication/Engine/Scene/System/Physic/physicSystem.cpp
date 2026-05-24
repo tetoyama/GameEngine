@@ -562,8 +562,8 @@ void PhysicSystem::Initialize(){
 	scene_desc.gravity = physx::PxVec3(0, Gravity, 0);
 	scene_desc.filterShader = PhysicsFilterShader;
 	scene_desc.cpuDispatcher = g_pDispatcher;
-	m_simCallback = new PhysicsSimulationCallback();
-	scene_desc.simulationEventCallback = m_simCallback;
+	m_pSimCallback = new PhysicsSimulationCallback();
+	scene_desc.simulationEventCallback = m_pSimCallback;
 
 	g_pScene = g_pPhysics->createScene(scene_desc);
 	if(g_pScene){
@@ -581,8 +581,8 @@ void PhysicSystem::Initialize(){
 }
 void PhysicSystem::Finalize(){
 	OutputDebugStringA("PhysicSystem::Finalize\n");
-	if (m_simCallback) m_simCallback->m_active = false;
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	if (m_pSimCallback) m_pSimCallback->m_active = false;
+	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
 		for (Entity entity : colliderEntity) {
@@ -654,15 +654,15 @@ void PhysicSystem::Finalize(){
 	g_physicSystem = nullptr;
 
 	delete simCallback;
-	m_simCallback = nullptr;
+	m_pSimCallback = nullptr;
 }
 
 void PhysicSystem::Stop(){
 	// コールバックを無効化してから Actor を解放する
 	// （fetchResults が後で発火しても onContact/onTrigger を呼ばないようにする）
-	if (m_simCallback) m_simCallback->m_active = false;
+	if (m_pSimCallback) m_pSimCallback->m_active = false;
 
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
 		for (Entity entity : colliderEntity) {
@@ -1006,9 +1006,9 @@ void PhysicSystem::AddLayer(const std::string& name){
 }
 void PhysicSystem::Start(){
 	// コールバックを有効化する（Stop 後の再起動にも対応）
-	if (m_simCallback) m_simCallback->m_active = true;
+	if (m_pSimCallback) m_pSimCallback->m_active = true;
 
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
 		if (colliderEntity.empty()) return;
@@ -1022,7 +1022,7 @@ void PhysicSystem::Start(){
 }
 
 void PhysicSystem::UpdateCollider() {
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
 		if (colliderEntity.empty()) continue;
@@ -1251,7 +1251,7 @@ void PhysicSystem::FixedUpdate(float deltaTime) {
 	g_pScene->fetchResults(true);
 	g_pScene->unlockRead();
 
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
 

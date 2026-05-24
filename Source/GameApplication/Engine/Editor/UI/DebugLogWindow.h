@@ -18,7 +18,7 @@ public:
 	DebugLogWindow();
 
 private:
-	EditorService* m_editor = nullptr;
+	EditorService* m_pEditor = nullptr;
 
 	std::shared_ptr<MemoryLogSink> m_LogSink;
 

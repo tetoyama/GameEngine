@@ -18,7 +18,7 @@ public:
 		return "ParticleSystem";
 	}
 
-	ParticleSystem(SceneManagerContext* context) : m_context(context) {}
+	ParticleSystem(SceneManagerContext* context) : m_pContext(context) {}
 	~ParticleSystem() {}
 	void Initialize() override;
 	void Finalize()override;
@@ -27,5 +27,5 @@ public:
 	void Update(float deltaTime) override;
 
 private:
-	SceneManagerContext* m_context;
+	SceneManagerContext* m_pContext;
 };

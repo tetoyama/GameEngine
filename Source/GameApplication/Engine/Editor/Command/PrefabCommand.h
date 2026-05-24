@@ -27,7 +27,7 @@ public:
 		bool removePrefabComp = false,
 		PostInstantiateCallback onInstantiated = nullptr,
 		PostUndoCallback        onUndone       = nullptr)
-		: m_context(context)
+		: m_pContext(context)
 		, m_filePath(filePath)
 		, m_removePrefabComp(removePrefabComp)
 		, m_spawned(0)
@@ -36,36 +36,36 @@ public:
 	{}
 
 	void Execute() override {
-		if (!m_context || !m_context->prefab) return;
+		if (!m_pContext || !m_pContext->prefab) return;
 
 		if (m_spawned != 0) {
 			// Redo: スナップショットから復元
-			EntityCommandHelper::RestoreAll(m_snapshots, m_context);
-			if (m_onInstantiated) m_onInstantiated(EntityRef(m_spawned, m_context));
+			EntityCommandHelper::RestoreAll(m_snapshots, m_pContext);
+			if (m_onInstantiated) m_onInstantiated(EntityRef(m_spawned, m_pContext));
 			return;
 		}
 
 		// 初回: プレファブをインスタンス化
-		EntityRef ref = m_context->prefab->InstantiatePrefab(m_context, m_filePath);
+		EntityRef ref = m_pContext->prefab->InstantiatePrefab(m_pContext, m_filePath);
 		if (!ref) return;
 		m_spawned = ref.GetEntityID();
 
 		// テンプレート系では PrefabComponent を取り除く
 		if (m_removePrefabComp) {
-			m_context->component->RemoveComponent<PrefabComponent>(m_spawned);
+			m_pContext->component->RemoveComponent<PrefabComponent>(m_spawned);
 		}
 
 		// Undo に備えてスナップショット取得
 		m_snapshots.clear();
-		EntityCommandHelper::SnapshotRecursive(m_spawned, m_context, m_snapshots);
+		EntityCommandHelper::SnapshotRecursive(m_spawned, m_pContext, m_snapshots);
 
-		if (m_onInstantiated) m_onInstantiated(EntityRef(m_spawned, m_context));
+		if (m_onInstantiated) m_onInstantiated(EntityRef(m_spawned, m_pContext));
 	}
 
 	void Undo() override {
-		if (!m_context || m_spawned == 0) return;
-		if (!m_context->entity->IsAlive(m_spawned)) return;
-		EntityCommandHelper::DestroyRecursive(m_spawned, m_context);
+		if (!m_pContext || m_spawned == 0) return;
+		if (!m_pContext->entity->IsAlive(m_spawned)) return;
+		EntityCommandHelper::DestroyRecursive(m_spawned, m_pContext);
 		if (m_onUndone) m_onUndone();
 	}
 
@@ -75,7 +75,7 @@ public:
 	std::string GetDescription() const override { return "Prefabを配置"; }
 
 private:
-	SceneContext*                                    m_context;
+	SceneContext*                                    m_pContext;
 	std::string m_FilePath;
 	bool m_RemovePrefabComp;
 	Entity m_Spawned;

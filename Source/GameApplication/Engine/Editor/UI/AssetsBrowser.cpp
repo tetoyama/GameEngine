@@ -25,7 +25,7 @@
 
 void AssetsBrowser::Initialize(EditorService* editor){
 	resourceService = editor->resourceService;
-	m_editor = editor;
+	m_pEditor = editor;
 
 	fileIcon[FileIconType::FILE_UNDEFINED]	= resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_undefied.png");
 	fileIcon[FileIconType::FILE_FOLDER]		= resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\folder.png");
@@ -45,17 +45,17 @@ void AssetsBrowser::Finalize(){
 
 void AssetsBrowser::Draw(const EditorDrawContext ctx){
 
-	bool* showAssetsBrowser = &m_editor->GetUI<MenuBar>()->showAssetsBrowser;
+	bool* showAssetsBrowser = &m_pEditor->GetUI<MenuBar>()->showAssetsBrowser;
 
 	if(!showAssetsBrowser || !*showAssetsBrowser){
 		return;
 	}
 
-	SceneManagerContext* sceneManagerContext = m_editor->sceneManager->GetContext();
+	SceneManagerContext* sceneManagerContext = m_pEditor->sceneManager->GetContext();
 
 	std::filesystem::path m_AssetsRoot= ASSET_PATH;
 	static std::string m_SelectedPath= ASSETS_ROOT.string();
-	//m_context->debug->LOG_INFO("Current path: " + std::filesystem::current_path().string());
+	//m_pContext->debug->LOG_INFO("Current path: " + std::filesystem::current_path().string());
 
 	// --- パス検証・正規化 ---
 	std::error_code m_Ec;

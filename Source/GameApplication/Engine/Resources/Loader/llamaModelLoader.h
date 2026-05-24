@@ -24,7 +24,7 @@ inline std::shared_ptr<LLAMAModelData> LoadLLAMAModelFromFile(const std::string&
     mParams.n_gpu_layers = 0; // GPUなし
 
     try {
-        modelData->m_model = llama_model_load_from_file(filePath.c_str(), mParams);
+        modelData->m_pModel = llama_model_load_from_file(filePath.c_str(), mParams);
     }
     catch (const std::runtime_error& e) {
         OutputDebugStringA(("LLAMA load failed: " + std::string(e.what()) + "\n").c_str());
@@ -32,7 +32,7 @@ inline std::shared_ptr<LLAMAModelData> LoadLLAMAModelFromFile(const std::string&
     }
 
     // llama_vocab は model から取得
-    modelData->m_vocab = llama_model_get_vocab(modelData->m_model);
+    modelData->m_pVocab = llama_model_get_vocab(modelData->m_pModel);
 
     return m_ModelData;
 }

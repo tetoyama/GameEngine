@@ -36,7 +36,7 @@ public:
 	float cameraMoveSpeed = 10.0f;
 
 private:
-	EditorService* m_editor = nullptr;
+	EditorService* m_pEditor = nullptr;
 
 	void EditorView(const EditorDrawContext ctx);
 

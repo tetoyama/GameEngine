@@ -14,7 +14,7 @@
 #include <ImGui/imgui_internal.h>
 
 void SystemSetting::Draw(const EditorDrawContext ctx) {
-	bool* showSystemSetting = &m_editor->GetUI<MenuBar>()->showSystemSetting;
+	bool* showSystemSetting = &m_pEditor->GetUI<MenuBar>()->showSystemSetting;
 	if(!showSystemSetting || !*showSystemSetting){
 		return;
 	}
@@ -32,7 +32,7 @@ void SystemSetting::Draw(const EditorDrawContext ctx) {
 	// Application Config セクション
 	// ===========================================================
 	if(ImGui::CollapsingHeader("Application Config", ImGuiTreeNodeFlags_DefaultOpen)){
-		ConfigService* cfg = m_editor->sceneManager->GetContext()->config;
+		ConfigService* cfg = m_pEditor->sceneManager->GetContext()->config;
 		if(cfg){
 			APPCONFIG& app = cfg->appConfig;
 
@@ -63,7 +63,7 @@ void SystemSetting::Draw(const EditorDrawContext ctx) {
 	// ===========================================================
 	// 各システム設定セクション（HasSystemSetting() == true のみ表示）
 	// ===========================================================
-	auto& systems = m_editor->sceneManager->systemRegistry->GetSystems();
+	auto& systems = m_pEditor->sceneManager->systemRegistry->GetSystems();
 	for(auto& s : systems){
 		if(!s->HasSystemSetting()) continue;
 

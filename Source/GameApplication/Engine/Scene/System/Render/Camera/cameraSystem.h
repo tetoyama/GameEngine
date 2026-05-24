@@ -15,11 +15,11 @@ public:
 	const char* GetSystemName() const override{
 		return "CameraSystem";
 	}
-	CameraSystem(SceneManagerContext* context): m_context(context){}
+	CameraSystem(SceneManagerContext* context): m_pContext(context){}
 
 	void Initialize() override;
 	void Draw() override;
 
 private:
-	SceneManagerContext* m_context;
+	SceneManagerContext* m_pContext;
 };

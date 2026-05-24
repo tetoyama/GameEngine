@@ -45,8 +45,8 @@ static const PointFace s_PointFaces[6] = {
 
 
 void ShadowMapPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
-	m_renderSystem = renderSystem;
-	m_context = context;
+	m_pRenderSystem = renderSystem;
+	m_pContext = context;
 
 	D3D11_SAMPLER_DESC desc = {};
 	desc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
@@ -57,7 +57,7 @@ void ShadowMapPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* 
 
 	shadowRenderTarget = new RenderTarget(
 		Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE),
-		m_context->graphics,
+		m_pContext->graphics,
 		RenderTargetType::RENDERTARGET_TYPE_DEPTH
 	);
 
@@ -68,7 +68,7 @@ void ShadowMapPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* 
 	//renderables.push_back(renderSystem->GetRenderable<RenderableParticle>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableBillBoard>());
 
-	m_RenderablePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\shadowPS.cso");
+	m_RenderablePixelShader = m_pContext->resource->Load<PixelShaderData>("Asset\\Shader\\shadowPS.cso");
 
 	// DepthClipEnable=FALSE のラスタライザステートを作成
 	// フラスタム外の shadow caster が light-space Z < 0 でもクリップされず、
@@ -101,8 +101,8 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 	using namespace DirectX;
 
-	ID3D11DeviceContext* deviceContext = m_context->graphics->GetDeviceContext();
-	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
+	ID3D11DeviceContext* deviceContext = m_pContext->graphics->GetDeviceContext();
+	GraphicsContext* graphicsContext = m_pContext->renderer->GetGraphicsContext();
 
 	ID3D11ShaderResourceView* nullSRV[1] = {nullptr};
 	deviceContext->PSSetShaderResources(TextureSlot_ShadowMap, 1, nullSRV);
@@ -145,7 +145,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 	bool hasCsmLight = false;
 
 	bool foundLight = false;
-	for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
+	for(auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()){
 		auto sctx = scene->GetSceneContext();
 		const auto& lightEntities = sctx->component->FindEntitiesWithComponent<LightComponent>();
 		if(lightEntities.empty()) continue;
@@ -515,7 +515,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 			if(!newContext.renderLayerVisibility[j]) continue;
 
-			for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
+			for(auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()){
 				auto sctx = scene->GetSceneContext();
 
 				std::vector<Entity> entities = sctx->component->FindEntitiesWithComponent<TransformComponent>();

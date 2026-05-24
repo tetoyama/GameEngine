@@ -28,7 +28,7 @@ void ParticleSystem::Initialize() {}
 void ParticleSystem::Finalize() {}
 
 void ParticleSystem::Start() {
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
 		const auto& Entities = context->component->FindEntitiesWithComponent<ParticleComponent>();
 		if (Entities.empty()) {
@@ -57,7 +57,7 @@ void ParticleSystem::Start() {
 }
 
 void ParticleSystem::Update(float deltaTime){
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
 		const auto& Entities = context->component->FindEntitiesWithComponent<ParticleComponent>();
 		if (Entities.empty()) {

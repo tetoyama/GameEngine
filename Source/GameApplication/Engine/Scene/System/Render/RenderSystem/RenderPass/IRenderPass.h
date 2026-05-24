@@ -26,6 +26,6 @@ public:
 	// 1 フレームの描画処理を実行する
 	virtual void Execute(const RenderPassContext& ctx) = 0;
 
-	SceneManagerContext* m_context      = nullptr;  // シーンコンテキストへの参照
-	RenderSystem*        m_renderSystem = nullptr;  // 親となる RenderSystem への参照
+	SceneManagerContext* m_pContext      = nullptr;  // シーンコンテキストへの参照
+	RenderSystem*        m_pRenderSystem = nullptr;  // 親となる RenderSystem への参照
 };

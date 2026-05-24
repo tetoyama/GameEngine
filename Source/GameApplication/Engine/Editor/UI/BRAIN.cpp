@@ -35,7 +35,7 @@
 // Initialize
 // --------------------------------------------
 void BRAIN::Initialize(EditorService* editor){
-	m_editor = editor;
+	m_pEditor = editor;
 
 	m_isRunning.store(false);
 	m_stopRequested.store(false);
@@ -47,7 +47,7 @@ void BRAIN::Initialize(EditorService* editor){
 	std::memset(inputBuffer, 0, sizeof(inputBuffer));
 
 	// ロゴ
-	logoTexture = m_editor->resourceService
+	logoTexture = m_pEditor->resourceService
 		->Load<TextureData>("Asset/BRAIN/logo/Icon.png");
 
 
@@ -64,11 +64,11 @@ void BRAIN::Initialize(EditorService* editor){
 	// ---------------------------------
 	// モデルロード
 	// ---------------------------------
-	m_editor->llamaService->LoadModelAsync(
+	m_pEditor->llamaService->LoadModelAsync(
 		"Asset/BRAIN/model/qwen2.5-coder-7b-instruct-q4_k_m.gguf",
 		[this](bool success){
 			if(!success){
-				m_editor->debugLogSystem->LOG_ERROR(
+				m_pEditor->debugLogSystem->LOG_ERROR(
 					"B.R.A.I.N.: Failed to load LLM model."
 				);
 				// ロード失敗
@@ -76,12 +76,12 @@ void BRAIN::Initialize(EditorService* editor){
 				return;
 			} else {
 
-				m_editor->debugLogSystem->LOG_TRACE(
+				m_pEditor->debugLogSystem->LOG_TRACE(
 					"B.R.A.I.N.: Success to load LLM model."
 				);
 
 				m_llamaModel =
-					m_editor->llamaService
+					m_pEditor->llamaService
 					->GetModel(
 						"Asset/BRAIN/model/qwen2.5-coder-7b-instruct-q4_k_m.gguf");
 
@@ -184,12 +184,12 @@ void BRAIN::WorkerLoop() {
 		// ---------------------------
 		if (!m_mainAgent) {
 			m_llamaModel =
-				m_editor->llamaService->GetModel(
+				m_pEditor->llamaService->GetModel(
 					"Asset/BRAIN/model/qwen2.5-coder-7b-instruct-q4_k_m.gguf");
 
 			if (m_llamaModel) {
 				m_mainAgent =
-					m_editor->llamaService
+					m_pEditor->llamaService
 					->CreateAgent(m_llamaModel, m_agentConfig);
 			}
 		}
@@ -253,7 +253,7 @@ void BRAIN::WorkerLoop() {
 // --------------------------------------------
 void BRAIN::Draw(const EditorDrawContext){
 	bool* show =
-		&m_editor->GetUI<MenuBar>()->showBRAIN;
+		&m_pEditor->GetUI<MenuBar>()->showBRAIN;
 	if(!show || !*show) return;
 
 	ImGui::Begin("B.R.A.I.N.", show);

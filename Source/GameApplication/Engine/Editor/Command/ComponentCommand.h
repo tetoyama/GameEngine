@@ -22,27 +22,27 @@ class ComponentAddCommand : public ICommand {
 public:
 	ComponentAddCommand(SceneContext* context, Entity entity, const std::string& componentName,
 		std::function<void(Entity)> addFunc)
-		: m_context(context)
+		: m_pContext(context)
 		, m_entity(entity)
 		, m_componentName(componentName)
 		, m_addFunc(addFunc)
 	{}
 
 	void Execute() override {
-		if (!m_context || !m_context->entity->IsAlive(m_entity)) return;
+		if (!m_pContext || !m_pContext->entity->IsAlive(m_entity)) return;
 
 		// リドゥ時はスナップショットから復元し、初回はファクトリ関数を使う
 		if (!m_snapshot.IsNull()) {
-			m_context->component->CreateFromYAML(m_componentName, m_entity, m_snapshot);
+			m_pContext->component->CreateFromYAML(m_componentName, m_entity, m_snapshot);
 		} else {
 			m_addFunc(m_entity);
 
 			// リドゥに備えて追加直後のコンポーネント状態をスナップショット
-			auto comps = m_context->component->GetAllComponentsOfEntitySorted(m_entity);
-			const auto& idToName = m_context->component->GetComponentIDToNameMap();
+			auto comps = m_pContext->component->GetAllComponentsOfEntitySorted(m_entity);
+			const auto& idToName = m_pContext->component->GetComponentIDToNameMap();
 			for (IComponent* comp : comps) {
 				std::type_index ti(typeid(*comp));
-				ComponentTypeID typeID = m_context->component->GetComponentIDByTypeIndex(ti);
+				ComponentTypeID typeID = m_pContext->component->GetComponentIDByTypeIndex(ti);
 				auto nameIt = idToName.find(typeID);
 				if (nameIt != idToName.end() && nameIt->second == m_componentName) {
 					m_snapshot = comp->encode();
@@ -53,17 +53,17 @@ public:
 	}
 
 	void Undo() override {
-		if (!m_context || !m_context->entity->IsAlive(m_entity)) return;
+		if (!m_pContext || !m_pContext->entity->IsAlive(m_entity)) return;
 
-		ComponentTypeID id = m_context->component->GetComponentIDByName(m_componentName);
+		ComponentTypeID id = m_pContext->component->GetComponentIDByName(m_componentName);
 		if (id == static_cast<ComponentTypeID>(-1)) return;
 
 		// 削除前にスナップショット（リドゥ用）
-		auto comps = m_context->component->GetAllComponentsOfEntitySorted(m_entity);
-		const auto& idToName = m_context->component->GetComponentIDToNameMap();
+		auto comps = m_pContext->component->GetAllComponentsOfEntitySorted(m_entity);
+		const auto& idToName = m_pContext->component->GetComponentIDToNameMap();
 		for (IComponent* comp : comps) {
 			std::type_index ti(typeid(*comp));
-			ComponentTypeID typeID = m_context->component->GetComponentIDByTypeIndex(ti);
+			ComponentTypeID typeID = m_pContext->component->GetComponentIDByTypeIndex(ti);
 			auto nameIt = idToName.find(typeID);
 			if (nameIt != idToName.end() && nameIt->second == m_componentName) {
 				m_snapshot = comp->encode();
@@ -71,7 +71,7 @@ public:
 			}
 		}
 
-		m_context->component->RemoveComponentByID(m_entity, id);
+		m_pContext->component->RemoveComponentByID(m_entity, id);
 	}
 
 	// Undo でコンポーネントを削除するため、Redo スタックの生ポインタを事前クリアする
@@ -80,7 +80,7 @@ public:
 	std::string GetDescription() const override { return "コンポーネントを追加: " + m_componentName; }
 
 private:
-	SceneContext*               m_context;
+	SceneContext*               m_pContext;
 	Entity m_Entity;
 	std::string m_ComponentName;
 	std::function<void(Entity)> m_addFunc;
@@ -94,7 +94,7 @@ private:
 class ComponentRemoveCommand : public ICommand {
 public:
 	ComponentRemoveCommand(SceneContext* context, Entity entity, IComponent* component)
-		: m_context(context)
+		: m_pContext(context)
 		, m_entity(entity)
 	{
 		// 削除前にスナップショット取得
@@ -109,15 +109,15 @@ public:
 	}
 
 	void Execute() override {
-		if (!m_context || !m_context->entity->IsAlive(m_entity)) return;
+		if (!m_pContext || !m_pContext->entity->IsAlive(m_entity)) return;
 		if (m_typeID == static_cast<ComponentTypeID>(-1)) return;
-		m_context->component->RemoveComponentByID(m_entity, m_typeID);
+		m_pContext->component->RemoveComponentByID(m_entity, m_typeID);
 	}
 
 	void Undo() override {
-		if (!m_context || !m_context->entity->IsAlive(m_entity)) return;
+		if (!m_pContext || !m_pContext->entity->IsAlive(m_entity)) return;
 		if (m_componentName.empty()) return;
-		m_context->component->CreateFromYAML(m_componentName, m_entity, m_snapshot);
+		m_pContext->component->CreateFromYAML(m_componentName, m_entity, m_snapshot);
 	}
 
 	// コンポーネントを破棄することで、それ以前のコマンドのコンポーネントポインタを無効化する。
@@ -127,7 +127,7 @@ public:
 	std::string GetDescription() const override { return "コンポーネントを削除: " + m_componentName; }
 
 private:
-	SceneContext*   m_context;
+	SceneContext*   m_pContext;
 	Entity m_Entity;
 	ComponentTypeID m_TypeId= static_cast<ComponentTypeID>(-1);
 	std::string m_ComponentName;

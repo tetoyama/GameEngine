@@ -19,12 +19,12 @@
 #include <Icon/icon.h>
 #include "Config/appConfig.h"
 
-#define MAINWINDOW_LOG(level, msg) do { if(m_debugLog) { m_debugLog->Log(level, msg, __FUNCTION__, __FILE__, __LINE__); } } while(0)
+#define MAINWINDOW_LOG(level, msg) do { if(m_pDebugLog) { m_pDebugLog->Log(level, msg, __FUNCTION__, __FILE__, __LINE__); } } while(0)
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 MainWindow::MainWindow(DebugLogService* debugLog)
-	: m_HWND(nullptr), m_ShouldClose(false), m_debugLog(debugLog){}
+	: m_HWND(nullptr), m_ShouldClose(false), m_pDebugLog(debugLog){}
 
 MainWindow::~MainWindow(){
 	if(m_HWND){
@@ -147,12 +147,12 @@ void MainWindow::SetBorderlessFullscreen(bool enable){
 			SetForegroundWindow(m_HWND);
 
 			// レンダラーのリサイズ
-			if(m_mainRenderer){
-				m_mainRenderer->OnResize(m_width, m_height);
+			if(m_pMainRenderer){
+				m_pMainRenderer->OnResize(m_width, m_height);
 			}
 
 			// 必要ならDirectWrite等の再初期化
-			// if (m_mainRenderer && m_mainRenderer->GetGraphicsContext()) {
+			// if (m_pMainRenderer && m_pMainRenderer->GetGraphicsContext()) {
 			//     // 再初期化処理
 			// }
 
@@ -181,8 +181,8 @@ void MainWindow::SetBorderlessFullscreen(bool enable){
 		SetForegroundWindow(m_HWND);
 
 		// レンダラーのリサイズ
-		if(m_mainRenderer){
-			m_mainRenderer->OnResize(m_width, m_height);
+		if(m_pMainRenderer){
+			m_pMainRenderer->OnResize(m_width, m_height);
 		}
 
 		m_fullscreen = false;
@@ -214,8 +214,8 @@ LRESULT CALLBACK MainWindow::StaticWindowProc(HWND hwnd, UINT uMsg, WPARAM wPara
 
 LRESULT MainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam){
 
-	if(m_inputSystem){
-		m_inputSystem->MessageUpdateInput(hwnd, uMsg, wParam, lParam);
+	if(m_pInputSystem){
+		m_pInputSystem->MessageUpdateInput(hwnd, uMsg, wParam, lParam);
 	}
 
 	switch(uMsg){
@@ -236,10 +236,10 @@ LRESULT MainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 		case WM_EXITSIZEMOVE:
 			m_resizing = false;
 			MAINWINDOW_LOG(LogLevel::Trace, "ウィンドウのサイズ変更を終了します");
-			if (m_mainRenderer) {
-				m_mainRenderer->OnResize(m_pendingWidth, m_pendingHeight);
-				if (m_imguiSystem) {
-					m_imguiSystem->OnResize();
+			if (m_pMainRenderer) {
+				m_pMainRenderer->OnResize(m_pendingWidth, m_pendingHeight);
+				if (m_pImguiSystem) {
+					m_pImguiSystem->OnResize();
 				}
 			}
 			break;
@@ -254,11 +254,11 @@ LRESULT MainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 				break;
 
-			} else if (m_mainRenderer) {
+			} else if (m_pMainRenderer) {
 
-				m_mainRenderer->OnResize(m_pendingWidth, m_pendingHeight);
-				if (m_imguiSystem) {
-					m_imguiSystem->OnResize();
+				m_pMainRenderer->OnResize(m_pendingWidth, m_pendingHeight);
+				if (m_pImguiSystem) {
+					m_pImguiSystem->OnResize();
 				}
 			}
 			break;

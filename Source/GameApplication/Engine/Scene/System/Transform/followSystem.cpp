@@ -30,7 +30,7 @@ void FollowSystem::EditorUpdate(float deltaTime) {
 }
 
 void FollowSystem::ProcessFollow() {
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 		auto* context = scene->GetSceneContext();
 		const auto& entities = context->component->FindEntitiesWithComponent<FollowComponent>();
 

@@ -17,7 +17,7 @@
 #include "DebugTools/debugSystem.h"
 
 void TransformSystem::Initialize(){
-	m_context->debug->LOG_DEBUG("TransformSystemを初期化中...");
+	m_pContext->debug->LOG_DEBUG("TransformSystemを初期化中...");
 }
 
 void TransformSystem::Draw(){
@@ -27,7 +27,7 @@ void TransformSystem::Draw(){
 
 	// コンポーネントを持つエンティティの検索
 
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
 
 		const auto m_Entities= context->component->FindEntitiesWithComponent<TransformComponent>();

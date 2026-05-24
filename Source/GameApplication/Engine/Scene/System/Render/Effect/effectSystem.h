@@ -22,16 +22,16 @@ public:
 		return "EffectSystem";
 	}
 	EffectSystem(SceneManagerContext* context)
-		: m_context(context){}
+		: m_pContext(context){}
 
 	void Initialize() override{
-		m_audioContext = m_context->audio;
+		m_pAudioContext = m_pContext->audio;
 	}
 
 	void Finalize() override{
-		auto manager = m_context->graphics->GetEffectManager();
+		auto manager = m_pContext->graphics->GetEffectManager();
 
-		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
+		for(auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()){
 			auto context = scene->GetSceneContext();
 
 			auto entities = context->component->FindEntitiesWithComponent<EffectComponent>();
@@ -47,7 +47,7 @@ public:
 	}
 
 	void Start() override{
-		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
+		for(auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()){
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<EffectComponent>();
 
@@ -57,7 +57,7 @@ public:
 
 				if(!comp->m_EffectData && !comp->FilePath.empty()){
 					comp->m_EffectData =
-						m_context->resource->Load<EffectData>(comp->FilePath);
+						m_pContext->resource->Load<EffectData>(comp->FilePath);
 				}
 
 				if(comp->PlayOnStart){
@@ -69,11 +69,11 @@ public:
 
 	void Update(float dt) override{
 
-		auto manager = m_context->graphics->GetEffectManager();
+		auto manager = m_pContext->graphics->GetEffectManager();
 
 		manager->BeginUpdate();
 
-		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
+		for(auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()){
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<EffectComponent>();
 
@@ -93,11 +93,11 @@ public:
 	}
 
 	void EditorUpdate(float dt) override{
-		auto manager = m_context->graphics->GetEffectManager();
+		auto manager = m_pContext->graphics->GetEffectManager();
 
 		manager->BeginUpdate();
 
-		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
+		for(auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()){
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<EffectComponent>();
 
@@ -153,6 +153,6 @@ public:
 	}
 
 private:
-	SceneManagerContext* m_context = nullptr;
-	AudioContext* m_audioContext = nullptr;
+	SceneManagerContext* m_pContext = nullptr;
+	AudioContext* m_pAudioContext = nullptr;
 };

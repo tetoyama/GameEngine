@@ -31,7 +31,7 @@ public:
 	std::shared_ptr<VertexShaderData> vertexShader;
 
 private:
-	LightingPass*  m_lightingPass  = nullptr;
-	GBufferPass*   m_gBufferPass   = nullptr;
-	ShadowMapPass* m_shadowMapPass = nullptr;
+	LightingPass*  m_pLightingPass  = nullptr;
+	GBufferPass*   m_pGBufferPass   = nullptr;
+	ShadowMapPass* m_pShadowMapPass = nullptr;
 };

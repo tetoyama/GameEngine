@@ -14,8 +14,8 @@ LLAMAModelData::LLAMAModelData() {
 
 LLAMAModelData::~LLAMAModelData() {
 	OutputDebugStringA(("Destroyed LLAMAModelData: " + m_path + "\n").c_str());
-	if (m_model) {
-		llama_model_free(m_model);
-		m_model = nullptr;
+	if (m_pModel) {
+		llama_model_free(m_pModel);
+		m_pModel = nullptr;
 	}
 }

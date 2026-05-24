@@ -24,5 +24,5 @@ public:
 	)override;
 
 private:
-	MeshRendererComponent* m_billBoardMesh = nullptr;
+	MeshRendererComponent* m_pBillBoardMesh = nullptr;
 };

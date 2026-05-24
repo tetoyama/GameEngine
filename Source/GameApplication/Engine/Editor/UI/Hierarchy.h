@@ -21,7 +21,7 @@ class Hierarchy: public IEditorUI{
 
 public:
 	void Initialize(EditorService* editor) override{
-		m_editor = editor;
+		m_pEditor = editor;
 	}
 	void Finalize() override{}
 	void Draw(const EditorDrawContext ctx) override;
@@ -32,7 +32,7 @@ public:
 private:
 	void DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities);
 
-	EditorService* m_editor = nullptr;
+	EditorService* m_pEditor = nullptr;
 
 	Entity m_PendingRenameEntity= 0;
 

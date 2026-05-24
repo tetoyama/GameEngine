@@ -42,7 +42,7 @@ struct LLAMAServiceContext
 class LLAMAService final : public IService {
 public:
 	explicit LLAMAService(DebugLogService* debugLog = nullptr)
-		: m_debugLog(debugLog)
+		: m_pDebugLog(debugLog)
 	{}
 
     // ===== IService =====
@@ -82,8 +82,8 @@ public:
 
 private:
 
-	ResourceService* m_resourceService = nullptr;
-	DebugLogService* m_debugLog = nullptr;
+	ResourceService* m_pResourceService = nullptr;
+	DebugLogService* m_pDebugLog = nullptr;
 
     // ============================
     // 非同期ジョブ構造体

@@ -14,7 +14,7 @@
 #include "Registry/componentRegistry.h"
 
 void CustomScriptSystem::Initialize(){
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
 		auto m_Scripts= context->component->GetAllBaseComponents<CustomScriptComponent>();
 		for (auto& [entity, script] : scripts) {
@@ -27,7 +27,7 @@ void CustomScriptSystem::Initialize(){
 }
 
 void CustomScriptSystem::Finalize() {
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
 		auto m_Scripts= context->component->GetAllBaseComponents<CustomScriptComponent>();
 		for (auto& [entity, script] : scripts) {
@@ -42,7 +42,7 @@ void CustomScriptSystem::Finalize() {
 }
 
 void CustomScriptSystem::Start(){
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
 		auto m_Scripts= context->component->GetAllBaseComponents<CustomScriptComponent>();
 		for (auto& [entity, script] : scripts) {
@@ -57,7 +57,7 @@ void CustomScriptSystem::Start(){
 }
 
 void CustomScriptSystem::Update(float deltaTime){
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
 		auto m_Scripts= context->component->GetAllBaseComponents<CustomScriptComponent>();
 		for (auto& [entity, script] : scripts) {
@@ -75,7 +75,7 @@ void CustomScriptSystem::Update(float deltaTime){
 }
 
 void CustomScriptSystem::FixedUpdate(float fixedDeltaTime){
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
 		auto m_Scripts= context->component->GetAllBaseComponents<CustomScriptComponent>();
 		for (auto& [entity, script] : scripts) {
@@ -91,7 +91,7 @@ void CustomScriptSystem::FixedUpdate(float fixedDeltaTime){
 }
 
 void CustomScriptSystem::Draw(){
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
 		auto m_Scripts= context->component->GetAllBaseComponents<CustomScriptComponent>();
 		for (auto& [entity, script] : scripts) {
@@ -107,7 +107,7 @@ void CustomScriptSystem::Draw(){
 }
 
 void CustomScriptSystem::EditorUpdate(float deltaTime){
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
 		auto m_Scripts= context->component->GetAllBaseComponents<CustomScriptComponent>();
 		for (auto& [entity, script] : scripts) {

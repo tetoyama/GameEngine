@@ -22,10 +22,10 @@ void RenderableEffect::Execute(const RenderPassContext& ctx, SceneContext* scene
 	Effekseer::Matrix44 m_EffekseerProjectionMatrix= ConvertXMMATRIXToMatrix44(ctx.projectionMatrix);
 	Effekseer::Matrix44 m_EffekseerViewMatrix= ConvertXMMATRIXToMatrix44(ctx.viewMatrix);
 
-	m_context->graphics->GetEffectRenderer()->SetProjectionMatrix(effekseerProjectionMatrix);
-	m_context->graphics->GetEffectRenderer()->SetCameraMatrix(effekseerViewMatrix);
+	m_pContext->graphics->GetEffectRenderer()->SetProjectionMatrix(effekseerProjectionMatrix);
+	m_pContext->graphics->GetEffectRenderer()->SetCameraMatrix(effekseerViewMatrix);
 
-	m_context->graphics->GetEffectRenderer()->BeginRendering();
-	m_context->graphics->GetEffectManager()->DrawHandle(effect->m_Handle);
-	m_context->graphics->GetEffectRenderer()->EndRendering();
+	m_pContext->graphics->GetEffectRenderer()->BeginRendering();
+	m_pContext->graphics->GetEffectManager()->DrawHandle(effect->m_Handle);
+	m_pContext->graphics->GetEffectRenderer()->EndRendering();
 }

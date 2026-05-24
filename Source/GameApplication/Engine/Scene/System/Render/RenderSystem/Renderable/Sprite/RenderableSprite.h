@@ -24,5 +24,5 @@ public:
 	)override;
 
 private:
-	MeshRendererComponent* m_spriteMesh = nullptr;
+	MeshRendererComponent* m_pSpriteMesh = nullptr;
 };

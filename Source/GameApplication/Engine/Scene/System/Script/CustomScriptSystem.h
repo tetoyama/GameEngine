@@ -20,7 +20,7 @@ public:
 		return "CustomScriptSystem";
 	}
 
-	CustomScriptSystem(SceneManagerContext* context): m_context(context){}
+	CustomScriptSystem(SceneManagerContext* context): m_pContext(context){}
 	~CustomScriptSystem(){}
 
 	void Initialize() override;
@@ -33,5 +33,5 @@ public:
 	void EditorUpdate(float deltaTime) override;
 
 private:
-	SceneManagerContext* m_context;
+	SceneManagerContext* m_pContext;
 };

@@ -50,7 +50,7 @@ private:
 	std::filesystem::path m_RenameTarget;
 	char m_NewNameBuffer[256]{};
 
-	EditorService* m_editor = nullptr;
+	EditorService* m_pEditor = nullptr;
 	ResourceService* resourceService = nullptr;
 
 	std::shared_ptr<TextureData> m_FileIcon[FileIconType::FILE_MAX];

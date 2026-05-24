@@ -34,19 +34,19 @@ public:
 
 	// D2Dリソース解放
 	void OnResizeRelease(){
-		if(m_d2dRenderTarget){
-			m_d2dRenderTarget->Release();
-			m_d2dRenderTarget = nullptr;
+		if(m_pD2dRenderTarget){
+			m_pD2dRenderTarget->Release();
+			m_pD2dRenderTarget = nullptr;
 		}
 
-		if(m_fontBrush){
-			m_fontBrush->Release();
-			m_fontBrush = nullptr;
+		if(m_pFontBrush){
+			m_pFontBrush->Release();
+			m_pFontBrush = nullptr;
 		}
 
-		if(m_dwriteFactory){
-			m_dwriteFactory->Release();
-			m_dwriteFactory = nullptr;
+		if(m_pDwriteFactory){
+			m_pDwriteFactory->Release();
+			m_pDwriteFactory = nullptr;
 		}
 	}
 
@@ -57,13 +57,13 @@ public:
 private:
 	void Initialize2DResources();
 
-	GraphicsContext* m_graphicsContext = nullptr;
+	GraphicsContext* m_pGraphicsContext = nullptr;
 	HWND m_Hwnd;
 
-	ID2D1RenderTarget* m_d2dRenderTarget = nullptr;
-	ID2D1SolidColorBrush* m_fontBrush = nullptr;
-	IDWriteFactory* m_dwriteFactory = nullptr;
-	IDWriteTextFormat* m_textFormat = nullptr;
+	ID2D1RenderTarget* m_pD2dRenderTarget = nullptr;
+	ID2D1SolidColorBrush* m_pFontBrush = nullptr;
+	IDWriteFactory* m_pDwriteFactory = nullptr;
+	IDWriteTextFormat* m_pTextFormat = nullptr;
 
 	std::wstring m_FontName= L"メイリオ";
 	float m_FontSize= 24.0f;

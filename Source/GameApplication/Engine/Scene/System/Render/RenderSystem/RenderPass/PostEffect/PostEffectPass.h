@@ -22,7 +22,7 @@ public:
 	ID3D11RenderTargetView** resultRtv = nullptr;
 
 private:
-	ID3D11ShaderResourceView* m_initialSRV  = nullptr;
+	ID3D11ShaderResourceView* m_pInitialSRV  = nullptr;
 	ID3D11RenderTargetView** m_initialRTV = nullptr;
-	GBufferPass*              m_gBufferPass = nullptr;
+	GBufferPass*              m_pGBufferPass = nullptr;
 };

@@ -15,12 +15,12 @@ struct EntityRef {
 	EntityRef() = default;
 
 	EntityRef(Entity e, SceneContext* ctx)
-		: m_entity(e), m_context(ctx) {}
+		: m_entity(e), m_pContext(ctx) {}
 
 	// リファレンスが有効かどうかを確認する
 	bool IsValid() const {
-		if (!m_context || !m_context->entity) return false;
-		return m_context->entity->IsAlive(m_entity);
+		if (!m_pContext || !m_pContext->entity) return false;
+		return m_pContext->entity->IsAlive(m_entity);
 	}
 
 	// エンティティIDを取得する（無効な場合は 0 を返す）
@@ -32,7 +32,7 @@ struct EntityRef {
 	Entity GetEntityID() const { return m_entity; }
 
 	// このリファレンスが属するシーンコンテキストを返す
-	SceneContext* GetScene() const { return m_context; }
+	SceneContext* GetScene() const { return m_pContext; }
 
 	explicit operator bool() const {
 		return IsValid();
@@ -40,7 +40,7 @@ struct EntityRef {
 
 	// SceneContext と EntityID の両方が一致するときのみ等値とみなす
 	bool operator==(const EntityRef& other) const {
-		return entity== other.m_entity && m_context == other.m_context;
+		return entity== other.m_entity && m_pContext == other.m_pContext;
 	}
 
 	bool operator!=(const EntityRef& other) const {
@@ -49,5 +49,5 @@ struct EntityRef {
 
 private:
 	Entity m_Entity= 0;
-	SceneContext* m_context = nullptr;
+	SceneContext* m_pContext = nullptr;
 };

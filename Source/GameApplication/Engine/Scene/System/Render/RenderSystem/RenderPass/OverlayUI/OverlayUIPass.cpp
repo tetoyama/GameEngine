@@ -44,9 +44,9 @@
 
 void OverlayUIPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 
-	m_renderSystem = renderSystem;
-	m_context = context;
-	m_VertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
+	m_pRenderSystem = renderSystem;
+	m_pContext = context;
+	m_VertexShader = m_pContext->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
 
 	renderables.clear();
 	renderables.push_back(renderSystem->GetRenderable<RenderableSprite>());
@@ -59,20 +59,20 @@ void OverlayUIPass::Finalize() {
 
 void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 
-	GraphicsContext* graphics = m_context->graphics;
+	GraphicsContext* graphics = m_pContext->graphics;
 	ID3D11DeviceContext* deviceContext = graphics->GetDeviceContext();
 
 	// レンダーターゲット設定 (ライティング結果テクスチャに書き込む)
 	deviceContext->OMSetRenderTargets(
 		1,
 		m_rtv,
-		m_dsv->dsv.Get()
+		m_pDsv->dsv.Get()
 	);
 
 	// シェーダーセット
 	deviceContext->VSSetShader(m_VertexShader->m_VertexShader.Get(), nullptr, 0);
 	deviceContext->IASetInputLayout(m_VertexShader->m_VertexLayout.Get());
-	PixelShaderData* ps = m_renderSystem->GetForwardPS();
+	PixelShaderData* ps = m_pRenderSystem->GetForwardPS();
 	deviceContext->PSSetShader(ps ? ps->m_PixelShader.Get() : nullptr, nullptr, 0);
 
 	// ビューポート設定
@@ -100,7 +100,7 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 
 		std::vector<SpriteDrawItem> m_SpriteList;
 
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 
 			auto m_Context= scene->GetSceneContext();
 			auto m_Entities= context->component->FindEntitiesWithComponent<TransformComponent>();
@@ -142,10 +142,10 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 						}
 
 						ObjectInfo m_Info;
-						info.SceneID = m_context->sceneManager->GetIDFromContext(context);
+						info.SceneID = m_pContext->sceneManager->GetIDFromContext(context);
 						info.ObjectID = entity;
 						info.ShaderID = materialID;
-						m_context->graphics->SetObjectInfo(info);
+						m_pContext->graphics->SetObjectInfo(info);
 
 						renderable->Execute(ctx, context, entity);
 					}
@@ -178,10 +178,10 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 					}
 
 					ObjectInfo m_Info;
-					info.SceneID = m_context->sceneManager->GetIDFromContext(itemCtx);
+					info.SceneID = m_pContext->sceneManager->GetIDFromContext(itemCtx);
 					info.ObjectID = entity;
 					info.ShaderID = materialID;
-					m_context->graphics->SetObjectInfo(info);
+					m_pContext->graphics->SetObjectInfo(info);
 
 					renderable->Execute(ctx, itemCtx, entity);
 				}
@@ -196,5 +196,5 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 
 void OverlayUIPass::SetInputs(ID3D11RenderTargetView** setRTV, RenderTarget* setDSV) {
 	m_rtv = setRTV;
-	m_dsv = setDSV;
+	m_pDsv = setDSV;
 }

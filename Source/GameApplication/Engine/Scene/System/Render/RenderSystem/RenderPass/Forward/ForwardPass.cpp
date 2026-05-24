@@ -46,10 +46,10 @@
 
 void ForwardPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 
-	m_renderSystem = renderSystem;
-	m_context = context;
+	m_pRenderSystem = renderSystem;
+	m_pContext = context;
 
-	m_VertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
+	m_VertexShader = m_pContext->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
 
 	renderables.clear();
 	renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
@@ -67,39 +67,39 @@ void ForwardPass::Finalize() {
 }
 
 void ForwardPass::SetInputs(LightingPass* lightingPass, GBufferPass* gBufferPass, ShadowMapPass* shadowMapPass) {
-	m_lightingPass  = lightingPass;
-	m_gBufferPass   = gBufferPass;
-	m_shadowMapPass = shadowMapPass;
+	m_pLightingPass  = lightingPass;
+	m_pGBufferPass   = gBufferPass;
+	m_pShadowMapPass = shadowMapPass;
 }
 
 void ForwardPass::Execute(const RenderPassContext& ctx) {
 
-	GraphicsContext* graphics = m_context->graphics;
+	GraphicsContext* graphics = m_pContext->graphics;
 	ID3D11DeviceContext* deviceContext = graphics->GetDeviceContext();
 
 	// レンダーターゲット設定 (ライティング結果テクスチャに書き込む)
 	deviceContext->OMSetRenderTargets(
 		1,
-		m_lightingPass->pRenderTarget->rtv.GetAddressOf(),
-		m_gBufferPass->pDepthTarget->dsv.Get()
+		m_pLightingPass->pRenderTarget->rtv.GetAddressOf(),
+		m_pGBufferPass->pDepthTarget->dsv.Get()
 	);
 
 	// シャドウマップバインド
-	deviceContext->PSSetShaderResources(TextureSlot_ShadowMap, 1, m_shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
-	deviceContext->PSSetSamplers(1, 1, &m_shadowMapPass->shadowSampler);
+	deviceContext->PSSetShaderResources(TextureSlot_ShadowMap, 1, m_pShadowMapPass->shadowRenderTarget->srv.GetAddressOf());
+	deviceContext->PSSetSamplers(1, 1, &m_pShadowMapPass->shadowSampler);
 
 	// 環境マップバインド (メタリックオブジェクト用)
-	if(m_lightingPass->m_EnvironmentMap && m_lightingPass->m_EnvironmentMap->pTexture){
-		deviceContext->PSSetShaderResources(TextureSlot_EnvironmentMap, 1, m_lightingPass->m_EnvironmentMap->pTexture.GetAddressOf());
+	if(m_pLightingPass->m_EnvironmentMap && m_pLightingPass->m_EnvironmentMap->pTexture){
+		deviceContext->PSSetShaderResources(TextureSlot_EnvironmentMap, 1, m_pLightingPass->m_EnvironmentMap->pTexture.GetAddressOf());
 	}
-	if(m_lightingPass->m_EnvMapSampler){
-		deviceContext->PSSetSamplers(3, 1, &m_lightingPass->m_EnvMapSampler);
+	if(m_pLightingPass->m_EnvMapSampler){
+		deviceContext->PSSetSamplers(3, 1, &m_pLightingPass->m_EnvMapSampler);
 	}
 
 	// シェーダーセット
 	deviceContext->VSSetShader(m_VertexShader->m_VertexShader.Get(), nullptr, 0);
 	deviceContext->IASetInputLayout(m_VertexShader->m_VertexLayout.Get());
-	PixelShaderData* ps = m_renderSystem->GetForwardPS();
+	PixelShaderData* ps = m_pRenderSystem->GetForwardPS();
 	deviceContext->PSSetShader(ps ? ps->m_PixelShader.Get() : nullptr, nullptr, 0);
 
 	// ビューポート設定
@@ -113,7 +113,7 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 	deviceContext->RSSetViewports(1, &vp);
 
 	graphics->SetBlendMode(BlendMode::Alpha);
-	m_context->graphics->SetDepthMode(DepthMode::ReadOnly);
+	m_pContext->graphics->SetDepthMode(DepthMode::ReadOnly);
 
 	// 透明・UIレイヤーのみ描画
 	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++) {
@@ -129,7 +129,7 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 
 		std::vector<TransparentDrawItem> m_TransparentList;
 
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 
 			auto m_Context= scene->GetSceneContext();
 			auto m_Entities= context->component->FindEntitiesWithComponent<TransformComponent>();
@@ -168,10 +168,10 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 							materialID = material->ShaderID;
 						}
 						ObjectInfo m_Info;
-						info.SceneID = m_context->sceneManager->GetIDFromContext(context);
+						info.SceneID = m_pContext->sceneManager->GetIDFromContext(context);
 						info.ObjectID = entity;
 						info.ShaderID = materialID;
-						m_context->graphics->SetObjectInfo(info);
+						m_pContext->graphics->SetObjectInfo(info);
 						renderable->Execute(ctx, context, entity);
 					}
 				}
@@ -204,10 +204,10 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 					}
 
 					ObjectInfo m_Info;
-					info.SceneID = m_context->sceneManager->GetIDFromContext(itemCtx);
+					info.SceneID = m_pContext->sceneManager->GetIDFromContext(itemCtx);
 					info.ObjectID = entity;
 					info.ShaderID = materialID;
-					m_context->graphics->SetObjectInfo(info);
+					m_pContext->graphics->SetObjectInfo(info);
 
 					renderable->Execute(ctx, itemCtx, entity);
 				}
@@ -216,7 +216,7 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 		}
 	}
 
-	m_context->graphics->SetDepthMode(DepthMode::Write);
+	m_pContext->graphics->SetDepthMode(DepthMode::Write);
 	// RTV を解除
 	ID3D11RenderTargetView* nullRTV[1] = { nullptr };
 	deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);

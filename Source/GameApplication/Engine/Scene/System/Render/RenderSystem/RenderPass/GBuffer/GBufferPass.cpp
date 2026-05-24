@@ -31,11 +31,11 @@ using namespace DirectX;
 
 void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 
-	m_renderSystem = renderSystem;
-	m_context = context;
+	m_pRenderSystem = renderSystem;
+	m_pContext = context;
 
-	m_GBufferVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-	m_GBufferPixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\GBufferPS.cso");
+	m_GBufferVertexShader = m_pContext->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
+	m_GBufferPixelShader = m_pContext->resource->Load<PixelShaderData>("Asset\\Shader\\GBufferPS.cso");
 
 	// ----- Sampler -----
 	D3D11_SAMPLER_DESC m_Samp= {};
@@ -96,8 +96,8 @@ void GBufferPass::Finalize() {
 
 void GBufferPass::Execute(const RenderPassContext& ctx) {
 
-	ID3D11DeviceContext* dc = m_context->graphics->GetDeviceContext();
-	GraphicsContext* gc = m_context->renderer->GetGraphicsContext();
+	ID3D11DeviceContext* dc = m_pContext->graphics->GetDeviceContext();
+	GraphicsContext* gc = m_pContext->renderer->GetGraphicsContext();
 
 	dc->VSSetShader(m_GBufferVertexShader->m_VertexShader.Get(), nullptr, 0);
 	dc->IASetInputLayout(m_GBufferVertexShader->m_VertexLayout.Get());
@@ -110,7 +110,7 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 
 	// ----- Resize & Clear -----
 	for (int i = 0; i < GBufferSlot_Max; i++) {
-		pRenderTargets[i]->Resize(ctx.screenSize, m_context->graphics);
+		pRenderTargets[i]->Resize(ctx.screenSize, m_pContext->graphics);
 
 		// UINT RT は Clear しない
 		if (pRenderTargets[i]->type != RENDERTARGET_TYPE_UINT4) {
@@ -122,7 +122,7 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 	}
 
 	// Depth
-	pDepthTarget->Resize(ctx.screenSize, m_context->graphics);
+	pDepthTarget->Resize(ctx.screenSize, m_pContext->graphics);
 	dc->ClearDepthStencilView(
 		pDepthTarget->dsv.Get(),
 		D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
@@ -168,7 +168,7 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 
 		if (!newCtx.renderLayerVisibility[layer]) continue;
 
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 
 			auto m_Sctx= scene->GetSceneContext();
 			auto m_Entities= sctx->component->FindEntitiesWithComponent<TransformComponent>();
@@ -188,10 +188,10 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 					}
 
 					ObjectInfo m_Info;
-					info.SceneID = m_context->sceneManager->GetIDFromContext(sctx);
+					info.SceneID = m_pContext->sceneManager->GetIDFromContext(sctx);
 					info.ObjectID = ent;
 					info.ShaderID = materialID;
-					m_context->graphics->SetObjectInfo(info);
+					m_pContext->graphics->SetObjectInfo(info);
 
 					r->Execute(newCtx, sctx, ent);
 				}

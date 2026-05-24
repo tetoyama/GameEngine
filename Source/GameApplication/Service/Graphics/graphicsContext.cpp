@@ -107,7 +107,7 @@ void GraphicsContext::Shutdown(){
 	}
 
 	m_d2dFactory.Reset();
-	m_dwriteFactory.Reset();
+	m_pDwriteFactory.Reset();
 
 	m_DeviceContext.Reset();
 	m_SwapChain.Reset();
@@ -677,11 +677,11 @@ bool GraphicsContext::CreateD2DResources(HWND hwnd){
 	}
 
 	// DWriteファクトリ生成（初回のみ）
-	if(!m_dwriteFactory){
+	if(!m_pDwriteFactory){
 		HRESULT m_Hr= DWriteCreateFactory(
 			DWRITE_FACTORY_TYPE_SHARED,
 			__uuidof(IDWriteFactory),
-			reinterpret_cast<IUnknown**>(m_dwriteFactory.GetAddressOf())
+			reinterpret_cast<IUnknown**>(m_pDwriteFactory.GetAddressOf())
 		);
 		if(FAILED(hr)) return false;
 	}

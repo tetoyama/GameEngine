@@ -129,7 +129,7 @@ public:
 	ID3D11DepthStencilView* GetDepthStencilView() {return m_DepthStencilView;}
 
 	ID2D1Factory* GetD2DFactory() const{return m_d2dFactory.Get();}
-	IDWriteFactory* GetDWriteFactory() const{return m_dwriteFactory.Get();}
+	IDWriteFactory* GetDWriteFactory() const{return m_pDwriteFactory.Get();}
 
     ID3D11Buffer* GetWorldConstantBuffer() { return m_CbPerObject; }
 

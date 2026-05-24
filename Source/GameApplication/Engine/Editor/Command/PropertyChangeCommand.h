@@ -13,7 +13,7 @@ template<typename T>
 class PropertyChangeCommand : public ICommand {
 public:
 	PropertyChangeCommand(T* target, T oldValue, T newValue, std::string description = "")
-		: m_target(target)
+		: m_pTarget(target)
 		, m_oldValue(oldValue)
 		, m_newValue(newValue)
 		, m_description(std::move(description))
@@ -21,17 +21,17 @@ public:
 	}
 
 	void Execute() override {
-		if (m_target) *m_target = m_newValue;
+		if (m_pTarget) *m_pTarget = m_newValue;
 	}
 
 	void Undo() override {
-		if (m_target) *m_target = m_oldValue;
+		if (m_pTarget) *m_pTarget = m_oldValue;
 	}
 
 	std::string GetDescription() const override { return m_description; }
 
 private:
-	T*          m_target;
+	T*          m_pTarget;
 	T m_OldValue;
 	T m_NewValue;
 	std::string m_Description;

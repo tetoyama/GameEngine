@@ -62,7 +62,7 @@ private:
 	// -----------------------------
 	// Editor
 	// -----------------------------
-	EditorService* m_editor = nullptr;
+	EditorService* m_pEditor = nullptr;
 
 	// -----------------------------
 	// Logo

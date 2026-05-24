@@ -15,12 +15,12 @@ public:
 	const char* GetSystemName() const override{
 		return "TransformSystem";
 	}
-	TransformSystem(SceneManagerContext* context): m_context(context){}
+	TransformSystem(SceneManagerContext* context): m_pContext(context){}
 	~TransformSystem(){}
 
 	void Initialize() override;
 	void Draw() override;
 
 private:
-	SceneManagerContext* m_context;
+	SceneManagerContext* m_pContext;
 };

@@ -22,15 +22,15 @@ public:
 	MainRenderer(){}
 
 	~MainRenderer() {
-		if(m_d2dRenderer){
+		if(m_pD2dRenderer){
 			delete d2dRenderer;
 		}
 	}
 
 	void Initialize(GraphicsContext* context, IWindow* mainWindow) {
-		m_graphicsContext = context;
+		m_pGraphicsContext = context;
 		m_hwnd = mainWindow->GetHWND();
-		m_d2dRenderer = new D2DRenderer(context, m_hwnd);
+		m_pD2dRenderer = new D2DRenderer(context, m_hwnd);
 		m_width = mainWindow->GetWidth();
 		m_height = mainWindow->GetHeight();
 	}
@@ -43,11 +43,11 @@ public:
 	void DrawText2D(const std::wstring& text, float x, float y, float fontSize, D2D1::ColorF color);
 	
 	void OnResize(UINT width, UINT height){
-		m_d2dRenderer->OnResizeRelease();
-		if(m_graphicsContext){
-			m_graphicsContext->Resize(width, height);
+		m_pD2dRenderer->OnResizeRelease();
+		if(m_pGraphicsContext){
+			m_pGraphicsContext->Resize(width, height);
 		}
-		m_d2dRenderer->OnResizeRecreate();
+		m_pD2dRenderer->OnResizeRecreate();
 		m_width = width;
 		m_height = height;
 	}
@@ -60,8 +60,8 @@ public:
 	}
 private:
 	HWND m_Hwnd{};
-	GraphicsContext* m_graphicsContext = nullptr;
-	D2DRenderer* m_d2dRenderer = nullptr;
+	GraphicsContext* m_pGraphicsContext = nullptr;
+	D2DRenderer* m_pD2dRenderer = nullptr;
 
 	UINT m_Width= 0;
 	UINT m_Height= 0;

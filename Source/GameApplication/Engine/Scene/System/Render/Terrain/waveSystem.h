@@ -21,14 +21,14 @@ public:
 	}
 
 	WaveSystem(SceneManagerContext* context)
-		: m_context(context){}
+		: m_pContext(context){}
 
 	~WaveSystem(){}
 
 	void Initialize() override{
-		m_graphicContext = m_context->graphics;
+		m_pGraphicContext = m_pContext->graphics;
 
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<WaveComponent>();
 			for (auto entity : entities) {
@@ -39,7 +39,7 @@ public:
 
 	void Finalize() override{
 
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<WaveComponent>();
 			for (auto entity : entities) {
@@ -55,7 +55,7 @@ public:
 	}
 
 	void EditorUpdate(float dt) override{
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<WaveComponent>();
 			for (auto entity : entities) {
@@ -71,8 +71,8 @@ public:
 	}
 
 private:
-	SceneManagerContext* m_context = nullptr;
-	GraphicsContext* m_graphicContext = nullptr;
+	SceneManagerContext* m_pContext = nullptr;
+	GraphicsContext* m_pGraphicContext = nullptr;
 
 	void CreateMesh(SceneContext* context, Entity entity){
 
@@ -133,14 +133,14 @@ private:
 		bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		D3D11_SUBRESOURCE_DATA m_Sd{};
 		sd.pSysMem = vertices.data();
-		m_graphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.m_VertexBuffer.GetAddressOf());
+		m_pGraphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.m_VertexBuffer.GetAddressOf());
 
 		bd.Usage = D3D11_USAGE_DEFAULT;
 		bd.ByteWidth = sizeof(unsigned int) * indexCount;
 		bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 		bd.CPUAccessFlags = 0;
 		sd.pSysMem = indices.data();
-		m_graphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.m_IndexBuffer.GetAddressOf());
+		m_pGraphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.m_IndexBuffer.GetAddressOf());
 
 		comp->CurrentResolution = comp->Resolution;
 	}
@@ -185,7 +185,7 @@ private:
 		}
 
 		D3D11_MAPPED_SUBRESOURCE m_Msr{};
-		auto* ctx = m_context->graphics->GetDeviceContext();
+		auto* ctx = m_pContext->graphics->GetDeviceContext();
 		if(SUCCEEDED(ctx->Map(vbuf, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr))){
 			memcpy(msr.pData, tempVertices.data(), sizeof(VERTEX_3D) * vertexCount);
 			ctx->Unmap(vbuf, 0);

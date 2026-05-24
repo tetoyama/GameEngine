@@ -20,7 +20,7 @@
 // 内部ヘルパー（生成経路を完全統一）
 // =====================================================
 llama_context* LLAMAAgent::CreateContext() const {
-    assert(m_model);
+    assert(m_pModel);
     assert(m_config);
 
     OutputDebugStringA("LLAMAAgent::CreateContext start\n");
@@ -29,7 +29,7 @@ llama_context* LLAMAAgent::CreateContext() const {
     c.n_ctx = m_config->n_ctx;
     c.n_threads = m_config->n_threads;
 
-    llama_context* ctx = llama_init_from_model(m_model->m_model, c);
+    llama_context* ctx = llama_init_from_model(m_pModel->m_pModel, c);
     assert(ctx && "llama_init_from_model failed");
 
     OutputDebugStringA("LLAMAAgent::CreateContext end\n");
@@ -62,20 +62,20 @@ llama_sampler* LLAMAAgent::CreateSampler() const {
 // =====================================================
 LLAMAAgent::LLAMAAgent(std::shared_ptr<LLAMAModelData> model,
                        std::shared_ptr<const AgentConfig> config)
-    : m_model(std::move(model))
+    : m_pModel(std::move(model))
     , m_config(std::move(config))
     , m_running(true)
     , m_nPast(0)
     , m_isSummarizing(false) {
 
-    assert(m_model);
+    assert(m_pModel);
     assert(m_config);
     assert(m_config->IsValid());
 
     OutputDebugStringA("LLAMAAgent ctor start\n");
 
-    m_ctx = CreateContext();
-    m_sampler = CreateSampler();
+    m_pCtx = CreateContext();
+    m_pSampler = CreateSampler();
 
     m_thread = std::thread(&LLAMAAgent::WorkerMain, this);
 
@@ -94,13 +94,13 @@ LLAMAAgent::~LLAMAAgent() {
     if (m_thread.joinable())
         m_thread.join();
 
-    if (m_sampler) {
-        llama_sampler_free(m_sampler);
-        m_sampler = nullptr;
+    if (m_pSampler) {
+        llama_sampler_free(m_pSampler);
+        m_pSampler = nullptr;
     }
-    if (m_ctx) {
-        llama_free(m_ctx);
-        m_ctx = nullptr;
+    if (m_pCtx) {
+        llama_free(m_pCtx);
+        m_pCtx = nullptr;
     }
 
     m_state.store(State::Dead);
@@ -183,7 +183,7 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
     if (prompt.empty()) return;
 
     std::unique_lock<std::mutex> lock(m_mutex);
-    const llama_vocab* vocab = llama_model_get_vocab(m_model->m_model);
+    const llama_vocab* vocab = llama_model_get_vocab(m_pModel->m_pModel);
     if (!vocab) return;
 
     // ---- fullPrompt 構築 ----
@@ -213,8 +213,8 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
     }
 
     // ---- コンテキスト初期化 ----
-    if (!m_ctx) m_ctx = CreateContext();
-    if (!m_sampler) m_sampler = CreateSampler();
+    if (!m_pCtx) m_pCtx = CreateContext();
+    if (!m_pSampler) m_pSampler = CreateSampler();
 
     // ---- decode NEW prompt tokens into existing context at position m_nPast ----
     {
@@ -227,7 +227,7 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
             b.logits[i] = (i == n - 1) ? 1 : 0;
         }
         b.n_tokens = n;
-        if (llama_decode(m_ctx, b) != 0) {
+        if (llama_decode(m_pCtx, b) != 0) {
             llama_batch_free(b);
             OutputDebugStringA("LLAMAAgent::RunPromptInternal: decode(prompt) failed\n");
             return;
@@ -251,7 +251,7 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
     while (m_running.load() && m_nPast < max_tokens_allowed) {
         ++loopCount;
 
-        llama_token m_Tok= llama_sampler_sample(m_sampler, m_ctx, -1);
+        llama_token m_Tok= llama_sampler_sample(m_pSampler, m_pCtx, -1);
 
         // debug: sampled id
         {
@@ -278,7 +278,7 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
             gen.n_seq_id[0] = 1;
             gen.logits[0] = 1;
             gen.n_tokens = 1;
-            if (llama_decode(m_ctx, gen) != 0) {
+            if (llama_decode(m_pCtx, gen) != 0) {
                 OutputDebugStringA("RunPromptInternal: decode(control) failed\n");
                 break;
             }
@@ -304,7 +304,7 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
         gen.n_seq_id[0] = 1;
         gen.logits[0] = 1;
         gen.n_tokens = 1;
-        if (llama_decode(m_ctx, gen) != 0) {
+        if (llama_decode(m_pCtx, gen) != 0) {
             OutputDebugStringA("RunPromptInternal: decode(sample) failed\n");
             break;
         }
@@ -350,7 +350,7 @@ void LLAMAAgent::SummarizeAndReset() {
     }
     m_isSummarizing = true;
 
-    const llama_vocab* vocab = llama_model_get_vocab(m_model->m_model);
+    const llama_vocab* vocab = llama_model_get_vocab(m_pModel->m_pModel);
     if (!vocab) {
         OutputDebugStringA("SummarizeAndReset: no vocab\n");
         m_isSummarizing = false;
@@ -514,10 +514,10 @@ void LLAMAAgent::SummarizeAndReset() {
     llama_free(ctx);
 
     // ---- reset main context and restore compressed tokens ----
-    ResetContextUnlocked(); // creates new m_ctx and resets main sampler
+    ResetContextUnlocked(); // creates new m_pCtx and resets main sampler
 
     if (!compressedTokens.empty()) {
-        // decode compressedTokens into the newly created m_ctx in batches with contiguous positions
+        // decode compressedTokens into the newly created m_pCtx in batches with contiguous positions
         int m_Pos= 0;
         const int m_BatchSize= 64;
         for (size_t offset = 0; offset < compressedTokens.size(); offset += batch_size) {
@@ -531,7 +531,7 @@ void LLAMAAgent::SummarizeAndReset() {
                 b.logits[j] = (j == sz - 1) ? 1 : 0;
             }
             b.n_tokens = sz;
-            int m_Rc= llama_decode(m_ctx, b);
+            int m_Rc= llama_decode(m_pCtx, b);
             llama_batch_free(b);
             if (rc != 0) {
                 OutputDebugStringA("SummarizeAndReset: decode(compressed) failed rc != 0\n");
@@ -580,20 +580,20 @@ void LLAMAAgent::ResetContext() {
 void LLAMAAgent::ResetContextUnlocked() {
     OutputDebugStringA("LLAMAAgent::ResetContextUnlocked start\n");
 
-    if (m_ctx) {
-        llama_free(m_ctx);
-        m_ctx = nullptr;
+    if (m_pCtx) {
+        llama_free(m_pCtx);
+        m_pCtx = nullptr;
     }
 
     llama_context_params m_C= llama_context_default_params();
     c.n_ctx = m_config->n_ctx;
     c.n_threads = m_config->n_threads;
 
-    m_ctx = llama_init_from_model(m_model->m_model, c);
-    assert(m_ctx);
+    m_pCtx = llama_init_from_model(m_pModel->m_pModel, c);
+    assert(m_pCtx);
 
-    if (m_sampler)
-        llama_sampler_reset(m_sampler);
+    if (m_pSampler)
+        llama_sampler_reset(m_pSampler);
 
     // clear history by default — SummarizeAndReset will re-populate if needed
     m_pastTokens.clear();

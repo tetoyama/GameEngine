@@ -40,7 +40,7 @@ public:
 	using YAMLCreator = std::function<IComponent* (Entity, const YAML::Node&)>;
 
 	explicit ComponentRegistry(EntityRegistry* entityMgr,SceneContext* context)
-		: m_entityManager(entityMgr), m_context(context){}
+		: m_pEntityManager(entityMgr), m_pContext(context){}
 
 	// YAML からの生成用ファクトリを登録する
 	template<typename T>
@@ -52,7 +52,7 @@ public:
 		m_yamlFactory[name] = [this](Entity e, const YAML::Node& node) -> IComponent*{
 			auto* comp = AddComponent<T>(e);
 			if(comp){
-				static_cast<T*>(comp)->decode(m_context,node);
+				static_cast<T*>(comp)->decode(m_pContext,node);
 			}
 			return comp;
 			};
@@ -81,7 +81,7 @@ public:
 	// コンポーネント追加
 	template<typename T, typename... Args>
 	T* AddComponent(Entity e, Args&&... args){
-		assert(m_entityManager->IsAlive(e) && "AddComponent: Entity is not alive");
+		assert(m_pEntityManager->IsAlive(e) && "AddComponent: Entity is not alive");
 
 		std::type_index ti(typeid(T));
 		if(!m_storages.contains(ti)){
@@ -106,7 +106,7 @@ public:
 	// コンポーネント取得
 	template<typename T>
 	T* GetComponent(Entity e){
-		if(!m_entityManager->IsAlive(e)) return nullptr;
+		if(!m_pEntityManager->IsAlive(e)) return nullptr;
 
 		std::type_index ti(typeid(T));
 		auto it = m_storages.find(ti);
@@ -135,7 +135,7 @@ public:
 
 	template<typename T>
 	bool HasComponent(Entity e) const {
-		if (!m_entityManager->IsAlive(e)) return false;
+		if (!m_pEntityManager->IsAlive(e)) return false;
 		std::type_index ti(typeid(T));
 		auto it = m_storages.find(ti);
 		if (it == m_storages.end()) return false;
@@ -150,7 +150,7 @@ public:
 	// コンポーネント削除
 	template<typename T>
 	void RemoveComponent(Entity e){
-		if(!m_entityManager->IsAlive(e)) return;
+		if(!m_pEntityManager->IsAlive(e)) return;
 
 		std::type_index ti(typeid(T));
 		auto it = m_storages.find(ti);
@@ -183,7 +183,7 @@ public:
 	template<typename... Components>
 	std::vector<Entity> QueryEntities(){
 		std::vector<Entity> result;
-		const auto& aliveSet = m_entityManager->GetAllAlive();
+		const auto& aliveSet = m_pEntityManager->GetAllAlive();
 
 		ComponentMask required;
 		(required.set(ComponentType::Get<Components>()), ...);
@@ -210,7 +210,7 @@ public:
 	std::vector<IComponent*> GetAllComponentsOfEntitySorted(Entity e){
 		std::vector<IComponent*> components;
 
-		if(!m_entityManager->IsAlive(e)) return components;
+		if(!m_pEntityManager->IsAlive(e)) return components;
 
 		for(const auto& name : m_ComponentRegistrationOrder){
 			auto itID = m_nameToComponentID.find(name);
@@ -261,8 +261,8 @@ public:
 	}
 
 private:
-	SceneContext* m_context;
-	EntityRegistry* m_entityManager;
+	SceneContext* m_pContext;
+	EntityRegistry* m_pEntityManager;
 
 	std::unordered_map<std::type_index, std::unique_ptr<IComponentStorage>> m_Storages;
 	std::unordered_map<std::type_index, ComponentTypeID> m_TypeToId;

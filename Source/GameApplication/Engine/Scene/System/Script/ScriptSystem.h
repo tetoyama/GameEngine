@@ -25,7 +25,7 @@ public:
 		return "ScriptSystem";
 	}
 	ScriptSystem(SceneManagerContext* context)
-		: m_context(context){}
+		: m_pContext(context){}
 
 	// =========================
 	// ISystem
@@ -99,7 +99,7 @@ public:
 	bool HasSystemSetting() const override { return true; }
 
 private:
-	SceneManagerContext* m_context = nullptr;
+	SceneManagerContext* m_pContext = nullptr;
 
 	template<typename Func>
 	void ForEachScript(Func&& func);

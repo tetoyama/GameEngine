@@ -20,6 +20,6 @@ public:
 
 public:
     std::string path;
-    llama_model* m_model = nullptr;
-    const llama_vocab* m_vocab = nullptr;
+    llama_model* m_pModel = nullptr;
+    const llama_vocab* m_pVocab = nullptr;
 };

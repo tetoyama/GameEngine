@@ -21,14 +21,14 @@
 #include "Resources/resourceService.h"
 
 #pragma comment(lib, "llama.lib")
-#define LLAMA_SERVICE_LOG(level, msg) do { if(m_debugLog) { m_debugLog->Log(level, msg, __FUNCTION__, __FILE__, __LINE__); } } while(0)
+#define LLAMA_SERVICE_LOG(level, msg) do { if(m_pDebugLog) { m_pDebugLog->Log(level, msg, __FUNCTION__, __FILE__, __LINE__); } } while(0)
 // ============================
 // Initialize / Shutdown
 // ============================
 void LLAMAService::Initialize(LLAMAServiceContext context){
 
-	m_resourceService = context.resourceService;
-	if(!m_resourceService){
+	m_pResourceService = context.resourceService;
+	if(!m_pResourceService){
 		LLAMA_SERVICE_LOG(LogLevel::Error, "ResourceService が未設定のため LLAMAService の初期化を中止します");
 		return;
 	}
@@ -86,7 +86,7 @@ bool LLAMAService::LoadModel(const std::string& path){
 			return m_True;
 		}
 	}
-	auto m_ModelData= m_resourceService->Load<LLAMAModelData>(path);
+	auto m_ModelData= m_pResourceService->Load<LLAMAModelData>(path);
 	if(!modelData){
 		LLAMA_SERVICE_LOG(LogLevel::Error, ("LLAMA モデルデータの取得に失敗しました: " + path));
 		return m_False;
@@ -95,13 +95,13 @@ bool LLAMAService::LoadModel(const std::string& path){
 	llama_model_params m_Params= llama_model_default_params();
 	params.n_gpu_layers = 0;
 
-	modelData->m_model = llama_model_load_from_file(path.c_str(), params);
-	if(!modelData->m_model){
+	modelData->m_pModel = llama_model_load_from_file(path.c_str(), params);
+	if(!modelData->m_pModel){
 		LLAMA_SERVICE_LOG(LogLevel::Error, ("LLAMA モデルのロードに失敗しました: " + path));
 		return m_False;
 	}
 
-	modelData->m_vocab = llama_model_get_vocab(modelData->m_model);
+	modelData->m_pVocab = llama_model_get_vocab(modelData->m_pModel);
 
 	{
 		std::lock_guard<std::mutex> lock(m_modelMutex);

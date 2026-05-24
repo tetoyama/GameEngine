@@ -23,9 +23,9 @@ void Inspector::Draw(const EditorDrawContext ctx){
 	ImGuiWindowClass m_WindowClass;
 	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
 	ImGui::SetNextWindowClass(&window_class);
-	bool* showInspector = &m_editor->GetUI<MenuBar>()->showInspector;
-	Entity m_SelectedEntity= m_editor->GetUI<Hierarchy>()->selectedEntity;
-	SceneContext* context = m_editor->GetUI<Hierarchy>()->sceneContext;
+	bool* showInspector = &m_pEditor->GetUI<MenuBar>()->showInspector;
+	Entity m_SelectedEntity= m_pEditor->GetUI<Hierarchy>()->selectedEntity;
+	SceneContext* context = m_pEditor->GetUI<Hierarchy>()->sceneContext;
 
 	if(!showInspector || !*showInspector){
 		return;
@@ -41,7 +41,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 		bool m_Alive= context->entity->IsAlive(selectedEntity); // 選択されたエンティティが生存しているか確認
 		if(!alive){
 			// ローカル変数だけでなく Hierarchy の selectedEntity も解除する
-			m_editor->GetUI<Hierarchy>()->selectedEntity = 0;
+			m_pEditor->GetUI<Hierarchy>()->selectedEntity = 0;
 			ImGui::End();
 
 			return;
@@ -66,7 +66,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 			// Enter 確定時のみコマンド経由で名前を更新する
 			std::string m_OldName= name->name;
 			auto m_Cmd= std::make_unique<RenameCommand>(context, selectedEntity, oldName, nameBuffer);
-			m_editor->commandManager.Execute(std::move(cmd));
+			m_pEditor->commandManager.Execute(std::move(cmd));
 		}
 		// PrefabComponent がある場合はエンティティが Prefab インスタンスであることを明示する
 		if(context->component->GetComponent<PrefabComponent>(selectedEntity)){
@@ -79,7 +79,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 	if(ImGui::Button("- Delete")){
 		if(selectedEntity != 0){
-			Hierarchy* hierarchy = m_editor->GetUI<Hierarchy>();
+			Hierarchy* hierarchy = m_pEditor->GetUI<Hierarchy>();
 			auto m_Cmd= std::make_unique<EntityDeleteCommand>(
 				context, selectedEntity,
 				[hierarchy, selectedEntity](){
@@ -93,7 +93,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 						hierarchy->sceneContext   = ctx;
 					}
 				});
-			m_editor->commandManager.Execute(std::move(cmd));
+			m_pEditor->commandManager.Execute(std::move(cmd));
 		}
 	}
 
@@ -135,7 +135,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 	// 削除は後からまとめてコマンドで実行
 	for(IComponent* comp : componentsToRemove){
 		auto m_Cmd= std::make_unique<ComponentRemoveCommand>(context, selectedEntity, comp);
-		m_editor->commandManager.Execute(std::move(cmd));
+		m_pEditor->commandManager.Execute(std::move(cmd));
 	}
 
 
@@ -187,7 +187,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 			if(ImGui::MenuItem(name.c_str())){
 				auto m_Cmd= std::make_unique<ComponentAddCommand>(context, selectedEntity, name, func);
-				m_editor->commandManager.Execute(std::move(cmd));
+				m_pEditor->commandManager.Execute(std::move(cmd));
 			}
 		}
 
@@ -198,7 +198,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 	TransformComponent* transform = registry->GetComponent<TransformComponent>(selectedEntity);
 
-	//if(transform && m_context->editor->GetUI<MenuBar>()->showEditorView){
+	//if(transform && m_pContext->editor->GetUI<MenuBar>()->showEditorView){
 
 	//	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, context->component);
 
@@ -214,10 +214,10 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 	//		World = Scale * Rotation * Translation;
 
-	//		modelMatrix = m_context->imgui->RenderGizmo2D(World);
+	//		modelMatrix = m_pContext->imgui->RenderGizmo2D(World);
 
 	//	} else{
-	//		modelMatrix = m_context->imgui->RenderGizmo(World);
+	//		modelMatrix = m_pContext->imgui->RenderGizmo(World);
 	//	}
 	//	Entity Parent = transform->parent;
 	//	while(Parent != 0){

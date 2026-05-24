@@ -121,8 +121,8 @@ private:
 	// llama Runtime
 	// ============================
 
-	llama_context* m_ctx = nullptr;
-	llama_sampler* m_sampler = nullptr;
+	llama_context* m_pCtx = nullptr;
+	llama_sampler* m_pSampler = nullptr;
 
 	// 会話コンテキスト
 	std::vector<llama_token> m_PastTokens;

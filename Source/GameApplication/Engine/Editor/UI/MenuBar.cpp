@@ -106,16 +106,16 @@ void MenuBar::RenderEditMenu(){
 
 	if(ImGui::BeginMenu("Edit")){
 		// Undo/Redo の有効フラグと操作名を取得
-		bool m_CanUndo= m_editor && m_editor->commandManager.CanUndo();
-		bool m_CanRedo= m_editor && m_editor->commandManager.CanRedo();
+		bool m_CanUndo= m_pEditor && m_pEditor->commandManager.CanUndo();
+		bool m_CanRedo= m_pEditor && m_pEditor->commandManager.CanRedo();
 
-		std::string m_UndoDesc= canUndo ? m_editor->commandManager.PeekUndoDescription() : "";
+		std::string m_UndoDesc= canUndo ? m_pEditor->commandManager.PeekUndoDescription() : "";
 		std::string m_UndoLabel= undoDesc.empty() ? "Undo" : "Undo: " + undoDesc;
 		if(ImGui::MenuItem(undoLabel.c_str(), "Ctrl+Z", false, canUndo)){
 			Invoke(MenuEvent::Edit_Undo);
 		}
 
-		std::string m_RedoDesc= canRedo ? m_editor->commandManager.PeekRedoDescription() : "";
+		std::string m_RedoDesc= canRedo ? m_pEditor->commandManager.PeekRedoDescription() : "";
 		std::string m_RedoLabel= redoDesc.empty() ? "Redo" : "Redo: " + redoDesc;
 		if(ImGui::MenuItem(redoLabel.c_str(), "Ctrl+Y", false, canRedo)){
 			Invoke(MenuEvent::Edit_Redo);

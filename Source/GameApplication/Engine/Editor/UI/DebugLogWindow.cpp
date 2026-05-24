@@ -68,13 +68,13 @@ ImVec4 DebugLogWindow::GetColorForLevel(LogLevel level) const{
 }
 
 void DebugLogWindow::Initialize(EditorService* editor){
-	m_editor = editor;
+	m_pEditor = editor;
 	logSink = editor->debugLogSystem->GetSink<MemoryLogSink>();
 }
 
 void DebugLogWindow::Draw(const EditorDrawContext ctx){
 
-	bool* showDebugLogWindow = &m_editor->GetUI<MenuBar>()->showConsole;
+	bool* showDebugLogWindow = &m_pEditor->GetUI<MenuBar>()->showConsole;
 	if(!showDebugLogWindow || !*showDebugLogWindow){
 		return;
 	}

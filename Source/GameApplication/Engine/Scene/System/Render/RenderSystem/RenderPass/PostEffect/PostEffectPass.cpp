@@ -18,22 +18,22 @@
 #include <algorithm>
 
 void PostEffectPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
-	m_renderSystem = renderSystem;
-	m_context      = context;
+	m_pRenderSystem = renderSystem;
+	m_pContext      = context;
 }
 
 void PostEffectPass::Finalize() {
 }
 
 void PostEffectPass::SetInputs(ID3D11ShaderResourceView* initialSRV, ID3D11RenderTargetView** initialRTV, GBufferPass* gBufferPass) {
-	m_initialSRV  = initialSRV;
+	m_pInitialSRV  = initialSRV;
 	m_initialRTV = initialRTV;
-	m_gBufferPass = gBufferPass;
+	m_pGBufferPass = gBufferPass;
 }
 
 void PostEffectPass::Execute(const RenderPassContext& ctx) {
 
-	GraphicsContext*     graphics      = m_context->graphics;
+	GraphicsContext*     graphics      = m_pContext->graphics;
 
 	std::vector<PostProcessNode> m_PostNodes;
 	std::unordered_map<int, int> m_EffectIndexToPostNodeIndex;
@@ -113,20 +113,20 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 		// GBuffer SRV を収集
 		ID3D11ShaderResourceView* gbufferSRVs[PostEffectGBufferSlot_Count] = {};
 		for (int g = 0; g < GBufferSlot_Max; ++g) {
-			gbufferSRVs[g] = m_gBufferPass->pRenderTargets[g]->srv.Get();
+			gbufferSRVs[g] = m_pGBufferPass->pRenderTargets[g]->srv.Get();
 		}
 		gbufferSRVs[PostEffectGBufferSlot_Depth - PostEffectGBufferSlot_Start] =
-			m_gBufferPass->pDepthTarget->srv.Get();
+			m_pGBufferPass->pDepthTarget->srv.Get();
 
 		graphics->ApplyPostProcessChain(
-			postNodes, m_initialSRV, gbufferSRVs, PostEffectGBufferSlot_Count
+			postNodes, m_pInitialSRV, gbufferSRVs, PostEffectGBufferSlot_Count
 		);
 
 		resultSrv = graphics->m_CurrentSRV;
 		resultRtv = graphics->m_CurrentRTV;
 
 	} else {
-		resultSrv = m_initialSRV;
+		resultSrv = m_pInitialSRV;
 		resultRtv = m_initialRTV;
 	}
 

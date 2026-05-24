@@ -12,7 +12,7 @@ struct SceneManagerContext;
 // エフェクトの描画を行うレンダラブル
 class RenderableEffect : public IRenderable{
 public:
-	void Initialize(SceneManagerContext* context) override { m_context = context; }
+	void Initialize(SceneManagerContext* context) override { m_pContext = context; }
 	void Finalize() override {}
 
 	void Execute(
@@ -22,5 +22,5 @@ public:
 	)override;
 
 private:
-	SceneManagerContext* m_context = nullptr;
+	SceneManagerContext* m_pContext = nullptr;
 };

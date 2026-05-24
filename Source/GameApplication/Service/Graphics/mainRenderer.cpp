@@ -9,15 +9,15 @@
 #include <vector>
 
 void MainRenderer::DrawText2D(const std::wstring& text, float x, float y, float fontSize, D2D1::ColorF color){
-	m_d2dRenderer->DrawText2D(text, x, y, fontSize, color);
+	m_pD2dRenderer->DrawText2D(text, x, y, fontSize, color);
 }
 
 void MainRenderer::BeginFrame() {
 
     float m_ClearColor[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-	m_graphicsContext->Clear(clearColor);
+	m_pGraphicsContext->Clear(clearColor);
 }
 
 void MainRenderer::EndFrame(bool vsync) {
-	m_graphicsContext->Present(vsync);
+	m_pGraphicsContext->Present(vsync);
 }

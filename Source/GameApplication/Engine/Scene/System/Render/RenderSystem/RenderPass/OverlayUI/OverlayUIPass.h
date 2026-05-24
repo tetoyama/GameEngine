@@ -32,5 +32,5 @@ private:
 	std::shared_ptr<VertexShaderData> m_VertexShader;
 
 	ID3D11RenderTargetView** m_rtv = nullptr;
-	RenderTarget* m_dsv = nullptr;
+	RenderTarget* m_pDsv = nullptr;
 };
