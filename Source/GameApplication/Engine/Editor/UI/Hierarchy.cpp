@@ -29,10 +29,10 @@
 // 検索文字列を小文字化
 // ------------------------------------------------------------
 static std::string ToLower(const std::string& s){
-	std::string m_R= s;
+	std::string result= s;
 	std::transform(r.begin(), r.end(), r.begin(),
 				   [](unsigned char c){ return (char)std::tolower(c); });
-	return m_R;
+	return result;
 }
 
 // ------------------------------------------------------------
@@ -46,10 +46,10 @@ static bool EntityMatchesSearch(
 
 	auto* name = context->component->GetComponent<NameComponent>(entity);
 
-	std::string m_EntityName= name ? name->name : "Entity";
+	std::string entityName= name ? name->name : "Entity";
 
-	std::string m_LowerName= ToLower(entityName);
-	std::string m_LowerSearch= ToLower(search);
+	std::string lowerName= ToLower(entityName);
+	std::string lowerSearch= ToLower(search);
 
 	return lowerName.find(lowerSearch) != std::string::npos;
 }
@@ -100,7 +100,7 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 		EntityRegistry* registry = context->entity;
 
 		// PrefabInstantiateCommand の Undo 後に選択状態をリセットする共通コールバック
-		auto m_OnPrefabUndone= [this]() {
+		auto onPrefabUndone= [this]() {
 			if(sceneContext && !sceneContext->entity->IsAlive(selectedEntity))
 				selectedEntity = 0;
 			if(sceneContext && !sceneContext->entity->IsAlive(pendingRenameEntity))
@@ -112,7 +112,7 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 			if(ImGui::BeginPopupContextItem()){
 
 				if(ImGui::MenuItem("Save scene as...")){
-					std::string m_OldSavePath= scenePair.second->ScenePath;
+					std::string oldSavePath= scenePair.second->ScenePath;
 
 					scenePair.second->ScenePath = "";
 
@@ -136,7 +136,7 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 					if(payload->DataSize > 0 && context->prefab){
 						std::string path(static_cast<const char*>(payload->Data), payload->DataSize - 1);
 						if(std::filesystem::path(path).extension() == ".prefab"){
-							auto m_Cmd= std::make_unique<PrefabInstantiateCommand>(
+							auto cmd= std::make_unique<PrefabInstantiateCommand>(
 								context, path, false,
 								[this](EntityRef ref){
 									if(ref){
@@ -159,7 +159,7 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 			}
 			if(ImGui::BeginPopup("##AddEntityPopup")){
 				if(ImGui::MenuItem("Empty")){
-					auto m_Cmd= std::make_unique<EntityCreateCommand>(
+					auto cmd= std::make_unique<EntityCreateCommand>(
 						context, 0,
 						[this](Entity e, SceneContext* ctx){
 							selectedEntity = e;
@@ -170,16 +170,16 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 				if(ImGui::BeginMenu("Template")){
 					ConfigService* cfg = m_pEditor->sceneManager->GetContext()->config;
 					const std::string& tplDir = cfg ? cfg->appConfig.templateDir : APPCONFIG{}.templateDir;
-					std::error_code m_Ec;
+					std::error_code ec;
 					if(std::filesystem::exists(tplDir, ec) && !ec){
 						for(const auto& entry : std::filesystem::directory_iterator(tplDir, ec)){
 							if(ec) break;
 							if(entry.path().extension() == ".prefab"){
-								std::string m_Stem= entry.path().stem().string();
+								std::string stem= entry.path().stem().string();
 								if(ImGui::MenuItem(stem.c_str())){
 									if(context->prefab){
-										std::string m_TplPath= entry.path().string();
-										auto m_Cmd= std::make_unique<PrefabInstantiateCommand>(
+										std::string tplPath= entry.path().string();
+										auto cmd= std::make_unique<PrefabInstantiateCommand>(
 											context, tplPath, true,
 											[this](EntityRef ref){
 												if(ref){
@@ -210,7 +210,7 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 						ofn.lpstrDefExt = "prefab";
 						if(GetOpenFileNameA(&ofn)){
 							std::string prefabPath(filename);
-							auto m_Cmd= std::make_unique<PrefabInstantiateCommand>(
+							auto cmd= std::make_unique<PrefabInstantiateCommand>(
 								context, prefabPath, false,
 								[this](EntityRef ref){
 									if(ref){
@@ -248,10 +248,10 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 				if(transform && transform->parent != 0){
 					continue;
 				}
-				std::string m_Search= searchBuffer;
+				std::string search= searchBuffer;
 
-				bool m_Match= EntityMatchesSearch(entity, context, search);
-				bool m_ChildMatch= HasMatchingChild(entity, context, entities, search);
+				bool match= EntityMatchesSearch(entity, context, search);
+				bool childMatch= HasMatchingChild(entity, context, entities, search);
 
 				if(match || childMatch){
 					DrawHierarchyNode(entity, context, entities);
@@ -272,7 +272,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 	ImGui::SameLine(50.0f + offsetX * 0.25f);
 
 	auto* name = context->component->GetComponent<NameComponent>(entity);
-	std::string m_DisplayName= name ? name->name : "Entity";
+	std::string displayName= name ? name->name : "Entity";
 	if(pendingRenameEntity != 0 && selectedEntity == entity && sceneContext == context){
 		displayName = "";
 	}
@@ -324,7 +324,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		if(ImGui::BeginMenu("作成")){
 			if(ImGui::MenuItem("EmptyParent")){
 				// 空の親エンティティを作成し、選択エンティティをその子にする
-				auto m_Cmd= std::make_unique<EmptyParentCommand>(
+				auto cmd= std::make_unique<EmptyParentCommand>(
 					context, entity,
 					[this, context](Entity e, SceneContext*){
 						selectedEntity = e;
@@ -340,7 +340,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			}
 			if(ImGui::MenuItem("EmptyChild")){
 				// 選択ノードの子エンティティを作成
-				auto m_Cmd= std::make_unique<EntityCreateCommand>(
+				auto cmd= std::make_unique<EntityCreateCommand>(
 					context, entity,
 					[this, context](Entity e, SceneContext*){
 						selectedEntity = e;
@@ -352,7 +352,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		}
 
 		if(ImGui::MenuItem("複製")){
-			auto m_Cmd= std::make_unique<EntityDuplicateCommand>(
+			auto cmd= std::make_unique<EntityDuplicateCommand>(
 				context, entity,
 				[this, context](Entity e, SceneContext*){
 					selectedEntity = e;
@@ -371,7 +371,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			if(ImGui::MenuItem("Prefabとして保存")){
 				if(context->prefab){
 					auto* nameComp = context->component->GetComponent<NameComponent>(entity);
-					std::string m_DefaultName= ((nameComp && !nameComp->name.empty()) ? nameComp->name : "Entity") + ".prefab";
+					std::string defaultName= ((nameComp && !nameComp->name.empty()) ? nameComp->name : "Entity") + ".prefab";
 					char m_SzFile[MAX_PATH] = {};
 					strncpy(szFile, defaultName.c_str(), MAX_PATH - 1);
 
@@ -383,7 +383,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 					ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
 					ofn.lpstrDefExt = "prefab";
 					if(GetSaveFileNameA(&ofn)){
-						std::string m_Dir= std::filesystem::path(szFile).parent_path().string();
+						std::string dir= std::filesystem::path(szFile).parent_path().string();
 						if(!dir.empty()) std::filesystem::create_directories(dir);
 						context->prefab->SavePrefab(EntityRef(entity, context), std::string(szFile));
 					}
@@ -400,7 +400,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 		}
 
 		if(ImGui::MenuItem("削除")){
-			auto m_Cmd= std::make_unique<EntityDeleteCommand>(
+			auto cmd= std::make_unique<EntityDeleteCommand>(
 				context, entity,
 				[this](){
 					// 削除後、選択中エンティティが生存していなければ選択を解除する
@@ -440,7 +440,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			if(draggedEntity != entity){
 				auto* draggedT = context->component->GetComponent<TransformComponent>(draggedEntity);
 				Entity m_OldParent= draggedT ? draggedT->parent : 0;
-				auto m_Cmd= std::make_unique<SetParentCommand>(context, draggedEntity, oldParent, entity);
+				auto cmd= std::make_unique<SetParentCommand>(context, draggedEntity, oldParent, entity);
 				m_pEditor->commandManager.Execute(std::move(cmd));
 			}
 		}
@@ -466,8 +466,8 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 
 		if(ImGui::InputText("##Rename", renameBuffer, sizeof(renameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)){
 			if(name){
-				std::string m_OldName= name->name;
-				auto m_Cmd= std::make_unique<RenameCommand>(context, entity, oldName, renameBuffer);
+				std::string oldName= name->name;
+				auto cmd= std::make_unique<RenameCommand>(context, entity, oldName, renameBuffer);
 				m_pEditor->commandManager.Execute(std::move(cmd));
 			}
 			pendingRenameEntity = 0;
@@ -481,10 +481,10 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			auto* childTransform = context->component->GetComponent<TransformComponent>(child);
 			if(childTransform && childTransform->parent == entity){
 
-				std::string m_Search= searchBuffer;
+				std::string search= searchBuffer;
 
-				bool m_Match= EntityMatchesSearch(child, context, search);
-				bool m_ChildMatch= HasMatchingChild(child, context, allEntities, search);
+				bool match= EntityMatchesSearch(child, context, search);
+				bool childMatch= HasMatchingChild(child, context, allEntities, search);
 
 				if(match || childMatch){
 					DrawHierarchyNode(child, context, allEntities);
