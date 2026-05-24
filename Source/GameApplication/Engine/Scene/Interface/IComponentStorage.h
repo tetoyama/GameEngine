@@ -14,7 +14,7 @@
 using ComponentTypeID = uint32_t;
 
 // 最大コンポーネント種類数（ComponentMask のビット数に影響する）
-constexpr size_t m_MaxComponents= 64;
+constexpr size_t MAX_COMPONENTS = 64;
 
 // コンポーネントを保有しているかどうかを表すビットセット
 // 各ビットが 1 つのコンポーネント種類に対応する

@@ -19,44 +19,44 @@ public:
 
 	Entity Create(){
 		Entity e;
-		if(!m_recycledIDs.empty()){
-			e = m_recycledIDs.back();
-			m_recycledIDs.pop_back();
+		if(!m_RecycledIds.empty()){
+			e = m_RecycledIds.back();
+			m_RecycledIds.pop_back();
 		} else{
-			e = m_nextID++;
+			e = m_NextId++;
 		}
-		m_alive.insert(e);
+		m_Alive.insert(e);
 		return e;
 	}
 
 	Entity CreateID(Entity e) {
-		if (m_nextID <= e) {
-			m_nextID = e + 1;
+		if (m_NextId <= e) {
+			m_NextId = e + 1;
 		}
-		m_alive.insert(e);
+		m_Alive.insert(e);
 		return e;
 	}
 
 	void Destroy(Entity e){
-		if(m_alive.erase(e) == 0){
+		if(m_Alive.erase(e) == 0){
 			// 元から存在しなかった（または既に破棄済み）ので何もしない
 			return;
 		}
-		m_recycledIDs.push_back(e);
+		m_RecycledIds.push_back(e);
 	}
 
 	bool IsAlive(Entity e) const{
-		return m_alive.find(e) != m_alive.end();
+		return m_Alive.find(e) != m_Alive.end();
 	}
 
 	const std::unordered_set<Entity>& GetAllAlive() const{
-		return alive;
+		return m_Alive;
 	}
 
 	void ResetAll() {
-		m_nextID = 1;
-		m_recycledIDs.clear();
-		m_alive.clear();
+		m_NextId = 1;
+		m_RecycledIds.clear();
+		m_Alive.clear();
 	}
 
 private:

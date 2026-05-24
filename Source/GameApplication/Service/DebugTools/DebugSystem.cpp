@@ -1,4 +1,4 @@
-﻿// =======================================================================
+// =======================================================================
 // 
 // DebugSystem.cpp
 // 
@@ -19,25 +19,25 @@ void DebugLogService::Initialize(){
 
 	// 必要であればファイルログなどの初期化
 	auto m_MemorySink= std::make_shared<MemoryLogSink>();
-	AddSink(memorySink);
+	AddSink(m_MemorySink);
 }
 
 void DebugLogService::Shutdown(){
-	std::lock_guard<std::mutex> lock(mutex);
-	sinks.clear();
+	std::lock_guard<std::mutex> lock(m_Mutex);
+	m_Sinks.clear();
 }
 void DebugLogService::Draw(){
 
 }
 
 void DebugLogService::AddSink(std::shared_ptr<ILogSink> sink){
-	std::lock_guard<std::mutex> lock(mutex);
-	sinks.push_back(sink);
+	std::lock_guard<std::mutex> lock(m_Mutex);
+	m_Sinks.push_back(sink);
 }
 
 void DebugLogService::RemoveSink(std::shared_ptr<ILogSink> sink){
-	std::lock_guard<std::mutex> lock(mutex);
-	sinks.erase(std::remove(sinks.begin(), sinks.end(), sink), sinks.end());
+	std::lock_guard<std::mutex> lock(m_Mutex);
+	m_Sinks.erase(std::remove(m_Sinks.begin(), m_Sinks.end(), sink), m_Sinks.end());
 }
 
 void DebugLogService::Log(LogLevel level,
@@ -47,22 +47,22 @@ void DebugLogService::Log(LogLevel level,
 						 int line){
 	
 	LogEntry m_Entry;
-	entry.level = level;
-	entry.message = message;
-	entry.function = function;
-	entry.file = file;
-	entry.line = line;
-	entry.timestamp = std::chrono::system_clock::now();
+	m_Entry.level = level;
+	m_Entry.message = message;
+	m_Entry.function = function;
+	m_Entry.file = file;
+	m_Entry.line = line;
+	m_Entry.timestamp = std::chrono::system_clock::now();
 	OutputDebugStringW((Utf8ToWide(message) +L"\n").c_str());
 
-	std::lock_guard<std::mutex> lock(mutex);
-	for(const auto& sink : sinks){
-		sink->Write(entry);
+	std::lock_guard<std::mutex> lock(m_Mutex);
+	for(const auto& sink : m_Sinks){
+		sink->Write(m_Entry);
 	}
 }
 
 void DebugLogService::Log(LogLevel level, const char8_t* message, const std::string& function, const std::string& file, int line) {
-	std::string m_Str= reinterpret_cast<const char*>(message);
+	std::string str = reinterpret_cast<const char*>(message);
 	Log(level, str, function, file, line);
 }
 

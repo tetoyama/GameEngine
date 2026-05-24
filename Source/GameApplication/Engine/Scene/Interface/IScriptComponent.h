@@ -1,4 +1,4 @@
-﻿// =======================================================================
+// =======================================================================
 // 
 // IScriptComponent.h
 // 
@@ -155,7 +155,7 @@ public: \
     }
 
 #define SCRIPT_REFLECT_FIELD(Type, Name, DefaultValue) \
-    Type name= DefaultValue; \
+    Type Name = DefaultValue; \
     struct AutoRegister_##Name { \
         AutoRegister_##Name() { \
             static bool registered = false; \

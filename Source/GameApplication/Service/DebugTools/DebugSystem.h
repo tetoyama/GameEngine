@@ -1,4 +1,4 @@
-﻿// =======================================================================
+// =======================================================================
 // 
 // DebugSystem.h
 // 
@@ -23,7 +23,7 @@
 #define LOG_ERROR(msg)    Log(LogLevel::Error,   msg, __FUNCTION__, __FILE__, __LINE__)
 #define LOG_CRITICAL(msg) Log(LogLevel::Critical,msg, __FUNCTION__, __FILE__, __LINE__)
 
-enum class m_LogLevel{
+enum class LogLevel{
 	Trace,
 	Debug,
 	Info,
@@ -90,11 +90,11 @@ private:
 	std::mutex m_Mutex; // マルチスレッド対応
 
 	std::wstring Utf8ToWide(const std::string& utf8){
-		int m_Size= MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
+		int size= MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
 		std::wstring wide(size, 0);
 		MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, &wide[0], size);
 		wide.pop_back(); // null終端除去
-		return m_Wide;
+		return wide;
 	}
 };
 
@@ -102,17 +102,17 @@ private:
 class MemoryLogSink: public ILogSink {
 public:
 	void Write(const LogEntry& entry) override{
-		std::lock_guard<std::mutex> lock(mutex);
-		entries.push_back(entry);
+		std::lock_guard<std::mutex> lock(m_Mutex);
+		m_Entries.push_back(entry);
 	}
 
 	const std::vector<LogEntry>& GetEntries() const{
-		return entries;
+		return m_Entries;
 	}
 
 	void Clear(){
-		std::lock_guard<std::mutex> lock(mutex);
-		entries.clear();
+		std::lock_guard<std::mutex> lock(m_Mutex);
+		m_Entries.clear();
 	}
 
 private:
