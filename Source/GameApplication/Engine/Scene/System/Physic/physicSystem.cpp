@@ -844,13 +844,13 @@ bool PhysicSystem::GetCollisionEnabled(uint32_t a, uint32_t b) const {
 class ExcludeMaskFilter : public physx::PxQueryFilterCallback {
 	physx::PxU32 m_ExcludeMask;
 public:
-	explicit ExcludeMaskFilter(physx::PxU32 excludeMask) : m_excludeMask(excludeMask) {}
+	explicit ExcludeMaskFilter(physx::PxU32 excludeMask) : m_ExcludeMask(excludeMask) {}
 
 	physx::PxQueryHitType::Enum preFilter(
 		const physx::PxFilterData&, const physx::PxShape* shape,
 		const physx::PxRigidActor*, physx::PxHitFlags&) override
 	{
-		if (m_excludeMask != 0 && (shape->getQueryFilterData().word0 & m_excludeMask) != 0)
+		if (m_ExcludeMask != 0 && (shape->getQueryFilterData().word0 & m_ExcludeMask) != 0)
 			return physx::PxQueryHitType::eNONE;
 		return physx::PxQueryHitType::eBLOCK;
 	}
