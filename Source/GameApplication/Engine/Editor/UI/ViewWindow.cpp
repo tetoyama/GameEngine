@@ -26,14 +26,14 @@
 #include "System/Render/RenderSystem/RenderPass/GBuffer/GBufferPass.h"
 
 void ViewWindow::Initialize(EditorService* editor) {
-	ResourceService* resourceService = editor->resourceService;
+	ResourceService* pResourceService = editor->pResourceService;
 
 	m_pEditor = editor;
 	// ボタンテクスチャ読み込み
-	PlayButtonTexture = resourceService->Load<TextureData> ("Asset/Texture/UI/Control/Play.png");
-	PauseButtonTexture = resourceService->Load<TextureData>("Asset/Texture/UI/Control/Pause.png");
-	StopButtonTexture = resourceService->Load<TextureData> ("Asset/Texture/UI/Control/Stop.png");
-	StepButtonTexture = resourceService->Load<TextureData> ("Asset/Texture/UI/Control/Step.png");
+	PlayButtonTexture = pResourceService->Load<TextureData> ("Asset/Texture/UI/Control/Play.png");
+	PauseButtonTexture = pResourceService->Load<TextureData>("Asset/Texture/UI/Control/Pause.png");
+	StopButtonTexture = pResourceService->Load<TextureData> ("Asset/Texture/UI/Control/Stop.png");
+	StepButtonTexture = pResourceService->Load<TextureData> ("Asset/Texture/UI/Control/Step.png");
 }
 
 void ViewWindow::Draw(const EditorDrawContext ctx) {
@@ -43,13 +43,13 @@ void ViewWindow::Draw(const EditorDrawContext ctx) {
 
 void ViewWindow::EditorView(const EditorDrawContext ctx){
 
-	GraphicsContext* graphicsContext = m_pEditor->sceneManager->GetContext()->graphics;
+	GraphicsContext* graphicsContext = m_pEditor->pSceneManager->GetContext()->pGraphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-	RenderSystem* renderSystem = m_pEditor->sceneManager->systemRegistry->GetSystem<RenderSystem>();
+	RenderSystem* renderSystem = m_pEditor->pSceneManager->pSystemRegistry->GetSystem<RenderSystem>();
 
-	bool* showEditor = &m_pEditor->GetUI<MenuBar>()->showEditorView;
+	bool* pShowEditor = &m_pEditor->GetUI<MenuBar>()->showEditorView;
 
-	if(!*showEditor){
+	if(!*pShowEditor){
 		return;
 	}
 
@@ -67,7 +67,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	ImVec2 m_Avail= ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
 	float m_AvailAspect= avail.x / avail.y;
 
-	m_pEditor->sceneManager->GetContext()->EditorScreenSize = Vector2(avail.x, avail.y);
+	m_pEditor->pSceneManager->GetContext()->EditorScreenSize = Vector2(avail.x, avail.y);
 
 	ImVec2 m_Cursor= ImGui::GetCursorPos();
 
@@ -81,7 +81,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
 
 	// レンダーターゲットの表示
-	ImGui::Image((ImTextureRef)renderSystem->m_EditorPass->result, avail);
+	ImGui::Image((ImTextureRef)renderSystem->m_EditorPass->pResult, avail);
 
 	// --- 修正ポイント：クリック判定の情報を一時保存（ギズモ干渉防止のため） ---
 	bool m_IsImageClicked= ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left);
@@ -181,8 +181,8 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	if(hierarchy){
 		Entity m_SelectedEntity= hierarchy->selectedEntity;
 
-		if(hierarchy->sceneContext && selectedEntity != 0){
-			ComponentRegistry* registry = hierarchy->sceneContext->component;
+		if(hierarchy->pSceneContext && selectedEntity != 0){
+			ComponentRegistry* registry = hierarchy->pSceneContext->pComponent;
 			TransformComponent* transform = registry->GetComponent<TransformComponent>(selectedEntity);
 
 			if(transform && m_pEditor->GetUI<MenuBar>()->showEditorView){
@@ -199,9 +199,9 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 
 					DirectX::XMMATRIX m_Model2D= DirectX::XMMatrixAffineTransformation2D(scaling, rotationOrigin, rotationZ, translation);
 					World = model2D;
-					modelMatrix = m_pEditor->sceneManager->GetContext()->imgui->RenderGizmo2D(World, DirectX::XMFLOAT2(avail.x, avail.y));
+					modelMatrix = m_pEditor->pSceneManager->GetContext()->pImGui->RenderGizmo2D(World, DirectX::XMFLOAT2(avail.x, avail.y));
 				} else{
-					modelMatrix = m_pEditor->sceneManager->GetContext()->imgui->RenderGizmo(World);
+					modelMatrix = m_pEditor->pSceneManager->GetContext()->pImGui->RenderGizmo(World);
 				}
 
 				// 親の逆行列を適用してローカル座標系に戻す
@@ -224,7 +224,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 					m_gizmoStartPos = transform->position;
 					m_gizmoStartRot = transform->GetRotation();
 					m_gizmoStartScale = transform->scale;
-					m_gizmoStartState = m_pEditor->sceneManager->State;
+					m_gizmoStartState = m_pEditor->pSceneManager->State;
 				}
 
 				if(isUsingNow){
@@ -254,9 +254,9 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 				}
 
 				if(!isUsingNow && m_wasUsingGizmo && m_gizmoEntity != 0){
-					if(m_gizmoStartState == SceneManagerState::Stopped && m_pEditor->sceneManager->State == SceneManagerState::Stopped){
+					if(m_gizmoStartState == SceneManagerState::Stopped && m_pEditor->pSceneManager->State == SceneManagerState::Stopped){
 						auto m_Cmd= std::make_unique<TransformChangeCommand>(
-							hierarchy->sceneContext, m_gizmoEntity,
+							hierarchy->pSceneContext, m_gizmoEntity,
 							m_gizmoStartPos, m_gizmoStartRot, m_gizmoStartScale,
 							transform->position, transform->GetRotation(), transform->scale);
 						m_pEditor->commandManager.Push(std::move(cmd));
@@ -275,24 +275,24 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 		uv.x = (clickedMousePos.x - imagePos.x) / imageSize.x;
 		uv.y = (clickedMousePos.y - imagePos.y) / imageSize.y;
 
-		auto m_GBufferPass= renderSystem->m_EditorPass->gBufferPass;
+		auto m_GBufferPass= renderSystem->m_EditorPass->pGBufferPass;
 		if(gBufferPass){
 			RenderTarget* paramTarget = gBufferPass->pRenderTargets[GBufferSlot_Param];
 			PickResult m_Result= paramTarget->Pick(uv, graphicsContext);
 
-			uint32_t m_SceneIdVal= result.u[0];  // x : SceneID
-			uint32_t m_ObjectIdVal= result.u[1]; // y : ObjectID
+			uint32_t m_SceneIdVal= pResult.u[0];  // x : SceneID
+			uint32_t m_ObjectIdVal= pResult.u[1]; // y : ObjectID
 
 			if(hierarchy){
 				// 管理テーブルから安全にコンテキストを復元
-				SceneContext* recoveredContext = m_pEditor->sceneManager->GetContextFromID(sceneID_val);
+				SceneContext* recoveredContext = m_pEditor->pSceneManager->GetContextFromID(sceneID_val);
 
 				if(recoveredContext){
-					hierarchy->sceneContext = recoveredContext;
+					hierarchy->pSceneContext = recoveredContext;
 					hierarchy->selectedEntity = (Entity)objectID_val;
 
 					// 選択した Entity にカメラを向ける
-					TransformComponent* transform = recoveredContext->component->GetComponent<TransformComponent>(hierarchy->selectedEntity);
+					TransformComponent* transform = recoveredContext->pComponent->GetComponent<TransformComponent>(hierarchy->selectedEntity);
 					if(transform && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)){
 						Vector3 m_TargetPos= transform->position;
 						Vector3 m_Direction= targetPos - m_EditorCameraPosition;
@@ -325,15 +325,15 @@ void ViewWindow::ControlButton() {
 
 	ImVec4 m_DefaultButtonColor= ImVec4(1.0f, 1.0f, 1.0f, 0.8f);
 	ImVec4 m_StopButtonColor= ImVec4(1.0f, 1.0f, 1.0f, 0.8f);
-	if (m_pEditor->sceneManager->State == SceneManagerState::Stopped) {
+	if (m_pEditor->pSceneManager->State == SceneManagerState::Stopped) {
 		StopButtonColor = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
 	}
-	ImGui::BeginDisabled(m_pEditor->sceneManager->State == SceneManagerState::Stopped);
+	ImGui::BeginDisabled(m_pEditor->pSceneManager->State == SceneManagerState::Stopped);
 
 	if (ImGui::ImageButton("Stop", Stop, ImVec2(20, 20), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), StopButtonColor)) {
-		if (m_pEditor->sceneManager->State != SceneManagerState::Stopped) {
+		if (m_pEditor->pSceneManager->State != SceneManagerState::Stopped) {
 
-			m_pEditor->sceneManager->State = SceneManagerState::Stopped; // シーンの状態をエディタに戻す
+			m_pEditor->pSceneManager->State = SceneManagerState::Stopped; // シーンの状態をエディタに戻す
 			ImGui::SetWindowFocus("Editor View");
 		}
 	}
@@ -342,24 +342,24 @@ void ViewWindow::ControlButton() {
 	ImGui::SameLine();
 
 	// ツールバー内容
-	if (m_pEditor->sceneManager->State == SceneManagerState::Playing) {
+	if (m_pEditor->pSceneManager->State == SceneManagerState::Playing) {
 		if (ImGui::ImageButton("Pause", Pause, ImVec2(20, 20), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), DefaultButtonColor)) {
-			m_pEditor->sceneManager->State = SceneManagerState::Paused; // シーンの状態を 一時停止に変更
+			m_pEditor->pSceneManager->State = SceneManagerState::Paused; // シーンの状態を 一時停止に変更
 		}
 	} else {
 		if (ImGui::ImageButton("Play", Play, ImVec2(20, 20), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), DefaultButtonColor)) {
-			m_pEditor->sceneManager->State = SceneManagerState::Playing; // シーンの状態を再生中に変更
+			m_pEditor->pSceneManager->State = SceneManagerState::Playing; // シーンの状態を再生中に変更
 			ImGui::SetWindowFocus("Play View");
 		}
 	}
 	ImGui::SameLine();
 	if (ImGui::ImageButton("Step", Step, ImVec2(20, 20), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), DefaultButtonColor)) {
-		m_pEditor->sceneManager->State = SceneManagerState::Step; // シーンの状態を ステップに変更
+		m_pEditor->pSceneManager->State = SceneManagerState::Step; // シーンの状態を ステップに変更
 	}
 }
 
 void ViewWindow::DrawRenderLayerToggleUI() {
-	RenderSystem* renderSystem = m_pEditor->sceneManager->systemRegistry->GetSystem<RenderSystem>();
+	RenderSystem* renderSystem = m_pEditor->pSceneManager->pSystemRegistry->GetSystem<RenderSystem>();
 
 	ImGui::SameLine();
 

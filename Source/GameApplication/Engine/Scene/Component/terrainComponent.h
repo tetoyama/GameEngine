@@ -20,13 +20,13 @@ public:
 	int currentScale= -1;    // 現在のメッシュ状態（-1 = 再構築要求）
 	std::vector<float> heightMap;  // 高さマップデータ（(Scale+1)*(Scale+1) 個のフロート値）
 
-	MeshRendererComponent* meshRenderer = nullptr;  // 生成されたメッシュを保持するレンダラー
+	MeshRendererComponent* pMeshRenderer = nullptr;  // 生成されたメッシュを保持するレンダラー
 
 	// デストラクタ: メッシュレンダラーを解放する
 	~TerrainComponent() {
 		if (meshRenderer) {
 			delete meshRenderer;
-			meshRenderer = nullptr;
+			pMeshRenderer = nullptr;
 		}
 	}
 

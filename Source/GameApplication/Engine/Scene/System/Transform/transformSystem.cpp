@@ -17,7 +17,7 @@
 #include "DebugTools/debugSystem.h"
 
 void TransformSystem::Initialize(){
-	m_pContext->debug->LOG_DEBUG("TransformSystemを初期化中...");
+	m_pContext->pDebug->LOG_DEBUG("TransformSystemを初期化中...");
 }
 
 void TransformSystem::Draw(){
@@ -27,16 +27,16 @@ void TransformSystem::Draw(){
 
 	// コンポーネントを持つエンティティの検索
 
-	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
 
-		const auto m_Entities= context->component->FindEntitiesWithComponent<TransformComponent>();
+		const auto m_Entities= pContext->pComponent->FindEntitiesWithComponent<TransformComponent>();
 		for (Entity entity : entities) {
-			auto* transform = context->component->GetComponent<TransformComponent>(entity);
+			auto* transform = context->pComponent->GetComponent<TransformComponent>(entity);
 			if (!transform) continue;
-			if (transform->parent != 0 && !context->entity->IsAlive(transform->parent)) {
-				context->component->OnEntityDestroyed(entity);
-				context->entity->Destroy(entity);
+			if (transform->parent != 0 && !pContext->pEntity->IsAlive(transform->parent)) {
+				context->pComponent->OnEntityDestroyed(entity);
+				context->pEntity->Destroy(entity);
 			}
 		}
 	}

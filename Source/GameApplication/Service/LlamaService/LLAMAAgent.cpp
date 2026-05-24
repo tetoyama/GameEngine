@@ -42,7 +42,7 @@ llama_sampler* LLAMAAgent::CreateSampler() const {
     OutputDebugStringA("LLAMAAgent::CreateSampler start\n");
 
     llama_sampler_chain_params m_Sp= llama_sampler_chain_default_params();
-    llama_sampler* sampler = llama_sampler_chain_init(sp);
+    llama_sampler* pSampler = llama_sampler_chain_init(sp);
     assert(sampler);
 
     llama_sampler_chain_add(sampler, llama_sampler_init_top_k(m_config->top_k));
@@ -395,7 +395,7 @@ void LLAMAAgent::SummarizeAndReset() {
     // ---- create temp ctx and conservative sampler ----
     llama_context* ctx = CreateContext();
     llama_sampler_chain_params m_Sp= llama_sampler_chain_default_params();
-    llama_sampler* sampler = llama_sampler_chain_init(sp);
+    llama_sampler* pSampler = llama_sampler_chain_init(sp);
     // conservative settings to reduce repetition
     llama_sampler_chain_add(sampler, llama_sampler_init_top_k((std::max)(5, (int)m_config->top_k / 4)));
     llama_sampler_chain_add(sampler, llama_sampler_init_top_p(0.9f, 1));
@@ -469,7 +469,7 @@ void LLAMAAgent::SummarizeAndReset() {
     int m_GenPos= n; // next decode position in temp ctx (prompt occupies 0..n-1)
 
     for (int i = 0; i < max_summary_tokens; ++i) {
-        llama_token m_Tok= llama_sampler_sample(sampler, ctx, -1);
+        llama_token m_Tok= llama_sampler_sample(pSampler, ctx, -1);
         if (tok == LLAMA_TOKEN_NULL) {
             OutputDebugStringA("SummarizeAndReset: sampled NULL\n");
             break;

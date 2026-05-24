@@ -14,8 +14,8 @@ class transformComponent;
 // カメラエンティティの参照データを保持する構造体
 struct CameraEntityData {
 
-	CameraComponent* cameraComponent = nullptr;
-	TransformComponent* transformComponent = nullptr;
+	CameraComponent* pCameraComponent = nullptr;
+	TransformComponent* pTransformComponent = nullptr;
 
 	// エンティティへの安全なリファレンス
 	EntityRef ref;

@@ -18,7 +18,7 @@ public:
 
 	void SetInputs(ID3D11ShaderResourceView* initialSRV,ID3D11RenderTargetView** initialRTV,  GBufferPass* gBufferPass);
 
-	ID3D11ShaderResourceView* resultSrv = nullptr;
+	ID3D11ShaderResourceView* pResultSrv = nullptr;
 	ID3D11RenderTargetView** resultRtv = nullptr;
 
 private:

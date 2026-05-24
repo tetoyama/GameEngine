@@ -32,40 +32,40 @@ using namespace DirectX;
 void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 
 	m_pRenderSystem = renderSystem;
-	m_pContext = context;
+	m_pContext = pContext;
 
-	m_GBufferVertexShader = m_pContext->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
-	m_GBufferPixelShader = m_pContext->resource->Load<PixelShaderData>("Asset\\Shader\\GBufferPS.cso");
+	m_GBufferVertexShader = m_pContext->pResource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
+	m_GBufferPixelShader = m_pContext->pResource->Load<PixelShaderData>("Asset\\Shader\\GBufferPS.cso");
 
 	// ----- Sampler -----
 	D3D11_SAMPLER_DESC m_Samp= {};
 	samp.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	samp.AddressU = samp.AddressV = samp.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 	samp.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
-	context->graphics->GetDevice()->CreateSamplerState(&samp, &sampler);
+	context->pGraphics->GetDevice()->CreateSamplerState(&samp, &sampler);
 
-	Vector2 m_Size= Vector2((float)context->graphics->m_width, (float)context->graphics->m_height);
+	Vector2 m_Size= Vector2((float)pContext->pGraphics->m_width, (float)pContext->pGraphics->m_height);
 
 	// ----- GBuffer RenderTargets -----
 	pRenderTargets.clear();
 	pRenderTargets.resize(GBufferSlot_Max);
 
 	pRenderTargets[GBufferSlot_Albedo] =
-		new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR_NO_DSV);
+		new RenderTarget(size, context->pGraphics, RENDERTARGET_TYPE_COLOR_NO_DSV);
 	pRenderTargets[GBufferSlot_Normal] =
-		new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR_NO_DSV);
+		new RenderTarget(size, context->pGraphics, RENDERTARGET_TYPE_COLOR_NO_DSV);
 	pRenderTargets[GBufferSlot_Position] =
-		new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR_NO_DSV);
+		new RenderTarget(size, context->pGraphics, RENDERTARGET_TYPE_COLOR_NO_DSV);
 	pRenderTargets[GBufferSlot_Material] =
-		new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR_NO_DSV);
+		new RenderTarget(size, context->pGraphics, RENDERTARGET_TYPE_COLOR_NO_DSV);
 	pRenderTargets[GBufferSlot_Emissive] =
-		new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR_NO_DSV);
+		new RenderTarget(size, context->pGraphics, RENDERTARGET_TYPE_COLOR_NO_DSV);
 	pRenderTargets[GBufferSlot_Param] =
-		new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_UINT4);
+		new RenderTarget(size, context->pGraphics, RENDERTARGET_TYPE_UINT4);
 
 	// Depth は別管理
 	pDepthTarget =
-		new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_DEPTH);
+		new RenderTarget(size, context->pGraphics, RENDERTARGET_TYPE_DEPTH);
 
 	// ----- Renderables -----
 	renderables.clear();
@@ -82,7 +82,7 @@ void GBufferPass::Finalize() {
 
 	if (sampler) {
 		sampler->Release();
-		sampler = nullptr;
+		pSampler = nullptr;
 	}
 
 	for (auto rt : pRenderTargets) {
@@ -96,8 +96,8 @@ void GBufferPass::Finalize() {
 
 void GBufferPass::Execute(const RenderPassContext& ctx) {
 
-	ID3D11DeviceContext* dc = m_pContext->graphics->GetDeviceContext();
-	GraphicsContext* gc = m_pContext->renderer->GetGraphicsContext();
+	ID3D11DeviceContext* dc = m_pContext->pGraphics->GetDeviceContext();
+	GraphicsContext* gc = m_pContext->pRenderer->GetGraphicsContext();
 
 	dc->VSSetShader(m_GBufferVertexShader->m_VertexShader.Get(), nullptr, 0);
 	dc->IASetInputLayout(m_GBufferVertexShader->m_VertexLayout.Get());
@@ -110,7 +110,7 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 
 	// ----- Resize & Clear -----
 	for (int i = 0; i < GBufferSlot_Max; i++) {
-		pRenderTargets[i]->Resize(ctx.screenSize, m_pContext->graphics);
+		pRenderTargets[i]->Resize(ctx.screenSize, m_pContext->pGraphics);
 
 		// UINT RT は Clear しない
 		if (pRenderTargets[i]->type != RENDERTARGET_TYPE_UINT4) {
@@ -122,7 +122,7 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 	}
 
 	// Depth
-	pDepthTarget->Resize(ctx.screenSize, m_pContext->graphics);
+	pDepthTarget->Resize(ctx.screenSize, m_pContext->pGraphics);
 	dc->ClearDepthStencilView(
 		pDepthTarget->dsv.Get(),
 		D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
@@ -168,10 +168,10 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 
 		if (!newCtx.renderLayerVisibility[layer]) continue;
 
-		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
+		for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
 
 			auto m_Sctx= scene->GetSceneContext();
-			auto m_Entities= sctx->component->FindEntitiesWithComponent<TransformComponent>();
+			auto m_Entities= sctx->pComponent->FindEntitiesWithComponent<TransformComponent>();
 			if (entities.empty()) continue;
 
 			for (Entity ent : entities) {
@@ -182,16 +182,16 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 
 					int m_MaterialId= 0;
 					MaterialComponent* material =
-						sctx->component->GetComponent<MaterialComponent>(ent);
+						sctx->pComponent->GetComponent<MaterialComponent>(ent);
 					if(material){
 						materialID = material->ShaderID;
 					}
 
 					ObjectInfo m_Info;
-					info.SceneID = m_pContext->sceneManager->GetIDFromContext(sctx);
+					info.SceneID = m_pContext->pSceneManager->GetIDFromContext(sctx);
 					info.ObjectID = ent;
 					info.ShaderID = materialID;
-					m_pContext->graphics->SetObjectInfo(info);
+					m_pContext->pGraphics->SetObjectInfo(info);
 
 					r->Execute(newCtx, sctx, ent);
 				}

@@ -67,8 +67,8 @@ class PhysicsSimulationCallback : public physx::PxSimulationEventCallback {
 	static std::vector<CustomScriptComponent*> GetScripts(SceneContext* ctx, Entity entity) {
 		std::vector<CustomScriptComponent*> result;
 		if (!ctx) return result;
-		for (auto& [e, script] : ctx->component->GetAllBaseComponents<CustomScriptComponent>()) {
-			if (e == entity && script && script->IsInitialized())
+		for (auto& [e, script] : ctx->pComponent->GetAllBaseComponents<CustomScriptComponent>()) {
+			if (e == pEntity && script && script->IsInitialized())
 				result.push_back(script);
 		}
 		return m_Result;
@@ -91,8 +91,8 @@ public:
 		auto* infoB = static_cast<ActorEntityInfo*>(pairHeader.actors[1]->userData);
 		if (!infoA || !infoB) return;
 
-		EntityRef refA(infoA->entity, infoA->context);
-		EntityRef refB(infoB->entity, infoB->context);
+		EntityRef refA(infoA->pEntity, infoA->pContext);
+		EntityRef refB(infoB->pEntity, infoB->pContext);
 
 		for (physx::PxU32 i = 0; i < nbPairs; ++i) {
 			const physx::PxContactPair& pair = pairs[i];
@@ -106,8 +106,8 @@ public:
 			HitInfo hitForA{ refB, layerB };
 			HitInfo hitForB{ refA, layerA };
 
-			auto scriptsA = GetScripts(infoA->context, infoA->entity);
-			auto scriptsB = GetScripts(infoB->context, infoB->entity);
+			auto scriptsA = GetScripts(infoA->pContext, infoA->pEntity);
+			auto scriptsB = GetScripts(infoB->pContext, infoB->pEntity);
 
 			if (pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND) {
 				for (auto* s : scriptsA) s->CollisionEnter(hitForA);
@@ -139,14 +139,14 @@ public:
 			uint32_t triggerLayer = pair.triggerShape->getSimulationFilterData().word0;
 			uint32_t otherLayer   = pair.otherShape->getSimulationFilterData().word0;
 
-			EntityRef refTrigger(triggerInfo->entity, triggerInfo->context);
-			EntityRef refOther  (otherInfo->entity,   otherInfo->context);
+			EntityRef refTrigger(triggerInfo->pEntity, triggerInfo->pContext);
+			EntityRef refOther  (otherInfo->pEntity,   otherInfo->pContext);
 
 			HitInfo hitForTrigger{ refOther,   otherLayer   };
 			HitInfo hitForOther  { refTrigger, triggerLayer };
 
-			auto scriptsTrigger = GetScripts(triggerInfo->context, triggerInfo->entity);
-			auto scriptsOther   = GetScripts(otherInfo->context,   otherInfo->entity);
+			auto scriptsTrigger = GetScripts(triggerInfo->pContext, triggerInfo->pEntity);
+			auto scriptsOther   = GetScripts(otherInfo->pContext,   otherInfo->pEntity);
 
 			if (pair.status & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND) {
 				for (auto* s : scriptsTrigger) s->TriggerEnter(hitForTrigger);
@@ -582,11 +582,11 @@ void PhysicSystem::Initialize(){
 void PhysicSystem::Finalize(){
 	OutputDebugStringA("PhysicSystem::Finalize\n");
 	if (m_pSimCallback) m_pSimCallback->m_active = false;
-	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
-		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
+	for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
+		auto pContext = scene->GetSceneContext();
+		const auto& colliderEntity = pContext->pComponent->FindEntitiesWithComponent<ColliderComponent>();
 		for (Entity entity : colliderEntity) {
-			auto collider= context->component->GetComponent<ColliderComponent>(entity);
+			auto collider= pContext->pComponent->GetComponent<ColliderComponent>(pEntity);
 			for (auto& col : Collider->colliders) {
 				if (col.pxMaterial) {
 					OutputDebugStringA(("Finalize Release Material: " + std::to_string((uintptr_t)col.pxMaterial) + "\n").c_str());
@@ -662,11 +662,11 @@ void PhysicSystem::Stop(){
 	// （fetchResults が後で発火しても onContact/onTrigger を呼ばないようにする）
 	if (m_pSimCallback) m_pSimCallback->m_active = false;
 
-	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
-		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
+	for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
+		auto pContext = scene->GetSceneContext();
+		const auto& colliderEntity = pContext->pComponent->FindEntitiesWithComponent<ColliderComponent>();
 		for (Entity entity : colliderEntity) {
-			auto collider= context->component->GetComponent<ColliderComponent>(entity);
+			auto collider= pContext->pComponent->GetComponent<ColliderComponent>(pEntity);
 
 			for (auto& col : Collider->colliders) {
 				if (col.pxMaterial) {
@@ -865,7 +865,7 @@ public:
 
 RayHit PhysicSystem::RaycastWithMask(const physx::PxVec3& origin, const physx::PxVec3& direction, physx::PxReal maxDistance, physx::PxU32 layerMask) {
 	RayHit result{};
-	result.hit = false;
+	pResult.hit = false;
 
 	physx::PxVec3 dirNorm = direction;
 	if (dirNorm.normalize() < 1e-6f) return result;
@@ -893,12 +893,12 @@ RayHit PhysicSystem::RaycastWithMask(const physx::PxVec3& origin, const physx::P
 
 	if (status && hitBuffer.hasBlock) {
 		const physx::PxRaycastHit& b = hitBuffer.block;
-		result.hit = true;
-		result.position = b.position;
-		result.normal = b.normal;
-		result.distance = b.distance;
-		result.hitShape = b.shape;
-		result.hitActor = b.actor;
+		pResult.hit = true;
+		pResult.position = b.position;
+		pResult.normal = b.normal;
+		pResult.distance = b.distance;
+		pResult.hitShape = b.shape;
+		pResult.hitActor = b.actor;
 	}
 	return result;
 }
@@ -1008,12 +1008,12 @@ void PhysicSystem::Start(){
 	// コールバックを有効化する（Stop 後の再起動にも対応）
 	if (m_pSimCallback) m_pSimCallback->m_active = true;
 
-	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
-		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
+	for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
+		auto pContext = scene->GetSceneContext();
+		const auto& colliderEntity = pContext->pComponent->FindEntitiesWithComponent<ColliderComponent>();
 		if (colliderEntity.empty()) return;
 		for (Entity entity : colliderEntity) {
-			auto collider= context->component->GetComponent<ColliderComponent>(entity);
+			auto collider= pContext->pComponent->GetComponent<ColliderComponent>(pEntity);
 
 			Collider->needsUpdate = true;
 		}
@@ -1022,14 +1022,14 @@ void PhysicSystem::Start(){
 }
 
 void PhysicSystem::UpdateCollider() {
-	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
-		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
+	for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
+		auto pContext = scene->GetSceneContext();
+		const auto& colliderEntity = pContext->pComponent->FindEntitiesWithComponent<ColliderComponent>();
 		if (colliderEntity.empty()) continue;
 
 		for (Entity entity : colliderEntity) {
-			auto collider= context->component->GetComponent<ColliderComponent>(entity);
-			auto transform= context->component->GetComponent<TransformComponent>(entity);
+			auto collider= pContext->pComponent->GetComponent<ColliderComponent>(pEntity);
+			auto transform= pContext->pComponent->GetComponent<TransformComponent>(pEntity);
 			if (!Transform) continue;
 
 			physx::PxVec3 pos(Transform->position.x, Transform->position.y, Transform->position.z);
@@ -1055,7 +1055,7 @@ void PhysicSystem::UpdateCollider() {
 				}
 
 				Collider->pRigidbodyDynamic = g_pPhysics->createRigidDynamic(pxTransform);
-				Collider->pRigidbodyDynamic->userData = new ActorEntityInfo{ entity, context };
+				Collider->pRigidbodyDynamic->userData = new ActorEntityInfo{ pEntity, pContext };
 				g_pScene->addActor(*Collider->pRigidbodyDynamic);
 
 				for (auto& col : Collider->colliders) {
@@ -1064,12 +1064,12 @@ void PhysicSystem::UpdateCollider() {
 
 					// HeightMap タイプは PxHeightField を先に構築
 					if (col.type == ColliderType::HeightMap) {
-						auto* terrain = context->component->GetComponent<TerrainComponent>(entity);
+						auto* terrain = context->pComponent->GetComponent<TerrainComponent>(entity);
 						BuildTerrainHeightField(col, terrain);
 					}
 					// Mesh タイプは ModelRendererComponent からトライアングルメッシュを構築
 					if (col.type == ColliderType::Mesh) {
-						auto* mr = context->component->GetComponent<ModelRendererComponent>(entity);
+						auto* mr = context->pComponent->GetComponent<ModelRendererComponent>(entity);
 						BuildMeshCollider(col, mr);
 					}
 
@@ -1102,7 +1102,7 @@ void PhysicSystem::UpdateCollider() {
 				}
 
 				Collider->pRigidbodyStatic = g_pPhysics->createRigidStatic(pxTransform);
-				Collider->pRigidbodyStatic->userData = new ActorEntityInfo{ entity, context };
+				Collider->pRigidbodyStatic->userData = new ActorEntityInfo{ pEntity, pContext };
 				g_pScene->addActor(*Collider->pRigidbodyStatic);
 
 				for (auto& col : Collider->colliders) {
@@ -1111,12 +1111,12 @@ void PhysicSystem::UpdateCollider() {
 
 					// HeightMap タイプは PxHeightField を先に構築
 					if (col.type == ColliderType::HeightMap) {
-						auto* terrain = context->component->GetComponent<TerrainComponent>(entity);
+						auto* terrain = context->pComponent->GetComponent<TerrainComponent>(entity);
 						BuildTerrainHeightField(col, terrain);
 					}
 					// Mesh タイプは ModelRendererComponent からトライアングルメッシュを構築
 					if (col.type == ColliderType::Mesh) {
-						auto* mr = context->component->GetComponent<ModelRendererComponent>(entity);
+						auto* mr = context->pComponent->GetComponent<ModelRendererComponent>(entity);
 						BuildMeshCollider(col, mr);
 					}
 
@@ -1141,21 +1141,21 @@ void PhysicSystem::UpdateCollider() {
 
 
 		for (Entity entity : colliderEntity) {
-			auto collider= context->component->GetComponent<ColliderComponent>(entity);
+			auto collider= pContext->pComponent->GetComponent<ColliderComponent>(pEntity);
 
-			auto transform= context->component->GetComponent<TransformComponent>(entity);
+			auto transform= pContext->pComponent->GetComponent<TransformComponent>(pEntity);
 			if (!Transform) continue;
 
 			if (Collider->needsUpdate) {
 				for (size_t i = 0; i < Collider->colliders.size(); ++i) {
 					// HeightMap タイプは再構築前に PxHeightField を更新
 					if (Collider->colliders[i].type == ColliderType::HeightMap) {
-						auto* terrain = context->component->GetComponent<TerrainComponent>(entity);
+						auto* terrain = context->pComponent->GetComponent<TerrainComponent>(entity);
 						BuildTerrainHeightField(Collider->colliders[i], terrain);
 					}
 					// Mesh タイプは ModelRendererComponent からトライアングルメッシュを再構築
 					if (Collider->colliders[i].type == ColliderType::Mesh) {
-						auto* mr = context->component->GetComponent<ModelRendererComponent>(entity);
+						auto* mr = context->pComponent->GetComponent<ModelRendererComponent>(entity);
 						BuildMeshCollider(Collider->colliders[i], mr);
 					}
 					UpdateColliderParam(Transform, Collider, entity, i);
@@ -1174,7 +1174,7 @@ void PhysicSystem::UpdateCollider() {
 			if (Collider->pRigidbodyStatic) Collider->pRigidbodyStatic->setGlobalPose(pxTransform);
 
 			// ボーン名が指定されているコライダシェイプのローカルポーズをボーンのワールド変換から更新
-			auto* ModelRenderer = context->component->GetComponent<ModelRendererComponent>(entity);
+			auto* ModelRenderer = context->pComponent->GetComponent<ModelRendererComponent>(entity);
 			if (ModelRenderer && ModelRenderer->model) {
 				bool hasBoneShape = false;
 				for (const auto& col : Collider->colliders) {
@@ -1251,13 +1251,13 @@ void PhysicSystem::FixedUpdate(float deltaTime) {
 	g_pScene->fetchResults(true);
 	g_pScene->unlockRead();
 
-	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
-		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
+	for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
+		auto pContext = scene->GetSceneContext();
+		const auto& colliderEntity = pContext->pComponent->FindEntitiesWithComponent<ColliderComponent>();
 
 		for (Entity entity : colliderEntity) {
-			auto collider= context->component->GetComponent<ColliderComponent>(entity);
-			auto transform= context->component->GetComponent<TransformComponent>(entity);
+			auto collider= pContext->pComponent->GetComponent<ColliderComponent>(pEntity);
+			auto transform= pContext->pComponent->GetComponent<TransformComponent>(pEntity);
 			if (!Transform) continue;
 
 			physx::PxTransform tmpTransform;

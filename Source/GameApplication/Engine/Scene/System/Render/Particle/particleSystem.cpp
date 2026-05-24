@@ -28,14 +28,14 @@ void ParticleSystem::Initialize() {}
 void ParticleSystem::Finalize() {}
 
 void ParticleSystem::Start() {
-	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
-		const auto& Entities = context->component->FindEntitiesWithComponent<ParticleComponent>();
+		const auto& Entities = pContext->pComponent->FindEntitiesWithComponent<ParticleComponent>();
 		if (Entities.empty()) {
 			continue;
 		}
 		for (Entity entity : Entities) {
-			ParticleComponent* particle = context->component->GetComponent<ParticleComponent>(entity);
+			ParticleComponent* particle = context->pComponent->GetComponent<ParticleComponent>(entity);
 			if (!particle) {
 				continue;
 			}
@@ -57,20 +57,20 @@ void ParticleSystem::Start() {
 }
 
 void ParticleSystem::Update(float deltaTime){
-	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
-		const auto& Entities = context->component->FindEntitiesWithComponent<ParticleComponent>();
+		const auto& Entities = pContext->pComponent->FindEntitiesWithComponent<ParticleComponent>();
 		if (Entities.empty()) {
 			continue;
 		}
 		for (Entity entity : Entities) {
-			ParticleComponent* particle = context->component->GetComponent<ParticleComponent>(entity);
+			ParticleComponent* particle = context->pComponent->GetComponent<ParticleComponent>(entity);
 			if (!particle) {
 				continue;
 			}
 			particle->SpawnTimer += deltaTime;
 
-			TransformComponent* transform = context->component->GetComponent<TransformComponent>(entity);
+			TransformComponent* transform = context->pComponent->GetComponent<TransformComponent>(entity);
 			if (transform) {
 
 				for (int i = 0; i < MAXPARTICLE; i++) {

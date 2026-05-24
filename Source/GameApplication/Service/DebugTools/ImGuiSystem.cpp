@@ -34,7 +34,7 @@ void SetModernStyle();
 
 bool ImGuiService::Initialize(IWindow* window, GraphicsContext* graphics){
 
-	m_GraphicsContext = graphics;
+	m_GraphicsContext = pGraphics;
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -75,7 +75,7 @@ bool ImGuiService::Initialize(IWindow* window, GraphicsContext* graphics){
 
 
 
-	io.IniFilename = "Asset\\imgui.ini"; // デフォルトでimgui.iniに保存されます
+	io.IniFilename = "Asset\\pImGui.ini"; // デフォルトでimgui.iniに保存されます
 
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls

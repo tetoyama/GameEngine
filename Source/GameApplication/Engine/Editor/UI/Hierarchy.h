@@ -21,13 +21,13 @@ class Hierarchy: public IEditorUI{
 
 public:
 	void Initialize(EditorService* editor) override{
-		m_pEditor = editor;
+		m_pEditor = pEditor;
 	}
 	void Finalize() override{}
 	void Draw(const EditorDrawContext ctx) override;
 
 	Entity selectedEntity = 0;
-	SceneContext* sceneContext = nullptr;
+	SceneContext* pSceneContext = nullptr;
 
 private:
 	void DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities);

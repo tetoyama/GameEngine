@@ -19,7 +19,7 @@
 
 void PostEffectPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 	m_pRenderSystem = renderSystem;
-	m_pContext      = context;
+	m_pContext      = pContext;
 }
 
 void PostEffectPass::Finalize() {
@@ -28,18 +28,18 @@ void PostEffectPass::Finalize() {
 void PostEffectPass::SetInputs(ID3D11ShaderResourceView* initialSRV, ID3D11RenderTargetView** initialRTV, GBufferPass* gBufferPass) {
 	m_pInitialSRV  = initialSRV;
 	m_initialRTV = initialRTV;
-	m_pGBufferPass = gBufferPass;
+	m_pGBufferPass = pGBufferPass;
 }
 
 void PostEffectPass::Execute(const RenderPassContext& ctx) {
 
-	GraphicsContext*     graphics      = m_pContext->graphics;
+	GraphicsContext*     pGraphics      = m_pContext->pGraphics;
 
 	std::vector<PostProcessNode> m_PostNodes;
 	std::unordered_map<int, int> m_EffectIndexToPostNodeIndex;
 	const DirectX::XMFLOAT4 m_ClearColor= {0, 0, 0, 1};
 
-	CameraComponent* camera = ctx.cameraData.cameraComponent;
+	CameraComponent* camera = ctx.cameraData.pCameraComponent;
 
 	if (camera) {
 		const auto& sortedIndices = camera->TopologicalSortPostEffects();
@@ -122,11 +122,11 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 			postNodes, m_pInitialSRV, gbufferSRVs, PostEffectGBufferSlot_Count
 		);
 
-		resultSrv = graphics->m_CurrentSRV;
-		resultRtv = graphics->m_CurrentRTV;
+		pResultSrv = pGraphics->m_CurrentSRV;
+		resultRtv = pGraphics->m_CurrentRTV;
 
 	} else {
-		resultSrv = m_pInitialSRV;
+		pResultSrv = m_pInitialSRV;
 		resultRtv = m_initialRTV;
 	}
 

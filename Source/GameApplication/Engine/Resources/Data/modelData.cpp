@@ -409,17 +409,17 @@ void ModelData::CreateSkinningBuffers(GraphicsContext* ctx){
 		std::vector<SKINNING_INPUT_VERTEX> input(vertexCount);
 
 		for(UINT v = 0; v < vertexCount; ++v){
-			input[v].Position = {mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z};
-			input[v].Normal = mesh->mNormals ? DirectX::XMFLOAT3{mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z} : DirectX::XMFLOAT3{0,0,0};
-			input[v].TexCoord = mesh->HasTextureCoords(0) ? DirectX::XMFLOAT2{mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y} : DirectX::XMFLOAT2{0,0};
+			pInput[v].Position = {mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z};
+			pInput[v].Normal = mesh->mNormals ? DirectX::XMFLOAT3{mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z} : DirectX::XMFLOAT3{0,0,0};
+			pInput[v].TexCoord = mesh->HasTextureCoords(0) ? DirectX::XMFLOAT2{mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y} : DirectX::XMFLOAT2{0,0};
 
 			const DEFORM_VERTEX& dv = m_DeformVertex[m][v];
 			for(int i = 0; i < 4; i++){
-				input[v].BoneIndex[i] = dv.BoneIndex[i];
-				input[v].BoneWeight[i] = dv.BoneWeight[i];
+				pInput[v].BoneIndex[i] = dv.BoneIndex[i];
+				pInput[v].BoneWeight[i] = dv.BoneWeight[i];
 			}
 
-			input[v].Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
+			pInput[v].Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
 		}
 
 		D3D11_BUFFER_DESC m_InBd{};
@@ -430,7 +430,7 @@ void ModelData::CreateSkinningBuffers(GraphicsContext* ctx){
 		inBD.StructureByteStride = sizeof(SKINNING_INPUT_VERTEX);
 
 		D3D11_SUBRESOURCE_DATA m_InSd{};
-		inSD.pSysMem = input.data();
+		inSD.pSysMem = pInput.data();
 
 		HRESULT m_Hr= dev->CreateBuffer(&inBD, &inSD, &m_SkinInputBuffer[m]);
 		assert(SUCCEEDED(hr));

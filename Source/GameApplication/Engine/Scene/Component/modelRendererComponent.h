@@ -92,7 +92,7 @@ public:
 		}
 
 		// ResourceService 経由でモデルをロード（キャッシュヒット時は既存データを返す）
-		model = context->manager->resource->Load<ModelData>(modelFilePath, isBlender);
+		model = pContext->pManager->pResource->Load<ModelData>(modelFilePath, isBlender);
 
 		// 追加アニメーションをモデルデータに読み込む
 		for(const auto& animNode : animations){
@@ -114,7 +114,7 @@ public:
 			desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 			desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;  // Map/Unmap によるスキニング結果の書き込みを許可
 
-			HRESULT hr = context->manager->graphics->GetDevice()->CreateBuffer(
+			HRESULT hr = pContext->pManager->pGraphics->GetDevice()->CreateBuffer(
 				&desc, nullptr, &dynamicVertexBuffers[i]
 			);
 			assert(SUCCEEDED(hr));

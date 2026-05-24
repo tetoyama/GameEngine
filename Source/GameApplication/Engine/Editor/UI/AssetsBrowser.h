@@ -51,7 +51,7 @@ private:
 	char m_NewNameBuffer[256]{};
 
 	EditorService* m_pEditor = nullptr;
-	ResourceService* resourceService = nullptr;
+	ResourceService* pResourceService = nullptr;
 
 	std::shared_ptr<TextureData> m_FileIcon[FileIconType::FILE_MAX];
 

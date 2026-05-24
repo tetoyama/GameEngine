@@ -19,7 +19,7 @@ bool ScriptComponent::decode(SceneContext* context, const YAML::Node& node){
 	for(auto it : node){
 		const std::string m_Name= it.first.as<std::string>();
 		// ScriptSystem::Create でスクリプト名に対応するインスタンスを生成
-		auto m_Script= context->manager->systemRegistry->GetSystem<ScriptSystem>()->Create(name.c_str());
+		auto m_Script= pContext->pManager->pSystemRegistry->GetSystem<ScriptSystem>()->Create(name.c_str());
 		if(!script) continue;
 
 		// スクリプト固有パラメーターを復元
@@ -100,26 +100,26 @@ void ScriptComponent::inspector(SceneContext* context) {
 bool ScriptComponent::AddScript(const char* scriptName, SceneContext* context){
 	// スクリプト名が空の場合は追加しない
 	if(!scriptName || scriptName[0] == '\0'){
-		context->manager->debug->LOG_DEBUG("Script name empty");
+		context->pManager->pDebug->LOG_DEBUG("Script name empty");
 		return m_False;
 	}
 
 	// 既に同名のスクリプトが存在する場合は重複追加しない
 	if(scripts.find(scriptName) != scripts.end()){
-		context->manager->debug->LOG_DEBUG("Script already exists");
+		context->pManager->pDebug->LOG_DEBUG("Script already exists");
 		return m_False;
 	}
 
 	// ScriptSystem を取得してスクリプトインスタンスを生成
-	auto* scriptSystem = context->system->GetSystem<ScriptSystem>();
+	auto* scriptSystem = context->pSystem->GetSystem<ScriptSystem>();
 	if(!scriptSystem){
-		context->manager->debug->LOG_DEBUG("ScriptSystem not found");
+		context->pManager->pDebug->LOG_DEBUG("ScriptSystem not found");
 		return m_False;
 	}
 
 	IScriptComponent* raw = scriptSystem->Create(scriptName);
 	if(!raw){
-		context->manager->debug->LOG_DEBUG("Script create failed");
+		context->pManager->pDebug->LOG_DEBUG("Script create failed");
 		return m_False;
 	}
 

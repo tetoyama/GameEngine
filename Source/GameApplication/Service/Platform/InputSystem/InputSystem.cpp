@@ -270,7 +270,7 @@ void InputService::UpdateGamepads(){
 	for(int i = 0; i < GamepadCount; ++i){
 		XINPUT_STATE m_State;
 		DWORD m_Result= XInputGetState(i, &state);
-		m_gamepads[i].connected = (result == ERROR_SUCCESS);
+		m_gamepads[i].connected = (pResult == ERROR_SUCCESS);
 		if(m_gamepads[i].connected){
 			m_gamepads[i].pad = state.Gamepad;
 		} else{

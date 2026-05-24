@@ -23,10 +23,10 @@ struct SceneManagerContext;
 
 // エディターサービスの初期化に必要な依存サービスをまとめた構造体
 struct EditorServiceContext {
-	DebugLogService* debugLogSystem = nullptr;   // デバッグログ出力サービス
-	ResourceService* resourceService = nullptr;  // リソース読み込みサービス
-	SceneManager*    sceneManager    = nullptr;  // シーン管理サービス
-	LLAMAService*    llamaService    = nullptr;  // LLM エージェントサービス
+	DebugLogService* pDebugLogSystem = nullptr;   // デバッグログ出力サービス
+	ResourceService* pResourceService = nullptr;  // リソース読み込みサービス
+	SceneManager*    pSceneManager    = nullptr;  // シーン管理サービス
+	LLAMAService*    pLlamaService    = nullptr;  // LLM エージェントサービス
 };
 
 // エディターのUIパネル・コマンド履歴・コード解析機能をまとめて管理するサービス
@@ -58,12 +58,12 @@ public:
 		return nullptr;
 	}
 
-	DebugLogService* debugLogSystem = nullptr;  // デバッグログサービスへの参照
-	ResourceService* resourceService = nullptr; // リソースサービスへの参照
-	SceneManager*    sceneManager    = nullptr; // シーンマネージャへの参照
-	LLAMAService*    llamaService    = nullptr; // LLAMA サービスへの参照
+	DebugLogService* pDebugLogSystem = nullptr;  // デバッグログサービスへの参照
+	ResourceService* pResourceService = nullptr; // リソースサービスへの参照
+	SceneManager*    pSceneManager    = nullptr; // シーンマネージャへの参照
+	LLAMAService*    pLlamaService    = nullptr; // LLAMA サービスへの参照
 
-	AnalyzerManager* analyzer = nullptr;        // ソースコード解析マネージャ
+	AnalyzerManager* pAnalyzer = nullptr;        // ソースコード解析マネージャ
 
 	CommandManager commandManager;              // アンドゥ・リドゥ対応コマンド履歴
 

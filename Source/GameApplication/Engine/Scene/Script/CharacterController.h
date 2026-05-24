@@ -83,7 +83,7 @@ public:
 		INSPECTOR_FIELDS();
 
 		// 自身のレイヤー選択（RayCast 除外用）
-		auto* phys = context->system->GetSystem<PhysicSystem>();
+		auto* phys = context->pSystem->GetSystem<PhysicSystem>();
 		if (phys) {
 			const auto& layers = phys->GetLayers();
 			const char* previewLabel = "(none)";
@@ -119,7 +119,7 @@ public:
 		model     = GetComponentRef<ModelRendererComponent>();
 
 		// シーン内のカメラを探して方向基準に使う
-		auto cameraEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<CameraComponent>();
+		auto cameraEntities = m_ref.GetScene()->pComponent->FindEntitiesWithComponent<CameraComponent>();
 		if (!cameraEntities.empty()) {
 			cameraTransform = GetComponentRefFor<TransformComponent>(cameraEntities[0]);
 		}
@@ -198,8 +198,8 @@ public:
 			physx::PxVec3 rayDir(0.0f, -1.0f, 0.0f);
 
 			// 全レイヤーを対象に、自身のレイヤーだけ除外してレイキャスト
-			RayHit hit = m_ref.GetScene()->manager
-				->systemRegistry
+			RayHit hit = m_ref.GetScene()->pManager
+				->pSystemRegistry
 				->GetSystem<PhysicSystem>()
 				->RaycastWithMask(rayPos, rayDir, groundRayLength + 0.1f, selfLayerBit);
 

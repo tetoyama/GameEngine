@@ -30,10 +30,10 @@ public:
 	~TerrainSystem() {}
 
 	void Initialize() override {
-		m_pGraphicContext = m_pContext->graphics;
-		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
-			auto context = scene->GetSceneContext();
-			auto entities = context->component->FindEntitiesWithComponent<TerrainComponent>();
+		m_pGraphicContext = m_pContext->pGraphics;
+		for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
+			auto pContext = scene->GetSceneContext();
+			auto entities = pContext->pComponent->FindEntitiesWithComponent<TerrainComponent>();
 			for (auto entity : entities) {
 
 				CreateMesh(context,entity);
@@ -42,30 +42,30 @@ public:
 	}
 
 	void Finalize() override {
-		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
-			auto context = scene->GetSceneContext();
-			auto entities = context->component->FindEntitiesWithComponent<TerrainComponent>();
+		for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
+			auto pContext = scene->GetSceneContext();
+			auto entities = pContext->pComponent->FindEntitiesWithComponent<TerrainComponent>();
 			for (auto entity : entities) {
-				auto* comp = context->component->GetComponent<TerrainComponent>(entity);
-				if (comp && comp->meshRenderer) {
+				auto* comp = context->pComponent->GetComponent<TerrainComponent>(entity);
+				if (comp && comp->pMeshRenderer) {
 
-					comp->meshRenderer->mesh.m_IndexBuffer.Reset();
-					comp->meshRenderer->mesh.m_VertexBuffer.Reset();
-					comp->meshRenderer->mesh.m_PixelShader.Reset();
-					comp->meshRenderer->mesh.m_VertexShader.Reset();
-					comp->meshRenderer->mesh.m_VertexLayout.Reset();
-					delete comp->meshRenderer->mesh.m_TextureData;
+					comp->pMeshRenderer->mesh.m_IndexBuffer.Reset();
+					comp->pMeshRenderer->mesh.m_VertexBuffer.Reset();
+					comp->pMeshRenderer->mesh.m_PixelShader.Reset();
+					comp->pMeshRenderer->mesh.m_VertexShader.Reset();
+					comp->pMeshRenderer->mesh.m_VertexLayout.Reset();
+					delete comp->pMeshRenderer->mesh.m_TextureData;
 
-					delete comp->meshRenderer;
-					comp->meshRenderer = nullptr;
+					delete comp->pMeshRenderer;
+					comp->pMeshRenderer = nullptr;
 				}
 			}
 		}
 	}
 	void Draw() override {
-		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
-			auto context = scene->GetSceneContext();
-			auto entities = context->component->FindEntitiesWithComponent<TerrainComponent>();
+		for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
+			auto pContext = scene->GetSceneContext();
+			auto entities = pContext->pComponent->FindEntitiesWithComponent<TerrainComponent>();
 			for (auto entity : entities) {
 
 				CreateMesh(context,entity);
@@ -164,15 +164,15 @@ private:
     }
 
     void CreateMesh(SceneContext* context, Entity entity) {
-        auto* comp = context->component->GetComponent<TerrainComponent>(entity);
+        auto* comp = context->pComponent->GetComponent<TerrainComponent>(entity);
         if (!comp) return;
 
-        if (!comp->meshRenderer || comp->Scale != comp->CurrentScale) {
-            if (!comp->meshRenderer)
-                comp->meshRenderer = new MeshRendererComponent();
+        if (!comp->pMeshRenderer || comp->Scale != comp->CurrentScale) {
+            if (!comp->pMeshRenderer)
+                comp->pMeshRenderer = new MeshRendererComponent();
             else {
-                comp->meshRenderer->mesh.m_VertexBuffer.Reset();
-                comp->meshRenderer->mesh.m_IndexBuffer.Reset();
+                comp->pMeshRenderer->mesh.m_VertexBuffer.Reset();
+                comp->pMeshRenderer->mesh.m_IndexBuffer.Reset();
             }
 
             int m_GridSize= comp->Scale;
@@ -238,7 +238,7 @@ private:
             D3D11_SUBRESOURCE_DATA m_Sd{};
             sd.pSysMem = vertices.data();
 
-            hr = m_pGraphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.m_VertexBuffer.GetAddressOf());
+            hr = m_pGraphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->pMeshRenderer->mesh.m_VertexBuffer.GetAddressOf());
             if (FAILED(hr)) {
 				// エラーハンドリング
                 return;
@@ -248,18 +248,18 @@ private:
             bd.ByteWidth = static_cast<UINT>(sizeof(unsigned int) * indexCount);
             sd.pSysMem = indices.data();
 
-            hr = m_pGraphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.m_IndexBuffer.GetAddressOf());
+            hr = m_pGraphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->pMeshRenderer->mesh.m_IndexBuffer.GetAddressOf());
             if (FAILED(hr)) {
                 // エラーハンドリング
-                comp->meshRenderer->mesh.m_VertexBuffer.Reset();
+                comp->pMeshRenderer->mesh.m_VertexBuffer.Reset();
                 return;
             }
 
-            comp->meshRenderer->mesh.meshCount = vertexCount;
-            comp->meshRenderer->mesh.indexCount = indexCount;
+            comp->pMeshRenderer->mesh.meshCount = vertexCount;
+            comp->pMeshRenderer->mesh.indexCount = indexCount;
             comp->CurrentScale = comp->Scale;
 
-            auto* col = context->component->GetComponent<ColliderComponent>(entity);
+            auto* col = context->pComponent->GetComponent<ColliderComponent>(entity);
             if (col) col->needsUpdate = true;
         }
     }

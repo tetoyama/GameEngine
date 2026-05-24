@@ -20,5 +20,5 @@ private:
 	char m_InputBuffer[2048]{};
 
 	EditorService* m_pEditor = nullptr;
-	ResourceService* resourceService = nullptr;
+	ResourceService* pResourceService = nullptr;
 };

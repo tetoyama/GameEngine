@@ -14,10 +14,10 @@ RenderPassContext::RenderPassContext(const RenderPhase& renderPass, bool* render
 	passPhase = renderPass;
 	cameraData = data;
 	screenSize = setScreenSize;
-	if (data.cameraComponent && data.transformComponent) {
-		DirectX::XMVECTOR m_CamPos= data.transformComponent->position.ToXMVECTOR();
+	if (data.pCameraComponent && data.pTransformComponent) {
+		DirectX::XMVECTOR m_CamPos= data.pTransformComponent->position.ToXMVECTOR();
 		DirectX::XMStoreFloat4(&CameraPosition, camPos);
-		projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(data.cameraComponent->FOV, screenSize.x / screenSize.y, data.cameraComponent->NearClip, data.cameraComponent->FarClip);
-		viewMatrix = data.cameraComponent->viewMatrix;
+		projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(data.pCameraComponent->FOV, screenSize.x / screenSize.y, data.pCameraComponent->NearClip, data.pCameraComponent->FarClip);
+		viewMatrix = data.pCameraComponent->viewMatrix;
 	}
 }

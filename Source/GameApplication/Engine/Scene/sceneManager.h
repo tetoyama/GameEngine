@@ -32,23 +32,23 @@ class scene;
 // シーンマネージャと各サービスへのポインタをまとめたコンテキスト
 // SceneManager::Initialize に渡し、各シーンや ECS システムから参照される
 struct SceneManagerContext {
-	SceneManager* sceneManager = nullptr;   // シーンマネージャ本体（シーン遷移操作等に使用）
+	SceneManager* pSceneManager = nullptr;   // シーンマネージャ本体（シーン遷移操作等に使用）
 
-	SystemRegistry* systemRegistry = nullptr; // ECS システムのレジストリ（自動設定）
+	SystemRegistry* pSystemRegistry = nullptr; // ECS システムのレジストリ（自動設定）
 
 	// ビューポートサイズ（ゲームプレイ画面とエディター画面それぞれ）
 	Vector2 playerScreenSize= { 1280.0f, 720.0f };
 	Vector2 editorScreenSize= { 1280.0f, 720.0f };
 
-	GraphicsContext* graphics  = nullptr;  // DirectX 11 グラフィクスコンテキスト
-	AudioContext*    audio     = nullptr;  // オーディオコンテキスト
-	MainRenderer*    renderer  = nullptr;  // メインレンダラー
-	InputService*    input     = nullptr;  // 入力サービス
-	ResourceService* resource  = nullptr;  // リソースサービス
-	DebugLogService* debug     = nullptr;  // デバッグログサービス
-	ImGuiService*    imgui     = nullptr;  // ImGui サービス
-	ConfigService*   config    = nullptr;  // 設定サービス
-	EditorService*   editor    = nullptr;  // エディターサービス（エディタービルド時のみ有効）
+	GraphicsContext* pGraphics  = nullptr;  // DirectX 11 グラフィクスコンテキスト
+	AudioContext*    pAudio     = nullptr;  // オーディオコンテキスト
+	MainRenderer*    pRenderer  = nullptr;  // メインレンダラー
+	InputService*    pInput     = nullptr;  // 入力サービス
+	ResourceService* pResource  = nullptr;  // リソースサービス
+	DebugLogService* pDebug     = nullptr;  // デバッグログサービス
+	ImGuiService*    pImGui     = nullptr;  // ImGui サービス
+	ConfigService*   pConfig    = nullptr;  // 設定サービス
+	EditorService*   pEditor    = nullptr;  // エディターサービス（エディタービルド時のみ有効）
 	HWND             hwnd      = nullptr;  // メインウィンドウハンドル
 };
 
@@ -100,7 +100,7 @@ public:
 	SceneManagerState State = SceneManagerState::Stopped;
 	SceneManagerState OldState = SceneManagerState::Stopped;
 
-	std::shared_ptr<SystemRegistry> systemRegistry = nullptr;
+	std::shared_ptr<SystemRegistry> pSystemRegistry = nullptr;
 
 private:
 	void TempSave();

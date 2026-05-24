@@ -30,24 +30,24 @@ void FollowSystem::EditorUpdate(float deltaTime) {
 }
 
 void FollowSystem::ProcessFollow() {
-	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
-		auto* context = scene->GetSceneContext();
-		const auto& entities = context->component->FindEntitiesWithComponent<FollowComponent>();
+	for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
+		auto* pContext = scene->GetSceneContext();
+		const auto& entities = pContext->pComponent->FindEntitiesWithComponent<FollowComponent>();
 
 		for (Entity entity : entities) {
-			auto* follow = context->component->GetComponent<FollowComponent>(entity);
-			auto* transform = context->component->GetComponent<TransformComponent>(entity);
+			auto* follow = context->pComponent->GetComponent<FollowComponent>(entity);
+			auto* transform = context->pComponent->GetComponent<TransformComponent>(entity);
 			if (!follow || !transform) continue;
 
 			// 対象エンティティが存在しない場合はスキップ
 			if (follow->targetEntity == 0 ||
-				!context->entity->IsAlive(follow->targetEntity)) continue;
+				!context->pEntity->IsAlive(follow->targetEntity)) continue;
 
-			auto* targetTransform = context->component->GetComponent<TransformComponent>(follow->targetEntity);
+			auto* targetTransform = context->pComponent->GetComponent<TransformComponent>(follow->targetEntity);
 			if (!targetTransform) continue;
 
 			DirectX::XMMATRIX m_TargetWorldMat=
-				targetTransform->CalculateWorldMatrix(targetTransform, context->component);
+				targetTransform->CalculateWorldMatrix(targetTransform, context->pComponent);
 
 			DirectX::XMVECTOR m_WorldPos= DirectX::XMVectorZero();
 			DirectX::XMFLOAT4 m_WorldQuat= { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -55,7 +55,7 @@ void FollowSystem::ProcessFollow() {
 
 			// --- ボーン追従 ---
 			if (!follow->boneName.empty()) {
-				auto* mr = context->component->GetComponent<ModelRendererComponent>(follow->targetEntity);
+				auto* mr = context->pComponent->GetComponent<ModelRendererComponent>(follow->targetEntity);
 				if (mr && mr->model) {
 					auto m_It= mr->model->m_BoneIndexMap.find(follow->boneName);
 					if (it != mr->model->m_BoneIndexMap.end()) {
@@ -132,12 +132,12 @@ void FollowSystem::ProcessFollow() {
 			if (follow->followPosition) {
 				// 親がいる場合は親のワールド逆行列でローカル空間に戻す
 				DirectX::XMVECTOR m_LocalPos= finalWorldPos;
-				if (transform->parent != 0 && context->entity->IsAlive(transform->parent)) {
+				if (transform->parent != 0 && pContext->pEntity->IsAlive(transform->parent)) {
 					auto* parentTransform =
-						context->component->GetComponent<TransformComponent>(transform->parent);
+						context->pComponent->GetComponent<TransformComponent>(transform->parent);
 					if (parentTransform) {
 						DirectX::XMMATRIX m_ParentWorldMat=
-							parentTransform->CalculateWorldMatrix(parentTransform, context->component);
+							parentTransform->CalculateWorldMatrix(parentTransform, context->pComponent);
 						DirectX::XMMATRIX m_ParentWorldInv=
 							DirectX::XMMatrixInverse(nullptr, parentWorldMat);
 						localPos = DirectX::XMVector3Transform(finalWorldPos, parentWorldInv);
@@ -153,12 +153,12 @@ void FollowSystem::ProcessFollow() {
 				// 親がいる場合はワールド回転を親の逆回転でローカル空間に変換する
 				// worldQuat = localQuat * parentQuat → localQuat = worldQuat * inv(parentQuat)
 				DirectX::XMVECTOR m_FinalQuat= DirectX::XMLoadFloat4(&worldQuat);
-				if (transform->parent != 0 && context->entity->IsAlive(transform->parent)) {
+				if (transform->parent != 0 && pContext->pEntity->IsAlive(transform->parent)) {
 					auto* parentTransform =
-						context->component->GetComponent<TransformComponent>(transform->parent);
+						context->pComponent->GetComponent<TransformComponent>(transform->parent);
 					if (parentTransform) {
 						DirectX::XMMATRIX m_ParentWorldMat=
-							parentTransform->CalculateWorldMatrix(parentTransform, context->component);
+							parentTransform->CalculateWorldMatrix(parentTransform, context->pComponent);
 						DirectX::XMVECTOR pS, pQ, m_PT;
 						if (DirectX::XMMatrixDecompose(&pS, &pQ, &pT, parentWorldMat)) {
 							finalQuat = DirectX::XMQuaternionMultiply(

@@ -33,5 +33,5 @@ public:
 	std::vector<RenderTarget*> pRenderTargets;
 	RenderTarget* pDepthTarget = nullptr;
 
-	ID3D11SamplerState* sampler = nullptr;
+	ID3D11SamplerState* pSampler = nullptr;
 };

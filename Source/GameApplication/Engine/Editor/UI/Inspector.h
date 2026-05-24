@@ -21,7 +21,7 @@ class Inspector: public IEditorUI{
 
 public:
 	void Initialize(EditorService* editor) override{
-		m_pEditor = editor;
+		m_pEditor = pEditor;
 	}
 	void Finalize() override{}
 	void Draw(const EditorDrawContext ctx) override;

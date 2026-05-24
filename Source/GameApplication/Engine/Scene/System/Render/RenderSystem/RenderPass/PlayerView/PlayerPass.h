@@ -29,14 +29,14 @@ public:
 	void Finalize() override;
 	void Execute(const RenderPassContext& ctx) override;
 
-	RenderTarget* playerRenderTarget = nullptr;
+	RenderTarget* pPlayerRenderTarget = nullptr;
 
-	ID3D11ShaderResourceView* result = nullptr;
+	ID3D11ShaderResourceView* pResult = nullptr;
 
-	ShadowMapPass*  shadowMapPass  = nullptr;
-	GBufferPass*    gBufferPass    = nullptr;
-	LightingPass*   lightingPass   = nullptr;
-	ForwardPass*    forwardPass    = nullptr;
-	PostEffectPass* postEffectPass = nullptr;
-	OverlayUIPass*  overlayUIPass = nullptr;
+	ShadowMapPass*  pShadowMapPass  = nullptr;
+	GBufferPass*    pGBufferPass    = nullptr;
+	LightingPass*   pLightingPass   = nullptr;
+	ForwardPass*    pForwardPass    = nullptr;
+	PostEffectPass* pPostEffectPass = nullptr;
+	OverlayUIPass*  pOverlayUIPass = nullptr;
 };

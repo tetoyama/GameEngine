@@ -27,21 +27,21 @@
 
 void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity) {
 
-	ModelRendererComponent* modelRenderer = sceneContext->component->GetComponent<ModelRendererComponent>(entity);
-	TransformComponent* transform = sceneContext->component->GetComponent<TransformComponent>(entity);
+	ModelRendererComponent* modelRenderer = sceneContext->pComponent->GetComponent<ModelRendererComponent>(entity);
+	TransformComponent* transform = sceneContext->pComponent->GetComponent<TransformComponent>(entity);
 	if (!modelRenderer || !transform) {
 		return;
 	}
 	ModelData* pModel = modelRenderer->model.get();
 	if (!pModel || !pModel->AiScene) {
-		//sceneContext->manager->debug->LOG_ERROR("ModelData is null or AiScene is not initialized.");
+		//sceneContext->pManager->pDebug->LOG_ERROR("ModelData is null or AiScene is not initialized.");
 		return;
 	}
-	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
+	GraphicsContext* graphicsContext = sceneContext->pManager->pGraphics;
 	ID3D11Device* device = graphicsContext->GetDevice();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
-	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
+	TextureComponent* pTexture = sceneContext->pComponent->GetComponent<TextureComponent>(entity);
+	MaterialComponent* pMaterial = sceneContext->pComponent->GetComponent<MaterialComponent>(entity);
 	MATERIAL m_Material;
 	material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	if (pMaterial) {
@@ -86,7 +86,7 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	DirectX::XMMATRIX m_World= transform->CalculateWorldMatrix(transform, sceneContext->component);
+	DirectX::XMMATRIX m_World= transform->CalculateWorldMatrix(transform, pSceneContext->pComponent);
 
 	graphicsContext->SetCullMode(CullMode::Back);
 

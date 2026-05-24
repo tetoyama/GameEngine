@@ -252,7 +252,7 @@ public:
 							needsUpdate = true;
 						}
 
-						auto phys = context->system->GetSystem<PhysicSystem>();
+						auto phys = pContext->pSystem->GetSystem<PhysicSystem>();
 						const auto& layers = phys->GetLayers();
 
 						int current = 0;
@@ -311,10 +311,10 @@ public:
 						{
 							// このコンポーネントを持つエンティティを特定
 							ModelRendererComponent* mr = nullptr;
-							const auto& colEntities = context->component->FindEntitiesWithComponent<ColliderComponent>();
+							const auto& colEntities = pContext->pComponent->FindEntitiesWithComponent<ColliderComponent>();
 							for(Entity ce : colEntities){
-								if(context->component->GetComponent<ColliderComponent>(ce) == this){
-									mr = context->component->GetComponent<ModelRendererComponent>(ce);
+								if(pContext->pComponent->GetComponent<ColliderComponent>(ce) == this){
+									mr = pContext->pComponent->GetComponent<ModelRendererComponent>(ce);
 									break;
 								}
 							}

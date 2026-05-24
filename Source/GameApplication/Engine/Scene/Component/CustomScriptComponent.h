@@ -121,13 +121,13 @@ public:
 	template<typename T>
 	T* GetComponent(){
 		if(!m_ref.IsValid()) return nullptr;
-		return m_ref.GetScene()->component->GetComponent<T>(m_ref.GetEntityID());
+		return m_ref.GetScene()->pComponent->GetComponent<T>(m_ref.GetEntityID());
 	}
 
 	template<typename T, typename... Args>
 	T* AddComponent(Args&&... args){
 		if(!m_ref.IsValid()) return nullptr;
-		return m_ref.GetScene()->component->AddComponent<T>(m_ref.GetEntityID(), std::forward<Args>(args)...);
+		return m_ref.GetScene()->pComponent->AddComponent<T>(m_ref.GetEntityID(), std::forward<Args>(args)...);
 	}
 
 	// 自分自身の Entity への安全なリファレンスを返す
@@ -155,32 +155,32 @@ public:
 
 	void LoadScene(const std::string& scenePath){
 		auto* ctx = m_ref.GetScene();
-		if(!ctx || !ctx->manager || !ctx->manager->sceneManager) return;
-		auto setScene = ctx->manager->sceneManager->LoadFromFilePath(scenePath);
-		ctx->manager->sceneManager->DeferredLoadScene(setScene);
+		if(!ctx || !ctx->pManager || !ctx->pManager->pSceneManager) return;
+		auto setScene = ctx->pManager->pSceneManager->LoadFromFilePath(scenePath);
+		ctx->pManager->pSceneManager->DeferredLoadScene(setScene);
 	}
 
 	bool GetKeyUp(int keyCode) const{
 		auto* ctx = m_ref.GetScene();
-		if(!ctx || !ctx->manager || !ctx->manager->input) return false;
-		return ctx->manager->input->IsKeyUp(ctx->manager->hwnd, keyCode);
+		if(!ctx || !ctx->pManager || !ctx->pManager->pInput) return false;
+		return ctx->pManager->pInput->IsKeyUp(ctx->pManager->hwnd, keyCode);
 	}
 
 	bool GetKeyDown(int keyCode) const {
 		auto* ctx = m_ref.GetScene();
-		if(!ctx || !ctx->manager || !ctx->manager->input) return false;
-		return ctx->manager->input->IsKeyDown(ctx->manager->hwnd, keyCode);
+		if(!ctx || !ctx->pManager || !ctx->pManager->pInput) return false;
+		return ctx->pManager->pInput->IsKeyDown(ctx->pManager->hwnd, keyCode);
 	}
 
 	bool GetKey(int keyCode) const{
 		auto* ctx = m_ref.GetScene();
-		if(!ctx || !ctx->manager || !ctx->manager->input) return false;
-		return ctx->manager->input->IsKey(ctx->manager->hwnd, keyCode);
+		if(!ctx || !ctx->pManager || !ctx->pManager->pInput) return false;
+		return ctx->pManager->pInput->IsKey(ctx->pManager->hwnd, keyCode);
 	}
 
 	// 所属エンティティとコンテキストのセット
 	void SetContext(SceneContext* context, Entity entity){
-		m_ref = EntityRef(entity, context);
+		m_ref = EntityRef(pEntity, pContext);
 	}
 
 protected:

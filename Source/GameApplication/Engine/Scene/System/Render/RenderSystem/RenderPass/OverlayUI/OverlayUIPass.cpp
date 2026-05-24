@@ -45,8 +45,8 @@
 void OverlayUIPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 
 	m_pRenderSystem = renderSystem;
-	m_pContext = context;
-	m_VertexShader = m_pContext->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
+	m_pContext = pContext;
+	m_VertexShader = m_pContext->pResource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
 
 	renderables.clear();
 	renderables.push_back(renderSystem->GetRenderable<RenderableSprite>());
@@ -59,7 +59,7 @@ void OverlayUIPass::Finalize() {
 
 void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 
-	GraphicsContext* graphics = m_pContext->graphics;
+	GraphicsContext* pGraphics = m_pContext->pGraphics;
 	ID3D11DeviceContext* deviceContext = graphics->GetDeviceContext();
 
 	// レンダーターゲット設定 (ライティング結果テクスチャに書き込む)
@@ -100,32 +100,32 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 
 		std::vector<SpriteDrawItem> m_SpriteList;
 
-		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
+		for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
 
 			auto m_Context= scene->GetSceneContext();
-			auto m_Entities= context->component->FindEntitiesWithComponent<TransformComponent>();
+			auto m_Entities= pContext->pComponent->FindEntitiesWithComponent<TransformComponent>();
 			if (entities.empty()) {
 				continue;
 			}
 
 			for (Entity entity : entities) {
 
-				RenderLayer m_Layer= scene->GetRenderLayerFromEntity(entity);
+				RenderLayer m_Layer= scene->GetRenderLayerFromEntity(pEntity);
 				if ((int)layer != i) {
 					continue;
 				}
 
 				if (layer == RenderLayer::OverlayUI) {
 
-					auto m_Transform= context->component->GetComponent<TransformComponent>(entity);
+					auto m_Transform= pContext->pComponent->GetComponent<TransformComponent>(pEntity);
 					if (!transform) {
 						continue;
 					}
 
 					SpriteDrawItem m_Item;
-					item.ref = EntityRef(entity, context);
+					item.ref = EntityRef(pEntity, pContext);
 					item.orderInLayer = 0;
-					OrderInLayerComponent* layerComp = context->component->GetComponent<OrderInLayerComponent>(entity);
+					OrderInLayerComponent* layerComp = context->pComponent->GetComponent<OrderInLayerComponent>(entity);
 					if (layerComp) {
 						item.orderInLayer = layerComp->order;
 					}
@@ -136,16 +136,16 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 					for (auto renderable : renderables) {
 
 						int m_MaterialId= 0;
-						auto m_Material= context->component->GetComponent<MaterialComponent>(entity);
+						auto m_Material= pContext->pComponent->GetComponent<MaterialComponent>(pEntity);
 						if (material) {
 							materialID = material->ShaderID;
 						}
 
 						ObjectInfo m_Info;
-						info.SceneID = m_pContext->sceneManager->GetIDFromContext(context);
-						info.ObjectID = entity;
+						info.SceneID = m_pContext->pSceneManager->GetIDFromContext(pContext);
+						info.ObjectID = pEntity;
 						info.ShaderID = materialID;
-						m_pContext->graphics->SetObjectInfo(info);
+						m_pContext->pGraphics->SetObjectInfo(info);
 
 						renderable->Execute(ctx, context, entity);
 					}
@@ -172,16 +172,16 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 				for (auto renderable : renderables) {
 
 					int m_MaterialId= 0;
-					auto m_Material= itemCtx->component->GetComponent<MaterialComponent>(entity);
+					auto m_Material= itemCtx->pComponent->GetComponent<MaterialComponent>(pEntity);
 					if (material) {
 						materialID = material->ShaderID;
 					}
 
 					ObjectInfo m_Info;
-					info.SceneID = m_pContext->sceneManager->GetIDFromContext(itemCtx);
-					info.ObjectID = entity;
+					info.SceneID = m_pContext->pSceneManager->GetIDFromContext(itemCtx);
+					info.ObjectID = pEntity;
 					info.ShaderID = materialID;
-					m_pContext->graphics->SetObjectInfo(info);
+					m_pContext->pGraphics->SetObjectInfo(info);
 
 					renderable->Execute(ctx, itemCtx, entity);
 				}

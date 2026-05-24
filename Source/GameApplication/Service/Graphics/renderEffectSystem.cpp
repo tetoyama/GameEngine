@@ -19,15 +19,15 @@
 
 bool RenderEffectSystem::Initialize(ID3D11Device* device, ID3D11DeviceContext* context) {
 
-    manager = nullptr; //エフェクトの管理クラス
-    renderer = nullptr;  //エフェクトの描画クラス
+    pManager = nullptr; //エフェクトの管理クラス
+    pRenderer = nullptr;  //エフェクトの描画クラス
 
     //Effekseerのレンダラーとマネージャーを作成
-    manager = Effekseer::Manager::Create(9999);
-    auto m_GraphicsDevice= ::EffekseerRendererDX11::CreateGraphicsDevice(device, context);
-    renderer = EffekseerRendererDX11::Renderer::Create(graphicsDevice, 9999);
+    pManager = Effekseer::Manager::Create(9999);
+    auto m_GraphicsDevice= ::EffekseerRendererDX11::CreateGraphicsDevice(device, pContext);
+    pRenderer = EffekseerRendererDX11::Renderer::Create(graphicsDevice, 9999);
 
-    if (manager == nullptr) {
+    if (pManager == nullptr) {
         MessageBox(NULL, L"マネージャーがNULLです", L"エラー", MB_OK);
         return m_False;
     }
@@ -51,6 +51,6 @@ bool RenderEffectSystem::Initialize(ID3D11Device* device, ID3D11DeviceContext* c
 
 void RenderEffectSystem::Shutdown() {
 
-	renderer = nullptr;
+	pRenderer = nullptr;
 	manager.Reset();
 }

@@ -14,9 +14,9 @@
 #include "Registry/componentRegistry.h"
 
 void CustomScriptSystem::Initialize(){
-	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
-		auto m_Scripts= context->component->GetAllBaseComponents<CustomScriptComponent>();
+		auto m_Scripts= pContext->pComponent->GetAllBaseComponents<CustomScriptComponent>();
 		for (auto& [entity, script] : scripts) {
 			if (script && !script->IsInitialized()) {
 				script->SetContext(context, entity);
@@ -27,9 +27,9 @@ void CustomScriptSystem::Initialize(){
 }
 
 void CustomScriptSystem::Finalize() {
-	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
-		auto m_Scripts= context->component->GetAllBaseComponents<CustomScriptComponent>();
+		auto m_Scripts= pContext->pComponent->GetAllBaseComponents<CustomScriptComponent>();
 		for (auto& [entity, script] : scripts) {
 			if (!script) { continue; }
 			if (!script->IsInitialized()) {
@@ -42,9 +42,9 @@ void CustomScriptSystem::Finalize() {
 }
 
 void CustomScriptSystem::Start(){
-	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
-		auto m_Scripts= context->component->GetAllBaseComponents<CustomScriptComponent>();
+		auto m_Scripts= pContext->pComponent->GetAllBaseComponents<CustomScriptComponent>();
 		for (auto& [entity, script] : scripts) {
 			if (!script) { continue; }
 			if (!script->IsInitialized()) {
@@ -57,9 +57,9 @@ void CustomScriptSystem::Start(){
 }
 
 void CustomScriptSystem::Update(float deltaTime){
-	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
-		auto m_Scripts= context->component->GetAllBaseComponents<CustomScriptComponent>();
+		auto m_Scripts= pContext->pComponent->GetAllBaseComponents<CustomScriptComponent>();
 		for (auto& [entity, script] : scripts) {
 			if (script) {
 				if (!script->IsInitialized()) {
@@ -75,9 +75,9 @@ void CustomScriptSystem::Update(float deltaTime){
 }
 
 void CustomScriptSystem::FixedUpdate(float fixedDeltaTime){
-	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
-		auto m_Scripts= context->component->GetAllBaseComponents<CustomScriptComponent>();
+		auto m_Scripts= pContext->pComponent->GetAllBaseComponents<CustomScriptComponent>();
 		for (auto& [entity, script] : scripts) {
 			if (script) {
 				if (!script->IsInitialized()) {
@@ -91,9 +91,9 @@ void CustomScriptSystem::FixedUpdate(float fixedDeltaTime){
 }
 
 void CustomScriptSystem::Draw(){
-	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
-		auto m_Scripts= context->component->GetAllBaseComponents<CustomScriptComponent>();
+		auto m_Scripts= pContext->pComponent->GetAllBaseComponents<CustomScriptComponent>();
 		for (auto& [entity, script] : scripts) {
 			if (script) {
 				if (!script->IsInitialized()) {
@@ -107,9 +107,9 @@ void CustomScriptSystem::Draw(){
 }
 
 void CustomScriptSystem::EditorUpdate(float deltaTime){
-	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
-		auto m_Scripts= context->component->GetAllBaseComponents<CustomScriptComponent>();
+		auto m_Scripts= pContext->pComponent->GetAllBaseComponents<CustomScriptComponent>();
 		for (auto& [entity, script] : scripts) {
 			if (script) {
 				if (!script->IsInitialized()) {

@@ -17,7 +17,7 @@ inline std::shared_ptr<EffectData> LoadEffectFromFile(const std::string& filePat
 
 	std::shared_ptr<EffectData> m_Efc= std::make_shared<EffectData>();
 	efc->FilePath = filePath;
-	efc->effect = Effekseer::Effect::Create(context->GetEffectManager(), std::u16string(filePath.begin(), filePath.end()).c_str());
+	efc->effect = Effekseer::Effect::Create(pContext->GetEffectManager(), std::u16string(filePath.begin(), filePath.end()).c_str());
 	if(efc->effect == nullptr){
 		OutputDebugStringA(("Failed to load effect: " + filePath + "\n").c_str());
 		return m_Nullptr;

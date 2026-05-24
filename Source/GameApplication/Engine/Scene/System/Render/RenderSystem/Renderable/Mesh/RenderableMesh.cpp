@@ -20,17 +20,17 @@
 
 void RenderableMesh::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
 
-	MeshRendererComponent* meshRenderer = sceneContext->component->GetComponent<MeshRendererComponent>(entity);
-	TransformComponent* transform = sceneContext->component->GetComponent<TransformComponent>(entity);
+	MeshRendererComponent* pMeshRenderer = sceneContext->pComponent->GetComponent<MeshRendererComponent>(entity);
+	TransformComponent* transform = sceneContext->pComponent->GetComponent<TransformComponent>(entity);
 	if(!meshRenderer || !transform){
 		return;
 	}
-	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
+	GraphicsContext* graphicsContext = sceneContext->pManager->pGraphics;
 	ID3D11Device* device = graphicsContext->GetDevice();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-	ComponentRegistry* componentRegistry = sceneContext->component;
+	ComponentRegistry* componentRegistry = sceneContext->pComponent;
 
-	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
+	TextureComponent* pTexture = sceneContext->pComponent->GetComponent<TextureComponent>(entity);
 
 	if(!pTexture){
 		if(meshRenderer->mesh.m_TextureData){

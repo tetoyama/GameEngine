@@ -59,19 +59,19 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     }
 
     // ContextからEngineContextに登録された全サービスを取得
-    auto m_DebugLogSystem= context->Get<DebugLogService>();
-	auto m_ImguiService= context->Get<ImGuiService>();
-	auto m_EditorService= context->Get<EditorService>();
-	auto m_InputService= context->Get<InputService>();
-	auto m_WindowService= context->Get<WindowService>();
-	auto m_ConfigSystem= context->Get<ConfigService>();
-	auto m_TimeService= context->Get<TimeService>();
-	auto m_GraphicsContext= context->Get<GraphicsContext>();
-	auto m_ResourceService= context->Get<ResourceService>();
-	auto m_MainRenderer= context->Get<MainRenderer>();
-	auto m_SceneManager= context->Get<SceneManager>();
-	auto m_AudioContext= context->Get<AudioContext>();
-	auto m_LlamaService= context->Get<LLAMAService>();
+    auto m_DebugLogSystem= pContext->Get<DebugLogService>();
+	auto m_ImguiService= pContext->Get<ImGuiService>();
+	auto m_EditorService= pContext->Get<EditorService>();
+	auto m_InputService= pContext->Get<InputService>();
+	auto m_WindowService= pContext->Get<WindowService>();
+	auto m_ConfigSystem= pContext->Get<ConfigService>();
+	auto m_TimeService= pContext->Get<TimeService>();
+	auto m_GraphicsContext= pContext->Get<GraphicsContext>();
+	auto m_ResourceService= pContext->Get<ResourceService>();
+	auto m_MainRenderer= pContext->Get<MainRenderer>();
+	auto m_SceneManager= pContext->Get<SceneManager>();
+	auto m_AudioContext= pContext->Get<AudioContext>();
+	auto m_LlamaService= pContext->Get<LLAMAService>();
 
 	// --- Step 1: デバッグログ初期化（他のサービスより先に初期化し、ログ出力を有効化）
 	if(debugLogSystem){
@@ -175,10 +175,10 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	// --- Step 11: エディターサービス初期化（エディタービルド時のみ実行）
 	if(editorService){
 		EditorServiceContext m_EditorContext;
-		editorContext.debugLogSystem = debugLogSystem.get();
-		editorContext.llamaService = llamaService.get();
-		editorContext.resourceService = resourceService.get();
-		editorContext.sceneManager = sceneManager.get();
+		editorContext.pDebugLogSystem = pDebugLogSystem.get();
+		editorContext.pLlamaService = pLlamaService.get();
+		editorContext.pResourceService = pResourceService.get();
+		editorContext.pSceneManager = pSceneManager.get();
 
 		editorService->Initialize(editorContext);
 		if(debugLogSystem){
@@ -190,17 +190,17 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	if(sceneManager){
 		// シーンマネージャコンテキストの設定（全依存サービスへの参照を渡す）
 		SceneManagerContext m_SceneManagerContext{};
-		sceneManagerContext.audio = audioContext.get();
-		sceneManagerContext.graphics = graphicsContext.get();
-		sceneManagerContext.renderer = mainRenderer.get();
-		sceneManagerContext.input = inputService.get();
-		sceneManagerContext.resource = resourceService.get();
+		sceneManagerContext.pAudio = audioContext.get();
+		sceneManagerContext.pGraphics = graphicsContext.get();
+		sceneManagerContext.pRenderer = mainRenderer.get();
+		sceneManagerContext.pInput = inputService.get();
+		sceneManagerContext.pResource = pResourceService.get();
 		sceneManagerContext.hwnd = mainRenderer->GetHWND();
-		sceneManagerContext.debug = debugLogSystem.get();
-		sceneManagerContext.imgui = imguiService.get();
-		sceneManagerContext.sceneManager = sceneManager.get();
-		sceneManagerContext.config = configSystem.get();
-		sceneManagerContext.editor = editorService.get();
+		sceneManagerContext.pDebug = pDebugLogSystem.get();
+		sceneManagerContext.pImGui = imguiService.get();
+		sceneManagerContext.pSceneManager = pSceneManager.get();
+		sceneManagerContext.pConfig = configSystem.get();
+		sceneManagerContext.pEditor = editorService.get();
 		// SceneManagerの初期化（システムレジストリの構築とシステムの登録）
 		sceneManager->Initialize(sceneManagerContext);
 		if(debugLogSystem){
@@ -243,7 +243,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	if (llamaService) {
 
 		LLAMAServiceContext m_LlamaContext{};
-		llamaContext.resourceService = resourceService.get();
+		llamaContext.pResourceService = pResourceService.get();
 
 		llamaService->Initialize(llamaContext);
 		if(debugLogSystem){
@@ -303,22 +303,22 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		OutputDebugStringA("EngineContext が nullptr です。\n");
 		return;
 	}
-	auto m_DebugLogSystem= context->Get<DebugLogService>();
+	auto m_DebugLogSystem= pContext->Get<DebugLogService>();
 
 	if(debugLogSystem){
 		debugLogSystem->LOG_INFO("Engine の実行を開始します");
 	}
 
 	// 必要なサービスを取得
-	auto m_WindowService= context->Get<WindowService>();
-	auto m_ConfigSystem= context->Get<ConfigService>();
-	auto m_TimeService= context->Get<TimeService>();
-	auto m_GraphicsContext= context->Get<GraphicsContext>();
-	auto m_InputService= context->Get<InputService>();
-	auto m_ImguiService= context->Get<ImGuiService>();
-	auto m_MainRenderer= context->Get<MainRenderer>();
-	auto m_SceneManager= context->Get<SceneManager>();
-	auto m_EditorService= context->Get<EditorService>();
+	auto m_WindowService= pContext->Get<WindowService>();
+	auto m_ConfigSystem= pContext->Get<ConfigService>();
+	auto m_TimeService= pContext->Get<TimeService>();
+	auto m_GraphicsContext= pContext->Get<GraphicsContext>();
+	auto m_InputService= pContext->Get<InputService>();
+	auto m_ImguiService= pContext->Get<ImGuiService>();
+	auto m_MainRenderer= pContext->Get<MainRenderer>();
+	auto m_SceneManager= pContext->Get<SceneManager>();
+	auto m_EditorService= pContext->Get<EditorService>();
 
 	if(debugLogSystem){
 		debugLogSystem->LOG_TRACE("EngineContext から実行時サービスを取得しました");

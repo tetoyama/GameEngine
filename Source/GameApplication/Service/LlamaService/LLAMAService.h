@@ -31,7 +31,7 @@ struct AgentConfig;
 
 struct LLAMAServiceContext
 {
-	ResourceService* resourceService = nullptr;
+	ResourceService* pResourceService = nullptr;
 };
 
 // ============================

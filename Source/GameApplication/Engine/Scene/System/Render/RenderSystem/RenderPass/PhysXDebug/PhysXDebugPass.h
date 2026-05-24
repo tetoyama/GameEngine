@@ -25,7 +25,7 @@ public:
 	std::shared_ptr<PixelShaderData> linePixelShader;
 	std::shared_ptr<VertexShaderData> lineVertexShader;
 
-	ID3D11ShaderResourceView* result = nullptr;
+	ID3D11ShaderResourceView* pResult = nullptr;
 
 	int maxLineCount = 999999;
 };

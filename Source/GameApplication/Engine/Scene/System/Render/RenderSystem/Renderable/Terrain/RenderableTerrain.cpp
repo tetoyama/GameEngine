@@ -22,25 +22,25 @@
 
 void RenderableTerrain::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
 
-	TerrainComponent* pTerrain = sceneContext->component->GetComponent<TerrainComponent>(entity);
-	TransformComponent* pTransform = sceneContext->component->GetComponent<TransformComponent>(entity);
-	if(!pTerrain || !pTerrain->meshRenderer || !pTransform){
+	TerrainComponent* pTerrain = sceneContext->pComponent->GetComponent<TerrainComponent>(entity);
+	TransformComponent* pTransform = sceneContext->pComponent->GetComponent<TransformComponent>(entity);
+	if(!pTerrain || !pTerrain->pMeshRenderer || !pTransform){
 		return;
 	}
 
-	auto m_MeshRenderer= pTerrain->meshRenderer;
+	auto m_MeshRenderer= pTerrain->pMeshRenderer;
 	auto m_Transform= pTransform;
 
-	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
+	GraphicsContext* graphicsContext = sceneContext->pManager->pGraphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	MATERIAL m_Material{};
-	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
+	MaterialComponent* pMaterial = sceneContext->pComponent->GetComponent<MaterialComponent>(entity);
 	if (pMaterial) {
 		material = pMaterial->Material;
 	}
 
-	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
+	TextureComponent* pTexture = sceneContext->pComponent->GetComponent<TextureComponent>(entity);
 	if (pTexture) {
 
 			// マテリアル設定
@@ -80,7 +80,7 @@ void RenderableTerrain::Execute(const RenderPassContext& ctx, SceneContext* scen
 
 	}
 
-	DirectX::XMMATRIX m_World= transform->CalculateWorldMatrix(transform, sceneContext->component);
+	DirectX::XMMATRIX m_World= transform->CalculateWorldMatrix(transform, pSceneContext->pComponent);
 
 	graphicsContext->SetWorldMatrix(World);
 	UINT m_Stride= sizeof(VERTEX_3D);

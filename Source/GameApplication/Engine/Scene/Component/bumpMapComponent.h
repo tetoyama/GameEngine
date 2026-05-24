@@ -37,7 +37,7 @@ public:
 		}
 
 		if(node["FilePath"]){
-			m_TextureData = context->manager->resource->Load<TextureData>(node["FilePath"].as<std::string>().c_str());
+			m_TextureData = pContext->pManager->pResource->Load<TextureData>(node["FilePath"].as<std::string>().c_str());
 		}
 		return true;
 	}
@@ -79,7 +79,7 @@ public:
 		ImGui::Text("Texture");
 		ImGui::PushItemWidth(inputFieldWidth);
 		if(ImGui::InputText("##TextureInput", filepathBuffer, sizeof(filepathBuffer))){
-			m_TextureData = context->manager->resource->Load<TextureData>(filepathBuffer);
+			m_TextureData = pContext->pManager->pResource->Load<TextureData>(filepathBuffer);
 		}
 		ImGui::PopItemWidth();
 
@@ -97,7 +97,7 @@ public:
 			if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
 				const char* droppedPath = (const char*)payload->Data;
 				std::string _texturePath = std::string(droppedPath);
-				m_TextureData = context->manager->resource->Load<TextureData>(_texturePath);
+				m_TextureData = pContext->pManager->pResource->Load<TextureData>(_texturePath);
 			}
 			ImGui::EndDragDropTarget();
 		}

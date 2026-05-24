@@ -25,15 +25,15 @@ class prefabSystem;
 struct SceneContext{
 
 	// マネージャコンテキスト
-	SceneManagerContext* manager = nullptr;
+	SceneManagerContext* pManager = nullptr;
 
 	// レジストリ
-	EntityRegistry* entity = nullptr;
-	ComponentRegistry* component = nullptr;
-	SystemRegistry* system = nullptr;
+	EntityRegistry* pEntity = nullptr;
+	ComponentRegistry* pComponent = nullptr;
+	SystemRegistry* pSystem = nullptr;
 
 	// プレファブシステム
-	PrefabSystem* prefab = nullptr;
+	PrefabSystem* pPrefab = nullptr;
 };
 
 // シーンの生成・読み込み・保存・破棄を行うクラス

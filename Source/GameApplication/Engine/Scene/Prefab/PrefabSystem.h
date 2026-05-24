@@ -19,13 +19,13 @@ public:
 	// 親子関係は PrefabParent ローカルインデックスとして記録されるため、
 	// インスタンス化時に正しく再現される
 	// @param ref     保存対象のルートエンティティへの EntityRef
-	// @param filePath 保存先のファイルパス（例: "Asset/Prefab/Player.prefab"）
+	// @param filePath 保存先のファイルパス（例: "Asset/Prefab/Player.pPrefab"）
 	// @return 成功した場合は true
 	bool SavePrefab(EntityRef ref, const std::string& filePath);
 
 	// リソースシステム経由でプレファブをロードしてエンティティ階層をインスタンス化する
 	// ロード結果は ResourceService にキャッシュされる
-	// @param context シーンコンテキスト（context->manager->resource を使用）
+	// @param context シーンコンテキスト（context->pManager->pResource を使用）
 	// @param filePath プレファブファイルのパス
 	// @return 生成されたルートエンティティへの EntityRef（失敗時は無効な EntityRef）
 	EntityRef InstantiatePrefab(SceneContext* context, const std::string& filePath);

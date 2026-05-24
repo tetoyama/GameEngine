@@ -24,8 +24,8 @@
 #include "Loader/prefabLoader.h"
 
 void ResourceService::Initialize(GraphicsContext* graphics, AudioContext* audio, DebugLogService* debugLog){
-	m_Graphics = graphics;
-	m_Audio = audio;
+	m_Graphics = pGraphics;
+	m_Audio = pAudio;
 	m_DebugLog = debugLog;
 
 	if(m_DebugLog){

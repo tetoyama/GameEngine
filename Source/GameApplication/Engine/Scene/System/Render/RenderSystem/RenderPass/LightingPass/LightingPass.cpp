@@ -34,7 +34,7 @@
 void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 
 	m_pRenderSystem = renderSystem;
-	m_pContext = context;
+	m_pContext = pContext;
 
 	// Linear
 	D3D11_SAMPLER_DESC m_Desc{};
@@ -44,7 +44,7 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 	desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 	desc.MinLOD = 0;
 	desc.MaxLOD = D3D11_FLOAT32_MAX;
-	m_pContext->graphics->GetDevice()->CreateSamplerState(&desc, &m_LinearSampler);
+	m_pContext->pGraphics->GetDevice()->CreateSamplerState(&desc, &m_LinearSampler);
 
 	// Environment map sampler (trilinear + wrap for cubemap)
 	D3D11_SAMPLER_DESC m_EnvDesc{};
@@ -54,15 +54,15 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 	envDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 	envDesc.MinLOD = 0;
 	envDesc.MaxLOD = D3D11_FLOAT32_MAX;
-	m_pContext->graphics->GetDevice()->CreateSamplerState(&envDesc, &m_EnvMapSampler);
+	m_pContext->pGraphics->GetDevice()->CreateSamplerState(&envDesc, &m_EnvMapSampler);
 
-	Vector2 m_Size= Vector2((float)context->graphics->m_width, (float)context->graphics->m_height);
+	Vector2 m_Size= Vector2((float)pContext->pGraphics->m_width, (float)pContext->pGraphics->m_height);
 
 	// ----- RenderTargets -----
 	// HDR float16 バッファ: エミッシブ HDR 値を保持しブルーム入力に使用する
-	pRenderTarget = new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR);
+	pRenderTarget = new RenderTarget(size, pContext->pGraphics, RENDERTARGET_TYPE_COLOR);
 
-	m_LightingVertexShader = m_pContext->resource->Load<VertexShaderData>("Asset\\Shader\\LightingVS.cso");
+	m_LightingVertexShader = m_pContext->pResource->Load<VertexShaderData>("Asset\\Shader\\LightingVS.cso");
 }
 
 void LightingPass::Finalize() {
@@ -97,7 +97,7 @@ void LightingPass::SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shado
 	dc->PSSetShaderResources(LightingSlot_GMaterial, 1, gBufferPass->pRenderTargets[GBufferSlot_Material]->srv.GetAddressOf());
 	dc->PSSetShaderResources(LightingSlot_GEmissive, 1, gBufferPass->pRenderTargets[GBufferSlot_Emissive]->srv.GetAddressOf());
 	dc->PSSetShaderResources(LightingSlot_GParam, 1, gBufferPass->pRenderTargets[GBufferSlot_Param]->srv.GetAddressOf());
-	dc->PSSetShaderResources(LightingSlot_ShadowMap, 1, shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
+	dc->PSSetShaderResources(LightingSlot_ShadowMap, 1, shadowMapPass->pShadowRenderTarget->srv.GetAddressOf());
 
 	if (m_EnvironmentMap && m_EnvironmentMap->pTexture) {
 		dc->PSSetShaderResources(LightingSlot_EnvironmentMap, 1, m_EnvironmentMap->pTexture.GetAddressOf());
@@ -117,13 +117,13 @@ void LightingPass::SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shado
 
 void LightingPass::Execute(const RenderPassContext& ctx) {
 
-	pRenderTarget->Resize(ctx.screenSize, m_pContext->graphics);
+	pRenderTarget->Resize(ctx.screenSize, m_pContext->pGraphics);
 
 	float m_ClearColor[4] = { 0,0,0,0 };
-	pRenderTarget->Clear(m_pContext->graphics->GetDeviceContext(), clearColor);
+	pRenderTarget->Clear(m_pContext->pGraphics->GetDeviceContext(), clearColor);
 
-	ID3D11DeviceContext* dc = m_pContext->graphics->GetDeviceContext();
-	GraphicsContext* gc = m_pContext->renderer->GetGraphicsContext();
+	ID3D11DeviceContext* dc = m_pContext->pGraphics->GetDeviceContext();
+	GraphicsContext* gc = m_pContext->pRenderer->GetGraphicsContext();
 
 	dc->OMSetRenderTargets(1, pRenderTarget->rtv.GetAddressOf(), nullptr);
 

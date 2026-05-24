@@ -53,22 +53,22 @@ public:
 		CameraBuffer = GetComponentRef<CameraComponent>();
 
 		// CharacterController を優先して探し、なければ PlayerController を使う
-		auto charEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<CharacterController>();
+		auto charEntities = m_ref.GetScene()->pComponent->FindEntitiesWithComponent<CharacterController>();
 		if (!charEntities.empty()) {
 			playerTransform = GetComponentRefFor<TransformComponent>(charEntities[0]);
 		} else {
-			auto playerEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<PlayerController>();
+			auto playerEntities = m_ref.GetScene()->pComponent->FindEntitiesWithComponent<PlayerController>();
 			if (!playerEntities.empty()) {
 				playerTransform = GetComponentRefFor<TransformComponent>(playerEntities[0]);
 			}
 		}
 
-		auto ballEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<BallController>();
+		auto ballEntities = m_ref.GetScene()->pComponent->FindEntitiesWithComponent<BallController>();
 		if(!ballEntities.empty()){
 			ballEntity = GetEntityRefFor(ballEntities[0]);
 		}
 
-		auto timerEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<GameTimeManager>();
+		auto timerEntities = m_ref.GetScene()->pComponent->FindEntitiesWithComponent<GameTimeManager>();
 		if(!timerEntities.empty()){
 			gameTime = GetComponentRefFor<GameTimeManager>(timerEntities[0]);
 		}
@@ -108,8 +108,8 @@ public:
 		// --- カメラ遮蔽判定（遮蔽物があればカメラを近づける） ---
 		constexpr float occlusionPadding   = 0.1f;  // 遮蔽面からの安全マージン
 		constexpr float minGroundClearance = 0.3f;  // ターゲット足元からの最低高さ
-		auto* phys = m_ref.GetScene()->manager
-			->systemRegistry
+		auto* phys = m_ref.GetScene()->pManager
+			->pSystemRegistry
 			->GetSystem<PhysicSystem>();
 
 		DirectX::XMFLOAT3 pos;

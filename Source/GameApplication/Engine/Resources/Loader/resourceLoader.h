@@ -46,14 +46,14 @@ public:
 
             if (!m_LoadFunc) return nullptr;
 
-            auto result = m_LoadFunc(path, argsTuple);
+            auto pResult = m_LoadFunc(path, argsTuple);
             if (result) {
                 OutputDebugStringA("Load Success: ");
                 OutputDebugStringA(cacheKey.c_str());
                 OutputDebugStringA("\n");
 
                 std::lock_guard<std::mutex> lock(m_mutex);
-                m_Cache[cacheKey] = result;
+                m_Cache[cacheKey] = pResult;
             } else {
                 OutputDebugStringA("Load FAILED: ");
                 OutputDebugStringA(cacheKey.c_str());

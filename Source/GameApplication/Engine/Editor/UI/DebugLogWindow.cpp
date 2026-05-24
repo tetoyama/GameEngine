@@ -69,7 +69,7 @@ ImVec4 DebugLogWindow::GetColorForLevel(LogLevel level) const{
 
 void DebugLogWindow::Initialize(EditorService* editor){
 	m_pEditor = editor;
-	logSink = editor->debugLogSystem->GetSink<MemoryLogSink>();
+	logSink = editor->pDebugLogSystem->GetSink<MemoryLogSink>();
 }
 
 void DebugLogWindow::Draw(const EditorDrawContext ctx){

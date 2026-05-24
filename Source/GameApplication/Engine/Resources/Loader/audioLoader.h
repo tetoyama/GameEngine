@@ -58,11 +58,11 @@ inline std::shared_ptr<AudioData> LoadAudioFromWav(const std::string& filePath, 
 	}
 
 	auto m_Audio= std::make_shared<AudioData>();
-	audio->FilePath = filePath;
-	audio->m_Length = dataChunk.cksize;
-	audio->m_PlayLength = dataChunk.cksize / wfx.nBlockAlign;
-	audio->m_SoundData = new BYTE[dataChunk.cksize];
-	audio->m_Format = wfx;
+	pAudio->FilePath = filePath;
+	pAudio->m_Length = dataChunk.cksize;
+	pAudio->m_PlayLength = dataChunk.cksize / wfx.nBlockAlign;
+	pAudio->m_SoundData = new BYTE[dataChunk.cksize];
+	pAudio->m_Format = wfx;
 
 	mmioRead(hmmio, (HPSTR)audio->m_SoundData, dataChunk.cksize);
 

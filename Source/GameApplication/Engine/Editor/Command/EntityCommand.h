@@ -66,17 +66,17 @@ public:
 
 		// リドゥ時は同じ ID を再利用
 		Entity e = (m_created != 0)
-			? m_pContext->entity->CreateID(m_created)
-			: m_pContext->entity->Create();
+			? m_pContext->pEntity->CreateID(m_created)
+			: m_pContext->pEntity->Create();
 		m_created = e;
 
 		YAML::Node nameNode;
 		nameNode["Name"] = "Entity";
-		m_pContext->component->CreateFromYAML("NameComponent", e, nameNode);
-		m_pContext->component->CreateFromYAML("TransformComponent", e, YAML::Node());
+		m_pContext->pComponent->CreateFromYAML("NameComponent", e, nameNode);
+		m_pContext->pComponent->CreateFromYAML("TransformComponent", e, YAML::Node());
 
 		// 親子関係
-		if (m_parent != 0 && m_pContext->entity->IsAlive(m_parent)) {
+		if (m_parent != 0 && m_pContext->pEntity->IsAlive(m_parent)) {
 			EntityCommandHelper::SetParent(m_created, m_parent, m_pContext);
 		}
 
@@ -85,13 +85,13 @@ public:
 
 	void Undo() override {
 		if (!m_pContext || m_created == 0) return;
-		if (!m_pContext->entity->IsAlive(m_created)) return;
+		if (!m_pContext->pEntity->IsAlive(m_created)) return;
 
 		// 親子関係を解除
 		EntityCommandHelper::SetParent(m_created, 0, m_pContext);
 
-		m_pContext->component->OnEntityDestroyed(m_created);
-		m_pContext->entity->Destroy(m_created);
+		m_pContext->pComponent->OnEntityDestroyed(m_created);
+		m_pContext->pEntity->Destroy(m_created);
 		if (m_onUndone) m_onUndone();
 	}
 
@@ -129,20 +129,20 @@ public:
 		, m_onRestored(onRestored)
 	{
 		// 削除前にエンティティ名を記録（UI ヒント用）
-		auto* nameComp = context->component->GetComponent<NameComponent>(entity);
-		m_entityName = nameComp ? nameComp->name : std::to_string(static_cast<uint32_t>(entity));
+		auto* nameComp = context->pComponent->GetComponent<NameComponent>(entity);
+		m_entityName = nameComp ? nameComp->name : std::to_string(static_cast<uint32_t>(pEntity));
 		// 構築時にスナップショット取得
 		EntityCommandHelper::SnapshotRecursive(m_entity, m_pContext, m_snapshots);
 	}
 
 	void Execute() override {
-		if (!m_pContext || !m_pContext->entity->IsAlive(m_entity)) return;
+		if (!m_pContext || !m_pContext->pEntity->IsAlive(m_entity)) return;
 		EntityCommandHelper::DestroyRecursive(m_entity, m_pContext);
 		if (m_onDeleted) m_onDeleted();
 	}
 
 	void Undo() override {
-		if (!m_pContext || m_pContext->entity->IsAlive(m_entity)) return;
+		if (!m_pContext || m_pContext->pEntity->IsAlive(m_entity)) return;
 		EntityCommandHelper::RestoreAll(m_snapshots, m_pContext);
 		if (m_onRestored) m_onRestored(m_entity, m_pContext);
 	}
@@ -189,8 +189,8 @@ public:
 
 private:
 	NameComponent* _GetName() {
-		if (!m_pContext || !m_pContext->entity->IsAlive(m_entity)) return nullptr;
-		return m_pContext->component->GetComponent<NameComponent>(m_entity);
+		if (!m_pContext || !m_pContext->pEntity->IsAlive(m_entity)) return nullptr;
+		return m_pContext->pComponent->GetComponent<NameComponent>(m_entity);
 	}
 
 	SceneContext* m_pContext;
@@ -229,7 +229,7 @@ public:
 		}
 
 		// 初回: 複製
-		auto* t = m_pContext->component->GetComponent<TransformComponent>(m_src);
+		auto* t = m_pContext->pComponent->GetComponent<TransformComponent>(m_src);
 		Entity newParent = t ? t->parent : 0;
 		m_duplicated = _DuplicateRecursive(m_src, newParent);
 
@@ -242,7 +242,7 @@ public:
 
 	void Undo() override {
 		if (!m_pContext || m_duplicated == 0) return;
-		if (!m_pContext->entity->IsAlive(m_duplicated)) return;
+		if (!m_pContext->pEntity->IsAlive(m_duplicated)) return;
 		EntityCommandHelper::DestroyRecursive(m_duplicated, m_pContext);
 		if (m_onUndone) m_onUndone();
 	}
@@ -254,29 +254,29 @@ public:
 
 private:
 	Entity _DuplicateRecursive(Entity src, Entity newParent) {
-		Entity m_NewEntity= m_pContext->entity->Create();
+		Entity m_NewEntity= m_pContext->pEntity->Create();
 
-		const auto& idToName = m_pContext->component->GetComponentIDToNameMap();
-		auto m_Comps= m_pContext->component->GetAllComponentsOfEntitySorted(src);
+		const auto& idToName = m_pContext->pComponent->GetComponentIDToNameMap();
+		auto m_Comps= m_pContext->pComponent->GetAllComponentsOfEntitySorted(src);
 		for (IComponent* comp : comps) {
-			ComponentTypeID m_Tid= m_pContext->component->GetComponentIDByTypeIndex(std::type_index(typeid(*comp)));
+			ComponentTypeID m_Tid= m_pContext->pComponent->GetComponentIDByTypeIndex(std::type_index(typeid(*comp)));
 			if (tid == static_cast<ComponentTypeID>(-1)) continue;
 			auto m_NameIt= idToName.find(tid);
 			if (nameIt == idToName.end()) continue;
-			m_pContext->component->CreateFromYAML(nameIt->second, newEntity, comp->encode());
+			m_pContext->pComponent->CreateFromYAML(nameIt->second, newEntity, comp->encode());
 		}
 
-		auto* newT = m_pContext->component->GetComponent<TransformComponent>(newEntity);
+		auto* newT = m_pContext->pComponent->GetComponent<TransformComponent>(newEntity);
 		if (newT) {
 			newT->children.clear();
 			newT->parent = newParent;
 			if (newParent != 0) {
-				auto* parentT = m_pContext->component->GetComponent<TransformComponent>(newParent);
+				auto* parentT = m_pContext->pComponent->GetComponent<TransformComponent>(newParent);
 				if (parentT) parentT->children.push_back(newEntity);
 			}
 		}
 
-		auto* srcT = m_pContext->component->GetComponent<TransformComponent>(src);
+		auto* srcT = m_pContext->pComponent->GetComponent<TransformComponent>(src);
 		if (srcT) {
 			for (Entity srcChild : srcT->children)
 				_DuplicateRecursive(srcChild, newEntity);
@@ -312,7 +312,7 @@ public:
 		, m_onCreated(onCreated)
 		, m_onUndone(onUndone)
 	{
-		auto* t = ctx->component->GetComponent<TransformComponent>(entity);
+		auto* t = ctx->pComponent->GetComponent<TransformComponent>(entity);
 		m_entityOldParent = t ? t->parent : 0;
 	}
 
@@ -321,29 +321,29 @@ public:
 
 		if (m_newParent != 0) {
 			// Redo: スナップショットから新親を復元
-			if (!m_pContext->entity->IsAlive(m_newParent))
-				m_pContext->entity->CreateID(m_newParent);
+			if (!m_pContext->pEntity->IsAlive(m_newParent))
+				m_pContext->pEntity->CreateID(m_newParent);
 			for (auto& [compName, node] : m_snapshot)
-				m_pContext->component->CreateFromYAML(compName, m_newParent, node);
+				m_pContext->pComponent->CreateFromYAML(compName, m_newParent, node);
 			EntityCommandHelper::SetParent(m_entity, m_newParent, m_pContext);
 			if (m_onCreated) m_onCreated(m_newParent, m_pContext);
 			return;
 		}
 
 		// 初回: 新しい空エンティティを作成
-		m_newParent = m_pContext->entity->Create();
+		m_newParent = m_pContext->pEntity->Create();
 		YAML::Node nameNode; nameNode["Name"] = "Entity";
-		m_pContext->component->CreateFromYAML("NameComponent", m_newParent, nameNode);
-		m_pContext->component->CreateFromYAML("TransformComponent", m_newParent, YAML::Node());
+		m_pContext->pComponent->CreateFromYAML("NameComponent", m_newParent, nameNode);
+		m_pContext->pComponent->CreateFromYAML("TransformComponent", m_newParent, YAML::Node());
 
 		// 元エンティティを新親の子にする
 		EntityCommandHelper::SetParent(m_entity, m_newParent, m_pContext);
 
 		// Redo 用スナップショット
-		const auto& idToName = m_pContext->component->GetComponentIDToNameMap();
-		for (IComponent* comp : m_pContext->component->GetAllComponentsOfEntitySorted(m_newParent)) {
+		const auto& idToName = m_pContext->pComponent->GetComponentIDToNameMap();
+		for (IComponent* comp : m_pContext->pComponent->GetAllComponentsOfEntitySorted(m_newParent)) {
 			std::type_index ti(typeid(*comp));
-			ComponentTypeID tid = m_pContext->component->GetComponentIDByTypeIndex(ti);
+			ComponentTypeID tid = m_pContext->pComponent->GetComponentIDByTypeIndex(ti);
 			auto nameIt = idToName.find(tid);
 			if (nameIt != idToName.end())
 				m_snapshot.emplace_back(nameIt->second, comp->encode());
@@ -354,14 +354,14 @@ public:
 
 	void Undo() override {
 		if (!m_pContext || m_newParent == 0) return;
-		if (!m_pContext->entity->IsAlive(m_newParent)) return;
+		if (!m_pContext->pEntity->IsAlive(m_newParent)) return;
 
 		// 元エンティティの親を元に戻す
 		EntityCommandHelper::SetParent(m_entity, m_entityOldParent, m_pContext);
 
 		// 新親エンティティを削除
-		m_pContext->component->OnEntityDestroyed(m_newParent);
-		m_pContext->entity->Destroy(m_newParent);
+		m_pContext->pComponent->OnEntityDestroyed(m_newParent);
+		m_pContext->pEntity->Destroy(m_newParent);
 		if (m_onUndone) m_onUndone();
 	}
 

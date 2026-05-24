@@ -32,7 +32,7 @@ void SystemSetting::Draw(const EditorDrawContext ctx) {
 	// Application Config セクション
 	// ===========================================================
 	if(ImGui::CollapsingHeader("Application Config", ImGuiTreeNodeFlags_DefaultOpen)){
-		ConfigService* cfg = m_pEditor->sceneManager->GetContext()->config;
+		ConfigService* cfg = m_pEditor->pSceneManager->GetContext()->pConfig;
 		if(cfg){
 			APPCONFIG& app = cfg->appConfig;
 
@@ -63,7 +63,7 @@ void SystemSetting::Draw(const EditorDrawContext ctx) {
 	// ===========================================================
 	// 各システム設定セクション（HasSystemSetting() == true のみ表示）
 	// ===========================================================
-	auto& systems = m_pEditor->sceneManager->systemRegistry->GetSystems();
+	auto& systems = m_pEditor->pSceneManager->pSystemRegistry->GetSystems();
 	for(auto& s : systems){
 		if(!s->HasSystemSetting()) continue;
 

@@ -23,19 +23,19 @@
 
 
 void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity) {
-	auto m_ComponentRegistry= sceneContext->component;
-	auto m_PTransform= componentRegistry->GetComponent<TransformComponent>(entity);
-	auto m_PWave= componentRegistry->GetComponent<WaveComponent>(entity);
+	auto m_ComponentRegistry= pSceneContext->pComponent;
+	auto m_PTransform= componentRegistry->GetComponent<TransformComponent>(pEntity);
+	auto m_PWave= componentRegistry->GetComponent<WaveComponent>(pEntity);
 
-	if (!pWave || !pWave->meshRenderer) {
+	if (!pWave || !pWave->pMeshRenderer) {
 		return;
 	}
-	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
+	GraphicsContext* graphicsContext = sceneContext->pManager->pGraphics;
 	ID3D11Device* device = graphicsContext->GetDevice();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
-	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
+	TextureComponent* pTexture = sceneContext->pComponent->GetComponent<TextureComponent>(entity);
+	MaterialComponent* pMaterial = sceneContext->pComponent->GetComponent<MaterialComponent>(entity);
 	MATERIAL m_Material;
 	if (pMaterial) {
 		material = pMaterial->Material;
@@ -45,14 +45,14 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	if(pTexture && pTexture->m_TextureData && pTexture->m_TextureData->pTexture){
 		deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 
-		// sceneContext->manager->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+		// sceneContext->pManager->pGraphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 		material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 
 	}
 
-	sceneContext->manager->graphics->SetMaterial(material);
+	sceneContext->pManager->pGraphics->SetMaterial(material);
 
-	auto m_MeshRenderer= pWave->meshRenderer;
+	auto m_MeshRenderer= pWave->pMeshRenderer;
 	auto m_Transform= pTransform;
 
 

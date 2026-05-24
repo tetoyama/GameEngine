@@ -29,7 +29,7 @@ static std::vector<Entity> CollectHierarchy(Entity root, SceneContext* context) 
 	while (head < queue.size()) {
 		Entity m_E= queue[head++];
 		result.push_back(e);
-		auto* tc = context->component->GetComponent<TransformComponent>(e);
+		auto* tc = context->pComponent->GetComponent<TransformComponent>(e);
 		if (tc) {
 			for (Entity child : tc->children) {
 				queue.push_back(child);
@@ -55,20 +55,20 @@ static void RebuildTransformChildren(ComponentRegistry* registry) {
 }
 
 bool PrefabSystem::SavePrefab(EntityRef ref, const std::string& filePath) {
-	SceneContext* context = ref.GetScene();
+	SceneContext* pContext = ref.GetScene();
 	Entity m_Entity= ref.GetEntityID();
-	if (!context || !context->entity || !context->component) return false;
-	if (!context->entity->IsAlive(entity)) return false;
+	if (!context || !context->pEntity || !context->pComponent) return false;
+	if (!context->pEntity->IsAlive(entity)) return false;
 
 	// 出力ディレクトリを作成
 	std::filesystem::path path(filePath);
 	std::filesystem::create_directories(path.parent_path());
 
 	// children リストが古い可能性があるため、収集前に必ず再構築する
-	RebuildTransformChildren(context->component);
+	RebuildTransformChildren(context->pComponent);
 
 	// 階層全体（ルート + 全子孫）を収集して旧 Entity → ローカル ID マッピングを構築
-	std::vector<Entity> m_Hierarchy= CollectHierarchy(entity, context);
+	std::vector<Entity> m_Hierarchy= CollectHierarchy(pEntity, pContext);
 	std::unordered_map<Entity, int> m_EntityToLocal;
 	for (int i = 0; i < static_cast<int>(hierarchy.size()); i++) {
 		entityToLocal[hierarchy[i]] = i;
@@ -83,7 +83,7 @@ bool PrefabSystem::SavePrefab(EntityRef ref, const std::string& filePath) {
 		entityNode["LocalID"] = i;
 
 		// 親のローカル ID を記録する。ルート（親なし）の場合はキーを省略する
-		auto* tc = context->component->GetComponent<TransformComponent>(e);
+		auto* tc = context->pComponent->GetComponent<TransformComponent>(e);
 		if (tc && tc->parent != 0) {
 			auto m_It= entityToLocal.find(tc->parent);
 			if (it != entityToLocal.end()) {
@@ -93,12 +93,12 @@ bool PrefabSystem::SavePrefab(EntityRef ref, const std::string& filePath) {
 
 		// コンポーネントをエンコード
 		YAML::Node m_ComponentsSeq= YAML::Node(YAML::NodeType::Sequence);
-		for (IComponent* comp : context->component->GetAllComponentsOfEntitySorted(e)) {
+		for (IComponent* comp : context->pComponent->GetAllComponentsOfEntitySorted(e)) {
 			if (!comp) continue;
 
 			std::type_index ti(typeid(*comp));
-			ComponentTypeID m_CompId= context->component->GetComponentIDByTypeIndex(ti);
-			const auto& idToName = context->component->GetComponentIDToNameMap();
+			ComponentTypeID m_CompId= pContext->pComponent->GetComponentIDByTypeIndex(ti);
+			const auto& idToName = pContext->pComponent->GetComponentIDToNameMap();
 			auto m_It= idToName.find(compId);
 			if (it == idToName.end()) continue;
 
@@ -134,15 +134,15 @@ bool PrefabSystem::SavePrefab(EntityRef ref, const std::string& filePath) {
 	fout << savedYaml;
 
 	// 保存後にキャッシュを無効化する（次回ロード時に最新の内容が使われるよう）
-	if (context->manager && context->manager->resource) {
-		context->manager->resource->Unload<PrefabData>(filePath);
+	if (context->pManager && context->pManager->pResource) {
+		context->pManager->pResource->Unload<PrefabData>(filePath);
 	}
 
 	// ルートエンティティに PrefabComponent を付与・更新する
 	// すでに付いている場合はパスと YAML スナップショットを最新の保存内容で上書きする
-	auto* prefabComp = context->component->GetComponent<PrefabComponent>(entity);
+	auto* prefabComp = context->pComponent->GetComponent<PrefabComponent>(entity);
 	if (!prefabComp) {
-		prefabComp = context->component->AddComponent<PrefabComponent>(entity);
+		prefabComp = pContext->pComponent->AddComponent<PrefabComponent>(pEntity);
 	}
 	if (prefabComp) {
 		prefabComp->filePath   = filePath;
@@ -156,8 +156,8 @@ EntityRef PrefabSystem::InstantiatePrefab(SceneContext* context, const std::stri
 	if (!context) return EntityRef{};
 
 	// リソースシステム経由でロード（キャッシュが効く）
-	if (context->manager && context->manager->resource) {
-		auto m_Data= context->manager->resource->Load<PrefabData>(filePath);
+	if (context->pManager && context->pManager->pResource) {
+		auto m_Data= pContext->pManager->pResource->Load<PrefabData>(filePath);
 		if (!data) return EntityRef{};
 		return Instantiate(context, data);
 	}
@@ -173,7 +173,7 @@ EntityRef PrefabSystem::InstantiatePrefab(SceneContext* context, const std::stri
 }
 
 EntityRef PrefabSystem::Instantiate(SceneContext* context, const std::shared_ptr<PrefabData>& data) {
-	if (!context || !context->entity || !context->component) return EntityRef{};
+	if (!context || !context->pEntity || !context->pComponent) return EntityRef{};
 	if (!data || !data->root["Entities"] || !data->root["Entities"].IsSequence()) return EntityRef{};
 
 	const YAML::Node& entitiesSeq = data->root["Entities"];
@@ -183,7 +183,7 @@ EntityRef PrefabSystem::Instantiate(SceneContext* context, const std::shared_ptr
 	std::vector<Entity> m_NewEntities;
 	newEntities.reserve(entitiesSeq.size());
 	for (size_t i = 0; i < entitiesSeq.size(); i++) {
-		newEntities.push_back(context->entity->Create());
+		newEntities.push_back(context->pEntity->Create());
 	}
 
 	// Pass 2: 各エンティティにコンポーネントを追加する
@@ -194,7 +194,7 @@ EntityRef PrefabSystem::Instantiate(SceneContext* context, const std::shared_ptr
 		for (const auto& compNode : entityNode["Components"]) {
 			if (!compNode["Component"]) continue;
 			const std::string m_CompType= compNode["Component"].as<std::string>();
-			context->component->CreateFromYAML(compType, newEntities[i], compNode);
+			context->pComponent->CreateFromYAML(compType, newEntities[i], compNode);
 		}
 	}
 
@@ -205,19 +205,19 @@ EntityRef PrefabSystem::Instantiate(SceneContext* context, const std::shared_ptr
 		if (!entityNode["PrefabParent"]) continue;
 		int m_LocalParent= entityNode["PrefabParent"].as<int>();
 		if (localParent < 0 || localParent >= static_cast<int>(newEntities.size())) continue;
-		auto* tc = context->component->GetComponent<TransformComponent>(newEntities[i]);
+		auto* tc = context->pComponent->GetComponent<TransformComponent>(newEntities[i]);
 		if (tc) {
 			tc->parent = newEntities[localParent];
 		}
 	}
 
 	// 親子リストを再構築する
-	RebuildTransformChildren(context->component);
+	RebuildTransformChildren(context->pComponent);
 
 	// PrefabComponent をルートエンティティに付与する
 	// filePath は上書き保存に、sourceYaml はインスタンス化時の状態記録（差分検出の基準値）に使用する
 	if (!data->filePath.empty()) {
-		auto* prefabComp = context->component->AddComponent<PrefabComponent>(newEntities[0]);
+		auto* prefabComp = context->pComponent->AddComponent<PrefabComponent>(newEntities[0]);
 		if (prefabComp) {
 			prefabComp->filePath = data->filePath;
 			std::ostringstream m_Ss;

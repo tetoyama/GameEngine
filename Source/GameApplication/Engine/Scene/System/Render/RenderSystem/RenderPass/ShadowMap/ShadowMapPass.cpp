@@ -46,18 +46,18 @@ static const PointFace s_PointFaces[6] = {
 
 void ShadowMapPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 	m_pRenderSystem = renderSystem;
-	m_pContext = context;
+	m_pContext = pContext;
 
 	D3D11_SAMPLER_DESC desc = {};
 	desc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
 	desc.AddressU = desc.AddressV = desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 	desc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
 
-	context->graphics->GetDevice()->CreateSamplerState(&desc, &shadowSampler);
+	context->pGraphics->GetDevice()->CreateSamplerState(&desc, &shadowSampler);
 
-	shadowRenderTarget = new RenderTarget(
+	pShadowRenderTarget = new RenderTarget(
 		Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE),
-		m_pContext->graphics,
+		m_pContext->pGraphics,
 		RenderTargetType::RENDERTARGET_TYPE_DEPTH
 	);
 
@@ -68,7 +68,7 @@ void ShadowMapPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* 
 	//renderables.push_back(renderSystem->GetRenderable<RenderableParticle>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableBillBoard>());
 
-	m_RenderablePixelShader = m_pContext->resource->Load<PixelShaderData>("Asset\\Shader\\shadowPS.cso");
+	m_RenderablePixelShader = m_pContext->pResource->Load<PixelShaderData>("Asset\\Shader\\shadowPS.cso");
 
 	// DepthClipEnable=FALSE のラスタライザステートを作成
 	// フラスタム外の shadow caster が light-space Z < 0 でもクリップされず、
@@ -78,7 +78,7 @@ void ShadowMapPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* 
 	rsDesc.CullMode = D3D11_CULL_BACK;
 	rsDesc.DepthClipEnable = FALSE;
 	rsDesc.MultisampleEnable = FALSE;
-	HRESULT hr = context->graphics->GetDevice()->CreateRasterizerState(&rsDesc, &depthClampRS);
+	HRESULT hr = pContext->pGraphics->GetDevice()->CreateRasterizerState(&rsDesc, &pDepthClampRS);
 	assert(SUCCEEDED(hr));
 
 }
@@ -87,29 +87,29 @@ void ShadowMapPass::Finalize() {
 	m_RenderablePixelShader.reset();
 
 	shadowSampler->Release();
-	shadowSampler = nullptr;
+	pShadowSampler = nullptr;
 
 	if (depthClampRS){
 		depthClampRS->Release();
-		depthClampRS = nullptr;
+		pDepthClampRS = nullptr;
 	}
 
 	delete shadowRenderTarget;
-	shadowRenderTarget = nullptr;
+	pShadowRenderTarget = nullptr;
 }
 void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 	using namespace DirectX;
 
-	ID3D11DeviceContext* deviceContext = m_pContext->graphics->GetDeviceContext();
-	GraphicsContext* graphicsContext = m_pContext->renderer->GetGraphicsContext();
+	ID3D11DeviceContext* deviceContext = m_pContext->pGraphics->GetDeviceContext();
+	GraphicsContext* graphicsContext = m_pContext->pRenderer->GetGraphicsContext();
 
 	ID3D11ShaderResourceView* nullSRV[1] = {nullptr};
 	deviceContext->PSSetShaderResources(TextureSlot_ShadowMap, 1, nullSRV);
 	deviceContext->PSSetShader(m_RenderablePixelShader->m_PixelShader.Get(), NULL, 0);
 
 	// ======== RenderTarget 切り替え ========
-	if(shadowRenderTarget->type == RenderTargetType::RENDERTARGET_TYPE_DEPTH){
+	if(pShadowRenderTarget->type == RenderTargetType::RENDERTARGET_TYPE_DEPTH){
 		deviceContext->ClearDepthStencilView(shadowRenderTarget->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		deviceContext->OMSetRenderTargets(0, nullptr, shadowRenderTarget->dsv.Get());
 	} else{
@@ -129,7 +129,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 	// ======== メインカメラ取得 ========
 	Vector3 mainCamPos = Vector3(ctx.CameraPosition.x, ctx.CameraPosition.y, ctx.CameraPosition.z);
-	Vector3 mainCamFront = ctx.cameraData.transformComponent->front();
+	Vector3 mainCamFront = ctx.cameraData.pTransformComponent->front();
 
 	// ======== Directional Light 取得 ========
 	LightBuffer light;
@@ -145,13 +145,13 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 	bool hasCsmLight = false;
 
 	bool foundLight = false;
-	for(auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()){
+	for(auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()){
 		auto sctx = scene->GetSceneContext();
-		const auto& lightEntities = sctx->component->FindEntitiesWithComponent<LightComponent>();
+		const auto& lightEntities = sctx->pComponent->FindEntitiesWithComponent<LightComponent>();
 		if(lightEntities.empty()) continue;
 
 		for(Entity ent : lightEntities){
-			LightComponent* lightcomp = sctx->component->GetComponent<LightComponent>(ent);
+			LightComponent* lightcomp = sctx->pComponent->GetComponent<LightComponent>(ent);
 			if(!lightcomp) continue;
 
 			// 最大数を超えたら安全に打ち切る
@@ -159,7 +159,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 				break;
 			}
 
-			TransformComponent* transform = sctx->component->GetComponent<TransformComponent>(ent);
+			TransformComponent* transform = sctx->pComponent->GetComponent<TransformComponent>(ent);
 			if(transform){
 				lightcomp->light.Position = DirectX::XMFLOAT4(transform->position.x, transform->position.y, transform->position.z, 0.0f);
 				lightcomp->light.Direction = DirectX::XMFLOAT4(transform->front().x, transform->front().y, transform->front().z, 0.0f);
@@ -196,15 +196,15 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 						foundLight = true;
 					} else if (lightcomp->light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && !hasCsmLight
-					           && ctx.cameraData.cameraComponent && ctx.cameraData.cameraComponent->FarClip > ctx.cameraData.cameraComponent->NearClip) {
+					           && ctx.cameraData.pCameraComponent && ctx.cameraData.pCameraComponent->FarClip > ctx.cameraData.pCameraComponent->NearClip) {
 						// ======== CSM カスケード計算 ========
 						// 各カスケードを個別の LIGHT エントリとしてアトラスに統合する。
 						// CbCSM 専用バッファは使用しない。
 						XMVECTOR lightDir = XMVector3Normalize(transform->front().ToXMVECTOR());
 
-						float cameraNear  = ctx.cameraData.cameraComponent->NearClip;
-						float cameraFar   = ctx.cameraData.cameraComponent->FarClip;
-						float fov         = ctx.cameraData.cameraComponent->FOV;
+						float cameraNear  = ctx.cameraData.pCameraComponent->NearClip;
+						float cameraFar   = ctx.cameraData.pCameraComponent->FarClip;
+						float fov         = ctx.cameraData.pCameraComponent->FOV;
 						float aspect      = (ctx.screenSize.y > 0.0f) ? (ctx.screenSize.x / ctx.screenSize.y) : 1.0f;
 						float tanHalfFovV = tanf(fov * 0.5f);
 						float tanHalfFovH = tanHalfFovV * aspect;
@@ -471,7 +471,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 	if(ATLAS_GRID * ATLAS_GRID < shadowCount){
 		ATLAS_GRID++;
 	}
-	const int atlasSize= (int)shadowRenderTarget->size.x;
+	const int atlasSize= (int)pShadowRenderTarget->size.x;
 	const int tileSize= (ATLAS_GRID > 0) ? (ATLAS_SIZE / ATLAS_GRID) : ATLAS_SIZE;
 	int shadowNum = 0;
 
@@ -515,15 +515,15 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 			if(!newContext.renderLayerVisibility[j]) continue;
 
-			for(auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()){
+			for(auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()){
 				auto sctx = scene->GetSceneContext();
 
-				std::vector<Entity> entities = sctx->component->FindEntitiesWithComponent<TransformComponent>();
+				std::vector<Entity> entities = sctx->pComponent->FindEntitiesWithComponent<TransformComponent>();
 				if(entities.empty()) continue;
 
 				for(Entity ent : entities){
 
-					auto env = sctx->component->GetComponent<EnvironmentMapComponent>(ent);
+					auto env = sctx->pComponent->GetComponent<EnvironmentMapComponent>(ent);
 					if (env) {
 						continue; // EnvironmentMapComponent を持つエンティティはシャドウマップに描画しない
 					}

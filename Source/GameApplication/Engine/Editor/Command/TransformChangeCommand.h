@@ -43,8 +43,8 @@ public:
 
 private:
 	TransformComponent* _GetTransform() {
-		if (!m_pContext || !m_pContext->entity->IsAlive(m_entity)) return nullptr;
-		return m_pContext->component->GetComponent<TransformComponent>(m_entity);
+		if (!m_pContext || !m_pContext->pEntity->IsAlive(m_entity)) return nullptr;
+		return m_pContext->pComponent->GetComponent<TransformComponent>(m_entity);
 	}
 
 	SceneContext*        m_pContext;

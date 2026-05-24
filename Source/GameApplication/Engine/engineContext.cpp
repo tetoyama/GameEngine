@@ -40,7 +40,7 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 	context->Register<ConfigService>(configSystem);
 
 	// WindowService 登録（OS ウィンドウの生成・管理）
-	auto m_WindowSystem= std::make_shared<WindowService>(debugLogSystem.get());
+	auto m_WindowSystem= std::make_shared<WindowService>(pDebugLogSystem.get());
 	context->Register<WindowService>(windowSystem);
 
 	// TimeService 登録（デルタタイム・固定更新タイマーの管理）
@@ -48,11 +48,11 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 	context->Register<TimeService>(timeService);
 
 	// AudioContext 登録（XAudio2 を用いたオーディオ再生管理）
-	auto m_AudioContext= std::make_shared<AudioContext>(debugLogSystem.get());
+	auto m_AudioContext= std::make_shared<AudioContext>(pDebugLogSystem.get());
 	context->Register<AudioContext>(audioContext);
 
 	// GraphicsContext 登録（DirectX 11 デバイス・スワップチェーンの管理）
-	auto m_GraphicsContext= std::make_shared<GraphicsContext>(debugLogSystem.get());
+	auto m_GraphicsContext= std::make_shared<GraphicsContext>(pDebugLogSystem.get());
 	context->Register<GraphicsContext>(graphicsContext);
 
 	// MainRenderer 登録（描画フレームの開始・終了とスワップチェーン制御）
@@ -82,7 +82,7 @@ std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 #endif // _EDITOR
 
 	// LLAMAService 登録（LLM（大規模言語モデル）によるエージェント機能の管理）
-	auto m_LlamaService= std::make_shared<LLAMAService>(debugLogSystem.get());
+	auto m_LlamaService= std::make_shared<LLAMAService>(pDebugLogSystem.get());
 	context->Register<LLAMAService>(llamaService);
 
 	// 今後: 他のシステムもここで登録

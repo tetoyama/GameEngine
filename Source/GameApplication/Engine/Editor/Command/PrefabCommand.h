@@ -36,7 +36,7 @@ public:
 	{}
 
 	void Execute() override {
-		if (!m_pContext || !m_pContext->prefab) return;
+		if (!m_pContext || !m_pContext->pPrefab) return;
 
 		if (m_spawned != 0) {
 			// Redo: スナップショットから復元
@@ -46,13 +46,13 @@ public:
 		}
 
 		// 初回: プレファブをインスタンス化
-		EntityRef ref = m_pContext->prefab->InstantiatePrefab(m_pContext, m_filePath);
+		EntityRef ref = m_pContext->pPrefab->InstantiatePrefab(m_pContext, m_filePath);
 		if (!ref) return;
 		m_spawned = ref.GetEntityID();
 
 		// テンプレート系では PrefabComponent を取り除く
 		if (m_removePrefabComp) {
-			m_pContext->component->RemoveComponent<PrefabComponent>(m_spawned);
+			m_pContext->pComponent->RemoveComponent<PrefabComponent>(m_spawned);
 		}
 
 		// Undo に備えてスナップショット取得
@@ -64,7 +64,7 @@ public:
 
 	void Undo() override {
 		if (!m_pContext || m_spawned == 0) return;
-		if (!m_pContext->entity->IsAlive(m_spawned)) return;
+		if (!m_pContext->pEntity->IsAlive(m_spawned)) return;
 		EntityCommandHelper::DestroyRecursive(m_spawned, m_pContext);
 		if (m_onUndone) m_onUndone();
 	}

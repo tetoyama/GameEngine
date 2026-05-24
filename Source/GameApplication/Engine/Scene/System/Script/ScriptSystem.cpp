@@ -110,13 +110,13 @@ void ScriptSystem::Finalize(){
 
 template<typename Func>
 void ScriptSystem::ForEachScript(Func&& func){
-	for(auto& [_, scene] : m_pContext->sceneManager->GetActiveScenes()){
+	for(auto& [_, scene] : m_pContext->pSceneManager->GetActiveScenes()){
 		auto* ctx = scene->GetSceneContext();
 		auto m_Entities=
-			ctx->component->FindEntitiesWithComponent<ScriptComponent>();
+			ctx->pComponent->FindEntitiesWithComponent<ScriptComponent>();
 
 		for(Entity e : entities){
-			auto* sc = ctx->component->GetComponent<ScriptComponent>(e);
+			auto* sc = ctx->pComponent->GetComponent<ScriptComponent>(e);
 			if(!sc) continue;
 
 			for(auto& [_, script] : sc->scripts){

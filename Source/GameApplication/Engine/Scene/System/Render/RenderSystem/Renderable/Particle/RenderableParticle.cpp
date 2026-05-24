@@ -60,9 +60,9 @@ void RenderableParticle::Initialize(SceneManagerContext* context){
 		D3D11_SUBRESOURCE_DATA m_Sd{};
 		sd.pSysMem = vertex;
 
-		context->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_pBillBoardMesh->mesh.m_VertexBuffer.GetAddressOf());
-		context->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\commonVS.cso", m_pBillBoardMesh->mesh.m_VertexShader.GetAddressOf(), m_pBillBoardMesh->mesh.m_VertexLayout.GetAddressOf());
-		context->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_pBillBoardMesh->mesh.m_PixelShader.GetAddressOf());
+		context->pRenderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_pBillBoardMesh->mesh.m_VertexBuffer.GetAddressOf());
+		context->pRenderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\commonVS.cso", m_pBillBoardMesh->mesh.m_VertexShader.GetAddressOf(), m_pBillBoardMesh->mesh.m_VertexLayout.GetAddressOf());
+		context->pRenderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_pBillBoardMesh->mesh.m_PixelShader.GetAddressOf());
 	}
 }
 
@@ -71,19 +71,19 @@ void RenderableParticle::Finalize(){
 }
 
 void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
-	ParticleComponent* pParticle = sceneContext->component->GetComponent<ParticleComponent>(entity);
-	TransformComponent* pTransform = sceneContext->component->GetComponent<TransformComponent>(entity);
+	ParticleComponent* pParticle = sceneContext->pComponent->GetComponent<ParticleComponent>(entity);
+	TransformComponent* pTransform = sceneContext->pComponent->GetComponent<TransformComponent>(entity);
 	if(!pParticle || !pTransform){
 		return;
 	}
-	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
-	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
+	TextureComponent* pTexture = sceneContext->pComponent->GetComponent<TextureComponent>(entity);
+	MaterialComponent* pMaterial = sceneContext->pComponent->GetComponent<MaterialComponent>(entity);
 	MATERIAL m_Material{};
 	if (pMaterial) {
 		material = pMaterial->Material;
 	}
 
-	GraphicsContext* graphicsContext = sceneContext->manager->renderer->GetGraphicsContext();
+	GraphicsContext* graphicsContext = sceneContext->pManager->pRenderer->GetGraphicsContext();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	graphicsContext->SetBlendMode(BlendMode::Additive);

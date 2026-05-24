@@ -61,9 +61,9 @@ void RenderableBillBoard::Initialize(SceneManagerContext* context){
 		D3D11_SUBRESOURCE_DATA m_Sd{};
 		sd.pSysMem = vertex;
 
-		context->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_pBillBoardMesh->mesh.m_VertexBuffer.GetAddressOf());
-		context->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\commonVS.cso", m_pBillBoardMesh->mesh.m_VertexShader.GetAddressOf(), m_pBillBoardMesh->mesh.m_VertexLayout.GetAddressOf());
-		context->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_pBillBoardMesh->mesh.m_PixelShader.GetAddressOf());
+		context->pRenderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_pBillBoardMesh->mesh.m_VertexBuffer.GetAddressOf());
+		context->pRenderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\commonVS.cso", m_pBillBoardMesh->mesh.m_VertexShader.GetAddressOf(), m_pBillBoardMesh->mesh.m_VertexLayout.GetAddressOf());
+		context->pRenderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_pBillBoardMesh->mesh.m_PixelShader.GetAddressOf());
 	}
 }
 
@@ -73,23 +73,23 @@ void RenderableBillBoard::Finalize(){
 
 void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
 
-	BillBoardRendererComponent* billBoard = sceneContext->component->GetComponent<BillBoardRendererComponent>(entity);
-	TransformComponent* transform = sceneContext->component->GetComponent<TransformComponent>(entity);
+	BillBoardRendererComponent* billBoard = sceneContext->pComponent->GetComponent<BillBoardRendererComponent>(entity);
+	TransformComponent* transform = sceneContext->pComponent->GetComponent<TransformComponent>(entity);
 	if(!billBoard || !transform){
 		return;
 	}
-	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
+	GraphicsContext* graphicsContext = sceneContext->pManager->pGraphics;
 	ID3D11Device* device = graphicsContext->GetDevice();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-	ComponentRegistry* componentRegistry = sceneContext->component;
+	ComponentRegistry* componentRegistry = sceneContext->pComponent;
 
 	MATERIAL m_Material{};
-	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
+	MaterialComponent* pMaterial = sceneContext->pComponent->GetComponent<MaterialComponent>(entity);
 	if (pMaterial) {
 		material = pMaterial->Material;
 	}
 
-	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
+	TextureComponent* pTexture = sceneContext->pComponent->GetComponent<TextureComponent>(entity);
 	if (pTexture) {
 
 			// マテリアル設定

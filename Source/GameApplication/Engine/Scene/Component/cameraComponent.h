@@ -133,7 +133,7 @@ struct CameraPostEffectLink {
 // トポロジカルソートされた順序で適用される
 class CameraComponent : public IComponent {
 public:
-    SceneContext* context = nullptr;  // シーンコンテキストへのキャッシュ（デコード時に設定）
+    SceneContext* pContext = nullptr;  // シーンコンテキストへのキャッシュ（デコード時に設定）
 
     std::vector<CameraPostEffect>     postEffects;      // ポストエフェクトノードのリスト
     std::vector<CameraPostEffectLink> postEffectLinks;  // ノード間の接続リスト
@@ -205,7 +205,7 @@ public:
     }
 
     bool decode(SceneContext* _context, const YAML::Node& node) override {
-        context = _context;
+        pContext = _context;
 
 		initialized = true;
 		screenInputNode.initialized = true;
@@ -228,8 +228,8 @@ public:
                 CameraPostEffect effect;
                 effect.name = eNode["Name"].as<std::string>();
                 effect.enabled = eNode["Enabled"].as<bool>();
-                if (eNode["VS"]) effect.vs = context->manager->resource->Load<VertexShaderData>(eNode["VS"].as<std::string>());
-                if (eNode["PS"]) effect.ps = context->manager->resource->Load<PixelShaderData>(eNode["PS"].as<std::string>());
+                if (eNode["VS"]) effect.vs = pContext->pManager->pResource->Load<VertexShaderData>(eNode["VS"].as<std::string>());
+                if (eNode["PS"]) effect.ps = pContext->pManager->pResource->Load<PixelShaderData>(eNode["PS"].as<std::string>());
 				if(eNode["NodePos"]){
 					effect.nodePos = eNode["NodePos"].as<Vector2>();
 					ImNodes::SetNodeEditorSpacePos(idx, ImVec2(effect.nodePos.x, effect.nodePos.y));
@@ -383,7 +383,7 @@ public:
 			initialized = true;
 		}
 
-        context = ctx;
+        pContext = ctx;
         ImGui::PushID(this);
 
         ImGui::Text("NearClip"); ImGui::SameLine(100);
@@ -494,14 +494,14 @@ public:
             else filepathBuffer[0] = '\0';
             ImGui::PushItemWidth(150.0f);
             if (ImGui::InputText("PS", filepathBuffer, sizeof(filepathBuffer)) && context)
-                effect.ps = context->manager->resource->Load<PixelShaderData>(filepathBuffer);
+                effect.ps = pContext->pManager->pResource->Load<PixelShaderData>(filepathBuffer);
 			// Drag&Drop (PS)
 			if(ImGui::BeginDragDropTarget() && context){
 				if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
 					const char* droppedPath = (const char*)payload->Data;
 					std::string path(droppedPath);
 					if(path.find(".cso") != std::string::npos){
-						effect.ps = context->manager->resource->Load<PixelShaderData>(path);
+						effect.ps = pContext->pManager->pResource->Load<PixelShaderData>(path);
 					}
 				}
 				ImGui::EndDragDropTarget();
@@ -512,14 +512,14 @@ public:
             else filepathBuffer[0] = '\0';
             ImGui::PushItemWidth(150.0f);
             if (ImGui::InputText("VS", filepathBuffer, sizeof(filepathBuffer)) && context)
-                effect.vs = context->manager->resource->Load<VertexShaderData>(filepathBuffer);
+                effect.vs = pContext->pManager->pResource->Load<VertexShaderData>(filepathBuffer);
 			// Drag & Drop(VS)
 			if(ImGui::BeginDragDropTarget() && context){
 				if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
 					const char* droppedPath = (const char*)payload->Data;
 					std::string path(droppedPath);
 					if(path.find(".cso") != std::string::npos){
-						effect.vs = context->manager->resource->Load<VertexShaderData>(path);
+						effect.vs = pContext->pManager->pResource->Load<VertexShaderData>(path);
 					}
 				}
 				ImGui::EndDragDropTarget();
@@ -658,8 +658,8 @@ public:
             newEffect.inputPins.push_back(nextPinId++);
             newEffect.outputPin = nextPinId++;
 
-			newEffect.vs = context->manager->resource->Load<VertexShaderData>(DEFAULT_WINDOW_POSTEFFECT_VS_PATH);
-			newEffect.ps = context->manager->resource->Load<PixelShaderData>(DEFAULT_WINDOW_POSTEFFECT_PS_PATH);
+			newEffect.vs = pContext->pManager->pResource->Load<VertexShaderData>(DEFAULT_WINDOW_POSTEFFECT_VS_PATH);
+			newEffect.ps = pContext->pManager->pResource->Load<PixelShaderData>(DEFAULT_WINDOW_POSTEFFECT_PS_PATH);
 
             postEffects.push_back(newEffect);
 			InvalidatePostEffectGraphCache();

@@ -25,16 +25,16 @@ struct ComponentRef {
 	bool IsValid() const {
 		if (!m_entityRef.IsValid()) return false;
 		SceneContext* ctx = m_entityRef.GetScene();
-		if (!ctx->component) return false;
-		return ctx->component->GetComponent<T>(m_entityRef.GetEntityID()) != nullptr;
+		if (!ctx->pComponent) return false;
+		return ctx->pComponent->GetComponent<T>(m_entityRef.GetEntityID()) != nullptr;
 	}
 
 	// コンポーネントのポインタを取得する（無効な場合は nullptr を返す）
 	T* Get() const {
 		if (!m_entityRef.IsValid()) return nullptr;
 		SceneContext* ctx = m_entityRef.GetScene();
-		if (!ctx->component) return nullptr;
-		return ctx->component->GetComponent<T>(m_entityRef.GetEntityID());
+		if (!ctx->pComponent) return nullptr;
+		return ctx->pComponent->GetComponent<T>(m_entityRef.GetEntityID());
 	}
 
 	T* operator->() const {

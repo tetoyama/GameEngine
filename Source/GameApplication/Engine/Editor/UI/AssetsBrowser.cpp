@@ -24,16 +24,16 @@
 #include "Resources/Data/textureData.h"
 
 void AssetsBrowser::Initialize(EditorService* editor){
-	resourceService = editor->resourceService;
+	pResourceService = editor->pResourceService;
 	m_pEditor = editor;
 
-	fileIcon[FileIconType::FILE_UNDEFINED]	= resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_undefied.png");
-	fileIcon[FileIconType::FILE_FOLDER]		= resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\folder.png");
-	fileIcon[FileIconType::FILE_TEXT]		= resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_txt.png");
-	fileIcon[FileIconType::FILE_YAML]		= resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_yaml.png");
-	fileIcon[FileIconType::FILE_FBX]		= resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_fbx.png");
-	fileIcon[FileIconType::FILE_OBJ]		= resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_obj.png");
-	fileIcon[FileIconType::FILE_TTF]		= resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_ttf.png");
+	fileIcon[FileIconType::FILE_UNDEFINED]	= pResourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_undefied.png");
+	fileIcon[FileIconType::FILE_FOLDER]		= pResourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\folder.png");
+	fileIcon[FileIconType::FILE_TEXT]		= pResourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_txt.png");
+	fileIcon[FileIconType::FILE_YAML]		= pResourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_yaml.png");
+	fileIcon[FileIconType::FILE_FBX]		= pResourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_fbx.png");
+	fileIcon[FileIconType::FILE_OBJ]		= pResourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_obj.png");
+	fileIcon[FileIconType::FILE_TTF]		= pResourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_ttf.png");
 }
 
 void AssetsBrowser::Finalize(){
@@ -51,11 +51,11 @@ void AssetsBrowser::Draw(const EditorDrawContext ctx){
 		return;
 	}
 
-	SceneManagerContext* sceneManagerContext = m_pEditor->sceneManager->GetContext();
+	SceneManagerContext* sceneManagerContext = m_pEditor->pSceneManager->GetContext();
 
 	std::filesystem::path m_AssetsRoot= ASSET_PATH;
 	static std::string m_SelectedPath= ASSETS_ROOT.string();
-	//m_pContext->debug->LOG_INFO("Current path: " + std::filesystem::current_path().string());
+	//m_pContext->pDebug->LOG_INFO("Current path: " + std::filesystem::current_path().string());
 
 	// --- パス検証・正規化 ---
 	std::error_code m_Ec;
@@ -63,7 +63,7 @@ void AssetsBrowser::Draw(const EditorDrawContext ctx){
 
 	if(ec || !std::filesystem::exists(normalized) || !std::filesystem::is_directory(normalized)){
 		// フォールバック + ログ出力
-		sceneManagerContext->debug->LOG_ERROR("Invalid selectedPath: " + selectedPath +
+		sceneManagerContext->pDebug->LOG_ERROR("Invalid selectedPath: " + selectedPath +
 									"\n→ normalized: " + normalized.string() +
 									"\n→ ec: " + std::to_string(ec.value()));
 		selectedPath = ASSETS_ROOT.string();
@@ -449,7 +449,7 @@ TextureData* AssetsBrowser::GetIconTexture(std::string filepath){
 			return it->second.get();
 		}
 		// 初回読み込み → テクスチャ作成
-		auto m_Tex= resourceService->Load<TextureData>(filepath);
+		auto m_Tex= pResourceService->Load<TextureData>(filepath);
 		if(tex){
 			previewCache[filepath] = tex;
 			tex.reset();

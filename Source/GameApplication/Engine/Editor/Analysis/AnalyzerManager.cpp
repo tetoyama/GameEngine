@@ -9,7 +9,7 @@
 
 void AnalyzerManager::Initialize(const AnalyzerManagerContext& context) {
 
-    debug = context.debug;
+    pDebug = pContext.pDebug;
 
     Register<SourceAnalyzer>("SourceAnalyzer");
     // Register<AssetAnalyzer>("AssetAnalyzer"); // 将来

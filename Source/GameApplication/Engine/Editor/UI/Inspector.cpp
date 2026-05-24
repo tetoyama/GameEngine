@@ -25,7 +25,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 	ImGui::SetNextWindowClass(&window_class);
 	bool* showInspector = &m_pEditor->GetUI<MenuBar>()->showInspector;
 	Entity m_SelectedEntity= m_pEditor->GetUI<Hierarchy>()->selectedEntity;
-	SceneContext* context = m_pEditor->GetUI<Hierarchy>()->sceneContext;
+	SceneContext* pContext = m_pEditor->GetUI<Hierarchy>()->pSceneContext;
 
 	if(!showInspector || !*showInspector){
 		return;
@@ -33,12 +33,12 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 	ImGui::Begin("Inspector", showInspector);
 
-	if(selectedEntity == 0 || !context){
+	if(selectedEntity == 0 || !pContext){
 		ImGui::Text("No object selected.");
 		ImGui::End();
 		return;
 	} else {
-		bool m_Alive= context->entity->IsAlive(selectedEntity); // 選択されたエンティティが生存しているか確認
+		bool m_Alive= pContext->pEntity->IsAlive(selectedEntity); // 選択されたエンティティが生存しているか確認
 		if(!alive){
 			// ローカル変数だけでなく Hierarchy の selectedEntity も解除する
 			m_pEditor->GetUI<Hierarchy>()->selectedEntity = 0;
@@ -48,7 +48,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 		}
 	}
 
-	auto* registry = context->component;
+	auto* registry = context->pComponent;
 
 	// オブジェクト情報
 	ImGui::AlignTextToFramePadding();
@@ -65,11 +65,11 @@ void Inspector::Draw(const EditorDrawContext ctx){
 		if(ImGui::InputText("##Name", nameBuffer, sizeof(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)){
 			// Enter 確定時のみコマンド経由で名前を更新する
 			std::string m_OldName= name->name;
-			auto m_Cmd= std::make_unique<RenameCommand>(context, selectedEntity, oldName, nameBuffer);
+			auto m_Cmd= std::make_unique<RenameCommand>(pContext, selectedEntity, oldName, nameBuffer);
 			m_pEditor->commandManager.Execute(std::move(cmd));
 		}
 		// PrefabComponent がある場合はエンティティが Prefab インスタンスであることを明示する
-		if(context->component->GetComponent<PrefabComponent>(selectedEntity)){
+		if(context->pComponent->GetComponent<PrefabComponent>(selectedEntity)){
 			ImGui::SameLine();
 			ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "(Prefab)");
 		}
@@ -90,7 +90,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 				[hierarchy](Entity e, SceneContext* ctx){
 					if(hierarchy){
 						hierarchy->selectedEntity = e;
-						hierarchy->sceneContext   = ctx;
+						hierarchy->pSceneContext   = ctx;
 					}
 				});
 			m_pEditor->commandManager.Execute(std::move(cmd));
@@ -134,7 +134,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 	// 削除は後からまとめてコマンドで実行
 	for(IComponent* comp : componentsToRemove){
-		auto m_Cmd= std::make_unique<ComponentRemoveCommand>(context, selectedEntity, comp);
+		auto m_Cmd= std::make_unique<ComponentRemoveCommand>(pContext, selectedEntity, comp);
 		m_pEditor->commandManager.Execute(std::move(cmd));
 	}
 
@@ -186,7 +186,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 			}
 
 			if(ImGui::MenuItem(name.c_str())){
-				auto m_Cmd= std::make_unique<ComponentAddCommand>(context, selectedEntity, name, func);
+				auto m_Cmd= std::make_unique<ComponentAddCommand>(pContext, selectedEntity, name, func);
 				m_pEditor->commandManager.Execute(std::move(cmd));
 			}
 		}
@@ -198,9 +198,9 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 	TransformComponent* transform = registry->GetComponent<TransformComponent>(selectedEntity);
 
-	//if(transform && m_pContext->editor->GetUI<MenuBar>()->showEditorView){
+	//if(transform && m_pContext->pEditor->GetUI<MenuBar>()->showEditorView){
 
-	//	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, context->component);
+	//	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, pContext->pComponent);
 
 	//	DirectX::XMMATRIX modelMatrix;
 
@@ -214,17 +214,17 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 	//		World = Scale * Rotation * Translation;
 
-	//		modelMatrix = m_pContext->imgui->RenderGizmo2D(World);
+	//		modelMatrix = m_pContext->pImGui->RenderGizmo2D(World);
 
 	//	} else{
-	//		modelMatrix = m_pContext->imgui->RenderGizmo(World);
+	//		modelMatrix = m_pContext->pImGui->RenderGizmo(World);
 	//	}
 	//	Entity Parent = transform->parent;
 	//	while(Parent != 0){
 	//		auto* ParentTransform = registry->GetComponent<TransformComponent>(Parent);
 	//		if(ParentTransform){
 
-	//			DirectX::XMMATRIX ParentWorld = ParentTransform->CalculateWorldMatrix(ParentTransform, context->component);
+	//			DirectX::XMMATRIX ParentWorld = ParentTransform->CalculateWorldMatrix(ParentTransform, pContext->pComponent);
 
 	//			modelMatrix = modelMatrix * DirectX::XMMatrixInverse(nullptr, ParentWorld);
 

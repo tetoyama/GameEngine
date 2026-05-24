@@ -34,7 +34,7 @@ public:
 	}
 
 	void OnStart() override{
-		auto entities = m_ref.GetScene()->component->FindEntitiesWithComponent<ScoreManager>();
+		auto entities = m_ref.GetScene()->pComponent->FindEntitiesWithComponent<ScoreManager>();
 		if(!entities.empty()){
 			m_scoreManager = GetComponentRefFor<ScoreManager>(entities[0]);
 		}

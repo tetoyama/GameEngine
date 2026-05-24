@@ -43,7 +43,7 @@ public:
 	}
 
 	void OnStart() override{
-		auto fadeEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<FadeOutSprite>();
+		auto fadeEntities = m_ref.GetScene()->pComponent->FindEntitiesWithComponent<FadeOutSprite>();
 		if(!fadeEntities.empty()){
 			fade = GetComponentRefFor<FadeOutSprite>(fadeEntities[0]);
 		}

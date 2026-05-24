@@ -24,15 +24,15 @@ public:
 	}
 
 	void Initialize() override{
-		m_pAudioContext = m_pContext->audio;
+		m_pAudioContext = m_pContext->pAudio;
 	}
 
 	void Finalize() override{
-		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
-			auto context = scene->GetSceneContext();
-			auto entities = context->component->FindEntitiesWithComponent<AudioComponent>();
+		for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
+			auto pContext = scene->GetSceneContext();
+			auto entities = pContext->pComponent->FindEntitiesWithComponent<AudioComponent>();
 			for (auto entity : entities) {
-				auto* comp = context->component->GetComponent<AudioComponent>(entity);
+				auto* comp = context->pComponent->GetComponent<AudioComponent>(entity);
 				if (comp) {
 					comp->Stop();
 				}
@@ -45,17 +45,17 @@ public:
 	}
 
 	void Update(float) override{
-		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
-			auto context = scene->GetSceneContext();
-			auto entities = context->component->FindEntitiesWithComponent<AudioComponent>();
+		for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
+			auto pContext = scene->GetSceneContext();
+			auto entities = pContext->pComponent->FindEntitiesWithComponent<AudioComponent>();
 			for (auto entity : entities) {
-				auto* comp = context->component->GetComponent<AudioComponent>(entity);
+				auto* comp = context->pComponent->GetComponent<AudioComponent>(entity);
 				if (!comp) continue;
 				if (!comp->isInitialized) {
 					comp->isInitialized = true;
 					// AudioDataロードはSystem側でやる
 					if (!comp->m_AudioData && !comp->FilePath.empty()) {
-						comp->m_AudioData = m_pContext->resource->Load<AudioData>(comp->FilePath);
+						comp->m_AudioData = m_pContext->pResource->Load<AudioData>(comp->FilePath);
 					}
 
 					if (comp->PlayOnStart && !comp->Playing) {

@@ -25,7 +25,7 @@ public:
 	bool ShouldClose() const override;
 
 	void SetMainRenderer(MainRenderer* renderer){
-		m_pMainRenderer = renderer;
+		m_pMainRenderer = pRenderer;
 	}
 	void SetImGuiSystem(ImGuiService* imguiSystem){
 		m_pImguiSystem = imguiSystem;

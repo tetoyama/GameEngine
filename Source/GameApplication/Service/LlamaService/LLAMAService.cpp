@@ -27,7 +27,7 @@
 // ============================
 void LLAMAService::Initialize(LLAMAServiceContext context){
 
-	m_pResourceService = context.resourceService;
+	m_pResourceService = pContext.pResourceService;
 	if(!m_pResourceService){
 		LLAMA_SERVICE_LOG(LogLevel::Error, "ResourceService が未設定のため LLAMAService の初期化を中止します");
 		return;
@@ -177,7 +177,7 @@ std::shared_ptr<LLAMAAgent> LLAMAService::CreateAgent(
         return m_Nullptr;
     }
 
-    auto m_Agent= std::make_shared<LLAMAAgent>(model, config);
+    auto m_Agent= std::make_shared<LLAMAAgent>(model, pConfig);
 
     {
         std::lock_guard<std::mutex> lock(m_agentMutex);
@@ -190,7 +190,7 @@ std::shared_ptr<LLAMAAgent> LLAMAService::CreateAgent(
 
 std::shared_ptr<LLAMAAgent> LLAMAService::CreateAgent(const std::shared_ptr<LLAMAModelData> model, const std::shared_ptr<const AgentConfig>& config){
 
-	auto m_Agent= std::make_shared<LLAMAAgent>(model, config);
+	auto m_Agent= std::make_shared<LLAMAAgent>(model, pConfig);
 
 	{
 		std::lock_guard<std::mutex> lock(m_agentMutex);
@@ -303,7 +303,7 @@ void LLAMAService::ProcessModelLoadJob(const ModelLoadJob& job){
 
 void LLAMAService::ProcessAgentCreateJob(const AgentCreateJob& job){
 	LLAMA_SERVICE_LOG(LogLevel::Trace, ("LLAMA エージェント生成ジョブを処理します: " + job.modelPath));
-	auto m_Agent= CreateAgent(job.modelPath, job.config);
+	auto m_Agent= CreateAgent(job.modelPath, job.pConfig);
 
 	if(!job.callback || !m_threadRunning) return;
 

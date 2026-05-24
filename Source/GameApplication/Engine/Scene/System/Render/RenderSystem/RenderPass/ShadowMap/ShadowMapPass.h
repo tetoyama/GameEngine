@@ -23,9 +23,9 @@ public:
 	std::shared_ptr<PixelShaderData> renderablePixelShader;
 
 	std::vector<IRenderable*> renderables;
-	RenderTarget* shadowRenderTarget = nullptr;
-	ID3D11SamplerState* shadowSampler = nullptr;
-	ID3D11RasterizerState* depthClampRS = nullptr; // DepthClipEnable=FALSE: フラスタム外 shadow caster のクリッピングを防ぐ
+	RenderTarget* pShadowRenderTarget = nullptr;
+	ID3D11SamplerState* pShadowSampler = nullptr;
+	ID3D11RasterizerState* pDepthClampRS = nullptr; // DepthClipEnable=FALSE: フラスタム外 shadow caster のクリッピングを防ぐ
 
 private:
 	void RenderShadowScene(const RenderPassContext& ctx);

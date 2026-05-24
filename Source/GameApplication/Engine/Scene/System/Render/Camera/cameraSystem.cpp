@@ -28,16 +28,16 @@
 #include "Component/transformComponent.h"
 
 void CameraSystem::Initialize(){
-	m_pContext->debug->LOG_DEBUG("CameraSystemを初期化中...");
+	m_pContext->pDebug->LOG_DEBUG("CameraSystemを初期化中...");
 }
 
 void CameraSystem::Draw() {
 
-	for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
+	for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
 		auto m_Context= scene->GetSceneContext();
-		auto m_CameraBuffers= context->component->GetAllBaseComponents<CameraComponent>();
+		auto m_CameraBuffers= pContext->pComponent->GetAllBaseComponents<CameraComponent>();
 		for (auto& [entity, CameraBuffer] : CameraBuffers) {
-			TransformComponent* transform = context->component->GetComponent<TransformComponent>(entity);
+			TransformComponent* transform = context->pComponent->GetComponent<TransformComponent>(entity);
 			if (transform) {
 				if (CameraBuffer->isLock) {
 					CameraBuffer->viewMatrix = DirectX::XMMatrixLookAtLH(

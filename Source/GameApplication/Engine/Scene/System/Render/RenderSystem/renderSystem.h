@@ -134,7 +134,7 @@ public:
 	// パス関連
 	//------------------------------------------------------------------
 	PlayerPass* m_PlayerPass = nullptr;
-	bool* showPlayer = nullptr;
+	bool* pShowPlayer = nullptr;
 
 	// 各 RenderLayer の表示状態（Player）
 	bool playerRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] =
@@ -143,7 +143,7 @@ public:
 	};
 
 	EditorPass* m_EditorPass = nullptr;
-	bool* showEditor = nullptr;
+	bool* pShowEditor = nullptr;
 
 	// 各 RenderLayer の表示状態（Editor）
 	bool editorRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] =
@@ -205,7 +205,7 @@ private:
 	std::vector<std::shared_ptr<IRenderable>> m_Renderables;
 
 	// ポストエフェクト用コピーシェーダ
-	PostEffectShader* copyShader = nullptr;
+	PostEffectShader* pCopyShader = nullptr;
 
 	// 自動生成シェーダ出力パス
 	std::string m_ShaderPath= "Source/Shader/AutoGen/";

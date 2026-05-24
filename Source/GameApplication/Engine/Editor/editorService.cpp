@@ -26,17 +26,17 @@
 void EditorService::Initialize(EditorServiceContext context) {
 
 	// 各依存サービスへの参照を保持（UI パネルから参照できるようにする）
-	debugLogSystem = context.debugLogSystem;
-	resourceService = context.resourceService;
-	sceneManager = context.sceneManager;
-	llamaService = context.llamaService;
+	pDebugLogSystem = pContext.pDebugLogSystem;
+	pResourceService = pContext.pResourceService;
+	pSceneManager = pContext.pSceneManager;
+	pLlamaService = pContext.pLlamaService;
 
 	// AnalyzerManager の生成・初期化（ソースコード解析機能の起動）
-	analyzer = new AnalyzerManager();
+	pAnalyzer = new AnalyzerManager();
 	if (analyzer) {
 
 		AnalyzerManagerContext m_Ctx;
-		ctx.debug = debugLogSystem;
+		ctx.pDebug = pDebugLogSystem;
 
 		analyzer->Initialize(ctx);
 	}
@@ -81,7 +81,7 @@ void EditorService::Shutdown() {
 	if (analyzer) {
 		analyzer->Finalize();
 		delete m_Analyzer;
-		analyzer = nullptr;
+		pAnalyzer = nullptr;
 	}
 
 	// 全 UI パネルを終了・解放（逆順でも構わないが登録順で解放）

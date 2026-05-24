@@ -26,27 +26,27 @@
 void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 
 	m_pRenderSystem = renderSystem;
-	m_pContext = context;
+	m_pContext = pContext;
 
-	shadowMapPass = new ShadowMapPass();
+	pShadowMapPass = new ShadowMapPass();
 	shadowMapPass->Initialize(renderSystem, context);
 
-	gBufferPass = new GBufferPass();
+	pGBufferPass = new GBufferPass();
 	gBufferPass->Initialize(renderSystem, context);
 
-	lightingPass = new LightingPass();
+	pLightingPass = new LightingPass();
 	lightingPass->Initialize(renderSystem, context);
 
-	forwardPass = new ForwardPass();
+	pForwardPass = new ForwardPass();
 	forwardPass->Initialize(renderSystem, context);
 
-	postEffectPass = new PostEffectPass();
+	pPostEffectPass = new PostEffectPass();
 	postEffectPass->Initialize(renderSystem, context);
 
-	overlayUIPass = new OverlayUIPass();
+	pOverlayUIPass = new OverlayUIPass();
 	overlayUIPass->Initialize(renderSystem, context);
 
-	physXDebugPass = new PhysXDebugPass();
+	pPhysXDebugPass = new PhysXDebugPass();
 	physXDebugPass->Initialize(renderSystem, context);
 }
 
@@ -54,39 +54,39 @@ void EditorPass::Finalize() {
 
 	postEffectPass->Finalize();
 	delete m_PostEffectPass;
-	postEffectPass = nullptr;
+	pPostEffectPass = nullptr;
 
 	overlayUIPass->Finalize();
 	delete m_OverlayUipass;
-	overlayUIPass = nullptr;
+	pOverlayUIPass = nullptr;
 
 	forwardPass->Finalize();
 	delete m_ForwardPass;
-	forwardPass = nullptr;
+	pForwardPass = nullptr;
 
 	lightingPass->Finalize();
 	delete m_LightingPass;
-	lightingPass = nullptr;
+	pLightingPass = nullptr;
 
 	gBufferPass->Finalize();
 	delete m_GBufferPass;
-	gBufferPass = nullptr;
+	pGBufferPass = nullptr;
 
 	shadowMapPass->Finalize();
 	delete m_ShadowMapPass;
-	shadowMapPass = nullptr;
+	pShadowMapPass = nullptr;
 
 	physXDebugPass->Finalize();
 	delete m_PhysXdebugPass;
-	physXDebugPass = nullptr;
+	pPhysXDebugPass = nullptr;
 }
 
 void EditorPass::Execute(const RenderPassContext& ctx) {
 
-	GraphicsContext* graphicsContext = m_pContext->renderer->GetGraphicsContext();
+	GraphicsContext* graphicsContext = m_pContext->pRenderer->GetGraphicsContext();
 
 	// ImGuizmo 用のビュー・投影行列を設定
-	m_pContext->imgui->SetViewProjectionMatrix(ctx.viewMatrix, ctx.projectionMatrix);
+	m_pContext->pImGui->SetViewProjectionMatrix(ctx.viewMatrix, ctx.projectionMatrix);
 
 	// GBuffer パス
 	gBufferPass->Execute(ctx);
@@ -123,5 +123,5 @@ void EditorPass::Execute(const RenderPassContext& ctx) {
 	ID3D11RenderTargetView* nullRTV[1] = { nullptr };
 	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, nullRTV, nullptr);
 
-	result = postEffectPass->resultSrv;
+	pResult = pPostEffectPass->pResultSrv;
 }

@@ -58,9 +58,9 @@ public:
 		}
 
 		// 対象エンティティの名前表示
-		if (targetEntity != 0 && context) {
-			if (context->entity->IsAlive(targetEntity)) {
-				auto* nameComp = context->component->GetComponent<NameComponent>(targetEntity);
+		if (targetEntity != 0 && pContext) {
+			if (context->pEntity->IsAlive(targetEntity)) {
+				auto* nameComp = context->pComponent->GetComponent<NameComponent>(targetEntity);
 				if (nameComp) {
 					ImGui::SameLine();
 					ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "[%s]", nameComp->name.c_str());
@@ -74,8 +74,8 @@ public:
 		// --- ボーン名 ---
 		// 対象にスキニングモデルがある場合はコンボボックス、なければテキスト入力
 		bool hasBones = false;
-		if (targetEntity != 0 && context && context->entity->IsAlive(targetEntity)) {
-			auto* mr = context->component->GetComponent<ModelRendererComponent>(targetEntity);
+		if (targetEntity != 0 && pContext && pContext->pEntity->IsAlive(targetEntity)) {
+			auto* mr = context->pComponent->GetComponent<ModelRendererComponent>(targetEntity);
 			if (mr && mr->model && !mr->model->m_BoneIndexMap.empty()) {
 				hasBones = true;
 

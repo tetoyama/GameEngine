@@ -90,7 +90,7 @@ public:
 		if(ImGui::BeginDragDropTarget()){
 			if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
 				FilePath = (const char*)payload->Data;
-				m_EffectData = context->manager->resource->Load<EffectData>(FilePath);
+				m_EffectData = pContext->pManager->pResource->Load<EffectData>(FilePath);
 			}
 			ImGui::EndDragDropTarget();
 		}
@@ -123,18 +123,18 @@ public:
 	// --------------------
 	bool Play(SceneContext* sceneContext){
 		if(!m_EffectData && !FilePath.empty()){
-			m_EffectData = sceneContext->manager->resource->Load<EffectData>(FilePath);
+			m_EffectData = pSceneContext->pManager->pResource->Load<EffectData>(FilePath);
 		}
 
-		if(!m_EffectData || !sceneContext->manager->graphics)
+		if(!m_EffectData || !sceneContext->pManager->pGraphics)
 			return false;
 
 		if(Playing)
 			return false;
 
-		auto manager = sceneContext->manager->graphics->GetEffectManager();
+		auto pManager = pSceneContext->pManager->pGraphics->GetEffectManager();
 
-		m_Handle = manager->Play(
+		m_Handle = pManager->Play(
 			m_EffectData->effect,
 			0.0f, 0.0f, 0.0f
 		);
@@ -162,7 +162,7 @@ public:
 			}
 			return;
 		}
-		auto manager = sceneContext->manager->graphics->GetEffectManager();
+		auto pManager = pSceneContext->pManager->pGraphics->GetEffectManager();
 
 		if(manager->Exists(m_Handle)){
 
@@ -188,7 +188,7 @@ public:
 	// Stop
 	// --------------------
 	void Stop(SceneContext* sceneContext){
-		auto manager = sceneContext->manager->graphics->GetEffectManager();
+		auto pManager = pSceneContext->pManager->pGraphics->GetEffectManager();
 
 		if(Playing && manager->Exists(m_Handle)){
 			manager->StopEffect(m_Handle);
@@ -202,7 +202,7 @@ public:
 		Stop(ctx);
 		Play(ctx);
 
-		auto manager = ctx->manager->graphics->GetEffectManager();
+		auto pManager = ctx->pManager->pGraphics->GetEffectManager();
 
 		const float fps = 60.0f;
 		const int maxStep = static_cast<int>(targetTimeSec * fps);

@@ -176,7 +176,7 @@ PickResult RenderTarget::Pick(const Vector2& uv, GraphicsContext* graphicsContex
 	if(!tex) return result;
 
 	ID3D11Device* device = graphicsContext->GetDevice();
-	ID3D11DeviceContext* context = graphicsContext->GetDeviceContext();
+	ID3D11DeviceContext* pContext = graphicsContext->GetDeviceContext();
 
 	// 1. テクスチャ情報の取得
 	D3D11_TEXTURE2D_DESC m_Desc;
@@ -207,7 +207,7 @@ PickResult RenderTarget::Pick(const Vector2& uv, GraphicsContext* graphicsContex
 
 	// 5. マップしてデータ取得
 	D3D11_MAPPED_SUBRESOURCE m_Mapped;
-	hr = context->Map(stagingTex.Get(), 0, D3D11_MAP_READ, 0, &mapped);
+	hr = pContext->Map(stagingTex.Get(), 0, D3D11_MAP_READ, 0, &mapped);
 	if(SUCCEEDED(hr)){
 
 		switch(type){
@@ -217,36 +217,36 @@ PickResult RenderTarget::Pick(const Vector2& uv, GraphicsContext* graphicsContex
 				// DXGI_FORMAT_R16G16B16A16_FLOAT の場合
 				// CPUでは float16 を直接扱えないため HALF から float へ変換
 				const DirectX::PackedVector::HALF* pHalf = reinterpret_cast<const DirectX::PackedVector::HALF*>(mapped.pData);
-				result.f[0] = DirectX::PackedVector::XMConvertHalfToFloat(pHalf[0]);
-				result.f[1] = DirectX::PackedVector::XMConvertHalfToFloat(pHalf[1]);
-				result.f[2] = DirectX::PackedVector::XMConvertHalfToFloat(pHalf[2]);
-				result.f[3] = DirectX::PackedVector::XMConvertHalfToFloat(pHalf[3]);
+				pResult.f[0] = DirectX::PackedVector::XMConvertHalfToFloat(pHalf[0]);
+				pResult.f[1] = DirectX::PackedVector::XMConvertHalfToFloat(pHalf[1]);
+				pResult.f[2] = DirectX::PackedVector::XMConvertHalfToFloat(pHalf[2]);
+				pResult.f[3] = DirectX::PackedVector::XMConvertHalfToFloat(pHalf[3]);
 				break;
 			}
 			case RENDERTARGET_TYPE_COLOR_UNORM:
 			{
 				// DXGI_FORMAT_R8G8B8A8_UNORM の場合
 				const uint8_t* pByte = reinterpret_cast<const uint8_t*>(mapped.pData);
-				result.b[0] = pByte[0];
-				result.b[1] = pByte[1];
-				result.b[2] = pByte[2];
-				result.b[3] = pByte[3];
+				pResult.b[0] = pByte[0];
+				pResult.b[1] = pByte[1];
+				pResult.b[2] = pByte[2];
+				pResult.b[3] = pByte[3];
 				break;
 			}
 			case RENDERTARGET_TYPE_UINT4:
 			{
 				// DXGI_FORMAT_R32G32B32A32_UINT の場合
 				const uint32_t* pUint = reinterpret_cast<const uint32_t*>(mapped.pData);
-				result.u[0] = pUint[0];
-				result.u[1] = pUint[1];
-				result.u[2] = pUint[2];
-				result.u[3] = pUint[3];
+				pResult.u[0] = pUint[0];
+				pResult.u[1] = pUint[1];
+				pResult.u[2] = pUint[2];
+				pResult.u[3] = pUint[3];
 				break;
 			}
 			case RENDERTARGET_TYPE_DEPTH:
 			{
 				// DXGI_FORMAT_D32_FLOAT の場合 (SRV経由の読み取り想定)
-				result.f[0] = *reinterpret_cast<const float*>(mapped.pData);
+				pResult.f[0] = *reinterpret_cast<const float*>(mapped.pData);
 				break;
 			}
 		}

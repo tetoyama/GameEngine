@@ -50,9 +50,9 @@ Scene::~Scene(){
 void Scene::Initialize(SceneManagerContext* set){
 	
 	m_SceneManagerContext = set;
-	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を初期化中...").c_str());
+	m_SceneManagerContext->pDebug->LOG_INFO(("Scene[" + SceneName + "]を初期化中...").c_str());
 
-	m_SceneContext.system = m_SceneManagerContext->systemRegistry;
+	m_SceneContext.pSystem = m_SceneManagerContext->pSystemRegistry;
 
 
 	m_entityRegistry = std::make_shared<EntityRegistry>();
@@ -67,13 +67,13 @@ void Scene::Initialize(SceneManagerContext* set){
 #undef REGISTER
 
 	// シーンコンテキストの初期化
-	auto m_Renderer= m_SceneManagerContext->renderer;
+	auto m_Renderer= m_SceneManagerContext->pRenderer;
 	
-	m_SceneContext.manager = m_SceneManagerContext;
+	m_SceneContext.pManager = m_SceneManagerContext;
 
-	m_SceneContext.entity = m_entityRegistry.get();
-	m_SceneContext.component = m_componentRegistry.get();
-	m_SceneContext.prefab = m_prefabSystem.get();
+	m_SceneContext.pEntity = m_entityRegistry.get();
+	m_SceneContext.pComponent = m_componentRegistry.get();
+	m_SceneContext.pPrefab = m_prefabSystem.get();
 
 	auto m_GraphicsContext= Renderer->GetGraphicsContext();
 
@@ -85,7 +85,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	} else{
 		LoadSceneFromYAML(ScenePath);
 	}
-	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を開始します").c_str());
+	m_SceneManagerContext->pDebug->LOG_INFO(("Scene[" + SceneName + "]を開始します").c_str());
 }
 
 void Scene::Update(float deltaTime){
@@ -98,12 +98,12 @@ void Scene::Draw(){
 }
 
 void Scene::Shutdown(){
-	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を終了中...").c_str());
+	m_SceneManagerContext->pDebug->LOG_INFO(("Scene[" + SceneName + "]を終了中...").c_str());
 
-	if(m_SceneManagerContext->editor){
-		auto m_Hierarchy= m_SceneManagerContext->editor->GetUI<Hierarchy>();
-		if(hierarchy && hierarchy->sceneContext == &m_SceneContext){
-			hierarchy->sceneContext = nullptr;
+	if(m_SceneManagerContext->pEditor){
+		auto m_Hierarchy= m_SceneManagerContext->pEditor->GetUI<Hierarchy>();
+		if(hierarchy && hierarchy->pSceneContext == &m_SceneContext){
+			hierarchy->pSceneContext = nullptr;
 			hierarchy->selectedEntity = 0;
 		}
 	}
@@ -114,15 +114,15 @@ void Scene::Shutdown(){
 	m_entityRegistry.reset();
 	m_componentRegistry.reset();
 	m_prefabSystem.reset();
-	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を終了しました").c_str());
+	m_SceneManagerContext->pDebug->LOG_INFO(("Scene[" + SceneName + "]を終了しました").c_str());
 }
 
 void Scene::BuildDefaultScene(){
-	auto m_EntityRegistry= m_SceneContext.entity;
-	auto m_ComponentRegistry= m_SceneContext.component;
+	auto m_EntityRegistry= m_SceneContext.pEntity;
+	auto m_ComponentRegistry= m_SceneContext.pComponent;
 
-	auto m_Renderer= m_SceneManagerContext->renderer;
-	auto m_GraphicsContext= renderer->GetGraphicsContext();
+	auto m_Renderer= m_SceneManagerContext->pRenderer;
+	auto m_GraphicsContext= pRenderer->GetGraphicsContext();
 
 	graphicsContext->SetDepthMode(DepthMode::Write);
 
@@ -144,7 +144,7 @@ void Scene::BuildDefaultScene(){
 
 		// TextureComponentを追加
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
-		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\mesh.png");
+		texture->m_TextureData = m_SceneManagerContext->pResource->Load<TextureData>("Asset\\Texture\\mesh.png");
 		texture->UV_Slice_X = 0.04f;
 		texture->UV_Slice_Y = 0.04f;
 
@@ -200,7 +200,7 @@ void Scene::BuildDefaultScene(){
 		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
-		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\Daylight.png");
+		texture->m_TextureData = m_SceneManagerContext->pResource->Load<TextureData>("Asset\\Texture\\Daylight.png");
 
 		auto* material = componentRegistry->AddComponent<MaterialComponent>(entity);
 
@@ -209,7 +209,7 @@ void Scene::BuildDefaultScene(){
 		// ModelRendererComponentを追加
 		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->isBlender = true;
-		modelRenderer->model = m_SceneManagerContext->resource->Load<ModelData>("Asset\\Model\\sky.fbx", true);
+		modelRenderer->model = m_SceneManagerContext->pResource->Load<ModelData>("Asset\\Model\\sky.fbx", true);
 
 		auto* env = componentRegistry->AddComponent<EnvironmentMapComponent>(entity);
 		env->enabled = true;
@@ -307,7 +307,7 @@ void Scene::Save(){
 
 		if (!SaveSceneFileDialog(savePath)) {
 			SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
-			m_SceneManagerContext->debug->LOG_INFO("ユーザーがキャンセルしました。");
+			m_SceneManagerContext->pDebug->LOG_INFO("ユーザーがキャンセルしました。");
 			return;
 		}
 	} else {
@@ -320,8 +320,8 @@ void Scene::Save(){
 	YAML::Node m_Root;
 	YAML::Node m_EntitiesNode= YAML::Node(YAML::NodeType::Sequence);
 	const auto& entities = m_entityRegistry->GetAllAlive();
-	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を保存します").c_str());
-	m_SceneManagerContext->debug->LOG_INFO(("保存対象エンティティ数: " + std::to_string(entities.size())).c_str());
+	m_SceneManagerContext->pDebug->LOG_INFO(("Scene[" + SceneName + "]を保存します").c_str());
+	m_SceneManagerContext->pDebug->LOG_INFO(("保存対象エンティティ数: " + std::to_string(entities.size())).c_str());
 
 	for (Entity e : entities) {
 		YAML::Node m_EntityNode;
@@ -365,7 +365,7 @@ void Scene::Save(){
 
 	std::ofstream fout(utf8Path, std::ios::binary);
 	if (!fout.is_open()) {
-		m_SceneManagerContext->debug->LOG_ERROR(("ファイルの保存に失敗しました: " + utf8Path).c_str());
+		m_SceneManagerContext->pDebug->LOG_ERROR(("ファイルの保存に失敗しました: " + utf8Path).c_str());
 		SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
 
 		return;
@@ -382,7 +382,7 @@ void Scene::TempSave(){
 	YAML::Node m_Root;
 	YAML::Node m_EntitiesNode= YAML::Node(YAML::NodeType::Sequence);
 	const auto& entities = m_entityRegistry->GetAllAlive();
-	m_SceneManagerContext->debug->LOG_INFO(("保存対象エンティティ数: " + std::to_string(entities.size())).c_str());
+	m_SceneManagerContext->pDebug->LOG_INFO(("保存対象エンティティ数: " + std::to_string(entities.size())).c_str());
 
 	for(Entity e : entities){
 		YAML::Node m_EntityNode;
@@ -426,7 +426,7 @@ void Scene::TempSave(){
 
 	std::ofstream fout(utf8Path, std::ios::binary);
 	if(!fout.is_open()){
-		m_SceneManagerContext->debug->LOG_ERROR(("ファイルの保存に失敗しました: " + utf8Path).c_str());
+		m_SceneManagerContext->pDebug->LOG_ERROR(("ファイルの保存に失敗しました: " + utf8Path).c_str());
 		SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
 
 		return;
@@ -451,18 +451,18 @@ void Scene::LoadSceneFromYAML(std::string path) {
 	std::ifstream fin(path);  
 	if(!fin.is_open()){  
 		// ファイルが開けなかった場合  
-		m_SceneContext.manager->debug->LOG_ERROR(("Failed to open file: " + path).c_str());  
+		m_SceneContext.pManager->pDebug->LOG_ERROR(("Failed to open file: " + path).c_str());  
 		return;  
 	}
 
 	YAML::Node m_Root= YAML::Load(fin);  
 	if(!root["Entities"] || !root["Entities"].IsSequence()){  
-		m_SceneContext.manager->debug->LOG_ERROR("YAML: 'Entities' node missing or invalid");  
+		m_SceneContext.pManager->pDebug->LOG_ERROR("YAML: 'Entities' node missing or invalid");  
 		return;
 	}
 
 	ScenePath = path; // シーンのパスを設定
-	m_SceneContext.manager->debug->LOG_DEBUG(("Sceneをファイルから読み込みます:FilePath[" + ScenePath + "]").c_str());
+	m_SceneContext.pManager->pDebug->LOG_DEBUG(("Sceneをファイルから読み込みます:FilePath[" + ScenePath + "]").c_str());
 
 	std::filesystem::path fpath(ScenePath);
 	SceneName = fpath.stem().string();  // 拡張子を除いたファイル名

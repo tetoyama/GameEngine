@@ -34,7 +34,7 @@ public:
 	}
 
 	void OnStart() override{
-		auto entities = m_ref.GetScene()->component->FindEntitiesWithComponent<GameTimeManager>();
+		auto entities = m_ref.GetScene()->pComponent->FindEntitiesWithComponent<GameTimeManager>();
 		if(!entities.empty()){
 			m_gameTime = GetComponentRefFor<GameTimeManager>(entities[0]);
 		}

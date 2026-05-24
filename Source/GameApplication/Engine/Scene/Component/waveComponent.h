@@ -18,14 +18,14 @@ public:
 	float speed= 1.0f;          // 波の進行速度
 	float time= 0.0f;           // 経過時間
 	int currentResolution= -1;  // 現在のメッシュ状態
-	MeshRendererComponent* meshRenderer = nullptr;
+	MeshRendererComponent* pMeshRenderer = nullptr;
 
 	bool useEnvironmentMap= false; // 環境マッピングを使用するか
 
 	~WaveComponent(){
 		if(meshRenderer){
 			delete meshRenderer;
-			meshRenderer = nullptr;
+			pMeshRenderer = nullptr;
 		}
 	}
 

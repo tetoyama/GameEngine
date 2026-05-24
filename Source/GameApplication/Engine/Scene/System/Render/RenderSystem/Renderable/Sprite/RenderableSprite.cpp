@@ -61,9 +61,9 @@ void RenderableSprite::Initialize(SceneManagerContext* context){
 		D3D11_SUBRESOURCE_DATA m_Sd{};
 		sd.pSysMem = vertex;
 
-		context->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_pSpriteMesh->mesh.m_VertexBuffer.GetAddressOf());
-		context->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\commonVS.cso", m_pSpriteMesh->mesh.m_VertexShader.GetAddressOf(), m_pSpriteMesh->mesh.m_VertexLayout.GetAddressOf());
-		context->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_pSpriteMesh->mesh.m_PixelShader.GetAddressOf());
+		context->pRenderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_pSpriteMesh->mesh.m_VertexBuffer.GetAddressOf());
+		context->pRenderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\commonVS.cso", m_pSpriteMesh->mesh.m_VertexShader.GetAddressOf(), m_pSpriteMesh->mesh.m_VertexLayout.GetAddressOf());
+		context->pRenderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_pSpriteMesh->mesh.m_PixelShader.GetAddressOf());
 	}
 }
 
@@ -73,8 +73,8 @@ void RenderableSprite::Finalize(){
 
 void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
 
-	SpriteRendererComponent* spriteRenderer = sceneContext->component->GetComponent<SpriteRendererComponent>(entity);
-	TransformComponent* transform = sceneContext->component->GetComponent<TransformComponent>(entity);
+	SpriteRendererComponent* spriteRenderer = sceneContext->pComponent->GetComponent<SpriteRendererComponent>(entity);
+	TransformComponent* transform = sceneContext->pComponent->GetComponent<TransformComponent>(entity);
 	if(!spriteRenderer || !transform){
 		return;
 	}
@@ -82,26 +82,26 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 
 
 	Vector2 m_ViewportSize= Vector2(
-		(float)sceneContext->manager->graphics->m_width,
-		(float)sceneContext->manager->graphics->m_height
+		(float)sceneContext->pManager->pGraphics->m_width,
+		(float)sceneContext->pManager->pGraphics->m_height
 	);
 
 	TransformComponent m_NewTransform= transform->CalculateRectTransform(viewportSize, *spriteRenderer, *transform);
 
-	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
+	GraphicsContext* graphicsContext = sceneContext->pManager->pGraphics;
 	ID3D11Device* device = graphicsContext->GetDevice();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-	ComponentRegistry* componentRegistry = sceneContext->component;
+	ComponentRegistry* componentRegistry = sceneContext->pComponent;
 
 
 	MATERIAL m_Material{};
 	material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
+	MaterialComponent* pMaterial = sceneContext->pComponent->GetComponent<MaterialComponent>(entity);
 	if (pMaterial) {
 		material = pMaterial->Material;
 	}
 
-	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
+	TextureComponent* pTexture = sceneContext->pComponent->GetComponent<TextureComponent>(entity);
 	if (pTexture) {
 
 			// マテリアル設定

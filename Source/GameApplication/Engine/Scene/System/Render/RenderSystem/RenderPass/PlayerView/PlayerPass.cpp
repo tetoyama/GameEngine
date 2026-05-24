@@ -36,29 +36,29 @@
 void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 
 	m_pRenderSystem = renderSystem;
-	m_pContext = context;
+	m_pContext = pContext;
 
-	shadowMapPass = new ShadowMapPass();
+	pShadowMapPass = new ShadowMapPass();
 	shadowMapPass->Initialize(renderSystem, context);
 
-	gBufferPass = new GBufferPass();
+	pGBufferPass = new GBufferPass();
 	gBufferPass->Initialize(renderSystem, context);
 
-	lightingPass = new LightingPass();
+	pLightingPass = new LightingPass();
 	lightingPass->Initialize(renderSystem, context);
 
-	forwardPass = new ForwardPass();
+	pForwardPass = new ForwardPass();
 	forwardPass->Initialize(renderSystem, context);
 
-	postEffectPass = new PostEffectPass();
+	pPostEffectPass = new PostEffectPass();
 	postEffectPass->Initialize(renderSystem, context);
 
-	overlayUIPass = new OverlayUIPass();
+	pOverlayUIPass = new OverlayUIPass();
 	overlayUIPass->Initialize(renderSystem, context);
 
-	playerRenderTarget = new RenderTarget(
+	pPlayerRenderTarget = new RenderTarget(
 		context->PlayerScreenSize,
-		context->graphics,
+		context->pGraphics,
 		RenderTargetType::RENDERTARGET_TYPE_COLOR
 	);
 }
@@ -67,45 +67,45 @@ void PlayerPass::Finalize() {
 
 	postEffectPass->Finalize();
 	delete m_PostEffectPass;
-	postEffectPass = nullptr;
+	pPostEffectPass = nullptr;
 
 	forwardPass->Finalize();
 	delete m_ForwardPass;
-	forwardPass = nullptr;
+	pForwardPass = nullptr;
 
 	lightingPass->Finalize();
 	delete m_LightingPass;
-	lightingPass = nullptr;
+	pLightingPass = nullptr;
 
 	gBufferPass->Finalize();
 	delete m_GBufferPass;
-	gBufferPass = nullptr;
+	pGBufferPass = nullptr;
 
 	shadowMapPass->Finalize();
 	delete m_ShadowMapPass;
-	shadowMapPass = nullptr;
+	pShadowMapPass = nullptr;
 
 	overlayUIPass->Finalize();
 	delete m_OverlayUipass;
-	overlayUIPass = nullptr;
+	pOverlayUIPass = nullptr;
 
 	delete m_PlayerRenderTarget;
-	playerRenderTarget = nullptr;
+	pPlayerRenderTarget = nullptr;
 }
 
 void PlayerPass::Execute(const RenderPassContext& ctx) {
 
-	if (ctx.cameraData.cameraComponent == nullptr) {
-		result = nullptr;
+	if (ctx.cameraData.pCameraComponent == nullptr) {
+		pResult = nullptr;
 		return;
 	}
 
 	// レンダーターゲットをリサイズ (ウィンドウ描画に使用)
 	float m_ClearCol[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
-	playerRenderTarget->Resize(ctx.screenSize, m_pContext->graphics);
-	playerRenderTarget->Clear(m_pContext->graphics->GetDeviceContext(), clearCol);
+	playerRenderTarget->Resize(ctx.screenSize, m_pContext->pGraphics);
+	playerRenderTarget->Clear(m_pContext->pGraphics->GetDeviceContext(), clearCol);
 
-	GraphicsContext*     graphicsContext = m_pContext->renderer->GetGraphicsContext();
+	GraphicsContext*     graphicsContext = m_pContext->pRenderer->GetGraphicsContext();
 
 	// GBuffer パス
 	gBufferPass->Execute(ctx);
@@ -135,5 +135,5 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	overlayUIPass->SetInputs(postEffectPass->resultRtv,lightingPass->pRenderTarget);
 	overlayUIPass->Execute(ctx);
 
-	result = postEffectPass->resultSrv;
+	pResult = pPostEffectPass->pResultSrv;
 }

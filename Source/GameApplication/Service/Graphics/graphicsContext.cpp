@@ -118,14 +118,14 @@ void GraphicsContext::Shutdown(){
 
 Effekseer::ManagerRef GraphicsContext::GetEffectManager() {
 	if (m_EffectSystem) {
-		return m_EffectSystem->manager;
+		return m_EffectSystem->pManager;
 	}
 	return m_Nullptr;
 }
 
 EffekseerRendererDX11::RendererRef GraphicsContext::GetEffectRenderer(){
 	if(m_EffectSystem){
-		return m_EffectSystem->renderer;
+		return m_EffectSystem->pRenderer;
 	}
 	return m_Nullptr;
 }
@@ -966,7 +966,7 @@ ID3D11ShaderResourceView* GraphicsContext::GetCurrentSRV() const{
 }
 
 void GraphicsContext::DrawQuad(PostEffectShader* shader, ID3D11ShaderResourceView* inputSRV){
-	auto* context = m_DeviceContext.Get();
+	auto* pContext = m_DeviceContext.Get();
 
 	shader->Bind(context);
 
@@ -988,7 +988,7 @@ void GraphicsContext::DrawQuad(PostEffectShader* shader, ID3D11ShaderResourceVie
 
 
 void GraphicsContext::DrawQuad() {
-	auto* context = m_DeviceContext.Get();
+	auto* pContext = m_DeviceContext.Get();
 
 	UINT m_Stride= sizeof(VERTEX_3D);
 	UINT m_Offset= 0;

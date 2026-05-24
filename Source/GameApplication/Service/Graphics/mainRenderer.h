@@ -28,9 +28,9 @@ public:
 	}
 
 	void Initialize(GraphicsContext* context, IWindow* mainWindow) {
-		m_pGraphicsContext = context;
+		m_pGraphicsContext = pContext;
 		m_hwnd = mainWindow->GetHWND();
-		m_pD2dRenderer = new D2DRenderer(context, m_hwnd);
+		m_pD2dRenderer = new D2DRenderer(pContext, m_hwnd);
 		m_width = mainWindow->GetWidth();
 		m_height = mainWindow->GetHeight();
 	}

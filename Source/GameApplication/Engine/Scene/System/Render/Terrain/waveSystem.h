@@ -26,11 +26,11 @@ public:
 	~WaveSystem(){}
 
 	void Initialize() override{
-		m_pGraphicContext = m_pContext->graphics;
+		m_pGraphicContext = m_pContext->pGraphics;
 
-		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
-			auto context = scene->GetSceneContext();
-			auto entities = context->component->FindEntitiesWithComponent<WaveComponent>();
+		for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
+			auto pContext = scene->GetSceneContext();
+			auto entities = pContext->pComponent->FindEntitiesWithComponent<WaveComponent>();
 			for (auto entity : entities) {
 				CreateMesh(context,entity);
 			}
@@ -39,30 +39,30 @@ public:
 
 	void Finalize() override{
 
-		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
-			auto context = scene->GetSceneContext();
-			auto entities = context->component->FindEntitiesWithComponent<WaveComponent>();
+		for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
+			auto pContext = scene->GetSceneContext();
+			auto entities = pContext->pComponent->FindEntitiesWithComponent<WaveComponent>();
 			for (auto entity : entities) {
-				auto* comp = context->component->GetComponent<WaveComponent>(entity);
-				if (comp && comp->meshRenderer) {
-					comp->meshRenderer->mesh.m_IndexBuffer.Reset();
-					comp->meshRenderer->mesh.m_VertexBuffer.Reset();
-					delete comp->meshRenderer;
-					comp->meshRenderer = nullptr;
+				auto* comp = context->pComponent->GetComponent<WaveComponent>(entity);
+				if (comp && comp->pMeshRenderer) {
+					comp->pMeshRenderer->mesh.m_IndexBuffer.Reset();
+					comp->pMeshRenderer->mesh.m_VertexBuffer.Reset();
+					delete comp->pMeshRenderer;
+					comp->pMeshRenderer = nullptr;
 				}
 			}
 		}
 	}
 
 	void EditorUpdate(float dt) override{
-		for (auto& [name, scene] : m_pContext->sceneManager->GetActiveScenes()) {
-			auto context = scene->GetSceneContext();
-			auto entities = context->component->FindEntitiesWithComponent<WaveComponent>();
+		for (auto& [name, scene] : m_pContext->pSceneManager->GetActiveScenes()) {
+			auto pContext = scene->GetSceneContext();
+			auto entities = pContext->pComponent->FindEntitiesWithComponent<WaveComponent>();
 			for (auto entity : entities) {
-				auto* comp = context->component->GetComponent<WaveComponent>(entity);
+				auto* comp = context->pComponent->GetComponent<WaveComponent>(entity);
 				if (!comp) continue;
 
-				if (!comp->meshRenderer || comp->Resolution != comp->CurrentResolution) {
+				if (!comp->pMeshRenderer || comp->Resolution != comp->CurrentResolution) {
 					CreateMesh(context,entity);
 				}
 				UpdateWaveVertices(comp);
@@ -76,14 +76,14 @@ private:
 
 	void CreateMesh(SceneContext* context, Entity entity){
 
-		auto* comp = context->component->GetComponent<WaveComponent>(entity);
+		auto* comp = context->pComponent->GetComponent<WaveComponent>(entity);
 		if(!comp) return;
 
-		if(comp->meshRenderer){
-			comp->meshRenderer->mesh.m_IndexBuffer.Reset();
-			comp->meshRenderer->mesh.m_VertexBuffer.Reset();
+		if(comp->pMeshRenderer){
+			comp->pMeshRenderer->mesh.m_IndexBuffer.Reset();
+			comp->pMeshRenderer->mesh.m_VertexBuffer.Reset();
 		} else{
-			comp->meshRenderer = new MeshRendererComponent();
+			comp->pMeshRenderer = new MeshRendererComponent();
 		}
 
 		int m_Grid= comp->Resolution;
@@ -123,8 +123,8 @@ private:
 			}
 		}
 
-		comp->meshRenderer->mesh.meshCount = vertexCount;
-		comp->meshRenderer->mesh.indexCount = indexCount;
+		comp->pMeshRenderer->mesh.meshCount = vertexCount;
+		comp->pMeshRenderer->mesh.indexCount = indexCount;
 
 		D3D11_BUFFER_DESC m_Bd{};
 		bd.Usage = D3D11_USAGE_DYNAMIC;
@@ -133,21 +133,21 @@ private:
 		bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		D3D11_SUBRESOURCE_DATA m_Sd{};
 		sd.pSysMem = vertices.data();
-		m_pGraphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.m_VertexBuffer.GetAddressOf());
+		m_pGraphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->pMeshRenderer->mesh.m_VertexBuffer.GetAddressOf());
 
 		bd.Usage = D3D11_USAGE_DEFAULT;
 		bd.ByteWidth = sizeof(unsigned int) * indexCount;
 		bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 		bd.CPUAccessFlags = 0;
 		sd.pSysMem = indices.data();
-		m_pGraphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.m_IndexBuffer.GetAddressOf());
+		m_pGraphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->pMeshRenderer->mesh.m_IndexBuffer.GetAddressOf());
 
 		comp->CurrentResolution = comp->Resolution;
 	}
 
 	void UpdateWaveVertices(WaveComponent* comp){
-		if(!comp->meshRenderer) return;
-		ID3D11Buffer* vbuf = comp->meshRenderer->mesh.m_VertexBuffer.Get();
+		if(!comp->pMeshRenderer) return;
+		ID3D11Buffer* vbuf = comp->pMeshRenderer->mesh.m_VertexBuffer.Get();
 		if(!vbuf) return;
 
 		int m_Grid= comp->Resolution;
@@ -185,7 +185,7 @@ private:
 		}
 
 		D3D11_MAPPED_SUBRESOURCE m_Msr{};
-		auto* ctx = m_pContext->graphics->GetDeviceContext();
+		auto* ctx = m_pContext->pGraphics->GetDeviceContext();
 		if(SUCCEEDED(ctx->Map(vbuf, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr))){
 			memcpy(msr.pData, tempVertices.data(), sizeof(VERTEX_3D) * vertexCount);
 			ctx->Unmap(vbuf, 0);

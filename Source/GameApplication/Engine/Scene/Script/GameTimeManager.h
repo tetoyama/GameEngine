@@ -43,12 +43,12 @@ public:
 		CountDownTimer = (float)CountDownTime;
 		ShutDownTimer = 0.0f;
 
-		auto fadeEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<FadeOutSprite>();
+		auto fadeEntities = m_ref.GetScene()->pComponent->FindEntitiesWithComponent<FadeOutSprite>();
 		if(!fadeEntities.empty()){
 			fade = GetComponentRefFor<FadeOutSprite>(fadeEntities[0]);
 		}
 
-		auto scoreEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<ScoreManager>();
+		auto scoreEntities = m_ref.GetScene()->pComponent->FindEntitiesWithComponent<ScoreManager>();
 		if(!scoreEntities.empty()){
 			score = GetComponentRefFor<ScoreManager>(scoreEntities[0]);
 		}
@@ -77,14 +77,14 @@ public:
 							LoadScene("Asset/Scene/scene_lose.yaml");
 						}
 					} else{
-						auto scoreEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<ScoreManager>();
+						auto scoreEntities = m_ref.GetScene()->pComponent->FindEntitiesWithComponent<ScoreManager>();
 						if(!scoreEntities.empty()){
 							score = GetComponentRefFor<ScoreManager>(scoreEntities[0]);
 						}
 					}
 				}
 			} else{
-				auto fadeEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<FadeOutSprite>();
+				auto fadeEntities = m_ref.GetScene()->pComponent->FindEntitiesWithComponent<FadeOutSprite>();
 				if(!fadeEntities.empty()){
 					fade = GetComponentRefFor<FadeOutSprite>(fadeEntities[0]);
 				}
