@@ -9,7 +9,7 @@
 struct SceneManagerContext;
 
 // トランスフォームの描画補助を行うシステム
-class TransformSystem : public isystem{
+class TransformSystem : public ISystem{
 public:
 
 	const char* GetSystemName() const override{

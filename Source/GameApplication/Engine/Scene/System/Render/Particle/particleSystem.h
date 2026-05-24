@@ -11,7 +11,7 @@ struct SceneManagerContext;
 class transformComponent;
 class spriteRendererComponent;
 // パーティクルの生成・更新を管理するシステム
-class ParticleSystem : public isystem{
+class ParticleSystem : public ISystem{
 public:
 
 	const char* GetSystemName() const override{

@@ -17,7 +17,7 @@
 struct SceneContext;
 
 // ヒエラルキー（シーン階層）表示UI
-class Hierarchy: public ieditorUi{
+class Hierarchy: public IEditorUI{
 
 public:
 	void Initialize(EditorService* editor) override{

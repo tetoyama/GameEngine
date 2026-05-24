@@ -9,7 +9,7 @@
 struct SceneManagerContext;
 
 // FollowComponent を持つエンティティのトランスフォームを更新するシステム
-class FollowSystem : public isystem{
+class FollowSystem : public ISystem{
 public:
 	const char* GetSystemName() const override { return "FollowSystem"; }
 

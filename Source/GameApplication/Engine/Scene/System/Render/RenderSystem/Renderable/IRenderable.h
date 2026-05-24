@@ -13,7 +13,7 @@ struct SceneContext;
 class componentRegistry;
 
 // 描画オブジェクトの基底インターフェース
-class irenderable{
+class IRenderable{
 public:
 	virtual ~IRenderable(){}
 

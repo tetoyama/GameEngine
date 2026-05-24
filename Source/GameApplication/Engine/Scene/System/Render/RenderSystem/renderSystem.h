@@ -27,7 +27,7 @@ struct RenderTarget;
 struct CameraEntityData;
 struct TextureData;
 
-class irenderable;
+class IRenderable;
 class irenderPass;
 
 class playerPass;

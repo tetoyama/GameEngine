@@ -9,7 +9,7 @@
 struct SceneManagerContext;
 
 // カメラのビュー・プロジェクション行列を更新するシステム
-class CameraSystem : public isystem{
+class CameraSystem : public ISystem{
 
 public:
 	const char* GetSystemName() const override{

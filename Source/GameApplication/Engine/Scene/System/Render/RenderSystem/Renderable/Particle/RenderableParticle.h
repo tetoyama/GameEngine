@@ -12,7 +12,7 @@ struct SceneManagerContext;
 class meshRendererComponent;
 
 // パーティクルの描画を行うレンダラブル
-class RenderableParticle: public irenderable{
+class RenderableParticle: public IRenderable{
 public:
 	void Initialize(SceneManagerContext* context) override;
 	void Finalize() override;

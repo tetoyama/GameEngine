@@ -12,7 +12,7 @@ struct SceneManagerContext;
 class meshRendererComponent;
 
 // ビルボードの描画を行うレンダラブル
-class RenderableBillBoard: public irenderable{
+class RenderableBillBoard: public IRenderable{
 public:
 	void Initialize(SceneManagerContext* context) override;
 	void Finalize() override;

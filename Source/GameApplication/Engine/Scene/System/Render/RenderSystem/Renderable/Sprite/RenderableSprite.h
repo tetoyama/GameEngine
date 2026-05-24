@@ -12,7 +12,7 @@ struct SceneManagerContext;
 class meshRendererComponent;
 
 // 2Dスプライトの描画を行うレンダラブル
-class RenderableSprite: public irenderable{
+class RenderableSprite: public IRenderable{
 public:
 	void Initialize(SceneManagerContext* context) override;
 	void Finalize() override;

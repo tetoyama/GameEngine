@@ -17,7 +17,7 @@
 struct SceneContext;
 
 // インスペクタ（コンポーネント編集）UI
-class Inspector: public ieditorUi{
+class Inspector: public IEditorUI{
 
 public:
 	void Initialize(EditorService* editor) override{
