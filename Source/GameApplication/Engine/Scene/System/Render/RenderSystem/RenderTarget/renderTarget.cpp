@@ -15,7 +15,7 @@ void RenderTarget::Resize(const Vector2& _size, GraphicsContext* _graphicsContex
     if (_size == size) return;
     size = _size;
 
-    D3D11_TEXTURE2D_DESC td = {};
+    D3D11_TEXTURE2D_DESC m_Td= {};
     td.Width = (UINT)_size.x;
     td.Height = (UINT)_size.y;
     td.MipLevels = 1;
@@ -34,7 +34,7 @@ void RenderTarget::Resize(const Vector2& _size, GraphicsContext* _graphicsContex
                 td.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
                 td.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
-                HRESULT hr = device->CreateTexture2D(&td, nullptr, tex.ReleaseAndGetAddressOf());
+                HRESULT m_Hr= device->CreateTexture2D(&td, nullptr, tex.ReleaseAndGetAddressOf());
                 if (FAILED(hr) || !tex) return;
 
                 device->CreateRenderTargetView(tex.Get(), nullptr, rtv.ReleaseAndGetAddressOf());
@@ -43,7 +43,7 @@ void RenderTarget::Resize(const Vector2& _size, GraphicsContext* _graphicsContex
                 // 深度ステンシルを別で作成（カラーRT用）
                 ID3D11Texture2D* depthStencilTex = nullptr;
 
-                D3D11_TEXTURE2D_DESC depthDesc = td;
+                D3D11_TEXTURE2D_DESC m_DepthDesc= td;
                 depthDesc.Format = DXGI_FORMAT_D32_FLOAT;
                 depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
                 depthDesc.MiscFlags = 0;
@@ -51,7 +51,7 @@ void RenderTarget::Resize(const Vector2& _size, GraphicsContext* _graphicsContex
                 hr = device->CreateTexture2D(&depthDesc, nullptr, &depthStencilTex);
                 if (FAILED(hr) || !depthStencilTex) return;
 
-                D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
+                D3D11_DEPTH_STENCIL_VIEW_DESC m_DsvDesc{};
                 dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
                 dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 
@@ -65,7 +65,7 @@ void RenderTarget::Resize(const Vector2& _size, GraphicsContext* _graphicsContex
                 td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
                 td.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
-                HRESULT hr = device->CreateTexture2D(&td, nullptr, tex.ReleaseAndGetAddressOf());
+                HRESULT m_Hr= device->CreateTexture2D(&td, nullptr, tex.ReleaseAndGetAddressOf());
                 if (FAILED(hr) || !tex) return;
 
                 device->CreateRenderTargetView(tex.Get(), nullptr, rtv.ReleaseAndGetAddressOf());
@@ -74,7 +74,7 @@ void RenderTarget::Resize(const Vector2& _size, GraphicsContext* _graphicsContex
                 // 深度ステンシルを別で作成（カラーRT用）
                 ID3D11Texture2D* depthStencilTex = nullptr;
 
-                D3D11_TEXTURE2D_DESC depthDesc = td;
+                D3D11_TEXTURE2D_DESC m_DepthDesc= td;
                 depthDesc.Format = DXGI_FORMAT_D32_FLOAT;
                 depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
                 depthDesc.MiscFlags = 0;
@@ -82,7 +82,7 @@ void RenderTarget::Resize(const Vector2& _size, GraphicsContext* _graphicsContex
                 hr = device->CreateTexture2D(&depthDesc, nullptr, &depthStencilTex);
                 if (FAILED(hr) || !depthStencilTex) return;
 
-                D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
+                D3D11_DEPTH_STENCIL_VIEW_DESC m_DsvDesc{};
                 dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
                 dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 
@@ -95,7 +95,7 @@ void RenderTarget::Resize(const Vector2& _size, GraphicsContext* _graphicsContex
                 td.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
                 td.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
-                HRESULT hr = device->CreateTexture2D(&td, nullptr, tex.ReleaseAndGetAddressOf());
+                HRESULT m_Hr= device->CreateTexture2D(&td, nullptr, tex.ReleaseAndGetAddressOf());
                 if (FAILED(hr) || !tex) return;
 
                 device->CreateRenderTargetView(tex.Get(), nullptr, rtv.ReleaseAndGetAddressOf());
@@ -110,11 +110,11 @@ void RenderTarget::Resize(const Vector2& _size, GraphicsContext* _graphicsContex
                 td.Format = DXGI_FORMAT_R32_TYPELESS;
                 td.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 
-                HRESULT hr = device->CreateTexture2D(&td, nullptr, tex.ReleaseAndGetAddressOf());
+                HRESULT m_Hr= device->CreateTexture2D(&td, nullptr, tex.ReleaseAndGetAddressOf());
                 if (FAILED(hr) || !tex) return;
 
                 // DSV 作成（tex に対して作る）
-                D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
+                D3D11_DEPTH_STENCIL_VIEW_DESC m_DsvDesc{};
                 dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
                 dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 
@@ -122,7 +122,7 @@ void RenderTarget::Resize(const Vector2& _size, GraphicsContext* _graphicsContex
                 if (FAILED(hr)) return;
 
                 // SRV 作成（tex に対して作る）
-                D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+                D3D11_SHADER_RESOURCE_VIEW_DESC m_SrvDesc{};
                 srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
                 srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
                 srvDesc.Texture2D.MipLevels = 1;
@@ -140,16 +140,16 @@ void RenderTarget::Resize(const Vector2& _size, GraphicsContext* _graphicsContex
                 td.Format = DXGI_FORMAT_R32G32B32A32_UINT;
                 td.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
-                HRESULT hr = device->CreateTexture2D(&td, nullptr, tex.ReleaseAndGetAddressOf());
+                HRESULT m_Hr= device->CreateTexture2D(&td, nullptr, tex.ReleaseAndGetAddressOf());
                 if (FAILED(hr) || !tex) return;
 
-                D3D11_RENDER_TARGET_VIEW_DESC rtvDesc{};
+                D3D11_RENDER_TARGET_VIEW_DESC m_RtvDesc{};
                 rtvDesc.Format = DXGI_FORMAT_R32G32B32A32_UINT;
                 rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 
                 device->CreateRenderTargetView(tex.Get(), &rtvDesc, rtv.ReleaseAndGetAddressOf());
 
-                D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+                D3D11_SHADER_RESOURCE_VIEW_DESC m_SrvDesc{};
                 srvDesc.Format = DXGI_FORMAT_R32G32B32A32_UINT;
                 srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
                 srvDesc.Texture2D.MipLevels = 1;
@@ -172,22 +172,22 @@ void RenderTarget::Clear(ID3D11DeviceContext* ctx, const float clearColor[4]) co
 }
 
 PickResult RenderTarget::Pick(const Vector2& uv, GraphicsContext* graphicsContext){
-	PickResult result;
+	PickResult m_Result;
 	if(!tex) return result;
 
 	ID3D11Device* device = graphicsContext->GetDevice();
 	ID3D11DeviceContext* context = graphicsContext->GetDeviceContext();
 
 	// 1. テクスチャ情報の取得
-	D3D11_TEXTURE2D_DESC desc;
+	D3D11_TEXTURE2D_DESC m_Desc;
 	tex->GetDesc(&desc);
 
 	// 2. ピクセル座標の計算
-	UINT pixelX = (UINT)std::clamp(uv.x * size.x, 0.0f, size.x - 1.0f);
-	UINT pixelY = (UINT)std::clamp(uv.y * size.y, 0.0f, size.y - 1.0f);
+	UINT m_PixelX= (UINT)std::clamp(uv.x * size.x, 0.0f, size.x - 1.0f);
+	UINT m_PixelY= (UINT)std::clamp(uv.y * size.y, 0.0f, size.y - 1.0f);
 
 	// 3. 1x1のステージングテクスチャ作成
-	D3D11_TEXTURE2D_DESC stagingDesc = desc;
+	D3D11_TEXTURE2D_DESC m_StagingDesc= desc;
 	stagingDesc.Width = 1;
 	stagingDesc.Height = 1;
 	stagingDesc.MipLevels = 1;
@@ -197,16 +197,16 @@ PickResult RenderTarget::Pick(const Vector2& uv, GraphicsContext* graphicsContex
 	stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 	stagingDesc.MiscFlags = 0;
 
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> stagingTex;
-	HRESULT hr = device->CreateTexture2D(&stagingDesc, nullptr, stagingTex.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> m_StagingTex;
+	HRESULT m_Hr= device->CreateTexture2D(&stagingDesc, nullptr, stagingTex.GetAddressOf());
 	if(FAILED(hr)) return result;
 
 	// 4. 指定座標の1ピクセルをコピー
-	D3D11_BOX srcBox = {pixelX, pixelY, 0, pixelX + 1, pixelY + 1, 1};
+	D3D11_BOX m_SrcBox= {pixelX, pixelY, 0, pixelX + 1, pixelY + 1, 1};
 	context->CopySubresourceRegion(stagingTex.Get(), 0, 0, 0, 0, tex.Get(), 0, &srcBox);
 
 	// 5. マップしてデータ取得
-	D3D11_MAPPED_SUBRESOURCE mapped;
+	D3D11_MAPPED_SUBRESOURCE m_Mapped;
 	hr = context->Map(stagingTex.Get(), 0, D3D11_MAP_READ, 0, &mapped);
 	if(SUCCEEDED(hr)){
 
@@ -254,5 +254,5 @@ PickResult RenderTarget::Pick(const Vector2& uv, GraphicsContext* graphicsContex
 		context->Unmap(stagingTex.Get(), 0);
 	}
 
-	return result;
+	return m_Result;
 }

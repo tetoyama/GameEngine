@@ -23,8 +23,8 @@
 // エンティティの位置・回転・スケールを管理するコンポーネント
 class TransformComponent: public IComponent {
 private:
-	Vector3 rotationEuler; // インスペクタ表示や加算操作に使うオイラー角キャッシュ
-	DirectX::XMFLOAT4 rotation = {0, 0, 0, 1}; // クォータニオン
+	Vector3 m_RotationEuler; // インスペクタ表示や加算操作に使うオイラー角キャッシュ
+	DirectX::XMFLOAT4 m_Rotation= {0, 0, 0, 1}; // クォータニオン
 
 public:
 	Vector3 position = Vector3(0, 0, 0); // ローカル位置

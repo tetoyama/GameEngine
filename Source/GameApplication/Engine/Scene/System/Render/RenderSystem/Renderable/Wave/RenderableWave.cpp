@@ -23,9 +23,9 @@
 
 
 void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity) {
-	auto componentRegistry = sceneContext->component;
-	auto pTransform = componentRegistry->GetComponent<TransformComponent>(entity);
-	auto pWave = componentRegistry->GetComponent<WaveComponent>(entity);
+	auto m_ComponentRegistry= sceneContext->component;
+	auto m_PTransform= componentRegistry->GetComponent<TransformComponent>(entity);
+	auto m_PWave= componentRegistry->GetComponent<WaveComponent>(entity);
 
 	if (!pWave || !pWave->meshRenderer) {
 		return;
@@ -36,7 +36,7 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 
 	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
 	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
-	MATERIAL material;
+	MATERIAL m_Material;
 	if (pMaterial) {
 		material = pMaterial->Material;
 		material.MaterialFlags &= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
@@ -52,16 +52,16 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 
 	sceneContext->manager->graphics->SetMaterial(material);
 
-	auto meshRenderer = pWave->meshRenderer;
-	auto transform = pTransform;
+	auto m_MeshRenderer= pWave->meshRenderer;
+	auto m_Transform= pTransform;
 
 
-	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, componentRegistry);
+	DirectX::XMMATRIX m_World= transform->CalculateWorldMatrix(transform, componentRegistry);
 
 	graphicsContext->SetCullMode(CullMode::Back);
 	graphicsContext->SetWorldMatrix(World);
-	UINT stride = sizeof(VERTEX_3D);
-	UINT offset = 0;
+	UINT m_Stride= sizeof(VERTEX_3D);
+	UINT m_Offset= 0;
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);

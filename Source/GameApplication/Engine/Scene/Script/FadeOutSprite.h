@@ -16,7 +16,7 @@ public:
 		REFLECT_FIELD(float, FadeTime, 1.0f)
 		REFLECT_FIELD_INIT(bool, Active, false,REFLECT_INSPECTOR)
 
-		float Timer = 0.0f;
+		float timer= 0.0f;
 	FadeOutSprite(): CustomScriptComponent("FadeOutSprite"){}
 
 	YAML::Node encode() override{
@@ -51,5 +51,5 @@ public:
 	void OnEditorUpdate(float dt)override{}
 	void OnStop() override{}
 private:
-	ComponentRef<MaterialComponent> material;
+	ComponentRef<MaterialComponent> m_Material;
 };

@@ -67,21 +67,21 @@ bool ScriptSystem::ReloadScriptDLL(const char* originalPath){
 	// 3. ロード
 	m_scriptModule = LoadLibraryA(originalPath);
 	if(!m_scriptModule)
-		return false;
+		return m_False;
 
-	auto createFunc =
+	auto m_CreateFunc=
 		reinterpret_cast<CreateScriptFunc>(
 			GetProcAddress(m_scriptModule, "CreateScript"));
 
 	if(!createFunc)
-		return false;
+		return m_False;
 
 	m_scriptBridge =
 		[createFunc](const char* scriptName){
 		return createFunc(scriptName);
 		};
 
-	auto rawFunc =
+	auto m_RawFunc=
 		reinterpret_cast<SetImGuiContextFunc>(
 			GetProcAddress(m_scriptModule, "SetImGuiContext"));
 
@@ -90,7 +90,7 @@ bool ScriptSystem::ReloadScriptDLL(const char* originalPath){
 		if(rawFunc) rawFunc(ctx);
 		};
 
-	return true;
+	return m_True;
 }
 
 void ScriptSystem::Initialize(){
@@ -112,7 +112,7 @@ template<typename Func>
 void ScriptSystem::ForEachScript(Func&& func){
 	for(auto& [_, scene] : m_context->sceneManager->GetActiveScenes()){
 		auto* ctx = scene->GetSceneContext();
-		auto entities =
+		auto m_Entities=
 			ctx->component->FindEntitiesWithComponent<ScriptComponent>();
 
 		for(Entity e : entities){

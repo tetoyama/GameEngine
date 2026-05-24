@@ -15,7 +15,7 @@
 #include <typeindex>
 #include <algorithm>
 
-namespace EntityCommandHelper {
+namespace m_EntityCommandHelper{
 
 // -----------------------------------------------------------------------
 // 親子関係の設定（SetParentCommand / EntityCreateCommand などでも使用）

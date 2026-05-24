@@ -76,10 +76,10 @@ public:
 
 private:
 	SceneContext*                                    m_context;
-	std::string                                      m_filePath;
-	bool                                             m_removePrefabComp;
-	Entity                                           m_spawned;
-	std::vector<EntityCommandHelper::EntitySnapshot> m_snapshots;
-	PostInstantiateCallback                          m_onInstantiated;
-	PostUndoCallback                                 m_onUndone;
+	std::string m_FilePath;
+	bool m_RemovePrefabComp;
+	Entity m_Spawned;
+	std::vector<EntityCommandHelper::EntitySnapshot> m_Snapshots;
+	PostInstantiateCallback m_OnInstantiated;
+	PostUndoCallback m_OnUndone;
 };

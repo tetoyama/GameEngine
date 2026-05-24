@@ -48,8 +48,8 @@ private:
 	}
 
 	SceneContext*        m_context;
-	Entity               m_entity;
-	Vector3              m_oldPos, m_newPos;
-	DirectX::XMFLOAT4   m_oldRot, m_newRot;
-	Vector3              m_oldScale, m_newScale;
+	Entity m_Entity;
+	Vector3              m_oldPos, m_NewPos;
+	DirectX::XMFLOAT4   m_oldRot, m_NewRot;
+	Vector3              m_oldScale, m_NewScale;
 };

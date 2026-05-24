@@ -53,31 +53,31 @@ void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 void EditorPass::Finalize() {
 
 	postEffectPass->Finalize();
-	delete postEffectPass;
+	delete m_PostEffectPass;
 	postEffectPass = nullptr;
 
 	overlayUIPass->Finalize();
-	delete overlayUIPass;
+	delete m_OverlayUipass;
 	overlayUIPass = nullptr;
 
 	forwardPass->Finalize();
-	delete forwardPass;
+	delete m_ForwardPass;
 	forwardPass = nullptr;
 
 	lightingPass->Finalize();
-	delete lightingPass;
+	delete m_LightingPass;
 	lightingPass = nullptr;
 
 	gBufferPass->Finalize();
-	delete gBufferPass;
+	delete m_GBufferPass;
 	gBufferPass = nullptr;
 
 	shadowMapPass->Finalize();
-	delete shadowMapPass;
+	delete m_ShadowMapPass;
 	shadowMapPass = nullptr;
 
 	physXDebugPass->Finalize();
-	delete physXDebugPass;
+	delete m_PhysXdebugPass;
 	physXDebugPass = nullptr;
 }
 

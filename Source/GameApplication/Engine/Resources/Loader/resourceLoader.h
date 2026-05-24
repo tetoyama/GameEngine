@@ -154,7 +154,7 @@ public:
     }
 
 private:
-    mutable std::mutex m_mutex;
+    mutable std::mutex m_Mutex;
     std::unordered_map<std::string, std::shared_ptr<T>> m_Cache;
     AnyLoadFunc m_LoadFunc = nullptr;
 
@@ -165,7 +165,7 @@ private:
 
     template<typename Tuple, std::size_t... I>
     std::string TupleToStringImpl(const Tuple& tuple, std::index_sequence<I...>) {
-        std::ostringstream oss;
+        std::ostringstream m_Oss;
         ((oss << (I == 0 ? "" : ",") << std::get<I>(tuple)), ...);
         return oss.str();
     }

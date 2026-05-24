@@ -15,12 +15,12 @@
 #include <llama/llama.h>
 
 inline std::shared_ptr<LLAMAModelData> LoadLLAMAModelFromFile(const std::string& filePath) {
-    std::shared_ptr<LLAMAModelData> modelData = std::make_shared<LLAMAModelData>();
+    std::shared_ptr<LLAMAModelData> m_ModelData= std::make_shared<LLAMAModelData>();
     modelData->m_path = filePath;
 
     OutputDebugStringA(("Loading LLAMA model: " + filePath + "\n").c_str());
 
-    llama_model_params mParams = llama_model_default_params();
+    llama_model_params m_MParams= llama_model_default_params();
     mParams.n_gpu_layers = 0; // GPUなし
 
     try {
@@ -28,13 +28,13 @@ inline std::shared_ptr<LLAMAModelData> LoadLLAMAModelFromFile(const std::string&
     }
     catch (const std::runtime_error& e) {
         OutputDebugStringA(("LLAMA load failed: " + std::string(e.what()) + "\n").c_str());
-        return nullptr;
+        return m_Nullptr;
     }
 
     // llama_vocab は model から取得
     modelData->m_vocab = llama_model_get_vocab(modelData->m_model);
 
-    return modelData;
+    return m_ModelData;
 }
 
 // ResourceLoader 用の設定

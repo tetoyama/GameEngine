@@ -22,8 +22,8 @@ public:
 	void Execute(const RenderPassContext& ctx) override;
 
 	ID3D11Buffer* pPhysicsDebugLineVB = nullptr;
-	std::shared_ptr<PixelShaderData> m_LinePixelShader;
-	std::shared_ptr<VertexShaderData> m_LineVertexShader;
+	std::shared_ptr<PixelShaderData> linePixelShader;
+	std::shared_ptr<VertexShaderData> lineVertexShader;
 
 	ID3D11ShaderResourceView* result = nullptr;
 

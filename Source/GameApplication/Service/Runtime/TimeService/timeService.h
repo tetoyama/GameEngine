@@ -52,34 +52,34 @@ public:
 	} // 前回の描画FPS
 
 private:
-	double frequency_;             // カウンタの1秒あたりのカウント数
-	long long startTime_;         // 開始時刻
-	long long prevTime_;          // 前フレームの時刻
-	float deltaTime_;             // 前回からの経過時間（秒）
-	float totalTime_;             // 起動からの累積時間（秒）
+	double m_Frequency;             // カウンタの1秒あたりのカウント数
+	long long m_StartTime;         // 開始時刻
+	long long m_PrevTime;          // 前フレームの時刻
+	float m_DeltaTime;             // 前回からの経過時間（秒）
+	float m_TotalTime;             // 起動からの累積時間（秒）
 
-	double deltaUpdateTime_ = 0.0f;	// 前回の更新時間（秒）
-	double fixedUpdateTime_ = 0.0f;	// 前回の固定更新時間（秒）
-	double drawTime_ = 0.0f;			// 前回の描画時間（秒）
+	double m_DeltaUpdateTime= 0.0f;	// 前回の更新時間（秒）
+	double m_FixedUpdateTime= 0.0f;	// 前回の固定更新時間（秒）
+	double m_DrawTime= 0.0f;			// 前回の描画時間（秒）
 
 
-	long long prevDeltaTime_ = 0;          // 前フレームの時刻
-	long long prevFixedTime_ = 0;          // 前フレームの時刻
-	long long prevDrawTime_ = 0;          // 前フレームの時刻
+	long long m_PrevDeltaTime= 0;          // 前フレームの時刻
+	long long m_PrevFixedTime= 0;          // 前フレームの時刻
+	long long m_PrevDrawTime= 0;          // 前フレームの時刻
 
-	double deltaUpdateTimer_ = 0.0f;	// 前回の更新時間（秒）
-	double fixedUpdateTimer_ = 0.0f;	// 前回の固定更新時間（秒）
-	double drawTimer_ = 0.0f;			// 前回の描画時間（秒）
+	double m_DeltaUpdateTimer= 0.0f;	// 前回の更新時間（秒）
+	double m_FixedUpdateTimer= 0.0f;	// 前回の固定更新時間（秒）
+	double m_DrawTimer= 0.0f;			// 前回の描画時間（秒）
 
-	int fixedUpdateFrameCount_ = 0;			// 固定更新フレームカウント
-	int deltaUpdateFrameCount_ = 0;		// 更新フレームカウント
-	int drawFrameCount_ = 0;			// 描画フレームカウント
+	int m_FixedUpdateFrameCount= 0;			// 固定更新フレームカウント
+	int m_DeltaUpdateFrameCount= 0;		// 更新フレームカウント
+	int m_DrawFrameCount= 0;			// 描画フレームカウント
 
-	double fixedUpdateFPS_ = 0;			// 固定更新FPS
-	double deltaUpdateFPS_ = 0;		// 更新FPS
-	double drawFPS_ = 0;			// 描画FPS
+	double m_FixedUpdateFps= 0;			// 固定更新FPS
+	double m_DeltaUpdateFps= 0;		// 更新FPS
+	double m_DrawFps= 0;			// 描画FPS
 
 	// 固定更新用
-	float fixedDeltaTime_ = 1.0f / (float)TARGET_FPS;
-	float fixedTimeAccumulator_ = 0.0f;
+	float m_FixedDeltaTime= 1.0f / (float)TARGET_FPS;
+	float m_FixedTimeAccumulator= 0.0f;
 };

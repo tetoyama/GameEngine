@@ -81,10 +81,10 @@ public:
 
 private:
 	SceneContext*               m_context;
-	Entity                      m_entity;
-	std::string                 m_componentName;
+	Entity m_Entity;
+	std::string m_ComponentName;
 	std::function<void(Entity)> m_addFunc;
-	YAML::Node                  m_snapshot;
+	YAML::Node m_Snapshot;
 };
 
 // -----------------------------------------------------------------------
@@ -128,8 +128,8 @@ public:
 
 private:
 	SceneContext*   m_context;
-	Entity          m_entity;
-	ComponentTypeID m_typeID = static_cast<ComponentTypeID>(-1);
-	std::string     m_componentName;
-	YAML::Node      m_snapshot;
+	Entity m_Entity;
+	ComponentTypeID m_TypeId= static_cast<ComponentTypeID>(-1);
+	std::string m_ComponentName;
+	YAML::Node m_Snapshot;
 };

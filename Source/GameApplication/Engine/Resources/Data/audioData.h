@@ -9,13 +9,13 @@
 // オーディオリソースデータを保持するクラス
 class AudioData {
 public:
-	std::string FilePath = "";
+	std::string filePath= "";
 	BYTE* m_SoundData = nullptr;
 
-	int m_Length = 0;
-	int m_PlayLength = 0;
+	int length= 0;
+	int playLength= 0;
 
-	WAVEFORMATEX m_Format = {};
+	WAVEFORMATEX format= {};
 
 	AudioData(){
 		OutputDebugStringA("Created AudioData\n");

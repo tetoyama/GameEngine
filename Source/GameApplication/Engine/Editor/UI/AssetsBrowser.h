@@ -21,7 +21,7 @@ struct SceneManagerContext;
 
 class ResourceService;
 
-enum FileIconType {
+enum m_FileIconType{
 	FILE_UNDEFINED = 0,
 	FILE_FOLDER,
 	FILE_TEXT,
@@ -46,14 +46,14 @@ private:
 	void DrawAssetsInDirectory(std::string& selectedPath);
 	TextureData* GetIconTexture(std::string filepath);
 
-	bool openRename = false;
-	std::filesystem::path renameTarget;
-	char newNameBuffer[256]{};
+	bool m_OpenRename= false;
+	std::filesystem::path m_RenameTarget;
+	char m_NewNameBuffer[256]{};
 
 	EditorService* m_editor = nullptr;
 	ResourceService* resourceService = nullptr;
 
-	std::shared_ptr<TextureData> fileIcon[FileIconType::FILE_MAX];
+	std::shared_ptr<TextureData> m_FileIcon[FileIconType::FILE_MAX];
 
-	std::unordered_map<std::string, std::shared_ptr<TextureData>> previewCache;
+	std::unordered_map<std::string, std::shared_ptr<TextureData>> m_PreviewCache;
 };

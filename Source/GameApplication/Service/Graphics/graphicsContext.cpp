@@ -78,7 +78,7 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
 	GRAPHICS_LOG(LogLevel::Info, "GraphicsContext の初期化が完了しました");
 
-	return true;
+	return m_True;
 }
 
 void GraphicsContext::Shutdown(){
@@ -120,14 +120,14 @@ Effekseer::ManagerRef GraphicsContext::GetEffectManager() {
 	if (m_EffectSystem) {
 		return m_EffectSystem->manager;
 	}
-	return nullptr;
+	return m_Nullptr;
 }
 
 EffekseerRendererDX11::RendererRef GraphicsContext::GetEffectRenderer(){
 	if(m_EffectSystem){
 		return m_EffectSystem->renderer;
 	}
-	return nullptr;
+	return m_Nullptr;
 }
 
 void GraphicsContext::SetDepthMode(const DepthMode& mode){
@@ -140,7 +140,7 @@ void GraphicsContext::SetBlendMode(const BlendMode& mode){
 		return;
 	}
 	m_CurrentBlendMode = mode;
-	float blendFactor[4] = {0, 0, 0, 0};
+	float m_BlendFactor[4] = {0, 0, 0, 0};
 	m_DeviceContext->OMSetBlendState(m_BlendStates[(int)mode].Get(), blendFactor, 0xffffffff);
 }
 
@@ -196,7 +196,7 @@ void GraphicsContext::SetObjectInfo(const ObjectInfo& objectInfo) {
 }
 
 void GraphicsContext::ResetViewport(){
-	D3D11_VIEWPORT vp{};
+	D3D11_VIEWPORT m_Vp{};
 	vp.TopLeftX = 0;
 	vp.TopLeftY = 0;
 	vp.Width = static_cast<float>(m_width);
@@ -210,7 +210,7 @@ void GraphicsContext::SetWorldViewProjection2D(){
 	SetWorldMatrix(DirectX::XMMatrixIdentity());
 	SetViewMatrix(DirectX::XMMatrixIdentity());
 
-	DirectX::XMMATRIX projection;
+	DirectX::XMMATRIX m_Projection;
 	projection = DirectX::XMMatrixOrthographicOffCenterLH(0.0f, (float)m_width, (float)m_height, 0, 0.0f, 1.0f);
 	SetProjectionMatrix(projection);
 	SetDepthMode(DepthMode::Disable);
@@ -218,20 +218,20 @@ void GraphicsContext::SetWorldViewProjection2D(){
 
 bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT height) {
 	IDXGIFactory* pFactory = nullptr;
-	HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&pFactory);
+	HRESULT m_Hr= CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&pFactory);
 	if (FAILED(hr)) {
 		GRAPHICS_LOG(LogLevel::Error, "DXGIFactory の作成に失敗しました");
 		OutputDebugStringA("DXGIFactoryの作成に失敗しました。\n");
-		return false;
+		return m_False;
 	}
 
 	IDXGIAdapter* pSelectedAdapter = nullptr;
-	SIZE_T maxDedicatedVideoMemory = 0;
-	UINT i = 0;
+	SIZE_T m_MaxDedicatedVideoMemory= 0;
+	UINT m_I= 0;
 	IDXGIAdapter* pAdapter = nullptr;
 
 	while(pFactory->EnumAdapters(i, &pAdapter) != DXGI_ERROR_NOT_FOUND){
-		DXGI_ADAPTER_DESC desc;
+		DXGI_ADAPTER_DESC m_Desc;
 		if(SUCCEEDED(pAdapter->GetDesc(&desc))){
 			if(desc.DedicatedVideoMemory > maxDedicatedVideoMemory){
 				if(pSelectedAdapter){
@@ -256,11 +256,11 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 		} else{
 			GRAPHICS_LOG(LogLevel::Error, "アダプタの取得に失敗しました");
 			OutputDebugStringA("アダプタの取得に失敗しました。\n");
-			return false;
+			return m_False;
 		}
 	}
 
-	DXGI_SWAP_CHAIN_DESC desc = {};
+	DXGI_SWAP_CHAIN_DESC m_Desc= {};
 	desc.BufferCount = 1;
 	desc.BufferDesc.Width = width;
 	desc.BufferDesc.Height = height;
@@ -274,16 +274,16 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 	desc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 	desc.Flags = 0;
 
-	UINT flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+	UINT m_Flags= D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 	#if defined(_DEBUG)
 	flags |= D3D11_CREATE_DEVICE_DEBUG;
 	#endif
 
-	D3D_FEATURE_LEVEL featureLevels[] = {
+	D3D_FEATURE_LEVEL m_FeatureLevels[] = {
 		D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0
 	};
-	D3D_FEATURE_LEVEL featureLevel;
-	auto releaseFactoryResources = [&]() {
+	D3D_FEATURE_LEVEL m_FeatureLevel;
+	auto m_ReleaseFactoryResources= [&]() {
 		if(pSelectedAdapter){
 			pSelectedAdapter->Release();
 			pSelectedAdapter = nullptr;
@@ -304,7 +304,7 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 	if (FAILED(hr)) {
 		releaseFactoryResources();
 		GRAPHICS_LOG(LogLevel::Error, "スワップチェーンの作成に失敗しました");
-		return false;
+		return m_False;
 	}
 
 	releaseFactoryResources();
@@ -319,12 +319,12 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 		GRAPHICS_LOG(LogLevel::Warning, "IDXGIFactory 親オブジェクトの取得に失敗したため ALT+ENTER の無効化をスキップします");
 	}
 	GRAPHICS_LOG(LogLevel::Debug, "デバイスとスワップチェーンの初期化が完了しました");
-	return true;
+	return m_True;
 }
 
 bool GraphicsContext::CreateDepthStencilState(){
-	HRESULT hr;
-	D3D11_DEPTH_STENCIL_DESC desc{};
+	HRESULT m_Hr;
+	D3D11_DEPTH_STENCIL_DESC m_Desc{};
 	desc.StencilEnable = FALSE;
 
 	// =========================
@@ -366,12 +366,12 @@ bool GraphicsContext::CreateDepthStencilState(){
 	);
 	if(FAILED(hr)) return false;
 
-	return true;
+	return m_True;
 }
 
 bool GraphicsContext::CreateSamplerState(){
 	// サンプラーステート設定
-	D3D11_SAMPLER_DESC samplerDesc{};
+	D3D11_SAMPLER_DESC m_SamplerDesc{};
 	samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
 	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -379,28 +379,28 @@ bool GraphicsContext::CreateSamplerState(){
 	samplerDesc.MaxAnisotropy = 4;
 	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-	Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerState;
-	HRESULT hr = m_Device->CreateSamplerState(&samplerDesc, &samplerState);
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> m_SamplerState;
+	HRESULT m_Hr= m_Device->CreateSamplerState(&samplerDesc, &samplerState);
 	m_DeviceContext->PSSetSamplers(0, 1, samplerState.GetAddressOf());
 	samplerState.Reset();
 
 	if(FAILED(hr)){
 		GRAPHICS_LOG(LogLevel::Error, "サンプラーステートの作成に失敗しました");
 		OutputDebugStringA("サンプラーステートの作成に失敗しました。\n");
-		return false;
+		return m_False;
 	}
 
 	return SUCCEEDED(hr);
 }
 
 bool GraphicsContext::CreateConstantBuffers(){
-	D3D11_BUFFER_DESC bufferDesc{};
+	D3D11_BUFFER_DESC m_BufferDesc{};
 	bufferDesc.Usage          = D3D11_USAGE_DEFAULT;
 	bufferDesc.BindFlags      = D3D11_BIND_CONSTANT_BUFFER;
 	bufferDesc.CPUAccessFlags = 0;
 	bufferDesc.MiscFlags      = 0;
 
-	HRESULT hr;
+	HRESULT m_Hr;
 
 	// b0: CbPerFrame — フレームごとに更新 (ライト情報)
 	bufferDesc.ByteWidth = sizeof(CbPerFrame);
@@ -424,7 +424,7 @@ bool GraphicsContext::CreateConstantBuffers(){
 	m_DeviceContext->PSSetConstantBuffers(2, 1, &m_CbPerObject);
 
 	// ライト初期化
-	LightBuffer light{};
+	LightBuffer m_Light{};
 	light.Lights[0].Enable    = true;
 	light.Lights[0].Direction = DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
 	light.Lights[0].Ambient   = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
@@ -433,12 +433,12 @@ bool GraphicsContext::CreateConstantBuffers(){
 	SetLight(&light);
 
 	// マテリアル初期化
-	MATERIAL material{};
+	MATERIAL m_Material{};
 	material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	SetMaterial(material);
 
 	// UV 初期化 (フルテクスチャ範囲)
-	UVMatrixBuffer uv{};
+	UVMatrixBuffer m_Uv{};
 	uv.UVEnd = DirectX::XMFLOAT2(1.0f, 1.0f);
 	SetUVMatrixBuffer(uv);
 
@@ -450,15 +450,15 @@ bool GraphicsContext::CreateConstantBuffers(){
 
 bool GraphicsContext::CreateRasterizerState(){
 	// ラスタライザステート設定
-	D3D11_RASTERIZER_DESC rasterizerDesc{};
+	D3D11_RASTERIZER_DESC m_RasterizerDesc{};
 	rasterizerDesc.FillMode = D3D11_FILL_SOLID;
 	rasterizerDesc.CullMode = D3D11_CULL_BACK;
 	//rasterizerDesc.CullMode = D3D11_CULL_NONE;
 	rasterizerDesc.DepthClipEnable = TRUE;
 	rasterizerDesc.MultisampleEnable = FALSE;
 
-	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rs;
-	HRESULT hr = m_Device->CreateRasterizerState(&rasterizerDesc, &rs);
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_Rs;
+	HRESULT m_Hr= m_Device->CreateRasterizerState(&rasterizerDesc, &rs);
 
 	m_DeviceContext->RSSetState(rs.Get());
 
@@ -469,7 +469,7 @@ bool GraphicsContext::CreateRasterizerState(){
 
 void GraphicsContext::SetCullMode(CullMode set){
 	// ラスタライザステート設定
-	D3D11_RASTERIZER_DESC rasterizerDesc{};
+	D3D11_RASTERIZER_DESC m_RasterizerDesc{};
 	switch(set){
 		case CullMode::Back:
 			rasterizerDesc.CullMode = D3D11_CULL_BACK;
@@ -489,8 +489,8 @@ void GraphicsContext::SetCullMode(CullMode set){
 	rasterizerDesc.DepthClipEnable = TRUE;
 	rasterizerDesc.MultisampleEnable = FALSE;
 
-	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rs;
-	HRESULT hr = m_Device->CreateRasterizerState(&rasterizerDesc, &rs);
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_Rs;
+	HRESULT m_Hr= m_Device->CreateRasterizerState(&rasterizerDesc, &rs);
 
 	m_DeviceContext->RSSetState(rs.Get());
 
@@ -500,20 +500,20 @@ void GraphicsContext::SetCullMode(CullMode set){
 }
 
 bool GraphicsContext::CreateRenderTargetView(){
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> m_BackBuffer;
 	if(FAILED(m_SwapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer)))) return false;
-	HRESULT hr = (m_Device->CreateRenderTargetView(backBuffer.Get(), nullptr, &m_RenderTargetView));
+	HRESULT m_Hr= (m_Device->CreateRenderTargetView(backBuffer.Get(), nullptr, &m_RenderTargetView));
 	backBuffer.Reset();
 	return SUCCEEDED(hr);
 }
 
 bool GraphicsContext::CreateBlendState() {
-	HRESULT hr = S_OK;
+	HRESULT m_Hr= S_OK;
 
 	// -------------------------
 	// 共通初期化
 	// -------------------------
-	D3D11_BLEND_DESC desc{};
+	D3D11_BLEND_DESC m_Desc{};
 	desc.AlphaToCoverageEnable = FALSE;
 	desc.IndependentBlendEnable = TRUE;
 
@@ -600,14 +600,14 @@ bool GraphicsContext::CreateBlendState() {
 	// 初期状態
 	SetBlendMode(BlendMode::None);
 
-	return true;
+	return m_True;
 }
 
 bool GraphicsContext::CreateDepthStencilBufferAndView(UINT width, UINT height){
 
 	// デプスステンシルバッファ作成
 	ID3D11Texture2D* depthStencile{};
-	D3D11_TEXTURE2D_DESC textureDesc{};
+	D3D11_TEXTURE2D_DESC m_TextureDesc{};
 	textureDesc.Width = (UINT)width;
 	textureDesc.Height = (UINT)height;
 	textureDesc.MipLevels = 1;
@@ -619,13 +619,13 @@ bool GraphicsContext::CreateDepthStencilBufferAndView(UINT width, UINT height){
 	textureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 	textureDesc.CPUAccessFlags = 0;
 	textureDesc.MiscFlags = 0;
-	HRESULT hr = m_Device->CreateTexture2D(&textureDesc, NULL, &depthStencile);
+	HRESULT m_Hr= m_Device->CreateTexture2D(&textureDesc, NULL, &depthStencile);
 	if(FAILED(hr)){
-		return false;
+		return m_False;
 	}
 
 	// デプスステンシルビュー作成
-	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc{};
+	D3D11_DEPTH_STENCIL_VIEW_DESC m_DepthStencilViewDesc{};
 	depthStencilViewDesc.Format = textureDesc.Format;
 	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	depthStencilViewDesc.Flags = 0;
@@ -634,23 +634,23 @@ bool GraphicsContext::CreateDepthStencilBufferAndView(UINT width, UINT height){
 		depthStencile->Release();
 
 		if(FAILED(hr)){
-			return false;
+			return m_False;
 		}
 		m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
 
 	} else{
-		return false;
+		return m_False;
 	}
-	return true;
+	return m_True;
 }
 
 bool GraphicsContext::CreateComputeSkinningShader() {
 	ID3DBlob* csBlob = nullptr;
-	HRESULT hr = D3DReadFileToBlob(L"Asset\\Shader\\SkinningCS.cso", &csBlob);
+	HRESULT m_Hr= D3DReadFileToBlob(L"Asset\\Shader\\SkinningCS.cso", &csBlob);
 	if (FAILED(hr)) {
 		GRAPHICS_LOG(LogLevel::Error, "SkinningCS.cso の読み込みに失敗しました");
 		OutputDebugStringA("Failed to load SkinningCS.cso\n");
-		return false;
+		return m_False;
 	}
 
 	hr = m_Device->CreateComputeShader(csBlob->GetBufferPointer(), csBlob->GetBufferSize(), nullptr, &csSkinning);
@@ -658,18 +658,18 @@ bool GraphicsContext::CreateComputeSkinningShader() {
 	if (FAILED(hr)) {
 		GRAPHICS_LOG(LogLevel::Error, "スキニング用コンピュートシェーダーの生成に失敗しました");
 		OutputDebugStringA("Failed to create compute shader\n");
-		return false;
+		return m_False;
 	}
 
 	GRAPHICS_LOG(LogLevel::Debug, "スキニング用コンピュートシェーダーの生成が完了しました");
-	return true;
+	return m_True;
 }
 
 
 bool GraphicsContext::CreateD2DResources(HWND hwnd){
 	// D2Dファクトリ生成（初回のみ）
 	if(!m_d2dFactory){
-		HRESULT hr = D2D1CreateFactory(
+		HRESULT m_Hr= D2D1CreateFactory(
 			D2D1_FACTORY_TYPE_SINGLE_THREADED,
 			IID_PPV_ARGS(&m_d2dFactory)
 		);
@@ -678,7 +678,7 @@ bool GraphicsContext::CreateD2DResources(HWND hwnd){
 
 	// DWriteファクトリ生成（初回のみ）
 	if(!m_dwriteFactory){
-		HRESULT hr = DWriteCreateFactory(
+		HRESULT m_Hr= DWriteCreateFactory(
 			DWRITE_FACTORY_TYPE_SHARED,
 			__uuidof(IDWriteFactory),
 			reinterpret_cast<IUnknown**>(m_dwriteFactory.GetAddressOf())
@@ -686,49 +686,49 @@ bool GraphicsContext::CreateD2DResources(HWND hwnd){
 		if(FAILED(hr)) return false;
 	}
 
-	return true;
+	return m_True;
 }
 
 bool GraphicsContext::CreateFullScreenQuad(){
-	VERTEX_3D fullscreenVertices[] = {
+	VERTEX_3D m_FullscreenVertices[] = {
 	{ {-1,-1,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {0,1} },
 	{ {-1, 3,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {0,-1} },
 	{ { 3,-1,0}, {0,0,0}, {0,0,0}, {1,1,1,1}, {2,1} },
 	};
-	UINT fullscreenIndices[] = {0,1,2};
+	UINT m_FullscreenIndices[] = {0,1,2};
 
 	// VB
-	D3D11_BUFFER_DESC vbDesc = {};
+	D3D11_BUFFER_DESC m_VbDesc= {};
 	vbDesc.Usage = D3D11_USAGE_DEFAULT;
 	vbDesc.ByteWidth = sizeof(fullscreenVertices);
 	vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	D3D11_SUBRESOURCE_DATA vbData = {fullscreenVertices};
+	D3D11_SUBRESOURCE_DATA m_VbData= {fullscreenVertices};
 	if(FAILED(m_Device->CreateBuffer(&vbDesc, &vbData, &m_FullScreenVB))) return false;
 
 	// IB
-	D3D11_BUFFER_DESC ibDesc = {};
+	D3D11_BUFFER_DESC m_IbDesc= {};
 	ibDesc.Usage = D3D11_USAGE_DEFAULT;
 	ibDesc.ByteWidth = sizeof(fullscreenIndices);
 	ibDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	D3D11_SUBRESOURCE_DATA ibData = {fullscreenIndices};
+	D3D11_SUBRESOURCE_DATA m_IbData= {fullscreenIndices};
 	if(FAILED(m_Device->CreateBuffer(&ibDesc, &ibData, &m_FullScreenIB))) return false;
 
-	return true;
+	return m_True;
 }
 
 bool GraphicsContext::CreateEffectSystem() {
 
 	m_EffectSystem = new RenderEffectSystem();
 	
-	bool result = m_EffectSystem->Initialize(m_Device.Get(), m_DeviceContext.Get());
+	bool m_Result= m_EffectSystem->Initialize(m_Device.Get(), m_DeviceContext.Get());
 
-	return result;
+	return m_Result;
 }
 
 bool GraphicsContext::ReadFileToBuffer(const char* fileName, std::vector<char>& buffer){
 	std::ifstream file(fileName, std::ios::binary | std::ios::ate);
 	if(!file) return false;
-	std::streamsize size = file.tellg();
+	std::streamsize m_Size= file.tellg();
 	file.seekg(0, std::ios::beg);
 	buffer.resize(static_cast<size_t>(size));
 	return file.read(buffer.data(), size).good();
@@ -747,13 +747,13 @@ void GraphicsContext::Present(bool vsync){
 }
 
 bool GraphicsContext::CreateVertexShader(const char* fileName, ID3D11VertexShader** vertexShader, ID3D11InputLayout** inputLayout){
-	std::vector<char> buffer;
+	std::vector<char> m_Buffer;
 	if(!ReadFileToBuffer(fileName, buffer)) return false;
 
-	HRESULT hr = m_Device->CreateVertexShader(buffer.data(), buffer.size(), nullptr, vertexShader);
+	HRESULT m_Hr= m_Device->CreateVertexShader(buffer.data(), buffer.size(), nullptr, vertexShader);
 	if(FAILED(hr)) return false;
 
-	D3D11_INPUT_ELEMENT_DESC layout[] =
+	D3D11_INPUT_ELEMENT_DESC m_Layout[] =
 	{
 		{ "POSITION",	0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL",		0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 4 * 3, D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -761,7 +761,7 @@ bool GraphicsContext::CreateVertexShader(const char* fileName, ID3D11VertexShade
 		{ "COLOR",		0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, 4 * 9, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD",	0, DXGI_FORMAT_R32G32_FLOAT,		0, 4 * 13, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
-	UINT numElements = ARRAYSIZE(layout);
+	UINT m_NumElements= ARRAYSIZE(layout);
 
 	hr = m_Device->CreateInputLayout(
 		layout, numElements,
@@ -772,10 +772,10 @@ bool GraphicsContext::CreateVertexShader(const char* fileName, ID3D11VertexShade
 }
 
 bool GraphicsContext::CreatePixelShader(const char* fileName,ID3D11PixelShader** pixelShader){
-	std::vector<char> buffer;
+	std::vector<char> m_Buffer;
 	if(!ReadFileToBuffer(fileName, buffer)) return false;
 
-	HRESULT hr = m_Device->CreatePixelShader(buffer.data(), buffer.size(), nullptr, pixelShader);
+	HRESULT m_Hr= m_Device->CreatePixelShader(buffer.data(), buffer.size(), nullptr, pixelShader);
 	return SUCCEEDED(hr);
 }
 
@@ -793,7 +793,7 @@ void GraphicsContext::Resize(UINT width, UINT height){
 			m_DepthStencilView = nullptr;
 		}
 		
-		HRESULT hr = m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+		HRESULT m_Hr= m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 		if(FAILED(hr)){
 			GRAPHICS_LOG(LogLevel::Error, "スワップチェーンのリサイズに失敗しました");
 			OutputDebugStringA("スワップチェーンのリサイズに失敗しました。\n");
@@ -836,17 +836,17 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 	ID3D11DeviceContext* deviceContext = m_DeviceContext.Get();
 	ID3D11ShaderResourceView* boundSRVs[PostEffectTextureSlot_Max] = {nullptr};
 	ID3D11RenderTargetView* boundRTV = nullptr;
-	UINT currentViewportWidth = 0;
-	UINT currentViewportHeight = 0;
-	UINT previousInputSlotCount = 0;
+	UINT m_CurrentViewportWidth= 0;
+	UINT m_CurrentViewportHeight= 0;
+	UINT m_PreviousInputSlotCount= 0;
 
-	auto BindShaderResource = [&](UINT slot, ID3D11ShaderResourceView* srv) {
+	auto m_BindShaderResource= [&](UINT slot, ID3D11ShaderResourceView* srv) {
 		if (slot >= PostEffectTextureSlot_Max || boundSRVs[slot] == srv) return;
 		deviceContext->PSSetShaderResources(slot, 1, &srv);
 		boundSRVs[slot] = srv;
 	};
 
-	int boundGBufferCount = 0;
+	int m_BoundGbufferCount= 0;
 	if (gbufferSRVs && gbufferCount > 0) {
 		boundGBufferCount = (gbufferCount < PostEffectGBufferSlot_Count) ? gbufferCount : PostEffectGBufferSlot_Count;
 		for (int g = 0; g < boundGBufferCount; ++g) {
@@ -869,7 +869,7 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 
 		if (node.outputWidth != 0 && node.outputHeight != 0 &&
 			(node.outputWidth != currentViewportWidth || node.outputHeight != currentViewportHeight)) {
-			D3D11_VIEWPORT vp{};
+			D3D11_VIEWPORT m_Vp{};
 			vp.TopLeftX = 0.0f;
 			vp.TopLeftY = 0.0f;
 			vp.Width = static_cast<float>(node.outputWidth);
@@ -881,7 +881,7 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 			currentViewportHeight = node.outputHeight;
 		}
 
-		UINT inputSlotCount = static_cast<UINT>(node.inputs.size());
+		UINT m_InputSlotCount= static_cast<UINT>(node.inputs.size());
 		if (inputSlotCount > PostEffectGBufferSlot_Start) {
 			OutputDebugStringA("PostProcess input slot count exceeds available texture slots\n");
 			inputSlotCount = PostEffectGBufferSlot_Start;
@@ -944,7 +944,7 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 
 
 bool GraphicsContext::CreateBuffer(UINT width, UINT height){
-	D3D11_TEXTURE2D_DESC desc = {};
+	D3D11_TEXTURE2D_DESC m_Desc= {};
 	desc.Width = width;
 	desc.Height = height;
 	desc.MipLevels = 1;
@@ -958,7 +958,7 @@ bool GraphicsContext::CreateBuffer(UINT width, UINT height){
 	m_Device->CreateRenderTargetView(m_Buffer.Get(), nullptr, &m_RTV);
 	m_Device->CreateShaderResourceView(m_Buffer.Get(), nullptr, &m_SRV);
 
-	return true;
+	return m_True;
 }
 
 ID3D11ShaderResourceView* GraphicsContext::GetCurrentSRV() const{
@@ -970,8 +970,8 @@ void GraphicsContext::DrawQuad(PostEffectShader* shader, ID3D11ShaderResourceVie
 
 	shader->Bind(context);
 
-	UINT stride = sizeof(VERTEX_3D);
-	UINT offset = 0;
+	UINT m_Stride= sizeof(VERTEX_3D);
+	UINT m_Offset= 0;
 	context->IASetVertexBuffers(0, 1, m_FullScreenVB.GetAddressOf(), &stride, &offset);
 	context->IASetIndexBuffer(m_FullScreenIB.Get(), DXGI_FORMAT_R32_UINT, 0);
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -990,8 +990,8 @@ void GraphicsContext::DrawQuad(PostEffectShader* shader, ID3D11ShaderResourceVie
 void GraphicsContext::DrawQuad() {
 	auto* context = m_DeviceContext.Get();
 
-	UINT stride = sizeof(VERTEX_3D);
-	UINT offset = 0;
+	UINT m_Stride= sizeof(VERTEX_3D);
+	UINT m_Offset= 0;
 	context->IASetVertexBuffers(0, 1, m_FullScreenVB.GetAddressOf(), &stride, &offset);
 	context->IASetIndexBuffer(m_FullScreenIB.Get(), DXGI_FORMAT_R32_UINT, 0);
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

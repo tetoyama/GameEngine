@@ -37,9 +37,9 @@ public:
 
 private:
 	SceneContext* m_context;
-	Entity        m_child;
-	Entity        m_oldParent;
-	Entity        m_newParent;
+	Entity m_Child;
+	Entity m_OldParent;
+	Entity m_NewParent;
 };
 
 // -----------------------------------------------------------------------
@@ -104,10 +104,10 @@ public:
 
 private:
 	SceneContext*      m_context;
-	Entity             m_parent;
-	Entity             m_created;
-	PostCreateCallback m_onCreated;
-	PostUndoCallback   m_onUndone;
+	Entity m_Parent;
+	Entity m_Created;
+	PostCreateCallback m_OnCreated;
+	PostUndoCallback m_OnUndone;
 };
 
 // -----------------------------------------------------------------------
@@ -155,11 +155,11 @@ public:
 
 private:
 	SceneContext*                                    m_context;
-	Entity                                           m_entity;
-	std::string                                      m_entityName;
-	std::vector<EntityCommandHelper::EntitySnapshot> m_snapshots;
-	PostDeleteCallback                               m_onDeleted;
-	PostRestoreCallback                              m_onRestored;
+	Entity m_Entity;
+	std::string m_EntityName;
+	std::vector<EntityCommandHelper::EntitySnapshot> m_Snapshots;
+	PostDeleteCallback m_OnDeleted;
+	PostRestoreCallback m_OnRestored;
 };
 
 // -----------------------------------------------------------------------
@@ -194,9 +194,9 @@ private:
 	}
 
 	SceneContext* m_context;
-	Entity        m_entity;
-	std::string   m_oldName;
-	std::string   m_newName;
+	Entity m_Entity;
+	std::string m_OldName;
+	std::string m_NewName;
 };
 
 // -----------------------------------------------------------------------
@@ -254,14 +254,14 @@ public:
 
 private:
 	Entity _DuplicateRecursive(Entity src, Entity newParent) {
-		Entity newEntity = m_context->entity->Create();
+		Entity m_NewEntity= m_context->entity->Create();
 
 		const auto& idToName = m_context->component->GetComponentIDToNameMap();
-		auto comps = m_context->component->GetAllComponentsOfEntitySorted(src);
+		auto m_Comps= m_context->component->GetAllComponentsOfEntitySorted(src);
 		for (IComponent* comp : comps) {
-			ComponentTypeID tid = m_context->component->GetComponentIDByTypeIndex(std::type_index(typeid(*comp)));
+			ComponentTypeID m_Tid= m_context->component->GetComponentIDByTypeIndex(std::type_index(typeid(*comp)));
 			if (tid == static_cast<ComponentTypeID>(-1)) continue;
-			auto nameIt = idToName.find(tid);
+			auto m_NameIt= idToName.find(tid);
 			if (nameIt == idToName.end()) continue;
 			m_context->component->CreateFromYAML(nameIt->second, newEntity, comp->encode());
 		}
@@ -282,15 +282,15 @@ private:
 				_DuplicateRecursive(srcChild, newEntity);
 		}
 
-		return newEntity;
+		return m_NewEntity;
 	}
 
 	SceneContext*                                    m_context;
-	Entity                                           m_src;
-	Entity                                           m_duplicated;
-	std::vector<EntityCommandHelper::EntitySnapshot> m_snapshots;
-	PostCallback                                     m_onDuplicated;
-	PostUndoCallback                                 m_onUndone;
+	Entity m_Src;
+	Entity m_Duplicated;
+	std::vector<EntityCommandHelper::EntitySnapshot> m_Snapshots;
+	PostCallback m_OnDuplicated;
+	PostUndoCallback m_OnUndone;
 };
 
 // -----------------------------------------------------------------------
@@ -372,10 +372,10 @@ public:
 
 private:
 	SceneContext* m_context;
-	Entity        m_entity;
-	Entity        m_entityOldParent;
-	Entity        m_newParent;
-	std::vector<std::pair<std::string, YAML::Node>> m_snapshot;
-	PostCallback  m_onCreated;
-	PostUndoCallback m_onUndone;
+	Entity m_Entity;
+	Entity m_EntityOldParent;
+	Entity m_NewParent;
+	std::vector<std::pair<std::string, YAML::Node>> m_Snapshot;
+	PostCallback m_OnCreated;
+	PostUndoCallback m_OnUndone;
 };

@@ -23,13 +23,13 @@ class AudioContext;
 // AudioSystem が PlayOnStart フラグを見て再生を開始する
 class AudioComponent: public IComponent {
 public:
-	std::shared_ptr<AudioData> m_AudioData;        // ロード済みオーディオデータ
-	std::string FilePath;                           // オーディオファイルのパス（YAML 保存用）
+	std::shared_ptr<AudioData> audioData;        // ロード済みオーディオデータ
+	std::string filePath;                           // オーディオファイルのパス（YAML 保存用）
 
-	bool Loop = false;          // ループ再生するか
-	float Volume = 1.0f;        // 音量（0.0〜1.0）
-	bool PlayOnStart = false;   // シーン開始時に自動再生するか
-	bool Playing = false;       // 現在再生中かどうか
+	bool loop= false;          // ループ再生するか
+	float volume= 1.0f;        // 音量（0.0〜1.0）
+	bool playOnStart= false;   // シーン開始時に自動再生するか
+	bool playing= false;       // 現在再生中かどうか
 	bool isInitialized = false; // AudioSystem によって初期化済みかどうか
 
 	IXAudio2SourceVoice* m_SourceVoice = nullptr; // 再生ハンドル（AudioSystem が生成・管理）

@@ -76,7 +76,7 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 	deviceContext->PSSetShader(ps ? ps->m_PixelShader.Get() : nullptr, nullptr, 0);
 
 	// ビューポート設定
-	D3D11_VIEWPORT vp = {};
+	D3D11_VIEWPORT m_Vp= {};
 	vp.Width = ctx.screenSize.x;
 	vp.Height = ctx.screenSize.y;
 	vp.MinDepth = 0.0f;
@@ -98,31 +98,31 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 			continue;
 		}
 
-		std::vector<SpriteDrawItem>      spriteList;
+		std::vector<SpriteDrawItem> m_SpriteList;
 
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 
-			auto context = scene->GetSceneContext();
-			auto entities = context->component->FindEntitiesWithComponent<TransformComponent>();
+			auto m_Context= scene->GetSceneContext();
+			auto m_Entities= context->component->FindEntitiesWithComponent<TransformComponent>();
 			if (entities.empty()) {
 				continue;
 			}
 
 			for (Entity entity : entities) {
 
-				RenderLayer layer = scene->GetRenderLayerFromEntity(entity);
+				RenderLayer m_Layer= scene->GetRenderLayerFromEntity(entity);
 				if ((int)layer != i) {
 					continue;
 				}
 
 				if (layer == RenderLayer::OverlayUI) {
 
-					auto transform = context->component->GetComponent<TransformComponent>(entity);
+					auto m_Transform= context->component->GetComponent<TransformComponent>(entity);
 					if (!transform) {
 						continue;
 					}
 
-					SpriteDrawItem item;
+					SpriteDrawItem m_Item;
 					item.ref = EntityRef(entity, context);
 					item.orderInLayer = 0;
 					OrderInLayerComponent* layerComp = context->component->GetComponent<OrderInLayerComponent>(entity);
@@ -135,13 +135,13 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 
 					for (auto renderable : renderables) {
 
-						int materialID = 0;
-						auto material = context->component->GetComponent<MaterialComponent>(entity);
+						int m_MaterialId= 0;
+						auto m_Material= context->component->GetComponent<MaterialComponent>(entity);
 						if (material) {
 							materialID = material->ShaderID;
 						}
 
-						ObjectInfo info;
+						ObjectInfo m_Info;
 						info.SceneID = m_context->sceneManager->GetIDFromContext(context);
 						info.ObjectID = entity;
 						info.ShaderID = materialID;
@@ -166,18 +166,18 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 			for (auto& item : spriteList) {
 
 				if (!item.ref.IsValid()) continue;
-				Entity       entity = item.ref.GetEntityID();
+				Entity m_Entity= item.ref.GetEntityID();
 				SceneContext* itemCtx = item.ref.GetScene();
 
 				for (auto renderable : renderables) {
 
-					int materialID = 0;
-					auto material = itemCtx->component->GetComponent<MaterialComponent>(entity);
+					int m_MaterialId= 0;
+					auto m_Material= itemCtx->component->GetComponent<MaterialComponent>(entity);
 					if (material) {
 						materialID = material->ShaderID;
 					}
 
-					ObjectInfo info;
+					ObjectInfo m_Info;
 					info.SceneID = m_context->sceneManager->GetIDFromContext(itemCtx);
 					info.ObjectID = entity;
 					info.ShaderID = materialID;

@@ -35,9 +35,9 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 
 	GraphicsContext*     graphics      = m_context->graphics;
 
-	std::vector<PostProcessNode>      postNodes;
-	std::unordered_map<int, int>      effectIndexToPostNodeIndex;
-	const DirectX::XMFLOAT4          clearColor = {0, 0, 0, 1};
+	std::vector<PostProcessNode> m_PostNodes;
+	std::unordered_map<int, int> m_EffectIndexToPostNodeIndex;
+	const DirectX::XMFLOAT4 m_ClearColor= {0, 0, 0, 1};
 
 	CameraComponent* camera = ctx.cameraData.cameraComponent;
 
@@ -52,7 +52,7 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 			auto& e = camera->postEffects[idx];
 			if (!e.enabled || !e.ps || !e.vs) continue;
 
-			PostProcessNode node{};
+			PostProcessNode m_Node{};
 			node.id                  = idx;
 			node.shader.m_VS         = e.vs->m_VertexShader;
 			node.shader.m_PS         = e.ps->m_PixelShader;
@@ -61,8 +61,8 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 			node.resolutionScale     = e.resolutionScale;
 			node.mipLevels           = e.mipLevels;
 
-			float scale = max(0.1f, min(1.0f, e.resolutionScale));
-			Vector2 scaledSize{ ctx.screenSize.x * scale, ctx.screenSize.y * scale };
+			float m_Scale= max(0.1f, min(1.0f, e.resolutionScale));
+			Vector2 m_ScaledSize{ ctx.screenSize.x * scale, ctx.screenSize.y * scale };
 			e.ResizeTexture(graphics->GetDevice(), scaledSize);
 			e.Clear(graphics->GetDeviceContext(), &clearColor.x);
 			node.outputWidth = static_cast<UINT>(e.resolution.x);
@@ -72,7 +72,7 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 			node.tex = e.tex.Get();
 
 			node.inputs.clear();
-			int postNodeIndex = static_cast<int>(postNodes.size());
+			int m_PostNodeIndex= static_cast<int>(postNodes.size());
 			effectIndexToPostNodeIndex[idx] = postNodeIndex;
 
 			postNodes.push_back(std::move(node));
@@ -80,17 +80,17 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 
 		// リンクを後から解決
 		for (auto& node : postNodes) {
-			int   effectIdx = node.id;
+			int m_EffectIdx= node.id;
 			const auto& resolvedInputs = camera->GetResolvedPostEffectInputs(effectIdx);
 
 			node.inputs.assign(resolvedInputs.size(), -1);
 
 			for (size_t slotIndex = 0; slotIndex < resolvedInputs.size(); ++slotIndex) {
-				int inputSource = resolvedInputs[slotIndex];
+				int m_InputSource= resolvedInputs[slotIndex];
 				if (inputSource == -2) {
 					node.inputs[slotIndex] = -2;
 				} else {
-					auto it = effectIndexToPostNodeIndex.find(inputSource);
+					auto m_It= effectIndexToPostNodeIndex.find(inputSource);
 					if (it != effectIndexToPostNodeIndex.end()) {
 						node.inputs[slotIndex] = it->second;
 					}

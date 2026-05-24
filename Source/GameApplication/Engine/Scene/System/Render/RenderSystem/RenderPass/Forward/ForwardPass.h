@@ -28,7 +28,7 @@ public:
 	void SetInputs(LightingPass* lightingPass, GBufferPass* gBufferPass, ShadowMapPass* shadowMapPass);
 
 	std::vector<IRenderable*> renderables;
-	std::shared_ptr<VertexShaderData> m_VertexShader;
+	std::shared_ptr<VertexShaderData> vertexShader;
 
 private:
 	LightingPass*  m_lightingPass  = nullptr;

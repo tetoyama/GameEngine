@@ -67,7 +67,7 @@ void Scene::Initialize(SceneManagerContext* set){
 #undef REGISTER
 
 	// シーンコンテキストの初期化
-	auto Renderer = m_SceneManagerContext->renderer;
+	auto m_Renderer= m_SceneManagerContext->renderer;
 	
 	m_SceneContext.manager = m_SceneManagerContext;
 
@@ -75,7 +75,7 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_SceneContext.component = m_componentRegistry.get();
 	m_SceneContext.prefab = m_prefabSystem.get();
 
-	auto graphicsContext = Renderer->GetGraphicsContext();
+	auto m_GraphicsContext= Renderer->GetGraphicsContext();
 
 	graphicsContext->SetDepthMode(DepthMode::Write);
 
@@ -101,7 +101,7 @@ void Scene::Shutdown(){
 	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を終了中...").c_str());
 
 	if(m_SceneManagerContext->editor){
-		auto hierarchy = m_SceneManagerContext->editor->GetUI<Hierarchy>();
+		auto m_Hierarchy= m_SceneManagerContext->editor->GetUI<Hierarchy>();
 		if(hierarchy && hierarchy->sceneContext == &m_SceneContext){
 			hierarchy->sceneContext = nullptr;
 			hierarchy->selectedEntity = 0;
@@ -118,16 +118,16 @@ void Scene::Shutdown(){
 }
 
 void Scene::BuildDefaultScene(){
-	auto entityRegistry = m_SceneContext.entity;
-	auto componentRegistry = m_SceneContext.component;
+	auto m_EntityRegistry= m_SceneContext.entity;
+	auto m_ComponentRegistry= m_SceneContext.component;
 
-	auto renderer = m_SceneManagerContext->renderer;
-	auto graphicsContext = renderer->GetGraphicsContext();
+	auto m_Renderer= m_SceneManagerContext->renderer;
+	auto m_GraphicsContext= renderer->GetGraphicsContext();
 
 	graphicsContext->SetDepthMode(DepthMode::Write);
 
 	{
-		Entity entity = entityRegistry->Create();
+		Entity m_Entity= entityRegistry->Create();
 
 		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
 		name->name = "Field";
@@ -160,7 +160,7 @@ void Scene::BuildDefaultScene(){
 		auto* collider = componentRegistry->AddComponent<ColliderComponent>(entity);
 
 		// ボックスコライダーを追加
-		ColliderShape col;
+		ColliderShape m_Col;
 		col.type = ColliderType::Box;
 		col.offset = Vector3(0, 0, 0);
 		col.size = Vector3(1, 1, 1);
@@ -169,7 +169,7 @@ void Scene::BuildDefaultScene(){
 		collider->colliders.push_back(col);
 	}
 	{
-		Entity entity = entityRegistry->Create();
+		Entity m_Entity= entityRegistry->Create();
 
 		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
 		name->name = "Light";
@@ -188,7 +188,7 @@ void Scene::BuildDefaultScene(){
 		light->light.Param.x = 500.0f;
 	}
 	{
-		Entity entity = entityRegistry->Create();
+		Entity m_Entity= entityRegistry->Create();
 
 		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
 		name->name = "SkyBox";
@@ -215,7 +215,7 @@ void Scene::BuildDefaultScene(){
 		env->enabled = true;
 	}
 	{
-		Entity entity = entityRegistry->Create();
+		Entity m_Entity= entityRegistry->Create();
 
 		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
 		name->name = "Player";
@@ -241,7 +241,7 @@ void Scene::BuildDefaultScene(){
 		collider->isDynamic = true;
 
 		// カプセルコライダーを追加
-		ColliderShape col;
+		ColliderShape m_Col;
 		col.type = ColliderType::Capsule;
 		col.offset = Vector3(0, 75, 0);
 		col.height = 100.0f;
@@ -265,7 +265,7 @@ void Scene::BuildDefaultScene(){
 	}
 
 	{
-		Entity entity = entityRegistry->Create();
+		Entity m_Entity= entityRegistry->Create();
 
 		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
 		name->name = "Camera";
@@ -286,22 +286,22 @@ void Scene::BuildDefaultScene(){
 
 bool Scene::LoadFromYAMLFile(){
 	SetTaskBarState(TBPF_INDETERMINATE); // タスクバーの状態をインジケーターに設定
-	std::string filepath = LoadSceneFileDialog();
+	std::string m_Filepath= LoadSceneFileDialog();
 	if (filepath != "") {
 		ResetAll();
 		std::filesystem::path path(filepath);
 		SceneName = path.stem().string();  // 拡張子を除いたファイル名
 		LoadSceneFromYAML(filepath);
 		SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
-		return true;
+		return m_True;
 	}
 	SetTaskBarState(TBPF_NOPROGRESS); // タスクバーの状態を通常に戻す
-	return false;
+	return m_False;
 }
 
 void Scene::Save(){
 	SetTaskBarState(TBPF_INDETERMINATE); // タスクバーの状態をインジケーターに設定
-	std::wstring savePath;
+	std::wstring m_SavePath;
 
 	if (ScenePath == "") {
 
@@ -313,34 +313,34 @@ void Scene::Save(){
 	} else {
 		savePath = std::filesystem::path(ScenePath);
 	}
-	std::filesystem::path filepath = std::filesystem::path(savePath);
+	std::filesystem::path m_Filepath= std::filesystem::path(savePath);
 	ScenePath = filepath.string();
 	SceneName = filepath.stem().string();  // 拡張子を除いたファイル名
 
-	YAML::Node root;
-	YAML::Node entitiesNode = YAML::Node(YAML::NodeType::Sequence);
+	YAML::Node m_Root;
+	YAML::Node m_EntitiesNode= YAML::Node(YAML::NodeType::Sequence);
 	const auto& entities = m_entityRegistry->GetAllAlive();
 	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を保存します").c_str());
 	m_SceneManagerContext->debug->LOG_INFO(("保存対象エンティティ数: " + std::to_string(entities.size())).c_str());
 
 	for (Entity e : entities) {
-		YAML::Node entityNode;
+		YAML::Node m_EntityNode;
 		entityNode["Entity"] = static_cast<int>(e);
-		YAML::Node componentsNode = YAML::Node(YAML::NodeType::Sequence);
+		YAML::Node m_ComponentsNode= YAML::Node(YAML::NodeType::Sequence);
 		for (IComponent* comp : m_componentRegistry->GetAllComponentsOfEntitySorted(e)) {
 			if (comp) {
 				// 型情報を取得
 				std::type_index ti(typeid(*comp));
 				// 型IDを取得
-				auto compId = m_componentRegistry->GetComponentIDByTypeIndex(ti);
+				auto m_CompId= m_componentRegistry->GetComponentIDByTypeIndex(ti);
 				// ID→名前マップを取得
 				const auto& idToName = m_componentRegistry->GetComponentIDToNameMap();
-				auto it = idToName.find(compId);
+				auto m_It= idToName.find(compId);
 				if(it != idToName.end()){
-					YAML::Node compNode;
+					YAML::Node m_CompNode;
 					compNode["Component"] = it->second;
 
-					YAML::Node encoded = comp->encode();
+					YAML::Node m_Encoded= comp->encode();
 					// encodedの内容をcompNodeにマージ
 					if(encoded && encoded.IsMap()){
 						for(auto encIt = encoded.begin(); encIt != encoded.end(); ++encIt){
@@ -360,7 +360,7 @@ void Scene::Save(){
 
 	root["Entities"] = entitiesNode;
 
-	std::string utf8Path = std::filesystem::path(savePath).string();
+	std::string m_Utf8Path= std::filesystem::path(savePath).string();
 
 
 	std::ofstream fout(utf8Path, std::ios::binary);
@@ -377,31 +377,31 @@ void Scene::Save(){
 
 void Scene::TempSave(){
 
-	std::wstring savePath = StringToWString(TEMP_SAVE_PATH) + L"Temp_" + StringToWString(SceneName) + L".yaml";
+	std::wstring m_SavePath= StringToWString(TEMP_SAVE_PATH) + L"Temp_" + StringToWString(SceneName) + L".yaml";
 
-	YAML::Node root;
-	YAML::Node entitiesNode = YAML::Node(YAML::NodeType::Sequence);
+	YAML::Node m_Root;
+	YAML::Node m_EntitiesNode= YAML::Node(YAML::NodeType::Sequence);
 	const auto& entities = m_entityRegistry->GetAllAlive();
 	m_SceneManagerContext->debug->LOG_INFO(("保存対象エンティティ数: " + std::to_string(entities.size())).c_str());
 
 	for(Entity e : entities){
-		YAML::Node entityNode;
+		YAML::Node m_EntityNode;
 		entityNode["Entity"] = static_cast<int>(e);
-		YAML::Node componentsNode = YAML::Node(YAML::NodeType::Sequence);
+		YAML::Node m_ComponentsNode= YAML::Node(YAML::NodeType::Sequence);
 		for(IComponent* comp : m_componentRegistry->GetAllComponentsOfEntitySorted(e)){
 			if(comp){
 				// 型情報を取得
 				std::type_index ti(typeid(*comp));
 				// 型IDを取得
-				auto compId = m_componentRegistry->GetComponentIDByTypeIndex(ti);
+				auto m_CompId= m_componentRegistry->GetComponentIDByTypeIndex(ti);
 				// ID→名前マップを取得
 				const auto& idToName = m_componentRegistry->GetComponentIDToNameMap();
-				auto it = idToName.find(compId);
+				auto m_It= idToName.find(compId);
 				if(it != idToName.end()){
-					YAML::Node compNode;
+					YAML::Node m_CompNode;
 					compNode["Component"] = it->second;
 
-					YAML::Node encoded = comp->encode();
+					YAML::Node m_Encoded= comp->encode();
 					// encodedの内容をcompNodeにマージ
 					if(encoded && encoded.IsMap()){
 						for(auto encIt = encoded.begin(); encIt != encoded.end(); ++encIt){
@@ -421,7 +421,7 @@ void Scene::TempSave(){
 
 	root["Entities"] = entitiesNode;
 
-	std::string utf8Path = std::filesystem::path(savePath).string();
+	std::string m_Utf8Path= std::filesystem::path(savePath).string();
 
 
 	std::ofstream fout(utf8Path, std::ios::binary);
@@ -437,7 +437,7 @@ void Scene::TempSave(){
 }
 
 void Scene::ResetAll(){
-	auto aliveEntities = m_entityRegistry->GetAllAlive();
+	auto m_AliveEntities= m_entityRegistry->GetAllAlive();
 
 	for(auto e : aliveEntities){
 		m_entityRegistry->Destroy(e);
@@ -455,7 +455,7 @@ void Scene::LoadSceneFromYAML(std::string path) {
 		return;  
 	}
 
-	YAML::Node root = YAML::Load(fin);  
+	YAML::Node m_Root= YAML::Load(fin);  
 	if(!root["Entities"] || !root["Entities"].IsSequence()){  
 		m_SceneContext.manager->debug->LOG_ERROR("YAML: 'Entities' node missing or invalid");  
 		return;
@@ -467,13 +467,13 @@ void Scene::LoadSceneFromYAML(std::string path) {
 	std::filesystem::path fpath(ScenePath);
 	SceneName = fpath.stem().string();  // 拡張子を除いたファイル名
 
-	YAML::Node entities = root["Entities"];  
+	YAML::Node m_Entities= root["Entities"];  
 	for(const auto& entityNode : entities){  
 
 		if(!entityNode["Entity"]){  
 			continue;  
 		}  
-		Entity entity = m_entityRegistry->Create();  
+		Entity m_Entity= m_entityRegistry->Create();  
 
 		if(!entityNode["Components"] || !entityNode["Components"].IsSequence()){  
 			continue;  
@@ -489,7 +489,7 @@ void Scene::LoadSceneFromYAML(std::string path) {
 }
 
 void Scene::RebuildTransformChildren() {
-	auto entities = m_componentRegistry->FindEntitiesWithComponent<TransformComponent>();
+	auto m_Entities= m_componentRegistry->FindEntitiesWithComponent<TransformComponent>();
 	for (Entity e : entities) {
 		auto* tc = m_componentRegistry->GetComponent<TransformComponent>(e);
 		if (tc) tc->children.clear();
@@ -503,9 +503,9 @@ void Scene::RebuildTransformChildren() {
 }
 
 std::string Scene::LoadSceneFileDialog() {
-	char filename[MAX_PATH] = "";
+	char m_Filename[MAX_PATH] = "";
 
-	OPENFILENAMEA ofn = {}; // ANSI版（UNICODEなら OPENFILENAMEW）
+	OPENFILENAMEA m_Ofn= {}; // ANSI版（UNICODEなら OPENFILENAMEW）
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = nullptr; // ウィンドウハンドル（必要なら自分のウィンドウ）
 	ofn.lpstrFilter = "Scene Files (*.scene)\0*.scene\0YAML Files (*.yaml)\0*.yaml\0All Files (*.*)\0*.*\0";
@@ -525,8 +525,8 @@ std::string Scene::LoadSceneFileDialog() {
 }
 
 bool Scene::SaveSceneFileDialog(std::wstring& outPath){
-	WCHAR szFile[MAX_PATH] = L"scene.scene";  // デフォルトファイル名
-	OPENFILENAME ofn = {sizeof(ofn)};
+	WCHAR m_SzFile[MAX_PATH] = L"scene.scene";  // デフォルトファイル名
+	OPENFILENAME m_Ofn= {sizeof(ofn)};
 	ofn.hwndOwner = nullptr;                 // 親ウィンドウハンドルを渡す場合は指定
 	ofn.lpstrFilter = L"Scene Files (*.scene)\0*.scene\0YAML Files (*.yaml)\0*.yaml\0All Files (*.*)\0*.*\0";
 	ofn.lpstrFile = szFile;
@@ -536,9 +536,9 @@ bool Scene::SaveSceneFileDialog(std::wstring& outPath){
 
 	if(GetSaveFileName(&ofn)){
 		outPath = szFile;
-		return true;
+		return m_True;
 	}
-	return false;
+	return m_False;
 }
 
 RenderLayer Scene::GetRenderLayerFromEntity(Entity entity) {

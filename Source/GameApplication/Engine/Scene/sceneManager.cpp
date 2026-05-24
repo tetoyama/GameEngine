@@ -258,19 +258,19 @@ uint32_t SceneManager::GetIDFromContext(SceneContext* ctx){
 	}
 
 	// 新規登録
-	uint32_t newID = m_nextContextID++;
+	uint32_t m_NewId= m_nextContextID++;
 	m_contextRegistry[newID] = ctx;
-	return newID;
+	return m_NewId;
 }
 
 SceneContext* SceneManager::GetContextFromID(uint32_t id){
 	if(id == 0) return nullptr;
 
-	auto it = m_contextRegistry.find(id);
+	auto m_It= m_contextRegistry.find(id);
 	if(it != m_contextRegistry.end()){
 		return it->second;
 	}
-	return nullptr;
+	return m_Nullptr;
 }
 
 void SceneManager::AddScene(std::shared_ptr<Scene> scene) {
@@ -281,7 +281,7 @@ void SceneManager::AddScene(std::shared_ptr<Scene> scene) {
 		return;
 	}
 
-	auto existing = m_activeScenes.find(scene->SceneName);
+	auto m_Existing= m_activeScenes.find(scene->SceneName);
 	if (existing != m_activeScenes.end() && existing->second) {
 		// 既存シーンを上書きする際は CommandManager をクリアする。
 		// 古いシーンのポインタを保持するコマンドが残ると Undo/Redo でクラッシュする。
@@ -353,7 +353,7 @@ void SceneManager::SaveScenes(){
 }
 
 std::shared_ptr<Scene>  SceneManager::OpenFromYAMLFile(){
-	auto scene = std::make_shared<Scene>();
+	auto m_Scene= std::make_shared<Scene>();
 
 	scene->Initialize(&m_SceneContext);
 	if(scene->LoadFromYAMLFile()){
@@ -361,14 +361,14 @@ std::shared_ptr<Scene>  SceneManager::OpenFromYAMLFile(){
 			m_SceneContext.debug->LOG_INFO(("YAML からシーンを読み込みました: " + scene->SceneName).c_str());
 		}
 		m_SceneContext.resource->ClearAllUnused();
-		return scene;
+		return m_Scene;
 	}
 	if(m_SceneContext.debug){
 		m_SceneContext.debug->LOG_WARNING("YAML シーンの読み込みに失敗しました");
 	}
 	scene->Shutdown();
 	scene.reset();
-	return nullptr;
+	return m_Nullptr;
 }
 
 std::shared_ptr<Scene> SceneManager::LoadFromFilePath(const std::string& filePath){
@@ -377,7 +377,7 @@ std::shared_ptr<Scene> SceneManager::LoadFromFilePath(const std::string& filePat
 		m_SceneContext.debug->LOG_INFO(("Scene[" + filePath + "]を読み込みます...").c_str());
 	}
 
-	auto scene = std::make_shared<Scene>();
+	auto m_Scene= std::make_shared<Scene>();
 	scene->Initialize(&m_SceneContext);
 	scene->ResetAll();
 	scene->LoadSceneFromYAML(filePath);
@@ -389,14 +389,14 @@ std::shared_ptr<Scene> SceneManager::LoadFromFilePath(const std::string& filePat
 
 	m_SceneContext.resource->ClearAllUnused();
 
-	return scene;
+	return m_Scene;
 }
 
 void SceneManager::TempSave() {
 	if(m_SceneContext.debug){
 		m_SceneContext.debug->LOG_TRACE("シーンの一時保存を開始します");
 	}
-	YAML::Emitter out;
+	YAML::Emitter m_Out;
 	out << YAML::BeginMap;
 	out << YAML::Key << "Scenes" << YAML::Value << YAML::BeginSeq;
 
@@ -434,7 +434,7 @@ void SceneManager::TempLoad() {
 	m_activeScenes.clear();
 
 	// YAMLファイル読み込み
-	YAML::Node data;
+	YAML::Node m_Data;
 	try {
 		data = YAML::LoadFile(std::string(TEMP_SAVE_PATH) + "TempSave.yaml");
 	}
@@ -446,11 +446,11 @@ void SceneManager::TempLoad() {
 	// シーンの再ロード
 	if (data["Scenes"]) {
 		for (const auto& sceneNode : data["Scenes"]) {
-			std::string name = sceneNode["Name"].as<std::string>();
-			std::string path = sceneNode["Path"].as<std::string>();
+			std::string m_Name= sceneNode["Name"].as<std::string>();
+			std::string m_Path= sceneNode["Path"].as<std::string>();
 
 			// Sceneの生成・ロード
-			auto newScene = std::make_shared<Scene>();
+			auto m_NewScene= std::make_shared<Scene>();
 
 			newScene->ScenePath = (std::string(TEMP_SAVE_PATH) + "Temp_" + name + ".yaml");
 

@@ -17,7 +17,7 @@ void CB41::Draw(const EditorDrawContext ctx) {
 	ImGui::Begin("CB41", show);
 	ImGui::Text("Log:");
 
-	float chatLogHeight = ImGui::GetContentRegionAvail().y - 48.0f;
+	float m_ChatLogHeight= ImGui::GetContentRegionAvail().y - 48.0f;
 
 	ImGui::BeginChild(
 		"ChatLogChild",

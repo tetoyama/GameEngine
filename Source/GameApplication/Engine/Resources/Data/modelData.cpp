@@ -18,21 +18,21 @@ aiQuaternion InterpolateRotation(
 	if(nodeAnim->mNumRotationKeys == 1)
 		return nodeAnim->mRotationKeys[0].mValue;
 
-	uint32_t index = 0;
+	uint32_t m_Index= 0;
 	while(index + 1 < nodeAnim->mNumRotationKeys &&
 		  time > (float)nodeAnim->mRotationKeys[index + 1].mTime){
 		index++;
 	}
 
-	uint32_t nextIndex = index + 1;
+	uint32_t m_NextIndex= index + 1;
 	if(nextIndex >= nodeAnim->mNumRotationKeys)
 		return nodeAnim->mRotationKeys[index].mValue;
 
-	float t1 = (float)nodeAnim->mRotationKeys[index].mTime;
-	float t2 = (float)nodeAnim->mRotationKeys[nextIndex].mTime;
-	float factor = (time - t1) / (t2 - t1);
+	float m_T1= (float)nodeAnim->mRotationKeys[index].mTime;
+	float m_T2= (float)nodeAnim->mRotationKeys[nextIndex].mTime;
+	float m_Factor= (time - t1) / (t2 - t1);
 
-	aiQuaternion out;
+	aiQuaternion m_Out;
 	aiQuaternion::Interpolate(
 		out,
 		nodeAnim->mRotationKeys[index].mValue,
@@ -40,7 +40,7 @@ aiQuaternion InterpolateRotation(
 		factor
 	);
 	out.Normalize();
-	return out;
+	return m_Out;
 }
 aiVector3D InterpolatePosition(
 	float time,
@@ -49,19 +49,19 @@ aiVector3D InterpolatePosition(
 	if(nodeAnim->mNumPositionKeys == 1)
 		return nodeAnim->mPositionKeys[0].mValue;
 
-	uint32_t index = 0;
+	uint32_t m_Index= 0;
 	while(index + 1 < nodeAnim->mNumPositionKeys &&
 		  time > (float)nodeAnim->mPositionKeys[index + 1].mTime){
 		index++;
 	}
 
-	uint32_t nextIndex = index + 1;
+	uint32_t m_NextIndex= index + 1;
 	if(nextIndex >= nodeAnim->mNumPositionKeys)
 		return nodeAnim->mPositionKeys[index].mValue;
 
-	float t1 = (float)nodeAnim->mPositionKeys[index].mTime;
-	float t2 = (float)nodeAnim->mPositionKeys[nextIndex].mTime;
-	float factor = (time - t1) / (t2 - t1);
+	float m_T1= (float)nodeAnim->mPositionKeys[index].mTime;
+	float m_T2= (float)nodeAnim->mPositionKeys[nextIndex].mTime;
+	float m_Factor= (time - t1) / (t2 - t1);
 
 	return
 		nodeAnim->mPositionKeys[index].mValue * (1.0f - factor) +
@@ -172,10 +172,10 @@ void ModelData::Release(){
 }
 
 void ModelData::CreateBone(aiNode* node){
-	std::string name = node->mName.C_Str();
+	std::string m_Name= node->mName.C_Str();
 
 	if(m_BoneIndexMap.find(name) == m_BoneIndexMap.end()){
-		uint32_t index = (uint32_t)m_Bones.size();
+		uint32_t m_Index= (uint32_t)m_Bones.size();
 		m_BoneIndexMap[name] = index;
 		m_Bones.push_back(BONE{});
 	}
@@ -188,9 +188,9 @@ void ModelData::CreateBone(aiNode* node){
 
 void ModelData::UpdateBoneMatrix(aiNode* node, aiMatrix4x4 Matrix) {
 
-	uint32_t index = m_BoneIndexMap[node->mName.C_Str()];
+	uint32_t m_Index= m_BoneIndexMap[node->mName.C_Str()];
 	BONE& bone = m_Bones[index];
-	aiMatrix4x4 worldMatrix = Matrix;
+	aiMatrix4x4 m_WorldMatrix= Matrix;
 	if(enableRootMotion || node != AiScene->mRootNode){
 		worldMatrix = Matrix * bone.AnimationMatrix;
 		bone.WorldMatrix = worldMatrix;
@@ -214,12 +214,12 @@ void ModelData::LoadAnimation(const char* FileName, const char* Name){
 		return;
 	}
 
-	auto it = m_Animation.find(Name);
+	auto m_It= m_Animation.find(Name);
 	if (it != m_Animation.end()) {
 		return;
 	}
 
-	AnimationData animationData;
+	AnimationData m_AnimationData;
 	animationData.FilePath = FileName;
 	animationData.Scene = scene;
 	animationData.isImported = true;
@@ -232,7 +232,7 @@ void ModelData::LoadAnimation(const char* FileName, const char* Name){
 
 			scene = aiImportFile(FileName, aiProcess_ConvertToLeftHanded);
 
-			AnimationData animationData;
+			AnimationData m_AnimationData;
 			animationData.FilePath = FileName;
 			animationData.Scene = scene;
 			animationData.isImported = true;
@@ -253,11 +253,11 @@ void ModelData::UpdateBoneAnimation(
 ){
 	if(anims.empty()) return;
 
-	float totalWeight = 0.0f;
+	float m_TotalWeight= 0.0f;
 	for(const auto& a : anims) totalWeight += a.weight;
 	if(totalWeight <= 0.0f) return;
 
-	const size_t boneCount = m_Bones.size();
+	const size_t m_BoneCount= m_Bones.size();
 
 	std::vector<aiQuaternion> accumRot(boneCount, aiQuaternion(0, 0, 0, 0));
 	std::vector<aiVector3D>  accumPos(boneCount, aiVector3D(0, 0, 0));
@@ -266,34 +266,34 @@ void ModelData::UpdateBoneAnimation(
 	for(const auto& anim : anims){
 		if(anim.weight <= 0.0f) continue;
 
-		auto itAnim = m_Animation.find(anim.name);
+		auto m_ItAnim= m_Animation.find(anim.name);
 		if(itAnim == m_Animation.end()) continue;
 
 		aiAnimation* animation = itAnim->second.Animation;
 		if(!animation) continue;
 
-		float time = frame + anim.animationStartTime;
-		float duration = (float)animation->mDuration;
+		float m_Time= frame + anim.animationStartTime;
+		float m_Duration= (float)animation->mDuration;
 
-		float animTime;
+		float m_AnimTime;
 		if(anim.isLoop){
 			animTime = fmod(time, duration);
 		} else{
 			animTime = std::clamp(time, 0.0f, duration);
 		}
 
-		float w = anim.weight / totalWeight;
+		float m_W= anim.weight / totalWeight;
 
 		for(unsigned int c = 0; c < animation->mNumChannels; c++){
 			aiNodeAnim* nodeAnim = animation->mChannels[c];
 
-			auto itBone = m_BoneIndexMap.find(nodeAnim->mNodeName.C_Str());
+			auto m_ItBone= m_BoneIndexMap.find(nodeAnim->mNodeName.C_Str());
 			if(itBone == m_BoneIndexMap.end()) continue;
 
-			uint32_t idx = itBone->second;
+			uint32_t m_Idx= itBone->second;
 
-			aiQuaternion rot = InterpolateRotation(animTime, nodeAnim);
-			aiVector3D  pos = InterpolatePosition(animTime, nodeAnim);
+			aiQuaternion m_Rot= InterpolateRotation(animTime, nodeAnim);
+			aiVector3D m_Pos= InterpolatePosition(animTime, nodeAnim);
 
 			// ---- Quaternion Lerp (符号補正あり) ----
 			if(hasRot[idx]){
@@ -314,7 +314,7 @@ void ModelData::UpdateBoneAnimation(
 
 	// 行列化
 	for(size_t i = 0; i < boneCount; i++){
-		aiQuaternion r = accumRot[i];
+		aiQuaternion m_R= accumRot[i];
 		if(hasRot[i]){
 			r.Normalize();
 		} else{
@@ -348,19 +348,19 @@ void ModelData::CPU_Skinning(
 		aiVector3D blendedNormal(0, 0, 0);
 
 		for(int k = 0; k < 4; k++){
-			float w = dv.BoneWeight[k];
+			float m_W= dv.BoneWeight[k];
 			if(w <= 0.0f) continue;
 
 			const aiMatrix4x4& boneMat =
 				m_Bones[dv.BoneIndex[k]].Matrix;
 
-			aiVector3D p = mesh->mVertices[j];
+			aiVector3D m_P= mesh->mVertices[j];
 			p *= boneMat;
 
 			aiMatrix3x3 normalMat(boneMat);
 			normalMat = normalMat.Inverse().Transpose();
 
-			aiVector3D n = mesh->mNormals[j];
+			aiVector3D m_N= mesh->mNormals[j];
 			n *= normalMat;
 
 			blendedPos += p * w;
@@ -390,7 +390,7 @@ void ModelData::CPU_Skinning(
 
 void ModelData::CreateSkinningBuffers(GraphicsContext* ctx){
 	ID3D11Device* dev = ctx->GetDevice();
-	const size_t meshCount = AiScene->mNumMeshes;
+	const size_t m_MeshCount= AiScene->mNumMeshes;
 
 	m_SkinInputBuffer.resize(meshCount);
 	m_SkinInputSRV.resize(meshCount);
@@ -401,7 +401,7 @@ void ModelData::CreateSkinningBuffers(GraphicsContext* ctx){
 
 	for(size_t m = 0; m < meshCount; ++m){
 		aiMesh* mesh = AiScene->mMeshes[m];
-		UINT vertexCount = mesh->mNumVertices;
+		UINT m_VertexCount= mesh->mNumVertices;
 
 		// ============================
 		// Input StructuredBuffer (SRV)
@@ -422,20 +422,20 @@ void ModelData::CreateSkinningBuffers(GraphicsContext* ctx){
 			input[v].Diffuse = DirectX::XMFLOAT4(1, 1, 1, 1);
 		}
 
-		D3D11_BUFFER_DESC inBD{};
+		D3D11_BUFFER_DESC m_InBd{};
 		inBD.Usage = D3D11_USAGE_DEFAULT;
 		inBD.ByteWidth = sizeof(SKINNING_INPUT_VERTEX) * vertexCount;
 		inBD.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 		inBD.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 		inBD.StructureByteStride = sizeof(SKINNING_INPUT_VERTEX);
 
-		D3D11_SUBRESOURCE_DATA inSD{};
+		D3D11_SUBRESOURCE_DATA m_InSd{};
 		inSD.pSysMem = input.data();
 
-		HRESULT hr = dev->CreateBuffer(&inBD, &inSD, &m_SkinInputBuffer[m]);
+		HRESULT m_Hr= dev->CreateBuffer(&inBD, &inSD, &m_SkinInputBuffer[m]);
 		assert(SUCCEEDED(hr));
 
-		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+		D3D11_SHADER_RESOURCE_VIEW_DESC m_SrvDesc{};
 		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
 		srvDesc.Format = DXGI_FORMAT_UNKNOWN;
 		srvDesc.Buffer.NumElements = vertexCount;
@@ -446,7 +446,7 @@ void ModelData::CreateSkinningBuffers(GraphicsContext* ctx){
 		// ============================
 		// Output UAV Buffer
 		// ============================
-		D3D11_BUFFER_DESC outUAVBD{};
+		D3D11_BUFFER_DESC m_OutUavbd{};
 		outUAVBD.Usage = D3D11_USAGE_DEFAULT;
 		outUAVBD.ByteWidth = sizeof(VERTEX_3D) * vertexCount;
 		outUAVBD.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
@@ -456,7 +456,7 @@ void ModelData::CreateSkinningBuffers(GraphicsContext* ctx){
 		hr = dev->CreateBuffer(&outUAVBD, nullptr, &m_SkinOutputUAVBuffer[m]);
 		assert(SUCCEEDED(hr));
 
-		D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
+		D3D11_UNORDERED_ACCESS_VIEW_DESC m_UavDesc{};
 		uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
 		uavDesc.Format = DXGI_FORMAT_UNKNOWN;
 		uavDesc.Buffer.NumElements = vertexCount;
@@ -467,7 +467,7 @@ void ModelData::CreateSkinningBuffers(GraphicsContext* ctx){
 		// ============================
 		// VertexBuffer (描画用)
 		// ============================
-		D3D11_BUFFER_DESC vbBD{};
+		D3D11_BUFFER_DESC m_VbBd{};
 		vbBD.Usage = D3D11_USAGE_DYNAMIC;
 		vbBD.ByteWidth = sizeof(VERTEX_3D) * vertexCount;
 		vbBD.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -479,7 +479,7 @@ void ModelData::CreateSkinningBuffers(GraphicsContext* ctx){
 
 	// Bone CB
 	{
-		D3D11_BUFFER_DESC cbd{};
+		D3D11_BUFFER_DESC m_Cbd{};
 		cbd.Usage = D3D11_USAGE_DYNAMIC;
 		cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -489,7 +489,7 @@ void ModelData::CreateSkinningBuffers(GraphicsContext* ctx){
 
 	// Info CB
 	{
-		D3D11_BUFFER_DESC ibd{};
+		D3D11_BUFFER_DESC m_Ibd{};
 		ibd.Usage = D3D11_USAGE_DYNAMIC;
 		ibd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		ibd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -500,7 +500,7 @@ void ModelData::CreateSkinningBuffers(GraphicsContext* ctx){
 
 void ModelData::UpdateAndDispatchSkinning(GraphicsContext* ctx, std::vector<ID3D11Buffer*>& dynamicVertexBuffers){
 	ID3D11DeviceContext* dc = ctx->GetDeviceContext();
-	const UINT MAX_BONES = BONE_MAX_COUNT;
+	const UINT m_MaxBones= BONE_MAX_COUNT;
 
 	// 1) Bone palette
 	std::vector<DirectX::XMMATRIX> bonePal(MAX_BONES, DirectX::XMMatrixIdentity());
@@ -514,8 +514,8 @@ void ModelData::UpdateAndDispatchSkinning(GraphicsContext* ctx, std::vector<ID3D
 	}
 
 	// 2) Update Bone CB
-	D3D11_MAPPED_SUBRESOURCE mapped{};
-	HRESULT hr = dc->Map(m_BoneCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+	D3D11_MAPPED_SUBRESOURCE m_Mapped{};
+	HRESULT m_Hr= dc->Map(m_BoneCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
 	assert(SUCCEEDED(hr));
 	memcpy(mapped.pData, bonePal.data(), sizeof(DirectX::XMMATRIX) * MAX_BONES);
 	dc->Unmap(m_BoneCB, 0);
@@ -523,10 +523,10 @@ void ModelData::UpdateAndDispatchSkinning(GraphicsContext* ctx, std::vector<ID3D
 	// 3) Dispatch per mesh
 	for(size_t m = 0; m < AiScene->mNumMeshes; ++m){
 		aiMesh* mesh = AiScene->mMeshes[m];
-		const uint32_t vertexCount = mesh->mNumVertices;
+		const uint32_t m_VertexCount= mesh->mNumVertices;
 
 		// Info CB
-		D3D11_MAPPED_SUBRESOURCE mapInfo{};
+		D3D11_MAPPED_SUBRESOURCE m_MapInfo{};
 		hr = dc->Map(m_InfoCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapInfo);
 		assert(SUCCEEDED(hr));
 		reinterpret_cast<uint32_t*>(mapInfo.pData)[0] = vertexCount;
@@ -540,7 +540,7 @@ void ModelData::UpdateAndDispatchSkinning(GraphicsContext* ctx, std::vector<ID3D
 
 		// Dispatch CS
 		dc->CSSetShader(ctx->GetSkinningShader(), nullptr, 0);
-		uint32_t group = (vertexCount + 63) / 64;
+		uint32_t m_Group= (vertexCount + 63) / 64;
 		dc->Dispatch(group, 1, 1);
 
 		// Unbind

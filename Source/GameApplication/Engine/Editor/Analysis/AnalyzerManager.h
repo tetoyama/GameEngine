@@ -45,8 +45,8 @@ private:
     void Register(const std::string& name, Args&&... args) {
         static_assert(std::is_base_of_v<IAnalyzer, T>);
 
-        auto key = std::type_index(typeid(T));
-        AnalyzerEntry entry;
+        auto m_Key= std::type_index(typeid(T));
+        AnalyzerEntry m_Entry;
         entry.name = name;
         entry.instance = std::make_unique<T>(std::forward<Args>(args)...);
 
@@ -54,7 +54,7 @@ private:
     }
 
 private:
-    std::unordered_map<std::type_index, AnalyzerEntry> m_analyzers;
+    std::unordered_map<std::type_index, AnalyzerEntry> m_Analyzers;
 
     DebugLogService* debug;
 };

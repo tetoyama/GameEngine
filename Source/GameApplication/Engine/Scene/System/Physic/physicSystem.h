@@ -124,7 +124,7 @@ public:
 	// レイヤー情報取得
 	//------------------------------------------------------------------
 	const std::vector<PhysicsLayer>& GetLayers() const{
-		return m_layers;
+		return layers;
 	}
 
 	uint32_t GetLayerBit(const std::string& name) const;
@@ -132,7 +132,7 @@ public:
 	//------------------------------------------------------------------
 	// 重力設定
 	//------------------------------------------------------------------
-	float Gravity = -9.0f;
+	float gravity= -9.0f;
 
 	int FindLayerIndex(uint32_t bit) const;
 
@@ -176,16 +176,16 @@ private:
 	//------------------------------------------------------------------
 	// レイヤー管理
 	//------------------------------------------------------------------
-	std::vector<PhysicsLayer> m_layers;
+	std::vector<PhysicsLayer> m_Layers;
 
 	// レイヤー間の衝突可否マトリクス
-	bool m_collisionMatrix[kMaxPhysicsLayers][kMaxPhysicsLayers]{};
+	bool m_CollisionMatrix[kMaxPhysicsLayers][kMaxPhysicsLayers]{};
 
 	//------------------------------------------------------------------
 	// PhysX 基本オブジェクト
 	//------------------------------------------------------------------
-	physx::PxDefaultAllocator      g_defaultAllocator;
-	physx::PxDefaultErrorCallback  g_defaultErrorCallback;
+	physx::PxDefaultAllocator m_GDefaultAllocator;
+	physx::PxDefaultErrorCallback m_GDefaultErrorCallback;
 
 	physx::PxFoundation* g_pFoundation = nullptr;
 	physx::PxPhysics* g_pPhysics = nullptr;
@@ -196,8 +196,8 @@ private:
 	//------------------------------------------------------------------
 	// 状態管理
 	//------------------------------------------------------------------
-	std::mutex mtx;
-	bool       UpdatingPhysics = false;
+	std::mutex m_Mtx;
+	bool m_UpdatingPhysics= false;
 	PhysicsSimulationCallback* m_simCallback = nullptr;
 
 private:
@@ -209,7 +209,7 @@ private:
 		const physx::PxTransform& t,
 		const physx::PxGeometry& geometry,
 		physx::PxMaterial& material,
-		physx::PxReal density = 10.0f);
+		physx::PxReal m_Density= 10.0f);
 
 	physx::PxRigidStatic* CreateStatic(
 		const physx::PxTransform& t,

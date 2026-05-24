@@ -32,9 +32,9 @@ public:
 
 private:
 	T*          m_target;
-	T           m_oldValue;
-	T           m_newValue;
-	std::string m_description;
+	T m_OldValue;
+	T m_NewValue;
+	std::string m_Description;
 };
 
 // カスタムセッター付きプロパティ変更コマンド（クォータニオン等、setter経由で設定するケース用）
@@ -62,8 +62,8 @@ public:
 	std::string GetDescription() const override { return m_description; }
 
 private:
-	Setter      m_setter;
-	T           m_oldValue;
-	T           m_newValue;
-	std::string m_description;
+	Setter m_Setter;
+	T m_OldValue;
+	T m_NewValue;
+	std::string m_Description;
 };

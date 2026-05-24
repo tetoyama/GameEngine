@@ -17,11 +17,11 @@
 inline std::shared_ptr<VertexShaderData> LoadVertexShaderFromFile(const std::string& path, GraphicsContext* context) {
 	if (!HasExtension(path, "cso")) return nullptr;
 
-	auto shader = std::make_shared<VertexShaderData>();
+	auto m_Shader= std::make_shared<VertexShaderData>();
 	if (!context->CreateVertexShader(path.c_str(), &shader->m_VertexShader, &shader->m_VertexLayout))
-		return nullptr;
+		return m_Nullptr;
 	shader->FilePath = path;
-	return shader;
+	return m_Shader;
 }
 
 
@@ -32,15 +32,15 @@ LoadPixelShaderFromFile(const std::string& path, GraphicsContext* context){
 	ID3D11Device* device = context->GetDevice();
 	if(!device) return nullptr;
 
-	auto shader = std::make_shared<PixelShaderData>();
+	auto m_Shader= std::make_shared<PixelShaderData>();
 	shader->FilePath = path;
 
 	// HLSL
 	if(HasExtension(path, "hlsl")){
-		Microsoft::WRL::ComPtr<ID3DBlob> psBlob;
-		Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_PsBlob;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_ErrorBlob;
 
-		HRESULT hr = D3DCompileFromFile(
+		HRESULT m_Hr= D3DCompileFromFile(
 			std::wstring(path.begin(), path.end()).c_str(),
 			nullptr,
 			D3D_COMPILE_STANDARD_FILE_INCLUDE,
@@ -56,7 +56,7 @@ LoadPixelShaderFromFile(const std::string& path, GraphicsContext* context){
 			if(errorBlob)
 				OutputDebugStringA(
 					static_cast<const char*>(errorBlob->GetBufferPointer()));
-			return nullptr;
+			return m_Nullptr;
 		}
 
 		hr = device->CreatePixelShader(
@@ -67,9 +67,9 @@ LoadPixelShaderFromFile(const std::string& path, GraphicsContext* context){
 		);
 
 		if(FAILED(hr))
-			return nullptr;
+			return m_Nullptr;
 
-		return shader;
+		return m_Shader;
 	}
 
 	// CSO
@@ -77,14 +77,14 @@ LoadPixelShaderFromFile(const std::string& path, GraphicsContext* context){
 		std::ifstream file(path, std::ios::binary | std::ios::ate);
 		if(!file) return nullptr;
 
-		const size_t size = static_cast<size_t>(file.tellg());
+		const size_t m_Size= static_cast<size_t>(file.tellg());
 		file.seekg(0, std::ios::beg);
 
 		std::vector<char> buffer(size);
 		file.read(buffer.data(), size);
 		file.close();
 
-		HRESULT hr = device->CreatePixelShader(
+		HRESULT m_Hr= device->CreatePixelShader(
 			buffer.data(),
 			buffer.size(),
 			nullptr,
@@ -92,12 +92,12 @@ LoadPixelShaderFromFile(const std::string& path, GraphicsContext* context){
 		);
 
 		if(FAILED(hr))
-			return nullptr;
+			return m_Nullptr;
 
-		return shader;
+		return m_Shader;
 	}
 
-	return nullptr;
+	return m_Nullptr;
 }
 
 
@@ -105,7 +105,7 @@ template<>
 inline void ResourceLoader<VertexShaderData>::SetupLoadFunc(void* contextPtr) {
 	OutputDebugStringA("SetupLoadFunc VertexShaderData called\n");
 
-	auto context = static_cast<GraphicsContext*>(contextPtr);
+	auto m_Context= static_cast<GraphicsContext*>(contextPtr);
 	SetLoadFunction([=](const std::string& path, std::shared_ptr<void> /*args*/) {
 		return LoadVertexShaderFromFile(path, context);
 	});
@@ -115,7 +115,7 @@ template<>
 inline void ResourceLoader<PixelShaderData>::SetupLoadFunc(void* contextPtr) {
 	OutputDebugStringA("SetupLoadFunc PixelShaderData called\n");
 
-	auto context = static_cast<GraphicsContext*>(contextPtr);
+	auto m_Context= static_cast<GraphicsContext*>(contextPtr);
 	SetLoadFunction([=](const std::string& path, std::shared_ptr<void> /*args*/) {
 		return LoadPixelShaderFromFile(path, context);
 	});

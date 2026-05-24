@@ -37,7 +37,7 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 	m_context = context;
 
 	// Linear
-	D3D11_SAMPLER_DESC desc{};
+	D3D11_SAMPLER_DESC m_Desc{};
 	desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 	desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -47,7 +47,7 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 	m_context->graphics->GetDevice()->CreateSamplerState(&desc, &m_LinearSampler);
 
 	// Environment map sampler (trilinear + wrap for cubemap)
-	D3D11_SAMPLER_DESC envDesc{};
+	D3D11_SAMPLER_DESC m_EnvDesc{};
 	envDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	envDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 	envDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -56,7 +56,7 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 	envDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	m_context->graphics->GetDevice()->CreateSamplerState(&envDesc, &m_EnvMapSampler);
 
-	Vector2 size = Vector2((float)context->graphics->m_width, (float)context->graphics->m_height);
+	Vector2 m_Size= Vector2((float)context->graphics->m_width, (float)context->graphics->m_height);
 
 	// ----- RenderTargets -----
 	// HDR float16 バッファ: エミッシブ HDR 値を保持しブルーム入力に使用する
@@ -69,7 +69,7 @@ void LightingPass::Finalize() {
 
 	m_LightingVertexShader.reset();
 
-	delete pRenderTarget;
+	delete m_PRenderTarget;
 	pRenderTarget = nullptr;
 
 	m_LinearSampler->Release();
@@ -119,7 +119,7 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 
 	pRenderTarget->Resize(ctx.screenSize, m_context->graphics);
 
-	float clearColor[4] = { 0,0,0,0 };
+	float m_ClearColor[4] = { 0,0,0,0 };
 	pRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearColor);
 
 	ID3D11DeviceContext* dc = m_context->graphics->GetDeviceContext();
@@ -131,7 +131,7 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 	dc->IASetInputLayout(m_LightingVertexShader->m_VertexLayout.Get());
 	PixelShaderData* ps = m_renderSystem->GetDeferredPS();
 	dc->PSSetShader(ps ? ps->m_PixelShader.Get() : nullptr, nullptr, 0);
-	D3D11_VIEWPORT vp = {};
+	D3D11_VIEWPORT m_Vp= {};
 	vp.Width = ctx.screenSize.x;
 	vp.Height = ctx.screenSize.y;
 	vp.MinDepth = 0.0f;

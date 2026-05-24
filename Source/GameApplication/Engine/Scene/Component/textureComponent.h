@@ -24,12 +24,12 @@
 // AnimationNum で表示するセルを選択するスプライトシート方式をサポートする
 class TextureComponent : public IComponent {
 public:
-	float UV_Slice_X = 1.0f;  // テクスチャを横方向に分割する数
-	float UV_Slice_Y = 1.0f;  // テクスチャを縦方向に分割する数
+	float uvSliceX= 1.0f;  // テクスチャを横方向に分割する数
+	float uvSliceY= 1.0f;  // テクスチャを縦方向に分割する数
 
-	int AnimationNum = 0;  // 表示するセルのインデックス（0 から UV_Slice_X * UV_Slice_Y - 1）
+	int animationNum= 0;  // 表示するセルのインデックス（0 から UV_Slice_X * UV_Slice_Y - 1）
 
-	std::shared_ptr<TextureData> m_TextureData;  // ロード済みテクスチャデータ
+	std::shared_ptr<TextureData> textureData;  // ロード済みテクスチャデータ
 
 	YAML::Node encode() override{
 		YAML::Node node;

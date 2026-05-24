@@ -81,7 +81,7 @@ bool ImGuiService::Initialize(IWindow* window, GraphicsContext* graphics){
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
 	SetModernStyle();
-	HWND hwnd = window->GetHWND();
+	HWND m_Hwnd= window->GetHWND();
 
 	ImGui_ImplWin32_Init(hwnd);
 
@@ -96,7 +96,7 @@ bool ImGuiService::Initialize(IWindow* window, GraphicsContext* graphics){
 
 
 
-	return initialized_;
+	return m_Initialized;
 }
 
 void ImGuiService::Shutdown() {
@@ -117,7 +117,7 @@ void ImGuiService::SetViewProjectionMatrix(const DirectX::XMMATRIX& view, const 
 
 DirectX::XMMATRIX ImGuiService::RenderGizmo(const DirectX::XMMATRIX& world) const{
 
-	DirectX::XMFLOAT4X4 viewF, projF, modelF;
+	DirectX::XMFLOAT4X4 viewF, projF, m_ModelF;
 	DirectX::XMStoreFloat4x4(&viewF, m_view);
 	DirectX::XMStoreFloat4x4(&projF, m_projection);
 	DirectX::XMStoreFloat4x4(&modelF, world);
@@ -140,20 +140,20 @@ DirectX::XMMATRIX ImGuiService::RenderGizmo2D(
 	ImGuiViewport* viewport = ImGui::GetMainViewport();
 
 	// Ortho (UI座標：左上原点)
-	float left = 0.0f;
-	float right = vp.x;
-	float top = 0.0f;
-	float bottom = vp.y;
-	float nearZ = 0.0f;
-	float farZ = 1.0f;
+	float m_Left= 0.0f;
+	float m_Right= vp.x;
+	float m_Top= 0.0f;
+	float m_Bottom= vp.y;
+	float m_NearZ= 0.0f;
+	float m_FarZ= 1.0f;
 
-	DirectX::XMMATRIX proj =
+	DirectX::XMMATRIX m_Proj=
 		DirectX::XMMatrixOrthographicOffCenterLH(
 			left, right, bottom, top, nearZ, farZ);
 
-	DirectX::XMMATRIX view = DirectX::XMMatrixIdentity();
+	DirectX::XMMATRIX m_View= DirectX::XMMatrixIdentity();
 
-	DirectX::XMFLOAT4X4 viewF, projF, modelF;
+	DirectX::XMFLOAT4X4 viewF, projF, m_ModelF;
 	DirectX::XMStoreFloat4x4(&viewF, view);
 	DirectX::XMStoreFloat4x4(&projF, proj);
 	DirectX::XMStoreFloat4x4(&modelF, world);

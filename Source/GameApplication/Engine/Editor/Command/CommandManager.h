@@ -46,6 +46,6 @@ private:
 		while (!m_redoStack.empty()) m_redoStack.pop();
 	}
 
-	std::stack<std::unique_ptr<ICommand>> m_undoStack;
-	std::stack<std::unique_ptr<ICommand>> m_redoStack;
+	std::stack<std::unique_ptr<ICommand>> m_UndoStack;
+	std::stack<std::unique_ptr<ICommand>> m_RedoStack;
 };

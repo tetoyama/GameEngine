@@ -39,11 +39,11 @@ void InputService::Initialize(HWND window){
 }
 
 void InputService::MessageUpdateInput(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
-	auto it = m_windowStates.find(hWnd);
+	auto m_It= m_windowStates.find(hWnd);
 	if(it == m_windowStates.end()) return;
 	WindowInputState& state = it->second;
 
-	bool down = false;
+	bool m_Down= false;
 
 	switch(message){
 		case WM_SIZE:
@@ -99,7 +99,7 @@ void InputService::MessageUpdateInput(HWND hWnd, UINT message, WPARAM wParam, LP
 	}
 
 	// キーコード変換
-	int vk = (int)wParam;
+	int m_Vk= (int)wParam;
 	switch(vk){
 		case VK_SHIFT:
 			vk = (int)MapVirtualKey(((unsigned int)lParam & 0x00ff0000) >> 16u, MAPVK_VSC_TO_VK_EX);
@@ -159,64 +159,64 @@ void InputService::Update(){
 }
 
 bool InputService::IsKeyDown(HWND hwnd, int key) const{
-	auto it = m_windowStates.find(hwnd);
+	auto m_It= m_windowStates.find(hwnd);
 	if(it == m_windowStates.end()) return false;
-	auto kit = it->second.keyStates.find(key);
+	auto m_Kit= it->second.keyStates.find(key);
 	if(kit == it->second.keyStates.end()) return false;
 	return kit->second.frameCount == 1;
 }
 
 bool InputService::IsKeyUp(HWND hwnd, int key) const{
-	auto it = m_windowStates.find(hwnd);
+	auto m_It= m_windowStates.find(hwnd);
 	if(it == m_windowStates.end()) return false;
-	auto kit = it->second.keyStates.find(key);
+	auto m_Kit= it->second.keyStates.find(key);
 	if(kit == it->second.keyStates.end()) return false;
 	return kit->second.frameCount == 0;
 }
 
 bool InputService::IsKey(HWND hwnd, int key) const{
-	auto it = m_windowStates.find(hwnd);
+	auto m_It= m_windowStates.find(hwnd);
 	if(it == m_windowStates.end()) return false;
-	auto kit = it->second.keyStates.find(key);
+	auto m_Kit= it->second.keyStates.find(key);
 	if(kit == it->second.keyStates.end()) return false;
 	return kit->second.frameCount > 0;
 }
 
 bool InputService::IsMouseDown(HWND hwnd, int button) const{
-	auto it = m_windowStates.find(hwnd);
+	auto m_It= m_windowStates.find(hwnd);
 	if(it == m_windowStates.end()) return false;
 	if(button < 0 || button >= MouseButtonCount) return false;
 	return it->second.mouseState.buttonDown[button];
 }
 
 bool InputService::IsMouseUp(HWND hwnd, int button) const{
-	auto it = m_windowStates.find(hwnd);
+	auto m_It= m_windowStates.find(hwnd);
 	if(it == m_windowStates.end()) return false;
 	if(button < 0 || button >= MouseButtonCount) return false;
 	return !it->second.mouseState.buttonDown[button];
 }
 
 bool InputService::IsMouse(HWND hwnd, int button) const{
-	auto it = m_windowStates.find(hwnd);
+	auto m_It= m_windowStates.find(hwnd);
 	if(it == m_windowStates.end()) return false;
 	if(button < 0 || button >= MouseButtonCount) return false;
 	return it->second.mouseState.buttonPressed[button];
 }
 
 int InputService::GetMouseX(HWND hwnd) const{
-	auto it = m_windowStates.find(hwnd);
+	auto m_It= m_windowStates.find(hwnd);
 	if(it == m_windowStates.end()) return 0;
 	return it->second.mouseState.x;
 }
 
 int InputService::GetMouseY(HWND hwnd) const{
-	auto it = m_windowStates.find(hwnd);
+	auto m_It= m_windowStates.find(hwnd);
 	if(it == m_windowStates.end()) return 0;
 	return it->second.mouseState.y;
 }
 
 int InputService::GetMouseWheel(HWND hwnd) const{
-	auto it = m_windowStates.find(hwnd);
+	auto m_It= m_windowStates.find(hwnd);
 	if(it == m_windowStates.end()) return 0;
 	return it->second.mouseState.wheel;
 }
@@ -268,8 +268,8 @@ void InputService::OnMouseWheel(WindowInputState& state, int delta){
 
 void InputService::UpdateGamepads(){
 	for(int i = 0; i < GamepadCount; ++i){
-		XINPUT_STATE state;
-		DWORD result = XInputGetState(i, &state);
+		XINPUT_STATE m_State;
+		DWORD m_Result= XInputGetState(i, &state);
 		m_gamepads[i].connected = (result == ERROR_SUCCESS);
 		if(m_gamepads[i].connected){
 			m_gamepads[i].pad = state.Gamepad;
@@ -280,14 +280,14 @@ void InputService::UpdateGamepads(){
 }
 
 void InputService::ClipToWindow(HWND hwnd){
-	RECT rect;
+	RECT m_Rect;
 	GetClientRect(hwnd, &rect);
 	ClipCursor(&rect);
 }
 
 bool InputService::IsGamepadConnected(int id) const{
 	if(id < 0 || id >= GamepadCount) return false;
-	return m_gamepads[id].connected;
+	return m_Gamepads[id].connected;
 }
 
 bool InputService::GetGamepadButton(int id, int button) const{
@@ -296,23 +296,23 @@ bool InputService::GetGamepadButton(int id, int button) const{
 }
 
 POINT InputService::GetGamepadLeftStick(int id) const{
-	POINT pt = {0, 0};
+	POINT m_Pt= {0, 0};
 	if(id < 0 || id >= GamepadCount || !m_gamepads[id].connected) return pt;
 	pt.x = m_gamepads[id].pad.sThumbLX;
 	pt.y = m_gamepads[id].pad.sThumbLY;
 	if(std::abs(pt.x) < XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE) pt.x = 0;
 	if(std::abs(pt.y) < XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE) pt.y = 0;
-	return pt;
+	return m_Pt;
 }
 
 POINT InputService::GetGamepadRightStick(int id) const{
-	POINT pt = {0, 0};
+	POINT m_Pt= {0, 0};
 	if(id < 0 || id >= GamepadCount || !m_gamepads[id].connected) return pt;
 	pt.x = m_gamepads[id].pad.sThumbRX;
 	pt.y = m_gamepads[id].pad.sThumbRY;
 	if(std::abs(pt.x) < XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE) pt.x = 0;
 	if(std::abs(pt.y) < XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE) pt.y = 0;
-	return pt;
+	return m_Pt;
 }
 
 bool InputService::GetGamepadTrigger(int id, int trigger) const{

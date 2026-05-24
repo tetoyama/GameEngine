@@ -37,8 +37,8 @@ struct SceneManagerContext {
 	SystemRegistry* systemRegistry = nullptr; // ECS システムのレジストリ（自動設定）
 
 	// ビューポートサイズ（ゲームプレイ画面とエディター画面それぞれ）
-	Vector2 PlayerScreenSize = { 1280.0f, 720.0f };
-	Vector2 EditorScreenSize = { 1280.0f, 720.0f };
+	Vector2 playerScreenSize= { 1280.0f, 720.0f };
+	Vector2 editorScreenSize= { 1280.0f, 720.0f };
 
 	GraphicsContext* graphics  = nullptr;  // DirectX 11 グラフィクスコンテキスト
 	AudioContext*    audio     = nullptr;  // オーディオコンテキスト
@@ -91,7 +91,7 @@ public:
 	void SaveScenes();
 
 	const std::unordered_map<std::string, std::shared_ptr<Scene>>& GetActiveScenes() const{
-		return m_activeScenes;
+		return activeScenes;
 	}
 
 	std::shared_ptr<Scene> OpenFromYAMLFile();
@@ -106,11 +106,11 @@ private:
 	void TempSave();
 	void TempLoad();
 
-	std::unordered_map<std::string, std::shared_ptr<Scene>> m_activeScenes;
+	std::unordered_map<std::string, std::shared_ptr<Scene>> m_ActiveScenes;
 	SceneManagerContext m_SceneContext;
 
 	std::unordered_map<uint32_t, SceneContext*> m_contextRegistry;
-	uint32_t m_nextContextID = 1;
+	uint32_t m_NextContextId= 1;
 
 	bool m_NeedSceneChange = false;
 	std::shared_ptr<Scene> m_NextScene = nullptr;

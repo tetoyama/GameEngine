@@ -25,26 +25,26 @@ public:
 	// --------------------
 	// Resource（リソース）
 	// --------------------
-	std::shared_ptr<EffectData> m_EffectData;  // ロード済みエフェクトデータ
-	std::string FilePath;                       // エフェクトファイルのパス（YAML 保存用）
+	std::shared_ptr<EffectData> effectData;  // ロード済みエフェクトデータ
+	std::string filePath;                       // エフェクトファイルのパス（YAML 保存用）
 
 	// --------------------
 	// Playback settings（再生設定）
 	// --------------------
-	bool Loop = false;        // ループ再生するか
-	bool PlayOnStart = false; // シーン再生開始時に自動再生するか
-	float Volume = 1.0f;      // エフェクトの音量
+	bool loop= false;        // ループ再生するか
+	bool playOnStart= false; // シーン再生開始時に自動再生するか
+	float volume= 1.0f;      // エフェクトの音量
 
-	float TimeScale = 1.0f;    // 再生速度倍率（1.0 = 通常速度）
-	float MaxPlayTime = 0.0f;  // 最大再生時間（秒、0.0 = 無制限）
+	float timeScale= 1.0f;    // 再生速度倍率（1.0 = 通常速度）
+	float maxPlayTime= 0.0f;  // 最大再生時間（秒、0.0 = 無制限）
 
 	// --------------------
 	// Runtime state（実行時状態）
 	// --------------------
-	bool Playing = false;         // 現在再生中かどうか
-	float CurrentPlayTime = 0.0f; // 現在の再生経過時間（秒）
+	bool playing= false;         // 現在再生中かどうか
+	float currentPlayTime= 0.0f; // 現在の再生経過時間（秒）
 
-	Effekseer::Handle m_Handle = -1; // Effekseer 再生ハンドル（-1 = 未再生）
+	Effekseer::Handle handle= -1; // Effekseer 再生ハンドル（-1 = 未再生）
 
 	// --------------------
 	// Serialize（シリアライズ）

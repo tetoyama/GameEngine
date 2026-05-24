@@ -20,7 +20,7 @@ public:
 	void Finalize() override;
 	void Execute(const RenderPassContext& ctx) override;
 
-	std::shared_ptr<PixelShaderData> m_RenderablePixelShader;
+	std::shared_ptr<PixelShaderData> renderablePixelShader;
 
 	std::vector<IRenderable*> renderables;
 	RenderTarget* shadowRenderTarget = nullptr;

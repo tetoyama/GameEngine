@@ -174,7 +174,7 @@ public:
 	//------------------------------------------------------------------
 	// 登録済みシェーダマテリアル一覧
 	//------------------------------------------------------------------
-	std::vector<ShaderMaterial> ShaderMaterials;
+	std::vector<ShaderMaterial> shaderMaterials;
 
 private:
 
@@ -202,21 +202,21 @@ private:
 	SceneManagerContext* m_context = nullptr;
 
 	// 登録済み Renderable 一覧
-	std::vector<std::shared_ptr<IRenderable>> m_renderables;
+	std::vector<std::shared_ptr<IRenderable>> m_Renderables;
 
 	// ポストエフェクト用コピーシェーダ
 	PostEffectShader* copyShader = nullptr;
 
 	// 自動生成シェーダ出力パス
-	std::string ShaderPath = "Source/Shader/AutoGen/";
+	std::string m_ShaderPath= "Source/Shader/AutoGen/";
 
 	// UI ボタン用テクスチャ
-	std::shared_ptr<TextureData> PlayButtonTexture;
-	std::shared_ptr<TextureData> PauseButtonTexture;
-	std::shared_ptr<TextureData> StopButtonTexture;
-	std::shared_ptr<TextureData> StepButtonTexture;
+	std::shared_ptr<TextureData> m_PlayButtonTexture;
+	std::shared_ptr<TextureData> m_PauseButtonTexture;
+	std::shared_ptr<TextureData> m_StopButtonTexture;
+	std::shared_ptr<TextureData> m_StepButtonTexture;
 
 	// 描画パイプライン用ピクセルシェーダ
-	std::shared_ptr<PixelShaderData> DeferredPS;
-	std::shared_ptr<PixelShaderData> ForwardPS;
+	std::shared_ptr<PixelShaderData> m_DeferredPs;
+	std::shared_ptr<PixelShaderData> m_ForwardPs;
 };

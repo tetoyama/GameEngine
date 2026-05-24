@@ -7,11 +7,11 @@
 #include <Windows.h>
 
 void TimeService::Initialize(){
-	LARGE_INTEGER freq;
+	LARGE_INTEGER m_Freq;
 	QueryPerformanceFrequency(&freq);
 	frequency_ = static_cast<double>(freq.QuadPart);
 
-	LARGE_INTEGER now;
+	LARGE_INTEGER m_Now;
 	QueryPerformanceCounter(&now);
 	startTime_ = prevTime_ = prevDeltaTime_ = prevFixedTime_ = prevDrawTime_ = now.QuadPart;
 
@@ -20,10 +20,10 @@ void TimeService::Initialize(){
 }
 
 void TimeService::Tick(){
-	LARGE_INTEGER now;
+	LARGE_INTEGER m_Now;
 	QueryPerformanceCounter(&now);
 
-	long long current = now.QuadPart;
+	long long m_Current= now.QuadPart;
 	deltaTime_ = static_cast<float>(current - prevTime_) / static_cast<float>(frequency_);
 	totalTime_ = static_cast<float>(current - startTime_) / static_cast<float>(frequency_);
 	prevTime_ = current;
@@ -34,27 +34,27 @@ void TimeService::Tick(){
 bool TimeService::ShouldRunFixedUpdate(){
 	if(fixedTimeAccumulator_ >= fixedDeltaTime_){
 		fixedTimeAccumulator_ -= fixedDeltaTime_;
-		return true;
+		return m_True;
 	}
-	return false;
+	return m_False;
 }
 
 float TimeService::GetDeltaTime() const{
-	return deltaTime_;
+	return m_DeltaTime;
 }
 float TimeService::GetTotalTime() const{
-	return totalTime_;
+	return m_TotalTime;
 }
 float TimeService::GetFixedDeltaTime() const{
-	return fixedDeltaTime_;
+	return m_FixedDeltaTime;
 }
 
 void TimeService::EndDeltaUpdate(){
 
-	LARGE_INTEGER now;
+	LARGE_INTEGER m_Now;
 	QueryPerformanceCounter(&now);
 
-	long long current = now.QuadPart;
+	long long m_Current= now.QuadPart;
 	
 	deltaUpdateTime_ = static_cast<double>(current - prevDeltaTime_) / static_cast<double>(frequency_);
 	prevDeltaTime_ = current;
@@ -74,10 +74,10 @@ void TimeService::EndDeltaUpdate(){
 }
 
 void TimeService::EndFixedUpdate(){
-	LARGE_INTEGER now;
+	LARGE_INTEGER m_Now;
 	QueryPerformanceCounter(&now);
 
-	long long current = now.QuadPart;
+	long long m_Current= now.QuadPart;
 
 	fixedUpdateTime_ = static_cast<double>(current - prevFixedTime_) / static_cast<double>(frequency_);
 	prevFixedTime_ = current;
@@ -96,10 +96,10 @@ void TimeService::EndFixedUpdate(){
 }
 
 void TimeService::EndDraw(){
-	LARGE_INTEGER now;
+	LARGE_INTEGER m_Now;
 	QueryPerformanceCounter(&now);
 
-	long long current = now.QuadPart;
+	long long m_Current= now.QuadPart;
 
 	drawTime_ = static_cast<double>(current - prevDrawTime_) / static_cast<double>(frequency_);
 	prevDrawTime_ = current;

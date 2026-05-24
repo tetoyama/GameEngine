@@ -36,8 +36,8 @@ physx::PxFilterFlags PhysicsFilterShader(
 	physx::PxPairFlags& pairFlags,
 	const void*, physx::PxU32) {
 	
-	int layerA = g_physicSystem->FindLayerIndex(data0.word0);
-	int layerB = g_physicSystem->FindLayerIndex(data1.word0);
+	int m_LayerA= g_physicSystem->FindLayerIndex(data0.word0);
+	int m_LayerB= g_physicSystem->FindLayerIndex(data1.word0);
 
 	if (layerA < 0 || layerB < 0)
 		return physx::PxFilterFlag::eSUPPRESS;
@@ -71,12 +71,12 @@ class PhysicsSimulationCallback : public physx::PxSimulationEventCallback {
 			if (e == entity && script && script->IsInitialized())
 				result.push_back(script);
 		}
-		return result;
+		return m_Result;
 	}
 
 public:
 	// Stop/Finalize 前に false にセットすることでコールバックを無効化する
-	bool m_active = true;
+	bool active= true;
 
 	void onContact(const physx::PxContactPairHeader& pairHeader,
 				   const physx::PxContactPair* pairs,
@@ -426,7 +426,7 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 		}
 
 		// オイラー角をラジアンに変換
-		const float DegToRad = physx::PxPi / 180.0f;
+		const float degToRad= physx::PxPi / 180.0f;
 		physx::PxVec3 eulerRad(
 			col.rotationOffset.x * DegToRad,
 			col.rotationOffset.y * DegToRad,
@@ -586,7 +586,7 @@ void PhysicSystem::Finalize(){
 		auto context = scene->GetSceneContext();
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
 		for (Entity entity : colliderEntity) {
-			auto Collider = context->component->GetComponent<ColliderComponent>(entity);
+			auto collider= context->component->GetComponent<ColliderComponent>(entity);
 			for (auto& col : Collider->colliders) {
 				if (col.pxMaterial) {
 					OutputDebugStringA(("Finalize Release Material: " + std::to_string((uintptr_t)col.pxMaterial) + "\n").c_str());
@@ -653,7 +653,7 @@ void PhysicSystem::Finalize(){
 
 	g_physicSystem = nullptr;
 
-	delete m_simCallback;
+	delete simCallback;
 	m_simCallback = nullptr;
 }
 
@@ -666,7 +666,7 @@ void PhysicSystem::Stop(){
 		auto context = scene->GetSceneContext();
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
 		for (Entity entity : colliderEntity) {
-			auto Collider = context->component->GetComponent<ColliderComponent>(entity);
+			auto collider= context->component->GetComponent<ColliderComponent>(entity);
 
 			for (auto& col : Collider->colliders) {
 				if (col.pxMaterial) {
@@ -835,14 +835,14 @@ void PhysicSystem::SystemSetting(){
 }
 
 bool PhysicSystem::GetCollisionEnabled(uint32_t a, uint32_t b) const {
-	return m_collisionMatrix[a][b];
+	return collisionMatrix[a][b];
 }
 
 
 // レイキャスト用除外フィルタ: layerMask に含まれるレイヤーを持つ Shape を除外する
 // layerMask = 0 の場合はすべての Shape がヒット対象になる
 class ExcludeMaskFilter : public physx::PxQueryFilterCallback {
-	physx::PxU32 m_excludeMask;
+	physx::PxU32 m_ExcludeMask;
 public:
 	explicit ExcludeMaskFilter(physx::PxU32 excludeMask) : m_excludeMask(excludeMask) {}
 
@@ -1013,7 +1013,7 @@ void PhysicSystem::Start(){
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
 		if (colliderEntity.empty()) return;
 		for (Entity entity : colliderEntity) {
-			auto Collider = context->component->GetComponent<ColliderComponent>(entity);
+			auto collider= context->component->GetComponent<ColliderComponent>(entity);
 
 			Collider->needsUpdate = true;
 		}
@@ -1028,8 +1028,8 @@ void PhysicSystem::UpdateCollider() {
 		if (colliderEntity.empty()) continue;
 
 		for (Entity entity : colliderEntity) {
-			auto Collider = context->component->GetComponent<ColliderComponent>(entity);
-			auto Transform = context->component->GetComponent<TransformComponent>(entity);
+			auto collider= context->component->GetComponent<ColliderComponent>(entity);
+			auto transform= context->component->GetComponent<TransformComponent>(entity);
 			if (!Transform) continue;
 
 			physx::PxVec3 pos(Transform->position.x, Transform->position.y, Transform->position.z);
@@ -1141,9 +1141,9 @@ void PhysicSystem::UpdateCollider() {
 
 
 		for (Entity entity : colliderEntity) {
-			auto Collider = context->component->GetComponent<ColliderComponent>(entity);
+			auto collider= context->component->GetComponent<ColliderComponent>(entity);
 
-			auto Transform = context->component->GetComponent<TransformComponent>(entity);
+			auto transform= context->component->GetComponent<TransformComponent>(entity);
 			if (!Transform) continue;
 
 			if (Collider->needsUpdate) {
@@ -1208,7 +1208,7 @@ void PhysicSystem::UpdateCollider() {
 
 						// ユーザー定義のローカルオフセット（ボーンローカル空間、同様にスケール適用）
 						physx::PxVec3 userOffset(col.offset.x * entityScale.x, col.offset.y * entityScale.y, col.offset.z * entityScale.z);
-						const float DegToRad = physx::PxPi / 180.0f;
+						const float degToRad= physx::PxPi / 180.0f;
 						physx::PxQuat qx(col.rotationOffset.x * DegToRad, physx::PxVec3(1, 0, 0));
 						physx::PxQuat qy(col.rotationOffset.y * DegToRad, physx::PxVec3(0, 1, 0));
 						physx::PxQuat qz(col.rotationOffset.z * DegToRad, physx::PxVec3(0, 0, 1));
@@ -1256,11 +1256,11 @@ void PhysicSystem::FixedUpdate(float deltaTime) {
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
 
 		for (Entity entity : colliderEntity) {
-			auto Collider = context->component->GetComponent<ColliderComponent>(entity);
-			auto Transform = context->component->GetComponent<TransformComponent>(entity);
+			auto collider= context->component->GetComponent<ColliderComponent>(entity);
+			auto transform= context->component->GetComponent<TransformComponent>(entity);
 			if (!Transform) continue;
 
-			physx::PxTransform TmpTransform;
+			physx::PxTransform tmpTransform;
 			if (Collider->pRigidbodyDynamic) TmpTransform = Collider->pRigidbodyDynamic->getGlobalPose();
 			if (Collider->pRigidbodyStatic) TmpTransform = Collider->pRigidbodyStatic->getGlobalPose();
 

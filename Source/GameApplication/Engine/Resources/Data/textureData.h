@@ -17,8 +17,8 @@ struct TextureData {
 		OutputDebugStringA(("Destroyed TextureData: " + FilePath + "\n").c_str());
 		pTexture.Reset();
 	}
-	std::string FilePath;
+	std::string filePath;
 	Microsoft::WRL::ComPtr <ID3D11ShaderResourceView> pTexture;	//ポインター
-	int Width = 0;
-	int Height = 0;
+	int width= 0;
+	int height= 0;
 };

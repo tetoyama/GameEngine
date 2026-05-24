@@ -20,11 +20,11 @@ AudioContext::~AudioContext(){
 bool AudioContext::Initialize(){
 	AUDIO_LOG(LogLevel::Info, "AudioContext の初期化を開始します");
 	if(!m_XAudio){
-		HRESULT hr = XAudio2Create(&m_XAudio, 0, XAUDIO2_DEFAULT_PROCESSOR);
+		HRESULT m_Hr= XAudio2Create(&m_XAudio, 0, XAUDIO2_DEFAULT_PROCESSOR);
 		if(FAILED(hr)){
 			AUDIO_LOG(LogLevel::Error, "XAudio2 エンジンの生成に失敗しました");
 			OutputDebugStringA("Failed to create XAudio2 engine\n");
-			return false;
+			return m_False;
 		}
 
 		hr = m_XAudio->CreateMasteringVoice(&m_MasteringVoice);
@@ -33,7 +33,7 @@ bool AudioContext::Initialize(){
 			OutputDebugStringA("Failed to create MasteringVoice\n");
 			m_XAudio->Release();
 			m_XAudio = nullptr;
-			return false;
+			return m_False;
 		}
 
 		hr = m_XAudio->StartEngine();
@@ -44,12 +44,12 @@ bool AudioContext::Initialize(){
 			m_MasteringVoice = nullptr;
 			m_XAudio->Release();
 			m_XAudio = nullptr;
-			return false;
+			return m_False;
 		}
 	}
 	m_IsInitialized = true;
 	AUDIO_LOG(LogLevel::Info, "AudioContext の初期化が完了しました");
-	return true;
+	return m_True;
 }
 
 void AudioContext::Shutdown(){
@@ -76,20 +76,20 @@ IXAudio2SourceVoice* AudioContext::CreateSourceVoice(WAVEFORMATEX* wfx){
 
 	AUDIO_LOG(LogLevel::Trace, "SourceVoice を生成します");
 
-	char buf[256];
+	char m_Buf[256];
 	sprintf_s(buf, "CreateSourceVoice: format=%d, channels=%d, sampleRate=%d, bitsPerSample=%d\n",
 			  wfx->wFormatTag, wfx->nChannels, wfx->nSamplesPerSec, wfx->wBitsPerSample);
 	OutputDebugStringA(buf);
 
 	IXAudio2SourceVoice* voice = nullptr;
-	HRESULT hr = m_XAudio->CreateSourceVoice(&voice, wfx);
+	HRESULT m_Hr= m_XAudio->CreateSourceVoice(&voice, wfx);
 	if(FAILED(hr)){
 		AUDIO_LOG(LogLevel::Error, "SourceVoice の生成に失敗しました");
 		OutputDebugStringA("Failed to create SourceVoice\n");
-		return nullptr;
+		return m_Nullptr;
 	}
 	AUDIO_LOG(LogLevel::Debug, "SourceVoice の生成が完了しました");
-	return voice;
+	return m_Voice;
 }
 
 #undef AUDIO_LOG

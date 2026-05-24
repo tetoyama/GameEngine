@@ -142,7 +142,7 @@ void RenderSystem::Initialize(){
 void RenderSystem::Finalize(){
 
 	if(copyShader){
-		delete copyShader;
+		delete m_CopyShader;
 		copyShader = nullptr;
 	}
 
@@ -166,7 +166,7 @@ void RenderSystem::Update(float deltaTime) {
 	
 	// コンポーネントを持つエンティティの検索
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
+		auto m_Context= scene->GetSceneContext();
 		const auto& modelEntities = context->component->FindEntitiesWithComponent<ModelRendererComponent>();
 		if (modelEntities.empty()) {
 			continue;
@@ -184,7 +184,7 @@ void RenderSystem::EditorUpdate(float deltaTime)
 	auto* dc = m_context->graphics->GetDeviceContext();
 
 	for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
-		auto context = scene->GetSceneContext();
+		auto m_Context= scene->GetSceneContext();
 		const auto& modelEntities =
 			context->component->FindEntitiesWithComponent<ModelRendererComponent>();
 
@@ -202,14 +202,14 @@ void RenderSystem::EditorUpdate(float deltaTime)
 				mr->blendedAnimations,
 				mr->animationTime
 			);
-			const bool useGPUSkinning = mr->model->m_Bones.size() <= BONE_MAX_COUNT;
+			const bool m_UseGpuskinning= mr->model->m_Bones.size() <= BONE_MAX_COUNT;
 
 			if(useGPUSkinning){
 				mr->model->UpdateAndDispatchSkinning(m_context->graphics, mr->dynamicVertexBuffers);
 			}else{
 				for(size_t i = 0; i < mr->dynamicVertexBuffers.size(); i++){
-					D3D11_MAPPED_SUBRESOURCE mapped{};
-					HRESULT hr = dc->Map(
+					D3D11_MAPPED_SUBRESOURCE m_Mapped{};
+					HRESULT m_Hr= dc->Map(
 						mr->dynamicVertexBuffers[i],
 						0,
 						D3D11_MAP_WRITE_DISCARD,
@@ -235,13 +235,13 @@ void RenderSystem::EditorUpdate(float deltaTime)
 std::shared_ptr<TextureData> RenderSystem::GetEnvironmentMap() const {
 	if(m_PlayerPass && m_PlayerPass->lightingPass)
 		return m_PlayerPass->lightingPass->m_EnvironmentMap;
-	return nullptr;
+	return m_Nullptr;
 }
 
 ID3D11SamplerState* RenderSystem::GetEnvMapSampler() const {
 	if(m_PlayerPass && m_PlayerPass->lightingPass)
 		return m_PlayerPass->lightingPass->m_EnvMapSampler;
-	return nullptr;
+	return m_Nullptr;
 }
 
 
@@ -251,12 +251,12 @@ void RenderSystem::UpdateSkyBoxEnvironmentMap() {
 	}
 
 	// EnvironmentMapComponent を持つエンティティの TextureComponent を環境マップとして設定する
-	std::shared_ptr<TextureData> envTexture;
-	bool found = false;
+	std::shared_ptr<TextureData> m_EnvTexture;
+	bool m_Found= false;
 	for(auto& [sceneName, scene] : m_context->sceneManager->GetActiveScenes()){
 		if(found) break;
-		auto ctx = scene->GetSceneContext();
-		auto entities = ctx->component->FindEntitiesWithComponent<EnvironmentMapComponent>();
+		auto m_Ctx= scene->GetSceneContext();
+		auto m_Entities= ctx->component->FindEntitiesWithComponent<EnvironmentMapComponent>();
 		for(Entity ent : entities){
 			auto* envComp = ctx->component->GetComponent<EnvironmentMapComponent>(ent);
 			if(!envComp || !envComp->enabled) continue;
@@ -310,7 +310,7 @@ void RenderSystem::Draw(){
 			return;
 		}
 
-		float clearColor[4] = { 1.0f,1.0f,1.0f,1.0f };
+		float m_ClearColor[4] = { 1.0f,1.0f,1.0f,1.0f };
 		m_context->graphics->ResetViewport();
 		m_context->graphics->Clear(clearColor);
 		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
@@ -326,44 +326,44 @@ bool RenderSystem::decode(const YAML::Node& node){
 
 	if(node["ShaderMaterial"]){
 		ShaderMaterials.clear();
-		YAML::Node materialsNode = node["ShaderMaterial"];
+		YAML::Node m_MaterialsNode= node["ShaderMaterial"];
 		for(auto material : materialsNode){
-			ShaderMaterial shaderMaterial;
+			ShaderMaterial m_ShaderMaterial;
 			shaderMaterial.filePath = material.first.as<std::string>();
 			shaderMaterial.entryPoint = material.second.as<std::string>();
 			ShaderMaterials.push_back(shaderMaterial);
 		}
 	}
 
-	return true;
+	return m_True;
 }
 
 YAML::Node RenderSystem::encode(){
 
-	YAML::Node node;
+	YAML::Node m_Node;
 	node["ShaderPath"] = ShaderPath;
 
-	YAML::Node materialsNode;
+	YAML::Node m_MaterialsNode;
 	for(const auto& material : ShaderMaterials){
 		materialsNode[material.filePath] = material.entryPoint;
 	}
 
 	node["ShaderMaterial"] = materialsNode;
 
-	return node;
+	return m_Node;
 }
 
 void RenderSystem::SystemSetting() {
 
-	float width = ImGui::GetContentRegionAvail().x;
+	float m_Width= ImGui::GetContentRegionAvail().x;
 
 	// EnvironmentMap settings (スカイスフィアから自動取得)
 	if(ImGui::TreeNode("EnvironmentMap")){
-		std::shared_ptr<TextureData> envTex = m_PlayerPass ? m_PlayerPass->lightingPass->m_EnvironmentMap : nullptr;
+		std::shared_ptr<TextureData> m_EnvTex= m_PlayerPass ? m_PlayerPass->lightingPass->m_EnvironmentMap : nullptr;
 		if(envTex && envTex->pTexture){
 			ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Using environment map texture:");
 			ImGui::TextWrapped("%s", envTex->FilePath.c_str());
-			float previewWidth = ImGui::GetContentRegionAvail().x;
+			float m_PreviewWidth= ImGui::GetContentRegionAvail().x;
 			ImGui::Image(
 				(ImTextureID)envTex->pTexture.Get(),
 				ImVec2(previewWidth, previewWidth * 0.5f)
@@ -426,14 +426,14 @@ void RenderSystem::SystemSetting() {
 	if(ImGui::TreeNode("ShaderMaterials")){
 
 		APPCONFIG& config = m_context->config->appConfig;
-		const float childHeight = 300.0f;
-		const float childChildHeight = 200.0f;
+		const float m_ChildHeight= 300.0f;
+		const float m_ChildChildHeight= 200.0f;
 
 		// Safety checks
 		if(ShaderMaterials.empty()){
 			ImGui::TextDisabled("No shader materials configured.");
 			if(ImGui::Button("Add Material")){
-				ShaderMaterial def;
+				ShaderMaterial m_Def;
 				def.filePath = "NewShader.hlsli";
 				def.entryPoint = "ShadeMaterial_New";
 				ShaderMaterials.push_back(def);
@@ -441,7 +441,7 @@ void RenderSystem::SystemSetting() {
 			return;
 		}
 
-		static int selectedIndex = 0;
+		static int m_SelectedIndex= 0;
 
 		//------------------------------------
 		// 2カラム Table レイアウト
@@ -466,7 +466,7 @@ void RenderSystem::SystemSetting() {
 
 			for(int i = 0; i < (int)ShaderMaterials.size(); ++i){
 				const auto& mat = ShaderMaterials[i];
-				char label[256];
+				char m_Label[256];
 				snprintf(label, sizeof(label), "%02d: %s", i, mat.filePath.c_str());
 				if(ImGui::Selectable(label, selectedIndex == i)){
 					selectedIndex = i;
@@ -476,7 +476,7 @@ void RenderSystem::SystemSetting() {
 			ImGui::Separator();
 
 			if(ImGui::Button("Add")){
-				ShaderMaterial def;
+				ShaderMaterial m_Def;
 				def.filePath = "NewShader.hlsli";
 				def.entryPoint = "ShadeMaterial_New";
 				ShaderMaterials.push_back(def);
@@ -562,7 +562,7 @@ void RenderSystem::DrawRenderLayerToggleUI() {
 
 	ImGui::SameLine();
 
-	std::string previewText;
+	std::string m_PreviewText;
 	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; ++i) {
 		if (editorRenderLayerVisible[i]) {
 			if (!previewText.empty()) previewText += ", ";
@@ -585,20 +585,20 @@ void RenderSystem::DrawRenderLayerToggleUI() {
 
 const CameraEntityData RenderSystem::FindCameraEntity() {
 
-	CameraEntityData cameraData{};
+	CameraEntityData m_CameraData{};
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
+		auto m_Context= scene->GetSceneContext();
 		// カメラを取得
-		auto entities = context->component->FindEntitiesWithComponent<CameraComponent>();
+		auto m_Entities= context->component->FindEntitiesWithComponent<CameraComponent>();
 		if (entities.empty()) {
 			continue;
 		}
 		cameraData.ref = EntityRef(entities[0], context);
 		cameraData.cameraComponent = context->component->GetComponent<CameraComponent>(cameraData.ref.GetEntityID());
 		cameraData.transformComponent = context->component->GetComponent<TransformComponent>(cameraData.ref.GetEntityID());
-		return cameraData;
+		return m_CameraData;
 	}
-	return cameraData;
+	return m_CameraData;
 }
 
 void RenderSystem::ControlButton(){
@@ -607,17 +607,17 @@ void RenderSystem::ControlButton(){
 		return;
 	}
 
-	ImTextureRef Play;
+	ImTextureRef m_Play;
 	Play._TexID = (ImTextureID)PlayButtonTexture.get()->pTexture.Get();
-	ImTextureRef Pause;
+	ImTextureRef m_Pause;
 	Pause._TexID = (ImTextureID)PauseButtonTexture.get()->pTexture.Get();
-	ImTextureRef Stop;
+	ImTextureRef m_Stop;
 	Stop._TexID = (ImTextureID)StopButtonTexture.get()->pTexture.Get();
-	ImTextureRef Step;
+	ImTextureRef m_Step;
 	Step._TexID = (ImTextureID)StepButtonTexture.get()->pTexture.Get();
 
-	ImVec4 DefaultButtonColor = ImVec4(1.0f, 1.0f, 1.0f, 0.8f);
-	ImVec4 StopButtonColor = ImVec4(1.0f, 1.0f, 1.0f, 0.8f);
+	ImVec4 m_DefaultButtonColor= ImVec4(1.0f, 1.0f, 1.0f, 0.8f);
+	ImVec4 m_StopButtonColor= ImVec4(1.0f, 1.0f, 1.0f, 0.8f);
 	if(m_context->sceneManager->State == SceneManagerState::Stopped){
 		StopButtonColor = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
 	}
@@ -668,7 +668,7 @@ void RenderSystem::PlayerView(){
 		return;
 	}
 	// 利用可能な領域サイズを取得
-	ImVec2 avail = ImGui::GetContentRegionAvail();
+	ImVec2 m_Avail= ImGui::GetContentRegionAvail();
 
 	if (avail.x <= 0.0f || avail.y <= 0.0f) {
 		ImGui::End();
@@ -695,14 +695,14 @@ void RenderSystem::ReCompilePixelShaders() {
 	const auto& config = m_context->config->appConfig;
 
 	// Shader/AutoGen
-	const std::filesystem::path shaderDir = ShaderPath;
+	const std::filesystem::path m_ShaderDir= ShaderPath;
 	std::filesystem::create_directories(shaderDir);
 
 	// ============================================================
 	// Deferred Rendering PS
 	// ============================================================
 	{
-		const std::filesystem::path outputPath = shaderDir / "DeferredRenderingPS.hlsl";
+		const std::filesystem::path m_OutputPath= shaderDir / "DeferredRenderingPS.hlsl";
 		std::ofstream ofs(outputPath, std::ios::trunc);
 		if (!ofs) {
 			OutputDebugStringA("Failed to create DeferredRenderingPS.hlsl\n");
@@ -724,8 +724,8 @@ void RenderSystem::ReCompilePixelShaders() {
 		ofs << R"(
 float4 main(PS_IN In) : SV_Target
 {
-    MaterialInput input = GetMaterialInput(In);
-    float4 Result = float4(1, 0, 1, 1);
+    MaterialInput m_Input= GetMaterialInput(In);
+    float4 m_Result= float4(1, 0, 1, 1);
 
 )";
 
@@ -744,14 +744,14 @@ float4 main(PS_IN In) : SV_Target
 
 		ofs << R"(    else { /* default */ }
 
-    return Result;
+    return m_Result;
 }
 )";
 		ofs.close();
 
 		DeferredPS.reset();
 		m_context->resource->Unload<PixelShaderData>(outputPath.string().c_str());
-		auto newPS = m_context->resource->Load<PixelShaderData>(outputPath.string().c_str());
+		auto m_NewPs= m_context->resource->Load<PixelShaderData>(outputPath.string().c_str());
 
 		if (!newPS) {
 			OutputDebugStringA("DeferredRenderingPS compile failed\n");
@@ -764,7 +764,7 @@ float4 main(PS_IN In) : SV_Target
 	// Forward Rendering PS
 	// ============================================================
 	{
-		const std::filesystem::path outputPath = shaderDir / "ForwardRenderingPS.hlsl";
+		const std::filesystem::path m_OutputPath= shaderDir / "ForwardRenderingPS.hlsl";
 		std::ofstream ofs(outputPath, std::ios::trunc);
 		if (!ofs) {
 			OutputDebugStringA("Failed to create ForwardRenderingPS.hlsl\n");
@@ -786,8 +786,8 @@ float4 main(PS_IN In) : SV_Target
 		ofs << R"(
 float4 main(PS_IN In) : SV_Target
 {
-    MaterialInput input = GetMaterialInput(In);
-    float4 Result = float4(1, 0, 1, 1);
+    MaterialInput m_Input= GetMaterialInput(In);
+    float4 m_Result= float4(1, 0, 1, 1);
 
 )";
 
@@ -811,14 +811,14 @@ float4 main(PS_IN In) : SV_Target
         discard;
     }
 
-    return Result;
+    return m_Result;
 }
 )";
 		ofs.close();
 
 		ForwardPS.reset();
 		m_context->resource->Unload<PixelShaderData>(outputPath.string().c_str());
-		auto newPS = m_context->resource->Load<PixelShaderData>(outputPath.string().c_str());
+		auto m_NewPs= m_context->resource->Load<PixelShaderData>(outputPath.string().c_str());
 
 		if (!newPS) {
 			OutputDebugStringA("ForwardRenderingPS compile failed\n");
@@ -836,11 +836,11 @@ void RenderSystem::EditorView(){
 
 	ViewWindow* viewWindow = m_context->editor->GetUI<ViewWindow>();
 
-	TransformComponent editorCameraTransform;
+	TransformComponent m_EditorCameraTransform;
 	editorCameraTransform.position = viewWindow->m_EditorCameraPosition;
 	editorCameraTransform.SetRotationEuler(viewWindow->m_editorCameraRotation);
 
-	CameraComponent editorCamera;
+	CameraComponent m_EditorCamera;
 	editorCamera.FOV = DirectX::XM_PIDIV4;
 	editorCamera.NearClip = 0.01f;
 	editorCamera.FarClip = 1000.0f;
@@ -850,7 +850,7 @@ void RenderSystem::EditorView(){
 		(editorCameraTransform.position + editorCameraTransform.front()).ToXMVECTOR(),
 		{ 0.0f, 1.0f, 0.0f }
 	);
-	CameraEntityData cameraData;
+	CameraEntityData m_CameraData;
 	cameraData.cameraComponent = &editorCamera;
 	cameraData.transformComponent = &editorCameraTransform;
 

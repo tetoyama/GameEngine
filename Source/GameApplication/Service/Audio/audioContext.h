@@ -29,11 +29,11 @@ public:
 	void Shutdown() override;
 
 	IXAudio2* GetXAudio() const{
-		return m_XAudio;
+		return xaudio;
 	}
 
 	IXAudio2MasteringVoice* GetMasteringVoice() const{
-		return m_MasteringVoice;
+		return masteringVoice;
 	}
 
 	IXAudio2SourceVoice* CreateSourceVoice(WAVEFORMATEX* wfx);

@@ -33,7 +33,7 @@ enum class BlendMode
 	COUNT		// ブレンドモードの数
 };
 
-enum class DepthMode {
+enum class m_DepthMode{
 	Write,		// 不透明（深度書き込みあり・テストあり）
 	ReadOnly,	// 半透明（深度書き込みなし・テストあり）
 	Disable,	// UI 等（深度無効）
@@ -50,9 +50,9 @@ enum class CullMode
 // ポストエフェクト描画に使用するシェーダーセット（VS + PS + InputLayout）
 class PostEffectShader {
 public:
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VS;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader>  m_PS;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout>  m_InputLayout;
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> vs;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> ps;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
 
 	// シェーダーと入力レイアウトをデバイスコンテキストにバインドする
 	void Bind(ID3D11DeviceContext* context){
@@ -86,7 +86,7 @@ struct PostProcessNode {
 struct CameraPostEffect;
 
 // ポストプロセスバッファの識別子（ピンポンバッファ方式で 2 つを交互に使用）
-enum class PostProcessBufferID {
+enum class postProcessBufferId{
 	BufferA,
 	BufferB
 };
@@ -193,8 +193,8 @@ public:
 	void DrawQuad();
 	ID3D11ShaderResourceView* GetCurrentSRV() const;
 
-	UINT m_width = 0;
-	UINT m_height = 0;
+	UINT width= 0;
+	UINT height= 0;
 	ID3D11ShaderResourceView* m_CurrentSRV = nullptr;
 	ID3D11RenderTargetView** m_CurrentRTV = nullptr;
 
@@ -238,11 +238,11 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11BlendState> m_BlendStates[(int)BlendMode::COUNT];
 	BlendMode m_CurrentBlendMode = BlendMode::COUNT;
 
-	DXGI_FORMAT m_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-	DXGI_FORMAT m_depthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	DXGI_FORMAT m_BackBufferFormat= DXGI_FORMAT_R8G8B8A8_UNORM;
+	DXGI_FORMAT m_DepthStencilFormat= DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-	Microsoft::WRL::ComPtr<ID2D1Factory> m_d2dFactory;
-	Microsoft::WRL::ComPtr<IDWriteFactory> m_dwriteFactory;
+	Microsoft::WRL::ComPtr<ID2D1Factory> m_D2dFactory;
+	Microsoft::WRL::ComPtr<IDWriteFactory> m_DwriteFactory;
 
 	Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_Buffer;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_RTV;

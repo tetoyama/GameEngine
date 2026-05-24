@@ -53,5 +53,5 @@ public:
 	void OnEditorUpdate(float dt)override{}
 	void OnStop() override{}
 private:
-	std::string sceneName = "Asset/Scene/scene.yaml"; // デフォルトのシーン名
+	std::string m_SceneName= "Asset/Scene/scene.yaml"; // デフォルトのシーン名
 };

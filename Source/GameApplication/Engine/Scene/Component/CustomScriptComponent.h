@@ -133,7 +133,7 @@ public:
 	// 自分自身の Entity への安全なリファレンスを返す
 	// マルチシーンでも SceneContext で識別されるため一意に扱える
 	EntityRef GetEntityRef() const {
-		return m_ref;
+		return ref;
 	}
 
 	// 自分自身の指定コンポーネントへの安全なリファレンスを返す

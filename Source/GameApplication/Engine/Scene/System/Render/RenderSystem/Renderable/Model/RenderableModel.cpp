@@ -42,7 +42,7 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
 	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
-	MATERIAL material;
+	MATERIAL m_Material;
 	material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	if (pMaterial) {
 		material = pMaterial->Material;
@@ -58,14 +58,14 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 		}
 
-		UVMatrixBuffer uv;
+		UVMatrixBuffer m_Uv;
 		if (pTexture->UV_Slice_X > 0.0f && pTexture->UV_Slice_Y > 0.0f) {
 			// UV_Slice_X/Y は「1セルのUVサイズ」
 			// 例:
 			// 0.25f = 4分割
 			// 0.125f = 8分割
 
-			int column = (int)(1.0f / pTexture->UV_Slice_X);
+			int m_Column= (int)(1.0f / pTexture->UV_Slice_X);
 
 			uv.UVStart.x = (pTexture->AnimationNum % column) * pTexture->UV_Slice_X;
 			uv.UVStart.y = (pTexture->AnimationNum / column) * pTexture->UV_Slice_Y;
@@ -77,7 +77,7 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 		graphicsContext->SetUVMatrixBuffer(uv);
 
 	} else {
-		UVMatrixBuffer uv;
+		UVMatrixBuffer m_Uv;
 		uv.UVStart = float2(0, 0);
 		uv.UVEnd = float2(1, 1);
 		graphicsContext->SetUVMatrixBuffer(uv);
@@ -86,18 +86,18 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, sceneContext->component);
+	DirectX::XMMATRIX m_World= transform->CalculateWorldMatrix(transform, sceneContext->component);
 
 	graphicsContext->SetCullMode(CullMode::Back);
 
 	for (unsigned int m = 0; m < pModel->AiScene->mNumMeshes; m++) {
 
 		if(!pTexture || !pTexture->m_TextureData){
-			MATERIAL materialData = material;
+			MATERIAL m_MaterialData= material;
 			// Preserve user-defined flags (env map), clear auto-computed texture flags
 			materialData.MaterialFlags &= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
 			aiMaterial* aiMat = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-			aiColor4D color;
+			aiColor4D m_Color;
 			if(aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS){
 				materialData.BaseColor = {color.r, color.g, color.b, color.a};
 
@@ -110,16 +110,16 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 			}
 
 			aiMaterial* aimaterial = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
-			aiString texName;
+			aiString m_TexName;
 			if(aimaterial->GetTexture(aiTextureType_DIFFUSE, 0, &texName) == AI_SUCCESS && texName.length > 0){
-				auto it = pModel->m_Texture.find(texName.C_Str());
+				auto m_It= pModel->m_Texture.find(texName.C_Str());
 				if(it != pModel->m_Texture.end()){
 					deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, &it->second);
 					materialData.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 				}
 			}
 			if(aimaterial->GetTexture(aiTextureType_NORMALS, 0, &texName) == AI_SUCCESS && texName.length > 0){
-				auto it = pModel->m_Texture.find(texName.C_Str());
+				auto m_It= pModel->m_Texture.find(texName.C_Str());
 				if(it != pModel->m_Texture.end()){
 					deviceContext->PSSetShaderResources(1, 1, &it->second);
 					materialData.MaterialFlags |= MATERIAL_FLAG_USE_NORMAL_TEXTURE;
@@ -138,8 +138,8 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 		graphicsContext->SetWorldMatrix(World);
 
 		// 頂点バッファ設定
-		UINT stride = sizeof(VERTEX_3D);
-		UINT offset = 0;
+		UINT m_Stride= sizeof(VERTEX_3D);
+		UINT m_Offset= 0;
 		if (modelRenderer->blendedAnimations.size() > 0) {
 			graphicsContext->GetDeviceContext()->IASetVertexBuffers(0, 1, &modelRenderer->dynamicVertexBuffers[m], &stride, &offset);
 		} else {

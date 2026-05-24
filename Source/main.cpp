@@ -29,11 +29,11 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 #endif
 
 	// アプリケーションインスタンスの生成
-	GameApplication app;
+	GameApplication m_App;
 
 	// アプリケーションの実行（初期化 → メインループ → 終了処理）
-	int exitCode = app.Run(hInstance, nCmdShow);
+	int m_ExitCode= app.Run(hInstance, nCmdShow);
 
 	// アプリケーションの終了コードを返す
-	return exitCode;
+	return m_ExitCode;
 }

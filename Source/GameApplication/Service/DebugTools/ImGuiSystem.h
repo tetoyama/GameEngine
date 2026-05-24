@@ -29,8 +29,8 @@ public:
 	void OnResize();
 
 private:
-	bool initialized_ = false;
+	bool m_Initialized= false;
 	GraphicsContext* m_GraphicsContext = nullptr;
-	DirectX::XMMATRIX m_view;
-	DirectX::XMMATRIX m_projection;
+	DirectX::XMMATRIX m_View;
+	DirectX::XMMATRIX m_Projection;
 };

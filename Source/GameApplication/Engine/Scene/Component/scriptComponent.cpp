@@ -17,16 +17,16 @@
 // -----------------------------------------------------------------------
 bool ScriptComponent::decode(SceneContext* context, const YAML::Node& node){
 	for(auto it : node){
-		const std::string name = it.first.as<std::string>();
+		const std::string m_Name= it.first.as<std::string>();
 		// ScriptSystem::Create でスクリプト名に対応するインスタンスを生成
-		auto script = context->manager->systemRegistry->GetSystem<ScriptSystem>()->Create(name.c_str());
+		auto m_Script= context->manager->systemRegistry->GetSystem<ScriptSystem>()->Create(name.c_str());
 		if(!script) continue;
 
 		// スクリプト固有パラメーターを復元
 		script->Decode(it.second);
 		scripts[name] = std::move(script);
 	}
-	return true;
+	return m_True;
 }
 
 // -----------------------------------------------------------------------
@@ -39,7 +39,7 @@ void ScriptComponent::inspector(SceneContext* context) {
 	ImGui::Text("Script Component");
 
 	// スクリプト追加 UI
-	static char scriptNameInput[128] = {};
+	static char m_ScriptNameInput[128] = {};
 	ImGui::InputText("Add Script", scriptNameInput, sizeof(scriptNameInput));
 	ImGui::SameLine();
 	if (ImGui::Button("Add")) {
@@ -56,22 +56,22 @@ void ScriptComponent::inspector(SceneContext* context) {
 				std::visit([&](auto& val) {
 					using T = std::decay_t<decltype(val)>;
 					if constexpr (std::is_same_v<T, int>) {
-						int tmp = val;
+						int m_Tmp= val;
 						if (ImGui::InputInt(p.name.c_str(), &tmp)) {
 							script->SetParam(p.name, tmp);
 						}
 					} else if constexpr (std::is_same_v<T, float>) {
-						float tmp = val;
+						float m_Tmp= val;
 						if (ImGui::InputFloat(p.name.c_str(), &tmp)) {
 							script->SetParam(p.name, tmp);
 						}
 					} else if constexpr (std::is_same_v<T, bool>) {
-						bool tmp = val;
+						bool m_Tmp= val;
 						if (ImGui::UndoCheckbox(p.name.c_str(), &tmp)) {
 							script->SetParam(p.name, tmp);
 						}
 					} else if constexpr (std::is_same_v<T, std::string>) {
-						char buffer[256] = {};
+						char m_Buffer[256] = {};
 
 						// string → char buffer にコピーして InputText で編集
 						std::strncpy(buffer, val.c_str(), 256 - 1);
@@ -101,30 +101,30 @@ bool ScriptComponent::AddScript(const char* scriptName, SceneContext* context){
 	// スクリプト名が空の場合は追加しない
 	if(!scriptName || scriptName[0] == '\0'){
 		context->manager->debug->LOG_DEBUG("Script name empty");
-		return false;
+		return m_False;
 	}
 
 	// 既に同名のスクリプトが存在する場合は重複追加しない
 	if(scripts.find(scriptName) != scripts.end()){
 		context->manager->debug->LOG_DEBUG("Script already exists");
-		return false;
+		return m_False;
 	}
 
 	// ScriptSystem を取得してスクリプトインスタンスを生成
 	auto* scriptSystem = context->system->GetSystem<ScriptSystem>();
 	if(!scriptSystem){
 		context->manager->debug->LOG_DEBUG("ScriptSystem not found");
-		return false;
+		return m_False;
 	}
 
 	IScriptComponent* raw = scriptSystem->Create(scriptName);
 	if(!raw){
 		context->manager->debug->LOG_DEBUG("Script create failed");
-		return false;
+		return m_False;
 	}
 
 	IScriptComponent* script(raw);
 
 	scripts.emplace(scriptName, std::move(script));
-	return true;
+	return m_True;
 }

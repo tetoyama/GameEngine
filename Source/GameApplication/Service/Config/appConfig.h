@@ -8,7 +8,7 @@
 #include <string>
 #include "buildSetting.h"
 
-enum APPTYPE{
+enum m_Apptype{
 	Editor = 0,
 	Player,
 	DebugPlayer,
@@ -23,20 +23,20 @@ struct APPCONFIG
 	}
 
 	// アプリケーションの種類
-	APPTYPE AppType = Editor;
+	APPTYPE appType= Editor;
 	std::string startSceneFilePath = DEFAULT_SCENE;
 
 	// Video Settings
-	bool Vsync = false;
+	bool vsync= false;
 
-	bool FullScreen = false;
-	int Width = DEFAULT_WINDOW_WIDTH;
-	int Height = DEFAULT_WINDOW_HEIGHT;
+	bool fullScreen= false;
+	int width= DEFAULT_WINDOW_WIDTH;
+	int height= DEFAULT_WINDOW_HEIGHT;
 
 	// Audio Settings
-	float MasterVolume = 1.0f;
-	float BGMVolume = 1.0f;
-	float SEVolume = 1.0f;
+	float masterVolume= 1.0f;
+	float bgmvolume= 1.0f;
+	float sevolume= 1.0f;
 
 	// Other Settings
 	std::string templateDir = "Asset/Prefab/template";

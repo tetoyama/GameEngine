@@ -20,11 +20,11 @@
 
 void Inspector::Draw(const EditorDrawContext ctx){
 
-	ImGuiWindowClass window_class;
+	ImGuiWindowClass m_WindowClass;
 	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
 	ImGui::SetNextWindowClass(&window_class);
 	bool* showInspector = &m_editor->GetUI<MenuBar>()->showInspector;
-	Entity selectedEntity = m_editor->GetUI<Hierarchy>()->selectedEntity;
+	Entity m_SelectedEntity= m_editor->GetUI<Hierarchy>()->selectedEntity;
 	SceneContext* context = m_editor->GetUI<Hierarchy>()->sceneContext;
 
 	if(!showInspector || !*showInspector){
@@ -38,7 +38,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 		ImGui::End();
 		return;
 	} else {
-		bool alive = context->entity->IsAlive(selectedEntity); // 選択されたエンティティが生存しているか確認
+		bool m_Alive= context->entity->IsAlive(selectedEntity); // 選択されたエンティティが生存しているか確認
 		if(!alive){
 			// ローカル変数だけでなく Hierarchy の selectedEntity も解除する
 			m_editor->GetUI<Hierarchy>()->selectedEntity = 0;
@@ -58,14 +58,14 @@ void Inspector::Draw(const EditorDrawContext ctx){
 	NameComponent* name = registry->GetComponent<NameComponent>(selectedEntity);
 	if(name){
 		// 名前編集用に std::string を ImGui の固定長バッファへ変換する
-		static char nameBuffer[256];
+		static char m_NameBuffer[256];
 		strncpy(nameBuffer, name->name.c_str(), sizeof(nameBuffer));
 		nameBuffer[sizeof(nameBuffer) - 1] = '\0';
 
 		if(ImGui::InputText("##Name", nameBuffer, sizeof(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)){
 			// Enter 確定時のみコマンド経由で名前を更新する
-			std::string oldName = name->name;
-			auto cmd = std::make_unique<RenameCommand>(context, selectedEntity, oldName, nameBuffer);
+			std::string m_OldName= name->name;
+			auto m_Cmd= std::make_unique<RenameCommand>(context, selectedEntity, oldName, nameBuffer);
 			m_editor->commandManager.Execute(std::move(cmd));
 		}
 		// PrefabComponent がある場合はエンティティが Prefab インスタンスであることを明示する
@@ -80,7 +80,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 	if(ImGui::Button("- Delete")){
 		if(selectedEntity != 0){
 			Hierarchy* hierarchy = m_editor->GetUI<Hierarchy>();
-			auto cmd = std::make_unique<EntityDeleteCommand>(
+			auto m_Cmd= std::make_unique<EntityDeleteCommand>(
 				context, selectedEntity,
 				[hierarchy, selectedEntity](){
 					if(hierarchy && hierarchy->selectedEntity == selectedEntity){
@@ -100,24 +100,24 @@ void Inspector::Draw(const EditorDrawContext ctx){
 	ImGui::Dummy(ImVec2(0, 10)); // 間隔を空ける
 	ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
-	auto components = registry->GetAllComponentsOfEntitySorted(selectedEntity);
+	auto m_Components= registry->GetAllComponentsOfEntitySorted(selectedEntity);
 	std::vector<IComponent*> componentsToRemove;
-	auto drawList = ImGui::GetWindowDrawList();
+	auto m_DrawList= ImGui::GetWindowDrawList();
 	for(auto Component : components){
-		std::string compName = typeid(*Component).name();
+		std::string m_CompName= typeid(*Component).name();
 
 		// 必要なImGui情報
-		ImVec2 cursorPos = ImGui::GetCursorScreenPos();
-		float fullWidth = ImGui::GetContentRegionAvail().x;
-		float frameHeight = ImGui::GetFrameHeight();
+		ImVec2 m_CursorPos= ImGui::GetCursorScreenPos();
+		float m_FullWidth= ImGui::GetContentRegionAvail().x;
+		float m_FrameHeight= ImGui::GetFrameHeight();
 
 		// 背景色
-		ImU32 bgColor = ImGui::GetColorU32(ImGuiCol_Header);
+		ImU32 m_BgColor= ImGui::GetColorU32(ImGuiCol_Header);
 		drawList->AddRectFilled(cursorPos, ImVec2(cursorPos.x + fullWidth, cursorPos.y + frameHeight), bgColor);
 
 		// ツリーノードの展開矢印だけ表示（幅だけ取るためにNoTreePushOnOpen）
-		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-		bool open = ImGui::TreeNodeEx((void*)Component, flags, "%s", compName.c_str());
+		ImGuiTreeNodeFlags m_Flags= ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+		bool m_Open= ImGui::TreeNodeEx((void*)Component, flags, "%s", compName.c_str());
 
 		// Removeボタンは同じ行の右端に配置
 		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 60);
@@ -134,7 +134,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 	// 削除は後からまとめてコマンドで実行
 	for(IComponent* comp : componentsToRemove){
-		auto cmd = std::make_unique<ComponentRemoveCommand>(context, selectedEntity, comp);
+		auto m_Cmd= std::make_unique<ComponentRemoveCommand>(context, selectedEntity, comp);
 		m_editor->commandManager.Execute(std::move(cmd));
 	}
 
@@ -145,7 +145,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 		ImGui::OpenPopup("AddComponentPopup");
 	}
 	if(ImGui::BeginPopup("AddComponentPopup")){
-		static char componentSearchBuffer[128] = "";
+		static char m_ComponentSearchBuffer[128] = "";
 		ImGui::InputTextWithHint("##ComponentSearch", "Search component...", componentSearchBuffer, sizeof(componentSearchBuffer));
 		ImGui::Separator();
 
@@ -163,22 +163,22 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 		// --- マスク確認用 ---
 		const auto& entityMasks = registry->GetEntityMasks();
-		auto it = entityMasks.find(selectedEntity);
-		ComponentMask currentMask;
+		auto m_It= entityMasks.find(selectedEntity);
+		ComponentMask m_CurrentMask;
 		if(it != entityMasks.end()){
 			currentMask = it->second;
 		}
 
 		// --- 検索小文字化 ---
-		std::string searchLower = componentSearchBuffer;
+		std::string m_SearchLower= componentSearchBuffer;
 		std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(), ::tolower);
 
 		// --- メニュー表示 ---
 		for(const auto& [name, func] : addableListSorted){
-			ComponentTypeID typeID = registry->GetComponentIDByName(name);
+			ComponentTypeID m_TypeId= registry->GetComponentIDByName(name);
 			if(currentMask.test(typeID)) continue;
 
-			std::string nameLower = name;
+			std::string m_NameLower= name;
 			std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), ::tolower);
 
 			if(!searchLower.empty() && nameLower.find(searchLower) == std::string::npos){
@@ -186,7 +186,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 			}
 
 			if(ImGui::MenuItem(name.c_str())){
-				auto cmd = std::make_unique<ComponentAddCommand>(context, selectedEntity, name, func);
+				auto m_Cmd= std::make_unique<ComponentAddCommand>(context, selectedEntity, name, func);
 				m_editor->commandManager.Execute(std::move(cmd));
 			}
 		}

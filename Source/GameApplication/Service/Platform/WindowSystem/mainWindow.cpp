@@ -41,10 +41,10 @@ bool MainWindow::Create(const HINSTANCE hInstance, const int nCmdShow, const APP
 	m_height = appconfig.Height;
 
 	// ウィンドウクラス名
-	const wchar_t CLASS_NAME[] = L"GameWindowClass";
+	const wchar_t m_ClassName[] = L"GameWindowClass";
 
 	// ウィンドウクラス構造体の初期化
-	WNDCLASS wc = {};
+	WNDCLASS m_Wc= {};
 	wc.lpfnWndProc = StaticWindowProc; // 静的WindowProcを指定
 	wc.hInstance = hInstance;
 	wc.lpszClassName = CLASS_NAME;
@@ -53,9 +53,9 @@ bool MainWindow::Create(const HINSTANCE hInstance, const int nCmdShow, const APP
 	RegisterClass(&wc);
 
 	//ウィンドウサイズの調整
-	RECT rc = {0,0,m_width ,m_height};
+	RECT m_Rc= {0,0,m_width ,m_height};
 
-	DWORD DwStyle = WS_OVERLAPPEDWINDOW;
+	DWORD m_DwStyle= WS_OVERLAPPEDWINDOW;
 
 	//描画領域が1280*720になるようにサイズを調整する
 	AdjustWindowRect(&rc, DwStyle, FALSE);
@@ -79,7 +79,7 @@ bool MainWindow::Create(const HINSTANCE hInstance, const int nCmdShow, const APP
 	if(!m_HWND){
 		MAINWINDOW_LOG(LogLevel::Error, "ウィンドウの生成に失敗しました");
 		OutputDebugStringA("ウィンドウの生成に失敗しました。\n");
-		return false;
+		return m_False;
 	}
 
 	// ウィンドウの表示
@@ -90,7 +90,7 @@ bool MainWindow::Create(const HINSTANCE hInstance, const int nCmdShow, const APP
 	if(FAILED(InitIcon(m_HWND))){
 		MAINWINDOW_LOG(LogLevel::Error, "アイコンの初期化に失敗しました");
 		OutputDebugStringA("アイコンの初期化に失敗しました。\n");
-		return false;
+		return m_False;
 	}
 	PollEvents();
 
@@ -100,11 +100,11 @@ bool MainWindow::Create(const HINSTANCE hInstance, const int nCmdShow, const APP
 
 	MAINWINDOW_LOG(LogLevel::Info, "MainWindow の生成が完了しました");
 
-	return true;
+	return m_True;
 }
 
 void MainWindow::PollEvents(){
-	MSG msg = {};
+	MSG m_Msg= {};
 	while(PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)){
 		if(msg.message == WM_QUIT){
 			m_ShouldClose = true;
@@ -130,7 +130,7 @@ void MainWindow::SetBorderlessFullscreen(bool enable){
 		m_wpPrev.length = sizeof(WINDOWPLACEMENT);
 		GetWindowPlacement(m_HWND, &m_wpPrev);
 
-		MONITORINFO mi = {sizeof(mi)};
+		MONITORINFO m_Mi= {sizeof(mi)};
 		if(GetMonitorInfo(MonitorFromWindow(m_HWND, MONITOR_DEFAULTTONEAREST), &mi)){
 			m_width = mi.rcMonitor.right - mi.rcMonitor.left;
 			m_height = mi.rcMonitor.bottom - mi.rcMonitor.top;
@@ -168,10 +168,10 @@ void MainWindow::SetBorderlessFullscreen(bool enable){
 		// クライアントサイズ調整
 		m_width = 1280;  // 必要に応じて定数化
 		m_height = 720;
-		RECT rc = {0, 0, m_width, m_height};
+		RECT m_Rc= {0, 0, m_width, m_height};
 		AdjustWindowRect(&rc, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX, FALSE);
-		int winWidth = rc.right - rc.left;
-		int winHeight = rc.bottom - rc.top;
+		int m_WinWidth= rc.right - rc.left;
+		int m_WinHeight= rc.bottom - rc.top;
 
 		// 位置とサイズを固定
 		SetWindowPos(m_HWND, NULL, m_wpPrev.rcNormalPosition.left, m_wpPrev.rcNormalPosition.top,

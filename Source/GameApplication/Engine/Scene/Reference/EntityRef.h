@@ -40,7 +40,7 @@ struct EntityRef {
 
 	// SceneContext と EntityID の両方が一致するときのみ等値とみなす
 	bool operator==(const EntityRef& other) const {
-		return m_entity == other.m_entity && m_context == other.m_context;
+		return entity== other.m_entity && m_context == other.m_context;
 	}
 
 	bool operator!=(const EntityRef& other) const {
@@ -48,6 +48,6 @@ struct EntityRef {
 	}
 
 private:
-	Entity m_entity = 0;
+	Entity m_Entity= 0;
 	SceneContext* m_context = nullptr;
 };

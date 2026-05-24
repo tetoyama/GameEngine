@@ -28,9 +28,9 @@ D2DRenderer::~D2DRenderer(){
 
 void D2DRenderer::Initialize2DResources(){
 	// DXGIサーフェス取得
-	Microsoft::WRL::ComPtr<IDXGISurface> dxgiSurface;
+	Microsoft::WRL::ComPtr<IDXGISurface> m_DxgiSurface;
 
-	HRESULT hr = m_graphicsContext->GetSwapChain()->GetBuffer(0, IID_PPV_ARGS(&dxgiSurface));
+	HRESULT m_Hr= m_graphicsContext->GetSwapChain()->GetBuffer(0, IID_PPV_ARGS(&dxgiSurface));
 	if(FAILED(hr)){
 		OutputDebugStringA("DXGIサーフェスの取得に失敗しました。\n");
 		return;
@@ -43,10 +43,10 @@ void D2DRenderer::Initialize2DResources(){
 	}
 
 	// DPI取得
-	FLOAT dpi = static_cast<FLOAT>(GetDpiForWindow(m_hwnd));
+	FLOAT m_Dpi= static_cast<FLOAT>(GetDpiForWindow(m_hwnd));
 
 	// RenderTarget作成
-	D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
+	D2D1_RENDER_TARGET_PROPERTIES m_Props= D2D1::RenderTargetProperties(
 		D2D1_RENDER_TARGET_TYPE_DEFAULT,
 		D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_IGNORE),
 		dpi, dpi
@@ -93,14 +93,14 @@ void D2DRenderer::DrawText2D(const std::wstring& text, float x, float y, float f
 
 	m_fontBrush->SetColor(color);
 
-	Microsoft::WRL::ComPtr<IDWriteTextFormat> textFormat;
+	Microsoft::WRL::ComPtr<IDWriteTextFormat> m_TextFormat;
 	m_dwriteFactory->CreateTextFormat(
 		L"メイリオ", nullptr,
 		DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
 		fontSize, L"ja-jp", &textFormat);
 
-	D2D1_SIZE_F rtSize = m_d2dRenderTarget->GetSize();
-	D2D1_RECT_F layoutRect = D2D1::RectF(x, y, rtSize.width, rtSize.height);
+	D2D1_SIZE_F m_RtSize= m_d2dRenderTarget->GetSize();
+	D2D1_RECT_F m_LayoutRect= D2D1::RectF(x, y, rtSize.width, rtSize.height);
 
 	BeginDraw();
 	m_d2dRenderTarget->DrawTextW(
@@ -130,8 +130,8 @@ void D2DRenderer::ReloadTextFormat(){
 
 // テキストレイアウトの作成
 Microsoft::WRL::ComPtr<IDWriteTextLayout> D2DRenderer::CreateTextLayout(const std::wstring& text){
-	D2D1_SIZE_F size = m_d2dRenderTarget->GetSize();
-	Microsoft::WRL::ComPtr<IDWriteTextLayout> textLayout;
+	D2D1_SIZE_F m_Size= m_d2dRenderTarget->GetSize();
+	Microsoft::WRL::ComPtr<IDWriteTextLayout> m_TextLayout;
 	m_graphicsContext->GetDWriteFactory()->CreateTextLayout(
 		text.c_str(),
 		(UINT32)text.length(),
@@ -140,7 +140,7 @@ Microsoft::WRL::ComPtr<IDWriteTextLayout> D2DRenderer::CreateTextLayout(const st
 		size.height,
 		&textLayout
 	);
-	return textLayout;
+	return m_TextLayout;
 }
 
 // テキストレイアウト描画
@@ -149,7 +149,7 @@ void D2DRenderer::DrawTextLayout(
 	const DirectX::XMFLOAT2& pos,
 	const DirectX::XMFLOAT4& color
 ){
-	Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush;
+	Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> m_Brush;
 	m_d2dRenderTarget->CreateSolidColorBrush(
 		D2D1::ColorF(color.x, color.y, color.z, color.w),
 		&brush
@@ -169,7 +169,7 @@ void D2DRenderer::RenderText(
 	const DirectX::XMFLOAT2& pos,
 	const DirectX::XMFLOAT4& color
 ){
-	auto textLayout = CreateTextLayout(text);
+	auto m_TextLayout= CreateTextLayout(text);
 	if(textLayout){
 		DrawTextLayout(textLayout.Get(), pos, color);
 	}

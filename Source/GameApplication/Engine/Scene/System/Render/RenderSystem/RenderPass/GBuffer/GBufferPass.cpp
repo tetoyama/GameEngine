@@ -38,13 +38,13 @@ void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* co
 	m_GBufferPixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\GBufferPS.cso");
 
 	// ----- Sampler -----
-	D3D11_SAMPLER_DESC samp = {};
+	D3D11_SAMPLER_DESC m_Samp= {};
 	samp.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	samp.AddressU = samp.AddressV = samp.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 	samp.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
 	context->graphics->GetDevice()->CreateSamplerState(&samp, &sampler);
 
-	Vector2 size = Vector2((float)context->graphics->m_width, (float)context->graphics->m_height);
+	Vector2 m_Size= Vector2((float)context->graphics->m_width, (float)context->graphics->m_height);
 
 	// ----- GBuffer RenderTargets -----
 	pRenderTargets.clear();
@@ -86,11 +86,11 @@ void GBufferPass::Finalize() {
 	}
 
 	for (auto rt : pRenderTargets) {
-		delete rt;
+		delete m_Rt;
 		rt = nullptr;
 	}
 
-	delete pDepthTarget;
+	delete m_PDepthTarget;
 	pDepthTarget = nullptr;
 }
 
@@ -106,7 +106,7 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 	gc->SetBlendMode(BlendMode::None);
 
 	// ----- Clear -----
-	float clearColor[4] = { 0,0,0,0 };
+	float m_ClearColor[4] = { 0,0,0,0 };
 
 	// ----- Resize & Clear -----
 	for (int i = 0; i < GBufferSlot_Max; i++) {
@@ -142,7 +142,7 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 	);
 
 	// ----- Context -----
-	RenderPassContext newCtx = ctx;
+	RenderPassContext m_NewCtx= ctx;
 	newCtx.passPhase = RenderPhase::PHASE_GBUFFER;
 	newCtx.renderLayerVisibility[RenderLayer::SortTransparent3D] = false;
 	newCtx.renderLayerVisibility[RenderLayer::Transparent3D] = false;
@@ -154,7 +154,7 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 	gc->SetProjectionMatrix(ctx.projectionMatrix);
 
 	// ----- Viewport -----
-	D3D11_VIEWPORT vp{};
+	D3D11_VIEWPORT m_Vp{};
 	vp.TopLeftX = 0;
 	vp.TopLeftY = 0;
 	vp.Width = ctx.screenSize.x;
@@ -170,8 +170,8 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 
-			auto sctx = scene->GetSceneContext();
-			auto entities = sctx->component->FindEntitiesWithComponent<TransformComponent>();
+			auto m_Sctx= scene->GetSceneContext();
+			auto m_Entities= sctx->component->FindEntitiesWithComponent<TransformComponent>();
 			if (entities.empty()) continue;
 
 			for (Entity ent : entities) {
@@ -180,14 +180,14 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 
 				for (auto r : renderables) {
 
-					int materialID = 0;
+					int m_MaterialId= 0;
 					MaterialComponent* material =
 						sctx->component->GetComponent<MaterialComponent>(ent);
 					if(material){
 						materialID = material->ShaderID;
 					}
 
-					ObjectInfo info;
+					ObjectInfo m_Info;
 					info.SceneID = m_context->sceneManager->GetIDFromContext(sctx);
 					info.ObjectID = ent;
 					info.ShaderID = materialID;

@@ -107,7 +107,7 @@ public:
 	}
 
 	std::vector<std::unique_ptr<ISystem>>& GetSystems() {
-		return m_systems;
+		return systems;
 	}
 
 	// -------------------------
@@ -149,5 +149,5 @@ public:
 		}
 	}
 private:
-	std::vector<std::unique_ptr<ISystem>> m_systems;
+	std::vector<std::unique_ptr<ISystem>> m_Systems;
 };

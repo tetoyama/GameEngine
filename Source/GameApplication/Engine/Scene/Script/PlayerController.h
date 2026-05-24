@@ -35,20 +35,20 @@ class PlayerController: public CustomScriptComponent {
 		REFLECT_FIELD(float, jumpPower, 4.0f)
 
 
-	bool canDash = true;
-	float CurrentSpeed = 0.0f;
-	bool isJumpPressed = false;
+	bool m_CanDash= true;
+	float m_CurrentSpeed= 0.0f;
+	bool m_IsJumpPressed= false;
 
 	// RayCast 時に除外する自身のレイヤービット（インスペクターで設定）
 	// デフォルトはデフォルトのプレイヤーレイヤー (1u << 1)
-	uint32_t selfLayerBit = 1u << 1;
+	uint32_t m_SelfLayerBit= 1u << 1;
 
-	ComponentRef<TransformComponent> transform;
-	ComponentRef<TransformComponent> CameraBufferTransform;
-	ComponentRef<GameTimeManager> gameTime;
-	ComponentRef<ModelRendererComponent> model;
-	ComponentRef<TransformComponent> ballTransform;
-	ComponentRef<BallController> ballController;
+	ComponentRef<TransformComponent> m_Transform;
+	ComponentRef<TransformComponent> m_CameraBufferTransform;
+	ComponentRef<GameTimeManager> m_GameTime;
+	ComponentRef<ModelRendererComponent> m_Model;
+	ComponentRef<TransformComponent> m_BallTransform;
+	ComponentRef<BallController> m_BallController;
 public:
 
 	float velY = 0.0f;
@@ -103,7 +103,7 @@ public:
 
 		transform = GetComponentRef<TransformComponent>();
 		model = GetComponentRef<ModelRendererComponent>();
-		auto CameraBufferEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<CameraComponent>();
+		auto cameraBufferEntities= m_ref.GetScene()->component->FindEntitiesWithComponent<CameraComponent>();
 		if(!CameraBufferEntities.empty()){
 			CameraBufferTransform = GetComponentRefFor<TransformComponent>(CameraBufferEntities[0]);
 		}
@@ -316,7 +316,7 @@ public:
 
 			DirectX::XMVECTOR currentQ = transform->rotationVector();
 			DirectX::XMVECTOR newQ = DirectX::XMQuaternionSlerp(currentQ, targetQ, rotateSpeed * dt);
-			DirectX::XMFLOAT4 FloatQ;
+			DirectX::XMFLOAT4 floatQ;
 			DirectX::XMStoreFloat4(&FloatQ, newQ);
 			transform->SetRotation(FloatQ);
 		}

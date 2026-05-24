@@ -7,7 +7,7 @@
 
 // 描画レイヤーを定義する列挙型
 // レイヤーは番号の小さい順に描画される（Background2D が最初、Debug が最後）
-enum RenderLayer: int {
+enum RenderLayer: m_Int{
 	Background2D      = 0,  // 2D 背景（スカイボックス等）
 	Opaque3D,               // 不透明 3D オブジェクト（GBuffer 経由）
 	Transparent3D,          // 半透明 3D オブジェクト（Zソートなし）

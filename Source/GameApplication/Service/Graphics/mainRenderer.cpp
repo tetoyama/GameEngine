@@ -14,7 +14,7 @@ void MainRenderer::DrawText2D(const std::wstring& text, float x, float y, float 
 
 void MainRenderer::BeginFrame() {
 
-    float clearColor[4] = {0.5f, 0.5f, 0.5f, 1.0f};
+    float m_ClearColor[4] = {0.5f, 0.5f, 0.5f, 1.0f};
 	m_graphicsContext->Clear(clearColor);
 }
 

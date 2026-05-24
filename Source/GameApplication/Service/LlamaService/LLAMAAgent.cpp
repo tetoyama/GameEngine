@@ -25,7 +25,7 @@ llama_context* LLAMAAgent::CreateContext() const {
 
     OutputDebugStringA("LLAMAAgent::CreateContext start\n");
 
-    llama_context_params c = llama_context_default_params();
+    llama_context_params m_C= llama_context_default_params();
     c.n_ctx = m_config->n_ctx;
     c.n_threads = m_config->n_threads;
 
@@ -33,7 +33,7 @@ llama_context* LLAMAAgent::CreateContext() const {
     assert(ctx && "llama_init_from_model failed");
 
     OutputDebugStringA("LLAMAAgent::CreateContext end\n");
-    return ctx;
+    return m_Ctx;
 }
 
 llama_sampler* LLAMAAgent::CreateSampler() const {
@@ -41,7 +41,7 @@ llama_sampler* LLAMAAgent::CreateSampler() const {
 
     OutputDebugStringA("LLAMAAgent::CreateSampler start\n");
 
-    llama_sampler_chain_params sp = llama_sampler_chain_default_params();
+    llama_sampler_chain_params m_Sp= llama_sampler_chain_default_params();
     llama_sampler* sampler = llama_sampler_chain_init(sp);
     assert(sampler);
 
@@ -54,7 +54,7 @@ llama_sampler* LLAMAAgent::CreateSampler() const {
         )));
 
     OutputDebugStringA("LLAMAAgent::CreateSampler end\n");
-    return sampler;
+    return m_Sampler;
 }
 
 // =====================================================
@@ -127,11 +127,11 @@ void LLAMAAgent::RunAsync(const std::string& prompt) {
 
 std::string LLAMAAgent::GetOutput() const {
     std::lock_guard<std::mutex> lock(m_outputMutex);
-    return m_output;
+    return m_Output;
 }
 
 int LLAMAAgent::GetTokenCount() const noexcept {
-    return m_nPast;
+    return m_NPast;
 }
 
 int LLAMAAgent::GetMaxTokenCount() const noexcept {
@@ -149,7 +149,7 @@ void LLAMAAgent::WorkerMain() {
     OutputDebugStringA("LLAMAAgent::WorkerMain start\n");
 
     while (true) {
-        std::string prompt;
+        std::string m_Prompt;
         {
             std::unique_lock<std::mutex> lock(m_mutex);
             m_cv.wait(lock, [&] { return !m_jobQueue.empty() || !m_running.load(); });
@@ -187,7 +187,7 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
     if (!vocab) return;
 
     // ---- fullPrompt 構築 ----
-    std::string fullPrompt;
+    std::string m_FullPrompt;
     if (!m_config->system_prompt.empty())
         fullPrompt += m_config->system_prompt + "\n";
 
@@ -198,14 +198,14 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
 
     // ---- トークン化 ----
     std::vector<llama_token> tokens(fullPrompt.size() * 2 + 8);
-    int n = llama_tokenize(vocab, fullPrompt.c_str(), (int)fullPrompt.size(),
+    int m_N= llama_tokenize(vocab, fullPrompt.c_str(), (int)fullPrompt.size(),
                            tokens.data(), (int)tokens.size(), true, false);
     if (n <= 0) return;
     tokens.resize(n);
 
     // ---- n_ctx 超過対策 ----
-    const int safety_margin = 16;
-    const int max_tokens_allowed = m_config->n_ctx - safety_margin;
+    const int m_SafetyMargin= 16;
+    const int m_MaxTokensAllowed= m_config->n_ctx - safety_margin;
 
     if (m_nPast + n > max_tokens_allowed && !m_isSummarizing) {
         OutputDebugStringA("LLAMAAgent::RunPromptInternal n_ctx 超過、SummarizeAndReset 呼び出し\n");
@@ -218,7 +218,7 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
 
     // ---- decode NEW prompt tokens into existing context at position m_nPast ----
     {
-        llama_batch b = llama_batch_init(n, 0, 1);
+        llama_batch m_B= llama_batch_init(n, 0, 1);
         for (int i = 0; i < n; ++i) {
             b.token[i] = tokens[i];
             b.pos[i] = m_nPast + i;
@@ -246,16 +246,16 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
     }
 
     // ---- generation loop (sample -> output -> decode -> append) ----
-    llama_batch gen = llama_batch_init(1, 0, 1);
-    int loopCount = 0;
+    llama_batch m_Gen= llama_batch_init(1, 0, 1);
+    int m_LoopCount= 0;
     while (m_running.load() && m_nPast < max_tokens_allowed) {
         ++loopCount;
 
-        llama_token tok = llama_sampler_sample(m_sampler, m_ctx, -1);
+        llama_token m_Tok= llama_sampler_sample(m_sampler, m_ctx, -1);
 
         // debug: sampled id
         {
-            char tb[128];
+            char m_Tb[128];
             sprintf_s(tb, "sampled tok=%d loop=%d\n", (int)tok, loopCount);
             OutputDebugStringA(tb);
         }
@@ -289,8 +289,8 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
 
         // convert token to piece and append to output
         {
-            char buf[256];
-            int len = llama_token_to_piece(vocab, tok, buf, sizeof(buf), 0, false);
+            char m_Buf[256];
+            int m_Len= llama_token_to_piece(vocab, tok, buf, sizeof(buf), 0, false);
             if (len > 0) {
                 std::lock_guard<std::mutex> o(m_outputMutex);
                 m_output.append(buf, len);
@@ -327,7 +327,7 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt) {
     // final output debug line (shortened)
     {
         std::lock_guard<std::mutex> o(m_outputMutex);
-        std::string dbg = m_output;
+        std::string m_Dbg= m_output;
         if (dbg.size() > 512) dbg.resize(512);
         dbg += "\n";
         OutputDebugStringA(dbg.c_str());
@@ -365,16 +365,16 @@ void LLAMAAgent::SummarizeAndReset() {
     }
 
     // ---- truncate history (prefer most recent tokens) ----
-    const int history_token_limit = (std::max)(64, (int)m_config->n_ctx / 2); // heuristic
-    int start_idx = 0;
+    const int m_HistoryTokenLimit= (std::max)(64, (int)m_config->n_ctx / 2); // heuristic
+    int m_StartIdx= 0;
     if ((int)m_pastTokens.size() > history_token_limit)
         start_idx = (int)m_pastTokens.size() - history_token_limit;
 
-    std::string history;
+    std::string m_History;
     history.reserve(4096);
     for (size_t i = (size_t)start_idx; i < m_pastTokens.size(); ++i) {
-        char tmp[512];
-        int len = llama_token_to_piece(vocab, m_pastTokens[i], tmp, sizeof(tmp), 0, false);
+        char m_Tmp[512];
+        int m_Len= llama_token_to_piece(vocab, m_pastTokens[i], tmp, sizeof(tmp), 0, false);
         if (len > 0) history.append(tmp, len);
         if ((int)history.size() > 4000) break; // hard char limit
     }
@@ -387,14 +387,14 @@ void LLAMAAgent::SummarizeAndReset() {
     }
 
     // ---- summarization prompt (explicit instruction) ----
-    std::string prompt =
+    std::string m_Prompt=
         "Summarize the following conversation in 2-3 concise sentences. "
         "Be factual, avoid repetition, and keep the summary short.\n\n"
         + history + "\n\nSummary:";
 
     // ---- create temp ctx and conservative sampler ----
     llama_context* ctx = CreateContext();
-    llama_sampler_chain_params sp = llama_sampler_chain_default_params();
+    llama_sampler_chain_params m_Sp= llama_sampler_chain_default_params();
     llama_sampler* sampler = llama_sampler_chain_init(sp);
     // conservative settings to reduce repetition
     llama_sampler_chain_add(sampler, llama_sampler_init_top_k((std::max)(5, (int)m_config->top_k / 4)));
@@ -407,7 +407,7 @@ void LLAMAAgent::SummarizeAndReset() {
 
         // ---- tokenize prompt ----
     std::vector<llama_token> tokens(prompt.size() * 2 + 8);
-    int n = llama_tokenize(vocab, prompt.c_str(), (int)prompt.size(), tokens.data(), (int)tokens.size(), true, false);
+    int m_N= llama_tokenize(vocab, prompt.c_str(), (int)prompt.size(), tokens.data(), (int)tokens.size(), true, false);
     if (n <= 0) {
         OutputDebugStringA("SummarizeAndReset: tokenize failed\n");
         llama_sampler_free(sampler);
@@ -419,10 +419,10 @@ void LLAMAAgent::SummarizeAndReset() {
 
     // debug: token sample
     {
-        std::ostringstream oss;
+        std::ostringstream m_Oss;
         oss << "SummarizeAndReset: prompt tokens n=" << n << " first:";
         for (int i = 0; i < n && i < 8; ++i) {
-            char tb[128]; llama_token_to_piece(vocab, tokens[i], tb, sizeof(tb), 0, false);
+            char m_Tb[128]; llama_token_to_piece(vocab, tokens[i], tb, sizeof(tb), 0, false);
             oss << " " << tokens[i] << "(" << tb << ")";
         }
         OutputDebugStringA(oss.str().c_str());
@@ -430,11 +430,11 @@ void LLAMAAgent::SummarizeAndReset() {
 
     // ---- decode prompt into temp ctx ----
     {
-        const int batch_size = 64;
-        int pos = 0;
+        const int m_BatchSize= 64;
+        int m_Pos= 0;
         for (int offset = 0; offset < n; offset += batch_size) {
-            int sz = (std::min)(batch_size, n - offset);
-            llama_batch b = llama_batch_init(sz, 0, 1);
+            int m_Sz= (std::min)(batch_size, n - offset);
+            llama_batch m_B= llama_batch_init(sz, 0, 1);
             for (int i = 0; i < sz; ++i) {
                 b.token[i] = tokens[offset + i];
                 b.pos[i] = pos + i;
@@ -443,7 +443,7 @@ void LLAMAAgent::SummarizeAndReset() {
                 b.logits[i] = (i == sz - 1);
             }
             b.n_tokens = sz;
-            int rc = llama_decode(ctx, b);
+            int m_Rc= llama_decode(ctx, b);
             if (rc != 0) {
                 OutputDebugStringA("SummarizeAndReset: decode(prompt) failed rc != 0\n");
                 llama_batch_free(b);
@@ -463,13 +463,13 @@ void LLAMAAgent::SummarizeAndReset() {
     }
 
     // ---- sampling loop ----
-    std::vector<llama_token> compressedTokens;
+    std::vector<llama_token> m_CompressedTokens;
     m_summaryText.clear();
-    const int max_summary_tokens = (std::min)(200, (int)m_config->max_tokens);
-    int gen_pos = n; // next decode position in temp ctx (prompt occupies 0..n-1)
+    const int m_MaxSummaryTokens= (std::min)(200, (int)m_config->max_tokens);
+    int m_GenPos= n; // next decode position in temp ctx (prompt occupies 0..n-1)
 
     for (int i = 0; i < max_summary_tokens; ++i) {
-        llama_token tok = llama_sampler_sample(sampler, ctx, -1);
+        llama_token m_Tok= llama_sampler_sample(sampler, ctx, -1);
         if (tok == LLAMA_TOKEN_NULL) {
             OutputDebugStringA("SummarizeAndReset: sampled NULL\n");
             break;
@@ -485,21 +485,21 @@ void LLAMAAgent::SummarizeAndReset() {
 
         // append to summary text (ignore control tokens)
         if (!llama_vocab_is_control(vocab, tok)) {
-            char piece[512];
-            int len = llama_token_to_piece(vocab, tok, piece, sizeof(piece), 0, false);
+            char m_Piece[512];
+            int m_Len= llama_token_to_piece(vocab, tok, piece, sizeof(piece), 0, false);
             if (len > 0) m_summaryText.append(piece, len);
         }
 
         // decode sampled token into temp ctx at continuous position
         {
-            llama_batch g = llama_batch_init(1, 0, 1);
+            llama_batch m_G= llama_batch_init(1, 0, 1);
             g.token[0] = tok;
             g.pos[0] = gen_pos;
             g.seq_id[0][0] = 0;
             g.n_seq_id[0] = 1;
             g.logits[0] = 1;
             g.n_tokens = 1;
-            int rc = llama_decode(ctx, g);
+            int m_Rc= llama_decode(ctx, g);
             llama_batch_free(g);
             if (rc != 0) {
                 OutputDebugStringA("SummarizeAndReset: decode(sample) failed (rc != 0)\n");
@@ -518,11 +518,11 @@ void LLAMAAgent::SummarizeAndReset() {
 
     if (!compressedTokens.empty()) {
         // decode compressedTokens into the newly created m_ctx in batches with contiguous positions
-        int pos = 0;
-        const int batch_size = 64;
+        int m_Pos= 0;
+        const int m_BatchSize= 64;
         for (size_t offset = 0; offset < compressedTokens.size(); offset += batch_size) {
-            int sz = (int)(std::min)(batch_size, (int)compressedTokens.size() - (int)offset);
-            llama_batch b = llama_batch_init(sz, 0, 1);
+            int m_Sz= (int)(std::min)(batch_size, (int)compressedTokens.size() - (int)offset);
+            llama_batch m_B= llama_batch_init(sz, 0, 1);
             for (int j = 0; j < sz; ++j) {
                 b.token[j] = compressedTokens[offset + j];
                 b.pos[j] = pos + j;
@@ -531,7 +531,7 @@ void LLAMAAgent::SummarizeAndReset() {
                 b.logits[j] = (j == sz - 1) ? 1 : 0;
             }
             b.n_tokens = sz;
-            int rc = llama_decode(m_ctx, b);
+            int m_Rc= llama_decode(m_ctx, b);
             llama_batch_free(b);
             if (rc != 0) {
                 OutputDebugStringA("SummarizeAndReset: decode(compressed) failed rc != 0\n");
@@ -556,9 +556,9 @@ void LLAMAAgent::SummarizeAndReset() {
     {
         OutputDebugStringA("LLAMAAgent::SummarizeAndReset completed\n");
         OutputDebugStringA("SummaryText:\n");
-        const size_t chunk = 1024;
+        const size_t m_Chunk= 1024;
         for (size_t i = 0; i < m_summaryText.size(); i += chunk) {
-            std::string piece = m_summaryText.substr(i, chunk);
+            std::string m_Piece= m_summaryText.substr(i, chunk);
             OutputDebugStringA(piece.c_str());
         }
         OutputDebugStringA("\n");
@@ -585,7 +585,7 @@ void LLAMAAgent::ResetContextUnlocked() {
         m_ctx = nullptr;
     }
 
-    llama_context_params c = llama_context_default_params();
+    llama_context_params m_C= llama_context_default_params();
     c.n_ctx = m_config->n_ctx;
     c.n_threads = m_config->n_threads;
 

@@ -26,12 +26,12 @@ private:
 
 	EditorService* m_editor = nullptr;
 
-	float FixedFpsSamples[SAMPLE_LENGTH]{};
-	float DeltaFpsSamples[SAMPLE_LENGTH]{};
-	float UpdateSamples[SAMPLE_LENGTH]{};
-	float DrawSamples[SAMPLE_LENGTH]{};
-	float UsageSamples[SAMPLE_LENGTH]{};
-	float CommitSizeSamples[SAMPLE_LENGTH]{};
-	float WorkingSetSizeSamples[SAMPLE_LENGTH]{};
-	int SampleCount = 0;
+	float m_FixedFpsSamples[SAMPLE_LENGTH]{};
+	float m_DeltaFpsSamples[SAMPLE_LENGTH]{};
+	float m_UpdateSamples[SAMPLE_LENGTH]{};
+	float m_DrawSamples[SAMPLE_LENGTH]{};
+	float m_UsageSamples[SAMPLE_LENGTH]{};
+	float m_CommitSizeSamples[SAMPLE_LENGTH]{};
+	float m_WorkingSetSizeSamples[SAMPLE_LENGTH]{};
+	int m_SampleCount= 0;
 };

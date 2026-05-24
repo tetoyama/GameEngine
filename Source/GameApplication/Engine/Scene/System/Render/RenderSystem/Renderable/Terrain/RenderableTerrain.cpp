@@ -28,13 +28,13 @@ void RenderableTerrain::Execute(const RenderPassContext& ctx, SceneContext* scen
 		return;
 	}
 
-	auto meshRenderer = pTerrain->meshRenderer;
-	auto transform = pTransform;
+	auto m_MeshRenderer= pTerrain->meshRenderer;
+	auto m_Transform= pTransform;
 
 	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-	MATERIAL material{};
+	MATERIAL m_Material{};
 	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
 	if (pMaterial) {
 		material = pMaterial->Material;
@@ -51,14 +51,14 @@ void RenderableTerrain::Execute(const RenderPassContext& ctx, SceneContext* scen
 
 		graphicsContext->SetMaterial(material);
 
-		UVMatrixBuffer uv;
+		UVMatrixBuffer m_Uv;
 		if (pTexture->UV_Slice_X > 0.0f && pTexture->UV_Slice_Y > 0.0f) {
 			// UV_Slice_X/Y は「1セルのUVサイズ」
 			// 例:
 			// 0.25f = 4分割
 			// 0.125f = 8分割
 
-			int column = (int)(1.0f / pTexture->UV_Slice_X);
+			int m_Column= (int)(1.0f / pTexture->UV_Slice_X);
 
 			uv.UVStart.x = (pTexture->AnimationNum % column) * pTexture->UV_Slice_X;
 			uv.UVStart.y = (pTexture->AnimationNum / column) * pTexture->UV_Slice_Y;
@@ -71,20 +71,20 @@ void RenderableTerrain::Execute(const RenderPassContext& ctx, SceneContext* scen
 
 	} else {
 		// マテリアル設定
-		MATERIAL material{};
+		MATERIAL m_Material{};
 		material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		graphicsContext->SetMaterial(material);
 
-		UVMatrixBuffer uv;
+		UVMatrixBuffer m_Uv;
 		graphicsContext->SetUVMatrixBuffer(uv);
 
 	}
 
-	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, sceneContext->component);
+	DirectX::XMMATRIX m_World= transform->CalculateWorldMatrix(transform, sceneContext->component);
 
 	graphicsContext->SetWorldMatrix(World);
-	UINT stride = sizeof(VERTEX_3D);
-	UINT offset = 0;
+	UINT m_Stride= sizeof(VERTEX_3D);
+	UINT m_Offset= 0;
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);

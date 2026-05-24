@@ -24,8 +24,8 @@
 class MaterialComponent: public IComponent {
 public:
 
-	int ShaderID = 0;    // 使用するシェーダーのインデックス（RenderSystem::ShaderMaterials への参照）
-	MATERIAL Material;   // PBR マテリアルパラメーター（色・粗さ・金属度等）
+	int shaderId= 0;    // 使用するシェーダーのインデックス（RenderSystem::ShaderMaterials への参照）
+	MATERIAL material;   // PBR マテリアルパラメーター（色・粗さ・金属度等）
 
 	// デフォルトマテリアル: 白色・アルファ 1.0 で初期化
 	MaterialComponent(){
@@ -99,7 +99,7 @@ public:
 
 		// 色プロパティを 4 チャンネルのドラッグスライダー + カラーピッカーで描画するヘルパーラムダ
 		// label: 表示名, c: RGBA フロート配列の先頭ポインタ
-		auto DrawColorProperty = [](const char* label, float* c) {
+		auto drawColorProperty= [](const char* label, float* c) {
 			ImGui::AlignTextToFramePadding();
 			ImGui::TextUnformatted(label);
 			ImGui::SameLine(100);

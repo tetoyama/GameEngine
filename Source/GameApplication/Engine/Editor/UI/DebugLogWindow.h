@@ -20,11 +20,11 @@ public:
 private:
 	EditorService* m_editor = nullptr;
 
-	std::shared_ptr<MemoryLogSink> logSink;
+	std::shared_ptr<MemoryLogSink> m_LogSink;
 
-	char searchBuffer[128] = "";
-	bool autoScroll = true;
-	std::unordered_set<LogLevel> levelFilter;
+	char m_SearchBuffer[128] = "";
+	bool m_AutoScroll= true;
+	std::unordered_set<LogLevel> m_LevelFilter;
 
 	bool PassesFilter(const LogEntry& entry) const;
 	const char* LevelToString(LogLevel level) const;

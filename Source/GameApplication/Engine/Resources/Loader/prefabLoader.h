@@ -17,13 +17,13 @@ inline void ResourceLoader<PrefabData>::SetupLoadFunc(void* /*contextPtr*/) {
 		std::ifstream fin(path);
 		if (!fin.is_open()) return nullptr;
 
-		auto data = std::make_shared<PrefabData>();
+		auto m_Data= std::make_shared<PrefabData>();
 		data->filePath = path;
 		data->root = YAML::Load(fin);
 
 		// "Entities" シーケンスが存在しない場合は無効なプレファブとみなす
 		if (!data->root["Entities"] || !data->root["Entities"].IsSequence()) return nullptr;
 
-		return data;
+		return m_Data;
 	});
 }

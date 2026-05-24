@@ -41,20 +41,20 @@ class CharacterController : public CustomScriptComponent {
 		REFLECT_FIELD(std::string, jumpDownAnimFile, std::string("Asset/Model/Jumping Down.fbx"))
 
 	// ランタイム状態（非シリアライズ）
-	float  currentSpeed   = 0.0f;
-	float  velY           = 0.0f;
-	bool   isJumpPressed  = false;
-	bool   isGrounded     = false;
-	bool   isInJump       = false;   // ジャンプ中フラグ（坂道登りの上向き速度と区別するため）
-	bool   animsReady     = false;
+	float m_CurrentSpeed= 0.0f;
+	float m_VelY= 0.0f;
+	bool m_IsJumpPressed= false;
+	bool m_IsGrounded= false;
+	bool m_IsInJump= false;   // ジャンプ中フラグ（坂道登りの上向き速度と区別するため）
+	bool m_AnimsReady= false;
 
 	// RayCast 時に除外する自身のレイヤービット（インスペクターで設定）
 	// デフォルトはデフォルトのプレイヤーレイヤー (1u << 1)
-	uint32_t selfLayerBit = 1u << 1;
+	uint32_t m_SelfLayerBit= 1u << 1;
 
-	ComponentRef<TransformComponent>    transform;
-	ComponentRef<ModelRendererComponent> model;
-	ComponentRef<TransformComponent>    cameraTransform;
+	ComponentRef<TransformComponent> m_Transform;
+	ComponentRef<ModelRendererComponent> m_Model;
+	ComponentRef<TransformComponent> m_CameraTransform;
 
 public:
 	CharacterController() : CustomScriptComponent("CharacterController") {}
@@ -323,10 +323,10 @@ private:
 	void UpdateAnimations(bool isJumping, bool grounded) {
 		if (model->blendedAnimations.size() < 4) return;
 
-		float maxSpeed  = moveSpeed * dashMultiplier;
-		float runWeight = (maxSpeed > 0.0f) ? (currentSpeed / maxSpeed) : 0.0f;
+		float m_MaxSpeed= moveSpeed * dashMultiplier;
+		float m_RunWeight= (maxSpeed > 0.0f) ? (currentSpeed / maxSpeed) : 0.0f;
 		runWeight = (std::max)(0.0f, (std::min)(1.0f, runWeight));
-		float idleWeight = 1.0f - runWeight;
+		float m_IdleWeight= 1.0f - runWeight;
 
 		if (grounded) {
 			// 着地：ジャンプアニメーションをフェードアウト
@@ -336,7 +336,7 @@ private:
 			model->blendedAnimations[3].weight -= 0.2f;
 			if (model->blendedAnimations[3].weight < 0.0f) model->blendedAnimations[3].weight = 0.0f;
 
-			float groundBlend = 1.0f - (model->blendedAnimations[2].weight + model->blendedAnimations[3].weight);
+			float m_GroundBlend= 1.0f - (model->blendedAnimations[2].weight + model->blendedAnimations[3].weight);
 			model->blendedAnimations[0].weight = runWeight  * groundBlend;
 			model->blendedAnimations[1].weight = idleWeight * groundBlend;
 		} else {
@@ -360,13 +360,13 @@ private:
 				if (model->blendedAnimations[2].weight < 0.0f) model->blendedAnimations[2].weight = 0.0f;
 
 				model->blendedAnimations[3].weight += 0.15f;
-				float totalJump = model->blendedAnimations[2].weight + model->blendedAnimations[3].weight;
+				float m_TotalJump= model->blendedAnimations[2].weight + model->blendedAnimations[3].weight;
 				if (totalJump > 1.0f)
 					model->blendedAnimations[3].weight = 1.0f - model->blendedAnimations[2].weight;
 			}
 
-			float totalJump   = model->blendedAnimations[2].weight + model->blendedAnimations[3].weight;
-			float groundBlend = 1.0f - totalJump;
+			float m_TotalJump= model->blendedAnimations[2].weight + model->blendedAnimations[3].weight;
+			float m_GroundBlend= 1.0f - totalJump;
 			model->blendedAnimations[0].weight = runWeight  * groundBlend;
 			model->blendedAnimations[1].weight = idleWeight * groundBlend;
 		}

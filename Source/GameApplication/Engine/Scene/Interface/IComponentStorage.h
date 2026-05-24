@@ -14,7 +14,7 @@
 using ComponentTypeID = uint32_t;
 
 // 最大コンポーネント種類数（ComponentMask のビット数に影響する）
-constexpr size_t MAX_COMPONENTS = 64;
+constexpr size_t m_MaxComponents= 64;
 
 // コンポーネントを保有しているかどうかを表すビットセット
 // 各ビットが 1 つのコンポーネント種類に対応する
@@ -85,7 +85,7 @@ public:
 
 	// 全エンティティのリストを返す（IComponentStorage インターフェースの実装）
 	std::vector<Entity> GetEntityList() const override{
-		return m_entities;
+		return entities;
 	}
 
 	// IComponent* 型でコンポーネントを返す（型消去アクセス）
@@ -94,9 +94,9 @@ public:
 	}
 
 private:
-	std::unordered_map<Entity, size_t> m_indexMap;  // エンティティ → 配列インデックスのマップ
-	std::vector<T> m_components;                     // コンポーネントの連続配列
-	std::vector<Entity> m_entities;                  // コンポーネントに対応するエンティティ配列
+	std::unordered_map<Entity, size_t> m_IndexMap;  // エンティティ → 配列インデックスのマップ
+	std::vector<T> m_Components;                     // コンポーネントの連続配列
+	std::vector<Entity> m_Entities;                  // コンポーネントに対応するエンティティ配列
 };
 
 // ハッシュマップベースのコンポーネントストレージ（Sparse 方式）
@@ -139,5 +139,5 @@ public:
 	}
 
 private:
-	std::unordered_map<Entity, T> m_map;  // エンティティ → コンポーネントのマップ
+	std::unordered_map<Entity, T> m_Map;  // エンティティ → コンポーネントのマップ
 };

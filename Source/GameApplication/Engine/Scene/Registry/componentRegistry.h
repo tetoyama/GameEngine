@@ -32,7 +32,7 @@ public:
 		return id;
 	}
 private:
-	static std::atomic<ComponentTypeID> s_nextID;
+	static std::atomic<ComponentTypeID> m_SNextId;
 };
 // コンポーネントの登録・追加・取得・削除およびクエリを管理するレジストリ
 class ComponentRegistry {
@@ -233,11 +233,11 @@ public:
 	}
 
 	const std::unordered_map<std::string, std::function<void(Entity)>>& GetAddableComponentList() const{
-		return m_addComponentFuncs;
+		return addComponentFuncs;
 	}
 
 	const std::unordered_map<Entity, ComponentMask>& GetEntityMasks() const{
-		return m_entityMasks;
+		return entityMasks;
 	}
 
 	ComponentTypeID GetComponentIDByName(const std::string& name) const{
@@ -257,23 +257,23 @@ public:
 	}
 
 	const std::unordered_map<ComponentTypeID, std::string>& GetComponentIDToNameMap() const{
-		return m_componentIDToName;
+		return componentIdtoName;
 	}
 
 private:
 	SceneContext* m_context;
 	EntityRegistry* m_entityManager;
 
-	std::unordered_map<std::type_index, std::unique_ptr<IComponentStorage>> m_storages;
-	std::unordered_map<std::type_index, ComponentTypeID> m_typeToID;
-	std::unordered_map<ComponentTypeID, std::type_index> m_idToTypeIndex;
+	std::unordered_map<std::type_index, std::unique_ptr<IComponentStorage>> m_Storages;
+	std::unordered_map<std::type_index, ComponentTypeID> m_TypeToId;
+	std::unordered_map<ComponentTypeID, std::type_index> m_IdToTypeIndex;
 
-	std::unordered_map<Entity, ComponentMask> m_entityMasks;
+	std::unordered_map<Entity, ComponentMask> m_EntityMasks;
 
-	std::unordered_map<std::string, YAMLCreator> m_yamlFactory;
+	std::unordered_map<std::string, YAMLCreator> m_YamlFactory;
 	std::unordered_map<std::string, std::function<void(Entity)>> m_addComponentFuncs;
-	std::unordered_map<std::string, ComponentTypeID> m_nameToComponentID;
-	std::unordered_map<ComponentTypeID, std::string> m_componentIDToName;
+	std::unordered_map<std::string, ComponentTypeID> m_NameToComponentId;
+	std::unordered_map<ComponentTypeID, std::string> m_ComponentIdtoName;
 
 	std::vector<std::string> m_ComponentRegistrationOrder;
 

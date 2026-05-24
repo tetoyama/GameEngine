@@ -20,8 +20,8 @@ public:
 		OutputDebugStringA(("Destroyed VertexShaderData: " + FilePath + "\n").c_str());
 	}
 
-	std::string FilePath = "Asset\\Shader\\CommonVS.cso";
+	std::string filePath= "Asset\\Shader\\CommonVS.cso";
 
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_VertexLayout;
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> vertexLayout;
 };

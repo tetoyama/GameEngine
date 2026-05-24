@@ -18,7 +18,7 @@
 
 #pragma comment (lib, "ws2_32.lib") // WinSockライブラリをリンク
 
-enum NetworkState {
+enum m_NetworkState{
 	NETWORKSTATE_CLOSE = 0,
 	NETWORKSTATE_START,
 	NETWORKSTATE_RECV,
@@ -50,21 +50,21 @@ public:
 
 private:
 
-	WSADATA wsaData;
+	WSADATA m_WsaData;
 	hostent* hostInfo;
-	IN_ADDR ipAddr;
+	IN_ADDR m_IpAddr;
 
 	NetworkState m_NetWorkState = NETWORKSTATE_CLOSE;
 
-	char hostName[256], ipAddress[256];
+	char m_HostName[256], ipAddress[256];
 
-	SOCKET listenSocket;
-	char recvBuffer[1024];
-	SOCKADDR_IN serverAddr;
+	SOCKET m_ListenSocket;
+	char m_RecvBuffer[1024];
+	SOCKADDR_IN m_ServerAddr;
 
-	SOCKADDR_IN clientAddr; // クライアントのアドレス情報
-	int clientAddrLen = sizeof(clientAddr);
-	SOCKET clientSocket; // クライアントとの通信に使うソケット
+	SOCKADDR_IN m_ClientAddr; // クライアントのアドレス情報
+	int m_ClientAddrLen= sizeof(clientAddr);
+	SOCKET m_ClientSocket; // クライアントとの通信に使うソケット
 
 
 
@@ -75,7 +75,7 @@ private:
 
 	void OnUpdate(float dt) override {
 
-		char debugString[1024];
+		char m_DebugString[1024];
 		
 		switch (m_NetWorkState) {
 			case NETWORKSTATE_CLOSE:
@@ -171,10 +171,10 @@ private:
 			case NETWORKSTATE_RECV:
 				{
 					// ⑦ データ受信ループ
-					u_long mode = 1;
+					u_long m_Mode= 1;
 					ioctlsocket(clientSocket, FIONBIO, &mode);
 
-					int recvSize = recv(clientSocket, recvBuffer, sizeof(recvBuffer) - 1, 0);
+					int m_RecvSize= recv(clientSocket, recvBuffer, sizeof(recvBuffer) - 1, 0);
 					if (recvSize == SOCKET_ERROR) {
 						//m_ref.GetScene()->manager->debug->LOG_DEBUG("受信エラーです\n");
 						return;

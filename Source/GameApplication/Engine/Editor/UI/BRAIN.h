@@ -32,7 +32,7 @@ struct AgentConfig;
 // Chat log entry
 // ---------------------------------
 struct ChatEntry {
-	enum class Role {
+	enum class role{
 		User,
 		Assistant
 	};
@@ -67,53 +67,53 @@ private:
 	// -----------------------------
 	// Logo
 	// -----------------------------
-	std::shared_ptr<TextureData> logoTexture;
+	std::shared_ptr<TextureData> m_LogoTexture;
 
 	// -----------------------------
 	// Chat / Output
 	// -----------------------------
-	std::vector<ChatEntry> m_chatLog;
-	std::string m_asyncOutput;
+	std::vector<ChatEntry> m_ChatLog;
+	std::string m_AsyncOutput;
 
-	mutable std::mutex m_outputMutex;
+	mutable std::mutex m_OutputMutex;
 
 	// -----------------------------
 	// Job queue
 	// -----------------------------
-	std::queue<LLMJob> m_jobQueue;
-	std::mutex m_jobMutex;
-	std::condition_variable m_jobCV;
+	std::queue<LLMJob> m_JobQueue;
+	std::mutex m_JobMutex;
+	std::condition_variable m_JobCv;
 
 	// ----------------------------
 	// ワーカースレッド
 	// ----------------------------
-	std::thread m_workerThread;
+	std::thread m_WorkerThread;
 	void WorkerLoop();
 
 	// -----------------------------
 	// Runtime state
 	// -----------------------------
-	std::atomic<bool> m_isRunning{false};
-	std::atomic<bool> m_stopRequested{false};
-	std::atomic<bool> m_exitRequested{false};
-	std::atomic<bool> m_requestReset{false};
+	std::atomic<bool> m_IsRunning{false};
+	std::atomic<bool> m_StopRequested{false};
+	std::atomic<bool> m_ExitRequested{false};
+	std::atomic<bool> m_RequestReset{false};
 
 	// -------------------------
 	// LLM
 	// -------------------------
-	std::shared_ptr<LLAMAModelData> m_llamaModel;
-	std::shared_ptr<AgentConfig>    m_agentConfig;
-	std::shared_ptr<LLAMAAgent>     m_mainAgent;
+	std::shared_ptr<LLAMAModelData> m_LlamaModel;
+	std::shared_ptr<AgentConfig> m_AgentConfig;
+	std::shared_ptr<LLAMAAgent> m_MainAgent;
 
 	// -------------------------
 	// UI state
 	// -------------------------
-	char inputBuffer[2048]{};
-	bool m_scrollToBottom = false;
+	char m_InputBuffer[2048]{};
+	bool m_ScrollToBottom= false;
 
 	// -----------------------------
 	// Token state (表示用)
 	// -----------------------------
-	uint32_t m_nPast = 0;
-	static constexpr uint32_t MAX_CONTEXT_TOKEN = 8192;
+	uint32_t m_NPast= 0;
+	static constexpr uint32_t m_MaxContextToken= 8192;
 };

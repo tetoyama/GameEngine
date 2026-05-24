@@ -56,7 +56,7 @@ struct ComponentRef {
 
 	// 内包する EntityRef が一致するときのみ等値とみなす
 	bool operator==(const ComponentRef& other) const {
-		return m_entityRef == other.m_entityRef;
+		return entityRef== other.m_entityRef;
 	}
 
 	bool operator!=(const ComponentRef& other) const {
@@ -64,5 +64,5 @@ struct ComponentRef {
 	}
 
 private:
-	EntityRef m_entityRef;
+	EntityRef m_EntityRef;
 };

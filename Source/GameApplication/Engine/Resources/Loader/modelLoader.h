@@ -26,7 +26,7 @@
 
 inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, bool isBlender, GraphicsContext* context){
 
-	auto model = std::make_shared<ModelData>();
+	auto m_Model= std::make_shared<ModelData>();
 
 	model->FilePath = path;
 	model->SetTexture = false;
@@ -35,7 +35,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 
 	if(!model->AiScene){
 		model.reset();
-		return nullptr;
+		return m_Nullptr;
 	}
 
 	model->VertexBuffer.resize(model->AiScene->mNumMeshes);
@@ -47,9 +47,9 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 	//再帰的にボーン生成
 	model->CreateBone(model->AiScene->mRootNode);
 
-	DirectX::XMFLOAT3 Min, Max;
+	DirectX::XMFLOAT3 Min, m_Max;
 
-	bool hasBones = false;
+	bool m_HasBones= false;
 	for (unsigned int m = 0; m < model->AiScene->mNumMeshes; m++) {
 		if (model->AiScene->mMeshes[m]->HasBones()) {
 			hasBones = true;
@@ -61,7 +61,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 
 		aiMesh* mesh = model->AiScene->mMeshes[m];
 
-		UINT vertexCount = mesh->mNumVertices;
+		UINT m_VertexCount= mesh->mNumVertices;
 
 		// 頂点バッファ生成
 		{
@@ -124,13 +124,13 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 
 			}
 
-			D3D11_BUFFER_DESC bd = {};
+			D3D11_BUFFER_DESC m_Bd= {};
 			bd.Usage = D3D11_USAGE_DYNAMIC;
 			bd.ByteWidth = sizeof(VERTEX_3D) * mesh->mNumVertices;
 			bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 			bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-			D3D11_SUBRESOURCE_DATA sd = {};
+			D3D11_SUBRESOURCE_DATA m_Sd= {};
 			sd.pSysMem = vertex;
 
 			context->GetDevice()->CreateBuffer(&bd, &sd, &model->VertexBuffer[m]);
@@ -160,14 +160,14 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 				index[f * 3 + 2] = face->mIndices[2];
 			}
 
-			D3D11_BUFFER_DESC bd = {};
+			D3D11_BUFFER_DESC m_Bd= {};
 
 			bd.Usage = D3D11_USAGE_DEFAULT;
 			bd.ByteWidth = sizeof(unsigned int) * mesh->mNumFaces * 3;
 			bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 			bd.CPUAccessFlags = 0;
 
-			D3D11_SUBRESOURCE_DATA sd = {};
+			D3D11_SUBRESOURCE_DATA m_Sd= {};
 
 			sd.pSysMem = index;
 
@@ -178,7 +178,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 
 		//変形後頂点データ初期化
 		for (unsigned int v = 0; v < mesh->mNumVertices; v++) {
-			DEFORM_VERTEX deformVertex;
+			DEFORM_VERTEX m_DeformVertex;
 			deformVertex.Position = mesh->mVertices[v];
 			deformVertex.Normal = mesh->mNormals[v];
 
@@ -195,15 +195,15 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 		for(unsigned int b = 0; b < mesh->mNumBones; b++){
 
 			aiBone* bone = mesh->mBones[b];
-			const std::string boneName = bone->mName.C_Str();
+			const std::string m_BoneName= bone->mName.C_Str();
 
 			// Model全体のBoneIndexを取得
-			auto it = model->m_BoneIndexMap.find(boneName);
+			auto m_It= model->m_BoneIndexMap.find(boneName);
 			if(it == model->m_BoneIndexMap.end()){
 				continue; // Node階層に存在しないボーンは無視
 			}
 
-			const uint32_t boneIndex = it->second;
+			const uint32_t m_BoneIndex= it->second;
 
 			// OffsetMatrix 設定
 			model->m_Bones[boneIndex].OffsetMatrix = bone->mOffsetMatrix;
@@ -237,8 +237,8 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			aiTexture* aitexture = model->AiScene->mTextures[i];
 
 			ID3D11ShaderResourceView* texture;
-			DirectX::TexMetadata metadata{};
-			DirectX::ScratchImage image{};
+			DirectX::TexMetadata m_Metadata{};
+			DirectX::ScratchImage m_Image{};
 			if(aitexture->pcData == NULL){
 
 			} else{
@@ -250,28 +250,28 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			model->m_Texture[aitexture->mFilename.data] = texture;
 		}
 	} else{
-		namespace fs = std::filesystem;
+		namespace m_Fs= std::filesystem;
 
 		for(unsigned int i = 0; i < model->AiScene->mNumMaterials; i++){
 			aiMaterial* material = model->AiScene->mMaterials[i];
 
 			if(material->GetTextureCount(aiTextureType_DIFFUSE) > 0){
-				aiString texPath;
+				aiString m_TexPath;
 				if(material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS){
-					std::string textureFilePath = texPath.C_Str();
+					std::string m_TextureFilePath= texPath.C_Str();
 
 					if(model->m_Texture.find(textureFilePath) == model->m_Texture.end()){
 						// modelPathのフォルダパスを取得
-						std::string directory;
-						size_t pos = path.find_last_of("/\\");
+						std::string m_Directory;
+						size_t m_Pos= path.find_last_of("/\\");
 						if(pos != std::string::npos){
 							directory = path.substr(0, pos + 1);
 						}
 
-						std::string fullTexPath = directory + textureFilePath;
-						std::u8string utf8Path = reinterpret_cast<const char8_t*>(fullTexPath.c_str());
-						std::filesystem::path texPath{utf8Path};
-						std::error_code ec;
+						std::string m_FullTexPath= directory + textureFilePath;
+						std::u8string m_Utf8Path= reinterpret_cast<const char8_t*>(fullTexPath.c_str());
+						std::filesystem::path m_TexPath{utf8Path};
+						std::error_code m_Ec;
 
 						if(fs::exists(texPath,ec)){
 							if(ec){
@@ -280,10 +280,10 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 							} else{
 								ID3D11ShaderResourceView* texture = nullptr;
 
-								DirectX::TexMetadata metadata{};
-								DirectX::ScratchImage image{};
+								DirectX::TexMetadata m_Metadata{};
+								DirectX::ScratchImage m_Image{};
 
-								HRESULT hr = DirectX::LoadFromWICFile(
+								HRESULT m_Hr= DirectX::LoadFromWICFile(
 									std::wstring(fullTexPath.begin(), fullTexPath.end()).c_str(),
 									DirectX::WIC_FLAGS_NONE,
 									&metadata,
@@ -318,27 +318,27 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 
 			// NormalMapテクスチャ
 			if(material->GetTextureCount(aiTextureType_NORMALS) > 0){
-				aiString normalTexPath;
+				aiString m_NormalTexPath;
 				if(material->GetTexture(aiTextureType_NORMALS, 0, &normalTexPath) == AI_SUCCESS){
-					std::string normalMapFile = fs::path(normalTexPath.C_Str()).filename().string();
+					std::string m_NormalMapFile= fs::path(normalTexPath.C_Str()).filename().string();
 
 					if(model->m_Texture.find(normalMapFile) == model->m_Texture.end()){
 						// modelPathのフォルダパスを取得
-						std::string directory;
-						size_t pos = path.find_last_of("/\\");
+						std::string m_Directory;
+						size_t m_Pos= path.find_last_of("/\\");
 						if(pos != std::string::npos){
 							directory = path.substr(0, pos + 1);
 						}
 
-						std::string fullTexPath = directory + normalMapFile;
+						std::string m_FullTexPath= directory + normalMapFile;
 
 						if(fs::exists(fullTexPath)){
 							ID3D11ShaderResourceView* texture = nullptr;
 
-							DirectX::TexMetadata metadata{};
-							DirectX::ScratchImage image{};
+							DirectX::TexMetadata m_Metadata{};
+							DirectX::ScratchImage m_Image{};
 
-							HRESULT hr = DirectX::LoadFromWICFile(
+							HRESULT m_Hr= DirectX::LoadFromWICFile(
 								std::wstring(fullTexPath.begin(), fullTexPath.end()).c_str(),
 								DirectX::WIC_FLAGS_NONE,
 								&metadata,
@@ -375,12 +375,12 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 		for (unsigned int i = 0; i < model->AiScene->mNumAnimations; i++) {
 
 			aiAnimation* animation = model->AiScene->mAnimations[i];
-			std::string animName = animation->mName.C_Str();
+			std::string m_AnimName= animation->mName.C_Str();
 			if (animName == "") {
 				animName = "Anim_" + std::to_string(i);
 			}
 
-			AnimationData animationData;
+			AnimationData m_AnimationData;
 			animationData.FilePath = model->FilePath;
 			animationData.Scene = model->AiScene;
 			animationData.isImported = false;
@@ -391,19 +391,19 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 
 		model->CreateSkinningBuffers(context);
 	}
-	return model;
+	return m_Model;
 }
 template<>
 inline void ResourceLoader<ModelData>::SetupLoadFunc(void* contextPtr) {
 	OutputDebugStringA("SetupLoadFunc ModelData called\n");
-	auto context = static_cast<GraphicsContext*>(contextPtr);
+	auto m_Context= static_cast<GraphicsContext*>(contextPtr);
 
 	SetLoadFunction([=](const std::string& path, std::shared_ptr<void> argsPtr) -> std::shared_ptr<ModelData> {
-		bool isBlender = false;
+		bool m_IsBlender= false;
 
 		if (argsPtr) {
 			using ArgsTuple = std::tuple<std::decay_t<bool>>;
-			auto tup = static_cast<ArgsTuple*>(argsPtr.get());
+			auto m_Tup= static_cast<ArgsTuple*>(argsPtr.get());
 			isBlender = std::get<0>(*tup);
 		}
 

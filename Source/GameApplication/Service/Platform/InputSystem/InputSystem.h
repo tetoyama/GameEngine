@@ -11,8 +11,8 @@
 #include "Service/IService.h"
 #include "keyState.h"
 
-constexpr int MouseButtonCount = 5; // LEFT, RIGHT, MIDDLE, XBUTTON1, XBUTTON2
-constexpr int GamepadCount = 4;
+constexpr int m_MouseButtonCount= 5; // LEFT, RIGHT, MIDDLE, XBUTTON1, XBUTTON2
+constexpr int m_GamepadCount= 4;
 
 // ウィンドウごとの入力状態
 struct WindowInputState {
@@ -65,24 +65,24 @@ public:
 
 private:
 	// ウィンドウごとの入力状態
-	std::unordered_map<HWND, WindowInputState> m_windowStates;
+	std::unordered_map<HWND, WindowInputState> m_WindowStates;
 
 	// ゲームパッド
 	struct GamepadState {
 		bool connected = false;
 		XINPUT_GAMEPAD pad = {};
 	};
-	std::array<GamepadState, GamepadCount> m_gamepads;
+	std::array<GamepadState, GamepadCount> gamepads;
 
 	// ウィンドウ・モード管理（必要に応じて複数ウィンドウ対応へ拡張可）
-	HWND m_window = nullptr;
-	int m_lastX = 0;
-	int m_lastY = 0;
-	int m_relativeX = INT32_MAX;
-	int m_relativeY = INT32_MAX;
-	bool m_inFocus = true;
+	HWND window= nullptr;
+	int lastX= 0;
+	int lastY= 0;
+	int relativeX= INT32_MAX;
+	int relativeY= INT32_MAX;
+	bool inFocus= true;
 
-	enum MousePositionMode {
+	enum mousePositionMode{
 		MousePositionMode_ABSOLUTE, MousePositionMode_RELATIVE
 	} m_mode = MousePositionMode_ABSOLUTE;
 

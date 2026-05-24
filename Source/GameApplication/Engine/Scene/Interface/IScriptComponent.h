@@ -155,7 +155,7 @@ public: \
     }
 
 #define SCRIPT_REFLECT_FIELD(Type, Name, DefaultValue) \
-    Type Name = DefaultValue; \
+    Type name= DefaultValue; \
     struct AutoRegister_##Name { \
         AutoRegister_##Name() { \
             static bool registered = false; \

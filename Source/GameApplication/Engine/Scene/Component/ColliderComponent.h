@@ -15,7 +15,7 @@
 #include "Component/modelRendererComponent.h"
 
 // コライダーの形状を表す列挙型
-enum class ColliderType {
+enum class m_ColliderType{
 	Box,        // ボックス形状
 	Sphere,     // スフィア形状
 	Capsule,    // カプセル形状
@@ -205,7 +205,7 @@ public:
 
 			for(size_t i = 0; i < colliders.size(); i++ , ImGui::Separator()){
 
-				std::string TreeText = "Collider" + std::to_string((int)i);
+				std::string treeText= "Collider" + std::to_string((int)i);
 
 				// ツリーノードの展開矢印だけ表示（幅だけ取るためにNoTreePushOnOpen）
 				bool isOpenCollider = ImGui::TreeNodeEx(TreeText.c_str(), flags, TreeText.c_str());
@@ -234,7 +234,7 @@ public:
 				} else{
 
 					int type = static_cast<int>(colliders[i].type);
-					float XPos = 120.0f;
+					float xpos= 120.0f;
 					ImGui::BeginChild("ColliderChild", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY);
 
 					if(ImGui::TreeNodeEx("Param", flags)){

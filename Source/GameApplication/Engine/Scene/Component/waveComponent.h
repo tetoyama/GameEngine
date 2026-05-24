@@ -12,15 +12,15 @@
 // 波のシミュレーションを管理するコンポーネント
 class WaveComponent: public IComponent {
 public:
-	int Resolution = 50;         // グリッド解像度（途中変更可）
-	float Amplitude = 0.2f;      // 波の振幅
-	float Wavelength = 2.0f;     // 波長
-	float Speed = 1.0f;          // 波の進行速度
-	float Time = 0.0f;           // 経過時間
-	int CurrentResolution = -1;  // 現在のメッシュ状態
+	int resolution= 50;         // グリッド解像度（途中変更可）
+	float amplitude= 0.2f;      // 波の振幅
+	float wavelength= 2.0f;     // 波長
+	float speed= 1.0f;          // 波の進行速度
+	float time= 0.0f;           // 経過時間
+	int currentResolution= -1;  // 現在のメッシュ状態
 	MeshRendererComponent* meshRenderer = nullptr;
 
-	bool UseEnvironmentMap = false; // 環境マッピングを使用するか
+	bool useEnvironmentMap= false; // 環境マッピングを使用するか
 
 	~WaveComponent(){
 		if(meshRenderer){

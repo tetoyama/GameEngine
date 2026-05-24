@@ -14,8 +14,8 @@ public:
 		REFLECT_FIELD(bool, isBlue, false)
 		REFLECT_FIELD(int, Digit, 0)
 
-	ComponentRef<ScoreManager> m_scoreManager;
-	ComponentRef<TextureComponent> m_texture;
+	ComponentRef<ScoreManager> scoreManager;
+	ComponentRef<TextureComponent> texture;
 	ScoreSprite(): CustomScriptComponent("ScoreSprite"){}
 
 	YAML::Node encode() override{
@@ -42,9 +42,9 @@ public:
 	}
 	void OnUpdate(float dt) override{
 		if(!m_scoreManager || Digit <= 0) return;
-		int Score = isBlue ? m_scoreManager->BlueScore : m_scoreManager->RedScore;
+		int score= isBlue ? m_scoreManager->BlueScore : m_scoreManager->RedScore;
 		Score = Score / (int)pow(10, (double)(Digit - 1));
-		int SetNum = Score % 10;
+		int setNum= Score % 10;
 		if(m_texture){
 			m_texture->AnimationNum = SetNum;
 		}

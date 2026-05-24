@@ -13,7 +13,7 @@ public:
 	BEGIN_REFLECT(FadeInSprite)
 		REFLECT_FIELD(float, FadeTime, 1.0f)
 
-		float Timer = 0.0f;
+		float timer= 0.0f;
 	FadeInSprite(): CustomScriptComponent("FadeInSprite"){}
 
 	YAML::Node encode() override{
@@ -46,5 +46,5 @@ public:
 	void OnEditorUpdate(float dt)override{}
 	void OnStop() override{}
 private:
-	ComponentRef<MaterialComponent> material;
+	ComponentRef<MaterialComponent> m_Material;
 };

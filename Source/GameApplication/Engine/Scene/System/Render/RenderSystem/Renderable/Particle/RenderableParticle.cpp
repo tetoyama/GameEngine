@@ -25,7 +25,7 @@ void RenderableParticle::Initialize(SceneManagerContext* context){
 	if(m_billBoardMesh){
 
 		m_billBoardMesh->mesh.meshCount = 4;
-		VERTEX_3D vertex[4]{};
+		VERTEX_3D m_Vertex[4]{};
 
 		vertex[0].Position = DirectX::XMFLOAT3(-0.5f, 0.5f, 0.0f);
 		vertex[0].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
@@ -51,13 +51,13 @@ void RenderableParticle::Initialize(SceneManagerContext* context){
 		vertex[3].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		vertex[3].TexCoord = DirectX::XMFLOAT2(1.0f, 1.0f);
 
-		D3D11_BUFFER_DESC bd{};
+		D3D11_BUFFER_DESC m_Bd{};
 		bd.Usage = D3D11_USAGE_DEFAULT;
 		bd.ByteWidth = sizeof(VERTEX_3D) * 4;
 		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 		bd.CPUAccessFlags = 0;
 
-		D3D11_SUBRESOURCE_DATA sd{};
+		D3D11_SUBRESOURCE_DATA m_Sd{};
 		sd.pSysMem = vertex;
 
 		context->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_billBoardMesh->mesh.m_VertexBuffer.GetAddressOf());
@@ -67,7 +67,7 @@ void RenderableParticle::Initialize(SceneManagerContext* context){
 }
 
 void RenderableParticle::Finalize(){
-	delete m_billBoardMesh;
+	delete m_BillBoardMesh;
 }
 
 void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
@@ -78,7 +78,7 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 	}
 	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
 	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
-	MATERIAL material{};
+	MATERIAL m_Material{};
 	if (pMaterial) {
 		material = pMaterial->Material;
 	}
@@ -91,7 +91,7 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 
 	for(int i = 0; i < MAXPARTICLE; i++){
 		if(pParticle->Particle[i].LifeTime > 0.0f){
-			MATERIAL material{};
+			MATERIAL m_Material{};
 
 			if(pTexture){
 				// マテリアル設定
@@ -100,14 +100,14 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 					deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 				}
 
-				UVMatrixBuffer uv;
+				UVMatrixBuffer m_Uv;
 				if (pTexture->UV_Slice_X > 0.0f && pTexture->UV_Slice_Y > 0.0f) {
 					// UV_Slice_X/Y は「1セルのUVサイズ」
 					// 例:
 					// 0.25f = 4分割
 					// 0.125f = 8分割
 
-					int column = (int)(1.0f / pTexture->UV_Slice_X);
+					int m_Column= (int)(1.0f / pTexture->UV_Slice_X);
 
 					uv.UVStart.x = (pTexture->AnimationNum % column) * pTexture->UV_Slice_X;
 					uv.UVStart.y = (pTexture->AnimationNum / column) * pTexture->UV_Slice_Y;
@@ -126,28 +126,28 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 				// マテリアル設定
 				material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
-				UVMatrixBuffer uv;
+				UVMatrixBuffer m_Uv;
 				graphicsContext->SetUVMatrixBuffer(uv);
 			}
 			graphicsContext->SetMaterial(material);
 
-			TransformComponent transform = *pTransform;
+			TransformComponent m_Transform= *pTransform;
 			transform.position += pParticle->Particle[i].Position * pParticle->particleSize;
 			transform.scale *= pParticle->particleSize;
 
-			BillBoardRendererComponent billBoard;
-			DirectX::XMMATRIX InvViewBillBoardMatrix = DirectX::XMMatrixRotationQuaternion(transform.rotationVector());
-			DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, ctx.viewMatrix);
-			DirectX::XMFLOAT4X4 invViewFloat4x4;
+			BillBoardRendererComponent m_BillBoard;
+			DirectX::XMMATRIX m_InvViewBillBoardMatrix= DirectX::XMMatrixRotationQuaternion(transform.rotationVector());
+			DirectX::XMMATRIX m_InvView= DirectX::XMMatrixInverse(nullptr, ctx.viewMatrix);
+			DirectX::XMFLOAT4X4 m_InvViewFloat4x4;
 			DirectX::XMStoreFloat4x4(&invViewFloat4x4, invView);
 
-			DirectX::XMVECTOR forward = DirectX::XMVectorSet(invViewFloat4x4._31, invViewFloat4x4._32, invViewFloat4x4._33, 0.0f);
-			DirectX::XMVECTOR right = DirectX::XMVectorSet(invViewFloat4x4._11, invViewFloat4x4._12, invViewFloat4x4._13, 0.0f);
-			DirectX::XMVECTOR up = DirectX::XMVectorSet(invViewFloat4x4._21, invViewFloat4x4._22, invViewFloat4x4._23, 0.0f);
+			DirectX::XMVECTOR m_Forward= DirectX::XMVectorSet(invViewFloat4x4._31, invViewFloat4x4._32, invViewFloat4x4._33, 0.0f);
+			DirectX::XMVECTOR m_Right= DirectX::XMVectorSet(invViewFloat4x4._11, invViewFloat4x4._12, invViewFloat4x4._13, 0.0f);
+			DirectX::XMVECTOR m_Up= DirectX::XMVectorSet(invViewFloat4x4._21, invViewFloat4x4._22, invViewFloat4x4._23, 0.0f);
 
-			const DirectX::XMVECTOR worldRight = DirectX::XMVectorSet(1, 0, 0, 0);
-			const DirectX::XMVECTOR worldUp = DirectX::XMVectorSet(0, 1, 0, 0);
-			const DirectX::XMVECTOR worldForward = DirectX::XMVectorSet(0, 0, 1, 0);
+			const DirectX::XMVECTOR m_WorldRight= DirectX::XMVectorSet(1, 0, 0, 0);
+			const DirectX::XMVECTOR m_WorldUp= DirectX::XMVectorSet(0, 1, 0, 0);
+			const DirectX::XMVECTOR m_WorldForward= DirectX::XMVectorSet(0, 0, 1, 0);
 
 			if(!billBoard.RotateXYZ.x) right = worldRight;
 			if(!billBoard.RotateXYZ.y) up = worldUp;
@@ -171,16 +171,16 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 			//deviceContext->PSSetShader(m_billBoardMesh->mesh.m_PixelShader.Get(), NULL, 0);
 
 			// ローカル変換行列（スケール・ビルボード回転・位置）
-			DirectX::XMMATRIX LocalMatrix =
+			DirectX::XMMATRIX m_LocalMatrix=
 				DirectX::XMMatrixScaling(transform.scale.x, transform.scale.y, transform.scale.z) *
 				InvViewBillBoardMatrix *
 				DirectX::XMMatrixTranslation(transform.position.x, transform.position.y, transform.position.z);
 
-			DirectX::XMMATRIX WorldMatrix = LocalMatrix;
+			DirectX::XMMATRIX m_WorldMatrix= LocalMatrix;
 
 			graphicsContext->SetWorldMatrix(WorldMatrix);
-			UINT stride = sizeof(VERTEX_3D);
-			UINT offset = 0;
+			UINT m_Stride= sizeof(VERTEX_3D);
+			UINT m_Offset= 0;
 
 			deviceContext->IASetVertexBuffers(0, 1, m_billBoardMesh->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
 

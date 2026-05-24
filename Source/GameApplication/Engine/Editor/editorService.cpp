@@ -35,7 +35,7 @@ void EditorService::Initialize(EditorServiceContext context) {
 	analyzer = new AnalyzerManager();
 	if (analyzer) {
 
-		AnalyzerManagerContext ctx;
+		AnalyzerManagerContext m_Ctx;
 		ctx.debug = debugLogSystem;
 
 		analyzer->Initialize(ctx);
@@ -80,14 +80,14 @@ void EditorService::Shutdown() {
 	// AnalyzerManager の終了と解放
 	if (analyzer) {
 		analyzer->Finalize();
-		delete analyzer;
+		delete m_Analyzer;
 		analyzer = nullptr;
 	}
 
 	// 全 UI パネルを終了・解放（逆順でも構わないが登録順で解放）
 	for (auto ui : UIs) {
 		ui->Finalize();
-		delete ui;
+		delete m_Ui;
 		ui = nullptr;
 	}
 	UIs.clear();

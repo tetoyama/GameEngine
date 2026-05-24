@@ -27,7 +27,7 @@ public:
 	uint32_t selfLayerBit = 1u << 1;
 
 	ComponentRef<TransformComponent> transform;
-	ComponentRef<CameraComponent> CameraBuffer;
+	ComponentRef<CameraComponent> cameraBuffer;
 	ComponentRef<TransformComponent> playerTransform;
 	EntityRef ballEntity;
 	ComponentRef<GameTimeManager> gameTime;

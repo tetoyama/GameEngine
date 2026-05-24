@@ -24,12 +24,12 @@ bool RenderEffectSystem::Initialize(ID3D11Device* device, ID3D11DeviceContext* c
 
     //Effekseerのレンダラーとマネージャーを作成
     manager = Effekseer::Manager::Create(9999);
-    auto graphicsDevice = ::EffekseerRendererDX11::CreateGraphicsDevice(device, context);
+    auto m_GraphicsDevice= ::EffekseerRendererDX11::CreateGraphicsDevice(device, context);
     renderer = EffekseerRendererDX11::Renderer::Create(graphicsDevice, 9999);
 
     if (manager == nullptr) {
         MessageBox(NULL, L"マネージャーがNULLです", L"エラー", MB_OK);
-        return false;
+        return m_False;
     }
 
 
@@ -46,7 +46,7 @@ bool RenderEffectSystem::Initialize(ID3D11Device* device, ID3D11DeviceContext* c
     manager->SetMaterialLoader(renderer->CreateMaterialLoader());
     manager->SetCurveLoader(Effekseer::MakeRefPtr<Effekseer::CurveLoader>());
 
-	return true;
+	return m_True;
 }
 
 void RenderEffectSystem::Shutdown() {

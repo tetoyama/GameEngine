@@ -12,7 +12,7 @@
 #include "Entity/Entity.h"
 
 // 前方宣言
-enum RenderLayer;
+enum m_RenderLayer;
 
 struct SceneManagerContext;
 
@@ -62,8 +62,8 @@ public:
 	void LoadSceneFromYAML(std::string path);
 	RenderLayer GetRenderLayerFromEntity(Entity entity);
 
-	std::string SceneName = "Untitled"; // シーンの名前
-	std::string ScenePath = ""; // シーンのパス
+	std::string sceneName= "Untitled"; // シーンの名前
+	std::string scenePath= ""; // シーンのパス
 
 	bool isDestroy = false; // シーンが破棄されるかどうか
 
@@ -80,7 +80,7 @@ private:
 	SceneContext m_SceneContext{};
 
 	// レジストリ
-	std::shared_ptr<EntityRegistry> m_entityRegistry;
-	std::shared_ptr<ComponentRegistry> m_componentRegistry;
-	std::shared_ptr<PrefabSystem> m_prefabSystem;
+	std::shared_ptr<EntityRegistry> m_EntityRegistry;
+	std::shared_ptr<ComponentRegistry> m_ComponentRegistry;
+	std::shared_ptr<PrefabSystem> m_PrefabSystem;
 };

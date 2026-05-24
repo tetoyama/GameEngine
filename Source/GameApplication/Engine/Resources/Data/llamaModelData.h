@@ -19,7 +19,7 @@ public:
     ~LLAMAModelData();
 
 public:
-    std::string m_path;
+    std::string path;
     llama_model* m_model = nullptr;
     const llama_vocab* m_vocab = nullptr;
 };

@@ -66,30 +66,30 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 void PlayerPass::Finalize() {
 
 	postEffectPass->Finalize();
-	delete postEffectPass;
+	delete m_PostEffectPass;
 	postEffectPass = nullptr;
 
 	forwardPass->Finalize();
-	delete forwardPass;
+	delete m_ForwardPass;
 	forwardPass = nullptr;
 
 	lightingPass->Finalize();
-	delete lightingPass;
+	delete m_LightingPass;
 	lightingPass = nullptr;
 
 	gBufferPass->Finalize();
-	delete gBufferPass;
+	delete m_GBufferPass;
 	gBufferPass = nullptr;
 
 	shadowMapPass->Finalize();
-	delete shadowMapPass;
+	delete m_ShadowMapPass;
 	shadowMapPass = nullptr;
 
 	overlayUIPass->Finalize();
-	delete overlayUIPass;
+	delete m_OverlayUipass;
 	overlayUIPass = nullptr;
 
-	delete playerRenderTarget;
+	delete m_PlayerRenderTarget;
 	playerRenderTarget = nullptr;
 }
 
@@ -101,7 +101,7 @@ void PlayerPass::Execute(const RenderPassContext& ctx) {
 	}
 
 	// レンダーターゲットをリサイズ (ウィンドウ描画に使用)
-	float clearCol[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
+	float m_ClearCol[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
 	playerRenderTarget->Resize(ctx.screenSize, m_context->graphics);
 	playerRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearCol);
 

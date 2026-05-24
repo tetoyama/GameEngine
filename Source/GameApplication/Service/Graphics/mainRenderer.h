@@ -23,7 +23,7 @@ public:
 
 	~MainRenderer() {
 		if(m_d2dRenderer){
-			delete m_d2dRenderer;
+			delete d2dRenderer;
 		}
 	}
 
@@ -53,16 +53,16 @@ public:
 	}
 
 	GraphicsContext* GetGraphicsContext() const{
-		return m_graphicsContext;
+		return graphicsContext;
 	}
 	HWND GetHWND(){
-		return m_hwnd;
+		return hwnd;
 	}
 private:
-	HWND m_hwnd{};
+	HWND m_Hwnd{};
 	GraphicsContext* m_graphicsContext = nullptr;
 	D2DRenderer* m_d2dRenderer = nullptr;
 
-	UINT m_width = 0;
-	UINT m_height = 0;
+	UINT m_Width= 0;
+	UINT m_Height= 0;
 };

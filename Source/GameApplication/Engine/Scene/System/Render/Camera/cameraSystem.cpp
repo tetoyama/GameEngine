@@ -34,8 +34,8 @@ void CameraSystem::Initialize(){
 void CameraSystem::Draw() {
 
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
-		auto CameraBuffers = context->component->GetAllBaseComponents<CameraComponent>();
+		auto m_Context= scene->GetSceneContext();
+		auto m_CameraBuffers= context->component->GetAllBaseComponents<CameraComponent>();
 		for (auto& [entity, CameraBuffer] : CameraBuffers) {
 			TransformComponent* transform = context->component->GetComponent<TransformComponent>(entity);
 			if (transform) {

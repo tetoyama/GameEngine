@@ -33,7 +33,7 @@ struct CameraPostEffect {
     std::string name;                                 // ノード名（UI 表示用）
     bool enabled = true;                              // このパスを描画するか
     Vector2 nodePos{ -1, -1 };                        // ノードエディター上のノード座標
-	DirectX::XMFLOAT4 Param{0,0,0,0};                // シェーダーに渡す汎用パラメーター
+	DirectX::XMFLOAT4 param{0,0,0,0};                // シェーダーに渡す汎用パラメーター
     bool initialized = false;                         // テクスチャ・RTV・SRV が生成済みかどうか
     std::vector<int> inputPins;                       // このノードへの入力ピン ID リスト
     int outputPin = -1;                               // このノードからの出力ピン ID
@@ -309,8 +309,8 @@ public:
 		}
 
 		int n = static_cast<int>(postEffects.size());
-		int INPUT_NODE = n;
-		int OUTPUT_NODE = n + 1;
+		int inputNode= n;
+		int outputNode= n + 1;
 
 		std::unordered_map<int, std::vector<int>> adj;
 		std::unordered_map<int, int> indegree;
@@ -670,10 +670,10 @@ public:
 
     // --- カメラパラメーター ---
     bool isLock = false;        // カメラ操作をロックするか（エディター専用）
-    Vector3 Target{ 0,0,0 };   // 注視点（isLock 時に使用）
-    float NearClip = 0.01f;    // ニアクリップ距離（単位: m）
-    float FarClip = 1024.0f;   // ファークリップ距離（単位: m）
-    float FOV = 1.0f;           // 垂直視野角（ラジアン）
+    Vector3 target{ 0,0,0 };   // 注視点（isLock 時に使用）
+    float nearClip= 0.01f;    // ニアクリップ距離（単位: m）
+    float farClip= 1024.0f;   // ファークリップ距離（単位: m）
+    float fov= 1.0f;           // 垂直視野角（ラジアン）
     DirectX::XMMATRIX viewMatrix{};  // 現在のビュー行列（CameraSystem が毎フレーム更新）
 
 

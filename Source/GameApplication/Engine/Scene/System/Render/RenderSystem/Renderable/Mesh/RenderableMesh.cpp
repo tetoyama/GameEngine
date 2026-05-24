@@ -36,7 +36,7 @@ void RenderableMesh::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 		if(meshRenderer->mesh.m_TextureData){
 			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
 
-			MATERIAL material{};
+			MATERIAL m_Material{};
 			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 
 			material.BaseColor = DirectX::XMFLOAT4(1, 1, 1, 1);
@@ -52,12 +52,12 @@ void RenderableMesh::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	//if(meshRenderer->mesh.m_PixelShader){
 	//	deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
 	//}
-	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, componentRegistry);
+	DirectX::XMMATRIX m_World= transform->CalculateWorldMatrix(transform, componentRegistry);
 
 	graphicsContext->SetWorldViewProjection2D();
 	graphicsContext->SetWorldMatrix(World);
-	UINT stride = sizeof(VERTEX_3D);
-	UINT offset = 0;
+	UINT m_Stride= sizeof(VERTEX_3D);
+	UINT m_Offset= 0;
 
 	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
 

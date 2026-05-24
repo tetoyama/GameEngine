@@ -19,7 +19,7 @@ void SystemSetting::Draw(const EditorDrawContext ctx) {
 		return;
 	}
 
-	ImGuiWindowClass window_class;
+	ImGuiWindowClass m_WindowClass;
 	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
 	ImGui::SetNextWindowClass(&window_class);
 

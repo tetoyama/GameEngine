@@ -53,23 +53,23 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 		return;
 	}
 
-	ImGuiWindowFlags toolbar_window_flags = 0;
+	ImGuiWindowFlags m_ToolbarWindowFlags= 0;
 	ImGui::Begin("Editor View", showEditor, toolbar_window_flags);
 
 	ControlButton();
 	DrawRenderLayerToggleUI();
 	ImGui::SameLine();
-	std::string speedText = ("CameraSpeed:" + std::to_string(cameraMoveSpeed));
+	std::string m_SpeedText= ("CameraSpeed:" + std::to_string(cameraMoveSpeed));
 	ImGui::Text(speedText.c_str());
 
 	ImGui::Separator();
 
-	ImVec2 avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
-	float availAspect = avail.x / avail.y;
+	ImVec2 m_Avail= ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
+	float m_AvailAspect= avail.x / avail.y;
 
 	m_editor->sceneManager->GetContext()->EditorScreenSize = Vector2(avail.x, avail.y);
 
-	ImVec2 cursor = ImGui::GetCursorPos();
+	ImVec2 m_Cursor= ImGui::GetCursorPos();
 
 	// ImGuizmo の描画領域を設定
 	ImGuizmo::SetRect(
@@ -84,10 +84,10 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	ImGui::Image((ImTextureRef)renderSystem->m_EditorPass->result, avail);
 
 	// --- 修正ポイント：クリック判定の情報を一時保存（ギズモ干渉防止のため） ---
-	bool isImageClicked = ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left);
-	ImVec2 clickedMousePos = ImGui::GetMousePos();
-	ImVec2 imagePos = ImGui::GetItemRectMin();
-	ImVec2 imageSize = ImGui::GetItemRectSize();
+	bool m_IsImageClicked= ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left);
+	ImVec2 m_ClickedMousePos= ImGui::GetMousePos();
+	ImVec2 m_ImagePos= ImGui::GetItemRectMin();
+	ImVec2 m_ImageSize= ImGui::GetItemRectSize();
 
 	// ImGuiIO を取得
 	ImGuiIO& io = ImGui::GetIO();
@@ -97,13 +97,13 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	mouseOnEditor = false;
 
 	// マウスカーソルの位置を取得
-	POINT cursorPos;
+	POINT m_CursorPos;
 	if(GetCursorPos(&cursorPos)){
-		HWND hwnd = GetActiveWindow();
+		HWND m_Hwnd= GetActiveWindow();
 		if(hwnd){
 			ScreenToClient(hwnd, &cursorPos);
 			ImDrawList* drawList = ImGui::GetWindowDrawList();
-			ImVec2 mousePos = io.MousePos;
+			ImVec2 m_MousePos= io.MousePos;
 
 			// マウスカーソルがウィンドウ内にあるかを判定
 			if(drawList->GetClipRectMin().x <= mousePos.x && mousePos.x <= drawList->GetClipRectMax().x &&
@@ -120,30 +120,30 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	// --- カメラ操作ロジック ---
 	if(mouseOnEditor){
 		ImGuiIO& io = ImGui::GetIO();
-		static bool isCameraBufferActive = false;
+		static bool m_IsCameraBufferActive= false;
 		if(ImGui::IsMouseClicked(ImGuiMouseButton_Right)){
 			isCameraBufferActive = true;
 		} else if(!ImGui::IsMouseDown(ImGuiMouseButton_Right)){
 			isCameraBufferActive = false;
 		}
 
-		Vector3 velocity = {0,0,0};
-		float speed = cameraMoveSpeed;
+		Vector3 m_Velocity= {0,0,0};
+		float m_Speed= cameraMoveSpeed;
 		if(isCameraBufferActive){
-			float mouseSensitivity = 0.005f;
+			float m_MouseSensitivity= 0.005f;
 			m_editorCameraRotation.y += io.MouseDelta.x * mouseSensitivity;
 			m_editorCameraRotation.x += io.MouseDelta.y * mouseSensitivity;
 
-			const float pitchLimit = DirectX::XM_PIDIV2 - 0.01f;
+			const float m_PitchLimit= DirectX::XM_PIDIV2 - 0.01f;
 			if(m_editorCameraRotation.x > pitchLimit) m_editorCameraRotation.x = pitchLimit;
 			if(m_editorCameraRotation.x < -pitchLimit) m_editorCameraRotation.x = -pitchLimit;
 
-			TransformComponent transform;
+			TransformComponent m_Transform;
 			transform.position = m_EditorCameraPosition;
 			transform.SetRotationEuler(m_editorCameraRotation);
-			Vector3 front = transform.front();
-			Vector3 right = transform.right();
-			Vector3 up = Vector3(0, 1, 0);
+			Vector3 m_Front= transform.front();
+			Vector3 m_Right= transform.right();
+			Vector3 m_Up= Vector3(0, 1, 0);
 
 			if(ImGui::IsKeyDown(ImGuiKey_W)) velocity += front;
 			if(ImGui::IsKeyDown(ImGuiKey_S)) velocity -= front;
@@ -159,14 +159,14 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 				cameraMoveSpeed += m_MouseWheel * 0.25f;
 			}
 		} else{
-			TransformComponent transform;
+			TransformComponent m_Transform;
 			transform.position = m_EditorCameraPosition;
 			transform.SetRotationEuler(m_editorCameraRotation);
-			Vector3 front = transform.front();
-			Vector3 right = transform.right();
-			Vector3 up = transform.up();
+			Vector3 m_Front= transform.front();
+			Vector3 m_Right= transform.right();
+			Vector3 m_Up= transform.up();
 			if(ImGui::IsMouseDown(ImGuiMouseButton_Middle)){
-				float panSensitivity = 0.1f;
+				float m_PanSensitivity= 0.1f;
 				m_EditorCameraPosition -= right * io.MouseDelta.x * panSensitivity;
 				m_EditorCameraPosition += up * io.MouseDelta.y * panSensitivity;
 			}
@@ -177,27 +177,27 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	}
 
 	// --- ギズモおよび選択オブジェクトの更新 ---
-	auto hierarchy = m_editor->GetUI<Hierarchy>();
+	auto m_Hierarchy= m_editor->GetUI<Hierarchy>();
 	if(hierarchy){
-		Entity selectedEntity = hierarchy->selectedEntity;
+		Entity m_SelectedEntity= hierarchy->selectedEntity;
 
 		if(hierarchy->sceneContext && selectedEntity != 0){
 			ComponentRegistry* registry = hierarchy->sceneContext->component;
 			TransformComponent* transform = registry->GetComponent<TransformComponent>(selectedEntity);
 
 			if(transform && m_editor->GetUI<MenuBar>()->showEditorView){
-				DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, registry);
-				DirectX::XMMATRIX modelMatrix;
+				DirectX::XMMATRIX m_World= transform->CalculateWorldMatrix(transform, registry);
+				DirectX::XMMATRIX m_ModelMatrix;
 
 				auto* sprite = registry->GetComponent<SpriteRendererComponent>(selectedEntity);
 				if(sprite){
-					TransformComponent temp = transform->CalculateRectTransform(Vector2(avail.x, avail.y), *sprite, *transform);
-					DirectX::XMVECTOR scaling = DirectX::XMVectorSet(temp.scale.x, temp.scale.y, 1.0f, 0.0f);
-					DirectX::XMVECTOR rotationOrigin = DirectX::XMVectorSet(sprite->pivot.x, sprite->pivot.y, 0.0f, 0.0f);
-					float rotationZ = temp.GetRotationEuler().z;
-					DirectX::XMVECTOR translation = DirectX::XMVectorSet(temp.position.x, temp.position.y, temp.position.z, 0.0f);
+					TransformComponent m_Temp= transform->CalculateRectTransform(Vector2(avail.x, avail.y), *sprite, *transform);
+					DirectX::XMVECTOR m_Scaling= DirectX::XMVectorSet(temp.scale.x, temp.scale.y, 1.0f, 0.0f);
+					DirectX::XMVECTOR m_RotationOrigin= DirectX::XMVectorSet(sprite->pivot.x, sprite->pivot.y, 0.0f, 0.0f);
+					float m_RotationZ= temp.GetRotationEuler().z;
+					DirectX::XMVECTOR m_Translation= DirectX::XMVectorSet(temp.position.x, temp.position.y, temp.position.z, 0.0f);
 
-					DirectX::XMMATRIX model2D = DirectX::XMMatrixAffineTransformation2D(scaling, rotationOrigin, rotationZ, translation);
+					DirectX::XMMATRIX m_Model2D= DirectX::XMMatrixAffineTransformation2D(scaling, rotationOrigin, rotationZ, translation);
 					World = model2D;
 					modelMatrix = m_editor->sceneManager->GetContext()->imgui->RenderGizmo2D(World, DirectX::XMFLOAT2(avail.x, avail.y));
 				} else{
@@ -205,11 +205,11 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 				}
 
 				// 親の逆行列を適用してローカル座標系に戻す
-				Entity Parent = transform->parent;
+				Entity m_Parent= transform->parent;
 				while(Parent != 0){
 					auto* ParentTransform = registry->GetComponent<TransformComponent>(Parent);
 					if(ParentTransform){
-						DirectX::XMMATRIX ParentWorld = ParentTransform->CalculateWorldMatrix(ParentTransform, registry);
+						DirectX::XMMATRIX m_ParentWorld= ParentTransform->CalculateWorldMatrix(ParentTransform, registry);
 						modelMatrix = modelMatrix * DirectX::XMMatrixInverse(nullptr, ParentWorld);
 						Parent = ParentTransform->parent;
 					} else{
@@ -217,7 +217,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 					}
 				}
 
-				bool isUsingNow = ImGuizmo::IsUsing();
+				bool m_IsUsingNow= ImGuizmo::IsUsing();
 
 				if(isUsingNow && !m_wasUsingGizmo){
 					m_gizmoEntity = selectedEntity;
@@ -228,17 +228,17 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 				}
 
 				if(isUsingNow){
-					DirectX::XMVECTOR scale, rotationQuat, translation;
+					DirectX::XMVECTOR scale, rotationQuat, m_Translation;
 					DirectX::XMMatrixDecompose(&scale, &rotationQuat, &translation, modelMatrix);
 
-					DirectX::XMFLOAT3 scale3, translation3;
+					DirectX::XMFLOAT3 scale3, m_Translation3;
 					DirectX::XMStoreFloat3(&scale3, scale);
 					DirectX::XMStoreFloat3(&translation3, translation);
-					DirectX::XMFLOAT4 quat;
+					DirectX::XMFLOAT4 m_Quat;
 					DirectX::XMStoreFloat4(&quat, rotationQuat);
 
 					if(sprite){
-						TransformComponent edited;
+						TransformComponent m_Edited;
 						edited.position = translation3;
 						edited.SetRotation(quat);
 						edited.scale = scale3;
@@ -255,7 +255,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 
 				if(!isUsingNow && m_wasUsingGizmo && m_gizmoEntity != 0){
 					if(m_gizmoStartState == SceneManagerState::Stopped && m_editor->sceneManager->State == SceneManagerState::Stopped){
-						auto cmd = std::make_unique<TransformChangeCommand>(
+						auto m_Cmd= std::make_unique<TransformChangeCommand>(
 							hierarchy->sceneContext, m_gizmoEntity,
 							m_gizmoStartPos, m_gizmoStartRot, m_gizmoStartScale,
 							transform->position, transform->GetRotation(), transform->scale);
@@ -271,17 +271,17 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	// --- ギズモ操作が確定した後に最終的な Pick 処理を行う ---
 	if(isImageClicked && !ImGuizmo::IsOver() && !ImGuizmo::IsUsing()){
 
-		Vector2 uv;
+		Vector2 m_Uv;
 		uv.x = (clickedMousePos.x - imagePos.x) / imageSize.x;
 		uv.y = (clickedMousePos.y - imagePos.y) / imageSize.y;
 
-		auto gBufferPass = renderSystem->m_EditorPass->gBufferPass;
+		auto m_GBufferPass= renderSystem->m_EditorPass->gBufferPass;
 		if(gBufferPass){
 			RenderTarget* paramTarget = gBufferPass->pRenderTargets[GBufferSlot_Param];
-			PickResult result = paramTarget->Pick(uv, graphicsContext);
+			PickResult m_Result= paramTarget->Pick(uv, graphicsContext);
 
-			uint32_t sceneID_val = result.u[0];  // x : SceneID
-			uint32_t objectID_val = result.u[1]; // y : ObjectID
+			uint32_t m_SceneIdVal= result.u[0];  // x : SceneID
+			uint32_t m_ObjectIdVal= result.u[1]; // y : ObjectID
 
 			if(hierarchy){
 				// 管理テーブルから安全にコンテキストを復元
@@ -294,9 +294,9 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 					// 選択した Entity にカメラを向ける
 					TransformComponent* transform = recoveredContext->component->GetComponent<TransformComponent>(hierarchy->selectedEntity);
 					if(transform && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)){
-						Vector3 targetPos = transform->position;
-						Vector3 direction = targetPos - m_EditorCameraPosition;
-						float distance = direction.length();
+						Vector3 m_TargetPos= transform->position;
+						Vector3 m_Direction= targetPos - m_EditorCameraPosition;
+						float m_Distance= direction.length();
 						if(distance > 0.001f){
 							direction = direction.normalize();
 							m_editorCameraRotation.y = atan2f(direction.x, direction.z);
@@ -314,17 +314,17 @@ void ViewWindow::ControlButton() {
 		return;
 	}
 
-	ImTextureRef Play;
+	ImTextureRef m_Play;
 	Play._TexID = (ImTextureID)PlayButtonTexture.get()->pTexture.Get();
-	ImTextureRef Pause;
+	ImTextureRef m_Pause;
 	Pause._TexID = (ImTextureID)PauseButtonTexture.get()->pTexture.Get();
-	ImTextureRef Stop;
+	ImTextureRef m_Stop;
 	Stop._TexID = (ImTextureID)StopButtonTexture.get()->pTexture.Get();
-	ImTextureRef Step;
+	ImTextureRef m_Step;
 	Step._TexID = (ImTextureID)StepButtonTexture.get()->pTexture.Get();
 
-	ImVec4 DefaultButtonColor = ImVec4(1.0f, 1.0f, 1.0f, 0.8f);
-	ImVec4 StopButtonColor = ImVec4(1.0f, 1.0f, 1.0f, 0.8f);
+	ImVec4 m_DefaultButtonColor= ImVec4(1.0f, 1.0f, 1.0f, 0.8f);
+	ImVec4 m_StopButtonColor= ImVec4(1.0f, 1.0f, 1.0f, 0.8f);
 	if (m_editor->sceneManager->State == SceneManagerState::Stopped) {
 		StopButtonColor = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
 	}
@@ -363,7 +363,7 @@ void ViewWindow::DrawRenderLayerToggleUI() {
 
 	ImGui::SameLine();
 
-	std::string previewText;
+	std::string m_PreviewText;
 	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; ++i) {
 		if (renderSystem->editorRenderLayerVisible[i]) {
 			if (!previewText.empty()) previewText += ", ";

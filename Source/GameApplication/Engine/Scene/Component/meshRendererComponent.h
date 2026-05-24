@@ -18,11 +18,11 @@ class GraphicsContext;
 struct MeshData {
 	TextureData* m_TextureData = nullptr;
 
-	Microsoft::WRL::ComPtr<ID3D11Buffer>        m_VertexBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer>        m_IndexBuffer;
-	Microsoft::WRL::ComPtr<ID3D11VertexShader>  m_VertexShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader>   m_PixelShader;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout>   m_VertexLayout;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> vertexLayout;
 
 	int meshCount = 0;
 	int indexCount = 0;

@@ -21,7 +21,7 @@ public:
 	~BumpMapComponent() {
 		m_TextureData.reset();
 	}
-	std::shared_ptr<TextureData> m_TextureData;
+	std::shared_ptr<TextureData> textureData;
 
 	YAML::Node encode() override{
 		YAML::Node node;

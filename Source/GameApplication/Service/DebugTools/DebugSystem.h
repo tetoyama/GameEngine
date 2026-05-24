@@ -23,7 +23,7 @@
 #define LOG_ERROR(msg)    Log(LogLevel::Error,   msg, __FUNCTION__, __FILE__, __LINE__)
 #define LOG_CRITICAL(msg) Log(LogLevel::Critical,msg, __FUNCTION__, __FILE__, __LINE__)
 
-enum class LogLevel {
+enum class m_LogLevel{
 	Trace,
 	Debug,
 	Info,
@@ -86,15 +86,15 @@ public:
 
 	void Draw();
 private:
-	std::vector<std::shared_ptr<ILogSink>> sinks;
-	std::mutex mutex; // マルチスレッド対応
+	std::vector<std::shared_ptr<ILogSink>> m_Sinks;
+	std::mutex m_Mutex; // マルチスレッド対応
 
 	std::wstring Utf8ToWide(const std::string& utf8){
-		int size = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
+		int m_Size= MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
 		std::wstring wide(size, 0);
 		MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, &wide[0], size);
 		wide.pop_back(); // null終端除去
-		return wide;
+		return m_Wide;
 	}
 };
 
@@ -116,7 +116,7 @@ public:
 	}
 
 private:
-	std::vector<LogEntry> entries;
-	mutable std::mutex mutex;
+	std::vector<LogEntry> m_Entries;
+	mutable std::mutex m_Mutex;
 };
 

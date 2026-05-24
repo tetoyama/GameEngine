@@ -58,16 +58,16 @@ private:
 	void Initialize2DResources();
 
 	GraphicsContext* m_graphicsContext = nullptr;
-	HWND m_hwnd;
+	HWND m_Hwnd;
 
 	ID2D1RenderTarget* m_d2dRenderTarget = nullptr;
 	ID2D1SolidColorBrush* m_fontBrush = nullptr;
 	IDWriteFactory* m_dwriteFactory = nullptr;
 	IDWriteTextFormat* m_textFormat = nullptr;
 
-	std::wstring m_fontName = L"メイリオ";
-	float m_fontSize = 24.0f;
-	DWRITE_FONT_WEIGHT m_fontWeight = DWRITE_FONT_WEIGHT_NORMAL;
-	DWRITE_FONT_STYLE m_fontStyle = DWRITE_FONT_STYLE_NORMAL;
-	DWRITE_FONT_STRETCH m_fontStretch = DWRITE_FONT_STRETCH_NORMAL;
+	std::wstring m_FontName= L"メイリオ";
+	float m_FontSize= 24.0f;
+	DWRITE_FONT_WEIGHT m_FontWeight= DWRITE_FONT_WEIGHT_NORMAL;
+	DWRITE_FONT_STYLE m_FontStyle= DWRITE_FONT_STYLE_NORMAL;
+	DWRITE_FONT_STRETCH m_FontStretch= DWRITE_FONT_STRETCH_NORMAL;
 };

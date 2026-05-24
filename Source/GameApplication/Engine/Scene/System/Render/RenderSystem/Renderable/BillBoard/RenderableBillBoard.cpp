@@ -26,7 +26,7 @@ void RenderableBillBoard::Initialize(SceneManagerContext* context){
 	if(m_billBoardMesh){
 
 		m_billBoardMesh->mesh.meshCount = 4;
-		VERTEX_3D vertex[4]{};
+		VERTEX_3D m_Vertex[4]{};
 
 		vertex[0].Position = DirectX::XMFLOAT3(-0.5f, 0.5f, 0.0f);
 		vertex[0].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
@@ -52,13 +52,13 @@ void RenderableBillBoard::Initialize(SceneManagerContext* context){
 		vertex[3].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		vertex[3].TexCoord = DirectX::XMFLOAT2(1.0f, 1.0f);
 
-		D3D11_BUFFER_DESC bd{};
+		D3D11_BUFFER_DESC m_Bd{};
 		bd.Usage = D3D11_USAGE_DEFAULT;
 		bd.ByteWidth = sizeof(VERTEX_3D) * 4;
 		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 		bd.CPUAccessFlags = 0;
 
-		D3D11_SUBRESOURCE_DATA sd{};
+		D3D11_SUBRESOURCE_DATA m_Sd{};
 		sd.pSysMem = vertex;
 
 		context->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_billBoardMesh->mesh.m_VertexBuffer.GetAddressOf());
@@ -68,7 +68,7 @@ void RenderableBillBoard::Initialize(SceneManagerContext* context){
 }
 
 void RenderableBillBoard::Finalize(){
-	delete m_billBoardMesh;
+	delete m_BillBoardMesh;
 }
 
 void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
@@ -83,7 +83,7 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 	ComponentRegistry* componentRegistry = sceneContext->component;
 
-	MATERIAL material{};
+	MATERIAL m_Material{};
 	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
 	if (pMaterial) {
 		material = pMaterial->Material;
@@ -100,14 +100,14 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 
 		graphicsContext->SetMaterial(material);
 
-		UVMatrixBuffer uv;
+		UVMatrixBuffer m_Uv;
 		if (pTexture->UV_Slice_X > 0.0f && pTexture->UV_Slice_Y > 0.0f) {
 			// UV_Slice_X/Y は「1セルのUVサイズ」
 			// 例:
 			// 0.25f = 4分割
 			// 0.125f = 8分割
 
-			int column = (int)(1.0f / pTexture->UV_Slice_X);
+			int m_Column= (int)(1.0f / pTexture->UV_Slice_X);
 
 			uv.UVStart.x = (pTexture->AnimationNum % column) * pTexture->UV_Slice_X;
 			uv.UVStart.y = (pTexture->AnimationNum / column) * pTexture->UV_Slice_Y;
@@ -120,17 +120,17 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 
 	} else {
 		// マテリアル設定
-		MATERIAL material{};
+		MATERIAL m_Material{};
 		material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		graphicsContext->SetMaterial(material);
 
-		UVMatrixBuffer uv;
+		UVMatrixBuffer m_Uv;
 		graphicsContext->SetUVMatrixBuffer(uv);
 
 	}
-	DirectX::XMMATRIX InvViewBillBoardMatrix = DirectX::XMMatrixRotationQuaternion(transform->rotationVector());
-	DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, ctx.viewMatrix);
-	DirectX::XMFLOAT4X4 invViewFloat4x4;
+	DirectX::XMMATRIX m_InvViewBillBoardMatrix= DirectX::XMMatrixRotationQuaternion(transform->rotationVector());
+	DirectX::XMMATRIX m_InvView= DirectX::XMMatrixInverse(nullptr, ctx.viewMatrix);
+	DirectX::XMFLOAT4X4 m_InvViewFloat4x4;
 	DirectX::XMStoreFloat4x4(&invViewFloat4x4, invView);
 
 	if(!billBoard->RotateXYZ.x && !billBoard->RotateXYZ.y && !billBoard->RotateXYZ.z){
@@ -140,12 +140,12 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 
 		// Y軸だけ回転（XZビルボード） → UIパネルなどで多用される
 		// カメラの前方向ベクトル（Z軸）
-		DirectX::XMVECTOR forward = DirectX::XMVectorSet(invViewFloat4x4._31, 0.0f, invViewFloat4x4._33, 0.0f);
+		DirectX::XMVECTOR m_Forward= DirectX::XMVectorSet(invViewFloat4x4._31, 0.0f, invViewFloat4x4._33, 0.0f);
 		forward = DirectX::XMVector3Normalize(forward);
 
 		// up = Y軸固定
-		DirectX::XMVECTOR up = DirectX::XMVectorSet(0, 1, 0, 0);
-		DirectX::XMVECTOR right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(up, forward));
+		DirectX::XMVECTOR m_Up= DirectX::XMVectorSet(0, 1, 0, 0);
+		DirectX::XMVECTOR m_Right= DirectX::XMVector3Normalize(DirectX::XMVector3Cross(up, forward));
 		up = DirectX::XMVector3Cross(forward, right);
 
 		InvViewBillBoardMatrix = DirectX::XMMATRIX(
@@ -156,13 +156,13 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 		);
 	} else{
 		// 任意の軸制御（全軸、Y+Z など）
-		DirectX::XMVECTOR forward = DirectX::XMVectorSet(invViewFloat4x4._31, invViewFloat4x4._32, invViewFloat4x4._33, 0.0f);
-		DirectX::XMVECTOR right = DirectX::XMVectorSet(invViewFloat4x4._11, invViewFloat4x4._12, invViewFloat4x4._13, 0.0f);
-		DirectX::XMVECTOR up = DirectX::XMVectorSet(invViewFloat4x4._21, invViewFloat4x4._22, invViewFloat4x4._23, 0.0f);
+		DirectX::XMVECTOR m_Forward= DirectX::XMVectorSet(invViewFloat4x4._31, invViewFloat4x4._32, invViewFloat4x4._33, 0.0f);
+		DirectX::XMVECTOR m_Right= DirectX::XMVectorSet(invViewFloat4x4._11, invViewFloat4x4._12, invViewFloat4x4._13, 0.0f);
+		DirectX::XMVECTOR m_Up= DirectX::XMVectorSet(invViewFloat4x4._21, invViewFloat4x4._22, invViewFloat4x4._23, 0.0f);
 
-		const DirectX::XMVECTOR worldRight = DirectX::XMVectorSet(1, 0, 0, 0);
-		const DirectX::XMVECTOR worldUp = DirectX::XMVectorSet(0, 1, 0, 0);
-		const DirectX::XMVECTOR worldForward = DirectX::XMVectorSet(0, 0, 1, 0);
+		const DirectX::XMVECTOR m_WorldRight= DirectX::XMVectorSet(1, 0, 0, 0);
+		const DirectX::XMVECTOR m_WorldUp= DirectX::XMVectorSet(0, 1, 0, 0);
+		const DirectX::XMVECTOR m_WorldForward= DirectX::XMVectorSet(0, 0, 1, 0);
 
 		if(!billBoard->RotateXYZ.x) right = worldRight;
 		if(!billBoard->RotateXYZ.y) up = worldUp;
@@ -186,24 +186,24 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 	//deviceContext->PSSetShader(m_billBoardMesh->mesh.m_PixelShader.Get(), NULL, 0);
 
 	// ローカル変換行列（スケール・ビルボード回転・位置）
-	DirectX::XMMATRIX LocalMatrix =
+	DirectX::XMMATRIX m_LocalMatrix=
 		DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z) *
 		InvViewBillBoardMatrix *
 		DirectX::XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
 
-	DirectX::XMMATRIX WorldMatrix = LocalMatrix;
+	DirectX::XMMATRIX m_WorldMatrix= LocalMatrix;
 
 	if(transform->parent != 0){
-		auto parentTransform = componentRegistry->GetComponent<TransformComponent>(transform->parent);
+		auto m_ParentTransform= componentRegistry->GetComponent<TransformComponent>(transform->parent);
 		if(parentTransform){
-			DirectX::XMMATRIX parentWorld = parentTransform->CalculateWorldMatrix(parentTransform, componentRegistry);
+			DirectX::XMMATRIX m_ParentWorld= parentTransform->CalculateWorldMatrix(parentTransform, componentRegistry);
 
 			// 親の位置だけを取得（分解）
-			DirectX::XMVECTOR parentScale, parentRotation, parentTranslation;
+			DirectX::XMVECTOR parentScale, parentRotation, m_ParentTranslation;
 			DirectX::XMMatrixDecompose(&parentScale, &parentRotation, &parentTranslation, parentWorld);
 
 			// 親の位置だけの平行移動行列を作る
-			DirectX::XMMATRIX parentTranslationMatrix = DirectX::XMMatrixTranslationFromVector(parentTranslation);
+			DirectX::XMMATRIX m_ParentTranslationMatrix= DirectX::XMMatrixTranslationFromVector(parentTranslation);
 
 			// 親の回転・スケールは無視し、親位置だけ足す
 			WorldMatrix = LocalMatrix * parentTranslationMatrix;
@@ -211,8 +211,8 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 	}
 
 	graphicsContext->SetWorldMatrix(WorldMatrix);
-	UINT stride = sizeof(VERTEX_3D);
-	UINT offset = 0;
+	UINT m_Stride= sizeof(VERTEX_3D);
+	UINT m_Offset= 0;
 
 	deviceContext->IASetVertexBuffers(0, 1, m_billBoardMesh->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
 

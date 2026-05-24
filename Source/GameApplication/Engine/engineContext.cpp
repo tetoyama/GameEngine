@@ -29,65 +29,65 @@
 // -----------------------------------------------------------------------
 std::shared_ptr<EngineContext> EngineContextBuilder::Build(){
 
-	std::shared_ptr<EngineContext> context = std::make_shared<EngineContext>();
+	std::shared_ptr<EngineContext> m_Context= std::make_shared<EngineContext>();
 
 	// DebugLogService 登録（他サービスのコンストラクタDIに利用し、Shutdown時は最後に終了させる）
-	auto debugLogSystem = std::make_shared<DebugLogService>();
+	auto m_DebugLogSystem= std::make_shared<DebugLogService>();
 	context->Register<DebugLogService>(debugLogSystem);
 
 	// ConfigService 登録（アプリ設定の読み込み。他サービスより先に初期化が必要）
-	auto configSystem = std::make_shared<ConfigService>();
+	auto m_ConfigSystem= std::make_shared<ConfigService>();
 	context->Register<ConfigService>(configSystem);
 
 	// WindowService 登録（OS ウィンドウの生成・管理）
-	auto windowSystem = std::make_shared<WindowService>(debugLogSystem.get());
+	auto m_WindowSystem= std::make_shared<WindowService>(debugLogSystem.get());
 	context->Register<WindowService>(windowSystem);
 
 	// TimeService 登録（デルタタイム・固定更新タイマーの管理）
-	auto timeService = std::make_shared<TimeService>();
+	auto m_TimeService= std::make_shared<TimeService>();
 	context->Register<TimeService>(timeService);
 
 	// AudioContext 登録（XAudio2 を用いたオーディオ再生管理）
-	auto audioContext = std::make_shared<AudioContext>(debugLogSystem.get());
+	auto m_AudioContext= std::make_shared<AudioContext>(debugLogSystem.get());
 	context->Register<AudioContext>(audioContext);
 
 	// GraphicsContext 登録（DirectX 11 デバイス・スワップチェーンの管理）
-	auto graphicsContext = std::make_shared<GraphicsContext>(debugLogSystem.get());
+	auto m_GraphicsContext= std::make_shared<GraphicsContext>(debugLogSystem.get());
 	context->Register<GraphicsContext>(graphicsContext);
 
 	// MainRenderer 登録（描画フレームの開始・終了とスワップチェーン制御）
-	auto mainRenderer = std::make_shared<MainRenderer>();
+	auto m_MainRenderer= std::make_shared<MainRenderer>();
 	context->Register<MainRenderer>(mainRenderer);
 
 	// InputService 登録（キーボード・マウス・ゲームパッド入力の取得）
-	auto inputSystem = std::make_shared<InputService>();
+	auto m_InputSystem= std::make_shared<InputService>();
 	context->Register<InputService>(inputSystem);
 
 	// ResourceService 登録（テクスチャ・モデル・シェーダ等のリソース読み込み・キャッシュ管理）
-	auto resourceSystem = std::make_shared<ResourceService>();
+	auto m_ResourceSystem= std::make_shared<ResourceService>();
 	context->Register<ResourceService>(resourceSystem);
 
 	// SceneManager 登録（複数シーンのライフサイクル・再生状態管理）
-	auto sceneManager = std::make_shared<SceneManager>();
+	auto m_SceneManager= std::make_shared<SceneManager>();
 	context->Register<SceneManager>(sceneManager);
 
 	// ImGuiService 登録（Dear ImGui の初期化・フレーム管理）
-	auto imgui = std::make_shared<ImGuiService>();
+	auto m_Imgui= std::make_shared<ImGuiService>();
 	context->Register<ImGuiService>(imgui);
 
 #ifdef _EDITOR
 	// EditorService 登録（エディター UI・コマンド履歴・アナライザ管理。エディタービルド時のみ有効）
-	auto editorService = std::make_shared<EditorService>();
+	auto m_EditorService= std::make_shared<EditorService>();
 	context->Register<EditorService>(editorService);
 #endif // _EDITOR
 
 	// LLAMAService 登録（LLM（大規模言語モデル）によるエージェント機能の管理）
-	auto llamaService = std::make_shared<LLAMAService>(debugLogSystem.get());
+	auto m_LlamaService= std::make_shared<LLAMAService>(debugLogSystem.get());
 	context->Register<LLAMAService>(llamaService);
 
 	// 今後: 他のシステムもここで登録
 
-	return context;
+	return m_Context;
 }
 
 // -----------------------------------------------------------------------
@@ -99,9 +99,9 @@ void EngineContext::Shutdown() {
 
 	// 逆順でShutdown呼び出し（依存性の逆順に終了する）
 	for (auto it = m_ServiceOrder.rbegin(); it != m_ServiceOrder.rend(); ++it) {
-		auto found = m_Services.find(*it);
+		auto m_Found= m_Services.find(*it);
 		if (found != m_Services.end()) {
-			auto service = std::static_pointer_cast<IService>(found->second);
+			auto m_Service= std::static_pointer_cast<IService>(found->second);
 			if (service) service->Shutdown();
 		}
 	}

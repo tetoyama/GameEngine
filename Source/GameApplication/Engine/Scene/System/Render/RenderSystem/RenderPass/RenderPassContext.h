@@ -28,7 +28,7 @@ struct RenderPassContext {
 	bool renderLayerVisibility[RenderLayer::MaxRenderLayer]; // 各レンダーレイヤーの表示フラグ
 	RenderPhase passPhase = RenderPhase::PHASE_SHADOW;       // このパスで処理するフェーズ
 
-	DirectX::XMFLOAT4 CameraPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f); // カメラのワールド位置
+	DirectX::XMFLOAT4 cameraPosition= DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f); // カメラのワールド位置
 
 	DirectX::XMMATRIX viewMatrix       = DirectX::XMMatrixIdentity(); // ビュー行列
 	DirectX::XMMATRIX projectionMatrix = DirectX::XMMatrixIdentity(); // プロジェクション行列

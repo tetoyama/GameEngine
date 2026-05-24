@@ -74,8 +74,8 @@ private:
 
 // エディター描画フェーズに渡すパフォーマンス統計情報
 struct EditorDrawContext {
-	double UpdateTime;		// 更新フェーズの所要時間（秒）
-	double DrawTime;		// 描画フェーズの所要時間（秒）
-	double FPS;				// 更新フレームレート（fps）
-	double FixedUpdateFPS;	// 固定更新フレームレート（fps）
+	double updateTime;		// 更新フェーズの所要時間（秒）
+	double drawTime;		// 描画フェーズの所要時間（秒）
+	double fps;				// 更新フレームレート（fps）
+	double fixedUpdateFps;	// 固定更新フレームレート（fps）
 };

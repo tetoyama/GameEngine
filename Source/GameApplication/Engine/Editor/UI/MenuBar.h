@@ -56,9 +56,9 @@ public:
 
 private:
 	EditorService* m_editor = nullptr;
-	bool showMenuBar = IMGUI_SHOW_DEFAULT;
+	bool m_ShowMenuBar= IMGUI_SHOW_DEFAULT;
 
-	std::unordered_map<MenuEvent, Callback> m_eventCallbacks;
+	std::unordered_map<MenuEvent, Callback> m_EventCallbacks;
 
 	void RenderFileMenu();
 	void RenderEditMenu();

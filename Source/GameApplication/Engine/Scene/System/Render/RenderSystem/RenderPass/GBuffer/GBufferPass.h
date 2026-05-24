@@ -26,8 +26,8 @@ public:
 	// Renderables
 	std::vector<IRenderable*> renderables;
 
-	std::shared_ptr<PixelShaderData> m_GBufferPixelShader;
-	std::shared_ptr<VertexShaderData> m_GBufferVertexShader;
+	std::shared_ptr<PixelShaderData> gbufferPixelShader;
+	std::shared_ptr<VertexShaderData> gbufferVertexShader;
 
 	// GBuffer targets
 	std::vector<RenderTarget*> pRenderTargets;

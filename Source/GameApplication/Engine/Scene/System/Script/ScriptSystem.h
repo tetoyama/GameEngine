@@ -105,16 +105,16 @@ private:
 	void ForEachScript(Func&& func);
 
 	// 名前 → Engine ComponentTypeID
-	std::unordered_map<std::string, ComponentTypeID> m_nameToEngineTypeID;
+	std::unordered_map<std::string, ComponentTypeID> m_NameToEngineTypeId;
 
 	// Script型 → Engine ComponentTypeID
-	std::unordered_map<std::type_index, ComponentTypeID> m_engineTypeIDs;
+	std::unordered_map<std::type_index, ComponentTypeID> m_EngineTypeIds;
 
 	std::function<IScriptComponent*(const char*)> m_scriptBridge = nullptr;
 
 	std::function<void(void*)> m_setImGuiContextFunc = nullptr;
 
-	HMODULE m_scriptModule = nullptr;
+	HMODULE m_ScriptModule= nullptr;
 
 	using CreateScriptFunc = IScriptComponent * (*)(const char*);
 };

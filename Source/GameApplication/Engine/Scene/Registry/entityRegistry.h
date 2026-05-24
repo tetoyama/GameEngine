@@ -50,7 +50,7 @@ public:
 	}
 
 	const std::unordered_set<Entity>& GetAllAlive() const{
-		return m_alive;
+		return alive;
 	}
 
 	void ResetAll() {
@@ -60,7 +60,7 @@ public:
 	}
 
 private:
-	Entity m_nextID = 1;
-	std::vector<Entity> m_recycledIDs;
-	std::unordered_set<Entity> m_alive;
+	Entity m_NextId= 1;
+	std::vector<Entity> m_RecycledIds;
+	std::unordered_set<Entity> m_Alive;
 };

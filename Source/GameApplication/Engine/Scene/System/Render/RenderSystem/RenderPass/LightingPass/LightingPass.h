@@ -31,12 +31,12 @@ public:
 
 	void SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shadowMapPass, GraphicsContext* gc);
 
-	std::shared_ptr<VertexShaderData> m_LightingVertexShader;
+	std::shared_ptr<VertexShaderData> lightingVertexShader;
 
 	ID3D11SamplerState* m_LinearSampler;
 	ID3D11SamplerState* m_EnvMapSampler = nullptr;
 
-	std::shared_ptr<TextureData> m_EnvironmentMap;
+	std::shared_ptr<TextureData> environmentMap;
 
 	RenderTarget* pRenderTarget;
 };

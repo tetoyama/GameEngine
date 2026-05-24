@@ -114,8 +114,8 @@ private:
 	// Model / Config
 	// ============================
 
-	std::shared_ptr<LLAMAModelData>     m_model;
-	std::shared_ptr<const AgentConfig>  m_config;
+	std::shared_ptr<LLAMAModelData> m_Model;
+	std::shared_ptr<const AgentConfig> m_Config;
 
 	// ============================
 	// llama Runtime
@@ -125,28 +125,28 @@ private:
 	llama_sampler* m_sampler = nullptr;
 
 	// 会話コンテキスト
-	std::vector<llama_token> m_pastTokens;
-	int m_nPast = 0;
+	std::vector<llama_token> m_PastTokens;
+	int m_NPast= 0;
 
 	// ============================
 	// Thread Control
 	// ============================
 
-	std::thread m_thread;
+	std::thread m_Thread;
 
-	std::queue<std::string> m_jobQueue;
-	std::mutex m_mutex;
-	std::condition_variable m_cv;
+	std::queue<std::string> m_JobQueue;
+	std::mutex m_Mutex;
+	std::condition_variable m_Cv;
 
-	std::atomic<State> m_state{State::Idle};
-	std::atomic<bool>  m_running{true};
+	std::atomic<State> m_State{State::Idle};
+	std::atomic<bool> m_Running{true};
 
 	// ============================
 	// Output
 	// ============================
 
-	mutable std::mutex m_outputMutex;
-	std::string m_output;
+	mutable std::mutex m_OutputMutex;
+	std::string m_Output;
 
 	// ============================
 	// Summary
@@ -157,8 +157,8 @@ private:
 	void SummarizeAndReset();
 
 	// 要約済みテキスト（次回プロンプトに注入）
-	std::string m_summaryText;
+	std::string m_SummaryText;
 
 	// 再入防止フラグ
-	bool m_isSummarizing = false;
+	bool m_IsSummarizing= false;
 };

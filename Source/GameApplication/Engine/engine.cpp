@@ -59,19 +59,19 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     }
 
     // ContextからEngineContextに登録された全サービスを取得
-    auto debugLogSystem = context->Get<DebugLogService>();
-	auto imguiService = context->Get<ImGuiService>();
-	auto editorService = context->Get<EditorService>();
-	auto inputService = context->Get<InputService>();
-	auto windowService = context->Get<WindowService>();
-	auto configSystem = context->Get<ConfigService>();
-	auto timeService = context->Get<TimeService>();
-	auto graphicsContext = context->Get<GraphicsContext>();
-	auto resourceService = context->Get<ResourceService>();
-	auto mainRenderer = context->Get<MainRenderer>();
-	auto sceneManager = context->Get<SceneManager>();
-	auto audioContext = context->Get<AudioContext>();
-	auto llamaService = context->Get<LLAMAService>();
+    auto m_DebugLogSystem= context->Get<DebugLogService>();
+	auto m_ImguiService= context->Get<ImGuiService>();
+	auto m_EditorService= context->Get<EditorService>();
+	auto m_InputService= context->Get<InputService>();
+	auto m_WindowService= context->Get<WindowService>();
+	auto m_ConfigSystem= context->Get<ConfigService>();
+	auto m_TimeService= context->Get<TimeService>();
+	auto m_GraphicsContext= context->Get<GraphicsContext>();
+	auto m_ResourceService= context->Get<ResourceService>();
+	auto m_MainRenderer= context->Get<MainRenderer>();
+	auto m_SceneManager= context->Get<SceneManager>();
+	auto m_AudioContext= context->Get<AudioContext>();
+	auto m_LlamaService= context->Get<LLAMAService>();
 
 	// --- Step 1: デバッグログ初期化（他のサービスより先に初期化し、ログ出力を有効化）
 	if(debugLogSystem){
@@ -98,7 +98,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     } else if(debugLogSystem){
 		debugLogSystem->LOG_INFO("WindowService の初期化が完了しました");
     }
-	auto mainWindow = windowService->GetMainWindow();
+	auto m_MainWindow= windowService->GetMainWindow();
 
 	// タスクバーアイコンとプログレスバーの初期化
 	InitTaskBar(windowService->GetMainWindow()->GetHWND());
@@ -174,7 +174,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 
 	// --- Step 11: エディターサービス初期化（エディタービルド時のみ実行）
 	if(editorService){
-		EditorServiceContext editorContext;
+		EditorServiceContext m_EditorContext;
 		editorContext.debugLogSystem = debugLogSystem.get();
 		editorContext.llamaService = llamaService.get();
 		editorContext.resourceService = resourceService.get();
@@ -189,7 +189,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
     // --- Step 12: シーンマネージャ初期化（ECS・レンダリングシステムの登録）
 	if(sceneManager){
 		// シーンマネージャコンテキストの設定（全依存サービスへの参照を渡す）
-		SceneManagerContext sceneManagerContext{};
+		SceneManagerContext m_SceneManagerContext{};
 		sceneManagerContext.audio = audioContext.get();
 		sceneManagerContext.graphics = graphicsContext.get();
 		sceneManagerContext.renderer = mainRenderer.get();
@@ -210,7 +210,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 
     // --- Step 13: メニューバーのイベント登録（File / Edit メニュー操作を各サービスにバインド）
 	if(editorService){
-		auto menubar = editorService->GetUI<MenuBar>();
+		auto m_Menubar= editorService->GetUI<MenuBar>();
 		if(menubar){
 			// ファイルメニュー: アプリ終了
 			menubar->Register(MenuEvent::File_Exit, [windowService](){
@@ -242,7 +242,7 @@ void Engine::Initialize(std::shared_ptr<EngineContext> context, HINSTANCE hInsta
 	// --- Step 14: LLAMA（LLM）サービス初期化（モデルファイルのロードと推論エンジンの起動）
 	if (llamaService) {
 
-		LLAMAServiceContext llamaContext{};
+		LLAMAServiceContext m_LlamaContext{};
 		llamaContext.resourceService = resourceService.get();
 
 		llamaService->Initialize(llamaContext);
@@ -271,9 +271,9 @@ void Engine::Shutdown(std::shared_ptr<EngineContext> context){
 	// DXGI デバッグ: 解放漏れの DirectX オブジェクトをデバッグ出力に報告
 	// （dxgidebug.dll は実行時に動的ロードすることでリリースビルドの依存を回避）
 	typedef HRESULT(WINAPI* LPDXGIGetDebugInterface)(REFIID, void**);
-	HMODULE dxgiDebugModule = LoadLibraryW(L"dxgidebug.dll");
+	HMODULE m_DxgiDebugModule= LoadLibraryW(L"dxgidebug.dll");
 	if(dxgiDebugModule){
-		auto dxgiGetDebugInterface = reinterpret_cast<LPDXGIGetDebugInterface>(
+		auto m_DxgiGetDebugInterface= reinterpret_cast<LPDXGIGetDebugInterface>(
 			GetProcAddress(dxgiDebugModule, "DXGIGetDebugInterface"));
 
 		if(dxgiGetDebugInterface){
@@ -303,29 +303,29 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		OutputDebugStringA("EngineContext が nullptr です。\n");
 		return;
 	}
-	auto debugLogSystem = context->Get<DebugLogService>();
+	auto m_DebugLogSystem= context->Get<DebugLogService>();
 
 	if(debugLogSystem){
 		debugLogSystem->LOG_INFO("Engine の実行を開始します");
 	}
 
 	// 必要なサービスを取得
-	auto windowService = context->Get<WindowService>();
-	auto configSystem = context->Get<ConfigService>();
-	auto timeService = context->Get<TimeService>();
-	auto graphicsContext = context->Get<GraphicsContext>();
-	auto inputService = context->Get<InputService>();
-	auto imguiService = context->Get<ImGuiService>();
-	auto mainRenderer = context->Get<MainRenderer>();
-	auto sceneManager = context->Get<SceneManager>();
-	auto editorService = context->Get<EditorService>();
+	auto m_WindowService= context->Get<WindowService>();
+	auto m_ConfigSystem= context->Get<ConfigService>();
+	auto m_TimeService= context->Get<TimeService>();
+	auto m_GraphicsContext= context->Get<GraphicsContext>();
+	auto m_InputService= context->Get<InputService>();
+	auto m_ImguiService= context->Get<ImGuiService>();
+	auto m_MainRenderer= context->Get<MainRenderer>();
+	auto m_SceneManager= context->Get<SceneManager>();
+	auto m_EditorService= context->Get<EditorService>();
 
 	if(debugLogSystem){
 		debugLogSystem->LOG_TRACE("EngineContext から実行時サービスを取得しました");
 	}
 
 	// 最初のシーンを作成・ロード
-	auto initialScene = std::make_shared<Scene>();
+	auto m_InitialScene= std::make_shared<Scene>();
 #ifdef _DEBUG_BUILD
 	sceneManager->LoadScene(initialScene);
 #else
@@ -341,7 +341,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		// フレーム開始タイムスタンプを記録
 		timeService->Tick();
 
-		float dt = timeService->GetDeltaTime();
+		float m_Dt= timeService->GetDeltaTime();
 		{	// ============ Update フェーズ ============
 			// OS メッセージ処理（WM_CLOSE 等のイベントを消化）
 			windowService->PollEvents();
@@ -385,7 +385,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 
 				// エディター UI を描画（ヒエラルキー・インスペクター・パフォーマンスモニター等）
 				if(editorService){
-					EditorDrawContext editorDrawContext{};
+					EditorDrawContext m_EditorDrawContext{};
 					editorDrawContext.UpdateTime = timeService->GetDeltaUpdateTime();
 					editorDrawContext.DrawTime = timeService->GetDrawTime();
 					editorDrawContext.FPS = timeService->GetDeltaFPS();

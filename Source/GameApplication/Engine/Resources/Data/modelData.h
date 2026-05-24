@@ -21,28 +21,28 @@ struct aiScene;
 
 // GPUスキニング用の入力頂点構造体
 struct SKINNING_INPUT_VERTEX {
-	DirectX::XMFLOAT3 Position;
-	DirectX::XMFLOAT3 Normal;
-	DirectX::XMFLOAT2 TexCoord;
-	uint32_t BoneIndex[4];
-	float    BoneWeight[4];
-	DirectX::XMFLOAT4 Diffuse; // 追加
+	DirectX::XMFLOAT3 position;
+	DirectX::XMFLOAT3 normal;
+	DirectX::XMFLOAT2 texCoord;
+	uint32_t boneIndex[4];
+	float boneWeight[4];
+	DirectX::XMFLOAT4 diffuse; // 追加
 };
 
 //変形後頂点構造体
 struct DEFORM_VERTEX {
-	aiVector3D		Position;
-	aiVector3D		Normal;
-	uint32_t		BoneIndex[4];
-	float			BoneWeight[4];
+	aiVector3D position;
+	aiVector3D normal;
+	uint32_t boneIndex[4];
+	float boneWeight[4];
 };
 
 //ボーン構造体
 struct BONE {
-	aiMatrix4x4 Matrix;
-	aiMatrix4x4 AnimationMatrix;
-	aiMatrix4x4 OffsetMatrix;
-	aiMatrix4x4 WorldMatrix;  // ボーンのワールド変換行列（OffsetMatrixを乗算する前）
+	aiMatrix4x4 matrix;
+	aiMatrix4x4 animationMatrix;
+	aiMatrix4x4 offsetMatrix;
+	aiMatrix4x4 worldMatrix;  // ボーンのワールド変換行列（OffsetMatrixを乗算する前）
 };
 
 // アニメーションブレンド情報を保持する構造体
@@ -55,7 +55,7 @@ struct AnimationBlend {
 
 // アニメーションリソースを保持する構造体
 struct AnimationData {
-	std::string FilePath;
+	std::string filePath;
 	const aiScene* Scene = nullptr;
 	aiAnimation* Animation = nullptr;
 	bool isImported = true;
@@ -87,9 +87,9 @@ public:
 	// ----------------------------
 	// basic model info
 	// ----------------------------
-	std::string FilePath = "";
+	std::string filePath= "";
 	bool isBlender = false;
-	bool SetTexture = false;
+	bool setTexture= false;
 
 	const aiScene* AiScene = nullptr;
 
@@ -104,15 +104,15 @@ public:
 	// ----------------------------
 	// skeleton
 	// ----------------------------
-	std::vector<BONE> m_Bones;
-	std::unordered_map<std::string, uint32_t> m_BoneIndexMap;
+	std::vector<BONE> bones;
+	std::unordered_map<std::string, uint32_t> boneIndexMap;
 
 	bool enableRootMotion = false;
 
 	// ----------------------------
 	// animation
 	// ----------------------------
-	std::unordered_map<std::string, AnimationData> m_Animation;
+	std::unordered_map<std::string, AnimationData> animation;
 
 	// per mesh deform data (CPU or upload source)
 	std::vector<DEFORM_VERTEX>* m_DeformVertex = nullptr;

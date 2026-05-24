@@ -34,10 +34,10 @@ public:
 		m_inputSystem = inputSystem;
 	}
 	UINT GetHeight() const override{
-		return m_height;
+		return height;
 	}
 	UINT GetWidth() const override{
-		return m_width;
+		return width;
 	}
 	void SetBorderlessFullscreen(bool enable);
 
@@ -56,13 +56,13 @@ private:
 	InputService* m_inputSystem = nullptr;
 	DebugLogService* m_debugLog = nullptr;
 
-	bool m_resizing = false;
+	bool m_Resizing= false;
 
-	UINT m_pendingWidth = 1280;
-	UINT m_pendingHeight = 720;
+	UINT m_PendingWidth= 1280;
+	UINT m_PendingHeight= 720;
 
-	WINDOWPLACEMENT m_wpPrev = {};
-	bool m_fullscreen = false;
-	int m_width = 0;
-	int m_height = 0;
+	WINDOWPLACEMENT m_WpPrev= {};
+	bool m_Fullscreen= false;
+	int m_Width= 0;
+	int m_Height= 0;
 };

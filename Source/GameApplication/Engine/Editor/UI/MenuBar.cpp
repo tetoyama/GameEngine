@@ -76,7 +76,7 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 }
 
 void MenuBar::Invoke(MenuEvent event){
-	auto it = m_eventCallbacks.find(event);
+	auto m_It= m_eventCallbacks.find(event);
 	if(it != m_eventCallbacks.end()) it->second();
 }
 
@@ -106,17 +106,17 @@ void MenuBar::RenderEditMenu(){
 
 	if(ImGui::BeginMenu("Edit")){
 		// Undo/Redo の有効フラグと操作名を取得
-		bool canUndo = m_editor && m_editor->commandManager.CanUndo();
-		bool canRedo = m_editor && m_editor->commandManager.CanRedo();
+		bool m_CanUndo= m_editor && m_editor->commandManager.CanUndo();
+		bool m_CanRedo= m_editor && m_editor->commandManager.CanRedo();
 
-		std::string undoDesc = canUndo ? m_editor->commandManager.PeekUndoDescription() : "";
-		std::string undoLabel = undoDesc.empty() ? "Undo" : "Undo: " + undoDesc;
+		std::string m_UndoDesc= canUndo ? m_editor->commandManager.PeekUndoDescription() : "";
+		std::string m_UndoLabel= undoDesc.empty() ? "Undo" : "Undo: " + undoDesc;
 		if(ImGui::MenuItem(undoLabel.c_str(), "Ctrl+Z", false, canUndo)){
 			Invoke(MenuEvent::Edit_Undo);
 		}
 
-		std::string redoDesc = canRedo ? m_editor->commandManager.PeekRedoDescription() : "";
-		std::string redoLabel = redoDesc.empty() ? "Redo" : "Redo: " + redoDesc;
+		std::string m_RedoDesc= canRedo ? m_editor->commandManager.PeekRedoDescription() : "";
+		std::string m_RedoLabel= redoDesc.empty() ? "Redo" : "Redo: " + redoDesc;
 		if(ImGui::MenuItem(redoLabel.c_str(), "Ctrl+Y", false, canRedo)){
 			Invoke(MenuEvent::Edit_Redo);
 		}

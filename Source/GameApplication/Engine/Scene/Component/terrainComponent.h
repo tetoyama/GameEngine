@@ -15,10 +15,10 @@
 // エディターから ブラシツールでハイトマップを直接編集可能
 class TerrainComponent : public IComponent {
 public:
-	int Scale = 10;           // グリッド分割数（Scale+1 × Scale+1 の頂点数になる）
+	int scale= 10;           // グリッド分割数（Scale+1 × Scale+1 の頂点数になる）
 
-	int CurrentScale = -1;    // 現在のメッシュ状態（-1 = 再構築要求）
-	std::vector<float> HeightMap;  // 高さマップデータ（(Scale+1)*(Scale+1) 個のフロート値）
+	int currentScale= -1;    // 現在のメッシュ状態（-1 = 再構築要求）
+	std::vector<float> heightMap;  // 高さマップデータ（(Scale+1)*(Scale+1) 個のフロート値）
 
 	MeshRendererComponent* meshRenderer = nullptr;  // 生成されたメッシュを保持するレンダラー
 

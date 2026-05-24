@@ -28,9 +28,9 @@ void TransformSystem::Draw(){
 	// コンポーネントを持つエンティティの検索
 
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
+		auto m_Context= scene->GetSceneContext();
 
-		const auto entities = context->component->FindEntitiesWithComponent<TransformComponent>();
+		const auto m_Entities= context->component->FindEntitiesWithComponent<TransformComponent>();
 		for (Entity entity : entities) {
 			auto* transform = context->component->GetComponent<TransformComponent>(entity);
 			if (!transform) continue;

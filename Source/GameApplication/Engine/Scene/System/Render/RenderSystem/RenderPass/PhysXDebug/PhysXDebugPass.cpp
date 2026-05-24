@@ -20,13 +20,13 @@ void PhysXDebugPass::Initialize(RenderSystem* renderSystem, SceneManagerContext*
 	m_LineVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\DebugLineVS.cso");
 	m_LinePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DebugLinePS.cso");
 
-	D3D11_BUFFER_DESC bd{};
+	D3D11_BUFFER_DESC m_Bd{};
 	bd.Usage = D3D11_USAGE_DYNAMIC;
 	bd.ByteWidth = sizeof(VERTEX_3D) * maxLineCount * 2;
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-	HRESULT hr = context->graphics->GetDevice()->CreateBuffer(&bd, nullptr, &pPhysicsDebugLineVB);
+	HRESULT m_Hr= context->graphics->GetDevice()->CreateBuffer(&bd, nullptr, &pPhysicsDebugLineVB);
 	if(FAILED(hr)){
 		throw std::runtime_error("Failed to create physics debug line vertex buffer.");
 	}
@@ -44,34 +44,34 @@ void PhysXDebugPass::Finalize(){
 void PhysXDebugPass::Execute(const RenderPassContext& ctx){
 	if (!m_LineVertexShader || !m_LinePixelShader) return;
 
-	auto graphicsContext = m_context->graphics;
+	auto m_GraphicsContext= m_context->graphics;
 	//graphicsContext->SetDepthMode(DepthMode::Disable);
 
 	if(ctx.renderLayerVisibility[(int)RenderLayer::Debug]){
 
 		//return;
 
-		auto physics = m_context->systemRegistry->GetSystem<PhysicSystem>();
+		auto m_Physics= m_context->systemRegistry->GetSystem<PhysicSystem>();
 		const physx::PxRenderBuffer& rb = physics->GetRenderBuffer();
 
 		// 色変換関数
-		auto ConvertColor = [](physx::PxU32 c) {
-			float a = ((c >> 24) & 0xFF) / 255.0f;
-			float r = ((c >> 16) & 0xFF) / 255.0f;
-			float g = ((c >> 8) & 0xFF) / 255.0f;
-			float b = ((c >> 0) & 0xFF) / 255.0f;
+		auto m_ConvertColor= [](physx::PxU32 c) {
+			float m_A= ((c >> 24) & 0xFF) / 255.0f;
+			float m_R= ((c >> 16) & 0xFF) / 255.0f;
+			float m_G= ((c >> 8) & 0xFF) / 255.0f;
+			float m_B= ((c >> 0) & 0xFF) / 255.0f;
 			return DirectX::XMFLOAT4(r, g, b, a);
 		};
 
-		std::vector<VERTEX_3D> vertices;
+		std::vector<VERTEX_3D> m_Vertices;
 		for (physx::PxU32 i = 0; i < rb.getNbLines(); i++) {
 			const physx::PxDebugLine& line = rb.getLines()[i];
 
-			VERTEX_3D v0;
+			VERTEX_3D m_V0;
 			v0.Position = DirectX::XMFLOAT3(line.pos0.x, line.pos0.y, line.pos0.z);
 			v0.Diffuse = ConvertColor(line.color0);
 
-			VERTEX_3D v1;
+			VERTEX_3D m_V1;
 			v1.Position = DirectX::XMFLOAT3(line.pos1.x, line.pos1.y, line.pos1.z);
 			v1.Diffuse = ConvertColor(line.color1);
 
@@ -85,15 +85,15 @@ void PhysXDebugPass::Execute(const RenderPassContext& ctx){
 		ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 		// 頂点バッファ更新
-		D3D11_MAPPED_SUBRESOURCE mapped;
+		D3D11_MAPPED_SUBRESOURCE m_Mapped;
 		deviceContext->Map(pPhysicsDebugLineVB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
 		memcpy(mapped.pData, vertices.data(), sizeof(VERTEX_3D) * vertices.size());
 		deviceContext->Unmap(pPhysicsDebugLineVB, 0);
 
 		graphicsContext->SetWorldMatrix(DirectX::XMMatrixIdentity());
 
-		UINT stride = sizeof(VERTEX_3D);
-		UINT offset = 0;
+		UINT m_Stride= sizeof(VERTEX_3D);
+		UINT m_Offset= 0;
 		deviceContext->IASetVertexBuffers(0, 1, &pPhysicsDebugLineVB, &stride, &offset);
 		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 

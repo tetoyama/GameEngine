@@ -87,13 +87,13 @@ public:
     }
 
     GraphicsContext* GetGraphicsContext() const {
-        return m_Graphics;
+        return graphics;
     }
 
 private:
     template<typename T>
     void RegisterLoader() {
-        auto loader = std::make_shared<ResourceLoader<T>>();
+        auto m_Loader= std::make_shared<ResourceLoader<T>>();
         loader->SetupLoadFunc(static_cast<void*>(m_Graphics));
         m_Loaders[std::type_index(typeid(T))] = loader;
     }

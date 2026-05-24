@@ -102,8 +102,8 @@ private:
     // ============================
     // モデル管理
     // ============================
-    std::unordered_map<std::string, std::shared_ptr<LLAMAModelData>> m_models;
-    mutable std::mutex m_modelMutex;
+    std::unordered_map<std::string, std::shared_ptr<LLAMAModelData>> models;
+    mutable std::mutex modelMutex;
 
     std::unordered_map<
         std::string,
@@ -113,33 +113,33 @@ private:
     // ============================
     // エージェント管理
     // ============================
-    std::vector<std::shared_ptr<LLAMAAgent>> m_agents;
-    mutable std::mutex m_agentMutex;
+    std::vector<std::shared_ptr<LLAMAAgent>> agents;
+    mutable std::mutex agentMutex;
 
     // ============================
     // 非同期ジョブキュー
     // ============================
-    std::queue<ModelLoadJob>  m_modelJobQueue;
-    std::queue<AgentCreateJob> m_agentJobQueue;
+    std::queue<ModelLoadJob> modelJobQueue;
+    std::queue<AgentCreateJob> agentJobQueue;
 
-    std::mutex m_jobMutex;
-    std::condition_variable m_jobCV;
-	std::atomic<bool> m_threadRunning{false};
-	std::thread m_workerThread;
+    std::mutex jobMutex;
+    std::condition_variable jobCv;
+	std::atomic<bool> threadRunning{false};
+	std::thread workerThread;
 
 	// -------------------------
 	// LLM
 	// -------------------------
-	std::shared_ptr<LLAMAModelData> m_llamaModel;
-	std::shared_ptr<AgentConfig>    m_agentConfig;
-	std::shared_ptr<LLAMAAgent>     m_mainAgent;
-	std::shared_ptr<LLAMAAgent>     m_summaryAgent;
+	std::shared_ptr<LLAMAModelData> llamaModel;
+	std::shared_ptr<AgentConfig> agentConfig;
+	std::shared_ptr<LLAMAAgent> mainAgent;
+	std::shared_ptr<LLAMAAgent> summaryAgent;
 
 	// -------------------------
 	// UI state
 	// -------------------------
 	char inputBuffer[2048]{};
-	bool m_scrollToBottom = false;
+	bool scrollToBottom= false;
 
     // ============================
     // 内部処理
@@ -154,8 +154,8 @@ private:
 		std::function<void()> fn;
 	};
 
-	std::queue<CompletedCallback> m_completedCallbacks;
-	std::mutex m_completedMutex;
+	std::queue<CompletedCallback> completedCallbacks;
+	std::mutex completedMutex;
 
 	void PumpCallbacks();
 };

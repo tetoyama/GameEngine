@@ -18,7 +18,7 @@ void DebugLog(std::string Message){
 void DebugLogService::Initialize(){
 
 	// 必要であればファイルログなどの初期化
-	auto memorySink = std::make_shared<MemoryLogSink>();
+	auto m_MemorySink= std::make_shared<MemoryLogSink>();
 	AddSink(memorySink);
 }
 
@@ -46,7 +46,7 @@ void DebugLogService::Log(LogLevel level,
 						 const std::string& file,
 						 int line){
 	
-	LogEntry entry;
+	LogEntry m_Entry;
 	entry.level = level;
 	entry.message = message;
 	entry.function = function;
@@ -62,7 +62,7 @@ void DebugLogService::Log(LogLevel level,
 }
 
 void DebugLogService::Log(LogLevel level, const char8_t* message, const std::string& function, const std::string& file, int line) {
-	std::string str = reinterpret_cast<const char*>(message);
+	std::string m_Str= reinterpret_cast<const char*>(message);
 	Log(level, str, function, file, line);
 }
 

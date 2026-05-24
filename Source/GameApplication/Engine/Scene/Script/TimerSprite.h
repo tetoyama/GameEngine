@@ -14,8 +14,8 @@ public:
 		REFLECT_FIELD(bool, isBlue, false)
 		REFLECT_FIELD(int, Digit, 0)
 
-	ComponentRef<GameTimeManager> m_gameTime;
-	ComponentRef<TextureComponent> m_texture;
+	ComponentRef<GameTimeManager> gameTime;
+	ComponentRef<TextureComponent> texture;
 	TimerSprite(): CustomScriptComponent("TimerSprite"){}
 
 	YAML::Node encode() override{
@@ -42,9 +42,9 @@ public:
 	}
 	void OnUpdate(float dt) override{
 		if(!m_gameTime || Digit <= 0) return;
-		int Score = (int)m_gameTime->Timer;
+		int score= (int)m_gameTime->Timer;
 		Score = Score / (int)pow(10, (double)(Digit - 1));
-		int SetNum = Score % 10;
+		int setNum= Score % 10;
 		if(m_texture){
 			m_texture->AnimationNum = SetNum;
 		}

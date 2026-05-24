@@ -123,9 +123,9 @@ void BRAIN::Finalize(){
 void BRAIN::WorkerLoop() {
 	while (true) {
 
-		LLMJob job;
-		bool hasJob = false;
-		bool doReset = false;
+		LLMJob m_Job;
+		bool m_HasJob= false;
+		bool m_DoReset= false;
 
 		{
 			std::unique_lock<std::mutex> lock(m_jobMutex);
@@ -230,7 +230,7 @@ void BRAIN::WorkerLoop() {
 				break;
 			}
 
-			std::string out = m_mainAgent->GetOutput();
+			std::string m_Out= m_mainAgent->GetOutput();
 			{
 				std::lock_guard<std::mutex> lock(m_outputMutex);
 				if (!m_chatLog.empty() && m_chatLog.back().role == ChatEntry::Role::Assistant) {
@@ -258,20 +258,20 @@ void BRAIN::Draw(const EditorDrawContext){
 
 	ImGui::Begin("B.R.A.I.N.", show);
 
-	ImVec2 winPos = ImGui::GetWindowPos();
-	ImVec2 winSize = ImGui::GetWindowSize();
+	ImVec2 m_WinPos= ImGui::GetWindowPos();
+	ImVec2 m_WinSize= ImGui::GetWindowSize();
 
 	// -------------------
 	// 背景ロゴ
 	// -------------------
 	if(logoTexture && logoTexture->pTexture){
-		float texW = (float)logoTexture->Width;
-		float texH = (float)logoTexture->Height;
+		float m_TexW= (float)logoTexture->Width;
+		float m_TexH= (float)logoTexture->Height;
 
-		float texRatio = texW / texH;
-		float winRatio = winSize.x / winSize.y;
+		float m_TexRatio= texW / texH;
+		float m_WinRatio= winSize.x / winSize.y;
 
-		ImVec2 drawSize;
+		ImVec2 m_DrawSize;
 		if(winRatio > texRatio){
 			drawSize.y = winSize.y;
 			drawSize.x = winSize.y * texRatio;
@@ -280,7 +280,7 @@ void BRAIN::Draw(const EditorDrawContext){
 			drawSize.y = winSize.x / texRatio;
 		}
 
-		ImVec2 drawPos{
+		ImVec2 m_DrawPos{
 			winPos.x + (winSize.x - drawSize.x) * 0.5f,
 			winPos.y + (winSize.y - drawSize.y) * 0.5f
 		};
@@ -299,7 +299,7 @@ void BRAIN::Draw(const EditorDrawContext){
 	// -------------------
 	// Chat log
 	// -------------------
-	float chatLogHeight = winSize.y - 256.0f;
+	float m_ChatLogHeight= winSize.y - 256.0f;
 
 	ImGui::Text("Conversation Log:");
 	ImGui::BeginChild(
@@ -309,7 +309,7 @@ void BRAIN::Draw(const EditorDrawContext){
 	);
 
 	// 描画用にコピー（スレッド安全）
-	std::vector<ChatEntry> logCopy;
+	std::vector<ChatEntry> m_LogCopy;
 	{
 		std::lock_guard<std::mutex> lock(m_outputMutex);
 		logCopy = m_chatLog;
@@ -321,7 +321,7 @@ void BRAIN::Draw(const EditorDrawContext){
 			? "User"
 			: "Assistant";
 
-		ImVec4 color =
+		ImVec4 m_Color=
 			(e.role == ChatEntry::Role::User)
 			? ImVec4(0.7f, 0.8f, 1.0f, 1.0f)
 			: ImVec4(0.8f, 1.0f, 0.8f, 1.0f);
@@ -329,7 +329,7 @@ void BRAIN::Draw(const EditorDrawContext){
 		ImGui::PushStyleColor(ImGuiCol_Text, color);
 		ImGui::Text("%s:", label);
 		// 長すぎる文字列も分割表示
-		const size_t chunkSize = 4096;
+		const size_t m_ChunkSize= 4096;
 		for(size_t offset = 0; offset < e.text.size(); offset += chunkSize){
 			ImGui::TextWrapped("%.*s",
 							   (int)(std::min)(chunkSize, e.text.size() - offset),
@@ -361,13 +361,13 @@ void BRAIN::Draw(const EditorDrawContext){
 		ImVec2(-1, 100)
 	);
 
-	bool running = m_isRunning.load();
-	bool canRun =
+	bool m_Running= m_isRunning.load();
+	bool m_CanRun=
 		!running && m_mainAgent && m_llamaModel;
 
 	ImGui::BeginDisabled(!canRun);
 	if(ImGui::Button("Run")){
-		LLMJob job;
+		LLMJob m_Job;
 		job.prompt = std::string(inputBuffer);
 		{
 			std::lock_guard<std::mutex> lock(m_jobMutex);
@@ -400,13 +400,13 @@ void BRAIN::Draw(const EditorDrawContext){
 	ImGui::EndDisabled();
 
 	if(m_mainAgent){
-		int used = m_mainAgent->GetTokenCount();
-		int max = m_mainAgent->GetMaxTokenCount();
+		int m_Used= m_mainAgent->GetTokenCount();
+		int m_Max= m_mainAgent->GetMaxTokenCount();
 
 		ImGui::Text("Token: %d / %d", used, max);
 
 		// 使用率バー
-		float rate = m_mainAgent->GetTokenUsageRate();
+		float m_Rate= m_mainAgent->GetTokenUsageRate();
 		ImGui::ProgressBar(
 			rate,
 			ImVec2(-1, 0),

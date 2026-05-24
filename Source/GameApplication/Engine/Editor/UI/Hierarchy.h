@@ -34,8 +34,8 @@ private:
 
 	EditorService* m_editor = nullptr;
 
-	Entity pendingRenameEntity = 0;
+	Entity m_PendingRenameEntity= 0;
 
-	char searchBuffer[256] = "";
-	char renameBuffer[256] = "";
+	char m_SearchBuffer[256] = "";
+	char m_RenameBuffer[256] = "";
 };

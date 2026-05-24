@@ -23,21 +23,21 @@
 #endif
 
 inline std::shared_ptr<TextureData> LoadTextureFromFile(const std::string& filePath, GraphicsContext* context) {
-	std::shared_ptr<TextureData> tex = std::make_shared<TextureData>();
+	std::shared_ptr<TextureData> m_Tex= std::make_shared<TextureData>();
 	tex->FilePath = filePath;
 
-	bool isTgaFile = HasExtension(filePath, "tga");
-	bool isDdsFile = HasExtension(filePath, "dds");
+	bool m_IsTgaFile= HasExtension(filePath, "tga");
+	bool m_IsDdsFile= HasExtension(filePath, "dds");
 
 	// UTF-8 → UTF-16 変換
-	int size_needed = MultiByteToWideChar(CP_UTF8, 0, filePath.c_str(), -1, NULL, 0);
+	int m_SizeNeeded= MultiByteToWideChar(CP_UTF8, 0, filePath.c_str(), -1, NULL, 0);
 	std::wstring w_FilePath(size_needed - 1, 0);
 	MultiByteToWideChar(CP_UTF8, 0, filePath.c_str(), -1, &w_FilePath[0], size_needed);
 
-	DirectX::TexMetadata metadata;
-	DirectX::ScratchImage image;
+	DirectX::TexMetadata m_Metadata;
+	DirectX::ScratchImage m_Image;
 
-	HRESULT hr = S_OK;
+	HRESULT m_Hr= S_OK;
 	if (isTgaFile) {
 		hr = DirectX::LoadFromTGAFile(w_FilePath.c_str(), &metadata, image);
 	} else if (isDdsFile) {
@@ -48,7 +48,7 @@ inline std::shared_ptr<TextureData> LoadTextureFromFile(const std::string& fileP
 
 	if (FAILED(hr)) {
 		OutputDebugStringA(("Failed to load texture: " + filePath + "\n").c_str());
-		return nullptr;
+		return m_Nullptr;
 	}
 
 	hr = DirectX::CreateShaderResourceView(
@@ -61,20 +61,20 @@ inline std::shared_ptr<TextureData> LoadTextureFromFile(const std::string& fileP
 
 	if (FAILED(hr) || !tex->pTexture) {
 		OutputDebugStringA(("Failed to create SRV for texture: " + filePath + "\n").c_str());
-		return nullptr;
+		return m_Nullptr;
 	}
 
 	tex->Width = static_cast<int>(metadata.width);
 	tex->Height = static_cast<int>(metadata.height);
 
-	return tex;
+	return m_Tex;
 }
 
 template<>
 inline void ResourceLoader<TextureData>::SetupLoadFunc(void* contextPtr) {
 	OutputDebugStringA("SetupLoadFunc TextureData called\n");
 
-	auto context = static_cast<GraphicsContext*>(contextPtr);
+	auto m_Context= static_cast<GraphicsContext*>(contextPtr);
 	SetLoadFunction([=](const std::string& path, std::shared_ptr<void> /*args*/) {
 		return LoadTextureFromFile(path, context);
 	});

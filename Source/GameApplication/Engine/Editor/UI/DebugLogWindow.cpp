@@ -23,9 +23,9 @@ bool DebugLogWindow::PassesFilter(const LogEntry& entry) const{
 	if(strlen(searchBuffer) > 0){
 		if(entry.message.find(searchBuffer) == std::string::npos &&
 		   entry.function.find(searchBuffer) == std::string::npos)
-			return false;
+			return m_False;
 	}
-	return true;
+	return m_True;
 }
 
 const char* DebugLogWindow::LevelToString(LogLevel level) const{
@@ -42,7 +42,7 @@ const char* DebugLogWindow::LevelToString(LogLevel level) const{
 
 std::string DebugLogWindow::LevelFilterString(LogLevel level) const{
 
-	int Count = 0;
+	int m_Count= 0;
 
 	const auto& entries = logSink->GetEntries();
 	for(const auto& entry : entries){
@@ -50,9 +50,9 @@ std::string DebugLogWindow::LevelFilterString(LogLevel level) const{
 		Count++;
 	}
 
-	std::string a = LevelToString(level);
+	std::string m_A= LevelToString(level);
 	a = a + "(" + std::to_string(Count) + ")";
-	return a;
+	return m_A;
 }
 
 ImVec4 DebugLogWindow::GetColorForLevel(LogLevel level) const{
@@ -79,12 +79,12 @@ void DebugLogWindow::Draw(const EditorDrawContext ctx){
 		return;
 	}
 
-	ImGuiWindowClass window_class;
+	ImGuiWindowClass m_WindowClass;
 	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
 	ImGui::SetNextWindowClass(&window_class);
 
 	//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
-	ImGuiWindowFlags toolbar_window_flags = 0;
+	ImGuiWindowFlags m_ToolbarWindowFlags= 0;
 	if(ImGui::Begin("Debug Log", showDebugLogWindow, toolbar_window_flags)){
 
 		ImGui::InputText("Search", searchBuffer, sizeof(searchBuffer));
@@ -98,8 +98,8 @@ void DebugLogWindow::Draw(const EditorDrawContext ctx){
 		ImGui::Separator();
 
 		for(int i = (int)LogLevel::Trace; i <= (int)LogLevel::Critical; ++i){
-			LogLevel level = static_cast<LogLevel>(i);
-			bool selected = levelFilter.find(level) != levelFilter.end();
+			LogLevel m_Level= static_cast<LogLevel>(i);
+			bool m_Selected= levelFilter.find(level) != levelFilter.end();
 			if(ImGui::Checkbox(LevelFilterString(level).c_str(), &selected)){
 				if(selected)
 					levelFilter.insert(level);
@@ -116,7 +116,7 @@ void DebugLogWindow::Draw(const EditorDrawContext ctx){
 				for(const auto& entry : entries){
 					if(!PassesFilter(entry)) continue;
 
-					ImVec4 color = GetColorForLevel(entry.level);
+					ImVec4 m_Color= GetColorForLevel(entry.level);
 					ImGui::PushStyleColor(ImGuiCol_Text, color);
 					ImGui::Text(ToU8String((const char*)u8"[%s] %s\n(関数名 %s,ファイル %s ,行 %d)").c_str(),
 								LevelToString(entry.level),

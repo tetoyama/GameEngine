@@ -467,12 +467,12 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 		return; // ライトが無い場合は中断
 	}
 
-	int ATLAS_GRID = (int)std::sqrt((float)shadowCount);
+	int atlasGrid= (int)std::sqrt((float)shadowCount);
 	if(ATLAS_GRID * ATLAS_GRID < shadowCount){
 		ATLAS_GRID++;
 	}
-	const int ATLAS_SIZE = (int)shadowRenderTarget->size.x;
-	const int TILE_SIZE = (ATLAS_GRID > 0) ? (ATLAS_SIZE / ATLAS_GRID) : ATLAS_SIZE;
+	const int atlasSize= (int)shadowRenderTarget->size.x;
+	const int tileSize= (ATLAS_GRID > 0) ? (ATLAS_SIZE / ATLAS_GRID) : ATLAS_SIZE;
 	int shadowNum = 0;
 
 	for(int i = 0; i < lightCount; i++){

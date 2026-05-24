@@ -53,5 +53,5 @@ public:
 	}
 
 	// --- 回転設定 ---
-	RotateAxis RotateXYZ;
+	RotateAxis rotateXyz;
 };

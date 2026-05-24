@@ -26,22 +26,22 @@ class EnemyController: public CustomScriptComponent {
 
 		REFLECT_FIELD(Vector3, goalPosition, Vector3(5.5f, 0.0f, 0.0f))
 
-		enum class EnemyState {
+		enum class m_EnemyState{
 		MoveToPushPos,
 		PushBall
 	};
 
-	EnemyState state = EnemyState::MoveToPushPos;
+	EnemyState m_State= EnemyState::MoveToPushPos;
 
-	bool canDash = true;
-	float CurrentSpeed = 0.0f;
+	bool m_CanDash= true;
+	float m_CurrentSpeed= 0.0f;
 
-	ComponentRef<TransformComponent> transform;
-	ComponentRef<ModelRendererComponent> model;
-	ComponentRef<GameTimeManager> gameTime;
+	ComponentRef<TransformComponent> m_Transform;
+	ComponentRef<ModelRendererComponent> m_Model;
+	ComponentRef<GameTimeManager> m_GameTime;
 
-	ComponentRef<TransformComponent> ballTransform;
-	ComponentRef<BallController> ballController;
+	ComponentRef<TransformComponent> m_BallTransform;
+	ComponentRef<BallController> m_BallController;
 
 public:
 	EnemyController(): CustomScriptComponent("EnemyController"){}

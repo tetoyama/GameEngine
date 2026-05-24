@@ -26,7 +26,7 @@ void RenderableSprite::Initialize(SceneManagerContext* context){
 	if(m_spriteMesh){
 
 		m_spriteMesh->mesh.meshCount = 4;
-		VERTEX_3D vertex[4]{};
+		VERTEX_3D m_Vertex[4]{};
 
 		vertex[0].Position = DirectX::XMFLOAT3(0.5f, 0.5f, 0.0f);
 		vertex[0].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
@@ -52,13 +52,13 @@ void RenderableSprite::Initialize(SceneManagerContext* context){
 		vertex[3].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		vertex[3].TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
 
-		D3D11_BUFFER_DESC bd{};
+		D3D11_BUFFER_DESC m_Bd{};
 		bd.Usage = D3D11_USAGE_DEFAULT;
 		bd.ByteWidth = sizeof(VERTEX_3D) * 4;
 		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 		bd.CPUAccessFlags = 0;
 
-		D3D11_SUBRESOURCE_DATA sd{};
+		D3D11_SUBRESOURCE_DATA m_Sd{};
 		sd.pSysMem = vertex;
 
 		context->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_spriteMesh->mesh.m_VertexBuffer.GetAddressOf());
@@ -68,7 +68,7 @@ void RenderableSprite::Initialize(SceneManagerContext* context){
 }
 
 void RenderableSprite::Finalize(){
-	delete m_spriteMesh;
+	delete m_SpriteMesh;
 }
 
 void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
@@ -81,12 +81,12 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 
 
 
-	Vector2 viewportSize = Vector2(
+	Vector2 m_ViewportSize= Vector2(
 		(float)sceneContext->manager->graphics->m_width,
 		(float)sceneContext->manager->graphics->m_height
 	);
 
-	TransformComponent newTransform = transform->CalculateRectTransform(viewportSize, *spriteRenderer, *transform);
+	TransformComponent m_NewTransform= transform->CalculateRectTransform(viewportSize, *spriteRenderer, *transform);
 
 	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
 	ID3D11Device* device = graphicsContext->GetDevice();
@@ -94,7 +94,7 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 	ComponentRegistry* componentRegistry = sceneContext->component;
 
 
-	MATERIAL material{};
+	MATERIAL m_Material{};
 	material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
 	if (pMaterial) {
@@ -112,14 +112,14 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 
 		graphicsContext->SetMaterial(material);
 
-		UVMatrixBuffer uv;
+		UVMatrixBuffer m_Uv;
 		if (pTexture->UV_Slice_X > 0.0f && pTexture->UV_Slice_Y > 0.0f) {
 			// UV_Slice_X/Y は「1セルのUVサイズ」
 			// 例:
 			// 0.25f = 4分割
 			// 0.125f = 8分割
 
-			int column = (int)(1.0f / pTexture->UV_Slice_X);
+			int m_Column= (int)(1.0f / pTexture->UV_Slice_X);
 
 			uv.UVStart.x = (pTexture->AnimationNum % column) * pTexture->UV_Slice_X;
 			uv.UVStart.y = (pTexture->AnimationNum / column) * pTexture->UV_Slice_Y;
@@ -132,11 +132,11 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 
 	} else {
 		// マテリアル設定
-		MATERIAL material{};
+		MATERIAL m_Material{};
 		material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		graphicsContext->SetMaterial(material);
 
-		UVMatrixBuffer uv;
+		UVMatrixBuffer m_Uv;
 		graphicsContext->SetUVMatrixBuffer(uv);
 
 	}
@@ -149,12 +149,12 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 	if(m_spriteMesh->mesh.m_PixelShader){
 		deviceContext->PSSetShader(m_spriteMesh->mesh.m_PixelShader.Get(), NULL, 0);
 	}
-	DirectX::XMMATRIX World = newTransform.CalculateWorldMatrix(&newTransform, componentRegistry);
+	DirectX::XMMATRIX m_World= newTransform.CalculateWorldMatrix(&newTransform, componentRegistry);
 
 	graphicsContext->SetWorldViewProjection2D();
 	graphicsContext->SetWorldMatrix(World);
-	UINT stride = sizeof(VERTEX_3D);
-	UINT offset = 0;
+	UINT m_Stride= sizeof(VERTEX_3D);
+	UINT m_Offset= 0;
 
 	deviceContext->IASetVertexBuffers(0, 1, m_spriteMesh->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
 

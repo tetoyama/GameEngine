@@ -28,7 +28,7 @@ public:
 // ===========================================
 // フラグ
 // ===========================================
-enum ReflectFlags {
+enum reflectFlags{
 	REFLECT_NONE = 0,
 	REFLECT_INSPECTOR = 1 << 0,
 	REFLECT_ENCODE = 1 << 1,
@@ -137,7 +137,7 @@ public: \
     }
 
 #define REFLECT_FIELD(Type, Name, ...) \
-    Type Name = __VA_ARGS__; \
+    Type name= __VA_ARGS__; \
     struct AutoRegister_##Name { \
         AutoRegister_##Name() { \
             static bool registered = false; \
@@ -168,7 +168,7 @@ public: \
 // 初期値あり・フラグ指定あり
 // ===========================================
 #define REFLECT_FIELD_INIT(Type, Name, InitialValue, Flags) \
-    Type Name = InitialValue; \
+    Type name= InitialValue; \
     struct AutoRegister_##Name { \
         AutoRegister_##Name() { \
             static bool registered = false; \
