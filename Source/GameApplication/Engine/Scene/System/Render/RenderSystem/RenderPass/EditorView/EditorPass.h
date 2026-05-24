@@ -10,16 +10,16 @@
 
 struct RenderTarget;
 
-class shadowMapPass;
-class gbufferPass;
-class lightingPass;
-class forwardPass;
-class postEffectPass;
-class overlayUipass;
-class physXdebugPass;
+class ShadowMapPass;
+class GBufferPass;
+class LightingPass;
+class ForwardPass;
+class PostEffectPass;
+class OverlayUIPass;
+class PhysXDebugPass;
 
 // エディタビュー用の統合レンダリングパス
-class EditorPass : public irenderPass{
+class EditorPass : public IRenderPass{
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;
 	void Finalize() override;

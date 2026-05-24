@@ -16,10 +16,10 @@ enum m_RenderLayer;
 
 struct SceneManagerContext;
 
-class entityRegistry;
-class componentRegistry;
-class systemRegistry;
-class prefabSystem;
+class EntityRegistry;
+class ComponentRegistry;
+class SystemRegistry;
+class PrefabSystem;
 
 // シーン内の各レジストリ・マネージャへのポインタをまとめたコンテキスト
 struct SceneContext{

@@ -6,7 +6,7 @@
 
 struct SceneManagerContext;
 
-class resourceService;
+class ResourceService;
 
 class CB41 : public IEditorUI{
 

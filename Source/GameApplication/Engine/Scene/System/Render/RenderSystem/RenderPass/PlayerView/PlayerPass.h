@@ -15,15 +15,15 @@ struct RenderTarget;
 struct PixelShaderData;
 struct VertexShaderData;
 
-class shadowMapPass;
-class gbufferPass;
-class lightingPass;
-class forwardPass;
-class postEffectPass;
-class overlayUipass;
+class ShadowMapPass;
+class GBufferPass;
+class LightingPass;
+class ForwardPass;
+class PostEffectPass;
+class OverlayUIPass;
 
 // プレイヤービュー用の統合レンダリングパス
-class PlayerPass : public irenderPass{
+class PlayerPass : public IRenderPass{
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;
 	void Finalize() override;

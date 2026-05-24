@@ -14,7 +14,7 @@ struct RenderTarget;
 struct PixelShaderData;
 
 // シャドウマップ生成パス
-class ShadowMapPass : public irenderPass{
+class ShadowMapPass : public IRenderPass{
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;
 	void Finalize() override;

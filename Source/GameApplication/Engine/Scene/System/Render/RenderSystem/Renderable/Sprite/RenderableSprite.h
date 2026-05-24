@@ -9,7 +9,7 @@ class ComponentRegistry;
 
 struct RenderPassContext;
 struct SceneManagerContext;
-class meshRendererComponent;
+class MeshRendererComponent;
 
 // 2Dスプライトの描画を行うレンダラブル
 class RenderableSprite: public IRenderable{

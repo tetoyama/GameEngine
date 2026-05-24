@@ -8,8 +8,8 @@
 
 struct SceneContext;
 
-class cameraComponent;
-class transformComponent;
+class CameraComponent;
+class TransformComponent;
 
 // カメラエンティティの参照データを保持する構造体
 struct CameraEntityData {

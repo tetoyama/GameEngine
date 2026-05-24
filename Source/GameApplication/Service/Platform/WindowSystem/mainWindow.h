@@ -8,10 +8,10 @@
 
 struct APPCONFIG;
 
-class mainRenderer;
-class imGuiService;
-class inputService;
-class debugLogService;
+class MainRenderer;
+class ImGuiService;
+class InputService;
+class DebugLogService;
 
 class MainWindow: public IWindow
 {

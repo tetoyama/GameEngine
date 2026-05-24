@@ -14,16 +14,16 @@ class IRenderable;
 struct RenderTarget;
 struct TextureData;
 
-class gbufferPass;
-class shadowMapPass;
+class GBufferPass;
+class ShadowMapPass;
 
-class graphicsContext;
+class GraphicsContext;
 
 struct PixelShaderData;
 struct VertexShaderData;
 
 // ディファードライティング計算パス
-class LightingPass : public irenderPass{
+class LightingPass : public IRenderPass{
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;
 	void Finalize() override;

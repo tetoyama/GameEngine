@@ -10,7 +10,7 @@ struct RenderPassContext;
 struct SceneManagerContext;
 struct SceneContext;
 
-class componentRegistry;
+class ComponentRegistry;
 
 // 描画オブジェクトの基底インターフェース
 class IRenderable{

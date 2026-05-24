@@ -26,7 +26,7 @@ class ResourceService;
 class DebugLogService;
 
 struct LLAMAModelData;
-class llamaagent;
+class LLAMAAgent;
 struct AgentConfig;
 
 struct LLAMAServiceContext

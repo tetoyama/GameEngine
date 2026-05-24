@@ -14,12 +14,12 @@ struct RenderTarget;
 struct PixelShaderData;
 struct VertexShaderData;
 
-class gbufferPass;
-class lightingPass;
-class shadowMapPass;
+class GBufferPass;
+class LightingPass;
+class ShadowMapPass;
 
 // フォワードレンダリングパス（透過オブジェクト等）
-class ForwardPass : public irenderPass{
+class ForwardPass : public IRenderPass{
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;
 	void Finalize() override;

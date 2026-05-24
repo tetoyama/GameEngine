@@ -9,7 +9,7 @@ class ComponentRegistry;
 
 struct RenderPassContext;
 struct SceneManagerContext;
-class meshRendererComponent;
+class MeshRendererComponent;
 
 // ビルボードの描画を行うレンダラブル
 class RenderableBillBoard: public IRenderable{

@@ -19,7 +19,7 @@
 struct TextureData;
 struct SceneManagerContext;
 
-class resourceService;
+class ResourceService;
 
 enum m_FileIconType{
 	FILE_UNDEFINED = 0,

@@ -13,7 +13,7 @@ struct RenderPassContext;
 // レンダーパスの基底インターフェース
 // 各描画パス（GBuffer, Shadow, Forward, PostEffect 等）はこのインターフェースを実装する
 // RenderSystem が登録されたパスを順番に Execute() で呼び出す
-class irenderPass{
+class IRenderPass{
 public:
 	virtual ~IRenderPass() = default;
 
