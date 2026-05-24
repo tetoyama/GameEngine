@@ -10,14 +10,11 @@
 #include "Command/CommandManager.h"
 
 struct EditorDrawContext;
-class editorService;
-
-class resourceService;
-class debugLogService;
-class sceneManager;
-class llamaservice;
-
-class analyzerManager;
+class ResourceService;
+class DebugLogService;
+class SceneManager;
+class LLAMAService;
+class AnalyzerManager;
 
 struct SceneManagerContext;
 
@@ -50,7 +47,7 @@ public:
 	template<typename T>
 	T* GetUI() {
 		static_assert(std::is_base_of<IEditorUI, T>::value, "T must inherit from IEditorUI");
-		for (auto& ui : UIs) {
+		for (auto& ui : m_UIs) {
 			if (auto p = dynamic_cast<T*>(ui)) {
 				return p;
 			}
@@ -69,7 +66,7 @@ public:
 
 private:
 
-	std::vector<IEditorUI*> UIs;  // 管理する全 UI パネルのリスト
+	std::vector<IEditorUI*> m_UIs;  // 管理する全 UI パネルのリスト
 };
 
 // エディター描画フェーズに渡すパフォーマンス統計情報

@@ -26,37 +26,37 @@
 void EditorService::Initialize(EditorServiceContext context) {
 
 	// 各依存サービスへの参照を保持（UI パネルから参照できるようにする）
-	pDebugLogSystem = pContext.pDebugLogSystem;
-	pResourceService = pContext.pResourceService;
-	pSceneManager = pContext.pSceneManager;
-	pLlamaService = pContext.pLlamaService;
+	pDebugLogSystem = context.pDebugLogSystem;
+	pResourceService = context.pResourceService;
+	pSceneManager = context.pSceneManager;
+	pLlamaService = context.pLlamaService;
 
 	// AnalyzerManager の生成・初期化（ソースコード解析機能の起動）
 	pAnalyzer = new AnalyzerManager();
-	if (analyzer) {
+	if (pAnalyzer) {
 
-		AnalyzerManagerContext m_Ctx;
+		AnalyzerManagerContext ctx;
 		ctx.pDebug = pDebugLogSystem;
 
-		analyzer->Initialize(ctx);
+		pAnalyzer->Initialize(ctx);
 	}
 
 	// 全 UI パネルを生成してリストに追加する
 	// 注意: BRAIN は現在無効化中（コメントアウト）
-	UIs.clear();
-	UIs.push_back(new MenuBar());           // ファイル・編集メニューバー
-	UIs.push_back(new PerformanceMonitor()); // FPS・更新時間モニター
-	UIs.push_back(new Hierarchy());         // シーン階層ウィンドウ
-	UIs.push_back(new Inspector());         // コンポーネントインスペクター
-	UIs.push_back(new AssetsBrowser());     // アセットブラウザ
-	UIs.push_back(new DebugLogWindow());    // デバッグログウィンドウ
-	UIs.push_back(new ViewWindow());        // シーンビューウィンドウ
-	UIs.push_back(new SystemSetting());     // システム設定ウィンドウ
-	//UIs.push_back(new BRAIN());           // LLM エージェントウィンドウ（開発中）
-	UIs.push_back(new CB41());				// CB41用
+	m_UIs.clear();
+	m_UIs.push_back(new MenuBar());           // ファイル・編集メニューバー
+	m_UIs.push_back(new PerformanceMonitor()); // FPS・更新時間モニター
+	m_UIs.push_back(new Hierarchy());         // シーン階層ウィンドウ
+	m_UIs.push_back(new Inspector());         // コンポーネントインスペクター
+	m_UIs.push_back(new AssetsBrowser());     // アセットブラウザ
+	m_UIs.push_back(new DebugLogWindow());    // デバッグログウィンドウ
+	m_UIs.push_back(new ViewWindow());        // シーンビューウィンドウ
+	m_UIs.push_back(new SystemSetting());     // システム設定ウィンドウ
+	//m_UIs.push_back(new BRAIN());           // LLM エージェントウィンドウ（開発中）
+	m_UIs.push_back(new CB41());				// CB41用
 
 	// 全パネルを初期化（editorService への参照を渡す）
-	for (auto ui : UIs) {
+	for (auto* ui : m_UIs) {
 		ui->Initialize(this);
 	}
 }
@@ -66,7 +66,7 @@ void EditorService::Initialize(EditorServiceContext context) {
 // 全 UI パネルを描画する。毎フレーム ImGui フレーム内で呼ばれる。
 // -----------------------------------------------------------------------
 void EditorService::Draw(EditorDrawContext ctx) {
-	for (auto ui : UIs) {
+	for (auto* ui : m_UIs) {
 		ui->Draw(ctx);
 	}
 }
@@ -78,18 +78,16 @@ void EditorService::Draw(EditorDrawContext ctx) {
 void EditorService::Shutdown() {
 
 	// AnalyzerManager の終了と解放
-	if (analyzer) {
-		analyzer->Finalize();
-		delete m_Analyzer;
+	if (pAnalyzer) {
+		pAnalyzer->Finalize();
+		delete pAnalyzer;
 		pAnalyzer = nullptr;
 	}
 
 	// 全 UI パネルを終了・解放（逆順でも構わないが登録順で解放）
-	for (auto ui : UIs) {
+	for (auto* ui : m_UIs) {
 		ui->Finalize();
-		delete m_Ui;
-		ui = nullptr;
+		delete ui;
 	}
-	UIs.clear();
+	m_UIs.clear();
 }
-

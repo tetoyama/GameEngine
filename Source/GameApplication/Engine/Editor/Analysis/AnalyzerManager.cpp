@@ -8,8 +8,7 @@
 #include "DebugTools/DebugSystem.h"
 
 void AnalyzerManager::Initialize(const AnalyzerManagerContext& context) {
-
-    pDebug = pContext.pDebug;
+    m_pDebug = context.pDebug;
 
     Register<SourceAnalyzer>("SourceAnalyzer");
     // Register<AssetAnalyzer>("AssetAnalyzer"); // 将来
@@ -17,11 +16,11 @@ void AnalyzerManager::Initialize(const AnalyzerManagerContext& context) {
 
 
 void AnalyzerManager::Finalize() {
-    m_analyzers.clear();
+    m_Analyzers.clear();
 }
 
 void AnalyzerManager::RunAll() {
-    for (auto& [_, entry] : m_analyzers) {
+    for (auto& [_, entry] : m_Analyzers) {
         entry.instance->RunAsync();
     }
 }

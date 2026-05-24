@@ -7,8 +7,10 @@
 #include <vector>
 #include <memory>
 #include <typeindex>
+#include <type_traits>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "../InterFace/IAnalyzer.h"
 
@@ -20,7 +22,7 @@ struct AnalyzerEntry {
 };
 
 struct AnalyzerManagerContext {
-    DebugLogService* debug;
+    DebugLogService* pDebug = nullptr;
 };
 
 class AnalyzerManager {
@@ -31,8 +33,8 @@ public:
     template<class T>
     void Run() {
         auto key = std::type_index(typeid(T));
-        auto it = m_analyzers.find(key);
-        if (it == m_analyzers.end())
+        auto it = m_Analyzers.find(key);
+        if (it == m_Analyzers.end())
             return;
 
         it->second.instance->RunAsync();
@@ -45,16 +47,16 @@ private:
     void Register(const std::string& name, Args&&... args) {
         static_assert(std::is_base_of_v<IAnalyzer, T>);
 
-        auto m_Key= std::type_index(typeid(T));
-        AnalyzerEntry m_Entry;
+        auto key = std::type_index(typeid(T));
+        AnalyzerEntry entry;
         entry.name = name;
         entry.instance = std::make_unique<T>(std::forward<Args>(args)...);
 
-        m_analyzers.emplace(key, std::move(entry));
+        m_Analyzers.emplace(key, std::move(entry));
     }
 
 private:
     std::unordered_map<std::type_index, AnalyzerEntry> m_Analyzers;
 
-    DebugLogService* debug;
+    DebugLogService* m_pDebug = nullptr;
 };
