@@ -24,59 +24,59 @@ struct AgentConfig final {
 	// ============================
 
 	// llama_context_params::n_ctx
-	uint32_t n_ctx = 4096;
+	uint32_t nCtx= 4096;
 
 	// llama_context_params::n_threads
-	uint32_t n_threads = 8;
+	uint32_t nThreads= 8;
 
 	// ============================
 	// sampler 設定
 	// ============================
 
 	// 最大生成トークン数
-	uint32_t max_tokens = 2048;
+	uint32_t maxTokens= 2048;
 
 	// 温度
 	float temperature = 0.7f;
 
 	// Top-K
-	uint32_t top_k = 40;
+	uint32_t topK= 40;
 
 	// Top-P
-	float top_p = 0.9f;
+	float topP= 0.9f;
 
 	// 繰り返しペナルティ
-	float repeat_penalty = 1.1f;
+	float repeatPenalty= 1.1f;
 
 	// ============================
 	// Agent 実行制御
 	// ============================
 
 	// 同時実行可能 Job 数
-	uint32_t max_concurrent_jobs = 1;
+	uint32_t maxConcurrentJobs= 1;
 
 	// ストリーミング出力を許可
-	bool enable_streaming = true;
+	bool enableStreaming= true;
 
 	// 実行中の中断を許可
-	bool allow_abort = true;
+	bool allowAbort= true;
 
 	// ============================
 	// Prompt
 	// ============================
 
 	// system prompt（空なら未使用）
-	std::string system_prompt;
+	std::string systemPrompt;
 
 	// ============================
 	// Debug
 	// ============================
 
 	// トークン単位のログ出力
-	bool enable_token_log = false;
+	bool enableTokenLog= false;
 
 	// プロファイリング有効化
-	bool enable_profiling = false;
+	bool enableProfiling= false;
 
 	// ============================
 	// Validation

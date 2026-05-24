@@ -10,14 +10,14 @@
 #include "Command/CommandManager.h"
 
 struct EditorDrawContext;
-class EditorService;
+class editorService;
 
-class ResourceService;
-class DebugLogService;
-class SceneManager;
-class LLAMAService;
+class resourceService;
+class debugLogService;
+class sceneManager;
+class llamaservice;
 
-class AnalyzerManager;
+class analyzerManager;
 
 struct SceneManagerContext;
 

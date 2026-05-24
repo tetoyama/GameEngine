@@ -19,11 +19,11 @@
 struct SceneManagerContext;
 struct SceneContext;
 struct ColliderShape;
-class ColliderComponent;
-class ModelRendererComponent;
-class TransformComponent;
-class Vector3;
-class PhysicsSimulationCallback;
+class colliderComponent;
+class modelRendererComponent;
+class transformComponent;
+class vector3;
+class physicsSimulationCallback;
 
 //======================================================================
 // アクターとエンティティを関連付けるユーザーデータ

@@ -6,9 +6,9 @@
 
 struct SceneManagerContext;
 
-class ResourceService;
+class resourceService;
 
-class CB41 : public IEditorUI {
+class CB41 : public ieditorUi{
 
 public:
 	void Initialize(EditorService* editor) override;

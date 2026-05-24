@@ -33,13 +33,13 @@ using llama_token = int32_t;
 // ・RunAsync は何度でも呼べる
 // ・プロンプトが長い場合は内部で同期要約
 //
-class LLAMAAgent {
+class llamaagent{
 public:
 	// ============================
 	// State
 	// ============================
 
-	enum class State {
+	enum class state{
 		Idle,
 		Running,
 		Stopping,

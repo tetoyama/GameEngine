@@ -12,7 +12,7 @@
 #include <functional>
 struct SceneContext;
 
-class IComponent {
+class icomponent{
 public:
 	IComponent() = default;
 	virtual ~IComponent() = default;

@@ -13,7 +13,7 @@ struct PrefabData;
 
 // プレファブの保存・インスタンス化を担うシステム
 // ロードは ResourceService を経由するため、同じファイルへの複数回のロードはキャッシュから返される
-class PrefabSystem {
+class prefabSystem{
 public:
 	// エンティティ（およびその Transform 階層配下の全子孫）を YAML プレファブファイルとして保存する
 	// 親子関係は PrefabParent ローカルインデックスとして記録されるため、

@@ -22,7 +22,7 @@ struct TextureData;
 struct SceneContext;
 
 // ビューウィンドウ（シーンプレビュー）UI
-class ViewWindow : public IEditorUI {
+class ViewWindow : public ieditorUi{
 
 public:
 	void Initialize(EditorService* editor) override;

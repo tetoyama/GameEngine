@@ -8,10 +8,10 @@
 #include "Entity/Entity.h" // Entityの定義をインクルード
 
 struct SceneManagerContext;
-class TransformComponent;
-class SpriteRendererComponent;
+class transformComponent;
+class spriteRendererComponent;
 // パーティクルの生成・更新を管理するシステム
-class ParticleSystem : public ISystem {
+class ParticleSystem : public isystem{
 public:
 
 	const char* GetSystemName() const override{

@@ -10,10 +10,10 @@ struct RenderPassContext;
 struct SceneManagerContext;
 struct SceneContext;
 
-class ComponentRegistry;
+class componentRegistry;
 
 // 描画オブジェクトの基底インターフェース
-class IRenderable {
+class irenderable{
 public:
 	virtual ~IRenderable(){}
 

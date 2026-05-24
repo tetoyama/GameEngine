@@ -26,8 +26,8 @@ class EditorService;
 class SystemRegistry;
 
 struct SceneContext;
-class SceneManager;
-class Scene;
+class sceneManager;
+class scene;
 
 // シーンマネージャと各サービスへのポインタをまとめたコンテキスト
 // SceneManager::Initialize に渡し、各シーンや ECS システムから参照される

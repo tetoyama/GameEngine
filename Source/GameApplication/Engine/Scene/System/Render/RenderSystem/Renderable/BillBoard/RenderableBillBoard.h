@@ -9,10 +9,10 @@ class ComponentRegistry;
 
 struct RenderPassContext;
 struct SceneManagerContext;
-class MeshRendererComponent;
+class meshRendererComponent;
 
 // ビルボードの描画を行うレンダラブル
-class RenderableBillBoard: public IRenderable {
+class RenderableBillBoard: public irenderable{
 public:
 	void Initialize(SceneManagerContext* context) override;
 	void Finalize() override;

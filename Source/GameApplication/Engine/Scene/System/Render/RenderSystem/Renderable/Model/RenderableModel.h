@@ -13,7 +13,7 @@ struct RenderPassContext;
 struct SceneManagerContext;
 
 // 3Dモデルの描画を行うレンダラブル
-class RenderableModel :public IRenderable {
+class RenderableModel :public irenderable{
 public:
 	void Initialize(SceneManagerContext* context) override{}
 	void Finalize() override{}

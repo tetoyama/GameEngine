@@ -9,10 +9,10 @@ class ComponentRegistry;
 
 struct RenderPassContext;
 struct SceneManagerContext;
-class MeshRendererComponent;
+class meshRendererComponent;
 
 // 2Dスプライトの描画を行うレンダラブル
-class RenderableSprite: public IRenderable {
+class RenderableSprite: public irenderable{
 public:
 	void Initialize(SceneManagerContext* context) override;
 	void Finalize() override;

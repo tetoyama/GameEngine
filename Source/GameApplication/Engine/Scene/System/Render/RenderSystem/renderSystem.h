@@ -27,16 +27,16 @@ struct RenderTarget;
 struct CameraEntityData;
 struct TextureData;
 
-class IRenderable;
-class IRenderPass;
+class irenderable;
+class irenderPass;
 
-class PlayerPass;
-class EditorPass;
+class playerPass;
+class editorPass;
 
-class ComponentRegistry;
-class TransformComponent;
+class componentRegistry;
+class transformComponent;
 
-class PostEffectShader;
+class postEffectShader;
 
 //======================================================================
 // ポストエフェクト情報

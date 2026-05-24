@@ -10,7 +10,7 @@ class ComponentRegistry;
 struct RenderPassContext;
 struct SceneManagerContext;
 // メッシュの描画を行うレンダラブル
-class RenderableMesh: public IRenderable {
+class RenderableMesh: public irenderable{
 public:
 	void Initialize(SceneManagerContext* context) override{}
 	void Finalize() override{}

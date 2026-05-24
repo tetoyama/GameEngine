@@ -13,7 +13,7 @@
 
 struct SceneManagerContext;
 
-class CustomScriptSystem: public ISystem {
+class CustomScriptSystem: public isystem{
 public:
 
 	const char* GetSystemName() const override{

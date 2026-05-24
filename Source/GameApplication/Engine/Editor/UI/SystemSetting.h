@@ -16,7 +16,7 @@
 struct SceneContext;
 
 // システム設定UI
-class SystemSetting : public IEditorUI {
+class SystemSetting : public ieditorUi{
 
 public:
 	void Initialize(EditorService* editor) override {

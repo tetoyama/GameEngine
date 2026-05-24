@@ -9,10 +9,10 @@ class ComponentRegistry;
 
 struct RenderPassContext;
 struct SceneManagerContext;
-class MeshRendererComponent;
+class meshRendererComponent;
 
 // パーティクルの描画を行うレンダラブル
-class RenderableParticle: public IRenderable {
+class RenderableParticle: public irenderable{
 public:
 	void Initialize(SceneManagerContext* context) override;
 	void Finalize() override;

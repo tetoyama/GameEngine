@@ -8,7 +8,7 @@ class EditorService;
 struct EditorDrawContext;
 
 // エディタUIの基底インターフェース
-class IEditorUI {
+class ieditorUi{
 public:
 	IEditorUI() {}
 	virtual ~IEditorUI() = default;

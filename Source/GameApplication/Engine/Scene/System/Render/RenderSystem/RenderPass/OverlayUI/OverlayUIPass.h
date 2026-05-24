@@ -14,12 +14,12 @@ struct RenderTarget;
 struct PixelShaderData;
 struct VertexShaderData;
 
-class GBufferPass;
-class LightingPass;
-class ShadowMapPass;
+class gbufferPass;
+class lightingPass;
+class shadowMapPass;
 
 // オーバーレイUI描画パス
-class OverlayUIPass : public IRenderPass {
+class OverlayUIPass : public irenderPass{
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;
 	void Finalize() override;

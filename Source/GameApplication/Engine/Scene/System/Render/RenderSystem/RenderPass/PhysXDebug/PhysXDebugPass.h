@@ -12,10 +12,10 @@
 struct PixelShaderData;
 struct VertexShaderData;
 
-class CameraComponent;
+class cameraComponent;
 
 // PhysXデバッグライン描画パス
-class PhysXDebugPass: public IRenderPass {
+class PhysXDebugPass: public irenderPass{
 public:
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;
 	void Finalize() override;
