@@ -116,14 +116,14 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 	m_context->graphics->SetDepthMode(DepthMode::ReadOnly);
 
 	// 透明・UIレイヤーのみ描画
-	for (int i = 0; i < (int)RenderLayer::MAX_RENDER_LAYER; i++) {
+	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++) {
 
 		if (!ctx.renderLayerVisibility[i]) {
 			continue;
 		}
 
-		if (i != (int)RenderLayer::SORT_TRANSPARENT_3D &&
-			i != (int)RenderLayer::TRANSPARENT_3D) {
+		if (i != (int)RenderLayer::SortTransparent3D &&
+			i != (int)RenderLayer::Transparent3D) {
 			continue;
 		}
 
@@ -144,7 +144,7 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 					continue;
 				}
 
-				if (layer == RenderLayer::SORT_TRANSPARENT_3D) {
+				if (layer == RenderLayer::SortTransparent3D) {
 
 					auto transform = context->component->GetComponent<TransformComponent>(entity);
 					if (!transform) {

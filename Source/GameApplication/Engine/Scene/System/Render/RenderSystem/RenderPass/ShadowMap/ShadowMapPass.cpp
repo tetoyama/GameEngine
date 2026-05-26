@@ -214,13 +214,13 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 						// カスケードスプリット深度を PSSM (対数+線形ブレンド) で計算
 						const float     csmNear   = max(cameraNear, 0.1f);
 						const float     csmFar    = cameraFar;
-						constexpr float CSM_LAMBDA = 0.85f; // 0.0=完全線形, 1.0=完全対数(近距離重視)
+						constexpr float csmLambda = 0.85f; // 0.0=完全線形, 1.0=完全対数(近距離重視)
 						float splitDepths[DIRECTIONAL_CSM_CASCADE_COUNT];
 						for(int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT; c++){
 							float p        = (float)(c + 1) / (float)DIRECTIONAL_CSM_CASCADE_COUNT;
 							float logSplit = csmNear * powf(csmFar / csmNear, p);
 							float uniSplit = csmNear + (csmFar - csmNear) * p;
-							splitDepths[c] = CSM_LAMBDA * logSplit + (1.0f - CSM_LAMBDA) * uniSplit;
+							splitDepths[c] = csmLambda * logSplit + (1.0f - csmLambda) * uniSplit;
 						}
 
 						// ライト方向の up ベクトルを決定
@@ -511,7 +511,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 		deviceContext->RSSetViewports(1, &vp);
 
 		// ======== レンダリング実行 ========
-		for(int j = 0; j < (int)RenderLayer::MAX_RENDER_LAYER; j++){
+		for(int j = 0; j < (int)RenderLayer::MaxRenderLayer; j++){
 
 			if(!newContext.renderLayerVisibility[j]) continue;
 

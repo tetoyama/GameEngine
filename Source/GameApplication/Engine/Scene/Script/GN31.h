@@ -18,7 +18,7 @@
 
 #pragma comment (lib, "ws2_32.lib") // WinSockライブラリをリンク
 
-enum class NetworkState {
+enum NetworkState {
 	NETWORKSTATE_CLOSE = 0,
 	NETWORKSTATE_START,
 	NETWORKSTATE_RECV,

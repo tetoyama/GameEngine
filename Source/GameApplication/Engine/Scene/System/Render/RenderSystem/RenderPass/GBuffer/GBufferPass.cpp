@@ -144,9 +144,9 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 	// ----- Context -----
 	RenderPassContext newCtx = ctx;
 	newCtx.passPhase = RenderPhase::PHASE_GBUFFER;
-	newCtx.renderLayerVisibility[RenderLayer::SORT_TRANSPARENT_3D] = false;
-	newCtx.renderLayerVisibility[RenderLayer::TRANSPARENT_3D] = false;
-	newCtx.renderLayerVisibility[RenderLayer::OVERLAY_UI] = false;
+	newCtx.renderLayerVisibility[RenderLayer::SortTransparent3D] = false;
+	newCtx.renderLayerVisibility[RenderLayer::Transparent3D] = false;
+	newCtx.renderLayerVisibility[RenderLayer::OverlayUI] = false;
 
 	// ----- CameraBuffer -----
 	gc->SetCameraPosition(ctx.CameraPosition);
@@ -164,7 +164,7 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 	dc->RSSetViewports(1, &vp);
 
 	// ----- Draw -----
-	for (int layer = 0; layer < (int)RenderLayer::MAX_RENDER_LAYER; layer++) {
+	for (int layer = 0; layer < (int)RenderLayer::MaxRenderLayer; layer++) {
 
 		if (!newCtx.renderLayerVisibility[layer]) continue;
 

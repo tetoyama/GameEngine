@@ -106,8 +106,8 @@ public:
 		);
 
 		// --- カメラ遮蔽判定（遮蔽物があればカメラを近づける） ---
-		constexpr float OCCLUSION_PADDING   = 0.1f;  // 遮蔽面からの安全マージン
-		constexpr float MIN_GROUND_CLEARANCE = 0.3f;  // ターゲット足元からの最低高さ
+		constexpr float occlusionPadding   = 0.1f;  // 遮蔽面からの安全マージン
+		constexpr float minGroundClearance = 0.3f;  // ターゲット足元からの最低高さ
 		auto* phys = m_ref.GetScene()->manager
 			->systemRegistry
 			->GetSystem<PhysicSystem>();
@@ -137,7 +137,7 @@ public:
 					selfLayerBit);
 
 				if (occHit.hit) {
-					float safeLen = (std::max)(occHit.distance - OCCLUSION_PADDING, minDistance);
+					float safeLen = (std::max)(occHit.distance - occlusionPadding, minDistance);
 					camPos = DirectX::XMVectorSet(
 						eyeF.x + dirF.x * safeLen,
 						eyeF.y + dirF.y * safeLen,
@@ -149,7 +149,7 @@ public:
 
 		DirectX::XMStoreFloat3(&pos, camPos);
 		// 地面めり込み防止: カメラ Y がターゲット足元を下回らないようにする
-		pos.y = (std::max)(pos.y, targetTransform->position.y + MIN_GROUND_CLEARANCE);
+		pos.y = (std::max)(pos.y, targetTransform->position.y + minGroundClearance);
 		transform->position = Vector3(pos.x, pos.y, pos.z);
 		transform->SetRotationEuler(Vector3(pitch, yaw, 0));
 

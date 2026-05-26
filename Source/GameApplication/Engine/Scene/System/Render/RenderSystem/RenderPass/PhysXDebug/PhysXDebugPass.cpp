@@ -47,7 +47,7 @@ void PhysXDebugPass::Execute(const RenderPassContext& ctx){
 	auto graphicsContext = m_context->graphics;
 	//graphicsContext->SetDepthMode(DepthMode::Disable);
 
-	if(ctx.renderLayerVisibility[(int)RenderLayer::DEBUG]){
+	if(ctx.renderLayerVisibility[(int)RenderLayer::Debug]){
 
 		//return;
 

@@ -12,7 +12,7 @@
 #include "Entity/Entity.h"
 
 // 前方宣言
-enum class RenderLayer;
+enum RenderLayer;
 
 struct SceneManagerContext;
 

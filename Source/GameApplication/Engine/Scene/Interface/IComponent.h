@@ -28,7 +28,7 @@ public:
 // ===========================================
 // フラグ
 // ===========================================
-enum class ReflectFlags {
+enum ReflectFlags {
 	REFLECT_NONE = 0,
 	REFLECT_INSPECTOR = 1 << 0,
 	REFLECT_ENCODE = 1 << 1,

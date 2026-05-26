@@ -13,7 +13,7 @@
 class GraphicsContext;
 
 // レンダーターゲットの種別を定義する列挙型
-enum class RenderTargetType
+enum RenderTargetType
 {
 	RENDERTARGET_TYPE_COLOR,
 	RENDERTARGET_TYPE_COLOR_UNORM,
