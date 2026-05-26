@@ -1,4 +1,4 @@
-﻿// =======================================================================
+// =======================================================================
 // 
 // graphicsContext.h
 // 
@@ -65,16 +65,16 @@ public:
 // ポストプロセスパイプラインの 1 ノードを表す構造体（現在は未使用）
 struct PostProcessNode {
 	int ID;
-	std::string ShaderPath;
-	float ResolutionScale = 1.0f;
-	UINT OutputWidth = 0;
-	UINT OutputHeight = 0;
-	int MipLevels = 1;  // 生成するミップマップレベル数（1 = ミップなし）
+	std::string shaderPath;
+	float resolutionScale = 1.0f;
+	UINT outputWidth = 0;
+	UINT outputHeight = 0;
+	int mipLevels = 1;  // 生成するミップマップレベル数（1 = ミップなし）
 
-	DirectX::XMFLOAT4 Param = {0,0,0,0};
+	DirectX::XMFLOAT4 param = {0,0,0,0};
 
-	std::vector<int> Inputs; // 接続元ノードID
-	std::unordered_map<std::string, float> Parameters;
+	std::vector<int> inputs; // 接続元ノードID
+	std::unordered_map<std::string, float> parameters;
 
 	// 実行リソース
 	PostEffectShader shader;

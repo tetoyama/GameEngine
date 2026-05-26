@@ -1,4 +1,4 @@
-﻿// =======================================================================
+// =======================================================================
 // 
 // PostEffectPass.cpp
 // 
@@ -53,7 +53,7 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 			if (!e.enabled || !e.ps || !e.vs) continue;
 
 			PostProcessNode node{};
-			node.id                  = idx;
+			node.ID                  = idx;
 			node.shader.m_VS         = e.vs->m_VertexShader;
 			node.shader.m_PS         = e.ps->m_PixelShader;
 			node.shader.m_InputLayout = e.vs->m_VertexLayout;
@@ -80,7 +80,7 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 
 		// リンクを後から解決
 		for (auto& node : postNodes) {
-			int   effectIdx = node.id;
+			int   effectIdx = node.ID;
 			const auto& resolvedInputs = camera->GetResolvedPostEffectInputs(effectIdx);
 
 			node.inputs.assign(resolvedInputs.size(), -1);
