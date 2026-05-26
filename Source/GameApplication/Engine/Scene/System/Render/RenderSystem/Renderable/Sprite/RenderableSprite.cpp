@@ -61,9 +61,9 @@ void RenderableSprite::Initialize(SceneManagerContext* context){
 		D3D11_SUBRESOURCE_DATA sd{};
 		sd.pSysMem = vertex;
 
-		context->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_spriteMesh->mesh.m_VertexBuffer.GetAddressOf());
-		context->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\commonVS.cso", m_spriteMesh->mesh.m_VertexShader.GetAddressOf(), m_spriteMesh->mesh.m_VertexLayout.GetAddressOf());
-		context->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_spriteMesh->mesh.m_PixelShader.GetAddressOf());
+		context->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_spriteMesh->mesh.vertexBuffer.GetAddressOf());
+		context->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\commonVS.cso", m_spriteMesh->mesh.vertexShader.GetAddressOf(), m_spriteMesh->mesh.m_VertexLayout.GetAddressOf());
+		context->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_spriteMesh->mesh.pixelShader.GetAddressOf());
 	}
 }
 
@@ -82,8 +82,8 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 
 
 	Vector2 viewportSize = Vector2(
-		(float)sceneContext->manager->graphics->m_width,
-		(float)sceneContext->manager->graphics->m_height
+		(float)sceneContext->manager->graphics->width,
+		(float)sceneContext->manager->graphics->height
 	);
 
 	TransformComponent newTransform = transform->CalculateRectTransform(viewportSize, *spriteRenderer, *transform);
@@ -105,9 +105,9 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 	if (pTexture) {
 
 			// マテリアル設定
-		if (pTexture->m_TextureData) {
+		if (pTexture->textureData) {
 			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
-			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->textureData->pTexture.GetAddressOf());
 		}
 
 		graphicsContext->SetMaterial(material);
@@ -143,11 +143,11 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 	if(m_spriteMesh->mesh.m_VertexLayout){
 		deviceContext->IASetInputLayout(m_spriteMesh->mesh.m_VertexLayout.Get());
 	}
-	if(m_spriteMesh->mesh.m_VertexShader){
-		deviceContext->VSSetShader(m_spriteMesh->mesh.m_VertexShader.Get(), NULL, 0);
+	if(m_spriteMesh->mesh.vertexShader){
+		deviceContext->VSSetShader(m_spriteMesh->mesh.vertexShader.Get(), NULL, 0);
 	}
-	if(m_spriteMesh->mesh.m_PixelShader){
-		deviceContext->PSSetShader(m_spriteMesh->mesh.m_PixelShader.Get(), NULL, 0);
+	if(m_spriteMesh->mesh.pixelShader){
+		deviceContext->PSSetShader(m_spriteMesh->mesh.pixelShader.Get(), NULL, 0);
 	}
 	DirectX::XMMATRIX World = newTransform.CalculateWorldMatrix(&newTransform, componentRegistry);
 
@@ -156,7 +156,7 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
 
-	deviceContext->IASetVertexBuffers(0, 1, m_spriteMesh->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
+	deviceContext->IASetVertexBuffers(0, 1, m_spriteMesh->mesh.vertexBuffer.GetAddressOf(), &stride, &offset);
 
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 

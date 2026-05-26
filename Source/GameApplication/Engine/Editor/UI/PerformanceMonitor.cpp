@@ -17,7 +17,7 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 	double FixedFPS = ctx.FixedUpdateFPS;
 	double Draw = ctx.DrawTime;
 	double Update = ctx.UpdateTime;
-	bool* showPerformanceMonitor = &m_editor->GetUI<MenuBar>()->m_showPerformanceMonitor;
+	bool* showPerformanceMonitor = &m_editor->GetUI<MenuBar>()->showPerformanceMonitor;
 
 	HANDLE hProc = GetCurrentProcess();
 	PROCESS_MEMORY_COUNTERS_EX pmc;

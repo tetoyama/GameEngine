@@ -103,7 +103,7 @@ private:
     // モデル管理
     // ============================
     std::unordered_map<std::string, std::shared_ptr<LLAMAModelData>> m_models;
-    mutable std::mutex m_modelMutex;
+    mutable std::mutex modelMutex;
 
     std::unordered_map<
         std::string,
@@ -114,7 +114,7 @@ private:
     // エージェント管理
     // ============================
     std::vector<std::shared_ptr<LLAMAAgent>> m_agents;
-    mutable std::mutex m_agentMutex;
+    mutable std::mutex agentMutex;
 
     // ============================
     // 非同期ジョブキュー
@@ -122,10 +122,10 @@ private:
     std::queue<ModelLoadJob>  m_modelJobQueue;
     std::queue<AgentCreateJob> m_agentJobQueue;
 
-    std::mutex m_jobMutex;
-    std::condition_variable m_jobCV;
+    std::mutex jobMutex;
+    std::condition_variable jobCV;
 	std::atomic<bool> m_threadRunning{false};
-	std::thread m_workerThread;
+	std::thread workerThread;
 
 	// -------------------------
 	// LLM
@@ -139,7 +139,7 @@ private:
 	// UI state
 	// -------------------------
 	char inputBuffer[2048]{};
-	bool m_scrollToBottom = false;
+	bool scrollToBottom = false;
 
     // ============================
     // 内部処理
@@ -155,7 +155,7 @@ private:
 	};
 
 	std::queue<CompletedCallback> m_completedCallbacks;
-	std::mutex m_completedMutex;
+	std::mutex completedMutex;
 
 	void PumpCallbacks();
 };

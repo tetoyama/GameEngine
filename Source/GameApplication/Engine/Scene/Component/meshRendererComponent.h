@@ -16,12 +16,12 @@ class GraphicsContext;
 
 // メッシュ描画用のバッファデータを保持する構造体
 struct MeshData {
-	TextureData* m_TextureData = nullptr;
+	TextureData* textureData= nullptr;
 
-	Microsoft::WRL::ComPtr<ID3D11Buffer>        m_VertexBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer>        vertexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer>        m_IndexBuffer;
-	Microsoft::WRL::ComPtr<ID3D11VertexShader>  m_VertexShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader>   m_PixelShader;
+	Microsoft::WRL::ComPtr<ID3D11VertexShader>  vertexShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader>   pixelShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout>   m_VertexLayout;
 
 	int meshCount = 0;

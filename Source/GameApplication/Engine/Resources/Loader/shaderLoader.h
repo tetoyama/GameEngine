@@ -18,7 +18,7 @@ inline std::shared_ptr<VertexShaderData> LoadVertexShaderFromFile(const std::str
 	if (!HasExtension(path, "cso")) return nullptr;
 
 	auto shader = std::make_shared<VertexShaderData>();
-	if (!context->CreateVertexShader(path.c_str(), &shader->m_VertexShader, &shader->m_VertexLayout))
+	if (!context->CreateVertexShader(path.c_str(), &shader->vertexShader, &shader->m_VertexLayout))
 		return nullptr;
 	shader->FilePath = path;
 	return shader;
@@ -63,7 +63,7 @@ LoadPixelShaderFromFile(const std::string& path, GraphicsContext* context){
 			psBlob->GetBufferPointer(),
 			psBlob->GetBufferSize(),
 			nullptr,
-			shader->m_PixelShader.GetAddressOf()
+			shader->pixelShader.GetAddressOf()
 		);
 
 		if(FAILED(hr))
@@ -88,7 +88,7 @@ LoadPixelShaderFromFile(const std::string& path, GraphicsContext* context){
 			buffer.data(),
 			buffer.size(),
 			nullptr,
-			shader->m_PixelShader.GetAddressOf()
+			shader->pixelShader.GetAddressOf()
 		);
 
 		if(FAILED(hr))

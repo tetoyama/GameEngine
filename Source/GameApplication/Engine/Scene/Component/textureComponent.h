@@ -29,11 +29,11 @@ public:
 
 	int AnimationNum = 0;  // 表示するセルのインデックス（0 から UV_Slice_X * UV_Slice_Y - 1）
 
-	std::shared_ptr<TextureData> m_TextureData;  // ロード済みテクスチャデータ
+	std::shared_ptr<TextureData> textureData;  // ロード済みテクスチャデータ
 
 	YAML::Node encode() override{
 		YAML::Node node;
-		if (m_TextureData) {
+		if (textureData) {
 			node["FilePath"] = m_TextureData->FilePath;
 		}
 		node["UV_Slice_X"] = UV_Slice_X;
@@ -47,7 +47,7 @@ public:
 		if (!node.IsMap()) { return false; }
 
 		if (node["FilePath"]) {
-			m_TextureData = context->manager->resource->Load<TextureData>(node["FilePath"].as<std::string>().c_str());
+			textureData= context->manager->resource->Load<TextureData>(node["FilePath"].as<std::string>().c_str());
 		}
 		if(node["UV_Slice_X"]){
 			UV_Slice_X = node["UV_Slice_X"].as<float>();
@@ -156,7 +156,7 @@ public:
 		ImGui::SameLine(textLabelWidth);
 		ImGui::PushItemWidth(inputFieldWidth);
 		if(ImGui::InputText("##TextureInput", filepathBuffer, sizeof(filepathBuffer))){
-			m_TextureData = context->manager->resource->Load<TextureData>(filepathBuffer);
+			textureData= context->manager->resource->Load<TextureData>(filepathBuffer);
 		}
 		ImGui::PopItemWidth();
 
@@ -165,7 +165,7 @@ public:
 		ImGui::SameLine();
 		if(ImGui::SmallButton("x")){
 			filepathBuffer[0] = '\0'; // クリア
-			m_TextureData = nullptr; // テクスチャデータもクリア
+			textureData= nullptr; // テクスチャデータもクリア
 		}
 
 
@@ -224,7 +224,7 @@ public:
 				const char* droppedPath = (const char*)payload->Data;
 				std::string _texturePath = std::string(droppedPath);
 
-				m_TextureData = context->manager->resource->Load<TextureData>(_texturePath);
+				textureData= context->manager->resource->Load<TextureData>(_texturePath);
 			}
 			ImGui::EndDragDropTarget();
 		}

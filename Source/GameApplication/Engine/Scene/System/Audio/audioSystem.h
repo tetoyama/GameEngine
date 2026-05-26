@@ -24,7 +24,7 @@ public:
 	}
 
 	void Initialize() override{
-		m_audioContext = m_context->audio;
+		audioContext= m_context->audio;
 	}
 
 	void Finalize() override{
@@ -54,16 +54,16 @@ public:
 				if (!comp->isInitialized) {
 					comp->isInitialized = true;
 					// AudioDataロードはSystem側でやる
-					if (!comp->m_AudioData && !comp->FilePath.empty()) {
-						comp->m_AudioData = m_context->resource->Load<AudioData>(comp->FilePath);
+					if (!comp->audioData && !comp->FilePath.empty()) {
+						comp->audioData = m_context->resource->Load<AudioData>(comp->FilePath);
 					}
 
 					if (comp->PlayOnStart && !comp->Playing) {
-						comp->Play(m_audioContext);
+						comp->Play(audioContext);
 					}
 				}
 				if (comp->Playing) {
-					if (!comp->m_SourceVoice) {
+					if (!comp->sourceVoice) {
 						comp->Playing = false;
 					}
 				}
@@ -73,5 +73,5 @@ public:
 
 private:
 	SceneManagerContext* m_context = nullptr;
-	AudioContext* m_audioContext = nullptr;
+	AudioContext* audioContext= nullptr;
 };

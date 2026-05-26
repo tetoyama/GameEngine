@@ -19,7 +19,7 @@ namespace EffekseerRendererDX11
 class DeviceObject
 {
 private:
-	RendererImplemented* m_renderer;
+	RendererImplemented* renderer;
 
 	//! whether does this instance inc and dec the reference count of renderer
 	bool hasRefCount_ = false;

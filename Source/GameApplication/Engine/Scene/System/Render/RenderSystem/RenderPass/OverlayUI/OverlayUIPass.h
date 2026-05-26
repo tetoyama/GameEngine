@@ -29,7 +29,7 @@ public:
 	std::vector<IRenderable*> renderables;
 
 private:
-	std::shared_ptr<VertexShaderData> m_VertexShader;
+	std::shared_ptr<VertexShaderData> vertexShader;
 
 	ID3D11RenderTargetView** m_rtv = nullptr;
 	RenderTarget* m_dsv = nullptr;

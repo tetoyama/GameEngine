@@ -23,7 +23,7 @@ class AudioContext;
 // AudioSystem が PlayOnStart フラグを見て再生を開始する
 class AudioComponent: public IComponent {
 public:
-	std::shared_ptr<AudioData> m_AudioData;        // ロード済みオーディオデータ
+	std::shared_ptr<AudioData> audioData;        // ロード済みオーディオデータ
 	std::string FilePath;                           // オーディオファイルのパス（YAML 保存用）
 
 	bool Loop = false;          // ループ再生するか
@@ -32,16 +32,16 @@ public:
 	bool Playing = false;       // 現在再生中かどうか
 	bool isInitialized = false; // AudioSystem によって初期化済みかどうか
 
-	IXAudio2SourceVoice* m_SourceVoice = nullptr; // 再生ハンドル（AudioSystem が生成・管理）
+	IXAudio2SourceVoice* sourceVoice= nullptr; // 再生ハンドル（AudioSystem が生成・管理）
 
 	AudioComponent() = default;
 
 	// デストラクタ: ソースボイスを停止・解放する
 	~AudioComponent(){
-		if(m_SourceVoice){
+		if(sourceVoice){
 			m_SourceVoice->Stop();
 			m_SourceVoice->DestroyVoice();
-			m_SourceVoice = nullptr;
+			sourceVoice= nullptr;
 		}
 	}
 
@@ -51,39 +51,39 @@ public:
 	//   audioContext - XAudio2 マスタリングボイスを保持するコンテキスト
 	// 戻り値: 再生開始に成功した場合 true
 	bool Play(AudioContext* audioContext){
-		if(!m_AudioData || !m_AudioData->m_SoundData || !audioContext)
+		if(!m_AudioData || !m_AudioData->soundData || !audioContext)
 			return false;
 
 		// 既存ボイスを破棄して新規ボイスを作成
-		if(m_SourceVoice){
+		if(sourceVoice){
 			m_SourceVoice->Stop();
 			m_SourceVoice->DestroyVoice();
-			m_SourceVoice = nullptr;
+			sourceVoice= nullptr;
 		}
 
 		// オーディオフォーマットに合ったソースボイスを生成
-		m_SourceVoice = audioContext->CreateSourceVoice(&m_AudioData->m_Format);
-		if(!m_SourceVoice) return false;
+		sourceVoice= audioContext->CreateSourceVoice(&m_AudioData->format);
+		if(!sourceVoice) return false;
 
 		// バッファを設定してソースボイスに送信
 		XAUDIO2_BUFFER buffer = {};
-		buffer.AudioBytes = m_AudioData->m_Length;
-		buffer.pAudioData = m_AudioData->m_SoundData;
+		buffer.AudioBytes = m_AudioData->length;
+		buffer.pAudioData = m_AudioData->soundData;
 		buffer.PlayBegin = 0;
-		buffer.PlayLength = m_AudioData->m_PlayLength;
+		buffer.PlayLength = m_AudioData->playLength;
 		buffer.Flags = XAUDIO2_END_OF_STREAM;
 
 		// ループ設定: 無限ループの場合はバッファ全体を繰り返す
 		if(Loop){
 			buffer.LoopBegin = 0;
-			buffer.LoopLength = m_AudioData->m_PlayLength;
+			buffer.LoopLength = m_AudioData->playLength;
 			buffer.LoopCount = XAUDIO2_LOOP_INFINITE;
 		}
 
 		HRESULT hr = m_SourceVoice->SubmitSourceBuffer(&buffer);
 		if(FAILED(hr)){
 			m_SourceVoice->DestroyVoice();
-			m_SourceVoice = nullptr;
+			sourceVoice= nullptr;
 			return false;
 		}
 
@@ -96,11 +96,11 @@ public:
 
 	// 再生中の音声を停止してソースボイスを解放する
 	void Stop(){
-		if(m_SourceVoice){
+		if(sourceVoice){
 			m_SourceVoice->Stop();
 			m_SourceVoice->FlushSourceBuffers(); // バッファをフラッシュして再生残を破棄
 			m_SourceVoice->DestroyVoice();
-			m_SourceVoice = nullptr;
+			sourceVoice= nullptr;
 		}
 		Playing = false;
 	}
@@ -178,7 +178,7 @@ public:
 		ImGui::SameLine(100);
 		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 		if(ImGui::UndoSliderFloat("##VolumeSlider", &Volume, 0.0f, 1.0f)){
-			if(m_SourceVoice){
+			if(sourceVoice){
 				m_SourceVoice->SetVolume(Volume);
 			}
 		}

@@ -98,8 +98,8 @@ void PhysXDebugPass::Execute(const RenderPassContext& ctx){
 		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
 		// シェーダーをセット（通常のカラー付き頂点用のものを使用）
-		deviceContext->VSSetShader(m_LineVertexShader->m_VertexShader.Get(), nullptr, 0);
-		deviceContext->PSSetShader(m_LinePixelShader->m_PixelShader.Get(), nullptr, 0);
+		deviceContext->VSSetShader(m_LineVertexShader->vertexShader.Get(), nullptr, 0);
+		deviceContext->PSSetShader(m_LinePixelShader->pixelShader.Get(), nullptr, 0);
 
 		// 描画
 		deviceContext->Draw(static_cast<UINT>(vertices.size()), 0);

@@ -29,11 +29,11 @@ void InputService::UnregisterWindow(HWND hwnd){
 }
 
 void InputService::Initialize(HWND window){
-	m_window = window;
+	window = window;
 	m_mode = MousePositionMode_ABSOLUTE;
-	m_lastX = m_lastY = 0;
-	m_relativeX = m_relativeY = INT32_MAX;
-	m_inFocus = true;
+	lastX = lastY = 0;
+	relativeX = relativeY = INT32_MAX;
+	inFocus = true;
 	// 単一ウィンドウ用の初期化。マルチウィンドウでは RegisterWindow を使う。
 	m_windowStates[window] = WindowInputState{};
 }

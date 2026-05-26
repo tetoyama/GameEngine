@@ -22,17 +22,17 @@ public:
 	MainRenderer(){}
 
 	~MainRenderer() {
-		if(m_d2dRenderer){
-			delete m_d2dRenderer;
+		if(d2dRenderer){
+			delete d2dRenderer;
 		}
 	}
 
 	void Initialize(GraphicsContext* context, IWindow* mainWindow) {
-		m_graphicsContext = context;
+		graphicsContext= context;
 		m_hwnd = mainWindow->GetHWND();
-		m_d2dRenderer = new D2DRenderer(context, m_hwnd);
-		m_width = mainWindow->GetWidth();
-		m_height = mainWindow->GetHeight();
+		d2dRenderer= new D2DRenderer(context, m_hwnd);
+		width= mainWindow->GetWidth();
+		height= mainWindow->GetHeight();
 	}
 
 	void Shutdown()override {}
@@ -44,25 +44,25 @@ public:
 	
 	void OnResize(UINT width, UINT height){
 		m_d2dRenderer->OnResizeRelease();
-		if(m_graphicsContext){
+		if(graphicsContext){
 			m_graphicsContext->Resize(width, height);
 		}
 		m_d2dRenderer->OnResizeRecreate();
-		m_width = width;
-		m_height = height;
+		width= width;
+		height= height;
 	}
 
 	GraphicsContext* GetGraphicsContext() const{
-		return m_graphicsContext;
+		return graphicsContext;
 	}
 	HWND GetHWND(){
 		return m_hwnd;
 	}
 private:
 	HWND m_hwnd{};
-	GraphicsContext* m_graphicsContext = nullptr;
-	D2DRenderer* m_d2dRenderer = nullptr;
+	GraphicsContext* graphicsContext= nullptr;
+	D2DRenderer* d2dRenderer= nullptr;
 
-	UINT m_width = 0;
-	UINT m_height = 0;
+	UINT width= 0;
+	UINT height= 0;
 };

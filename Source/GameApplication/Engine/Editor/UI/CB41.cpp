@@ -4,14 +4,14 @@
 #include "Backends/ImGui/imgui.h"
 
 void CB41::Initialize(EditorService* editor) {
-	m_editor = editor;
+	editor = editor;
 }
 
 void CB41::Finalize() {}
 
 void CB41::Draw(const EditorDrawContext ctx) {
 	bool* show =
-		&m_editor->GetUI<MenuBar>()->m_showCB41;
+		&m_editor->GetUI<MenuBar>()->showCB41;
 	if (!show || !*show) return;
 
 	ImGui::Begin("CB41", show);

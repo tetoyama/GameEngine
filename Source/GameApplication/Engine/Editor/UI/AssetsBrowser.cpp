@@ -25,7 +25,7 @@
 
 void AssetsBrowser::Initialize(EditorService* editor){
 	m_resourceService = editor->resourceService;
-	m_editor = editor;
+	editor = editor;
 
 	fileIcon[FileIconType::FILE_UNDEFINED]	= m_resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_undefied.png");
 	fileIcon[FileIconType::FILE_FOLDER]		= m_resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\folder.png");
@@ -45,7 +45,7 @@ void AssetsBrowser::Finalize(){
 
 void AssetsBrowser::Draw(const EditorDrawContext ctx){
 
-	bool* showAssetsBrowser = &m_editor->GetUI<MenuBar>()->m_showAssetsBrowser;
+	bool* showAssetsBrowser = &m_editor->GetUI<MenuBar>()->showAssetsBrowser;
 
 	if(!showAssetsBrowser || !*showAssetsBrowser){
 		return;
@@ -208,9 +208,9 @@ void AssetsBrowser::DrawDirectoryTree(const std::filesystem::path& directory, st
 
 
 			//if(ImGui::MenuItem("名前を変更")){
-			//	m_openRename = true;
+			//	openRename = true;
 			//	renameTarget = path;
-			//	strcpy_s(m_newNameBuffer, path.filename().string().c_str());
+			//	strcpy_s(newNameBuffer, path.filename().string().c_str());
 			//	ImGui::CloseCurrentPopup();
 			//}
 
@@ -238,18 +238,18 @@ void AssetsBrowser::DrawDirectoryTree(const std::filesystem::path& directory, st
 			}
 		}
 
-		if(m_openRename){
+		if(openRename){
 			ImGui::OpenPopup("名前を変更");
-			m_openRename = false;
+			openRename = false;
 		}
 
 		if(ImGui::BeginPopupModal("名前を変更", nullptr, ImGuiWindowFlags_AlwaysAutoResize)){
-			ImGui::InputText("新しい名前", m_newNameBuffer, IM_ARRAYSIZE(m_newNameBuffer));
+			ImGui::InputText("新しい名前", newNameBuffer, IM_ARRAYSIZE(newNameBuffer));
 
 			if(ImGui::Button("OK")){
-				std::filesystem::path newPath = m_renameTarget.parent_path() / m_newNameBuffer;
+				std::filesystem::path newPath = m_renameTarget.parent_path() / newNameBuffer;
 				std::error_code ec;
-				std::filesystem::rename(m_renameTarget, newPath, ec);
+				std::filesystem::rename(renameTarget, newPath, ec);
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::SameLine();

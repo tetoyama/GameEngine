@@ -28,7 +28,7 @@
 void ViewWindow::Initialize(EditorService* editor) {
 	ResourceService* resourceService = editor->resourceService;
 
-	m_editor = editor;
+	editor = editor;
 	// ボタンテクスチャ読み込み
 	PlayButtonTexture = resourceService->Load<TextureData> ("Asset/Texture/UI/Control/Play.png");
 	PauseButtonTexture = resourceService->Load<TextureData>("Asset/Texture/UI/Control/Pause.png");
@@ -47,7 +47,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 	RenderSystem* renderSystem = m_editor->sceneManager->systemRegistry->GetSystem<RenderSystem>();
 
-	bool* showEditor = &m_editor->GetUI<MenuBar>()->m_showEditorView;
+	bool* showEditor = &m_editor->GetUI<MenuBar>()->showEditorView;
 
 	if(!*showEditor){
 		return;
@@ -59,7 +59,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	ControlButton();
 	DrawRenderLayerToggleUI();
 	ImGui::SameLine();
-	std::string speedText = ("CameraSpeed:" + std::to_string(m_cameraMoveSpeed));
+	std::string speedText = ("CameraSpeed:" + std::to_string(cameraMoveSpeed));
 	ImGui::Text(speedText.c_str());
 
 	ImGui::Separator();
@@ -93,8 +93,8 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	ImGuiIO& io = ImGui::GetIO();
 
 	// マウスホイールの値をリセット
-	m_MouseWheel = 0.0f;
-	m_mouseOnEditor = false;
+	mouseWheel = 0.0f;
+	mouseOnEditor = false;
 
 	// マウスカーソルの位置を取得
 	POINT cursorPos;
@@ -109,8 +109,8 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 			if(drawList->GetClipRectMin().x <= mousePos.x && mousePos.x <= drawList->GetClipRectMax().x &&
 			   drawList->GetClipRectMin().y <= mousePos.y && mousePos.y <= drawList->GetClipRectMax().y){
 
-				m_mouseOnEditor = true;
-				m_MouseWheel = io.MouseWheel;
+				mouseOnEditor = true;
+				mouseWheel = io.MouseWheel;
 			}
 		}
 	}
@@ -118,7 +118,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	ImGui::End();
 
 	// --- カメラ操作ロジック ---
-	if(m_mouseOnEditor){
+	if(mouseOnEditor){
 		ImGuiIO& io = ImGui::GetIO();
 		static bool isCameraBufferActive = false;
 		if(ImGui::IsMouseClicked(ImGuiMouseButton_Right)){
@@ -128,7 +128,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 		}
 
 		Vector3 velocity = {0,0,0};
-		float speed = m_cameraMoveSpeed;
+		float speed = cameraMoveSpeed;
 		if(isCameraBufferActive){
 			float mouseSensitivity = 0.005f;
 			m_editorCameraRotation.y += io.MouseDelta.x * mouseSensitivity;
@@ -139,8 +139,8 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 			if(m_editorCameraRotation.x < -pitchLimit) m_editorCameraRotation.x = -pitchLimit;
 
 			TransformComponent transform;
-			transform.position = m_EditorCameraPosition;
-			transform.SetRotationEuler(m_editorCameraRotation);
+			transform.position = editorCameraPosition;
+			transform.SetRotationEuler(editorCameraRotation);
 			Vector3 front = transform.front();
 			Vector3 right = transform.right();
 			Vector3 up = Vector3(0, 1, 0);
@@ -160,8 +160,8 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 			}
 		} else{
 			TransformComponent transform;
-			transform.position = m_EditorCameraPosition;
-			transform.SetRotationEuler(m_editorCameraRotation);
+			transform.position = editorCameraPosition;
+			transform.SetRotationEuler(editorCameraRotation);
 			Vector3 front = transform.front();
 			Vector3 right = transform.right();
 			Vector3 up = transform.up();
@@ -185,7 +185,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 			ComponentRegistry* registry = hierarchy->sceneContext->component;
 			TransformComponent* transform = registry->GetComponent<TransformComponent>(selectedEntity);
 
-			if(transform && m_editor->GetUI<MenuBar>()->m_showEditorView){
+			if(transform && m_editor->GetUI<MenuBar>()->showEditorView){
 				DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, registry);
 				DirectX::XMMATRIX modelMatrix;
 
@@ -219,12 +219,12 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 
 				bool isUsingNow = ImGuizmo::IsUsing();
 
-				if(isUsingNow && !m_wasUsingGizmo){
-					m_gizmoEntity = selectedEntity;
+				if(isUsingNow && !wasUsingGizmo){
+					gizmoEntity = selectedEntity;
 					m_gizmoStartPos = transform->position;
 					m_gizmoStartRot = transform->GetRotation();
 					m_gizmoStartScale = transform->scale;
-					m_gizmoStartState = m_editor->sceneManager->State;
+					gizmoStartState = m_editor->sceneManager->State;
 				}
 
 				if(isUsingNow){
@@ -254,16 +254,16 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 				}
 
 				if(!isUsingNow && m_wasUsingGizmo && m_gizmoEntity != 0){
-					if(m_gizmoStartState == SceneManagerState::Stopped && m_editor->sceneManager->State == SceneManagerState::Stopped){
+					if(gizmoStartState = = SceneManagerState::Stopped && m_editor->sceneManager->State == SceneManagerState::Stopped){
 						auto cmd = std::make_unique<TransformChangeCommand>(
-							hierarchy->sceneContext, m_gizmoEntity,
+							hierarchy->sceneContext, gizmoEntity,
 							m_gizmoStartPos, m_gizmoStartRot, m_gizmoStartScale,
 							transform->position, transform->GetRotation(), transform->scale);
 						m_editor->commandManager.Push(std::move(cmd));
 					}
-					m_gizmoEntity = 0;
+					gizmoEntity = 0;
 				}
-				m_wasUsingGizmo = isUsingNow;
+				wasUsingGizmo = isUsingNow;
 			}
 		}
 	}
@@ -295,7 +295,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 					TransformComponent* transform = recoveredContext->component->GetComponent<TransformComponent>(hierarchy->selectedEntity);
 					if(transform && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)){
 						Vector3 targetPos = transform->position;
-						Vector3 direction = targetPos - m_EditorCameraPosition;
+						Vector3 direction = targetPos - editorCameraPosition;
 						float distance = direction.length();
 						if(distance > 0.001f){
 							direction = direction.normalize();

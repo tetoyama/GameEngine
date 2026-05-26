@@ -62,7 +62,7 @@ private:
 	// -----------------------------
 	// Editor
 	// -----------------------------
-	EditorService* m_editor = nullptr;
+	EditorService* editor = nullptr;
 
 	// -----------------------------
 	// Logo
@@ -81,13 +81,13 @@ private:
 	// Job queue
 	// -----------------------------
 	std::queue<LLMJob> m_jobQueue;
-	std::mutex m_jobMutex;
-	std::condition_variable m_jobCV;
+	std::mutex jobMutex;
+	std::condition_variable jobCV;
 
 	// ----------------------------
 	// ワーカースレッド
 	// ----------------------------
-	std::thread m_workerThread;
+	std::thread workerThread;
 	void WorkerLoop();
 
 	// -----------------------------
@@ -109,7 +109,7 @@ private:
 	// UI state
 	// -------------------------
 	char inputBuffer[2048]{};
-	bool m_scrollToBottom = false;
+	bool scrollToBottom = false;
 
 	// -----------------------------
 	// Token state (表示用)

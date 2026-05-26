@@ -44,9 +44,9 @@ public:
 			m_fontBrush = nullptr;
 		}
 
-		if(m_dwriteFactory){
+		if(dwriteFactory){
 			m_dwriteFactory->Release();
-			m_dwriteFactory = nullptr;
+			dwriteFactory= nullptr;
 		}
 	}
 
@@ -57,12 +57,12 @@ public:
 private:
 	void Initialize2DResources();
 
-	GraphicsContext* m_graphicsContext = nullptr;
+	GraphicsContext* graphicsContext= nullptr;
 	HWND m_hwnd;
 
 	ID2D1RenderTarget* m_d2dRenderTarget = nullptr;
 	ID2D1SolidColorBrush* m_fontBrush = nullptr;
-	IDWriteFactory* m_dwriteFactory = nullptr;
+	IDWriteFactory* dwriteFactory= nullptr;
 	IDWriteTextFormat* m_textFormat = nullptr;
 
 	std::wstring m_fontName = L"メイリオ";

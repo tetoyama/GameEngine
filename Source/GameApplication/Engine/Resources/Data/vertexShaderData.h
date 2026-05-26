@@ -22,6 +22,6 @@ public:
 
 	std::string FilePath = "Asset\\Shader\\CommonVS.cso";
 
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_VertexLayout;
 };

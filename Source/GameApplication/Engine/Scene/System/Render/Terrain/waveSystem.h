@@ -46,7 +46,7 @@ public:
 				auto* comp = context->component->GetComponent<WaveComponent>(entity);
 				if (comp && comp->meshRenderer) {
 					comp->meshRenderer->mesh.m_IndexBuffer.Reset();
-					comp->meshRenderer->mesh.m_VertexBuffer.Reset();
+					comp->meshRenderer->mesh.vertexBuffer.Reset();
 					delete comp->meshRenderer;
 					comp->meshRenderer = nullptr;
 				}
@@ -81,7 +81,7 @@ private:
 
 		if(comp->meshRenderer){
 			comp->meshRenderer->mesh.m_IndexBuffer.Reset();
-			comp->meshRenderer->mesh.m_VertexBuffer.Reset();
+			comp->meshRenderer->mesh.vertexBuffer.Reset();
 		} else{
 			comp->meshRenderer = new MeshRendererComponent();
 		}
@@ -133,7 +133,7 @@ private:
 		bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		D3D11_SUBRESOURCE_DATA sd{};
 		sd.pSysMem = vertices.data();
-		m_graphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.m_VertexBuffer.GetAddressOf());
+		m_graphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.vertexBuffer.GetAddressOf());
 
 		bd.Usage = D3D11_USAGE_DEFAULT;
 		bd.ByteWidth = sizeof(unsigned int) * indexCount;
@@ -147,7 +147,7 @@ private:
 
 	void UpdateWaveVertices(WaveComponent* comp){
 		if(!comp->meshRenderer) return;
-		ID3D11Buffer* vbuf = comp->meshRenderer->mesh.m_VertexBuffer.Get();
+		ID3D11Buffer* vbuf = comp->meshRenderer->mesh.vertexBuffer.Get();
 		if(!vbuf) return;
 
 		int grid = comp->Resolution;

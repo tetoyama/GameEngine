@@ -26,6 +26,6 @@ void RenderableEffect::Execute(const RenderPassContext& ctx, SceneContext* scene
 	m_context->graphics->GetEffectRenderer()->SetCameraMatrix(effekseerViewMatrix);
 
 	m_context->graphics->GetEffectRenderer()->BeginRendering();
-	m_context->graphics->GetEffectManager()->DrawHandle(effect->m_Handle);
+	m_context->graphics->GetEffectManager()->DrawHandle(effect->handle);
 	m_context->graphics->GetEffectRenderer()->EndRendering();
 }

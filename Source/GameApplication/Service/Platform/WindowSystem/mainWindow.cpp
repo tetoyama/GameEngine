@@ -37,8 +37,8 @@ MainWindow::~MainWindow(){
 bool MainWindow::Create(const HINSTANCE hInstance, const int nCmdShow, const APPCONFIG appconfig){
 	MAINWINDOW_LOG(LogLevel::Info, "MainWindow の生成を開始します");
 
-	m_width = appconfig.Width;
-	m_height = appconfig.Height;
+	width= appconfig.Width;
+	height= appconfig.Height;
 
 	// ウィンドウクラス名
 	const wchar_t CLASS_NAME[] = L"GameWindowClass";
@@ -125,21 +125,21 @@ bool MainWindow::ShouldClose() const{
 void MainWindow::SetBorderlessFullscreen(bool enable){
 	if(!m_HWND) return;
 
-	if(enable && !m_fullscreen){
+	if(enable && !fullscreen){
 		MAINWINDOW_LOG(LogLevel::Info, "ボーダーレスフルスクリーンへ切り替えます");
 		m_wpPrev.length = sizeof(WINDOWPLACEMENT);
 		GetWindowPlacement(m_HWND, &m_wpPrev);
 
 		MONITORINFO mi = {sizeof(mi)};
 		if(GetMonitorInfo(MonitorFromWindow(m_HWND, MONITOR_DEFAULTTONEAREST), &mi)){
-			m_width = mi.rcMonitor.right - mi.rcMonitor.left;
-			m_height = mi.rcMonitor.bottom - mi.rcMonitor.top;
+			width= mi.rcMonitor.right - mi.rcMonitor.left;
+			height= mi.rcMonitor.bottom - mi.rcMonitor.top;
 
 			// ボーダーレス化
 			SetWindowLong(m_HWND, GWL_STYLE, WS_POPUP | WS_VISIBLE);
 			SetWindowPos(m_HWND, HWND_TOP,
 						 mi.rcMonitor.left, mi.rcMonitor.top,
-						 m_width, m_height,
+						 width, height,
 						 SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 
 			// 前面に出す
@@ -148,7 +148,7 @@ void MainWindow::SetBorderlessFullscreen(bool enable){
 
 			// レンダラーのリサイズ
 			if(m_mainRenderer){
-				m_mainRenderer->OnResize(m_width, m_height);
+				m_mainRenderer->OnResize(width, height);
 			}
 
 			// 必要ならDirectWrite等の再初期化
@@ -156,19 +156,19 @@ void MainWindow::SetBorderlessFullscreen(bool enable){
 			//     // 再初期化処理
 			// }
 
-			m_fullscreen = true;
+			fullscreen= true;
 			SetTimer(m_HWND, 1, 16, NULL); // 16msごと（約60fps）
 			MAINWINDOW_LOG(LogLevel::Debug, "ボーダーレスフルスクリーンへの切り替えが完了しました");
 		}
-	} else if(!enable && m_fullscreen){
+	} else if(!enable && fullscreen){
 		MAINWINDOW_LOG(LogLevel::Info, "ウィンドウ表示へ復帰します");
 		// 復帰
 		SetWindowLong(m_HWND, GWL_STYLE, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
 
 		// クライアントサイズ調整
-		m_width = 1280;  // 必要に応じて定数化
-		m_height = 720;
-		RECT rc = {0, 0, m_width, m_height};
+		width= 1280;  // 必要に応じて定数化
+		height= 720;
+		RECT rc = {0, 0, width, m_height};
 		AdjustWindowRect(&rc, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX, FALSE);
 		int winWidth = rc.right - rc.left;
 		int winHeight = rc.bottom - rc.top;
@@ -182,10 +182,10 @@ void MainWindow::SetBorderlessFullscreen(bool enable){
 
 		// レンダラーのリサイズ
 		if(m_mainRenderer){
-			m_mainRenderer->OnResize(m_width, m_height);
+			m_mainRenderer->OnResize(width, height);
 		}
 
-		m_fullscreen = false;
+		fullscreen= false;
 		KillTimer(m_HWND, 1);
 		MAINWINDOW_LOG(LogLevel::Debug, "ウィンドウ表示への復帰が完了しました");
 	}
@@ -266,7 +266,7 @@ LRESULT MainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 		case WM_KEYDOWN:
 			if(wParam == VK_F11){
 				MAINWINDOW_LOG(LogLevel::Debug, "F11 によるフルスクリーン切り替えを要求しました");
-				SetBorderlessFullscreen(!m_fullscreen);
+				SetBorderlessFullscreen(!fullscreen);
 			}
 			if(wParam == VK_ESCAPE){//エスケープキーが押された
 				MAINWINDOW_LOG(LogLevel::Debug, "ESC によるウィンドウ終了要求を受け取りました");

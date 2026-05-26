@@ -75,7 +75,7 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 
 	Resize(width, height);
 
-	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
+	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, depthStencilView);
 	GRAPHICS_LOG(LogLevel::Info, "GraphicsContext の初期化が完了しました");
 
 	return true;
@@ -95,13 +95,13 @@ void GraphicsContext::Shutdown(){
 	SAFE_RELEASE(m_CbPerObject);
 
 	SAFE_RELEASE(m_RenderTargetView);
-	SAFE_RELEASE(m_DepthStencilView);
+	SAFE_RELEASE(depthStencilView);
 	for(int i = 0; i < (int)DepthMode::COUNT; i++){
 		SAFE_RELEASE(m_DepthStates[i]);
 	}
 	SAFE_RELEASE(csSkinning);
 	
-	if(m_DeviceContext){
+	if(deviceContext){
 		m_DeviceContext->ClearState();  // すべてのバインドリソースを解除
 		m_DeviceContext->Flush();       // GPU キューを空にする
 	}
@@ -199,8 +199,8 @@ void GraphicsContext::ResetViewport(){
 	D3D11_VIEWPORT vp{};
 	vp.TopLeftX = 0;
 	vp.TopLeftY = 0;
-	vp.Width = static_cast<float>(m_width);
-	vp.Height = static_cast<float>(m_height);
+	vp.Width = static_cast<float>(width);
+	vp.Height = static_cast<float>(height);
 	vp.MinDepth = 0.0f;
 	vp.MaxDepth = 1.0f;
 	m_DeviceContext->RSSetViewports(1, &vp);
@@ -211,7 +211,7 @@ void GraphicsContext::SetWorldViewProjection2D(){
 	SetViewMatrix(DirectX::XMMatrixIdentity());
 
 	DirectX::XMMATRIX projection;
-	projection = DirectX::XMMatrixOrthographicOffCenterLH(0.0f, (float)m_width, (float)m_height, 0, 0.0f, 1.0f);
+	projection = DirectX::XMMatrixOrthographicOffCenterLH(0.0f, (float)width, (float)height, 0, 0.0f, 1.0f);
 	SetProjectionMatrix(projection);
 	SetDepthMode(DepthMode::DISABLE);
 }
@@ -630,13 +630,13 @@ bool GraphicsContext::CreateDepthStencilBufferAndView(UINT width, UINT height){
 	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	depthStencilViewDesc.Flags = 0;
 	if(depthStencile){
-		hr = m_Device->CreateDepthStencilView(depthStencile, &depthStencilViewDesc, &m_DepthStencilView);
+		hr = m_Device->CreateDepthStencilView(depthStencile, &depthStencilViewDesc, &depthStencilView);
 		depthStencile->Release();
 
 		if(FAILED(hr)){
 			return false;
 		}
-		m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
+		m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, depthStencilView);
 
 	} else{
 		return false;
@@ -668,16 +668,16 @@ bool GraphicsContext::CreateComputeSkinningShader() {
 
 bool GraphicsContext::CreateD2DResources(HWND hwnd){
 	// D2Dファクトリ生成（初回のみ）
-	if(!m_d2dFactory){
+	if(!d2dFactory){
 		HRESULT hr = D2D1CreateFactory(
 			D2D1_FACTORY_TYPE_SINGLE_THREADED,
-			IID_PPV_ARGS(&m_d2dFactory)
+			IID_PPV_ARGS(&d2dFactory)
 		);
 		if(FAILED(hr)) return false;
 	}
 
 	// DWriteファクトリ生成（初回のみ）
-	if(!m_dwriteFactory){
+	if(!dwriteFactory){
 		HRESULT hr = DWriteCreateFactory(
 			DWRITE_FACTORY_TYPE_SHARED,
 			__uuidof(IDWriteFactory),
@@ -737,9 +737,9 @@ bool GraphicsContext::ReadFileToBuffer(const char* fileName, std::vector<char>& 
 void GraphicsContext::Clear(const float clearColor[4]){
 
 	m_DeviceContext->ClearRenderTargetView(m_RenderTargetView, clearColor);
-	m_DeviceContext->ClearDepthStencilView(m_DepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	m_DeviceContext->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
+	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, depthStencilView);
 }
 
 void GraphicsContext::Present(bool vsync){
@@ -788,9 +788,9 @@ void GraphicsContext::Resize(UINT width, UINT height){
 			m_RenderTargetView->Release();
 			m_RenderTargetView = nullptr;
 		}
-		if(m_DepthStencilView){
+		if(depthStencilView){
 			m_DepthStencilView->Release();
-			m_DepthStencilView = nullptr;
+			depthStencilView= nullptr;
 		}
 		
 		HRESULT hr = m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
@@ -812,10 +812,10 @@ void GraphicsContext::Resize(UINT width, UINT height){
 
 		CreateBuffer(width, height);
 
-		m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
+		m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, depthStencilView);
 
-		m_width = width;
-		m_height = height;
+		width= width;
+		height= height;
 
 		// ビューポートの設定
 		ResetViewport();
@@ -825,10 +825,10 @@ void GraphicsContext::Resize(UINT width, UINT height){
 
 void GraphicsContext::ResetBuffer(const float clearColor[4]){
 	m_DeviceContext->ClearRenderTargetView(m_RTV.Get(), clearColor);
-	m_DeviceContext->ClearDepthStencilView(m_DepthStencilView,
+	m_DeviceContext->ClearDepthStencilView(depthStencilView,
 										   D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
 										   1.0f, 0);
-	m_DeviceContext->OMSetRenderTargets(1, m_RTV.GetAddressOf(), m_DepthStencilView);
+	m_DeviceContext->OMSetRenderTargets(1, m_RTV.GetAddressOf(), depthStencilView);
 }
 
 void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effects, ID3D11ShaderResourceView* initialSRV,
@@ -931,8 +931,8 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 	}
 
 	if(!effects.empty()){
-		m_CurrentSRV = effects.back().srv;
-		m_CurrentRTV = effects.back().rtv;
+		currentSRV= effects.back().srv;
+		currentRTV= effects.back().rtv;
 	}
 
 	// ポストプロセス後にビューポートをフルスクリーンに戻す
@@ -954,7 +954,7 @@ bool GraphicsContext::CreateBuffer(UINT width, UINT height){
 	desc.Usage = D3D11_USAGE_DEFAULT;
 	desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
-	m_Device->CreateTexture2D(&desc, nullptr, &m_Buffer);
+	m_Device->CreateTexture2D(&desc, nullptr, &buffer);
 	m_Device->CreateRenderTargetView(m_Buffer.Get(), nullptr, &m_RTV);
 	m_Device->CreateShaderResourceView(m_Buffer.Get(), nullptr, &m_SRV);
 

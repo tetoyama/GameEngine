@@ -46,7 +46,7 @@ void OverlayUIPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* 
 
 	m_renderSystem = renderSystem;
 	m_context = context;
-	m_VertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
+	vertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
 
 	renderables.clear();
 	renderables.push_back(renderSystem->GetRenderable<RenderableSprite>());
@@ -70,10 +70,10 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 	);
 
 	// シェーダーセット
-	deviceContext->VSSetShader(m_VertexShader->m_VertexShader.Get(), nullptr, 0);
+	deviceContext->VSSetShader(m_VertexShader->vertexShader.Get(), nullptr, 0);
 	deviceContext->IASetInputLayout(m_VertexShader->m_VertexLayout.Get());
 	PixelShaderData* ps = m_renderSystem->GetForwardPS();
-	deviceContext->PSSetShader(ps ? ps->m_PixelShader.Get() : nullptr, nullptr, 0);
+	deviceContext->PSSetShader(ps ? ps->pixelShader.Get() : nullptr, nullptr, 0);
 
 	// ビューポート設定
 	D3D11_VIEWPORT vp = {};

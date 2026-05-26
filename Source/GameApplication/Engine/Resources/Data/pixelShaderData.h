@@ -21,5 +21,5 @@ public:
 	}
 
     std::string FilePath = "Asset\\Shader\\unlitUVTexturePS.cso";
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
 };

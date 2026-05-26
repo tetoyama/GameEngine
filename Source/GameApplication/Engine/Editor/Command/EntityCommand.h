@@ -55,7 +55,7 @@ public:
 		PostCreateCallback onCreated = nullptr,
 		PostUndoCallback   onUndone  = nullptr)
 		: m_context(context)
-		, m_parent(parentEntity)
+		, parent(parentEntity)
 		, m_created(0)
 		, m_onCreated(onCreated)
 		, m_onUndone(onUndone)
@@ -76,8 +76,8 @@ public:
 		m_context->component->CreateFromYAML("TransformComponent", e, YAML::Node());
 
 		// 親子関係
-		if (m_parent != 0 && m_context->entity->IsAlive(m_parent)) {
-			EntityCommandHelper::SetParent(m_created, m_parent, m_context);
+		if (m_parent != 0 && m_context->entity->IsAlive(parent)) {
+			EntityCommandHelper::SetParent(m_created, parent, m_context);
 		}
 
 		if (m_onCreated) m_onCreated(m_created, m_context);
@@ -104,7 +104,7 @@ public:
 
 private:
 	SceneContext*      m_context;
-	Entity             m_parent;
+	Entity             parent;
 	Entity             m_created;
 	PostCreateCallback m_onCreated;
 	PostUndoCallback   m_onUndone;
@@ -124,7 +124,7 @@ public:
 		PostDeleteCallback  onDeleted  = nullptr,
 		PostRestoreCallback onRestored = nullptr)
 		: m_context(context)
-		, m_entity(entity)
+		, entity(entity)
 		, m_onDeleted(onDeleted)
 		, m_onRestored(onRestored)
 	{
@@ -132,19 +132,19 @@ public:
 		auto* nameComp = context->component->GetComponent<NameComponent>(entity);
 		m_entityName = nameComp ? nameComp->name : std::to_string(static_cast<uint32_t>(entity));
 		// 構築時にスナップショット取得
-		EntityCommandHelper::SnapshotRecursive(m_entity, m_context, m_snapshots);
+		EntityCommandHelper::SnapshotRecursive(entity, m_context, m_snapshots);
 	}
 
 	void Execute() override {
-		if (!m_context || !m_context->entity->IsAlive(m_entity)) return;
-		EntityCommandHelper::DestroyRecursive(m_entity, m_context);
+		if (!m_context || !m_context->entity->IsAlive(entity)) return;
+		EntityCommandHelper::DestroyRecursive(entity, m_context);
 		if (m_onDeleted) m_onDeleted();
 	}
 
 	void Undo() override {
-		if (!m_context || m_context->entity->IsAlive(m_entity)) return;
+		if (!m_context || m_context->entity->IsAlive(entity)) return;
 		EntityCommandHelper::RestoreAll(m_snapshots, m_context);
-		if (m_onRestored) m_onRestored(m_entity, m_context);
+		if (m_onRestored) m_onRestored(entity, m_context);
 	}
 
 	// エンティティを破棄することで、それ以前のコマンドのコンポーネントポインタを無効化する。
@@ -155,7 +155,7 @@ public:
 
 private:
 	SceneContext*                                    m_context;
-	Entity                                           m_entity;
+	Entity                                           entity;
 	std::string                                      m_entityName;
 	std::vector<EntityCommandHelper::EntitySnapshot> m_snapshots;
 	PostDeleteCallback                               m_onDeleted;
@@ -170,7 +170,7 @@ class RenameCommand : public ICommand {
 public:
 	RenameCommand(SceneContext* context, Entity entity, std::string oldName, std::string newName)
 		: m_context(context)
-		, m_entity(entity)
+		, entity(entity)
 		, m_oldName(std::move(oldName))
 		, m_newName(std::move(newName))
 	{}
@@ -189,12 +189,12 @@ public:
 
 private:
 	NameComponent* _GetName() {
-		if (!m_context || !m_context->entity->IsAlive(m_entity)) return nullptr;
-		return m_context->component->GetComponent<NameComponent>(m_entity);
+		if (!m_context || !m_context->entity->IsAlive(entity)) return nullptr;
+		return m_context->component->GetComponent<NameComponent>(entity);
 	}
 
 	SceneContext* m_context;
-	Entity        m_entity;
+	Entity        entity;
 	std::string   m_oldName;
 	std::string   m_newName;
 };
@@ -306,7 +306,7 @@ public:
 		PostCallback     onCreated = nullptr,
 		PostUndoCallback onUndone  = nullptr)
 		: m_context(ctx)
-		, m_entity(entity)
+		, entity(entity)
 		, m_entityOldParent(0)
 		, m_newParent(0)
 		, m_onCreated(onCreated)
@@ -325,7 +325,7 @@ public:
 				m_context->entity->CreateID(m_newParent);
 			for (auto& [compName, node] : m_snapshot)
 				m_context->component->CreateFromYAML(compName, m_newParent, node);
-			EntityCommandHelper::SetParent(m_entity, m_newParent, m_context);
+			EntityCommandHelper::SetParent(entity, m_newParent, m_context);
 			if (m_onCreated) m_onCreated(m_newParent, m_context);
 			return;
 		}
@@ -337,7 +337,7 @@ public:
 		m_context->component->CreateFromYAML("TransformComponent", m_newParent, YAML::Node());
 
 		// 元エンティティを新親の子にする
-		EntityCommandHelper::SetParent(m_entity, m_newParent, m_context);
+		EntityCommandHelper::SetParent(entity, m_newParent, m_context);
 
 		// Redo 用スナップショット
 		const auto& idToName = m_context->component->GetComponentIDToNameMap();
@@ -357,7 +357,7 @@ public:
 		if (!m_context->entity->IsAlive(m_newParent)) return;
 
 		// 元エンティティの親を元に戻す
-		EntityCommandHelper::SetParent(m_entity, m_entityOldParent, m_context);
+		EntityCommandHelper::SetParent(entity, m_entityOldParent, m_context);
 
 		// 新親エンティティを削除
 		m_context->component->OnEntityDestroyed(m_newParent);
@@ -372,7 +372,7 @@ public:
 
 private:
 	SceneContext* m_context;
-	Entity        m_entity;
+	Entity        entity;
 	Entity        m_entityOldParent;
 	Entity        m_newParent;
 	std::vector<std::pair<std::string, YAML::Node>> m_snapshot;

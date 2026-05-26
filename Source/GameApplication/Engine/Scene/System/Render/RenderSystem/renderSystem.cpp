@@ -111,8 +111,8 @@ void RenderSystem::Initialize(){
 	m_EditorPass->Initialize(this, m_context);
 
 #ifdef _EDITOR
-	showPlayer = &m_context->editor->GetUI<MenuBar>()->m_showPlayerView;
-	showEditor = &m_context->editor->GetUI<MenuBar>()->m_showEditorView;
+	showPlayer = &m_context->editor->GetUI<MenuBar>()->showPlayerView;
+	showEditor = &m_context->editor->GetUI<MenuBar>()->showEditorView;
 
 	PlayButtonTexture = m_context->resource->Load<TextureData> ("Asset/Texture/UI/Control/Play.png");
 	PauseButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Pause.png");
@@ -134,9 +134,9 @@ void RenderSystem::Initialize(){
 #endif // _EDITOR
 
 	copyShader = new PostEffectShader();
-	copyShader->m_VS = m_FullScreenVS->m_VertexShader; // フルスクリーンVS
-	copyShader->m_PS = m_FullScreenPS->m_PixelShader; // 単純に SRV → out を返す PS
-	copyShader->m_InputLayout = m_FullScreenVS->m_VertexLayout;
+	copyShader->m_VS = m_FullScreenVS->vertexShader; // フルスクリーンVS
+	copyShader->m_PS = m_FullScreenPS->pixelShader; // 単純に SRV → out を返す PS
+	copyShader->inputLayout = m_FullScreenVS->m_VertexLayout;
 }
 
 void RenderSystem::Finalize(){
@@ -202,7 +202,7 @@ void RenderSystem::EditorUpdate(float deltaTime)
 				mr->blendedAnimations,
 				mr->animationTime
 			);
-			const bool useGPUSkinning = mr->model->m_Bones.size() <= BONE_MAX_COUNT;
+			const bool useGPUSkinning = mr->model->bones.size() <= BONE_MAX_COUNT;
 
 			if(useGPUSkinning){
 				mr->model->UpdateAndDispatchSkinning(m_context->graphics, mr->dynamicVertexBuffers);
@@ -262,8 +262,8 @@ void RenderSystem::UpdateSkyBoxEnvironmentMap() {
 			if(!envComp || !envComp->enabled) continue;
 
 			auto* texComp = ctx->component->GetComponent<TextureComponent>(ent);
-			if(texComp && texComp->m_TextureData){
-				envTexture = texComp->m_TextureData;
+			if(texComp && texComp->textureData){
+				envTexture = texComp->textureData;
 			}
 			found = true;
 			break;
@@ -301,8 +301,8 @@ void RenderSystem::Draw(){
 			playerRenderLayerVisible,
 			FindCameraEntity(),
 			Vector2(
-				(float)m_context->renderer->GetGraphicsContext()->m_width,
-				(float)m_context->renderer->GetGraphicsContext()->m_height
+				(float)m_context->renderer->GetGraphicsContext()->width,
+				(float)m_context->renderer->GetGraphicsContext()->height
 			)
 		);
 		m_PlayerPass->Execute(renderPassContext);
@@ -837,8 +837,8 @@ void RenderSystem::EditorView(){
 	ViewWindow* viewWindow = m_context->editor->GetUI<ViewWindow>();
 
 	TransformComponent editorCameraTransform;
-	editorCameraTransform.position = viewWindow->m_EditorCameraPosition;
-	editorCameraTransform.SetRotationEuler(viewWindow->m_editorCameraRotation);
+	editorCameraTransform.position = viewWindow->editorCameraPosition;
+	editorCameraTransform.SetRotationEuler(viewWindow->editorCameraRotation);
 
 	CameraComponent editorCamera;
 	editorCamera.FOV = DirectX::XM_PIDIV4;

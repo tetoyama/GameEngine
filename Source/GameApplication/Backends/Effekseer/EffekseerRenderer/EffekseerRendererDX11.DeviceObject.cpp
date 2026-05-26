@@ -19,7 +19,7 @@ DeviceObject::DeviceObject(RendererImplemented* renderer, bool hasRefCount)
 {
 	if (hasRefCount_)
 	{
-		ES_SAFE_ADDREF(m_renderer);
+		ES_SAFE_ADDREF(renderer);
 	}
 
 	m_renderer->m_deviceObjects.insert(this);
@@ -33,7 +33,7 @@ DeviceObject::~DeviceObject()
 	m_renderer->m_deviceObjects.erase(this);
 	if (hasRefCount_)
 	{
-		ES_SAFE_RELEASE(m_renderer);
+		ES_SAFE_RELEASE(renderer);
 	}
 }
 
@@ -42,7 +42,7 @@ DeviceObject::~DeviceObject()
 //----------------------------------------------------------------------------------
 RendererImplemented* DeviceObject::GetRenderer() const
 {
-	return m_renderer;
+	return renderer;
 }
 
 //----------------------------------------------------------------------------------

@@ -14,7 +14,7 @@
 #include <ImGui/imgui_internal.h>
 
 void SystemSetting::Draw(const EditorDrawContext ctx) {
-	bool* showSystemSetting = &m_editor->GetUI<MenuBar>()->m_showSystemSetting;
+	bool* showSystemSetting = &m_editor->GetUI<MenuBar>()->showSystemSetting;
 	if(!showSystemSetting || !*showSystemSetting){
 		return;
 	}

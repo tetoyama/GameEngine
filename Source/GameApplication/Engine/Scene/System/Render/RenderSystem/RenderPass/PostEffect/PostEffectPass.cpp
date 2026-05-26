@@ -54,9 +54,9 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 
 			PostProcessNode node{};
 			node.ID                  = idx;
-			node.shader.m_VS         = e.vs->m_VertexShader;
-			node.shader.m_PS         = e.ps->m_PixelShader;
-			node.shader.m_InputLayout = e.vs->m_VertexLayout;
+			node.shader.m_VS         = e.vs->vertexShader;
+			node.shader.m_PS         = e.ps->pixelShader;
+			node.shader.inputLayout = e.vs->m_VertexLayout;
 			node.param               = e.Param;
 			node.resolutionScale     = e.resolutionScale;
 			node.mipLevels           = e.mipLevels;
@@ -122,8 +122,8 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 			postNodes, m_initialSRV, gbufferSRVs, PostEffectGBufferSlot_Count
 		);
 
-		resultSrv = graphics->m_CurrentSRV;
-		resultRtv = graphics->m_CurrentRTV;
+		resultSrv = graphics->currentSRV;
+		resultRtv = graphics->currentRTV;
 
 	} else {
 		resultSrv = m_initialSRV;

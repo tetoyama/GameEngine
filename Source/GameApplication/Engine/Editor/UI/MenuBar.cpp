@@ -16,14 +16,14 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 	if(ImGui::IsKeyPressed(ImGuiKey_F3, false)){
 		m_showMenuBar = !m_showMenuBar;
 
-		m_showSceneHierarchy = m_showMenuBar;
-		m_showInspector = m_showMenuBar;
-		m_showConsole = m_showMenuBar;
-		m_showAssetsBrowser = m_showMenuBar;
-		m_showEditorView = m_showMenuBar;
-		m_showPlayerView = m_showMenuBar;
-		m_showPerformanceMonitor = m_showMenuBar;
-		m_showSystemSetting = m_showMenuBar;
+		showSceneHierarchy = m_showMenuBar;
+		showInspector = m_showMenuBar;
+		showConsole = m_showMenuBar;
+		showAssetsBrowser = m_showMenuBar;
+		showEditorView = m_showMenuBar;
+		showPlayerView = m_showMenuBar;
+		showPerformanceMonitor = m_showMenuBar;
+		showSystemSetting = m_showMenuBar;
 	}
 
 	// Ctrl+Z でアンドゥ
@@ -40,30 +40,30 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 		RenderEditMenu();
 
 		if(ImGui::BeginMenu("Window")){
-			if(ImGui::MenuItem("Scene Hierarchy", nullptr, m_showSceneHierarchy)){
-				m_showSceneHierarchy = !m_showSceneHierarchy;
+			if(ImGui::MenuItem("Scene Hierarchy", nullptr, showSceneHierarchy)){
+				showSceneHierarchy = !showSceneHierarchy;
 			}
 
-			if(ImGui::MenuItem("Inspector", nullptr, m_showInspector)){
-				m_showInspector = !m_showInspector;
+			if(ImGui::MenuItem("Inspector", nullptr, showInspector)){
+				showInspector = !showInspector;
 			}
-			if(ImGui::MenuItem("DebugLog", nullptr, m_showConsole)){
-				m_showConsole = !m_showConsole;
+			if(ImGui::MenuItem("DebugLog", nullptr, showConsole)){
+				showConsole = !showConsole;
 			}
-			if(ImGui::MenuItem("Assets Browser", nullptr, m_showAssetsBrowser)){
-				m_showAssetsBrowser = !m_showAssetsBrowser;
+			if(ImGui::MenuItem("Assets Browser", nullptr, showAssetsBrowser)){
+				showAssetsBrowser = !showAssetsBrowser;
 			}
-			if(ImGui::MenuItem("Editor View", nullptr, m_showEditorView)){
-				m_showEditorView = !m_showEditorView;
+			if(ImGui::MenuItem("Editor View", nullptr, showEditorView)){
+				showEditorView = !showEditorView;
 			}
-			if(ImGui::MenuItem("Player View", nullptr, m_showPlayerView)){
-				m_showPlayerView = !m_showPlayerView;
+			if(ImGui::MenuItem("Player View", nullptr, showPlayerView)){
+				showPlayerView = !showPlayerView;
 			}
-			if(ImGui::MenuItem("PerformanceMonitor", nullptr, m_showPerformanceMonitor)){
-				m_showPerformanceMonitor = !m_showPerformanceMonitor;
+			if(ImGui::MenuItem("PerformanceMonitor", nullptr, showPerformanceMonitor)){
+				showPerformanceMonitor = !showPerformanceMonitor;
 			}
-			if(ImGui::MenuItem("SystemSetting", nullptr, m_showSystemSetting)){
-				m_showSystemSetting = !m_showSystemSetting;
+			if(ImGui::MenuItem("SystemSetting", nullptr, showSystemSetting)){
+				showSystemSetting = !showSystemSetting;
 			}
 
 			ImGui::EndMenu();

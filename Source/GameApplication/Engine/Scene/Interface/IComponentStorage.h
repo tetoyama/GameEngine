@@ -85,7 +85,7 @@ public:
 
 	// 全エンティティのリストを返す（IComponentStorage インターフェースの実装）
 	std::vector<Entity> GetEntityList() const override{
-		return m_entities;
+		return entities;
 	}
 
 	// IComponent* 型でコンポーネントを返す（型消去アクセス）
@@ -95,8 +95,8 @@ public:
 
 private:
 	std::unordered_map<Entity, size_t> m_indexMap;  // エンティティ → 配列インデックスのマップ
-	std::vector<T> m_components;                     // コンポーネントの連続配列
-	std::vector<Entity> m_entities;                  // コンポーネントに対応するエンティティ配列
+	std::vector<T> components;                     // コンポーネントの連続配列
+	std::vector<Entity> entities;                  // コンポーネントに対応するエンティティ配列
 };
 
 // ハッシュマップベースのコンポーネントストレージ（Sparse 方式）

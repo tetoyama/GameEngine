@@ -50,11 +50,11 @@ public:
 				if (comp && comp->meshRenderer) {
 
 					comp->meshRenderer->mesh.m_IndexBuffer.Reset();
-					comp->meshRenderer->mesh.m_VertexBuffer.Reset();
-					comp->meshRenderer->mesh.m_PixelShader.Reset();
-					comp->meshRenderer->mesh.m_VertexShader.Reset();
+					comp->meshRenderer->mesh.vertexBuffer.Reset();
+					comp->meshRenderer->mesh.pixelShader.Reset();
+					comp->meshRenderer->mesh.vertexShader.Reset();
 					comp->meshRenderer->mesh.m_VertexLayout.Reset();
-					delete comp->meshRenderer->mesh.m_TextureData;
+					delete comp->meshRenderer->mesh.textureData;
 
 					delete comp->meshRenderer;
 					comp->meshRenderer = nullptr;
@@ -171,7 +171,7 @@ private:
             if (!comp->meshRenderer)
                 comp->meshRenderer = new MeshRendererComponent();
             else {
-                comp->meshRenderer->mesh.m_VertexBuffer.Reset();
+                comp->meshRenderer->mesh.vertexBuffer.Reset();
                 comp->meshRenderer->mesh.m_IndexBuffer.Reset();
             }
 
@@ -238,7 +238,7 @@ private:
             D3D11_SUBRESOURCE_DATA sd{};
             sd.pSysMem = vertices.data();
 
-            hr = m_graphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.m_VertexBuffer.GetAddressOf());
+            hr = m_graphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.vertexBuffer.GetAddressOf());
             if (FAILED(hr)) {
 				// エラーハンドリング
                 return;
@@ -251,7 +251,7 @@ private:
             hr = m_graphicContext->GetDevice()->CreateBuffer(&bd, &sd, comp->meshRenderer->mesh.m_IndexBuffer.GetAddressOf());
             if (FAILED(hr)) {
                 // エラーハンドリング
-                comp->meshRenderer->mesh.m_VertexBuffer.Reset();
+                comp->meshRenderer->mesh.vertexBuffer.Reset();
                 return;
             }
 

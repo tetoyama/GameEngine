@@ -34,10 +34,10 @@ public:
 		m_inputSystem = inputSystem;
 	}
 	UINT GetHeight() const override{
-		return m_height;
+		return height;
 	}
 	UINT GetWidth() const override{
-		return m_width;
+		return width;
 	}
 	void SetBorderlessFullscreen(bool enable);
 
@@ -62,7 +62,7 @@ private:
 	UINT m_pendingHeight = 720;
 
 	WINDOWPLACEMENT m_wpPrev = {};
-	bool m_fullscreen = false;
-	int m_width = 0;
-	int m_height = 0;
+	bool fullscreen= false;
+	int width= 0;
+	int height= 0;
 };

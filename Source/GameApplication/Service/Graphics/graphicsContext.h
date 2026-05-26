@@ -52,7 +52,7 @@ class PostEffectShader {
 public:
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VS;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader>  m_PS;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout>  m_InputLayout;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout>  inputLayout;
 
 	// シェーダーと入力レイアウトをデバイスコンテキストにバインドする
 	void Bind(ID3D11DeviceContext* context){
@@ -126,7 +126,7 @@ public:
 
 	ID3D11ShaderResourceView* GetRenderTargetSRV() { return m_SRV.Get(); }
 
-	ID3D11DepthStencilView* GetDepthStencilView() {return m_DepthStencilView;}
+	ID3D11DepthStencilView* GetDepthStencilView() {return depthStencilView;}
 
 	ID2D1Factory* GetD2DFactory() const{return m_d2dFactory.Get();}
 	IDWriteFactory* GetDWriteFactory() const{return m_dwriteFactory.Get();}
@@ -193,10 +193,10 @@ public:
 	void DrawQuad();
 	ID3D11ShaderResourceView* GetCurrentSRV() const;
 
-	UINT m_width = 0;
-	UINT m_height = 0;
-	ID3D11ShaderResourceView* m_CurrentSRV = nullptr;
-	ID3D11RenderTargetView** m_CurrentRTV = nullptr;
+	UINT width= 0;
+	UINT height= 0;
+	ID3D11ShaderResourceView* currentSRV= nullptr;
+	ID3D11RenderTargetView** currentRTV= nullptr;
 
 private:
 	bool CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT height);
@@ -216,11 +216,11 @@ private:
 
 	bool ReadFileToBuffer(const char* fileName, std::vector<char>& buffer);
 
-	Microsoft::WRL::ComPtr<ID3D11Device>			m_Device;
-	Microsoft::WRL::ComPtr<ID3D11DeviceContext>		m_DeviceContext;
+	Microsoft::WRL::ComPtr<ID3D11Device>			device;
+	Microsoft::WRL::ComPtr<ID3D11DeviceContext>		deviceContext;
 	Microsoft::WRL::ComPtr<IDXGISwapChain>			m_SwapChain;
 	ID3D11RenderTargetView*							m_RenderTargetView;
-	ID3D11DepthStencilView*							m_DepthStencilView;
+	ID3D11DepthStencilView*							depthStencilView;
 
 	ID3D11Buffer* m_CbPerFrame  = nullptr;   // b0: フレームごと (ライト)
 	ID3D11Buffer* m_CbPerCamera = nullptr;   // b1: カメラ/パスごと (View, Proj, CamPos)
@@ -241,10 +241,10 @@ private:
 	DXGI_FORMAT m_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	DXGI_FORMAT m_depthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-	Microsoft::WRL::ComPtr<ID2D1Factory> m_d2dFactory;
-	Microsoft::WRL::ComPtr<IDWriteFactory> m_dwriteFactory;
+	Microsoft::WRL::ComPtr<ID2D1Factory> d2dFactory;
+	Microsoft::WRL::ComPtr<IDWriteFactory> dwriteFactory;
 
-	Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_Buffer;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D>          buffer;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>   m_RTV;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_SRV;
 

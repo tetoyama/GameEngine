@@ -301,7 +301,7 @@ private:
 	void InitAnimations() {
 		if (!model->model) return;
 
-		auto& anim = model->model->m_Animation;
+		auto& anim = model->model->animation;
 
 		if (anim.find("Idle")        == anim.end()) model->model->LoadAnimation(idleAnimFile.c_str(),     "Idle");
 		if (anim.find("Run")         == anim.end()) model->model->LoadAnimation(runAnimFile.c_str(),      "Run");

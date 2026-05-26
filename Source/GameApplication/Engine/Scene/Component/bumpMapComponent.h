@@ -21,11 +21,11 @@ public:
 	~BumpMapComponent() {
 		m_TextureData.reset();
 	}
-	std::shared_ptr<TextureData> m_TextureData;
+	std::shared_ptr<TextureData> textureData;
 
 	YAML::Node encode() override{
 		YAML::Node node;
-		if(m_TextureData){
+		if(textureData){
 			node["FilePath"] = m_TextureData->FilePath;
 		}
 		return node;
@@ -37,7 +37,7 @@ public:
 		}
 
 		if(node["FilePath"]){
-			m_TextureData = context->manager->resource->Load<TextureData>(node["FilePath"].as<std::string>().c_str());
+			textureData= context->manager->resource->Load<TextureData>(node["FilePath"].as<std::string>().c_str());
 		}
 		return true;
 	}
@@ -79,14 +79,14 @@ public:
 		ImGui::Text("Texture");
 		ImGui::PushItemWidth(inputFieldWidth);
 		if(ImGui::InputText("##TextureInput", filepathBuffer, sizeof(filepathBuffer))){
-			m_TextureData = context->manager->resource->Load<TextureData>(filepathBuffer);
+			textureData= context->manager->resource->Load<TextureData>(filepathBuffer);
 		}
 		ImGui::PopItemWidth();
 
 		ImGui::SameLine();
 		if(ImGui::SmallButton("x")){
 			filepathBuffer[0] = '\0';
-			m_TextureData = nullptr;
+			textureData= nullptr;
 		}
 
 		ImGui::EndGroup();
@@ -97,7 +97,7 @@ public:
 			if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
 				const char* droppedPath = (const char*)payload->Data;
 				std::string _texturePath = std::string(droppedPath);
-				m_TextureData = context->manager->resource->Load<TextureData>(_texturePath);
+				textureData= context->manager->resource->Load<TextureData>(_texturePath);
 			}
 			ImGui::EndDragDropTarget();
 		}

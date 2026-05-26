@@ -53,9 +53,9 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 	if (pTexture) {
 
 			// マテリアル設定
-		if (pTexture->m_TextureData) {
+		if (pTexture->textureData) {
 			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
-			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->textureData->pTexture.GetAddressOf());
 		}
 
 		UVMatrixBuffer uv;
@@ -92,7 +92,7 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 
 	for (unsigned int m = 0; m < pModel->AiScene->mNumMeshes; m++) {
 
-		if(!pTexture || !pTexture->m_TextureData){
+		if(!pTexture || !pTexture->textureData){
 			MATERIAL materialData = material;
 			// Preserve user-defined flags (env map), clear auto-computed texture flags
 			materialData.MaterialFlags &= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
@@ -112,15 +112,15 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 			aiMaterial* aimaterial = pModel->AiScene->mMaterials[pModel->AiScene->mMeshes[m]->mMaterialIndex];
 			aiString texName;
 			if(aimaterial->GetTexture(aiTextureType_DIFFUSE, 0, &texName) == AI_SUCCESS && texName.length > 0){
-				auto it = pModel->m_Texture.find(texName.C_Str());
-				if(it != pModel->m_Texture.end()){
+				auto it = pModel->texture.find(texName.C_Str());
+				if(it != pModel->texture.end()){
 					deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, &it->second);
 					materialData.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 				}
 			}
 			if(aimaterial->GetTexture(aiTextureType_NORMALS, 0, &texName) == AI_SUCCESS && texName.length > 0){
-				auto it = pModel->m_Texture.find(texName.C_Str());
-				if(it != pModel->m_Texture.end()){
+				auto it = pModel->texture.find(texName.C_Str());
+				if(it != pModel->texture.end()){
 					deviceContext->PSSetShaderResources(1, 1, &it->second);
 					materialData.MaterialFlags |= MATERIAL_FLAG_USE_NORMAL_TEXTURE;
 				}
@@ -128,7 +128,7 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 			graphicsContext->SetMaterial(materialData);
 		} else{
 
-			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->textureData->pTexture.GetAddressOf());
 			if(pModel->SetTexture){
 				material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 			}

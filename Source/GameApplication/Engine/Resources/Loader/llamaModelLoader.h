@@ -16,7 +16,7 @@
 
 inline std::shared_ptr<LLAMAModelData> LoadLLAMAModelFromFile(const std::string& filePath) {
     std::shared_ptr<LLAMAModelData> modelData = std::make_shared<LLAMAModelData>();
-    modelData->m_path = filePath;
+    modelData->path = filePath;
 
     OutputDebugStringA(("Loading LLAMA model: " + filePath + "\n").c_str());
 

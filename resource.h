@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Visual C++ で生成されたインクルード ファイル。
-// Resource.rc で使用
+// Microsoft Visual C++ ﾅ専たCN[h t@CB
+// Resource.rc ﾅ使p
 //
 #define IDI_ICON1                       101
 

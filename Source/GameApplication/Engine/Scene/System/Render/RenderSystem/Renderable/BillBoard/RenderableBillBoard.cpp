@@ -61,9 +61,9 @@ void RenderableBillBoard::Initialize(SceneManagerContext* context){
 		D3D11_SUBRESOURCE_DATA sd{};
 		sd.pSysMem = vertex;
 
-		context->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_billBoardMesh->mesh.m_VertexBuffer.GetAddressOf());
-		context->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\commonVS.cso", m_billBoardMesh->mesh.m_VertexShader.GetAddressOf(), m_billBoardMesh->mesh.m_VertexLayout.GetAddressOf());
-		context->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_billBoardMesh->mesh.m_PixelShader.GetAddressOf());
+		context->renderer->GetGraphicsContext()->GetDevice()->CreateBuffer(&bd, &sd, m_billBoardMesh->mesh.vertexBuffer.GetAddressOf());
+		context->renderer->GetGraphicsContext()->CreateVertexShader("Asset\\Shader\\commonVS.cso", m_billBoardMesh->mesh.vertexShader.GetAddressOf(), m_billBoardMesh->mesh.m_VertexLayout.GetAddressOf());
+		context->renderer->GetGraphicsContext()->CreatePixelShader("Asset\\Shader\\unlitUVTexturePS.cso", m_billBoardMesh->mesh.pixelShader.GetAddressOf());
 	}
 }
 
@@ -93,9 +93,9 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 	if (pTexture) {
 
 			// マテリアル設定
-		if (pTexture->m_TextureData) {
+		if (pTexture->textureData) {
 			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
-			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->textureData->pTexture.GetAddressOf());
 		}
 
 		graphicsContext->SetMaterial(material);
@@ -182,8 +182,8 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 	}
 	deviceContext->IASetInputLayout(m_billBoardMesh->mesh.m_VertexLayout.Get());
 
-	//deviceContext->VSSetShader(m_billBoardMesh->mesh.m_VertexShader.Get(), NULL, 0);
-	//deviceContext->PSSetShader(m_billBoardMesh->mesh.m_PixelShader.Get(), NULL, 0);
+	//deviceContext->VSSetShader(m_billBoardMesh->mesh.vertexShader.Get(), NULL, 0);
+	//deviceContext->PSSetShader(m_billBoardMesh->mesh.pixelShader.Get(), NULL, 0);
 
 	// ローカル変換行列（スケール・ビルボード回転・位置）
 	DirectX::XMMATRIX LocalMatrix =
@@ -214,7 +214,7 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
 
-	deviceContext->IASetVertexBuffers(0, 1, m_billBoardMesh->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
+	deviceContext->IASetVertexBuffers(0, 1, m_billBoardMesh->mesh.vertexBuffer.GetAddressOf(), &stride, &offset);
 
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 

@@ -27,7 +27,7 @@ private:
 	static const int32_t TextureFilterCount = 2;
 	static const int32_t TextureWrapCount = 2;
 
-	RendererImplemented* m_renderer;
+	RendererImplemented* renderer;
 	ID3D11RasterizerState* m_rStates[CulTypeCount];
 	ID3D11DepthStencilState* m_dStates[DepthTestCount][DepthWriteCount];
 	ID3D11BlendState* m_bStates[AlphaTypeCount];

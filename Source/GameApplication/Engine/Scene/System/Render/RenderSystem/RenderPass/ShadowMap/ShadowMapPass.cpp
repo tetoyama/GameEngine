@@ -106,7 +106,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 	ID3D11ShaderResourceView* nullSRV[1] = {nullptr};
 	deviceContext->PSSetShaderResources(TextureSlot_ShadowMap, 1, nullSRV);
-	deviceContext->PSSetShader(m_RenderablePixelShader->m_PixelShader.Get(), NULL, 0);
+	deviceContext->PSSetShader(m_RenderablePixelShader->pixelShader.Get(), NULL, 0);
 
 	// ======== RenderTarget 切り替え ========
 	if(shadowRenderTarget->type == RenderTargetType::RENDERTARGET_TYPE_DEPTH){

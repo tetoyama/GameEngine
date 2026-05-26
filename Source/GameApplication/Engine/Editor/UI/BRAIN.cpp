@@ -35,13 +35,13 @@
 // Initialize
 // --------------------------------------------
 void BRAIN::Initialize(EditorService* editor){
-	m_editor = editor;
+	editor = editor;
 
 	m_isRunning.store(false);
 	m_stopRequested.store(false);
 	m_exitRequested.store(false);
 	m_requestReset.store(false);
-	m_scrollToBottom = false;
+	scrollToBottom = false;
 	m_nPast = 0;
 
 	std::memset(inputBuffer, 0, sizeof(inputBuffer));
@@ -92,7 +92,7 @@ void BRAIN::Initialize(EditorService* editor){
 	// ---------------------------------
 	// Worker thread
 	// ---------------------------------
-	m_workerThread = std::thread(&BRAIN::WorkerLoop, this);
+	workerThread = std::thread(&BRAIN::WorkerLoop, this);
 }
 
 // --------------------------------------------
@@ -100,7 +100,7 @@ void BRAIN::Initialize(EditorService* editor){
 // --------------------------------------------
 void BRAIN::Finalize(){
 	{
-		std::lock_guard<std::mutex> lock(m_jobMutex);
+		std::lock_guard<std::mutex> lock(jobMutex);
 		m_exitRequested.store(true);
 	}
 	m_jobCV.notify_one();
@@ -128,7 +128,7 @@ void BRAIN::WorkerLoop() {
 		bool doReset = false;
 
 		{
-			std::unique_lock<std::mutex> lock(m_jobMutex);
+			std::unique_lock<std::mutex> lock(jobMutex);
 
 			m_jobCV.wait_for(
 				lock,
@@ -172,7 +172,7 @@ void BRAIN::WorkerLoop() {
 			{
 				std::lock_guard<std::mutex> lock(m_outputMutex);
 				m_chatLog.clear();
-				m_scrollToBottom = false;
+				scrollToBottom = false;
 			}
 
 			m_isRunning.store(false);
@@ -205,7 +205,7 @@ void BRAIN::WorkerLoop() {
 		{
 			std::lock_guard<std::mutex> lock(m_outputMutex);
 			m_chatLog.push_back({ ChatEntry::Role::USER, job.prompt });
-			m_scrollToBottom = true;
+			scrollToBottom = true;
 		}
 
 		// ---------------------------
@@ -216,7 +216,7 @@ void BRAIN::WorkerLoop() {
 		{
 			std::lock_guard<std::mutex> lock(m_outputMutex);
 			m_chatLog.push_back({ ChatEntry::Role::ASSISTANT, std::string() });
-			m_scrollToBottom = true;
+			scrollToBottom = true;
 		}
 		while (m_mainAgent->GetState() != LLAMAAgent::State::RUNNING) {
 		}
@@ -235,7 +235,7 @@ void BRAIN::WorkerLoop() {
 				std::lock_guard<std::mutex> lock(m_outputMutex);
 				if (!m_chatLog.empty() && m_chatLog.back().role == ChatEntry::Role::ASSISTANT) {
 					m_chatLog.back().text = out;
-					m_scrollToBottom = true;
+					scrollToBottom = true;
 				}
 			}
 
@@ -253,7 +253,7 @@ void BRAIN::WorkerLoop() {
 // --------------------------------------------
 void BRAIN::Draw(const EditorDrawContext){
 	bool* show =
-		&m_editor->GetUI<MenuBar>()->m_showBRAIN;
+		&m_editor->GetUI<MenuBar>()->showBRAIN;
 	if(!show || !*show) return;
 
 	ImGui::Begin("B.R.A.I.N.", show);
@@ -340,9 +340,9 @@ void BRAIN::Draw(const EditorDrawContext){
 		ImGui::PopStyleColor();
 	}
 
-	if(m_scrollToBottom){
+	if(scrollToBottom){
 		ImGui::SetScrollHereY(1.0f);
-		m_scrollToBottom = false;
+		scrollToBottom = false;
 	}
 
 	ImGui::EndChild();
@@ -370,7 +370,7 @@ void BRAIN::Draw(const EditorDrawContext){
 		LLMJob job;
 		job.prompt = std::string(inputBuffer);
 		{
-			std::lock_guard<std::mutex> lock(m_jobMutex);
+			std::lock_guard<std::mutex> lock(jobMutex);
 			m_jobQueue.push(std::move(job));
 		}
 		m_jobCV.notify_one();
@@ -388,14 +388,14 @@ void BRAIN::Draw(const EditorDrawContext){
 	ImGui::BeginDisabled(running);
 	if(ImGui::Button("Reset Conversation")){
 		{
-			std::lock_guard<std::mutex> lock(m_jobMutex);
+			std::lock_guard<std::mutex> lock(jobMutex);
 			m_requestReset.store(true);
 		}
 		m_jobCV.notify_one();
 
 		std::lock_guard<std::mutex> lock(m_outputMutex);
 		m_chatLog.clear();
-		m_scrollToBottom = false;
+		scrollToBottom = false;
 	}
 	ImGui::EndDisabled();
 

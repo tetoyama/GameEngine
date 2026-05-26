@@ -89,7 +89,7 @@ void ModelData::Release(){
 	// textures
 	// ----------------------------
 	if(SetTexture){
-		for(auto& pair : m_Texture){
+		for(auto& pair : texture){
 			if(pair.second){
 				pair.second->Release();
 			}
@@ -100,7 +100,7 @@ void ModelData::Release(){
 	// ----------------------------
 	// animations (imported scenes only)
 	// ----------------------------
-	for(auto& pair : m_Animation){
+	for(auto& pair : animation){
 		if(pair.second.isImported && pair.second.Scene){
 			aiReleaseImport(pair.second.Scene);
 			pair.second.Scene = nullptr;

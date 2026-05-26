@@ -60,7 +60,7 @@ void FollowSystem::ProcessFollow() {
 					auto it = mr->model->m_BoneIndexMap.find(follow->boneName);
 					if (it != mr->model->m_BoneIndexMap.end()) {
 						uint32_t boneIdx = it->second;
-						const aiMatrix4x4& wm = mr->model->m_Bones[boneIdx].WorldMatrix;
+						const aiMatrix4x4& wm = mr->model->bones[boneIdx].WorldMatrix;
 
 						// assimp の列ベクトル規約では a4, b4, c4 が並進成分
 						DirectX::XMVECTOR boneModelPos =

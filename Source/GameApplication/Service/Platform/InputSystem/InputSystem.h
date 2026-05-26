@@ -75,12 +75,12 @@ private:
 	std::array<GamepadState, GamepadCount> m_gamepads;
 
 	// ウィンドウ・モード管理（必要に応じて複数ウィンドウ対応へ拡張可）
-	HWND m_window = nullptr;
-	int m_lastX = 0;
-	int m_lastY = 0;
-	int m_relativeX = INT32_MAX;
-	int m_relativeY = INT32_MAX;
-	bool m_inFocus = true;
+	HWND window = nullptr;
+	int lastX = 0;
+	int lastY = 0;
+	int relativeX = INT32_MAX;
+	int relativeY = INT32_MAX;
+	bool inFocus = true;
 
 	enum MousePositionMode {
 		MousePositionMode_ABSOLUTE, MousePositionMode_RELATIVE

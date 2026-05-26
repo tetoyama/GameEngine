@@ -10,12 +10,12 @@
 class AudioData {
 public:
 	std::string FilePath = "";
-	BYTE* m_SoundData = nullptr;
+	BYTE* soundData = nullptr;
 
-	int m_Length = 0;
-	int m_PlayLength = 0;
+	int length = 0;
+	int playLength = 0;
 
-	WAVEFORMATEX m_Format = {};
+	WAVEFORMATEX format = {};
 
 	AudioData(){
 		OutputDebugStringA("Created AudioData\n");
@@ -24,7 +24,7 @@ public:
 	~AudioData(){
 		OutputDebugStringA(("Destroyed AudioData: " + FilePath + "\n").c_str());
 
-		delete[] m_SoundData;
-		m_SoundData = nullptr;
+		delete[] soundData;
+		soundData = nullptr;
 	}
 };

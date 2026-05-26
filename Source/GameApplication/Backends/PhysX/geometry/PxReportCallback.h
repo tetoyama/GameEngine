@@ -71,7 +71,7 @@ namespace physx
 	class PxReportCallback : public PxReportCallbackBase
 	{
 		public:
-						PxReportCallback(T* buffer=NULL, PxU32 capacity=0) : PxReportCallbackBase(capacity), mBuffer(buffer)	{}
+						PxReportCallback(T* buffer = NULL, PxU32 capacity=0) : PxReportCallbackBase(capacity), mBuffer(buffer)	{}
 		virtual			~PxReportCallback()																						{}
 		
 				T*		mBuffer;	// Destination buffer for writing results. if NULL, the system will use its internal buffer and set that pointer as it sees fit.

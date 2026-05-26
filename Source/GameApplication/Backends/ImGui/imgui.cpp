@@ -16874,7 +16874,7 @@ void ImGui::UpdatePlatformWindows()
 
         // Destroy platform window if the viewport hasn't been submitted or if it is hosting a hidden window
         // (the implicit/fallback Debug##Default window will be registering its viewport then be disabled, causing a dummy DestroyPlatformWindow to be made each frame)
-        bool destroy_platform_window = false;
+        bool destroy_platforwindow = false;
         destroy_platform_window |= (viewport->LastFrameActive < g.FrameCount - 1);
         destroy_platform_window |= (viewport->Window && !IsWindowActiveAndVisible(viewport->Window));
         if (destroy_platform_window)
@@ -16888,7 +16888,7 @@ void ImGui::UpdatePlatformWindows()
             continue;
 
         // Create window
-        const bool is_new_platform_window = (viewport->PlatformWindowCreated == false);
+        const bool is_new_platforwindow = (viewport->PlatformWindowCreated == false);
         if (is_new_platform_window)
         {
             IMGUI_DEBUG_LOG_VIEWPORT("[viewport] Create Platform Window %08X '%s'\n", viewport->ID, viewport->Window ? viewport->Window->Name : "n/a");

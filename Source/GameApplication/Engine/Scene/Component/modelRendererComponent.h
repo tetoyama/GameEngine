@@ -192,7 +192,7 @@ public:
 			static char newAnimName[128] = "";
 			inputWidth = ImGui::GetContentRegionAvail().x;
 			ImGui::SetNextItemWidth(inputWidth);
-			if(ImGui::TreeNodeEx(("LoadedAnimation(" + std::to_string(model->m_Animation.size()) + ")").c_str(), ImGuiTreeNodeFlags_DefaultOpen)){
+			if(ImGui::TreeNodeEx(("LoadedAnimation(" + std::to_string(model->animation.size()) + ")").c_str(), ImGuiTreeNodeFlags_DefaultOpen)){
 
 
 				// --- Add Animation Section ---
@@ -221,13 +221,13 @@ public:
 				}
 
 				std::vector<std::string> toDelete;
-				if(model->m_Animation.empty()){
+				if(model->animation.empty()){
 
 				} else{
 
 					ImGui::Separator();
 
-					for(const auto& [name, anim] : model->m_Animation){
+					for(const auto& [name, anim] : model->animation){
 						ImGui::PushID(name.c_str());
 						if(anim.isImported){
 							if(ImGui::Button("Delete")){
@@ -297,7 +297,7 @@ public:
 						std::string filePathStr(newAnimFilePath);
 						std::string animNameStr(newAnimName);
 						if(!filePathStr.empty() && !animNameStr.empty() &&
-						   model && model->m_Animation.find(animNameStr) == model->m_Animation.end()){
+						   model && model->animation.find(animNameStr) == model->animation.end()){
 
 							model->LoadAnimation(filePathStr.c_str(), animNameStr.c_str());
 							animations.push_back(std::make_pair(animNameStr, filePathStr));
@@ -323,14 +323,14 @@ public:
 			ImGui::Separator();
 			if(ImGui::TreeNodeEx(("Motion Blend(" + std::to_string(blendedAnimations.size()) + ")").c_str(), ImGuiTreeNodeFlags_DefaultOpen)){
 
-				if(!model->m_Animation.empty()){
+				if(!model->animation.empty()){
 
 					// 新規追加用UI
 					static int newBlendAnimIndex = 0;
 
-					if(!model->m_Animation.empty()){
+					if(!model->animation.empty()){
 						std::vector<std::string> animNames;
-						for(const auto& pair : model->m_Animation){
+						for(const auto& pair : model->animation){
 							animNames.push_back(pair.first);
 						}
 
@@ -373,7 +373,7 @@ public:
 						// アニメーション名取得
 						int currentIdx = 0;
 						std::vector<std::string> animNames;
-						for(const auto& pair : model->m_Animation){
+						for(const auto& pair : model->animation){
 							animNames.push_back(pair.first);
 						}
 						for(int idx = 0; idx < (int)animNames.size(); ++idx){
@@ -422,7 +422,7 @@ public:
 						ImGui::SameLine(baseX + nameWidth);
 						ImGui::PushItemWidth(sliderWidth);
 						ImGui::UndoDragFloat("##StartTime", &blendEntry.animationStartTime, 0.0f, 0.0f,
-										 (float)model->m_Animation[blendEntry.name].Scene->mAnimations[0]->mDuration);
+										 (float)model->animation[blendEntry.name].Scene->mAnimations[0]->mDuration);
 						ImGui::PopItemWidth();
 
 						ImGui::PopID();

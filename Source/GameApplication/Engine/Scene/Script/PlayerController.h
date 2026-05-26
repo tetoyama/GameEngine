@@ -137,18 +137,18 @@ public:
 			model->blendedAnimations.clear();
 
 			// Run アニメーションを追加
-			if(model->model->m_Animation.find("Run") == model->model->m_Animation.end()){
+			if(model->model->animation.find("Run") == model->model->animation.end()){
 				model->model->LoadAnimation("Asset/Model/Akai_Run.fbx", "Run");
 			}
 			// Idle アニメーションを追加
-			if(model->model->m_Animation.find("Idle") == model->model->m_Animation.end()){
+			if(model->model->animation.find("Idle") == model->model->animation.end()){
 				model->model->LoadAnimation("Asset/Model/Akai_Idle.fbx", "Idle");
 
 			}
-			if(model->model->m_Animation.find("JumpingUp") == model->model->m_Animation.end()){
+			if(model->model->animation.find("JumpingUp") == model->model->animation.end()){
 				model->model->LoadAnimation("Asset/Model/Jumping Up.fbx", "JumpingUp");
 			}
-			if(model->model->m_Animation.find("JumpingDown") == model->model->m_Animation.end()){
+			if(model->model->animation.find("JumpingDown") == model->model->animation.end()){
 				model->model->LoadAnimation("Asset/Model/Jumping Down.fbx", "JumpingDown");
 
 			}

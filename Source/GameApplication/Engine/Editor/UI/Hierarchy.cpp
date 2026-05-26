@@ -83,7 +83,7 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 	ImGuiWindowClass window_class;
 	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
 	ImGui::SetNextWindowClass(&window_class);
-	bool* showSceneHierarchy = &m_editor->GetUI<MenuBar>()->m_showSceneHierarchy;
+	bool* showSceneHierarchy = &m_editor->GetUI<MenuBar>()->showSceneHierarchy;
 
 	if(!showSceneHierarchy || !*showSceneHierarchy){
 		return;

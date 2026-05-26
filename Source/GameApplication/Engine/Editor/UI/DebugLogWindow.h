@@ -18,12 +18,12 @@ public:
 	DebugLogWindow();
 
 private:
-	EditorService* m_editor = nullptr;
+	EditorService* editor = nullptr;
 
 	std::shared_ptr<MemoryLogSink> logSink;
 
 	char searchBuffer[128] = "";
-	bool m_autoScroll = true;
+	bool autoScroll = true;
 	std::unordered_set<LogLevel> levelFilter;
 
 	bool PassesFilter(const LogEntry& entry) const;

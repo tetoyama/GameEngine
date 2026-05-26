@@ -77,7 +77,7 @@ IXAudio2SourceVoice* AudioContext::CreateSourceVoice(WAVEFORMATEX* wfx){
 	AUDIO_LOG(LogLevel::Trace, "SourceVoice を生成します");
 
 	char buf[256];
-	sprintf_s(buf, "CreateSourceVoice: format=%d, channels=%d, sampleRate=%d, bitsPerSample=%d\n",
+	sprintf_s(buf, "CreateSourceVoice: format = %d, channels=%d, sampleRate=%d, bitsPerSample=%d\n",
 			  wfx->wFormatTag, wfx->nChannels, wfx->nSamplesPerSec, wfx->wBitsPerSample);
 	OutputDebugStringA(buf);
 

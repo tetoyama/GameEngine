@@ -33,8 +33,8 @@ void RenderableMesh::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
 
 	if(!pTexture){
-		if(meshRenderer->mesh.m_TextureData){
-			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, meshRenderer->mesh.m_TextureData->pTexture.GetAddressOf());
+		if(meshRenderer->mesh.textureData){
+			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, meshRenderer->mesh.textureData->pTexture.GetAddressOf());
 
 			MATERIAL material{};
 			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
@@ -46,11 +46,11 @@ void RenderableMesh::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	//if(meshRenderer->mesh.m_VertexLayout){
 	//	deviceContext->IASetInputLayout(meshRenderer->mesh.m_VertexLayout.Get());
 	//}
-	//if(meshRenderer->mesh.m_VertexShader){
-	//	deviceContext->VSSetShader(meshRenderer->mesh.m_VertexShader.Get(), NULL, 0);
+	//if(meshRenderer->mesh.vertexShader){
+	//	deviceContext->VSSetShader(meshRenderer->mesh.vertexShader.Get(), NULL, 0);
 	//}
-	//if(meshRenderer->mesh.m_PixelShader){
-	//	deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
+	//if(meshRenderer->mesh.pixelShader){
+	//	deviceContext->PSSetShader(meshRenderer->mesh.pixelShader.Get(), NULL, 0);
 	//}
 	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, componentRegistry);
 
@@ -59,7 +59,7 @@ void RenderableMesh::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
 
-	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
+	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.vertexBuffer.GetAddressOf(), &stride, &offset);
 
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 

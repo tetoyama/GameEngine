@@ -206,7 +206,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			const uint32_t boneIndex = it->second;
 
 			// OffsetMatrix 設定
-			model->m_Bones[boneIndex].OffsetMatrix = bone->mOffsetMatrix;
+			model->bones[boneIndex].OffsetMatrix = bone->mOffsetMatrix;
 
 			// Weight 登録
 			for(unsigned int w = 0; w < bone->mNumWeights; w++){
@@ -247,7 +247,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			CreateShaderResourceView(context->GetDevice(), image.GetImages(), image.GetImageCount(), metadata, &texture);
 			assert(texture);
 
-			model->m_Texture[aitexture->mFilename.data] = texture;
+			model->texture[aitexture->mFilename.data] = texture;
 		}
 	} else{
 		namespace fs = std::filesystem;
@@ -260,7 +260,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 				if(material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS){
 					std::string textureFilePath = texPath.C_Str();
 
-					if(model->m_Texture.find(textureFilePath) == model->m_Texture.end()){
+					if(model->texture.find(textureFilePath) == model->texture.end()){
 						// modelPathのフォルダパスを取得
 						std::string directory;
 						size_t pos = path.find_last_of("/\\");
@@ -298,7 +298,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 										&texture);
 
 									if(SUCCEEDED(hr)){
-										model->m_Texture[textureFilePath] = texture;
+										model->texture[textureFilePath] = texture;
 										model->SetTexture = true;
 
 									} else{
@@ -322,7 +322,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 				if(material->GetTexture(aiTextureType_NORMALS, 0, &normalTexPath) == AI_SUCCESS){
 					std::string normalMapFile = fs::path(normalTexPath.C_Str()).filename().string();
 
-					if(model->m_Texture.find(normalMapFile) == model->m_Texture.end()){
+					if(model->texture.find(normalMapFile) == model->texture.end()){
 						// modelPathのフォルダパスを取得
 						std::string directory;
 						size_t pos = path.find_last_of("/\\");
@@ -353,7 +353,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 									&texture);
 
 								if(SUCCEEDED(hr)){
-									model->m_Texture[normalMapFile] = texture;
+									model->texture[normalMapFile] = texture;
 									model->SetTexture = true;
 
 								} else{
@@ -386,7 +386,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			animationData.isImported = false;
 			animationData.Animation = animation;
 
-			model->m_Animation[animName] = animationData;
+			model->animation[animName] = animationData;
 		}
 
 		model->CreateSkinningBuffers(context);

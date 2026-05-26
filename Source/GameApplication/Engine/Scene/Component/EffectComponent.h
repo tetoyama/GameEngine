@@ -25,7 +25,7 @@ public:
 	// --------------------
 	// Resource（リソース）
 	// --------------------
-	std::shared_ptr<EffectData> m_EffectData;  // ロード済みエフェクトデータ
+	std::shared_ptr<EffectData> effectData;  // ロード済みエフェクトデータ
 	std::string FilePath;                       // エフェクトファイルのパス（YAML 保存用）
 
 	// --------------------
@@ -44,7 +44,7 @@ public:
 	bool Playing = false;         // 現在再生中かどうか
 	float CurrentPlayTime = 0.0f; // 現在の再生経過時間（秒）
 
-	Effekseer::Handle m_Handle = -1; // Effekseer 再生ハンドル（-1 = 未再生）
+	Effekseer::Handle handle= -1; // Effekseer 再生ハンドル（-1 = 未再生）
 
 	// --------------------
 	// Serialize（シリアライズ）
@@ -90,7 +90,7 @@ public:
 		if(ImGui::BeginDragDropTarget()){
 			if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
 				FilePath = (const char*)payload->Data;
-				m_EffectData = context->manager->resource->Load<EffectData>(FilePath);
+				effectData= context->manager->resource->Load<EffectData>(FilePath);
 			}
 			ImGui::EndDragDropTarget();
 		}
@@ -123,7 +123,7 @@ public:
 	// --------------------
 	bool Play(SceneContext* sceneContext){
 		if(!m_EffectData && !FilePath.empty()){
-			m_EffectData = sceneContext->manager->resource->Load<EffectData>(FilePath);
+			effectData= sceneContext->manager->resource->Load<EffectData>(FilePath);
 		}
 
 		if(!m_EffectData || !sceneContext->manager->graphics)
@@ -134,12 +134,12 @@ public:
 
 		auto manager = sceneContext->manager->graphics->GetEffectManager();
 
-		m_Handle = manager->Play(
+		handle= manager->Play(
 			m_EffectData->effect,
 			0.0f, 0.0f, 0.0f
 		);
 
-		manager->SetSpeed(m_Handle, TimeScale);
+		manager->SetSpeed(handle, TimeScale);
 
 		CurrentPlayTime = 0.0f;
 		Playing = true;
@@ -164,9 +164,9 @@ public:
 		}
 		auto manager = sceneContext->manager->graphics->GetEffectManager();
 
-		if(manager->Exists(m_Handle)){
+		if(manager->Exists(handle)){
 
-			manager->UpdateHandle(m_Handle, deltaTime * 60.0f);
+			manager->UpdateHandle(handle, deltaTime * 60.0f);
 
 		}else{
 			Playing = false;
@@ -174,7 +174,7 @@ public:
 		}
 
 		// 再生速度反映
-		manager->SetSpeed(m_Handle, TimeScale);
+		manager->SetSpeed(handle, TimeScale);
 
 		// エンジン側で時間管理
 		CurrentPlayTime += deltaTime * TimeScale;
@@ -190,11 +190,11 @@ public:
 	void Stop(SceneContext* sceneContext){
 		auto manager = sceneContext->manager->graphics->GetEffectManager();
 
-		if(Playing && manager->Exists(m_Handle)){
-			manager->StopEffect(m_Handle);
+		if(Playing && manager->Exists(handle)){
+			manager->StopEffect(handle);
 		}
 
-		m_Handle = -1;
+		handle= -1;
 		Playing = false;
 		CurrentPlayTime = 0.0f;
 	}
@@ -208,7 +208,7 @@ public:
 		const int maxStep = static_cast<int>(targetTimeSec * fps);
 
 		for(int i = 0; i < maxStep; ++i){
-			manager->UpdateHandle(m_Handle, 1.0f);
+			manager->UpdateHandle(handle, 1.0f);
 		}
 
 		CurrentPlayTime = targetTimeSec;

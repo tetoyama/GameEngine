@@ -1191,7 +1191,7 @@ void PhysicSystem::UpdateCollider() {
 
 						uint32_t boneIdx = boneIt->second;
 						// WorldMatrix はモデル空間（ルート補正済み、スケール未適用）のボーン変換
-						const aiMatrix4x4& boneModelMat = ModelRenderer->model->m_Bones[boneIdx].WorldMatrix;
+						const aiMatrix4x4& boneModelMat = ModelRenderer->model->bones[boneIdx].WorldMatrix;
 
 						// ボーンのモデル空間変換を位置とクォータニオンに分解
 						aiVector3D boneScale, bonePos;

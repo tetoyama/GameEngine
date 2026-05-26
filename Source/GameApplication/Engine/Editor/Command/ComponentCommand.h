@@ -23,22 +23,22 @@ public:
 	ComponentAddCommand(SceneContext* context, Entity entity, const std::string& componentName,
 		std::function<void(Entity)> addFunc)
 		: m_context(context)
-		, m_entity(entity)
+		, entity(entity)
 		, m_componentName(componentName)
 		, m_addFunc(addFunc)
 	{}
 
 	void Execute() override {
-		if (!m_context || !m_context->entity->IsAlive(m_entity)) return;
+		if (!m_context || !m_context->entity->IsAlive(entity)) return;
 
 		// リドゥ時はスナップショットから復元し、初回はファクトリ関数を使う
 		if (!m_snapshot.IsNull()) {
-			m_context->component->CreateFromYAML(m_componentName, m_entity, m_snapshot);
+			m_context->component->CreateFromYAML(m_componentName, entity, m_snapshot);
 		} else {
-			m_addFunc(m_entity);
+			m_addFunc(entity);
 
 			// リドゥに備えて追加直後のコンポーネント状態をスナップショット
-			auto comps = m_context->component->GetAllComponentsOfEntitySorted(m_entity);
+			auto comps = m_context->component->GetAllComponentsOfEntitySorted(entity);
 			const auto& idToName = m_context->component->GetComponentIDToNameMap();
 			for (IComponent* comp : comps) {
 				std::type_index ti(typeid(*comp));
@@ -53,13 +53,13 @@ public:
 	}
 
 	void Undo() override {
-		if (!m_context || !m_context->entity->IsAlive(m_entity)) return;
+		if (!m_context || !m_context->entity->IsAlive(entity)) return;
 
 		ComponentTypeID id = m_context->component->GetComponentIDByName(m_componentName);
 		if (id == static_cast<ComponentTypeID>(-1)) return;
 
 		// 削除前にスナップショット（リドゥ用）
-		auto comps = m_context->component->GetAllComponentsOfEntitySorted(m_entity);
+		auto comps = m_context->component->GetAllComponentsOfEntitySorted(entity);
 		const auto& idToName = m_context->component->GetComponentIDToNameMap();
 		for (IComponent* comp : comps) {
 			std::type_index ti(typeid(*comp));
@@ -71,7 +71,7 @@ public:
 			}
 		}
 
-		m_context->component->RemoveComponentByID(m_entity, id);
+		m_context->component->RemoveComponentByID(entity, id);
 	}
 
 	// Undo でコンポーネントを削除するため、Redo スタックの生ポインタを事前クリアする
@@ -81,7 +81,7 @@ public:
 
 private:
 	SceneContext*               m_context;
-	Entity                      m_entity;
+	Entity                      entity;
 	std::string                 m_componentName;
 	std::function<void(Entity)> m_addFunc;
 	YAML::Node                  m_snapshot;
@@ -95,7 +95,7 @@ class ComponentRemoveCommand : public ICommand {
 public:
 	ComponentRemoveCommand(SceneContext* context, Entity entity, IComponent* component)
 		: m_context(context)
-		, m_entity(entity)
+		, entity(entity)
 	{
 		// 削除前にスナップショット取得
 		std::type_index ti(typeid(*component));
@@ -109,15 +109,15 @@ public:
 	}
 
 	void Execute() override {
-		if (!m_context || !m_context->entity->IsAlive(m_entity)) return;
+		if (!m_context || !m_context->entity->IsAlive(entity)) return;
 		if (m_typeID == static_cast<ComponentTypeID>(-1)) return;
-		m_context->component->RemoveComponentByID(m_entity, m_typeID);
+		m_context->component->RemoveComponentByID(entity, m_typeID);
 	}
 
 	void Undo() override {
-		if (!m_context || !m_context->entity->IsAlive(m_entity)) return;
+		if (!m_context || !m_context->entity->IsAlive(entity)) return;
 		if (m_componentName.empty()) return;
-		m_context->component->CreateFromYAML(m_componentName, m_entity, m_snapshot);
+		m_context->component->CreateFromYAML(m_componentName, entity, m_snapshot);
 	}
 
 	// コンポーネントを破棄することで、それ以前のコマンドのコンポーネントポインタを無効化する。
@@ -128,7 +128,7 @@ public:
 
 private:
 	SceneContext*   m_context;
-	Entity          m_entity;
+	Entity          entity;
 	ComponentTypeID m_typeID = static_cast<ComponentTypeID>(-1);
 	std::string     m_componentName;
 	YAML::Node      m_snapshot;

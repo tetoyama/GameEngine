@@ -42,10 +42,10 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 		material.MaterialFlags &= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
 	}
 
-	if(pTexture && pTexture->m_TextureData && pTexture->m_TextureData->pTexture){
-		deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+	if(pTexture && pTexture->textureData && pTexture->textureData->pTexture){
+		deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->textureData->pTexture.GetAddressOf());
 
-		// sceneContext->manager->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+		// sceneContext->manager->graphics->GetDeviceContext()->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->textureData->pTexture.GetAddressOf());
 		material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 
 	}
@@ -64,7 +64,7 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	UINT offset = 0;
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
+	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.vertexBuffer.GetAddressOf(), &stride, &offset);
 	deviceContext->IASetIndexBuffer(*meshRenderer->mesh.m_IndexBuffer.GetAddressOf(), DXGI_FORMAT_R32_UINT, 0);
 
 	deviceContext->DrawIndexed(meshRenderer->mesh.indexCount, 0, 0);

@@ -68,13 +68,13 @@ ImVec4 DebugLogWindow::GetColorForLevel(LogLevel level) const{
 }
 
 void DebugLogWindow::Initialize(EditorService* editor){
-	m_editor = editor;
+	editor = editor;
 	logSink = editor->debugLogSystem->GetSink<MemoryLogSink>();
 }
 
 void DebugLogWindow::Draw(const EditorDrawContext ctx){
 
-	bool* showDebugLogWindow = &m_editor->GetUI<MenuBar>()->m_showConsole;
+	bool* showDebugLogWindow = &m_editor->GetUI<MenuBar>()->showConsole;
 	if(!showDebugLogWindow || !*showDebugLogWindow){
 		return;
 	}
@@ -93,7 +93,7 @@ void DebugLogWindow::Draw(const EditorDrawContext ctx){
 			logSink->Clear();
 		}
 		ImGui::SameLine();
-		ImGui::Checkbox("Auto Scroll", &m_autoScroll);
+		ImGui::Checkbox("Auto Scroll", &autoScroll);
 
 		ImGui::Separator();
 

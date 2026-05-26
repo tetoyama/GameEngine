@@ -44,7 +44,7 @@ void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* co
 	samp.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
 	context->graphics->GetDevice()->CreateSamplerState(&samp, &sampler);
 
-	Vector2 size = Vector2((float)context->graphics->m_width, (float)context->graphics->m_height);
+	Vector2 size = Vector2((float)context->graphics->width, (float)context->graphics->height);
 
 	// ----- GBuffer RenderTargets -----
 	pRenderTargets.clear();
@@ -99,9 +99,9 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 	ID3D11DeviceContext* dc = m_context->graphics->GetDeviceContext();
 	GraphicsContext* gc = m_context->renderer->GetGraphicsContext();
 
-	dc->VSSetShader(m_GBufferVertexShader->m_VertexShader.Get(), nullptr, 0);
+	dc->VSSetShader(m_GBufferVertexShader->vertexShader.Get(), nullptr, 0);
 	dc->IASetInputLayout(m_GBufferVertexShader->m_VertexLayout.Get());
-	dc->PSSetShader(m_GBufferPixelShader->m_PixelShader.Get(), nullptr, 0);
+	dc->PSSetShader(m_GBufferPixelShader->pixelShader.Get(), nullptr, 0);
 
 	gc->SetBlendMode(BlendMode::NONE);
 

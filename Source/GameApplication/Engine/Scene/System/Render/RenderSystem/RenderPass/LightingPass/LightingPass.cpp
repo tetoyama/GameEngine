@@ -56,7 +56,7 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 	envDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	m_context->graphics->GetDevice()->CreateSamplerState(&envDesc, &m_EnvMapSampler);
 
-	Vector2 size = Vector2((float)context->graphics->m_width, (float)context->graphics->m_height);
+	Vector2 size = Vector2((float)context->graphics->width, (float)context->graphics->height);
 
 	// ----- RenderTargets -----
 	// HDR float16 バッファ: エミッシブ HDR 値を保持しブルーム入力に使用する
@@ -127,10 +127,10 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 
 	dc->OMSetRenderTargets(1, pRenderTarget->rtv.GetAddressOf(), nullptr);
 
-	dc->VSSetShader(m_LightingVertexShader->m_VertexShader.Get(), nullptr, 0);
+	dc->VSSetShader(m_LightingVertexShader->vertexShader.Get(), nullptr, 0);
 	dc->IASetInputLayout(m_LightingVertexShader->m_VertexLayout.Get());
 	PixelShaderData* ps = m_renderSystem->GetDeferredPS();
-	dc->PSSetShader(ps ? ps->m_PixelShader.Get() : nullptr, nullptr, 0);
+	dc->PSSetShader(ps ? ps->pixelShader.Get() : nullptr, nullptr, 0);
 	D3D11_VIEWPORT vp = {};
 	vp.Width = ctx.screenSize.x;
 	vp.Height = ctx.screenSize.y;

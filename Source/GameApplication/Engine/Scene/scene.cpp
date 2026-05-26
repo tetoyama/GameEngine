@@ -144,7 +144,7 @@ void Scene::BuildDefaultScene(){
 
 		// TextureComponentを追加
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
-		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\mesh.png");
+		texture->textureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\mesh.png");
 		texture->UV_Slice_X = 0.04f;
 		texture->UV_Slice_Y = 0.04f;
 
@@ -200,7 +200,7 @@ void Scene::BuildDefaultScene(){
 		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
 		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
-		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\Daylight.png");
+		texture->textureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\Daylight.png");
 
 		auto* material = componentRegistry->AddComponent<MaterialComponent>(entity);
 

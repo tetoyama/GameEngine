@@ -25,7 +25,7 @@ public:
 		: m_context(context){}
 
 	void Initialize() override{
-		m_audioContext = m_context->audio;
+		audioContext= m_context->audio;
 	}
 
 	void Finalize() override{
@@ -55,8 +55,8 @@ public:
 				auto* comp = context->component->GetComponent<EffectComponent>(entity);
 				if(!comp) continue;
 
-				if(!comp->m_EffectData && !comp->FilePath.empty()){
-					comp->m_EffectData =
+				if(!comp->effectData && !comp->FilePath.empty()){
+					comp->effectData =
 						m_context->resource->Load<EffectData>(comp->FilePath);
 				}
 
@@ -109,7 +109,7 @@ public:
 				if(!comp->Playing)
 					continue;
 
-				if(!manager->Exists(comp->m_Handle)){
+				if(!manager->Exists(comp->handle)){
 					comp->Playing = false;
 					continue;
 				}
@@ -144,7 +144,7 @@ public:
 						Effekseer::Vector3D(pos.x, pos.y, pos.z)
 					);
 
-					manager->SetBaseMatrix(comp->m_Handle, mat);
+					manager->SetBaseMatrix(comp->handle, mat);
 				}
 			}
 		}
@@ -154,5 +154,5 @@ public:
 
 private:
 	SceneManagerContext* m_context = nullptr;
-	AudioContext* m_audioContext = nullptr;
+	AudioContext* audioContext= nullptr;
 };

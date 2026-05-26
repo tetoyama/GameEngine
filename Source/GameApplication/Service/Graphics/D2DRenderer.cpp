@@ -21,7 +21,7 @@ D2DRenderer::D2DRenderer(GraphicsContext* context, HWND hwnd)
 
 D2DRenderer::~D2DRenderer(){
 	SAFE_RELEASE(m_d2dRenderTarget);
-	SAFE_RELEASE(m_dwriteFactory);
+	SAFE_RELEASE(dwriteFactory);
 	SAFE_RELEASE(m_fontBrush);
 	SAFE_RELEASE(m_textFormat);
 }
@@ -66,7 +66,7 @@ void D2DRenderer::Initialize2DResources(){
 	hr = DWriteCreateFactory(
 		DWRITE_FACTORY_TYPE_SHARED,
 		__uuidof(IDWriteFactory),
-		reinterpret_cast<IUnknown**>(&m_dwriteFactory)
+		reinterpret_cast<IUnknown**>(&dwriteFactory)
 	);
 	if(FAILED(hr)){
 		OutputDebugStringA("DirectWriteファクトリの作成に失敗しました。\n");
@@ -89,7 +89,7 @@ void D2DRenderer::EndDraw(){
 }
 
 void D2DRenderer::DrawText2D(const std::wstring& text, float x, float y, float fontSize, D2D1::ColorF color){
-	if(!m_d2dRenderTarget || !m_fontBrush || !m_dwriteFactory) return;
+	if(!m_d2dRenderTarget || !m_fontBrush || !dwriteFactory) return;
 
 	m_fontBrush->SetColor(color);
 

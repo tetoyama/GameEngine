@@ -99,12 +99,12 @@ public:
 	std::vector<ID3D11Buffer*> VertexBuffer;
 	std::vector<ID3D11Buffer*> IndexBuffer;
 
-	std::unordered_map<std::string, ID3D11ShaderResourceView*> m_Texture;
+	std::unordered_map<std::string, ID3D11ShaderResourceView*> texture;
 
 	// ----------------------------
 	// skeleton
 	// ----------------------------
-	std::vector<BONE> m_Bones;
+	std::vector<BONE> bones;
 	std::unordered_map<std::string, uint32_t> m_BoneIndexMap;
 
 	bool enableRootMotion = false;
@@ -112,7 +112,7 @@ public:
 	// ----------------------------
 	// animation
 	// ----------------------------
-	std::unordered_map<std::string, AnimationData> m_Animation;
+	std::unordered_map<std::string, AnimationData> animation;
 
 	// per mesh deform data (CPU or upload source)
 	std::vector<DEFORM_VERTEX>* m_DeformVertex = nullptr;
