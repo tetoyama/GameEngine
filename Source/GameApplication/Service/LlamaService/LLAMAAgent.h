@@ -40,10 +40,10 @@ public:
 	// ============================
 
 	enum class State {
-		Idle,
-		Running,
-		Stopping,
-		Dead
+		IDLE,
+		RUNNING,
+		STOPPING,
+		DEAD
 	};
 
 	// ============================
@@ -138,7 +138,7 @@ private:
 	std::mutex m_mutex;
 	std::condition_variable m_cv;
 
-	std::atomic<State> m_state{State::Idle};
+	std::atomic<State> m_state{State::IDLE};
 	std::atomic<bool>  m_running{true};
 
 	// ============================

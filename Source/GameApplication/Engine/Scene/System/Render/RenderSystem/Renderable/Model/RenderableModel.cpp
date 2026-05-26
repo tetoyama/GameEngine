@@ -88,7 +88,7 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 
 	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, sceneContext->component);
 
-	graphicsContext->SetCullMode(CullMode::Back);
+	graphicsContext->SetCullMode(CullMode::BACK);
 
 	for (unsigned int m = 0; m < pModel->AiScene->mNumMeshes; m++) {
 

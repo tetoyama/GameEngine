@@ -27,11 +27,11 @@ class EnemyController: public CustomScriptComponent {
 		REFLECT_FIELD(Vector3, goalPosition, Vector3(5.5f, 0.0f, 0.0f))
 
 		enum class EnemyState {
-		MoveToPushPos,
-		PushBall
+		MOVE_TO_PUSH_POS,
+		PUSH_BALL
 	};
 
-	EnemyState state = EnemyState::MoveToPushPos;
+	EnemyState state = EnemyState::MOVE_TO_PUSH_POS;
 
 	bool canDash = true;
 	float CurrentSpeed = 0.0f;
@@ -67,7 +67,7 @@ public:
 		ImGui::ProgressBar(stamina / maxStamina, ImVec2(0, 0), "Stamina");
 
 		ImGui::Text("State: %s",
-					state == EnemyState::PushBall ? "PushBall" : "MoveToPushPos");
+					state == EnemyState::PUSH_BALL ? "PUSH_BALL" : "MOVE_TO_PUSH_POS");
 	}
 
 	// ---------------- Lifecycle ----------------
@@ -88,7 +88,7 @@ public:
 		stamina = maxStamina;
 		canDash = true;
 		CurrentSpeed = 0.0f;
-		state = EnemyState::MoveToPushPos;
+		state = EnemyState::MOVE_TO_PUSH_POS;
 
 		model->blendedAnimations.clear();
 		model->blendedAnimations.push_back({"Run",  0.0f, 0.0f});
@@ -123,17 +123,17 @@ public:
 		const float enterPushDist = 0.35f;
 		const float exitPushDist = 0.60f;
 
-		if(state == EnemyState::MoveToPushPos){
+		if(state == EnemyState::MOVE_TO_PUSH_POS){
 			if(distToIdeal < enterPushDist)
-				state = EnemyState::PushBall;
+				state = EnemyState::PUSH_BALL;
 		} else{ // PushBall
 			if(distToIdeal > exitPushDist)
-				state = EnemyState::MoveToPushPos;
+				state = EnemyState::MOVE_TO_PUSH_POS;
 		}
 
 		// ---------- 移動方向 ----------
 		Vector3 moveDir(0, 0, 0);
-		if(state == EnemyState::MoveToPushPos){
+		if(state == EnemyState::MOVE_TO_PUSH_POS){
 			if(distToIdeal > 0.01f)
 				moveDir = toIdeal.normalize();
 		} else{
@@ -141,7 +141,7 @@ public:
 		}
 
 		// ---------- スタミナ ----------
-		bool isDashing = (state == EnemyState::PushBall) && canDash;
+		bool isDashing = (state == EnemyState::PUSH_BALL) && canDash;
 
 		if(isDashing){
 			stamina -= staminaConsumeRate * dt;
@@ -187,7 +187,7 @@ public:
 		model->blendedAnimations.push_back({"Idle", 1.0f - speed01, 0.0f});
 
 		// ---------- ボール押し（PushBall のみ） ----------
-		if(state == EnemyState::PushBall &&
+		if(state == EnemyState::PUSH_BALL &&
 		   ballController &&
 		   (ballPos - enemyPos).length() < 0.6f){
 			ballController->ApplyForce(goalDir * 5.0f);

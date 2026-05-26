@@ -23,7 +23,7 @@ private:
 	std::shared_ptr<MemoryLogSink> logSink;
 
 	char searchBuffer[128] = "";
-	bool autoScroll = true;
+	bool m_autoScroll = true;
 	std::unordered_set<LogLevel> levelFilter;
 
 	bool PassesFilter(const LogEntry& entry) const;

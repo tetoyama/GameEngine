@@ -32,8 +32,8 @@ public:
 	Vector3 m_EditorCameraPosition = Vector3(0.0f, 5.0f, -20.0f);
 	Vector3 m_editorCameraRotation = Vector3(0.0f, 0.0f, 0.0f);
 
-	bool mouseOnEditor = false;
-	float cameraMoveSpeed = 10.0f;
+	bool m_mouseOnEditor = false;
+	float m_cameraMoveSpeed = 10.0f;
 
 private:
 	EditorService* m_editor = nullptr;

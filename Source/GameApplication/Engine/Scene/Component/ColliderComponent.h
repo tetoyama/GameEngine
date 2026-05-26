@@ -16,17 +16,17 @@
 
 // コライダーの形状を表す列挙型
 enum class ColliderType {
-	Box,        // ボックス形状
-	Sphere,     // スフィア形状
-	Capsule,    // カプセル形状
-	Mesh,       // 三角形メッシュ（静的専用）またはコンベックスメッシュ（動的可能）
-	HeightMap   // ハイトマップ地形（静的専用）
+	BOX,        // ボックス形状
+	SPHERE,     // スフィア形状
+	CAPSULE,    // カプセル形状
+	MESH,       // 三角形メッシュ（静的専用）またはコンベックスメッシュ（動的可能）
+	HEIGHT_MAP   // ハイトマップ地形（静的専用）
 };
 
 // コライダー形状の定義と PhysX リソースを保持する構造体
 // 1 つの ColliderComponent に複数の ColliderShape を追加可能（複合コライダー）
 struct ColliderShape {
-	ColliderType type = ColliderType::Box;  // このシェイプの形状タイプ
+	ColliderType type = ColliderType::BOX;  // このシェイプの形状タイプ
 
 	Vector3 size     = {1.0f, 1.0f, 1.0f}; // ボックスのハーフサイズ（X/Y/Z それぞれ半辺長）
 	Vector3 offset   = {0.0f, 0.0f, 0.0f}; // コライダー中心のローカルオフセット
@@ -277,17 +277,17 @@ public:
 						}
 
 
-						if(colliders[i].type == ColliderType::Box){
+						if(colliders[i].type == ColliderType::BOX){
 							ImGui::Text("Size");
 							ImGui::SameLine(XPos);
 							if(ImGui::UndoDragFloat3(("##Size" + std::to_string(i)).c_str(), &colliders[i].size.x, 0.1f))
 								needsUpdate = true;
-						} else if(colliders[i].type == ColliderType::Sphere){
+						} else if(colliders[i].type == ColliderType::SPHERE){
 							ImGui::Text("Radius");
 							ImGui::SameLine(XPos);
 							if(ImGui::UndoDragFloat(("##Radius" + std::to_string(i)).c_str(), &colliders[i].radius, 0.1f))
 								needsUpdate = true;
-						} else if(colliders[i].type == ColliderType::Capsule){
+						} else if(colliders[i].type == ColliderType::CAPSULE){
 							ImGui::Text("Radius");
 							ImGui::SameLine(XPos);
 							if(ImGui::UndoDragFloat(("##Radius" + std::to_string(i)).c_str(), &colliders[i].radius, 0.1f)){

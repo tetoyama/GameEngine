@@ -112,8 +112,8 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 	vp.TopLeftY = 0;
 	deviceContext->RSSetViewports(1, &vp);
 
-	graphics->SetBlendMode(BlendMode::Alpha);
-	m_context->graphics->SetDepthMode(DepthMode::ReadOnly);
+	graphics->SetBlendMode(BlendMode::ALPHA);
+	m_context->graphics->SetDepthMode(DepthMode::READ_ONLY);
 
 	// 透明・UIレイヤーのみ描画
 	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++) {
@@ -216,7 +216,7 @@ void ForwardPass::Execute(const RenderPassContext& ctx) {
 		}
 	}
 
-	m_context->graphics->SetDepthMode(DepthMode::Write);
+	m_context->graphics->SetDepthMode(DepthMode::WRITE);
 	// RTV を解除
 	ID3D11RenderTargetView* nullRTV[1] = { nullptr };
 	deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);

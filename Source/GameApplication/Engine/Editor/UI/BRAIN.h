@@ -33,8 +33,8 @@ struct AgentConfig;
 // ---------------------------------
 struct ChatEntry {
 	enum class Role {
-		User,
-		Assistant
+		USER,
+		ASSISTANT
 	};
 
 	Role role;

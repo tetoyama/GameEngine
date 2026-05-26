@@ -213,7 +213,7 @@ void GraphicsContext::SetWorldViewProjection2D(){
 	DirectX::XMMATRIX projection;
 	projection = DirectX::XMMatrixOrthographicOffCenterLH(0.0f, (float)m_width, (float)m_height, 0, 0.0f, 1.0f);
 	SetProjectionMatrix(projection);
-	SetDepthMode(DepthMode::Disable);
+	SetDepthMode(DepthMode::DISABLE);
 }
 
 bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT height) {
@@ -336,7 +336,7 @@ bool GraphicsContext::CreateDepthStencilState(){
 
 	hr = m_Device->CreateDepthStencilState(
 		&desc,
-		&m_DepthStates[(int)DepthMode::Write]
+		&m_DepthStates[(int)DepthMode::WRITE]
 	);
 	if(FAILED(hr)) return false;
 
@@ -349,7 +349,7 @@ bool GraphicsContext::CreateDepthStencilState(){
 
 	hr = m_Device->CreateDepthStencilState(
 		&desc,
-		&m_DepthStates[(int)DepthMode::ReadOnly]
+		&m_DepthStates[(int)DepthMode::READ_ONLY]
 	);
 	if(FAILED(hr)) return false;
 
@@ -362,7 +362,7 @@ bool GraphicsContext::CreateDepthStencilState(){
 
 	hr = m_Device->CreateDepthStencilState(
 		&desc,
-		&m_DepthStates[(int)DepthMode::Disable]
+		&m_DepthStates[(int)DepthMode::DISABLE]
 	);
 	if(FAILED(hr)) return false;
 
@@ -471,13 +471,13 @@ void GraphicsContext::SetCullMode(CullMode set){
 	// ラスタライザステート設定
 	D3D11_RASTERIZER_DESC rasterizerDesc{};
 	switch(set){
-		case CullMode::Back:
+		case CullMode::BACK:
 			rasterizerDesc.CullMode = D3D11_CULL_BACK;
 			break;
-		case CullMode::Front:
+		case CullMode::FRONT:
 			rasterizerDesc.CullMode = D3D11_CULL_FRONT;
 			break;
-		case CullMode::None:
+		case CullMode::NONE:
 			rasterizerDesc.CullMode = D3D11_CULL_NONE;
 			break;
 		default:
@@ -528,7 +528,7 @@ bool GraphicsContext::CreateBlendState() {
 
 	hr = m_Device->CreateBlendState(
 		&desc,
-		m_BlendStates[(int)BlendMode::None].ReleaseAndGetAddressOf()
+		m_BlendStates[(int)BlendMode::NONE].ReleaseAndGetAddressOf()
 	);
 	if (FAILED(hr)) return false;
 
@@ -553,7 +553,7 @@ bool GraphicsContext::CreateBlendState() {
 
 	hr = m_Device->CreateBlendState(
 		&desc,
-		m_BlendStates[(int)BlendMode::Alpha].ReleaseAndGetAddressOf()
+		m_BlendStates[(int)BlendMode::ALPHA].ReleaseAndGetAddressOf()
 	);
 	if (FAILED(hr)) return false;
 
@@ -563,7 +563,7 @@ bool GraphicsContext::CreateBlendState() {
 
 	hr = m_Device->CreateBlendState(
 		&desc,
-		m_BlendStates[(int)BlendMode::Additive].ReleaseAndGetAddressOf()
+		m_BlendStates[(int)BlendMode::ADDITIVE].ReleaseAndGetAddressOf()
 	);
 	if (FAILED(hr)) return false;
 
@@ -572,7 +572,7 @@ bool GraphicsContext::CreateBlendState() {
 
 	hr = m_Device->CreateBlendState(
 		&desc,
-		m_BlendStates[(int)BlendMode::Subtract].ReleaseAndGetAddressOf()
+		m_BlendStates[(int)BlendMode::SUBTRACT].ReleaseAndGetAddressOf()
 	);
 	if (FAILED(hr)) return false;
 
@@ -583,7 +583,7 @@ bool GraphicsContext::CreateBlendState() {
 
 	hr = m_Device->CreateBlendState(
 		&desc,
-		m_BlendStates[(int)BlendMode::Multiply].ReleaseAndGetAddressOf()
+		m_BlendStates[(int)BlendMode::MULTIPLY].ReleaseAndGetAddressOf()
 	);
 	if (FAILED(hr)) return false;
 
@@ -593,12 +593,12 @@ bool GraphicsContext::CreateBlendState() {
 
 	hr = m_Device->CreateBlendState(
 		&desc,
-		m_BlendStates[(int)BlendMode::Screen].ReleaseAndGetAddressOf()
+		m_BlendStates[(int)BlendMode::SCREEN].ReleaseAndGetAddressOf()
 	);
 	if (FAILED(hr)) return false;
 
 	// 初期状態
-	SetBlendMode(BlendMode::None);
+	SetBlendMode(BlendMode::NONE);
 
 	return true;
 }

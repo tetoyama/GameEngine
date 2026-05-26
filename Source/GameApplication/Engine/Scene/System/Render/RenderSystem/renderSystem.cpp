@@ -111,8 +111,8 @@ void RenderSystem::Initialize(){
 	m_EditorPass->Initialize(this, m_context);
 
 #ifdef _EDITOR
-	showPlayer = &m_context->editor->GetUI<MenuBar>()->showPlayerView;
-	showEditor = &m_context->editor->GetUI<MenuBar>()->showEditorView;
+	showPlayer = &m_context->editor->GetUI<MenuBar>()->m_showPlayerView;
+	showEditor = &m_context->editor->GetUI<MenuBar>()->m_showEditorView;
 
 	PlayButtonTexture = m_context->resource->Load<TextureData> ("Asset/Texture/UI/Control/Play.png");
 	PauseButtonTexture = m_context->resource->Load<TextureData>("Asset/Texture/UI/Control/Pause.png");

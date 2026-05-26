@@ -103,7 +103,7 @@ LLAMAAgent::~LLAMAAgent() {
         m_ctx = nullptr;
     }
 
-    m_state.store(State::Dead);
+    m_state.store(State::DEAD);
 
     OutputDebugStringA("LLAMAAgent dtor end\n");
 }
@@ -112,7 +112,7 @@ void LLAMAAgent::Stop() {
     OutputDebugStringA("LLAMAAgent::Stop called\n");
 
     std::lock_guard<std::mutex> lock(m_mutex);
-    m_state.store(State::Stopping, std::memory_order_release);
+    m_state.store(State::STOPPING, std::memory_order_release);
     m_running.store(false, std::memory_order_release);
     m_cv.notify_all();
 }
@@ -161,17 +161,17 @@ void LLAMAAgent::WorkerMain() {
             m_jobQueue.pop();
         }
 
-        m_state.store(State::Running, std::memory_order_release);
+        m_state.store(State::RUNNING, std::memory_order_release);
         try {
             RunPromptInternal(prompt);
         }
         catch (...) {
             OutputDebugStringA("LLAMAAgent::WorkerMain caught exception\n");
         }
-        m_state.store(State::Idle, std::memory_order_release);
+        m_state.store(State::IDLE, std::memory_order_release);
     }
 
-    m_state.store(State::Dead, std::memory_order_release);
+    m_state.store(State::DEAD, std::memory_order_release);
     OutputDebugStringA("LLAMAAgent::WorkerMain end\n");
 }
 
@@ -573,7 +573,7 @@ void LLAMAAgent::SummarizeAndReset() {
 // =====================================================
 void LLAMAAgent::ResetContext() {
     std::lock_guard<std::mutex> lock(m_mutex);
-    m_state.store(State::Idle, std::memory_order_release);
+    m_state.store(State::IDLE, std::memory_order_release);
     ResetContextUnlocked();
 }
 

@@ -103,7 +103,7 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 	dc->IASetInputLayout(m_GBufferVertexShader->m_VertexLayout.Get());
 	dc->PSSetShader(m_GBufferPixelShader->m_PixelShader.Get(), nullptr, 0);
 
-	gc->SetBlendMode(BlendMode::None);
+	gc->SetBlendMode(BlendMode::NONE);
 
 	// ----- Clear -----
 	float clearColor[4] = { 0,0,0,0 };

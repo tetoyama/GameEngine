@@ -165,7 +165,7 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 	//}
 	deviceContext->Draw(m_spriteMesh->mesh.meshCount, 0);
 
-	graphicsContext->SetDepthMode(DepthMode::Write);
+	graphicsContext->SetDepthMode(DepthMode::WRITE);
 	graphicsContext->SetViewMatrix(ctx.viewMatrix);
 	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
 }

@@ -58,7 +58,7 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 
 	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, componentRegistry);
 
-	graphicsContext->SetCullMode(CullMode::Back);
+	graphicsContext->SetCullMode(CullMode::BACK);
 	graphicsContext->SetWorldMatrix(World);
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
@@ -69,7 +69,7 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 
 	deviceContext->DrawIndexed(meshRenderer->mesh.indexCount, 0, 0);
 
-	//graphicsContext->SetDepthMode(DepthMode::Write);
+	//graphicsContext->SetDepthMode(DepthMode::WRITE);
 	//graphicsContext->SetViewMatrix(ctx.viewMatrix);
 	//graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
 }

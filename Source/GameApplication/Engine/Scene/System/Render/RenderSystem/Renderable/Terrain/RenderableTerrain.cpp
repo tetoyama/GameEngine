@@ -92,7 +92,7 @@ void RenderableTerrain::Execute(const RenderPassContext& ctx, SceneContext* scen
 
 	deviceContext->DrawIndexed(meshRenderer->mesh.indexCount, 0, 0);
 
-	graphicsContext->SetDepthMode(DepthMode::Write);
+	graphicsContext->SetDepthMode(DepthMode::WRITE);
 	graphicsContext->SetViewMatrix(ctx.viewMatrix);
 	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
 }

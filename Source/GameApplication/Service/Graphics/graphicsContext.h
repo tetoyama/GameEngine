@@ -24,27 +24,27 @@ class DebugLogService;
 
 enum class BlendMode
 {
-	None,		// ブレンド無し（GBuffer / Shadow）
-	Alpha,		// 通常アルファブレンド
-	Additive,	// 加算
-	Subtract,	// 減算
-	Multiply,	// 乗算
-	Screen,		// スクリーン
+	NONE,		// ブレンド無し（GBuffer / Shadow）
+	ALPHA,		// 通常アルファブレンド
+	ADDITIVE,	// 加算
+	SUBTRACT,	// 減算
+	MULTIPLY,	// 乗算
+	SCREEN,		// スクリーン
 	COUNT		// ブレンドモードの数
 };
 
 enum class DepthMode {
-	Write,		// 不透明（深度書き込みあり・テストあり）
-	ReadOnly,	// 半透明（深度書き込みなし・テストあり）
-	Disable,	// UI 等（深度無効）
+	WRITE,		// 不透明（深度書き込みあり・テストあり）
+	READ_ONLY,	// 半透明（深度書き込みなし・テストあり）
+	DISABLE,	// UI 等（深度無効）
 	COUNT		
 };
 
 enum class CullMode
 {
-	Back,   // 背面カリング（通常）
-	Front,  // 前面カリング（シャドウマップ描画等）
-	None    // カリングなし（両面描画）
+	BACK,   // 背面カリング（通常）
+	FRONT,  // 前面カリング（シャドウマップ描画等）
+	NONE    // カリングなし（両面描画）
 };
 
 // ポストエフェクト描画に使用するシェーダーセット（VS + PS + InputLayout）
@@ -64,17 +64,17 @@ public:
 
 // ポストプロセスパイプラインの 1 ノードを表す構造体（現在は未使用）
 struct PostProcessNode {
-	int id;
-	std::string shaderPath;
-	float resolutionScale = 1.0f;
-	UINT outputWidth = 0;
-	UINT outputHeight = 0;
-	int mipLevels = 1;  // 生成するミップマップレベル数（1 = ミップなし）
+	int ID;
+	std::string ShaderPath;
+	float ResolutionScale = 1.0f;
+	UINT OutputWidth = 0;
+	UINT OutputHeight = 0;
+	int MipLevels = 1;  // 生成するミップマップレベル数（1 = ミップなし）
 
-	DirectX::XMFLOAT4 param = {0,0,0,0};
+	DirectX::XMFLOAT4 Param = {0,0,0,0};
 
-	std::vector<int> inputs; // 接続元ノードID
-	std::unordered_map<std::string, float> parameters;
+	std::vector<int> Inputs; // 接続元ノードID
+	std::unordered_map<std::string, float> Parameters;
 
 	// 実行リソース
 	PostEffectShader shader;
@@ -87,8 +87,8 @@ struct CameraPostEffect;
 
 // ポストプロセスバッファの識別子（ピンポンバッファ方式で 2 つを交互に使用）
 enum class PostProcessBufferID {
-	BufferA,
-	BufferB
+	BUFFER_A,
+	BUFFER_B
 };
 
 // DirectX 11 のデバイス・デバイスコンテキスト・スワップチェーンを管理する描画サービス

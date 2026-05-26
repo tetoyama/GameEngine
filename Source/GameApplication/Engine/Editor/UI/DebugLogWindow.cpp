@@ -74,7 +74,7 @@ void DebugLogWindow::Initialize(EditorService* editor){
 
 void DebugLogWindow::Draw(const EditorDrawContext ctx){
 
-	bool* showDebugLogWindow = &m_editor->GetUI<MenuBar>()->showConsole;
+	bool* showDebugLogWindow = &m_editor->GetUI<MenuBar>()->m_showConsole;
 	if(!showDebugLogWindow || !*showDebugLogWindow){
 		return;
 	}
@@ -93,7 +93,7 @@ void DebugLogWindow::Draw(const EditorDrawContext ctx){
 			logSink->Clear();
 		}
 		ImGui::SameLine();
-		ImGui::Checkbox("Auto Scroll", &autoScroll);
+		ImGui::Checkbox("Auto Scroll", &m_autoScroll);
 
 		ImGui::Separator();
 
@@ -127,7 +127,7 @@ void DebugLogWindow::Draw(const EditorDrawContext ctx){
 					ImGui::PopStyleColor();
 				}
 
-				if(autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 10.0f)
+				if(m_autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 10.0f)
 					ImGui::SetScrollHereY(1.0f);
 			}
 		}

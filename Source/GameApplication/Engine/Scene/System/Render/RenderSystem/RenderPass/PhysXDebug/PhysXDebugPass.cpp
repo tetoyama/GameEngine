@@ -45,7 +45,7 @@ void PhysXDebugPass::Execute(const RenderPassContext& ctx){
 	if (!m_LineVertexShader || !m_LinePixelShader) return;
 
 	auto graphicsContext = m_context->graphics;
-	//graphicsContext->SetDepthMode(DepthMode::Disable);
+	//graphicsContext->SetDepthMode(DepthMode::DISABLE);
 
 	if(ctx.renderLayerVisibility[(int)RenderLayer::Debug]){
 
@@ -105,5 +105,5 @@ void PhysXDebugPass::Execute(const RenderPassContext& ctx){
 		deviceContext->Draw(static_cast<UINT>(vertices.size()), 0);
 	}
 
-	//graphicsContext->SetDepthMode(DepthMode::Write);
+	//graphicsContext->SetDepthMode(DepthMode::WRITE);
 }

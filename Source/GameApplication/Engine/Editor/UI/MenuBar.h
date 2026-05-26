@@ -43,20 +43,20 @@ public:
 	void Register(MenuEvent event, const Callback& callback);
 	void Invoke(MenuEvent event);
 
-	bool showSceneHierarchy = IMGUI_SHOW_DEFAULT;
-	bool showInspector = IMGUI_SHOW_DEFAULT;
-	bool showConsole = IMGUI_SHOW_DEFAULT;
-	bool showAssetsBrowser = IMGUI_SHOW_DEFAULT;
-	bool showBRAIN = IMGUI_SHOW_DEFAULT;
-	bool showEditorView = IMGUI_SHOW_DEFAULT;
-	bool showPlayerView = IMGUI_SHOW_DEFAULT;
-	bool showPerformanceMonitor = IMGUI_SHOW_DEFAULT;
-	bool showSystemSetting = IMGUI_SHOW_DEFAULT;
-	bool showCB41 = IMGUI_SHOW_DEFAULT;
+	bool m_showSceneHierarchy = IMGUI_SHOW_DEFAULT;
+	bool m_showInspector = IMGUI_SHOW_DEFAULT;
+	bool m_showConsole = IMGUI_SHOW_DEFAULT;
+	bool m_showAssetsBrowser = IMGUI_SHOW_DEFAULT;
+	bool m_showBRAIN = IMGUI_SHOW_DEFAULT;
+	bool m_showEditorView = IMGUI_SHOW_DEFAULT;
+	bool m_showPlayerView = IMGUI_SHOW_DEFAULT;
+	bool m_showPerformanceMonitor = IMGUI_SHOW_DEFAULT;
+	bool m_showSystemSetting = IMGUI_SHOW_DEFAULT;
+	bool m_showCB41 = IMGUI_SHOW_DEFAULT;
 
 private:
 	EditorService* m_editor = nullptr;
-	bool showMenuBar = IMGUI_SHOW_DEFAULT;
+	bool m_showMenuBar = IMGUI_SHOW_DEFAULT;
 
 	std::unordered_map<MenuEvent, Callback> m_eventCallbacks;
 

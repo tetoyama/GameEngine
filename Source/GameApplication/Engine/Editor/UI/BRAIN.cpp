@@ -161,7 +161,7 @@ void BRAIN::WorkerLoop() {
 		// ---------------------------
 		if (doReset) {
 			if (m_mainAgent) {
-				while (m_mainAgent->GetState() == LLAMAAgent::State::Running) {
+				while (m_mainAgent->GetState() == LLAMAAgent::State::RUNNING) {
 					std::this_thread::sleep_for(std::chrono::milliseconds(1));
 				}
 				m_mainAgent->ResetContext();
@@ -204,7 +204,7 @@ void BRAIN::WorkerLoop() {
 		// ---------------------------
 		{
 			std::lock_guard<std::mutex> lock(m_outputMutex);
-			m_chatLog.push_back({ ChatEntry::Role::User, job.prompt });
+			m_chatLog.push_back({ ChatEntry::Role::USER, job.prompt });
 			m_scrollToBottom = true;
 		}
 
@@ -215,15 +215,15 @@ void BRAIN::WorkerLoop() {
 
 		{
 			std::lock_guard<std::mutex> lock(m_outputMutex);
-			m_chatLog.push_back({ ChatEntry::Role::Assistant, std::string() });
+			m_chatLog.push_back({ ChatEntry::Role::ASSISTANT, std::string() });
 			m_scrollToBottom = true;
 		}
-		while (m_mainAgent->GetState() != LLAMAAgent::State::Running) {
+		while (m_mainAgent->GetState() != LLAMAAgent::State::RUNNING) {
 		}
 		// ---------------------------
 		// 出力監視ループ（Running状態監視一本化）
 		// ---------------------------
-		while (m_mainAgent->GetState() == LLAMAAgent::State::Running) {
+		while (m_mainAgent->GetState() == LLAMAAgent::State::RUNNING) {
 			if (m_stopRequested.load()) {
 				m_mainAgent->Stop();
 				m_stopRequested.store(false);
@@ -233,7 +233,7 @@ void BRAIN::WorkerLoop() {
 			std::string out = m_mainAgent->GetOutput();
 			{
 				std::lock_guard<std::mutex> lock(m_outputMutex);
-				if (!m_chatLog.empty() && m_chatLog.back().role == ChatEntry::Role::Assistant) {
+				if (!m_chatLog.empty() && m_chatLog.back().role == ChatEntry::Role::ASSISTANT) {
 					m_chatLog.back().text = out;
 					m_scrollToBottom = true;
 				}
@@ -253,7 +253,7 @@ void BRAIN::WorkerLoop() {
 // --------------------------------------------
 void BRAIN::Draw(const EditorDrawContext){
 	bool* show =
-		&m_editor->GetUI<MenuBar>()->showBRAIN;
+		&m_editor->GetUI<MenuBar>()->m_showBRAIN;
 	if(!show || !*show) return;
 
 	ImGui::Begin("B.R.A.I.N.", show);
@@ -317,12 +317,12 @@ void BRAIN::Draw(const EditorDrawContext){
 
 	for(const auto& e : logCopy){
 		const char* label =
-			(e.role == ChatEntry::Role::User)
+			(e.role == ChatEntry::Role::USER)
 			? "User"
 			: "Assistant";
 
 		ImVec4 color =
-			(e.role == ChatEntry::Role::User)
+			(e.role == ChatEntry::Role::USER)
 			? ImVec4(0.7f, 0.8f, 1.0f, 1.0f)
 			: ImVec4(0.8f, 1.0f, 0.8f, 1.0f);
 

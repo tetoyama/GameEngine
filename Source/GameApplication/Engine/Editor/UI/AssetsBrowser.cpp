@@ -24,16 +24,16 @@
 #include "Resources/Data/textureData.h"
 
 void AssetsBrowser::Initialize(EditorService* editor){
-	resourceService = editor->resourceService;
+	m_resourceService = editor->resourceService;
 	m_editor = editor;
 
-	fileIcon[FileIconType::FILE_UNDEFINED]	= resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_undefied.png");
-	fileIcon[FileIconType::FILE_FOLDER]		= resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\folder.png");
-	fileIcon[FileIconType::FILE_TEXT]		= resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_txt.png");
-	fileIcon[FileIconType::FILE_YAML]		= resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_yaml.png");
-	fileIcon[FileIconType::FILE_FBX]		= resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_fbx.png");
-	fileIcon[FileIconType::FILE_OBJ]		= resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_obj.png");
-	fileIcon[FileIconType::FILE_TTF]		= resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_ttf.png");
+	fileIcon[FileIconType::FILE_UNDEFINED]	= m_resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_undefied.png");
+	fileIcon[FileIconType::FILE_FOLDER]		= m_resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\folder.png");
+	fileIcon[FileIconType::FILE_TEXT]		= m_resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_txt.png");
+	fileIcon[FileIconType::FILE_YAML]		= m_resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_yaml.png");
+	fileIcon[FileIconType::FILE_FBX]		= m_resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_fbx.png");
+	fileIcon[FileIconType::FILE_OBJ]		= m_resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_obj.png");
+	fileIcon[FileIconType::FILE_TTF]		= m_resourceService->Load<TextureData>("Asset\\Texture\\UI\\FileIcon\\file_ttf.png");
 }
 
 void AssetsBrowser::Finalize(){
@@ -45,7 +45,7 @@ void AssetsBrowser::Finalize(){
 
 void AssetsBrowser::Draw(const EditorDrawContext ctx){
 
-	bool* showAssetsBrowser = &m_editor->GetUI<MenuBar>()->showAssetsBrowser;
+	bool* showAssetsBrowser = &m_editor->GetUI<MenuBar>()->m_showAssetsBrowser;
 
 	if(!showAssetsBrowser || !*showAssetsBrowser){
 		return;
@@ -135,7 +135,7 @@ void AssetsBrowser::Draw(const EditorDrawContext ctx){
 void AssetsBrowser::ClearPreviewCache(){
 	for(auto& [key, tex] : previewCache){
 		previewCache[key].reset();
-		resourceService->Unload<TextureData>(key);
+		m_resourceService->Unload<TextureData>(key);
 	}
 	previewCache.clear();
 }
@@ -208,9 +208,9 @@ void AssetsBrowser::DrawDirectoryTree(const std::filesystem::path& directory, st
 
 
 			//if(ImGui::MenuItem("名前を変更")){
-			//	openRename = true;
+			//	m_openRename = true;
 			//	renameTarget = path;
-			//	strcpy_s(newNameBuffer, path.filename().string().c_str());
+			//	strcpy_s(m_newNameBuffer, path.filename().string().c_str());
 			//	ImGui::CloseCurrentPopup();
 			//}
 
@@ -238,18 +238,18 @@ void AssetsBrowser::DrawDirectoryTree(const std::filesystem::path& directory, st
 			}
 		}
 
-		if(openRename){
+		if(m_openRename){
 			ImGui::OpenPopup("名前を変更");
-			openRename = false;
+			m_openRename = false;
 		}
 
 		if(ImGui::BeginPopupModal("名前を変更", nullptr, ImGuiWindowFlags_AlwaysAutoResize)){
-			ImGui::InputText("新しい名前", newNameBuffer, IM_ARRAYSIZE(newNameBuffer));
+			ImGui::InputText("新しい名前", m_newNameBuffer, IM_ARRAYSIZE(m_newNameBuffer));
 
 			if(ImGui::Button("OK")){
-				std::filesystem::path newPath = renameTarget.parent_path() / newNameBuffer;
+				std::filesystem::path newPath = m_renameTarget.parent_path() / m_newNameBuffer;
 				std::error_code ec;
-				std::filesystem::rename(renameTarget, newPath, ec);
+				std::filesystem::rename(m_renameTarget, newPath, ec);
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::SameLine();
@@ -449,7 +449,7 @@ TextureData* AssetsBrowser::GetIconTexture(std::string filepath){
 			return it->second.get();
 		}
 		// 初回読み込み → テクスチャ作成
-		auto tex = resourceService->Load<TextureData>(filepath);
+		auto tex = m_resourceService->Load<TextureData>(filepath);
 		if(tex){
 			previewCache[filepath] = tex;
 			tex.reset();

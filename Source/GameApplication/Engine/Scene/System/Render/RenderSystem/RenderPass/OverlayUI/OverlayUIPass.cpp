@@ -85,7 +85,7 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 	vp.TopLeftY = 0;
 	deviceContext->RSSetViewports(1, &vp);
 
-	graphics->SetBlendMode(BlendMode::Alpha);
+	graphics->SetBlendMode(BlendMode::ALPHA);
 
 	// 透明・UIレイヤーのみ描画
 	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++) {

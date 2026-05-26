@@ -318,7 +318,7 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 	physx::PxShape* shape = nullptr;
 
 	switch(col.type){
-		case ColliderType::Box:
+		case ColliderType::BOX:
 			shape = physx::PxRigidActorExt::createExclusiveShape(
 				*actor,
 				physx::PxBoxGeometry(
@@ -329,7 +329,7 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 			);
 			break;
 
-		case ColliderType::Sphere:
+		case ColliderType::SPHERE:
 		{
 			float r = col.radius * (std::max)({scale.x, scale.y, scale.z});
 			shape = physx::PxRigidActorExt::createExclusiveShape(
@@ -340,7 +340,7 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 			break;
 		}
 
-		case ColliderType::Capsule:
+		case ColliderType::CAPSULE:
 		{
 			float rxz = (std::max)(scale.x, scale.z);
 			float ry = scale.y;
@@ -352,7 +352,7 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 			break;
 		}
 
-		case ColliderType::Mesh:
+		case ColliderType::MESH:
 			if (actor->getType() == physx::PxActorType::eRIGID_DYNAMIC) {
 				// Dynamic actors require a convex mesh — triangle meshes are not supported as
 				// eSIMULATION_SHAPE on non-kinematic PxRigidDynamic. A convex hull allows
@@ -377,7 +377,7 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 			}
 			break;
 
-		case ColliderType::HeightMap:
+		case ColliderType::HEIGHT_MAP:
 		{
 			if (col.pxHeightField) {
 				// Heightfield shapes cannot be used as eSIMULATION_SHAPE on a non-kinematic
@@ -420,7 +420,7 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 		);
 
 		// HeightMap は原点がコーナーにあるため、地形メッシュ中心に合わせるオフセットを加算
-		if (col.type == ColliderType::HeightMap) {
+		if (col.type == ColliderType::HEIGHT_MAP) {
 			offset.x -= 0.5f * scale.x;
 			offset.z -= 0.5f * scale.z;
 		}
@@ -1063,12 +1063,12 @@ void PhysicSystem::UpdateCollider() {
 					Vector3 scale = Transform->scale;
 
 					// HeightMap タイプは PxHeightField を先に構築
-					if (col.type == ColliderType::HeightMap) {
+					if (col.type == ColliderType::HEIGHT_MAP) {
 						auto* terrain = context->component->GetComponent<TerrainComponent>(entity);
 						BuildTerrainHeightField(col, terrain);
 					}
 					// Mesh タイプは ModelRendererComponent からトライアングルメッシュを構築
-					if (col.type == ColliderType::Mesh) {
+					if (col.type == ColliderType::MESH) {
 						auto* mr = context->component->GetComponent<ModelRendererComponent>(entity);
 						BuildMeshCollider(col, mr);
 					}
@@ -1110,12 +1110,12 @@ void PhysicSystem::UpdateCollider() {
 					Vector3 scale = Transform->scale;
 
 					// HeightMap タイプは PxHeightField を先に構築
-					if (col.type == ColliderType::HeightMap) {
+					if (col.type == ColliderType::HEIGHT_MAP) {
 						auto* terrain = context->component->GetComponent<TerrainComponent>(entity);
 						BuildTerrainHeightField(col, terrain);
 					}
 					// Mesh タイプは ModelRendererComponent からトライアングルメッシュを構築
-					if (col.type == ColliderType::Mesh) {
+					if (col.type == ColliderType::MESH) {
 						auto* mr = context->component->GetComponent<ModelRendererComponent>(entity);
 						BuildMeshCollider(col, mr);
 					}
@@ -1149,12 +1149,12 @@ void PhysicSystem::UpdateCollider() {
 			if (Collider->needsUpdate) {
 				for (size_t i = 0; i < Collider->colliders.size(); ++i) {
 					// HeightMap タイプは再構築前に PxHeightField を更新
-					if (Collider->colliders[i].type == ColliderType::HeightMap) {
+					if (Collider->colliders[i].type == ColliderType::HEIGHT_MAP) {
 						auto* terrain = context->component->GetComponent<TerrainComponent>(entity);
 						BuildTerrainHeightField(Collider->colliders[i], terrain);
 					}
 					// Mesh タイプは ModelRendererComponent からトライアングルメッシュを再構築
-					if (Collider->colliders[i].type == ColliderType::Mesh) {
+					if (Collider->colliders[i].type == ColliderType::MESH) {
 						auto* mr = context->component->GetComponent<ModelRendererComponent>(entity);
 						BuildMeshCollider(Collider->colliders[i], mr);
 					}

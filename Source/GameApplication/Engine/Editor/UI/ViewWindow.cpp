@@ -47,7 +47,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 	RenderSystem* renderSystem = m_editor->sceneManager->systemRegistry->GetSystem<RenderSystem>();
 
-	bool* showEditor = &m_editor->GetUI<MenuBar>()->showEditorView;
+	bool* showEditor = &m_editor->GetUI<MenuBar>()->m_showEditorView;
 
 	if(!*showEditor){
 		return;
@@ -59,7 +59,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	ControlButton();
 	DrawRenderLayerToggleUI();
 	ImGui::SameLine();
-	std::string speedText = ("CameraSpeed:" + std::to_string(cameraMoveSpeed));
+	std::string speedText = ("CameraSpeed:" + std::to_string(m_cameraMoveSpeed));
 	ImGui::Text(speedText.c_str());
 
 	ImGui::Separator();
@@ -94,7 +94,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 
 	// マウスホイールの値をリセット
 	m_MouseWheel = 0.0f;
-	mouseOnEditor = false;
+	m_mouseOnEditor = false;
 
 	// マウスカーソルの位置を取得
 	POINT cursorPos;
@@ -109,7 +109,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 			if(drawList->GetClipRectMin().x <= mousePos.x && mousePos.x <= drawList->GetClipRectMax().x &&
 			   drawList->GetClipRectMin().y <= mousePos.y && mousePos.y <= drawList->GetClipRectMax().y){
 
-				mouseOnEditor = true;
+				m_mouseOnEditor = true;
 				m_MouseWheel = io.MouseWheel;
 			}
 		}
@@ -118,7 +118,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	ImGui::End();
 
 	// --- カメラ操作ロジック ---
-	if(mouseOnEditor){
+	if(m_mouseOnEditor){
 		ImGuiIO& io = ImGui::GetIO();
 		static bool isCameraBufferActive = false;
 		if(ImGui::IsMouseClicked(ImGuiMouseButton_Right)){
@@ -128,7 +128,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 		}
 
 		Vector3 velocity = {0,0,0};
-		float speed = cameraMoveSpeed;
+		float speed = m_cameraMoveSpeed;
 		if(isCameraBufferActive){
 			float mouseSensitivity = 0.005f;
 			m_editorCameraRotation.y += io.MouseDelta.x * mouseSensitivity;
@@ -156,7 +156,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 			}
 
 			if(m_MouseWheel != 0.0f){
-				cameraMoveSpeed += m_MouseWheel * 0.25f;
+				m_cameraMoveSpeed += m_MouseWheel * 0.25f;
 			}
 		} else{
 			TransformComponent transform;
@@ -185,7 +185,7 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 			ComponentRegistry* registry = hierarchy->sceneContext->component;
 			TransformComponent* transform = registry->GetComponent<TransformComponent>(selectedEntity);
 
-			if(transform && m_editor->GetUI<MenuBar>()->showEditorView){
+			if(transform && m_editor->GetUI<MenuBar>()->m_showEditorView){
 				DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, registry);
 				DirectX::XMMATRIX modelMatrix;
 

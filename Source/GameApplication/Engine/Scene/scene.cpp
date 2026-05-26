@@ -77,7 +77,7 @@ void Scene::Initialize(SceneManagerContext* set){
 
 	auto graphicsContext = Renderer->GetGraphicsContext();
 
-	graphicsContext->SetDepthMode(DepthMode::Write);
+	graphicsContext->SetDepthMode(DepthMode::WRITE);
 
 	// デフォルトのシーンを構築
 	if(ScenePath.empty()){
@@ -124,7 +124,7 @@ void Scene::BuildDefaultScene(){
 	auto renderer = m_SceneManagerContext->renderer;
 	auto graphicsContext = renderer->GetGraphicsContext();
 
-	graphicsContext->SetDepthMode(DepthMode::Write);
+	graphicsContext->SetDepthMode(DepthMode::WRITE);
 
 	{
 		Entity entity = entityRegistry->Create();
@@ -161,7 +161,7 @@ void Scene::BuildDefaultScene(){
 
 		// ボックスコライダーを追加
 		ColliderShape col;
-		col.type = ColliderType::Box;
+		col.type = ColliderType::BOX;
 		col.offset = Vector3(0, 0, 0);
 		col.size = Vector3(1, 1, 1);
 		col.staticFriction = 0.0f;
@@ -242,7 +242,7 @@ void Scene::BuildDefaultScene(){
 
 		// カプセルコライダーを追加
 		ColliderShape col;
-		col.type = ColliderType::Capsule;
+		col.type = ColliderType::CAPSULE;
 		col.offset = Vector3(0, 75, 0);
 		col.height = 100.0f;
 		col.radius = 25.0f;

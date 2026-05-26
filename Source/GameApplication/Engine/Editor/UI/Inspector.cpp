@@ -23,7 +23,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 	ImGuiWindowClass window_class;
 	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
 	ImGui::SetNextWindowClass(&window_class);
-	bool* showInspector = &m_editor->GetUI<MenuBar>()->showInspector;
+	bool* showInspector = &m_editor->GetUI<MenuBar>()->m_showInspector;
 	Entity selectedEntity = m_editor->GetUI<Hierarchy>()->selectedEntity;
 	SceneContext* context = m_editor->GetUI<Hierarchy>()->sceneContext;
 
@@ -198,7 +198,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 	TransformComponent* transform = registry->GetComponent<TransformComponent>(selectedEntity);
 
-	//if(transform && m_context->editor->GetUI<MenuBar>()->showEditorView){
+	//if(transform && m_context->editor->GetUI<MenuBar>()->m_showEditorView){
 
 	//	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, context->component);
 
