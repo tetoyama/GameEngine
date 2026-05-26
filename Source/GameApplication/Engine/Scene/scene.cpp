@@ -550,17 +550,17 @@ RenderLayer Scene::GetRenderLayerFromEntity(Entity entity) {
 		return layerComponent->layer;
 	}
 	if (registry->HasComponent<SpriteRendererComponent>(entity)) {
-		return RenderLayer::OverlayUI;
+		return RenderLayer::OVERLAY_UI;
 	}
 	if(registry->HasComponent<EffectComponent>(entity)){
-		return RenderLayer::SortTransparent3D;
+		return RenderLayer::SORT_TRANSPARENT_3D;
 	}
 	if (registry->HasComponent<ParticleComponent>(entity)) {
-		return RenderLayer::SortTransparent3D;
+		return RenderLayer::SORT_TRANSPARENT_3D;
 	}
 	auto* material = registry->GetComponent<MaterialComponent>(entity);
 	if (material && material->Material.BaseColor.w < 1.0f) {
-		return RenderLayer::SortTransparent3D;
+		return RenderLayer::SORT_TRANSPARENT_3D;
 	}
-	return RenderLayer::Opaque3D;
+	return RenderLayer::OPAQUE_3D;
 }

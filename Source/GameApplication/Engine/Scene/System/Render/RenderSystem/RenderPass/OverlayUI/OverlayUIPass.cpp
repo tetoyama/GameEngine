@@ -88,13 +88,13 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 	graphics->SetBlendMode(BlendMode::Alpha);
 
 	// 透明・UIレイヤーのみ描画
-	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++) {
+	for (int i = 0; i < (int)RenderLayer::MAX_RENDER_LAYER; i++) {
 
 		if (!ctx.renderLayerVisibility[i]) {
 			continue;
 		}
 
-		if (i != (int)RenderLayer::OverlayUI) {
+		if (i != (int)RenderLayer::OVERLAY_UI) {
 			continue;
 		}
 
@@ -115,7 +115,7 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 					continue;
 				}
 
-				if (layer == RenderLayer::OverlayUI) {
+				if (layer == RenderLayer::OVERLAY_UI) {
 
 					auto transform = context->component->GetComponent<TransformComponent>(entity);
 					if (!transform) {

@@ -122,7 +122,7 @@ protected:
 // Reflection system
 // ================================
 
-enum ScriptReflectFlags {
+enum class ScriptReflectFlags {
     SCRIPT_REFLECT_NONE = 0,
     SCRIPT_REFLECT_INSPECTOR = 1 << 0,
     SCRIPT_REFLECT_ENCODE = 1 << 1,

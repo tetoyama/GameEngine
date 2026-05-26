@@ -8,7 +8,7 @@
 #include "Component/CameraComponent.h"
 
 RenderPassContext::RenderPassContext(const RenderPhase& renderPass, bool* renderLayer, const CameraEntityData& data, const Vector2& setScreenSize) {
-	for(int i = 0; i < RenderLayer::MaxRenderLayer; i++){
+	for(int i = 0; i < RenderLayer::MAX_RENDER_LAYER; i++){
 		renderLayerVisibility[i] = renderLayer[i];
 	}
 	passPhase = renderPass;

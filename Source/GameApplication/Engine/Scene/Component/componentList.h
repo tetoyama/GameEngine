@@ -44,7 +44,7 @@
 #include "Script/CameraController.h"
 #include "Script/GN31.h"
 
-enum ComponentStorageType {
+enum class ComponentStorageType {
 	COMPONENT_SPARSE,
 	COMPONENT_ARCHETYPE
 };

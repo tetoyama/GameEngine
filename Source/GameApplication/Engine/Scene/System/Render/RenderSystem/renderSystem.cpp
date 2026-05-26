@@ -563,7 +563,7 @@ void RenderSystem::DrawRenderLayerToggleUI() {
 	ImGui::SameLine();
 
 	std::string previewText;
-	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; ++i) {
+	for (int i = 0; i < (int)RenderLayer::MAX_RENDER_LAYER; ++i) {
 		if (editorRenderLayerVisible[i]) {
 			if (!previewText.empty()) previewText += ", ";
 			previewText += GetRenderLayerName(static_cast<RenderLayer>(i));
@@ -572,7 +572,7 @@ void RenderSystem::DrawRenderLayerToggleUI() {
 	if (previewText.empty()) previewText = "None";
 
 	if (ImGui::BeginCombo("##Visible Layers", previewText.c_str())) {
-		for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; ++i) {
+		for (int i = 0; i < (int)RenderLayer::MAX_RENDER_LAYER; ++i) {
 			ImGui::Selectable(
 				GetRenderLayerName(static_cast<RenderLayer>(i)),
 				&editorRenderLayerVisible[i],
@@ -618,15 +618,15 @@ void RenderSystem::ControlButton(){
 
 	ImVec4 DefaultButtonColor = ImVec4(1.0f, 1.0f, 1.0f, 0.8f);
 	ImVec4 StopButtonColor = ImVec4(1.0f, 1.0f, 1.0f, 0.8f);
-	if(m_context->sceneManager->State == SceneManagerState::Stopped){
+	if(m_context->sceneManager->State == SceneManagerState::STOPPED){
 		StopButtonColor = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
 	}
-	ImGui::BeginDisabled(m_context->sceneManager->State == SceneManagerState::Stopped);
+	ImGui::BeginDisabled(m_context->sceneManager->State == SceneManagerState::STOPPED);
 
 	if(ImGui::ImageButton("Stop", Stop, ImVec2(20, 20),ImVec2(0,0),ImVec2(1,1),ImVec4(0,0,0,0), StopButtonColor)){
-		if(m_context->sceneManager->State != SceneManagerState::Stopped){
+		if(m_context->sceneManager->State != SceneManagerState::STOPPED){
 
-			m_context->sceneManager->State = SceneManagerState::Stopped; // シーンの状態をエディタに戻す
+			m_context->sceneManager->State = SceneManagerState::STOPPED; // シーンの状態をエディタに戻す
 			ImGui::SetWindowFocus("Editor View");
 		}
 	}
@@ -635,19 +635,19 @@ void RenderSystem::ControlButton(){
 	ImGui::SameLine();
 
 	// ツールバー内容
-	if(m_context->sceneManager->State == SceneManagerState::Playing){
+	if(m_context->sceneManager->State == SceneManagerState::PLAYING){
 		if(ImGui::ImageButton("Pause", Pause, ImVec2(20, 20), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), DefaultButtonColor)){
-			m_context->sceneManager->State = SceneManagerState::Paused; // シーンの状態を 一時停止に変更
+			m_context->sceneManager->State = SceneManagerState::PAUSED; // シーンの状態を 一時停止に変更
 		}
 	} else{
 		if(ImGui::ImageButton("Play", Play, ImVec2(20, 20), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), DefaultButtonColor)){
-			m_context->sceneManager->State = SceneManagerState::Playing; // シーンの状態を再生中に変更
+			m_context->sceneManager->State = SceneManagerState::PLAYING; // シーンの状態を再生中に変更
 			ImGui::SetWindowFocus("Play View");
 		}
 	}
 	ImGui::SameLine();
 	if(ImGui::ImageButton("Step", Step, ImVec2(20, 20), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), DefaultButtonColor)){
-		m_context->sceneManager->State = SceneManagerState::Step; // シーンの状態を ステップに変更
+		m_context->sceneManager->State = SceneManagerState::STEP; // シーンの状態を ステップに変更
 	}
 }
 

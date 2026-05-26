@@ -54,12 +54,12 @@ struct SceneManagerContext {
 
 
 // シーンマネージャの再生状態を表す列挙型
-enum SceneManagerState
+enum class SceneManagerState
 {
-	Playing,	// ゲームプレイ中（全システムが更新される）
-	Paused,		// 一時停止中（FixedUpdate のみ停止）
-	Stopped,	// 停止中（エディターモード、ECS システムは動作しない）
-	Step,		// 1フレームだけ進める（デバッグ用ステップ実行）
+	PLAYING,	// ゲームプレイ中（全システムが更新される）
+	PAUSED,		// 一時停止中（FixedUpdate のみ停止）
+	STOPPED,	// 停止中（エディターモード、ECS システムは動作しない）
+	STEP,		// 1フレームだけ進める（デバッグ用ステップ実行）
 };
 
 // 複数シーンの管理と再生状態の制御を行うサービス
@@ -97,8 +97,8 @@ public:
 	std::shared_ptr<Scene> OpenFromYAMLFile();
 	std::shared_ptr<Scene> LoadFromFilePath(const std::string& filePath);
 
-	SceneManagerState State = SceneManagerState::Stopped;
-	SceneManagerState OldState = SceneManagerState::Stopped;
+	SceneManagerState State = SceneManagerState::STOPPED;
+	SceneManagerState OldState = SceneManagerState::STOPPED;
 
 	std::shared_ptr<SystemRegistry> systemRegistry = nullptr;
 

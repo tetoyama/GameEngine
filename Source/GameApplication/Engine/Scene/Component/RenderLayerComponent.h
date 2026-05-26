@@ -24,7 +24,7 @@ public:
 	}
 
 	void inspector(SceneContext* context) override{
-		static const char* items[] = {"Background2D","Opaque3D", "Transparent3D","SortTransparent3D", "OverlayUI", "Debug"};
+		static const char* items[] = {"BACKGROUND_2D","OPAQUE_3D", "TRANSPARENT_3D","SORT_TRANSPARENT_3D", "OVERLAY_UI", "DEBUG"};
 		int currentLayer = static_cast<int>(layer);
 
 		if(ImGui::Combo("Render Layer", &currentLayer, items, IM_ARRAYSIZE(items))){
@@ -32,7 +32,7 @@ public:
 		}
 	}
 
-	RenderLayer layer = RenderLayer::Opaque3D;
+	RenderLayer layer = RenderLayer::OPAQUE_3D;
 };
 
 // レイヤー内の描画順序を管理するコンポーネント

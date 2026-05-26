@@ -8,11 +8,11 @@
 #include <string>
 #include "buildSetting.h"
 
-enum APPTYPE{
-	Editor = 0,
-	Player,
-	DebugPlayer,
-	DebugEditor,
+enum class APPTYPE{
+	EDITOR = 0,
+	PLAYER,
+	DEBUG_PLAYER,
+	DEBUG_EDITOR,
 };
 
 
@@ -23,7 +23,7 @@ struct APPCONFIG
 	}
 
 	// アプリケーションの種類
-	APPTYPE AppType = Editor;
+	APPTYPE AppType = APPTYPE::EDITOR;
 	std::string startSceneFilePath = DEFAULT_SCENE;
 
 	// Video Settings

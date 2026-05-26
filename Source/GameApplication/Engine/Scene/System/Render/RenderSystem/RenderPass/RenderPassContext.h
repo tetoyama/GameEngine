@@ -25,7 +25,7 @@ struct RenderPassContext {
 		const Vector2& setScreenSize
 	);
 
-	bool renderLayerVisibility[RenderLayer::MaxRenderLayer]; // 各レンダーレイヤーの表示フラグ
+	bool renderLayerVisibility[RenderLayer::MAX_RENDER_LAYER]; // 各レンダーレイヤーの表示フラグ
 	RenderPhase passPhase = RenderPhase::PHASE_SHADOW;       // このパスで処理するフェーズ
 
 	DirectX::XMFLOAT4 CameraPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f); // カメラのワールド位置

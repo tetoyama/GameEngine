@@ -45,13 +45,13 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 	#ifdef _DEBUG_BUILD
 
 #ifndef _EDITOR
-	State = SceneManagerState::Playing;
-	OldState = SceneManagerState::Stopped;
+	State = SceneManagerState::PLAYING;
+	OldState = SceneManagerState::STOPPED;
 #endif // !_EDITOR
 
 	#else
-	State = SceneManagerState::Playing;
-	OldState = SceneManagerState::Stopped;
+	State = SceneManagerState::PLAYING;
+	OldState = SceneManagerState::STOPPED;
 	#endif // DEBUG
 
 
@@ -95,14 +95,14 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 void SceneManager::Update(float deltaTime){
 
 	if (OldState != State) {
-		if (State == SceneManagerState::Paused) {
+		if (State == SceneManagerState::PAUSED) {
 
 			if(m_SceneContext.debug){
 				m_SceneContext.debug->LOG_INFO("シーンを一時停止します");
 			}
 			OldState = State;
 
-		} else if (State == SceneManagerState::Stopped) {
+		} else if (State == SceneManagerState::STOPPED) {
 
 			if(m_SceneContext.debug){
 				m_SceneContext.debug->LOG_INFO("シーンを停止します");
@@ -119,9 +119,9 @@ void SceneManager::Update(float deltaTime){
 
 			OldState = State;
 
-		} else if (State == SceneManagerState::Playing) {
+		} else if (State == SceneManagerState::PLAYING) {
 
-			if (OldState == SceneManagerState::Stopped) {
+			if (OldState == SceneManagerState::STOPPED) {
 
 				TempSave(); // 一時保存
 
@@ -142,13 +142,13 @@ void SceneManager::Update(float deltaTime){
 			}
 			OldState = State;
 
-		} else if (State == SceneManagerState::Step) {
+		} else if (State == SceneManagerState::STEP) {
 
 			if(m_SceneContext.debug){
 				m_SceneContext.debug->LOG_INFO("シーンを1フレーム進めます");
 			}
 
-			if (OldState == SceneManagerState::Stopped) {
+			if (OldState == SceneManagerState::STOPPED) {
 				TempSave(); // 一時保存
 				if (m_SceneContext.editor) {
 					m_SceneContext.editor->commandManager.Clear();
@@ -169,13 +169,13 @@ void SceneManager::Update(float deltaTime){
 			}
 
 			OldState = State;
-			State = SceneManagerState::Paused;
+			State = SceneManagerState::PAUSED;
 		} else {
 			OldState = State;
 		}
 	}
 
-	if (State == SceneManagerState::Playing) {
+	if (State == SceneManagerState::PLAYING) {
 		for (auto& [name, scene] : m_activeScenes) {
 			scene->Update(deltaTime);
 		}
@@ -219,7 +219,7 @@ void SceneManager::Update(float deltaTime){
 }
 
 void SceneManager::FixedUpdate(float fixedDeltaTime){
-	if (State == SceneManagerState::Playing) {
+	if (State == SceneManagerState::PLAYING) {
 		for (auto& [name, scene] : m_activeScenes) {
 			scene->FixedUpdate(fixedDeltaTime);
 		}

@@ -137,7 +137,7 @@ public:
 	bool* showPlayer = nullptr;
 
 	// 各 RenderLayer の表示状態（Player）
-	bool playerRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] =
+	bool playerRenderLayerVisible[(int)RenderLayer::MAX_RENDER_LAYER] =
 	{
 		true, true, true, true, true, false
 	};
@@ -146,7 +146,7 @@ public:
 	bool* showEditor = nullptr;
 
 	// 各 RenderLayer の表示状態（Editor）
-	bool editorRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] =
+	bool editorRenderLayerVisible[(int)RenderLayer::MAX_RENDER_LAYER] =
 	{
 		true, true, true, true, true, true,
 	};

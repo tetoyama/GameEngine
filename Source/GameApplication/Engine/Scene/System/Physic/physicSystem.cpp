@@ -177,9 +177,9 @@ physx::PxRigidStatic* PhysicSystem::CreateStatic(const physx::PxTransform& t, co
 }
 
 // PX_MIN_HEIGHTFIELD_Y_SCALE  = (0.0001f / PxReal(0xFFFF)) — PxReal not in scope here
-static constexpr float kMinHeightFieldYScale  = 0.0001f / 65535.0f;
+static constexpr float MIN_HEIGHT_FIELD_Y_SCALE  = 0.0001f / 65535.0f;
 // PX_MIN_HEIGHTFIELD_XZ_SCALE = 1e-8f
-static constexpr float kMinHeightFieldXZScale = 1e-8f;
+static constexpr float MIN_HEIGHT_FIELD_XZ_SCALE = 1e-8f;
 
 // =============================================================
 // TerrainComponent の HeightMap から PxHeightField を構築
@@ -391,11 +391,11 @@ physx::PxShape* PhysicSystem::CreatePxShape(
 				int gridSize = (int)nbRows - 1;
 				if (gridSize > 0) {
 					// heightScale: PxI16 サンプルは float * 100 で作成したので 1/100 * scale.y を使用
-					float heightScale = (std::max)(scale.y / 100.0f, kMinHeightFieldYScale);
+					float heightScale = (std::max)(scale.y / 100.0f, MIN_HEIGHT_FIELD_Y_SCALE);
 					// rowScale: row → X軸, gridSize セル分が scale.x 世界単位に対応
-					float rowScale = (std::max)(scale.x / (float)gridSize, kMinHeightFieldXZScale);
+					float rowScale = (std::max)(scale.x / (float)gridSize, MIN_HEIGHT_FIELD_XZ_SCALE);
 					// colScale: col → Z軸, gridSize セル分が scale.z 世界単位に対応
-					float colScaleVal = (std::max)(scale.z / (float)gridSize, kMinHeightFieldXZScale);
+					float colScaleVal = (std::max)(scale.z / (float)gridSize, MIN_HEIGHT_FIELD_XZ_SCALE);
 
 					physx::PxHeightFieldGeometry hfGeom(
 						col.pxHeightField,

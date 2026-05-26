@@ -21,7 +21,7 @@ struct SceneManagerContext;
 
 class ResourceService;
 
-enum FileIconType {
+enum class FileIconType {
 	FILE_UNDEFINED = 0,
 	FILE_FOLDER,
 	FILE_TEXT,
