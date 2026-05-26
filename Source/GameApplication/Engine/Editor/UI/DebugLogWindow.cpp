@@ -13,19 +13,19 @@
 DebugLogWindow::DebugLogWindow(){
 
 	for(int i = (int)LogLevel::Trace; i <= (int)LogLevel::Critical; ++i){
-		levelFilter.insert(static_cast<LogLevel>(i));
+		m_LevelFilter.insert(static_cast<LogLevel>(i));
 	}
 }
 
 bool DebugLogWindow::PassesFilter(const LogEntry& entry) const{
-	if(levelFilter.find(entry.level) == levelFilter.end()) return false;
+	if(m_LevelFilter.find(entry.level) == m_LevelFilter.end()) return false;
 
-	if(strlen(searchBuffer) > 0){
-		if(entry.message.find(searchBuffer) == std::string::npos &&
-		   entry.function.find(searchBuffer) == std::string::npos)
-			return m_False;
+	if(strlen(m_SearchBuffer) > 0){
+		if(entry.message.find(m_SearchBuffer) == std::string::npos &&
+		   entry.function.find(m_SearchBuffer) == std::string::npos)
+			return false;
 	}
-	return m_True;
+	return true;
 }
 
 const char* DebugLogWindow::LevelToString(LogLevel level) const{
@@ -42,16 +42,16 @@ const char* DebugLogWindow::LevelToString(LogLevel level) const{
 
 std::string DebugLogWindow::LevelFilterString(LogLevel level) const{
 
-	int m_Count= 0;
+	int count= 0;
 
-	const auto& entries = logSink->GetEntries();
+	const auto& entries = m_LogSink->GetEntries();
 	for(const auto& entry : entries){
 		if(entry.level != level) continue;
-		Count++;
+		count++;
 	}
 
 	std::string m_A= LevelToString(level);
-	a = a + "(" + std::to_string(Count) + ")";
+	m_A = m_A + "(" + std::to_string(count) + ")";
 	return m_A;
 }
 
@@ -69,7 +69,7 @@ ImVec4 DebugLogWindow::GetColorForLevel(LogLevel level) const{
 
 void DebugLogWindow::Initialize(EditorService* editor){
 	m_pEditor = editor;
-	logSink = editor->pDebugLogSystem->GetSink<MemoryLogSink>();
+	m_LogSink = editor->pDebugLogSystem->GetSink<MemoryLogSink>();
 }
 
 void DebugLogWindow::Draw(const EditorDrawContext ctx){
@@ -79,44 +79,43 @@ void DebugLogWindow::Draw(const EditorDrawContext ctx){
 		return;
 	}
 
-	ImGuiWindowClass m_WindowClass;
-	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
-	ImGui::SetNextWindowClass(&window_class);
+	ImGuiWindowClass windowClass;
+	windowClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
+	ImGui::SetNextWindowClass(&windowClass);
 
 	//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
-	ImGuiWindowFlags m_ToolbarWindowFlags= 0;
-	if(ImGui::Begin("Debug Log", showDebugLogWindow, toolbar_window_flags)){
+	ImGuiWindowFlags toolbarWindowFlags= 0;
+	if(ImGui::Begin("Debug Log", showDebugLogWindow, toolbarWindowFlags)){
 
-		ImGui::InputText("Search", searchBuffer, sizeof(searchBuffer));
+		ImGui::InputText("Search", m_SearchBuffer, sizeof(m_SearchBuffer));
 		ImGui::SameLine();
-		if(ImGui::Button("Clear") && logSink){
-			logSink->Clear();
+		if(ImGui::Button("Clear") && m_LogSink){
+			m_LogSink->Clear();
 		}
 		ImGui::SameLine();
-		ImGui::Checkbox("Auto Scroll", &autoScroll);
-
+		ImGui::Checkbox("Auto Scroll", &m_AutoScroll);
 		ImGui::Separator();
 
 		for(int i = (int)LogLevel::Trace; i <= (int)LogLevel::Critical; ++i){
 			LogLevel m_Level= static_cast<LogLevel>(i);
-			bool m_Selected= levelFilter.find(level) != levelFilter.end();
-			if(ImGui::Checkbox(LevelFilterString(level).c_str(), &selected)){
-				if(selected)
-					levelFilter.insert(level);
+			bool m_Selected= m_LevelFilter.find(m_Level) != m_LevelFilter.end();
+			if(ImGui::Checkbox(LevelFilterString(m_Level).c_str(), &m_Selected)){
+				if(m_Selected)
+					m_LevelFilter.insert(m_Level);
 				else
-					levelFilter.erase(level);
+					m_LevelFilter.erase(m_Level);
 			}
 			if(i < (int)LogLevel::Critical) ImGui::SameLine();
 		}
 
 		if(ImGui::BeginChild("LogRegion", ImVec2(0, 0), false)){
 
-			if(logSink){
-				const auto& entries = logSink->GetEntries();
+			if(m_LogSink){
+				const auto& entries = m_LogSink->GetEntries();
 				for(const auto& entry : entries){
 					if(!PassesFilter(entry)) continue;
 
-					ImVec4 m_Color= GetColorForLevel(entry.level);
+					ImVec4 color = GetColorForLevel(entry.level);
 					ImGui::PushStyleColor(ImGuiCol_Text, color);
 					ImGui::Text(ToU8String((const char*)u8"[%s] %s\n(関数名 %s,ファイル %s ,行 %d)").c_str(),
 								LevelToString(entry.level),
@@ -127,7 +126,7 @@ void DebugLogWindow::Draw(const EditorDrawContext ctx){
 					ImGui::PopStyleColor();
 				}
 
-				if(autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 10.0f)
+				if(m_AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 10.0f)
 					ImGui::SetScrollHereY(1.0f);
 			}
 		}

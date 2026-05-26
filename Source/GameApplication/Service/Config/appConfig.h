@@ -8,14 +8,12 @@
 #include <string>
 #include "buildSetting.h"
 
-enum m_Apptype{
+enum APPTYPE {
 	Editor = 0,
 	Player,
 	DebugPlayer,
 	DebugEditor,
 };
-
-
 
 struct APPCONFIG
 {
@@ -40,5 +38,4 @@ struct APPCONFIG
 
 	// Other Settings
 	std::string templateDir = "Asset/Prefab/template";
-
 };

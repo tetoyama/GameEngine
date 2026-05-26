@@ -8,22 +8,22 @@
 #include "MenuBar.h"
 
 void MenuBar::Register(MenuEvent event, const Callback& callback){
-	m_eventCallbacks[event] = callback;
+	m_EventCallbacks[event] = callback;
 }
 
 void MenuBar::Draw(const EditorDrawContext ctx){
 
 	if(ImGui::IsKeyPressed(ImGuiKey_F3, false)){
-		showMenuBar = !showMenuBar;
+		m_ShowMenuBar = !m_ShowMenuBar;
 
-		showSceneHierarchy = showMenuBar;
-		showInspector = showMenuBar;
-		showConsole = showMenuBar;
-		showAssetsBrowser = showMenuBar;
-		showEditorView = showMenuBar;
-		showPlayerView = showMenuBar;
-		showPerformanceMonitor = showMenuBar;
-		showSystemSetting = showMenuBar;
+		showSceneHierarchy = m_ShowMenuBar;
+		showInspector = m_ShowMenuBar;
+		showConsole = m_ShowMenuBar;
+		showAssetsBrowser = m_ShowMenuBar;
+		showEditorView = m_ShowMenuBar;
+		showPlayerView = m_ShowMenuBar;
+		showPerformanceMonitor = m_ShowMenuBar;
+		showSystemSetting = m_ShowMenuBar;
 	}
 
 	// Ctrl+Z でアンドゥ
@@ -35,7 +35,7 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 		Invoke(MenuEvent::Edit_Redo);
 	}
 
-	if(showMenuBar && ImGui::BeginMainMenuBar()){
+	if(m_ShowMenuBar && ImGui::BeginMainMenuBar()){
 		RenderFileMenu();
 		RenderEditMenu();
 
@@ -76,8 +76,8 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 }
 
 void MenuBar::Invoke(MenuEvent event){
-	auto m_It= m_eventCallbacks.find(event);
-	if(it != m_eventCallbacks.end()) it->second();
+	auto it= m_EventCallbacks.find(event);
+	if(it != m_EventCallbacks.end()) it->second();
 }
 
 void MenuBar::RenderFileMenu(){
@@ -109,15 +109,15 @@ void MenuBar::RenderEditMenu(){
 		bool m_CanUndo= m_pEditor && m_pEditor->commandManager.CanUndo();
 		bool m_CanRedo= m_pEditor && m_pEditor->commandManager.CanRedo();
 
-		std::string m_UndoDesc= canUndo ? m_pEditor->commandManager.PeekUndoDescription() : "";
-		std::string m_UndoLabel= undoDesc.empty() ? "Undo" : "Undo: " + undoDesc;
-		if(ImGui::MenuItem(undoLabel.c_str(), "Ctrl+Z", false, canUndo)){
+		std::string undoDesc= m_CanUndo ? m_pEditor->commandManager.PeekUndoDescription() : "";
+		std::string undoLabel= undoDesc.empty() ? "Undo" : "Undo: " + undoDesc;
+		if(ImGui::MenuItem(undoLabel.c_str(), "Ctrl+Z", false, m_CanUndo)){
 			Invoke(MenuEvent::Edit_Undo);
 		}
 
-		std::string m_RedoDesc= canRedo ? m_pEditor->commandManager.PeekRedoDescription() : "";
-		std::string m_RedoLabel= redoDesc.empty() ? "Redo" : "Redo: " + redoDesc;
-		if(ImGui::MenuItem(redoLabel.c_str(), "Ctrl+Y", false, canRedo)){
+		std::string redoDesc= m_CanRedo ? m_pEditor->commandManager.PeekRedoDescription() : "";
+		std::string redoLabel= redoDesc.empty() ? "Redo" : "Redo: " + redoDesc;
+		if(ImGui::MenuItem(redoLabel.c_str(), "Ctrl+Y", false, m_CanRedo)){
 			Invoke(MenuEvent::Edit_Redo);
 		}
 		ImGui::Separator();

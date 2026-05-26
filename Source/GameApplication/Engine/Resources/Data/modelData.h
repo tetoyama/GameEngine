@@ -74,11 +74,11 @@ struct AnimationData {
 struct ModelData {
 public:
 	ModelData(){
-		OutputDebugStringA(("Created ModelData " + FilePath + "\n").c_str());
+		OutputDebugStringA(("Created ModelData " + filePath + "\n").c_str());
 	}
 
 	~ModelData(){
-		OutputDebugStringA(("Destroyed ModelData " + FilePath + "\n").c_str());
+		OutputDebugStringA(("Destroyed ModelData " + filePath + "\n").c_str());
 		Release();
 	}
 
@@ -156,10 +156,10 @@ public:
 	// animation
 	void LoadAnimation(const char* FileName, const char* Name);
 	void RemoveAnimation(const std::string& name){
-		auto it = m_Animation.find(name);
-		if(it != m_Animation.end()){
+		auto it = animation.find(name);
+		if(it != animation.end()){
 			it->second.Release();
-			m_Animation.erase(it);
+			animation.erase(it);
 		}
 	}
 

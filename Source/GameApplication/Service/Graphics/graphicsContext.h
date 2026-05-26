@@ -1,4 +1,4 @@
-﻿// =======================================================================
+// =======================================================================
 // 
 // graphicsContext.h
 // 
@@ -33,7 +33,7 @@ enum class BlendMode
 	COUNT		// ブレンドモードの数
 };
 
-enum class m_DepthMode{
+enum class DepthMode{
 	Write,		// 不透明（深度書き込みあり・テストあり）
 	ReadOnly,	// 半透明（深度書き込みなし・テストあり）
 	Disable,	// UI 等（深度無効）
@@ -50,9 +50,9 @@ enum class CullMode
 // ポストエフェクト描画に使用するシェーダーセット（VS + PS + InputLayout）
 class PostEffectShader {
 public:
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> vs;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> ps;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VS;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PS;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
 
 	// シェーダーと入力レイアウトをデバイスコンテキストにバインドする
 	void Bind(ID3D11DeviceContext* context){
@@ -86,7 +86,7 @@ struct PostProcessNode {
 struct CameraPostEffect;
 
 // ポストプロセスバッファの識別子（ピンポンバッファ方式で 2 つを交互に使用）
-enum class postProcessBufferId{
+enum class PostProcessBufferId{
 	BufferA,
 	BufferB
 };
@@ -128,8 +128,8 @@ public:
 
 	ID3D11DepthStencilView* GetDepthStencilView() {return m_DepthStencilView;}
 
-	ID2D1Factory* GetD2DFactory() const{return m_d2dFactory.Get();}
-	IDWriteFactory* GetDWriteFactory() const{return m_pDwriteFactory.Get();}
+	ID2D1Factory* GetD2DFactory() const{return m_D2dFactory.Get();}
+	IDWriteFactory* GetDWriteFactory() const{return m_DwriteFactory.Get();}
 
     ID3D11Buffer* GetWorldConstantBuffer() { return m_CbPerObject; }
 

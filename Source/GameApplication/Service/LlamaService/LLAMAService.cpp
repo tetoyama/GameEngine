@@ -27,7 +27,7 @@
 // ============================
 void LLAMAService::Initialize(LLAMAServiceContext context){
 
-	m_pResourceService = pContext.pResourceService;
+	m_pResourceService = context.pResourceService;
 	if(!m_pResourceService){
 		LLAMA_SERVICE_LOG(LogLevel::Error, "ResourceService が未設定のため LLAMAService の初期化を中止します");
 		return;
@@ -38,35 +38,35 @@ void LLAMAService::Initialize(LLAMAServiceContext context){
 
 	llama_backend_init();
 
-	m_threadRunning = true;
-	m_workerThread = std::thread(&LLAMAService::WorkerThreadMain, this);
+	threadRunning = true;
+	workerThread = std::thread(&LLAMAService::WorkerThreadMain, this);
 	LLAMA_SERVICE_LOG(LogLevel::Info, "LLAMAService の初期化が完了しました");
 }
 
 void LLAMAService::Shutdown(){
 	LLAMA_SERVICE_LOG(LogLevel::Info, "LLAMAService を終了します");
-	m_threadRunning = false;
-	m_jobCV.notify_all();
+	threadRunning = false;
+	jobCv.notify_all();
 
-	if(m_workerThread.joinable()){
-		m_workerThread.join();
+	if(workerThread.joinable()){
+		workerThread.join();
 	}
 
 	{
-		std::lock_guard<std::mutex> lock(m_completedMutex);
-		while(!m_completedCallbacks.empty()){
-			m_completedCallbacks.pop();
+		std::lock_guard<std::mutex> lock(completedMutex);
+		while(!completedCallbacks.empty()){
+			completedCallbacks.pop();
 		}
 	}
 
 	{
-		std::lock_guard<std::mutex> lock(m_agentMutex);
-		m_agents.clear();
+		std::lock_guard<std::mutex> lock(agentMutex);
+		agents.clear();
 	}
 
 	{
-		std::lock_guard<std::mutex> lock(m_modelMutex);
-		m_models.clear();
+		std::lock_guard<std::mutex> lock(modelMutex);
+		models.clear();
 		m_pendingCallbacks.clear();
 	}
 
@@ -80,58 +80,58 @@ void LLAMAService::Shutdown(){
 bool LLAMAService::LoadModel(const std::string& path){
 	LLAMA_SERVICE_LOG(LogLevel::Info, ("LLAMA モデルのロードを開始します: " + path));
 	{
-		std::lock_guard<std::mutex> lock(m_modelMutex);
-		if(m_models.contains(path)){
+		std::lock_guard<std::mutex> lock(modelMutex);
+		if(models.contains(path)){
 			LLAMA_SERVICE_LOG(LogLevel::Debug, ("LLAMA モデルは既にロード済みです: " + path));
-			return m_True;
+			return true;
 		}
 	}
-	auto m_ModelData= m_pResourceService->Load<LLAMAModelData>(path);
+	auto modelData= m_pResourceService->Load<LLAMAModelData>(path);
 	if(!modelData){
 		LLAMA_SERVICE_LOG(LogLevel::Error, ("LLAMA モデルデータの取得に失敗しました: " + path));
-		return m_False;
+		return false;
 	}
 
-	llama_model_params m_Params= llama_model_default_params();
+	llama_model_params params= llama_model_default_params();
 	params.n_gpu_layers = 0;
 
 	modelData->m_pModel = llama_model_load_from_file(path.c_str(), params);
 	if(!modelData->m_pModel){
 		LLAMA_SERVICE_LOG(LogLevel::Error, ("LLAMA モデルのロードに失敗しました: " + path));
-		return m_False;
+		return false;
 	}
 
 	modelData->m_pVocab = llama_model_get_vocab(modelData->m_pModel);
 
 	{
-		std::lock_guard<std::mutex> lock(m_modelMutex);
-		m_models[path] = modelData;
+		std::lock_guard<std::mutex> lock(modelMutex);
+		models[path] = modelData;
 	}
 
 	LLAMA_SERVICE_LOG(LogLevel::Info, ("LLAMA モデルのロードが完了しました: " + path));
-	return m_True;
+	return true;
 }
 
 std::shared_ptr<LLAMAModelData> LLAMAService::GetModel(const std::string& path) {
-    std::lock_guard<std::mutex> lock(m_modelMutex);
-    auto m_It= m_models.find(path);
+    std::lock_guard<std::mutex> lock(modelMutex);
+    auto it= models.find(path);
 
-	if (it != m_models.end()) {
+	if (it != models.end()) {
 		LLAMA_SERVICE_LOG(LogLevel::Trace, ("LLAMA モデルを取得しました: " + path));
 		OutputDebugStringA(("LLAMAService: Model found: " + path + "\n").c_str());
 		return it->second;
 	}
 
-    return m_Nullptr;
+    return nullptr;
 }
 
 std::vector<std::shared_ptr<LLAMAModelData>> LLAMAService::GetLoadedModels() const {
-    std::vector<std::shared_ptr<LLAMAModelData>> m_Result;
-    std::lock_guard<std::mutex> lock(m_modelMutex);
-    for (const auto& [_, model] : m_models) {
+    std::vector<std::shared_ptr<LLAMAModelData>> result;
+    std::lock_guard<std::mutex> lock(modelMutex);
+    for (const auto& [_, model] : models) {
         result.push_back(model);
     }
-    return m_Result;
+    return result;
 }
 
 // ============================
@@ -140,11 +140,11 @@ std::vector<std::shared_ptr<LLAMAModelData>> LLAMAService::GetLoadedModels() con
 void LLAMAService::LoadModelAsync(
 	const std::string& path,
 	std::function<void(bool)> callback){
-		bool m_ShouldQueueJob= false;
+		bool shouldQueueJob= false;
 		{
-			std::lock_guard<std::mutex> lock(m_modelMutex);
+			std::lock_guard<std::mutex> lock(modelMutex);
 
-			shouldQueueJob = !m_models.contains(path) && !m_pendingCallbacks.contains(path);
+			shouldQueueJob = !models.contains(path) && !m_pendingCallbacks.contains(path);
 			m_pendingCallbacks[path].push_back(callback);
 		}
 
@@ -154,12 +154,12 @@ void LLAMAService::LoadModelAsync(
 		}
 
 		{
-			std::lock_guard<std::mutex> lock(m_jobMutex);
-			m_modelJobQueue.push({path, nullptr});
+			std::lock_guard<std::mutex> lock(jobMutex);
+			modelJobQueue.push({path, nullptr});
 		}
 
 		LLAMA_SERVICE_LOG(LogLevel::Debug, ("LLAMA モデルの非同期ロードをキューへ追加しました: " + path));
-		m_jobCV.notify_one();
+		jobCv.notify_one();
 }
 
 
@@ -170,43 +170,43 @@ std::shared_ptr<LLAMAAgent> LLAMAService::CreateAgent(
     const std::string& modelPath,
     const std::shared_ptr<const AgentConfig>& config) {
 
-    auto m_Model= GetModel(modelPath);
+    auto model= GetModel(modelPath);
     if (!model) {
         LLAMA_SERVICE_LOG(LogLevel::Error, ("エージェント生成に必要なモデルが未ロードです: " + modelPath));
         OutputDebugStringA(("LLAMAService: Model not loaded: " + modelPath + "\n").c_str());
-        return m_Nullptr;
+        return nullptr;
     }
 
-    auto m_Agent= std::make_shared<LLAMAAgent>(model, pConfig);
+    auto agent= std::make_shared<LLAMAAgent>(model, config);
 
     {
-        std::lock_guard<std::mutex> lock(m_agentMutex);
-        m_agents.push_back(agent);
+        std::lock_guard<std::mutex> lock(agentMutex);
+        agents.push_back(agent);
     }
 
     LLAMA_SERVICE_LOG(LogLevel::Info, ("LLAMA エージェントを生成しました: " + modelPath));
-    return m_Agent;
+    return agent;
 }
 
 std::shared_ptr<LLAMAAgent> LLAMAService::CreateAgent(const std::shared_ptr<LLAMAModelData> model, const std::shared_ptr<const AgentConfig>& config){
 
-	auto m_Agent= std::make_shared<LLAMAAgent>(model, pConfig);
+	auto agent= std::make_shared<LLAMAAgent>(model, config);
 
 	{
-		std::lock_guard<std::mutex> lock(m_agentMutex);
-		m_agents.push_back(agent);
+		std::lock_guard<std::mutex> lock(agentMutex);
+		agents.push_back(agent);
 	}
 
 	LLAMA_SERVICE_LOG(LogLevel::Info, "LLAMA エージェントを生成しました");
-	return m_Agent;
+	return agent;
 }
 
 
 void LLAMAService::DestroyAgent(const std::shared_ptr<LLAMAAgent>& agent) {
-    std::lock_guard<std::mutex> lock(m_agentMutex);
-    auto m_It= std::find(m_agents.begin(), m_agents.end(), agent);
-    if (it != m_agents.end()) {
-        m_agents.erase(it);
+    std::lock_guard<std::mutex> lock(agentMutex);
+    auto it= std::find(agents.begin(), agents.end(), agent);
+    if (it != agents.end()) {
+        agents.erase(it);
         LLAMA_SERVICE_LOG(LogLevel::Debug, "LLAMA エージェントを破棄しました");
     }
 }
@@ -220,11 +220,11 @@ void LLAMAService::CreateAgentAsync(
     std::function<void(std::shared_ptr<LLAMAAgent>)> callback) {
 
         {
-            std::lock_guard<std::mutex> lock(m_jobMutex);
-            m_agentJobQueue.push({ modelPath, config, callback });
+            std::lock_guard<std::mutex> lock(jobMutex);
+            agentJobQueue.push({ modelPath, config, callback });
         }
         LLAMA_SERVICE_LOG(LogLevel::Debug, ("LLAMA エージェント生成ジョブをキューへ追加しました: " + modelPath));
-        m_jobCV.notify_one();
+        jobCv.notify_one();
 }
 
 // ============================
@@ -232,31 +232,30 @@ void LLAMAService::CreateAgentAsync(
 // ============================
 void LLAMAService::WorkerThreadMain() {
     LLAMA_SERVICE_LOG(LogLevel::Debug, "LLAMA ワーカースレッドを開始します");
-    while (m_threadRunning) {
-        ModelLoadJob m_ModelJob;
-        AgentCreateJob m_AgentJob;
-        bool m_HasModelJob= false;
-        bool m_HasAgentJob= false;
-
+    while (threadRunning) {
+        ModelLoadJob modelJob;
+        AgentCreateJob agentJob;
+        bool hasModelJob= false;
+        bool hasAgentJob= false;
         {
-            std::unique_lock<std::mutex> lock(m_jobMutex);
-            m_jobCV.wait(lock, [this]() {
-                return !m_modelJobQueue.empty()
-                    || !m_agentJobQueue.empty()
-                    || !m_threadRunning;
+            std::unique_lock<std::mutex> lock(jobMutex);
+            jobCv.wait(lock, [this]() {
+                return !modelJobQueue.empty()
+                    || !agentJobQueue.empty()
+                    || !threadRunning;
             });
 
-            if (!m_threadRunning) {
+            if (!threadRunning) {
                 break;
             }
 
-            if (!m_modelJobQueue.empty()) {
-                modelJob = m_modelJobQueue.front();
-                m_modelJobQueue.pop();
+            if (!modelJobQueue.empty()) {
+                modelJob = modelJobQueue.front();
+                modelJobQueue.pop();
                 hasModelJob = true;
-            } else if (!m_agentJobQueue.empty()) {
-                agentJob = m_agentJobQueue.front();
-                m_agentJobQueue.pop();
+            } else if (!agentJobQueue.empty()) {
+                agentJob = agentJobQueue.front();
+                agentJobQueue.pop();
                 hasAgentJob = true;
             }
         }
@@ -280,22 +279,21 @@ void LLAMAService::ProcessModelLoadJob(const ModelLoadJob& job){
 
 	std::vector<std::function<void(bool)>> callbacks;
 	{
-		std::lock_guard<std::mutex> lock(m_modelMutex);
-		auto m_It= m_pendingCallbacks.find(job.path);
+		std::lock_guard<std::mutex> lock(modelMutex);
+		auto it= m_pendingCallbacks.find(job.path);
 		if(it != m_pendingCallbacks.end()){
 			callbacks = std::move(it->second);
 			m_pendingCallbacks.erase(it);
 		}
 	}
 
-	if(!m_threadRunning) return;
-
+	if(!threadRunning) return;
 	{
-		std::lock_guard<std::mutex> lock(m_completedMutex);
+		std::lock_guard<std::mutex> lock(completedMutex);
 		for(auto& cb : callbacks){
-			m_completedCallbacks.push({
-				[cb, success](){ cb(success); }
-									  });
+			completedCallbacks.push({
+				[cb, m_Success](){ cb(m_Success); }
+			});
 		}
 	}
 	LLAMA_SERVICE_LOG(LogLevel::Debug, ("LLAMA モデルロードジョブの処理が完了しました: " + job.path));
@@ -303,13 +301,13 @@ void LLAMAService::ProcessModelLoadJob(const ModelLoadJob& job){
 
 void LLAMAService::ProcessAgentCreateJob(const AgentCreateJob& job){
 	LLAMA_SERVICE_LOG(LogLevel::Trace, ("LLAMA エージェント生成ジョブを処理します: " + job.modelPath));
-	auto m_Agent= CreateAgent(job.modelPath, job.pConfig);
+	auto agent= CreateAgent(job.modelPath, job.config);
 
-	if(!job.callback || !m_threadRunning) return;
+	if(!job.callback || !threadRunning) return;
 
 	{
-		std::lock_guard<std::mutex> lock(m_completedMutex);
-		m_completedCallbacks.push({
+		std::lock_guard<std::mutex> lock(completedMutex);
+		completedCallbacks.push({
 			[cb = job.callback, agent](){
 				cb(agent);
 			}
@@ -319,11 +317,11 @@ void LLAMAService::ProcessAgentCreateJob(const AgentCreateJob& job){
 }
 
 void LLAMAService::PumpCallbacks(){
-	std::queue<CompletedCallback> m_Local;
+	std::queue<CompletedCallback> local;
 
 	{
-		std::lock_guard<std::mutex> lock(m_completedMutex);
-		std::swap(local, m_completedCallbacks);
+		std::lock_guard<std::mutex> lock(completedMutex);
+		std::swap(local, completedCallbacks);
 	}
 
 	if(!local.empty()){

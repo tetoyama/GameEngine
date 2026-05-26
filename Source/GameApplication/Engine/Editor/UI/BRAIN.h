@@ -32,7 +32,7 @@ struct AgentConfig;
 // Chat log entry
 // ---------------------------------
 struct ChatEntry {
-	enum class role{
+	enum class Role{
 		User,
 		Assistant
 	};

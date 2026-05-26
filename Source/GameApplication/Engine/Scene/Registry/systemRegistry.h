@@ -24,14 +24,14 @@ public:
 	 * SystemRegistry が所有権を持つ。
 	 */
 	void RegisterSystem(std::unique_ptr<ISystem> system){
-		m_systems.emplace_back(std::move(system));
+		m_Systems.emplace_back(std::move(system));
 	}
 
 	/**
 	 * @brief 全 System の初期化を呼び出す
 	 */
 	void InitializeAll(){
-		for(auto& sys : m_systems){
+		for(auto& sys : m_Systems){
 			sys->Initialize();
 		}
 	}
@@ -40,7 +40,7 @@ public:
 	 * @brief 全 System の Start を呼び出す
 	 */
 	void StartAll(){
-		for(auto& sys : m_systems){
+		for(auto& sys : m_Systems){
 			sys->Start();
 		}
 	}
@@ -50,7 +50,7 @@ public:
 	 * @param fdt 固定タイムステップ
 	 */
 	void FixedUpdateAll(float fdt){
-		for(auto& sys : m_systems){
+		for(auto& sys : m_Systems){
 			sys->FixedUpdate(fdt);
 		}
 	}
@@ -60,7 +60,7 @@ public:
 	 * @param dt デルタタイム
 	 */
 	void UpdateAll(float dt){
-		for(auto& sys : m_systems){
+		for(auto& sys : m_Systems){
 			sys->Update(dt);
 		}
 	}
@@ -70,7 +70,7 @@ public:
 	 * @param dt デルタタイム
 	 */
 	void EditorUpdateAll(float dt){
-		for(auto& sys : m_systems){
+		for(auto& sys : m_Systems){
 			sys->EditorUpdate(dt);
 		}
 	}
@@ -79,26 +79,26 @@ public:
 	 * @brief 全 System の Draw を呼び出す
 	 */
 	void DrawAll(){
-		for(auto& sys : m_systems){
+		for(auto& sys : m_Systems){
 			sys->Draw();
 		}
 	}
 
 	void StopAll() {
-		for (auto& sys : m_systems) {
+		for (auto& sys : m_Systems) {
 			sys->Stop();
 		}
 	}
 
 	void FinalizeAll(){
-		for(auto& sys : m_systems){
+		for(auto& sys : m_Systems){
 			sys->Finalize();
 		}
 	}
 
 	template<typename T>
 	T* GetSystem(){
-		for(auto& sys : m_systems){
+		for(auto& sys : m_Systems){
 			if(auto casted = dynamic_cast<T*>(sys.get())){
 				return casted;
 			}
@@ -107,7 +107,7 @@ public:
 	}
 
 	std::vector<std::unique_ptr<ISystem>>& GetSystems() {
-		return systems;
+		return m_Systems;
 	}
 
 	// -------------------------
@@ -118,7 +118,7 @@ public:
 	void EncodeAll(YAML::Node& rootNode) const{
 		YAML::Node systemsNode = rootNode["Systems"];
 
-		for(const auto& sys : m_systems){
+		for(const auto& sys : m_Systems){
 
 			const char* name = sys->GetSystemName();
 			if(!name) continue;
@@ -138,7 +138,7 @@ public:
 
 		const YAML::Node systemsNode = rootNode["Systems"];
 
-		for(auto& sys : m_systems){
+		for(auto& sys : m_Systems){
 			const char* name = sys->GetSystemName();
 			if(!name) continue;
 

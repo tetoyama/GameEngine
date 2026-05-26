@@ -59,8 +59,8 @@ public:
 	void RemoveSink(std::shared_ptr<ILogSink> sink);
 	template<typename T>
 	std::shared_ptr<T> GetSink(){
-		std::lock_guard<std::mutex> lock(mutex);
-		for(auto& sink : sinks){
+		std::lock_guard<std::mutex> lock(m_Mutex);
+		for(auto& sink : m_Sinks){
 			if(auto casted = std::dynamic_pointer_cast<T>(sink)){
 				return casted;
 			}
