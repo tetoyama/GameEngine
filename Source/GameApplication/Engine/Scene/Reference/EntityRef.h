@@ -51,3 +51,4 @@ private:
 	Entity m_entity = 0;
 	SceneContext* m_context = nullptr;
 };
+

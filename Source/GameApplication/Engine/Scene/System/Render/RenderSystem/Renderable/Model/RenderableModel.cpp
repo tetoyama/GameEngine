@@ -65,7 +65,10 @@ void RenderableModel::Execute(const RenderPassContext& ctx, SceneContext* sceneC
 			// 0.25f = 4分割
 			// 0.125f = 8分割
 
-			int column = (int)(1.0f / pTexture->UV_Slice_X);
+			int column = (int)(pTexture->UV_Slice_X);
+			if(column <= 0){
+				column = 1;
+			}
 
 			uv.UVStart.x = (pTexture->AnimationNum % column) * pTexture->UV_Slice_X;
 			uv.UVStart.y = (pTexture->AnimationNum / column) * pTexture->UV_Slice_Y;

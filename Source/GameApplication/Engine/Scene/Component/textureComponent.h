@@ -196,10 +196,13 @@ public:
 				// 0.25f = 4分割
 				// 0.125f = 8分割
 
-				int column = (int)(1.0f / UV_Slice_X);
+				int column = (int)(UV_Slice_X);
+				if(column <= 0){
+					column = 1;
+				}
 
-				start.x = (AnimationNum % column) * UV_Slice_X;
-				start.y = (AnimationNum / column) * UV_Slice_Y;
+				start.x = (AnimationNum / column) * 1.0f / UV_Slice_X;
+				start.y = (AnimationNum % column) * 1.0f / UV_Slice_Y;
 
 				// 1 セルの UV サイズ: 1/スライス数
 				end.x = start.x + 1.0f / UV_Slice_X;  // セルの右端 UV
