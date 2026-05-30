@@ -52,8 +52,8 @@ void EditorService::Initialize(EditorServiceContext context) {
 	UIs.push_back(new DebugLogWindow());    // デバッグログウィンドウ
 	UIs.push_back(new ViewWindow());        // シーンビューウィンドウ
 	UIs.push_back(new SystemSetting());     // システム設定ウィンドウ
-	//UIs.push_back(new BRAIN());           // LLM エージェントウィンドウ（開発中）
-	UIs.push_back(new CB41());				// CB41用
+	// UIs.push_back(new BRAIN());           // LLM エージェントウィンドウ（開発中）
+	// UIs.push_back(new CB41());				// CB41用
 
 	// 全パネルを初期化（editorService への参照を渡す）
 	for (auto ui : UIs) {

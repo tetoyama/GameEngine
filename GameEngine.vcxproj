@@ -2645,6 +2645,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\componentList.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\environmentMapComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\materialComponent.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\PrefabComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\scriptComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Component\followComponent.h" />
     <ClInclude Include="Source\GameApplication\Engine\Scene\Interface\IScriptComponent.h" />
