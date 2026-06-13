@@ -1,4 +1,4 @@
-﻿// =======================================================================
+// =======================================================================
 // 
 // graphicsContext.cpp
 // 
@@ -261,7 +261,7 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 	}
 
 	DXGI_SWAP_CHAIN_DESC desc = {};
-	desc.BufferCount = 1;
+	desc.BufferCount = 2;
 	desc.BufferDesc.Width = width;
 	desc.BufferDesc.Height = height;
 	desc.BufferDesc.Format = m_backBufferFormat;
@@ -271,7 +271,7 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 	desc.OutputWindow = hwnd;
 	desc.SampleDesc.Count = 1;
 	desc.Windowed = TRUE;
-	desc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+	desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	desc.Flags = 0;
 
 	UINT flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
