@@ -89,78 +89,186 @@ public:
 		if(minPitch < maxPitch){
 			pitch = std::clamp(pitch, minPitch, maxPitch);
 		}
+
 		// --- カメラ位置計算 ---
-		DirectX::XMVECTOR offset = DirectX::XMVectorSet(0, height, -distance, 0);
-		DirectX::XMVECTOR rot = DirectX::XMQuaternionRotationRollPitchYaw(pitch, yaw, 0);
+		DirectX::XMVECTOR offset =
+			DirectX::XMVectorSet(0, height, -distance, 0);
+
+		DirectX::XMVECTOR rot =
+			DirectX::XMQuaternionRotationRollPitchYaw(
+				pitch,
+				yaw,
+				0);
+
 		offset = DirectX::XMVector3Rotate(offset, rot);
 
-		DirectX::XMVECTOR targetPos = DirectX::XMVectorSet(
-			targetTransform->position.x,
-			targetTransform->position.y,
-			targetTransform->position.z,
-			1.0f
-		);
+		DirectX::XMVECTOR targetPos =
+			DirectX::XMVectorSet(
+				targetTransform->position.x,
+				targetTransform->position.y,
+				targetTransform->position.z,
+				1.0f);
 
-		// --- カメラ遮蔽判定（遮蔽物があればカメラを近づける） ---
-		constexpr float occlusionPadding = 0.1f;  // 遮蔽面からの安全マージン
-		constexpr float minGroundClearance = 0.3f;  // ターゲット足元からの最低高さ
-		auto* phys = m_ref.GetScene()->manager
+		// ------------------------------------------------
+		// 遮蔽判定
+		// ------------------------------------------------
+
+		constexpr float occlusionPadding = 0.1f;
+		constexpr float minGroundClearance = 0.3f;
+
+		auto* phys =
+			m_ref.GetScene()->manager
 			->systemRegistry
 			->GetSystem<PhysicSystem>();
 
 		DirectX::XMFLOAT3 pos;
-		DirectX::XMVECTOR camPos = DirectX::XMVectorAdd(targetPos, offset);
-		if(phys){
-			// 視点位置: ターゲットの中心付近（足元ヒットを避けるため高さ半分）
-			DirectX::XMVECTOR eyePos = DirectX::XMVectorSet(
-				targetTransform->position.x,
-				targetTransform->position.y + height * 0.5f,
-				targetTransform->position.z,
-				1.0f);
 
-			DirectX::XMVECTOR toCamera = DirectX::XMVectorSubtract(camPos, eyePos);
-			float toCamLen = DirectX::XMVectorGetX(DirectX::XMVector3Length(toCamera));
+		DirectX::XMVECTOR camPos =
+			DirectX::XMVectorAdd(targetPos, offset);
+
+		bool isOccluded = false;
+		float safeLen = distance;
+
+		if(phys){
+			DirectX::XMVECTOR eyePos =
+				DirectX::XMVectorSet(
+					targetTransform->position.x,
+					targetTransform->position.y + height * 0.5f,
+					targetTransform->position.z,
+					1.0f);
+
+			DirectX::XMVECTOR toCamera =
+				DirectX::XMVectorSubtract(
+					camPos,
+					eyePos);
+
+			float toCamLen =
+				DirectX::XMVectorGetX(
+					DirectX::XMVector3Length(
+						toCamera));
 
 			if(toCamLen > 0.001f){
-				DirectX::XMFLOAT3 eyeF, dirF;
-				DirectX::XMStoreFloat3(&eyeF, eyePos);
-				DirectX::XMStoreFloat3(&dirF, DirectX::XMVector3Normalize(toCamera));
+				DirectX::XMFLOAT3 eyeF;
+				DirectX::XMFLOAT3 dirF;
 
-				RayHit occHit = phys->RaycastWithMask(
-					physx::PxVec3(eyeF.x, eyeF.y, eyeF.z),
-					physx::PxVec3(dirF.x, dirF.y, dirF.z),
-					toCamLen,
-					selfLayerBit);
+				DirectX::XMStoreFloat3(
+					&eyeF,
+					eyePos);
+
+				DirectX::XMStoreFloat3(
+					&dirF,
+					DirectX::XMVector3Normalize(
+						toCamera));
+
+				RayHit occHit =
+					phys->RaycastWithMask(
+						physx::PxVec3(
+							eyeF.x,
+							eyeF.y,
+							eyeF.z),
+						physx::PxVec3(
+							dirF.x,
+							dirF.y,
+							dirF.z),
+						toCamLen,
+						selfLayerBit);
 
 				if(occHit.hit){
-					float safeLen = (std::max)(occHit.distance - occlusionPadding, minDistance);
-					camPos = DirectX::XMVectorSet(
-						eyeF.x + dirF.x * safeLen,
-						eyeF.y + dirF.y * safeLen,
-						eyeF.z + dirF.z * safeLen,
-						1.0f);
+					isOccluded = true;
+
+					safeLen =
+						(std::max)(
+							occHit.distance - occlusionPadding,
+							minDistance);
+
+					camPos =
+						DirectX::XMVectorSet(
+							eyeF.x + dirF.x * safeLen,
+							eyeF.y + dirF.y * safeLen,
+							eyeF.z + dirF.z * safeLen,
+							1.0f);
 				}
 			}
 		}
 
 		DirectX::XMStoreFloat3(&pos, camPos);
-		// 地面めり込み防止: カメラ Y がターゲット足元を下回らないようにする
-		pos.y = (std::max)(pos.y, targetTransform->position.y + minGroundClearance);
-		transform->position = Vector3(pos.x, pos.y, pos.z);
-		transform->SetRotationEuler(Vector3(pitch, yaw, 0));
+
+		// 地面めり込み防止
+		pos.y =
+			(std::max)(
+				pos.y,
+				targetTransform->position.y +
+				minGroundClearance);
+
+		transform->position =
+			Vector3(
+				pos.x,
+				pos.y,
+				pos.z);
+
+		// ------------------------------------------------
+		// TPS風ターゲット補正
+		// ------------------------------------------------
 
 		CameraBuffer->isLock = true;
-		CameraBuffer->Target = targetTransform->position;
 
-		// --- プレイヤー方向を向く ---
-		Vector3 forward = (targetTransform->position - transform->position - Vector3(0, -height, 0)).normalize();
-		float yawLook = atan2f(forward.x, forward.z);
-		float pitchLook = asinf(-forward.y);
-		DirectX::XMVECTOR q = DirectX::XMQuaternionRotationRollPitchYaw(pitchLook, yawLook, 0);
+		Vector3 lookTarget =
+			targetTransform->position;
+
+		// 通常時から頭付近を見る
+		lookTarget.y += height;
+
+		float ratio = 0.0f;
+
+		if(distance > 0.001f){
+			ratio =
+				1.0f -
+				(safeLen / distance);
+
+			ratio =
+				std::clamp(
+					ratio,
+					0.0f,
+					1.0f);
+		}
+
+		// 壁に近いほどさらに上を見る
+		lookTarget.y += ratio * height * 0.5f;
+
+		CameraBuffer->Target = lookTarget;
+
+		// ------------------------------------------------
+		// LookAt
+		// ------------------------------------------------
+
+		Vector3 forward =
+			(CameraBuffer->Target -
+			 transform->position).normalize();
+
+		float yawLook =
+			atan2f(
+				forward.x,
+				forward.z);
+
+		float pitchLook =
+			asinf(
+				-forward.y);
+
+		DirectX::XMVECTOR q =
+			DirectX::XMQuaternionRotationRollPitchYaw(
+				pitchLook,
+				yawLook,
+				0);
+
 		DirectX::XMFLOAT4 temp;
-		DirectX::XMStoreFloat4(&temp, q);
+
+		DirectX::XMStoreFloat4(
+			&temp,
+			q);
+
 		transform->SetRotation(temp);
 	}
+
 	void OnFixedUpdate(float dt)override{
 
 
