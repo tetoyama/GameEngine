@@ -153,6 +153,12 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 		for(Entity ent : lightEntities){
 			LightComponent* lightcomp = sctx->component->GetComponent<LightComponent>(ent);
 			if(!lightcomp) continue;
+			if(!lightcomp->light.Enable) continue;
+			if(!lightcomp->light.CastShadow) continue;
+			if(lightcomp->light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM || lightcomp->light.LightType == LIGHT_TYPE_DIRECTIONAL){
+				lightcomp->dirty = true; // シャドウマップ更新のトリガー
+			}
+			//if(!lightcomp->dirty) continue; // 変更のないライトはスキップ
 
 			// 最大数を超えたら安全に打ち切る
 			if(lightCount >= LIGHT_MAX_COUNT){

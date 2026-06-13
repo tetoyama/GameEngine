@@ -12,8 +12,8 @@
 // ライティングを管理するコンポーネント
 class LightComponent: public IComponent {
 public:
-	float moveSpeed = 5.0f;
 	LIGHT light;
+	bool dirty = false; // ライトのパラメータが変更されたかどうかのフラグ (シャドウマップ更新のトリガーなどに使用)
 
 	LightComponent(){
 		light = {};
