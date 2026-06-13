@@ -16,6 +16,9 @@
 
 #include "../InterFace/IEditorUI.h"
 
+#define BRAIN_MODEL_PATH "Asset/BRAIN/model/qwen2.5-coder-7b-instruct-q4_k_m.gguf"
+
+
 // ---------------------------------
 // Forward declarations
 // ---------------------------------

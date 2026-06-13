@@ -65,7 +65,7 @@ void BRAIN::Initialize(EditorService* editor){
 	// モデルロード
 	// ---------------------------------
 	m_editor->llamaService->LoadModelAsync(
-		"Asset/BRAIN/model/qwen2.5-coder-7b-instruct-q4_k_m.gguf",
+		BRAIN_MODEL_PATH,
 		[this](bool success){
 			if(!success){
 				m_editor->debugLogSystem->LOG_ERROR(
@@ -185,7 +185,7 @@ void BRAIN::WorkerLoop() {
 		if (!m_mainAgent) {
 			m_llamaModel =
 				m_editor->llamaService->GetModel(
-					"Asset/BRAIN/model/qwen2.5-coder-7b-instruct-q4_k_m.gguf");
+					BRAIN_MODEL_PATH);
 
 			if (m_llamaModel) {
 				m_mainAgent =
