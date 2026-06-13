@@ -294,7 +294,7 @@ void RenderSystem::Draw(){
 
 		PlayerView();
 
-	} else if(showPlayer && *showPlayer && ((m_context->sceneManager->State == SceneManagerState::Playing) || !(showEditor && *showEditor))){
+	} else if(showPlayer && !*showPlayer && ((m_context->sceneManager->State == SceneManagerState::Playing) || !(showEditor && *showEditor))){
 
 		RenderPassContext renderPassContext(
 			RenderPhase::PHASE_GBUFFER,
