@@ -78,7 +78,7 @@
 // LIGHT_TYPE_DIRECTIONAL エントリに展開してアトラスに統合する。
 #define LIGHT_TYPE_DIRECTIONAL_CSM	(4)
 
-#define DIRECTIONAL_CSM_CASCADE_COUNT	(6)
+#define DIRECTIONAL_CSM_CASCADE_COUNT	(4)
 
 // MaterialFlags 用のビットマスク
 #define MATERIAL_FLAG_USE_DIFFUSE_TEXTURE		(1 << 0)
@@ -87,13 +87,12 @@
 #define MATERIAL_FLAG_USE_METALLIC_TEXTURE		(1 << 3)
 #define MATERIAL_FLAG_USE_ENVIRONMENT_MAP		(1 << 4)
 
+#define LIGHT_MAX_COUNT			(64)
 
 #ifdef LOW_RESOLUTION
 #define SHADOWMAP_SIZE			(2048)
-#define LIGHT_MAX_COUNT			(64)
 #else
 #define SHADOWMAP_SIZE			(16384)
-#define LIGHT_MAX_COUNT			(64)
 #endif // LOW_RESOLUTION
 
 #endif // !COMMON_DEFINE_H
