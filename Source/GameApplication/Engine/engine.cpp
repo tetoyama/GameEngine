@@ -342,6 +342,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		timeService->Tick();
 
 		float dt = timeService->GetDeltaTime();
+		timeService->BeginDeltaUpdate();
 		{	// ============ Update フェーズ ============
 			// OS メッセージ処理（WM_CLOSE 等のイベントを消化）
 			windowService->PollEvents();
@@ -368,6 +369,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		
 		{	// ============ Draw フェーズ ============
 			// レンダーターゲットのクリアとビューポート設定
+			timeService->BeginDraw();
 			mainRenderer->BeginFrame();
 			// ImGui フレームの開始（NewFrame 呼び出し）
 			imguiService->Begin();
@@ -388,7 +390,7 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 					EditorDrawContext editorDrawContext{};
 					editorDrawContext.UpdateTime = timeService->GetDeltaUpdateTime();
 					editorDrawContext.DrawTime = timeService->GetDrawTime();
-					editorDrawContext.FPS = timeService->GetDeltaFPS();
+					editorDrawContext.FPS = timeService->GetFrameFPS();
 					editorDrawContext.FixedUpdateFPS = timeService->GetFixedUpdateFPS();
 					editorService->Draw(editorDrawContext);
 				}
@@ -397,9 +399,9 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 			imguiService->End();
 			// スワップチェーンのPresent（Vsync 設定を反映）
 			mainRenderer->EndFrame(configSystem->appConfig.Vsync);
+			// Draw フェーズの所要時間を記録
+			timeService->EndDraw();
 		}
-		// Draw フェーズの所要時間を記録
-		timeService->EndDraw();
 	}
 	if(debugLogSystem){
 		debugLogSystem->LOG_INFO("Engine の実行ループを終了します");

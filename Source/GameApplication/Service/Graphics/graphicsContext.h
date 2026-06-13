@@ -1,4 +1,4 @@
-﻿// =======================================================================
+// =======================================================================
 // 
 // graphicsContext.h
 // 
@@ -219,8 +219,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Device>			m_Device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext>		m_DeviceContext;
 	Microsoft::WRL::ComPtr<IDXGISwapChain>			m_SwapChain;
-	ID3D11RenderTargetView*							m_RenderTargetView;
-	ID3D11DepthStencilView*							m_DepthStencilView;
+	ID3D11RenderTargetView*							m_RenderTargetView = nullptr;
+	ID3D11DepthStencilView*							m_DepthStencilView = nullptr;
 
 	ID3D11Buffer* m_CbPerFrame  = nullptr;   // b0: フレームごと (ライト)
 	ID3D11Buffer* m_CbPerCamera = nullptr;   // b1: カメラ/パスごと (View, Proj, CamPos)
@@ -233,7 +233,7 @@ private:
 
 	ID3D11ComputeShader* csSkinning = nullptr;
 
-	ID3D11DepthStencilState*	m_DepthStates[(int)DepthMode::COUNT];
+	ID3D11DepthStencilState* m_DepthStates[(int)DepthMode::COUNT] = {};
 
 	Microsoft::WRL::ComPtr<ID3D11BlendState> m_BlendStates[(int)BlendMode::COUNT];
 	BlendMode m_CurrentBlendMode = BlendMode::COUNT;

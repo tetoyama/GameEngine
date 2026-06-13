@@ -51,6 +51,23 @@ void TimeService::Tick(){
 
 	long long current = now.QuadPart;
 
+	frameTime_ =
+		static_cast<double>(current - frameBeginTime_) / frequency_;
+
+	if(frameTime_ > 0.0){
+		frameFPS_ = 1.0 / frameTime_;
+	}
+
+	frameTimer_ += frameTime_;
+	frameCount_++;
+
+	if(frameTimer_ >= 1.0){
+		frameFPS_ = static_cast<double>(frameCount_) / frameTimer_;
+		frameTimer_ = 0.0;
+		frameCount_ = 0;
+	}
+	frameBeginTime_ = now.QuadPart;
+
 	deltaTime_ =
 		static_cast<float>(
 			static_cast<double>(current - prevTime_) /
@@ -62,8 +79,6 @@ void TimeService::Tick(){
 			frequency_);
 
 	prevTime_ = current;
-
-	updateBeginTime_ = current;
 
 	fixedTimeAccumulator_ += deltaTime_;
 }
@@ -89,6 +104,12 @@ float TimeService::GetFixedDeltaTime() const{
 	return fixedDeltaTime_;
 }
 
+void TimeService::BeginDeltaUpdate(){
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
+	updateBeginTime_ = now.QuadPart;
+}
+
 void TimeService::EndDeltaUpdate(){
 	LARGE_INTEGER now;
 	QueryPerformanceCounter(&now);
@@ -101,7 +122,6 @@ void TimeService::EndDeltaUpdate(){
 			current - updateBeginTime_) /
 		frequency_;
 
-	drawBeginTime_ = current;
 
 	deltaUpdateTimer_ += deltaUpdateTime_;
 	deltaUpdateFrameCount_++;
@@ -140,6 +160,12 @@ void TimeService::EndFixedUpdate(){
 		fixedUpdateTimer_ = 0.0;
 		fixedUpdateFrameCount_ = 0;
 	}
+}
+
+void TimeService::BeginDraw(){
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
+	drawBeginTime_ = now.QuadPart;
 }
 
 void TimeService::EndDraw(){

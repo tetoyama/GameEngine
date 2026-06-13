@@ -23,8 +23,10 @@ public:
 	float GetFixedDeltaTime() const;
 
 	// 各処理区間の計測を終了して所要時間/FPSを更新する
+	void BeginDeltaUpdate();
 	void EndDeltaUpdate();
 	void EndFixedUpdate();
+	void BeginDraw();
 	void EndDraw();
 
 	double GetDeltaUpdateTime() const{
@@ -51,12 +53,17 @@ public:
 		return drawFPS_;
 	} // 前回の描画FPS
 
+	double GetFrameFPS() const{
+		return frameFPS_;
+	} // 前回のフレームFPS
+
 private:
 	double frequency_;             // カウンタの1秒あたりのカウント数
 	long long startTime_;         // 開始時刻
 	long long prevTime_;          // 前フレームの時刻
 	long long updateBeginTime_ = 0;
 	long long drawBeginTime_ = 0;
+	long long frameBeginTime_ = 0;
 
 	float deltaTime_;             // 前回からの経過時間（秒）
 	float totalTime_;             // 起動からの累積時間（秒）
@@ -69,18 +76,22 @@ private:
 	long long prevDeltaTime_ = 0;          // 前フレームの時刻
 	long long prevFixedTime_ = 0;          // 前フレームの時刻
 	long long prevDrawTime_ = 0;          // 前フレームの時刻
+	double frameTime_ = 0.0;
 
 	double deltaUpdateTimer_ = 0.0f;	// 前回の更新時間（秒）
 	double fixedUpdateTimer_ = 0.0f;	// 前回の固定更新時間（秒）
 	double drawTimer_ = 0.0f;			// 前回の描画時間（秒）
+	double frameTimer_ = 0.0;
 
 	int fixedUpdateFrameCount_ = 0;			// 固定更新フレームカウント
 	int deltaUpdateFrameCount_ = 0;		// 更新フレームカウント
 	int drawFrameCount_ = 0;			// 描画フレームカウント
+	int frameCount_ = 0;
 
 	double fixedUpdateFPS_ = 0;			// 固定更新FPS
 	double deltaUpdateFPS_ = 0;		// 更新FPS
 	double drawFPS_ = 0;			// 描画FPS
+	double frameFPS_ = 0.0;
 
 	// 固定更新用
 	float fixedDeltaTime_ = 1.0f / (float)TARGET_FPS;

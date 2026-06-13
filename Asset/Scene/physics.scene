@@ -1274,7 +1274,7 @@ Entities:
             - 2.58648968
             - 24.024929
             - 1
-        nextLinkId: 24
+        nextLinkId: 25
         nextPinId: 21
         PostEffects:
           - Name: NewEffect
@@ -1282,8 +1282,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\SSR.cso
             NodePos:
-              x: -709.269287
-              y: -215.743256
+              x: -525.269287
+              y: -195.743256
             InputPins:
               - 2
               - 4
@@ -1300,8 +1300,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\SSAO.cso
             NodePos:
-              x: -1351.49976
-              y: 85.6028442
+              x: -1167.49976
+              y: 105.602844
             InputPins:
               - 5
               - 7
@@ -1318,8 +1318,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\SSAOComposite.cso
             NodePos:
-              x: -1007.16943
-              y: -219.096756
+              x: -823.169434
+              y: -199.096756
             InputPins:
               - 8
               - 10
@@ -1337,8 +1337,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\OutlineByShaderID.cso
             NodePos:
-              x: -139
-              y: -222
+              x: -232
+              y: -197
             InputPins:
               - 12
               - 14
@@ -1346,24 +1346,6 @@ Entities:
             Param:
               x: 4
               y: 3
-              z: 0
-              w: 0
-            ResolutionScale: 1
-            MipLevels: 1
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset/Shader/PostEffectVS.cso
-            PS: Asset/Shader\Kuwahara.cso
-            NodePos:
-              x: -421
-              y: -219
-            InputPins:
-              - 15
-              - 17
-            OutputPin: 16
-            Param:
-              x: 3
-              y: 0
               z: 0
               w: 0
             ResolutionScale: 1
@@ -1389,32 +1371,27 @@ Entities:
             EndNode: 0
             StartAttr: 9
             EndAttr: 2
-          - ID: 18
-            StartNode: 4
-            EndNode: 3
-            StartAttr: 16
-            EndAttr: 12
-          - ID: 19
-            StartNode: 0
-            EndNode: 4
-            StartAttr: 3
-            EndAttr: 15
           - ID: 23
             StartNode: 3
             EndNode: -2
             StartAttr: 13
             EndAttr: 1
+          - ID: 24
+            StartNode: 0
+            EndNode: 3
+            StartAttr: 3
+            EndAttr: 12
         ScreenInput:
           Name: ""
           NodePos:
-            x: -1504.46924
-            y: 25.3814087
+            x: -1320.46924
+            y: 45.3814087
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 170.540527
-            y: 26.2014771
+            x: 79.5405273
+            y: 57.2014771
           InputPins:
             - 1
       - Component: CameraController
@@ -1424,3 +1401,6 @@ Entities:
         minPitch: -0.785398185
         maxPitch: 0.785398185
         minDistance: 1
+        targetPosLerpSpeed: 15
+        cameraDistanceLerpSpeed: 12
+        targetLookLerpSpeed: 10

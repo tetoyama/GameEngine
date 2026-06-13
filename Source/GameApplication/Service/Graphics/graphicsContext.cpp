@@ -272,7 +272,7 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 	desc.SampleDesc.Count = 1;
 	desc.Windowed = TRUE;
 	desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	desc.Flags = 0;
+	desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
 	UINT flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 	#if defined(_DEBUG)
@@ -743,7 +743,7 @@ void GraphicsContext::Clear(const float clearColor[4]){
 }
 
 void GraphicsContext::Present(bool vsync){
-	m_SwapChain->Present(vsync, 0);
+	m_SwapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
 }
 
 bool GraphicsContext::CreateVertexShader(const char* fileName, ID3D11VertexShader** vertexShader, ID3D11InputLayout** inputLayout){
@@ -793,7 +793,7 @@ void GraphicsContext::Resize(UINT width, UINT height){
 			m_DepthStencilView = nullptr;
 		}
 		
-		HRESULT hr = m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+		HRESULT hr = m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
 		if(FAILED(hr)){
 			GRAPHICS_LOG(LogLevel::Error, "スワップチェーンのリサイズに失敗しました");
 			OutputDebugStringA("スワップチェーンのリサイズに失敗しました。\n");
