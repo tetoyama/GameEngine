@@ -75,10 +75,6 @@ public:
 	}
 
 	void OnUpdate(float dt) override{
-
-	}
-	void OnFixedUpdate(float dt)override{
-
 		if(!transform || !playerTransform) return;
 
 		auto* targetTransform = playerTransform.Get();
@@ -90,7 +86,7 @@ public:
 		if(GetKey(VK_UP))    pitch += rotateSpeed * dt;
 		if(GetKey(VK_DOWN))  pitch -= rotateSpeed * dt;
 
-		if (minPitch < maxPitch) {
+		if(minPitch < maxPitch){
 			pitch = std::clamp(pitch, minPitch, maxPitch);
 		}
 		// --- カメラ位置計算 ---
@@ -106,7 +102,7 @@ public:
 		);
 
 		// --- カメラ遮蔽判定（遮蔽物があればカメラを近づける） ---
-		constexpr float occlusionPadding   = 0.1f;  // 遮蔽面からの安全マージン
+		constexpr float occlusionPadding = 0.1f;  // 遮蔽面からの安全マージン
 		constexpr float minGroundClearance = 0.3f;  // ターゲット足元からの最低高さ
 		auto* phys = m_ref.GetScene()->manager
 			->systemRegistry
@@ -114,7 +110,7 @@ public:
 
 		DirectX::XMFLOAT3 pos;
 		DirectX::XMVECTOR camPos = DirectX::XMVectorAdd(targetPos, offset);
-		if (phys) {
+		if(phys){
 			// 視点位置: ターゲットの中心付近（足元ヒットを避けるため高さ半分）
 			DirectX::XMVECTOR eyePos = DirectX::XMVectorSet(
 				targetTransform->position.x,
@@ -125,7 +121,7 @@ public:
 			DirectX::XMVECTOR toCamera = DirectX::XMVectorSubtract(camPos, eyePos);
 			float toCamLen = DirectX::XMVectorGetX(DirectX::XMVector3Length(toCamera));
 
-			if (toCamLen > 0.001f) {
+			if(toCamLen > 0.001f){
 				DirectX::XMFLOAT3 eyeF, dirF;
 				DirectX::XMStoreFloat3(&eyeF, eyePos);
 				DirectX::XMStoreFloat3(&dirF, DirectX::XMVector3Normalize(toCamera));
@@ -136,7 +132,7 @@ public:
 					toCamLen,
 					selfLayerBit);
 
-				if (occHit.hit) {
+				if(occHit.hit){
 					float safeLen = (std::max)(occHit.distance - occlusionPadding, minDistance);
 					camPos = DirectX::XMVectorSet(
 						eyeF.x + dirF.x * safeLen,
@@ -157,13 +153,17 @@ public:
 		CameraBuffer->Target = targetTransform->position;
 
 		// --- プレイヤー方向を向く ---
-		Vector3 forward = (targetTransform->position - transform->position - Vector3(0,-height,0)).normalize();
+		Vector3 forward = (targetTransform->position - transform->position - Vector3(0, -height, 0)).normalize();
 		float yawLook = atan2f(forward.x, forward.z);
 		float pitchLook = asinf(-forward.y);
 		DirectX::XMVECTOR q = DirectX::XMQuaternionRotationRollPitchYaw(pitchLook, yawLook, 0);
 		DirectX::XMFLOAT4 temp;
 		DirectX::XMStoreFloat4(&temp, q);
 		transform->SetRotation(temp);
+	}
+	void OnFixedUpdate(float dt)override{
+
+
 	}
 	void OnDraw() override{}
 	void OnEditorUpdate(float dt)override{}

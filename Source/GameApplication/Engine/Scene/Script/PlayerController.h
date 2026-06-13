@@ -125,10 +125,6 @@ public:
 	}
 
 	void OnUpdate(float dt) override{
-		
-	}
-
-	void OnFixedUpdate(float dt)override{
 		if(!model->model){
 			return;
 		}
@@ -206,11 +202,13 @@ public:
 		bool isGround = false;
 		bool isJumping = false;
 
-		if (!collider) {
+		if(!collider){
 			transform->position += dir * (CurrentSpeed * dt);
-		} else {
+		} else{
 
 			physx::PxRigidDynamic* rigid = collider->pRigidbodyDynamic;
+
+			if(!rigid) return;
 
 			// 現在の速度
 			physx::PxVec3 velocity = rigid->getLinearVelocity();
@@ -239,20 +237,20 @@ public:
 			// 水平方向の目標速度
 			physx::PxVec3 horizontalVel = wishDir * CurrentSpeed;
 
-			if (isGround) {
+			if(isGround){
 				physx::PxVec3 n = hit.normal;
 
 				// 坂に沿った移動
 				horizontalVel -= n * horizontalVel.dot(n);
 
 				// ジャンプ
-				if (GetKey(VK_SPACE) && !isJumpPressed) {
+				if(GetKey(VK_SPACE) && !isJumpPressed){
 					velY = jumpPower;
 					transform->position.y += 0.1f;
-				} else {
+				} else{
 					velY = 0.0f;
 				}
-			} else {
+			} else{
 				velY -= 9.0f * dt;
 			}
 
@@ -302,7 +300,7 @@ public:
 				CurrentSpeed += accel * dt;
 				if(CurrentSpeed > targetSpeed) CurrentSpeed = targetSpeed;
 			} else if(CurrentSpeed > targetSpeed){
- 				CurrentSpeed = targetSpeed;
+				CurrentSpeed = targetSpeed;
 			}
 
 
@@ -371,6 +369,10 @@ public:
 			model->blendedAnimations[0].weight *= 1.0f - totalWeight;
 			model->blendedAnimations[1].weight *= 1.0f - totalWeight;
 		}
+	}
+
+	void OnFixedUpdate(float dt)override{
+
 
 
 	}
