@@ -1,8 +1,9 @@
 // =======================================================================
-// 
+//
 // timeService.cpp
-// 
+//
 // =======================================================================
+
 #include "timeService.h"
 #include <Windows.h>
 
@@ -13,10 +14,35 @@ void TimeService::Initialize(){
 
 	LARGE_INTEGER now;
 	QueryPerformanceCounter(&now);
-	startTime_ = prevTime_ = prevDeltaTime_ = prevFixedTime_ = prevDrawTime_ = now.QuadPart;
+
+	startTime_ = now.QuadPart;
+	prevTime_ = now.QuadPart;
+
+	prevDeltaTime_ = now.QuadPart;
+	prevFixedTime_ = now.QuadPart;
+	prevDrawTime_ = now.QuadPart;
+
+	updateBeginTime_ = now.QuadPart;
+	drawBeginTime_ = now.QuadPart;
 
 	deltaTime_ = 0.0f;
 	totalTime_ = 0.0f;
+
+	deltaUpdateTime_ = 0.0;
+	fixedUpdateTime_ = 0.0;
+	drawTime_ = 0.0;
+
+	deltaUpdateTimer_ = 0.0;
+	fixedUpdateTimer_ = 0.0;
+	drawTimer_ = 0.0;
+
+	deltaUpdateFrameCount_ = 0;
+	fixedUpdateFrameCount_ = 0;
+	drawFrameCount_ = 0;
+
+	deltaUpdateFPS_ = 0.0;
+	fixedUpdateFPS_ = 0.0;
+	drawFPS_ = 0.0;
 }
 
 void TimeService::Tick(){
@@ -24,9 +50,20 @@ void TimeService::Tick(){
 	QueryPerformanceCounter(&now);
 
 	long long current = now.QuadPart;
-	deltaTime_ = static_cast<float>(current - prevTime_) / static_cast<float>(frequency_);
-	totalTime_ = static_cast<float>(current - startTime_) / static_cast<float>(frequency_);
+
+	deltaTime_ =
+		static_cast<float>(
+			static_cast<double>(current - prevTime_) /
+			frequency_);
+
+	totalTime_ =
+		static_cast<float>(
+			static_cast<double>(current - startTime_) /
+			frequency_);
+
 	prevTime_ = current;
+
+	updateBeginTime_ = current;
 
 	fixedTimeAccumulator_ += deltaTime_;
 }
@@ -36,39 +73,45 @@ bool TimeService::ShouldRunFixedUpdate(){
 		fixedTimeAccumulator_ -= fixedDeltaTime_;
 		return true;
 	}
+
 	return false;
 }
 
 float TimeService::GetDeltaTime() const{
 	return deltaTime_;
 }
+
 float TimeService::GetTotalTime() const{
 	return totalTime_;
 }
+
 float TimeService::GetFixedDeltaTime() const{
 	return fixedDeltaTime_;
 }
 
 void TimeService::EndDeltaUpdate(){
-
 	LARGE_INTEGER now;
 	QueryPerformanceCounter(&now);
 
 	long long current = now.QuadPart;
-	
-	deltaUpdateTime_ = static_cast<double>(current - prevDeltaTime_) / static_cast<double>(frequency_);
-	prevDeltaTime_ = current;
+
+	// Updateフェーズのみ
+	deltaUpdateTime_ =
+		static_cast<double>(
+			current - updateBeginTime_) /
+		frequency_;
+
+	drawBeginTime_ = current;
 
 	deltaUpdateTimer_ += deltaUpdateTime_;
 	deltaUpdateFrameCount_++;
 
-	deltaUpdateTime_ = static_cast<double>(current - prevTime_) / static_cast<double>(frequency_);
+	if(deltaUpdateTimer_ >= 1.0){
+		deltaUpdateFPS_ =
+			static_cast<double>(deltaUpdateFrameCount_) /
+			deltaUpdateTimer_;
 
-	if(1.0f <= deltaUpdateTimer_){
-
-		deltaUpdateFPS_ = static_cast<double>(deltaUpdateFrameCount_) / deltaUpdateTimer_;
-
-		deltaUpdateTimer_ = 0.0f;
+		deltaUpdateTimer_ = 0.0;
 		deltaUpdateFrameCount_ = 0;
 	}
 }
@@ -79,18 +122,22 @@ void TimeService::EndFixedUpdate(){
 
 	long long current = now.QuadPart;
 
-	fixedUpdateTime_ = static_cast<double>(current - prevFixedTime_) / static_cast<double>(frequency_);
+	fixedUpdateTime_ =
+		static_cast<double>(
+			current - prevFixedTime_) /
+		frequency_;
+
 	prevFixedTime_ = current;
 
 	fixedUpdateTimer_ += fixedUpdateTime_;
 	fixedUpdateFrameCount_++;
 
-	// フレーム内での固定更新フェーズの所要時間（秒）
-	fixedUpdateTime_ = static_cast<double>(current - prevTime_) / static_cast<double>(frequency_) - deltaUpdateTime_;
+	if(fixedUpdateTimer_ >= 1.0){
+		fixedUpdateFPS_ =
+			static_cast<double>(fixedUpdateFrameCount_) /
+			fixedUpdateTimer_;
 
-	if(1.0f <= fixedUpdateTimer_){
-		fixedUpdateFPS_ = static_cast<double>(fixedUpdateFrameCount_) / fixedUpdateTimer_;
-		fixedUpdateTimer_ = 0.0f;
+		fixedUpdateTimer_ = 0.0;
 		fixedUpdateFrameCount_ = 0;
 	}
 }
@@ -101,18 +148,21 @@ void TimeService::EndDraw(){
 
 	long long current = now.QuadPart;
 
-	drawTime_ = static_cast<double>(current - prevDrawTime_) / static_cast<double>(frequency_);
-	prevDrawTime_ = current;
+	// Drawフェーズのみ
+	drawTime_ =
+		static_cast<double>(
+			current - drawBeginTime_) /
+		frequency_;
 
 	drawTimer_ += drawTime_;
 	drawFrameCount_++;
 
-	// フレーム内での描画フェーズの所要時間（秒）
-	drawTime_ = static_cast<double>(current - prevTime_) / static_cast<double>(frequency_) - deltaUpdateTime_;
+	if(drawTimer_ >= 1.0){
+		drawFPS_ =
+			static_cast<double>(drawFrameCount_) /
+			drawTimer_;
 
-	if(1.0f <= drawTimer_){
-		drawFPS_ = static_cast<double>(drawFrameCount_) / drawTimer_;
-		drawTimer_ = 0.0f;
+		drawTimer_ = 0.0;
 		drawFrameCount_ = 0;
 	}
 }

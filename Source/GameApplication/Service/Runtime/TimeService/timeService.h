@@ -55,6 +55,9 @@ private:
 	double frequency_;             // カウンタの1秒あたりのカウント数
 	long long startTime_;         // 開始時刻
 	long long prevTime_;          // 前フレームの時刻
+	long long updateBeginTime_ = 0;
+	long long drawBeginTime_ = 0;
+
 	float deltaTime_;             // 前回からの経過時間（秒）
 	float totalTime_;             // 起動からの累積時間（秒）
 

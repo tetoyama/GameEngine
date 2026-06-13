@@ -51,8 +51,11 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 		UpdateSamples[n] = UpdateSamples[n + 1];
 		DrawSamples[n] = DrawSamples[n + 1];
 	}
-	UpdateSamples[SAMPLE_LENGTH - 1] = (float)Update;
-	DrawSamples[SAMPLE_LENGTH - 1] = (float)Draw;
+	UpdateSamples[SAMPLE_LENGTH - 1] =
+		static_cast<float>(Update * 1000.0);
+
+	DrawSamples[SAMPLE_LENGTH - 1] =
+		static_cast<float>(Draw * 1000.0);
 
 	if(!showPerformanceMonitor || !*showPerformanceMonitor) {
 		return;
