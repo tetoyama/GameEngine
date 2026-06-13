@@ -38,6 +38,7 @@ class PlayerController: public CustomScriptComponent {
 	bool canDash = true;
 	float CurrentSpeed = 0.0f;
 	bool isJumpPressed = false;
+	float moveBlend = 0.0f;
 
 	// RayCast 時に除外する自身のレイヤービット（インスペクターで設定）
 	// デフォルトはデフォルトのプレイヤーレイヤー (1u << 1)
@@ -139,15 +140,14 @@ public:
 			// Idle アニメーションを追加
 			if(model->model->m_Animation.find("Idle") == model->model->m_Animation.end()){
 				model->model->LoadAnimation("Asset/Model/Akai_Idle.fbx", "Idle");
-
 			}
 			if(model->model->m_Animation.find("JumpingUp") == model->model->m_Animation.end()){
 				model->model->LoadAnimation("Asset/Model/Jumping Up.fbx", "JumpingUp");
 			}
 			if(model->model->m_Animation.find("JumpingDown") == model->model->m_Animation.end()){
 				model->model->LoadAnimation("Asset/Model/Jumping Down.fbx", "JumpingDown");
-
 			}
+
 			model->blendedAnimations.push_back({"Run", 0.0f, 0.0f});
 			model->blendedAnimations.push_back({"Idle", 1.0f, 0.0f});
 			model->blendedAnimations.push_back({"JumpingUp", 0.0f, 0.0f});
@@ -158,9 +158,9 @@ public:
 			model->blendedAnimations[2].isLoop = false;
 			model->blendedAnimations[3].isLoop = false;
 		}
-		if(!transform || !CameraBufferTransform) return;
-		if(gameTime && gameTime->CountDownTimer > 0.0f)return;
 
+		if(!transform || !CameraBufferTransform) return;
+		if(gameTime && gameTime->CountDownTimer > 0.0f) return;
 
 		Vector3 move(0, 0, 0);
 
@@ -168,6 +168,8 @@ public:
 		if(GetKey('S')) move.z -= 1.0f;
 		if(GetKey('A')) move.x -= 1.0f;
 		if(GetKey('D')) move.x += 1.0f;
+
+		bool hasMoveInput = (move.x != 0.0f || move.z != 0.0f);
 
 		// ダッシュ判定
 		bool dashKey = (GetKey(VK_LSHIFT));
@@ -188,14 +190,35 @@ public:
 			}
 		}
 
+		// 目標速度の更新
+		if(hasMoveInput){
+			float targetSpeed = isDashing ? moveSpeed * dashMultiplier : moveSpeed;
+
+			if(CurrentSpeed < targetSpeed){
+				CurrentSpeed += accel * dt;
+				if(CurrentSpeed > targetSpeed) CurrentSpeed = targetSpeed;
+			} else if(CurrentSpeed > targetSpeed){
+				CurrentSpeed = targetSpeed;
+			}
+		} else{
+			CurrentSpeed -= moveSpeed * dt;
+			if(CurrentSpeed < 0.0f) CurrentSpeed = 0.0f;
+		}
+
 		// --- カメラ基準の移動 ---
 		Vector3 camForward = CameraBufferTransform->front();
 		Vector3 camRight = CameraBufferTransform->right();
-		camForward.y = 0; camRight.y = 0;
+		camForward.y = 0;
+		camRight.y = 0;
+
 		camForward = camForward.normalize();
 		camRight = camRight.normalize();
-		Vector3 dir = camForward * move.z + camRight * move.x;
-		dir = dir.normalize();
+
+		Vector3 dir(0, 0, 0);
+		if(hasMoveInput){
+			dir = camForward * move.z + camRight * move.x;
+			dir = dir.normalize();
+		}
 
 		ColliderComponent* collider = GetComponent<ColliderComponent>();
 
@@ -205,9 +228,7 @@ public:
 		if(!collider){
 			transform->position += dir * (CurrentSpeed * dt);
 		} else{
-
 			physx::PxRigidDynamic* rigid = collider->pRigidbodyDynamic;
-
 			if(!rigid) return;
 
 			// 現在の速度
@@ -232,7 +253,10 @@ public:
 			isGround = hit.hit && hit.distance < 0.1f && velY <= 0.0f;
 
 			// 入力方向（正規化済み想定）
-			physx::PxVec3 wishDir(dir.x, 0.0f, dir.z);
+			physx::PxVec3 wishDir(0.0f, 0.0f, 0.0f);
+			if(hasMoveInput){
+				wishDir = physx::PxVec3(dir.x, 0.0f, dir.z);
+			}
 
 			// 水平方向の目標速度
 			physx::PxVec3 horizontalVel = wishDir * CurrentSpeed;
@@ -263,82 +287,39 @@ public:
 
 			if(velocity.y > 0.0f){
 				isJumping = true;
-
 			}
 
 			isJumpPressed = GetKey(VK_SPACE);
 		}
 
-		// 入力がなければ減速
-		if(move.x == 0 && move.z == 0){
-
-			model->blendedAnimations[0].weight = CurrentSpeed / (moveSpeed * dashMultiplier);
-			model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / (moveSpeed * dashMultiplier));
-
-			CurrentSpeed -= moveSpeed * dt;
-			if(CurrentSpeed < 0.0f) CurrentSpeed = 0.0f;
-			if(CurrentSpeed > moveSpeed) CurrentSpeed = moveSpeed;
-
-
-			// --- 回転補間 ---
-			DirectX::XMVECTOR targetQ = DirectX::XMQuaternionRotationRollPitchYaw(
-				0.0f,
-				transform->GetRotationEuler().y,
-				0.0f
-			);
-
-		} else{
-
-
-			model->blendedAnimations[0].weight = CurrentSpeed / (moveSpeed * dashMultiplier);
-			model->blendedAnimations[1].weight = (1.0f - CurrentSpeed / (moveSpeed * dashMultiplier));
-			// 目標速度
-			float targetSpeed = isDashing ? moveSpeed * dashMultiplier : moveSpeed;
-
-			// 加速/減速補間
-			if(CurrentSpeed < targetSpeed){
-				CurrentSpeed += accel * dt;
-				if(CurrentSpeed > targetSpeed) CurrentSpeed = targetSpeed;
-			} else if(CurrentSpeed > targetSpeed){
-				CurrentSpeed = targetSpeed;
-			}
-
-
-
-			// --- 回転補間 ---
-			DirectX::XMVECTOR targetQ = DirectX::XMQuaternionRotationRollPitchYaw(
-				0.0f,
-				atan2f(dir.x, dir.z),
-				0.0f
-			);
-
-			DirectX::XMVECTOR currentQ = transform->rotationVector();
-			DirectX::XMVECTOR newQ = DirectX::XMQuaternionSlerp(currentQ, targetQ, rotateSpeed * dt);
-			DirectX::XMFLOAT4 FloatQ;
-			DirectX::XMStoreFloat4(&FloatQ, newQ);
-			transform->SetRotation(FloatQ);
+		if(ballController && ballTransform && (ballTransform->position - transform->position).length() < 0.5f){
+			Vector3 pushDir = ballTransform->position - transform->position;
+			ballController->ApplyForce(pushDir); // ボールを吹っ飛ばす
 		}
 
-		if(ballController && (ballTransform->position - transform->position).length() < 0.5f){
-			Vector3 dir = ballTransform->position - transform->position;
-			ballController->ApplyForce(dir); // ボールを吹っ飛ばす
-		}
+		// ------------------------------------------------------------
+		// アニメーションブレンド
+		// Run / Idle は moveBlend で滑らかに補間
+		// Jump は別レイヤーとして上書き寄りに乗せる
+		// ------------------------------------------------------------
+
+		float targetBlend = hasMoveInput ? 1.0f : 0.0f;
+		moveBlend += (targetBlend - moveBlend) * 8.0f * dt;
+		moveBlend = std::clamp(moveBlend, 0.0f, 1.0f);
 
 		if(!isGround){
-
 			if(isJumping){
 				if(model->blendedAnimations[2].weight <= 0.0f){
 					model->blendedAnimations[2].animationStartTime = -model->animationTime + 25.0f;
 				}
+
 				model->blendedAnimations[2].weight += 0.15f;
 				if(model->blendedAnimations[2].weight > 1.0f){
 					model->blendedAnimations[2].weight = 1.0f;
 				}
-				model->blendedAnimations[0].weight *= 0.5f * (1.0f - model->blendedAnimations[2].weight);
-				model->blendedAnimations[1].weight *= 0.5f * (1.0f - model->blendedAnimations[2].weight);
+
 				model->blendedAnimations[3].weight = 0.0f;
 			} else{
-
 				if(model->blendedAnimations[3].weight <= 0.0f){
 					model->blendedAnimations[3].animationStartTime = -model->animationTime;
 				}
@@ -352,25 +333,45 @@ public:
 				if(model->blendedAnimations[2].weight + model->blendedAnimations[3].weight > 1.0f){
 					model->blendedAnimations[3].weight = 1.0f - model->blendedAnimations[2].weight;
 				}
-				model->blendedAnimations[0].weight *= 1.0f - (model->blendedAnimations[2].weight + model->blendedAnimations[3].weight);
-				model->blendedAnimations[1].weight *= 1.0f - (model->blendedAnimations[2].weight + model->blendedAnimations[3].weight);
 			}
 		} else{
 			model->blendedAnimations[2].weight -= 0.125f;
 			if(model->blendedAnimations[2].weight < 0.0f){
 				model->blendedAnimations[2].weight = 0.0f;
 			}
+
 			model->blendedAnimations[3].weight -= 0.2f;
 			if(model->blendedAnimations[3].weight < 0.0f){
 				model->blendedAnimations[3].weight = 0.0f;
 			}
+		}
 
-			float totalWeight = model->blendedAnimations[2].weight + model->blendedAnimations[3].weight;
-			model->blendedAnimations[0].weight *= 1.0f - totalWeight;
-			model->blendedAnimations[1].weight *= 1.0f - totalWeight;
+		float jumpWeight =
+			model->blendedAnimations[2].weight +
+			model->blendedAnimations[3].weight;
+
+		jumpWeight = std::clamp(jumpWeight, 0.0f, 1.0f);
+
+		model->blendedAnimations[0].weight = moveBlend * (1.0f - jumpWeight);
+		model->blendedAnimations[1].weight = (1.0f - moveBlend) * (1.0f - jumpWeight);
+
+		// --- 回転補間 ---
+		if(hasMoveInput){
+			DirectX::XMVECTOR targetQ = DirectX::XMQuaternionRotationRollPitchYaw(
+				0.0f,
+				atan2f(dir.x, dir.z),
+				0.0f
+			);
+
+			DirectX::XMVECTOR currentQ = transform->rotationVector();
+			float t = std::clamp(rotateSpeed * dt, 0.0f, 1.0f);
+			DirectX::XMVECTOR newQ = DirectX::XMQuaternionSlerp(currentQ, targetQ, t);
+
+			DirectX::XMFLOAT4 FloatQ;
+			DirectX::XMStoreFloat4(&FloatQ, newQ);
+			transform->SetRotation(FloatQ);
 		}
 	}
-
 	void OnFixedUpdate(float dt)override{
 
 

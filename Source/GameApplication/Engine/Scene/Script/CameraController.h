@@ -1,13 +1,14 @@
 // =======================================================================
-// 
+//
 // CameraController.h
-// 
+//
 // =======================================================================
 #pragma once
 #include "Component/CustomScriptComponent.h"
 #include "Backends/checkFileExtention.h"
 #include <System/Physic/physicSystem.h>
-
+#include <algorithm>
+#include <cmath>
 
 // カメラ制御スクリプト
 class CameraController: public CustomScriptComponent {
@@ -20,7 +21,12 @@ public:
 		REFLECT_FIELD(float, maxPitch, DirectX::XM_PIDIV2 * 0.5f)
 		REFLECT_FIELD(float, minDistance, 1.0f)
 
-	float yaw = 0.0f;
+		// 補間設定
+		REFLECT_FIELD(float, targetPosLerpSpeed, 15.0f)
+		REFLECT_FIELD(float, cameraDistanceLerpSpeed, 12.0f)
+		REFLECT_FIELD(float, targetLookLerpSpeed, 10.0f)
+
+		float yaw = 0.0f;
 	float pitch = 0.0f;
 
 	// RayCast 時に除外するレイヤービット（プレイヤーレイヤー固定）
@@ -32,13 +38,19 @@ public:
 	EntityRef ballEntity;
 	ComponentRef<GameTimeManager> gameTime;
 
-		CameraController(): CustomScriptComponent("CameraController"){}
+	// 補間用
+	float currentCameraDistance = 6.0f;
+	Vector3 smoothTargetPos = Vector3(0, 0, 0);
+	Vector3 currentLookTarget = Vector3(0, 0, 0);
+
+	CameraController(): CustomScriptComponent("CameraController"){}
 
 	YAML::Node encode() override{
 		YAML::Node node;
 		ENCODE_FIELDS(node);
 		return node;
 	}
+
 	bool decode(SceneContext* context, const YAML::Node& node) override{
 		DECODE_FIELDS(node);
 		return true;
@@ -54,11 +66,11 @@ public:
 
 		// CharacterController を優先して探し、なければ PlayerController を使う
 		auto charEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<CharacterController>();
-		if (!charEntities.empty()) {
+		if(!charEntities.empty()){
 			playerTransform = GetComponentRefFor<TransformComponent>(charEntities[0]);
-		} else {
+		} else{
 			auto playerEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<PlayerController>();
-			if (!playerEntities.empty()) {
+			if(!playerEntities.empty()){
 				playerTransform = GetComponentRefFor<TransformComponent>(playerEntities[0]);
 			}
 		}
@@ -72,6 +84,16 @@ public:
 		if(!timerEntities.empty()){
 			gameTime = GetComponentRefFor<GameTimeManager>(timerEntities[0]);
 		}
+
+		currentCameraDistance = distance;
+
+		if(playerTransform){
+			auto* targetTransform = playerTransform.Get();
+			if(targetTransform){
+				smoothTargetPos = targetTransform->position;
+				currentLookTarget = targetTransform->position + Vector3(0.0f, height, 0.0f);
+			}
+		}
 	}
 
 	void OnUpdate(float dt) override{
@@ -79,6 +101,10 @@ public:
 
 		auto* targetTransform = playerTransform.Get();
 		if(!targetTransform) return;
+
+		// プレイヤー位置を補間して追従する
+		float targetPosT = 1.0f - std::exp(-targetPosLerpSpeed * dt);
+		smoothTargetPos += (targetTransform->position - smoothTargetPos) * targetPosT;
 
 		// --- キーボード入力で yaw/pitch 更新 ---
 		if(GetKey(VK_LEFT))  yaw -= rotateSpeed * dt;
@@ -104,9 +130,9 @@ public:
 
 		DirectX::XMVECTOR targetPos =
 			DirectX::XMVectorSet(
-				targetTransform->position.x,
-				targetTransform->position.y,
-				targetTransform->position.z,
+				smoothTargetPos.x,
+				smoothTargetPos.y,
+				smoothTargetPos.z,
 				1.0f);
 
 		// ------------------------------------------------
@@ -121,83 +147,95 @@ public:
 			->systemRegistry
 			->GetSystem<PhysicSystem>();
 
-		DirectX::XMFLOAT3 pos;
-
-		DirectX::XMVECTOR camPos =
+		DirectX::XMVECTOR desiredCamPos =
 			DirectX::XMVectorAdd(targetPos, offset);
 
-		bool isOccluded = false;
-		float safeLen = distance;
+		DirectX::XMVECTOR eyePos =
+			DirectX::XMVectorSet(
+				smoothTargetPos.x,
+				smoothTargetPos.y + height * 0.5f,
+				smoothTargetPos.z,
+				1.0f);
+
+		DirectX::XMVECTOR toCamera =
+			DirectX::XMVectorSubtract(
+				desiredCamPos,
+				eyePos);
+
+		float freeCamLen =
+			DirectX::XMVectorGetX(
+				DirectX::XMVector3Length(
+					toCamera));
+
+		if(freeCamLen < 0.001f){
+			freeCamLen = distance;
+		}
+
+		DirectX::XMVECTOR camDir =
+			DirectX::XMVector3Normalize(toCamera);
+
+		float targetDistance = freeCamLen;
 
 		if(phys){
-			DirectX::XMVECTOR eyePos =
-				DirectX::XMVectorSet(
-					targetTransform->position.x,
-					targetTransform->position.y + height * 0.5f,
-					targetTransform->position.z,
-					1.0f);
+			DirectX::XMFLOAT3 eyeF;
+			DirectX::XMFLOAT3 dirF;
 
-			DirectX::XMVECTOR toCamera =
-				DirectX::XMVectorSubtract(
-					camPos,
-					eyePos);
+			DirectX::XMStoreFloat3(&eyeF, eyePos);
+			DirectX::XMStoreFloat3(&dirF, camDir);
 
-			float toCamLen =
-				DirectX::XMVectorGetX(
-					DirectX::XMVector3Length(
-						toCamera));
+			RayHit occHit =
+				phys->RaycastWithMask(
+					physx::PxVec3(
+						eyeF.x,
+						eyeF.y,
+						eyeF.z),
+					physx::PxVec3(
+						dirF.x,
+						dirF.y,
+						dirF.z),
+					freeCamLen,
+					selfLayerBit);
 
-			if(toCamLen > 0.001f){
-				DirectX::XMFLOAT3 eyeF;
-				DirectX::XMFLOAT3 dirF;
-
-				DirectX::XMStoreFloat3(
-					&eyeF,
-					eyePos);
-
-				DirectX::XMStoreFloat3(
-					&dirF,
-					DirectX::XMVector3Normalize(
-						toCamera));
-
-				RayHit occHit =
-					phys->RaycastWithMask(
-						physx::PxVec3(
-							eyeF.x,
-							eyeF.y,
-							eyeF.z),
-						physx::PxVec3(
-							dirF.x,
-							dirF.y,
-							dirF.z),
-						toCamLen,
-						selfLayerBit);
-
-				if(occHit.hit){
-					isOccluded = true;
-
-					safeLen =
-						(std::max)(
-							occHit.distance - occlusionPadding,
-							minDistance);
-
-					camPos =
-						DirectX::XMVectorSet(
-							eyeF.x + dirF.x * safeLen,
-							eyeF.y + dirF.y * safeLen,
-							eyeF.z + dirF.z * safeLen,
-							1.0f);
-				}
+			if(occHit.hit){
+				targetDistance =
+					(std::max)(
+						occHit.distance - occlusionPadding,
+						minDistance);
 			}
 		}
 
+		float maxCameraDistance = (std::max)(minDistance, freeCamLen);
+
+		// 遮蔽距離を補間してガタつきを抑える
+		if(targetDistance < currentCameraDistance){
+			currentCameraDistance = targetDistance;
+		} else{
+			float t = 1.0f - std::exp(-cameraDistanceLerpSpeed * dt);
+			currentCameraDistance += (targetDistance - currentCameraDistance) * t;
+		}
+
+		currentCameraDistance =
+			std::clamp(
+				currentCameraDistance,
+				minDistance,
+				maxCameraDistance);
+
+		// 最終カメラ位置
+		DirectX::XMVECTOR camPos =
+			DirectX::XMVectorAdd(
+				eyePos,
+				DirectX::XMVectorScale(
+					camDir,
+					currentCameraDistance));
+
+		DirectX::XMFLOAT3 pos;
 		DirectX::XMStoreFloat3(&pos, camPos);
 
 		// 地面めり込み防止
 		pos.y =
 			(std::max)(
 				pos.y,
-				targetTransform->position.y +
+				smoothTargetPos.y +
 				minGroundClearance);
 
 		transform->position =
@@ -213,17 +251,17 @@ public:
 		CameraBuffer->isLock = true;
 
 		Vector3 lookTarget =
-			targetTransform->position;
+			smoothTargetPos;
 
-		// 通常時から頭付近を見る
+		// 通常時は頭付近を見る
 		lookTarget.y += height;
 
+		// カメラが近いほど、さらに少し上を見る
 		float ratio = 0.0f;
-
-		if(distance > 0.001f){
+		if(freeCamLen > 0.001f){
 			ratio =
 				1.0f -
-				(safeLen / distance);
+				(currentCameraDistance / freeCamLen);
 
 			ratio =
 				std::clamp(
@@ -232,10 +270,13 @@ public:
 					1.0f);
 		}
 
-		// 壁に近いほどさらに上を見る
 		lookTarget.y += ratio * height * 0.5f;
 
-		CameraBuffer->Target = lookTarget;
+		// 注視点も補間してガタつきを抑える
+		float lookT = 1.0f - std::exp(-targetLookLerpSpeed * dt);
+		currentLookTarget += (lookTarget - currentLookTarget) * lookT;
+
+		CameraBuffer->Target = currentLookTarget;
 
 		// ------------------------------------------------
 		// LookAt
@@ -245,36 +286,32 @@ public:
 			(CameraBuffer->Target -
 			 transform->position).normalize();
 
-		float yawLook =
-			atan2f(
-				forward.x,
-				forward.z);
+		float forwardLen = forward.length();
+		if(forwardLen > 0.0001f){
+			float yawLook =
+				atan2f(
+					forward.x,
+					forward.z);
 
-		float pitchLook =
-			asinf(
-				-forward.y);
+			float pitchLook =
+				asinf(
+					-forward.y);
 
-		DirectX::XMVECTOR q =
-			DirectX::XMQuaternionRotationRollPitchYaw(
-				pitchLook,
-				yawLook,
-				0);
+			DirectX::XMVECTOR q =
+				DirectX::XMQuaternionRotationRollPitchYaw(
+					pitchLook,
+					yawLook,
+					0);
 
-		DirectX::XMFLOAT4 temp;
-
-		DirectX::XMStoreFloat4(
-			&temp,
-			q);
-
-		transform->SetRotation(temp);
+			DirectX::XMFLOAT4 temp;
+			DirectX::XMStoreFloat4(&temp, q);
+			transform->SetRotation(temp);
+		}
 	}
 
-	void OnFixedUpdate(float dt)override{
-
-
-	}
+	void OnFixedUpdate(float dt) override{}
 	void OnDraw() override{}
-	void OnEditorUpdate(float dt)override{}
+	void OnEditorUpdate(float dt) override{}
 	void OnStop() override{}
 
 private:
