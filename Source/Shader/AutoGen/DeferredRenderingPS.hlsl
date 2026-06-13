@@ -15,7 +15,7 @@ float4 main(PS_IN In) : SV_Target
     MaterialInput input = GetMaterialInput(In);
     float4 Result = float4(1, 0, 1, 1);
 
-    if (input.materialID == 0)
+    [branch] if (input.materialID == 0)
     {
         Result = ShadeMaterial_Unlit(input);
     }

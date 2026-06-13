@@ -27,7 +27,7 @@
 Texture2D g_Texture : register(t0);
 
 // サンプリング数 (固定値: 多いほど高品質だが重い)
-#define GODLAY_SAMPLE_COUNT 64
+#define GODLAY_SAMPLE_COUNT 16
 
 // 方向ライトをスクリーン投影するときの「仮想光源距離」(ワールド単位)
 #define DIRECTIONAL_LIGHT_DISTANCE 1e5f
@@ -146,7 +146,9 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     {
         LIGHT light = Lights[li];
         if (!light.Enable) continue;
-
+        if (light.LightType != LIGHT_TYPE_DIRECTIONAL && light.LightType != LIGHT_TYPE_DIRECTIONAL_CSM)
+            continue;
+        
         // CSM カスケードの 2 番目以降と Point Shadow の追加 face はスキップ (重複処理回避)
         if (light.Dummy >= 2 || light.Dummy <= -2) continue;
 

@@ -15,7 +15,8 @@ float4 main(PS_IN In) : SV_Target
     MaterialInput input = GetMaterialInput(In);
     float4 Result = float4(1, 0, 1, 1);
 
-    [branch] if (input.materialID == 0)
+    [branch]
+    if (input.materialID == 0)
     {
         Result = ShadeMaterial_Unlit(input);
     }
@@ -35,11 +36,8 @@ float4 main(PS_IN In) : SV_Target
     {
         Result = ShadeMaterial_RimToon(input);
     }
-    else { /* default */ }
-
-    if (Result.a <= ALPHA_CLIP_THRESHOLD)
-    {
-        discard;
+    else
+    { /* default */
     }
 
     return Result;
