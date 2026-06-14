@@ -18,6 +18,26 @@ Entities:
           y: 1
           z: 1
         Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 0
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
       - Component: MaterialComponent
         ShaderID: 1
         Material:
@@ -46,3 +66,5 @@ Entities:
         FilePath: Asset/Model\cube.obj
         isBlender: false
         AnimationTime: 0
+      - Component: PrefabComponent
+        FilePath: C:\Users\teto_\source\repos\GameEngine\Asset\Prefab\Template\Cube.prefab

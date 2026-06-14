@@ -56,7 +56,7 @@ float3 WorldToScreenUVWithDepth(float3 worldPos)
 float3 GetLightScreenUV(LIGHT light)
 {
     // 方向ライト (通常 / CSM カスケード先頭): Direction の逆方向が「太陽」の向き
-    if (light.LightType == LIGHT_TYPE_DIRECTIONAL)
+    if (light.LightType == LIGHT_TYPE_DIRECTIONAL || light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM)
     {
         float3 sunDir      = -normalize(light.Direction.xyz);
         float3 sunWorldPos = CameraPosition.xyz + sunDir * DIRECTIONAL_LIGHT_DISTANCE;

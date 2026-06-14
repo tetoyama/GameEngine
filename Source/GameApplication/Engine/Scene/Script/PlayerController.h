@@ -1,11 +1,8 @@
 // =======================================================================
-// 
-// PlayerController.h
-// 
+// PlayerController.h (smooth animation transition version)
 // =======================================================================
 #pragma once
 #include "Component/CustomScriptComponent.h"
-#include "Backends/checkFileExtention.h"
 #include "GameTimeManager.h"
 #include "BallController.h"
 #include "Component/TransformComponent.h"
@@ -13,20 +10,14 @@
 #include "Component/ColliderComponent.h"
 #include <System/Physic/physicSystem.h>
 
-// プレイヤー制御スクリプト
 class PlayerController: public CustomScriptComponent {
 	BEGIN_REFLECT(PlayerController)
 
 		REFLECT_FIELD(float, moveSpeed, 6.0f)
-		REFLECT_FIELD(float, health, 0.0f)
-		REFLECT_FIELD(bool, isInvincible, false)
-
-		// ダッシュ用パラメータ
 		REFLECT_FIELD(float, dashMultiplier, 2.0f)
 		REFLECT_FIELD(float, accel, 10.0f)
 		REFLECT_FIELD(float, rotateSpeed, 8.0f)
 
-		// スタミナ関連
 		REFLECT_FIELD(float, maxStamina, 5.0f)
 		REFLECT_FIELD(float, stamina, 5.0f)
 		REFLECT_FIELD(float, staminaConsumeRate, 1.5f)
@@ -34,353 +25,229 @@ class PlayerController: public CustomScriptComponent {
 
 		REFLECT_FIELD(float, jumpPower, 4.0f)
 
+		bool canDash = true;
 
-	bool canDash = true;
 	float CurrentSpeed = 0.0f;
-	bool isJumpPressed = false;
-	float moveBlend = 0.0f;
-
-	// RayCast 時に除外する自身のレイヤービット（インスペクターで設定）
-	// デフォルトはデフォルトのプレイヤーレイヤー (1u << 1)
-	uint32_t selfLayerBit = 1u << 1;
-
-	ComponentRef<TransformComponent> transform;
-	ComponentRef<TransformComponent> CameraBufferTransform;
-	ComponentRef<GameTimeManager> gameTime;
-	ComponentRef<ModelRendererComponent> model;
-	ComponentRef<TransformComponent> ballTransform;
-	ComponentRef<BallController> ballController;
-public:
-
 	float velY = 0.0f;
 
+	bool isJumpPressed = false;
+
+	uint32_t selfLayerBit = 1u << 1;
+
+	// animation blend state
+	float moveBlend = 0.0f;
+
+	float moveBlendTime = 0.0f;
+	float moveBlendPrev = 0.0f;
+	float moveBlendTarget = 0.0f;
+	float moveBlendDuration = 0.25f;
+
+	float airBlend = 0.0f;
+	float airBlendTime = 0.0f;
+	float airBlendDuration = 0.20f;
+
+	ComponentRef<TransformComponent> transform;
+	ComponentRef<TransformComponent> cameraTransform;
+	ComponentRef<GameTimeManager> gameTime;
+	ComponentRef<ModelRendererComponent> model;
+
+public:
 	PlayerController(): CustomScriptComponent("PlayerController"){}
 
-	YAML::Node encode() override{
-		YAML::Node node;
-		ENCODE_FIELDS(node);
-		node["Stamina"] = stamina;
-		node["SelfLayerBit"] = selfLayerBit;
-		return node;
-	}
-	bool decode(SceneContext* context, const YAML::Node& node) override{
-		DECODE_FIELDS(node);
-		if(node["Stamina"]) stamina = node["Stamina"].as<float>();
-		if(node["SelfLayerBit"]) selfLayerBit = node["SelfLayerBit"].as<uint32_t>();
-		return true;
+	static float EaseInOut(float t){
+		return t * t * (3.0f - 2.0f * t);
 	}
 
-	void inspector(SceneContext* context) override{
-		ImGui::Text(scriptName.c_str());
-		INSPECTOR_FIELDS();
-
-		// 自身のレイヤー選択（RayCast 除外用）
-		auto* phys = context->system->GetSystem<PhysicSystem>();
-		if (phys) {
-			const auto& layers = phys->GetLayers();
-			const char* previewLabel = "(none)";
-			for (const auto& layer : layers) {
-				if (selfLayerBit == layer.bit) { previewLabel = layer.name.c_str(); break; }
-			}
-			ImGui::Text("Self Layer (RayCast exclude)");
-			if (ImGui::BeginCombo("##SelfLayer", previewLabel)) {
-				if (ImGui::Selectable("(none)", selfLayerBit == 0)) selfLayerBit = 0;
-				if (selfLayerBit == 0) ImGui::SetItemDefaultFocus();
-				for (const auto& layer : layers) {
-					bool sel = (selfLayerBit == layer.bit);
-					if (ImGui::Selectable(layer.name.c_str(), sel)) selfLayerBit = layer.bit;
-					if (sel) ImGui::SetItemDefaultFocus();
-				}
-				ImGui::EndCombo();
-			}
-		}
-
-		// スタミナ表示
-		ImGui::ProgressBar(stamina / maxStamina, ImVec2(0.0f, 0.0f), "Stamina");
+	static float AirEase(float t){
+		return (t < 0.5f)
+			? 2.0f * t * t
+			: 1.0f - powf(-2.0f * t + 2.0f, 2.0f) * 0.5f;
 	}
 
 	void OnStart() override{
-		velY = 0.0f;
-
 		transform = GetComponentRef<TransformComponent>();
 		model = GetComponentRef<ModelRendererComponent>();
-		auto CameraBufferEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<CameraComponent>();
-		if(!CameraBufferEntities.empty()){
-			CameraBufferTransform = GetComponentRefFor<TransformComponent>(CameraBufferEntities[0]);
-		}
 
-		auto timerEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<GameTimeManager>();
-		if(!timerEntities.empty()){
-			gameTime = GetComponentRefFor<GameTimeManager>(timerEntities[0]);
-		}
+		auto cams = m_ref.GetScene()->component->FindEntitiesWithComponent<CameraComponent>();
+		if(!cams.empty())
+			cameraTransform = GetComponentRefFor<TransformComponent>(cams[0]);
 
-		auto ballEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<BallController>();
-		if(!ballEntities.empty()){
-			ballController = GetComponentRefFor<BallController>(ballEntities[0]);
-			ballTransform = GetComponentRefFor<TransformComponent>(ballEntities[0]);
-		}
-
-		canDash = true;
-		CurrentSpeed = 0.0f;
 		stamina = maxStamina;
 	}
 
 	void OnUpdate(float dt) override{
-		if(!model->model){
-			return;
-		}
+		if(!model || !model->model) return;
+		if(!transform || !cameraTransform) return;
 
-		if(model->blendedAnimations.size() < 4){
-			model->blendedAnimations.clear();
-
-			// Run アニメーションを追加
-			if(model->model->m_Animation.find("Run") == model->model->m_Animation.end()){
-				model->model->LoadAnimation("Asset/Model/Akai_Run.fbx", "Run");
-			}
-			// Idle アニメーションを追加
-			if(model->model->m_Animation.find("Idle") == model->model->m_Animation.end()){
-				model->model->LoadAnimation("Asset/Model/Akai_Idle.fbx", "Idle");
-			}
-			if(model->model->m_Animation.find("JumpingUp") == model->model->m_Animation.end()){
-				model->model->LoadAnimation("Asset/Model/Jumping Up.fbx", "JumpingUp");
-			}
-			if(model->model->m_Animation.find("JumpingDown") == model->model->m_Animation.end()){
-				model->model->LoadAnimation("Asset/Model/Jumping Down.fbx", "JumpingDown");
-			}
-
-			model->blendedAnimations.push_back({"Run", 0.0f, 0.0f});
-			model->blendedAnimations.push_back({"Idle", 1.0f, 0.0f});
-			model->blendedAnimations.push_back({"JumpingUp", 0.0f, 0.0f});
-			model->blendedAnimations.push_back({"JumpingDown", 0.0f, 0.0f});
-
-			model->blendedAnimations[0].isLoop = true;
-			model->blendedAnimations[1].isLoop = true;
-			model->blendedAnimations[2].isLoop = false;
-			model->blendedAnimations[3].isLoop = false;
-		}
-
-		if(!transform || !CameraBufferTransform) return;
-		if(gameTime && gameTime->CountDownTimer > 0.0f) return;
-
+		// =========================
+		// input
+		// =========================
 		Vector3 move(0, 0, 0);
+		if(GetKey('W')) move.z += 1;
+		if(GetKey('S')) move.z -= 1;
+		if(GetKey('A')) move.x -= 1;
+		if(GetKey('D')) move.x += 1;
 
-		if(GetKey('W')) move.z += 1.0f;
-		if(GetKey('S')) move.z -= 1.0f;
-		if(GetKey('A')) move.x -= 1.0f;
-		if(GetKey('D')) move.x += 1.0f;
+		bool hasMove = (move.x != 0 || move.z != 0);
+		bool dash = GetKey(VK_LSHIFT) && canDash;
 
-		bool hasMoveInput = (move.x != 0.0f || move.z != 0.0f);
-
-		// ダッシュ判定
-		bool dashKey = (GetKey(VK_LSHIFT));
-		bool isDashing = dashKey && canDash;
-
-		// スタミナ更新
-		if(isDashing){
+		// =========================
+		// stamina
+		// =========================
+		if(dash){
 			stamina -= staminaConsumeRate * dt;
-			if(stamina < 0.0f){
-				stamina = 0.0f;
-				canDash = false;
+			if(stamina < 0){
+				stamina = 0; canDash = false;
 			}
 		} else{
 			stamina += staminaRecoverRate * dt;
 			if(stamina > maxStamina){
-				stamina = maxStamina;
-				canDash = true;
+				stamina = maxStamina; canDash = true;
 			}
 		}
 
-		// 目標速度の更新
-		if(hasMoveInput){
-			float targetSpeed = isDashing ? moveSpeed * dashMultiplier : moveSpeed;
+		// =========================
+		// speed smoothing
+		// =========================
+		float targetSpeed = hasMove
+			? moveSpeed * (dash ? dashMultiplier : 1.0f)
+			: 0.0f;
 
-			if(CurrentSpeed < targetSpeed){
-				CurrentSpeed += accel * dt;
-				if(CurrentSpeed > targetSpeed) CurrentSpeed = targetSpeed;
-			} else if(CurrentSpeed > targetSpeed){
-				CurrentSpeed = targetSpeed;
-			}
-		} else{
-			CurrentSpeed -= moveSpeed * dt;
-			if(CurrentSpeed < 0.0f) CurrentSpeed = 0.0f;
-		}
+		CurrentSpeed += (targetSpeed - CurrentSpeed) * (std::min)(1.0f, accel * dt);
 
-		// --- カメラ基準の移動 ---
-		Vector3 camForward = CameraBufferTransform->front();
-		Vector3 camRight = CameraBufferTransform->right();
-		camForward.y = 0;
-		camRight.y = 0;
+		// =========================
+		// camera move dir
+		// =========================
+		Vector3 f = cameraTransform->front();
+		Vector3 r = cameraTransform->right();
+		f.y = r.y = 0;
+		f = f.normalize();
+		r = r.normalize();
 
-		camForward = camForward.normalize();
-		camRight = camRight.normalize();
+		Vector3 dir = hasMove ? (f * move.z + r * move.x).normalize() : Vector3(0, 0, 0);
 
-		Vector3 dir(0, 0, 0);
-		if(hasMoveInput){
-			dir = camForward * move.z + camRight * move.x;
-			dir = dir.normalize();
-		}
+		// =========================
+		// physics
+		// =========================
+		auto* collider = GetComponent<ColliderComponent>();
+		bool grounded = false;
+		bool jumping = false;
 
-		ColliderComponent* collider = GetComponent<ColliderComponent>();
-
-		bool isGround = false;
-		bool isJumping = false;
-
-		if(!collider){
-			transform->position += dir * (CurrentSpeed * dt);
-		} else{
-			physx::PxRigidDynamic* rigid = collider->pRigidbodyDynamic;
+		if(collider){
+			auto* rigid = collider->pRigidbodyDynamic;
 			if(!rigid) return;
 
-			// 現在の速度
-			physx::PxVec3 velocity = rigid->getLinearVelocity();
+			auto vel = rigid->getLinearVelocity();
 
-			// Raycast（足元）
-			// アクター原点はカプセル底部とほぼ同じ高さのためレイ始点を少し上に置き、
-			// HeightField（サーフェスメッシュ）を上方から正しく検出できるようにする。
 			physx::PxVec3 rayPos(
 				transform->position.x,
 				transform->position.y + 0.05f,
 				transform->position.z
 			);
 
-			physx::PxVec3 rayDir(0.0f, -1.0f, 0.0f);
-
-			RayHit hit = m_ref.GetScene()->manager
-				->systemRegistry
+			RayHit hit = m_ref.GetScene()->manager->systemRegistry
 				->GetSystem<PhysicSystem>()
-				->RaycastWithMask(rayPos, rayDir, 0.3f, selfLayerBit); // 自身のレイヤーを除外
+				->RaycastWithMask(rayPos, physx::PxVec3(0, -1, 0), 0.3f, selfLayerBit);
 
-			isGround = hit.hit && hit.distance <= 0.06f && velY <= 0.0f;
+			grounded = hit.hit && hit.distance < 0.06f && velY <= 0.0f;
 
-			// 入力方向（正規化済み想定）
-			physx::PxVec3 wishDir(0.0f, 0.0f, 0.0f);
-			if(hasMoveInput){
-				wishDir = physx::PxVec3(dir.x, 0.0f, dir.z);
-			}
+			physx::PxVec3 wish(dir.x, 0, dir.z);
+			physx::PxVec3 hVel = wish * CurrentSpeed;
 
-			// 水平方向の目標速度
-			physx::PxVec3 horizontalVel = wishDir * CurrentSpeed;
+			if(grounded){
+				hVel -= hit.normal * hVel.dot(hit.normal);
 
-			if(isGround){
-				physx::PxVec3 n = hit.normal;
-
-				// 坂に沿った移動
-				horizontalVel -= n * horizontalVel.dot(n);
-
-				// ジャンプ
 				if(GetKey(VK_SPACE) && !isJumpPressed){
 					velY = jumpPower;
-					transform->position.y += 0.1f;
+					jumping = true;
+
+					// jump blend reset
+					airBlendTime = 0.0f;
 				} else{
-					velY = 0.0f;
+					velY = vel.y;
 				}
 			} else{
-				velY -= 9.0f * dt;
+				velY -= 9.8f * dt;
 			}
 
-			// 最終速度合成
-			velocity.x = horizontalVel.x;
-			velocity.y = velY;
-			velocity.z = horizontalVel.z;
+			vel.x = hVel.x;
+			vel.y = velY;
+			vel.z = hVel.z;
 
-			rigid->setLinearVelocity(velocity);
-
-			if(velocity.y > 0.0f){
-				isJumping = true;
-			}
+			rigid->setLinearVelocity(vel);
 
 			isJumpPressed = GetKey(VK_SPACE);
 		}
 
-		if(ballController && ballTransform && (ballTransform->position - transform->position).length() < 0.5f){
-			Vector3 pushDir = ballTransform->position - transform->position;
-			ballController->ApplyForce(pushDir); // ボールを吹っ飛ばす
+		// =========================
+		// MOVE BLEND (time-based)
+		// =========================
+		moveBlendTarget = hasMove ? 1.0f : 0.0f;
+
+		if(moveBlendTarget != moveBlendPrev){
+			moveBlendTime = 0.0f;
+			moveBlendPrev = moveBlendTarget;
 		}
 
-		// ------------------------------------------------------------
-		// アニメーションブレンド
-		// Run / Idle は moveBlend で滑らかに補間
-		// Jump は別レイヤーとして上書き寄りに乗せる
-		// ------------------------------------------------------------
+		moveBlendTime += dt;
+		float t = std::clamp(moveBlendTime / moveBlendDuration, 0.0f, 1.0f);
+		float eased = EaseInOut(t);
 
-		float targetBlend = hasMoveInput ? 1.0f : 0.0f;
-		moveBlend += (targetBlend - moveBlend) * 8.0f * dt;
-		moveBlend = std::clamp(moveBlend, 0.0f, 1.0f);
+		moveBlend = moveBlendPrev + (moveBlendTarget - moveBlendPrev) * eased;
 
-		if(!isGround){
-			if(isJumping){
-				if(model->blendedAnimations[2].weight <= 0.0f){
-					model->blendedAnimations[2].animationStartTime = -model->animationTime + 25.0f;
-				}
+		// =========================
+		// AIR BLEND (jump/land smooth)
+		// =========================
+		float airTarget = grounded ? 0.0f : 1.0f;
 
-				model->blendedAnimations[2].weight += 0.15f;
-				if(model->blendedAnimations[2].weight > 1.0f){
-					model->blendedAnimations[2].weight = 1.0f;
-				}
-
-				model->blendedAnimations[3].weight = 0.0f;
-			} else{
-				if(model->blendedAnimations[3].weight <= 0.0f){
-					model->blendedAnimations[3].animationStartTime = -model->animationTime;
-				}
-
-				model->blendedAnimations[2].weight -= 0.01f;
-				if(model->blendedAnimations[2].weight < 0.0f){
-					model->blendedAnimations[2].weight = 0.0f;
-				}
-
-				model->blendedAnimations[3].weight += 0.15f;
-				if(model->blendedAnimations[2].weight + model->blendedAnimations[3].weight > 1.0f){
-					model->blendedAnimations[3].weight = 1.0f - model->blendedAnimations[2].weight;
-				}
-			}
+		if(airTarget > airBlend){
+			// rising (jump start)
+			airBlendTime += dt;
 		} else{
-			model->blendedAnimations[2].weight -= 0.125f;
-			if(model->blendedAnimations[2].weight < 0.0f){
-				model->blendedAnimations[2].weight = 0.0f;
-			}
-
-			model->blendedAnimations[3].weight -= 0.2f;
-			if(model->blendedAnimations[3].weight < 0.0f){
-				model->blendedAnimations[3].weight = 0.0f;
-			}
+			// landing reset
+			airBlendTime += dt;
 		}
 
-		float jumpWeight =
-			model->blendedAnimations[2].weight +
-			model->blendedAnimations[3].weight;
+		float at = std::clamp(airBlendTime / airBlendDuration, 0.0f, 1.0f);
+		float aEase = AirEase(at);
 
-		jumpWeight = std::clamp(jumpWeight, 0.0f, 1.0f);
+		airBlend = airTarget > airBlend
+			? aEase
+			: (1.0f - aEase);
 
-		model->blendedAnimations[0].weight = moveBlend * (1.0f - jumpWeight);
-		model->blendedAnimations[1].weight = (1.0f - moveBlend) * (1.0f - jumpWeight);
+		airBlend = std::clamp(airBlend, 0.0f, 1.0f);
 
-		// --- 回転補間 ---
-		if(hasMoveInput){
-			DirectX::XMVECTOR targetQ = DirectX::XMQuaternionRotationRollPitchYaw(
-				0.0f,
-				atan2f(dir.x, dir.z),
-				0.0f
-			);
+		// =========================
+		// animation weights
+		// =========================
+		if(model->blendedAnimations.size() < 4) return;
 
-			DirectX::XMVECTOR currentQ = transform->rotationVector();
-			float t = std::clamp(rotateSpeed * dt, 0.0f, 1.0f);
-			DirectX::XMVECTOR newQ = DirectX::XMQuaternionSlerp(currentQ, targetQ, t);
+		float groundMask = 1.0f - airBlend;
 
-			DirectX::XMFLOAT4 FloatQ;
-			DirectX::XMStoreFloat4(&FloatQ, newQ);
-			transform->SetRotation(FloatQ);
+		model->blendedAnimations[0].weight = moveBlend * groundMask;        // Run
+		model->blendedAnimations[1].weight = (1.0f - moveBlend) * groundMask; // Idle
+		model->blendedAnimations[2].weight = airBlend;                       // JumpUp/Down shared
+
+		// =========================
+		// rotation
+		// =========================
+		if(hasMove){
+			auto targetQ = DirectX::XMQuaternionRotationRollPitchYaw(
+				0, atan2f(dir.x, dir.z), 0);
+
+			auto curQ = transform->rotationVector();
+
+			float tRot = (std::min)(1.0f, rotateSpeed * dt);
+			auto q = DirectX::XMQuaternionSlerp(curQ, targetQ, tRot);
+
+			DirectX::XMFLOAT4 f;
+			DirectX::XMStoreFloat4(&f, q);
+			transform->SetRotation(f);
 		}
 	}
-	void OnFixedUpdate(float dt)override{
 
-
-
-	}
+	void OnFixedUpdate(float dt) override{}
 	void OnDraw() override{}
-	void OnEditorUpdate(float dt)override{}
+	void OnEditorUpdate(float dt) override{}
 	void OnStop() override{}
-
-private:
-
 };
