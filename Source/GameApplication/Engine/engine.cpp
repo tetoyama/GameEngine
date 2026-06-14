@@ -342,6 +342,15 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		timeService->Tick();
 
 		float dt = timeService->GetDeltaTime();
+
+		{	// ============ FixedUpdate フェーズ ============
+			// 固定タイムステップに追いつくまで物理シミュレーションを複数回実行
+			while(timeService->ShouldRunFixedUpdate()){
+				sceneManager->FixedUpdate(timeService->GetFixedDeltaTime());
+				timeService->EndFixedUpdate();
+			}
+		}
+
 		timeService->BeginDeltaUpdate();
 		{	// ============ Update フェーズ ============
 			// OS メッセージ処理（WM_CLOSE 等のイベントを消化）
@@ -353,14 +362,6 @@ void Engine::Run(std::shared_ptr<EngineContext> context){
 		}
 		// Update フェーズの所要時間を記録
 		timeService->EndDeltaUpdate();
-
-		{	// ============ FixedUpdate フェーズ ============
-			// 固定タイムステップに追いつくまで物理シミュレーションを複数回実行
-			while(timeService->ShouldRunFixedUpdate()){
-				sceneManager->FixedUpdate(timeService->GetFixedDeltaTime());
-				timeService->EndFixedUpdate();
-			}
-		}
 
 		// Update 後にウィンドウが閉じられた場合はループを抜ける
 		if (windowService->GetMainWindow()->ShouldClose()) {
