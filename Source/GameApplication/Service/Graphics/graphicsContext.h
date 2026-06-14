@@ -252,4 +252,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_FullScreenIB;
 
 	RenderEffectSystem* m_EffectSystem = nullptr;
+
+	bool m_TearingSupported = false;
 };

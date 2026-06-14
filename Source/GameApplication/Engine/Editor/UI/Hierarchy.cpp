@@ -206,6 +206,7 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 						ofn.lpstrFilter = "Prefab Files (*.prefab)\0*.prefab\0All Files (*.*)\0*.*\0";
 						ofn.lpstrFile = filename;
 						ofn.nMaxFile = MAX_PATH;
+						ofn.lpstrInitialDir = "Asset\\Prefab";
 						ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
 						ofn.lpstrDefExt = "prefab";
 						if(GetOpenFileNameA(&ofn)){

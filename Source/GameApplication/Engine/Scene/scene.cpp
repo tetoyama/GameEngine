@@ -514,7 +514,7 @@ std::string Scene::LoadSceneFileDialog() {
 	ofn.nMaxFile = MAX_PATH;
 	ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
 	ofn.Flags |= OFN_NOCHANGEDIR;
-
+	ofn.lpstrInitialDir = "Asset\\Scene";
 	ofn.lpstrDefExt = "yaml";
 
 

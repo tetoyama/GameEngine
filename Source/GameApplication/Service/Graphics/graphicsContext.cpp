@@ -11,6 +11,7 @@
 #include <dwrite.h>
 #include <wrl/client.h>
 #include <windows.h> // GetDpiForWindowを使用するために必要
+#include <dxgi1_5.h> // [FIX] IDXGIFactory5 / DXGI_FEATURE_PRESENT_ALLOW_TEARING のために必要
 
 #include "renderEffectSystem.h"
 #include "DebugTools/DebugSystem.h"
@@ -49,29 +50,53 @@
 bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 	GRAPHICS_LOG(LogLevel::Info, "GraphicsContext の初期化を開始します");
 
-	if(!CreateDeviceAndSwapChain(hwnd, width, height)){return false;}
+	if(!CreateDeviceAndSwapChain(hwnd, width, height)){
+		return false;
+	}
 
-	if(!CreateRasterizerState()){return false;}
+	if(!CreateRasterizerState()){
+		return false;
+	}
 
-	if(!CreateBlendState()){return false;}
+	if(!CreateBlendState()){
+		return false;
+	}
 
-	if(!CreateDepthStencilState()){return false;}
+	if(!CreateDepthStencilState()){
+		return false;
+	}
 
-	if(!CreateSamplerState()){return false;}
+	if(!CreateSamplerState()){
+		return false;
+	}
 
-	if(!CreateConstantBuffers()){return false;}
+	if(!CreateConstantBuffers()){
+		return false;
+	}
 
-	if(!CreateRenderTargetView()){return false;}
+	if(!CreateRenderTargetView()){
+		return false;
+	}
 
-	if(!CreateDepthStencilBufferAndView(width, height)){return false;}
+	if(!CreateDepthStencilBufferAndView(width, height)){
+		return false;
+	}
 
-	if(!CreateD2DResources(hwnd)){return false;}
+	if(!CreateD2DResources(hwnd)){
+		return false;
+	}
 
-	if (!CreateComputeSkinningShader()) { return false; }
+	if(!CreateComputeSkinningShader()){
+		return false;
+	}
 
-	if (!CreateEffectSystem()) { return false; }
+	if(!CreateEffectSystem()){
+		return false;
+	}
 
-	if(!CreateFullScreenQuad()){ return false;}
+	if(!CreateFullScreenQuad()){
+		return false;
+	}
 
 	Resize(width, height);
 
@@ -100,7 +125,7 @@ void GraphicsContext::Shutdown(){
 		SAFE_RELEASE(m_DepthStates[i]);
 	}
 	SAFE_RELEASE(csSkinning);
-	
+
 	if(m_DeviceContext){
 		m_DeviceContext->ClearState();  // すべてのバインドリソースを解除
 		m_DeviceContext->Flush();       // GPU キューを空にする
@@ -116,8 +141,8 @@ void GraphicsContext::Shutdown(){
 
 }
 
-Effekseer::ManagerRef GraphicsContext::GetEffectManager() {
-	if (m_EffectSystem) {
+Effekseer::ManagerRef GraphicsContext::GetEffectManager(){
+	if(m_EffectSystem){
 		return m_EffectSystem->manager;
 	}
 	return nullptr;
@@ -162,9 +187,9 @@ void GraphicsContext::SetProjectionMatrix(const DirectX::XMMATRIX& proj){
 	m_DeviceContext->UpdateSubresource(m_CbPerCamera, 0, nullptr, &m_CbPerCameraData, 0, 0);
 }
 
-void GraphicsContext::SetUVMatrixBuffer(const UVMatrixBuffer& uv) {
+void GraphicsContext::SetUVMatrixBuffer(const UVMatrixBuffer& uv){
 	m_CbPerObjectData.UVStart = uv.UVStart;
-	m_CbPerObjectData.UVEnd   = uv.UVEnd;
+	m_CbPerObjectData.UVEnd = uv.UVEnd;
 	m_DeviceContext->UpdateSubresource(m_CbPerObject, 0, nullptr, &m_CbPerObjectData, 0, 0);
 }
 
@@ -188,8 +213,8 @@ void GraphicsContext::SetParameter(const float4& param){
 	m_DeviceContext->UpdateSubresource(m_CbPerObject, 0, nullptr, &m_CbPerObjectData, 0, 0);
 }
 
-void GraphicsContext::SetObjectInfo(const ObjectInfo& objectInfo) {
-	m_CbPerObjectData.SceneID  = objectInfo.SceneID;
+void GraphicsContext::SetObjectInfo(const ObjectInfo& objectInfo){
+	m_CbPerObjectData.SceneID = objectInfo.SceneID;
 	m_CbPerObjectData.ObjectID = objectInfo.ObjectID;
 	m_CbPerObjectData.ShaderID = objectInfo.ShaderID;
 	m_DeviceContext->UpdateSubresource(m_CbPerObject, 0, nullptr, &m_CbPerObjectData, 0, 0);
@@ -216,13 +241,37 @@ void GraphicsContext::SetWorldViewProjection2D(){
 	SetDepthMode(DepthMode::Disable);
 }
 
-bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT height) {
+bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT height){
 	IDXGIFactory* pFactory = nullptr;
 	HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&pFactory);
-	if (FAILED(hr)) {
+	if(FAILED(hr)){
 		GRAPHICS_LOG(LogLevel::Error, "DXGIFactory の作成に失敗しました");
 		OutputDebugStringA("DXGIFactoryの作成に失敗しました。\n");
 		return false;
+	}
+
+	// DXGI_PRESENT_ALLOW_TEARING / DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING を使う前に、
+	// 実行環境がティアリング表示に対応しているかを必ず確認する。
+	// 未確認のままフラグを立てると、非対応環境では黙ってフラグが無視され、
+	// Present(0, DXGI_PRESENT_ALLOW_TEARING) が SyncInterval=1 相当(リフレッシュレート同期)に
+	// フォールバックする。これが「VSyncオフでもFPSがリフレッシュレート固定になる」原因。
+	{
+		Microsoft::WRL::ComPtr<IDXGIFactory5> factory5;
+		if(SUCCEEDED(pFactory->QueryInterface(IID_PPV_ARGS(&factory5)))){
+			BOOL allowTearing = FALSE;
+			HRESULT hrTearing = factory5->CheckFeatureSupport(
+				DXGI_FEATURE_PRESENT_ALLOW_TEARING,
+				&allowTearing,
+				sizeof(allowTearing)
+			);
+			m_TearingSupported = SUCCEEDED(hrTearing) && allowTearing;
+		} else{
+			m_TearingSupported = false;
+		}
+
+		if(!m_TearingSupported){
+			GRAPHICS_LOG(LogLevel::Warning, "ティアリング表示(DXGI_PRESENT_ALLOW_TEARING)に非対応の環境です。");
+		}
 	}
 
 	IDXGIAdapter* pSelectedAdapter = nullptr;
@@ -271,19 +320,21 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 	desc.OutputWindow = hwnd;
 	desc.SampleDesc.Count = 1;
 	desc.Windowed = TRUE;
-	desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
+	// ティアリング対応環境では、DXGI_SWAP_EFFECT_FLIP_DISCARD と DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING を使用する。
+	desc.SwapEffect = m_TearingSupported ? DXGI_SWAP_EFFECT_FLIP_DISCARD : DXGI_SWAP_EFFECT_DISCARD;
+	desc.Flags = m_TearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
 
 	UINT flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-	#if defined(_DEBUG)
+#if defined(_DEBUG)
 	flags |= D3D11_CREATE_DEVICE_DEBUG;
-	#endif
+#endif
 
 	D3D_FEATURE_LEVEL featureLevels[] = {
 		D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0
 	};
 	D3D_FEATURE_LEVEL featureLevel;
-	auto releaseFactoryResources = [&]() {
+	auto releaseFactoryResources = [&](){
 		if(pSelectedAdapter){
 			pSelectedAdapter->Release();
 			pSelectedAdapter = nullptr;
@@ -292,7 +343,7 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 			pFactory->Release();
 			pFactory = nullptr;
 		}
-	};
+		};
 
 	hr = D3D11CreateDeviceAndSwapChain(
 		pSelectedAdapter, D3D_DRIVER_TYPE_UNKNOWN, nullptr, flags,
@@ -301,7 +352,7 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 		m_Device.GetAddressOf(), &featureLevel, m_DeviceContext.GetAddressOf()
 	);
 
-	if (FAILED(hr)) {
+	if(FAILED(hr)){
 		releaseFactoryResources();
 		GRAPHICS_LOG(LogLevel::Error, "スワップチェーンの作成に失敗しました");
 		return false;
@@ -395,10 +446,10 @@ bool GraphicsContext::CreateSamplerState(){
 
 bool GraphicsContext::CreateConstantBuffers(){
 	D3D11_BUFFER_DESC bufferDesc{};
-	bufferDesc.Usage          = D3D11_USAGE_DEFAULT;
-	bufferDesc.BindFlags      = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bufferDesc.CPUAccessFlags = 0;
-	bufferDesc.MiscFlags      = 0;
+	bufferDesc.MiscFlags = 0;
 
 	HRESULT hr;
 
@@ -425,11 +476,11 @@ bool GraphicsContext::CreateConstantBuffers(){
 
 	// ライト初期化
 	LightBuffer light{};
-	light.Lights[0].Enable    = true;
+	light.Lights[0].Enable = true;
 	light.Lights[0].Direction = DirectX::XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
-	light.Lights[0].Ambient   = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	light.Lights[0].Diffuse   = DirectX::XMFLOAT4(1.5f, 1.5f, 1.5f, 1.0f);
-	light.Lights[0].Position  = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	light.Lights[0].Ambient = DirectX::XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	light.Lights[0].Diffuse = DirectX::XMFLOAT4(1.5f, 1.5f, 1.5f, 1.0f);
+	light.Lights[0].Position = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 	SetLight(&light);
 
 	// マテリアル初期化
@@ -507,7 +558,7 @@ bool GraphicsContext::CreateRenderTargetView(){
 	return SUCCEEDED(hr);
 }
 
-bool GraphicsContext::CreateBlendState() {
+bool GraphicsContext::CreateBlendState(){
 	HRESULT hr = S_OK;
 
 	// -------------------------
@@ -520,7 +571,7 @@ bool GraphicsContext::CreateBlendState() {
 	// =========================
 	// None（GBuffer / Shadow）
 	// =========================
-	for (int i = 0; i < 8; i++) {
+	for(int i = 0; i < 8; i++){
 		auto& rt = desc.RenderTarget[i];
 		rt.BlendEnable = FALSE;
 		rt.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
@@ -530,12 +581,12 @@ bool GraphicsContext::CreateBlendState() {
 		&desc,
 		m_BlendStates[(int)BlendMode::None].ReleaseAndGetAddressOf()
 	);
-	if (FAILED(hr)) return false;
+	if(FAILED(hr)) return false;
 
 	// =========================
 	// Alpha / Add / etc
 	// =========================
-	for (int i = 1; i < 8; i++) {
+	for(int i = 1; i < 8; i++){
 		desc.RenderTarget[i].BlendEnable = FALSE;
 		desc.RenderTarget[i].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 	}
@@ -555,7 +606,7 @@ bool GraphicsContext::CreateBlendState() {
 		&desc,
 		m_BlendStates[(int)BlendMode::Alpha].ReleaseAndGetAddressOf()
 	);
-	if (FAILED(hr)) return false;
+	if(FAILED(hr)) return false;
 
 	// ---- Additive ----
 	rt0.SrcBlend = D3D11_BLEND_SRC_ALPHA;
@@ -565,7 +616,7 @@ bool GraphicsContext::CreateBlendState() {
 		&desc,
 		m_BlendStates[(int)BlendMode::Additive].ReleaseAndGetAddressOf()
 	);
-	if (FAILED(hr)) return false;
+	if(FAILED(hr)) return false;
 
 	// ---- Subtract ----
 	rt0.BlendOp = D3D11_BLEND_OP_REV_SUBTRACT;
@@ -574,7 +625,7 @@ bool GraphicsContext::CreateBlendState() {
 		&desc,
 		m_BlendStates[(int)BlendMode::Subtract].ReleaseAndGetAddressOf()
 	);
-	if (FAILED(hr)) return false;
+	if(FAILED(hr)) return false;
 
 	// ---- Multiply ----
 	rt0.BlendOp = D3D11_BLEND_OP_ADD;
@@ -585,7 +636,7 @@ bool GraphicsContext::CreateBlendState() {
 		&desc,
 		m_BlendStates[(int)BlendMode::Multiply].ReleaseAndGetAddressOf()
 	);
-	if (FAILED(hr)) return false;
+	if(FAILED(hr)) return false;
 
 	// ---- Screen ----
 	rt0.SrcBlend = D3D11_BLEND_ONE;
@@ -595,7 +646,7 @@ bool GraphicsContext::CreateBlendState() {
 		&desc,
 		m_BlendStates[(int)BlendMode::Screen].ReleaseAndGetAddressOf()
 	);
-	if (FAILED(hr)) return false;
+	if(FAILED(hr)) return false;
 
 	// 初期状態
 	SetBlendMode(BlendMode::None);
@@ -644,10 +695,10 @@ bool GraphicsContext::CreateDepthStencilBufferAndView(UINT width, UINT height){
 	return true;
 }
 
-bool GraphicsContext::CreateComputeSkinningShader() {
+bool GraphicsContext::CreateComputeSkinningShader(){
 	ID3DBlob* csBlob = nullptr;
 	HRESULT hr = D3DReadFileToBlob(L"Asset\\Shader\\SkinningCS.cso", &csBlob);
-	if (FAILED(hr)) {
+	if(FAILED(hr)){
 		GRAPHICS_LOG(LogLevel::Error, "SkinningCS.cso の読み込みに失敗しました");
 		OutputDebugStringA("Failed to load SkinningCS.cso\n");
 		return false;
@@ -655,7 +706,7 @@ bool GraphicsContext::CreateComputeSkinningShader() {
 
 	hr = m_Device->CreateComputeShader(csBlob->GetBufferPointer(), csBlob->GetBufferSize(), nullptr, &csSkinning);
 	csBlob->Release();
-	if (FAILED(hr)) {
+	if(FAILED(hr)){
 		GRAPHICS_LOG(LogLevel::Error, "スキニング用コンピュートシェーダーの生成に失敗しました");
 		OutputDebugStringA("Failed to create compute shader\n");
 		return false;
@@ -716,10 +767,10 @@ bool GraphicsContext::CreateFullScreenQuad(){
 	return true;
 }
 
-bool GraphicsContext::CreateEffectSystem() {
+bool GraphicsContext::CreateEffectSystem(){
 
 	m_EffectSystem = new RenderEffectSystem();
-	
+
 	bool result = m_EffectSystem->Initialize(m_Device.Get(), m_DeviceContext.Get());
 
 	return result;
@@ -743,7 +794,20 @@ void GraphicsContext::Clear(const float clearColor[4]){
 }
 
 void GraphicsContext::Present(bool vsync){
-	m_SwapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
+	// 引数を実際に使う。
+	// vsync == true  -> SyncInterval=1 で確実に垂直同期させる。
+	// vsync == false -> ティアリング対応環境のみ ALLOW_TEARING を使って無制限FPSにする。
+	//                   非対応環境では SyncInterval=0, flags=0 にする
+	//                   (Flip Modelではこの場合も実質リフレッシュレート上限になるが、
+	//                    これはAPI/ドライバ側の制約であり、フラグの誤指定による
+	//                    暗黙のフォールバックとは区別する)。
+	UINT syncInterval = vsync ? 1 : 0;
+	UINT presentFlags = 0;
+	if(!vsync && m_TearingSupported){
+		presentFlags = DXGI_PRESENT_ALLOW_TEARING;
+	}
+
+	m_SwapChain->Present(syncInterval, presentFlags);
 }
 
 bool GraphicsContext::CreateVertexShader(const char* fileName, ID3D11VertexShader** vertexShader, ID3D11InputLayout** inputLayout){
@@ -771,7 +835,7 @@ bool GraphicsContext::CreateVertexShader(const char* fileName, ID3D11VertexShade
 	return SUCCEEDED(hr);
 }
 
-bool GraphicsContext::CreatePixelShader(const char* fileName,ID3D11PixelShader** pixelShader){
+bool GraphicsContext::CreatePixelShader(const char* fileName, ID3D11PixelShader** pixelShader){
 	std::vector<char> buffer;
 	if(!ReadFileToBuffer(fileName, buffer)) return false;
 
@@ -792,8 +856,11 @@ void GraphicsContext::Resize(UINT width, UINT height){
 			m_DepthStencilView->Release();
 			m_DepthStencilView = nullptr;
 		}
-		
-		HRESULT hr = m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
+
+		// 作成時と同じ条件でのみ ALLOW_TEARING を指定する。
+		// 作成時に立てていないフラグをリサイズ時に立てる/逆に外すと不整合になるため統一する。
+		UINT resizeFlags = m_TearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+		HRESULT hr = m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, resizeFlags);
 		if(FAILED(hr)){
 			GRAPHICS_LOG(LogLevel::Error, "スワップチェーンのリサイズに失敗しました");
 			OutputDebugStringA("スワップチェーンのリサイズに失敗しました。\n");
@@ -832,7 +899,7 @@ void GraphicsContext::ResetBuffer(const float clearColor[4]){
 }
 
 void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effects, ID3D11ShaderResourceView* initialSRV,
-                                             ID3D11ShaderResourceView* const* gbufferSRVs, int gbufferCount){
+											ID3D11ShaderResourceView* const* gbufferSRVs, int gbufferCount){
 	ID3D11DeviceContext* deviceContext = m_DeviceContext.Get();
 	ID3D11ShaderResourceView* boundSRVs[PostEffectTextureSlot_Max] = {nullptr};
 	ID3D11RenderTargetView* boundRTV = nullptr;
@@ -840,35 +907,35 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 	UINT currentViewportHeight = 0;
 	UINT previousInputSlotCount = 0;
 
-	auto BindShaderResource = [&](UINT slot, ID3D11ShaderResourceView* srv) {
-		if (slot >= PostEffectTextureSlot_Max || boundSRVs[slot] == srv) return;
+	auto BindShaderResource = [&](UINT slot, ID3D11ShaderResourceView* srv){
+		if(slot >= PostEffectTextureSlot_Max || boundSRVs[slot] == srv) return;
 		deviceContext->PSSetShaderResources(slot, 1, &srv);
 		boundSRVs[slot] = srv;
-	};
+		};
 
 	int boundGBufferCount = 0;
-	if (gbufferSRVs && gbufferCount > 0) {
+	if(gbufferSRVs && gbufferCount > 0){
 		boundGBufferCount = (gbufferCount < PostEffectGBufferSlot_Count) ? gbufferCount : PostEffectGBufferSlot_Count;
-		for (int g = 0; g < boundGBufferCount; ++g) {
+		for(int g = 0; g < boundGBufferCount; ++g){
 			BindShaderResource(PostEffectGBufferSlot_Start + g, gbufferSRVs[g]);
 		}
 	}
 
 	for(auto& node : effects){
-		for (UINT slot = 0; slot < previousInputSlotCount && slot < PostEffectGBufferSlot_Start; ++slot) {
-			if (boundSRVs[slot] == node.srv) {
+		for(UINT slot = 0; slot < previousInputSlotCount && slot < PostEffectGBufferSlot_Start; ++slot){
+			if(boundSRVs[slot] == node.srv){
 				BindShaderResource(slot, nullptr);
 			}
 		}
 
 		ID3D11RenderTargetView* nextRTV = (node.rtv) ? node.rtv[0] : nullptr;
-		if (boundRTV != nextRTV) {
+		if(boundRTV != nextRTV){
 			deviceContext->OMSetRenderTargets(1, node.rtv, nullptr);
 			boundRTV = nextRTV;
 		}
 
-		if (node.outputWidth != 0 && node.outputHeight != 0 &&
-			(node.outputWidth != currentViewportWidth || node.outputHeight != currentViewportHeight)) {
+		if(node.outputWidth != 0 && node.outputHeight != 0 &&
+		   (node.outputWidth != currentViewportWidth || node.outputHeight != currentViewportHeight)){
 			D3D11_VIEWPORT vp{};
 			vp.TopLeftX = 0.0f;
 			vp.TopLeftY = 0.0f;
@@ -882,7 +949,7 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 		}
 
 		UINT inputSlotCount = static_cast<UINT>(node.inputs.size());
-		if (inputSlotCount > PostEffectGBufferSlot_Start) {
+		if(inputSlotCount > PostEffectGBufferSlot_Start){
 			OutputDebugStringA("PostProcess input slot count exceeds available texture slots\n");
 			inputSlotCount = PostEffectGBufferSlot_Start;
 		}
@@ -897,7 +964,7 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 			BindShaderResource(i, inputSRV);
 		}
 
-		for (UINT i = inputSlotCount; i < previousInputSlotCount && i < PostEffectGBufferSlot_Start; ++i) {
+		for(UINT i = inputSlotCount; i < previousInputSlotCount && i < PostEffectGBufferSlot_Start; ++i){
 			BindShaderResource(i, nullptr);
 		}
 		previousInputSlotCount = inputSlotCount;
@@ -907,25 +974,25 @@ void GraphicsContext::ApplyPostProcessChain(std::vector<PostProcessNode>& effect
 		DrawQuad(&node.shader, nullptr); // SRV はすでに PSSetShaderResources でセット済み
 
 		// ミップマップが複数の場合、RTV をアンバインドしてからミップを自動生成する
-		if (node.mipLevels > 1 && node.srv) {
-			ID3D11RenderTargetView* nullRTV[1] = { nullptr };
+		if(node.mipLevels > 1 && node.srv){
+			ID3D11RenderTargetView* nullRTV[1] = {nullptr};
 			deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);
 			boundRTV = nullptr;
 			deviceContext->GenerateMips(node.srv);
 		}
 	}
 
-	for (UINT i = 0; i < previousInputSlotCount && i < PostEffectGBufferSlot_Start; ++i) {
+	for(UINT i = 0; i < previousInputSlotCount && i < PostEffectGBufferSlot_Start; ++i){
 		BindShaderResource(i, nullptr);
 	}
 
 	if(boundGBufferCount > 0){
-		for (int g = 0; g < boundGBufferCount; ++g) {
+		for(int g = 0; g < boundGBufferCount; ++g){
 			BindShaderResource(PostEffectGBufferSlot_Start + g, nullptr);
 		}
 	}
 
-	if (boundRTV) {
+	if(boundRTV){
 		ID3D11RenderTargetView* nullRTV[1] = {nullptr};
 		deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);
 	}
@@ -975,19 +1042,19 @@ void GraphicsContext::DrawQuad(PostEffectShader* shader, ID3D11ShaderResourceVie
 	context->IASetVertexBuffers(0, 1, m_FullScreenVB.GetAddressOf(), &stride, &offset);
 	context->IASetIndexBuffer(m_FullScreenIB.Get(), DXGI_FORMAT_R32_UINT, 0);
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	if (inputSRV){
+	if(inputSRV){
 		context->PSSetShaderResources(0, 1, &inputSRV);
 	}
 	context->DrawIndexed(3, 0, 0);
 
-	if (inputSRV) {
+	if(inputSRV){
 		ID3D11ShaderResourceView* nullSRV[1] = {nullptr};
 		context->PSSetShaderResources(0, 1, nullSRV);
 	}
 }
 
 
-void GraphicsContext::DrawQuad() {
+void GraphicsContext::DrawQuad(){
 	auto* context = m_DeviceContext.Get();
 
 	UINT stride = sizeof(VERTEX_3D);
