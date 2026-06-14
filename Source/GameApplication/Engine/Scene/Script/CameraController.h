@@ -97,6 +97,10 @@ public:
 	}
 
 	void OnUpdate(float dt) override{
+
+	}
+
+	void OnFixedUpdate(float dt) override{
 		if(!transform || !playerTransform) return;
 
 		auto* targetTransform = playerTransform.Get();
@@ -307,9 +311,8 @@ public:
 			DirectX::XMStoreFloat4(&temp, q);
 			transform->SetRotation(temp);
 		}
+	
 	}
-
-	void OnFixedUpdate(float dt) override{}
 	void OnDraw() override{}
 	void OnEditorUpdate(float dt) override{}
 	void OnStop() override{}
