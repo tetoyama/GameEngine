@@ -146,7 +146,7 @@ bool PrefabSystem::SavePrefab(EntityRef ref, const std::string& filePath) {
 	}
 	if (prefabComp) {
 		prefabComp->filePath   = filePath;
-		prefabComp->sourceYaml = savedYaml;
+		// prefabComp->sourceYaml = savedYaml;
 	}
 
 	return true;
@@ -222,7 +222,7 @@ EntityRef PrefabSystem::Instantiate(SceneContext* context, const std::shared_ptr
 			prefabComp->filePath = data->filePath;
 			std::ostringstream ss;
 			ss << data->root;
-			prefabComp->sourceYaml = ss.str();
+			// prefabComp->sourceYaml = ss.str();
 		}
 	}
 

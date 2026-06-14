@@ -46,8 +46,8 @@ Entities:
             y: 1
             z: 1
             w: 1
-          Metallic: 0.25
-          Roughness: 0.5
+          Metallic: 1
+          Roughness: 0.689999998
           AO: 0
           EmissiveColor:
             x: 0
@@ -65,7 +65,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 67704.9844
+        AnimationTime: 77466.6875
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -202,7 +202,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\sky.fbx
         isBlender: true
-        AnimationTime: 67704.9844
+        AnimationTime: 77466.6875
       - Component: EnvironmentMapComponent
         enabled: true
   - Entity: 4
@@ -211,14 +211,14 @@ Entities:
         Name: Player
       - Component: TransformComponent
         Position:
-          x: 1.32610416
+          x: 10.9725113
           y: 3.99436516e-07
-          z: 4.87864113
+          z: -2.09529972
         Rotation:
           - 0
-          - -0.23055245
+          - 0.576125503
           - 0
-          - -0.973060012
+          - -0.817361355
         Scale:
           x: 0.00999999978
           y: 0.00999999978
@@ -266,7 +266,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Akai.fbx
         isBlender: false
-        AnimationTime: 67704.9844
+        AnimationTime: 77466.6875
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           Run: Asset\Model\Akai_Run.fbx
@@ -290,14 +290,14 @@ Entities:
         Name: Camera
       - Component: TransformComponent
         Position:
-          x: 7.31729221
-          y: 2.00000024
-          z: 5.20369816
+          x: 15.7082605
+          y: 2.42762351
+          z: -5.51280212
         Rotation:
-          - -6.83154644e-09
-          - -0.726008296
-          - -7.21224547e-09
-          - 0.687685907
+          - 0.0325285271
+          - -0.455118805
+          - 0.0166400634
+          - 0.889680743
         Scale:
           x: 1
           y: 1
@@ -306,32 +306,32 @@ Entities:
       - Component: CameraComponent
         isLock: true
         Target:
-          x: 1.32610416
-          y: 3.99436516e-07
-          z: 4.87864113
+          x: 10.9725142
+          y: 2.00000119
+          z: -2.09530044
         NearClip: 0.00999999978
         FarClip: 1024
         FOV: 1
         viewMatrix:
           -
-            - -0.0541761704
-            - -0.315763354
-            - -0.947290063
+            - 0.585179925
+            - -0.0592173673
+            - -0.808738351
             - 0
           -
-            - 0
-            - 0.948683321
-            - -0.316227764
-            - 0
-          -
-            - 0.998531401
-            - -0.0171320084
-            - -0.0513960309
+            - -0
+            - 0.99732995
+            - -0.0730264112
             - 0
           -
-            - -4.79963303
-            - 0.50231576
-            - 7.83150291
+            - 0.81090343
+            - 0.042733591
+            - 0.583617508
+            - 0
+          -
+            - -4.72180843
+            - -1.25535798
+            - 16.0985203
             - 1
         nextLinkId: 16
         nextPinId: 18
@@ -341,14 +341,14 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\DepthBlur.cso
             NodePos:
-              x: 1224.2041
-              y: -297.145325
+              x: 1350.2041
+              y: -201.145325
             InputPins:
               - 2
               - 4
             OutputPin: 3
             Param:
-              x: 2
+              x: 0.5
               y: 0
               z: 0
               w: 0
@@ -359,8 +359,8 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\SSAO.cso
             NodePos:
-              x: 48.0766602
-              y: -23.4232788
+              x: 115.07666
+              y: 78.5767212
             InputPins:
               - 5
               - 7
@@ -368,17 +368,17 @@ Entities:
             Param:
               x: 1
               y: 0.25
-              z: 1
+              z: 1.45000005
               w: 0
-            ResolutionScale: 0.5
+            ResolutionScale: 0.200000003
             MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\SSAOComposite.cso
             NodePos:
-              x: 646.14856
-              y: -296.611938
+              x: 741.14856
+              y: -221.611938
             InputPins:
               - 8
               - 10
@@ -396,16 +396,16 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\SSR.cso
             NodePos:
-              x: 913.17395
-              y: -297.850769
+              x: 1041.17383
+              y: -206.850769
             InputPins:
               - 12
               - 14
             OutputPin: 13
             Param:
               x: 16
-              y: 2
-              z: 8
+              y: 0.75
+              z: 3
               w: 0
             ResolutionScale: 1
             MipLevels: 1
@@ -414,18 +414,18 @@ Entities:
             VS: Asset/Shader/PostEffectVS.cso
             PS: Asset/Shader\Blur.cso
             NodePos:
-              x: 345
-              y: -21
+              x: 412
+              y: 81
             InputPins:
               - 15
               - 17
             OutputPin: 16
             Param:
-              x: 2
+              x: 4
               y: 0
               z: 0
               w: 0
-            ResolutionScale: 0.100000001
+            ResolutionScale: 0.200000003
             MipLevels: 1
         PostEffectLinks:
           - ID: 4
@@ -466,14 +466,14 @@ Entities:
         ScreenInput:
           Name: ""
           NodePos:
-            x: -114.582031
-            y: -81.1902161
+            x: -47.5820312
+            y: 20.8097839
           OutputPin: -1
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 1586.97449
-            y: -158.940063
+            x: 1653.97449
+            y: -56.9400635
           InputPins:
             - 1
       - Component: CameraController
@@ -578,7 +578,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.fbx
         isBlender: false
-        AnimationTime: 67704.9844
+        AnimationTime: 77466.6875
   - Entity: 8
     Components:
       - Component: NameComponent
@@ -626,7 +626,7 @@ Entities:
         IsLoop: true
         SpawnInterval: 0.00999999978
         SpawnCount: 100
-        SpawnTimer: 0.00504967384
+        SpawnTimer: 0.00735618919
         ParticleLifeTime: 1
         ParticleSize: 3
         ParticleSpeed: 1
@@ -782,7 +782,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\ball.fbx
         isBlender: false
-        AnimationTime: 31515.9492
+        AnimationTime: 41277.6836
   - Entity: 11
     Components:
       - Component: NameComponent
@@ -859,7 +859,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.obj
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 9761.84375
   - Entity: 13
     Components:
       - Component: NameComponent
@@ -906,4 +906,4 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\ball.fbx
         isBlender: false
-        AnimationTime: 0
+        AnimationTime: 9761.84375

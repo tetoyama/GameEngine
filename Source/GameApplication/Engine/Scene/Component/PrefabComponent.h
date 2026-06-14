@@ -14,18 +14,18 @@
 class PrefabComponent : public IComponent {
 public:
 	std::string filePath;    // ソースプレファブファイルのパス
-	std::string sourceYaml;  // インスタンス化時の YAML スナップショット（差分検出用）
+	// std::string sourceYaml;  // インスタンス化時の YAML スナップショット（差分検出用）
 
 	YAML::Node encode() override {
 		YAML::Node node;
 		node["FilePath"] = filePath;
-		node["SourceYaml"] = sourceYaml;
+		// node["SourceYaml"] = sourceYaml;
 		return node;
 	}
 
 	bool decode(SceneContext* context, const YAML::Node& node) override {
 		if (node["FilePath"])   filePath   = node["FilePath"].as<std::string>();
-		if (node["SourceYaml"]) sourceYaml = node["SourceYaml"].as<std::string>();
+		// if (node["SourceYaml"]) sourceYaml = node["SourceYaml"].as<std::string>();
 		return true;
 	}
 
