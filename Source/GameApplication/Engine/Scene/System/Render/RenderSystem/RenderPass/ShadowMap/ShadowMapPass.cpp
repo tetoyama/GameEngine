@@ -108,6 +108,8 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 	deviceContext->PSSetShaderResources(TextureSlot_ShadowMap, 1, nullSRV);
 	deviceContext->PSSetShader(m_RenderablePixelShader->m_PixelShader.Get(), NULL, 0);
 
+	deviceContext->PSSetSamplers(1, 1, &shadowSampler);
+
 	// ======== RenderTarget 切り替え ========
 	if(shadowRenderTarget->type == RenderTargetType::RENDERTARGET_TYPE_DEPTH){
 		deviceContext->ClearDepthStencilView(shadowRenderTarget->dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
