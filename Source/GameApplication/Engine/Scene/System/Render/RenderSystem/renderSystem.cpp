@@ -126,9 +126,6 @@ void RenderSystem::Initialize(){
 	auto m_FullScreenVS = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\PostEffectVS.cso");
 	auto m_FullScreenPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\PostEffectPS.cso");
 
-	DeferredPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\DeferredRenderingPS.cso");
-	ForwardPS = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\ForwardRenderingPS.cso");
-
 #ifdef _EDITOR
 	//ReCompilePixelShaders();
 #endif // _EDITOR
@@ -335,6 +332,10 @@ bool RenderSystem::decode(const YAML::Node& node){
 		}
 	}
 
+	// 登録済みマテリアルごとに専用PSを生成・ロードする
+	// (DeferredPSList / ForwardPSList / ForwardPSDebug を構築)
+	ReCompilePixelShaders();
+	
 	return true;
 }
 
@@ -691,144 +692,591 @@ void RenderSystem::PlayerView(){
 	);
 }
 
-void RenderSystem::ReCompilePixelShaders() {
-	const auto& config = m_context->config->appConfig;
+void RenderSystem::ReCompilePixelShaders(){
+	namespace fs = std::filesystem;
+	using ShaderPtr = decltype(DeferredPSList)::value_type;
 
-	// Shader/AutoGen
-	const std::filesystem::path shaderDir = ShaderPath;
-	std::filesystem::create_directories(shaderDir);
+	const fs::path shaderDir = ShaderPath;
+	fs::create_directories(shaderDir);
 
-	// ============================================================
-	// Deferred Rendering PS
-	// ============================================================
-	{
-		const std::filesystem::path outputPath = shaderDir / "DeferredRenderingPS.hlsl";
-		std::ofstream ofs(outputPath, std::ios::trunc);
-		if (!ofs) {
-			OutputDebugStringA("Failed to create DeferredRenderingPS.hlsl\n");
-			return;
+	const fs::path shaderRoot = shaderDir.parent_path().empty() ? shaderDir : shaderDir.parent_path();
+	const fs::path cachePath = shaderDir / "ShaderCompileCache.yaml";
+
+	// 旧リソースを退避。変更なしなら再利用する
+	const auto oldDeferred = DeferredPSList;
+	const auto oldForward = ForwardPSList;
+	const ShaderPtr oldDeferredDebug =
+		(oldDeferred.size() > ShaderMaterials.size()) ? oldDeferred.back() : ShaderPtr{};
+	const ShaderPtr oldForwardDebug = ForwardPSDebug;
+
+	DeferredPSList.clear();
+	ForwardPSList.clear();
+	DeferredPSList.resize(ShaderMaterials.size());
+	ForwardPSList.resize(ShaderMaterials.size());
+
+	auto toStamp = [](const fs::file_time_type& t) -> long long{
+		return static_cast<long long>(
+			std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count());
+		};
+
+	auto getStamp = [&](const fs::path& p) -> long long{
+		std::error_code ec;
+		if(!fs::exists(p, ec)){
+			return -1;
 		}
-
-		ofs << R"(#include "../commonDefine.h"
-#include "../common.hlsl"
-#include "../Material/MaterialDefine.hlsli"
-#include "../Material/DeferredFunc.hlsli"
-#include "../Material/MaterialFunc.hlsli"
-
-)";
-
-		for (const auto& mat : ShaderMaterials) {
-			ofs << "#include \"../Material/" << mat.filePath << "\"\n";
+		auto ft = fs::last_write_time(p, ec);
+		if(ec){
+			return -1;
 		}
+		return toStamp(ft);
+		};
 
-		ofs << R"(
-float4 main(PS_IN In) : SV_Target
-{
-    MaterialInput input = GetMaterialInput(In);
-    float4 Result = float4(1, 0, 1, 1);
-
-)";
-
-		// [branch] if を使用してマテリアルごとに隔離生成
-		for (size_t i = 0; i < ShaderMaterials.size(); ++i) {
-			const auto& mat = ShaderMaterials[i];
-			if (i == 0) {
-				ofs << "    [branch] if (input.materialID == " << i << ")\n";
-			} else {
-				ofs << "    else if (input.materialID == " << i << ")\n";
+	auto readCache = [&]() -> YAML::Node{
+		try{
+			if(fs::exists(cachePath)){
+				return YAML::LoadFile(cachePath.string());
 			}
-			ofs << "    {\n"
-				"        Result = " << mat.entryPoint << "(input);\n"
-				"    }\n";
+		} catch(const std::exception&){
+		}
+		return YAML::Node();
+		};
+
+	YAML::Node cacheRoot = readCache();
+
+	auto getSeqEntry = [](const YAML::Node& seq, size_t index) -> YAML::Node{
+		if(seq && seq.IsSequence() && index < seq.size()){
+			return seq[index];
+		}
+		return YAML::Node();
+		};
+
+	auto makeDeps = [&](const fs::path& materialPath, bool forward, bool includeMaterialCount){
+		std::vector<std::pair<std::string, long long>> deps;
+
+		auto addFile = [&](const fs::path& p){
+			deps.emplace_back(p.generic_string(), getStamp(p));
+			};
+
+		addFile(shaderRoot / "commonDefine.h");
+		addFile(shaderRoot / "common.hlsl");
+		addFile(shaderRoot / "Material/MaterialDefine.hlsli");
+		addFile(shaderRoot / "Material/MaterialFunc.hlsli");
+		addFile(shaderRoot / "Material" / (forward ? "FowardFunc.hlsli" : "DeferredFunc.hlsli"));
+
+		if(!materialPath.empty()){
+			addFile(shaderRoot / "Material" / materialPath);
 		}
 
-		ofs << R"(    else { /* default */ }
-
-    return Result;
-}
-)";
-		ofs.close();
-
-		DeferredPS.reset();
-		m_context->resource->Unload<PixelShaderData>(outputPath.string().c_str());
-		auto newPS = m_context->resource->Load<PixelShaderData>(outputPath.string().c_str());
-
-		if (!newPS) {
-			OutputDebugStringA("DeferredRenderingPS compile failed\n");
-			return;
+		if(includeMaterialCount){
+			deps.emplace_back("__materialCount__", static_cast<long long>(ShaderMaterials.size()));
 		}
-		DeferredPS = newPS;
+
+		return deps;
+		};
+
+	auto depsMatch = [](const YAML::Node& node,
+						const std::vector<std::pair<std::string, long long>>& deps) -> bool{
+							if(!node || !node.IsSequence() || node.size() != deps.size()){
+								return false;
+							}
+
+							for(size_t i = 0; i < deps.size(); ++i){
+								const auto& d = deps[i];
+								const YAML::Node item = node[i];
+
+								if(!item || !item["path"] || !item["stamp"]){
+									return false;
+								}
+								if(item["path"].as<std::string>() != d.first){
+									return false;
+								}
+								if(item["stamp"].as<long long>() != d.second){
+									return false;
+								}
+							}
+							return true;
+		};
+
+	auto cacheMatches = [&](const YAML::Node& entry,
+							const fs::path& hlslPath,
+							const fs::path& csoPath,
+							const std::string& entryPoint,
+							const std::string& materialPath,
+							const std::string& shaderModel,
+							const std::vector<std::pair<std::string, long long>>& deps) -> bool{
+								if(!entry || !entry.IsMap()){
+									return false;
+								}
+								if(!fs::exists(csoPath)){
+									return false;
+								}
+								if(!entry["hlsl"] || entry["hlsl"].as<std::string>() != hlslPath.generic_string()){
+									return false;
+								}
+								if(!entry["cso"] || entry["cso"].as<std::string>() != csoPath.generic_string()){
+									return false;
+								}
+								if(!entry["entryPoint"] || entry["entryPoint"].as<std::string>() != entryPoint){
+									return false;
+								}
+								if(!entry["material"] || entry["material"].as<std::string>() != materialPath){
+									return false;
+								}
+								if(!entry["shaderModel"] || entry["shaderModel"].as<std::string>() != shaderModel){
+									return false;
+								}
+								if(!depsMatch(entry["deps"], deps)){
+									return false;
+								}
+								return true;
+		};
+
+	auto makeEntry = [&](const fs::path& hlslPath,
+						 const fs::path& csoPath,
+						 const std::string& entryPoint,
+						 const std::string& materialPath,
+						 const std::string& shaderModel,
+						 const std::vector<std::pair<std::string, long long>>& deps) -> YAML::Node{
+							 YAML::Node entry;
+							 entry["hlsl"] = hlslPath.generic_string();
+							 entry["cso"] = csoPath.generic_string();
+							 entry["entryPoint"] = entryPoint;
+							 entry["material"] = materialPath;
+							 entry["shaderModel"] = shaderModel;
+
+							 YAML::Node depSeq(YAML::NodeType::Sequence);
+							 for(const auto& d : deps){
+								 YAML::Node item;
+								 item["path"] = d.first;
+								 item["stamp"] = d.second;
+								 depSeq.push_back(item);
+							 }
+							 entry["deps"] = depSeq;
+							 return entry;
+		};
+
+	auto writeDeferredSource = [&](std::ofstream& ofs,
+								   const std::string& materialPath,
+								   const std::string& entryPoint,
+								   size_t index){
+									   ofs
+										   << "#include \"../commonDefine.h\"\n"
+										   << "#include \"../common.hlsl\"\n"
+										   << "#include \"../Material/MaterialDefine.hlsli\"\n"
+										   << "#include \"../Material/DeferredFunc.hlsli\"\n"
+										   << "#include \"../Material/MaterialFunc.hlsli\"\n"
+										   << "#include \"../Material/" << materialPath << "\"\n"
+										   << "\n"
+										   << "float4 main(PS_IN In) : SV_Target\n"
+										   << "{\n"
+										   << "    if (GetMaterialID(In) != " << index << "u)\n"
+										   << "    {\n"
+										   << "        discard;\n"
+										   << "    }\n"
+										   << "\n"
+										   << "    MaterialInput input = GetMaterialInput(In);\n"
+										   << "    return " << entryPoint << "(input);\n"
+										   << "}\n";
+		};
+
+	auto writeForwardSource = [&](std::ofstream& ofs,
+								  const std::string& materialPath,
+								  const std::string& entryPoint){
+									  ofs
+										  << "#include \"../commonDefine.h\"\n"
+										  << "#include \"../common.hlsl\"\n"
+										  << "#include \"../Material/MaterialDefine.hlsli\"\n"
+										  << "#include \"../Material/FowardFunc.hlsli\"\n"
+										  << "#include \"../Material/MaterialFunc.hlsli\"\n"
+										  << "#include \"../Material/" << materialPath << "\"\n"
+										  << "\n"
+										  << "float4 main(PS_IN In) : SV_Target\n"
+										  << "{\n"
+										  << "    MaterialInput input = GetMaterialInput(In);\n"
+										  << "    float4 Result = " << entryPoint << "(input);\n"
+										  << "\n"
+										  << "    if (Result.a <= ALPHA_CLIP_THRESHOLD)\n"
+										  << "    {\n"
+										  << "        discard;\n"
+										  << "    }\n"
+										  << "\n"
+										  << "    return Result;\n"
+										  << "}\n";
+		};
+
+	auto writeDeferredDebugSource = [&](std::ofstream& ofs){
+		ofs
+			<< "#include \"../commonDefine.h\"\n"
+			<< "#include \"../common.hlsl\"\n"
+			<< "#include \"../Material/MaterialDefine.hlsli\"\n"
+			<< "#include \"../Material/DeferredFunc.hlsli\"\n"
+			<< "#include \"../Material/MaterialFunc.hlsli\"\n"
+			<< "\n"
+			<< "float4 main(PS_IN In) : SV_Target\n"
+			<< "{\n"
+			<< "    if (GetMaterialID(In) < " << ShaderMaterials.size() << "u)\n"
+			<< "    {\n"
+			<< "        discard;\n"
+			<< "    }\n"
+			<< "    return float4(1, 0, 1, 1);\n"
+			<< "}\n";
+		};
+
+	auto writeForwardDebugSource = [&](std::ofstream& ofs){
+		ofs
+			<< "#include \"../commonDefine.h\"\n"
+			<< "#include \"../common.hlsl\"\n"
+			<< "\n"
+			<< "float4 main(PS_IN In) : SV_Target\n"
+			<< "{\n"
+			<< "    return float4(1, 0, 1, 1);\n"
+			<< "}\n";
+		};
+
+	auto compileHlslToCso = [&](const fs::path& hlslPath,
+								const fs::path& csoPath,
+								const std::string& entryPoint,
+								std::string& errorOut) -> bool{
+									UINT flags = D3DCOMPILE_ENABLE_STRICTNESS;
+								#if defined(_DEBUG)
+									flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+								#endif
+
+									ID3DBlob* code = nullptr;
+									ID3DBlob* errorBlob = nullptr;
+
+									const HRESULT hr = D3DCompileFromFile(
+										hlslPath.c_str(),
+										nullptr,
+										D3D_COMPILE_STANDARD_FILE_INCLUDE,
+										entryPoint.c_str(),
+										"ps_5_0",
+										flags,
+										0,
+										&code,
+										&errorBlob
+									);
+
+									if(FAILED(hr)){
+										if(errorBlob){
+											errorOut = static_cast<const char*>(errorBlob->GetBufferPointer());
+											errorBlob->Release();
+										}
+										if(code){
+											code->Release();
+										}
+										return false;
+									}
+
+									std::ofstream ofs(csoPath, std::ios::binary | std::ios::trunc);
+									if(!ofs){
+										errorOut = "Failed to create cso file.";
+										if(code){
+											code->Release();
+										}
+										if(errorBlob){
+											errorBlob->Release();
+										}
+										return false;
+									}
+
+									ofs.write(
+										reinterpret_cast<const char*>(code->GetBufferPointer()),
+										static_cast<std::streamsize>(code->GetBufferSize())
+									);
+
+									if(!ofs){
+										errorOut = "Failed to write cso file.";
+										code->Release();
+										if(errorBlob){
+											errorBlob->Release();
+										}
+										return false;
+									}
+
+									code->Release();
+									if(errorBlob){
+										errorBlob->Release();
+									}
+									return true;
+		};
+
+	YAML::Node newCache;
+	YAML::Node deferredSeq(YAML::NodeType::Sequence);
+	YAML::Node forwardSeq(YAML::NodeType::Sequence);
+
+	const std::string shaderModel = "ps_5_0";
+
+	for(size_t i = 0; i < ShaderMaterials.size(); ++i){
+		const auto& mat = ShaderMaterials[i];
+		const fs::path materialPath = fs::path(mat.filePath);
+		const std::string materialPathStr = materialPath.generic_string();
+
+		// ============================================================
+		// Deferred
+		// ============================================================
+		{
+			const fs::path hlslPath = shaderDir / ("DeferredRenderingPS_" + std::to_string(i) + ".hlsl");
+			const fs::path csoPath = shaderDir / ("DeferredRenderingPS_" + std::to_string(i) + ".cso");
+			const std::string csoKey = csoPath.string();
+
+			const auto deps = makeDeps(materialPath, false, false);
+			const YAML::Node cachedEntry = getSeqEntry(cacheRoot["Deferred"], i);
+
+			const bool canReuse = cacheMatches(
+				cachedEntry,
+				hlslPath,
+				csoPath,
+				mat.entryPoint,
+				materialPathStr,
+				shaderModel,
+				deps
+			);
+
+			if(canReuse && i < oldDeferred.size() && oldDeferred[i]){
+				DeferredPSList[i] = oldDeferred[i];
+			} else{
+				bool compiled = false;
+
+				if(!canReuse){
+					{
+						std::ofstream ofs(hlslPath, std::ios::trunc);
+						if(!ofs){
+							OutputDebugStringA(("Failed to create " + hlslPath.string() + "\n").c_str());
+							goto deferred_fallback;
+						}
+						writeDeferredSource(ofs, materialPathStr, mat.entryPoint, i);
+					}
+
+					std::string errorText;
+					compiled = compileHlslToCso(hlslPath, csoPath, "main", errorText);
+					if(!compiled){
+						OutputDebugStringA(
+							(std::string("DeferredRenderingPS_") + std::to_string(i) + " compile failed\n" + errorText + "\n").c_str()
+						);
+						goto deferred_fallback;
+					}
+
+					m_context->resource->Unload<PixelShaderData>(csoKey.c_str());
+				}
+
+				{
+					auto newPS = m_context->resource->Load<PixelShaderData>(csoKey.c_str());
+					if(newPS){
+						DeferredPSList[i] = newPS;
+					} else{
+						OutputDebugStringA(("DeferredRenderingPS_" + std::to_string(i) + " load failed\n").c_str());
+					}
+				}
+
+			deferred_fallback:
+				if(!DeferredPSList[i] && i < oldDeferred.size() && oldDeferred[i]){
+					DeferredPSList[i] = oldDeferred[i];
+				}
+			}
+
+			if(DeferredPSList[i]){
+				deferredSeq.push_back(makeEntry(hlslPath, csoPath, mat.entryPoint, materialPathStr, shaderModel, deps));
+			}
+		}
+
+		// ============================================================
+		// Forward
+		// ============================================================
+		{
+			const fs::path hlslPath = shaderDir / ("ForwardRenderingPS_" + std::to_string(i) + ".hlsl");
+			const fs::path csoPath = shaderDir / ("ForwardRenderingPS_" + std::to_string(i) + ".cso");
+			const std::string csoKey = csoPath.string();
+
+			const auto deps = makeDeps(materialPath, true, false);
+			const YAML::Node cachedEntry = getSeqEntry(cacheRoot["Forward"], i);
+
+			const bool canReuse = cacheMatches(
+				cachedEntry,
+				hlslPath,
+				csoPath,
+				mat.entryPoint,
+				materialPathStr,
+				shaderModel,
+				deps
+			);
+
+			if(canReuse && i < oldForward.size() && oldForward[i]){
+				ForwardPSList[i] = oldForward[i];
+			} else{
+				bool compiled = false;
+
+				if(!canReuse){
+					{
+						std::ofstream ofs(hlslPath, std::ios::trunc);
+						if(!ofs){
+							OutputDebugStringA(("Failed to create " + hlslPath.string() + "\n").c_str());
+							goto forward_fallback;
+						}
+						writeForwardSource(ofs, materialPathStr, mat.entryPoint);
+					}
+
+					std::string errorText;
+					compiled = compileHlslToCso(hlslPath, csoPath, "main", errorText);
+					if(!compiled){
+						OutputDebugStringA(
+							(std::string("ForwardRenderingPS_") + std::to_string(i) + " compile failed\n" + errorText + "\n").c_str()
+						);
+						goto forward_fallback;
+					}
+
+					m_context->resource->Unload<PixelShaderData>(csoKey.c_str());
+				}
+
+				{
+					auto newPS = m_context->resource->Load<PixelShaderData>(csoKey.c_str());
+					if(newPS){
+						ForwardPSList[i] = newPS;
+					} else{
+						OutputDebugStringA(("ForwardRenderingPS_" + std::to_string(i) + " load failed\n").c_str());
+					}
+				}
+
+			forward_fallback:
+				if(!ForwardPSList[i] && i < oldForward.size() && oldForward[i]){
+					ForwardPSList[i] = oldForward[i];
+				}
+			}
+
+			if(ForwardPSList[i]){
+				forwardSeq.push_back(makeEntry(hlslPath, csoPath, mat.entryPoint, materialPathStr, shaderModel, deps));
+			}
+		}
 	}
 
 	// ============================================================
-	// Forward Rendering PS
+	// Deferred Debug
 	// ============================================================
 	{
-		const std::filesystem::path outputPath = shaderDir / "ForwardRenderingPS.hlsl";
-		std::ofstream ofs(outputPath, std::ios::trunc);
-		if (!ofs) {
-			OutputDebugStringA("Failed to create ForwardRenderingPS.hlsl\n");
-			return;
-		}
+		const fs::path hlslPath = shaderDir / "DeferredRenderingPS_Debug.hlsl";
+		const fs::path csoPath = shaderDir / "DeferredRenderingPS_Debug.cso";
+		const std::string csoKey = csoPath.string();
+		const auto deps = makeDeps(fs::path(), false, true);
+		const YAML::Node cachedEntry = cacheRoot["DeferredDebug"];
 
-		ofs << R"(#include "../commonDefine.h"
-#include "../common.hlsl"
-#include "../Material/MaterialDefine.hlsli"
-#include "../Material/FowardFunc.hlsli"
-#include "../Material/MaterialFunc.hlsli"
+		const bool canReuse = cacheMatches(
+			cachedEntry,
+			hlslPath,
+			csoPath,
+			"",
+			"",
+			shaderModel,
+			deps
+		);
 
-)";
+		ShaderPtr debugPS;
+		if(canReuse && oldDeferredDebug){
+			debugPS = oldDeferredDebug;
+		} else{
+			if(!canReuse){
+				{
+					std::ofstream ofs(hlslPath, std::ios::trunc);
+					if(ofs){
+						writeDeferredDebugSource(ofs);
+					} else{
+						OutputDebugStringA(("Failed to create " + hlslPath.string() + "\n").c_str());
+					}
+				}
 
-		for (const auto& mat : ShaderMaterials) {
-			ofs << "#include \"../Material/" << mat.filePath << "\"\n";
-		}
-
-		ofs << R"(
-float4 main(PS_IN In) : SV_Target
-{
-    MaterialInput input = GetMaterialInput(In);
-    float4 Result = float4(1, 0, 1, 1);
-
-)";
-
-		// Forward側も同様に [branch] if で生成
-		for (size_t i = 0; i < ShaderMaterials.size(); ++i) {
-			const auto& mat = ShaderMaterials[i];
-			if (i == 0) {
-				ofs << "    [branch] if (input.materialID == " << i << ")\n";
-			} else {
-				ofs << "    else if (input.materialID == " << i << ")\n";
+				std::string errorText;
+				if(!compileHlslToCso(hlslPath, csoPath, "main", errorText)){
+					OutputDebugStringA(("DeferredRenderingPS_Debug compile failed\n" + errorText + "\n").c_str());
+				} else{
+					m_context->resource->Unload<PixelShaderData>(csoKey.c_str());
+					debugPS = m_context->resource->Load<PixelShaderData>(csoKey.c_str());
+				}
+			} else{
+				debugPS = m_context->resource->Load<PixelShaderData>(csoKey.c_str());
 			}
-			ofs << "    {\n"
-				"        Result = " << mat.entryPoint << "(input);\n"
-				"    }\n";
+
+			if(!debugPS && oldDeferredDebug){
+				debugPS = oldDeferredDebug;
+			}
 		}
 
-		ofs << R"(    else { /* default */ }
-
-    if (Result.a <= ALPHA_CLIP_THRESHOLD)
-    {
-        discard;
-    }
-
-    return Result;
-}
-)";
-		ofs.close();
-
-		ForwardPS.reset();
-		m_context->resource->Unload<PixelShaderData>(outputPath.string().c_str());
-		auto newPS = m_context->resource->Load<PixelShaderData>(outputPath.string().c_str());
-
-		if (!newPS) {
-			OutputDebugStringA("ForwardRenderingPS compile failed\n");
-			return;
+		if(debugPS){
+			DeferredPSList.push_back(debugPS);
+			newCache["DeferredDebug"] = makeEntry(hlslPath, csoPath, "", "", shaderModel, deps);
 		}
-		ForwardPS = newPS;
+	}
+
+	// ============================================================
+	// Forward Debug
+	// ============================================================
+	{
+		const fs::path hlslPath = shaderDir / "ForwardRenderingPS_Debug.hlsl";
+		const fs::path csoPath = shaderDir / "ForwardRenderingPS_Debug.cso";
+		const std::string csoKey = csoPath.string();
+		const auto deps = makeDeps(fs::path(), true, false);
+		const YAML::Node cachedEntry = cacheRoot["ForwardDebug"];
+
+		const bool canReuse = cacheMatches(
+			cachedEntry,
+			hlslPath,
+			csoPath,
+			"",
+			"",
+			shaderModel,
+			deps
+		);
+
+		ShaderPtr debugPS;
+		if(canReuse && oldForwardDebug){
+			debugPS = oldForwardDebug;
+		} else{
+			if(!canReuse){
+				{
+					std::ofstream ofs(hlslPath, std::ios::trunc);
+					if(ofs){
+						writeForwardDebugSource(ofs);
+					} else{
+						OutputDebugStringA(("Failed to create " + hlslPath.string() + "\n").c_str());
+					}
+				}
+
+				std::string errorText;
+				if(!compileHlslToCso(hlslPath, csoPath, "main", errorText)){
+					OutputDebugStringA(("ForwardRenderingPS_Debug compile failed\n" + errorText + "\n").c_str());
+				} else{
+					m_context->resource->Unload<PixelShaderData>(csoKey.c_str());
+					debugPS = m_context->resource->Load<PixelShaderData>(csoKey.c_str());
+				}
+			} else{
+				debugPS = m_context->resource->Load<PixelShaderData>(csoKey.c_str());
+			}
+
+			if(!debugPS && oldForwardDebug){
+				debugPS = oldForwardDebug;
+			}
+		}
+
+		if(debugPS){
+			ForwardPSDebug = debugPS;
+			newCache["ForwardDebug"] = makeEntry(hlslPath, csoPath, "", "", shaderModel, deps);
+		}
+	}
+
+	newCache["Version"] = 2;
+	newCache["Deferred"] = deferredSeq;
+	newCache["Forward"] = forwardSeq;
+
+	try{
+		YAML::Emitter emitter;
+		emitter << newCache;
+
+		std::ofstream ofs(cachePath, std::ios::trunc);
+		if(ofs){
+			ofs << emitter.c_str();
+		}
+	} catch(const std::exception& e){
+		OutputDebugStringA((std::string("ShaderCompileCache.yaml write failed: ") + e.what() + "\n").c_str());
 	}
 }
-
-
 void RenderSystem::EditorView(){
 
 	GraphicsContext* graphicsContext = m_context->graphics;

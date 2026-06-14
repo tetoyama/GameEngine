@@ -115,11 +115,11 @@ void LightingPass::SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shado
 }
 
 
-void LightingPass::Execute(const RenderPassContext& ctx) {
+void LightingPass::Execute(const RenderPassContext& ctx){
 
 	pRenderTarget->Resize(ctx.screenSize, m_context->graphics);
 
-	float clearColor[4] = { 0,0,0,0 };
+	float clearColor[4] = {0,0,0,0};
 	pRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearColor);
 
 	ID3D11DeviceContext* dc = m_context->graphics->GetDeviceContext();
@@ -129,8 +129,7 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 
 	dc->VSSetShader(m_LightingVertexShader->m_VertexShader.Get(), nullptr, 0);
 	dc->IASetInputLayout(m_LightingVertexShader->m_VertexLayout.Get());
-	PixelShaderData* ps = m_renderSystem->GetDeferredPS();
-	dc->PSSetShader(ps ? ps->m_PixelShader.Get() : nullptr, nullptr, 0);
+
 	D3D11_VIEWPORT vp = {};
 	vp.Width = ctx.screenSize.x;
 	vp.Height = ctx.screenSize.y;
@@ -140,34 +139,23 @@ void LightingPass::Execute(const RenderPassContext& ctx) {
 	vp.TopLeftY = 0;
 	dc->RSSetViewports(1, &vp);
 
-	gc->DrawQuad();
+	// 登録マテリアル数 + デバッグ分だけ描画。
+	// 各PSは自分の担当materialID以外をGetMaterialIDで早期discardするため、
+	// 全パス合計で各ピクセルはちょうど1回だけ実シェーディングされる。
+	for(const auto& ps : m_renderSystem->GetDeferredPSList()){
+		if(!ps) continue;
+		dc->PSSetShader(ps->m_PixelShader.Get(), nullptr, 0);
+		gc->DrawQuad();
+	}
 
 	ID3D11ShaderResourceView* nullSRV[LightingSlot_Max] = {};
 	dc->PSSetShaderResources(0, LightingSlot_Max, nullSRV);
 
-	ID3D11SamplerState* nullSampler[2] = { nullptr, nullptr };
+	ID3D11SamplerState* nullSampler[2] = {nullptr, nullptr};
 	dc->PSSetSamplers(2, 2, nullSampler);
 
 	{
 		return;
-	// ================================
-	// ImGui Debug Draw（暫定）
-	// ================================
-
-	// 1. バックバッファに戻す
-		dc->OMSetRenderTargets(0, nullptr, nullptr);
-
-		// 5. ImGui 描画
-		ImGui::Begin("LightingPass Debug");
-
-		ImGui::Text("LightingPass Debug View");
-
-		// Albedo
-		ImGui::Image(
-			pRenderTarget->srv.Get(),
-			ImVec2(256, ctx.screenSize.y / ctx.screenSize.x * 256.0f)
-		);
-
-		ImGui::End();
+		// ...以下dead codeはそのまま...
 	}
 }

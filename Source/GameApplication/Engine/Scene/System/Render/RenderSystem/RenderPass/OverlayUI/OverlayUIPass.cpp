@@ -72,7 +72,7 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 	// シェーダーセット
 	deviceContext->VSSetShader(m_VertexShader->m_VertexShader.Get(), nullptr, 0);
 	deviceContext->IASetInputLayout(m_VertexShader->m_VertexLayout.Get());
-	PixelShaderData* ps = m_renderSystem->GetForwardPS();
+	PixelShaderData* ps = m_renderSystem->GetForwardPSList()[0].get();
 	deviceContext->PSSetShader(ps ? ps->m_PixelShader.Get() : nullptr, nullptr, 0);
 
 	// ビューポート設定

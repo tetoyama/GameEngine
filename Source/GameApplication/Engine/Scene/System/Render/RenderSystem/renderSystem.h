@@ -157,14 +157,19 @@ public:
 	void ReCompilePixelShaders();
 
 	//------------------------------------------------------------------
-	// 使用中のシェーダ取得
+	// 使用中のシェーダ取得（登録マテリアルごとに1つ）
 	//------------------------------------------------------------------
-	PixelShaderData* GetDeferredPS(){
-		return DeferredPS.get();
+	const std::vector<std::shared_ptr<PixelShaderData>>& GetDeferredPSList() const{
+		return DeferredPSList;
 	}
 
-	PixelShaderData* GetForwardPS(){
-		return ForwardPS.get();
+	const std::vector<std::shared_ptr<PixelShaderData>>& GetForwardPSList() const{
+		return ForwardPSList;
+	}
+
+	// 登録外ShaderID用のフォールバック（マゼンタ表示）
+	PixelShaderData* GetForwardPSDebug() const{
+		return ForwardPSDebug.get();
 	}
 
 	// フォワードパス向けに環境マップテクスチャ・サンプラーを返す
@@ -216,7 +221,9 @@ private:
 	std::shared_ptr<TextureData> StopButtonTexture;
 	std::shared_ptr<TextureData> StepButtonTexture;
 
-	// 描画パイプライン用ピクセルシェーダ
-	std::shared_ptr<PixelShaderData> DeferredPS;
-	std::shared_ptr<PixelShaderData> ForwardPS;
+	// 描画パイプライン用ピクセルシェーダ（ShaderMaterials[i] に対応）
+	// DeferredPSListは末尾に範囲外materialID用のデバッグシェーダが1つ追加される
+	std::vector<std::shared_ptr<PixelShaderData>> DeferredPSList;
+	std::vector<std::shared_ptr<PixelShaderData>> ForwardPSList;
+	std::shared_ptr<PixelShaderData> ForwardPSDebug;
 };
