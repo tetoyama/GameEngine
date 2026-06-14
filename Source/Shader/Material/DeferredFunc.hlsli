@@ -33,6 +33,16 @@ Texture2D EnvironmentMap : register(t7);
 SamplerState EnvSampler : register(s3);
 
 // ================= Implement =================
+// GBuffer全体を読まずにmaterialIDだけを取得する
+// (マテリアル別パスでの早期discard判定用)
+uint GetMaterialID(PS_IN In)
+{
+    uint textureWidth, textureHeight;
+    GParam.GetDimensions(textureWidth, textureHeight);
+    int2 pixelCoord = int2(In.TexCoord.x * textureWidth, In.TexCoord.y * textureHeight);
+    return GParam.Load(int3(pixelCoord, 0)).z;
+}
+
 // GBuffer からマテリアル計算用の入力を復元する
 MaterialInput GetMaterialInput(PS_IN In)
 {

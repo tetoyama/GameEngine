@@ -3410,8 +3410,6 @@
     <FxCompile Include="Source\Shader\GBufferPS.hlsl" />
     <FxCompile Include="Source\Shader\Compute\SkinningCS.hlsl" />
     <FxCompile Include="Source\Shader\LightingVS.hlsl" />
-    <FxCompile Include="Source\Shader\AutoGen\ForwardRenderingPS.hlsl" />
-    <FxCompile Include="Source\Shader\AutoGen\DeferredRenderingPS.hlsl" />
     <FxCompile Include="Source\Shader\PhysX\DebugLineVS.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\DepthBlur.hlsl" />
     <FxCompile Include="Source\Shader\PostEffect\OutlineByDepth.hlsl" />

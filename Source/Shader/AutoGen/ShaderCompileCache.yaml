@@ -1,0 +1,219 @@
+DeferredDebug:
+  hlsl: Source/Shader/AutoGen/DeferredRenderingPS_Debug.hlsl
+  cso: Source/Shader/AutoGen/DeferredRenderingPS_Debug.cso
+  entryPoint: ""
+  material: ""
+  shaderModel: ps_5_0
+  deps:
+    - path: Source/Shader/AutoGen/commonDefine.h
+      stamp: -1
+    - path: Source/Shader/AutoGen/common.hlsl
+      stamp: -1
+    - path: Source/Shader/AutoGen/Material/MaterialDefine.hlsli
+      stamp: -1
+    - path: Source/Shader/AutoGen/Material/MaterialFunc.hlsli
+      stamp: -1
+    - path: Source/Shader/AutoGen/Material/DeferredFunc.hlsli
+      stamp: -1
+    - path: __materialCount__
+      stamp: 5
+ForwardDebug:
+  hlsl: Source/Shader/AutoGen/ForwardRenderingPS_Debug.hlsl
+  cso: Source/Shader/AutoGen/ForwardRenderingPS_Debug.cso
+  entryPoint: ""
+  material: ""
+  shaderModel: ps_5_0
+  deps:
+    - path: Source/Shader/AutoGen/commonDefine.h
+      stamp: -1
+    - path: Source/Shader/AutoGen/common.hlsl
+      stamp: -1
+    - path: Source/Shader/AutoGen/Material/MaterialDefine.hlsli
+      stamp: -1
+    - path: Source/Shader/AutoGen/Material/MaterialFunc.hlsli
+      stamp: -1
+    - path: Source/Shader/AutoGen/Material/FowardFunc.hlsli
+      stamp: -1
+Version: 2
+Deferred:
+  - hlsl: Source/Shader/AutoGen/DeferredRenderingPS_0.hlsl
+    cso: Source/Shader/AutoGen/DeferredRenderingPS_0.cso
+    entryPoint: ShadeMaterial_Unlit
+    material: UnlitShader.hlsli
+    shaderModel: ps_5_0
+    deps:
+      - path: Source/Shader/AutoGen/commonDefine.h
+        stamp: -1
+      - path: Source/Shader/AutoGen/common.hlsl
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialDefine.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/DeferredFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/UnlitShader.hlsli
+        stamp: -1
+  - hlsl: Source/Shader/AutoGen/DeferredRenderingPS_1.hlsl
+    cso: Source/Shader/AutoGen/DeferredRenderingPS_1.cso
+    entryPoint: ShadeMaterial_PBR
+    material: PBRShader.hlsli
+    shaderModel: ps_5_0
+    deps:
+      - path: Source/Shader/AutoGen/commonDefine.h
+        stamp: -1
+      - path: Source/Shader/AutoGen/common.hlsl
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialDefine.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/DeferredFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/PBRShader.hlsli
+        stamp: -1
+  - hlsl: Source/Shader/AutoGen/DeferredRenderingPS_2.hlsl
+    cso: Source/Shader/AutoGen/DeferredRenderingPS_2.cso
+    entryPoint: ShadeMaterial_PBRToon
+    material: PBRToonShader.hlsli
+    shaderModel: ps_5_0
+    deps:
+      - path: Source/Shader/AutoGen/commonDefine.h
+        stamp: -1
+      - path: Source/Shader/AutoGen/common.hlsl
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialDefine.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/DeferredFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/PBRToonShader.hlsli
+        stamp: -1
+  - hlsl: Source/Shader/AutoGen/DeferredRenderingPS_3.hlsl
+    cso: Source/Shader/AutoGen/DeferredRenderingPS_3.cso
+    entryPoint: ShadeMaterial_Toon
+    material: ToonShader.hlsli
+    shaderModel: ps_5_0
+    deps:
+      - path: Source/Shader/AutoGen/commonDefine.h
+        stamp: -1
+      - path: Source/Shader/AutoGen/common.hlsl
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialDefine.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/DeferredFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/ToonShader.hlsli
+        stamp: -1
+  - hlsl: Source/Shader/AutoGen/DeferredRenderingPS_4.hlsl
+    cso: Source/Shader/AutoGen/DeferredRenderingPS_4.cso
+    entryPoint: ShadeMaterial_RimToon
+    material: RimToonShader.hlsli
+    shaderModel: ps_5_0
+    deps:
+      - path: Source/Shader/AutoGen/commonDefine.h
+        stamp: -1
+      - path: Source/Shader/AutoGen/common.hlsl
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialDefine.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/DeferredFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/RimToonShader.hlsli
+        stamp: -1
+Forward:
+  - hlsl: Source/Shader/AutoGen/ForwardRenderingPS_0.hlsl
+    cso: Source/Shader/AutoGen/ForwardRenderingPS_0.cso
+    entryPoint: ShadeMaterial_Unlit
+    material: UnlitShader.hlsli
+    shaderModel: ps_5_0
+    deps:
+      - path: Source/Shader/AutoGen/commonDefine.h
+        stamp: -1
+      - path: Source/Shader/AutoGen/common.hlsl
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialDefine.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/FowardFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/UnlitShader.hlsli
+        stamp: -1
+  - hlsl: Source/Shader/AutoGen/ForwardRenderingPS_1.hlsl
+    cso: Source/Shader/AutoGen/ForwardRenderingPS_1.cso
+    entryPoint: ShadeMaterial_PBR
+    material: PBRShader.hlsli
+    shaderModel: ps_5_0
+    deps:
+      - path: Source/Shader/AutoGen/commonDefine.h
+        stamp: -1
+      - path: Source/Shader/AutoGen/common.hlsl
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialDefine.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/FowardFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/PBRShader.hlsli
+        stamp: -1
+  - hlsl: Source/Shader/AutoGen/ForwardRenderingPS_2.hlsl
+    cso: Source/Shader/AutoGen/ForwardRenderingPS_2.cso
+    entryPoint: ShadeMaterial_PBRToon
+    material: PBRToonShader.hlsli
+    shaderModel: ps_5_0
+    deps:
+      - path: Source/Shader/AutoGen/commonDefine.h
+        stamp: -1
+      - path: Source/Shader/AutoGen/common.hlsl
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialDefine.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/FowardFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/PBRToonShader.hlsli
+        stamp: -1
+  - hlsl: Source/Shader/AutoGen/ForwardRenderingPS_3.hlsl
+    cso: Source/Shader/AutoGen/ForwardRenderingPS_3.cso
+    entryPoint: ShadeMaterial_Toon
+    material: ToonShader.hlsli
+    shaderModel: ps_5_0
+    deps:
+      - path: Source/Shader/AutoGen/commonDefine.h
+        stamp: -1
+      - path: Source/Shader/AutoGen/common.hlsl
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialDefine.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/FowardFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/ToonShader.hlsli
+        stamp: -1
+  - hlsl: Source/Shader/AutoGen/ForwardRenderingPS_4.hlsl
+    cso: Source/Shader/AutoGen/ForwardRenderingPS_4.cso
+    entryPoint: ShadeMaterial_RimToon
+    material: RimToonShader.hlsli
+    shaderModel: ps_5_0
+    deps:
+      - path: Source/Shader/AutoGen/commonDefine.h
+        stamp: -1
+      - path: Source/Shader/AutoGen/common.hlsl
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialDefine.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/MaterialFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/FowardFunc.hlsli
+        stamp: -1
+      - path: Source/Shader/AutoGen/Material/RimToonShader.hlsli
+        stamp: -1

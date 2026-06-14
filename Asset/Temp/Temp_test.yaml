@@ -483,6 +483,9 @@ Entities:
         minPitch: 0
         maxPitch: 0.785398185
         minDistance: 1
+        targetPosLerpSpeed: 15
+        cameraDistanceLerpSpeed: 12
+        targetLookLerpSpeed: 10
   - Entity: 6
     Components:
       - Component: NameComponent
