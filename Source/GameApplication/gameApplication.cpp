@@ -3,8 +3,8 @@
 // gameApplication.cpp
 // 
 // =======================================================================
-#include "gameApplication.h"
 #include <windows.h>
+#include "gameApplication.h"
 
 #include "engine.h"
 #include "engineContext.h"

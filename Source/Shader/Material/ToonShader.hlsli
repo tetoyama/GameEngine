@@ -51,7 +51,7 @@ float4 ShadeMaterial_Toon(MaterialInput materialInput)
         lerp(baseColor * 0.5, shadowBase, 0.7);
 
     // ★ ドット × 4諧調光量
-    float lightFactor = lightDot * diffStep;
+    float lightFactor = saturate(0.3 + lightDot * diffStep);
 
     float3 surfaceColor =
         lerp(shadowColor, baseColor, lightFactor);

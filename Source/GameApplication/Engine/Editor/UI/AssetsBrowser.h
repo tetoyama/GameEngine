@@ -5,8 +5,6 @@
 // =======================================================================
 #pragma once
 
-#include "GameApplication.h"
-
 #include "Editor/editorService.h"
 #include "Editor/InterFace/IEditorUI.h"
 
