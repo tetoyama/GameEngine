@@ -270,19 +270,19 @@ Entities:
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           Run: Asset\Model\Akai_Run.fbx
-      - Component: PlayerController
-        moveSpeed: 6
-        health: 0
-        isInvincible: false
-        dashMultiplier: 2
-        accel: 10
-        rotateSpeed: 8
-        maxStamina: 5
-        stamina: 5
-        staminaConsumeRate: 1.5
-        staminaRecoverRate: 1
+      - Component: CharacterController
+        moveSpeed: 5
+        dashMultiplier: 2.5
         jumpPower: 5
-        Stamina: 5
+        accel: 12
+        rotateSpeed: 8
+        groundRayLength: 0.300000012
+        slopeLimit: 45
+        gravity: 9
+        idleAnimFile: Asset/Model/Akai_Idle.fbx
+        runAnimFile: Asset/Model/Akai_Run.fbx
+        jumpUpAnimFile: Asset/Model/Jumping Up.fbx
+        jumpDownAnimFile: Asset/Model/Jumping Down.fbx
         SelfLayerBit: 2
   - Entity: 5
     Components:

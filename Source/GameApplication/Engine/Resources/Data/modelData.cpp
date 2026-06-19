@@ -260,8 +260,8 @@ void ModelData::UpdateBoneAnimation(
 	const size_t boneCount = m_Bones.size();
 
 	std::vector<aiQuaternion> accumRot(boneCount, aiQuaternion(0, 0, 0, 0));
-	std::vector<aiVector3D>  accumPos(boneCount, aiVector3D(0, 0, 0));
-	std::vector<bool>        hasRot(boneCount, false);
+	std::vector<aiVector3D>   accumPos(boneCount, aiVector3D(0, 0, 0));
+	std::vector<bool>         hasRot(boneCount, false);
 
 	for(const auto& anim : anims){
 		if(anim.weight <= 0.0f) continue;
@@ -298,7 +298,12 @@ void ModelData::UpdateBoneAnimation(
 			// ---- Quaternion Lerp (符号補正あり) ----
 			if(hasRot[idx]){
 				if(QuaternionDot(accumRot[idx], rot) < 0.0f){
-					rot = aiQuaternion(-rot.x, -rot.y, -rot.z, -rot.w);
+					// Assimpのコンストラクタは (w, x, y, z) のため、
+					// コンストラクタを使わず直接成分を反転させる
+					rot.w = -rot.w;
+					rot.x = -rot.x;
+					rot.y = -rot.y;
+					rot.z = -rot.z;
 				}
 			}
 
@@ -333,7 +338,6 @@ void ModelData::UpdateBoneAnimation(
 
 	UpdateBoneMatrix(AiScene->mRootNode, rootMatrix);
 }
-
 
 
 void ModelData::CPU_Skinning(

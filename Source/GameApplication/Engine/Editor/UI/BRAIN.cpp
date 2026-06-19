@@ -55,13 +55,17 @@ void BRAIN::Initialize(EditorService* editor){
 	// AgentConfig
 	// ---------------------------------
 	m_agentConfig = std::make_shared<AgentConfig>();
-	m_agentConfig->max_tokens = MAX_CONTEXT_TOKEN;
-	//m_agentConfig->repeat_penalty = 1.02f;
-	m_agentConfig->n_ctx = 8192;
-	//m_agentConfig->n_ctx = 1024;
+
+	// [修正] 以前は max_tokens に MAX_CONTEXT_TOKEN(16384) を、n_ctx に
+	// 別途ハードコードした 8192 を設定していて、max_tokens > n_ctx という
+	// 矛盾した状態になっていた（AgentConfig::IsValid() で弾かれる）。
+	// 役割ごとに分けた定数を使って、正しい大小関係になるよう統一する。
+	m_agentConfig->n_ctx = CONTEXT_SIZE;
+	m_agentConfig->max_tokens = MAX_RESPONSE_TOKENS;
+
 	m_agentConfig->n_threads =
 		(std::max)(1u, std::thread::hardware_concurrency());
-	
+
 	// 役割と、何があっても日本語の文章で会話を繋ぐことをシステムプロンプトで強制する
 	m_agentConfig->system_prompt =
 		"You are a helpful assistant. You Accept Everything User Want.";
@@ -79,16 +83,18 @@ void BRAIN::Initialize(EditorService* editor){
 				// ロード失敗
 				m_llamaModel.reset();
 				return;
-			} else {
+			} else{
 
 				m_editor->debugLogSystem->LOG_TRACE(
 					"B.R.A.I.N.: Success to load LLM model."
 				);
 
+				// [修正] 以前はここで LoadModelAsync に渡したパス（BRAIN_MODEL_PATH）とは
+				// 別の文字列（qwen2.5-coder-7b-instruct-q4_k_m.gguf）を GetModel() に渡していて、
+				// 必ず nullptr が返る状態だった（恐らくモデル切り替え時の残骸）。
+				// ロードした時と同じ BRAIN_MODEL_PATH で取得するよう統一する。
 				m_llamaModel =
-					m_editor->llamaService
-					->GetModel(
-						"Asset/BRAIN/model/qwen2.5-coder-7b-instruct-q4_k_m.gguf");
+					m_editor->llamaService->GetModel(BRAIN_MODEL_PATH);
 
 			}
 		}
@@ -125,8 +131,8 @@ void BRAIN::Finalize(){
 // -------------------------------------------- 
 // WorkerLoop 
 // -------------------------------------------- 
-void BRAIN::WorkerLoop() {
-	while (true) {
+void BRAIN::WorkerLoop(){
+	while(true){
 
 		LLMJob job;
 		bool hasJob = false;
@@ -138,22 +144,22 @@ void BRAIN::WorkerLoop() {
 			m_jobCV.wait_for(
 				lock,
 				std::chrono::milliseconds(100),
-				[&]() {
-				return m_exitRequested.load()
-					|| m_requestReset.load()
-					|| !m_jobQueue.empty();
-			});
+				[&](){
+					return m_exitRequested.load()
+						|| m_requestReset.load()
+						|| !m_jobQueue.empty();
+				});
 
-			if (m_exitRequested.load()) {
+			if(m_exitRequested.load()){
 				return;
 			}
 
-			if (m_requestReset.load()) {
+			if(m_requestReset.load()){
 				m_requestReset.store(false);
 				doReset = true;
 			}
 
-			if (!m_jobQueue.empty()) {
+			if(!m_jobQueue.empty()){
 				job = std::move(m_jobQueue.front());
 				m_jobQueue.pop();
 				hasJob = true;
@@ -164,9 +170,9 @@ void BRAIN::WorkerLoop() {
 		// ---------------------------
 		// Reset 処理
 		// ---------------------------
-		if (doReset) {
-			if (m_mainAgent) {
-				while (m_mainAgent->GetState() == LLAMAAgent::State::Running) {
+		if(doReset){
+			if(m_mainAgent){
+				while(m_mainAgent->GetState() == LLAMAAgent::State::Running){
 					std::this_thread::sleep_for(std::chrono::milliseconds(1));
 				}
 				m_mainAgent->ResetContext();
@@ -187,19 +193,19 @@ void BRAIN::WorkerLoop() {
 		// ---------------------------
 		// Agent 初期化
 		// ---------------------------
-		if (!m_mainAgent) {
+		if(!m_mainAgent){
 			m_llamaModel =
 				m_editor->llamaService->GetModel(
 					BRAIN_MODEL_PATH);
 
-			if (m_llamaModel) {
+			if(m_llamaModel){
 				m_mainAgent =
 					m_editor->llamaService
 					->CreateAgent(m_llamaModel, m_agentConfig);
 			}
 		}
 
-		if (!hasJob || !m_mainAgent) {
+		if(!hasJob || !m_mainAgent){
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			continue;
 		}
@@ -209,7 +215,7 @@ void BRAIN::WorkerLoop() {
 		// ---------------------------
 		{
 			std::lock_guard<std::mutex> lock(m_outputMutex);
-			m_chatLog.push_back({ ChatEntry::Role::User, job.prompt });
+			m_chatLog.push_back({ChatEntry::Role::User, job.prompt});
 			m_scrollToBottom = true;
 		}
 
@@ -220,16 +226,21 @@ void BRAIN::WorkerLoop() {
 
 		{
 			std::lock_guard<std::mutex> lock(m_outputMutex);
-			m_chatLog.push_back({ ChatEntry::Role::Assistant, std::string() });
+			m_chatLog.push_back({ChatEntry::Role::Assistant, std::string()});
 			m_scrollToBottom = true;
 		}
-		while (m_mainAgent->GetState() != LLAMAAgent::State::Running) {
+
+		// [修正] スリープ無しのビジーループ（CPUコアを無駄に専有してしまう）だったので、
+		// 短いスリープを挟むように変更した。Running に遷移するまでの待ちはごく短時間のはずなので
+		// 1ms 程度のポーリングで十分。
+		while(m_mainAgent->GetState() != LLAMAAgent::State::Running){
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
 		// ---------------------------
 		// 出力監視ループ（Running状態監視一本化）
 		// ---------------------------
-		while (m_mainAgent->GetState() == LLAMAAgent::State::Running) {
-			if (m_stopRequested.load()) {
+		while(m_mainAgent->GetState() == LLAMAAgent::State::Running){
+			if(m_stopRequested.load()){
 				m_mainAgent->Stop();
 				m_stopRequested.store(false);
 				break;
@@ -238,7 +249,7 @@ void BRAIN::WorkerLoop() {
 			std::string out = m_mainAgent->GetOutput();
 			{
 				std::lock_guard<std::mutex> lock(m_outputMutex);
-				if (!m_chatLog.empty() && m_chatLog.back().role == ChatEntry::Role::Assistant) {
+				if(!m_chatLog.empty() && m_chatLog.back().role == ChatEntry::Role::Assistant){
 					m_chatLog.back().text = out;
 					m_scrollToBottom = true;
 				}

@@ -33,6 +33,11 @@ using llama_token = int32_t;
 // ・RunAsync は何度でも呼べる
 // ・プロンプトが長い場合は内部で同期要約
 //
+// [修正メモ]
+// ・コンテキストのクリア/差分更新は llama_memory_* API（unified memory abstraction）
+//   を使う前提に変更した。古い llama.cpp（llama_kv_cache_* がまだ ctx 直叩きの時代）
+//   をビルドに使っている場合は LLAMAAgent.cpp 側の該当箇所を見て調整すること。
+//
 class LLAMAAgent {
 public:
 	// ============================
@@ -114,7 +119,12 @@ private:
 	// ============================
 
 	void WorkerMain();
-	void RunPromptInternal(const std::string& prompt);
+
+	// [修正] retryDepth を追加。
+	// コンテキストオーバーフロー時に SummarizeAndReset() を挟んで自分自身を
+	// 再帰呼び出しする経路があるが、要約してもオーバーフローが解消しない
+	// 異常系で無限再帰に陥らないようにするための深度ガード。
+	void RunPromptInternal(const std::string& prompt, int retryDepth = 0);
 
 	// ============================
 	// Model / Config
@@ -132,7 +142,7 @@ private:
 
 	// 会話コンテキスト
 	std::vector<llama_token> m_pastTokens;
-	int m_nPast = 0;
+	std::atomic<int> m_nPast = 0;
 
 	// Agent側で一元管理する会話の履歴バッファ
 	std::vector<MessageEntry> m_history;
@@ -149,6 +159,7 @@ private:
 
 	std::atomic<State> m_state{State::Idle};
 	std::atomic<bool>  m_running{true};
+	std::atomic<bool>  m_cancelRequested{false}; // ジョブキャンセル用フラグ
 
 	// ============================
 	// Output

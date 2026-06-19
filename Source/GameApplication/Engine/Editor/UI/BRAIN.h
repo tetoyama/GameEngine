@@ -118,5 +118,11 @@ private:
 	// Token state (表示用)
 	// -----------------------------
 	uint32_t m_nPast = 0;
-	static constexpr uint32_t MAX_CONTEXT_TOKEN = 16384;
+
+	// [修正] 以前は MAX_CONTEXT_TOKEN という名前なのに実際は max_tokens（1回の応答の
+	// 生成上限）に使われていて、n_ctx 自体は別の場所でハードコード(8192)されているという
+	// 名前と実態が食い違った状態だった。役割ごとに名前を分けて、値も
+	// 「応答上限 < コンテキストサイズ」の関係を満たすようにした。
+	static constexpr uint32_t CONTEXT_SIZE = 8192;         // n_ctx に使う値
+	static constexpr uint32_t MAX_RESPONSE_TOKENS = 2048;  // max_tokens に使う値（CONTEXT_SIZE未満であること）
 };

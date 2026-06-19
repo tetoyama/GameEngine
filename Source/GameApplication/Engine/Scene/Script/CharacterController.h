@@ -330,10 +330,10 @@ private:
 
 		if (grounded) {
 			// 着地：ジャンプアニメーションをフェードアウト
-			model->blendedAnimations[2].weight -= 0.125f;
+			model->blendedAnimations[2].weight -= 0.1f;
 			if (model->blendedAnimations[2].weight < 0.0f) model->blendedAnimations[2].weight = 0.0f;
 
-			model->blendedAnimations[3].weight -= 0.2f;
+			model->blendedAnimations[3].weight -= 0.1f;
 			if (model->blendedAnimations[3].weight < 0.0f) model->blendedAnimations[3].weight = 0.0f;
 
 			float groundBlend = 1.0f - (model->blendedAnimations[2].weight + model->blendedAnimations[3].weight);
@@ -348,7 +348,7 @@ private:
 				if (model->blendedAnimations[2].weight <= 0.0f)
 					model->blendedAnimations[2].animationStartTime = -model->animationTime + 25.0f;
 
-				model->blendedAnimations[2].weight += 0.15f;
+				model->blendedAnimations[2].weight += 0.05f;
 				if (model->blendedAnimations[2].weight > 1.0f) model->blendedAnimations[2].weight = 1.0f;
 				model->blendedAnimations[3].weight = 0.0f;
 			} else {
@@ -359,7 +359,7 @@ private:
 				model->blendedAnimations[2].weight -= 0.01f;
 				if (model->blendedAnimations[2].weight < 0.0f) model->blendedAnimations[2].weight = 0.0f;
 
-				model->blendedAnimations[3].weight += 0.15f;
+				model->blendedAnimations[3].weight += 0.05f;
 				float totalJump = model->blendedAnimations[2].weight + model->blendedAnimations[3].weight;
 				if (totalJump > 1.0f)
 					model->blendedAnimations[3].weight = 1.0f - model->blendedAnimations[2].weight;

@@ -27,6 +27,8 @@ struct AgentConfig final {
 	uint32_t n_ctx = 4096;
 
 	// llama_context_params::n_threads
+	// プロンプト処理（バッチ）用スレッド数にも同じ値を流用する。
+	// 詳細は LLAMAAgent::CreateContext を参照。
 	uint32_t n_threads = 8;
 
 	// ============================
@@ -37,8 +39,9 @@ struct AgentConfig final {
 	uint32_t max_tokens = 2048;
 
 	// 温度
-	// 0.7f から 0.4f に調整。
-	// ゲーム制作のアシストやコード生成など、論理的で確実性の高い応答を求める場合に最も安定する温度だよ。
+	// だったため、コメントを実態に合わせて修正した。0.4f にしたい場合は値を直接変更すること。
+	// ゲーム制作のアシストやコード生成など、論理的で確実性の高い応答を求める場合は
+	// 0.3f〜0.5f 程度の低めの温度が安定しやすい。
 	float temperature = 0.7f;
 
 	// Top-K
@@ -48,10 +51,9 @@ struct AgentConfig final {
 	float top_p = 0.95f;
 
 	// 繰り返しペナルティ
-	// 1.1f から 1.0f に調整。
-	// チャットモデルはこれ自体を 1.0f（無効）に設定するのが最も知性を発揮できるよ。
-	// もし会話が長くなって語彙のループがどうしても気になった時だけ、隠し味程度に 1.01f ～ 1.02f にしてみてね。
-	float repeat_penalty = 1.0001f;
+	// チャットモデルではこれ自体を 1.0f（無効）にするのが最も自然な応答になりやすい。
+	// 会話が長くなって語彙のループが気になる場合のみ、隠し味程度に 1.01f〜1.02f を試すこと。
+	float repeat_penalty = 1.01f;
 
 	// ============================
 	// Agent 実行制御
@@ -91,6 +93,9 @@ struct AgentConfig final {
 		if(n_ctx == 0) return false;
 		if(n_threads == 0) return false;
 		if(max_tokens == 0) return false;
+		// max_tokens が n_ctx を超えていても物理的にエラーではない
+		// （n_ctx 側で頭打ちになるだけ）が、設定ミスの典型例なので軽くガードしておく。
+		if(max_tokens > n_ctx) return false;
 		if(top_p <= 0.0f || top_p > 1.0f) return false;
 		// 繰り返しペナルティが負の値にならないかチェック（安全ガード）
 		if(repeat_penalty < 0.0f) return false;
