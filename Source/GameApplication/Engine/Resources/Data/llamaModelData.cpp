@@ -6,7 +6,7 @@
 #include "llamaModelData.h"
 
 #include <Windows.h>
-#include <llama/llama.h>
+#include <llama.h>
 
 LLAMAModelData::LLAMAModelData() {
 	OutputDebugStringA(("Created LLAMAModelData " + m_path + "\n").c_str());

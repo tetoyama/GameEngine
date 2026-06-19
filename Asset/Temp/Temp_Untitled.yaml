@@ -54,8 +54,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
           UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset\Texture\mesh.png
@@ -76,10 +76,10 @@ Entities:
           y: 0
           z: 0
         Rotation:
-          - 0.321434379
-          - 0.446109116
-          - -0.17560041
-          - 0.816597223
+          - 0.300921142
+          - 0.450359285
+          - -0.164393961
+          - 0.82437712
         Scale:
           x: 1
           y: 1
@@ -95,9 +95,9 @@ Entities:
           z: 0
           w: 0
         Direction:
-          x: 0.61569488
-          y: -0.681638777
-          z: 0.395333111
+          x: 0.643592536
+          y: -0.64421773
+          z: 0.413245976
           w: 0
         Diffuse:
           x: 1
@@ -191,9 +191,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
         UV_Slice_X: 1
@@ -260,9 +260,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Y Bot.fbx
         isBlender: false
@@ -358,3 +358,54 @@ Entities:
         targetPosLerpSpeed: 15
         cameraDistanceLerpSpeed: 12
         targetLookLerpSpeed: 10
+  - Entity: 6
+    Components:
+      - Component: NameComponent
+        Name: Cube
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: -0.273151726
+          z: -5.31168509
+        Rotation:
+          - 0.627981126
+          - 0
+          - -0
+          - 0.778228521
+        Scale:
+          x: 2.44000006
+          y: 2.44000053
+          z: 2.44000053
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+      - Component: MaterialComponent
+        ShaderID: 2
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset/Model\boulder_01_1k.fbx\textures\boulder_01_diff_1k.jpg
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset/Model\boulder_01_1k.fbx\boulder_01_1k.fbx
+        isBlender: false
+        AnimationTime: 0

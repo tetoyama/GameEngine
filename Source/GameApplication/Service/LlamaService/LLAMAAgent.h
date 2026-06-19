@@ -46,6 +46,12 @@ public:
 		Dead
 	};
 
+	// 履歴管理用の内部構造体
+	struct MessageEntry {
+		std::string role; // "user" or "assistant"
+		std::string text;
+	};
+
 	// ============================
 	// ctor / dtor
 	// ============================
@@ -114,7 +120,7 @@ private:
 	// Model / Config
 	// ============================
 
-	std::shared_ptr<LLAMAModelData>     m_model;
+	std::shared_ptr<LLAMAModelData>      m_model;
 	std::shared_ptr<const AgentConfig>  m_config;
 
 	// ============================
@@ -127,6 +133,9 @@ private:
 	// 会話コンテキスト
 	std::vector<llama_token> m_pastTokens;
 	int m_nPast = 0;
+
+	// Agent側で一元管理する会話の履歴バッファ
+	std::vector<MessageEntry> m_history;
 
 	// ============================
 	// Thread Control
@@ -147,6 +156,7 @@ private:
 
 	mutable std::mutex m_outputMutex;
 	std::string m_output;
+	std::string m_visibleOutput; // UIへ安全に公開するためのクリーンなバッファ
 
 	// ============================
 	// Summary

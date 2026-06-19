@@ -16,7 +16,7 @@
 
 #include "../InterFace/IEditorUI.h"
 
-#define BRAIN_MODEL_PATH "Asset/BRAIN/model/qwen2.5-coder-7b-instruct-q4_k_m.gguf"
+#define BRAIN_MODEL_PATH "Asset/BRAIN/model/Qwen3.5-9B-Q4_K_M.gguf"
 
 
 // ---------------------------------
@@ -118,5 +118,5 @@ private:
 	// Token state (表示用)
 	// -----------------------------
 	uint32_t m_nPast = 0;
-	static constexpr uint32_t MAX_CONTEXT_TOKEN = 8192;
+	static constexpr uint32_t MAX_CONTEXT_TOKEN = 16384;
 };

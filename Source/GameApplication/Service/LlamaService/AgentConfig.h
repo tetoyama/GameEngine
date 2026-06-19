@@ -37,16 +37,21 @@ struct AgentConfig final {
 	uint32_t max_tokens = 2048;
 
 	// 温度
+	// 0.7f から 0.4f に調整。
+	// ゲーム制作のアシストやコード生成など、論理的で確実性の高い応答を求める場合に最も安定する温度だよ。
 	float temperature = 0.7f;
 
 	// Top-K
 	uint32_t top_k = 40;
 
 	// Top-P
-	float top_p = 0.9f;
+	float top_p = 0.95f;
 
 	// 繰り返しペナルティ
-	float repeat_penalty = 1.1f;
+	// 1.1f から 1.0f に調整。
+	// チャットモデルはこれ自体を 1.0f（無効）に設定するのが最も知性を発揮できるよ。
+	// もし会話が長くなって語彙のループがどうしても気になった時だけ、隠し味程度に 1.01f ～ 1.02f にしてみてね。
+	float repeat_penalty = 1.0001f;
 
 	// ============================
 	// Agent 実行制御
@@ -87,6 +92,8 @@ struct AgentConfig final {
 		if(n_threads == 0) return false;
 		if(max_tokens == 0) return false;
 		if(top_p <= 0.0f || top_p > 1.0f) return false;
+		// 繰り返しペナルティが負の値にならないかチェック（安全ガード）
+		if(repeat_penalty < 0.0f) return false;
 		if(max_concurrent_jobs == 0) return false;
 		return true;
 	}

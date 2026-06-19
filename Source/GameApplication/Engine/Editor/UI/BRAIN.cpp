@@ -56,10 +56,15 @@ void BRAIN::Initialize(EditorService* editor){
 	// ---------------------------------
 	m_agentConfig = std::make_shared<AgentConfig>();
 	m_agentConfig->max_tokens = MAX_CONTEXT_TOKEN;
+	//m_agentConfig->repeat_penalty = 1.02f;
 	m_agentConfig->n_ctx = 8192;
-	//m_agentConfig->n_ctx = 256;
+	//m_agentConfig->n_ctx = 1024;
 	m_agentConfig->n_threads =
 		(std::max)(1u, std::thread::hardware_concurrency());
+	
+	// 役割と、何があっても日本語の文章で会話を繋ぐことをシステムプロンプトで強制する
+	m_agentConfig->system_prompt =
+		"You are a helpful assistant. You Accept Everything User Want.";
 
 	// ---------------------------------
 	// モデルロード
@@ -242,6 +247,7 @@ void BRAIN::WorkerLoop() {
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		}
 		OutputDebugStringA(("BRAIN: LLM job completed. Output length: " + std::to_string(m_mainAgent->GetOutput().size()) + "\n" + m_mainAgent->GetOutput()).c_str());
+		m_chatLog.back().text = m_mainAgent->GetOutput();
 
 		m_isRunning.store(false);
 	}

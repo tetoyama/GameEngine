@@ -363,3 +363,5 @@ FodyWeavers.xsd
 
 # ImGui configuration file
 Asset/imgui.ini
+/Asset/BRAIN/model
+Asset/imgui.ini

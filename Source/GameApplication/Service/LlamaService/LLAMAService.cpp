@@ -13,8 +13,7 @@
 #include "AgentConfig.h"
 #include "DebugTools/DebugSystem.h"
 
-#include "Backends/llama/llama.h"
-#include "Backends/llama/llama-graph.h"
+#include "llama.h"
 
 #include "Resources/Data/llamaModelData.h"
 #include "Resources/Loader/llamaModelLoader.h"

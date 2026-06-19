@@ -113,7 +113,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)/Source;$(ProjectDir)/Source/GameApplication;$(ProjectDir)/Source/GameApplication/Service;$(ProjectDir)/Source/GameApplication/Backends;$(ProjectDir)/Source/GameApplication/Engine;$(ProjectDir)/Source/GameApplication/Backends/LLVM/include;$(ProjectDir)/Source/GameApplication/Engine/Scene</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/Source/GameApplication/BackEnds/llama/ggml/include;$(ProjectDir)/Source/GameApplication/BackEnds/llama/include;$(ProjectDir)/Source/GameApplication/BackEnds/llama;$(ProjectDir)/Source/GameApplication/Engine/Scene;$(ProjectDir)/Source/GameApplication/Engine;$(ProjectDir)/Source/GameApplication/BackEnds;$(ProjectDir)/Source/GameApplication/Service;$(ProjectDir)/Source/GameApplication;$(ProjectDir)/Source;$(ProjectDir)</AdditionalIncludeDirectories>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -142,7 +142,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)/Source/GameApplication/Engine/Scene;$(ProjectDir);$(ProjectDir)/Source;$(ProjectDir)/Source/GameApplication;$(ProjectDir)/Source/GameApplication/Service;$(ProjectDir)/Source/GameApplication/Backends;$(ProjectDir)/Source/GameApplication/Engine;$(ProjectDir)/Source/GameApplication/Backends/LLVM/include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/Source/GameApplication/BackEnds/llama/ggml/include;$(ProjectDir)/Source/GameApplication/BackEnds/llama/include;$(ProjectDir)/Source/GameApplication/BackEnds/llama;$(ProjectDir)/Source/GameApplication/Engine/Scene;$(ProjectDir)/Source/GameApplication/Engine;$(ProjectDir)/Source/GameApplication/BackEnds;$(ProjectDir)/Source/GameApplication/Service;$(ProjectDir)/Source/GameApplication;$(ProjectDir)/Source;$(ProjectDir)</AdditionalIncludeDirectories>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
