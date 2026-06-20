@@ -21,6 +21,23 @@ void TransformSystem::Initialize(){
 	m_context->debug->LOG_DEBUG("TransformSystemを初期化中...");
 }
 
+void TransformSystem::RegisterTasks(SystemScheduleBuilder& builder){
+	using TransformReadQuery = ECSQuery::ComponentQueryView<
+		ECSQuery::Read<TransformComponent>
+	>;
+
+	builder.AddQueryTask<TransformReadQuery>(
+		"TransformSystem.Draw",
+		SystemTaskDomain::Render,
+		SystemPhase::Default,
+		0,
+		ThreadAffinity::MainThread,
+		[this](const SystemTaskContext&){
+			Draw();
+		}
+	);
+}
+
 void TransformSystem::Draw(){
 	// 親が削除されているEntityは、描画中にRegistryを直接変更せず、
 	// Render Domain末尾のCommit Taskで安全に削除する。
