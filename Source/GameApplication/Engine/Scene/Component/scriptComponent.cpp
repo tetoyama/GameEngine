@@ -1,86 +1,142 @@
 // =======================================================================
-// 
+//
 // scriptComponent.cpp
-// 
+//
 // =======================================================================
 #include "scriptComponent.h"
+
 #include "Scene/scene.h"
 #include "Scene/sceneManager.h"
+#include "Scene/Registry/systemRegistry.h"
+#include "Scene/System/Script/ScriptSystem.h"
 #include "DebugTools/DebugSystem.h"
-#include "Interface/IScriptComponent.h"
 #include "Backends/ImGuiFunc.h"
 
-// -----------------------------------------------------------------------
-// ScriptComponent::decode
-// YAML ノードからスクリプトを復元する
-// ノードの各キーがスクリプト名、値がスクリプト固有のパラメーター
-// -----------------------------------------------------------------------
-bool ScriptComponent::decode(SceneContext* context, const YAML::Node& node){
-	for(auto it : node){
-		const std::string name = it.first.as<std::string>();
-		// ScriptSystem::Create でスクリプト名に対応するインスタンスを生成
-		auto script = context->manager->systemRegistry->GetSystem<ScriptSystem>()->Create(name.c_str());
+#include <cstring>
+#include <type_traits>
+#include <utility>
+
+ScriptComponent::~ScriptComponent(){
+	DestroyAllScripts();
+}
+
+ScriptComponent::ScriptComponent(ScriptComponent&& other) noexcept
+	: scripts(std::move(other.scripts))
+	, m_destroyFunction(other.m_destroyFunction){
+	other.scripts.clear();
+	other.m_destroyFunction = nullptr;
+}
+
+ScriptComponent& ScriptComponent::operator=(ScriptComponent&& other) noexcept{
+	if(this == &other){
+		return *this;
+	}
+
+	DestroyAllScripts();
+
+	scripts = std::move(other.scripts);
+	m_destroyFunction = other.m_destroyFunction;
+
+	other.scripts.clear();
+	other.m_destroyFunction = nullptr;
+	return *this;
+}
+
+void ScriptComponent::DestroyAllScripts(){
+	for(auto& [name, script] : scripts){
 		if(!script) continue;
 
-		// スクリプト固有パラメーターを復元
+		script->Stop();
+
+		if(m_destroyFunction){
+			m_destroyFunction(script);
+		} else {
+			// 古いScript DLLとの互換フォールバック。
+			// 新しいDLLでは必ずDestroyScriptを取得するため、この経路は通常使わない。
+			delete script;
+		}
+	}
+
+	scripts.clear();
+}
+
+YAML::Node ScriptComponent::encode(){
+	YAML::Node node;
+	for(auto& [name, script] : scripts){
+		if(script){
+			node[name] = script->Encode();
+		}
+	}
+	return node;
+}
+
+bool ScriptComponent::decode(SceneContext* context, const YAML::Node& node){
+	if(!context || !context->system){
+		return false;
+	}
+
+	auto* scriptSystem = context->system->GetSystem<ScriptSystem>();
+	if(!scriptSystem){
+		return false;
+	}
+
+	DestroyAllScripts();
+	SetDestroyFunction(scriptSystem->GetDestroyFunction());
+
+	for(auto it : node){
+		const std::string name = it.first.as<std::string>();
+		IScriptComponent* script = scriptSystem->Create(name.c_str());
+		if(!script) continue;
+
 		script->Decode(it.second);
-		scripts[name] = std::move(script);
+		scripts.emplace(name, script);
 	}
 	return true;
 }
 
-// -----------------------------------------------------------------------
-// ScriptComponent::inspector
-// インスペクター UI を描画する
-// - スクリプト追加ボタンとテキスト入力
-// - 各スクリプトのパラメーター（int / float / bool / string）を ImGui で編集
-// -----------------------------------------------------------------------
-void ScriptComponent::inspector(SceneContext* context) {
+void ScriptComponent::inspector(SceneContext* context){
 	ImGui::Text("Script Component");
 
-	// スクリプト追加 UI
 	static char scriptNameInput[128] = {};
 	ImGui::InputText("Add Script", scriptNameInput, sizeof(scriptNameInput));
 	ImGui::SameLine();
-	if (ImGui::Button("Add")) {
+	if(ImGui::Button("Add")){
 		AddScript(scriptNameInput, context);
 	}
 
-	// 各スクリプトのパラメーターを TreeNode で展開表示
-	for (auto& [name, script] : scripts) {
-		if (ImGui::TreeNode(name.c_str())) {
+	for(auto& [name, script] : scripts){
+		if(!script) continue;
 
+		if(ImGui::TreeNode(name.c_str())){
 			auto& params = script->GetParams();
-			for (auto& p : params) {
-				// std::variant を型別に展開して対応する ImGui ウィジェットを表示
-				std::visit([&](auto& val) {
-					using T = std::decay_t<decltype(val)>;
-					if constexpr (std::is_same_v<T, int>) {
-						int tmp = val;
-						if (ImGui::InputInt(p.name.c_str(), &tmp)) {
-							script->SetParam(p.name, tmp);
+			for(auto& param : params){
+				std::visit([&](auto& value){
+					using T = std::decay_t<decltype(value)>;
+
+					if constexpr(std::is_same_v<T, int>){
+						int temporary = value;
+						if(ImGui::InputInt(param.name.c_str(), &temporary)){
+							script->SetParam(param.name, temporary);
 						}
-					} else if constexpr (std::is_same_v<T, float>) {
-						float tmp = val;
-						if (ImGui::InputFloat(p.name.c_str(), &tmp)) {
-							script->SetParam(p.name, tmp);
+					} else if constexpr(std::is_same_v<T, float>){
+						float temporary = value;
+						if(ImGui::InputFloat(param.name.c_str(), &temporary)){
+							script->SetParam(param.name, temporary);
 						}
-					} else if constexpr (std::is_same_v<T, bool>) {
-						bool tmp = val;
-						if (ImGui::UndoCheckbox(p.name.c_str(), &tmp)) {
-							script->SetParam(p.name, tmp);
+					} else if constexpr(std::is_same_v<T, bool>){
+						bool temporary = value;
+						if(ImGui::UndoCheckbox(param.name.c_str(), &temporary)){
+							script->SetParam(param.name, temporary);
 						}
-					} else if constexpr (std::is_same_v<T, std::string>) {
+					} else if constexpr(std::is_same_v<T, std::string>){
 						char buffer[256] = {};
+						std::strncpy(buffer, value.c_str(), sizeof(buffer) - 1);
 
-						// string → char buffer にコピーして InputText で編集
-						std::strncpy(buffer, val.c_str(), 256 - 1);
-
-						if (ImGui::InputText(p.name.c_str(), buffer, 256)) {
-							script->SetParam(p.name, std::string(buffer));
+						if(ImGui::InputText(param.name.c_str(), buffer, sizeof(buffer))){
+							script->SetParam(param.name, std::string(buffer));
 						}
 					}
-				}, p.value);
+				}, param.value);
 			}
 
 			ImGui::TreePop();
@@ -88,43 +144,38 @@ void ScriptComponent::inspector(SceneContext* context) {
 	}
 }
 
-// -----------------------------------------------------------------------
-// ScriptComponent::AddScript
-// 指定した名前のスクリプトをこのコンポーネントに追加する
-// ScriptSystem::Create を通じてスクリプトインスタンスを生成する
-// 引数:
-//   scriptName - 追加するスクリプトのクラス名
-//   context    - シーンコンテキスト（ScriptSystem の取得に使用）
-// 戻り値: 追加に成功した場合 true、失敗した場合 false
-// -----------------------------------------------------------------------
 bool ScriptComponent::AddScript(const char* scriptName, SceneContext* context){
-	// スクリプト名が空の場合は追加しない
-	if(!scriptName || scriptName[0] == '\0'){
-		context->manager->debug->LOG_DEBUG("Script name empty");
+	if(!context || !context->system || !scriptName || scriptName[0] == '\0'){
+		if(context && context->manager && context->manager->debug){
+			context->manager->debug->LOG_DEBUG("Script name empty or context invalid");
+		}
 		return false;
 	}
 
-	// 既に同名のスクリプトが存在する場合は重複追加しない
-	if(scripts.find(scriptName) != scripts.end()){
-		context->manager->debug->LOG_DEBUG("Script already exists");
+	if(scripts.contains(scriptName)){
+		if(context->manager && context->manager->debug){
+			context->manager->debug->LOG_DEBUG("Script already exists");
+		}
 		return false;
 	}
 
-	// ScriptSystem を取得してスクリプトインスタンスを生成
 	auto* scriptSystem = context->system->GetSystem<ScriptSystem>();
 	if(!scriptSystem){
-		context->manager->debug->LOG_DEBUG("ScriptSystem not found");
+		if(context->manager && context->manager->debug){
+			context->manager->debug->LOG_DEBUG("ScriptSystem not found");
+		}
 		return false;
 	}
 
-	IScriptComponent* raw = scriptSystem->Create(scriptName);
-	if(!raw){
-		context->manager->debug->LOG_DEBUG("Script create failed");
+	IScriptComponent* script = scriptSystem->Create(scriptName);
+	if(!script){
+		if(context->manager && context->manager->debug){
+			context->manager->debug->LOG_DEBUG("Script create failed");
+		}
 		return false;
 	}
 
-	IScriptComponent* script(raw);
-
-	scripts.emplace(scriptName, std::move(script));
+	SetDestroyFunction(scriptSystem->GetDestroyFunction());
+	scripts.emplace(scriptName, script);
 	return true;
 }
