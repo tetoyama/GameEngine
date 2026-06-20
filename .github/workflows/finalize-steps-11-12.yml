@@ -1,4 +1,4 @@
-name: Finalize Steps 11 and 12
+name: Apply Job System Safety Fixes
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  finalize:
+  patch:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,15 +21,139 @@ jobs:
           ref: refactor/ecs-scheduler-foundation
           fetch-depth: 0
 
-      - name: Update migration plan and remove stale workflow
-        run: python .github/scripts/finalize_steps_11_12.py
+      - name: Patch JobSystem
+        shell: python
+        run: |
+          from pathlib import Path
 
-      - name: Commit finalization
+          path = Path("Source/GameApplication/Engine/Scene/System/Job/JobSystem.h")
+          text = path.read_text(encoding="utf-8-sig")
+
+          def replace(old, new):
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f"replacement count mismatch: {count}")
+              text = text.replace(old, new, 1)
+
+          replace(
+              "#include <new>\n#include <thread>",
+              "#include <new>\n#include <stdexcept>\n#include <thread>"
+          )
+
+          replace(
+              """\t\tm_workers.clear();
+          \t\tm_workers.reserve(workerCount);
+          """,
+              """\t\tassert(m_pendingJobs.load(std::memory_order_acquire) == 0);
+          \t\tassert(m_availableJobs.load(std::memory_order_acquire) == 0);
+          \t\tm_nextSubmission.store(0, std::memory_order_release);
+          \t\tm_nextSteal.store(0, std::memory_order_release);
+          \t\tm_mainContext.scratch.Reset();
+          \t\tm_mainContext.commands.Clear();
+          \t\t{
+          \t\t\tstd::scoped_lock exceptionLock(m_exceptionMutex);
+          \t\t\tm_unhandledException = nullptr;
+          \t\t}
+
+          \t\tm_workers.clear();
+          \t\tm_workers.reserve(workerCount);
+          """
+          )
+
+          replace(
+              """\t\tm_accepting.store(false, std::memory_order_release);
+          \t\tlifecycleLock.unlock();
+
+          \t\tWaitIdle();
+
+          \t\tlifecycleLock.lock();
+          \t\tm_stopping.store(true, std::memory_order_release);
+          """,
+              """\t\tm_accepting.store(false, std::memory_order_release);
+          \t\tlifecycleLock.unlock();
+
+          \t\tstd::exception_ptr waitException;
+          \t\ttry {
+          \t\t\tWaitIdle();
+          \t\t} catch(...) {
+          \t\t\twaitException = std::current_exception();
+          \t\t}
+
+          \t\tlifecycleLock.lock();
+          \t\tm_stopping.store(true, std::memory_order_release);
+          """
+          )
+
+          replace(
+              """\t\tm_ownerThread = {};
+          \t}
+
+          \tbool IsRunning() const noexcept {
+          """,
+              """\t\tm_ownerThread = {};
+          \t\tlifecycleLock.unlock();
+
+          \t\tif(waitException) {
+          \t\t\tstd::rethrow_exception(waitException);
+          \t\t}
+          \t}
+
+          \tbool IsRunning() const noexcept {
+          """
+          )
+
+          replace(
+              """\t\tif(begin >= end) return;
+          \t\tminimumBatchSize = (std::max)(minimumBatchSize, size_t{1});
+          """,
+              """\t\tif(begin >= end) return;
+          \t\tif(!IsRunning()) {
+          \t\t\tfor(size_t index = begin; index < end; ++index) {
+          \t\t\t\tfunction(index);
+          \t\t\t}
+          \t\t\treturn;
+          \t\t}
+
+          \t\tminimumBatchSize = (std::max)(minimumBatchSize, size_t{1});
+          """
+          )
+
+          replace(
+              """\t\tif(!m_accepting.load(std::memory_order_acquire)) {
+          \t\t\tthrow std::runtime_error(\"JobSystem is not accepting jobs.\");
+          \t\t}
+
+          \t\tif(fence) {
+          \t\t\tconst uint32_t previous =
+          \t\t\t\tfence->pending.fetch_add(1, std::memory_order_acq_rel);
+          \t\t\tif(previous == 0) {
+          \t\t\t\tstd::scoped_lock lock(fence->mutex);
+          \t\t\t\tfence->exception = nullptr;
+          \t\t\t}
+          \t\t}
+          """,
+              """\t\tif(!m_accepting.load(std::memory_order_acquire) || m_workers.empty()) {
+          \t\t\tthrow std::runtime_error(\"JobSystem is not accepting jobs.\");
+          \t\t}
+
+          \t\tif(fence) {
+          \t\t\tstd::scoped_lock lock(fence->mutex);
+          \t\t\tif(fence->pending.load(std::memory_order_acquire) == 0) {
+          \t\t\t\tfence->exception = nullptr;
+          \t\t\t}
+          \t\t\tfence->pending.fetch_add(1, std::memory_order_acq_rel);
+          \t\t}
+          """
+          )
+
+          path.write_text(text, encoding="utf-8")
+
+      - name: Commit patch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Docs/ECS_Scheduler_Migration_Plan.md
-          git add -u .github/workflows/route-component-operations.yml
+          git add Source/GameApplication/Engine/Scene/System/Job/JobSystem.h
           git diff --cached --check
-          git commit -m "docs: finalize dense pool and query migration"
+          git commit -m "fix: harden job system lifecycle"
           git push origin HEAD:refactor/ecs-scheduler-foundation
