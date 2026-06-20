@@ -62,7 +62,7 @@ jobs:
           /verbosity:minimal
           /consoleloggerparameters:ErrorsOnly
           /fileLogger
-          /fileLoggerParameters:LogFile=engine-errors.log;ErrorsOnly
+          /fileLoggerParameters:"LogFile=engine-errors.log;ErrorsOnly"
 
       - name: Upload engine error log
         if: always()
