@@ -9,9 +9,11 @@
 #include "Backends/YAMLConverters.h"
 #include "DebugTools/ImGuiSystem.h"
 #include "../System/Script/ScriptExecution.h"
+#include "../Command/EntityCommandBuffer.h"
 
 #include <atomic>
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <utility>
 
@@ -143,6 +145,7 @@ public:
 		return isInitialized;
 	}
 
+	// 既存互換の即時取得・追加API。
 	template<typename T>
 	T* GetComponent(){
 		if(!m_ref.IsValid()) return nullptr;
@@ -156,6 +159,65 @@ public:
 			m_ref.GetEntityID(),
 			std::forward<Args>(args)...
 		);
+	}
+
+	// Schedule実行中に使用する遅延構造変更API。
+	CommandEntity QueueCreateEntity(){
+		EntityCommandBuffer* commands = GetCommandBuffer();
+		return commands ? commands->CreateEntity() : CommandEntity{};
+	}
+
+	bool QueueDestroyEntity(Entity entity){
+		EntityCommandBuffer* commands = GetCommandBuffer();
+		if(!commands || !entity) return false;
+		commands->DestroyEntity(entity);
+		return true;
+	}
+
+	bool QueueDestroySelf(){
+		return QueueDestroyEntity(m_ref.GetEntityID());
+	}
+
+	template<typename T, typename... Args>
+	bool QueueAddComponent(Entity entity, Args&&... args){
+		EntityCommandBuffer* commands = GetCommandBuffer();
+		if(!commands || !entity) return false;
+		commands->AddComponent<T>(entity, std::forward<Args>(args)...);
+		return true;
+	}
+
+	template<typename T, typename... Args>
+	bool QueueAddComponent(CommandEntity entity, Args&&... args){
+		EntityCommandBuffer* commands = GetCommandBuffer();
+		if(!commands) return false;
+		commands->AddComponent<T>(entity, std::forward<Args>(args)...);
+		return true;
+	}
+
+	template<typename T>
+	bool QueueRemoveComponent(Entity entity){
+		EntityCommandBuffer* commands = GetCommandBuffer();
+		if(!commands || !entity) return false;
+		commands->RemoveComponent<T>(entity);
+		return true;
+	}
+
+	template<typename T>
+	bool QueueRemoveComponent(CommandEntity entity){
+		EntityCommandBuffer* commands = GetCommandBuffer();
+		if(!commands) return false;
+		commands->RemoveComponent<T>(entity);
+		return true;
+	}
+
+	bool QueueEntitySetup(
+		CommandEntity entity,
+		std::function<void(Entity, SceneContext&)> callback
+	){
+		EntityCommandBuffer* commands = GetCommandBuffer();
+		if(!commands || !callback) return false;
+		commands->Execute(entity, std::move(callback));
+		return true;
 	}
 
 	EntityRef GetEntityRef() const {
@@ -206,6 +268,11 @@ public:
 	}
 
 protected:
+	EntityCommandBuffer* GetCommandBuffer() const {
+		SceneContext* context = m_ref.GetScene();
+		return context ? context->commands : nullptr;
+	}
+
 	std::string scriptName = "CustomScript";
 	ScriptExecutionSettings executionSettings;
 	bool isInitialized = false;
