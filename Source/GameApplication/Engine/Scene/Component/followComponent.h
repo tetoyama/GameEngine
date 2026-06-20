@@ -52,9 +52,11 @@ public:
 		ImGui::Text("Target Entity");
 		ImGui::SameLine(120.0f);
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-		int entityID = (int)targetEntity;
+		int entityID = static_cast<int>(targetEntity.GetIndex());
 		if (ImGui::InputInt("##TargetEntity", &entityID)) {
-			targetEntity = Entity(entityID);
+			targetEntity = (context && entityID > 0)
+				? context->entity->Resolve(static_cast<uint32_t>(entityID))
+				: Entity{};
 		}
 
 		// 対象エンティティの名前表示

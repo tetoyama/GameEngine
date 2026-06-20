@@ -143,7 +143,12 @@ public:
 
 	void Undo() override {
 		if (!m_context || m_context->entity->IsAlive(m_entity)) return;
-		EntityCommandHelper::RestoreAll(m_snapshots, m_context);
+
+		auto restored = EntityCommandHelper::RestoreAll(m_snapshots, m_context);
+		auto rootIt = restored.find(m_entity.GetIndex());
+		if(rootIt == restored.end()) return;
+
+		m_entity = rootIt->second;
 		if (m_onRestored) m_onRestored(m_entity, m_context);
 	}
 
@@ -222,8 +227,12 @@ public:
 		if (!m_context) return;
 
 		if (m_duplicated != 0) {
-			// Redo: スナップショットから復元
-			EntityCommandHelper::RestoreAll(m_snapshots, m_context);
+			// Redo: スナップショットから新しいgenerationで復元
+			auto restored = EntityCommandHelper::RestoreAll(m_snapshots, m_context);
+			auto rootIt = restored.find(m_duplicated.GetIndex());
+			if(rootIt == restored.end()) return;
+
+			m_duplicated = rootIt->second;
 			if (m_onDuplicated) m_onDuplicated(m_duplicated, m_context);
 			return;
 		}
@@ -320,9 +329,9 @@ public:
 		if (!m_context) return;
 
 		if (m_newParent != 0) {
-			// Redo: スナップショットから新親を復元
+			// Redo: 同じindexを新しいgenerationで復元
 			if (!m_context->entity->IsAlive(m_newParent))
-				m_context->entity->CreateID(m_newParent);
+				m_newParent = m_context->entity->CreateID(m_newParent);
 			for (auto& [compName, node] : m_snapshot)
 				m_context->component->CreateFromYAML(compName, m_newParent, node);
 			EntityCommandHelper::SetParent(m_entity, m_newParent, m_context);

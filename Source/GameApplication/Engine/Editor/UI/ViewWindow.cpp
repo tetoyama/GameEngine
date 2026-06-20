@@ -288,8 +288,11 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 				SceneContext* recoveredContext = m_editor->sceneManager->GetContextFromID(sceneID_val);
 
 				if(recoveredContext){
+					const Entity pickedEntity = recoveredContext->entity->Resolve(objectID_val);
+					if(!pickedEntity) return;
+
 					hierarchy->sceneContext = recoveredContext;
-					hierarchy->selectedEntity = (Entity)objectID_val;
+					hierarchy->selectedEntity = pickedEntity;
 
 					// 選択した Entity にカメラを向ける
 					TransformComponent* transform = recoveredContext->component->GetComponent<TransformComponent>(hierarchy->selectedEntity);

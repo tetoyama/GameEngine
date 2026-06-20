@@ -94,10 +94,10 @@ Scriptは当面 `MainThread` かつ `WorldExclusive` として扱う。
 
 ### Step 1: 世代付きEntity
 
-- [ ] `Entity` を `index + generation` に変更
-- [ ] `EntityRegistry` に世代配列を追加
-- [ ] `EntityRef` の有効性判定を世代対応
-- [ ] Hash / YAML / PhysX userData対応
+- [x] `Entity` を `index + generation` に変更
+- [x] `EntityRegistry` に世代配列を追加
+- [x] `EntityRef` の有効性判定を世代対応
+- [x] Hash / YAML / PhysX userData対応
 
 ### Step 2: Component世代管理
 

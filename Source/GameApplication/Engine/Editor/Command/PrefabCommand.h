@@ -39,8 +39,12 @@ public:
 		if (!m_context || !m_context->prefab) return;
 
 		if (m_spawned != 0) {
-			// Redo: スナップショットから復元
-			EntityCommandHelper::RestoreAll(m_snapshots, m_context);
+			// Redo: スナップショットから新しいgenerationで復元
+			auto restored = EntityCommandHelper::RestoreAll(m_snapshots, m_context);
+			auto rootIt = restored.find(m_spawned.GetIndex());
+			if(rootIt == restored.end()) return;
+
+			m_spawned = rootIt->second;
 			if (m_onInstantiated) m_onInstantiated(EntityRef(m_spawned, m_context));
 			return;
 		}
