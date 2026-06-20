@@ -19,6 +19,8 @@ void ScriptSystem::Start(){
 	ForEachScript(SystemTaskDomain::Frame, [](IScriptComponent* script){
 		script->Start();
 	});
+
+	m_commandCommitSystem.CommitNow();
 }
 
 void ScriptSystem::Stop(){
