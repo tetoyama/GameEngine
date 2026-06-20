@@ -1,59 +1,58 @@
 // =======================================================================
-// 
+//
 // ScriptSystem.cpp
-// 
+//
 // =======================================================================
 #include "ScriptSystem.h"
-#include "Scene/Component/ScriptComponent.h"
+#include "Scene/Component/scriptComponent.h"
 #include "Component/componentList.h"
 #include "Scene/Reference/EntityRef.h"
 
+#include <algorithm>
+#include <utility>
+#include <vector>
+
 void ScriptSystem::Start(){
-	ForEachScript([](IScriptComponent* script){
+	ForEachScript(SystemTaskDomain::Frame, [](IScriptComponent* script){
 		script->Start();
-				  });
+	});
 }
 
 void ScriptSystem::Stop(){
-	ForEachScript([](IScriptComponent* script){
+	ForEachScript(SystemTaskDomain::Frame, [](IScriptComponent* script){
 		script->Stop();
-				  });
+	});
 }
 
 void ScriptSystem::Update(float deltaTime){
-	ForEachScript([deltaTime](IScriptComponent* script){
+	ForEachScript(SystemTaskDomain::Frame, [deltaTime](IScriptComponent* script){
 		script->Update(deltaTime);
-				  });
+	});
 }
 
 void ScriptSystem::FixedUpdate(float fixedDeltaTime){
-	ForEachScript([fixedDeltaTime](IScriptComponent* script){
+	ForEachScript(SystemTaskDomain::Fixed, [fixedDeltaTime](IScriptComponent* script){
 		script->FixedUpdate(fixedDeltaTime);
-				  });
+	});
 }
 
 void ScriptSystem::EditorUpdate(float deltaTime){
-	ForEachScript([deltaTime](IScriptComponent* script){
+	ForEachScript(SystemTaskDomain::Editor, [deltaTime](IScriptComponent* script){
 		script->EditorUpdate(deltaTime);
-				  });
+	});
 }
 
 void ScriptSystem::Draw(){
-
-	if (m_setImGuiContextFunc) {
-		// ImGui コンテキストをスクリプト側にセット
-		m_setImGuiContextFunc((void*)ImGui::GetCurrentContext());
+	if(m_setImGuiContextFunc){
+		m_setImGuiContextFunc(static_cast<void*>(ImGui::GetCurrentContext()));
 	}
 
-	ForEachScript([](IScriptComponent* script){
+	ForEachScript(SystemTaskDomain::Render, [](IScriptComponent* script){
 		script->Draw();
-				  });
+	});
 }
 
 bool ScriptSystem::ReloadScriptDLL(const char* originalPath){
-	const char* loadedPath = "Script_loaded.dll";
-
-	// 1. 既存DLL解放
 	if(m_scriptModule){
 		m_scriptBridge = nullptr;
 		m_setImGuiContextFunc = nullptr;
@@ -61,41 +60,36 @@ bool ScriptSystem::ReloadScriptDLL(const char* originalPath){
 		m_scriptModule = nullptr;
 	}
 
-	// 2. コピー（上書き）
-	//CopyFileA(originalPath, loadedPath, FALSE);
-
-	// 3. ロード
 	m_scriptModule = LoadLibraryA(originalPath);
-	if(!m_scriptModule)
+	if(!m_scriptModule){
 		return false;
+	}
 
-	auto createFunc =
-		reinterpret_cast<CreateScriptFunc>(
-			GetProcAddress(m_scriptModule, "CreateScript"));
-
-	if(!createFunc)
+	auto createFunc = reinterpret_cast<CreateScriptFunc>(
+		GetProcAddress(m_scriptModule, "CreateScript")
+	);
+	if(!createFunc){
 		return false;
+	}
 
-	m_scriptBridge =
-		[createFunc](const char* scriptName){
+	m_scriptBridge = [createFunc](const char* scriptName){
 		return createFunc(scriptName);
-		};
+	};
 
-	auto rawFunc =
-		reinterpret_cast<SetImGuiContextFunc>(
-			GetProcAddress(m_scriptModule, "SetImGuiContext"));
+	auto rawFunc = reinterpret_cast<SetImGuiContextFunc>(
+		GetProcAddress(m_scriptModule, "SetImGuiContext")
+	);
 
-	m_setImGuiContextFunc =
-		[rawFunc](void* ctx){
-		if(rawFunc) rawFunc(ctx);
-		};
+	m_setImGuiContextFunc = [rawFunc](void* context){
+		if(rawFunc){
+			rawFunc(context);
+		}
+	};
 
 	return true;
 }
 
 void ScriptSystem::Initialize(){
-
-	// コンポーネントの登録
 #define REGISTER(T, STORAGE) \
     RegisterEngineComponent<T>(#T);
 	COMPONENT_LIST(REGISTER)
@@ -105,27 +99,51 @@ void ScriptSystem::Initialize(){
 }
 
 void ScriptSystem::Finalize(){
-
 }
 
 template<typename Func>
-void ScriptSystem::ForEachScript(Func&& func){
-	for(auto& [_, scene] : m_context->sceneManager->GetActiveScenes()){
-		auto* ctx = scene->GetSceneContext();
+void ScriptSystem::ForEachScript(SystemTaskDomain domain, Func&& func){
+	struct Entry {
+		IScriptComponent* script = nullptr;
+	};
+
+	std::vector<Entry> entries;
+
+	for(auto& [sceneName, scene] : m_context->sceneManager->GetActiveScenes()){
+		auto* context = scene->GetSceneContext();
 		auto entities =
-			ctx->component->FindEntitiesWithComponent<ScriptComponent>();
+			context->component->FindEntitiesWithComponent<ScriptComponent>();
 
-		for(Entity e : entities){
-			auto* sc = ctx->component->GetComponent<ScriptComponent>(e);
-			if(!sc) continue;
+		for(Entity entity : entities){
+			auto* component =
+				context->component->GetComponent<ScriptComponent>(entity);
+			if(!component) continue;
 
-			for(auto& [_, script] : sc->scripts){
+			for(auto& [scriptName, script] : component->scripts){
 				if(!script) continue;
 
-				script->ref = EntityRef(e, ctx);
+				if(!script->HasRegistrationOrder()){
+					script->SetRegistrationOrder(m_nextScriptRegistrationOrder++);
+				}
 
-				func(script);
+				script->ref = EntityRef(entity, context);
+				entries.push_back({script});
 			}
 		}
+	}
+
+	std::sort(
+		entries.begin(),
+		entries.end(),
+		[domain](const Entry& lhs, const Entry& rhs){
+			return IsScriptOrderEarlier(
+				lhs.script->GetExecutionOrder(domain),
+				rhs.script->GetExecutionOrder(domain)
+			);
+		}
+	);
+
+	for(const Entry& entry : entries){
+		std::forward<Func>(func)(entry.script);
 	}
 }
