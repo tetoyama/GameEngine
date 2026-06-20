@@ -48,9 +48,9 @@ public:
 
 	template<typename T>
 	void RegisterEngineComponent(const char* name){
-		static_assert(std::is_base_of_v<IComponent, T>,
-			"T must derive from IComponent");
-		m_nameToEngineTypeID[name] = ComponentType::Get<T>();
+		const ComponentTypeID typeID = ComponentType::Get<T>();
+		m_nameToEngineTypeID[name] = typeID;
+		m_engineTypeIDs[std::type_index(typeid(T))] = typeID;
 	}
 
 	IScriptComponent* Create(const char* scriptName){
