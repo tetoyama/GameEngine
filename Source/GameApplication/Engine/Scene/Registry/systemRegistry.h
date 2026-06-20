@@ -5,6 +5,7 @@
 // =======================================================================
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <utility>
@@ -23,6 +24,7 @@ public:
 	void RegisterSystem(std::unique_ptr<ISystem> system) {
 		if(!system) return;
 
+		m_systemRegistrationOrders.push_back(m_nextSystemRegistrationOrder++);
 		m_systems.emplace_back(std::move(system));
 		m_tasksDirty = true;
 	}
@@ -32,8 +34,6 @@ public:
 			system->Initialize();
 		}
 
-		// 全Systemの初期化後にTaskを構築する。
-		// 将来、初期化結果に応じてTask登録を変えるSystemにも対応できる。
 		RebuildTasks();
 	}
 
@@ -66,7 +66,6 @@ public:
 	}
 
 	void FinalizeAll() {
-		// TaskはSystemへのポインタとlambdaを保持するため、System破棄前に解放する。
 		m_tasks.clear();
 		m_tasksDirty = true;
 
@@ -75,20 +74,42 @@ public:
 		}
 	}
 
-	// 全SystemからTaskを再収集する。
-	// 登録順が同じならregistrationOrderも同じになるよう、再構築時に0から振り直す。
+	// 全SystemからTaskを再収集し、論理順序で並べる。
+	// 現在は直列Executorなので、この順序がそのまま実行順になる。
+	// 並列Scheduler導入後は、Access競合があるTask間の依存方向に使う。
 	void RebuildTasks() {
 		m_tasks.clear();
-		m_nextTaskRegistrationOrder = 0;
 
-		for(auto& system : m_systems) {
+		for(size_t index = 0; index < m_systems.size(); ++index) {
 			SystemScheduleBuilder builder(
-				system.get(),
-				m_tasks,
-				m_nextTaskRegistrationOrder
+				m_systems[index].get(),
+				m_systemRegistrationOrders[index],
+				m_tasks
 			);
-			system->RegisterTasks(builder);
+			m_systems[index]->RegisterTasks(builder);
 		}
+
+		std::sort(
+			m_tasks.begin(),
+			m_tasks.end(),
+			[](const SystemTask& lhs, const SystemTask& rhs) {
+				if(lhs.domain != rhs.domain) {
+					return static_cast<uint8_t>(lhs.domain) <
+						static_cast<uint8_t>(rhs.domain);
+				}
+
+				if(lhs.order.phase != rhs.order.phase) {
+					return static_cast<int32_t>(lhs.order.phase) <
+						static_cast<int32_t>(rhs.order.phase);
+				}
+
+				if(lhs.order.priority != rhs.order.priority) {
+					return lhs.order.priority < rhs.order.priority;
+				}
+
+				return lhs.order.registrationOrder < rhs.order.registrationOrder;
+			}
+		);
 
 		m_tasksDirty = false;
 	}
@@ -144,6 +165,9 @@ public:
 
 			system->decode(systemNode);
 		}
+
+		// decode結果によってTask構成が変わるSystemへ対応する。
+		m_tasksDirty = true;
 	}
 
 private:
@@ -164,7 +188,8 @@ private:
 	}
 
 	std::vector<std::unique_ptr<ISystem>> m_systems;
+	std::vector<uint64_t> m_systemRegistrationOrders;
 	std::vector<SystemTask> m_tasks;
-	uint64_t m_nextTaskRegistrationOrder = 0;
+	uint64_t m_nextSystemRegistrationOrder = 0;
 	bool m_tasksDirty = true;
 };
