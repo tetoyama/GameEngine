@@ -1,105 +1,102 @@
 // =======================================================================
-// 
+//
 // systemRegistry.h
-// 
+//
 // =======================================================================
 #pragma once
 
-#include <vector>
+#include <cstdint>
 #include <memory>
-#include "Interface/ISystem.h"   // ISystem の定義（Initialize, Start, Update, FixedUpdate, Draw など）
+#include <utility>
+#include <vector>
 
-/**
- * @brief 各種 System を登録し、一括で初期化・起動・更新・描画を行うマネージャクラス
- */
+#include "Interface/ISystem.h"
+#include "System/Scheduler/SystemTask.h"
+
+// Systemの所有、Lifecycle実行、SystemTaskの構築と実行を管理する。
+// 現段階のExecutorは直列だが、System呼び出しはすべてTask経由へ統一する。
 class SystemRegistry {
 public:
 	SystemRegistry() = default;
 	~SystemRegistry() = default;
 
-	/**
-	 * @brief System を登録する
-	 *
-	 * System は std::unique_ptr<ISystem> で管理する。外側から渡されたものは
-	 * SystemRegistry が所有権を持つ。
-	 */
-	void RegisterSystem(std::unique_ptr<ISystem> system){
+	void RegisterSystem(std::unique_ptr<ISystem> system) {
+		if(!system) return;
+
 		m_systems.emplace_back(std::move(system));
+		m_tasksDirty = true;
 	}
 
-	/**
-	 * @brief 全 System の初期化を呼び出す
-	 */
-	void InitializeAll(){
-		for(auto& sys : m_systems){
-			sys->Initialize();
+	void InitializeAll() {
+		for(auto& system : m_systems) {
+			system->Initialize();
+		}
+
+		// 全Systemの初期化後にTaskを構築する。
+		// 将来、初期化結果に応じてTask登録を変えるSystemにも対応できる。
+		RebuildTasks();
+	}
+
+	void StartAll() {
+		for(auto& system : m_systems) {
+			system->Start();
 		}
 	}
 
-	/**
-	 * @brief 全 System の Start を呼び出す
-	 */
-	void StartAll(){
-		for(auto& sys : m_systems){
-			sys->Start();
-		}
+	void FixedUpdateAll(float fixedDeltaTime) {
+		ExecuteTasks(SystemTaskDomain::Fixed, fixedDeltaTime);
 	}
 
-	/**
-	 * @brief 全 System の FixedUpdate を呼び出す
-	 * @param fdt 固定タイムステップ
-	 */
-	void FixedUpdateAll(float fdt){
-		for(auto& sys : m_systems){
-			sys->FixedUpdate(fdt);
-		}
+	void UpdateAll(float deltaTime) {
+		ExecuteTasks(SystemTaskDomain::Frame, deltaTime);
 	}
 
-	/**
-	 * @brief 全 System の Update を呼び出す
-	 * @param dt デルタタイム
-	 */
-	void UpdateAll(float dt){
-		for(auto& sys : m_systems){
-			sys->Update(dt);
-		}
+	void EditorUpdateAll(float deltaTime) {
+		ExecuteTasks(SystemTaskDomain::Editor, deltaTime);
 	}
 
-	/**
-	 * @brief 全 System の Update を呼び出す
-	 * @param dt デルタタイム
-	 */
-	void EditorUpdateAll(float dt){
-		for(auto& sys : m_systems){
-			sys->EditorUpdate(dt);
-		}
-	}
-
-	/**
-	 * @brief 全 System の Draw を呼び出す
-	 */
-	void DrawAll(){
-		for(auto& sys : m_systems){
-			sys->Draw();
-		}
+	void DrawAll() {
+		ExecuteTasks(SystemTaskDomain::Render, 0.0f);
 	}
 
 	void StopAll() {
-		for (auto& sys : m_systems) {
-			sys->Stop();
+		for(auto& system : m_systems) {
+			system->Stop();
 		}
 	}
 
-	void FinalizeAll(){
-		for(auto& sys : m_systems){
-			sys->Finalize();
+	void FinalizeAll() {
+		// TaskはSystemへのポインタとlambdaを保持するため、System破棄前に解放する。
+		m_tasks.clear();
+		m_tasksDirty = true;
+
+		for(auto& system : m_systems) {
+			system->Finalize();
 		}
+	}
+
+	// 全SystemからTaskを再収集する。
+	// 登録順が同じならregistrationOrderも同じになるよう、再構築時に0から振り直す。
+	void RebuildTasks() {
+		m_tasks.clear();
+		m_nextTaskRegistrationOrder = 0;
+
+		for(auto& system : m_systems) {
+			SystemScheduleBuilder builder(
+				system.get(),
+				m_tasks,
+				m_nextTaskRegistrationOrder
+			);
+			system->RegisterTasks(builder);
+		}
+
+		m_tasksDirty = false;
 	}
 
 	template<typename T>
-	T* GetSystem(){
-		for(auto& sys : m_systems){
-			if(auto casted = dynamic_cast<T*>(sys.get())){
+	T* GetSystem() {
+		for(auto& system : m_systems) {
+			if(auto* casted = dynamic_cast<T*>(system.get())) {
 				return casted;
 			}
 		}
@@ -110,44 +107,64 @@ public:
 		return m_systems;
 	}
 
-	// -------------------------
-   // YAML Encode / Decode
-   // -------------------------
+	const std::vector<SystemTask>& GetTasks() {
+		EnsureTasksBuilt();
+		return m_tasks;
+	}
 
-   // 保存
-	void EncodeAll(YAML::Node& rootNode) const{
+	// -------------------------
+	// YAML Encode / Decode
+	// -------------------------
+
+	void EncodeAll(YAML::Node& rootNode) const {
 		YAML::Node systemsNode = rootNode["Systems"];
 
-		for(const auto& sys : m_systems){
-
-			const char* name = sys->GetSystemName();
+		for(const auto& system : m_systems) {
+			const char* name = system->GetSystemName();
 			if(!name) continue;
 
-			YAML::Node sysNode;
-			sysNode = sys->encode();
-
-			systemsNode[name] = sysNode;
+			YAML::Node systemNode = system->encode();
+			systemsNode[name] = systemNode;
 		}
 
 		rootNode["Systems"] = systemsNode;
 	}
 
-	// 読み込み
-	void DecodeAll(const YAML::Node& rootNode){
+	void DecodeAll(const YAML::Node& rootNode) {
 		if(!rootNode["Systems"]) return;
 
 		const YAML::Node systemsNode = rootNode["Systems"];
 
-		for(auto& sys : m_systems){
-			const char* name = sys->GetSystemName();
+		for(auto& system : m_systems) {
+			const char* name = system->GetSystemName();
 			if(!name) continue;
 
-			const YAML::Node sysNode = systemsNode[name];
-			if(!sysNode) continue;
+			const YAML::Node systemNode = systemsNode[name];
+			if(!systemNode) continue;
 
-			sys->decode(sysNode);
+			system->decode(systemNode);
 		}
 	}
+
 private:
+	void EnsureTasksBuilt() {
+		if(m_tasksDirty) {
+			RebuildTasks();
+		}
+	}
+
+	void ExecuteTasks(SystemTaskDomain domain, float deltaTime) {
+		EnsureTasksBuilt();
+
+		const SystemTaskContext context{deltaTime};
+		for(SystemTask& task : m_tasks) {
+			if(task.domain != domain || !task.execute) continue;
+			task.execute(context);
+		}
+	}
+
 	std::vector<std::unique_ptr<ISystem>> m_systems;
+	std::vector<SystemTask> m_tasks;
+	uint64_t m_nextTaskRegistrationOrder = 0;
+	bool m_tasksDirty = true;
 };
