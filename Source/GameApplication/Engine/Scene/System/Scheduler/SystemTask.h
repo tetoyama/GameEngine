@@ -109,22 +109,26 @@ public:
 	}
 
 	// Query型が宣言するRead / Write ComponentからSystemAccessを自動生成する。
-	// QueryTypeはstatic BuildSystemAccess()を提供すること。
+	// Query外の構造変更はstructuralAccessで明示する。
 	template<typename QueryType>
 	void AddQueryTask(
 		std::string name,
 		SystemTaskDomain domain,
 		SystemPhase phase,
 		int32_t priority,
+		StructuralAccess structuralAccess,
 		ThreadAffinity threadAffinity,
 		std::function<void(const SystemTaskContext&)> execute
 	) {
+		SystemAccess access = QueryType::BuildSystemAccess();
+		access.SetStructuralAccess(structuralAccess);
+
 		AddTask(
 			std::move(name),
 			domain,
 			phase,
 			priority,
-			QueryType::BuildSystemAccess(),
+			std::move(access),
 			threadAffinity,
 			std::move(execute)
 		);
