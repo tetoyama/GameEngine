@@ -1,0 +1,54 @@
+name: Complete Script Boundary Plan
+
+on:
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - .github/workflows/complete-script-boundary-plan.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout work branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 0
+
+      - name: Update migration plan
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("Docs/ECS_Scheduler_Migration_Plan.md")
+          text = path.read_text(encoding="utf-8-sig")
+
+          replacements = {
+              "- [ ] Inspector Parameter操作をC境界Bridge化":
+                  "- [x] Inspector Parameter操作をC境界Bridge化",
+              "- [ ] EntityCommandBuffer操作をEngine側Bridge経由へ移行":
+                  "- [x] EntityCommandBuffer操作をEngine側Bridge経由へ移行",
+          }
+
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise RuntimeError(f"Expected one occurrence of: {old}")
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding="utf-8")
+          Path(".github/workflows/complete-script-boundary-plan.yml").unlink()
+
+      - name: Commit migration plan update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git diff --cached --check
+          git commit -m "docs: complete script boundary bridge items"
+          git push origin HEAD:refactor/ecs-scheduler-foundation
