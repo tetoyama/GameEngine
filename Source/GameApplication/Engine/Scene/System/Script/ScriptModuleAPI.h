@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 class IScriptComponent;
 
@@ -90,3 +91,7 @@ struct ScriptModuleAPI {
 			setStringParameter;
 	}
 };
+
+static_assert(std::is_standard_layout_v<ScriptParameterData>);
+static_assert(std::is_trivially_copyable_v<ScriptParameterData>);
+static_assert(std::is_trivially_copyable_v<ScriptModuleAPI>);
