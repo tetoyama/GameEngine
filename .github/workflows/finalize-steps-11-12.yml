@@ -1,0 +1,35 @@
+name: Finalize Steps 11 and 12
+
+on:
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - .github/workflows/finalize-steps-11-12.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 0
+
+      - name: Update migration plan and remove stale workflow
+        run: python .github/scripts/finalize_steps_11_12.py
+
+      - name: Commit finalization
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Docs/ECS_Scheduler_Migration_Plan.md
+          git add -u .github/workflows/route-component-operations.yml
+          git diff --cached --check
+          git commit -m "docs: finalize dense pool and query migration"
+          git push origin HEAD:refactor/ecs-scheduler-foundation
