@@ -9,6 +9,7 @@
 #include "Scene/Reference/EntityRef.h"
 
 #include <algorithm>
+#include <filesystem>
 #include <string>
 #include <utility>
 #include <vector>
@@ -60,11 +61,14 @@ void ScriptSystem::Draw(){
 }
 
 bool ScriptSystem::ReloadScriptDLL(const char* originalPath){
+	if(!originalPath || originalPath[0] == '\0'){
+		return false;
+	}
+
+	// DLLを解放する前に、旧DLL由来のvtableを持つ全Scriptを破棄する。
 	if(m_scriptModule){
-		m_scriptBridge = nullptr;
-		m_setImGuiContextFunc = nullptr;
-		FreeLibrary(m_scriptModule);
-		m_scriptModule = nullptr;
+		DestroyAllScriptInstances();
+		UnloadCurrentModule();
 	}
 
 	m_scriptModule = LoadLibraryA(originalPath);
@@ -72,26 +76,29 @@ bool ScriptSystem::ReloadScriptDLL(const char* originalPath){
 		return false;
 	}
 
-	auto createFunc = reinterpret_cast<CreateScriptFunc>(
+	m_createScriptFunc = reinterpret_cast<CreateScriptFunc>(
 		GetProcAddress(m_scriptModule, "CreateScript")
 	);
-	if(!createFunc){
+	m_destroyScriptFunc = reinterpret_cast<DestroyScriptFunc>(
+		GetProcAddress(m_scriptModule, "DestroyScript")
+	);
+
+	if(!m_createScriptFunc || !m_destroyScriptFunc){
+		UnloadCurrentModule();
 		return false;
 	}
 
-	m_scriptBridge = [createFunc](const char* scriptName){
-		return createFunc(scriptName);
-	};
-
-	auto rawFunc = reinterpret_cast<SetImGuiContextFunc>(
+	auto rawImGuiContextFunction = reinterpret_cast<SetImGuiContextFunc>(
 		GetProcAddress(m_scriptModule, "SetImGuiContext")
 	);
 
-	m_setImGuiContextFunc = [rawFunc](void* context){
-		if(rawFunc){
-			rawFunc(context);
-		}
-	};
+	if(rawImGuiContextFunction){
+		m_setImGuiContextFunc = [rawImGuiContextFunction](void* context){
+			rawImGuiContextFunction(context);
+		};
+	} else {
+		m_setImGuiContextFunc = nullptr;
+	}
 
 	return true;
 }
@@ -107,6 +114,50 @@ void ScriptSystem::Initialize(){
 
 void ScriptSystem::Finalize(){
 	m_commandCommitSystem.CommitNow();
+	DestroyAllScriptInstances();
+	UnloadCurrentModule();
+}
+
+void ScriptSystem::DestroyAllScriptInstances(){
+	if(!m_context || !m_context->sceneManager){
+		return;
+	}
+
+	for(auto& [sceneName, scene] : m_context->sceneManager->GetActiveScenes()){
+		if(!scene) continue;
+
+		SceneContext* context = scene->GetSceneContext();
+		if(!context || !context->component) continue;
+
+		const auto entities =
+			context->component->FindEntitiesWithComponent<ScriptComponent>();
+
+		for(Entity entity : entities){
+			ScriptComponent* component =
+				context->component->GetComponent<ScriptComponent>(entity);
+			if(!component) continue;
+
+			component->DestroyAllScripts();
+			component->SetDestroyFunction(nullptr);
+		}
+	}
+}
+
+void ScriptSystem::UnloadCurrentModule(){
+	m_createScriptFunc = nullptr;
+	m_destroyScriptFunc = nullptr;
+	m_setImGuiContextFunc = nullptr;
+
+	if(m_scriptModule){
+		FreeLibrary(m_scriptModule);
+		m_scriptModule = nullptr;
+	}
+
+	if(!m_loadedModulePath.empty()){
+		std::error_code error;
+		std::filesystem::remove(m_loadedModulePath, error);
+		m_loadedModulePath.clear();
+	}
 }
 
 template<typename Func>
@@ -128,6 +179,10 @@ void ScriptSystem::ForEachScript(SystemTaskDomain domain, Func&& func){
 			auto* component =
 				context->component->GetComponent<ScriptComponent>(entity);
 			if(!component) continue;
+
+			if(!component->GetDestroyFunction()){
+				component->SetDestroyFunction(m_destroyScriptFunc);
+			}
 
 			for(auto& [scriptName, script] : component->scripts){
 				if(!script) continue;
