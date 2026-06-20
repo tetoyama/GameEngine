@@ -245,28 +245,44 @@ void SceneManager::Shutdown(){
 	if(m_SceneContext.debug){
 		m_SceneContext.debug->LOG_INFO("SceneManager を終了します");
 	}
+
 	for(auto& [name, scene] : m_activeScenes){
-		scene->Shutdown();
-		scene.reset();
+		if(scene){
+			scene->Shutdown();
+			scene.reset();
+		}
 	}
 	m_activeScenes.clear();
-	systemRegistry->EncodeAll(m_SceneContext.config->editorConfig);
 
-	systemRegistry->FinalizeAll();
-	systemRegistry.reset();
+	// Scene::Shutdown() が個別登録を解除するが、異常終了経路で残った
+	// Contextもここで確実に無効化する。
+	m_contextRegistry.clear();
+
+	if(systemRegistry){
+		systemRegistry->EncodeAll(m_SceneContext.config->editorConfig);
+		systemRegistry->FinalizeAll();
+		systemRegistry.reset();
+	}
+	m_SceneContext.systemRegistry = nullptr;
 }
 
 uint32_t SceneManager::GetIDFromContext(SceneContext* ctx){
 	if(ctx == nullptr) return 0;
 
-	// 既に登録されているか確認
-	for(auto const& [id, registeredCtx] : m_contextRegistry){
-		if(registeredCtx == ctx) return id;
+	// SceneContext自身が保持するIDを使い、線形探索を避ける。
+	if(ctx->contextID != 0){
+		auto it = m_contextRegistry.find(ctx->contextID);
+		if(it != m_contextRegistry.end() && it->second == ctx){
+			return ctx->contextID;
+		}
+
+		// Context側だけに古いIDが残っていた場合は再登録する。
+		ctx->contextID = 0;
 	}
 
-	// 新規登録
-	uint32_t newID = m_nextContextID++;
+	const uint32_t newID = m_nextContextID++;
 	m_contextRegistry[newID] = ctx;
+	ctx->contextID = newID;
 	return newID;
 }
 
@@ -274,10 +290,28 @@ SceneContext* SceneManager::GetContextFromID(uint32_t id){
 	if(id == 0) return nullptr;
 
 	auto it = m_contextRegistry.find(id);
-	if(it != m_contextRegistry.end()){
-		return it->second;
+	return it != m_contextRegistry.end() ? it->second : nullptr;
+}
+
+void SceneManager::UnregisterContext(SceneContext* ctx){
+	if(ctx == nullptr) return;
+
+	if(ctx->contextID != 0){
+		auto it = m_contextRegistry.find(ctx->contextID);
+		if(it != m_contextRegistry.end() && it->second == ctx){
+			m_contextRegistry.erase(it);
+		}
+		ctx->contextID = 0;
+		return;
 	}
-	return nullptr;
+
+	// 旧データや不整合状態に対するフォールバック。
+	for(auto it = m_contextRegistry.begin(); it != m_contextRegistry.end(); ++it){
+		if(it->second == ctx){
+			m_contextRegistry.erase(it);
+			break;
+		}
+	}
 }
 
 void SceneManager::AddScene(std::shared_ptr<Scene> scene) {

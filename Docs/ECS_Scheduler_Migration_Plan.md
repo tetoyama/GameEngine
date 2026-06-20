@@ -88,7 +88,7 @@ Scriptは当面 `MainThread` かつ `WorldExclusive` として扱う。
 - [x] Step時にSystemがActive Scene数だけ重複実行される問題
 - [x] `PhysicSystem::Start()` の空Sceneでの早期 `return`
 - [x] `PhysicSystem::FixedUpdate()` の未初期化 `PxTransform` 参照
-- [ ] SceneContext登録解除と寿命管理
+- [x] SceneContext登録解除と寿命管理
 - [ ] シーンロード時のEntity参照再マップ
 - [ ] Release Shader最適化設定の確認
 

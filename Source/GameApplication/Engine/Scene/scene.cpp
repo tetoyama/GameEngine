@@ -75,6 +75,11 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_SceneContext.component = m_componentRegistry.get();
 	m_SceneContext.prefab = m_prefabSystem.get();
 
+	// Context IDを初期化時に発行し、描画や参照側で安定して利用できるようにする。
+	if(m_SceneManagerContext->sceneManager){
+		m_SceneManagerContext->sceneManager->GetIDFromContext(&m_SceneContext);
+	}
+
 	auto graphicsContext = Renderer->GetGraphicsContext();
 
 	graphicsContext->SetDepthMode(DepthMode::Write);
@@ -98,23 +103,46 @@ void Scene::Draw(){
 }
 
 void Scene::Shutdown(){
-	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を終了中...").c_str());
+	// 二重Shutdownを安全に無視する。
+	if(!m_SceneManagerContext) return;
 
-	if(m_SceneManagerContext->editor){
-		auto hierarchy = m_SceneManagerContext->editor->GetUI<Hierarchy>();
+	SceneManagerContext* managerContext = m_SceneManagerContext;
+	if(managerContext->debug){
+		managerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を終了中...").c_str());
+	}
+
+	if(managerContext->editor){
+		auto hierarchy = managerContext->editor->GetUI<Hierarchy>();
 		if(hierarchy && hierarchy->sceneContext == &m_SceneContext){
 			hierarchy->sceneContext = nullptr;
 			hierarchy->selectedEntity = 0;
 		}
 	}
 
+	// Registryを破棄する前にContext IDを無効化する。
+	// これ以降、古いEntityRefやPick結果からこのSceneは解決されない。
+	if(managerContext->sceneManager){
+		managerContext->sceneManager->UnregisterContext(&m_SceneContext);
+	}
+
 	ResetAll();
 
-	// レジストリの終了処理
-	m_entityRegistry.reset();
+	// ComponentRegistryはEntityRegistryを参照するため、Component側を先に破棄する。
 	m_componentRegistry.reset();
 	m_prefabSystem.reset();
-	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を終了しました").c_str());
+	m_entityRegistry.reset();
+
+	// SceneContextが破棄済みRegistryを指し続けないように明示的に無効化する。
+	m_SceneContext.entity = nullptr;
+	m_SceneContext.component = nullptr;
+	m_SceneContext.system = nullptr;
+	m_SceneContext.prefab = nullptr;
+	m_SceneContext.manager = nullptr;
+
+	if(managerContext->debug){
+		managerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を終了しました").c_str());
+	}
+	m_SceneManagerContext = nullptr;
 }
 
 void Scene::BuildDefaultScene(){

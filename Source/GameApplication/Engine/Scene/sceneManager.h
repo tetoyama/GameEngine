@@ -84,6 +84,8 @@ public:
 	uint32_t GetIDFromContext(SceneContext* ctx);
 	// IDからポインタを安全に取得
 	SceneContext* GetContextFromID(uint32_t id);
+	// Scene破棄時に登録を解除し、古いIDからの解決を無効化する
+	void UnregisterContext(SceneContext* ctx);
 
 	void AddScene(std::shared_ptr<Scene> scene);
 	void LoadScene(std::shared_ptr<Scene> scene);

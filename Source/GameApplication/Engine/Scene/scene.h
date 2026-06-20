@@ -1,4 +1,4 @@
-﻿// =======================================================================
+// =======================================================================
 // 
 // scene.h
 // 
@@ -6,6 +6,7 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include <cstdint>
 #include <d3d11.h>
 #include <string>
 #include "Backends/myVector2.h"
@@ -26,6 +27,10 @@ struct SceneContext{
 
 	// マネージャコンテキスト
 	SceneManagerContext* manager = nullptr;
+
+	// SceneManagerが発行する、このSceneContext固有のID。
+	// 0は未登録または無効なContextを表す。
+	uint32_t contextID = 0;
 
 	// レジストリ
 	EntityRegistry* entity = nullptr;
