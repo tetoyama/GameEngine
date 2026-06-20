@@ -14,6 +14,7 @@
 #include "Registry/componentRegistry.h"
 
 #include <algorithm>
+#include <string>
 #include <vector>
 
 void CustomScriptSystem::ForEachScriptOrdered(
@@ -24,6 +25,7 @@ void CustomScriptSystem::ForEachScriptOrdered(
 		Entity entity{};
 		SceneContext* context = nullptr;
 		CustomScriptComponent* script = nullptr;
+		std::string name;
 	};
 
 	std::vector<Entry> entries;
@@ -35,7 +37,12 @@ void CustomScriptSystem::ForEachScriptOrdered(
 
 		for(auto& [entity, script] : scripts){
 			if(script){
-				entries.push_back({entity, context, script});
+				entries.push_back({
+					entity,
+					context,
+					script,
+					script->GetScriptName()
+				});
 			}
 		}
 	}
@@ -44,10 +51,18 @@ void CustomScriptSystem::ForEachScriptOrdered(
 		entries.begin(),
 		entries.end(),
 		[domain](const Entry& lhs, const Entry& rhs){
-			return IsScriptOrderEarlier(
-				lhs.script->GetExecutionOrder(domain),
-				rhs.script->GetExecutionOrder(domain)
-			);
+			const SystemTaskOrder lhsOrder =
+				lhs.script->GetExecutionOrder(domain);
+			const SystemTaskOrder rhsOrder =
+				rhs.script->GetExecutionOrder(domain);
+
+			if(IsScriptOrderEarlier(lhsOrder, rhsOrder)) return true;
+			if(IsScriptOrderEarlier(rhsOrder, lhsOrder)) return false;
+
+			if(lhs.entity.GetPackedValue() != rhs.entity.GetPackedValue()){
+				return lhs.entity.GetPackedValue() < rhs.entity.GetPackedValue();
+			}
+			return lhs.name < rhs.name;
 		}
 	);
 
