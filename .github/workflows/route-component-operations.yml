@@ -1,0 +1,176 @@
+name: Route Component Operations
+
+on:
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - .github/workflows/route-component-operations.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout work branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 0
+
+      - name: Patch Scene and Editor consumers
+        shell: python
+        run: |
+          from pathlib import Path
+
+          scene_path = Path("Source/GameApplication/Engine/Scene/scene.cpp")
+          scene = scene_path.read_text(encoding="utf-8-sig")
+          old_scene = '''\t\tfor(IComponent* comp : m_componentRegistry->GetAllComponentsOfEntitySorted(e)){
+          \t\t\tif(comp){
+          \t\t\t\t// 型情報を取得
+          \t\t\t\tstd::type_index ti(typeid(*comp));
+          \t\t\t\t// 型IDを取得
+          \t\t\t\tauto compId = m_componentRegistry->GetComponentIDByTypeIndex(ti);
+          \t\t\t\t// ID→名前マップを取得
+          \t\t\t\tconst auto& idToName = m_componentRegistry->GetComponentIDToNameMap();
+          \t\t\t\tauto it = idToName.find(compId);
+          \t\t\t\tif(it != idToName.end()){
+          \t\t\t\t\tYAML::Node compNode;
+          \t\t\t\t\tcompNode["Component"] = it->second;
+
+          \t\t\t\t\tYAML::Node encoded = comp->encode();
+          \t\t\t\t\t// encodedの内容をcompNodeにマージ
+          \t\t\t\t\tif(encoded && encoded.IsMap()){
+          \t\t\t\t\t\tfor(auto encIt = encoded.begin(); encIt != encoded.end(); ++encIt){
+          \t\t\t\t\t\t\tcompNode[encIt->first.as<std::string>()] = encIt->second;
+          \t\t\t\t\t\t}
+          \t\t\t\t\t}
+          \t\t\t\t\tif(compNode && compNode.IsMap()){
+          \t\t\t\t\t\tcomponentsNode.push_back(compNode);
+          \t\t\t\t\t}
+          \t\t\t\t}
+          \t\t\t}
+          \t\t}
+          '''
+          new_scene = '''\t\tfor(IComponent* comp : m_componentRegistry->GetAllComponentsOfEntitySorted(e)){
+          \t\t\tif(!comp) continue;
+
+          \t\t\tconst std::string componentName = m_componentRegistry->GetComponentName(comp);
+          \t\t\tif(componentName.empty()) continue;
+
+          \t\t\tYAML::Node compNode;
+          \t\t\tcompNode["Component"] = componentName;
+
+          \t\t\tYAML::Node encoded = m_componentRegistry->EncodeComponent(comp);
+          \t\t\tif(encoded && encoded.IsMap()){
+          \t\t\t\tfor(auto encIt = encoded.begin(); encIt != encoded.end(); ++encIt){
+          \t\t\t\t\tcompNode[encIt->first.as<std::string>()] = encIt->second;
+          \t\t\t\t}
+          \t\t\t}
+
+          \t\t\tif(compNode && compNode.IsMap()){
+          \t\t\t\tcomponentsNode.push_back(compNode);
+          \t\t\t}
+          \t\t}
+          '''
+          if scene.count(old_scene) != 1:
+              raise RuntimeError("Scene serialization block not found")
+          scene_path.write_text(scene.replace(old_scene, new_scene, 1), encoding="utf-8")
+
+          inspector_path = Path("Source/GameApplication/Engine/Editor/UI/Inspector.cpp")
+          inspector = inspector_path.read_text(encoding="utf-8-sig")
+          old_name = '''\tfor(auto Component : components){
+          \t\tstd::string compName = typeid(*Component).name();
+          '''
+          new_name = '''\tfor(auto Component : components){
+          \t\tstd::string compName = registry->GetComponentName(Component);
+          \t\tif(compName.empty()){
+          \t\t\tcompName = typeid(*Component).name();
+          \t\t}
+          '''
+          if inspector.count(old_name) != 1:
+              raise RuntimeError("Inspector component name block not found")
+          inspector = inspector.replace(old_name, new_name, 1)
+
+          old_inspector_call = '''\t\tif(open){
+          \t\t\tComponent->inspector(context);
+          \t\t}
+          '''
+          new_inspector_call = '''\t\tif(open){
+          \t\t\tregistry->InspectComponent(Component, context);
+          \t\t}
+          '''
+          if inspector.count(old_inspector_call) != 1:
+              raise RuntimeError("Inspector virtual call not found")
+          inspector_path.write_text(
+              inspector.replace(old_inspector_call, new_inspector_call, 1),
+              encoding="utf-8"
+          )
+
+          command_path = Path("Source/GameApplication/Engine/Editor/Command/ComponentCommand.h")
+          command = command_path.read_text(encoding="utf-8-sig")
+
+          old_snapshot_loop = '''\t\t\tfor (IComponent* comp : comps) {
+          \t\t\t\tstd::type_index ti(typeid(*comp));
+          \t\t\t\tComponentTypeID typeID = m_context->component->GetComponentIDByTypeIndex(ti);
+          \t\t\t\tauto nameIt = idToName.find(typeID);
+          \t\t\t\tif (nameIt != idToName.end() && nameIt->second == m_componentName) {
+          \t\t\t\t\tm_snapshot = comp->encode();
+          \t\t\t\t\tbreak;
+          \t\t\t\t}
+          \t\t\t}
+          '''
+          new_snapshot_loop = '''\t\t\tfor (IComponent* comp : comps) {
+          \t\t\t\tif (m_context->component->GetComponentName(comp) == m_componentName) {
+          \t\t\t\t\tm_snapshot = m_context->component->EncodeComponent(comp);
+          \t\t\t\t\tbreak;
+          \t\t\t\t}
+          \t\t\t}
+          '''
+          if command.count(old_snapshot_loop) != 2:
+              raise RuntimeError(
+                  f"Expected two component snapshot loops, found {command.count(old_snapshot_loop)}"
+              )
+          command = command.replace(old_snapshot_loop, new_snapshot_loop, 2)
+          command = command.replace(
+              '''\t\t\tconst auto& idToName = m_context->component->GetComponentIDToNameMap();
+          ''',
+              '',
+              2
+          )
+
+          old_remove_ctor = '''\t\t// 削除前にスナップショット取得
+          \t\tstd::type_index ti(typeid(*component));
+          \t\tm_typeID = context->component->GetComponentIDByTypeIndex(ti);
+          \t\tconst auto& idToName = context->component->GetComponentIDToNameMap();
+          \t\tauto nameIt = idToName.find(m_typeID);
+          \t\tif (nameIt != idToName.end()) {
+          \t\t\tm_componentName = nameIt->second;
+          \t\t}
+          \t\tm_snapshot = component->encode();
+          '''
+          new_remove_ctor = '''\t\t// 削除前にRegistryの型別Operationからスナップショットを取得する
+          \t\tm_typeID = context->component->GetComponentID(component);
+          \t\tm_componentName = context->component->GetComponentName(component);
+          \t\tm_snapshot = context->component->EncodeComponent(component);
+          '''
+          if command.count(old_remove_ctor) != 1:
+              raise RuntimeError("ComponentRemoveCommand constructor block not found")
+          command_path.write_text(
+              command.replace(old_remove_ctor, new_remove_ctor, 1),
+              encoding="utf-8"
+          )
+
+          Path(".github/workflows/route-component-operations.yml").unlink()
+
+      - name: Commit consumer migration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git diff --cached --check
+          git commit -m "refactor: route component consumers through operations"
+          git push origin HEAD:refactor/ecs-scheduler-foundation
