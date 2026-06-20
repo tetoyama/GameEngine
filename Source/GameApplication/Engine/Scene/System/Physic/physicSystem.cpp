@@ -1,4 +1,4 @@
-﻿// =======================================================================
+// =======================================================================
 // 
 // physicSystem.cpp
 // 
@@ -1011,7 +1011,7 @@ void PhysicSystem::Start(){
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();
 		const auto& colliderEntity = context->component->FindEntitiesWithComponent<ColliderComponent>();
-		if (colliderEntity.empty()) return;
+		if (colliderEntity.empty()) continue;
 		for (Entity entity : colliderEntity) {
 			auto Collider = context->component->GetComponent<ColliderComponent>(entity);
 
@@ -1258,14 +1258,31 @@ void PhysicSystem::FixedUpdate(float deltaTime) {
 		for (Entity entity : colliderEntity) {
 			auto Collider = context->component->GetComponent<ColliderComponent>(entity);
 			auto Transform = context->component->GetComponent<TransformComponent>(entity);
-			if (!Transform) continue;
+			if (!Collider || !Transform) continue;
 
-			physx::PxTransform TmpTransform;
-			if (Collider->pRigidbodyDynamic) TmpTransform = Collider->pRigidbodyDynamic->getGlobalPose();
-			if (Collider->pRigidbodyStatic) TmpTransform = Collider->pRigidbodyStatic->getGlobalPose();
+			// Actorがまだ生成されていないColliderは結果同期の対象外。
+			physx::PxRigidActor* actor = nullptr;
+			if (Collider->pRigidbodyDynamic) {
+				actor = Collider->pRigidbodyDynamic;
+			} else if (Collider->pRigidbodyStatic) {
+				actor = Collider->pRigidbodyStatic;
+			}
 
-			Transform->position = Vector3(TmpTransform.p.x, TmpTransform.p.y, TmpTransform.p.z);
-			Transform->SetRotation(DirectX::XMFLOAT4(TmpTransform.q.x, TmpTransform.q.y, TmpTransform.q.z, TmpTransform.q.w));
+			if (!actor) continue;
+
+			const physx::PxTransform tmpTransform = actor->getGlobalPose();
+
+			Transform->position = Vector3(
+				tmpTransform.p.x,
+				tmpTransform.p.y,
+				tmpTransform.p.z
+			);
+			Transform->SetRotation(DirectX::XMFLOAT4(
+				tmpTransform.q.x,
+				tmpTransform.q.y,
+				tmpTransform.q.z,
+				tmpTransform.q.w
+			));
 		}
 	}
 }

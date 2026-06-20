@@ -159,14 +159,21 @@ void SceneManager::Update(float deltaTime){
 				systemRegistry->StartAll();
 			}
 
+			// Scene固有処理は各Sceneに対して実行する。
 			for (auto& [name, scene] : m_activeScenes) {
-
 				scene->Update(deltaTime);
-				systemRegistry->UpdateAll(deltaTime);
-
-				scene->FixedUpdate(1.0f / TARGET_FPS);
-				systemRegistry->FixedUpdateAll(1.0f / TARGET_FPS);
 			}
+
+			// System側が全Active Sceneを処理するため、Sceneループ外で一度だけ実行する。
+			systemRegistry->UpdateAll(deltaTime);
+
+			const float fixedDeltaTime = 1.0f / TARGET_FPS;
+			for (auto& [name, scene] : m_activeScenes) {
+				scene->FixedUpdate(fixedDeltaTime);
+			}
+
+			// FixedUpdate系Systemも1ステップにつき一度だけ実行する。
+			systemRegistry->FixedUpdateAll(fixedDeltaTime);
 
 			OldState = State;
 			State = SceneManagerState::Paused;
