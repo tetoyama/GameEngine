@@ -1,0 +1,141 @@
+name: Apply deterministic script ordering
+
+on:
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - .github/workflows/apply-script-ordering.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-script-ordering:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout work branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 0
+
+      - name: Apply script execution ordering
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def read(path: str) -> str:
+              return Path(path).read_text(encoding="utf-8-sig")
+
+          def write(path: str, text: str) -> None:
+              Path(path).write_text(text, encoding="utf-8")
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              text = read(path)
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f"Expected one match in {path}, found {count}")
+              write(path, text.replace(old, new, 1))
+
+          script_interface = "Source/GameApplication/Engine/Scene/Interface/IScriptComponent.h"
+          replace_once(
+              script_interface,
+              '#include <Scene/Reference/EntityRef.h>\n',
+              '#include <Scene/Reference/EntityRef.h>\n#include <System/Script/ScriptExecution.h>\n'
+          )
+          replace_once(
+              script_interface,
+              '    virtual const char* GetScriptName() const = 0;\n\n    // ----------------------------\n',
+              '''    virtual const char* GetScriptName() const = 0;\n\n    void SetExecutionOrder(\n        SystemTaskDomain domain,\n        SystemPhase phase,\n        int32_t priority\n    ) {\n        executionSettings.SetOrder(domain, phase, priority);\n    }\n\n    SystemTaskOrder GetExecutionOrder(SystemTaskDomain domain) const {\n        return executionSettings.GetOrder(domain);\n    }\n\n    void SetRegistrationOrder(uint64_t order) {\n        executionSettings.registrationOrder = order;\n    }\n\n    bool HasRegistrationOrder() const {\n        return executionSettings.registrationOrder != 0;\n    }\n\n    // ----------------------------\n'''
+          )
+          replace_once(
+              script_interface,
+              '    bool isInitialized = false;\n\n    // Editor/YAML 用キャッシュ\n',
+              '    ScriptExecutionSettings executionSettings;\n    bool isInitialized = false;\n\n    // Editor/YAML 用キャッシュ\n'
+          )
+
+          custom_script = "Source/GameApplication/Engine/Scene/Component/CustomScriptComponent.h"
+          replace_once(
+              custom_script,
+              '#include "DebugTools/ImGuiSystem.h"\n#include <string>\n',
+              '#include "DebugTools/ImGuiSystem.h"\n#include "../System/Script/ScriptExecution.h"\n#include <atomic>\n#include <cstdint>\n#include <string>\n'
+          )
+          replace_once(
+              custom_script,
+              '''\tCustomScriptComponent() = default;\n\tCustomScriptComponent(std::string name){\n\t\tscriptName = name;\n\t}\n''',
+              '''\tCustomScriptComponent(){\n\t\texecutionSettings.registrationOrder =\n\t\t\ts_nextRegistrationOrder.fetch_add(1, std::memory_order_relaxed);\n\t}\n\tCustomScriptComponent(std::string name): CustomScriptComponent(){\n\t\tscriptName = name;\n\t}\n'''
+          )
+          replace_once(
+              custom_script,
+              '''\tconst std::string& GetScriptName() const{\n\t\treturn scriptName;\n\t}\n\n\tbool IsInitialized() const{\n''',
+              '''\tconst std::string& GetScriptName() const{\n\t\treturn scriptName;\n\t}\n\n\tvoid SetExecutionOrder(\n\t\tSystemTaskDomain domain,\n\t\tSystemPhase phase,\n\t\tint32_t priority\n\t){\n\t\texecutionSettings.SetOrder(domain, phase, priority);\n\t}\n\n\tSystemTaskOrder GetExecutionOrder(SystemTaskDomain domain) const{\n\t\treturn executionSettings.GetOrder(domain);\n\t}\n\n\tbool IsInitialized() const{\n'''
+          )
+          replace_once(
+              custom_script,
+              '''protected:\n\tstd::string scriptName = "CustomScript";\n\tbool isInitialized = false; // 初期化フラグ\n\tEntityRef m_ref;\n\nprivate:\n\n};\n''',
+              '''protected:\n\tstd::string scriptName = "CustomScript";\n\tScriptExecutionSettings executionSettings;\n\tbool isInitialized = false; // 初期化フラグ\n\tEntityRef m_ref;\n\nprivate:\n\tinline static std::atomic<uint64_t> s_nextRegistrationOrder{1};\n};\n'''
+          )
+
+          script_system_h = "Source/GameApplication/Engine/Scene/System/Script/ScriptSystem.h"
+          replace_once(
+              script_system_h,
+              '''\tIScriptComponent* Create(const char* scriptName){\n\t\t// ここで「スクリプト側プロジェクト」に名前を投げる\n\t\treturn m_scriptBridge\n\t\t\t? m_scriptBridge(scriptName)\n\t\t\t: nullptr;\n\t}\n''',
+              '''\tIScriptComponent* Create(const char* scriptName){\n\t\tIScriptComponent* script = m_scriptBridge\n\t\t\t? m_scriptBridge(scriptName)\n\t\t\t: nullptr;\n\n\t\tif(script && !script->HasRegistrationOrder()){\n\t\t\tscript->SetRegistrationOrder(m_nextScriptRegistrationOrder++);\n\t\t}\n\t\treturn script;\n\t}\n'''
+          )
+          replace_once(
+              script_system_h,
+              '''\ttemplate<typename Func>\n\tvoid ForEachScript(Func&& func);\n''',
+              '''\ttemplate<typename Func>\n\tvoid ForEachScript(SystemTaskDomain domain, Func&& func);\n'''
+          )
+          replace_once(
+              script_system_h,
+              '''\tstd::function<void(void*)> m_setImGuiContextFunc = nullptr;\n\n\tHMODULE m_scriptModule = nullptr;\n''',
+              '''\tstd::function<void(void*)> m_setImGuiContextFunc = nullptr;\n\tuint64_t m_nextScriptRegistrationOrder = 1;\n\n\tHMODULE m_scriptModule = nullptr;\n'''
+          )
+
+          script_system_cpp = "Source/GameApplication/Engine/Scene/System/Script/ScriptSystem.cpp"
+          text = read(script_system_cpp)
+          text = text.replace('#include "Scene/Reference/EntityRef.h"\n', '#include "Scene/Reference/EntityRef.h"\n#include <algorithm>\n#include <vector>\n')
+          text = text.replace('ForEachScript([](IScriptComponent* script){', 'ForEachScript(SystemTaskDomain::Frame, [](IScriptComponent* script){', 2)
+          text = text.replace('ForEachScript([deltaTime](IScriptComponent* script){', 'ForEachScript(SystemTaskDomain::Frame, [deltaTime](IScriptComponent* script){', 1)
+          text = text.replace('ForEachScript([fixedDeltaTime](IScriptComponent* script){', 'ForEachScript(SystemTaskDomain::Fixed, [fixedDeltaTime](IScriptComponent* script){', 1)
+          text = text.replace('ForEachScript([deltaTime](IScriptComponent* script){', 'ForEachScript(SystemTaskDomain::Editor, [deltaTime](IScriptComponent* script){', 1)
+          text = text.replace('ForEachScript([](IScriptComponent* script){', 'ForEachScript(SystemTaskDomain::Render, [](IScriptComponent* script){', 1)
+          old_template = '''template<typename Func>\nvoid ScriptSystem::ForEachScript(Func&& func){\n\tfor(auto& [_, scene] : m_context->sceneManager->GetActiveScenes()){\n\t\tauto* ctx = scene->GetSceneContext();\n\t\tauto entities =\n\t\t\tctx->component->FindEntitiesWithComponent<ScriptComponent>();\n\n\t\tfor(Entity e : entities){\n\t\t\tauto* sc = ctx->component->GetComponent<ScriptComponent>(e);\n\t\t\tif(!sc) continue;\n\n\t\t\tfor(auto& [_, script] : sc->scripts){\n\t\t\t\tif(!script) continue;\n\n\t\t\t\tscript->ref = EntityRef(e, ctx);\n\n\t\t\t\tfunc(script);\n\t\t\t}\n\t\t}\n\t}\n}\n'''
+          new_template = '''template<typename Func>\nvoid ScriptSystem::ForEachScript(SystemTaskDomain domain, Func&& func){\n\tstruct Entry {\n\t\tIScriptComponent* script = nullptr;\n\t};\n\n\tstd::vector<Entry> entries;\n\tfor(auto& [_, scene] : m_context->sceneManager->GetActiveScenes()){\n\t\tauto* ctx = scene->GetSceneContext();\n\t\tauto entities =\n\t\t\tctx->component->FindEntitiesWithComponent<ScriptComponent>();\n\n\t\tfor(Entity entity : entities){\n\t\t\tauto* component = ctx->component->GetComponent<ScriptComponent>(entity);\n\t\t\tif(!component) continue;\n\n\t\t\tfor(auto& [_, script] : component->scripts){\n\t\t\t\tif(!script) continue;\n\t\t\t\tscript->ref = EntityRef(entity, ctx);\n\t\t\t\tentries.push_back({script});\n\t\t\t}\n\t\t}\n\t}\n\n\tstd::sort(entries.begin(), entries.end(), [domain](const Entry& lhs, const Entry& rhs){\n\t\treturn IsScriptOrderEarlier(\n\t\t\tlhs.script->GetExecutionOrder(domain),\n\t\t\trhs.script->GetExecutionOrder(domain)\n\t\t);\n\t});\n\n\tfor(const Entry& entry : entries){\n\t\tfunc(entry.script);\n\t}\n}\n'''
+          if text.count(old_template) != 1:
+              raise RuntimeError("ScriptSystem template body not found")
+          write(script_system_cpp, text.replace(old_template, new_template, 1))
+
+          custom_system_h = "Source/GameApplication/Engine/Scene/System/Script/CustomScriptSystem.h"
+          replace_once(
+              custom_system_h,
+              'struct SceneManagerContext;\n',
+              'struct SceneManagerContext;\nclass CustomScriptComponent;\n'
+          )
+          replace_once(
+              custom_system_h,
+              '''private:\n\tSceneManagerContext* m_context;\n};\n''',
+              '''private:\n\tvoid ForEachScriptOrdered(\n\t\tSystemTaskDomain domain,\n\t\tconst std::function<void(CustomScriptComponent*)>& callback\n\t);\n\n\tSceneManagerContext* m_context;\n};\n'''
+          )
+
+          custom_system_cpp = "Source/GameApplication/Engine/Scene/System/Script/CustomScriptSystem.cpp"
+          write(custom_system_cpp, '''// =======================================================================\n// \n// CustomScriptSystem.cpp\n// \n// =======================================================================\n#include "CustomScriptSystem.h"\n#include "Component/CustomScriptComponent.h"\n\n#include "Scene.h"\n#include "sceneManager.h"\n#include "DebugTools/debugSystem.h"\n\n#include "Registry/entityRegistry.h"\n#include "Registry/componentRegistry.h"\n\n#include <algorithm>\n#include <vector>\n\nvoid CustomScriptSystem::ForEachScriptOrdered(\n\tSystemTaskDomain domain,\n\tconst std::function<void(CustomScriptComponent*)>& callback\n){\n\tstruct Entry {\n\t\tEntity entity{};\n\t\tSceneContext* context = nullptr;\n\t\tCustomScriptComponent* script = nullptr;\n\t};\n\n\tstd::vector<Entry> entries;\n\tfor(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){\n\t\tauto* context = scene->GetSceneContext();\n\t\tauto scripts = context->component->GetAllBaseComponents<CustomScriptComponent>();\n\t\tfor(auto& [entity, script] : scripts){\n\t\t\tif(script){\n\t\t\t\tentries.push_back({entity, context, script});\n\t\t\t}\n\t\t}\n\t}\n\n\tstd::sort(entries.begin(), entries.end(), [domain](const Entry& lhs, const Entry& rhs){\n\t\treturn IsScriptOrderEarlier(\n\t\t\tlhs.script->GetExecutionOrder(domain),\n\t\t\trhs.script->GetExecutionOrder(domain)\n\t\t);\n\t});\n\n\tfor(const Entry& entry : entries){\n\t\tentry.script->SetContext(entry.context, entry.entity);\n\t\tcallback(entry.script);\n\t}\n}\n\nvoid CustomScriptSystem::Initialize(){\n\tForEachScriptOrdered(SystemTaskDomain::Frame, [](CustomScriptComponent* script){\n\t\tif(!script->IsInitialized()){\n\t\t\tscript->Initialize();\n\t\t}\n\t});\n}\n\nvoid CustomScriptSystem::Finalize(){\n\tForEachScriptOrdered(SystemTaskDomain::Frame, [](CustomScriptComponent* script){\n\t\tif(!script->IsInitialized()){\n\t\t\tscript->Initialize();\n\t\t}\n\t\tscript->Stop();\n\t});\n}\n\nvoid CustomScriptSystem::Start(){\n\tForEachScriptOrdered(SystemTaskDomain::Frame, [](CustomScriptComponent* script){\n\t\tif(!script->IsInitialized()){\n\t\t\tscript->Initialize();\n\t\t}\n\t\tscript->Start();\n\t});\n}\n\nvoid CustomScriptSystem::Update(float deltaTime){\n\tForEachScriptOrdered(SystemTaskDomain::Frame, [deltaTime](CustomScriptComponent* script){\n\t\tif(!script->IsInitialized()){\n\t\t\tscript->Initialize();\n\t\t\tscript->Start();\n\t\t}\n\t\tscript->Update(deltaTime);\n\t});\n}\n\nvoid CustomScriptSystem::FixedUpdate(float fixedDeltaTime){\n\tForEachScriptOrdered(SystemTaskDomain::Fixed, [fixedDeltaTime](CustomScriptComponent* script){\n\t\tif(!script->IsInitialized()){\n\t\t\tscript->Initialize();\n\t\t}\n\t\tscript->FixedUpdate(fixedDeltaTime);\n\t});\n}\n\nvoid CustomScriptSystem::Draw(){\n\tForEachScriptOrdered(SystemTaskDomain::Render, [](CustomScriptComponent* script){\n\t\tif(!script->IsInitialized()){\n\t\t\tscript->Initialize();\n\t\t}\n\t\tscript->Draw();\n\t});\n}\n\nvoid CustomScriptSystem::EditorUpdate(float deltaTime){\n\tForEachScriptOrdered(SystemTaskDomain::Editor, [deltaTime](CustomScriptComponent* script){\n\t\tif(!script->IsInitialized()){\n\t\t\tscript->Initialize();\n\t\t}\n\t\tscript->EditorUpdate(deltaTime);\n\t});\n}\n''')
+
+          plan = "Docs/ECS_Scheduler_Migration_Plan.md"
+          text = read(plan)
+          text = text.replace('- [ ] ScriptへPhase / Priority / RegistrationOrderを追加', '- [x] ScriptへPhase / Priority / RegistrationOrderを追加')
+          text = text.replace('- [ ] ScriptをMainThread / WorldExclusiveで直列実行', '- [x] ScriptをMainThread / WorldExclusiveで直列実行')
+          write(plan, text)
+
+          Path(".github/workflows/apply-script-ordering.yml").unlink()
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git diff --cached --check
+          git commit -m "refactor: make script execution order deterministic"
+          git push origin HEAD:refactor/ecs-scheduler-foundation
