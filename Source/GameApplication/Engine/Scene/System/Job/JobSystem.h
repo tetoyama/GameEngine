@@ -20,6 +20,7 @@
 #include <memory>
 #include <mutex>
 #include <new>
+#include <stdexcept>
 #include <thread>
 #include <type_traits>
 #include <utility>
@@ -229,6 +230,17 @@ public:
 				: size_t{1};
 		}
 
+		assert(m_pendingJobs.load(std::memory_order_acquire) == 0);
+		assert(m_availableJobs.load(std::memory_order_acquire) == 0);
+		m_nextSubmission.store(0, std::memory_order_release);
+		m_nextSteal.store(0, std::memory_order_release);
+		m_mainContext.scratch.Reset();
+		m_mainContext.commands.Clear();
+		{
+			std::scoped_lock exceptionLock(m_exceptionMutex);
+			m_unhandledException = nullptr;
+		}
+
 		m_workers.clear();
 		m_workers.reserve(workerCount);
 		for(size_t index = 0; index < workerCount; ++index) {
@@ -256,7 +268,12 @@ public:
 		m_accepting.store(false, std::memory_order_release);
 		lifecycleLock.unlock();
 
-		WaitIdle();
+		std::exception_ptr waitException;
+		try {
+			WaitIdle();
+		} catch(...) {
+			waitException = std::current_exception();
+		}
 
 		lifecycleLock.lock();
 		m_stopping.store(true, std::memory_order_release);
@@ -271,6 +288,11 @@ public:
 		m_running.store(false, std::memory_order_release);
 		m_stopping.store(false, std::memory_order_release);
 		m_ownerThread = {};
+		lifecycleLock.unlock();
+
+		if(waitException) {
+			std::rethrow_exception(waitException);
+		}
 	}
 
 	bool IsRunning() const noexcept {
@@ -351,6 +373,13 @@ public:
 		Function&& function
 	) {
 		if(begin >= end) return;
+		if(!IsRunning()) {
+			for(size_t index = begin; index < end; ++index) {
+				function(index);
+			}
+			return;
+		}
+
 		minimumBatchSize = (std::max)(minimumBatchSize, size_t{1});
 
 		const size_t itemCount = end - begin;
@@ -418,17 +447,16 @@ private:
 		std::shared_ptr<JobSystemDetail::FenceState> fence
 	) {
 		if(!function) return;
-		if(!m_accepting.load(std::memory_order_acquire)) {
+		if(!m_accepting.load(std::memory_order_acquire) || m_workers.empty()) {
 			throw std::runtime_error("JobSystem is not accepting jobs.");
 		}
 
 		if(fence) {
-			const uint32_t previous =
-				fence->pending.fetch_add(1, std::memory_order_acq_rel);
-			if(previous == 0) {
-				std::scoped_lock lock(fence->mutex);
+			std::scoped_lock lock(fence->mutex);
+			if(fence->pending.load(std::memory_order_acquire) == 0) {
 				fence->exception = nullptr;
 			}
+			fence->pending.fetch_add(1, std::memory_order_acq_rel);
 		}
 
 		m_pendingJobs.fetch_add(1, std::memory_order_acq_rel);
