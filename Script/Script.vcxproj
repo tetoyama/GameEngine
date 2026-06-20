@@ -122,7 +122,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)../Source;$(ProjectDir)../Source/GameApplication;$(ProjectDir)../Source/GameApplication/Service;$(ProjectDir)../Source/GameApplication/Backends;$(ProjectDir)../Source/GameApplication/Engine;$(ProjectDir)../Source/GameApplication/Backends/LLVM/include;$(ProjectDir)../Source/GameApplication/Engine/Scene</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <SupportJustMyCode>false</SupportJustMyCode>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -147,7 +147,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)../Source;$(ProjectDir)../Source/GameApplication;$(ProjectDir)../Source/GameApplication/Service;$(ProjectDir)../Source/GameApplication/Backends;$(ProjectDir)../Source/GameApplication/Engine;$(ProjectDir)../Source/GameApplication/Backends/LLVM/include;$(ProjectDir)../Source/GameApplication/Engine/Scene</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
     </ClCompile>
     <Link>
