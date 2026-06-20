@@ -267,12 +267,14 @@ private:
 
 		const auto& idToName = m_context->component->GetComponentIDToNameMap();
 		auto comps = m_context->component->GetAllComponentsOfEntitySorted(src);
-		for (IComponent* comp : comps) {
-			ComponentTypeID tid = m_context->component->GetComponentIDByTypeIndex(std::type_index(typeid(*comp)));
-			if (tid == static_cast<ComponentTypeID>(-1)) continue;
-			auto nameIt = idToName.find(tid);
-			if (nameIt == idToName.end()) continue;
-			m_context->component->CreateFromYAML(nameIt->second, newEntity, comp->encode());
+		for(ComponentView component : m_context->component->GetAllComponentsOfEntitySorted(src)){
+			const std::string componentName = m_context->component->GetComponentName(component);
+			if(componentName.empty()) continue;
+			m_context->component->CreateFromYAML(
+				componentName,
+				newEntity,
+				m_context->component->EncodeComponent(component)
+			);
 		}
 
 		auto* newT = m_context->component->GetComponent<TransformComponent>(newEntity);
@@ -350,12 +352,13 @@ public:
 
 		// Redo 用スナップショット
 		const auto& idToName = m_context->component->GetComponentIDToNameMap();
-		for (IComponent* comp : m_context->component->GetAllComponentsOfEntitySorted(m_newParent)) {
-			std::type_index ti(typeid(*comp));
-			ComponentTypeID tid = m_context->component->GetComponentIDByTypeIndex(ti);
-			auto nameIt = idToName.find(tid);
-			if (nameIt != idToName.end())
-				m_snapshot.emplace_back(nameIt->second, comp->encode());
+		for(ComponentView component : m_context->component->GetAllComponentsOfEntitySorted(m_newParent)){
+			const std::string componentName = m_context->component->GetComponentName(component);
+			if(componentName.empty()) continue;
+			m_snapshot.emplace_back(
+				componentName,
+				m_context->component->EncodeComponent(component)
+			);
 		}
 
 		if (m_onCreated) m_onCreated(m_newParent, m_context);

@@ -93,30 +93,22 @@ bool PrefabSystem::SavePrefab(EntityRef ref, const std::string& filePath) {
 
 		// コンポーネントをエンコード
 		YAML::Node componentsSeq = YAML::Node(YAML::NodeType::Sequence);
-		for (IComponent* comp : context->component->GetAllComponentsOfEntitySorted(e)) {
-			if (!comp) continue;
+		for(ComponentView component : context->component->GetAllComponentsOfEntitySorted(e)){
+			const std::string componentName = context->component->GetComponentName(component);
+			if(componentName.empty()) continue;
 
-			std::type_index ti(typeid(*comp));
-			ComponentTypeID compId = context->component->GetComponentIDByTypeIndex(ti);
-			const auto& idToName = context->component->GetComponentIDToNameMap();
-			auto it = idToName.find(compId);
-			if (it == idToName.end()) continue;
-
-			YAML::Node compNode;
-			compNode["Component"] = it->second;
-
-			YAML::Node encoded = comp->encode();
-			// TransformComponent の Parent フィールドは PrefabParent で管理するため
-			// エンコード済みノードでは常に 0（親なし）に上書きする
-			if (dynamic_cast<TransformComponent*>(comp)) {
+			YAML::Node componentNode;
+			componentNode["Component"] = componentName;
+			YAML::Node encoded = context->component->EncodeComponent(component);
+			if(component.typeID == ComponentType::Get<TransformComponent>()){
 				encoded["Parent"] = 0;
 			}
-			if (encoded && encoded.IsMap()) {
-				for (auto kv = encoded.begin(); kv != encoded.end(); ++kv) {
-					compNode[kv->first.as<std::string>()] = kv->second;
+			if(encoded && encoded.IsMap()){
+				for(auto iterator = encoded.begin(); iterator != encoded.end(); ++iterator){
+					componentNode[iterator->first.as<std::string>()] = iterator->second;
 				}
 			}
-			componentsSeq.push_back(compNode);
+			componentsSeq.push_back(componentNode);
 		}
 		entityNode["Components"] = componentsSeq;
 		entitiesSeq.push_back(entityNode);

@@ -368,31 +368,19 @@ void Scene::Save(){
 		YAML::Node entityNode;
 		entityNode["Entity"] = static_cast<int>(e);
 		YAML::Node componentsNode = YAML::Node(YAML::NodeType::Sequence);
-		for (IComponent* comp : m_componentRegistry->GetAllComponentsOfEntitySorted(e)) {
-			if (comp) {
-				// 型情報を取得
-				std::type_index ti(typeid(*comp));
-				// 型IDを取得
-				auto compId = m_componentRegistry->GetComponentIDByTypeIndex(ti);
-				// ID→名前マップを取得
-				const auto& idToName = m_componentRegistry->GetComponentIDToNameMap();
-				auto it = idToName.find(compId);
-				if(it != idToName.end()){
-					YAML::Node compNode;
-					compNode["Component"] = it->second;
+		for(ComponentView component : m_componentRegistry->GetAllComponentsOfEntitySorted(e)){
+			const std::string componentName = m_componentRegistry->GetComponentName(component);
+			if(componentName.empty()) continue;
 
-					YAML::Node encoded = comp->encode();
-					// encodedの内容をcompNodeにマージ
-					if(encoded && encoded.IsMap()){
-						for(auto encIt = encoded.begin(); encIt != encoded.end(); ++encIt){
-							compNode[encIt->first.as<std::string>()] = encIt->second;
-						}
-					}
-					if(compNode && compNode.IsMap()){
-						componentsNode.push_back(compNode);
-					}
+			YAML::Node componentNode;
+			componentNode["Component"] = componentName;
+			const YAML::Node encoded = m_componentRegistry->EncodeComponent(component);
+			if(encoded && encoded.IsMap()){
+				for(auto iterator = encoded.begin(); iterator != encoded.end(); ++iterator){
+					componentNode[iterator->first.as<std::string>()] = iterator->second;
 				}
 			}
+			componentsNode.push_back(componentNode);
 		}
 
 		entityNode["Components"] = componentsNode;
@@ -429,31 +417,19 @@ void Scene::TempSave(){
 		YAML::Node entityNode;
 		entityNode["Entity"] = static_cast<int>(e);
 		YAML::Node componentsNode = YAML::Node(YAML::NodeType::Sequence);
-		for(IComponent* comp : m_componentRegistry->GetAllComponentsOfEntitySorted(e)){
-			if(comp){
-				// 型情報を取得
-				std::type_index ti(typeid(*comp));
-				// 型IDを取得
-				auto compId = m_componentRegistry->GetComponentIDByTypeIndex(ti);
-				// ID→名前マップを取得
-				const auto& idToName = m_componentRegistry->GetComponentIDToNameMap();
-				auto it = idToName.find(compId);
-				if(it != idToName.end()){
-					YAML::Node compNode;
-					compNode["Component"] = it->second;
+		for(ComponentView component : m_componentRegistry->GetAllComponentsOfEntitySorted(e)){
+			const std::string componentName = m_componentRegistry->GetComponentName(component);
+			if(componentName.empty()) continue;
 
-					YAML::Node encoded = comp->encode();
-					// encodedの内容をcompNodeにマージ
-					if(encoded && encoded.IsMap()){
-						for(auto encIt = encoded.begin(); encIt != encoded.end(); ++encIt){
-							compNode[encIt->first.as<std::string>()] = encIt->second;
-						}
-					}
-					if(compNode && compNode.IsMap()){
-						componentsNode.push_back(compNode);
-					}
+			YAML::Node componentNode;
+			componentNode["Component"] = componentName;
+			const YAML::Node encoded = m_componentRegistry->EncodeComponent(component);
+			if(encoded && encoded.IsMap()){
+				for(auto iterator = encoded.begin(); iterator != encoded.end(); ++iterator){
+					componentNode[iterator->first.as<std::string>()] = iterator->second;
 				}
 			}
+			componentsNode.push_back(componentNode);
 		}
 
 		entityNode["Components"] = componentsNode;
