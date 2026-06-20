@@ -22,6 +22,9 @@ class ComponentRegistry;
 class SystemRegistry;
 class PrefabSystem;
 
+struct SceneContext;
+using SceneContextResolver = SceneContext* (*)(void* owner, uint32_t contextID);
+
 // シーン内の各レジストリ・マネージャへのポインタをまとめたコンテキスト
 struct SceneContext{
 
@@ -31,6 +34,11 @@ struct SceneContext{
 	// SceneManagerが発行する、このSceneContext固有のID。
 	// 0は未登録または無効なContextを表す。
 	uint32_t contextID = 0;
+
+	// EntityRefなどが外部モジュールからContextを解決するためのコールバック。
+	// SceneManagerの非inlineメソッドを直接呼ばないため、DLL間の未解決シンボルを防ぐ。
+	void* resolverOwner = nullptr;
+	SceneContextResolver resolver = nullptr;
 
 	// レジストリ
 	EntityRegistry* entity = nullptr;

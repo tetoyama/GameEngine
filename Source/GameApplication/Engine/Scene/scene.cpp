@@ -76,6 +76,15 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_SceneContext.component = m_componentRegistry.get();
 	m_SceneContext.prefab = m_prefabSystem.get();
 
+	// EntityRefはこの関数ポインタ経由でContext IDを解決する。
+	// 呼び出し先はGameEngine側に置かれるため、Script DLLはSceneManager.cppを
+	// 直接リンクする必要がない。
+	m_SceneContext.resolverOwner = m_SceneManagerContext->sceneManager;
+	m_SceneContext.resolver = [](void* owner, uint32_t contextID) -> SceneContext* {
+		if(!owner || contextID == 0) return nullptr;
+		return static_cast<SceneManager*>(owner)->GetContextFromID(contextID);
+	};
+
 	// Context IDを初期化時に発行し、描画や参照側で安定して利用できるようにする。
 	if(m_SceneManagerContext->sceneManager){
 		m_SceneManagerContext->sceneManager->GetIDFromContext(&m_SceneContext);
@@ -138,6 +147,8 @@ void Scene::Shutdown(){
 	m_SceneContext.component = nullptr;
 	m_SceneContext.system = nullptr;
 	m_SceneContext.prefab = nullptr;
+	m_SceneContext.resolverOwner = nullptr;
+	m_SceneContext.resolver = nullptr;
 	m_SceneContext.manager = nullptr;
 
 	if(managerContext->debug){
