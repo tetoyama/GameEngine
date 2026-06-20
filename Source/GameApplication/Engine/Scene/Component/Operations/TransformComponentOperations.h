@@ -2,6 +2,8 @@
 //
 // TransformComponentOperations.h
 //
+// TransformComponent定義後にincludeする実装ヘッダー。
+//
 // =======================================================================
 #pragma once
 
@@ -11,8 +13,6 @@
 
 #include "Backends/ImGuiFunc.h"
 #include "Backends/YAMLConverters.h"
-#include "Scene/Component/transformComponent.h"
-#include "Scene/Registry/componentRegistry.h"
 #include "Scene/Registry/entityRegistry.h"
 #include "Scene/scene.h"
 
@@ -30,7 +30,7 @@ inline YAML::Node Encode(const TransformComponent& transform){
 		rotation.w
 	};
 	node["Scale"] = transform.scale;
-	// 保存データ上の参照はSceneロード時に現在のgenerationへ再解決する。
+	// 保存データ上ではindexを保持し、Sceneロード時に現在のgenerationへ再解決する。
 	node["Parent"] = transform.parent.GetIndex();
 	return node;
 }
@@ -85,7 +85,7 @@ inline void Inspect(
 		transform.SetRotationEuler(rotationEuler);
 	}
 
-	// UI状態でありComponentデータではないため、Operations側に保持する。
+	// Inspector固有状態なのでComponentデータには含めない。
 	static bool isUniformScaleLocked = false;
 	ImGui::UndoCheckbox("##isUniformLocked", &isUniformScaleLocked);
 	if(ImGui::IsItemHovered()){
@@ -125,7 +125,7 @@ inline void Inspect(
 		if(parentIndex == 0){
 			transform.parent = {};
 		} else if(context && context->entity){
-			// 8byteのEntityへint*を書き込まず、現在のgenerationを安全に解決する。
+			// Entityはindex + generationなので、int*へのreinterpret書き込みは禁止する。
 			const Entity resolved = context->entity->Resolve(
 				static_cast<uint32_t>(parentIndex)
 			);
@@ -153,18 +153,20 @@ inline void Inspect(
 	ImGui::PopStyleVar();
 }
 
-inline void Register(ComponentRegistry& registry){
-	registry.SetComponentOperations<TransformComponent>(
-		[](const TransformComponent& transform){
-			return Encode(transform);
-		},
-		[](TransformComponent& transform, SceneContext* context, const YAML::Node& node){
-			return Decode(transform, context, node);
-		},
-		[](TransformComponent& transform, SceneContext* context){
-			Inspect(transform, context);
-		}
-	);
+} // namespace TransformComponentOperations
+
+// ComponentRegistryの既存virtual経路を維持する薄い互換ラッパー。
+inline YAML::Node TransformComponent::encode(){
+	return TransformComponentOperations::Encode(*this);
 }
 
-} // namespace TransformComponentOperations
+inline bool TransformComponent::decode(
+	SceneContext* context,
+	const YAML::Node& node
+){
+	return TransformComponentOperations::Decode(*this, context, node);
+}
+
+inline void TransformComponent::inspector(SceneContext* context){
+	TransformComponentOperations::Inspect(*this, context);
+}
