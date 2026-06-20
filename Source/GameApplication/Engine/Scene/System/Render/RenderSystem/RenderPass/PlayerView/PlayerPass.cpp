@@ -25,6 +25,7 @@
 #include "Shader/commonDefine.h"
 
 #include "Graphics/graphicsContext.h"
+#include "Graphics/mainRenderer.h"
 #include "Registry/systemRegistry.h"
 
 #include "Component/CameraComponent.h"
