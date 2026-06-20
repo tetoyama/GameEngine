@@ -14,45 +14,9 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  migrate-camera-header:
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout work branch
-        uses: actions/checkout@v4
-        with:
-          ref: refactor/ecs-scheduler-foundation
-          fetch-depth: 0
-
-      - name: Replace camera component header
-        shell: python
-        run: |
-          from pathlib import Path
-          import base64
-
-          encoded = "Ly8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KLy8KLy8gY2FtZXJhQ29tcG9uZW50LmgKLy8KLy8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KI3ByYWdtYSBvbmNlCgojaW5jbHVkZSA8bWVtb3J5PgojaW5jbHVkZSA8c3RyaW5nPgojaW5jbHVkZSA8dmVjdG9yPgoKI2luY2x1ZGUgPGQzZDExLmg+CiNpbmNsdWRlIDxEaXJlY3RYTWF0aC5oPgojaW5jbHVkZSA8d3JsL2NsaWVudC5oPgoKI2luY2x1ZGUgIkludGVyZmFjZS9JQ29tcG9uZW50LmgiCiNpbmNsdWRlICJCYWNrZW5kcy9teVZlY3RvcjIuaCIKI2luY2x1ZGUgIkJhY2tlbmRzL215VmVjdG9yMy5oIgojaW5jbHVkZSAiUmVzb3VyY2VzL0RhdGEvdmVydGV4U2hhZGVyRGF0YS5oIgojaW5jbHVkZSAiUmVzb3VyY2VzL0RhdGEvcGl4ZWxTaGFkZXJEYXRhLmgiCgovLyDjg53jgrnjg4jjgqjjg5Xjgqfjgq/jg4hHcmFwaOOBruioreWumuOBqOOAgeenu+ihjOacn+mWk+S4reOBrkQzRDExIFJ1bnRpbWXos4fmupDjgpLkv53mjIHjgZnjgovjgIIKLy8gR1BV6LOH5rqQ5omA5pyJ5qip44GvU3RlcCAxN+OBrlJlbmRlcldvcmxk56e76KGM44GnUG9zdEVmZmVjdFBhc3PlgbTjgbjnp7vjgZnjgIIKc3RydWN0IENhbWVyYVBvc3RFZmZlY3QgewoJc3RkOjpzaGFyZWRfcHRyPFBpeGVsU2hhZGVyRGF0YT4gcHM7CglzdGQ6OnNoYXJlZF9wdHI8VmVydGV4U2hhZGVyRGF0YT4gdnM7CglzdGQ6OnN0cmluZyBuYW1lOwoJYm9vbCBlbmFibGVkID0gdHJ1ZTsKCVZlY3RvcjIgbm9kZVBvc3stMS4wZiwgLTEuMGZ9OwoJRGlyZWN0WDo6WE1GTE9BVDQgUGFyYW17MC4wZiwgMC4wZiwgMC4wZiwgMC4wZn07Cglib29sIGluaXRpYWxpemVkID0gZmFsc2U7CglzdGQ6OnZlY3RvcjxpbnQ+IGlucHV0UGluczsKCWludCBvdXRwdXRQaW4gPSAtMTsKCWZsb2F0IHJlc29sdXRpb25TY2FsZSA9IDEuMGY7CglpbnQgbWlwTGV2ZWxzID0gMTsKCglNaWNyb3NvZnQ6OldSTDo6Q29tUHRyPElEM0QxMVRleHR1cmUyRD4gdGV4OwoJTWljcm9zb2Z0OjpXUkw6OkNvbVB0cjxJRDNEMTFSZW5kZXJUYXJnZXRWaWV3PiBydHY7CglNaWNyb3NvZnQ6OldSTDo6Q29tUHRyPElEM0QxMVNoYWRlclJlc291cmNlVmlldz4gc3J2OwoJVmVjdG9yMiByZXNvbHV0aW9uezEyODAuMGYsIDcyMC4wZn07CgoJdm9pZCBDcmVhdGVUZXh0dXJlKElEM0QxMURldmljZSogZGV2aWNlLCBjb25zdCBWZWN0b3IyJiBzY3JlZW5TaXplKTsKCXZvaWQgUmVzaXplVGV4dHVyZShJRDNEMTFEZXZpY2UqIGRldmljZSwgY29uc3QgVmVjdG9yMiYgc2NyZWVuU2l6ZSk7Cgl2b2lkIENsZWFyKElEM0QxMURldmljZUNvbnRleHQqIGNvbnRleHQsIGNvbnN0IGZsb2F0IGNsZWFyQ29sb3JbNF0pOwp9OwoKc3RydWN0IENhbWVyYVBvc3RFZmZlY3RMaW5rIHsKCWludCBpZCA9IC0xOwoJaW50IHN0YXJ0Tm9kZSA9IC0xOwoJaW50IGVuZE5vZGUgPSAtMTsKCWludCBzdGFydEF0dHIgPSAtMTsKCWludCBlbmRBdHRyID0gLTE7Cn07CgovLyDjgqvjg6Hjg6noqK3lrprjgajjg53jgrnjg4jjgqjjg5Xjgqfjgq/jg4hHcmFwaOeKtuaFi+OCkuS/neaMgeOBmeOCi0NvbXBvbmVudOOAggovLyBZQU1M44O7R3JhcGjoqIjnrpfjg7tJbnNwZWN0b3Llrp/oo4Xjga9PcGVyYXRpb25z6YWN5LiL44G45YiG6Zui44GZ44KL44CCCmNsYXNzIENhbWVyYUNvbXBvbmVudDogcHVibGljIElDb21wb25lbnQgewpwdWJsaWM6CgkvLyDkupLmj5vnlKjjga7pnZ7miYDmnInlj4LnhafjgILlsIbmnaXjga9PcGVyYXRpb25z5ZG85Ye65pmC44Gu5byV5pWw44Gg44GR44Gr6ZmQ5a6a44GZ44KL44CCCglTY2VuZUNvbnRleHQqIGNvbnRleHQgPSBudWxscHRyOwoKCXN0ZDo6dmVjdG9yPENhbWVyYVBvc3RFZmZlY3Q+IHBvc3RFZmZlY3RzOwoJc3RkOjp2ZWN0b3I8Q2FtZXJhUG9zdEVmZmVjdExpbms+IHBvc3RFZmZlY3RMaW5rczsKCUNhbWVyYVBvc3RFZmZlY3Qgc2NyZWVuSW5wdXROb2RlOwoJQ2FtZXJhUG9zdEVmZmVjdCBzY3JlZW5PdXRwdXROb2RlOwoKCWludCBuZXh0TGlua0lkID0gMTsKCWludCBuZXh0UGluSWQgPSAxOwoJYm9vbCBpbml0aWFsaXplZCA9IGZhbHNlOwoJYm9vbCBwb3N0RWZmZWN0R3JhcGhEaXJ0eSA9IHRydWU7CglzdGQ6OnZlY3RvcjxpbnQ+IGNhY2hlZFNvcnRlZFBvc3RFZmZlY3RJbmRpY2VzOwoJc3RkOjp2ZWN0b3I8c3RkOjp2ZWN0b3I8aW50Pj4gY2FjaGVkUmVzb2x2ZWRQb3N0RWZmZWN0SW5wdXRzOwoKCWJvb2wgaXNMb2NrID0gZmFsc2U7CglWZWN0b3IzIFRhcmdldHswLjBmLCAwLjBmLCAwLjBmfTsKCWZsb2F0IE5lYXJDbGlwID0gMC4wMWY7CglmbG9hdCBGYXJDbGlwID0gMTAyNC4wZjsKCWZsb2F0IEZPViA9IDEuMGY7CglEaXJlY3RYOjpYTU1BVFJJWCB2aWV3TWF0cml4e307CgoJWUFNTDo6Tm9kZSBlbmNvZGUoKSBvdmVycmlkZTsKCWJvb2wgZGVjb2RlKFNjZW5lQ29udGV4dCogY29udGV4dCwgY29uc3QgWUFNTDo6Tm9kZSYgbm9kZSkgb3ZlcnJpZGU7Cgl2b2lkIGluc3BlY3RvcihTY2VuZUNvbnRleHQqIGNvbnRleHQpIG92ZXJyaWRlOwoKCXZvaWQgSW52YWxpZGF0ZVBvc3RFZmZlY3RHcmFwaENhY2hlKCk7Cgl2b2lkIFJlYnVpbGRQb3N0RWZmZWN0R3JhcGhDYWNoZSgpOwoJY29uc3Qgc3RkOjp2ZWN0b3I8aW50PiYgVG9wb2xvZ2ljYWxTb3J0UG9zdEVmZmVjdHMoKTsKCWNvbnN0IHN0ZDo6dmVjdG9yPGludD4mIEdldFJlc29sdmVkUG9zdEVmZmVjdElucHV0cyhpbnQgZWZmZWN0SW5kZXgpOwp9OwoKI2luY2x1ZGUgIk9wZXJhdGlvbnMvQ2FtZXJhUG9zdEVmZmVjdFJ1bnRpbWUuaCIKI2luY2x1ZGUgIk9wZXJhdGlvbnMvQ2FtZXJhUG9zdEVmZmVjdEdyYXBoLmgiCiNpbmNsdWRlICJPcGVyYXRpb25zL0NhbWVyYUNvbXBvbmVudFNlcmlhbGl6YXRpb24uaCIKI2luY2x1ZGUgIk9wZXJhdGlvbnMvQ2FtZXJhQ29tcG9uZW50SW5zcGVjdG9yLmgiCg=="
-          target = Path("Source/GameApplication/Engine/Scene/Component/cameraComponent.h")
-          desired = base64.b64decode(encoded)
-          if target.read_bytes() != desired:
-              target.write_bytes(desired)
-
-      - name: Commit camera migration
-        shell: bash
-        run: |
-          if git diff --quiet; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Source/GameApplication/Engine/Scene/Component/cameraComponent.h
-          git diff --cached --check
-          git commit -m "refactor: reduce camera component to state and compatibility API"
-          git push origin HEAD:refactor/ecs-scheduler-foundation
-
   script-debug-x64:
     runs-on: windows-latest
 
