@@ -1,0 +1,151 @@
+name: Apply Transform Operations
+
+on:
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - .github/workflows/apply-transform-operations.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout work branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 0
+
+      - name: Patch source and migration plan
+        shell: python
+        run: |
+          from pathlib import Path
+
+          scene_path = Path("Source/GameApplication/Engine/Scene/scene.cpp")
+          scene = scene_path.read_text(encoding="utf-8-sig")
+
+          include_anchor = '#include "Component/componentList.h"\n'
+          include_line = '#include "Component/Operations/TransformComponentOperations.h"\n'
+          if include_line not in scene:
+              if include_anchor not in scene:
+                  raise RuntimeError("componentList include anchor not found")
+              scene = scene.replace(
+                  include_anchor,
+                  include_anchor + include_line,
+                  1
+              )
+
+          register_anchor = '\tCOMPONENT_LIST(REGISTER)\n#undef REGISTER\n'
+          register_block = (
+              '\tCOMPONENT_LIST(REGISTER)\n'
+              '#undef REGISTER\n\n'
+              '\t// Transformの保存・復元・Inspectorは外部Operationsが担当する。\n'
+              '\tTransformComponentOperations::Register(*m_componentRegistry);\n'
+          )
+          if 'TransformComponentOperations::Register(*m_componentRegistry);' not in scene:
+              if register_anchor not in scene:
+                  raise RuntimeError("component registration anchor not found")
+              scene = scene.replace(register_anchor, register_block, 1)
+
+          scene_path.write_text(scene, encoding="utf-8")
+
+          plan_path = Path("Docs/ECS_Scheduler_Migration_Plan.md")
+          plan = plan_path.read_text(encoding="utf-8-sig")
+
+          old_step10 = '''### Step 10: Component純データ化
+
+優先順位:
+
+1. Transform
+2. Follow
+3. Camera
+4. Light
+5. Particle
+6. Collider
+7. ModelRenderer
+8. Material
+'''
+          new_step10 = '''### Step 10: Component純データ化
+
+移行順序:
+
+1. Transform
+2. Follow
+3. Camera
+4. Light
+5. Particle
+6. Collider
+7. ModelRenderer
+8. Material
+
+Transform進捗:
+
+- [x] YAML Encode / Decodeを外部Operationsへ移行
+- [x] Inspectorを外部Operationsへ移行
+- [x] 親Entity編集をgeneration安全なResolve方式へ変更
+- [ ] 階層データをParent / Children管理へ分離
+- [ ] World行列計算をTransformSystemへ移行
+- [ ] UI Rect変換を専用Utilityへ移行
+- [ ] TransformComponentから互換用virtual実装を除去
+
+残りComponent:
+
+- [ ] Follow
+- [ ] Camera
+- [ ] Light
+- [ ] Particle
+- [ ] Collider
+- [ ] ModelRenderer
+- [ ] Material
+'''
+          if old_step10 in plan:
+              plan = plan.replace(old_step10, new_step10, 1)
+          elif new_step10 not in plan:
+              raise RuntimeError("Step 10 block not found")
+
+          if "### Step 19: Scriptプロジェクト完全ホットリロード対応" not in plan:
+              plan += '''
+
+### Step 19: Scriptプロジェクト完全ホットリロード対応
+
+- [ ] Scriptプロジェクトの変更監視と自動ビルド
+- [ ] ビルド完了検出とDebounce
+- [ ] 一意な一時DLL名へのコピー
+- [ ] 新DLLのABI Version・必須Export検証
+- [ ] 新DLLロード失敗時の旧DLL継続とRollback
+- [ ] Script状態・RegistrationOrder・Entity参照の完全復元
+- [ ] 追加・削除・名称変更されたScript型への対応
+- [ ] Reload中のScript実行停止と安全な再開
+- [ ] 古い一時DLL・PDBのクリーンアップ
+- [ ] Debug / Releaseで連続Reload試験
+
+### Step 20: README.md更新
+
+- [ ] Engine全体アーキテクチャ
+- [ ] ECS / Scheduler仕様
+- [ ] Entity / ComponentRef安全性
+- [ ] SystemAccessと並列実行規則
+- [ ] Script DLLとHot Reload仕様
+- [ ] Rendering PipelineとRHI方針
+- [ ] ビルド手順・依存ライブラリ・CRT構成
+- [ ] Editor機能と基本操作
+- [ ] 現在の制約・今後のRoadmap
+'''
+
+          plan_path.write_text(plan, encoding="utf-8")
+
+          Path(".github/workflows/apply-transform-operations.yml").unlink()
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git diff --cached --check
+          git commit -m "refactor: register transform operations and extend migration plan"
+          git push origin HEAD:refactor/ecs-scheduler-foundation
