@@ -11,6 +11,7 @@
 #include <string>
 #include "Backends/myVector2.h"
 #include "Entity/Entity.h"
+#include "System/Script/ScriptModuleAPI.h"
 
 // 前方宣言
 enum RenderLayer;
@@ -46,9 +47,11 @@ struct SceneContext{
 	ComponentRegistry* component = nullptr;
 	SystemRegistry* system = nullptr;
 
-	// Task / Script実行中の構造変更を遅延させるScene単位のCommand Buffer。
-	// Earliest PhaseでEntityCommandCommitSystemが接続する。
+	// Task / Engine内部の構造変更を遅延させるScene単位のCommand Buffer。
 	EntityCommandBuffer* commands = nullptr;
+
+	// Script DLLはECBを直接操作せず、このPOD Bridge経由でEngineへ要求する。
+	ScriptCommandAPI scriptCommands{};
 
 	// プレファブシステム
 	PrefabSystem* prefab = nullptr;
