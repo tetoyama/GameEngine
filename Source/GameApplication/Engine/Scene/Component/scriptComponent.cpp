@@ -12,9 +12,9 @@
 #include "DebugTools/DebugSystem.h"
 #include "Backends/ImGuiFunc.h"
 
+#include <algorithm>
 #include <cstring>
 #include <string>
-#include <type_traits>
 #include <utility>
 
 ScriptComponent::~ScriptComponent(){
@@ -150,40 +150,92 @@ void ScriptComponent::inspector(SceneContext* context){
 	for(auto& [name, script] : scripts){
 		if(!script) continue;
 
-		if(ImGui::TreeNode(name.c_str())){
-			auto& params = script->GetParams();
-			for(auto& param : params){
-				std::visit([&](auto& value){
-					using T = std::decay_t<decltype(value)>;
+		if(!ImGui::TreeNode(name.c_str())){
+			continue;
+		}
 
-					if constexpr(std::is_same_v<T, int>){
-						int temporary = value;
-						if(ImGui::InputInt(param.name.c_str(), &temporary)){
-							script->SetParam(param.name, temporary);
-						}
-					} else if constexpr(std::is_same_v<T, float>){
-						float temporary = value;
-						if(ImGui::InputFloat(param.name.c_str(), &temporary)){
-							script->SetParam(param.name, temporary);
-						}
-					} else if constexpr(std::is_same_v<T, bool>){
-						bool temporary = value;
-						if(ImGui::UndoCheckbox(param.name.c_str(), &temporary)){
-							script->SetParam(param.name, temporary);
-						}
-					} else if constexpr(std::is_same_v<T, std::string>){
-						char buffer[256] = {};
-						std::strncpy(buffer, value.c_str(), sizeof(buffer) - 1);
+		if(!m_moduleAPI.getParameterCount || !m_moduleAPI.getParameter){
+			ImGui::TextDisabled("Script parameter bridge is unavailable.");
+			ImGui::TreePop();
+			continue;
+		}
 
-						if(ImGui::InputText(param.name.c_str(), buffer, sizeof(buffer))){
-							script->SetParam(param.name, std::string(buffer));
-						}
-					}
-				}, param.value);
+		const size_t parameterCount = m_moduleAPI.getParameterCount(script);
+		for(size_t index = 0; index < parameterCount; ++index){
+			ScriptParameterData parameter;
+			if(!m_moduleAPI.getParameter(script, index, &parameter) || !parameter.name){
+				continue;
 			}
 
-			ImGui::TreePop();
+			// DLL所有ポインタは保持せず、このAPI呼び出し直後にEngine側へコピーする。
+			const std::string parameterName(parameter.name);
+
+			switch(parameter.type){
+			case ScriptParameterType::Integer: {
+				int temporary = parameter.intValue;
+				if(ImGui::InputInt(parameterName.c_str(), &temporary) &&
+					m_moduleAPI.setIntegerParameter){
+					m_moduleAPI.setIntegerParameter(
+						script,
+						parameterName.c_str(),
+						static_cast<int32_t>(temporary)
+					);
+				}
+				break;
+			}
+
+			case ScriptParameterType::Float: {
+				float temporary = parameter.floatValue;
+				if(ImGui::InputFloat(parameterName.c_str(), &temporary) &&
+					m_moduleAPI.setFloatParameter){
+					m_moduleAPI.setFloatParameter(
+						script,
+						parameterName.c_str(),
+						temporary
+					);
+				}
+				break;
+			}
+
+			case ScriptParameterType::Boolean: {
+				bool temporary = parameter.boolValue != 0;
+				if(ImGui::UndoCheckbox(parameterName.c_str(), &temporary) &&
+					m_moduleAPI.setBooleanParameter){
+					m_moduleAPI.setBooleanParameter(
+						script,
+						parameterName.c_str(),
+						temporary ? 1 : 0
+					);
+				}
+				break;
+			}
+
+			case ScriptParameterType::String: {
+				char buffer[512] = {};
+				if(parameter.stringValue){
+					const size_t copySize = std::min(
+						parameter.stringSize,
+						sizeof(buffer) - 1
+					);
+					std::memcpy(buffer, parameter.stringValue, copySize);
+					buffer[copySize] = '\0';
+				}
+
+				if(ImGui::InputText(parameterName.c_str(), buffer, sizeof(buffer)) &&
+					m_moduleAPI.setStringParameter){
+					m_moduleAPI.setStringParameter(
+						script,
+						parameterName.c_str(),
+						buffer,
+						std::strlen(buffer)
+					);
+				}
+				break;
+			}
+			}
 		}
+
+		ImGui::TreePop();
 	}
 }
 
