@@ -48,7 +48,28 @@ void TransformSystem::Draw(){
 			continue;
 		}
 
-		// 結果vectorを生成せず、生存EntityとComponentMaskを遅延走査する。
+		// Schedule外ではCommandBufferが存在しない場合がある。
+		// 即時削除はQueryのiteratorを無効化するため、互換経路だけ
+		// Entity一覧のスナップショットを使う。
+		if(!context->commands){
+			const auto entities =
+				context->component->FindEntitiesWithComponent<TransformComponent>();
+
+			for(Entity entity : entities){
+				auto* transform =
+					context->component->GetComponent<TransformComponent>(entity);
+				if(!transform) continue;
+
+				if(transform->parent != 0 &&
+					!context->entity->IsAlive(transform->parent)){
+					context->component->OnEntityDestroyed(entity);
+					context->entity->Destroy(entity);
+				}
+			}
+			continue;
+		}
+
+		// 通常経路は結果vectorを生成せず、生存EntityとComponentMaskを遅延走査する。
 		const auto query =
 			context->component->ReadQuery<TransformComponent>();
 
@@ -59,13 +80,7 @@ void TransformSystem::Draw(){
 
 			if(transform->parent != 0 &&
 				!context->entity->IsAlive(transform->parent)){
-				if(context->commands){
-					context->commands->DestroyEntity(entity);
-				} else {
-					// Schedule外から呼ばれた場合の互換フォールバック。
-					context->component->OnEntityDestroyed(entity);
-					context->entity->Destroy(entity);
-				}
+				context->commands->DestroyEntity(entity);
 			}
 		}
 	}
