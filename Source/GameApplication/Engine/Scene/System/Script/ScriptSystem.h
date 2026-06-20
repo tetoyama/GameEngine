@@ -5,8 +5,10 @@
 // =======================================================================
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <memory>
+#include <string>
 #include <typeindex>
 #include <unordered_map>
 
@@ -109,11 +111,16 @@ private:
 	template<typename Func>
 	void ForEachScript(SystemTaskDomain domain, Func&& func);
 
+	void DestroyAllScriptInstances();
+	void UnloadCurrentModule();
+
 	std::unordered_map<std::string, ComponentTypeID> m_nameToEngineTypeID;
 	std::unordered_map<std::type_index, ComponentTypeID> m_engineTypeIDs;
 	std::function<void(void*)> m_setImGuiContextFunc = nullptr;
 	uint64_t m_nextScriptRegistrationOrder = 1;
+	uint64_t m_reloadGeneration = 0;
 	HMODULE m_scriptModule = nullptr;
 	CreateScriptFunc m_createScriptFunc = nullptr;
 	DestroyScriptFunc m_destroyScriptFunc = nullptr;
+	std::wstring m_loadedModulePath;
 };
