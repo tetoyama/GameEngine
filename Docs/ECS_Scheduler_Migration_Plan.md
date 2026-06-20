@@ -172,8 +172,8 @@ CRT方針:
 - [x] DLL解放前に旧DLL由来のScriptを破棄
 - [x] Script状態のSerialize / DeserializeをC境界Bridge化
 - [x] Hot Reload時の状態退避・再生成を実装
-- [ ] Inspector Parameter操作をC境界Bridge化
-- [ ] EntityCommandBuffer操作をEngine側Bridge経由へ移行
+- [x] Inspector Parameter操作をC境界Bridge化
+- [x] EntityCommandBuffer操作をEngine側Bridge経由へ移行
 - [ ] Debug / Release x64でDLL Reloadを実機検証
 
 ### Step 10: Component純データ化
