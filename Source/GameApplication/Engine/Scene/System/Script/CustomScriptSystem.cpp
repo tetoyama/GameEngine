@@ -1,7 +1,7 @@
 // =======================================================================
-// 
+//
 // CustomScriptSystem.cpp
-// 
+//
 // =======================================================================
 #include "CustomScriptSystem.h"
 #include "Component/CustomScriptComponent.h"
@@ -13,111 +13,130 @@
 #include "Registry/entityRegistry.h"
 #include "Registry/componentRegistry.h"
 
-void CustomScriptSystem::Initialize(){
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
-		auto scripts = context->component->GetAllBaseComponents<CustomScriptComponent>();
-		for (auto& [entity, script] : scripts) {
-			if (script && !script->IsInitialized()) {
-				script->SetContext(context, entity);
-				script->Initialize();
+#include <algorithm>
+#include <vector>
+
+void CustomScriptSystem::ForEachScriptOrdered(
+	SystemTaskDomain domain,
+	const std::function<void(CustomScriptComponent*)>& callback
+){
+	struct Entry {
+		Entity entity{};
+		SceneContext* context = nullptr;
+		CustomScriptComponent* script = nullptr;
+	};
+
+	std::vector<Entry> entries;
+
+	for(auto& [sceneName, scene] : m_context->sceneManager->GetActiveScenes()){
+		auto* context = scene->GetSceneContext();
+		auto scripts =
+			context->component->GetAllBaseComponents<CustomScriptComponent>();
+
+		for(auto& [entity, script] : scripts){
+			if(script){
+				entries.push_back({entity, context, script});
 			}
 		}
 	}
+
+	std::sort(
+		entries.begin(),
+		entries.end(),
+		[domain](const Entry& lhs, const Entry& rhs){
+			return IsScriptOrderEarlier(
+				lhs.script->GetExecutionOrder(domain),
+				rhs.script->GetExecutionOrder(domain)
+			);
+		}
+	);
+
+	for(const Entry& entry : entries){
+		entry.script->SetContext(entry.context, entry.entity);
+		callback(entry.script);
+	}
 }
 
-void CustomScriptSystem::Finalize() {
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
-		auto scripts = context->component->GetAllBaseComponents<CustomScriptComponent>();
-		for (auto& [entity, script] : scripts) {
-			if (!script) { continue; }
-			if (!script->IsInitialized()) {
-				script->SetContext(context, entity);
+void CustomScriptSystem::Initialize(){
+	ForEachScriptOrdered(
+		SystemTaskDomain::Frame,
+		[](CustomScriptComponent* script){
+			if(!script->IsInitialized()){
+				script->Initialize();
+			}
+		}
+	);
+}
+
+void CustomScriptSystem::Finalize(){
+	ForEachScriptOrdered(
+		SystemTaskDomain::Frame,
+		[](CustomScriptComponent* script){
+			if(!script->IsInitialized()){
 				script->Initialize();
 			}
 			script->Stop();
 		}
-	}
+	);
 }
 
 void CustomScriptSystem::Start(){
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
-		auto scripts = context->component->GetAllBaseComponents<CustomScriptComponent>();
-		for (auto& [entity, script] : scripts) {
-			if (!script) { continue; }
-			if (!script->IsInitialized()) {
-				script->SetContext(context, entity);
+	ForEachScriptOrdered(
+		SystemTaskDomain::Frame,
+		[](CustomScriptComponent* script){
+			if(!script->IsInitialized()){
 				script->Initialize();
 			}
 			script->Start();
 		}
-	}
+	);
 }
 
 void CustomScriptSystem::Update(float deltaTime){
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
-		auto scripts = context->component->GetAllBaseComponents<CustomScriptComponent>();
-		for (auto& [entity, script] : scripts) {
-			if (script) {
-				if (!script->IsInitialized()) {
-					script->SetContext(context, entity);
-					script->Initialize();
-					script->Start();
-				}
-
-				script->Update(deltaTime);
+	ForEachScriptOrdered(
+		SystemTaskDomain::Frame,
+		[deltaTime](CustomScriptComponent* script){
+			if(!script->IsInitialized()){
+				script->Initialize();
+				script->Start();
 			}
+			script->Update(deltaTime);
 		}
-	}
+	);
 }
 
 void CustomScriptSystem::FixedUpdate(float fixedDeltaTime){
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
-		auto scripts = context->component->GetAllBaseComponents<CustomScriptComponent>();
-		for (auto& [entity, script] : scripts) {
-			if (script) {
-				if (!script->IsInitialized()) {
-					script->SetContext(context, entity);
-					script->Initialize();
-				}
-				script->FixedUpdate(fixedDeltaTime);
+	ForEachScriptOrdered(
+		SystemTaskDomain::Fixed,
+		[fixedDeltaTime](CustomScriptComponent* script){
+			if(!script->IsInitialized()){
+				script->Initialize();
 			}
+			script->FixedUpdate(fixedDeltaTime);
 		}
-	}
+	);
 }
 
 void CustomScriptSystem::Draw(){
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
-		auto scripts = context->component->GetAllBaseComponents<CustomScriptComponent>();
-		for (auto& [entity, script] : scripts) {
-			if (script) {
-				if (!script->IsInitialized()) {
-					script->SetContext(context, entity);
-					script->Initialize();
-				}
-				script->Draw();
+	ForEachScriptOrdered(
+		SystemTaskDomain::Render,
+		[](CustomScriptComponent* script){
+			if(!script->IsInitialized()){
+				script->Initialize();
 			}
+			script->Draw();
 		}
-	}
+	);
 }
 
 void CustomScriptSystem::EditorUpdate(float deltaTime){
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
-		auto scripts = context->component->GetAllBaseComponents<CustomScriptComponent>();
-		for (auto& [entity, script] : scripts) {
-			if (script) {
-				if (!script->IsInitialized()) {
-					script->SetContext(context, entity);
-					script->Initialize();
-				}
-				script->EditorUpdate(deltaTime);
+	ForEachScriptOrdered(
+		SystemTaskDomain::Editor,
+		[deltaTime](CustomScriptComponent* script){
+			if(!script->IsInitialized()){
+				script->Initialize();
 			}
+			script->EditorUpdate(deltaTime);
 		}
-	}
+	);
 }
