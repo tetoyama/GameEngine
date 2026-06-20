@@ -6,12 +6,19 @@ on:
       - refactor/ecs-scheduler-foundation
     paths:
       - .github/workflows/apply-transform-operations.yml
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/workflows/apply-transform-operations.yml
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   apply:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
 
     steps:
