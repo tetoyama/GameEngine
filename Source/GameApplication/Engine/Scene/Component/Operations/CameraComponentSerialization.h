@@ -9,6 +9,7 @@
 
 #include "Resources/resourceService.h"
 #include "Scene/scene.h"
+#include "Scene/sceneManager.h"
 
 namespace CameraComponentSerialization {
 
@@ -121,7 +122,6 @@ inline bool Decode(
 				);
 			}
 
-			// Editor位置の反映はInspector初回描画で行う。
 			effect.initialized = false;
 			camera.postEffects.push_back(std::move(effect));
 		}
