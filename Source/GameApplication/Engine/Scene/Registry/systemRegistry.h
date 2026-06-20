@@ -14,11 +14,12 @@
 #include <vector>
 
 #include "Interface/ISystem.h"
+#include "System/Job/JobSystem.h"
 #include "System/Scheduler/SystemScheduleCompiler.h"
 #include "System/Scheduler/SystemTask.h"
 
 // Systemの所有、Lifecycle実行、SystemTaskの構築と実行を管理する。
-// 現段階のExecutorは直列だが、実行順はCompiled Scheduleから取得する。
+// Step 13ではJobSystemの寿命を管理し、Schedule実行自体はまだ直列とする。
 class SystemRegistry {
 public:
 	SystemRegistry() = default;
@@ -33,6 +34,9 @@ public:
 	}
 
 	void InitializeAll() {
+		// System初期化処理からJobを発行できるよう、先にWorkerを起動する。
+		m_jobSystem.Start();
+
 		for(auto& system : m_systems) {
 			system->Initialize();
 		}
@@ -75,9 +79,12 @@ public:
 		}
 		m_tasksDirty = true;
 
+		// SystemのFinalize中に必要なJobを発行できるよう、Worker停止は最後に行う。
 		for(auto& system : m_systems) {
 			system->Finalize();
 		}
+
+		m_jobSystem.Stop();
 	}
 
 	// 全SystemからTaskを再収集し、Domainごとの依存Graphを構築する。
@@ -132,6 +139,14 @@ public:
 
 	std::vector<std::unique_ptr<ISystem>>& GetSystems() {
 		return m_systems;
+	}
+
+	JobSystem& GetJobSystem() noexcept {
+		return m_jobSystem;
+	}
+
+	const JobSystem& GetJobSystem() const noexcept {
+		return m_jobSystem;
 	}
 
 	const std::vector<SystemTask>& GetTasks() {
@@ -226,6 +241,7 @@ private:
 	std::vector<uint64_t> m_systemRegistrationOrders;
 	std::vector<SystemTask> m_tasks;
 	std::array<CompiledSystemSchedule, kDomainCount> m_schedules;
+	JobSystem m_jobSystem;
 	uint64_t m_nextSystemRegistrationOrder = 0;
 	bool m_tasksDirty = true;
 };
