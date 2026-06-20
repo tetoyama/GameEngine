@@ -19,7 +19,7 @@ struct PARTICLE {
 
 // パーティクル設定とCPU実行状態を保持するComponent。
 // YAMLとInspector実装はParticleComponentOperationsへ分離する。
-class ParticleComponent: public IComponent {
+class ParticleComponent {
 public:
 	PARTICLE Particle[MAXPARTICLE];
 
@@ -38,9 +38,9 @@ public:
 	Vector3 AddSpeed = Vector3(0.0f, -15.0f, 0.0f);
 	Vector3 MulSpeed = Vector3(1.0f, 1.0f, 1.0f);
 
-	YAML::Node encode() override;
-	bool decode(SceneContext* context, const YAML::Node& node) override;
-	void inspector(SceneContext* context) override;
+	YAML::Node encode();
+	bool decode(SceneContext* context, const YAML::Node& node);
+	void inspector(SceneContext* context);
 };
 
 #include "Operations/ParticleComponentOperations.h"
