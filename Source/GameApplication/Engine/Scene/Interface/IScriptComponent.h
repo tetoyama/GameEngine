@@ -9,10 +9,12 @@
 #include <string>
 #include <variant>
 #include <functional>
+#include <utility>
 
 #include <backends/yaml-cpp/yaml.h>
 #include <Scene/scene.h>
 #include <Scene/Reference/EntityRef.h>
+#include <Scene/Command/EntityCommandBuffer.h>
 #include <System/Script/ScriptExecution.h>
 
 // ================================
@@ -55,6 +57,67 @@ public:
 
     bool HasRegistrationOrder() const {
         return executionSettings.registrationOrder != 0;
+    }
+
+    // ----------------------------
+    // Deferred structural changes
+    // ----------------------------
+    CommandEntity QueueCreateEntity() {
+        EntityCommandBuffer* commands = GetCommandBuffer();
+        return commands ? commands->CreateEntity() : CommandEntity{};
+    }
+
+    bool QueueDestroyEntity(Entity entity) {
+        EntityCommandBuffer* commands = GetCommandBuffer();
+        if(!commands || !entity) return false;
+        commands->DestroyEntity(entity);
+        return true;
+    }
+
+    bool QueueDestroySelf() {
+        return QueueDestroyEntity(ref.GetEntityID());
+    }
+
+    template<typename T, typename... Args>
+    bool QueueAddComponent(Entity entity, Args&&... args) {
+        EntityCommandBuffer* commands = GetCommandBuffer();
+        if(!commands || !entity) return false;
+        commands->AddComponent<T>(entity, std::forward<Args>(args)...);
+        return true;
+    }
+
+    template<typename T, typename... Args>
+    bool QueueAddComponent(CommandEntity entity, Args&&... args) {
+        EntityCommandBuffer* commands = GetCommandBuffer();
+        if(!commands) return false;
+        commands->AddComponent<T>(entity, std::forward<Args>(args)...);
+        return true;
+    }
+
+    template<typename T>
+    bool QueueRemoveComponent(Entity entity) {
+        EntityCommandBuffer* commands = GetCommandBuffer();
+        if(!commands || !entity) return false;
+        commands->RemoveComponent<T>(entity);
+        return true;
+    }
+
+    template<typename T>
+    bool QueueRemoveComponent(CommandEntity entity) {
+        EntityCommandBuffer* commands = GetCommandBuffer();
+        if(!commands) return false;
+        commands->RemoveComponent<T>(entity);
+        return true;
+    }
+
+    bool QueueEntitySetup(
+        CommandEntity entity,
+        std::function<void(Entity, SceneContext&)> callback
+    ) {
+        EntityCommandBuffer* commands = GetCommandBuffer();
+        if(!commands || !callback) return false;
+        commands->Execute(entity, std::move(callback));
+        return true;
     }
 
     // ----------------------------
@@ -126,6 +189,11 @@ protected:
     virtual void OnFixedUpdate(float) {}
     virtual void OnEditorUpdate(float) {}
     virtual void OnDraw() {}
+
+    EntityCommandBuffer* GetCommandBuffer() const {
+        SceneContext* context = ref.GetScene();
+        return context ? context->commands : nullptr;
+    }
 
     ScriptExecutionSettings executionSettings;
     bool isInitialized = false;
