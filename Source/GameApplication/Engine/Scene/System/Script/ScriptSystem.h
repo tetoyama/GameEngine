@@ -64,13 +64,13 @@ public:
 		return script;
 	}
 
-	ScriptDestroyFunction GetDestroyFunction() const {
-		return m_destroyScriptFunc;
+	const ScriptModuleAPI& GetModuleAPI() const {
+		return m_moduleAPI;
 	}
 
 	void Destroy(IScriptComponent* script) const {
-		if(script && m_destroyScriptFunc){
-			m_destroyScriptFunc(script);
+		if(script && m_moduleAPI.destroy){
+			m_moduleAPI.destroy(script);
 		}
 	}
 
@@ -103,7 +103,6 @@ public:
 
 private:
 	using CreateScriptFunc = IScriptComponent* (*)(const char*);
-	using DestroyScriptFunc = void (*)(IScriptComponent*);
 
 	SceneManagerContext* m_context = nullptr;
 	EntityCommandCommitSystem m_commandCommitSystem;
@@ -121,6 +120,6 @@ private:
 	uint64_t m_reloadGeneration = 0;
 	HMODULE m_scriptModule = nullptr;
 	CreateScriptFunc m_createScriptFunc = nullptr;
-	DestroyScriptFunc m_destroyScriptFunc = nullptr;
+	ScriptModuleAPI m_moduleAPI{};
 	std::wstring m_loadedModulePath;
 };
