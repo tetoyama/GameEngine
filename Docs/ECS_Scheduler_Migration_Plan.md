@@ -113,36 +113,36 @@ Scriptは当面 `MainThread` かつ `WorldExclusive` として扱う。
 
 ### Step 4: SystemとSystemTaskの分離
 
-- [ ] Systemは状態・設定を所有
-- [ ] TaskはSchedulerの実行単位
-- [ ] 一つのSystemが複数Taskを登録可能
+- [x] Systemは状態・設定を所有
+- [x] TaskはSchedulerの実行単位
+- [x] 一つのSystemが複数Taskを登録可能
 
 ### Step 5: Phase / Priority / RegistrationOrder
 
-- [ ] Task登録時にRegistrationOrderを発行
-- [ ] Schedule再構築でも登録順を維持
-- [ ] まず直列Executorで動作確認
+- [x] Task登録時にRegistrationOrderを発行
+- [x] Schedule再構築でも登録順を維持
+- [x] まず直列Executorで動作確認
 
 ### Step 6: SystemAccess
 
-- [ ] Component Read / Write
-- [ ] Resource Read / Write
-- [ ] WorldAccess
-- [ ] StructuralAccess
-- [ ] ThreadAffinity
+- [x] Component Read / Write
+- [x] Resource Read / Write
+- [x] WorldAccess
+- [x] StructuralAccess
+- [x] ThreadAffinity
 
 ### Step 7: 直列Schedule Compiler
 
-- [ ] Task収集
-- [ ] Hazard解析
-- [ ] 依存Graph構築
-- [ ] 循環検出
-- [ ] 直列Executor
+- [x] Task収集
+- [x] Hazard解析
+- [x] 依存Graph構築
+- [x] 循環検出
+- [x] 直列Executor
 
 ### Step 8: Script実行順
 
-- [ ] ScriptへPhase / Priority / RegistrationOrderを追加
-- [ ] ScriptをMainThread / WorldExclusiveで直列実行
+- [x] ScriptへPhase / Priority / RegistrationOrderを追加
+- [x] ScriptをMainThread / WorldExclusiveで直列実行
 
 ### Step 9: EntityCommandBuffer
 
