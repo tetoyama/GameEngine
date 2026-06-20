@@ -1,7 +1,7 @@
-﻿// =======================================================================
-// 
+// =======================================================================
+//
 // IScriptComponent.h
-// 
+//
 // =======================================================================
 #pragma once
 
@@ -13,6 +13,7 @@
 #include <backends/yaml-cpp/yaml.h>
 #include <Scene/scene.h>
 #include <Scene/Reference/EntityRef.h>
+#include <System/Script/ScriptExecution.h>
 
 // ================================
 // Param system
@@ -23,20 +24,38 @@ using ParamValue = std::variant<int, float, bool, std::string>;
 struct ScriptParam {
     std::string name;
     ParamValue  value;
-    void* ptr;   // 実体メンバへのポインタ
+    void* ptr;
 };
 
 // ================================
 // IScriptComponent
 // ================================
 
-// ユーザー定義スクリプトの基底インターフェース
 class IScriptComponent {
 public:
     virtual ~IScriptComponent() = default;
 
-    // Script ID
     virtual const char* GetScriptName() const = 0;
+
+    void SetExecutionOrder(
+        SystemTaskDomain domain,
+        SystemPhase phase,
+        int32_t priority
+    ) {
+        executionSettings.SetOrder(domain, phase, priority);
+    }
+
+    SystemTaskOrder GetExecutionOrder(SystemTaskDomain domain) const {
+        return executionSettings.GetOrder(domain);
+    }
+
+    void SetRegistrationOrder(uint64_t order) {
+        executionSettings.registrationOrder = order;
+    }
+
+    bool HasRegistrationOrder() const {
+        return executionSettings.registrationOrder != 0;
+    }
 
     // ----------------------------
     // Life cycle
@@ -87,7 +106,6 @@ public:
             if (p.name == name) {
                 p.value = value;
 
-                // 実体へ反映
                 if (p.ptr) {
                     std::visit([&](auto&& v) {
                         using T = std::decay_t<decltype(v)>;
@@ -102,9 +120,6 @@ public:
     EntityRef ref{};
 
 protected:
-    // ----------------------------
-    // Overridable
-    // ----------------------------
     virtual void OnStart() {}
     virtual void OnStop() {}
     virtual void OnUpdate(float) {}
@@ -112,9 +127,8 @@ protected:
     virtual void OnEditorUpdate(float) {}
     virtual void OnDraw() {}
 
+    ScriptExecutionSettings executionSettings;
     bool isInitialized = false;
-
-    // Editor/YAML 用キャッシュ
     std::vector<ScriptParam> params;
 };
 
@@ -162,7 +176,6 @@ public: \
             if (!registered) { \
                 ThisType::GetMetaStatic().push_back({ \
                     #Name, offsetof(ThisType, Name), \
-                    /* Inspector */ \
                     [](IScriptComponent* c) { \
                         auto* self = static_cast<ThisType*>(c); \
                         auto* ptr = &self->Name; \
@@ -180,12 +193,13 @@ public: \
                             params.push_back({ #Name, *ptr, ptr }); \
                         } \
                     }, \
-                    /* Encode */ \
+                    [](IScriptComponent* c) { \
+                        auto* self = static_cast<ThisType*>(c); \
+                    }, \
                     [](YAML::Node& n, IScriptComponent* c) { \
                         auto* self = static_cast<ThisType*>(c); \
                         n[#Name] = self->Name; \
                     }, \
-                    /* Decode */ \
                     [](const YAML::Node& n, IScriptComponent* c) { \
                         if (!n[#Name]) return; \
                         auto* self = static_cast<ThisType*>(c); \
