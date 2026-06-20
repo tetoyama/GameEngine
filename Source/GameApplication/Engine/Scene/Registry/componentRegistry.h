@@ -32,6 +32,41 @@ struct ComponentOperations {
 	std::function<void(void*, SceneContext*)> inspector;
 };
 
+struct ComponentCollectionEntry {
+	ComponentView view{};
+	IComponent* legacyComponent = nullptr;
+
+	operator ComponentView() const noexcept { return view; }
+	operator IComponent*() const noexcept { return legacyComponent; }
+};
+
+class ComponentCollection {
+public:
+	using Container = std::vector<ComponentCollectionEntry>;
+	using const_iterator = Container::const_iterator;
+
+	ComponentCollection() = default;
+	explicit ComponentCollection(Container entries)
+		: m_entries(std::move(entries)){}
+
+	const_iterator begin() const noexcept { return m_entries.begin(); }
+	const_iterator end() const noexcept { return m_entries.end(); }
+	size_t size() const noexcept { return m_entries.size(); }
+	bool empty() const noexcept { return m_entries.empty(); }
+
+	operator std::vector<ComponentView>() const {
+		std::vector<ComponentView> views;
+		views.reserve(m_entries.size());
+		for(const ComponentCollectionEntry& entry : m_entries){
+			views.push_back(entry.view);
+		}
+		return views;
+	}
+
+private:
+	Container m_entries;
+};
+
 class ComponentType {
 public:
 	template<typename T>
@@ -95,13 +130,9 @@ public:
 
 		const std::string runtimeTypeName = typeid(T).name();
 		m_addDefaultComponentByRuntimeTypeName[runtimeTypeName] =
-			[this](Entity entity){
-				AddComponent<T>(entity);
-			};
+			[this](Entity entity){ AddComponent<T>(entity); };
 		m_removeComponentByRuntimeTypeName[runtimeTypeName] =
-			[this](Entity entity){
-				RemoveComponent<T>(entity);
-			};
+			[this](Entity entity){ RemoveComponent<T>(entity); };
 
 		m_nameToComponentID[name] = typeID;
 		m_componentIDToName[typeID] = name;
@@ -134,9 +165,7 @@ public:
 			"AddComponent: Entity is not alive");
 
 		const std::type_index typeIndex(typeid(T));
-		if(!m_storages.contains(typeIndex)){
-			RegisterComponent<T>();
-		}
+		if(!m_storages.contains(typeIndex)) RegisterComponent<T>();
 
 		T component(std::forward<Args>(args)...);
 		IComponentStorage* storage = m_storages[typeIndex].get();
@@ -155,33 +184,27 @@ public:
 
 	template<typename T>
 	T* GetComponent(Entity entity){
-		if(!m_entityManager || !m_entityManager->IsAlive(entity)){
-			return nullptr;
-		}
-
+		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return nullptr;
 		auto iterator = m_storages.find(std::type_index(typeid(T)));
-		if(iterator == m_storages.end()) return nullptr;
-		return static_cast<T*>(iterator->second->GetRaw(entity));
+		return iterator != m_storages.end()
+			? static_cast<T*>(iterator->second->GetRaw(entity))
+			: nullptr;
 	}
 
 	template<typename T>
 	const T* GetComponent(Entity entity) const {
-		if(!m_entityManager || !m_entityManager->IsAlive(entity)){
-			return nullptr;
-		}
-
+		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return nullptr;
 		auto iterator = m_storages.find(std::type_index(typeid(T)));
-		if(iterator == m_storages.end()) return nullptr;
-		return static_cast<const T*>(iterator->second->GetRaw(entity));
+		return iterator != m_storages.end()
+			? static_cast<const T*>(iterator->second->GetRaw(entity))
+			: nullptr;
 	}
 
 	ComponentView GetComponentByID(Entity entity, ComponentTypeID typeID){
 		auto typeIterator = m_idToTypeIndex.find(typeID);
 		if(typeIterator == m_idToTypeIndex.end()) return {};
-
 		auto storageIterator = m_storages.find(typeIterator->second);
 		if(storageIterator == m_storages.end()) return {};
-
 		void* data = storageIterator->second->GetRaw(entity);
 		return data ? ComponentView{typeID, data} : ComponentView{};
 	}
@@ -192,10 +215,8 @@ public:
 	) const {
 		auto typeIterator = m_idToTypeIndex.find(typeID);
 		if(typeIterator == m_idToTypeIndex.end()) return {};
-
 		auto storageIterator = m_storages.find(typeIterator->second);
 		if(storageIterator == m_storages.end()) return {};
-
 		const void* data = storageIterator->second->GetRaw(entity);
 		return data ? ConstComponentView{typeID, data} : ConstComponentView{};
 	}
@@ -203,11 +224,9 @@ public:
 	template<typename TBase>
 	std::vector<std::pair<Entity, TBase*>> GetAllBaseComponents(){
 		std::vector<std::pair<Entity, TBase*>> result;
-
 		for(const auto& [typeIndex, storage] : m_storages){
 			auto adapterIterator = m_polymorphicAdapters.find(typeIndex);
 			if(adapterIterator == m_polymorphicAdapters.end()) continue;
-
 			for(Entity entity : storage->GetEntityList()){
 				void* raw = storage->GetRaw(entity);
 				IComponent* polymorphic = raw
@@ -248,10 +267,8 @@ public:
 	template<typename T>
 	void RemoveComponent(Entity entity){
 		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return;
-
 		auto iterator = m_storages.find(std::type_index(typeid(T)));
 		if(iterator == m_storages.end()) return;
-
 		iterator->second->Remove(entity);
 		auto maskIterator = m_entityMasks.find(entity);
 		if(maskIterator != m_entityMasks.end()){
@@ -262,15 +279,11 @@ public:
 	void RemoveComponentByID(Entity entity, ComponentTypeID typeID){
 		auto typeIterator = m_idToTypeIndex.find(typeID);
 		if(typeIterator == m_idToTypeIndex.end()) return;
-
 		auto storageIterator = m_storages.find(typeIterator->second);
 		if(storageIterator == m_storages.end()) return;
-
 		storageIterator->second->Remove(entity);
 		auto maskIterator = m_entityMasks.find(entity);
-		if(maskIterator != m_entityMasks.end()){
-			maskIterator->second.reset(typeID);
-		}
+		if(maskIterator != m_entityMasks.end()) maskIterator->second.reset(typeID);
 	}
 
 	void OnEntityDestroyed(Entity entity){
@@ -285,10 +298,8 @@ public:
 	std::vector<Entity> QueryEntities(){
 		std::vector<Entity> result;
 		const auto& aliveEntities = m_entityManager->GetAllAlive();
-
 		ComponentMask required;
 		(required.set(ComponentType::Get<Components>()), ...);
-
 		result.reserve(aliveEntities.size());
 		for(Entity entity : aliveEntities){
 			auto iterator = m_entityMasks.find(entity);
@@ -328,38 +339,32 @@ public:
 
 	std::vector<ComponentView> GetAllComponentViewsOfEntitySorted(Entity entity){
 		std::vector<ComponentView> components;
-		if(!m_entityManager || !m_entityManager->IsAlive(entity)){
-			return components;
-		}
-
+		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return components;
 		components.reserve(m_componentRegistrationOrder.size());
 		for(const std::string& name : m_componentRegistrationOrder){
 			auto idIterator = m_nameToComponentID.find(name);
 			if(idIterator == m_nameToComponentID.end()) continue;
-
 			ComponentView view = GetComponentByID(entity, idIterator->second);
 			if(view) components.push_back(view);
 		}
 		return components;
 	}
 
-	// Step 11移行中の旧Editor/保存経路用。
-	// 全呼び出し元をComponentViewへ移行後に削除する。
-	std::vector<IComponent*> GetAllComponentsOfEntitySorted(Entity entity){
-		std::vector<IComponent*> components;
+	ComponentCollection GetAllComponentsOfEntitySorted(Entity entity){
+		ComponentCollection::Container entries;
 		for(ComponentView view : GetAllComponentViewsOfEntitySorted(entity)){
+			IComponent* legacy = nullptr;
 			auto typeIterator = m_idToTypeIndex.find(view.typeID);
-			if(typeIterator == m_idToTypeIndex.end()) continue;
-
-			auto adapterIterator =
-				m_polymorphicAdapters.find(typeIterator->second);
-			if(adapterIterator == m_polymorphicAdapters.end()) continue;
-
-			if(IComponent* component = adapterIterator->second(view.data)){
-				components.push_back(component);
+			if(typeIterator != m_idToTypeIndex.end()){
+				auto adapterIterator =
+					m_polymorphicAdapters.find(typeIterator->second);
+				if(adapterIterator != m_polymorphicAdapters.end()){
+					legacy = adapterIterator->second(view.data);
+				}
 			}
+			entries.push_back({view, legacy});
 		}
-		return components;
+		return ComponentCollection(std::move(entries));
 	}
 
 	std::string GetComponentName(ComponentTypeID typeID) const {
@@ -420,7 +425,6 @@ public:
 		const ComponentTypeID typeID = ComponentType::Get<T>();
 		auto iterator = m_componentOperations.find(typeID);
 		if(iterator == m_componentOperations.end()) return;
-
 		iterator->second.encode =
 			[function = std::forward<EncodeFn>(encode)](const void* raw) mutable {
 				return function(*static_cast<const T*>(raw));
@@ -499,7 +503,6 @@ private:
 	void RegisterComponent(bool useDensePool = false){
 		const std::type_index typeIndex(typeid(T));
 		if(m_storages.contains(typeIndex)) return;
-
 		if(useDensePool){
 			m_storages[typeIndex] = std::make_unique<DenseComponentPool<T>>();
 		} else {
@@ -509,7 +512,6 @@ private:
 
 	SceneContext* m_context = nullptr;
 	EntityRegistry* m_entityManager = nullptr;
-
 	std::unordered_map<std::type_index, std::unique_ptr<IComponentStorage>> m_storages;
 	std::unordered_map<std::type_index, ComponentTypeID> m_typeToID;
 	std::unordered_map<ComponentTypeID, std::type_index> m_idToTypeIndex;
