@@ -7,6 +7,7 @@
 // =======================================================================
 #pragma once
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -29,6 +30,7 @@ inline bool Decode(MaterialComponent& component, const YAML::Node& node){
 	if(!node.IsMap()) return false;
 	if(node["ShaderID"]) component.ShaderID = node["ShaderID"].as<int>();
 	if(node["Material"]) component.Material = node["Material"].as<MATERIAL>();
+	component.ShaderID = (std::max)(component.ShaderID, 0);
 	return true;
 }
 
@@ -41,13 +43,15 @@ inline void DrawColorProperty(const char* label, float* channels){
 	const float spacing = ImGui::GetStyle().ItemSpacing.x;
 	constexpr float pickerWidth = 24.0f;
 	constexpr int sliderCount = 4;
-	const float sliderWidth =
+	const float sliderWidth = (std::max)(
 		(totalWidth - pickerWidth - spacing * sliderCount) /
-		static_cast<float>(sliderCount);
+		static_cast<float>(sliderCount),
+		1.0f
+	);
 
 	for(int index = 0; index < sliderCount; ++index){
 		ImGui::PushID((std::to_string(index) + label).c_str());
-		ImGui::PushItemWidth(sliderWidth);
+		ImGui::SetNextItemWidth(sliderWidth);
 		ImGui::PushStyleColor(
 			ImGuiCol_Border,
 			ImVec4(
@@ -61,21 +65,19 @@ inline void DrawColorProperty(const char* label, float* channels){
 		ImGui::UndoDragFloat("##Channel", &channels[index], 0.01f, 0.0f, 1.0f);
 		ImGui::PopStyleVar();
 		ImGui::PopStyleColor();
-		ImGui::PopItemWidth();
 		ImGui::PopID();
 		ImGui::SameLine();
 	}
 
 	const std::string buttonId = std::string("##ColorButton") + label;
+	const std::string popupId = std::string("ColorPickerPopup") + label;
 	if(ImGui::ColorButton(
 		buttonId.c_str(),
 		ImVec4(channels[0], channels[1], channels[2], channels[3]),
 		ImGuiColorEditFlags_NoTooltip
 	)){
-		ImGui::OpenPopup((std::string("ColorPickerPopup") + label).c_str());
+		ImGui::OpenPopup(popupId.c_str());
 	}
-
-	const std::string popupId = std::string("ColorPickerPopup") + label;
 	if(ImGui::BeginPopup(popupId.c_str())){
 		ImGui::ColorPicker4(
 			(std::string("##ColorPicker") + label).c_str(),
@@ -111,6 +113,11 @@ inline void Inspect(MaterialComponent& component, SceneContext* context){
 	ImGui::TextUnformatted("Shader");
 	ImGui::SameLine(100.0f);
 	if(!shaderNamePointers.empty()){
+		component.ShaderID = (std::clamp)(
+			component.ShaderID,
+			0,
+			static_cast<int>(shaderNamePointers.size()) - 1
+		);
 		ImGui::Combo(
 			"##Shader",
 			&component.ShaderID,
@@ -118,6 +125,7 @@ inline void Inspect(MaterialComponent& component, SceneContext* context){
 			static_cast<int>(shaderNamePointers.size())
 		);
 	} else {
+		component.ShaderID = 0;
 		ImGui::TextDisabled("No shaders registered");
 	}
 
@@ -166,7 +174,7 @@ inline void Inspect(MaterialComponent& component, SceneContext* context){
 	ImGui::SameLine(100.0f);
 	bool useEnvironmentMap =
 		(component.Material.MaterialFlags & MATERIAL_FLAG_USE_ENVIRONMENT_MAP) != 0;
-	if(ImGui::Checkbox("##UseEnvironmentMap", &useEnvironmentMap)){
+	if(ImGui::UndoCheckbox("##UseEnvironmentMap", &useEnvironmentMap)){
 		if(useEnvironmentMap){
 			component.Material.MaterialFlags |= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
 		} else {
