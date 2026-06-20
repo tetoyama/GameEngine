@@ -18,7 +18,7 @@
 //
 // YAML、Inspector、階層行列、UI Rect変換の実装はOperations配下へ分離する。
 // 既存呼び出し元との互換性のため、移行期間中は薄いメンバー関数を残す。
-class TransformComponent: public IComponent {
+class TransformComponent {
 private:
 	Vector3 rotationEuler = Vector3(0.0f, 0.0f, 0.0f);
 	DirectX::XMFLOAT4 rotation = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -150,10 +150,10 @@ public:
 		return Vector3(result.x, result.y, result.z);
 	}
 
-	// IComponent互換経路。実装はTransformComponentOperations.hに置く。
-	YAML::Node encode() override;
-	bool decode(SceneContext* context, const YAML::Node& node) override;
-	void inspector(SceneContext* context) override;
+	// Registry初期登録との互換経路。実装はTransformComponentOperations.hに置く。
+	YAML::Node encode();
+	bool decode(SceneContext* context, const YAML::Node& node);
+	void inspector(SceneContext* context);
 
 	// 既存コード向け互換API。実装はTransformMath.hへ分離済み。
 	DirectX::XMMATRIX CalculateWorldMatrix(
