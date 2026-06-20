@@ -47,6 +47,7 @@ struct SceneContext{
 	SystemRegistry* system = nullptr;
 
 	// Task / Script実行中の構造変更を遅延させるScene単位のCommand Buffer。
+	// Earliest PhaseでEntityCommandCommitSystemが接続する。
 	EntityCommandBuffer* commands = nullptr;
 
 	// プレファブシステム
@@ -100,5 +101,4 @@ private:
 	std::shared_ptr<EntityRegistry> m_entityRegistry;
 	std::shared_ptr<ComponentRegistry> m_componentRegistry;
 	std::shared_ptr<PrefabSystem> m_prefabSystem;
-	std::unique_ptr<EntityCommandBuffer> m_entityCommandBuffer;
 };
