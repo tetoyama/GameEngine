@@ -193,9 +193,6 @@ public: \
                             params.push_back({ #Name, *ptr, ptr }); \
                         } \
                     }, \
-                    [](IScriptComponent* c) { \
-                        auto* self = static_cast<ThisType*>(c); \
-                    }, \
                     [](YAML::Node& n, IScriptComponent* c) { \
                         auto* self = static_cast<ThisType*>(c); \
                         n[#Name] = self->Name; \
