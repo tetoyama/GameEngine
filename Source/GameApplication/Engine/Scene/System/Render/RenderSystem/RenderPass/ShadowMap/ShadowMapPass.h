@@ -5,6 +5,7 @@
 // =======================================================================
 #pragma once
 #include "../IRenderPass.h"
+#include "Graphics/mainRenderer.h"
 #include <d3d11.h>
 #include <memory>
 #include <vector>
