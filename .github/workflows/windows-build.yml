@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 jobs:
-  debug-x64:
+  script-debug-x64:
     runs-on: windows-latest
 
     steps:
@@ -28,12 +28,34 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Build Debug x64
+      - name: Build Script Debug x64
         run: >-
-          msbuild GameEngine.sln
+          msbuild Script/Script.vcxproj
+          /t:Rebuild
           /m
           /p:Configuration=Debug
           /p:Platform=x64
-          /p:BuildProjectReferences=true
+          /verbosity:minimal
+          /consoleloggerparameters:ErrorsOnly
+
+  engine-debug-x64:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build GameEngine Debug x64
+        run: >-
+          msbuild GameEngine.vcxproj
+          /t:Build
+          /m
+          /p:Configuration=Debug
+          /p:Platform=x64
           /verbosity:minimal
           /consoleloggerparameters:ErrorsOnly
