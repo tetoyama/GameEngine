@@ -13,6 +13,7 @@
 #include "Backends/ImGuiFunc.h"
 
 #include <cstring>
+#include <string>
 #include <type_traits>
 #include <utility>
 
@@ -22,9 +23,9 @@ ScriptComponent::~ScriptComponent(){
 
 ScriptComponent::ScriptComponent(ScriptComponent&& other) noexcept
 	: scripts(std::move(other.scripts))
-	, m_destroyFunction(other.m_destroyFunction){
+	, m_moduleAPI(other.m_moduleAPI){
 	other.scripts.clear();
-	other.m_destroyFunction = nullptr;
+	other.m_moduleAPI = {};
 }
 
 ScriptComponent& ScriptComponent::operator=(ScriptComponent&& other) noexcept{
@@ -35,10 +36,10 @@ ScriptComponent& ScriptComponent::operator=(ScriptComponent&& other) noexcept{
 	DestroyAllScripts();
 
 	scripts = std::move(other.scripts);
-	m_destroyFunction = other.m_destroyFunction;
+	m_moduleAPI = other.m_moduleAPI;
 
 	other.scripts.clear();
-	other.m_destroyFunction = nullptr;
+	other.m_moduleAPI = {};
 	return *this;
 }
 
@@ -48,12 +49,14 @@ void ScriptComponent::DestroyAllScripts(){
 
 		script->Stop();
 
-		if(m_destroyFunction){
-			m_destroyFunction(script);
+		if(m_moduleAPI.destroy){
+			m_moduleAPI.destroy(script);
 		} else {
-			// 古いScript DLLとの互換フォールバック。
-			// 新しいDLLでは必ずDestroyScriptを取得するため、この経路は通常使わない。
-			delete script;
+			// 異なるCRTで生成された可能性があるため、Engine側deleteは行わない。
+			OutputDebugStringA(
+				("ScriptComponent: destroy function is missing for script [" +
+				 name + "]\n").c_str()
+			);
 		}
 	}
 
@@ -62,9 +65,33 @@ void ScriptComponent::DestroyAllScripts(){
 
 YAML::Node ScriptComponent::encode(){
 	YAML::Node node;
+	if(!m_moduleAPI.serialize || !m_moduleAPI.freeBuffer){
+		return node;
+	}
+
 	for(auto& [name, script] : scripts){
-		if(script){
-			node[name] = script->Encode();
+		if(!script) continue;
+
+		char* stateData = nullptr;
+		size_t stateSize = 0;
+		if(!m_moduleAPI.serialize(script, &stateData, &stateSize)){
+			continue;
+		}
+
+		const std::string serialized = stateData
+			? std::string(stateData, stateSize)
+			: std::string{};
+		m_moduleAPI.freeBuffer(stateData);
+
+		try {
+			node[name] = serialized.empty()
+				? YAML::Node{}
+				: YAML::Load(serialized);
+		} catch(const std::exception& exception){
+			OutputDebugStringA(
+				("ScriptComponent: failed to parse serialized state for [" +
+				 name + "]: " + exception.what() + "\n").c_str()
+			);
 		}
 	}
 	return node;
@@ -81,14 +108,30 @@ bool ScriptComponent::decode(SceneContext* context, const YAML::Node& node){
 	}
 
 	DestroyAllScripts();
-	SetDestroyFunction(scriptSystem->GetDestroyFunction());
+	SetModuleAPI(scriptSystem->GetModuleAPI());
+	if(!m_moduleAPI.IsValid()){
+		return false;
+	}
 
 	for(auto it : node){
 		const std::string name = it.first.as<std::string>();
 		IScriptComponent* script = scriptSystem->Create(name.c_str());
 		if(!script) continue;
 
-		script->Decode(it.second);
+		YAML::Emitter emitter;
+		emitter << it.second;
+		if(!emitter.good()){
+			scriptSystem->Destroy(script);
+			continue;
+		}
+
+		const char* stateText = emitter.c_str();
+		const size_t stateSize = std::strlen(stateText);
+		if(!m_moduleAPI.deserialize(script, stateText, stateSize)){
+			scriptSystem->Destroy(script);
+			continue;
+		}
+
 		scripts.emplace(name, script);
 	}
 	return true;
@@ -175,7 +218,12 @@ bool ScriptComponent::AddScript(const char* scriptName, SceneContext* context){
 		return false;
 	}
 
-	SetDestroyFunction(scriptSystem->GetDestroyFunction());
+	SetModuleAPI(scriptSystem->GetModuleAPI());
+	if(!m_moduleAPI.IsValid()){
+		scriptSystem->Destroy(script);
+		return false;
+	}
+
 	scripts.emplace(scriptName, script);
 	return true;
 }
