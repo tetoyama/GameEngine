@@ -163,7 +163,7 @@
     <FxCompile>
       <ObjectFileOutput>Asset\Shader\%(Filename).cso</ObjectFileOutput>
       <ShaderModel>5.0</ShaderModel>
-      <DisableOptimizations>true</DisableOptimizations>
+      <DisableOptimizations>false</DisableOptimizations>
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>

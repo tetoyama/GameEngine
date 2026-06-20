@@ -90,7 +90,7 @@ Scriptは当面 `MainThread` かつ `WorldExclusive` として扱う。
 - [x] `PhysicSystem::FixedUpdate()` の未初期化 `PxTransform` 参照
 - [x] SceneContext登録解除と寿命管理
 - [x] シーンロード時のEntity参照再マップ
-- [ ] Release Shader最適化設定の確認
+- [x] Release Shader最適化設定の確認
 
 ### Step 1: 世代付きEntity
 
