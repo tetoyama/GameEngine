@@ -27,7 +27,7 @@
 
 struct ComponentOperations {
 	std::string name;
-	std::function<YAML::Node(const void*)> encode;
+	std::function<YAML::Node(void*)> encode;
 	std::function<bool(void*, SceneContext*, const YAML::Node&)> decode;
 	std::function<void(void*, SceneContext*)> inspector;
 };
@@ -103,8 +103,8 @@ public:
 		const ComponentTypeID typeID = ComponentType::Get<T>();
 		m_componentOperations[typeID] = {
 			name,
-			[](const void* raw) -> YAML::Node {
-				return static_cast<const T*>(raw)->encode();
+			[](void* raw) -> YAML::Node {
+				return static_cast<T*>(raw)->encode();
 			},
 			[](void* raw, SceneContext* context, const YAML::Node& node) -> bool {
 				return static_cast<T*>(raw)->decode(context, node);
@@ -390,7 +390,7 @@ public:
 		if(!view) return {};
 		auto iterator = m_componentOperations.find(view.typeID);
 		return iterator != m_componentOperations.end() && iterator->second.encode
-			? iterator->second.encode(view.data)
+			? iterator->second.encode(const_cast<void*>(view.data))
 			: YAML::Node{};
 	}
 
@@ -426,7 +426,7 @@ public:
 		auto iterator = m_componentOperations.find(typeID);
 		if(iterator == m_componentOperations.end()) return;
 		iterator->second.encode =
-			[function = std::forward<EncodeFn>(encode)](const void* raw) mutable {
+			[function = std::forward<EncodeFn>(encode)](void* raw) mutable {
 				return function(*static_cast<const T*>(raw));
 			};
 		iterator->second.decode =
