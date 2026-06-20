@@ -6,16 +6,19 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
+#include <cassert>
 #include <cstdint>
 #include <memory>
 #include <utility>
 #include <vector>
 
 #include "Interface/ISystem.h"
+#include "System/Scheduler/SystemScheduleCompiler.h"
 #include "System/Scheduler/SystemTask.h"
 
 // Systemの所有、Lifecycle実行、SystemTaskの構築と実行を管理する。
-// 現段階のExecutorは直列だが、System呼び出しはすべてTask経由へ統一する。
+// 現段階のExecutorは直列だが、実行順はCompiled Scheduleから取得する。
 class SystemRegistry {
 public:
 	SystemRegistry() = default;
@@ -67,6 +70,9 @@ public:
 
 	void FinalizeAll() {
 		m_tasks.clear();
+		for(CompiledSystemSchedule& schedule : m_schedules) {
+			schedule = {};
+		}
 		m_tasksDirty = true;
 
 		for(auto& system : m_systems) {
@@ -74,9 +80,7 @@ public:
 		}
 	}
 
-	// 全SystemからTaskを再収集し、論理順序で並べる。
-	// 現在は直列Executorなので、この順序がそのまま実行順になる。
-	// 並列Scheduler導入後は、Access競合があるTask間の依存方向に使う。
+	// 全SystemからTaskを再収集し、Domainごとの依存Graphを構築する。
 	void RebuildTasks() {
 		m_tasks.clear();
 
@@ -89,6 +93,7 @@ public:
 			m_systems[index]->RegisterTasks(builder);
 		}
 
+		// Inspectorやデバッグ表示でも論理順に見えるようTask一覧自体も整列する。
 		std::sort(
 			m_tasks.begin(),
 			m_tasks.end(),
@@ -111,6 +116,7 @@ public:
 			}
 		);
 
+		CompileSchedules();
 		m_tasksDirty = false;
 	}
 
@@ -131,6 +137,11 @@ public:
 	const std::vector<SystemTask>& GetTasks() {
 		EnsureTasksBuilt();
 		return m_tasks;
+	}
+
+	const CompiledSystemSchedule& GetSchedule(SystemTaskDomain domain) {
+		EnsureTasksBuilt();
+		return m_schedules[DomainIndex(domain)];
 	}
 
 	// -------------------------
@@ -171,25 +182,50 @@ public:
 	}
 
 private:
+	static constexpr size_t kDomainCount = 4;
+
+	static constexpr size_t DomainIndex(SystemTaskDomain domain) {
+		return static_cast<size_t>(domain);
+	}
+
 	void EnsureTasksBuilt() {
 		if(m_tasksDirty) {
 			RebuildTasks();
 		}
 	}
 
+	void CompileSchedules() {
+		m_schedules[DomainIndex(SystemTaskDomain::Fixed)] =
+			SystemScheduleCompiler::Compile(m_tasks, SystemTaskDomain::Fixed);
+		m_schedules[DomainIndex(SystemTaskDomain::Frame)] =
+			SystemScheduleCompiler::Compile(m_tasks, SystemTaskDomain::Frame);
+		m_schedules[DomainIndex(SystemTaskDomain::Editor)] =
+			SystemScheduleCompiler::Compile(m_tasks, SystemTaskDomain::Editor);
+		m_schedules[DomainIndex(SystemTaskDomain::Render)] =
+			SystemScheduleCompiler::Compile(m_tasks, SystemTaskDomain::Render);
+	}
+
 	void ExecuteTasks(SystemTaskDomain domain, float deltaTime) {
 		EnsureTasksBuilt();
 
+		const CompiledSystemSchedule& schedule =
+			m_schedules[DomainIndex(domain)];
+		assert(schedule.valid && "Compiled system schedule is invalid");
+		if(!schedule.valid) return;
+
 		const SystemTaskContext context{deltaTime};
-		for(SystemTask& task : m_tasks) {
-			if(task.domain != domain || !task.execute) continue;
-			task.execute(context);
+		for(size_t taskIndex : schedule.executionOrder) {
+			SystemTask& task = m_tasks[taskIndex];
+			if(task.execute) {
+				task.execute(context);
+			}
 		}
 	}
 
 	std::vector<std::unique_ptr<ISystem>> m_systems;
 	std::vector<uint64_t> m_systemRegistrationOrders;
 	std::vector<SystemTask> m_tasks;
+	std::array<CompiledSystemSchedule, kDomainCount> m_schedules;
 	uint64_t m_nextSystemRegistrationOrder = 0;
 	bool m_tasksDirty = true;
 };
