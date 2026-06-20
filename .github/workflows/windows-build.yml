@@ -1,4 +1,4 @@
-# Validates the Engine static CRT and Script DLL dynamic CRT configurations.
+# Validates the Engine static CRT, Script DLL dynamic CRT, and Job System behavior.
 name: Windows Build
 
 on:
@@ -17,6 +17,30 @@ permissions:
   contents: read
 
 jobs:
+  job-system-smoke-x64:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build Job System smoke test
+        run: >-
+          cl /nologo /std:c++20 /EHsc /W4 /MTd
+          /I Source/GameApplication/Engine/Scene
+          Tests/JobSystemSmokeTest.cpp
+          /Fe:job-system-smoke.exe
+
+      - name: Run Job System smoke test
+        run: .\job-system-smoke.exe
+
   script-debug-x64:
     runs-on: windows-latest
 
