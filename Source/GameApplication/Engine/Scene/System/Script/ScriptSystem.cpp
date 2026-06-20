@@ -139,6 +139,24 @@ bool ScriptSystem::ReloadScriptDLL(const char* originalPath){
 	newModuleAPI.deserialize = reinterpret_cast<ScriptDeserializeFunction>(
 		GetProcAddress(newModule, "DeserializeScriptState")
 	);
+	newModuleAPI.getParameterCount = reinterpret_cast<ScriptGetParameterCountFunction>(
+		GetProcAddress(newModule, "GetScriptParameterCount")
+	);
+	newModuleAPI.getParameter = reinterpret_cast<ScriptGetParameterFunction>(
+		GetProcAddress(newModule, "GetScriptParameter")
+	);
+	newModuleAPI.setIntegerParameter = reinterpret_cast<ScriptSetIntegerParameterFunction>(
+		GetProcAddress(newModule, "SetScriptIntegerParameter")
+	);
+	newModuleAPI.setFloatParameter = reinterpret_cast<ScriptSetFloatParameterFunction>(
+		GetProcAddress(newModule, "SetScriptFloatParameter")
+	);
+	newModuleAPI.setBooleanParameter = reinterpret_cast<ScriptSetBooleanParameterFunction>(
+		GetProcAddress(newModule, "SetScriptBooleanParameter")
+	);
+	newModuleAPI.setStringParameter = reinterpret_cast<ScriptSetStringParameterFunction>(
+		GetProcAddress(newModule, "SetScriptStringParameter")
+	);
 
 	auto newImGuiContextFunction = reinterpret_cast<SetImGuiContextFunc>(
 		GetProcAddress(newModule, "SetImGuiContext")
