@@ -1,0 +1,116 @@
+name: Add Runtime Component Bridge
+
+on:
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - .github/workflows/add-runtime-component-bridge.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout work branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 0
+
+      - name: Patch ComponentRegistry
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("Source/GameApplication/Engine/Scene/Registry/componentRegistry.h")
+          text = path.read_text(encoding="utf-8-sig")
+
+          old_registration = '''\t\tm_addComponentFuncs[name] = [this](Entity e){
+          \t\t\tAddComponent<T>(e);
+          \t\t};
+
+          \t\tComponentTypeID typeID = ComponentType::Get<T>();
+          '''
+
+          new_registration = '''\t\tm_addComponentFuncs[name] = [this](Entity e){
+          \t\t\tAddComponent<T>(e);
+          \t\t};
+
+          \t\tconst std::string runtimeTypeName = typeid(T).name();
+          \t\tm_addDefaultComponentByRuntimeTypeName[runtimeTypeName] = [this](Entity e){
+          \t\t\tAddComponent<T>(e);
+          \t\t};
+          \t\tm_removeComponentByRuntimeTypeName[runtimeTypeName] = [this](Entity e){
+          \t\t\tRemoveComponent<T>(e);
+          \t\t};
+
+          \t\tComponentTypeID typeID = ComponentType::Get<T>();
+          '''
+
+          if text.count(old_registration) != 1:
+              raise RuntimeError("RegisterYAMLComponent insertion point not found exactly once")
+          text = text.replace(old_registration, new_registration, 1)
+
+          old_public = '''\tconst std::unordered_map<std::string, std::function<void(Entity)>>& GetAddableComponentList() const{
+          '''
+
+          new_public = '''\tbool AddDefaultComponentByRuntimeTypeName(
+          \t\tEntity entity,
+          \t\tconst std::string& runtimeTypeName
+          \t){
+          \t\tif(!m_entityManager || !m_entityManager->IsAlive(entity)) return false;
+          \t\tauto it = m_addDefaultComponentByRuntimeTypeName.find(runtimeTypeName);
+          \t\tif(it == m_addDefaultComponentByRuntimeTypeName.end()) return false;
+          \t\tit->second(entity);
+          \t\treturn true;
+          \t}
+
+          \tbool RemoveComponentByRuntimeTypeName(
+          \t\tEntity entity,
+          \t\tconst std::string& runtimeTypeName
+          \t){
+          \t\tif(!m_entityManager || !m_entityManager->IsAlive(entity)) return false;
+          \t\tauto it = m_removeComponentByRuntimeTypeName.find(runtimeTypeName);
+          \t\tif(it == m_removeComponentByRuntimeTypeName.end()) return false;
+          \t\tit->second(entity);
+          \t\treturn true;
+          \t}
+
+          \tconst std::unordered_map<std::string, std::function<void(Entity)>>& GetAddableComponentList() const{
+          '''
+
+          if text.count(old_public) != 1:
+              raise RuntimeError("Public insertion point not found exactly once")
+          text = text.replace(old_public, new_public, 1)
+
+          old_private = '''\tstd::unordered_map<std::string, YAMLCreator> m_yamlFactory;
+          \tstd::unordered_map<std::string, std::function<void(Entity)>> m_addComponentFuncs;
+          \tstd::unordered_map<std::string, ComponentTypeID> m_nameToComponentID;
+          '''
+
+          new_private = '''\tstd::unordered_map<std::string, YAMLCreator> m_yamlFactory;
+          \tstd::unordered_map<std::string, std::function<void(Entity)>> m_addComponentFuncs;
+          \tstd::unordered_map<std::string, std::function<void(Entity)>> m_addDefaultComponentByRuntimeTypeName;
+          \tstd::unordered_map<std::string, std::function<void(Entity)>> m_removeComponentByRuntimeTypeName;
+          \tstd::unordered_map<std::string, ComponentTypeID> m_nameToComponentID;
+          '''
+
+          if text.count(old_private) != 1:
+              raise RuntimeError("Private insertion point not found exactly once")
+          text = text.replace(old_private, new_private, 1)
+
+          path.write_text(text, encoding="utf-8")
+          Path(".github/workflows/add-runtime-component-bridge.yml").unlink()
+
+      - name: Commit ComponentRegistry bridge
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git diff --cached --check
+          git commit -m "feat: add runtime component command bridge"
+          git push origin HEAD:refactor/ecs-scheduler-foundation
