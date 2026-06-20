@@ -21,6 +21,7 @@
 #include "Registry/componentRegistry.h"
 
 #include "Graphics/graphicsContext.h"
+#include "Graphics/mainRenderer.h"
 
 #include <System/Render/RenderSystem/Renderable/Model/RenderableModel.h>
 #include <System/Render/RenderSystem/Renderable/Terrain/RenderableTerrain.h>
