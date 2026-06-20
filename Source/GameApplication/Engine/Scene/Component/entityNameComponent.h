@@ -10,25 +10,25 @@
 #include <string>
 
 // エンティティの名前を管理するコンポーネント
-class NameComponent: public IComponent {
+class NameComponent {
 public:
-
-	YAML::Node encode() override{
+	YAML::Node encode(){
 		YAML::Node node;
 		node["Name"] = name;
 		return node;
 	}
 
-	bool decode(SceneContext* context, const YAML::Node& node) override{
-
+	bool decode(SceneContext* context, const YAML::Node& node){
+		(void)context;
 		if(node["Name"]){
 			name = node["Name"].as<std::string>();
 		}
 		return true;
 	}
 
-	void inspector(SceneContext* context) override{
-		ImGui::Text(name.c_str());
+	void inspector(SceneContext* context){
+		(void)context;
+		ImGui::TextUnformatted(name.c_str());
 	}
 
 	std::string name;
