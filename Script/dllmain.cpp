@@ -1,4 +1,4 @@
-﻿// dllmain.cpp : DLL アプリケーションのエントリ ポイントを定義します。
+// dllmain.cpp : DLL アプリケーションのエントリ ポイントを定義します。
 
 #include "ScriptRegistry.h"
 
@@ -10,6 +10,15 @@ IScriptComponent* CreateScript(const char* name){
 		return nullptr;
 
 	return ScriptRegistry::Instance().Create(name);
+}
+
+// CreateScriptで生成したインスタンスは、必ず同じDLL内のCRTで破棄する。
+extern "C" __declspec(dllexport)
+void DestroyScript(IScriptComponent* script){
+	if(!script)
+		return;
+
+	ScriptRegistry::Instance().Destroy(script);
 }
 
 extern "C" __declspec(dllexport)
