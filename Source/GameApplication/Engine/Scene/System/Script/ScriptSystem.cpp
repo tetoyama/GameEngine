@@ -14,6 +14,8 @@
 #include <vector>
 
 void ScriptSystem::Start(){
+	m_commandCommitSystem.PrepareBuffers();
+
 	ForEachScript(SystemTaskDomain::Frame, [](IScriptComponent* script){
 		script->Start();
 	});
@@ -23,6 +25,8 @@ void ScriptSystem::Stop(){
 	ForEachScript(SystemTaskDomain::Frame, [](IScriptComponent* script){
 		script->Stop();
 	});
+
+	m_commandCommitSystem.CommitNow();
 }
 
 void ScriptSystem::Update(float deltaTime){
