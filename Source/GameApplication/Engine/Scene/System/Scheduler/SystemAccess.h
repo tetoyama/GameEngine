@@ -7,6 +7,7 @@
 
 #include <typeindex>
 #include <unordered_set>
+#include <utility>
 
 // Taskが実行可能なThreadを表す。
 enum class ThreadAffinity {
