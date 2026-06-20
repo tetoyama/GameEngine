@@ -1,3 +1,8 @@
+// =======================================================================
+//
+// cameraComponent.h
+//
+// =======================================================================
 #pragma once
 
 #include <memory>
@@ -11,9 +16,11 @@
 #include "Interface/IComponent.h"
 #include "Backends/myVector2.h"
 #include "Backends/myVector3.h"
-#include "Resources/Data/pixelShaderData.h"
 #include "Resources/Data/vertexShaderData.h"
+#include "Resources/Data/pixelShaderData.h"
 
+// ポストエフェクトGraphの設定と、移行期間中のD3D11 Runtime資源を保持する。
+// GPU資源所有権はStep 17のRenderWorld移行でPostEffectPass側へ移す。
 struct CameraPostEffect {
 	std::shared_ptr<PixelShaderData> ps;
 	std::shared_ptr<VertexShaderData> vs;
@@ -26,6 +33,7 @@ struct CameraPostEffect {
 	int outputPin = -1;
 	float resolutionScale = 1.0f;
 	int mipLevels = 1;
+
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> tex;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
@@ -44,19 +52,25 @@ struct CameraPostEffectLink {
 	int endAttr = -1;
 };
 
+// カメラ設定とポストエフェクトGraph状態を保持するComponent。
+// YAML・Graph計算・Inspector実装はOperations配下へ分離する。
 class CameraComponent: public IComponent {
 public:
+	// 互換用の非所有参照。将来はOperations呼出時の引数だけに限定する。
 	SceneContext* context = nullptr;
+
 	std::vector<CameraPostEffect> postEffects;
 	std::vector<CameraPostEffectLink> postEffectLinks;
 	CameraPostEffect screenInputNode;
 	CameraPostEffect screenOutputNode;
+
 	int nextLinkId = 1;
 	int nextPinId = 1;
 	bool initialized = false;
 	bool postEffectGraphDirty = true;
 	std::vector<int> cachedSortedPostEffectIndices;
 	std::vector<std::vector<int>> cachedResolvedPostEffectInputs;
+
 	bool isLock = false;
 	Vector3 Target{0.0f, 0.0f, 0.0f};
 	float NearClip = 0.01f;
@@ -67,6 +81,7 @@ public:
 	YAML::Node encode() override;
 	bool decode(SceneContext* context, const YAML::Node& node) override;
 	void inspector(SceneContext* context) override;
+
 	void InvalidatePostEffectGraphCache();
 	void RebuildPostEffectGraphCache();
 	const std::vector<int>& TopologicalSortPostEffects();
@@ -74,6 +89,6 @@ public:
 };
 
 #include "Operations/CameraPostEffectRuntime.h"
-#include "Operations/CameraComponentSerialization.h"
 #include "Operations/CameraPostEffectGraph.h"
+#include "Operations/CameraComponentSerialization.h"
 #include "Operations/CameraComponentInspector.h"
