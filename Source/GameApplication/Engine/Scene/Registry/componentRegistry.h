@@ -109,7 +109,6 @@ public:
 		m_idToTypeIndex.emplace(typeID, typeid(T));
 		m_componentRegistrationOrder.push_back(name);
 
-		// Scriptなど、まだpolymorphic base列挙が必要な型だけに互換Adapterを持つ。
 		if constexpr(std::is_base_of_v<IComponent, T>){
 			m_polymorphicAdapters[typeid(T)] = [](void* raw) -> IComponent* {
 				return static_cast<T*>(raw);
@@ -162,7 +161,6 @@ public:
 
 		auto iterator = m_storages.find(std::type_index(typeid(T)));
 		if(iterator == m_storages.end()) return nullptr;
-
 		return static_cast<T*>(iterator->second->GetRaw(entity));
 	}
 
@@ -174,7 +172,6 @@ public:
 
 		auto iterator = m_storages.find(std::type_index(typeid(T)));
 		if(iterator == m_storages.end()) return nullptr;
-
 		return static_cast<const T*>(iterator->second->GetRaw(entity));
 	}
 
@@ -203,7 +200,6 @@ public:
 		return data ? ConstComponentView{typeID, data} : ConstComponentView{};
 	}
 
-	// CustomScriptComponent派生など、polymorphic互換が必要な型だけに使用する。
 	template<typename TBase>
 	std::vector<std::pair<Entity, TBase*>> GetAllBaseComponents(){
 		std::vector<std::pair<Entity, TBase*>> result;
@@ -244,7 +240,6 @@ public:
 	template<typename T>
 	bool HasComponent(Entity entity) const {
 		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return false;
-
 		auto maskIterator = m_entityMasks.find(entity);
 		return maskIterator != m_entityMasks.end() &&
 			maskIterator->second.test(ComponentType::Get<T>());
@@ -331,7 +326,7 @@ public:
 		return dense ? dense->Entities() : std::span<const Entity>{};
 	}
 
-	std::vector<ComponentView> GetAllComponentsOfEntitySorted(Entity entity){
+	std::vector<ComponentView> GetAllComponentViewsOfEntitySorted(Entity entity){
 		std::vector<ComponentView> components;
 		if(!m_entityManager || !m_entityManager->IsAlive(entity)){
 			return components;
@@ -344,6 +339,25 @@ public:
 
 			ComponentView view = GetComponentByID(entity, idIterator->second);
 			if(view) components.push_back(view);
+		}
+		return components;
+	}
+
+	// Step 11移行中の旧Editor/保存経路用。
+	// 全呼び出し元をComponentViewへ移行後に削除する。
+	std::vector<IComponent*> GetAllComponentsOfEntitySorted(Entity entity){
+		std::vector<IComponent*> components;
+		for(ComponentView view : GetAllComponentViewsOfEntitySorted(entity)){
+			auto typeIterator = m_idToTypeIndex.find(view.typeID);
+			if(typeIterator == m_idToTypeIndex.end()) continue;
+
+			auto adapterIterator =
+				m_polymorphicAdapters.find(typeIterator->second);
+			if(adapterIterator == m_polymorphicAdapters.end()) continue;
+
+			if(IComponent* component = adapterIterator->second(view.data)){
+				components.push_back(component);
+			}
 		}
 		return components;
 	}
