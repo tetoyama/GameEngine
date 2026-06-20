@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cstring>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "Backends/ImGuiFunc.h"
@@ -160,6 +161,7 @@ inline ModelRendererComponent* FindModelRenderer(
 	if(!context || !context->component){
 		return nullptr;
 	}
+
 	const auto entities =
 		context->component->FindEntitiesWithComponent<ColliderComponent>();
 	for(Entity entity : entities){
@@ -208,7 +210,7 @@ inline void DrawCollisionLayer(
 		}
 	}
 
-	if(ImGui::BeginCombo("##Collision Layer", layers[currentIndex].name.c_str())){
+	if(ImGui::BeginCombo("##CollisionLayer", layers[currentIndex].name.c_str())){
 		for(int index = 0; index < static_cast<int>(layers.size()); ++index){
 			const bool selected = index == currentIndex;
 			if(ImGui::Selectable(layers[index].name.c_str(), selected)){
@@ -242,8 +244,8 @@ inline void DrawBoneName(
 		!modelRenderer->model->m_BoneIndexMap.empty()){
 		if(ImGui::BeginCombo("##BoneName", preview)){
 			std::vector<std::string> boneNames{std::string{}};
-			for(const auto& [name, index] : modelRenderer->model->m_BoneIndexMap){
-				(void)index;
+			for(const auto& [name, boneIndex] : modelRenderer->model->m_BoneIndexMap){
+				(void)boneIndex;
 				boneNames.push_back(name);
 			}
 			std::sort(boneNames.begin() + 1, boneNames.end());
@@ -380,6 +382,7 @@ inline void DrawShape(
 			0.0f,
 			1.0f
 		);
+
 		ImGui::TextUnformatted("Dynamic");
 		ImGui::SameLine(labelPosition);
 		changed |= ImGui::UndoDragFloat(
@@ -389,6 +392,7 @@ inline void DrawShape(
 			0.0f,
 			1.0f
 		);
+
 		ImGui::TextUnformatted("Restitution");
 		ImGui::SameLine(labelPosition);
 		changed |= ImGui::UndoDragFloat(
@@ -405,6 +409,7 @@ inline void DrawShape(
 }
 
 inline void Inspect(ColliderComponent& component, SceneContext* context){
+	ImGui::PushID(&component);
 	ImGui::TextUnformatted("Collider Component");
 	DrawGeneralSettings(component);
 	ImGui::Separator();
@@ -420,39 +425,42 @@ inline void Inspect(ColliderComponent& component, SceneContext* context){
 		component.colliders.emplace_back();
 		component.needsUpdate = true;
 	}
-	if(!open){
-		return;
+
+	if(open){
+		for(size_t index = 0; index < component.colliders.size();){
+			ImGui::PushID(static_cast<int>(index));
+			const std::string label = "Collider" + std::to_string(index);
+			const bool shapeOpen = ImGui::TreeNodeEx(
+				label.c_str(),
+				ImGuiTreeNodeFlags_DefaultOpen
+			);
+			ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 60.0f);
+
+			bool removed = false;
+			if(ImGui::SmallButton("Remove")){
+				ReleaseShapeRuntime(component.colliders[index]);
+				component.colliders.erase(component.colliders.begin() + index);
+				component.needsUpdate = true;
+				removed = true;
+			}
+
+			if(shapeOpen){
+				if(!removed){
+					DrawShape(component, component.colliders[index], context, index);
+				}
+				ImGui::TreePop();
+			}
+
+			ImGui::PopID();
+			ImGui::Separator();
+			if(!removed){
+				++index;
+			}
+		}
+		ImGui::TreePop();
 	}
 
-	for(size_t index = 0; index < component.colliders.size();){
-		ImGui::PushID(static_cast<int>(index));
-		const std::string label = "Collider" + std::to_string(index);
-		const bool shapeOpen = ImGui::TreeNodeEx(
-			label.c_str(),
-			ImGuiTreeNodeFlags_DefaultOpen
-		);
-		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 60.0f);
-
-		bool removed = false;
-		if(ImGui::SmallButton("Remove")){
-			ReleaseShapeRuntime(component.colliders[index]);
-			component.colliders.erase(component.colliders.begin() + index);
-			component.needsUpdate = true;
-			removed = true;
-		}
-
-		if(!removed && shapeOpen){
-			DrawShape(component, component.colliders[index], context, index);
-			ImGui::TreePop();
-		}
-		ImGui::PopID();
-		ImGui::Separator();
-
-		if(!removed){
-			++index;
-		}
-	}
-	ImGui::TreePop();
+	ImGui::PopID();
 }
 
 } // namespace ColliderComponentOperations
