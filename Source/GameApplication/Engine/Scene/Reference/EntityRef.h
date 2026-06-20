@@ -34,7 +34,7 @@ struct EntityRef {
 	}
 
 	Entity Get() const {
-		return IsValid() ? m_entity : 0;
+		return IsValid() ? m_entity : Entity(0,0);
 	}
 
 	Entity GetEntityID() const { return m_entity; }
