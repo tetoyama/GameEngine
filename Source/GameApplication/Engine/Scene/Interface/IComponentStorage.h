@@ -6,7 +6,6 @@
 #pragma once
 
 #include "Entity/Entity.h"
-#include "Interface/IComponent.h"
 
 #include <bitset>
 #include <cstddef>
@@ -38,12 +37,6 @@ struct ComponentView {
 	T* As() const noexcept {
 		return static_cast<T*>(data);
 	}
-
-	// Step 11移行中の旧Scene / Prefab / Command互換。
-	// 全ComponentのIComponent継承と旧呼び出しを除去後に削除する。
-	operator IComponent*() const noexcept {
-		return static_cast<IComponent*>(data);
-	}
 };
 
 struct ConstComponentView {
@@ -57,10 +50,6 @@ struct ConstComponentView {
 	template<typename T>
 	const T* As() const noexcept {
 		return static_cast<const T*>(data);
-	}
-
-	operator const IComponent*() const noexcept {
-		return static_cast<const IComponent*>(data);
 	}
 };
 
