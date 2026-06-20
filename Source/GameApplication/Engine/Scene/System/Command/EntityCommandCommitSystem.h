@@ -48,6 +48,16 @@ public:
 		return buffer.get();
 	}
 
+	// StartAllなどScheduler外のLifecycle呼び出し前に使用する。
+	void PrepareBuffers() {
+		AttachAllScenes();
+	}
+
+	// StopなどScheduler外で発生したコマンドを確実に適用する。
+	void CommitNow() {
+		CommitAllScenes();
+	}
+
 private:
 	void RegisterDomainTasks(
 		SystemScheduleBuilder& builder,
@@ -101,7 +111,6 @@ private:
 			GetBuffer(sceneContext);
 		}
 
-		// Active Sceneから外れたContextのCommand Bufferを破棄する。
 		for(auto it = m_buffers.begin(); it != m_buffers.end();) {
 			if(!activeContextIDs.contains(it->first)) {
 				it = m_buffers.erase(it);
