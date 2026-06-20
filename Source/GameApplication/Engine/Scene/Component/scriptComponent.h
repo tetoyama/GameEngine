@@ -9,15 +9,9 @@
 #include "Interface/IScriptComponent.h"
 #include <backends/yaml-cpp/yaml.h>
 
-#include "Scene/scene.h"
-#include "Scene/sceneManager.h"
-#include "Registry/systemRegistry.h"
-#include "System/Script/ScriptSystem.h"
-
 #include <string>
 #include <unordered_map>
 #include <utility>
-#include <variant>
 
 using ScriptDestroyFunction = void(*)(IScriptComponent*);
 
