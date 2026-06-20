@@ -1,113 +1,33 @@
 // =======================================================================
-// 
+//
 // LightComponent.h
-// 
+//
 // =======================================================================
 #pragma once
+
 #include "Interface/IComponent.h"
-#include "Backends/YAMLConverters.h"
 #include "Shader/Common.hlsl"
 #include "Shader/CommonDefine.h"
 
-// ライティングを管理するコンポーネント
+// ライト設定を保持するComponent。
+// YAMLとInspector実装はLightComponentOperationsへ分離する。
 class LightComponent: public IComponent {
 public:
-	LIGHT light;
-	bool dirty = false; // ライトのパラメータが変更されたかどうかのフラグ (シャドウマップ更新のトリガーなどに使用)
+	LIGHT light{};
+	bool dirty = false;
 
 	LightComponent(){
-		light = {};
 		light.Enable = true;
 		light.LightType = LIGHT_TYPE_POINT;
 		light.CastShadow = true;
-		light.Ambient = float4(0, 0, 0, 0);
-		light.Diffuse = float4(1, 1, 1, 1);
-		light.Param = float4(10, 0, 0, DEPTH_BIAS_CONSTANT); // x: 範囲, y: 内側コーン角度(Spot), z: 外側コーン角度(Spot), w: シャドウバイアス
+		light.Ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
+		light.Diffuse = float4(1.0f, 1.0f, 1.0f, 1.0f);
+		light.Param = float4(10.0f, 0.0f, 0.0f, DEPTH_BIAS_CONSTANT);
 	}
 
-	YAML::Node encode() override{
-		YAML::Node node;
-
-
-		node["Enable"] = light.Enable;
-		node["LightType"] = light.LightType;
-		node["CastShadow"] = light.CastShadow;
-
-		node["Position"] = light.Position;
-		node["Direction"] = light.Direction;
-
-		node["Diffuse"] = light.Diffuse;
-		node["Ambient"] = light.Ambient;
-
-		node["Param"] = light.Param;
-
-		node["LightView"] = light.LightView;
-		node["LightProjection"] = light.LightProjection;
-
-		return node;
-	}
-
-	bool decode(SceneContext* context, const YAML::Node& node) override{
-		if(!node.IsMap()){
-			return false;
-		}
-
-		if(node["Enable"])
-			light.Enable = node["Enable"].as<BOOL>();
-
-		if(node["CastShadow"])
-			light.CastShadow = node["CastShadow"].as<BOOL>();
-
-		if(node["LightType"])
-			light.LightType = node["LightType"].as<UINT>();
-
-		if(node["Direction"])
-			light.Direction = node["Direction"].as<DirectX::XMFLOAT4>();
-
-		if(node["Diffuse"])
-			light.Diffuse = node["Diffuse"].as<DirectX::XMFLOAT4>();
-
-		if(node["Ambient"])
-			light.Ambient = node["Ambient"].as<DirectX::XMFLOAT4>();
-
-		if(node["Position"])
-			light.Position = node["Position"].as<DirectX::XMFLOAT4>();
-
-		if(node["Param"])
-			light.Param = node["Param"].as<DirectX::XMFLOAT4>();
-
-		if(node["LightView"])
-			light.LightView = node["LightView"].as<DirectX::XMFLOAT4X4>();
-
-		if(node["LightProjection"])
-			light.LightProjection = node["LightProjection"].as<DirectX::XMFLOAT4X4>();
-
-		return true;
-	}
-
-	void inspector(SceneContext* context) override{
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 6));
-
-		// ライト有効・無効
-		ImGui::UndoCheckbox("Enable", (bool*)&light.Enable);
-		ImGui::UndoCheckbox("CastShadow", (bool*)&light.CastShadow);
-
-		// ライトの種類
-		// DirectionalCSM はシャドウマップアトラスに統合された CSM (カスケードシャドウマップ) 平行光。
-		// GPU バッファ上では DIRECTIONAL_CSM_CASCADE_COUNT 個の Directional エントリに自動展開される。
-		const char* lightTypes[] = {"None","Directional", "Point", "Spot", "DirectionalCSM (Cascaded)"};
-		int selected = static_cast<int>(light.LightType);
-		if(ImGui::Combo("Light Type", &selected, lightTypes, IM_ARRAYSIZE(lightTypes))){
-			light.LightType = selected;
-		}
-
-		// 色設定
-		ImGui::UndoColorEdit4("Diffuse", reinterpret_cast<float*>(&light.Diffuse));
-		ImGui::UndoColorEdit4("Ambient", reinterpret_cast<float*>(&light.Ambient));
-
-		// パラメータ (x: 範囲, y: 内側コーン角度(Spot), z: 外側コーン角度(Spot), w: シャドウバイアス)
-		ImGui::UndoDragFloat4("Param", reinterpret_cast<float*>(&light.Param), 0.1f);
-
-		ImGui::PopStyleVar();
-	}
+	YAML::Node encode() override;
+	bool decode(SceneContext* context, const YAML::Node& node) override;
+	void inspector(SceneContext* context) override;
 };
+
+#include "Operations/LightComponentOperations.h"
