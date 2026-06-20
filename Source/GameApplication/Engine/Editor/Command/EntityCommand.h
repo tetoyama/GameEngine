@@ -239,7 +239,7 @@ public:
 
 		// 初回: 複製
 		auto* t = m_context->component->GetComponent<TransformComponent>(m_src);
-		Entity newParent = t ? t->parent : 0;
+		Entity newParent = t ? t->parent : Entity(0, 0);
 		m_duplicated = _DuplicateRecursive(m_src, newParent);
 
 		// Undo/Redo 用スナップショット
@@ -322,7 +322,7 @@ public:
 		, m_onUndone(onUndone)
 	{
 		auto* t = ctx->component->GetComponent<TransformComponent>(entity);
-		m_entityOldParent = t ? t->parent : 0;
+		m_entityOldParent = t ? t->parent : Entity(0, 0);
 	}
 
 	void Execute() override {
