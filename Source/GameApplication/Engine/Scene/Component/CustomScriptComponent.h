@@ -13,6 +13,7 @@
 #include <atomic>
 #include <cstdint>
 #include <string>
+#include <utility>
 
 #include "Scene.h"
 #include "SceneManager.h"
