@@ -20,7 +20,7 @@
 #include "Scene/Registry/entityRegistry.h"
 #include "Scene/Registry/componentRegistry.h"
 
-// Commit済みEntityと、同じCommand Buffer内で生成予定のEntityを共通に表す。
+// Commit済みEntityと、Command Buffer内で生成予定のEntityを共通に表す。
 class CommandEntity {
 public:
 	CommandEntity() = default;
@@ -165,22 +165,32 @@ public:
 	// Commit中に追加されたコマンドは次回Commitへ残す。
 	void Commit(SceneContext& context) {
 		std::vector<Command> commands;
+		ResolveMap resolved;
 		{
 			std::scoped_lock lock(m_mutex);
 			commands.swap(m_commands);
+			resolved = m_resolvedPendingEntities;
 		}
 
-		ResolveMap resolved;
 		for(Command& command : commands) {
 			if(command) {
 				command(context, resolved);
 			}
+		}
+
+		// Commit済みPending Entityも、後続Scheduleで同じCommandEntityから
+		// 追加操作を行えるように解決表を維持する。
+		{
+			std::scoped_lock lock(m_mutex);
+			m_resolvedPendingEntities = std::move(resolved);
 		}
 	}
 
 	void Clear() {
 		std::scoped_lock lock(m_mutex);
 		m_commands.clear();
+		m_resolvedPendingEntities.clear();
+		m_nextPendingID = 1;
 	}
 
 	size_t PendingCommandCount() const {
@@ -216,5 +226,6 @@ private:
 
 	mutable std::mutex m_mutex;
 	std::vector<Command> m_commands;
+	ResolveMap m_resolvedPendingEntities;
 	uint32_t m_nextPendingID = 1;
 };
