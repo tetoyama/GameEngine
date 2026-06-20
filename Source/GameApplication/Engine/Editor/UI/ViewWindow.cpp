@@ -34,6 +34,8 @@ void ViewWindow::Initialize(EditorService* editor) {
 	PauseButtonTexture = resourceService->Load<TextureData>("Asset/Texture/UI/Control/Pause.png");
 	StopButtonTexture = resourceService->Load<TextureData> ("Asset/Texture/UI/Control/Stop.png");
 	StepButtonTexture = resourceService->Load<TextureData> ("Asset/Texture/UI/Control/Step.png");
+
+	ImGui::SetWindowFocus("Editor View");
 }
 
 void ViewWindow::Draw(const EditorDrawContext ctx) {
