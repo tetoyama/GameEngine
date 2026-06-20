@@ -25,12 +25,17 @@ void TransformSystem::Draw(){
 	// 親が削除されているEntityは、描画中にRegistryを直接変更せず、
 	// Render Domain末尾のCommit Taskで安全に削除する。
 	for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
+		(void)name;
 		auto* context = scene->GetSceneContext();
+		if(!context || !context->component || !context->entity){
+			continue;
+		}
 
-		const auto entities =
-			context->component->FindEntitiesWithComponent<TransformComponent>();
+		// 結果vectorを生成せず、生存EntityとComponentMaskを遅延走査する。
+		const auto query =
+			context->component->ReadQuery<TransformComponent>();
 
-		for(Entity entity : entities){
+		for(Entity entity : query){
 			auto* transform =
 				context->component->GetComponent<TransformComponent>(entity);
 			if(!transform) continue;
