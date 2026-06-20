@@ -146,9 +146,30 @@ Scriptは当面 `MainThread` かつ `WorldExclusive` として扱う。
 
 ### Step 9: EntityCommandBuffer
 
-- [ ] Entity生成・削除を遅延化
-- [ ] Component追加・削除を遅延化
-- [ ] 専用Commit Taskで適用
+- [x] Entity生成・削除を遅延化
+- [x] Component追加・削除を遅延化
+- [x] 専用Commit Taskで適用
+- [x] Fixed / Frame / Editor / Renderの各Domain末尾でCommit
+- [x] Script Lifecycle中のCommandを明示Commit
+
+### Step 9.5: Script DLL境界の安全化
+
+CRT方針:
+
+- GameEngineとScript DLLはDebug x64で `/MTd`
+- GameEngineとScript DLLはRelease x64で `/MT`
+- DirectXTex、Effekseer、PhysXなど既存の静的ライブラリと合わせる
+- DLL内で生成したScriptインスタンスはDLL内の `DestroyScript` で破棄する
+
+進捗:
+
+- [x] GameEngineとScript DLLのCRT設定を `/MTd・/MT` へ統一
+- [x] `CreateScript` と対になる `DestroyScript` をDLLへ追加
+- [x] `ScriptComponent`をコピー禁止・move-only所有型へ変更
+- [x] DLL解放前に旧DLL由来のScriptを破棄
+- [ ] Hot Reload時の状態退避・再生成
+- [ ] EntityCommandBuffer操作をEngine側Bridge経由へ移行
+- [ ] Debug / Release x64でDLL Reloadを検証
 
 ### Step 10: Component純データ化
 
