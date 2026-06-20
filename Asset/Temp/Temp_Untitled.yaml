@@ -54,8 +54,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
+          UseDiffuseTexture: false
+          UseNormalTexture: false
           UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset\Texture\mesh.png
@@ -191,9 +191,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-          UseEnvironmentMap: true
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+          UseEnvironmentMap: false
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
         UV_Slice_X: 1
@@ -260,9 +260,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-          UseEnvironmentMap: true
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+          UseEnvironmentMap: false
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Y Bot.fbx
         isBlender: false

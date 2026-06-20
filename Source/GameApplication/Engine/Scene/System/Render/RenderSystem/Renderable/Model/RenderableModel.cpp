@@ -107,10 +107,9 @@ void RenderableModel::Execute(
 			uv.UVEnd.y = uv.UVStart.y + 1.0f / textureComponent->UV_Slice_Y;  // セルの下端 UV
 		}
 	}
-	if(ctx.passPhase != RenderPhase::PHASE_SHADOW){
-		graphicsContext->SetUVMatrixBuffer(uv);
-		graphicsContext->SetMaterial(material);
-	}
+	graphicsContext->SetUVMatrixBuffer(uv);
+	graphicsContext->SetMaterial(material);
+
 	//----------------------------------------------------------------------
 	// Render State
 	//----------------------------------------------------------------------
@@ -233,17 +232,15 @@ void RenderableModel::Execute(
 				graphicsContext->SetMaterial(materialData);
 			}
 		} else{
-			deviceContext->PSSetShaderResources(
-				TextureSlot_Albedo,
-				1,
-				textureComponent->m_TextureData->pTexture.GetAddressOf());
-
 			if(model->SetTexture){
 				material.MaterialFlags |=
 					MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 			}
 			if(ctx.passPhase != RenderPhase::PHASE_SHADOW){
-
+				deviceContext->PSSetShaderResources(
+					TextureSlot_Albedo,
+					1,
+					textureComponent->m_TextureData->pTexture.GetAddressOf());
 				graphicsContext->SetMaterial(material);
 			}
 		}

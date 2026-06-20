@@ -640,14 +640,14 @@ Entities:
             isTrigger: false
             boneName: ""
       - Component: MaterialComponent
-        ShaderID: 3
+        ShaderID: 1
         Material:
           BaseColor:
             x: 1
             y: 1
             z: 1
             w: 1
-          Metallic: 0
+          Metallic: 1
           Roughness: 0
           AO: 0
           EmissiveColor:
@@ -707,15 +707,15 @@ Entities:
             isTrigger: false
             boneName: ""
       - Component: MaterialComponent
-        ShaderID: 3
+        ShaderID: 1
         Material:
           BaseColor:
             x: 1
             y: 1
             z: 1
             w: 1
-          Metallic: 0
-          Roughness: 0
+          Metallic: 0.5
+          Roughness: 0.300000012
           AO: 0
           EmissiveColor:
             x: 0
@@ -978,15 +978,15 @@ Entities:
             isTrigger: false
             boneName: ""
       - Component: MaterialComponent
-        ShaderID: 3
+        ShaderID: 1
         Material:
           BaseColor:
             x: 1
             y: 1
             z: 1
             w: 1
-          Metallic: 0
-          Roughness: 0
+          Metallic: 0.5
+          Roughness: 0.170000002
           AO: 0
           EmissiveColor:
             x: 0
@@ -1012,7 +1012,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 26.9727554
-          y: -5.59836006
+          y: -5.99195194
           z: -10.0601196
         Rotation:
           - 0
@@ -1021,7 +1021,7 @@ Entities:
           - -0.701446831
         Scale:
           x: 3.72999835
-          y: 3.73000312
+          y: 4.5605588
           z: 3.73000169
         Parent: 0
       - Component: ColliderComponent
@@ -1045,12 +1045,12 @@ Entities:
             isTrigger: false
             boneName: ""
       - Component: MaterialComponent
-        ShaderID: 3
+        ShaderID: 1
         Material:
           BaseColor:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.983850002
+            y: 0.987012982
+            z: 0.743464351
             w: 1
           Metallic: 0
           Roughness: 0
@@ -1112,12 +1112,12 @@ Entities:
             isTrigger: false
             boneName: ""
       - Component: MaterialComponent
-        ShaderID: 3
+        ShaderID: 2
         Material:
           BaseColor:
             x: 1
-            y: 1
-            z: 1
+            y: 0.722943723
+            z: 0.722943723
             w: 1
           Metallic: 0
           Roughness: 0
@@ -1179,7 +1179,7 @@ Entities:
             isTrigger: false
             boneName: ""
       - Component: MaterialComponent
-        ShaderID: 3
+        ShaderID: 1
         Material:
           BaseColor:
             x: 0.636363626
@@ -1246,7 +1246,7 @@ Entities:
             isTrigger: false
             boneName: ""
       - Component: MaterialComponent
-        ShaderID: 3
+        ShaderID: 2
         Material:
           BaseColor:
             x: 0.264069259
@@ -1313,7 +1313,7 @@ Entities:
             isTrigger: false
             boneName: ""
       - Component: MaterialComponent
-        ShaderID: 3
+        ShaderID: 2
         Material:
           BaseColor:
             x: 1
@@ -1346,9 +1346,9 @@ Entities:
         Name: Cube
       - Component: TransformComponent
         Position:
-          x: 26.6408596
+          x: 26.872509
           y: -2.68115926
-          z: -3.86179113
+          z: -3.85809708
         Rotation:
           - 0.257238954
           - 0.664680779
@@ -1380,12 +1380,12 @@ Entities:
             isTrigger: false
             boneName: ""
       - Component: MaterialComponent
-        ShaderID: 3
+        ShaderID: 1
         Material:
           BaseColor:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.984313726
+            y: 0.988235295
+            z: 0.745098054
             w: 1
           Metallic: 0
           Roughness: 0
@@ -1413,9 +1413,9 @@ Entities:
         Name: Cube
       - Component: TransformComponent
         Position:
-          x: 26.2000542
+          x: 26.8501377
           y: -1.916188
-          z: -1.8916657
+          z: -1.88129902
         Rotation:
           - 0
           - 0.712721765
@@ -1447,12 +1447,12 @@ Entities:
             isTrigger: false
             boneName: ""
       - Component: MaterialComponent
-        ShaderID: 3
+        ShaderID: 1
         Material:
           BaseColor:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.984313726
+            y: 0.988235295
+            z: 0.745098054
             w: 1
           Metallic: 0
           Roughness: 0
@@ -1748,9 +1748,9 @@ Entities:
         Name: Cube
       - Component: TransformComponent
         Position:
-          x: 26.982399
+          x: 26.9227409
           y: -4.78781652
-          z: -7.20695972
+          z: -7.20791149
         Rotation:
           - 0.133494303
           - 0.700108528
@@ -1759,7 +1759,7 @@ Entities:
         Scale:
           x: 3.7300005
           y: 3.73000312
-          z: 3.72997975
+          z: 3.72995377
         Parent: 0
       - Component: ColliderComponent
         isDynamic: false
@@ -1782,12 +1782,12 @@ Entities:
             isTrigger: false
             boneName: ""
       - Component: MaterialComponent
-        ShaderID: 3
+        ShaderID: 1
         Material:
           BaseColor:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.984313726
+            y: 0.988235295
+            z: 0.745098054
             w: 1
           Metallic: 0
           Roughness: 0
@@ -1829,12 +1829,12 @@ Entities:
           z: 0.419999421
         Parent: 0
       - Component: MaterialComponent
-        ShaderID: 3
+        ShaderID: 4
         Material:
           BaseColor:
-            x: 1
+            x: 0.961038947
             y: 1
-            z: 1
+            z: 0
             w: 1
           Metallic: 0
           Roughness: 0
@@ -1875,8 +1875,8 @@ Entities:
         Material:
           BaseColor:
             x: 1
-            y: 1
-            z: 1
+            y: 0
+            z: 0
             w: 1
           Metallic: 0
           Roughness: 0
@@ -1916,9 +1916,9 @@ Entities:
         ShaderID: 3
         Material:
           BaseColor:
-            x: 1
-            y: 1
-            z: 1
+            x: 0.982683957
+            y: 0.536009431
+            z: 0
             w: 1
           Metallic: 0
           Roughness: 0
@@ -1958,9 +1958,9 @@ Entities:
         ShaderID: 4
         Material:
           BaseColor:
-            x: 1
+            x: 0
             y: 1
-            z: 1
+            z: 0.181818247
             w: 1
           Metallic: 0
           Roughness: 0
@@ -2367,3 +2367,70 @@ Entities:
         targetLookLerpSpeed: 10
       - Component: PrefabComponent
         FilePath: C:\Users\teto_\OneDrive\ÉhÉLÉÖÉÅÉìÉg\GitHub\GameEngine\Asset\Prefab\Camera.prefab
+  - Entity: 33
+    Components:
+      - Component: NameComponent
+        Name: Cube
+      - Component: TransformComponent
+        Position:
+          x: 26.8830414
+          y: -5.73070335
+          z: -4.71854639
+        Rotation:
+          - 0.133493975
+          - 0.700108945
+          - -0.131382912
+          - -0.689032197
+        Scale:
+          x: 10.6877556
+          y: 5.91710901
+          z: 3.72997451
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 0
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 0.984313726
+            y: 0.988235295
+            z: 0.745098054
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset/Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset/Model\cube.obj
+        isBlender: false
+        AnimationTime: 40187.5195
