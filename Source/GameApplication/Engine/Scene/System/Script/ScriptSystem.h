@@ -1,9 +1,10 @@
 // =======================================================================
-// 
+//
 // ScriptSystem.h
-// 
+//
 // =======================================================================
 #pragma once
+
 #include <unordered_map>
 #include <functional>
 #include <memory>
@@ -12,24 +13,21 @@
 #include "Scene/Interface/ISystem.h"
 #include "Scene/sceneManager.h"
 #include "Interface/IScriptComponent.h"
-#include "Scene/Component/ScriptComponent.h"
+#include "Scene/Component/scriptComponent.h"
 #include "Scene/Registry/componentRegistry.h"
 
 using SetImGuiContextFunc = void(*)(void*);
 
-// C#スクリプトDLLとの連携を管理するシステム
-class ScriptSystem: public ISystem
-{
+// DLL Scriptとの連携と直列実行順を管理するSystem。
+class ScriptSystem: public ISystem {
 public:
 	const char* GetSystemName() const override{
 		return "ScriptSystem";
 	}
+
 	ScriptSystem(SceneManagerContext* context)
 		: m_context(context){}
 
-	// =========================
-	// ISystem
-	// =========================
 	void Initialize() override;
 	void Finalize() override;
 
@@ -40,48 +38,40 @@ public:
 	void EditorUpdate(float deltaTime) override;
 	void Draw() override;
 
-	// =========================
-	// Script 登録
-	// =========================
 	template<typename T>
 	void RegisterEngineComponent(const char* name){
 		static_assert(std::is_base_of_v<IComponent, T>,
-					  "T must derive from IComponent");
+			"T must derive from IComponent");
 		m_nameToEngineTypeID[name] = ComponentType::Get<T>();
 	}
 
-	// =========================
-	// Script 生成
-	// =========================
 	IScriptComponent* Create(const char* scriptName){
-		// ここで「スクリプト側プロジェクト」に名前を投げる
-		return m_scriptBridge
+		IScriptComponent* script = m_scriptBridge
 			? m_scriptBridge(scriptName)
 			: nullptr;
+
+		if(script && !script->HasRegistrationOrder()){
+			script->SetRegistrationOrder(m_nextScriptRegistrationOrder++);
+		}
+		return script;
 	}
 
-	// =========================
-	// Engine Component TypeID 取得
-	// =========================
 	template<typename T>
 	ComponentTypeID GetEngineComponentTypeID() const{
 		auto it = m_engineTypeIDs.find(std::type_index(typeid(T)));
-		if(it == m_engineTypeIDs.end())
+		if(it == m_engineTypeIDs.end()){
 			return static_cast<ComponentTypeID>(-1);
-
+		}
 		return it->second;
 	}
 
-	// DLL リロード
 	bool ReloadScriptDLL(const char* dllPath);
 
-	// DLL から渡される関数をセット
 	void SetScriptBridge(
 		std::function<IScriptComponent*(const char*)> bridge){
 		m_scriptBridge = std::move(bridge);
 	}
 
-	// ComponentTypeID を名前で引く（Script 用）
 	ComponentTypeID GetEngineComponentTypeIDByName(
 		const std::string& name) const{
 		auto it = m_nameToEngineTypeID.find(name);
@@ -91,7 +81,7 @@ public:
 	}
 
 	void SystemSetting() override {
-		if (ImGui::Button("Reload Script DLL")) {
+		if(ImGui::Button("Reload Script DLL")){
 			ReloadScriptDLL("Script/Script.dll");
 		}
 	}
@@ -102,17 +92,14 @@ private:
 	SceneManagerContext* m_context = nullptr;
 
 	template<typename Func>
-	void ForEachScript(Func&& func);
+	void ForEachScript(SystemTaskDomain domain, Func&& func);
 
-	// 名前 → Engine ComponentTypeID
 	std::unordered_map<std::string, ComponentTypeID> m_nameToEngineTypeID;
-
-	// Script型 → Engine ComponentTypeID
 	std::unordered_map<std::type_index, ComponentTypeID> m_engineTypeIDs;
 
 	std::function<IScriptComponent*(const char*)> m_scriptBridge = nullptr;
-
 	std::function<void(void*)> m_setImGuiContextFunc = nullptr;
+	uint64_t m_nextScriptRegistrationOrder = 1;
 
 	HMODULE m_scriptModule = nullptr;
 
