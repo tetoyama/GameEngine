@@ -9,6 +9,7 @@
 #include <commdlg.h> // GetOpenFileName
 #include <filesystem>
 #include <string>
+#include <unordered_map>
 
 #include "Backends/Taskbar/taskbar.h"
 #include "Backends/convertWString.h"
@@ -476,44 +477,127 @@ void Scene::ResetAll(){
 	m_entityRegistry->ResetAll();
 }
 
-void Scene::LoadSceneFromYAML(std::string path) {  
-	std::ifstream fin(path);  
-	if(!fin.is_open()){  
-		// ファイルが開けなかった場合  
-		m_SceneContext.manager->debug->LOG_ERROR(("Failed to open file: " + path).c_str());  
-		return;  
-	}
-
-	YAML::Node root = YAML::Load(fin);  
-	if(!root["Entities"] || !root["Entities"].IsSequence()){  
-		m_SceneContext.manager->debug->LOG_ERROR("YAML: 'Entities' node missing or invalid");  
+void Scene::LoadSceneFromYAML(std::string path) {
+	std::ifstream fin(path);
+	if(!fin.is_open()){
+		m_SceneContext.manager->debug->LOG_ERROR(("Failed to open file: " + path).c_str());
 		return;
 	}
 
-	ScenePath = path; // シーンのパスを設定
+	YAML::Node root = YAML::Load(fin);
+	if(!root["Entities"] || !root["Entities"].IsSequence()){
+		m_SceneContext.manager->debug->LOG_ERROR("YAML: 'Entities' node missing or invalid");
+		return;
+	}
+
+	ScenePath = path;
 	m_SceneContext.manager->debug->LOG_DEBUG(("Sceneをファイルから読み込みます:FilePath[" + ScenePath + "]").c_str());
 
 	std::filesystem::path fpath(ScenePath);
-	SceneName = fpath.stem().string();  // 拡張子を除いたファイル名
+	SceneName = fpath.stem().string();
 
-	YAML::Node entities = root["Entities"];  
-	for(const auto& entityNode : entities){  
+	const YAML::Node entities = root["Entities"];
 
-		if(!entityNode["Entity"]){  
-			continue;  
-		}  
-		Entity entity = m_entityRegistry->Create();  
+	// YAMLに保存されたEntity IDは永続参照用のIDであり、
+	// 実行時Entity IDとは一致する保証がない。
+	std::unordered_map<Entity, Entity> serializedToRuntime;
+	std::vector<std::pair<YAML::Node, Entity>> pendingEntities;
+	serializedToRuntime.reserve(entities.size());
+	pendingEntities.reserve(entities.size());
 
-		if(!entityNode["Components"] || !entityNode["Components"].IsSequence()){  
-			continue;  
+	// ------------------------------------------------------------
+	// Pass 1: 全Entityを先に作成し、旧IDから新IDへの対応表を作る。
+	// ------------------------------------------------------------
+	for(const auto& entityNode : entities){
+		if(!entityNode["Entity"]){
+			m_SceneContext.manager->debug->LOG_WARNING("YAML: Entity ID missing. Entry skipped.");
+			continue;
 		}
-		for(const auto& compNode : entityNode["Components"]){  
-			const auto& compType = compNode["Component"].as<std::string>();  
-			IComponent* comp = m_componentRegistry->CreateFromYAML(compType, entity, compNode);  
+
+		const Entity serializedEntity = static_cast<Entity>(
+			entityNode["Entity"].as<uint32_t>()
+		);
+
+		if(serializedEntity == 0){
+			m_SceneContext.manager->debug->LOG_WARNING("YAML: Entity ID 0 is invalid. Entry skipped.");
+			continue;
+		}
+
+		if(serializedToRuntime.contains(serializedEntity)){
+			m_SceneContext.manager->debug->LOG_ERROR((
+			"YAML: Duplicate Entity ID detected: " +
+			std::to_string(serializedEntity)
+			).c_str());
+			continue;
+		}
+
+		const Entity runtimeEntity = m_entityRegistry->Create();
+		serializedToRuntime.emplace(serializedEntity, runtimeEntity);
+		pendingEntities.emplace_back(entityNode, runtimeEntity);
+	}
+
+	// ------------------------------------------------------------
+	// Pass 2: 作成済みEntityへComponentを復元する。
+	// 全Entityが存在するため、ロード順に依存しない。
+	// ------------------------------------------------------------
+	for(const auto& [entityNode, runtimeEntity] : pendingEntities){
+		if(!entityNode["Components"] || !entityNode["Components"].IsSequence()){
+			continue;
+		}
+
+		for(const auto& compNode : entityNode["Components"]){
+			if(!compNode["Component"]){
+				m_SceneContext.manager->debug->LOG_WARNING("YAML: Component type missing. Component skipped.");
+				continue;
+			}
+
+			const std::string compType = compNode["Component"].as<std::string>();
+			m_componentRegistry->CreateFromYAML(compType, runtimeEntity, compNode);
 		}
 	}
 
-	// 全エンティティのロードが完了した後で children リストを再構築する
+	const auto remapReference = [&](Entity serializedReference,
+								  Entity ownerEntity,
+								  const char* fieldName) -> Entity {
+		if(serializedReference == 0){
+			return 0;
+		}
+
+		auto it = serializedToRuntime.find(serializedReference);
+		if(it != serializedToRuntime.end()){
+			return it->second;
+		}
+
+		m_SceneContext.manager->debug->LOG_WARNING((
+			"YAML: Unresolved Entity reference. Owner=" +
+			std::to_string(ownerEntity) +
+			", Field=" + fieldName +
+			", SerializedID=" + std::to_string(serializedReference)
+		).c_str());
+		return 0;
+	};
+
+	// ------------------------------------------------------------
+	// Pass 3: Component内に保存されたEntity参照を実行時IDへ変換する。
+	// ------------------------------------------------------------
+	for(const auto& [entityNode, runtimeEntity] : pendingEntities){
+		if(auto* transform = m_componentRegistry->GetComponent<TransformComponent>(runtimeEntity)){
+			transform->parent = remapReference(
+				transform->parent,
+				runtimeEntity,
+				"TransformComponent::parent"
+			);
+		}
+
+		if(auto* follow = m_componentRegistry->GetComponent<FollowComponent>(runtimeEntity)){
+			follow->targetEntity = remapReference(
+				follow->targetEntity,
+				runtimeEntity,
+				"FollowComponent::targetEntity"
+			);
+		}
+	}
+
 	RebuildTransformChildren();
 }
 
