@@ -12,8 +12,8 @@
 #include <unordered_map>
 #include "Service/IService.h"
 #include "Backends/myVector2.h"
+#include "Graphics/mainRenderer.h"
 
-class MainRenderer;
 class GraphicsContext;
 class AudioContext;
 class InputService;
