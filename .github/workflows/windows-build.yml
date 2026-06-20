@@ -38,6 +38,28 @@ jobs:
           /verbosity:minimal
           /consoleloggerparameters:ErrorsOnly
 
+  script-release-x64:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Script Release x64
+        run: >-
+          msbuild Script/Script.vcxproj
+          /t:Rebuild
+          /m
+          /p:Configuration=Release
+          /p:Platform=x64
+          /verbosity:minimal
+          /consoleloggerparameters:ErrorsOnly
+
   engine-debug-x64:
     runs-on: windows-latest
 
@@ -62,16 +84,54 @@ jobs:
           /verbosity:minimal
           /consoleloggerparameters:ErrorsOnly
           /fileLogger
-          /fileLoggerParameters:"LogFile=engine-errors.log;ErrorsOnly"
+          /fileLoggerParameters:"LogFile=engine-debug-errors.log;ErrorsOnly"
 
-      - name: Upload engine error log
+      - name: Upload engine debug error log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: engine-build-errors
-          path: engine-errors.log
+          name: engine-debug-build-errors
+          path: engine-debug-errors.log
           if-no-files-found: warn
 
-      - name: Preserve engine build result
+      - name: Preserve engine debug build result
+        if: steps.engine_build.outcome == 'failure'
+        run: cmd /c exit 1
+
+  engine-release-x64:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build GameEngine Release x64
+        id: engine_build
+        continue-on-error: true
+        run: >-
+          msbuild GameEngine.vcxproj
+          /t:Build
+          /m
+          /p:Configuration=Release
+          /p:Platform=x64
+          /verbosity:minimal
+          /consoleloggerparameters:ErrorsOnly
+          /fileLogger
+          /fileLoggerParameters:"LogFile=engine-release-errors.log;ErrorsOnly"
+
+      - name: Upload engine release error log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-release-build-errors
+          path: engine-release-errors.log
+          if-no-files-found: warn
+
+      - name: Preserve engine release build result
         if: steps.engine_build.outcome == 'failure'
         run: cmd /c exit 1
