@@ -1,0 +1,93 @@
+name: Apply component generation tracking
+
+on:
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - .github/workflows/apply-component-generation.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-component-generation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout work branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 0
+
+      - name: Apply component generation changes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def read(path: str) -> str:
+              return Path(path).read_text(encoding="utf-8-sig")
+
+          def write(path: str, text: str) -> None:
+              Path(path).write_text(text, encoding="utf-8")
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              text = read(path)
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(
+                      f"Expected exactly one match in {path}, found {count}"
+                  )
+              write(path, text.replace(old, new, 1))
+
+          storage_path = "Source/GameApplication/Engine/Scene/Interface/IComponentStorage.h"
+          write(
+              storage_path,
+              """// =======================================================================\n// \n// IComponentStorage.h\n// \n// =======================================================================\n#pragma once\n\n#include \"Entity/Entity.h\"\n#include \"Interface/IComponent.h\"\n#include <bitset>\n#include <cstdint>\n#include <type_traits>\n#include <unordered_map>\n#include <utility>\n#include <vector>\n\n#include <backends/yaml-cpp/yaml.h>\n\nusing ComponentTypeID = uint32_t;\n\nconstexpr size_t MAX_COMPONENTS = 64;\nusing ComponentMask = std::bitset<MAX_COMPONENTS>;\n\nstruct IComponentStorage {\n\tvirtual ~IComponentStorage() = default;\n\n\tvirtual void Remove(Entity entity) = 0;\n\tvirtual std::vector<Entity> GetEntityList() const = 0;\n\tvirtual IComponent* GetEntityComponent(Entity entity) = 0;\n\n\t// Componentの削除・再追加を識別するインスタンス世代。\n\tvirtual uint32_t GetComponentGeneration(Entity entity) const = 0;\n};\n\ntemplate<typename T>\nclass ArchetypeStorage: public IComponentStorage {\n\tstatic_assert(std::is_base_of<IComponent, T>::value, \"T must inherit from IComponent\");\n\npublic:\n\tvoid Add(Entity entity, T component) {\n\t\tif(m_indexMap.contains(entity)) return;\n\n\t\tconst size_t index = m_components.size();\n\t\tm_indexMap[entity] = index;\n\t\tm_components.emplace_back(std::move(component));\n\t\tm_entities.emplace_back(entity);\n\n\t\t// Remove後の再追加では、Remove時に進めた世代を維持する。\n\t\tm_generations.try_emplace(entity, 0);\n\t}\n\n\tT* Get(Entity entity) {\n\t\tauto it = m_indexMap.find(entity);\n\t\treturn it != m_indexMap.end() ? &m_components[it->second] : nullptr;\n\t}\n\n\tvoid Remove(Entity entity) override {\n\t\tauto it = m_indexMap.find(entity);\n\t\tif(it == m_indexMap.end()) return;\n\n\t\tconst size_t index = it->second;\n\t\tconst size_t last = m_components.size() - 1;\n\n\t\tif(index != last){\n\t\t\tm_components[index] = std::move(m_components[last]);\n\t\t\tconst Entity movedEntity = m_entities[last];\n\t\t\tm_entities[index] = movedEntity;\n\t\t\tm_indexMap[movedEntity] = index;\n\t\t}\n\n\t\tm_components.pop_back();\n\t\tm_entities.pop_back();\n\t\tm_indexMap.erase(it);\n\t\tIncrementGeneration(entity);\n\t}\n\n\tstd::vector<Entity> GetEntityList() const override {\n\t\treturn m_entities;\n\t}\n\n\tIComponent* GetEntityComponent(Entity entity) override {\n\t\treturn Get(entity);\n\t}\n\n\tuint32_t GetComponentGeneration(Entity entity) const override {\n\t\tauto it = m_generations.find(entity);\n\t\treturn it != m_generations.end() ? it->second : 0;\n\t}\n\nprivate:\n\tvoid IncrementGeneration(Entity entity) {\n\t\tuint32_t& generation = m_generations[entity];\n\t\t++generation;\n\t\tif(generation == 0) ++generation;\n\t}\n\n\tstd::unordered_map<Entity, size_t> m_indexMap;\n\tstd::vector<T> m_components;\n\tstd::vector<Entity> m_entities;\n\tstd::unordered_map<Entity, uint32_t> m_generations;\n};\n\ntemplate<typename T>\nclass SparseStorage: public IComponentStorage {\n\tstatic_assert(std::is_base_of<IComponent, T>::value, \"T must inherit from IComponent\");\n\npublic:\n\t// 既に存在する場合は既存Componentを維持する。\n\tvoid Add(Entity entity, T component) {\n\t\tif(m_map.contains(entity)) return;\n\n\t\tm_map.emplace(entity, std::move(component));\n\t\t// Remove後の再追加では、Remove時に進めた世代を維持する。\n\t\tm_generations.try_emplace(entity, 0);\n\t}\n\n\tT* Get(Entity entity) {\n\t\tauto it = m_map.find(entity);\n\t\treturn it != m_map.end() ? &it->second : nullptr;\n\t}\n\n\tvoid Remove(Entity entity) override {\n\t\tauto it = m_map.find(entity);\n\t\tif(it == m_map.end()) return;\n\n\t\tm_map.erase(it);\n\t\tIncrementGeneration(entity);\n\t}\n\n\tstd::vector<Entity> GetEntityList() const override {\n\t\tstd::vector<Entity> result;\n\t\tresult.reserve(m_map.size());\n\t\tfor(const auto& [entity, component] : m_map){\n\t\t\tresult.push_back(entity);\n\t\t}\n\t\treturn result;\n\t}\n\n\tIComponent* GetEntityComponent(Entity entity) override {\n\t\treturn Get(entity);\n\t}\n\n\tuint32_t GetComponentGeneration(Entity entity) const override {\n\t\tauto it = m_generations.find(entity);\n\t\treturn it != m_generations.end() ? it->second : 0;\n\t}\n\nprivate:\n\tvoid IncrementGeneration(Entity entity) {\n\t\tuint32_t& generation = m_generations[entity];\n\t\t++generation;\n\t\tif(generation == 0) ++generation;\n\t}\n\n\tstd::unordered_map<Entity, T> m_map;\n\tstd::unordered_map<Entity, uint32_t> m_generations;\n};\n"""
+          )
+
+          registry_path = "Source/GameApplication/Engine/Scene/Registry/componentRegistry.h"
+          replace_once(
+              registry_path,
+              """\ttemplate<typename T>\n\tbool HasComponent(Entity e) const {\n""",
+              """\ttemplate<typename T>\n\tuint32_t GetComponentGeneration(Entity e) const {\n\t\tstd::type_index ti(typeid(T));\n\t\tauto it = m_storages.find(ti);\n\t\tif(it == m_storages.end()) return 0;\n\t\treturn it->second->GetComponentGeneration(e);\n\t}\n\n\ttemplate<typename T>\n\tbool HasComponent(Entity e) const {\n"""
+          )
+
+          component_ref_path = "Source/GameApplication/Engine/Scene/Reference/ComponentRef.h"
+          write(
+              component_ref_path,
+              """// =======================================================================\n// \n// ComponentRef.h\n// \n// =======================================================================\n#pragma once\n\n#include <cassert>\n#include <cstdint>\n\n#include \"EntityRef.h\"\n#include \"../Registry/componentRegistry.h\"\n\n// Entity世代とComponentインスタンス世代の両方を検証する安全な参照。\n// 返されたポインタは次の構造変更までの一時参照として扱う。\ntemplate<typename T>\nstruct ComponentRef {\n\tComponentRef() = default;\n\n\tComponentRef(Entity entity, SceneContext* context)\n\t\t: m_entityRef(entity, context) {\n\t\tCaptureGeneration();\n\t}\n\n\texplicit ComponentRef(EntityRef ref)\n\t\t: m_entityRef(ref) {\n\t\tCaptureGeneration();\n\t}\n\n\tbool IsValid() const {\n\t\tif(!m_hasGeneration || !m_entityRef.IsValid()) return false;\n\n\t\tSceneContext* context = m_entityRef.GetScene();\n\t\tif(!context || !context->component) return false;\n\n\t\tconst Entity entity = m_entityRef.GetEntityID();\n\t\tif(context->component->GetComponentGeneration<T>(entity) != m_componentGeneration){\n\t\t\treturn false;\n\t\t}\n\n\t\treturn context->component->GetComponent<T>(entity) != nullptr;\n\t}\n\n\tT* TryGet() const {\n\t\tif(!IsValid()) return nullptr;\n\n\t\tSceneContext* context = m_entityRef.GetScene();\n\t\treturn context->component->GetComponent<T>(m_entityRef.GetEntityID());\n\t}\n\n\t// 既存コード互換。新規コードではTryGet()を優先する。\n\tT* Get() const {\n\t\treturn TryGet();\n\t}\n\n\tT& GetChecked() const {\n\t\tT* component = TryGet();\n\t\tassert(component && \"ComponentRef::GetChecked called on invalid reference\");\n\t\treturn *component;\n\t}\n\n\tT* operator->() const {\n\t\treturn TryGet();\n\t}\n\n\texplicit operator bool() const {\n\t\treturn IsValid();\n\t}\n\n\tvoid Reset() {\n\t\tm_entityRef = EntityRef{};\n\t\tm_componentGeneration = 0;\n\t\tm_hasGeneration = false;\n\t}\n\n\tEntity GetEntityID() const { return m_entityRef.GetEntityID(); }\n\tSceneContext* GetScene() const { return m_entityRef.GetScene(); }\n\tconst EntityRef& GetEntityRef() const { return m_entityRef; }\n\tuint32_t GetComponentGeneration() const { return m_componentGeneration; }\n\n\tbool operator==(const ComponentRef& other) const {\n\t\treturn m_entityRef == other.m_entityRef &&\n\t\t\tm_componentGeneration == other.m_componentGeneration &&\n\t\t\tm_hasGeneration == other.m_hasGeneration;\n\t}\n\n\tbool operator!=(const ComponentRef& other) const {\n\t\treturn !(*this == other);\n\t}\n\nprivate:\n\tvoid CaptureGeneration() {\n\t\tif(!m_entityRef.IsValid()) return;\n\n\t\tSceneContext* context = m_entityRef.GetScene();\n\t\tif(!context || !context->component) return;\n\n\t\tconst Entity entity = m_entityRef.GetEntityID();\n\t\tif(!context->component->GetComponent<T>(entity)) return;\n\n\t\tm_componentGeneration =\n\t\t\tcontext->component->GetComponentGeneration<T>(entity);\n\t\tm_hasGeneration = true;\n\t}\n\n\tEntityRef m_entityRef;\n\tuint32_t m_componentGeneration = 0;\n\tbool m_hasGeneration = false;\n};\n"""
+          )
+
+          plan_path = "Docs/ECS_Scheduler_Migration_Plan.md"
+          plan = read(plan_path)
+          replacements = {
+              "- [ ] StorageごとにComponent Generationを保持":
+                  "- [x] StorageごとにComponent Generationを保持",
+              "- [ ] 削除・再追加で世代を更新":
+                  "- [x] 削除・再追加で世代を更新",
+              "- [ ] Entity世代を検証":
+                  "- [x] Entity世代を検証",
+              "- [ ] Component世代を検証":
+                  "- [x] Component世代を検証",
+              "- [ ] 生ポインタを永続保持しない":
+                  "- [x] 生ポインタを永続保持しない",
+              "- [ ] `TryGet()` / `GetChecked()` を提供":
+                  "- [x] `TryGet()` / `GetChecked()` を提供",
+          }
+          for old, new in replacements.items():
+              if plan.count(old) != 1:
+                  raise RuntimeError(f"Checklist entry not found: {old}")
+              plan = plan.replace(old, new, 1)
+          write(plan_path, plan)
+
+          Path(".github/workflows/apply-component-generation.yml").unlink()
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git diff --cached --check
+          git commit -m "refactor: add component generation validation"
+          git push origin HEAD:refactor/ecs-scheduler-foundation
