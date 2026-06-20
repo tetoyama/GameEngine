@@ -1,0 +1,197 @@
+name: Add Component Operations
+
+on:
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - .github/workflows/add-component-operations.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout work branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 0
+
+      - name: Patch ComponentRegistry operations
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("Source/GameApplication/Engine/Scene/Registry/componentRegistry.h")
+          text = path.read_text(encoding="utf-8-sig")
+
+          old_struct = '''class CustomScriptComponent;
+
+          // 識別用型
+          '''
+          new_struct = '''class CustomScriptComponent;
+
+          struct ComponentOperations {
+          \tstd::string name;
+          \tstd::function<YAML::Node(void*)> encode;
+          \tstd::function<bool(void*, SceneContext*, const YAML::Node&)> decode;
+          \tstd::function<void(void*, SceneContext*)> inspector;
+          };
+
+          // 識別用型
+          '''
+          if text.count(old_struct) != 1:
+              raise RuntimeError("ComponentOperations insertion point not found")
+          text = text.replace(old_struct, new_struct, 1)
+
+          old_register = '''\t\tRegisterComponent<T>(useArchetype);
+
+          \t\tm_yamlFactory[name] = [this](Entity e, const YAML::Node& node) -> IComponent*{
+          \t\t\tauto* comp = AddComponent<T>(e);
+          \t\t\tif(comp){
+          \t\t\t\tstatic_cast<T*>(comp)->decode(m_context,node);
+          \t\t\t}
+          \t\t\treturn comp;
+          \t\t\t};
+
+          \t\tm_addComponentFuncs[name] = [this](Entity e){
+          '''
+          new_register = '''\t\tRegisterComponent<T>(useArchetype);
+
+          \t\tconst ComponentTypeID typeID = ComponentType::Get<T>();
+          \t\tm_componentOperations[typeID] = {
+          \t\t\tname,
+          \t\t\t[](void* raw) -> YAML::Node {
+          \t\t\t\treturn static_cast<T*>(raw)->encode();
+          \t\t\t},
+          \t\t\t[](void* raw, SceneContext* context, const YAML::Node& node) -> bool {
+          \t\t\t\treturn static_cast<T*>(raw)->decode(context, node);
+          \t\t\t},
+          \t\t\t[](void* raw, SceneContext* context) {
+          \t\t\t\tstatic_cast<T*>(raw)->inspector(context);
+          \t\t\t}
+          \t\t};
+
+          \t\tm_yamlFactory[name] = [this, typeID](Entity e, const YAML::Node& node) -> IComponent*{
+          \t\t\tauto* comp = AddComponent<T>(e);
+          \t\t\tif(comp){
+          \t\t\t\tDecodeComponent(typeID, comp, node);
+          \t\t\t}
+          \t\t\treturn comp;
+          \t\t};
+
+          \t\tm_addComponentFuncs[name] = [this](Entity e){
+          '''
+          if text.count(old_register) != 1:
+              raise RuntimeError("RegisterYAMLComponent block not found")
+          text = text.replace(old_register, new_register, 1)
+
+          duplicate_type_id = '''
+          \t\tComponentTypeID typeID = ComponentType::Get<T>();
+
+          \t\tm_nameToComponentID[name] = typeID;
+          '''
+          replacement_type_id = '''
+          \t\tm_nameToComponentID[name] = typeID;
+          '''
+          if text.count(duplicate_type_id) != 1:
+              raise RuntimeError("Duplicate typeID block not found")
+          text = text.replace(duplicate_type_id, replacement_type_id, 1)
+
+          old_public = '''\tbool AddDefaultComponentByRuntimeTypeName(
+          '''
+          new_public = '''\tComponentTypeID GetComponentID(const IComponent* component) const {
+          \t\tif(!component) return static_cast<ComponentTypeID>(-1);
+          \t\treturn GetComponentIDByTypeIndex(std::type_index(typeid(*component)));
+          \t}
+
+          \tstd::string GetComponentName(const IComponent* component) const {
+          \t\tconst ComponentTypeID typeID = GetComponentID(component);
+          \t\tauto it = m_componentOperations.find(typeID);
+          \t\treturn it != m_componentOperations.end() ? it->second.name : std::string{};
+          \t}
+
+          \tYAML::Node EncodeComponent(IComponent* component) const {
+          \t\tconst ComponentTypeID typeID = GetComponentID(component);
+          \t\tauto it = m_componentOperations.find(typeID);
+          \t\tif(it == m_componentOperations.end() || !it->second.encode) return {};
+          \t\treturn it->second.encode(component);
+          \t}
+
+          \tbool DecodeComponent(
+          \t\tComponentTypeID typeID,
+          \t\tIComponent* component,
+          \t\tconst YAML::Node& node
+          \t) const {
+          \t\tif(!component) return false;
+          \t\tauto it = m_componentOperations.find(typeID);
+          \t\tif(it == m_componentOperations.end() || !it->second.decode) return false;
+          \t\treturn it->second.decode(component, m_context, node);
+          \t}
+
+          \tbool InspectComponent(IComponent* component, SceneContext* context) const {
+          \t\tconst ComponentTypeID typeID = GetComponentID(component);
+          \t\tauto it = m_componentOperations.find(typeID);
+          \t\tif(it == m_componentOperations.end() || !it->second.inspector) return false;
+          \t\tit->second.inspector(component, context);
+          \t\treturn true;
+          \t}
+
+          \ttemplate<typename T, typename EncodeFn, typename DecodeFn, typename InspectorFn>
+          \tvoid SetComponentOperations(
+          \t\tEncodeFn&& encode,
+          \t\tDecodeFn&& decode,
+          \t\tInspectorFn&& inspector
+          \t) {
+          \t\tconst ComponentTypeID typeID = ComponentType::Get<T>();
+          \t\tauto it = m_componentOperations.find(typeID);
+          \t\tif(it == m_componentOperations.end()) return;
+
+          \t\tit->second.encode = [fn = std::forward<EncodeFn>(encode)](void* raw) mutable {
+          \t\t\treturn fn(*static_cast<T*>(raw));
+          \t\t};
+          \t\tit->second.decode = [fn = std::forward<DecodeFn>(decode)](
+          \t\t\tvoid* raw,
+          \t\t\tSceneContext* context,
+          \t\t\tconst YAML::Node& node
+          \t\t) mutable {
+          \t\t\treturn fn(*static_cast<T*>(raw), context, node);
+          \t\t};
+          \t\tit->second.inspector = [fn = std::forward<InspectorFn>(inspector)](
+          \t\t\tvoid* raw,
+          \t\t\tSceneContext* context
+          \t\t) mutable {
+          \t\t\tfn(*static_cast<T*>(raw), context);
+          \t\t};
+          \t}
+
+          \tbool AddDefaultComponentByRuntimeTypeName(
+          '''
+          if text.count(old_public) != 1:
+              raise RuntimeError("Component operation public insertion point not found")
+          text = text.replace(old_public, new_public, 1)
+
+          old_private = '''\tstd::unordered_map<std::string, YAMLCreator> m_yamlFactory;
+          '''
+          new_private = '''\tstd::unordered_map<ComponentTypeID, ComponentOperations> m_componentOperations;
+          \tstd::unordered_map<std::string, YAMLCreator> m_yamlFactory;
+          '''
+          if text.count(old_private) != 1:
+              raise RuntimeError("Component operation map insertion point not found")
+          text = text.replace(old_private, new_private, 1)
+
+          path.write_text(text, encoding="utf-8")
+          Path(".github/workflows/add-component-operations.yml").unlink()
+
+      - name: Commit operation registry
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git diff --cached --check
+          git commit -m "refactor: add component operation registry"
+          git push origin HEAD:refactor/ecs-scheduler-foundation
