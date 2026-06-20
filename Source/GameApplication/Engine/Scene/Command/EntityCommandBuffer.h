@@ -19,33 +19,7 @@
 #include "Scene/scene.h"
 #include "Scene/Registry/entityRegistry.h"
 #include "Scene/Registry/componentRegistry.h"
-
-// Commit済みEntityと、Command Buffer内で生成予定のEntityを共通に表す。
-class CommandEntity {
-public:
-	CommandEntity() = default;
-
-	static CommandEntity Existing(Entity entity) {
-		CommandEntity result;
-		result.m_entity = entity;
-		return result;
-	}
-
-	static CommandEntity Pending(uint32_t pendingID) {
-		CommandEntity result;
-		result.m_pendingID = pendingID;
-		return result;
-	}
-
-	bool IsPending() const noexcept { return m_pendingID != 0; }
-	bool IsExisting() const noexcept { return !IsPending() && static_cast<bool>(m_entity); }
-	Entity GetExisting() const noexcept { return m_entity; }
-	uint32_t GetPendingID() const noexcept { return m_pendingID; }
-
-private:
-	Entity m_entity{};
-	uint32_t m_pendingID = 0;
-};
+#include "Scene/System/Script/ScriptModuleAPI.h"
 
 // Scene単位の構造変更キュー。
 // Task実行中はコマンドだけを記録し、Latest PhaseのCommit Taskでまとめて適用する。
@@ -144,6 +118,7 @@ public:
 	}
 
 	// 生成予定Entityを含む対象へ、Commit時の初期化処理を登録する。
+	// このAPIはEngine内部専用。Script DLLからstd::functionを渡してはならない。
 	void Execute(
 		CommandEntity target,
 		std::function<void(Entity, SceneContext&)> callback
