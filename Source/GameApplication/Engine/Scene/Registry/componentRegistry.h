@@ -134,6 +134,14 @@ public:
 	}
 
 	template<typename T>
+	uint32_t GetComponentGeneration(Entity e) const {
+		std::type_index ti(typeid(T));
+		auto it = m_storages.find(ti);
+		if(it == m_storages.end()) return 0;
+		return it->second->GetComponentGeneration(e);
+	}
+
+	template<typename T>
 	bool HasComponent(Entity e) const {
 		if (!m_entityManager->IsAlive(e)) return false;
 		std::type_index ti(typeid(T));

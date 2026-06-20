@@ -101,15 +101,15 @@ Scriptは当面 `MainThread` かつ `WorldExclusive` として扱う。
 
 ### Step 2: Component世代管理
 
-- [ ] StorageごとにComponent Generationを保持
-- [ ] 削除・再追加で世代を更新
+- [x] StorageごとにComponent Generationを保持
+- [x] 削除・再追加で世代を更新
 
 ### Step 3: 安全なComponentRef
 
-- [ ] Entity世代を検証
-- [ ] Component世代を検証
-- [ ] 生ポインタを永続保持しない
-- [ ] `TryGet()` / `GetChecked()` を提供
+- [x] Entity世代を検証
+- [x] Component世代を検証
+- [x] 生ポインタを永続保持しない
+- [x] `TryGet()` / `GetChecked()` を提供
 
 ### Step 4: SystemとSystemTaskの分離
 
