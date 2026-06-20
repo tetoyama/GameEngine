@@ -1,27 +1,29 @@
 // =======================================================================
-// 
+//
 // CustomScriptSystem.h
-// 
+//
 // =======================================================================
 #pragma once
+
 #include "Interface/ISystem.h"
-#include <string>
-#include <unordered_map>
+
 #include <functional>
 #include <memory>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 struct SceneManagerContext;
+class CustomScriptComponent;
 
 class CustomScriptSystem: public ISystem {
 public:
-
 	const char* GetSystemName() const override{
 		return "CustomScriptSystem";
 	}
 
 	CustomScriptSystem(SceneManagerContext* context): m_context(context){}
-	~CustomScriptSystem(){}
+	~CustomScriptSystem() override = default;
 
 	void Initialize() override;
 	void Finalize() override;
@@ -33,5 +35,10 @@ public:
 	void EditorUpdate(float deltaTime) override;
 
 private:
-	SceneManagerContext* m_context;
+	void ForEachScriptOrdered(
+		SystemTaskDomain domain,
+		const std::function<void(CustomScriptComponent*)>& callback
+	);
+
+	SceneManagerContext* m_context = nullptr;
 };
