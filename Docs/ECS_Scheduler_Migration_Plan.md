@@ -178,16 +178,42 @@ CRT方針:
 
 ### Step 10: Component純データ化
 
-優先順位:
+状態: **完了（現Storage互換段階）**
 
-1. Transform
-2. Follow
-3. Camera
-4. Light
-5. Particle
-6. Collider
-7. ModelRenderer
-8. Material
+このStepの完了条件は、Component本体を状態定義と互換API宣言へ縮小し、YAML・Inspector・計算・Runtime処理を `Operations` 側へ分離することとする。
+
+- [x] Transform
+  - YAML / Inspectorを外部化
+  - World行列計算を反復処理へ移行し、親循環を検出
+  - UI Rect変換を専用Utilityへ分離
+- [x] Follow
+  - YAML / Inspectorを外部化
+- [x] Camera
+  - Serialization / Inspector / PostEffect Graph / Runtimeを分離
+- [x] Light
+  - YAML / Inspectorを外部化
+  - `BOOL*` を `bool*` として扱う不正なInspector処理を除去
+- [x] Particle
+  - YAML / Inspectorを外部化
+  - ImGui ItemWidthスタック不整合を除去
+- [x] Collider
+  - 反射マクロとpolymorphic型への `offsetof` 依存を除去
+  - YAML / Inspector / Runtime解放処理を分離
+  - 再Decode時の重複追加、空Layer参照、Layer選択添字を修正
+- [x] ModelRenderer
+  - Runtime / Serialization / Inspectorを分離
+  - 無効Context・未ロードModel・Animation null参照を安全化
+- [x] Material
+  - YAML / Inspectorを外部化
+  - Shader未登録・範囲外ShaderIDを安全化
+- [x] Script Debug / Release x64ビルド
+- [x] GameEngine Debug / Release x64ビルド
+
+後続Stepへ引き継ぐ事項:
+
+- `IComponent` 継承とvirtual互換APIの除去は、`IComponentStorage` の型制約を外すStep 11で行う
+- ColliderのPhysXネイティブ資源所有権はStep 15で `PhysicsBridge` 側へ移す
+- Camera / ModelRendererのD3D11資源所有権はStep 17で `RenderWorld` 側へ移す
 
 ### Step 11: DenseComponentPool
 
@@ -197,6 +223,8 @@ CRT方針:
 - [ ] Component Generation
 - [ ] Structure Version
 - [ ] Spanアクセス
+- [ ] `IComponentStorage` の `IComponent*` 依存を除去
+- [ ] Componentから `IComponent` 継承とvirtual互換APIを除去
 
 ### Step 12: 無確保Query
 
@@ -225,6 +253,7 @@ CRT方針:
 - [ ] PhysicsFetch
 - [ ] PhysicsDownload
 - [ ] CollisionEventDispatch
+- [ ] ColliderからPhysXネイティブ資源所有権を分離
 
 ### Step 16: RHI抽象化
 
@@ -241,7 +270,33 @@ CRT方針:
 
 - [ ] ECS WorldからRenderWorldへ抽出
 - [ ] RendererからComponentRegistry直接参照を除去
+- [ ] Camera / ModelRendererからD3D11資源所有権を分離
 
 ### Step 18: 描画並列化の再検討
 
 D3D11 Backendでは制約に合わせて直列提出し、D3D12 / Vulkan BackendではCommand List並列構築を可能にする。
+
+### Step 19: Scriptプロジェクト完全ホットリロード対応
+
+- [ ] Scriptソース変更監視と自動ビルド
+- [ ] ビルド完了検出とDebounce
+- [ ] 一意な一時DLL / PDB名へのコピー
+- [ ] 新DLLのABI Version・必須Export検証
+- [ ] 新DLLロード失敗時の旧DLL継続とRollback
+- [ ] Script状態・Phase・Priority・RegistrationOrder・Entity参照の完全復元
+- [ ] 追加・削除・名称変更されたScript型への対応
+- [ ] Reload中のScript実行停止と安全な再開
+- [ ] 古い一時DLL / PDBのクリーンアップ
+- [ ] Debug / Releaseで連続Reload試験
+
+### Step 20: README.md更新
+
+- [ ] Engine全体アーキテクチャ
+- [ ] ECS / Scheduler仕様
+- [ ] Entity / ComponentRef安全性
+- [ ] SystemAccessと並列実行規則
+- [ ] Script DLLとHot Reload仕様
+- [ ] Rendering PipelineとRHI方針
+- [ ] ビルド手順・依存ライブラリ・CRT構成
+- [ ] Editor機能と基本操作
+- [ ] 現在の制約・今後のRoadmap
