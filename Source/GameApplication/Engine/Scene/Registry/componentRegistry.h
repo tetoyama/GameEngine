@@ -24,47 +24,13 @@
 #include "Scene.h"
 #include "Interface/IComponent.h"
 #include "Interface/IComponentStorage.h"
+#include "Query/ComponentQueryView.h"
 
 struct ComponentOperations {
 	std::string name;
 	std::function<YAML::Node(void*)> encode;
 	std::function<bool(void*, SceneContext*, const YAML::Node&)> decode;
 	std::function<void(void*, SceneContext*)> inspector;
-};
-
-struct ComponentCollectionEntry {
-	ComponentView view{};
-	IComponent* legacyComponent = nullptr;
-
-	operator ComponentView() const noexcept { return view; }
-	operator IComponent*() const noexcept { return legacyComponent; }
-};
-
-class ComponentCollection {
-public:
-	using Container = std::vector<ComponentCollectionEntry>;
-	using const_iterator = Container::const_iterator;
-
-	ComponentCollection() = default;
-	explicit ComponentCollection(Container entries)
-		: m_entries(std::move(entries)){}
-
-	const_iterator begin() const noexcept { return m_entries.begin(); }
-	const_iterator end() const noexcept { return m_entries.end(); }
-	size_t size() const noexcept { return m_entries.size(); }
-	bool empty() const noexcept { return m_entries.empty(); }
-
-	operator std::vector<ComponentView>() const {
-		std::vector<ComponentView> views;
-		views.reserve(m_entries.size());
-		for(const ComponentCollectionEntry& entry : m_entries){
-			views.push_back(entry.view);
-		}
-		return views;
-	}
-
-private:
-	Container m_entries;
 };
 
 class ComponentType {
@@ -294,6 +260,25 @@ public:
 		m_entityMasks.erase(entity);
 	}
 
+	template<typename... Accesses>
+	ECSQuery::ComponentQueryView<Accesses...> Query() const {
+		ComponentMask required;
+		(required.set(
+			ComponentType::Get<typename ECSQuery::ComponentType<Accesses>>()
+		), ...);
+
+		return ECSQuery::ComponentQueryView<Accesses...>(
+			m_entityManager->GetAllAlive(),
+			m_entityMasks,
+			required
+		);
+	}
+
+	template<typename... Components>
+	auto ReadQuery() const {
+		return Query<ECSQuery::Read<Components>...>();
+	}
+
 	template<typename... Components>
 	std::vector<Entity> QueryEntities(){
 		std::vector<Entity> result;
@@ -350,21 +335,8 @@ public:
 		return components;
 	}
 
-	ComponentCollection GetAllComponentsOfEntitySorted(Entity entity){
-		ComponentCollection::Container entries;
-		for(ComponentView view : GetAllComponentViewsOfEntitySorted(entity)){
-			IComponent* legacy = nullptr;
-			auto typeIterator = m_idToTypeIndex.find(view.typeID);
-			if(typeIterator != m_idToTypeIndex.end()){
-				auto adapterIterator =
-					m_polymorphicAdapters.find(typeIterator->second);
-				if(adapterIterator != m_polymorphicAdapters.end()){
-					legacy = adapterIterator->second(view.data);
-				}
-			}
-			entries.push_back({view, legacy});
-		}
-		return ComponentCollection(std::move(entries));
+	std::vector<ComponentView> GetAllComponentsOfEntitySorted(Entity entity){
+		return GetAllComponentViewsOfEntitySorted(entity);
 	}
 
 	std::string GetComponentName(ComponentTypeID typeID) const {
