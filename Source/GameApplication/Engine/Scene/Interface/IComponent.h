@@ -12,16 +12,26 @@
 #include <functional>
 struct SceneContext;
 
+// 移行期間中のComponent基底。
+//
+// encode / decode / inspectorはComponent本体の必須責務ではない。
+// 新しいComponentはComponentRegistryの外部Operationsへ処理を登録し、
+// 既存Componentだけが互換用virtual関数をoverrideする。
 class IComponent {
 public:
 	IComponent() = default;
 	virtual ~IComponent() = default;
 
-	virtual YAML::Node encode() = 0;
+	virtual YAML::Node encode() {
+		return {};
+	}
 
-	virtual bool decode(SceneContext* context, const YAML::Node& node) = 0;
+	virtual bool decode(SceneContext*, const YAML::Node&) {
+		return false;
+	}
 
-	virtual void inspector(SceneContext* context) = 0;
+	virtual void inspector(SceneContext*) {
+	}
 };
 
 
