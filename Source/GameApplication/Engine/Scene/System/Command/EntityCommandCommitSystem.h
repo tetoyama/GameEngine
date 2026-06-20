@@ -109,11 +109,11 @@ private:
 			GetBuffer(sceneContext);
 		}
 
-		for(auto it = m_buffers.begin(); it != m_buffers.end();) {
-			if(!activeContextIDs.contains(it->first)) {
-				it = m_buffers.erase(it);
-			} else {
-				++it;
+		// SceneContextが別のshared_ptrから参照されている可能性があるため、
+		// 非ActiveになってもBuffer本体は保持し、未適用Commandだけを破棄する。
+		for(auto& [contextID, buffer] : m_buffers) {
+			if(buffer && !activeContextIDs.contains(contextID)) {
+				buffer->Clear();
 			}
 		}
 	}
