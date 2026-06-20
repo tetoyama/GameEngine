@@ -213,7 +213,7 @@ void ScriptComponent::inspector(SceneContext* context){
 			case ScriptParameterType::String: {
 				char buffer[512] = {};
 				if(parameter.stringValue){
-					const size_t copySize = std::min(
+					const size_t copySize = (std::min)(
 						parameter.stringSize,
 						sizeof(buffer) - 1
 					);
