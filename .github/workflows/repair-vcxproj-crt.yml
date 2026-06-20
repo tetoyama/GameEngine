@@ -1,0 +1,60 @@
+name: Repair GameEngine project CRT
+
+on:
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - .github/workflows/repair-vcxproj-crt.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout work branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 0
+
+      - name: Restore full project and align CRT
+        shell: python
+        run: |
+          from pathlib import Path
+          import subprocess
+
+          previous_commit = "84de184b1a75a2d4898bce40094487b23145f837"
+          restored = subprocess.check_output(
+              ["git", "show", f"{previous_commit}:GameEngine.vcxproj"],
+              text=True,
+              encoding="utf-8-sig"
+          )
+
+          replacements = {
+              "<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>":
+                  "<RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>",
+              "<RuntimeLibrary>MultiThreaded</RuntimeLibrary>":
+                  "<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>",
+          }
+
+          for old, new in replacements.items():
+              count = restored.count(old)
+              if count != 1:
+                  raise RuntimeError(f"Expected one occurrence of {old}, found {count}")
+              restored = restored.replace(old, new, 1)
+
+          Path("GameEngine.vcxproj").write_text(restored, encoding="utf-8")
+          Path(".github/workflows/repair-vcxproj-crt.yml").unlink()
+
+      - name: Commit repaired project
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git diff --cached --check
+          git commit -m "build: restore project file and align CRT"
+          git push origin HEAD:refactor/ecs-scheduler-foundation
