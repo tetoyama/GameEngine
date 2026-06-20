@@ -28,28 +28,44 @@ enum class SystemTaskDomain : uint8_t {
 	Render
 };
 
+// PhaseはDomain内の大きな論理順序を表す。
+// Barrierではなく、将来Access競合が発生したときの依存方向に使う。
+enum class SystemPhase : int32_t {
+	Earliest = -2000,
+	Early = -1000,
+	Default = 0,
+	Late = 1000,
+	Latest = 2000
+};
+
+struct SystemTaskOrder {
+	SystemPhase phase = SystemPhase::Default;
+	int32_t priority = 0;
+	uint64_t registrationOrder = 0;
+};
+
 // Schedulerが実行する最小単位。
-// registrationOrderはTask登録時に一度だけ発行し、Schedule再構築後も維持する。
 struct SystemTask {
 	ISystem* owner = nullptr;
 	std::string name;
 	SystemTaskDomain domain = SystemTaskDomain::Frame;
-	uint64_t registrationOrder = 0;
+	SystemTaskOrder order;
 	std::function<void(const SystemTaskContext&)> execute;
 };
 
 // Systemが自身の実行Taskを登録するためのBuilder。
-// 明示的依存やAccess情報は後続Stepで拡張する。
+// registrationOrderはSystem登録順とSystem内Task順から決定するため、
+// Scheduleを再構築しても同じ登録順を維持できる。
 class SystemScheduleBuilder {
 public:
 	SystemScheduleBuilder(
 		ISystem* owner,
-		std::vector<SystemTask>& tasks,
-		uint64_t& nextRegistrationOrder
+		uint64_t systemRegistrationOrder,
+		std::vector<SystemTask>& tasks
 	)
 		: m_owner(owner)
-		, m_tasks(tasks)
-		, m_nextRegistrationOrder(nextRegistrationOrder) {
+		, m_systemRegistrationOrder(systemRegistrationOrder)
+		, m_tasks(tasks) {
 	}
 
 	void AddTask(
@@ -57,17 +73,38 @@ public:
 		SystemTaskDomain domain,
 		std::function<void(const SystemTaskContext&)> execute
 	) {
+		AddTask(
+			std::move(name),
+			domain,
+			SystemPhase::Default,
+			0,
+			std::move(execute)
+		);
+	}
+
+	void AddTask(
+		std::string name,
+		SystemTaskDomain domain,
+		SystemPhase phase,
+		int32_t priority,
+		std::function<void(const SystemTaskContext&)> execute
+	) {
 		SystemTask task;
 		task.owner = m_owner;
 		task.name = std::move(name);
 		task.domain = domain;
-		task.registrationOrder = m_nextRegistrationOrder++;
+		task.order.phase = phase;
+		task.order.priority = priority;
+		task.order.registrationOrder =
+			(m_systemRegistrationOrder << 32) |
+			static_cast<uint64_t>(m_localTaskOrder++);
 		task.execute = std::move(execute);
 		m_tasks.emplace_back(std::move(task));
 	}
 
 private:
 	ISystem* m_owner = nullptr;
+	uint64_t m_systemRegistrationOrder = 0;
+	uint32_t m_localTaskOrder = 0;
 	std::vector<SystemTask>& m_tasks;
-	uint64_t& m_nextRegistrationOrder;
 };
