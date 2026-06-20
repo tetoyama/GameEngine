@@ -1,12 +1,42 @@
 // dllmain.cpp : DLL アプリケーションのエントリ ポイントを定義します。
 
 #include "ScriptRegistry.h"
+#include "Scene/System/Script/ScriptModuleAPI.h"
 
 #include "DebugTools/DebugSystem.cpp"
 
 #include <cstring>
 #include <new>
 #include <string>
+#include <variant>
+
+namespace {
+	template<typename T>
+	bool SetTypedParameter(
+		IScriptComponent* script,
+		const char* name,
+		T value
+	){
+		if(!script || !name){
+			return false;
+		}
+
+		for(const ScriptParam& parameter : script->GetParams()){
+			if(parameter.name != name){
+				continue;
+			}
+
+			if(!std::holds_alternative<T>(parameter.value)){
+				return false;
+			}
+
+			script->SetParam(parameter.name, ParamValue(value));
+			return true;
+		}
+
+		return false;
+	}
+}
 
 extern "C" __declspec(dllexport)
 IScriptComponent* CreateScript(const char* name){
@@ -93,6 +123,115 @@ bool DeserializeScriptState(
 	} catch(...){
 		return false;
 	}
+}
+
+extern "C" __declspec(dllexport)
+size_t GetScriptParameterCount(IScriptComponent* script){
+	return script ? script->GetParams().size() : 0;
+}
+
+extern "C" __declspec(dllexport)
+bool GetScriptParameter(
+	IScriptComponent* script,
+	size_t index,
+	ScriptParameterData* outParameter
+){
+	if(!script || !outParameter){
+		return false;
+	}
+
+	auto& parameters = script->GetParams();
+	if(index >= parameters.size()){
+		return false;
+	}
+
+	const ScriptParam& parameter = parameters[index];
+	*outParameter = {};
+	outParameter->name = parameter.name.c_str();
+
+	if(const int* value = std::get_if<int>(&parameter.value)){
+		outParameter->type = ScriptParameterType::Integer;
+		outParameter->intValue = static_cast<int32_t>(*value);
+		return true;
+	}
+
+	if(const float* value = std::get_if<float>(&parameter.value)){
+		outParameter->type = ScriptParameterType::Float;
+		outParameter->floatValue = *value;
+		return true;
+	}
+
+	if(const bool* value = std::get_if<bool>(&parameter.value)){
+		outParameter->type = ScriptParameterType::Boolean;
+		outParameter->boolValue = *value ? 1 : 0;
+		return true;
+	}
+
+	if(const std::string* value = std::get_if<std::string>(&parameter.value)){
+		outParameter->type = ScriptParameterType::String;
+		outParameter->stringValue = value->c_str();
+		outParameter->stringSize = value->size();
+		return true;
+	}
+
+	return false;
+}
+
+extern "C" __declspec(dllexport)
+bool SetScriptIntegerParameter(
+	IScriptComponent* script,
+	const char* name,
+	int32_t value
+){
+	return SetTypedParameter<int>(script, name, static_cast<int>(value));
+}
+
+extern "C" __declspec(dllexport)
+bool SetScriptFloatParameter(
+	IScriptComponent* script,
+	const char* name,
+	float value
+){
+	return SetTypedParameter<float>(script, name, value);
+}
+
+extern "C" __declspec(dllexport)
+bool SetScriptBooleanParameter(
+	IScriptComponent* script,
+	const char* name,
+	uint8_t value
+){
+	return SetTypedParameter<bool>(script, name, value != 0);
+}
+
+extern "C" __declspec(dllexport)
+bool SetScriptStringParameter(
+	IScriptComponent* script,
+	const char* name,
+	const char* value,
+	size_t size
+){
+	if(!script || !name || (!value && size != 0)){
+		return false;
+	}
+
+	for(const ScriptParam& parameter : script->GetParams()){
+		if(parameter.name != name){
+			continue;
+		}
+
+		if(!std::holds_alternative<std::string>(parameter.value)){
+			return false;
+		}
+
+		const std::string text = value
+			? std::string(value, size)
+			: std::string{};
+		script->SetParam(parameter.name, ParamValue(text));
+		return true;
+	}
+
+	return false;
 }
 
 extern "C" __declspec(dllexport)
