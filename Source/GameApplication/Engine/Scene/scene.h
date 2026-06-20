@@ -21,6 +21,7 @@ class EntityRegistry;
 class ComponentRegistry;
 class SystemRegistry;
 class PrefabSystem;
+class EntityCommandBuffer;
 
 struct SceneContext;
 using SceneContextResolver = SceneContext* (*)(void* owner, uint32_t contextID);
@@ -44,6 +45,9 @@ struct SceneContext{
 	EntityRegistry* entity = nullptr;
 	ComponentRegistry* component = nullptr;
 	SystemRegistry* system = nullptr;
+
+	// Task / Script実行中の構造変更を遅延させるScene単位のCommand Buffer。
+	EntityCommandBuffer* commands = nullptr;
 
 	// プレファブシステム
 	PrefabSystem* prefab = nullptr;
@@ -96,4 +100,5 @@ private:
 	std::shared_ptr<EntityRegistry> m_entityRegistry;
 	std::shared_ptr<ComponentRegistry> m_componentRegistry;
 	std::shared_ptr<PrefabSystem> m_prefabSystem;
+	std::unique_ptr<EntityCommandBuffer> m_entityCommandBuffer;
 };
