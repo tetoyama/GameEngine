@@ -18,6 +18,7 @@
 #include "Backends/myVector3.h"
 #include "Resources/Data/vertexShaderData.h"
 #include "Resources/Data/pixelShaderData.h"
+#include "sceneManager.h"
 
 // ポストエフェクトGraphの設定と、移行期間中のD3D11 Runtime資源を保持する。
 // GPU資源所有権はStep 17のRenderWorld移行でPostEffectPass側へ移す。
