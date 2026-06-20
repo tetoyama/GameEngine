@@ -2633,7 +2633,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Editor\InterFace\IAnalyzer.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\InterFace\IEditorUI.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\UI\assetsBrowser.h" />
-    <ClInclude Include="Source\GameApplication\Engine\Editor\UI\BRAIN.h" />
+    <ClInclude Include="Source\GameApplication\Engine\Editor\UI\BRAIN\BRAIN.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\UI\CB41.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\UI\debugLogWindow.h" />
     <ClInclude Include="Source\GameApplication\Engine\Editor\UI\hierarchy.h" />
@@ -3527,7 +3527,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Editor\Command\CommandManager.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\editorService.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\assetsBrowser.cpp" />
-    <ClCompile Include="Source\GameApplication\Engine\Editor\UI\BRAIN.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Editor\UI\BRAIN\BRAIN.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\CB41.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\debugLogWindow.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\hierarchy.cpp" />

@@ -89,6 +89,8 @@
 void RenderSystem::Initialize(){
 	m_context->debug->LOG_DEBUG("RenderSystemを初期化中...");
 
+	lazyTimer = 0.0f;
+
 	m_renderables.clear();
 	m_renderables.push_back(std::make_shared<RenderableModel>());
 	m_renderables.push_back(std::make_shared<RenderableMesh>());
@@ -178,6 +180,8 @@ void RenderSystem::Update(float deltaTime) {
 
 void RenderSystem::EditorUpdate(float deltaTime)
 {
+	lazyTimer += deltaTime;
+
 	auto* dc = m_context->graphics->GetDeviceContext();
 
 	for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
@@ -285,12 +289,17 @@ void RenderSystem::Draw(){
 	UpdateSkyBoxEnvironmentMap();
 
 	if(showEditor && *showEditor){
-		EditorView();
+		if(m_context->sceneManager->State == SceneManagerState::Playing){
+			if(lazyTimer >= 0.1f){
+				lazyTimer = 0.0f;
+				EditorView();
+			}
+		} else{
+			EditorView();
+		}
 	}
 	if(showPlayer && *showPlayer){
-
 		PlayerView();
-
 	} else if(showPlayer && !*showPlayer && ((m_context->sceneManager->State == SceneManagerState::Playing) || !(showEditor && *showEditor))){
 
 		RenderPassContext renderPassContext(
@@ -675,14 +684,21 @@ void RenderSystem::PlayerView(){
 		ImGui::End();
 		return;
 	}
-
 	RenderPassContext renderPassContext(
 		RenderPhase::PHASE_GBUFFER,
 		playerRenderLayerVisible,
 		cameraData,
 		Vector2(avail.x, avail.y)
 	);
-	m_PlayerPass->Execute(renderPassContext);
+
+	if(m_context->sceneManager->State == SceneManagerState::Stopped || m_context->sceneManager->State == SceneManagerState::Paused){
+		if(lazyTimer >= 1.0f){
+			lazyTimer = 0.0f;
+			m_PlayerPass->Execute(renderPassContext);
+		}
+	} else{
+		m_PlayerPass->Execute(renderPassContext);
+	}
 
 	ImGui::Image((ImTextureRef)m_PlayerPass->result, avail);
 	ImGui::End();

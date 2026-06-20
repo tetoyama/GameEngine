@@ -16,8 +16,8 @@
 
 #include "Backends/ImGui/imgui.h"
 
-#include "../EditorService.h"
-#include "MenuBar.h"
+#include "../../EditorService.h"
+#include "../MenuBar.h"
 
 #include "Resources/Data/textureData.h"
 #include "Resources/Data/llamaModelData.h"

@@ -14,7 +14,7 @@
 #include <wrl/client.h>
 #include <d3d11.h>
 
-#include "../InterFace/IEditorUI.h"
+#include "../../InterFace/IEditorUI.h"
 
 #define BRAIN_MODEL_PATH "Asset/BRAIN/model/Qwen3.5-9B-Q4_K_M.gguf"
 

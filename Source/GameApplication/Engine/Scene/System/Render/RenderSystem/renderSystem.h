@@ -226,4 +226,6 @@ private:
 	std::vector<std::shared_ptr<PixelShaderData>> DeferredPSList;
 	std::vector<std::shared_ptr<PixelShaderData>> ForwardPSList;
 	std::shared_ptr<PixelShaderData> ForwardPSDebug;
+
+	float lazyTimer = 0.0f;
 };

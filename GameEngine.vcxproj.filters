@@ -2412,7 +2412,7 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Effect\RenderableEffect.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\GameApplication\Engine\Editor\UI\BRAIN.h">
+    <ClInclude Include="Source\GameApplication\Engine\Editor\UI\BRAIN\BRAIN.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameApplication\Backends\llama\models\models.h">
@@ -2987,7 +2987,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\Renderable\Effect\RenderableEffect.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\Editor\UI\BRAIN.cpp">
+    <ClCompile Include="Source\GameApplication\Engine\Editor\UI\BRAIN\BRAIN.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameApplication\Backends\llama\models\xverse.cpp">

@@ -65,7 +65,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 32190.0488
+        AnimationTime: 40187.5195
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -113,7 +113,7 @@ Entities:
           x: 500
           y: 0
           z: 0
-          w: 0.00400000019
+          w: 0.00499999989
         LightView:
           -
             - 0
@@ -202,7 +202,7 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\sky.fbx
         isBlender: true
-        AnimationTime: 32190.0488
+        AnimationTime: 40187.5195
       - Component: EnvironmentMapComponent
         enabled: true
   - Entity: 4
@@ -211,14 +211,14 @@ Entities:
         Name: Player
       - Component: TransformComponent
         Position:
-          x: 64.1674652
-          y: -13.4491053
-          z: -19.9982109
+          x: 32.0507469
+          y: -5.10493374
+          z: -66.9728317
         Rotation:
           - 0
-          - -0.996429324
+          - -0.125641465
           - 0
-          - -0.0844308585
+          - 0.992075741
         Scale:
           x: 0.00999999978
           y: 0.00999999978
@@ -266,14 +266,14 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Y Bot.fbx
         isBlender: false
-        AnimationTime: 32190.0488
+        AnimationTime: 40187.5195
         Animations:
           Idle: Asset\Model\Akai_Idle.fbx
           Run: Asset\Model\Akai_Run.fbx
       - Component: CharacterController
         moveSpeed: 5
         dashMultiplier: 2.5
-        jumpPower: 5
+        jumpPower: 8
         accel: 12
         rotateSpeed: 8
         groundRayLength: 0.300000012
@@ -350,377 +350,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.obj
         isBlender: false
-        AnimationTime: 32190.0488
+        AnimationTime: 40187.5195
   - Entity: 6
-    Components:
-      - Component: NameComponent
-        Name: Camera
-      - Component: TransformComponent
-        Position:
-          x: 69.0527725
-          y: -12.7502308
-          z: -16.4422054
-        Rotation:
-          - -0.0112920403
-          - -0.890930414
-          - -0.0221860502
-          - 0.453457087
-        Scale:
-          x: 0.999999285
-          y: 0.999991477
-          z: 0.99999994
-        Parent: 0
-      - Component: CameraComponent
-        isLock: true
-        Target:
-          x: 64.1674271
-          y: -12.4491024
-          z: -19.9982014
-        NearClip: 0.00999999978
-        FarClip: 1024
-        FOV: 1
-        viewMatrix:
-          -
-            - -0.588498294
-            - 0.0402416922
-            - -0.807496369
-            - 0
-          -
-            - 0
-            - 0.998760581
-            - 0.0497733653
-            - 0
-          -
-            - 0.808498502
-            - 0.0292915404
-            - -0.587768853
-            - 0
-          -
-            - 53.9309387
-            - 10.4372454
-            - 46.7302704
-            - 1
-        nextLinkId: 60
-        nextPinId: 46
-        PostEffects:
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset/Shader/PostEffectVS.cso
-            PS: Asset/Shader\OutlineByShaderID.cso
-            NodePos:
-              x: -1162.74072
-              y: 42.4166374
-            InputPins:
-              - 2
-              - 4
-            OutputPin: 3
-            Param:
-              x: 4
-              y: 1
-              z: 0
-              w: 0
-            ResolutionScale: 1
-            MipLevels: 6
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset/Shader/PostEffectVS.cso
-            PS: Asset/Shader\SSAO.cso
-            NodePos:
-              x: -2567.42285
-              y: 636.431458
-            InputPins:
-              - 5
-              - 7
-            OutputPin: 6
-            Param:
-              x: 1
-              y: 0.300000012
-              z: 0.5
-              w: 0
-            ResolutionScale: 0.25
-            MipLevels: 1
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset/Shader/PostEffectVS.cso
-            PS: Asset/Shader\DepthBlur.cso
-            NodePos:
-              x: -861.340332
-              y: 7.21790695
-            InputPins:
-              - 8
-              - 10
-            OutputPin: 9
-            Param:
-              x: 1
-              y: 0
-              z: 0
-              w: 0
-            ResolutionScale: 1
-            MipLevels: 1
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset/Shader/PostEffectVS.cso
-            PS: Asset/Shader\SSAOComposite.cso
-            NodePos:
-              x: -1742.97583
-              y: 106.137405
-            InputPins:
-              - 14
-              - 19
-              - 20
-            OutputPin: 15
-            Param:
-              x: 0
-              y: 0
-              z: 0
-              w: 0
-            ResolutionScale: 1
-            MipLevels: 1
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset/Shader/PostEffectVS.cso
-            PS: Asset/Shader\Blur.cso
-            NodePos:
-              x: -2292.59277
-              y: 322.013977
-            InputPins:
-              - 16
-              - 18
-            OutputPin: 17
-            Param:
-              x: 1.5
-              y: 0
-              z: 0
-              w: 0
-            ResolutionScale: 0.25
-            MipLevels: 1
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset/Shader/PostEffectVS.cso
-            PS: Asset/Shader\BrightPass.cso
-            NodePos:
-              x: -2591.33984
-              y: 278.584167
-            InputPins:
-              - 21
-              - 23
-            OutputPin: 22
-            Param:
-              x: 0.999000013
-              y: 0.5
-              z: 0
-              w: 0
-            ResolutionScale: 0.25
-            MipLevels: 1
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset/Shader/PostEffectVS.cso
-            PS: Asset/Shader\Blur.cso
-            NodePos:
-              x: -2297.12598
-              y: 631.734802
-            InputPins:
-              - 24
-              - 26
-            OutputPin: 25
-            Param:
-              x: 1.5
-              y: 0
-              z: 0
-              w: 0
-            ResolutionScale: 0.25
-            MipLevels: 1
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset/Shader/PostEffectVS.cso
-            PS: Asset/Shader\CompositeBloom.cso
-            NodePos:
-              x: -1989.32886
-              y: 40.8025627
-            InputPins:
-              - 27
-              - 29
-              - 30
-            OutputPin: 28
-            Param:
-              x: 1
-              y: 0
-              z: 0
-              w: 0
-            ResolutionScale: 1
-            MipLevels: 1
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset/Shader/PostEffectVS.cso
-            PS: Asset/Shader\SSR.cso
-            NodePos:
-              x: -243.177246
-              y: 0.826488495
-            InputPins:
-              - 34
-              - 36
-            OutputPin: 35
-            Param:
-              x: 128
-              y: 0.400000006
-              z: 1
-              w: 0
-            ResolutionScale: 1
-            MipLevels: 1
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset/Shader/PostEffectVS.cso
-            PS: Asset/Shader\GodLay.cso
-            NodePos:
-              x: -560.489258
-              y: 5.51557541
-            InputPins:
-              - 37
-              - 39
-            OutputPin: 38
-            Param:
-              x: 0.25
-              y: 0
-              z: 0.5
-              w: 0.949999988
-            ResolutionScale: 1
-            MipLevels: 1
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset/Shader/PostEffectVS.cso
-            PS: Asset/Shader\LensFlare.cso
-            NodePos:
-              x: -1430.7627
-              y: 76.7836456
-            InputPins:
-              - 40
-              - 42
-            OutputPin: 41
-            Param:
-              x: 0.5
-              y: 0.5
-              z: 0.5
-              w: 0.5
-            ResolutionScale: 1
-            MipLevels: 1
-          - Name: NewEffect
-            Enabled: true
-            VS: Asset/Shader/PostEffectVS.cso
-            PS: Asset/Shader\OutlineByShaderID.cso
-            NodePos:
-              x: 75
-              y: 63.9999962
-            InputPins:
-              - 43
-              - 45
-            OutputPin: 44
-            Param:
-              x: 3
-              y: 1
-              z: 0
-              w: 0
-            ResolutionScale: 1
-            MipLevels: 1
-        PostEffectLinks:
-          - ID: 27
-            StartNode: -1
-            EndNode: 1
-            StartAttr: -1
-            EndAttr: 5
-          - ID: 28
-            StartNode: 1
-            EndNode: 6
-            StartAttr: 6
-            EndAttr: 24
-          - ID: 30
-            StartNode: -1
-            EndNode: 5
-            StartAttr: -1
-            EndAttr: 21
-          - ID: 31
-            StartNode: 5
-            EndNode: 4
-            StartAttr: 22
-            EndAttr: 16
-          - ID: 32
-            StartNode: 4
-            EndNode: 7
-            StartAttr: 17
-            EndAttr: 29
-          - ID: 33
-            StartNode: -1
-            EndNode: 7
-            StartAttr: -1
-            EndAttr: 27
-          - ID: 35
-            StartNode: 7
-            EndNode: 3
-            StartAttr: 28
-            EndAttr: 14
-          - ID: 36
-            StartNode: 6
-            EndNode: 3
-            StartAttr: 25
-            EndAttr: 19
-          - ID: 38
-            StartNode: 0
-            EndNode: 2
-            StartAttr: 3
-            EndAttr: 8
-          - ID: 52
-            StartNode: 9
-            EndNode: 8
-            StartAttr: 38
-            EndAttr: 34
-          - ID: 53
-            StartNode: 2
-            EndNode: 9
-            StartAttr: 9
-            EndAttr: 37
-          - ID: 55
-            StartNode: 10
-            EndNode: 0
-            StartAttr: 41
-            EndAttr: 2
-          - ID: 56
-            StartNode: 3
-            EndNode: 10
-            StartAttr: 15
-            EndAttr: 40
-          - ID: 58
-            StartNode: 11
-            EndNode: -2
-            StartAttr: 44
-            EndAttr: 1
-          - ID: 59
-            StartNode: 8
-            EndNode: 11
-            StartAttr: 35
-            EndAttr: 43
-        ScreenInput:
-          Name: ""
-          NodePos:
-            x: -2757.10791
-            y: 256.34613
-          OutputPin: -1
-        ScreenOutput:
-          Name: ""
-          NodePos:
-            x: 434.87793
-            y: 235.414948
-          InputPins:
-            - 1
-      - Component: CameraController
-        distance: 6
-        height: 1
-        rotateSpeed: 1.5
-        minPitch: -2.70000005
-        maxPitch: 0.785398185
-        minDistance: 1
-        targetPosLerpSpeed: 15
-        cameraDistanceLerpSpeed: 12
-        targetLookLerpSpeed: 10
-  - Entity: 7
     Components:
       - Component: NameComponent
         Name: Tree
@@ -789,7 +420,7 @@ Entities:
         RotateZ: false
       - Component: PrefabComponent
         FilePath: C:\Users\teto_\source\repos\GameEngine\Asset\Prefab\Tree.prefab
-  - Entity: 8
+  - Entity: 7
     Components:
       - Component: NameComponent
         Name: Tree
@@ -858,7 +489,7 @@ Entities:
         RotateZ: false
       - Component: PrefabComponent
         FilePath: C:\Users\teto_\source\repos\GameEngine\Asset\Prefab\Tree.prefab
-  - Entity: 9
+  - Entity: 8
     Components:
       - Component: NameComponent
         Name: Tree
@@ -927,7 +558,7 @@ Entities:
         RotateZ: false
       - Component: PrefabComponent
         FilePath: C:\Users\teto_\source\repos\GameEngine\Asset\Prefab\Tree.prefab
-  - Entity: 10
+  - Entity: 9
     Components:
       - Component: NameComponent
         Name: Entity
@@ -968,8 +599,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\bear.fbx
         isBlender: false
-        AnimationTime: 30019.9316
-  - Entity: 11
+        AnimationTime: 38017.5078
+  - Entity: 10
     Components:
       - Component: NameComponent
         Name: Cube
@@ -1035,8 +666,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.obj
         isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 12
+        AnimationTime: 40187.5195
+  - Entity: 11
     Components:
       - Component: NameComponent
         Name: Cube
@@ -1102,8 +733,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.obj
         isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 13
+        AnimationTime: 40187.5195
+  - Entity: 12
     Components:
       - Component: NameComponent
         Name: Ball
@@ -1239,8 +870,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\ball.fbx
         isBlender: false
-        AnimationTime: 30019.9316
-  - Entity: 14
+        AnimationTime: 38017.5078
+  - Entity: 13
     Components:
       - Component: NameComponent
         Name: Field
@@ -1306,8 +937,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 15
+        AnimationTime: 40187.5195
+  - Entity: 14
     Components:
       - Component: NameComponent
         Name: Field
@@ -1373,15 +1004,15 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 16
+        AnimationTime: 40187.5195
+  - Entity: 15
     Components:
       - Component: NameComponent
         Name: Cube
       - Component: TransformComponent
         Position:
           x: 26.9727554
-          y: -5.94471073
+          y: -5.59836006
           z: -10.0601196
         Rotation:
           - 0
@@ -1440,8 +1071,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.obj
         isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 17
+        AnimationTime: 40187.5195
+  - Entity: 16
     Components:
       - Component: NameComponent
         Name: Cube
@@ -1507,83 +1138,16 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.obj
         isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 18
+        AnimationTime: 40187.5195
+  - Entity: 17
     Components:
       - Component: NameComponent
         Name: Cube
       - Component: TransformComponent
         Position:
-          x: 37.1050682
-          y: -8.73486042
-          z: -13.6244822
-        Rotation:
-          - -0
-          - -0.537776709
-          - -0
-          - 0.843087316
-        Scale:
-          x: 3.73000216
-          y: 3.73000312
-          z: 3.73000336
-        Parent: 0
-      - Component: ColliderComponent
-        isDynamic: false
-        autoMass: true
-        Mass: 0
-        colliders:
-          - type: 0
-            size: [1, 1, 1]
-            offset: [0, 0, 0]
-            rotationOffset: [0, 0, 0]
-            radius: 0.5
-            height: 1
-            staticFriction: 0
-            dynamicFriction: 0
-            restitution: 0
-            collisionLayer: 0
-            lockRotX: false
-            lockRotY: false
-            lockRotZ: false
-            isTrigger: false
-            boneName: ""
-      - Component: MaterialComponent
-        ShaderID: 3
-        Material:
-          BaseColor:
-            x: 0.805194795
-            y: 1
-            z: 0.810254693
-            w: 1
-          Metallic: 0
-          Roughness: 0
-          AO: 0
-          EmissiveColor:
-            x: 0
-            y: 0
-            z: 0
-          EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-          UseEnvironmentMap: true
-      - Component: TextureComponent
-        FilePath: Asset/Texture\white.tga
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset/Model\cube.obj
-        isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 19
-    Components:
-      - Component: NameComponent
-        Name: Cube
-      - Component: TransformComponent
-        Position:
-          x: 41.4641418
+          x: 38.0511971
           y: -10.1800365
-          z: -17.3284168
+          z: -14.8429995
         Rotation:
           - -0
           - -0.453497797
@@ -1641,92 +1205,25 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.obj
         isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 20
+        AnimationTime: 40187.5195
+  - Entity: 18
     Components:
       - Component: NameComponent
         Name: Cube
       - Component: TransformComponent
         Position:
-          x: 45.4933624
-          y: -11.9023571
-          z: -21.9510574
+          x: 42.9478683
+          y: -12.5202761
+          z: -18.8668518
         Rotation:
           - -0
-          - -0.323418558
+          - -0.397695392
           - -0
-          - 0.946255982
+          - 0.917517543
         Scale:
-          x: 3.73000193
+          x: 3.73000169
           y: 3.73000312
-          z: 3.73000193
-        Parent: 0
-      - Component: ColliderComponent
-        isDynamic: false
-        autoMass: true
-        Mass: 0
-        colliders:
-          - type: 0
-            size: [1, 1, 1]
-            offset: [0, 0, 0]
-            rotationOffset: [0, 0, 0]
-            radius: 0.5
-            height: 1
-            staticFriction: 0
-            dynamicFriction: 0
-            restitution: 0
-            collisionLayer: 0
-            lockRotX: false
-            lockRotY: false
-            lockRotZ: false
-            isTrigger: false
-            boneName: ""
-      - Component: MaterialComponent
-        ShaderID: 3
-        Material:
-          BaseColor:
-            x: 0.584415555
-            y: 1
-            z: 0.940630734
-            w: 1
-          Metallic: 0
-          Roughness: 0
-          AO: 0
-          EmissiveColor:
-            x: 0
-            y: 0
-            z: 0
-          EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-          UseEnvironmentMap: true
-      - Component: TextureComponent
-        FilePath: Asset/Texture\white.tga
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset/Model\cube.obj
-        isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 21
-    Components:
-      - Component: NameComponent
-        Name: Cube
-      - Component: TransformComponent
-        Position:
-          x: 48.3003349
-          y: -12.520277
-          z: -27.2879333
-        Rotation:
-          - -0
-          - -0.119493023
-          - -0
-          - 0.992835045
-        Scale:
-          x: 3.73000097
-          y: 3.73000312
-          z: 3.73000097
+          z: 3.73000169
         Parent: 0
       - Component: ColliderComponent
         isDynamic: false
@@ -1775,75 +1272,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.obj
         isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 22
-    Components:
-      - Component: NameComponent
-        Name: Cube
-      - Component: TransformComponent
-        Position:
-          x: 48.9882431
-          y: -13.8924437
-          z: -32.9716568
-        Rotation:
-          - -0
-          - -0.0137396399
-          - -0
-          - 0.999905705
-        Scale:
-          x: 3.73000193
-          y: 3.73000312
-          z: 3.73000193
-        Parent: 0
-      - Component: ColliderComponent
-        isDynamic: false
-        autoMass: true
-        Mass: 0
-        colliders:
-          - type: 0
-            size: [1, 1, 1]
-            offset: [0, 0, 0]
-            rotationOffset: [0, 0, 0]
-            radius: 0.5
-            height: 1
-            staticFriction: 0
-            dynamicFriction: 0
-            restitution: 0
-            collisionLayer: 0
-            lockRotX: false
-            lockRotY: false
-            lockRotZ: false
-            isTrigger: false
-            boneName: ""
-      - Component: MaterialComponent
-        ShaderID: 3
-        Material:
-          BaseColor:
-            x: 0
-            y: 0.571428537
-            z: 1
-            w: 1
-          Metallic: 0
-          Roughness: 0
-          AO: 0
-          EmissiveColor:
-            x: 0
-            y: 0
-            z: 0
-          EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-          UseEnvironmentMap: true
-      - Component: TextureComponent
-        FilePath: Asset/Texture\white.tga
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset/Model\cube.obj
-        isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 23
+        AnimationTime: 40187.5195
+  - Entity: 19
     Components:
       - Component: NameComponent
         Name: Cube
@@ -1909,16 +1339,83 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.obj
         isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 24
+        AnimationTime: 40187.5195
+  - Entity: 20
     Components:
       - Component: NameComponent
         Name: Cube
       - Component: TransformComponent
         Position:
-          x: 26.6375256
-          y: -3.43827009
-          z: -3.65256763
+          x: 26.6408596
+          y: -2.68115926
+          z: -3.86179113
+        Rotation:
+          - 0.257238954
+          - 0.664680779
+          - -0.253169596
+          - -0.654165685
+        Scale:
+          x: 3.73000216
+          y: 3.73000145
+          z: 3.7300055
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 0
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 3
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset/Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset/Model\cube.obj
+        isBlender: false
+        AnimationTime: 40187.5195
+  - Entity: 21
+    Components:
+      - Component: NameComponent
+        Name: Cube
+      - Component: TransformComponent
+        Position:
+          x: 26.2000542
+          y: -1.916188
+          z: -1.8916657
         Rotation:
           - 0
           - 0.712721765
@@ -1976,75 +1473,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.obj
         isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 25
-    Components:
-      - Component: NameComponent
-        Name: Cube
-      - Component: TransformComponent
-        Position:
-          x: 26.18437
-          y: -2.56377387
-          z: -0.907977164
-        Rotation:
-          - 0
-          - 0.712721765
-          - 0
-          - -0.701446831
-        Scale:
-          x: 3.72999835
-          y: 3.73000312
-          z: 3.73000169
-        Parent: 0
-      - Component: ColliderComponent
-        isDynamic: false
-        autoMass: true
-        Mass: 0
-        colliders:
-          - type: 0
-            size: [1, 1, 1]
-            offset: [0, 0, 0]
-            rotationOffset: [0, 0, 0]
-            radius: 0.5
-            height: 1
-            staticFriction: 0
-            dynamicFriction: 0
-            restitution: 0
-            collisionLayer: 0
-            lockRotX: false
-            lockRotY: false
-            lockRotZ: false
-            isTrigger: false
-            boneName: ""
-      - Component: MaterialComponent
-        ShaderID: 3
-        Material:
-          BaseColor:
-            x: 1
-            y: 1
-            z: 1
-            w: 1
-          Metallic: 0
-          Roughness: 0
-          AO: 0
-          EmissiveColor:
-            x: 0
-            y: 0
-            z: 0
-          EmissiveIntensity: 0
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-          UseEnvironmentMap: true
-      - Component: TextureComponent
-        FilePath: Asset/Texture\white.tga
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset/Model\cube.obj
-        isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 26
+        AnimationTime: 40187.5195
+  - Entity: 22
     Components:
       - Component: NameComponent
         Name: Field
@@ -2110,8 +1540,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset\Model\cube.obj
         isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 27
+        AnimationTime: 40187.5195
+  - Entity: 23
     Components:
       - Component: NameComponent
         Name: Cube
@@ -2177,8 +1607,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.obj
         isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 28
+        AnimationTime: 40187.5195
+  - Entity: 24
     Components:
       - Component: NameComponent
         Name: Cube
@@ -2244,8 +1674,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.obj
         isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 29
+        AnimationTime: 40187.5195
+  - Entity: 25
     Components:
       - Component: NameComponent
         Name: Cube
@@ -2311,25 +1741,25 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.obj
         isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 30
+        AnimationTime: 40187.5195
+  - Entity: 26
     Components:
       - Component: NameComponent
         Name: Cube
       - Component: TransformComponent
         Position:
-          x: 26.9719067
-          y: -4.59149361
-          z: -6.5492754
+          x: 26.982399
+          y: -4.78781652
+          z: -7.20695972
         Rotation:
-          - 0
-          - 0.712721765
-          - 0
-          - -0.701446831
+          - 0.133494303
+          - 0.700108528
+          - -0.131382748
+          - -0.689032555
         Scale:
-          x: 3.72999835
+          x: 3.7300005
           y: 3.73000312
-          z: 3.73000169
+          z: 3.72997975
         Parent: 0
       - Component: ColliderComponent
         isDynamic: false
@@ -2378,8 +1808,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\cube.obj
         isBlender: false
-        AnimationTime: 32190.0488
-  - Entity: 31
+        AnimationTime: 40187.5195
+  - Entity: 27
     Components:
       - Component: NameComponent
         Name: Entity
@@ -2420,8 +1850,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\Lowpoly_tree_sample.obj
         isBlender: false
-        AnimationTime: 11752.4873
-  - Entity: 32
+        AnimationTime: 19750.0449
+  - Entity: 28
     Components:
       - Component: NameComponent
         Name: Entity
@@ -2462,8 +1892,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\Lowpoly_tree_sample.obj
         isBlender: false
-        AnimationTime: 11752.4873
-  - Entity: 33
+        AnimationTime: 19750.0449
+  - Entity: 29
     Components:
       - Component: NameComponent
         Name: Entity
@@ -2504,8 +1934,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\Lowpoly_tree_sample.obj
         isBlender: false
-        AnimationTime: 11752.4873
-  - Entity: 34
+        AnimationTime: 19750.0449
+  - Entity: 30
     Components:
       - Component: NameComponent
         Name: Entity
@@ -2546,8 +1976,8 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\Lowpoly_tree_sample.obj
         isBlender: false
-        AnimationTime: 11752.4873
-  - Entity: 35
+        AnimationTime: 19750.0449
+  - Entity: 31
     Components:
       - Component: NameComponent
         Name: Entity
@@ -2588,4 +2018,352 @@ Entities:
       - Component: ModelRendererComponent
         FilePath: Asset/Model\Lowpoly_tree_sample.obj
         isBlender: false
-        AnimationTime: 11752.4873
+        AnimationTime: 19750.0449
+  - Entity: 32
+    Components:
+      - Component: NameComponent
+        Name: Camera
+      - Component: TransformComponent
+        Position:
+          x: 36.4523392
+          y: 4.59583139
+          z: -33.7641792
+        Rotation:
+          - -0.0348123759
+          - -0.619214952
+          - -0.0274964832
+          - 0.783967316
+        Scale:
+          x: 0.999999285
+          y: 0.999991477
+          z: 0.99999994
+        Parent: 0
+      - Component: CameraComponent
+        isLock: true
+        Target:
+          x: 30.4641876
+          y: 5.14359188
+          z: -32.3383446
+        NearClip: 0.00999999978
+        FarClip: 1024
+        FOV: 1
+        viewMatrix:
+          -
+            - 0.231633484
+            - 0.0862253755
+            - -0.968974233
+            - 0
+          -
+            - -0
+            - 0.996064067
+            - 0.088635996
+            - 0
+          -
+            - 0.972803116
+            - -0.0205310639
+            - 0.230721787
+            - 0
+          -
+            - 24.4023151
+            - -8.41407394
+            - 42.7041512
+            - 1
+        nextLinkId: 57
+        nextPinId: 43
+        PostEffects:
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\OutlineByShaderID.cso
+            NodePos:
+              x: -592.278809
+              y: 32.4129028
+            InputPins:
+              - 2
+              - 4
+            OutputPin: 3
+            Param:
+              x: 4
+              y: 1
+              z: 0
+              w: 0
+            ResolutionScale: 1
+            MipLevels: 1
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\SSAO.cso
+            NodePos:
+              x: -2051.96094
+              y: 614.427734
+            InputPins:
+              - 5
+              - 7
+            OutputPin: 6
+            Param:
+              x: 1
+              y: 0.300000012
+              z: 0.5
+              w: 0
+            ResolutionScale: 0.25
+            MipLevels: 1
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\DepthBlur.cso
+            NodePos:
+              x: -345.878418
+              y: -14.7858276
+            InputPins:
+              - 8
+              - 10
+            OutputPin: 9
+            Param:
+              x: 0.5
+              y: 0
+              z: 0
+              w: 0
+            ResolutionScale: 1
+            MipLevels: 1
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\SSAOComposite.cso
+            NodePos:
+              x: -1227.51392
+              y: 84.133667
+            InputPins:
+              - 14
+              - 19
+              - 20
+            OutputPin: 15
+            Param:
+              x: 0
+              y: 0
+              z: 0
+              w: 0
+            ResolutionScale: 1
+            MipLevels: 1
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\Blur.cso
+            NodePos:
+              x: -1777.13086
+              y: 300.010254
+            InputPins:
+              - 16
+              - 18
+            OutputPin: 17
+            Param:
+              x: 1.5
+              y: 0
+              z: 0
+              w: 0
+            ResolutionScale: 0.25
+            MipLevels: 1
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\BrightPass.cso
+            NodePos:
+              x: -2054.87793
+              y: 303.580444
+            InputPins:
+              - 21
+              - 23
+            OutputPin: 22
+            Param:
+              x: 0.949999988
+              y: 0.5
+              z: 0
+              w: 0
+            ResolutionScale: 0.25
+            MipLevels: 1
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\Blur.cso
+            NodePos:
+              x: -1781.66406
+              y: 609.731079
+            InputPins:
+              - 24
+              - 26
+            OutputPin: 25
+            Param:
+              x: 1.5
+              y: 0
+              z: 0
+              w: 0
+            ResolutionScale: 0.25
+            MipLevels: 1
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\CompositeBloom.cso
+            NodePos:
+              x: -1473.86694
+              y: 18.7988281
+            InputPins:
+              - 27
+              - 29
+              - 30
+            OutputPin: 28
+            Param:
+              x: 1
+              y: 0
+              z: 0
+              w: 0
+            ResolutionScale: 1
+            MipLevels: 1
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\SSR.cso
+            NodePos:
+              x: 272.284546
+              y: -21.1772461
+            InputPins:
+              - 34
+              - 36
+            OutputPin: 35
+            Param:
+              x: 128
+              y: 0.400000006
+              z: 1
+              w: 0
+            ResolutionScale: 1
+            MipLevels: 1
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\GodLay.cso
+            NodePos:
+              x: -45.0273438
+              y: -16.4881592
+            InputPins:
+              - 37
+              - 39
+            OutputPin: 38
+            Param:
+              x: 0.25
+              y: 0
+              z: 0.5
+              w: 0.949999988
+            ResolutionScale: 1
+            MipLevels: 1
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\LensFlare.cso
+            NodePos:
+              x: -915.300781
+              y: 54.7799377
+            InputPins:
+              - 40
+              - 42
+            OutputPin: 41
+            Param:
+              x: 0.5
+              y: 0.5
+              z: 0.5
+              w: 0.5
+            ResolutionScale: 1
+            MipLevels: 1
+        PostEffectLinks:
+          - ID: 27
+            StartNode: -1
+            EndNode: 1
+            StartAttr: -1
+            EndAttr: 5
+          - ID: 28
+            StartNode: 1
+            EndNode: 6
+            StartAttr: 6
+            EndAttr: 24
+          - ID: 30
+            StartNode: -1
+            EndNode: 5
+            StartAttr: -1
+            EndAttr: 21
+          - ID: 31
+            StartNode: 5
+            EndNode: 4
+            StartAttr: 22
+            EndAttr: 16
+          - ID: 32
+            StartNode: 4
+            EndNode: 7
+            StartAttr: 17
+            EndAttr: 29
+          - ID: 33
+            StartNode: -1
+            EndNode: 7
+            StartAttr: -1
+            EndAttr: 27
+          - ID: 35
+            StartNode: 7
+            EndNode: 3
+            StartAttr: 28
+            EndAttr: 14
+          - ID: 36
+            StartNode: 6
+            EndNode: 3
+            StartAttr: 25
+            EndAttr: 19
+          - ID: 38
+            StartNode: 0
+            EndNode: 2
+            StartAttr: 3
+            EndAttr: 8
+          - ID: 52
+            StartNode: 9
+            EndNode: 8
+            StartAttr: 38
+            EndAttr: 34
+          - ID: 53
+            StartNode: 2
+            EndNode: 9
+            StartAttr: 9
+            EndAttr: 37
+          - ID: 54
+            StartNode: 8
+            EndNode: -2
+            StartAttr: 35
+            EndAttr: 1
+          - ID: 55
+            StartNode: 10
+            EndNode: 0
+            StartAttr: 41
+            EndAttr: 2
+          - ID: 56
+            StartNode: 3
+            EndNode: 10
+            StartAttr: 15
+            EndAttr: 40
+        ScreenInput:
+          Name: ""
+          NodePos:
+            x: -2241.646
+            y: 234.342407
+          OutputPin: -1
+        ScreenOutput:
+          Name: ""
+          NodePos:
+            x: 661.339966
+            y: 217.411194
+          InputPins:
+            - 1
+      - Component: CameraController
+        distance: 6
+        height: 2
+        rotateSpeed: 1.5
+        minPitch: -2.70000005
+        maxPitch: 0.785398185
+        minDistance: 1
+        targetPosLerpSpeed: 15
+        cameraDistanceLerpSpeed: 12
+        targetLookLerpSpeed: 10
+      - Component: PrefabComponent
+        FilePath: C:\Users\teto_\OneDrive\ÉhÉLÉÖÉÅÉìÉg\GitHub\GameEngine\Asset\Prefab\Camera.prefab

@@ -13,7 +13,7 @@
 #include "UI/DebugLogWindow.h"
 #include "UI/ViewWindow.h"
 #include "UI/SystemSetting.h"
-#include "UI/BRAIN.h"
+#include "UI/BRAIN/BRAIN.h"
 #include "UI/CB41.h"
 
 #include "Analysis/AnalyzerManager.h"

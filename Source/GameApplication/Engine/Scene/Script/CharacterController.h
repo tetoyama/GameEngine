@@ -348,7 +348,7 @@ private:
 				if (model->blendedAnimations[2].weight <= 0.0f)
 					model->blendedAnimations[2].animationStartTime = -model->animationTime + 25.0f;
 
-				model->blendedAnimations[2].weight += 0.05f;
+				model->blendedAnimations[2].weight += 0.03f;
 				if (model->blendedAnimations[2].weight > 1.0f) model->blendedAnimations[2].weight = 1.0f;
 				model->blendedAnimations[3].weight = 0.0f;
 			} else {
