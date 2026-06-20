@@ -48,12 +48,10 @@ public:
 		return buffer.get();
 	}
 
-	// StartAllなどScheduler外のLifecycle呼び出し前に使用する。
 	void PrepareBuffers() {
 		AttachAllScenes();
 	}
 
-	// StopなどScheduler外で発生したコマンドを確実に適用する。
 	void CommitNow() {
 		CommitAllScenes();
 	}
@@ -71,7 +69,7 @@ private:
 			std::string("EntityCommandCommitSystem.") + domainName + "Attach",
 			domain,
 			SystemPhase::Earliest,
-			std::numeric_limits<int32_t>::min(),
+			(std::numeric_limits<int32_t>::min)(),
 			std::move(attachAccess),
 			ThreadAffinity::MainThread,
 			[this](const SystemTaskContext&) {
@@ -87,7 +85,7 @@ private:
 			std::string("EntityCommandCommitSystem.") + domainName + "Commit",
 			domain,
 			SystemPhase::Latest,
-			std::numeric_limits<int32_t>::max(),
+			(std::numeric_limits<int32_t>::max)(),
 			std::move(commitAccess),
 			ThreadAffinity::MainThread,
 			[this](const SystemTaskContext&) {
