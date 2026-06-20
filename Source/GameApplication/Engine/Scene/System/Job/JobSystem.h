@@ -265,7 +265,6 @@ public:
 		std::unique_lock lifecycleLock(m_lifecycleMutex);
 		if(!m_running.load(std::memory_order_acquire)) return;
 
-		m_accepting.store(false, std::memory_order_release);
 		lifecycleLock.unlock();
 
 		std::exception_ptr waitException;
@@ -276,6 +275,7 @@ public:
 		}
 
 		lifecycleLock.lock();
+		m_accepting.store(false, std::memory_order_release);
 		m_stopping.store(true, std::memory_order_release);
 		m_wakeCondition.notify_all();
 		for(auto& worker : m_workers) {
