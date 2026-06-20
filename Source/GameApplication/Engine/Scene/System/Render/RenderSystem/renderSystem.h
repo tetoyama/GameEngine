@@ -8,6 +8,7 @@
 #include "Interface/ISystem.h"
 
 #include <d3d11.h>
+#include <d3dcompiler.h>
 #include <wrl/client.h>
 #include <string>
 #include <vector>
@@ -43,9 +44,9 @@ class PostEffectShader;
 //======================================================================
 struct PostEffect
 {
-	PostEffectShader* shader;  // 使用するポストエフェクトシェーダ
-	std::string       name;    // UI表示用名称
-	bool              enabled; // 有効 / 無効
+	PostEffectShader* shader;
+	std::string       name;
+	bool              enabled;
 };
 
 //======================================================================
@@ -53,8 +54,8 @@ struct PostEffect
 //======================================================================
 struct ShaderMaterial
 {
-	std::string filePath;   // HLSL ファイルパス
-	std::string entryPoint; // エントリーポイント関数名
+	std::string filePath;
+	std::string entryPoint;
 };
 
 //======================================================================
@@ -64,28 +65,18 @@ struct ShaderMaterial
 class RenderSystem: public ISystem
 {
 public:
-
-	//------------------------------------------------------------------
-	// システム名取得
-	//------------------------------------------------------------------
 	const char* GetSystemName() const override{
 		return "RenderSystem";
 	}
 
-	//------------------------------------------------------------------
-	// コンストラクタ
-	// デフォルトのマテリアル設定を初期登録する
-	//------------------------------------------------------------------
 	RenderSystem(SceneManagerContext* context)
 		: m_context(context){
 		ShaderMaterials.clear();
 
-		// Unlit マテリアル
 		ShaderMaterial unlitMaterial;
 		unlitMaterial.filePath = "UnlitShader.hlsli";
 		unlitMaterial.entryPoint = "ShadeMaterial_Unlit";
 
-		// PBR マテリアル
 		ShaderMaterial pbrMaterial;
 		pbrMaterial.filePath = "PBRShader.hlsli";
 		pbrMaterial.entryPoint = "ShadeMaterial_PBR";
@@ -96,9 +87,6 @@ public:
 
 	~RenderSystem(){}
 
-	//------------------------------------------------------------------
-	// ISystem 実装
-	//------------------------------------------------------------------
 	void Initialize() override;
 	void Finalize() override;
 
@@ -112,14 +100,10 @@ public:
 	void SystemSetting() override;
 	bool HasSystemSetting() const override { return true; }
 
-	//------------------------------------------------------------------
-	// 指定型の Renderable を取得
-	// 登録済みリストから dynamic_cast で検索する
-	//------------------------------------------------------------------
 	template<typename T>
 	T* GetRenderable(){
 		static_assert(std::is_base_of<IRenderable, T>::value,
-					  "T must inherit from IRenderable");
+			"T must inherit from IRenderable");
 
 		for(auto& r : m_renderables){
 			if(auto p = dynamic_cast<T*>(r.get())){
@@ -130,13 +114,9 @@ public:
 		return nullptr;
 	}
 
-	//------------------------------------------------------------------
-	// パス関連
-	//------------------------------------------------------------------
 	PlayerPass* m_PlayerPass = nullptr;
 	bool* showPlayer = nullptr;
 
-	// 各 RenderLayer の表示状態（Player）
 	bool playerRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] =
 	{
 		true, true, true, true, true, false
@@ -145,20 +125,13 @@ public:
 	EditorPass* m_EditorPass = nullptr;
 	bool* showEditor = nullptr;
 
-	// 各 RenderLayer の表示状態（Editor）
 	bool editorRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] =
 	{
 		true, true, true, true, true, true,
 	};
 
-	//------------------------------------------------------------------
-	// ピクセルシェーダ再コンパイル
-	//------------------------------------------------------------------
 	void ReCompilePixelShaders();
 
-	//------------------------------------------------------------------
-	// 使用中のシェーダ取得（登録マテリアルごとに1つ）
-	//------------------------------------------------------------------
 	const std::vector<std::shared_ptr<PixelShaderData>>& GetDeferredPSList() const{
 		return DeferredPSList;
 	}
@@ -167,62 +140,34 @@ public:
 		return ForwardPSList;
 	}
 
-	// 登録外ShaderID用のフォールバック（マゼンタ表示）
 	PixelShaderData* GetForwardPSDebug() const{
 		return ForwardPSDebug.get();
 	}
 
-	// フォワードパス向けに環境マップテクスチャ・サンプラーを返す
 	std::shared_ptr<TextureData> GetEnvironmentMap() const;
-	ID3D11SamplerState*          GetEnvMapSampler()  const;
+	ID3D11SamplerState* GetEnvMapSampler() const;
 
-	//------------------------------------------------------------------
-	// 登録済みシェーダマテリアル一覧
-	//------------------------------------------------------------------
 	std::vector<ShaderMaterial> ShaderMaterials;
 
 private:
-
-	//------------------------------------------------------------------
-	// カメラ情報取得
-	//------------------------------------------------------------------
 	const CameraEntityData FindCameraEntity();
-
-	//------------------------------------------------------------------
-	// スカイスフィアから環境マップを自動更新
-	//------------------------------------------------------------------
 	void UpdateSkyBoxEnvironmentMap();
-
-	//------------------------------------------------------------------
-	// UI 制御関連
-	//------------------------------------------------------------------
 	void ControlButton();
 	void DrawRenderLayerToggleUI();
-
 	void EditorView();
 	void PlayerView();
 
 private:
-
 	SceneManagerContext* m_context = nullptr;
-
-	// 登録済み Renderable 一覧
 	std::vector<std::shared_ptr<IRenderable>> m_renderables;
-
-	// ポストエフェクト用コピーシェーダ
 	PostEffectShader* copyShader = nullptr;
-
-	// 自動生成シェーダ出力パス
 	std::string ShaderPath = "Source/Shader/AutoGen/";
 
-	// UI ボタン用テクスチャ
 	std::shared_ptr<TextureData> PlayButtonTexture;
 	std::shared_ptr<TextureData> PauseButtonTexture;
 	std::shared_ptr<TextureData> StopButtonTexture;
 	std::shared_ptr<TextureData> StepButtonTexture;
 
-	// 描画パイプライン用ピクセルシェーダ（ShaderMaterials[i] に対応）
-	// DeferredPSListは末尾に範囲外materialID用のデバッグシェーダが1つ追加される
 	std::vector<std::shared_ptr<PixelShaderData>> DeferredPSList;
 	std::vector<std::shared_ptr<PixelShaderData>> ForwardPSList;
 	std::shared_ptr<PixelShaderData> ForwardPSDebug;
