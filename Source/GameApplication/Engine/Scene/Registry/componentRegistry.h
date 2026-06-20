@@ -23,6 +23,13 @@
 
 class CustomScriptComponent;
 
+struct ComponentOperations {
+	std::string name;
+	std::function<YAML::Node(void*)> encode;
+	std::function<bool(void*, SceneContext*, const YAML::Node&)> decode;
+	std::function<void(void*, SceneContext*)> inspector;
+};
+
 // 識別用型
 class ComponentType {
 public:
@@ -49,13 +56,27 @@ public:
 
 		RegisterComponent<T>(useArchetype);
 
-		m_yamlFactory[name] = [this](Entity e, const YAML::Node& node) -> IComponent*{
+		const ComponentTypeID typeID = ComponentType::Get<T>();
+		m_componentOperations[typeID] = {
+			name,
+			[](void* raw) -> YAML::Node {
+				return static_cast<T*>(raw)->encode();
+			},
+			[](void* raw, SceneContext* context, const YAML::Node& node) -> bool {
+				return static_cast<T*>(raw)->decode(context, node);
+			},
+			[](void* raw, SceneContext* context) {
+				static_cast<T*>(raw)->inspector(context);
+			}
+		};
+
+		m_yamlFactory[name] = [this, typeID](Entity e, const YAML::Node& node) -> IComponent*{
 			auto* comp = AddComponent<T>(e);
 			if(comp){
-				static_cast<T*>(comp)->decode(m_context,node);
+				DecodeComponent(typeID, comp, node);
 			}
 			return comp;
-			};
+		};
 
 		m_addComponentFuncs[name] = [this](Entity e){
 			AddComponent<T>(e);
@@ -68,8 +89,6 @@ public:
 		m_removeComponentByRuntimeTypeName[runtimeTypeName] = [this](Entity e){
 			RemoveComponent<T>(e);
 		};
-
-		ComponentTypeID typeID = ComponentType::Get<T>();
 
 		m_nameToComponentID[name] = typeID;
 		m_componentIDToName[typeID] = name;
@@ -248,6 +267,71 @@ public:
 		return components;
 	}
 
+	ComponentTypeID GetComponentID(const IComponent* component) const {
+		if(!component) return static_cast<ComponentTypeID>(-1);
+		return GetComponentIDByTypeIndex(std::type_index(typeid(*component)));
+	}
+
+	std::string GetComponentName(const IComponent* component) const {
+		const ComponentTypeID typeID = GetComponentID(component);
+		auto it = m_componentOperations.find(typeID);
+		return it != m_componentOperations.end() ? it->second.name : std::string{};
+	}
+
+	YAML::Node EncodeComponent(IComponent* component) const {
+		const ComponentTypeID typeID = GetComponentID(component);
+		auto it = m_componentOperations.find(typeID);
+		if(it == m_componentOperations.end() || !it->second.encode) return {};
+		return it->second.encode(component);
+	}
+
+	bool DecodeComponent(
+		ComponentTypeID typeID,
+		IComponent* component,
+		const YAML::Node& node
+	) const {
+		if(!component) return false;
+		auto it = m_componentOperations.find(typeID);
+		if(it == m_componentOperations.end() || !it->second.decode) return false;
+		return it->second.decode(component, m_context, node);
+	}
+
+	bool InspectComponent(IComponent* component, SceneContext* context) const {
+		const ComponentTypeID typeID = GetComponentID(component);
+		auto it = m_componentOperations.find(typeID);
+		if(it == m_componentOperations.end() || !it->second.inspector) return false;
+		it->second.inspector(component, context);
+		return true;
+	}
+
+	template<typename T, typename EncodeFn, typename DecodeFn, typename InspectorFn>
+	void SetComponentOperations(
+		EncodeFn&& encode,
+		DecodeFn&& decode,
+		InspectorFn&& inspector
+	) {
+		const ComponentTypeID typeID = ComponentType::Get<T>();
+		auto it = m_componentOperations.find(typeID);
+		if(it == m_componentOperations.end()) return;
+
+		it->second.encode = [fn = std::forward<EncodeFn>(encode)](void* raw) mutable {
+			return fn(*static_cast<T*>(raw));
+		};
+		it->second.decode = [fn = std::forward<DecodeFn>(decode)](
+			void* raw,
+			SceneContext* context,
+			const YAML::Node& node
+		) mutable {
+			return fn(*static_cast<T*>(raw), context, node);
+		};
+		it->second.inspector = [fn = std::forward<InspectorFn>(inspector)](
+			void* raw,
+			SceneContext* context
+		) mutable {
+			fn(*static_cast<T*>(raw), context);
+		};
+	}
+
 	bool AddDefaultComponentByRuntimeTypeName(
 		Entity entity,
 		const std::string& runtimeTypeName
@@ -308,6 +392,7 @@ private:
 
 	std::unordered_map<Entity, ComponentMask> m_entityMasks;
 
+	std::unordered_map<ComponentTypeID, ComponentOperations> m_componentOperations;
 	std::unordered_map<std::string, YAMLCreator> m_yamlFactory;
 	std::unordered_map<std::string, std::function<void(Entity)>> m_addComponentFuncs;
 	std::unordered_map<std::string, std::function<void(Entity)>> m_addDefaultComponentByRuntimeTypeName;
