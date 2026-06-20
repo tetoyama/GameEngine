@@ -32,10 +32,14 @@ inline void Runner::Dispatch(
 
 	if(task.threadAffinity == ThreadAffinity::AnyWorker &&
 		state->jobs->IsRunning()) {
-		state->jobs->Submit([state, nodeIndex](JobThreadContext&) {
-			RunNode(state, nodeIndex);
-		});
-		return;
+		try {
+			state->jobs->Submit([state, nodeIndex](JobThreadContext&) {
+				RunNode(state, nodeIndex);
+			});
+			return;
+		} catch(...) {
+			RecordException(state, std::current_exception());
+		}
 	}
 
 	{
