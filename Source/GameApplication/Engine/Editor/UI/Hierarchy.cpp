@@ -440,7 +440,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 			Entity draggedEntity = *(const Entity*)payload->Data;
 			if(draggedEntity != entity){
 				auto* draggedT = context->component->GetComponent<TransformComponent>(draggedEntity);
-				Entity oldParent = draggedT ? draggedT->parent : 0;
+				Entity oldParent = draggedT ? draggedT->parent : Entity(0, 0);
 				auto cmd = std::make_unique<SetParentCommand>(context, draggedEntity, oldParent, entity);
 				m_editor->commandManager.Execute(std::move(cmd));
 			}
