@@ -55,8 +55,7 @@ struct CameraPostEffectLink {
 
 // カメラ設定とポストエフェクトGraph状態を保持するComponent。
 // YAML・Graph計算・Inspector実装はOperations配下へ分離する。
-class CameraComponent: public IComponent {
-public:
+struct CameraComponent {
 	// 互換用の非所有参照。将来はOperations呼出時の引数だけに限定する。
 	SceneContext* context = nullptr;
 
@@ -79,9 +78,9 @@ public:
 	float FOV = 1.0f;
 	DirectX::XMMATRIX viewMatrix{};
 
-	YAML::Node encode() override;
-	bool decode(SceneContext* context, const YAML::Node& node) override;
-	void inspector(SceneContext* context) override;
+	YAML::Node encode();
+	bool decode(SceneContext* context, const YAML::Node& node);
+	void inspector(SceneContext* context);
 
 	void InvalidatePostEffectGraphCache();
 	void RebuildPostEffectGraphCache();
