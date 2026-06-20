@@ -5,10 +5,10 @@
 // =======================================================================
 #pragma once
 
-#include <unordered_map>
 #include <functional>
 #include <memory>
 #include <typeindex>
+#include <unordered_map>
 
 #include "Scene/Interface/ISystem.h"
 #include "Scene/sceneManager.h"
@@ -52,14 +52,24 @@ public:
 	}
 
 	IScriptComponent* Create(const char* scriptName){
-		IScriptComponent* script = m_scriptBridge
-			? m_scriptBridge(scriptName)
+		IScriptComponent* script = m_createScriptFunc
+			? m_createScriptFunc(scriptName)
 			: nullptr;
 
 		if(script && !script->HasRegistrationOrder()){
 			script->SetRegistrationOrder(m_nextScriptRegistrationOrder++);
 		}
 		return script;
+	}
+
+	ScriptDestroyFunction GetDestroyFunction() const {
+		return m_destroyScriptFunc;
+	}
+
+	void Destroy(IScriptComponent* script) const {
+		if(script && m_destroyScriptFunc){
+			m_destroyScriptFunc(script);
+		}
 	}
 
 	template<typename T>
@@ -72,11 +82,6 @@ public:
 	}
 
 	bool ReloadScriptDLL(const char* dllPath);
-
-	void SetScriptBridge(
-		std::function<IScriptComponent*(const char*)> bridge){
-		m_scriptBridge = std::move(bridge);
-	}
 
 	ComponentTypeID GetEngineComponentTypeIDByName(
 		const std::string& name) const{
@@ -95,6 +100,9 @@ public:
 	bool HasSystemSetting() const override { return true; }
 
 private:
+	using CreateScriptFunc = IScriptComponent* (*)(const char*);
+	using DestroyScriptFunc = void (*)(IScriptComponent*);
+
 	SceneManagerContext* m_context = nullptr;
 	EntityCommandCommitSystem m_commandCommitSystem;
 
@@ -103,10 +111,9 @@ private:
 
 	std::unordered_map<std::string, ComponentTypeID> m_nameToEngineTypeID;
 	std::unordered_map<std::type_index, ComponentTypeID> m_engineTypeIDs;
-	std::function<IScriptComponent*(const char*)> m_scriptBridge = nullptr;
 	std::function<void(void*)> m_setImGuiContextFunc = nullptr;
 	uint64_t m_nextScriptRegistrationOrder = 1;
 	HMODULE m_scriptModule = nullptr;
-
-	using CreateScriptFunc = IScriptComponent * (*)(const char*);
+	CreateScriptFunc m_createScriptFunc = nullptr;
+	DestroyScriptFunc m_destroyScriptFunc = nullptr;
 };
