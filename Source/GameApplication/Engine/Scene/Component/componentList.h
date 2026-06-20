@@ -49,21 +49,20 @@ enum ComponentStorageType {
 	COMPONENT_ARCHETYPE
 };
 
-// コンポーネントを登録（Archetype or Sparse を選択）
-// ボトルネックが見つかったコンポーネントから ArchetypeStorage<T> に移行
-
+// 高頻度で一括走査するデータComponentはDenseComponentPoolへ登録する。
+// ネイティブ資源・Script・ポインタ安定性を優先する型はSparseStorageを維持する。
 #define COMPONENT_LIST(X) \
-    X(NameComponent,COMPONENT_SPARSE)\
-    X(TransformComponent,COMPONENT_SPARSE)\
+    X(NameComponent,COMPONENT_ARCHETYPE)\
+    X(TransformComponent,COMPONENT_ARCHETYPE)\
     X(CustomScriptComponent,COMPONENT_SPARSE)\
     X(ColliderComponent,COMPONENT_SPARSE)\
     X(AudioComponent,COMPONENT_SPARSE)\
-    X(RenderLayerComponent,COMPONENT_SPARSE)\
-    X(OrderInLayerComponent,COMPONENT_SPARSE)\
-    X(MaterialComponent,COMPONENT_SPARSE)\
+    X(RenderLayerComponent,COMPONENT_ARCHETYPE)\
+    X(OrderInLayerComponent,COMPONENT_ARCHETYPE)\
+    X(MaterialComponent,COMPONENT_ARCHETYPE)\
     X(TextureComponent,COMPONENT_SPARSE)\
     X(BumpMapComponent,COMPONENT_SPARSE)\
-    X(LightComponent,COMPONENT_SPARSE)\
+    X(LightComponent,COMPONENT_ARCHETYPE)\
     X(MeshRendererComponent,COMPONENT_SPARSE)\
     X(ModelRendererComponent,COMPONENT_SPARSE)\
     X(BillBoardRendererComponent,COMPONENT_SPARSE)\
@@ -71,9 +70,9 @@ enum ComponentStorageType {
     X(TerrainComponent,COMPONENT_SPARSE)\
     X(WaveComponent,COMPONENT_SPARSE)\
     X(OutlineComponent,COMPONENT_SPARSE)\
-    X(ParticleComponent,COMPONENT_SPARSE)\
+    X(ParticleComponent,COMPONENT_ARCHETYPE)\
     X(EffectComponent,COMPONENT_SPARSE)\
-    X(CameraComponent,COMPONENT_SPARSE)\
+    X(CameraComponent,COMPONENT_ARCHETYPE)\
     X(SetScene,COMPONENT_SPARSE)\
     X(ScoreManager,COMPONENT_SPARSE)\
     X(ScoreSprite,COMPONENT_SPARSE)\
@@ -90,5 +89,5 @@ enum ComponentStorageType {
     X(ScriptComponent,COMPONENT_SPARSE)\
     X(GN31,COMPONENT_SPARSE)\
     X(PrefabComponent,COMPONENT_SPARSE)\
-    X(FollowComponent,COMPONENT_SPARSE)\
-    X(EnvironmentMapComponent,COMPONENT_SPARSE)
+    X(FollowComponent,COMPONENT_ARCHETYPE)\
+    X(EnvironmentMapComponent,COMPONENT_ARCHETYPE)
