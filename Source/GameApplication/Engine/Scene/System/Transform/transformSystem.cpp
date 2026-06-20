@@ -31,6 +31,7 @@ void TransformSystem::RegisterTasks(SystemScheduleBuilder& builder){
 		SystemTaskDomain::Render,
 		SystemPhase::Default,
 		0,
+		StructuralAccess::EmitCommands,
 		ThreadAffinity::MainThread,
 		[this](const SystemTaskContext&){
 			Draw();
