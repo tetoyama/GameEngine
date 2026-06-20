@@ -9,6 +9,7 @@
 #include "Scene/Reference/EntityRef.h"
 
 #include <algorithm>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -105,6 +106,8 @@ template<typename Func>
 void ScriptSystem::ForEachScript(SystemTaskDomain domain, Func&& func){
 	struct Entry {
 		IScriptComponent* script = nullptr;
+		Entity entity{};
+		std::string name;
 	};
 
 	std::vector<Entry> entries;
@@ -127,7 +130,7 @@ void ScriptSystem::ForEachScript(SystemTaskDomain domain, Func&& func){
 				}
 
 				script->ref = EntityRef(entity, context);
-				entries.push_back({script});
+				entries.push_back({script, entity, scriptName});
 			}
 		}
 	}
@@ -136,14 +139,22 @@ void ScriptSystem::ForEachScript(SystemTaskDomain domain, Func&& func){
 		entries.begin(),
 		entries.end(),
 		[domain](const Entry& lhs, const Entry& rhs){
-			return IsScriptOrderEarlier(
-				lhs.script->GetExecutionOrder(domain),
-				rhs.script->GetExecutionOrder(domain)
-			);
+			const SystemTaskOrder lhsOrder =
+				lhs.script->GetExecutionOrder(domain);
+			const SystemTaskOrder rhsOrder =
+				rhs.script->GetExecutionOrder(domain);
+
+			if(IsScriptOrderEarlier(lhsOrder, rhsOrder)) return true;
+			if(IsScriptOrderEarlier(rhsOrder, lhsOrder)) return false;
+
+			if(lhs.entity.GetPackedValue() != rhs.entity.GetPackedValue()){
+				return lhs.entity.GetPackedValue() < rhs.entity.GetPackedValue();
+			}
+			return lhs.name < rhs.name;
 		}
 	);
 
 	for(const Entry& entry : entries){
-		std::forward<Func>(func)(entry.script);
+		func(entry.script);
 	}
 }
