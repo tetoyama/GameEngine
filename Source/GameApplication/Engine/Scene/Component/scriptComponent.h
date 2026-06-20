@@ -7,28 +7,12 @@
 
 #include "Interface/IComponent.h"
 #include "Interface/IScriptComponent.h"
+#include "System/Script/ScriptModuleAPI.h"
 #include <backends/yaml-cpp/yaml.h>
 
-#include <cstddef>
 #include <string>
 #include <unordered_map>
 #include <utility>
-
-using ScriptDestroyFunction = void(*)(IScriptComponent*);
-using ScriptSerializeFunction = bool(*)(IScriptComponent*, char**, size_t*);
-using ScriptFreeBufferFunction = void(*)(char*);
-using ScriptDeserializeFunction = bool(*)(IScriptComponent*, const char*, size_t);
-
-struct ScriptModuleAPI {
-	ScriptDestroyFunction destroy = nullptr;
-	ScriptSerializeFunction serialize = nullptr;
-	ScriptFreeBufferFunction freeBuffer = nullptr;
-	ScriptDeserializeFunction deserialize = nullptr;
-
-	bool IsValid() const {
-		return destroy && serialize && freeBuffer && deserialize;
-	}
-};
 
 // Script DLLが生成したIScriptComponentの所有権を保持するコンポーネント。
 // 生成・破棄・状態変換は必ず同じDLL内で完結させる。
