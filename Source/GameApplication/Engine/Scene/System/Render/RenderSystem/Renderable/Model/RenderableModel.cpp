@@ -133,83 +133,83 @@ void RenderableModel::Execute(
 	for(UINT meshIndex = 0;
 		meshIndex < model->AiScene->mNumMeshes;
 		++meshIndex){
-		if(ctx.passPhase != RenderPhase::PHASE_SHADOW){
 
-			if(!textureComponent || !textureComponent->m_TextureData){
+		if(!textureComponent || !textureComponent->m_TextureData){
 
 
-				MATERIAL materialData = material;
+			MATERIAL materialData = material;
 
-				// ユーザー指定フラグのみ残す
-				materialData.MaterialFlags &=
-					MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
+			// ユーザー指定フラグのみ残す
+			materialData.MaterialFlags &=
+				MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
 
-				aiMesh* mesh =
-					model->AiScene->mMeshes[meshIndex];
+			aiMesh* mesh =
+				model->AiScene->mMeshes[meshIndex];
 
-				aiMaterial* aiMaterial =
-					model->AiScene->mMaterials[mesh->mMaterialIndex];
+			aiMaterial* aiMaterial =
+				model->AiScene->mMaterials[mesh->mMaterialIndex];
 
-				//------------------------------------------------------------------
-				// Diffuse Color
-				//------------------------------------------------------------------
+			//------------------------------------------------------------------
+			// Diffuse Color
+			//------------------------------------------------------------------
 
-				aiColor4D color;
+			aiColor4D color;
 
-				if(aiMaterial->Get(
-					AI_MATKEY_COLOR_DIFFUSE,
-					color) == AI_SUCCESS){
-					materialData.BaseColor =
-					{
-						color.r,
-						color.g,
-						color.b,
-						color.a
-					};
+			if(aiMaterial->Get(
+				AI_MATKEY_COLOR_DIFFUSE,
+				color) == AI_SUCCESS){
+				materialData.BaseColor =
+				{
+					color.r,
+					color.g,
+					color.b,
+					color.a
+				};
 
-					if(materialComponent){
-						materialData.BaseColor.x *=
-							materialComponent->Material.BaseColor.x;
+				if(materialComponent){
+					materialData.BaseColor.x *=
+						materialComponent->Material.BaseColor.x;
 
-						materialData.BaseColor.y *=
-							materialComponent->Material.BaseColor.y;
+					materialData.BaseColor.y *=
+						materialComponent->Material.BaseColor.y;
 
-						materialData.BaseColor.z *=
-							materialComponent->Material.BaseColor.z;
+					materialData.BaseColor.z *=
+						materialComponent->Material.BaseColor.z;
 
-						materialData.BaseColor.w *=
-							materialComponent->Material.BaseColor.w;
-					}
+					materialData.BaseColor.w *=
+						materialComponent->Material.BaseColor.w;
 				}
+			}
 
-				//------------------------------------------------------------------
-				// Diffuse Texture
-				//------------------------------------------------------------------
+			//------------------------------------------------------------------
+			// Diffuse Texture
+			//------------------------------------------------------------------
 
-				aiString texName;
+			aiString texName;
 
-				if(aiMaterial->GetTexture(
-					aiTextureType_DIFFUSE,
-					0,
-					&texName) == AI_SUCCESS &&
-					texName.length > 0){
-					auto it =
-						model->m_Texture.find(texName.C_Str());
+			if(aiMaterial->GetTexture(
+				aiTextureType_DIFFUSE,
+				0,
+				&texName) == AI_SUCCESS &&
+				texName.length > 0){
+				auto it =
+					model->m_Texture.find(texName.C_Str());
 
-					if(it != model->m_Texture.end()){
-						deviceContext->PSSetShaderResources(
-							TextureSlot_Albedo,
-							1,
-							&it->second);
+				if(it != model->m_Texture.end()){
+					deviceContext->PSSetShaderResources(
+						TextureSlot_Albedo,
+						1,
+						&it->second);
 
-						materialData.MaterialFlags |=
-							MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
-					}
+					materialData.MaterialFlags |=
+						MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 				}
+			}
 
-				//------------------------------------------------------------------
-				// Normal Map
-				//------------------------------------------------------------------
+			//------------------------------------------------------------------
+			// Normal Map
+			//------------------------------------------------------------------
+			if(ctx.passPhase != RenderPhase::PHASE_SHADOW){
 
 				if(aiMaterial->GetTexture(
 					aiTextureType_NORMALS,
@@ -231,20 +231,23 @@ void RenderableModel::Execute(
 				}
 
 				graphicsContext->SetMaterial(materialData);
-			} else{
-				deviceContext->PSSetShaderResources(
-					TextureSlot_Albedo,
-					1,
-					textureComponent->m_TextureData->pTexture.GetAddressOf());
+			}
+		} else{
+			deviceContext->PSSetShaderResources(
+				TextureSlot_Albedo,
+				1,
+				textureComponent->m_TextureData->pTexture.GetAddressOf());
 
-				if(model->SetTexture){
-					material.MaterialFlags |=
-						MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
-				}
+			if(model->SetTexture){
+				material.MaterialFlags |=
+					MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
+			}
+			if(ctx.passPhase != RenderPhase::PHASE_SHADOW){
 
 				graphicsContext->SetMaterial(material);
 			}
 		}
+
 		//------------------------------------------------------------------
 		// Vertex Buffer
 		//------------------------------------------------------------------

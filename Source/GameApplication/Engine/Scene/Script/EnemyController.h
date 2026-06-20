@@ -190,7 +190,7 @@ public:
 		if(state == EnemyState::PushBall &&
 		   ballController &&
 		   (ballPos - enemyPos).length() < 0.6f){
-			ballController->ApplyForce(goalDir * 5.0f);
+			ballController->ApplyForce((goalDir + Vector3(0, 0.5f, 0)) * 5.0f);
 		}
 	}
 
