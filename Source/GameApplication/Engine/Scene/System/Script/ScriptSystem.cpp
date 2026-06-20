@@ -104,6 +104,7 @@ void ScriptSystem::Initialize(){
 }
 
 void ScriptSystem::Finalize(){
+	m_commandCommitSystem.CommitNow();
 }
 
 template<typename Func>
