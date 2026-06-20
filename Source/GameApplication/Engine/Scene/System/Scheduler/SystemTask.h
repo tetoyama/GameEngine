@@ -11,6 +11,8 @@
 #include <utility>
 #include <vector>
 
+#include "System/Scheduler/SystemAccess.h"
+
 class ISystem;
 
 // 一回のSchedule実行でTaskへ渡される共通情報。
@@ -29,7 +31,7 @@ enum class SystemTaskDomain : uint8_t {
 };
 
 // PhaseはDomain内の大きな論理順序を表す。
-// Barrierではなく、将来Access競合が発生したときの依存方向に使う。
+// Barrierではなく、Access競合が発生したときの依存方向に使う。
 enum class SystemPhase : int32_t {
 	Earliest = -2000,
 	Early = -1000,
@@ -50,6 +52,8 @@ struct SystemTask {
 	std::string name;
 	SystemTaskDomain domain = SystemTaskDomain::Frame;
 	SystemTaskOrder order;
+	SystemAccess access;
+	ThreadAffinity threadAffinity = ThreadAffinity::MainThread;
 	std::function<void(const SystemTaskContext&)> execute;
 };
 
@@ -68,6 +72,8 @@ public:
 		, m_tasks(tasks) {
 	}
 
+	// 詳細Access未移行の既存System向け。
+	// MainThread / WorldExclusiveとして安全側に登録する。
 	void AddTask(
 		std::string name,
 		SystemTaskDomain domain,
@@ -78,6 +84,8 @@ public:
 			domain,
 			SystemPhase::Default,
 			0,
+			SystemAccess::LegacyExclusive(),
+			ThreadAffinity::MainThread,
 			std::move(execute)
 		);
 	}
@@ -89,6 +97,26 @@ public:
 		int32_t priority,
 		std::function<void(const SystemTaskContext&)> execute
 	) {
+		AddTask(
+			std::move(name),
+			domain,
+			phase,
+			priority,
+			SystemAccess::LegacyExclusive(),
+			ThreadAffinity::MainThread,
+			std::move(execute)
+		);
+	}
+
+	void AddTask(
+		std::string name,
+		SystemTaskDomain domain,
+		SystemPhase phase,
+		int32_t priority,
+		SystemAccess access,
+		ThreadAffinity threadAffinity,
+		std::function<void(const SystemTaskContext&)> execute
+	) {
 		SystemTask task;
 		task.owner = m_owner;
 		task.name = std::move(name);
@@ -98,6 +126,8 @@ public:
 		task.order.registrationOrder =
 			(m_systemRegistrationOrder << 32) |
 			static_cast<uint64_t>(m_localTaskOrder++);
+		task.access = std::move(access);
+		task.threadAffinity = threadAffinity;
 		task.execute = std::move(execute);
 		m_tasks.emplace_back(std::move(task));
 	}
