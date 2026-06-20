@@ -17,6 +17,21 @@
 #include <string>
 #include <vector>
 
+namespace {
+	void CommitSceneCommands(SceneManagerContext* managerContext){
+		if(!managerContext || !managerContext->sceneManager) return;
+
+		for(auto& [sceneName, scene] : managerContext->sceneManager->GetActiveScenes()){
+			if(!scene) continue;
+
+			SceneContext* context = scene->GetSceneContext();
+			if(context && context->commands){
+				context->commands->Commit(*context);
+			}
+		}
+	}
+}
+
 void CustomScriptSystem::ForEachScriptOrdered(
 	SystemTaskDomain domain,
 	const std::function<void(CustomScriptComponent*)>& callback
@@ -93,6 +108,8 @@ void CustomScriptSystem::Finalize(){
 			script->Stop();
 		}
 	);
+
+	CommitSceneCommands(m_context);
 }
 
 void CustomScriptSystem::Start(){
@@ -105,6 +122,8 @@ void CustomScriptSystem::Start(){
 			script->Start();
 		}
 	);
+
+	CommitSceneCommands(m_context);
 }
 
 void CustomScriptSystem::Update(float deltaTime){
