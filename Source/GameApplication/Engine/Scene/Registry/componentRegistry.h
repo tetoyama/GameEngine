@@ -61,6 +61,14 @@ public:
 			AddComponent<T>(e);
 		};
 
+		const std::string runtimeTypeName = typeid(T).name();
+		m_addDefaultComponentByRuntimeTypeName[runtimeTypeName] = [this](Entity e){
+			AddComponent<T>(e);
+		};
+		m_removeComponentByRuntimeTypeName[runtimeTypeName] = [this](Entity e){
+			RemoveComponent<T>(e);
+		};
+
 		ComponentTypeID typeID = ComponentType::Get<T>();
 
 		m_nameToComponentID[name] = typeID;
@@ -240,6 +248,28 @@ public:
 		return components;
 	}
 
+	bool AddDefaultComponentByRuntimeTypeName(
+		Entity entity,
+		const std::string& runtimeTypeName
+	){
+		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return false;
+		auto it = m_addDefaultComponentByRuntimeTypeName.find(runtimeTypeName);
+		if(it == m_addDefaultComponentByRuntimeTypeName.end()) return false;
+		it->second(entity);
+		return true;
+	}
+
+	bool RemoveComponentByRuntimeTypeName(
+		Entity entity,
+		const std::string& runtimeTypeName
+	){
+		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return false;
+		auto it = m_removeComponentByRuntimeTypeName.find(runtimeTypeName);
+		if(it == m_removeComponentByRuntimeTypeName.end()) return false;
+		it->second(entity);
+		return true;
+	}
+
 	const std::unordered_map<std::string, std::function<void(Entity)>>& GetAddableComponentList() const{
 		return m_addComponentFuncs;
 	}
@@ -280,6 +310,8 @@ private:
 
 	std::unordered_map<std::string, YAMLCreator> m_yamlFactory;
 	std::unordered_map<std::string, std::function<void(Entity)>> m_addComponentFuncs;
+	std::unordered_map<std::string, std::function<void(Entity)>> m_addDefaultComponentByRuntimeTypeName;
+	std::unordered_map<std::string, std::function<void(Entity)>> m_removeComponentByRuntimeTypeName;
 	std::unordered_map<std::string, ComponentTypeID> m_nameToComponentID;
 	std::unordered_map<ComponentTypeID, std::string> m_componentIDToName;
 
