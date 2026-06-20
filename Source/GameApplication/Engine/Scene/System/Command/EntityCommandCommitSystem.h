@@ -45,6 +45,13 @@ public:
 		}
 
 		sceneContext->commands = buffer.get();
+		sceneContext->scriptCommands = {
+			sceneContext,
+			&QueueCreateEntityFromScript,
+			&QueueDestroyEntityFromScript,
+			&QueueAddDefaultComponentFromScript,
+			&QueueRemoveComponentFromScript
+		};
 		return buffer.get();
 	}
 
@@ -57,6 +64,84 @@ public:
 	}
 
 private:
+	static SceneContext* ResolveScriptContext(void* owner) {
+		return static_cast<SceneContext*>(owner);
+	}
+
+	static EntityCommandBuffer* ResolveScriptBuffer(void* owner) {
+		SceneContext* context = ResolveScriptContext(owner);
+		return context ? context->commands : nullptr;
+	}
+
+	static CommandEntity QueueCreateEntityFromScript(void* owner) {
+		EntityCommandBuffer* buffer = ResolveScriptBuffer(owner);
+		return buffer ? buffer->CreateEntity() : CommandEntity{};
+	}
+
+	static bool QueueDestroyEntityFromScript(
+		void* owner,
+		CommandEntity target
+	) {
+		EntityCommandBuffer* buffer = ResolveScriptBuffer(owner);
+		if(!buffer || (!target.IsExisting() && !target.IsPending())) return false;
+
+		buffer->DestroyEntity(target);
+		return true;
+	}
+
+	static bool QueueAddDefaultComponentFromScript(
+		void* owner,
+		CommandEntity target,
+		const char* runtimeTypeName
+	) {
+		EntityCommandBuffer* buffer = ResolveScriptBuffer(owner);
+		if(!buffer || !runtimeTypeName || runtimeTypeName[0] == '\0') return false;
+		if(!target.IsExisting() && !target.IsPending()) return false;
+
+		// DLL所有文字列をCommitまで保持せず、Engine側で即座にコピーする。
+		std::string copiedTypeName(runtimeTypeName);
+		buffer->Execute(
+			target,
+			[copiedTypeName = std::move(copiedTypeName)](
+				Entity entity,
+				SceneContext& context
+			) {
+				if(!context.component) return;
+				context.component->AddDefaultComponentByRuntimeTypeName(
+					entity,
+					copiedTypeName
+				);
+			}
+		);
+		return true;
+	}
+
+	static bool QueueRemoveComponentFromScript(
+		void* owner,
+		CommandEntity target,
+		const char* runtimeTypeName
+	) {
+		EntityCommandBuffer* buffer = ResolveScriptBuffer(owner);
+		if(!buffer || !runtimeTypeName || runtimeTypeName[0] == '\0') return false;
+		if(!target.IsExisting() && !target.IsPending()) return false;
+
+		std::string copiedTypeName(runtimeTypeName);
+		buffer->Execute(
+			target,
+			[copiedTypeName = std::move(copiedTypeName)](
+				Entity entity,
+				SceneContext& context
+			) {
+				if(!context.component) return;
+				context.component->RemoveComponentByRuntimeTypeName(
+					entity,
+					copiedTypeName
+				);
+			}
+		);
+		return true;
+	}
+
 	void RegisterDomainTasks(
 		SystemScheduleBuilder& builder,
 		SystemTaskDomain domain,
