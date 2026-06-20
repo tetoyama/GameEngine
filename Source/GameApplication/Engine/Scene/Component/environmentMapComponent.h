@@ -10,21 +10,24 @@
 // EnvironmentMapComponent
 // このコンポーネントを持つエンティティの TextureComponent テクスチャを
 // 環境マップ（PBRメタリック反射）として使用する
-class EnvironmentMapComponent : public IComponent {
+class EnvironmentMapComponent {
 public:
-	YAML::Node encode() override {
+	YAML::Node encode(){
 		YAML::Node node;
 		node["enabled"] = enabled;
 		return node;
 	}
 
-	bool decode(SceneContext* context, const YAML::Node& node) override {
-		if (node["enabled"])
+	bool decode(SceneContext* context, const YAML::Node& node){
+		(void)context;
+		if(node["enabled"]){
 			enabled = node["enabled"].as<bool>();
+		}
 		return true;
 	}
 
-	void inspector(SceneContext* context) override {
+	void inspector(SceneContext* context){
+		(void)context;
 		ImGui::Checkbox("Enabled", &enabled);
 		ImGui::TextDisabled("TextureComponent のテクスチャが環境マップとして使われます");
 	}
