@@ -6,8 +6,117 @@
 #include "Scene/Component/CustomScriptComponent.h"
 #include "Scene/Component/transformComponent.h"
 #include "Scene/Registry/componentRegistry.h"
+#include "System/Physic/PhysicsRuntimeReleaseBridge.h"
+
+namespace PhysicSystemTaskDetail {
+
+template<typename T>
+inline void ReleaseRef(T*& resource){
+	if(!resource) return;
+	resource->release();
+	resource = nullptr;
+}
+
+inline void ReleaseActor(physx::PxRigidActor*& actor){
+	if(!actor) return;
+	if(actor->userData){
+		delete static_cast<ActorEntityInfo*>(actor->userData);
+		actor->userData = nullptr;
+	}
+	actor->release();
+	actor = nullptr;
+}
+
+inline void ReleaseShapeRuntime(
+	ColliderComponent* collider,
+	size_t shapeIndex
+){
+	if(!collider || shapeIndex >= collider->colliders.size()) return;
+
+	ColliderShape& shapeRuntime = collider->colliders[shapeIndex];
+	physx::PxRigidActor* actor = collider->pRigidbodyDynamic
+		? static_cast<physx::PxRigidActor*>(collider->pRigidbodyDynamic)
+		: static_cast<physx::PxRigidActor*>(collider->pRigidbodyStatic);
+
+	if(actor && shapeRuntime.pxShape){
+		actor->detachShape(*shapeRuntime.pxShape);
+	}
+	shapeRuntime.pxShape = nullptr;
+
+	ReleaseRef(shapeRuntime.pxMaterial);
+	ReleaseRef(shapeRuntime.pxHeightField);
+	ReleaseRef(shapeRuntime.pxTriangleMesh);
+	ReleaseRef(shapeRuntime.pxConvexMesh);
+}
+
+inline void ReleaseEntityRuntime(ColliderComponent* collider){
+	if(!collider) return;
+
+	physx::PxRigidActor* dynamicActor = collider->pRigidbodyDynamic;
+	physx::PxRigidActor* staticActor = collider->pRigidbodyStatic;
+	ReleaseActor(dynamicActor);
+	ReleaseActor(staticActor);
+	collider->pRigidbodyDynamic = nullptr;
+	collider->pRigidbodyStatic = nullptr;
+
+	// Actor release後にExclusive Shapeが保持していた参照が外れるため、
+	// Collider生成時に得たMaterial / Mesh参照を安全に解放できる。
+	for(ColliderShape& shapeRuntime : collider->colliders){
+		shapeRuntime.pxShape = nullptr;
+		ReleaseRef(shapeRuntime.pxMaterial);
+		ReleaseRef(shapeRuntime.pxHeightField);
+		ReleaseRef(shapeRuntime.pxTriangleMesh);
+		ReleaseRef(shapeRuntime.pxConvexMesh);
+	}
+}
+
+inline void ReleaseRuntime(
+	ColliderComponent* collider,
+	PhysicsRuntimeReleaseType releaseType,
+	size_t shapeIndex
+){
+	if(releaseType == PhysicsRuntimeReleaseType::Shape){
+		ReleaseShapeRuntime(collider, shapeIndex);
+		return;
+	}
+	ReleaseEntityRuntime(collider);
+}
+
+class CollisionDispatchScope {
+public:
+	explicit CollisionDispatchScope(PhysicSystem* owner)
+		: m_owner(owner){
+		ScriptCollisionDispatchBridge::Install(
+			owner,
+			[](void* rawOwner,
+			   CustomScriptComponent* script,
+			   ScriptCollisionEventType eventType,
+			   const HitInfo& hit) -> bool {
+				return static_cast<PhysicSystem*>(rawOwner)
+					->QueueScriptCollisionEvent(script, eventType, hit);
+			}
+		);
+	}
+
+	~CollisionDispatchScope(){
+		ScriptCollisionDispatchBridge::Remove(m_owner);
+	}
+
+	CollisionDispatchScope(const CollisionDispatchScope&) = delete;
+	CollisionDispatchScope& operator=(const CollisionDispatchScope&) = delete;
+
+private:
+	PhysicSystem* m_owner = nullptr;
+};
+
+} // namespace PhysicSystemTaskDetail
 
 inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
+	// Component破棄やInspector操作からのreleaseをPhysX側へ集約する。
+	PhysicsRuntimeReleaseBridge::Install(
+		&PhysicSystemTaskDetail::ReleaseRuntime
+	);
+
 	SystemAccess uploadAccess;
 	uploadAccess
 		.ReadComponent<TransformComponent>()
@@ -124,25 +233,12 @@ inline void PhysicSystem::PhysicsFetch(){
 		return;
 	}
 
-	ScriptCollisionDispatchBridge::Install(
-		this,
-		[](void* owner,
-		   CustomScriptComponent* script,
-		   ScriptCollisionEventType eventType,
-		   const HitInfo& hit) -> bool {
-			return static_cast<PhysicSystem*>(owner)->QueueScriptCollisionEvent(
-				script,
-				eventType,
-				hit
-			);
-		}
-	);
+	PhysicSystemTaskDetail::CollisionDispatchScope dispatchScope(this);
 
 	g_pScene->lockRead();
 	g_pScene->fetchResults(true);
 	g_pScene->unlockRead();
 
-	ScriptCollisionDispatchBridge::Remove(this);
 	m_simulationInFlight.store(false, std::memory_order_release);
 }
 
