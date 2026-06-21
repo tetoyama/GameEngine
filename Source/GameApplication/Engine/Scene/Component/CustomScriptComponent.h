@@ -10,7 +10,7 @@
 #include "DebugTools/ImGuiSystem.h"
 #include "../System/Script/ScriptExecution.h"
 #include "../Command/EntityCommandBuffer.h"
-#include "../System/Physic/ScriptCollisionDispatchBridge.h"
+#include "../System/Physic/ScriptCollisionEvent.h"
 
 #include <atomic>
 #include <cstdint>
@@ -85,53 +85,47 @@ public:
 		}
 	}
 
+	void SetCollisionDispatcher(
+		void* owner,
+		ScriptCollisionDispatch dispatcher
+	) noexcept {
+		m_collisionDispatchOwner = owner;
+		m_collisionDispatch = dispatcher;
+	}
+
+	void ClearCollisionDispatcher(void* owner = nullptr) noexcept {
+		if(owner && owner != m_collisionDispatchOwner) return;
+		m_collisionDispatchOwner = nullptr;
+		m_collisionDispatch = nullptr;
+	}
+
 	void CollisionEnter(const HitInfo& hit){
 		if(!isInitialized) return;
-		if(ScriptCollisionDispatchBridge::TryDispatch(
-			this,
-			ScriptCollisionEventType::CollisionEnter,
-			hit
-		)) return;
+		if(TryDispatchCollision(ScriptCollisionEventType::CollisionEnter, hit)) return;
 		OnCollisionEnter(hit);
 	}
 
 	void CollisionStay(const HitInfo& hit){
 		if(!isInitialized) return;
-		if(ScriptCollisionDispatchBridge::TryDispatch(
-			this,
-			ScriptCollisionEventType::CollisionStay,
-			hit
-		)) return;
+		if(TryDispatchCollision(ScriptCollisionEventType::CollisionStay, hit)) return;
 		OnCollisionStay(hit);
 	}
 
 	void CollisionExit(const HitInfo& hit){
 		if(!isInitialized) return;
-		if(ScriptCollisionDispatchBridge::TryDispatch(
-			this,
-			ScriptCollisionEventType::CollisionExit,
-			hit
-		)) return;
+		if(TryDispatchCollision(ScriptCollisionEventType::CollisionExit, hit)) return;
 		OnCollisionExit(hit);
 	}
 
 	void TriggerEnter(const HitInfo& hit){
 		if(!isInitialized) return;
-		if(ScriptCollisionDispatchBridge::TryDispatch(
-			this,
-			ScriptCollisionEventType::TriggerEnter,
-			hit
-		)) return;
+		if(TryDispatchCollision(ScriptCollisionEventType::TriggerEnter, hit)) return;
 		OnTriggerEnter(hit);
 	}
 
 	void TriggerExit(const HitInfo& hit){
 		if(!isInitialized) return;
-		if(ScriptCollisionDispatchBridge::TryDispatch(
-			this,
-			ScriptCollisionEventType::TriggerExit,
-			hit
-		)) return;
+		if(TryDispatchCollision(ScriptCollisionEventType::TriggerExit, hit)) return;
 		OnTriggerExit(hit);
 	}
 
@@ -324,5 +318,19 @@ protected:
 	EntityRef m_ref;
 
 private:
+	bool TryDispatchCollision(
+		ScriptCollisionEventType eventType,
+		const HitInfo& hit
+	){
+		return m_collisionDispatch && m_collisionDispatch(
+			m_collisionDispatchOwner,
+			this,
+			eventType,
+			hit
+		);
+	}
+
+	void* m_collisionDispatchOwner = nullptr;
+	ScriptCollisionDispatch m_collisionDispatch = nullptr;
 	inline static std::atomic<uint64_t> s_nextRegistrationOrder{1};
 };
