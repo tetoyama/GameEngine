@@ -8,7 +8,8 @@
 #include "Interface/ISystem.h"
 #include "Backends/PhysX/PxPhysicsAPI.h"
 #include "Scene/Entity/Entity.h"
-#include "System/Physic/ScriptCollisionDispatchBridge.h"
+#include "System/Physic/HitInfo.h"
+#include "System/Physic/ScriptCollisionEvent.h"
 
 #include <atomic>
 #include <cstring>
