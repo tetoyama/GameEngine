@@ -6,4 +6,5 @@
 #include "D3D11RHITextureRuntime.h"
 #include "D3D11RHIShaderRuntime.h"
 #include "D3D11RHIPipelineRuntime.h"
+#include "D3D11RHIBarrierRuntime.h"
 #include "D3D11RHICommandRuntime.h"
