@@ -13,11 +13,13 @@
 #include "Backends/myVector3.h"
 #include "Registry/componentRegistry.h"
 #include "2DspriteRendererComponent.h"
+#include "Operations/TransformRotationMath.h"
 
 // Entityのローカル変換と階層参照を保持するComponent。
 //
+// Quaternionを実際の回転値とし、rotationEulerはInspectorと軸単位操作のための
+// 連続した表示キャッシュとして保持する。
 // YAML、Inspector、階層行列、UI Rect変換の実装はOperations配下へ分離する。
-// 既存呼び出し元との互換性のため、移行期間中は薄いメンバー関数を残す。
 class TransformComponent {
 private:
 	Vector3 rotationEuler = Vector3(0.0f, 0.0f, 0.0f);
@@ -37,87 +39,81 @@ public:
 	}
 
 	void SetRotationX(float value){
-		Vector3 euler = GetRotationEuler();
+		Vector3 euler = rotationEuler;
 		euler.x = value;
 		SetRotationEuler(euler);
 	}
 
 	void SetRotationY(float value){
-		Vector3 euler = GetRotationEuler();
+		Vector3 euler = rotationEuler;
 		euler.y = value;
 		SetRotationEuler(euler);
 	}
 
 	void SetRotationZ(float value){
-		Vector3 euler = GetRotationEuler();
+		Vector3 euler = rotationEuler;
 		euler.z = value;
 		SetRotationEuler(euler);
 	}
 
 	void AddRotationX(float value){
-		Vector3 euler = GetRotationEuler();
+		Vector3 euler = rotationEuler;
 		euler.x += value;
 		SetRotationEuler(euler);
 	}
 
 	void AddRotationY(float value){
-		Vector3 euler = GetRotationEuler();
+		Vector3 euler = rotationEuler;
 		euler.y += value;
 		SetRotationEuler(euler);
 	}
 
 	void AddRotationZ(float value){
-		Vector3 euler = GetRotationEuler();
+		Vector3 euler = rotationEuler;
 		euler.z += value;
 		SetRotationEuler(euler);
 	}
 
+	// Eulerは内部ではラジアン。X=Pitch、Y=Yaw、Z=Roll。
 	void SetRotationEuler(const Vector3& euler){
 		rotationEuler = euler;
 
-		const DirectX::XMVECTOR quaternion =
-			DirectX::XMQuaternionRotationRollPitchYaw(
-				euler.x,
-				euler.y,
-				euler.z
-			);
-		DirectX::XMStoreFloat4(&rotation, quaternion);
+		rotation = TransformRotationMath::QuaternionFromEuler(
+			DirectX::XMFLOAT3(euler.x, euler.y, euler.z)
+		);
 	}
 
-	void SetRotation(const DirectX::XMFLOAT4 quaternion){
-		rotation = quaternion;
-		rotationEuler = GetRotationEuler();
+	// 外部Quaternionを設定する。
+	// 同じ回転を表すQuaternionが再入力された場合はEulerキャッシュを維持し、
+	// PhysicsDownloadなどによる毎Tickの再分解でInspector値が跳ねるのを防ぐ。
+	void SetRotation(const DirectX::XMFLOAT4& quaternion){
+		const DirectX::XMFLOAT4 aligned =
+			TransformRotationMath::AlignHemisphere(quaternion, rotation);
+		const bool sameRotation =
+			TransformRotationMath::Equivalent(rotation, aligned);
+
+		rotation = aligned;
+		if(sameRotation){
+			return;
+		}
+
+		const DirectX::XMFLOAT3 reference(
+			rotationEuler.x,
+			rotationEuler.y,
+			rotationEuler.z
+		);
+		const DirectX::XMFLOAT3 converted =
+			TransformRotationMath::EulerFromQuaternion(rotation, reference);
+		rotationEuler = Vector3(converted.x, converted.y, converted.z);
 	}
 
 	const DirectX::XMFLOAT4& GetRotation() const {
 		return rotation;
 	}
 
+	// Inspectorと軸単位操作では、Quaternionから毎回再計算せず連続キャッシュを返す。
 	Vector3 GetRotationEuler() const {
-		DirectX::XMFLOAT4 quaternion{};
-		DirectX::XMStoreFloat4(&quaternion, rotationVector());
-
-		const float ySquared = quaternion.y * quaternion.y;
-
-		const float t0 =
-			2.0f * (quaternion.w * quaternion.x + quaternion.y * quaternion.z);
-		const float t1 =
-			1.0f - 2.0f * (quaternion.x * quaternion.x + ySquared);
-		const float roll = atan2f(t0, t1);
-
-		float t2 =
-			2.0f * (quaternion.w * quaternion.y - quaternion.z * quaternion.x);
-		if(t2 > 1.0f) t2 = 1.0f;
-		if(t2 < -1.0f) t2 = -1.0f;
-		const float pitch = asinf(t2);
-
-		const float t3 =
-			2.0f * (quaternion.w * quaternion.z + quaternion.x * quaternion.y);
-		const float t4 =
-			1.0f - 2.0f * (ySquared + quaternion.z * quaternion.z);
-		const float yaw = atan2f(t3, t4);
-
-		return Vector3(roll, pitch, yaw);
+		return rotationEuler;
 	}
 
 	Vector3 front() const {
