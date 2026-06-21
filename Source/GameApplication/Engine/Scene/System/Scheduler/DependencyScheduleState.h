@@ -7,6 +7,7 @@
 
 #include "System/Job/JobSystem.h"
 #include "System/Scheduler/SystemScheduleCompiler.h"
+#include "System/Scheduler/SystemScheduleProfiler.h"
 
 #include <condition_variable>
 #include <exception>
@@ -21,12 +22,14 @@ struct DependencyScheduleState {
 		const CompiledSystemSchedule& compiled,
 		std::vector<SystemTask>& taskList,
 		JobSystem& jobSystem,
-		const SystemTaskContext& taskContext
+		const SystemTaskContext& taskContext,
+		std::shared_ptr<SystemScheduleProfileSession> profilerSession
 	)
 		: schedule(&compiled),
 		  tasks(&taskList),
 		  jobs(&jobSystem),
 		  context(taskContext),
+		  profileSession(std::move(profilerSession)),
 		  unresolved(compiled.nodes.size(), 0),
 		  remaining(compiled.nodes.size()) {
 	}
@@ -35,6 +38,7 @@ struct DependencyScheduleState {
 	std::vector<SystemTask>* tasks = nullptr;
 	JobSystem* jobs = nullptr;
 	SystemTaskContext context;
+	std::shared_ptr<SystemScheduleProfileSession> profileSession;
 
 	std::mutex mutex;
 	std::condition_variable condition;
