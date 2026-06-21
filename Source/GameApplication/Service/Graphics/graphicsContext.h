@@ -12,10 +12,8 @@
 #include <string>
 #include <vector>
 #include <fstream>
-#include <memory>
 
 #include "Service/IService.h"
-#include "Service/Graphics/RHI/RHIBackend.h"
 #include "Shader/Common.hlsl"
 
 #include "Backends/Effekseer/Effekseer.h"
@@ -23,7 +21,6 @@
 
 class RenderEffectSystem;
 class DebugLogService;
-struct EngineGraphicsConfig;
 
 enum class BlendMode
 {
@@ -89,8 +86,6 @@ enum class PostProcessBufferID {
 	BufferB
 };
 
-// RHI Backendと、移行期間中のDirect3D 11 Legacy Renderer Resourceを管理する。
-// Device / SwapChain生成はRHI Backendへ委譲し、既存描画コードにはNative D3D11 Objectを橋渡しする。
 class GraphicsContext : public IService {
 public:
 	explicit GraphicsContext(DebugLogService* debugLog = nullptr)
@@ -98,20 +93,10 @@ public:
 	{}
 
 	bool Initialize(HWND hwnd, UINT width, UINT height);
-	bool Initialize(
-		HWND hwnd,
-		UINT width,
-		UINT height,
-		const EngineGraphicsConfig& graphicsConfig
-	);
-
 	void Shutdown() override;
 
 	void Clear(const float clearColor[4]);
 	void Present(bool vsync);
-
-	RHI::BackendType GetBackendType() const noexcept { return m_SelectedBackend; }
-	RHI::IRHIDevice* GetRHIDevice() const noexcept { return m_RHIDevice.get(); }
 
 	ID3D11Device* GetDevice() const{return m_Device.Get();}
 	ID3D11DeviceContext* GetDeviceContext() const{return m_DeviceContext.Get();}
@@ -187,12 +172,7 @@ public:
 	ID3D11RenderTargetView** m_CurrentRTV = nullptr;
 
 private:
-	bool CreateDeviceAndSwapChain(
-		HWND hwnd,
-		UINT width,
-		UINT height,
-		const EngineGraphicsConfig& graphicsConfig
-	);
+	bool CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT height);
 	bool CreateDepthStencilState();
 	bool CreateSamplerState();
 	bool CreateConstantBuffers();
@@ -206,10 +186,6 @@ private:
 	bool CreateBuffer(UINT width, UINT height);
 	bool CreateEffectSystem();
 	bool ReadFileToBuffer(const char* fileName, std::vector<char>& buffer);
-
-	std::unique_ptr<RHI::IRHIBackend> m_RHIBackend;
-	std::unique_ptr<RHI::IRHIDevice> m_RHIDevice;
-	RHI::BackendType m_SelectedBackend = RHI::BackendType::Direct3D11;
 
 	Microsoft::WRL::ComPtr<ID3D11Device> m_Device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_DeviceContext;
