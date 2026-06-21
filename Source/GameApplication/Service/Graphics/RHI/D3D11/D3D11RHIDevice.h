@@ -4,7 +4,7 @@
 #pragma once
 
 #include <chrono>
-#include <condition_variable>
+#include <deque>
 #include <memory>
 #include <mutex>
 
@@ -70,10 +70,22 @@ private:
 	bool m_renderPassActive = false;
 };
 
+struct D3D11FenceSignal {
+	uint64_t value = 0;
+	Microsoft::WRL::ComPtr<ID3D11Query> query;
+};
+
+// D3D11には公開Timeline Fenceがないため、EVENT Query列でQueue完了値を模擬する。
+// Flush完了ではなく、GPUがQueryへ到達した時点でcompletedValueを進める。
 struct D3D11FenceState {
 	std::mutex mutex;
-	std::condition_variable condition;
 	uint64_t completedValue = 0;
+	uint64_t lastSignaledValue = 0;
+	std::deque<D3D11FenceSignal> pendingSignals;
+	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
+
+	uint64_t PollCompletedValue();
+	bool Wait(uint64_t value, uint64_t timeoutNanoseconds);
 };
 
 class D3D11RHIFence final : public IRHIFence {
@@ -90,21 +102,29 @@ private:
 	std::shared_ptr<D3D11FenceState> m_state;
 };
 
+// D3D11はNative Queueを一つしか持たない。
+// Graphics / Compute / Copyは論理Queueとして公開し、すべてImmediate Contextへ直列化する。
 class D3D11RHICommandQueue final : public IRHICommandQueue {
 public:
 	D3D11RHICommandQueue() = default;
-	explicit D3D11RHICommandQueue(D3D11RHIDevice* owner)
-		: m_owner(owner){}
+	D3D11RHICommandQueue(
+		D3D11RHIDevice* owner,
+		CommandQueueType type
+	)
+		: m_owner(owner)
+		, m_type(type){}
 
-	void Attach(D3D11RHIDevice* owner){ m_owner = owner; }
-	CommandQueueType GetType() const noexcept override {
-		return CommandQueueType::Graphics;
+	void Attach(D3D11RHIDevice* owner, CommandQueueType type){
+		m_owner = owner;
+		m_type = type;
 	}
+	CommandQueueType GetType() const noexcept override { return m_type; }
 	bool Submit(const QueueSubmitDesc& desc) override;
 	void WaitIdle() override;
 
 private:
 	D3D11RHIDevice* m_owner = nullptr;
+	CommandQueueType m_type = CommandQueueType::Graphics;
 };
 
 class D3D11RHIDevice final : public IRHIDevice {
@@ -164,12 +184,16 @@ private:
 	const D3D11ShaderResource* Find(ShaderHandle handle) const { return m_shaders.TryGet(handle); }
 	const D3D11PipelineStateResource* Find(PipelineStateHandle handle) const { return m_pipelines.TryGet(handle); }
 	std::shared_ptr<D3D11FenceState> FindFence(FenceHandle handle) const;
+	bool SignalFence(const std::shared_ptr<D3D11FenceState>& state, uint64_t value);
+	bool WaitForImmediateContext();
 
 	Microsoft::WRL::ComPtr<ID3D11Device> m_device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_context;
 	DeviceCapabilities m_capabilities;
 	D3D11RHISwapChain m_swapChain;
 	D3D11RHICommandQueue m_graphicsQueue;
+	D3D11RHICommandQueue m_computeQueue;
+	D3D11RHICommandQueue m_copyQueue;
 	ResourcePool<BufferHandle, D3D11BufferResource> m_buffers;
 	ResourcePool<TextureHandle, D3D11TextureResource> m_textures;
 	ResourcePool<ShaderHandle, D3D11ShaderResource> m_shaders;
