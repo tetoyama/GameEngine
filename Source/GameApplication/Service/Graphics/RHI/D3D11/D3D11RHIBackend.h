@@ -41,7 +41,6 @@ public:
 
 	std::vector<AdapterInfo> EnumerateAdapters() const override {
 		std::vector<AdapterInfo> result;
-
 		Microsoft::WRL::ComPtr<IDXGIFactory1> factory;
 		if(FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&factory)))){
 			return result;
@@ -65,7 +64,6 @@ public:
 			info.software = (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0;
 			result.push_back(std::move(info));
 		}
-
 		return result;
 	}
 
@@ -83,8 +81,7 @@ public:
 		}
 
 		Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
-		if(FAILED(factory->EnumAdapters1(desc.adapterIndex, &adapter)) ||
-			!adapter){
+		if(FAILED(factory->EnumAdapters1(desc.adapterIndex, &adapter)) || !adapter){
 			return nullptr;
 		}
 
@@ -141,6 +138,9 @@ public:
 			D3D_FEATURE_LEVEL_10_1,
 			D3D_FEATURE_LEVEL_10_0,
 		};
+		constexpr UINT featureLevelCount = static_cast<UINT>(
+			sizeof(featureLevels) / sizeof(featureLevels[0])
+		);
 
 		Microsoft::WRL::ComPtr<ID3D11Device> device;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
@@ -153,7 +153,7 @@ public:
 			nullptr,
 			creationFlags,
 			featureLevels,
-			static_cast<UINT>(std::size(featureLevels)),
+			featureLevelCount,
 			D3D11_SDK_VERSION,
 			&nativeSwapChain,
 			&swapChain,
@@ -170,7 +170,7 @@ public:
 				nullptr,
 				creationFlags,
 				featureLevels,
-				static_cast<UINT>(std::size(featureLevels)),
+				featureLevelCount,
 				D3D11_SDK_VERSION,
 				&nativeSwapChain,
 				&swapChain,
@@ -199,7 +199,7 @@ private:
 	static std::string WideToUtf8(const wchar_t* text){
 		if(!text || *text == L'\0') return {};
 
-		const int size = WideCharToMultiByte(
+		const int sizeWithTerminator = WideCharToMultiByte(
 			CP_UTF8,
 			0,
 			text,
@@ -209,19 +209,24 @@ private:
 			nullptr,
 			nullptr
 		);
-		if(size <= 1) return {};
+		if(sizeWithTerminator <= 1) return {};
 
-		std::string result(static_cast<size_t>(size - 1), '\0');
-		WideCharToMultiByte(
+		std::string result(
+			static_cast<size_t>(sizeWithTerminator),
+			'\0'
+		);
+		const int written = WideCharToMultiByte(
 			CP_UTF8,
 			0,
 			text,
 			-1,
 			result.data(),
-			size,
+			sizeWithTerminator,
 			nullptr,
 			nullptr
 		);
+		if(written <= 1) return {};
+		result.resize(static_cast<size_t>(written - 1));
 		return result;
 	}
 };
