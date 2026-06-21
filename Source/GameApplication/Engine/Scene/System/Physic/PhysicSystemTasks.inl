@@ -106,6 +106,8 @@ inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
 		&PhysicSystemTaskDetail::ReleaseRuntime
 	);
 
+	// Gameplay ScriptのFixedUpdateで設定した速度・姿勢を同Tickのsimulateへ渡すため、
+	// PhysX Pipeline全体をLate Phaseへ配置する。
 	SystemAccess uploadAccess;
 	uploadAccess
 		.ReadComponent<TransformComponent>()
@@ -115,7 +117,7 @@ inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	builder.AddTask(
 		"PhysicSystem.PhysicsUpload",
 		SystemTaskDomain::Fixed,
-		SystemPhase::Default,
+		SystemPhase::Late,
 		0,
 		std::move(uploadAccess),
 		ThreadAffinity::MainThread,
@@ -129,7 +131,7 @@ inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	builder.AddTask(
 		"PhysicSystem.PhysicsBegin",
 		SystemTaskDomain::Fixed,
-		SystemPhase::Default,
+		SystemPhase::Late,
 		10,
 		std::move(beginAccess),
 		ThreadAffinity::AnyWorker,
@@ -145,7 +147,7 @@ inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	builder.AddTask(
 		"PhysicSystem.PhysicsFetch",
 		SystemTaskDomain::Fixed,
-		SystemPhase::Default,
+		SystemPhase::Late,
 		20,
 		std::move(fetchAccess),
 		ThreadAffinity::AnyWorker,
@@ -162,7 +164,7 @@ inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	builder.AddTask(
 		"PhysicSystem.PhysicsDownload",
 		SystemTaskDomain::Fixed,
-		SystemPhase::Default,
+		SystemPhase::Late,
 		30,
 		std::move(downloadAccess),
 		ThreadAffinity::MainThread,
@@ -178,7 +180,7 @@ inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	builder.AddTask(
 		"PhysicSystem.CollisionEventDispatch",
 		SystemTaskDomain::Fixed,
-		SystemPhase::Default,
+		SystemPhase::Late,
 		40,
 		std::move(dispatchAccess),
 		ThreadAffinity::MainThread,
