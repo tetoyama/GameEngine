@@ -9,18 +9,21 @@ namespace RHI {
 
 inline void D3D11RHICommandList::Begin(){
 	m_recording = m_owner && m_owner->m_context;
+	m_closed = false;
 	m_renderPassActive = false;
 }
 
 inline void D3D11RHICommandList::End(){
 	if(m_renderPassActive) EndRenderPass();
 	m_recording = false;
+	m_closed = true;
 }
 
 inline bool D3D11RHICommandList::BeginRenderPass(
 	const RenderPassDesc& desc
 ){
-	if(!m_owner || !m_owner->m_context || desc.colorAttachments.size() > 8){
+	if(!m_recording || !m_owner || !m_owner->m_context ||
+		desc.colorAttachments.size() > 8){
 		return false;
 	}
 	if(m_renderPassActive) EndRenderPass();
@@ -82,7 +85,7 @@ inline void D3D11RHICommandList::EndRenderPass(){
 inline bool D3D11RHICommandList::SetPipelineState(
 	PipelineStateHandle pipeline
 ){
-	if(!m_owner || !m_owner->m_context) return false;
+	if(!m_recording || !m_owner || !m_owner->m_context) return false;
 	D3D11PipelineStateResource* state = m_owner->Find(pipeline);
 	if(!state) return false;
 
@@ -136,7 +139,7 @@ inline bool D3D11RHICommandList::SetPipelineState(
 }
 
 inline void D3D11RHICommandList::SetViewport(const Viewport& viewport){
-	if(!m_owner || !m_owner->m_context) return;
+	if(!m_recording || !m_owner || !m_owner->m_context) return;
 	D3D11_VIEWPORT native{};
 	native.TopLeftX = viewport.x;
 	native.TopLeftY = viewport.y;
@@ -153,7 +156,7 @@ inline bool D3D11RHICommandList::SetVertexBuffer(
 	uint32_t stride,
 	uint32_t offset
 ){
-	if(!m_owner || !m_owner->m_context) return false;
+	if(!m_recording || !m_owner || !m_owner->m_context) return false;
 	D3D11BufferResource* resource = m_owner->Find(buffer);
 	if(!resource || !resource->object) return false;
 	ID3D11Buffer* native = resource->object.Get();
@@ -172,7 +175,7 @@ inline bool D3D11RHICommandList::SetIndexBuffer(
 	IndexFormat format,
 	uint32_t offset
 ){
-	if(!m_owner || !m_owner->m_context) return false;
+	if(!m_recording || !m_owner || !m_owner->m_context) return false;
 	D3D11BufferResource* resource = m_owner->Find(buffer);
 	if(!resource || !resource->object) return false;
 	m_owner->m_context->IASetIndexBuffer(
@@ -188,7 +191,7 @@ inline bool D3D11RHICommandList::SetConstantBuffer(
 	uint32_t slot,
 	BufferHandle buffer
 ){
-	if(!m_owner || !m_owner->m_context) return false;
+	if(!m_recording || !m_owner || !m_owner->m_context) return false;
 	D3D11BufferResource* resource = m_owner->Find(buffer);
 	if(!resource || !resource->object) return false;
 	ID3D11Buffer* native = resource->object.Get();
@@ -211,7 +214,7 @@ inline bool D3D11RHICommandList::SetTexture(
 	uint32_t slot,
 	TextureHandle texture
 ){
-	if(!m_owner || !m_owner->m_context) return false;
+	if(!m_recording || !m_owner || !m_owner->m_context) return false;
 	D3D11TextureResource* resource = m_owner->Find(texture);
 	if(!resource || !resource->shaderView) return false;
 	ID3D11ShaderResourceView* native = resource->shaderView.Get();
@@ -234,7 +237,7 @@ inline bool D3D11RHICommandList::UpdateBuffer(
 	std::span<const std::byte> data,
 	uint32_t destinationOffset
 ){
-	if(!m_owner || !m_owner->m_context) return false;
+	if(!m_recording || !m_owner || !m_owner->m_context) return false;
 	D3D11BufferResource* resource = m_owner->Find(buffer);
 	if(!resource || !resource->object) return false;
 	if(data.empty()) return true;
@@ -282,7 +285,7 @@ inline void D3D11RHICommandList::Draw(
 	uint32_t vertexCount,
 	uint32_t firstVertex
 ){
-	if(m_owner && m_owner->m_context){
+	if(m_recording && m_owner && m_owner->m_context){
 		m_owner->m_context->Draw(vertexCount, firstVertex);
 	}
 }
@@ -292,7 +295,7 @@ inline void D3D11RHICommandList::DrawIndexed(
 	uint32_t firstIndex,
 	int32_t vertexOffset
 ){
-	if(m_owner && m_owner->m_context){
+	if(m_recording && m_owner && m_owner->m_context){
 		m_owner->m_context->DrawIndexed(indexCount, firstIndex, vertexOffset);
 	}
 }
@@ -302,7 +305,7 @@ inline void D3D11RHICommandList::Dispatch(
 	uint32_t groupCountY,
 	uint32_t groupCountZ
 ){
-	if(m_owner && m_owner->m_context){
+	if(m_recording && m_owner && m_owner->m_context){
 		m_owner->m_context->Dispatch(groupCountX, groupCountY, groupCountZ);
 	}
 }
