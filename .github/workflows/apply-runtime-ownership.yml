@@ -1,0 +1,43 @@
+name: Apply Runtime Ownership Migration
+
+on:
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - Tools/Migration/patch_collider_release.py
+      - Tools/Migration/patch_component_lifecycle.py
+      - Tools/Migration/patch_scene_ownership.py
+      - .github/workflows/apply-runtime-ownership.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 0
+
+      - name: Apply verified ownership migrations
+        run: |
+          python Tools/Migration/patch_collider_release.py
+          python Tools/Migration/patch_component_lifecycle.py
+          python Tools/Migration/patch_scene_ownership.py
+
+      - name: Commit migration output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm Tools/Migration/patch_collider_release.py
+          git rm Tools/Migration/patch_component_lifecycle.py
+          git rm Tools/Migration/patch_scene_ownership.py
+          git rm .github/workflows/apply-runtime-ownership.yml
+          git add -A
+          git commit -m "refactor: make physics release and scene ownership explicit"
+          git push --force origin HEAD:runtime-ownership-output
