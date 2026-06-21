@@ -23,6 +23,7 @@ inline bool D3D11RHICommandList::BeginRenderPass(
 	const RenderPassDesc& desc
 ){
 	if(!m_recording || !m_owner || !m_owner->m_context ||
+		m_queueType != CommandQueueType::Graphics ||
 		desc.colorAttachments.size() > 8){
 		return false;
 	}
@@ -77,7 +78,11 @@ inline bool D3D11RHICommandList::BeginRenderPass(
 }
 
 inline void D3D11RHICommandList::EndRenderPass(){
-	if(!m_owner || !m_owner->m_context) return;
+	if(!m_renderPassActive) return;
+	if(!m_owner || !m_owner->m_context){
+		m_renderPassActive = false;
+		return;
+	}
 	m_owner->m_context->OMSetRenderTargets(0, nullptr, nullptr);
 	m_renderPassActive = false;
 }
@@ -85,9 +90,17 @@ inline void D3D11RHICommandList::EndRenderPass(){
 inline bool D3D11RHICommandList::SetPipelineState(
 	PipelineStateHandle pipeline
 ){
-	if(!m_recording || !m_owner || !m_owner->m_context) return false;
+	if(!m_recording || !m_owner || !m_owner->m_context ||
+		m_queueType == CommandQueueType::Copy){
+		return false;
+	}
 	D3D11PipelineStateResource* state = m_owner->Find(pipeline);
 	if(!state) return false;
+
+	const bool computePipeline = static_cast<bool>(state->desc.computeShader);
+	if(m_queueType == CommandQueueType::Compute && !computePipeline){
+		return false;
+	}
 
 	D3D11ShaderResource* vertex = state->desc.vertexShader
 		? m_owner->Find(state->desc.vertexShader)
@@ -139,7 +152,10 @@ inline bool D3D11RHICommandList::SetPipelineState(
 }
 
 inline void D3D11RHICommandList::SetViewport(const Viewport& viewport){
-	if(!m_recording || !m_owner || !m_owner->m_context) return;
+	if(!m_recording || !m_owner || !m_owner->m_context ||
+		m_queueType != CommandQueueType::Graphics){
+		return;
+	}
 	D3D11_VIEWPORT native{};
 	native.TopLeftX = viewport.x;
 	native.TopLeftY = viewport.y;
@@ -156,7 +172,10 @@ inline bool D3D11RHICommandList::SetVertexBuffer(
 	uint32_t stride,
 	uint32_t offset
 ){
-	if(!m_recording || !m_owner || !m_owner->m_context) return false;
+	if(!m_recording || !m_owner || !m_owner->m_context ||
+		m_queueType != CommandQueueType::Graphics){
+		return false;
+	}
 	D3D11BufferResource* resource = m_owner->Find(buffer);
 	if(!resource || !resource->object) return false;
 	ID3D11Buffer* native = resource->object.Get();
@@ -175,7 +194,10 @@ inline bool D3D11RHICommandList::SetIndexBuffer(
 	IndexFormat format,
 	uint32_t offset
 ){
-	if(!m_recording || !m_owner || !m_owner->m_context) return false;
+	if(!m_recording || !m_owner || !m_owner->m_context ||
+		m_queueType != CommandQueueType::Graphics){
+		return false;
+	}
 	D3D11BufferResource* resource = m_owner->Find(buffer);
 	if(!resource || !resource->object) return false;
 	m_owner->m_context->IASetIndexBuffer(
@@ -191,7 +213,12 @@ inline bool D3D11RHICommandList::SetConstantBuffer(
 	uint32_t slot,
 	BufferHandle buffer
 ){
-	if(!m_recording || !m_owner || !m_owner->m_context) return false;
+	if(!m_recording || !m_owner || !m_owner->m_context ||
+		m_queueType == CommandQueueType::Copy ||
+		(m_queueType == CommandQueueType::Compute &&
+			stage != ShaderStage::Compute)){
+		return false;
+	}
 	D3D11BufferResource* resource = m_owner->Find(buffer);
 	if(!resource || !resource->object) return false;
 	ID3D11Buffer* native = resource->object.Get();
@@ -214,7 +241,12 @@ inline bool D3D11RHICommandList::SetTexture(
 	uint32_t slot,
 	TextureHandle texture
 ){
-	if(!m_recording || !m_owner || !m_owner->m_context) return false;
+	if(!m_recording || !m_owner || !m_owner->m_context ||
+		m_queueType == CommandQueueType::Copy ||
+		(m_queueType == CommandQueueType::Compute &&
+			stage != ShaderStage::Compute)){
+		return false;
+	}
 	D3D11TextureResource* resource = m_owner->Find(texture);
 	if(!resource || !resource->shaderView) return false;
 	ID3D11ShaderResourceView* native = resource->shaderView.Get();
@@ -285,7 +317,8 @@ inline void D3D11RHICommandList::Draw(
 	uint32_t vertexCount,
 	uint32_t firstVertex
 ){
-	if(m_recording && m_owner && m_owner->m_context){
+	if(m_recording && m_owner && m_owner->m_context &&
+		m_queueType == CommandQueueType::Graphics){
 		m_owner->m_context->Draw(vertexCount, firstVertex);
 	}
 }
@@ -295,7 +328,8 @@ inline void D3D11RHICommandList::DrawIndexed(
 	uint32_t firstIndex,
 	int32_t vertexOffset
 ){
-	if(m_recording && m_owner && m_owner->m_context){
+	if(m_recording && m_owner && m_owner->m_context &&
+		m_queueType == CommandQueueType::Graphics){
 		m_owner->m_context->DrawIndexed(indexCount, firstIndex, vertexOffset);
 	}
 }
@@ -305,7 +339,8 @@ inline void D3D11RHICommandList::Dispatch(
 	uint32_t groupCountY,
 	uint32_t groupCountZ
 ){
-	if(m_recording && m_owner && m_owner->m_context){
+	if(m_recording && m_owner && m_owner->m_context &&
+		m_queueType != CommandQueueType::Copy){
 		m_owner->m_context->Dispatch(groupCountX, groupCountY, groupCountZ);
 	}
 }
