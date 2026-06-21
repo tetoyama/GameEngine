@@ -77,6 +77,7 @@ public:
 	NullRHICommandQueue(NullRHIDevice* owner, CommandQueueType type) : m_owner(owner), m_type(type){}
 	CommandQueueType GetType() const noexcept override { return m_type; }
 	bool Submit(const QueueSubmitDesc&) override;
+	bool Present(IRHISwapChain&, bool) override;
 	void WaitIdle() override {}
 private:
 	NullRHIDevice* m_owner = nullptr;
@@ -85,22 +86,29 @@ private:
 
 class NullRHISwapChain final : public IRHISwapChain {
 public:
-	explicit NullRHISwapChain(SwapChainDesc desc) : m_desc(std::move(desc)){}
-	bool Resize(uint32_t w, uint32_t h) override { if(w == 0 || h == 0) return false; m_desc.width = w; m_desc.height = h; return true; }
+	NullRHISwapChain(NullRHIDevice* owner, SwapChainDesc desc) : m_owner(owner), m_desc(std::move(desc)){}
+	bool Resize(uint32_t, uint32_t) override;
 	bool Present(bool) override { ++m_presentCount; return true; }
 	const SwapChainDesc& GetDesc() const override { return m_desc; }
+	uint32_t GetImageCount() const noexcept override { return m_image ? 1u : 0u; }
+	uint32_t GetCurrentImageIndex() const noexcept override { return 0; }
+	TextureHandle GetImage(uint32_t index) const noexcept override { return index == 0 ? m_image : TextureHandle{}; }
+	CommandQueueType GetPresentQueueType() const noexcept override { return CommandQueueType::Graphics; }
+	void SetImage(TextureHandle image) noexcept { m_image = image; }
 private:
+	NullRHIDevice* m_owner = nullptr;
 	SwapChainDesc m_desc;
+	TextureHandle m_image;
 	uint64_t m_presentCount = 0;
 };
 
 struct NullBufferResource { BufferDesc desc; uint32_t viewCount = 0; };
-struct NullTextureResource { TextureDesc desc; uint32_t viewCount = 0; };
+struct NullTextureResource { TextureDesc desc; uint32_t viewCount = 0; bool swapChainOwned = false; };
 
 class NullRHIDevice final : public IRHIDevice {
 public:
 	explicit NullRHIDevice(const DeviceCreateDesc& desc)
-		: m_swapChain(desc.swapChain), m_graphicsQueue(this, CommandQueueType::Graphics), m_computeQueue(this, CommandQueueType::Compute), m_copyQueue(this, CommandQueueType::Copy){
+		: m_swapChain(this, desc.swapChain), m_graphicsQueue(this, CommandQueueType::Graphics), m_computeQueue(this, CommandQueueType::Compute), m_copyQueue(this, CommandQueueType::Copy){
 		m_capabilities.backend = BackendType::Null;
 		m_capabilities.maximumColorAttachments = 8;
 		m_capabilities.maximumTextureDimension2D = 16384;
@@ -112,6 +120,7 @@ public:
 		m_capabilities.supportsAsyncCompute = true;
 		m_capabilities.supportsMultipleCommandQueues = true;
 		m_capabilities.supportsTimelineSynchronization = true;
+		RecreateSwapChainImage(desc.swapChain.width, desc.swapChain.height);
 	}
 	BackendType GetBackendType() const noexcept override { return BackendType::Null; }
 	const DeviceCapabilities& GetCapabilities() const noexcept override { return m_capabilities; }
@@ -136,7 +145,7 @@ public:
 	ShaderHandle CreateShader(const ShaderDesc& d, std::span<const std::byte> code) override { return !code.empty() ? m_shaders.Create(d) : ShaderHandle{}; }
 	PipelineStateHandle CreatePipelineState(const PipelineStateDesc& d) override { return m_pipelines.Create(d); }
 	bool DestroyBuffer(BufferHandle h) override { auto* r = m_buffers.TryGet(h); return r && r->viewCount == 0 && m_buffers.Destroy(h); }
-	bool DestroyTexture(TextureHandle h) override { auto* r = m_textures.TryGet(h); return r && r->viewCount == 0 && m_textures.Destroy(h); }
+	bool DestroyTexture(TextureHandle h) override { auto* r = m_textures.TryGet(h); return r && !r->swapChainOwned && r->viewCount == 0 && m_textures.Destroy(h); }
 	bool DestroyBufferView(BufferViewHandle h) override { auto* v = m_bufferViews.TryGet(h); if(!v) return false; if(auto* r = m_buffers.TryGet(v->buffer); r && r->viewCount) --r->viewCount; return m_bufferViews.Destroy(h); }
 	bool DestroyTextureView(TextureViewHandle h) override { auto* v = m_textureViews.TryGet(h); if(!v) return false; if(auto* r = m_textures.TryGet(v->texture); r && r->viewCount) --r->viewCount; return m_textureViews.Destroy(h); }
 	bool DestroySampler(SamplerHandle h) override { return m_samplers.Destroy(h); }
@@ -157,10 +166,29 @@ public:
 	const IRHISwapChain* GetSwapChain() const override { return &m_swapChain; }
 	void WaitIdle() override {}
 	std::shared_ptr<NullFenceState> FindFence(FenceHandle h) const { auto* s = m_fences.TryGet(h); return s ? *s : nullptr; }
+	bool RecreateSwapChainImage(uint32_t width, uint32_t height){
+		if(width == 0 || height == 0) return false;
+		if(m_swapChainImage){
+			auto* current = m_textures.TryGet(m_swapChainImage);
+			if(!current || current->viewCount != 0) return false;
+			m_textures.Destroy(m_swapChainImage);
+		}
+		TextureDesc imageDesc;
+		imageDesc.width = width;
+		imageDesc.height = height;
+		imageDesc.format = m_swapChain.GetDesc().format;
+		imageDesc.bindFlags = TextureBindFlags::RenderTarget;
+		imageDesc.initialState = ResourceState::Present;
+		imageDesc.debugName = "Null SwapChain Image";
+		m_swapChainImage = m_textures.Create(NullTextureResource{imageDesc, 0, true});
+		m_swapChain.SetImage(m_swapChainImage);
+		return static_cast<bool>(m_swapChainImage);
+	}
 private:
 	DeviceCapabilities m_capabilities;
 	NullRHISwapChain m_swapChain;
 	NullRHICommandQueue m_graphicsQueue, m_computeQueue, m_copyQueue;
+	TextureHandle m_swapChainImage;
 	ResourcePool<BufferHandle, NullBufferResource> m_buffers;
 	ResourcePool<TextureHandle, NullTextureResource> m_textures;
 	ResourcePool<BufferViewHandle, BufferViewDesc> m_bufferViews;
@@ -171,12 +199,25 @@ private:
 	ResourcePool<FenceHandle, std::shared_ptr<NullFenceState>> m_fences;
 };
 
+inline bool NullRHISwapChain::Resize(uint32_t width, uint32_t height){
+	if(!m_owner || !m_owner->RecreateSwapChainImage(width, height)) return false;
+	m_desc.width = width;
+	m_desc.height = height;
+	return true;
+}
+
 inline bool NullRHICommandQueue::Submit(const QueueSubmitDesc& d){
 	if(!m_owner) return false;
 	if(d.waitFence){ auto s = m_owner->FindFence(d.waitFence); if(!s) return false; std::unique_lock lock(s->mutex); s->condition.wait(lock, [&]{ return s->completedValue >= d.waitValue; }); }
 	for(auto* list : d.commandLists){ if(!list || list->GetQueueType() != m_type) return false; auto* n = dynamic_cast<NullRHICommandList*>(list); if(!n || !n->IsClosed()) return false; }
 	if(d.signalFence){ auto s = m_owner->FindFence(d.signalFence); if(!s) return false; { std::scoped_lock lock(s->mutex); s->completedValue = (std::max)(s->completedValue, d.signalValue); } s->condition.notify_all(); }
 	return true;
+}
+
+inline bool NullRHICommandQueue::Present(IRHISwapChain& swapChain, bool verticalSync){
+	if(m_type != CommandQueueType::Graphics) return false;
+	auto* nullSwapChain = dynamic_cast<NullRHISwapChain*>(&swapChain);
+	return nullSwapChain && nullSwapChain->Present(verticalSync);
 }
 
 class NullRHIBackend final : public IRHIBackend {
