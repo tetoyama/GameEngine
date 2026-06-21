@@ -27,7 +27,12 @@ inline void Runner::Execute(
 
 	for(size_t nodeIndex : ready) Dispatch(state, nodeIndex);
 	RunMainQueue(state);
-	jobs.FlushThreadCommands();
+
+	// JobSystem停止中は全TaskがMain Queueで実行され、Job-local Commandも存在しない。
+	if(jobs.IsRunning()) {
+		jobs.FlushThreadCommands();
+	}
+
 	RethrowScheduleException(state);
 }
 
