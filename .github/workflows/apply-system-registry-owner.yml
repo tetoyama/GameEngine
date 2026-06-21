@@ -1,0 +1,31 @@
+name: Apply SystemRegistry Ownership Migration
+
+on:
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - Tools/Migration/patch_scene_manager_registry_owner.py
+      - .github/workflows/apply-system-registry-owner.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 0
+      - run: python Tools/Migration/patch_scene_manager_registry_owner.py
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm Tools/Migration/patch_scene_manager_registry_owner.py
+          git rm .github/workflows/apply-system-registry-owner.yml
+          git add -A
+          git commit -m "refactor: uniquely own SystemRegistry"
+          git push --force origin HEAD:system-registry-owner-output
