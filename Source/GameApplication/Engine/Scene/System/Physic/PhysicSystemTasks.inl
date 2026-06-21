@@ -3,6 +3,7 @@
 #include "Scene/scene.h"
 #include "Scene/sceneManager.h"
 #include "Scene/Component/ColliderComponent.h"
+#include "Scene/Component/CustomScriptComponent.h"
 #include "Scene/Component/transformComponent.h"
 #include "Scene/Registry/componentRegistry.h"
 
@@ -40,14 +41,16 @@ inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	);
 
 	SystemAccess fetchAccess;
-	fetchAccess.WriteResource<PhysicsSceneResource>();
+	fetchAccess
+		.WriteResource<PhysicsSceneResource>()
+		.WriteResource<PhysicsEventResource>();
 	builder.AddTask(
 		"PhysicSystem.PhysicsFetch",
 		SystemTaskDomain::Fixed,
 		SystemPhase::Default,
 		20,
 		std::move(fetchAccess),
-		ThreadAffinity::MainThread,
+		ThreadAffinity::AnyWorker,
 		[this](const SystemTaskContext&){
 			PhysicsFetch();
 		}
@@ -67,6 +70,22 @@ inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
 		ThreadAffinity::MainThread,
 		[this](const SystemTaskContext&){
 			PhysicsDownload();
+		}
+	);
+
+	SystemAccess dispatchAccess = SystemAccess::LegacyExclusive();
+	dispatchAccess
+		.ReadResource<PhysicsSceneResource>()
+		.ReadResource<PhysicsEventResource>();
+	builder.AddTask(
+		"PhysicSystem.CollisionEventDispatch",
+		SystemTaskDomain::Fixed,
+		SystemPhase::Default,
+		40,
+		std::move(dispatchAccess),
+		ThreadAffinity::MainThread,
+		[this](const SystemTaskContext&){
+			CollisionEventDispatch();
 		}
 	);
 
@@ -105,9 +124,25 @@ inline void PhysicSystem::PhysicsFetch(){
 		return;
 	}
 
+	ScriptCollisionDispatchBridge::Install(
+		this,
+		[](void* owner,
+		   CustomScriptComponent* script,
+		   ScriptCollisionEventType eventType,
+		   const HitInfo& hit) -> bool {
+			return static_cast<PhysicSystem*>(owner)->QueueScriptCollisionEvent(
+				script,
+				eventType,
+				hit
+			);
+		}
+	);
+
 	g_pScene->lockRead();
 	g_pScene->fetchResults(true);
 	g_pScene->unlockRead();
+
+	ScriptCollisionDispatchBridge::Remove(this);
 	m_simulationInFlight.store(false, std::memory_order_release);
 }
 
@@ -151,6 +186,49 @@ inline void PhysicSystem::PhysicsDownload(){
 				physicsTransform.q.z,
 				physicsTransform.q.w
 			));
+		}
+	}
+}
+
+inline bool PhysicSystem::QueueScriptCollisionEvent(
+	CustomScriptComponent* script,
+	ScriptCollisionEventType eventType,
+	const HitInfo& hit
+){
+	if(!script) return false;
+
+	std::scoped_lock lock(m_collisionEventMutex);
+	m_pendingCollisionEvents.push_back({script, eventType, hit});
+	return true;
+}
+
+inline void PhysicSystem::CollisionEventDispatch(){
+	std::vector<PendingScriptCollisionEvent> events;
+	{
+		std::scoped_lock lock(m_collisionEventMutex);
+		events.swap(m_pendingCollisionEvents);
+	}
+
+	for(const PendingScriptCollisionEvent& event : events){
+		CustomScriptComponent* script = event.script;
+		if(!script || !script->IsInitialized()) continue;
+
+		switch(event.eventType){
+			case ScriptCollisionEventType::CollisionEnter:
+				script->CollisionEnter(event.hit);
+				break;
+			case ScriptCollisionEventType::CollisionStay:
+				script->CollisionStay(event.hit);
+				break;
+			case ScriptCollisionEventType::CollisionExit:
+				script->CollisionExit(event.hit);
+				break;
+			case ScriptCollisionEventType::TriggerEnter:
+				script->TriggerEnter(event.hit);
+				break;
+			case ScriptCollisionEventType::TriggerExit:
+				script->TriggerExit(event.hit);
+				break;
 		}
 	}
 }
