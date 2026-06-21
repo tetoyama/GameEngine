@@ -13,19 +13,42 @@ inline void Runner::RunNode(
 	}
 
 	if(shouldExecute) {
+		const size_t taskIndex =
+			state->schedule->nodes[nodeIndex].taskIndex;
+		SystemTask& task = (*state->tasks)[taskIndex];
+
+		SystemTaskContext taskContext = state->context;
+		if(state->jobs->IsRunning()) {
+			taskContext.jobContext = &state->jobs->CurrentContext();
+		}
+
+		const size_t workerIndex = taskContext.jobContext
+			? taskContext.jobContext->workerIndex
+			: JobSystem::InvalidWorkerIndex;
+		const double startMilliseconds = state->profileSession
+			? state->profileSession->TimestampMilliseconds()
+			: 0.0;
+		bool succeeded = true;
+
 		try {
-			const size_t taskIndex =
-				state->schedule->nodes[nodeIndex].taskIndex;
-			SystemTask& task = (*state->tasks)[taskIndex];
-
-			SystemTaskContext taskContext = state->context;
-			if(state->jobs->IsRunning()) {
-				taskContext.jobContext = &state->jobs->CurrentContext();
-			}
-
 			if(task.execute) task.execute(taskContext);
 		} catch(...) {
+			succeeded = false;
 			RecordException(state, std::current_exception());
+		}
+
+		if(state->profileSession) {
+			const double endMilliseconds =
+				state->profileSession->TimestampMilliseconds();
+			state->profileSession->RecordTask(
+				nodeIndex,
+				taskIndex,
+				task,
+				workerIndex,
+				startMilliseconds,
+				endMilliseconds,
+				succeeded
+			);
 		}
 	}
 
