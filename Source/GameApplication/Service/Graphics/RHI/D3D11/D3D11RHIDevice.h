@@ -47,6 +47,7 @@ public:
 	CommandQueueType GetQueueType() const noexcept override { return m_queueType; }
 	void Begin() override;
 	void End() override;
+	bool ResourceBarrier(std::span<const ResourceBarrierDesc> barriers) override;
 	bool BeginRenderPass(const RenderPassDesc& desc) override;
 	void EndRenderPass() override;
 	bool SetPipelineState(PipelineStateHandle pipeline) override;
