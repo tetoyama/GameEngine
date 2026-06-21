@@ -8,6 +8,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cfloat>
 #include <cmath>
 #include <cstdint>
 #include <unordered_map>
@@ -34,7 +35,6 @@ inline YAML::Node Encode(const TransformComponent& transform){
 		rotation.w
 	};
 	node["Scale"] = transform.scale;
-	// 保存データ上ではindexを保持し、Sceneロード時に現在のgenerationへ再解決する。
 	node["Parent"] = transform.parent.GetIndex();
 	return node;
 }
@@ -69,7 +69,6 @@ inline bool Decode(
 	}
 
 	if(node["Parent"]){
-		// generationはSceneの参照再マップ処理で補完する。
 		transform.parent = Entity(node["Parent"].as<uint32_t>());
 	}
 
@@ -102,19 +101,74 @@ inline bool NearlyEqual(
 		std::fabs(lhs.z - rhs.z) <= epsilon;
 }
 
+inline void BeginPropertyRow(const char* label){
+	ImGui::TableNextRow();
+	ImGui::TableSetColumnIndex(0);
+	ImGui::AlignTextToFramePadding();
+	ImGui::TextUnformatted(label);
+	ImGui::TableSetColumnIndex(1);
+	ImGui::SetNextItemWidth(-FLT_MIN);
+}
+
+inline bool InspectVector3(
+	const char* id,
+	const char* description,
+	Vector3& value,
+	float speed = 0.01f
+){
+	const Vector3 beforeFrame = value;
+	const bool changed = ImGui::DragFloat3(
+		id,
+		&value.x,
+		speed,
+		0.0f,
+		0.0f,
+		"%.3f"
+	);
+	const ImGuiID itemID = ImGui::GetItemID();
+
+	struct EditState {
+		Vector3* target = nullptr;
+		Vector3 before;
+	};
+	static std::unordered_map<ImGuiID, EditState> editStates;
+	EditState& state = editStates[itemID];
+
+	if(ImGui::IsItemActivated()){
+		state.target = &value;
+		state.before = beforeFrame;
+	}
+
+	if(ImGui::IsItemDeactivatedAfterEdit()){
+		if(state.target == &value && !NearlyEqual(state.before, value)){
+			if(CommandManager* manager = ImGui::GetCommandManager()){
+				manager->Push(
+					std::make_unique<PropertyChangeCommand<Vector3>>(
+						state.target,
+						state.before,
+						value,
+						description
+					)
+				);
+			}
+		}
+		editStates.erase(itemID);
+	}
+
+	return changed;
+}
+
 inline void InspectRotation(TransformComponent& transform){
-	// Quaternionを毎フレームEulerへ再分解せず、Transformが保持する連続キャッシュを表示する。
-	// UIは度、Transform内部はラジアン。
 	Vector3 rotationDegrees = RadiansToDegrees(transform.GetRotationEuler());
 	const Vector3 beforeFrameRadians = transform.GetRotationEuler();
 
 	const bool changed = ImGui::DragFloat3(
-		"Rotation (deg)",
+		"##Rotation",
 		&rotationDegrees.x,
 		0.1f,
 		0.0f,
 		0.0f,
-		"%.3f"
+		"%.3f deg"
 	);
 	const ImGuiID itemID = ImGui::GetItemID();
 
@@ -143,7 +197,9 @@ inline void InspectRotation(TransformComponent& transform){
 				manager->Push(
 					std::make_unique<PropertyChangeCommandWithSetter<Vector3>>(
 						[target](const Vector3& value){
-							if(target) target->SetRotationEuler(value);
+							if(target){
+								target->SetRotationEuler(value);
+							}
 						},
 						state.beforeRadians,
 						afterRadians,
@@ -156,86 +212,151 @@ inline void InspectRotation(TransformComponent& transform){
 	}
 }
 
+inline bool InspectScale(Vector3& scale, bool uniformLocked){
+	const Vector3 beforeFrame = scale;
+	bool changed = ImGui::DragFloat3(
+		"##Scale",
+		&scale.x,
+		0.01f,
+		0.0f,
+		0.0f,
+		"%.3f"
+	);
+
+	if(changed && uniformLocked){
+		if(scale.x != beforeFrame.x){
+			const float ratio = beforeFrame.x != 0.0f
+				? scale.x / beforeFrame.x
+				: 1.0f;
+			scale.y = beforeFrame.y * ratio;
+			scale.z = beforeFrame.z * ratio;
+		} else if(scale.y != beforeFrame.y){
+			const float ratio = beforeFrame.y != 0.0f
+				? scale.y / beforeFrame.y
+				: 1.0f;
+			scale.x = beforeFrame.x * ratio;
+			scale.z = beforeFrame.z * ratio;
+		} else if(scale.z != beforeFrame.z){
+			const float ratio = beforeFrame.z != 0.0f
+				? scale.z / beforeFrame.z
+				: 1.0f;
+			scale.x = beforeFrame.x * ratio;
+			scale.y = beforeFrame.y * ratio;
+		}
+	}
+
+	const ImGuiID itemID = ImGui::GetItemID();
+	struct ScaleEditState {
+		Vector3* target = nullptr;
+		Vector3 before;
+	};
+	static std::unordered_map<ImGuiID, ScaleEditState> editStates;
+	ScaleEditState& state = editStates[itemID];
+
+	if(ImGui::IsItemActivated()){
+		state.target = &scale;
+		state.before = beforeFrame;
+	}
+
+	if(ImGui::IsItemDeactivatedAfterEdit()){
+		if(state.target == &scale && !NearlyEqual(state.before, scale)){
+			if(CommandManager* manager = ImGui::GetCommandManager()){
+				manager->Push(
+					std::make_unique<PropertyChangeCommand<Vector3>>(
+						state.target,
+						state.before,
+						scale,
+						"Scale"
+					)
+				);
+			}
+		}
+		editStates.erase(itemID);
+	}
+
+	return changed;
+}
+
 inline void Inspect(
 	TransformComponent& transform,
 	SceneContext* context
 ){
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 6));
+	ImGui::PushID(&transform);
+	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(6.0f, 4.0f));
 
-	ImGui::UndoDragVec3("Position", transform.position);
-	InspectRotation(transform);
+	if(ImGui::BeginTable(
+		"TransformProperties",
+		2,
+		ImGuiTableFlags_SizingStretchProp |
+		ImGuiTableFlags_NoSavedSettings |
+		ImGuiTableFlags_BordersInnerV
+	)){
+		ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthFixed, 92.0f);
+		ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
-	// Inspector固有状態なのでComponentデータには含めない。
-	static bool isUniformScaleLocked = false;
-	ImGui::UndoCheckbox("##isUniformLocked", &isUniformScaleLocked);
-	if(ImGui::IsItemHovered()){
-		ImGui::SetTooltip("Lock uniform scale");
-	}
-	ImGui::SameLine();
+		BeginPropertyRow("Position");
+		InspectVector3("##Position", "Position", transform.position);
 
-	const Vector3 previousScale = transform.scale;
-	const bool scaleChanged = ImGui::UndoDragVec3("Scale", transform.scale);
+		BeginPropertyRow("Rotation");
+		InspectRotation(transform);
 
-	if(isUniformScaleLocked && scaleChanged){
-		if(transform.scale.x != previousScale.x){
-			const float ratio = previousScale.x != 0.0f
-				? transform.scale.x / previousScale.x
-				: 1.0f;
-			transform.scale.y = previousScale.y * ratio;
-			transform.scale.z = previousScale.z * ratio;
-		} else if(transform.scale.y != previousScale.y){
-			const float ratio = previousScale.y != 0.0f
-				? transform.scale.y / previousScale.y
-				: 1.0f;
-			transform.scale.x = previousScale.x * ratio;
-			transform.scale.z = previousScale.z * ratio;
-		} else if(transform.scale.z != previousScale.z){
-			const float ratio = previousScale.z != 0.0f
-				? transform.scale.z / previousScale.z
-				: 1.0f;
-			transform.scale.x = previousScale.x * ratio;
-			transform.scale.y = previousScale.y * ratio;
+		BeginPropertyRow("Scale");
+		ImGuiStorage* storage = ImGui::GetStateStorage();
+		const ImGuiID uniformLockID = ImGui::GetID("UniformScaleLock");
+		bool uniformLocked = storage->GetBool(uniformLockID, false);
+		if(ImGui::Checkbox("##UniformScaleLock", &uniformLocked)){
+			storage->SetBool(uniformLockID, uniformLocked);
 		}
-	}
+		if(ImGui::IsItemHovered()){
+			ImGui::SetTooltip("Lock uniform scale");
+		}
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(-FLT_MIN);
+		InspectScale(transform.scale, uniformLocked);
 
-	int parentIndex = static_cast<int>(transform.parent.GetIndex());
-	if(ImGui::InputInt("Parent Entity", &parentIndex)){
-		parentIndex = (std::max)(parentIndex, 0);
-
-		if(parentIndex == 0){
-			transform.parent = {};
-		} else if(context && context->entity){
-			// Entityはindex + generationなので、int*へのreinterpret書き込みは禁止する。
-			const Entity resolved = context->entity->Resolve(
-				static_cast<uint32_t>(parentIndex)
-			);
-			if(resolved){
-				transform.parent = resolved;
+		BeginPropertyRow("Parent");
+		int parentIndex = static_cast<int>(transform.parent.GetIndex());
+		if(ImGui::InputInt("##ParentEntity", &parentIndex)){
+			parentIndex = (std::max)(parentIndex, 0);
+			if(parentIndex == 0){
+				transform.parent = {};
+			} else if(context && context->entity){
+				const Entity resolved = context->entity->Resolve(
+					static_cast<uint32_t>(parentIndex)
+				);
+				if(resolved){
+					transform.parent = resolved;
+				}
 			}
 		}
+
+		ImGui::EndTable();
 	}
 
 	if(!transform.children.empty()){
-		ImGui::Text("Children (%d):", static_cast<int>(transform.children.size()));
-		ImGui::Indent();
-		for(Entity child : transform.children){
-			ImGui::Text(
-				"Entity %u (generation %u)",
-				child.GetIndex(),
-				child.GetGeneration()
-			);
+		if(ImGui::TreeNodeEx(
+			"Children",
+			ImGuiTreeNodeFlags_SpanAvailWidth
+		)){
+			for(Entity child : transform.children){
+				ImGui::BulletText(
+					"Entity %u (generation %u)",
+					child.GetIndex(),
+					child.GetGeneration()
+				);
+			}
+			ImGui::TreePop();
 		}
-		ImGui::Unindent();
 	} else {
-		ImGui::Text("Children: none");
+		ImGui::TextDisabled("Children: none");
 	}
 
 	ImGui::PopStyleVar();
+	ImGui::PopID();
 }
 
 } // namespace TransformComponentOperations
 
-// ComponentRegistryの既存virtual経路を維持する薄い互換ラッパー。
 inline YAML::Node TransformComponent::encode(){
 	return TransformComponentOperations::Encode(*this);
 }
