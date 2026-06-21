@@ -88,7 +88,7 @@ class GraphicsContext : public IService {
 public:
 	explicit GraphicsContext(
 		DebugLogService* debugLog = nullptr,
-		RHI::RHIService* rhiService = nullptr
+		RHI::RenderHardwareInterfaceService* rhiService = nullptr
 	)
 		: m_DebugLog(debugLog),
 		  m_RHIService(rhiService)
@@ -106,7 +106,7 @@ public:
 			: RHI::BackendType::Direct3D11;
 	}
 
-	RHI::RHIService* GetRHIService() const noexcept {
+	RHI::RenderHardwareInterfaceService* GetRHIService() const noexcept {
 		return m_RHIService;
 	}
 
@@ -243,7 +243,7 @@ private:
 	ID3D11Buffer* m_CbPerCamera = nullptr;
 	ID3D11Buffer* m_CbPerObject = nullptr;
 	DebugLogService* m_DebugLog = nullptr;
-	RHI::RHIService* m_RHIService = nullptr;
+	RHI::RenderHardwareInterfaceService* m_RHIService = nullptr;
 
 	CbPerFrame m_CbPerFrameData{};
 	CbPerCamera m_CbPerCameraData{};

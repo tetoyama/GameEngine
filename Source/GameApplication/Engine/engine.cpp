@@ -26,7 +26,7 @@ void Engine::Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdSho
 
 	auto debug = context->Get<DebugLogService>();
 	auto config = context->Get<ConfigService>();
-	auto rhi = context->Get<RHI::RHIService>();
+	auto rhi = context->Get<RHI::RenderHardwareInterfaceService>();
 	auto window = context->Get<WindowService>();
 	auto time = context->Get<TimeService>();
 	auto audio = context->Get<AudioContext>();

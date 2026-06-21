@@ -32,10 +32,10 @@ std::unique_ptr<EngineContext> EngineContextBuilder::Build(){
 
 	context->Register<ConfigService>(std::make_unique<ConfigService>());
 
-	auto rhiOwner = std::make_unique<RHI::RHIService>();
+	auto rhiOwner = std::make_unique<RHI::RenderHardwareInterfaceService>();
 	RHI::RegisterD3D11RHIBackend(rhiOwner->GetRegistry());
-	RHI::RHIService* rhiService = rhiOwner.get();
-	context->Register<RHI::RHIService>(std::move(rhiOwner));
+	RHI::RenderHardwareInterfaceService* rhiService = rhiOwner.get();
+	context->Register<RHI::RenderHardwareInterfaceService>(std::move(rhiOwner));
 
 	context->Register<WindowService>(
 		std::make_unique<WindowService>(debugLogSystem)

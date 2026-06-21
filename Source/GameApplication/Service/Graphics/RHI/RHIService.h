@@ -7,13 +7,13 @@
 
 namespace RHI {
 
-class RHIService final : public IService {
+class RenderHardwareInterfaceService final : public IService {
 public:
-	RHIService() = default;
-	~RHIService() override = default;
+	RenderHardwareInterfaceService() = default;
+	~RenderHardwareInterfaceService() override = default;
 
-	RHIService(const RHIService&) = delete;
-	RHIService& operator=(const RHIService&) = delete;
+	RenderHardwareInterfaceService(const RenderHardwareInterfaceService&) = delete;
+	RenderHardwareInterfaceService& operator=(const RenderHardwareInterfaceService&) = delete;
 
 	BackendRegistry& GetRegistry() noexcept { return m_registry; }
 	const BackendRegistry& GetRegistry() const noexcept { return m_registry; }
