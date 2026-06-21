@@ -6,16 +6,29 @@ inline void Runner::Execute(
 	const CompiledSystemSchedule& schedule,
 	std::vector<SystemTask>& tasks,
 	JobSystem& jobs,
-	const SystemTaskContext& context
+	const SystemTaskContext& context,
+	SystemScheduleProfiler* profiler
 ) {
 	ValidateSchedule(schedule);
-	if(schedule.nodes.empty()) return;
+
+	std::shared_ptr<SystemScheduleProfileSession> profileSession =
+		profiler
+			? profiler->Begin(schedule.domain, jobs.WorkerCount(), jobs.IsRunning())
+			: nullptr;
+
+	if(schedule.nodes.empty()) {
+		if(profiler && profileSession) {
+			profiler->Publish(profileSession);
+		}
+		return;
+	}
 
 	auto state = std::make_shared<DependencyScheduleState>(
 		schedule,
 		tasks,
 		jobs,
-		context
+		context,
+		profileSession
 	);
 
 	std::vector<size_t> ready;
@@ -34,14 +47,16 @@ inline void Runner::Execute(
 		failed = state->failed;
 	}
 
-	// Structural Commitが存在しないScheduleでも、成功時には残りの
-	// Worker-local CommandをMainThreadで適用する。
 	if(jobs.IsRunning() && !failed) {
 		try {
 			jobs.FlushThreadCommands();
 		} catch(...) {
 			RecordException(state, std::current_exception());
 		}
+	}
+
+	if(profiler && profileSession) {
+		profiler->Publish(profileSession);
 	}
 
 	RethrowScheduleException(state);
