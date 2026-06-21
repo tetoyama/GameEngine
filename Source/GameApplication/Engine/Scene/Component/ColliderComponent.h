@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -53,13 +52,6 @@ struct ColliderShape {
 
 class ColliderComponent: public IComponent {
 public:
-	using ReleaseEntityCallback = void(*)(void* owner, ColliderComponent* collider);
-	using ReleaseShapeCallback = void(*)(
-		void* owner,
-		ColliderComponent* collider,
-		size_t shapeIndex
-	);
-
 	~ColliderComponent() override;
 
 	// PhysicSystemが所有するActorへの非所有エイリアス。
@@ -72,44 +64,10 @@ public:
 	float Mass = 0.0f;
 	std::vector<ColliderShape> colliders;
 
-	void SetRuntimeReleaseCallbacks(
-		void* owner,
-		ReleaseEntityCallback releaseEntity,
-		ReleaseShapeCallback releaseShape
-	) noexcept {
-		m_runtimeOwner = owner;
-		m_releaseEntity = releaseEntity;
-		m_releaseShape = releaseShape;
-	}
-
-	void ClearRuntimeReleaseCallbacks(void* owner = nullptr) noexcept {
-		if(owner && owner != m_runtimeOwner) return;
-		m_runtimeOwner = nullptr;
-		m_releaseEntity = nullptr;
-		m_releaseShape = nullptr;
-	}
-
-	void ReleaseRuntimeResources() noexcept {
-		if(m_runtimeOwner && m_releaseEntity){
-			m_releaseEntity(m_runtimeOwner, this);
-		}
-	}
-
-	void ReleaseShapeRuntime(size_t shapeIndex) noexcept {
-		if(m_runtimeOwner && m_releaseShape){
-			m_releaseShape(m_runtimeOwner, this, shapeIndex);
-		}
-	}
-
 	YAML::Node encode() override;
 	bool decode(SceneContext* context, const YAML::Node& node) override;
 	void inspector(SceneContext* context) override;
 	void OnBeforeRemove(SceneContext* context) override;
-
-private:
-	void* m_runtimeOwner = nullptr;
-	ReleaseEntityCallback m_releaseEntity = nullptr;
-	ReleaseShapeCallback m_releaseShape = nullptr;
 };
 
 #include "Operations/ColliderComponentOperations.h"
