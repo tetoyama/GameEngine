@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -9,6 +11,8 @@
 
 namespace RHI {
 
+// OS固有Window型をRHI公開契約へ漏らさないための非所有Handle。
+// Win32ではwindow=HWND、Vulkan/X11等ではdisplayも使用できる。
 struct NativeWindowHandle {
 	void* window = nullptr;
 	void* display = nullptr;
@@ -17,6 +21,7 @@ struct NativeWindowHandle {
 struct DeviceCreateDesc {
 	NativeWindowHandle nativeWindow;
 	SwapChainDesc swapChain;
+	uint32_t adapterIndex = 0;
 	bool enableDebugLayer = false;
 	bool preferHighPerformanceAdapter = true;
 };
@@ -29,6 +34,8 @@ struct AdapterInfo {
 	bool software = false;
 };
 
+// API単位の生成・Adapter列挙責務。
+// RendererはD3D11/Vulkan等のBackend具象型を参照せず、このFactory契約だけを使う。
 class IRHIBackend {
 public:
 	virtual ~IRHIBackend() = default;
@@ -44,6 +51,8 @@ public:
 
 using BackendFactory = std::unique_ptr<IRHIBackend>(*)();
 
+// 利用可能なBackendを実行時に選択するRegistry。
+// D3D11、D3D12、Vulkanはそれぞれ別翻訳単位からFactoryを登録する。
 class BackendRegistry {
 public:
 	static BackendRegistry& Instance(){
