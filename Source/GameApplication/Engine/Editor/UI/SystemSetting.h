@@ -8,6 +8,7 @@
 #pragma once
 
 #include <cstdio>
+#include <string>
 
 #include "Editor/editorService.h"
 #include "Editor/InterFace/IEditorUI.h"
@@ -26,4 +27,7 @@ private:
 	EditorService* m_editor = nullptr;
 	double m_lastSaveTime = -1000.0;
 	ScheduleProfilerViewState m_scheduleViewState;
+	std::string m_lastScheduleExportPath;
+	std::string m_scheduleExportError;
+	double m_lastScheduleExportTime = -1000.0;
 };
