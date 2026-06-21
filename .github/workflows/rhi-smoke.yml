@@ -18,18 +18,15 @@ permissions:
 jobs:
   null-rhi-smoke-x64:
     runs-on: windows-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           show-progress: false
-
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-
       - name: Build Null RHI smoke test
         id: rhi_build
         continue-on-error: true
@@ -40,7 +37,6 @@ jobs:
           Tests/RHISmokeTest.cpp
           /Fe:rhi-smoke.exe
           > rhi-smoke-build.log 2>&1
-
       - name: Upload Null RHI compiler diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -48,28 +44,23 @@ jobs:
           name: null-rhi-smoke-build-log
           path: rhi-smoke-build.log
           if-no-files-found: error
-
       - name: Preserve Null RHI build result
         if: steps.rhi_build.outcome == 'failure'
         run: cmd /c exit 1
-
       - name: Run Null RHI smoke test
         run: .\rhi-smoke.exe
 
   render-graph-barrier-smoke-x64:
     runs-on: windows-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           show-progress: false
-
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-
       - name: Build RenderGraph barrier smoke test
         id: render_graph_build
         continue-on-error: true
@@ -80,7 +71,6 @@ jobs:
           Tests/RHIRenderGraphBarrierSmokeTest.cpp
           /Fe:rhi-render-graph-barrier-smoke.exe
           > rhi-render-graph-barrier-build.log 2>&1
-
       - name: Upload RenderGraph compiler diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -88,28 +78,23 @@ jobs:
           name: rhi-render-graph-barrier-build-log
           path: rhi-render-graph-barrier-build.log
           if-no-files-found: error
-
       - name: Preserve RenderGraph build result
         if: steps.render_graph_build.outcome == 'failure'
         run: cmd /c exit 1
-
       - name: Run RenderGraph barrier smoke test
         run: .\rhi-render-graph-barrier-smoke.exe
 
   d3d11-rhi-backend-smoke-x64:
     runs-on: windows-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           show-progress: false
-
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-
       - name: Build Direct3D11 RHI backend smoke test
         id: d3d11_build
         continue-on-error: true
@@ -121,7 +106,6 @@ jobs:
           d3d11.lib dxgi.lib
           /Fe:d3d11-rhi-backend-smoke.exe
           > d3d11-rhi-backend-build.log 2>&1
-
       - name: Upload Direct3D11 compiler diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -129,10 +113,43 @@ jobs:
           name: d3d11-rhi-backend-build-log
           path: d3d11-rhi-backend-build.log
           if-no-files-found: error
-
       - name: Preserve Direct3D11 build result
         if: steps.d3d11_build.outcome == 'failure'
         run: cmd /c exit 1
-
       - name: Run Direct3D11 RHI backend smoke test
         run: .\d3d11-rhi-backend-smoke.exe
+
+  swap-chain-contract-smoke-x64:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Build SwapChain contract smoke test
+        id: swap_chain_build
+        continue-on-error: true
+        shell: cmd
+        run: >-
+          cl /nologo /std:c++20 /EHsc /W4 /MTd
+          /I Source/GameApplication
+          Tests/RHISwapChainContractSmokeTest.cpp
+          d3d11.lib dxgi.lib user32.lib
+          /Fe:rhi-swap-chain-contract-smoke.exe
+          > rhi-swap-chain-contract-build.log 2>&1
+      - name: Upload SwapChain compiler diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rhi-swap-chain-contract-build-log
+          path: rhi-swap-chain-contract-build.log
+          if-no-files-found: error
+      - name: Preserve SwapChain build result
+        if: steps.swap_chain_build.outcome == 'failure'
+        run: cmd /c exit 1
+      - name: Run SwapChain contract smoke test
+        run: .\rhi-swap-chain-contract-smoke.exe
