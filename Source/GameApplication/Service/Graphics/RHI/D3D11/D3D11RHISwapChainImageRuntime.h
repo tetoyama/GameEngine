@@ -6,9 +6,12 @@ inline bool D3D11RHIDevice::ImportSwapChainImages(){
 	if(!m_device) return false;
 	DXGI_SWAP_CHAIN_DESC swapDesc{};
 	if(FAILED(m_swapChain.m_swapChain->GetDesc(&swapDesc)) || swapDesc.BufferCount == 0) return false;
+	const bool flipModel = swapDesc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_DISCARD ||
+		swapDesc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+	const uint32_t imageCount = flipModel ? swapDesc.BufferCount : 1u;
 	std::vector<TextureHandle> imported;
-	imported.reserve(swapDesc.BufferCount);
-	for(uint32_t i = 0; i < swapDesc.BufferCount; ++i){
+	imported.reserve(imageCount);
+	for(uint32_t i = 0; i < imageCount; ++i){
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> image;
 		if(FAILED(m_swapChain.m_swapChain->GetBuffer(i, IID_PPV_ARGS(image.GetAddressOf())))){
 			for(auto h : imported) m_textures.Destroy(h);
