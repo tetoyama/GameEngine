@@ -17,7 +17,7 @@
 #include "YAMLConverters.h"
 #include "buildSetting.h"
 #include "appConfig.h"
-#include "Service/Graphics/RHI/RHIDescriptors.h"
+#include "Service/Graphics/RHI/RHIBackend.h"
 
 struct EngineGraphicsConfig {
 	RHI::BackendType backend = RHI::BackendType::Direct3D11;
@@ -67,7 +67,6 @@ inline std::optional<RHI::BackendType> ParseEngineConfigBackend(
 	return std::nullopt;
 }
 
-// アプリケーション・エンジン設定ファイルの読み込み・保存を管理するサービス
 class ConfigService: public IService {
 public:
 	ConfigService() = default;
@@ -89,6 +88,14 @@ public:
 			OutputDebugStringW(L"Failed to load application config. Using default settings.\n");
 			return false;
 		}
+
+		// GraphicsContext初期化より前に、起動時に要求されたBackendを公開する。
+		RHI::SetRequestedBackend(engineConfig.graphics.backend);
+		OutputDebugStringA((
+			"Requested RHI Backend: " +
+			std::string(ToEngineConfigBackendName(engineConfig.graphics.backend)) +
+			"\n"
+		).c_str());
 
 		return true;
 	}
