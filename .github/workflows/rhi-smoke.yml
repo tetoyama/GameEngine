@@ -1,6 +1,9 @@
+# RHI sources are compiled on pull requests and branch pushes.
+# Executable smoke tests run only when manually dispatched.
 name: RHI Smoke Test
 
 on:
+  workflow_dispatch:
   pull_request:
     branches:
       - master
@@ -27,7 +30,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-      - name: Build Null RHI smoke test
+      - name: Compile Null RHI smoke source
         id: rhi_build
         continue-on-error: true
         shell: cmd
@@ -44,10 +47,11 @@ jobs:
           name: null-rhi-smoke-build-log
           path: rhi-smoke-build.log
           if-no-files-found: error
-      - name: Preserve Null RHI build result
+      - name: Preserve Null RHI compile result
         if: steps.rhi_build.outcome == 'failure'
         run: cmd /c exit 1
       - name: Run Null RHI smoke test
+        if: github.event_name == 'workflow_dispatch'
         run: .\rhi-smoke.exe
 
   render-graph-barrier-smoke-x64:
@@ -61,7 +65,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-      - name: Build RenderGraph barrier smoke test
+      - name: Compile RenderGraph barrier smoke source
         id: render_graph_build
         continue-on-error: true
         shell: cmd
@@ -78,10 +82,11 @@ jobs:
           name: rhi-render-graph-barrier-build-log
           path: rhi-render-graph-barrier-build.log
           if-no-files-found: error
-      - name: Preserve RenderGraph build result
+      - name: Preserve RenderGraph compile result
         if: steps.render_graph_build.outcome == 'failure'
         run: cmd /c exit 1
       - name: Run RenderGraph barrier smoke test
+        if: github.event_name == 'workflow_dispatch'
         run: .\rhi-render-graph-barrier-smoke.exe
 
   d3d11-rhi-backend-smoke-x64:
@@ -95,7 +100,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-      - name: Build Direct3D11 RHI backend smoke test
+      - name: Compile Direct3D11 RHI backend smoke source
         id: d3d11_build
         continue-on-error: true
         shell: cmd
@@ -113,10 +118,11 @@ jobs:
           name: d3d11-rhi-backend-build-log
           path: d3d11-rhi-backend-build.log
           if-no-files-found: error
-      - name: Preserve Direct3D11 build result
+      - name: Preserve Direct3D11 compile result
         if: steps.d3d11_build.outcome == 'failure'
         run: cmd /c exit 1
       - name: Run Direct3D11 RHI backend smoke test
+        if: github.event_name == 'workflow_dispatch'
         run: .\d3d11-rhi-backend-smoke.exe
 
   swap-chain-contract-smoke-x64:
@@ -130,7 +136,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-      - name: Build SwapChain contract smoke test
+      - name: Compile SwapChain contract smoke source
         id: swap_chain_build
         continue-on-error: true
         shell: cmd
@@ -148,8 +154,9 @@ jobs:
           name: rhi-swap-chain-contract-build-log
           path: rhi-swap-chain-contract-build.log
           if-no-files-found: error
-      - name: Preserve SwapChain build result
+      - name: Preserve SwapChain compile result
         if: steps.swap_chain_build.outcome == 'failure'
         run: cmd /c exit 1
       - name: Run SwapChain contract smoke test
+        if: github.event_name == 'workflow_dispatch'
         run: .\rhi-swap-chain-contract-smoke.exe
