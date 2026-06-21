@@ -9,28 +9,22 @@ namespace RHI {
 
 class RHIService final : public IService {
 public:
-	RHIService() = default;
-	~RHIService() override = default;
+	RHIService();
+	~RHIService() override;
+
+	RHIService(const RHIService&) = delete;
+	RHIService& operator=(const RHIService&) = delete;
 
 	BackendRegistry& GetRegistry() noexcept { return m_registry; }
 	const BackendRegistry& GetRegistry() const noexcept { return m_registry; }
 
-	bool SelectBackend(BackendType backendType){
-		auto backend = m_registry.Create(backendType);
-		if(!backend || !backend->IsSupported()) return false;
-		m_backend = std::move(backend);
-		m_selectedBackend = backendType;
-		return true;
-	}
+	bool SelectBackend(BackendType backendType);
 
 	BackendType GetSelectedBackend() const noexcept { return m_selectedBackend; }
 	IRHIBackend* GetBackend() noexcept { return m_backend.get(); }
 	const IRHIBackend* GetBackend() const noexcept { return m_backend.get(); }
 
-	void Shutdown() override {
-		m_backend.reset();
-		m_registry.Clear();
-	}
+	void Shutdown() override;
 
 private:
 	BackendRegistry m_registry;
