@@ -113,6 +113,9 @@ public:
 
 	uint32_t GetLayerBit(const std::string& name) const;
 
+	void ReleaseColliderRuntime(ColliderComponent* collider);
+	void ReleaseColliderShapeRuntime(ColliderComponent* collider, size_t shapeIndex);
+
 	float Gravity = -9.0f;
 
 	int FindLayerIndex(uint32_t bit) const;
