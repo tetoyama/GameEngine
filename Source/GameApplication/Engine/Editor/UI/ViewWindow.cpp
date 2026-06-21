@@ -366,7 +366,10 @@ void ViewWindow::ControlButton() {
 }
 
 void ViewWindow::DrawRenderLayerToggleUI() {
-	RenderSystem* renderSystem = m_editor->sceneManager->systemRegistry->GetSystem<RenderSystem>();
+	SystemRegistry* registry = m_editor->sceneManager->GetSystemRegistry();
+	RenderSystem* renderSystem =
+		registry ? registry->GetSystem<RenderSystem>() : nullptr;
+	if(!renderSystem) return;
 
 	ImGui::SameLine();
 
