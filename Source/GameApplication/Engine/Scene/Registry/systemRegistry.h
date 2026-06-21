@@ -17,6 +17,7 @@
 #include "System/Job/JobSystem.h"
 #include "System/Scheduler/ExecuteDependencySchedule.h"
 #include "System/Scheduler/SystemScheduleCompiler.h"
+#include "System/Scheduler/SystemScheduleProfiler.h"
 #include "System/Scheduler/SystemTask.h"
 
 // Systemの所有、Lifecycle実行、SystemTaskの構築と実行を管理する。
@@ -36,7 +37,6 @@ public:
 	}
 
 	void InitializeAll() {
-		// System初期化処理からJobを発行できるよう、先にWorkerを起動する。
 		m_jobSystem.Start();
 
 		for(auto& system : m_systems) {
@@ -79,9 +79,9 @@ public:
 		for(CompiledSystemSchedule& schedule : m_schedules) {
 			schedule = {};
 		}
+		m_scheduleProfiler.Clear();
 		m_tasksDirty = true;
 
-		// SystemのFinalize中に必要なJobを発行できるよう、Worker停止は最後に行う。
 		for(auto& system : m_systems) {
 			system->Finalize();
 		}
@@ -89,7 +89,6 @@ public:
 		m_jobSystem.Stop();
 	}
 
-	// 全SystemからTaskを再収集し、Domainごとの依存Graphを構築する。
 	void RebuildTasks() {
 		m_tasks.clear();
 
@@ -102,7 +101,6 @@ public:
 			m_systems[index]->RegisterTasks(builder);
 		}
 
-		// Inspectorやデバッグ表示でも論理順に見えるようTask一覧自体も整列する。
 		std::sort(
 			m_tasks.begin(),
 			m_tasks.end(),
@@ -126,6 +124,7 @@ public:
 		);
 
 		CompileSchedules();
+		m_scheduleProfiler.Clear();
 		m_tasksDirty = false;
 	}
 
@@ -151,6 +150,14 @@ public:
 		return m_jobSystem;
 	}
 
+	SystemScheduleProfiler& GetScheduleProfiler() noexcept {
+		return m_scheduleProfiler;
+	}
+
+	const SystemScheduleProfiler& GetScheduleProfiler() const noexcept {
+		return m_scheduleProfiler;
+	}
+
 	const std::vector<SystemTask>& GetTasks() {
 		EnsureTasksBuilt();
 		return m_tasks;
@@ -160,10 +167,6 @@ public:
 		EnsureTasksBuilt();
 		return m_schedules[DomainIndex(domain)];
 	}
-
-	// -------------------------
-	// YAML Encode / Decode
-	// -------------------------
 
 	void EncodeAll(YAML::Node& rootNode) const {
 		YAML::Node systemsNode = rootNode["Systems"];
@@ -194,7 +197,6 @@ public:
 			system->decode(systemNode);
 		}
 
-		// decode結果によってTask構成が変わるSystemへ対応する。
 		m_tasksDirty = true;
 	}
 
@@ -234,7 +236,8 @@ private:
 			schedule,
 			m_tasks,
 			m_jobSystem,
-			SystemTaskContext{deltaTime}
+			SystemTaskContext{deltaTime},
+			&m_scheduleProfiler
 		);
 	}
 
@@ -243,6 +246,7 @@ private:
 	std::vector<SystemTask> m_tasks;
 	std::array<CompiledSystemSchedule, kDomainCount> m_schedules;
 	JobSystem m_jobSystem;
+	SystemScheduleProfiler m_scheduleProfiler;
 	uint64_t m_nextSystemRegistrationOrder = 0;
 	bool m_tasksDirty = true;
 };
