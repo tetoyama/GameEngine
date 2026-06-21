@@ -14,11 +14,14 @@
 #include "System/Scheduler/SystemAccess.h"
 
 class ISystem;
+struct JobThreadContext;
 
 // 一回のSchedule実行でTaskへ渡される共通情報。
-// 現段階では時間だけを保持し、WorldやCommandBufferは後続Stepで追加する。
+// jobContextはParallel Executorが実行Threadごとに設定する。
+// 直列実行やJobSystem停止中でもMainThread用Contextが渡される。
 struct SystemTaskContext {
 	float deltaTime = 0.0f;
+	JobThreadContext* jobContext = nullptr;
 };
 
 // Fixed / Frame / Editor / Renderは実行頻度と呼び出し元が異なるため、
