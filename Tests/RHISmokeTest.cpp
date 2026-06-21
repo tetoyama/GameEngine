@@ -1,55 +1,124 @@
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <type_traits>
+#include <memory>
+#include <span>
 #include <vector>
 
-#include "Service/Graphics/RHI/RHIResourcePool.h"
+#include "Service/Graphics/RHI/Null/NullRHIBackend.h"
 #include "Service/Graphics/RHI/RHIRenderGraph.h"
-#include "Service/Graphics/RHI/D3D11/D3D11RHIDevice.h"
 
 namespace {
 
-class MockCommandList final : public RHI::IRHICommandList {
-public:
-	void Begin() override { ++beginCount; }
-	void End() override { ++endCount; }
-	bool BeginRenderPass(const RHI::RenderPassDesc&) override { return true; }
-	void EndRenderPass() override {}
-	bool SetPipelineState(RHI::PipelineStateHandle) override { return true; }
-	void SetViewport(const RHI::Viewport&) override {}
-	bool SetVertexBuffer(uint32_t, RHI::BufferHandle, uint32_t, uint32_t) override { return true; }
-	bool SetIndexBuffer(RHI::BufferHandle, RHI::IndexFormat, uint32_t) override { return true; }
-	bool SetConstantBuffer(RHI::ShaderStage, uint32_t, RHI::BufferHandle) override { return true; }
-	bool SetTexture(RHI::ShaderStage, uint32_t, RHI::TextureHandle) override { return true; }
-	bool UpdateBuffer(RHI::BufferHandle, std::span<const std::byte>, uint32_t) override { return true; }
-	void Draw(uint32_t, uint32_t) override { ++drawCount; }
-	void DrawIndexed(uint32_t, uint32_t, int32_t) override {}
-	void Dispatch(uint32_t, uint32_t, uint32_t) override {}
+void TestBackendRegistryAndCapabilities(){
+	const bool registered = RHI::RegisterNullRHIBackend();
+	assert(registered ||
+		RHI::BackendRegistry::Instance().IsRegistered(RHI::BackendType::Null));
 
-	int beginCount = 0;
-	int endCount = 0;
-	int drawCount = 0;
-};
+	std::unique_ptr<RHI::IRHIBackend> backend =
+		RHI::BackendRegistry::Instance().Create(RHI::BackendType::Null);
+	assert(backend);
+	assert(backend->GetType() == RHI::BackendType::Null);
+	assert(backend->IsSupported());
+	assert(!backend->EnumerateAdapters().empty());
 
-void TestGenerationalHandles(){
-	RHI::ResourcePool<RHI::BufferHandle, int> pool;
-	const RHI::BufferHandle first = pool.Create(10);
+	RHI::DeviceCreateDesc createDesc;
+	createDesc.swapChain.width = 1280;
+	createDesc.swapChain.height = 720;
+
+	std::unique_ptr<RHI::IRHIDevice> device =
+		backend->CreateDevice(createDesc);
+	assert(device);
+	assert(device->GetBackendType() == RHI::BackendType::Null);
+
+	const RHI::DeviceCapabilities& capabilities =
+		device->GetCapabilities();
+	assert(capabilities.backend == RHI::BackendType::Null);
+	assert(capabilities.supportsCompute);
+	assert(capabilities.supportsMultipleCommandQueues);
+	assert(capabilities.supportsTimelineSynchronization);
+
+	assert(device->GetQueue(RHI::CommandQueueType::Graphics));
+	assert(device->GetQueue(RHI::CommandQueueType::Compute));
+	assert(device->GetQueue(RHI::CommandQueueType::Copy));
+}
+
+void TestGenerationalResourceHandles(){
+	RHI::DeviceCreateDesc createDesc;
+	RHI::NullRHIDevice device(createDesc);
+
+	RHI::BufferDesc desc;
+	desc.byteSize = 256;
+	desc.bindFlags = RHI::BufferBindFlags::Vertex;
+
+	const RHI::BufferHandle first = device.CreateBuffer(desc);
 	assert(first);
-	assert(pool.IsAlive(first));
-	assert(*pool.TryGet(first) == 10);
-	assert(pool.Destroy(first));
-	assert(!pool.IsAlive(first));
+	assert(device.GetBufferDesc(first));
+	assert(device.DestroyBuffer(first));
+	assert(device.GetBufferDesc(first) == nullptr);
 
-	const RHI::BufferHandle second = pool.Create(20);
+	const RHI::BufferHandle second = device.CreateBuffer(desc);
 	assert(second);
 	assert(second.index == first.index);
 	assert(second.generation != first.generation);
-	assert(pool.TryGet(first) == nullptr);
-	assert(*pool.TryGet(second) == 20);
+	assert(device.GetBufferDesc(first) == nullptr);
+	assert(device.GetBufferDesc(second));
 }
 
-void TestRenderGraphExecution(){
+void TestQueueSubmissionAndFence(){
+	RHI::DeviceCreateDesc createDesc;
+	RHI::NullRHIDevice device(createDesc);
+
+	std::unique_ptr<RHI::IRHICommandList> commandList =
+		device.CreateCommandList({RHI::CommandQueueType::Graphics, false});
+	assert(commandList);
+	assert(commandList->GetQueueType() == RHI::CommandQueueType::Graphics);
+
+	RHI::PipelineStateDesc pipelineDesc;
+	const RHI::PipelineStateHandle pipeline =
+		device.CreatePipelineState(pipelineDesc);
+	assert(pipeline);
+
+	commandList->Begin();
+	assert(commandList->SetPipelineState(pipeline));
+	commandList->Draw(3, 0);
+	commandList->End();
+
+	std::unique_ptr<RHI::IRHIFence> fence = device.CreateFence(0);
+	assert(fence);
+	assert(fence->GetCompletedValue() == 0);
+
+	std::array<RHI::IRHICommandList*, 1> lists{commandList.get()};
+	RHI::QueueSubmitDesc submit;
+	submit.commandLists = std::span<RHI::IRHICommandList* const>(lists);
+	submit.signalFence = fence->GetHandle();
+	submit.signalValue = 7;
+
+	RHI::IRHICommandQueue* queue =
+		device.GetQueue(RHI::CommandQueueType::Graphics);
+	assert(queue);
+	assert(queue->Submit(submit));
+	assert(fence->Wait(7, 1'000'000));
+	assert(fence->GetCompletedValue() == 7);
+
+	std::unique_ptr<RHI::IRHICommandList> computeList =
+		device.CreateCommandList({RHI::CommandQueueType::Compute, false});
+	computeList->Begin();
+	computeList->Dispatch(1, 1, 1);
+	computeList->End();
+
+	lists[0] = computeList.get();
+	submit.commandLists = std::span<RHI::IRHICommandList* const>(lists);
+	assert(!queue->Submit(submit));
+}
+
+void TestRenderGraphOnNullBackend(){
+	RHI::DeviceCreateDesc createDesc;
+	RHI::NullRHIDevice device(createDesc);
+	std::unique_ptr<RHI::IRHICommandList> commandList =
+		device.CreateCommandList({RHI::CommandQueueType::Graphics, false});
+
 	RHI::RenderGraph graph;
 	const auto gbuffer = graph.AddResource("GBuffer");
 	const auto lighting = graph.AddResource("Lighting");
@@ -57,8 +126,13 @@ void TestRenderGraphExecution(){
 
 	graph.AddPass(
 		"GBuffer",
-		[&](RHI::RenderGraphPassBuilder& builder){ builder.Write(gbuffer); },
-		[&](RHI::IRHICommandList& commands){ execution.push_back(1); commands.Draw(3, 0); }
+		[&](RHI::RenderGraphPassBuilder& builder){
+			builder.Write(gbuffer);
+		},
+		[&](RHI::IRHICommandList& commands){
+			execution.push_back(1);
+			commands.Draw(3, 0);
+		}
 	);
 	graph.AddPass(
 		"Lighting",
@@ -70,42 +144,39 @@ void TestRenderGraphExecution(){
 	);
 	graph.AddPass(
 		"Present",
-		[&](RHI::RenderGraphPassBuilder& builder){ builder.Read(lighting); },
+		[&](RHI::RenderGraphPassBuilder& builder){
+			builder.Read(lighting);
+		},
 		[&](RHI::IRHICommandList&){ execution.push_back(3); }
 	);
 
 	assert(graph.Compile());
 	assert(graph.ExecutionOrder().size() == 3);
-
-	MockCommandList commands;
-	assert(graph.Execute(commands));
-	assert(commands.beginCount == 1);
-	assert(commands.endCount == 1);
-	assert(commands.drawCount == 1);
+	assert(graph.Execute(*commandList));
 	assert((execution == std::vector<int>{1, 2, 3}));
 }
 
-void TestRenderPassDescriptor(){
-	RHI::RenderPassDesc pass;
-	pass.debugName = "Main";
-	pass.colorAttachments.push_back({});
-	pass.colorAttachments[0].loadOperation = RHI::LoadOperation::Clear;
-	pass.colorAttachments[0].clearColor = {0.1f, 0.2f, 0.3f, 1.0f};
-	pass.hasDepthAttachment = true;
-	pass.depthAttachment.depthLoadOperation = RHI::LoadOperation::Clear;
-	assert(pass.colorAttachments.size() == 1);
-	assert(pass.hasDepthAttachment);
+void TestSwapChainContract(){
+	RHI::DeviceCreateDesc createDesc;
+	createDesc.swapChain.width = 640;
+	createDesc.swapChain.height = 360;
+	RHI::NullRHIDevice device(createDesc);
+
+	RHI::IRHISwapChain* swapChain = device.GetSwapChain();
+	assert(swapChain);
+	assert(swapChain->GetDesc().width == 640);
+	assert(swapChain->Resize(1920, 1080));
+	assert(swapChain->GetDesc().width == 1920);
+	assert(swapChain->Present(false));
 }
 
 } // namespace
 
-static_assert(std::is_base_of_v<RHI::IRHIDevice, RHI::D3D11RHIDevice>);
-static_assert(std::is_base_of_v<RHI::IRHICommandList, RHI::D3D11RHICommandList>);
-static_assert(std::is_base_of_v<RHI::IRHISwapChain, RHI::D3D11RHISwapChain>);
-
 int main(){
-	TestGenerationalHandles();
-	TestRenderGraphExecution();
-	TestRenderPassDescriptor();
+	TestBackendRegistryAndCapabilities();
+	TestGenerationalResourceHandles();
+	TestQueueSubmissionAndFence();
+	TestRenderGraphOnNullBackend();
+	TestSwapChainContract();
 	return 0;
 }
