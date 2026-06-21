@@ -14,6 +14,7 @@
 #include <fstream>
 
 #include "Service/IService.h"
+#include "Service/Graphics/RHI/RHIBackend.h"
 #include "Shader/Common.hlsl"
 
 #include "Backends/Effekseer/Effekseer.h"
@@ -98,6 +99,10 @@ public:
 	void Clear(const float clearColor[4]);
 	void Present(bool vsync);
 
+	RHI::BackendType GetBackendType() const noexcept {
+		return RHI::GetRequestedBackend();
+	}
+
 	ID3D11Device* GetDevice() const{return m_Device.Get();}
 	ID3D11DeviceContext* GetDeviceContext() const{return m_DeviceContext.Get();}
 	IDXGISwapChain* GetSwapChain() const{return m_SwapChain.Get();}
@@ -172,6 +177,41 @@ public:
 	ID3D11RenderTargetView** m_CurrentRTV = nullptr;
 
 private:
+	// graphicsContext.cppの既存D3D11生成呼び出しを、EngineConfigで選択された
+	// Backend境界へ接続する移行用Bootstrap。同名のGlobal APIへは明示修飾で委譲する。
+	static HRESULT WINAPI D3D11CreateDeviceAndSwapChain(
+		IDXGIAdapter* adapter,
+		D3D_DRIVER_TYPE driverType,
+		HMODULE software,
+		UINT flags,
+		const D3D_FEATURE_LEVEL* featureLevels,
+		UINT featureLevelsCount,
+		UINT sdkVersion,
+		const DXGI_SWAP_CHAIN_DESC* swapChainDesc,
+		IDXGISwapChain** swapChain,
+		ID3D11Device** device,
+		D3D_FEATURE_LEVEL* featureLevel,
+		ID3D11DeviceContext** immediateContext
+	){
+		if(RHI::GetRequestedBackend() != RHI::BackendType::Direct3D11){
+			return DXGI_ERROR_UNSUPPORTED;
+		}
+		return ::D3D11CreateDeviceAndSwapChain(
+			adapter,
+			driverType,
+			software,
+			flags,
+			featureLevels,
+			featureLevelsCount,
+			sdkVersion,
+			swapChainDesc,
+			swapChain,
+			device,
+			featureLevel,
+			immediateContext
+		);
+	}
+
 	bool CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT height);
 	bool CreateDepthStencilState();
 	bool CreateSamplerState();
