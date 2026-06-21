@@ -55,7 +55,8 @@ struct CameraPostEffectLink {
 
 // カメラ設定とポストエフェクトGraph状態を保持するComponent。
 // YAML・Graph計算・Inspector実装はOperations配下へ分離する。
-struct CameraComponent {
+class CameraComponent {
+public:
 	// 互換用の非所有参照。将来はOperations呼出時の引数だけに限定する。
 	SceneContext* context = nullptr;
 
