@@ -6,6 +6,7 @@
 #include "Scene/Component/CustomScriptComponent.h"
 #include "Scene/Component/transformComponent.h"
 #include "Scene/Registry/componentRegistry.h"
+#include "Scene/Registry/entityRegistry.h"
 #include "System/Physic/PhysicsRuntimeReleaseBridge.h"
 
 namespace PhysicSystemTaskDetail {
@@ -59,8 +60,6 @@ inline void ReleaseEntityRuntime(ColliderComponent* collider){
 	collider->pRigidbodyDynamic = nullptr;
 	collider->pRigidbodyStatic = nullptr;
 
-	// Actor release後にExclusive Shapeが保持していた参照が外れるため、
-	// Collider生成時に得たMaterial / Mesh参照を安全に解放できる。
 	for(ColliderShape& shapeRuntime : collider->colliders){
 		shapeRuntime.pxShape = nullptr;
 		ReleaseRef(shapeRuntime.pxMaterial);
@@ -84,30 +83,55 @@ inline void ReleaseRuntime(
 
 class CollisionDispatchScope {
 public:
-	explicit CollisionDispatchScope(PhysicSystem* owner)
-		: m_owner(owner){}
+	CollisionDispatchScope(
+		void* owner,
+		ScriptCollisionDispatch dispatcher,
+		SceneManagerContext* managerContext
+	)
+		: m_owner(owner)
+	{
+		if(!m_owner || !dispatcher || !managerContext || !managerContext->sceneManager){
+			return;
+		}
+
+		for(auto& [name, scene] : managerContext->sceneManager->GetActiveScenes()){
+			(void)name;
+			if(!scene) continue;
+
+			SceneContext* context = scene->GetSceneContext();
+			if(!context || !context->entity || !context->component) continue;
+
+			for(Entity entity : context->entity->GetAllAlive()){
+				for(CustomScriptComponent* script : context->component->GetScripts(entity)){
+					if(!script) continue;
+					script->SetCollisionDispatcher(m_owner, dispatcher);
+					m_scripts.push_back(script);
+				}
+			}
+		}
+	}
 
 	~CollisionDispatchScope(){
-		ScriptCollisionDispatchBridge::Remove(m_owner);
+		for(CustomScriptComponent* script : m_scripts){
+			if(script) script->ClearCollisionDispatcher(m_owner);
+		}
 	}
 
 	CollisionDispatchScope(const CollisionDispatchScope&) = delete;
 	CollisionDispatchScope& operator=(const CollisionDispatchScope&) = delete;
 
 private:
-	PhysicSystem* m_owner = nullptr;
+	void* m_owner = nullptr;
+	std::vector<CustomScriptComponent*> m_scripts;
 };
 
 } // namespace PhysicSystemTaskDetail
 
 inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
-	// Component破棄やInspector操作からのreleaseをPhysX側へ集約する。
 	PhysicsRuntimeReleaseBridge::Install(
 		&PhysicSystemTaskDetail::ReleaseRuntime
 	);
 
-	// Gameplay ScriptのFixedUpdateで設定した速度・姿勢を同Tickのsimulateへ渡すため、
-	// PhysX Pipeline全体をLate Phaseへ配置する。
 	SystemAccess uploadAccess;
 	uploadAccess
 		.ReadComponent<TransformComponent>()
@@ -224,7 +248,7 @@ inline void PhysicSystem::PhysicsFetch(){
 		return;
 	}
 
-	ScriptCollisionDispatchBridge::Install(
+	PhysicSystemTaskDetail::CollisionDispatchScope dispatchScope(
 		this,
 		[](void* owner,
 		   CustomScriptComponent* script,
@@ -235,9 +259,9 @@ inline void PhysicSystem::PhysicsFetch(){
 				eventType,
 				hit
 			);
-		}
+		},
+		m_context
 	);
-	PhysicSystemTaskDetail::CollisionDispatchScope dispatchScope(this);
 
 	g_pScene->lockRead();
 	g_pScene->fetchResults(true);
