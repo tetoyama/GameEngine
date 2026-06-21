@@ -30,7 +30,7 @@ inline D3D11RHIDevice::D3D11RHIDevice(
 )
 	: m_device(device)
 	, m_context(context)
-	, m_swapChain(swapChain, swapChainDesc)
+	, m_swapChain(this, swapChain, swapChainDesc)
 	, m_graphicsQueue(this, CommandQueueType::Graphics)
 	, m_computeQueue(this, CommandQueueType::Compute)
 	, m_copyQueue(this, CommandQueueType::Copy){
@@ -47,6 +47,7 @@ inline D3D11RHIDevice::D3D11RHIDevice(
 	m_capabilities.supportsAsyncCompute = false;
 	m_capabilities.supportsMultipleCommandQueues = false;
 	m_capabilities.supportsTimelineSynchronization = false;
+	ImportSwapChainImages();
 }
 
 inline D3D11RHIDevice::~D3D11RHIDevice(){
@@ -57,6 +58,7 @@ inline D3D11RHIDevice::~D3D11RHIDevice(){
 	m_samplers.Clear();
 	m_textureViews.Clear();
 	m_bufferViews.Clear();
+	m_swapChain.m_images.clear();
 	m_textures.Clear();
 	m_buffers.Clear();
 }
@@ -68,7 +70,8 @@ inline bool D3D11RHIDevice::DestroyBuffer(BufferHandle handle){
 
 inline bool D3D11RHIDevice::DestroyTexture(TextureHandle handle){
 	D3D11TextureResource* resource = Find(handle);
-	return resource && resource->viewCount == 0 && m_textures.Destroy(handle);
+	return resource && !resource->swapChainOwned &&
+		resource->viewCount == 0 && m_textures.Destroy(handle);
 }
 
 inline bool D3D11RHIDevice::DestroyShader(ShaderHandle handle){
