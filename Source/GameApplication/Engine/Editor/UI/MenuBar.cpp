@@ -1,7 +1,7 @@
 // =======================================================================
-// 
+//
 // MenuBar.cpp
-// 
+//
 // =======================================================================
 #include "Backends/ImGui/imgui.h"
 #include "DebugTools/ImGuiSystem.h"
@@ -12,6 +12,7 @@ void MenuBar::Register(MenuEvent event, const Callback& callback){
 }
 
 void MenuBar::Draw(const EditorDrawContext ctx){
+	(void)ctx;
 
 	if(ImGui::IsKeyPressed(ImGuiKey_F3, false)){
 		showMenuBar = !showMenuBar;
@@ -23,15 +24,15 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 		showEditorView = showMenuBar;
 		showPlayerView = showMenuBar;
 		showPerformanceMonitor = showMenuBar;
-		showSystemSetting = showMenuBar;
+		if(!showMenuBar){
+			showProjectSettings = false;
+		}
 	}
 
-	// Ctrl+Z でアンドゥ
-	if (ImGui::IsKeyPressed(ImGuiKey_Z, false) && ImGui::GetIO().KeyCtrl) {
+	if(ImGui::IsKeyPressed(ImGuiKey_Z, false) && ImGui::GetIO().KeyCtrl){
 		Invoke(MenuEvent::Edit_Undo);
 	}
-	// Ctrl+Y でリドゥ
-	if (ImGui::IsKeyPressed(ImGuiKey_Y, false) && ImGui::GetIO().KeyCtrl) {
+	if(ImGui::IsKeyPressed(ImGuiKey_Y, false) && ImGui::GetIO().KeyCtrl){
 		Invoke(MenuEvent::Edit_Redo);
 	}
 
@@ -43,11 +44,10 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 			if(ImGui::MenuItem("Scene Hierarchy", nullptr, showSceneHierarchy)){
 				showSceneHierarchy = !showSceneHierarchy;
 			}
-
 			if(ImGui::MenuItem("Inspector", nullptr, showInspector)){
 				showInspector = !showInspector;
 			}
-			if(ImGui::MenuItem("DebugLog", nullptr, showConsole)){
+			if(ImGui::MenuItem("Debug Log", nullptr, showConsole)){
 				showConsole = !showConsole;
 			}
 			if(ImGui::MenuItem("Assets Browser", nullptr, showAssetsBrowser)){
@@ -59,25 +59,26 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 			if(ImGui::MenuItem("Player View", nullptr, showPlayerView)){
 				showPlayerView = !showPlayerView;
 			}
-			if(ImGui::MenuItem("PerformanceMonitor", nullptr, showPerformanceMonitor)){
+			if(ImGui::MenuItem("Performance Monitor", nullptr, showPerformanceMonitor)){
 				showPerformanceMonitor = !showPerformanceMonitor;
 			}
-			if(ImGui::MenuItem("SystemSetting", nullptr, showSystemSetting)){
-				showSystemSetting = !showSystemSetting;
+			ImGui::Separator();
+			if(ImGui::MenuItem("Project Settings", nullptr, showProjectSettings)){
+				showProjectSettings = !showProjectSettings;
 			}
 
 			ImGui::EndMenu();
 		}
 
-
 		ImGui::EndMainMenuBar();
 	}
-
 }
 
 void MenuBar::Invoke(MenuEvent event){
 	auto it = m_eventCallbacks.find(event);
-	if(it != m_eventCallbacks.end()) it->second();
+	if(it != m_eventCallbacks.end()){
+		it->second();
+	}
 }
 
 void MenuBar::RenderFileMenu(){
@@ -103,31 +104,40 @@ void MenuBar::RenderFileMenu(){
 }
 
 void MenuBar::RenderEditMenu(){
-
 	if(ImGui::BeginMenu("Edit")){
-		// Undo/Redo の有効フラグと操作名を取得
-		bool canUndo = m_editor && m_editor->commandManager.CanUndo();
-		bool canRedo = m_editor && m_editor->commandManager.CanRedo();
+		const bool canUndo = m_editor && m_editor->commandManager.CanUndo();
+		const bool canRedo = m_editor && m_editor->commandManager.CanRedo();
 
-		std::string undoDesc = canUndo ? m_editor->commandManager.PeekUndoDescription() : "";
-		std::string undoLabel = undoDesc.empty() ? "Undo" : "Undo: " + undoDesc;
+		const std::string undoDesc = canUndo
+			? m_editor->commandManager.PeekUndoDescription()
+			: "";
+		const std::string undoLabel = undoDesc.empty()
+			? "Undo"
+			: "Undo: " + undoDesc;
 		if(ImGui::MenuItem(undoLabel.c_str(), "Ctrl+Z", false, canUndo)){
 			Invoke(MenuEvent::Edit_Undo);
 		}
 
-		std::string redoDesc = canRedo ? m_editor->commandManager.PeekRedoDescription() : "";
-		std::string redoLabel = redoDesc.empty() ? "Redo" : "Redo: " + redoDesc;
+		const std::string redoDesc = canRedo
+			? m_editor->commandManager.PeekRedoDescription()
+			: "";
+		const std::string redoLabel = redoDesc.empty()
+			? "Redo"
+			: "Redo: " + redoDesc;
 		if(ImGui::MenuItem(redoLabel.c_str(), "Ctrl+Y", false, canRedo)){
 			Invoke(MenuEvent::Edit_Redo);
 		}
-		ImGui::Separator();
 
-		if(ImGui::MenuItem("Cut", "Ctrl+X")){
+		ImGui::Separator();
+		if(ImGui::MenuItem("Cut", "Ctrl+X")){}
+		if(ImGui::MenuItem("Copy", "Ctrl+C")){}
+		if(ImGui::MenuItem("Paste", "Ctrl+V")){}
+
+		ImGui::Separator();
+		if(ImGui::MenuItem("Project Settings...")){
+			showProjectSettings = true;
 		}
-		if(ImGui::MenuItem("Copy", "Ctrl+C")){
-		}
-		if(ImGui::MenuItem("Paste", "Ctrl+V")){
-		}
+
 		ImGui::EndMenu();
 	}
 }
