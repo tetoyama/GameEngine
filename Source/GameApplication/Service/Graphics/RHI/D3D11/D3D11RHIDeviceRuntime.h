@@ -1,6 +1,8 @@
 #pragma once
 
 #include <algorithm>
+#include <limits>
+#include <thread>
 
 namespace RHI {
 
@@ -32,7 +34,9 @@ inline D3D11RHIDevice::D3D11RHIDevice(
 	: m_device(device)
 	, m_context(context)
 	, m_swapChain(swapChain, swapChainDesc)
-	, m_graphicsQueue(this){
+	, m_graphicsQueue(this, CommandQueueType::Graphics)
+	, m_computeQueue(this, CommandQueueType::Compute)
+	, m_copyQueue(this, CommandQueueType::Copy){
 	m_capabilities.backend = BackendType::Direct3D11;
 	m_capabilities.maximumColorAttachments = D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT;
 	m_capabilities.maximumTextureDimension2D = D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION;
@@ -43,6 +47,8 @@ inline D3D11RHIDevice::D3D11RHIDevice(
 	m_capabilities.supportsGeometryShader = true;
 	m_capabilities.supportsTessellation = true;
 	m_capabilities.supportsIndirectDraw = true;
+
+	// D3D11のCompute / Copy Queueは同じImmediate Contextへ直列化する論理Queue。
 	m_capabilities.supportsAsyncCompute = false;
 	m_capabilities.supportsMultipleCommandQueues = false;
 	m_capabilities.supportsTimelineSynchronization = false;
@@ -96,36 +102,45 @@ inline const PipelineStateDesc* D3D11RHIDevice::GetPipelineStateDesc(
 }
 
 inline IRHICommandQueue* D3D11RHIDevice::GetQueue(CommandQueueType type){
-	return type == CommandQueueType::Graphics
-		? static_cast<IRHICommandQueue*>(&m_graphicsQueue)
-		: nullptr;
+	switch(type){
+		case CommandQueueType::Graphics:
+			return &m_graphicsQueue;
+		case CommandQueueType::Compute:
+			return m_capabilities.supportsCompute ? &m_computeQueue : nullptr;
+		case CommandQueueType::Copy:
+			return &m_copyQueue;
+	}
+	return nullptr;
 }
 
 inline const IRHICommandQueue* D3D11RHIDevice::GetQueue(
 	CommandQueueType type
 ) const {
-	return type == CommandQueueType::Graphics
-		? static_cast<const IRHICommandQueue*>(&m_graphicsQueue)
-		: nullptr;
+	return const_cast<D3D11RHIDevice*>(this)->GetQueue(type);
 }
 
 inline std::unique_ptr<IRHICommandList> D3D11RHIDevice::CreateCommandList(
 	const CommandListCreateDesc& desc
 ){
-	if(desc.queueType != CommandQueueType::Graphics || desc.secondary){
+	// D3D11 Deferred Contextはこの段階では公開しない。
+	if(desc.secondary) return nullptr;
+	if(desc.queueType == CommandQueueType::Compute &&
+		!m_capabilities.supportsCompute){
 		return nullptr;
 	}
-	return std::make_unique<D3D11RHICommandList>(
-		this,
-		CommandQueueType::Graphics
-	);
+
+	return std::make_unique<D3D11RHICommandList>(this, desc.queueType);
 }
 
 inline std::unique_ptr<IRHIFence> D3D11RHIDevice::CreateFence(
 	uint64_t initialValue
 ){
+	if(!m_context) return nullptr;
+
 	auto state = std::make_shared<D3D11FenceState>();
 	state->completedValue = initialValue;
+	state->lastSignaledValue = initialValue;
+	state->context = m_context;
 	const FenceHandle handle = m_fences.Create(state);
 	return std::make_unique<D3D11RHIFence>(handle, std::move(state));
 }
@@ -137,75 +152,158 @@ inline std::shared_ptr<D3D11FenceState> D3D11RHIDevice::FindFence(
 	return state ? *state : nullptr;
 }
 
+inline uint64_t D3D11FenceState::PollCompletedValue(){
+	std::scoped_lock lock(mutex);
+	if(!context) return completedValue;
+
+	while(!pendingSignals.empty()){
+		D3D11FenceSignal& signal = pendingSignals.front();
+		BOOL queryComplete = FALSE;
+		const HRESULT result = context->GetData(
+			signal.query.Get(),
+			&queryComplete,
+			sizeof(queryComplete),
+			D3D11_ASYNC_GETDATA_DONOTFLUSH
+		);
+		if(result == S_FALSE || queryComplete == FALSE) break;
+		if(FAILED(result)) break;
+
+		completedValue = (std::max)(completedValue, signal.value);
+		pendingSignals.pop_front();
+	}
+	return completedValue;
+}
+
+inline bool D3D11FenceState::Wait(
+	uint64_t value,
+	uint64_t timeoutNanoseconds
+){
+	if(PollCompletedValue() >= value) return true;
+	if(timeoutNanoseconds == 0) return false;
+
+	const bool infinite =
+		timeoutNanoseconds == (std::numeric_limits<uint64_t>::max)();
+	const auto start = std::chrono::steady_clock::now();
+
+	for(;;){
+		if(PollCompletedValue() >= value) return true;
+		if(!infinite){
+			const auto elapsed = std::chrono::duration_cast<
+				std::chrono::nanoseconds
+			>(std::chrono::steady_clock::now() - start);
+			if(elapsed.count() >= timeoutNanoseconds) return false;
+		}
+		std::this_thread::yield();
+	}
+}
+
 inline uint64_t D3D11RHIFence::GetCompletedValue() const {
-	std::scoped_lock lock(m_state->mutex);
-	return m_state->completedValue;
+	return m_state ? m_state->PollCompletedValue() : 0;
 }
 
 inline bool D3D11RHIFence::Wait(
 	uint64_t value,
 	uint64_t timeoutNanoseconds
 ){
-	std::unique_lock lock(m_state->mutex);
-	if(timeoutNanoseconds == 0){
-		return m_state->completedValue >= value;
+	return m_state && m_state->Wait(value, timeoutNanoseconds);
+}
+
+inline bool D3D11RHIDevice::SignalFence(
+	const std::shared_ptr<D3D11FenceState>& state,
+	uint64_t value
+){
+	if(!state || !m_device || !m_context) return false;
+
+	std::scoped_lock lock(state->mutex);
+	if(value <= state->completedValue) return true;
+	if(value < state->lastSignaledValue) return false;
+	if(value == state->lastSignaledValue) return true;
+
+	D3D11_QUERY_DESC queryDesc{};
+	queryDesc.Query = D3D11_QUERY_EVENT;
+
+	D3D11FenceSignal signal;
+	signal.value = value;
+	if(FAILED(m_device->CreateQuery(
+		&queryDesc,
+		signal.query.GetAddressOf()
+	))){
+		return false;
 	}
-	return m_state->condition.wait_for(
-		lock,
-		std::chrono::nanoseconds(timeoutNanoseconds),
-		[&]{ return m_state->completedValue >= value; }
-	);
+
+	// CommandListはImmediate Contextへ記録済み。
+	// EVENT Queryを末尾へ置き、GPUがここへ到達した時だけFenceを完了させる。
+	m_context->End(signal.query.Get());
+	state->pendingSignals.push_back(std::move(signal));
+	state->lastSignaledValue = value;
+	m_context->Flush();
+	return true;
 }
 
 inline bool D3D11RHICommandQueue::Submit(const QueueSubmitDesc& desc){
 	if(!m_owner || !m_owner->m_context) return false;
 
-	if(desc.waitFence){
-		auto state = m_owner->FindFence(desc.waitFence);
-		if(!state) return false;
-		std::unique_lock lock(state->mutex);
-		state->condition.wait(lock, [&]{
-			return state->completedValue >= desc.waitValue;
-		});
-	}
-
 	for(IRHICommandList* commandList : desc.commandLists){
-		if(!commandList ||
-			commandList->GetQueueType() != CommandQueueType::Graphics){
+		if(!commandList || commandList->GetQueueType() != m_type){
 			return false;
 		}
 		auto* d3d11List = dynamic_cast<D3D11RHICommandList*>(commandList);
 		if(!d3d11List || !d3d11List->IsClosed()) return false;
 	}
 
-	// D3D11ではCommandList記録時にImmediate Contextへ発行済み。
-	// SubmitはAPI非依存Queue契約の検証とFence通知を担当する。
-	m_owner->m_context->Flush();
+	if(desc.waitFence){
+		auto state = m_owner->FindFence(desc.waitFence);
+		if(!state || !state->Wait(
+			desc.waitValue,
+			(std::numeric_limits<uint64_t>::max)()
+		)){
+			return false;
+		}
+	}
 
 	if(desc.signalFence){
 		auto state = m_owner->FindFence(desc.signalFence);
-		if(!state) return false;
-		{
-			std::scoped_lock lock(state->mutex);
-			state->completedValue = (std::max)(
-				state->completedValue,
-				desc.signalValue
-			);
-		}
-		state->condition.notify_all();
+		if(!m_owner->SignalFence(state, desc.signalValue)) return false;
+	}
+	else{
+		m_owner->m_context->Flush();
 	}
 
 	return true;
 }
 
-inline void D3D11RHICommandQueue::WaitIdle(){
-	if(m_owner && m_owner->m_context){
-		m_owner->m_context->Flush();
+inline bool D3D11RHIDevice::WaitForImmediateContext(){
+	if(!m_device || !m_context) return false;
+
+	D3D11_QUERY_DESC queryDesc{};
+	queryDesc.Query = D3D11_QUERY_EVENT;
+	Microsoft::WRL::ComPtr<ID3D11Query> query;
+	if(FAILED(m_device->CreateQuery(&queryDesc, query.GetAddressOf()))){
+		return false;
+	}
+
+	m_context->End(query.Get());
+	m_context->Flush();
+	for(;;){
+		BOOL queryComplete = FALSE;
+		const HRESULT result = m_context->GetData(
+			query.Get(),
+			&queryComplete,
+			sizeof(queryComplete),
+			D3D11_ASYNC_GETDATA_DONOTFLUSH
+		);
+		if(result == S_OK && queryComplete != FALSE) return true;
+		if(FAILED(result)) return false;
+		std::this_thread::yield();
 	}
 }
 
+inline void D3D11RHICommandQueue::WaitIdle(){
+	if(m_owner) m_owner->WaitForImmediateContext();
+}
+
 inline void D3D11RHIDevice::WaitIdle(){
-	m_graphicsQueue.WaitIdle();
+	WaitForImmediateContext();
 }
 
 } // namespace RHI
