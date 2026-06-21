@@ -103,6 +103,45 @@ constexpr bool HasAnyFlag(Enum value, Enum flags) noexcept {
 	return static_cast<std::underlying_type_t<Enum>>(value & flags) != 0;
 }
 
+// D3D12 Resource StateとVulkan Layout / Accessを上位層で共通管理するための論理状態。
+// 複数Read用途はbitwise ORできる。Write用途同士の複合は原則として使用しない。
+enum class ResourceState : uint32_t {
+	Undefined = 0,
+	Common = 1u << 0u,
+	VertexBuffer = 1u << 1u,
+	IndexBuffer = 1u << 2u,
+	ConstantBuffer = 1u << 3u,
+	ShaderResource = 1u << 4u,
+	UnorderedAccess = 1u << 5u,
+	RenderTarget = 1u << 6u,
+	DepthWrite = 1u << 7u,
+	DepthRead = 1u << 8u,
+	CopySource = 1u << 9u,
+	CopyDestination = 1u << 10u,
+	Present = 1u << 11u,
+	IndirectArgument = 1u << 12u
+};
+
+enum class ResourceBarrierType : uint8_t {
+	Transition,
+	UnorderedAccess
+};
+
+inline constexpr uint32_t AllSubresources = 0xffffffffu;
+
+struct ResourceBarrierDesc {
+	ResourceBarrierType type = ResourceBarrierType::Transition;
+	BufferHandle buffer;
+	TextureHandle texture;
+	ResourceState before = ResourceState::Undefined;
+	ResourceState after = ResourceState::Common;
+	uint32_t subresource = AllSubresources;
+
+	constexpr bool HasExactlyOneResource() const noexcept {
+		return static_cast<bool>(buffer) != static_cast<bool>(texture);
+	}
+};
+
 enum class ShaderStage : uint8_t {
 	Vertex,
 	Pixel,
@@ -185,6 +224,7 @@ struct BufferDesc {
 	CpuAccessFlags cpuAccess = CpuAccessFlags::None;
 	bool structured = false;
 	bool raw = false;
+	ResourceState initialState = ResourceState::Common;
 	std::string debugName;
 };
 
@@ -200,6 +240,7 @@ struct TextureDesc {
 	TextureBindFlags bindFlags = TextureBindFlags::ShaderResource;
 	CpuAccessFlags cpuAccess = CpuAccessFlags::None;
 	bool generateMips = false;
+	ResourceState initialState = ResourceState::Common;
 	std::string debugName;
 };
 
