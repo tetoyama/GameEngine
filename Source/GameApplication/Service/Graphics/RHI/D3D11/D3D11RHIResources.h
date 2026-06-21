@@ -11,11 +11,13 @@ namespace RHI {
 
 struct D3D11BufferResource {
 	BufferDesc desc;
+	ResourceState state = ResourceState::Common;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> object;
 };
 
 struct D3D11TextureResource {
 	TextureDesc desc;
+	std::vector<ResourceState> subresourceStates;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> object;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderView;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> renderView;
