@@ -89,6 +89,12 @@ void TestLogicalQueueFallbackAndGpuFence(){
 		true
 	}));
 
+	RHI::BufferDesc bufferDesc;
+	bufferDesc.byteSize = 64;
+	bufferDesc.initialState = RHI::ResourceState::Common;
+	const RHI::BufferHandle buffer = device.CreateBuffer(bufferDesc, {});
+	assert(buffer);
+
 	std::unique_ptr<RHI::IRHICommandList> graphicsList =
 		device.CreateCommandList({RHI::CommandQueueType::Graphics, false});
 	std::unique_ptr<RHI::IRHICommandList> computeList =
@@ -100,6 +106,29 @@ void TestLogicalQueueFallbackAndGpuFence(){
 	assert(copyList);
 
 	graphicsList->Begin();
+	RHI::ResourceBarrierDesc barrier;
+	barrier.buffer = buffer;
+	barrier.before = RHI::ResourceState::Common;
+	barrier.after = RHI::ResourceState::CopyDestination;
+	assert(graphicsList->ResourceBarrier(
+		std::span<const RHI::ResourceBarrierDesc>(&barrier, 1)
+	));
+
+	// before不一致は拒否し、Undefinedは既知状態を問わないTransitionとして扱う。
+	barrier.before = RHI::ResourceState::Common;
+	barrier.after = RHI::ResourceState::ShaderResource;
+	assert(!graphicsList->ResourceBarrier(
+		std::span<const RHI::ResourceBarrierDesc>(&barrier, 1)
+	));
+	barrier.before = RHI::ResourceState::Undefined;
+	barrier.after = RHI::ResourceState::UnorderedAccess;
+	assert(graphicsList->ResourceBarrier(
+		std::span<const RHI::ResourceBarrierDesc>(&barrier, 1)
+	));
+	barrier.type = RHI::ResourceBarrierType::UnorderedAccess;
+	assert(graphicsList->ResourceBarrier(
+		std::span<const RHI::ResourceBarrierDesc>(&barrier, 1)
+	));
 	graphicsList->End();
 
 	computeList->Begin();
