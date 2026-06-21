@@ -19,6 +19,7 @@
 #include "Scene/Registry/componentRegistry.h"
 #include "Scene/Registry/systemRegistry.h"
 #include "Scene/System/Physic/physicSystem.h"
+#include "Scene/System/Physic/PhysicsRuntimeReleaseBridge.h"
 #include "Scene/Component/modelRendererComponent.h"
 
 namespace ColliderComponentOperations {
@@ -128,30 +129,6 @@ inline bool Decode(ColliderComponent& component, const YAML::Node& node){
 
 	component.needsUpdate = true;
 	return true;
-}
-
-template<typename TActor>
-inline void ReleaseActor(TActor*& actor){
-	if(!actor){
-		return;
-	}
-	if(actor->userData){
-		delete static_cast<ActorEntityInfo*>(actor->userData);
-		actor->userData = nullptr;
-	}
-	actor->release();
-	actor = nullptr;
-}
-
-inline void ReleaseShapeRuntime(ColliderShape& collider){
-	if(collider.pxShape){
-		collider.pxShape->release();
-		collider.pxShape = nullptr;
-	}
-	if(collider.pxMaterial){
-		collider.pxMaterial->release();
-		collider.pxMaterial = nullptr;
-	}
 }
 
 inline ModelRendererComponent* FindModelRenderer(
@@ -438,7 +415,7 @@ inline void Inspect(ColliderComponent& component, SceneContext* context){
 
 			bool removed = false;
 			if(ImGui::SmallButton("Remove")){
-				ReleaseShapeRuntime(component.colliders[index]);
+				PhysicsRuntimeReleaseBridge::ReleaseShape(&component, index);
 				component.colliders.erase(component.colliders.begin() + index);
 				component.needsUpdate = true;
 				removed = true;
@@ -466,8 +443,7 @@ inline void Inspect(ColliderComponent& component, SceneContext* context){
 } // namespace ColliderComponentOperations
 
 inline ColliderComponent::~ColliderComponent(){
-	ColliderComponentOperations::ReleaseActor(pRigidbodyStatic);
-	ColliderComponentOperations::ReleaseActor(pRigidbodyDynamic);
+	PhysicsRuntimeReleaseBridge::ReleaseEntity(this);
 }
 
 inline YAML::Node ColliderComponent::encode(){
