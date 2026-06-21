@@ -28,9 +28,20 @@ inline void Runner::Execute(
 	for(size_t nodeIndex : ready) Dispatch(state, nodeIndex);
 	RunMainQueue(state);
 
-	// JobSystem停止中は全TaskがMain Queueで実行され、Job-local Commandも存在しない。
-	if(jobs.IsRunning()) {
-		jobs.FlushThreadCommands();
+	bool failed = false;
+	{
+		std::scoped_lock lock(state->mutex);
+		failed = state->failed;
+	}
+
+	// Structural Commitが存在しないScheduleでも、成功時には残りの
+	// Worker-local CommandをMainThreadで適用する。
+	if(jobs.IsRunning() && !failed) {
+		try {
+			jobs.FlushThreadCommands();
+		} catch(...) {
+			RecordException(state, std::current_exception());
+		}
 	}
 
 	RethrowScheduleException(state);
