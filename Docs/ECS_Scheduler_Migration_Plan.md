@@ -335,7 +335,7 @@ Backend変換:
 - [x] Backend Barrier発行
 - [x] 最終Resource State取得
 - [x] 競合State検出
-- [ ] Subresource単位State宣言
+- [x] Subresource単位State宣言
 - [ ] Transient Resource寿命解析
 - [ ] Queue間同期
 - [ ] Pass Culling
@@ -349,15 +349,16 @@ Backend変換:
 - [x] Null BackendによるAPI非依存実行Test
 - [x] D3D11 Queue / View / Sampler / Fence適合Test
 - [x] SwapChain lifecycle contract Smoke Test
+- [x] Subresource State / Barrier Smoke Test
 - [x] Debug / Release x64 Engine回帰
 - [ ] D3D11実描画最小Triangle
 - [ ] 既存Player View実機回帰
 
 直近検証:
 
-- Migration Plan Validation run #195: success
-- RHI Smoke Test run #244: success
-- Windows Build run #764: success
+- Migration Plan Validation run #202: success
+- RHI Smoke Test run #256: success
+- Windows Build run #776: success
 
 Step 16完了条件:
 
@@ -375,6 +376,7 @@ Step 16完了条件:
 - `Docs/Step16C_ResourceState_Barrier_Completion.md`
 - `Docs/Step16C_View_Sampler_Completion.md`
 - `Docs/Step16E_SwapChain_Completion.md`
+- `Docs/Step16F_Subresource_State_Completion.md`
 
 ## Step 17: RenderWorld
 
@@ -428,13 +430,12 @@ Step 16完了条件:
 
 # 3. 現在の作業位置
 
-1. Step 16-FのSubresource State宣言
-2. Step 16-FのTransient Resource寿命解析
-3. Step 16-FのQueue間同期
-4. Step 16-FのPass Culling
-5. D3D11最小実描画Triangle Test
-6. 既存Player View実機回帰
-7. Step 16完了報告
-8. Step 17 RenderWorld移行
+1. Step 16-FのTransient Resource寿命解析
+2. Step 16-FのQueue間同期
+3. Step 16-FのPass Culling
+4. D3D11最小実描画Triangle Test
+5. 既存Player View実機回帰
+6. Step 16完了報告
+7. Step 17 RenderWorld移行
 
 Step 17はStep 16の公開契約と既存Player View回帰を確定してから開始する。
