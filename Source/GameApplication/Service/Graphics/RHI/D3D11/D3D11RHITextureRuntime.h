@@ -71,6 +71,7 @@ inline TextureHandle D3D11RHIDevice::CreateTexture(
 
 	D3D11TextureResource resource;
 	resource.desc = desc;
+	resource.subresourceStates.assign(desc.mipLevels, desc.initialState);
 	if(FAILED(m_device->CreateTexture2D(
 		&nativeDesc,
 		uploadPtr,
