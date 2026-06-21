@@ -251,7 +251,7 @@ Direct3D 11コードを別名へ差し替えるWrapperではなく、同じRende
 - [x] `DeviceCapabilities`
 - [x] Null Backend登録
 - [x] D3D11 Backend Factory登録
-- [ ] 起動ConfigからBackend選択
+- [x] 起動ConfigからBackend選択
 
 ### Step 16-B: Device / Queue / Synchronization
 
@@ -317,9 +317,9 @@ Backend変換:
 - [x] Load / Store Operation
 - [x] D3D11 SwapChain Runtime
 - [x] Texture ViewベースD3D11 RenderPass Binding
-- [ ] SwapChain Image Handle取得
-- [ ] Present Queue経由化
-- [ ] Resize時のGPU同期契約
+- [x] SwapChain Image Handle取得
+- [x] Present Queue経由化
+- [x] Resize時のGPU同期契約
 
 ### Step 16-F: RenderGraph
 
@@ -348,15 +348,16 @@ Backend変換:
 - [x] D3D11 Backend Header / Contract Build
 - [x] Null BackendによるAPI非依存実行Test
 - [x] D3D11 Queue / View / Sampler / Fence適合Test
+- [x] SwapChain lifecycle contract Smoke Test
 - [x] Debug / Release x64 Engine回帰
 - [ ] D3D11実描画最小Triangle
 - [ ] 既存Player View実機回帰
 
 直近検証:
 
-- Migration Plan Validation run #139: success
-- RHI Smoke Test run #133: success
-- Windows Build run #653: success
+- Migration Plan Validation run #195: success
+- RHI Smoke Test run #244: success
+- Windows Build run #764: success
 
 Step 16完了条件:
 
@@ -369,9 +370,11 @@ Step 16完了条件:
 詳細:
 
 - `Docs/Step16_RHI_MultiBackend_Architecture.md`
+- `Docs/Step16A_Backend_Config_Completion.md`
 - `Docs/Step16B_D3D11_LogicalQueue_Completion.md`
 - `Docs/Step16C_ResourceState_Barrier_Completion.md`
 - `Docs/Step16C_View_Sampler_Completion.md`
+- `Docs/Step16E_SwapChain_Completion.md`
 
 ## Step 17: RenderWorld
 
@@ -425,12 +428,13 @@ Step 16完了条件:
 
 # 3. 現在の作業位置
 
-1. Step 16-Aの起動Config Backend選択
-2. Step 16-EのSwapChain Image Handle / Present Queue / Resize同期
-3. Step 16-FのSubresource State / Transient Resource / Queue間同期
-4. D3D11最小実描画Triangle Test
-5. 既存Player View実機回帰
-6. Step 16完了報告
-7. Step 17 RenderWorld移行
+1. Step 16-FのSubresource State宣言
+2. Step 16-FのTransient Resource寿命解析
+3. Step 16-FのQueue間同期
+4. Step 16-FのPass Culling
+5. D3D11最小実描画Triangle Test
+6. 既存Player View実機回帰
+7. Step 16完了報告
+8. Step 17 RenderWorld移行
 
 Step 17はStep 16の公開契約と既存Player View回帰を確定してから開始する。
