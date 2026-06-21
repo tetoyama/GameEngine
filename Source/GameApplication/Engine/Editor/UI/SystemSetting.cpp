@@ -208,6 +208,9 @@ void SystemSetting::Draw(const EditorDrawContext ctx){
 				"Save Project Settings",
 				ImVec2(saveButtonWidth, 0.0f)
 			)){
+				if(sceneManager && sceneManager->systemRegistry){
+					sceneManager->systemRegistry->EncodeAll(config->editorConfig);
+				}
 				config->SaveEditorConfig(EDITOR_CONFIG_PATH);
 				config->SaveApplicationConfig(APPLICATION_CONFIG_PATH);
 				RHI::SetRequestedBackend(config->engineConfig.graphics.backend);
