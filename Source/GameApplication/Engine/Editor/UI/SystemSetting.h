@@ -9,6 +9,7 @@
 
 #include "Editor/editorService.h"
 #include "Editor/InterFace/IEditorUI.h"
+#include "Editor/UI/ScheduleProfilerView.h"
 
 class SystemSetting : public IEditorUI {
 public:
@@ -22,4 +23,5 @@ public:
 private:
 	EditorService* m_editor = nullptr;
 	double m_lastSaveTime = -1000.0;
+	ScheduleProfilerViewState m_scheduleViewState;
 };
