@@ -11,21 +11,6 @@
 
 namespace RHI {
 
-// EngineConfigから要求された起動Backend。
-// ConfigServiceが設定し、Legacy GraphicsContextを含む起動経路が参照する。
-inline BackendType& RequestedBackendStorage() noexcept {
-	static BackendType backend = BackendType::Direct3D11;
-	return backend;
-}
-
-inline void SetRequestedBackend(BackendType backend) noexcept {
-	RequestedBackendStorage() = backend;
-}
-
-inline BackendType GetRequestedBackend() noexcept {
-	return RequestedBackendStorage();
-}
-
 // OS固有Window型をRHI公開契約へ漏らさないための非所有Handle。
 // Win32ではwindow=HWND、Vulkan/X11等ではdisplayも使用できる。
 struct NativeWindowHandle {
@@ -66,14 +51,15 @@ public:
 
 using BackendFactory = std::unique_ptr<IRHIBackend>(*)();
 
-// 利用可能なBackendを実行時に選択するRegistry。
-// D3D11、D3D12、Vulkanはそれぞれ別翻訳単位からFactoryを登録する。
+// 利用可能なBackend Factoryを保持する通常オブジェクト。
+// Process Global Singletonにはせず、RHIServiceが一意所有してDIする。
 class BackendRegistry {
 public:
-	static BackendRegistry& Instance(){
-		static BackendRegistry registry;
-		return registry;
-	}
+	BackendRegistry() = default;
+	BackendRegistry(const BackendRegistry&) = delete;
+	BackendRegistry& operator=(const BackendRegistry&) = delete;
+	BackendRegistry(BackendRegistry&&) noexcept = default;
+	BackendRegistry& operator=(BackendRegistry&&) noexcept = default;
 
 	bool Register(BackendType type, BackendFactory factory){
 		if(!factory || FindFactory(type)) return false;
@@ -88,6 +74,10 @@ public:
 
 	bool IsRegistered(BackendType type) const {
 		return FindFactory(type) != nullptr;
+	}
+
+	void Clear() noexcept {
+		m_entries.clear();
 	}
 
 private:
