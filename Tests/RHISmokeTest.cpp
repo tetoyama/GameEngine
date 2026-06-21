@@ -52,13 +52,13 @@ void TestGenerationalResourceHandles(){
 	desc.byteSize = 256;
 	desc.bindFlags = RHI::BufferBindFlags::Vertex;
 
-	const RHI::BufferHandle first = device.CreateBuffer(desc);
+	const RHI::BufferHandle first = device.CreateBuffer(desc, {});
 	assert(first);
 	assert(device.GetBufferDesc(first));
 	assert(device.DestroyBuffer(first));
 	assert(device.GetBufferDesc(first) == nullptr);
 
-	const RHI::BufferHandle second = device.CreateBuffer(desc);
+	const RHI::BufferHandle second = device.CreateBuffer(desc, {});
 	assert(second);
 	assert(second.index == first.index);
 	assert(second.generation != first.generation);
