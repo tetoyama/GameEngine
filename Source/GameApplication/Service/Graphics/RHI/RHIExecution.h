@@ -9,6 +9,7 @@
 namespace RHI {
 
 class IRHICommandList;
+class IRHISwapChain;
 
 enum class CommandQueueType : uint8_t {
 	Graphics,
@@ -32,16 +33,15 @@ struct QueueSubmitDesc {
 class IRHICommandQueue {
 public:
 	virtual ~IRHICommandQueue() = default;
-
 	virtual CommandQueueType GetType() const noexcept = 0;
 	virtual bool Submit(const QueueSubmitDesc& desc) = 0;
+	virtual bool Present(IRHISwapChain& swapChain, bool verticalSync) = 0;
 	virtual void WaitIdle() = 0;
 };
 
 class IRHIFence {
 public:
 	virtual ~IRHIFence() = default;
-
 	virtual FenceHandle GetHandle() const noexcept = 0;
 	virtual uint64_t GetCompletedValue() const = 0;
 	virtual bool Wait(uint64_t value, uint64_t timeoutNanoseconds) = 0;
