@@ -42,6 +42,7 @@ inline BufferHandle D3D11RHIDevice::CreateBuffer(
 
 	D3D11BufferResource resource;
 	resource.desc = desc;
+	resource.state = desc.initialState;
 	if(FAILED(m_device->CreateBuffer(
 		&nativeDesc,
 		uploadPtr,
