@@ -4,6 +4,7 @@
 #include <cassert>
 #include <chrono>
 #include <cstddef>
+#include <functional>
 #include <stdexcept>
 #include <thread>
 #include <utility>
@@ -70,7 +71,10 @@ void TestParallelReadyNodesAndMainJoin() {
 	SystemAccess accessB;
 	accessB.WriteResource<ResourceB>();
 	SystemAccess joinAccess;
-	joinAccess.ReadResource<ResourceA>().ReadResource<ResourceB>();
+	joinAccess
+		.ReadResource<ResourceA>()
+		.ReadResource<ResourceB>()
+		.SetStructuralAccess(StructuralAccess::ExclusiveWorldWrite);
 
 	std::vector<SystemTask> tasks;
 	tasks.emplace_back(MakeTask(
@@ -97,6 +101,7 @@ void TestParallelReadyNodesAndMainJoin() {
 			assert(context.jobContext != nullptr);
 			assert(context.jobContext->workerIndex == JobSystem::InvalidWorkerIndex);
 			assert(completed.load(std::memory_order_acquire) == 2);
+			assert(flushedCommands.load(std::memory_order_relaxed) == 2);
 			joinedOnMainThread = true;
 		}
 	));
@@ -123,11 +128,14 @@ void TestExceptionDrainsGraphAndSkipsDependents() {
 	jobs.Start(2);
 
 	bool dependentExecuted = false;
+	std::atomic<int> failedTaskCommands{0};
 
 	SystemAccess failureAccess;
 	failureAccess.WriteResource<FailureResource>();
 	SystemAccess dependentAccess;
-	dependentAccess.ReadResource<FailureResource>();
+	dependentAccess
+		.ReadResource<FailureResource>()
+		.SetStructuralAccess(StructuralAccess::ExclusiveWorldWrite);
 
 	std::vector<SystemTask> tasks;
 	tasks.emplace_back(MakeTask(
@@ -135,7 +143,11 @@ void TestExceptionDrainsGraphAndSkipsDependents() {
 		0,
 		std::move(failureAccess),
 		ThreadAffinity::AnyWorker,
-		[](const SystemTaskContext&) {
+		[&](const SystemTaskContext& context) {
+			assert(context.jobContext != nullptr);
+			context.jobContext->commands.Enqueue([&failedTaskCommands] {
+				failedTaskCommands.fetch_add(1, std::memory_order_relaxed);
+			});
 			throw std::runtime_error("expected schedule failure");
 		}
 	));
@@ -162,6 +174,7 @@ void TestExceptionDrainsGraphAndSkipsDependents() {
 
 	assert(caught);
 	assert(!dependentExecuted);
+	assert(failedTaskCommands.load(std::memory_order_relaxed) == 0);
 	jobs.Stop();
 }
 
