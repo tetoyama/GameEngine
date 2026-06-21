@@ -21,6 +21,9 @@ struct D3D11TextureResource {
 	std::vector<ResourceState> subresourceStates;
 	uint32_t viewCount = 0;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> object;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderView;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> renderView;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView;
 };
 
 struct D3D11BufferViewResource {
