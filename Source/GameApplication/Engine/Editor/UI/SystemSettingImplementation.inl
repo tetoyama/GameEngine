@@ -223,7 +223,6 @@ void SystemSetting::Draw(const EditorDrawContext ctx) {
 		}
 		config->SaveEditorConfig(EDITOR_CONFIG_PATH);
 		config->SaveApplicationConfig(APPLICATION_CONFIG_PATH);
-		RHI::SetRequestedBackend(config->engineConfig.graphics.backend);
 		m_lastSaveTime = ImGui::GetTime();
 	}
 	if(ImGui::GetTime() - m_lastSaveTime < 2.0) {
