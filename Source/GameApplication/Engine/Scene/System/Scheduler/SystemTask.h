@@ -18,7 +18,7 @@ struct JobThreadContext;
 
 // 一回のSchedule実行でTaskへ渡される共通情報。
 // jobContextはParallel Executorが実行Threadごとに設定する。
-// 直列実行やJobSystem停止中でもMainThread用Contextが渡される。
+// JobSystem停止中の直列フォールバックではnullptrとなる。
 struct SystemTaskContext {
 	float deltaTime = 0.0f;
 	JobThreadContext* jobContext = nullptr;
