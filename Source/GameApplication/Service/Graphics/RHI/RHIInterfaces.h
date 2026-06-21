@@ -1,10 +1,3 @@
-// =======================================================================
-//
-// RHIInterfaces.h
-//
-// Backend非依存のDevice / Queue / CommandList契約。
-//
-// =======================================================================
 #pragma once
 
 #include <cstddef>
@@ -21,7 +14,6 @@ namespace RHI {
 class IRHICommandList {
 public:
 	virtual ~IRHICommandList() = default;
-
 	virtual CommandQueueType GetQueueType() const noexcept = 0;
 	virtual void Begin() = 0;
 	virtual void End() = 0;
@@ -48,15 +40,18 @@ public:
 	virtual bool Resize(uint32_t width, uint32_t height) = 0;
 	virtual bool Present(bool verticalSync) = 0;
 	virtual const SwapChainDesc& GetDesc() const = 0;
+	virtual uint32_t GetImageCount() const noexcept = 0;
+	virtual uint32_t GetCurrentImageIndex() const noexcept = 0;
+	virtual TextureHandle GetImage(uint32_t imageIndex) const noexcept = 0;
+	virtual CommandQueueType GetPresentQueueType() const noexcept = 0;
+	TextureHandle GetCurrentImage() const noexcept { return GetImage(GetCurrentImageIndex()); }
 };
 
 class IRHIDevice {
 public:
 	virtual ~IRHIDevice() = default;
-
 	virtual BackendType GetBackendType() const noexcept = 0;
 	virtual const DeviceCapabilities& GetCapabilities() const noexcept = 0;
-
 	virtual BufferHandle CreateBuffer(const BufferDesc& desc, std::span<const std::byte> initialData = {}) = 0;
 	virtual TextureHandle CreateTexture(const TextureDesc& desc, std::span<const std::byte> initialData = {}, uint32_t initialRowPitch = 0) = 0;
 	virtual BufferViewHandle CreateBufferView(const BufferViewDesc& desc) = 0;
@@ -64,7 +59,6 @@ public:
 	virtual SamplerHandle CreateSampler(const SamplerDesc& desc) = 0;
 	virtual ShaderHandle CreateShader(const ShaderDesc& desc, std::span<const std::byte> byteCode) = 0;
 	virtual PipelineStateHandle CreatePipelineState(const PipelineStateDesc& desc) = 0;
-
 	virtual bool DestroyBuffer(BufferHandle handle) = 0;
 	virtual bool DestroyTexture(TextureHandle handle) = 0;
 	virtual bool DestroyBufferView(BufferViewHandle handle) = 0;
@@ -72,7 +66,6 @@ public:
 	virtual bool DestroySampler(SamplerHandle handle) = 0;
 	virtual bool DestroyShader(ShaderHandle handle) = 0;
 	virtual bool DestroyPipelineState(PipelineStateHandle handle) = 0;
-
 	virtual const BufferDesc* GetBufferDesc(BufferHandle handle) const = 0;
 	virtual const TextureDesc* GetTextureDesc(TextureHandle handle) const = 0;
 	virtual const BufferViewDesc* GetBufferViewDesc(BufferViewHandle handle) const = 0;
@@ -80,15 +73,25 @@ public:
 	virtual const SamplerDesc* GetSamplerDesc(SamplerHandle handle) const = 0;
 	virtual const ShaderDesc* GetShaderDesc(ShaderHandle handle) const = 0;
 	virtual const PipelineStateDesc* GetPipelineStateDesc(PipelineStateHandle handle) const = 0;
-
 	virtual IRHICommandQueue* GetQueue(CommandQueueType type) = 0;
 	virtual const IRHICommandQueue* GetQueue(CommandQueueType type) const = 0;
 	virtual std::unique_ptr<IRHICommandList> CreateCommandList(const CommandListCreateDesc& desc) = 0;
 	virtual std::unique_ptr<IRHIFence> CreateFence(uint64_t initialValue = 0) = 0;
-
 	virtual IRHISwapChain* GetSwapChain() = 0;
 	virtual const IRHISwapChain* GetSwapChain() const = 0;
 	virtual void WaitIdle() = 0;
+	bool PresentSwapChain(bool verticalSync){
+		IRHISwapChain* swapChain = GetSwapChain();
+		if(!swapChain) return false;
+		IRHICommandQueue* queue = GetQueue(swapChain->GetPresentQueueType());
+		return queue && queue->Present(*swapChain, verticalSync);
+	}
+	bool ResizeSwapChain(uint32_t width, uint32_t height){
+		IRHISwapChain* swapChain = GetSwapChain();
+		if(!swapChain || width == 0 || height == 0) return false;
+		WaitIdle();
+		return swapChain->Resize(width, height);
+	}
 };
 
 } // namespace RHI
