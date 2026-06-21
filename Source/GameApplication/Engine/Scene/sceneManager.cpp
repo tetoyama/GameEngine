@@ -40,6 +40,8 @@
 #include <Editor/UI/Inspector.h>
 #include <Editor/UI/Hierarchy.h>
 
+SceneManager::~SceneManager() = default;
+
 void SceneManager::Initialize(SceneManagerContext sceneContext){
 	
 	#ifdef _DEBUG_BUILD
@@ -61,7 +63,7 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 		m_SceneContext.debug->LOG_INFO("SceneManager の初期化を開始します");
 	}
 
-	systemRegistry = std::make_shared<SystemRegistry>();
+	systemRegistry = std::make_unique<SystemRegistry>();
 
 	systemRegistry->RegisterSystem(std::make_unique<ScriptSystem>(&m_SceneContext));
 
