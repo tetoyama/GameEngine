@@ -1,4 +1,4 @@
-# Validates the Engine static CRT, Script DLL dynamic CRT, Job System, and Scheduler behavior.
+# Validates the Engine static CRT, Script DLL dynamic CRT, Job System, Scheduler, and Transform rotation behavior.
 name: Windows Build
 
 on:
@@ -64,6 +64,30 @@ jobs:
 
       - name: Run Schedule Executor smoke test
         run: .\schedule-executor-smoke.exe
+
+  transform-rotation-smoke-x64:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build Transform Rotation smoke test
+        run: >-
+          cl /nologo /std:c++20 /EHsc /W4 /MTd
+          /I Source/GameApplication/Engine/Scene
+          Tests/TransformRotationSmokeTest.cpp
+          /Fe:transform-rotation-smoke.exe
+
+      - name: Run Transform Rotation smoke test
+        run: .\transform-rotation-smoke.exe
 
   script-debug-x64:
     runs-on: windows-latest
