@@ -7,7 +7,6 @@
 #include "Scene/Component/transformComponent.h"
 #include "Scene/Registry/componentRegistry.h"
 #include "Scene/Registry/entityRegistry.h"
-#include "System/Physic/PhysicsRuntimeReleaseBridge.h"
 
 namespace PhysicSystemTaskDetail {
 
@@ -69,18 +68,6 @@ inline void ReleaseEntityRuntime(ColliderComponent* collider){
 	}
 }
 
-inline void ReleaseRuntime(
-	ColliderComponent* collider,
-	PhysicsRuntimeReleaseType releaseType,
-	size_t shapeIndex
-){
-	if(releaseType == PhysicsRuntimeReleaseType::Shape){
-		ReleaseShapeRuntime(collider, shapeIndex);
-		return;
-	}
-	ReleaseEntityRuntime(collider);
-}
-
 class CollisionDispatchScope {
 public:
 	CollisionDispatchScope(
@@ -127,11 +114,18 @@ private:
 
 } // namespace PhysicSystemTaskDetail
 
-inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
-	PhysicsRuntimeReleaseBridge::Install(
-		&PhysicSystemTaskDetail::ReleaseRuntime
-	);
+inline void PhysicSystem::ReleaseColliderRuntime(ColliderComponent* collider){
+	PhysicSystemTaskDetail::ReleaseEntityRuntime(collider);
+}
 
+inline void PhysicSystem::ReleaseColliderShapeRuntime(
+	ColliderComponent* collider,
+	size_t shapeIndex
+){
+	PhysicSystemTaskDetail::ReleaseShapeRuntime(collider, shapeIndex);
+}
+
+inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	SystemAccess uploadAccess;
 	uploadAccess
 		.ReadComponent<TransformComponent>()
