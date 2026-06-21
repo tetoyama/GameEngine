@@ -1,5 +1,6 @@
 #include "System/Scheduler/ExecuteDependencySchedule.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cassert>
 #include <chrono>
@@ -43,9 +44,24 @@ void WaitForParallelStart(const std::atomic<int>& started) {
 	assert(started.load(std::memory_order_acquire) == 2);
 }
 
+const SystemTaskProfileSample* FindSample(
+	const SystemScheduleProfileSnapshot& snapshot,
+	const char* name
+) {
+	const auto iterator = std::find_if(
+		snapshot.samples.begin(),
+		snapshot.samples.end(),
+		[name](const SystemTaskProfileSample& sample) {
+			return sample.taskName == name;
+		}
+	);
+	return iterator != snapshot.samples.end() ? &*iterator : nullptr;
+}
+
 void TestParallelReadyNodesAndMainJoin() {
 	JobSystem jobs;
 	jobs.Start(2);
+	SystemScheduleProfiler profiler;
 
 	const std::thread::id mainThread = std::this_thread::get_id();
 	std::atomic<int> started{0};
@@ -59,6 +75,7 @@ void TestParallelReadyNodesAndMainJoin() {
 
 		started.fetch_add(1, std::memory_order_acq_rel);
 		WaitForParallelStart(started);
+		std::this_thread::sleep_for(std::chrono::milliseconds(2));
 		completed.fetch_add(1, std::memory_order_acq_rel);
 
 		context.jobContext->commands.Enqueue([&flushedCommands] {
@@ -115,17 +132,55 @@ void TestParallelReadyNodesAndMainJoin() {
 		schedule,
 		tasks,
 		jobs,
-		SystemTaskContext{1.0f / 60.0f}
+		SystemTaskContext{1.0f / 60.0f},
+		&profiler
 	);
 
 	assert(joinedOnMainThread);
 	assert(flushedCommands.load(std::memory_order_relaxed) == 2);
+
+	const auto snapshotOptional =
+		profiler.GetLatestSnapshot(SystemTaskDomain::Frame);
+	assert(snapshotOptional.has_value());
+	const SystemScheduleProfileSnapshot& snapshot = *snapshotOptional;
+	assert(snapshot.jobSystemRunning);
+	assert(snapshot.workerCount == 2);
+	assert(snapshot.samples.size() == 3);
+	assert(snapshot.totalMilliseconds > 0.0);
+
+	const SystemTaskProfileSample* workerA = FindSample(snapshot, "WorkerA");
+	const SystemTaskProfileSample* workerB = FindSample(snapshot, "WorkerB");
+	const SystemTaskProfileSample* mainJoin = FindSample(snapshot, "MainJoin");
+	assert(workerA != nullptr);
+	assert(workerB != nullptr);
+	assert(mainJoin != nullptr);
+	assert(workerA->workerIndex != JobSystem::InvalidWorkerIndex);
+	assert(workerB->workerIndex != JobSystem::InvalidWorkerIndex);
+	assert(workerA->workerIndex != workerB->workerIndex);
+	assert(mainJoin->workerIndex == JobSystem::InvalidWorkerIndex);
+	assert(workerA->succeeded);
+	assert(workerB->succeeded);
+	assert(mainJoin->succeeded);
+
+	const double overlapStart = (std::max)(
+		workerA->startMilliseconds,
+		workerB->startMilliseconds
+	);
+	const double overlapEnd = (std::min)(
+		workerA->endMilliseconds,
+		workerB->endMilliseconds
+	);
+	assert(overlapStart < overlapEnd);
+	assert(mainJoin->startMilliseconds >= workerA->endMilliseconds);
+	assert(mainJoin->startMilliseconds >= workerB->endMilliseconds);
+
 	jobs.Stop();
 }
 
 void TestExceptionDrainsGraphAndSkipsDependents() {
 	JobSystem jobs;
 	jobs.Start(2);
+	SystemScheduleProfiler profiler;
 
 	bool dependentExecuted = false;
 	std::atomic<int> failedTaskCommands{0};
@@ -167,7 +222,13 @@ void TestExceptionDrainsGraphAndSkipsDependents() {
 
 	bool caught = false;
 	try {
-		ExecuteDependencySchedule(schedule, tasks, jobs, SystemTaskContext{});
+		ExecuteDependencySchedule(
+			schedule,
+			tasks,
+			jobs,
+			SystemTaskContext{},
+			&profiler
+		);
 	} catch(const std::runtime_error&) {
 		caught = true;
 	}
@@ -175,11 +236,20 @@ void TestExceptionDrainsGraphAndSkipsDependents() {
 	assert(caught);
 	assert(!dependentExecuted);
 	assert(failedTaskCommands.load(std::memory_order_relaxed) == 0);
+
+	const auto snapshotOptional =
+		profiler.GetLatestSnapshot(SystemTaskDomain::Frame);
+	assert(snapshotOptional.has_value());
+	assert(snapshotOptional->samples.size() == 1);
+	assert(snapshotOptional->samples.front().taskName == "Failure");
+	assert(!snapshotOptional->samples.front().succeeded);
+
 	jobs.Stop();
 }
 
 void TestSerialFallback() {
 	JobSystem jobs;
+	SystemScheduleProfiler profiler;
 	const std::thread::id mainThread = std::this_thread::get_id();
 	bool executed = false;
 
@@ -200,8 +270,22 @@ void TestSerialFallback() {
 		SystemScheduleCompiler::Compile(tasks, SystemTaskDomain::Frame);
 	assert(schedule.valid);
 
-	ExecuteDependencySchedule(schedule, tasks, jobs, SystemTaskContext{});
+	ExecuteDependencySchedule(
+		schedule,
+		tasks,
+		jobs,
+		SystemTaskContext{},
+		&profiler
+	);
 	assert(executed);
+
+	const auto snapshotOptional =
+		profiler.GetLatestSnapshot(SystemTaskDomain::Frame);
+	assert(snapshotOptional.has_value());
+	assert(!snapshotOptional->jobSystemRunning);
+	assert(snapshotOptional->samples.size() == 1);
+	assert(snapshotOptional->samples.front().workerIndex ==
+		JobSystem::InvalidWorkerIndex);
 }
 
 } // namespace
