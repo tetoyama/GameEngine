@@ -4,6 +4,7 @@
 #include <deque>
 #include <memory>
 #include <mutex>
+#include <vector>
 #include <d3d11.h>
 #include <dxgi.h>
 #include <wrl/client.h>
@@ -18,15 +19,22 @@ class D3D11RHIDevice;
 class D3D11RHISwapChain final : public IRHISwapChain {
 public:
 	D3D11RHISwapChain() = default;
-	D3D11RHISwapChain(IDXGISwapChain*, const SwapChainDesc&);
-	void Attach(IDXGISwapChain*, const SwapChainDesc&);
+	D3D11RHISwapChain(D3D11RHIDevice*, IDXGISwapChain*, const SwapChainDesc&);
+	void Attach(D3D11RHIDevice*, IDXGISwapChain*, const SwapChainDesc&);
 	bool Resize(uint32_t, uint32_t) override;
 	bool Present(bool) override;
 	const SwapChainDesc& GetDesc() const override { return m_desc; }
+	uint32_t GetImageCount() const noexcept override { return static_cast<uint32_t>(m_images.size()); }
+	uint32_t GetCurrentImageIndex() const noexcept override;
+	TextureHandle GetImage(uint32_t i) const noexcept override { return i < m_images.size() ? m_images[i] : TextureHandle{}; }
+	CommandQueueType GetPresentQueueType() const noexcept override { return CommandQueueType::Graphics; }
 	IDXGISwapChain* NativeSwapChain() const noexcept { return m_swapChain.Get(); }
 private:
+	friend class D3D11RHIDevice;
+	D3D11RHIDevice* m_owner = nullptr;
 	Microsoft::WRL::ComPtr<IDXGISwapChain> m_swapChain;
 	SwapChainDesc m_desc;
+	std::vector<TextureHandle> m_images;
 };
 
 class D3D11RHICommandList final : public IRHICommandList {
@@ -94,6 +102,7 @@ public:
 	void Attach(D3D11RHIDevice* o, CommandQueueType t){ m_owner = o; m_type = t; }
 	CommandQueueType GetType() const noexcept override { return m_type; }
 	bool Submit(const QueueSubmitDesc&) override;
+	bool Present(IRHISwapChain&, bool) override;
 	void WaitIdle() override;
 private:
 	D3D11RHIDevice* m_owner = nullptr;
@@ -140,6 +149,7 @@ public:
 private:
 	friend class D3D11RHICommandList;
 	friend class D3D11RHICommandQueue;
+	friend class D3D11RHISwapChain;
 	D3D11BufferResource* Find(BufferHandle h){ return m_buffers.TryGet(h); }
 	D3D11TextureResource* Find(TextureHandle h){ return m_textures.TryGet(h); }
 	D3D11BufferViewResource* Find(BufferViewHandle h){ return m_bufferViews.TryGet(h); }
@@ -157,6 +167,8 @@ private:
 	std::shared_ptr<D3D11FenceState> FindFence(FenceHandle) const;
 	bool SignalFence(const std::shared_ptr<D3D11FenceState>&, uint64_t);
 	bool WaitForImmediateContext();
+	bool ImportSwapChainImages();
+	bool ReleaseSwapChainImages();
 	Microsoft::WRL::ComPtr<ID3D11Device> m_device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_context;
 	DeviceCapabilities m_capabilities;
