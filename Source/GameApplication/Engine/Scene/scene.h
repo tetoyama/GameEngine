@@ -101,7 +101,7 @@ private:
 	SceneContext m_SceneContext{};
 
 	// レジストリ
-	std::shared_ptr<EntityRegistry> m_entityRegistry;
-	std::shared_ptr<ComponentRegistry> m_componentRegistry;
-	std::shared_ptr<PrefabSystem> m_prefabSystem;
+	std::unique_ptr<EntityRegistry> m_entityRegistry;
+	std::unique_ptr<ComponentRegistry> m_componentRegistry;
+	std::unique_ptr<PrefabSystem> m_prefabSystem;
 };

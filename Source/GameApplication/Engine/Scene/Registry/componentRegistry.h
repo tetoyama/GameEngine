@@ -31,6 +31,7 @@ struct ComponentOperations {
 	std::function<YAML::Node(void*)> encode;
 	std::function<bool(void*, SceneContext*, const YAML::Node&)> decode;
 	std::function<void(void*, SceneContext*)> inspector;
+	std::function<void(void*, SceneContext*)> beforeRemove;
 };
 
 class ComponentType {
@@ -77,6 +78,11 @@ public:
 			},
 			[](void* raw, SceneContext* context){
 				static_cast<T*>(raw)->inspector(context);
+			},
+			[](void* raw, SceneContext* context){
+				if constexpr(std::is_base_of_v<IComponent, T>){
+					static_cast<T*>(raw)->OnBeforeRemove(context);
+				}
 			}
 		};
 
@@ -235,6 +241,11 @@ public:
 		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return;
 		auto iterator = m_storages.find(std::type_index(typeid(T)));
 		if(iterator == m_storages.end()) return;
+		if constexpr(std::is_base_of_v<IComponent, T>){
+			if(T* component = static_cast<T*>(iterator->second->GetRaw(entity))){
+				component->OnBeforeRemove(m_context);
+			}
+		}
 		iterator->second->Remove(entity);
 		auto maskIterator = m_entityMasks.find(entity);
 		if(maskIterator != m_entityMasks.end()){
@@ -247,6 +258,12 @@ public:
 		if(typeIterator == m_idToTypeIndex.end()) return;
 		auto storageIterator = m_storages.find(typeIterator->second);
 		if(storageIterator == m_storages.end()) return;
+		if(void* raw = storageIterator->second->GetRaw(entity)){
+			auto operations = m_componentOperations.find(typeID);
+			if(operations != m_componentOperations.end() && operations->second.beforeRemove){
+				operations->second.beforeRemove(raw, m_context);
+			}
+		}
 		storageIterator->second->Remove(entity);
 		auto maskIterator = m_entityMasks.find(entity);
 		if(maskIterator != m_entityMasks.end()) maskIterator->second.reset(typeID);
@@ -254,7 +271,15 @@ public:
 
 	void OnEntityDestroyed(Entity entity){
 		for(auto& [typeIndex, storage] : m_storages){
-			(void)typeIndex;
+			if(void* raw = storage->GetRaw(entity)){
+				auto type = m_typeToID.find(typeIndex);
+				if(type != m_typeToID.end()){
+					auto operations = m_componentOperations.find(type->second);
+					if(operations != m_componentOperations.end() && operations->second.beforeRemove){
+						operations->second.beforeRemove(raw, m_context);
+					}
+				}
+			}
 			storage->Remove(entity);
 		}
 		m_entityMasks.erase(entity);

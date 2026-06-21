@@ -20,7 +20,6 @@
 #include "Scene/Registry/componentRegistry.h"
 #include "Scene/Registry/systemRegistry.h"
 #include "Scene/System/Physic/physicSystem.h"
-#include "Scene/System/Physic/PhysicsRuntimeReleaseBridge.h"
 #include "Scene/Component/modelRendererComponent.h"
 
 namespace ColliderComponentOperations {
@@ -536,7 +535,11 @@ inline void Inspect(ColliderComponent& component, SceneContext* context){
 
 			ImGui::TableSetColumnIndex(1);
 			if(ImGui::SmallButton("Remove")){
-				PhysicsRuntimeReleaseBridge::ReleaseShape(&component, index);
+				if(context && context->system){
+					if(auto* physics = context->system->GetSystem<PhysicSystem>()){
+						physics->ReleaseColliderShapeRuntime(&component, index);
+					}
+				}
 				component.colliders.erase(component.colliders.begin() + index);
 				component.needsUpdate = true;
 				removed = true;
@@ -564,8 +567,13 @@ inline void Inspect(ColliderComponent& component, SceneContext* context){
 
 } // namespace ColliderComponentOperations
 
-inline ColliderComponent::~ColliderComponent(){
-	PhysicsRuntimeReleaseBridge::ReleaseEntity(this);
+inline ColliderComponent::~ColliderComponent() = default;
+
+inline void ColliderComponent::OnBeforeRemove(SceneContext* context){
+	if(!context || !context->system) return;
+	if(auto* physics = context->system->GetSystem<PhysicSystem>()){
+		physics->ReleaseColliderRuntime(this);
+	}
 }
 
 inline YAML::Node ColliderComponent::encode(){

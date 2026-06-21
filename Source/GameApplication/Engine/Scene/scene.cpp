@@ -56,9 +56,9 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_SceneContext.system = m_SceneManagerContext->systemRegistry;
 
 
-	m_entityRegistry = std::make_shared<EntityRegistry>();
-	m_componentRegistry = std::make_shared<ComponentRegistry>(m_entityRegistry.get(),&m_SceneContext);
-	m_prefabSystem = std::make_shared<PrefabSystem>();
+	m_entityRegistry = std::make_unique<EntityRegistry>();
+	m_componentRegistry = std::make_unique<ComponentRegistry>(m_entityRegistry.get(), &m_SceneContext);
+	m_prefabSystem = std::make_unique<PrefabSystem>();
 
 
 	// コンポーネントの登録
