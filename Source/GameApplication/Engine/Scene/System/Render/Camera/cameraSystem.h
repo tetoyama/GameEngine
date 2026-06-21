@@ -19,6 +19,7 @@ public:
 
 	void Initialize() override;
 	void Draw() override;
+	void RegisterTasks(SystemScheduleBuilder& builder) override;
 
 private:
 	SceneManagerContext* m_context;
