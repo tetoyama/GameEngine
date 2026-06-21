@@ -8,6 +8,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cfloat>
 #include <string>
 #include <vector>
 
@@ -27,70 +28,31 @@ inline YAML::Node Encode(const MaterialComponent& component){
 }
 
 inline bool Decode(MaterialComponent& component, const YAML::Node& node){
-	if(!node.IsMap()) return false;
-	if(node["ShaderID"]) component.ShaderID = node["ShaderID"].as<int>();
-	if(node["Material"]) component.Material = node["Material"].as<MATERIAL>();
+	if(!node.IsMap()){
+		return false;
+	}
+	if(node["ShaderID"]){
+		component.ShaderID = node["ShaderID"].as<int>();
+	}
+	if(node["Material"]){
+		component.Material = node["Material"].as<MATERIAL>();
+	}
 	component.ShaderID = (std::max)(component.ShaderID, 0);
 	return true;
 }
 
-inline void DrawColorProperty(const char* label, float* channels){
+inline void BeginPropertyRow(const char* label){
+	ImGui::TableNextRow();
+	ImGui::TableSetColumnIndex(0);
 	ImGui::AlignTextToFramePadding();
 	ImGui::TextUnformatted(label);
-	ImGui::SameLine(100.0f);
-
-	const float totalWidth = ImGui::GetContentRegionAvail().x;
-	const float spacing = ImGui::GetStyle().ItemSpacing.x;
-	constexpr float pickerWidth = 24.0f;
-	constexpr int sliderCount = 4;
-	const float sliderWidth = (std::max)(
-		(totalWidth - pickerWidth - spacing * sliderCount) /
-		static_cast<float>(sliderCount),
-		1.0f
-	);
-
-	for(int index = 0; index < sliderCount; ++index){
-		ImGui::PushID((std::to_string(index) + label).c_str());
-		ImGui::SetNextItemWidth(sliderWidth);
-		ImGui::PushStyleColor(
-			ImGuiCol_Border,
-			ImVec4(
-				index == 0 ? 0.7f : 0.0f,
-				index == 1 ? 0.7f : 0.0f,
-				index == 2 ? 0.7f : 0.0f,
-				0.3f
-			)
-		);
-		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-		ImGui::UndoDragFloat("##Channel", &channels[index], 0.01f, 0.0f, 1.0f);
-		ImGui::PopStyleVar();
-		ImGui::PopStyleColor();
-		ImGui::PopID();
-		ImGui::SameLine();
-	}
-
-	const std::string buttonId = std::string("##ColorButton") + label;
-	const std::string popupId = std::string("ColorPickerPopup") + label;
-	if(ImGui::ColorButton(
-		buttonId.c_str(),
-		ImVec4(channels[0], channels[1], channels[2], channels[3]),
-		ImGuiColorEditFlags_NoTooltip
-	)){
-		ImGui::OpenPopup(popupId.c_str());
-	}
-	if(ImGui::BeginPopup(popupId.c_str())){
-		ImGui::ColorPicker4(
-			(std::string("##ColorPicker") + label).c_str(),
-			channels,
-			ImGuiColorEditFlags_NoSidePreview |
-			ImGuiColorEditFlags_AlphaBar
-		);
-		ImGui::EndPopup();
-	}
+	ImGui::TableSetColumnIndex(1);
+	ImGui::SetNextItemWidth(-FLT_MIN);
 }
 
 inline void Inspect(MaterialComponent& component, SceneContext* context){
 	ImGui::PushID(&component);
+	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(6.0f, 4.0f));
 
 	RenderSystem* renderSystem =
 		context && context->system
@@ -110,78 +72,94 @@ inline void Inspect(MaterialComponent& component, SceneContext* context){
 		}
 	}
 
-	ImGui::TextUnformatted("Shader");
-	ImGui::SameLine(100.0f);
-	if(!shaderNamePointers.empty()){
-		component.ShaderID = (std::clamp)(
-			component.ShaderID,
-			0,
-			static_cast<int>(shaderNamePointers.size()) - 1
-		);
-		ImGui::Combo(
-			"##Shader",
-			&component.ShaderID,
-			shaderNamePointers.data(),
-			static_cast<int>(shaderNamePointers.size())
-		);
-	} else {
-		component.ShaderID = 0;
-		ImGui::TextDisabled("No shaders registered");
-	}
+	if(ImGui::BeginTable(
+		"MaterialProperties",
+		2,
+		ImGuiTableFlags_SizingStretchProp |
+		ImGuiTableFlags_NoSavedSettings |
+		ImGuiTableFlags_BordersInnerV
+	)){
+		ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthFixed, 96.0f);
+		ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
-	DrawColorProperty("BaseColor", &component.Material.BaseColor.x);
-
-	ImGui::AlignTextToFramePadding();
-	ImGui::TextUnformatted("Metallic");
-	ImGui::SameLine(100.0f);
-	ImGui::UndoDragFloat(
-		"##Metallic",
-		&component.Material.Metallic,
-		0.01f,
-		0.0f,
-		1.0f
-	);
-
-	ImGui::AlignTextToFramePadding();
-	ImGui::TextUnformatted("Roughness");
-	ImGui::SameLine(100.0f);
-	ImGui::UndoDragFloat(
-		"##Roughness",
-		&component.Material.Roughness,
-		0.01f,
-		0.0f,
-		1.0f
-	);
-
-	ImGui::AlignTextToFramePadding();
-	ImGui::TextUnformatted("AO");
-	ImGui::SameLine(100.0f);
-	ImGui::UndoDragFloat("##AO", &component.Material.AO, 0.01f, 0.0f, 1.0f);
-
-	ImGui::AlignTextToFramePadding();
-	ImGui::TextUnformatted("Emissive");
-	ImGui::SameLine(100.0f);
-	ImGui::UndoDragFloat4(
-		"##Emissive",
-		&component.Material.EmissiveColor.x,
-		0.01f,
-		0.0f,
-		1.0f
-	);
-
-	ImGui::AlignTextToFramePadding();
-	ImGui::TextUnformatted("Env Map");
-	ImGui::SameLine(100.0f);
-	bool useEnvironmentMap =
-		(component.Material.MaterialFlags & MATERIAL_FLAG_USE_ENVIRONMENT_MAP) != 0;
-	if(ImGui::UndoCheckbox("##UseEnvironmentMap", &useEnvironmentMap)){
-		if(useEnvironmentMap){
-			component.Material.MaterialFlags |= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
+		BeginPropertyRow("Shader");
+		if(!shaderNamePointers.empty()){
+			component.ShaderID = (std::clamp)(
+				component.ShaderID,
+				0,
+				static_cast<int>(shaderNamePointers.size()) - 1
+			);
+			ImGui::Combo(
+				"##Shader",
+				&component.ShaderID,
+				shaderNamePointers.data(),
+				static_cast<int>(shaderNamePointers.size())
+			);
 		} else {
-			component.Material.MaterialFlags &= ~MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
+			component.ShaderID = 0;
+			ImGui::TextDisabled("No shaders registered");
 		}
+
+		BeginPropertyRow("Base Color");
+		ImGui::UndoColorEdit4(
+			"##BaseColor",
+			&component.Material.BaseColor.x,
+			ImGuiColorEditFlags_Float |
+			ImGuiColorEditFlags_AlphaBar |
+			ImGuiColorEditFlags_AlphaPreviewHalf
+		);
+
+		BeginPropertyRow("Metallic");
+		ImGui::UndoDragFloat(
+			"##Metallic",
+			&component.Material.Metallic,
+			0.01f,
+			0.0f,
+			1.0f
+		);
+
+		BeginPropertyRow("Roughness");
+		ImGui::UndoDragFloat(
+			"##Roughness",
+			&component.Material.Roughness,
+			0.01f,
+			0.0f,
+			1.0f
+		);
+
+		BeginPropertyRow("Ambient Occlusion");
+		ImGui::UndoDragFloat(
+			"##AmbientOcclusion",
+			&component.Material.AO,
+			0.01f,
+			0.0f,
+			1.0f
+		);
+
+		BeginPropertyRow("Emissive");
+		ImGui::UndoColorEdit4(
+			"##Emissive",
+			&component.Material.EmissiveColor.x,
+			ImGuiColorEditFlags_Float |
+			ImGuiColorEditFlags_HDR |
+			ImGuiColorEditFlags_AlphaBar
+		);
+
+		BeginPropertyRow("Environment Map");
+		bool useEnvironmentMap =
+			(component.Material.MaterialFlags & MATERIAL_FLAG_USE_ENVIRONMENT_MAP) != 0;
+		if(ImGui::UndoCheckbox("##UseEnvironmentMap", &useEnvironmentMap)){
+			if(useEnvironmentMap){
+				component.Material.MaterialFlags |= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
+			} else {
+				component.Material.MaterialFlags &= ~MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
+			}
+		}
+
+		ImGui::EndTable();
 	}
 
+	ImGui::PopStyleVar();
 	ImGui::PopID();
 }
 
