@@ -33,7 +33,9 @@ public:
 	virtual bool SetVertexBuffer(uint32_t slot, BufferHandle buffer, uint32_t stride, uint32_t offset = 0) = 0;
 	virtual bool SetIndexBuffer(BufferHandle buffer, IndexFormat format, uint32_t offset = 0) = 0;
 	virtual bool SetConstantBuffer(ShaderStage stage, uint32_t slot, BufferHandle buffer) = 0;
-	virtual bool SetTexture(ShaderStage stage, uint32_t slot, TextureHandle texture) = 0;
+	virtual bool SetBufferView(ShaderStage stage, uint32_t slot, BufferViewHandle view) = 0;
+	virtual bool SetTextureView(ShaderStage stage, uint32_t slot, TextureViewHandle view) = 0;
+	virtual bool SetSampler(ShaderStage stage, uint32_t slot, SamplerHandle sampler) = 0;
 	virtual bool UpdateBuffer(BufferHandle buffer, std::span<const std::byte> data, uint32_t destinationOffset = 0) = 0;
 	virtual void Draw(uint32_t vertexCount, uint32_t firstVertex = 0) = 0;
 	virtual void DrawIndexed(uint32_t indexCount, uint32_t firstIndex = 0, int32_t vertexOffset = 0) = 0;
@@ -57,16 +59,25 @@ public:
 
 	virtual BufferHandle CreateBuffer(const BufferDesc& desc, std::span<const std::byte> initialData = {}) = 0;
 	virtual TextureHandle CreateTexture(const TextureDesc& desc, std::span<const std::byte> initialData = {}, uint32_t initialRowPitch = 0) = 0;
+	virtual BufferViewHandle CreateBufferView(const BufferViewDesc& desc) = 0;
+	virtual TextureViewHandle CreateTextureView(const TextureViewDesc& desc) = 0;
+	virtual SamplerHandle CreateSampler(const SamplerDesc& desc) = 0;
 	virtual ShaderHandle CreateShader(const ShaderDesc& desc, std::span<const std::byte> byteCode) = 0;
 	virtual PipelineStateHandle CreatePipelineState(const PipelineStateDesc& desc) = 0;
 
 	virtual bool DestroyBuffer(BufferHandle handle) = 0;
 	virtual bool DestroyTexture(TextureHandle handle) = 0;
+	virtual bool DestroyBufferView(BufferViewHandle handle) = 0;
+	virtual bool DestroyTextureView(TextureViewHandle handle) = 0;
+	virtual bool DestroySampler(SamplerHandle handle) = 0;
 	virtual bool DestroyShader(ShaderHandle handle) = 0;
 	virtual bool DestroyPipelineState(PipelineStateHandle handle) = 0;
 
 	virtual const BufferDesc* GetBufferDesc(BufferHandle handle) const = 0;
 	virtual const TextureDesc* GetTextureDesc(TextureHandle handle) const = 0;
+	virtual const BufferViewDesc* GetBufferViewDesc(BufferViewHandle handle) const = 0;
+	virtual const TextureViewDesc* GetTextureViewDesc(TextureViewHandle handle) const = 0;
+	virtual const SamplerDesc* GetSamplerDesc(SamplerHandle handle) const = 0;
 	virtual const ShaderDesc* GetShaderDesc(ShaderHandle handle) const = 0;
 	virtual const PipelineStateDesc* GetPipelineStateDesc(PipelineStateHandle handle) const = 0;
 
