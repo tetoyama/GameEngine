@@ -10,6 +10,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -216,6 +217,35 @@ enum class StoreOperation : uint8_t {
 	Discard
 };
 
+enum class BufferViewType : uint8_t {
+	ShaderResource,
+	UnorderedAccess
+};
+
+enum class TextureViewType : uint8_t {
+	ShaderResource,
+	UnorderedAccess,
+	RenderTarget,
+	DepthStencil
+};
+
+enum class FilterMode : uint8_t {
+	Nearest,
+	Linear
+};
+
+enum class MipmapMode : uint8_t {
+	Nearest,
+	Linear
+};
+
+enum class SamplerAddressMode : uint8_t {
+	Repeat,
+	MirroredRepeat,
+	ClampToEdge,
+	ClampToBorder
+};
+
 struct BufferDesc {
 	uint32_t byteSize = 0;
 	uint32_t stride = 0;
@@ -241,6 +271,44 @@ struct TextureDesc {
 	CpuAccessFlags cpuAccess = CpuAccessFlags::None;
 	bool generateMips = false;
 	ResourceState initialState = ResourceState::Common;
+	std::string debugName;
+};
+
+struct BufferViewDesc {
+	BufferHandle buffer;
+	BufferViewType type = BufferViewType::ShaderResource;
+	Format format = Format::Unknown;
+	uint32_t firstElement = 0;
+	uint32_t elementCount = 0;
+	std::string debugName;
+};
+
+struct TextureViewDesc {
+	TextureHandle texture;
+	TextureViewType type = TextureViewType::ShaderResource;
+	Format format = Format::Unknown;
+	uint16_t baseMipLevel = 0;
+	uint16_t mipLevelCount = 1;
+	uint16_t baseArrayLayer = 0;
+	uint16_t arrayLayerCount = 1;
+	std::string debugName;
+};
+
+struct SamplerDesc {
+	FilterMode minFilter = FilterMode::Linear;
+	FilterMode magFilter = FilterMode::Linear;
+	MipmapMode mipmapMode = MipmapMode::Linear;
+	SamplerAddressMode addressU = SamplerAddressMode::Repeat;
+	SamplerAddressMode addressV = SamplerAddressMode::Repeat;
+	SamplerAddressMode addressW = SamplerAddressMode::Repeat;
+	float mipLodBias = 0.0f;
+	bool anisotropyEnable = false;
+	uint8_t maxAnisotropy = 1;
+	bool comparisonEnable = false;
+	ComparisonFunc comparisonFunction = ComparisonFunc::LessEqual;
+	std::array<float, 4> borderColor{0.0f, 0.0f, 0.0f, 0.0f};
+	float minLod = 0.0f;
+	float maxLod = (std::numeric_limits<float>::max)();
 	std::string debugName;
 };
 
@@ -331,14 +399,14 @@ struct Viewport {
 };
 
 struct ColorAttachmentDesc {
-	TextureHandle texture;
+	TextureViewHandle view;
 	LoadOperation loadOperation = LoadOperation::Load;
 	StoreOperation storeOperation = StoreOperation::Store;
 	std::array<float, 4> clearColor{0.0f, 0.0f, 0.0f, 1.0f};
 };
 
 struct DepthAttachmentDesc {
-	TextureHandle texture;
+	TextureViewHandle view;
 	LoadOperation depthLoadOperation = LoadOperation::Load;
 	StoreOperation depthStoreOperation = StoreOperation::Store;
 	LoadOperation stencilLoadOperation = LoadOperation::Load;
