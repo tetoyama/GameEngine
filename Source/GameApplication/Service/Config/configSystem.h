@@ -15,8 +15,6 @@
 #include "appConfig.h"
 #include "Service/Graphics/RHI/RHIBackend.h"
 
-// EngineConfig.yaml のGraphics節。
-// 現段階で起動経路へ反映される設定だけを公開する。
 struct EngineGraphicsConfig {
 	RHI::BackendType backend = RHI::BackendType::Direct3D11;
 };
@@ -29,14 +27,10 @@ inline std::string_view ToEngineConfigBackendName(
 	RHI::BackendType backend
 ) noexcept {
 	switch(backend){
-		case RHI::BackendType::Null:
-			return "Null";
-		case RHI::BackendType::Direct3D11:
-			return "Direct3D11";
-		case RHI::BackendType::Direct3D12:
-			return "Direct3D12";
-		case RHI::BackendType::Vulkan:
-			return "Vulkan";
+		case RHI::BackendType::Null: return "Null";
+		case RHI::BackendType::Direct3D11: return "Direct3D11";
+		case RHI::BackendType::Direct3D12: return "Direct3D12";
+		case RHI::BackendType::Vulkan: return "Vulkan";
 	}
 	return "Direct3D11";
 }
@@ -44,9 +38,7 @@ inline std::string_view ToEngineConfigBackendName(
 inline std::optional<RHI::BackendType> ParseEngineConfigBackend(
 	std::string_view name
 ) noexcept {
-	if(name == "Null" || name == "null"){
-		return RHI::BackendType::Null;
-	}
+	if(name == "Null" || name == "null") return RHI::BackendType::Null;
 	if(name == "Direct3D11" || name == "D3D11" ||
 		name == "direct3d11" || name == "d3d11"){
 		return RHI::BackendType::Direct3D11;
@@ -55,9 +47,7 @@ inline std::optional<RHI::BackendType> ParseEngineConfigBackend(
 		name == "direct3d12" || name == "d3d12"){
 		return RHI::BackendType::Direct3D12;
 	}
-	if(name == "Vulkan" || name == "vulkan"){
-		return RHI::BackendType::Vulkan;
-	}
+	if(name == "Vulkan" || name == "vulkan") return RHI::BackendType::Vulkan;
 	return std::nullopt;
 }
 
@@ -69,27 +59,17 @@ public:
 	bool Initialize(){
 		if(LoadEditorConfig(EDITOR_CONFIG_PATH)){
 			OutputDebugStringW(L"Engine config loaded successfully.\n");
-		}
-		else{
+		} else {
 			OutputDebugStringW(L"Failed to load engine config. Using default settings.\n");
 			return false;
 		}
 
 		if(LoadApplicationConfig(APPLICATION_CONFIG_PATH)){
 			OutputDebugStringW(L"Application config loaded successfully.\n");
-		}
-		else{
+		} else {
 			OutputDebugStringW(L"Failed to load application config. Using default settings.\n");
 			return false;
 		}
-
-		// GraphicsContext初期化より前に、起動時に要求されたBackendを公開する。
-		RHI::SetRequestedBackend(engineConfig.graphics.backend);
-		OutputDebugStringA((
-			"Requested RHI Backend: " +
-			std::string(ToEngineConfigBackendName(engineConfig.graphics.backend)) +
-			"\n"
-		).c_str());
 
 		return true;
 	}
@@ -112,8 +92,7 @@ public:
 
 		try{
 			editorConfig = YAML::Load(fin);
-		}
-		catch(const YAML::Exception& exception){
+		} catch(const YAML::Exception& exception){
 			OutputDebugStringA((
 				std::string("Failed to parse EngineConfig.yaml: ") +
 				exception.what() + "\n"
@@ -146,8 +125,7 @@ public:
 		YAML::Node root;
 		try{
 			root = YAML::Load(fin);
-		}
-		catch(const YAML::Exception& exception){
+		} catch(const YAML::Exception& exception){
 			OutputDebugStringA((
 				std::string("Failed to parse ApplicationConfig.yaml: ") +
 				exception.what() + "\n"
@@ -214,16 +192,14 @@ private:
 				const auto backend = ParseEngineConfigBackend(backendName);
 				if(backend){
 					engineConfig.graphics.backend = *backend;
-				}
-				else{
+				} else {
 					OutputDebugStringA((
 						"Unknown Graphics.Backend '" + backendName +
 						"'. Falling back to Direct3D11.\n"
 					).c_str());
 				}
 			}
-		}
-		catch(const YAML::Exception& exception){
+		} catch(const YAML::Exception& exception){
 			OutputDebugStringA((
 				std::string("Invalid Graphics section in EngineConfig.yaml: ") +
 				exception.what() + ". Using Direct3D11.\n"
