@@ -69,9 +69,7 @@ constexpr uint32_t kMaxPhysicsLayers = 32;
 class PhysicSystem: public ISystem
 {
 public:
-	PhysicSystem(SceneManagerContext* context)
-		: m_context(context),
-		  m_filterOwner(this){}
+	explicit PhysicSystem(SceneManagerContext* context);
 
 	~PhysicSystem() override;
 

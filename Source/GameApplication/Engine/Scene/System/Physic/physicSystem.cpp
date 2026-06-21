@@ -165,6 +165,10 @@ private:
 	PhysicSystem& m_owner;
 };
 
+PhysicSystem::PhysicSystem(SceneManagerContext* context)
+	: m_context(context),
+	  m_filterOwner(this){}
+
 PhysicSystem::~PhysicSystem() = default;
 
 physx::PxRigidDynamic* PhysicSystem::CreateDynamic(const physx::PxTransform& t, const physx::PxGeometry& geometry, physx::PxMaterial& material, physx::PxReal density){
