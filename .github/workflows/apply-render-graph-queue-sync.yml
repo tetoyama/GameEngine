@@ -1,0 +1,32 @@
+name: Apply RenderGraph Queue Synchronization
+
+on:
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - Tools/Migration/add_render_graph_queue_sync.py
+      - .github/workflows/apply-render-graph-queue-sync.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 0
+      - name: Apply source migration
+        run: python Tools/Migration/add_render_graph_queue_sync.py
+      - name: Publish migration branch
+        run: |
+          git config user.name github-actions
+          git config user.email actions@github.com
+          git rm Tools/Migration/add_render_graph_queue_sync.py
+          git rm .github/workflows/apply-render-graph-queue-sync.yml
+          git add -A
+          git commit -m "feat: add RenderGraph queue synchronization"
+          git push origin HEAD:render-graph-queue-sync-output
