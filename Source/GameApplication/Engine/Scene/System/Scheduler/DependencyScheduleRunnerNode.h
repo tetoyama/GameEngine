@@ -17,7 +17,13 @@ inline void Runner::RunNode(
 			const size_t taskIndex =
 				state->schedule->nodes[nodeIndex].taskIndex;
 			SystemTask& task = (*state->tasks)[taskIndex];
-			if(task.execute) task.execute(state->context);
+
+			SystemTaskContext taskContext = state->context;
+			if(state->jobs->IsRunning()) {
+				taskContext.jobContext = &state->jobs->CurrentContext();
+			}
+
+			if(task.execute) task.execute(taskContext);
 		} catch(...) {
 			RecordException(state, std::current_exception());
 		}
