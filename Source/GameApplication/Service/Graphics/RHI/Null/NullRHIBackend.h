@@ -29,6 +29,20 @@ public:
 	CommandQueueType GetQueueType() const noexcept override { return m_queueType; }
 	void Begin() override { m_recording = true; m_closed = false; m_renderPassActive = false; m_drawCount = 0; m_dispatchCount = 0; }
 	void End() override { if(m_renderPassActive) EndRenderPass(); m_recording = false; m_closed = true; }
+	bool ResourceBarrier(std::span<const ResourceBarrierDesc> barriers) override {
+		if(!m_recording || m_renderPassActive) return false;
+		for(const ResourceBarrierDesc& barrier : barriers){
+			if(!barrier.HasExactlyOneResource()) return false;
+			if(barrier.type == ResourceBarrierType::Transition &&
+				barrier.after == ResourceState::Undefined){
+				return false;
+			}
+			if(barrier.buffer && barrier.subresource != AllSubresources){
+				return false;
+			}
+		}
+		return true;
+	}
 	bool BeginRenderPass(const RenderPassDesc&) override { if(!m_recording || m_queueType != CommandQueueType::Graphics) return false; m_renderPassActive = true; return true; }
 	void EndRenderPass() override { m_renderPassActive = false; }
 	bool SetPipelineState(PipelineStateHandle pipeline) override { return m_recording && static_cast<bool>(pipeline); }
