@@ -6,12 +6,14 @@ inline void ExecuteDependencySchedule(
 	const CompiledSystemSchedule& schedule,
 	std::vector<SystemTask>& tasks,
 	JobSystem& jobs,
-	const SystemTaskContext& context
+	const SystemTaskContext& context,
+	SystemScheduleProfiler* profiler = nullptr
 ) {
 	DependencyScheduleDetail::Runner::Execute(
 		schedule,
 		tasks,
 		jobs,
-		context
+		context,
+		profiler
 	);
 }
