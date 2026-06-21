@@ -46,8 +46,10 @@ void ViewWindow::Draw(const EditorDrawContext ctx) {
 void ViewWindow::EditorView(const EditorDrawContext ctx){
 
 	GraphicsContext* graphicsContext = m_editor->sceneManager->GetContext()->graphics;
-	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-	RenderSystem* renderSystem = m_editor->sceneManager->systemRegistry->GetSystem<RenderSystem>();
+	ID3D11DeviceContext* deviceContext = graphicsContext ? graphicsContext->GetDeviceContext() : nullptr;
+	SystemRegistry* registry = m_editor->sceneManager->GetSystemRegistry();
+	RenderSystem* renderSystem = registry ? registry->GetSystem<RenderSystem>() : nullptr;
+	if(!graphicsContext || !deviceContext || !renderSystem || !renderSystem->m_EditorPass) return;
 
 	bool* showEditor = &m_editor->GetUI<MenuBar>()->showEditorView;
 

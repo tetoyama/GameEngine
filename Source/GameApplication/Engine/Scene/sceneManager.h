@@ -78,11 +78,11 @@ public:
 	}
 
 	SystemRegistry* GetSystemRegistry() noexcept {
-		return systemRegistry.get();
+		return m_systemRegistry.get();
 	}
 
 	const SystemRegistry* GetSystemRegistry() const noexcept {
-		return systemRegistry.get();
+		return m_systemRegistry.get();
 	}
 
 	uint32_t GetIDFromContext(SceneContext* ctx);
@@ -104,12 +104,11 @@ public:
 	SceneManagerState State = SceneManagerState::Stopped;
 	SceneManagerState OldState = SceneManagerState::Stopped;
 
-	// Compatibility owner during call-site migration. External code should use GetSystemRegistry().
-	std::unique_ptr<SystemRegistry> systemRegistry;
-
 private:
 	void TempSave();
 	void TempLoad();
+
+	std::unique_ptr<SystemRegistry> m_systemRegistry;
 
 	std::unordered_map<std::string, std::shared_ptr<Scene>> m_activeScenes;
 	SceneManagerContext m_SceneContext;
