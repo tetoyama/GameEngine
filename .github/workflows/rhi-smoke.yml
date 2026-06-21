@@ -56,6 +56,46 @@ jobs:
       - name: Run Null RHI smoke test
         run: .\rhi-smoke.exe
 
+  render-graph-barrier-smoke-x64:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build RenderGraph barrier smoke test
+        id: render_graph_build
+        continue-on-error: true
+        shell: cmd
+        run: >-
+          cl /nologo /std:c++20 /EHsc /W4 /MTd
+          /I Source/GameApplication
+          Tests/RHIRenderGraphBarrierSmokeTest.cpp
+          /Fe:rhi-render-graph-barrier-smoke.exe
+          > rhi-render-graph-barrier-build.log 2>&1
+
+      - name: Upload RenderGraph compiler diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rhi-render-graph-barrier-build-log
+          path: rhi-render-graph-barrier-build.log
+          if-no-files-found: error
+
+      - name: Preserve RenderGraph build result
+        if: steps.render_graph_build.outcome == 'failure'
+        run: cmd /c exit 1
+
+      - name: Run RenderGraph barrier smoke test
+        run: .\rhi-render-graph-barrier-smoke.exe
+
   d3d11-rhi-backend-smoke-x64:
     runs-on: windows-latest
 
