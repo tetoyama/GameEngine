@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <cassert>
-#include <chrono>
 #include <cstddef>
 #include <stdexcept>
 #include <thread>
@@ -158,6 +157,49 @@ void TestRestartAndSerialFallback(){
 	}
 }
 
+// WaitIdleのpredicate確認直後と最後のJob完了通知が競合しても、
+// notifyを取りこぼして永久待機しないことを反復検証する。
+void TestWaitIdleLostWakeupStress(){
+	JobSystem jobs;
+	jobs.Start(4);
+
+	std::atomic<size_t> completed{0};
+	constexpr size_t Iterations = 5000;
+	for(size_t iteration = 0; iteration < Iterations; ++iteration){
+		jobs.Submit([&completed](JobThreadContext&){
+			completed.fetch_add(1, std::memory_order_relaxed);
+		});
+		jobs.WaitIdle();
+		assert(jobs.PendingJobCount() == 0);
+		assert(jobs.AvailableJobCount() == 0);
+	}
+
+	assert(completed.load(std::memory_order_relaxed) == Iterations);
+	jobs.Stop();
+}
+
+// Job自身はm_pendingJobsに含まれるため、そのJob内でWaitIdleすると
+// 自分自身の完了を待つ再入デッドロックになる。明示的に拒否する。
+void TestWaitIdleRejectedInsideJob(){
+	JobSystem jobs;
+	jobs.Start(2);
+
+	std::atomic<bool> rejected{false};
+	JobFence fence;
+	jobs.Submit(fence, [&jobs, &rejected](JobThreadContext&){
+		try{
+			jobs.WaitIdle();
+		} catch(const std::logic_error&){
+			rejected.store(true, std::memory_order_release);
+		}
+	});
+	jobs.Wait(fence);
+
+	assert(rejected.load(std::memory_order_acquire));
+	assert(jobs.PendingJobCount() == 0);
+	jobs.Stop();
+}
+
 } // namespace
 
 int main(){
@@ -167,5 +209,7 @@ int main(){
 	TestUnhandledException();
 	TestDrainAllowsChildJobs();
 	TestRestartAndSerialFallback();
+	TestWaitIdleLostWakeupStress();
+	TestWaitIdleRejectedInsideJob();
 	return 0;
 }
