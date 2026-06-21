@@ -19,6 +19,28 @@ inline void Runner::RunMainQueue(
 			state->mainReady.pop();
 		}
 
+		const size_t taskIndex = state->schedule->nodes[nodeIndex].taskIndex;
+		const SystemTask& task = (*state->tasks)[taskIndex];
+
+		// Worker-local CommandをEntityCommandBufferへ転送してから、
+		// Domain末尾のExclusive構造変更Taskを実行する。
+		if(task.access.structuralAccess == StructuralAccess::ExclusiveWorldWrite &&
+			state->jobs->IsRunning()) {
+			bool failed = false;
+			{
+				std::scoped_lock lock(state->mutex);
+				failed = state->failed;
+			}
+
+			if(!failed) {
+				try {
+					state->jobs->FlushThreadCommands();
+				} catch(...) {
+					RecordException(state, std::current_exception());
+				}
+			}
+		}
+
 		RunNode(state, nodeIndex);
 	}
 }
@@ -42,6 +64,8 @@ inline void Runner::Dispatch(
 		}
 	}
 
+	// MainThreadと、専用RenderThread未導入のRenderThread Taskを
+	// 呼び出しThread上の安定した論理順序で処理する。
 	{
 		std::scoped_lock lock(state->mutex);
 		state->mainReady.push(nodeIndex);
