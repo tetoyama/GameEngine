@@ -40,6 +40,8 @@
 #include <Editor/UI/Inspector.h>
 #include <Editor/UI/Hierarchy.h>
 
+SceneManager::SceneManager() = default;
+
 SceneManager::~SceneManager() = default;
 
 void SceneManager::Initialize(SceneManagerContext sceneContext){

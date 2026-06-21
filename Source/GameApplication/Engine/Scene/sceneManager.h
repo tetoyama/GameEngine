@@ -13,7 +13,6 @@
 #include "Service/IService.h"
 #include "Backends/myVector2.h"
 #include "Graphics/mainRenderer.h"
-#include "Registry/systemRegistry.h"
 
 class GraphicsContext;
 class AudioContext;
@@ -23,6 +22,7 @@ class DebugLogService;
 class ImGuiService;
 class ConfigService;
 class EditorService;
+class SystemRegistry;
 
 struct SceneContext;
 class SceneManager;
@@ -57,7 +57,7 @@ enum SceneManagerState
 
 class SceneManager: public IService {
 public:
-	SceneManager() = default;
+	SceneManager();
 	~SceneManager() override;
 
 	SceneManager(const SceneManager&) = delete;
