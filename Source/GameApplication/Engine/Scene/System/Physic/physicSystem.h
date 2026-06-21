@@ -8,6 +8,7 @@
 #include "Interface/ISystem.h"
 #include "Backends/PhysX/PxPhysicsAPI.h"
 #include "Scene/Entity/Entity.h"
+#include "System/Physic/ScriptCollisionDispatchBridge.h"
 
 #include <atomic>
 #include <cstring>
@@ -21,6 +22,7 @@ struct SceneManagerContext;
 struct SceneContext;
 struct ColliderShape;
 class ColliderComponent;
+class CustomScriptComponent;
 class ModelRendererComponent;
 class TransformComponent;
 class Vector3;
@@ -78,8 +80,6 @@ public:
 	void Draw() override;
 	void Stop() override;
 
-	// FixedUpdateをUpload / Begin / Fetch / Downloadへ分割して登録する。
-	// Collision EventのMainThread分離はStep 15の次段階で追加する。
 	void RegisterTasks(SystemScheduleBuilder& builder) override;
 
 	const char* GetSystemName() const override{
@@ -145,13 +145,27 @@ public:
 	}
 
 private:
-	// PhysX SceneへのAccess順序をSchedulerへ伝えるResource Marker。
 	struct PhysicsSceneResource {};
+	struct PhysicsEventResource {};
+
+	struct PendingScriptCollisionEvent {
+		CustomScriptComponent* script = nullptr;
+		ScriptCollisionEventType eventType =
+			ScriptCollisionEventType::CollisionEnter;
+		HitInfo hit;
+	};
 
 	void PhysicsUpload();
 	void PhysicsBegin(float fixedDeltaTime);
 	void PhysicsFetch();
 	void PhysicsDownload();
+	void CollisionEventDispatch();
+
+	bool QueueScriptCollisionEvent(
+		CustomScriptComponent* script,
+		ScriptCollisionEventType eventType,
+		const HitInfo& hit
+	);
 
 	SceneManagerContext* m_context = nullptr;
 
@@ -171,6 +185,9 @@ private:
 	bool       UpdatingPhysics = false;
 	std::atomic<bool> m_simulationInFlight{false};
 	PhysicsSimulationCallback* m_simCallback = nullptr;
+
+	std::mutex m_collisionEventMutex;
+	std::vector<PendingScriptCollisionEvent> m_pendingCollisionEvents;
 
 	physx::PxRigidDynamic* CreateDynamic(
 		const physx::PxTransform& t,
