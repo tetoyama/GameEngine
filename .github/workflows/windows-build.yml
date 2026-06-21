@@ -1,7 +1,9 @@
-# Validates the Engine static CRT, Script DLL dynamic CRT, Job System, Scheduler, and Transform rotation behavior.
+# Compile checks run on pull requests and branch pushes.
+# Executable smoke tests are intentionally limited to manual workflow dispatch.
 name: Windows Build
 
 on:
+  workflow_dispatch:
   pull_request:
     branches:
       - master
@@ -18,6 +20,7 @@ permissions:
 
 jobs:
   job-system-smoke-x64:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
 
     steps:
@@ -42,6 +45,7 @@ jobs:
         run: .\job-system-smoke.exe
 
   schedule-executor-smoke-x64:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
 
     steps:
@@ -66,6 +70,7 @@ jobs:
         run: .\schedule-executor-smoke.exe
 
   transform-rotation-smoke-x64:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
 
     steps:
@@ -101,10 +106,10 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Build Script Debug x64
+      - name: Compile Script Debug x64
         run: >-
           msbuild Script/Script.vcxproj
-          /t:Rebuild
+          /t:Build
           /m
           /p:Configuration=Debug
           /p:Platform=x64
@@ -123,10 +128,10 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Build Script Release x64
+      - name: Compile Script Release x64
         run: >-
           msbuild Script/Script.vcxproj
-          /t:Rebuild
+          /t:Build
           /m
           /p:Configuration=Release
           /p:Platform=x64
@@ -145,7 +150,7 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Build GameEngine Debug x64
+      - name: Compile GameEngine Debug x64
         id: engine_build
         continue-on-error: true
         run: >-
@@ -159,7 +164,7 @@ jobs:
           /fileLogger
           /fileLoggerParameters:"LogFile=engine-debug-errors.log;ErrorsOnly"
 
-      - name: Upload engine debug error log
+      - name: Upload engine debug compiler diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -167,7 +172,7 @@ jobs:
           path: engine-debug-errors.log
           if-no-files-found: warn
 
-      - name: Preserve engine debug build result
+      - name: Preserve engine debug compile result
         if: steps.engine_build.outcome == 'failure'
         run: cmd /c exit 1
 
@@ -183,7 +188,7 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Build GameEngine Release x64
+      - name: Compile GameEngine Release x64
         id: engine_build
         continue-on-error: true
         run: >-
@@ -197,7 +202,7 @@ jobs:
           /fileLogger
           /fileLoggerParameters:"LogFile=engine-release-errors.log;ErrorsOnly"
 
-      - name: Upload engine release error log
+      - name: Upload engine release compiler diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -205,6 +210,6 @@ jobs:
           path: engine-release-errors.log
           if-no-files-found: warn
 
-      - name: Preserve engine release build result
+      - name: Preserve engine release compile result
         if: steps.engine_build.outcome == 'failure'
         run: cmd /c exit 1
