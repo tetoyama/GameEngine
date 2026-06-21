@@ -1,0 +1,31 @@
+name: Apply PhysX Compile Repair
+
+on:
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - Tools/Migration/fix_physx_incomplete_type.py
+      - .github/workflows/apply-physx-compile-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 0
+      - run: python Tools/Migration/fix_physx_incomplete_type.py
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm Tools/Migration/fix_physx_incomplete_type.py
+          git rm .github/workflows/apply-physx-compile-fix.yml
+          git add -A
+          git commit -m "fix: define PhysicSystem lifecycle with complete callback type"
+          git push --force origin HEAD:physx-compile-fix-output
