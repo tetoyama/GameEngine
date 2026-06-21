@@ -32,6 +32,11 @@ public:
 
 	virtual void inspector(SceneContext*) {
 	}
+
+	// RegistryがComponentをStorageから除去する直前に呼ぶ。
+	// Runtime資源の所有SystemをSceneContextから解決し、明示的に解放する。
+	virtual void OnBeforeRemove(SceneContext*) {
+	}
 };
 
 
@@ -52,7 +57,6 @@ enum ReflectFlags {
 template<typename T>
 struct FieldHandler;
 
-// float
 template<>
 struct FieldHandler<float> {
 	static void Decode(const YAML::Node& node, IComponent*, float& v, const char* name){
@@ -66,7 +70,6 @@ struct FieldHandler<float> {
 	}
 };
 
-// int
 template<>
 struct FieldHandler<int> {
 	static void Decode(const YAML::Node& node, IComponent*, int& v, const char* name){
@@ -80,7 +83,6 @@ struct FieldHandler<int> {
 	}
 };
 
-// bool
 template<>
 struct FieldHandler<bool> {
 	static void Decode(const YAML::Node& node, IComponent*, bool& v, const char* name){
@@ -94,7 +96,6 @@ struct FieldHandler<bool> {
 	}
 };
 
-// Vector3
 template<>
 struct FieldHandler<Vector3> {
 	static void Decode(const YAML::Node& node, IComponent*, Vector3& v, const char* name){
@@ -108,7 +109,6 @@ struct FieldHandler<Vector3> {
 	}
 };
 
-// String
 template<>
 struct FieldHandler<std::string> {
     static void Decode(const YAML::Node& node, IComponent*, std::string& v, const char* name) {
@@ -155,15 +155,15 @@ public: \
                 ThisType::GetMetaStatic().push_back({ \
                     #Name, \
                     offsetof(ThisType, Name), \
-                    /* inspector */ [](IComponent* c, void*) { \
+                    [](IComponent* c, void*) { \
                         Type* field = reinterpret_cast<Type*>(reinterpret_cast<char*>(c) + offsetof(ThisType, Name)); \
                         FieldHandler<Type>::Inspector(c, *field, #Name); \
                     }, \
-                    /* encode */ [](YAML::Node& node, IComponent* c, void*) { \
+                    [](YAML::Node& node, IComponent* c, void*) { \
                         Type* field = reinterpret_cast<Type*>(reinterpret_cast<char*>(c) + offsetof(ThisType, Name)); \
                         FieldHandler<Type>::Encode(node, c, *field, #Name); \
                     }, \
-                    /* decode */ [](const YAML::Node& node, IComponent* c, void*) { \
+                    [](const YAML::Node& node, IComponent* c, void*) { \
                         Type* field = reinterpret_cast<Type*>(reinterpret_cast<char*>(c) + offsetof(ThisType, Name)); \
                         FieldHandler<Type>::Decode(node, c, *field, #Name); \
                     }, \
@@ -174,9 +174,6 @@ public: \
         } \
     } _autoRegister_##Name;
 
-// ===========================================
-// 初期値あり・フラグ指定あり
-// ===========================================
 #define REFLECT_FIELD_INIT(Type, Name, InitialValue, Flags) \
     Type Name = InitialValue; \
     struct AutoRegister_##Name { \
@@ -204,7 +201,6 @@ public: \
         } \
     } _autoRegister_##Name;
 
-// 呼び出し用マクロ
 #define INSPECTOR_FIELDS() \
     for(auto& f : ThisType::GetMetaStatic()) { \
         if(f.flags & REFLECT_INSPECTOR && f.inspectorFunc) f.inspectorFunc(this, nullptr); \
