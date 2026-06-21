@@ -67,7 +67,7 @@ public:
 	YAML::Node encode() override;
 	bool decode(SceneContext* context, const YAML::Node& node) override;
 	void inspector(SceneContext* context) override;
-	void OnBeforeRemove(SceneContext* context) override;
+	void OnBeforeRemove(SceneContext*) override {}
 };
 
 #include "Operations/ColliderComponentOperations.h"
