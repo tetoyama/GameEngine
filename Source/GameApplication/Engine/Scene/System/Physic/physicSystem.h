@@ -9,6 +9,7 @@
 #include "Backends/PhysX/PxPhysicsAPI.h"
 #include "Scene/Entity/Entity.h"
 
+#include <atomic>
 #include <cstring>
 #include <mutex>
 #include <vector>
@@ -38,12 +39,12 @@ struct ActorEntityInfo {
 //======================================================================
 struct RayHit
 {
-	bool                    hit;       // ヒットしたかどうか
-	physx::PxVec3           position;  // 衝突位置
-	physx::PxVec3           normal;    // 衝突面法線
-	physx::PxReal           distance;  // レイ開始点からの距離
-	physx::PxShape* hitShape;  // ヒットした Shape
-	physx::PxRigidActor* hitActor;  // ヒットした Actor
+	bool                    hit;
+	physx::PxVec3           position;
+	physx::PxVec3           normal;
+	physx::PxReal           distance;
+	physx::PxShape* hitShape;
+	physx::PxRigidActor* hitActor;
 };
 
 //======================================================================
@@ -51,8 +52,8 @@ struct RayHit
 //======================================================================
 struct PhysicsLayer
 {
-	std::string name;   // レイヤー名
-	uint32_t    bit;    // 1 << index 形式のビット
+	std::string name;
+	uint32_t    bit;
 };
 
 constexpr uint32_t kMaxPhysicsLayers = 32;
@@ -64,26 +65,22 @@ constexpr uint32_t kMaxPhysicsLayers = 32;
 class PhysicSystem: public ISystem
 {
 public:
-
-	//------------------------------------------------------------------
-	// コンストラクタ / デストラクタ
-	//------------------------------------------------------------------
 	PhysicSystem(SceneManagerContext* context)
 		: m_context(context){}
 
 	~PhysicSystem(){}
 
-	//------------------------------------------------------------------
-	// ISystem 実装
-	//------------------------------------------------------------------
 	void Initialize() override;
 	void Finalize() override;
 
 	void Start() override;
 	void FixedUpdate(float fixedDeltaTime) override;
 	void Draw() override;
-
 	void Stop() override;
+
+	// FixedUpdateをUpload / Begin / Fetch / Downloadへ分割して登録する。
+	// Collision EventのMainThread分離はStep 15の次段階で追加する。
+	void RegisterTasks(SystemScheduleBuilder& builder) override;
 
 	const char* GetSystemName() const override{
 		return "PhysicSystem";
@@ -95,9 +92,6 @@ public:
 	void SystemSetting() override;
 	bool HasSystemSetting() const override { return true; }
 
-	//------------------------------------------------------------------
-	// PhysX 取得系
-	//------------------------------------------------------------------
 	physx::PxPhysics* GetPhysics(){
 		return g_pPhysics;
 	}
@@ -106,32 +100,19 @@ public:
 		return g_pScene->getRenderBuffer();
 	}
 
-	//------------------------------------------------------------------
-	// レイヤー衝突判定
-	//------------------------------------------------------------------
 	bool GetCollisionEnabled(uint32_t layerA, uint32_t layerB) const;
 
-	//------------------------------------------------------------------
-	// マスク付きレイキャスト
-	// layerMask: 当たり判定対象とするレイヤー集合
-	//------------------------------------------------------------------
 	RayHit RaycastWithMask(const physx::PxVec3& origin,
 						   const physx::PxVec3& direction,
 						   physx::PxReal maxDistance,
 						   physx::PxU32 layerMask);
 
-	//------------------------------------------------------------------
-	// レイヤー情報取得
-	//------------------------------------------------------------------
 	const std::vector<PhysicsLayer>& GetLayers() const{
 		return m_layers;
 	}
 
 	uint32_t GetLayerBit(const std::string& name) const;
 
-	//------------------------------------------------------------------
-	// 重力設定
-	//------------------------------------------------------------------
 	float Gravity = -9.0f;
 
 	int FindLayerIndex(uint32_t bit) const;
@@ -141,9 +122,6 @@ public:
 	void RemoveLayer(int removeIndex);
 	void AddLayer(const std::string& name);
 
-	//------------------------------------------------------------------
-	// Undo/Redo 用スナップショット
-	//------------------------------------------------------------------
 	struct LayerSnapshot {
 		std::vector<PhysicsLayer> layers;
 		bool matrix[kMaxPhysicsLayers][kMaxPhysicsLayers]{};
@@ -167,23 +145,19 @@ public:
 	}
 
 private:
+	// PhysX SceneへのAccess順序をSchedulerへ伝えるResource Marker。
+	struct PhysicsSceneResource {};
 
-	//------------------------------------------------------------------
-	// コンテキスト
-	//------------------------------------------------------------------
+	void PhysicsUpload();
+	void PhysicsBegin(float fixedDeltaTime);
+	void PhysicsFetch();
+	void PhysicsDownload();
+
 	SceneManagerContext* m_context = nullptr;
 
-	//------------------------------------------------------------------
-	// レイヤー管理
-	//------------------------------------------------------------------
 	std::vector<PhysicsLayer> m_layers;
-
-	// レイヤー間の衝突可否マトリクス
 	bool m_collisionMatrix[kMaxPhysicsLayers][kMaxPhysicsLayers]{};
 
-	//------------------------------------------------------------------
-	// PhysX 基本オブジェクト
-	//------------------------------------------------------------------
 	physx::PxDefaultAllocator      g_defaultAllocator;
 	physx::PxDefaultErrorCallback  g_defaultErrorCallback;
 
@@ -193,18 +167,11 @@ private:
 	physx::PxScene* g_pScene = nullptr;
 	physx::PxPvd* g_pPvd = nullptr;
 
-	//------------------------------------------------------------------
-	// 状態管理
-	//------------------------------------------------------------------
 	std::mutex mtx;
 	bool       UpdatingPhysics = false;
+	std::atomic<bool> m_simulationInFlight{false};
 	PhysicsSimulationCallback* m_simCallback = nullptr;
 
-private:
-
-	//------------------------------------------------------------------
-	// Actor 作成補助
-	//------------------------------------------------------------------
 	physx::PxRigidDynamic* CreateDynamic(
 		const physx::PxTransform& t,
 		const physx::PxGeometry& geometry,
@@ -216,9 +183,6 @@ private:
 		const physx::PxGeometry& geometry,
 		physx::PxMaterial& material);
 
-	//------------------------------------------------------------------
-	// Collider 更新
-	//------------------------------------------------------------------
 	void UpdateCollider();
 
 	void UpdateColliderParam(
@@ -235,8 +199,7 @@ private:
 
 	void BuildMeshCollider(ColliderShape& col, ModelRendererComponent* modelRenderer);
 
-	//------------------------------------------------------------------
-	// レイヤー編集 UI
-	//------------------------------------------------------------------
 	void DrawLayerEditor();
 };
+
+#include "PhysicSystemTasks.inl"
