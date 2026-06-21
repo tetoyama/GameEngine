@@ -136,13 +136,15 @@ inline void DrawApplicationSettings(ConfigService& config) {
 }
 
 inline void DrawSystemSettings(SceneManager* sceneManager) {
-	if(!sceneManager || !sceneManager->systemRegistry) {
+	SystemRegistry* registry =
+		sceneManager ? sceneManager->GetSystemRegistry() : nullptr;
+	if(!registry) {
 		ImGui::TextDisabled("SystemRegistry is not available.");
 		return;
 	}
 
 	bool hasSettings = false;
-	for(auto& system : sceneManager->systemRegistry->GetSystems()) {
+	for(auto& system : registry->GetSystems()) {
 		if(!system || !system->HasSystemSetting()) continue;
 		const char* name = system->GetSystemName();
 		if(!name) continue;
@@ -160,14 +162,15 @@ inline void DrawScheduleSettings(
 	SceneManager* sceneManager,
 	ScheduleProfilerViewState& viewState
 ) {
-	if(!sceneManager || !sceneManager->systemRegistry) {
+	SystemRegistry* registry =
+		sceneManager ? sceneManager->GetSystemRegistry() : nullptr;
+	if(!registry) {
 		ImGui::TextDisabled("SystemRegistry is not available.");
 		return;
 	}
 
-	SystemRegistry& registry = *sceneManager->systemRegistry;
-	ScheduleProfileYamlExportUI::Draw(registry, viewState);
-	ScheduleProfilerView::Draw(registry, viewState);
+	ScheduleProfileYamlExportUI::Draw(*registry, viewState);
+	ScheduleProfilerView::Draw(*registry, viewState);
 }
 
 } // namespace SystemSettingImplementationDetail
@@ -218,8 +221,9 @@ void SystemSetting::Draw(const EditorDrawContext ctx) {
 	ImGui::Spacing();
 	ImGui::Separator();
 	if(ImGui::Button("Save Project Settings", ImVec2(ImGui::GetContentRegionAvail().x, 0.0f))) {
-		if(sceneManager && sceneManager->systemRegistry) {
-			sceneManager->systemRegistry->EncodeAll(config->editorConfig);
+		if(SystemRegistry* registry =
+			sceneManager ? sceneManager->GetSystemRegistry() : nullptr) {
+			registry->EncodeAll(config->editorConfig);
 		}
 		config->SaveEditorConfig(EDITOR_CONFIG_PATH);
 		config->SaveApplicationConfig(APPLICATION_CONFIG_PATH);
