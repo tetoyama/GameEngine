@@ -1,4 +1,4 @@
-# Validates the Engine static CRT, Script DLL dynamic CRT, and Job System behavior.
+# Validates the Engine static CRT, Script DLL dynamic CRT, Job System, and Scheduler behavior.
 name: Windows Build
 
 on:
@@ -40,6 +40,30 @@ jobs:
 
       - name: Run Job System smoke test
         run: .\job-system-smoke.exe
+
+  schedule-executor-smoke-x64:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build Schedule Executor smoke test
+        run: >-
+          cl /nologo /std:c++20 /EHsc /W4 /MTd
+          /I Source/GameApplication/Engine/Scene
+          Tests/DependencyScheduleExecutorSmokeTest.cpp
+          /Fe:schedule-executor-smoke.exe
+
+      - name: Run Schedule Executor smoke test
+        run: .\schedule-executor-smoke.exe
 
   script-debug-x64:
     runs-on: windows-latest
