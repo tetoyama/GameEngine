@@ -43,12 +43,18 @@ struct Handle {
 
 struct BufferTag {};
 struct TextureTag {};
+struct BufferViewTag {};
+struct TextureViewTag {};
+struct SamplerTag {};
 struct ShaderTag {};
 struct PipelineStateTag {};
 struct FenceTag {};
 
 using BufferHandle = Handle<BufferTag>;
 using TextureHandle = Handle<TextureTag>;
+using BufferViewHandle = Handle<BufferViewTag>;
+using TextureViewHandle = Handle<TextureViewTag>;
+using SamplerHandle = Handle<SamplerTag>;
 using ShaderHandle = Handle<ShaderTag>;
 using PipelineStateHandle = Handle<PipelineStateTag>;
 using FenceHandle = Handle<FenceTag>;
