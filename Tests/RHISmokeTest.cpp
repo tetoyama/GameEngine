@@ -66,6 +66,71 @@ void TestGenerationalResourceHandles(){
 	assert(device.GetBufferDesc(second));
 }
 
+void TestResourceBarrierContract(){
+	RHI::DeviceCreateDesc createDesc;
+	RHI::NullRHIDevice device(createDesc);
+
+	RHI::BufferDesc bufferDesc;
+	bufferDesc.byteSize = 64;
+	bufferDesc.initialState = RHI::ResourceState::Common;
+	const RHI::BufferHandle buffer = device.CreateBuffer(bufferDesc, {});
+	assert(buffer);
+
+	RHI::TextureDesc textureDesc;
+	textureDesc.width = 4;
+	textureDesc.height = 4;
+	textureDesc.initialState = RHI::ResourceState::ShaderResource;
+	const RHI::TextureHandle texture = device.CreateTexture(textureDesc, {}, 0);
+	assert(texture);
+
+	std::unique_ptr<RHI::IRHICommandList> commandList =
+		device.CreateCommandList({RHI::CommandQueueType::Graphics, false});
+	assert(commandList);
+	commandList->Begin();
+
+	RHI::ResourceBarrierDesc bufferBarrier;
+	bufferBarrier.buffer = buffer;
+	bufferBarrier.before = RHI::ResourceState::Common;
+	bufferBarrier.after = RHI::ResourceState::CopyDestination;
+	assert(commandList->ResourceBarrier(
+		std::span<const RHI::ResourceBarrierDesc>(&bufferBarrier, 1)
+	));
+
+	RHI::ResourceBarrierDesc textureBarrier;
+	textureBarrier.texture = texture;
+	textureBarrier.before = RHI::ResourceState::ShaderResource;
+	textureBarrier.after = RHI::ResourceState::RenderTarget;
+	assert(commandList->ResourceBarrier(
+		std::span<const RHI::ResourceBarrierDesc>(&textureBarrier, 1)
+	));
+
+	RHI::ResourceBarrierDesc invalid = bufferBarrier;
+	invalid.texture = texture;
+	assert(!commandList->ResourceBarrier(
+		std::span<const RHI::ResourceBarrierDesc>(&invalid, 1)
+	));
+
+	invalid = bufferBarrier;
+	invalid.subresource = 0;
+	assert(!commandList->ResourceBarrier(
+		std::span<const RHI::ResourceBarrierDesc>(&invalid, 1)
+	));
+
+	invalid = bufferBarrier;
+	invalid.after = RHI::ResourceState::Undefined;
+	assert(!commandList->ResourceBarrier(
+		std::span<const RHI::ResourceBarrierDesc>(&invalid, 1)
+	));
+
+	RHI::RenderPassDesc renderPass;
+	assert(commandList->BeginRenderPass(renderPass));
+	assert(!commandList->ResourceBarrier(
+		std::span<const RHI::ResourceBarrierDesc>(&bufferBarrier, 1)
+	));
+	commandList->EndRenderPass();
+	commandList->End();
+}
+
 void TestQueueSubmissionAndFence(){
 	RHI::DeviceCreateDesc createDesc;
 	RHI::NullRHIDevice device(createDesc);
@@ -175,6 +240,7 @@ void TestSwapChainContract(){
 int main(){
 	TestBackendRegistryAndCapabilities();
 	TestGenerationalResourceHandles();
+	TestResourceBarrierContract();
 	TestQueueSubmissionAndFence();
 	TestRenderGraphOnNullBackend();
 	TestSwapChainContract();
