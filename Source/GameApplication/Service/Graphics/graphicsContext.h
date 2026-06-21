@@ -1,20 +1,22 @@
 // =======================================================================
-// 
+//
 // graphicsContext.h
-// 
+//
 // =======================================================================
 #pragma once
+
 #include <wrl/client.h>
 #include <d3d11.h>
 #include <d2d1.h>
 #include <DirectXMath.h>
 #include <dwrite.h>
-#include <string>
-#include <vector>
 #include <fstream>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "Service/IService.h"
-#include "Service/Graphics/RHI/RHIBackend.h"
+#include "Service/Graphics/RHI/RHIService.h"
 #include "Shader/Common.hlsl"
 
 #include "Backends/Effekseer/Effekseer.h"
@@ -23,8 +25,7 @@
 class RenderEffectSystem;
 class DebugLogService;
 
-enum class BlendMode
-{
+enum class BlendMode {
 	None,
 	Alpha,
 	Additive,
@@ -41,8 +42,7 @@ enum class DepthMode {
 	COUNT
 };
 
-enum class CullMode
-{
+enum class CullMode {
 	Back,
 	Front,
 	None
@@ -51,8 +51,8 @@ enum class CullMode
 class PostEffectShader {
 public:
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VS;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader>  m_PS;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout>  m_InputLayout;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PS;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> m_InputLayout;
 
 	void Bind(ID3D11DeviceContext* context){
 		context->VSSetShader(m_VS.Get(), nullptr, 0);
@@ -68,12 +68,9 @@ struct PostProcessNode {
 	UINT outputWidth = 0;
 	UINT outputHeight = 0;
 	int mipLevels = 1;
-
 	DirectX::XMFLOAT4 param = {0,0,0,0};
-
 	std::vector<int> inputs;
 	std::unordered_map<std::string, float> parameters;
-
 	PostEffectShader shader;
 	ID3D11Texture2D* tex;
 	ID3D11RenderTargetView** rtv;
@@ -89,8 +86,12 @@ enum class PostProcessBufferID {
 
 class GraphicsContext : public IService {
 public:
-	explicit GraphicsContext(DebugLogService* debugLog = nullptr)
-		: m_DebugLog(debugLog)
+	explicit GraphicsContext(
+		DebugLogService* debugLog = nullptr,
+		RHI::RHIService* rhiService = nullptr
+	)
+		: m_DebugLog(debugLog),
+		  m_RHIService(rhiService)
 	{}
 
 	bool Initialize(HWND hwnd, UINT width, UINT height);
@@ -100,7 +101,13 @@ public:
 	void Present(bool vsync);
 
 	RHI::BackendType GetBackendType() const noexcept {
-		return RHI::GetRequestedBackend();
+		return m_RHIService
+			? m_RHIService->GetSelectedBackend()
+			: RHI::BackendType::Direct3D11;
+	}
+
+	RHI::RHIService* GetRHIService() const noexcept {
+		return m_RHIService;
 	}
 
 	ID3D11Device* GetDevice() const{return m_Device.Get();}
@@ -134,7 +141,6 @@ public:
 	void ResetBuffer(const float clearColor[4]);
 	void SetWorldViewProjection2D();
 	void SetCullMode(CullMode set);
-
 	void Resize(UINT width, UINT height);
 
 	bool CreateVertexShader(
@@ -152,10 +158,12 @@ public:
 		return csSkinning;
 	}
 
-	void ApplyPostProcessChain(std::vector<PostProcessNode>& effects,
+	void ApplyPostProcessChain(
+		std::vector<PostProcessNode>& effects,
 		ID3D11ShaderResourceView* initialSRV,
 		ID3D11ShaderResourceView* const* gbufferSRVs = nullptr,
-		int gbufferCount = 0);
+		int gbufferCount = 0
+	);
 
 	ID3D11ShaderResourceView* GetPostProcessResultSRV() const{
 		return GetCurrentSRV();
@@ -177,9 +185,7 @@ public:
 	ID3D11RenderTargetView** m_CurrentRTV = nullptr;
 
 private:
-	// graphicsContext.cppの既存D3D11生成呼び出しを、EngineConfigで選択された
-	// Backend境界へ接続する移行用Bootstrap。同名のGlobal APIへは明示修飾で委譲する。
-	static HRESULT WINAPI D3D11CreateDeviceAndSwapChain(
+	HRESULT CreateSelectedD3D11DeviceAndSwapChain(
 		IDXGIAdapter* adapter,
 		D3D_DRIVER_TYPE driverType,
 		HMODULE software,
@@ -193,7 +199,7 @@ private:
 		D3D_FEATURE_LEVEL* featureLevel,
 		ID3D11DeviceContext** immediateContext
 	){
-		if(RHI::GetRequestedBackend() != RHI::BackendType::Direct3D11){
+		if(GetBackendType() != RHI::BackendType::Direct3D11){
 			return DXGI_ERROR_UNSUPPORTED;
 		}
 		return ::D3D11CreateDeviceAndSwapChain(
@@ -233,12 +239,13 @@ private:
 	ID3D11RenderTargetView* m_RenderTargetView = nullptr;
 	ID3D11DepthStencilView* m_DepthStencilView = nullptr;
 
-	ID3D11Buffer* m_CbPerFrame  = nullptr;
+	ID3D11Buffer* m_CbPerFrame = nullptr;
 	ID3D11Buffer* m_CbPerCamera = nullptr;
 	ID3D11Buffer* m_CbPerObject = nullptr;
 	DebugLogService* m_DebugLog = nullptr;
+	RHI::RHIService* m_RHIService = nullptr;
 
-	CbPerFrame  m_CbPerFrameData{};
+	CbPerFrame m_CbPerFrameData{};
 	CbPerCamera m_CbPerCameraData{};
 	CbPerObject m_CbPerObjectData{};
 
@@ -252,11 +259,9 @@ private:
 
 	Microsoft::WRL::ComPtr<ID2D1Factory> m_d2dFactory;
 	Microsoft::WRL::ComPtr<IDWriteFactory> m_dwriteFactory;
-
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> m_Buffer;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_RTV;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_SRV;
-
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_FullScreenVB;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_FullScreenIB;
 
