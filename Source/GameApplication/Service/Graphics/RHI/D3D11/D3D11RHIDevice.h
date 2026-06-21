@@ -23,6 +23,7 @@ public:
 	bool Resize(uint32_t, uint32_t) override;
 	bool Present(bool) override;
 	const SwapChainDesc& GetDesc() const override { return m_desc; }
+	IDXGISwapChain* NativeSwapChain() const noexcept { return m_swapChain.Get(); }
 private:
 	Microsoft::WRL::ComPtr<IDXGISwapChain> m_swapChain;
 	SwapChainDesc m_desc;
@@ -133,8 +134,9 @@ public:
 	IRHISwapChain* GetSwapChain() override { return &m_swapChain; }
 	const IRHISwapChain* GetSwapChain() const override { return &m_swapChain; }
 	void WaitIdle() override;
-	ID3D11Device* NativeDevice() const { return m_device.Get(); }
-	ID3D11DeviceContext* NativeContext() const { return m_context.Get(); }
+	ID3D11Device* NativeDevice() const noexcept { return m_device.Get(); }
+	ID3D11DeviceContext* NativeContext() const noexcept { return m_context.Get(); }
+	IDXGISwapChain* NativeSwapChain() const noexcept { return m_swapChain.NativeSwapChain(); }
 private:
 	friend class D3D11RHICommandList;
 	friend class D3D11RHICommandQueue;
