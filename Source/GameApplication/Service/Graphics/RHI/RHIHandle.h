@@ -45,11 +45,13 @@ struct BufferTag {};
 struct TextureTag {};
 struct ShaderTag {};
 struct PipelineStateTag {};
+struct FenceTag {};
 
 using BufferHandle = Handle<BufferTag>;
 using TextureHandle = Handle<TextureTag>;
 using ShaderHandle = Handle<ShaderTag>;
 using PipelineStateHandle = Handle<PipelineStateTag>;
+using FenceHandle = Handle<FenceTag>;
 
 } // namespace RHI
 
