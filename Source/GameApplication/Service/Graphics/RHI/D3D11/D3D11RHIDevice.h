@@ -3,7 +3,10 @@
 // =======================================================================
 #pragma once
 
+#include <chrono>
+#include <condition_variable>
 #include <memory>
+#include <mutex>
 
 #include <d3d11.h>
 #include <dxgi.h>
@@ -20,10 +23,7 @@ class D3D11RHIDevice;
 class D3D11RHISwapChain final : public IRHISwapChain {
 public:
 	D3D11RHISwapChain() = default;
-	D3D11RHISwapChain(
-		IDXGISwapChain* swapChain,
-		const SwapChainDesc& desc
-	);
+	D3D11RHISwapChain(IDXGISwapChain* swapChain, const SwapChainDesc& desc);
 
 	void Attach(IDXGISwapChain* swapChain, const SwapChainDesc& desc);
 	bool Resize(uint32_t width, uint32_t height) override;
@@ -38,9 +38,13 @@ private:
 class D3D11RHICommandList final : public IRHICommandList {
 public:
 	D3D11RHICommandList() = default;
-	explicit D3D11RHICommandList(D3D11RHIDevice* owner);
+	D3D11RHICommandList(
+		D3D11RHIDevice* owner,
+		CommandQueueType queueType = CommandQueueType::Graphics
+	);
 
-	void Attach(D3D11RHIDevice* owner);
+	void Attach(D3D11RHIDevice* owner, CommandQueueType queueType);
+	CommandQueueType GetQueueType() const noexcept override { return m_queueType; }
 	void Begin() override;
 	void End() override;
 	bool BeginRenderPass(const RenderPassDesc& desc) override;
@@ -56,10 +60,51 @@ public:
 	void DrawIndexed(uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset) override;
 	void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
 
+	bool IsClosed() const noexcept { return m_closed; }
+
 private:
 	D3D11RHIDevice* m_owner = nullptr;
+	CommandQueueType m_queueType = CommandQueueType::Graphics;
 	bool m_recording = false;
+	bool m_closed = false;
 	bool m_renderPassActive = false;
+};
+
+struct D3D11FenceState {
+	std::mutex mutex;
+	std::condition_variable condition;
+	uint64_t completedValue = 0;
+};
+
+class D3D11RHIFence final : public IRHIFence {
+public:
+	D3D11RHIFence(FenceHandle handle, std::shared_ptr<D3D11FenceState> state)
+		: m_handle(handle), m_state(std::move(state)){}
+
+	FenceHandle GetHandle() const noexcept override { return m_handle; }
+	uint64_t GetCompletedValue() const override;
+	bool Wait(uint64_t value, uint64_t timeoutNanoseconds) override;
+
+private:
+	FenceHandle m_handle;
+	std::shared_ptr<D3D11FenceState> m_state;
+};
+
+class D3D11RHICommandQueue final : public IRHICommandQueue {
+public:
+	D3D11RHICommandQueue() = default;
+	explicit D3D11RHICommandQueue(D3D11RHIDevice* owner)
+		: m_owner(owner){}
+
+	void Attach(D3D11RHIDevice* owner){ m_owner = owner; }
+	CommandQueueType GetType() const noexcept override {
+		return CommandQueueType::Graphics;
+	}
+	bool Submit(const QueueSubmitDesc& desc) override;
+	void WaitIdle() override;
+
+private:
+	D3D11RHIDevice* m_owner = nullptr;
 };
 
 class D3D11RHIDevice final : public IRHIDevice {
@@ -72,7 +117,12 @@ public:
 	);
 	~D3D11RHIDevice() override;
 
-	BackendType GetBackendType() const override { return BackendType::Direct3D11; }
+	BackendType GetBackendType() const noexcept override {
+		return BackendType::Direct3D11;
+	}
+	const DeviceCapabilities& GetCapabilities() const noexcept override {
+		return m_capabilities;
+	}
 
 	BufferHandle CreateBuffer(const BufferDesc& desc, std::span<const std::byte> initialData) override;
 	TextureHandle CreateTexture(const TextureDesc& desc, std::span<const std::byte> initialData, uint32_t initialRowPitch) override;
@@ -89,7 +139,11 @@ public:
 	const ShaderDesc* GetShaderDesc(ShaderHandle handle) const override;
 	const PipelineStateDesc* GetPipelineStateDesc(PipelineStateHandle handle) const override;
 
-	IRHICommandList& GetImmediateCommandList() override { return m_immediateCommandList; }
+	IRHICommandQueue* GetQueue(CommandQueueType type) override;
+	const IRHICommandQueue* GetQueue(CommandQueueType type) const override;
+	std::unique_ptr<IRHICommandList> CreateCommandList(const CommandListCreateDesc& desc) override;
+	std::unique_ptr<IRHIFence> CreateFence(uint64_t initialValue) override;
+
 	IRHISwapChain* GetSwapChain() override { return &m_swapChain; }
 	const IRHISwapChain* GetSwapChain() const override { return &m_swapChain; }
 	void WaitIdle() override;
@@ -99,6 +153,7 @@ public:
 
 private:
 	friend class D3D11RHICommandList;
+	friend class D3D11RHICommandQueue;
 
 	D3D11BufferResource* Find(BufferHandle handle) { return m_buffers.TryGet(handle); }
 	D3D11TextureResource* Find(TextureHandle handle) { return m_textures.TryGet(handle); }
@@ -108,15 +163,18 @@ private:
 	const D3D11TextureResource* Find(TextureHandle handle) const { return m_textures.TryGet(handle); }
 	const D3D11ShaderResource* Find(ShaderHandle handle) const { return m_shaders.TryGet(handle); }
 	const D3D11PipelineStateResource* Find(PipelineStateHandle handle) const { return m_pipelines.TryGet(handle); }
+	std::shared_ptr<D3D11FenceState> FindFence(FenceHandle handle) const;
 
 	Microsoft::WRL::ComPtr<ID3D11Device> m_device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_context;
+	DeviceCapabilities m_capabilities;
 	D3D11RHISwapChain m_swapChain;
-	D3D11RHICommandList m_immediateCommandList;
+	D3D11RHICommandQueue m_graphicsQueue;
 	ResourcePool<BufferHandle, D3D11BufferResource> m_buffers;
 	ResourcePool<TextureHandle, D3D11TextureResource> m_textures;
 	ResourcePool<ShaderHandle, D3D11ShaderResource> m_shaders;
 	ResourcePool<PipelineStateHandle, D3D11PipelineStateResource> m_pipelines;
+	ResourcePool<FenceHandle, std::shared_ptr<D3D11FenceState>> m_fences;
 };
 
 } // namespace RHI
