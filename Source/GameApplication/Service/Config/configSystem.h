@@ -5,26 +5,20 @@
 // =======================================================================
 #pragma once
 
-#include <cstdint>
-#include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <vector>
 
 #include "YAMLConverters.h"
 #include "buildSetting.h"
 #include "appConfig.h"
 #include "Service/Graphics/RHI/RHIBackend.h"
 
+// EngineConfig.yaml のGraphics節。
+// 現段階で起動経路へ反映される設定だけを公開する。
 struct EngineGraphicsConfig {
 	RHI::BackendType backend = RHI::BackendType::Direct3D11;
-	uint32_t adapterIndex = 0;
-	bool preferHighPerformanceAdapter = true;
-	bool allowTearing = true;
-	uint32_t swapChainBufferCount = 2;
 };
 
 struct EngineConfig {
@@ -228,36 +222,11 @@ private:
 					).c_str());
 				}
 			}
-
-			if(graphics["AdapterIndex"]){
-				engineConfig.graphics.adapterIndex =
-					graphics["AdapterIndex"].as<uint32_t>();
-			}
-			if(graphics["PreferHighPerformanceAdapter"]){
-				engineConfig.graphics.preferHighPerformanceAdapter =
-					graphics["PreferHighPerformanceAdapter"].as<bool>();
-			}
-			if(graphics["AllowTearing"]){
-				engineConfig.graphics.allowTearing =
-					graphics["AllowTearing"].as<bool>();
-			}
-			if(graphics["SwapChainBufferCount"]){
-				const uint32_t count =
-					graphics["SwapChainBufferCount"].as<uint32_t>();
-				if(count >= 2 && count <= 16){
-					engineConfig.graphics.swapChainBufferCount = count;
-				}
-				else{
-					OutputDebugStringA(
-						"Graphics.SwapChainBufferCount must be between 2 and 16. Using 2.\n"
-					);
-				}
-			}
 		}
 		catch(const YAML::Exception& exception){
 			OutputDebugStringA((
 				std::string("Invalid Graphics section in EngineConfig.yaml: ") +
-				exception.what() + ". Using defaults.\n"
+				exception.what() + ". Using Direct3D11.\n"
 			).c_str());
 			engineConfig = EngineConfig{};
 		}
@@ -268,12 +237,6 @@ private:
 		graphics["Backend"] = std::string(
 			ToEngineConfigBackendName(engineConfig.graphics.backend)
 		);
-		graphics["AdapterIndex"] = engineConfig.graphics.adapterIndex;
-		graphics["PreferHighPerformanceAdapter"] =
-			engineConfig.graphics.preferHighPerformanceAdapter;
-		graphics["AllowTearing"] = engineConfig.graphics.allowTearing;
-		graphics["SwapChainBufferCount"] =
-			engineConfig.graphics.swapChainBufferCount;
 		editorConfig["Graphics"] = graphics;
 	}
 };
