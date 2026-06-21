@@ -17,7 +17,8 @@ public:
 		const CompiledSystemSchedule& schedule,
 		std::vector<SystemTask>& tasks,
 		JobSystem& jobs,
-		const SystemTaskContext& context
+		const SystemTaskContext& context,
+		SystemScheduleProfiler* profiler
 	);
 
 private:
