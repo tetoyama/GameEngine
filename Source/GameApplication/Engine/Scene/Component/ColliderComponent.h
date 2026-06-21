@@ -56,7 +56,7 @@ public:
 	~ColliderComponent() override;
 
 	// Physics側が所有するActorへの非所有エイリアス。
-	// 互換APIがActorへアクセスする間だけ保持し、解放はRelease Bridgeへ委譲する。
+	// 解放はSceneContextから解決したPhysicSystemへ明示的に委譲する。
 	physx::PxRigidDynamic* pRigidbodyDynamic = nullptr;
 	physx::PxRigidStatic* pRigidbodyStatic = nullptr;
 
@@ -69,6 +69,7 @@ public:
 	YAML::Node encode() override;
 	bool decode(SceneContext* context, const YAML::Node& node) override;
 	void inspector(SceneContext* context) override;
+	void OnBeforeRemove(SceneContext* context) override;
 };
 
 #include "Operations/ColliderComponentOperations.h"
