@@ -1,3 +1,9 @@
+Graphics:
+  Backend: Direct3D11
+  AdapterIndex: 0
+  PreferHighPerformanceAdapter: true
+  AllowTearing: true
+  SwapChainBufferCount: 2
 Systems:
   ScriptSystem: ~
   TransformSystem: ~
