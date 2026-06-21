@@ -1,0 +1,41 @@
+name: RHI Smoke Test
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+
+concurrency:
+  group: rhi-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rhi-smoke-x64:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build RHI smoke test
+        run: >-
+          cl /nologo /std:c++20 /EHsc /W4 /MTd
+          /I Source/GameApplication
+          Tests/RHISmokeTest.cpp
+          /Fe:rhi-smoke.exe
+
+      - name: Run RHI smoke test
+        run: .\rhi-smoke.exe
