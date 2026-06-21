@@ -75,9 +75,9 @@ public:
 
 		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
 			auto context = scene->GetSceneContext();
-			auto entities = context->component->FindEntitiesWithComponent<EffectComponent>();
+			const auto& entities = context->component->FindEntitiesWithComponent<EffectComponent>();
 
-			for(auto entity : entities){
+			for(auto& entity : entities){
 				auto* comp = context->component->GetComponent<EffectComponent>(entity);
 				if(!comp) continue;
 
