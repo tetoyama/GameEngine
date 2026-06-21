@@ -8,6 +8,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cfloat>
 #include <cstring>
 #include <string>
 #include <utility>
@@ -78,9 +79,15 @@ inline bool Decode(ColliderComponent& component, const YAML::Node& node){
 		return false;
 	}
 
-	if(node["isDynamic"]) component.isDynamic = node["isDynamic"].as<bool>();
-	if(node["autoMass"]) component.autoMass = node["autoMass"].as<bool>();
-	if(node["Mass"]) component.Mass = node["Mass"].as<float>();
+	if(node["isDynamic"]){
+		component.isDynamic = node["isDynamic"].as<bool>();
+	}
+	if(node["autoMass"]){
+		component.autoMass = node["autoMass"].as<bool>();
+	}
+	if(node["Mass"]){
+		component.Mass = node["Mass"].as<float>();
+	}
 
 	component.colliders.clear();
 	if(node["colliders"] && node["colliders"].IsSequence()){
@@ -94,8 +101,12 @@ inline bool Decode(ColliderComponent& component, const YAML::Node& node){
 			DecodeVector3(colliderNode["size"], collider.size);
 			DecodeVector3(colliderNode["offset"], collider.offset);
 			DecodeVector3(colliderNode["rotationOffset"], collider.rotationOffset);
-			if(colliderNode["radius"]) collider.radius = colliderNode["radius"].as<float>();
-			if(colliderNode["height"]) collider.height = colliderNode["height"].as<float>();
+			if(colliderNode["radius"]){
+				collider.radius = colliderNode["radius"].as<float>();
+			}
+			if(colliderNode["height"]){
+				collider.height = colliderNode["height"].as<float>();
+			}
 			if(colliderNode["staticFriction"]){
 				collider.staticFriction = colliderNode["staticFriction"].as<float>();
 			}
@@ -108,9 +119,15 @@ inline bool Decode(ColliderComponent& component, const YAML::Node& node){
 			if(colliderNode["collisionLayer"]){
 				collider.collisionLayer = colliderNode["collisionLayer"].as<uint32_t>();
 			}
-			if(colliderNode["lockRotX"]) collider.lockRotX = colliderNode["lockRotX"].as<bool>();
-			if(colliderNode["lockRotY"]) collider.lockRotY = colliderNode["lockRotY"].as<bool>();
-			if(colliderNode["lockRotZ"]) collider.lockRotZ = colliderNode["lockRotZ"].as<bool>();
+			if(colliderNode["lockRotX"]){
+				collider.lockRotX = colliderNode["lockRotX"].as<bool>();
+			}
+			if(colliderNode["lockRotY"]){
+				collider.lockRotY = colliderNode["lockRotY"].as<bool>();
+			}
+			if(colliderNode["lockRotZ"]){
+				collider.lockRotZ = colliderNode["lockRotZ"].as<bool>();
+			}
 			if(colliderNode["isTrigger"]){
 				collider.isTrigger = colliderNode["isTrigger"].as<bool>();
 			}
@@ -118,6 +135,9 @@ inline bool Decode(ColliderComponent& component, const YAML::Node& node){
 				collider.boneName = colliderNode["boneName"].as<std::string>();
 			}
 
+			collider.size.x = (std::max)(collider.size.x, 0.001f);
+			collider.size.y = (std::max)(collider.size.y, 0.001f);
+			collider.size.z = (std::max)(collider.size.z, 0.001f);
 			collider.radius = (std::max)(collider.radius, 0.001f);
 			collider.height = (std::max)(collider.height, 0.001f);
 			collider.staticFriction = (std::clamp)(collider.staticFriction, 0.0f, 1.0f);
@@ -127,6 +147,7 @@ inline bool Decode(ColliderComponent& component, const YAML::Node& node){
 		}
 	}
 
+	component.Mass = (std::max)(component.Mass, 0.001f);
 	component.needsUpdate = true;
 	return true;
 }
@@ -149,37 +170,82 @@ inline ModelRendererComponent* FindModelRenderer(
 	return nullptr;
 }
 
+inline void BeginPropertyRow(const char* label){
+	ImGui::TableNextRow();
+	ImGui::TableSetColumnIndex(0);
+	ImGui::AlignTextToFramePadding();
+	ImGui::TextUnformatted(label);
+	ImGui::TableSetColumnIndex(1);
+	ImGui::SetNextItemWidth(-FLT_MIN);
+}
+
+inline bool BeginPropertyTable(const char* id){
+	if(!ImGui::BeginTable(
+		id,
+		2,
+		ImGuiTableFlags_SizingStretchProp |
+		ImGuiTableFlags_NoSavedSettings |
+		ImGuiTableFlags_BordersInnerV
+	)){
+		return false;
+	}
+
+	ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthFixed, 112.0f);
+	ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+	return true;
+}
+
 inline void DrawGeneralSettings(ColliderComponent& component){
 	bool changed = false;
-	changed |= ImGui::UndoCheckbox("isDynamic", &component.isDynamic);
-	changed |= ImGui::UndoCheckbox("autoMass", &component.autoMass);
-	if(component.isDynamic && !component.autoMass){
-		changed |= ImGui::UndoDragFloat("Mass", &component.Mass, 0.1f, 0.001f);
+
+	if(BeginPropertyTable("ColliderGeneralProperties")){
+		BeginPropertyRow("Dynamic");
+		changed |= ImGui::UndoCheckbox("##Dynamic", &component.isDynamic);
+
+		BeginPropertyRow("Automatic Mass");
+		if(!component.isDynamic){
+			ImGui::BeginDisabled();
+		}
+		changed |= ImGui::UndoCheckbox("##AutomaticMass", &component.autoMass);
+		if(!component.isDynamic){
+			ImGui::EndDisabled();
+		}
+
+		BeginPropertyRow("Mass");
+		if(!component.isDynamic || component.autoMass){
+			ImGui::BeginDisabled();
+		}
+		changed |= ImGui::UndoDragFloat(
+			"##Mass",
+			&component.Mass,
+			0.1f,
+			0.001f,
+			1000000.0f
+		);
+		if(!component.isDynamic || component.autoMass){
+			ImGui::EndDisabled();
+		}
+
+		ImGui::EndTable();
 	}
+
+	component.Mass = (std::max)(component.Mass, 0.001f);
 	component.needsUpdate |= changed;
 }
 
-inline void DrawCollisionLayer(
-	ColliderShape& collider,
-	SceneContext* context,
-	float labelPosition,
-	bool& changed
-){
+inline bool DrawCollisionLayer(ColliderShape& collider, SceneContext* context){
 	PhysicSystem* physics = nullptr;
 	if(context && context->system){
 		physics = context->system->GetSystem<PhysicSystem>();
 	}
 
-	ImGui::TextUnformatted("Collision Layer");
-	ImGui::SameLine(labelPosition);
-
 	if(!physics || physics->GetLayers().empty()){
-		ImGui::TextDisabled("(no layers)");
-		return;
+		ImGui::TextDisabled("No collision layers");
+		return false;
 	}
 
 	const auto& layers = physics->GetLayers();
-	int currentIndex = 0;
+	int currentIndex = -1;
 	for(int index = 0; index < static_cast<int>(layers.size()); ++index){
 		if(collider.collisionLayer == layers[index].bit){
 			currentIndex = index;
@@ -187,7 +253,11 @@ inline void DrawCollisionLayer(
 		}
 	}
 
-	if(ImGui::BeginCombo("##CollisionLayer", layers[currentIndex].name.c_str())){
+	const char* preview = currentIndex >= 0
+		? layers[currentIndex].name.c_str()
+		: "Unassigned";
+	bool changed = false;
+	if(ImGui::BeginCombo("##CollisionLayer", preview)){
 		for(int index = 0; index < static_cast<int>(layers.size()); ++index){
 			const bool selected = index == currentIndex;
 			if(ImGui::Selectable(layers[index].name.c_str(), selected)){
@@ -200,36 +270,39 @@ inline void DrawCollisionLayer(
 		}
 		ImGui::EndCombo();
 	}
+	return changed;
 }
 
-inline void DrawBoneName(
+inline bool DrawBoneName(
 	ColliderComponent& component,
 	ColliderShape& collider,
-	SceneContext* context,
-	float labelPosition,
-	bool& changed
+	SceneContext* context
 ){
-	ImGui::TextUnformatted("Bone Name");
-	ImGui::SameLine(labelPosition);
-
 	ModelRendererComponent* modelRenderer = FindModelRenderer(component, context);
 	const char* preview = collider.boneName.empty()
-		? "(none)"
+		? "None"
 		: collider.boneName.c_str();
+	bool changed = false;
 
 	if(modelRenderer && modelRenderer->model &&
 		!modelRenderer->model->m_BoneIndexMap.empty()){
 		if(ImGui::BeginCombo("##BoneName", preview)){
-			std::vector<std::string> boneNames{std::string{}};
+			if(ImGui::Selectable("None", collider.boneName.empty())){
+				collider.boneName.clear();
+				changed = true;
+			}
+
+			std::vector<std::string> boneNames;
+			boneNames.reserve(modelRenderer->model->m_BoneIndexMap.size());
 			for(const auto& [name, boneIndex] : modelRenderer->model->m_BoneIndexMap){
 				(void)boneIndex;
 				boneNames.push_back(name);
 			}
-			std::sort(boneNames.begin() + 1, boneNames.end());
+			std::sort(boneNames.begin(), boneNames.end());
+
 			for(const std::string& boneName : boneNames){
 				const bool selected = collider.boneName == boneName;
-				const char* label = boneName.empty() ? "(none)" : boneName.c_str();
-				if(ImGui::Selectable(label, selected)){
+				if(ImGui::Selectable(boneName.c_str(), selected)){
 					collider.boneName = boneName;
 					changed = true;
 				}
@@ -239,7 +312,7 @@ inline void DrawBoneName(
 			}
 			ImGui::EndCombo();
 		}
-		return;
+		return changed;
 	}
 
 	char buffer[128]{};
@@ -248,195 +321,244 @@ inline void DrawBoneName(
 		collider.boneName = buffer;
 		changed = true;
 	}
+	return changed;
 }
 
 inline void DrawShape(
 	ColliderComponent& component,
 	ColliderShape& collider,
-	SceneContext* context,
-	size_t index
+	SceneContext* context
 ){
-	constexpr float labelPosition = 120.0f;
 	bool changed = false;
-	const std::string suffix = std::to_string(index);
 
-	if(ImGui::TreeNodeEx("Param", ImGuiTreeNodeFlags_DefaultOpen)){
-		int type = static_cast<int>(collider.type);
-		ImGui::TextUnformatted("Type");
-		ImGui::SameLine(labelPosition);
-		if(ImGui::Combo(
-			("##Type" + suffix).c_str(),
-			&type,
-			"Box\0Sphere\0Capsule\0Mesh\0HeightMap\0"
-		)){
-			collider.type = static_cast<ColliderType>(type);
-			changed = true;
+	if(ImGui::TreeNodeEx(
+		"Shape",
+		ImGuiTreeNodeFlags_DefaultOpen |
+		ImGuiTreeNodeFlags_SpanAvailWidth
+	)){
+		if(BeginPropertyTable("ColliderShapeProperties")){
+			BeginPropertyRow("Type");
+			int type = static_cast<int>(collider.type);
+			if(ImGui::Combo(
+				"##Type",
+				&type,
+				"Box\0Sphere\0Capsule\0Mesh\0Height Map\0"
+			)){
+				collider.type = static_cast<ColliderType>(type);
+				changed = true;
+			}
+
+			BeginPropertyRow("Trigger");
+			changed |= ImGui::UndoCheckbox("##Trigger", &collider.isTrigger);
+
+			BeginPropertyRow("Collision Layer");
+			changed |= DrawCollisionLayer(collider, context);
+
+			if(collider.type == ColliderType::Box){
+				BeginPropertyRow("Size");
+				changed |= ImGui::UndoDragFloat3(
+					"##Size",
+					&collider.size.x,
+					0.01f,
+					0.001f,
+					1000000.0f
+				);
+			} else if(collider.type == ColliderType::Sphere){
+				BeginPropertyRow("Radius");
+				changed |= ImGui::UndoDragFloat(
+					"##Radius",
+					&collider.radius,
+					0.01f,
+					0.001f,
+					1000000.0f
+				);
+			} else if(collider.type == ColliderType::Capsule){
+				BeginPropertyRow("Radius");
+				changed |= ImGui::UndoDragFloat(
+					"##Radius",
+					&collider.radius,
+					0.01f,
+					0.001f,
+					1000000.0f
+				);
+
+				BeginPropertyRow("Height");
+				changed |= ImGui::UndoDragFloat(
+					"##Height",
+					&collider.height,
+					0.01f,
+					0.001f,
+					1000000.0f
+				);
+			}
+
+			ImGui::EndTable();
 		}
+		ImGui::TreePop();
+	}
 
-		ImGui::TextUnformatted("Is Trigger");
-		ImGui::SameLine(labelPosition);
-		changed |= ImGui::UndoCheckbox(
-			("##IsTrigger" + suffix).c_str(),
-			&collider.isTrigger
-		);
+	if(ImGui::TreeNodeEx(
+		"Local Transform",
+		ImGuiTreeNodeFlags_DefaultOpen |
+		ImGuiTreeNodeFlags_SpanAvailWidth
+	)){
+		if(BeginPropertyTable("ColliderTransformProperties")){
+			BeginPropertyRow("Bone");
+			changed |= DrawBoneName(component, collider, context);
 
-		DrawCollisionLayer(collider, context, labelPosition, changed);
-
-		if(collider.type == ColliderType::Box){
-			ImGui::TextUnformatted("Size");
-			ImGui::SameLine(labelPosition);
+			BeginPropertyRow("Position");
 			changed |= ImGui::UndoDragFloat3(
-				("##Size" + suffix).c_str(),
-				&collider.size.x,
-				0.1f
+				"##Position",
+				&collider.offset.x,
+				0.01f
 			);
-		} else if(collider.type == ColliderType::Sphere){
-			ImGui::TextUnformatted("Radius");
-			ImGui::SameLine(labelPosition);
-			changed |= ImGui::UndoDragFloat(
-				("##Radius" + suffix).c_str(),
-				&collider.radius,
+
+			BeginPropertyRow("Rotation");
+			changed |= ImGui::UndoDragFloat3(
+				"##RotationDegrees",
+				&collider.rotationOffset.x,
 				0.1f,
-				0.001f
+				0.0f,
+				0.0f,
+				"%.3f deg"
 			);
-		} else if(collider.type == ColliderType::Capsule){
-			ImGui::TextUnformatted("Radius");
-			ImGui::SameLine(labelPosition);
-			changed |= ImGui::UndoDragFloat(
-				("##Radius" + suffix).c_str(),
-				&collider.radius,
-				0.1f,
-				0.001f
-			);
-			ImGui::TextUnformatted("Height");
-			ImGui::SameLine(labelPosition);
-			changed |= ImGui::UndoDragFloat(
-				("##Height" + suffix).c_str(),
-				&collider.height,
-				0.1f,
-				0.001f
-			);
+
+			BeginPropertyRow("Lock Rotation");
+			changed |= ImGui::UndoCheckbox("X##LockRotation", &collider.lockRotX);
+			ImGui::SameLine();
+			changed |= ImGui::UndoCheckbox("Y##LockRotation", &collider.lockRotY);
+			ImGui::SameLine();
+			changed |= ImGui::UndoCheckbox("Z##LockRotation", &collider.lockRotZ);
+
+			ImGui::EndTable();
 		}
 		ImGui::TreePop();
 	}
 
-	if(ImGui::TreeNodeEx("Offset", ImGuiTreeNodeFlags_DefaultOpen)){
-		DrawBoneName(component, collider, context, labelPosition, changed);
+	if(ImGui::TreeNodeEx(
+		"Physics Material",
+		ImGuiTreeNodeFlags_DefaultOpen |
+		ImGuiTreeNodeFlags_SpanAvailWidth
+	)){
+		if(BeginPropertyTable("ColliderMaterialProperties")){
+			BeginPropertyRow("Static Friction");
+			changed |= ImGui::UndoDragFloat(
+				"##StaticFriction",
+				&collider.staticFriction,
+				0.01f,
+				0.0f,
+				1.0f
+			);
 
-		ImGui::TextUnformatted("Position");
-		ImGui::SameLine(labelPosition);
-		changed |= ImGui::UndoDragFloat3(
-			("##Position" + suffix).c_str(),
-			&collider.offset.x,
-			0.1f
-		);
+			BeginPropertyRow("Dynamic Friction");
+			changed |= ImGui::UndoDragFloat(
+				"##DynamicFriction",
+				&collider.dynamicFriction,
+				0.01f,
+				0.0f,
+				1.0f
+			);
 
-		ImGui::TextUnformatted("Rotation");
-		ImGui::SameLine(labelPosition);
-		changed |= ImGui::UndoDragFloat3(
-			("##Rotation" + suffix).c_str(),
-			&collider.rotationOffset.x,
-			1.0f
-		);
+			BeginPropertyRow("Restitution");
+			changed |= ImGui::UndoDragFloat(
+				"##Restitution",
+				&collider.restitution,
+				0.01f,
+				0.0f,
+				1.0f
+			);
 
-		ImGui::TextUnformatted("Lock Rotation");
-		ImGui::SameLine(labelPosition);
-		changed |= ImGui::UndoCheckbox(("X##LockRot" + suffix).c_str(), &collider.lockRotX);
-		ImGui::SameLine();
-		changed |= ImGui::UndoCheckbox(("Y##LockRot" + suffix).c_str(), &collider.lockRotY);
-		ImGui::SameLine();
-		changed |= ImGui::UndoCheckbox(("Z##LockRot" + suffix).c_str(), &collider.lockRotZ);
+			ImGui::EndTable();
+		}
 		ImGui::TreePop();
 	}
 
-	if(ImGui::TreeNodeEx("Friction", ImGuiTreeNodeFlags_DefaultOpen)){
-		ImGui::TextUnformatted("Static");
-		ImGui::SameLine(labelPosition);
-		changed |= ImGui::UndoDragFloat(
-			("##Static" + suffix).c_str(),
-			&collider.staticFriction,
-			0.01f,
-			0.0f,
-			1.0f
-		);
-
-		ImGui::TextUnformatted("Dynamic");
-		ImGui::SameLine(labelPosition);
-		changed |= ImGui::UndoDragFloat(
-			("##Dynamic" + suffix).c_str(),
-			&collider.dynamicFriction,
-			0.01f,
-			0.0f,
-			1.0f
-		);
-
-		ImGui::TextUnformatted("Restitution");
-		ImGui::SameLine(labelPosition);
-		changed |= ImGui::UndoDragFloat(
-			("##Restitution" + suffix).c_str(),
-			&collider.restitution,
-			0.01f,
-			0.0f,
-			1.0f
-		);
-		ImGui::TreePop();
-	}
-
+	collider.size.x = (std::max)(collider.size.x, 0.001f);
+	collider.size.y = (std::max)(collider.size.y, 0.001f);
+	collider.size.z = (std::max)(collider.size.z, 0.001f);
+	collider.radius = (std::max)(collider.radius, 0.001f);
+	collider.height = (std::max)(collider.height, 0.001f);
+	collider.staticFriction = (std::clamp)(collider.staticFriction, 0.0f, 1.0f);
+	collider.dynamicFriction = (std::clamp)(collider.dynamicFriction, 0.0f, 1.0f);
+	collider.restitution = (std::clamp)(collider.restitution, 0.0f, 1.0f);
 	component.needsUpdate |= changed;
 }
 
 inline void Inspect(ColliderComponent& component, SceneContext* context){
 	ImGui::PushID(&component);
-	ImGui::TextUnformatted("Collider Component");
-	DrawGeneralSettings(component);
-	ImGui::Separator();
+	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(6.0f, 4.0f));
 
-	const std::string treeLabel =
-		"Colliders(" + std::to_string(component.colliders.size()) + ")";
-	const bool open = ImGui::TreeNodeEx(
-		treeLabel.c_str(),
-		ImGuiTreeNodeFlags_DefaultOpen
-	);
-	ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 85.0f);
-	if(ImGui::Button("Add Collider")){
-		component.colliders.emplace_back();
+	DrawGeneralSettings(component);
+	ImGui::Spacing();
+
+	const float addButtonWidth = ImGui::GetContentRegionAvail().x;
+	if(ImGui::Button("+ Add Collider", ImVec2(addButtonWidth, 0.0f))){
+		ColliderShape shape;
+		if(context && context->system){
+			if(PhysicSystem* physics = context->system->GetSystem<PhysicSystem>()){
+				if(!physics->GetLayers().empty()){
+					shape.collisionLayer = physics->GetLayers().front().bit;
+				}
+			}
+		}
+		component.colliders.push_back(std::move(shape));
 		component.needsUpdate = true;
 	}
 
-	if(open){
-		for(size_t index = 0; index < component.colliders.size();){
-			ImGui::PushID(static_cast<int>(index));
-			const std::string label = "Collider" + std::to_string(index);
-			const bool shapeOpen = ImGui::TreeNodeEx(
-				label.c_str(),
-				ImGuiTreeNodeFlags_DefaultOpen
-			);
-			ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 60.0f);
+	if(component.colliders.empty()){
+		ImGui::TextDisabled("No collider shapes.");
+	}
 
-			bool removed = false;
+	for(size_t index = 0; index < component.colliders.size();){
+		ImGui::PushID(static_cast<int>(index));
+
+		bool shapeOpen = false;
+		bool removed = false;
+		if(ImGui::BeginTable(
+			"ColliderHeader",
+			2,
+			ImGuiTableFlags_SizingStretchProp |
+			ImGuiTableFlags_NoSavedSettings
+		)){
+			ImGui::TableSetupColumn("Shape", ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn("Actions", ImGuiTableColumnFlags_WidthFixed);
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+
+			const std::string label =
+				"Collider " + std::to_string(index + 1);
+			shapeOpen = ImGui::TreeNodeEx(
+				label.c_str(),
+				ImGuiTreeNodeFlags_DefaultOpen |
+				ImGuiTreeNodeFlags_SpanAvailWidth |
+				ImGuiTreeNodeFlags_NoTreePushOnOpen
+			);
+
+			ImGui::TableSetColumnIndex(1);
 			if(ImGui::SmallButton("Remove")){
 				PhysicsRuntimeReleaseBridge::ReleaseShape(&component, index);
 				component.colliders.erase(component.colliders.begin() + index);
 				component.needsUpdate = true;
 				removed = true;
 			}
-
-			if(shapeOpen){
-				if(!removed){
-					DrawShape(component, component.colliders[index], context, index);
-				}
-				ImGui::TreePop();
-			}
-
-			ImGui::PopID();
-			ImGui::Separator();
-			if(!removed){
-				++index;
-			}
+			ImGui::EndTable();
 		}
-		ImGui::TreePop();
+
+		if(shapeOpen && !removed){
+			ImGui::Indent();
+			DrawShape(component, component.colliders[index], context);
+			ImGui::Unindent();
+		}
+
+		ImGui::Separator();
+		ImGui::PopID();
+
+		if(!removed){
+			++index;
+		}
 	}
 
+	ImGui::PopStyleVar();
 	ImGui::PopID();
 }
 
