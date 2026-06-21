@@ -20,6 +20,7 @@ struct D3D11TextureResource {
 	TextureDesc desc;
 	std::vector<ResourceState> subresourceStates;
 	uint32_t viewCount = 0;
+	bool swapChainOwned = false;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> object;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderView;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> renderView;
