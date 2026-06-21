@@ -8,11 +8,15 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
+#include <unordered_map>
 #include <vector>
 
 #include "Backends/ImGuiFunc.h"
 #include "Backends/YAMLConverters.h"
+#include "Editor/Command/CommandManager.h"
+#include "Editor/Command/PropertyChangeCommand.h"
 #include "Scene/Registry/entityRegistry.h"
 #include "Scene/scene.h"
 
@@ -72,6 +76,86 @@ inline bool Decode(
 	return true;
 }
 
+inline Vector3 RadiansToDegrees(const Vector3& radians){
+	return Vector3(
+		DirectX::XMConvertToDegrees(radians.x),
+		DirectX::XMConvertToDegrees(radians.y),
+		DirectX::XMConvertToDegrees(radians.z)
+	);
+}
+
+inline Vector3 DegreesToRadians(const Vector3& degrees){
+	return Vector3(
+		DirectX::XMConvertToRadians(degrees.x),
+		DirectX::XMConvertToRadians(degrees.y),
+		DirectX::XMConvertToRadians(degrees.z)
+	);
+}
+
+inline bool NearlyEqual(
+	const Vector3& lhs,
+	const Vector3& rhs,
+	float epsilon = 1.0e-6f
+){
+	return std::fabs(lhs.x - rhs.x) <= epsilon &&
+		std::fabs(lhs.y - rhs.y) <= epsilon &&
+		std::fabs(lhs.z - rhs.z) <= epsilon;
+}
+
+inline void InspectRotation(TransformComponent& transform){
+	// Quaternionを毎フレームEulerへ再分解せず、Transformが保持する連続キャッシュを表示する。
+	// UIは度、Transform内部はラジアン。
+	Vector3 rotationDegrees = RadiansToDegrees(transform.GetRotationEuler());
+	const Vector3 beforeFrameRadians = transform.GetRotationEuler();
+
+	const bool changed = ImGui::DragFloat3(
+		"Rotation (deg)",
+		&rotationDegrees.x,
+		0.1f,
+		0.0f,
+		0.0f,
+		"%.3f"
+	);
+	const ImGuiID itemID = ImGui::GetItemID();
+
+	struct RotationEditState {
+		TransformComponent* target = nullptr;
+		Vector3 beforeRadians;
+	};
+	static std::unordered_map<ImGuiID, RotationEditState> editStates;
+	RotationEditState& state = editStates[itemID];
+
+	if(ImGui::IsItemActivated()){
+		state.target = &transform;
+		state.beforeRadians = beforeFrameRadians;
+	}
+
+	if(changed){
+		transform.SetRotationEuler(DegreesToRadians(rotationDegrees));
+	}
+
+	if(ImGui::IsItemDeactivatedAfterEdit()){
+		const Vector3 afterRadians = transform.GetRotationEuler();
+		if(state.target == &transform &&
+			!NearlyEqual(state.beforeRadians, afterRadians)){
+			if(CommandManager* manager = ImGui::GetCommandManager()){
+				TransformComponent* target = state.target;
+				manager->Push(
+					std::make_unique<PropertyChangeCommandWithSetter<Vector3>>(
+						[target](const Vector3& value){
+							if(target) target->SetRotationEuler(value);
+						},
+						state.beforeRadians,
+						afterRadians,
+						"Rotation"
+					)
+				);
+			}
+		}
+		editStates.erase(itemID);
+	}
+}
+
 inline void Inspect(
 	TransformComponent& transform,
 	SceneContext* context
@@ -79,11 +163,7 @@ inline void Inspect(
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 6));
 
 	ImGui::UndoDragVec3("Position", transform.position);
-
-	Vector3 rotationEuler = transform.GetRotationEuler();
-	if(ImGui::UndoDragVec3("Rotation", rotationEuler)){
-		transform.SetRotationEuler(rotationEuler);
-	}
+	InspectRotation(transform);
 
 	// Inspector固有状態なのでComponentデータには含めない。
 	static bool isUniformScaleLocked = false;
