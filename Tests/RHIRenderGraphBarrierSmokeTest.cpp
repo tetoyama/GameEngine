@@ -359,6 +359,54 @@ void TestInvalidSubresourceDeclarations(){
 	assert(disjoint.Compile());
 }
 
+void TestTransientLifetimeAnalysis(){
+	RHI::RenderGraph graph;
+	const auto transientA = graph.AddResource("TransientA");
+	const auto transientB = graph.AddResource("TransientB");
+	const auto unused = graph.AddResource("Unused");
+
+	const uint32_t writeA = graph.AddPass(
+		"WriteA",
+		[&](RHI::RenderGraphPassBuilder& builder){ builder.Write(transientA); },
+		{}
+	);
+	const uint32_t readA = graph.AddPass(
+		"ReadA",
+		[&](RHI::RenderGraphPassBuilder& builder){ builder.Read(transientA); },
+		{}
+	);
+	const uint32_t writeB = graph.AddPass(
+		"WriteB",
+		[&](RHI::RenderGraphPassBuilder& builder){ builder.Write(transientB); },
+		{}
+	);
+	const uint32_t readB = graph.AddPass(
+		"ReadB",
+		[&](RHI::RenderGraphPassBuilder& builder){ builder.Read(transientB); },
+		{}
+	);
+
+	assert(graph.Compile());
+	const auto& lifetimeA = graph.Lifetime(transientA);
+	const auto& lifetimeB = graph.Lifetime(transientB);
+	assert(lifetimeA.firstPassIndex == writeA);
+	assert(lifetimeA.lastPassIndex == readA);
+	assert(lifetimeA.firstExecutionIndex == 0);
+	assert(lifetimeA.lastExecutionIndex == 1);
+	assert(lifetimeA.passUseCount == 2);
+	assert(lifetimeB.firstPassIndex == writeB);
+	assert(lifetimeB.lastPassIndex == readB);
+	assert(lifetimeB.firstExecutionIndex == 2);
+	assert(lifetimeB.lastExecutionIndex == 3);
+	assert(lifetimeB.passUseCount == 2);
+	assert(!lifetimeA.Overlaps(lifetimeB));
+	assert(graph.CanAlias(transientA, transientB));
+	assert(graph.IsTransient(transientA));
+	assert(!graph.IsImported(transientA));
+	assert(!graph.Lifetime(unused).IsUsed());
+	assert(!graph.CanAlias(transientA, unused));
+}
+
 } // namespace
 
 int main(){
@@ -366,5 +414,6 @@ int main(){
 	TestSubresourceTransitions();
 	TestInvalidStateDeclarations();
 	TestInvalidSubresourceDeclarations();
+	TestTransientLifetimeAnalysis();
 	return 0;
 }

@@ -12,10 +12,38 @@
 
 namespace RHI {
 
+inline constexpr uint32_t InvalidRenderGraphIndex =
+	(std::numeric_limits<uint32_t>::max)();
+
 struct RenderGraphResource {
-	uint32_t index = (std::numeric_limits<uint32_t>::max)();
-	constexpr explicit operator bool() const noexcept { return index != (std::numeric_limits<uint32_t>::max)(); }
-	friend constexpr bool operator==(const RenderGraphResource&, const RenderGraphResource&) noexcept = default;
+	uint32_t index = InvalidRenderGraphIndex;
+	constexpr explicit operator bool() const noexcept {
+		return index != InvalidRenderGraphIndex;
+	}
+	friend constexpr bool operator==(
+		const RenderGraphResource&,
+		const RenderGraphResource&
+	) noexcept = default;
+};
+
+struct RenderGraphResourceLifetime {
+	uint32_t firstExecutionIndex = InvalidRenderGraphIndex;
+	uint32_t lastExecutionIndex = InvalidRenderGraphIndex;
+	uint32_t firstPassIndex = InvalidRenderGraphIndex;
+	uint32_t lastPassIndex = InvalidRenderGraphIndex;
+	uint32_t passUseCount = 0;
+
+	constexpr bool IsUsed() const noexcept {
+		return firstExecutionIndex != InvalidRenderGraphIndex;
+	}
+
+	constexpr bool Overlaps(
+		const RenderGraphResourceLifetime& other
+	) const noexcept {
+		if(!IsUsed() || !other.IsUsed()) return false;
+		return !(lastExecutionIndex < other.firstExecutionIndex ||
+			other.lastExecutionIndex < firstExecutionIndex);
+	}
 };
 
 enum class RenderGraphAccessType : uint8_t { Read, Write, ReadWrite };
@@ -148,6 +176,7 @@ public:
 
 	bool Compile(){
 		m_executionOrder.clear();
+		m_resourceLifetimes.clear();
 		m_finalStates.clear();
 		m_error.clear();
 		for(Pass& pass : m_passes){
@@ -166,6 +195,7 @@ public:
 		}
 		BuildDependencies();
 		if(!BuildExecutionOrder()) return Fail("RenderGraph dependency cycle detected.");
+		BuildResourceLifetimes();
 		if(!BuildBarriers()) return false;
 		m_compiled = true;
 		return true;
@@ -196,6 +226,36 @@ public:
 		static const std::vector<ResourceBarrierDesc> empty;
 		return passIndex < m_passes.size() ? m_passes[passIndex].barriers : empty;
 	}
+
+	const RenderGraphResourceLifetime& Lifetime(
+		RenderGraphResource resource
+	) const noexcept {
+		static const RenderGraphResourceLifetime empty;
+		return resource && resource.index < m_resourceLifetimes.size()
+			? m_resourceLifetimes[resource.index]
+			: empty;
+	}
+
+	bool IsImported(RenderGraphResource resource) const noexcept {
+		return resource && resource.index < m_resources.size() &&
+			m_resources[resource.index].IsBound();
+	}
+
+	bool IsTransient(RenderGraphResource resource) const noexcept {
+		return resource && resource.index < m_resources.size() &&
+			!m_resources[resource.index].IsBound();
+	}
+
+	bool CanAlias(
+		RenderGraphResource lhs,
+		RenderGraphResource rhs
+	) const noexcept {
+		if(lhs == rhs || !IsTransient(lhs) || !IsTransient(rhs)) return false;
+		const RenderGraphResourceLifetime& left = Lifetime(lhs);
+		const RenderGraphResourceLifetime& right = Lifetime(rhs);
+		return left.IsUsed() && right.IsUsed() && !left.Overlaps(right);
+	}
+
 	ResourceState FinalState(RenderGraphResource resource) const noexcept {
 		if(!resource || resource.index >= m_finalStates.size() || m_finalStates[resource.index].empty()){
 			return ResourceState::Undefined;
@@ -214,6 +274,7 @@ public:
 		m_resources.clear();
 		m_passes.clear();
 		m_executionOrder.clear();
+		m_resourceLifetimes.clear();
 		m_finalStates.clear();
 		m_error.clear();
 		m_compiled = false;
@@ -302,6 +363,34 @@ private:
 		}
 		return m_executionOrder.size() == m_passes.size();
 	}
+	void BuildResourceLifetimes(){
+		m_resourceLifetimes.assign(m_resources.size(), {});
+		std::vector<uint8_t> seenInPass(m_resources.size(), 0);
+
+		for(uint32_t executionIndex = 0;
+			executionIndex < m_executionOrder.size();
+			++executionIndex){
+			std::fill(seenInPass.begin(), seenInPass.end(), 0);
+			const uint32_t passIndex = m_executionOrder[executionIndex];
+
+			for(const RenderGraphAccess& access : m_passes[passIndex].accesses){
+				const uint32_t resourceIndex = access.resource.index;
+				if(seenInPass[resourceIndex]) continue;
+				seenInPass[resourceIndex] = 1;
+
+				RenderGraphResourceLifetime& lifetime =
+					m_resourceLifetimes[resourceIndex];
+				if(!lifetime.IsUsed()){
+					lifetime.firstExecutionIndex = executionIndex;
+					lifetime.firstPassIndex = passIndex;
+				}
+				lifetime.lastExecutionIndex = executionIndex;
+				lifetime.lastPassIndex = passIndex;
+				++lifetime.passUseCount;
+			}
+		}
+	}
+
 	void AppendBarrier(Pass& pass, const Resource& resource, ResourceBarrierType type,
 		ResourceState before, ResourceState after, uint32_t subresource){
 		ResourceBarrierDesc barrier;
@@ -367,6 +456,7 @@ private:
 	std::vector<Resource> m_resources;
 	std::vector<Pass> m_passes;
 	std::vector<uint32_t> m_executionOrder;
+	std::vector<RenderGraphResourceLifetime> m_resourceLifetimes;
 	std::vector<std::vector<ResourceState>> m_finalStates;
 	std::string m_error;
 	bool m_compiled = false;

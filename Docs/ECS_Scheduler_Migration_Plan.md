@@ -336,7 +336,7 @@ Backend変換:
 - [x] 最終Resource State取得
 - [x] 競合State検出
 - [x] Subresource単位State宣言
-- [ ] Transient Resource寿命解析
+- [x] Transient Resource寿命解析
 - [ ] Queue間同期
 - [ ] Pass Culling
 
@@ -430,12 +430,11 @@ Step 16完了条件:
 
 # 3. 現在の作業位置
 
-1. Step 16-FのTransient Resource寿命解析
-2. Step 16-FのQueue間同期
-3. Step 16-FのPass Culling
-4. D3D11最小実描画Triangle Test
-5. 既存Player View実機回帰
-6. Step 16完了報告
-7. Step 17 RenderWorld移行
+1. Step 16-FのQueue間同期
+2. Step 16-FのPass Culling
+3. D3D11最小実描画Triangle Test
+4. 既存Player View実機回帰
+5. Step 16完了報告
+6. Step 17 RenderWorld移行
 
 Step 17はStep 16の公開契約と既存Player View回帰を確定してから開始する。
