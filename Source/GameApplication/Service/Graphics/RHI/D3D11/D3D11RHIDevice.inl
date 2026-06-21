@@ -2,6 +2,7 @@
 
 #include "D3D11RHISwapChainRuntime.h"
 #include "D3D11RHIDeviceRuntime.h"
+#include "D3D11RHISwapChainImageRuntime.h"
 #include "D3D11RHIBufferRuntime.h"
 #include "D3D11RHITextureRuntime.h"
 #include "D3D11RHIBufferViewRuntime.h"
