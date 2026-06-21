@@ -10,6 +10,7 @@
 #include "DebugTools/ImGuiSystem.h"
 #include "../System/Script/ScriptExecution.h"
 #include "../Command/EntityCommandBuffer.h"
+#include "../System/Physic/ScriptCollisionDispatchBridge.h"
 
 #include <atomic>
 #include <cstdint>
@@ -84,11 +85,55 @@ public:
 		}
 	}
 
-	void CollisionEnter(const HitInfo& hit) { if(isInitialized) OnCollisionEnter(hit); }
-	void CollisionStay(const HitInfo& hit)  { if(isInitialized) OnCollisionStay(hit); }
-	void CollisionExit(const HitInfo& hit)  { if(isInitialized) OnCollisionExit(hit); }
-	void TriggerEnter(const HitInfo& hit)   { if(isInitialized) OnTriggerEnter(hit); }
-	void TriggerExit(const HitInfo& hit)    { if(isInitialized) OnTriggerExit(hit); }
+	void CollisionEnter(const HitInfo& hit){
+		if(!isInitialized) return;
+		if(ScriptCollisionDispatchBridge::TryDispatch(
+			this,
+			ScriptCollisionEventType::CollisionEnter,
+			hit
+		)) return;
+		OnCollisionEnter(hit);
+	}
+
+	void CollisionStay(const HitInfo& hit){
+		if(!isInitialized) return;
+		if(ScriptCollisionDispatchBridge::TryDispatch(
+			this,
+			ScriptCollisionEventType::CollisionStay,
+			hit
+		)) return;
+		OnCollisionStay(hit);
+	}
+
+	void CollisionExit(const HitInfo& hit){
+		if(!isInitialized) return;
+		if(ScriptCollisionDispatchBridge::TryDispatch(
+			this,
+			ScriptCollisionEventType::CollisionExit,
+			hit
+		)) return;
+		OnCollisionExit(hit);
+	}
+
+	void TriggerEnter(const HitInfo& hit){
+		if(!isInitialized) return;
+		if(ScriptCollisionDispatchBridge::TryDispatch(
+			this,
+			ScriptCollisionEventType::TriggerEnter,
+			hit
+		)) return;
+		OnTriggerEnter(hit);
+	}
+
+	void TriggerExit(const HitInfo& hit){
+		if(!isInitialized) return;
+		if(ScriptCollisionDispatchBridge::TryDispatch(
+			this,
+			ScriptCollisionEventType::TriggerExit,
+			hit
+		)) return;
+		OnTriggerExit(hit);
+	}
 
 	virtual void OnInitialize() {}
 	virtual void OnStart() {}
