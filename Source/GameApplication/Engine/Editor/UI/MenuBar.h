@@ -1,7 +1,7 @@
 // =======================================================================
-// 
+//
 // MenuBar.h
-// 
+//
 // =======================================================================
 #pragma once
 #include "buildSetting.h"
@@ -16,7 +16,7 @@
 #define IMGUI_SHOW_DEFAULT (true)
 #else
 #define IMGUI_SHOW_DEFAULT (false)
-#endif // _DEBUG
+#endif
 
 enum class MenuEvent
 {
@@ -26,14 +26,13 @@ enum class MenuEvent
 	File_Exit,
 	Edit_Undo,
 	Edit_Redo,
-	// 必要に応じて追加
 };
 
-// メインメニューバーUI
 class MenuBar : public IEditorUI {
 public:
-	MenuBar() {}
-	~MenuBar() {}
+	MenuBar() = default;
+	~MenuBar() override = default;
+
 	void Initialize(EditorService* editor) override { m_editor = editor; }
 	void Finalize() override {}
 	void Draw(const EditorDrawContext ctx) override;
@@ -51,7 +50,7 @@ public:
 	bool showEditorView = IMGUI_SHOW_DEFAULT;
 	bool showPlayerView = IMGUI_SHOW_DEFAULT;
 	bool showPerformanceMonitor = IMGUI_SHOW_DEFAULT;
-	bool showSystemSetting = IMGUI_SHOW_DEFAULT;
+	bool showProjectSettings = false;
 	bool showCB41 = IMGUI_SHOW_DEFAULT;
 
 private:
