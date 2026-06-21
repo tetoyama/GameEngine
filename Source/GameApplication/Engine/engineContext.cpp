@@ -11,6 +11,7 @@
 #include "Runtime/TimeService/timeService.h"
 #include "Graphics/GraphicsContext.h"
 #include "Graphics/RHI/RHIService.h"
+#include "Graphics/RHI/D3D11/D3D11RHIBackend.h"
 #include "DebugTools/ImGuiSystem.h"
 #include "DebugTools/DebugSystem.h"
 #include "Platform/InputSystem/InputSystem.h"
@@ -32,6 +33,7 @@ std::unique_ptr<EngineContext> EngineContextBuilder::Build(){
 	context->Register<ConfigService>(std::make_unique<ConfigService>());
 
 	auto rhiOwner = std::make_unique<RHI::RHIService>();
+	RHI::RegisterD3D11RHIBackend(rhiOwner->GetRegistry());
 	RHI::RHIService* rhiService = rhiOwner.get();
 	context->Register<RHI::RHIService>(std::move(rhiOwner));
 
