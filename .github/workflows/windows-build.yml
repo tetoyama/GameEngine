@@ -16,43 +16,9 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  apply-di-repair:
-    if: github.actor != 'github-actions[bot]'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout migration branch
-        uses: actions/checkout@v4
-        with:
-          ref: refactor/ecs-scheduler-foundation
-          fetch-depth: 0
-
-      - name: Limit migration to source ownership changes
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path("Tools/Migration/apply_di_repair.py")
-          text = path.read_text(encoding="utf-8")
-          marker = "# ----------------------------------------------------------------------\n# Keep compile checks frequent, but execute RHI tests only manually."
-          if marker not in text:
-              raise SystemExit("RHI workflow migration marker not found")
-          path.write_text(text.split(marker, 1)[0] + 'print("DI source repair applied successfully")\n', encoding="utf-8")
-          PY
-
-      - name: Apply verified source replacements
-        run: python Tools/Migration/apply_di_repair.py
-
-      - name: Commit migration result
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm Tools/Migration/apply_di_repair.py
-          git add -A
-          git commit -m "refactor: complete context-owned physics release path"
-          git push origin HEAD:refactor/ecs-scheduler-foundation
-
   job-system-smoke-x64:
     if: github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
