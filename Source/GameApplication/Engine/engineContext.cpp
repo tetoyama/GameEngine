@@ -10,6 +10,7 @@
 #include "Platform/WindowSystem/windowSystem.h"
 #include "Runtime/TimeService/timeService.h"
 #include "Graphics/GraphicsContext.h"
+#include "Graphics/RHI/RHIService.h"
 #include "DebugTools/ImGuiSystem.h"
 #include "DebugTools/DebugSystem.h"
 #include "Platform/InputSystem/InputSystem.h"
@@ -29,6 +30,11 @@ std::unique_ptr<EngineContext> EngineContextBuilder::Build(){
 	context->Register<DebugLogService>(std::move(debugLogOwner));
 
 	context->Register<ConfigService>(std::make_unique<ConfigService>());
+
+	auto rhiOwner = std::make_unique<RHI::RHIService>();
+	RHI::RHIService* rhiService = rhiOwner.get();
+	context->Register<RHI::RHIService>(std::move(rhiOwner));
+
 	context->Register<WindowService>(
 		std::make_unique<WindowService>(debugLogSystem)
 	);
@@ -37,7 +43,7 @@ std::unique_ptr<EngineContext> EngineContextBuilder::Build(){
 		std::make_unique<AudioContext>(debugLogSystem)
 	);
 	context->Register<GraphicsContext>(
-		std::make_unique<GraphicsContext>(debugLogSystem)
+		std::make_unique<GraphicsContext>(debugLogSystem, rhiService)
 	);
 	context->Register<MainRenderer>(std::make_unique<MainRenderer>());
 	context->Register<InputService>(std::make_unique<InputService>());
