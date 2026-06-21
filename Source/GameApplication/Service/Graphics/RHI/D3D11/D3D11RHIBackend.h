@@ -235,8 +235,8 @@ inline std::unique_ptr<IRHIBackend> CreateD3D11RHIBackend(){
 	return std::make_unique<D3D11RHIBackend>();
 }
 
-inline bool RegisterD3D11RHIBackend(){
-	return BackendRegistry::Instance().Register(
+inline bool RegisterD3D11RHIBackend(BackendRegistry& registry){
+	return registry.Register(
 		BackendType::Direct3D11,
 		&CreateD3D11RHIBackend
 	);
