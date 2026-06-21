@@ -200,26 +200,6 @@ void SystemSetting::Draw(const EditorDrawContext ctx){
 		if(ImGui::BeginTabItem("Application")){
 			DrawRenderingSettings(*config);
 			DrawApplicationSettings(*config);
-
-			ImGui::Spacing();
-			ImGui::Separator();
-			const float saveButtonWidth = ImGui::GetContentRegionAvail().x;
-			if(ImGui::Button(
-				"Save Project Settings",
-				ImVec2(saveButtonWidth, 0.0f)
-			)){
-				if(sceneManager && sceneManager->systemRegistry){
-					sceneManager->systemRegistry->EncodeAll(config->editorConfig);
-				}
-				config->SaveEditorConfig(EDITOR_CONFIG_PATH);
-				config->SaveApplicationConfig(APPLICATION_CONFIG_PATH);
-				RHI::SetRequestedBackend(config->engineConfig.graphics.backend);
-				m_lastSaveTime = ImGui::GetTime();
-			}
-
-			if(ImGui::GetTime() - m_lastSaveTime < 2.0){
-				ImGui::TextDisabled("Project settings saved.");
-			}
 			ImGui::EndTabItem();
 		}
 
@@ -254,6 +234,26 @@ void SystemSetting::Draw(const EditorDrawContext ctx){
 			ImGui::EndTabItem();
 		}
 		ImGui::EndTabBar();
+	}
+
+	ImGui::Spacing();
+	ImGui::Separator();
+	const float saveButtonWidth = ImGui::GetContentRegionAvail().x;
+	if(ImGui::Button(
+		"Save Project Settings",
+		ImVec2(saveButtonWidth, 0.0f)
+	)){
+		if(sceneManager && sceneManager->systemRegistry){
+			sceneManager->systemRegistry->EncodeAll(config->editorConfig);
+		}
+		config->SaveEditorConfig(EDITOR_CONFIG_PATH);
+		config->SaveApplicationConfig(APPLICATION_CONFIG_PATH);
+		RHI::SetRequestedBackend(config->engineConfig.graphics.backend);
+		m_lastSaveTime = ImGui::GetTime();
+	}
+
+	if(ImGui::GetTime() - m_lastSaveTime < 2.0){
+		ImGui::TextDisabled("Project settings saved.");
 	}
 
 	ImGui::End();
