@@ -86,14 +86,14 @@ public:
 			if(!scene) continue;
 
 			SceneContext* context = scene->GetSceneContext();
-			if(!context || !context->entity || !context->component) continue;
+			if(!context || !context->component) continue;
 
-			for(Entity entity : context->entity->GetAllAlive()){
-				for(CustomScriptComponent* script : context->component->GetScripts(entity)){
-					if(!script) continue;
-					script->SetCollisionDispatcher(m_owner, dispatcher);
-					m_scripts.push_back(script);
-				}
+			for(auto& [entity, script] :
+				context->component->GetAllBaseComponents<CustomScriptComponent>()){
+				(void)entity;
+				if(!script) continue;
+				script->SetCollisionDispatcher(m_owner, dispatcher);
+				m_scripts.push_back(script);
 			}
 		}
 	}
