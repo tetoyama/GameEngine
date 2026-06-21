@@ -26,21 +26,25 @@ jobs:
       - name: Validate Step headings
         shell: python
         run: |
+          import re
           from pathlib import Path
 
           text = Path("Docs/ECS_Scheduler_Migration_Plan.md").read_text(
               encoding="utf-8-sig"
           )
 
-          headings = [f"### Step {index}:" for index in range(21)]
           positions = []
-          for heading in headings:
-              count = text.count(heading)
-              if count != 1:
+          for index in range(21):
+              pattern = re.compile(
+                  rf"^#+\s+Step\s+{index}(?:\.5)?:",
+                  re.MULTILINE,
+              )
+              matches = list(pattern.finditer(text))
+              if len(matches) != 1:
                   raise RuntimeError(
-                      f"Expected one heading for {heading!r}, found {count}"
+                      f"Expected one heading for Step {index}, found {len(matches)}"
                   )
-              positions.append(text.index(heading))
+              positions.append(matches[0].start())
 
           if positions != sorted(positions):
               raise RuntimeError("Step headings are not in numeric order")
