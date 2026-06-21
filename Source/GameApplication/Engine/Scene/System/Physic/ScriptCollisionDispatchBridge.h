@@ -2,33 +2,20 @@
 //
 // ScriptCollisionDispatchBridge.h
 //
-// PhysX callbackからScript通知を即時実行せず、Physics Taskへ転送するBridge。
+// Temporary compatibility bridge. New code injects ScriptCollisionDispatch
+// directly into each CustomScriptComponent.
 //
 // =======================================================================
 #pragma once
 
 #include "System/Physic/HitInfo.h"
+#include "System/Physic/ScriptCollisionEvent.h"
 
 #include <mutex>
 
-class CustomScriptComponent;
-
-enum class ScriptCollisionEventType {
-	CollisionEnter,
-	CollisionStay,
-	CollisionExit,
-	TriggerEnter,
-	TriggerExit
-};
-
 class ScriptCollisionDispatchBridge {
 public:
-	using Hook = bool(*)(
-		void* owner,
-		CustomScriptComponent* script,
-		ScriptCollisionEventType eventType,
-		const HitInfo& hit
-	);
+	using Hook = ScriptCollisionDispatch;
 
 	static void Install(void* owner, Hook hook){
 		std::scoped_lock lock(s_mutex);
