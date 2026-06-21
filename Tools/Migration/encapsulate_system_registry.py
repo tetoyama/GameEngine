@@ -21,6 +21,12 @@ path = "Source/GameApplication/Engine/Scene/sceneManager.h"
 text = load(path)
 text = replace_once(
     text,
+    "\tSceneManager() = default;",
+    "\tSceneManager();",
+    "out-of-line SceneManager constructor",
+)
+text = replace_once(
+    text,
     "\tSceneManagerContext* GetContext(){\n"
     "\t\treturn &m_SceneContext;\n"
     "\t}\n",
@@ -62,6 +68,12 @@ save(path, text)
 # Rename internal ownership references without touching SceneManagerContext::systemRegistry.
 path = "Source/GameApplication/Engine/Scene/sceneManager.cpp"
 text = load(path)
+text = replace_once(
+    text,
+    "SceneManager::~SceneManager() = default;",
+    "SceneManager::SceneManager() = default;\n\nSceneManager::~SceneManager() = default;",
+    "out-of-line SceneManager lifecycle",
+)
 replacements = [
     ("\tsystemRegistry = std::make_unique<SystemRegistry>();",
      "\tm_systemRegistry = std::make_unique<SystemRegistry>();",
@@ -84,18 +96,14 @@ if count < 1:
     raise RuntimeError("internal SystemRegistry calls: expected at least one match")
 text = text.replace("systemRegistry->", "m_systemRegistry->")
 
-# Verify the only remaining token is the SceneManagerContext field publication/clear.
-remaining = [
-    line.strip()
-    for line in text.splitlines()
-    if "systemRegistry" in line
-]
-expected = {
-    "m_SceneContext.systemRegistry = m_systemRegistry.get();",
-    "m_SceneContext.systemRegistry = nullptr;",
-}
-if set(remaining) != expected:
-    raise RuntimeError(f"unexpected sceneManager.cpp registry references: {remaining}")
+for obsolete in (
+    "\tsystemRegistry = std::make_unique<SystemRegistry>();",
+    "\tif(systemRegistry){",
+    "\t\tsystemRegistry.reset();",
+    "systemRegistry->",
+):
+    if obsolete in text:
+        raise RuntimeError(f"obsolete ownership access remains: {obsolete}")
 save(path, text)
 
 
