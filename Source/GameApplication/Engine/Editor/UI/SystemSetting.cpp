@@ -45,17 +45,20 @@ const char* GetBackendLabel(RHI::BackendType backend){
 	return "Unknown";
 }
 
-void BeginSettingsTable(const char* id){
-	if(ImGui::BeginTable(
+bool BeginSettingsTable(const char* id){
+	if(!ImGui::BeginTable(
 		id,
 		2,
 		ImGuiTableFlags_SizingStretchProp |
 		ImGuiTableFlags_NoSavedSettings |
 		ImGuiTableFlags_BordersInnerV
 	)){
-		ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthFixed, 150.0f);
-		ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+		return false;
 	}
+
+	ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthFixed, 150.0f);
+	ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+	return true;
 }
 
 void BeginPropertyRow(const char* label){
@@ -70,35 +73,36 @@ void BeginPropertyRow(const char* label){
 void DrawRenderingSettings(ConfigService& config){
 	ImGui::SeparatorText("Rendering");
 
-	BeginSettingsTable("ProjectSettingsRendering");
-	BeginPropertyRow("Rendering API");
+	if(BeginSettingsTable("ProjectSettingsRendering")){
+		BeginPropertyRow("Rendering API");
 
-	const char* preview = GetBackendLabel(config.engineConfig.graphics.backend);
-	if(ImGui::BeginCombo("##RenderingAPI", preview)){
-		for(const BackendOption& option : kBackendOptions){
-			const bool selected = option.type == config.engineConfig.graphics.backend;
-			if(!option.selectable){
-				ImGui::BeginDisabled();
-			}
+		const char* preview = GetBackendLabel(config.engineConfig.graphics.backend);
+		if(ImGui::BeginCombo("##RenderingAPI", preview)){
+			for(const BackendOption& option : kBackendOptions){
+				const bool selected = option.type == config.engineConfig.graphics.backend;
+				if(!option.selectable){
+					ImGui::BeginDisabled();
+				}
 
-			if(ImGui::Selectable(option.label, selected) && option.selectable){
-				config.engineConfig.graphics.backend = option.type;
-			}
+				if(ImGui::Selectable(option.label, selected) && option.selectable){
+					config.engineConfig.graphics.backend = option.type;
+				}
 
-			if(!option.selectable){
-				ImGui::EndDisabled();
-				if(ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && option.note){
-					ImGui::SetTooltip("%s", option.note);
+				if(!option.selectable){
+					ImGui::EndDisabled();
+					if(ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && option.note){
+						ImGui::SetTooltip("%s", option.note);
+					}
+				}
+
+				if(selected){
+					ImGui::SetItemDefaultFocus();
 				}
 			}
-
-			if(selected){
-				ImGui::SetItemDefaultFocus();
-			}
+			ImGui::EndCombo();
 		}
-		ImGui::EndCombo();
+		ImGui::EndTable();
 	}
-	ImGui::EndTable();
 
 	ImGui::TextDisabled(
 		"Rendering API changes are applied after restarting the application."
@@ -109,56 +113,56 @@ void DrawApplicationSettings(ConfigService& config){
 	APPCONFIG& app = config.appConfig;
 
 	ImGui::SeparatorText("Application");
-	BeginSettingsTable("ProjectSettingsApplication");
+	if(BeginSettingsTable("ProjectSettingsApplication")){
+		BeginPropertyRow("Application Type");
+		int appType = static_cast<int>(app.AppType);
+		if(ImGui::Combo(
+			"##ApplicationType",
+			&appType,
+			"Editor\0Player\0Debug Player\0Debug Editor\0"
+		)){
+			app.AppType = static_cast<APPTYPE>(appType);
+		}
 
-	BeginPropertyRow("Application Type");
-	int appType = static_cast<int>(app.AppType);
-	if(ImGui::Combo(
-		"##ApplicationType",
-		&appType,
-		"Editor\0Player\0Debug Player\0Debug Editor\0"
-	)){
-		app.AppType = static_cast<APPTYPE>(appType);
+		BeginPropertyRow("Start Scene");
+		ImGui::UndoInputText("##StartScene", &app.startSceneFilePath, 512);
+
+		BeginPropertyRow("Template Directory");
+		ImGui::UndoInputText("##TemplateDirectory", &app.templateDir, 512);
+
+		ImGui::EndTable();
 	}
 
-	BeginPropertyRow("Start Scene");
-	ImGui::UndoInputText("##StartScene", &app.startSceneFilePath, 512);
-
-	BeginPropertyRow("Template Directory");
-	ImGui::UndoInputText("##TemplateDirectory", &app.templateDir, 512);
-
-	ImGui::EndTable();
-
 	ImGui::SeparatorText("Display");
-	BeginSettingsTable("ProjectSettingsDisplay");
+	if(BeginSettingsTable("ProjectSettingsDisplay")){
+		BeginPropertyRow("VSync");
+		ImGui::UndoCheckbox("##VSync", &app.Vsync);
 
-	BeginPropertyRow("VSync");
-	ImGui::UndoCheckbox("##VSync", &app.Vsync);
+		BeginPropertyRow("Full Screen");
+		ImGui::UndoCheckbox("##FullScreen", &app.FullScreen);
 
-	BeginPropertyRow("Full Screen");
-	ImGui::UndoCheckbox("##FullScreen", &app.FullScreen);
+		BeginPropertyRow("Width");
+		ImGui::UndoDragInt("##WindowWidth", &app.Width, 1.0f, 320, 7680);
 
-	BeginPropertyRow("Width");
-	ImGui::UndoDragInt("##WindowWidth", &app.Width, 1.0f, 320, 7680);
+		BeginPropertyRow("Height");
+		ImGui::UndoDragInt("##WindowHeight", &app.Height, 1.0f, 180, 4320);
 
-	BeginPropertyRow("Height");
-	ImGui::UndoDragInt("##WindowHeight", &app.Height, 1.0f, 180, 4320);
-
-	ImGui::EndTable();
+		ImGui::EndTable();
+	}
 
 	ImGui::SeparatorText("Audio");
-	BeginSettingsTable("ProjectSettingsAudio");
+	if(BeginSettingsTable("ProjectSettingsAudio")){
+		BeginPropertyRow("Master Volume");
+		ImGui::UndoSliderFloat("##MasterVolume", &app.MasterVolume, 0.0f, 1.0f);
 
-	BeginPropertyRow("Master Volume");
-	ImGui::UndoSliderFloat("##MasterVolume", &app.MasterVolume, 0.0f, 1.0f);
+		BeginPropertyRow("BGM Volume");
+		ImGui::UndoSliderFloat("##BGMVolume", &app.BGMVolume, 0.0f, 1.0f);
 
-	BeginPropertyRow("BGM Volume");
-	ImGui::UndoSliderFloat("##BGMVolume", &app.BGMVolume, 0.0f, 1.0f);
+		BeginPropertyRow("SE Volume");
+		ImGui::UndoSliderFloat("##SEVolume", &app.SEVolume, 0.0f, 1.0f);
 
-	BeginPropertyRow("SE Volume");
-	ImGui::UndoSliderFloat("##SEVolume", &app.SEVolume, 0.0f, 1.0f);
-
-	ImGui::EndTable();
+		ImGui::EndTable();
+	}
 }
 
 } // namespace
@@ -199,7 +203,11 @@ void SystemSetting::Draw(const EditorDrawContext ctx){
 
 			ImGui::Spacing();
 			ImGui::Separator();
-			if(ImGui::Button("Save Project Settings", ImVec2(-FLT_MIN, 0.0f))){
+			const float saveButtonWidth = ImGui::GetContentRegionAvail().x;
+			if(ImGui::Button(
+				"Save Project Settings",
+				ImVec2(saveButtonWidth, 0.0f)
+			)){
 				config->SaveEditorConfig(EDITOR_CONFIG_PATH);
 				config->SaveApplicationConfig(APPLICATION_CONFIG_PATH);
 				RHI::SetRequestedBackend(config->engineConfig.graphics.backend);
