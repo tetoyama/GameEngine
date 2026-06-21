@@ -15,11 +15,13 @@
 
 #include "Interface/ISystem.h"
 #include "System/Job/JobSystem.h"
+#include "System/Scheduler/ExecuteDependencySchedule.h"
 #include "System/Scheduler/SystemScheduleCompiler.h"
 #include "System/Scheduler/SystemTask.h"
 
 // Systemの所有、Lifecycle実行、SystemTaskの構築と実行を管理する。
-// Step 13ではJobSystemの寿命を管理し、Schedule実行自体はまだ直列とする。
+// Legacy TaskはMainThread / WorldExclusiveを維持し、移行済みTaskだけを
+// Access依存に従ってJobSystemへ投入する。
 class SystemRegistry {
 public:
 	SystemRegistry() = default;
@@ -228,13 +230,12 @@ private:
 		assert(schedule.valid && "Compiled system schedule is invalid");
 		if(!schedule.valid) return;
 
-		const SystemTaskContext context{deltaTime};
-		for(size_t taskIndex : schedule.executionOrder) {
-			SystemTask& task = m_tasks[taskIndex];
-			if(task.execute) {
-				task.execute(context);
-			}
-		}
+		ExecuteDependencySchedule(
+			schedule,
+			m_tasks,
+			m_jobSystem,
+			SystemTaskContext{deltaTime}
+		);
 	}
 
 	std::vector<std::unique_ptr<ISystem>> m_systems;
