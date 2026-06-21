@@ -25,6 +25,7 @@ public:
 	virtual CommandQueueType GetQueueType() const noexcept = 0;
 	virtual void Begin() = 0;
 	virtual void End() = 0;
+	virtual bool ResourceBarrier(std::span<const ResourceBarrierDesc> barriers) = 0;
 	virtual bool BeginRenderPass(const RenderPassDesc& desc) = 0;
 	virtual void EndRenderPass() = 0;
 	virtual bool SetPipelineState(PipelineStateHandle pipeline) = 0;
