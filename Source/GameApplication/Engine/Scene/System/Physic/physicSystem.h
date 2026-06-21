@@ -13,6 +13,7 @@
 
 #include <atomic>
 #include <cstring>
+#include <memory>
 #include <mutex>
 #include <vector>
 #include <string>
@@ -69,9 +70,10 @@ class PhysicSystem: public ISystem
 {
 public:
 	PhysicSystem(SceneManagerContext* context)
-		: m_context(context){}
+		: m_context(context),
+		  m_filterOwner(this){}
 
-	~PhysicSystem(){}
+	~PhysicSystem() override;
 
 	void Initialize() override;
 	void Finalize() override;
@@ -149,6 +151,8 @@ public:
 	}
 
 private:
+	friend class PhysicsSimulationCallback;
+
 	struct PhysicsSceneResource {};
 	struct PhysicsEventResource {};
 
@@ -172,6 +176,7 @@ private:
 	);
 
 	SceneManagerContext* m_context = nullptr;
+	PhysicSystem* m_filterOwner = nullptr;
 
 	std::vector<PhysicsLayer> m_layers;
 	bool m_collisionMatrix[kMaxPhysicsLayers][kMaxPhysicsLayers]{};
@@ -188,7 +193,7 @@ private:
 	std::mutex mtx;
 	bool       UpdatingPhysics = false;
 	std::atomic<bool> m_simulationInFlight{false};
-	PhysicsSimulationCallback* m_simCallback = nullptr;
+	std::unique_ptr<PhysicsSimulationCallback> m_simCallback;
 
 	std::mutex m_collisionEventMutex;
 	std::vector<PendingScriptCollisionEvent> m_pendingCollisionEvents;
