@@ -179,7 +179,7 @@ void SystemSetting::Draw(const EditorDrawContext ctx){
 	ImGuiWindowClass windowClass;
 	windowClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
 	ImGui::SetNextWindowClass(&windowClass);
-	ImGui::SetNextWindowSize(ImVec2(620.0f, 720.0f), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(900.0f, 760.0f), ImGuiCond_FirstUseEver);
 
 	if(!ImGui::Begin("Project Settings", showProjectSettings)){
 		ImGui::End();
@@ -233,6 +233,19 @@ void SystemSetting::Draw(const EditorDrawContext ctx){
 			}
 			ImGui::EndTabItem();
 		}
+
+		if(ImGui::BeginTabItem("Schedule")){
+			if(!sceneManager || !sceneManager->systemRegistry){
+				ImGui::TextDisabled("SystemRegistry is not available.");
+			} else {
+				ScheduleProfilerView::Draw(
+					*sceneManager->systemRegistry,
+					m_scheduleViewState
+				);
+			}
+			ImGui::EndTabItem();
+		}
+
 		ImGui::EndTabBar();
 	}
 
