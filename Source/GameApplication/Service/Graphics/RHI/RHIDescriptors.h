@@ -251,6 +251,13 @@ struct BlendDesc {
 	std::array<BlendTargetDesc, 8> targets{};
 };
 
+struct RenderTargetLayoutDesc {
+	std::array<Format, 8> colorFormats{};
+	uint8_t colorAttachmentCount = 0;
+	Format depthStencilFormat = Format::Unknown;
+	uint8_t sampleCount = 1;
+};
+
 struct PipelineStateDesc {
 	ShaderHandle vertexShader;
 	ShaderHandle pixelShader;
@@ -260,6 +267,7 @@ struct PipelineStateDesc {
 	RasterizerDesc rasterizer;
 	DepthStencilDesc depthStencil;
 	BlendDesc blend;
+	RenderTargetLayoutDesc renderTargets;
 	std::string debugName;
 };
 
