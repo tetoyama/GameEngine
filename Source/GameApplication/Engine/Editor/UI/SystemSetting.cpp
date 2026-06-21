@@ -1,80 +1,248 @@
-﻿// =======================================================================
-// 
+// =======================================================================
+//
 // SystemSetting.cpp
-// 
+//
+// Project Settings UI。ファイル名は既存Visual Studioプロジェクトとの互換維持のため残す。
+//
 // =======================================================================
 #include "SystemSetting.h"
+
+#include <array>
+#include <cfloat>
+#include <string>
+
 #include "Backends/ImGui/imgui.h"
+#include "Backends/ImGuiFunc.h"
 #include "DebugTools/ImGuiSystem.h"
 #include "Editor/UI/MenuBar.h"
 #include "Scene/sceneManager.h"
 #include "Scene/Registry/systemRegistry.h"
 #include "Service/Config/configSystem.h"
-#include "Backends/ImGuiFunc.h"
 #include <ImGui/imgui_internal.h>
 
-void SystemSetting::Draw(const EditorDrawContext ctx) {
-	bool* showSystemSetting = &m_editor->GetUI<MenuBar>()->showSystemSetting;
-	if(!showSystemSetting || !*showSystemSetting){
+namespace {
+
+struct BackendOption {
+	RHI::BackendType type;
+	const char* label;
+	bool selectable;
+	const char* note;
+};
+
+constexpr std::array<BackendOption, 4> kBackendOptions = {{
+	{RHI::BackendType::Direct3D11, "Direct3D 11", true, nullptr},
+	{RHI::BackendType::Direct3D12, "Direct3D 12", false, "Renderer bridge is not implemented yet."},
+	{RHI::BackendType::Vulkan, "Vulkan", false, "Renderer bridge is not implemented yet."},
+	{RHI::BackendType::Null, "Null (Test)", false, "Null backend is for RHI tests only."}
+}};
+
+const char* GetBackendLabel(RHI::BackendType backend){
+	for(const BackendOption& option : kBackendOptions){
+		if(option.type == backend){
+			return option.label;
+		}
+	}
+	return "Unknown";
+}
+
+void BeginSettingsTable(const char* id){
+	if(ImGui::BeginTable(
+		id,
+		2,
+		ImGuiTableFlags_SizingStretchProp |
+		ImGuiTableFlags_NoSavedSettings |
+		ImGuiTableFlags_BordersInnerV
+	)){
+		ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthFixed, 150.0f);
+		ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+	}
+}
+
+void BeginPropertyRow(const char* label){
+	ImGui::TableNextRow();
+	ImGui::TableSetColumnIndex(0);
+	ImGui::AlignTextToFramePadding();
+	ImGui::TextUnformatted(label);
+	ImGui::TableSetColumnIndex(1);
+	ImGui::SetNextItemWidth(-FLT_MIN);
+}
+
+void DrawRenderingSettings(ConfigService& config){
+	ImGui::SeparatorText("Rendering");
+
+	BeginSettingsTable("ProjectSettingsRendering");
+	BeginPropertyRow("Rendering API");
+
+	const char* preview = GetBackendLabel(config.engineConfig.graphics.backend);
+	if(ImGui::BeginCombo("##RenderingAPI", preview)){
+		for(const BackendOption& option : kBackendOptions){
+			const bool selected = option.type == config.engineConfig.graphics.backend;
+			if(!option.selectable){
+				ImGui::BeginDisabled();
+			}
+
+			if(ImGui::Selectable(option.label, selected) && option.selectable){
+				config.engineConfig.graphics.backend = option.type;
+			}
+
+			if(!option.selectable){
+				ImGui::EndDisabled();
+				if(ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && option.note){
+					ImGui::SetTooltip("%s", option.note);
+				}
+			}
+
+			if(selected){
+				ImGui::SetItemDefaultFocus();
+			}
+		}
+		ImGui::EndCombo();
+	}
+	ImGui::EndTable();
+
+	ImGui::TextDisabled(
+		"Rendering API changes are applied after restarting the application."
+	);
+}
+
+void DrawApplicationSettings(ConfigService& config){
+	APPCONFIG& app = config.appConfig;
+
+	ImGui::SeparatorText("Application");
+	BeginSettingsTable("ProjectSettingsApplication");
+
+	BeginPropertyRow("Application Type");
+	int appType = static_cast<int>(app.AppType);
+	if(ImGui::Combo(
+		"##ApplicationType",
+		&appType,
+		"Editor\0Player\0Debug Player\0Debug Editor\0"
+	)){
+		app.AppType = static_cast<APPTYPE>(appType);
+	}
+
+	BeginPropertyRow("Start Scene");
+	ImGui::UndoInputText("##StartScene", &app.startSceneFilePath, 512);
+
+	BeginPropertyRow("Template Directory");
+	ImGui::UndoInputText("##TemplateDirectory", &app.templateDir, 512);
+
+	ImGui::EndTable();
+
+	ImGui::SeparatorText("Display");
+	BeginSettingsTable("ProjectSettingsDisplay");
+
+	BeginPropertyRow("VSync");
+	ImGui::UndoCheckbox("##VSync", &app.Vsync);
+
+	BeginPropertyRow("Full Screen");
+	ImGui::UndoCheckbox("##FullScreen", &app.FullScreen);
+
+	BeginPropertyRow("Width");
+	ImGui::UndoDragInt("##WindowWidth", &app.Width, 1.0f, 320, 7680);
+
+	BeginPropertyRow("Height");
+	ImGui::UndoDragInt("##WindowHeight", &app.Height, 1.0f, 180, 4320);
+
+	ImGui::EndTable();
+
+	ImGui::SeparatorText("Audio");
+	BeginSettingsTable("ProjectSettingsAudio");
+
+	BeginPropertyRow("Master Volume");
+	ImGui::UndoSliderFloat("##MasterVolume", &app.MasterVolume, 0.0f, 1.0f);
+
+	BeginPropertyRow("BGM Volume");
+	ImGui::UndoSliderFloat("##BGMVolume", &app.BGMVolume, 0.0f, 1.0f);
+
+	BeginPropertyRow("SE Volume");
+	ImGui::UndoSliderFloat("##SEVolume", &app.SEVolume, 0.0f, 1.0f);
+
+	ImGui::EndTable();
+}
+
+} // namespace
+
+void SystemSetting::Draw(const EditorDrawContext ctx){
+	(void)ctx;
+
+	MenuBar* menuBar = m_editor ? m_editor->GetUI<MenuBar>() : nullptr;
+	bool* showProjectSettings = menuBar ? &menuBar->showProjectSettings : nullptr;
+	if(!showProjectSettings || !*showProjectSettings){
 		return;
 	}
 
-	ImGuiWindowClass window_class;
-	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
-	ImGui::SetNextWindowClass(&window_class);
+	ImGuiWindowClass windowClass;
+	windowClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
+	ImGui::SetNextWindowClass(&windowClass);
+	ImGui::SetNextWindowSize(ImVec2(620.0f, 720.0f), ImGuiCond_FirstUseEver);
 
-	if(!ImGui::Begin("SystemSetting", showSystemSetting)){
+	if(!ImGui::Begin("Project Settings", showProjectSettings)){
 		ImGui::End();
 		return;
 	}
 
-	// ===========================================================
-	// Application Config セクション
-	// ===========================================================
-	if(ImGui::CollapsingHeader("Application Config", ImGuiTreeNodeFlags_DefaultOpen)){
-		ConfigService* cfg = m_editor->sceneManager->GetContext()->config;
-		if(cfg){
-			APPCONFIG& app = cfg->appConfig;
+	SceneManager* sceneManager = m_editor ? m_editor->sceneManager : nullptr;
+	SceneManagerContext* sceneContext = sceneManager ? sceneManager->GetContext() : nullptr;
+	ConfigService* config = sceneContext ? sceneContext->config : nullptr;
 
-			ImGui::SeparatorText("Video");
-			ImGui::UndoCheckbox("Vsync",       &app.Vsync);
-			ImGui::UndoCheckbox("Full Screen",  &app.FullScreen);
-			ImGui::UndoDragInt("Width",         &app.Width,  1.0f, 320, 7680);
-			ImGui::UndoDragInt("Height",        &app.Height, 1.0f, 180, 4320);
-
-			ImGui::SeparatorText("Audio");
-			ImGui::UndoSliderFloat("Master Volume", &app.MasterVolume, 0.0f, 1.0f);
-			ImGui::UndoSliderFloat("BGM Volume",    &app.BGMVolume,    0.0f, 1.0f);
-			ImGui::UndoSliderFloat("SE Volume",     &app.SEVolume,     0.0f, 1.0f);
-
-			ImGui::SeparatorText("Scene");
-			ImGui::UndoInputText("Start Scene",  &app.startSceneFilePath, 512);
-			ImGui::UndoInputText("Template Dir", &app.templateDir,        512);
-
-			ImGui::Spacing();
-			if(ImGui::Button("Save Config")){
-				cfg->SaveApplicationConfig(APPLICATION_CONFIG_PATH);
-			}
-		}
+	if(!config){
+		ImGui::TextDisabled("ConfigService is not available.");
+		ImGui::End();
+		return;
 	}
 
-	ImGui::Separator();
+	if(ImGui::BeginTabBar("ProjectSettingsTabs")){
+		if(ImGui::BeginTabItem("Application")){
+			DrawRenderingSettings(*config);
+			DrawApplicationSettings(*config);
 
-	// ===========================================================
-	// 各システム設定セクション（HasSystemSetting() == true のみ表示）
-	// ===========================================================
-	auto& systems = m_editor->sceneManager->systemRegistry->GetSystems();
-	for(auto& s : systems){
-		if(!s->HasSystemSetting()) continue;
+			ImGui::Spacing();
+			ImGui::Separator();
+			if(ImGui::Button("Save Project Settings", ImVec2(-FLT_MIN, 0.0f))){
+				config->SaveEditorConfig(EDITOR_CONFIG_PATH);
+				config->SaveApplicationConfig(APPLICATION_CONFIG_PATH);
+				RHI::SetRequestedBackend(config->engineConfig.graphics.backend);
+				m_lastSaveTime = ImGui::GetTime();
+			}
 
-		const char* name = s->GetSystemName();
-		if(!name) continue;
-
-		if(ImGui::CollapsingHeader(name)){
-			ImGui::PushID(name);
-			s->SystemSetting();
-			ImGui::PopID();
+			if(ImGui::GetTime() - m_lastSaveTime < 2.0){
+				ImGui::TextDisabled("Project settings saved.");
+			}
+			ImGui::EndTabItem();
 		}
+
+		if(ImGui::BeginTabItem("Systems")){
+			if(!sceneManager || !sceneManager->systemRegistry){
+				ImGui::TextDisabled("SystemRegistry is not available.");
+			} else {
+				auto& systems = sceneManager->systemRegistry->GetSystems();
+				bool hasSettings = false;
+				for(auto& system : systems){
+					if(!system || !system->HasSystemSetting()){
+						continue;
+					}
+
+					const char* name = system->GetSystemName();
+					if(!name){
+						continue;
+					}
+
+					hasSettings = true;
+					if(ImGui::CollapsingHeader(name, ImGuiTreeNodeFlags_DefaultOpen)){
+						ImGui::PushID(system.get());
+						system->SystemSetting();
+						ImGui::PopID();
+					}
+				}
+
+				if(!hasSettings){
+					ImGui::TextDisabled("No systems expose project settings.");
+				}
+			}
+			ImGui::EndTabItem();
+		}
+		ImGui::EndTabBar();
 	}
 
 	ImGui::End();
