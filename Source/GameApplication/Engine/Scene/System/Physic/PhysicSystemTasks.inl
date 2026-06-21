@@ -85,18 +85,7 @@ inline void ReleaseRuntime(
 class CollisionDispatchScope {
 public:
 	explicit CollisionDispatchScope(PhysicSystem* owner)
-		: m_owner(owner){
-		ScriptCollisionDispatchBridge::Install(
-			owner,
-			[](void* rawOwner,
-			   CustomScriptComponent* script,
-			   ScriptCollisionEventType eventType,
-			   const HitInfo& hit) -> bool {
-				return static_cast<PhysicSystem*>(rawOwner)
-					->QueueScriptCollisionEvent(script, eventType, hit);
-			}
-		);
-	}
+		: m_owner(owner){}
 
 	~CollisionDispatchScope(){
 		ScriptCollisionDispatchBridge::Remove(m_owner);
@@ -233,6 +222,19 @@ inline void PhysicSystem::PhysicsFetch(){
 		return;
 	}
 
+	ScriptCollisionDispatchBridge::Install(
+		this,
+		[](void* owner,
+		   CustomScriptComponent* script,
+		   ScriptCollisionEventType eventType,
+		   const HitInfo& hit) -> bool {
+			return static_cast<PhysicSystem*>(owner)->QueueScriptCollisionEvent(
+				script,
+				eventType,
+				hit
+			);
+		}
+	);
 	PhysicSystemTaskDetail::CollisionDispatchScope dispatchScope(this);
 
 	g_pScene->lockRead();
