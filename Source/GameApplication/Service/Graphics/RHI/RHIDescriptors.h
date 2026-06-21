@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include "RHIHandle.h"
@@ -218,7 +219,7 @@ struct InputElementDesc {
 	uint32_t instanceStepRate = 0;
 };
 
-struct RasterizerStateDesc {
+struct RasterizerDesc {
 	FillMode fillMode = FillMode::Solid;
 	CullMode cullMode = CullMode::Back;
 	bool frontCounterClockwise = false;
@@ -227,7 +228,7 @@ struct RasterizerStateDesc {
 	bool multisampleEnable = false;
 };
 
-struct DepthStencilStateDesc {
+struct DepthStencilDesc {
 	bool depthEnable = true;
 	bool depthWriteEnable = true;
 	ComparisonFunc depthFunction = ComparisonFunc::LessEqual;
@@ -241,10 +242,10 @@ struct BlendTargetDesc {
 	BlendFactor sourceAlpha = BlendFactor::One;
 	BlendFactor destinationAlpha = BlendFactor::Zero;
 	BlendOperation alphaOperation = BlendOperation::Add;
-	uint8_t writeMask = 0x0Fu;
+	uint8_t writeMask = 0x0f;
 };
 
-struct BlendStateDesc {
+struct BlendDesc {
 	bool alphaToCoverageEnable = false;
 	bool independentBlendEnable = false;
 	std::array<BlendTargetDesc, 8> targets{};
@@ -256,9 +257,18 @@ struct PipelineStateDesc {
 	ShaderHandle computeShader;
 	std::vector<InputElementDesc> inputLayout;
 	PrimitiveTopology topology = PrimitiveTopology::TriangleList;
-	RasterizerStateDesc rasterizer;
-	DepthStencilStateDesc depthStencil;
-	BlendStateDesc blend;
+	RasterizerDesc rasterizer;
+	DepthStencilDesc depthStencil;
+	BlendDesc blend;
+	std::string debugName;
+};
+
+struct SwapChainDesc {
+	uint32_t width = 1;
+	uint32_t height = 1;
+	uint32_t bufferCount = 2;
+	Format format = Format::RGBA8_UNorm;
+	bool allowTearing = false;
 	std::string debugName;
 };
 
@@ -271,20 +281,11 @@ struct Viewport {
 	float maxDepth = 1.0f;
 };
 
-struct SwapChainDesc {
-	uint32_t width = 1;
-	uint32_t height = 1;
-	uint32_t bufferCount = 2;
-	Format format = Format::RGBA8_UNorm;
-	bool allowTearing = false;
-	std::string debugName;
-};
-
 struct ColorAttachmentDesc {
 	TextureHandle texture;
 	LoadOperation loadOperation = LoadOperation::Load;
 	StoreOperation storeOperation = StoreOperation::Store;
-	std::array<float, 4> clearColor{0.0f, 0.0f, 0.0f, 0.0f};
+	std::array<float, 4> clearColor{0.0f, 0.0f, 0.0f, 1.0f};
 };
 
 struct DepthAttachmentDesc {
