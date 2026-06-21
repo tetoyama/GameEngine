@@ -41,6 +41,9 @@ struct ColliderShape {
 	bool lockRotZ = false;
 	bool isTrigger = false;
 	std::string boneName;
+
+	// Physics側が生成・解放するRuntime資源への非所有エイリアス。
+	// Component側から直接releaseしてはならない。
 	physx::PxShape* pxShape = nullptr;
 	physx::PxMaterial* pxMaterial = nullptr;
 	physx::PxHeightField* pxHeightField = nullptr;
@@ -52,8 +55,11 @@ class ColliderComponent: public IComponent {
 public:
 	~ColliderComponent() override;
 
+	// Physics側が所有するActorへの非所有エイリアス。
+	// 互換APIがActorへアクセスする間だけ保持し、解放はRelease Bridgeへ委譲する。
 	physx::PxRigidDynamic* pRigidbodyDynamic = nullptr;
 	physx::PxRigidStatic* pRigidbodyStatic = nullptr;
+
 	bool needsUpdate = true;
 	bool isDynamic = false;
 	bool autoMass = true;
