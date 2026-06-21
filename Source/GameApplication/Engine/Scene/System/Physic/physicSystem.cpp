@@ -28,36 +28,31 @@
 #pragma comment(lib, "SceneQuery_static_64.lib")
 #pragma comment(lib, "SimulationController_static_64.lib")
 
-PhysicSystem* g_physicSystem = nullptr;
-
 physx::PxFilterFlags PhysicsFilterShader(
 	physx::PxFilterObjectAttributes attr0, physx::PxFilterData data0,
 	physx::PxFilterObjectAttributes attr1, physx::PxFilterData data1,
 	physx::PxPairFlags& pairFlags,
-	const void*, physx::PxU32) {
-	
-	int layerA = g_physicSystem->FindLayerIndex(data0.word0);
-	int layerB = g_physicSystem->FindLayerIndex(data1.word0);
-
-	if (layerA < 0 || layerB < 0)
+	const void* constantBlock,
+	physx::PxU32 constantBlockSize) {
+	if(!constantBlock || constantBlockSize != sizeof(PhysicSystem*)){
 		return physx::PxFilterFlag::eSUPPRESS;
-
-	if (!g_physicSystem->GetCollisionEnabled(layerA, layerB))
+	}
+	PhysicSystem* owner = *static_cast<PhysicSystem* const*>(constantBlock);
+	if(!owner) return physx::PxFilterFlag::eSUPPRESS;
+	const int layerA = owner->FindLayerIndex(data0.word0);
+	const int layerB = owner->FindLayerIndex(data1.word0);
+	if(layerA < 0 || layerB < 0 || !owner->GetCollisionEnabled(layerA, layerB)){
 		return physx::PxFilterFlag::eSUPPRESS;
-
-	// トリガーシェイプが含まれるペアはコンタクトではなくトリガーイベントとして処理する
-	if (physx::PxFilterObjectIsTrigger(attr0) || physx::PxFilterObjectIsTrigger(attr1)) {
+	}
+	if(physx::PxFilterObjectIsTrigger(attr0) || physx::PxFilterObjectIsTrigger(attr1)){
 		pairFlags = physx::PxPairFlag::eTRIGGER_DEFAULT;
 		return physx::PxFilterFlag::eDEFAULT;
 	}
-
-	pairFlags =
-		physx::PxPairFlag::eCONTACT_DEFAULT |
+	pairFlags = physx::PxPairFlag::eCONTACT_DEFAULT |
 		physx::PxPairFlag::eDETECT_DISCRETE_CONTACT |
 		physx::PxPairFlag::eNOTIFY_TOUCH_FOUND |
 		physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS |
 		physx::PxPairFlag::eNOTIFY_TOUCH_LOST;
-
 	return physx::PxFilterFlag::eDEFAULT;
 }
 
@@ -75,6 +70,9 @@ class PhysicsSimulationCallback : public physx::PxSimulationEventCallback {
 	}
 
 public:
+	explicit PhysicsSimulationCallback(PhysicSystem& owner)
+		: m_owner(owner){}
+
 	// Stop/Finalize 前に false にセットすることでコールバックを無効化する
 	bool m_active = true;
 
@@ -110,16 +108,16 @@ public:
 			auto scriptsB = GetScripts(infoB->context, infoB->entity);
 
 			if (pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND) {
-				for (auto* s : scriptsA) s->CollisionEnter(hitForA);
-				for (auto* s : scriptsB) s->CollisionEnter(hitForB);
+				for(auto* s : scriptsA) m_owner.QueueScriptCollisionEvent(s, ScriptCollisionEventType::CollisionEnter, hitForA);
+				for(auto* s : scriptsB) m_owner.QueueScriptCollisionEvent(s, ScriptCollisionEventType::CollisionEnter, hitForB);
 			}
 			if (pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS) {
-				for (auto* s : scriptsA) s->CollisionStay(hitForA);
-				for (auto* s : scriptsB) s->CollisionStay(hitForB);
+				for(auto* s : scriptsA) m_owner.QueueScriptCollisionEvent(s, ScriptCollisionEventType::CollisionStay, hitForA);
+				for(auto* s : scriptsB) m_owner.QueueScriptCollisionEvent(s, ScriptCollisionEventType::CollisionStay, hitForB);
 			}
 			if (pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_LOST) {
-				for (auto* s : scriptsA) s->CollisionExit(hitForA);
-				for (auto* s : scriptsB) s->CollisionExit(hitForB);
+				for(auto* s : scriptsA) m_owner.QueueScriptCollisionEvent(s, ScriptCollisionEventType::CollisionExit, hitForA);
+				for(auto* s : scriptsB) m_owner.QueueScriptCollisionEvent(s, ScriptCollisionEventType::CollisionExit, hitForB);
 			}
 		}
 	}
@@ -149,11 +147,11 @@ public:
 			auto scriptsOther   = GetScripts(otherInfo->context,   otherInfo->entity);
 
 			if (pair.status & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND) {
-				for (auto* s : scriptsTrigger) s->TriggerEnter(hitForTrigger);
-				for (auto* s : scriptsOther)   s->TriggerEnter(hitForOther);
+				for(auto* s : scriptsTrigger) m_owner.QueueScriptCollisionEvent(s, ScriptCollisionEventType::TriggerEnter, hitForTrigger);
+				for(auto* s : scriptsOther) m_owner.QueueScriptCollisionEvent(s, ScriptCollisionEventType::TriggerEnter, hitForOther);
 			} else if (pair.status & physx::PxPairFlag::eNOTIFY_TOUCH_LOST) {
-				for (auto* s : scriptsTrigger) s->TriggerExit(hitForTrigger);
-				for (auto* s : scriptsOther)   s->TriggerExit(hitForOther);
+				for(auto* s : scriptsTrigger) m_owner.QueueScriptCollisionEvent(s, ScriptCollisionEventType::TriggerExit, hitForTrigger);
+				for(auto* s : scriptsOther) m_owner.QueueScriptCollisionEvent(s, ScriptCollisionEventType::TriggerExit, hitForOther);
 			}
 		}
 	}
@@ -162,7 +160,12 @@ public:
 	void onWake(physx::PxActor**, physx::PxU32) override {}
 	void onSleep(physx::PxActor**, physx::PxU32) override {}
 	void onAdvance(const physx::PxRigidBody* const*, const physx::PxTransform*, physx::PxU32) override {}
+
+private:
+	PhysicSystem& m_owner;
 };
+
+PhysicSystem::~PhysicSystem() = default;
 
 physx::PxRigidDynamic* PhysicSystem::CreateDynamic(const physx::PxTransform& t, const physx::PxGeometry& geometry, physx::PxMaterial& material, physx::PxReal density){
 	physx::PxRigidDynamic* rigid_dynamic = PxCreateDynamic(*g_pPhysics, t, geometry, material, density);
@@ -527,7 +530,6 @@ void PhysicSystem::UpdateColliderParam(TransformComponent* transform, ColliderCo
 
 void PhysicSystem::Initialize(){
 
-	g_physicSystem = this;
 
 	// --- デフォルトレイヤー ---
 	m_layers.clear();
@@ -561,9 +563,11 @@ void PhysicSystem::Initialize(){
 	physx::PxSceneDesc scene_desc(g_pPhysics->getTolerancesScale());
 	scene_desc.gravity = physx::PxVec3(0, Gravity, 0);
 	scene_desc.filterShader = PhysicsFilterShader;
+	scene_desc.filterShaderData = &m_filterOwner;
+	scene_desc.filterShaderDataSize = sizeof(m_filterOwner);
 	scene_desc.cpuDispatcher = g_pDispatcher;
-	m_simCallback = new PhysicsSimulationCallback();
-	scene_desc.simulationEventCallback = m_simCallback;
+	m_simCallback = std::make_unique<PhysicsSimulationCallback>(*this);
+	scene_desc.simulationEventCallback = m_simCallback.get();
 
 	g_pScene = g_pPhysics->createScene(scene_desc);
 	if(g_pScene){
@@ -651,10 +655,7 @@ void PhysicSystem::Finalize(){
 		g_pFoundation = nullptr;
 	}
 
-	g_physicSystem = nullptr;
-
-	delete m_simCallback;
-	m_simCallback = nullptr;
+	m_simCallback.reset();
 }
 
 void PhysicSystem::Stop(){

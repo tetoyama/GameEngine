@@ -68,49 +68,6 @@ inline void ReleaseEntityRuntime(ColliderComponent* collider){
 	}
 }
 
-class CollisionDispatchScope {
-public:
-	CollisionDispatchScope(
-		void* owner,
-		ScriptCollisionDispatch dispatcher,
-		SceneManagerContext* managerContext
-	)
-		: m_owner(owner)
-	{
-		if(!m_owner || !dispatcher || !managerContext || !managerContext->sceneManager){
-			return;
-		}
-
-		for(auto& [name, scene] : managerContext->sceneManager->GetActiveScenes()){
-			(void)name;
-			if(!scene) continue;
-
-			SceneContext* context = scene->GetSceneContext();
-			if(!context || !context->component) continue;
-
-			for(auto& [entity, script] :
-				context->component->GetAllBaseComponents<CustomScriptComponent>()){
-				(void)entity;
-				if(!script) continue;
-				script->SetCollisionDispatcher(m_owner, dispatcher);
-				m_scripts.push_back(script);
-			}
-		}
-	}
-
-	~CollisionDispatchScope(){
-		for(CustomScriptComponent* script : m_scripts){
-			if(script) script->ClearCollisionDispatcher(m_owner);
-		}
-	}
-
-	CollisionDispatchScope(const CollisionDispatchScope&) = delete;
-	CollisionDispatchScope& operator=(const CollisionDispatchScope&) = delete;
-
-private:
-	void* m_owner = nullptr;
-	std::vector<CustomScriptComponent*> m_scripts;
-};
 
 } // namespace PhysicSystemTaskDetail
 
@@ -242,20 +199,6 @@ inline void PhysicSystem::PhysicsFetch(){
 		return;
 	}
 
-	PhysicSystemTaskDetail::CollisionDispatchScope dispatchScope(
-		this,
-		[](void* owner,
-		   CustomScriptComponent* script,
-		   ScriptCollisionEventType eventType,
-		   const HitInfo& hit) -> bool {
-			return static_cast<PhysicSystem*>(owner)->QueueScriptCollisionEvent(
-				script,
-				eventType,
-				hit
-			);
-		},
-		m_context
-	);
 
 	g_pScene->lockRead();
 	g_pScene->fetchResults(true);
