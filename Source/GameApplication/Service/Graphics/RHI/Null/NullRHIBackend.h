@@ -230,6 +230,6 @@ public:
 };
 
 inline std::unique_ptr<IRHIBackend> CreateNullRHIBackend(){ return std::make_unique<NullRHIBackend>(); }
-inline bool RegisterNullRHIBackend(){ return BackendRegistry::Instance().Register(BackendType::Null, &CreateNullRHIBackend); }
+inline bool RegisterNullRHIBackend(BackendRegistry& registry){ return registry.Register(BackendType::Null, &CreateNullRHIBackend); }
 
 } // namespace RHI
