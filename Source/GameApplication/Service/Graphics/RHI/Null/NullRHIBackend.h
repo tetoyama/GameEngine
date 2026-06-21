@@ -45,12 +45,20 @@ public:
 	}
 	bool BeginRenderPass(const RenderPassDesc&) override { if(!m_recording || m_queueType != CommandQueueType::Graphics) return false; m_renderPassActive = true; return true; }
 	void EndRenderPass() override { m_renderPassActive = false; }
-	bool SetPipelineState(PipelineStateHandle pipeline) override { return m_recording && static_cast<bool>(pipeline); }
+	bool SetPipelineState(PipelineStateHandle pipeline) override { return m_recording && m_queueType != CommandQueueType::Copy && static_cast<bool>(pipeline); }
 	void SetViewport(const Viewport&) override {}
-	bool SetVertexBuffer(uint32_t, BufferHandle buffer, uint32_t, uint32_t) override { return m_recording && static_cast<bool>(buffer); }
-	bool SetIndexBuffer(BufferHandle buffer, IndexFormat, uint32_t) override { return m_recording && static_cast<bool>(buffer); }
-	bool SetConstantBuffer(ShaderStage, uint32_t, BufferHandle buffer) override { return m_recording && static_cast<bool>(buffer); }
-	bool SetTexture(ShaderStage, uint32_t, TextureHandle texture) override { return m_recording && static_cast<bool>(texture); }
+	bool SetVertexBuffer(uint32_t, BufferHandle buffer, uint32_t, uint32_t) override { return m_recording && m_queueType == CommandQueueType::Graphics && static_cast<bool>(buffer); }
+	bool SetIndexBuffer(BufferHandle buffer, IndexFormat, uint32_t) override { return m_recording && m_queueType == CommandQueueType::Graphics && static_cast<bool>(buffer); }
+	bool SetConstantBuffer(ShaderStage stage, uint32_t, BufferHandle buffer) override {
+		return m_recording && m_queueType != CommandQueueType::Copy &&
+			(m_queueType != CommandQueueType::Compute || stage == ShaderStage::Compute) &&
+			static_cast<bool>(buffer);
+	}
+	bool SetTexture(ShaderStage stage, uint32_t, TextureHandle texture) override {
+		return m_recording && m_queueType != CommandQueueType::Copy &&
+			(m_queueType != CommandQueueType::Compute || stage == ShaderStage::Compute) &&
+			static_cast<bool>(texture);
+	}
 	bool UpdateBuffer(BufferHandle buffer, std::span<const std::byte>, uint32_t) override { return m_recording && static_cast<bool>(buffer); }
 	void Draw(uint32_t, uint32_t) override { if(m_recording && m_queueType == CommandQueueType::Graphics) ++m_drawCount; }
 	void DrawIndexed(uint32_t, uint32_t, int32_t) override { if(m_recording && m_queueType == CommandQueueType::Graphics) ++m_drawCount; }
@@ -147,7 +155,7 @@ public:
 	const PipelineStateDesc* GetPipelineStateDesc(PipelineStateHandle handle) const override { return m_pipelines.TryGet(handle); }
 	IRHICommandQueue* GetQueue(CommandQueueType type) override { switch(type){ case CommandQueueType::Graphics: return &m_graphicsQueue; case CommandQueueType::Compute: return &m_computeQueue; case CommandQueueType::Copy: return &m_copyQueue; } return nullptr; }
 	const IRHICommandQueue* GetQueue(CommandQueueType type) const override { return const_cast<NullRHIDevice*>(this)->GetQueue(type); }
-	std::unique_ptr<IRHICommandList> CreateCommandList(const CommandListCreateDesc& desc) override { return std::make_unique<NullRHICommandList>(desc.queueType); }
+	std::unique_ptr<IRHICommandList> CreateCommandList(const CommandListCreateDesc& desc) override { if(desc.secondary) return nullptr; return std::make_unique<NullRHICommandList>(desc.queueType); }
 	std::unique_ptr<IRHIFence> CreateFence(uint64_t initialValue) override { auto state = std::make_shared<NullFenceState>(); state->completedValue = initialValue; const FenceHandle handle = m_fences.Create(state); return std::make_unique<NullRHIFence>(handle, std::move(state)); }
 	IRHISwapChain* GetSwapChain() override { return &m_swapChain; }
 	const IRHISwapChain* GetSwapChain() const override { return &m_swapChain; }
