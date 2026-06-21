@@ -11,6 +11,21 @@
 
 namespace RHI {
 
+// EngineConfigから要求された起動Backend。
+// ConfigServiceが設定し、Legacy GraphicsContextを含む起動経路が参照する。
+inline BackendType& RequestedBackendStorage() noexcept {
+	static BackendType backend = BackendType::Direct3D11;
+	return backend;
+}
+
+inline void SetRequestedBackend(BackendType backend) noexcept {
+	RequestedBackendStorage() = backend;
+}
+
+inline BackendType GetRequestedBackend() noexcept {
+	return RequestedBackendStorage();
+}
+
 // OS固有Window型をRHI公開契約へ漏らさないための非所有Handle。
 // Win32ではwindow=HWND、Vulkan/X11等ではdisplayも使用できる。
 struct NativeWindowHandle {
