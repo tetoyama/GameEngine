@@ -7,6 +7,8 @@
 // =======================================================================
 #pragma once
 
+#include <cstdio>
+
 #include "Editor/editorService.h"
 #include "Editor/InterFace/IEditorUI.h"
 #include "Editor/UI/ScheduleProfilerView.h"
