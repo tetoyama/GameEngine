@@ -16,6 +16,7 @@ jobs:
         with:
           ref: refactor/ecs-scheduler-foundation
           fetch-depth: 0
+          show-progress: false
 
       - name: Apply hardened queue sync migration
         shell: bash
@@ -87,6 +88,7 @@ jobs:
         with:
           ref: refactor/ecs-scheduler-foundation
           fetch-depth: 0
+          show-progress: false
       - uses: actions/download-artifact@v4
         with:
           name: render-graph-queue-sync-patch
