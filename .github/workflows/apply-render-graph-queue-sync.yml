@@ -1,13 +1,72 @@
-name: Archived D3D11 RHI Real Triangle Validation
+name: Apply Player View Regression Guard
 
 on:
-  workflow_dispatch:
+  pull_request:
+    branches: [master]
+    types: [synchronize]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  archived:
+  verify:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Apply Player View regression guard
+        shell: bash
+        run: |
+          python Tools/Migration/add_player_view_regression_guard.py
+          git add -A
+          git diff --cached --check
+          git diff --cached --binary > player-view-regression-guard.patch
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Compile and run Player View refresh policy
+        shell: cmd
+        run: |
+          cl /nologo /std:c++20 /EHsc /W4 /MTd /I Source/GameApplication Tests/PlayerViewRefreshPolicySmokeTest.cpp /Fe:player-view-refresh-policy.exe
+          player-view-refresh-policy.exe
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Compile GameEngine Debug and Release x64
+        shell: cmd
+        run: |
+          msbuild GameEngine.vcxproj /t:Build /m /p:Configuration=Debug /p:Platform=x64 /verbosity:minimal /consoleloggerparameters:ErrorsOnly
+          msbuild GameEngine.vcxproj /t:Build /m /p:Configuration=Release /p:Platform=x64 /verbosity:minimal /consoleloggerparameters:ErrorsOnly
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: player-view-regression-guard-patch
+          path: player-view-regression-guard.patch
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: verify
     runs-on: ubuntu-latest
     steps:
-      - run: echo "D3D11 RHI real triangle validation completed and archived."
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 1
+          show-progress: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: player-view-regression-guard-patch
+      - name: Publish generated branch
+        run: |
+          git apply --index player-view-regression-guard.patch
+          git config user.name github-actions
+          git config user.email actions@github.com
+          git commit -m "fix: harden Player View refresh and target restoration"
+          git push --force origin HEAD:player-view-regression-guard-output
