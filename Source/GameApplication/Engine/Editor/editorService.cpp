@@ -18,6 +18,8 @@
 
 #include "Analysis/AnalyzerManager.h"
 
+#include <chrono>
+
 // -----------------------------------------------------------------------
 // EditorService::Initialize
 // エディターの各 UI パネルと AnalyzerManager を生成・初期化する
@@ -41,23 +43,29 @@ void EditorService::Initialize(EditorServiceContext context) {
 		analyzer->Initialize(ctx);
 	}
 
-	// 全 UI パネルを生成してリストに追加する
-	// 注意: BRAIN は現在無効化中（コメントアウト）
+	// 表示名はPerformance MonitorとProfilerで使用する固定名。
 	UIs.clear();
-	UIs.push_back(new MenuBar());           // ファイル・編集メニューバー
-	UIs.push_back(new PerformanceMonitor()); // FPS・更新時間モニター
-	UIs.push_back(new Hierarchy());         // シーン階層ウィンドウ
-	UIs.push_back(new Inspector());         // コンポーネントインスペクター
-	UIs.push_back(new AssetsBrowser());     // アセットブラウザ
-	UIs.push_back(new DebugLogWindow());    // デバッグログウィンドウ
-	UIs.push_back(new ViewWindow());        // シーンビューウィンドウ
-	UIs.push_back(new SystemSetting());     // システム設定ウィンドウ
-	//UIs.push_back(new BRAIN());           // LLM エージェントウィンドウ（開発中）
-	// UIs.push_back(new CB41());				// CB41用
+	UIs.push_back({"MenuBar", new MenuBar()});
+	UIs.push_back({"PerformanceMonitor", new PerformanceMonitor()});
+	UIs.push_back({"Hierarchy", new Hierarchy()});
+	UIs.push_back({"Inspector", new Inspector()});
+	UIs.push_back({"AssetsBrowser", new AssetsBrowser()});
+	UIs.push_back({"DebugLogWindow", new DebugLogWindow()});
+	UIs.push_back({"ViewWindow", new ViewWindow()});
+	UIs.push_back({"SystemSetting", new SystemSetting()});
+	//UIs.push_back({"BRAIN", new BRAIN()});
+	//UIs.push_back({"CB41", new CB41()});
+
+	m_CurrentPanelTimings.clear();
+	m_CompletedPanelTimings.clear();
+	m_CurrentPanelTimings.reserve(UIs.size());
+	m_CompletedPanelTimings.reserve(UIs.size());
 
 	// 全パネルを初期化（editorService への参照を渡す）
-	for (auto ui : UIs) {
-		ui->Initialize(this);
+	for (auto& panel : UIs) {
+		if(panel.ui){
+			panel.ui->Initialize(this);
+		}
 	}
 }
 
@@ -66,9 +74,24 @@ void EditorService::Initialize(EditorServiceContext context) {
 // 全 UI パネルを描画する。毎フレーム ImGui フレーム内で呼ばれる。
 // -----------------------------------------------------------------------
 void EditorService::Draw(EditorDrawContext ctx) {
-	for (auto ui : UIs) {
-		ui->Draw(ctx);
+	// PerformanceMonitorには現在描画中ではなく、前回完了したPanel計測を渡す。
+	ctx.EditorPanelTimings = &m_CompletedPanelTimings;
+	m_CurrentPanelTimings.clear();
+
+	using Clock = std::chrono::steady_clock;
+	for (auto& panel : UIs) {
+		if(!panel.ui) continue;
+
+		const auto begin = Clock::now();
+		panel.ui->Draw(ctx);
+		const auto end = Clock::now();
+
+		const double seconds =
+			std::chrono::duration<double>(end - begin).count();
+		m_CurrentPanelTimings.push_back({panel.name, seconds});
 	}
+
+	m_CompletedPanelTimings = m_CurrentPanelTimings;
 }
 
 // -----------------------------------------------------------------------
@@ -84,12 +107,14 @@ void EditorService::Shutdown() {
 		analyzer = nullptr;
 	}
 
-	// 全 UI パネルを終了・解放（逆順でも構わないが登録順で解放）
-	for (auto ui : UIs) {
-		ui->Finalize();
-		delete ui;
-		ui = nullptr;
+	for (auto& panel : UIs) {
+		if(panel.ui){
+			panel.ui->Finalize();
+			delete panel.ui;
+			panel.ui = nullptr;
+		}
 	}
 	UIs.clear();
+	m_CurrentPanelTimings.clear();
+	m_CompletedPanelTimings.clear();
 }
-
