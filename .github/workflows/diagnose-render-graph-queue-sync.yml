@@ -3,7 +3,7 @@ name: Diagnose RenderGraph Queue Synchronization
 on:
   pull_request:
     branches: [master]
-    types: [edited]
+    types: [edited, synchronize]
 
 permissions:
   contents: read
@@ -17,6 +17,11 @@ jobs:
           ref: refactor/ecs-scheduler-foundation
           fetch-depth: 1
           show-progress: false
+          sparse-checkout: |
+            Source/GameApplication/Service/Graphics/RHI
+            Tests
+            Docs
+            Tools/Migration
 
       - name: Prepare base migration
         shell: python
@@ -48,7 +53,7 @@ jobs:
           path.write_text(text.replace(old, new, 1), encoding="utf-8", newline="\n")
 
       - name: Apply base queue synchronization
-        run: python Tools/Migration/add_render_graph_queue_sync.py
+        run: python Tools/Migration/run_render_graph_queue_sync_base.py
 
       - name: Apply public RHI contract
         run: python Tools/Migration/queue_sync_v2_contract.py
