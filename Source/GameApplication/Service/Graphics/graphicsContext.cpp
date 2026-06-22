@@ -98,6 +98,10 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 		return false;
 	}
 
+	if(!CreateGpuFrameTimingQueries()){
+		GRAPHICS_LOG(LogLevel::Warning, "GPU Timestamp Queryの初期化に失敗したためGPU Frame Time計測を無効化します");
+	}
+
 	Resize(width, height);
 
 	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
@@ -130,6 +134,16 @@ void GraphicsContext::Shutdown(){
 		m_DeviceContext->ClearState();  // すべてのバインドリソースを解除
 		m_DeviceContext->Flush();       // GPU キューを空にする
 	}
+
+	for(auto& timing : m_GpuTimingQueries){
+		timing.disjoint.Reset();
+		timing.beginTimestamp.Reset();
+		timing.endTimestamp.Reset();
+		timing.pending = false;
+	}
+	m_GpuTimingAvailable = false;
+	m_GpuFrameTimeValid = false;
+	m_ActiveGpuTimingIndex = -1;
 
 	m_d2dFactory.Reset();
 	m_dwriteFactory.Reset();
@@ -808,6 +822,122 @@ void GraphicsContext::Present(bool vsync){
 	}
 
 	m_SwapChain->Present(syncInterval, presentFlags);
+}
+
+
+bool GraphicsContext::CreateGpuFrameTimingQueries(){
+	if(!m_Device || GetBackendType() != RHI::BackendType::Direct3D11){
+		return false;
+	}
+
+	D3D11_QUERY_DESC desc{};
+	for(auto& timing : m_GpuTimingQueries){
+		desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
+		if(FAILED(m_Device->CreateQuery(&desc, timing.disjoint.ReleaseAndGetAddressOf()))){
+			return false;
+		}
+
+		desc.Query = D3D11_QUERY_TIMESTAMP;
+		if(FAILED(m_Device->CreateQuery(&desc, timing.beginTimestamp.ReleaseAndGetAddressOf()))){
+			return false;
+		}
+		if(FAILED(m_Device->CreateQuery(&desc, timing.endTimestamp.ReleaseAndGetAddressOf()))){
+			return false;
+		}
+		timing.pending = false;
+	}
+
+	m_GpuTimingWriteIndex = 0;
+	m_ActiveGpuTimingIndex = -1;
+	m_GpuFrameTimeSeconds = 0.0;
+	m_GpuFrameTimeValid = false;
+	m_GpuTimingAvailable = true;
+	return true;
+}
+
+void GraphicsContext::ResolveGpuFrameTimingQueries(){
+	if(!m_GpuTimingAvailable || !m_DeviceContext){
+		return;
+	}
+
+	for(auto& timing : m_GpuTimingQueries){
+		if(!timing.pending){
+			continue;
+		}
+
+		D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjoint{};
+		const HRESULT disjointResult = m_DeviceContext->GetData(
+			timing.disjoint.Get(),
+			&disjoint,
+			sizeof(disjoint),
+			D3D11_ASYNC_GETDATA_DONOTFLUSH
+		);
+		if(disjointResult != S_OK){
+			continue;
+		}
+
+		UINT64 beginTimestamp = 0;
+		UINT64 endTimestamp = 0;
+		if(m_DeviceContext->GetData(
+			timing.beginTimestamp.Get(),
+			&beginTimestamp,
+			sizeof(beginTimestamp),
+			D3D11_ASYNC_GETDATA_DONOTFLUSH
+		) != S_OK){
+			continue;
+		}
+		if(m_DeviceContext->GetData(
+			timing.endTimestamp.Get(),
+			&endTimestamp,
+			sizeof(endTimestamp),
+			D3D11_ASYNC_GETDATA_DONOTFLUSH
+		) != S_OK){
+			continue;
+		}
+
+		timing.pending = false;
+		if(disjoint.Disjoint || disjoint.Frequency == 0 || endTimestamp < beginTimestamp){
+			m_GpuFrameTimeValid = false;
+			continue;
+		}
+
+		m_GpuFrameTimeSeconds = static_cast<double>(endTimestamp - beginTimestamp) /
+			static_cast<double>(disjoint.Frequency);
+		m_GpuFrameTimeValid = true;
+	}
+}
+
+void GraphicsContext::BeginGpuFrameTiming(){
+	ResolveGpuFrameTimingQueries();
+	if(!m_GpuTimingAvailable || !m_DeviceContext){
+		return;
+	}
+
+	auto& timing = m_GpuTimingQueries[m_GpuTimingWriteIndex];
+	if(timing.pending){
+		// GPUが4フレーム以上遅れている場合でもCPUを待機させず、このフレームは計測をスキップする。
+		m_ActiveGpuTimingIndex = -1;
+		return;
+	}
+
+	m_ActiveGpuTimingIndex = static_cast<int>(m_GpuTimingWriteIndex);
+	m_DeviceContext->Begin(timing.disjoint.Get());
+	m_DeviceContext->End(timing.beginTimestamp.Get());
+}
+
+void GraphicsContext::EndGpuFrameTiming(){
+	if(!m_GpuTimingAvailable || !m_DeviceContext || m_ActiveGpuTimingIndex < 0){
+		return;
+	}
+
+	auto& timing = m_GpuTimingQueries[static_cast<size_t>(m_ActiveGpuTimingIndex)];
+	m_DeviceContext->End(timing.endTimestamp.Get());
+	m_DeviceContext->End(timing.disjoint.Get());
+	timing.pending = true;
+
+	m_GpuTimingWriteIndex =
+		(m_GpuTimingWriteIndex + 1) % kGpuTimingBufferedFrames;
+	m_ActiveGpuTimingIndex = -1;
 }
 
 bool GraphicsContext::CreateVertexShader(const char* fileName, ID3D11VertexShader** vertexShader, ID3D11InputLayout** inputLayout){
