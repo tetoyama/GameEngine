@@ -34,7 +34,7 @@ jobs:
         shell: cmd
         run: |
           echo === COMPILE === > render-packet-diagnostics.log
-          cl /nologo /std:c++20 /EHsc /W4 /MTd /I Source/GameApplication Tests/RenderPacketBufferSmokeTest.cpp /Fe:render-packet-buffer-smoke.exe >> render-packet-diagnostics.log 2>&1
+          cl /nologo /std:c++20 /EHsc /W4 /MTd /I Source/GameApplication /I Source/GameApplication/Engine Tests/RenderPacketBufferSmokeTest.cpp /Fe:render-packet-buffer-smoke.exe >> render-packet-diagnostics.log 2>&1
           if errorlevel 1 (
             echo COMPILE_FAILED >> render-packet-diagnostics.log
             type render-packet-diagnostics.log
