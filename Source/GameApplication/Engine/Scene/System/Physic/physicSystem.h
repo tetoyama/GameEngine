@@ -77,9 +77,10 @@ public:
 	void Finalize() override;
 
 	void Start() override;
-	void FixedUpdate(float fixedDeltaTime) override;
-	void Draw() override;
 	void Stop() override;
+
+	void FixedUpdate(float fixedDeltaTime);
+	void Draw();
 
 	void RegisterTasks(SystemScheduleBuilder& builder) override;
 
@@ -222,7 +223,6 @@ private:
 		physx::PxMaterial& material);
 
 	void BuildMeshCollider(ColliderShape& col, ModelRendererComponent* modelRenderer);
-
 	void DrawLayerEditor();
 };
 
