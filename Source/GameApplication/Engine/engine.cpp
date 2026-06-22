@@ -153,21 +153,46 @@ void Engine::Run(EngineContext* context){
 		if(window->GetMainWindow()->ShouldClose()) break;
 
 		time->BeginDraw();
+
+		time->BeginDrawSection(DrawTimingSection::FrameSetup);
 		renderer->BeginFrame();
+		time->EndDrawSection(DrawTimingSection::FrameSetup);
+
+		time->BeginDrawSection(DrawTimingSection::ImGuiBegin);
 		imgui->Begin();
 		if(editor) ImGui::SetCommandManager(&editor->commandManager);
+		time->EndDrawSection(DrawTimingSection::ImGuiBegin);
+
+		time->BeginDrawSection(DrawTimingSection::RenderSchedule);
 		scenes->Draw();
+		time->EndDrawSection(DrawTimingSection::RenderSchedule);
+
+		time->BeginDrawSection(DrawTimingSection::DebugDraw);
 		if(debug) debug->Draw();
+		time->EndDrawSection(DrawTimingSection::DebugDraw);
+
 		if(editor){
 			EditorDrawContext draw{};
 			draw.UpdateTime = time->GetDeltaUpdateTime();
 			draw.DrawTime = time->GetDrawTime();
 			draw.FPS = time->GetFrameFPS();
 			draw.FixedUpdateFPS = time->GetFixedUpdateFPS();
+			draw.DrawTiming = time->GetDrawTimingBreakdown();
+			draw.VSyncEnabled = config->appConfig.Vsync;
+
+			time->BeginDrawSection(DrawTimingSection::EditorUIBuild);
 			editor->Draw(draw);
+			time->EndDrawSection(DrawTimingSection::EditorUIBuild);
 		}
+
+		time->BeginDrawSection(DrawTimingSection::ImGuiRender);
 		imgui->End();
+		time->EndDrawSection(DrawTimingSection::ImGuiRender);
+
+		time->BeginDrawSection(DrawTimingSection::Present);
 		renderer->EndFrame(config->appConfig.Vsync);
+		time->EndDrawSection(DrawTimingSection::Present);
+
 		time->EndDraw();
 	}
 }
