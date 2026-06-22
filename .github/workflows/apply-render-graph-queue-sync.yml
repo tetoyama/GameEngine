@@ -1,72 +1,13 @@
-name: Apply Render Packet View Pass Connection
+name: Archived Render Packet View Pass Migration
 
 on:
-  pull_request:
-    branches: [master]
-    types: [synchronize]
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  verify:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: refactor/ecs-scheduler-foundation
-          fetch-depth: 1
-          show-progress: false
-
-      - name: Apply Render Packet view pass migration
-        shell: bash
-        run: |
-          python Tools/Migration/add_render_packet_view_pass_connection.py
-          git add -A
-          git diff --cached --check
-          git diff --cached --binary > render-packet-view-pass.patch
-
-      - uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-
-      - name: Compile and run Render Packet contracts
-        shell: cmd
-        run: |
-          cl /nologo /std:c++20 /EHsc /W4 /MTd /I Source/GameApplication /I Source/GameApplication/Engine /I Source/GameApplication/Engine/Scene Tests/RenderPacketBufferSmokeTest.cpp /Fe:render-packet-buffer-smoke.exe
-          render-packet-buffer-smoke.exe
-
-      - uses: microsoft/setup-msbuild@v2
-
-      - name: Compile GameEngine Debug and Release x64
-        shell: cmd
-        run: |
-          msbuild GameEngine.vcxproj /t:Build /m /p:Configuration=Debug /p:Platform=x64 /verbosity:minimal /consoleloggerparameters:ErrorsOnly
-          msbuild GameEngine.vcxproj /t:Build /m /p:Configuration=Release /p:Platform=x64 /verbosity:minimal /consoleloggerparameters:ErrorsOnly
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: render-packet-view-pass-patch
-          path: render-packet-view-pass.patch
-          if-no-files-found: error
-          retention-days: 1
-
-  publish:
-    needs: verify
+  archived:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: refactor/ecs-scheduler-foundation
-          fetch-depth: 1
-          show-progress: false
-      - uses: actions/download-artifact@v4
-        with:
-          name: render-packet-view-pass-patch
-      - name: Publish generated branch
-        run: |
-          git apply --index render-packet-view-pass.patch
-          git config user.name github-actions
-          git config user.email actions@github.com
-          git commit -m "feat: connect Forward and Overlay to Render Packets"
-          git push --force origin HEAD:render-packet-view-pass-output
+      - run: echo "Render Packet Forward and Overlay connection completed and archived."
