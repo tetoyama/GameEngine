@@ -79,6 +79,10 @@ IRHIDevice
 D3D11 Backendは内部でImmediate Contextへ変換する。
 D3D12 / Vulkan BackendはNative Command Queue / Command Bufferへ変換する。
 
+Queue間依存はTimeline FenceのWait / Signalとして表現する。複数Queueから参照するResourceは`ResourceQueueSharingMode::Concurrent`を明示し、Vulkan Backendは必要なQueue FamilyのConcurrent Sharingへ変換する。`Exclusive` ResourceのCross-Queue利用はRenderGraph Compile時に拒否する。
+
+`IRHICommandQueue::Submit()`後、呼び出し側はCommand List Wrapperを破棄できる。GPU完了まで必要なNative Command Allocator / Command Listの寿命保持はBackendの責務とする。RenderGraphのQueue FenceはExecute間で再利用し、明示的なExecution State解放時だけWaitIdle後に破棄する。
+
 ## Resource Handle
 
 上位層にはNative Pointerを渡さない。

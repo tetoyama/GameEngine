@@ -135,6 +135,10 @@ inline std::unique_ptr<IRHIFence> D3D11RHIDevice::CreateFence(uint64_t initialVa
 	return std::make_unique<D3D11RHIFence>(handle, std::move(state));
 }
 
+inline bool D3D11RHIDevice::DestroyFence(FenceHandle handle){
+	return m_fences.Destroy(handle);
+}
+
 inline std::shared_ptr<D3D11FenceState> D3D11RHIDevice::FindFence(FenceHandle handle) const {
 	const auto* state = m_fences.TryGet(handle);
 	return state ? *state : nullptr;
@@ -210,15 +214,31 @@ inline bool D3D11RHICommandQueue::Submit(const QueueSubmitDesc& desc){
 		auto* list = dynamic_cast<D3D11RHICommandList*>(commandList);
 		if(!list || !list->IsClosed()) return false;
 	}
-	if(desc.waitFence){
-		auto state = m_owner->FindFence(desc.waitFence);
-		if(!state || !state->Wait(desc.waitValue, (std::numeric_limits<uint64_t>::max)())) return false;
+
+	auto waitFence = [this](FenceHandle handle, uint64_t value){
+		auto state = m_owner->FindFence(handle);
+		return state && state->Wait(
+			value,
+			(std::numeric_limits<uint64_t>::max)()
+		);
+	};
+	if(desc.waitFence && !waitFence(desc.waitFence, desc.waitValue)) return false;
+	for(const QueueFenceWait& wait : desc.waits){
+		if(!wait.fence || !waitFence(wait.fence, wait.value)) return false;
 	}
-	if(desc.signalFence){
-		auto state = m_owner->FindFence(desc.signalFence);
-		if(!m_owner->SignalFence(state, desc.signalValue)) return false;
+
+	bool signaled = false;
+	auto signalFence = [this, &signaled](FenceHandle handle, uint64_t value){
+		auto state = m_owner->FindFence(handle);
+		if(!m_owner->SignalFence(state, value)) return false;
+		signaled = true;
+		return true;
+	};
+	if(desc.signalFence && !signalFence(desc.signalFence, desc.signalValue)) return false;
+	for(const QueueFenceSignal& signal : desc.signals){
+		if(!signal.fence || !signalFence(signal.fence, signal.value)) return false;
 	}
-	else m_owner->m_context->Flush();
+	if(!signaled) m_owner->m_context->Flush();
 	return true;
 }
 

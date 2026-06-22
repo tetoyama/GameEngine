@@ -11,19 +11,30 @@ namespace RHI {
 class IRHICommandList;
 class IRHISwapChain;
 
-enum class CommandQueueType : uint8_t {
-	Graphics,
-	Compute,
-	Copy
-};
-
 struct CommandListCreateDesc {
 	CommandQueueType queueType = CommandQueueType::Graphics;
 	bool secondary = false;
 };
 
+struct QueueFenceWait {
+	FenceHandle fence;
+	uint64_t value = 0;
+};
+
+struct QueueFenceSignal {
+	FenceHandle fence;
+	uint64_t value = 0;
+};
+
+// After Submit returns, callers may release command-list wrappers.
+// Backends retain native submission state until GPU completion.
+// Fence states are Device-owned until DestroyFence or Device destruction.
 struct QueueSubmitDesc {
 	std::span<IRHICommandList* const> commandLists;
+	std::span<const QueueFenceWait> waits;
+	std::span<const QueueFenceSignal> signals;
+
+	// Compatibility path for callers that submit one wait and one signal.
 	FenceHandle waitFence;
 	uint64_t waitValue = 0;
 	FenceHandle signalFence;

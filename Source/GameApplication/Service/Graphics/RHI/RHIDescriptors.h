@@ -26,6 +26,17 @@ enum class BackendType : uint8_t {
 	Vulkan
 };
 
+enum class CommandQueueType : uint8_t {
+	Graphics,
+	Compute,
+	Copy
+};
+
+enum class ResourceQueueSharingMode : uint8_t {
+	Exclusive,
+	Concurrent
+};
+
 enum class Format : uint16_t {
 	Unknown,
 	R8_UNorm,
@@ -256,6 +267,7 @@ struct BufferDesc {
 	bool raw = false;
 	ResourceState initialState = ResourceState::Common;
 	std::string debugName;
+	ResourceQueueSharingMode queueSharingMode = ResourceQueueSharingMode::Exclusive;
 };
 
 struct TextureDesc {
@@ -272,6 +284,7 @@ struct TextureDesc {
 	bool generateMips = false;
 	ResourceState initialState = ResourceState::Common;
 	std::string debugName;
+	ResourceQueueSharingMode queueSharingMode = ResourceQueueSharingMode::Exclusive;
 };
 
 struct BufferViewDesc {

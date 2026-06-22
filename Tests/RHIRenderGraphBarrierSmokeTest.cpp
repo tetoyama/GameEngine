@@ -359,6 +359,155 @@ void TestInvalidSubresourceDeclarations(){
 	assert(disjoint.Compile());
 }
 
+void TestQueueSynchronization(){
+	RHI::NullRHIDevice device({});
+	RHI::RenderGraph graph;
+	const auto graphicsOutput = graph.AddResource("GraphicsOutput");
+	const auto computeOutput = graph.AddResource("ComputeOutput");
+	const auto copyOutput = graph.AddResource("CopyOutput");
+	std::vector<RHI::CommandQueueType> executionQueues;
+
+	const uint32_t graphicsProducer = graph.AddPass(
+		"GraphicsProducer",
+		RHI::CommandQueueType::Graphics,
+		[&](RHI::RenderGraphPassBuilder& builder){
+			builder.Write(graphicsOutput);
+		},
+		[&](RHI::IRHICommandList& commandList){
+			executionQueues.push_back(commandList.GetQueueType());
+		}
+	);
+	const uint32_t computeProducer = graph.AddPass(
+		"ComputeProducer",
+		RHI::CommandQueueType::Compute,
+		[&](RHI::RenderGraphPassBuilder& builder){
+			builder.Write(computeOutput);
+		},
+		[&](RHI::IRHICommandList& commandList){
+			executionQueues.push_back(commandList.GetQueueType());
+		}
+	);
+	const uint32_t copyJoin = graph.AddPass(
+		"CopyJoin",
+		RHI::CommandQueueType::Copy,
+		[&](RHI::RenderGraphPassBuilder& builder){
+			builder.Read(graphicsOutput);
+			builder.Read(computeOutput);
+			builder.Write(copyOutput);
+		},
+		[&](RHI::IRHICommandList& commandList){
+			executionQueues.push_back(commandList.GetQueueType());
+		}
+	);
+	const uint32_t graphicsConsumer = graph.AddPass(
+		"GraphicsConsumer",
+		RHI::CommandQueueType::Graphics,
+		[&](RHI::RenderGraphPassBuilder& builder){
+			builder.Read(copyOutput);
+		},
+		[&](RHI::IRHICommandList& commandList){
+			executionQueues.push_back(commandList.GetQueueType());
+		}
+	);
+
+	assert(graph.Compile());
+	assert(graph.RequiresQueueSynchronization());
+	assert(graph.QueueForPass(graphicsProducer) == RHI::CommandQueueType::Graphics);
+	assert(graph.QueueForPass(computeProducer) == RHI::CommandQueueType::Compute);
+	assert(graph.QueueForPass(copyJoin) == RHI::CommandQueueType::Copy);
+	assert(graph.QueueSyncForPass(graphicsProducer).signalValue == 1);
+	assert(graph.QueueSyncForPass(computeProducer).signalValue == 1);
+	assert(graph.QueueSyncForPass(copyJoin).waits.size() == 2);
+	assert(graph.QueueSyncForPass(copyJoin).signalValue == 1);
+	assert(graph.QueueSyncForPass(graphicsConsumer).waits.size() == 1);
+	assert(graph.QueueSyncForPass(graphicsConsumer).waits[0].sourceQueue ==
+		RHI::CommandQueueType::Copy);
+	assert(graph.Execute(device));
+	assert((executionQueues == std::vector<RHI::CommandQueueType>{
+		RHI::CommandQueueType::Graphics,
+		RHI::CommandQueueType::Compute,
+		RHI::CommandQueueType::Copy,
+		RHI::CommandQueueType::Graphics
+	}));
+	assert(graph.LastSubmittedQueueFenceValue(RHI::CommandQueueType::Graphics) == 1);
+	assert(graph.LastSubmittedQueueFenceValue(RHI::CommandQueueType::Compute) == 1);
+	assert(graph.LastSubmittedQueueFenceValue(RHI::CommandQueueType::Copy) == 1);
+
+	executionQueues.clear();
+	assert(graph.Execute(device));
+	assert((executionQueues == std::vector<RHI::CommandQueueType>{
+		RHI::CommandQueueType::Graphics,
+		RHI::CommandQueueType::Compute,
+		RHI::CommandQueueType::Copy,
+		RHI::CommandQueueType::Graphics
+	}));
+	assert(graph.LastSubmittedQueueFenceValue(RHI::CommandQueueType::Graphics) == 2);
+	assert(graph.LastSubmittedQueueFenceValue(RHI::CommandQueueType::Compute) == 2);
+	assert(graph.LastSubmittedQueueFenceValue(RHI::CommandQueueType::Copy) == 2);
+	assert(graph.ReleaseExecutionState(device));
+}
+
+void TestQueueSharingValidation(){
+	RHI::NullRHIDevice device({});
+
+	RHI::BufferDesc exclusiveDesc;
+	exclusiveDesc.byteSize = 64;
+	const RHI::BufferHandle exclusiveBuffer = device.CreateBuffer(exclusiveDesc, {});
+	assert(exclusiveBuffer);
+
+	RHI::RenderGraph exclusiveGraph;
+	const auto exclusiveResource = exclusiveGraph.ImportBuffer(
+		exclusiveBuffer,
+		exclusiveDesc.initialState,
+		exclusiveDesc,
+		"ExclusiveBuffer"
+	);
+	exclusiveGraph.AddPass(
+		"GraphicsWrite",
+		RHI::CommandQueueType::Graphics,
+		[&](RHI::RenderGraphPassBuilder& builder){ builder.Write(exclusiveResource); },
+		{}
+	);
+	exclusiveGraph.AddPass(
+		"ComputeRead",
+		RHI::CommandQueueType::Compute,
+		[&](RHI::RenderGraphPassBuilder& builder){ builder.Read(exclusiveResource); },
+		{}
+	);
+	assert(!exclusiveGraph.Compile());
+	assert(!exclusiveGraph.Error().empty());
+
+	RHI::BufferDesc concurrentDesc;
+	concurrentDesc.byteSize = 64;
+	concurrentDesc.queueSharingMode = RHI::ResourceQueueSharingMode::Concurrent;
+	const RHI::BufferHandle concurrentBuffer = device.CreateBuffer(concurrentDesc, {});
+	assert(concurrentBuffer);
+
+	RHI::RenderGraph concurrentGraph;
+	const auto concurrentResource = concurrentGraph.ImportBuffer(
+		concurrentBuffer,
+		concurrentDesc.initialState,
+		concurrentDesc,
+		"ConcurrentBuffer"
+	);
+	concurrentGraph.AddPass(
+		"GraphicsWrite",
+		RHI::CommandQueueType::Graphics,
+		[&](RHI::RenderGraphPassBuilder& builder){ builder.Write(concurrentResource); },
+		{}
+	);
+	concurrentGraph.AddPass(
+		"ComputeRead",
+		RHI::CommandQueueType::Compute,
+		[&](RHI::RenderGraphPassBuilder& builder){ builder.Read(concurrentResource); },
+		{}
+	);
+	assert(concurrentGraph.Compile());
+	assert(concurrentGraph.RequiresQueueSynchronization());
+	assert(concurrentGraph.Execute(device));
+	assert(concurrentGraph.ReleaseExecutionState(device));
+}
+
 void TestTransientLifetimeAnalysis(){
 	RHI::RenderGraph graph;
 	const auto transientA = graph.AddResource("TransientA");
@@ -414,6 +563,8 @@ int main(){
 	TestSubresourceTransitions();
 	TestInvalidStateDeclarations();
 	TestInvalidSubresourceDeclarations();
+	TestQueueSynchronization();
+	TestQueueSharingValidation();
 	TestTransientLifetimeAnalysis();
 	return 0;
 }

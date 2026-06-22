@@ -77,6 +77,7 @@ public:
 	virtual const IRHICommandQueue* GetQueue(CommandQueueType type) const = 0;
 	virtual std::unique_ptr<IRHICommandList> CreateCommandList(const CommandListCreateDesc& desc) = 0;
 	virtual std::unique_ptr<IRHIFence> CreateFence(uint64_t initialValue = 0) = 0;
+	virtual bool DestroyFence(FenceHandle handle) = 0;
 	virtual IRHISwapChain* GetSwapChain() = 0;
 	virtual const IRHISwapChain* GetSwapChain() const = 0;
 	virtual void WaitIdle() = 0;

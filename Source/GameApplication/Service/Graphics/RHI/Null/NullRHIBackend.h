@@ -162,6 +162,7 @@ public:
 	const IRHICommandQueue* GetQueue(CommandQueueType t) const override { return const_cast<NullRHIDevice*>(this)->GetQueue(t); }
 	std::unique_ptr<IRHICommandList> CreateCommandList(const CommandListCreateDesc& d) override { return d.secondary ? nullptr : std::make_unique<NullRHICommandList>(d.queueType); }
 	std::unique_ptr<IRHIFence> CreateFence(uint64_t value) override { auto state = std::make_shared<NullFenceState>(); state->completedValue = value; auto handle = m_fences.Create(state); return std::make_unique<NullRHIFence>(handle, std::move(state)); }
+	bool DestroyFence(FenceHandle handle) override { return m_fences.Destroy(handle); }
 	IRHISwapChain* GetSwapChain() override { return &m_swapChain; }
 	const IRHISwapChain* GetSwapChain() const override { return &m_swapChain; }
 	void WaitIdle() override {}
@@ -206,11 +207,41 @@ inline bool NullRHISwapChain::Resize(uint32_t width, uint32_t height){
 	return true;
 }
 
-inline bool NullRHICommandQueue::Submit(const QueueSubmitDesc& d){
+inline bool NullRHICommandQueue::Submit(const QueueSubmitDesc& desc){
 	if(!m_owner) return false;
-	if(d.waitFence){ auto s = m_owner->FindFence(d.waitFence); if(!s) return false; std::unique_lock lock(s->mutex); s->condition.wait(lock, [&]{ return s->completedValue >= d.waitValue; }); }
-	for(auto* list : d.commandLists){ if(!list || list->GetQueueType() != m_type) return false; auto* n = dynamic_cast<NullRHICommandList*>(list); if(!n || !n->IsClosed()) return false; }
-	if(d.signalFence){ auto s = m_owner->FindFence(d.signalFence); if(!s) return false; { std::scoped_lock lock(s->mutex); s->completedValue = (std::max)(s->completedValue, d.signalValue); } s->condition.notify_all(); }
+
+	for(IRHICommandList* commandList : desc.commandLists){
+		if(!commandList || commandList->GetQueueType() != m_type) return false;
+		auto* list = dynamic_cast<NullRHICommandList*>(commandList);
+		if(!list || !list->IsClosed()) return false;
+	}
+
+	auto waitFence = [this](FenceHandle handle, uint64_t value){
+		auto state = m_owner->FindFence(handle);
+		if(!state) return false;
+		std::unique_lock lock(state->mutex);
+		state->condition.wait(lock, [&]{ return state->completedValue >= value; });
+		return true;
+	};
+	if(desc.waitFence && !waitFence(desc.waitFence, desc.waitValue)) return false;
+	for(const QueueFenceWait& wait : desc.waits){
+		if(!wait.fence || !waitFence(wait.fence, wait.value)) return false;
+	}
+
+	auto signalFence = [this](FenceHandle handle, uint64_t value){
+		auto state = m_owner->FindFence(handle);
+		if(!state) return false;
+		{
+			std::scoped_lock lock(state->mutex);
+			state->completedValue = (std::max)(state->completedValue, value);
+		}
+		state->condition.notify_all();
+		return true;
+	};
+	if(desc.signalFence && !signalFence(desc.signalFence, desc.signalValue)) return false;
+	for(const QueueFenceSignal& signal : desc.signals){
+		if(!signal.fence || !signalFence(signal.fence, signal.value)) return false;
+	}
 	return true;
 }
 

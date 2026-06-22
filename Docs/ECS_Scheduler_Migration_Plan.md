@@ -339,7 +339,7 @@ Backend変換:
 - [x] 競合State検出
 - [x] Subresource単位State宣言
 - [x] Transient Resource寿命解析
-- [ ] Queue間同期
+- [x] Queue間同期
 - [ ] Pass Culling
 
 ### Step 16-G: 検証
@@ -379,6 +379,7 @@ Step 16完了条件:
 - `Docs/Step16C_View_Sampler_Completion.md`
 - `Docs/Step16E_SwapChain_Completion.md`
 - `Docs/Step16F_Subresource_State_Completion.md`
+- `Docs/Step16F_Queue_Synchronization_Completion.md`
 
 ## Step 17: Task命名統一とMainThread Task分割
 
@@ -458,13 +459,13 @@ Step 16完了条件:
 
 # 3. 現在の作業位置
 
-1. Step 16-FのQueue間同期
-2. Step 16-FのPass Culling
-3. D3D11最小実描画Triangle Test
-4. 既存Player View実機回帰
-5. Step 17-B Render Packet基盤
-6. Step 17-C Animation CPU Build / GPU Upload分離
-7. Step 17-D Terrain CPU Mesh Build / GPU Upload分離
+1. Step 16-FのPass Culling
+2. D3D11最小実描画Triangle Test
+3. 既存Player View実機回帰
+4. Step 17-B Render Packet基盤
+5. Step 17-C Animation CPU Build / GPU Upload分離
+6. Step 17-D Terrain CPU Mesh Build / GPU Upload分離
+7. Step 17-E Wave CPU Vertex Build / GPU Upload分離
 
 Step 17-AのTask命名統一は完了。以降のCapture、Profiler、YAML Export、依存解析では統一後のTask名を基準とする。
 Step 17-B以降は、既存Player View回帰を維持しながら段階的に進める。

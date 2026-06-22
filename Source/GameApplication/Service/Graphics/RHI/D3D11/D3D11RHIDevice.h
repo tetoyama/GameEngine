@@ -140,6 +140,7 @@ public:
 	const IRHICommandQueue* GetQueue(CommandQueueType) const override;
 	std::unique_ptr<IRHICommandList> CreateCommandList(const CommandListCreateDesc&) override;
 	std::unique_ptr<IRHIFence> CreateFence(uint64_t) override;
+	bool DestroyFence(FenceHandle) override;
 	IRHISwapChain* GetSwapChain() override { return &m_swapChain; }
 	const IRHISwapChain* GetSwapChain() const override { return &m_swapChain; }
 	void WaitIdle() override;
