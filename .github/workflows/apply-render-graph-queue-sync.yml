@@ -22,6 +22,7 @@ jobs:
         shell: bash
         run: |
           python Tools/Migration/add_d3d11_real_triangle_test.py
+          python Tools/Migration/fix_d3d11_real_triangle_blob.py
           git add -A
           git diff --cached --check
           git diff --cached --binary > d3d11-real-triangle.patch
