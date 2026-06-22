@@ -127,6 +127,7 @@ void Engine::Run(EngineContext* context){
 	auto time = context->Get<TimeService>();
 	auto input = context->Get<InputService>();
 	auto imgui = context->Get<ImGuiService>();
+	auto graphics = context->Get<GraphicsContext>();
 	auto renderer = context->Get<MainRenderer>();
 	auto scenes = context->Get<SceneManager>();
 	auto editor = context->Get<EditorService>();
@@ -153,6 +154,7 @@ void Engine::Run(EngineContext* context){
 		if(window->GetMainWindow()->ShouldClose()) break;
 
 		time->BeginDraw();
+		graphics->BeginGpuFrameTiming();
 
 		time->BeginDrawSection(DrawTimingSection::FrameSetup);
 		renderer->BeginFrame();
@@ -178,7 +180,10 @@ void Engine::Run(EngineContext* context){
 			draw.FPS = time->GetFrameFPS();
 			draw.FixedUpdateFPS = time->GetFixedUpdateFPS();
 			draw.DrawTiming = time->GetDrawTimingBreakdown();
+			draw.GPUFrameTime = graphics->GetGpuFrameTimeSeconds();
+			draw.GPUFrameTimeValid = graphics->HasValidGpuFrameTime();
 			draw.VSyncEnabled = config->appConfig.Vsync;
+			draw.TearingSupported = graphics->IsTearingSupported();
 
 			time->BeginDrawSection(DrawTimingSection::EditorUIBuild);
 			editor->Draw(draw);
@@ -188,6 +193,8 @@ void Engine::Run(EngineContext* context){
 		time->BeginDrawSection(DrawTimingSection::ImGuiRender);
 		imgui->End();
 		time->EndDrawSection(DrawTimingSection::ImGuiRender);
+
+		graphics->EndGpuFrameTiming();
 
 		time->BeginDrawSection(DrawTimingSection::Present);
 		renderer->EndFrame(config->appConfig.Vsync);
