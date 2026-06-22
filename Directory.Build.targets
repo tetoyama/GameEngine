@@ -7,8 +7,11 @@
 
     GameEngine.vcxproj 本体は巨大で手動マージ衝突が起きやすいため、
     評価後の Item をここで正規化する。
+
+    Directory.Build.targets は配下の全 Project に自動Importされる。
+    Script.vcxproj へEngine側のcppを混入させないよう、GameEngineだけに限定する。
   -->
-  <ItemGroup>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'GameEngine'">
     <ClCompile Remove="Source\GameApplication\Engine\Editor\UI\hierarchy.cpp" />
     <ClCompile Remove="Source\GameApplication\Engine\Editor\UI\inspector.cpp" />
     <ClCompile Remove="Source\GameApplication\Engine\Editor\UI\menuBar.cpp" />
@@ -19,7 +22,7 @@
     <ClCompile Remove="Source\GameApplication\Engine\Scene\System\Script\customScriptSystem.cpp" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'GameEngine'">
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\Hierarchy.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\Inspector.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\MenuBar.cpp" />
