@@ -5,13 +5,12 @@
 // =======================================================================
 #pragma once
 
-#include <string>
 #include <backends/yaml-cpp/yaml.h>
 
 #include "System/Scheduler/SystemTask.h"
 
 // ECSのSystem基底インターフェース。
-// Systemは状態と設定を所有し、Schedulerへ一つ以上のSystemTaskを登録する。
+// Systemは状態と設定を所有し、実行処理はRegisterTasksでSchedulerへ明示登録する。
 class ISystem {
 public:
 	ISystem() = default;
@@ -20,11 +19,9 @@ public:
 	virtual void Initialize() {}
 	virtual void Finalize() {}
 
+	// Start / Stop はScene再生状態の切り替え時に即時実行されるLifecycle処理。
+	// 毎Frame/Fixed/Render/Editorの実行処理はRegisterTasksへ移行する。
 	virtual void Start() {}
-	virtual void Update(float deltaTime) {}
-	virtual void FixedUpdate(float fixedDeltaTime) {}
-	virtual void Draw() {}
-	virtual void EditorUpdate(float deltaTime) {}
 	virtual void Stop() {}
 
 	virtual void SystemSetting() {}
@@ -36,44 +33,10 @@ public:
 		return nullptr;
 	}
 
-	// 既存System向けの互換実装。
-	// 各仮想コールバックをDomain別Taskとして登録するため、既存Systemは変更不要。
-	// 一つのSystemを複数Taskへ分割する場合は、この関数をoverrideする。
+	// Systemは必要なDomainだけをTaskとして明示登録する。
+	// 旧式のFixedUpdate/Update/EditorUpdate/Draw互換Taskは廃止する。
 	virtual void RegisterTasks(SystemScheduleBuilder& builder) {
-		const char* rawName = GetSystemName();
-		const std::string systemName = rawName ? rawName : "UnnamedSystem";
-
-		builder.AddTask(
-			systemName + ".FixedUpdate",
-			SystemTaskDomain::Fixed,
-			[this](const SystemTaskContext& context) {
-				FixedUpdate(context.deltaTime);
-			}
-		);
-
-		builder.AddTask(
-			systemName + ".Update",
-			SystemTaskDomain::Frame,
-			[this](const SystemTaskContext& context) {
-				Update(context.deltaTime);
-			}
-		);
-
-		builder.AddTask(
-			systemName + ".EditorUpdate",
-			SystemTaskDomain::Editor,
-			[this](const SystemTaskContext& context) {
-				EditorUpdate(context.deltaTime);
-			}
-		);
-
-		builder.AddTask(
-			systemName + ".Draw",
-			SystemTaskDomain::Render,
-			[this](const SystemTaskContext&) {
-				Draw();
-			}
-		);
+		(void)builder;
 	}
 
 	virtual YAML::Node encode() { return YAML::Node(); }
