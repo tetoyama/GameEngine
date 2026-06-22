@@ -48,7 +48,7 @@ jobs:
               raise RuntimeError('current work position mismatch')
           p.write_text(s.replace(old, new, 1), encoding='utf-8', newline='\n')
           PY
-          python Tools/Migration/add_render_graph_queue_sync.py
+          python Tools/Migration/run_render_graph_queue_sync_base.py
           python Tools/Migration/queue_sync_v2_contract.py
           python Tools/Migration/queue_sync_v2_render_graph_resource.py
           python Tools/Migration/queue_sync_v2_execution_submit.py
