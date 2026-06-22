@@ -1,115 +1,13 @@
-name: Apply Render Packet Foundation
+name: Archived Render Packet Foundation Migration
 
 on:
-  pull_request:
-    branches: [master]
-    types: [synchronize]
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  verify:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: refactor/ecs-scheduler-foundation
-          fetch-depth: 1
-          show-progress: false
-
-      - name: Apply Render Packet foundation migration
-        shell: bash
-        run: |
-          python Tools/Migration/add_render_packet_foundation.py
-          sed -i '/#include <Component\/modelRendererComponent.h>/a #include <Component/materialComponent.h>' Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.cpp
-          git add -A
-          git diff --cached --check
-          git diff --cached --binary > render-packet-foundation.patch
-
-      - uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-
-      - name: Compile and run Render Packet contracts
-        shell: cmd
-        run: |
-          echo === COMPILE === > render-packet-diagnostics.log
-          cl /nologo /std:c++20 /EHsc /W4 /MTd /I Source/GameApplication /I Source/GameApplication/Engine /I Source/GameApplication/Engine/Scene Tests/RenderPacketBufferSmokeTest.cpp /Fe:render-packet-buffer-smoke.exe >> render-packet-diagnostics.log 2>&1
-          if errorlevel 1 (
-            echo COMPILE_FAILED >> render-packet-diagnostics.log
-            type render-packet-diagnostics.log
-            exit /b 1
-          )
-          echo COMPILE_SUCCESS >> render-packet-diagnostics.log
-          echo === RUN === >> render-packet-diagnostics.log
-          render-packet-buffer-smoke.exe >> render-packet-diagnostics.log 2>&1
-          set PACKET_EXIT=%ERRORLEVEL%
-          echo RUN_EXIT_CODE=%PACKET_EXIT% >> render-packet-diagnostics.log
-          type render-packet-diagnostics.log
-          exit /b %PACKET_EXIT%
-
-      - name: Upload Render Packet diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: render-packet-foundation-diagnostics
-          path: render-packet-diagnostics.log
-          if-no-files-found: warn
-          retention-days: 1
-
-      - uses: microsoft/setup-msbuild@v2
-
-      - name: Compile GameEngine Debug and Release x64
-        shell: cmd
-        run: |
-          echo === DEBUG === > render-packet-engine-diagnostics.log
-          msbuild GameEngine.vcxproj /t:Build /m /p:Configuration=Debug /p:Platform=x64 /verbosity:minimal /consoleloggerparameters:ErrorsOnly >> render-packet-engine-diagnostics.log 2>&1
-          if errorlevel 1 (
-            echo DEBUG_FAILED >> render-packet-engine-diagnostics.log
-            type render-packet-engine-diagnostics.log
-            exit /b 1
-          )
-          echo DEBUG_SUCCESS >> render-packet-engine-diagnostics.log
-          echo === RELEASE === >> render-packet-engine-diagnostics.log
-          msbuild GameEngine.vcxproj /t:Build /m /p:Configuration=Release /p:Platform=x64 /verbosity:minimal /consoleloggerparameters:ErrorsOnly >> render-packet-engine-diagnostics.log 2>&1
-          set ENGINE_EXIT=%ERRORLEVEL%
-          if %ENGINE_EXIT%==0 (echo RELEASE_SUCCESS >> render-packet-engine-diagnostics.log) else (echo RELEASE_FAILED >> render-packet-engine-diagnostics.log)
-          type render-packet-engine-diagnostics.log
-          exit /b %ENGINE_EXIT%
-
-      - name: Upload Render Packet engine diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: render-packet-foundation-engine-diagnostics
-          path: render-packet-engine-diagnostics.log
-          if-no-files-found: warn
-          retention-days: 1
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: render-packet-foundation-patch
-          path: render-packet-foundation.patch
-          if-no-files-found: error
-          retention-days: 1
-
-  publish:
-    needs: verify
+  archived:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: refactor/ecs-scheduler-foundation
-          fetch-depth: 1
-          show-progress: false
-      - uses: actions/download-artifact@v4
-        with:
-          name: render-packet-foundation-patch
-      - name: Publish generated branch
-        run: |
-          git apply --index render-packet-foundation.patch
-          git config user.name github-actions
-          git config user.email actions@github.com
-          git commit -m "feat: add Render Packet foundation"
-          git push --force origin HEAD:render-packet-foundation-output
+      - run: echo "Render Packet foundation migration completed and archived."
