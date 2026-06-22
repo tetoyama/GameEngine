@@ -1,99 +1,13 @@
-name: Diagnose RenderGraph Queue Synchronization
+name: Archived RenderGraph Queue Synchronization Diagnostics
 
 on:
-  pull_request:
-    branches: [master]
-    types: [edited, synchronize]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  diagnose:
-    runs-on: windows-latest
+  archived:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: refactor/ecs-scheduler-foundation
-          fetch-depth: 1
-          show-progress: false
-          sparse-checkout-cone-mode: false
-          sparse-checkout: |
-            Source/GameApplication/Service/Graphics/RHI/RHIExecution.h
-            Source/GameApplication/Service/Graphics/RHI/RHIDescriptors.h
-            Source/GameApplication/Service/Graphics/RHI/RHIInterfaces.h
-            Source/GameApplication/Service/Graphics/RHI/RHIRenderGraph.h
-            Source/GameApplication/Service/Graphics/RHI/Null/NullRHIBackend.h
-            Source/GameApplication/Service/Graphics/RHI/D3D11/D3D11RHIDevice.h
-            Source/GameApplication/Service/Graphics/RHI/D3D11/D3D11RHIDeviceRuntime.h
-            Tests/RHIRenderGraphBarrierSmokeTest.cpp
-            Docs/ECS_Scheduler_Migration_Plan.md
-            Docs/Step16_RHI_MultiBackend_Architecture.md
-            Tools/Migration/*
-
-      - name: Prepare base migration
-        shell: python
-        run: |
-          from pathlib import Path
-          path = Path("Docs/ECS_Scheduler_Migration_Plan.md")
-          text = path.read_text(encoding="utf-8-sig")
-          old = "\n".join([
-              "1. Step 16-FのQueue間同期",
-              "2. Step 16-FのPass Culling",
-              "3. D3D11最小実描画Triangle Test",
-              "4. 既存Player View実機回帰",
-              "5. Step 17-B Render Packet基盤",
-              "6. Step 17-C Animation CPU Build / GPU Upload分離",
-              "7. Step 17-D Terrain CPU Mesh Build / GPU Upload分離",
-              "",
-          ])
-          new = "\n".join([
-              "1. Step 16-FのQueue間同期",
-              "2. Step 16-FのPass Culling",
-              "3. D3D11最小実描画Triangle Test",
-              "4. 既存Player View実機回帰",
-              "5. Step 16完了報告",
-              "6. Step 17 RenderWorld移行",
-              "",
-          ])
-          if text.count(old) != 1:
-              raise RuntimeError("current work position mismatch")
-          path.write_text(text.replace(old, new, 1), encoding="utf-8", newline="\n")
-
-      - name: Apply base queue synchronization
-        run: python Tools/Migration/run_render_graph_queue_sync_base.py
-
-      - name: Apply public RHI contract
-        run: python Tools/Migration/queue_sync_v2_contract.py
-
-      - name: Apply resource sharing contract
-        run: python Tools/Migration/queue_sync_v2_render_graph_resource.py
-
-      - name: Apply timeline submission contract
-        run: python Tools/Migration/queue_sync_v2_execution_submit.py
-
-      - name: Apply execution state contract
-        run: python Tools/Migration/queue_sync_v2_execution_state.py
-
-      - name: Apply tests
-        run: python Tools/Migration/queue_sync_v2_tests.py
-
-      - name: Apply documentation
-        shell: pwsh
-        run: |
-          python Tools/Migration/queue_sync_v2_docs.py *> docs-migration.log
-          $result = $LASTEXITCODE
-          Get-Content docs-migration.log
-          exit $result
-
-      - name: Upload documentation diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: queue-sync-docs-migration-log
-          path: docs-migration.log
-          if-no-files-found: error
-          retention-days: 1
-
-      - name: Validate generated diff
-        run: git diff --check
+      - run: echo "Queue synchronization diagnostics completed and archived."
