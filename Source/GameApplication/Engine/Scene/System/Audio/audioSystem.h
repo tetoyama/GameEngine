@@ -44,7 +44,21 @@ public:
 
 	}
 
-	void Update(float) override{
+	void RegisterTasks(SystemScheduleBuilder& builder) override{
+		builder.AddTask(
+			"AudioSystem.Update",
+			SystemTaskDomain::Frame,
+			SystemPhase::Default,
+			0,
+			SystemAccess::LegacyExclusive(),
+			ThreadAffinity::MainThread,
+			[this](const SystemTaskContext& context){
+				Update(context.deltaTime);
+			}
+		);
+	}
+
+	void Update(float){
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<AudioComponent>();
