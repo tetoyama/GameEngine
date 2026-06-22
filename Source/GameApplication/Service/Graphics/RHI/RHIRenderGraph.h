@@ -66,6 +66,27 @@ struct RenderGraphPassQueueSync {
 
 enum class RenderGraphAccessType : uint8_t { Read, Write, ReadWrite };
 
+enum class RenderGraphPassFlags : uint8_t {
+	None = 0,
+	Cullable = 1u << 0
+};
+
+constexpr RenderGraphPassFlags operator|(
+	RenderGraphPassFlags lhs,
+	RenderGraphPassFlags rhs
+) noexcept {
+	return static_cast<RenderGraphPassFlags>(
+		static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs)
+	);
+}
+
+constexpr bool HasPassFlag(
+	RenderGraphPassFlags value,
+	RenderGraphPassFlags flag
+) noexcept {
+	return (static_cast<uint8_t>(value) & static_cast<uint8_t>(flag)) != 0;
+}
+
 struct RenderGraphSubresourceRange {
 	uint32_t first = AllSubresources;
 	uint32_t count = 0;
@@ -209,6 +230,13 @@ public:
 		);
 	}
 
+	bool MarkOutput(RenderGraphResource resource){
+		if(!resource || resource.index >= m_resources.size()) return false;
+		m_resources[resource.index].output = true;
+		m_compiled = false;
+		return true;
+	}
+
 	uint32_t AddPass(
 		std::string name,
 		const std::function<void(RenderGraphPassBuilder&)>& setup,
@@ -217,6 +245,22 @@ public:
 		return AddPass(
 			std::move(name),
 			CommandQueueType::Graphics,
+			RenderGraphPassFlags::None,
+			setup,
+			std::move(execute)
+		);
+	}
+
+	uint32_t AddPass(
+		std::string name,
+		RenderGraphPassFlags flags,
+		const std::function<void(RenderGraphPassBuilder&)>& setup,
+		ExecuteCallback execute
+	){
+		return AddPass(
+			std::move(name),
+			CommandQueueType::Graphics,
+			flags,
 			setup,
 			std::move(execute)
 		);
@@ -228,11 +272,28 @@ public:
 		const std::function<void(RenderGraphPassBuilder&)>& setup,
 		ExecuteCallback execute
 	){
+		return AddPass(
+			std::move(name),
+			queue,
+			RenderGraphPassFlags::None,
+			setup,
+			std::move(execute)
+		);
+	}
+
+	uint32_t AddPass(
+		std::string name,
+		CommandQueueType queue,
+		RenderGraphPassFlags flags,
+		const std::function<void(RenderGraphPassBuilder&)>& setup,
+		ExecuteCallback execute
+	){
 		RenderGraphPassBuilder builder;
 		if(setup) setup(builder);
 		Pass pass;
 		pass.name = std::move(name);
 		pass.queue = queue;
+		pass.flags = flags;
 		pass.accesses = builder.Accesses();
 		pass.setupError = builder.Error();
 		pass.execute = std::move(execute);
@@ -243,6 +304,7 @@ public:
 
 	bool Compile(){
 		m_executionOrder.clear();
+		m_passLive.clear();
 		m_resourceLifetimes.clear();
 		m_queueSync.clear();
 		m_finalStates.clear();
@@ -261,8 +323,11 @@ public:
 				}
 			}
 		}
+		BuildDependencies(false);
+		BuildPassLiveness();
+		ClearDependencyGraph();
+		BuildDependencies(true);
 		if(!ValidateQueueSharing()) return false;
-		BuildDependencies();
 		if(!BuildExecutionOrder()) return Fail("RenderGraph dependency cycle detected.");
 		BuildResourceLifetimes();
 		BuildQueueSynchronization();
@@ -381,6 +446,17 @@ public:
 	}
 
 	const std::vector<uint32_t>& ExecutionOrder() const noexcept { return m_executionOrder; }
+
+	bool IsPassCulled(uint32_t passIndex) const noexcept {
+		return passIndex < m_passes.size() &&
+			m_passLive.size() == m_passes.size() &&
+			m_passLive[passIndex] == 0;
+	}
+
+	size_t CulledPassCount() const noexcept {
+		if(m_passLive.size() != m_passes.size()) return 0;
+		return static_cast<size_t>(std::count(m_passLive.begin(), m_passLive.end(), uint8_t{0}));
+	}
 	const std::vector<uint32_t>& DependenciesForPass(uint32_t passIndex) const noexcept {
 		static const std::vector<uint32_t> empty;
 		return passIndex < m_passes.size() ? m_passes[passIndex].dependencies : empty;
@@ -489,6 +565,7 @@ public:
 		m_resources.clear();
 		m_passes.clear();
 		m_executionOrder.clear();
+		m_passLive.clear();
 		m_resourceLifetimes.clear();
 		m_queueSync.clear();
 		m_finalStates.clear();
@@ -504,11 +581,13 @@ private:
 		ResourceState initialState = ResourceState::Undefined;
 		uint32_t subresourceCount = 1;
 		ResourceQueueSharingMode queueSharingMode = ResourceQueueSharingMode::Exclusive;
+		bool output = false;
 		bool IsBound() const noexcept { return static_cast<bool>(buffer) != static_cast<bool>(texture); }
 	};
 	struct Pass {
 		std::string name;
 		CommandQueueType queue = CommandQueueType::Graphics;
+		RenderGraphPassFlags flags = RenderGraphPassFlags::None;
 		std::vector<RenderGraphAccess> accesses;
 		std::string setupError;
 		ExecuteCallback execute;
@@ -595,9 +674,55 @@ private:
 		}
 		return false;
 	}
+	bool IsPassLiveInternal(uint32_t passIndex) const noexcept {
+		return passIndex < m_passLive.size() && m_passLive[passIndex] != 0;
+	}
+
+	void ClearDependencyGraph(){
+		for(Pass& pass : m_passes){
+			pass.dependencies.clear();
+			pass.dependents.clear();
+		}
+	}
+
+	void BuildPassLiveness(){
+		m_passLive.assign(m_passes.size(), 0);
+		std::vector<uint32_t> pending;
+
+		for(uint32_t passIndex = 0; passIndex < m_passes.size(); ++passIndex){
+			const Pass& pass = m_passes[passIndex];
+			bool root = !HasPassFlag(pass.flags, RenderGraphPassFlags::Cullable);
+
+			for(const RenderGraphAccess& access : pass.accesses){
+				if(!Writes(access.type)) continue;
+				const Resource& resource = m_resources[access.resource.index];
+				if(resource.output || resource.IsBound()){
+					root = true;
+					break;
+				}
+			}
+
+			if(!root) continue;
+			m_passLive[passIndex] = 1;
+			pending.push_back(passIndex);
+		}
+
+		while(!pending.empty()){
+			const uint32_t passIndex = pending.back();
+			pending.pop_back();
+			for(uint32_t dependency : m_passes[passIndex].dependencies){
+				if(m_passLive[dependency]) continue;
+				m_passLive[dependency] = 1;
+				pending.push_back(dependency);
+			}
+		}
+	}
+
 	bool ValidateQueueSharing(){
 		std::vector<uint8_t> queueMasks(m_resources.size(), 0);
-		for(const Pass& pass : m_passes){
+		for(uint32_t passIndex = 0; passIndex < m_passes.size(); ++passIndex){
+			if(!IsPassLiveInternal(passIndex)) continue;
+			const Pass& pass = m_passes[passIndex];
 			const uint8_t queueBit = static_cast<uint8_t>(1u << QueueIndex(pass.queue));
 			for(const RenderGraphAccess& access : pass.accesses){
 				queueMasks[access.resource.index] |= queueBit;
@@ -625,21 +750,27 @@ private:
 		return true;
 	}
 
-	void BuildDependencies(){
+	void BuildDependencies(bool liveOnly){
 		for(uint32_t earlier = 0; earlier < m_passes.size(); ++earlier){
+			if(liveOnly && !IsPassLiveInternal(earlier)) continue;
 			for(uint32_t later = earlier + 1; later < m_passes.size(); ++later){
+				if(liveOnly && !IsPassLiveInternal(later)) continue;
 				if(!Conflicts(m_passes[earlier], m_passes[later])) continue;
 				m_passes[earlier].dependents.push_back(later);
 				m_passes[later].dependencies.push_back(earlier);
 			}
 		}
 	}
+
 	bool BuildExecutionOrder(){
-		std::vector<uint32_t> unresolved;
+		std::vector<uint32_t> unresolved(m_passes.size(), 0);
 		std::vector<uint32_t> ready;
+		size_t liveCount = 0;
 		for(uint32_t index = 0; index < m_passes.size(); ++index){
-			unresolved.push_back(static_cast<uint32_t>(m_passes[index].dependencies.size()));
-			if(unresolved.back() == 0) ready.push_back(index);
+			if(!IsPassLiveInternal(index)) continue;
+			++liveCount;
+			unresolved[index] = static_cast<uint32_t>(m_passes[index].dependencies.size());
+			if(unresolved[index] == 0) ready.push_back(index);
 		}
 		while(!ready.empty()){
 			auto next = (std::min_element)(ready.begin(), ready.end());
@@ -652,7 +783,7 @@ private:
 				if(unresolved[dependent] == 0) ready.push_back(dependent);
 			}
 		}
-		return m_executionOrder.size() == m_passes.size();
+		return m_executionOrder.size() == liveCount;
 	}
 	void BuildResourceLifetimes(){
 		m_resourceLifetimes.assign(m_resources.size(), {});
@@ -800,6 +931,7 @@ private:
 	std::vector<Resource> m_resources;
 	std::vector<Pass> m_passes;
 	std::vector<uint32_t> m_executionOrder;
+	std::vector<uint8_t> m_passLive;
 	std::vector<RenderGraphResourceLifetime> m_resourceLifetimes;
 	std::vector<RenderGraphPassQueueSync> m_queueSync;
 	std::vector<std::vector<ResourceState>> m_finalStates;

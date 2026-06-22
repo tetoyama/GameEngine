@@ -556,6 +556,103 @@ void TestTransientLifetimeAnalysis(){
 	assert(!graph.CanAlias(transientA, unused));
 }
 
+
+void TestPassCulling(){
+	RHI::NullRHIDevice device({});
+
+	RHI::BufferDesc externalDesc;
+	externalDesc.byteSize = 64;
+	externalDesc.initialState = RHI::ResourceState::Common;
+	const RHI::BufferHandle externalBuffer = device.CreateBuffer(externalDesc, {});
+	assert(externalBuffer);
+
+	RHI::RenderGraph graph;
+	const auto deadExclusive = graph.AddResource(
+		"DeadExclusive",
+		RHI::ResourceQueueSharingMode::Exclusive
+	);
+	const auto intermediate = graph.AddResource("Intermediate");
+	const auto output = graph.AddResource("Output");
+	assert(graph.MarkOutput(output));
+	const auto importedOutput = graph.ImportBuffer(
+		externalBuffer,
+		externalDesc.initialState,
+		"ExternalOutput"
+	);
+
+	std::vector<int> execution;
+	const uint32_t deadWrite = graph.AddPass(
+		"DeadWrite",
+		RHI::CommandQueueType::Graphics,
+		RHI::RenderGraphPassFlags::Cullable,
+		[&](RHI::RenderGraphPassBuilder& builder){ builder.Write(deadExclusive); },
+		[&](RHI::IRHICommandList&){ execution.push_back(1); }
+	);
+	const uint32_t deadRead = graph.AddPass(
+		"DeadRead",
+		RHI::CommandQueueType::Compute,
+		RHI::RenderGraphPassFlags::Cullable,
+		[&](RHI::RenderGraphPassBuilder& builder){ builder.Read(deadExclusive); },
+		[&](RHI::IRHICommandList&){ execution.push_back(2); }
+	);
+	const uint32_t producer = graph.AddPass(
+		"Producer",
+		RHI::RenderGraphPassFlags::Cullable,
+		[&](RHI::RenderGraphPassBuilder& builder){ builder.Write(intermediate); },
+		[&](RHI::IRHICommandList&){ execution.push_back(3); }
+	);
+	const uint32_t outputWriter = graph.AddPass(
+		"OutputWriter",
+		RHI::RenderGraphPassFlags::Cullable,
+		[&](RHI::RenderGraphPassBuilder& builder){
+			builder.Read(intermediate);
+			builder.Write(output);
+		},
+		[&](RHI::IRHICommandList&){ execution.push_back(4); }
+	);
+	const uint32_t importedWriter = graph.AddPass(
+		"ImportedWriter",
+		RHI::RenderGraphPassFlags::Cullable,
+		[&](RHI::RenderGraphPassBuilder& builder){
+			builder.Write(importedOutput, RHI::ResourceState::CopyDestination);
+		},
+		[&](RHI::IRHICommandList&){ execution.push_back(5); }
+	);
+	const uint32_t compatibilityRoot = graph.AddPass(
+		"CompatibilityRoot",
+		[](RHI::RenderGraphPassBuilder&){},
+		[&](RHI::IRHICommandList&){ execution.push_back(6); }
+	);
+
+	assert(graph.Compile());
+	assert(graph.IsPassCulled(deadWrite));
+	assert(graph.IsPassCulled(deadRead));
+	assert(!graph.IsPassCulled(producer));
+	assert(!graph.IsPassCulled(outputWriter));
+	assert(!graph.IsPassCulled(importedWriter));
+	assert(!graph.IsPassCulled(compatibilityRoot));
+	assert(graph.CulledPassCount() == 2);
+	assert((graph.ExecutionOrder() == std::vector<uint32_t>{
+		producer,
+		outputWriter,
+		importedWriter,
+		compatibilityRoot
+	}));
+	assert(!graph.RequiresQueueSynchronization());
+	assert(!graph.Lifetime(deadExclusive).IsUsed());
+	assert(graph.Lifetime(intermediate).IsUsed());
+	assert(graph.Lifetime(output).IsUsed());
+	assert(graph.FinalState(importedOutput) == RHI::ResourceState::CopyDestination);
+
+	auto commandList = device.CreateCommandList({
+		RHI::CommandQueueType::Graphics,
+		false
+	});
+	assert(commandList);
+	assert(graph.Execute(*commandList));
+	assert((execution == std::vector<int>{3, 4, 5, 6}));
+}
+
 } // namespace
 
 int main(){
@@ -566,5 +663,6 @@ int main(){
 	TestQueueSynchronization();
 	TestQueueSharingValidation();
 	TestTransientLifetimeAnalysis();
+	TestPassCulling();
 	return 0;
 }

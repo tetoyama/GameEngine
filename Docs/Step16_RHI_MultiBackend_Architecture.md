@@ -122,6 +122,8 @@ D3D12ではResource BarrierとRTV / DSV Bindingへ変換する。
 RenderGraphは論理Resource Accessから依存順序とBarrierを構築する。
 BarrierのNative変換はBackend側の責務とする。
 
+Pass Cullingは`RenderGraphPassFlags::Cullable`を明示したPassだけを対象にする。既存Passは既定でRootとして保持し、Imported ResourceへのWrite、`MarkOutput()`されたResourceへのWrite、非Cullable PassをRootとして依存元を逆向きに生存判定する。Culling後のPassだけで依存、Queue Sharing検証、Barrier、Resource Lifetime、Queue同期を再構築する。
+
 ## Native Interop
 
 ImGui、Effekseer、Direct2Dなど既存のAPI依存ライブラリ用にNative Interopは許可する。
