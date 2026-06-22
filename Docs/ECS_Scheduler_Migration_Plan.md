@@ -42,6 +42,7 @@ struct Entity {
 - SchedulerはPhase / Priority / Access / RegistrationOrderから依存を構築する
 - Access ConflictはResource Key単位で判定する
 - 同一条件の順序はRegistrationOrderで安定化する
+- Task名は`<SystemName>.<Feature>.<Stage>`を基本とし、Captureだけで責務を判別できるようにする
 
 ## 1.4 構造変更
 
@@ -55,6 +56,7 @@ struct Entity {
 - RendererはComponentRegistryを直接参照しない
 - 上位描画層はNative API型を参照しない
 - Backend差はCapabilityで選択し、API名で分岐しない
+- MainThread必須処理から純粋CPU計算を`Build` Taskとして分離し、GPU反映を`Upload / Submit` TaskとしてMainThreadへ残す
 
 ---
 
@@ -378,7 +380,32 @@ Step 16完了条件:
 - `Docs/Step16E_SwapChain_Completion.md`
 - `Docs/Step16F_Subresource_State_Completion.md`
 
-## Step 17: RenderWorld
+## Step 17: Task命名統一とMainThread Task分割
+
+状態: **未着手**
+
+優先順:
+
+1. SystemTask命名規則の統一
+2. Render Packet基盤
+3. Animation CPU Build / GPU Upload分離
+4. Terrain CPU Mesh Build / GPU Upload分離
+5. Wave CPU Vertex Build / GPU Upload分離
+6. Physics Begin–Fetch待機隠蔽の再評価
+
+基本契約:
+
+- `ScriptSystem` / `CustomScriptSystem`はMainThread・World Exclusiveを維持する
+- Graphics API操作はMainThreadへ残す
+- 純粋CPU計算のみAnyWorker Taskへ抽出する
+- `Prepare / Build -> Commit / Upload / Submit`の二段階構造を採用する
+- 物理待機隠蔽は実測効果が十分な場合だけ導入する
+
+詳細:
+
+- `Docs/Step17_Task_Naming_And_Render_Task_Decomposition_Plan.md`
+
+## Step 18: RenderWorld
 
 状態: **未着手**
 
@@ -388,7 +415,7 @@ Step 16完了条件:
 - [ ] RendererからNative API型参照を除去
 - [ ] RenderWorldからRHI Commandを生成
 
-## Step 18: 描画並列化の再検討
+## Step 19: 描画並列化の再検討
 
 状態: **未着手**
 
@@ -397,7 +424,7 @@ Step 16完了条件:
 - CapabilityによりAsync Compute / Multiple Queueを選択
 - API名による上位層分岐は禁止
 
-## Step 19: Scriptプロジェクト完全ホットリロード対応
+## Step 20: Scriptプロジェクト完全ホットリロード対応
 
 状態: **未着手**
 
@@ -412,7 +439,7 @@ Step 16完了条件:
 - [ ] 一時ファイルCleanup
 - [ ] Debug / Release連続Reload試験
 
-## Step 20: README.md更新
+## Step 21: README.md更新
 
 状態: **未着手**
 
@@ -430,11 +457,13 @@ Step 16完了条件:
 
 # 3. 現在の作業位置
 
-1. Step 16-FのQueue間同期
-2. Step 16-FのPass Culling
-3. D3D11最小実描画Triangle Test
-4. 既存Player View実機回帰
-5. Step 16完了報告
-6. Step 17 RenderWorld移行
+1. Step 17-A SystemTask命名規則の統一
+2. Step 16-FのQueue間同期
+3. Step 16-FのPass Culling
+4. D3D11最小実描画Triangle Test
+5. 既存Player View実機回帰
+6. Step 17-B Render Packet基盤
+7. Step 17-C Animation CPU Build / GPU Upload分離
 
-Step 17はStep 16の公開契約と既存Player View回帰を確定してから開始する。
+Task命名統一は、以降のCapture比較と依存解析の前提になるため最優先で実施する。
+Step 17-B以降は、既存Player View回帰を維持しながら段階的に進める。
