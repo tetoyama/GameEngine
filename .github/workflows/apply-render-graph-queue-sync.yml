@@ -33,8 +33,28 @@ jobs:
       - name: Compile and run D3D11 real triangle
         shell: cmd
         run: |
-          cl /nologo /std:c++20 /EHsc /W4 /MTd /I Source/GameApplication Tests/D3D11RHIRealTriangleTest.cpp /Fe:d3d11-rhi-real-triangle.exe
-          d3d11-rhi-real-triangle.exe
+          echo === COMPILE === > d3d11-real-triangle-diagnostics.log
+          cl /nologo /std:c++20 /EHsc /W4 /MTd /I Source/GameApplication Tests/D3D11RHIRealTriangleTest.cpp /Fe:d3d11-rhi-real-triangle.exe >> d3d11-real-triangle-diagnostics.log 2>&1
+          if errorlevel 1 (
+            type d3d11-real-triangle-diagnostics.log
+            exit /b 1
+          )
+          echo COMPILE_SUCCESS >> d3d11-real-triangle-diagnostics.log
+          echo === RUN === >> d3d11-real-triangle-diagnostics.log
+          d3d11-rhi-real-triangle.exe >> d3d11-real-triangle-diagnostics.log 2>&1
+          set TRIANGLE_EXIT=%ERRORLEVEL%
+          echo RUN_EXIT_CODE=%TRIANGLE_EXIT% >> d3d11-real-triangle-diagnostics.log
+          type d3d11-real-triangle-diagnostics.log
+          exit /b %TRIANGLE_EXIT%
+
+      - name: Upload D3D11 triangle diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d3d11-rhi-real-triangle-diagnostics
+          path: d3d11-real-triangle-diagnostics.log
+          if-no-files-found: warn
+          retention-days: 1
 
       - uses: microsoft/setup-msbuild@v2
 
