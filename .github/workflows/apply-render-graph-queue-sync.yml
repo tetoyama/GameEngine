@@ -1,13 +1,72 @@
-name: Archived RenderGraph Pass Culling Migration
+name: Apply D3D11 RHI Real Triangle Test
 
 on:
-  workflow_dispatch:
+  pull_request:
+    branches: [master]
+    types: [synchronize]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  archived:
+  verify:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Apply D3D11 real triangle migration
+        shell: bash
+        run: |
+          python Tools/Migration/add_d3d11_real_triangle_test.py
+          git add -A
+          git diff --cached --check
+          git diff --cached --binary > d3d11-real-triangle.patch
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Compile and run D3D11 real triangle
+        shell: cmd
+        run: |
+          cl /nologo /std:c++20 /EHsc /W4 /MTd /I Source/GameApplication Tests/D3D11RHIRealTriangleTest.cpp /Fe:d3d11-rhi-real-triangle.exe
+          d3d11-rhi-real-triangle.exe
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Compile GameEngine Debug and Release x64
+        shell: cmd
+        run: |
+          msbuild GameEngine.vcxproj /t:Build /m /p:Configuration=Debug /p:Platform=x64 /verbosity:minimal /consoleloggerparameters:ErrorsOnly
+          msbuild GameEngine.vcxproj /t:Build /m /p:Configuration=Release /p:Platform=x64 /verbosity:minimal /consoleloggerparameters:ErrorsOnly
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d3d11-rhi-real-triangle-patch
+          path: d3d11-real-triangle.patch
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: verify
     runs-on: ubuntu-latest
     steps:
-      - run: echo "RenderGraph Pass Culling migration completed and archived."
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 1
+          show-progress: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: d3d11-rhi-real-triangle-patch
+      - name: Publish generated branch
+        run: |
+          git apply --index d3d11-real-triangle.patch
+          git config user.name github-actions
+          git config user.email actions@github.com
+          git commit -m "test: add D3D11 RHI real triangle smoke"
+          git push --force origin HEAD:d3d11-rhi-real-triangle-output
