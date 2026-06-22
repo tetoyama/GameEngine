@@ -18,7 +18,7 @@ public:
 	CameraSystem(SceneManagerContext* context): m_context(context){}
 
 	void Initialize() override;
-	void Draw() override;
+	void Draw();
 	void RegisterTasks(SystemScheduleBuilder& builder) override;
 
 private:
