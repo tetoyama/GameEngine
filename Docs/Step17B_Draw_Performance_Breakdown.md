@@ -48,7 +48,7 @@ Performance Monitorへ次の直前完了フレームの値を表示する。
 6. `ImGui Render / Platform Windows`
    - Main Viewport DrawData提出
    - Multi-Viewport更新と描画
-7. `Present / VSync Wait`
+7. `Present / Queue Wait`
    - SwapChain Present呼び出し
    - VSync有効時の待機を含む
 8. `Unaccounted / Timer Overhead`
@@ -67,7 +67,7 @@ Performance Monitorへ次の直前完了フレームの値を表示する。
 - これによりEditor UI、ImGui Render、Presentを含む完全なフレームを表示する
 - Performance Monitorの描画コストは次フレームの`Editor UI Build CPU`へ含まれる
 - CPU計測とGPU計測を混同しない
-- `Present / VSync Wait`はGPU処理時間そのものではない
+- `Present / Queue Wait`はGPU処理時間そのものではない
 
 ---
 
@@ -81,10 +81,51 @@ Performance Monitorへ次の直前完了フレームの値を表示する。
 - [x] VSync設定を表示
 - [x] 未計測時間を表示
 - [x] Schedule CaptureでPacket Build / Command Submit分離を確認
-- [ ] D3D11 Timestamp / Disjoint QueryによるGPU Frame Time計測
+- [x] Performance Monitor CPU内訳を実機表示
+- [x] Editor Panel単位CPU計測を実装
+- [x] D3D11 Timestamp / Disjoint QueryによるGPU Frame Time計測を実装
+- [ ] GPU Frame Timeの実機表示確認
+- [ ] Editor Panel単位CPU時間の実機表示確認
 - [ ] VSync ON / OFFで同一Sceneを比較
 - [ ] Editor View / Player View条件を揃えた比較
-- [ ] 支配区間を確定
+- [ ] 支配区間を最終確定
+
+---
+
+## 2026-06-23 実機観測
+
+### Editorレイアウト表示
+
+- VSync: OFF
+- Total Draw: 12.9716ms
+- Render Schedule CPU: 5.6725ms
+- Editor UI Build CPU: 6.7990ms
+- ImGui Render / Platform Windows: 0.1718ms
+- Present / Queue Wait: 0.0876ms
+
+判断:
+
+- Editor UI Buildが約52%を占める
+- Render Scheduleが約44%を占める
+- Editor使用時はPanel単位の調査が最優先
+
+### Player大表示
+
+- VSync: OFF
+- Total Draw: 10.4272ms
+- Render Schedule CPU: 4.5389ms
+- Editor UI Build CPU: 0.3200ms
+- ImGui Render / Platform Windows: 0.0569ms
+- Present / Queue Wait: 5.3123ms
+
+判断:
+
+- Render ScheduleはSchedule Captureの約4.6msと整合する
+- Present / Queue Waitが約51%を占める
+- VSync OFFのため垂直同期待ちとは断定しない
+- GPU負荷、Frame Queue、Desktop Compositor待ちをGPU Timestampで分離する
+
+2条件は表示領域とEditor Panel配置が異なるため、直接的な性能比較ではなく支配区間の発見に使用する。
 
 ---
 
@@ -111,7 +152,7 @@ Performance Monitorへ次の直前完了フレームの値を表示する。
 - Render Schedule CPU
 - Editor UI Build CPU
 - ImGui Render / Platform Windows
-- Present / VSync Wait
+- Present / Queue Wait
 - Unaccounted
 
 ### 3. VSync OFF
@@ -165,9 +206,9 @@ Performance Monitorへ次の直前完了フレームの値を表示する。
 
 ---
 
-## GPU計測の次段階
+## GPU計測
 
-D3D11では次のQueryをFrame境界へ追加する。
+D3D11では次のQueryをFrame境界へ追加した。
 
 - `D3D11_QUERY_TIMESTAMP_DISJOINT`
 - Frame Begin Timestamp
@@ -190,11 +231,12 @@ D3D11では次のQueryをFrame境界へ追加する。
 
 ## 次の作業順
 
-1. Performance Monitor内訳の実機確認
-2. VSync ON / OFF比較
-3. GPU Frame Time計測追加
-4. 支配区間を基に最適化対象を決定
+1. GPU Frame TimeとEditor Panel単位CPU時間の実機確認
+2. 同一条件でVSync ON / OFF比較
+3. Editor Panelの支配要因を特定して不要な毎Frame処理を削減
+4. GPU時間とPresent / Queue Waitの関係を判定
 5. IRenderable内部のComponentRegistry参照除去
-6. Step 17-C Animation CPU Build / GPU Upload分離
+6. Pipeline / Material / Mesh単位のState Bind削減
+7. Step 17-C Animation CPU Build / GPU Upload分離
 
 Step 17-Cへ機械的に進むのではなく、計測結果によってRender Submit、Editor UI、ImGui、GPUのどこを先に改善するか決定する。
