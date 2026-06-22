@@ -548,35 +548,30 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 		vp.MaxDepth = 1.0f;
 		deviceContext->RSSetViewports(1, &vp);
 
-		for(const auto& [name, scene] : activeScenes){
-
-			auto sctx = scene->GetSceneContext();
-			auto& component = *sctx->component;
-
-			const auto entities = component.FindEntitiesWithComponent<TransformComponent>();
-			if(entities.empty()){
-				continue;
-			}
-
-			for(Entity ent : entities){
-
-				if(component.GetComponent<EnvironmentMapComponent>(ent)){
+		const RenderPacketFrameBuffer& packetBuffer =
+			m_renderSystem->GetRenderPacketBuffer();
+		if(packetBuffer.IsReady()){
+			for(const RenderPacket& packet : packetBuffer.Packets()){
+				if(!HasRenderPacketPass(packet.passMask, RenderPacketPassMask::Shadow)){
 					continue;
 				}
 
-				RenderLayer layer = scene->GetRenderLayerFromEntity(ent);
-				const int layerIndex = (int)layer;
-				if((unsigned)layerIndex >= (unsigned)maxLayer){
+				const int layerIndex = static_cast<int>(packet.layer);
+				if(static_cast<unsigned>(layerIndex) >=
+					static_cast<unsigned>(maxLayer)){
 					continue;
 				}
+				if(!newContext.renderLayerVisibility[layerIndex]) continue;
 
-				if(!newContext.renderLayerVisibility[layerIndex]){
-					continue;
-				}
+				SceneContext* sceneContext =
+					m_context->sceneManager->GetContextFromID(packet.sceneContextID);
+				if(!sceneContext) continue;
 
-				for(auto renderable : renderables){
-					renderable->Execute(newContext, sctx, ent);
-				}
+				IRenderable* renderable =
+					m_renderSystem->GetRenderableForPacketKind(packet.kind);
+				if(!renderable) continue;
+
+				renderable->Execute(newContext, sceneContext, packet.entity);
 			}
 		}
 

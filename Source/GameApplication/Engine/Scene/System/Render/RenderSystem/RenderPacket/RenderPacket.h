@@ -35,6 +35,15 @@ constexpr RenderPacketPassMask operator|(
 	);
 }
 
+constexpr RenderPacketPassMask operator&(
+	RenderPacketPassMask lhs,
+	RenderPacketPassMask rhs
+) noexcept {
+	return static_cast<RenderPacketPassMask>(
+		static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs)
+	);
+}
+
 constexpr bool HasRenderPacketPass(
 	RenderPacketPassMask value,
 	RenderPacketPassMask pass
@@ -42,23 +51,68 @@ constexpr bool HasRenderPacketPass(
 	return (static_cast<uint8_t>(value) & static_cast<uint8_t>(pass)) != 0;
 }
 
+constexpr RenderPacketPassMask RemoveRenderPacketPass(
+	RenderPacketPassMask value,
+	RenderPacketPassMask pass
+) noexcept {
+	return static_cast<RenderPacketPassMask>(
+		static_cast<uint8_t>(value) & ~static_cast<uint8_t>(pass)
+	);
+}
+
 constexpr RenderPacketPassMask RenderPacketPassesForLayer(
 	RenderLayer layer
 ) noexcept {
 	switch(layer){
 		case RenderLayer::Opaque3D:
-			return RenderPacketPassMask::Shadow | RenderPacketPassMask::GBuffer;
 		case RenderLayer::Background2D:
+			return RenderPacketPassMask::Shadow | RenderPacketPassMask::GBuffer;
 		case RenderLayer::Transparent3D:
 		case RenderLayer::SortTransparent3D:
-			return RenderPacketPassMask::Forward;
+			return RenderPacketPassMask::Shadow | RenderPacketPassMask::Forward;
 		case RenderLayer::OverlayUI:
-			return RenderPacketPassMask::Overlay;
+			return RenderPacketPassMask::Shadow | RenderPacketPassMask::Overlay;
 		case RenderLayer::Debug:
-			return RenderPacketPassMask::Debug;
+			return RenderPacketPassMask::Shadow |
+				RenderPacketPassMask::GBuffer |
+				RenderPacketPassMask::Debug;
 		default:
 			return RenderPacketPassMask::None;
 	}
+}
+
+constexpr RenderPacketPassMask RenderPacketPassesForKind(
+	RenderPacketKind kind
+) noexcept {
+	switch(kind){
+		case RenderPacketKind::Model:
+		case RenderPacketKind::Billboard:
+		case RenderPacketKind::Terrain:
+			return RenderPacketPassMask::Shadow |
+				RenderPacketPassMask::GBuffer |
+				RenderPacketPassMask::Forward |
+				RenderPacketPassMask::Debug;
+		case RenderPacketKind::Wave:
+			return RenderPacketPassMask::GBuffer |
+				RenderPacketPassMask::Forward |
+				RenderPacketPassMask::Debug;
+		case RenderPacketKind::Mesh:
+		case RenderPacketKind::Particle:
+		case RenderPacketKind::Effect:
+			return RenderPacketPassMask::Forward;
+		case RenderPacketKind::Sprite:
+			return RenderPacketPassMask::Forward |
+				RenderPacketPassMask::Overlay;
+		default:
+			return RenderPacketPassMask::None;
+	}
+}
+
+constexpr RenderPacketPassMask ResolveRenderPacketPasses(
+	RenderLayer layer,
+	RenderPacketKind kind
+) noexcept {
+	return RenderPacketPassesForLayer(layer) & RenderPacketPassesForKind(kind);
 }
 
 struct RenderPacketTransformSnapshot {

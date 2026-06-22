@@ -340,6 +340,30 @@ void RenderSystem::Draw(){
 }
 
 
+
+IRenderable* RenderSystem::GetRenderableForPacketKind(RenderPacketKind kind){
+	switch(kind){
+		case RenderPacketKind::Model:
+			return GetRenderable<RenderableModel>();
+		case RenderPacketKind::Mesh:
+			return GetRenderable<RenderableMesh>();
+		case RenderPacketKind::Sprite:
+			return GetRenderable<RenderableSprite>();
+		case RenderPacketKind::Billboard:
+			return GetRenderable<RenderableBillBoard>();
+		case RenderPacketKind::Particle:
+			return GetRenderable<RenderableParticle>();
+		case RenderPacketKind::Terrain:
+			return GetRenderable<RenderableTerrain>();
+		case RenderPacketKind::Wave:
+			return GetRenderable<RenderableWave>();
+		case RenderPacketKind::Effect:
+			return GetRenderable<RenderableEffect>();
+		default:
+			return nullptr;
+	}
+}
+
 void RenderSystem::BuildRenderPackets(){
 	std::array<RenderPacketWorkerBuffer, 1> workerBuffers{
 		RenderPacketWorkerBuffer(0)
@@ -392,6 +416,8 @@ void RenderSystem::BuildRenderPackets(){
 				components->GetComponent<OrderInLayerComponent>(entity);
 			const MaterialComponent* materialComponent =
 				components->GetComponent<MaterialComponent>(entity);
+			const bool isEnvironmentMap =
+				components->GetComponent<EnvironmentMapComponent>(entity) != nullptr;
 
 			const RenderLayer layer = layerComponent
 				? layerComponent->layer
@@ -422,7 +448,13 @@ void RenderSystem::BuildRenderPackets(){
 				packet.entity = entity;
 				packet.kind = kind;
 				packet.layer = layer;
-				packet.passMask = RenderPacketPassesForLayer(layer);
+				packet.passMask = ResolveRenderPacketPasses(layer, kind);
+				if(isEnvironmentMap){
+					packet.passMask = RemoveRenderPacketPass(
+						packet.passMask,
+						RenderPacketPassMask::Shadow
+					);
+				}
 				packet.materialKey = materialKey;
 				packet.orderInLayer = orderInLayer;
 				packet.sortKey = MakeRenderPacketSortKey(
@@ -517,6 +549,7 @@ void RenderSystem::RegisterTasks(SystemScheduleBuilder& builder){
 		.ReadComponent<TerrainComponent>()
 		.ReadComponent<WaveComponent>()
 		.ReadComponent<EffectComponent>()
+		.ReadComponent<EnvironmentMapComponent>()
 		.ReadResource<SceneManager>()
 		.WriteResource<RenderPacketFrameBuffer>();
 

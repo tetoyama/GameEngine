@@ -55,6 +55,34 @@ int main(){
 		RenderPacketPassesForLayer(RenderLayer::Opaque3D),
 		RenderPacketPassMask::GBuffer
 	));
+	static_assert(HasRenderPacketPass(
+		ResolveRenderPacketPasses(
+			RenderLayer::Transparent3D,
+			RenderPacketKind::Model
+		),
+		RenderPacketPassMask::Shadow
+	));
+	static_assert(!HasRenderPacketPass(
+		ResolveRenderPacketPasses(
+			RenderLayer::Opaque3D,
+			RenderPacketKind::Mesh
+		),
+		RenderPacketPassMask::GBuffer
+	));
+	static_assert(HasRenderPacketPass(
+		ResolveRenderPacketPasses(
+			RenderLayer::Debug,
+			RenderPacketKind::Model
+		),
+		RenderPacketPassMask::GBuffer
+	));
+	static_assert(!HasRenderPacketPass(
+		RemoveRenderPacketPass(
+			RenderPacketPassMask::Shadow | RenderPacketPassMask::GBuffer,
+			RenderPacketPassMask::Shadow
+		),
+		RenderPacketPassMask::Shadow
+	));
 
 	RenderPacketWorkerBuffer worker0(0);
 	RenderPacketWorkerBuffer worker1(1);

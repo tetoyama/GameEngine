@@ -53,3 +53,10 @@ Scene Context ID、Entity index / generation、Packet kind、stable sequenceをT
 - Frame GenerationとReady状態が更新される
 - Packet Kind集計が一致する
 - LayerからPass Maskへの分類が正しい
+
+
+## Opaque Pass接続
+
+GBufferとShadowのジオメトリ提出は、Scene / Transform Entityの再走査から完成済みRender Packet列の走査へ移行した。Light収集、RenderTarget設定、Camera設定、実GPU Drawは引き続きMainThread Pass側が担当する。
+
+既存挙動維持のため、LayerとPacket Kindの両方からPass Maskを解決する。Environment Map EntityはShadow Maskを除外する。

@@ -164,39 +164,37 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 	vp.MaxDepth = 1.0f;
 	dc->RSSetViewports(1, &vp);
 
-	// ----- Draw -----
-	for (int layer = 0; layer < (int)RenderLayer::MaxRenderLayer; layer++) {
-
-		if (!newCtx.renderLayerVisibility[layer]) continue;
-
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-
-			auto sctx = scene->GetSceneContext();
-			auto entities = sctx->component->FindEntitiesWithComponent<TransformComponent>();
-			if (entities.empty()) continue;
-
-			for (Entity ent : entities) {
-
-				if ((int)scene->GetRenderLayerFromEntity(ent) != layer) continue;
-
-				for (auto r : renderables) {
-
-					int materialID = 0;
-					MaterialComponent* material =
-						sctx->component->GetComponent<MaterialComponent>(ent);
-					if(material){
-						materialID = material->ShaderID;
-					}
-
-					ObjectInfo info;
-					info.SceneID = m_context->sceneManager->GetIDFromContext(sctx);
-					info.ObjectID = ent;
-					info.ShaderID = materialID;
-					m_context->graphics->SetObjectInfo(info);
-
-					r->Execute(newCtx, sctx, ent);
-				}
+	// ----- Draw from completed Render Packets -----
+	const RenderPacketFrameBuffer& packetBuffer =
+		m_renderSystem->GetRenderPacketBuffer();
+	if(packetBuffer.IsReady()){
+		for(const RenderPacket& packet : packetBuffer.Packets()){
+			if(!HasRenderPacketPass(packet.passMask, RenderPacketPassMask::GBuffer)){
+				continue;
 			}
+
+			const int layerIndex = static_cast<int>(packet.layer);
+			if(static_cast<unsigned>(layerIndex) >=
+				static_cast<unsigned>(RenderLayer::MaxRenderLayer)){
+				continue;
+			}
+			if(!newCtx.renderLayerVisibility[layerIndex]) continue;
+
+			SceneContext* sceneContext =
+				m_context->sceneManager->GetContextFromID(packet.sceneContextID);
+			if(!sceneContext) continue;
+
+			IRenderable* renderable =
+				m_renderSystem->GetRenderableForPacketKind(packet.kind);
+			if(!renderable) continue;
+
+			ObjectInfo info;
+			info.SceneID = packet.sceneContextID;
+			info.ObjectID = packet.entity;
+			info.ShaderID = static_cast<int>(packet.materialKey);
+			m_context->graphics->SetObjectInfo(info);
+
+			renderable->Execute(newCtx, sceneContext, packet.entity);
 		}
 	}
 	{

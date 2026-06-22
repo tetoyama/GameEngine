@@ -151,6 +151,7 @@ public:
 
 	std::shared_ptr<TextureData> GetEnvironmentMap() const;
 	ID3D11SamplerState* GetEnvMapSampler() const;
+	IRenderable* GetRenderableForPacketKind(RenderPacketKind kind);
 
 	const RenderPacketFrameBuffer& GetRenderPacketBuffer() const noexcept {
 		return m_renderPacketBuffer;
