@@ -62,8 +62,29 @@ jobs:
       - name: Compile GameEngine Debug and Release x64
         shell: cmd
         run: |
-          msbuild GameEngine.vcxproj /t:Build /m /p:Configuration=Debug /p:Platform=x64 /verbosity:minimal /consoleloggerparameters:ErrorsOnly
-          msbuild GameEngine.vcxproj /t:Build /m /p:Configuration=Release /p:Platform=x64 /verbosity:minimal /consoleloggerparameters:ErrorsOnly
+          echo === DEBUG === > render-packet-engine-diagnostics.log
+          msbuild GameEngine.vcxproj /t:Build /m /p:Configuration=Debug /p:Platform=x64 /verbosity:minimal /consoleloggerparameters:ErrorsOnly >> render-packet-engine-diagnostics.log 2>&1
+          if errorlevel 1 (
+            echo DEBUG_FAILED >> render-packet-engine-diagnostics.log
+            type render-packet-engine-diagnostics.log
+            exit /b 1
+          )
+          echo DEBUG_SUCCESS >> render-packet-engine-diagnostics.log
+          echo === RELEASE === >> render-packet-engine-diagnostics.log
+          msbuild GameEngine.vcxproj /t:Build /m /p:Configuration=Release /p:Platform=x64 /verbosity:minimal /consoleloggerparameters:ErrorsOnly >> render-packet-engine-diagnostics.log 2>&1
+          set ENGINE_EXIT=%ERRORLEVEL%
+          if %ENGINE_EXIT%==0 (echo RELEASE_SUCCESS >> render-packet-engine-diagnostics.log) else (echo RELEASE_FAILED >> render-packet-engine-diagnostics.log)
+          type render-packet-engine-diagnostics.log
+          exit /b %ENGINE_EXIT%
+
+      - name: Upload Render Packet engine diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-packet-foundation-engine-diagnostics
+          path: render-packet-engine-diagnostics.log
+          if-no-files-found: warn
+          retention-days: 1
 
       - uses: actions/upload-artifact@v4
         with:
