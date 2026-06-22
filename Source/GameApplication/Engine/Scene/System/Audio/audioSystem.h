@@ -52,7 +52,7 @@ public:
 		>;
 
 		builder.AddQueryTask<AudioUpdateQuery>(
-			"AudioSystem.Update",
+			"AudioSystem.Playback.Commit",
 			SystemTaskDomain::Frame,
 			SystemPhase::Late,
 			0,

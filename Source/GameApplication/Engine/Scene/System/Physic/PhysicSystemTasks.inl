@@ -90,7 +90,7 @@ inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
 		.WriteResource<PhysicsSceneResource>();
 
 	builder.AddTask(
-		"PhysicSystem.PhysicsUpload",
+		"PhysicSystem.Scene.Upload",
 		SystemTaskDomain::Fixed,
 		SystemPhase::Late,
 		0,
@@ -104,7 +104,7 @@ inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	SystemAccess beginAccess;
 	beginAccess.WriteResource<PhysicsSceneResource>();
 	builder.AddTask(
-		"PhysicSystem.PhysicsBegin",
+		"PhysicSystem.Simulation.Simulate",
 		SystemTaskDomain::Fixed,
 		SystemPhase::Late,
 		10,
@@ -120,7 +120,7 @@ inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
 		.WriteResource<PhysicsSceneResource>()
 		.WriteResource<PhysicsEventResource>();
 	builder.AddTask(
-		"PhysicSystem.PhysicsFetch",
+		"PhysicSystem.Simulation.Fetch",
 		SystemTaskDomain::Fixed,
 		SystemPhase::Late,
 		20,
@@ -137,7 +137,7 @@ inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
 		.WriteComponent<TransformComponent>()
 		.WriteResource<PhysicsSceneResource>();
 	builder.AddTask(
-		"PhysicSystem.PhysicsDownload",
+		"PhysicSystem.Scene.Download",
 		SystemTaskDomain::Fixed,
 		SystemPhase::Late,
 		30,
@@ -153,7 +153,7 @@ inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
 		.ReadResource<PhysicsSceneResource>()
 		.ReadResource<PhysicsEventResource>();
 	builder.AddTask(
-		"PhysicSystem.CollisionEventDispatch",
+		"PhysicSystem.Collision.Dispatch",
 		SystemTaskDomain::Fixed,
 		SystemPhase::Late,
 		40,

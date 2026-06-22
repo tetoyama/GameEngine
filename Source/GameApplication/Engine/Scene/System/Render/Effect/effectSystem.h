@@ -75,7 +75,7 @@ public:
 		>;
 
 		builder.AddQueryTask<EffectUpdateQuery>(
-			"EffectSystem.Update",
+			"EffectSystem.Runtime.Simulate",
 			SystemTaskDomain::Frame,
 			SystemPhase::Late,
 			0,
@@ -87,7 +87,7 @@ public:
 		);
 
 		builder.AddQueryTask<EffectUpdateQuery>(
-			"EffectSystem.EditorUpdate",
+			"EffectSystem.Render.Commit",
 			SystemTaskDomain::Render,
 			SystemPhase::Early,
 			0,

@@ -151,7 +151,7 @@ private:
 		attachAccess.SetWorldAccess(WorldAccessMode::Exclusive);
 
 		builder.AddTask(
-			std::string("EntityCommandCommitSystem.") + domainName + "Attach",
+			std::string("EntityCommandCommitSystem.") + domainName + ".Prepare",
 			domain,
 			SystemPhase::Earliest,
 			(std::numeric_limits<int32_t>::min)(),
@@ -167,7 +167,7 @@ private:
 			.SetStructuralAccess(StructuralAccess::ExclusiveWorldWrite);
 
 		builder.AddTask(
-			std::string("EntityCommandCommitSystem.") + domainName + "Commit",
+			std::string("EntityCommandCommitSystem.") + domainName + ".Commit",
 			domain,
 			SystemPhase::Latest,
 			(std::numeric_limits<int32_t>::max)(),

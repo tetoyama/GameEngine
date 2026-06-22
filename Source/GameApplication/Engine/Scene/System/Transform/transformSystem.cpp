@@ -27,7 +27,7 @@ void TransformSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	>;
 
 	builder.AddQueryTask<TransformReadQuery>(
-		"TransformSystem.Draw",
+		"TransformSystem.Hierarchy.Cleanup",
 		SystemTaskDomain::Render,
 		SystemPhase::Earliest,
 		0,

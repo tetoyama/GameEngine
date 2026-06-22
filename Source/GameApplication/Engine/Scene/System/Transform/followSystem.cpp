@@ -29,7 +29,7 @@ void FollowSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	>;
 
 	builder.AddQueryTask<FollowQuery>(
-		"FollowSystem.EditorUpdate",
+		"FollowSystem.Transform.Resolve",
 		SystemTaskDomain::Render,
 		SystemPhase::Earliest,
 		0,

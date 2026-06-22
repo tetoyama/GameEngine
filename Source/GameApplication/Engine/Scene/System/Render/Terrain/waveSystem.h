@@ -56,7 +56,7 @@ public:
 
 	void RegisterTasks(SystemScheduleBuilder& builder) override{
 		builder.AddTask(
-			"WaveSystem.EditorUpdate",
+			"WaveSystem.Vertex.Upload",
 			SystemTaskDomain::Render,
 			SystemPhase::Early,
 			0,

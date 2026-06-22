@@ -10,6 +10,8 @@
 #include <cassert>
 #include <cstdint>
 #include <memory>
+#include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -100,6 +102,10 @@ public:
 			);
 			m_systems[index]->RegisterTasks(builder);
 		}
+
+#ifndef NDEBUG
+		ValidateTaskNames();
+#endif
 
 		std::sort(
 			m_tasks.begin(),
@@ -206,6 +212,32 @@ private:
 	static constexpr size_t DomainIndex(SystemTaskDomain domain) {
 		return static_cast<size_t>(domain);
 	}
+
+#ifndef NDEBUG
+	void ValidateTaskNames() const {
+		std::unordered_set<std::string> registeredNames;
+		registeredNames.reserve(m_tasks.size());
+
+		for(const SystemTask& task : m_tasks) {
+			assert(!task.name.empty() && "SystemTask name must not be empty");
+
+			const size_t firstSeparator = task.name.find('.');
+			assert(
+				firstSeparator != std::string::npos &&
+				firstSeparator != 0 &&
+				firstSeparator + 1 < task.name.size() &&
+				"SystemTask name must use <SystemName>.<Operation> or <SystemName>.<Feature>.<Stage>"
+			);
+			assert(
+				task.name.find("..") == std::string::npos &&
+				"SystemTask name must not contain empty segments"
+			);
+
+			const bool inserted = registeredNames.insert(task.name).second;
+			assert(inserted && "SystemTask names must be globally unique");
+		}
+	}
+#endif
 
 	void EnsureTasksBuilt() {
 		if(m_tasksDirty) {

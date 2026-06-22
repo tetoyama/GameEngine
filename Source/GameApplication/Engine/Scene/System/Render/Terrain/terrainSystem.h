@@ -65,7 +65,7 @@ public:
 
 	void RegisterTasks(SystemScheduleBuilder& builder) override {
 		builder.AddTask(
-			"TerrainSystem.Draw",
+			"TerrainSystem.Mesh.Upload",
 			SystemTaskDomain::Render,
 			SystemPhase::Early,
 			0,

@@ -32,7 +32,7 @@ void ScriptSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	m_commandCommitSystem.RegisterTasks(builder);
 
 	builder.AddTask(
-		"ScriptSystem.FixedUpdate",
+		"ScriptSystem.Fixed.Dispatch",
 		SystemTaskDomain::Fixed,
 		SystemPhase::Default,
 		0,
@@ -44,7 +44,7 @@ void ScriptSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	);
 
 	builder.AddTask(
-		"ScriptSystem.Update",
+		"ScriptSystem.Frame.Dispatch",
 		SystemTaskDomain::Frame,
 		SystemPhase::Default,
 		0,
@@ -56,7 +56,7 @@ void ScriptSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	);
 
 	builder.AddTask(
-		"ScriptSystem.EditorUpdate",
+		"ScriptSystem.Editor.Dispatch",
 		SystemTaskDomain::Editor,
 		SystemPhase::Default,
 		0,
@@ -68,7 +68,7 @@ void ScriptSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	);
 
 	builder.AddTask(
-		"ScriptSystem.Draw",
+		"ScriptSystem.Render.Dispatch",
 		SystemTaskDomain::Render,
 		SystemPhase::Default,
 		0,

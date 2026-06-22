@@ -34,7 +34,7 @@ void ParticleSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	>;
 
 	builder.AddQueryTask<ParticleUpdateQuery>(
-		"ParticleSystem.Update",
+		"ParticleSystem.Simulation.Simulate",
 		SystemTaskDomain::Frame,
 		SystemPhase::Late,
 		0,

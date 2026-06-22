@@ -382,7 +382,7 @@ Step 16完了条件:
 
 ## Step 17: Task命名統一とMainThread Task分割
 
-状態: **未着手**
+状態: **実装中**
 
 優先順:
 
@@ -404,6 +404,7 @@ Step 16完了条件:
 詳細:
 
 - `Docs/Step17_Task_Naming_And_Render_Task_Decomposition_Plan.md`
+- `Docs/Step17A_Task_Naming_Completion.md`
 
 ## Step 18: RenderWorld
 
@@ -457,13 +458,13 @@ Step 16完了条件:
 
 # 3. 現在の作業位置
 
-1. Step 17-A SystemTask命名規則の統一
-2. Step 16-FのQueue間同期
-3. Step 16-FのPass Culling
-4. D3D11最小実描画Triangle Test
-5. 既存Player View実機回帰
-6. Step 17-B Render Packet基盤
-7. Step 17-C Animation CPU Build / GPU Upload分離
+1. Step 16-FのQueue間同期
+2. Step 16-FのPass Culling
+3. D3D11最小実描画Triangle Test
+4. 既存Player View実機回帰
+5. Step 17-B Render Packet基盤
+6. Step 17-C Animation CPU Build / GPU Upload分離
+7. Step 17-D Terrain CPU Mesh Build / GPU Upload分離
 
-Task命名統一は、以降のCapture比較と依存解析の前提になるため最優先で実施する。
+Step 17-AのTask命名統一は完了。以降のCapture、Profiler、YAML Export、依存解析では統一後のTask名を基準とする。
 Step 17-B以降は、既存Player View回帰を維持しながら段階的に進める。

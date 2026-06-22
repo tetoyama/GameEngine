@@ -34,7 +34,7 @@ namespace {
 
 void CustomScriptSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	builder.AddTask(
-		"CustomScriptSystem.FixedUpdate",
+		"CustomScriptSystem.Fixed.Dispatch",
 		SystemTaskDomain::Fixed,
 		SystemPhase::Default,
 		0,
@@ -46,7 +46,7 @@ void CustomScriptSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	);
 
 	builder.AddTask(
-		"CustomScriptSystem.Update",
+		"CustomScriptSystem.Frame.Dispatch",
 		SystemTaskDomain::Frame,
 		SystemPhase::Default,
 		0,
@@ -58,7 +58,7 @@ void CustomScriptSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	);
 
 	builder.AddTask(
-		"CustomScriptSystem.EditorUpdate",
+		"CustomScriptSystem.Editor.Dispatch",
 		SystemTaskDomain::Editor,
 		SystemPhase::Default,
 		0,
@@ -70,7 +70,7 @@ void CustomScriptSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	);
 
 	builder.AddTask(
-		"CustomScriptSystem.Draw",
+		"CustomScriptSystem.Render.Dispatch",
 		SystemTaskDomain::Render,
 		SystemPhase::Default,
 		0,

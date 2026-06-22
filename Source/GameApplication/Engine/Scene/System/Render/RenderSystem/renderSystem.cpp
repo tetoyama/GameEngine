@@ -334,7 +334,7 @@ void RenderSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	>;
 
 	builder.AddQueryTask<RenderUpdateQuery>(
-		"RenderSystem.UpdateAnimationTime",
+		"RenderSystem.AnimationTime.Commit",
 		SystemTaskDomain::Frame,
 		SystemPhase::Late,
 		0,
@@ -346,7 +346,7 @@ void RenderSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	);
 
 	builder.AddTask(
-		"RenderSystem.EditorUpdateAnimation",
+		"RenderSystem.Animation.Upload",
 		SystemTaskDomain::Editor,
 		SystemPhase::Earliest,
 		0,
@@ -358,7 +358,7 @@ void RenderSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	);
 
 	builder.AddTask(
-		"RenderSystem.Draw",
+		"RenderSystem.Frame.Submit",
 		SystemTaskDomain::Render,
 		SystemPhase::Late,
 		0,
