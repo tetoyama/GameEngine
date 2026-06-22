@@ -1,0 +1,42 @@
+name: GPU Panel Profile Docs Migration
+
+on:
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - .github/workflows/gpu-panel-profile-docs-migration.yml
+      - Tools/Migrations/update_gpu_panel_profile_docs.py
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 0
+
+      - name: Apply profiling documentation migration
+        run: python Tools/Migrations/update_gpu_panel_profile_docs.py
+
+      - name: Remove temporary migration files
+        run: |
+          rm Tools/Migrations/update_gpu_panel_profile_docs.py
+          rm .github/workflows/gpu-panel-profile-docs-migration.yml
+
+      - name: Commit migration result
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Docs/Step17B_Draw_Performance_Breakdown.md
+          git add Docs/Step17_Task_Naming_And_Render_Task_Decomposition_Plan.md
+          git add Tools/Migrations/update_gpu_panel_profile_docs.py
+          git add .github/workflows/gpu-panel-profile-docs-migration.yml
+          git diff --cached --exit-code && exit 0
+          git commit -m "docs: record GPU and editor panel profiling progress [skip ci]"
+          git push origin HEAD:refactor/ecs-scheduler-foundation
