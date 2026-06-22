@@ -1,18 +1,10 @@
-# The workflow is intentionally temporary and removes itself from the generated branch.
 name: Apply Step 17-A Task Naming
 
 on:
-  push:
-    branches:
-      - refactor/ecs-scheduler-foundation
-    paths:
-      - Tools/Migration/apply_step17a_task_naming.py
-      - .github/workflows/apply-step17a-task-naming.yml
   pull_request:
     branches:
       - master
     types:
-      - reopened
       - edited
     paths:
       - Tools/Migration/apply_step17a_task_naming.py
@@ -35,7 +27,6 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
-
           path = Path("Tools/Migration/apply_step17a_task_naming.py")
           text = path.read_text(encoding="utf-8")
           old = "for old, new in DOC_NAME_REPLACEMENTS:\n    replace_exact(step17_path, old, new, expected=1)"
@@ -52,10 +43,9 @@ jobs:
 
       - name: Publish generated branch
         run: |
+          git restore Tools/Migration/apply_step17a_task_naming.py
           git config user.name github-actions
           git config user.email actions@github.com
-          git rm Tools/Migration/apply_step17a_task_naming.py
-          git rm .github/workflows/apply-step17a-task-naming.yml
           git add -A
           git commit -m "refactor: normalize system task names"
-          git push --force origin HEAD:step17a-task-naming-output
+          git push origin HEAD:step17a-task-naming-output
