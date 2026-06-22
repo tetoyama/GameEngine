@@ -353,7 +353,7 @@ Backend変換:
 - [x] SwapChain lifecycle contract Smoke Test
 - [x] Subresource State / Barrier Smoke Test
 - [x] Debug / Release x64 Engine回帰
-- [ ] D3D11実描画最小Triangle
+- [x] D3D11実描画最小Triangle
 - [ ] 既存Player View実機回帰
 
 直近検証:
@@ -381,6 +381,7 @@ Step 16完了条件:
 - `Docs/Step16F_Subresource_State_Completion.md`
 - `Docs/Step16F_Queue_Synchronization_Completion.md`
 - `Docs/Step16F_Pass_Culling_Completion.md`
+- `Docs/Step16G_D3D11_Real_Triangle_Completion.md`
 
 ## Step 17: Task命名統一とMainThread Task分割
 
@@ -460,12 +461,11 @@ Step 16完了条件:
 
 # 3. 現在の作業位置
 
-1. D3D11最小実描画Triangle Test
-2. 既存Player View実機回帰
-3. Step 17-B Render Packet基盤
-4. Step 17-C Animation CPU Build / GPU Upload分離
-5. Step 17-D Terrain CPU Mesh Build / GPU Upload分離
-6. Step 17-E Wave CPU Vertex Build / GPU Upload分離
+1. 既存Player View実機回帰
+2. Step 17-B Render Packet基盤
+3. Step 17-C Animation CPU Build / GPU Upload分離
+4. Step 17-D Terrain CPU Mesh Build / GPU Upload分離
+5. Step 17-E Wave CPU Vertex Build / GPU Upload分離
 
 Step 17-AのTask命名統一は完了。以降のCapture、Profiler、YAML Export、依存解析では統一後のTask名を基準とする。
 Step 17-B以降は、既存Player View回帰を維持しながら段階的に進める。

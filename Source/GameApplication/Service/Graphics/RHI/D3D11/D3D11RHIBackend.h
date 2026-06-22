@@ -86,8 +86,12 @@ public:
 		}
 
 		DXGI_ADAPTER_DESC1 adapterDesc{};
-		if(FAILED(adapter->GetDesc1(&adapterDesc)) ||
-			(adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0){
+		if(FAILED(adapter->GetDesc1(&adapterDesc))){
+			return nullptr;
+		}
+		const bool softwareAdapter =
+			(adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0;
+		if(softwareAdapter && !desc.allowSoftwareAdapter){
 			return nullptr;
 		}
 

@@ -24,6 +24,8 @@ struct DeviceCreateDesc {
 	uint32_t adapterIndex = 0;
 	bool enableDebugLayer = false;
 	bool preferHighPerformanceAdapter = true;
+	// Test / validation only. Runtime selection keeps software adapters disabled by default.
+	bool allowSoftwareAdapter = false;
 };
 
 struct AdapterInfo {
