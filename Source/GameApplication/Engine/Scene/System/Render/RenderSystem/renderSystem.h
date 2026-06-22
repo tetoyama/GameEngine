@@ -19,6 +19,7 @@
 #include "Backends/myVector3.h"
 #include "Scene/Entity/Entity.h"
 #include "System/Render/RenderSystem/renderLayer.h"
+#include "System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
 
 struct SceneManagerContext;
 struct PixelShaderData;
@@ -93,6 +94,8 @@ public:
 	void Update(float deltaTime);
 	void EditorUpdate(float deltaTime);
 	void Draw();
+	void BuildRenderPackets();
+	void SubmitRenderPackets();
 
 	void RegisterTasks(SystemScheduleBuilder& builder) override;
 
@@ -149,6 +152,14 @@ public:
 	std::shared_ptr<TextureData> GetEnvironmentMap() const;
 	ID3D11SamplerState* GetEnvMapSampler() const;
 
+	const RenderPacketFrameBuffer& GetRenderPacketBuffer() const noexcept {
+		return m_renderPacketBuffer;
+	}
+
+	uint64_t GetLastSubmittedPacketGeneration() const noexcept {
+		return m_lastSubmittedPacketGeneration;
+	}
+
 	std::vector<ShaderMaterial> ShaderMaterials;
 
 private:
@@ -173,6 +184,10 @@ private:
 	std::vector<std::shared_ptr<PixelShaderData>> DeferredPSList;
 	std::vector<std::shared_ptr<PixelShaderData>> ForwardPSList;
 	std::shared_ptr<PixelShaderData> ForwardPSDebug;
+
+	RenderPacketFrameBuffer m_renderPacketBuffer;
+	uint64_t m_renderPacketGeneration = 0;
+	uint64_t m_lastSubmittedPacketGeneration = 0;
 
 	float lazyTimer = 0.0f;
 };

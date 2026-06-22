@@ -7,6 +7,7 @@
 #include "buildSetting.h"
 
 #include <algorithm>
+#include <array>
 #include <filesystem>
 #include <queue>
 #include <thread>
@@ -56,6 +57,14 @@
 #include "Component/transformComponent.h"
 #include "Component/CameraComponent.h"
 #include <Component/modelRendererComponent.h>
+#include <Component/materialComponent.h>
+#include <Component/meshRendererComponent.h>
+#include <Component/BillBoardRendererComponent.h>
+#include <Component/2DspriteRendererComponent.h>
+#include <Component/terrainComponent.h>
+#include <Component/waveComponent.h>
+#include <Component/particleComponent.h>
+#include <Component/EffectComponent.h>
 #include <Component/LightComponent.h>
 #include <Component/textureComponent.h>
 #include <Component/environmentMapComponent.h>
@@ -330,6 +339,139 @@ void RenderSystem::Draw(){
 	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
 }
 
+
+void RenderSystem::BuildRenderPackets(){
+	std::array<RenderPacketWorkerBuffer, 1> workerBuffers{
+		RenderPacketWorkerBuffer(0)
+	};
+	RenderPacketWorkerBuffer& worker = workerBuffers[0];
+	uint64_t stableSequence = 0;
+
+	struct SceneEntry {
+		uint32_t contextID = 0;
+		std::string name;
+		SceneContext* context = nullptr;
+	};
+
+	std::vector<SceneEntry> scenes;
+	for(const auto& [sceneName, scene] : m_context->sceneManager->GetActiveScenes()){
+		if(!scene) continue;
+		SceneContext* context = scene->GetSceneContext();
+		if(!context || !context->component || context->contextID == 0) continue;
+		scenes.push_back({context->contextID, sceneName, context});
+	}
+	std::sort(
+		scenes.begin(),
+		scenes.end(),
+		[](const SceneEntry& lhs, const SceneEntry& rhs){
+			if(lhs.contextID != rhs.contextID) return lhs.contextID < rhs.contextID;
+			return lhs.name < rhs.name;
+		}
+	);
+
+	for(const SceneEntry& sceneEntry : scenes){
+		ComponentRegistry* components = sceneEntry.context->component;
+		auto entities = components->FindEntitiesWithComponent<TransformComponent>();
+		std::sort(
+			entities.begin(),
+			entities.end(),
+			[](Entity lhs, Entity rhs){
+				return lhs.GetPackedValue() < rhs.GetPackedValue();
+			}
+		);
+
+		worker.Reserve(worker.Packets().size() + entities.size());
+		for(Entity entity : entities){
+			const TransformComponent* transform =
+				components->GetComponent<TransformComponent>(entity);
+			if(!transform) continue;
+
+			const RenderLayerComponent* layerComponent =
+				components->GetComponent<RenderLayerComponent>(entity);
+			const OrderInLayerComponent* orderComponent =
+				components->GetComponent<OrderInLayerComponent>(entity);
+			const MaterialComponent* materialComponent =
+				components->GetComponent<MaterialComponent>(entity);
+
+			const RenderLayer layer = layerComponent
+				? layerComponent->layer
+				: RenderLayer::Opaque3D;
+			const int32_t orderInLayer = orderComponent
+				? orderComponent->order
+				: 0;
+			const uint32_t materialKey = materialComponent
+				? static_cast<uint32_t>((std::max)(0, materialComponent->ShaderID))
+				: 0u;
+
+			RenderPacketTransformSnapshot snapshot;
+			snapshot.position[0] = transform->position.x;
+			snapshot.position[1] = transform->position.y;
+			snapshot.position[2] = transform->position.z;
+			const DirectX::XMFLOAT4& rotation = transform->GetRotation();
+			snapshot.rotation[0] = rotation.x;
+			snapshot.rotation[1] = rotation.y;
+			snapshot.rotation[2] = rotation.z;
+			snapshot.rotation[3] = rotation.w;
+			snapshot.scale[0] = transform->scale.x;
+			snapshot.scale[1] = transform->scale.y;
+			snapshot.scale[2] = transform->scale.z;
+
+			auto appendPacket = [&](RenderPacketKind kind){
+				RenderPacket packet;
+				packet.sceneContextID = sceneEntry.contextID;
+				packet.entity = entity;
+				packet.kind = kind;
+				packet.layer = layer;
+				packet.passMask = RenderPacketPassesForLayer(layer);
+				packet.materialKey = materialKey;
+				packet.orderInLayer = orderInLayer;
+				packet.sortKey = MakeRenderPacketSortKey(
+					layer,
+					kind,
+					materialKey,
+					orderInLayer
+				);
+				packet.stableSequence = stableSequence++;
+				packet.transform = snapshot;
+				worker.Add(std::move(packet));
+			};
+
+			if(components->GetComponent<ModelRendererComponent>(entity)){
+				appendPacket(RenderPacketKind::Model);
+			}
+			if(components->GetComponent<MeshRendererComponent>(entity)){
+				appendPacket(RenderPacketKind::Mesh);
+			}
+			if(components->GetComponent<SpriteRendererComponent>(entity)){
+				appendPacket(RenderPacketKind::Sprite);
+			}
+			if(components->GetComponent<BillBoardRendererComponent>(entity)){
+				appendPacket(RenderPacketKind::Billboard);
+			}
+			if(components->GetComponent<ParticleComponent>(entity)){
+				appendPacket(RenderPacketKind::Particle);
+			}
+			if(components->GetComponent<TerrainComponent>(entity)){
+				appendPacket(RenderPacketKind::Terrain);
+			}
+			if(components->GetComponent<WaveComponent>(entity)){
+				appendPacket(RenderPacketKind::Wave);
+			}
+			if(components->GetComponent<EffectComponent>(entity)){
+				appendPacket(RenderPacketKind::Effect);
+			}
+		}
+	}
+
+	m_renderPacketBuffer.BeginFrame(++m_renderPacketGeneration);
+	m_renderPacketBuffer.Merge(workerBuffers);
+}
+
+void RenderSystem::SubmitRenderPackets(){
+	m_lastSubmittedPacketGeneration = m_renderPacketBuffer.Generation();
+	Draw();
+}
+
 void RenderSystem::RegisterTasks(SystemScheduleBuilder& builder){
 
 	using RenderUpdateQuery = ECSQuery::ComponentQueryView<
@@ -361,15 +503,46 @@ void RenderSystem::RegisterTasks(SystemScheduleBuilder& builder){
 		}
 	);
 
+	SystemAccess packetBuildAccess;
+	packetBuildAccess
+		.ReadComponent<TransformComponent>()
+		.ReadComponent<RenderLayerComponent>()
+		.ReadComponent<OrderInLayerComponent>()
+		.ReadComponent<MaterialComponent>()
+		.ReadComponent<ModelRendererComponent>()
+		.ReadComponent<MeshRendererComponent>()
+		.ReadComponent<SpriteRendererComponent>()
+		.ReadComponent<BillBoardRendererComponent>()
+		.ReadComponent<ParticleComponent>()
+		.ReadComponent<TerrainComponent>()
+		.ReadComponent<WaveComponent>()
+		.ReadComponent<EffectComponent>()
+		.ReadResource<SceneManager>()
+		.WriteResource<RenderPacketFrameBuffer>();
+
 	builder.AddTask(
-		"RenderSystem.Frame.Submit",
+		"RenderSystem.Packet.Build",
+		SystemTaskDomain::Render,
+		SystemPhase::Early,
+		0,
+		std::move(packetBuildAccess),
+		ThreadAffinity::AnyWorker,
+		[this](const SystemTaskContext&){
+			BuildRenderPackets();
+		}
+	);
+
+	SystemAccess submitAccess = SystemAccess::LegacyExclusive();
+	submitAccess.ReadResource<RenderPacketFrameBuffer>();
+	builder.AddTask(
+		"RenderSystem.Command.Submit",
 		SystemTaskDomain::Render,
 		SystemPhase::Late,
 		0,
-		SystemAccess::LegacyExclusive(),
+		std::move(submitAccess),
 		ThreadAffinity::MainThread,
 		[this](const SystemTaskContext&){
-			Draw();
+			SubmitRenderPackets();
 		}
 	);
 }
