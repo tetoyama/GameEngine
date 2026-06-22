@@ -5,6 +5,7 @@
 // =======================================================================
 #include "PerformanceMonitor.h"
 #include <Psapi.h>
+#include <algorithm>
 #include <cstdio>
 #include <ImGui/imgui.h>
 #include <ImGui/imgui_internal.h>
@@ -70,6 +71,35 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 	pushMilliseconds(ImGuiRenderSamples, ctx.DrawTiming.imguiRender);
 	pushMilliseconds(PresentSamples, ctx.DrawTiming.present);
 	pushMilliseconds(UnaccountedSamples, ctx.DrawTiming.GetUnaccountedTime());
+	pushMilliseconds(
+		GPUFrameTimeSamples,
+		ctx.GPUFrameTimeValid ? ctx.GPUFrameTime : 0.0
+	);
+
+	// 全Panelの系列を1フレーム進め、前回完了した計測値を末尾へ設定する。
+	for(auto& series : PanelTimingSamples){
+		shiftSamples(series.samples.data());
+		series.samples[SAMPLE_LENGTH - 1] = 0.0f;
+	}
+	if(ctx.EditorPanelTimings){
+		for(const EditorPanelTiming& timing : *ctx.EditorPanelTimings){
+			if(!timing.name) continue;
+
+			auto it = std::find_if(
+				PanelTimingSamples.begin(),
+				PanelTimingSamples.end(),
+				[&](const PanelTimingSampleSeries& series){
+					return series.name == timing.name;
+				}
+			);
+			if(it == PanelTimingSamples.end()){
+				PanelTimingSamples.push_back({timing.name, {}});
+				it = std::prev(PanelTimingSamples.end());
+			}
+			it->samples[SAMPLE_LENGTH - 1] =
+				static_cast<float>(timing.seconds * 1000.0);
+		}
+	}
 
 	if(!showPerformanceMonitor || !*showPerformanceMonitor) {
 		return;
@@ -88,6 +118,18 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 			total += samples[n];
 		}
 		return total / static_cast<float>(SAMPLE_LENGTH);
+	};
+
+	auto averageValidSamples = [](const float* samples) {
+		float total = 0.0f;
+		int count = 0;
+		for (int n = 0; n < SAMPLE_LENGTH; n++) {
+			if(samples[n] > 0.0f){
+				total += samples[n];
+				count++;
+			}
+		}
+		return count > 0 ? total / static_cast<float>(count) : 0.0f;
 	};
 
 	if (ImGui::TreeNodeEx("負荷計測", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -127,9 +169,27 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 		ImGui::TreePop();
 	}
 
-	if (ImGui::TreeNodeEx("描画CPU内訳", ImGuiTreeNodeFlags_DefaultOpen)) {
+	if (ImGui::TreeNodeEx("描画CPU / GPU内訳", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::Text("VSync: %s", ctx.VSyncEnabled ? "ON" : "OFF");
-		ImGui::TextDisabled("GPU Frame Timeは未計測（Timestamp Query導入予定）");
+		ImGui::Text("Tearing: %s", ctx.TearingSupported ? "Supported" : "Unsupported");
+		if(ctx.GPUFrameTimeValid){
+			ImGui::Text(
+				"GPU Frame Time: Current %.4fms Avg %.4fms",
+				GPUFrameTimeSamples[SAMPLE_LENGTH - 1],
+				averageValidSamples(GPUFrameTimeSamples)
+			);
+			ImGui::PlotLines(
+				"##GPUFrameTime",
+				GPUFrameTimeSamples,
+				SAMPLE_LENGTH,
+				0,
+				"",
+				0.0f,
+				1000.0f / 60.0f
+			);
+		} else{
+			ImGui::TextDisabled("GPU Frame Time: waiting for asynchronous query result");
+		}
 		ImGui::Separator();
 
 		auto drawTimingRow = [&](const char* label, const char* plotId, float* samples) {
@@ -156,9 +216,32 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 		drawTimingRow("Debug Draw CPU", "##DrawDebug", DebugDrawSamples);
 		drawTimingRow("Editor UI Build CPU", "##DrawEditorUI", EditorUIBuildSamples);
 		drawTimingRow("ImGui Render / Platform Windows", "##DrawImGuiRender", ImGuiRenderSamples);
-		drawTimingRow("Present / VSync Wait", "##DrawPresent", PresentSamples);
+		drawTimingRow("Present / Queue Wait", "##DrawPresent", PresentSamples);
 		drawTimingRow("Unaccounted / Timer Overhead", "##DrawUnaccounted", UnaccountedSamples);
 
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNodeEx("Editor Panel CPU", ImGuiTreeNodeFlags_DefaultOpen)) {
+		for(auto& series : PanelTimingSamples){
+			ImGui::PushID(series.name.c_str());
+			ImGui::Text(
+				"%s: Current %.4fms Avg %.4fms",
+				series.name.c_str(),
+				series.samples[SAMPLE_LENGTH - 1],
+				averageSamples(series.samples.data())
+			);
+			ImGui::PlotLines(
+				"##PanelTiming",
+				series.samples.data(),
+				SAMPLE_LENGTH,
+				0,
+				"",
+				0.0f,
+				1000.0f / 60.0f
+			);
+			ImGui::PopID();
+		}
 		ImGui::TreePop();
 	}
 
