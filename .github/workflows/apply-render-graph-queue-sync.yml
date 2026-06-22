@@ -25,21 +25,25 @@ jobs:
           from pathlib import Path
           p = Path('Docs/ECS_Scheduler_Migration_Plan.md')
           s = p.read_text(encoding='utf-8-sig')
-          old = '''1. Step 16-FのQueue間同期
-          2. Step 16-FのPass Culling
-          3. D3D11最小実描画Triangle Test
-          4. 既存Player View実機回帰
-          5. Step 17-B Render Packet基盤
-          6. Step 17-C Animation CPU Build / GPU Upload分離
-          7. Step 17-D Terrain CPU Mesh Build / GPU Upload分離
-          '''
-          new = '''1. Step 16-FのQueue間同期
-          2. Step 16-FのPass Culling
-          3. D3D11最小実描画Triangle Test
-          4. 既存Player View実機回帰
-          5. Step 16完了報告
-          6. Step 17 RenderWorld移行
-          '''
+          old = '\n'.join([
+              '1. Step 16-FのQueue間同期',
+              '2. Step 16-FのPass Culling',
+              '3. D3D11最小実描画Triangle Test',
+              '4. 既存Player View実機回帰',
+              '5. Step 17-B Render Packet基盤',
+              '6. Step 17-C Animation CPU Build / GPU Upload分離',
+              '7. Step 17-D Terrain CPU Mesh Build / GPU Upload分離',
+              '',
+          ])
+          new = '\n'.join([
+              '1. Step 16-FのQueue間同期',
+              '2. Step 16-FのPass Culling',
+              '3. D3D11最小実描画Triangle Test',
+              '4. 既存Player View実機回帰',
+              '5. Step 16完了報告',
+              '6. Step 17 RenderWorld移行',
+              '',
+          ])
           if s.count(old) != 1:
               raise RuntimeError('current work position mismatch')
           p.write_text(s.replace(old, new, 1), encoding='utf-8', newline='\n')
