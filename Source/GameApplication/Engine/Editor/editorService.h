@@ -22,6 +22,12 @@ class AnalyzerManager;
 
 struct SceneManagerContext;
 
+// 前回完了したEditor Panel描画のCPU時間。
+struct EditorPanelTiming {
+	const char* name = nullptr;
+	double seconds = 0.0;
+};
+
 // エディターサービスの初期化に必要な依存サービスをまとめた構造体
 struct EditorServiceContext {
 	DebugLogService* debugLogSystem = nullptr;   // デバッグログ出力サービス
@@ -51,8 +57,8 @@ public:
 	template<typename T>
 	T* GetUI() {
 		static_assert(std::is_base_of<IEditorUI, T>::value, "T must inherit from IEditorUI");
-		for (auto& ui : UIs) {
-			if (auto p = dynamic_cast<T*>(ui)) {
+		for (auto& panel : UIs) {
+			if (auto p = dynamic_cast<T*>(panel.ui)) {
 				return p;
 			}
 		}
@@ -69,8 +75,14 @@ public:
 	CommandManager commandManager;              // アンドゥ・リドゥ対応コマンド履歴
 
 private:
+	struct EditorUIPanelEntry {
+		const char* name = nullptr;
+		IEditorUI* ui = nullptr;
+	};
 
-	std::vector<IEditorUI*> UIs;  // 管理する全 UI パネルのリスト
+	std::vector<EditorUIPanelEntry> UIs;
+	std::vector<EditorPanelTiming> m_CurrentPanelTimings;
+	std::vector<EditorPanelTiming> m_CompletedPanelTimings;
 };
 
 // エディター描画フェーズに渡すパフォーマンス統計情報
@@ -80,5 +92,9 @@ struct EditorDrawContext {
 	double FPS = 0.0;                     // 更新フレームレート（fps）
 	double FixedUpdateFPS = 0.0;          // 固定更新フレームレート（fps）
 	DrawTimingBreakdown DrawTiming{};     // 前回完了したDrawフレームのCPU内訳
+	const std::vector<EditorPanelTiming>* EditorPanelTimings = nullptr;
+	double GPUFrameTime = 0.0;            // 非同期Timestamp Queryで取得したGPU時間（秒）
+	bool GPUFrameTimeValid = false;
 	bool VSyncEnabled = false;            // Present待機の判断に使用するVSync設定
+	bool TearingSupported = false;
 };
