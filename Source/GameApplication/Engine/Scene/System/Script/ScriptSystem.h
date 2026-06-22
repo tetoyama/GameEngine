@@ -36,15 +36,7 @@ public:
 	void Finalize() override;
 	void Start() override;
 	void Stop() override;
-	void Update(float deltaTime) override;
-	void FixedUpdate(float fixedDeltaTime) override;
-	void EditorUpdate(float deltaTime) override;
-	void Draw() override;
-
-	void RegisterTasks(SystemScheduleBuilder& builder) override {
-		m_commandCommitSystem.RegisterTasks(builder);
-		ISystem::RegisterTasks(builder);
-	}
+	void RegisterTasks(SystemScheduleBuilder& builder) override;
 
 	template<typename T>
 	void RegisterEngineComponent(const char* name){
@@ -103,6 +95,11 @@ public:
 
 private:
 	using CreateScriptFunc = IScriptComponent* (*)(const char*);
+
+	void Update(float deltaTime);
+	void FixedUpdate(float fixedDeltaTime);
+	void EditorUpdate(float deltaTime);
+	void Draw();
 
 	SceneManagerContext* m_context = nullptr;
 	EntityCommandCommitSystem m_commandCommitSystem;
