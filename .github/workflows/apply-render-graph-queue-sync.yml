@@ -3,7 +3,7 @@ name: Apply RenderGraph Queue Synchronization
 on:
   pull_request:
     branches: [master]
-    types: [ready_for_review]
+    types: [edited]
 
 permissions:
   contents: write
