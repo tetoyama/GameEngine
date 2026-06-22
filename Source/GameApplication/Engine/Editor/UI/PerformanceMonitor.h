@@ -9,6 +9,10 @@
 #include "buildSetting.h"
 #define SAMPLE_LENGTH (TARGET_FPS)
 
+#include <array>
+#include <string>
+#include <vector>
+
 #include "Editor/editorService.h"
 #include "Editor/InterFace/IEditorUI.h"
 
@@ -23,6 +27,10 @@ public:
 	void Draw(const EditorDrawContext ctx) override;
 
 private:
+	struct PanelTimingSampleSeries {
+		std::string name;
+		std::array<float, SAMPLE_LENGTH> samples{};
+	};
 
 	EditorService* m_editor = nullptr;
 
@@ -39,6 +47,9 @@ private:
 	float ImGuiRenderSamples[SAMPLE_LENGTH]{};
 	float PresentSamples[SAMPLE_LENGTH]{};
 	float UnaccountedSamples[SAMPLE_LENGTH]{};
+	float GPUFrameTimeSamples[SAMPLE_LENGTH]{};
+
+	std::vector<PanelTimingSampleSeries> PanelTimingSamples;
 
 	float UsageSamples[SAMPLE_LENGTH]{};
 	float CommitSizeSamples[SAMPLE_LENGTH]{};
