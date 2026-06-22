@@ -17,11 +17,19 @@ jobs:
           ref: refactor/ecs-scheduler-foundation
           fetch-depth: 1
           show-progress: false
+          sparse-checkout-cone-mode: false
           sparse-checkout: |
-            Source/GameApplication/Service/Graphics/RHI
-            Tests
-            Docs
-            Tools/Migration
+            Source/GameApplication/Service/Graphics/RHI/RHIExecution.h
+            Source/GameApplication/Service/Graphics/RHI/RHIDescriptors.h
+            Source/GameApplication/Service/Graphics/RHI/RHIInterfaces.h
+            Source/GameApplication/Service/Graphics/RHI/RHIRenderGraph.h
+            Source/GameApplication/Service/Graphics/RHI/Null/NullRHIBackend.h
+            Source/GameApplication/Service/Graphics/RHI/D3D11/D3D11RHIDevice.h
+            Source/GameApplication/Service/Graphics/RHI/D3D11/D3D11RHIDeviceRuntime.h
+            Tests/RHIRenderGraphBarrierSmokeTest.cpp
+            Docs/ECS_Scheduler_Migration_Plan.md
+            Docs/Step16_RHI_MultiBackend_Architecture.md
+            Tools/Migration/*
 
       - name: Prepare base migration
         shell: python
