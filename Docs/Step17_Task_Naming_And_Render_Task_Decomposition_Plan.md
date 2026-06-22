@@ -65,6 +65,8 @@ ScriptのExclusive Access削減は、本Stepの最適化対象に含めない。
 
 状態: **未着手**
 
+この作業は以降のCapture比較、依存解析、Profiler表示、YAML Exportの基準になるため、Step 16の残作業およびRender Packet分割より先に実施する。
+
 ### 目的
 
 Schedule Capture、Profiler、YAML Export、依存グラフ上で、Taskの所属System、Domain、役割、実行段階を一意に判断できるようにする。
