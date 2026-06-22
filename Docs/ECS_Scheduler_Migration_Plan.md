@@ -382,6 +382,7 @@ Step 16完了条件:
 - `Docs/Step16F_Queue_Synchronization_Completion.md`
 - `Docs/Step16F_Pass_Culling_Completion.md`
 - `Docs/Step16G_D3D11_Real_Triangle_Completion.md`
+- `Docs/Step16G_Player_View_Regression_Guard.md`
 
 ## Step 17: Task命名統一とMainThread Task分割
 

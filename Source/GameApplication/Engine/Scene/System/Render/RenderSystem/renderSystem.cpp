@@ -75,6 +75,7 @@
 #include "RenderPass/ShadowMap/ShadowMapPass.h"
 #include "RenderPass/LightingPass/LightingPass.h"
 #include "RenderPass/PlayerView/PlayerPass.h"
+#include "RenderPass/PlayerView/PlayerViewRefreshPolicy.h"
 #include "RenderPass/EditorView/EditorPass.h"
 #include "Renderable/Wave/RenderableWave.h"
 #include <Editor/UI/ViewWindow.h>
@@ -302,14 +303,17 @@ void RenderSystem::Draw(){
 		PlayerView();
 	} else if(showPlayer && !*showPlayer && ((m_context->sceneManager->State == SceneManagerState::Playing) || !(showEditor && *showEditor))){
 
+		const Vector2 fullScreenSize(
+			static_cast<float>(m_context->renderer->GetGraphicsContext()->m_width),
+			static_cast<float>(m_context->renderer->GetGraphicsContext()->m_height)
+		);
+		m_context->PlayerScreenSize = fullScreenSize;
+
 		RenderPassContext renderPassContext(
 			RenderPhase::PHASE_GBUFFER,
 			playerRenderLayerVisible,
 			FindCameraEntity(),
-			Vector2(
-				(float)m_context->renderer->GetGraphicsContext()->m_width,
-				(float)m_context->renderer->GetGraphicsContext()->m_height
-			)
+			fullScreenSize
 		);
 		m_PlayerPass->Execute(renderPassContext);
 		if (!m_PlayerPass->result) {
@@ -707,49 +711,70 @@ void RenderSystem::ControlButton(){
 
 void RenderSystem::PlayerView(){
 
+	auto restoreMainRenderTarget = [this](){
+		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(
+			1,
+			m_context->graphics->GetpRenderTargetView(),
+			m_context->graphics->GetDepthStencilView()
+		);
+	};
 
-	ImGui::Begin("Play View", showPlayer, 0);
+	if(!ImGui::Begin("Play View", showPlayer, 0)){
+		ImGui::End();
+		restoreMainRenderTarget();
+		return;
+	}
 
-	// 共通UI（元のControlButtonやSeparatorなど）
 	ControlButton();
 	ImGui::Separator();
 
-	// カメラコンポーネントを持つエンティティ取得
-	const CameraEntityData& cameraData = FindCameraEntity();
+	const CameraEntityData cameraData = FindCameraEntity();
 	if(!cameraData.cameraComponent){
-		ImGui::Text("No CameraBuffer Component found.");
+		ImGui::Text("No Camera Component found.");
 		ImGui::End();
+		restoreMainRenderTarget();
 		return;
 	}
-	// 利用可能な領域サイズを取得
-	ImVec2 avail = ImGui::GetContentRegionAvail();
 
-	if (avail.x <= 0.0f || avail.y <= 0.0f) {
+	const ImVec2 avail = ImGui::GetContentRegionAvail();
+	if(avail.x <= 0.0f || avail.y <= 0.0f){
 		ImGui::End();
+		restoreMainRenderTarget();
 		return;
 	}
+
+	const Vector2 playerSize(avail.x, avail.y);
+	m_context->PlayerScreenSize = playerSize;
+
 	RenderPassContext renderPassContext(
 		RenderPhase::PHASE_GBUFFER,
 		playerRenderLayerVisible,
 		cameraData,
-		Vector2(avail.x, avail.y)
+		playerSize
 	);
 
-	if(m_context->sceneManager->State == SceneManagerState::Stopped || m_context->sceneManager->State == SceneManagerState::Paused){
-		if(lazyTimer >= 1.0f){
-			lazyTimer = 0.0f;
-			m_PlayerPass->Execute(renderPassContext);
-		}
-	} else{
+	const SceneManagerState state = m_context->sceneManager->State;
+	const bool throttledState =
+		state == SceneManagerState::Stopped ||
+		state == SceneManagerState::Paused;
+	const bool shouldRender = PlayerViewRefreshPolicy::ShouldRender(
+		throttledState,
+		lazyTimer,
+		m_PlayerPass->result != nullptr
+	);
+
+	if(shouldRender){
+		if(throttledState) lazyTimer = 0.0f;
 		m_PlayerPass->Execute(renderPassContext);
 	}
 
-	ImGui::Image((ImTextureRef)m_PlayerPass->result, avail);
+	if(m_PlayerPass->result){
+		ImGui::Image((ImTextureRef)m_PlayerPass->result, avail);
+	}else{
+		ImGui::TextDisabled("Player render output is not available.");
+	}
 	ImGui::End();
-
-	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(
-		1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView()
-	);
+	restoreMainRenderTarget();
 }
 
 void RenderSystem::ReCompilePixelShaders(){
