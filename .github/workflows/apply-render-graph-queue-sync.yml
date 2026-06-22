@@ -1,13 +1,72 @@
-name: Archived Render Packet Foundation Migration
+name: Apply Render Packet Opaque Pass Connection
 
 on:
-  workflow_dispatch:
+  pull_request:
+    branches: [master]
+    types: [synchronize]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  archived:
+  verify:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Apply Render Packet opaque pass migration
+        shell: bash
+        run: |
+          python Tools/Migration/add_render_packet_opaque_pass_connection.py
+          git add -A
+          git diff --cached --check
+          git diff --cached --binary > render-packet-opaque-pass.patch
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Compile and run Render Packet contracts
+        shell: cmd
+        run: |
+          cl /nologo /std:c++20 /EHsc /W4 /MTd /I Source/GameApplication /I Source/GameApplication/Engine /I Source/GameApplication/Engine/Scene Tests/RenderPacketBufferSmokeTest.cpp /Fe:render-packet-buffer-smoke.exe
+          render-packet-buffer-smoke.exe
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Compile GameEngine Debug and Release x64
+        shell: cmd
+        run: |
+          msbuild GameEngine.vcxproj /t:Build /m /p:Configuration=Debug /p:Platform=x64 /verbosity:minimal /consoleloggerparameters:ErrorsOnly
+          msbuild GameEngine.vcxproj /t:Build /m /p:Configuration=Release /p:Platform=x64 /verbosity:minimal /consoleloggerparameters:ErrorsOnly
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: render-packet-opaque-pass-patch
+          path: render-packet-opaque-pass.patch
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: verify
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Render Packet foundation migration completed and archived."
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 1
+          show-progress: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: render-packet-opaque-pass-patch
+      - name: Publish generated branch
+        run: |
+          git apply --index render-packet-opaque-pass.patch
+          git config user.name github-actions
+          git config user.email actions@github.com
+          git commit -m "feat: connect GBuffer and Shadow to Render Packets"
+          git push --force origin HEAD:render-packet-opaque-pass-output
