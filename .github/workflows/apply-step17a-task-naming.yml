@@ -8,6 +8,14 @@ on:
     paths:
       - Tools/Migration/apply_step17a_task_naming.py
       - .github/workflows/apply-step17a-task-naming.yml
+  pull_request:
+    branches:
+      - master
+    types:
+      - reopened
+    paths:
+      - Tools/Migration/apply_step17a_task_naming.py
+      - .github/workflows/apply-step17a-task-naming.yml
 
 permissions:
   contents: write
