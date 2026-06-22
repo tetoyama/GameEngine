@@ -30,6 +30,19 @@ jobs:
           ref: refactor/ecs-scheduler-foundation
           fetch-depth: 0
 
+      - name: Correct audited document occurrence count
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("Tools/Migration/apply_step17a_task_naming.py")
+          text = path.read_text(encoding="utf-8")
+          old = "for old, new in DOC_NAME_REPLACEMENTS:\n    replace_exact(step17_path, old, new, expected=1)"
+          new = "for old, new in DOC_NAME_REPLACEMENTS:\n    expected = 2 if old == \"`RenderSystem.Draw`\" else 1\n    replace_exact(step17_path, old, new, expected=expected)"
+          if text.count(old) != 1:
+              raise RuntimeError("Step 17 document replacement loop was not found")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
       - name: Apply Step 17-A migration
         run: python Tools/Migration/apply_step17a_task_naming.py
 
