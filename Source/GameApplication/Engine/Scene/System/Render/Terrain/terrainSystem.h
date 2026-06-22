@@ -62,7 +62,22 @@ public:
 			}
 		}
 	}
-	void Draw() override {
+
+	void RegisterTasks(SystemScheduleBuilder& builder) override {
+		builder.AddTask(
+			"TerrainSystem.Draw",
+			SystemTaskDomain::Render,
+			SystemPhase::Early,
+			0,
+			SystemAccess::LegacyExclusive(),
+			ThreadAffinity::MainThread,
+			[this](const SystemTaskContext&){
+				Draw();
+			}
+		);
+	}
+
+	void Draw() {
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<TerrainComponent>();
