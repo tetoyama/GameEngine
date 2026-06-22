@@ -30,6 +30,16 @@ private:
 	float DeltaFpsSamples[SAMPLE_LENGTH]{};
 	float UpdateSamples[SAMPLE_LENGTH]{};
 	float DrawSamples[SAMPLE_LENGTH]{};
+
+	float FrameSetupSamples[SAMPLE_LENGTH]{};
+	float ImGuiBeginSamples[SAMPLE_LENGTH]{};
+	float RenderScheduleSamples[SAMPLE_LENGTH]{};
+	float DebugDrawSamples[SAMPLE_LENGTH]{};
+	float EditorUIBuildSamples[SAMPLE_LENGTH]{};
+	float ImGuiRenderSamples[SAMPLE_LENGTH]{};
+	float PresentSamples[SAMPLE_LENGTH]{};
+	float UnaccountedSamples[SAMPLE_LENGTH]{};
+
 	float UsageSamples[SAMPLE_LENGTH]{};
 	float CommitSizeSamples[SAMPLE_LENGTH]{};
 	float WorkingSetSizeSamples[SAMPLE_LENGTH]{};
