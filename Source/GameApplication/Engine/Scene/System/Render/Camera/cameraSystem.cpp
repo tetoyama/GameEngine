@@ -37,7 +37,7 @@ void CameraSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	>;
 
 	builder.AddQueryTask<CameraUpdateQuery>(
-		"CameraSystem.View.Build",
+		"CameraSystem.UpdateViewMatrix",
 		SystemTaskDomain::Render,
 		SystemPhase::Early,
 		0,
