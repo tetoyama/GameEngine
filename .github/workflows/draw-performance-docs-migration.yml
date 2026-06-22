@@ -1,0 +1,42 @@
+name: Draw Performance Docs Migration
+
+on:
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - .github/workflows/draw-performance-docs-migration.yml
+      - Tools/Migrations/update_draw_performance_docs.py
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 0
+
+      - name: Apply documentation migration
+        run: python Tools/Migrations/update_draw_performance_docs.py
+
+      - name: Remove temporary migration files
+        run: |
+          rm Tools/Migrations/update_draw_performance_docs.py
+          rm .github/workflows/draw-performance-docs-migration.yml
+
+      - name: Commit migration result
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Docs/ECS_Scheduler_Migration_Plan.md
+          git add Docs/Step17_Task_Naming_And_Render_Task_Decomposition_Plan.md
+          git add Tools/Migrations/update_draw_performance_docs.py
+          git add .github/workflows/draw-performance-docs-migration.yml
+          git diff --cached --exit-code && exit 0
+          git commit -m "docs: update Step 17 draw performance plan [skip ci]"
+          git push origin HEAD:refactor/ecs-scheduler-foundation
