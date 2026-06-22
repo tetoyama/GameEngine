@@ -6,6 +6,7 @@ on:
       - master
     types:
       - edited
+      - ready_for_review
     paths:
       - Tools/Migration/apply_step17a_task_naming.py
       - .github/workflows/apply-step17a-task-naming.yml
