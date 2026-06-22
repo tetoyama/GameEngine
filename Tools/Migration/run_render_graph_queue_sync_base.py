@@ -6,78 +6,33 @@ from pathlib import Path
 BASE_SCRIPT = Path("Tools/Migration/add_render_graph_queue_sync.py")
 source = BASE_SCRIPT.read_text(encoding="utf-8-sig")
 
-compile_old = r'''text = replace_once(
-    text,
-    """\t\tm_executionOrder.clear();
-\t\tm_resourceLifetimes.clear();
-\t\tm_finalStates.clear();
-""",
-    """\t\tm_executionOrder.clear();
-\t\tm_resourceLifetimes.clear();
-\t\tm_queueSync.clear();
-\t\tm_finalStates.clear();
-""",
-    "Compile queue sync reset",
-)
-'''
-compile_new = r'''text = replace_once(
-    text,
-    """\t\tm_executionOrder.clear();
-\t\tm_resourceLifetimes.clear();
-\t\tm_finalStates.clear();
-\t\tm_error.clear();
-""",
-    """\t\tm_executionOrder.clear();
-\t\tm_resourceLifetimes.clear();
-\t\tm_queueSync.clear();
-\t\tm_finalStates.clear();
-\t\tm_error.clear();
-""",
-    "Compile queue sync reset",
-)
-'''
-
-reset_old = r'''text = replace_once(
-    text,
-    """\t\tm_executionOrder.clear();
-\t\tm_resourceLifetimes.clear();
-\t\tm_finalStates.clear();
-""",
-    """\t\tm_executionOrder.clear();
-\t\tm_resourceLifetimes.clear();
-\t\tm_queueSync.clear();
-\t\tm_finalStates.clear();
-""",
-    "Reset queue sync",
-)
-'''
-reset_new = r'''text = replace_once(
-    text,
-    """\t\tm_resources.clear();
-\t\tm_passes.clear();
-\t\tm_executionOrder.clear();
-\t\tm_resourceLifetimes.clear();
-\t\tm_finalStates.clear();
-""",
-    """\t\tm_resources.clear();
-\t\tm_passes.clear();
-\t\tm_executionOrder.clear();
-\t\tm_resourceLifetimes.clear();
-\t\tm_queueSync.clear();
-\t\tm_finalStates.clear();
-""",
-    "Reset queue sync",
-)
-'''
-
-for old, new, label in (
-    (compile_old, compile_new, "Compile queue sync replacement"),
-    (reset_old, reset_new, "Reset queue sync replacement"),
-):
-    count = source.count(old)
+original_replace_once = '''def replace_once(text: str, old: str, new: str, label: str) -> str:
+    count = text.count(old)
     if count != 1:
         raise RuntimeError(f"{label}: expected one match, found {count}")
-    source = source.replace(old, new, 1)
+    return text.replace(old, new, 1)
+'''
+
+hardened_replace_once = '''def replace_once(text: str, old: str, new: str, label: str) -> str:
+    count = text.count(old)
+
+    # Compile() and Reset() originally shared the same three-line clear block.
+    # The compile block appears first, so consume that occurrence here. The
+    # later Reset migration then sees the remaining single occurrence.
+    if label == "Compile queue sync reset" and count == 2:
+        return text.replace(old, new, 1)
+
+    if count != 1:
+        raise RuntimeError(f"{label}: expected one match, found {count}")
+    return text.replace(old, new, 1)
+'''
+
+count = source.count(original_replace_once)
+if count != 1:
+    raise RuntimeError(
+        f"replace_once definition: expected one match, found {count}"
+    )
+source = source.replace(original_replace_once, hardened_replace_once, 1)
 
 exec(
     compile(source, str(BASE_SCRIPT), "exec"),
