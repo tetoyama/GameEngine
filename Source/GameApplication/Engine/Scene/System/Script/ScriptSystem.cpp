@@ -28,6 +28,58 @@ namespace {
 	}
 }
 
+void ScriptSystem::RegisterTasks(SystemScheduleBuilder& builder){
+	m_commandCommitSystem.RegisterTasks(builder);
+
+	builder.AddTask(
+		"ScriptSystem.FixedUpdate",
+		SystemTaskDomain::Fixed,
+		SystemPhase::Default,
+		0,
+		SystemAccess::LegacyExclusive(),
+		ThreadAffinity::MainThread,
+		[this](const SystemTaskContext& context){
+			FixedUpdate(context.deltaTime);
+		}
+	);
+
+	builder.AddTask(
+		"ScriptSystem.Update",
+		SystemTaskDomain::Frame,
+		SystemPhase::Default,
+		0,
+		SystemAccess::LegacyExclusive(),
+		ThreadAffinity::MainThread,
+		[this](const SystemTaskContext& context){
+			Update(context.deltaTime);
+		}
+	);
+
+	builder.AddTask(
+		"ScriptSystem.EditorUpdate",
+		SystemTaskDomain::Editor,
+		SystemPhase::Default,
+		0,
+		SystemAccess::LegacyExclusive(),
+		ThreadAffinity::MainThread,
+		[this](const SystemTaskContext& context){
+			EditorUpdate(context.deltaTime);
+		}
+	);
+
+	builder.AddTask(
+		"ScriptSystem.Draw",
+		SystemTaskDomain::Render,
+		SystemPhase::Default,
+		0,
+		SystemAccess::LegacyExclusive(),
+		ThreadAffinity::MainThread,
+		[this](const SystemTaskContext&){
+			Draw();
+		}
+	);
+}
+
 void ScriptSystem::Start(){
 	m_commandCommitSystem.PrepareBuffers();
 
