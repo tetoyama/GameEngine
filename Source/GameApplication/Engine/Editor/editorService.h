@@ -8,6 +8,7 @@
 #include <vector>
 #include "InterFace/IEditorUI.h"
 #include "Command/CommandManager.h"
+#include "Runtime/TimeService/timeService.h"
 
 struct EditorDrawContext;
 class EditorService;
@@ -74,8 +75,10 @@ private:
 
 // エディター描画フェーズに渡すパフォーマンス統計情報
 struct EditorDrawContext {
-	double UpdateTime;		// 更新フェーズの所要時間（秒）
-	double DrawTime;		// 描画フェーズの所要時間（秒）
-	double FPS;				// 更新フレームレート（fps）
-	double FixedUpdateFPS;	// 固定更新フレームレート（fps）
+	double UpdateTime = 0.0;              // 更新フェーズの所要時間（秒）
+	double DrawTime = 0.0;                // 前回完了した描画フェーズ全体（秒）
+	double FPS = 0.0;                     // 更新フレームレート（fps）
+	double FixedUpdateFPS = 0.0;          // 固定更新フレームレート（fps）
+	DrawTimingBreakdown DrawTiming{};     // 前回完了したDrawフレームのCPU内訳
+	bool VSyncEnabled = false;            // Present待機の判断に使用するVSync設定
 };
