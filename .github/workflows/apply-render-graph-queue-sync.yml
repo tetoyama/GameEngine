@@ -22,6 +22,7 @@ jobs:
         shell: bash
         run: |
           python Tools/Migration/add_render_packet_foundation.py
+          sed -i '/#include <Component\/modelRendererComponent.h>/a #include <Component/materialComponent.h>' Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.cpp
           git add -A
           git diff --cached --check
           git diff --cached --binary > render-packet-foundation.patch
