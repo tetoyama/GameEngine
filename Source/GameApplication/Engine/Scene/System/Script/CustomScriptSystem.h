@@ -29,12 +29,15 @@ public:
 	void Finalize() override;
 
 	void Start() override;
-	void Update(float deltaTime) override;
-	void FixedUpdate(float fixedDeltaTime) override;
-	void Draw() override;
-	void EditorUpdate(float deltaTime) override;
+	void Stop() override {}
+	void RegisterTasks(SystemScheduleBuilder& builder) override;
 
 private:
+	void Update(float deltaTime);
+	void FixedUpdate(float fixedDeltaTime);
+	void Draw();
+	void EditorUpdate(float deltaTime);
+
 	void ForEachScriptOrdered(
 		SystemTaskDomain domain,
 		const std::function<void(CustomScriptComponent*)>& callback
