@@ -33,8 +33,29 @@ jobs:
       - name: Compile and run Render Packet contracts
         shell: cmd
         run: |
-          cl /nologo /std:c++20 /EHsc /W4 /MTd /I Source/GameApplication Tests/RenderPacketBufferSmokeTest.cpp /Fe:render-packet-buffer-smoke.exe
-          render-packet-buffer-smoke.exe
+          echo === COMPILE === > render-packet-diagnostics.log
+          cl /nologo /std:c++20 /EHsc /W4 /MTd /I Source/GameApplication Tests/RenderPacketBufferSmokeTest.cpp /Fe:render-packet-buffer-smoke.exe >> render-packet-diagnostics.log 2>&1
+          if errorlevel 1 (
+            echo COMPILE_FAILED >> render-packet-diagnostics.log
+            type render-packet-diagnostics.log
+            exit /b 1
+          )
+          echo COMPILE_SUCCESS >> render-packet-diagnostics.log
+          echo === RUN === >> render-packet-diagnostics.log
+          render-packet-buffer-smoke.exe >> render-packet-diagnostics.log 2>&1
+          set PACKET_EXIT=%ERRORLEVEL%
+          echo RUN_EXIT_CODE=%PACKET_EXIT% >> render-packet-diagnostics.log
+          type render-packet-diagnostics.log
+          exit /b %PACKET_EXIT%
+
+      - name: Upload Render Packet diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-packet-foundation-diagnostics
+          path: render-packet-diagnostics.log
+          if-no-files-found: warn
+          retention-days: 1
 
       - uses: microsoft/setup-msbuild@v2
 
