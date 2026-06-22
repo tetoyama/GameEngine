@@ -61,21 +61,7 @@ jobs:
           path.write_text(text.replace(old, new, 1), encoding="utf-8", newline="\n")
 
       - name: Apply base queue synchronization
-        shell: pwsh
-        run: |
-          python Tools/Migration/run_render_graph_queue_sync_base.py *> base-migration.log
-          $result = $LASTEXITCODE
-          Get-Content base-migration.log
-          exit $result
-
-      - name: Upload base migration diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: queue-sync-base-migration-log
-          path: base-migration.log
-          if-no-files-found: error
-          retention-days: 1
+        run: python Tools/Migration/run_render_graph_queue_sync_base.py
 
       - name: Apply public RHI contract
         run: python Tools/Migration/queue_sync_v2_contract.py
@@ -93,7 +79,21 @@ jobs:
         run: python Tools/Migration/queue_sync_v2_tests.py
 
       - name: Apply documentation
-        run: python Tools/Migration/queue_sync_v2_docs.py
+        shell: pwsh
+        run: |
+          python Tools/Migration/queue_sync_v2_docs.py *> docs-migration.log
+          $result = $LASTEXITCODE
+          Get-Content docs-migration.log
+          exit $result
+
+      - name: Upload documentation diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: queue-sync-docs-migration-log
+          path: docs-migration.log
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Validate generated diff
         run: git diff --check
