@@ -393,10 +393,12 @@ Step 16完了条件:
 
 1. SystemTask命名規則の統一
 2. Render Packet基盤
-3. Animation CPU Build / GPU Upload分離
-4. Terrain CPU Mesh Build / GPU Upload分離
-5. Wave CPU Vertex Build / GPU Upload分離
-6. Physics Begin–Fetch待機隠蔽の再評価
+3. Draw Performance計測内訳化
+4. IRenderable内部のComponentRegistry参照除去
+5. Animation CPU Build / GPU Upload分離
+6. Terrain CPU Mesh Build / GPU Upload分離
+7. Wave CPU Vertex Build / GPU Upload分離
+8. Physics Begin–Fetch待機隠蔽の再評価
 
 基本契約:
 
@@ -410,6 +412,7 @@ Step 16完了条件:
 
 - `Docs/Step17_Task_Naming_And_Render_Task_Decomposition_Plan.md`
 - `Docs/Step17A_Task_Naming_Completion.md`
+- `Docs/Step17B_Draw_Performance_Breakdown.md`
 
 ## Step 18: RenderWorld
 
@@ -463,10 +466,12 @@ Step 16完了条件:
 
 # 3. 現在の作業位置
 
-1. Step 17-B CaptureでPacket Build / Command Submit分離確認
-2. Step 17-C Animation CPU Build / GPU Upload分離
-3. Step 17-D Terrain CPU Mesh Build / GPU Upload分離
-4. Step 17-E Wave CPU Vertex Build / GPU Upload分離
+1. Step 17-B.1 Performance MonitorでDraw CPU内訳を実機確認
+2. VSync ON / OFF比較とGPU Frame Time計測
+3. IRenderable内部のComponentRegistry参照除去
+4. Step 17-C Animation CPU Build / GPU Upload分離
+5. Step 17-D Terrain CPU Mesh Build / GPU Upload分離
+6. Step 17-E Wave CPU Vertex Build / GPU Upload分離
 
 Step 17-AのTask命名統一は完了。以降のCapture、Profiler、YAML Export、依存解析では統一後のTask名を基準とする。
-Step 17-B以降は、既存Player View回帰を維持しながら段階的に進める。
+Step 17-BのPacket Build / Command Submit分離はSchedule Captureで確認済み。Performance MonitorのDraw全体とRender Scheduleの差をCPU区間、Present待機、GPU時間へ分解してから次の最適化対象を決定する。
