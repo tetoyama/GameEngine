@@ -6,7 +6,7 @@ from pathlib import Path
 BASE_SCRIPT = Path("Tools/Migration/add_render_graph_queue_sync.py")
 source = BASE_SCRIPT.read_text(encoding="utf-8-sig")
 
-compile_old = '''text = replace_once(
+compile_old = r'''text = replace_once(
     text,
     """\t\tm_executionOrder.clear();
 \t\tm_resourceLifetimes.clear();
@@ -20,7 +20,7 @@ compile_old = '''text = replace_once(
     "Compile queue sync reset",
 )
 '''
-compile_new = '''text = replace_once(
+compile_new = r'''text = replace_once(
     text,
     """\t\tm_executionOrder.clear();
 \t\tm_resourceLifetimes.clear();
@@ -37,7 +37,7 @@ compile_new = '''text = replace_once(
 )
 '''
 
-reset_old = '''text = replace_once(
+reset_old = r'''text = replace_once(
     text,
     """\t\tm_executionOrder.clear();
 \t\tm_resourceLifetimes.clear();
@@ -51,7 +51,7 @@ reset_old = '''text = replace_once(
     "Reset queue sync",
 )
 '''
-reset_new = '''text = replace_once(
+reset_new = r'''text = replace_once(
     text,
     """\t\tm_resources.clear();
 \t\tm_passes.clear();
@@ -79,4 +79,7 @@ for old, new, label in (
         raise RuntimeError(f"{label}: expected one match, found {count}")
     source = source.replace(old, new, 1)
 
-exec(compile(source, str(BASE_SCRIPT), "exec"), {"__name__": "__main__", "__file__": str(BASE_SCRIPT)})
+exec(
+    compile(source, str(BASE_SCRIPT), "exec"),
+    {"__name__": "__main__", "__file__": str(BASE_SCRIPT)},
+)
