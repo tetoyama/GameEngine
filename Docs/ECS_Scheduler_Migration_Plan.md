@@ -463,7 +463,7 @@ Step 16完了条件:
 
 # 3. 現在の作業位置
 
-1. Step 17-B Render Packet既存RenderPass接続
+1. Step 17-B CaptureでPacket Build / Command Submit分離確認
 2. Step 17-C Animation CPU Build / GPU Upload分離
 3. Step 17-D Terrain CPU Mesh Build / GPU Upload分離
 4. Step 17-E Wave CPU Vertex Build / GPU Upload分離

@@ -87,105 +87,43 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 
 	graphics->SetBlendMode(BlendMode::Alpha);
 
-	// 透明・UIレイヤーのみ描画
-	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++) {
+	if(ctx.renderLayerVisibility[RenderLayer::OverlayUI]){
+		std::vector<const RenderPacket*> overlayPackets;
+		const RenderPacketFrameBuffer& packetBuffer =
+			m_renderSystem->GetRenderPacketBuffer();
 
-		if (!ctx.renderLayerVisibility[i]) {
-			continue;
-		}
-
-		if (i != (int)RenderLayer::OverlayUI) {
-			continue;
-		}
-
-		std::vector<SpriteDrawItem>      spriteList;
-
-		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-
-			auto context = scene->GetSceneContext();
-			auto entities = context->component->FindEntitiesWithComponent<TransformComponent>();
-			if (entities.empty()) {
-				continue;
-			}
-
-			for (Entity entity : entities) {
-
-				RenderLayer layer = scene->GetRenderLayerFromEntity(entity);
-				if ((int)layer != i) {
+		if(packetBuffer.IsReady()){
+			for(const RenderPacket& packet : packetBuffer.Packets()){
+				if(packet.layer != RenderLayer::OverlayUI) continue;
+				if(!HasRenderPacketPass(packet.passMask, RenderPacketPassMask::Overlay)){
 					continue;
 				}
-
-				if (layer == RenderLayer::OverlayUI) {
-
-					auto transform = context->component->GetComponent<TransformComponent>(entity);
-					if (!transform) {
-						continue;
-					}
-
-					SpriteDrawItem item;
-					item.ref = EntityRef(entity, context);
-					item.orderInLayer = 0;
-					OrderInLayerComponent* layerComp = context->component->GetComponent<OrderInLayerComponent>(entity);
-					if (layerComp) {
-						item.orderInLayer = layerComp->order;
-					}
-					spriteList.push_back(item);
-
-				} else {
-
-					for (auto renderable : renderables) {
-
-						int materialID = 0;
-						auto material = context->component->GetComponent<MaterialComponent>(entity);
-						if (material) {
-							materialID = material->ShaderID;
-						}
-
-						ObjectInfo info;
-						info.SceneID = m_context->sceneManager->GetIDFromContext(context);
-						info.ObjectID = entity;
-						info.ShaderID = materialID;
-						m_context->graphics->SetObjectInfo(info);
-
-						renderable->Execute(ctx, context, entity);
-					}
-				}
+				overlayPackets.push_back(&packet);
 			}
 		}
 
-		// オーダーソートしてスプライト描画
-		if (!spriteList.empty()) {
+		std::sort(
+			overlayPackets.begin(),
+			overlayPackets.end(),
+			RenderPacketOverlayOrder
+		);
 
-			std::sort(
-				spriteList.begin(), spriteList.end(),
-				[](const SpriteDrawItem& a, const SpriteDrawItem& b) {
-				return a.orderInLayer > b.orderInLayer;
-			}
-			);
+		for(const RenderPacket* packet : overlayPackets){
+			if(!packet) continue;
+			SceneContext* sceneContext =
+				m_context->sceneManager->GetContextFromID(packet->sceneContextID);
+			if(!sceneContext) continue;
 
-			for (auto& item : spriteList) {
+			IRenderable* renderable =
+				m_renderSystem->GetRenderableForPacketKind(packet->kind);
+			if(!renderable) continue;
 
-				if (!item.ref.IsValid()) continue;
-				Entity       entity = item.ref.GetEntityID();
-				SceneContext* itemCtx = item.ref.GetScene();
-
-				for (auto renderable : renderables) {
-
-					int materialID = 0;
-					auto material = itemCtx->component->GetComponent<MaterialComponent>(entity);
-					if (material) {
-						materialID = material->ShaderID;
-					}
-
-					ObjectInfo info;
-					info.SceneID = m_context->sceneManager->GetIDFromContext(itemCtx);
-					info.ObjectID = entity;
-					info.ShaderID = materialID;
-					m_context->graphics->SetObjectInfo(info);
-
-					renderable->Execute(ctx, itemCtx, entity);
-				}
-			}
+			ObjectInfo info;
+			info.SceneID = packet->sceneContextID;
+			info.ObjectID = packet->entity;
+			info.ShaderID = static_cast<int>(packet->materialKey);
+			m_context->graphics->SetObjectInfo(info);
+			renderable->Execute(ctx, sceneContext, packet->entity);
 		}
 	}
 

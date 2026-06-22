@@ -124,103 +124,63 @@ void ForwardPass::Execute(const RenderPassContext& ctx){
 		deviceContext->PSSetShader(ps ? ps->m_PixelShader.Get() : nullptr, nullptr, 0);
 		};
 
-	for(int i = 0; i < (int)RenderLayer::MaxRenderLayer; i++){
+	auto drawPacket = [&](const RenderPacket& packet){
+		SceneContext* sceneContext =
+			m_context->sceneManager->GetContextFromID(packet.sceneContextID);
+		if(!sceneContext) return;
 
-		if(!ctx.renderLayerVisibility[i]){
-			continue;
-		}
+		IRenderable* renderable =
+			m_renderSystem->GetRenderableForPacketKind(packet.kind);
+		if(!renderable) return;
 
-		if(i != (int)RenderLayer::SortTransparent3D &&
-		   i != (int)RenderLayer::Transparent3D){
-			continue;
-		}
+		const int materialID = static_cast<int>(packet.materialKey);
+		bindForwardPS(materialID);
 
-		std::vector<TransparentDrawItem> transparentList;
+		ObjectInfo info;
+		info.SceneID = packet.sceneContextID;
+		info.ObjectID = packet.entity;
+		info.ShaderID = materialID;
+		m_context->graphics->SetObjectInfo(info);
+		renderable->Execute(ctx, sceneContext, packet.entity);
+	};
 
-		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
-
-			auto context = scene->GetSceneContext();
-			auto entities = context->component->FindEntitiesWithComponent<TransformComponent>();
-			if(entities.empty()){
+	const RenderPacketFrameBuffer& packetBuffer =
+		m_renderSystem->GetRenderPacketBuffer();
+	if(packetBuffer.IsReady()){
+		for(int layerIndex = 0;
+			layerIndex < static_cast<int>(RenderLayer::MaxRenderLayer);
+			++layerIndex){
+			if(!ctx.renderLayerVisibility[layerIndex]) continue;
+			if(layerIndex != static_cast<int>(RenderLayer::Transparent3D) &&
+			   layerIndex != static_cast<int>(RenderLayer::SortTransparent3D)){
 				continue;
 			}
 
-			for(Entity entity : entities){
-
-				RenderLayer layer = scene->GetRenderLayerFromEntity(entity);
-				if((int)layer != i){
+			std::vector<RenderPacketViewItem> sortedPackets;
+			for(const RenderPacket& packet : packetBuffer.Packets()){
+				if(static_cast<int>(packet.layer) != layerIndex) continue;
+				if(!HasRenderPacketPass(packet.passMask, RenderPacketPassMask::Forward)){
 					continue;
 				}
 
-				if(layer == RenderLayer::SortTransparent3D){
-
-					auto transform = context->component->GetComponent<TransformComponent>(entity);
-					if(!transform){
-						continue;
-					}
-
-					Vector3 worldPos = transform->GetWorldPosition(context->component);
-					Vector3 diff = worldPos - Vector3(ctx.CameraPosition.x, ctx.CameraPosition.y, ctx.CameraPosition.z);
-
-					TransparentDrawItem item;
-					item.ref = EntityRef(entity, context);
-					item.distanceSq = diff.dot(diff);
-					transparentList.push_back(item);
-
-				} else{
-					for(auto renderable : renderables){
-						int materialID = 0;
-						auto material = context->component->GetComponent<MaterialComponent>(entity);
-						if(material){
-							materialID = material->ShaderID;
-						}
-
-						bindForwardPS(materialID);
-
-						ObjectInfo info;
-						info.SceneID = m_context->sceneManager->GetIDFromContext(context);
-						info.ObjectID = entity;
-						info.ShaderID = materialID;
-						m_context->graphics->SetObjectInfo(info);
-						renderable->Execute(ctx, context, entity);
-					}
+				if(packet.layer != RenderLayer::SortTransparent3D){
+					drawPacket(packet);
+					continue;
 				}
-			}
-		}
 
-		if(!transparentList.empty()){
+				const float dx = packet.transform.worldPosition[0] - ctx.CameraPosition.x;
+				const float dy = packet.transform.worldPosition[1] - ctx.CameraPosition.y;
+				const float dz = packet.transform.worldPosition[2] - ctx.CameraPosition.z;
+				sortedPackets.push_back({&packet, dx * dx + dy * dy + dz * dz});
+			}
 
 			std::sort(
-				transparentList.begin(), transparentList.end(),
-				[](const TransparentDrawItem& a, const TransparentDrawItem& b){
-					return a.distanceSq > b.distanceSq;
-				}
+				sortedPackets.begin(),
+				sortedPackets.end(),
+				RenderPacketBackToFront
 			);
-
-			for(auto& item : transparentList){
-
-				if(!item.ref.IsValid()) continue;
-				Entity       entity = item.ref.GetEntityID();
-				SceneContext* itemCtx = item.ref.GetScene();
-
-				for(auto renderable : renderables){
-
-					int materialID = 0;
-					auto material = itemCtx->component->GetComponent<MaterialComponent>(entity);
-					if(material){
-						materialID = material->ShaderID;
-					}
-
-					bindForwardPS(materialID);
-
-					ObjectInfo info;
-					info.SceneID = m_context->sceneManager->GetIDFromContext(itemCtx);
-					info.ObjectID = entity;
-					info.ShaderID = materialID;
-					m_context->graphics->SetObjectInfo(info);
-
-					renderable->Execute(ctx, itemCtx, entity);
-				}
+			for(const RenderPacketViewItem& item : sortedPackets){
+				if(item.packet) drawPacket(*item.packet);
 			}
 		}
 	}

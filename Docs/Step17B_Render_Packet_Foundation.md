@@ -60,3 +60,8 @@ Scene Context ID、Entity index / generation、Packet kind、stable sequenceをT
 GBufferとShadowのジオメトリ提出は、Scene / Transform Entityの再走査から完成済みRender Packet列の走査へ移行した。Light収集、RenderTarget設定、Camera設定、実GPU Drawは引き続きMainThread Pass側が担当する。
 
 既存挙動維持のため、LayerとPacket Kindの両方からPass Maskを解決する。Environment Map EntityはShadow Maskを除外する。
+
+
+## View Pass接続
+
+ForwardとOverlayもRender Packet入力へ移行した。SortTransparent3DはPacketに保存したWorld Position Snapshotからカメラ距離を計算し、Back-to-Frontで提出する。Overlay UIはPacketのOrderInLayerを降順Sortして提出する。

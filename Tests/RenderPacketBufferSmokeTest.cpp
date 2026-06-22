@@ -120,5 +120,32 @@ int main(){
 	assert(packets[1].entity == Entity(9, 0));
 	assert(packets[2].kind == RenderPacketKind::Wave);
 	assert(packets[3].kind == RenderPacketKind::Sprite);
+
+	RenderPacket nearPacket = MakePacket(
+		1, Entity(1, 0), RenderPacketKind::Model,
+		RenderLayer::SortTransparent3D, 0, 0, 0
+	);
+	RenderPacket farPacket = MakePacket(
+		1, Entity(2, 0), RenderPacketKind::Model,
+		RenderLayer::SortTransparent3D, 0, 0, 1
+	);
+	std::vector<RenderPacketViewItem> transparentView{
+		{&nearPacket, 1.0f},
+		{&farPacket, 9.0f}
+	};
+	std::sort(transparentView.begin(), transparentView.end(), RenderPacketBackToFront);
+	assert(transparentView.front().packet == &farPacket);
+
+	RenderPacket lowOrder = MakePacket(
+		1, Entity(3, 0), RenderPacketKind::Sprite,
+		RenderLayer::OverlayUI, 0, -2, 0
+	);
+	RenderPacket highOrder = MakePacket(
+		1, Entity(4, 0), RenderPacketKind::Sprite,
+		RenderLayer::OverlayUI, 0, 4, 1
+	);
+	std::vector<const RenderPacket*> overlayView{&lowOrder, &highOrder};
+	std::sort(overlayView.begin(), overlayView.end(), RenderPacketOverlayOrder);
+	assert(overlayView.front() == &highOrder);
 	return 0;
 }

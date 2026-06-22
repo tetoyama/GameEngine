@@ -433,6 +433,10 @@ void RenderSystem::BuildRenderPackets(){
 			snapshot.position[0] = transform->position.x;
 			snapshot.position[1] = transform->position.y;
 			snapshot.position[2] = transform->position.z;
+			const Vector3 worldPosition = transform->GetWorldPosition(components);
+			snapshot.worldPosition[0] = worldPosition.x;
+			snapshot.worldPosition[1] = worldPosition.y;
+			snapshot.worldPosition[2] = worldPosition.z;
 			const DirectX::XMFLOAT4& rotation = transform->GetRotation();
 			snapshot.rotation[0] = rotation.x;
 			snapshot.rotation[1] = rotation.y;

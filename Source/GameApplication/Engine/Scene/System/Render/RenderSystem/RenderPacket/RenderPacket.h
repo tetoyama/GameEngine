@@ -117,6 +117,7 @@ constexpr RenderPacketPassMask ResolveRenderPacketPasses(
 
 struct RenderPacketTransformSnapshot {
 	float position[3] = {0.0f, 0.0f, 0.0f};
+	float worldPosition[3] = {0.0f, 0.0f, 0.0f};
 	float rotation[4] = {0.0f, 0.0f, 0.0f, 1.0f};
 	float scale[3] = {1.0f, 1.0f, 1.0f};
 };
@@ -167,4 +168,32 @@ inline bool RenderPacketLess(const RenderPacket& lhs, const RenderPacket& rhs) n
 		return static_cast<uint8_t>(lhs.kind) < static_cast<uint8_t>(rhs.kind);
 	}
 	return lhs.stableSequence < rhs.stableSequence;
+}
+
+
+struct RenderPacketViewItem {
+	const RenderPacket* packet = nullptr;
+	float distanceSq = 0.0f;
+};
+
+inline bool RenderPacketBackToFront(
+	const RenderPacketViewItem& lhs,
+	const RenderPacketViewItem& rhs
+) noexcept {
+	if(lhs.distanceSq != rhs.distanceSq) return lhs.distanceSq > rhs.distanceSq;
+	if(!lhs.packet) return false;
+	if(!rhs.packet) return true;
+	return RenderPacketLess(*lhs.packet, *rhs.packet);
+}
+
+inline bool RenderPacketOverlayOrder(
+	const RenderPacket* lhs,
+	const RenderPacket* rhs
+) noexcept {
+	if(!lhs) return false;
+	if(!rhs) return true;
+	if(lhs->orderInLayer != rhs->orderInLayer){
+		return lhs->orderInLayer > rhs->orderInLayer;
+	}
+	return RenderPacketLess(*lhs, *rhs);
 }
