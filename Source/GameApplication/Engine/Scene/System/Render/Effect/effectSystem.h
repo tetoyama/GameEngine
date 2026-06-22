@@ -67,7 +67,33 @@ public:
 		}
 	}
 
-	void Update(float dt) override{
+	void RegisterTasks(SystemScheduleBuilder& builder) override{
+		builder.AddTask(
+			"EffectSystem.Update",
+			SystemTaskDomain::Frame,
+			SystemPhase::Default,
+			0,
+			SystemAccess::LegacyExclusive(),
+			ThreadAffinity::MainThread,
+			[this](const SystemTaskContext& context){
+				Update(context.deltaTime);
+			}
+		);
+
+		builder.AddTask(
+			"EffectSystem.EditorUpdate",
+			SystemTaskDomain::Editor,
+			SystemPhase::Default,
+			0,
+			SystemAccess::LegacyExclusive(),
+			ThreadAffinity::MainThread,
+			[this](const SystemTaskContext& context){
+				EditorUpdate(context.deltaTime);
+			}
+		);
+	}
+
+	void Update(float dt){
 
 		auto manager = m_context->graphics->GetEffectManager();
 
@@ -80,19 +106,15 @@ public:
 			for(auto& entity : entities){
 				auto* comp = context->component->GetComponent<EffectComponent>(entity);
 				if(!comp) continue;
-
-				// --------------------
-				// 再生状態更新（時間・TimeScale・停止）
-				// --------------------
 				comp->Update(context, dt);
-				
 			}
 		}
 
 		manager->EndUpdate();
 	}
 
-	void EditorUpdate(float dt) override{
+	void EditorUpdate(float dt){
+		(void)dt;
 		auto manager = m_context->graphics->GetEffectManager();
 
 		manager->BeginUpdate();
@@ -106,20 +128,16 @@ public:
 				if(!comp) continue;
 				comp->Update(context, 0.0f);
 
-				if(!comp->Playing)
+				if(!comp->Playing){
 					continue;
+				}
 
 				if(!manager->Exists(comp->m_Handle)){
 					comp->Playing = false;
 					continue;
 				}
 
-				// --------------------
-				// Transform 反映
-				// --------------------
-				if(auto* transform =
-				   context->component->GetComponent<TransformComponent>(entity)){
-
+				if(auto* transform = context->component->GetComponent<TransformComponent>(entity)){
 					const auto& pos = transform->position;
 					const auto& scale = transform->scale;
 					const auto rotQuat = transform->GetRotation();
@@ -133,9 +151,11 @@ public:
 					DirectX::XMFLOAT4X4 rotF;
 					DirectX::XMStoreFloat4x4(&rotF, rotMat);
 
-					for(int i = 0; i < 3; ++i)
-						for(int j = 0; j < 3; ++j)
+					for(int i = 0; i < 3; ++i){
+						for(int j = 0; j < 3; ++j){
 							matRot.Value[i][j] = rotF.m[i][j];
+						}
+					}
 
 					Effekseer::Matrix43 mat;
 					mat.SetSRT(
