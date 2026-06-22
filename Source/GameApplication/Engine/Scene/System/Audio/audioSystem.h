@@ -45,13 +45,19 @@ public:
 	}
 
 	void RegisterTasks(SystemScheduleBuilder& builder) override{
-		builder.AddTask(
+
+		using AudioUpdateQuery = ECSQuery::ComponentQueryView<
+			ECSQuery::Read<TransformComponent>,
+			ECSQuery::Write<AudioComponent>
+		>;
+
+		builder.AddQueryTask<AudioUpdateQuery>(
 			"AudioSystem.Update",
 			SystemTaskDomain::Frame,
-			SystemPhase::Default,
+			SystemPhase::Late,
 			0,
-			SystemAccess::LegacyExclusive(),
-			ThreadAffinity::MainThread,
+			StructuralAccess::None,
+			ThreadAffinity::AnyWorker,
 			[this](const SystemTaskContext& context){
 				Update(context.deltaTime);
 			}

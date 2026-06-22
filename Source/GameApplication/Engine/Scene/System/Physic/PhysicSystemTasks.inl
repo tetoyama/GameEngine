@@ -163,14 +163,6 @@ inline void PhysicSystem::RegisterTasks(SystemScheduleBuilder& builder){
 			CollisionEventDispatch();
 		}
 	);
-
-	builder.AddTask(
-		"PhysicSystem.Draw",
-		SystemTaskDomain::Render,
-		[this](const SystemTaskContext&){
-			Draw();
-		}
-	);
 }
 
 inline void PhysicSystem::PhysicsUpload(){

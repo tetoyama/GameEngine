@@ -80,7 +80,6 @@ public:
 	void Stop() override;
 
 	void FixedUpdate(float fixedDeltaTime);
-	void Draw();
 
 	void RegisterTasks(SystemScheduleBuilder& builder) override;
 

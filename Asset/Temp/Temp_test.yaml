@@ -21,12 +21,21 @@ Entities:
       - Component: ColliderComponent
         isDynamic: false
         autoMass: true
-        Mass: 0
+        Mass: 0.00100000005
         colliders:
           - type: 0
-            size: [1, 1, 1]
-            offset: [0, 0, 0]
-            rotationOffset: [0, 0, 0]
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
             radius: 0.5
             height: 1
             staticFriction: 0
@@ -216,9 +225,9 @@ Entities:
           z: -2.09529972
         Rotation:
           - 0
-          - 0.576125503
+          - -0.576125503
           - 0
-          - -0.817361355
+          - 0.817361355
         Scale:
           x: 0.00999999978
           y: 0.00999999978
@@ -230,9 +239,18 @@ Entities:
         Mass: 1
         colliders:
           - type: 2
-            size: [1, 1, 1]
-            offset: [0, 75, 0]
-            rotationOffset: [0, 0, 90]
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 75
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 90
             radius: 25
             height: 100
             staticFriction: 0
@@ -294,10 +312,10 @@ Entities:
           y: 2.42762351
           z: -5.51280212
         Rotation:
-          - 0.0325285271
-          - -0.455118805
-          - 0.0166400634
-          - 0.889680743
+          - 0.0325285308
+          - -0.455118835
+          - 0.0166400652
+          - 0.889680803
         Scale:
           x: 1
           y: 1
@@ -534,12 +552,21 @@ Entities:
       - Component: ColliderComponent
         isDynamic: false
         autoMass: true
-        Mass: 0
+        Mass: 0.00100000005
         colliders:
           - type: 0
-            size: [1, 1, 1]
-            offset: [0, 0.5, 0]
-            rotationOffset: [0, 0, 0]
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0.5
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
             radius: 0.5
             height: 1
             staticFriction: 0
@@ -676,12 +703,21 @@ Entities:
       - Component: ColliderComponent
         isDynamic: false
         autoMass: true
-        Mass: 0
+        Mass: 0.00100000005
         colliders:
           - type: 2
-            size: [1, 1, 1]
-            offset: [0, 0, 0]
-            rotationOffset: [0, 0, 90]
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 90
             radius: 0.100000001
             height: 0.699999988
             staticFriction: 0
@@ -743,12 +779,21 @@ Entities:
       - Component: ColliderComponent
         isDynamic: false
         autoMass: true
-        Mass: 0
+        Mass: 0.00100000005
         colliders:
           - type: 1
-            size: [1, 1, 1]
-            offset: [0, 0, 0]
-            rotationOffset: [0, 0, 0]
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
             radius: 0.200000003
             height: 1
             staticFriction: 0

@@ -326,6 +326,50 @@ void RenderSystem::Draw(){
 	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
 }
 
+void RenderSystem::RegisterTasks(SystemScheduleBuilder& builder){
+
+	using RenderUpdateQuery = ECSQuery::ComponentQueryView<
+		ECSQuery::Read<TransformComponent>,
+		ECSQuery::Write<ModelRendererComponent>
+	>;
+
+	builder.AddQueryTask<RenderUpdateQuery>(
+		"RenderSystem.UpdateAnimationTime",
+		SystemTaskDomain::Frame,
+		SystemPhase::Late,
+		0,
+		StructuralAccess::None,
+		ThreadAffinity::AnyWorker,
+		[this](const SystemTaskContext& context){
+			Update(context.deltaTime);
+		}
+	);
+
+	builder.AddTask(
+		"RenderSystem.EditorUpdateAnimation",
+		SystemTaskDomain::Editor,
+		SystemPhase::Earliest,
+		0,
+		SystemAccess::LegacyExclusive(),
+		ThreadAffinity::MainThread,
+		[this](const SystemTaskContext& context){
+			EditorUpdate(context.deltaTime);
+		}
+	);
+
+	builder.AddTask(
+		"RenderSystem.Draw",
+		SystemTaskDomain::Render,
+		SystemPhase::Late,
+		0,
+		SystemAccess::LegacyExclusive(),
+		ThreadAffinity::MainThread,
+		[this](const SystemTaskContext&){
+			Draw();
+		}
+	);
+}
+
 bool RenderSystem::decode(const YAML::Node& node){
 	if(node["ShaderPath"])
 		ShaderPath = node["ShaderPath"].as<std::string>();

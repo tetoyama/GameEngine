@@ -36,7 +36,7 @@ void ParticleSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	builder.AddQueryTask<ParticleUpdateQuery>(
 		"ParticleSystem.Update",
 		SystemTaskDomain::Frame,
-		SystemPhase::Default,
+		SystemPhase::Late,
 		0,
 		StructuralAccess::None,
 		ThreadAffinity::AnyWorker,

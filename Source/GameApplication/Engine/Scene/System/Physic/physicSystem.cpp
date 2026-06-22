@@ -1292,11 +1292,6 @@ void PhysicSystem::FixedUpdate(float deltaTime) {
 	}
 }
 
-void PhysicSystem::Draw(){
-	if(!g_pScene) return;
-	// PhysX の可視化デバッグは g_pScene->getRenderBuffer() などで取得可能
-}
-
 void PhysicSystem::DrawLayerEditor(){
 
 	if(ImGui::TreeNode("Physics Layers")){

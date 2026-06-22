@@ -57,18 +57,18 @@ public:
 	void RegisterTasks(SystemScheduleBuilder& builder) override{
 		builder.AddTask(
 			"WaveSystem.EditorUpdate",
-			SystemTaskDomain::Editor,
-			SystemPhase::Default,
+			SystemTaskDomain::Render,
+			SystemPhase::Early,
 			0,
 			SystemAccess::LegacyExclusive(),
 			ThreadAffinity::MainThread,
 			[this](const SystemTaskContext& context){
-				EditorUpdate(context.deltaTime);
+				Draw(context.deltaTime);
 			}
 		);
 	}
 
-	void EditorUpdate(float dt){
+	void Draw(float dt){
 		(void)dt;
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();

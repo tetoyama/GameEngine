@@ -94,43 +94,7 @@ public:
 	void EditorUpdate(float deltaTime);
 	void Draw();
 
-	void RegisterTasks(SystemScheduleBuilder& builder) override {
-		builder.AddTask(
-			"RenderSystem.UpdateAnimationTime",
-			SystemTaskDomain::Frame,
-			SystemPhase::Default,
-			0,
-			SystemAccess::LegacyExclusive(),
-			ThreadAffinity::MainThread,
-			[this](const SystemTaskContext& context){
-				Update(context.deltaTime);
-			}
-		);
-
-		builder.AddTask(
-			"RenderSystem.EditorUpdateAnimation",
-			SystemTaskDomain::Editor,
-			SystemPhase::Default,
-			0,
-			SystemAccess::LegacyExclusive(),
-			ThreadAffinity::MainThread,
-			[this](const SystemTaskContext& context){
-				EditorUpdate(context.deltaTime);
-			}
-		);
-
-		builder.AddTask(
-			"RenderSystem.Draw",
-			SystemTaskDomain::Render,
-			SystemPhase::Late,
-			0,
-			SystemAccess::LegacyExclusive(),
-			ThreadAffinity::MainThread,
-			[this](const SystemTaskContext&){
-				Draw();
-			}
-		);
-	}
+	void RegisterTasks(SystemScheduleBuilder& builder) override;
 
 	bool decode(const YAML::Node& node) override;
 	YAML::Node encode() override;

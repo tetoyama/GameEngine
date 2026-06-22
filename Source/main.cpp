@@ -22,11 +22,7 @@
 // -----------------------------------------------------------------------
 // Windowsアプリケーションのエントリーポイント
 // -----------------------------------------------------------------------
-int WINAPI WinMain(
-    HINSTANCE hInstance,
-    HINSTANCE hPrevInstance,
-    LPSTR lpCmdLine,
-    int nCmdShow) {
+int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow) {
 
     #ifdef _DEBUG_BUILD
     // メモリリークチェックを有効にする（アプリ終了時にリークを報告）
@@ -42,8 +38,8 @@ int WINAPI WinMain(
 
         // アプリケーションの終了コードを返す
         return exitCode;
-    }
-    catch (const std::exception& e) {
+
+    } catch (const std::exception& e) {
         MessageBoxA(
             nullptr,
             e.what(),
@@ -51,8 +47,7 @@ int WINAPI WinMain(
             MB_OK | MB_ICONERROR);
 
         return -1;
-    }
-    catch (...) {
+    } catch (...) {
         MessageBoxA(
             nullptr,
             "Unknown Exception",

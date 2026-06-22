@@ -29,7 +29,7 @@ void TransformSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	builder.AddQueryTask<TransformReadQuery>(
 		"TransformSystem.Draw",
 		SystemTaskDomain::Render,
-		SystemPhase::Default,
+		SystemPhase::Earliest,
 		0,
 		StructuralAccess::EmitCommands,
 		ThreadAffinity::AnyWorker,

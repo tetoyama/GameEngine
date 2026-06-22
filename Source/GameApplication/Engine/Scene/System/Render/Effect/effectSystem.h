@@ -68,25 +68,31 @@ public:
 	}
 
 	void RegisterTasks(SystemScheduleBuilder& builder) override{
-		builder.AddTask(
+
+		using EffectUpdateQuery = ECSQuery::ComponentQueryView<
+			ECSQuery::Read<TransformComponent>,
+			ECSQuery::Write<EffectComponent>
+		>;
+
+		builder.AddQueryTask<EffectUpdateQuery>(
 			"EffectSystem.Update",
 			SystemTaskDomain::Frame,
-			SystemPhase::Default,
+			SystemPhase::Late,
 			0,
-			SystemAccess::LegacyExclusive(),
-			ThreadAffinity::MainThread,
+			StructuralAccess::None,
+			ThreadAffinity::AnyWorker,
 			[this](const SystemTaskContext& context){
 				Update(context.deltaTime);
 			}
 		);
 
-		builder.AddTask(
+		builder.AddQueryTask<EffectUpdateQuery>(
 			"EffectSystem.EditorUpdate",
-			SystemTaskDomain::Editor,
-			SystemPhase::Default,
+			SystemTaskDomain::Render,
+			SystemPhase::Early,
 			0,
-			SystemAccess::LegacyExclusive(),
-			ThreadAffinity::MainThread,
+			StructuralAccess::None,
+			ThreadAffinity::AnyWorker,
 			[this](const SystemTaskContext& context){
 				EditorUpdate(context.deltaTime);
 			}

@@ -29,21 +29,9 @@ void FollowSystem::RegisterTasks(SystemScheduleBuilder& builder){
 	>;
 
 	builder.AddQueryTask<FollowQuery>(
-		"FollowSystem.Update",
-		SystemTaskDomain::Frame,
-		SystemPhase::Default,
-		0,
-		StructuralAccess::None,
-		ThreadAffinity::AnyWorker,
-		[this](const SystemTaskContext& context){
-			Update(context.deltaTime);
-		}
-	);
-
-	builder.AddQueryTask<FollowQuery>(
 		"FollowSystem.EditorUpdate",
-		SystemTaskDomain::Editor,
-		SystemPhase::Default,
+		SystemTaskDomain::Render,
+		SystemPhase::Earliest,
 		0,
 		StructuralAccess::None,
 		ThreadAffinity::AnyWorker,
@@ -51,11 +39,6 @@ void FollowSystem::RegisterTasks(SystemScheduleBuilder& builder){
 			EditorUpdate(context.deltaTime);
 		}
 	);
-}
-
-void FollowSystem::Update(float deltaTime) {
-	(void)deltaTime;
-	ProcessFollow();
 }
 
 void FollowSystem::EditorUpdate(float deltaTime) {
