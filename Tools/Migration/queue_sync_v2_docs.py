@@ -24,8 +24,8 @@ plan = replace_once(
 )
 plan = replace_once(
     plan,
-    "- `Docs/Step16F_Transient_Resource_Lifetime_Completion.md`\n",
-    "- `Docs/Step16F_Transient_Resource_Lifetime_Completion.md`\n"
+    "- `Docs/Step16F_Subresource_State_Completion.md`\n",
+    "- `Docs/Step16F_Subresource_State_Completion.md`\n"
     "- `Docs/Step16F_Queue_Synchronization_Completion.md`\n",
     "queue synchronization completion document link",
 )
