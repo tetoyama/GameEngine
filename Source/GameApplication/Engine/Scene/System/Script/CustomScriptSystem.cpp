@@ -32,6 +32,56 @@ namespace {
 	}
 }
 
+void CustomScriptSystem::RegisterTasks(SystemScheduleBuilder& builder){
+	builder.AddTask(
+		"CustomScriptSystem.FixedUpdate",
+		SystemTaskDomain::Fixed,
+		SystemPhase::Default,
+		0,
+		SystemAccess::LegacyExclusive(),
+		ThreadAffinity::MainThread,
+		[this](const SystemTaskContext& context){
+			FixedUpdate(context.deltaTime);
+		}
+	);
+
+	builder.AddTask(
+		"CustomScriptSystem.Update",
+		SystemTaskDomain::Frame,
+		SystemPhase::Default,
+		0,
+		SystemAccess::LegacyExclusive(),
+		ThreadAffinity::MainThread,
+		[this](const SystemTaskContext& context){
+			Update(context.deltaTime);
+		}
+	);
+
+	builder.AddTask(
+		"CustomScriptSystem.EditorUpdate",
+		SystemTaskDomain::Editor,
+		SystemPhase::Default,
+		0,
+		SystemAccess::LegacyExclusive(),
+		ThreadAffinity::MainThread,
+		[this](const SystemTaskContext& context){
+			EditorUpdate(context.deltaTime);
+		}
+	);
+
+	builder.AddTask(
+		"CustomScriptSystem.Draw",
+		SystemTaskDomain::Render,
+		SystemPhase::Default,
+		0,
+		SystemAccess::LegacyExclusive(),
+		ThreadAffinity::MainThread,
+		[this](const SystemTaskContext&){
+			Draw();
+		}
+	);
+}
+
 void CustomScriptSystem::ForEachScriptOrdered(
 	SystemTaskDomain domain,
 	const std::function<void(CustomScriptComponent*)>& callback
