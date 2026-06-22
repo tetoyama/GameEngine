@@ -27,7 +27,26 @@
 #include "Component/transformComponent.h"
 
 void CameraSystem::Initialize(){
-	m_context->debug->LOG_DEBUG("CameraSystemを初期化中...");
+	m_context->debug->LOG_DEBUG("CameraSystem initialize...");
+}
+
+void CameraSystem::RegisterTasks(SystemScheduleBuilder& builder){
+	using CameraUpdateQuery = ECSQuery::ComponentQueryView<
+		ECSQuery::Read<TransformComponent>,
+		ECSQuery::Write<CameraComponent>
+	>;
+
+	builder.AddQueryTask<CameraUpdateQuery>(
+		"CameraSystem.UpdateViewMatrix",
+		SystemTaskDomain::Render,
+		SystemPhase::Early,
+		0,
+		StructuralAccess::None,
+		ThreadAffinity::AnyWorker,
+		[this](const SystemTaskContext&){
+			Draw();
+		}
+	);
 }
 
 void CameraSystem::Draw(){
@@ -39,9 +58,6 @@ void CameraSystem::Draw(){
 			continue;
 		}
 
-		// CameraComponentはDenseComponentPoolへ移行済みであり、
-		// IComponent継承を前提とするGetAllBaseComponentsでは列挙できない。
-		// Storage種別に依存しないEntity列挙からComponentを取得する。
 		const auto cameraEntities =
 			context->component->FindEntitiesWithComponent<CameraComponent>();
 
