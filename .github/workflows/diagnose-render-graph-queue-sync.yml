@@ -1,0 +1,72 @@
+name: Diagnose RenderGraph Queue Synchronization
+
+on:
+  pull_request:
+    branches: [master]
+    types: [edited]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Prepare base migration
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("Docs/ECS_Scheduler_Migration_Plan.md")
+          text = path.read_text(encoding="utf-8-sig")
+          old = "\n".join([
+              "1. Step 16-FのQueue間同期",
+              "2. Step 16-FのPass Culling",
+              "3. D3D11最小実描画Triangle Test",
+              "4. 既存Player View実機回帰",
+              "5. Step 17-B Render Packet基盤",
+              "6. Step 17-C Animation CPU Build / GPU Upload分離",
+              "7. Step 17-D Terrain CPU Mesh Build / GPU Upload分離",
+              "",
+          ])
+          new = "\n".join([
+              "1. Step 16-FのQueue間同期",
+              "2. Step 16-FのPass Culling",
+              "3. D3D11最小実描画Triangle Test",
+              "4. 既存Player View実機回帰",
+              "5. Step 16完了報告",
+              "6. Step 17 RenderWorld移行",
+              "",
+          ])
+          if text.count(old) != 1:
+              raise RuntimeError("current work position mismatch")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8", newline="\n")
+
+      - name: Apply base queue synchronization
+        run: python Tools/Migration/add_render_graph_queue_sync.py
+
+      - name: Apply public RHI contract
+        run: python Tools/Migration/queue_sync_v2_contract.py
+
+      - name: Apply resource sharing contract
+        run: python Tools/Migration/queue_sync_v2_render_graph_resource.py
+
+      - name: Apply timeline submission contract
+        run: python Tools/Migration/queue_sync_v2_execution_submit.py
+
+      - name: Apply execution state contract
+        run: python Tools/Migration/queue_sync_v2_execution_state.py
+
+      - name: Apply tests
+        run: python Tools/Migration/queue_sync_v2_tests.py
+
+      - name: Apply documentation
+        run: python Tools/Migration/queue_sync_v2_docs.py
+
+      - name: Validate generated diff
+        run: git diff --check
