@@ -1,0 +1,38 @@
+name: Apply Step 17-A Task Naming
+
+on:
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - Tools/Migration/apply_step17a_task_naming.py
+      - .github/workflows/apply-step17a-task-naming.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 0
+
+      - name: Apply Step 17-A migration
+        run: python Tools/Migration/apply_step17a_task_naming.py
+
+      - name: Validate generated diff
+        run: git diff --check
+
+      - name: Publish generated branch
+        run: |
+          git config user.name github-actions
+          git config user.email actions@github.com
+          git rm Tools/Migration/apply_step17a_task_naming.py
+          git rm .github/workflows/apply-step17a-task-naming.yml
+          git add -A
+          git commit -m "refactor: normalize system task names"
+          git push --force origin HEAD:step17a-task-naming-output
