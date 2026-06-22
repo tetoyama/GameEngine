@@ -1,3 +1,4 @@
+# The workflow is intentionally temporary and removes itself from the generated branch.
 name: Apply Step 17-A Task Naming
 
 on:
