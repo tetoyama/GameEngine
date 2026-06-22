@@ -81,10 +81,10 @@ Render ScheduleはSchedule Captureの約4.6msと整合した。VSync OFFでもPr
 - [x] Editor Panel単位計測を実装
 - [x] Windows Build Debug x64（CPU内訳実装時点）
 - [x] Windows Build Release x64（CPU内訳実装時点）
-- [ ] GPU / Panel計測追加後のWindows Build Debug x64
-- [ ] GPU / Panel計測追加後のWindows Build Release x64
+- [x] GPU / Panel計測追加後のWindows Build Debug x64
+- [x] GPU / Panel計測追加後のWindows Build Release x64
 - [ ] GPU Frame Time実機表示
 - [ ] Editor Panel単位CPU時間実機表示
 - [ ] 同一条件でVSync ON / OFF比較
 
-CPU内訳実装時点ではWindows Build run #1230でEngine / ScriptのDebug / Release x64コンパイルに成功した。
+CPU内訳実装時点ではWindows Build run #1230、GPU / Panel計測追加後はWindows Build run #1234でEngine / ScriptのDebug / Release x64コンパイルに成功した。
