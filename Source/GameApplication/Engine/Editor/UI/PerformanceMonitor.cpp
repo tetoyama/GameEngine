@@ -7,6 +7,7 @@
 #include <Psapi.h>
 #include <algorithm>
 #include <cstdio>
+#include <iterator>
 #include <ImGui/imgui.h>
 #include <ImGui/imgui_internal.h>
 
