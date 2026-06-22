@@ -24,6 +24,8 @@ void TimeService::Initialize(){
 
 	updateBeginTime_ = now.QuadPart;
 	drawBeginTime_ = now.QuadPart;
+	drawSectionBeginTime_ = now.QuadPart;
+	frameBeginTime_ = now.QuadPart;
 
 	deltaTime_ = 0.0f;
 	totalTime_ = 0.0f;
@@ -43,6 +45,10 @@ void TimeService::Initialize(){
 	deltaUpdateFPS_ = 0.0;
 	fixedUpdateFPS_ = 0.0;
 	drawFPS_ = 0.0;
+
+	drawSectionActive_ = false;
+	currentDrawTiming_ = {};
+	completedDrawTiming_ = {};
 }
 
 void TimeService::Tick(){
@@ -122,7 +128,6 @@ void TimeService::EndDeltaUpdate(){
 			current - updateBeginTime_) /
 		frequency_;
 
-
 	deltaUpdateTimer_ += deltaUpdateTime_;
 	deltaUpdateFrameCount_++;
 
@@ -166,19 +171,53 @@ void TimeService::BeginDraw(){
 	LARGE_INTEGER now;
 	QueryPerformanceCounter(&now);
 	drawBeginTime_ = now.QuadPart;
+	drawSectionBeginTime_ = now.QuadPart;
+	drawSectionActive_ = false;
+	currentDrawTiming_ = {};
+}
+
+void TimeService::BeginDrawSection(DrawTimingSection section){
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
+
+	activeDrawSection_ = section;
+	drawSectionBeginTime_ = now.QuadPart;
+	drawSectionActive_ = true;
+}
+
+void TimeService::EndDrawSection(DrawTimingSection section){
+	if(!drawSectionActive_ || activeDrawSection_ != section){
+		return;
+	}
+
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
+
+	const double elapsedSeconds =
+		static_cast<double>(now.QuadPart - drawSectionBeginTime_) /
+		frequency_;
+	AccumulateDrawSection(section, elapsedSeconds);
+	drawSectionActive_ = false;
 }
 
 void TimeService::EndDraw(){
+	if(drawSectionActive_){
+		EndDrawSection(activeDrawSection_);
+	}
+
 	LARGE_INTEGER now;
 	QueryPerformanceCounter(&now);
 
 	long long current = now.QuadPart;
 
-	// Drawフェーズのみ
+	// BeginDrawからPresent完了までのDrawフェーズ全体
 	drawTime_ =
 		static_cast<double>(
 			current - drawBeginTime_) /
 		frequency_;
+
+	currentDrawTiming_.total = drawTime_;
+	completedDrawTiming_ = currentDrawTiming_;
 
 	drawTimer_ += drawTime_;
 	drawFrameCount_++;
@@ -190,5 +229,34 @@ void TimeService::EndDraw(){
 
 		drawTimer_ = 0.0;
 		drawFrameCount_ = 0;
+	}
+}
+
+void TimeService::AccumulateDrawSection(
+	DrawTimingSection section,
+	double elapsedSeconds
+){
+	switch(section){
+		case DrawTimingSection::FrameSetup:
+			currentDrawTiming_.frameSetup += elapsedSeconds;
+			break;
+		case DrawTimingSection::ImGuiBegin:
+			currentDrawTiming_.imguiBegin += elapsedSeconds;
+			break;
+		case DrawTimingSection::RenderSchedule:
+			currentDrawTiming_.renderSchedule += elapsedSeconds;
+			break;
+		case DrawTimingSection::DebugDraw:
+			currentDrawTiming_.debugDraw += elapsedSeconds;
+			break;
+		case DrawTimingSection::EditorUIBuild:
+			currentDrawTiming_.editorUIBuild += elapsedSeconds;
+			break;
+		case DrawTimingSection::ImGuiRender:
+			currentDrawTiming_.imguiRender += elapsedSeconds;
+			break;
+		case DrawTimingSection::Present:
+			currentDrawTiming_.present += elapsedSeconds;
+			break;
 	}
 }
