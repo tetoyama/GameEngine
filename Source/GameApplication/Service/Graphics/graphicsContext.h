@@ -5,6 +5,7 @@
 // =======================================================================
 #pragma once
 
+#include <array>
 #include <wrl/client.h>
 #include <d3d11.h>
 #include <d2d1.h>
@@ -99,6 +100,13 @@ public:
 
 	void Clear(const float clearColor[4]);
 	void Present(bool vsync);
+
+	// GPU Timestamp Queryは複数フレーム遅延で回収し、CPUを待機させない。
+	void BeginGpuFrameTiming();
+	void EndGpuFrameTiming();
+	bool HasValidGpuFrameTime() const noexcept { return m_GpuFrameTimeValid; }
+	double GetGpuFrameTimeSeconds() const noexcept { return m_GpuFrameTimeSeconds; }
+	bool IsTearingSupported() const noexcept { return m_TearingSupported; }
 
 	RHI::BackendType GetBackendType() const noexcept {
 		return m_RHIService
@@ -233,6 +241,17 @@ private:
 	bool CreateEffectSystem();
 	bool ReadFileToBuffer(const char* fileName, std::vector<char>& buffer);
 
+	struct GpuFrameTimingQuerySet {
+		Microsoft::WRL::ComPtr<ID3D11Query> disjoint;
+		Microsoft::WRL::ComPtr<ID3D11Query> beginTimestamp;
+		Microsoft::WRL::ComPtr<ID3D11Query> endTimestamp;
+		bool pending = false;
+	};
+
+	static constexpr size_t kGpuTimingBufferedFrames = 4;
+	bool CreateGpuFrameTimingQueries();
+	void ResolveGpuFrameTimingQueries();
+
 	Microsoft::WRL::ComPtr<ID3D11Device> m_Device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_DeviceContext;
 	Microsoft::WRL::ComPtr<IDXGISwapChain> m_SwapChain;
@@ -264,6 +283,13 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_SRV;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_FullScreenVB;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_FullScreenIB;
+
+	std::array<GpuFrameTimingQuerySet, kGpuTimingBufferedFrames> m_GpuTimingQueries{};
+	size_t m_GpuTimingWriteIndex = 0;
+	int m_ActiveGpuTimingIndex = -1;
+	bool m_GpuTimingAvailable = false;
+	bool m_GpuFrameTimeValid = false;
+	double m_GpuFrameTimeSeconds = 0.0;
 
 	RenderEffectSystem* m_EffectSystem = nullptr;
 	bool m_TearingSupported = false;
