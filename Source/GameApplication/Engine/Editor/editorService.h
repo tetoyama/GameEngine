@@ -83,6 +83,8 @@ struct EditorDrawContext {
 	bool GPUFrameTimeValid = false;
 	bool VSyncEnabled = false;
 	bool TearingSupported = false;
+	bool FrameLatencyWaitableObjectEnabled = false;
+	uint64_t FrameLatencyWaitTimeoutCount = 0;
 
 	// MainRendererのResize実績。serialが変化したフレームをResize直後として扱う。
 	uint64_t ResizeSerial = 0;

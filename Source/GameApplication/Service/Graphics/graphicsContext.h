@@ -6,6 +6,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <wrl/client.h>
 #include <d3d11.h>
 #include <d2d1.h>
@@ -99,7 +100,14 @@ public:
 	void Shutdown() override;
 
 	void Clear(const float clearColor[4]);
+	void WaitForFrameLatency();
 	void Present(bool vsync);
+	bool IsFrameLatencyWaitableObjectEnabled() const noexcept {
+		return m_FrameLatencyWaitableObjectEnabled;
+	}
+	uint64_t GetFrameLatencyWaitTimeoutCount() const noexcept {
+		return m_FrameLatencyWaitTimeoutCount;
+	}
 
 	// GPU Timestamp Queryは複数フレーム遅延で回収し、CPUを待機させない。
 	void BeginGpuFrameTiming();
@@ -293,4 +301,13 @@ private:
 
 	RenderEffectSystem* m_EffectSystem = nullptr;
 	bool m_TearingSupported = false;
+
+	// Flip-model SwapChain pacing. The actual creation flags are retained so
+	// ResizeBuffers always receives exactly the same flag set.
+	UINT m_SwapChainFlags = 0;
+	HANDLE m_FrameLatencyWaitableObject = nullptr;
+	bool m_FrameLatencyWaitableObjectEnabled = false;
+	bool m_FrameLatencyWaitWarningLogged = false;
+	uint64_t m_FrameLatencyWaitTimeoutCount = 0;
+	static constexpr DWORD kFrameLatencyWaitTimeoutMilliseconds = 100;
 };

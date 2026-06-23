@@ -237,6 +237,9 @@ void TimeService::AccumulateDrawSection(
 	double elapsedSeconds
 ){
 	switch(section){
+		case DrawTimingSection::FramePacingWait:
+			currentDrawTiming_.framePacingWait += elapsedSeconds;
+			break;
 		case DrawTimingSection::FrameSetup:
 			currentDrawTiming_.frameSetup += elapsedSeconds;
 			break;

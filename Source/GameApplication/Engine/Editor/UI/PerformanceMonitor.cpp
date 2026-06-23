@@ -27,6 +27,7 @@ void PerformanceMonitor::RecordFrameSpike(const EditorDrawContext& ctx){
 	const float gpuMs = ctx.GPUFrameTimeValid
 		? static_cast<float>(ctx.GPUFrameTime * 1000.0)
 		: 0.0f;
+	const float framePacingMs = static_cast<float>(ctx.DrawTiming.framePacingWait * 1000.0);
 	const float renderMs = static_cast<float>(ctx.DrawTiming.renderSchedule * 1000.0);
 	const float editorMs = static_cast<float>(ctx.DrawTiming.editorUIBuild * 1000.0);
 	const float presentMs = static_cast<float>(ctx.DrawTiming.present * 1000.0);
@@ -45,6 +46,7 @@ void PerformanceMonitor::RecordFrameSpike(const EditorDrawContext& ctx){
 	record.updateMilliseconds = updateMs;
 	record.drawMilliseconds = drawMs;
 	record.gpuMilliseconds = gpuMs;
+	record.framePacingMilliseconds = framePacingMs;
 	record.renderMilliseconds = renderMs;
 	record.editorMilliseconds = editorMs;
 	record.presentMilliseconds = presentMs;
@@ -59,6 +61,7 @@ void PerformanceMonitor::RecordFrameSpike(const EditorDrawContext& ctx){
 		}
 	};
 	considerDominant("Update CPU", updateMs);
+	considerDominant("Frame Pacing Wait", framePacingMs);
 	considerDominant("Render Schedule CPU", renderMs);
 	considerDominant("Editor UI CPU", editorMs);
 	considerDominant("Present / Queue Wait", presentMs);
@@ -146,6 +149,7 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 
 	pushMilliseconds(UpdateSamples, Update);
 	pushMilliseconds(DrawSamples, Draw);
+	pushMilliseconds(FramePacingWaitSamples, ctx.DrawTiming.framePacingWait);
 	pushMilliseconds(FrameSetupSamples, ctx.DrawTiming.frameSetup);
 	pushMilliseconds(ImGuiBeginSamples, ctx.DrawTiming.imguiBegin);
 	pushMilliseconds(RenderScheduleSamples, ctx.DrawTiming.renderSchedule);
@@ -257,6 +261,11 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 	if (ImGui::TreeNodeEx("描画CPU / GPU内訳", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::Text("VSync: %s", ctx.VSyncEnabled ? "ON" : "OFF");
 		ImGui::Text("Tearing: %s", ctx.TearingSupported ? "Supported" : "Unsupported");
+		ImGui::Text(
+			"Frame Pacing: %s / Timeouts %llu",
+			ctx.FrameLatencyWaitableObjectEnabled ? "Waitable Object" : "DXGI Fallback",
+			static_cast<unsigned long long>(ctx.FrameLatencyWaitTimeoutCount)
+		);
 		if(ctx.GPUFrameTimeValid){
 			ImGui::Text(
 				"GPU Frame Time: Current %.4fms Avg %.4fms",
@@ -295,13 +304,14 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 			);
 		};
 
+		drawTimingRow("Frame Pacing Wait", "##FramePacingWait", FramePacingWaitSamples);
 		drawTimingRow("Frame Setup", "##DrawFrameSetup", FrameSetupSamples);
 		drawTimingRow("ImGui Begin / UI Frame", "##DrawImGuiBegin", ImGuiBeginSamples);
 		drawTimingRow("Render Schedule CPU", "##DrawRenderSchedule", RenderScheduleSamples);
 		drawTimingRow("Debug Draw CPU", "##DrawDebug", DebugDrawSamples);
 		drawTimingRow("Editor UI Build CPU", "##DrawEditorUI", EditorUIBuildSamples);
 		drawTimingRow("ImGui Render / Platform Windows", "##DrawImGuiRender", ImGuiRenderSamples);
-		drawTimingRow("Present / Queue Wait", "##DrawPresent", PresentSamples);
+		drawTimingRow("Present / Residual Queue Wait", "##DrawPresent", PresentSamples);
 		drawTimingRow("Unaccounted / Timer Overhead", "##DrawUnaccounted", UnaccountedSamples);
 
 		ImGui::TreePop();
@@ -356,10 +366,11 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 					spike.resize ? " [Resize]" : ""
 				);
 				ImGui::TextDisabled(
-					"Update %.3f / Draw %.3f / GPU %.3f / Render %.3f / Editor %.3f / Present %.3f ms",
+					"Update %.3f / Draw %.3f / GPU %.3f / Pacing %.3f / Render %.3f / Editor %.3f / Present %.3f ms",
 					spike.updateMilliseconds,
 					spike.drawMilliseconds,
 					spike.gpuMilliseconds,
+					spike.framePacingMilliseconds,
 					spike.renderMilliseconds,
 					spike.editorMilliseconds,
 					spike.presentMilliseconds

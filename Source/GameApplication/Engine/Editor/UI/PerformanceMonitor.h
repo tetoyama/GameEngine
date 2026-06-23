@@ -39,6 +39,7 @@ private:
 		float updateMilliseconds = 0.0f;
 		float drawMilliseconds = 0.0f;
 		float gpuMilliseconds = 0.0f;
+		float framePacingMilliseconds = 0.0f;
 		float renderMilliseconds = 0.0f;
 		float editorMilliseconds = 0.0f;
 		float presentMilliseconds = 0.0f;
@@ -60,6 +61,7 @@ private:
 	float UpdateSamples[SAMPLE_LENGTH]{};
 	float DrawSamples[SAMPLE_LENGTH]{};
 
+	float FramePacingWaitSamples[SAMPLE_LENGTH]{};
 	float FrameSetupSamples[SAMPLE_LENGTH]{};
 	float ImGuiBeginSamples[SAMPLE_LENGTH]{};
 	float RenderScheduleSamples[SAMPLE_LENGTH]{};

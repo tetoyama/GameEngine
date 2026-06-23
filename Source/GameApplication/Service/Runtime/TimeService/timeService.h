@@ -10,6 +10,7 @@
 // Drawフェーズ内でCPU計測する区間。
 // GPU実行時間は含めず、Timestamp Queryによる計測と明確に分離する。
 enum class DrawTimingSection : unsigned char {
+	FramePacingWait,
 	FrameSetup,
 	ImGuiBegin,
 	RenderSchedule,
@@ -22,6 +23,7 @@ enum class DrawTimingSection : unsigned char {
 // 直前に完了したDrawフレームのCPU時間内訳。
 // 値の単位はTimeServiceの他の時間情報と同じ秒。
 struct DrawTimingBreakdown {
+	double framePacingWait = 0.0;
 	double frameSetup = 0.0;
 	double imguiBegin = 0.0;
 	double renderSchedule = 0.0;
@@ -32,7 +34,8 @@ struct DrawTimingBreakdown {
 	double total = 0.0;
 
 	double GetAccountedTime() const {
-		return frameSetup +
+		return framePacingWait +
+			frameSetup +
 			imguiBegin +
 			renderSchedule +
 			debugDraw +

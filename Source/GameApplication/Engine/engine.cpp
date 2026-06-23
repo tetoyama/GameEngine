@@ -154,6 +154,13 @@ void Engine::Run(EngineContext* context){
 		if(window->GetMainWindow()->ShouldClose()) break;
 
 		time->BeginDraw();
+
+		// SwapChain queueの空きをFrame開始前に待つ。
+		// Present内で不定期にまとめて待たされる状態を避け、独立区間として計測する。
+		time->BeginDrawSection(DrawTimingSection::FramePacingWait);
+		graphics->WaitForFrameLatency();
+		time->EndDrawSection(DrawTimingSection::FramePacingWait);
+
 		graphics->BeginGpuFrameTiming();
 
 		time->BeginDrawSection(DrawTimingSection::FrameSetup);
@@ -184,6 +191,8 @@ void Engine::Run(EngineContext* context){
 			draw.GPUFrameTimeValid = graphics->HasValidGpuFrameTime();
 			draw.VSyncEnabled = config->appConfig.Vsync;
 			draw.TearingSupported = graphics->IsTearingSupported();
+			draw.FrameLatencyWaitableObjectEnabled = graphics->IsFrameLatencyWaitableObjectEnabled();
+			draw.FrameLatencyWaitTimeoutCount = graphics->GetFrameLatencyWaitTimeoutCount();
 			draw.ResizeSerial = renderer->GetResizeSerial();
 			draw.LastResizeCpuTime = renderer->GetLastResizeCpuTimeSeconds();
 
