@@ -1,4 +1,4 @@
-name: Render Packet Binding Migration
+name: Frame Serial Timing Migration
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  migrate-render-packet-bindings:
+  migrate-frame-serial-timing:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,92 +19,23 @@ jobs:
           ref: refactor/ecs-scheduler-foundation
           fetch-depth: 2
 
-      - name: Normalize legacy Renderable declarations
+      - name: Apply frame serial timing migration
+        shell: bash
+        run: python Tools/Migrations/add_gpu_frame_serial_contract.py
+
+      - name: Validate legacy contract removal
         shell: bash
         run: |
-          find Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable \
-            -name '*.h' -type f -print0 | \
-            xargs -0 sed -i 's/)override;/) override;/g'
-
-      - name: Apply Render Packet migration
-        shell: bash
-        run: python Tools/Migrations/add_render_packet_bindings.py
-
-      - name: Apply reviewed safety fixes
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          adapter = Path(
-              'Source/GameApplication/Engine/Scene/System/Render/RenderSystem/'
-              'RenderPacket/RenderPacketTransformDX11.h'
-          )
-          text = adapter.read_text(encoding='utf-8')
-          text = text.replace(
-              '#include <DirectXMath.h>\n',
-              '#include <cstddef>\n#include <DirectXMath.h>\n'
-          )
-          text = text.replace(
-              'for(size_t index = 0;',
-              'for(std::size_t index = 0;'
-          )
-          adapter.write_text(text, encoding='utf-8')
-
-          model = Path(
-              'Source/GameApplication/Engine/Scene/System/Render/RenderSystem/'
-              'Renderable/Model/RenderableModel.cpp'
-          )
-          text = model.read_text(encoding='utf-8')
-          old_uv = '''\t\t\tint column = (int)(textureComponent->UV_Slice_X);\n\t\t\tif(column <= 0){\n\t\t\t\tcolumn = 1;\n\t\t\t}\n'''
-          new_uv = '''\t\t\tconst int column = (std::max)(\n\t\t\t\t1,\n\t\t\t\tstatic_cast<int>(1.0f / textureComponent->UV_Slice_X)\n\t\t\t);\n'''
-          if old_uv not in text:
-              raise RuntimeError('Model UV column calculation was not found')
-          text = text.replace(old_uv, new_uv, 1)
-          text = text.replace(
-              'uv.UVEnd.x = uv.UVStart.x + 1.0f / textureComponent->UV_Slice_X;',
-              'uv.UVEnd.x = uv.UVStart.x + textureComponent->UV_Slice_X;'
-          )
-          text = text.replace(
-              'uv.UVEnd.y = uv.UVStart.y + 1.0f / textureComponent->UV_Slice_Y;',
-              'uv.UVEnd.y = uv.UVStart.y + textureComponent->UV_Slice_Y;'
-          )
-
-          old_buffers = '''\t\tif(!modelRenderer->blendedAnimations.empty()){\n\t\t\tdeviceContext->IASetVertexBuffers(\n\t\t\t\t0,\n\t\t\t\t1,\n\t\t\t\t&modelRenderer->dynamicVertexBuffers[meshIndex],\n\t\t\t\t&stride,\n\t\t\t\t&offset);\n\t\t} else{\n\t\t\tdeviceContext->IASetVertexBuffers(\n\t\t\t\t0,\n\t\t\t\t1,\n\t\t\t\t&model->VertexBuffer[meshIndex],\n\t\t\t\t&stride,\n\t\t\t\t&offset);\n\t\t}\n\n\t\t//------------------------------------------------------------------\n\t\t// Index Buffer\n\t\t//------------------------------------------------------------------\n\n\t\tdeviceContext->IASetIndexBuffer(\n\t\t\tmodel->IndexBuffer[meshIndex],\n\t\t\tDXGI_FORMAT_R32_UINT,\n\t\t\t0);\n'''
-          new_buffers = '''\t\tconst bool hasDynamicVertexBuffer =\n\t\t\t!modelRenderer->blendedAnimations.empty() &&\n\t\t\tmeshIndex < modelRenderer->dynamicVertexBuffers.size() &&\n\t\t\tmodelRenderer->dynamicVertexBuffers[meshIndex] != nullptr;\n\t\tconst bool hasStaticVertexBuffer =\n\t\t\tmeshIndex < model->VertexBuffer.size() &&\n\t\t\tmodel->VertexBuffer[meshIndex] != nullptr;\n\t\tconst bool hasIndexBuffer =\n\t\t\tmeshIndex < model->IndexBuffer.size() &&\n\t\t\tmodel->IndexBuffer[meshIndex] != nullptr;\n\n\t\tif(!hasIndexBuffer || (!hasDynamicVertexBuffer && !hasStaticVertexBuffer)){\n\t\t\tcontinue;\n\t\t}\n\n\t\tID3D11Buffer* vertexBuffer = hasDynamicVertexBuffer\n\t\t\t? modelRenderer->dynamicVertexBuffers[meshIndex]\n\t\t\t: model->VertexBuffer[meshIndex];\n\t\tdeviceContext->IASetVertexBuffers(\n\t\t\t0,\n\t\t\t1,\n\t\t\t&vertexBuffer,\n\t\t\t&stride,\n\t\t\t&offset\n\t\t);\n\n\t\t//------------------------------------------------------------------\n\t\t// Index Buffer\n\t\t//------------------------------------------------------------------\n\n\t\tdeviceContext->IASetIndexBuffer(\n\t\t\tmodel->IndexBuffer[meshIndex],\n\t\t\tDXGI_FORMAT_R32_UINT,\n\t\t\t0);\n'''
-          if old_buffers not in text:
-              raise RuntimeError('Model vertex buffer block was not found')
-          text = text.replace(old_buffers, new_buffers, 1)
-          model.write_text(text, encoding='utf-8')
-          PY
-
-      - name: Validate migration contract
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          root = Path(
-              'Source/GameApplication/Engine/Scene/System/Render/RenderSystem'
-          )
-          violations = []
-          for path in (root / 'Renderable').rglob('*.cpp'):
-              text = path.read_text(encoding='utf-8')
-              if 'sceneContext->component->GetComponent<' in text:
-                  violations.append(f'{path}: ComponentRegistry lookup remains')
-              if 'componentRegistry->GetComponent<' in text:
-                  violations.append(f'{path}: componentRegistry lookup remains')
-              if 'SceneContext* sceneContext, const Entity& entity' in text:
-                  violations.append(f'{path}: legacy Execute signature remains')
-
-          for path in (root / 'RenderPass').rglob('*.cpp'):
-              text = path.read_text(encoding='utf-8')
-              if 'GetContextFromID(packet' in text:
-                  violations.append(f'{path}: submit-time SceneContext lookup remains')
-
-          if violations:
-              raise RuntimeError('\n'.join(violations))
-          PY
+          if grep -RInE \
+            'GetGpuFrameTimeSeconds\(\)|HasValidGpuFrameTime\(\)|GPUFrameTimeValid' \
+            Source/GameApplication; then
+            echo "Legacy GPU timing contract remains"
+            exit 1
+          fi
+          grep -RIn 'BeginGpuFrameTiming(activeFrameSerial)' \
+            Source/GameApplication/Engine/engine.cpp
+          grep -RIn 'ConsumeResolvedGpuFrameTimings' \
+            Source/GameApplication
 
       - name: Commit migrated Source files
         shell: bash
@@ -113,11 +44,11 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add Source
           git diff --cached --exit-code && exit 0
-          git commit -m "feat: complete render packet direct binding migration [skip ci]"
+          git commit -m "feat: join CPU and GPU timings by frame serial [skip ci]"
           git push origin HEAD:refactor/ecs-scheduler-foundation
 
   engine-debug-x64:
-    needs: migrate-render-packet-bindings
+    needs: migrate-frame-serial-timing
     runs-on: windows-latest
 
     steps:
@@ -137,7 +68,7 @@ jobs:
           /verbosity:minimal /consoleloggerparameters:ErrorsOnly
 
   engine-release-x64:
-    needs: migrate-render-packet-bindings
+    needs: migrate-frame-serial-timing
     runs-on: windows-latest
 
     steps:
@@ -157,7 +88,7 @@ jobs:
           /verbosity:minimal /consoleloggerparameters:ErrorsOnly
 
   script-debug-x64:
-    needs: migrate-render-packet-bindings
+    needs: migrate-frame-serial-timing
     runs-on: windows-latest
 
     steps:
@@ -177,7 +108,7 @@ jobs:
           /verbosity:minimal /consoleloggerparameters:ErrorsOnly
 
   script-release-x64:
-    needs: migrate-render-packet-bindings
+    needs: migrate-frame-serial-timing
     runs-on: windows-latest
 
     steps:
