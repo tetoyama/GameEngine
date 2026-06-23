@@ -50,7 +50,7 @@ Player表示の通常GPU時間は引き続き約11msで安定している。
 
 ---
 
-## 採取したSpike
+## Frame Pacing導入前に採取したSpike
 
 ### 通常時 Present支配
 
@@ -100,13 +100,11 @@ Player表示の通常GPU時間は引き続き約11msで安定している。
 - Present: 3.109ms
 - Resize CPU: 2.407ms
 
----
+### 導入前の判断
 
-## 判断
+通常時Spikeでは、GPU Frame Timeが7.8～13.3msの範囲なのにPresentだけが32～69msへ増加していた。
 
-通常時Spikeでは、GPU Frame Timeが7.8～13.3msの範囲なのにPresentだけが32～69msへ増加している。
-
-このため通常Spikeの主要因は、個別GPU Passの実行時間ではなく次の経路と判断する。
+このため通常Spikeの主要因を次の経路と推定した。
 
 1. CPUがGPU / Desktop Compositorより先にFrameをSwapChainへ投入
 2. 2-buffer Flip ModelのQueueにFrameが滞留
@@ -179,37 +177,223 @@ Frame Pacing導入後もPresentに大きな待機が残る場合、Desktop Windo
 
 ---
 
+## 2026-06-24 Frame Pacing導入後の追加観測
+
+Frame Pacing導入後、従来30～70msへ跳ねていた`Present`は約0.06～0.11msまで低下し、待機は`Frame Pacing Wait`へ移動した。
+
+### Frame 13481
+
+- Peak: 34.703ms
+- Dominant: GPU Frame 34.703ms
+- Update: 1.143ms
+- Draw: 23.662ms
+- GPU: 34.703ms
+- Frame Pacing Wait: 13.908ms
+- Render Schedule: 8.271ms
+- Editor UI: 1.044ms
+- Present: 0.065ms
+
+### Frame 13361
+
+- Peak: 39.613ms
+- Dominant: Frame Pacing Wait 29.676ms
+- Update: 0.982ms
+- Draw: 39.613ms
+- GPU: 20.244ms
+- Frame Pacing Wait: 29.676ms
+- Render Schedule: 8.301ms
+- Editor UI: 1.064ms
+- Present: 0.061ms
+
+### Frame 11142
+
+- Peak: 35.966ms
+- Dominant: GPU Frame 35.966ms
+- Update: 1.092ms
+- Draw: 26.487ms
+- GPU: 35.966ms
+- Frame Pacing Wait: 15.466ms
+- Render Schedule: 9.398ms
+- Editor UI: 1.119ms
+- Present: 0.107ms
+
+### Frame 9889
+
+- Peak: 43.384ms
+- Dominant: Frame Pacing Wait 33.987ms
+- Update: 1.997ms
+- Draw: 43.384ms
+- GPU: 17.381ms
+- Frame Pacing Wait: 33.987ms
+- Render Schedule: 6.227ms
+- Editor UI: 2.444ms
+- Present: 0.098ms
+
+### 追加観測から確定したこと
+
+- Frame Pacing自体は機能している
+- 待機位置は`Present`から`Frame Pacing Wait`へ移動した
+- `Present / Residual Queue Wait`の30～70ms Spikeは解消している
+- UpdateとEditor UIは主要因ではない
+- 残るSpikeはGPU / DWM / Driver / OS Schedulerによる前フレーム消費遅延、またはGPU計測値とCPUフレームの対応不一致を含む
+
+---
+
+## 現在の計測上の制約
+
+GPU Timestamp Queryは4フレームリングで非同期回収している。
+
+現在の実装ではQuery Setへ計測対象のFrame Serialを保持しておらず、回収できた最後のGPU時間を単一の`GPU Frame Time`として表示している。
+
+そのため、Spike履歴上の次の値は必ずしも同一フレームではない。
+
+- Update CPU
+- Draw CPU
+- Frame Pacing Wait
+- Render Schedule CPU
+- GPU Frame Time
+
+例として、Frame 9889へ表示されたGPU 17.381msは、Frame 9889より数フレーム前のGPU実行時間である可能性がある。
+
+したがって、現状のログだけで次を断定してはならない。
+
+- GPU 17msのフレームが直接34msのPacing待機を発生させた
+- GPU 35msと同一フレームでRender Scheduleが9msだった
+- GPU SpikeとCPU Spikeが必ず同時発生した
+
+この制約を解消するまで、GPU / CPUの因果関係は仮説として扱う。
+
+---
+
+## 次の計測契約
+
+### 1. GPU QueryへFrame Serialを付与
+
+各`GpuFrameTimingQuerySet`へ次を保持する。
+
+- submittedFrameSerial
+- begin / end Timestamp
+- pending state
+- valid state
+
+### 2. GPU計測結果を構造体で返す
+
+単一の`double`ではなく、次を返す。
+
+```cpp
+struct GpuFrameTimingResult {
+    uint64_t frameSerial;
+    double seconds;
+    bool valid;
+};
+```
+
+### 3. CPU Frame履歴をリング保持
+
+CPU側も次をFrame Serial付きで保持する。
+
+- Update
+- Draw
+- Frame Pacing Wait
+- Render Schedule
+- Editor UI
+- Present
+- Resize / Startup flags
+
+### 4. 同じFrame Serial同士だけを結合
+
+GPU Query回収時に、同じSerialのCPU Frame RecordへGPU時間を追記する。
+
+GPU結果が未回収のFrameは、GPU値を0や直前値で代用せず`pending`として表示する。
+
+### 5. GPU Pass単位Timestampへ拡張
+
+Frame対応付け完了後、次を個別計測する。
+
+- Shadow
+- GBuffer
+- Lighting
+- Forward
+- PostEffect
+- ImGui / BackBuffer Composition
+
+同一フレーム内のGPU Pass合計とGPU Frame Timeを比較し、Driver / DWM側の未計測時間も確認する。
+
+---
+
+## 現時点の原因候補
+
+優先順ではなく、現時点で残る候補を分離して記録する。
+
+### A. 実際のGPU処理Spike
+
+Frame 13481や11142ではGPU Frame Timeが約35msと表示されている。
+
+候補:
+
+- Shadow Map
+- GBuffer
+- Lighting
+- PostEffect
+- ImGui / BackBuffer Composition
+- Dynamic Buffer / Texture Upload
+- Driver内でのCommand実行偏り
+
+ただしFrame Serial未対応のため、同じSpike FrameのGPU時間とは未確定。
+
+### B. GPU / DWM / OS Schedulerの消費遅延
+
+Frame Pacing Waitは前フレームを次へ進められる状態になるまでの待機であり、次の影響を含み得る。
+
+- GPU Schedulerによる他Processとの切替
+- Desktop Window Manager Composition
+- Driver内部処理
+- Window Occlusion / Monitor同期
+- OS Schedulerによる一時停止
+
+### C. GPU QueryとCPU Frameの対応不一致
+
+現在最も優先して除外すべき計測上の不確実性。
+
+Frame Serial対応後に、AとBを再判定する。
+
+---
+
 ## 検証項目
 
 ### Build
 
-- [ ] Engine Debug x64
-- [ ] Engine Release x64
-- [ ] Script Debug x64
-- [ ] Script Release x64
-- [ ] RHI Smoke Test
-- [ ] D3D11 Real Triangle Smoke
+- [x] Engine Debug x64
+- [x] Engine Release x64
+- [x] Script Debug x64
+- [x] Script Release x64
+- [x] RHI Smoke Test
+- [x] D3D11 Real Triangle Smoke
 
 ### Runtime
 
-- [ ] `Frame Pacing: Waitable Object`表示
+- [x] `Frame Pacing: Waitable Object`相当の待機を確認
+- [x] Present平均の低下
+- [x] Present 30～70ms Spikeの減少
+- [x] Frame Pacing Waitへ通常待機が移動
+- [x] Player / Editor描画を確認
+- [x] VSync OFF実機確認
 - [ ] Timeout countが通常0
-- [ ] Present平均の低下
-- [ ] Present 30～70ms Spikeの減少
-- [ ] Frame Pacing Waitへ通常待機が移動
-- [ ] Player / Editor描画回帰なし
-- [ ] Resize後の描画回帰なし
-- [ ] VSync OFF実機確認
+- [ ] Resize後の描画回帰確認
 - [ ] VSync ON実機確認
+- [ ] GPU QueryとCPU FrameのSerial対応
+- [ ] GPU Pass単位Timestamp
 
 ---
 
-## 次の判断
+## 次の作業順
 
-Frame Pacing後もSpikeが発生した場合、記録位置で分類する。
+1. GPU Query SetへFrame Serialを追加
+2. CPU Frame RecordをSerial付きリングバッファ化
+3. GPU / CPUを同じSerialで結合
+4. Spike DiagnosticsのGPU値を`pending / resolved`表示へ変更
+5. GPU Pass単位Timestampを追加
+6. GPU実行SpikeとDWM / Driver待機を再判定
+7. Resize専用warm-up経路を別途調査
 
-- `Frame Pacing Wait`支配: GPU / Compositorの消費待ち
-- `Present / Residual Queue Wait`支配: DXGI / DWM / Driver側の追加Block
-- `GPU Frame`支配: GPU Pass単位Timestampへ進む
-- `Render Schedule CPU`支配: MainThread描画SubmitとIRenderable内部参照を調査
-- `[Resize]`: Resize専用warm-up経路を調査
+Frame Serial対応が完了するまでは、GPU Frame Timeと同じ行に表示されたCPU値を直接の因果関係として扱わない。
