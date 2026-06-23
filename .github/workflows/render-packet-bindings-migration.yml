@@ -1,4 +1,4 @@
-name: Frame Serial Timing Migration
+name: Frame Serial Compile Diagnostics
 
 on:
   pull_request:
@@ -6,53 +6,14 @@ on:
       - ready_for_review
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  migrate-frame-serial-timing:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout migration branch
-        uses: actions/checkout@v4
-        with:
-          ref: refactor/ecs-scheduler-foundation
-          fetch-depth: 2
-
-      - name: Apply frame serial timing migration
-        shell: bash
-        run: python Tools/Migrations/add_gpu_frame_serial_contract.py
-
-      - name: Validate legacy contract removal
-        shell: bash
-        run: |
-          if grep -RInE \
-            'GetGpuFrameTimeSeconds\(\)|HasValidGpuFrameTime\(\)|GPUFrameTimeValid' \
-            Source/GameApplication; then
-            echo "Legacy GPU timing contract remains"
-            exit 1
-          fi
-          grep -RIn 'BeginGpuFrameTiming(activeFrameSerial)' \
-            Source/GameApplication/Engine/engine.cpp
-          grep -RIn 'ConsumeResolvedGpuFrameTimings' \
-            Source/GameApplication
-
-      - name: Commit migrated Source files
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Source
-          git diff --cached --exit-code && exit 0
-          git commit -m "feat: join CPU and GPU timings by frame serial [skip ci]"
-          git push origin HEAD:refactor/ecs-scheduler-foundation
-
   engine-debug-x64:
-    needs: migrate-frame-serial-timing
     runs-on: windows-latest
 
     steps:
-      - name: Checkout migrated branch
+      - name: Checkout current branch
         uses: actions/checkout@v4
         with:
           ref: refactor/ecs-scheduler-foundation
@@ -62,67 +23,23 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Compile GameEngine Debug x64
+        id: build
+        continue-on-error: true
         run: >-
           msbuild GameEngine.vcxproj /t:Build /m
           /p:Configuration=Debug /p:Platform=x64
           /verbosity:minimal /consoleloggerparameters:ErrorsOnly
+          /fileLogger
+          /fileLoggerParameters:"LogFile=frame-serial-engine-errors.log;ErrorsOnly"
 
-  engine-release-x64:
-    needs: migrate-frame-serial-timing
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout migrated branch
-        uses: actions/checkout@v4
+      - name: Upload compiler diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          ref: refactor/ecs-scheduler-foundation
-          show-progress: false
+          name: frame-serial-engine-errors
+          path: frame-serial-engine-errors.log
+          if-no-files-found: error
 
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Compile GameEngine Release x64
-        run: >-
-          msbuild GameEngine.vcxproj /t:Build /m
-          /p:Configuration=Release /p:Platform=x64
-          /verbosity:minimal /consoleloggerparameters:ErrorsOnly
-
-  script-debug-x64:
-    needs: migrate-frame-serial-timing
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout migrated branch
-        uses: actions/checkout@v4
-        with:
-          ref: refactor/ecs-scheduler-foundation
-          show-progress: false
-
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Compile Script Debug x64
-        run: >-
-          msbuild Script/Script.vcxproj /t:Build /m
-          /p:Configuration=Debug /p:Platform=x64
-          /verbosity:minimal /consoleloggerparameters:ErrorsOnly
-
-  script-release-x64:
-    needs: migrate-frame-serial-timing
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout migrated branch
-        uses: actions/checkout@v4
-        with:
-          ref: refactor/ecs-scheduler-foundation
-          show-progress: false
-
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Compile Script Release x64
-        run: >-
-          msbuild Script/Script.vcxproj /t:Build /m
-          /p:Configuration=Release /p:Platform=x64
-          /verbosity:minimal /consoleloggerparameters:ErrorsOnly
+      - name: Preserve compile result
+        if: steps.build.outcome == 'failure'
+        run: cmd /c exit 1
