@@ -9,7 +9,9 @@ def read(path: str) -> str:
 
 
 def write(path: str, text: str) -> None:
-    (ROOT / path).write_text(text, encoding="utf-8")
+    target = ROOT / path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(text, encoding="utf-8")
 
 
 def replace_once(text: str, old: str, new: str, label: str) -> str:
@@ -19,15 +21,20 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
     return text.replace(old, new, 1)
 
 
+PACKET_HEADER = "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
+PACKET_DX11 = "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketTransformDX11.h"
+IRENDERABLE = "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/IRenderable.h"
+RENDER_SYSTEM = "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.cpp"
+
+
 # ---------------------------------------------------------------------------
-# RenderPacket: capture all component bindings and the final world matrix.
+# API-independent packet matrix. DirectX conversion remains outside the packet.
 # ---------------------------------------------------------------------------
-packet_path = "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
-text = read(packet_path)
+text = read(PACKET_HEADER)
 text = replace_once(
     text,
     '#include "System/Render/RenderSystem/renderLayer.h"\n',
-    '#include "System/Render/RenderSystem/renderLayer.h"\n#include <DirectXMath.h>\n\n'
+    '#include "System/Render/RenderSystem/renderLayer.h"\n\n'
     'struct SceneContext;\n'
     'class TransformComponent;\n'
     'class MaterialComponent;\n'
@@ -40,7 +47,7 @@ text = replace_once(
     'class TerrainComponent;\n'
     'class WaveComponent;\n'
     'class EffectComponent;\n',
-    "RenderPacket forward declarations",
+    "RenderPacket declarations",
 )
 text = replace_once(
     text,
@@ -50,13 +57,25 @@ text = replace_once(
     '\tfloat rotation[4] = {0.0f, 0.0f, 0.0f, 1.0f};\n'
     '\tfloat scale[3] = {1.0f, 1.0f, 1.0f};\n'
     '};',
+    'struct RenderPacketMatrix4x4 {\n'
+    '\tfloat values[16] = {\n'
+    '\t\t1.0f, 0.0f, 0.0f, 0.0f,\n'
+    '\t\t0.0f, 1.0f, 0.0f, 0.0f,\n'
+    '\t\t0.0f, 0.0f, 1.0f, 0.0f,\n'
+    '\t\t0.0f, 0.0f, 0.0f, 1.0f\n'
+    '\t};\n'
+    '};\n\n'
     'struct RenderPacketTransformSnapshot {\n'
     '\tfloat position[3] = {0.0f, 0.0f, 0.0f};\n'
     '\tfloat worldPosition[3] = {0.0f, 0.0f, 0.0f};\n'
     '\tfloat rotation[4] = {0.0f, 0.0f, 0.0f, 1.0f};\n'
     '\tfloat scale[3] = {1.0f, 1.0f, 1.0f};\n'
-    '\tDirectX::XMFLOAT4X4 worldMatrix{};\n'
+    '\tRenderPacketMatrix4x4 worldMatrix;\n'
+    '\tRenderPacketMatrix4x4 parentWorldMatrix;\n'
+    '\tbool hasParentWorld = false;\n'
     '};\n\n'
+    '// Frame-local, non-owning bindings. Scheduler read hazards and the\n'
+    '// MainThread submit barrier keep these addresses stable until submit ends.\n'
     'struct RenderPacketComponentBindings {\n'
     '\tSceneContext* sceneContext = nullptr;\n'
     '\tTransformComponent* transform = nullptr;\n'
@@ -71,23 +90,60 @@ text = replace_once(
     '\tWaveComponent* wave = nullptr;\n'
     '\tEffectComponent* effect = nullptr;\n'
     '};',
-    "RenderPacket snapshot and bindings",
+    "RenderPacket snapshot",
 )
 text = replace_once(
     text,
     '\tRenderPacketTransformSnapshot transform;\n};',
     '\tRenderPacketTransformSnapshot transform;\n'
     '\tRenderPacketComponentBindings bindings;\n};',
-    "RenderPacket binding member",
+    "RenderPacket bindings member",
 )
-write(packet_path, text)
+write(PACKET_HEADER, text)
+
+write(
+    PACKET_DX11,
+    '''#pragma once
+
+#include <DirectXMath.h>
+
+#include "RenderPacket.h"
+
+inline void StoreRenderPacketMatrix(
+    RenderPacketMatrix4x4& destination,
+    DirectX::FXMMATRIX matrix
+) noexcept {
+    DirectX::XMFLOAT4X4 value{};
+    DirectX::XMStoreFloat4x4(&value, matrix);
+    const float source[16] = {
+        value._11, value._12, value._13, value._14,
+        value._21, value._22, value._23, value._24,
+        value._31, value._32, value._33, value._34,
+        value._41, value._42, value._43, value._44
+    };
+    for(size_t index = 0; index < 16; ++index){
+        destination.values[index] = source[index];
+    }
+}
+
+inline DirectX::XMMATRIX LoadRenderPacketMatrix(
+    const RenderPacketMatrix4x4& source
+) noexcept {
+    return DirectX::XMMatrixSet(
+        source.values[0], source.values[1], source.values[2], source.values[3],
+        source.values[4], source.values[5], source.values[6], source.values[7],
+        source.values[8], source.values[9], source.values[10], source.values[11],
+        source.values[12], source.values[13], source.values[14], source.values[15]
+    );
+}
+'''
+)
 
 
 # ---------------------------------------------------------------------------
-# IRenderable now receives the immutable frame packet directly.
+# Submit interface consumes a complete packet, not an Entity lookup key.
 # ---------------------------------------------------------------------------
-interface_path = "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/IRenderable.h"
-text = read(interface_path)
+text = read(IRENDERABLE)
 text = replace_once(
     text,
     '#include "Scene/Entity/Entity.h"\n',
@@ -106,17 +162,30 @@ text = replace_once(
     '\t\tconst RenderPassContext& ctx,\n'
     '\t\tconst RenderPacket& packet\n'
     '\t) = 0;',
-    "IRenderable Execute signature",
+    "IRenderable signature",
 )
-write(interface_path, text)
+write(IRENDERABLE, text)
 
 
 # ---------------------------------------------------------------------------
-# RenderSystem packet build captures stable component pointers and world matrix.
-# Scheduler hazards keep these bindings valid until MainThread submit completes.
+# Packet extraction captures all bindings and final hierarchy matrices once.
 # ---------------------------------------------------------------------------
-render_system_path = "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.cpp"
-text = read(render_system_path)
+text = read(RENDER_SYSTEM)
+text = replace_once(
+    text,
+    '#include "System/Render/RenderSystem/renderLayer.h"\n',
+    '#include "System/Render/RenderSystem/renderLayer.h"\n'
+    '#include "System/Render/RenderSystem/RenderPacket/RenderPacketTransformDX11.h"\n',
+    "RenderSystem matrix adapter include",
+)
+text = replace_once(
+    text,
+    '\t\t\tconst TransformComponent* transform =\n'
+    '\t\t\t\tcomponents->GetComponent<TransformComponent>(entity);',
+    '\t\t\tTransformComponent* transform =\n'
+    '\t\t\t\tcomponents->GetComponent<TransformComponent>(entity);',
+    "mutable frame binding",
+)
 text = replace_once(
     text,
     '\t\t\tconst MaterialComponent* materialComponent =\n'
@@ -155,11 +224,21 @@ text = replace_once(
     '\t\t\tsnapshot.scale[0] = transform->scale.x;\n'
     '\t\t\tsnapshot.scale[1] = transform->scale.y;\n'
     '\t\t\tsnapshot.scale[2] = transform->scale.z;\n'
-    '\t\t\tDirectX::XMStoreFloat4x4(\n'
-    '\t\t\t\t&snapshot.worldMatrix,\n'
+    '\t\t\tStoreRenderPacketMatrix(\n'
+    '\t\t\t\tsnapshot.worldMatrix,\n'
     '\t\t\t\ttransform->CalculateWorldMatrix(transform, components)\n'
-    '\t\t\t);\n',
-    "packet world matrix snapshot",
+    '\t\t\t);\n'
+    '\t\t\tif(transform->parent){\n'
+    '\t\t\t\tif(TransformComponent* parentTransform =\n'
+    '\t\t\t\t\tcomponents->GetComponent<TransformComponent>(transform->parent)){\n'
+    '\t\t\t\t\tStoreRenderPacketMatrix(\n'
+    '\t\t\t\t\t\tsnapshot.parentWorldMatrix,\n'
+    '\t\t\t\t\t\tparentTransform->CalculateWorldMatrix(parentTransform, components)\n'
+    '\t\t\t\t\t);\n'
+    '\t\t\t\t\tsnapshot.hasParentWorld = true;\n'
+    '\t\t\t\t}\n'
+    '\t\t\t}\n',
+    "packet matrix capture",
 )
 text = replace_once(
     text,
@@ -181,7 +260,7 @@ text = replace_once(
     '\t\t\t\tpacket.bindings.wave = wave;\n'
     '\t\t\t\tpacket.bindings.effect = effect;\n'
     '\t\t\t\tworker.Add(std::move(packet));',
-    "packet binding publication",
+    "packet binding publish",
 )
 for component, variable in [
     ("ModelRendererComponent", "modelRenderer"),
@@ -197,11 +276,18 @@ for component, variable in [
         f'if(components->GetComponent<{component}>(entity)){{',
         f'if({variable}){{'
     )
-write(render_system_path, text)
+text = replace_once(
+    text,
+    '\t\t.ReadComponent<MaterialComponent>()\n',
+    '\t\t.ReadComponent<MaterialComponent>()\n'
+    '\t\t.ReadComponent<TextureComponent>()\n',
+    "Texture read access",
+)
+write(RENDER_SYSTEM, text)
 
 
 # ---------------------------------------------------------------------------
-# Passes submit packets directly; scene lookup is no longer part of draw submit.
+# Passes no longer resolve SceneContext during command submission.
 # ---------------------------------------------------------------------------
 pass_files = [
     "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/GBuffer/GBufferPass.cpp",
@@ -212,37 +298,50 @@ pass_files = [
 for path in pass_files:
     text = read(path)
     text = re.sub(
-        r'\n\s*SceneContext\* sceneContext\s*=\s*\n?\s*m_context->sceneManager->GetContextFromID\(packet\.sceneContextID\);\s*\n\s*if\(!sceneContext\) continue;\s*\n',
+        r'\n\s*SceneContext\* sceneContext\s*=\s*\n?\s*m_context->sceneManager->GetContextFromID\((?:packet\.|packet->)sceneContextID\);\s*\n\s*if\(!sceneContext\) (?:continue|return);\s*\n',
         '\n',
         text,
     )
-    text, count = re.subn(
-        r'renderable->Execute\(([^;]*?),\s*sceneContext,\s*packet\.entity\);',
-        r'renderable->Execute(\1, packet);',
-        text,
-    )
-    if count == 0:
-        raise RuntimeError(f"{path}: no packet Execute call migrated")
+    replacements = {
+        'renderable->Execute(newCtx, sceneContext, packet.entity);':
+            'renderable->Execute(newCtx, packet);',
+        'renderable->Execute(ctx, sceneContext, packet.entity);':
+            'renderable->Execute(ctx, packet);',
+        'renderable->Execute(newContext, sceneContext, packet.entity);':
+            'renderable->Execute(newContext, packet);',
+        'renderable->Execute(ctx, sceneContext, packet->entity);':
+            'renderable->Execute(ctx, *packet);',
+    }
+    replaced = 0
+    for old, new in replacements.items():
+        if old in text:
+            text = text.replace(old, new)
+            replaced += 1
+    if replaced == 0:
+        raise RuntimeError(f"{path}: packet submit call was not found")
     write(path, text)
 
 
 # ---------------------------------------------------------------------------
-# All Renderable declarations and definitions consume packet bindings.
+# All concrete Renderables consume packet bindings.
 # ---------------------------------------------------------------------------
 renderable_root = ROOT / "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable"
-headers = [p for p in renderable_root.rglob("*.h") if p.name != "IRenderable.h"]
+headers = [path for path in renderable_root.rglob("*.h") if path.name != "IRenderable.h"]
+header_count = 0
 for file in headers:
     text = file.read_text(encoding="utf-8-sig")
-    new_text, count = re.subn(
+    text, count = re.subn(
         r'void Execute\(\s*const RenderPassContext& ctx,\s*SceneContext\* sceneContext,\s*const Entity& entity\s*\) override;',
         'void Execute(\n\t\tconst RenderPassContext& ctx,\n\t\tconst RenderPacket& packet\n\t) override;',
         text,
         flags=re.S,
     )
     if count:
-        file.write_text(new_text, encoding="utf-8")
+        header_count += count
+        file.write_text(text, encoding="utf-8")
+if header_count != 8:
+    raise RuntimeError(f"expected 8 Renderable headers, migrated {header_count}")
 
-cpp_files = list(renderable_root.rglob("*.cpp"))
 component_fields = {
     "TransformComponent": "transform",
     "MaterialComponent": "material",
@@ -256,21 +355,27 @@ component_fields = {
     "WaveComponent": "wave",
     "EffectComponent": "effect",
 }
+cpp_files = list(renderable_root.rglob("*.cpp"))
+cpp_count = 0
 for file in cpp_files:
     text = file.read_text(encoding="utf-8-sig")
-    pattern = (
-        r'(void\s+\w+::Execute\(\s*const RenderPassContext& ctx,\s*)'
-        r'SceneContext\* sceneContext,\s*const Entity& entity\s*\)\s*\{'
+    text, count = re.subn(
+        r'(void\s+\w+::Execute\(\s*const RenderPassContext& ctx,\s*)SceneContext\* sceneContext,\s*const Entity& entity\s*\)\s*\{',
+        r'\1const RenderPacket& packet){\n\tSceneContext* sceneContext = packet.bindings.sceneContext;\n\tconst Entity& entity = packet.entity;\n\tif(!sceneContext) return;',
+        text,
+        flags=re.S,
     )
-    replacement = (
-        r'\1const RenderPacket& packet){\n'
-        r'\tSceneContext* sceneContext = packet.bindings.sceneContext;\n'
-        r'\tconst Entity& entity = packet.entity;\n'
-        r'\tif(!sceneContext) return;'
-    )
-    text, signature_count = re.subn(pattern, replacement, text, flags=re.S)
-    if signature_count == 0:
+    if count == 0:
         continue
+    cpp_count += count
+
+    include_anchor = '#include "../../RenderPass/RenderPassContext.h"\n'
+    if include_anchor in text and "RenderPacketTransformDX11.h" not in text:
+        text = text.replace(
+            include_anchor,
+            include_anchor + '#include "../../RenderPacket/RenderPacketTransformDX11.h"\n',
+            1,
+        )
 
     for component, field in component_fields.items():
         text = re.sub(
@@ -278,26 +383,156 @@ for file in cpp_files:
             f'packet.bindings.{field}',
             text,
         )
-
-    text = re.sub(
-        r'transform->CalculateWorldMatrix\(\s*transform,\s*sceneContext->component\s*\)',
-        'DirectX::XMLoadFloat4x4(&packet.transform.worldMatrix)',
-        text,
-        flags=re.S,
-    )
+        text = re.sub(
+            rf'componentRegistry->GetComponent<{component}>\(entity\)',
+            f'packet.bindings.{field}',
+            text,
+        )
 
     file.write_text(text, encoding="utf-8")
 
+if cpp_count != 8:
+    raise RuntimeError(f"expected 8 Renderable definitions, migrated {cpp_count}")
 
-# Hard guard: Renderable submit must not perform component lookup anymore.
-violations = []
+
+def patch_file(path: str, replacements: list[tuple[str, str]]) -> None:
+    text = read(path)
+    for index, (old, new) in enumerate(replacements):
+        text = replace_once(text, old, new, f"{path} patch {index}")
+    write(path, text)
+
+
+patch_file(
+    "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Model/RenderableModel.cpp",
+    [
+        (
+            '\tDirectX::XMMATRIX world =\n'
+            '\t\ttransform->CalculateWorldMatrix(\n'
+            '\t\t\ttransform,\n'
+            '\t\t\tsceneContext->component);',
+            '\tDirectX::XMMATRIX world =\n'
+            '\t\tLoadRenderPacketMatrix(packet.transform.worldMatrix);'
+        ),
+    ],
+)
+
+patch_file(
+    "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Mesh/RenderableMesh.cpp",
+    [
+        ('\tComponentRegistry* componentRegistry = sceneContext->component;\n', ''),
+        (
+            '\tDirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, componentRegistry);',
+            '\tDirectX::XMMATRIX World =\n'
+            '\t\tLoadRenderPacketMatrix(packet.transform.worldMatrix);'
+        ),
+    ],
+)
+
+patch_file(
+    "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Sprite/RenderableSprite.cpp",
+    [
+        ('\tComponentRegistry* componentRegistry = sceneContext->component;\n', ''),
+        (
+            '\tDirectX::XMMATRIX World = newTransform.CalculateWorldMatrix(&newTransform, componentRegistry);',
+            '\tDirectX::XMMATRIX World = TransformMath::CalculateLocalMatrix(newTransform);\n'
+            '\tif(packet.transform.hasParentWorld){\n'
+            '\t\tWorld = World * LoadRenderPacketMatrix(packet.transform.parentWorldMatrix);\n'
+            '\t}'
+        ),
+    ],
+)
+
+billboard_path = "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/BillBoard/RenderableBillBoard.cpp"
+text = read(billboard_path)
+text = replace_once(text, '\tComponentRegistry* componentRegistry = sceneContext->component;\n', '', "billboard registry")
+parent_pattern = re.compile(
+    r'\n\tif\(transform->parent != 0\)\{.*?\n\t\}',
+    flags=re.S,
+)
+parent_replacement = '''
+	if(packet.transform.hasParentWorld){
+		const DirectX::XMMATRIX parentWorld =
+			LoadRenderPacketMatrix(packet.transform.parentWorldMatrix);
+		DirectX::XMVECTOR parentScale, parentRotation, parentTranslation;
+		DirectX::XMMatrixDecompose(
+			&parentScale,
+			&parentRotation,
+			&parentTranslation,
+			parentWorld
+		);
+		WorldMatrix = LocalMatrix *
+			DirectX::XMMatrixTranslationFromVector(parentTranslation);
+	}'''
+text, count = parent_pattern.subn(parent_replacement, text, count=1)
+if count != 1:
+    raise RuntimeError("billboard parent transform block was not found")
+write(billboard_path, text)
+
+patch_file(
+    "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Terrain/RenderableTerrain.cpp",
+    [
+        (
+            '\tDirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, sceneContext->component);',
+            '\tDirectX::XMMATRIX World =\n'
+            '\t\tLoadRenderPacketMatrix(packet.transform.worldMatrix);'
+        ),
+    ],
+)
+
+wave_path = "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Wave/RenderableWave.cpp"
+text = read(wave_path)
+text = replace_once(text, '\tauto componentRegistry = sceneContext->component;\n', '', "wave registry")
+text = text.replace(
+    '\tauto pTransform = componentRegistry->GetComponent<TransformComponent>(entity);',
+    '\tauto pTransform = packet.bindings.transform;'
+)
+text = text.replace(
+    '\tauto pWave = componentRegistry->GetComponent<WaveComponent>(entity);',
+    '\tauto pWave = packet.bindings.wave;'
+)
+text = replace_once(
+    text,
+    '\tDirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, componentRegistry);',
+    '\tDirectX::XMMATRIX World =\n'
+    '\t\tLoadRenderPacketMatrix(packet.transform.worldMatrix);',
+    "wave world matrix",
+)
+write(wave_path, text)
+
+# Correct the known UV cell-size inversion while these submitters are migrated.
+for path in [
+    "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/BillBoard/RenderableBillBoard.cpp",
+    "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Particle/RenderableParticle.cpp",
+    "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Terrain/RenderableTerrain.cpp",
+]:
+    text = read(path)
+    text = text.replace(
+        'uv.UVEnd.x = uv.UVStart.x + 1.0f / pTexture->UV_Slice_X;',
+        'uv.UVEnd.x = uv.UVStart.x + pTexture->UV_Slice_X;'
+    )
+    text = text.replace(
+        'uv.UVEnd.y = uv.UVStart.y + 1.0f / pTexture->UV_Slice_Y;',
+        'uv.UVEnd.y = uv.UVStart.y + pTexture->UV_Slice_Y;'
+    )
+    write(path, text)
+
+# Hard guards: command submit and Renderables may not look up drawable components.
+violations: list[str] = []
 for file in cpp_files:
     text = file.read_text(encoding="utf-8")
     if "sceneContext->component->GetComponent<" in text:
         violations.append(str(file.relative_to(ROOT)))
+    if "componentRegistry->GetComponent<" in text:
+        violations.append(str(file.relative_to(ROOT)))
+    if "CalculateWorldMatrix(" in text and file.name != "RenderableParticle.cpp":
+        violations.append(str(file.relative_to(ROOT)) + " (world lookup remains)")
+
+for path in pass_files:
+    text = read(path)
+    if "GetContextFromID(packet" in text:
+        violations.append(path + " (SceneContext lookup remains)")
+
 if violations:
-    raise RuntimeError(
-        "Renderable ComponentRegistry lookup remains:\n" + "\n".join(violations)
-    )
+    raise RuntimeError("Render Packet migration incomplete:\n" + "\n".join(sorted(set(violations))))
 
 print("Render Packet direct binding migration completed.")
