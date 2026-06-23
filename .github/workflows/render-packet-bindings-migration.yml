@@ -1,4 +1,4 @@
-name: Render Packet Migration Diagnostics
+name: Render Packet Binding Migration
 
 on:
   pull_request:
@@ -6,10 +6,10 @@ on:
       - ready_for_review
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  diagnose-render-packet-migration:
+  migrate-render-packet-bindings:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,6 +18,13 @@ jobs:
         with:
           ref: refactor/ecs-scheduler-foundation
           fetch-depth: 2
+
+      - name: Normalize legacy Renderable declarations
+        shell: bash
+        run: |
+          find Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable \
+            -name '*.h' -type f -print0 | \
+            xargs -0 sed -i 's/)override;/) override;/g'
 
       - name: Run migration and capture diagnostics
         id: migration
@@ -37,8 +44,132 @@ jobs:
           path: render-packet-migration.log
           if-no-files-found: error
 
-      - name: Preserve migration result
+      - name: Stop on migration failure
         if: steps.migration.outputs.status != '0'
         run: |
           cat render-packet-migration.log
           exit 1
+
+      - name: Restore normal workflow and remove temporary migration files
+        if: steps.migration.outputs.status == '0'
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/windows-build.yml')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace(
+              "if: github.event_name == 'push' || github.event.action == 'reopened'",
+              "if: github.event_name == 'push'"
+          )
+          path.write_text(text, encoding='utf-8')
+          PY
+          rm -f Tools/Migrations/add_render_packet_bindings.py
+          rm -f .github/workflows/render-packet-bindings-migration.yml
+
+      - name: Commit migration result
+        if: steps.migration.outputs.status == '0'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --exit-code && exit 0
+          git commit -m "feat: complete render packet direct binding migration [skip ci]"
+          git push origin HEAD:refactor/ecs-scheduler-foundation
+
+  engine-debug-x64:
+    needs: migrate-render-packet-bindings
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout migrated branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          show-progress: false
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Compile GameEngine Debug x64
+        run: >-
+          msbuild GameEngine.vcxproj
+          /t:Build
+          /m
+          /p:Configuration=Debug
+          /p:Platform=x64
+          /verbosity:minimal
+          /consoleloggerparameters:ErrorsOnly
+
+  engine-release-x64:
+    needs: migrate-render-packet-bindings
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout migrated branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          show-progress: false
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Compile GameEngine Release x64
+        run: >-
+          msbuild GameEngine.vcxproj
+          /t:Build
+          /m
+          /p:Configuration=Release
+          /p:Platform=x64
+          /verbosity:minimal
+          /consoleloggerparameters:ErrorsOnly
+
+  script-debug-x64:
+    needs: migrate-render-packet-bindings
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout migrated branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          show-progress: false
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Compile Script Debug x64
+        run: >-
+          msbuild Script/Script.vcxproj
+          /t:Build
+          /m
+          /p:Configuration=Debug
+          /p:Platform=x64
+          /verbosity:minimal
+          /consoleloggerparameters:ErrorsOnly
+
+  script-release-x64:
+    needs: migrate-render-packet-bindings
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout migrated branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          show-progress: false
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Compile Script Release x64
+        run: >-
+          msbuild Script/Script.vcxproj
+          /t:Build
+          /m
+          /p:Configuration=Release
+          /p:Platform=x64
+          /verbosity:minimal
+          /consoleloggerparameters:ErrorsOnly
