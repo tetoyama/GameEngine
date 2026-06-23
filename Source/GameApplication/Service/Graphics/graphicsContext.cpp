@@ -412,12 +412,16 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 		}
 	}
 
-	// Waitable Objectが使えない環境でもDXGI Device側のキュー長を1へ制限する。
-	if(!m_FrameLatencyWaitableObjectEnabled){
+	const bool usesWaitableFlag =
+		(m_SwapChainFlags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT) != 0;
+
+	if(!usesWaitableFlag){
 		Microsoft::WRL::ComPtr<IDXGIDevice1> dxgiDevice1;
 		if(SUCCEEDED(m_Device.As(&dxgiDevice1))){
 			dxgiDevice1->SetMaximumFrameLatency(1);
 		}
+	} else if(!m_FrameLatencyWaitableObjectEnabled){
+		GRAPHICS_LOG(LogLevel::Warning, "Frame latency wait handle is unavailable");
 	}
 
 	releaseFactoryResources();
