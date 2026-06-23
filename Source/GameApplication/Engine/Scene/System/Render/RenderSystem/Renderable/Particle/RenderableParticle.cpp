@@ -87,7 +87,11 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	graphicsContext->SetBlendMode(BlendMode::Additive);
-	//graphicsContext->SetDepthMode(DepthMode::Disable);
+	graphicsContext->SetDepthMode(DepthMode::ReadOnly);
+
+	deviceContext->IASetInputLayout(m_billBoardMesh->mesh.m_VertexLayout.Get());
+	deviceContext->VSSetShader(m_billBoardMesh->mesh.m_VertexShader.Get(), nullptr, 0);
+	deviceContext->PSSetShader(m_billBoardMesh->mesh.m_PixelShader.Get(), nullptr, 0);
 
 	for(int i = 0; i < MAXPARTICLE; i++){
 		if(pParticle->Particle[i].LifeTime > 0.0f){
@@ -100,7 +104,7 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 					deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 				}
 
-				UVMatrixBuffer uv;
+				UVMatrixBuffer uv{};
 				if (pTexture->UV_Slice_X > 0.0f && pTexture->UV_Slice_Y > 0.0f) {
 					// UV_Slice_X/Y は「1セルのUVサイズ」
 					// 例:
@@ -126,7 +130,7 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 				// マテリアル設定
 				material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
-				UVMatrixBuffer uv;
+				UVMatrixBuffer uv{};
 				graphicsContext->SetUVMatrixBuffer(uv);
 			}
 			graphicsContext->SetMaterial(material);
@@ -192,5 +196,5 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 		}
 	}
 	graphicsContext->SetBlendMode(BlendMode::Alpha);
-	//graphicsContext->SetDepthMode(DepthMode::Write);
+	graphicsContext->SetDepthMode(DepthMode::Write);
 }

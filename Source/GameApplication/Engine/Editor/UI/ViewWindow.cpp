@@ -195,29 +195,28 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 
 				auto* sprite = registry->GetComponent<SpriteRendererComponent>(selectedEntity);
 				if(sprite){
-					TransformComponent temp = transform->CalculateRectTransform(Vector2(avail.x, avail.y), *sprite, *transform);
-					DirectX::XMVECTOR scaling = DirectX::XMVectorSet(temp.scale.x, temp.scale.y, 1.0f, 0.0f);
-					DirectX::XMVECTOR rotationOrigin = DirectX::XMVectorSet(sprite->pivot.x, sprite->pivot.y, 0.0f, 0.0f);
-					float rotationZ = temp.GetRotationEuler().z;
-					DirectX::XMVECTOR translation = DirectX::XMVectorSet(temp.position.x, temp.position.y, temp.position.z, 0.0f);
-
-					DirectX::XMMATRIX model2D = DirectX::XMMatrixAffineTransformation2D(scaling, rotationOrigin, rotationZ, translation);
-					World = model2D;
-					modelMatrix = m_editor->sceneManager->GetContext()->imgui->RenderGizmo2D(World, DirectX::XMFLOAT2(avail.x, avail.y));
+					const Vector2 editorViewport(avail.x, avail.y);
+					TransformComponent rectTransform =
+						transform->CalculateRectTransform(editorViewport, *sprite, *transform);
+					World = rectTransform.CalculateWorldMatrix(&rectTransform, registry);
+					modelMatrix = m_editor->sceneManager->GetContext()->imgui->RenderGizmo2D(
+						World,
+						DirectX::XMFLOAT2(editorViewport.x, editorViewport.y)
+					);
 				} else{
 					modelMatrix = m_editor->sceneManager->GetContext()->imgui->RenderGizmo(World);
-				}
 
-				// 親の逆行列を適用してローカル座標系に戻す
-				Entity Parent = transform->parent;
-				while(Parent != 0){
-					auto* ParentTransform = registry->GetComponent<TransformComponent>(Parent);
-					if(ParentTransform){
-						DirectX::XMMATRIX ParentWorld = ParentTransform->CalculateWorldMatrix(ParentTransform, registry);
-						modelMatrix = modelMatrix * DirectX::XMMatrixInverse(nullptr, ParentWorld);
-						Parent = ParentTransform->parent;
-					} else{
-						Parent = 0;
+					// 3D Transformのみ親Worldを除去してローカルへ戻す。
+					Entity Parent = transform->parent;
+					while(Parent != 0){
+						auto* ParentTransform = registry->GetComponent<TransformComponent>(Parent);
+						if(ParentTransform){
+							DirectX::XMMATRIX ParentWorld = ParentTransform->CalculateWorldMatrix(ParentTransform, registry);
+							modelMatrix = modelMatrix * DirectX::XMMatrixInverse(nullptr, ParentWorld);
+							Parent = ParentTransform->parent;
+						} else{
+							Parent = 0;
+						}
 					}
 				}
 

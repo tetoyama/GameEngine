@@ -451,8 +451,9 @@ void RenderSystem::BuildRenderPackets(){
 				packet.sceneContextID = sceneEntry.contextID;
 				packet.entity = entity;
 				packet.kind = kind;
-				packet.layer = layer;
-				packet.passMask = ResolveRenderPacketPasses(layer, kind);
+				const RenderLayer effectiveLayer = ResolveRenderPacketLayer(layer, kind);
+				packet.layer = effectiveLayer;
+				packet.passMask = ResolveRenderPacketPasses(effectiveLayer, kind);
 				if(isEnvironmentMap){
 					packet.passMask = RemoveRenderPacketPass(
 						packet.passMask,
@@ -462,7 +463,7 @@ void RenderSystem::BuildRenderPackets(){
 				packet.materialKey = materialKey;
 				packet.orderInLayer = orderInLayer;
 				packet.sortKey = MakeRenderPacketSortKey(
-					layer,
+					effectiveLayer,
 					kind,
 					materialKey,
 					orderInLayer

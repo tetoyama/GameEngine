@@ -108,11 +108,42 @@ constexpr RenderPacketPassMask RenderPacketPassesForKind(
 	}
 }
 
+constexpr RenderLayer ResolveRenderPacketLayer(
+	RenderLayer requestedLayer,
+	RenderPacketKind kind
+) noexcept {
+	switch(kind){
+		case RenderPacketKind::Sprite:
+			// Spriteは2D描画経路へ提出する。既定Opaqueのままでは
+			// Forward/Overlayのどちらにも入らないためOverlayへ正規化する。
+			if(requestedLayer == RenderLayer::Opaque3D ||
+			   requestedLayer == RenderLayer::Background2D){
+				return RenderLayer::OverlayUI;
+			}
+			return requestedLayer;
+
+		case RenderPacketKind::Mesh:
+		case RenderPacketKind::Particle:
+		case RenderPacketKind::Effect:
+			// Forward専用Renderableは既定OpaqueのままだとPacketが消える。
+			// 明示的なTransparent指定は保持し、それ以外をTransparentへ正規化する。
+			if(requestedLayer != RenderLayer::Transparent3D &&
+			   requestedLayer != RenderLayer::SortTransparent3D){
+				return RenderLayer::Transparent3D;
+			}
+			return requestedLayer;
+
+		default:
+			return requestedLayer;
+	}
+}
+
 constexpr RenderPacketPassMask ResolveRenderPacketPasses(
 	RenderLayer layer,
 	RenderPacketKind kind
 ) noexcept {
-	return RenderPacketPassesForLayer(layer) & RenderPacketPassesForKind(kind);
+	const RenderLayer effectiveLayer = ResolveRenderPacketLayer(layer, kind);
+	return RenderPacketPassesForLayer(effectiveLayer) & RenderPacketPassesForKind(kind);
 }
 
 struct RenderPacketTransformSnapshot {

@@ -6,6 +6,7 @@
 #include "RenderableSprite.h"
 
 #include <d3d11.h>
+#include <algorithm>
 #include "../../RenderPass/RenderPassContext.h"
 
 #include "DebugTools/DebugSystem.h"
@@ -81,10 +82,7 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 
 
 
-	Vector2 viewportSize = Vector2(
-		(float)sceneContext->manager->graphics->m_width,
-		(float)sceneContext->manager->graphics->m_height
-	);
+	const Vector2 viewportSize = ctx.screenSize;
 
 	TransformComponent newTransform = transform->CalculateRectTransform(viewportSize, *spriteRenderer, *transform);
 
@@ -112,20 +110,15 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 
 		graphicsContext->SetMaterial(material);
 
-		UVMatrixBuffer uv;
-		if (pTexture->UV_Slice_X > 0.0f && pTexture->UV_Slice_Y > 0.0f) {
-
-			int column = (int)(pTexture->UV_Slice_X);
-			if(column <= 0){
-				column = 1;
-			}
-
-			uv.UVStart.x = (pTexture->AnimationNum % column) * (1.0f / pTexture->UV_Slice_X);
-			uv.UVStart.y = (pTexture->AnimationNum / column) * (1.0f / pTexture->UV_Slice_Y);
-
-			// 1 セルの UV サイズ: 1/スライス数
-			uv.UVEnd.x = uv.UVStart.x + 1.0f / pTexture->UV_Slice_X;  // セルの右端 UV
-			uv.UVEnd.y = uv.UVStart.y + 1.0f / pTexture->UV_Slice_Y;  // セルの下端 UV
+		UVMatrixBuffer uv{};
+		uv.UVStart = float2(0.0f, 0.0f);
+		uv.UVEnd = float2(1.0f, 1.0f);
+		if(pTexture->UV_Slice_X > 0.0f && pTexture->UV_Slice_Y > 0.0f){
+			const int columnCount = (std::max)(1, static_cast<int>(1.0f / pTexture->UV_Slice_X));
+			uv.UVStart.x = (pTexture->AnimationNum % columnCount) * pTexture->UV_Slice_X;
+			uv.UVStart.y = (pTexture->AnimationNum / columnCount) * pTexture->UV_Slice_Y;
+			uv.UVEnd.x = uv.UVStart.x + pTexture->UV_Slice_X;
+			uv.UVEnd.y = uv.UVStart.y + pTexture->UV_Slice_Y;
 		}
 		graphicsContext->SetUVMatrixBuffer(uv);
 
@@ -135,7 +128,7 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 		material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		graphicsContext->SetMaterial(material);
 
-		UVMatrixBuffer uv;
+		UVMatrixBuffer uv{};
 		graphicsContext->SetUVMatrixBuffer(uv);
 
 	}
