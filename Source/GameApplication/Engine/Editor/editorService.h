@@ -5,6 +5,7 @@
 // =======================================================================
 #pragma once
 #include "Service/IService.h"
+#include <cstdint>
 #include <vector>
 #include "InterFace/IEditorUI.h"
 #include "Command/CommandManager.h"
@@ -30,30 +31,18 @@ struct EditorPanelTiming {
 
 // エディターサービスの初期化に必要な依存サービスをまとめた構造体
 struct EditorServiceContext {
-	DebugLogService* debugLogSystem = nullptr;   // デバッグログ出力サービス
-	ResourceService* resourceService = nullptr;  // リソース読み込みサービス
-	SceneManager*    sceneManager    = nullptr;  // シーン管理サービス
-	LLAMAService*    llamaService    = nullptr;  // LLM エージェントサービス
+	DebugLogService* debugLogSystem = nullptr;
+	ResourceService* resourceService = nullptr;
+	SceneManager*    sceneManager    = nullptr;
+	LLAMAService*    llamaService    = nullptr;
 };
 
-// エディターのUIパネル・コマンド履歴・コード解析機能をまとめて管理するサービス
-// IEditorUI を継承した各パネル（Hierarchy, Inspector 等）のライフサイクルを制御する
 class EditorService : public IService {
-
 public:
-
-	// エディターサービスを初期化し、全 UI パネルと AnalyzerManager を生成・起動する
 	void Initialize(EditorServiceContext context);
-
-	// 毎フレーム全 UI パネルを描画する
-	// ctx にはパフォーマンス情報（FPS・更新時間等）が含まれる
 	void Draw(EditorDrawContext ctx);
-
-	// 全 UI パネルと AnalyzerManager を解放する
 	void Shutdown() override;
 
-	// 型 T の UI パネルを取得する（T は IEditorUI の派生クラスである必要がある）
-	// 見つからない場合は nullptr を返す
 	template<typename T>
 	T* GetUI() {
 		static_assert(std::is_base_of<IEditorUI, T>::value, "T must inherit from IEditorUI");
@@ -65,14 +54,12 @@ public:
 		return nullptr;
 	}
 
-	DebugLogService* debugLogSystem = nullptr;  // デバッグログサービスへの参照
-	ResourceService* resourceService = nullptr; // リソースサービスへの参照
-	SceneManager*    sceneManager    = nullptr; // シーンマネージャへの参照
-	LLAMAService*    llamaService    = nullptr; // LLAMA サービスへの参照
-
-	AnalyzerManager* analyzer = nullptr;        // ソースコード解析マネージャ
-
-	CommandManager commandManager;              // アンドゥ・リドゥ対応コマンド履歴
+	DebugLogService* debugLogSystem = nullptr;
+	ResourceService* resourceService = nullptr;
+	SceneManager*    sceneManager    = nullptr;
+	LLAMAService*    llamaService    = nullptr;
+	AnalyzerManager* analyzer = nullptr;
+	CommandManager commandManager;
 
 private:
 	struct EditorUIPanelEntry {
@@ -85,16 +72,19 @@ private:
 	std::vector<EditorPanelTiming> m_CompletedPanelTimings;
 };
 
-// エディター描画フェーズに渡すパフォーマンス統計情報
 struct EditorDrawContext {
-	double UpdateTime = 0.0;              // 更新フェーズの所要時間（秒）
-	double DrawTime = 0.0;                // 前回完了した描画フェーズ全体（秒）
-	double FPS = 0.0;                     // 更新フレームレート（fps）
-	double FixedUpdateFPS = 0.0;          // 固定更新フレームレート（fps）
-	DrawTimingBreakdown DrawTiming{};     // 前回完了したDrawフレームのCPU内訳
+	double UpdateTime = 0.0;
+	double DrawTime = 0.0;
+	double FPS = 0.0;
+	double FixedUpdateFPS = 0.0;
+	DrawTimingBreakdown DrawTiming{};
 	const std::vector<EditorPanelTiming>* EditorPanelTimings = nullptr;
-	double GPUFrameTime = 0.0;            // 非同期Timestamp Queryで取得したGPU時間（秒）
+	double GPUFrameTime = 0.0;
 	bool GPUFrameTimeValid = false;
-	bool VSyncEnabled = false;            // Present待機の判断に使用するVSync設定
+	bool VSyncEnabled = false;
 	bool TearingSupported = false;
+
+	// MainRendererのResize実績。serialが変化したフレームをResize直後として扱う。
+	uint64_t ResizeSerial = 0;
+	double LastResizeCpuTime = 0.0;
 };
