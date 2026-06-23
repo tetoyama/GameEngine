@@ -68,6 +68,7 @@ Editor Panel平均:
 - フォルダツリーと選択ディレクトリのメタデータをキャッシュ
 - `Refresh`操作、フォルダ作成・削除・名前変更時に無効化
 - 走査中の参照を破棄しないよう、キャッシュ無効化を次フレームへ遅延
+- 再帰Cache挿入時の`unordered_map` rehashから走査を分離
 - ネストフォルダをLazy Openへ変更
 - Icon Texture取得を1アイテム1回へ削減
 - 非表示・Collapse時は即時return
@@ -152,6 +153,22 @@ Performance Monitorへ直近32件のSpike Sequenceを保存する。
 
 ---
 
+## Build検証
+
+Windows Build run #1257では、Windows SDKの`max`マクロと`std::max`の衝突によりEngine Debug / Releaseが失敗した。
+
+`(std::max)(...)`形式へ修正後、Windows Build run #1260で次を確認した。
+
+- [x] Engine Debug x64
+- [x] Engine Release x64
+- [x] Script Debug x64
+- [x] Script Release x64
+- [x] Migration Plan Validation
+- [x] RHI Smoke Test
+- [x] D3D11 RHI Real Triangle Smoke
+
+---
+
 ## 検証状況
 
 - [x] GPU Frame Time実機表示
@@ -162,8 +179,8 @@ Performance Monitorへ直近32件のSpike Sequenceを保存する。
 - [x] DebugLogWindowのRevision Cache / Clipper化
 - [x] 同一サイズ・ゼロサイズResize除外
 - [x] Frame Spike Diagnostics実装
-- [ ] Windows Build Debug x64
-- [ ] Windows Build Release x64
+- [x] Windows Build Debug x64
+- [x] Windows Build Release x64
 - [ ] 最適化後のEditor Panel実機再計測
 - [ ] Startup / Resize Spike履歴の実機確認
 - [ ] 不定期Spike発生時の履歴採取
