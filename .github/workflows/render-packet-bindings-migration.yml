@@ -1,0 +1,49 @@
+name: Render Packet Bindings Migration
+
+on:
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - .github/workflows/render-packet-bindings-migration.yml
+      - Tools/Migrations/add_render_packet_bindings.py
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/ecs-scheduler-foundation
+          fetch-depth: 0
+
+      - name: Apply render packet binding migration
+        run: python Tools/Migrations/add_render_packet_bindings.py
+
+      - name: Remove temporary migration files
+        run: |
+          rm Tools/Migrations/add_render_packet_bindings.py
+          rm .github/workflows/render-packet-bindings-migration.yml
+
+      - name: Commit migration result
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h
+          git add Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/IRenderable.h
+          git add Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Model/RenderableModel.h
+          git add Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Model/RenderableModel.cpp
+          git add Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.cpp
+          git add Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/GBuffer/GBufferPass.cpp
+          git add Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/Forward/ForwardPass.cpp
+          git add Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.cpp
+          git add Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/OverlayUI/OverlayUIPass.cpp
+          git add Tools/Migrations/add_render_packet_bindings.py
+          git add .github/workflows/render-packet-bindings-migration.yml
+          git diff --cached --exit-code && exit 0
+          git commit -m "feat: add render packet component bindings and model submit path [skip ci]"
+          git push origin HEAD:refactor/ecs-scheduler-foundation
