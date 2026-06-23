@@ -84,6 +84,32 @@ int main(){
 		RenderPacketPassMask::Shadow
 	));
 
+	// Forward / Overlay専用Renderableが既定Opaque Layerで消失しないこと。
+	static_assert(
+		ResolveRenderPacketLayer(RenderLayer::Opaque3D, RenderPacketKind::Sprite) ==
+		RenderLayer::OverlayUI
+	);
+	static_assert(HasRenderPacketPass(
+		ResolveRenderPacketPasses(RenderLayer::Opaque3D, RenderPacketKind::Sprite),
+		RenderPacketPassMask::Overlay
+	));
+	static_assert(
+		ResolveRenderPacketLayer(RenderLayer::Opaque3D, RenderPacketKind::Particle) ==
+		RenderLayer::Transparent3D
+	);
+	static_assert(HasRenderPacketPass(
+		ResolveRenderPacketPasses(RenderLayer::Opaque3D, RenderPacketKind::Particle),
+		RenderPacketPassMask::Forward
+	));
+	static_assert(
+		ResolveRenderPacketLayer(RenderLayer::Opaque3D, RenderPacketKind::Effect) ==
+		RenderLayer::Transparent3D
+	);
+	static_assert(HasRenderPacketPass(
+		ResolveRenderPacketPasses(RenderLayer::Opaque3D, RenderPacketKind::Effect),
+		RenderPacketPassMask::Forward
+	));
+
 	RenderPacketWorkerBuffer worker0(0);
 	RenderPacketWorkerBuffer worker1(1);
 
