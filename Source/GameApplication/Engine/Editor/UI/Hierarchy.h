@@ -10,7 +10,9 @@
 #include "Editor/editorService.h"
 #include "Editor/InterFace/IEditorUI.h"
 
+#include <unordered_map>
 #include <unordered_set>
+#include <vector>
 #include <string>
 #include "Entity/Entity.h"
 
@@ -30,7 +32,8 @@ public:
 	SceneContext* sceneContext = nullptr;
 
 private:
-	void DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities);
+	using ChildMap = std::unordered_map<Entity, std::vector<Entity>>;
+	void DrawHierarchyNode(Entity entity, SceneContext* context, const ChildMap& children, const std::string& lowerSearch);
 
 	EditorService* m_editor = nullptr;
 

@@ -41,40 +41,29 @@ static std::string ToLower(const std::string& s){
 static bool EntityMatchesSearch(
 	Entity entity,
 	SceneContext* context,
-	const std::string& search){
-	if(search.empty()) return true;
-
-	auto* name = context->component->GetComponent<NameComponent>(entity);
-
-	std::string entityName = name ? name->name : "Entity";
-
-	std::string lowerName = ToLower(entityName);
-	std::string lowerSearch = ToLower(search);
-
-	return lowerName.find(lowerSearch) != std::string::npos;
+	const std::string& lowerSearch
+){
+	if(lowerSearch.empty()) return true;
+	const auto* name = context->component->GetComponent<NameComponent>(entity);
+	return ToLower(name ? name->name : "Entity").find(lowerSearch) != std::string::npos;
 }
 
-// ------------------------------------------------------------
-// 子が検索にヒットするか（再帰）
-// ------------------------------------------------------------
+using HierarchyChildMap = std::unordered_map<Entity, std::vector<Entity>>;
+
 static bool HasMatchingChild(
 	Entity entity,
 	SceneContext* context,
-	const std::unordered_set<Entity>& allEntities,
-	const std::string& search){
-	for(Entity child : allEntities){
-		auto* t = context->component->GetComponent<TransformComponent>(child);
-		if(!t) continue;
-
-		if(t->parent == entity){
-			if(EntityMatchesSearch(child, context, search))
-				return true;
-
-			if(HasMatchingChild(child, context, allEntities, search))
-				return true;
+	const HierarchyChildMap& children,
+	const std::string& lowerSearch
+){
+	const auto found = children.find(entity);
+	if(found == children.end()) return false;
+	for(Entity child : found->second){
+		if(EntityMatchesSearch(child, context, lowerSearch) ||
+		   HasMatchingChild(child, context, children, lowerSearch)){
+			return true;
 		}
 	}
-
 	return false;
 }
 
@@ -91,7 +80,10 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 
 	//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
 	ImGuiWindowFlags toolbar_window_flags = 0;
-	ImGui::Begin("Hierarchy", showSceneHierarchy, toolbar_window_flags);
+	if(!ImGui::Begin("Hierarchy", showSceneHierarchy, toolbar_window_flags)){
+		ImGui::End();
+		return;
+	}
 
 	for(auto& scenePair : m_editor->sceneManager->GetActiveScenes()){
 
@@ -238,24 +230,28 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 			// DrawHierarchyNode 内でエンティティを削除すると EntityRegistry::Destroy() が
 			// m_alive を書き換えるため、参照のままだとイテレータが無効化されクラッシュする。
 			const auto entities = registry->GetAllAlive();
+			HierarchyChildMap children;
+			std::vector<Entity> roots;
+			children.reserve(entities.size());
+			roots.reserve(entities.size());
 
-			// --- ルートエンティティの描画（親を持たないもの） ---
 			for(const Entity& entity : entities){
-
-				// 同一フレーム内で削除済みのエンティティを飛ばす
 				if(!registry->IsAlive(entity)) continue;
-
-				auto* transform = context->component->GetComponent<TransformComponent>(entity);
+				const auto* transform = context->component->GetComponent<TransformComponent>(entity);
 				if(transform && transform->parent != 0){
-					continue;
+					children[transform->parent].push_back(entity);
+				} else{
+					roots.push_back(entity);
 				}
-				std::string search = searchBuffer;
+			}
 
-				bool match = EntityMatchesSearch(entity, context, search);
-				bool childMatch = HasMatchingChild(entity, context, entities, search);
-
+			const std::string lowerSearch = ToLower(searchBuffer);
+			for(const Entity& entity : roots){
+				const bool match = EntityMatchesSearch(entity, context, lowerSearch);
+				const bool childMatch = !lowerSearch.empty() &&
+					HasMatchingChild(entity, context, children, lowerSearch);
 				if(match || childMatch){
-					DrawHierarchyNode(entity, context, entities);
+					DrawHierarchyNode(entity, context, children, lowerSearch);
 				}
 			}
 
@@ -265,7 +261,7 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 	ImGui::End();
 }
 
-void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const std::unordered_set<Entity>& allEntities){
+void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const ChildMap& children, const std::string& lowerSearch){
 	float offsetX = ImGui::GetCursorPosX();
 
 	ImGui::SetCursorPosX(10.0f);
@@ -277,15 +273,8 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 	if(pendingRenameEntity != 0 && selectedEntity == entity && sceneContext == context){
 		displayName = "";
 	}
-	// --- 子の有無チェック ---
-	bool hasChildren = false;
-	for(Entity child : allEntities){
-		auto* childTransform = context->component->GetComponent<TransformComponent>(child);
-		if(childTransform && childTransform->parent == entity){
-			hasChildren = true;
-			break;
-		}
-	}
+	const auto childIt = children.find(entity);
+	const bool hasChildren = childIt != children.end() && !childIt->second.empty();
 
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
 		ImGuiTreeNodeFlags_DefaultOpen |
@@ -478,18 +467,12 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const st
 
 	// --- 子描画 ---
 	if(opened && hasChildren){
-		for(Entity child : allEntities){
-			auto* childTransform = context->component->GetComponent<TransformComponent>(child);
-			if(childTransform && childTransform->parent == entity){
-
-				std::string search = searchBuffer;
-
-				bool match = EntityMatchesSearch(child, context, search);
-				bool childMatch = HasMatchingChild(child, context, allEntities, search);
-
-				if(match || childMatch){
-					DrawHierarchyNode(child, context, allEntities);
-				}
+		for(Entity child : childIt->second){
+			const bool match = EntityMatchesSearch(child, context, lowerSearch);
+			const bool childMatch = !lowerSearch.empty() &&
+				HasMatchingChild(child, context, children, lowerSearch);
+			if(match || childMatch){
+				DrawHierarchyNode(child, context, children, lowerSearch);
 			}
 		}
 		ImGui::TreePop();

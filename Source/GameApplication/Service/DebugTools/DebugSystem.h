@@ -1,4 +1,4 @@
-﻿// =======================================================================
+// =======================================================================
 // 
 // DebugSystem.h
 // 
@@ -6,6 +6,7 @@
 #pragma once
 #include <string>
 #include <chrono>
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <mutex>
@@ -104,19 +105,33 @@ public:
 	void Write(const LogEntry& entry) override{
 		std::lock_guard<std::mutex> lock(mutex);
 		entries.push_back(entry);
+		++revision;
 	}
 
+	// Legacy read-only view. New UI code should use GetSnapshot() for thread safety.
 	const std::vector<LogEntry>& GetEntries() const{
 		return entries;
+	}
+
+	std::vector<LogEntry> GetSnapshot() const{
+		std::lock_guard<std::mutex> lock(mutex);
+		return entries;
+	}
+
+	uint64_t GetRevision() const{
+		std::lock_guard<std::mutex> lock(mutex);
+		return revision;
 	}
 
 	void Clear(){
 		std::lock_guard<std::mutex> lock(mutex);
 		entries.clear();
+		++revision;
 	}
 
 private:
 	std::vector<LogEntry> entries;
+	uint64_t revision = 0;
 	mutable std::mutex mutex;
 };
 

@@ -41,18 +41,9 @@ const char* DebugLogWindow::LevelToString(LogLevel level) const{
 }
 
 std::string DebugLogWindow::LevelFilterString(LogLevel level) const{
-
-	int Count = 0;
-
-	const auto& entries = logSink->GetEntries();
-	for(const auto& entry : entries){
-		if(entry.level != level) continue;
-		Count++;
-	}
-
-	std::string a = LevelToString(level);
-	a = a + "(" + std::to_string(Count) + ")";
-	return a;
+	const size_t index = static_cast<size_t>(level);
+	const int count = index < levelCounts.size() ? levelCounts[index] : 0;
+	return std::string(LevelToString(level)) + "(" + std::to_string(count) + ")";
 }
 
 ImVec4 DebugLogWindow::GetColorForLevel(LogLevel level) const{
@@ -67,71 +58,109 @@ ImVec4 DebugLogWindow::GetColorForLevel(LogLevel level) const{
 	}
 }
 
+uint32_t DebugLogWindow::BuildFilterMask() const{
+	uint32_t mask = 0;
+	for(LogLevel level : levelFilter){
+		mask |= 1u << static_cast<uint32_t>(level);
+	}
+	return mask;
+}
+
+void DebugLogWindow::RefreshCache(bool force){
+	if(!logSink) return;
+	const uint64_t revision = logSink->GetRevision();
+	const uint32_t filterMask = BuildFilterMask();
+	const std::string search = searchBuffer;
+	if(!force && revision == cachedRevision && filterMask == cachedFilterMask && search == cachedSearch){
+		return;
+	}
+
+	if(revision != cachedRevision){
+		cachedEntries = logSink->GetSnapshot();
+		levelCounts.fill(0);
+		for(const LogEntry& entry : cachedEntries){
+			const size_t index = static_cast<size_t>(entry.level);
+			if(index < levelCounts.size()) ++levelCounts[index];
+		}
+	}
+
+	filteredIndices.clear();
+	filteredIndices.reserve(cachedEntries.size());
+	for(size_t i = 0; i < cachedEntries.size(); ++i){
+		if(PassesFilter(cachedEntries[i])) filteredIndices.push_back(i);
+	}
+
+	cachedRevision = revision;
+	cachedFilterMask = filterMask;
+	cachedSearch = search;
+}
+
 void DebugLogWindow::Initialize(EditorService* editor){
 	m_editor = editor;
 	logSink = editor->debugLogSystem->GetSink<MemoryLogSink>();
+	RefreshCache(true);
 }
 
 void DebugLogWindow::Draw(const EditorDrawContext ctx){
-
 	bool* showDebugLogWindow = &m_editor->GetUI<MenuBar>()->showConsole;
 	if(!showDebugLogWindow || !*showDebugLogWindow){
 		return;
 	}
 
-	ImGuiWindowClass window_class;
-	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
-	ImGui::SetNextWindowClass(&window_class);
+	RefreshCache();
 
-	//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
-	ImGuiWindowFlags toolbar_window_flags = 0;
-	if(ImGui::Begin("Debug Log", showDebugLogWindow, toolbar_window_flags)){
-
-		ImGui::InputText("Search", searchBuffer, sizeof(searchBuffer));
-		ImGui::SameLine();
-		if(ImGui::Button("Clear") && logSink){
-			logSink->Clear();
-		}
-		ImGui::SameLine();
-		ImGui::Checkbox("Auto Scroll", &autoScroll);
-
-		ImGui::Separator();
-
-		for(int i = (int)LogLevel::Trace; i <= (int)LogLevel::Critical; ++i){
-			LogLevel level = static_cast<LogLevel>(i);
-			bool selected = levelFilter.find(level) != levelFilter.end();
-			if(ImGui::Checkbox(LevelFilterString(level).c_str(), &selected)){
-				if(selected)
-					levelFilter.insert(level);
-				else
-					levelFilter.erase(level);
-			}
-			if(i < (int)LogLevel::Critical) ImGui::SameLine();
-		}
-
-		if(ImGui::BeginChild("LogRegion", ImVec2(0, 0), false)){
-
-			if(logSink){
-				const auto& entries = logSink->GetEntries();
-				for(const auto& entry : entries){
-					if(!PassesFilter(entry)) continue;
-
-					ImVec4 color = GetColorForLevel(entry.level);
-					ImGui::PushStyleColor(ImGuiCol_Text, color);
-					ImGui::Text(ToU8String((const char*)u8"[%s] %s\n(関数名 %s,ファイル %s ,行 %d)").c_str(),
-								LevelToString(entry.level),
-								entry.message.c_str(),
-								entry.function.c_str(),
-								entry.file.c_str(),
-								entry.line);
-					ImGui::PopStyleColor();
-				}
-
-				if(autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 10.0f)
-					ImGui::SetScrollHereY(1.0f);
-			}
-		}
-		ImGui::EndChild();
+	ImGuiWindowClass windowClass;
+	windowClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
+	ImGui::SetNextWindowClass(&windowClass);
+	if(!ImGui::Begin("Debug Log", showDebugLogWindow, 0)){
+		ImGui::End();
+		return;
 	}
+
+	bool filterChanged = ImGui::InputText("Search", searchBuffer, sizeof(searchBuffer));
+	ImGui::SameLine();
+	if(ImGui::Button("Clear") && logSink){
+		logSink->Clear();
+		filterChanged = true;
+	}
+	ImGui::SameLine();
+	ImGui::Checkbox("Auto Scroll", &autoScroll);
+	ImGui::Separator();
+
+	for(int i = static_cast<int>(LogLevel::Trace); i <= static_cast<int>(LogLevel::Critical); ++i){
+		const LogLevel level = static_cast<LogLevel>(i);
+		bool selected = levelFilter.find(level) != levelFilter.end();
+		if(ImGui::Checkbox(LevelFilterString(level).c_str(), &selected)){
+			if(selected) levelFilter.insert(level);
+			else levelFilter.erase(level);
+			filterChanged = true;
+		}
+		if(i < static_cast<int>(LogLevel::Critical)) ImGui::SameLine();
+	}
+	if(filterChanged) RefreshCache(true);
+
+	if(ImGui::BeginChild("LogRegion", ImVec2(0, 0), false)){
+		ImGuiListClipper clipper;
+		clipper.Begin(static_cast<int>(filteredIndices.size()), ImGui::GetTextLineHeightWithSpacing() * 2.0f);
+		while(clipper.Step()){
+			for(int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row){
+				const LogEntry& entry = cachedEntries[filteredIndices[static_cast<size_t>(row)]];
+				ImGui::PushStyleColor(ImGuiCol_Text, GetColorForLevel(entry.level));
+				ImGui::Text(
+					ToU8String((const char*)u8"[%s] %s\n(関数名 %s,ファイル %s ,行 %d)").c_str(),
+					LevelToString(entry.level),
+					entry.message.c_str(),
+					entry.function.c_str(),
+					entry.file.c_str(),
+					entry.line
+				);
+				ImGui::PopStyleColor();
+			}
+		}
+		if(autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 10.0f){
+			ImGui::SetScrollHereY(1.0f);
+		}
+	}
+	ImGui::EndChild();
 	ImGui::End();
 }
