@@ -184,6 +184,8 @@ void Engine::Run(EngineContext* context){
 			draw.GPUFrameTimeValid = graphics->HasValidGpuFrameTime();
 			draw.VSyncEnabled = config->appConfig.Vsync;
 			draw.TearingSupported = graphics->IsTearingSupported();
+			draw.ResizeSerial = renderer->GetResizeSerial();
+			draw.LastResizeCpuTime = renderer->GetLastResizeCpuTimeSeconds();
 
 			time->BeginDrawSection(DrawTimingSection::EditorUIBuild);
 			editor->Draw(draw);

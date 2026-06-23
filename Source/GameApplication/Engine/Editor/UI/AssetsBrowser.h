@@ -9,6 +9,7 @@
 #include "Editor/InterFace/IEditorUI.h"
 
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>

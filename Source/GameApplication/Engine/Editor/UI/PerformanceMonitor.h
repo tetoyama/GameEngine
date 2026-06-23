@@ -82,4 +82,5 @@ private:
 	uint64_t LastResizeSerial = 0;
 	float SpikeThresholdMilliseconds = 20.0f;
 	bool InSpikeSequence = false;
+	int ResizeGraceFrames = 0;
 };
