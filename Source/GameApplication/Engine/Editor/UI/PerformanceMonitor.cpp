@@ -7,6 +7,7 @@
 
 #include <Psapi.h>
 #include <algorithm>
+#include <cstddef>
 #include <cstdio>
 #include <iterator>
 
@@ -18,9 +19,16 @@
 
 namespace {
 
-template<typename T, size_t N>
+template<typename T, std::size_t N>
 void ShiftSamples(T (&samples)[N]){
-	for(size_t index = 0; index + 1 < N; ++index){
+	for(std::size_t index = 0; index + 1 < N; ++index){
+		samples[index] = samples[index + 1];
+	}
+}
+
+template<typename T, std::size_t N>
+void ShiftSamples(std::array<T, N>& samples){
+	for(std::size_t index = 0; index + 1 < N; ++index){
 		samples[index] = samples[index + 1];
 	}
 }
@@ -179,7 +187,7 @@ void PerformanceMonitor::ApplyGpuFrameTiming(
 		? static_cast<float>(result.seconds * 1000.0)
 		: 0.0f;
 
-	for(size_t index = 0; index < SAMPLE_LENGTH; ++index){
+	for(std::size_t index = 0; index < SAMPLE_LENGTH; ++index){
 		if(FrameSerialSamples[index] != result.frameSerial){
 			continue;
 		}

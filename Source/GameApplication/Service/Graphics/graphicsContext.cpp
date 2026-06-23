@@ -143,7 +143,7 @@ void GraphicsContext::Shutdown(){
 		timing.pending = false;
 	}
 	m_GpuTimingAvailable = false;
-	m_GpuFrameTimeValid = false;
+	m_ResolvedGpuFrameTimings.clear();
 	m_ActiveGpuTimingIndex = -1;
 
 	m_d2dFactory.Reset();
