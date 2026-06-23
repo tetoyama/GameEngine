@@ -66,4 +66,5 @@ private:
 	std::unordered_map<std::string, std::shared_ptr<TextureData>> previewCache;
 	std::unordered_map<std::string, CachedEntryList> m_directoryCache;
 	std::unordered_map<std::string, CachedEntryList> m_assetCache;
+	bool m_fileSystemCacheInvalidationPending = true;
 };

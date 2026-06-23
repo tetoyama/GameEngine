@@ -68,6 +68,12 @@ void AssetsBrowser::Draw(const EditorDrawContext ctx){
 		return;
 	}
 
+	if(m_fileSystemCacheInvalidationPending){
+		m_directoryCache.clear();
+		m_assetCache.clear();
+		m_fileSystemCacheInvalidationPending = false;
+	}
+
 	if(ImGui::Button("Refresh")){
 		InvalidateFileSystemCache();
 		ClearPreviewCache();
@@ -122,8 +128,9 @@ void AssetsBrowser::Draw(const EditorDrawContext ctx){
 }
 
 void AssetsBrowser::InvalidateFileSystemCache(){
-	m_directoryCache.clear();
-	m_assetCache.clear();
+	// Context menu操作中はキャッシュ配列を走査中の場合があるため、
+	// 実際の破棄は次のDraw開始時まで遅延する。
+	m_fileSystemCacheInvalidationPending = true;
 }
 
 const AssetsBrowser::CachedEntryList& AssetsBrowser::GetCachedDirectories(
@@ -207,9 +214,10 @@ void AssetsBrowser::DrawDirectoryTree(const std::filesystem::path& directory, st
 	const CachedEntryList& directories = GetCachedDirectories(directory);
 	for(const CachedAssetEntry& entry : directories){
 		const std::filesystem::path& path = entry.path;
+		// Nested folders are lazy-opened. DefaultOpen here would enumerate the
+		// complete Asset tree on the first frame and create a startup spike.
 		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
-			ImGuiTreeNodeFlags_SpanAvailWidth |
-			ImGuiTreeNodeFlags_DefaultOpen;
+			ImGuiTreeNodeFlags_SpanAvailWidth;
 		if(!entry.hasSubDirectories){
 			flags |= ImGuiTreeNodeFlags_Leaf;
 		}
