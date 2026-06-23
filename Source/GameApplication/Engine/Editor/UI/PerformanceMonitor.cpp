@@ -30,7 +30,7 @@ void PerformanceMonitor::RecordFrameSpike(const EditorDrawContext& ctx){
 	const float renderMs = static_cast<float>(ctx.DrawTiming.renderSchedule * 1000.0);
 	const float editorMs = static_cast<float>(ctx.DrawTiming.editorUIBuild * 1000.0);
 	const float presentMs = static_cast<float>(ctx.DrawTiming.present * 1000.0);
-	const float peakMs = std::max(updateMs, std::max(drawMs, gpuMs));
+	const float peakMs = (std::max)(updateMs, (std::max)(drawMs, gpuMs));
 	const bool spike = peakMs >= SpikeThresholdMilliseconds;
 
 	if(!spike){
@@ -78,7 +78,7 @@ void PerformanceMonitor::RecordFrameSpike(const EditorDrawContext& ctx){
 		FrameSpikeRecord& active = FrameSpikes.back();
 		active.startup = active.startup || record.startup;
 		active.resize = active.resize || record.resize;
-		active.resizeMilliseconds = std::max(active.resizeMilliseconds, record.resizeMilliseconds);
+		active.resizeMilliseconds = (std::max)(active.resizeMilliseconds, record.resizeMilliseconds);
 		if(record.peakMilliseconds > active.peakMilliseconds){
 			const bool startup = active.startup;
 			const bool resize = active.resize;
@@ -329,7 +329,6 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx) {
 		}
 		ImGui::TreePop();
 	}
-
 
 	if(ImGui::TreeNodeEx("Frame Spike Diagnostics", ImGuiTreeNodeFlags_DefaultOpen)){
 		ImGui::SetNextItemWidth(140.0f);
