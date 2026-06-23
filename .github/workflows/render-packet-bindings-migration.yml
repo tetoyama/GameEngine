@@ -6,10 +6,10 @@ on:
       - ready_for_review
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  migrate-render-packet-bindings:
+  package-render-packet-migration:
     runs-on: ubuntu-latest
 
     steps:
@@ -36,6 +36,39 @@ jobs:
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit 0
 
+      - name: Package migrated source files
+        if: steps.migration.outputs.status == '0'
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+          import zipfile
+
+          raw = subprocess.check_output([
+              'git', 'status', '--porcelain', '-z'
+          ])
+          paths = []
+          for entry in raw.split(b'\0'):
+              if not entry:
+                  continue
+              path = entry[3:].decode('utf-8')
+              if path.startswith('Source/'):
+                  paths.append(path)
+
+          with zipfile.ZipFile(
+              'render-packet-migrated-sources.zip',
+              'w',
+              compression=zipfile.ZIP_DEFLATED
+          ) as archive:
+              for path in sorted(set(paths)):
+                  source = Path(path)
+                  if source.is_file():
+                      archive.write(source, arcname=path)
+
+          print(f'Packaged {len(set(paths))} migrated source files.')
+          PY
+
       - name: Upload migration diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -44,132 +77,16 @@ jobs:
           path: render-packet-migration.log
           if-no-files-found: error
 
-      - name: Stop on migration failure
+      - name: Upload migrated sources
+        if: steps.migration.outputs.status == '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-packet-migrated-sources
+          path: render-packet-migrated-sources.zip
+          if-no-files-found: error
+
+      - name: Preserve migration result
         if: steps.migration.outputs.status != '0'
         run: |
           cat render-packet-migration.log
           exit 1
-
-      - name: Restore normal workflow and remove temporary migration files
-        if: steps.migration.outputs.status == '0'
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('.github/workflows/windows-build.yml')
-          text = path.read_text(encoding='utf-8')
-          text = text.replace(
-              "if: github.event_name == 'push' || github.event.action == 'reopened'",
-              "if: github.event_name == 'push'"
-          )
-          path.write_text(text, encoding='utf-8')
-          PY
-          rm -f Tools/Migrations/add_render_packet_bindings.py
-          rm -f .github/workflows/render-packet-bindings-migration.yml
-
-      - name: Commit migration result
-        if: steps.migration.outputs.status == '0'
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --exit-code && exit 0
-          git commit -m "feat: complete render packet direct binding migration [skip ci]"
-          git push origin HEAD:refactor/ecs-scheduler-foundation
-
-  engine-debug-x64:
-    needs: migrate-render-packet-bindings
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout migrated branch
-        uses: actions/checkout@v4
-        with:
-          ref: refactor/ecs-scheduler-foundation
-          show-progress: false
-
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Compile GameEngine Debug x64
-        run: >-
-          msbuild GameEngine.vcxproj
-          /t:Build
-          /m
-          /p:Configuration=Debug
-          /p:Platform=x64
-          /verbosity:minimal
-          /consoleloggerparameters:ErrorsOnly
-
-  engine-release-x64:
-    needs: migrate-render-packet-bindings
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout migrated branch
-        uses: actions/checkout@v4
-        with:
-          ref: refactor/ecs-scheduler-foundation
-          show-progress: false
-
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Compile GameEngine Release x64
-        run: >-
-          msbuild GameEngine.vcxproj
-          /t:Build
-          /m
-          /p:Configuration=Release
-          /p:Platform=x64
-          /verbosity:minimal
-          /consoleloggerparameters:ErrorsOnly
-
-  script-debug-x64:
-    needs: migrate-render-packet-bindings
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout migrated branch
-        uses: actions/checkout@v4
-        with:
-          ref: refactor/ecs-scheduler-foundation
-          show-progress: false
-
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Compile Script Debug x64
-        run: >-
-          msbuild Script/Script.vcxproj
-          /t:Build
-          /m
-          /p:Configuration=Debug
-          /p:Platform=x64
-          /verbosity:minimal
-          /consoleloggerparameters:ErrorsOnly
-
-  script-release-x64:
-    needs: migrate-render-packet-bindings
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout migrated branch
-        uses: actions/checkout@v4
-        with:
-          ref: refactor/ecs-scheduler-foundation
-          show-progress: false
-
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Compile Script Release x64
-        run: >-
-          msbuild Script/Script.vcxproj
-          /t:Build
-          /m
-          /p:Configuration=Release
-          /p:Platform=x64
-          /verbosity:minimal
-          /consoleloggerparameters:ErrorsOnly
