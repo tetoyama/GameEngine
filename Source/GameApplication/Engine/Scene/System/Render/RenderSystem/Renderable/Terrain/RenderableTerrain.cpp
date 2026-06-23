@@ -7,6 +7,7 @@
 
 #include <d3d11.h>
 #include "../../RenderPass/RenderPassContext.h"
+#include "../../RenderPacket/RenderPacketTransformDX11.h"
 
 #include "DebugTools/DebugSystem.h"
 
@@ -20,10 +21,13 @@
 #include "Scene/Component/textureComponent.h"
 #include <Component/materialComponent.h>
 
-void RenderableTerrain::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
+void RenderableTerrain::Execute(const RenderPassContext& ctx, const RenderPacket& packet){
+	SceneContext* sceneContext = packet.bindings.sceneContext;
+	const Entity& entity = packet.entity;
+	if(!sceneContext) return;
 
-	TerrainComponent* pTerrain = sceneContext->component->GetComponent<TerrainComponent>(entity);
-	TransformComponent* pTransform = sceneContext->component->GetComponent<TransformComponent>(entity);
+	TerrainComponent* pTerrain = packet.bindings.terrain;
+	TransformComponent* pTransform = packet.bindings.transform;
 	if(!pTerrain || !pTerrain->meshRenderer || !pTransform){
 		return;
 	}
@@ -35,12 +39,12 @@ void RenderableTerrain::Execute(const RenderPassContext& ctx, SceneContext* scen
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	MATERIAL material{};
-	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
+	MaterialComponent* pMaterial = packet.bindings.material;
 	if (pMaterial) {
 		material = pMaterial->Material;
 	}
 
-	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
+	TextureComponent* pTexture = packet.bindings.texture;
 	if (pTexture) {
 
 			// マテリアル設定
@@ -64,8 +68,8 @@ void RenderableTerrain::Execute(const RenderPassContext& ctx, SceneContext* scen
 			uv.UVStart.y = (pTexture->AnimationNum / column) * pTexture->UV_Slice_Y;
 
 			// 1 セルの UV サイズ: 1/スライス数
-			uv.UVEnd.x = uv.UVStart.x + 1.0f / pTexture->UV_Slice_X;  // セルの右端 UV
-			uv.UVEnd.y = uv.UVStart.y + 1.0f / pTexture->UV_Slice_Y;  // セルの下端 UV
+			uv.UVEnd.x = uv.UVStart.x + pTexture->UV_Slice_X;  // セルの右端 UV
+			uv.UVEnd.y = uv.UVStart.y + pTexture->UV_Slice_Y;  // セルの下端 UV
 		}
 		graphicsContext->SetUVMatrixBuffer(uv);
 
@@ -80,7 +84,8 @@ void RenderableTerrain::Execute(const RenderPassContext& ctx, SceneContext* scen
 
 	}
 
-	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, sceneContext->component);
+	DirectX::XMMATRIX World =
+		LoadRenderPacketMatrix(packet.transform.worldMatrix);
 
 	graphicsContext->SetWorldMatrix(World);
 	UINT stride = sizeof(VERTEX_3D);

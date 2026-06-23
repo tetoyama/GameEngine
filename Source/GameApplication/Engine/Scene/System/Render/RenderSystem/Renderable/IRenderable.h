@@ -4,13 +4,11 @@
 // 
 // =======================================================================
 #pragma once
-#include "Scene/Entity/Entity.h"
+#include "System/Render/RenderSystem/RenderPacket/RenderPacket.h"
 
 struct RenderPassContext;
 struct SceneManagerContext;
-struct SceneContext;
 
-class ComponentRegistry;
 
 // 描画オブジェクトの基底インターフェース
 class IRenderable {
@@ -22,7 +20,6 @@ public:
 
 	virtual void Execute(
 		const RenderPassContext& ctx,
-		SceneContext* sceneContext,
-		const Entity& entity
+		const RenderPacket& packet
 	) = 0;
 };

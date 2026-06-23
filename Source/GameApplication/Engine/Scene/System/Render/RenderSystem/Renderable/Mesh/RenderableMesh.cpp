@@ -7,6 +7,7 @@
 
 #include <d3d11.h>
 #include "../../RenderPass/RenderPassContext.h"
+#include "../../RenderPacket/RenderPacketTransformDX11.h"
 
 #include "DebugTools/DebugSystem.h"
 
@@ -18,19 +19,21 @@
 #include "Scene/Component/transformComponent.h"
 #include "Scene/Component/textureComponent.h"
 
-void RenderableMesh::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
+void RenderableMesh::Execute(const RenderPassContext& ctx, const RenderPacket& packet){
+	SceneContext* sceneContext = packet.bindings.sceneContext;
+	const Entity& entity = packet.entity;
+	if(!sceneContext) return;
 
-	MeshRendererComponent* meshRenderer = sceneContext->component->GetComponent<MeshRendererComponent>(entity);
-	TransformComponent* transform = sceneContext->component->GetComponent<TransformComponent>(entity);
+	MeshRendererComponent* meshRenderer = packet.bindings.meshRenderer;
+	TransformComponent* transform = packet.bindings.transform;
 	if(!meshRenderer || !transform){
 		return;
 	}
 	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
 	ID3D11Device* device = graphicsContext->GetDevice();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-	ComponentRegistry* componentRegistry = sceneContext->component;
 
-	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
+	TextureComponent* pTexture = packet.bindings.texture;
 
 	if(!pTexture){
 		if(meshRenderer->mesh.m_TextureData){
@@ -52,7 +55,8 @@ void RenderableMesh::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	//if(meshRenderer->mesh.m_PixelShader){
 	//	deviceContext->PSSetShader(meshRenderer->mesh.m_PixelShader.Get(), NULL, 0);
 	//}
-	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, componentRegistry);
+	DirectX::XMMATRIX World =
+		LoadRenderPacketMatrix(packet.transform.worldMatrix);
 
 	graphicsContext->SetWorldViewProjection2D();
 	graphicsContext->SetWorldMatrix(World);

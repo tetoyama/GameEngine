@@ -7,6 +7,7 @@
 
 #include <d3d11.h>
 #include "../../RenderPass/RenderPassContext.h"
+#include "../../RenderPacket/RenderPacketTransformDX11.h"
 
 #include "DebugTools/DebugSystem.h"
 #include "Graphics/mainRenderer.h"
@@ -71,25 +72,27 @@ void RenderableBillBoard::Finalize(){
 	delete m_billBoardMesh;
 }
 
-void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
+void RenderableBillBoard::Execute(const RenderPassContext& ctx, const RenderPacket& packet){
+	SceneContext* sceneContext = packet.bindings.sceneContext;
+	const Entity& entity = packet.entity;
+	if(!sceneContext) return;
 
-	BillBoardRendererComponent* billBoard = sceneContext->component->GetComponent<BillBoardRendererComponent>(entity);
-	TransformComponent* transform = sceneContext->component->GetComponent<TransformComponent>(entity);
+	BillBoardRendererComponent* billBoard = packet.bindings.billboardRenderer;
+	TransformComponent* transform = packet.bindings.transform;
 	if(!billBoard || !transform){
 		return;
 	}
 	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
 	ID3D11Device* device = graphicsContext->GetDevice();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-	ComponentRegistry* componentRegistry = sceneContext->component;
 
 	MATERIAL material{};
-	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
+	MaterialComponent* pMaterial = packet.bindings.material;
 	if (pMaterial) {
 		material = pMaterial->Material;
 	}
 
-	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
+	TextureComponent* pTexture = packet.bindings.texture;
 	if (pTexture) {
 
 			// マテリアル設定
@@ -113,8 +116,8 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 			uv.UVStart.y = (pTexture->AnimationNum / column) * pTexture->UV_Slice_Y;
 
 			// 1 セルの UV サイズ: 1/スライス数
-			uv.UVEnd.x = uv.UVStart.x + 1.0f / pTexture->UV_Slice_X;  // セルの右端 UV
-			uv.UVEnd.y = uv.UVStart.y + 1.0f / pTexture->UV_Slice_Y;  // セルの下端 UV
+			uv.UVEnd.x = uv.UVStart.x + pTexture->UV_Slice_X;  // セルの右端 UV
+			uv.UVEnd.y = uv.UVStart.y + pTexture->UV_Slice_Y;  // セルの下端 UV
 		}
 		graphicsContext->SetUVMatrixBuffer(uv);
 
@@ -193,21 +196,18 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, SceneContext* sc
 
 	DirectX::XMMATRIX WorldMatrix = LocalMatrix;
 
-	if(transform->parent != 0){
-		auto parentTransform = componentRegistry->GetComponent<TransformComponent>(transform->parent);
-		if(parentTransform){
-			DirectX::XMMATRIX parentWorld = parentTransform->CalculateWorldMatrix(parentTransform, componentRegistry);
-
-			// 親の位置だけを取得（分解）
-			DirectX::XMVECTOR parentScale, parentRotation, parentTranslation;
-			DirectX::XMMatrixDecompose(&parentScale, &parentRotation, &parentTranslation, parentWorld);
-
-			// 親の位置だけの平行移動行列を作る
-			DirectX::XMMATRIX parentTranslationMatrix = DirectX::XMMatrixTranslationFromVector(parentTranslation);
-
-			// 親の回転・スケールは無視し、親位置だけ足す
-			WorldMatrix = LocalMatrix * parentTranslationMatrix;
-		}
+	if(packet.transform.hasParentWorld){
+		const DirectX::XMMATRIX parentWorld =
+			LoadRenderPacketMatrix(packet.transform.parentWorldMatrix);
+		DirectX::XMVECTOR parentScale, parentRotation, parentTranslation;
+		DirectX::XMMatrixDecompose(
+			&parentScale,
+			&parentRotation,
+			&parentTranslation,
+			parentWorld
+		);
+		WorldMatrix = LocalMatrix *
+			DirectX::XMMatrixTranslationFromVector(parentTranslation);
 	}
 
 	graphicsContext->SetWorldMatrix(WorldMatrix);

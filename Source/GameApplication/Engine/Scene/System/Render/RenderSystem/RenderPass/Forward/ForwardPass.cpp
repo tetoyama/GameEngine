@@ -125,10 +125,6 @@ void ForwardPass::Execute(const RenderPassContext& ctx){
 		};
 
 	auto drawPacket = [&](const RenderPacket& packet){
-		SceneContext* sceneContext =
-			m_context->sceneManager->GetContextFromID(packet.sceneContextID);
-		if(!sceneContext) return;
-
 		IRenderable* renderable =
 			m_renderSystem->GetRenderableForPacketKind(packet.kind);
 		if(!renderable) return;
@@ -141,7 +137,7 @@ void ForwardPass::Execute(const RenderPassContext& ctx){
 		info.ObjectID = packet.entity;
 		info.ShaderID = materialID;
 		m_context->graphics->SetObjectInfo(info);
-		renderable->Execute(ctx, sceneContext, packet.entity);
+		renderable->Execute(ctx, packet);
 	};
 
 	const RenderPacketFrameBuffer& packetBuffer =

@@ -6,6 +6,19 @@
 #include "Scene/Entity/Entity.h"
 #include "System/Render/RenderSystem/renderLayer.h"
 
+struct SceneContext;
+class TransformComponent;
+class MaterialComponent;
+class TextureComponent;
+class ModelRendererComponent;
+class MeshRendererComponent;
+class SpriteRendererComponent;
+class BillBoardRendererComponent;
+class ParticleComponent;
+class TerrainComponent;
+class WaveComponent;
+class EffectComponent;
+
 enum class RenderPacketKind : uint8_t {
 	Model = 0,
 	Mesh,
@@ -146,11 +159,40 @@ constexpr RenderPacketPassMask ResolveRenderPacketPasses(
 	return RenderPacketPassesForLayer(effectiveLayer) & RenderPacketPassesForKind(kind);
 }
 
+struct RenderPacketMatrix4x4 {
+	float values[16] = {
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	};
+};
+
 struct RenderPacketTransformSnapshot {
 	float position[3] = {0.0f, 0.0f, 0.0f};
 	float worldPosition[3] = {0.0f, 0.0f, 0.0f};
 	float rotation[4] = {0.0f, 0.0f, 0.0f, 1.0f};
 	float scale[3] = {1.0f, 1.0f, 1.0f};
+	RenderPacketMatrix4x4 worldMatrix;
+	RenderPacketMatrix4x4 parentWorldMatrix;
+	bool hasParentWorld = false;
+};
+
+// Frame-local, non-owning bindings. Scheduler read hazards and the
+// MainThread submit barrier keep these addresses stable until submit ends.
+struct RenderPacketComponentBindings {
+	SceneContext* sceneContext = nullptr;
+	TransformComponent* transform = nullptr;
+	MaterialComponent* material = nullptr;
+	TextureComponent* texture = nullptr;
+	ModelRendererComponent* modelRenderer = nullptr;
+	MeshRendererComponent* meshRenderer = nullptr;
+	SpriteRendererComponent* spriteRenderer = nullptr;
+	BillBoardRendererComponent* billboardRenderer = nullptr;
+	ParticleComponent* particle = nullptr;
+	TerrainComponent* terrain = nullptr;
+	WaveComponent* wave = nullptr;
+	EffectComponent* effect = nullptr;
 };
 
 constexpr uint16_t EncodeRenderPacketOrder(int32_t order) noexcept {
@@ -187,6 +229,7 @@ struct RenderPacket {
 	uint64_t sortKey = 0;
 	uint64_t stableSequence = 0;
 	RenderPacketTransformSnapshot transform;
+	RenderPacketComponentBindings bindings;
 };
 
 inline bool RenderPacketLess(const RenderPacket& lhs, const RenderPacket& rhs) noexcept {

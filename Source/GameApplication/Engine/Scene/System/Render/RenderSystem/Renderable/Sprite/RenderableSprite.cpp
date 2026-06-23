@@ -8,6 +8,7 @@
 #include <d3d11.h>
 #include <algorithm>
 #include "../../RenderPass/RenderPassContext.h"
+#include "../../RenderPacket/RenderPacketTransformDX11.h"
 
 #include "DebugTools/DebugSystem.h"
 #include "Graphics/mainRenderer.h"
@@ -72,10 +73,13 @@ void RenderableSprite::Finalize(){
 	delete m_spriteMesh;
 }
 
-void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
+void RenderableSprite::Execute(const RenderPassContext& ctx, const RenderPacket& packet){
+	SceneContext* sceneContext = packet.bindings.sceneContext;
+	const Entity& entity = packet.entity;
+	if(!sceneContext) return;
 
-	SpriteRendererComponent* spriteRenderer = sceneContext->component->GetComponent<SpriteRendererComponent>(entity);
-	TransformComponent* transform = sceneContext->component->GetComponent<TransformComponent>(entity);
+	SpriteRendererComponent* spriteRenderer = packet.bindings.spriteRenderer;
+	TransformComponent* transform = packet.bindings.transform;
 	if(!spriteRenderer || !transform){
 		return;
 	}
@@ -89,17 +93,16 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
 	ID3D11Device* device = graphicsContext->GetDevice();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-	ComponentRegistry* componentRegistry = sceneContext->component;
 
 
 	MATERIAL material{};
 	material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
+	MaterialComponent* pMaterial = packet.bindings.material;
 	if (pMaterial) {
 		material = pMaterial->Material;
 	}
 
-	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
+	TextureComponent* pTexture = packet.bindings.texture;
 	if (pTexture) {
 
 			// マテリアル設定
@@ -141,7 +144,10 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* scene
 	if(m_spriteMesh->mesh.m_PixelShader){
 		deviceContext->PSSetShader(m_spriteMesh->mesh.m_PixelShader.Get(), NULL, 0);
 	}
-	DirectX::XMMATRIX World = newTransform.CalculateWorldMatrix(&newTransform, componentRegistry);
+	DirectX::XMMATRIX World = TransformMath::CalculateLocalMatrix(newTransform);
+	if(packet.transform.hasParentWorld){
+		World = World * LoadRenderPacketMatrix(packet.transform.parentWorldMatrix);
+	}
 
 	graphicsContext->SetWorldViewProjection2D();
 	graphicsContext->SetWorldMatrix(World);

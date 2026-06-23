@@ -17,7 +17,6 @@ public:
 
 	void Execute(
 		const RenderPassContext& ctx,
-		SceneContext* sceneContext,
-		const Entity& entity
-	)override;
+		const RenderPacket& packet
+	) override;
 };

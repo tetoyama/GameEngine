@@ -19,9 +19,8 @@ public:
 
 	void Execute(
 		const RenderPassContext& ctx,
-		SceneContext* sceneContext,
-		const Entity& entity
-	)override;
+		const RenderPacket& packet
+	) override;
 
 private:
 	MeshRendererComponent* m_billBoardMesh = nullptr;

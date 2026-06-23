@@ -7,6 +7,7 @@
 
 #include <d3d11.h>
 #include "../../RenderPass/RenderPassContext.h"
+#include "../../RenderPacket/RenderPacketTransformDX11.h"
 
 #include "DebugTools/DebugSystem.h"
 
@@ -22,10 +23,12 @@
 #include "Shader/commonDefine.h"
 
 
-void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity) {
-	auto componentRegistry = sceneContext->component;
-	auto pTransform = componentRegistry->GetComponent<TransformComponent>(entity);
-	auto pWave = componentRegistry->GetComponent<WaveComponent>(entity);
+void RenderableWave::Execute(const RenderPassContext& ctx, const RenderPacket& packet){
+	SceneContext* sceneContext = packet.bindings.sceneContext;
+	const Entity& entity = packet.entity;
+	if(!sceneContext) return;
+	auto pTransform = packet.bindings.transform;
+	auto pWave = packet.bindings.wave;
 
 	if (!pWave || !pWave->meshRenderer) {
 		return;
@@ -34,8 +37,8 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	ID3D11Device* device = graphicsContext->GetDevice();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
-	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
+	TextureComponent* pTexture = packet.bindings.texture;
+	MaterialComponent* pMaterial = packet.bindings.material;
 	MATERIAL material;
 	if (pMaterial) {
 		material = pMaterial->Material;
@@ -56,7 +59,8 @@ void RenderableWave::Execute(const RenderPassContext& ctx, SceneContext* sceneCo
 	auto transform = pTransform;
 
 
-	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, componentRegistry);
+	DirectX::XMMATRIX World =
+		LoadRenderPacketMatrix(packet.transform.worldMatrix);
 
 	graphicsContext->SetCullMode(CullMode::Back);
 	graphicsContext->SetWorldMatrix(World);

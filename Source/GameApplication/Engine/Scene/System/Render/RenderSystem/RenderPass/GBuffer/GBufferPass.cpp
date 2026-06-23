@@ -179,11 +179,6 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 				continue;
 			}
 			if(!newCtx.renderLayerVisibility[layerIndex]) continue;
-
-			SceneContext* sceneContext =
-				m_context->sceneManager->GetContextFromID(packet.sceneContextID);
-			if(!sceneContext) continue;
-
 			IRenderable* renderable =
 				m_renderSystem->GetRenderableForPacketKind(packet.kind);
 			if(!renderable) continue;
@@ -194,7 +189,7 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 			info.ShaderID = static_cast<int>(packet.materialKey);
 			m_context->graphics->SetObjectInfo(info);
 
-			renderable->Execute(newCtx, sceneContext, packet.entity);
+			renderable->Execute(newCtx, packet);
 		}
 	}
 	{

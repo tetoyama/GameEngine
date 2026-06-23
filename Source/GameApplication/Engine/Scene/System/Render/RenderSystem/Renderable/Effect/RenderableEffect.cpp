@@ -11,11 +11,15 @@
 #include "scene.h"
 #include "sceneManager.h"
 #include "../../RenderPass/RenderPassContext.h"
+#include "../../RenderPacket/RenderPacketTransformDX11.h"
 #include <Component/EffectComponent.h>
 
-void RenderableEffect::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity) {
+void RenderableEffect::Execute(const RenderPassContext& ctx, const RenderPacket& packet){
+	SceneContext* sceneContext = packet.bindings.sceneContext;
+	const Entity& entity = packet.entity;
+	if(!sceneContext) return;
 
-	EffectComponent* effect = sceneContext->component->GetComponent<EffectComponent>(entity);
+	EffectComponent* effect = packet.bindings.effect;
 	if(!effect){
 		return;
 	}

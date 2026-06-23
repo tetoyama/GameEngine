@@ -6,6 +6,7 @@
 #include "RenderableParticle.h"
 #include <d3d11.h>
 #include "../../RenderPass/RenderPassContext.h"
+#include "../../RenderPacket/RenderPacketTransformDX11.h"
 
 #include "DebugTools/DebugSystem.h"
 #include "Graphics/mainRenderer.h"
@@ -70,14 +71,17 @@ void RenderableParticle::Finalize(){
 	delete m_billBoardMesh;
 }
 
-void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
-	ParticleComponent* pParticle = sceneContext->component->GetComponent<ParticleComponent>(entity);
-	TransformComponent* pTransform = sceneContext->component->GetComponent<TransformComponent>(entity);
+void RenderableParticle::Execute(const RenderPassContext& ctx, const RenderPacket& packet){
+	SceneContext* sceneContext = packet.bindings.sceneContext;
+	const Entity& entity = packet.entity;
+	if(!sceneContext) return;
+	ParticleComponent* pParticle = packet.bindings.particle;
+	TransformComponent* pTransform = packet.bindings.transform;
 	if(!pParticle || !pTransform){
 		return;
 	}
-	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
-	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
+	TextureComponent* pTexture = packet.bindings.texture;
+	MaterialComponent* pMaterial = packet.bindings.material;
 	MATERIAL material{};
 	if (pMaterial) {
 		material = pMaterial->Material;
@@ -117,8 +121,8 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 					uv.UVStart.y = (pTexture->AnimationNum / column) * pTexture->UV_Slice_Y;
 
 					// 1 セルの UV サイズ: 1/スライス数
-					uv.UVEnd.x = uv.UVStart.x + 1.0f / pTexture->UV_Slice_X;  // セルの右端 UV
-					uv.UVEnd.y = uv.UVStart.y + 1.0f / pTexture->UV_Slice_Y;  // セルの下端 UV
+					uv.UVEnd.x = uv.UVStart.x + pTexture->UV_Slice_X;  // セルの右端 UV
+					uv.UVEnd.y = uv.UVStart.y + pTexture->UV_Slice_Y;  // セルの下端 UV
 				}
 				graphicsContext->SetUVMatrixBuffer(uv);
 

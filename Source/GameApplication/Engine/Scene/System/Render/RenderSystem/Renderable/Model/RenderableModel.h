@@ -20,7 +20,6 @@ public:
 
 	void Execute(
 		const RenderPassContext& ctx,
-		SceneContext* sceneContext,
-		const Entity& entity
+		const RenderPacket& packet
 	) override;
 };

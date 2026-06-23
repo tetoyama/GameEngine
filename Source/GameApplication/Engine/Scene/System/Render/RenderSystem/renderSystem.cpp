@@ -52,6 +52,7 @@
 #include "System/Physic/physicSystem.h"
 
 #include "System/Render/RenderSystem/renderLayer.h"
+#include "System/Render/RenderSystem/RenderPacket/RenderPacketTransformDX11.h"
 
 #include "Component/RenderLayerComponent.h"
 #include "Component/transformComponent.h"
@@ -406,7 +407,7 @@ void RenderSystem::BuildRenderPackets(){
 
 		worker.Reserve(worker.Packets().size() + entities.size());
 		for(Entity entity : entities){
-			const TransformComponent* transform =
+			TransformComponent* transform =
 				components->GetComponent<TransformComponent>(entity);
 			if(!transform) continue;
 
@@ -414,8 +415,26 @@ void RenderSystem::BuildRenderPackets(){
 				components->GetComponent<RenderLayerComponent>(entity);
 			const OrderInLayerComponent* orderComponent =
 				components->GetComponent<OrderInLayerComponent>(entity);
-			const MaterialComponent* materialComponent =
+			MaterialComponent* materialComponent =
 				components->GetComponent<MaterialComponent>(entity);
+			TextureComponent* textureComponent =
+				components->GetComponent<TextureComponent>(entity);
+			ModelRendererComponent* modelRenderer =
+				components->GetComponent<ModelRendererComponent>(entity);
+			MeshRendererComponent* meshRenderer =
+				components->GetComponent<MeshRendererComponent>(entity);
+			SpriteRendererComponent* spriteRenderer =
+				components->GetComponent<SpriteRendererComponent>(entity);
+			BillBoardRendererComponent* billboardRenderer =
+				components->GetComponent<BillBoardRendererComponent>(entity);
+			ParticleComponent* particle =
+				components->GetComponent<ParticleComponent>(entity);
+			TerrainComponent* terrain =
+				components->GetComponent<TerrainComponent>(entity);
+			WaveComponent* wave =
+				components->GetComponent<WaveComponent>(entity);
+			EffectComponent* effect =
+				components->GetComponent<EffectComponent>(entity);
 			const bool isEnvironmentMap =
 				components->GetComponent<EnvironmentMapComponent>(entity) != nullptr;
 
@@ -445,6 +464,20 @@ void RenderSystem::BuildRenderPackets(){
 			snapshot.scale[0] = transform->scale.x;
 			snapshot.scale[1] = transform->scale.y;
 			snapshot.scale[2] = transform->scale.z;
+			StoreRenderPacketMatrix(
+				snapshot.worldMatrix,
+				transform->CalculateWorldMatrix(transform, components)
+			);
+			if(transform->parent){
+				if(TransformComponent* parentTransform =
+					components->GetComponent<TransformComponent>(transform->parent)){
+					StoreRenderPacketMatrix(
+						snapshot.parentWorldMatrix,
+						parentTransform->CalculateWorldMatrix(parentTransform, components)
+					);
+					snapshot.hasParentWorld = true;
+				}
+			}
 
 			auto appendPacket = [&](RenderPacketKind kind){
 				RenderPacket packet;
@@ -470,31 +503,43 @@ void RenderSystem::BuildRenderPackets(){
 				);
 				packet.stableSequence = stableSequence++;
 				packet.transform = snapshot;
+				packet.bindings.sceneContext = sceneEntry.context;
+				packet.bindings.transform = transform;
+				packet.bindings.material = materialComponent;
+				packet.bindings.texture = textureComponent;
+				packet.bindings.modelRenderer = modelRenderer;
+				packet.bindings.meshRenderer = meshRenderer;
+				packet.bindings.spriteRenderer = spriteRenderer;
+				packet.bindings.billboardRenderer = billboardRenderer;
+				packet.bindings.particle = particle;
+				packet.bindings.terrain = terrain;
+				packet.bindings.wave = wave;
+				packet.bindings.effect = effect;
 				worker.Add(std::move(packet));
 			};
 
-			if(components->GetComponent<ModelRendererComponent>(entity)){
+			if(modelRenderer){
 				appendPacket(RenderPacketKind::Model);
 			}
-			if(components->GetComponent<MeshRendererComponent>(entity)){
+			if(meshRenderer){
 				appendPacket(RenderPacketKind::Mesh);
 			}
-			if(components->GetComponent<SpriteRendererComponent>(entity)){
+			if(spriteRenderer){
 				appendPacket(RenderPacketKind::Sprite);
 			}
-			if(components->GetComponent<BillBoardRendererComponent>(entity)){
+			if(billboardRenderer){
 				appendPacket(RenderPacketKind::Billboard);
 			}
-			if(components->GetComponent<ParticleComponent>(entity)){
+			if(particle){
 				appendPacket(RenderPacketKind::Particle);
 			}
-			if(components->GetComponent<TerrainComponent>(entity)){
+			if(terrain){
 				appendPacket(RenderPacketKind::Terrain);
 			}
-			if(components->GetComponent<WaveComponent>(entity)){
+			if(wave){
 				appendPacket(RenderPacketKind::Wave);
 			}
-			if(components->GetComponent<EffectComponent>(entity)){
+			if(effect){
 				appendPacket(RenderPacketKind::Effect);
 			}
 		}
@@ -546,6 +591,7 @@ void RenderSystem::RegisterTasks(SystemScheduleBuilder& builder){
 		.ReadComponent<RenderLayerComponent>()
 		.ReadComponent<OrderInLayerComponent>()
 		.ReadComponent<MaterialComponent>()
+		.ReadComponent<TextureComponent>()
 		.ReadComponent<ModelRendererComponent>()
 		.ReadComponent<MeshRendererComponent>()
 		.ReadComponent<SpriteRendererComponent>()

@@ -110,10 +110,6 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 
 		for(const RenderPacket* packet : overlayPackets){
 			if(!packet) continue;
-			SceneContext* sceneContext =
-				m_context->sceneManager->GetContextFromID(packet->sceneContextID);
-			if(!sceneContext) continue;
-
 			IRenderable* renderable =
 				m_renderSystem->GetRenderableForPacketKind(packet->kind);
 			if(!renderable) continue;
@@ -123,7 +119,7 @@ void OverlayUIPass::Execute(const RenderPassContext& ctx) {
 			info.ObjectID = packet->entity;
 			info.ShaderID = static_cast<int>(packet->materialKey);
 			m_context->graphics->SetObjectInfo(info);
-			renderable->Execute(ctx, sceneContext, packet->entity);
+			renderable->Execute(ctx, *packet);
 		}
 	}
 

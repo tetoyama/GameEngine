@@ -562,16 +562,11 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 					continue;
 				}
 				if(!newContext.renderLayerVisibility[layerIndex]) continue;
-
-				SceneContext* sceneContext =
-					m_context->sceneManager->GetContextFromID(packet.sceneContextID);
-				if(!sceneContext) continue;
-
 				IRenderable* renderable =
 					m_renderSystem->GetRenderableForPacketKind(packet.kind);
 				if(!renderable) continue;
 
-				renderable->Execute(newContext, sceneContext, packet.entity);
+				renderable->Execute(newContext, packet);
 			}
 		}
 
