@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "Service/IService.h"
+#include "GpuFrameTiming.h"
 #include "Service/Graphics/RHI/RHIService.h"
 #include "Shader/Common.hlsl"
 
@@ -109,11 +110,11 @@ public:
 		return m_FrameLatencyWaitTimeoutCount;
 	}
 
-	// GPU Timestamp Queryは複数フレーム遅延で回収し、CPUを待機させない。
-	void BeginGpuFrameTiming();
+	// GPU Timestamp QueryはFrame Serial付きで非同期回収する。
+	// Consumeは未消費結果だけを提出順に一度だけ返す。
+	void BeginGpuFrameTiming(uint64_t frameSerial);
 	void EndGpuFrameTiming();
-	bool HasValidGpuFrameTime() const noexcept { return m_GpuFrameTimeValid; }
-	double GetGpuFrameTimeSeconds() const noexcept { return m_GpuFrameTimeSeconds; }
+	std::vector<GpuFrameTimingResult> ConsumeResolvedGpuFrameTimings();
 	bool IsTearingSupported() const noexcept { return m_TearingSupported; }
 
 	RHI::BackendType GetBackendType() const noexcept {
@@ -253,6 +254,7 @@ private:
 		Microsoft::WRL::ComPtr<ID3D11Query> disjoint;
 		Microsoft::WRL::ComPtr<ID3D11Query> beginTimestamp;
 		Microsoft::WRL::ComPtr<ID3D11Query> endTimestamp;
+		uint64_t submittedFrameSerial = 0;
 		bool pending = false;
 	};
 
@@ -296,8 +298,7 @@ private:
 	size_t m_GpuTimingWriteIndex = 0;
 	int m_ActiveGpuTimingIndex = -1;
 	bool m_GpuTimingAvailable = false;
-	bool m_GpuFrameTimeValid = false;
-	double m_GpuFrameTimeSeconds = 0.0;
+	std::vector<GpuFrameTimingResult> m_ResolvedGpuFrameTimings;
 
 	RenderEffectSystem* m_EffectSystem = nullptr;
 	bool m_TearingSupported = false;

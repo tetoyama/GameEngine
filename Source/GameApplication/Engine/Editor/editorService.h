@@ -10,6 +10,7 @@
 #include "InterFace/IEditorUI.h"
 #include "Command/CommandManager.h"
 #include "Runtime/TimeService/timeService.h"
+#include "Graphics/GpuFrameTiming.h"
 
 struct EditorDrawContext;
 class EditorService;
@@ -79,8 +80,7 @@ struct EditorDrawContext {
 	double FixedUpdateFPS = 0.0;
 	DrawTimingBreakdown DrawTiming{};
 	const std::vector<EditorPanelTiming>* EditorPanelTimings = nullptr;
-	double GPUFrameTime = 0.0;
-	bool GPUFrameTimeValid = false;
+	const std::vector<GpuFrameTimingResult>* ResolvedGpuFrameTimings = nullptr;
 	bool VSyncEnabled = false;
 	bool TearingSupported = false;
 	bool FrameLatencyWaitableObjectEnabled = false;

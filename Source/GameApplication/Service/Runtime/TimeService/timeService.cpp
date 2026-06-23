@@ -167,13 +167,15 @@ void TimeService::EndFixedUpdate(){
 	}
 }
 
-void TimeService::BeginDraw(){
+void TimeService::BeginDraw(uint64_t frameSerial){
 	LARGE_INTEGER now;
 	QueryPerformanceCounter(&now);
 	drawBeginTime_ = now.QuadPart;
 	drawSectionBeginTime_ = now.QuadPart;
 	drawSectionActive_ = false;
 	currentDrawTiming_ = {};
+	currentDrawTiming_.frameSerial = frameSerial;
+	currentDrawTiming_.update = deltaUpdateTime_;
 }
 
 void TimeService::BeginDrawSection(DrawTimingSection section){

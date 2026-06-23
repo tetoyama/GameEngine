@@ -6,6 +6,7 @@
 #pragma once
 #include "Service/IService.h"
 #include "buildSetting.h"
+#include <cstdint>
 
 // Drawフェーズ内でCPU計測する区間。
 // GPU実行時間は含めず、Timestamp Queryによる計測と明確に分離する。
@@ -23,6 +24,8 @@ enum class DrawTimingSection : unsigned char {
 // 直前に完了したDrawフレームのCPU時間内訳。
 // 値の単位はTimeServiceの他の時間情報と同じ秒。
 struct DrawTimingBreakdown {
+	uint64_t frameSerial = 0;
+	double update = 0.0;
 	double framePacingWait = 0.0;
 	double frameSetup = 0.0;
 	double imguiBegin = 0.0;
@@ -70,7 +73,7 @@ public:
 	void BeginDeltaUpdate();
 	void EndDeltaUpdate();
 	void EndFixedUpdate();
-	void BeginDraw();
+	void BeginDraw(uint64_t frameSerial);
 	void EndDraw();
 
 	// Drawフェーズ内の非ネスト区間を計測する。

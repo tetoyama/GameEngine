@@ -132,6 +132,10 @@ void Engine::Run(EngineContext* context){
 	auto scenes = context->Get<SceneManager>();
 	auto editor = context->Get<EditorService>();
 
+	uint64_t drawFrameSerial = 0;
+	uint64_t completedResizeSerial = 0;
+	double completedResizeCpuTime = 0.0;
+
 	auto initialScene = std::make_shared<Scene>();
 #ifdef _DEBUG_BUILD
 	scenes->LoadScene(initialScene);
@@ -153,7 +157,11 @@ void Engine::Run(EngineContext* context){
 		time->EndDeltaUpdate();
 		if(window->GetMainWindow()->ShouldClose()) break;
 
-		time->BeginDraw();
+		const uint64_t activeFrameSerial = ++drawFrameSerial;
+		const uint64_t activeResizeSerial = renderer->GetResizeSerial();
+		const double activeResizeCpuTime =
+			renderer->GetLastResizeCpuTimeSeconds();
+		time->BeginDraw(activeFrameSerial);
 
 		// SwapChain queueの空きをFrame開始前に待つ。
 		// Present内で不定期にまとめて待たされる状態を避け、独立区間として計測する。
@@ -161,7 +169,9 @@ void Engine::Run(EngineContext* context){
 		graphics->WaitForFrameLatency();
 		time->EndDrawSection(DrawTimingSection::FramePacingWait);
 
-		graphics->BeginGpuFrameTiming();
+		graphics->BeginGpuFrameTiming(activeFrameSerial);
+		const auto resolvedGpuFrameTimings =
+			graphics->ConsumeResolvedGpuFrameTimings();
 
 		time->BeginDrawSection(DrawTimingSection::FrameSetup);
 		renderer->BeginFrame();
@@ -182,19 +192,18 @@ void Engine::Run(EngineContext* context){
 
 		if(editor){
 			EditorDrawContext draw{};
-			draw.UpdateTime = time->GetDeltaUpdateTime();
-			draw.DrawTime = time->GetDrawTime();
+			draw.DrawTiming = time->GetDrawTimingBreakdown();
+			draw.UpdateTime = draw.DrawTiming.update;
+			draw.DrawTime = draw.DrawTiming.total;
 			draw.FPS = time->GetFrameFPS();
 			draw.FixedUpdateFPS = time->GetFixedUpdateFPS();
-			draw.DrawTiming = time->GetDrawTimingBreakdown();
-			draw.GPUFrameTime = graphics->GetGpuFrameTimeSeconds();
-			draw.GPUFrameTimeValid = graphics->HasValidGpuFrameTime();
+			draw.ResolvedGpuFrameTimings = &resolvedGpuFrameTimings;
 			draw.VSyncEnabled = config->appConfig.Vsync;
 			draw.TearingSupported = graphics->IsTearingSupported();
 			draw.FrameLatencyWaitableObjectEnabled = graphics->IsFrameLatencyWaitableObjectEnabled();
 			draw.FrameLatencyWaitTimeoutCount = graphics->GetFrameLatencyWaitTimeoutCount();
-			draw.ResizeSerial = renderer->GetResizeSerial();
-			draw.LastResizeCpuTime = renderer->GetLastResizeCpuTimeSeconds();
+			draw.ResizeSerial = completedResizeSerial;
+			draw.LastResizeCpuTime = completedResizeCpuTime;
 
 			time->BeginDrawSection(DrawTimingSection::EditorUIBuild);
 			editor->Draw(draw);
@@ -212,5 +221,7 @@ void Engine::Run(EngineContext* context){
 		time->EndDrawSection(DrawTimingSection::Present);
 
 		time->EndDraw();
+		completedResizeSerial = activeResizeSerial;
+		completedResizeCpuTime = activeResizeCpuTime;
 	}
 }

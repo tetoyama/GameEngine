@@ -6,6 +6,7 @@
 #include "graphicsContext.h"
 
 
+#include <algorithm>
 #include <stdexcept>
 #include <d2d1.h>
 #include <dwrite.h>
@@ -924,13 +925,13 @@ bool GraphicsContext::CreateGpuFrameTimingQueries(){
 		if(FAILED(m_Device->CreateQuery(&desc, timing.endTimestamp.ReleaseAndGetAddressOf()))){
 			return false;
 		}
+		timing.submittedFrameSerial = 0;
 		timing.pending = false;
 	}
 
 	m_GpuTimingWriteIndex = 0;
 	m_ActiveGpuTimingIndex = -1;
-	m_GpuFrameTimeSeconds = 0.0;
-	m_GpuFrameTimeValid = false;
+	m_ResolvedGpuFrameTimings.clear();
 	m_GpuTimingAvailable = true;
 	return true;
 }
@@ -945,6 +946,16 @@ void GraphicsContext::ResolveGpuFrameTimingQueries(){
 			continue;
 		}
 
+		auto complete = [&](GpuFrameTimingStatus status, double seconds = 0.0){
+			m_ResolvedGpuFrameTimings.push_back({
+				timing.submittedFrameSerial,
+				seconds,
+				status
+			});
+			timing.pending = false;
+			timing.submittedFrameSerial = 0;
+		};
+
 		D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjoint{};
 		const HRESULT disjointResult = m_DeviceContext->GetData(
 			timing.disjoint.Get(),
@@ -952,54 +963,99 @@ void GraphicsContext::ResolveGpuFrameTimingQueries(){
 			sizeof(disjoint),
 			D3D11_ASYNC_GETDATA_DONOTFLUSH
 		);
-		if(disjointResult != S_OK){
+		if(disjointResult == S_FALSE){
+			continue;
+		}
+		if(FAILED(disjointResult)){
+			complete(GpuFrameTimingStatus::Invalid);
 			continue;
 		}
 
 		UINT64 beginTimestamp = 0;
-		UINT64 endTimestamp = 0;
-		if(m_DeviceContext->GetData(
+		const HRESULT beginResult = m_DeviceContext->GetData(
 			timing.beginTimestamp.Get(),
 			&beginTimestamp,
 			sizeof(beginTimestamp),
 			D3D11_ASYNC_GETDATA_DONOTFLUSH
-		) != S_OK){
+		);
+		if(beginResult == S_FALSE){
 			continue;
 		}
-		if(m_DeviceContext->GetData(
+		if(FAILED(beginResult)){
+			complete(GpuFrameTimingStatus::Invalid);
+			continue;
+		}
+
+		UINT64 endTimestamp = 0;
+		const HRESULT endResult = m_DeviceContext->GetData(
 			timing.endTimestamp.Get(),
 			&endTimestamp,
 			sizeof(endTimestamp),
 			D3D11_ASYNC_GETDATA_DONOTFLUSH
-		) != S_OK){
+		);
+		if(endResult == S_FALSE){
+			continue;
+		}
+		if(FAILED(endResult)){
+			complete(GpuFrameTimingStatus::Invalid);
 			continue;
 		}
 
-		timing.pending = false;
-		if(disjoint.Disjoint || disjoint.Frequency == 0 || endTimestamp < beginTimestamp){
-			m_GpuFrameTimeValid = false;
+		if(disjoint.Disjoint || disjoint.Frequency == 0 ||
+		   endTimestamp < beginTimestamp){
+			complete(GpuFrameTimingStatus::Invalid);
 			continue;
 		}
 
-		m_GpuFrameTimeSeconds = static_cast<double>(endTimestamp - beginTimestamp) /
+		const double seconds =
+			static_cast<double>(endTimestamp - beginTimestamp) /
 			static_cast<double>(disjoint.Frequency);
-		m_GpuFrameTimeValid = true;
+		complete(GpuFrameTimingStatus::Resolved, seconds);
 	}
 }
 
-void GraphicsContext::BeginGpuFrameTiming(){
+std::vector<GpuFrameTimingResult>
+GraphicsContext::ConsumeResolvedGpuFrameTimings(){
+	ResolveGpuFrameTimingQueries();
+	std::stable_sort(
+		m_ResolvedGpuFrameTimings.begin(),
+		m_ResolvedGpuFrameTimings.end(),
+		[](const GpuFrameTimingResult& lhs, const GpuFrameTimingResult& rhs){
+			return lhs.frameSerial < rhs.frameSerial;
+		}
+	);
+
+	std::vector<GpuFrameTimingResult> results;
+	results.swap(m_ResolvedGpuFrameTimings);
+	return results;
+}
+
+void GraphicsContext::BeginGpuFrameTiming(uint64_t frameSerial){
 	ResolveGpuFrameTimingQueries();
 	if(!m_GpuTimingAvailable || !m_DeviceContext){
+		m_ResolvedGpuFrameTimings.push_back({
+			frameSerial,
+			0.0,
+			GpuFrameTimingStatus::Dropped
+		});
+		m_ActiveGpuTimingIndex = -1;
 		return;
 	}
 
 	auto& timing = m_GpuTimingQueries[m_GpuTimingWriteIndex];
 	if(timing.pending){
-		// GPUが4フレーム以上遅れている場合でもCPUを待機させず、このフレームは計測をスキップする。
+		// GPUがリング長以上遅れてもCPUを待機させない。
+		// 計測できなかったFrameは明示的にDroppedとして返す。
+		m_ResolvedGpuFrameTimings.push_back({
+			frameSerial,
+			0.0,
+			GpuFrameTimingStatus::Dropped
+		});
 		m_ActiveGpuTimingIndex = -1;
 		return;
 	}
 
+	timing.submittedFrameSerial = frameSerial;
 	m_ActiveGpuTimingIndex = static_cast<int>(m_GpuTimingWriteIndex);
 	m_DeviceContext->Begin(timing.disjoint.Get());
 	m_DeviceContext->End(timing.beginTimestamp.Get());
