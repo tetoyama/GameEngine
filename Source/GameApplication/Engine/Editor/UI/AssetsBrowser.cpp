@@ -211,7 +211,9 @@ void AssetsBrowser::ClearPreviewCache(){
 }
 
 void AssetsBrowser::DrawDirectoryTree(const std::filesystem::path& directory, std::string& selectedPath){
-	const CachedEntryList& directories = GetCachedDirectories(directory);
+	// Recursive expansion may insert another cache entry and rehash the map.
+	// Copy cached metadata so the current traversal remains valid.
+	const CachedEntryList directories = GetCachedDirectories(directory);
 	for(const CachedAssetEntry& entry : directories){
 		const std::filesystem::path& path = entry.path;
 		// Nested folders are lazy-opened. DefaultOpen here would enumerate the
