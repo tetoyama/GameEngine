@@ -75,7 +75,6 @@ void RenderableSprite::Finalize(){
 
 void RenderableSprite::Execute(const RenderPassContext& ctx, const RenderPacket& packet){
 	SceneContext* sceneContext = packet.bindings.sceneContext;
-	const Entity& entity = packet.entity;
 	if(!sceneContext) return;
 
 	SpriteRendererComponent* spriteRenderer = packet.bindings.spriteRenderer;
@@ -84,31 +83,25 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, const RenderPacket&
 		return;
 	}
 
-
-
 	const Vector2 viewportSize = ctx.screenSize;
-
 	TransformComponent newTransform = transform->CalculateRectTransform(viewportSize, *spriteRenderer, *transform);
 
 	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
-	ID3D11Device* device = graphicsContext->GetDevice();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-
 
 	MATERIAL material{};
 	material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	MaterialComponent* pMaterial = packet.bindings.material;
-	if (pMaterial) {
+	if(pMaterial){
 		material = pMaterial->Material;
 	}
 
 	TextureComponent* pTexture = packet.bindings.texture;
-	if (pTexture) {
-
-			// マテリアル設定
-		if (pTexture->m_TextureData) {
+	if(pTexture){
+		if(pTexture->m_TextureData){
 			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
-			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+			ID3D11ShaderResourceView* textureSRV = pTexture->m_TextureData->pTexture.Get();
+			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, &textureSRV);
 		}
 
 		graphicsContext->SetMaterial(material);
@@ -124,43 +117,49 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, const RenderPacket&
 			uv.UVEnd.y = uv.UVStart.y + pTexture->UV_Slice_Y;
 		}
 		graphicsContext->SetUVMatrixBuffer(uv);
-
-	} else {
-		// マテリアル設定
-		MATERIAL material{};
-		material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	}else{
 		graphicsContext->SetMaterial(material);
-
 		UVMatrixBuffer uv{};
+		uv.UVStart = float2(0.0f, 0.0f);
+		uv.UVEnd = float2(1.0f, 1.0f);
 		graphicsContext->SetUVMatrixBuffer(uv);
-
 	}
+
 	if(m_spriteMesh->mesh.m_VertexLayout){
 		deviceContext->IASetInputLayout(m_spriteMesh->mesh.m_VertexLayout.Get());
 	}
 	if(m_spriteMesh->mesh.m_VertexShader){
-		deviceContext->VSSetShader(m_spriteMesh->mesh.m_VertexShader.Get(), NULL, 0);
+		deviceContext->VSSetShader(m_spriteMesh->mesh.m_VertexShader.Get(), nullptr, 0);
 	}
 	if(m_spriteMesh->mesh.m_PixelShader){
-		deviceContext->PSSetShader(m_spriteMesh->mesh.m_PixelShader.Get(), NULL, 0);
-	}
-	DirectX::XMMATRIX World = TransformMath::CalculateLocalMatrix(newTransform);
-	if(packet.transform.hasParentWorld){
-		World = World * LoadRenderPacketMatrix(packet.transform.parentWorldMatrix);
+		deviceContext->PSSetShader(m_spriteMesh->mesh.m_PixelShader.Get(), nullptr, 0);
 	}
 
-	graphicsContext->SetWorldViewProjection2D();
-	graphicsContext->SetWorldMatrix(World);
+	DirectX::XMMATRIX world = TransformMath::CalculateLocalMatrix(newTransform);
+	if(packet.transform.hasParentWorld){
+		world = world * LoadRenderPacketMatrix(packet.transform.parentWorldMatrix);
+	}
+
+	// 2D ProjectionはSwapChainサイズではなく、現在描画しているRender Targetのサイズを使う。
+	// Player View / Editor Viewの縮小Render TargetでもRectが同じ正規化契約で配置される。
+	graphicsContext->SetViewMatrix(DirectX::XMMatrixIdentity());
+	graphicsContext->SetProjectionMatrix(
+		DirectX::XMMatrixOrthographicOffCenterLH(
+			0.0f,
+			viewportSize.x,
+			viewportSize.y,
+			0.0f,
+			0.0f,
+			1.0f
+		)
+	);
+	graphicsContext->SetDepthMode(DepthMode::Disable);
+	graphicsContext->SetWorldMatrix(world);
+
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
-
 	deviceContext->IASetVertexBuffers(0, 1, m_spriteMesh->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
-
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-	//if (ctx.passPhase == RenderPhase::PHASE_SHADOW) {
-	//	deviceContext->PSSetShader(nullptr, NULL, 0); // ピクセルシェーダー無効化
-	//}
 	deviceContext->Draw(m_spriteMesh->mesh.meshCount, 0);
 
 	graphicsContext->SetDepthMode(DepthMode::Write);
