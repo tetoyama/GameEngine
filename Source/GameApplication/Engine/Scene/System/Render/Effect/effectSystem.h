@@ -66,13 +66,15 @@ public:
 			ECSQuery::Write<EffectComponent>
 		>;
 
+		// Effekseer::ManagerはRenderer / DeviceContextと結合しており、
+		// WorkerからBeginUpdate / UpdateHandle / SetBaseMatrixを呼ばない。
 		builder.AddQueryTask<EffectUpdateQuery>(
 			"EffectSystem.Runtime.Simulate",
 			SystemTaskDomain::Frame,
 			SystemPhase::Late,
 			0,
 			StructuralAccess::None,
-			ThreadAffinity::AnyWorker,
+			ThreadAffinity::MainThread,
 			[this](const SystemTaskContext& context){
 				Update(context.deltaTime);
 			}
@@ -84,7 +86,7 @@ public:
 			SystemPhase::Early,
 			0,
 			StructuralAccess::None,
-			ThreadAffinity::AnyWorker,
+			ThreadAffinity::MainThread,
 			[this](const SystemTaskContext& context){
 				EditorUpdate(context.deltaTime);
 			}
