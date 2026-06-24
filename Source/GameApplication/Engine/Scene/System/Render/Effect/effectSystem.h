@@ -55,7 +55,6 @@ public:
 
 	// Scene停止時はTempLoadや未使用Resource解放より先に、
 	// Effekseer側が保持するEffect / Texture参照を必ず切る。
-	// これを行わないと、旧SceneのEffectが解放済みSRVを次のDrawで参照する。
 	void Stop() override{
 		StopAllEffects();
 	}
@@ -178,9 +177,6 @@ private:
 		}
 
 		auto manager = m_context->graphics->GetEffectManager();
-		if(!manager){
-			return;
-		}
 
 		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
 			if(!scene) continue;
@@ -197,7 +193,6 @@ private:
 		}
 
 		manager->StopAllEffects();
-		// Stop要求をEffekseer内部へ反映し、Rendererが保持しているTexture/SRV参照を解放する。
 		manager->Update(0.0f);
 	}
 
