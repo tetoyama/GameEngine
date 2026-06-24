@@ -38,7 +38,6 @@ void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* co
 	m_GBufferVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\commonVS.cso");
 	m_GBufferPixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\GBufferPS.cso");
 
-	// ----- Sampler -----
 	D3D11_SAMPLER_DESC samp = {};
 	samp.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	samp.AddressU = samp.AddressV = samp.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -47,7 +46,6 @@ void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* co
 
 	Vector2 size = Vector2((float)context->graphics->m_width, (float)context->graphics->m_height);
 
-	// ----- GBuffer RenderTargets -----
 	pRenderTargets.clear();
 	pRenderTargets.resize(GBufferSlot_Max);
 
@@ -64,11 +62,9 @@ void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* co
 	pRenderTargets[GBufferSlot_Param] =
 		new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_UINT4);
 
-	// Depth は別管理
 	pDepthTarget =
 		new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_DEPTH);
 
-	// ----- Renderables -----
 	renderables.clear();
 	renderables.push_back(renderSystem->GetRenderable<RenderableModel>());
 	renderables.push_back(renderSystem->GetRenderable<RenderableTerrain>());
@@ -106,14 +102,11 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 
 	gc->SetBlendMode(BlendMode::None);
 
-	// ----- Clear -----
 	float clearColor[4] = { 0,0,0,0 };
 
-	// ----- Resize & Clear -----
 	for (int i = 0; i < GBufferSlot_Max; i++) {
 		pRenderTargets[i]->Resize(ctx.screenSize, m_context->graphics);
 
-		// UINT RT は Clear しない
 		if (pRenderTargets[i]->type != RENDERTARGET_TYPE_UINT4) {
 			dc->ClearRenderTargetView(
 				pRenderTargets[i]->rtv.Get(),
@@ -122,7 +115,6 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 		}
 	}
 
-	// Depth
 	pDepthTarget->Resize(ctx.screenSize, m_context->graphics);
 	dc->ClearDepthStencilView(
 		pDepthTarget->dsv.Get(),
@@ -130,7 +122,6 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 		1.0f, 0
 	);
 
-	// ----- OMSetRenderTargets -----
 	ID3D11RenderTargetView* rtvs[GBufferSlot_Max];
 	for (int i = 0; i < GBufferSlot_Max; i++) {
 		rtvs[i] = pRenderTargets[i]->rtv.Get();
@@ -142,19 +133,16 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 		pDepthTarget->dsv.Get()
 	);
 
-	// ----- Context -----
 	RenderPassContext newCtx = ctx;
 	newCtx.passPhase = RenderPhase::PHASE_GBUFFER;
 	newCtx.renderLayerVisibility[RenderLayer::SortTransparent3D] = false;
 	newCtx.renderLayerVisibility[RenderLayer::Transparent3D] = false;
 	newCtx.renderLayerVisibility[RenderLayer::OverlayUI] = false;
 
-	// ----- CameraBuffer -----
 	gc->SetCameraPosition(ctx.CameraPosition);
 	gc->SetViewMatrix(ctx.viewMatrix);
 	gc->SetProjectionMatrix(ctx.projectionMatrix);
 
-	// ----- Viewport -----
 	D3D11_VIEWPORT vp{};
 	vp.TopLeftX = 0;
 	vp.TopLeftY = 0;
@@ -164,12 +152,17 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 	vp.MaxDepth = 1.0f;
 	dc->RSSetViewports(1, &vp);
 
-	// ----- Draw from completed Render Packets -----
 	const RenderPacketFrameBuffer& packetBuffer =
 		m_renderSystem->GetRenderPacketBuffer();
 	if(packetBuffer.IsReady()){
 		for(const RenderPacket& packet : packetBuffer.Packets()){
 			if(!HasRenderPacketPass(packet.passMask, RenderPacketPassMask::GBuffer)){
+				continue;
+			}
+
+			// Alpha付きMaterialはDeferredへ書き込まず、Forward Alpha Blendへ回す。
+			if(packet.bindings.material &&
+			   packet.bindings.material->Material.BaseColor.w < 0.999f){
 				continue;
 			}
 
@@ -194,36 +187,5 @@ void GBufferPass::Execute(const RenderPassContext& ctx) {
 	}
 	{
 		return;
-		// ================================
-		// ImGui Debug Draw（暫定）
-		// ================================
-
-		// 1. バックバッファに戻す
-		dc->OMSetRenderTargets(0, nullptr, nullptr);
-
-		// 5. ImGui 描画
-		ImGui::Begin("GBuffer Debug");
-
-		ImGui::Text("GBuffer Debug View");
-
-		// Albedo
-		ImGui::Image(
-			pRenderTargets[GBufferSlot_Albedo]->srv.Get(),
-			ImVec2(256, ctx.screenSize.y / ctx.screenSize.x * 256.0f)
-		);
-
-		// Normal
-		ImGui::Image(
-			pRenderTargets[GBufferSlot_Normal]->srv.Get(),
-			ImVec2(256, ctx.screenSize.y / ctx.screenSize.x * 256.0f)
-		);
-
-		// Position
-		ImGui::Image(
-			pRenderTargets[GBufferSlot_Position]->srv.Get(),
-			ImVec2(256, ctx.screenSize.y / ctx.screenSize.x * 256.0f)
-		);
-
-		ImGui::End();
 	}
 }
