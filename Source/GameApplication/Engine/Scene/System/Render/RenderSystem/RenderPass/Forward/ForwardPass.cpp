@@ -21,6 +21,7 @@
 #include "System/Render/RenderSystem/RenderTarget/renderTarget.h"
 #include "Component/transformComponent.h"
 #include "Registry/componentRegistry.h"
+#include "Registry/entityRegistry.h"
 
 #include "Graphics/graphicsContext.h"
 #include "Registry/systemRegistry.h"
@@ -87,13 +88,14 @@ void ForwardPass::Execute(const RenderPassContext& ctx){
 	deviceContext->PSSetSamplers(1, 1, &m_shadowMapPass->shadowSampler);
 
 	if(m_lightingPass->m_EnvironmentMap && m_lightingPass->m_EnvironmentMap->pTexture){
-		deviceContext->PSSetShaderResources(TextureSlot_EnvironmentMap, 1, m_lightingPass->m_EnvironmentMap->pTexture.GetAddressOf());
+		ID3D11ShaderResourceView* environmentSRV =
+			m_lightingPass->m_EnvironmentMap->pTexture.Get();
+		deviceContext->PSSetShaderResources(TextureSlot_EnvironmentMap, 1, &environmentSRV);
 	}
 	if(m_lightingPass->m_EnvMapSampler){
 		deviceContext->PSSetSamplers(3, 1, &m_lightingPass->m_EnvMapSampler);
 	}
 
-	// VSは全マテリアル共通。PSはマテリアルごとに後で個別バインドする。
 	deviceContext->VSSetShader(m_VertexShader->m_VertexShader.Get(), nullptr, 0);
 	deviceContext->IASetInputLayout(m_VertexShader->m_VertexLayout.Get());
 
@@ -107,12 +109,10 @@ void ForwardPass::Execute(const RenderPassContext& ctx){
 	deviceContext->RSSetViewports(1, &vp);
 
 	graphics->SetBlendMode(BlendMode::Alpha);
-	m_context->graphics->SetDepthMode(DepthMode::ReadOnly);
+	graphics->SetDepthMode(DepthMode::ReadOnly);
 
 	const auto& forwardPSList = m_renderSystem->GetForwardPSList();
 
-	// materialID(=ShaderID)に対応するPSOをバインド。
-	// 範囲外/未コンパイルの場合はデバッグ(マゼンタ)にフォールバック。
 	auto bindForwardPS = [&](int materialID){
 		PixelShaderData* ps = nullptr;
 		if(materialID >= 0 && materialID < (int)forwardPSList.size()){
@@ -122,9 +122,27 @@ void ForwardPass::Execute(const RenderPassContext& ctx){
 			ps = m_renderSystem->GetForwardPSDebug();
 		}
 		deviceContext->PSSetShader(ps ? ps->m_PixelShader.Get() : nullptr, nullptr, 0);
-		};
+	};
+
+	auto packetIsCurrent = [&](const RenderPacket& packet){
+		if(packet.sceneContextID == 0 || !m_context->sceneManager){
+			return false;
+		}
+
+		SceneContext* current =
+			m_context->sceneManager->GetContextFromID(packet.sceneContextID);
+		if(!current || current != packet.bindings.sceneContext){
+			return false;
+		}
+		if(!current->entity || !current->entity->IsAlive(packet.entity)){
+			return false;
+		}
+		return true;
+	};
 
 	auto drawPacket = [&](const RenderPacket& packet){
+		if(!packetIsCurrent(packet)) return;
+
 		IRenderable* renderable =
 			m_renderSystem->GetRenderableForPacketKind(packet.kind);
 		if(!renderable) return;
@@ -143,45 +161,64 @@ void ForwardPass::Execute(const RenderPassContext& ctx){
 	const RenderPacketFrameBuffer& packetBuffer =
 		m_renderSystem->GetRenderPacketBuffer();
 	if(packetBuffer.IsReady()){
-		for(int layerIndex = 0;
-			layerIndex < static_cast<int>(RenderLayer::MaxRenderLayer);
-			++layerIndex){
+		std::vector<RenderPacketViewItem> sortedPackets;
+
+		for(const RenderPacket& packet : packetBuffer.Packets()){
+			if(!packetIsCurrent(packet)) continue;
+
+			const float alpha = packet.bindings.material
+				? packet.bindings.material->Material.BaseColor.w
+				: 1.0f;
+			const bool materialNeedsAlphaBlend = alpha < 0.999f;
+
+			RenderLayer effectiveLayer = packet.layer;
+			bool useForward =
+				HasRenderPacketPass(packet.passMask, RenderPacketPassMask::Forward);
+
+			// Opaque指定でもMaterial Alphaが1未満なら、Deferredではなく
+			// Forwardの距離Sort付き半透明経路として扱う。
+			if(materialNeedsAlphaBlend &&
+			   packet.kind != RenderPacketKind::Sprite &&
+			   (packet.layer == RenderLayer::Opaque3D ||
+			    packet.layer == RenderLayer::Background2D)){
+				effectiveLayer = RenderLayer::SortTransparent3D;
+				useForward = HasRenderPacketPass(
+					RenderPacketPassesForKind(packet.kind),
+					RenderPacketPassMask::Forward
+				);
+			}
+
+			if(!useForward) continue;
+
+			const int layerIndex = static_cast<int>(effectiveLayer);
+			if(static_cast<unsigned>(layerIndex) >=
+			   static_cast<unsigned>(RenderLayer::MaxRenderLayer)){
+				continue;
+			}
 			if(!ctx.renderLayerVisibility[layerIndex]) continue;
-			if(layerIndex != static_cast<int>(RenderLayer::Transparent3D) &&
-			   layerIndex != static_cast<int>(RenderLayer::SortTransparent3D)){
+
+			if(effectiveLayer != RenderLayer::SortTransparent3D){
+				drawPacket(packet);
 				continue;
 			}
 
-			std::vector<RenderPacketViewItem> sortedPackets;
-			for(const RenderPacket& packet : packetBuffer.Packets()){
-				if(static_cast<int>(packet.layer) != layerIndex) continue;
-				if(!HasRenderPacketPass(packet.passMask, RenderPacketPassMask::Forward)){
-					continue;
-				}
+			const float dx = packet.transform.worldPosition[0] - ctx.CameraPosition.x;
+			const float dy = packet.transform.worldPosition[1] - ctx.CameraPosition.y;
+			const float dz = packet.transform.worldPosition[2] - ctx.CameraPosition.z;
+			sortedPackets.push_back({&packet, dx * dx + dy * dy + dz * dz});
+		}
 
-				if(packet.layer != RenderLayer::SortTransparent3D){
-					drawPacket(packet);
-					continue;
-				}
-
-				const float dx = packet.transform.worldPosition[0] - ctx.CameraPosition.x;
-				const float dy = packet.transform.worldPosition[1] - ctx.CameraPosition.y;
-				const float dz = packet.transform.worldPosition[2] - ctx.CameraPosition.z;
-				sortedPackets.push_back({&packet, dx * dx + dy * dy + dz * dz});
-			}
-
-			std::sort(
-				sortedPackets.begin(),
-				sortedPackets.end(),
-				RenderPacketBackToFront
-			);
-			for(const RenderPacketViewItem& item : sortedPackets){
-				if(item.packet) drawPacket(*item.packet);
-			}
+		std::sort(
+			sortedPackets.begin(),
+			sortedPackets.end(),
+			RenderPacketBackToFront
+		);
+		for(const RenderPacketViewItem& item : sortedPackets){
+			if(item.packet) drawPacket(*item.packet);
 		}
 	}
 
-	m_context->graphics->SetDepthMode(DepthMode::Write);
+	graphics->SetDepthMode(DepthMode::Write);
 	ID3D11RenderTargetView* nullRTV[1] = {nullptr};
 	deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);
 }
