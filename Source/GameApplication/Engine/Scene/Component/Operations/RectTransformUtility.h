@@ -20,39 +20,36 @@ inline TransformComponent Calculate(
 		return adjustedTransform;
 	}
 
-	const Vector2 referenceResolution = {1.0f, 1.0f};
-	const float screenAspect = viewportSize.x / viewportSize.y;
-	const float referenceAspect =
-		referenceResolution.x / referenceResolution.y;
-	const float aspectRatioScaleX = referenceAspect / screenAspect;
+	// RectTransformのposition / scaleはViewportに対する正規化値として扱う。
+	// scale=(1,1)はViewport全体の幅・高さに対応する。
+	const Vector2 adjustedScale = {
+		originalTransform.scale.x * viewportSize.x,
+		originalTransform.scale.y * viewportSize.y
+	};
 
+	// AnchorはViewport左上を(0,0)、右下を(1,1)とした基準位置。
 	const Vector2 anchoredPosition = {
 		viewportSize.x * sprite.anchor.x,
 		viewportSize.y * sprite.anchor.y
 	};
 
-	const Vector2 adjustedScale = {
-		originalTransform.scale.x * aspectRatioScaleX /
-			referenceResolution.x * viewportSize.x,
-		originalTransform.scale.y /
-			referenceResolution.y * viewportSize.y
-	};
-
-	const Vector2 pivotOffset = {
-		adjustedScale.x * -sprite.pivot.x,
-		adjustedScale.y * -sprite.pivot.y
-	};
-
+	// Transform.positionもViewport比率で指定する。
 	const Vector2 positionOffset = {
-		originalTransform.position.x * aspectRatioScaleX /
-			referenceResolution.x * viewportSize.x,
-		originalTransform.position.y /
-			referenceResolution.y * viewportSize.y
+		originalTransform.position.x * viewportSize.x,
+		originalTransform.position.y * viewportSize.y
+	};
+
+	// 描画Quadのローカル原点は中央なので、Pivotから中央までの差を加える。
+	// Pivot=(0.5,0.5)では補正なし。
+	// Pivot=(0,0)ではRect中心を右下方向へ半サイズ移動する。
+	const Vector2 pivotToCenterOffset = {
+		(0.5f - sprite.pivot.x) * adjustedScale.x,
+		(0.5f - sprite.pivot.y) * adjustedScale.y
 	};
 
 	const Vector2 finalPosition = {
-		anchoredPosition.x - pivotOffset.x + positionOffset.x,
-		anchoredPosition.y - pivotOffset.y + positionOffset.y
+		anchoredPosition.x + positionOffset.x + pivotToCenterOffset.x,
+		anchoredPosition.y + positionOffset.y + pivotToCenterOffset.y
 	};
 
 	adjustedTransform.position = Vector3(
@@ -80,39 +77,29 @@ inline TransformComponent Reverse(
 		return virtualTransform;
 	}
 
-	const Vector2 referenceResolution = {1.0f, 1.0f};
-	const float screenAspect = viewportSize.x / viewportSize.y;
-	const float referenceAspect =
-		referenceResolution.x / referenceResolution.y;
-	const float aspectRatioScaleX = referenceAspect / screenAspect;
+	const Vector2 virtualScale = {
+		adjustedTransform.scale.x / viewportSize.x,
+		adjustedTransform.scale.y / viewportSize.y
+	};
 
 	const Vector2 anchoredPosition = {
 		viewportSize.x * sprite.anchor.x,
 		viewportSize.y * sprite.anchor.y
 	};
 
-	const Vector2 virtualScale = {
-		adjustedTransform.scale.x / viewportSize.x *
-			referenceResolution.x / aspectRatioScaleX,
-		adjustedTransform.scale.y / viewportSize.y *
-			referenceResolution.y
+	const Vector2 pivotToCenterOffset = {
+		(0.5f - sprite.pivot.x) * adjustedTransform.scale.x,
+		(0.5f - sprite.pivot.y) * adjustedTransform.scale.y
 	};
 
-	const Vector2 pivotOffset = {
-		adjustedTransform.scale.x * -sprite.pivot.x,
-		adjustedTransform.scale.y * -sprite.pivot.y
-	};
-
-	const Vector2 anchoredDifference = {
-		adjustedTransform.position.x - anchoredPosition.x + pivotOffset.x,
-		adjustedTransform.position.y - anchoredPosition.y + pivotOffset.y
+	const Vector2 positionOffset = {
+		adjustedTransform.position.x - anchoredPosition.x - pivotToCenterOffset.x,
+		adjustedTransform.position.y - anchoredPosition.y - pivotToCenterOffset.y
 	};
 
 	const Vector2 virtualPosition = {
-		anchoredDifference.x / viewportSize.x *
-			referenceResolution.x / aspectRatioScaleX,
-		anchoredDifference.y / viewportSize.y *
-			referenceResolution.y
+		positionOffset.x / viewportSize.x,
+		positionOffset.y / viewportSize.y
 	};
 
 	virtualTransform.position = Vector3(
