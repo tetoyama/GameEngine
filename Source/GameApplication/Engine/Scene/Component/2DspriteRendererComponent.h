@@ -11,8 +11,8 @@
 // 2Dスプライトの描画を管理するコンポーネント
 class SpriteRendererComponent: public IComponent {
 public:
-	Vector2 anchor = {0.5f, 0.5f}; // 中央
-	Vector2 pivot = {0.0f, 0.0f};  // 中心
+	Vector2 anchor = {0.5f, 0.5f}; // Viewport中央
+	Vector2 pivot = {0.5f, 0.5f};  // Rect中央
 
 	YAML::Node encode() override{
 		YAML::Node node;
@@ -35,7 +35,6 @@ public:
 		ImGui::Text("RectTransform");
 
 		ImGui::UndoDragFloat2("Anchor", &anchor.x, 0.01f, 0.0f, 1.0f, "%.2f");
-		ImGui::UndoDragFloat2("Pivot", &pivot.x, 0.01f, -0.5f, 0.5f, "%.2f");
-
+		ImGui::UndoDragFloat2("Pivot", &pivot.x, 0.01f, 0.0f, 1.0f, "%.2f");
 	}
 };
