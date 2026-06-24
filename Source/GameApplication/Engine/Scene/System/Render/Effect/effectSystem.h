@@ -29,21 +29,7 @@ public:
 	}
 
 	void Finalize() override{
-		auto manager = m_context->graphics->GetEffectManager();
-
-		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
-			auto context = scene->GetSceneContext();
-
-			auto entities = context->component->FindEntitiesWithComponent<EffectComponent>();
-			for(auto entity : entities){
-				if(auto* comp = context->component->GetComponent<EffectComponent>(entity)){
-					comp->Stop(context);
-				}
-			}
-		}
-
-		manager->StopAllEffects();
-		manager->Update(0.0f);
+		StopAllEffects();
 	}
 
 	void Start() override{
@@ -65,6 +51,13 @@ public:
 				}
 			}
 		}
+	}
+
+	// Scene停止時はTempLoadや未使用Resource解放より先に、
+	// Effekseer側が保持するEffect / Texture参照を必ず切る。
+	// これを行わないと、旧SceneのEffectが解放済みSRVを次のDrawで参照する。
+	void Stop() override{
+		StopAllEffects();
 	}
 
 	void RegisterTasks(SystemScheduleBuilder& builder) override{
@@ -176,6 +169,36 @@ public:
 		}
 
 		manager->EndUpdate();
+	}
+
+private:
+	void StopAllEffects(){
+		if(!m_context || !m_context->graphics || !m_context->sceneManager){
+			return;
+		}
+
+		auto manager = m_context->graphics->GetEffectManager();
+		if(!manager){
+			return;
+		}
+
+		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
+			if(!scene) continue;
+			auto context = scene->GetSceneContext();
+			if(!context || !context->component) continue;
+
+			auto entities = context->component->FindEntitiesWithComponent<EffectComponent>();
+			for(auto entity : entities){
+				if(auto* comp = context->component->GetComponent<EffectComponent>(entity)){
+					comp->Stop(context);
+					comp->m_EffectData.reset();
+				}
+			}
+		}
+
+		manager->StopAllEffects();
+		// Stop要求をEffekseer内部へ反映し、Rendererが保持しているTexture/SRV参照を解放する。
+		manager->Update(0.0f);
 	}
 
 private:
