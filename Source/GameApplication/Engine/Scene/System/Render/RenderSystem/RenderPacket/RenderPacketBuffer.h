@@ -42,6 +42,13 @@ public:
 		m_ready = false;
 	}
 
+	// Scene restore / shutdown boundaries invalidate every non-owning binding.
+	// Capacity is retained to avoid a new allocation spike after Play/Stop.
+	void Reset() noexcept {
+		m_packets.clear();
+		m_ready = false;
+	}
+
 	void Merge(std::span<const RenderPacketWorkerBuffer> workerBuffers){
 		std::vector<const RenderPacketWorkerBuffer*> orderedWorkers;
 		orderedWorkers.reserve(workerBuffers.size());
