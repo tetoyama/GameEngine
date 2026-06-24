@@ -91,6 +91,13 @@ public:
 	void Initialize() override;
 	void Finalize() override;
 
+	// RenderPacketはComponentへの非所有Pointerを保持するため、
+	// SceneのTempLoad / Shutdown前に公開済みPacketを必ず無効化する。
+	void Stop() override {
+		m_renderPacketBuffer.Reset();
+		m_lastSubmittedPacketGeneration = 0;
+	}
+
 	void Update(float deltaTime);
 	void EditorUpdate(float deltaTime);
 	void Draw();
