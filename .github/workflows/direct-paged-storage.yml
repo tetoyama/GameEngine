@@ -7,12 +7,16 @@ on:
     paths:
       - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.h"
       - "Source/GameApplication/Engine/Scene/Component/componentList.h"
+      - "Source/GameApplication/Engine/Scene/Component/EntityStateComponents.h"
+      - "Source/GameApplication/Engine/Scene/Query/ComponentQueryView.h"
       - "Source/GameApplication/Engine/Scene/System/Transform/transformSystem.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Source/GameApplication/Engine/Scene/Storage/ComponentStorageFactory.h"
       - "Source/GameApplication/Engine/Scene/Storage/ComponentStorageStrategy.h"
       - "Source/GameApplication/Engine/Scene/Storage/DirectPagedComponentStorage.h"
       - "Source/GameApplication/Engine/Scene/Interface/IComponentStorage.h"
       - "Source/GameApplication/Engine/Scene/Entity/Entity.h"
+      - "Source/GameApplication/Engine/Editor/UI/Inspector.cpp"
       - "Tests/DirectPagedComponentStorageTest.cpp"
       - ".github/workflows/direct-paged-storage.yml"
   push:
@@ -21,12 +25,16 @@ on:
     paths:
       - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.h"
       - "Source/GameApplication/Engine/Scene/Component/componentList.h"
+      - "Source/GameApplication/Engine/Scene/Component/EntityStateComponents.h"
+      - "Source/GameApplication/Engine/Scene/Query/ComponentQueryView.h"
       - "Source/GameApplication/Engine/Scene/System/Transform/transformSystem.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Source/GameApplication/Engine/Scene/Storage/ComponentStorageFactory.h"
       - "Source/GameApplication/Engine/Scene/Storage/ComponentStorageStrategy.h"
       - "Source/GameApplication/Engine/Scene/Storage/DirectPagedComponentStorage.h"
       - "Source/GameApplication/Engine/Scene/Interface/IComponentStorage.h"
       - "Source/GameApplication/Engine/Scene/Entity/Entity.h"
+      - "Source/GameApplication/Engine/Editor/UI/Inspector.cpp"
       - "Tests/DirectPagedComponentStorageTest.cpp"
       - ".github/workflows/direct-paged-storage.yml"
   workflow_dispatch:
@@ -49,6 +57,7 @@ jobs:
         run: >-
           cl /nologo /std:c++20 /EHsc /W4 /WX /MTd
           /I Source/GameApplication
+          /I Source/GameApplication/Backends
           /I Source/GameApplication/Engine
           /I Source/GameApplication/Engine/Scene
           Tests/DirectPagedComponentStorageTest.cpp
