@@ -16,15 +16,6 @@ on:
   push:
     branches:
       - refactor/ecs-scheduler-foundation
-    paths:
-      - "Source/GameApplication/Engine/Scene/Component/EntityStateComponents.h"
-      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp"
-      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.h"
-      - "Source/GameApplication/Engine/Scene/Registry/entityRegistry.h"
-      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
-      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
-      - "Tests/RenderPacketBufferSmokeTest.cpp"
-      - ".github/workflows/render-packet-visibility.yml"
   workflow_dispatch:
 
 permissions:
@@ -41,6 +32,8 @@ jobs:
         with:
           arch: x64
       - name: Compile and run visibility contract
+        id: render_packet_visibility
+        continue-on-error: true
         shell: cmd
         run: >-
           cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
@@ -51,4 +44,15 @@ jobs:
           Tests/RenderPacketBufferSmokeTest.cpp
           Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp
           /Fe:render-packet-visibility-test.exe
-          && render-packet-visibility-test.exe
+          > render-packet-visibility.log 2>&1
+          && render-packet-visibility-test.exe >> render-packet-visibility.log 2>&1
+      - name: Upload render packet diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-packet-visibility-diagnostics
+          path: render-packet-visibility.log
+          if-no-files-found: error
+      - name: Preserve render packet result
+        if: steps.render_packet_visibility.outcome == 'failure'
+        run: cmd /c exit 1
