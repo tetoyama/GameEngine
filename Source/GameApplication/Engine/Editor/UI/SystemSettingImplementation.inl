@@ -7,6 +7,7 @@
 
 #include "SystemSetting.h"
 
+#include <algorithm>
 #include <array>
 #include <cfloat>
 
@@ -18,6 +19,7 @@
 #include "Scene/sceneManager.h"
 #include "Scene/Registry/systemRegistry.h"
 #include "Service/Config/configSystem.h"
+#include "Service/Graphics/graphicsContext.h"
 #include <ImGui/imgui_internal.h>
 
 namespace SystemSettingImplementationDetail {
@@ -93,7 +95,10 @@ inline void DrawRenderingSettings(ConfigService& config) {
 	ImGui::TextDisabled("Rendering API changes are applied after restarting the application.");
 }
 
-inline void DrawApplicationSettings(ConfigService& config) {
+inline void DrawApplicationSettings(
+	ConfigService& config,
+	GraphicsContext* graphics
+) {
 	APPCONFIG& app = config.appConfig;
 
 	ImGui::SeparatorText("Application");
@@ -114,6 +119,16 @@ inline void DrawApplicationSettings(ConfigService& config) {
 	if(BeginSettingsTable("ProjectSettingsDisplay")) {
 		BeginPropertyRow("VSync");
 		ImGui::UndoCheckbox("##VSync", &app.Vsync);
+
+		BeginPropertyRow("Maximum Frame Latency");
+		int frameLatency = (std::max)(1, (std::min)(3, app.MaximumFrameLatency));
+		if(ImGui::Combo("##MaximumFrameLatency", &frameLatency, "1 - Lowest Latency\02 - Balanced\03 - Throughput\0")) {
+			app.MaximumFrameLatency = frameLatency;
+			if(graphics) {
+				graphics->SetMaximumFrameLatency(static_cast<UINT>(frameLatency));
+			}
+		}
+
 		BeginPropertyRow("Full Screen");
 		ImGui::UndoCheckbox("##FullScreen", &app.FullScreen);
 		BeginPropertyRow("Width");
@@ -122,6 +137,7 @@ inline void DrawApplicationSettings(ConfigService& config) {
 		ImGui::UndoDragInt("##WindowHeight", &app.Height, 1.0f, 180, 4320);
 		ImGui::EndTable();
 	}
+	ImGui::TextDisabled("Frame latency changes are applied immediately and saved to ApplicationConfig.yaml.");
 
 	ImGui::SeparatorText("Audio");
 	if(BeginSettingsTable("ProjectSettingsAudio")) {
@@ -204,7 +220,7 @@ void SystemSetting::Draw(const EditorDrawContext ctx) {
 	if(ImGui::BeginTabBar("ProjectSettingsTabs")) {
 		if(ImGui::BeginTabItem("Application")) {
 			DrawRenderingSettings(*config);
-			DrawApplicationSettings(*config);
+			DrawApplicationSettings(*config, sceneContext ? sceneContext->graphics : nullptr);
 			ImGui::EndTabItem();
 		}
 		if(ImGui::BeginTabItem("Systems")) {
