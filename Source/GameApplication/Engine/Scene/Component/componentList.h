@@ -29,6 +29,8 @@
 #include "Component/followComponent.h"
 #include "Component/environmentMapComponent.h"
 
+#include "Storage/ComponentStorageStrategy.h"
+
 #include "Script/SetScene.h"
 #include "Script/ScoreManager.h"
 #include "Script/ScoreSprite.h"
@@ -44,16 +46,21 @@
 #include "Script/CameraController.h"
 #include "Script/GN31.h"
 
-enum ComponentStorageType {
-	COMPONENT_SPARSE,
-	COMPONENT_ARCHETYPE
-};
+inline constexpr auto COMPONENT_SPARSE =
+	ECSStorage::ComponentStorageStrategy::SparseStable;
+inline constexpr auto COMPONENT_DENSE =
+	ECSStorage::ComponentStorageStrategy::Dense;
+inline constexpr auto COMPONENT_DIRECT_PAGED =
+	ECSStorage::ComponentStorageStrategy::DirectPaged;
+inline constexpr auto COMPONENT_ARCHETYPE =
+	ECSStorage::ComponentStorageStrategy::Archetype;
 
-// 高頻度で一括走査するデータComponentはDenseComponentPoolへ登録する。
-// ネイティブ資源・Script・ポインタ安定性を優先する型はSparseStorageを維持する。
+// 高頻度で一括走査するData ComponentはDenseまたはDirectPagedへ登録する。
+// Native資源・Script・ポインタ安定性を優先する型はSparseStableを維持する。
+// Archetypeは実装完了までStorage Factory内でDenseへフォールバックする。
 #define COMPONENT_LIST(X) \
     X(NameComponent,COMPONENT_ARCHETYPE)\
-    X(TransformComponent,COMPONENT_ARCHETYPE)\
+    X(TransformComponent,COMPONENT_DIRECT_PAGED)\
     X(CustomScriptComponent,COMPONENT_SPARSE)\
     X(ColliderComponent,COMPONENT_SPARSE)\
     X(AudioComponent,COMPONENT_SPARSE)\
