@@ -91,7 +91,7 @@ public:
 	bool IsReady() const noexcept { return m_ready; }
 	const std::vector<RenderPacket>& Packets() const noexcept { return m_packets; }
 	size_t Size() const noexcept { return m_packets.size(); }
-	const size_t Capacity() const noexcept { return m_packets.capacity(); }
+	size_t Capacity() const noexcept { return m_packets.capacity(); }
 
 	size_t Count(RenderPacketKind kind) const noexcept {
 		return static_cast<size_t>(std::count_if(
@@ -104,7 +104,12 @@ public:
 private:
 	static bool ShouldPublish(const RenderPacket& packet){
 		SceneContext* context = packet.bindings.sceneContext;
-		if(!context || !context->component) return false;
+		if(!context || !context->entity || !context->component){
+			return false;
+		}
+		if(!context->entity->IsAlive(packet.entity)){
+			return false;
+		}
 
 		ComponentRegistry* registry = context->component;
 		if(!registry->IsEntityEnabledForDefaultQueries(packet.entity)){
