@@ -112,6 +112,12 @@ private:
 		}
 
 		ComponentRegistry* registry = context->component;
+
+		// Auto-registration経路でもDisabledを確実に除外する。
+		// default query exclusion maskはScene初期登録後の高速経路として維持する。
+		if(registry->HasComponent<DisabledComponent>(packet.entity)){
+			return false;
+		}
 		if(!registry->IsEntityEnabledForDefaultQueries(packet.entity)){
 			return false;
 		}
