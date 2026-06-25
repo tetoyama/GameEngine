@@ -6,6 +6,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <unordered_set>
 #include <vector>
@@ -17,6 +18,14 @@ class EntityRegistry {
 public:
 	EntityRegistry() = default;
 	~EntityRegistry() = default;
+
+	void Reserve(size_t expectedEntityCount){
+		const size_t slotCount = expectedEntityCount + 1;
+		m_generations.reserve(slotCount);
+		m_aliveFlags.reserve(slotCount);
+		m_recycledIndices.reserve(expectedEntityCount);
+		m_alive.reserve(expectedEntityCount);
+	}
 
 	Entity Create() {
 		uint32_t index = 0;
@@ -33,6 +42,7 @@ public:
 
 		const Entity entity(index, m_generations[index]);
 		m_alive.insert(entity);
+		m_peakAliveCount = (std::max)(m_peakAliveCount, m_alive.size());
 		return entity;
 	}
 
@@ -64,6 +74,7 @@ public:
 		m_aliveFlags[index] = true;
 		const Entity entity(index, m_generations[index]);
 		m_alive.insert(entity);
+		m_peakAliveCount = (std::max)(m_peakAliveCount, m_alive.size());
 		return entity;
 	}
 
@@ -105,6 +116,29 @@ public:
 		return m_alive;
 	}
 
+	size_t GetAliveCount() const noexcept {
+		return m_alive.size();
+	}
+
+	size_t GetPeakAliveCount() const noexcept {
+		return m_peakAliveCount;
+	}
+
+	size_t GetCapacity() const noexcept {
+		return m_generations.capacity() > 0
+			? m_generations.capacity() - 1
+			: 0;
+	}
+
+	size_t GetGrowthEventCount() const noexcept {
+		return m_growthEventCount;
+	}
+
+	void ResetPeakMetrics() noexcept {
+		m_peakAliveCount = m_alive.size();
+		m_growthEventCount = 0;
+	}
+
 	// 現在生存しているEntityをすべて破棄する。
 	// generationと再利用候補は維持し、古い参照が復活しないようにする。
 	void ResetAll() {
@@ -118,9 +152,13 @@ private:
 	void EnsureCapacity(uint32_t index) {
 		if(index < m_generations.size()) return;
 
+		const size_t previousCapacity = m_generations.capacity();
 		const size_t newSize = static_cast<size_t>(index) + 1;
 		m_generations.resize(newSize, 0);
 		m_aliveFlags.resize(newSize, false);
+		if(m_generations.capacity() > previousCapacity){
+			++m_growthEventCount;
+		}
 	}
 
 	void IncrementGeneration(uint32_t index) {
@@ -138,4 +176,6 @@ private:
 	std::vector<uint32_t> m_generations{0};
 	std::vector<bool> m_aliveFlags{false};
 	std::unordered_set<Entity> m_alive;
+	size_t m_peakAliveCount = 0;
+	size_t m_growthEventCount = 0;
 };
