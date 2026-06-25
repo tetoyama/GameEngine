@@ -23,9 +23,8 @@ enum class ComponentStorageStrategy : uint8_t {
 
 ### Dense
 
-連続走査を優先する通常Component向け。
+連続走査を最優先する通常Component向け。
 
-- Transform
 - ModelRenderer
 - Collider
 - CullingComponent
@@ -37,8 +36,19 @@ enum class ComponentStorageStrategy : uint8_t {
 
 Entity indexからPage / Slotを直接計算するStorage。
 
-Tag Componentは原則としてDirectPagedを使用する。
+DirectPagedは次の2種類を持つ。
 
+```text
+DirectPagedComponentStorage<T>
+    実データをPage内Slotへ保持する
+
+DirectPagedTagStorage<T>
+    Component実体を持たずPresenceだけを保持する
+```
+
+用途:
+
+- TransformComponent
 - DisabledComponent
 - StaticEntityComponent
 - HiddenComponent
@@ -49,6 +59,8 @@ Tag Componentは原則としてDirectPagedを使用する。
 pageIndex = entity.index / PageSize
 slotIndex = entity.index % PageSize
 ```
+
+Transformは値を持つため`DirectPagedComponentStorage<TransformComponent>`を使用する。
 
 Tagは値を保持せず、Presence BitとEntity generationだけを保持する。
 
@@ -63,6 +75,86 @@ Tagは値を保持せず、Presence BitとEntity generationだけを保持する
 将来のArchetype Chunk Storage用。
 
 現段階では実装しないが、`IComponentStorage`と登録契約を変更せず追加できる形にする。
+
+---
+
+## DirectPaged Data Storage
+
+```cpp
+template<typename T, uint32_t PageSize = 256>
+class DirectPagedComponentStorage final : public IComponentStorage {
+public:
+    void Add(Entity entity, T component);
+    void Remove(Entity entity) override;
+    bool Contains(Entity entity) const override;
+    T* Get(Entity entity);
+    const T* Get(Entity entity) const;
+
+private:
+    struct Slot {
+        alignas(T) std::byte storage[sizeof(T)];
+        uint32_t entityGeneration = 0;
+        uint32_t componentGeneration = 0;
+        bool occupied = false;
+    };
+
+    struct Page {
+        std::array<Slot, PageSize> slots;
+        std::bitset<PageSize> occupied;
+    };
+
+    std::vector<std::unique_ptr<Page>> pages;
+};
+```
+
+### Transform移行
+
+`TransformComponent`はDirectPagedへ移行する。
+
+```cpp
+RegisterComponent<TransformComponent>(
+    ComponentStorageStrategy::DirectPaged
+);
+```
+
+理由:
+
+- Entity indexからTransformへ直接到達できる
+- Transform参照の取得経路でSparse Index検索を省ける
+- Swap RemoveによるTransformアドレス移動を避けられる
+- Parent / ChildやEntity参照との対応が単純になる
+- Entity index再利用時のgeneration検証をSlot単位で行える
+- Transformを持たないEntityもPage未占有Slotとして自然に表現できる
+
+注意点:
+
+- DirectPagedは全Transformの完全連続配列ではない
+- TransformSystemの全件走査ではPage内Occupied Bitを使う
+- Page間は非連続なため、Dense Span前提APIを使用しない
+- Transform追加・削除で既存Transformのアドレスを移動しない
+- Pageを跨ぐParallelFor単位を用意する
+- 空Pageの解放は参照安定性と計測結果を見て判断する
+
+### Transform走査契約
+
+```text
+for each allocated page
+    for each occupied bit
+        TransformComponentを処理
+```
+
+TransformSystem向けに型消去されたPage ViewまたはTyped Page Viewを提供する。
+
+```cpp
+template<typename T>
+struct DirectPagedPageView {
+    std::span<T> slots;
+    std::span<const uint64_t> occupancyWords;
+    uint32_t firstEntityIndex;
+};
+```
+
+`GetDenseComponentSpan<TransformComponent>()`への依存は除去し、DirectPaged用の走査APIへ移行する。
 
 ---
 
@@ -139,7 +231,7 @@ struct CullingComponent : IComponent {
 
 ```cpp
 RegisterComponent<TransformComponent>(
-    ComponentStorageStrategy::Dense
+    ComponentStorageStrategy::DirectPaged
 );
 
 RegisterComponent<StaticEntityComponent>(
@@ -149,6 +241,16 @@ RegisterComponent<StaticEntityComponent>(
 RegisterComponent<CullingComponent>(
     ComponentStorageStrategy::Dense
 );
+```
+
+`DirectPaged`選択時は、Tag TraitによりData StorageとTag Storageを切り替える。
+
+```cpp
+template<typename T>
+inline constexpr bool IsTagComponent = false;
+
+template<>
+inline constexpr bool IsTagComponent<StaticEntityComponent> = true;
 ```
 
 YAML登録も同じStrategyを受け取る。
@@ -193,7 +295,10 @@ RegistryやEntityCommandBufferは具体Storage型を判定しない。
 - 空Pageの解放は初期実装では行わない
 - PageSizeは計測後に128 / 256 / 512から決定する
 - Tag列挙が必要な場合はOccupied Bitを走査する
+- Data Component列挙もOccupied Bitを走査する
 - Hash MapをPresence判定の主要経路に使用しない
+- Slot内ComponentのアドレスはPage寿命中安定させる
+- Page配列の再配置でComponent本体を移動させない
 
 ---
 
@@ -204,9 +309,33 @@ RegistryやEntityCommandBufferは具体Storage型を判定しない。
 - [ ] `ComponentStorageStrategy`
 - [ ] 登録APIから`bool useDensePool`を除去
 - [ ] Storage Factory
+- [ ] Tag Trait
 - [ ] Registryから具体Storageへの`dynamic_cast`追加分岐を除去
 
-### Step 11-B.2 DirectPaged Tag Storage
+### Step 11-B.2 DirectPaged Data Storage
+
+- [ ] Page / Slot計算
+- [ ] Lazy Page Allocation
+- [ ] Placement Construct / Destroy
+- [ ] Entity generation検証
+- [ ] Component generation
+- [ ] Structure Version
+- [ ] Occupied Bit列挙
+- [ ] Typed Page View
+- [ ] Page単位ParallelFor
+
+### Step 11-B.3 Transform DirectPaged移行
+
+- [ ] Transform登録StrategyをDirectPagedへ変更
+- [ ] Add / Get / Remove移行
+- [ ] Parent / Child参照回帰
+- [ ] World Matrix更新走査のPage View対応
+- [ ] `GetDenseComponentSpan<TransformComponent>()`依存除去
+- [ ] Transform参照アドレス安定性確認
+- [ ] Entity index再利用回帰
+- [ ] Scene Save / Load回帰
+
+### Step 11-B.4 DirectPaged Tag Storage
 
 - [ ] Page / Slot計算
 - [ ] Lazy Page Allocation
@@ -216,7 +345,7 @@ RegistryやEntityCommandBufferは具体Storage型を判定しない。
 - [ ] Structure Version
 - [ ] Entity列挙
 
-### Step 11-B.3 Tag Component
+### Step 11-B.5 Tag Component
 
 - [ ] `DisabledComponent`
 - [ ] `StaticEntityComponent`
@@ -225,24 +354,30 @@ RegistryやEntityCommandBufferは具体Storage型を判定しない。
 - [ ] YAML Presence保存
 - [ ] Undo / Redo
 
-### Step 11-B.4 検証
+### Step 11-B.6 検証
 
 - [ ] ComponentなしEntity
 - [ ] 高いEntity indexでのLazy Allocation
 - [ ] Entity index再利用とgeneration拒否
 - [ ] Remove / Reattach
 - [ ] Dense / DirectPaged混在Query
+- [ ] Transform / Tag DirectPaged混在
 - [ ] EntityCommandBuffer経由Attach / Detach
+- [ ] Transform大量生成時のDense比較計測
+- [ ] Transform全件走査のDense比較計測
 - [ ] Debug / Release x64
 
 ---
 
 ## 完了条件
 
+- TransformComponentがDirectPagedで保存される
 - Tag ComponentがDirectPagedで保存される
 - ComponentなしEntityが正常に保存・読込・破棄できる
 - Registryが具体Storage型を知らずにAdd / Remove / Queryできる
-- TagのContainsがHash探索を行わない
-- Entity index再利用後に古いTag参照を受理しない
+- Transform取得とTag ContainsがHash探索を行わない
+- Transform追加・削除で既存Transformのアドレスが移動しない
+- Entity index再利用後に古いTransform / Tag参照を受理しない
+- TransformSystemがPage単位走査できる
 - Dense Componentの連続走査性能を悪化させない
 - 将来Archetype Storageを同じ登録契約へ追加できる
