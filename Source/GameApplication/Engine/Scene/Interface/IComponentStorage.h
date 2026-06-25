@@ -63,6 +63,22 @@ struct IComponentStorage {
 	virtual std::vector<Entity> GetEntityList() const = 0;
 	virtual size_t Size() const noexcept = 0;
 
+	// Scene Storage設定から渡される初期確保Hint。
+	// 容量上限ではなく、必要に応じてRuntime Growthを許可する。
+	virtual void Reserve(size_t expectedCount){
+		(void)expectedCount;
+	}
+
+	// DirectPaged専用。非Paged Storageではno-op。
+	virtual void PreallocatePages(size_t pageCount){
+		(void)pageCount;
+	}
+
+	// Profiler / Scene Settings UIへ現在の確保量を公開する。
+	virtual size_t Capacity() const noexcept {
+		return Size();
+	}
+
 	// Componentの削除・再追加を識別するインスタンス世代。
 	virtual uint32_t GetComponentGeneration(Entity entity) const = 0;
 
@@ -146,6 +162,17 @@ public:
 
 	size_t Size() const noexcept override {
 		return m_components.size();
+	}
+
+	void Reserve(size_t expectedCount) override {
+		m_components.reserve(expectedCount);
+		m_entities.reserve(expectedCount);
+		m_sparseIndices.reserve(expectedCount);
+		m_componentGenerations.reserve(expectedCount);
+	}
+
+	size_t Capacity() const noexcept override {
+		return m_components.capacity();
 	}
 
 	uint32_t GetComponentGeneration(Entity entity) const override {
@@ -272,6 +299,15 @@ public:
 
 	size_t Size() const noexcept override {
 		return m_components.size();
+	}
+
+	void Reserve(size_t expectedCount) override {
+		m_components.reserve(expectedCount);
+		m_componentGenerations.reserve(expectedCount);
+	}
+
+	size_t Capacity() const noexcept override {
+		return m_components.bucket_count();
 	}
 
 	uint32_t GetComponentGeneration(Entity entity) const override {
