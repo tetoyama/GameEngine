@@ -5,6 +5,7 @@ on:
     branches:
       - master
     paths:
+      - "Source/GameApplication/Engine/Scene/Storage/ComponentStorageFactory.h"
       - "Source/GameApplication/Engine/Scene/Storage/ComponentStorageStrategy.h"
       - "Source/GameApplication/Engine/Scene/Storage/DirectPagedComponentStorage.h"
       - "Source/GameApplication/Engine/Scene/Interface/IComponentStorage.h"
@@ -15,6 +16,7 @@ on:
     branches:
       - refactor/ecs-scheduler-foundation
     paths:
+      - "Source/GameApplication/Engine/Scene/Storage/ComponentStorageFactory.h"
       - "Source/GameApplication/Engine/Scene/Storage/ComponentStorageStrategy.h"
       - "Source/GameApplication/Engine/Scene/Storage/DirectPagedComponentStorage.h"
       - "Source/GameApplication/Engine/Scene/Interface/IComponentStorage.h"
