@@ -1,7 +1,10 @@
 #include <cassert>
 #include <cstdint>
 #include <type_traits>
+#include <vector>
 
+#include "Engine/Scene/Component/EntityStateComponents.h"
+#include "Engine/Scene/Query/ComponentQueryView.h"
 #include "Engine/Scene/Storage/ComponentStorageFactory.h"
 #include "Engine/Scene/Storage/ComponentStorageStrategy.h"
 #include "Engine/Scene/Storage/DirectPagedComponentStorage.h"
@@ -31,6 +34,16 @@ static_assert(
 );
 static_assert(!ECSStorage::IsTagComponentV<TestComponent>);
 static_assert(ECSStorage::IsTagComponentV<TestTag>);
+static_assert(ECSStorage::IsTagComponentV<DisabledComponent>);
+static_assert(ECSStorage::IsTagComponentV<StaticEntityComponent>);
+static_assert(ECSStorage::IsTagComponentV<HiddenComponent>);
+static_assert(ECSStorage::IsEntityHeaderComponentV<DisabledComponent>);
+static_assert(ECSStorage::ExcludeFromDefaultQueriesV<DisabledComponent>);
+static_assert(!ECSStorage::ExcludeFromDefaultQueriesV<HiddenComponent>);
+static_assert(
+	ECSStorage::ComponentStoragePreference<DisabledComponent>::Strategy ==
+	ECSStorage::ComponentStorageStrategy::DirectPaged
+);
 
 void TestStorageFactory(){
 	using ECSStorage::ComponentStorageStrategy;
@@ -55,6 +68,15 @@ void TestStorageFactory(){
 	assert(
 		dynamic_cast<ECSStorage::DirectPagedTagStorage<TestTag>*>(
 			directTag.get()
+		) != nullptr
+	);
+
+	auto disabledTag = ECSStorage::CreateComponentStorage<DisabledComponent>(
+		ECSStorage::ComponentStoragePreference<DisabledComponent>::Strategy
+	);
+	assert(
+		dynamic_cast<ECSStorage::DirectPagedTagStorage<DisabledComponent>*>(
+			disabledTag.get()
 		) != nullptr
 	);
 
@@ -153,11 +175,45 @@ void TestTagStorage(){
 	assert(storage.Size() == 0);
 }
 
+void TestQueryExclusion(){
+	using Query = ECSQuery::ComponentQueryView<
+		ECSQuery::Read<TestComponent>
+	>;
+
+	const Entity active{1, 1};
+	const Entity disabled{2, 1};
+	const Entity missingRequired{3, 1};
+
+	Query::AliveSet alive{active, disabled, missingRequired};
+	Query::MaskMap masks;
+	ComponentMask required;
+	ComponentMask excluded;
+	constexpr size_t RequiredBit = 3;
+	constexpr size_t DisabledBit = 5;
+	required.set(RequiredBit);
+	excluded.set(DisabledBit);
+
+	masks[active].set(RequiredBit);
+	masks[disabled].set(RequiredBit);
+	masks[disabled].set(DisabledBit);
+	masks[missingRequired].set(DisabledBit);
+
+	Query query(alive, masks, required, excluded);
+	std::vector<Entity> result;
+	for(Entity entity : query){
+		result.push_back(entity);
+	}
+
+	assert(result.size() == 1);
+	assert(result.front() == active);
+}
+
 } // namespace
 
 int main(){
 	TestStorageFactory();
 	TestDataStorage();
 	TestTagStorage();
+	TestQueryExclusion();
 	return 0;
 }
