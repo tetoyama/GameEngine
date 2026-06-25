@@ -54,12 +54,14 @@ public:
 			UnderlyingIterator current,
 			UnderlyingIterator end,
 			const MaskMap* masks,
-			const ComponentMask* required
+			const ComponentMask* required,
+			const ComponentMask* excluded
 		)
 			: m_current(current),
 			  m_end(end),
 			  m_masks(masks),
-			  m_required(required){
+			  m_required(required),
+			  m_excluded(excluded){
 			AdvanceToMatch();
 		}
 
@@ -87,9 +89,15 @@ public:
 		void AdvanceToMatch(){
 			while(m_current != m_end){
 				auto maskIterator = m_masks->find(*m_current);
-				if(maskIterator != m_masks->end() &&
-					(maskIterator->second & *m_required) == *m_required){
-					break;
+				if(maskIterator != m_masks->end()){
+					const ComponentMask& mask = maskIterator->second;
+					const bool hasRequired =
+						(mask & *m_required) == *m_required;
+					const bool hasExcluded =
+						(mask & *m_excluded).any();
+					if(hasRequired && !hasExcluded){
+						break;
+					}
 				}
 				++m_current;
 			}
@@ -99,23 +107,27 @@ public:
 		UnderlyingIterator m_end;
 		const MaskMap* m_masks = nullptr;
 		const ComponentMask* m_required = nullptr;
+		const ComponentMask* m_excluded = nullptr;
 	};
 
 	ComponentQueryView(
 		const AliveSet& alive,
 		const MaskMap& masks,
-		ComponentMask required
+		ComponentMask required,
+		ComponentMask excluded = {}
 	)
 		: m_alive(&alive),
 		  m_masks(&masks),
-		  m_required(required){}
+		  m_required(required),
+		  m_excluded(excluded){}
 
 	Iterator begin() const {
 		return Iterator(
 			m_alive->begin(),
 			m_alive->end(),
 			m_masks,
-			&m_required
+			&m_required,
+			&m_excluded
 		);
 	}
 
@@ -124,7 +136,8 @@ public:
 			m_alive->end(),
 			m_alive->end(),
 			m_masks,
-			&m_required
+			&m_required,
+			&m_excluded
 		);
 	}
 
@@ -138,10 +151,15 @@ public:
 		return m_required;
 	}
 
+	const ComponentMask& GetExcludedMask() const noexcept {
+		return m_excluded;
+	}
+
 private:
 	const AliveSet* m_alive = nullptr;
 	const MaskMap* m_masks = nullptr;
 	ComponentMask m_required;
+	ComponentMask m_excluded;
 };
 
 } // namespace ECSQuery
