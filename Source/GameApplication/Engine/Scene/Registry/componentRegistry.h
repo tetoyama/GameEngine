@@ -122,6 +122,24 @@ public:
 		}
 	}
 
+	// 旧登録マクロとの互換Adapter。
+	// 明示Strategy Traitがある型はbool分類よりもTraitを優先する。
+	template<typename T>
+	void RegisterYAMLComponent(
+		const std::string& name,
+		bool useDensePool
+	){
+		auto strategy = useDensePool
+			? ECSStorage::ComponentStorageStrategy::Archetype
+			: ECSStorage::ComponentStorageStrategy::SparseStable;
+		if constexpr(
+			ECSStorage::ComponentStoragePreference<T>::HasExplicitStrategy
+		){
+			strategy = ECSStorage::ComponentStoragePreference<T>::Strategy;
+		}
+		RegisterYAMLComponent<T>(name, strategy);
+	}
+
 	ComponentView CreateFromYAML(
 		const std::string& name,
 		Entity entity,
