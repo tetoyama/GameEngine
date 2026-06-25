@@ -85,6 +85,21 @@ public:
 
 	size_t Size() const noexcept override { return m_size; }
 
+	void Reserve(size_t expectedCount) override {
+		ReservePageTable(expectedCount);
+	}
+
+	void PreallocatePages(size_t pageCount) override {
+		if(m_pages.size() < pageCount) m_pages.resize(pageCount);
+		for(size_t index = 0; index < pageCount; ++index){
+			if(!m_pages[index]) m_pages[index] = std::make_unique<Page>();
+		}
+	}
+
+	size_t Capacity() const noexcept override {
+		return AllocatedPageCount() * static_cast<size_t>(PageSize);
+	}
+
 	std::uint32_t GetComponentGeneration(Entity entity) const override {
 		const Page* page = FindPage(PageIndex(entity));
 		return page ? page->slots[SlotIndex(entity)].componentGeneration : 0;
@@ -92,15 +107,12 @@ public:
 
 	std::uint64_t GetStructureVersion() const noexcept override { return m_structureVersion; }
 
-	void ReservePageTable(std::uint32_t expectedEntityCount){
+	void ReservePageTable(size_t expectedEntityCount){
 		m_pages.reserve(RequiredPageCount(expectedEntityCount));
 	}
 
-	void PreallocatePages(std::uint32_t pageCount){
-		if(m_pages.size() < pageCount) m_pages.resize(pageCount);
-		for(std::uint32_t index = 0; index < pageCount; ++index){
-			if(!m_pages[index]) m_pages[index] = std::make_unique<Page>();
-		}
+	size_t GetAllocatedPageCount() const noexcept {
+		return AllocatedPageCount();
 	}
 
 	// Page tableを順番に辿り、割当済みSlotだけを列挙する。
@@ -157,8 +169,8 @@ private:
 		return entity.GetIndex() % PageSize;
 	}
 
-	static constexpr size_t RequiredPageCount(std::uint32_t entityCount) noexcept {
-		return entityCount == 0 ? 0 : static_cast<size_t>((entityCount - 1) / PageSize) + 1;
+	static constexpr size_t RequiredPageCount(size_t entityCount) noexcept {
+		return entityCount == 0 ? 0 : ((entityCount - 1) / PageSize) + 1;
 	}
 
 	Page& EnsurePage(std::uint32_t pageIndex){
@@ -198,6 +210,14 @@ private:
 	static void IncrementGeneration(std::uint32_t& generation){
 		++generation;
 		if(generation == 0) ++generation;
+	}
+
+	size_t AllocatedPageCount() const noexcept {
+		size_t count = 0;
+		for(const auto& page : m_pages){
+			if(page) ++count;
+		}
+		return count;
 	}
 
 	std::vector<std::unique_ptr<Page>> m_pages;
@@ -257,6 +277,21 @@ public:
 
 	size_t Size() const noexcept override { return m_size; }
 
+	void Reserve(size_t expectedCount) override {
+		ReservePageTable(expectedCount);
+	}
+
+	void PreallocatePages(size_t pageCount) override {
+		if(m_pages.size() < pageCount) m_pages.resize(pageCount);
+		for(size_t index = 0; index < pageCount; ++index){
+			if(!m_pages[index]) m_pages[index] = std::make_unique<Page>();
+		}
+	}
+
+	size_t Capacity() const noexcept override {
+		return AllocatedPageCount() * static_cast<size_t>(PageSize);
+	}
+
 	std::uint32_t GetComponentGeneration(Entity entity) const override {
 		const Page* page = FindPage(PageIndex(entity));
 		return page ? page->componentGenerations[SlotIndex(entity)] : 0;
@@ -264,15 +299,12 @@ public:
 
 	std::uint64_t GetStructureVersion() const noexcept override { return m_structureVersion; }
 
-	void ReservePageTable(std::uint32_t expectedEntityCount){
+	void ReservePageTable(size_t expectedEntityCount){
 		m_pages.reserve(RequiredPageCount(expectedEntityCount));
 	}
 
-	void PreallocatePages(std::uint32_t pageCount){
-		if(m_pages.size() < pageCount) m_pages.resize(pageCount);
-		for(std::uint32_t index = 0; index < pageCount; ++index){
-			if(!m_pages[index]) m_pages[index] = std::make_unique<Page>();
-		}
+	size_t GetAllocatedPageCount() const noexcept {
+		return AllocatedPageCount();
 	}
 
 	template<typename Fn>
@@ -302,8 +334,8 @@ private:
 		return entity.GetIndex() % PageSize;
 	}
 
-	static constexpr size_t RequiredPageCount(std::uint32_t entityCount) noexcept {
-		return entityCount == 0 ? 0 : static_cast<size_t>((entityCount - 1) / PageSize) + 1;
+	static constexpr size_t RequiredPageCount(size_t entityCount) noexcept {
+		return entityCount == 0 ? 0 : ((entityCount - 1) / PageSize) + 1;
 	}
 
 	Page& EnsurePage(std::uint32_t pageIndex){
@@ -329,6 +361,14 @@ private:
 	static void IncrementGeneration(std::uint32_t& generation){
 		++generation;
 		if(generation == 0) ++generation;
+	}
+
+	size_t AllocatedPageCount() const noexcept {
+		size_t count = 0;
+		for(const auto& page : m_pages){
+			if(page) ++count;
+		}
+		return count;
 	}
 
 	std::vector<std::unique_ptr<Page>> m_pages;
