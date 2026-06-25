@@ -1,0 +1,43 @@
+name: Culling Visibility Smoke Test
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "Source/GameApplication/Engine/Scene/Entity/Entity.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingVisibilitySet.h"
+      - "Tests/CullingVisibilitySetSmokeTest.cpp"
+      - ".github/workflows/culling-visibility.yml"
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - "Source/GameApplication/Engine/Scene/Entity/Entity.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingVisibilitySet.h"
+      - "Tests/CullingVisibilitySetSmokeTest.cpp"
+      - ".github/workflows/culling-visibility.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run per-view visibility contract
+        shell: cmd
+        run: >-
+          cl /nologo /std:c++20 /EHsc /W4 /WX /MTd
+          /I Source/GameApplication
+          /I Source/GameApplication/Engine
+          Tests/CullingVisibilitySetSmokeTest.cpp
+          /Fe:culling-visibility-test.exe
+          && culling-visibility-test.exe
