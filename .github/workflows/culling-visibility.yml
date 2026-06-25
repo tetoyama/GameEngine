@@ -5,16 +5,22 @@ on:
     branches:
       - master
     paths:
+      - "Source/GameApplication/Engine/Scene/Component/CullingComponent.h"
       - "Source/GameApplication/Engine/Scene/Entity/Entity.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingMath.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingVisibilitySet.h"
+      - "Tests/CullingMathSmokeTest.cpp"
       - "Tests/CullingVisibilitySetSmokeTest.cpp"
       - ".github/workflows/culling-visibility.yml"
   push:
     branches:
       - refactor/ecs-scheduler-foundation
     paths:
+      - "Source/GameApplication/Engine/Scene/Component/CullingComponent.h"
       - "Source/GameApplication/Engine/Scene/Entity/Entity.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingMath.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingVisibilitySet.h"
+      - "Tests/CullingMathSmokeTest.cpp"
       - "Tests/CullingVisibilitySetSmokeTest.cpp"
       - ".github/workflows/culling-visibility.yml"
   workflow_dispatch:
@@ -41,3 +47,13 @@ jobs:
           Tests/CullingVisibilitySetSmokeTest.cpp
           /Fe:culling-visibility-test.exe
           && culling-visibility-test.exe
+      - name: Compile and run AABB frustum contract
+        shell: cmd
+        run: >-
+          cl /nologo /std:c++20 /EHsc /W4 /WX /MTd
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          Tests/CullingMathSmokeTest.cpp
+          /Fe:culling-math-test.exe
+          && culling-math-test.exe
