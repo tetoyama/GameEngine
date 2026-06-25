@@ -34,4 +34,21 @@ struct IsTagComponent: std::false_type {};
 template<typename T>
 inline constexpr bool IsTagComponentV = IsTagComponent<T>::value;
 
+// Inspectorの通常Component一覧ではなくEntity共通ヘッダーで操作する型。
+template<typename T>
+struct IsEntityHeaderComponent: std::false_type {};
+
+template<typename T>
+inline constexpr bool IsEntityHeaderComponentV =
+	IsEntityHeaderComponent<T>::value;
+
+// 通常のECS Queryから自動除外する状態Component。
+// DisabledComponentだけがこのTraitを有効にする。
+template<typename T>
+struct ExcludeFromDefaultQueries: std::false_type {};
+
+template<typename T>
+inline constexpr bool ExcludeFromDefaultQueriesV =
+	ExcludeFromDefaultQueries<T>::value;
+
 } // namespace ECSStorage
