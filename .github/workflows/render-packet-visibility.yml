@@ -1,0 +1,51 @@
+name: Render Packet Visibility Smoke Test
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "Source/GameApplication/Engine/Scene/Component/EntityStateComponents.h"
+      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.h"
+      - "Source/GameApplication/Engine/Scene/Registry/entityRegistry.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
+      - "Tests/RenderPacketBufferSmokeTest.cpp"
+      - ".github/workflows/render-packet-visibility.yml"
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - "Source/GameApplication/Engine/Scene/Component/EntityStateComponents.h"
+      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.h"
+      - "Source/GameApplication/Engine/Scene/Registry/entityRegistry.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
+      - "Tests/RenderPacketBufferSmokeTest.cpp"
+      - ".github/workflows/render-packet-visibility.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run visibility contract
+        shell: cmd
+        run: >-
+          cl /nologo /std:c++20 /EHsc /W4 /WX /MTd
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          Tests/RenderPacketBufferSmokeTest.cpp
+          /Fe:render-packet-visibility-test.exe
+          && render-packet-visibility-test.exe
