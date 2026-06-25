@@ -25,6 +25,8 @@
 #include "Interface/IComponent.h"
 #include "Interface/IComponentStorage.h"
 #include "Query/ComponentQueryView.h"
+#include "Storage/ComponentStorageFactory.h"
+#include "Storage/ComponentStorageStrategy.h"
 
 struct ComponentOperations {
 	std::string name;
@@ -61,11 +63,12 @@ public:
 	template<typename T>
 	void RegisterYAMLComponent(
 		const std::string& name,
-		bool useDensePool = false
+		ECSStorage::ComponentStorageStrategy strategy =
+			ECSStorage::ComponentStorageStrategy::SparseStable
 	){
 		if(m_yamlFactory.contains(name)) return;
 
-		RegisterComponent<T>(useDensePool);
+		RegisterComponent<T>(strategy);
 
 		const ComponentTypeID typeID = ComponentType::Get<T>();
 		m_componentOperations[typeID] = {
@@ -137,18 +140,20 @@ public:
 			"AddComponent: Entity is not alive");
 
 		const std::type_index typeIndex(typeid(T));
-		if(!m_storages.contains(typeIndex)) RegisterComponent<T>();
+		if(!m_storages.contains(typeIndex)){
+			RegisterComponent<T>(
+				ECSStorage::ComponentStorageStrategy::SparseStable
+			);
+		}
 
-		T component(std::forward<Args>(args)...);
-		IComponentStorage* storage = m_storages[typeIndex].get();
-		if(auto* dense = dynamic_cast<DenseComponentPool<T>*>(storage)){
-			dense->Add(entity, std::move(component));
-		} else if(auto* sparse = dynamic_cast<SparseStorage<T>*>(storage)){
-			sparse->Add(entity, std::move(component));
-		} else {
-			assert(false && "Unknown component storage type");
+		auto adderIterator = m_storageAdders.find(typeIndex);
+		if(adderIterator == m_storageAdders.end()){
+			assert(false && "AddComponent: Storage adder is not registered");
 			return nullptr;
 		}
+
+		T component(std::forward<Args>(args)...);
+		adderIterator->second(entity, &component);
 
 		m_entityMasks[entity].set(ComponentType::Get<T>());
 		return GetComponent<T>(entity);
@@ -226,6 +231,14 @@ public:
 		return iterator != m_storages.end()
 			? iterator->second->GetStructureVersion()
 			: 0;
+	}
+
+	template<typename T>
+	ECSStorage::ComponentStorageStrategy GetStorageStrategy() const {
+		auto iterator = m_storageStrategies.find(std::type_index(typeid(T)));
+		return iterator != m_storageStrategies.end()
+			? iterator->second
+			: ECSStorage::ComponentStorageStrategy::SparseStable;
 	}
 
 	template<typename T>
@@ -345,6 +358,25 @@ public:
 			iterator->second.get()
 		);
 		return dense ? dense->Entities() : std::span<const Entity>{};
+	}
+
+	template<typename T, typename Fn>
+	bool ForEachDirectPagedComponent(Fn&& function){
+		const std::type_index typeIndex(typeid(T));
+		auto strategyIterator = m_storageStrategies.find(typeIndex);
+		if(strategyIterator == m_storageStrategies.end() ||
+			strategyIterator->second !=
+				ECSStorage::ComponentStorageStrategy::DirectPaged ||
+			ECSStorage::IsTagComponentV<T>){
+			return false;
+		}
+		auto storageIterator = m_storages.find(typeIndex);
+		if(storageIterator == m_storages.end()) return false;
+		auto* storage = static_cast<
+			ECSStorage::DirectPagedComponentStorage<T>*
+		>(storageIterator->second.get());
+		storage->ForEachOccupied(std::forward<Fn>(function));
+		return true;
 	}
 
 	std::vector<ComponentView> GetAllComponentViewsOfEntitySorted(Entity entity){
@@ -496,20 +528,75 @@ public:
 	}
 
 private:
+	using StorageAdder = std::function<void(Entity, void*)>;
+
 	template<typename T>
-	void RegisterComponent(bool useDensePool = false){
+	void RegisterComponent(ECSStorage::ComponentStorageStrategy strategy){
 		const std::type_index typeIndex(typeid(T));
 		if(m_storages.contains(typeIndex)) return;
-		if(useDensePool){
-			m_storages[typeIndex] = std::make_unique<DenseComponentPool<T>>();
-		} else {
-			m_storages[typeIndex] = std::make_unique<SparseStorage<T>>();
+
+		auto storage = ECSStorage::CreateComponentStorage<T>(strategy);
+		assert(storage && "RegisterComponent: Storage creation failed");
+		IComponentStorage* rawStorage = storage.get();
+
+		switch(strategy){
+		case ECSStorage::ComponentStorageStrategy::Dense:
+		case ECSStorage::ComponentStorageStrategy::Archetype: {
+			auto* typedStorage = static_cast<DenseComponentPool<T>*>(rawStorage);
+			m_storageAdders[typeIndex] =
+				[typedStorage](Entity entity, void* rawComponent){
+					typedStorage->Add(
+						entity,
+						std::move(*static_cast<T*>(rawComponent))
+					);
+				};
+			break;
 		}
+		case ECSStorage::ComponentStorageStrategy::DirectPaged:
+			if constexpr(ECSStorage::IsTagComponentV<T>){
+				auto* typedStorage = static_cast<
+					ECSStorage::DirectPagedTagStorage<T>*
+				>(rawStorage);
+				m_storageAdders[typeIndex] =
+					[typedStorage](Entity entity, void*){
+						typedStorage->Add(entity);
+					};
+			} else {
+				auto* typedStorage = static_cast<
+					ECSStorage::DirectPagedComponentStorage<T>*
+				>(rawStorage);
+				m_storageAdders[typeIndex] =
+					[typedStorage](Entity entity, void* rawComponent){
+						typedStorage->Add(
+							entity,
+							std::move(*static_cast<T*>(rawComponent))
+						);
+					};
+			}
+			break;
+		case ECSStorage::ComponentStorageStrategy::SparseStable: {
+			auto* typedStorage = static_cast<SparseStorage<T>*>(rawStorage);
+			m_storageAdders[typeIndex] =
+				[typedStorage](Entity entity, void* rawComponent){
+					typedStorage->Add(
+						entity,
+						std::move(*static_cast<T*>(rawComponent))
+					);
+				};
+			break;
+		}
+		}
+
+		m_storageStrategies[typeIndex] = strategy;
+		m_storages[typeIndex] = std::move(storage);
 	}
 
 	SceneContext* m_context = nullptr;
 	EntityRegistry* m_entityManager = nullptr;
 	std::unordered_map<std::type_index, std::unique_ptr<IComponentStorage>> m_storages;
+	std::unordered_map<std::type_index, StorageAdder> m_storageAdders;
+	std::unordered_map<std::type_index, ECSStorage::ComponentStorageStrategy>
+		m_storageStrategies;
 	std::unordered_map<std::type_index, ComponentTypeID> m_typeToID;
 	std::unordered_map<ComponentTypeID, std::type_index> m_idToTypeIndex;
 	std::unordered_map<Entity, ComponentMask> m_entityMasks;
