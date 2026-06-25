@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - "Source/GameApplication/Engine/Scene/Component/EntityStateComponents.h"
+      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp"
       - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.h"
       - "Source/GameApplication/Engine/Scene/Registry/entityRegistry.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
@@ -17,6 +18,7 @@ on:
       - refactor/ecs-scheduler-foundation
     paths:
       - "Source/GameApplication/Engine/Scene/Component/EntityStateComponents.h"
+      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp"
       - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.h"
       - "Source/GameApplication/Engine/Scene/Registry/entityRegistry.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
@@ -47,5 +49,6 @@ jobs:
           /I Source/GameApplication/Engine
           /I Source/GameApplication/Engine/Scene
           Tests/RenderPacketBufferSmokeTest.cpp
+          Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp
           /Fe:render-packet-visibility-test.exe
           && render-packet-visibility-test.exe
