@@ -22,8 +22,59 @@
 #include "Scene/scene.h"
 #include "Scene/sceneManager.h"
 #include "Scene/Component/entityNameComponent.h"
+#include "Scene/Component/EntityStateComponents.h"
 #include "Scene/Component/PrefabComponent.h"
 #include "Hierarchy.h"
+
+namespace {
+
+template<typename T>
+void SetEntityHeaderTag(
+	EditorService* editor,
+	SceneContext* context,
+	Entity entity,
+	const char* componentName,
+	bool shouldExist
+){
+	if(!editor || !context || !context->component || !context->entity ||
+		!context->entity->IsAlive(entity)){
+		return;
+	}
+
+	ComponentRegistry* registry = context->component;
+	const bool exists = registry->HasComponent<T>(entity);
+	if(exists == shouldExist) return;
+
+	if(shouldExist){
+		auto command = std::make_unique<ComponentAddCommand>(
+			context,
+			entity,
+			componentName,
+			[registry](Entity target){
+				registry->AddComponent<T>(target);
+			}
+		);
+		editor->commandManager.Execute(std::move(command));
+		return;
+	}
+
+	const ComponentTypeID typeID =
+		registry->GetComponentIDByName(componentName);
+	if(typeID == INVALID_COMPONENT_TYPE_ID) return;
+
+	const ComponentView component =
+		registry->GetComponentByID(entity, typeID);
+	if(!component) return;
+
+	auto command = std::make_unique<ComponentRemoveCommand>(
+		context,
+		entity,
+		component
+	);
+	editor->commandManager.Execute(std::move(command));
+}
+
+} // namespace
 
 void Inspector::Draw(const EditorDrawContext ctx){
 	(void)ctx;
@@ -108,6 +159,46 @@ void Inspector::Draw(const EditorDrawContext ctx){
 		);
 		m_editor->commandManager.Execute(std::move(command));
 	}
+
+	ImGui::Separator();
+	ImGui::PushID("EntityStateHeader");
+
+	bool enabled = !registry->HasComponent<DisabledComponent>(selectedEntity);
+	if(ImGui::Checkbox("Enable", &enabled)){
+		SetEntityHeaderTag<DisabledComponent>(
+			m_editor,
+			context,
+			selectedEntity,
+			"DisabledComponent",
+			!enabled
+		);
+	}
+
+	ImGui::SameLine();
+	bool isStatic = registry->HasComponent<StaticEntityComponent>(selectedEntity);
+	if(ImGui::Checkbox("Static", &isStatic)){
+		SetEntityHeaderTag<StaticEntityComponent>(
+			m_editor,
+			context,
+			selectedEntity,
+			"StaticEntityComponent",
+			isStatic
+		);
+	}
+
+	ImGui::SameLine();
+	bool visible = !registry->HasComponent<HiddenComponent>(selectedEntity);
+	if(ImGui::Checkbox("Visible", &visible)){
+		SetEntityHeaderTag<HiddenComponent>(
+			m_editor,
+			context,
+			selectedEntity,
+			"HiddenComponent",
+			!visible
+		);
+	}
+
+	ImGui::PopID();
 
 	ImGui::Dummy(ImVec2(0.0f, 10.0f));
 	ImGui::BeginChild(
