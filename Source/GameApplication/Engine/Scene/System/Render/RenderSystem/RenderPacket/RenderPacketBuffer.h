@@ -8,6 +8,9 @@
 #include <vector>
 
 #include "RenderPacket.h"
+#include "Scene/scene.h"
+#include "Scene/Registry/componentRegistry.h"
+#include "Scene/Component/EntityStateComponents.h"
 
 class RenderPacketWorkerBuffer {
 public:
@@ -49,6 +52,10 @@ public:
 		m_ready = false;
 	}
 
+	void Reserve(size_t count){
+		m_packets.reserve(count);
+	}
+
 	void Merge(std::span<const RenderPacketWorkerBuffer> workerBuffers){
 		std::vector<const RenderPacketWorkerBuffer*> orderedWorkers;
 		orderedWorkers.reserve(workerBuffers.size());
@@ -70,11 +77,10 @@ public:
 		m_packets.reserve(packetCount);
 
 		for(const auto* worker : orderedWorkers){
-			m_packets.insert(
-				m_packets.end(),
-				worker->Packets().begin(),
-				worker->Packets().end()
-			);
+			for(const RenderPacket& packet : worker->Packets()){
+				if(!ShouldPublish(packet)) continue;
+				m_packets.push_back(packet);
+			}
 		}
 
 		std::stable_sort(m_packets.begin(), m_packets.end(), RenderPacketLess);
@@ -85,6 +91,7 @@ public:
 	bool IsReady() const noexcept { return m_ready; }
 	const std::vector<RenderPacket>& Packets() const noexcept { return m_packets; }
 	size_t Size() const noexcept { return m_packets.size(); }
+	const size_t Capacity() const noexcept { return m_packets.capacity(); }
 
 	size_t Count(RenderPacketKind kind) const noexcept {
 		return static_cast<size_t>(std::count_if(
@@ -95,6 +102,18 @@ public:
 	}
 
 private:
+	static bool ShouldPublish(const RenderPacket& packet){
+		SceneContext* context = packet.bindings.sceneContext;
+		if(!context || !context->component) return false;
+
+		ComponentRegistry* registry = context->component;
+		if(!registry->IsEntityEnabledForDefaultQueries(packet.entity)){
+			return false;
+		}
+
+		return !registry->HasComponent<HiddenComponent>(packet.entity);
+	}
+
 	uint64_t m_generation = 0;
 	bool m_ready = false;
 	std::vector<RenderPacket> m_packets;
