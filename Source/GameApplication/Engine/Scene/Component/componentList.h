@@ -6,6 +6,7 @@
 #pragma once
 #include "Component/entityNameComponent.h"
 #include "Component/transformComponent.h"
+#include "Component/EntityStateComponents.h"
 #include "Component/CameraComponent.h"
 #include "Component/modelRendererComponent.h"
 #include "Component/meshRendererComponent.h"
@@ -46,32 +47,25 @@
 #include "Script/CameraController.h"
 #include "Script/GN31.h"
 
-inline constexpr auto COMPONENT_SPARSE =
-	ECSStorage::ComponentStorageStrategy::SparseStable;
-inline constexpr auto COMPONENT_DENSE =
-	ECSStorage::ComponentStorageStrategy::Dense;
-inline constexpr auto COMPONENT_DIRECT_PAGED =
-	ECSStorage::ComponentStorageStrategy::DirectPaged;
-inline constexpr auto COMPONENT_ARCHETYPE =
-	ECSStorage::ComponentStorageStrategy::Archetype;
+inline constexpr auto COMPONENT_SPARSE = ECSStorage::ComponentStorageStrategy::SparseStable;
+inline constexpr auto COMPONENT_DENSE = ECSStorage::ComponentStorageStrategy::Dense;
+inline constexpr auto COMPONENT_DIRECT_PAGED = ECSStorage::ComponentStorageStrategy::DirectPaged;
+inline constexpr auto COMPONENT_ARCHETYPE = ECSStorage::ComponentStorageStrategy::Archetype;
 
 namespace ECSStorage {
-
 template<>
 struct ComponentStoragePreference<TransformComponent> {
 	static constexpr bool HasExplicitStrategy = true;
-	static constexpr ComponentStorageStrategy Strategy =
-		ComponentStorageStrategy::DirectPaged;
+	static constexpr ComponentStorageStrategy Strategy = ComponentStorageStrategy::DirectPaged;
 };
-
 } // namespace ECSStorage
 
-// 高頻度で一括走査するData ComponentはDenseまたはDirectPagedへ登録する。
-// Native資源・Script・ポインタ安定性を優先する型はSparseStableを維持する。
-// Archetypeは実装完了までStorage Factory内でDenseへフォールバックする。
 #define COMPONENT_LIST(X) \
     X(NameComponent,COMPONENT_ARCHETYPE)\
     X(TransformComponent,COMPONENT_DIRECT_PAGED)\
+    X(DisabledComponent,COMPONENT_DIRECT_PAGED)\
+    X(StaticEntityComponent,COMPONENT_DIRECT_PAGED)\
+    X(HiddenComponent,COMPONENT_DIRECT_PAGED)\
     X(CustomScriptComponent,COMPONENT_SPARSE)\
     X(ColliderComponent,COMPONENT_SPARSE)\
     X(AudioComponent,COMPONENT_SPARSE)\
