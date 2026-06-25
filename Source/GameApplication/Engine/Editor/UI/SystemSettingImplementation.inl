@@ -122,7 +122,11 @@ inline void DrawApplicationSettings(
 
 		BeginPropertyRow("Maximum Frame Latency");
 		int frameLatency = (std::max)(1, (std::min)(3, app.MaximumFrameLatency));
-		if(ImGui::Combo("##MaximumFrameLatency", &frameLatency, "1 - Lowest Latency\02 - Balanced\03 - Throughput\0")) {
+		static constexpr const char* kFrameLatencyItems =
+			"1 - Lowest Latency\0"
+			"2 - Balanced\0"
+			"3 - Throughput\0";
+		if(ImGui::Combo("##MaximumFrameLatency", &frameLatency, kFrameLatencyItems)) {
 			app.MaximumFrameLatency = frameLatency;
 			if(graphics) {
 				graphics->SetMaximumFrameLatency(static_cast<UINT>(frameLatency));
