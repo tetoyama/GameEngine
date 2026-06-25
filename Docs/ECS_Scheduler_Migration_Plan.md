@@ -414,15 +414,60 @@ Step 16完了条件:
 - `Docs/Step17A_Task_Naming_Completion.md`
 - `Docs/Step17B_Draw_Performance_Breakdown.md`
 
-## Step 18: RenderWorld
+## Step 18: RenderWorld / Static Entity Batching
 
 状態: **未着手**
+
+### Step 18-A: RenderWorld基盤
 
 - [ ] ECS WorldからRenderWorldへ抽出
 - [ ] RendererからComponentRegistry直接参照を除去
 - [ ] Camera / ModelRendererからNative描画資源所有権を分離
 - [ ] RendererからNative API型参照を除去
 - [ ] RenderWorldからRHI Commandを生成
+
+### Step 18-B: Static Entity契約
+
+- [ ] `StaticEntityComponent`またはTag Storage
+- [ ] YAML Serialize / Deserialize
+- [ ] Inspector表示
+- [ ] Transform / Parent / Renderer変更Revision
+- [ ] Static指定変更時のBatch Dirty化
+
+### Step 18-C: Static State Batching
+
+- [ ] Pipeline / Material / Texture / Meshの永続Resource Key
+- [ ] Static Packet Cache
+- [ ] Dynamic Packetとの同一Pass提出
+- [ ] State変更回数計測
+
+### Step 18-D: Static Instancing
+
+- [ ] Instance Buffer
+- [ ] `DrawIndexedInstanced`経路
+- [ ] Object ID / Picking対応
+- [ ] Shadow / GBuffer対応
+- [ ] Spatial Cell単位AABB / Frustum Culling
+
+### Step 18-E: Static Geometry Batching
+
+- [ ] CPU Mesh結合
+- [ ] World TransformのVertex Bake
+- [ ] Index Offset再構築
+- [ ] Batch専用RHI Buffer Upload
+- [ ] Material境界によるSub Batch
+- [ ] Source EntityとTriangle Rangeの対応
+
+### Step 18-F: Invalidation / 計測
+
+- [ ] Transform / Material / Texture / Entity変更時Rebuild
+- [ ] Scene Load / Unload / Undo / Redo / Play / Stop回帰
+- [ ] Batch数 / Draw Call数 / Rebuild CPU / Upload CPU計測
+- [ ] GPU Pass Time / Memory増加量比較
+
+詳細:
+
+- `Docs/Step18_Static_Entity_Batching_Plan.md`
 
 ## Step 19: 描画並列化の再検討
 
@@ -472,6 +517,9 @@ Step 16完了条件:
 4. Step 17-C Animation CPU Build / GPU Upload分離
 5. Step 17-D Terrain CPU Mesh Build / GPU Upload分離
 6. Step 17-E Wave CPU Vertex Build / GPU Upload分離
+7. Step 18-A RenderWorld基盤
+8. Step 18-B以降 Static Entity / Static Batching
 
 Step 17-AのTask命名統一は完了。以降のCapture、Profiler、YAML Export、依存解析では統一後のTask名を基準とする。
 Step 17-BのPacket Build / Command Submit分離はSchedule Captureで確認済み。Performance MonitorのDraw全体とRender Scheduleの差をCPU区間、Present待機、GPU時間へ分解してから次の最適化対象を決定する。
+Static BatchingはRender PacketのSort / Pass Mask / Transform Snapshotを再利用できるが、真のDraw Call統合はRenderWorldとRHI Resource Handleへの移行後に行う。
