@@ -43,6 +43,7 @@ jobs:
           /I Source/GameApplication/Backends
           /I Source/GameApplication/Engine
           /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
           Tests/RenderPacketBufferSmokeTest.cpp
           Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp
           /Fe:render-packet-visibility-test.exe
