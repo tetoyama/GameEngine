@@ -139,6 +139,8 @@ public:
 			appConfig.startSceneFilePath = root["StartScene"].as<std::string>();
 		if(root["Vsync"])
 			appConfig.Vsync = root["Vsync"].as<bool>();
+		if(root["MaximumFrameLatency"])
+			appConfig.MaximumFrameLatency = (std::max)(1, (std::min)(3, root["MaximumFrameLatency"].as<int>()));
 		if(root["FullScreen"])
 			appConfig.FullScreen = root["FullScreen"].as<bool>();
 		if(root["Width"])
@@ -163,6 +165,7 @@ public:
 		out << YAML::Key << "AppType" << YAML::Value << static_cast<int>(appConfig.AppType);
 		out << YAML::Key << "StartScene" << YAML::Value << appConfig.startSceneFilePath;
 		out << YAML::Key << "Vsync" << YAML::Value << appConfig.Vsync;
+		out << YAML::Key << "MaximumFrameLatency" << YAML::Value << appConfig.MaximumFrameLatency;
 		out << YAML::Key << "FullScreen" << YAML::Value << appConfig.FullScreen;
 		out << YAML::Key << "Width" << YAML::Value << appConfig.Width;
 		out << YAML::Key << "Height" << YAML::Value << appConfig.Height;
