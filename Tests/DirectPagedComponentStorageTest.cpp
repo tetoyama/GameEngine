@@ -1,6 +1,8 @@
 #include <cassert>
 #include <cstdint>
+#include <type_traits>
 
+#include "Engine/Scene/Storage/ComponentStorageStrategy.h"
 #include "Engine/Scene/Storage/DirectPagedComponentStorage.h"
 
 namespace {
@@ -10,6 +12,24 @@ struct TestComponent {
 };
 
 struct TestTag {};
+
+} // namespace
+
+namespace ECSStorage {
+
+template<>
+struct IsTagComponent<TestTag>: std::true_type {};
+
+} // namespace ECSStorage
+
+namespace {
+
+static_assert(
+	ECSStorage::ComponentStorageStrategy::DirectPaged !=
+	ECSStorage::ComponentStorageStrategy::Dense
+);
+static_assert(!ECSStorage::IsTagComponentV<TestComponent>);
+static_assert(ECSStorage::IsTagComponentV<TestTag>);
 
 void TestDataStorage(){
 	ECSStorage::DirectPagedComponentStorage<TestComponent, 4> storage;
