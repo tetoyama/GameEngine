@@ -99,9 +99,12 @@ public:
 			return {typeID, component};
 		};
 
-		m_addComponentFuncs[name] = [this](Entity entity){
-			AddComponent<T>(entity);
-		};
+		if constexpr(!ECSStorage::IsEntityHeaderComponentV<T>){
+			m_addComponentFuncs[name] = [this](Entity entity){
+				AddComponent<T>(entity);
+			};
+			m_componentRegistrationOrder.push_back(name);
+		}
 
 		const std::string runtimeTypeName = typeid(T).name();
 		m_addDefaultComponentByRuntimeTypeName[runtimeTypeName] =
@@ -113,7 +116,10 @@ public:
 		m_componentIDToName[typeID] = name;
 		m_typeToID[typeid(T)] = typeID;
 		m_idToTypeIndex.emplace(typeID, typeid(T));
-		m_componentRegistrationOrder.push_back(name);
+
+		if constexpr(ECSStorage::ExcludeFromDefaultQueriesV<T>){
+			m_defaultQueryExcludedMask.set(typeID);
+		}
 
 		if constexpr(std::is_base_of_v<IComponent, T>){
 			m_polymorphicAdapters[typeid(T)] = [](void* raw) -> IComponent* {
@@ -267,6 +273,12 @@ public:
 			maskIterator->second.test(ComponentType::Get<T>());
 	}
 
+	bool IsEntityEnabledForDefaultQueries(Entity entity) const {
+		auto iterator = m_entityMasks.find(entity);
+		return iterator == m_entityMasks.end() ||
+			(iterator->second & m_defaultQueryExcludedMask).none();
+	}
+
 	template<typename T>
 	void RemoveComponent(Entity entity){
 		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return;
@@ -326,7 +338,8 @@ public:
 		return ECSQuery::ComponentQueryView<Accesses...>(
 			m_entityManager->GetAllAlive(),
 			m_entityMasks,
-			required
+			required,
+			m_defaultQueryExcludedMask
 		);
 	}
 
@@ -345,7 +358,8 @@ public:
 		for(Entity entity : aliveEntities){
 			auto iterator = m_entityMasks.find(entity);
 			if(iterator != m_entityMasks.end() &&
-				(iterator->second & required) == required){
+				(iterator->second & required) == required &&
+				(iterator->second & m_defaultQueryExcludedMask).none()){
 				result.push_back(entity);
 			}
 		}
@@ -393,7 +407,13 @@ public:
 		auto* storage = static_cast<
 			ECSStorage::DirectPagedComponentStorage<T>*
 		>(storageIterator->second.get());
-		storage->ForEachOccupied(std::forward<Fn>(function));
+		storage->ForEachOccupied(
+			[this, &function](Entity entity, T& component){
+				if(IsEntityEnabledForDefaultQueries(entity)){
+					function(entity, component);
+				}
+			}
+		);
 		return true;
 	}
 
@@ -618,6 +638,7 @@ private:
 	std::unordered_map<std::type_index, ComponentTypeID> m_typeToID;
 	std::unordered_map<ComponentTypeID, std::type_index> m_idToTypeIndex;
 	std::unordered_map<Entity, ComponentMask> m_entityMasks;
+	ComponentMask m_defaultQueryExcludedMask;
 	std::unordered_map<ComponentTypeID, ComponentOperations> m_componentOperations;
 	std::unordered_map<std::string, YAMLCreator> m_yamlFactory;
 	std::unordered_map<std::string, std::function<void(Entity)>> m_addComponentFuncs;
