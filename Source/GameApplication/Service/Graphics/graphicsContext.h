@@ -5,10 +5,12 @@
 // =======================================================================
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <wrl/client.h>
 #include <d3d11.h>
+#include <dxgi1_3.h>
 #include <d2d1.h>
 #include <DirectXMath.h>
 #include <dwrite.h>
@@ -103,7 +105,31 @@ public:
 	void Clear(const float clearColor[4]);
 	void WaitForFrameLatency();
 	void Present(bool vsync);
-	bool SetMaximumFrameLatency(UINT frameCount);
+	bool SetMaximumFrameLatency(UINT frameCount){
+		frameCount = (std::max)(1u, (std::min)(3u, frameCount));
+
+		if(!m_SwapChain || !m_Device){
+			m_MaximumFrameLatency = frameCount;
+			return false;
+		}
+
+		HRESULT hr = E_FAIL;
+		Microsoft::WRL::ComPtr<IDXGISwapChain2> swapChain2;
+		if(SUCCEEDED(m_SwapChain.As(&swapChain2))){
+			hr = swapChain2->SetMaximumFrameLatency(frameCount);
+		}else{
+			Microsoft::WRL::ComPtr<IDXGIDevice1> dxgiDevice1;
+			if(SUCCEEDED(m_Device.As(&dxgiDevice1))){
+				hr = dxgiDevice1->SetMaximumFrameLatency(frameCount);
+			}
+		}
+
+		if(SUCCEEDED(hr)){
+			m_MaximumFrameLatency = frameCount;
+			return true;
+		}
+		return false;
+	}
 	UINT GetMaximumFrameLatency() const noexcept {
 		return m_MaximumFrameLatency;
 	}
@@ -114,8 +140,6 @@ public:
 		return m_FrameLatencyWaitTimeoutCount;
 	}
 
-	// GPU Timestamp QueryはFrame Serial付きで非同期回収する。
-	// Consumeは未消費結果だけを提出順に一度だけ返す。
 	void BeginGpuFrameTiming(uint64_t frameSerial);
 	void EndGpuFrameTiming();
 	std::vector<GpuFrameTimingResult> ConsumeResolvedGpuFrameTimings();
@@ -307,8 +331,6 @@ private:
 	RenderEffectSystem* m_EffectSystem = nullptr;
 	bool m_TearingSupported = false;
 
-	// Flip-model SwapChain pacing. The actual creation flags are retained so
-	// ResizeBuffers always receives exactly the same flag set.
 	UINT m_SwapChainFlags = 0;
 	HANDLE m_FrameLatencyWaitableObject = nullptr;
 	bool m_FrameLatencyWaitableObjectEnabled = false;
