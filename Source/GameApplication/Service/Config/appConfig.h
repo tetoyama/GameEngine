@@ -28,8 +28,9 @@ struct APPCONFIG
 	bool Vsync = false;
 
 	// SwapChainへCPUが先行投入できる最大Frame数。
-	// 1: 最小Latency / 2～3: CPU-GPU並列性を優先。
-	int MaximumFrameLatency = 1;
+	// EngineConfig.Graphics.MaximumFrameLatencyの互換ミラー。
+	// 1: 最小Latency / 2: Balanced / 3: Throughput。
+	int MaximumFrameLatency = 2;
 
 	bool FullScreen = false;
 	int Width = DEFAULT_WINDOW_WIDTH;
