@@ -5,6 +5,7 @@
 // =======================================================================
 #pragma once
 
+#include <algorithm>
 #include <atomic>
 #include <cassert>
 #include <cstdint>
@@ -103,8 +104,12 @@ public:
 			m_addComponentFuncs[name] = [this](Entity entity){
 				AddComponent<T>(entity);
 			};
-			m_componentRegistrationOrder.push_back(name);
+		} else {
+			m_entityHeaderComponentMask.set(typeID);
 		}
+
+		// 保存・複製・EntityDelete UndoではHeader Tagも含める。
+		m_componentRegistrationOrder.push_back(name);
 
 		const std::string runtimeTypeName = typeid(T).name();
 		m_addDefaultComponentByRuntimeTypeName[runtimeTypeName] =
@@ -165,9 +170,17 @@ public:
 
 		const std::type_index typeIndex(typeid(T));
 		if(!m_storages.contains(typeIndex)){
-			RegisterComponent<T>(
-				ECSStorage::ComponentStorageStrategy::SparseStable
-			);
+			if constexpr(
+				ECSStorage::ComponentStoragePreference<T>::HasExplicitStrategy
+			){
+				RegisterComponent<T>(
+					ECSStorage::ComponentStoragePreference<T>::Strategy
+				);
+			} else {
+				RegisterComponent<T>(
+					ECSStorage::ComponentStorageStrategy::SparseStable
+				);
+			}
 		}
 
 		auto adderIterator = m_storageAdders.find(typeIndex);
@@ -367,11 +380,26 @@ public:
 	}
 
 	template<typename T>
-	std::vector<Entity> FindEntitiesWithComponent() const {
+	std::vector<Entity> FindAllEntitiesWithComponent() const {
 		auto iterator = m_storages.find(std::type_index(typeid(T)));
 		return iterator != m_storages.end()
 			? iterator->second->GetEntityList()
 			: std::vector<Entity>{};
+	}
+
+	template<typename T>
+	std::vector<Entity> FindEntitiesWithComponent() const {
+		std::vector<Entity> entities = FindAllEntitiesWithComponent<T>();
+		if constexpr(ECSStorage::ExcludeFromDefaultQueriesV<T>){
+			return entities;
+		}
+		std::erase_if(
+			entities,
+			[this](Entity entity){
+				return !IsEntityEnabledForDefaultQueries(entity);
+			}
+		);
+		return entities;
 	}
 
 	template<typename T>
@@ -417,6 +445,70 @@ public:
 		return true;
 	}
 
+	template<typename T>
+	bool ReserveComponentStorage(size_t expectedCount){
+		const std::type_index typeIndex(typeid(T));
+		auto storageIterator = m_storages.find(typeIndex);
+		if(storageIterator == m_storages.end()) return false;
+
+		auto strategyIterator = m_storageStrategies.find(typeIndex);
+		if(strategyIterator != m_storageStrategies.end() &&
+			strategyIterator->second ==
+				ECSStorage::ComponentStorageStrategy::DirectPaged){
+			if constexpr(ECSStorage::IsTagComponentV<T>){
+				static_cast<ECSStorage::DirectPagedTagStorage<T>*>(
+					storageIterator->second.get()
+				)->ReservePageTable(static_cast<uint32_t>(expectedCount));
+			} else {
+				static_cast<ECSStorage::DirectPagedComponentStorage<T>*>(
+					storageIterator->second.get()
+				)->ReservePageTable(static_cast<uint32_t>(expectedCount));
+			}
+			return true;
+		}
+
+		storageIterator->second->Reserve(expectedCount);
+		return true;
+	}
+
+	template<typename T>
+	bool PreallocateComponentPages(size_t pageCount){
+		const std::type_index typeIndex(typeid(T));
+		auto storageIterator = m_storages.find(typeIndex);
+		auto strategyIterator = m_storageStrategies.find(typeIndex);
+		if(storageIterator == m_storages.end() ||
+			strategyIterator == m_storageStrategies.end() ||
+			strategyIterator->second !=
+				ECSStorage::ComponentStorageStrategy::DirectPaged){
+			return false;
+		}
+
+		if constexpr(ECSStorage::IsTagComponentV<T>){
+			static_cast<ECSStorage::DirectPagedTagStorage<T>*>(
+				storageIterator->second.get()
+			)->PreallocatePages(static_cast<uint32_t>(pageCount));
+		} else {
+			static_cast<ECSStorage::DirectPagedComponentStorage<T>*>(
+				storageIterator->second.get()
+			)->PreallocatePages(static_cast<uint32_t>(pageCount));
+		}
+		return true;
+	}
+
+	template<typename T>
+	size_t GetComponentStorageSize() const {
+		auto iterator = m_storages.find(std::type_index(typeid(T)));
+		return iterator != m_storages.end() ? iterator->second->Size() : 0;
+	}
+
+	template<typename T>
+	size_t GetComponentStorageCapacity() const {
+		auto iterator = m_storages.find(std::type_index(typeid(T)));
+		return iterator != m_storages.end()
+			? iterator->second->Capacity()
+			: 0;
+	}
+
 	std::vector<ComponentView> GetAllComponentViewsOfEntitySorted(Entity entity){
 		std::vector<ComponentView> components;
 		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return components;
@@ -427,6 +519,21 @@ public:
 			ComponentView view = GetComponentByID(entity, idIterator->second);
 			if(view) components.push_back(view);
 		}
+		return components;
+	}
+
+	std::vector<ComponentView> GetInspectorComponentViewsOfEntitySorted(
+		Entity entity
+	){
+		std::vector<ComponentView> components =
+			GetAllComponentViewsOfEntitySorted(entity);
+		std::erase_if(
+			components,
+			[this](ComponentView view){
+				return view.typeID < MAX_COMPONENTS &&
+					m_entityHeaderComponentMask.test(view.typeID);
+			}
+		);
 		return components;
 	}
 
@@ -639,6 +746,7 @@ private:
 	std::unordered_map<ComponentTypeID, std::type_index> m_idToTypeIndex;
 	std::unordered_map<Entity, ComponentMask> m_entityMasks;
 	ComponentMask m_defaultQueryExcludedMask;
+	ComponentMask m_entityHeaderComponentMask;
 	std::unordered_map<ComponentTypeID, ComponentOperations> m_componentOperations;
 	std::unordered_map<std::string, YAMLCreator> m_yamlFactory;
 	std::unordered_map<std::string, std::function<void(Entity)>> m_addComponentFuncs;
