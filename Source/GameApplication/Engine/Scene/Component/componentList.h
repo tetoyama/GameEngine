@@ -55,6 +55,17 @@ inline constexpr auto COMPONENT_DIRECT_PAGED =
 inline constexpr auto COMPONENT_ARCHETYPE =
 	ECSStorage::ComponentStorageStrategy::Archetype;
 
+namespace ECSStorage {
+
+template<>
+struct ComponentStoragePreference<TransformComponent> {
+	static constexpr bool HasExplicitStrategy = true;
+	static constexpr ComponentStorageStrategy Strategy =
+		ComponentStorageStrategy::DirectPaged;
+};
+
+} // namespace ECSStorage
+
 // 高頻度で一括走査するData ComponentはDenseまたはDirectPagedへ登録する。
 // Native資源・Script・ポインタ安定性を優先する型はSparseStableを維持する。
 // Archetypeは実装完了までStorage Factory内でDenseへフォールバックする。
