@@ -209,7 +209,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 	);
 
 	const std::vector<ComponentView> components =
-		registry->GetAllComponentsOfEntitySorted(selectedEntity);
+		registry->GetInspectorComponentViewsOfEntitySorted(selectedEntity);
 	std::vector<ComponentView> componentsToRemove;
 	ImDrawList* drawList = ImGui::GetWindowDrawList();
 
