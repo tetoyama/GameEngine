@@ -33,9 +33,12 @@ jobs:
       - name: Compile and run per-view visibility contract
         shell: cmd
         run: >-
-          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /wd4201 /wd4458 /MTd
+          /I Source
           /I Source/GameApplication
           /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
           Tests/CullingVisibilitySetSmokeTest.cpp
           /Fe:culling-visibility-test.exe
           && culling-visibility-test.exe
@@ -44,10 +47,13 @@ jobs:
         continue-on-error: true
         shell: cmd
         run: >-
-          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /wd4201 /wd4458 /MTd
+          /I Source
           /I Source/GameApplication
           /I Source/GameApplication/Backends
           /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
           Tests/CullingMathSmokeTest.cpp
           /Fe:culling-math-test.exe
           > culling-math.log 2>&1
