@@ -39,6 +39,7 @@ jobs:
         run: >-
           cl /nologo /std:c++20 /EHsc /W4 /WX /MTd
           /I Source/GameApplication
+          /I Source/GameApplication/Engine
           Tests/DirectPagedComponentStorageTest.cpp
           /Fe:direct-paged-storage-test.exe
           && direct-paged-storage-test.exe
