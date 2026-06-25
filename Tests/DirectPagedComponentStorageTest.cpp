@@ -51,6 +51,25 @@ void TestDataStorage(){
 	storage.Add(Entity{15, 1}, TestComponent{30});
 	assert(storage.Get(first) == stableAddress);
 
+	int visitedCount = 0;
+	int valueTotal = 0;
+	storage.ForEachOccupied([&](Entity, TestComponent& component){
+		++visitedCount;
+		valueTotal += component.value;
+		component.value += 1;
+	});
+	assert(visitedCount == 3);
+	assert(valueTotal == 60);
+	assert(storage.Get(first)->value == 11);
+	assert(storage.Get(second)->value == 21);
+
+	const auto& constStorage = storage;
+	int constVisitedCount = 0;
+	constStorage.ForEachOccupied([&](Entity, const TestComponent&){
+		++constVisitedCount;
+	});
+	assert(constVisitedCount == 3);
+
 	const std::uint32_t generationBeforeRemove =
 		storage.GetComponentGeneration(first);
 	storage.Remove(first);
@@ -77,6 +96,15 @@ void TestTagStorage(){
 	assert(!storage.Contains(first));
 	assert(storage.Contains(reusedIndex));
 	assert(storage.Size() == 1);
+
+	int visitedCount = 0;
+	Entity visitedEntity{};
+	storage.ForEachEntity([&](Entity entity){
+		++visitedCount;
+		visitedEntity = entity;
+	});
+	assert(visitedCount == 1);
+	assert(visitedEntity == reusedIndex);
 
 	storage.Remove(reusedIndex);
 	assert(!storage.Contains(reusedIndex));
