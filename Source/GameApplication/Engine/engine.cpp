@@ -54,7 +54,7 @@ void Engine::Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdSho
 		mainWindow->GetHWND(), mainWindow->GetWidth(), mainWindow->GetHeight())) return;
 
 	graphics->SetMaximumFrameLatency(
-		static_cast<UINT>(config->appConfig.MaximumFrameLatency)
+		static_cast<UINT>(config->engineConfig.graphics.maximumFrameLatency)
 	);
 
 	if(resources){
