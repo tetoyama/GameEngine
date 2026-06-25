@@ -5,6 +5,7 @@
 // =======================================================================
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
@@ -17,17 +18,18 @@ enum class ComponentStorageStrategy : std::uint8_t {
 	Archetype
 };
 
-// 型ごとの明示Storage指定。
-// 旧bool登録Adapterを通る間も、Transformなどの例外を型側から上書きできる。
+// 型ごとのStorage指定と既定初期確保Hint。
+// Scene設定が適用される場合は、Registry側からこの値を上書きする。
 template<typename T>
 struct ComponentStoragePreference {
 	static constexpr bool HasExplicitStrategy = false;
 	static constexpr ComponentStorageStrategy Strategy =
 		ComponentStorageStrategy::SparseStable;
+	static constexpr size_t ExpectedCount = 0;
+	static constexpr size_t PreallocatedPages = 0;
 };
 
 // Tag Componentは特殊化で宣言する。
-// DirectPaged選択時、falseなら実データStorage、trueならTag Storageを生成する。
 template<typename T>
 struct IsTagComponent: std::false_type {};
 
@@ -43,7 +45,6 @@ inline constexpr bool IsEntityHeaderComponentV =
 	IsEntityHeaderComponent<T>::value;
 
 // 通常のECS Queryから自動除外する状態Component。
-// DisabledComponentだけがこのTraitを有効にする。
 template<typename T>
 struct ExcludeFromDefaultQueries: std::false_type {};
 
