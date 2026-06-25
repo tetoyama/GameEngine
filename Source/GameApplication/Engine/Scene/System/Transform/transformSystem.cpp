@@ -50,7 +50,7 @@ void TransformSystem::Draw(){
 		}
 
 		// Schedule外ではCommandBufferが存在しない場合がある。
-		// 即時削除はQueryのiteratorを無効化するため、互換経路だけ
+		// 即時削除はStorage走査を無効化するため、互換経路だけ
 		// Entity一覧のスナップショットを使う。
 		if(!context->commands){
 			const auto entities =
@@ -70,7 +70,23 @@ void TransformSystem::Draw(){
 			continue;
 		}
 
-		// 通常経路は結果vectorを生成せず、生存EntityとComponentMaskを遅延走査する。
+		// TransformがDirectPagedの場合は、Alive Entity全体ではなく
+		// 割当済みPageのOccupied Slotだけを走査する。
+		const bool traversedDirectPaged =
+			context->component->ForEachDirectPagedComponent<TransformComponent>(
+				[context](Entity entity, TransformComponent& transform){
+					if(transform.parent != 0 &&
+						!context->entity->IsAlive(transform.parent)){
+						context->commands->DestroyEntity(entity);
+					}
+				}
+			);
+
+		if(traversedDirectPaged){
+			continue;
+		}
+
+		// Storage移行中の互換経路。
 		const auto query =
 			context->component->ReadQuery<TransformComponent>();
 
