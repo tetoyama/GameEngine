@@ -46,7 +46,9 @@ jobs:
         continue-on-error: true
         shell: cmd
         run: >-
-          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /wd4201 /wd4458 /MTd
+          /I Source
           /I Source/GameApplication
           /I Source/GameApplication/Backends
           /I Source/GameApplication/Engine
@@ -68,7 +70,9 @@ jobs:
       - name: Compile and run Scene storage config smoke test
         shell: cmd
         run: >-
-          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /wd4201 /wd4458 /MTd
+          /I Source
           /I Source/GameApplication
           /I Source/GameApplication/Backends
           /I Source/GameApplication/Engine
