@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <type_traits>
 
+#include "Engine/Scene/Storage/ComponentStorageFactory.h"
 #include "Engine/Scene/Storage/ComponentStorageStrategy.h"
 #include "Engine/Scene/Storage/DirectPagedComponentStorage.h"
 
@@ -30,6 +31,47 @@ static_assert(
 );
 static_assert(!ECSStorage::IsTagComponentV<TestComponent>);
 static_assert(ECSStorage::IsTagComponentV<TestTag>);
+
+void TestStorageFactory(){
+	using ECSStorage::ComponentStorageStrategy;
+
+	auto dense = ECSStorage::CreateComponentStorage<TestComponent>(
+		ComponentStorageStrategy::Dense
+	);
+	assert(dynamic_cast<DenseComponentPool<TestComponent>*>(dense.get()) != nullptr);
+
+	auto directData = ECSStorage::CreateComponentStorage<TestComponent>(
+		ComponentStorageStrategy::DirectPaged
+	);
+	assert(
+		dynamic_cast<ECSStorage::DirectPagedComponentStorage<TestComponent>*>(
+			directData.get()
+		) != nullptr
+	);
+
+	auto directTag = ECSStorage::CreateComponentStorage<TestTag>(
+		ComponentStorageStrategy::DirectPaged
+	);
+	assert(
+		dynamic_cast<ECSStorage::DirectPagedTagStorage<TestTag>*>(
+			directTag.get()
+		) != nullptr
+	);
+
+	auto sparse = ECSStorage::CreateComponentStorage<TestComponent>(
+		ComponentStorageStrategy::SparseStable
+	);
+	assert(dynamic_cast<SparseStorage<TestComponent>*>(sparse.get()) != nullptr);
+
+	auto archetypeFallback = ECSStorage::CreateComponentStorage<TestComponent>(
+		ComponentStorageStrategy::Archetype
+	);
+	assert(
+		dynamic_cast<DenseComponentPool<TestComponent>*>(
+			archetypeFallback.get()
+		) != nullptr
+	);
+}
 
 void TestDataStorage(){
 	ECSStorage::DirectPagedComponentStorage<TestComponent, 4> storage;
@@ -114,6 +156,7 @@ void TestTagStorage(){
 } // namespace
 
 int main(){
+	TestStorageFactory();
 	TestDataStorage();
 	TestTagStorage();
 	return 0;
