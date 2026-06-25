@@ -5,8 +5,7 @@
 // =======================================================================
 #pragma once
 
-#include <yaml-cpp/yaml.h>
-
+#include "Backends/yaml-cpp/yaml.h"
 #include "Storage/ComponentStorageStrategy.h"
 
 struct SceneContext;
