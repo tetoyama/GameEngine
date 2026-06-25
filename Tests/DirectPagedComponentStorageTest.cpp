@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "Engine/Scene/Component/CullingComponent.h"
 #include "Engine/Scene/Component/EntityStateComponents.h"
 #include "Engine/Scene/Query/ComponentQueryView.h"
 #include "Engine/Scene/Storage/ComponentStorageFactory.h"
@@ -37,12 +38,18 @@ static_assert(ECSStorage::IsTagComponentV<TestTag>);
 static_assert(ECSStorage::IsTagComponentV<DisabledComponent>);
 static_assert(ECSStorage::IsTagComponentV<StaticEntityComponent>);
 static_assert(ECSStorage::IsTagComponentV<HiddenComponent>);
+static_assert(!ECSStorage::IsTagComponentV<CullingComponent>);
 static_assert(ECSStorage::IsEntityHeaderComponentV<DisabledComponent>);
+static_assert(ECSStorage::IsEntityHeaderComponentV<CullingComponent>);
 static_assert(ECSStorage::ExcludeFromDefaultQueriesV<DisabledComponent>);
 static_assert(!ECSStorage::ExcludeFromDefaultQueriesV<HiddenComponent>);
 static_assert(
 	ECSStorage::ComponentStoragePreference<DisabledComponent>::Strategy ==
 	ECSStorage::ComponentStorageStrategy::DirectPaged
+);
+static_assert(
+	ECSStorage::ComponentStoragePreference<CullingComponent>::Strategy ==
+	ECSStorage::ComponentStorageStrategy::Dense
 );
 
 void TestStorageFactory(){
@@ -52,6 +59,11 @@ void TestStorageFactory(){
 		ComponentStorageStrategy::Dense
 	);
 	assert(dynamic_cast<DenseComponentPool<TestComponent>*>(dense.get()) != nullptr);
+
+	auto culling = ECSStorage::CreateComponentStorage<CullingComponent>(
+		ECSStorage::ComponentStoragePreference<CullingComponent>::Strategy
+	);
+	assert(dynamic_cast<DenseComponentPool<CullingComponent>*>(culling.get()) != nullptr);
 
 	auto directData = ECSStorage::CreateComponentStorage<TestComponent>(
 		ComponentStorageStrategy::DirectPaged
@@ -98,6 +110,27 @@ void TestStorageFactory(){
 			archetypeFallback.get()
 		) != nullptr
 	);
+}
+
+void TestCullingComponentContract(){
+	CullingComponent component;
+	component.localBounds.min = Vector3(-1.0f, -2.0f, -3.0f);
+	component.localBounds.max = Vector3(1.0f, 2.0f, 3.0f);
+	component.worldBounds = component.localBounds;
+	component.sourceRevision = 12;
+	component.transformRevision = 34;
+	component.boundsValid = true;
+
+	const YAML::Node encoded = component.encode();
+	assert(encoded.IsMap());
+	assert(encoded.size() == 0);
+
+	assert(component.decode(nullptr, YAML::Node{}));
+	assert(component.sourceRevision == 0);
+	assert(component.transformRevision == 0);
+	assert(!component.boundsValid);
+	assert(component.localBounds.IsValid());
+	assert(component.worldBounds.IsValid());
 }
 
 void TestDataStorage(){
@@ -228,6 +261,7 @@ void TestQueryExclusion(){
 
 int main(){
 	TestStorageFactory();
+	TestCullingComponentContract();
 	TestDataStorage();
 	TestTagStorage();
 	TestQueryExclusion();
