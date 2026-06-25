@@ -5,6 +5,7 @@
 // =======================================================================
 #pragma once
 
+#include <algorithm>
 #include <fstream>
 #include <optional>
 #include <string>
