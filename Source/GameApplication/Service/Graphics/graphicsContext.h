@@ -103,6 +103,10 @@ public:
 	void Clear(const float clearColor[4]);
 	void WaitForFrameLatency();
 	void Present(bool vsync);
+	bool SetMaximumFrameLatency(UINT frameCount);
+	UINT GetMaximumFrameLatency() const noexcept {
+		return m_MaximumFrameLatency;
+	}
 	bool IsFrameLatencyWaitableObjectEnabled() const noexcept {
 		return m_FrameLatencyWaitableObjectEnabled;
 	}
@@ -310,5 +314,6 @@ private:
 	bool m_FrameLatencyWaitableObjectEnabled = false;
 	bool m_FrameLatencyWaitWarningLogged = false;
 	uint64_t m_FrameLatencyWaitTimeoutCount = 0;
+	UINT m_MaximumFrameLatency = 1;
 	static constexpr DWORD kFrameLatencyWaitTimeoutMilliseconds = 100;
 };
