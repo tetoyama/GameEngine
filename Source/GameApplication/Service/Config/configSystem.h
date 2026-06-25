@@ -18,6 +18,7 @@
 
 struct EngineGraphicsConfig {
 	RHI::BackendType backend = RHI::BackendType::Direct3D11;
+	uint32_t maximumFrameLatency = 2;
 };
 
 struct EngineConfig {
@@ -71,6 +72,12 @@ public:
 			OutputDebugStringW(L"Failed to load application config. Using default settings.\n");
 			return false;
 		}
+
+		// ApplicationConfigの旧キーを読み込める状態は維持するが、
+		// 実行時の正規値はEngineConfig.Graphicsを使用する。
+		appConfig.MaximumFrameLatency = static_cast<int>(
+			engineConfig.graphics.maximumFrameLatency
+		);
 
 		return true;
 	}
@@ -140,8 +147,10 @@ public:
 			appConfig.startSceneFilePath = root["StartScene"].as<std::string>();
 		if(root["Vsync"])
 			appConfig.Vsync = root["Vsync"].as<bool>();
-		if(root["MaximumFrameLatency"])
-			appConfig.MaximumFrameLatency = (std::max)(1, (std::min)(3, root["MaximumFrameLatency"].as<int>()));
+		if(root["MaximumFrameLatency"]){
+			const int legacyLatency = root["MaximumFrameLatency"].as<int>();
+			appConfig.MaximumFrameLatency = (std::max)(1, (std::min)(3, legacyLatency));
+		}
 		if(root["FullScreen"])
 			appConfig.FullScreen = root["FullScreen"].as<bool>();
 		if(root["Width"])
@@ -166,7 +175,9 @@ public:
 		out << YAML::Key << "AppType" << YAML::Value << static_cast<int>(appConfig.AppType);
 		out << YAML::Key << "StartScene" << YAML::Value << appConfig.startSceneFilePath;
 		out << YAML::Key << "Vsync" << YAML::Value << appConfig.Vsync;
-		out << YAML::Key << "MaximumFrameLatency" << YAML::Value << appConfig.MaximumFrameLatency;
+		// 旧ApplicationConfigとの互換性を維持するためミラー値も保存する。
+		out << YAML::Key << "MaximumFrameLatency" << YAML::Value
+			<< static_cast<int>(engineConfig.graphics.maximumFrameLatency);
 		out << YAML::Key << "FullScreen" << YAML::Value << appConfig.FullScreen;
 		out << YAML::Key << "Width" << YAML::Value << appConfig.Width;
 		out << YAML::Key << "Height" << YAML::Value << appConfig.Height;
@@ -203,10 +214,22 @@ private:
 					).c_str());
 				}
 			}
+
+			if(graphics["MaximumFrameLatency"]){
+				const int configuredLatency = graphics["MaximumFrameLatency"].as<int>();
+				const int clampedLatency = (std::max)(1, (std::min)(3, configuredLatency));
+				engineConfig.graphics.maximumFrameLatency =
+					static_cast<uint32_t>(clampedLatency);
+				if(configuredLatency != clampedLatency){
+					OutputDebugStringA(
+						"Graphics.MaximumFrameLatency is outside 1..3 and was clamped.\n"
+					);
+				}
+			}
 		} catch(const YAML::Exception& exception){
 			OutputDebugStringA((
 				std::string("Invalid Graphics section in EngineConfig.yaml: ") +
-				exception.what() + ". Using Direct3D11.\n"
+				exception.what() + ". Using default graphics settings.\n"
 			).c_str());
 			engineConfig = EngineConfig{};
 		}
@@ -216,6 +239,9 @@ private:
 		YAML::Node graphics = editorConfig["Graphics"];
 		graphics["Backend"] = std::string(
 			ToEngineConfigBackendName(engineConfig.graphics.backend)
+		);
+		graphics["MaximumFrameLatency"] = static_cast<int>(
+			(std::max)(1u, (std::min)(3u, engineConfig.graphics.maximumFrameLatency))
 		);
 		editorConfig["Graphics"] = graphics;
 	}
