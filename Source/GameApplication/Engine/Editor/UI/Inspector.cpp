@@ -23,6 +23,7 @@
 #include "Scene/sceneManager.h"
 #include "Scene/Component/entityNameComponent.h"
 #include "Scene/Component/EntityStateComponents.h"
+#include "Scene/Component/CullingComponent.h"
 #include "Scene/Component/PrefabComponent.h"
 #include "Hierarchy.h"
 
@@ -183,6 +184,18 @@ void Inspector::Draw(const EditorDrawContext ctx){
 			selectedEntity,
 			"StaticEntityComponent",
 			isStatic
+		);
+	}
+
+	ImGui::SameLine();
+	bool culling = registry->HasComponent<CullingComponent>(selectedEntity);
+	if(ImGui::Checkbox("Culling", &culling)){
+		SetEntityHeaderTag<CullingComponent>(
+			m_editor,
+			context,
+			selectedEntity,
+			"CullingComponent",
+			culling
 		);
 	}
 
