@@ -53,6 +53,10 @@ void Engine::Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdSho
 	if(!graphics || !graphics->Initialize(
 		mainWindow->GetHWND(), mainWindow->GetWidth(), mainWindow->GetHeight())) return;
 
+	graphics->SetMaximumFrameLatency(
+		static_cast<UINT>(config->appConfig.MaximumFrameLatency)
+	);
+
 	if(resources){
 		resources->Initialize(graphics.get(), audio.get(), debug.get());
 	}
@@ -163,8 +167,6 @@ void Engine::Run(EngineContext* context){
 			renderer->GetLastResizeCpuTimeSeconds();
 		time->BeginDraw(activeFrameSerial);
 
-		// SwapChain queueの空きをFrame開始前に待つ。
-		// Present内で不定期にまとめて待たされる状態を避け、独立区間として計測する。
 		time->BeginDrawSection(DrawTimingSection::FramePacingWait);
 		graphics->WaitForFrameLatency();
 		time->EndDrawSection(DrawTimingSection::FramePacingWait);
