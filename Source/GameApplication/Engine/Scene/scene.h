@@ -12,6 +12,7 @@
 #include "Backends/myVector2.h"
 #include "Entity/Entity.h"
 #include "System/Script/ScriptModuleAPI.h"
+#include "Config/SceneStorageConfig.h"
 
 // 前方宣言
 enum RenderLayer;
@@ -47,6 +48,9 @@ struct SceneContext{
 	ComponentRegistry* component = nullptr;
 	SystemRegistry* system = nullptr;
 
+	// SceneごとのStorage初期確保設定。
+	SceneStorageConfig* storageConfig = nullptr;
+
 	// Task / Engine内部の構造変更を遅延させるScene単位のCommand Buffer。
 	EntityCommandBuffer* commands = nullptr;
 
@@ -79,6 +83,8 @@ public:
 	void TempSave(); // 一時保存
 
 	SceneContext* GetSceneContext(){return &m_SceneContext;}
+	SceneStorageConfig& GetStorageConfig() noexcept { return m_storageConfig; }
+	const SceneStorageConfig& GetStorageConfig() const noexcept { return m_storageConfig; }
 
 	void LoadSceneFromYAML(std::string path);
 	RenderLayer GetRenderLayerFromEntity(Entity entity);
@@ -96,9 +102,13 @@ private:
 	// TransformComponent の children リストを parent 参照から再構築する
 	void RebuildTransformChildren();
 
+	// Scene設定をRegistry / Rendererへ適用する。
+	void ApplyStorageConfig();
+
 	// マネージャコンテキスト
 	SceneManagerContext* m_SceneManagerContext = nullptr;
 	SceneContext m_SceneContext{};
+	SceneStorageConfig m_storageConfig{};
 
 	// レジストリ
 	std::unique_ptr<EntityRegistry> m_entityRegistry;
