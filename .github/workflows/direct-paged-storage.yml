@@ -26,25 +26,6 @@ on:
   push:
     branches:
       - refactor/ecs-scheduler-foundation
-    paths:
-      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.h"
-      - "Source/GameApplication/Engine/Scene/Registry/entityRegistry.h"
-      - "Source/GameApplication/Engine/Scene/Config/SceneStorageConfig.h"
-      - "Source/GameApplication/Engine/Scene/Component/componentList.h"
-      - "Source/GameApplication/Engine/Scene/Component/EntityStateComponents.h"
-      - "Source/GameApplication/Engine/Scene/Component/CullingComponent.h"
-      - "Source/GameApplication/Engine/Scene/Query/ComponentQueryView.h"
-      - "Source/GameApplication/Engine/Scene/System/Transform/transformSystem.cpp"
-      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
-      - "Source/GameApplication/Engine/Scene/Storage/ComponentStorageFactory.h"
-      - "Source/GameApplication/Engine/Scene/Storage/ComponentStorageStrategy.h"
-      - "Source/GameApplication/Engine/Scene/Storage/DirectPagedComponentStorage.h"
-      - "Source/GameApplication/Engine/Scene/Interface/IComponentStorage.h"
-      - "Source/GameApplication/Engine/Scene/Entity/Entity.h"
-      - "Source/GameApplication/Engine/Editor/UI/Inspector.cpp"
-      - "Tests/DirectPagedComponentStorageTest.cpp"
-      - "Tests/SceneStorageConfigSmokeTest.cpp"
-      - ".github/workflows/direct-paged-storage.yml"
   workflow_dispatch:
 
 permissions:
@@ -61,6 +42,8 @@ jobs:
         with:
           arch: x64
       - name: Compile and run DirectPaged storage smoke test
+        id: direct_paged
+        continue-on-error: true
         shell: cmd
         run: >-
           cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
@@ -70,7 +53,18 @@ jobs:
           /I Source/GameApplication/Engine/Scene
           Tests/DirectPagedComponentStorageTest.cpp
           /Fe:direct-paged-storage-test.exe
-          && direct-paged-storage-test.exe
+          > direct-paged-storage.log 2>&1
+          && direct-paged-storage-test.exe >> direct-paged-storage.log 2>&1
+      - name: Upload DirectPaged diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: direct-paged-storage-diagnostics
+          path: direct-paged-storage.log
+          if-no-files-found: error
+      - name: Preserve DirectPaged result
+        if: steps.direct_paged.outcome == 'failure'
+        run: cmd /c exit 1
       - name: Compile and run Scene storage config smoke test
         shell: cmd
         run: >-
