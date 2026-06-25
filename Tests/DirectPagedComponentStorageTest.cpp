@@ -61,6 +61,9 @@ void TestStorageFactory(){
 			directData.get()
 		) != nullptr
 	);
+	directData->Reserve(32);
+	directData->PreallocatePages(2);
+	assert(directData->Capacity() == 512);
 
 	auto directTag = ECSStorage::CreateComponentStorage<TestTag>(
 		ComponentStorageStrategy::DirectPaged
@@ -70,6 +73,8 @@ void TestStorageFactory(){
 			directTag.get()
 		) != nullptr
 	);
+	directTag->PreallocatePages(1);
+	assert(directTag->Capacity() == 256);
 
 	auto disabledTag = ECSStorage::CreateComponentStorage<DisabledComponent>(
 		ECSStorage::ComponentStoragePreference<DisabledComponent>::Strategy
@@ -98,7 +103,10 @@ void TestStorageFactory(){
 void TestDataStorage(){
 	ECSStorage::DirectPagedComponentStorage<TestComponent, 4> storage;
 	storage.ReservePageTable(32);
+	assert(storage.Capacity() == 0);
 	storage.PreallocatePages(2);
+	assert(storage.GetAllocatedPageCount() == 2);
+	assert(storage.Capacity() == 8);
 
 	const Entity first{1, 1};
 	const Entity second{6, 1};
@@ -114,6 +122,8 @@ void TestDataStorage(){
 	TestComponent* stableAddress = storage.Get(first);
 	storage.Add(Entity{15, 1}, TestComponent{30});
 	assert(storage.Get(first) == stableAddress);
+	assert(storage.GetAllocatedPageCount() == 3);
+	assert(storage.Capacity() == 12);
 
 	int visitedCount = 0;
 	int valueTotal = 0;
@@ -139,6 +149,7 @@ void TestDataStorage(){
 	storage.Remove(first);
 	assert(!storage.Contains(first));
 	assert(storage.GetComponentGeneration(first) != generationBeforeRemove);
+	assert(storage.Capacity() == 12);
 
 	const Entity reusedIndex{1, 2};
 	storage.Add(reusedIndex, TestComponent{40});
@@ -149,17 +160,21 @@ void TestDataStorage(){
 
 void TestTagStorage(){
 	ECSStorage::DirectPagedTagStorage<TestTag, 4> storage;
+	assert(storage.Capacity() == 0);
 	const Entity first{2, 1};
 	const Entity reusedIndex{2, 2};
 
 	storage.Add(first);
 	assert(storage.Contains(first));
 	assert(storage.GetRaw(first) != nullptr);
+	assert(storage.GetAllocatedPageCount() == 1);
+	assert(storage.Capacity() == 4);
 
 	storage.Add(reusedIndex);
 	assert(!storage.Contains(first));
 	assert(storage.Contains(reusedIndex));
 	assert(storage.Size() == 1);
+	assert(storage.Capacity() == 4);
 
 	int visitedCount = 0;
 	Entity visitedEntity{};
@@ -173,6 +188,7 @@ void TestTagStorage(){
 	storage.Remove(reusedIndex);
 	assert(!storage.Contains(reusedIndex));
 	assert(storage.Size() == 0);
+	assert(storage.Capacity() == 4);
 }
 
 void TestQueryExclusion(){
