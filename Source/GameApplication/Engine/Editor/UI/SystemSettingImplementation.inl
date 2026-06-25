@@ -45,6 +45,15 @@ inline const char* GetBackendLabel(RHI::BackendType backend) {
 	return "Unknown";
 }
 
+inline const char* GetFrameLatencyLabel(uint32_t latency) {
+	switch(latency) {
+		case 1: return "Low Latency";
+		case 2: return "Balanced";
+		case 3: return "Maximum Throughput";
+	}
+	return "Unknown";
+}
+
 inline bool BeginSettingsTable(const char* id) {
 	if(!ImGui::BeginTable(
 		id,
@@ -68,7 +77,10 @@ inline void BeginPropertyRow(const char* label) {
 	ImGui::SetNextItemWidth(-FLT_MIN);
 }
 
-inline void DrawRenderingSettings(ConfigService& config) {
+inline void DrawRenderingSettings(
+	ConfigService& config,
+	GraphicsContext* graphics
+) {
 	ImGui::SeparatorText("Rendering");
 	if(!BeginSettingsTable("ProjectSettingsRendering")) return;
 
@@ -91,14 +103,62 @@ inline void DrawRenderingSettings(ConfigService& config) {
 		}
 		ImGui::EndCombo();
 	}
+
+	BeginPropertyRow("Maximum Frame Latency");
+	const uint32_t configuredLatency = (std::max)(
+		1u,
+		(std::min)(3u, config.engineConfig.graphics.maximumFrameLatency)
+	);
+	int selectedIndex = static_cast<int>(configuredLatency) - 1;
+	static constexpr const char* kFrameLatencyItems =
+		"1 - Low Latency\0"
+		"2 - Balanced\0"
+		"3 - Maximum Throughput\0";
+	if(ImGui::Combo("##MaximumFrameLatency", &selectedIndex, kFrameLatencyItems)) {
+		const uint32_t requestedLatency = static_cast<uint32_t>(selectedIndex + 1);
+		const uint32_t previousLatency = graphics
+			? graphics->GetMaximumFrameLatency()
+			: configuredLatency;
+
+		const bool applied = !graphics || graphics->SetMaximumFrameLatency(requestedLatency);
+		if(applied) {
+			config.engineConfig.graphics.maximumFrameLatency = requestedLatency;
+			config.appConfig.MaximumFrameLatency = static_cast<int>(requestedLatency);
+		} else {
+			config.engineConfig.graphics.maximumFrameLatency = previousLatency;
+			config.appConfig.MaximumFrameLatency = static_cast<int>(previousLatency);
+		}
+	}
+	if(ImGui::IsItemHovered()) {
+		ImGui::SetTooltip(
+			"1: Lowest input latency; may reduce maximum FPS.\n"
+			"2: Recommended balance between latency and throughput.\n"
+			"3: More CPU/GPU overlap; may increase latency."
+		);
+	}
+
+	if(graphics) {
+		const uint32_t appliedLatency = graphics->GetMaximumFrameLatency();
+		ImGui::TableNextRow();
+		ImGui::TableSetColumnIndex(0);
+		ImGui::TextDisabled("Applied Value");
+		ImGui::TableSetColumnIndex(1);
+		ImGui::TextDisabled(
+			"%u (%s)",
+			appliedLatency,
+			GetFrameLatencyLabel(appliedLatency)
+		);
+	}
+
 	ImGui::EndTable();
-	ImGui::TextDisabled("Rendering API changes are applied after restarting the application.");
+	ImGui::TextDisabled("Rendering API changes require restart. Frame latency changes are applied immediately.");
 }
 
 inline void DrawApplicationSettings(
 	ConfigService& config,
 	GraphicsContext* graphics
 ) {
+	(void)graphics;
 	APPCONFIG& app = config.appConfig;
 
 	ImGui::SeparatorText("Application");
@@ -119,20 +179,6 @@ inline void DrawApplicationSettings(
 	if(BeginSettingsTable("ProjectSettingsDisplay")) {
 		BeginPropertyRow("VSync");
 		ImGui::UndoCheckbox("##VSync", &app.Vsync);
-
-		BeginPropertyRow("Maximum Frame Latency");
-		int frameLatency = (std::max)(1, (std::min)(3, app.MaximumFrameLatency));
-		static constexpr const char* kFrameLatencyItems =
-			"1 - Lowest Latency\0"
-			"2 - Balanced\0"
-			"3 - Throughput\0";
-		if(ImGui::Combo("##MaximumFrameLatency", &frameLatency, kFrameLatencyItems)) {
-			app.MaximumFrameLatency = frameLatency;
-			if(graphics) {
-				graphics->SetMaximumFrameLatency(static_cast<UINT>(frameLatency));
-			}
-		}
-
 		BeginPropertyRow("Full Screen");
 		ImGui::UndoCheckbox("##FullScreen", &app.FullScreen);
 		BeginPropertyRow("Width");
@@ -141,7 +187,6 @@ inline void DrawApplicationSettings(
 		ImGui::UndoDragInt("##WindowHeight", &app.Height, 1.0f, 180, 4320);
 		ImGui::EndTable();
 	}
-	ImGui::TextDisabled("Frame latency changes are applied immediately and saved to ApplicationConfig.yaml.");
 
 	ImGui::SeparatorText("Audio");
 	if(BeginSettingsTable("ProjectSettingsAudio")) {
@@ -223,7 +268,7 @@ void SystemSetting::Draw(const EditorDrawContext ctx) {
 
 	if(ImGui::BeginTabBar("ProjectSettingsTabs")) {
 		if(ImGui::BeginTabItem("Application")) {
-			DrawRenderingSettings(*config);
+			DrawRenderingSettings(*config, sceneContext ? sceneContext->graphics : nullptr);
 			DrawApplicationSettings(*config, sceneContext ? sceneContext->graphics : nullptr);
 			ImGui::EndTabItem();
 		}
