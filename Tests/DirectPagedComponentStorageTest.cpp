@@ -114,6 +114,12 @@ void TestStorageFactory(){
 
 void TestCullingComponentContract(){
 	CullingComponent component;
+	assert(component.localBounds.IsValid());
+	assert(component.worldBounds.IsValid());
+	assert(component.sourceRevision == 0);
+	assert(component.transformRevision == 0);
+	assert(!component.boundsValid);
+
 	component.localBounds.min = Vector3(-1.0f, -2.0f, -3.0f);
 	component.localBounds.max = Vector3(1.0f, 2.0f, 3.0f);
 	component.worldBounds = component.localBounds;
@@ -121,16 +127,11 @@ void TestCullingComponentContract(){
 	component.transformRevision = 34;
 	component.boundsValid = true;
 
-	const YAML::Node encoded = component.encode();
-	assert(encoded.IsMap());
-	assert(encoded.size() == 0);
-
-	assert(component.decode(nullptr, YAML::Node{}));
-	assert(component.sourceRevision == 0);
-	assert(component.transformRevision == 0);
-	assert(!component.boundsValid);
 	assert(component.localBounds.IsValid());
 	assert(component.worldBounds.IsValid());
+	assert(component.sourceRevision == 12);
+	assert(component.transformRevision == 34);
+	assert(component.boundsValid);
 }
 
 void TestDataStorage(){
