@@ -7,6 +7,7 @@
 #include "Component/entityNameComponent.h"
 #include "Component/transformComponent.h"
 #include "Component/EntityStateComponents.h"
+#include "Component/CullingComponent.h"
 #include "Component/CameraComponent.h"
 #include "Component/modelRendererComponent.h"
 #include "Component/meshRendererComponent.h"
@@ -57,6 +58,8 @@ template<>
 struct ComponentStoragePreference<TransformComponent> {
 	static constexpr bool HasExplicitStrategy = true;
 	static constexpr ComponentStorageStrategy Strategy = ComponentStorageStrategy::DirectPaged;
+	static constexpr size_t ExpectedCount = 0;
+	static constexpr size_t PreallocatedPages = 0;
 };
 } // namespace ECSStorage
 
@@ -66,6 +69,7 @@ struct ComponentStoragePreference<TransformComponent> {
     X(DisabledComponent,COMPONENT_DIRECT_PAGED)\
     X(StaticEntityComponent,COMPONENT_DIRECT_PAGED)\
     X(HiddenComponent,COMPONENT_DIRECT_PAGED)\
+    X(CullingComponent,COMPONENT_DENSE)\
     X(CustomScriptComponent,COMPONENT_SPARSE)\
     X(ColliderComponent,COMPONENT_SPARSE)\
     X(AudioComponent,COMPONENT_SPARSE)\
