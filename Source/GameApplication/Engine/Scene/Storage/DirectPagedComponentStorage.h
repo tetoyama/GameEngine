@@ -77,15 +77,9 @@ public:
 	std::vector<Entity> GetEntityList() const override {
 		std::vector<Entity> entities;
 		entities.reserve(m_size);
-		for(const auto& pageOwner : m_pages){
-			if(!pageOwner) continue;
-			const Page& page = *pageOwner;
-			for(std::uint32_t index = 0; index < PageSize; ++index){
-				if(!page.occupied.test(index)) continue;
-				const Slot& slot = page.slots[index];
-				if(slot.occupied && slot.value) entities.push_back(slot.entity);
-			}
-		}
+		ForEachOccupied([&entities](Entity entity, const T&){
+			entities.push_back(entity);
+		});
 		return entities;
 	}
 
@@ -106,6 +100,38 @@ public:
 		if(m_pages.size() < pageCount) m_pages.resize(pageCount);
 		for(std::uint32_t index = 0; index < pageCount; ++index){
 			if(!m_pages[index]) m_pages[index] = std::make_unique<Page>();
+		}
+	}
+
+	// Page tableを順番に辿り、割当済みSlotだけを列挙する。
+	// TransformSystemなどの全件更新はAlive Entity全走査ではなく、このAPIを使用する。
+	template<typename Fn>
+	void ForEachOccupied(Fn&& function){
+		for(auto& pageOwner : m_pages){
+			if(!pageOwner) continue;
+			Page& page = *pageOwner;
+			for(std::uint32_t index = 0; index < PageSize; ++index){
+				if(!page.occupied.test(index)) continue;
+				Slot& slot = page.slots[index];
+				if(slot.occupied && slot.value){
+					function(slot.entity, slot.value.value());
+				}
+			}
+		}
+	}
+
+	template<typename Fn>
+	void ForEachOccupied(Fn&& function) const {
+		for(const auto& pageOwner : m_pages){
+			if(!pageOwner) continue;
+			const Page& page = *pageOwner;
+			for(std::uint32_t index = 0; index < PageSize; ++index){
+				if(!page.occupied.test(index)) continue;
+				const Slot& slot = page.slots[index];
+				if(slot.occupied && slot.value){
+					function(slot.entity, slot.value.value());
+				}
+			}
 		}
 	}
 
@@ -225,13 +251,7 @@ public:
 	std::vector<Entity> GetEntityList() const override {
 		std::vector<Entity> entities;
 		entities.reserve(m_size);
-		for(const auto& pageOwner : m_pages){
-			if(!pageOwner) continue;
-			const Page& page = *pageOwner;
-			for(std::uint32_t index = 0; index < PageSize; ++index){
-				if(page.occupied.test(index)) entities.push_back(page.entities[index]);
-			}
-		}
+		ForEachEntity([&entities](Entity entity){ entities.push_back(entity); });
 		return entities;
 	}
 
@@ -252,6 +272,17 @@ public:
 		if(m_pages.size() < pageCount) m_pages.resize(pageCount);
 		for(std::uint32_t index = 0; index < pageCount; ++index){
 			if(!m_pages[index]) m_pages[index] = std::make_unique<Page>();
+		}
+	}
+
+	template<typename Fn>
+	void ForEachEntity(Fn&& function) const {
+		for(const auto& pageOwner : m_pages){
+			if(!pageOwner) continue;
+			const Page& page = *pageOwner;
+			for(std::uint32_t index = 0; index < PageSize; ++index){
+				if(page.occupied.test(index)) function(page.entities[index]);
+			}
 		}
 	}
 
