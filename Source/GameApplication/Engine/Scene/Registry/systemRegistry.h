@@ -101,6 +101,7 @@ public:
 				m_tasks
 			);
 			m_systems[index]->RegisterTasks(builder);
+			m_systems[index]->MigrateRegisteredTasks(builder, m_tasks);
 		}
 
 #ifndef NDEBUG
