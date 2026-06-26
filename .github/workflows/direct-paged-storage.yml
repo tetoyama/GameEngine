@@ -55,6 +55,7 @@ jobs:
           /I Source/GameApplication/Backends
           /I Source/GameApplication/Engine
           /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
           Tests/DirectPagedComponentStorageTest.cpp
           /Fe:direct-paged-storage-test.exe
           > direct-paged-storage.log 2>&1
@@ -79,6 +80,7 @@ jobs:
           /I Source/GameApplication/Backends
           /I Source/GameApplication/Engine
           /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
           Tests/SceneStorageConfigSmokeTest.cpp
           /Fe:scene-storage-config-test.exe
           && scene-storage-config-test.exe
@@ -92,6 +94,7 @@ jobs:
           /I Source/GameApplication/Backends
           /I Source/GameApplication/Engine
           /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
           Tests/SceneStorageRuntimeSmokeTest.cpp
           /Fe:scene-storage-runtime-test.exe
           && scene-storage-runtime-test.exe
