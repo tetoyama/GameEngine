@@ -24,11 +24,21 @@ struct StaticBatchCandidate {
 	std::uint64_t stableSequence = 0;
 };
 
+struct StaticBatchCandidateGroup {
+	StaticBatchCandidateKey key{};
+	std::uint32_t sceneContextID = 0;
+	size_t firstCandidate = 0;
+	size_t candidateCount = 0;
+};
+
 struct StaticBatchCandidateStorageTelemetry {
 	size_t currentSize = 0;
 	size_t peakSize = 0;
 	size_t capacity = 0;
 	size_t growthEventCount = 0;
+	size_t currentGroupCount = 0;
+	size_t peakGroupCount = 0;
+	size_t groupCapacity = 0;
 	bool overflowed = false;
 };
 
@@ -36,16 +46,21 @@ class StaticBatchCandidateStorage {
 public:
 	void BeginFrame(){
 		m_candidates.clear();
+		m_groups.clear();
 		m_overflowed = false;
 	}
 
 	void Reset() noexcept {
 		m_candidates.clear();
+		m_groups.clear();
 		m_overflowed = false;
 	}
 
 	// Explicit scene configuration is not a runtime growth event.
-	void Reserve(size_t count){ m_candidates.reserve(count); }
+	void Reserve(size_t count){
+		m_candidates.reserve(count);
+		m_groups.reserve(count);
+	}
 
 	void SetRuntimeGrowthAllowed(bool allowed) noexcept {
 		m_allowRuntimeGrowth = allowed;
@@ -58,6 +73,7 @@ public:
 			// A partial candidate list must never be consumed as a complete batch set.
 			// Clearing it safely falls back to the ordinary RenderPacket path.
 			m_candidates.clear();
+			m_groups.clear();
 			m_overflowed = true;
 			++m_growthEventCount;
 			return false;
@@ -73,7 +89,9 @@ public:
 	}
 
 	void Sort(){
+		m_groups.clear();
 		if(m_overflowed) return;
+
 		std::stable_sort(
 			m_candidates.begin(),
 			m_candidates.end(),
@@ -95,15 +113,24 @@ public:
 				return lhs.stableSequence < rhs.stableSequence;
 			}
 		);
+
+		BuildGroups();
 	}
 
 	std::span<const StaticBatchCandidate> Candidates() const noexcept {
 		return m_candidates;
 	}
 
+	std::span<const StaticBatchCandidateGroup> Groups() const noexcept {
+		return m_groups;
+	}
+
 	size_t Size() const noexcept { return m_candidates.size(); }
 	size_t Capacity() const noexcept { return m_candidates.capacity(); }
 	size_t PeakSize() const noexcept { return m_peakSize; }
+	size_t GroupCount() const noexcept { return m_groups.size(); }
+	size_t GroupCapacity() const noexcept { return m_groups.capacity(); }
+	size_t PeakGroupCount() const noexcept { return m_peakGroupCount; }
 	size_t GrowthEventCount() const noexcept { return m_growthEventCount; }
 	bool IsOverflowed() const noexcept { return m_overflowed; }
 
@@ -113,18 +140,50 @@ public:
 			m_peakSize,
 			m_candidates.capacity(),
 			m_growthEventCount,
+			m_groups.size(),
+			m_peakGroupCount,
+			m_groups.capacity(),
 			m_overflowed
 		};
 	}
 
 	void ResetPeakMetrics() noexcept {
 		m_peakSize = m_candidates.size();
+		m_peakGroupCount = m_groups.size();
 		m_growthEventCount = 0;
 	}
 
 private:
+	void BuildGroups(){
+		size_t first = 0;
+		while(first < m_candidates.size()){
+			const StaticBatchCandidate& head = m_candidates[first];
+			size_t end = first + 1;
+			while(end < m_candidates.size() &&
+				m_candidates[end].key == head.key &&
+				m_candidates[end].sceneContextID == head.sceneContextID){
+				++end;
+			}
+
+			const size_t capacityBefore = m_groups.capacity();
+			m_groups.push_back({
+				head.key,
+				head.sceneContextID,
+				first,
+				end - first
+			});
+			if(m_groups.capacity() > capacityBefore){
+				++m_growthEventCount;
+			}
+			first = end;
+		}
+		m_peakGroupCount = (std::max)(m_peakGroupCount, m_groups.size());
+	}
+
 	std::vector<StaticBatchCandidate> m_candidates;
+	std::vector<StaticBatchCandidateGroup> m_groups;
 	size_t m_peakSize = 0;
+	size_t m_peakGroupCount = 0;
 	size_t m_growthEventCount = 0;
 	bool m_allowRuntimeGrowth = true;
 	bool m_overflowed = false;
