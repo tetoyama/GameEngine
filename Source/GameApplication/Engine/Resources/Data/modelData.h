@@ -19,33 +19,29 @@
 class GraphicsContext;
 struct aiScene;
 
-// GPUスキニング用の入力頂点構造体
 struct SKINNING_INPUT_VERTEX {
 	DirectX::XMFLOAT3 Position;
 	DirectX::XMFLOAT3 Normal;
 	DirectX::XMFLOAT2 TexCoord;
 	uint32_t BoneIndex[4];
-	float    BoneWeight[4];
-	DirectX::XMFLOAT4 Diffuse; // 追加
+	float BoneWeight[4];
+	DirectX::XMFLOAT4 Diffuse;
 };
 
-//変形後頂点構造体
 struct DEFORM_VERTEX {
-	aiVector3D		Position;
-	aiVector3D		Normal;
-	uint32_t		BoneIndex[4];
-	float			BoneWeight[4];
+	aiVector3D Position;
+	aiVector3D Normal;
+	uint32_t BoneIndex[4];
+	float BoneWeight[4];
 };
 
-//ボーン構造体
 struct BONE {
 	aiMatrix4x4 Matrix;
 	aiMatrix4x4 AnimationMatrix;
 	aiMatrix4x4 OffsetMatrix;
-	aiMatrix4x4 WorldMatrix;  // ボーンのワールド変換行列（OffsetMatrixを乗算する前）
+	aiMatrix4x4 WorldMatrix;
 };
 
-// アニメーションブレンド情報を保持する構造体
 struct AnimationBlend {
 	std::string name;
 	float weight = 0.0f;
@@ -53,16 +49,14 @@ struct AnimationBlend {
 	bool isLoop = true;
 };
 
-// アニメーションリソースを保持する構造体
 struct AnimationData {
 	std::string FilePath;
 	const aiScene* Scene = nullptr;
 	aiAnimation* Animation = nullptr;
 	bool isImported = true;
 
-
-	void Release() {
-		if (isImported && Scene) {
+	void Release(){
+		if(isImported && Scene){
 			aiReleaseImport(Scene);
 			Scene = nullptr;
 			Animation = nullptr;
@@ -70,7 +64,6 @@ struct AnimationData {
 	}
 };
 
-// 3Dモデルのリソースデータを保持する構造体
 struct ModelData {
 public:
 	ModelData(){
@@ -84,77 +77,63 @@ public:
 
 	void Release();
 
-	// ----------------------------
-	// basic model info
-	// ----------------------------
 	std::string FilePath = "";
 	bool isBlender = false;
 	bool SetTexture = false;
-
 	const aiScene* AiScene = nullptr;
 
-	// ----------------------------
-	// classic rendering buffers
-	// ----------------------------
 	std::vector<ID3D11Buffer*> VertexBuffer;
 	std::vector<ID3D11Buffer*> IndexBuffer;
-
 	std::unordered_map<std::string, ID3D11ShaderResourceView*> m_Texture;
 
-	// ----------------------------
-	// skeleton
-	// ----------------------------
 	std::vector<BONE> m_Bones;
 	std::unordered_map<std::string, uint32_t> m_BoneIndexMap;
-
 	bool enableRootMotion = false;
 
-	// ----------------------------
-	// animation
-	// ----------------------------
 	std::unordered_map<std::string, AnimationData> m_Animation;
-
-	// per mesh deform data (CPU or upload source)
 	std::vector<DEFORM_VERTEX>* m_DeformVertex = nullptr;
 
-	// ============================================================
-	// GPU skinning resources (per mesh)
-	// ============================================================
-
-	// Input structured buffer (static)
-	std::vector<ID3D11Buffer*>              m_SkinInputBuffer;
-	std::vector<ID3D11ShaderResourceView*>  m_SkinInputSRV;
-
-	// Output structured buffer (CS write only)
-	std::vector<ID3D11Buffer*>              m_SkinOutputUAVBuffer;
+	std::vector<ID3D11Buffer*> m_SkinInputBuffer;
+	std::vector<ID3D11ShaderResourceView*> m_SkinInputSRV;
+	std::vector<ID3D11Buffer*> m_SkinOutputUAVBuffer;
 	std::vector<ID3D11UnorderedAccessView*> m_SkinOutputUAV;
+	std::vector<ID3D11Buffer*> m_SkinOutputVB;
 
-	// Output vertex buffer (Draw only)
-	std::vector<ID3D11Buffer*>             m_SkinOutputVB;
-
-	// ============================================================
-	// constant buffers (shared)
-	// ============================================================
-
-	// bone matrices (MAX_BONES * float4x4)
 	ID3D11Buffer* m_BoneCB = nullptr;
-
-	// optional info CB (vertex count etc.)
 	ID3D11Buffer* m_InfoCB = nullptr;
 
-	// ============================================================
-	// helpers
-	// ============================================================
-
 	void CreateSkinningBuffers(GraphicsContext* ctx);
-	void UpdateAndDispatchSkinning(GraphicsContext* ctx, std::vector<ID3D11Buffer*>& dynamicVertexBuffers);
+	void UpdateAndDispatchSkinning(
+		GraphicsContext* ctx,
+		std::vector<ID3D11Buffer*>& dynamicVertexBuffers
+	);
 
-	// skeleton helpers
 	void CreateBone(aiNode* Node);
 	void UpdateBoneMatrix(aiNode* Node, aiMatrix4x4 Parent);
 
-	// animation
 	void LoadAnimation(const char* FileName, const char* Name);
+
+	bool HasImportedAnimationSource(const std::string& filePath) const {
+		for(const auto& [name, animation] : m_Animation){
+			(void)name;
+			if(animation.isImported && animation.FilePath == filePath){
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// 共有ModelDataへ同じSource Pathを重複Importしない公開入口。
+	void LoadAnimationSource(const char* fileName, const char* name){
+		if(!fileName || !name || fileName[0] == '\0' || name[0] == '\0'){
+			return;
+		}
+		if(HasImportedAnimationSource(fileName)){
+			return;
+		}
+		LoadAnimation(fileName, name);
+	}
+
 	void RemoveAnimation(const std::string& name){
 		auto it = m_Animation.find(name);
 		if(it != m_Animation.end()){
@@ -168,11 +147,9 @@ public:
 		float frame
 	);
 
-	// CPU fallback (debug / compare)
 	void CPU_Skinning(
 		const std::vector<DEFORM_VERTEX>& deformVertices,
 		const aiMesh* mesh,
 		VERTEX_3D* outVertex
 	) const;
-
 };
