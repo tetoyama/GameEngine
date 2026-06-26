@@ -190,5 +190,5 @@ inline void RenderSystem::MigrateRegisteredTasks(
 	);
 	if(legacyIterator == tasks.end()) return;
 	tasks.erase(legacyIterator);
-	RenderSystemAnimationTaskRegistrar::Register(*this, builder, 0.0f);
+	RenderSystemAnimationTaskRegistrar::Register(*this, builder);
 }
