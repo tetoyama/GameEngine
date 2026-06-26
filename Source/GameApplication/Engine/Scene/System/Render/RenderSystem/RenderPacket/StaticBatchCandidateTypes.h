@@ -12,8 +12,15 @@ struct StaticBatchCandidateKey {
 	RenderPacketKind kind = RenderPacketKind::Model;
 	RenderLayer layer = RenderLayer::Opaque3D;
 	std::uint32_t materialKey = 0;
+	std::uint64_t pipelineKey = 0;
+	std::uint64_t geometryKey = 0;
+	std::uint64_t textureSetKey = 0;
 
 	constexpr bool operator==(const StaticBatchCandidateKey&) const noexcept = default;
+
+	bool IsCacheReady() const noexcept {
+		return pipelineKey != 0 && geometryKey != 0 && textureSetKey != 0;
+	}
 };
 
 struct StaticBatchCandidate {
@@ -29,6 +36,7 @@ struct StaticBatchCandidateGroup {
 	std::uint32_t sceneContextID = 0;
 	size_t firstCandidate = 0;
 	size_t candidateCount = 0;
+	bool cacheReady = false;
 };
 
 struct StaticBatchCandidateStorageTelemetry {
@@ -39,6 +47,8 @@ struct StaticBatchCandidateStorageTelemetry {
 	size_t currentGroupCount = 0;
 	size_t peakGroupCount = 0;
 	size_t groupCapacity = 0;
+	size_t currentCacheReadyGroupCount = 0;
+	size_t peakCacheReadyGroupCount = 0;
 	bool overflowed = false;
 };
 
@@ -47,12 +57,14 @@ public:
 	void BeginFrame(){
 		m_candidates.clear();
 		m_groups.clear();
+		m_cacheReadyGroupCount = 0;
 		m_overflowed = false;
 	}
 
 	void Reset() noexcept {
 		m_candidates.clear();
 		m_groups.clear();
+		m_cacheReadyGroupCount = 0;
 		m_overflowed = false;
 	}
 
@@ -74,6 +86,7 @@ public:
 			// Clearing it safely falls back to the ordinary RenderPacket path.
 			m_candidates.clear();
 			m_groups.clear();
+			m_cacheReadyGroupCount = 0;
 			m_overflowed = true;
 			++m_growthEventCount;
 			return false;
@@ -90,6 +103,7 @@ public:
 
 	void Sort(){
 		m_groups.clear();
+		m_cacheReadyGroupCount = 0;
 		if(m_overflowed) return;
 
 		std::stable_sort(
@@ -106,6 +120,15 @@ public:
 				}
 				if(lhs.key.materialKey != rhs.key.materialKey){
 					return lhs.key.materialKey < rhs.key.materialKey;
+				}
+				if(lhs.key.pipelineKey != rhs.key.pipelineKey){
+					return lhs.key.pipelineKey < rhs.key.pipelineKey;
+				}
+				if(lhs.key.geometryKey != rhs.key.geometryKey){
+					return lhs.key.geometryKey < rhs.key.geometryKey;
+				}
+				if(lhs.key.textureSetKey != rhs.key.textureSetKey){
+					return lhs.key.textureSetKey < rhs.key.textureSetKey;
 				}
 				if(lhs.sceneContextID != rhs.sceneContextID){
 					return lhs.sceneContextID < rhs.sceneContextID;
@@ -131,6 +154,10 @@ public:
 	size_t GroupCount() const noexcept { return m_groups.size(); }
 	size_t GroupCapacity() const noexcept { return m_groups.capacity(); }
 	size_t PeakGroupCount() const noexcept { return m_peakGroupCount; }
+	size_t CacheReadyGroupCount() const noexcept { return m_cacheReadyGroupCount; }
+	size_t PeakCacheReadyGroupCount() const noexcept {
+		return m_peakCacheReadyGroupCount;
+	}
 	size_t GrowthEventCount() const noexcept { return m_growthEventCount; }
 	bool IsOverflowed() const noexcept { return m_overflowed; }
 
@@ -143,6 +170,8 @@ public:
 			m_groups.size(),
 			m_peakGroupCount,
 			m_groups.capacity(),
+			m_cacheReadyGroupCount,
+			m_peakCacheReadyGroupCount,
 			m_overflowed
 		};
 	}
@@ -150,6 +179,7 @@ public:
 	void ResetPeakMetrics() noexcept {
 		m_peakSize = m_candidates.size();
 		m_peakGroupCount = m_groups.size();
+		m_peakCacheReadyGroupCount = m_cacheReadyGroupCount;
 		m_growthEventCount = 0;
 	}
 
@@ -165,25 +195,34 @@ private:
 				++end;
 			}
 
+			const bool cacheReady = head.key.IsCacheReady();
 			const size_t capacityBefore = m_groups.capacity();
 			m_groups.push_back({
 				head.key,
 				head.sceneContextID,
 				first,
-				end - first
+				end - first,
+				cacheReady
 			});
 			if(m_groups.capacity() > capacityBefore){
 				++m_growthEventCount;
 			}
+			if(cacheReady) ++m_cacheReadyGroupCount;
 			first = end;
 		}
 		m_peakGroupCount = (std::max)(m_peakGroupCount, m_groups.size());
+		m_peakCacheReadyGroupCount = (std::max)(
+			m_peakCacheReadyGroupCount,
+			m_cacheReadyGroupCount
+		);
 	}
 
 	std::vector<StaticBatchCandidate> m_candidates;
 	std::vector<StaticBatchCandidateGroup> m_groups;
 	size_t m_peakSize = 0;
 	size_t m_peakGroupCount = 0;
+	size_t m_cacheReadyGroupCount = 0;
+	size_t m_peakCacheReadyGroupCount = 0;
 	size_t m_growthEventCount = 0;
 	bool m_allowRuntimeGrowth = true;
 	bool m_overflowed = false;
