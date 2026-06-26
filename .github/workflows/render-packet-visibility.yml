@@ -47,6 +47,7 @@ jobs:
           Tests/RenderPacketBufferSmokeTest.cpp
           Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp
           /Fe:render-packet-visibility-test.exe
+          /link /NODEFAULTLIB:yaml-cppd.lib
           > render-packet-visibility.log 2>&1
           && render-packet-visibility-test.exe >> render-packet-visibility.log 2>&1
       - name: Upload render packet diagnostics
