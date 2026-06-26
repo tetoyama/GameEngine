@@ -21,6 +21,7 @@ inline void Build(
 	output.BeginFrame();
 
 	size_t configuredReserve = 0;
+	bool allowRuntimeGrowth = true;
 	std::vector<SceneContext*> reservedScenes;
 	for(const RenderPacket& packet : packets.Packets()){
 		SceneContext* context = packet.bindings.sceneContext;
@@ -31,9 +32,13 @@ inline void Build(
 			configuredReserve += static_cast<size_t>(
 				context->storageConfig.staticBatchReserve
 			);
+			allowRuntimeGrowth =
+				allowRuntimeGrowth &&
+				context->storageConfig.allowRuntimeGrowth;
 		}
 	}
 	output.Reserve(configuredReserve);
+	output.SetRuntimeGrowthAllowed(allowRuntimeGrowth);
 
 	for(size_t packetIndex = 0; packetIndex < packets.Packets().size(); ++packetIndex){
 		const RenderPacket& packet = packets.Packets()[packetIndex];
@@ -44,13 +49,15 @@ inline void Build(
 			continue;
 		}
 
-		output.Add({
+		if(!output.Add({
 			{packet.kind, packet.layer, packet.materialKey},
 			packet.sceneContextID,
 			packet.entity,
 			packetIndex,
 			packet.stableSequence
-		});
+		})){
+			break;
+		}
 	}
 	output.Sort();
 }
