@@ -6,6 +6,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -16,6 +17,7 @@
 #include "Scene/Component/terrainComponent.h"
 #include "Scene/Registry/componentRegistry.h"
 #include "MeshCullingBoundsProvider.h"
+#include "ModelCullingBoundsProvider.h"
 
 namespace TerrainCullingBoundsProvider {
 
@@ -37,6 +39,9 @@ inline bool TryBuildLocalBounds(
 		auto begin = terrain.HeightMap.begin();
 		auto end = begin + static_cast<std::ptrdiff_t>(expectedVertexCount);
 		const auto [minimum, maximum] = std::minmax_element(begin, end);
+		if(!std::isfinite(*minimum) || !std::isfinite(*maximum)){
+			return false;
+		}
 		minimumHeight = *minimum;
 		maximumHeight = *maximum;
 	}
@@ -44,6 +49,13 @@ inline bool TryBuildLocalBounds(
 	outBounds.min = Vector3(-0.5f, minimumHeight, -0.5f);
 	outBounds.max = Vector3(0.5f, maximumHeight, 0.5f);
 	return true;
+}
+
+inline bool CanSupplyLocalBounds(
+	const TerrainComponent& terrain
+) noexcept {
+	EntityAABB ignored;
+	return TryBuildLocalBounds(terrain, ignored);
 }
 
 inline std::uint64_t MakeSourceRevision(
@@ -74,7 +86,6 @@ struct UpdateResult {
 	size_t skippedHigherPrioritySource = 0;
 };
 
-// Bounds source priority: Model > valid Mesh > Terrain.
 inline UpdateResult UpdateScene(ComponentRegistry& components){
 	UpdateResult result;
 	const auto entities =
@@ -86,9 +97,12 @@ inline UpdateResult UpdateScene(ComponentRegistry& components){
 		if(!terrain) continue;
 
 		++result.visited;
-		if(components.GetComponent<ModelRendererComponent>(entity)){
-			++result.skippedHigherPrioritySource;
-			continue;
+		if(ModelRendererComponent* model =
+			components.GetComponent<ModelRendererComponent>(entity)){
+			if(ModelCullingBoundsProvider::CanSupplyLocalBounds(*model)){
+				++result.skippedHigherPrioritySource;
+				continue;
+			}
 		}
 
 		if(MeshRendererComponent* mesh =
@@ -107,9 +121,6 @@ inline UpdateResult UpdateScene(ComponentRegistry& components){
 			continue;
 		}
 
-		const std::uint64_t revision = MakeSourceRevision(*terrain);
-		if(culling->sourceRevision == revision) continue;
-
 		EntityAABB localBounds;
 		if(!TryBuildLocalBounds(*terrain, localBounds)){
 			culling->sourceRevision = 0;
@@ -118,6 +129,8 @@ inline UpdateResult UpdateScene(ComponentRegistry& components){
 			continue;
 		}
 
+		const std::uint64_t revision = MakeSourceRevision(*terrain);
+		if(culling->sourceRevision == revision) continue;
 		culling->localBounds = localBounds;
 		culling->sourceRevision = revision;
 		culling->boundsValid = false;
