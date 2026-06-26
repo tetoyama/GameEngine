@@ -7,8 +7,6 @@
 #include <d3d11.h>
 #include "../IRenderable.h"
 
-class ComponentRegistry;
-
 struct RenderPassContext;
 struct SceneManagerContext;
 
