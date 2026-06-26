@@ -4,9 +4,40 @@
 
 #include "Engine/Scene/System/Render/Animation/AnimationPoseEvaluator.h"
 
-// このTestは手作りの非Import Fixtureだけを使い、modelData.cppをリンクしない。
-// GPU / Assimp所有物を持たないため、Release契約は空実装で十分。
+// このTestは手作りの非Import Fixtureだけを使い、modelData.cppとAssimp Libraryを
+// リンクしない。Fixtureに必要な初期化契約だけをこのTranslation Unitで定義する。
 void ModelData::Release(){}
+
+aiNode::aiNode()
+	: mName(),
+	  mTransformation(),
+	  mParent(nullptr),
+	  mNumChildren(0),
+	  mChildren(nullptr),
+	  mNumMeshes(0),
+	  mMeshes(nullptr),
+	  mMetaData(nullptr){}
+
+aiScene::aiScene()
+	: mFlags(0),
+	  mRootNode(nullptr),
+	  mNumMeshes(0),
+	  mMeshes(nullptr),
+	  mNumMaterials(0),
+	  mMaterials(nullptr),
+	  mNumAnimations(0),
+	  mAnimations(nullptr),
+	  mNumTextures(0),
+	  mTextures(nullptr),
+	  mNumLights(0),
+	  mLights(nullptr),
+	  mNumCameras(0),
+	  mCameras(nullptr),
+	  mMetaData(nullptr),
+	  mName(),
+	  mNumSkeletons(0),
+	  mSkeletons(nullptr),
+	  mPrivate(nullptr){}
 
 namespace {
 
