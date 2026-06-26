@@ -5,6 +5,8 @@
 // =======================================================================
 #pragma once
 
+#include <string>
+
 #include "SceneStorageConfig.h"
 
 namespace SceneStorageYaml {
