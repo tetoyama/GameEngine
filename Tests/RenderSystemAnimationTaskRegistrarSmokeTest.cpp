@@ -29,7 +29,7 @@ int main(){
 	std::vector<SystemTask> tasks;
 	SystemScheduleBuilder builder(&system, 4, tasks);
 
-	RenderSystemAnimationTaskRegistrar::Register(system, builder, 0.25f);
+	RenderSystemAnimationTaskRegistrar::Register(system, builder);
 	assert(tasks.size() == 2);
 
 	const SystemTask& pose = tasks[0];
