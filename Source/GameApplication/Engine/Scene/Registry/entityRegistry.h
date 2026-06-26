@@ -12,11 +12,14 @@
 #include <vector>
 
 #include "Entity/Entity.h"
+#include "Config/SceneStorageConfig.h"
 
 // Entityの生成・破棄・世代・生存状態を管理するレジストリ。
 class EntityRegistry {
 public:
-	EntityRegistry() = default;
+	EntityRegistry(){
+		Reserve(SceneStorageConfig::DefaultExpectedEntityCount);
+	}
 	~EntityRegistry() = default;
 
 	void Reserve(size_t expectedEntityCount){
