@@ -12,18 +12,34 @@
 
 #include "Scene/Entity/Entity.h"
 
+enum class CullingViewKind : std::uint8_t {
+	Custom,
+	Editor,
+	Player,
+	Shadow
+};
+
 struct CullingViewKey {
 	std::uint32_t sceneContextID = 0;
 	Entity camera{};
+	CullingViewKind kind = CullingViewKind::Custom;
+	std::uint32_t instanceID = 0;
 
 	constexpr bool operator==(const CullingViewKey&) const noexcept = default;
 };
 
 struct CullingViewKeyHash {
 	size_t operator()(const CullingViewKey& key) const noexcept {
-		const size_t sceneHash = std::hash<std::uint32_t>{}(key.sceneContextID);
-		const size_t cameraHash = std::hash<Entity>{}(key.camera);
-		return sceneHash ^ (cameraHash + 0x9e3779b9u + (sceneHash << 6) + (sceneHash >> 2));
+		size_t hash = std::hash<std::uint32_t>{}(key.sceneContextID);
+		const auto combine = [&hash](size_t value){
+			hash ^= value + 0x9e3779b9u + (hash << 6) + (hash >> 2);
+		};
+		combine(std::hash<Entity>{}(key.camera));
+		combine(std::hash<std::uint8_t>{}(
+			static_cast<std::uint8_t>(key.kind)
+		));
+		combine(std::hash<std::uint32_t>{}(key.instanceID));
+		return hash;
 	}
 };
 
