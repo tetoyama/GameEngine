@@ -97,4 +97,5 @@ jobs:
           /I Source/GameApplication/Service
           Tests/SceneStorageRuntimeSmokeTest.cpp
           /Fe:scene-storage-runtime-test.exe
+          /link /NODEFAULTLIB:yaml-cppd.lib
           && scene-storage-runtime-test.exe
