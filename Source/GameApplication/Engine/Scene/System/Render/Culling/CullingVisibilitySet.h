@@ -52,39 +52,68 @@ public:
 		if(m_activationEpoch == 0) ++m_activationEpoch;
 	}
 
-	void BeginView(CullingViewKey view){
+	void BeginView(
+		CullingViewKey view,
+		bool allowRuntimeGrowth = true
+	){
 		ViewEntry& entry = m_views[view];
 		entry.entities.clear();
 		entry.activationEpoch = m_activationEpoch;
+		entry.allowRuntimeGrowth = allowRuntimeGrowth;
+		entry.overflowed = false;
 	}
 
-	void SetVisible(CullingViewKey view, Entity entity){
+	bool SetVisible(CullingViewKey view, Entity entity){
 		ViewEntry& entry = m_views[view];
 		if(entry.activationEpoch != m_activationEpoch){
 			entry.entities.clear();
 			entry.activationEpoch = m_activationEpoch;
+			entry.allowRuntimeGrowth = true;
+			entry.overflowed = false;
+		}
+		if(entry.overflowed) return false;
+		if(entry.entities.contains(entity)) return true;
+
+		if(!entry.allowRuntimeGrowth && RequiresGrowth(entry.entities)){
+			entry.entities.clear();
+			entry.overflowed = true;
+			++entry.growthEventCount;
+			return false;
 		}
 
 		const size_t bucketsBefore = entry.entities.bucket_count();
 		const auto [iterator, inserted] = entry.entities.insert(entity);
 		(void)iterator;
-		if(!inserted) return;
+		if(!inserted) return true;
 
-		entry.peakVisibleCount = (std::max)(entry.peakVisibleCount, entry.entities.size());
-		if(entry.entities.bucket_count() > bucketsBefore) ++entry.growthEventCount;
+		entry.peakVisibleCount =
+			(std::max)(entry.peakVisibleCount, entry.entities.size());
+		if(entry.entities.bucket_count() > bucketsBefore){
+			++entry.growthEventCount;
+		}
+		return true;
 	}
 
 	bool HasView(CullingViewKey view) const {
 		auto iterator = m_views.find(view);
 		return iterator != m_views.end() &&
-			iterator->second.activationEpoch == m_activationEpoch;
+			iterator->second.activationEpoch == m_activationEpoch &&
+			!iterator->second.overflowed;
 	}
 
 	bool IsVisible(CullingViewKey view, Entity entity) const {
 		auto iterator = m_views.find(view);
 		return iterator != m_views.end() &&
 			iterator->second.activationEpoch == m_activationEpoch &&
+			!iterator->second.overflowed &&
 			iterator->second.entities.contains(entity);
+	}
+
+	bool IsViewOverflowed(CullingViewKey view) const noexcept {
+		auto iterator = m_views.find(view);
+		return iterator != m_views.end() &&
+			iterator->second.activationEpoch == m_activationEpoch &&
+			iterator->second.overflowed;
 	}
 
 	void ClearView(CullingViewKey view){
@@ -96,6 +125,7 @@ public:
 		if(entry.activationEpoch != m_activationEpoch){
 			entry.entities.clear();
 			entry.activationEpoch = m_activationEpoch;
+			entry.overflowed = false;
 		}
 		entry.entities.reserve(expectedVisibleCount);
 	}
@@ -103,7 +133,8 @@ public:
 	size_t VisibleCount(CullingViewKey view) const noexcept {
 		auto iterator = m_views.find(view);
 		return iterator != m_views.end() &&
-			iterator->second.activationEpoch == m_activationEpoch
+			iterator->second.activationEpoch == m_activationEpoch &&
+			!iterator->second.overflowed
 			? iterator->second.entities.size()
 			: 0;
 	}
@@ -112,7 +143,8 @@ public:
 		size_t count = 0;
 		for(const auto& [key, entry] : m_views){
 			if(key.sceneContextID != sceneContextID ||
-				entry.activationEpoch != m_activationEpoch){
+				entry.activationEpoch != m_activationEpoch ||
+				entry.overflowed){
 				continue;
 			}
 			count = (std::max)(count, entry.entities.size());
@@ -132,7 +164,9 @@ public:
 	size_t GrowthEventCount(std::uint32_t sceneContextID) const noexcept {
 		size_t count = 0;
 		for(const auto& [key, entry] : m_views){
-			if(key.sceneContextID == sceneContextID) count += entry.growthEventCount;
+			if(key.sceneContextID == sceneContextID){
+				count += entry.growthEventCount;
+			}
 		}
 		return count;
 	}
@@ -141,7 +175,8 @@ public:
 		for(const auto& [key, entry] : m_views){
 			if(key.sceneContextID != sceneContextID) continue;
 			entry.growthEventCount = 0;
-			entry.peakVisibleCount = entry.activationEpoch == m_activationEpoch
+			entry.peakVisibleCount =
+				entry.activationEpoch == m_activationEpoch && !entry.overflowed
 				? entry.entities.size()
 				: 0;
 		}
@@ -151,7 +186,9 @@ public:
 		size_t count = 0;
 		for(const auto& [key, entry] : m_views){
 			(void)key;
-			if(entry.activationEpoch == m_activationEpoch) ++count;
+			if(entry.activationEpoch == m_activationEpoch && !entry.overflowed){
+				++count;
+			}
 		}
 		return count;
 	}
@@ -159,9 +196,19 @@ public:
 	std::uint64_t FrameSerial() const noexcept { return m_frameSerial; }
 
 private:
+	static bool RequiresGrowth(const VisibleEntitySet& entities) noexcept {
+		const float nextSize = static_cast<float>(entities.size() + 1);
+		const float threshold =
+			static_cast<float>(entities.bucket_count()) *
+			entities.max_load_factor();
+		return nextSize > threshold;
+	}
+
 	struct ViewEntry {
 		VisibleEntitySet entities;
 		std::uint64_t activationEpoch = 0;
+		bool allowRuntimeGrowth = true;
+		bool overflowed = false;
 		mutable size_t peakVisibleCount = 0;
 		mutable size_t growthEventCount = 0;
 	};
