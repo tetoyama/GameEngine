@@ -66,11 +66,8 @@ public:
 		size_t requiredEntryCount = 0;
 		size_t requiredInstanceCount = 0;
 		for(const StaticBatchCandidateGroup& group : candidates.Groups()){
-			if(!group.cacheReady){
-				++m_skippedIncompleteGroupCount;
-				continue;
-			}
-			if(!IsGroupRangeValid(group, candidates.Candidates(), packets)){
+			if(!group.cacheReady ||
+				!IsGroupRangeValid(group, candidates.Candidates(), packets)){
 				++m_skippedIncompleteGroupCount;
 				continue;
 			}
@@ -78,10 +75,7 @@ public:
 			requiredInstanceCount += group.candidateCount;
 		}
 
-		const std::uint64_t revision = ComputeSourceRevision(
-			candidates,
-			packets
-		);
+		const std::uint64_t revision = ComputeSourceRevision(candidates, packets);
 		if(m_valid && !m_overflowed && revision == m_sourceRevision){
 			m_generation = generation;
 			return true;
@@ -230,6 +224,7 @@ private:
 			HashValue(hash, group.key.pipelineKey);
 			HashValue(hash, group.key.geometryKey);
 			HashValue(hash, group.key.textureSetKey);
+			HashValue(hash, group.key.materialStateKey);
 			HashValue(hash, group.candidateCount);
 
 			for(size_t offset = 0; offset < group.candidateCount; ++offset){
@@ -246,13 +241,15 @@ private:
 	}
 
 	void InvalidateForOverflow() noexcept {
+		const bool enteringOverflow = !m_overflowed;
 		m_entries.clear();
 		m_entities.clear();
 		m_transforms.clear();
 		m_sourceRevision = 0;
+		m_generation = 0;
 		m_valid = false;
 		m_overflowed = true;
-		++m_overflowEventCount;
+		if(enteringOverflow) ++m_overflowEventCount;
 	}
 
 	std::vector<StaticBatchPacketCacheEntry> m_entries;
