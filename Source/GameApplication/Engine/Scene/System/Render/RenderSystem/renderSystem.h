@@ -20,6 +20,8 @@
 #include "Scene/Entity/Entity.h"
 #include "System/Render/RenderSystem/renderLayer.h"
 #include "System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
+#include "System/Render/RenderSystem/RenderPass/RenderPassContext.h"
+#include "System/Render/Culling/RenderPacketViewCulling.h"
 
 struct SceneManagerContext;
 struct PixelShaderData;
@@ -95,6 +97,7 @@ public:
 	// SceneのTempLoad / Shutdown前に公開済みPacketを必ず無効化する。
 	void Stop() override {
 		m_renderPacketBuffer.Reset();
+		m_cullingVisibility.BeginFrame(0);
 		m_lastSubmittedPacketGeneration = 0;
 	}
 
@@ -164,6 +167,39 @@ public:
 		return m_renderPacketBuffer;
 	}
 
+	void PrepareRenderPacketView(const RenderPassContext& context){
+		RenderPacketCullingView view;
+		view.camera = context.cameraData.ref.GetEntityID();
+		view.kind = context.cullingViewKind;
+		view.instanceID = context.cullingViewInstanceID;
+		view.viewProjection = context.viewMatrix * context.projectionMatrix;
+		RenderPacketViewCulling::Prepare(
+			m_cullingVisibility,
+			m_renderPacketBuffer,
+			view
+		);
+	}
+
+	bool ShouldRenderPacket(
+		const RenderPassContext& context,
+		const RenderPacket& packet
+	) const {
+		RenderPacketCullingView view;
+		view.camera = context.cameraData.ref.GetEntityID();
+		view.kind = context.cullingViewKind;
+		view.instanceID = context.cullingViewInstanceID;
+		view.viewProjection = context.viewMatrix * context.projectionMatrix;
+		return RenderPacketViewCulling::ShouldRender(
+			m_cullingVisibility,
+			view,
+			packet
+		);
+	}
+
+	const CullingVisibilitySet& GetCullingVisibility() const noexcept {
+		return m_cullingVisibility;
+	}
+
 	uint64_t GetLastSubmittedPacketGeneration() const noexcept {
 		return m_lastSubmittedPacketGeneration;
 	}
@@ -194,6 +230,7 @@ private:
 	std::shared_ptr<PixelShaderData> ForwardPSDebug;
 
 	RenderPacketFrameBuffer m_renderPacketBuffer;
+	CullingVisibilitySet m_cullingVisibility;
 	uint64_t m_renderPacketGeneration = 0;
 	uint64_t m_lastSubmittedPacketGeneration = 0;
 
