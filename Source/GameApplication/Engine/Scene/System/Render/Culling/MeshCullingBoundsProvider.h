@@ -12,6 +12,8 @@
 #include "Scene/Component/CullingComponent.h"
 #include "Scene/Component/meshRendererComponent.h"
 #include "Scene/Component/modelRendererComponent.h"
+#include "Scene/Component/terrainComponent.h"
+#include "Scene/Component/waveComponent.h"
 #include "Scene/Registry/componentRegistry.h"
 
 namespace MeshCullingBoundsProvider {
@@ -70,32 +72,35 @@ struct UpdateResult {
 	size_t skippedHigherPrioritySource = 0;
 };
 
-// Bounds source priority: Model > Mesh.
 inline UpdateResult UpdateScene(ComponentRegistry& components){
 	UpdateResult result;
-	const auto entities =
-		components.FindEntitiesWithComponent<CullingComponent>();
+	const auto entities = components.FindEntitiesWithComponent<CullingComponent>();
 
 	for(Entity entity : entities){
 		MeshRendererComponent* renderer =
 			components.GetComponent<MeshRendererComponent>(entity);
 		if(!renderer) continue;
-
 		++result.visited;
+
 		if(components.GetComponent<ModelRendererComponent>(entity)){
 			++result.skippedHigherPrioritySource;
-			continue;
-		}
-
-		EntityAABB localBounds;
-		if(!TryBuildLocalBounds(*renderer, localBounds)){
-			++result.unavailable;
 			continue;
 		}
 
 		CullingComponent* culling =
 			components.GetComponent<CullingComponent>(entity);
 		if(!culling){
+			++result.unavailable;
+			continue;
+		}
+
+		EntityAABB localBounds;
+		if(!TryBuildLocalBounds(*renderer, localBounds)){
+			if(!components.GetComponent<TerrainComponent>(entity) &&
+				!components.GetComponent<WaveComponent>(entity)){
+				culling->sourceRevision = 0;
+				culling->boundsValid = false;
+			}
 			++result.unavailable;
 			continue;
 		}
