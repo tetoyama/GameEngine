@@ -1,0 +1,42 @@
+name: Culling Frustum Runtime Smoke Test
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingFrustumRuntime.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingMath.h"
+      - "Tests/CullingFrustumRuntimeSmokeTest.cpp"
+      - ".github/workflows/culling-frustum-runtime.yml"
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run frustum conversion contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /wd4201 /wd4458 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          Tests/CullingFrustumRuntimeSmokeTest.cpp
+          /Fe:culling-frustum-runtime-test.exe
+          && culling-frustum-runtime-test.exe
