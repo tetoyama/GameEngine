@@ -24,7 +24,7 @@ int main(){
 	DeltaProbeSystem system;
 	std::vector<SystemTask> tasks;
 	SystemScheduleBuilder builder(&system, 2, tasks);
-	RenderSystemAnimationTaskRegistrar::Register(system, builder, 0.25f);
+	RenderSystemAnimationTaskRegistrar::Register(system, builder);
 	assert(tasks.size() == 2);
 
 	SystemTaskContext execution;
