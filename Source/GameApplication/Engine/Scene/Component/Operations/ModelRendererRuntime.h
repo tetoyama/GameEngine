@@ -51,7 +51,10 @@ inline bool CreateModel(ModelRendererComponent& component, SceneContext* context
 	if(!component.model || !component.model->AiScene) return false;
 
 	for(const auto& [animationName, animationPath] : component.animations){
-		component.model->LoadAnimation(animationPath.c_str(), animationName.c_str());
+		component.model->LoadAnimationSource(
+			animationPath.c_str(),
+			animationName.c_str()
+		);
 	}
 
 	ID3D11Device* device = context->manager->graphics->GetDevice();
