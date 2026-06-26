@@ -13,6 +13,7 @@
 #include "UI/DebugLogWindow.h"
 #include "UI/ViewWindow.h"
 #include "UI/SystemSetting.h"
+#include "UI/SceneStorageSettingsPanel.h"
 #include "UI/BRAIN/BRAIN.h"
 #include "UI/CB41.h"
 
@@ -53,6 +54,7 @@ void EditorService::Initialize(EditorServiceContext context) {
 	UIs.push_back({"DebugLogWindow", new DebugLogWindow()});
 	UIs.push_back({"ViewWindow", new ViewWindow()});
 	UIs.push_back({"SystemSetting", new SystemSetting()});
+	UIs.push_back({"SceneStorageSettings", new SceneStorageSettingsPanel()});
 	//UIs.push_back({"BRAIN", new BRAIN()});
 	//UIs.push_back({"CB41", new CB41()});
 
