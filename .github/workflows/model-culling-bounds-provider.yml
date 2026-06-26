@@ -40,4 +40,5 @@ jobs:
           /I Source/GameApplication/Service
           Tests/ModelCullingBoundsProviderSmokeTest.cpp
           /Fe:model-culling-bounds-provider-test.exe
+          /link /NODEFAULTLIB:yaml-cppd.lib
           && model-culling-bounds-provider-test.exe
