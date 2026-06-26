@@ -15,6 +15,7 @@ on:
       - "Tests/MeshLocalBoundsBuilderSmokeTest.cpp"
       - "Tests/MeshCullingBoundsProviderSmokeTest.cpp"
       - "Tests/MeshCullingBoundsLifecycleSmokeTest.cpp"
+      - "Tests/CullingBoundsSourcePrioritySmokeTest.cpp"
       - "Tests/TerrainCullingBoundsProviderSmokeTest.cpp"
       - "Tests/WaveCullingBoundsProviderSmokeTest.cpp"
       - ".github/workflows/model-culling-bounds-provider.yml"
@@ -32,6 +33,7 @@ on:
       - "Tests/MeshLocalBoundsBuilderSmokeTest.cpp"
       - "Tests/MeshCullingBoundsProviderSmokeTest.cpp"
       - "Tests/MeshCullingBoundsLifecycleSmokeTest.cpp"
+      - "Tests/CullingBoundsSourcePrioritySmokeTest.cpp"
       - "Tests/TerrainCullingBoundsProviderSmokeTest.cpp"
       - "Tests/WaveCullingBoundsProviderSmokeTest.cpp"
       - ".github/workflows/model-culling-bounds-provider.yml"
@@ -59,6 +61,8 @@ jobs:
             output: mesh-culling-bounds-provider-test.exe
           - source: Tests/MeshCullingBoundsLifecycleSmokeTest.cpp
             output: mesh-culling-bounds-lifecycle-test.exe
+          - source: Tests/CullingBoundsSourcePrioritySmokeTest.cpp
+            output: culling-bounds-source-priority-test.exe
           - source: Tests/TerrainCullingBoundsProviderSmokeTest.cpp
             output: terrain-culling-bounds-provider-test.exe
           - source: Tests/WaveCullingBoundsProviderSmokeTest.cpp
