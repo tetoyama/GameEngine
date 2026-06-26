@@ -19,6 +19,7 @@ namespace RenderSystemAnimationTasksDetail {
 inline void ClearPendingPose(ModelRendererComponent& component){
 	component.evaluatedBones.clear();
 	component.cpuSkinnedVertices.clear();
+	component.animationPoseSourceModelRevision = 0;
 	component.animationPoseReady = false;
 	component.cpuSkinningReady = false;
 }
@@ -46,6 +47,7 @@ inline void RenderSystem::CalculateAnimationPoses(){
 				context->component->GetComponent<ModelRendererComponent>(entity);
 			if(!modelRenderer) continue;
 
+			modelRenderer->animationPoseSourceModelRevision = 0;
 			modelRenderer->animationPoseReady = false;
 			modelRenderer->cpuSkinningReady = false;
 
@@ -87,6 +89,8 @@ inline void RenderSystem::CalculateAnimationPoses(){
 			if(modelRenderer->animationPoseRevision == 0){
 				++modelRenderer->animationPoseRevision;
 			}
+			modelRenderer->animationPoseSourceModelRevision =
+				modelRenderer->modelRuntimeRevision;
 			modelRenderer->animationPoseReady = true;
 		}
 	}
@@ -126,6 +130,15 @@ inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 
 			if(!modelRenderer->animationPoseReady) continue;
 
+			// Pose計算後にModelがReloadされた場合、旧Model由来のBone/Stagingを
+			// 新しいDynamic BufferへUploadしない。
+			if(modelRenderer->animationPoseSourceModelRevision == 0 ||
+				modelRenderer->animationPoseSourceModelRevision !=
+					modelRenderer->modelRuntimeRevision){
+				RenderSystemAnimationTasksDetail::ClearPendingPose(*modelRenderer);
+				continue;
+			}
+
 			bool uploaded = false;
 			const bool useGPUSkinning =
 				modelRenderer->evaluatedBones.size() <= BONE_MAX_COUNT;
@@ -146,6 +159,7 @@ inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 
 			// 失敗時はReady状態を維持し、次のMain Thread Stageで再試行する。
 			if(uploaded){
+				modelRenderer->animationPoseSourceModelRevision = 0;
 				modelRenderer->animationPoseReady = false;
 				modelRenderer->cpuSkinningReady = false;
 			}
