@@ -165,6 +165,7 @@ void ForwardPass::Execute(const RenderPassContext& ctx){
 
 		for(const RenderPacket& packet : packetBuffer.Packets()){
 			if(!packetIsCurrent(packet)) continue;
+			if(!m_renderSystem->ShouldRenderPacket(ctx, packet)) continue;
 
 			const float alpha = packet.bindings.material
 				? packet.bindings.material->Material.BaseColor.w
