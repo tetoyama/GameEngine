@@ -9,6 +9,7 @@
 
 #include "RenderPacket.h"
 #include "StaticBatchCandidateTypes.h"
+#include "StaticBatchPacketCache.h"
 #include "StaticBatchResourceKey.h"
 #include "Scene/scene.h"
 #include "Scene/Registry/componentRegistry.h"
@@ -21,15 +22,9 @@ public:
 	}
 
 	uint32_t WorkerIndex() const noexcept { return m_workerIndex; }
-
 	void Clear(){ m_packets.clear(); }
-
 	void Reserve(size_t count){ m_packets.reserve(count); }
-
-	void Add(RenderPacket packet){
-		m_packets.emplace_back(std::move(packet));
-	}
-
+	void Add(RenderPacket packet){ m_packets.emplace_back(std::move(packet)); }
 	const std::vector<RenderPacket>& Packets() const noexcept { return m_packets; }
 	size_t Size() const noexcept { return m_packets.size(); }
 	size_t Capacity() const noexcept { return m_packets.capacity(); }
@@ -62,16 +57,15 @@ public:
 	void Reset() noexcept {
 		m_packets.clear();
 		m_staticBatchCandidates.Reset();
+		m_staticBatchPacketCache.Reset();
 		m_ready = false;
 	}
 
 	// Explicit initial reserve is configuration, not a runtime growth event.
-	void Reserve(size_t count){
-		m_packets.reserve(count);
-	}
-
+	void Reserve(size_t count){ m_packets.reserve(count); }
 	void ReserveStaticBatchCandidates(size_t count){
 		m_staticBatchCandidates.Reserve(count);
+		m_staticBatchPacketCache.Reserve(count);
 	}
 
 	void Merge(std::span<const RenderPacketWorkerBuffer> workerBuffers){
@@ -127,6 +121,7 @@ public:
 
 		m_staticBatchCandidates.Reserve(configuredStaticBatchReserve);
 		m_staticBatchCandidates.SetRuntimeGrowthAllowed(allowStaticBatchGrowth);
+		m_staticBatchPacketCache.Reserve(configuredStaticBatchReserve);
 
 		for(const auto* worker : orderedWorkers){
 			for(const RenderPacket& packet : worker->Packets()){
@@ -137,6 +132,12 @@ public:
 
 		std::stable_sort(m_packets.begin(), m_packets.end(), RenderPacketLess);
 		CollectStaticBatchCandidates();
+		m_staticBatchPacketCache.Synchronize(
+			m_staticBatchCandidates,
+			m_packets,
+			m_generation,
+			allowStaticBatchGrowth
+		);
 		m_peakSize = (std::max)(m_peakSize, m_packets.size());
 		m_ready = true;
 	}
@@ -147,13 +148,16 @@ public:
 	const StaticBatchCandidateStorage& StaticBatchCandidates() const noexcept {
 		return m_staticBatchCandidates;
 	}
+	const StaticBatchPacketCache& StaticBatchCache() const noexcept {
+		return m_staticBatchPacketCache;
+	}
 	size_t Size() const noexcept { return m_packets.size(); }
 	size_t Capacity() const noexcept { return m_packets.capacity(); }
 	size_t PeakSize() const noexcept { return m_peakSize; }
 	size_t GrowthEventCount() const noexcept { return m_growthEventCount; }
 
 	RenderPacketStorageTelemetry Telemetry() const noexcept {
-		return RenderPacketStorageTelemetry{
+		return {
 			m_packets.size(),
 			m_peakSize,
 			m_packets.capacity(),
@@ -165,10 +169,15 @@ public:
 		return m_staticBatchCandidates.Telemetry();
 	}
 
+	StaticBatchPacketCacheTelemetry StaticBatchCacheTelemetry() const noexcept {
+		return m_staticBatchPacketCache.Telemetry();
+	}
+
 	void ResetPeakMetrics() noexcept {
 		m_peakSize = m_packets.size();
 		m_growthEventCount = 0;
 		m_staticBatchCandidates.ResetPeakMetrics();
+		m_staticBatchPacketCache.ResetPeakMetrics();
 	}
 
 	size_t Count(RenderPacketKind kind) const noexcept {
@@ -227,16 +236,12 @@ private:
 		}
 
 		ComponentRegistry* registry = context->component;
-
-		// Auto-registration経路でもDisabledを確実に除外する。
-		// default query exclusion maskはScene初期登録後の高速経路として維持する。
 		if(registry->HasComponent<DisabledComponent>(packet.entity)){
 			return false;
 		}
 		if(!registry->IsEntityEnabledForDefaultQueries(packet.entity)){
 			return false;
 		}
-
 		return !registry->HasComponent<HiddenComponent>(packet.entity);
 	}
 
@@ -244,6 +249,7 @@ private:
 	bool m_ready = false;
 	std::vector<RenderPacket> m_packets;
 	StaticBatchCandidateStorage m_staticBatchCandidates;
+	StaticBatchPacketCache m_staticBatchPacketCache;
 	size_t m_peakSize = 0;
 	size_t m_growthEventCount = 0;
 };
