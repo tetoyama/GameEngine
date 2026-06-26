@@ -5,6 +5,8 @@
 #include "Graphics/graphicsContext.h"
 #include "Resources/resourceService.h"
 #include "Resources/Data/modelData.h"
+#include "System/Render/Animation/AnimationPoseEvaluator.h"
+#include "System/Render/Animation/AnimationSkinningUpload.h"
 
 namespace ModelRendererRuntime {
 inline void ResetAnimationRuntime(ModelRendererComponent& component){
