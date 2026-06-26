@@ -66,7 +66,7 @@ inline void Draw(
 		packet.growthEventCount +
 		staticBatch.growthEventCount;
 
-	ImGui::SetNextWindowSize(ImVec2(590.0f, 320.0f), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(620.0f, 340.0f), ImGuiCond_FirstUseEver);
 	if(ImGui::Begin("Scene Storage Runtime Telemetry", nullptr)){
 		ImGui::Text("Scene: %s", scene->SceneName.c_str());
 		ImGui::Text("Entity Growth: %llu",
@@ -98,6 +98,15 @@ inline void Draw(
 			static_cast<unsigned long long>(staticBatch.currentGroupCount),
 			static_cast<unsigned long long>(staticBatch.peakGroupCount),
 			static_cast<unsigned long long>(staticBatch.groupCapacity)
+		);
+		ImGui::Text(
+			"Cache Ready Groups: Current %llu / Peak %llu",
+			static_cast<unsigned long long>(
+				staticBatch.currentCacheReadyGroupCount
+			),
+			static_cast<unsigned long long>(
+				staticBatch.peakCacheReadyGroupCount
+			)
 		);
 		if(staticBatch.overflowed){
 			ImGui::TextColored(
