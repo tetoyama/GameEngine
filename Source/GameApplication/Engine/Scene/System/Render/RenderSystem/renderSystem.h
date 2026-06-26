@@ -102,12 +102,23 @@ public:
 	}
 
 	void Update(float deltaTime);
+
+	// 旧Main Thread一体処理。Task Migration後はScheduleから実行しない。
 	void EditorUpdate(float deltaTime);
+
+	// Step 17-C: CPU Pose計算とD3D11 Uploadを分離した実行段階。
+	void CalculateAnimationPoses();
+	void UploadAnimationPoses(float deltaTime);
+
 	void Draw();
 	void BuildRenderPackets();
 	void SubmitRenderPackets();
 
 	void RegisterTasks(SystemScheduleBuilder& builder) override;
+	void MigrateRegisteredTasks(
+		SystemScheduleBuilder& builder,
+		std::vector<SystemTask>& tasks
+	) override;
 
 	bool decode(const YAML::Node& node) override;
 	YAML::Node encode() override;
@@ -236,3 +247,5 @@ private:
 
 	float lazyTimer = 0.0f;
 };
+
+#include "../Animation/RenderSystemAnimationTasks.inl"
