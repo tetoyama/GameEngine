@@ -1,69 +1,38 @@
-# Step 17-B Renderable Component Binding Phase 1
+# Step 17-B Renderable Component Binding
 
 ## 目的
 
-RenderPassから`IRenderable`を呼び出した後に、Renderable内部で同じEntityのComponentを`ComponentRegistry`から再取得している経路を段階的に除去する。
+Renderable内部で同じEntityのComponentを`ComponentRegistry`から再取得する経路を除去し、Render Packet BuildとSubmitを分離する。
 
-## Phase 1
+## 完了済み
 
-- RenderPacketへ型付きの非所有Component Bindingを追加する
-- TransformのWorld MatrixをPacket Build時にSnapshotする
-- 全主要RenderPassを`IRenderable::ExecutePacket`経由へ統一する
-- 未移行Renderableは従来の`Execute`へフォールバックする
-- Model描画をPacket直接参照へ移行する
+- [x] RenderPacketへ型付き非所有Component Bindingを追加
+- [x] Transform World / Parent WorldをPacket Build時にSnapshot
+- [x] 全主要RenderPassを`IRenderable::Execute(RenderPacket)`へ統一
+- [x] Model / Mesh / Sprite / Billboard / Particle / Terrain / Wave / EffectをPacket Bindingへ移行
+- [x] 全主要Renderable Headerから`ComponentRegistry`宣言を除去
+- [x] Mesh / Terrain / Wave / Effectの不要なRegistry includeを除去
+- [x] Scene Stop / TempLoad前のPacket無効化契約を追加
+
+主要RenderableのSubmit処理は`ComponentRegistry::GetComponent`を呼ばない。
 
 ## 寿命契約
 
 Component Bindingは所有権を持たない。
-Render Domain中はStructural Mutationを行わず、同じRender Packet世代のBuild完了からSubmit完了までのみ参照する。
+Render Domain中はStructural Mutationを行わず、同じPacket世代のBuild完了からSubmit完了までのみ参照する。
+Scene Stop / TempLoad / Shutdown前には公開済みPacketを破棄する。
 
-## 緊急回帰修正
+## 同時修正
 
-### RenderPacket提出Layer
-
-- Spriteが既定`Opaque3D`の場合は`OverlayUI`へ正規化
-- Mesh / Particle / EffectがForward対応Layer以外の場合は`Transparent3D`へ正規化
-- 正規化後のLayerをPacket、Pass Mask、Sort Keyの全てへ使用
-
-これにより、Forward／Overlay専用RenderableがLayerとKindのPass Mask積によって`None`になり、描画対象から消える問題を修正した。
-
-### Sprite
-
-- RectTransform計算にBackBuffer固定サイズではなく`RenderPassContext::screenSize`を使用
-- UV Bufferをゼロ初期化
-- UV Sliceをセルサイズとして一貫して計算
-- Sprite自身のInputLayout／VS／PSを明示Bind
-
-### Particle
-
-- InputLayout／VS／PSを明示Bind
-- Additive BlendとDepth ReadOnlyを設定
-- 描画後にAlpha BlendとDepth Writeへ復元
-- UV Bufferをゼロ初期化
-
-### Effect
-
-- 既定Opaque LayerからForward提出Layerへ正規化し、Effekseer描画呼び出しへ到達させる
-
-### Sprite Gizmo
-
-- 描画と同じ`CalculateRectTransform`から`CalculateWorldMatrix`を使用
-- Editor Viewの実表示サイズを共通Viewportとして使用
-- 2D Gizmo結果へ3D親World逆行列を二重適用しない
-- Gizmo操作後は従来どおり`ReverseCalculateRectTransform`で保存値へ戻す
-
-## テスト
-
-`RenderPacketBufferSmokeTest`へ次を追加した。
-
-- Opaque SpriteがOverlayへ提出されること
-- Opaque ParticleがForwardへ提出されること
-- Opaque EffectがForwardへ提出されること
+- Spriteは現在のRender TargetサイズでRectTransformを計算
+- Mesh / Particle / Effectの既定LayerをForward対応Layerへ正規化
+- Terrain / WaveのMaterialを既定白で初期化
+- TerrainのUV Bufferをゼロ初期化し、既定範囲を`0..1`へ設定
+- Waveの不要なTransform参照を除去
 
 ## 残作業
 
-- 実機でSprite描画を確認
-- 実機でParticle描画を確認
-- 実機でEffect描画を確認
-- Sprite Gizmoの表示位置とドラッグ後位置を確認
-- Mesh / Sprite / Billboard / Particle / Terrain / Wave / EffectのComponent Binding移行
+- [ ] Model / Sprite / Billboard / Particleの未使用include整理
+- [ ] Sprite / Particle / Effect / Terrain / Waveの実機描画確認
+- [ ] Sprite Gizmo位置確認
+- [ ] Scene Stop / TempLoad直前のPacket破棄を実機確認
