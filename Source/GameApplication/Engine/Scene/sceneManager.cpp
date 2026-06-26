@@ -24,6 +24,7 @@
 
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "System/Render/Camera/CameraSystem.h"
+#include "System/Render/Culling/CullingSystem.h"
 #include "System/Render/Effect/effectSystem.h"
 #include "System/Render/Terrain/waveSystem.h"
 #include "System/Render/Terrain/terrainSystem.h"
@@ -72,6 +73,7 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<FollowSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<CullingSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<AudioSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<ParticleSystem>(&m_SceneContext));
