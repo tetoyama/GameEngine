@@ -15,6 +15,7 @@
 #include "Scene/Component/terrainComponent.h"
 #include "Scene/Component/waveComponent.h"
 #include "Scene/Registry/componentRegistry.h"
+#include "ModelCullingBoundsProvider.h"
 
 namespace MeshCullingBoundsProvider {
 
@@ -24,7 +25,6 @@ inline bool TryBuildLocalBounds(
 ) noexcept {
 	const MeshData& mesh = renderer.mesh;
 	if(!mesh.localBoundsValid) return false;
-
 	const Vector3& minimum = mesh.localBoundsMin;
 	const Vector3& maximum = mesh.localBoundsMax;
 	if(!std::isfinite(minimum.x) ||
@@ -40,7 +40,6 @@ inline bool TryBuildLocalBounds(
 		minimum.z > maximum.z){
 		return false;
 	}
-
 	outBounds.min = minimum;
 	outBounds.max = maximum;
 	return true;
@@ -75,16 +74,18 @@ struct UpdateResult {
 inline UpdateResult UpdateScene(ComponentRegistry& components){
 	UpdateResult result;
 	const auto entities = components.FindEntitiesWithComponent<CullingComponent>();
-
 	for(Entity entity : entities){
 		MeshRendererComponent* renderer =
 			components.GetComponent<MeshRendererComponent>(entity);
 		if(!renderer) continue;
 		++result.visited;
 
-		if(components.GetComponent<ModelRendererComponent>(entity)){
-			++result.skippedHigherPrioritySource;
-			continue;
+		if(ModelRendererComponent* model =
+			components.GetComponent<ModelRendererComponent>(entity)){
+			if(ModelCullingBoundsProvider::CanSupplyLocalBounds(*model)){
+				++result.skippedHigherPrioritySource;
+				continue;
+			}
 		}
 
 		CullingComponent* culling =
@@ -107,7 +108,6 @@ inline UpdateResult UpdateScene(ComponentRegistry& components){
 
 		const std::uint64_t revision = MakeSourceRevision(*renderer);
 		if(culling->sourceRevision == revision) continue;
-
 		culling->localBounds = localBounds;
 		culling->sourceRevision = revision;
 		culling->boundsValid = false;
