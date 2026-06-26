@@ -1,0 +1,54 @@
+name: Culling Visibility Growth Fallback
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingVisibilitySet.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingVisibilityBuilder.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/RenderPacketViewCulling.h"
+      - "Tests/CullingVisibilityGrowthFallbackSmokeTest.cpp"
+      - ".github/workflows/culling-visibility-growth-fallback.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingVisibilitySet.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingVisibilityBuilder.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/RenderPacketViewCulling.h"
+      - "Tests/CullingVisibilityGrowthFallbackSmokeTest.cpp"
+      - ".github/workflows/culling-visibility-growth-fallback.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: culling-visibility-growth-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run visibility overflow contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/CullingVisibilityGrowthFallbackSmokeTest.cpp
+          /Fe:culling-visibility-growth-fallback-test.exe
+          /link /NODEFAULTLIB:yaml-cppd.lib
+          && culling-visibility-growth-fallback-test.exe
