@@ -1,4 +1,4 @@
-name: Static Batch Candidate Smoke Test
+name: Static Batch Foundation Smoke Test
 
 on:
   pull_request:
@@ -11,7 +11,10 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateStorage.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchPacketCache.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceDataBuffer.h"
       - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
+      - "Tests/StaticBatchResourceKeySmokeTest.cpp"
+      - "Tests/StaticBatchInstanceDataBufferSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
@@ -23,12 +26,15 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateStorage.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchPacketCache.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceDataBuffer.h"
       - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
+      - "Tests/StaticBatchResourceKeySmokeTest.cpp"
+      - "Tests/StaticBatchInstanceDataBufferSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   workflow_dispatch:
 
 concurrency:
-  group: static-batch-candidate-${{ github.ref }}
+  group: static-batch-foundation-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -37,6 +43,16 @@ permissions:
 jobs:
   smoke:
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - source: Tests/StaticBatchCandidateStorageSmokeTest.cpp
+            output: static-batch-candidate-test.exe
+          - source: Tests/StaticBatchResourceKeySmokeTest.cpp
+            output: static-batch-resource-key-test.exe
+          - source: Tests/StaticBatchInstanceDataBufferSmokeTest.cpp
+            output: static-batch-instance-data-test.exe
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,7 +60,7 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-      - name: Compile and run static batch candidate contract
+      - name: Compile and run static batch contract
         shell: cmd
         run: >-
           cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
@@ -56,7 +72,7 @@ jobs:
           /I Source/GameApplication/Engine
           /I Source/GameApplication/Engine/Scene
           /I Source/GameApplication/Service
-          Tests/StaticBatchCandidateStorageSmokeTest.cpp
-          /Fe:static-batch-candidate-test.exe
+          ${{ matrix.source }}
+          /Fe:${{ matrix.output }}
           /link /NODEFAULTLIB:yaml-cppd.lib
-          && static-batch-candidate-test.exe
+          && ${{ matrix.output }}
