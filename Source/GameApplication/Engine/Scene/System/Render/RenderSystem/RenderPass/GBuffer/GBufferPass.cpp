@@ -1,5 +1,6 @@
 #include "GBufferPass.h"
 #include "System/Render/RenderSystem/renderSystem.h"
+#include "sceneManager.h"
 #include "../RenderPassContext.h"
 #include "System/Render/RenderSystem/Renderable/IRenderable.h"
 #include "System/Render/RenderSystem/RenderTarget/renderTarget.h"
