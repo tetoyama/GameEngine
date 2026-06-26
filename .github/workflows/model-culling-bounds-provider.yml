@@ -1,0 +1,44 @@
+name: Model Culling Bounds Provider Smoke Test
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/ModelCullingBoundsProvider.h"
+      - "Tests/ModelCullingBoundsProviderSmokeTest.cpp"
+      - ".github/workflows/model-culling-bounds-provider.yml"
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run model bounds contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/ModelCullingBoundsProviderSmokeTest.cpp
+          Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp
+          /Fe:model-culling-bounds-provider-test.exe
+          /link /NODEFAULTLIB:yaml-cppd.lib
+          && model-culling-bounds-provider-test.exe
