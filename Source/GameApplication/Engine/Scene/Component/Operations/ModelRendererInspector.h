@@ -18,6 +18,38 @@
 
 namespace ModelRendererInspector {
 
+inline bool HasAnimationBinding(
+	const ModelRendererComponent& component,
+	const std::string& animationName
+){
+	return std::any_of(
+		component.animations.begin(),
+		component.animations.end(),
+		[&animationName](const auto& animation){
+			return animation.first == animationName;
+		}
+	);
+}
+
+inline std::vector<std::string> GetAnimationNames(
+	const ModelRendererComponent& component
+){
+	std::vector<std::string> names;
+	if(!component.model){
+		return names;
+	}
+
+	for(const auto& [name, animation] : component.model->m_Animation){
+		// Model内蔵Clipは全Entityで利用可能。
+		// 外部Import Clipは、このEntityがBindingを所有するものだけを公開する。
+		if(!animation.isImported || HasAnimationBinding(component, name)){
+			names.push_back(name);
+		}
+	}
+	std::sort(names.begin(), names.end());
+	return names;
+}
+
 inline void ChangeModelPath(
 	ModelRendererComponent& component,
 	SceneContext* context,
@@ -85,9 +117,8 @@ inline void RemoveAnimation(
 	ModelRendererComponent& component,
 	const std::string& animationName
 ){
-	if(component.model){
-		component.model->RemoveAnimation(animationName);
-	}
+	// ModelDataはResourceServiceで共有されるため、共有CacheからClipを削除しない。
+	// このEntityのBindingとBlend参照だけを除去し、他Entityへ波及させない。
 	component.animations.erase(
 		std::remove_if(
 			component.animations.begin(),
@@ -154,13 +185,28 @@ inline void DrawAddAnimationPopup(ModelRendererComponent& component){
 	if(ImGui::Button("Add")){
 		const std::string path(animationPath);
 		const std::string name(animationName);
-		if(component.model && !path.empty() && !name.empty() &&
-			!component.model->m_Animation.contains(name)){
-			component.model->LoadAnimation(path.c_str(), name.c_str());
-			component.animations.emplace_back(name, path);
-			animationPath[0] = '\0';
-			animationName[0] = '\0';
-			ImGui::CloseCurrentPopup();
+		if(component.model && !path.empty() && !name.empty()){
+			auto sharedAnimation = component.model->m_Animation.find(name);
+			if(sharedAnimation == component.model->m_Animation.end()){
+				component.model->LoadAnimation(path.c_str(), name.c_str());
+				sharedAnimation = component.model->m_Animation.find(name);
+			}
+
+			// 同名Clipは共有Resource内で一意とする。
+			// 既存Clipと同じPathの場合のみ、このEntityへBindingを追加できる。
+			const bool compatibleSharedClip =
+				sharedAnimation != component.model->m_Animation.end() &&
+				sharedAnimation->second.isImported &&
+				sharedAnimation->second.FilePath == path;
+			if(compatibleSharedClip && !HasAnimationBinding(component, name)){
+				component.animations.emplace_back(name, path);
+			}
+
+			if(compatibleSharedClip){
+				animationPath[0] = '\0';
+				animationName[0] = '\0';
+				ImGui::CloseCurrentPopup();
+			}
 		}
 	}
 	ImGui::SameLine();
@@ -178,9 +224,10 @@ inline void DrawAnimationList(ModelRendererComponent& component){
 	ImGui::Separator();
 	ImGui::UndoDragFloat("Animation Time", &component.animationTime, 1.0f, 0.0f);
 
+	const std::vector<std::string> visibleAnimations = GetAnimationNames(component);
 	const std::string label =
 		"LoadedAnimation(" +
-		std::to_string(component.model->m_Animation.size()) +
+		std::to_string(visibleAnimations.size()) +
 		")";
 	if(!ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_DefaultOpen)){
 		return;
@@ -188,15 +235,21 @@ inline void DrawAnimationList(ModelRendererComponent& component){
 
 	DrawAddAnimationPopup(component);
 	std::vector<std::string> animationsToDelete;
-	for(const auto& [name, animation] : component.model->m_Animation){
+	for(const std::string& name : visibleAnimations){
+		const auto animationIterator = component.model->m_Animation.find(name);
+		if(animationIterator == component.model->m_Animation.end()) continue;
+		const AnimationData& animation = animationIterator->second;
+
 		ImGui::PushID(name.c_str());
-		if(animation.isImported){
-			if(ImGui::Button("Delete")){
-				animationsToDelete.push_back(name);
-			}
-		} else {
+		const bool canDeleteBinding =
+			animation.isImported && HasAnimationBinding(component, name);
+		if(!canDeleteBinding){
 			ImGui::BeginDisabled();
-			ImGui::Button("Delete");
+		}
+		if(ImGui::Button("Delete") && canDeleteBinding){
+			animationsToDelete.push_back(name);
+		}
+		if(!canDeleteBinding){
 			ImGui::EndDisabled();
 		}
 		ImGui::SameLine();
@@ -208,21 +261,6 @@ inline void DrawAnimationList(ModelRendererComponent& component){
 	}
 
 	ImGui::TreePop();
-}
-
-inline std::vector<std::string> GetAnimationNames(
-	const ModelRendererComponent& component
-){
-	std::vector<std::string> names;
-	if(!component.model){
-		return names;
-	}
-	for(const auto& [name, animation] : component.model->m_Animation){
-		(void)animation;
-		names.push_back(name);
-	}
-	std::sort(names.begin(), names.end());
-	return names;
 }
 
 inline float GetAnimationDuration(
