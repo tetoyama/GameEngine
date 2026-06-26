@@ -1,140 +1,69 @@
-// =======================================================================
-// 
-// PlayerPass.cpp
-// 
-// =======================================================================
 #include "PlayerPass.h"
 #include "System/Render/RenderSystem/renderSystem.h"
-#include "sceneManager.h"
 #include "../RenderPassContext.h"
-#include "../../renderPhase.h"
-
 #include "../ShadowMap/ShadowMapPass.h"
 #include "../GBuffer/GBufferPass.h"
 #include "../LightingPass/LightingPass.h"
 #include "../Forward/ForwardPass.h"
 #include "../PostEffect/PostEffectPass.h"
 #include "../OverlayUI/OverlayUIPass.h"
-
-#include "scene.h"
-#include "System/Render/RenderSystem/Renderable/IRenderable.h"
 #include "System/Render/RenderSystem/RenderTarget/renderTarget.h"
-#include "Component/transformComponent.h"
-#include "Registry/componentRegistry.h"
-
-#include "Shader/commonDefine.h"
-
 #include "Graphics/graphicsContext.h"
 #include "Graphics/mainRenderer.h"
-#include "Registry/systemRegistry.h"
 
-#include "Component/CameraComponent.h"
-#include "Component/LightComponent.h"
-
-#include <Component/RenderLayerComponent.h>
-
-
-void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
-
+void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context){
 	m_renderSystem = renderSystem;
 	m_context = context;
-
 	shadowMapPass = new ShadowMapPass();
 	shadowMapPass->Initialize(renderSystem, context);
-
 	gBufferPass = new GBufferPass();
 	gBufferPass->Initialize(renderSystem, context);
-
 	lightingPass = new LightingPass();
 	lightingPass->Initialize(renderSystem, context);
-
 	forwardPass = new ForwardPass();
 	forwardPass->Initialize(renderSystem, context);
-
 	postEffectPass = new PostEffectPass();
 	postEffectPass->Initialize(renderSystem, context);
-
 	overlayUIPass = new OverlayUIPass();
 	overlayUIPass->Initialize(renderSystem, context);
-
-	playerRenderTarget = new RenderTarget(
-		context->PlayerScreenSize,
-		context->graphics,
-		RenderTargetType::RENDERTARGET_TYPE_COLOR
-	);
+	playerRenderTarget = new RenderTarget(context->PlayerScreenSize, context->graphics, RenderTargetType::RENDERTARGET_TYPE_COLOR);
 }
 
-void PlayerPass::Finalize() {
-
-	postEffectPass->Finalize();
-	delete postEffectPass;
-	postEffectPass = nullptr;
-
-	forwardPass->Finalize();
-	delete forwardPass;
-	forwardPass = nullptr;
-
-	lightingPass->Finalize();
-	delete lightingPass;
-	lightingPass = nullptr;
-
-	gBufferPass->Finalize();
-	delete gBufferPass;
-	gBufferPass = nullptr;
-
-	shadowMapPass->Finalize();
-	delete shadowMapPass;
-	shadowMapPass = nullptr;
-
-	overlayUIPass->Finalize();
-	delete overlayUIPass;
-	overlayUIPass = nullptr;
-
-	delete playerRenderTarget;
-	playerRenderTarget = nullptr;
+void PlayerPass::Finalize(){
+	postEffectPass->Finalize(); delete postEffectPass; postEffectPass = nullptr;
+	forwardPass->Finalize(); delete forwardPass; forwardPass = nullptr;
+	lightingPass->Finalize(); delete lightingPass; lightingPass = nullptr;
+	gBufferPass->Finalize(); delete gBufferPass; gBufferPass = nullptr;
+	shadowMapPass->Finalize(); delete shadowMapPass; shadowMapPass = nullptr;
+	overlayUIPass->Finalize(); delete overlayUIPass; overlayUIPass = nullptr;
+	delete playerRenderTarget; playerRenderTarget = nullptr;
 }
 
-void PlayerPass::Execute(const RenderPassContext& ctx) {
+void PlayerPass::Execute(const RenderPassContext& context){
+	if(!context.cameraData.cameraComponent){ result = nullptr; return; }
+	RenderPassContext viewContext = context;
+	viewContext.cullingViewKind = CullingViewKind::Player;
+	viewContext.cullingViewInstanceID = 0;
+	m_renderSystem->PrepareRenderPacketView(viewContext);
 
-	if (ctx.cameraData.cameraComponent == nullptr) {
-		result = nullptr;
-		return;
-	}
-
-	// レンダーターゲットをリサイズ (ウィンドウ描画に使用)
-	float clearCol[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
-	playerRenderTarget->Resize(ctx.screenSize, m_context->graphics);
-	playerRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearCol);
-
-	GraphicsContext*     graphicsContext = m_context->renderer->GetGraphicsContext();
-
-	// GBuffer パス
-	gBufferPass->Execute(ctx);
-
-	// シャドウマップパス
-	shadowMapPass->Execute(ctx);
-
-	// カメラ行列をセット (ライティング・フォワード両パスで共用)
-	graphicsContext->SetCameraPosition(ctx.CameraPosition);
-	graphicsContext->SetViewMatrix(ctx.viewMatrix);
-	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
-
-	// ライティングパス (Deferred)
-	lightingPass->SetTextureSlot(gBufferPass, shadowMapPass, graphicsContext);
-	lightingPass->Execute(ctx);
-
-	// フォワードパス (透明・UI)
+	float clearColor[4] = {0.0f, 1.0f, 0.0f, 1.0f};
+	playerRenderTarget->Resize(viewContext.screenSize, m_context->graphics);
+	playerRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearColor);
+	GraphicsContext* graphics = m_context->renderer->GetGraphicsContext();
+	gBufferPass->Execute(viewContext);
+	shadowMapPass->Execute(viewContext);
+	graphics->SetCameraPosition(viewContext.CameraPosition);
+	graphics->SetViewMatrix(viewContext.viewMatrix);
+	graphics->SetProjectionMatrix(viewContext.projectionMatrix);
+	lightingPass->SetTextureSlot(gBufferPass, shadowMapPass, graphics);
+	lightingPass->Execute(viewContext);
 	forwardPass->SetInputs(lightingPass, gBufferPass, shadowMapPass);
-	forwardPass->Execute(ctx);
-
-	// ポストエフェクトパス
+	forwardPass->Execute(viewContext);
 	ID3D11ShaderResourceView* initialSRV = lightingPass->pRenderTarget->srv.Get();
 	ID3D11RenderTargetView** initialRTV = lightingPass->pRenderTarget->rtv.GetAddressOf();
-	postEffectPass->SetInputs(initialSRV, initialRTV,gBufferPass);
-	postEffectPass->Execute(ctx);
-
-	overlayUIPass->SetInputs(postEffectPass->resultRtv,lightingPass->pRenderTarget);
-	overlayUIPass->Execute(ctx);
-
+	postEffectPass->SetInputs(initialSRV, initialRTV, gBufferPass);
+	postEffectPass->Execute(viewContext);
+	overlayUIPass->SetInputs(postEffectPass->resultRtv, lightingPass->pRenderTarget);
+	overlayUIPass->Execute(viewContext);
 	result = postEffectPass->resultSrv;
 }
