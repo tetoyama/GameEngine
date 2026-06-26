@@ -1,17 +1,39 @@
-name: Model Culling Bounds Provider Smoke Test
+name: Resource Culling Bounds Provider Smoke Test
 
 on:
   pull_request:
     branches:
       - master
     paths:
+      - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/ModelCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/TerrainCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/WaveCullingBoundsProvider.h"
       - "Tests/ModelCullingBoundsProviderSmokeTest.cpp"
+      - "Tests/MeshCullingBoundsProviderSmokeTest.cpp"
+      - "Tests/TerrainCullingBoundsProviderSmokeTest.cpp"
+      - "Tests/WaveCullingBoundsProviderSmokeTest.cpp"
       - ".github/workflows/model-culling-bounds-provider.yml"
   push:
     branches:
       - refactor/ecs-scheduler-foundation
+    paths:
+      - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/ModelCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/TerrainCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/WaveCullingBoundsProvider.h"
+      - "Tests/ModelCullingBoundsProviderSmokeTest.cpp"
+      - "Tests/MeshCullingBoundsProviderSmokeTest.cpp"
+      - "Tests/TerrainCullingBoundsProviderSmokeTest.cpp"
+      - "Tests/WaveCullingBoundsProviderSmokeTest.cpp"
+      - ".github/workflows/model-culling-bounds-provider.yml"
   workflow_dispatch:
+
+concurrency:
+  group: resource-culling-bounds-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -19,6 +41,18 @@ permissions:
 jobs:
   smoke:
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - source: Tests/ModelCullingBoundsProviderSmokeTest.cpp
+            output: model-culling-bounds-provider-test.exe
+          - source: Tests/MeshCullingBoundsProviderSmokeTest.cpp
+            output: mesh-culling-bounds-provider-test.exe
+          - source: Tests/TerrainCullingBoundsProviderSmokeTest.cpp
+            output: terrain-culling-bounds-provider-test.exe
+          - source: Tests/WaveCullingBoundsProviderSmokeTest.cpp
+            output: wave-culling-bounds-provider-test.exe
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,7 +60,7 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-      - name: Compile and run model bounds contract
+      - name: Compile and run resource bounds contract
         shell: cmd
         run: >-
           cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
@@ -38,7 +72,7 @@ jobs:
           /I Source/GameApplication/Engine
           /I Source/GameApplication/Engine/Scene
           /I Source/GameApplication/Service
-          Tests/ModelCullingBoundsProviderSmokeTest.cpp
-          /Fe:model-culling-bounds-provider-test.exe
+          ${{ matrix.source }}
+          /Fe:${{ matrix.output }}
           /link /NODEFAULTLIB:yaml-cppd.lib
-          && model-culling-bounds-provider-test.exe
+          && ${{ matrix.output }}
