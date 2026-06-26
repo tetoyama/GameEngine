@@ -51,6 +51,7 @@ public:
 	bool showPlayerView = IMGUI_SHOW_DEFAULT;
 	bool showPerformanceMonitor = IMGUI_SHOW_DEFAULT;
 	bool showProjectSettings = false;
+	bool showSceneSettings = false;
 	bool showCB41 = IMGUI_SHOW_DEFAULT;
 
 private:
