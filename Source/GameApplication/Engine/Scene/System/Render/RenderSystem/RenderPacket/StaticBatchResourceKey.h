@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "RenderPacket.h"
-#include "Backends/Assimp/material.h"
 #include "Scene/Component/materialComponent.h"
 #include "Scene/Component/meshRendererComponent.h"
 #include "Scene/Component/modelRendererComponent.h"
@@ -156,48 +155,24 @@ inline std::uint64_t MakeTextureSetKey(const RenderPacket& packet) noexcept {
 }
 
 inline std::uint64_t MakeModelMaterialStateKey(
-	const ModelData& model
+	const ModelRendererComponent& renderer
 ) noexcept {
-	if(!model.AiScene) return 0;
+	const std::shared_ptr<ModelData>& model = renderer.model;
+	if(renderer.modelFilePath.empty() || !model || !model->AiScene){
+		return 0;
+	}
 
-	std::uint64_t key = 0x4d4f44454c4d4154ull;
-	Combine(key, static_cast<std::uint64_t>(model.AiScene->mNumMaterials));
-	for(unsigned int materialIndex = 0;
-		materialIndex < model.AiScene->mNumMaterials;
-		++materialIndex){
-		const aiMaterial* material = model.AiScene->mMaterials[materialIndex];
-		if(!material){
-			Combine(key, 0);
-			continue;
-		}
-
-		aiColor4D diffuse{};
-		const bool hasDiffuse = material->Get(
-			AI_MATKEY_COLOR_DIFFUSE,
-			diffuse
-		) == AI_SUCCESS;
-		Combine(key, hasDiffuse ? 1ull : 0ull);
-		if(hasDiffuse){
-			CombineFloat(key, diffuse.r);
-			CombineFloat(key, diffuse.g);
-			CombineFloat(key, diffuse.b);
-			CombineFloat(key, diffuse.a);
-		}
-
-		aiString textureName;
-		const bool hasDiffuseTexture = material->GetTexture(
-			aiTextureType_DIFFUSE,
-			0,
-			&textureName
-		) == AI_SUCCESS;
-		Combine(key, hasDiffuseTexture ? HashString(textureName.C_Str()) : 0ull);
-
-		const bool hasNormalTexture = material->GetTexture(
-			aiTextureType_NORMALS,
-			0,
-			&textureName
-		) == AI_SUCCESS;
-		Combine(key, hasNormalTexture ? HashString(textureName.C_Str()) : 0ull);
+	std::uint64_t key = HashString(renderer.modelFilePath);
+	Combine(key, renderer.modelRuntimeRevision);
+	Combine(key, static_cast<std::uint64_t>(model->AiScene->mNumMaterials));
+	for(unsigned int meshIndex = 0;
+		meshIndex < model->AiScene->mNumMeshes;
+		++meshIndex){
+		const aiMesh* mesh = model->AiScene->mMeshes[meshIndex];
+		Combine(
+			key,
+			mesh ? static_cast<std::uint64_t>(mesh->mMaterialIndex) : 0ull
+		);
 	}
 	return key == 0 ? 1 : key;
 }
@@ -214,13 +189,9 @@ inline std::uint64_t MakeMaterialStateKey(const RenderPacket& packet) noexcept {
 	}
 
 	if(packet.kind == RenderPacketKind::Model){
-		if(!packet.bindings.modelRenderer ||
-			!packet.bindings.modelRenderer->model){
-			return 0;
-		}
-		const std::uint64_t modelMaterialKey = MakeModelMaterialStateKey(
-			*packet.bindings.modelRenderer->model
-		);
+		if(!packet.bindings.modelRenderer) return 0;
+		const std::uint64_t modelMaterialKey =
+			MakeModelMaterialStateKey(*packet.bindings.modelRenderer);
 		if(modelMaterialKey == 0) return 0;
 		Combine(key, modelMaterialKey);
 	}
