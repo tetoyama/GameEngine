@@ -115,12 +115,11 @@ public:
 			m_entityHeaderComponentMask.set(typeID);
 		}
 
-		// 保存・複製・EntityDelete UndoではHeader Tagも含める。
 		m_componentRegistrationOrder.push_back(name);
 
 		const std::string runtimeTypeName = typeid(T).name();
 		m_addDefaultComponentByRuntimeTypeName[runtimeTypeName] =
-			[this](Entity entity){ AddComponent<T>(entity); };
+			[this](Entity entity){ return AddComponent<T>(entity) != nullptr; };
 		m_removeComponentByRuntimeTypeName[runtimeTypeName] =
 			[this](Entity entity){ RemoveComponent<T>(entity); };
 
@@ -174,6 +173,7 @@ public:
 		assert(m_entityManager &&
 			m_entityManager->IsAlive(entity) &&
 			"AddComponent: Entity is not alive");
+		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return nullptr;
 
 		const std::type_index typeIndex(typeid(T));
 		if(!m_storages.contains(typeIndex)){
@@ -197,7 +197,9 @@ public:
 		}
 
 		T component(std::forward<Args>(args)...);
-		adderIterator->second(entity, &component);
+		if(!adderIterator->second(entity, &component)){
+			return nullptr;
+		}
 
 		m_entityMasks[entity].set(ComponentType::Get<T>());
 		return GetComponent<T>(entity);
@@ -354,7 +356,6 @@ public:
 		(required.set(
 			ComponentType::Get<typename ECSQuery::ComponentType<Accesses>>()
 		), ...);
-
 		return ECSQuery::ComponentQueryView<Accesses...>(
 			m_entityManager->GetAllAlive(),
 			m_entityMasks,
@@ -457,7 +458,6 @@ public:
 		const std::type_index typeIndex(typeid(T));
 		auto storageIterator = m_storages.find(typeIndex);
 		if(storageIterator == m_storages.end()) return false;
-
 		auto strategyIterator = m_storageStrategies.find(typeIndex);
 		if(strategyIterator != m_storageStrategies.end() &&
 			strategyIterator->second ==
@@ -473,7 +473,6 @@ public:
 			}
 			return true;
 		}
-
 		storageIterator->second->Reserve(expectedCount);
 		return true;
 	}
@@ -489,7 +488,6 @@ public:
 				ECSStorage::ComponentStorageStrategy::DirectPaged){
 			return false;
 		}
-
 		if constexpr(ECSStorage::IsTagComponentV<T>){
 			static_cast<ECSStorage::DirectPagedTagStorage<T>*>(
 				storageIterator->second.get()
@@ -500,6 +498,18 @@ public:
 			)->PreallocatePages(static_cast<uint32_t>(pageCount));
 		}
 		return true;
+	}
+
+	void SetRuntimeGrowthAllowed(bool allowed) noexcept {
+		m_allowRuntimeGrowth = allowed;
+		for(auto& [typeIndex, storage] : m_storages){
+			(void)typeIndex;
+			storage->SetRuntimeGrowthAllowed(allowed);
+		}
+	}
+
+	bool IsRuntimeGrowthAllowed() const noexcept {
+		return m_allowRuntimeGrowth;
 	}
 
 	template<typename T>
@@ -520,11 +530,9 @@ public:
 	GetAllComponentStorageTelemetry() const {
 		std::vector<ComponentStorageTelemetryEntry> entries;
 		entries.reserve(m_storages.size());
-
 		for(const auto& [typeIndex, storage] : m_storages){
 			ComponentStorageTelemetryEntry entry;
 			entry.name = typeIndex.name();
-
 			auto typeIterator = m_typeToID.find(typeIndex);
 			if(typeIterator != m_typeToID.end()){
 				auto nameIterator = m_componentIDToName.find(typeIterator->second);
@@ -533,7 +541,6 @@ public:
 					entry.name = nameIterator->second;
 				}
 			}
-
 			auto strategyIterator = m_storageStrategies.find(typeIndex);
 			if(strategyIterator != m_storageStrategies.end()){
 				entry.strategy = strategyIterator->second;
@@ -541,7 +548,6 @@ public:
 			entry.telemetry = storage->Telemetry();
 			entries.push_back(std::move(entry));
 		}
-
 		std::sort(
 			entries.begin(),
 			entries.end(),
@@ -685,9 +691,9 @@ public:
 	){
 		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return false;
 		auto iterator = m_addDefaultComponentByRuntimeTypeName.find(runtimeTypeName);
-		if(iterator == m_addDefaultComponentByRuntimeTypeName.end()) return false;
-		iterator->second(entity);
-		return true;
+		return iterator != m_addDefaultComponentByRuntimeTypeName.end()
+			? iterator->second(entity)
+			: false;
 	}
 
 	bool RemoveComponentByRuntimeTypeName(
@@ -732,7 +738,7 @@ public:
 	}
 
 private:
-	using StorageAdder = std::function<void(Entity, void*)>;
+	using StorageAdder = std::function<bool(Entity, void*)>;
 
 	template<typename T>
 	void RegisterComponent(ECSStorage::ComponentStorageStrategy strategy){
@@ -742,6 +748,7 @@ private:
 		auto storage = ECSStorage::CreateComponentStorage<T>(strategy);
 		assert(storage && "RegisterComponent: Storage creation failed");
 		IComponentStorage* rawStorage = storage.get();
+		rawStorage->SetRuntimeGrowthAllowed(m_allowRuntimeGrowth);
 
 		switch(strategy){
 		case ECSStorage::ComponentStorageStrategy::Dense:
@@ -749,7 +756,7 @@ private:
 			auto* typedStorage = static_cast<DenseComponentPool<T>*>(rawStorage);
 			m_storageAdders[typeIndex] =
 				[typedStorage](Entity entity, void* rawComponent){
-					typedStorage->Add(
+					return typedStorage->Add(
 						entity,
 						std::move(*static_cast<T*>(rawComponent))
 					);
@@ -763,7 +770,7 @@ private:
 				>(rawStorage);
 				m_storageAdders[typeIndex] =
 					[typedStorage](Entity entity, void*){
-						typedStorage->Add(entity);
+						return typedStorage->Add(entity);
 					};
 			} else {
 				auto* typedStorage = static_cast<
@@ -771,7 +778,7 @@ private:
 				>(rawStorage);
 				m_storageAdders[typeIndex] =
 					[typedStorage](Entity entity, void* rawComponent){
-						typedStorage->Add(
+						return typedStorage->Add(
 							entity,
 							std::move(*static_cast<T*>(rawComponent))
 						);
@@ -782,7 +789,7 @@ private:
 			auto* typedStorage = static_cast<SparseStorage<T>*>(rawStorage);
 			m_storageAdders[typeIndex] =
 				[typedStorage](Entity entity, void* rawComponent){
-					typedStorage->Add(
+					return typedStorage->Add(
 						entity,
 						std::move(*static_cast<T*>(rawComponent))
 					);
@@ -809,7 +816,7 @@ private:
 	std::unordered_map<ComponentTypeID, ComponentOperations> m_componentOperations;
 	std::unordered_map<std::string, YAMLCreator> m_yamlFactory;
 	std::unordered_map<std::string, std::function<void(Entity)>> m_addComponentFuncs;
-	std::unordered_map<std::string, std::function<void(Entity)>>
+	std::unordered_map<std::string, std::function<bool(Entity)>>
 		m_addDefaultComponentByRuntimeTypeName;
 	std::unordered_map<std::string, std::function<void(Entity)>>
 		m_removeComponentByRuntimeTypeName;
@@ -818,4 +825,5 @@ private:
 	std::unordered_map<std::type_index, std::function<IComponent*(void*)>>
 		m_polymorphicAdapters;
 	std::vector<std::string> m_componentRegistrationOrder;
+	bool m_allowRuntimeGrowth = true;
 };
