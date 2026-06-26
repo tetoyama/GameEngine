@@ -1,0 +1,50 @@
+name: Static Batch Candidate Smoke Test
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateStorage.h"
+      - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
+      - ".github/workflows/static-batch-candidate.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateStorage.h"
+      - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
+      - ".github/workflows/static-batch-candidate.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: static-batch-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run static batch candidate contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/StaticBatchCandidateStorageSmokeTest.cpp
+          /Fe:static-batch-candidate-test.exe
+          /link /NODEFAULTLIB:yaml-cppd.lib
+          && static-batch-candidate-test.exe
