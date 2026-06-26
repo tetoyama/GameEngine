@@ -63,11 +63,20 @@ struct IComponentStorage {
 	virtual void PreallocatePages(size_t pageCount){ (void)pageCount; }
 	virtual size_t Capacity() const noexcept { return Size(); }
 
-	// Runtime利用量と実データ容量拡張をStorage方式共通で公開する。
-	// Reserve / PreallocatePagesによる初期確保はGrowth Eventへ含めない。
 	virtual size_t PeakSize() const noexcept { return Size(); }
 	virtual size_t GrowthEventCount() const noexcept { return 0; }
 	virtual void ResetPeakMetrics() noexcept {}
+
+	virtual bool CanAdd(Entity entity) const noexcept {
+		(void)entity;
+		return true;
+	}
+	virtual void SetRuntimeGrowthAllowed(bool allowed) noexcept {
+		m_runtimeGrowthAllowed = allowed;
+	}
+	bool IsRuntimeGrowthAllowed() const noexcept {
+		return m_runtimeGrowthAllowed;
+	}
 
 	ComponentStorageTelemetry Telemetry() const noexcept {
 		return ComponentStorageTelemetry{
@@ -80,6 +89,9 @@ struct IComponentStorage {
 
 	virtual uint32_t GetComponentGeneration(Entity entity) const = 0;
 	virtual uint64_t GetStructureVersion() const noexcept = 0;
+
+private:
+	bool m_runtimeGrowthAllowed = true;
 };
 
 template<typename T>
@@ -88,9 +100,10 @@ public:
 	static constexpr uint32_t InvalidDenseIndex =
 		(std::numeric_limits<uint32_t>::max)();
 
-	void Add(Entity entity, T component){
+	bool Add(Entity entity, T component){
+		if(Contains(entity)) return true;
+		if(!CanAdd(entity)) return false;
 		EnsureIndexCapacity(entity.GetIndex());
-		if(Contains(entity)) return;
 
 		const uint32_t existingIndex = m_sparseIndices[entity.GetIndex()];
 		if(existingIndex != InvalidDenseIndex && existingIndex < m_entities.size()){
@@ -105,6 +118,7 @@ public:
 		if(m_components.capacity() > capacityBefore) ++m_growthEventCount;
 		m_peakSize = (std::max)(m_peakSize, m_components.size());
 		++m_structureVersion;
+		return true;
 	}
 
 	T* Get(Entity entity){
@@ -119,10 +133,25 @@ public:
 		return FindDenseIndex(entity) != InvalidDenseIndex;
 	}
 
+	bool CanAdd(Entity entity) const noexcept override {
+		if(Contains(entity) || IsRuntimeGrowthAllowed()) return true;
+		bool replacesExistingSlot = false;
+		const uint32_t entityIndex = entity.GetIndex();
+		if(entityIndex < m_sparseIndices.size()){
+			const uint32_t existingIndex = m_sparseIndices[entityIndex];
+			replacesExistingSlot =
+				existingIndex != InvalidDenseIndex &&
+				existingIndex < m_entities.size();
+		}
+		const size_t requiredSize =
+			m_components.size() + (replacesExistingSlot ? 0u : 1u);
+		return requiredSize <= m_components.capacity() &&
+			requiredSize <= m_entities.capacity();
+	}
+
 	void Remove(Entity entity) override {
 		const uint32_t denseIndex = FindDenseIndex(entity);
 		if(denseIndex == InvalidDenseIndex) return;
-
 		const uint32_t lastIndex = static_cast<uint32_t>(m_components.size() - 1);
 		if(denseIndex != lastIndex){
 			m_components[denseIndex] = std::move(m_components[lastIndex]);
@@ -140,7 +169,6 @@ public:
 	const void* GetRaw(Entity entity) const override { return Get(entity); }
 	std::vector<Entity> GetEntityList() const override { return m_entities; }
 	size_t Size() const noexcept override { return m_components.size(); }
-
 	void Reserve(size_t expectedCount) override {
 		m_components.reserve(expectedCount);
 		m_entities.reserve(expectedCount);
@@ -180,7 +208,6 @@ private:
 			m_componentGenerations.resize(requiredSize, 0);
 		}
 	}
-
 	uint32_t FindDenseIndex(Entity entity) const {
 		const uint32_t entityIndex = entity.GetIndex();
 		if(entityIndex >= m_sparseIndices.size()) return InvalidDenseIndex;
@@ -190,7 +217,6 @@ private:
 		}
 		return m_entities[denseIndex] == entity ? denseIndex : InvalidDenseIndex;
 	}
-
 	void IncrementGeneration(uint32_t entityIndex){
 		EnsureIndexCapacity(entityIndex);
 		uint32_t& generation = m_componentGenerations[entityIndex];
@@ -210,14 +236,16 @@ private:
 template<typename T>
 class SparseStorage final: public IComponentStorage {
 public:
-	void Add(Entity entity, T component){
-		if(m_components.contains(entity)) return;
+	bool Add(Entity entity, T component){
+		if(m_components.contains(entity)) return true;
+		if(!CanAdd(entity)) return false;
 		const size_t bucketCountBefore = m_components.bucket_count();
 		m_components.emplace(entity, std::move(component));
 		m_componentGenerations.try_emplace(entity.GetIndex(), 0);
 		if(m_components.bucket_count() > bucketCountBefore) ++m_growthEventCount;
 		m_peakSize = (std::max)(m_peakSize, m_components.size());
 		++m_structureVersion;
+		return true;
 	}
 
 	T* Get(Entity entity){
@@ -229,6 +257,14 @@ public:
 		return iterator != m_components.end() ? &iterator->second : nullptr;
 	}
 	bool Contains(Entity entity) const override { return m_components.contains(entity); }
+	bool CanAdd(Entity entity) const noexcept override {
+		if(m_components.contains(entity) || IsRuntimeGrowthAllowed()) return true;
+		const float nextSize = static_cast<float>(m_components.size() + 1);
+		const float threshold =
+			static_cast<float>(m_components.bucket_count()) *
+			m_components.max_load_factor();
+		return nextSize <= threshold;
+	}
 
 	void Remove(Entity entity) override {
 		auto iterator = m_components.find(entity);
@@ -261,7 +297,6 @@ public:
 		m_peakSize = m_components.size();
 		m_growthEventCount = 0;
 	}
-
 	uint32_t GetComponentGeneration(Entity entity) const override {
 		auto iterator = m_componentGenerations.find(entity.GetIndex());
 		return iterator != m_componentGenerations.end() ? iterator->second : 0;
@@ -276,7 +311,6 @@ private:
 		++generation;
 		if(generation == 0) ++generation;
 	}
-
 	std::unordered_map<Entity, T> m_components;
 	std::unordered_map<uint32_t, uint32_t> m_componentGenerations;
 	size_t m_peakSize = 0;
