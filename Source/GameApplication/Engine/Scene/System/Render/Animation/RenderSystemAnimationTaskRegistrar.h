@@ -14,11 +14,8 @@ namespace RenderSystemAnimationTaskRegistrar {
 template<typename RenderSystemT>
 void Register(
 	RenderSystemT& system,
-	SystemScheduleBuilder& builder,
-	float deltaTime
+	SystemScheduleBuilder& builder
 ){
-	(void)deltaTime;
-
 	SystemAccess poseAccess;
 	poseAccess
 		.WriteComponent<ModelRendererComponent>()
