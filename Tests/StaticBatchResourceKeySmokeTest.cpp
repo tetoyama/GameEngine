@@ -58,19 +58,21 @@ int main(){
 		StaticBatchResourceKey::Build(packet);
 	assert(changedGeometry.geometryKey != original.geometryKey);
 
-	ModelRendererComponent model;
-	model.modelFilePath = "Asset/Model/Test.fbx";
+	ModelRendererComponent unloadedModel;
+	unloadedModel.modelFilePath = "Asset/Model/Test.fbx";
 	RenderPacket modelPacket;
 	modelPacket.kind = RenderPacketKind::Model;
 	modelPacket.layer = RenderLayer::Opaque3D;
 	modelPacket.passMask = RenderPacketPassMask::GBuffer;
-	modelPacket.bindings.modelRenderer = &model;
+	modelPacket.bindings.modelRenderer = &unloadedModel;
 	modelPacket.bindings.material = &material;
 
-	const StaticBatchResourceKeySet modelKeys =
+	const StaticBatchResourceKeySet unloadedModelKeys =
 		StaticBatchResourceKey::Build(modelPacket);
-	assert(modelKeys.geometryKey != 0);
-	assert(modelKeys.textureSetKey == 0);
-	assert(!modelKeys.IsComplete());
+	assert(unloadedModelKeys.pipelineKey != 0);
+	assert(unloadedModelKeys.geometryKey == 0);
+	assert(unloadedModelKeys.textureSetKey == 0);
+	assert(unloadedModelKeys.materialStateKey == 0);
+	assert(!unloadedModelKeys.IsComplete());
 	return 0;
 }
