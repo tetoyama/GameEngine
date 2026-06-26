@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <type_traits>
 #include <vector>
 
 #include "StaticBatchPacketCache.h"
@@ -18,13 +19,9 @@ struct StaticBatchInstanceData {
 };
 
 static_assert(sizeof(StaticBatchInstanceData) == 80);
+static_assert(std::is_trivially_copyable_v<StaticBatchInstanceData>);
 
-struct StaticBatchInstanceGroup {
-	StaticBatchCandidateKey key{};
-	std::uint32_t sceneContextID = 0;
-	size_t firstInstance = 0;
-	size_t instanceCount = 0;
-};
+using StaticBatchInstanceGroup = StaticBatchPacketCacheEntry;
 
 struct StaticBatchInstanceDataTelemetry {
 	size_t currentGroupCount = 0;
@@ -98,35 +95,31 @@ public:
 		m_groups.clear();
 		m_instances.clear();
 		for(const StaticBatchPacketCacheEntry& entry : cache.Entries()){
-			if(entry.firstInstance > cache.Entities().size() ||
-				entry.instanceCount >
-					cache.Entities().size() - entry.firstInstance){
+			if(!IsRangeValid(entry, cache)){
 				Invalidate(false);
 				return false;
+			}
+
+			const size_t firstOutputInstance = m_instances.size();
+			for(size_t offset = 0; offset < entry.instanceCount; ++offset){
+				const size_t sourceIndex = entry.firstInstance + offset;
+				const Entity entity = cache.Entities()[sourceIndex];
+
+				StaticBatchInstanceData instance;
+				instance.worldMatrix =
+					cache.Transforms()[sourceIndex].worldMatrix.values;
+				instance.entityIndex = entity.GetIndex();
+				instance.entityGeneration = entity.GetGeneration();
+				instance.sceneContextID = entry.sceneContextID;
+				m_instances.push_back(instance);
 			}
 
 			m_groups.push_back({
 				entry.key,
 				entry.sceneContextID,
-				entry.firstInstance,
+				firstOutputInstance,
 				entry.instanceCount
 			});
-		}
-
-		for(size_t index = 0; index < cache.Entities().size(); ++index){
-			const Entity entity = cache.Entities()[index];
-			StaticBatchInstanceData instance;
-			instance.worldMatrix = cache.Transforms()[index].worldMatrix.values;
-			instance.entityIndex = entity.GetIndex();
-			instance.entityGeneration = entity.GetGeneration();
-			m_instances.push_back(instance);
-		}
-
-		for(const StaticBatchInstanceGroup& group : m_groups){
-			for(size_t offset = 0; offset < group.instanceCount; ++offset){
-				m_instances[group.firstInstance + offset].sceneContextID =
-					group.sceneContextID;
-			}
 		}
 
 		m_sourceRevision = cache.SourceRevision();
@@ -180,13 +173,29 @@ public:
 	}
 
 private:
+	static bool IsRangeValid(
+		const StaticBatchPacketCacheEntry& entry,
+		const StaticBatchPacketCache& cache
+	) noexcept {
+		if(entry.firstInstance > cache.Entities().size()) return false;
+		if(entry.instanceCount >
+			cache.Entities().size() - entry.firstInstance){
+			return false;
+		}
+		return entry.firstInstance <= cache.Transforms().size() &&
+			entry.instanceCount <=
+				cache.Transforms().size() - entry.firstInstance;
+	}
+
 	void Invalidate(bool overflowed) noexcept {
+		const bool enteringOverflow = overflowed && !m_overflowed;
 		m_groups.clear();
 		m_instances.clear();
 		m_sourceRevision = 0;
+		m_generation = 0;
 		m_valid = false;
 		m_overflowed = overflowed;
-		if(overflowed) ++m_overflowEventCount;
+		if(enteringOverflow) ++m_overflowEventCount;
 	}
 
 	std::vector<StaticBatchInstanceGroup> m_groups;
