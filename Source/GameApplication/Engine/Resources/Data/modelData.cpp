@@ -203,43 +203,66 @@ void ModelData::UpdateBoneMatrix(aiNode* node, aiMatrix4x4 Matrix) {
 }
 
 void ModelData::LoadAnimation(const char* FileName, const char* Name){
-	const aiScene* scene = aiImportFile(FileName, aiProcess_ConvertToLeftHanded);
-	assert(scene);
-	if(scene == nullptr){
-		OutputDebugStringA(("Failed to load animation file: " + std::string(FileName) + "\n").c_str());
-		return;
-	}
-	if(!scene->HasAnimations()){
-		OutputDebugStringA(("No animations found in file: " + std::string(FileName) + "\n").c_str());
+	if(!FileName || !Name || FileName[0] == '\0' || Name[0] == '\0'){
 		return;
 	}
 
-	auto it = m_Animation.find(Name);
-	if (it != m_Animation.end()) {
+	// 共有Cacheに同名Clipがある場合はImport自体を行わない。
+	if(m_Animation.contains(Name)){
 		return;
 	}
 
-	AnimationData animationData;
-	animationData.FilePath = FileName;
-	animationData.Scene = scene;
-	animationData.isImported = true;
-	animationData.Animation = scene->mAnimations[0];
-	
-	m_Animation[Name] = animationData;
-	if(scene->mNumAnimations != 0){
+	const aiScene* primaryScene =
+		aiImportFile(FileName, aiProcess_ConvertToLeftHanded);
+	if(!primaryScene){
+		OutputDebugStringA(
+			("Failed to load animation file: " + std::string(FileName) + "\n").c_str()
+		);
+		return;
+	}
+	if(!primaryScene->HasAnimations()){
+		OutputDebugStringA(
+			("No animations found in file: " + std::string(FileName) + "\n").c_str()
+		);
+		aiReleaseImport(primaryScene);
+		return;
+	}
 
-		for(unsigned int i = 0; i < scene->mNumAnimations; i++){
+	AnimationData primaryAnimation;
+	primaryAnimation.FilePath = FileName;
+	primaryAnimation.Scene = primaryScene;
+	primaryAnimation.isImported = true;
+	primaryAnimation.Animation = primaryScene->mAnimations[0];
+	m_Animation.emplace(Name, primaryAnimation);
 
-			scene = aiImportFile(FileName, aiProcess_ConvertToLeftHanded);
+	// File内に複数Clipがある場合は、各Clipが独立してSceneを所有する。
+	// 同名Keyの上書きとaiSceneの二重解放を避けるため、Native名ごとに別Importする。
+	for(unsigned int index = 0; index < primaryScene->mNumAnimations; ++index){
+		const aiAnimation* sourceAnimation = primaryScene->mAnimations[index];
+		if(!sourceAnimation) continue;
 
-			AnimationData animationData;
-			animationData.FilePath = FileName;
-			animationData.Scene = scene;
-			animationData.isImported = true;
-			animationData.Animation = scene->mAnimations[i];
-			m_Animation[scene->mAnimations[i]->mName.C_Str()] = animationData;
-
+		const std::string nativeName = sourceAnimation->mName.C_Str();
+		if(nativeName.empty() || nativeName == Name ||
+			m_Animation.contains(nativeName)){
+			continue;
 		}
+
+		const aiScene* additionalScene =
+			aiImportFile(FileName, aiProcess_ConvertToLeftHanded);
+		if(!additionalScene || index >= additionalScene->mNumAnimations ||
+			!additionalScene->mAnimations[index]){
+			if(additionalScene){
+				aiReleaseImport(additionalScene);
+			}
+			continue;
+		}
+
+		AnimationData additionalAnimation;
+		additionalAnimation.FilePath = FileName;
+		additionalAnimation.Scene = additionalScene;
+		additionalAnimation.isImported = true;
+		additionalAnimation.Animation = additionalScene->mAnimations[index];
+		m_Animation.emplace(nativeName, additionalAnimation);
 	}
 }
 
@@ -558,4 +581,3 @@ void ModelData::UpdateAndDispatchSkinning(GraphicsContext* ctx, std::vector<ID3D
 		dc->CopyResource(dynamicVertexBuffers[m], m_SkinOutputUAVBuffer[m]);
 	}
 }
-
