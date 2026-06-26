@@ -17,6 +17,8 @@
 #include "Scene/Component/waveComponent.h"
 #include "Scene/Registry/componentRegistry.h"
 #include "MeshCullingBoundsProvider.h"
+#include "ModelCullingBoundsProvider.h"
+#include "TerrainCullingBoundsProvider.h"
 
 namespace WaveCullingBoundsProvider {
 
@@ -27,7 +29,6 @@ inline bool TryBuildLocalBounds(
 	if(wave.Resolution <= 0 || !std::isfinite(wave.Amplitude)){
 		return false;
 	}
-
 	const float amplitude = std::abs(wave.Amplitude);
 	outBounds.min = Vector3(-1.0f, -amplitude, -1.0f);
 	outBounds.max = Vector3(1.0f, amplitude, 1.0f);
@@ -58,27 +59,34 @@ struct UpdateResult {
 	size_t skippedHigherPrioritySource = 0;
 };
 
-// Bounds source priority: Model > valid Mesh > Terrain > Wave.
 inline UpdateResult UpdateScene(ComponentRegistry& components){
 	UpdateResult result;
-	const auto entities =
-		components.FindEntitiesWithComponent<CullingComponent>();
-
+	const auto entities = components.FindEntitiesWithComponent<CullingComponent>();
 	for(Entity entity : entities){
 		WaveComponent* wave = components.GetComponent<WaveComponent>(entity);
 		if(!wave) continue;
-
 		++result.visited;
-		if(components.GetComponent<ModelRendererComponent>(entity) ||
-			components.GetComponent<TerrainComponent>(entity)){
-			++result.skippedHigherPrioritySource;
-			continue;
+
+		if(ModelRendererComponent* model =
+			components.GetComponent<ModelRendererComponent>(entity)){
+			if(ModelCullingBoundsProvider::CanSupplyLocalBounds(*model)){
+				++result.skippedHigherPrioritySource;
+				continue;
+			}
 		}
 
 		if(MeshRendererComponent* mesh =
 			components.GetComponent<MeshRendererComponent>(entity)){
 			EntityAABB meshBounds;
 			if(MeshCullingBoundsProvider::TryBuildLocalBounds(*mesh, meshBounds)){
+				++result.skippedHigherPrioritySource;
+				continue;
+			}
+		}
+
+		if(TerrainComponent* terrain =
+			components.GetComponent<TerrainComponent>(entity)){
+			if(TerrainCullingBoundsProvider::CanSupplyLocalBounds(*terrain)){
 				++result.skippedHigherPrioritySource;
 				continue;
 			}
@@ -91,9 +99,6 @@ inline UpdateResult UpdateScene(ComponentRegistry& components){
 			continue;
 		}
 
-		const std::uint64_t revision = MakeSourceRevision(*wave);
-		if(culling->sourceRevision == revision) continue;
-
 		EntityAABB localBounds;
 		if(!TryBuildLocalBounds(*wave, localBounds)){
 			culling->sourceRevision = 0;
@@ -102,6 +107,8 @@ inline UpdateResult UpdateScene(ComponentRegistry& components){
 			continue;
 		}
 
+		const std::uint64_t revision = MakeSourceRevision(*wave);
+		if(culling->sourceRevision == revision) continue;
 		culling->localBounds = localBounds;
 		culling->sourceRevision = revision;
 		culling->boundsValid = false;
