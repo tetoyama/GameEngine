@@ -20,19 +20,42 @@ public:
 
 	uint32_t WorkerIndex() const noexcept { return m_workerIndex; }
 
-	void Clear(){ m_packets.clear(); }
+	void Clear(){
+		m_packets.clear();
+		m_reservedScenes.clear();
+	}
 
 	void Reserve(size_t count){ m_packets.reserve(count); }
 
 	void Add(RenderPacket packet){
+		ApplySceneReserve(packet.bindings.sceneContext);
 		m_packets.emplace_back(std::move(packet));
 	}
 
 	const std::vector<RenderPacket>& Packets() const noexcept { return m_packets; }
+	size_t Size() const noexcept { return m_packets.size(); }
+	size_t Capacity() const noexcept { return m_packets.capacity(); }
 
 private:
+	void ApplySceneReserve(SceneContext* context){
+		if(!context) return;
+		if(std::find(m_reservedScenes.begin(), m_reservedScenes.end(), context) !=
+			m_reservedScenes.end()){
+			return;
+		}
+
+		m_reservedScenes.push_back(context);
+		const size_t configuredReserve =
+			static_cast<size_t>(context->storageConfig.renderPacketReserve);
+		const size_t desiredCapacity = m_packets.size() + configuredReserve;
+		if(desiredCapacity > m_packets.capacity()){
+			m_packets.reserve(desiredCapacity);
+		}
+	}
+
 	uint32_t m_workerIndex = 0;
 	std::vector<RenderPacket> m_packets;
+	std::vector<SceneContext*> m_reservedScenes;
 };
 
 // Frame-local CPU packet storage. Scheduler resource Write/Read hazards guarantee
@@ -71,10 +94,24 @@ public:
 		);
 
 		size_t packetCount = 0;
+		size_t configuredReserve = 0;
+		std::vector<SceneContext*> reservedScenes;
 		for(const auto* worker : orderedWorkers){
 			packetCount += worker->Packets().size();
+			for(const RenderPacket& packet : worker->Packets()){
+				SceneContext* context = packet.bindings.sceneContext;
+				if(!context) continue;
+				if(std::find(reservedScenes.begin(), reservedScenes.end(), context) !=
+					reservedScenes.end()){
+					continue;
+				}
+				reservedScenes.push_back(context);
+				configuredReserve += static_cast<size_t>(
+					context->storageConfig.renderPacketReserve
+				);
+			}
 		}
-		m_packets.reserve(packetCount);
+		m_packets.reserve((std::max)(packetCount, configuredReserve));
 
 		for(const auto* worker : orderedWorkers){
 			for(const RenderPacket& packet : worker->Packets()){
