@@ -1,0 +1,62 @@
+name: Animation Task Registrar Smoke Test
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/Animation/RenderSystemAnimationTaskRegistrar.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Animation/RenderSystemAnimationTasks.inl"
+      - "Tests/RenderSystemAnimationTaskRegistrarSmokeTest.cpp"
+      - "Tests/RenderSystemAnimationFrameDeltaSmokeTest.cpp"
+      - ".github/workflows/animation-task-registrar.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/Animation/RenderSystemAnimationTaskRegistrar.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Animation/RenderSystemAnimationTasks.inl"
+      - "Tests/RenderSystemAnimationTaskRegistrarSmokeTest.cpp"
+      - "Tests/RenderSystemAnimationFrameDeltaSmokeTest.cpp"
+      - ".github/workflows/animation-task-registrar.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: animation-task-registrar-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - source: Tests/RenderSystemAnimationTaskRegistrarSmokeTest.cpp
+            output: animation-task-registrar-test.exe
+          - source: Tests/RenderSystemAnimationFrameDeltaSmokeTest.cpp
+            output: animation-frame-delta-test.exe
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run animation registrar contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          ${{ matrix.source }}
+          /Fe:${{ matrix.output }}
+          /link /NODEFAULTLIB:yaml-cppd.lib
+          && ${{ matrix.output }}
