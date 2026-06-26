@@ -3,12 +3,14 @@
 #include "Engine/Scene/System/Render/Culling/ModelCullingBoundsProvider.h"
 
 int main(){
-	aiScene scene;
-	scene.mNumMeshes = 1;
-	scene.mMeshes = new aiMesh*[1];
-	scene.mMeshes[0] = new aiMesh();
+	// Assimpの外部デストラクタへ依存しない純粋Bounds計算テスト。
+	// Test process終了時にまとめて破棄されるため、ここでは所有Objectを保持する。
+	auto* scene = new aiScene();
+	scene->mNumMeshes = 1;
+	scene->mMeshes = new aiMesh*[1];
+	scene->mMeshes[0] = new aiMesh();
 
-	aiMesh* mesh = scene.mMeshes[0];
+	aiMesh* mesh = scene->mMeshes[0];
 	mesh->mNumVertices = 2;
 	mesh->mVertices = new aiVector3D[2];
 	mesh->mVertices[0] = aiVector3D(-1.0f, -2.0f, -3.0f);
@@ -16,7 +18,7 @@ int main(){
 
 	EntityAABB normalBounds;
 	assert(ModelCullingBoundsProvider::TryBuildLocalBounds(
-		scene,
+		*scene,
 		false,
 		normalBounds
 	));
@@ -29,7 +31,7 @@ int main(){
 
 	EntityAABB blenderBounds;
 	assert(ModelCullingBoundsProvider::TryBuildLocalBounds(
-		scene,
+		*scene,
 		true,
 		blenderBounds
 	));
@@ -40,10 +42,10 @@ int main(){
 	assert(blenderBounds.max.y == 3.0f);
 	assert(blenderBounds.max.z == 5.0f);
 
-	assert(!ModelCullingBoundsProvider::HasSkinnedMesh(scene));
+	assert(!ModelCullingBoundsProvider::HasSkinnedMesh(*scene));
 	mesh->mNumBones = 1;
 	mesh->mBones = new aiBone*[1];
 	mesh->mBones[0] = new aiBone();
-	assert(ModelCullingBoundsProvider::HasSkinnedMesh(scene));
+	assert(ModelCullingBoundsProvider::HasSkinnedMesh(*scene));
 	return 0;
 }
