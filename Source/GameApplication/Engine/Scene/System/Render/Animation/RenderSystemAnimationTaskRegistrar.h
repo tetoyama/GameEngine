@@ -17,6 +17,8 @@ void Register(
 	SystemScheduleBuilder& builder,
 	float deltaTime
 ){
+	(void)deltaTime;
+
 	SystemAccess poseAccess;
 	poseAccess
 		.WriteComponent<ModelRendererComponent>()
@@ -50,8 +52,8 @@ void Register(
 		0,
 		std::move(uploadAccess),
 		ThreadAffinity::MainThread,
-		[&system, deltaTime](const SystemTaskContext&){
-			system.UploadAnimationPoses(deltaTime);
+		[&system](const SystemTaskContext& taskContext){
+			system.UploadAnimationPoses(taskContext.deltaTime);
 		}
 	);
 }
