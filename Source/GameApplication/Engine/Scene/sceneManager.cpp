@@ -128,7 +128,6 @@ void SceneManager::Update(float deltaTime){
 			if (OldState == SceneManagerState::Stopped) {
 
 				TempSave(); // 一時保存
-
 				// プレイ開始前のエディタ操作コマンドをクリア（プレイ中は Undo/Redo 無効）
 				if (m_SceneContext.editor) {
 					m_SceneContext.editor->commandManager.Clear();
@@ -423,9 +422,10 @@ std::shared_ptr<Scene> SceneManager::LoadFromFilePath(const std::string& filePat
 	}
 
 	auto scene = std::make_shared<Scene>();
+	// Initializeより前にPathを設定し、Storage設定の先読みと
+	// Default Scene生成を挟まない直接ロードを成立させる。
+	scene->ScenePath = filePath;
 	scene->Initialize(&m_SceneContext);
-	scene->ResetAll();
-	scene->LoadSceneFromYAML(filePath);
 
 	m_activeScenes[scene->SceneName] = scene;
 	if(m_SceneContext.debug){
