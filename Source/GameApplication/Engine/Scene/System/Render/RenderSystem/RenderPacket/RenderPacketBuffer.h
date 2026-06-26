@@ -9,6 +9,7 @@
 
 #include "RenderPacket.h"
 #include "StaticBatchCandidateTypes.h"
+#include "StaticBatchResourceKey.h"
 #include "Scene/scene.h"
 #include "Scene/Registry/componentRegistry.h"
 #include "Scene/Component/EntityStateComponents.h"
@@ -194,8 +195,17 @@ private:
 				continue;
 			}
 
+			const StaticBatchResourceKeySet resourceKeys =
+				StaticBatchResourceKey::Build(packet);
 			if(!m_staticBatchCandidates.Add({
-				{packet.kind, packet.layer, packet.materialKey},
+				{
+					packet.kind,
+					packet.layer,
+					packet.materialKey,
+					resourceKeys.pipelineKey,
+					resourceKeys.geometryKey,
+					resourceKeys.textureSetKey
+				},
 				packet.sceneContextID,
 				packet.entity,
 				packetIndex,
