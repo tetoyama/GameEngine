@@ -47,7 +47,6 @@ inline void ExpandBounds(
 	bounds.max.z = (std::max)(bounds.max.z, position.z);
 }
 
-// Assimp Scene所有権や外部ライブラリの寿命に依存しない純粋なBounds計算契約。
 inline bool TryBuildLocalBoundsFromPositions(
 	std::span<const aiVector3D> positions,
 	bool isBlender,
@@ -74,6 +73,25 @@ inline bool HasSkinnedMesh(const aiScene& scene) noexcept {
 		if(mesh && mesh->HasBones()) return true;
 	}
 	return false;
+}
+
+inline bool HasPositionVertices(const aiScene& scene) noexcept {
+	for(unsigned int meshIndex = 0; meshIndex < scene.mNumMeshes; ++meshIndex){
+		const aiMesh* mesh = scene.mMeshes[meshIndex];
+		if(mesh && mesh->HasPositions() && mesh->mNumVertices > 0){
+			return true;
+		}
+	}
+	return false;
+}
+
+inline bool CanSupplyLocalBounds(
+	const ModelRendererComponent& renderer
+) noexcept {
+	return renderer.model &&
+		renderer.model->AiScene &&
+		!HasSkinnedMesh(*renderer.model->AiScene) &&
+		HasPositionVertices(*renderer.model->AiScene);
 }
 
 inline bool TryBuildLocalBounds(
@@ -135,8 +153,6 @@ struct UpdateResult {
 	size_t skippedSkinned = 0;
 };
 
-// Static ModelだけLocal Boundsを供給する。
-// Skinned ModelはAnimation中の形状をRest Pose Boundsで切らないよう未確定のまま残す。
 inline UpdateResult UpdateScene(ComponentRegistry& components){
 	UpdateResult result;
 	const auto entities =
