@@ -41,8 +41,6 @@ struct RenderPacketStorageTelemetry {
 	size_t growthEventCount = 0;
 };
 
-// Frame-local CPU packet storage. Scheduler resource Write/Read hazards guarantee
-// that Merge completes before MainThread submission reads the published packets.
 class RenderPacketFrameBuffer {
 public:
 	void BeginFrame(uint64_t generation){
@@ -52,8 +50,6 @@ public:
 		m_ready = false;
 	}
 
-	// Scene restore / shutdown boundaries invalidate every non-owning binding.
-	// Capacity is retained to avoid a new allocation spike after Play/Stop.
 	void Reset() noexcept {
 		m_packets.clear();
 		m_staticBatchCandidates.Reset();
@@ -61,7 +57,6 @@ public:
 		m_ready = false;
 	}
 
-	// Explicit initial reserve is configuration, not a runtime growth event.
 	void Reserve(size_t count){ m_packets.reserve(count); }
 	void ReserveStaticBatchCandidates(size_t count){
 		m_staticBatchCandidates.Reserve(count);
@@ -213,7 +208,8 @@ private:
 					packet.materialKey,
 					resourceKeys.pipelineKey,
 					resourceKeys.geometryKey,
-					resourceKeys.textureSetKey
+					resourceKeys.textureSetKey,
+					resourceKeys.materialStateKey
 				},
 				packet.sceneContextID,
 				packet.entity,
