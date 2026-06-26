@@ -4,12 +4,16 @@ on:
   pull_request:
     branches: [master]
     paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateTypes.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateStorage.h"
       - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
     paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateTypes.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateStorage.h"
       - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
