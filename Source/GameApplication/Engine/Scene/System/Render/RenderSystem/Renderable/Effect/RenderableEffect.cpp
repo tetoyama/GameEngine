@@ -20,7 +20,7 @@ void RenderableEffect::Execute(const RenderPassContext& ctx, const RenderPacket&
 
 	Effekseer::Matrix44 projection = ConvertXMMATRIXToMatrix44(ctx.projectionMatrix);
 	Effekseer::Matrix44 view = ConvertXMMATRIXToMatrix44(ctx.viewMatrix);
-	auto* renderer = m_context->graphics->GetEffectRenderer();
+	auto renderer = m_context->graphics->GetEffectRenderer();
 	renderer->SetProjectionMatrix(projection);
 	renderer->SetCameraMatrix(view);
 	renderer->BeginRendering();
