@@ -6,6 +6,7 @@
 
 #include "RenderPacketBuffer.h"
 #include "StaticBatchCandidateTypes.h"
+#include "StaticBatchResourceKey.h"
 
 namespace StaticBatchCandidateBuilder {
 
@@ -49,8 +50,17 @@ inline void Build(
 			continue;
 		}
 
+		const StaticBatchResourceKeySet resourceKeys =
+			StaticBatchResourceKey::Build(packet);
 		if(!output.Add({
-			{packet.kind, packet.layer, packet.materialKey},
+			{
+				packet.kind,
+				packet.layer,
+				packet.materialKey,
+				resourceKeys.pipelineKey,
+				resourceKeys.geometryKey,
+				resourceKeys.textureSetKey
+			},
 			packet.sceneContextID,
 			packet.entity,
 			packetIndex,
