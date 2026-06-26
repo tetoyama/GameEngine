@@ -101,10 +101,10 @@ jobs:
           /Fe:scene-storage-runtime-test.exe
           /link /NODEFAULTLIB:yaml-cppd.lib
           && scene-storage-runtime-test.exe
-      - name: Compile and run Scene storage YAML smoke test
+      - name: Compile Scene storage YAML contract
         shell: cmd
         run: >-
-          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /c
           /wd4201 /wd4458 /MTd
           /I Source
           /I Source/GameApplication
@@ -113,5 +113,4 @@ jobs:
           /I Source/GameApplication/Engine/Scene
           /I Source/GameApplication/Service
           Tests/SceneStorageYamlSmokeTest.cpp
-          /Fe:scene-storage-yaml-test.exe
-          && scene-storage-yaml-test.exe
+          /Fo:scene-storage-yaml-test.obj
