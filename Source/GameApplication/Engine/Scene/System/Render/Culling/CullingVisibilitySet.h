@@ -137,8 +137,8 @@ public:
 		return count;
 	}
 
-	void ResetPeakMetrics(std::uint32_t sceneContextID) noexcept {
-		for(auto& [key, entry] : m_views){
+	void ResetPeakMetrics(std::uint32_t sceneContextID) const noexcept {
+		for(const auto& [key, entry] : m_views){
 			if(key.sceneContextID != sceneContextID) continue;
 			entry.growthEventCount = 0;
 			entry.peakVisibleCount = entry.activationEpoch == m_activationEpoch
@@ -162,8 +162,8 @@ private:
 	struct ViewEntry {
 		VisibleEntitySet entities;
 		std::uint64_t activationEpoch = 0;
-		size_t peakVisibleCount = 0;
-		size_t growthEventCount = 0;
+		mutable size_t peakVisibleCount = 0;
+		mutable size_t growthEventCount = 0;
 	};
 
 	std::uint64_t m_frameSerial = 0;
