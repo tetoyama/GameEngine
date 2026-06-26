@@ -53,7 +53,7 @@ void EditorPass::Execute(const RenderPassContext& context){
 	gBufferPass->Execute(viewContext);
 	shadowMapPass->Execute(viewContext);
 	graphics->SetCameraPosition(viewContext.CameraPosition);
-	graphics->SetViewMatrix(viewContext.ViewMatrix);
+	graphics->SetViewMatrix(viewContext.viewMatrix);
 	graphics->SetProjectionMatrix(viewContext.projectionMatrix);
 	lightingPass->SetTextureSlot(gBufferPass, shadowMapPass, graphics);
 	lightingPass->Execute(viewContext);
