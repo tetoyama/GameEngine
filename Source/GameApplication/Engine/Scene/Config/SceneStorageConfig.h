@@ -14,18 +14,27 @@
 struct SceneStorageConfig {
 	static constexpr uint32_t DirectPagedPageSize = 256;
 
-	uint32_t expectedEntityCount = 1024;
-	uint32_t expectedTransformCount = 768;
-	uint32_t expectedRenderableCount = 512;
-	uint32_t expectedCullingCount = 512;
-	uint32_t expectedStaticEntityCount = 256;
+	static constexpr uint32_t DefaultExpectedEntityCount = 1024;
+	static constexpr uint32_t DefaultExpectedTransformCount = 768;
+	static constexpr uint32_t DefaultExpectedRenderableCount = 512;
+	static constexpr uint32_t DefaultExpectedCullingCount = 512;
+	static constexpr uint32_t DefaultExpectedStaticEntityCount = 256;
+	static constexpr uint32_t DefaultRenderPacketReserve = 512;
+	static constexpr uint32_t DefaultVisibleEntityReserve = 512;
+	static constexpr uint32_t DefaultStaticBatchReserve = 64;
+
+	uint32_t expectedEntityCount = DefaultExpectedEntityCount;
+	uint32_t expectedTransformCount = DefaultExpectedTransformCount;
+	uint32_t expectedRenderableCount = DefaultExpectedRenderableCount;
+	uint32_t expectedCullingCount = DefaultExpectedCullingCount;
+	uint32_t expectedStaticEntityCount = DefaultExpectedStaticEntityCount;
 
 	uint32_t preallocatedTransformPages = 0;
 	uint32_t preallocatedTagPages = 0;
 
-	uint32_t renderPacketReserve = 512;
-	uint32_t visibleEntityReserve = 512;
-	uint32_t staticBatchReserve = 64;
+	uint32_t renderPacketReserve = DefaultRenderPacketReserve;
+	uint32_t visibleEntityReserve = DefaultVisibleEntityReserve;
+	uint32_t staticBatchReserve = DefaultStaticBatchReserve;
 
 	bool allowRuntimeGrowth = true;
 	bool logCapacityGrowth = true;
@@ -91,13 +100,13 @@ struct SceneStorageConfig {
 		Normalize();
 	}
 
-private:
 	static constexpr uint32_t RequiredPageCount(uint32_t entityCount) noexcept {
 		return entityCount == 0
 			? 0
 			: ((entityCount - 1) / DirectPagedPageSize) + 1;
 	}
 
+private:
 	template<typename T>
 	static void Read(const YAML::Node& node, const char* key, T& value){
 		if(node[key]) value = node[key].as<T>();
