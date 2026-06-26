@@ -5,7 +5,6 @@
 // =======================================================================
 #pragma once
 #include "../IRenderable.h"
-class ComponentRegistry;
 
 struct RenderPassContext;
 struct SceneManagerContext;
