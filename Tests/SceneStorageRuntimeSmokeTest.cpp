@@ -2,8 +2,17 @@
 #include <cstddef>
 #include <type_traits>
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4100 4471)
+#endif
+
 #include "Engine/Scene/Config/SceneStorageRuntime.h"
 #include "Engine/Scene/Registry/entityRegistry.h"
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 namespace {
 
