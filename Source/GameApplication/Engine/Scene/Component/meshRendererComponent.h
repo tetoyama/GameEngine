@@ -34,6 +34,7 @@ struct MeshData {
 	Vector3 localBoundsMin{};
 	Vector3 localBoundsMax{};
 	std::uint64_t localBoundsRevision = 0;
+	std::uint64_t geometryResourceKey = 0;
 	bool localBoundsValid = false;
 
 	void SetLocalBounds(
@@ -47,9 +48,14 @@ struct MeshData {
 		localBoundsValid = true;
 	}
 
+	void SetGeometryResourceKey(std::uint64_t key) noexcept {
+		geometryResourceKey = key;
+	}
+
 	void ClearLocalBounds() noexcept {
 		localBoundsMin = {};
 		localBoundsMax = {};
+		geometryResourceKey = 0;
 		++localBoundsRevision;
 		if(localBoundsRevision == 0) ++localBoundsRevision;
 		localBoundsValid = false;
