@@ -71,7 +71,7 @@ public:
 		if(!inserted) return;
 
 		entry.peakVisibleCount = (std::max)(entry.peakVisibleCount, entry.entities.size());
-		if(entry.entities.bucket_count() > bucketsBefore) ++m_growthEventCount;
+		if(entry.entities.bucket_count() > bucketsBefore) ++entry.growthEventCount;
 	}
 
 	bool HasView(CullingViewKey view) const {
@@ -108,32 +108,39 @@ public:
 			: 0;
 	}
 
-	size_t MaxVisibleCount() const noexcept {
+	size_t MaxVisibleCount(std::uint32_t sceneContextID) const noexcept {
 		size_t count = 0;
 		for(const auto& [key, entry] : m_views){
-			(void)key;
-			if(entry.activationEpoch == m_activationEpoch){
-				count = (std::max)(count, entry.entities.size());
+			if(key.sceneContextID != sceneContextID ||
+				entry.activationEpoch != m_activationEpoch){
+				continue;
 			}
+			count = (std::max)(count, entry.entities.size());
 		}
 		return count;
 	}
 
-	size_t PeakVisibleCount() const noexcept {
+	size_t PeakVisibleCount(std::uint32_t sceneContextID) const noexcept {
 		size_t count = 0;
 		for(const auto& [key, entry] : m_views){
-			(void)key;
+			if(key.sceneContextID != sceneContextID) continue;
 			count = (std::max)(count, entry.peakVisibleCount);
 		}
 		return count;
 	}
 
-	size_t GrowthEventCount() const noexcept { return m_growthEventCount; }
+	size_t GrowthEventCount(std::uint32_t sceneContextID) const noexcept {
+		size_t count = 0;
+		for(const auto& [key, entry] : m_views){
+			if(key.sceneContextID == sceneContextID) count += entry.growthEventCount;
+		}
+		return count;
+	}
 
-	void ResetPeakMetrics() noexcept {
-		m_growthEventCount = 0;
+	void ResetPeakMetrics(std::uint32_t sceneContextID) noexcept {
 		for(auto& [key, entry] : m_views){
-			(void)key;
+			if(key.sceneContextID != sceneContextID) continue;
+			entry.growthEventCount = 0;
 			entry.peakVisibleCount = entry.activationEpoch == m_activationEpoch
 				? entry.entities.size()
 				: 0;
@@ -156,10 +163,10 @@ private:
 		VisibleEntitySet entities;
 		std::uint64_t activationEpoch = 0;
 		size_t peakVisibleCount = 0;
+		size_t growthEventCount = 0;
 	};
 
 	std::uint64_t m_frameSerial = 0;
 	std::uint64_t m_activationEpoch = 0;
-	size_t m_growthEventCount = 0;
 	std::unordered_map<CullingViewKey, ViewEntry, CullingViewKeyHash> m_views;
 };
