@@ -14,7 +14,6 @@
 #include "Entity/Entity.h"
 #include "Config/SceneStorageConfig.h"
 
-// Entityの生成・破棄・世代・生存状態を管理するレジストリ。
 class EntityRegistry {
 public:
 	EntityRegistry(){
@@ -44,7 +43,7 @@ public:
 			? m_recycledIndices.back()
 			: m_nextIndex;
 
-		if(!EnsureCapacity(index) || !CanInsertAliveEntity()){
+		if(!CanInsertAliveEntity() || !EnsureCapacity(index)){
 			return {};
 		}
 
@@ -71,7 +70,7 @@ public:
 			return Entity(index, m_generations[index]);
 		}
 
-		if(!EnsureCapacity(index) || !CanInsertAliveEntity()){
+		if(!CanInsertAliveEntity() || !EnsureCapacity(index)){
 			return {};
 		}
 
@@ -116,8 +115,6 @@ public:
 			m_generations[index] == entity.GetGeneration();
 	}
 
-	// GPU Pickや旧形式の保存データなど、indexしか持たない値から
-	// 現在生存しているEntityハンドルを復元する。
 	Entity Resolve(uint32_t index) const {
 		if(index == 0 || index >= m_aliveFlags.size() || !m_aliveFlags[index]){
 			return {};
@@ -158,8 +155,6 @@ public:
 		m_growthEventCount = 0;
 	}
 
-	// 現在生存しているEntityをすべて破棄する。
-	// generationと再利用候補は維持し、古い参照が復活しないようにする。
 	void ResetAll() {
 		const std::vector<Entity> aliveCopy(m_alive.begin(), m_alive.end());
 		for(Entity entity : aliveCopy){
@@ -201,8 +196,6 @@ private:
 	void IncrementGeneration(uint32_t index) {
 		uint32_t& generation = m_generations[index];
 		++generation;
-
-		// 32bit周回時に初期generationへ戻ることを避ける。
 		if(generation == 0){
 			++generation;
 		}
