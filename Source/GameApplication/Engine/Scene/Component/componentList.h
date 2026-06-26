@@ -31,6 +31,7 @@
 #include "Component/followComponent.h"
 #include "Component/environmentMapComponent.h"
 
+#include "Config/SceneStorageConfig.h"
 #include "Storage/ComponentStorageStrategy.h"
 
 #include "Script/SetScene.h"
@@ -58,7 +59,15 @@ template<>
 struct ComponentStoragePreference<TransformComponent> {
 	static constexpr bool HasExplicitStrategy = true;
 	static constexpr ComponentStorageStrategy Strategy = ComponentStorageStrategy::DirectPaged;
-	static constexpr size_t ExpectedCount = 0;
+	static constexpr size_t ExpectedCount = SceneStorageConfig::DefaultExpectedTransformCount;
+	static constexpr size_t PreallocatedPages = SceneStorageConfig::RequiredPageCount(ExpectedCount);
+};
+
+template<>
+struct ComponentStoragePreference<CullingComponent> {
+	static constexpr bool HasExplicitStrategy = true;
+	static constexpr ComponentStorageStrategy Strategy = ComponentStorageStrategy::Dense;
+	static constexpr size_t ExpectedCount = SceneStorageConfig::DefaultExpectedCullingCount;
 	static constexpr size_t PreallocatedPages = 0;
 };
 } // namespace ECSStorage
