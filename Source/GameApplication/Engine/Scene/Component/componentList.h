@@ -62,14 +62,6 @@ struct ComponentStoragePreference<TransformComponent> {
 	static constexpr size_t ExpectedCount = SceneStorageConfig::DefaultExpectedTransformCount;
 	static constexpr size_t PreallocatedPages = SceneStorageConfig::RequiredPageCount(ExpectedCount);
 };
-
-template<>
-struct ComponentStoragePreference<CullingComponent> {
-	static constexpr bool HasExplicitStrategy = true;
-	static constexpr ComponentStorageStrategy Strategy = ComponentStorageStrategy::Dense;
-	static constexpr size_t ExpectedCount = SceneStorageConfig::DefaultExpectedCullingCount;
-	static constexpr size_t PreallocatedPages = 0;
-};
 } // namespace ECSStorage
 
 #define COMPONENT_LIST(X) \
