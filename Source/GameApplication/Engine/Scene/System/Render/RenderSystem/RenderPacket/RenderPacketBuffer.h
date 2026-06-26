@@ -20,15 +20,11 @@ public:
 
 	uint32_t WorkerIndex() const noexcept { return m_workerIndex; }
 
-	void Clear(){
-		m_packets.clear();
-		m_reservedScenes.clear();
-	}
+	void Clear(){ m_packets.clear(); }
 
 	void Reserve(size_t count){ m_packets.reserve(count); }
 
 	void Add(RenderPacket packet){
-		ApplySceneReserve(packet.bindings.sceneContext);
 		m_packets.emplace_back(std::move(packet));
 	}
 
@@ -37,25 +33,8 @@ public:
 	size_t Capacity() const noexcept { return m_packets.capacity(); }
 
 private:
-	void ApplySceneReserve(SceneContext* context){
-		if(!context) return;
-		if(std::find(m_reservedScenes.begin(), m_reservedScenes.end(), context) !=
-			m_reservedScenes.end()){
-			return;
-		}
-
-		m_reservedScenes.push_back(context);
-		const size_t configuredReserve =
-			static_cast<size_t>(context->storageConfig.renderPacketReserve);
-		const size_t desiredCapacity = m_packets.size() + configuredReserve;
-		if(desiredCapacity > m_packets.capacity()){
-			m_packets.reserve(desiredCapacity);
-		}
-	}
-
 	uint32_t m_workerIndex = 0;
 	std::vector<RenderPacket> m_packets;
-	std::vector<SceneContext*> m_reservedScenes;
 };
 
 // Frame-local CPU packet storage. Scheduler resource Write/Read hazards guarantee
