@@ -37,6 +37,13 @@ private:
 	std::vector<RenderPacket> m_packets;
 };
 
+struct RenderPacketStorageTelemetry {
+	size_t currentSize = 0;
+	size_t peakSize = 0;
+	size_t capacity = 0;
+	size_t growthEventCount = 0;
+};
+
 // Frame-local CPU packet storage. Scheduler resource Write/Read hazards guarantee
 // that Merge completes before MainThread submission reads the published packets.
 class RenderPacketFrameBuffer {
@@ -54,6 +61,7 @@ public:
 		m_ready = false;
 	}
 
+	// Explicit initial reserve is configuration, not a runtime growth event.
 	void Reserve(size_t count){
 		m_packets.reserve(count);
 	}
@@ -90,7 +98,15 @@ public:
 				);
 			}
 		}
-		m_packets.reserve((std::max)(packetCount, configuredReserve));
+
+		const size_t capacityBefore = m_packets.capacity();
+		const size_t reserveTarget = (std::max)(packetCount, configuredReserve);
+		m_packets.reserve(reserveTarget);
+		if(m_packets.capacity() > capacityBefore &&
+			packetCount > configuredReserve &&
+			packetCount > capacityBefore){
+			++m_growthEventCount;
+		}
 
 		for(const auto* worker : orderedWorkers){
 			for(const RenderPacket& packet : worker->Packets()){
@@ -100,6 +116,7 @@ public:
 		}
 
 		std::stable_sort(m_packets.begin(), m_packets.end(), RenderPacketLess);
+		m_peakSize = (std::max)(m_peakSize, m_packets.size());
 		m_ready = true;
 	}
 
@@ -108,6 +125,22 @@ public:
 	const std::vector<RenderPacket>& Packets() const noexcept { return m_packets; }
 	size_t Size() const noexcept { return m_packets.size(); }
 	size_t Capacity() const noexcept { return m_packets.capacity(); }
+	size_t PeakSize() const noexcept { return m_peakSize; }
+	size_t GrowthEventCount() const noexcept { return m_growthEventCount; }
+
+	RenderPacketStorageTelemetry Telemetry() const noexcept {
+		return RenderPacketStorageTelemetry{
+			m_packets.size(),
+			m_peakSize,
+			m_packets.capacity(),
+			m_growthEventCount
+		};
+	}
+
+	void ResetPeakMetrics() noexcept {
+		m_peakSize = m_packets.size();
+		m_growthEventCount = 0;
+	}
 
 	size_t Count(RenderPacketKind kind) const noexcept {
 		return static_cast<size_t>(std::count_if(
@@ -144,4 +177,6 @@ private:
 	uint64_t m_generation = 0;
 	bool m_ready = false;
 	std::vector<RenderPacket> m_packets;
+	size_t m_peakSize = 0;
+	size_t m_growthEventCount = 0;
 };
