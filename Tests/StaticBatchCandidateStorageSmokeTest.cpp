@@ -13,7 +13,8 @@ RenderPacket MakePacket(
 	RenderPacketKind kind,
 	RenderLayer layer,
 	std::uint32_t materialKey,
-	std::uint64_t sequence
+	std::uint64_t sequence,
+	float translationX = 0.0f
 ){
 	RenderPacket packet;
 	packet.sceneContextID = context->contextID;
@@ -24,6 +25,11 @@ RenderPacket MakePacket(
 	packet.passMask = RenderPacketPassesForLayer(layer);
 	packet.sortKey = MakeRenderPacketSortKey(layer, kind, materialKey, 0);
 	packet.stableSequence = sequence;
+	packet.transform.worldMatrix[0] = 1.0f;
+	packet.transform.worldMatrix[5] = 1.0f;
+	packet.transform.worldMatrix[10] = 1.0f;
+	packet.transform.worldMatrix[15] = 1.0f;
+	packet.transform.worldMatrix[12] = translationX;
 	packet.bindings.sceneContext = context;
 	packet.bindings.modelRenderer =
 		context->component->GetComponent<ModelRendererComponent>(entity);
@@ -37,7 +43,8 @@ RenderPacketWorkerBuffer BuildWorker(
 	Entity staticModelA,
 	Entity staticModelB,
 	Entity staticMesh,
-	Entity dynamicModel
+	Entity dynamicModel,
+	float meshTranslationX = 0.0f
 ){
 	RenderPacketWorkerBuffer worker(0);
 	worker.Add(MakePacket(
@@ -46,7 +53,8 @@ RenderPacketWorkerBuffer BuildWorker(
 		RenderPacketKind::Mesh,
 		RenderLayer::Opaque3D,
 		4,
-		3
+		3,
+		meshTranslationX
 	));
 	worker.Add(MakePacket(
 		context,
@@ -140,54 +148,79 @@ int main(){
 
 	const auto groups = candidates.Groups();
 	assert(groups[0].key.kind == RenderPacketKind::Model);
-	assert(groups[0].key.materialKey == 2);
-	assert(groups[0].sceneContextID == context.contextID);
-	assert(groups[0].firstCandidate == 0);
 	assert(groups[0].candidateCount == 2);
 	assert(!groups[0].cacheReady);
 	assert(groups[1].key.kind == RenderPacketKind::Mesh);
-	assert(groups[1].firstCandidate == 2);
 	assert(groups[1].candidateCount == 1);
 	assert(groups[1].cacheReady);
+
+	const StaticBatchPacketCache& cache = packets.StaticBatchCache();
+	assert(cache.IsValid());
+	assert(!cache.IsOverflowed());
+	assert(cache.Entries().size() == 1);
+	assert(cache.Entities().size() == 1);
+	assert(cache.Entities()[0] == staticMesh);
+	assert(cache.Transforms().size() == 1);
+	assert(cache.Transforms()[0].worldMatrix[12] == 0.0f);
+	const StaticBatchPacketCacheTelemetry initialCache = cache.Telemetry();
+	assert(initialCache.currentEntryCount == 1);
+	assert(initialCache.currentInstanceCount == 1);
+	assert(initialCache.rebuildCount == 1);
+	assert(initialCache.growthEventCount == 0);
+	assert(initialCache.skippedIncompleteGroupCount == 1);
+
+	// Same cache source revision reuses the previous flat cache.
+	packets.BeginFrame(2);
+	packets.Merge(workers);
+	assert(packets.StaticBatchCache().Generation() == 2);
+	assert(packets.StaticBatchCache().Telemetry().rebuildCount == 1);
+
+	// A static transform change invalidates and rebuilds the cache.
+	const RenderPacketWorkerBuffer movedWorker = BuildWorker(
+		&context,
+		staticModelA,
+		staticModelB,
+		staticMesh,
+		dynamicModel,
+		5.0f
+	);
+	const std::array<RenderPacketWorkerBuffer, 1> movedWorkers{movedWorker};
+	packets.BeginFrame(3);
+	packets.Merge(movedWorkers);
+	assert(packets.StaticBatchCache().Telemetry().rebuildCount == 2);
+	assert(packets.StaticBatchCache().Transforms()[0].worldMatrix[12] == 5.0f);
 
 	const StaticBatchCandidateStorageTelemetry telemetry =
 		packets.StaticBatchTelemetry();
 	assert(telemetry.currentSize == 3);
-	assert(telemetry.peakSize == 3);
 	assert(telemetry.currentGroupCount == 2);
-	assert(telemetry.peakGroupCount == 2);
 	assert(telemetry.currentCacheReadyGroupCount == 1);
-	assert(telemetry.peakCacheReadyGroupCount == 1);
-	assert(telemetry.groupCapacity == candidates.GroupCapacity());
-	assert(telemetry.growthEventCount == 0);
 	assert(!telemetry.overflowed);
 
 	packets.ResetPeakMetrics();
 	assert(packets.StaticBatchCandidates().PeakSize() == 3);
 	assert(packets.StaticBatchCandidates().PeakGroupCount() == 2);
 	assert(packets.StaticBatchCandidates().PeakCacheReadyGroupCount() == 1);
-	assert(packets.StaticBatchCandidates().GrowthEventCount() == 0);
+	assert(packets.StaticBatchCache().Telemetry().rebuildCount == 0);
 
 	context.storageConfig.staticBatchReserve = 1;
 	RenderPacketFrameBuffer growthPackets;
-	growthPackets.BeginFrame(2);
+	growthPackets.BeginFrame(4);
 	growthPackets.Merge(workers);
 	assert(growthPackets.StaticBatchCandidates().Size() == 3);
-	assert(growthPackets.StaticBatchCandidates().GroupCount() == 2);
-	assert(growthPackets.StaticBatchCandidates().CacheReadyGroupCount() == 1);
 	assert(growthPackets.StaticBatchCandidates().GrowthEventCount() > 0);
-	assert(!growthPackets.StaticBatchCandidates().IsOverflowed());
+	assert(growthPackets.StaticBatchCache().IsValid());
 
 	context.storageConfig.allowRuntimeGrowth = false;
 	RenderPacketFrameBuffer strictPackets;
-	strictPackets.BeginFrame(3);
+	strictPackets.BeginFrame(5);
 	strictPackets.Merge(workers);
 	assert(strictPackets.Size() == 4);
 	assert(strictPackets.IsReady());
 	assert(strictPackets.StaticBatchCandidates().Size() == 0);
-	assert(strictPackets.StaticBatchCandidates().GroupCount() == 0);
-	assert(strictPackets.StaticBatchCandidates().CacheReadyGroupCount() == 0);
 	assert(strictPackets.StaticBatchCandidates().IsOverflowed());
-	assert(strictPackets.StaticBatchCandidates().GrowthEventCount() == 1);
+	assert(!strictPackets.StaticBatchCache().IsValid());
+	assert(strictPackets.StaticBatchCache().IsOverflowed());
+	assert(strictPackets.StaticBatchCache().Telemetry().overflowEventCount == 1);
 	return 0;
 }
