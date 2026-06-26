@@ -4,6 +4,10 @@
 
 #include "Engine/Scene/System/Render/Animation/AnimationPoseEvaluator.h"
 
+// このTestは手作りの非Import Fixtureだけを使い、modelData.cppをリンクしない。
+// GPU / Assimp所有物を持たないため、Release契約は空実装で十分。
+void ModelData::Release(){}
+
 namespace {
 
 aiAnimation* MakePositionAnimation(const char* nodeName, float positionX){
@@ -42,23 +46,21 @@ void AddAnimation(
 } // namespace
 
 int main(){
-	// ModelDataのDestructorはGPU/Assimp所有物を解放するため、この最小契約Testでは
-	// Process終了まで保持し、手作りの非Import Sceneを解放対象へ渡さない。
-	auto* model = new ModelData();
+	ModelData model;
 	auto* scene = new aiScene();
 	auto* root = new aiNode();
 	root->mName = aiString("Root");
 	scene->mRootNode = root;
 
-	model->AiScene = scene;
-	model->enableRootMotion = true;
-	model->m_BoneIndexMap.emplace("Root", 0u);
-	model->m_Bones.resize(1);
-	AddAnimation(*model, "EntityA", MakePositionAnimation("Root", 1.0f));
-	AddAnimation(*model, "EntityB", MakePositionAnimation("Root", 3.0f));
+	model.AiScene = scene;
+	model.enableRootMotion = true;
+	model.m_BoneIndexMap.emplace("Root", 0u);
+	model.m_Bones.resize(1);
+	AddAnimation(model, "EntityA", MakePositionAnimation("Root", 1.0f));
+	AddAnimation(model, "EntityB", MakePositionAnimation("Root", 3.0f));
 
-	const float sharedMatrixBefore = model->m_Bones[0].Matrix.a4;
-	const float sharedAnimationBefore = model->m_Bones[0].AnimationMatrix.a4;
+	const float sharedMatrixBefore = model.m_Bones[0].Matrix.a4;
+	const float sharedAnimationBefore = model.m_Bones[0].AnimationMatrix.a4;
 
 	std::vector<BONE> entityAPose;
 	std::vector<BONE> entityBPose;
@@ -70,13 +72,13 @@ int main(){
 	};
 
 	assert(AnimationPoseEvaluator::Evaluate(
-		*model,
+		model,
 		entityABlend,
 		0.0f,
 		entityAPose
 	));
 	assert(AnimationPoseEvaluator::Evaluate(
-		*model,
+		model,
 		entityBBlend,
 		0.0f,
 		entityBPose
@@ -88,13 +90,17 @@ int main(){
 	assert(std::fabs(entityAPose[0].Matrix.a4 - entityBPose[0].Matrix.a4) > 0.5f);
 
 	// Evaluatorは共有Resource側のBone状態を変更しない。
-	assert(model->m_Bones[0].Matrix.a4 == sharedMatrixBefore);
-	assert(model->m_Bones[0].AnimationMatrix.a4 == sharedAnimationBefore);
+	assert(model.m_Bones[0].Matrix.a4 == sharedMatrixBefore);
+	assert(model.m_Bones[0].AnimationMatrix.a4 == sharedAnimationBefore);
 
 	// 一方のEntity固有出力を変更しても、もう一方と共有Resourceへ伝播しない。
 	const float entityBValue = entityBPose[0].Matrix.a4;
 	entityAPose[0].Matrix.a4 = 99.0f;
 	assert(entityBPose[0].Matrix.a4 == entityBValue);
-	assert(model->m_Bones[0].Matrix.a4 == sharedMatrixBefore);
+	assert(model.m_Bones[0].Matrix.a4 == sharedMatrixBefore);
+
+	// FixtureはModelDataの空Release後にProcess終了するため、手作りAssimp Nodeの
+	// 個別解放はこの最小契約Testでは行わない。
+	model.AiScene = nullptr;
 	return 0;
 }
