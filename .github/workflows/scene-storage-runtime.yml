@@ -1,0 +1,68 @@
+name: Scene Storage Runtime Smoke Test
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "Source/GameApplication/Engine/Scene/Config/SceneStorageConfig.h"
+      - "Source/GameApplication/Engine/Scene/Config/SceneStorageRuntime.h"
+      - "Source/GameApplication/Engine/Scene/Registry/entityRegistry.h"
+      - "Tests/SceneStorageRuntimeSmokeTest.cpp"
+      - ".github/workflows/scene-storage-runtime.yml"
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - "Source/GameApplication/Engine/Scene/Config/SceneStorageConfig.h"
+      - "Source/GameApplication/Engine/Scene/Config/SceneStorageRuntime.h"
+      - "Source/GameApplication/Engine/Scene/Registry/entityRegistry.h"
+      - "Tests/SceneStorageRuntimeSmokeTest.cpp"
+      - ".github/workflows/scene-storage-runtime.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: scene-storage-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run scene storage runtime contract
+        id: storage_runtime
+        continue-on-error: true
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/SceneStorageRuntimeSmokeTest.cpp
+          /Fe:scene-storage-runtime-test.exe
+          > scene-storage-runtime.log 2>&1
+          && scene-storage-runtime-test.exe >> scene-storage-runtime.log 2>&1
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scene-storage-runtime-diagnostics
+          path: scene-storage-runtime.log
+          if-no-files-found: error
+      - name: Preserve smoke result
+        if: steps.storage_runtime.outcome == 'failure'
+        run: cmd /c exit 1
