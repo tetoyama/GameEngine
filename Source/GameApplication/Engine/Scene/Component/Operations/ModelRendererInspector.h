@@ -18,15 +18,17 @@
 
 namespace ModelRendererInspector {
 
-inline bool HasAnimationBinding(
+// component.animationsは、Entityが利用する外部Animation Sourceを表す。
+// firstは初回Import時のAlias、secondは永続化するSource Path。
+inline bool HasAnimationSourceBinding(
 	const ModelRendererComponent& component,
-	const std::string& animationName
+	const std::string& path
 ){
 	return std::any_of(
 		component.animations.begin(),
 		component.animations.end(),
-		[&animationName](const auto& animation){
-			return animation.first == animationName;
+		[&path](const auto& animation){
+			return animation.second == path;
 		}
 	);
 }
@@ -47,21 +49,6 @@ inline bool HasImportedAnimationFromPath(
 	);
 }
 
-inline void BindImportedAnimationsFromPath(
-	ModelRendererComponent& component,
-	const std::string& path
-){
-	if(!component.model) return;
-
-	for(const auto& [name, animation] : component.model->m_Animation){
-		if(!animation.isImported || animation.FilePath != path ||
-			HasAnimationBinding(component, name)){
-			continue;
-		}
-		component.animations.emplace_back(name, path);
-	}
-}
-
 inline std::vector<std::string> GetAnimationNames(
 	const ModelRendererComponent& component
 ){
@@ -72,8 +59,9 @@ inline std::vector<std::string> GetAnimationNames(
 
 	for(const auto& [name, animation] : component.model->m_Animation){
 		// Model内蔵Clipは全Entityで利用可能。
-		// 外部Import Clipは、このEntityがBindingを所有するものだけを公開する。
-		if(!animation.isImported || HasAnimationBinding(component, name)){
+		// 外部Import Clipは、このEntityがSource PathをBindingしている場合だけ公開する。
+		if(!animation.isImported ||
+			HasAnimationSourceBinding(component, animation.FilePath)){
 			names.push_back(name);
 		}
 	}
@@ -144,18 +132,27 @@ inline void DrawModelPath(
 	}
 }
 
-inline void RemoveAnimation(
+inline void RemoveAnimationSource(
 	ModelRendererComponent& component,
 	const std::string& animationName
 ){
+	if(!component.model) return;
+
+	const auto selected = component.model->m_Animation.find(animationName);
+	if(selected == component.model->m_Animation.end() ||
+		!selected->second.isImported){
+		return;
+	}
+	const std::string sourcePath = selected->second.FilePath;
+
 	// ModelDataはResourceServiceで共有されるため、共有CacheからClipを削除しない。
-	// このEntityのBindingとBlend参照だけを除去し、他Entityへ波及させない。
+	// このEntityのSource Bindingと、そのSource由来のBlend参照だけを除去する。
 	component.animations.erase(
 		std::remove_if(
 			component.animations.begin(),
 			component.animations.end(),
-			[&animationName](const auto& animation){
-				return animation.first == animationName;
+			[&sourcePath](const auto& animation){
+				return animation.second == sourcePath;
 			}
 		),
 		component.animations.end()
@@ -164,8 +161,11 @@ inline void RemoveAnimation(
 		std::remove_if(
 			component.blendedAnimations.begin(),
 			component.blendedAnimations.end(),
-			[&animationName](const AnimationBlend& blend){
-				return blend.name == animationName;
+			[&component, &sourcePath](const AnimationBlend& blend){
+				const auto animation = component.model->m_Animation.find(blend.name);
+				return animation != component.model->m_Animation.end() &&
+					animation->second.isImported &&
+					animation->second.FilePath == sourcePath;
 			}
 		),
 		component.blendedAnimations.end()
@@ -224,8 +224,9 @@ inline void DrawAddAnimationPopup(ModelRendererComponent& component){
 			}
 
 			if(HasImportedAnimationFromPath(component, path)){
-				// 1ファイルに複数Clipがある場合も、同じEntityへ全Bindingを保存する。
-				BindImportedAnimationsFromPath(component, path);
+				if(!HasAnimationSourceBinding(component, path)){
+					component.animations.emplace_back(name, path);
+				}
 				animationPath[0] = '\0';
 				animationName[0] = '\0';
 				ImGui::CloseCurrentPopup();
@@ -257,30 +258,34 @@ inline void DrawAnimationList(ModelRendererComponent& component){
 	}
 
 	DrawAddAnimationPopup(component);
-	std::vector<std::string> animationsToDelete;
+	std::vector<std::string> sourcesToDelete;
 	for(const std::string& name : visibleAnimations){
 		const auto animationIterator = component.model->m_Animation.find(name);
 		if(animationIterator == component.model->m_Animation.end()) continue;
 		const AnimationData& animation = animationIterator->second;
 
 		ImGui::PushID(name.c_str());
-		const bool canDeleteBinding =
-			animation.isImported && HasAnimationBinding(component, name);
-		if(!canDeleteBinding){
+		const bool canDeleteSource =
+			animation.isImported &&
+			HasAnimationSourceBinding(component, animation.FilePath);
+		if(!canDeleteSource){
 			ImGui::BeginDisabled();
 		}
-		if(ImGui::Button("Delete") && canDeleteBinding){
-			animationsToDelete.push_back(name);
+		if(ImGui::Button("Delete") && canDeleteSource){
+			sourcesToDelete.push_back(name);
 		}
-		if(!canDeleteBinding){
+		if(!canDeleteSource){
 			ImGui::EndDisabled();
+		}
+		if(canDeleteSource && ImGui::IsItemHovered()){
+			ImGui::SetTooltip("Removes this animation source from the entity.");
 		}
 		ImGui::SameLine();
 		ImGui::TextUnformatted(name.c_str());
 		ImGui::PopID();
 	}
-	for(const std::string& name : animationsToDelete){
-		RemoveAnimation(component, name);
+	for(const std::string& name : sourcesToDelete){
+		RemoveAnimationSource(component, name);
 	}
 
 	ImGui::TreePop();
