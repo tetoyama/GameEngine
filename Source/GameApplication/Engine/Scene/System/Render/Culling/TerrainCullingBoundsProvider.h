@@ -11,6 +11,7 @@
 #include <limits>
 
 #include "Scene/Component/CullingComponent.h"
+#include "Scene/Component/modelRendererComponent.h"
 #include "Scene/Component/terrainComponent.h"
 #include "Scene/Registry/componentRegistry.h"
 
@@ -73,8 +74,10 @@ struct UpdateResult {
 	size_t visited = 0;
 	size_t updated = 0;
 	size_t unavailable = 0;
+	size_t skippedHigherPrioritySource = 0;
 };
 
+// Bounds source priority: Model > Terrain.
 inline UpdateResult UpdateScene(ComponentRegistry& components){
 	UpdateResult result;
 	const auto entities =
@@ -86,6 +89,11 @@ inline UpdateResult UpdateScene(ComponentRegistry& components){
 		if(!terrain) continue;
 
 		++result.visited;
+		if(components.GetComponent<ModelRendererComponent>(entity)){
+			++result.skippedHigherPrioritySource;
+			continue;
+		}
+
 		CullingComponent* culling =
 			components.GetComponent<CullingComponent>(entity);
 		if(!culling){
