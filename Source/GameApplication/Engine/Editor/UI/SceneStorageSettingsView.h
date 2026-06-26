@@ -40,6 +40,7 @@ struct StorageMetrics {
 	size_t transformPages = 0;
 	size_t staticTagPages = 0;
 	size_t renderPackets = 0;
+	size_t visibleEntities = 0;
 };
 
 struct ViewState {
@@ -71,12 +72,14 @@ inline bool DrawUnsignedProperty(
 		value,
 		static_cast<uint32_t>(INT_MAX)
 	));
-	const int minValue = static_cast<int>((std::min)(
+	const int minimumValue = static_cast<int>((std::min)(
 		minimum,
 		static_cast<uint32_t>(INT_MAX)
 	));
-	if(!ImGui::DragInt(id, &edited, 1.0f, minValue, INT_MAX)) return false;
-	value = static_cast<uint32_t>((std::max)(edited, minValue));
+	if(!ImGui::DragInt(id, &edited, 1.0f, minimumValue, INT_MAX)){
+		return false;
+	}
+	value = static_cast<uint32_t>((std::max)(edited, minimumValue));
 	return true;
 }
 
@@ -85,18 +88,16 @@ inline std::shared_ptr<Scene> DrawSceneSelector(
 	std::string& selectedSceneName
 ){
 	const auto& activeScenes = sceneManager.GetActiveScenes();
-	if(activeScenes.empty()){
-		selectedSceneName.clear();
-		return {};
-	}
-
 	std::vector<std::string> sceneNames;
 	sceneNames.reserve(activeScenes.size());
 	for(const auto& [name, scene] : activeScenes){
 		if(scene) sceneNames.push_back(name);
 	}
 	std::sort(sceneNames.begin(), sceneNames.end());
-	if(sceneNames.empty()) return {};
+	if(sceneNames.empty()){
+		selectedSceneName.clear();
+		return {};
+	}
 
 	if(std::find(sceneNames.begin(), sceneNames.end(), selectedSceneName) ==
 		sceneNames.end()){
@@ -116,16 +117,20 @@ inline std::shared_ptr<Scene> DrawSceneSelector(
 	}
 
 	auto iterator = activeScenes.find(selectedSceneName);
-	return iterator != activeScenes.end() ? iterator->second : std::shared_ptr<Scene>{};
+	return iterator != activeScenes.end()
+		? iterator->second
+		: std::shared_ptr<Scene>{};
+}
+
+inline RenderSystem* ResolveRenderSystem(SystemRegistry* registry){
+	return registry ? registry->GetSystem<RenderSystem>() : nullptr;
 }
 
 inline size_t CountRenderPackets(
-	SystemRegistry* registry,
+	const RenderSystem* renderSystem,
 	uint32_t sceneContextID
 ){
-	if(!registry || sceneContextID == 0) return 0;
-	RenderSystem* renderSystem = registry->GetSystem<RenderSystem>();
-	if(!renderSystem) return 0;
+	if(!renderSystem || sceneContextID == 0) return 0;
 
 	size_t count = 0;
 	for(const RenderPacket& packet : renderSystem->GetRenderPacketBuffer().Packets()){
@@ -136,7 +141,7 @@ inline size_t CountRenderPackets(
 
 inline StorageMetrics ReadMetrics(
 	SceneContext& context,
-	SystemRegistry* systemRegistry
+	const RenderSystem* renderSystem
 ){
 	StorageMetrics metrics;
 	if(context.entity){
@@ -151,7 +156,6 @@ inline StorageMetrics ReadMetrics(
 			context.component->GetComponentStorageSize<CullingComponent>();
 		metrics.staticEntities =
 			context.component->GetComponentStorageSize<StaticEntityComponent>();
-
 		metrics.transformPages =
 			context.component->GetComponentStorageCapacity<TransformComponent>() /
 			SceneStorageConfig::DirectPagedPageSize;
@@ -159,7 +163,12 @@ inline StorageMetrics ReadMetrics(
 			context.component->GetComponentStorageCapacity<StaticEntityComponent>() /
 			SceneStorageConfig::DirectPagedPageSize;
 	}
-	metrics.renderPackets = CountRenderPackets(systemRegistry, context.contextID);
+
+	metrics.renderPackets = CountRenderPackets(renderSystem, context.contextID);
+	if(renderSystem){
+		metrics.visibleEntities =
+			renderSystem->GetCullingVisibility().MaxVisibleCount(context.contextID);
+	}
 	return metrics;
 }
 
@@ -173,6 +182,7 @@ inline void UpdatePeak(StorageMetrics& peak, const StorageMetrics& current){
 	peak.transformPages = (std::max)(peak.transformPages, current.transformPages);
 	peak.staticTagPages = (std::max)(peak.staticTagPages, current.staticTagPages);
 	peak.renderPackets = (std::max)(peak.renderPackets, current.renderPackets);
+	peak.visibleEntities = (std::max)(peak.visibleEntities, current.visibleEntities);
 }
 
 inline void DrawMetricRow(
@@ -192,15 +202,23 @@ inline void DrawMetricRow(
 	ImGui::Text("%llu", static_cast<unsigned long long>(peak));
 }
 
-inline uint32_t ResolvePeakValue(size_t peak, float margin){
+inline uint32_t ResolvePeakValue(
+	size_t peak,
+	float margin,
+	uint32_t minimum = 0
+){
+	if(peak == 0) return minimum;
 	const double scaled = std::ceil(
-		static_cast<double>((std::max)(peak, size_t{1})) *
+		static_cast<double>(peak) *
 		(1.0 + static_cast<double>((std::max)(margin, 0.0f)))
 	);
-	return static_cast<uint32_t>((std::min)(
-		scaled,
-		static_cast<double>((std::numeric_limits<uint32_t>::max)())
-	));
+	return (std::max)(
+		minimum,
+		static_cast<uint32_t>((std::min)(
+			scaled,
+			static_cast<double>((std::numeric_limits<uint32_t>::max)())
+		))
+	);
 }
 
 inline void ApplyPeak(
@@ -208,7 +226,7 @@ inline void ApplyPeak(
 	const StorageMetrics& peak,
 	float margin
 ){
-	config.expectedEntityCount = ResolvePeakValue(peak.entities, margin);
+	config.expectedEntityCount = ResolvePeakValue(peak.entities, margin, 1);
 	config.expectedTransformCount = ResolvePeakValue(peak.transforms, margin);
 	config.expectedRenderableCount = ResolvePeakValue(peak.renderables, margin);
 	config.expectedCullingCount = ResolvePeakValue(peak.cullingComponents, margin);
@@ -218,7 +236,7 @@ inline void ApplyPeak(
 	config.preallocatedTagPages =
 		SceneStorageConfig::RequiredPageCount(config.expectedStaticEntityCount);
 	config.renderPacketReserve = ResolvePeakValue(peak.renderPackets, margin);
-	config.visibleEntityReserve = ResolvePeakValue(peak.cullingComponents, margin);
+	config.visibleEntityReserve = ResolvePeakValue(peak.visibleEntities, margin);
 	config.Normalize();
 }
 
@@ -262,7 +280,10 @@ inline void DrawConfiguredSettings(SceneStorageConfig& config){
 		ImGui::TableSetColumnIndex(0);
 		ImGui::TextUnformatted("Page Size");
 		ImGui::TableSetColumnIndex(1);
-		ImGui::TextDisabled("%u (Engine fixed)", SceneStorageConfig::DirectPagedPageSize);
+		ImGui::TextDisabled(
+			"%u (Engine fixed)",
+			SceneStorageConfig::DirectPagedPageSize
+		);
 		changed |= DrawUnsignedProperty(
 			"Preallocated Transform Pages",
 			"##PreallocatedTransformPages",
@@ -303,12 +324,25 @@ inline void DrawConfiguredSettings(SceneStorageConfig& config){
 
 inline void DrawMetrics(
 	SceneContext& context,
+	RenderSystem* renderSystem,
 	const StorageMetrics& current,
 	StorageMetrics& peak,
 	ViewState& state,
 	SceneStorageConfig& config
 ){
 	UpdatePeak(peak, current);
+	if(context.entity){
+		peak.entities = (std::max)(
+			peak.entities,
+			context.entity->GetPeakAliveCount()
+		);
+	}
+	if(renderSystem){
+		peak.visibleEntities = (std::max)(
+			peak.visibleEntities,
+			renderSystem->GetCullingVisibility().PeakVisibleCount(context.contextID)
+		);
+	}
 
 	ImGui::SeparatorText("Measured Usage");
 	if(ImGui::BeginTable(
@@ -323,32 +357,79 @@ inline void DrawMetrics(
 		ImGui::TableSetupColumn("Current", ImGuiTableColumnFlags_WidthFixed, 90.0f);
 		ImGui::TableSetupColumn("Peak", ImGuiTableColumnFlags_WidthFixed, 90.0f);
 		ImGui::TableHeadersRow();
-		DrawMetricRow("Entities", config.expectedEntityCount, current.entities, peak.entities);
-		DrawMetricRow("Transforms", config.expectedTransformCount, current.transforms, peak.transforms);
-		DrawMetricRow("Renderables", config.expectedRenderableCount, current.renderables, peak.renderables);
-		DrawMetricRow("Culling Components", config.expectedCullingCount, current.cullingComponents, peak.cullingComponents);
-		DrawMetricRow("Static Entities", config.expectedStaticEntityCount, current.staticEntities, peak.staticEntities);
-		DrawMetricRow("Transform Pages", config.ResolveTransformPageCount(), current.transformPages, peak.transformPages);
-		DrawMetricRow("Static Tag Pages", config.ResolveTagPageCount(), current.staticTagPages, peak.staticTagPages);
-		DrawMetricRow("Render Packets", config.renderPacketReserve, current.renderPackets, peak.renderPackets);
+		DrawMetricRow(
+			"Entities", config.expectedEntityCount, current.entities, peak.entities);
+		DrawMetricRow(
+			"Transforms", config.expectedTransformCount, current.transforms, peak.transforms);
+		DrawMetricRow(
+			"Renderables", config.expectedRenderableCount, current.renderables, peak.renderables);
+		DrawMetricRow(
+			"Culling Components",
+			config.expectedCullingCount,
+			current.cullingComponents,
+			peak.cullingComponents
+		);
+		DrawMetricRow(
+			"Static Entities",
+			config.expectedStaticEntityCount,
+			current.staticEntities,
+			peak.staticEntities
+		);
+		DrawMetricRow(
+			"Transform Pages",
+			config.ResolveTransformPageCount(),
+			current.transformPages,
+			peak.transformPages
+		);
+		DrawMetricRow(
+			"Static Tag Pages",
+			config.ResolveTagPageCount(),
+			current.staticTagPages,
+			peak.staticTagPages
+		);
+		DrawMetricRow(
+			"Render Packets",
+			config.renderPacketReserve,
+			current.renderPackets,
+			peak.renderPackets
+		);
+		DrawMetricRow(
+			"Visible Entities / View",
+			config.visibleEntityReserve,
+			current.visibleEntities,
+			peak.visibleEntities
+		);
 		ImGui::EndTable();
 	}
 
-	const size_t growthEvents = context.entity
+	const size_t entityGrowthEvents = context.entity
 		? context.entity->GetGrowthEventCount()
+		: 0;
+	const size_t visibilityGrowthEvents = renderSystem
+		? renderSystem->GetCullingVisibility().GrowthEventCount(context.contextID)
 		: 0;
 	ImGui::Text(
 		"Entity Capacity Growth Events: %llu",
-		static_cast<unsigned long long>(growthEvents)
+		static_cast<unsigned long long>(entityGrowthEvents)
+	);
+	ImGui::Text(
+		"Visibility Capacity Growth Events: %llu",
+		static_cast<unsigned long long>(visibilityGrowthEvents)
 	);
 
+	int marginPercent = static_cast<int>(std::lround(state.peakMargin * 100.0f));
 	ImGui::SetNextItemWidth(180.0f);
-	ImGui::SliderFloat("Peak Margin", &state.peakMargin, 0.0f, 1.0f, "%.0f%%");
+	if(ImGui::SliderInt("Peak Margin", &marginPercent, 0, 100, "%d%%")){
+		state.peakMargin = static_cast<float>(marginPercent) / 100.0f;
+	}
 	if(ImGui::IsItemHovered()){
-		ImGui::SetTooltip("Margin is added when applying measured peaks to scene defaults.");
+		ImGui::SetTooltip(
+			"Margin is added when applying measured peaks to scene defaults."
+		);
 	}
 
-	const float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+	const float buttonWidth =
+		(ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
 	if(ImGui::Button("Apply Measured Peak", ImVec2(buttonWidth, 0.0f))){
 		ApplyPeak(config, peak, 0.0f);
 	}
@@ -359,7 +440,12 @@ inline void DrawMetrics(
 
 	if(ImGui::Button("Reset Runtime Peaks", ImVec2(-1.0f, 0.0f))){
 		peak = current;
-		if(context.entity) context.entity->ResetPeakMetrics();
+		if(context.entity){
+			context.entity->ResetPeakMetrics();
+		}
+		if(renderSystem){
+			renderSystem->GetCullingVisibility().ResetPeakMetrics(context.contextID);
+		}
 	}
 }
 
@@ -396,17 +482,25 @@ inline void Draw(EditorService* editor, bool* open){
 		return;
 	}
 
+	RenderSystem* renderSystem =
+		ResolveRenderSystem(sceneManager->GetSystemRegistry());
+
 	if(ImGui::BeginTabBar("SceneSettingsTabs")){
 		if(ImGui::BeginTabItem("Storage")){
 			SceneStorageConfig& config = scene->GetStorageConfig();
 			DrawConfiguredSettings(config);
 
-			const StorageMetrics current = ReadMetrics(
-				*context,
-				sceneManager->GetSystemRegistry()
-			);
+			const StorageMetrics current =
+				ReadMetrics(*context, renderSystem);
 			StorageMetrics& peak = state.peaks[context->contextID];
-			DrawMetrics(*context, current, peak, state, config);
+			DrawMetrics(
+				*context,
+				renderSystem,
+				current,
+				peak,
+				state,
+				config
+			);
 
 			ImGui::Spacing();
 			ImGui::Separator();
