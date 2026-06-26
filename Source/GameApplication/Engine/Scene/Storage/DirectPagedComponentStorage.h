@@ -5,81 +5,96 @@
 // =======================================================================
 #pragma once
 
+#include "Scene/Interface/IComponentStorage.h"
+
+#include <algorithm>
 #include <array>
 #include <bitset>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
-#include "Scene/Interface/IComponentStorage.h"
-
 namespace ECSStorage {
 
-template<typename T, std::uint32_t PageSize = 256>
-class DirectPagedComponentStorage final: public IComponentStorage {
-	static_assert(PageSize > 0, "DirectPaged PageSize must be greater than zero");
+inline constexpr std::uint32_t DirectPagedDefaultPageSize = 256;
 
+template<typename T, std::uint32_t PageSizeV = DirectPagedDefaultPageSize>
+class DirectPagedComponentStorage final: public IComponentStorage {
 public:
-	static constexpr std::uint32_t kPageSize = PageSize;
+	static_assert(PageSizeV > 0);
+	static constexpr std::uint32_t PageSize = PageSizeV;
 
 	void Add(Entity entity, T component){
-		Page& page = EnsurePage(PageIndex(entity));
-		Slot& slot = page.slots[SlotIndex(entity)];
-		if(Matches(slot, entity)) return;
+		const std::uint32_t pageIndex = PageIndex(entity);
+		const std::uint32_t slotIndex = SlotIndex(entity);
+		const bool requiresPage =
+			pageIndex >= m_pages.size() || !m_pages[pageIndex];
+		Page& page = EnsurePage(pageIndex);
+		if(Matches(page, slotIndex, entity)) return;
 
-		if(slot.occupied){
-			slot.value.reset();
-			IncrementGeneration(slot.componentGeneration);
-			--m_size;
+		if(page.occupied.test(slotIndex)){
+			page.components[slotIndex].reset();
+			IncrementGeneration(page.componentGenerations[slotIndex]);
+		}else{
+			++m_size;
 		}
 
-		slot.value.emplace(std::move(component));
-		slot.entity = entity;
-		slot.entityGeneration = entity.GetGeneration();
-		slot.occupied = true;
-		page.occupied.set(SlotIndex(entity));
-		++m_size;
+		page.components[slotIndex].emplace(std::move(component));
+		page.entities[slotIndex] = entity;
+		page.entityGenerations[slotIndex] = entity.GetGeneration();
+		page.occupied.set(slotIndex);
+		if(requiresPage) ++m_growthEventCount;
+		m_peakSize = (std::max)(m_peakSize, m_size);
 		++m_structureVersion;
 	}
 
 	T* Get(Entity entity){
-		Slot* slot = FindSlot(entity);
-		return slot && slot->value ? &slot->value.value() : nullptr;
+		Page* page = FindPage(PageIndex(entity));
+		const std::uint32_t index = SlotIndex(entity);
+		return page && Matches(*page, index, entity)
+			? &page->components[index].value()
+			: nullptr;
 	}
 
 	const T* Get(Entity entity) const {
-		const Slot* slot = FindSlot(entity);
-		return slot && slot->value ? &slot->value.value() : nullptr;
+		const Page* page = FindPage(PageIndex(entity));
+		const std::uint32_t index = SlotIndex(entity);
+		return page && Matches(*page, index, entity)
+			? &page->components[index].value()
+			: nullptr;
+	}
+
+	bool Contains(Entity entity) const override {
+		return Get(entity) != nullptr;
 	}
 
 	void Remove(Entity entity) override {
 		Page* page = FindPage(PageIndex(entity));
-		if(!page) return;
-		Slot& slot = page->slots[SlotIndex(entity)];
-		if(!Matches(slot, entity)) return;
+		const std::uint32_t index = SlotIndex(entity);
+		if(!page || !Matches(*page, index, entity)) return;
 
-		slot.value.reset();
-		slot.occupied = false;
-		page->occupied.reset(SlotIndex(entity));
-		IncrementGeneration(slot.componentGeneration);
+		page->components[index].reset();
+		page->occupied.reset(index);
+		IncrementGeneration(page->componentGenerations[index]);
 		--m_size;
 		++m_structureVersion;
 	}
 
-	bool Contains(Entity entity) const override { return FindSlot(entity) != nullptr; }
 	void* GetRaw(Entity entity) override { return Get(entity); }
 	const void* GetRaw(Entity entity) const override { return Get(entity); }
 
 	std::vector<Entity> GetEntityList() const override {
 		std::vector<Entity> entities;
 		entities.reserve(m_size);
-		ForEachOccupied([&entities](Entity entity, const T&){
-			entities.push_back(entity);
-		});
+		ForEachOccupied(
+			[&entities](Entity entity, const T& component){
+				(void)component;
+				entities.push_back(entity);
+			}
+		);
 		return entities;
 	}
 
@@ -90,9 +105,12 @@ public:
 	}
 
 	void PreallocatePages(size_t pageCount) override {
-		if(m_pages.size() < pageCount) m_pages.resize(pageCount);
-		for(size_t index = 0; index < pageCount; ++index){
-			if(!m_pages[index]) m_pages[index] = std::make_unique<Page>();
+		const size_t clamped = (std::min)(
+			pageCount,
+			static_cast<size_t>((std::numeric_limits<std::uint32_t>::max)())
+		);
+		for(size_t pageIndex = 0; pageIndex < clamped; ++pageIndex){
+			EnsurePage(static_cast<std::uint32_t>(pageIndex));
 		}
 	}
 
@@ -100,12 +118,21 @@ public:
 		return AllocatedPageCount() * static_cast<size_t>(PageSize);
 	}
 
-	std::uint32_t GetComponentGeneration(Entity entity) const override {
-		const Page* page = FindPage(PageIndex(entity));
-		return page ? page->slots[SlotIndex(entity)].componentGeneration : 0;
+	size_t PeakSize() const noexcept override { return m_peakSize; }
+	size_t GrowthEventCount() const noexcept override { return m_growthEventCount; }
+	void ResetPeakMetrics() noexcept override {
+		m_peakSize = m_size;
+		m_growthEventCount = 0;
 	}
 
-	std::uint64_t GetStructureVersion() const noexcept override { return m_structureVersion; }
+	uint32_t GetComponentGeneration(Entity entity) const override {
+		const Page* page = FindPage(PageIndex(entity));
+		return page ? page->componentGenerations[SlotIndex(entity)] : 0;
+	}
+
+	std::uint64_t GetStructureVersion() const noexcept override {
+		return m_structureVersion;
+	}
 
 	void ReservePageTable(size_t expectedEntityCount){
 		m_pages.reserve(RequiredPageCount(expectedEntityCount));
@@ -115,18 +142,14 @@ public:
 		return AllocatedPageCount();
 	}
 
-	// Page tableを順番に辿り、割当済みSlotだけを列挙する。
-	// TransformSystemなどの全件更新はAlive Entity全走査ではなく、このAPIを使用する。
 	template<typename Fn>
 	void ForEachOccupied(Fn&& function){
 		for(auto& pageOwner : m_pages){
 			if(!pageOwner) continue;
 			Page& page = *pageOwner;
 			for(std::uint32_t index = 0; index < PageSize; ++index){
-				if(!page.occupied.test(index)) continue;
-				Slot& slot = page.slots[index];
-				if(slot.occupied && slot.value){
-					function(slot.entity, slot.value.value());
+				if(page.occupied.test(index)){
+					function(page.entities[index], page.components[index].value());
 				}
 			}
 		}
@@ -138,75 +161,54 @@ public:
 			if(!pageOwner) continue;
 			const Page& page = *pageOwner;
 			for(std::uint32_t index = 0; index < PageSize; ++index){
-				if(!page.occupied.test(index)) continue;
-				const Slot& slot = page.slots[index];
-				if(slot.occupied && slot.value){
-					function(slot.entity, slot.value.value());
+				if(page.occupied.test(index)){
+					function(page.entities[index], page.components[index].value());
 				}
 			}
 		}
 	}
 
 private:
-	struct Slot {
-		std::optional<T> value;
-		Entity entity{};
-		std::uint32_t entityGeneration = 0;
-		std::uint32_t componentGeneration = 0;
-		bool occupied = false;
-	};
-
 	struct Page {
-		std::array<Slot, PageSize> slots{};
 		std::bitset<PageSize> occupied{};
+		std::array<Entity, PageSize> entities{};
+		std::array<std::uint32_t, PageSize> entityGenerations{};
+		std::array<std::uint32_t, PageSize> componentGenerations{};
+		std::array<std::optional<T>, PageSize> components{};
 	};
 
 	static constexpr std::uint32_t PageIndex(Entity entity) noexcept {
 		return entity.GetIndex() / PageSize;
 	}
-
 	static constexpr std::uint32_t SlotIndex(Entity entity) noexcept {
 		return entity.GetIndex() % PageSize;
 	}
-
 	static constexpr size_t RequiredPageCount(size_t entityCount) noexcept {
 		return entityCount == 0 ? 0 : ((entityCount - 1) / PageSize) + 1;
 	}
 
 	Page& EnsurePage(std::uint32_t pageIndex){
-		if(m_pages.size() <= pageIndex) m_pages.resize(static_cast<size_t>(pageIndex) + 1);
-		if(!m_pages[pageIndex]) m_pages[pageIndex] = std::make_unique<Page>();
+		if(m_pages.size() <= pageIndex){
+			m_pages.resize(static_cast<size_t>(pageIndex) + 1);
+		}
+		if(!m_pages[pageIndex]){
+			m_pages[pageIndex] = std::make_unique<Page>();
+		}
 		return *m_pages[pageIndex];
 	}
 
 	Page* FindPage(std::uint32_t pageIndex){
 		return pageIndex < m_pages.size() ? m_pages[pageIndex].get() : nullptr;
 	}
-
 	const Page* FindPage(std::uint32_t pageIndex) const {
 		return pageIndex < m_pages.size() ? m_pages[pageIndex].get() : nullptr;
 	}
 
-	Slot* FindSlot(Entity entity){
-		Page* page = FindPage(PageIndex(entity));
-		if(!page) return nullptr;
-		Slot& slot = page->slots[SlotIndex(entity)];
-		return Matches(slot, entity) ? &slot : nullptr;
+	static bool Matches(const Page& page, std::uint32_t index, Entity entity){
+		return page.occupied.test(index) &&
+			page.entityGenerations[index] == entity.GetGeneration() &&
+			page.entities[index] == entity;
 	}
-
-	const Slot* FindSlot(Entity entity) const {
-		const Page* page = FindPage(PageIndex(entity));
-		if(!page) return nullptr;
-		const Slot& slot = page->slots[SlotIndex(entity)];
-		return Matches(slot, entity) ? &slot : nullptr;
-	}
-
-	static bool Matches(const Slot& slot, Entity entity){
-		return slot.occupied &&
-			slot.entityGeneration == entity.GetGeneration() &&
-			slot.entity == entity;
-	}
-
 	static void IncrementGeneration(std::uint32_t& generation){
 		++generation;
 		if(generation == 0) ++generation;
@@ -222,51 +224,62 @@ private:
 
 	std::vector<std::unique_ptr<Page>> m_pages;
 	size_t m_size = 0;
+	size_t m_peakSize = 0;
+	size_t m_growthEventCount = 0;
 	std::uint64_t m_structureVersion = 0;
 };
 
-template<typename T, std::uint32_t PageSize = 256>
+template<typename T, std::uint32_t PageSizeV = DirectPagedDefaultPageSize>
 class DirectPagedTagStorage final: public IComponentStorage {
-	static_assert(PageSize > 0, "DirectPaged PageSize must be greater than zero");
-	static_assert(std::is_default_constructible_v<T>,
-		"DirectPaged Tag type must be default constructible");
-
 public:
-	void Add(Entity entity){
-		Page& page = EnsurePage(PageIndex(entity));
-		const std::uint32_t index = SlotIndex(entity);
-		if(Matches(page, index, entity)) return;
+	static_assert(PageSizeV > 0);
+	static constexpr std::uint32_t PageSize = PageSizeV;
 
-		if(page.occupied.test(index)){
-			IncrementGeneration(page.componentGenerations[index]);
-			--m_size;
+	void Add(Entity entity, T component = {}){
+		(void)component;
+		const std::uint32_t pageIndex = PageIndex(entity);
+		const std::uint32_t slotIndex = SlotIndex(entity);
+		const bool requiresPage =
+			pageIndex >= m_pages.size() || !m_pages[pageIndex];
+		Page& page = EnsurePage(pageIndex);
+		if(Matches(page, slotIndex, entity)) return;
+
+		if(page.occupied.test(slotIndex)){
+			IncrementGeneration(page.componentGenerations[slotIndex]);
+		}else{
+			++m_size;
 		}
-
-		page.occupied.set(index);
-		page.entities[index] = entity;
-		page.entityGenerations[index] = entity.GetGeneration();
-		++m_size;
+		page.entities[slotIndex] = entity;
+		page.entityGenerations[slotIndex] = entity.GetGeneration();
+		page.occupied.set(slotIndex);
+		if(requiresPage) ++m_growthEventCount;
+		m_peakSize = (std::max)(m_peakSize, m_size);
 		++m_structureVersion;
+	}
+
+	T* Get(Entity entity){
+		return Contains(entity) ? &m_dummy : nullptr;
+	}
+	const T* Get(Entity entity) const {
+		return Contains(entity) ? &m_dummy : nullptr;
+	}
+	bool Contains(Entity entity) const override {
+		const Page* page = FindPage(PageIndex(entity));
+		return page && Matches(*page, SlotIndex(entity), entity);
 	}
 
 	void Remove(Entity entity) override {
 		Page* page = FindPage(PageIndex(entity));
-		if(!page) return;
 		const std::uint32_t index = SlotIndex(entity);
-		if(!Matches(*page, index, entity)) return;
+		if(!page || !Matches(*page, index, entity)) return;
 		page->occupied.reset(index);
 		IncrementGeneration(page->componentGenerations[index]);
 		--m_size;
 		++m_structureVersion;
 	}
 
-	bool Contains(Entity entity) const override {
-		const Page* page = FindPage(PageIndex(entity));
-		return page && Matches(*page, SlotIndex(entity), entity);
-	}
-
-	void* GetRaw(Entity entity) override { return Contains(entity) ? &m_dummy : nullptr; }
-	const void* GetRaw(Entity entity) const override { return Contains(entity) ? &m_dummy : nullptr; }
+	void* GetRaw(Entity entity) override { return Get(entity); }
+	const void* GetRaw(Entity entity) const override { return Get(entity); }
 
 	std::vector<Entity> GetEntityList() const override {
 		std::vector<Entity> entities;
@@ -276,36 +289,38 @@ public:
 	}
 
 	size_t Size() const noexcept override { return m_size; }
-
-	void Reserve(size_t expectedCount) override {
-		ReservePageTable(expectedCount);
-	}
-
+	void Reserve(size_t expectedCount) override { ReservePageTable(expectedCount); }
 	void PreallocatePages(size_t pageCount) override {
-		if(m_pages.size() < pageCount) m_pages.resize(pageCount);
-		for(size_t index = 0; index < pageCount; ++index){
-			if(!m_pages[index]) m_pages[index] = std::make_unique<Page>();
+		const size_t clamped = (std::min)(
+			pageCount,
+			static_cast<size_t>((std::numeric_limits<std::uint32_t>::max)())
+		);
+		for(size_t pageIndex = 0; pageIndex < clamped; ++pageIndex){
+			EnsurePage(static_cast<std::uint32_t>(pageIndex));
 		}
 	}
-
 	size_t Capacity() const noexcept override {
 		return AllocatedPageCount() * static_cast<size_t>(PageSize);
 	}
+	size_t PeakSize() const noexcept override { return m_peakSize; }
+	size_t GrowthEventCount() const noexcept override { return m_growthEventCount; }
+	void ResetPeakMetrics() noexcept override {
+		m_peakSize = m_size;
+		m_growthEventCount = 0;
+	}
 
-	std::uint32_t GetComponentGeneration(Entity entity) const override {
+	uint32_t GetComponentGeneration(Entity entity) const override {
 		const Page* page = FindPage(PageIndex(entity));
 		return page ? page->componentGenerations[SlotIndex(entity)] : 0;
 	}
-
-	std::uint64_t GetStructureVersion() const noexcept override { return m_structureVersion; }
+	std::uint64_t GetStructureVersion() const noexcept override {
+		return m_structureVersion;
+	}
 
 	void ReservePageTable(size_t expectedEntityCount){
 		m_pages.reserve(RequiredPageCount(expectedEntityCount));
 	}
-
-	size_t GetAllocatedPageCount() const noexcept {
-		return AllocatedPageCount();
-	}
+	size_t GetAllocatedPageCount() const noexcept { return AllocatedPageCount(); }
 
 	template<typename Fn>
 	void ForEachEntity(Fn&& function) const {
@@ -329,40 +344,37 @@ private:
 	static constexpr std::uint32_t PageIndex(Entity entity) noexcept {
 		return entity.GetIndex() / PageSize;
 	}
-
 	static constexpr std::uint32_t SlotIndex(Entity entity) noexcept {
 		return entity.GetIndex() % PageSize;
 	}
-
 	static constexpr size_t RequiredPageCount(size_t entityCount) noexcept {
 		return entityCount == 0 ? 0 : ((entityCount - 1) / PageSize) + 1;
 	}
 
 	Page& EnsurePage(std::uint32_t pageIndex){
-		if(m_pages.size() <= pageIndex) m_pages.resize(static_cast<size_t>(pageIndex) + 1);
-		if(!m_pages[pageIndex]) m_pages[pageIndex] = std::make_unique<Page>();
+		if(m_pages.size() <= pageIndex){
+			m_pages.resize(static_cast<size_t>(pageIndex) + 1);
+		}
+		if(!m_pages[pageIndex]){
+			m_pages[pageIndex] = std::make_unique<Page>();
+		}
 		return *m_pages[pageIndex];
 	}
-
 	Page* FindPage(std::uint32_t pageIndex){
 		return pageIndex < m_pages.size() ? m_pages[pageIndex].get() : nullptr;
 	}
-
 	const Page* FindPage(std::uint32_t pageIndex) const {
 		return pageIndex < m_pages.size() ? m_pages[pageIndex].get() : nullptr;
 	}
-
 	static bool Matches(const Page& page, std::uint32_t index, Entity entity){
 		return page.occupied.test(index) &&
 			page.entityGenerations[index] == entity.GetGeneration() &&
 			page.entities[index] == entity;
 	}
-
 	static void IncrementGeneration(std::uint32_t& generation){
 		++generation;
 		if(generation == 0) ++generation;
 	}
-
 	size_t AllocatedPageCount() const noexcept {
 		size_t count = 0;
 		for(const auto& page : m_pages){
@@ -374,6 +386,8 @@ private:
 	std::vector<std::unique_ptr<Page>> m_pages;
 	T m_dummy{};
 	size_t m_size = 0;
+	size_t m_peakSize = 0;
+	size_t m_growthEventCount = 0;
 	std::uint64_t m_structureVersion = 0;
 };
 
