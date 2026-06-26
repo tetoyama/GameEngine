@@ -24,10 +24,18 @@ int main(){
 
 	const std::uint64_t initialRevision =
 		TerrainCullingBoundsProvider::MakeSourceRevision(terrain);
+	terrain.HeightMap[0] = -4.0f;
+	const std::uint64_t heightRevision =
+		TerrainCullingBoundsProvider::MakeSourceRevision(terrain);
+	assert(initialRevision != heightRevision);
+	assert(TerrainCullingBoundsProvider::TryBuildLocalBounds(terrain, bounds));
+	assert(bounds.min.y == -4.0f);
+	assert(bounds.max.y == 3.0f);
+
 	terrain.CurrentScale = 0;
 	const std::uint64_t dirtyRevision =
 		TerrainCullingBoundsProvider::MakeSourceRevision(terrain);
-	assert(initialRevision != dirtyRevision);
+	assert(heightRevision != dirtyRevision);
 
 	TerrainComponent incomplete;
 	incomplete.Scale = 4;
@@ -46,5 +54,6 @@ int main(){
 	invalid.Scale = 0;
 	EntityAABB invalidBounds;
 	assert(!TerrainCullingBoundsProvider::TryBuildLocalBounds(invalid, invalidBounds));
+	assert(TerrainCullingBoundsProvider::MakeSourceRevision(invalid) == 0);
 	return 0;
 }
