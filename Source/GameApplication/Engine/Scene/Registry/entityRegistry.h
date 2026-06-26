@@ -30,19 +30,31 @@ public:
 		m_alive.reserve(expectedEntityCount);
 	}
 
-	Entity Create() {
-		uint32_t index = 0;
+	void SetRuntimeGrowthAllowed(bool allowed) noexcept {
+		m_allowRuntimeGrowth = allowed;
+	}
 
-		if(!m_recycledIndices.empty()){
-			index = m_recycledIndices.back();
-			m_recycledIndices.pop_back();
-		} else {
-			index = m_nextIndex++;
+	bool IsRuntimeGrowthAllowed() const noexcept {
+		return m_allowRuntimeGrowth;
+	}
+
+	Entity Create() {
+		const bool reuseRecycledIndex = !m_recycledIndices.empty();
+		const uint32_t index = reuseRecycledIndex
+			? m_recycledIndices.back()
+			: m_nextIndex;
+
+		if(!EnsureCapacity(index) || !CanInsertAliveEntity()){
+			return {};
 		}
 
-		EnsureCapacity(index);
-		m_aliveFlags[index] = true;
+		if(reuseRecycledIndex){
+			m_recycledIndices.pop_back();
+		}else{
+			++m_nextIndex;
+		}
 
+		m_aliveFlags[index] = true;
 		const Entity entity(index, m_generations[index]);
 		m_alive.insert(entity);
 		m_peakAliveCount = (std::max)(m_peakAliveCount, m_alive.size());
@@ -55,10 +67,12 @@ public:
 		const uint32_t index = requested.GetIndex();
 		if(index == 0) return {};
 
-		EnsureCapacity(index);
-
-		if(m_aliveFlags[index]){
+		if(index < m_aliveFlags.size() && m_aliveFlags[index]){
 			return Entity(index, m_generations[index]);
+		}
+
+		if(!EnsureCapacity(index) || !CanInsertAliveEntity()){
+			return {};
 		}
 
 		if(m_nextIndex <= index){
@@ -128,9 +142,11 @@ public:
 	}
 
 	size_t GetCapacity() const noexcept {
-		return m_generations.capacity() > 0
-			? m_generations.capacity() - 1
-			: 0;
+		const size_t slotCapacity = (std::min)(
+			m_generations.capacity(),
+			m_aliveFlags.capacity()
+		);
+		return slotCapacity > 0 ? slotCapacity - 1 : 0;
 	}
 
 	size_t GetGrowthEventCount() const noexcept {
@@ -152,16 +168,34 @@ public:
 	}
 
 private:
-	void EnsureCapacity(uint32_t index) {
-		if(index < m_generations.size()) return;
+	bool EnsureCapacity(uint32_t index) {
+		if(index < m_generations.size()) return true;
 
-		const size_t previousCapacity = m_generations.capacity();
 		const size_t newSize = static_cast<size_t>(index) + 1;
+		if(!m_allowRuntimeGrowth &&
+			(newSize > m_generations.capacity() ||
+			 newSize > m_aliveFlags.capacity())){
+			return false;
+		}
+
+		const size_t previousGenerationCapacity = m_generations.capacity();
+		const size_t previousAliveFlagCapacity = m_aliveFlags.capacity();
 		m_generations.resize(newSize, 0);
 		m_aliveFlags.resize(newSize, false);
-		if(m_generations.capacity() > previousCapacity){
+		if(m_generations.capacity() > previousGenerationCapacity ||
+			m_aliveFlags.capacity() > previousAliveFlagCapacity){
 			++m_growthEventCount;
 		}
+		return true;
+	}
+
+	bool CanInsertAliveEntity() const noexcept {
+		if(m_allowRuntimeGrowth) return true;
+		const float nextSize = static_cast<float>(m_alive.size() + 1);
+		const float threshold =
+			static_cast<float>(m_alive.bucket_count()) *
+			m_alive.max_load_factor();
+		return nextSize <= threshold;
 	}
 
 	void IncrementGeneration(uint32_t index) {
@@ -181,4 +215,5 @@ private:
 	std::unordered_set<Entity> m_alive;
 	size_t m_peakAliveCount = 0;
 	size_t m_growthEventCount = 0;
+	bool m_allowRuntimeGrowth = true;
 };

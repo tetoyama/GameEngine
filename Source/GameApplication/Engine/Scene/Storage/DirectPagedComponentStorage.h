@@ -12,6 +12,7 @@
 #include <bitset>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -27,13 +28,15 @@ public:
 	static_assert(PageSizeV > 0);
 	static constexpr std::uint32_t PageSize = PageSizeV;
 
-	void Add(Entity entity, T component){
+	bool Add(Entity entity, T component){
+		if(!CanAdd(entity)) return false;
+
 		const std::uint32_t pageIndex = PageIndex(entity);
 		const std::uint32_t slotIndex = SlotIndex(entity);
 		const bool requiresPage =
 			pageIndex >= m_pages.size() || !m_pages[pageIndex];
 		Page& page = EnsurePage(pageIndex);
-		if(Matches(page, slotIndex, entity)) return;
+		if(Matches(page, slotIndex, entity)) return true;
 
 		if(page.occupied.test(slotIndex)){
 			page.components[slotIndex].reset();
@@ -49,6 +52,7 @@ public:
 		if(requiresPage) ++m_growthEventCount;
 		m_peakSize = (std::max)(m_peakSize, m_size);
 		++m_structureVersion;
+		return true;
 	}
 
 	T* Get(Entity entity){
@@ -69,6 +73,11 @@ public:
 
 	bool Contains(Entity entity) const override {
 		return Get(entity) != nullptr;
+	}
+
+	bool CanAdd(Entity entity) const noexcept override {
+		if(Contains(entity) || IsRuntimeGrowthAllowed()) return true;
+		return FindPage(PageIndex(entity)) != nullptr;
 	}
 
 	void Remove(Entity entity) override {
@@ -180,9 +189,11 @@ private:
 	static constexpr std::uint32_t PageIndex(Entity entity) noexcept {
 		return entity.GetIndex() / PageSize;
 	}
+
 	static constexpr std::uint32_t SlotIndex(Entity entity) noexcept {
 		return entity.GetIndex() % PageSize;
 	}
+
 	static constexpr size_t RequiredPageCount(size_t entityCount) noexcept {
 		return entityCount == 0 ? 0 : ((entityCount - 1) / PageSize) + 1;
 	}
@@ -200,6 +211,7 @@ private:
 	Page* FindPage(std::uint32_t pageIndex){
 		return pageIndex < m_pages.size() ? m_pages[pageIndex].get() : nullptr;
 	}
+
 	const Page* FindPage(std::uint32_t pageIndex) const {
 		return pageIndex < m_pages.size() ? m_pages[pageIndex].get() : nullptr;
 	}
@@ -209,6 +221,7 @@ private:
 			page.entityGenerations[index] == entity.GetGeneration() &&
 			page.entities[index] == entity;
 	}
+
 	static void IncrementGeneration(std::uint32_t& generation){
 		++generation;
 		if(generation == 0) ++generation;
@@ -235,14 +248,16 @@ public:
 	static_assert(PageSizeV > 0);
 	static constexpr std::uint32_t PageSize = PageSizeV;
 
-	void Add(Entity entity, T component = {}){
+	bool Add(Entity entity, T component = {}){
 		(void)component;
+		if(!CanAdd(entity)) return false;
+
 		const std::uint32_t pageIndex = PageIndex(entity);
 		const std::uint32_t slotIndex = SlotIndex(entity);
 		const bool requiresPage =
 			pageIndex >= m_pages.size() || !m_pages[pageIndex];
 		Page& page = EnsurePage(pageIndex);
-		if(Matches(page, slotIndex, entity)) return;
+		if(Matches(page, slotIndex, entity)) return true;
 
 		if(page.occupied.test(slotIndex)){
 			IncrementGeneration(page.componentGenerations[slotIndex]);
@@ -255,17 +270,25 @@ public:
 		if(requiresPage) ++m_growthEventCount;
 		m_peakSize = (std::max)(m_peakSize, m_size);
 		++m_structureVersion;
+		return true;
 	}
 
 	T* Get(Entity entity){
 		return Contains(entity) ? &m_dummy : nullptr;
 	}
+
 	const T* Get(Entity entity) const {
 		return Contains(entity) ? &m_dummy : nullptr;
 	}
+
 	bool Contains(Entity entity) const override {
 		const Page* page = FindPage(PageIndex(entity));
 		return page && Matches(*page, SlotIndex(entity), entity);
+	}
+
+	bool CanAdd(Entity entity) const noexcept override {
+		if(Contains(entity) || IsRuntimeGrowthAllowed()) return true;
+		return FindPage(PageIndex(entity)) != nullptr;
 	}
 
 	void Remove(Entity entity) override {
