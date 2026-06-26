@@ -5,6 +5,7 @@
 // =======================================================================
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <unordered_map>
@@ -35,40 +36,54 @@ struct CullingViewKeyHash {
 			hash ^= value + 0x9e3779b9u + (hash << 6) + (hash >> 2);
 		};
 		combine(std::hash<Entity>{}(key.camera));
-		combine(std::hash<std::uint8_t>{}(
-			static_cast<std::uint8_t>(key.kind)
-		));
+		combine(std::hash<std::uint8_t>{}(static_cast<std::uint8_t>(key.kind)));
 		combine(std::hash<std::uint32_t>{}(key.instanceID));
 		return hash;
 	}
 };
 
-// Viewごとの一時可視結果。
-// CullingComponentへ単一isVisibleを保存せず、Editor / Player / Shadow Viewを分離する。
 class CullingVisibilitySet {
 public:
 	using VisibleEntitySet = std::unordered_set<Entity>;
 
 	void BeginFrame(std::uint64_t frameSerial){
 		m_frameSerial = frameSerial;
-		m_views.clear();
 	}
 
 	void BeginView(CullingViewKey view){
-		m_views[view].clear();
+		ViewEntry& entry = m_views[view];
+		entry.entities.clear();
+		entry.frameSerial = m_frameSerial;
 	}
 
 	void SetVisible(CullingViewKey view, Entity entity){
-		m_views[view].insert(entity);
+		ViewEntry& entry = m_views[view];
+		if(entry.frameSerial != m_frameSerial){
+			entry.entities.clear();
+			entry.frameSerial = m_frameSerial;
+		}
+
+		const size_t bucketsBefore = entry.entities.bucket_count();
+		const auto [iterator, inserted] = entry.entities.insert(entity);
+		(void)iterator;
+		if(!inserted) return;
+
+		entry.peakVisibleCount = (std::max)(entry.peakVisibleCount, entry.entities.size());
+		if(entry.entities.bucket_count() > bucketsBefore){
+			++m_growthEventCount;
+		}
 	}
 
 	bool HasView(CullingViewKey view) const {
-		return m_views.contains(view);
+		auto iterator = m_views.find(view);
+		return iterator != m_views.end() && iterator->second.frameSerial == m_frameSerial;
 	}
 
 	bool IsVisible(CullingViewKey view, Entity entity) const {
 		auto iterator = m_views.find(view);
-		return iterator != m_views.end() && iterator->second.contains(entity);
+		return iterator != m_views.end() &&
+			iterator->second.frameSerial == m_frameSerial &&
+			iterator->second.entities.contains(entity);
 	}
 
 	void ClearView(CullingViewKey view){
@@ -76,23 +91,74 @@ public:
 	}
 
 	void ReserveView(CullingViewKey view, size_t expectedVisibleCount){
-		m_views[view].reserve(expectedVisibleCount);
+		ViewEntry& entry = m_views[view];
+		if(entry.frameSerial != m_frameSerial){
+			entry.entities.clear();
+			entry.frameSerial = m_frameSerial;
+		}
+		entry.entities.reserve(expectedVisibleCount);
 	}
 
 	size_t VisibleCount(CullingViewKey view) const noexcept {
 		auto iterator = m_views.find(view);
-		return iterator != m_views.end() ? iterator->second.size() : 0;
+		return iterator != m_views.end() && iterator->second.frameSerial == m_frameSerial
+			? iterator->second.entities.size()
+			: 0;
+	}
+
+	size_t MaxVisibleCount() const noexcept {
+		size_t count = 0;
+		for(const auto& [key, entry] : m_views){
+			(void)key;
+			if(entry.frameSerial == m_frameSerial){
+				count = (std::max)(count, entry.entities.size());
+			}
+		}
+		return count;
+	}
+
+	size_t PeakVisibleCount() const noexcept {
+		size_t count = 0;
+		for(const auto& [key, entry] : m_views){
+			(void)key;
+			count = (std::max)(count, entry.peakVisibleCount);
+		}
+		return count;
+	}
+
+	size_t GrowthEventCount() const noexcept {
+		return m_growthEventCount;
+	}
+
+	void ResetPeakMetrics() noexcept {
+		m_growthEventCount = 0;
+		for(auto& [key, entry] : m_views){
+			(void)key;
+			entry.peakVisibleCount = entry.frameSerial == m_frameSerial
+				? entry.entities.size()
+				: 0;
+		}
 	}
 
 	size_t ViewCount() const noexcept {
-		return m_views.size();
+		size_t count = 0;
+		for(const auto& [key, entry] : m_views){
+			(void)key;
+			if(entry.frameSerial == m_frameSerial) ++count;
+		}
+		return count;
 	}
 
-	std::uint64_t FrameSerial() const noexcept {
-		return m_frameSerial;
-	}
+	std::uint64_t FrameSerial() const noexcept { return m_frameSerial; }
 
 private:
+	struct ViewEntry {
+		VisibleEntitySet entities;
+		std::uint64_t frameSerial = 0;
+		size_t peakVisibleCount = 0;
+	};
+
 	std::uint64_t m_frameSerial = 0;
-	std::unordered_map<CullingViewKey, VisibleEntitySet, CullingViewKeyHash> m_views;
+	size_t m_growthEventCount = 0;
+	std::unordered_map<CullingViewKey, ViewEntry, CullingViewKeyHash> m_views;
 };
