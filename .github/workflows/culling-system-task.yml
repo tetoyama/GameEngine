@@ -7,7 +7,10 @@ on:
     paths:
       - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/ModelCullingBoundsProvider.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/TerrainCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/WaveCullingBoundsProvider.h"
       - "Tests/CullingSystemTaskSmokeTest.cpp"
       - ".github/workflows/culling-system-task.yml"
   push:
@@ -16,7 +19,10 @@ on:
     paths:
       - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/ModelCullingBoundsProvider.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/TerrainCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/WaveCullingBoundsProvider.h"
       - "Tests/CullingSystemTaskSmokeTest.cpp"
       - ".github/workflows/culling-system-task.yml"
   workflow_dispatch:
