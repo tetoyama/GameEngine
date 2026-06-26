@@ -12,6 +12,7 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/WaveCullingBoundsProvider.h"
       - "Tests/ModelCullingBoundsProviderSmokeTest.cpp"
       - "Tests/MeshCullingBoundsProviderSmokeTest.cpp"
+      - "Tests/MeshCullingBoundsLifecycleSmokeTest.cpp"
       - "Tests/TerrainCullingBoundsProviderSmokeTest.cpp"
       - "Tests/WaveCullingBoundsProviderSmokeTest.cpp"
       - ".github/workflows/model-culling-bounds-provider.yml"
@@ -26,6 +27,7 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/WaveCullingBoundsProvider.h"
       - "Tests/ModelCullingBoundsProviderSmokeTest.cpp"
       - "Tests/MeshCullingBoundsProviderSmokeTest.cpp"
+      - "Tests/MeshCullingBoundsLifecycleSmokeTest.cpp"
       - "Tests/TerrainCullingBoundsProviderSmokeTest.cpp"
       - "Tests/WaveCullingBoundsProviderSmokeTest.cpp"
       - ".github/workflows/model-culling-bounds-provider.yml"
@@ -49,6 +51,8 @@ jobs:
             output: model-culling-bounds-provider-test.exe
           - source: Tests/MeshCullingBoundsProviderSmokeTest.cpp
             output: mesh-culling-bounds-provider-test.exe
+          - source: Tests/MeshCullingBoundsLifecycleSmokeTest.cpp
+            output: mesh-culling-bounds-lifecycle-test.exe
           - source: Tests/TerrainCullingBoundsProviderSmokeTest.cpp
             output: terrain-culling-bounds-provider-test.exe
           - source: Tests/WaveCullingBoundsProviderSmokeTest.cpp
