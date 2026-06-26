@@ -55,6 +55,7 @@ inline std::uint64_t MakeSourceRevision(
 			(revision << 6) + (revision >> 2);
 	};
 	combine(mesh.localBoundsRevision);
+	combine(mesh.geometryResourceKey);
 	combine(static_cast<std::uint64_t>(
 		static_cast<std::uint32_t>(mesh.meshCount)
 	));
