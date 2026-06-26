@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <limits>
+#include <string>
 #include <utility>
 
 #include "Scene/scene.h"
@@ -11,6 +13,7 @@
 #include "Graphics/graphicsContext.h"
 #include "Resources/resourceService.h"
 #include "Resources/Data/modelData.h"
+#include "DebugTools/debugSystem.h"
 #include "System/Render/Animation/AnimationPoseEvaluator.h"
 #include "System/Render/Animation/AnimationSkinningUpload.h"
 
@@ -22,6 +25,35 @@ inline void ClearPendingPose(ModelRendererComponent& component){
 	component.animationPoseSourceModelRevision = 0;
 	component.animationPoseReady = false;
 	component.cpuSkinningReady = false;
+}
+
+inline bool ShouldLogUploadFailure(uint32_t failureCount) noexcept {
+	// 初回は即時通知し、継続失敗は約300回ごとに抑制して記録する。
+	return failureCount == 1 || (failureCount % 300) == 0;
+}
+
+inline void RecordUploadFailure(
+	SceneManagerContext* context,
+	Entity entity,
+	ModelRendererComponent& component
+){
+	if(component.animationUploadFailureCount <
+		(std::numeric_limits<uint32_t>::max)()){
+		++component.animationUploadFailureCount;
+	}
+
+	if(!context || !context->debug ||
+		!ShouldLogUploadFailure(component.animationUploadFailureCount)){
+		return;
+	}
+
+	context->debug->LOG_WARNING(
+		"Animation skinning upload failed. entity=" +
+		std::to_string(entity.GetPackedValue()) +
+		" model=" + component.modelFilePath +
+		" consecutiveFailures=" +
+		std::to_string(component.animationUploadFailureCount)
+	);
 }
 
 } // namespace RenderSystemAnimationTasksDetail
@@ -157,11 +189,18 @@ inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 				);
 			}
 
-			// 失敗時はReady状態を維持し、次のMain Thread Stageで再試行する。
 			if(uploaded){
+				modelRenderer->animationUploadFailureCount = 0;
 				modelRenderer->animationPoseSourceModelRevision = 0;
 				modelRenderer->animationPoseReady = false;
 				modelRenderer->cpuSkinningReady = false;
+			}else{
+				// Ready状態を維持するため、次のMain Thread Stageで再試行する。
+				RenderSystemAnimationTasksDetail::RecordUploadFailure(
+					m_context,
+					entity,
+					*modelRenderer
+				);
 			}
 		}
 	}
