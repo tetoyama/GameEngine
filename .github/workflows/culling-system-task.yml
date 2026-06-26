@@ -1,0 +1,43 @@
+name: Culling System Task Smoke Test
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingSystem.h"
+      - "Tests/CullingSystemTaskSmokeTest.cpp"
+      - ".github/workflows/culling-system-task.yml"
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run culling task contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/CullingSystemTaskSmokeTest.cpp
+          /Fe:culling-system-task-test.exe
+          /link /NODEFAULTLIB:yaml-cppd.lib
+          && culling-system-task-test.exe
