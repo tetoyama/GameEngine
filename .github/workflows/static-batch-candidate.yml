@@ -4,17 +4,25 @@ on:
   pull_request:
     branches: [master]
     paths:
+      - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshLocalBoundsBuilder.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateTypes.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateStorage.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchPacketCache.h"
       - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
     paths:
+      - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshLocalBoundsBuilder.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateTypes.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateStorage.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchPacketCache.h"
       - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   workflow_dispatch:
