@@ -2,6 +2,7 @@
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
 #include "Editor/UI/SceneStorageSettingsView.h"
+#include "Editor/UI/SceneStorageRuntimeTelemetryView.h"
 
 class SceneStorageSettingsPanel final : public IEditorUI {
 public:
@@ -10,6 +11,13 @@ public:
 		MenuBar* menu = m_editor ? m_editor->GetUI<MenuBar>() : nullptr;
 		bool* open = menu ? &menu->showSceneSettings : nullptr;
 		SceneStorageSettingsView::Draw(m_editor, open);
+
+		const bool visible = open && *open;
+		SceneStorageRuntimeTelemetryView::Draw(
+			m_editor,
+			visible,
+			SceneStorageSettingsView::GetState().selectedSceneName
+		);
 	}
 	void Finalize() override {}
 private:
