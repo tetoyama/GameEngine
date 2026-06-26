@@ -16,6 +16,7 @@
 #include "DebugTools/debugSystem.h"
 #include "System/Render/Animation/AnimationPoseEvaluator.h"
 #include "System/Render/Animation/AnimationSkinningUpload.h"
+#include "System/Render/Animation/RenderSystemAnimationTaskRegistrar.h"
 
 namespace RenderSystemAnimationTasksDetail {
 
@@ -28,7 +29,6 @@ inline void ClearPendingPose(ModelRendererComponent& component){
 }
 
 inline bool ShouldLogUploadFailure(uint32_t failureCount) noexcept {
-	// 初回は即時通知し、継続失敗は約300回ごとに抑制して記録する。
 	return failureCount == 1 || (failureCount % 300) == 0;
 }
 
@@ -41,12 +41,10 @@ inline void RecordUploadFailure(
 		(std::numeric_limits<uint32_t>::max)()){
 		++component.animationUploadFailureCount;
 	}
-
 	if(!context || !context->debug ||
 		!ShouldLogUploadFailure(component.animationUploadFailureCount)){
 		return;
 	}
-
 	context->debug->LOG_WARNING(
 		"Animation skinning upload failed. entity=" +
 		std::to_string(entity.GetPackedValue()) +
@@ -60,35 +58,26 @@ inline void RecordUploadFailure(
 
 inline void RenderSystem::CalculateAnimationPoses(){
 	if(!m_context || !m_context->sceneManager) return;
-
 	for(const auto& [sceneName, scene] :
 		m_context->sceneManager->GetActiveScenes()){
 		(void)sceneName;
 		if(!scene) continue;
-
 		SceneContext* context = scene->GetSceneContext();
 		if(!context || !context->component) continue;
-
 		const auto modelEntities =
-			context->component->FindEntitiesWithComponent<
-				ModelRendererComponent
-			>();
-
+			context->component->FindEntitiesWithComponent<ModelRendererComponent>();
 		for(Entity entity : modelEntities){
 			ModelRendererComponent* modelRenderer =
 				context->component->GetComponent<ModelRendererComponent>(entity);
 			if(!modelRenderer) continue;
-
 			modelRenderer->animationPoseSourceModelRevision = 0;
 			modelRenderer->animationPoseReady = false;
 			modelRenderer->cpuSkinningReady = false;
-
 			const std::shared_ptr<ModelData>& model = modelRenderer->model;
 			if(!model || modelRenderer->blendedAnimations.empty()){
 				RenderSystemAnimationTasksDetail::ClearPendingPose(*modelRenderer);
 				continue;
 			}
-
 			if(!AnimationPoseEvaluator::Evaluate(
 				*model,
 				modelRenderer->blendedAnimations,
@@ -98,7 +87,6 @@ inline void RenderSystem::CalculateAnimationPoses(){
 				RenderSystemAnimationTasksDetail::ClearPendingPose(*modelRenderer);
 				continue;
 			}
-
 			const bool useGPUSkinning =
 				modelRenderer->evaluatedBones.size() <= BONE_MAX_COUNT;
 			if(useGPUSkinning){
@@ -109,14 +97,11 @@ inline void RenderSystem::CalculateAnimationPoses(){
 					modelRenderer->evaluatedBones,
 					modelRenderer->cpuSkinnedVertices
 				)){
-					RenderSystemAnimationTasksDetail::ClearPendingPose(
-						*modelRenderer
-					);
+					RenderSystemAnimationTasksDetail::ClearPendingPose(*modelRenderer);
 					continue;
 				}
 				modelRenderer->cpuSkinningReady = true;
 			}
-
 			++modelRenderer->animationPoseRevision;
 			if(modelRenderer->animationPoseRevision == 0){
 				++modelRenderer->animationPoseRevision;
@@ -130,47 +115,32 @@ inline void RenderSystem::CalculateAnimationPoses(){
 
 inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 	lazyTimer += deltaTime;
-
 	if(!m_context || !m_context->sceneManager || !m_context->graphics) return;
-
 	GraphicsContext* graphics = m_context->graphics;
 	ID3D11DeviceContext* deviceContext = graphics->GetDeviceContext();
-
 	for(const auto& [sceneName, scene] :
 		m_context->sceneManager->GetActiveScenes()){
 		(void)sceneName;
 		if(!scene) continue;
-
 		SceneContext* context = scene->GetSceneContext();
 		if(!context || !context->component) continue;
-
 		const auto modelEntities =
-			context->component->FindEntitiesWithComponent<
-				ModelRendererComponent
-			>();
-
+			context->component->FindEntitiesWithComponent<ModelRendererComponent>();
 		for(Entity entity : modelEntities){
 			ModelRendererComponent* modelRenderer =
 				context->component->GetComponent<ModelRendererComponent>(entity);
 			if(!modelRenderer) continue;
-
-			// Resource LoadとD3D11 Buffer生成はMain Threadに限定する。
 			if(!modelRenderer->model){
 				modelRenderer->CreateModel(context);
 				continue;
 			}
-
 			if(!modelRenderer->animationPoseReady) continue;
-
-			// Pose計算後にModelがReloadされた場合、旧Model由来のBone/Stagingを
-			// 新しいDynamic BufferへUploadしない。
 			if(modelRenderer->animationPoseSourceModelRevision == 0 ||
 				modelRenderer->animationPoseSourceModelRevision !=
 					modelRenderer->modelRuntimeRevision){
 				RenderSystemAnimationTasksDetail::ClearPendingPose(*modelRenderer);
 				continue;
 			}
-
 			bool uploaded = false;
 			const bool useGPUSkinning =
 				modelRenderer->evaluatedBones.size() <= BONE_MAX_COUNT;
@@ -188,14 +158,12 @@ inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 					modelRenderer->dynamicVertexBuffers
 				);
 			}
-
 			if(uploaded){
 				modelRenderer->animationUploadFailureCount = 0;
 				modelRenderer->animationPoseSourceModelRevision = 0;
 				modelRenderer->animationPoseReady = false;
 				modelRenderer->cpuSkinningReady = false;
 			}else{
-				// Ready状態を維持するため、次のMain Thread Stageで再試行する。
 				RenderSystemAnimationTasksDetail::RecordUploadFailure(
 					m_context,
 					entity,
@@ -221,39 +189,6 @@ inline void RenderSystem::MigrateRegisteredTasks(
 		}
 	);
 	if(legacyIterator == tasks.end()) return;
-
-	SystemAccess poseAccess;
-	poseAccess
-		.WriteComponent<ModelRendererComponent>()
-		.ReadResource<SceneManager>()
-		.ReadResource<ModelData>();
-
-	legacyIterator->name = "RenderSystem.Animation.Pose.Calculate";
-	legacyIterator->order.phase = SystemPhase::Earliest;
-	legacyIterator->order.priority = 0;
-	legacyIterator->access = std::move(poseAccess);
-	legacyIterator->threadAffinity = ThreadAffinity::AnyWorker;
-	legacyIterator->execute = [this](const SystemTaskContext&){
-		CalculateAnimationPoses();
-	};
-
-	SystemAccess uploadAccess;
-	uploadAccess
-		.WriteComponent<ModelRendererComponent>()
-		.ReadResource<SceneManager>()
-		.WriteResource<ResourceService>()
-		.WriteResource<ModelData>()
-		.WriteResource<GraphicsContext>();
-
-	builder.AddTask(
-		"RenderSystem.Animation.Upload",
-		SystemTaskDomain::Editor,
-		SystemPhase::Early,
-		0,
-		std::move(uploadAccess),
-		ThreadAffinity::MainThread,
-		[this](const SystemTaskContext& context){
-			UploadAnimationPoses(context.deltaTime);
-		}
-	);
+	tasks.erase(legacyIterator);
+	RenderSystemAnimationTaskRegistrar::Register(*this, builder, 0.0f);
 }
