@@ -31,6 +31,22 @@ inline bool HasAnimationBinding(
 	);
 }
 
+inline bool HasImportedAnimationFromPath(
+	const ModelRendererComponent& component,
+	const std::string& path
+){
+	if(!component.model) return false;
+
+	return std::any_of(
+		component.model->m_Animation.begin(),
+		component.model->m_Animation.end(),
+		[&path](const auto& entry){
+			const AnimationData& animation = entry.second;
+			return animation.isImported && animation.FilePath == path;
+		}
+	);
+}
+
 inline void BindImportedAnimationsFromPath(
 	ModelRendererComponent& component,
 	const std::string& path
@@ -201,19 +217,13 @@ inline void DrawAddAnimationPopup(ModelRendererComponent& component){
 		const std::string path(animationPath);
 		const std::string name(animationName);
 		if(component.model && !path.empty() && !name.empty()){
-			auto sharedAnimation = component.model->m_Animation.find(name);
-			if(sharedAnimation == component.model->m_Animation.end()){
+			// 同じSource Pathは共有Cache内の既存Clip群を再利用する。
+			// EntityごとのAlias違いで同じAssimp Sceneを再Importしない。
+			if(!HasImportedAnimationFromPath(component, path)){
 				component.model->LoadAnimation(path.c_str(), name.c_str());
-				sharedAnimation = component.model->m_Animation.find(name);
 			}
 
-			// 同名Clipは共有Resource内で一意とする。
-			// 既存Clipと同じPathの場合のみ、このEntityへBindingを追加できる。
-			const bool compatibleSharedClip =
-				sharedAnimation != component.model->m_Animation.end() &&
-				sharedAnimation->second.isImported &&
-				sharedAnimation->second.FilePath == path;
-			if(compatibleSharedClip){
+			if(HasImportedAnimationFromPath(component, path)){
 				// 1ファイルに複数Clipがある場合も、同じEntityへ全Bindingを保存する。
 				BindImportedAnimationsFromPath(component, path);
 				animationPath[0] = '\0';
