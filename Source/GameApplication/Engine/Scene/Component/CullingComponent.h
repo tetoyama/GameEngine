@@ -9,6 +9,7 @@
 
 #include "Backends/myVector3.h"
 #include "Backends/yaml-cpp/yaml.h"
+#include "Config/SceneStorageConfig.h"
 #include "Storage/ComponentStorageStrategy.h"
 
 struct SceneContext;
@@ -56,7 +57,8 @@ struct ComponentStoragePreference<CullingComponent> {
 	static constexpr bool HasExplicitStrategy = true;
 	static constexpr ComponentStorageStrategy Strategy =
 		ComponentStorageStrategy::Dense;
-	static constexpr size_t ExpectedCount = 0;
+	static constexpr size_t ExpectedCount =
+		SceneStorageConfig::DefaultExpectedCullingCount;
 	static constexpr size_t PreallocatedPages = 0;
 };
 
