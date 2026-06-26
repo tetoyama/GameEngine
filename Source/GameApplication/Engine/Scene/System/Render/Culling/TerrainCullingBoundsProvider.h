@@ -6,6 +6,7 @@
 #pragma once
 
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -59,7 +60,8 @@ inline bool CanSupplyLocalBounds(
 }
 
 inline std::uint64_t MakeSourceRevision(
-	const TerrainComponent& terrain
+	const TerrainComponent& terrain,
+	const EntityAABB& localBounds
 ) noexcept {
 	std::uint64_t revision = 0x5445525241494eull;
 	const auto combine = [&revision](std::uint64_t value){
@@ -73,10 +75,17 @@ inline std::uint64_t MakeSourceRevision(
 		static_cast<std::uint32_t>(terrain.CurrentScale)
 	));
 	combine(static_cast<std::uint64_t>(terrain.HeightMap.size()));
-	combine(static_cast<std::uint64_t>(
-		reinterpret_cast<std::uintptr_t>(terrain.HeightMap.data())
-	));
+	combine(std::bit_cast<std::uint32_t>(localBounds.min.y));
+	combine(std::bit_cast<std::uint32_t>(localBounds.max.y));
 	return revision == 0 ? 1 : revision;
+}
+
+inline std::uint64_t MakeSourceRevision(
+	const TerrainComponent& terrain
+) noexcept {
+	EntityAABB localBounds;
+	if(!TryBuildLocalBounds(terrain, localBounds)) return 0;
+	return MakeSourceRevision(terrain, localBounds);
 }
 
 struct UpdateResult {
@@ -129,7 +138,8 @@ inline UpdateResult UpdateScene(ComponentRegistry& components){
 			continue;
 		}
 
-		const std::uint64_t revision = MakeSourceRevision(*terrain);
+		const std::uint64_t revision =
+			MakeSourceRevision(*terrain, localBounds);
 		if(culling->sourceRevision == revision) continue;
 		culling->localBounds = localBounds;
 		culling->sourceRevision = revision;
