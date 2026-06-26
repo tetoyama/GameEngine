@@ -1,0 +1,42 @@
+name: Culling Bounds Runtime Smoke Test
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "Source/GameApplication/Engine/Scene/Component/CullingComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingBoundsRuntime.h"
+      - "Tests/CullingBoundsRuntimeSmokeTest.cpp"
+      - ".github/workflows/culling-bounds-runtime.yml"
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run bounds revision contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /wd4201 /wd4458 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          Tests/CullingBoundsRuntimeSmokeTest.cpp
+          /Fe:culling-bounds-runtime-test.exe
+          && culling-bounds-runtime-test.exe
