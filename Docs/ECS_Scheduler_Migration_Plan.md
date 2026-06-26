@@ -482,16 +482,134 @@ Step 16完了条件:
 
 状態: **未着手**
 
-- [ ] Scriptソース変更監視と自動ビルド
-- [ ] Debounce
-- [ ] 一意な一時DLL / PDB
-- [ ] ABI Version・必須Export検証
-- [ ] 旧DLL継続とRollback
-- [ ] Script状態・順序・Entity参照の完全復元
-- [ ] Script型追加・削除・名称変更
-- [ ] Reload中の実行停止と再開
-- [ ] 一時ファイルCleanup
-- [ ] Debug / Release連続Reload試験
+目的:
+
+Visual Studioのデバッグ実行を停止せず、Engine Editorの`Build & Reload DLL`操作からScriptプロジェクトのビルド、検証、差し替え、状態復元までを完結させる。
+Visual Studio標準のソリューションビルドには依存せず、Editorから外部MSBuildプロセスを起動する。
+
+基本契約:
+
+- Engineがロード中の固定名`Script.dll`を直接上書きしない
+- Scriptプロジェクトのビルド成果物と、実際に`LoadLibrary`するRuntime DLLを分離する
+- ビルド中もEngineの描画・Editor操作を継続し、メインスレッドを待機させない
+- DLLのUnload / LoadはScript実行が停止したフレーム境界のSafe Pointでのみ行う
+- ビルド、コピー、ABI検証、Load、状態復元のいずれかが失敗した場合は、可能な限り現在のDLLとScript状態を維持する
+- DLL側で生成したObjectはDLL側のDestroy Exportを通して破棄し、DLL境界を跨いだ`new / delete`を禁止する
+
+### Step 20-A: Script Build Service
+
+- [ ] `ScriptBuildService`を追加
+- [ ] `vswhere.exe`から使用可能なMSBuildを解決
+- [ ] Script `.vcxproj`だけを対象にConfiguration / Platformを明示してビルド
+- [ ] `CreateProcessW`による外部MSBuild起動
+- [ ] Build Processを非同期監視し、Editor / MainThreadをBlockしない
+- [ ] 標準出力・標準エラーをPipeで取得してEngine Consoleへ転送
+- [ ] Build成功 / 失敗 / Cancel / Exit Codeを明示的に管理
+- [ ] Build時間と最終Build結果を記録
+- [ ] 同時Build要求を直列化し、Build中の多重起動を拒否または再要求として集約
+
+### Step 20-B: Editor Build & Reload UI
+
+- [ ] Editorに`Build & Reload DLL`ボタンを追加
+- [ ] `Idle / Building / WaitingSafePoint / Reloading / Completed / Failed`状態を表示
+- [ ] Build進捗、Build時間、Reload時間、Exit Code、現在ロード中DLL名を表示
+- [ ] Build失敗時にエラー概要とConsoleログへの導線を表示
+- [ ] Reloadだけを行う操作とBuild込みReloadを内部API上で分離
+- [ ] Play / Pause / Stop中の実行可否と挙動を定義
+
+### Step 20-C: Shadow Copy DLL / PDB
+
+- [ ] ビルド成果物の固定名`Script.dll / Script.pdb`を直接ロードしない
+- [ ] `Temp/ScriptHotReload/Script_<generation>.dll`へ一意名コピー
+- [ ] 対応するPDBも同じgeneration名でコピー
+- [ ] コピー完了後にファイルサイズと存在を検証
+- [ ] 同じgenerationの上書きを禁止
+- [ ] 起動時・終了時・世代数上限超過時の一時ファイルCleanup
+
+### Step 20-D: Safe Reload Pipeline
+
+- [ ] Script Update / Fixed / Drawの新規実行受付を停止
+- [ ] 実行中Script Taskと関連Jobの完了を待つ
+- [ ] Script状態、登録順、型情報、Entity参照をSnapshot化
+- [ ] DLL所有Script Instanceを旧DLLのDestroy Exportで破棄
+- [ ] 旧関数ポインタとFactory参照を無効化
+- [ ] Shadow Copy済み新DLLを`LoadLibrary`候補として読み込む
+- [ ] ABI Version・必須Export・型Registryを検証
+- [ ] 新DLLの検証成功後にActive Moduleを切り替える
+- [ ] Script Instanceを再生成してSnapshotを復元
+- [ ] Script実行順とStart済み状態を復元
+- [ ] 次の安全なフレームから実行を再開
+
+Reload Pipeline:
+
+```text
+Build Script Project
+    -> Build Success
+    -> Shadow Copy DLL / PDB
+    -> Wait Safe Point
+    -> Capture Script State
+    -> Quiesce Script Execution
+    -> Load and Validate Candidate DLL
+    -> Destroy Old Script Instances
+    -> Switch Active Module
+    -> Recreate Script Instances
+    -> Restore State and Order
+    -> Resume Script Execution
+```
+
+### Step 20-E: Failure / Rollback
+
+- [ ] Build失敗時は現在のDLLとScript Instanceを変更しない
+- [ ] Copy失敗時は現在のDLLを維持する
+- [ ] Candidate DLLのLoad / ABI / Export検証失敗時は旧DLLを維持する
+- [ ] 新DLL切替後のInstance再生成失敗に備えたRollback可能範囲を定義
+- [ ] 復元不能なScript型だけを無効化し、Scene全体を破壊しない
+- [ ] Reload失敗理由を段階別Error Codeとして記録
+- [ ] Reload失敗後も再Build & Reload可能な状態へ戻す
+
+### Step 20-F: Script Type / State Migration
+
+- [ ] Script型追加を検出してRegistryへ登録
+- [ ] Script型削除時に該当ComponentをMissing Script状態として保持
+- [ ] Script型名称変更にStable Type IDまたはMigration Aliasを導入
+- [ ] Serialize / Deserialize対象FieldのVersion管理
+- [ ] 追加Fieldへ既定値を適用
+- [ ] 削除Fieldを安全に破棄
+- [ ] Entity参照を世代付きEntityとして再検証
+- [ ] ComponentRefをReload後に再解決し、stale参照を拒否
+
+### Step 20-G: Automatic Build Extension
+
+手動の`Build & Reload DLL`経路を先に完成させた後、自動化を追加する。
+
+- [ ] Scriptソース変更監視
+- [ ] File Watch EventのDebounce
+- [ ] 保存途中ファイルと連続変更の集約
+- [ ] Compile Automatically設定
+- [ ] Compile on Save設定
+- [ ] 自動Build成功後の自動Reload設定
+- [ ] 手動Buildとの競合防止
+
+### Step 20-H: 検証
+
+- [ ] Debug x64で連続Build & Reload試験
+- [ ] Release x64で連続Build & Reload試験
+- [ ] Visual Studioデバッグ実行中に停止要求なしでBuild可能であることを確認
+- [ ] Build失敗後に旧Scriptが継続動作することを確認
+- [ ] ABI不一致DLLでRollbackすることを確認
+- [ ] Script型追加・削除・名称変更試験
+- [ ] Field追加・削除と状態Migration試験
+- [ ] Play / Pause / Stop各状態でReload試験
+- [ ] Scene切替中・終了処理中のReload拒否試験
+- [ ] 100回以上の連続ReloadでModule / Handle / Temp File Leakがないことを確認
+- [ ] PDBを含む新DLLへDebugger Symbolが切り替わることを確認
+
+完了条件:
+
+- Visual Studioのデバッグを停止せず、Editorの一操作でScript BuildからReloadまで完了する
+- Build失敗またはDLL検証失敗時に、実行中の旧Script環境を破壊しない
+- Script状態、実行順、Entity参照がReload後も整合する
+- Debug / Release x64で連続Reloadを行ってもModule、Process、Handle、一時ファイルがリークしない
 
 ## Step 21: README.md更新
 
