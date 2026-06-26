@@ -116,11 +116,41 @@ void TestComponentlessAndTransformlessEntityReserve(){
 	assert(registry.GetGrowthEventCount() == 0);
 }
 
+void TestEntityGrowthBeyondInitialReserve(){
+	SceneStorageConfig config;
+	config.expectedEntityCount = 1536;
+	config.expectedTransformCount = 0;
+	config.expectedRenderableCount = 0;
+	config.expectedCullingCount = 0;
+	config.expectedStaticEntityCount = 0;
+
+	EntityRegistry registry;
+	ComponentReserveRecorder components;
+	SceneStorageRuntime::Apply(registry, components, config);
+
+	const size_t initialCapacity = registry.GetCapacity();
+	assert(initialCapacity >= config.expectedEntityCount);
+	assert(registry.GetGrowthEventCount() == 0);
+
+	const size_t targetEntityCount = initialCapacity + 1;
+	for(size_t index = 0; index < targetEntityCount; ++index){
+		const Entity entity = registry.Create();
+		assert(entity);
+		assert(registry.IsAlive(entity));
+	}
+
+	assert(registry.GetAliveCount() == targetEntityCount);
+	assert(registry.GetPeakAliveCount() == targetEntityCount);
+	assert(registry.GetCapacity() >= targetEntityCount);
+	assert(registry.GetGrowthEventCount() > 0);
+}
+
 } // namespace
 
 int main(){
 	TestReserveApplication();
 	TestEntityCountClamping();
 	TestComponentlessAndTransformlessEntityReserve();
+	TestEntityGrowthBeyondInitialReserve();
 	return 0;
 }
