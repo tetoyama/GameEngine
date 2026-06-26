@@ -26,6 +26,7 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 		showPerformanceMonitor = showMenuBar;
 		if(!showMenuBar){
 			showProjectSettings = false;
+			showSceneSettings = false;
 		}
 	}
 
@@ -63,6 +64,9 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 				showPerformanceMonitor = !showPerformanceMonitor;
 			}
 			ImGui::Separator();
+			if(ImGui::MenuItem("Scene Settings", nullptr, showSceneSettings)){
+				showSceneSettings = !showSceneSettings;
+			}
 			if(ImGui::MenuItem("Project Settings", nullptr, showProjectSettings)){
 				showProjectSettings = !showProjectSettings;
 			}
@@ -134,6 +138,9 @@ void MenuBar::RenderEditMenu(){
 		if(ImGui::MenuItem("Paste", "Ctrl+V")){}
 
 		ImGui::Separator();
+		if(ImGui::MenuItem("Scene Settings...")){
+			showSceneSettings = true;
+		}
 		if(ImGui::MenuItem("Project Settings...")){
 			showProjectSettings = true;
 		}
