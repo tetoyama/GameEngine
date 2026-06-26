@@ -15,11 +15,15 @@ struct StaticBatchCandidateKey {
 	std::uint64_t pipelineKey = 0;
 	std::uint64_t geometryKey = 0;
 	std::uint64_t textureSetKey = 0;
+	std::uint64_t materialStateKey = 0;
 
 	constexpr bool operator==(const StaticBatchCandidateKey&) const noexcept = default;
 
 	bool IsCacheReady() const noexcept {
-		return pipelineKey != 0 && geometryKey != 0 && textureSetKey != 0;
+		return pipelineKey != 0 &&
+			geometryKey != 0 &&
+			textureSetKey != 0 &&
+			materialStateKey != 0;
 	}
 };
 
@@ -68,7 +72,6 @@ public:
 		m_overflowed = false;
 	}
 
-	// Explicit scene configuration is not a runtime growth event.
 	void Reserve(size_t count){
 		m_candidates.reserve(count);
 		m_groups.reserve(count);
@@ -82,8 +85,6 @@ public:
 		if(m_overflowed) return false;
 		if(!m_allowRuntimeGrowth &&
 			m_candidates.size() >= m_candidates.capacity()){
-			// A partial candidate list must never be consumed as a complete batch set.
-			// Clearing it safely falls back to the ordinary RenderPacket path.
 			m_candidates.clear();
 			m_groups.clear();
 			m_cacheReadyGroupCount = 0;
@@ -129,6 +130,9 @@ public:
 				}
 				if(lhs.key.textureSetKey != rhs.key.textureSetKey){
 					return lhs.key.textureSetKey < rhs.key.textureSetKey;
+				}
+				if(lhs.key.materialStateKey != rhs.key.materialStateKey){
+					return lhs.key.materialStateKey < rhs.key.materialStateKey;
 				}
 				if(lhs.sceneContextID != rhs.sceneContextID){
 					return lhs.sceneContextID < rhs.sceneContextID;
