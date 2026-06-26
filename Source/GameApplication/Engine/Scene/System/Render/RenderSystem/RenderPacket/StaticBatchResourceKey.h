@@ -1,10 +1,13 @@
 #pragma once
 
+#include <algorithm>
 #include <bit>
 #include <cstdint>
 #include <string_view>
+#include <vector>
 
 #include "RenderPacket.h"
+#include "Backends/Assimp/material.h"
 #include "Scene/Component/materialComponent.h"
 #include "Scene/Component/meshRendererComponent.h"
 #include "Scene/Component/modelRendererComponent.h"
@@ -29,8 +32,10 @@ namespace StaticBatchResourceKey {
 inline std::uint64_t HashString(std::string_view text) noexcept {
 	if(text.empty()) return 0;
 	std::uint64_t hash = 1469598103934665603ull;
-	for(unsigned char value : text){
-		hash ^= static_cast<std::uint64_t>(value);
+	for(const char value : text){
+		hash ^= static_cast<std::uint64_t>(
+			static_cast<unsigned char>(value)
+		);
 		hash *= 1099511628211ull;
 	}
 	return hash == 0 ? 1 : hash;
@@ -77,21 +82,38 @@ inline std::uint64_t MakeGeometryKey(const RenderPacket& packet) noexcept {
 		return packet.bindings.meshRenderer->mesh.geometryResourceKey;
 	}
 
-	if(packet.kind == RenderPacketKind::Model && packet.bindings.modelRenderer){
-		const ModelRendererComponent& renderer = *packet.bindings.modelRenderer;
-		std::uint64_t key = HashString(renderer.modelFilePath);
-		if(key == 0) return 0;
-
-		Combine(key, renderer.modelRuntimeRevision);
-		if(renderer.model){
-			Combine(key, static_cast<std::uint64_t>(renderer.model->m_MeshData.size()));
-			Combine(key, static_cast<std::uint64_t>(renderer.model->m_SourceVertices.size()));
-			Combine(key, static_cast<std::uint64_t>(renderer.model->m_SourceIndices.size()));
-			Combine(key, renderer.model->isBlender ? 1ull : 0ull);
-		}
-		return key == 0 ? 1 : key;
+	if(packet.kind != RenderPacketKind::Model ||
+		!packet.bindings.modelRenderer){
+		return 0;
 	}
-	return 0;
+
+	const ModelRendererComponent& renderer = *packet.bindings.modelRenderer;
+	const std::shared_ptr<ModelData>& model = renderer.model;
+	if(renderer.modelFilePath.empty() || !model || !model->AiScene){
+		return 0;
+	}
+
+	std::uint64_t key = HashString(renderer.modelFilePath);
+	Combine(key, renderer.modelRuntimeRevision);
+	Combine(key, renderer.isBlender ? 1ull : 0ull);
+	Combine(key, static_cast<std::uint64_t>(model->AiScene->mNumMeshes));
+	Combine(key, static_cast<std::uint64_t>(model->VertexBuffer.size()));
+	Combine(key, static_cast<std::uint64_t>(model->IndexBuffer.size()));
+
+	for(unsigned int meshIndex = 0;
+		meshIndex < model->AiScene->mNumMeshes;
+		++meshIndex){
+		const aiMesh* mesh = model->AiScene->mMeshes[meshIndex];
+		if(!mesh){
+			Combine(key, 0);
+			continue;
+		}
+		Combine(key, static_cast<std::uint64_t>(mesh->mNumVertices));
+		Combine(key, static_cast<std::uint64_t>(mesh->mNumFaces));
+		Combine(key, static_cast<std::uint64_t>(mesh->mMaterialIndex));
+		Combine(key, mesh->HasBones() ? 1ull : 0ull);
+	}
+	return key == 0 ? 1 : key;
 }
 
 inline std::uint64_t MakeTextureSetKey(const RenderPacket& packet) noexcept {
@@ -108,50 +130,109 @@ inline std::uint64_t MakeTextureSetKey(const RenderPacket& packet) noexcept {
 		return 1;
 	}
 
-	if(packet.kind == RenderPacketKind::Model && packet.bindings.modelRenderer){
-		const std::shared_ptr<ModelData>& model =
-			packet.bindings.modelRenderer->model;
-		if(!model) return 0;
-
-		std::uint64_t key = 0x4d4f44454c544558ull;
-		Combine(key, static_cast<std::uint64_t>(model->m_Textures.size()));
-		for(const std::shared_ptr<TextureData>& texture : model->m_Textures){
-			Combine(key, texture ? HashString(texture->FilePath) : 0ull);
-		}
-		Combine(key, static_cast<std::uint64_t>(model->m_TexSlot.size()));
-		for(unsigned int slot : model->m_TexSlot){
-			Combine(key, static_cast<std::uint64_t>(slot));
-		}
-		// Textureなしも明示的なTexture Setとして一意に扱う。
-		return key == 0 ? 1 : key;
+	if(packet.kind != RenderPacketKind::Model ||
+		!packet.bindings.modelRenderer){
+		return 0;
 	}
 
-	return 0;
+	const std::shared_ptr<ModelData>& model =
+		packet.bindings.modelRenderer->model;
+	if(!model || !model->AiScene) return 0;
+
+	std::vector<std::string_view> textureNames;
+	textureNames.reserve(model->m_Texture.size());
+	for(const auto& [name, texture] : model->m_Texture){
+		(void)texture;
+		textureNames.emplace_back(name);
+	}
+	std::sort(textureNames.begin(), textureNames.end());
+
+	std::uint64_t key = 0x4d4f44454c544558ull;
+	Combine(key, static_cast<std::uint64_t>(textureNames.size()));
+	for(const std::string_view name : textureNames){
+		Combine(key, HashString(name));
+	}
+	return key == 0 ? 1 : key;
+}
+
+inline std::uint64_t MakeModelMaterialStateKey(
+	const ModelData& model
+) noexcept {
+	if(!model.AiScene) return 0;
+
+	std::uint64_t key = 0x4d4f44454c4d4154ull;
+	Combine(key, static_cast<std::uint64_t>(model.AiScene->mNumMaterials));
+	for(unsigned int materialIndex = 0;
+		materialIndex < model.AiScene->mNumMaterials;
+		++materialIndex){
+		const aiMaterial* material = model.AiScene->mMaterials[materialIndex];
+		if(!material){
+			Combine(key, 0);
+			continue;
+		}
+
+		aiColor4D diffuse{};
+		const bool hasDiffuse = material->Get(
+			AI_MATKEY_COLOR_DIFFUSE,
+			diffuse
+		) == AI_SUCCESS;
+		Combine(key, hasDiffuse ? 1ull : 0ull);
+		if(hasDiffuse){
+			CombineFloat(key, diffuse.r);
+			CombineFloat(key, diffuse.g);
+			CombineFloat(key, diffuse.b);
+			CombineFloat(key, diffuse.a);
+		}
+
+		aiString textureName;
+		const bool hasDiffuseTexture = material->GetTexture(
+			aiTextureType_DIFFUSE,
+			0,
+			&textureName
+		) == AI_SUCCESS;
+		Combine(key, hasDiffuseTexture ? HashString(textureName.C_Str()) : 0ull);
+
+		const bool hasNormalTexture = material->GetTexture(
+			aiTextureType_NORMALS,
+			0,
+			&textureName
+		) == AI_SUCCESS;
+		Combine(key, hasNormalTexture ? HashString(textureName.C_Str()) : 0ull);
+	}
+	return key == 0 ? 1 : key;
 }
 
 inline std::uint64_t MakeMaterialStateKey(const RenderPacket& packet) noexcept {
+	std::uint64_t key = 0x4d4154455249414cull;
 	if(const MaterialComponent* component = packet.bindings.material){
-		std::uint64_t key = 0x4d4154455249414cull;
 		Combine(key, static_cast<std::uint64_t>(component->ShaderID));
 		CombineMaterial(key, component->Material);
-		return key == 0 ? 1 : key;
+	}else if(packet.kind == RenderPacketKind::Mesh){
+		Combine(key, 1);
+	}else if(packet.kind == RenderPacketKind::Model &&
+		packet.bindings.modelRenderer &&
+		packet.bindings.modelRenderer->model){
+		Combine(
+			key,
+			MakeModelMaterialStateKey(
+				*packet.bindings.modelRenderer->model
+			)
+		);
+	}else{
+		return 0;
 	}
 
-	if(packet.kind == RenderPacketKind::Model && packet.bindings.modelRenderer){
-		const std::shared_ptr<ModelData>& model =
-			packet.bindings.modelRenderer->model;
-		if(!model) return 0;
-
-		std::uint64_t key = 0x4d4f44454c4d4154ull;
-		Combine(key, static_cast<std::uint64_t>(model->m_Materials.size()));
-		for(const MATERIAL& material : model->m_Materials){
-			CombineMaterial(key, material);
-		}
-		return key == 0 ? 1 : key;
+	if(packet.kind == RenderPacketKind::Model &&
+		packet.bindings.modelRenderer &&
+		packet.bindings.modelRenderer->model){
+		Combine(
+			key,
+			MakeModelMaterialStateKey(
+				*packet.bindings.modelRenderer->model
+			)
+		);
 	}
-
-	// MaterialComponentなしのMeshは既定Materialとして一意に扱う。
-	return packet.kind == RenderPacketKind::Mesh ? 1 : 0;
+	return key == 0 ? 1 : key;
 }
 
 inline StaticBatchResourceKeySet Build(const RenderPacket& packet) noexcept {
