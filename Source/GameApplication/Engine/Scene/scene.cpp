@@ -41,6 +41,9 @@
 #include "Prefab/PrefabSystem.h"
 
 #include "Component/componentList.h"
+#include "Config/SceneStoragePreloader.h"
+#include "Config/SceneStorageRuntime.h"
+#include "Config/SceneStorageYaml.h"
 
 Scene::Scene(){
 }
@@ -55,6 +58,15 @@ void Scene::Initialize(SceneManagerContext* set){
 
 	m_SceneContext.system = m_SceneManagerContext->systemRegistry;
 
+	// Scene固有のStorage設定は、Registry生成と最初のEntity生成より前に先読みする。
+	// 設定Nodeがない旧Sceneや解析失敗時は既定値を維持する。
+	if(!ScenePath.empty()){
+		SceneStoragePreloader::DecodeFromFile(
+			ScenePath,
+			m_SceneContext.storageConfig
+		);
+	}
+	m_SceneContext.storageConfig.Normalize();
 
 	m_entityRegistry = std::make_unique<EntityRegistry>();
 	m_componentRegistry = std::make_unique<ComponentRegistry>(m_entityRegistry.get(), &m_SceneContext);
@@ -75,6 +87,9 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_SceneContext.entity = m_entityRegistry.get();
 	m_SceneContext.component = m_componentRegistry.get();
 	m_SceneContext.prefab = m_prefabSystem.get();
+
+	// 全Component Storage登録後、最初のEntity生成前にReserve / Page Preallocationを適用する。
+	ApplyStorageConfig();
 
 	// EntityRefはこの関数ポインタ経由でContext IDを解決する。
 	// 呼び出し先はGameEngine側に置かれるため、Script DLLはSceneManager.cppを
@@ -155,6 +170,16 @@ void Scene::Shutdown(){
 		managerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を終了しました").c_str());
 	}
 	m_SceneManagerContext = nullptr;
+}
+
+void Scene::ApplyStorageConfig(){
+	if(!m_entityRegistry || !m_componentRegistry) return;
+
+	SceneStorageRuntime::Apply(
+		*m_entityRegistry,
+		*m_componentRegistry,
+		m_SceneContext.storageConfig
+	);
 }
 
 void Scene::BuildDefaultScene(){
@@ -387,6 +412,7 @@ void Scene::Save(){
 		entitiesNode.push_back(entityNode);
 	}
 
+	SceneStorageYaml::EncodeIntoRoot(root, m_SceneContext.storageConfig);
 	root["Entities"] = entitiesNode;
 
 	std::string utf8Path = std::filesystem::path(savePath).string();
@@ -436,6 +462,7 @@ void Scene::TempSave(){
 		entitiesNode.push_back(entityNode);
 	}
 
+	SceneStorageYaml::EncodeIntoRoot(root, m_SceneContext.storageConfig);
 	root["Entities"] = entitiesNode;
 
 	std::string utf8Path = std::filesystem::path(savePath).string();
@@ -476,6 +503,10 @@ void Scene::LoadSceneFromYAML(std::string path) {
 		m_SceneContext.manager->debug->LOG_ERROR("YAML: 'Entities' node missing or invalid");
 		return;
 	}
+
+	// Initialize前に先読みできない再読込経路でも、Entity生成前に設定を反映する。
+	SceneStorageYaml::DecodeFromRoot(root, m_SceneContext.storageConfig);
+	ApplyStorageConfig();
 
 	ScenePath = path;
 	m_SceneContext.manager->debug->LOG_DEBUG(("Sceneをファイルから読み込みます:FilePath[" + ScenePath + "]").c_str());
@@ -607,7 +638,7 @@ std::string Scene::LoadSceneFileDialog() {
 
 	OPENFILENAMEA ofn = {}; // ANSI版（UNICODEなら OPENFILENAMEW）
 	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = nullptr; // ウィンドウハンドル（必要なら自分のウィンドウ）
+	ofn.hwndOwner = nullptr; // 親ウィンドウハンドル（必要なら自分のウィンドウ）
 	ofn.lpstrFilter = "Scene Files (*.scene)\0*.scene\0YAML Files (*.yaml)\0*.yaml\0All Files (*.*)\0*.*\0";
 	ofn.lpstrFile = filename;
 	ofn.nMaxFile = MAX_PATH;
