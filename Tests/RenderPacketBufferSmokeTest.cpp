@@ -120,6 +120,7 @@ int main(){
 	sceneContext.entity = &entities;
 	sceneContext.component = &components;
 	sceneContext.contextID = 1;
+	sceneContext.storageConfig.renderPacketReserve = 64;
 
 	const Entity modelA = entities.Create();
 	const Entity modelB = entities.Create();
@@ -149,6 +150,9 @@ int main(){
 	worker1.Add(MakePacket(1, Entity{999, 1}, RenderPacketKind::Model,
 		RenderLayer::Opaque3D, 0, 0, 3, &sceneContext));
 
+	assert(worker0.Capacity() >= 64);
+	assert(worker1.Capacity() >= 64);
+
 	std::array<RenderPacketWorkerBuffer, 2> reversedWorkers{worker1, worker0};
 	RenderPacketFrameBuffer frameA;
 	frameA.BeginFrame(11);
@@ -162,6 +166,7 @@ int main(){
 	assert(frameA.IsReady());
 	assert(frameA.Generation() == 11);
 	assert(frameA.Size() == 4);
+	assert(frameA.Capacity() >= 64);
 	assert(frameA.Count(RenderPacketKind::Model) == 2);
 	assert(PacketIDs(frameA) == PacketIDs(frameB));
 
