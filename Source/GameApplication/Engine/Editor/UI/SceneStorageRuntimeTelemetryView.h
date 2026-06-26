@@ -36,7 +36,6 @@ inline void Draw(
 	const std::string& selectedSceneName
 ){
 	if(!visible || !editor || !editor->sceneManager) return;
-
 	SceneManager& manager = *editor->sceneManager;
 	std::shared_ptr<Scene> scene = ResolveScene(manager, selectedSceneName);
 	if(!scene) return;
@@ -59,14 +58,14 @@ inline void Draw(
 		renderSystem->GetRenderPacketBuffer().Telemetry();
 	const StaticBatchCandidateStorageTelemetry staticBatch =
 		renderSystem->GetRenderPacketBuffer().StaticBatchTelemetry();
+	const StaticBatchPacketCacheTelemetry staticCache =
+		renderSystem->GetRenderPacketBuffer().StaticBatchCacheTelemetry();
 	const size_t totalGrowth =
-		entityGrowth +
-		componentGrowth +
-		visibilityGrowth +
-		packet.growthEventCount +
-		staticBatch.growthEventCount;
+		entityGrowth + componentGrowth + visibilityGrowth +
+		packet.growthEventCount + staticBatch.growthEventCount +
+		staticCache.growthEventCount;
 
-	ImGui::SetNextWindowSize(ImVec2(620.0f, 340.0f), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(650.0f, 400.0f), ImGuiCond_FirstUseEver);
 	if(ImGui::Begin("Scene Storage Runtime Telemetry", nullptr)){
 		ImGui::Text("Scene: %s", scene->SceneName.c_str());
 		ImGui::Text("Entity Growth: %llu",
@@ -79,8 +78,11 @@ inline void Draw(
 			static_cast<unsigned long long>(packet.growthEventCount));
 		ImGui::Text("Static Batch Candidate Growth: %llu",
 			static_cast<unsigned long long>(staticBatch.growthEventCount));
+		ImGui::Text("Static Packet Cache Growth: %llu",
+			static_cast<unsigned long long>(staticCache.growthEventCount));
 		ImGui::Text("Total Growth: %llu",
 			static_cast<unsigned long long>(totalGrowth));
+		ImGui::Separator();
 		ImGui::Text(
 			"Render Packet Buffer: Current %llu / Peak %llu / Capacity %llu",
 			static_cast<unsigned long long>(packet.currentSize),
@@ -101,17 +103,30 @@ inline void Draw(
 		);
 		ImGui::Text(
 			"Cache Ready Groups: Current %llu / Peak %llu",
-			static_cast<unsigned long long>(
-				staticBatch.currentCacheReadyGroupCount
-			),
-			static_cast<unsigned long long>(
-				staticBatch.peakCacheReadyGroupCount
-			)
+			static_cast<unsigned long long>(staticBatch.currentCacheReadyGroupCount),
+			static_cast<unsigned long long>(staticBatch.peakCacheReadyGroupCount)
 		);
-		if(staticBatch.overflowed){
+		ImGui::Text(
+			"Static Packet Cache Entries: Current %llu / Peak %llu / Capacity %llu",
+			static_cast<unsigned long long>(staticCache.currentEntryCount),
+			static_cast<unsigned long long>(staticCache.peakEntryCount),
+			static_cast<unsigned long long>(staticCache.entryCapacity)
+		);
+		ImGui::Text(
+			"Static Packet Cache Instances: Current %llu / Peak %llu / Capacity %llu",
+			static_cast<unsigned long long>(staticCache.currentInstanceCount),
+			static_cast<unsigned long long>(staticCache.peakInstanceCount),
+			static_cast<unsigned long long>(staticCache.instanceCapacity)
+		);
+		ImGui::Text(
+			"Cache Rebuilds %llu / Skipped Incomplete Groups %llu",
+			static_cast<unsigned long long>(staticCache.rebuildCount),
+			static_cast<unsigned long long>(staticCache.skippedIncompleteGroupCount)
+		);
+		if(staticBatch.overflowed || staticCache.overflowed){
 			ImGui::TextColored(
 				ImVec4(1.0f, 0.7f, 0.2f, 1.0f),
-				"Static batch candidates overflowed; ordinary RenderPacket submission remains active."
+				"Static batching overflowed; ordinary RenderPacket submission remains active."
 			);
 		}
 
