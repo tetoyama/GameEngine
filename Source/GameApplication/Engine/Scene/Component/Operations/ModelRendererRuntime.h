@@ -13,8 +13,15 @@ inline void ResetAnimationRuntime(ModelRendererComponent& component){
 	component.evaluatedBones.clear();
 	component.cpuSkinnedVertices.clear();
 	component.animationPoseRevision = 0;
+	component.animationPoseSourceModelRevision = 0;
 	component.animationPoseReady = false;
 	component.cpuSkinningReady = false;
+
+	// 0は未設定値として使うため、周回時も有効世代へ進める。
+	++component.modelRuntimeRevision;
+	if(component.modelRuntimeRevision == 0){
+		++component.modelRuntimeRevision;
+	}
 }
 
 inline void ReleaseBuffers(ModelRendererComponent& component){
