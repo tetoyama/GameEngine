@@ -44,10 +44,18 @@ int main(){
 
 	SceneStorageConfig legacy;
 	legacy.expectedEntityCount = 1234;
+	legacy.renderPacketReserve = 999;
 	YAML::Node legacyRoot;
 	legacyRoot["Entities"] = YAML::Node(YAML::NodeType::Sequence);
 	assert(!SceneStorageYaml::DecodeFromRoot(legacyRoot, legacy));
-	assert(legacy.expectedEntityCount == 1234);
+	assert(
+		legacy.expectedEntityCount ==
+		SceneStorageConfig::DefaultExpectedEntityCount
+	);
+	assert(
+		legacy.renderPacketReserve ==
+		SceneStorageConfig::DefaultRenderPacketReserve
+	);
 
 	SceneStorageConfig clamped;
 	const std::string text =
