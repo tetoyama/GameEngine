@@ -6,6 +6,7 @@
 #pragma once
 
 #include "Backends/yaml-cpp/yaml.h"
+#include "Config/SceneStorageConfig.h"
 #include "Storage/ComponentStorageStrategy.h"
 
 struct SceneContext;
@@ -35,6 +36,11 @@ struct HiddenComponent final: EntityStateTagComponent {};
 
 namespace ECSStorage {
 
+inline constexpr size_t DefaultEntityStateExpectedCount =
+	SceneStorageConfig::DefaultExpectedStaticEntityCount;
+inline constexpr size_t DefaultEntityStatePreallocatedPages =
+	SceneStorageConfig::RequiredPageCount(DefaultEntityStateExpectedCount);
+
 template<>
 struct IsTagComponent<DisabledComponent>: std::true_type {};
 template<>
@@ -57,6 +63,9 @@ struct ComponentStoragePreference<DisabledComponent> {
 	static constexpr bool HasExplicitStrategy = true;
 	static constexpr ComponentStorageStrategy Strategy =
 		ComponentStorageStrategy::DirectPaged;
+	static constexpr size_t ExpectedCount = DefaultEntityStateExpectedCount;
+	static constexpr size_t PreallocatedPages =
+		DefaultEntityStatePreallocatedPages;
 };
 
 template<>
@@ -64,6 +73,9 @@ struct ComponentStoragePreference<StaticEntityComponent> {
 	static constexpr bool HasExplicitStrategy = true;
 	static constexpr ComponentStorageStrategy Strategy =
 		ComponentStorageStrategy::DirectPaged;
+	static constexpr size_t ExpectedCount = DefaultEntityStateExpectedCount;
+	static constexpr size_t PreallocatedPages =
+		DefaultEntityStatePreallocatedPages;
 };
 
 template<>
@@ -71,6 +83,9 @@ struct ComponentStoragePreference<HiddenComponent> {
 	static constexpr bool HasExplicitStrategy = true;
 	static constexpr ComponentStorageStrategy Strategy =
 		ComponentStorageStrategy::DirectPaged;
+	static constexpr size_t ExpectedCount = DefaultEntityStateExpectedCount;
+	static constexpr size_t PreallocatedPages =
+		DefaultEntityStatePreallocatedPages;
 };
 
 } // namespace ECSStorage
