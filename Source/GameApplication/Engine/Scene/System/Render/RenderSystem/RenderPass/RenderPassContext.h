@@ -13,6 +13,7 @@
 #include "../renderLayer.h"
 #include "../CameraEntityData.h"
 #include "Scene/Reference/EntityRef.h"
+#include "Scene/System/Render/Culling/CullingVisibilitySet.h"
 
 // 1 フレームのレンダーパス実行に必要なコンテキスト情報
 // カメラのビュー/プロジェクション行列・レイヤー表示設定・スクリーンサイズを保持する
@@ -35,12 +36,16 @@ struct RenderPassContext {
 
 	CameraEntityData cameraData;                         // カメラエンティティのデータ（ポストエフェクト等）
 	Vector2 screenSize = Vector2(1280.0f, 720.0f);       // レンダリング解像度
+
+	// 同じCamera Entityを複数Viewで描画してもVisibility結果を混同しない。
+	CullingViewKind cullingViewKind = CullingViewKind::Custom;
+	uint32_t cullingViewInstanceID = 0;
 };
 
 // 半透明オブジェクトのソート用データ（カメラからの距離二乗で降順ソートする）
 struct TransparentDrawItem {
 	EntityRef ref;       // 描画対象エンティティ
-	float distanceSq;    // カメラからの距離の二乗（降順ソートに使用）
+	float distanceSq;    // カメラからの距離二乗（降順ソートに使用）
 };
 
 // スプライト（2D UI）のソート用データ（OrderInLayer で昇順ソートする）
