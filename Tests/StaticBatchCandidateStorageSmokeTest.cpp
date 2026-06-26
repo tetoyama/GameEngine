@@ -97,6 +97,7 @@ int main(){
 	assert(candidates.Size() == 2);
 	assert(candidates.Capacity() >= context.storageConfig.staticBatchReserve);
 	assert(candidates.GrowthEventCount() == 0);
+	assert(!candidates.IsOverflowed());
 
 	const auto result = candidates.Candidates();
 	assert(result[0].key.kind == RenderPacketKind::Model);
@@ -112,6 +113,7 @@ int main(){
 	assert(telemetry.peakSize == 2);
 	assert(telemetry.capacity == candidates.Capacity());
 	assert(telemetry.growthEventCount == 0);
+	assert(!telemetry.overflowed);
 
 	packets.ResetPeakMetrics();
 	assert(packets.StaticBatchCandidates().PeakSize() == 2);
@@ -123,5 +125,16 @@ int main(){
 	growthPackets.Merge(workers);
 	assert(growthPackets.StaticBatchCandidates().Size() == 2);
 	assert(growthPackets.StaticBatchCandidates().GrowthEventCount() > 0);
+	assert(!growthPackets.StaticBatchCandidates().IsOverflowed());
+
+	context.storageConfig.allowRuntimeGrowth = false;
+	RenderPacketFrameBuffer strictPackets;
+	strictPackets.BeginFrame(3);
+	strictPackets.Merge(workers);
+	assert(strictPackets.Size() == 3);
+	assert(strictPackets.IsReady());
+	assert(strictPackets.StaticBatchCandidates().Size() == 0);
+	assert(strictPackets.StaticBatchCandidates().IsOverflowed());
+	assert(strictPackets.StaticBatchCandidates().GrowthEventCount() == 1);
 	return 0;
 }
