@@ -1,5 +1,6 @@
 #include "EditorPass.h"
 #include "System/Render/RenderSystem/renderSystem.h"
+#include "sceneManager.h"
 #include "../RenderPassContext.h"
 #include "../../RenderTarget/renderTarget.h"
 #include "../ShadowMap/ShadowMapPass.h"
