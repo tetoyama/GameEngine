@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "RenderPacket.h"
+#include "StaticBatchCandidateTypes.h"
 #include "Scene/scene.h"
 #include "Scene/Registry/componentRegistry.h"
 #include "Scene/Component/EntityStateComponents.h"
@@ -51,6 +52,7 @@ public:
 	void BeginFrame(uint64_t generation){
 		m_generation = generation;
 		m_packets.clear();
+		m_staticBatchCandidates.BeginFrame();
 		m_ready = false;
 	}
 
@@ -58,12 +60,17 @@ public:
 	// Capacity is retained to avoid a new allocation spike after Play/Stop.
 	void Reset() noexcept {
 		m_packets.clear();
+		m_staticBatchCandidates.Reset();
 		m_ready = false;
 	}
 
 	// Explicit initial reserve is configuration, not a runtime growth event.
 	void Reserve(size_t count){
 		m_packets.reserve(count);
+	}
+
+	void ReserveStaticBatchCandidates(size_t count){
+		m_staticBatchCandidates.Reserve(count);
 	}
 
 	void Merge(std::span<const RenderPacketWorkerBuffer> workerBuffers){
@@ -81,7 +88,9 @@ public:
 		);
 
 		size_t packetCount = 0;
-		size_t configuredReserve = 0;
+		size_t configuredPacketReserve = 0;
+		size_t configuredStaticBatchReserve = 0;
+		bool allowStaticBatchGrowth = true;
 		std::vector<SceneContext*> reservedScenes;
 		for(const auto* worker : orderedWorkers){
 			packetCount += worker->Packets().size();
@@ -93,20 +102,30 @@ public:
 					continue;
 				}
 				reservedScenes.push_back(context);
-				configuredReserve += static_cast<size_t>(
+				configuredPacketReserve += static_cast<size_t>(
 					context->storageConfig.renderPacketReserve
 				);
+				configuredStaticBatchReserve += static_cast<size_t>(
+					context->storageConfig.staticBatchReserve
+				);
+				allowStaticBatchGrowth =
+					allowStaticBatchGrowth &&
+					context->storageConfig.allowRuntimeGrowth;
 			}
 		}
 
 		const size_t capacityBefore = m_packets.capacity();
-		const size_t reserveTarget = (std::max)(packetCount, configuredReserve);
+		const size_t reserveTarget =
+			(std::max)(packetCount, configuredPacketReserve);
 		m_packets.reserve(reserveTarget);
 		if(m_packets.capacity() > capacityBefore &&
-			packetCount > configuredReserve &&
+			packetCount > configuredPacketReserve &&
 			packetCount > capacityBefore){
 			++m_growthEventCount;
 		}
+
+		m_staticBatchCandidates.Reserve(configuredStaticBatchReserve);
+		m_staticBatchCandidates.SetRuntimeGrowthAllowed(allowStaticBatchGrowth);
 
 		for(const auto* worker : orderedWorkers){
 			for(const RenderPacket& packet : worker->Packets()){
@@ -116,6 +135,7 @@ public:
 		}
 
 		std::stable_sort(m_packets.begin(), m_packets.end(), RenderPacketLess);
+		CollectStaticBatchCandidates();
 		m_peakSize = (std::max)(m_peakSize, m_packets.size());
 		m_ready = true;
 	}
@@ -123,6 +143,9 @@ public:
 	uint64_t Generation() const noexcept { return m_generation; }
 	bool IsReady() const noexcept { return m_ready; }
 	const std::vector<RenderPacket>& Packets() const noexcept { return m_packets; }
+	const StaticBatchCandidateStorage& StaticBatchCandidates() const noexcept {
+		return m_staticBatchCandidates;
+	}
 	size_t Size() const noexcept { return m_packets.size(); }
 	size_t Capacity() const noexcept { return m_packets.capacity(); }
 	size_t PeakSize() const noexcept { return m_peakSize; }
@@ -137,9 +160,14 @@ public:
 		};
 	}
 
+	StaticBatchCandidateStorageTelemetry StaticBatchTelemetry() const noexcept {
+		return m_staticBatchCandidates.Telemetry();
+	}
+
 	void ResetPeakMetrics() noexcept {
 		m_peakSize = m_packets.size();
 		m_growthEventCount = 0;
+		m_staticBatchCandidates.ResetPeakMetrics();
 	}
 
 	size_t Count(RenderPacketKind kind) const noexcept {
@@ -151,6 +179,34 @@ public:
 	}
 
 private:
+	static bool IsStaticBatchEligible(const RenderPacket& packet) noexcept {
+		return packet.kind == RenderPacketKind::Model ||
+			packet.kind == RenderPacketKind::Mesh;
+	}
+
+	void CollectStaticBatchCandidates(){
+		for(size_t packetIndex = 0; packetIndex < m_packets.size(); ++packetIndex){
+			const RenderPacket& packet = m_packets[packetIndex];
+			SceneContext* context = packet.bindings.sceneContext;
+			if(!context || !context->component) continue;
+			if(!IsStaticBatchEligible(packet)) continue;
+			if(!context->component->HasComponent<StaticEntityComponent>(packet.entity)){
+				continue;
+			}
+
+			if(!m_staticBatchCandidates.Add({
+				{packet.kind, packet.layer, packet.materialKey},
+				packet.sceneContextID,
+				packet.entity,
+				packetIndex,
+				packet.stableSequence
+			})){
+				break;
+			}
+		}
+		m_staticBatchCandidates.Sort();
+	}
+
 	static bool ShouldPublish(const RenderPacket& packet){
 		SceneContext* context = packet.bindings.sceneContext;
 		if(!context || !context->entity || !context->component){
@@ -177,6 +233,7 @@ private:
 	uint64_t m_generation = 0;
 	bool m_ready = false;
 	std::vector<RenderPacket> m_packets;
+	StaticBatchCandidateStorage m_staticBatchCandidates;
 	size_t m_peakSize = 0;
 	size_t m_growthEventCount = 0;
 };

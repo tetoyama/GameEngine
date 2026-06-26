@@ -11,11 +11,13 @@
 #include "Scene/scene.h"
 #include "Scene/sceneManager.h"
 #include "Scene/Component/CullingComponent.h"
+#include "Scene/Component/meshRendererComponent.h"
 #include "Scene/Component/modelRendererComponent.h"
 #include "Scene/Component/terrainComponent.h"
 #include "Scene/Component/transformComponent.h"
 #include "Scene/Component/waveComponent.h"
 #include "CullingBoundsUpdater.h"
+#include "MeshCullingBoundsProvider.h"
 #include "ModelCullingBoundsProvider.h"
 #include "TerrainCullingBoundsProvider.h"
 #include "WaveCullingBoundsProvider.h"
@@ -37,6 +39,7 @@ public:
 		access
 			.ReadComponent<TransformComponent>()
 			.ReadComponent<ModelRendererComponent>()
+			.ReadComponent<MeshRendererComponent>()
 			.ReadComponent<TerrainComponent>()
 			.ReadComponent<WaveComponent>()
 			.WriteComponent<CullingComponent>()
@@ -66,6 +69,7 @@ private:
 			if(!context || !context->component) continue;
 
 			ModelCullingBoundsProvider::UpdateScene(*context->component);
+			MeshCullingBoundsProvider::UpdateScene(*context->component);
 			TerrainCullingBoundsProvider::UpdateScene(*context->component);
 			WaveCullingBoundsProvider::UpdateScene(*context->component);
 			CullingBoundsUpdater::UpdateScene(*context->component);

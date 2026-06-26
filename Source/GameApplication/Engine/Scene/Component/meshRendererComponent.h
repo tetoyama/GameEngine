@@ -5,12 +5,14 @@
 // =======================================================================
 #pragma once
 #include "Interface/IComponent.h"
+#include <cstdint>
 #include <string>
 #include <memory>
 #include <wrl/client.h>
 #include <d3d11.h>
 #include "Resources/Data/textureData.h"
 #include "Backends/YAMLConverters.h"
+#include "Backends/myVector3.h"
 
 class GraphicsContext;
 
@@ -26,6 +28,32 @@ struct MeshData {
 
 	int meshCount = 0;
 	int indexCount = 0;
+
+	// GPU Bufferから頂点を逆読みしないため、Mesh生成側がCPU頂点列から
+	// 同時に登録するDerived Metadata。Scene YAMLへは保存しない。
+	Vector3 localBoundsMin{};
+	Vector3 localBoundsMax{};
+	std::uint64_t localBoundsRevision = 0;
+	bool localBoundsValid = false;
+
+	void SetLocalBounds(
+		const Vector3& minimum,
+		const Vector3& maximum
+	) noexcept {
+		localBoundsMin = minimum;
+		localBoundsMax = maximum;
+		++localBoundsRevision;
+		if(localBoundsRevision == 0) ++localBoundsRevision;
+		localBoundsValid = true;
+	}
+
+	void ClearLocalBounds() noexcept {
+		localBoundsMin = {};
+		localBoundsMax = {};
+		++localBoundsRevision;
+		if(localBoundsRevision == 0) ++localBoundsRevision;
+		localBoundsValid = false;
+	}
 };
 
 // メッシュの描画を管理するコンポーネント

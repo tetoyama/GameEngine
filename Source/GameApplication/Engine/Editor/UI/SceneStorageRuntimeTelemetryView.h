@@ -57,10 +57,16 @@ inline void Draw(
 		renderSystem->GetCullingVisibility().GrowthEventCount(context->contextID);
 	const RenderPacketStorageTelemetry packet =
 		renderSystem->GetRenderPacketBuffer().Telemetry();
+	const StaticBatchCandidateStorageTelemetry staticBatch =
+		renderSystem->GetRenderPacketBuffer().StaticBatchTelemetry();
 	const size_t totalGrowth =
-		entityGrowth + componentGrowth + visibilityGrowth + packet.growthEventCount;
+		entityGrowth +
+		componentGrowth +
+		visibilityGrowth +
+		packet.growthEventCount +
+		staticBatch.growthEventCount;
 
-	ImGui::SetNextWindowSize(ImVec2(520.0f, 220.0f), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(560.0f, 290.0f), ImGuiCond_FirstUseEver);
 	if(ImGui::Begin("Scene Storage Runtime Telemetry", nullptr)){
 		ImGui::Text("Scene: %s", scene->SceneName.c_str());
 		ImGui::Text("Entity Growth: %llu",
@@ -71,6 +77,8 @@ inline void Draw(
 			static_cast<unsigned long long>(visibilityGrowth));
 		ImGui::Text("Render Packet Growth: %llu",
 			static_cast<unsigned long long>(packet.growthEventCount));
+		ImGui::Text("Static Batch Candidate Growth: %llu",
+			static_cast<unsigned long long>(staticBatch.growthEventCount));
 		ImGui::Text("Total Growth: %llu",
 			static_cast<unsigned long long>(totalGrowth));
 		ImGui::Text(
@@ -79,6 +87,18 @@ inline void Draw(
 			static_cast<unsigned long long>(packet.peakSize),
 			static_cast<unsigned long long>(packet.capacity)
 		);
+		ImGui::Text(
+			"Static Batch Candidates: Current %llu / Peak %llu / Capacity %llu",
+			static_cast<unsigned long long>(staticBatch.currentSize),
+			static_cast<unsigned long long>(staticBatch.peakSize),
+			static_cast<unsigned long long>(staticBatch.capacity)
+		);
+		if(staticBatch.overflowed){
+			ImGui::TextColored(
+				ImVec4(1.0f, 0.7f, 0.2f, 1.0f),
+				"Static batch candidates overflowed; ordinary RenderPacket submission remains active."
+			);
+		}
 
 		if(ImGui::Button("Reset All Runtime Storage Peaks", ImVec2(-1.0f, 0.0f))){
 			if(context->entity) context->entity->ResetPeakMetrics();

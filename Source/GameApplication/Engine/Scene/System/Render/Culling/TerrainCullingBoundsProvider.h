@@ -11,9 +11,11 @@
 #include <limits>
 
 #include "Scene/Component/CullingComponent.h"
+#include "Scene/Component/meshRendererComponent.h"
 #include "Scene/Component/modelRendererComponent.h"
 #include "Scene/Component/terrainComponent.h"
 #include "Scene/Registry/componentRegistry.h"
+#include "MeshCullingBoundsProvider.h"
 
 namespace TerrainCullingBoundsProvider {
 
@@ -47,26 +49,21 @@ inline bool TryBuildLocalBounds(
 inline std::uint64_t MakeSourceRevision(
 	const TerrainComponent& terrain
 ) noexcept {
-	std::uint64_t revision = static_cast<std::uint64_t>(
-		static_cast<std::uint32_t>(terrain.Scale)
-	);
-	const std::uint64_t currentScale = static_cast<std::uint64_t>(
-		static_cast<std::uint32_t>(terrain.CurrentScale)
-	);
-	const std::uint64_t heightCount = static_cast<std::uint64_t>(
-		terrain.HeightMap.size()
-	);
-	const std::uint64_t heightAddress = static_cast<std::uint64_t>(
-		reinterpret_cast<std::uintptr_t>(terrain.HeightMap.data())
-	);
-
+	std::uint64_t revision = 0x5445525241494eull;
 	const auto combine = [&revision](std::uint64_t value){
 		revision ^= value + 0x9e3779b97f4a7c15ull +
 			(revision << 6) + (revision >> 2);
 	};
-	combine(currentScale);
-	combine(heightCount);
-	combine(heightAddress);
+	combine(static_cast<std::uint64_t>(
+		static_cast<std::uint32_t>(terrain.Scale)
+	));
+	combine(static_cast<std::uint64_t>(
+		static_cast<std::uint32_t>(terrain.CurrentScale)
+	));
+	combine(static_cast<std::uint64_t>(terrain.HeightMap.size()));
+	combine(static_cast<std::uint64_t>(
+		reinterpret_cast<std::uintptr_t>(terrain.HeightMap.data())
+	));
 	return revision == 0 ? 1 : revision;
 }
 
@@ -77,7 +74,7 @@ struct UpdateResult {
 	size_t skippedHigherPrioritySource = 0;
 };
 
-// Bounds source priority: Model > Terrain.
+// Bounds source priority: Model > valid Mesh > Terrain.
 inline UpdateResult UpdateScene(ComponentRegistry& components){
 	UpdateResult result;
 	const auto entities =
@@ -92,6 +89,15 @@ inline UpdateResult UpdateScene(ComponentRegistry& components){
 		if(components.GetComponent<ModelRendererComponent>(entity)){
 			++result.skippedHigherPrioritySource;
 			continue;
+		}
+
+		if(MeshRendererComponent* mesh =
+			components.GetComponent<MeshRendererComponent>(entity)){
+			EntityAABB meshBounds;
+			if(MeshCullingBoundsProvider::TryBuildLocalBounds(*mesh, meshBounds)){
+				++result.skippedHigherPrioritySource;
+				continue;
+			}
 		}
 
 		CullingComponent* culling =
