@@ -174,6 +174,10 @@ public:
 	ID3D11SamplerState* GetEnvMapSampler() const;
 	IRenderable* GetRenderableForPacketKind(RenderPacketKind kind);
 
+	RenderPacketFrameBuffer& GetRenderPacketBuffer() noexcept {
+		return m_renderPacketBuffer;
+	}
+
 	const RenderPacketFrameBuffer& GetRenderPacketBuffer() const noexcept {
 		return m_renderPacketBuffer;
 	}
