@@ -14,7 +14,18 @@ on:
   push:
     branches:
       - refactor/ecs-scheduler-foundation
+    paths:
+      - "Source/GameApplication/Engine/Scene/Interface/IComponentStorage.h"
+      - "Source/GameApplication/Engine/Scene/Storage/DirectPagedComponentStorage.h"
+      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.h"
+      - "Source/GameApplication/Engine/Editor/UI/SceneStorageSettingsView.h"
+      - "Tests/ComponentStorageTelemetrySmokeTest.cpp"
+      - ".github/workflows/component-storage-telemetry.yml"
   workflow_dispatch:
+
+concurrency:
+  group: component-storage-telemetry-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
