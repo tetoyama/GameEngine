@@ -24,6 +24,16 @@ int main(){
 	assert(visibility.IsVisible(editorView, model));
 	assert(!visibility.IsVisible(playerView, model));
 	assert(visibility.IsVisible(shadowView, model));
+	assert(visibility.PeakVisibleCount(1) == 2);
+	assert(visibility.GrowthEventCount(1) > 0);
+
+	// RenderSystemのconst accessor経由でも、論理的にmutableなTelemetryだけを
+	// リセットできる契約を固定する。
+	const CullingVisibilitySet& readOnlyVisibility = visibility;
+	readOnlyVisibility.ResetPeakMetrics(1);
+	assert(readOnlyVisibility.PeakVisibleCount(1) == 2);
+	assert(readOnlyVisibility.GrowthEventCount(1) == 0);
+
 	visibility.ClearView(playerView);
 	assert(visibility.ViewCount() == 2);
 	visibility.BeginFrame(43);
