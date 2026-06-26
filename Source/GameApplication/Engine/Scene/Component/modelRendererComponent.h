@@ -32,6 +32,11 @@ public:
 	std::vector<BONE> evaluatedBones;
 	std::vector<std::vector<VERTEX_3D>> cpuSkinnedVertices;
 	uint64_t animationPoseRevision = 0;
+
+	// Modelの再生成・Reloadを跨いだ古いPose Uploadを拒否する世代。
+	uint64_t modelRuntimeRevision = 1;
+	uint64_t animationPoseSourceModelRevision = 0;
+
 	bool animationPoseReady = false;
 	bool cpuSkinningReady = false;
 
