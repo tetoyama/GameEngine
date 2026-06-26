@@ -42,6 +42,7 @@ jobs:
           /I Source/GameApplication/Service
           Tests/ModelCullingBoundsProviderSmokeTest.cpp
           /Fe:model-culling-bounds-provider-test.exe
+          /link /NODEFAULTLIB:yaml-cppd.lib
           > model-culling-bounds-provider.log 2>&1
           && model-culling-bounds-provider-test.exe >> model-culling-bounds-provider.log 2>&1
       - name: Upload diagnostics
