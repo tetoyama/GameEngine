@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <bit>
 #include <cstdint>
+#include <memory>
 #include <string_view>
 #include <vector>
 
@@ -126,8 +127,7 @@ inline std::uint64_t MakeTextureSetKey(const RenderPacket& packet) noexcept {
 	if(packet.kind == RenderPacketKind::Mesh && packet.bindings.meshRenderer){
 		const TextureData* texture =
 			packet.bindings.meshRenderer->mesh.m_TextureData;
-		if(texture) return HashString(texture->FilePath);
-		return 1;
+		return texture ? HashString(texture->FilePath) : 1;
 	}
 
 	if(packet.kind != RenderPacketKind::Model ||
@@ -209,28 +209,20 @@ inline std::uint64_t MakeMaterialStateKey(const RenderPacket& packet) noexcept {
 		CombineMaterial(key, component->Material);
 	}else if(packet.kind == RenderPacketKind::Mesh){
 		Combine(key, 1);
-	}else if(packet.kind == RenderPacketKind::Model &&
-		packet.bindings.modelRenderer &&
-		packet.bindings.modelRenderer->model){
-		Combine(
-			key,
-			MakeModelMaterialStateKey(
-				*packet.bindings.modelRenderer->model
-			)
-		);
-	}else{
+	}else if(packet.kind != RenderPacketKind::Model){
 		return 0;
 	}
 
-	if(packet.kind == RenderPacketKind::Model &&
-		packet.bindings.modelRenderer &&
-		packet.bindings.modelRenderer->model){
-		Combine(
-			key,
-			MakeModelMaterialStateKey(
-				*packet.bindings.modelRenderer->model
-			)
+	if(packet.kind == RenderPacketKind::Model){
+		if(!packet.bindings.modelRenderer ||
+			!packet.bindings.modelRenderer->model){
+			return 0;
+		}
+		const std::uint64_t modelMaterialKey = MakeModelMaterialStateKey(
+			*packet.bindings.modelRenderer->model
 		);
+		if(modelMaterialKey == 0) return 0;
+		Combine(key, modelMaterialKey);
 	}
 	return key == 0 ? 1 : key;
 }
