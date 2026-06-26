@@ -30,7 +30,8 @@ RenderPacket MakePacket(
 
 RenderPacketWorkerBuffer BuildWorker(
 	SceneContext* context,
-	Entity staticModel,
+	Entity staticModelA,
+	Entity staticModelB,
 	Entity staticMesh,
 	Entity dynamicModel
 ){
@@ -41,11 +42,19 @@ RenderPacketWorkerBuffer BuildWorker(
 		RenderPacketKind::Mesh,
 		RenderLayer::Opaque3D,
 		4,
+		3
+	));
+	worker.Add(MakePacket(
+		context,
+		staticModelB,
+		RenderPacketKind::Model,
+		RenderLayer::Opaque3D,
+		2,
 		2
 	));
 	worker.Add(MakePacket(
 		context,
-		staticModel,
+		staticModelA,
 		RenderPacketKind::Model,
 		RenderLayer::Opaque3D,
 		2,
@@ -74,16 +83,19 @@ int main(){
 	context.storageConfig.renderPacketReserve = 16;
 	context.storageConfig.staticBatchReserve = 8;
 
-	const Entity staticModel = entities.Create();
+	const Entity staticModelA = entities.Create();
+	const Entity staticModelB = entities.Create();
 	const Entity staticMesh = entities.Create();
 	const Entity dynamicModel = entities.Create();
-	assert(staticModel && staticMesh && dynamicModel);
-	assert(components.AddComponent<StaticEntityComponent>(staticModel));
+	assert(staticModelA && staticModelB && staticMesh && dynamicModel);
+	assert(components.AddComponent<StaticEntityComponent>(staticModelA));
+	assert(components.AddComponent<StaticEntityComponent>(staticModelB));
 	assert(components.AddComponent<StaticEntityComponent>(staticMesh));
 
 	const RenderPacketWorkerBuffer worker = BuildWorker(
 		&context,
-		staticModel,
+		staticModelA,
+		staticModelB,
 		staticMesh,
 		dynamicModel
 	);
@@ -94,36 +106,52 @@ int main(){
 	packets.Merge(workers);
 
 	const StaticBatchCandidateStorage& candidates = packets.StaticBatchCandidates();
-	assert(candidates.Size() == 2);
+	assert(candidates.Size() == 3);
+	assert(candidates.GroupCount() == 2);
 	assert(candidates.Capacity() >= context.storageConfig.staticBatchReserve);
+	assert(candidates.GroupCapacity() >= context.storageConfig.staticBatchReserve);
 	assert(candidates.GrowthEventCount() == 0);
 	assert(!candidates.IsOverflowed());
 
 	const auto result = candidates.Candidates();
 	assert(result[0].key.kind == RenderPacketKind::Model);
-	assert(result[0].entity == staticModel);
-	assert(result[1].key.kind == RenderPacketKind::Mesh);
-	assert(result[1].entity == staticMesh);
-	assert(result[0].packetIndex < packets.Packets().size());
-	assert(result[1].packetIndex < packets.Packets().size());
+	assert(result[0].entity == staticModelA);
+	assert(result[1].key.kind == RenderPacketKind::Model);
+	assert(result[1].entity == staticModelB);
+	assert(result[2].key.kind == RenderPacketKind::Mesh);
+	assert(result[2].entity == staticMesh);
+
+	const auto groups = candidates.Groups();
+	assert(groups[0].key.kind == RenderPacketKind::Model);
+	assert(groups[0].key.materialKey == 2);
+	assert(groups[0].sceneContextID == context.contextID);
+	assert(groups[0].firstCandidate == 0);
+	assert(groups[0].candidateCount == 2);
+	assert(groups[1].key.kind == RenderPacketKind::Mesh);
+	assert(groups[1].firstCandidate == 2);
+	assert(groups[1].candidateCount == 1);
 
 	const StaticBatchCandidateStorageTelemetry telemetry =
 		packets.StaticBatchTelemetry();
-	assert(telemetry.currentSize == 2);
-	assert(telemetry.peakSize == 2);
-	assert(telemetry.capacity == candidates.Capacity());
+	assert(telemetry.currentSize == 3);
+	assert(telemetry.peakSize == 3);
+	assert(telemetry.currentGroupCount == 2);
+	assert(telemetry.peakGroupCount == 2);
+	assert(telemetry.groupCapacity == candidates.GroupCapacity());
 	assert(telemetry.growthEventCount == 0);
 	assert(!telemetry.overflowed);
 
 	packets.ResetPeakMetrics();
-	assert(packets.StaticBatchCandidates().PeakSize() == 2);
+	assert(packets.StaticBatchCandidates().PeakSize() == 3);
+	assert(packets.StaticBatchCandidates().PeakGroupCount() == 2);
 	assert(packets.StaticBatchCandidates().GrowthEventCount() == 0);
 
 	context.storageConfig.staticBatchReserve = 1;
 	RenderPacketFrameBuffer growthPackets;
 	growthPackets.BeginFrame(2);
 	growthPackets.Merge(workers);
-	assert(growthPackets.StaticBatchCandidates().Size() == 2);
+	assert(growthPackets.StaticBatchCandidates().Size() == 3);
+	assert(growthPackets.StaticBatchCandidates().GroupCount() == 2);
 	assert(growthPackets.StaticBatchCandidates().GrowthEventCount() > 0);
 	assert(!growthPackets.StaticBatchCandidates().IsOverflowed());
 
@@ -131,9 +159,10 @@ int main(){
 	RenderPacketFrameBuffer strictPackets;
 	strictPackets.BeginFrame(3);
 	strictPackets.Merge(workers);
-	assert(strictPackets.Size() == 3);
+	assert(strictPackets.Size() == 4);
 	assert(strictPackets.IsReady());
 	assert(strictPackets.StaticBatchCandidates().Size() == 0);
+	assert(strictPackets.StaticBatchCandidates().GroupCount() == 0);
 	assert(strictPackets.StaticBatchCandidates().IsOverflowed());
 	assert(strictPackets.StaticBatchCandidates().GrowthEventCount() == 1);
 	return 0;
