@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <span>
 #include <string_view>
 
 #include "Scene/Component/CullingComponent.h"
@@ -16,6 +17,56 @@
 #include "Scene/Registry/componentRegistry.h"
 
 namespace ModelCullingBoundsProvider {
+
+inline Vector3 ToRenderPosition(
+	const aiVector3D& source,
+	bool isBlender
+) noexcept {
+	return isBlender
+		? Vector3(source.x, -source.z, source.y)
+		: Vector3(source.x, source.y, source.z);
+}
+
+inline void ExpandBounds(
+	EntityAABB& bounds,
+	bool& hasVertex,
+	const Vector3& position
+) noexcept {
+	if(!hasVertex){
+		bounds.min = position;
+		bounds.max = position;
+		hasVertex = true;
+		return;
+	}
+
+	bounds.min.x = (std::min)(bounds.min.x, position.x);
+	bounds.min.y = (std::min)(bounds.min.y, position.y);
+	bounds.min.z = (std::min)(bounds.min.z, position.z);
+	bounds.max.x = (std::max)(bounds.max.x, position.x);
+	bounds.max.y = (std::max)(bounds.max.y, position.y);
+	bounds.max.z = (std::max)(bounds.max.z, position.z);
+}
+
+// Assimp Scene所有権や外部ライブラリの寿命に依存しない純粋なBounds計算契約。
+inline bool TryBuildLocalBoundsFromPositions(
+	std::span<const aiVector3D> positions,
+	bool isBlender,
+	EntityAABB& outBounds
+) noexcept {
+	bool hasVertex = false;
+	EntityAABB bounds{};
+	for(const aiVector3D& source : positions){
+		ExpandBounds(
+			bounds,
+			hasVertex,
+			ToRenderPosition(source, isBlender)
+		);
+	}
+
+	if(!hasVertex) return false;
+	outBounds = bounds;
+	return true;
+}
 
 inline bool HasSkinnedMesh(const aiScene& scene) noexcept {
 	for(unsigned int meshIndex = 0; meshIndex < scene.mNumMeshes; ++meshIndex){
@@ -40,24 +91,11 @@ inline bool TryBuildLocalBounds(
 		for(unsigned int vertexIndex = 0;
 			vertexIndex < mesh->mNumVertices;
 			++vertexIndex){
-			const aiVector3D& source = mesh->mVertices[vertexIndex];
-			const Vector3 position = isBlender
-				? Vector3(source.x, -source.z, source.y)
-				: Vector3(source.x, source.y, source.z);
-
-			if(!hasVertex){
-				bounds.min = position;
-				bounds.max = position;
-				hasVertex = true;
-				continue;
-			}
-
-			bounds.min.x = (std::min)(bounds.min.x, position.x);
-			bounds.min.y = (std::min)(bounds.min.y, position.y);
-			bounds.min.z = (std::min)(bounds.min.z, position.z);
-			bounds.max.x = (std::max)(bounds.max.x, position.x);
-			bounds.max.y = (std::max)(bounds.max.y, position.y);
-			bounds.max.z = (std::max)(bounds.max.z, position.z);
+			ExpandBounds(
+				bounds,
+				hasVertex,
+				ToRenderPosition(mesh->mVertices[vertexIndex], isBlender)
+			);
 		}
 	}
 
