@@ -202,6 +202,79 @@ inline void DrawMetricRow(
 	ImGui::Text("%llu", static_cast<unsigned long long>(peak));
 }
 
+inline const char* StorageStrategyName(
+	ECSStorage::ComponentStorageStrategy strategy
+){
+	switch(strategy){
+	case ECSStorage::ComponentStorageStrategy::Dense:
+		return "Dense";
+	case ECSStorage::ComponentStorageStrategy::DirectPaged:
+		return "DirectPaged";
+	case ECSStorage::ComponentStorageStrategy::SparseStable:
+		return "SparseStable";
+	case ECSStorage::ComponentStorageStrategy::Archetype:
+		return "Archetype";
+	}
+	return "Unknown";
+}
+
+inline void DrawComponentStorageDetails(ComponentRegistry* registry){
+	if(!registry || !ImGui::TreeNode("Component Storage Details")) return;
+
+	const auto entries = registry->GetAllComponentStorageTelemetry();
+	if(entries.empty()){
+		ImGui::TextDisabled("No component storages are registered.");
+		ImGui::TreePop();
+		return;
+	}
+
+	if(ImGui::BeginTable(
+		"ComponentStorageTelemetry",
+		6,
+		ImGuiTableFlags_Borders |
+		ImGuiTableFlags_RowBg |
+		ImGuiTableFlags_SizingStretchProp
+	)){
+		ImGui::TableSetupColumn("Component", ImGuiTableColumnFlags_WidthStretch);
+		ImGui::TableSetupColumn("Strategy", ImGuiTableColumnFlags_WidthFixed, 110.0f);
+		ImGui::TableSetupColumn("Current", ImGuiTableColumnFlags_WidthFixed, 70.0f);
+		ImGui::TableSetupColumn("Peak", ImGuiTableColumnFlags_WidthFixed, 70.0f);
+		ImGui::TableSetupColumn("Capacity", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+		ImGui::TableSetupColumn("Growth", ImGuiTableColumnFlags_WidthFixed, 70.0f);
+		ImGui::TableHeadersRow();
+
+		for(const ComponentStorageTelemetryEntry& entry : entries){
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::TextUnformatted(entry.name.c_str());
+			ImGui::TableSetColumnIndex(1);
+			ImGui::TextUnformatted(StorageStrategyName(entry.strategy));
+			ImGui::TableSetColumnIndex(2);
+			ImGui::Text(
+				"%llu",
+				static_cast<unsigned long long>(entry.telemetry.currentSize)
+			);
+			ImGui::TableSetColumnIndex(3);
+			ImGui::Text(
+				"%llu",
+				static_cast<unsigned long long>(entry.telemetry.peakSize)
+			);
+			ImGui::TableSetColumnIndex(4);
+			ImGui::Text(
+				"%llu",
+				static_cast<unsigned long long>(entry.telemetry.capacity)
+			);
+			ImGui::TableSetColumnIndex(5);
+			ImGui::Text(
+				"%llu",
+				static_cast<unsigned long long>(entry.telemetry.growthEventCount)
+			);
+		}
+		ImGui::EndTable();
+	}
+	ImGui::TreePop();
+}
+
 inline uint32_t ResolvePeakValue(
 	size_t peak,
 	float margin,
@@ -405,6 +478,9 @@ inline void DrawMetrics(
 	const size_t entityGrowthEvents = context.entity
 		? context.entity->GetGrowthEventCount()
 		: 0;
+	const size_t componentGrowthEvents = context.component
+		? context.component->GetTotalComponentStorageGrowthEventCount()
+		: 0;
 	const size_t visibilityGrowthEvents = renderSystem
 		? renderSystem->GetCullingVisibility().GrowthEventCount(context.contextID)
 		: 0;
@@ -413,9 +489,14 @@ inline void DrawMetrics(
 		static_cast<unsigned long long>(entityGrowthEvents)
 	);
 	ImGui::Text(
+		"Component Storage Growth Events: %llu",
+		static_cast<unsigned long long>(componentGrowthEvents)
+	);
+	ImGui::Text(
 		"Visibility Capacity Growth Events: %llu",
 		static_cast<unsigned long long>(visibilityGrowthEvents)
 	);
+	DrawComponentStorageDetails(context.component);
 
 	int marginPercent = static_cast<int>(std::lround(state.peakMargin * 100.0f));
 	ImGui::SetNextItemWidth(180.0f);
@@ -442,6 +523,9 @@ inline void DrawMetrics(
 		peak = current;
 		if(context.entity){
 			context.entity->ResetPeakMetrics();
+		}
+		if(context.component){
+			context.component->ResetAllComponentStoragePeakMetrics();
 		}
 		if(renderSystem){
 			renderSystem->GetCullingVisibility().ResetPeakMetrics(context.contextID);
