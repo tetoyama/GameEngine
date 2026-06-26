@@ -1,5 +1,6 @@
 #include "PlayerPass.h"
 #include "System/Render/RenderSystem/renderSystem.h"
+#include "sceneManager.h"
 #include "../RenderPassContext.h"
 #include "../ShadowMap/ShadowMapPass.h"
 #include "../GBuffer/GBufferPass.h"
