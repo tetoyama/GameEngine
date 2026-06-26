@@ -36,8 +36,6 @@ inline CullingViewKey MakeViewKey(
 	};
 }
 
-// 共通Packet BufferをScene単位に走査し、対象ViewのVisibilityを構築する。
-// 同一Frame・同一Viewは再構築せず、Editor / Player / Shadow結果を併存させる。
 inline void Prepare(
 	CullingVisibilitySet& visibility,
 	const RenderPacketFrameBuffer& packets,
@@ -69,7 +67,8 @@ inline void Prepare(
 			key,
 			frustum,
 			*context->component,
-			context->storageConfig.visibleEntityReserve
+			context->storageConfig.visibleEntityReserve,
+			context->storageConfig.allowRuntimeGrowth
 		);
 	}
 }
