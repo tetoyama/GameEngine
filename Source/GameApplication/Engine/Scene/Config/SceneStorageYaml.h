@@ -26,7 +26,8 @@ inline void EncodeIntoRoot(
 }
 
 // Scene保存RootからStorage設定だけを読み取る。
-// Nodeが存在しない旧Sceneでは既定値を維持し、falseを返す。
+// 設定Nodeが存在しない有効な旧Sceneは既定値へ戻し、falseを返す。
+// これにより、別Sceneから再読込した際に直前の設定を持ち越さない。
 inline bool DecodeFromRoot(
 	const YAML::Node& root,
 	SceneStorageConfig& config
@@ -34,12 +35,18 @@ inline bool DecodeFromRoot(
 	if(!root || !root.IsMap()) return false;
 
 	const YAML::Node settings = root[SceneSettingsKey];
-	if(!settings || !settings.IsMap()) return false;
+	if(!settings || !settings.IsMap()){
+		config = SceneStorageConfig{};
+		return false;
+	}
 
 	const YAML::Node storage = settings[StorageKey];
-	if(!storage || !storage.IsMap()) return false;
+	if(!storage || !storage.IsMap()){
+		config = SceneStorageConfig{};
+		return false;
+	}
 
-	SceneStorageConfig decoded = config;
+	SceneStorageConfig decoded{};
 	decoded.Decode(storage);
 	config = decoded;
 	return true;
