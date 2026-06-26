@@ -19,6 +19,7 @@ int main(){
 	assert(task.threadAffinity == ThreadAffinity::AnyWorker);
 	assert(task.access.componentReads.contains(typeid(TransformComponent)));
 	assert(task.access.componentReads.contains(typeid(ModelRendererComponent)));
+	assert(task.access.componentReads.contains(typeid(MeshRendererComponent)));
 	assert(task.access.componentReads.contains(typeid(TerrainComponent)));
 	assert(task.access.componentReads.contains(typeid(WaveComponent)));
 	assert(task.access.componentWrites.contains(typeid(CullingComponent)));
