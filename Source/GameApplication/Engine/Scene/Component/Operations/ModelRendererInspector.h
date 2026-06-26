@@ -31,6 +31,21 @@ inline bool HasAnimationBinding(
 	);
 }
 
+inline void BindImportedAnimationsFromPath(
+	ModelRendererComponent& component,
+	const std::string& path
+){
+	if(!component.model) return;
+
+	for(const auto& [name, animation] : component.model->m_Animation){
+		if(!animation.isImported || animation.FilePath != path ||
+			HasAnimationBinding(component, name)){
+			continue;
+		}
+		component.animations.emplace_back(name, path);
+	}
+}
+
 inline std::vector<std::string> GetAnimationNames(
 	const ModelRendererComponent& component
 ){
@@ -198,11 +213,9 @@ inline void DrawAddAnimationPopup(ModelRendererComponent& component){
 				sharedAnimation != component.model->m_Animation.end() &&
 				sharedAnimation->second.isImported &&
 				sharedAnimation->second.FilePath == path;
-			if(compatibleSharedClip && !HasAnimationBinding(component, name)){
-				component.animations.emplace_back(name, path);
-			}
-
 			if(compatibleSharedClip){
+				// 1ファイルに複数Clipがある場合も、同じEntityへ全Bindingを保存する。
+				BindImportedAnimationsFromPath(component, path);
 				animationPath[0] = '\0';
 				animationName[0] = '\0';
 				ImGui::CloseCurrentPopup();
