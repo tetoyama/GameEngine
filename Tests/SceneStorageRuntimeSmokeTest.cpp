@@ -49,9 +49,7 @@ struct ComponentReserveRecorder {
 	}
 };
 
-} // namespace
-
-int main(){
+void TestReserveApplication(){
 	SceneStorageConfig config;
 	config.expectedEntityCount = 1000;
 	config.expectedTransformCount = 513;
@@ -70,20 +68,59 @@ int main(){
 	assert(components.disabledPages == 2);
 	assert(components.staticPages == 2);
 	assert(components.hiddenPages == 2);
+}
 
+void TestEntityCountClamping(){
 	SceneStorageConfig clamped;
 	clamped.expectedEntityCount = 10;
 	clamped.expectedTransformCount = 100;
 	clamped.expectedCullingCount = 50;
 	clamped.expectedStaticEntityCount = 20;
 
-	EntityRegistry clampedRegistry;
-	ComponentReserveRecorder clampedComponents;
-	SceneStorageRuntime::Apply(clampedRegistry, clampedComponents, clamped);
+	EntityRegistry registry;
+	ComponentReserveRecorder components;
+	SceneStorageRuntime::Apply(registry, components, clamped);
 
-	assert(clampedComponents.transformReserve == 10);
-	assert(clampedComponents.cullingReserve == 10);
-	assert(clampedComponents.transformPages == 1);
-	assert(clampedComponents.staticPages == 1);
+	assert(components.transformReserve == 10);
+	assert(components.cullingReserve == 10);
+	assert(components.transformPages == 1);
+	assert(components.staticPages == 1);
+}
+
+void TestComponentlessAndTransformlessEntityReserve(){
+	SceneStorageConfig config;
+	config.expectedEntityCount = 1536;
+	config.expectedTransformCount = 0;
+	config.expectedRenderableCount = 0;
+	config.expectedCullingCount = 0;
+	config.expectedStaticEntityCount = 0;
+	config.preallocatedTransformPages = 0;
+	config.preallocatedTagPages = 0;
+
+	EntityRegistry registry;
+	ComponentReserveRecorder components;
+	SceneStorageRuntime::Apply(registry, components, config);
+
+	assert(registry.GetCapacity() >= config.expectedEntityCount);
+	assert(components.transformReserve == 0);
+	assert(components.transformPages == 0);
+
+	for(size_t index = 0; index < config.expectedEntityCount; ++index){
+		const Entity entity = registry.Create();
+		assert(entity);
+		assert(registry.IsAlive(entity));
+	}
+
+	assert(registry.GetAliveCount() == config.expectedEntityCount);
+	assert(registry.GetPeakAliveCount() == config.expectedEntityCount);
+	assert(registry.GetGrowthEventCount() == 0);
+}
+
+} // namespace
+
+int main(){
+	TestReserveApplication();
+	TestEntityCountClamping();
+	TestComponentlessAndTransformlessEntityReserve();
 	return 0;
 }
