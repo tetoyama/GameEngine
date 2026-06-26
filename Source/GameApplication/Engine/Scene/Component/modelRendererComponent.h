@@ -37,6 +37,9 @@ public:
 	uint64_t modelRuntimeRevision = 1;
 	uint64_t animationPoseSourceModelRevision = 0;
 
+	// Main Thread Uploadの連続失敗数。成功またはModel Resetで0へ戻す。
+	uint32_t animationUploadFailureCount = 0;
+
 	bool animationPoseReady = false;
 	bool cpuSkinningReady = false;
 
