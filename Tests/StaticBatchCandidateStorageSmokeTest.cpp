@@ -25,11 +25,11 @@ RenderPacket MakePacket(
 	packet.passMask = RenderPacketPassesForLayer(layer);
 	packet.sortKey = MakeRenderPacketSortKey(layer, kind, materialKey, 0);
 	packet.stableSequence = sequence;
-	packet.transform.worldMatrix[0] = 1.0f;
-	packet.transform.worldMatrix[5] = 1.0f;
-	packet.transform.worldMatrix[10] = 1.0f;
-	packet.transform.worldMatrix[15] = 1.0f;
-	packet.transform.worldMatrix[12] = translationX;
+	packet.transform.worldMatrix.values[0] = 1.0f;
+	packet.transform.worldMatrix.values[5] = 1.0f;
+	packet.transform.worldMatrix.values[10] = 1.0f;
+	packet.transform.worldMatrix.values[15] = 1.0f;
+	packet.transform.worldMatrix.values[12] = translationX;
 	packet.bindings.sceneContext = context;
 	packet.bindings.modelRenderer =
 		context->component->GetComponent<ModelRendererComponent>(entity);
@@ -161,7 +161,7 @@ int main(){
 	assert(cache.Entities().size() == 1);
 	assert(cache.Entities()[0] == staticMesh);
 	assert(cache.Transforms().size() == 1);
-	assert(cache.Transforms()[0].worldMatrix[12] == 0.0f);
+	assert(cache.Transforms()[0].worldMatrix.values[12] == 0.0f);
 	const StaticBatchPacketCacheTelemetry initialCache = cache.Telemetry();
 	assert(initialCache.currentEntryCount == 1);
 	assert(initialCache.currentInstanceCount == 1);
@@ -169,13 +169,11 @@ int main(){
 	assert(initialCache.growthEventCount == 0);
 	assert(initialCache.skippedIncompleteGroupCount == 1);
 
-	// Same cache source revision reuses the previous flat cache.
 	packets.BeginFrame(2);
 	packets.Merge(workers);
 	assert(packets.StaticBatchCache().Generation() == 2);
 	assert(packets.StaticBatchCache().Telemetry().rebuildCount == 1);
 
-	// A static transform change invalidates and rebuilds the cache.
 	const RenderPacketWorkerBuffer movedWorker = BuildWorker(
 		&context,
 		staticModelA,
@@ -188,7 +186,7 @@ int main(){
 	packets.BeginFrame(3);
 	packets.Merge(movedWorkers);
 	assert(packets.StaticBatchCache().Telemetry().rebuildCount == 2);
-	assert(packets.StaticBatchCache().Transforms()[0].worldMatrix[12] == 5.0f);
+	assert(packets.StaticBatchCache().Transforms()[0].worldMatrix.values[12] == 5.0f);
 
 	const StaticBatchCandidateStorageTelemetry telemetry =
 		packets.StaticBatchTelemetry();
