@@ -42,19 +42,29 @@ class TransformComponent;
 
 class PostEffectShader;
 
+//======================================================================
+// ポストエフェクト情報
+//======================================================================
 struct PostEffect
 {
 	PostEffectShader* shader;
-	std::string name;
-	bool enabled;
+	std::string       name;
+	bool              enabled;
 };
 
+//======================================================================
+// シェーダーマテリアル定義
+//======================================================================
 struct ShaderMaterial
 {
 	std::string filePath;
 	std::string entryPoint;
 };
 
+//======================================================================
+// RenderSystem
+// 描画処理全体を管理するシステム
+//======================================================================
 class RenderSystem: public ISystem
 {
 public:
@@ -83,6 +93,8 @@ public:
 	void Initialize() override;
 	void Finalize() override;
 
+	// RenderPacketはComponentへの非所有Pointerを保持するため、
+	// SceneのTempLoad / Shutdown前に公開済みPacketを必ず無効化する。
 	void Stop() override {
 		m_renderPacketBuffer.Reset();
 		m_cullingVisibility.BeginFrame(0);
@@ -90,9 +102,14 @@ public:
 	}
 
 	void Update(float deltaTime);
+
+	// 旧Main Thread一体処理。Task Migration後はScheduleから実行しない。
 	void EditorUpdate(float deltaTime);
+
+	// Step 17-C: CPU Pose計算とD3D11 Uploadを分離した実行段階。
 	void CalculateAnimationPoses();
 	void UploadAnimationPoses(float deltaTime);
+
 	void Draw();
 	void BuildRenderPackets();
 	void SubmitRenderPackets();
