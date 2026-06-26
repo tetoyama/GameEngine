@@ -90,6 +90,7 @@ public:
 		size_t packetCount = 0;
 		size_t configuredPacketReserve = 0;
 		size_t configuredStaticBatchReserve = 0;
+		bool allowStaticBatchGrowth = true;
 		std::vector<SceneContext*> reservedScenes;
 		for(const auto* worker : orderedWorkers){
 			packetCount += worker->Packets().size();
@@ -107,6 +108,9 @@ public:
 				configuredStaticBatchReserve += static_cast<size_t>(
 					context->storageConfig.staticBatchReserve
 				);
+				allowStaticBatchGrowth =
+					allowStaticBatchGrowth &&
+					context->storageConfig.allowRuntimeGrowth;
 			}
 		}
 
@@ -121,6 +125,7 @@ public:
 		}
 
 		m_staticBatchCandidates.Reserve(configuredStaticBatchReserve);
+		m_staticBatchCandidates.SetRuntimeGrowthAllowed(allowStaticBatchGrowth);
 
 		for(const auto* worker : orderedWorkers){
 			for(const RenderPacket& packet : worker->Packets()){
@@ -189,13 +194,15 @@ private:
 				continue;
 			}
 
-			m_staticBatchCandidates.Add({
+			if(!m_staticBatchCandidates.Add({
 				{packet.kind, packet.layer, packet.materialKey},
 				packet.sceneContextID,
 				packet.entity,
 				packetIndex,
 				packet.stableSequence
-			});
+			})){
+				break;
+			}
 		}
 		m_staticBatchCandidates.Sort();
 	}
