@@ -21,9 +21,10 @@ inline void BuildView(
 	CullingViewKey view,
 	const CullingFrustum& frustum,
 	ComponentRegistry& components,
-	size_t visibleReserve
+	size_t visibleReserve,
+	bool allowRuntimeGrowth = true
 ){
-	visibility.BeginView(view);
+	visibility.BeginView(view, allowRuntimeGrowth);
 	visibility.ReserveView(view, visibleReserve);
 
 	const auto entities =
@@ -39,7 +40,12 @@ inline void BuildView(
 		// Bounds未生成時は安全側へ倒し、可視候補として残す。
 		if(!culling->boundsValid ||
 			CullingMath::IntersectsFrustum(culling->worldBounds, frustum)){
-			visibility.SetVisible(view, entity);
+			if(!visibility.SetVisible(view, entity) &&
+				visibility.IsViewOverflowed(view)){
+				// 部分的な可視集合は誤Cullingを起こすため破棄し、
+				// HasView=falseの全描画Fallbackへ戻す。
+				break;
+			}
 		}
 	}
 }
