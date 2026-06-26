@@ -1,6 +1,13 @@
 name: Model Culling Bounds Diagnostics
 
 on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/ModelCullingBoundsProvider.h"
+      - "Tests/ModelCullingBoundsProviderSmokeTest.cpp"
+      - ".github/workflows/model-culling-bounds-diagnostics.yml"
   push:
     branches:
       - refactor/ecs-scheduler-foundation
