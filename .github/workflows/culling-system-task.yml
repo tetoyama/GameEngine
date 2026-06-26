@@ -5,13 +5,25 @@ on:
     branches:
       - master
     paths:
+      - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshCullingBoundsProvider.h"
       - "Tests/CullingSystemTaskSmokeTest.cpp"
       - ".github/workflows/culling-system-task.yml"
   push:
     branches:
       - refactor/ecs-scheduler-foundation
+    paths:
+      - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshCullingBoundsProvider.h"
+      - "Tests/CullingSystemTaskSmokeTest.cpp"
+      - ".github/workflows/culling-system-task.yml"
   workflow_dispatch:
+
+concurrency:
+  group: culling-system-task-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
