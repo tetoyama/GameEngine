@@ -115,10 +115,6 @@ public:
 	void SubmitRenderPackets();
 
 	void RegisterTasks(SystemScheduleBuilder& builder) override;
-	void MigrateRegisteredTasks(
-		SystemScheduleBuilder& builder,
-		std::vector<SystemTask>& tasks
-	) override;
 
 	bool decode(const YAML::Node& node) override;
 	YAML::Node encode() override;
