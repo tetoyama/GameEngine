@@ -3,7 +3,7 @@
 
 #include "Engine/Scene/Registry/componentRegistry.h"
 #include "Engine/Scene/Registry/entityRegistry.h"
-#include "Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateStorage.h"
+#include "Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
 
 namespace {
 
@@ -28,6 +28,40 @@ RenderPacket MakePacket(
 	return packet;
 }
 
+RenderPacketWorkerBuffer BuildWorker(
+	SceneContext* context,
+	Entity staticModel,
+	Entity staticMesh,
+	Entity dynamicModel
+){
+	RenderPacketWorkerBuffer worker(0);
+	worker.Add(MakePacket(
+		context,
+		staticMesh,
+		RenderPacketKind::Mesh,
+		RenderLayer::Opaque3D,
+		4,
+		2
+	));
+	worker.Add(MakePacket(
+		context,
+		staticModel,
+		RenderPacketKind::Model,
+		RenderLayer::Opaque3D,
+		2,
+		1
+	));
+	worker.Add(MakePacket(
+		context,
+		dynamicModel,
+		RenderPacketKind::Model,
+		RenderLayer::Opaque3D,
+		1,
+		0
+	));
+	return worker;
+}
+
 } // namespace
 
 int main(){
@@ -47,39 +81,19 @@ int main(){
 	assert(components.AddComponent<StaticEntityComponent>(staticModel));
 	assert(components.AddComponent<StaticEntityComponent>(staticMesh));
 
-	RenderPacketWorkerBuffer worker(0);
-	worker.Add(MakePacket(
-		&context,
-		staticMesh,
-		RenderPacketKind::Mesh,
-		RenderLayer::Opaque3D,
-		4,
-		2
-	));
-	worker.Add(MakePacket(
+	const RenderPacketWorkerBuffer worker = BuildWorker(
 		&context,
 		staticModel,
-		RenderPacketKind::Model,
-		RenderLayer::Opaque3D,
-		2,
-		1
-	));
-	worker.Add(MakePacket(
-		&context,
-		dynamicModel,
-		RenderPacketKind::Model,
-		RenderLayer::Opaque3D,
-		1,
-		0
-	));
+		staticMesh,
+		dynamicModel
+	);
+	const std::array<RenderPacketWorkerBuffer, 1> workers{worker};
 
 	RenderPacketFrameBuffer packets;
 	packets.BeginFrame(1);
-	const std::array<RenderPacketWorkerBuffer, 1> workers{worker};
 	packets.Merge(workers);
 
-	StaticBatchCandidateStorage candidates;
-	StaticBatchCandidateBuilder::Build(candidates, packets);
+	const StaticBatchCandidateStorage& candidates = packets.StaticBatchCandidates();
 	assert(candidates.Size() == 2);
 	assert(candidates.Capacity() >= context.storageConfig.staticBatchReserve);
 	assert(candidates.GrowthEventCount() == 0);
@@ -92,14 +106,22 @@ int main(){
 	assert(result[0].packetIndex < packets.Packets().size());
 	assert(result[1].packetIndex < packets.Packets().size());
 
-	const StaticBatchCandidateStorageTelemetry telemetry = candidates.Telemetry();
+	const StaticBatchCandidateStorageTelemetry telemetry =
+		packets.StaticBatchTelemetry();
 	assert(telemetry.currentSize == 2);
 	assert(telemetry.peakSize == 2);
 	assert(telemetry.capacity == candidates.Capacity());
 	assert(telemetry.growthEventCount == 0);
 
-	candidates.ResetPeakMetrics();
-	assert(candidates.PeakSize() == candidates.Size());
-	assert(candidates.GrowthEventCount() == 0);
+	packets.ResetPeakMetrics();
+	assert(packets.StaticBatchCandidates().PeakSize() == 2);
+	assert(packets.StaticBatchCandidates().GrowthEventCount() == 0);
+
+	context.storageConfig.staticBatchReserve = 1;
+	RenderPacketFrameBuffer growthPackets;
+	growthPackets.BeginFrame(2);
+	growthPackets.Merge(workers);
+	assert(growthPackets.StaticBatchCandidates().Size() == 2);
+	assert(growthPackets.StaticBatchCandidates().GrowthEventCount() > 0);
 	return 0;
 }
