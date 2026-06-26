@@ -37,6 +37,13 @@ struct ComponentOperations {
 	std::function<void(void*, SceneContext*)> beforeRemove;
 };
 
+struct ComponentStorageTelemetryEntry {
+	std::string name;
+	ECSStorage::ComponentStorageStrategy strategy =
+		ECSStorage::ComponentStorageStrategy::SparseStable;
+	ComponentStorageTelemetry telemetry;
+};
+
 class ComponentType {
 public:
 	template<typename T>
@@ -507,6 +514,58 @@ public:
 		return iterator != m_storages.end()
 			? iterator->second->Capacity()
 			: 0;
+	}
+
+	std::vector<ComponentStorageTelemetryEntry>
+	GetAllComponentStorageTelemetry() const {
+		std::vector<ComponentStorageTelemetryEntry> entries;
+		entries.reserve(m_storages.size());
+
+		for(const auto& [typeIndex, storage] : m_storages){
+			ComponentStorageTelemetryEntry entry;
+			entry.name = typeIndex.name();
+
+			auto typeIterator = m_typeToID.find(typeIndex);
+			if(typeIterator != m_typeToID.end()){
+				auto nameIterator = m_componentIDToName.find(typeIterator->second);
+				if(nameIterator != m_componentIDToName.end() &&
+					!nameIterator->second.empty()){
+					entry.name = nameIterator->second;
+				}
+			}
+
+			auto strategyIterator = m_storageStrategies.find(typeIndex);
+			if(strategyIterator != m_storageStrategies.end()){
+				entry.strategy = strategyIterator->second;
+			}
+			entry.telemetry = storage->Telemetry();
+			entries.push_back(std::move(entry));
+		}
+
+		std::sort(
+			entries.begin(),
+			entries.end(),
+			[](const auto& left, const auto& right){
+				return left.name < right.name;
+			}
+		);
+		return entries;
+	}
+
+	size_t GetTotalComponentStorageGrowthEventCount() const noexcept {
+		size_t total = 0;
+		for(const auto& [typeIndex, storage] : m_storages){
+			(void)typeIndex;
+			total += storage->GrowthEventCount();
+		}
+		return total;
+	}
+
+	void ResetAllComponentStoragePeakMetrics() noexcept {
+		for(auto& [typeIndex, storage] : m_storages){
+			(void)typeIndex;
+			storage->ResetPeakMetrics();
+		}
 	}
 
 	std::vector<ComponentView> GetAllComponentViewsOfEntitySorted(Entity entity){
