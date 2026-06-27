@@ -22,8 +22,9 @@ void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* co
 
 	D3D11_SAMPLER_DESC samplerDesc{};
 	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	samplerDesc.AddressU = samplerDesc.AddressV = samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	samplerDesc.AddressU = samplerDesc.AddressV = samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 	samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	context->graphics->GetDevice()->CreateSamplerState(&samplerDesc, &sampler);
 
 	const Vector2 size(
@@ -63,6 +64,9 @@ void GBufferPass::Execute(const RenderPassContext& context){
 	deviceContext->VSSetShader(m_GBufferVertexShader->m_VertexShader.Get(), nullptr, 0);
 	deviceContext->IASetInputLayout(m_GBufferVertexShader->m_VertexLayout.Get());
 	deviceContext->PSSetShader(m_GBufferPixelShader->m_PixelShader.Get(), nullptr, 0);
+	if(sampler){
+		deviceContext->PSSetSamplers(0, 1, &sampler);
+	}
 	graphics->SetBlendMode(BlendMode::None);
 
 	float clearColor[4] = {0, 0, 0, 0};
