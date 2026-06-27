@@ -53,8 +53,8 @@ struct MeshData {
 	}
 
 	void ClearLocalBounds() noexcept {
-		localBoundsMin = {};
-		localBoundsMax = {};
+		localBoundsMin = Vector3{};
+		localBoundsMax = Vector3{};
 		geometryResourceKey = 0;
 		++localBoundsRevision;
 		if(localBoundsRevision == 0) ++localBoundsRevision;
