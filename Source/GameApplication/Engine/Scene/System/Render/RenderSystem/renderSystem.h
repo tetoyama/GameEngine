@@ -19,6 +19,7 @@
 #include "Backends/myVector3.h"
 #include "Scene/Entity/Entity.h"
 #include "System/Render/RenderSystem/renderLayer.h"
+#include "System/Render/RenderSystem/ShaderMaterialProvider.h"
 #include "System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
 #include "System/Render/RenderSystem/RenderPass/RenderPassContext.h"
 #include "System/Render/Culling/RenderPacketViewCulling.h"
@@ -53,19 +54,10 @@ struct PostEffect
 };
 
 //======================================================================
-// シェーダーマテリアル定義
-//======================================================================
-struct ShaderMaterial
-{
-	std::string filePath;
-	std::string entryPoint;
-};
-
-//======================================================================
 // RenderSystem
 // 描画処理全体を管理するシステム
 //======================================================================
-class RenderSystem: public ISystem
+class RenderSystem: public ISystem, public IShaderMaterialProvider
 {
 public:
 	const char* GetSystemName() const override{
@@ -217,6 +209,10 @@ public:
 
 	uint64_t GetLastSubmittedPacketGeneration() const noexcept {
 		return m_lastSubmittedPacketGeneration;
+	}
+
+	std::span<const ShaderMaterial> GetShaderMaterials() const noexcept override {
+		return ShaderMaterials;
 	}
 
 	std::vector<ShaderMaterial> ShaderMaterials;
