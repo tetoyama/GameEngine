@@ -15,7 +15,7 @@
 #include "Backends/ImGuiFunc.h"
 #include "Backends/YAMLConverters.h"
 #include "Scene/Registry/systemRegistry.h"
-#include "Scene/System/Render/RenderSystem/renderSystem.h"
+#include "Scene/System/Render/RenderSystem/ShaderMaterialProvider.h"
 #include "Scene/scene.h"
 
 namespace MaterialComponentOperations {
@@ -54,16 +54,18 @@ inline void Inspect(MaterialComponent& component, SceneContext* context){
 	ImGui::PushID(&component);
 	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(6.0f, 4.0f));
 
-	RenderSystem* renderSystem =
+	IShaderMaterialProvider* shaderProvider =
 		context && context->system
-			? context->system->GetSystem<RenderSystem>()
+			? context->system->GetSystem<IShaderMaterialProvider>()
 			: nullptr;
 
 	std::vector<std::string> shaderNames;
 	std::vector<const char*> shaderNamePointers;
-	if(renderSystem){
-		shaderNames.reserve(renderSystem->ShaderMaterials.size());
-		for(const ShaderMaterial& material : renderSystem->ShaderMaterials){
+	if(shaderProvider){
+		const std::span<const ShaderMaterial> shaderMaterials =
+			shaderProvider->GetShaderMaterials();
+		shaderNames.reserve(shaderMaterials.size());
+		for(const ShaderMaterial& material : shaderMaterials){
 			shaderNames.push_back(material.entryPoint);
 		}
 		shaderNamePointers.reserve(shaderNames.size());
