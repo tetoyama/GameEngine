@@ -19,15 +19,15 @@
 #include "Resources/Data/TextureData.h"
 
 
-// テクスチャリソースと UV スライスアニメーションを管理するコンポーネント
-// UV_Slice_X / UV_Slice_Y でテクスチャを格子状に分割し、
-// AnimationNum で表示するセルを選択するスプライトシート方式をサポートする
+// テクスチャリソースと UV 変換・スライスアニメーションを管理するコンポーネント。
+// UV_Slice_X / UV_Slice_Y はUV除数として扱う。
+// 0.01 = 100回リピート、1.0 = 等倍、2.0 = 1/2範囲を表示する。
 class TextureComponent : public IComponent {
 public:
-	float UV_Slice_X = 1.0f;  // テクスチャを横方向に分割する数
-	float UV_Slice_Y = 1.0f;  // テクスチャを縦方向に分割する数
+	float UV_Slice_X = 1.0f;
+	float UV_Slice_Y = 1.0f;
 
-	int AnimationNum = 0;  // 表示するセルのインデックス（0 から UV_Slice_X * UV_Slice_Y - 1）
+	int AnimationNum = 0;  // 表示するセルのインデックス
 
 	std::shared_ptr<TextureData> m_TextureData;  // ロード済みテクスチャデータ
 
@@ -69,8 +69,8 @@ public:
         ImVec4 colorR = ImVec4(0.7f, 0.4f, 0.4f, 0.3f); // R
         ImVec4 colorG = ImVec4(0.4f, 0.7f, 0.4f, 0.3f); // G
 
-        // --- UV Slice ---
-        ImGui::Text("UV Slice");
+        // --- UV Divisor ---
+        ImGui::Text("UV Divisor");
         ImGui::SameLine(100);
 
         float availWidth = ImGui::GetContentRegionAvail().x;
@@ -87,7 +87,7 @@ public:
         ImGui::PushItemWidth(inputWidthX);
         ImGui::PushStyleColor(ImGuiCol_Border, colorR);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
-        ImGui::UndoDragFloat("##UVSliceX", &UV_Slice_X, 1, 1, 256);
+        ImGui::UndoDragFloat("##UVSliceX", &UV_Slice_X, 0.01f, 0.0001f, 256.0f);
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();
@@ -100,10 +100,12 @@ public:
         ImGui::PushItemWidth(inputWidthY);
         ImGui::PushStyleColor(ImGuiCol_Border, colorG);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
-        ImGui::UndoDragFloat("##UVSliceY", &UV_Slice_Y, 1, 1, 256);
+        ImGui::UndoDragFloat("##UVSliceY", &UV_Slice_Y, 0.01f, 0.0001f, 256.0f);
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();
+
+		ImGui::TextDisabled("0.01 = Repeat x100 / 1 = Full / 2 = Half");
 
 		// --- Animation Frame ---
 		ImGui::AlignTextToFramePadding();
@@ -188,25 +190,13 @@ public:
             ImGui::SameLine(0.0f, spacing);
 
             ImGui::BeginGroup();
-            ImVec2 start, end;
+            ImVec2 start(0.0f, 0.0f);
+            ImVec2 end(1.0f, 1.0f);
 
 			if (UV_Slice_X > 0.0f && UV_Slice_Y > 0.0f) {
-				// UV_Slice_X/Y は「1セルのUVサイズ」
-				// 例:
-				// 0.25f = 4分割
-				// 0.125f = 8分割
-
-				int column = (int)(UV_Slice_X);
-				if(column <= 0){
-					column = 1;
-				}
-
-				start.x = (AnimationNum / column) * 1.0f / UV_Slice_X;
-				start.y = (AnimationNum % column) * 1.0f / UV_Slice_Y;
-
-				// 1 セルの UV サイズ: 1/スライス数
-				end.x = start.x + 1.0f / UV_Slice_X;  // セルの右端 UV
-				end.y = start.y + 1.0f / UV_Slice_Y;  // セルの下端 UV
+				// 実際の頂点シェーダーと同じく、値の逆数を表示UV幅として扱う。
+				end.x = 1.0f / UV_Slice_X;
+				end.y = 1.0f / UV_Slice_Y;
 			}
             ImGui::Image(
                 (ImTextureID)m_TextureData->pTexture.Get(),
@@ -235,5 +225,4 @@ public:
 
 		ImGui::PopID(); // コンポーネントのIDをポップ
     }
-
 };
