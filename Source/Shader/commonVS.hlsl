@@ -31,15 +31,26 @@ void main(in VS_IN In, out PS_IN Out)
 
     Out.Diffuse = In.Diffuse; //頂点の物をそのまま出力
 
-    // UVEnd - UVStart は1セル分のUVサイズとして扱う。
-    // 0.01なら入力UVを100倍し、SamplerのWrapによって100回繰り返す。
-    // 0除算を避けるため、未設定または不正な軸は1倍へフォールバックする。
-    const float2 uvSlice = UVEnd - UVStart;
-    const float2 uvRepeat = float2(
-        abs(uvSlice.x) > 0.000001f ? rcp(uvSlice.x) : 1.0f,
-        abs(uvSlice.y) > 0.000001f ? rcp(uvSlice.y) : 1.0f
+    // UVEnd - UVStart はUVの除数として扱う。
+    // 0.01なら100回リピート、1.0なら等倍、2.0なら半分の範囲を表示する。
+    // 1未満の軸はfracで明示的に周期化し、Sampler状態が一時的にClampでも
+    // リピート自体が失われないようにする。
+    const float2 uvDivisor = UVEnd - UVStart;
+    const float2 safeDivisor = float2(
+        abs(uvDivisor.x) > 0.000001f ? uvDivisor.x : 1.0f,
+        abs(uvDivisor.y) > 0.000001f ? uvDivisor.y : 1.0f
     );
-    Out.TexCoord = UVStart + In.TexCoord * uvRepeat;
+
+    float2 transformedUV = UVStart + In.TexCoord / safeDivisor;
+    if (abs(safeDivisor.x) < 1.0f)
+    {
+        transformedUV.x = frac(transformedUV.x);
+    }
+    if (abs(safeDivisor.y) < 1.0f)
+    {
+        transformedUV.y = frac(transformedUV.y);
+    }
+    Out.TexCoord = transformedUV;
 
 	//ワールド変換した頂点座標を出力
     Out.WorldPosition = mul(In.Position, World);
