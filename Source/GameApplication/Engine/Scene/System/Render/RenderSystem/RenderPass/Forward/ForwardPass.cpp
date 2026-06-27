@@ -87,6 +87,12 @@ void ForwardPass::Execute(const RenderPassContext& ctx){
 	deviceContext->PSSetShaderResources(TextureSlot_ShadowMap, 1, m_shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
 	deviceContext->PSSetSamplers(1, 1, &m_shadowMapPass->shadowSampler);
 
+	// Forward描画でもMaterial texture用のs0を毎回Wrapへ戻す。
+	// 前のImGui/PostEffectパスがClamp samplerを残していてもUV repeatを維持する。
+	if(m_gBufferPass && m_gBufferPass->sampler){
+		deviceContext->PSSetSamplers(0, 1, &m_gBufferPass->sampler);
+	}
+
 	if(m_lightingPass->m_EnvironmentMap && m_lightingPass->m_EnvironmentMap->pTexture){
 		ID3D11ShaderResourceView* environmentSRV =
 			m_lightingPass->m_EnvironmentMap->pTexture.Get();
