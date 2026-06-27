@@ -32,25 +32,16 @@ void main(in VS_IN In, out PS_IN Out)
     Out.Diffuse = In.Diffuse; //頂点の物をそのまま出力
 
     // UVEnd - UVStart はUVの除数として扱う。
-    // 0.01なら100回リピート、1.0なら等倍、2.0なら半分の範囲を表示する。
-    // 1未満の軸はfracで明示的に周期化し、Sampler状態が一時的にClampでも
-    // リピート自体が失われないようにする。
+    // 0.01なら0～100を出力してSamplerのWrapで100回リピートする。
+    // 1.0なら等倍、2.0なら0～0.5となり半分の範囲を表示する。
+    // fracは頂点段階では適用しない。両端が同じ値へ丸められると、
+    // ラスタライズ時の補間でUV勾配そのものが失われるため。
     const float2 uvDivisor = UVEnd - UVStart;
     const float2 safeDivisor = float2(
         abs(uvDivisor.x) > 0.000001f ? uvDivisor.x : 1.0f,
         abs(uvDivisor.y) > 0.000001f ? uvDivisor.y : 1.0f
     );
-
-    float2 transformedUV = UVStart + In.TexCoord / safeDivisor;
-    if (abs(safeDivisor.x) < 1.0f)
-    {
-        transformedUV.x = frac(transformedUV.x);
-    }
-    if (abs(safeDivisor.y) < 1.0f)
-    {
-        transformedUV.y = frac(transformedUV.y);
-    }
-    Out.TexCoord = transformedUV;
+    Out.TexCoord = UVStart + In.TexCoord / safeDivisor;
 
 	//ワールド変換した頂点座標を出力
     Out.WorldPosition = mul(In.Position, World);
