@@ -40,7 +40,7 @@ inline IRHIDevice* EnsureGraphicsContextRHIDevice(GraphicsContext& graphics){
 	swapChainDesc.format = D3D11Detail::FromDXGIFormat(nativeDesc.BufferDesc.Format);
 	swapChainDesc.allowTearing =
 		(nativeDesc.Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) != 0;
-	swapChainDesc.debugName = "GraphicsContext SwapChain";
+	swapChainDesc.debugName = "GraphicsContext Device Interop";
 	if(swapChainDesc.width == 0 || swapChainDesc.height == 0 ||
 		swapChainDesc.bufferCount == 0 || swapChainDesc.format == Format::Unknown){
 		return nullptr;
@@ -49,7 +49,7 @@ inline IRHIDevice* EnsureGraphicsContextRHIDevice(GraphicsContext& graphics){
 	auto device = std::make_unique<D3D11RHIDevice>(
 		nativeDevice,
 		nativeContext,
-		nativeSwapChain,
+		nullptr,
 		swapChainDesc
 	);
 	if(!service->AdoptDevice(std::move(device))){
