@@ -99,9 +99,13 @@ public:
 
 	bool Bind(ID3D11DeviceContext* context) const noexcept {
 		if(!context || !IsValid()) return false;
+		std::array<ID3D11RenderTargetView*, ColorTargetCount> targets{};
+		for(std::size_t index = 0; index < targets.size(); ++index){
+			targets[index] = m_targets[index].Get();
+		}
 		context->OMSetRenderTargets(
-			static_cast<UINT>(m_targets.size()),
-			m_targets.data(),
+			static_cast<UINT>(targets.size()),
+			targets.data(),
 			m_depthTarget.Get()
 		);
 		return true;
