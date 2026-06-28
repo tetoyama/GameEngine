@@ -21,6 +21,20 @@ struct StaticBatchGBufferSubmissionTelemetry {
 	bool pipelineReady = false;
 	bool instanceUploadReady = false;
 
+	std::size_t StaticDrawCallCount() const noexcept {
+		return submittedGroupCount;
+	}
+
+	std::size_t ReplacedOrdinaryDrawCallCount() const noexcept {
+		return submittedInstanceCount;
+	}
+
+	std::size_t EstimatedDrawCallReduction() const noexcept {
+		return submittedInstanceCount > submittedGroupCount
+			? submittedInstanceCount - submittedGroupCount
+			: 0;
+	}
+
 	void Reset(std::uint64_t revision = 0) noexcept {
 		*this = {};
 		sourceRevision = revision;
