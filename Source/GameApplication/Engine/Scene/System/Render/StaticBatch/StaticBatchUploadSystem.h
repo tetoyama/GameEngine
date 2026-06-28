@@ -12,6 +12,7 @@
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
 #include "System/Render/StaticBatch/StaticBatchGeometryBindingCache.h"
+#include "System/Render/StaticBatch/StaticBatchPipelineBootstrap.h"
 #include "System/Render/StaticBatch/StaticBatchPipelineResources.h"
 
 class StaticBatchUploadSystem final : public ISystem {
@@ -24,6 +25,13 @@ public:
 		return "StaticBatchUploadSystem";
 	}
 
+	void Initialize() override {
+		m_pipelineBootstrapResult = StaticBatchPipelineBootstrap::Initialize(
+			ResolveDevice(),
+			m_pipelineResources
+		);
+	}
+
 	void Finalize() override {
 		RHI::IRHIDevice* device = ResolveDevice();
 		if(device){
@@ -31,6 +39,8 @@ public:
 			m_pipelineResources.Release(*device);
 			m_gpuInstanceBuffer.Release(*device);
 		}
+		m_pipelineBootstrapResult =
+			StaticBatchPipelineBootstrapResult::NotAttempted;
 		m_lastUploadSucceeded = false;
 	}
 
@@ -84,6 +94,16 @@ public:
 
 	const StaticBatchPipelineResources& GetPipelineResources() const noexcept {
 		return m_pipelineResources;
+	}
+
+	StaticBatchPipelineBootstrapResult GetPipelineBootstrapResult() const noexcept {
+		return m_pipelineBootstrapResult;
+	}
+
+	bool IsPipelineReady() const noexcept {
+		return m_pipelineBootstrapResult ==
+			StaticBatchPipelineBootstrapResult::Success &&
+			m_pipelineResources.IsReady();
 	}
 
 	StaticBatchGeometryBindingCache& GetGeometryBindingCache() noexcept {
@@ -200,5 +220,7 @@ private:
 	StaticBatchGpuInstanceBuffer m_gpuInstanceBuffer;
 	StaticBatchPipelineResources m_pipelineResources;
 	StaticBatchGeometryBindingCache m_geometryBindingCache;
+	StaticBatchPipelineBootstrapResult m_pipelineBootstrapResult =
+		StaticBatchPipelineBootstrapResult::NotAttempted;
 	bool m_lastUploadSucceeded = false;
 };
