@@ -64,6 +64,10 @@ inline BufferHandle D3D11RHIDevice::ImportNativeBuffer(
 		return {};
 	}
 
+	Microsoft::WRL::ComPtr<ID3D11Device> sourceDevice;
+	nativeBuffer->GetDevice(sourceDevice.GetAddressOf());
+	if(sourceDevice.Get() != m_device.Get()) return {};
+
 	D3D11_BUFFER_DESC nativeDesc{};
 	nativeBuffer->GetDesc(&nativeDesc);
 	if(nativeDesc.ByteWidth == 0) return {};
