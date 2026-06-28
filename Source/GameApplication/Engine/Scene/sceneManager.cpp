@@ -23,6 +23,7 @@
 #include "System/Transform/followSystem.h"
 
 #include "System/Render/RenderSystem/renderSystem.h"
+#include "System/Render/StaticBatch/StaticBatchUploadSystem.h"
 #include "System/Render/Camera/CameraSystem.h"
 #include "System/Render/Culling/CullingSystem.h"
 #include "System/Render/Effect/effectSystem.h"
@@ -75,6 +76,7 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 	m_systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<CullingSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<StaticBatchUploadSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<AudioSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<ParticleSystem>(&m_SceneContext));
 	m_systemRegistry->RegisterSystem(std::make_unique<EffectSystem>(&m_SceneContext));
@@ -117,7 +119,6 @@ void SceneManager::Update(float deltaTime){
 			m_systemRegistry->StopAll();
 
 			TempLoad(); // 一時保存の読み込み
-
 			// プレイ中に積まれたコマンドは TempLoad 後に無効なため全クリア
 			if (m_SceneContext.editor) {
 				m_SceneContext.editor->commandManager.Clear();
