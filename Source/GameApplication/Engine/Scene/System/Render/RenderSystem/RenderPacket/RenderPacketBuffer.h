@@ -10,6 +10,7 @@
 #include "RenderPacket.h"
 #include "StaticBatchCandidateTypes.h"
 #include "StaticBatchPacketCache.h"
+#include "StaticBatchInstanceDataBuffer.h"
 #include "StaticBatchResourceKey.h"
 #include "Scene/scene.h"
 #include "Scene/Registry/componentRegistry.h"
@@ -57,6 +58,7 @@ public:
 		m_packets.clear();
 		m_staticBatchCandidates.Reset();
 		m_staticBatchPacketCache.Reset();
+		m_staticBatchInstanceData.Reset();
 		m_lastMergeUsedSafetyGrowth = false;
 		m_ready = false;
 	}
@@ -65,6 +67,7 @@ public:
 	void ReserveStaticBatchCandidates(size_t count){
 		m_staticBatchCandidates.Reserve(count);
 		m_staticBatchPacketCache.Reserve(count);
+		m_staticBatchInstanceData.Reserve(count);
 	}
 
 	void Merge(std::span<const RenderPacketWorkerBuffer> workerBuffers){
@@ -117,16 +120,10 @@ public:
 			}
 		}
 
-		// Configured reserve is an explicit scene-load allocation hint and is not
-		// counted as runtime growth. Apply it before evaluating the frame demand.
 		if(configuredPacketReserve > m_packets.capacity()){
 			m_packets.reserve(configuredPacketReserve);
 		}
 
-		// Render packets are correctness-critical. Dropping packets when growth is
-		// disabled would cause missing geometry, so capacity exhaustion uses a
-		// deliberate safety override: grow once, publish the complete frame, and
-		// expose the policy violation through telemetry.
 		if(publishablePacketCount > m_packets.capacity()){
 			m_packets.reserve(publishablePacketCount);
 			++m_growthEventCount;
@@ -139,6 +136,7 @@ public:
 		m_staticBatchCandidates.Reserve(configuredStaticBatchReserve);
 		m_staticBatchCandidates.SetRuntimeGrowthAllowed(allowStaticBatchGrowth);
 		m_staticBatchPacketCache.Reserve(configuredStaticBatchReserve);
+		m_staticBatchInstanceData.Reserve(configuredStaticBatchReserve);
 
 		for(const auto* worker : orderedWorkers){
 			for(const RenderPacket& packet : worker->Packets()){
@@ -155,6 +153,10 @@ public:
 			m_generation,
 			allowStaticBatchGrowth
 		);
+		m_staticBatchInstanceData.Synchronize(
+			m_staticBatchPacketCache,
+			allowStaticBatchGrowth
+		);
 		m_peakSize = (std::max)(m_peakSize, m_packets.size());
 		m_ready = true;
 	}
@@ -167,6 +169,9 @@ public:
 	}
 	const StaticBatchPacketCache& StaticBatchCache() const noexcept {
 		return m_staticBatchPacketCache;
+	}
+	const StaticBatchInstanceDataBuffer& StaticBatchInstances() const noexcept {
+		return m_staticBatchInstanceData;
 	}
 	size_t Size() const noexcept { return m_packets.size(); }
 	size_t Capacity() const noexcept { return m_packets.capacity(); }
@@ -198,6 +203,10 @@ public:
 		return m_staticBatchPacketCache.Telemetry();
 	}
 
+	StaticBatchInstanceDataTelemetry StaticBatchInstanceTelemetry() const noexcept {
+		return m_staticBatchInstanceData.Telemetry();
+	}
+
 	void ResetPeakMetrics() noexcept {
 		m_peakSize = m_packets.size();
 		m_growthEventCount = 0;
@@ -205,6 +214,7 @@ public:
 		m_lastMergeUsedSafetyGrowth = false;
 		m_staticBatchCandidates.ResetPeakMetrics();
 		m_staticBatchPacketCache.ResetPeakMetrics();
+		m_staticBatchInstanceData.ResetPeakMetrics();
 	}
 
 	size_t Count(RenderPacketKind kind) const noexcept {
@@ -278,6 +288,7 @@ private:
 	std::vector<RenderPacket> m_packets;
 	StaticBatchCandidateStorage m_staticBatchCandidates;
 	StaticBatchPacketCache m_staticBatchPacketCache;
+	StaticBatchInstanceDataBuffer m_staticBatchInstanceData;
 	size_t m_peakSize = 0;
 	size_t m_growthEventCount = 0;
 	size_t m_safetyGrowthOverrideCount = 0;
