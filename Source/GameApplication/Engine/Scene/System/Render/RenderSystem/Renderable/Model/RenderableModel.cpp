@@ -106,8 +106,8 @@ void RenderableModel::Execute(
 			uv.UVStart.y = (textureComponent->AnimationNum / column) * textureComponent->UV_Slice_Y;
 
 			// 1 セルの UV サイズ: 1/スライス数
-			uv.UVEnd.x = uv.UVStart.x + textureComponent->UV_Slice_X;  // セルの右端 UV
-			uv.UVEnd.y = uv.UVStart.y + textureComponent->UV_Slice_Y;  // セルの下端 UV
+			uv.UVEnd.x = uv.UVStart.x + textureComponent->UV_Slice_X;
+			uv.UVEnd.y = uv.UVStart.y + textureComponent->UV_Slice_Y;
 		}
 	}
 	graphicsContext->SetUVMatrixBuffer(uv);
@@ -130,8 +130,18 @@ void RenderableModel::Execute(
 	// Draw Mesh
 	//----------------------------------------------------------------------
 
-	for(UINT meshIndex = 0;
-		meshIndex < model->AiScene->mNumMeshes;
+	UINT firstMeshIndex = 0;
+	UINT meshEndIndex = model->AiScene->mNumMeshes;
+	if(!packet.TargetsAllSubMeshes()){
+		if(packet.subMeshIndex >= model->AiScene->mNumMeshes){
+			return;
+		}
+		firstMeshIndex = packet.subMeshIndex;
+		meshEndIndex = firstMeshIndex + 1;
+	}
+
+	for(UINT meshIndex = firstMeshIndex;
+		meshIndex < meshEndIndex;
 		++meshIndex){
 
 		if(!textureComponent || !textureComponent->m_TextureData){
@@ -279,18 +289,18 @@ void RenderableModel::Execute(
 			&offset
 		);
 
-		//------------------------------------------------------------------
+		//----------------------------------------------------------------------
 		// Index Buffer
-		//------------------------------------------------------------------
+		//----------------------------------------------------------------------
 
 		deviceContext->IASetIndexBuffer(
 			model->IndexBuffer[meshIndex],
 			DXGI_FORMAT_R32_UINT,
 			0);
 
-		//------------------------------------------------------------------
+		//----------------------------------------------------------------------
 		// Draw
-		//------------------------------------------------------------------
+		//----------------------------------------------------------------------
 
 		deviceContext->DrawIndexed(
 			model->AiScene->mMeshes[meshIndex]->mNumFaces * 3,
