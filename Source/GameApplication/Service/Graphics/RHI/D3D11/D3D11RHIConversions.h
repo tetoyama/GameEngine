@@ -31,6 +31,28 @@ inline DXGI_FORMAT ToDXGIFormat(Format format){
 	}
 }
 
+inline Format FromDXGIFormat(DXGI_FORMAT format){
+	switch(format){
+		case DXGI_FORMAT_R8_UNORM: return Format::R8_UNorm;
+		case DXGI_FORMAT_R8G8_UNORM: return Format::RG8_UNorm;
+		case DXGI_FORMAT_R8G8B8A8_UNORM: return Format::RGBA8_UNorm;
+		case DXGI_FORMAT_B8G8R8A8_UNORM: return Format::BGRA8_UNorm;
+		case DXGI_FORMAT_R16_UINT: return Format::R16_UInt;
+		case DXGI_FORMAT_R32_UINT: return Format::R32_UInt;
+		case DXGI_FORMAT_R16_FLOAT: return Format::R16_Float;
+		case DXGI_FORMAT_R32_FLOAT: return Format::R32_Float;
+		case DXGI_FORMAT_R16G16_FLOAT: return Format::RG16_Float;
+		case DXGI_FORMAT_R32G32_FLOAT: return Format::RG32_Float;
+		case DXGI_FORMAT_R16G16B16A16_FLOAT: return Format::RGBA16_Float;
+		case DXGI_FORMAT_R32G32B32A32_FLOAT: return Format::RGBA32_Float;
+		case DXGI_FORMAT_R32G32B32A32_UINT: return Format::RGBA32_UInt;
+		case DXGI_FORMAT_D24_UNORM_S8_UINT: return Format::D24_UNorm_S8_UInt;
+		case DXGI_FORMAT_D32_FLOAT: return Format::D32_Float;
+		case DXGI_FORMAT_D32_FLOAT_S8X24_UINT: return Format::D32_Float_S8X24_UInt;
+		default: return Format::Unknown;
+	}
+}
+
 inline D3D11_USAGE ToUsage(ResourceUsage usage){
 	switch(usage){
 		case ResourceUsage::Immutable: return D3D11_USAGE_IMMUTABLE;
