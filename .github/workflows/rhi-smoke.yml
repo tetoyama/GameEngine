@@ -36,6 +36,7 @@ jobs:
         shell: cmd
         run: >-
           cl /nologo /std:c++20 /EHsc /W4 /MTd
+          /I Source
           /I Source/GameApplication
           Tests/RHISmokeTest.cpp
           /Fe:rhi-smoke.exe
@@ -71,6 +72,7 @@ jobs:
         shell: cmd
         run: >-
           cl /nologo /std:c++20 /EHsc /W4 /MTd
+          /I Source
           /I Source/GameApplication
           Tests/RHIRenderGraphBarrierSmokeTest.cpp
           /Fe:rhi-render-graph-barrier-smoke.exe
@@ -106,6 +108,7 @@ jobs:
         shell: cmd
         run: >-
           cl /nologo /std:c++20 /EHsc /W4 /MTd
+          /I Source
           /I Source/GameApplication
           Tests/D3D11RHIBackendSmokeTest.cpp
           d3d11.lib dxgi.lib
@@ -142,6 +145,7 @@ jobs:
         shell: cmd
         run: >-
           cl /nologo /std:c++20 /EHsc /W4 /MTd
+          /I Source
           /I Source/GameApplication
           Tests/RHISwapChainContractSmokeTest.cpp
           d3d11.lib dxgi.lib user32.lib
@@ -154,7 +158,7 @@ jobs:
           name: rhi-swap-chain-contract-build-log
           path: rhi-swap-chain-contract-build.log
           if-no-files-found: error
-      - name: Preserve SwapChain compile result
+      - name: Preserve SwapChain contract compile result
         if: steps.swap_chain_build.outcome == 'failure'
         run: cmd /c exit 1
       - name: Run SwapChain contract smoke test
