@@ -29,6 +29,7 @@ on:
       - "Tests/StaticBatchInstanceInputLayoutSmokeTest.cpp"
       - "Tests/StaticBatchGroupVisibilitySmokeTest.cpp"
       - "Tests/StaticBatchPipelineBootstrapSmokeTest.cpp"
+      - "Tests/StaticBatchDrawSubmissionSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
@@ -58,6 +59,7 @@ on:
       - "Tests/StaticBatchInstanceInputLayoutSmokeTest.cpp"
       - "Tests/StaticBatchGroupVisibilitySmokeTest.cpp"
       - "Tests/StaticBatchPipelineBootstrapSmokeTest.cpp"
+      - "Tests/StaticBatchDrawSubmissionSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   workflow_dispatch:
 
@@ -93,6 +95,8 @@ jobs:
             output: static-batch-group-visibility-test.exe
           - source: Tests/StaticBatchPipelineBootstrapSmokeTest.cpp
             output: static-batch-pipeline-bootstrap-test.exe
+          - source: Tests/StaticBatchDrawSubmissionSmokeTest.cpp
+            output: static-batch-draw-submission-test.exe
     steps:
       - uses: actions/checkout@v4
         with:
