@@ -38,12 +38,14 @@ public:
 	void Reserve(size_t expectedCandidateCount){
 		m_entries.reserve(expectedCandidateCount);
 		m_entities.reserve(expectedCandidateCount);
+		m_packetIndices.reserve(expectedCandidateCount);
 		m_transforms.reserve(expectedCandidateCount);
 	}
 
 	void Reset() noexcept {
 		m_entries.clear();
 		m_entities.clear();
+		m_packetIndices.clear();
 		m_transforms.clear();
 		m_sourceRevision = 0;
 		m_generation = 0;
@@ -85,6 +87,7 @@ public:
 		if(!allowRuntimeGrowth &&
 			(requiredEntryCount > m_entries.capacity() ||
 			 requiredInstanceCount > m_entities.capacity() ||
+			 requiredInstanceCount > m_packetIndices.capacity() ||
 			 requiredInstanceCount > m_transforms.capacity())){
 			InvalidateForOverflow();
 			return false;
@@ -92,18 +95,22 @@ public:
 
 		const size_t entryCapacityBefore = m_entries.capacity();
 		const size_t entityCapacityBefore = m_entities.capacity();
+		const size_t packetIndexCapacityBefore = m_packetIndices.capacity();
 		const size_t transformCapacityBefore = m_transforms.capacity();
 		m_entries.reserve(requiredEntryCount);
 		m_entities.reserve(requiredInstanceCount);
+		m_packetIndices.reserve(requiredInstanceCount);
 		m_transforms.reserve(requiredInstanceCount);
 		if(m_entries.capacity() > entryCapacityBefore ||
 			m_entities.capacity() > entityCapacityBefore ||
+			m_packetIndices.capacity() > packetIndexCapacityBefore ||
 			m_transforms.capacity() > transformCapacityBefore){
 			++m_growthEventCount;
 		}
 
 		m_entries.clear();
 		m_entities.clear();
+		m_packetIndices.clear();
 		m_transforms.clear();
 
 		for(const StaticBatchCandidateGroup& group : candidates.Groups()){
@@ -120,6 +127,7 @@ public:
 					candidates.Candidates()[group.firstCandidate + offset];
 				const RenderPacket& packet = packets[candidate.packetIndex];
 				m_entities.push_back(candidate.entity);
+				m_packetIndices.push_back(candidate.packetIndex);
 				m_transforms.push_back(packet.transform);
 			}
 
@@ -153,6 +161,10 @@ public:
 		return m_entities;
 	}
 
+	std::span<const size_t> PacketIndices() const noexcept {
+		return m_packetIndices;
+	}
+
 	std::span<const RenderPacketTransformSnapshot> Transforms() const noexcept {
 		return m_transforms;
 	}
@@ -169,7 +181,11 @@ public:
 			m_entries.capacity(),
 			m_entities.size(),
 			m_peakInstanceCount,
-			(std::min)(m_entities.capacity(), m_transforms.capacity()),
+			(std::min)({
+				m_entities.capacity(),
+				m_packetIndices.capacity(),
+				m_transforms.capacity()
+			}),
 			m_rebuildCount,
 			m_growthEventCount,
 			m_overflowEventCount,
@@ -249,6 +265,7 @@ private:
 		const bool enteringOverflow = !m_overflowed;
 		m_entries.clear();
 		m_entities.clear();
+		m_packetIndices.clear();
 		m_transforms.clear();
 		m_sourceRevision = 0;
 		m_generation = 0;
@@ -259,6 +276,7 @@ private:
 
 	std::vector<StaticBatchPacketCacheEntry> m_entries;
 	std::vector<Entity> m_entities;
+	std::vector<size_t> m_packetIndices;
 	std::vector<RenderPacketTransformSnapshot> m_transforms;
 	std::uint64_t m_generation = 0;
 	std::uint64_t m_sourceRevision = 0;
