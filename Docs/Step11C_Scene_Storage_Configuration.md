@@ -60,6 +60,7 @@ Scene Settings表示中のRuntime Telemetry Windowへ次を統合した。
 - Component Storage Growth
 - Visibility Growth
 - Render Packet Growth
+- Render Packet Safety Growth Override
 - Static Batch Candidate Growth
 - 全Runtime Storage Growth合計
 - Render Packet Current / Peak / Capacity
@@ -109,11 +110,22 @@ Candidate Capacity不足
 
 ### Render Packet Frame Buffer
 
-Current / Peak / Capacity / Growth Event計測は実装済み。
+Render Packetは描画正当性に直結するため、容量不足時にPacketを拒否してはならない。
 
-ただしPacket追加拒否は描画欠落につながるため、`allowRuntimeGrowth=false`の強制適用は未完了。
+Merge前に`ShouldPublish`と同じ条件で公開予定Packet数を正確にPreflightする。設定Reserve適用後も容量が不足し、かつ対象Sceneのいずれかで`allowRuntimeGrowth=false`の場合は、描画欠落を避けるため完全Frameを保持できる容量までSafety Growthを行う。
 
-安全な代替提出経路として、Worker Buffer直接提出、Overflow Packet Legacy Submit、正確なPreflightと別Storageのいずれかが必要になる。
+```text
+公開予定Packet数 > Capacity
+    -> configured reserveを先に適用
+    -> Growth許可あり: 通常Growth
+    -> Growth許可なし: Safety Growth Override
+    -> 全Packetを公開
+    -> growthEventCountを加算
+    -> safetyGrowthOverrideCountを加算
+    -> Editor Telemetryへ警告表示
+```
+
+これは設定を黙って無視する挙動ではない。描画欠落より一時的な再確保を優先する明示的なCorrectness Fallbackであり、Safety Override回数と直近Frame使用有無を別Telemetryとして記録する。次回以降、確保済み容量内で収まる場合はOverrideを再計上しない。
 
 ## YAML
 
@@ -153,11 +165,12 @@ SceneSettings:
 - [x] Component追加拒否時のMask非更新
 - [x] Visibility容量不足時の全描画Fallback
 - [x] Static Batch候補容量不足時の通常Packet Fallback
+- [x] Render Packet Growth禁止時の完全Frame Safety Growth Fallback
+- [x] Render Packet Safety Override Telemetry / Editor警告
 - [x] 専用Smoke Test / Workflow
 
 ## 未完了
 
-- [ ] Render Packet Growth禁止時の安全な提出Fallback
 - [ ] Static Packet Cache / Instance Data
 - [ ] Scene Save / Load実機回帰
 - [ ] Debug / Release x64実機回帰
