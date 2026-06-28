@@ -65,7 +65,7 @@ inline void Draw(
 		packet.growthEventCount + staticBatch.growthEventCount +
 		staticCache.growthEventCount;
 
-	ImGui::SetNextWindowSize(ImVec2(650.0f, 400.0f), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(650.0f, 420.0f), ImGuiCond_FirstUseEver);
 	if(ImGui::Begin("Scene Storage Runtime Telemetry", nullptr)){
 		ImGui::Text("Scene: %s", scene->SceneName.c_str());
 		ImGui::Text("Entity Growth: %llu",
@@ -76,6 +76,8 @@ inline void Draw(
 			static_cast<unsigned long long>(visibilityGrowth));
 		ImGui::Text("Render Packet Growth: %llu",
 			static_cast<unsigned long long>(packet.growthEventCount));
+		ImGui::Text("Render Packet Safety Overrides: %llu",
+			static_cast<unsigned long long>(packet.safetyGrowthOverrideCount));
 		ImGui::Text("Static Batch Candidate Growth: %llu",
 			static_cast<unsigned long long>(staticBatch.growthEventCount));
 		ImGui::Text("Static Packet Cache Growth: %llu",
@@ -89,6 +91,12 @@ inline void Draw(
 			static_cast<unsigned long long>(packet.peakSize),
 			static_cast<unsigned long long>(packet.capacity)
 		);
+		if(packet.lastMergeUsedSafetyGrowth){
+			ImGui::TextColored(
+				ImVec4(1.0f, 0.55f, 0.2f, 1.0f),
+				"RenderPacket capacity exceeded while runtime growth was disabled; complete-frame safety growth was used."
+			);
+		}
 		ImGui::Text(
 			"Static Batch Candidates: Current %llu / Peak %llu / Capacity %llu",
 			static_cast<unsigned long long>(staticBatch.currentSize),
