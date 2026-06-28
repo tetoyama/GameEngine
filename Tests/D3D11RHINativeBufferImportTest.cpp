@@ -115,7 +115,8 @@ int main(){
 		 1.0f, -1.0f, 0.0f
 	};
 	constexpr std::array<std::uint32_t, 3> indices{0, 1, 2};
-	constexpr std::uint32_t vertexStride = sizeof(float) * 3;
+	constexpr std::uint32_t vertexStride =
+		static_cast<std::uint32_t>(sizeof(float) * 3u);
 
 	auto nativeVertexBuffer = CreateBuffer(
 		*primary.device,
