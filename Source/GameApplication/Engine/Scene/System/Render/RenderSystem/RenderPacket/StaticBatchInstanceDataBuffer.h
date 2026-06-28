@@ -107,6 +107,7 @@ public:
 			m_groups.push_back({
 				entry.key,
 				entry.sceneContextID,
+				entry.representativePacketIndex,
 				firstOutputInstance,
 				entry.instanceCount
 			});
