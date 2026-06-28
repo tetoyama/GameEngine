@@ -39,21 +39,37 @@ public:
 	}
 
 	void RegisterTasks(SystemScheduleBuilder& builder) override {
-		SystemAccess access;
-		access
+		SystemAccess geometryAccess;
+		geometryAccess
 			.ReadResource<RenderPacketFrameBuffer>()
-			.WriteResource<StaticBatchGpuInstanceBuffer>()
 			.WriteResource<StaticBatchGeometryBindingCache>();
+
+		builder.AddTask(
+			"StaticBatchUploadSystem.Geometry.Synchronize",
+			SystemTaskDomain::Render,
+			SystemPhase::Default,
+			0,
+			std::move(geometryAccess),
+			ThreadAffinity::MainThread,
+			[this](const SystemTaskContext&){
+				SynchronizeGeometry();
+			}
+		);
+
+		SystemAccess instanceAccess;
+		instanceAccess
+			.ReadResource<RenderPacketFrameBuffer>()
+			.WriteResource<StaticBatchGpuInstanceBuffer>();
 
 		builder.AddTask(
 			"StaticBatchUploadSystem.Instance.Upload",
 			SystemTaskDomain::Render,
 			SystemPhase::Default,
-			0,
-			std::move(access),
+			1,
+			std::move(instanceAccess),
 			ThreadAffinity::MainThread,
 			[this](const SystemTaskContext&){
-				Upload();
+				UploadInstances();
 			}
 		);
 	}
@@ -109,9 +125,7 @@ private:
 		return service ? service->GetDevice() : nullptr;
 	}
 
-	void Upload(){
-		m_lastUploadSucceeded = false;
-
+	void SynchronizeGeometry(){
 		RenderSystem* renderSystem = ResolveRenderSystem();
 		RHI::IRHIDevice* device = ResolveDevice();
 		if(!renderSystem || !device) return;
@@ -134,6 +148,18 @@ private:
 			source.Groups(),
 			frameBuffer.Packets()
 		);
+	}
+
+	void UploadInstances(){
+		m_lastUploadSucceeded = false;
+
+		RenderSystem* renderSystem = ResolveRenderSystem();
+		RHI::IRHIDevice* device = ResolveDevice();
+		if(!renderSystem || !device) return;
+
+		const StaticBatchInstanceDataBuffer& source =
+			renderSystem->GetRenderPacketBuffer().StaticBatchInstances();
+		if(!source.IsValid() || source.IsOverflowed()) return;
 
 		RHI::CommandListCreateDesc commandDesc;
 		commandDesc.queueType = RHI::CommandQueueType::Graphics;
