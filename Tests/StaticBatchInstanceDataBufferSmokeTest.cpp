@@ -50,6 +50,8 @@ int main(){
 	cache.Reserve(2);
 	assert(cache.Synchronize(candidates, packets, 1, false));
 	assert(cache.IsValid());
+	assert(cache.Entries().size() == 1);
+	assert(cache.Entries()[0].representativePacketIndex == 0);
 
 	StaticBatchInstanceDataBuffer instances;
 	instances.Reserve(2);
@@ -57,6 +59,7 @@ int main(){
 	assert(instances.IsValid());
 	assert(!instances.IsOverflowed());
 	assert(instances.Groups().size() == 1);
+	assert(instances.Groups()[0].representativePacketIndex == 0);
 	assert(instances.Groups()[0].firstInstance == 0);
 	assert(instances.Groups()[0].instanceCount == 2);
 	assert(instances.Instances().size() == 2);
