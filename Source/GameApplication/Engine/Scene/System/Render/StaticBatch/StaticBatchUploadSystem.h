@@ -2,6 +2,7 @@
 
 #include <array>
 #include <memory>
+#include <span>
 
 #include "Interface/ISystem.h"
 #include "Graphics/graphicsContext.h"
@@ -10,7 +11,7 @@
 #include "Scene/sceneManager.h"
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
-#include "System/Render/StaticBatch/StaticBatchD3D11GeometryBinding.h"
+#include "System/Render/StaticBatch/StaticBatchGeometryBindingCache.h"
 #include "System/Render/StaticBatch/StaticBatchPipelineResources.h"
 
 class StaticBatchUploadSystem final : public ISystem {
@@ -26,6 +27,7 @@ public:
 	void Finalize() override {
 		RHI::IRHIDevice* device = ResolveDevice();
 		if(device){
+			m_geometryBindingCache.Release(*device);
 			m_pipelineResources.Release(*device);
 			m_gpuInstanceBuffer.Release(*device);
 		}
@@ -40,7 +42,8 @@ public:
 		SystemAccess access;
 		access
 			.ReadResource<RenderPacketFrameBuffer>()
-			.WriteResource<StaticBatchGpuInstanceBuffer>();
+			.WriteResource<StaticBatchGpuInstanceBuffer>()
+			.WriteResource<StaticBatchGeometryBindingCache>();
 
 		builder.AddTask(
 			"StaticBatchUploadSystem.Instance.Upload",
@@ -67,12 +70,25 @@ public:
 		return m_pipelineResources;
 	}
 
+	StaticBatchGeometryBindingCache& GetGeometryBindingCache() noexcept {
+		return m_geometryBindingCache;
+	}
+
+	const StaticBatchGeometryBindingCache& GetGeometryBindingCache() const noexcept {
+		return m_geometryBindingCache;
+	}
+
 	StaticBatchGpuInstanceBufferTelemetry GetTelemetry() const noexcept {
 		return m_gpuInstanceBuffer.Telemetry();
 	}
 
+	StaticBatchGeometryBindingCacheTelemetry GetGeometryTelemetry() const noexcept {
+		return m_geometryBindingCache.Telemetry();
+	}
+
 	void ResetTelemetry() noexcept {
 		m_gpuInstanceBuffer.ResetMetrics();
+		m_geometryBindingCache.ResetMetrics();
 	}
 
 	bool LastUploadSucceeded() const noexcept {
@@ -100,9 +116,24 @@ private:
 		RHI::IRHIDevice* device = ResolveDevice();
 		if(!renderSystem || !device) return;
 
+		const RenderPacketFrameBuffer& frameBuffer =
+			renderSystem->GetRenderPacketBuffer();
 		const StaticBatchInstanceDataBuffer& source =
-			renderSystem->GetRenderPacketBuffer().StaticBatchInstances();
-		if(!source.IsValid() || source.IsOverflowed()) return;
+			frameBuffer.StaticBatchInstances();
+		if(!source.IsValid() || source.IsOverflowed()){
+			m_geometryBindingCache.Synchronize(
+				*device,
+				std::span<const StaticBatchPacketCacheEntry>{},
+				frameBuffer.Packets()
+			);
+			return;
+		}
+
+		m_geometryBindingCache.Synchronize(
+			*device,
+			source.Groups(),
+			frameBuffer.Packets()
+		);
 
 		RHI::CommandListCreateDesc commandDesc;
 		commandDesc.queueType = RHI::CommandQueueType::Graphics;
@@ -142,5 +173,6 @@ private:
 	SceneManagerContext* m_context = nullptr;
 	StaticBatchGpuInstanceBuffer m_gpuInstanceBuffer;
 	StaticBatchPipelineResources m_pipelineResources;
+	StaticBatchGeometryBindingCache m_geometryBindingCache;
 	bool m_lastUploadSucceeded = false;
 };
