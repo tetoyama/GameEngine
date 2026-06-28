@@ -171,7 +171,11 @@ inline bool D3D11FenceState::Wait(uint64_t value, uint64_t timeoutNanoseconds){
 			const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
 				std::chrono::steady_clock::now() - start
 			);
-			if(elapsed.count() >= timeoutNanoseconds) return false;
+			const auto elapsedNanoseconds = elapsed.count();
+			if(elapsedNanoseconds >= 0 &&
+				static_cast<uint64_t>(elapsedNanoseconds) >= timeoutNanoseconds){
+				return false;
+			}
 		}
 		std::this_thread::yield();
 	}
