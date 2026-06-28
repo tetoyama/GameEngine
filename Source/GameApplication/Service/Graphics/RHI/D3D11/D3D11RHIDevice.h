@@ -59,6 +59,7 @@ public:
 	bool UpdateBuffer(BufferHandle, std::span<const std::byte>, uint32_t) override;
 	void Draw(uint32_t, uint32_t) override;
 	void DrawIndexed(uint32_t, uint32_t, int32_t) override;
+	bool DrawIndexedInstanced(uint32_t, uint32_t, uint32_t, int32_t, uint32_t) override;
 	void Dispatch(uint32_t, uint32_t, uint32_t) override;
 	bool IsClosed() const noexcept { return m_closed; }
 private:
