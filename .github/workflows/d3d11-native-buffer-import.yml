@@ -1,0 +1,43 @@
+name: D3D11 Native Buffer Import Smoke
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Source/GameApplication/Service/Graphics/RHI/D3D11/**"
+      - "Tests/D3D11RHINativeBufferImportTest.cpp"
+      - ".github/workflows/d3d11-native-buffer-import.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Source/GameApplication/Service/Graphics/RHI/D3D11/**"
+      - "Tests/D3D11RHINativeBufferImportTest.cpp"
+      - ".github/workflows/d3d11-native-buffer-import.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: d3d11-native-buffer-import-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  compile-and-run:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run native buffer import smoke
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /I Source/GameApplication
+          Tests/D3D11RHINativeBufferImportTest.cpp
+          d3d11.lib dxgi.lib
+          /Fe:d3d11-native-buffer-import-test.exe
+          && d3d11-native-buffer-import-test.exe
