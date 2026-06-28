@@ -14,15 +14,30 @@ int main(){
 
 	system.RegisterTasks(builder);
 
-	assert(tasks.size() == 1);
-	const SystemTask& task = tasks.front();
-	assert(task.owner == &system);
-	assert(task.name == "StaticBatchUploadSystem.Instance.Upload");
-	assert(task.domain == SystemTaskDomain::Render);
-	assert(task.order.phase == SystemPhase::Default);
-	assert(task.order.priority == 0);
-	assert(task.threadAffinity == ThreadAffinity::MainThread);
-	assert(static_cast<bool>(task.execute));
+	assert(tasks.size() == 2);
+	const SystemTask& geometryTask = tasks[0];
+	assert(geometryTask.owner == &system);
+	assert(
+		geometryTask.name ==
+		"StaticBatchUploadSystem.Geometry.Synchronize"
+	);
+	assert(geometryTask.domain == SystemTaskDomain::Render);
+	assert(geometryTask.order.phase == SystemPhase::Default);
+	assert(geometryTask.order.priority == 0);
+	assert(geometryTask.threadAffinity == ThreadAffinity::MainThread);
+	assert(static_cast<bool>(geometryTask.execute));
+
+	const SystemTask& instanceTask = tasks[1];
+	assert(instanceTask.owner == &system);
+	assert(instanceTask.name == "StaticBatchUploadSystem.Instance.Upload");
+	assert(instanceTask.domain == SystemTaskDomain::Render);
+	assert(instanceTask.order.phase == SystemPhase::Default);
+	assert(instanceTask.order.priority == 1);
+	assert(instanceTask.threadAffinity == ThreadAffinity::MainThread);
+	assert(static_cast<bool>(instanceTask.execute));
+
+	assert(system.GetGeometryBindingCache().BindingCount() == 0);
+	assert(system.GetGeometryBindingCache().ResolvedGroupCount() == 0);
 
 	RHI::BackendRegistry registry;
 	assert(RHI::RegisterNullRHIBackend(registry));
