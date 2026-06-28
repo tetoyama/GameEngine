@@ -155,6 +155,14 @@ GBuffer Passごとに次をFrame単位で保持する。
 - Draw / Queue / Target Binding失敗
 - Pipeline / Instance Upload Ready状態
 
+Project Settingsへ`Static Batch`タブを追加し、次を同時表示する。
+
+- GPU Instance Upload状態
+- Geometry Binding Cache状態
+- Player GBuffer提出結果
+- Editor GBuffer提出結果
+- 各Fallback理由
+
 ## 未完了
 
 - Windows Debug / Release x64のコンパイル確認
@@ -163,7 +171,6 @@ GBuffer Passごとに次をFrame単位で保持する。
 - D3D11 Static Batch Interop実機Smoke確認
 - Player / Editor View実機描画回帰
 - Draw Call削減量の実機計測
-- TelemetryのProject Settings UI表示
 - Model SubMesh単位Packet化
 - 部分可視GroupのInstance再圧縮
 - Shadow / Picking / Batch Culling展開
