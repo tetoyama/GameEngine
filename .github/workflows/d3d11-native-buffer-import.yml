@@ -4,12 +4,14 @@ on:
   pull_request:
     branches: [master]
     paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/**"
       - "Source/GameApplication/Service/Graphics/RHI/D3D11/**"
       - "Tests/D3D11RHINativeBufferImportTest.cpp"
       - ".github/workflows/d3d11-native-buffer-import.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
     paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/**"
       - "Source/GameApplication/Service/Graphics/RHI/D3D11/**"
       - "Tests/D3D11RHINativeBufferImportTest.cpp"
       - ".github/workflows/d3d11-native-buffer-import.yml"
@@ -36,7 +38,12 @@ jobs:
         shell: cmd
         run: >-
           cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /wd4100 /wd4201 /wd4458 /wd4471
+          /I Source
           /I Source/GameApplication
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
           Tests/D3D11RHINativeBufferImportTest.cpp
           d3d11.lib dxgi.lib
           /Fe:d3d11-native-buffer-import-test.exe
