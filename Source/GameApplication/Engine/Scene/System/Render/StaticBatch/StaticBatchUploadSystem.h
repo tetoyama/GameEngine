@@ -10,6 +10,7 @@
 #include "Scene/sceneManager.h"
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
+#include "System/Render/StaticBatch/StaticBatchPipelineResources.h"
 
 class StaticBatchUploadSystem final : public ISystem {
 public:
@@ -24,6 +25,7 @@ public:
 	void Finalize() override {
 		RHI::IRHIDevice* device = ResolveDevice();
 		if(device){
+			m_pipelineResources.Release(*device);
 			m_gpuInstanceBuffer.Release(*device);
 		}
 		m_lastUploadSucceeded = false;
@@ -54,6 +56,14 @@ public:
 
 	const StaticBatchGpuInstanceBuffer& GetGpuInstanceBuffer() const noexcept {
 		return m_gpuInstanceBuffer;
+	}
+
+	StaticBatchPipelineResources& GetPipelineResources() noexcept {
+		return m_pipelineResources;
+	}
+
+	const StaticBatchPipelineResources& GetPipelineResources() const noexcept {
+		return m_pipelineResources;
 	}
 
 	StaticBatchGpuInstanceBufferTelemetry GetTelemetry() const noexcept {
@@ -130,5 +140,6 @@ private:
 
 	SceneManagerContext* m_context = nullptr;
 	StaticBatchGpuInstanceBuffer m_gpuInstanceBuffer;
+	StaticBatchPipelineResources m_pipelineResources;
 	bool m_lastUploadSucceeded = false;
 };
