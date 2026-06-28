@@ -10,6 +10,7 @@
 #include "Scene/sceneManager.h"
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
+#include "System/Render/StaticBatch/StaticBatchD3D11GeometryBinding.h"
 #include "System/Render/StaticBatch/StaticBatchPipelineResources.h"
 
 class StaticBatchUploadSystem final : public ISystem {
