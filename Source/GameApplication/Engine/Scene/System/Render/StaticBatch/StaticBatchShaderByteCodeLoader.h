@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <fstream>
+#include <limits>
 #include <span>
 #include <string>
 #include <vector>
@@ -54,13 +55,21 @@ private:
 
 		const std::streampos endPosition = file.tellg();
 		if(endPosition <= std::streampos{0}) return false;
-		const auto byteCount = static_cast<std::size_t>(endPosition);
+
+		const std::streamoff fileSize =
+			static_cast<std::streamoff>(endPosition);
+		if(fileSize <= 0 ||
+			fileSize > (std::numeric_limits<std::streamsize>::max)()){
+			return false;
+		}
+
+		const std::size_t byteCount = static_cast<std::size_t>(fileSize);
 		output.resize(byteCount);
 
 		file.seekg(0, std::ios::beg);
 		if(!file.read(
 			reinterpret_cast<char*>(output.data()),
-			static_cast<std::streamsize>(byteCount)
+			static_cast<std::streamsize>(fileSize)
 		)){
 			output.clear();
 			return false;
