@@ -11,10 +11,13 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchPacketCache.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceDataBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
+      - "Source/GameApplication/Service/Graphics/RHI/**"
       - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
       - "Tests/StaticBatchResourceKeySmokeTest.cpp"
       - "Tests/StaticBatchInstanceDataBufferSmokeTest.cpp"
       - "Tests/StaticBatchFrameBufferIntegrationSmokeTest.cpp"
+      - "Tests/StaticBatchGpuInstanceBufferSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
@@ -26,10 +29,13 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchPacketCache.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceDataBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
+      - "Source/GameApplication/Service/Graphics/RHI/**"
       - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
       - "Tests/StaticBatchResourceKeySmokeTest.cpp"
       - "Tests/StaticBatchInstanceDataBufferSmokeTest.cpp"
       - "Tests/StaticBatchFrameBufferIntegrationSmokeTest.cpp"
+      - "Tests/StaticBatchGpuInstanceBufferSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   workflow_dispatch:
 
@@ -55,6 +61,8 @@ jobs:
             output: static-batch-instance-data-test.exe
           - source: Tests/StaticBatchFrameBufferIntegrationSmokeTest.cpp
             output: static-batch-frame-buffer-integration-test.exe
+          - source: Tests/StaticBatchGpuInstanceBufferSmokeTest.cpp
+            output: static-batch-gpu-instance-buffer-test.exe
     steps:
       - uses: actions/checkout@v4
         with:
