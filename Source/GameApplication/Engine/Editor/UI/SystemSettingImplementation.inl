@@ -16,6 +16,7 @@
 #include "DebugTools/ImGuiSystem.h"
 #include "Editor/UI/MenuBar.h"
 #include "Editor/UI/ScheduleProfileYamlExportUI.h"
+#include "Editor/UI/StaticBatchTelemetryUI.h"
 #include "Scene/sceneManager.h"
 #include "Scene/Registry/systemRegistry.h"
 #include "Service/Config/configSystem.h"
@@ -278,6 +279,10 @@ void SystemSetting::Draw(const EditorDrawContext ctx) {
 		}
 		if(ImGui::BeginTabItem("Schedule")) {
 			DrawScheduleSettings(sceneManager, m_scheduleViewState);
+			ImGui::EndTabItem();
+		}
+		if(ImGui::BeginTabItem("Static Batch")) {
+			StaticBatchTelemetryUI::Draw(sceneManager);
 			ImGui::EndTabItem();
 		}
 		ImGui::EndTabBar();
