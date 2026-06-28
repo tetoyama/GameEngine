@@ -39,6 +39,8 @@ struct RenderPacketStorageTelemetry {
 	size_t peakSize = 0;
 	size_t capacity = 0;
 	size_t growthEventCount = 0;
+	size_t safetyGrowthOverrideCount = 0;
+	bool lastMergeUsedSafetyGrowth = false;
 };
 
 class RenderPacketFrameBuffer {
@@ -47,6 +49,7 @@ public:
 		m_generation = generation;
 		m_packets.clear();
 		m_staticBatchCandidates.BeginFrame();
+		m_lastMergeUsedSafetyGrowth = false;
 		m_ready = false;
 	}
 
@@ -54,6 +57,7 @@ public:
 		m_packets.clear();
 		m_staticBatchCandidates.Reset();
 		m_staticBatchPacketCache.Reset();
+		m_lastMergeUsedSafetyGrowth = false;
 		m_ready = false;
 	}
 
@@ -64,6 +68,8 @@ public:
 	}
 
 	void Merge(std::span<const RenderPacketWorkerBuffer> workerBuffers){
+		m_lastMergeUsedSafetyGrowth = false;
+
 		std::vector<const RenderPacketWorkerBuffer*> orderedWorkers;
 		orderedWorkers.reserve(workerBuffers.size());
 		for(const RenderPacketWorkerBuffer& buffer : workerBuffers){
@@ -77,14 +83,18 @@ public:
 			}
 		);
 
-		size_t packetCount = 0;
+		size_t publishablePacketCount = 0;
 		size_t configuredPacketReserve = 0;
 		size_t configuredStaticBatchReserve = 0;
+		bool allowPacketGrowth = true;
 		bool allowStaticBatchGrowth = true;
 		std::vector<SceneContext*> reservedScenes;
 		for(const auto* worker : orderedWorkers){
-			packetCount += worker->Packets().size();
 			for(const RenderPacket& packet : worker->Packets()){
+				if(ShouldPublish(packet)){
+					++publishablePacketCount;
+				}
+
 				SceneContext* context = packet.bindings.sceneContext;
 				if(!context) continue;
 				if(std::find(reservedScenes.begin(), reservedScenes.end(), context) !=
@@ -98,20 +108,32 @@ public:
 				configuredStaticBatchReserve += static_cast<size_t>(
 					context->storageConfig.staticBatchReserve
 				);
+				allowPacketGrowth =
+					allowPacketGrowth &&
+					context->storageConfig.allowRuntimeGrowth;
 				allowStaticBatchGrowth =
 					allowStaticBatchGrowth &&
 					context->storageConfig.allowRuntimeGrowth;
 			}
 		}
 
-		const size_t capacityBefore = m_packets.capacity();
-		const size_t reserveTarget =
-			(std::max)(packetCount, configuredPacketReserve);
-		m_packets.reserve(reserveTarget);
-		if(m_packets.capacity() > capacityBefore &&
-			packetCount > configuredPacketReserve &&
-			packetCount > capacityBefore){
+		// Configured reserve is an explicit scene-load allocation hint and is not
+		// counted as runtime growth. Apply it before evaluating the frame demand.
+		if(configuredPacketReserve > m_packets.capacity()){
+			m_packets.reserve(configuredPacketReserve);
+		}
+
+		// Render packets are correctness-critical. Dropping packets when growth is
+		// disabled would cause missing geometry, so capacity exhaustion uses a
+		// deliberate safety override: grow once, publish the complete frame, and
+		// expose the policy violation through telemetry.
+		if(publishablePacketCount > m_packets.capacity()){
+			m_packets.reserve(publishablePacketCount);
 			++m_growthEventCount;
+			if(!allowPacketGrowth){
+				++m_safetyGrowthOverrideCount;
+				m_lastMergeUsedSafetyGrowth = true;
+			}
 		}
 
 		m_staticBatchCandidates.Reserve(configuredStaticBatchReserve);
@@ -150,13 +172,21 @@ public:
 	size_t Capacity() const noexcept { return m_packets.capacity(); }
 	size_t PeakSize() const noexcept { return m_peakSize; }
 	size_t GrowthEventCount() const noexcept { return m_growthEventCount; }
+	size_t SafetyGrowthOverrideCount() const noexcept {
+		return m_safetyGrowthOverrideCount;
+	}
+	bool LastMergeUsedSafetyGrowth() const noexcept {
+		return m_lastMergeUsedSafetyGrowth;
+	}
 
 	RenderPacketStorageTelemetry Telemetry() const noexcept {
 		return {
 			m_packets.size(),
 			m_peakSize,
 			m_packets.capacity(),
-			m_growthEventCount
+			m_growthEventCount,
+			m_safetyGrowthOverrideCount,
+			m_lastMergeUsedSafetyGrowth
 		};
 	}
 
@@ -171,6 +201,8 @@ public:
 	void ResetPeakMetrics() noexcept {
 		m_peakSize = m_packets.size();
 		m_growthEventCount = 0;
+		m_safetyGrowthOverrideCount = 0;
+		m_lastMergeUsedSafetyGrowth = false;
 		m_staticBatchCandidates.ResetPeakMetrics();
 		m_staticBatchPacketCache.ResetPeakMetrics();
 	}
@@ -248,4 +280,6 @@ private:
 	StaticBatchPacketCache m_staticBatchPacketCache;
 	size_t m_peakSize = 0;
 	size_t m_growthEventCount = 0;
+	size_t m_safetyGrowthOverrideCount = 0;
+	bool m_lastMergeUsedSafetyGrowth = false;
 };
