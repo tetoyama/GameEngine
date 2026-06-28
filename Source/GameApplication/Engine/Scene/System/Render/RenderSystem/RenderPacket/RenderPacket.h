@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <limits>
 
 #include "Scene/Entity/Entity.h"
 #include "System/Render/RenderSystem/renderLayer.h"
@@ -218,6 +219,9 @@ constexpr uint64_t MakeRenderPacketSortKey(
 		(static_cast<uint64_t>(materialKey) << 8);
 }
 
+inline constexpr std::uint32_t RenderPacketAllSubMeshes =
+	(std::numeric_limits<std::uint32_t>::max)();
+
 struct RenderPacket {
 	uint32_t sceneContextID = 0;
 	Entity entity{};
@@ -225,11 +229,20 @@ struct RenderPacket {
 	RenderLayer layer = RenderLayer::Opaque3D;
 	RenderPacketPassMask passMask = RenderPacketPassMask::None;
 	uint32_t materialKey = 0;
+	uint32_t subMeshIndex = RenderPacketAllSubMeshes;
 	int32_t orderInLayer = 0;
 	uint64_t sortKey = 0;
 	uint64_t stableSequence = 0;
 	RenderPacketTransformSnapshot transform;
 	RenderPacketComponentBindings bindings;
+
+	constexpr bool TargetsAllSubMeshes() const noexcept {
+		return subMeshIndex == RenderPacketAllSubMeshes;
+	}
+
+	constexpr bool TargetsSubMesh(std::uint32_t index) const noexcept {
+		return subMeshIndex == index;
+	}
 };
 
 inline bool RenderPacketLess(const RenderPacket& lhs, const RenderPacket& rhs) noexcept {
@@ -240,6 +253,9 @@ inline bool RenderPacketLess(const RenderPacket& lhs, const RenderPacket& rhs) n
 	}
 	if(lhs.kind != rhs.kind){
 		return static_cast<uint8_t>(lhs.kind) < static_cast<uint8_t>(rhs.kind);
+	}
+	if(lhs.subMeshIndex != rhs.subMeshIndex){
+		return lhs.subMeshIndex < rhs.subMeshIndex;
 	}
 	return lhs.stableSequence < rhs.stableSequence;
 }
