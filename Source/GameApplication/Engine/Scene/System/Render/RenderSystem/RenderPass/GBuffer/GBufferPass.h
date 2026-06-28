@@ -10,6 +10,8 @@
 #include <vector>
 #include <memory>
 
+#include "System/Render/StaticBatch/StaticBatchGBufferSubmissionTelemetry.h"
+
 class IRenderable;
 struct RenderTarget;
 
@@ -23,6 +25,11 @@ public:
 	void Finalize() override;
 	void Execute(const RenderPassContext& ctx) override;
 
+	const StaticBatchGBufferSubmissionTelemetry&
+	GetStaticBatchTelemetry() const noexcept {
+		return m_staticBatchTelemetry;
+	}
+
 	// Renderables
 	std::vector<IRenderable*> renderables;
 
@@ -34,4 +41,7 @@ public:
 	RenderTarget* pDepthTarget = nullptr;
 
 	ID3D11SamplerState* sampler = nullptr;
+
+private:
+	StaticBatchGBufferSubmissionTelemetry m_staticBatchTelemetry;
 };
