@@ -223,6 +223,15 @@ private:
 			const StaticBatchCandidate& candidate =
 				candidates[group.firstCandidate + offset];
 			if(candidate.packetIndex >= packets.size()) return false;
+
+			const RenderPacket& packet = packets[candidate.packetIndex];
+			if(candidate.entity != packet.entity ||
+				candidate.sceneContextID != packet.sceneContextID ||
+				candidate.key.kind != packet.kind ||
+				candidate.key.layer != packet.layer ||
+				candidate.key.materialKey != packet.materialKey){
+				return false;
+			}
 		}
 		return true;
 	}
