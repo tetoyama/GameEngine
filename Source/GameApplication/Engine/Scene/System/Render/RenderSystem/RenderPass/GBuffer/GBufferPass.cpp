@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <span>
 #include <vector>
 
 #include "System/Render/RenderSystem/renderSystem.h"
@@ -87,6 +88,7 @@ void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* co
 }
 
 void GBufferPass::Finalize(){
+	m_staticBatchTelemetry.Reset();
 	m_GBufferPixelShader.reset();
 	m_GBufferVertexShader.reset();
 	if(sampler){ sampler->Release(); sampler = nullptr; }
@@ -97,6 +99,8 @@ void GBufferPass::Finalize(){
 }
 
 void GBufferPass::Execute(const RenderPassContext& context){
+	m_staticBatchTelemetry.Reset();
+
 	ID3D11DeviceContext* deviceContext = m_context->graphics->GetDeviceContext();
 	GraphicsContext* graphics = m_context->renderer->GetGraphicsContext();
 
@@ -152,6 +156,11 @@ void GBufferPass::Execute(const RenderPassContext& context){
 	const RenderPacketFrameBuffer& packetBuffer = m_renderSystem->GetRenderPacketBuffer();
 	if(!packetBuffer.IsReady()) return;
 
+	const StaticBatchInstanceDataBuffer& staticSource =
+		packetBuffer.StaticBatchInstances();
+	m_staticBatchTelemetry.sourceRevision = staticSource.SourceRevision();
+	m_staticBatchTelemetry.candidateGroupCount = staticSource.Groups().size();
+
 	StaticBatchPacketReplacementSet replacements;
 	replacements.Begin(packetBuffer.Packets().size());
 
@@ -160,6 +169,7 @@ void GBufferPass::Execute(const RenderPassContext& context){
 			pRenderTargets.size() !=
 				StaticBatchD3D11GBufferTargetBinding::ColorTargetCount ||
 			!pDepthTarget){
+			++m_staticBatchTelemetry.targetBindingFailureCount;
 			return;
 		}
 
@@ -168,10 +178,11 @@ void GBufferPass::Execute(const RenderPassContext& context){
 		StaticBatchUploadSystem* uploadSystem = registry
 			? registry->GetSystem<StaticBatchUploadSystem>()
 			: nullptr;
-		if(!uploadSystem || !uploadSystem->IsPipelineReady() ||
-			!uploadSystem->LastUploadSucceeded()){
+		if(!uploadSystem || !uploadSystem->IsPipelineReady()){
 			return;
 		}
+		m_staticBatchTelemetry.pipelineReady = true;
+		if(!uploadSystem->LastUploadSucceeded()) return;
 
 		RHI::RenderHardwareInterfaceService* rhiService =
 			m_context->graphics->GetRHIService();
@@ -183,18 +194,17 @@ void GBufferPass::Execute(const RenderPassContext& context){
 			return;
 		}
 
-		const StaticBatchInstanceDataBuffer& source =
-			packetBuffer.StaticBatchInstances();
 		const StaticBatchPacketCache& packetCache =
 			packetBuffer.StaticBatchCache();
 		const StaticBatchGpuInstanceBuffer& gpuInstances =
 			uploadSystem->GetGpuInstanceBuffer();
-		if(!source.IsValid() || source.IsOverflowed() ||
+		if(!staticSource.IsValid() || staticSource.IsOverflowed() ||
 			!packetCache.IsValid() || packetCache.IsOverflowed() ||
 			!gpuInstances.CanSubmit() ||
-			gpuInstances.UploadedSourceRevision() != source.SourceRevision()){
+			gpuInstances.UploadedSourceRevision() != staticSource.SourceRevision()){
 			return;
 		}
+		m_staticBatchTelemetry.instanceUploadReady = true;
 
 		std::array<
 			ID3D11RenderTargetView*,
@@ -210,6 +220,7 @@ void GBufferPass::Execute(const RenderPassContext& context){
 			staticTargets,
 			pDepthTarget->dsv.Get()
 		) || !targetBinding.Bind(deviceContext)){
+			++m_staticBatchTelemetry.targetBindingFailureCount;
 			return;
 		}
 
@@ -217,7 +228,10 @@ void GBufferPass::Execute(const RenderPassContext& context){
 		commandDesc.queueType = RHI::CommandQueueType::Graphics;
 		std::unique_ptr<RHI::IRHICommandList> commandList =
 			rhiDevice->CreateCommandList(commandDesc);
-		if(!commandList) return;
+		if(!commandList){
+			++m_staticBatchTelemetry.drawFailureCount;
+			return;
+		}
 
 		RenderPacketCullingView cullingView;
 		cullingView.camera = passContext.cameraData.ref.GetEntityID();
@@ -227,7 +241,7 @@ void GBufferPass::Execute(const RenderPassContext& context){
 			passContext.viewMatrix * passContext.projectionMatrix;
 
 		const std::span<const StaticBatchInstanceGroup> groups =
-			source.Groups();
+			staticSource.Groups();
 		const std::span<const std::size_t> packetIndices =
 			packetCache.PacketIndices();
 		std::vector<std::size_t> submittedGroups;
@@ -236,16 +250,20 @@ void GBufferPass::Execute(const RenderPassContext& context){
 		commandList->Begin();
 		for(std::size_t groupIndex = 0; groupIndex < groups.size(); ++groupIndex){
 			const StaticBatchInstanceGroup& group = groups[groupIndex];
-			if(group.instanceCount < 2 ||
-				group.instanceCount >
-					(static_cast<std::size_t>((std::numeric_limits<std::uint32_t>::max)())) ||
+			if(group.instanceCount < 2){
+				++m_staticBatchTelemetry.singleInstanceFallbackCount;
+				continue;
+			}
+			if(group.instanceCount >
+					static_cast<std::size_t>((std::numeric_limits<std::uint32_t>::max)()) ||
 				group.firstInstance >
-					(static_cast<std::size_t>((std::numeric_limits<std::uint32_t>::max)())) ||
+					static_cast<std::size_t>((std::numeric_limits<std::uint32_t>::max)()) ||
 				!IsPacketRangeValid(
 					group,
 					packetIndices,
 					packetBuffer.Packets().size()
 				)){
+				++m_staticBatchTelemetry.packetRangeFallbackCount;
 				continue;
 			}
 
@@ -253,18 +271,26 @@ void GBufferPass::Execute(const RenderPassContext& context){
 			if(static_cast<unsigned>(layerIndex) >=
 				static_cast<unsigned>(RenderLayer::MaxRenderLayer) ||
 				!passContext.renderLayerVisibility[layerIndex]){
+				++m_staticBatchTelemetry.layerFallbackCount;
 				continue;
 			}
 
 			const StaticBatchGroupVisibilityResult visibility =
 				StaticBatchGroupVisibility::Evaluate(
 					group,
-					source.Instances(),
+					staticSource.Instances(),
 					packetBuffer.Packets(),
 					m_renderSystem->GetCullingVisibility(),
 					cullingView
 				);
-			if(!visibility.CanSubmitInstanced()) continue;
+			if(visibility.CanSkipEntireGroup()){
+				++m_staticBatchTelemetry.culledGroupCount;
+				continue;
+			}
+			if(!visibility.CanSubmitInstanced()){
+				++m_staticBatchTelemetry.mixedVisibilityFallbackCount;
+				continue;
+			}
 
 			const StaticBatchD3D11GeometryBinding* geometry =
 				uploadSystem->GetGeometryBindingCache().FindByGroupIndex(
@@ -272,6 +298,7 @@ void GBufferPass::Execute(const RenderPassContext& context){
 				);
 			if(!geometry || !geometry->IsReady() ||
 				geometry->GeometryResourceKey() != group.key.geometryKey){
+				++m_staticBatchTelemetry.geometryFallbackCount;
 				continue;
 			}
 
@@ -280,7 +307,10 @@ void GBufferPass::Execute(const RenderPassContext& context){
 					group,
 					packetBuffer.Packets()
 				);
-			if(!material.IsEligible()) continue;
+			if(!material.IsEligible()){
+				++m_staticBatchTelemetry.materialFallbackCount;
+				continue;
+			}
 
 			graphics->SetMaterial(material.state.material);
 			graphics->SetUVMatrixBuffer(material.state.uv);
@@ -311,7 +341,10 @@ void GBufferPass::Execute(const RenderPassContext& context){
 				static_cast<std::uint32_t>(group.instanceCount);
 			draw.firstInstance =
 				static_cast<std::uint32_t>(group.firstInstance);
-			if(!SubmitStaticBatchDraw(*commandList, draw)) continue;
+			if(!SubmitStaticBatchDraw(*commandList, draw)){
+				++m_staticBatchTelemetry.drawFailureCount;
+				continue;
+			}
 
 			submittedGroups.push_back(groupIndex);
 		}
@@ -320,17 +353,28 @@ void GBufferPass::Execute(const RenderPassContext& context){
 		if(submittedGroups.empty()) return;
 		RHI::IRHICommandQueue* queue =
 			rhiDevice->GetQueue(RHI::CommandQueueType::Graphics);
-		if(!queue) return;
+		if(!queue){
+			++m_staticBatchTelemetry.queueFailureCount;
+			return;
+		}
 
 		std::array<RHI::IRHICommandList*, 1> commandLists{
 			commandList.get()
 		};
 		RHI::QueueSubmitDesc submitDesc;
 		submitDesc.commandLists = commandLists;
-		if(!queue->Submit(submitDesc)) return;
+		if(!queue->Submit(submitDesc)){
+			++m_staticBatchTelemetry.queueFailureCount;
+			return;
+		}
 
 		for(const std::size_t groupIndex : submittedGroups){
-			replacements.AddGroup(groups[groupIndex], packetIndices);
+			const StaticBatchInstanceGroup& group = groups[groupIndex];
+			if(replacements.AddGroup(group, packetIndices)){
+				++m_staticBatchTelemetry.submittedGroupCount;
+				m_staticBatchTelemetry.submittedInstanceCount +=
+					group.instanceCount;
+			}
 		}
 	};
 
