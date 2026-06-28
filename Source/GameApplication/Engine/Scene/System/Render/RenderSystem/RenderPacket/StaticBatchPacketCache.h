@@ -13,6 +13,7 @@
 struct StaticBatchPacketCacheEntry {
 	StaticBatchCandidateKey key{};
 	std::uint32_t sceneContextID = 0;
+	size_t representativePacketIndex = 0;
 	size_t firstInstance = 0;
 	size_t instanceCount = 0;
 };
@@ -111,6 +112,8 @@ public:
 				continue;
 			}
 
+			const StaticBatchCandidate& representative =
+				candidates.Candidates()[group.firstCandidate];
 			const size_t firstInstance = m_entities.size();
 			for(size_t offset = 0; offset < group.candidateCount; ++offset){
 				const StaticBatchCandidate& candidate =
@@ -123,6 +126,7 @@ public:
 			m_entries.push_back({
 				group.key,
 				group.sceneContextID,
+				representative.packetIndex,
 				firstInstance,
 				group.candidateCount
 			});
@@ -194,6 +198,7 @@ private:
 		std::span<const StaticBatchCandidate> candidates,
 		std::span<const RenderPacket> packets
 	) noexcept {
+		if(group.candidateCount == 0) return false;
 		if(group.firstCandidate > candidates.size()) return false;
 		if(group.candidateCount > candidates.size() - group.firstCandidate){
 			return false;
