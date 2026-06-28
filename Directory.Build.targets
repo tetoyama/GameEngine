@@ -32,4 +32,20 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\ScriptSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\CustomScriptSystem.cpp" />
   </ItemGroup>
+
+  <!-- Static Batch専用ShaderはGameEngine x64だけでCSOへ変換する。 -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'GameEngine' and '$(Platform)' == 'x64'">
+    <FxCompile Include="Source\Shader\StaticBatchVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>main</EntryPointName>
+      <ObjectFileOutput>Asset\Shader\StaticBatchVS.cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="Source\Shader\StaticBatchGBufferPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>main</EntryPointName>
+      <ObjectFileOutput>Asset\Shader\StaticBatchGBufferPS.cso</ObjectFileOutput>
+    </FxCompile>
+  </ItemGroup>
 </Project>
