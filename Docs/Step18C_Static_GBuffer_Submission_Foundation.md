@@ -4,7 +4,7 @@
 
 Static BatchのCPU GroupとGPU Instance Bufferを、既存GBufferへ安全に接続するための提出境界を固定する。
 
-この段階では通常RenderPacket描画を削除しない。Static Drawが完全に成功したGroupだけを後段で通常描画から除外する。
+通常RenderPacketはFallbackとして維持し、Static DrawとGraphics Queue Submitが成功したGroupだけを通常描画から除外する。
 
 ## 初期対象の修正
 
@@ -26,6 +26,7 @@ Static BatchのCPU GroupとGPU Instance Bufferを、既存GBufferへ安全に接
 - Animation / Dynamic Vertex Bufferなし
 - Vertex / Index Bufferが有効
 - Geometry Resource Keyが一致
+- 2 Instance以上
 
 複数SubMesh ModelはSubMesh単位Packet化まで対象外とする。
 
@@ -49,6 +50,27 @@ Static BatchのCPU GroupとGPU Instance Bufferを、既存GBufferへ安全に接
 - Shader / Pipeline State生成
 - GBuffer 6 Target + D32 Pipeline Layout
 - 欠損CSO時は通常描画を維持してStatic Pipelineだけ無効化
+
+### Material / Texture同等性
+
+通常`RenderableModel`と同じ順序で次を解決する。
+
+- MaterialComponent
+- Assimp Diffuse Color
+- Model内Diffuse Texture
+- TextureComponent Override
+- UV Slice / Animation Frame
+- Material Flags
+- Shader ID
+- GBuffer Alpha除外規則
+
+追加契約:
+
+- TextureComponentが存在してもOverride Texture未設定ならModel内TextureへFallback
+- UV Start / EndをMaterial State Keyへ含める
+- Override / Model TextureのGPU SRV未生成時は通常描画へFallback
+- Normal Mapを参照するGroupは初期Static Draw対象外
+- Packet由来Material解決とAssimp Material解決を分離し、単体TestはAssimp Linkへ依存しない
 
 ### Visibility
 
@@ -75,7 +97,7 @@ Instance Bufferの部分詰め直しは初期実装では行わない。
 - Instance Count
 - First Instance
 
-すべてのBindと`DrawIndexedInstanced`が成功した場合だけ成功扱いとする。
+すべてのBindと`DrawIndexedInstanced`が成功した場合だけ提出候補とする。
 
 ### GBuffer Target Bridge
 
@@ -90,6 +112,21 @@ Instance Bufferの部分詰め直しは初期実装では行わない。
 - Width / Height / Sample Count / Quality一致
 - Render Target / Depth Stencil Bind Flag
 
+### GBuffer Pass統合
+
+GBuffer Passで次を実装した。
+
+1. Static Pipeline / Geometry / Instance Buffer / GBuffer Viewを検証
+2. Instance Upload Source Revisionを検証
+3. Group Visibilityを評価
+4. Representative PacketからMaterial / Texture / UV状態を解決
+5. `DrawIndexedInstanced`を提出
+6. Graphics Queue Submit成功GroupだけReplacement Setへ登録
+7. 通常Packet LoopでReplacement Set登録PacketだけをSkip
+8. Static Draw後に通常GBuffer Shader / Input Layout / Samplerを復元
+
+どの段階で失敗しても、該当Groupの通常RenderPacketは残る。
+
 ### 成功Packet追跡
 
 `StaticBatchPacketCache`はInstance順に次を保持する。
@@ -100,43 +137,40 @@ Instance Bufferの部分詰め直しは初期実装では行わない。
 
 Static Draw成功後は`StaticBatchPacketReplacementSet`へGroup全体を原子的に登録する。
 
-- Group内に不正Packet Indexが一つでもあれば何も登録しない
-- 成功GroupのPacketだけ通常描画から除外する
+- Group内に不正Packet Indexが一つでもあればDraw前にFallback
+- 成功GroupのPacketだけ通常描画から除外
 - Draw失敗Group、混在可視Group、Material非対応Groupは通常描画へ残す
+
+### Telemetry
+
+GBuffer Passごとに次をFrame単位で保持する。
+
+- Source Revision
+- Candidate / Submitted Group数
+- Submitted Instance数
+- Single Instance Fallback
+- Packet Range / Layer Fallback
+- Culled / Mixed Visibility Group数
+- Geometry / Material Fallback
+- Draw / Queue / Target Binding失敗
+- Pipeline / Instance Upload Ready状態
 
 ## 未完了
 
-### Material / Texture同等性
-
-既存`RenderableModel`はSubMeshごとに次を解決する。
-
-- MaterialComponent
-- Assimp Diffuse Color
-- Model内Diffuse Texture
-- TextureComponent Override
-- UV Animation
-- Normal Map
-- Material Flags
-
-Static Batch専用PSは現時点でNormal Mapを再現していない。
-
-初回GBuffer提出では、通常描画と結果が一致すると証明できるMaterial / Texture条件だけを対象にする必要がある。
-
-### GBuffer Pass統合
-
-残る作業:
-
-1. Representative PacketからMaterial Stateを解決
-2. Static Pipeline / Geometry / Instance Buffer / GBuffer Viewを検証
-3. Group Visibilityを評価
-4. `DrawIndexedInstanced`を提出
-5. 成功GroupをReplacement Setへ登録
-6. 通常Packet LoopでReplacement Set登録PacketだけをSkip
-7. Draw Call数とFallback理由をTelemetryへ追加
+- Windows Debug / Release x64のコンパイル確認
+- Script Debug / Release x64のコンパイル確認
+- Static Batch Foundation全Smoke Test確認
+- D3D11 Static Batch Interop実機Smoke確認
+- Player / Editor View実機描画回帰
+- Draw Call削減量の実機計測
+- TelemetryのProject Settings UI表示
+- Model SubMesh単位Packet化
+- 部分可視GroupのInstance再圧縮
+- Shadow / Picking / Batch Culling展開
 
 ## Compile Gate
 
-実描画統合へ進む前に次が同一HEADで成功することを必須とする。
+次が同一HEADで成功するまでStep 18-C実描画統合を完了扱いにしない。
 
 - Windows Build Debug / Release x64
 - Script Build Debug / Release x64
@@ -146,4 +180,4 @@ Static Batch専用PSは現時点でNormal Mapを再現していない。
 - D3D11 Real Triangle Smoke
 - FXC Static Batch Shader Contract
 
-CIがRunner待ちの場合は成功扱いにしない。
+CIがRunner待ち・Cancelの場合は成功扱いにしない。
