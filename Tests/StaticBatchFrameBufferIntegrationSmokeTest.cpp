@@ -70,6 +70,13 @@ int main(){
 	assert(frame.StaticBatchInstances().IsValid());
 	assert(!frame.StaticBatchInstances().IsOverflowed());
 	assert(frame.StaticBatchInstances().Groups().size() == 1);
+	const StaticBatchInstanceGroup& group =
+		frame.StaticBatchInstances().Groups()[0];
+	assert(group.representativePacketIndex == 0);
+	assert(group.firstInstance == 0);
+	assert(group.instanceCount == 2);
+	assert(group.representativePacketIndex < frame.Packets().size());
+	assert(frame.Packets()[group.representativePacketIndex].bindings.meshRenderer == &firstMesh);
 	assert(frame.StaticBatchInstances().Instances().size() == 2);
 	assert(frame.StaticBatchInstances().Instances()[0].worldMatrix[12] == 1.0f);
 	assert(frame.StaticBatchInstances().Instances()[1].worldMatrix[12] == 2.0f);
