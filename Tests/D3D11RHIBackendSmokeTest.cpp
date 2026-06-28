@@ -3,6 +3,7 @@
 #include <type_traits>
 
 #include "Service/Graphics/RHI/D3D11/D3D11RHIBackend.h"
+#include "Service/Graphics/RHI/D3D11/D3D11GraphicsContextInterop.h"
 
 int main(){
 	static_assert(std::is_base_of_v<RHI::IRHIBackend, RHI::D3D11RHIBackend>);
@@ -14,6 +15,12 @@ int main(){
 	static_assert(std::is_same_v<
 		decltype(&RHI::D3D11RHICommandList::DrawIndexedInstanced),
 		IndexedInstancedSignature
+	>);
+
+	using GraphicsInteropSignature = RHI::IRHIDevice* (*)(GraphicsContext&);
+	static_assert(std::is_same_v<
+		decltype(&RHI::EnsureGraphicsContextRHIDevice),
+		GraphicsInteropSignature
 	>);
 
 	RHI::BackendRegistry registry;
