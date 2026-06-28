@@ -117,6 +117,12 @@ public:
 	BackendType GetBackendType() const noexcept override { return BackendType::Direct3D11; }
 	const DeviceCapabilities& GetCapabilities() const noexcept override { return m_capabilities; }
 	BufferHandle CreateBuffer(const BufferDesc&, std::span<const std::byte>) override;
+	BufferHandle ImportNativeBuffer(
+		ID3D11Buffer*,
+		uint32_t stride,
+		ResourceState initialState,
+		const char* debugName = nullptr
+	);
 	TextureHandle CreateTexture(const TextureDesc&, std::span<const std::byte>, uint32_t) override;
 	BufferViewHandle CreateBufferView(const BufferViewDesc&) override;
 	TextureViewHandle CreateTextureView(const TextureViewDesc&) override;
