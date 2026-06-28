@@ -21,6 +21,7 @@ inline DXGI_FORMAT ToDXGIFormat(Format format){
 		case Format::R32_Float: return DXGI_FORMAT_R32_FLOAT;
 		case Format::RG16_Float: return DXGI_FORMAT_R16G16_FLOAT;
 		case Format::RG32_Float: return DXGI_FORMAT_R32G32_FLOAT;
+		case Format::RGB32_Float: return DXGI_FORMAT_R32G32B32_FLOAT;
 		case Format::RGBA16_Float: return DXGI_FORMAT_R16G16B16A16_FLOAT;
 		case Format::RGBA32_Float: return DXGI_FORMAT_R32G32B32A32_FLOAT;
 		case Format::RGBA32_UInt: return DXGI_FORMAT_R32G32B32A32_UINT;
@@ -43,6 +44,7 @@ inline Format FromDXGIFormat(DXGI_FORMAT format){
 		case DXGI_FORMAT_R32_FLOAT: return Format::R32_Float;
 		case DXGI_FORMAT_R16G16_FLOAT: return Format::RG16_Float;
 		case DXGI_FORMAT_R32G32_FLOAT: return Format::RG32_Float;
+		case DXGI_FORMAT_R32G32B32_FLOAT: return Format::RGB32_Float;
 		case DXGI_FORMAT_R16G16B16A16_FLOAT: return Format::RGBA16_Float;
 		case DXGI_FORMAT_R32G32B32A32_FLOAT: return Format::RGBA32_Float;
 		case DXGI_FORMAT_R32G32B32A32_UINT: return Format::RGBA32_UInt;
