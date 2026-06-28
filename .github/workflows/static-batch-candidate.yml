@@ -16,6 +16,8 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceInputLayout.h"
       - "Source/GameApplication/Service/Graphics/RHI/**"
+      - "Source/Shader/StaticBatchVS.hlsl"
+      - "Source/Shader/StaticBatchGBufferPS.hlsl"
       - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
       - "Tests/StaticBatchResourceKeySmokeTest.cpp"
       - "Tests/StaticBatchInstanceDataBufferSmokeTest.cpp"
@@ -39,6 +41,8 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceInputLayout.h"
       - "Source/GameApplication/Service/Graphics/RHI/**"
+      - "Source/Shader/StaticBatchVS.hlsl"
+      - "Source/Shader/StaticBatchGBufferPS.hlsl"
       - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
       - "Tests/StaticBatchResourceKeySmokeTest.cpp"
       - "Tests/StaticBatchInstanceDataBufferSmokeTest.cpp"
@@ -100,3 +104,19 @@ jobs:
           /Fe:${{ matrix.output }}
           /link /NODEFAULTLIB:yaml-cppd.lib
           && ${{ matrix.output }}
+
+  shader-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile static batch shaders
+        shell: cmd
+        run: |
+          fxc /nologo /T vs_5_0 /E main /I Source\Shader /Fo StaticBatchVS.cso Source\Shader\StaticBatchVS.hlsl
+          if errorlevel 1 exit /b 1
+          fxc /nologo /T ps_5_0 /E main /I Source\Shader /Fo StaticBatchGBufferPS.cso Source\Shader\StaticBatchGBufferPS.hlsl
