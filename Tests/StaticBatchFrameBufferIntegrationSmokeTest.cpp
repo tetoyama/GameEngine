@@ -64,7 +64,8 @@ int main(){
 
 	assert(frame.IsReady());
 	assert(frame.Size() == 2);
-	assert(frame.StaticBatchCandidates().IsValid());
+	assert(!frame.StaticBatchCandidates().IsOverflowed());
+	assert(frame.StaticBatchCandidates().Size() == 2);
 	assert(frame.StaticBatchCache().IsValid());
 	assert(frame.StaticBatchInstances().IsValid());
 	assert(!frame.StaticBatchInstances().IsOverflowed());
