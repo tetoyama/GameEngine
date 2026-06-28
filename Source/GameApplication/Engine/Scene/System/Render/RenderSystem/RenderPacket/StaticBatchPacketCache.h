@@ -253,6 +253,7 @@ private:
 					storage.Candidates()[group.firstCandidate + offset];
 				const RenderPacket& packet = packets[candidate.packetIndex];
 				HashValue(hash, candidate.entity.GetPackedValue());
+				HashValue(hash, static_cast<std::uint64_t>(candidate.packetIndex));
 				for(float value : packet.transform.worldMatrix.values){
 					HashValue(hash, std::bit_cast<std::uint32_t>(value));
 				}
