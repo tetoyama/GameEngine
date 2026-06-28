@@ -10,6 +10,7 @@ on:
       - "Source/GameApplication/Engine/Scene/sceneManager.cpp"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshLocalBoundsBuilder.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/**"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateTypes.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
@@ -35,6 +36,7 @@ on:
       - "Tests/StaticBatchPacketIndexMappingSmokeTest.cpp"
       - "Tests/StaticBatchPacketReplacementSetSmokeTest.cpp"
       - "Tests/StaticBatchGBufferSubmissionTelemetrySmokeTest.cpp"
+      - "Tests/RenderPacketSubMeshScopeSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
@@ -45,6 +47,7 @@ on:
       - "Source/GameApplication/Engine/Scene/sceneManager.cpp"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshLocalBoundsBuilder.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/**"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateTypes.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
@@ -70,6 +73,7 @@ on:
       - "Tests/StaticBatchPacketIndexMappingSmokeTest.cpp"
       - "Tests/StaticBatchPacketReplacementSetSmokeTest.cpp"
       - "Tests/StaticBatchGBufferSubmissionTelemetrySmokeTest.cpp"
+      - "Tests/RenderPacketSubMeshScopeSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   workflow_dispatch:
 
@@ -117,6 +121,8 @@ jobs:
             output: static-batch-packet-replacement-test.exe
           - source: Tests/StaticBatchGBufferSubmissionTelemetrySmokeTest.cpp
             output: static-batch-gbuffer-telemetry-test.exe
+          - source: Tests/RenderPacketSubMeshScopeSmokeTest.cpp
+            output: render-packet-submesh-scope-test.exe
     steps:
       - uses: actions/checkout@v4
         with:
