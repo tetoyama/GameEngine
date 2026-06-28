@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <memory>
 
 #include <d3d11.h>
@@ -22,11 +23,11 @@ struct NativeDeviceContext {
 NativeDeviceContext CreateWarpDevice(){
 	NativeDeviceContext result;
 	D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
-	const D3D_FEATURE_LEVEL requestedLevels[]{
+	constexpr D3D_FEATURE_LEVEL requestedLevels[]{
 		D3D_FEATURE_LEVEL_11_1,
 		D3D_FEATURE_LEVEL_11_0
 	};
-	const HRESULT createResult = D3D11CreateDevice(
+	HRESULT createResult = D3D11CreateDevice(
 		nullptr,
 		D3D_DRIVER_TYPE_WARP,
 		nullptr,
@@ -38,6 +39,23 @@ NativeDeviceContext CreateWarpDevice(){
 		&featureLevel,
 		result.context.GetAddressOf()
 	);
+	if(createResult == E_INVALIDARG){
+		result.device.Reset();
+		result.context.Reset();
+		constexpr D3D_FEATURE_LEVEL fallbackLevel = D3D_FEATURE_LEVEL_11_0;
+		createResult = D3D11CreateDevice(
+			nullptr,
+			D3D_DRIVER_TYPE_WARP,
+			nullptr,
+			0,
+			&fallbackLevel,
+			1,
+			D3D11_SDK_VERSION,
+			result.device.GetAddressOf(),
+			&featureLevel,
+			result.context.GetAddressOf()
+		);
+	}
 	assert(SUCCEEDED(createResult));
 	assert(result.device);
 	assert(result.context);
