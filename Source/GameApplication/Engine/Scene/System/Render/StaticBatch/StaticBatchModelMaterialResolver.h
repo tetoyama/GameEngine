@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <memory>
 #include <span>
 
 #include "Backends/Assimp/material.h"
@@ -53,6 +54,48 @@ struct StaticBatchModelMaterialResolveResult {
 
 namespace StaticBatchModelMaterialResolver {
 
+inline StaticBatchModelMaterialRejectReason ResolvePacketState(
+	const RenderPacket& packet,
+	StaticBatchModelMaterialState& state
+) noexcept {
+	const MaterialComponent* materialComponent = packet.bindings.material;
+	const std::uint32_t expectedShaderID = materialComponent
+		? static_cast<std::uint32_t>((std::max)(0, materialComponent->ShaderID))
+		: 0u;
+	if(packet.materialKey != expectedShaderID){
+		return StaticBatchModelMaterialRejectReason::ShaderKeyMismatch;
+	}
+	if(materialComponent &&
+		materialComponent->Material.BaseColor.w < 0.999f){
+		return StaticBatchModelMaterialRejectReason::ExcludedByGBufferAlphaRule;
+	}
+
+	state = {};
+	state.material.BaseColor = float4(1.0f, 1.0f, 1.0f, 1.0f);
+	state.shaderID = expectedShaderID;
+	state.uv = StaticBatchResourceKey::ResolveUVState(
+		packet.bindings.texture
+	);
+
+	if(materialComponent){
+		state.material = materialComponent->Material;
+		state.material.MaterialFlags &=
+			MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
+	}
+
+	const TextureComponent* textureComponent = packet.bindings.texture;
+	if(textureComponent && textureComponent->m_TextureData){
+		if(!textureComponent->m_TextureData->pTexture){
+			return StaticBatchModelMaterialRejectReason::MissingOverrideDiffuseTexture;
+		}
+		state.diffuseTexture =
+			textureComponent->m_TextureData->pTexture.Get();
+		state.material.MaterialFlags |=
+			MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
+	}
+	return StaticBatchModelMaterialRejectReason::None;
+}
+
 inline StaticBatchModelMaterialResolveResult Resolve(
 	const StaticBatchPacketCacheEntry& group,
 	std::span<const RenderPacket> packets
@@ -83,6 +126,13 @@ inline StaticBatchModelMaterialResolveResult Resolve(
 	if(!HasRenderPacketPass(packet.passMask, RenderPacketPassMask::GBuffer)){
 		result.rejectReason =
 			StaticBatchModelMaterialRejectReason::MissingGBufferPass;
+		return result;
+	}
+
+	const StaticBatchModelMaterialRejectReason packetStateResult =
+		ResolvePacketState(packet, result.state);
+	if(packetStateResult != StaticBatchModelMaterialRejectReason::None){
+		result.rejectReason = packetStateResult;
 		return result;
 	}
 
@@ -125,66 +175,29 @@ inline StaticBatchModelMaterialResolveResult Resolve(
 	}
 
 	const MaterialComponent* materialComponent = packet.bindings.material;
-	const std::uint32_t expectedShaderID = materialComponent
-		? static_cast<std::uint32_t>((std::max)(0, materialComponent->ShaderID))
-		: 0u;
-	if(packet.materialKey != expectedShaderID){
-		result.rejectReason =
-			StaticBatchModelMaterialRejectReason::ShaderKeyMismatch;
-		return result;
-	}
-	if(materialComponent &&
-		materialComponent->Material.BaseColor.w < 0.999f){
-		result.rejectReason =
-			StaticBatchModelMaterialRejectReason::ExcludedByGBufferAlphaRule;
-		return result;
-	}
-
-	StaticBatchModelMaterialState& state = result.state;
-	state.material = {};
-	state.material.BaseColor = float4(1.0f, 1.0f, 1.0f, 1.0f);
-	state.shaderID = expectedShaderID;
-	state.uv = StaticBatchResourceKey::ResolveUVState(
-		packet.bindings.texture
-	);
-
-	if(materialComponent){
-		state.material = materialComponent->Material;
-		state.material.MaterialFlags &=
-			MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
-	}
-
-	const TextureComponent* textureComponent = packet.bindings.texture;
-	if(textureComponent && textureComponent->m_TextureData){
-		if(!textureComponent->m_TextureData->pTexture){
-			result.rejectReason =
-				StaticBatchModelMaterialRejectReason::MissingOverrideDiffuseTexture;
-			return result;
-		}
-		state.diffuseTexture =
-			textureComponent->m_TextureData->pTexture.Get();
-		state.material.MaterialFlags |=
-			MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
-	}else{
+	const bool hasOverrideTexture =
+		packet.bindings.texture &&
+		packet.bindings.texture->m_TextureData;
+	if(!hasOverrideTexture){
 		aiColor4D color;
 		if(sourceMaterial->Get(
 			AI_MATKEY_COLOR_DIFFUSE,
 			color
 		) == AI_SUCCESS){
-			state.material.BaseColor = float4(
+			result.state.material.BaseColor = float4(
 				color.r,
 				color.g,
 				color.b,
 				color.a
 			);
 			if(materialComponent){
-				state.material.BaseColor.x *=
+				result.state.material.BaseColor.x *=
 					materialComponent->Material.BaseColor.x;
-				state.material.BaseColor.y *=
+				result.state.material.BaseColor.y *=
 					materialComponent->Material.BaseColor.y;
-				state.material.BaseColor.z *=
+				result.state.material.BaseColor.z *=
 					materialComponent->Material.BaseColor.z;
-				state.material.BaseColor.w *=
+				result.state.material.BaseColor.w *=
 					materialComponent->Material.BaseColor.w;
 			}
 		}
@@ -203,8 +216,8 @@ inline StaticBatchModelMaterialResolveResult Resolve(
 						StaticBatchModelMaterialRejectReason::MissingModelDiffuseTexture;
 					return result;
 				}
-				state.diffuseTexture = diffuseIt->second;
-				state.material.MaterialFlags |=
+				result.state.diffuseTexture = diffuseIt->second;
+				result.state.material.MaterialFlags |=
 					MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 			}
 		}
@@ -224,7 +237,7 @@ inline StaticBatchModelMaterialResolveResult Resolve(
 		}
 	}
 
-	if(state.UsesDiffuseTexture() && !state.diffuseTexture){
+	if(result.state.UsesDiffuseTexture() && !result.state.diffuseTexture){
 		result.rejectReason =
 			StaticBatchModelMaterialRejectReason::MissingModelDiffuseTexture;
 		return result;
