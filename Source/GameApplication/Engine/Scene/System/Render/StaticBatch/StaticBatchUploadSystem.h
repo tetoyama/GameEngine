@@ -60,6 +60,10 @@ public:
 		return m_gpuInstanceBuffer.Telemetry();
 	}
 
+	void ResetTelemetry() noexcept {
+		m_gpuInstanceBuffer.ResetMetrics();
+	}
+
 	bool LastUploadSucceeded() const noexcept {
 		return m_lastUploadSucceeded;
 	}
