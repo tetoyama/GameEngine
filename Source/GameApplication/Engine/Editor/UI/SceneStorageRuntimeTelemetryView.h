@@ -11,6 +11,7 @@
 #include "Scene/sceneManager.h"
 #include "Scene/Registry/systemRegistry.h"
 #include "Scene/System/Render/RenderSystem/renderSystem.h"
+#include "Scene/System/Render/StaticBatch/StaticBatchUploadSystem.h"
 
 namespace SceneStorageRuntimeTelemetryView {
 
@@ -41,8 +42,12 @@ inline void Draw(
 	if(!scene) return;
 
 	SceneContext* context = scene->GetSceneContext();
-	RenderSystem* renderSystem = manager.GetSystemRegistry()
-		? manager.GetSystemRegistry()->GetSystem<RenderSystem>()
+	SystemRegistry* registry = manager.GetSystemRegistry();
+	RenderSystem* renderSystem = registry
+		? registry->GetSystem<RenderSystem>()
+		: nullptr;
+	StaticBatchUploadSystem* uploadSystem = registry
+		? registry->GetSystem<StaticBatchUploadSystem>()
 		: nullptr;
 	if(!context || !renderSystem) return;
 
@@ -62,12 +67,16 @@ inline void Draw(
 		renderSystem->GetRenderPacketBuffer().StaticBatchCacheTelemetry();
 	const StaticBatchInstanceDataTelemetry staticInstances =
 		renderSystem->GetRenderPacketBuffer().StaticBatchInstanceTelemetry();
+	const StaticBatchGpuInstanceBufferTelemetry gpuInstances = uploadSystem
+		? uploadSystem->GetTelemetry()
+		: StaticBatchGpuInstanceBufferTelemetry{};
 	const size_t totalGrowth =
 		entityGrowth + componentGrowth + visibilityGrowth +
 		packet.growthEventCount + staticBatch.growthEventCount +
-		staticCache.growthEventCount + staticInstances.growthEventCount;
+		staticCache.growthEventCount + staticInstances.growthEventCount +
+		gpuInstances.reallocationCount;
 
-	ImGui::SetNextWindowSize(ImVec2(690.0f, 500.0f), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(720.0f, 560.0f), ImGuiCond_FirstUseEver);
 	if(ImGui::Begin("Scene Storage Runtime Telemetry", nullptr)){
 		ImGui::Text("Scene: %s", scene->SceneName.c_str());
 		ImGui::Text("Entity Growth: %llu",
@@ -86,6 +95,8 @@ inline void Draw(
 			static_cast<unsigned long long>(staticCache.growthEventCount));
 		ImGui::Text("Static Instance Data Growth: %llu",
 			static_cast<unsigned long long>(staticInstances.growthEventCount));
+		ImGui::Text("Static GPU Buffer Reallocations: %llu",
+			static_cast<unsigned long long>(gpuInstances.reallocationCount));
 		ImGui::Text("Total Growth: %llu",
 			static_cast<unsigned long long>(totalGrowth));
 		ImGui::Separator();
@@ -137,10 +148,23 @@ inline void Draw(
 			static_cast<unsigned long long>(staticInstances.groupCapacity)
 		);
 		ImGui::Text(
-			"Static Instance Data: Current %llu / Peak %llu / Capacity %llu",
+			"Static CPU Instance Data: Current %llu / Peak %llu / Capacity %llu",
 			static_cast<unsigned long long>(staticInstances.currentInstanceCount),
 			static_cast<unsigned long long>(staticInstances.peakInstanceCount),
 			static_cast<unsigned long long>(staticInstances.instanceCapacity)
+		);
+		ImGui::Text(
+			"Static GPU Instance Data: Current %llu / Capacity %llu / Revision %llu",
+			static_cast<unsigned long long>(gpuInstances.currentInstanceCount),
+			static_cast<unsigned long long>(gpuInstances.instanceCapacity),
+			static_cast<unsigned long long>(gpuInstances.uploadedSourceRevision)
+		);
+		ImGui::Text(
+			"GPU Uploads %llu / Reallocations %llu / Failures %llu / Valid %s",
+			static_cast<unsigned long long>(gpuInstances.uploadCount),
+			static_cast<unsigned long long>(gpuInstances.reallocationCount),
+			static_cast<unsigned long long>(gpuInstances.failedUploadCount),
+			gpuInstances.valid ? "true" : "false"
 		);
 		ImGui::Text(
 			"Cache Rebuilds %llu / Instance Rebuilds %llu / Skipped Groups %llu",
@@ -155,6 +179,13 @@ inline void Draw(
 				"Static batching overflowed; ordinary RenderPacket submission remains active."
 			);
 		}
+		if(uploadSystem && staticInstances.currentInstanceCount > 0 &&
+			!uploadSystem->LastUploadSucceeded()){
+			ImGui::TextColored(
+				ImVec4(1.0f, 0.35f, 0.2f, 1.0f),
+				"Static GPU instance upload failed; ordinary RenderPacket submission remains active."
+			);
+		}
 
 		if(ImGui::Button("Reset All Runtime Storage Peaks", ImVec2(-1.0f, 0.0f))){
 			if(context->entity) context->entity->ResetPeakMetrics();
@@ -163,6 +194,7 @@ inline void Draw(
 			}
 			renderSystem->GetCullingVisibility().ResetPeakMetrics(context->contextID);
 			renderSystem->GetRenderPacketBuffer().ResetPeakMetrics();
+			if(uploadSystem) uploadSystem->ResetTelemetry();
 			SceneStorageSettingsView::GetState().peaks[context->contextID] =
 				SceneStorageSettingsView::ReadMetrics(*context, renderSystem);
 		}
