@@ -49,6 +49,7 @@ enum class Format : uint16_t {
 	R32_Float,
 	RG16_Float,
 	RG32_Float,
+	RGB32_Float,
 	RGBA16_Float,
 	RGBA32_Float,
 	RGBA32_UInt,
