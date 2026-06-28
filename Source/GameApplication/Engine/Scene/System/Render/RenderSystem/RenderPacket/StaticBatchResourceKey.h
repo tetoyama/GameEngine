@@ -102,6 +102,20 @@ inline std::uint64_t MakePipelineKey(const RenderPacket& packet) noexcept {
 	return key == 0 ? 1 : key;
 }
 
+inline void CombineMeshGeometry(
+	std::uint64_t& key,
+	const aiMesh* mesh
+) noexcept {
+	if(!mesh){
+		Combine(key, 0);
+		return;
+	}
+	Combine(key, static_cast<std::uint64_t>(mesh->mNumVertices));
+	Combine(key, static_cast<std::uint64_t>(mesh->mNumFaces));
+	Combine(key, static_cast<std::uint64_t>(mesh->mMaterialIndex));
+	Combine(key, mesh->HasBones() ? 1ull : 0ull);
+}
+
 inline std::uint64_t MakeGeometryKey(const RenderPacket& packet) noexcept {
 	if(packet.kind == RenderPacketKind::Mesh && packet.bindings.meshRenderer){
 		return packet.bindings.meshRenderer->mesh.geometryResourceKey;
@@ -114,7 +128,8 @@ inline std::uint64_t MakeGeometryKey(const RenderPacket& packet) noexcept {
 
 	const ModelRendererComponent& renderer = *packet.bindings.modelRenderer;
 	const std::shared_ptr<ModelData>& model = renderer.model;
-	if(renderer.modelFilePath.empty() || !model || !model->AiScene){
+	if(renderer.modelFilePath.empty() || !model || !model->AiScene ||
+		!model->AiScene->mMeshes){
 		return 0;
 	}
 
@@ -124,19 +139,21 @@ inline std::uint64_t MakeGeometryKey(const RenderPacket& packet) noexcept {
 	Combine(key, static_cast<std::uint64_t>(model->AiScene->mNumMeshes));
 	Combine(key, static_cast<std::uint64_t>(model->VertexBuffer.size()));
 	Combine(key, static_cast<std::uint64_t>(model->IndexBuffer.size()));
+	Combine(key, static_cast<std::uint64_t>(packet.subMeshIndex));
+
+	if(!packet.TargetsAllSubMeshes()){
+		if(packet.subMeshIndex >= model->AiScene->mNumMeshes) return 0;
+		CombineMeshGeometry(
+			key,
+			model->AiScene->mMeshes[packet.subMeshIndex]
+		);
+		return key == 0 ? 1 : key;
+	}
 
 	for(unsigned int meshIndex = 0;
 		meshIndex < model->AiScene->mNumMeshes;
 		++meshIndex){
-		const aiMesh* mesh = model->AiScene->mMeshes[meshIndex];
-		if(!mesh){
-			Combine(key, 0);
-			continue;
-		}
-		Combine(key, static_cast<std::uint64_t>(mesh->mNumVertices));
-		Combine(key, static_cast<std::uint64_t>(mesh->mNumFaces));
-		Combine(key, static_cast<std::uint64_t>(mesh->mMaterialIndex));
-		Combine(key, mesh->HasBones() ? 1ull : 0ull);
+		CombineMeshGeometry(key, model->AiScene->mMeshes[meshIndex]);
 	}
 	return key == 0 ? 1 : key;
 }
@@ -152,6 +169,7 @@ inline std::uint64_t MakeTextureSetKey(const RenderPacket& packet) noexcept {
 		std::uint64_t key = 0x4f56455252494445ull;
 		Combine(key, pathKey);
 		Combine(key, texture->pTexture ? 1ull : 0ull);
+		Combine(key, static_cast<std::uint64_t>(packet.subMeshIndex));
 		return key == 0 ? 1 : key;
 	}
 
@@ -175,6 +193,10 @@ inline std::uint64_t MakeTextureSetKey(const RenderPacket& packet) noexcept {
 	const std::shared_ptr<ModelData>& model =
 		packet.bindings.modelRenderer->model;
 	if(!model || !model->AiScene) return 0;
+	if(!packet.TargetsAllSubMeshes() &&
+		packet.subMeshIndex >= model->AiScene->mNumMeshes){
+		return 0;
+	}
 
 	std::vector<std::string_view> textureNames;
 	textureNames.reserve(model->m_Texture.size());
@@ -185,6 +207,7 @@ inline std::uint64_t MakeTextureSetKey(const RenderPacket& packet) noexcept {
 	std::sort(textureNames.begin(), textureNames.end());
 
 	std::uint64_t key = 0x4d4f44454c544558ull;
+	Combine(key, static_cast<std::uint64_t>(packet.subMeshIndex));
 	Combine(key, static_cast<std::uint64_t>(textureNames.size()));
 	for(const std::string_view name : textureNames){
 		Combine(key, HashString(name));
@@ -200,16 +223,30 @@ inline std::uint64_t MakeTextureSetKey(const RenderPacket& packet) noexcept {
 }
 
 inline std::uint64_t MakeModelMaterialStateKey(
+	const RenderPacket& packet,
 	const ModelRendererComponent& renderer
 ) noexcept {
 	const std::shared_ptr<ModelData>& model = renderer.model;
-	if(renderer.modelFilePath.empty() || !model || !model->AiScene){
+	if(renderer.modelFilePath.empty() || !model || !model->AiScene ||
+		!model->AiScene->mMeshes){
 		return 0;
 	}
 
 	std::uint64_t key = HashString(renderer.modelFilePath);
 	Combine(key, renderer.modelRuntimeRevision);
 	Combine(key, static_cast<std::uint64_t>(model->AiScene->mNumMaterials));
+	Combine(key, static_cast<std::uint64_t>(packet.subMeshIndex));
+
+	if(!packet.TargetsAllSubMeshes()){
+		if(packet.subMeshIndex >= model->AiScene->mNumMeshes) return 0;
+		const aiMesh* mesh = model->AiScene->mMeshes[packet.subMeshIndex];
+		Combine(
+			key,
+			mesh ? static_cast<std::uint64_t>(mesh->mMaterialIndex) : 0ull
+		);
+		return key == 0 ? 1 : key;
+	}
+
 	for(unsigned int meshIndex = 0;
 		meshIndex < model->AiScene->mNumMeshes;
 		++meshIndex){
@@ -236,7 +273,7 @@ inline std::uint64_t MakeMaterialStateKey(const RenderPacket& packet) noexcept {
 	if(packet.kind == RenderPacketKind::Model){
 		if(!packet.bindings.modelRenderer) return 0;
 		const std::uint64_t modelMaterialKey =
-			MakeModelMaterialStateKey(*packet.bindings.modelRenderer);
+			MakeModelMaterialStateKey(packet, *packet.bindings.modelRenderer);
 		if(modelMaterialKey == 0) return 0;
 		Combine(key, modelMaterialKey);
 	}
