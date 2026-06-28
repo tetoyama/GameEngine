@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <limits>
 
 #include "Scene/Component/meshRendererComponent.h"
 #include "Service/Graphics/RHI/D3D11/D3D11RHIDevice.h"
@@ -33,8 +32,10 @@ public:
 			return false;
 		}
 
-		auto& d3d11Device = static_cast<RHI::D3D11RHIDevice&>(device);
-		m_vertexBuffer = d3d11Device.ImportNativeBuffer(
+		auto* d3d11Device = dynamic_cast<RHI::D3D11RHIDevice*>(&device);
+		if(!d3d11Device) return false;
+
+		m_vertexBuffer = d3d11Device->ImportNativeBuffer(
 			mesh.m_VertexBuffer.Get(),
 			static_cast<std::uint32_t>(sizeof(VERTEX_3D)),
 			RHI::ResourceState::VertexBuffer,
@@ -42,7 +43,7 @@ public:
 		);
 		if(!m_vertexBuffer) return false;
 
-		m_indexBuffer = d3d11Device.ImportNativeBuffer(
+		m_indexBuffer = d3d11Device->ImportNativeBuffer(
 			mesh.m_IndexBuffer.Get(),
 			static_cast<std::uint32_t>(sizeof(std::uint32_t)),
 			RHI::ResourceState::IndexBuffer,
@@ -67,9 +68,7 @@ public:
 		const std::uint64_t requiredIndexBytes =
 			static_cast<std::uint64_t>(mesh.indexCount) * sizeof(std::uint32_t);
 		if(requiredVertexBytes > vertexDesc->byteSize ||
-			requiredIndexBytes > indexDesc->byteSize ||
-			static_cast<std::uint64_t>(mesh.indexCount) >
-				(std::numeric_limits<std::uint32_t>::max)()){
+			requiredIndexBytes > indexDesc->byteSize){
 			Release(device);
 			return false;
 		}
