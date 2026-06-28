@@ -4,7 +4,7 @@
 
 Step 18-BでGPUへUploadした`StaticBatchInstanceData`を、Backend非依存Pipeline Input Layoutと専用Shaderへ接続する。
 
-この段階では既存GBuffer描画を置き換えない。Vertex / Instance Input契約、Shader Compile、代表Packet解決までを先に固定する。
+この段階では既存GBuffer描画を置き換えない。Vertex / Instance Input契約、Shader Compile、代表Packet解決、RHI Resource所有までを先に固定する。
 
 ## Vertex Buffer Layout
 
@@ -90,6 +90,32 @@ Entity GenerationはGPU Picking結果をCPU側で検証するためInstance Data
 
 代表Packet Indexは同じFrameのPublished Packet配列を参照する。範囲外の場合はStatic Drawを行わず、通常Packet描画へFallbackする。
 
+## RHI Pipeline Resource Ownership
+
+`StaticBatchPipelineResources`がStatic Batch GBuffer専用Resourceを所有する。
+
+所有対象:
+
+- Vertex Shader Handle
+- Pixel Shader Handle
+- Pipeline State Handle
+
+生成契約:
+
+- Shader bytecodeが空の場合は生成しない
+- 二重生成を拒否し、既存Handleを維持する
+- Vertex Shader、Pixel Shader、Pipeline Stateの順に生成する
+- 途中失敗時は生成済みResourceを逆順で解放する
+- Pipeline State生成時に`StaticBatchInstanceInputLayout::BuildFull()`を使用する
+- GBufferの5個の`RGBA16_Float` Target、1個の`RGBA32_UInt` Target、`D32_Float` Depthを固定する
+
+解放契約:
+
+- Pipeline Stateを先に破棄する
+- Pipeline破棄に失敗した場合は参照先Shaderを維持して再試行可能にする
+- Pipeline破棄後にPixel Shader、Vertex Shaderの順で破棄する
+- `StaticBatchUploadSystem::Finalize()`からGPU Instance Bufferより先に解放する
+
 ## Correctness Policy
 
 現段階でStatic Groupを実描画へ移行する条件:
@@ -116,6 +142,12 @@ Entity GenerationはGPU Picking結果をCPU側で検証するためInstance Data
   - Per-Vertex / Per-Instance分類
   - Step Rate
   - Struct Size
+- `StaticBatchUploadSystemSmokeTest.cpp`
+  - Null RHI Shader / Pipeline生成
+  - GBuffer Render Target Layout
+  - Full Input Layout接続
+  - Command ListへのPipeline Bind
+  - 明示Release後のHandle無効化
 - Static Batch WorkflowのShader Contract Job
   - `StaticBatchVS.hlsl`を`vs_5_0`でCompile
   - `StaticBatchGBufferPS.hlsl`を`ps_5_0`でCompile
@@ -135,10 +167,10 @@ Entity GenerationはGPU Picking結果をCPU側で検証するためInstance Data
 - [x] Representative Packet Index
 - [x] C++ Layout Smoke Test
 - [x] FXC Shader Compile Job
+- [x] RHI Shader / Pipeline State Resource所有
 
 ## 未完了
 
-- [ ] RHI Shader / Pipeline State Resource所有
 - [ ] Native Mesh BufferのRHI Geometry Binding
 - [ ] Group内Packet可視性検証
 - [ ] GBuffer Static Draw提出
@@ -149,8 +181,8 @@ Entity GenerationはGPU Picking結果をCPU側で検証するためInstance Data
 
 ## 次工程
 
-1. Static Batch専用RHI Pipeline Resource所有クラス
-2. D3D11既存Mesh BufferのInterop
-3. Mesh Group可視性検証
-4. GBuffer `DrawIndexedInstanced`
-5. 成功Groupの通常Packet除外
+1. D3D11既存Mesh BufferのInterop
+2. Mesh Group可視性検証
+3. GBuffer `DrawIndexedInstanced`
+4. 成功Groupの通常Packet除外
+5. Model SubMesh単位Packet / Resource Key
