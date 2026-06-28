@@ -5,7 +5,9 @@ on:
     branches: [master]
     paths:
       - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/sceneManager.cpp"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshLocalBoundsBuilder.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchUploadSystem.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateTypes.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
@@ -18,12 +20,15 @@ on:
       - "Tests/StaticBatchInstanceDataBufferSmokeTest.cpp"
       - "Tests/StaticBatchFrameBufferIntegrationSmokeTest.cpp"
       - "Tests/StaticBatchGpuInstanceBufferSmokeTest.cpp"
+      - "Tests/StaticBatchUploadSystemSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
     paths:
       - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/sceneManager.cpp"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshLocalBoundsBuilder.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchUploadSystem.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateTypes.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
@@ -36,6 +41,7 @@ on:
       - "Tests/StaticBatchInstanceDataBufferSmokeTest.cpp"
       - "Tests/StaticBatchFrameBufferIntegrationSmokeTest.cpp"
       - "Tests/StaticBatchGpuInstanceBufferSmokeTest.cpp"
+      - "Tests/StaticBatchUploadSystemSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   workflow_dispatch:
 
@@ -63,6 +69,8 @@ jobs:
             output: static-batch-frame-buffer-integration-test.exe
           - source: Tests/StaticBatchGpuInstanceBufferSmokeTest.cpp
             output: static-batch-gpu-instance-buffer-test.exe
+          - source: Tests/StaticBatchUploadSystemSmokeTest.cpp
+            output: static-batch-upload-system-test.exe
     steps:
       - uses: actions/checkout@v4
         with:
