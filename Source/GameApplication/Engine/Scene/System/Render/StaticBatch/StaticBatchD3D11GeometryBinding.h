@@ -2,9 +2,8 @@
 
 #include <cstdint>
 
-#include "Scene/Component/meshRendererComponent.h"
 #include "Service/Graphics/RHI/D3D11/D3D11RHIDevice.h"
-#include "Shader/common.hlsl"
+#include "System/Render/StaticBatch/StaticBatchD3D11GeometrySource.h"
 
 class StaticBatchD3D11GeometryBinding {
 public:
@@ -22,13 +21,12 @@ public:
 		StaticBatchD3D11GeometryBinding&&
 	) = delete;
 
-	bool Create(RHI::IRHIDevice& device, const MeshData& mesh){
-		if(IsAllocated() || device.GetBackendType() != RHI::BackendType::Direct3D11){
-			return false;
-		}
-		if(!mesh.m_VertexBuffer || !mesh.m_IndexBuffer ||
-			mesh.meshCount <= 0 || mesh.indexCount <= 0 ||
-			mesh.geometryResourceKey == 0){
+	bool Create(
+		RHI::IRHIDevice& device,
+		const StaticBatchD3D11GeometrySource& source
+	){
+		if(IsAllocated() || !source.IsValid() ||
+			device.GetBackendType() != RHI::BackendType::Direct3D11){
 			return false;
 		}
 
@@ -36,16 +34,16 @@ public:
 		if(!d3d11Device) return false;
 
 		m_vertexBuffer = d3d11Device->ImportNativeBuffer(
-			mesh.m_VertexBuffer.Get(),
-			static_cast<std::uint32_t>(sizeof(VERTEX_3D)),
+			source.vertexBuffer,
+			source.vertexStride,
 			RHI::ResourceState::VertexBuffer,
 			"Static Batch Imported Vertex Buffer"
 		);
 		if(!m_vertexBuffer) return false;
 
 		m_indexBuffer = d3d11Device->ImportNativeBuffer(
-			mesh.m_IndexBuffer.Get(),
-			static_cast<std::uint32_t>(sizeof(std::uint32_t)),
+			source.indexBuffer,
+			source.IndexElementSize(),
 			RHI::ResourceState::IndexBuffer,
 			"Static Batch Imported Index Buffer"
 		);
@@ -64,18 +62,24 @@ public:
 		}
 
 		const std::uint64_t requiredVertexBytes =
-			static_cast<std::uint64_t>(mesh.meshCount) * sizeof(VERTEX_3D);
+			static_cast<std::uint64_t>(source.vertexCount) *
+			source.vertexStride;
 		const std::uint64_t requiredIndexBytes =
-			static_cast<std::uint64_t>(mesh.indexCount) * sizeof(std::uint32_t);
+			static_cast<std::uint64_t>(source.indexCount) *
+			source.IndexElementSize();
 		if(requiredVertexBytes > vertexDesc->byteSize ||
 			requiredIndexBytes > indexDesc->byteSize){
 			Release(device);
 			return false;
 		}
 
-		m_vertexStride = static_cast<std::uint32_t>(sizeof(VERTEX_3D));
-		m_indexCount = static_cast<std::uint32_t>(mesh.indexCount);
-		m_geometryResourceKey = mesh.geometryResourceKey;
+		m_nativeVertexBuffer = source.vertexBuffer;
+		m_nativeIndexBuffer = source.indexBuffer;
+		m_vertexStride = source.vertexStride;
+		m_vertexCount = source.vertexCount;
+		m_indexCount = source.indexCount;
+		m_indexFormat = source.indexFormat;
+		m_geometryResourceKey = source.geometryResourceKey;
 		return true;
 	}
 
@@ -91,7 +95,7 @@ public:
 		}
 		return commandList.SetIndexBuffer(
 			m_indexBuffer,
-			RHI::IndexFormat::UInt32,
+			m_indexFormat,
 			0
 		);
 	}
@@ -113,8 +117,12 @@ public:
 			}
 		}
 		if(!IsAllocated()){
+			m_nativeVertexBuffer = nullptr;
+			m_nativeIndexBuffer = nullptr;
 			m_vertexStride = 0;
+			m_vertexCount = 0;
 			m_indexCount = 0;
+			m_indexFormat = RHI::IndexFormat::UInt32;
 			m_geometryResourceKey = 0;
 		}
 		return released && !IsAllocated();
@@ -123,7 +131,10 @@ public:
 	bool IsReady() const noexcept {
 		return static_cast<bool>(m_vertexBuffer) &&
 			static_cast<bool>(m_indexBuffer) &&
+			m_nativeVertexBuffer != nullptr &&
+			m_nativeIndexBuffer != nullptr &&
 			m_vertexStride != 0 &&
+			m_vertexCount != 0 &&
 			m_indexCount != 0 &&
 			m_geometryResourceKey != 0;
 	}
@@ -133,17 +144,25 @@ public:
 			static_cast<bool>(m_indexBuffer);
 	}
 
-	bool Matches(const MeshData& mesh) const noexcept {
-		return IsReady() &&
-			mesh.geometryResourceKey == m_geometryResourceKey &&
-			mesh.indexCount > 0 &&
-			static_cast<std::uint32_t>(mesh.indexCount) == m_indexCount;
+	bool Matches(
+		const StaticBatchD3D11GeometrySource& source
+	) const noexcept {
+		return IsReady() && source.IsValid() &&
+			source.vertexBuffer == m_nativeVertexBuffer &&
+			source.indexBuffer == m_nativeIndexBuffer &&
+			source.vertexStride == m_vertexStride &&
+			source.vertexCount == m_vertexCount &&
+			source.indexCount == m_indexCount &&
+			source.indexFormat == m_indexFormat &&
+			source.geometryResourceKey == m_geometryResourceKey;
 	}
 
 	RHI::BufferHandle VertexBuffer() const noexcept { return m_vertexBuffer; }
 	RHI::BufferHandle IndexBuffer() const noexcept { return m_indexBuffer; }
 	std::uint32_t VertexStride() const noexcept { return m_vertexStride; }
+	std::uint32_t VertexCount() const noexcept { return m_vertexCount; }
 	std::uint32_t IndexCount() const noexcept { return m_indexCount; }
+	RHI::IndexFormat IndexFormat() const noexcept { return m_indexFormat; }
 	std::uint64_t GeometryResourceKey() const noexcept {
 		return m_geometryResourceKey;
 	}
@@ -151,7 +170,11 @@ public:
 private:
 	RHI::BufferHandle m_vertexBuffer;
 	RHI::BufferHandle m_indexBuffer;
+	ID3D11Buffer* m_nativeVertexBuffer = nullptr;
+	ID3D11Buffer* m_nativeIndexBuffer = nullptr;
 	std::uint32_t m_vertexStride = 0;
+	std::uint32_t m_vertexCount = 0;
 	std::uint32_t m_indexCount = 0;
+	RHI::IndexFormat m_indexFormat = RHI::IndexFormat::UInt32;
 	std::uint64_t m_geometryResourceKey = 0;
 };
