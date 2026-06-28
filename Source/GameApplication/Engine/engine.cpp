@@ -55,7 +55,7 @@ void Engine::Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdSho
 		mainWindow->GetHWND(), mainWindow->GetWidth(), mainWindow->GetHeight())) return;
 
 	if(rhi->GetSelectedBackend() == RHI::BackendType::Direct3D11 &&
-		!RHI::EnsureGraphicsContextRHIDevice(*graphics)){
+		!RHI::EnsureGraphicsContextRHIDevice(*graphics.get())){
 		return;
 	}
 
