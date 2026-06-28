@@ -63,12 +63,20 @@ int main(){
 	frame.Merge(workers);
 
 	assert(frame.IsReady());
+	assert(frame.Generation() == 1);
 	assert(frame.Size() == 2);
 	assert(!frame.StaticBatchCandidates().IsOverflowed());
 	assert(frame.StaticBatchCandidates().Size() == 2);
 	assert(frame.StaticBatchCache().IsValid());
 	assert(frame.StaticBatchInstances().IsValid());
 	assert(!frame.StaticBatchInstances().IsOverflowed());
+	assert(frame.StaticBatchCache().Generation() == frame.Generation());
+	assert(frame.StaticBatchInstances().Generation() == frame.Generation());
+	assert(
+		frame.StaticBatchCache().SourceRevision() ==
+		frame.StaticBatchInstances().SourceRevision()
+	);
+	assert(frame.StaticBatchCache().SourceRevision() != 0);
 	assert(frame.StaticBatchInstances().Groups().size() == 1);
 	const StaticBatchInstanceGroup& group =
 		frame.StaticBatchInstances().Groups()[0];
