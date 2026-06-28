@@ -50,6 +50,30 @@ inline void CombineFloat(std::uint64_t& hash, float value) noexcept {
 	Combine(hash, std::bit_cast<std::uint32_t>(value));
 }
 
+inline UVMatrixBuffer ResolveUVState(
+	const TextureComponent* texture
+) noexcept {
+	UVMatrixBuffer uv{};
+	uv.UVStart = float2(0.0f, 0.0f);
+	uv.UVEnd = float2(1.0f, 1.0f);
+	if(!texture || texture->UV_Slice_X <= 0.0f ||
+		texture->UV_Slice_Y <= 0.0f){
+		return uv;
+	}
+
+	const int column = (std::max)(
+		1,
+		static_cast<int>(1.0f / texture->UV_Slice_X)
+	);
+	uv.UVStart.x =
+		(texture->AnimationNum % column) * texture->UV_Slice_X;
+	uv.UVStart.y =
+		(texture->AnimationNum / column) * texture->UV_Slice_Y;
+	uv.UVEnd.x = uv.UVStart.x + texture->UV_Slice_X;
+	uv.UVEnd.y = uv.UVStart.y + texture->UV_Slice_Y;
+	return uv;
+}
+
 inline void CombineMaterial(
 	std::uint64_t& hash,
 	const MATERIAL& material
@@ -117,16 +141,29 @@ inline std::uint64_t MakeGeometryKey(const RenderPacket& packet) noexcept {
 }
 
 inline std::uint64_t MakeTextureSetKey(const RenderPacket& packet) noexcept {
-	if(packet.bindings.texture){
+	if(packet.bindings.texture &&
+		packet.bindings.texture->m_TextureData){
 		const std::shared_ptr<TextureData>& texture =
 			packet.bindings.texture->m_TextureData;
-		return texture ? HashString(texture->FilePath) : 0;
+		const std::uint64_t pathKey = HashString(texture->FilePath);
+		if(pathKey == 0) return 0;
+
+		std::uint64_t key = 0x4f56455252494445ull;
+		Combine(key, pathKey);
+		Combine(key, texture->pTexture ? 1ull : 0ull);
+		return key == 0 ? 1 : key;
 	}
 
 	if(packet.kind == RenderPacketKind::Mesh && packet.bindings.meshRenderer){
 		const TextureData* texture =
 			packet.bindings.meshRenderer->mesh.m_TextureData;
-		return texture ? HashString(texture->FilePath) : 1;
+		if(!texture) return 1;
+		const std::uint64_t pathKey = HashString(texture->FilePath);
+		if(pathKey == 0) return 0;
+		std::uint64_t key = 0x4d455348544558ull;
+		Combine(key, pathKey);
+		Combine(key, texture->pTexture ? 1ull : 0ull);
+		return key == 0 ? 1 : key;
 	}
 
 	if(packet.kind != RenderPacketKind::Model ||
@@ -150,6 +187,13 @@ inline std::uint64_t MakeTextureSetKey(const RenderPacket& packet) noexcept {
 	Combine(key, static_cast<std::uint64_t>(textureNames.size()));
 	for(const std::string_view name : textureNames){
 		Combine(key, HashString(name));
+		const auto found = model->m_Texture.find(std::string(name));
+		Combine(
+			key,
+			found != model->m_Texture.end() && found->second != nullptr
+				? 1ull
+				: 0ull
+		);
 	}
 	return key == 0 ? 1 : key;
 }
@@ -195,6 +239,12 @@ inline std::uint64_t MakeMaterialStateKey(const RenderPacket& packet) noexcept {
 		if(modelMaterialKey == 0) return 0;
 		Combine(key, modelMaterialKey);
 	}
+
+	const UVMatrixBuffer uv = ResolveUVState(packet.bindings.texture);
+	CombineFloat(key, uv.UVStart.x);
+	CombineFloat(key, uv.UVStart.y);
+	CombineFloat(key, uv.UVEnd.x);
+	CombineFloat(key, uv.UVEnd.y);
 	return key == 0 ? 1 : key;
 }
 
