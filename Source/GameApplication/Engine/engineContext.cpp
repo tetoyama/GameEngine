@@ -35,7 +35,6 @@ std::unique_ptr<EngineContext> EngineContextBuilder::Build(){
 	auto rhiOwner = std::make_unique<RHI::RenderHardwareInterfaceService>();
 	RHI::RegisterD3D11RHIBackend(rhiOwner->GetRegistry());
 	RHI::RenderHardwareInterfaceService* rhiService = rhiOwner.get();
-	context->Register<RHI::RenderHardwareInterfaceService>(std::move(rhiOwner));
 
 	context->Register<WindowService>(
 		std::make_unique<WindowService>(debugLogSystem)
@@ -47,6 +46,12 @@ std::unique_ptr<EngineContext> EngineContextBuilder::Build(){
 	context->Register<GraphicsContext>(
 		std::make_unique<GraphicsContext>(debugLogSystem, rhiService)
 	);
+
+	// RHI owns resources layered on top of GraphicsContext's native device.
+	// Register it after GraphicsContext so reverse-order shutdown releases RHI
+	// resources before GraphicsContext resets the native D3D11 objects.
+	context->Register<RHI::RenderHardwareInterfaceService>(std::move(rhiOwner));
+
 	context->Register<MainRenderer>(std::make_unique<MainRenderer>());
 	context->Register<InputService>(std::make_unique<InputService>());
 	context->Register<ResourceService>(std::make_unique<ResourceService>());
