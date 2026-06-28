@@ -9,6 +9,7 @@
 #include <wrl/client.h>
 
 #include "Service/Graphics/RHI/D3D11/D3D11RHIDevice.h"
+#include "Engine/Scene/System/Render/StaticBatch/StaticBatchD3D11GeometryBinding.h"
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -114,6 +115,7 @@ int main(){
 		 1.0f, -1.0f, 0.0f
 	};
 	constexpr std::array<std::uint32_t, 3> indices{0, 1, 2};
+	constexpr std::uint32_t vertexStride = sizeof(float) * 3;
 
 	auto nativeVertexBuffer = CreateBuffer(
 		*primary.device,
@@ -136,14 +138,14 @@ int main(){
 	));
 	assert(!rhiDevice.ImportNativeBuffer(
 		nativeVertexBuffer.Get(),
-		static_cast<std::uint32_t>(sizeof(float) * 3),
+		vertexStride,
 		RHI::ResourceState::IndexBuffer,
 		"Invalid Vertex As Index Buffer"
 	));
 
 	const RHI::BufferHandle vertexHandle = rhiDevice.ImportNativeBuffer(
 		nativeVertexBuffer.Get(),
-		static_cast<std::uint32_t>(sizeof(float) * 3),
+		vertexStride,
 		RHI::ResourceState::VertexBuffer,
 		"Imported Native Vertex Buffer"
 	);
@@ -161,7 +163,7 @@ int main(){
 	assert(vertexDesc);
 	assert(indexDesc);
 	assert(vertexDesc->byteSize == sizeof(vertices));
-	assert(vertexDesc->stride == sizeof(float) * 3);
+	assert(vertexDesc->stride == vertexStride);
 	assert(vertexDesc->usage == RHI::ResourceUsage::Default);
 	assert(vertexDesc->initialState == RHI::ResourceState::VertexBuffer);
 	assert(RHI::HasAnyFlag(vertexDesc->bindFlags, RHI::BufferBindFlags::Vertex));
@@ -170,8 +172,6 @@ int main(){
 	assert(indexDesc->initialState == RHI::ResourceState::IndexBuffer);
 	assert(RHI::HasAnyFlag(indexDesc->bindFlags, RHI::BufferBindFlags::Index));
 
-	// The RHI pool owns an additional COM reference. Releasing the legacy
-	// owner's reference must not invalidate the imported handles.
 	nativeVertexBuffer.Reset();
 	nativeIndexBuffer.Reset();
 
@@ -179,12 +179,7 @@ int main(){
 		rhiDevice.CreateCommandList({RHI::CommandQueueType::Graphics, false});
 	assert(commandList);
 	commandList->Begin();
-	assert(commandList->SetVertexBuffer(
-		0,
-		vertexHandle,
-		static_cast<std::uint32_t>(sizeof(float) * 3),
-		0
-	));
+	assert(commandList->SetVertexBuffer(0, vertexHandle, vertexStride, 0));
 	assert(commandList->SetIndexBuffer(
 		indexHandle,
 		RHI::IndexFormat::UInt32,
@@ -200,7 +195,7 @@ int main(){
 	);
 	assert(!rhiDevice.ImportNativeBuffer(
 		foreignVertexBuffer.Get(),
-		static_cast<std::uint32_t>(sizeof(float) * 3),
+		vertexStride,
 		RHI::ResourceState::VertexBuffer,
 		"Foreign Device Vertex Buffer"
 	));
@@ -209,5 +204,57 @@ int main(){
 	assert(rhiDevice.DestroyBuffer(vertexHandle));
 	assert(rhiDevice.GetBufferDesc(indexHandle) == nullptr);
 	assert(rhiDevice.GetBufferDesc(vertexHandle) == nullptr);
+
+	auto bindingVertexBuffer = CreateBuffer(
+		*primary.device,
+		static_cast<UINT>(sizeof(vertices)),
+		D3D11_BIND_VERTEX_BUFFER,
+		vertices.data()
+	);
+	auto bindingIndexBuffer = CreateBuffer(
+		*primary.device,
+		static_cast<UINT>(sizeof(indices)),
+		D3D11_BIND_INDEX_BUFFER,
+		indices.data()
+	);
+
+	StaticBatchD3D11GeometrySource source;
+	source.vertexBuffer = bindingVertexBuffer.Get();
+	source.indexBuffer = bindingIndexBuffer.Get();
+	source.vertexStride = vertexStride;
+	source.vertexCount = 3;
+	source.indexCount = 3;
+	source.indexFormat = RHI::IndexFormat::UInt32;
+	source.geometryResourceKey = 0x12345678ull;
+	assert(source.IsValid());
+
+	StaticBatchD3D11GeometryBinding binding;
+	StaticBatchD3D11GeometrySource oversizedSource = source;
+	oversizedSource.vertexCount = 4;
+	assert(!binding.Create(rhiDevice, oversizedSource));
+	assert(!binding.IsAllocated());
+	assert(binding.Create(rhiDevice, source));
+	assert(binding.IsReady());
+	assert(binding.Matches(source));
+	assert(binding.VertexStride() == vertexStride);
+	assert(binding.VertexCount() == 3);
+	assert(binding.IndexCount() == 3);
+	assert(binding.IndexFormat() == RHI::IndexFormat::UInt32);
+	assert(binding.GeometryResourceKey() == source.geometryResourceKey);
+
+	bindingVertexBuffer.Reset();
+	bindingIndexBuffer.Reset();
+
+	commandList = rhiDevice.CreateCommandList({
+		RHI::CommandQueueType::Graphics,
+		false
+	});
+	assert(commandList);
+	commandList->Begin();
+	assert(binding.Bind(*commandList));
+	commandList->End();
+	assert(binding.Release(rhiDevice));
+	assert(!binding.IsAllocated());
+	assert(!binding.IsReady());
 	return 0;
 }
