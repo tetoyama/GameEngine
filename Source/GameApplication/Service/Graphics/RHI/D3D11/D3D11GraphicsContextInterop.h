@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <dxgi1_5.h>
 
 #include "Service/Graphics/graphicsContext.h"
 #include "D3D11RHIConversions.h"
