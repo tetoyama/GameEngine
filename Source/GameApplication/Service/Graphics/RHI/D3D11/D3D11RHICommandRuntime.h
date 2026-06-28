@@ -243,6 +243,28 @@ inline void D3D11RHICommandList::DrawIndexed(uint32_t count, uint32_t first, int
 	if(m_recording && m_owner && m_owner->m_context && m_queueType == CommandQueueType::Graphics) m_owner->m_context->DrawIndexed(count, first, offset);
 }
 
+inline bool D3D11RHICommandList::DrawIndexedInstanced(
+	uint32_t indexCountPerInstance,
+	uint32_t instanceCount,
+	uint32_t firstIndex,
+	int32_t vertexOffset,
+	uint32_t firstInstance
+){
+	if(!m_recording || !m_owner || !m_owner->m_context ||
+		m_queueType != CommandQueueType::Graphics ||
+		indexCountPerInstance == 0 || instanceCount == 0){
+		return false;
+	}
+	m_owner->m_context->DrawIndexedInstanced(
+		indexCountPerInstance,
+		instanceCount,
+		firstIndex,
+		vertexOffset,
+		firstInstance
+	);
+	return true;
+}
+
 inline void D3D11RHICommandList::Dispatch(uint32_t x, uint32_t y, uint32_t z){
 	if(m_recording && m_owner && m_owner->m_context && m_queueType != CommandQueueType::Copy) m_owner->m_context->Dispatch(x, y, z);
 }
