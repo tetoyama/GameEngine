@@ -34,6 +34,7 @@ on:
       - "Tests/StaticBatchDrawSubmissionSmokeTest.cpp"
       - "Tests/StaticBatchPacketIndexMappingSmokeTest.cpp"
       - "Tests/StaticBatchPacketReplacementSetSmokeTest.cpp"
+      - "Tests/StaticBatchGBufferSubmissionTelemetrySmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
@@ -68,6 +69,7 @@ on:
       - "Tests/StaticBatchDrawSubmissionSmokeTest.cpp"
       - "Tests/StaticBatchPacketIndexMappingSmokeTest.cpp"
       - "Tests/StaticBatchPacketReplacementSetSmokeTest.cpp"
+      - "Tests/StaticBatchGBufferSubmissionTelemetrySmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   workflow_dispatch:
 
@@ -113,6 +115,8 @@ jobs:
             output: static-batch-packet-index-mapping-test.exe
           - source: Tests/StaticBatchPacketReplacementSetSmokeTest.cpp
             output: static-batch-packet-replacement-test.exe
+          - source: Tests/StaticBatchGBufferSubmissionTelemetrySmokeTest.cpp
+            output: static-batch-gbuffer-telemetry-test.exe
     steps:
       - uses: actions/checkout@v4
         with:
