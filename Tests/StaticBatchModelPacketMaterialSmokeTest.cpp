@@ -1,7 +1,7 @@
 #include <cassert>
 #include <memory>
 
-#include "Engine/Scene/System/Render/StaticBatch/StaticBatchModelMaterialResolver.h"
+#include "Engine/Scene/System/Render/StaticBatch/StaticBatchModelPacketMaterial.h"
 
 int main(){
 	MaterialComponent material;
@@ -29,7 +29,7 @@ int main(){
 	packet.bindings.texture = &texture;
 
 	StaticBatchModelMaterialState state;
-	auto result = StaticBatchModelMaterialResolver::ResolvePacketState(
+	auto result = StaticBatchModelPacketMaterial::Resolve(
 		packet,
 		state
 	);
@@ -54,7 +54,7 @@ int main(){
 	assert(state.uv.UVEnd.y == 0.5f);
 
 	packet.materialKey = 3;
-	result = StaticBatchModelMaterialResolver::ResolvePacketState(
+	result = StaticBatchModelPacketMaterial::Resolve(
 		packet,
 		state
 	);
@@ -62,7 +62,7 @@ int main(){
 
 	packet.materialKey = 2;
 	material.Material.BaseColor.w = 0.5f;
-	result = StaticBatchModelMaterialResolver::ResolvePacketState(
+	result = StaticBatchModelPacketMaterial::Resolve(
 		packet,
 		state
 	);
@@ -74,7 +74,7 @@ int main(){
 	material.Material.BaseColor.w = 1.0f;
 	texture.m_TextureData = std::make_shared<TextureData>();
 	texture.m_TextureData->FilePath = "Asset/Texture/MissingGpuTexture.png";
-	result = StaticBatchModelMaterialResolver::ResolvePacketState(
+	result = StaticBatchModelPacketMaterial::Resolve(
 		packet,
 		state
 	);
