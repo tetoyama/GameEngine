@@ -14,6 +14,7 @@ on:
       - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
       - "Tests/StaticBatchResourceKeySmokeTest.cpp"
       - "Tests/StaticBatchInstanceDataBufferSmokeTest.cpp"
+      - "Tests/StaticBatchFrameBufferIntegrationSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
@@ -28,6 +29,7 @@ on:
       - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
       - "Tests/StaticBatchResourceKeySmokeTest.cpp"
       - "Tests/StaticBatchInstanceDataBufferSmokeTest.cpp"
+      - "Tests/StaticBatchFrameBufferIntegrationSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   workflow_dispatch:
 
@@ -51,6 +53,8 @@ jobs:
             output: static-batch-resource-key-test.exe
           - source: Tests/StaticBatchInstanceDataBufferSmokeTest.cpp
             output: static-batch-instance-data-test.exe
+          - source: Tests/StaticBatchFrameBufferIntegrationSmokeTest.cpp
+            output: static-batch-frame-buffer-integration-test.exe
     steps:
       - uses: actions/checkout@v4
         with:
