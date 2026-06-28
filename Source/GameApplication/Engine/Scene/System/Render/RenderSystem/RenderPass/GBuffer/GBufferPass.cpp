@@ -1,4 +1,12 @@
 #include "GBufferPass.h"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <limits>
+#include <memory>
+#include <vector>
+
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "sceneManager.h"
 #include "../RenderPassContext.h"
@@ -6,6 +14,8 @@
 #include "System/Render/RenderSystem/RenderTarget/renderTarget.h"
 #include "Graphics/graphicsContext.h"
 #include "Graphics/mainRenderer.h"
+#include "Graphics/RHI/RHIService.h"
+#include "Registry/systemRegistry.h"
 #include "Resources/resourceService.h"
 #include "Resources/Data/shaderData.h"
 #include "Component/materialComponent.h"
@@ -13,6 +23,34 @@
 #include "System/Render/RenderSystem/Renderable/Terrain/RenderableTerrain.h"
 #include "System/Render/RenderSystem/Renderable/Wave/RenderableWave.h"
 #include "System/Render/RenderSystem/Renderable/BillBoard/RenderableBillBoard.h"
+#include "System/Render/StaticBatch/StaticBatchD3D11GBufferTargetBinding.h"
+#include "System/Render/StaticBatch/StaticBatchDrawSubmission.h"
+#include "System/Render/StaticBatch/StaticBatchGroupVisibility.h"
+#include "System/Render/StaticBatch/StaticBatchModelMaterialResolver.h"
+#include "System/Render/StaticBatch/StaticBatchPacketReplacementSet.h"
+#include "System/Render/StaticBatch/StaticBatchUploadSystem.h"
+
+namespace {
+
+bool IsPacketRangeValid(
+	const StaticBatchPacketCacheEntry& group,
+	std::span<const std::size_t> packetIndices,
+	std::size_t packetCount
+) noexcept {
+	if(group.instanceCount == 0 ||
+		group.firstInstance > packetIndices.size() ||
+		group.instanceCount > packetIndices.size() - group.firstInstance){
+		return false;
+	}
+	for(std::size_t offset = 0; offset < group.instanceCount; ++offset){
+		if(packetIndices[group.firstInstance + offset] >= packetCount){
+			return false;
+		}
+	}
+	return true;
+}
+
+} // namespace
 
 void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context){
 	m_renderSystem = renderSystem;
@@ -61,12 +99,16 @@ void GBufferPass::Finalize(){
 void GBufferPass::Execute(const RenderPassContext& context){
 	ID3D11DeviceContext* deviceContext = m_context->graphics->GetDeviceContext();
 	GraphicsContext* graphics = m_context->renderer->GetGraphicsContext();
-	deviceContext->VSSetShader(m_GBufferVertexShader->m_VertexShader.Get(), nullptr, 0);
-	deviceContext->IASetInputLayout(m_GBufferVertexShader->m_VertexLayout.Get());
-	deviceContext->PSSetShader(m_GBufferPixelShader->m_PixelShader.Get(), nullptr, 0);
-	if(sampler){
-		deviceContext->PSSetSamplers(0, 1, &sampler);
-	}
+
+	auto bindRegularPipeline = [&](){
+		deviceContext->VSSetShader(m_GBufferVertexShader->m_VertexShader.Get(), nullptr, 0);
+		deviceContext->IASetInputLayout(m_GBufferVertexShader->m_VertexLayout.Get());
+		deviceContext->PSSetShader(m_GBufferPixelShader->m_PixelShader.Get(), nullptr, 0);
+		if(sampler){
+			deviceContext->PSSetSamplers(0, 1, &sampler);
+		}
+	};
+	bindRegularPipeline();
 	graphics->SetBlendMode(BlendMode::None);
 
 	float clearColor[4] = {0, 0, 0, 0};
@@ -110,7 +152,196 @@ void GBufferPass::Execute(const RenderPassContext& context){
 	const RenderPacketFrameBuffer& packetBuffer = m_renderSystem->GetRenderPacketBuffer();
 	if(!packetBuffer.IsReady()) return;
 
-	for(const RenderPacket& packet : packetBuffer.Packets()){
+	StaticBatchPacketReplacementSet replacements;
+	replacements.Begin(packetBuffer.Packets().size());
+
+	auto submitStaticGroups = [&](){
+		if(!m_context->sceneManager || !m_context->graphics ||
+			pRenderTargets.size() !=
+				StaticBatchD3D11GBufferTargetBinding::ColorTargetCount ||
+			!pDepthTarget){
+			return;
+		}
+
+		SystemRegistry* registry =
+			m_context->sceneManager->GetSystemRegistry();
+		StaticBatchUploadSystem* uploadSystem = registry
+			? registry->GetSystem<StaticBatchUploadSystem>()
+			: nullptr;
+		if(!uploadSystem || !uploadSystem->IsPipelineReady() ||
+			!uploadSystem->LastUploadSucceeded()){
+			return;
+		}
+
+		RHI::RenderHardwareInterfaceService* rhiService =
+			m_context->graphics->GetRHIService();
+		RHI::IRHIDevice* rhiDevice = rhiService
+			? rhiService->GetDevice()
+			: nullptr;
+		if(!rhiDevice ||
+			rhiDevice->GetBackendType() != RHI::BackendType::Direct3D11){
+			return;
+		}
+
+		const StaticBatchInstanceDataBuffer& source =
+			packetBuffer.StaticBatchInstances();
+		const StaticBatchPacketCache& packetCache =
+			packetBuffer.StaticBatchCache();
+		const StaticBatchGpuInstanceBuffer& gpuInstances =
+			uploadSystem->GetGpuInstanceBuffer();
+		if(!source.IsValid() || source.IsOverflowed() ||
+			!packetCache.IsValid() || packetCache.IsOverflowed() ||
+			!gpuInstances.CanSubmit() ||
+			gpuInstances.UploadedSourceRevision() != source.SourceRevision()){
+			return;
+		}
+
+		std::array<
+			ID3D11RenderTargetView*,
+			StaticBatchD3D11GBufferTargetBinding::ColorTargetCount
+		> staticTargets{};
+		for(std::size_t index = 0; index < staticTargets.size(); ++index){
+			staticTargets[index] = pRenderTargets[index]->rtv.Get();
+		}
+
+		StaticBatchD3D11GBufferTargetBinding targetBinding;
+		if(!targetBinding.Resolve(
+			m_context->graphics->GetDevice(),
+			staticTargets,
+			pDepthTarget->dsv.Get()
+		) || !targetBinding.Bind(deviceContext)){
+			return;
+		}
+
+		RHI::CommandListCreateDesc commandDesc;
+		commandDesc.queueType = RHI::CommandQueueType::Graphics;
+		std::unique_ptr<RHI::IRHICommandList> commandList =
+			rhiDevice->CreateCommandList(commandDesc);
+		if(!commandList) return;
+
+		RenderPacketCullingView cullingView;
+		cullingView.camera = passContext.cameraData.ref.GetEntityID();
+		cullingView.kind = passContext.cullingViewKind;
+		cullingView.instanceID = passContext.cullingViewInstanceID;
+		cullingView.viewProjection =
+			passContext.viewMatrix * passContext.projectionMatrix;
+
+		const std::span<const StaticBatchInstanceGroup> groups =
+			source.Groups();
+		const std::span<const std::size_t> packetIndices =
+			packetCache.PacketIndices();
+		std::vector<std::size_t> submittedGroups;
+		submittedGroups.reserve(groups.size());
+
+		commandList->Begin();
+		for(std::size_t groupIndex = 0; groupIndex < groups.size(); ++groupIndex){
+			const StaticBatchInstanceGroup& group = groups[groupIndex];
+			if(group.instanceCount < 2 ||
+				group.instanceCount >
+					(static_cast<std::size_t>((std::numeric_limits<std::uint32_t>::max)())) ||
+				group.firstInstance >
+					(static_cast<std::size_t>((std::numeric_limits<std::uint32_t>::max)())) ||
+				!IsPacketRangeValid(
+					group,
+					packetIndices,
+					packetBuffer.Packets().size()
+				)){
+				continue;
+			}
+
+			const int layerIndex = static_cast<int>(group.key.layer);
+			if(static_cast<unsigned>(layerIndex) >=
+				static_cast<unsigned>(RenderLayer::MaxRenderLayer) ||
+				!passContext.renderLayerVisibility[layerIndex]){
+				continue;
+			}
+
+			const StaticBatchGroupVisibilityResult visibility =
+				StaticBatchGroupVisibility::Evaluate(
+					group,
+					source.Instances(),
+					packetBuffer.Packets(),
+					m_renderSystem->GetCullingVisibility(),
+					cullingView
+				);
+			if(!visibility.CanSubmitInstanced()) continue;
+
+			const StaticBatchD3D11GeometryBinding* geometry =
+				uploadSystem->GetGeometryBindingCache().FindByGroupIndex(
+					groupIndex
+				);
+			if(!geometry || !geometry->IsReady() ||
+				geometry->GeometryResourceKey() != group.key.geometryKey){
+				continue;
+			}
+
+			const StaticBatchModelMaterialResolveResult material =
+				StaticBatchModelMaterialResolver::Resolve(
+					group,
+					packetBuffer.Packets()
+				);
+			if(!material.IsEligible()) continue;
+
+			graphics->SetMaterial(material.state.material);
+			graphics->SetUVMatrixBuffer(material.state.uv);
+			ObjectInfo objectInfo{};
+			objectInfo.SceneID = group.sceneContextID;
+			objectInfo.ObjectID = 0;
+			objectInfo.ShaderID = material.state.shaderID;
+			graphics->SetObjectInfo(objectInfo);
+
+			ID3D11ShaderResourceView* diffuseTexture =
+				material.state.diffuseTexture;
+			deviceContext->PSSetShaderResources(
+				TextureSlot_Albedo,
+				1,
+				&diffuseTexture
+			);
+
+			StaticBatchDrawSubmissionDesc draw;
+			draw.pipeline =
+				uploadSystem->GetPipelineResources().PipelineState();
+			draw.vertexBuffer = geometry->VertexBuffer();
+			draw.indexBuffer = geometry->IndexBuffer();
+			draw.instanceBuffer = gpuInstances.Buffer();
+			draw.vertexStride = geometry->VertexStride();
+			draw.indexFormat = geometry->IndexFormat();
+			draw.indexCount = geometry->IndexCount();
+			draw.instanceCount =
+				static_cast<std::uint32_t>(group.instanceCount);
+			draw.firstInstance =
+				static_cast<std::uint32_t>(group.firstInstance);
+			if(!SubmitStaticBatchDraw(*commandList, draw)) continue;
+
+			submittedGroups.push_back(groupIndex);
+		}
+		commandList->End();
+
+		if(submittedGroups.empty()) return;
+		RHI::IRHICommandQueue* queue =
+			rhiDevice->GetQueue(RHI::CommandQueueType::Graphics);
+		if(!queue) return;
+
+		std::array<RHI::IRHICommandList*, 1> commandLists{
+			commandList.get()
+		};
+		RHI::QueueSubmitDesc submitDesc;
+		submitDesc.commandLists = commandLists;
+		if(!queue->Submit(submitDesc)) return;
+
+		for(const std::size_t groupIndex : submittedGroups){
+			replacements.AddGroup(groups[groupIndex], packetIndices);
+		}
+	};
+
+	submitStaticGroups();
+	bindRegularPipeline();
+
+	for(std::size_t packetIndex = 0;
+		packetIndex < packetBuffer.Packets().size();
+		++packetIndex){
+		if(replacements.Contains(packetIndex)) continue;
+		const RenderPacket& packet = packetBuffer.Packets()[packetIndex];
 		if(!HasRenderPacketPass(packet.passMask, RenderPacketPassMask::GBuffer)) continue;
 		if(!m_renderSystem->ShouldRenderPacket(passContext, packet)) continue;
 		if(packet.bindings.material &&
