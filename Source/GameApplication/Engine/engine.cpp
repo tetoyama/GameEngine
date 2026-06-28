@@ -8,6 +8,7 @@
 #include "Graphics/GraphicsContext.h"
 #include "Graphics/mainRenderer.h"
 #include "Graphics/RHI/RHIService.h"
+#include "Graphics/RHI/D3D11/D3D11GraphicsContextInterop.h"
 #include "DebugTools/ImGuiSystem.h"
 #include "DebugTools/DebugSystem.h"
 #include "Platform/InputSystem/InputSystem.h"
@@ -52,6 +53,11 @@ void Engine::Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdSho
 	if(audio) audio->Initialize();
 	if(!graphics || !graphics->Initialize(
 		mainWindow->GetHWND(), mainWindow->GetWidth(), mainWindow->GetHeight())) return;
+
+	if(rhi->GetSelectedBackend() == RHI::BackendType::Direct3D11 &&
+		!RHI::EnsureGraphicsContextRHIDevice(*graphics)){
+		return;
+	}
 
 	graphics->SetMaximumFrameLatency(
 		static_cast<UINT>(config->engineConfig.graphics.maximumFrameLatency)
