@@ -14,6 +14,7 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchPacketCache.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceDataBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceInputLayout.h"
       - "Source/GameApplication/Service/Graphics/RHI/**"
       - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
       - "Tests/StaticBatchResourceKeySmokeTest.cpp"
@@ -21,6 +22,7 @@ on:
       - "Tests/StaticBatchFrameBufferIntegrationSmokeTest.cpp"
       - "Tests/StaticBatchGpuInstanceBufferSmokeTest.cpp"
       - "Tests/StaticBatchUploadSystemSmokeTest.cpp"
+      - "Tests/StaticBatchInstanceInputLayoutSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
@@ -35,6 +37,7 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchPacketCache.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceDataBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceInputLayout.h"
       - "Source/GameApplication/Service/Graphics/RHI/**"
       - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
       - "Tests/StaticBatchResourceKeySmokeTest.cpp"
@@ -42,6 +45,7 @@ on:
       - "Tests/StaticBatchFrameBufferIntegrationSmokeTest.cpp"
       - "Tests/StaticBatchGpuInstanceBufferSmokeTest.cpp"
       - "Tests/StaticBatchUploadSystemSmokeTest.cpp"
+      - "Tests/StaticBatchInstanceInputLayoutSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   workflow_dispatch:
 
@@ -71,6 +75,8 @@ jobs:
             output: static-batch-gpu-instance-buffer-test.exe
           - source: Tests/StaticBatchUploadSystemSmokeTest.cpp
             output: static-batch-upload-system-test.exe
+          - source: Tests/StaticBatchInstanceInputLayoutSmokeTest.cpp
+            output: static-batch-instance-input-layout-test.exe
     steps:
       - uses: actions/checkout@v4
         with:
