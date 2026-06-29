@@ -1,13 +1,19 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
+#include <cstddef>
+#include <cstdint>
+#include <limits>
 #include <memory>
 #include <span>
+#include <vector>
 
 #include "Interface/ISystem.h"
 #include "Graphics/graphicsContext.h"
 #include "Graphics/RHI/RHIService.h"
 #include "Registry/systemRegistry.h"
+#include "Scene/scene.h"
 #include "Scene/sceneManager.h"
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
@@ -132,6 +138,12 @@ public:
 	}
 
 private:
+	struct StaticBatchGpuStoragePolicy {
+		std::size_t reserveCount = 0;
+		bool allowRuntimeGrowth = true;
+		bool valid = true;
+	};
+
 	RenderSystem* ResolveRenderSystem() const noexcept {
 		if(!m_context || !m_context->sceneManager) return nullptr;
 		SystemRegistry* registry = m_context->sceneManager->GetSystemRegistry();
@@ -143,6 +155,55 @@ private:
 		RHI::RenderHardwareInterfaceService* service =
 			m_context->graphics->GetRHIService();
 		return service ? service->GetDevice() : nullptr;
+	}
+
+	StaticBatchGpuStoragePolicy ResolveStoragePolicy(
+		const StaticBatchInstanceDataBuffer& source,
+		const RenderPacketFrameBuffer& frameBuffer
+	) const noexcept {
+		StaticBatchGpuStoragePolicy policy;
+		std::vector<std::uint32_t> sceneContextIDs;
+		sceneContextIDs.reserve(source.Groups().size());
+
+		const std::span<const RenderPacket> packets = frameBuffer.Packets();
+		for(const StaticBatchInstanceGroup& group : source.Groups()){
+			if(group.representativePacketIndex >= packets.size()){
+				policy.valid = false;
+				return policy;
+			}
+
+			const RenderPacket& packet = packets[group.representativePacketIndex];
+			SceneContext* sceneContext = packet.bindings.sceneContext;
+			if(!sceneContext ||
+				packet.sceneContextID != group.sceneContextID ||
+				sceneContext->contextID != group.sceneContextID){
+				policy.valid = false;
+				return policy;
+			}
+
+			if(std::find(
+				sceneContextIDs.begin(),
+				sceneContextIDs.end(),
+				group.sceneContextID
+			) != sceneContextIDs.end()){
+				continue;
+			}
+			sceneContextIDs.push_back(group.sceneContextID);
+
+			const std::size_t reserve = static_cast<std::size_t>(
+				sceneContext->storageConfig.staticBatchReserve
+			);
+			if(reserve >
+				(std::numeric_limits<std::size_t>::max)() - policy.reserveCount){
+				policy.valid = false;
+				return policy;
+			}
+			policy.reserveCount += reserve;
+			policy.allowRuntimeGrowth =
+				policy.allowRuntimeGrowth &&
+				sceneContext->storageConfig.allowRuntimeGrowth;
+		}
+		return policy;
 	}
 
 	void SynchronizeGeometry(){
@@ -177,9 +238,18 @@ private:
 		RHI::IRHIDevice* device = ResolveDevice();
 		if(!renderSystem || !device) return;
 
+		const RenderPacketFrameBuffer& frameBuffer =
+			renderSystem->GetRenderPacketBuffer();
 		const StaticBatchInstanceDataBuffer& source =
-			renderSystem->GetRenderPacketBuffer().StaticBatchInstances();
+			frameBuffer.StaticBatchInstances();
 		if(!source.IsValid() || source.IsOverflowed()) return;
+
+		const StaticBatchGpuStoragePolicy storagePolicy =
+			ResolveStoragePolicy(source, frameBuffer);
+		if(!storagePolicy.valid ||
+			!m_gpuInstanceBuffer.Reserve(*device, storagePolicy.reserveCount)){
+			return;
+		}
 
 		RHI::CommandListCreateDesc commandDesc;
 		commandDesc.queueType = RHI::CommandQueueType::Graphics;
@@ -191,7 +261,8 @@ private:
 		const bool uploadSucceeded = m_gpuInstanceBuffer.Synchronize(
 			*device,
 			*commandList,
-			source
+			source,
+			storagePolicy.allowRuntimeGrowth
 		);
 		commandList->End();
 		if(!uploadSucceeded) return;
