@@ -37,6 +37,10 @@ public:
 	uint64_t modelRuntimeRevision = 1;
 	uint64_t animationPoseSourceModelRevision = 0;
 
+	// Pose計算時のBlend設定とAnimation Timeを識別するSignature。
+	// Upload前に現在値と再比較し、Clip切替後の古いPoseを拒否する。
+	uint64_t animationPoseSourceInputRevision = 0;
+
 	// Main Thread Uploadの連続失敗数。成功またはModel Resetで0へ戻す。
 	uint32_t animationUploadFailureCount = 0;
 
