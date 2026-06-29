@@ -12,6 +12,7 @@
 
 #include "Engine/Scene/System/Render/StaticBatch/StaticBatchDrawSubmission.h"
 #include "Engine/Scene/System/Render/StaticBatch/StaticBatchShadowPipelineResources.h"
+#include "Engine/Scene/System/Render/StaticBatch/StaticBatchShadowPixelState.h"
 #include "Service/Graphics/RHI/D3D11/D3D11RHIDevice.h"
 #include "Shader/common.hlsl"
 
@@ -55,6 +56,40 @@ std::span<const std::byte> BlobBytes(ID3DBlob& blob){
 	};
 }
 
+ComPtr<ID3D11ShaderResourceView> CreateColorTexture(
+	ID3D11Device& device,
+	std::uint32_t pixel
+){
+	D3D11_TEXTURE2D_DESC textureDesc{};
+	textureDesc.Width = 1;
+	textureDesc.Height = 1;
+	textureDesc.MipLevels = 1;
+	textureDesc.ArraySize = 1;
+	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+	D3D11_SUBRESOURCE_DATA initialData{};
+	initialData.pSysMem = &pixel;
+	initialData.SysMemPitch = sizeof(pixel);
+
+	ComPtr<ID3D11Texture2D> texture;
+	assert(SUCCEEDED(device.CreateTexture2D(
+		&textureDesc,
+		&initialData,
+		&texture
+	)));
+
+	ComPtr<ID3D11ShaderResourceView> view;
+	assert(SUCCEEDED(device.CreateShaderResourceView(
+		texture.Get(),
+		nullptr,
+		&view
+	)));
+	return view;
+}
+
 } // namespace
 
 int main(){
@@ -80,6 +115,71 @@ int main(){
 	assert(nativeDevice);
 	assert(nativeContext);
 	assert(featureLevel == D3D_FEATURE_LEVEL_11_0);
+
+	D3D11_SAMPLER_DESC samplerDesc{};
+	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	ComPtr<ID3D11SamplerState> materialSampler;
+	assert(SUCCEEDED(nativeDevice->CreateSamplerState(
+		&samplerDesc,
+		&materialSampler
+	)));
+
+	ComPtr<ID3D11ShaderResourceView> originalTexture =
+		CreateColorTexture(*nativeDevice.Get(), 0xff00ffffu);
+	ComPtr<ID3D11ShaderResourceView> alphaTexture =
+		CreateColorTexture(*nativeDevice.Get(), 0x0000ffffu);
+	ID3D11ShaderResourceView* originalTexturePtr = originalTexture.Get();
+	ID3D11SamplerState* materialSamplerPtr = materialSampler.Get();
+	nativeContext->PSSetShaderResources(0, 1, &originalTexturePtr);
+	nativeContext->PSSetSamplers(0, 1, &materialSamplerPtr);
+
+	{
+		StaticBatchShadowPixelState pixelState(nativeContext.Get(), 0);
+		assert(pixelState.CanSampleDiffuseTexture());
+		assert(pixelState.BindDiffuseTexture(alphaTexture.Get()));
+
+		ComPtr<ID3D11ShaderResourceView> boundTexture;
+		ComPtr<ID3D11SamplerState> boundSampler;
+		nativeContext->PSGetShaderResources(
+			0,
+			1,
+			boundTexture.ReleaseAndGetAddressOf()
+		);
+		nativeContext->PSGetSamplers(
+			0,
+			1,
+			boundSampler.ReleaseAndGetAddressOf()
+		);
+		assert(boundTexture.Get() == alphaTexture.Get());
+		assert(boundSampler.Get() == materialSampler.Get());
+	}
+
+	ComPtr<ID3D11ShaderResourceView> restoredTexture;
+	ComPtr<ID3D11SamplerState> restoredSampler;
+	nativeContext->PSGetShaderResources(
+		0,
+		1,
+		restoredTexture.ReleaseAndGetAddressOf()
+	);
+	nativeContext->PSGetSamplers(
+		0,
+		1,
+		restoredSampler.ReleaseAndGetAddressOf()
+	);
+	assert(restoredTexture.Get() == originalTexture.Get());
+	assert(restoredSampler.Get() == materialSampler.Get());
+
+	ID3D11SamplerState* nullSampler = nullptr;
+	nativeContext->PSSetSamplers(0, 1, &nullSampler);
+	{
+		StaticBatchShadowPixelState pixelState(nativeContext.Get(), 0);
+		assert(!pixelState.CanSampleDiffuseTexture());
+	}
+	nativeContext->PSSetSamplers(0, 1, &materialSamplerPtr);
 
 	RHI::SwapChainDesc swapChainDesc;
 	swapChainDesc.width = 64;
