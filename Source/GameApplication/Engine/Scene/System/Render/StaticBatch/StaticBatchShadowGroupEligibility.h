@@ -103,20 +103,37 @@ inline StaticBatchShadowGroupEligibilityResult Resolve(
 		}
 	}
 
-	const StaticBatchModelMaterialResolveResult material =
+	const StaticBatchModelMaterialResolveResult gBufferMaterial =
 		StaticBatchModelMaterialResolver::Resolve(group, packets);
-	if(!material.IsEligible()){
+	if(!gBufferMaterial.IsEligible()){
 		result.rejectReason =
 			StaticBatchShadowGroupRejectReason::MaterialUnavailable;
 		return result;
 	}
-	if(material.state.UsesDiffuseTexture()){
+	if(gBufferMaterial.state.UsesDiffuseTexture()){
 		result.rejectReason =
 			StaticBatchShadowGroupRejectReason::DiffuseTextureUnsupported;
 		return result;
 	}
 
-	result.material = material.state;
+	StaticBatchModelMaterialState shadowMaterial;
+	const StaticBatchModelMaterialRejectReason shadowMaterialResult =
+		StaticBatchModelPacketMaterial::Resolve(
+			representative,
+			shadowMaterial
+		);
+	if(shadowMaterialResult != StaticBatchModelMaterialRejectReason::None){
+		result.rejectReason =
+			StaticBatchShadowGroupRejectReason::MaterialUnavailable;
+		return result;
+	}
+	if(shadowMaterial.UsesDiffuseTexture()){
+		result.rejectReason =
+			StaticBatchShadowGroupRejectReason::DiffuseTextureUnsupported;
+		return result;
+	}
+
+	result.material = shadowMaterial;
 	result.rejectReason = StaticBatchShadowGroupRejectReason::None;
 	return result;
 }
