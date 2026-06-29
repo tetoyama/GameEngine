@@ -104,7 +104,11 @@ inline StaticBatchShadowGroupEligibilityResult Resolve(
 	}
 
 	const StaticBatchModelMaterialResolveResult material =
-		StaticBatchModelMaterialResolver::Resolve(group, packets);
+		StaticBatchModelMaterialResolver::Resolve(
+			group,
+			packets,
+			StaticBatchModelMaterialResolvePolicy::Shadow()
+		);
 	if(!material.IsEligible()){
 		result.rejectReason =
 			StaticBatchShadowGroupRejectReason::MaterialUnavailable;
