@@ -21,6 +21,7 @@
 #include "System/Render/StaticBatch/StaticBatchShadowPipelineBootstrap.h"
 #include "System/Render/StaticBatch/StaticBatchShadowPipelineResources.h"
 #include "System/Render/StaticBatch/StaticBatchShadowSubmissionTelemetry.h"
+#include "System/Render/StaticBatch/StaticBatchVisibleInstanceBuffer.h"
 
 class StaticBatchUploadSystem final : public ISystem {
 public:
@@ -49,6 +50,7 @@ public:
 	void Finalize() override {
 		RHI::IRHIDevice* device = ResolveDevice();
 		if(device){
+			m_shadowVisibleGpuInstanceBuffer.Release(*device);
 			const bool shadowReleased =
 				m_shadowPipelineResources.Release(*device);
 			m_geometryBindingCache.Release(*device);
@@ -57,6 +59,7 @@ public:
 			}
 			m_gpuInstanceBuffer.Release(*device);
 		}
+		m_shadowVisibleInstances.Reset();
 		m_shadowPipelineBootstrapResult =
 			StaticBatchShadowPipelineBootstrapResult::NotAttempted;
 		m_pipelineBootstrapResult =
@@ -153,6 +156,16 @@ public:
 
 	const StaticBatchGeometryBindingCache& GetGeometryBindingCache() const noexcept {
 		return m_geometryBindingCache;
+	}
+
+	StaticBatchVisibleInstanceBuffer&
+	GetShadowVisibleInstanceBuffer() const noexcept {
+		return m_shadowVisibleInstances;
+	}
+
+	StaticBatchGpuInstanceBuffer&
+	GetShadowVisibleGpuInstanceBuffer() const noexcept {
+		return m_shadowVisibleGpuInstanceBuffer;
 	}
 
 	StaticBatchGpuInstanceBufferTelemetry GetTelemetry() const noexcept {
@@ -347,6 +360,8 @@ private:
 		StaticBatchPipelineBootstrapResult::NotAttempted;
 	StaticBatchShadowPipelineBootstrapResult m_shadowPipelineBootstrapResult =
 		StaticBatchShadowPipelineBootstrapResult::NotAttempted;
+	mutable StaticBatchVisibleInstanceBuffer m_shadowVisibleInstances;
+	mutable StaticBatchGpuInstanceBuffer m_shadowVisibleGpuInstanceBuffer;
 	mutable StaticBatchShadowSubmissionTelemetry m_shadowSubmissionTelemetry;
 	bool m_lastUploadSucceeded = false;
 };
