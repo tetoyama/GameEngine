@@ -1,5 +1,6 @@
 #include "GBufferPass.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -66,6 +67,52 @@ std::uint64_t MakeStaticBatchViewRevision(
 	HashViewRevision(hash, static_cast<std::uint64_t>(view.kind));
 	HashViewRevision(hash, view.instanceID);
 	return hash == 0 ? 1 : hash;
+}
+
+struct StaticBatchVisibleStoragePolicy {
+	std::size_t reserveCount = 0;
+	bool allowRuntimeGrowth = true;
+	bool valid = true;
+};
+
+StaticBatchVisibleStoragePolicy ResolveVisibleStoragePolicy(
+	std::span<const StaticBatchInstanceGroup> groups,
+	std::span<const RenderPacket> packets
+) noexcept {
+	StaticBatchVisibleStoragePolicy policy;
+	std::vector<SceneContext*> scenes;
+	scenes.reserve(groups.size());
+
+	for(const StaticBatchInstanceGroup& group : groups){
+		if(group.representativePacketIndex >= packets.size()){
+			policy.valid = false;
+			return policy;
+		}
+
+		SceneContext* context =
+			packets[group.representativePacketIndex].bindings.sceneContext;
+		if(!context){
+			policy.valid = false;
+			return policy;
+		}
+		if(std::find(scenes.begin(), scenes.end(), context) != scenes.end()){
+			continue;
+		}
+		scenes.push_back(context);
+
+		const std::size_t reserve =
+			static_cast<std::size_t>(context->storageConfig.staticBatchReserve);
+		if(reserve >
+			(std::numeric_limits<std::size_t>::max)() - policy.reserveCount){
+			policy.valid = false;
+			return policy;
+		}
+		policy.reserveCount += reserve;
+		policy.allowRuntimeGrowth =
+			policy.allowRuntimeGrowth &&
+			context->storageConfig.allowRuntimeGrowth;
+	}
+	return policy;
 }
 
 } // namespace
@@ -228,6 +275,16 @@ void GBufferPass::Execute(const RenderPassContext& context){
 			return;
 		}
 
+		const StaticBatchVisibleStoragePolicy storagePolicy =
+			ResolveVisibleStoragePolicy(
+				staticSource.Groups(),
+				packetBuffer.Packets()
+			);
+		if(!storagePolicy.valid){
+			++m_staticBatchTelemetry.visibilitySelectionFailureCount;
+			return;
+		}
+
 		RenderPacketCullingView cullingView;
 		cullingView.camera = passContext.cameraData.ref.GetEntityID();
 		cullingView.kind = passContext.cullingViewKind;
@@ -240,8 +297,8 @@ void GBufferPass::Execute(const RenderPassContext& context){
 		const std::uint64_t viewRevision =
 			MakeStaticBatchViewRevision(visibility, cullingView);
 		m_staticBatchVisibleInstances.Reserve(
-			staticSource.Groups().size(),
-			staticSource.Instances().size()
+			storagePolicy.reserveCount,
+			storagePolicy.reserveCount
 		);
 		if(!m_staticBatchVisibleInstances.Build(
 			staticSource.Groups(),
@@ -249,7 +306,7 @@ void GBufferPass::Execute(const RenderPassContext& context){
 			packetCache.PacketIndices(),
 			staticSource.SourceRevision(),
 			viewRevision,
-			true,
+			storagePolicy.allowRuntimeGrowth,
 			[&](
 				const StaticBatchInstanceData& instance,
 				std::size_t
