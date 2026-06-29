@@ -115,7 +115,6 @@ inline StaticBatchShadowSubmissionTelemetry Submit(
 		uploadSystem,
 		telemetry
 	);
-	PixelBindingGuard pixelBindings(graphics);
 	replacements.Begin(frameBuffer.Packets().size());
 	if(device.GetBackendType() != RHI::BackendType::Direct3D11 ||
 		!renderLayerVisibility || !frameBuffer.IsReady() ||
@@ -138,6 +137,7 @@ inline StaticBatchShadowSubmissionTelemetry Submit(
 		return telemetry;
 	}
 
+	PixelBindingGuard pixelBindings(graphics);
 	RHI::CommandListCreateDesc commandDesc;
 	commandDesc.queueType = RHI::CommandQueueType::Graphics;
 	std::unique_ptr<RHI::IRHICommandList> commandList =
@@ -173,17 +173,6 @@ inline StaticBatchShadowSubmissionTelemetry Submit(
 			++telemetry.eligibilityFallbackCount;
 			continue;
 		}
-		if(eligibility.material.UsesDiffuseTexture() &&
-			!pixelBindings.CanSampleDiffuseTexture()){
-			++telemetry.textureBindingFallbackCount;
-			continue;
-		}
-		if(!pixelBindings.BindDiffuseTexture(
-			eligibility.material.diffuseTexture
-		)){
-			++telemetry.textureBindingFallbackCount;
-			continue;
-		}
 
 		const int layerIndex = static_cast<int>(group.key.layer);
 		if(layerIndex < 0 ||
@@ -198,6 +187,18 @@ inline StaticBatchShadowSubmissionTelemetry Submit(
 		if(!geometry || !geometry->IsReady() ||
 			geometry->GeometryResourceKey() != group.key.geometryKey){
 			++telemetry.geometryFallbackCount;
+			continue;
+		}
+
+		if(eligibility.material.UsesDiffuseTexture() &&
+			!pixelBindings.CanSampleDiffuseTexture()){
+			++telemetry.textureBindingFallbackCount;
+			continue;
+		}
+		if(!pixelBindings.BindDiffuseTexture(
+			eligibility.material.diffuseTexture
+		)){
+			++telemetry.textureBindingFallbackCount;
 			continue;
 		}
 
