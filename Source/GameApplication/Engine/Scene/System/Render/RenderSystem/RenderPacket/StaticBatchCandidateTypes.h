@@ -12,7 +12,6 @@ struct StaticBatchCandidateKey {
 	RenderPacketKind kind = RenderPacketKind::Model;
 	RenderLayer layer = RenderLayer::Opaque3D;
 	std::uint32_t materialKey = 0;
-	std::uint32_t subMeshIndex = RenderPacketAllSubMeshes;
 	std::uint64_t pipelineKey = 0;
 	std::uint64_t geometryKey = 0;
 	std::uint64_t textureSetKey = 0;
@@ -122,9 +121,6 @@ public:
 				}
 				if(lhs.key.materialKey != rhs.key.materialKey){
 					return lhs.key.materialKey < rhs.key.materialKey;
-				}
-				if(lhs.key.subMeshIndex != rhs.key.subMeshIndex){
-					return lhs.key.subMeshIndex < rhs.key.subMeshIndex;
 				}
 				if(lhs.key.pipelineKey != rhs.key.pipelineKey){
 					return lhs.key.pipelineKey < rhs.key.pipelineKey;
