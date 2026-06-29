@@ -1,9 +1,16 @@
 #include <cassert>
 #include <memory>
 
-#include "Engine/Scene/System/Render/StaticBatch/StaticBatchModelPacketMaterial.h"
+#include "Engine/Scene/System/Render/StaticBatch/StaticBatchModelMaterialResolver.h"
 
 int main(){
+	constexpr StaticBatchModelMaterialResolvePolicy gBufferPolicy =
+		StaticBatchModelMaterialResolvePolicy::GBuffer();
+	constexpr StaticBatchModelMaterialResolvePolicy shadowPolicy =
+		StaticBatchModelMaterialResolvePolicy::Shadow();
+	static_assert(gBufferPolicy.rejectNormalMapReference);
+	static_assert(!shadowPolicy.rejectNormalMapReference);
+
 	MaterialComponent material;
 	material.ShaderID = 2;
 	material.Material.BaseColor = float4(0.25f, 0.5f, 0.75f, 1.0f);
