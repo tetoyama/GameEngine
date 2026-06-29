@@ -5,6 +5,7 @@
 #include "Engine/Scene/Registry/componentRegistry.h"
 #include "Engine/Scene/Registry/entityRegistry.h"
 #include "Engine/Scene/System/Render/Culling/RenderPacketViewCulling.h"
+#include "Engine/Scene/System/Render/Culling/ShadowRenderPacketCullingView.h"
 
 namespace {
 
@@ -70,17 +71,41 @@ int main(){
 	playerView.viewProjection =
 		DirectX::XMMatrixOrthographicLH(20.0f, 20.0f, 0.0f, 20.0f);
 
-	RenderPacketCullingView shadowView;
-	shadowView.kind = CullingViewKind::Shadow;
-	shadowView.instanceID = 17;
-	shadowView.viewProjection =
+	RenderPassContext shadowContext{};
+	shadowContext.viewMatrix = DirectX::XMMatrixIdentity();
+	shadowContext.projectionMatrix =
 		DirectX::XMMatrixOrthographicLH(2.0f, 2.0f, 0.0f, 20.0f);
+
+	const RenderPacketCullingView shadowView =
+		ShadowRenderPacketCullingView::Build(
+			shadowContext,
+			CullingViewKind::Player,
+			0,
+			0
+		);
+	const RenderPacketCullingView playerSecondTile =
+		ShadowRenderPacketCullingView::Build(
+			shadowContext,
+			CullingViewKind::Player,
+			0,
+			1
+		);
+	const RenderPacketCullingView editorShadowView =
+		ShadowRenderPacketCullingView::Build(
+			shadowContext,
+			CullingViewKind::Editor,
+			0,
+			0
+		);
 
 	RenderPacketCullingView invalidShadowView;
 	invalidShadowView.kind = CullingViewKind::Shadow;
 	invalidShadowView.instanceID = 0;
 	invalidShadowView.viewProjection = shadowView.viewProjection;
 
+	assert(shadowView.instanceID != 0);
+	assert(shadowView.instanceID != playerSecondTile.instanceID);
+	assert(shadowView.instanceID != editorShadowView.instanceID);
 	assert(RenderPacketViewCulling::HasStableViewIdentity(editorView));
 	assert(RenderPacketViewCulling::HasStableViewIdentity(shadowView));
 	assert(!RenderPacketViewCulling::HasStableViewIdentity(invalidShadowView));
@@ -89,10 +114,12 @@ int main(){
 	RenderPacketViewCulling::Prepare(visibility, packets, editorView);
 	RenderPacketViewCulling::Prepare(visibility, packets, playerView);
 	RenderPacketViewCulling::Prepare(visibility, packets, shadowView);
+	RenderPacketViewCulling::Prepare(visibility, packets, playerSecondTile);
+	RenderPacketViewCulling::Prepare(visibility, packets, editorShadowView);
 	RenderPacketViewCulling::Prepare(visibility, packets, invalidShadowView);
 
 	assert(visibility.FrameSerial() == 12);
-	assert(visibility.ViewCount() == 3);
+	assert(visibility.ViewCount() == 5);
 	assert(RenderPacketViewCulling::ShouldRender(
 		visibility, editorView, packets.Packets()[0]));
 	assert(!RenderPacketViewCulling::ShouldRender(
