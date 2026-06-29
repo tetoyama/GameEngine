@@ -6,6 +6,11 @@ struct StaticBatchShadowSubmissionTelemetry {
 	std::size_t lightTileCount = 0;
 	std::size_t submissionAttemptCount = 0;
 	std::size_t candidateGroupCount = 0;
+	std::size_t visibleInstanceCount = 0;
+	std::size_t culledInstanceCount = 0;
+	std::size_t fullyCulledGroupCount = 0;
+	std::size_t mixedVisibilityFallbackCount = 0;
+	std::size_t visibilityFailureCount = 0;
 	std::size_t submittedGroupCount = 0;
 	std::size_t submittedInstanceCount = 0;
 	std::size_t mappingFallbackCount = 0;
@@ -24,6 +29,11 @@ struct StaticBatchShadowSubmissionTelemetry {
 		const StaticBatchShadowSubmissionTelemetry& other
 	) noexcept {
 		candidateGroupCount += other.candidateGroupCount;
+		visibleInstanceCount += other.visibleInstanceCount;
+		culledInstanceCount += other.culledInstanceCount;
+		fullyCulledGroupCount += other.fullyCulledGroupCount;
+		mixedVisibilityFallbackCount += other.mixedVisibilityFallbackCount;
+		visibilityFailureCount += other.visibilityFailureCount;
 		submittedGroupCount += other.submittedGroupCount;
 		submittedInstanceCount += other.submittedInstanceCount;
 		mappingFallbackCount += other.mappingFallbackCount;
