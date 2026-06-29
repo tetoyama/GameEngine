@@ -8,7 +8,11 @@ int main(){
 		StaticBatchModelMaterialResolvePolicy::GBuffer();
 	constexpr StaticBatchModelMaterialResolvePolicy shadowPolicy =
 		StaticBatchModelMaterialResolvePolicy::Shadow();
+	static_assert(gBufferPolicy.requireGBufferPass);
+	static_assert(gBufferPolicy.applyGBufferAlphaRule);
 	static_assert(gBufferPolicy.rejectNormalMapReference);
+	static_assert(!shadowPolicy.requireGBufferPass);
+	static_assert(!shadowPolicy.applyGBufferAlphaRule);
 	static_assert(!shadowPolicy.rejectNormalMapReference);
 
 	MaterialComponent material;
@@ -77,6 +81,14 @@ int main(){
 		result ==
 		StaticBatchModelMaterialRejectReason::ExcludedByGBufferAlphaRule
 	);
+
+	result = StaticBatchModelPacketMaterial::Resolve(
+		packet,
+		state,
+		false
+	);
+	assert(result == StaticBatchModelMaterialRejectReason::None);
+	assert(state.material.BaseColor.w == 0.5f);
 
 	material.Material.BaseColor.w = 1.0f;
 	texture.m_TextureData = std::make_shared<TextureData>();
