@@ -1,9 +1,11 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <span>
 
 #include "Backends/Assimp/material.h"
+#include "System/Render/RenderSystem/RenderPacket/RenderPacketModelSubMeshSelection.h"
 #include "System/Render/RenderSystem/RenderPacket/StaticBatchPacketCache.h"
 #include "System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
 #include "System/Render/StaticBatch/StaticBatchModelPacketMaterial.h"
@@ -72,18 +74,30 @@ inline StaticBatchModelMaterialResolveResult Resolve(
 			StaticBatchModelMaterialRejectReason::MissingModelResource;
 		return result;
 	}
-	if(model->AiScene->mNumMeshes != 1){
-		result.rejectReason =
-			StaticBatchModelMaterialRejectReason::UnsupportedSubMeshCount;
-		return result;
-	}
-	if(!model->AiScene->mMeshes || !model->AiScene->mMeshes[0]){
+	if(!model->AiScene->mMeshes){
 		result.rejectReason =
 			StaticBatchModelMaterialRejectReason::MissingSubMesh;
 		return result;
 	}
 
-	const aiMesh* mesh = model->AiScene->mMeshes[0];
+	std::uint32_t meshIndex = 0;
+	if(!RenderPacketModelSubMeshSelection::ResolveSingleIndex(
+		packet,
+		model->AiScene->mNumMeshes,
+		meshIndex
+	)){
+		result.rejectReason = packet.TargetsAllSubMeshes()
+			? StaticBatchModelMaterialRejectReason::UnsupportedSubMeshCount
+			: StaticBatchModelMaterialRejectReason::MissingSubMesh;
+		return result;
+	}
+
+	const aiMesh* mesh = model->AiScene->mMeshes[meshIndex];
+	if(!mesh){
+		result.rejectReason =
+			StaticBatchModelMaterialRejectReason::MissingSubMesh;
+		return result;
+	}
 	if(!model->AiScene->mMaterials ||
 		mesh->mMaterialIndex >= model->AiScene->mNumMaterials){
 		result.rejectReason =
