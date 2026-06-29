@@ -18,6 +18,7 @@
 #include "System/Render/Animation/AnimationInputRevision.h"
 #include "System/Render/Animation/AnimationPoseEvaluator.h"
 #include "System/Render/Animation/AnimationSkinningUpload.h"
+#include "System/Render/Animation/AnimationSourceSynchronization.h"
 #include "System/Render/Animation/RenderSystemAnimationTaskRegistrar.h"
 
 namespace RenderSystemAnimationTasksDetail {
@@ -153,6 +154,10 @@ inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 			if(!modelRenderer) continue;
 			if(!modelRenderer->model){
 				modelRenderer->CreateModel(context);
+				continue;
+			}
+			if(AnimationSourceSynchronization::Synchronize(*modelRenderer)){
+				RenderSystemAnimationTasksDetail::ClearPendingPose(*modelRenderer);
 				continue;
 			}
 			if(!modelRenderer->animationPoseReady) continue;
