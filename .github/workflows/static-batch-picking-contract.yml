@@ -1,0 +1,64 @@
+name: Static Batch Picking Contract
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchPickingContract.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceDataBuffer.h"
+      - "Source/Shader/commonDefine.h"
+      - "Source/Shader/GBufferPS.hlsl"
+      - "Source/Shader/StaticBatchGBufferPS.hlsl"
+      - "Tests/StaticBatchPickingContractSmokeTest.cpp"
+      - ".github/workflows/static-batch-picking-contract.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchPickingContract.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceDataBuffer.h"
+      - "Source/Shader/commonDefine.h"
+      - "Source/Shader/GBufferPS.hlsl"
+      - "Source/Shader/StaticBatchGBufferPS.hlsl"
+      - "Tests/StaticBatchPickingContractSmokeTest.cpp"
+      - ".github/workflows/static-batch-picking-contract.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: static-batch-picking-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  picking-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run picking channel contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/StaticBatchPickingContractSmokeTest.cpp
+          /Fe:static-batch-picking-contract-test.exe
+          /link /NODEFAULTLIB:yaml-cppd.lib
+          && static-batch-picking-contract-test.exe
+      - name: Compile ordinary and static GBuffer shaders
+        shell: cmd
+        run: |
+          fxc /nologo /T ps_5_0 /E main /I Source\Shader /Fo GBufferPS.cso Source\Shader\GBufferPS.hlsl
+          if errorlevel 1 exit /b 1
+          fxc /nologo /T ps_5_0 /E main /I Source\Shader /Fo StaticBatchGBufferPS.cso Source\Shader\StaticBatchGBufferPS.hlsl
