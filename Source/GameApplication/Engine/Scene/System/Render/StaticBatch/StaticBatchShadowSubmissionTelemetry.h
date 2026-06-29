@@ -10,6 +10,7 @@ struct StaticBatchShadowSubmissionTelemetry {
 	std::size_t submittedInstanceCount = 0;
 	std::size_t mappingFallbackCount = 0;
 	std::size_t eligibilityFallbackCount = 0;
+	std::size_t textureBindingFallbackCount = 0;
 	std::size_t layerFallbackCount = 0;
 	std::size_t geometryFallbackCount = 0;
 	std::size_t drawFailureCount = 0;
@@ -27,6 +28,7 @@ struct StaticBatchShadowSubmissionTelemetry {
 		submittedInstanceCount += other.submittedInstanceCount;
 		mappingFallbackCount += other.mappingFallbackCount;
 		eligibilityFallbackCount += other.eligibilityFallbackCount;
+		textureBindingFallbackCount += other.textureBindingFallbackCount;
 		layerFallbackCount += other.layerFallbackCount;
 		geometryFallbackCount += other.geometryFallbackCount;
 		drawFailureCount += other.drawFailureCount;
