@@ -29,6 +29,30 @@ inline bool IsGroupMappingEquivalent(
 		sourceGroup.instanceCount == cacheEntry.instanceCount;
 }
 
+class SubmissionTelemetryRecorder final {
+public:
+	SubmissionTelemetryRecorder(
+		const StaticBatchUploadSystem& uploadSystem,
+		StaticBatchShadowSubmissionTelemetry& telemetry
+	) noexcept
+		: m_uploadSystem(uploadSystem),
+		  m_telemetry(telemetry) {
+	}
+
+	~SubmissionTelemetryRecorder(){
+		m_uploadSystem.RecordShadowSubmissionTelemetry(m_telemetry);
+	}
+
+	SubmissionTelemetryRecorder(const SubmissionTelemetryRecorder&) = delete;
+	SubmissionTelemetryRecorder& operator=(
+		const SubmissionTelemetryRecorder&
+	) = delete;
+
+private:
+	const StaticBatchUploadSystem& m_uploadSystem;
+	StaticBatchShadowSubmissionTelemetry& m_telemetry;
+};
+
 inline StaticBatchShadowSubmissionTelemetry Submit(
 	RHI::IRHIDevice& device,
 	GraphicsContext& graphics,
@@ -39,6 +63,10 @@ inline StaticBatchShadowSubmissionTelemetry Submit(
 	StaticBatchPacketReplacementSet& replacements
 ){
 	StaticBatchShadowSubmissionTelemetry telemetry;
+	[[maybe_unused]] SubmissionTelemetryRecorder telemetryRecorder(
+		uploadSystem,
+		telemetry
+	);
 	replacements.Begin(frameBuffer.Packets().size());
 	if(device.GetBackendType() != RHI::BackendType::Direct3D11 ||
 		!renderLayerVisibility || !frameBuffer.IsReady() ||
