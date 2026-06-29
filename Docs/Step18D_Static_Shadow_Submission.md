@@ -4,31 +4,28 @@
 
 Static Instance BatchをShadowMap Passへ提出し、同一Geometry / Material条件を持つStatic ModelのShadow Draw Callを`DrawIndexedInstanced`へ統合する。
 
-この最適化が失敗しても影を欠落させず、既存の通常`RenderPacket`経路へ完全にFallbackすることを最優先とする。
+最適化が失敗しても影を欠落させず、既存の通常`RenderPacket`経路へ完全にFallbackすることを最優先とする。
 
-## 現在の実装範囲
+## 実装済み
 
-実装済み:
+- Static GBuffer Vertex Shaderを共有するShadow専用Depth-only Pipeline
+- `shadowPS.cso`、Color Attachment 0、D32、Back Cull、Depth Clip無効、LessEqual契約
+- `StaticBatchUploadSystem`によるPipeline所有とShadow→共有Vertex Shaderの逆順Release
+- CPU Instance / Packet Cache / GPU InstanceのRevision一致検証
+- CPU Instance Group / Packet Cache Entryの完全Mapping検証
+- Group内全PacketのScene / Kind / Layer / Material / Shadow Pass検証
+- Opaque Model、2 Instance以上の選別
+- Geometry Binding CacheとSource GPU Instance Bufferの再利用
+- Directional / CSM / Spot / Pointの各Shadow Atlas Tileで`DrawIndexedInstanced`提出
+- Queue Submit成功Groupだけ通常Shadow Packetから除外
+- Static提出後のShader / Sampler / Rasterizer / Diffuse Texture状態復元
+- Player / Editorと全Light Tileを合算する累積Shadow Telemetry
+- Diffuse Texture / Alpha Cutout対応
+- D3D11 WARPによるDepth-only Pipeline / Instanced Draw / Texture State実機契約
 
-- Static GBuffer PipelineのVertex Shaderを共有するShadow専用Pipeline
-- `shadowPS.cso`とDepth-only Pipeline Stateの所有
-- D32 Depth Target、Color Attachment 0、Back Cull、Depth Clip無効、LessEqual契約
-- `StaticBatchUploadSystem`によるShadow Pipeline Bootstrap / Release
-- Shadow Pipelineを先に解放してから共有Vertex Shaderを解放する逆順所有契約
-- Source CPU Instance / Packet Cache / Source GPU InstanceのRevision一致検証
-- CPU Instance GroupとPacket Cache Entryの完全対応検証
-- Shadow対象Group内の全Packet検証
-- Opaque Model、2 Instance以上、Shadow Pass有効Groupの選別
-- Geometry Binding Cacheの再利用
-- 通常`RenderableModel`と同じComponent Material定数の再構築
-- Shadow Atlasの各Light Tileで`DrawIndexedInstanced`を提出
-- Queue Submit成功Groupだけを通常Shadow Packetから除外
-- Static提出後の通常Shadow Pixel Shader / Sampler / Rasterizer復元
-- Pipeline / Eligibility / Ownership / Shader Compile Smoke Test
+## Eligibility
 
-## 初期Eligibility
-
-初期Static Shadow対象は次をすべて満たすGroupに限定する。
+Static Shadow対象は次をすべて満たすGroupに限定する。
 
 ```text
 Packet Kind       = Model
@@ -38,30 +35,48 @@ Pass Mask         includes Shadow
 Geometry Key      = Geometry Binding Cacheと一致
 Source Revision   = Packet Cache / CPU Instance / GPU Instanceで一致
 Group Mapping     = CPU Instance GroupとPacket Cache Entryが完全一致
-Material          = Group全体で同一
-Diffuse Texture   = 未使用
+Resource Keys     = Pipeline / Geometry / Texture / Materialが一致
+Diffuse Texture   = 未使用、または有効なSRVとSamplerを取得可能
 ```
 
 Groupの代表Packetだけではなく、対応する全PacketについてScene、Kind、Layer、Material Key、Shadow Passを検証する。
 
-Diffuse Textureを使用するGroupは、Alpha Test / Cutoutの同等性をStatic経路で証明できるまで通常Shadow描画へ残す。
+Normal Mapを持つModelは、現在の共通GBuffer Material Resolverが明示的に拒否するため通常Shadow経路へ残る。ShadowではNormal Mapを使わないが、Resource同等性の拡張は別工程とする。
 
-## Shadow Material同等性
+## Material / Alpha同等性
 
-既存`RenderableModel`のShadow経路は、通常描画のGeometry / Texture情報を解決した後も、Shadow PSへ渡すMaterial定数にはComponent Materialを使う。Assimp MaterialのDiffuse ColorはShadow用定数へ再設定しない。
-
-Static Shadowも同じ契約に合わせる。
+通常`RenderableModel`とStatic Shadowは、同じMaterial Resolver結果をShadow PSへ渡す。
 
 ```text
-Geometry / Resource同等性
-    -> StaticBatchModelMaterialResolverで検証
-
-Shadow PSへ渡すMaterial / UV
-    -> StaticBatchModelPacketMaterialで代表Packetから再構築
-    -> Assimp Diffuse Colorを上書きしない
+Component Material
+    + Assimp Diffuse Color
+    + Model Diffuse Texture または TextureComponent Override
+    + UV Animation
+    -> shadowPS.hlsl
+    -> BaseColor Alpha × Texture Alpha
+    -> ALPHA_CLIP_THRESHOLDでdiscard
 ```
 
-これによりAssimp Diffuse AlphaとComponent Alphaが異なるModelでも、Static経路だけAlpha Clip結果が変わることを防ぐ。
+通常`RenderableModel`では、Model内Diffuse TextureをBindした後の`materialData`をShadow時にもConstant Bufferへ反映するよう修正した。これにより通常DrawとStatic DrawでMaterialFlagsおよびBaseColor Alphaが一致する。
+
+Static Shadowでは`t0`へDiffuse SRV、`s0`へ既存Material Samplerを使用する。Samplerが取得できない場合はStatic提出せず、通常Shadow Packetを維持する。
+
+## D3D11 Pixel State契約
+
+`StaticBatchShadowPixelState`がStatic提出前の次の状態を保存する。
+
+- Diffuse Texture SRV Slot `t0`
+- Material Sampler Slot `s0`
+
+GroupごとにDiffuse TextureをBindし、スコープ終了時に元の`t0/s0`を復元する。非D3D11 Backendではこのクラスを生成しない。
+
+WARP Interop Testで次を検証する。
+
+- 元SRV / Samplerの取得
+- Alpha Texture SRVへの一時差し替え
+- Bind中のSRV / Sampler一致
+- スコープ終了後の完全復元
+- Sampler未Bind時の`CanSampleDiffuseTexture=false`
 
 ## 原子的Fallback
 
@@ -71,8 +86,9 @@ Source / Cache / GPU Revision不一致
 CPU Instance Group / Packet Cache Entry不一致
 Group Packet不整合
 Geometry Binding未解決
-Material同等性未証明
-Diffuse Texture使用
+Material / Resource同等性未証明
+Diffuse SRV欠落
+Material Sampler欠落
 Command生成失敗
 Draw生成失敗
 Queue Submit失敗
@@ -82,68 +98,86 @@ Replacement Setへ登録しない
 既存RenderPacketを通常Shadow経路で描画
 ```
 
-Replacement SetはGraphics QueueへのSubmit成功後にだけ更新する。
-
-Queue Submit後にReplacement登録が失敗した場合も通常Packetを残すため、最悪でもDepthの重複描画となり、Shadow欠落にはしない。
+Replacement SetはGraphics QueueへのSubmit成功後にだけ更新する。Submit後のReplacement登録が失敗した場合も通常Packetを残すため、最悪でもDepthの重複描画となり、Shadow欠落にはしない。
 
 ## D3D11実行順
 
-現在のD3D11 RHI Command ListはDeferred Contextへ記録する方式ではなく、`SetPipelineState`、Buffer Bind、`DrawIndexedInstanced`をImmediate Contextへ順番に発行する。
-
-したがって次の順序がGroupごとに維持される。
+D3D11 RHI Command ListはImmediate Contextへ順番に発行する。
 
 ```text
-SetMaterial / SetUV
+Bind Diffuse Texture
+    -> SetMaterial / SetUV
     -> SetPipelineState / Buffer Bind
     -> DrawIndexedInstanced
 ```
 
-複数Groupを提出しても最後のMaterialだけが全Drawへ適用される構造にはならない。
+GroupごとのMaterial / Texture更新とDraw順序は維持される。
 
-## D3D11状態復元
-
-Static Shadow提出後、通常Renderable描画へ戻る前に次を復元する。
+Static提出後、通常Renderable描画へ戻る前に次を復元する。
 
 - `shadowPS.cso`
 - Shadow Sampler Slot 1
-- `DepthClipEnable = false` Rasterizer State
+- `DepthClipEnable=false` Rasterizer State
+- Diffuse Texture Slot `t0`
+- Material Sampler Slot `s0`
 
-Static PipelineのDepth-StencilはDepth Write有効、LessEqualであり、Shadow Pass契約と一致する。通常Renderableは従来どおり自身のVertex Shader / Input Layout / Geometry BufferをBindする。
+## Telemetry
+
+Shadow Submission Telemetryは`StaticBatchUploadSystem`が所有し、Player / Editor Viewと全Shadow Atlas Tileを合算する。
+
+値はProject SettingsのTelemetry Reset以降の累積値とする。
+
+- Light Tile Attempts
+- Candidate Group Visits
+- Submitted Groups / Instances
+- Ordinary Draws Replaced
+- Static Draw Calls
+- Estimated Draw Reduction
+- Mapping / Eligibility / Texture Binding / Layer / Geometry Fallback
+- Draw / Queue Failures
+
+全return経路をRAII Recorderで記録する。既存Telemetry ResetはShadow集計もResetする。
 
 ## Compile / Test契約
 
-`Static Batch Foundation Smoke Test`で次を検証する。
+`Static Batch Foundation Smoke Test`:
 
-- Shadow Pipeline Descriptor
-- 共有Vertex Shader所有
-- Shadow Pipeline逆順Release
+- Shadow Pipeline Descriptor / Ownership / Release
 - CPU Instance Group / Packet Cache Entry Mapping
 - Group Packet Eligibility
-- `size_t`から`uint32_t`へ変換する前のInstance Range検証
-- Submission HelperのHeader Compile
-- `StaticBatchVS.hlsl`
-- `StaticBatchGBufferPS.hlsl`
-- `shadowPS.hlsl`
+- Instance Range検証
+- Telemetry集計 / Draw削減計算 / Reset
+- Shadow / GBuffer Shader Compile
 
-ShadowMapPass変更も同WorkflowのPath Filterへ含める。
+`D3D11 Static Batch Interop Smoke`:
+
+- 10要素Static Input Layout
+- Depth-only Pipeline / D32 DSV
+- `DrawIndexedInstanced(3, 2)`
+- Queue Submit / WaitIdle
+- Diffuse SRV / Samplerの一時Bindと復元
+- Sampler欠落時の拒否
+
+WorkflowのPath FilterにはStatic Batch、ShadowMapPass、RenderableModel、Telemetry UIを含める。
 
 ## 未完了
 
 - [ ] Windows Engine Debug x64 Compile
 - [ ] Windows Engine Release x64 Compile
 - [ ] Static Batch Foundation Workflow完了
+- [ ] D3D11 Static Batch Interop Workflow完了
 - [ ] Directional Shadow実機回帰
 - [ ] CSM全Cascade実機回帰
 - [ ] Spot Shadow実機回帰
 - [ ] Point Shadow 6 Face実機回帰
 - [ ] RenderDocで通常Shadow DrawとStatic Shadow Drawを比較
-- [ ] Shadow Draw削減TelemetryのEditor表示
-- [ ] Diffuse Texture / Alpha Cutout GroupのStatic対応
+- [ ] Normal Map付きModelをShadow Eligibilityへ拡張
 - [ ] Light View単位Batch Culling
 
 ## 完了条件
 
 - Static対象ModelのShadowが通常経路と一致する
+- Alpha Cutout輪郭が通常DrawとStatic Drawで一致する
 - Static提出失敗時にShadow欠落が発生しない
 - Queue成功前に通常Packetを除外しない
 - Directional / CSM / Spot / Pointの全Light種別でAtlas Tileを破壊しない
