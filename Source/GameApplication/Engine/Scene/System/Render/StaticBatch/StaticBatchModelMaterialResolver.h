@@ -11,14 +11,16 @@
 #include "System/Render/StaticBatch/StaticBatchModelPacketMaterial.h"
 
 struct StaticBatchModelMaterialResolvePolicy {
+	bool requireGBufferPass = true;
+	bool applyGBufferAlphaRule = true;
 	bool rejectNormalMapReference = true;
 
 	static constexpr StaticBatchModelMaterialResolvePolicy GBuffer() noexcept {
-		return {true};
+		return {true, true, true};
 	}
 
 	static constexpr StaticBatchModelMaterialResolvePolicy Shadow() noexcept {
-		return {false};
+		return {false, false, false};
 	}
 };
 
@@ -63,14 +65,19 @@ inline StaticBatchModelMaterialResolveResult Resolve(
 			StaticBatchModelMaterialRejectReason::UnsupportedRenderLayer;
 		return result;
 	}
-	if(!HasRenderPacketPass(packet.passMask, RenderPacketPassMask::GBuffer)){
+	if(policy.requireGBufferPass &&
+		!HasRenderPacketPass(packet.passMask, RenderPacketPassMask::GBuffer)){
 		result.rejectReason =
 			StaticBatchModelMaterialRejectReason::MissingGBufferPass;
 		return result;
 	}
 
 	const StaticBatchModelMaterialRejectReason packetStateResult =
-		StaticBatchModelPacketMaterial::Resolve(packet, result.state);
+		StaticBatchModelPacketMaterial::Resolve(
+			packet,
+			result.state,
+			policy.applyGBufferAlphaRule
+		);
 	if(packetStateResult != StaticBatchModelMaterialRejectReason::None){
 		result.rejectReason = packetStateResult;
 		return result;
