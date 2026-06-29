@@ -53,6 +53,8 @@ int main(){
 	assert(!compacted.IsOverflowed());
 	assert(predicateCallCount == 5);
 	assert(compacted.Groups().size() == 1);
+	assert(compacted.SourceGroupIndices().size() == 1);
+	assert(compacted.SourceGroupIndices()[0] == 0);
 	assert(compacted.Groups()[0].firstInstance == 0);
 	assert(compacted.Groups()[0].instanceCount == 2);
 	assert(compacted.Groups()[0].representativePacketIndex == 100);
@@ -97,6 +99,7 @@ int main(){
 	assert(cachedTelemetry.visibleInstanceCount == 2);
 	assert(cachedTelemetry.culledInstanceCount == 3);
 	assert(cachedTelemetry.mixedGroupCount == 1);
+	assert(compacted.SourceGroupIndices()[0] == 0);
 	assert(compacted.PacketIndices()[0] == 100);
 	assert(compacted.PacketIndices()[1] == 102);
 
@@ -115,6 +118,9 @@ int main(){
 	));
 	assert(compacted.SelectionRevision() != mixedSelectionRevision);
 	assert(compacted.Groups().size() == 2);
+	assert(compacted.SourceGroupIndices().size() == 2);
+	assert(compacted.SourceGroupIndices()[0] == 0);
+	assert(compacted.SourceGroupIndices()[1] == 1);
 	assert(compacted.Instances().size() == 5);
 	assert(compacted.Telemetry().allVisibleGroupCount == 2);
 	assert(compacted.Telemetry().mixedGroupCount == 0);
@@ -136,6 +142,7 @@ int main(){
 	assert(!compacted.IsValid());
 	assert(!compacted.IsOverflowed());
 	assert(compacted.Groups().empty());
+	assert(compacted.SourceGroupIndices().empty());
 	assert(compacted.Instances().empty());
 	assert(compacted.PacketIndices().empty());
 
