@@ -6,8 +6,8 @@
 
 namespace {
 
-StaticBatchInstanceGroup MakeGroup(){
-	StaticBatchInstanceGroup group;
+StaticBatchPacketCacheEntry MakeGroup(){
+	StaticBatchPacketCacheEntry group;
 	group.key.kind = RenderPacketKind::Model;
 	group.key.layer = RenderLayer::Opaque3D;
 	group.key.materialKey = 4;
@@ -40,7 +40,7 @@ int main(){
 	};
 	constexpr std::array<std::size_t, 2> packetIndices{0, 1};
 
-	StaticBatchInstanceGroup group = MakeGroup();
+	StaticBatchPacketCacheEntry group = MakeGroup();
 	auto result = StaticBatchShadowGroupEligibility::Resolve(
 		group,
 		packetIndices,
