@@ -9,6 +9,7 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingVisibilityBuilder.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingVisibilitySet.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/RenderPacketViewCulling.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/ShadowRenderPacketCullingView.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Tests/RenderPacketViewCullingSmokeTest.cpp"
       - ".github/workflows/render-packet-view-culling.yml"
