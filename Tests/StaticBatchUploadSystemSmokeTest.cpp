@@ -17,10 +17,7 @@ int main(){
 	assert(tasks.size() == 2);
 	const SystemTask& geometryTask = tasks[0];
 	assert(geometryTask.owner == &system);
-	assert(
-		geometryTask.name ==
-		"StaticBatchUploadSystem.Geometry.Synchronize"
-	);
+	assert(geometryTask.name == "StaticBatchUploadSystem.Geometry.Synchronize");
 	assert(geometryTask.domain == SystemTaskDomain::Render);
 	assert(geometryTask.order.phase == SystemPhase::Default);
 	assert(geometryTask.order.priority == 0);
@@ -45,7 +42,8 @@ int main(){
 	firstTile.visibleInstanceCount = 5;
 	firstTile.culledInstanceCount = 2;
 	firstTile.fullyCulledGroupCount = 1;
-	firstTile.mixedVisibilityFallbackCount = 1;
+	firstTile.compactedMixedGroupCount = 1;
+	firstTile.singleInstanceFallbackCount = 1;
 	firstTile.submittedGroupCount = 1;
 	firstTile.submittedInstanceCount = 3;
 	firstTile.mappingFallbackCount = 1;
@@ -59,6 +57,7 @@ int main(){
 	secondTile.visibleInstanceCount = 6;
 	secondTile.culledInstanceCount = 1;
 	secondTile.visibilityFailureCount = 1;
+	secondTile.instanceUploadFailureCount = 1;
 	secondTile.submittedGroupCount = 2;
 	secondTile.submittedInstanceCount = 5;
 	secondTile.layerFallbackCount = 1;
@@ -74,8 +73,10 @@ int main(){
 	assert(aggregate.visibleInstanceCount == 11);
 	assert(aggregate.culledInstanceCount == 3);
 	assert(aggregate.fullyCulledGroupCount == 1);
-	assert(aggregate.mixedVisibilityFallbackCount == 1);
+	assert(aggregate.compactedMixedGroupCount == 1);
+	assert(aggregate.singleInstanceFallbackCount == 1);
 	assert(aggregate.visibilityFailureCount == 1);
+	assert(aggregate.instanceUploadFailureCount == 1);
 	assert(aggregate.submittedGroupCount == 3);
 	assert(aggregate.submittedInstanceCount == 8);
 	assert(aggregate.mappingFallbackCount == 1);
@@ -98,8 +99,10 @@ int main(){
 	assert(resetAggregate.visibleInstanceCount == 0);
 	assert(resetAggregate.culledInstanceCount == 0);
 	assert(resetAggregate.fullyCulledGroupCount == 0);
-	assert(resetAggregate.mixedVisibilityFallbackCount == 0);
+	assert(resetAggregate.compactedMixedGroupCount == 0);
+	assert(resetAggregate.singleInstanceFallbackCount == 0);
 	assert(resetAggregate.visibilityFailureCount == 0);
+	assert(resetAggregate.instanceUploadFailureCount == 0);
 	assert(resetAggregate.submittedGroupCount == 0);
 	assert(resetAggregate.submittedInstanceCount == 0);
 	assert(resetAggregate.textureBindingFallbackCount == 0);
