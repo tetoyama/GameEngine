@@ -55,9 +55,9 @@ StaticBatchGBufferOutput main(StaticBatchPSInput input)
         Material.EmissiveIntensity
     );
 
-    output.Parameter = uint4(
-        input.InstanceObject.z,
-        input.InstanceObject.x,
+    output.Parameter = MakeGBufferParameter(
+        input.InstanceObject[StaticInstanceObjectChannel_SceneID],
+        input.InstanceObject[StaticInstanceObjectChannel_EntityIndex],
         ShaderID,
         Material.MaterialFlags
     );
