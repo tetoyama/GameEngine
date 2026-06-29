@@ -12,6 +12,7 @@
 #include "System/Render/StaticBatch/StaticBatchDrawSubmission.h"
 #include "System/Render/StaticBatch/StaticBatchPacketReplacementSet.h"
 #include "System/Render/StaticBatch/StaticBatchShadowGroupEligibility.h"
+#include "System/Render/StaticBatch/StaticBatchShadowPixelState.h"
 #include "System/Render/StaticBatch/StaticBatchShadowSubmissionTelemetry.h"
 #include "System/Render/StaticBatch/StaticBatchUploadSystem.h"
 
@@ -53,54 +54,6 @@ private:
 	StaticBatchShadowSubmissionTelemetry& m_telemetry;
 };
 
-class PixelBindingGuard final {
-public:
-	explicit PixelBindingGuard(GraphicsContext& graphics) noexcept
-		: m_context(graphics.GetDeviceContext()) {
-		if(!m_context) return;
-		m_context->PSGetShaderResources(
-			TextureSlot_Albedo,
-			1,
-			m_previousTexture.ReleaseAndGetAddressOf()
-		);
-		m_context->PSGetSamplers(
-			0,
-			1,
-			m_materialSampler.ReleaseAndGetAddressOf()
-		);
-	}
-
-	~PixelBindingGuard(){
-		if(!m_context) return;
-		ID3D11ShaderResourceView* texture = m_previousTexture.Get();
-		m_context->PSSetShaderResources(TextureSlot_Albedo, 1, &texture);
-		ID3D11SamplerState* sampler = m_materialSampler.Get();
-		m_context->PSSetSamplers(0, 1, &sampler);
-	}
-
-	PixelBindingGuard(const PixelBindingGuard&) = delete;
-	PixelBindingGuard& operator=(const PixelBindingGuard&) = delete;
-
-	bool CanSampleDiffuseTexture() const noexcept {
-		return m_context && m_materialSampler;
-	}
-
-	bool BindDiffuseTexture(ID3D11ShaderResourceView* texture) noexcept {
-		if(!m_context) return false;
-		m_context->PSSetShaderResources(TextureSlot_Albedo, 1, &texture);
-		if(texture){
-			ID3D11SamplerState* sampler = m_materialSampler.Get();
-			m_context->PSSetSamplers(0, 1, &sampler);
-		}
-		return true;
-	}
-
-private:
-	ID3D11DeviceContext* m_context = nullptr;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_previousTexture;
-	Microsoft::WRL::ComPtr<ID3D11SamplerState> m_materialSampler;
-};
-
 inline StaticBatchShadowSubmissionTelemetry Submit(
 	RHI::IRHIDevice& device,
 	GraphicsContext& graphics,
@@ -137,7 +90,10 @@ inline StaticBatchShadowSubmissionTelemetry Submit(
 		return telemetry;
 	}
 
-	PixelBindingGuard pixelBindings(graphics);
+	StaticBatchShadowPixelState pixelBindings(
+		graphics.GetDeviceContext(),
+		TextureSlot_Albedo
+	);
 	RHI::CommandListCreateDesc commandDesc;
 	commandDesc.queueType = RHI::CommandQueueType::Graphics;
 	std::unique_ptr<RHI::IRHICommandList> commandList =
