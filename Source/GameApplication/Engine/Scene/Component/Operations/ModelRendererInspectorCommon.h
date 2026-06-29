@@ -8,6 +8,7 @@
 #include "Backends/ImGuiFunc.h"
 #include "Scene/scene.h"
 #include "Resources/Data/modelData.h"
+#include "System/Render/Animation/AnimationBindingList.h"
 
 namespace ModelRendererInspector {
 
@@ -15,13 +16,7 @@ inline bool HasAnimationSourceBinding(
 	const ModelRendererComponent& component,
 	const std::string& path
 ){
-	return std::any_of(
-		component.animations.begin(),
-		component.animations.end(),
-		[&path](const auto& animation){
-			return animation.second == path;
-		}
-	);
+	return AnimationBindingList::Contains(component, path);
 }
 
 inline std::vector<std::string> GetAnimationNames(
