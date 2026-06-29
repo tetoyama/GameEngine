@@ -8,6 +8,10 @@ struct StaticBatchGBufferSubmissionTelemetry {
 	std::size_t candidateGroupCount = 0;
 	std::size_t submittedGroupCount = 0;
 	std::size_t submittedInstanceCount = 0;
+	std::size_t visibleInstanceCount = 0;
+	std::size_t culledInstanceCount = 0;
+	std::size_t compactedMixedGroupCount = 0;
+	std::size_t visibilitySelectionFailureCount = 0;
 	std::size_t singleInstanceFallbackCount = 0;
 	std::size_t packetRangeFallbackCount = 0;
 	std::size_t layerFallbackCount = 0;
