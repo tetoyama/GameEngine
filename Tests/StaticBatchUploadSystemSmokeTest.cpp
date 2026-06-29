@@ -46,6 +46,7 @@ int main(){
 	firstTile.submittedInstanceCount = 3;
 	firstTile.mappingFallbackCount = 1;
 	firstTile.eligibilityFallbackCount = 1;
+	firstTile.textureBindingFallbackCount = 1;
 	firstTile.geometryFallbackCount = 1;
 	system.RecordShadowSubmissionTelemetry(firstTile);
 
@@ -67,6 +68,7 @@ int main(){
 	assert(aggregate.submittedInstanceCount == 8);
 	assert(aggregate.mappingFallbackCount == 1);
 	assert(aggregate.eligibilityFallbackCount == 1);
+	assert(aggregate.textureBindingFallbackCount == 1);
 	assert(aggregate.layerFallbackCount == 1);
 	assert(aggregate.geometryFallbackCount == 1);
 	assert(aggregate.drawFailureCount == 1);
@@ -83,6 +85,7 @@ int main(){
 	assert(resetAggregate.candidateGroupCount == 0);
 	assert(resetAggregate.submittedGroupCount == 0);
 	assert(resetAggregate.submittedInstanceCount == 0);
+	assert(resetAggregate.textureBindingFallbackCount == 0);
 	assert(resetAggregate.EstimatedDrawCallReduction() == 0);
 
 	RHI::BackendRegistry registry;
