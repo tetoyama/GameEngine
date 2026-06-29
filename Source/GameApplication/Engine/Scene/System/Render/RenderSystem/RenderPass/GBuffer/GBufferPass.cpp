@@ -20,13 +20,14 @@
 #include "Resources/resourceService.h"
 #include "Resources/Data/shaderData.h"
 #include "Component/materialComponent.h"
+#include "System/Render/Culling/CullingVisibilityBuilder.h"
+#include "System/Render/Culling/RenderPacketViewCulling.h"
 #include "System/Render/RenderSystem/Renderable/Model/RenderableModel.h"
 #include "System/Render/RenderSystem/Renderable/Terrain/RenderableTerrain.h"
 #include "System/Render/RenderSystem/Renderable/Wave/RenderableWave.h"
 #include "System/Render/RenderSystem/Renderable/BillBoard/RenderableBillBoard.h"
 #include "System/Render/StaticBatch/StaticBatchD3D11GBufferTargetBinding.h"
 #include "System/Render/StaticBatch/StaticBatchDrawSubmission.h"
-#include "System/Render/StaticBatch/StaticBatchGroupVisibility.h"
 #include "System/Render/StaticBatch/StaticBatchModelMaterialResolver.h"
 #include "System/Render/StaticBatch/StaticBatchPacketReplacementSet.h"
 #include "System/Render/StaticBatch/StaticBatchUploadSystem.h"
@@ -49,6 +50,22 @@ bool IsPacketRangeValid(
 		}
 	}
 	return true;
+}
+
+void HashViewRevision(std::uint64_t& hash, std::uint64_t value) noexcept {
+	hash ^= value + 0x9e3779b97f4a7c15ull +
+		(hash << 6) + (hash >> 2);
+}
+
+std::uint64_t MakeStaticBatchViewRevision(
+	const CullingVisibilitySet& visibility,
+	const RenderPacketCullingView& view
+) noexcept {
+	std::uint64_t hash = visibility.FrameSerial();
+	HashViewRevision(hash, view.camera.GetPackedValue());
+	HashViewRevision(hash, static_cast<std::uint64_t>(view.kind));
+	HashViewRevision(hash, view.instanceID);
+	return hash == 0 ? 1 : hash;
 }
 
 } // namespace
@@ -88,6 +105,17 @@ void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* co
 }
 
 void GBufferPass::Finalize(){
+	if(m_context && m_context->graphics){
+		RHI::RenderHardwareInterfaceService* rhiService =
+			m_context->graphics->GetRHIService();
+		RHI::IRHIDevice* rhiDevice = rhiService
+			? rhiService->GetDevice()
+			: nullptr;
+		if(rhiDevice){
+			m_staticBatchVisibleGpuInstances.Release(*rhiDevice);
+		}
+	}
+	m_staticBatchVisibleInstances.Reset();
 	m_staticBatchTelemetry.Reset();
 	m_GBufferPixelShader.reset();
 	m_GBufferVertexShader.reset();
@@ -182,7 +210,6 @@ void GBufferPass::Execute(const RenderPassContext& context){
 			return;
 		}
 		m_staticBatchTelemetry.pipelineReady = true;
-		if(!uploadSystem->LastUploadSucceeded()) return;
 
 		RHI::RenderHardwareInterfaceService* rhiService =
 			m_context->graphics->GetRHIService();
@@ -196,15 +223,77 @@ void GBufferPass::Execute(const RenderPassContext& context){
 
 		const StaticBatchPacketCache& packetCache =
 			packetBuffer.StaticBatchCache();
-		const StaticBatchGpuInstanceBuffer& gpuInstances =
-			uploadSystem->GetGpuInstanceBuffer();
 		if(!staticSource.IsValid() || staticSource.IsOverflowed() ||
-			!packetCache.IsValid() || packetCache.IsOverflowed() ||
-			!gpuInstances.CanSubmit() ||
-			gpuInstances.UploadedSourceRevision() != staticSource.SourceRevision()){
+			!packetCache.IsValid() || packetCache.IsOverflowed()){
 			return;
 		}
-		m_staticBatchTelemetry.instanceUploadReady = true;
+
+		RenderPacketCullingView cullingView;
+		cullingView.camera = passContext.cameraData.ref.GetEntityID();
+		cullingView.kind = passContext.cullingViewKind;
+		cullingView.instanceID = passContext.cullingViewInstanceID;
+		cullingView.viewProjection =
+			passContext.viewMatrix * passContext.projectionMatrix;
+
+		const CullingVisibilitySet& visibility =
+			m_renderSystem->GetCullingVisibility();
+		const std::uint64_t viewRevision =
+			MakeStaticBatchViewRevision(visibility, cullingView);
+		m_staticBatchVisibleInstances.Reserve(
+			staticSource.Groups().size(),
+			staticSource.Instances().size()
+		);
+		if(!m_staticBatchVisibleInstances.Build(
+			staticSource.Groups(),
+			staticSource.Instances(),
+			packetCache.PacketIndices(),
+			staticSource.SourceRevision(),
+			viewRevision,
+			true,
+			[&](
+				const StaticBatchInstanceData& instance,
+				std::size_t
+			){
+				SceneContext* sceneContext =
+					m_context->sceneManager->GetContextFromID(
+						instance.sceneContextID
+					);
+				if(!sceneContext || !sceneContext->component ||
+					instance.entityIndex == 0){
+					return false;
+				}
+				const Entity entity(
+					instance.entityIndex,
+					instance.entityGeneration
+				);
+				const CullingViewKey viewKey =
+					RenderPacketViewCulling::MakeViewKey(
+						instance.sceneContextID,
+						cullingView
+					);
+				return CullingVisibilityBuilder::ShouldRender(
+					visibility,
+					viewKey,
+					entity,
+					*sceneContext->component
+				);
+			}
+		)){
+			++m_staticBatchTelemetry.visibilitySelectionFailureCount;
+			return;
+		}
+
+		const StaticBatchVisibleInstanceBufferTelemetry visibilityTelemetry =
+			m_staticBatchVisibleInstances.Telemetry();
+		m_staticBatchTelemetry.visibleInstanceCount =
+			visibilityTelemetry.visibleInstanceCount;
+		m_staticBatchTelemetry.culledInstanceCount =
+			visibilityTelemetry.culledInstanceCount;
+		m_staticBatchTelemetry.culledGroupCount =
+			visibilityTelemetry.allCulledGroupCount;
+		m_staticBatchTelemetry.compactedMixedGroupCount =
+			visibilityTelemetry.mixedGroupCount;
+		if(m_staticBatchVisibleInstances.Instances().empty()) return;
 
 		std::array<
 			ID3D11RenderTargetView*,
@@ -233,21 +322,35 @@ void GBufferPass::Execute(const RenderPassContext& context){
 			return;
 		}
 
-		RenderPacketCullingView cullingView;
-		cullingView.camera = passContext.cameraData.ref.GetEntityID();
-		cullingView.kind = passContext.cullingViewKind;
-		cullingView.instanceID = passContext.cullingViewInstanceID;
-		cullingView.viewProjection =
-			passContext.viewMatrix * passContext.projectionMatrix;
-
 		const std::span<const StaticBatchInstanceGroup> groups =
-			staticSource.Groups();
+			m_staticBatchVisibleInstances.Groups();
+		const std::span<const std::size_t> sourceGroupIndices =
+			m_staticBatchVisibleInstances.SourceGroupIndices();
 		const std::span<const std::size_t> packetIndices =
-			packetCache.PacketIndices();
+			m_staticBatchVisibleInstances.PacketIndices();
+		if(sourceGroupIndices.size() != groups.size()){
+			++m_staticBatchTelemetry.visibilitySelectionFailureCount;
+			return;
+		}
+
 		std::vector<std::size_t> submittedGroups;
 		submittedGroups.reserve(groups.size());
 
 		commandList->Begin();
+		const bool uploadSucceeded =
+			m_staticBatchVisibleGpuInstances.Upload(
+				*rhiDevice,
+				*commandList,
+				m_staticBatchVisibleInstances.Instances(),
+				m_staticBatchVisibleInstances.SelectionRevision()
+			);
+		if(!uploadSucceeded){
+			commandList->End();
+			++m_staticBatchTelemetry.drawFailureCount;
+			return;
+		}
+		m_staticBatchTelemetry.instanceUploadReady = true;
+
 		for(std::size_t groupIndex = 0; groupIndex < groups.size(); ++groupIndex){
 			const StaticBatchInstanceGroup& group = groups[groupIndex];
 			if(group.instanceCount < 2){
@@ -275,26 +378,10 @@ void GBufferPass::Execute(const RenderPassContext& context){
 				continue;
 			}
 
-			const StaticBatchGroupVisibilityResult visibility =
-				StaticBatchGroupVisibility::Evaluate(
-					group,
-					staticSource.Instances(),
-					packetBuffer.Packets(),
-					m_renderSystem->GetCullingVisibility(),
-					cullingView
-				);
-			if(visibility.CanSkipEntireGroup()){
-				++m_staticBatchTelemetry.culledGroupCount;
-				continue;
-			}
-			if(!visibility.CanSubmitInstanced()){
-				++m_staticBatchTelemetry.mixedVisibilityFallbackCount;
-				continue;
-			}
-
+			const std::size_t sourceGroupIndex = sourceGroupIndices[groupIndex];
 			const StaticBatchD3D11GeometryBinding* geometry =
 				uploadSystem->GetGeometryBindingCache().FindByGroupIndex(
-					groupIndex
+					sourceGroupIndex
 				);
 			if(!geometry || !geometry->IsReady() ||
 				geometry->GeometryResourceKey() != group.key.geometryKey){
@@ -333,7 +420,7 @@ void GBufferPass::Execute(const RenderPassContext& context){
 				uploadSystem->GetPipelineResources().PipelineState();
 			draw.vertexBuffer = geometry->VertexBuffer();
 			draw.indexBuffer = geometry->IndexBuffer();
-			draw.instanceBuffer = gpuInstances.Buffer();
+			draw.instanceBuffer = m_staticBatchVisibleGpuInstances.Buffer();
 			draw.vertexStride = geometry->VertexStride();
 			draw.indexFormat = geometry->IndexFormat();
 			draw.indexCount = geometry->IndexCount();
