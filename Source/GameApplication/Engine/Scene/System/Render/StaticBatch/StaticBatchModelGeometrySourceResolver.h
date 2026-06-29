@@ -7,6 +7,7 @@
 
 #include "Scene/Component/modelRendererComponent.h"
 #include "System/Render/RenderSystem/RenderPacket/RenderPacket.h"
+#include "System/Render/RenderSystem/RenderPacket/RenderPacketModelSubMeshSelection.h"
 #include "System/Render/RenderSystem/RenderPacket/StaticBatchPacketCache.h"
 #include "System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
 #include "System/Render/StaticBatch/StaticBatchD3D11GeometrySource.h"
@@ -23,6 +24,7 @@ enum class StaticBatchModelGeometryRejectReason : std::uint8_t {
 	AnimatedModel,
 	MissingModelResource,
 	UnsupportedSubMeshCount,
+	InvalidSubMeshIndex,
 	MissingSubMesh,
 	SkinnedSubMesh,
 	MissingNativeBuffer,
@@ -64,7 +66,8 @@ inline StaticBatchModelGeometryResolveResult Resolve(
 
 	const RenderPacket& packet = packets[group.representativePacketIndex];
 	if(packet.sceneContextID != group.sceneContextID ||
-		packet.kind != group.key.kind){
+		packet.kind != group.key.kind ||
+		packet.layer != group.key.layer){
 		result.rejectReason =
 			StaticBatchModelGeometryRejectReason::GroupPacketMismatch;
 		return result;
@@ -103,25 +106,39 @@ inline StaticBatchModelGeometryResolveResult Resolve(
 			StaticBatchModelGeometryRejectReason::MissingModelResource;
 		return result;
 	}
-	if(model->AiScene->mNumMeshes != 1){
-		result.rejectReason =
-			StaticBatchModelGeometryRejectReason::UnsupportedSubMeshCount;
-		return result;
-	}
-	if(!model->AiScene->mMeshes || !model->AiScene->mMeshes[0]){
+	if(!model->AiScene->mMeshes){
 		result.rejectReason =
 			StaticBatchModelGeometryRejectReason::MissingSubMesh;
 		return result;
 	}
 
-	const aiMesh* mesh = model->AiScene->mMeshes[0];
+	std::uint32_t meshIndex = 0;
+	if(!RenderPacketModelSubMeshSelection::ResolveSingleIndex(
+		packet,
+		model->AiScene->mNumMeshes,
+		meshIndex
+	)){
+		result.rejectReason = packet.TargetsAllSubMeshes()
+			? StaticBatchModelGeometryRejectReason::UnsupportedSubMeshCount
+			: StaticBatchModelGeometryRejectReason::InvalidSubMeshIndex;
+		return result;
+	}
+
+	const aiMesh* mesh = model->AiScene->mMeshes[meshIndex];
+	if(!mesh){
+		result.rejectReason =
+			StaticBatchModelGeometryRejectReason::MissingSubMesh;
+		return result;
+	}
 	if(mesh->HasBones()){
 		result.rejectReason =
 			StaticBatchModelGeometryRejectReason::SkinnedSubMesh;
 		return result;
 	}
-	if(model->VertexBuffer.empty() || model->IndexBuffer.empty() ||
-		!model->VertexBuffer[0] || !model->IndexBuffer[0]){
+	if(meshIndex >= model->VertexBuffer.size() ||
+		meshIndex >= model->IndexBuffer.size() ||
+		!model->VertexBuffer[meshIndex] ||
+		!model->IndexBuffer[meshIndex]){
 		result.rejectReason =
 			StaticBatchModelGeometryRejectReason::MissingNativeBuffer;
 		return result;
@@ -143,8 +160,8 @@ inline StaticBatchModelGeometryResolveResult Resolve(
 		return result;
 	}
 
-	result.source.vertexBuffer = model->VertexBuffer[0];
-	result.source.indexBuffer = model->IndexBuffer[0];
+	result.source.vertexBuffer = model->VertexBuffer[meshIndex];
+	result.source.indexBuffer = model->IndexBuffer[meshIndex];
 	result.source.vertexStride =
 		static_cast<std::uint32_t>(sizeof(VERTEX_3D));
 	result.source.vertexCount = mesh->mNumVertices;
