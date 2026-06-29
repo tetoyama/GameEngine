@@ -8,10 +8,12 @@
 #include <vector>
 
 #include "Graphics/graphicsContext.h"
+#include "System/Render/Culling/RenderPacketViewCulling.h"
 #include "System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
 #include "System/Render/StaticBatch/StaticBatchDrawSubmission.h"
 #include "System/Render/StaticBatch/StaticBatchPacketReplacementSet.h"
 #include "System/Render/StaticBatch/StaticBatchShadowGroupEligibility.h"
+#include "System/Render/StaticBatch/StaticBatchShadowGroupVisibility.h"
 #include "System/Render/StaticBatch/StaticBatchShadowPixelState.h"
 #include "System/Render/StaticBatch/StaticBatchShadowSubmissionTelemetry.h"
 #include "System/Render/StaticBatch/StaticBatchUploadSystem.h"
@@ -59,6 +61,8 @@ inline StaticBatchShadowSubmissionTelemetry Submit(
 	GraphicsContext& graphics,
 	const RenderPacketFrameBuffer& frameBuffer,
 	const StaticBatchUploadSystem& uploadSystem,
+	const CullingVisibilitySet& visibility,
+	const RenderPacketCullingView& cullingView,
 	const bool* renderLayerVisibility,
 	std::size_t renderLayerCount,
 	StaticBatchPacketReplacementSet& replacements
@@ -71,7 +75,8 @@ inline StaticBatchShadowSubmissionTelemetry Submit(
 	replacements.Begin(frameBuffer.Packets().size());
 	if(device.GetBackendType() != RHI::BackendType::Direct3D11 ||
 		!renderLayerVisibility || !frameBuffer.IsReady() ||
-		!uploadSystem.IsShadowPipelineReady()){
+		!uploadSystem.IsShadowPipelineReady() ||
+		!RenderPacketViewCulling::HasStableViewIdentity(cullingView)){
 		return telemetry;
 	}
 
@@ -116,6 +121,39 @@ inline StaticBatchShadowSubmissionTelemetry Submit(
 		const StaticBatchInstanceGroup& group = groups[groupIndex];
 		if(!IsGroupMappingEquivalent(group, cacheEntries[groupIndex])){
 			++telemetry.mappingFallbackCount;
+			continue;
+		}
+
+		const StaticBatchShadowGroupVisibilityResult groupVisibility =
+			StaticBatchShadowGroupVisibility::Resolve(
+				group,
+				packetIndices,
+				packets.size(),
+				[&](std::size_t packetIndex){
+					return RenderPacketViewCulling::ShouldRender(
+						visibility,
+						cullingView,
+						packets[packetIndex]
+					);
+				}
+			);
+		if(groupVisibility.kind ==
+			StaticBatchShadowGroupVisibilityKind::Invalid){
+			++telemetry.visibilityFailureCount;
+			continue;
+		}
+		telemetry.visibleInstanceCount +=
+			groupVisibility.visibleInstanceCount;
+		telemetry.culledInstanceCount +=
+			groupVisibility.culledInstanceCount;
+		if(groupVisibility.kind ==
+			StaticBatchShadowGroupVisibilityKind::AllCulled){
+			++telemetry.fullyCulledGroupCount;
+			continue;
+		}
+		if(groupVisibility.kind ==
+			StaticBatchShadowGroupVisibilityKind::Mixed){
+			++telemetry.mixedVisibilityFallbackCount;
 			continue;
 		}
 
