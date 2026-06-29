@@ -42,7 +42,8 @@ namespace StaticBatchModelPacketMaterial {
 
 inline StaticBatchModelMaterialRejectReason Resolve(
 	const RenderPacket& packet,
-	StaticBatchModelMaterialState& state
+	StaticBatchModelMaterialState& state,
+	bool applyGBufferAlphaRule = true
 ) noexcept {
 	const MaterialComponent* materialComponent = packet.bindings.material;
 	const std::uint32_t expectedShaderID = materialComponent
@@ -51,7 +52,7 @@ inline StaticBatchModelMaterialRejectReason Resolve(
 	if(packet.materialKey != expectedShaderID){
 		return StaticBatchModelMaterialRejectReason::ShaderKeyMismatch;
 	}
-	if(materialComponent &&
+	if(applyGBufferAlphaRule && materialComponent &&
 		materialComponent->Material.BaseColor.w < 0.999f){
 		return StaticBatchModelMaterialRejectReason::ExcludedByGBufferAlphaRule;
 	}
