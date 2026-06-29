@@ -37,6 +37,7 @@ on:
       - "Tests/StaticBatchPacketReplacementSetSmokeTest.cpp"
       - "Tests/StaticBatchGBufferSubmissionTelemetrySmokeTest.cpp"
       - "Tests/RenderPacketSubMeshScopeSmokeTest.cpp"
+      - "Tests/RenderPacketModelSubMeshExpansionSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
@@ -74,6 +75,7 @@ on:
       - "Tests/StaticBatchPacketReplacementSetSmokeTest.cpp"
       - "Tests/StaticBatchGBufferSubmissionTelemetrySmokeTest.cpp"
       - "Tests/RenderPacketSubMeshScopeSmokeTest.cpp"
+      - "Tests/RenderPacketModelSubMeshExpansionSmokeTest.cpp"
       - ".github/workflows/static-batch-candidate.yml"
   workflow_dispatch:
 
@@ -123,6 +125,8 @@ jobs:
             output: static-batch-gbuffer-telemetry-test.exe
           - source: Tests/RenderPacketSubMeshScopeSmokeTest.cpp
             output: render-packet-submesh-scope-test.exe
+          - source: Tests/RenderPacketModelSubMeshExpansionSmokeTest.cpp
+            output: render-packet-model-submesh-expansion-test.exe
     steps:
       - uses: actions/checkout@v4
         with:
