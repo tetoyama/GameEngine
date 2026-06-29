@@ -16,7 +16,7 @@ inline bool HasAnimationSourceBinding(
 	const ModelRendererComponent& component,
 	const std::string& path
 ){
-	return AnimationBindingList::Contains(component, path);
+	return AnimationBindingList::Contains(component.animations, path);
 }
 
 inline std::vector<std::string> GetAnimationNames(
