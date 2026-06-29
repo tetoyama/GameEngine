@@ -19,8 +19,10 @@
 #include "Shader/commonDefine.h"
 
 #include "Graphics/graphicsContext.h"
+#include "Graphics/RHI/RHIService.h"
 #include "Registry/systemRegistry.h"
 #include "System/Render/RenderSystem/Renderable/Model/RenderableModel.h"
+#include "System/Render/StaticBatch/StaticBatchShadowSubmission.h"
 #include <Component/LightComponent.h>
 #include <Component/cameraComponent.h>
 #include <Component/environmentMapComponent.h>
@@ -198,7 +200,6 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 				XMVECTOR camPos = mainCamPos.ToXMVECTOR();
 				XMVECTOR ld = transform->front().ToXMVECTOR();
-
 				XMVECTOR center = camPos;
 				float dist = shadowSize;
 
@@ -518,6 +519,20 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 	const int TILE_SIZE = (ATLAS_GRID > 0) ? (ATLAS_SIZE / ATLAS_GRID) : ATLAS_SIZE;
 	int shadowNum = 0;
 
+	SystemRegistry* systemRegistry =
+		m_context->sceneManager->GetSystemRegistry();
+	StaticBatchUploadSystem* staticBatchUploadSystem = systemRegistry
+		? systemRegistry->GetSystem<StaticBatchUploadSystem>()
+		: nullptr;
+	RHI::RenderHardwareInterfaceService* rhiService =
+		m_context->graphics->GetRHIService();
+	RHI::IRHIDevice* rhiDevice = rhiService
+		? rhiService->GetDevice()
+		: nullptr;
+	const bool canSubmitStaticShadow =
+		staticBatchUploadSystem && rhiDevice &&
+		rhiDevice->GetBackendType() == RHI::BackendType::Direct3D11;
+
 	for(int i = 0; i < lightCount; i++){
 
 		if(!light.Lights[i].Enable || !light.Lights[i].CastShadow){
@@ -550,8 +565,34 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 		const RenderPacketFrameBuffer& packetBuffer =
 			m_renderSystem->GetRenderPacketBuffer();
+		StaticBatchPacketReplacementSet replacements;
+		if(packetBuffer.IsReady() && canSubmitStaticShadow){
+			(void)StaticBatchShadowSubmission::Submit(
+				*rhiDevice,
+				*graphicsContext,
+				packetBuffer,
+				*staticBatchUploadSystem,
+				newContext.renderLayerVisibility,
+				static_cast<std::size_t>(maxLayer),
+				replacements
+			);
+
+			deviceContext->PSSetShader(
+				m_RenderablePixelShader->m_PixelShader.Get(),
+				nullptr,
+				0
+			);
+			deviceContext->PSSetSamplers(1, 1, &shadowSampler);
+			deviceContext->RSSetState(depthClampRS);
+		}
+
 		if(packetBuffer.IsReady()){
-			for(const RenderPacket& packet : packetBuffer.Packets()){
+			const std::span<const RenderPacket> packets = packetBuffer.Packets();
+			for(std::size_t packetIndex = 0;
+				packetIndex < packets.size();
+				++packetIndex){
+				if(replacements.Contains(packetIndex)) continue;
+				const RenderPacket& packet = packets[packetIndex];
 				if(!HasRenderPacketPass(packet.passMask, RenderPacketPassMask::Shadow)){
 					continue;
 				}
