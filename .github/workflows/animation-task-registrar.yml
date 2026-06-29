@@ -7,9 +7,11 @@ on:
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererRuntime.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Animation/AnimationInputRevision.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Animation/AnimationSourceSynchronization.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Animation/RenderSystemAnimationTaskRegistrar.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Animation/RenderSystemAnimationTasks.inl"
       - "Tests/AnimationInputRevisionSmokeTest.cpp"
+      - "Tests/AnimationSourceSynchronizationSmokeTest.cpp"
       - "Tests/RenderSystemAnimationTaskRegistrarSmokeTest.cpp"
       - "Tests/RenderSystemAnimationFrameDeltaSmokeTest.cpp"
       - ".github/workflows/animation-task-registrar.yml"
@@ -19,9 +21,11 @@ on:
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererRuntime.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Animation/AnimationInputRevision.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Animation/AnimationSourceSynchronization.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Animation/RenderSystemAnimationTaskRegistrar.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Animation/RenderSystemAnimationTasks.inl"
       - "Tests/AnimationInputRevisionSmokeTest.cpp"
+      - "Tests/AnimationSourceSynchronizationSmokeTest.cpp"
       - "Tests/RenderSystemAnimationTaskRegistrarSmokeTest.cpp"
       - "Tests/RenderSystemAnimationFrameDeltaSmokeTest.cpp"
       - ".github/workflows/animation-task-registrar.yml"
@@ -47,6 +51,8 @@ jobs:
             output: animation-frame-delta-test.exe
           - source: Tests/AnimationInputRevisionSmokeTest.cpp
             output: animation-input-revision-test.exe
+          - source: Tests/AnimationSourceSynchronizationSmokeTest.cpp
+            output: animation-source-synchronization-test.exe
     steps:
       - uses: actions/checkout@v4
         with:
