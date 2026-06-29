@@ -95,7 +95,7 @@ public:
 		for(const auto* worker : orderedWorkers){
 			for(const RenderPacket& packet : worker->Packets()){
 				if(ShouldPublish(packet)){
-					++publishablePacketCount;
+					publishablePacketCount += PublishedPacketMultiplicity(packet);
 				}
 
 				SceneContext* context = packet.bindings.sceneContext;
@@ -141,7 +141,7 @@ public:
 		for(const auto* worker : orderedWorkers){
 			for(const RenderPacket& packet : worker->Packets()){
 				if(!ShouldPublish(packet)) continue;
-				m_packets.push_back(packet);
+				AppendPublishedPacket(packet);
 			}
 		}
 
@@ -226,6 +226,48 @@ public:
 	}
 
 private:
+	static std::uint32_t ResolvedModelSubMeshCount(
+		const RenderPacket& packet
+	) noexcept {
+		if(packet.kind != RenderPacketKind::Model ||
+			!packet.TargetsAllSubMeshes() ||
+			!packet.bindings.modelRenderer){
+			return 0;
+		}
+		const std::shared_ptr<ModelData>& model =
+			packet.bindings.modelRenderer->model;
+		if(!model || !model->AiScene || !model->AiScene->mMeshes ||
+			model->AiScene->mNumMeshes == 0){
+			return 0;
+		}
+		return model->AiScene->mNumMeshes;
+	}
+
+	static size_t PublishedPacketMultiplicity(
+		const RenderPacket& packet
+	) noexcept {
+		const std::uint32_t subMeshCount = ResolvedModelSubMeshCount(packet);
+		return subMeshCount != 0
+			? static_cast<size_t>(subMeshCount)
+			: size_t{1};
+	}
+
+	void AppendPublishedPacket(const RenderPacket& packet){
+		const std::uint32_t subMeshCount = ResolvedModelSubMeshCount(packet);
+		if(subMeshCount == 0){
+			m_packets.push_back(packet);
+			return;
+		}
+
+		for(std::uint32_t subMeshIndex = 0;
+			subMeshIndex < subMeshCount;
+			++subMeshIndex){
+			RenderPacket scopedPacket = packet;
+			scopedPacket.subMeshIndex = subMeshIndex;
+			m_packets.push_back(std::move(scopedPacket));
+		}
+	}
+
 	static bool IsStaticBatchEligible(const RenderPacket& packet) noexcept {
 		return packet.kind == RenderPacketKind::Model ||
 			packet.kind == RenderPacketKind::Mesh;
