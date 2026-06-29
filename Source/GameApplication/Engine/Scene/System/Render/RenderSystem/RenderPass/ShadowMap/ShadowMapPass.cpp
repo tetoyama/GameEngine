@@ -21,6 +21,7 @@
 #include "Graphics/graphicsContext.h"
 #include "Graphics/RHI/RHIService.h"
 #include "Registry/systemRegistry.h"
+#include "System/Render/Culling/ShadowRenderPacketCullingView.h"
 #include "System/Render/RenderSystem/Renderable/Model/RenderableModel.h"
 #include "System/Render/StaticBatch/StaticBatchShadowSubmission.h"
 #include <Component/LightComponent.h>
@@ -565,6 +566,17 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 		const RenderPacketFrameBuffer& packetBuffer =
 			m_renderSystem->GetRenderPacketBuffer();
+		const RenderPacketCullingView shadowCullingView =
+			ShadowRenderPacketCullingView::Build(
+				newContext,
+				ctx.cullingViewKind,
+				ctx.cullingViewInstanceID,
+				static_cast<std::uint32_t>(shadowNum)
+			);
+		if(packetBuffer.IsReady()){
+			m_renderSystem->PrepareRenderPacketView(shadowCullingView);
+		}
+
 		StaticBatchPacketReplacementSet replacements;
 		if(packetBuffer.IsReady() && canSubmitStaticShadow){
 			(void)StaticBatchShadowSubmission::Submit(
@@ -572,6 +584,8 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 				*graphicsContext,
 				packetBuffer,
 				*staticBatchUploadSystem,
+				m_renderSystem->GetCullingVisibility(),
+				shadowCullingView,
 				newContext.renderLayerVisibility,
 				static_cast<std::size_t>(maxLayer),
 				replacements
@@ -594,6 +608,12 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 				if(replacements.Contains(packetIndex)) continue;
 				const RenderPacket& packet = packets[packetIndex];
 				if(!HasRenderPacketPass(packet.passMask, RenderPacketPassMask::Shadow)){
+					continue;
+				}
+				if(!m_renderSystem->ShouldRenderPacket(
+					shadowCullingView,
+					packet
+				)){
 					continue;
 				}
 
