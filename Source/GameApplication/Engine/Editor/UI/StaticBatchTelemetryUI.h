@@ -95,6 +95,11 @@ inline void DrawShadowTelemetry(const StaticBatchUploadSystem* upload){
 	if(BeginMetricTable("StaticBatchShadowSubmissionTelemetry")){
 		DrawMetricRow("Light Tile Attempts", t.submissionAttemptCount, "Attempts since telemetry reset");
 		DrawMetricRow("Candidate Group Visits", t.candidateGroupCount, "Groups evaluated across all light tiles");
+		DrawMetricRow("Visible Instances", t.visibleInstanceCount, "Instances visible from light views");
+		DrawMetricRow("Culled Instances", t.culledInstanceCount, "Instances outside light frustums");
+		DrawMetricRow("Fully Culled Groups", t.fullyCulledGroupCount, "Groups omitted from static and ordinary shadow draws");
+		DrawMetricRow("Mixed Visibility Fallback", t.mixedVisibilityFallbackCount, "Partially visible groups kept on ordinary packet path");
+		DrawMetricRow("Visibility Failures", t.visibilityFailureCount, "Invalid group range or visibility mapping");
 		DrawMetricRow("Submitted Groups", t.submittedGroupCount, "Instanced shadow groups submitted");
 		DrawMetricRow("Submitted Instances", t.submittedInstanceCount, "Ordinary shadow draws replaced");
 		DrawMetricRow("Ordinary Draws Replaced", t.ReplacedOrdinaryDrawCount(), "Ordinary model shadow draws removed");
