@@ -21,6 +21,7 @@ on:
       - "Source/GameApplication/Service/Graphics/RHI/**"
       - "Source/Shader/StaticBatchVS.hlsl"
       - "Source/Shader/StaticBatchGBufferPS.hlsl"
+      - "Source/Shader/shadowPS.hlsl"
       - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
       - "Tests/StaticBatchResourceKeySmokeTest.cpp"
       - "Tests/StaticBatchResourceKeyUVSmokeTest.cpp"
@@ -32,6 +33,7 @@ on:
       - "Tests/StaticBatchInstanceInputLayoutSmokeTest.cpp"
       - "Tests/StaticBatchGroupVisibilitySmokeTest.cpp"
       - "Tests/StaticBatchPipelineBootstrapSmokeTest.cpp"
+      - "Tests/StaticBatchShadowPipelineSmokeTest.cpp"
       - "Tests/StaticBatchDrawSubmissionSmokeTest.cpp"
       - "Tests/StaticBatchPacketIndexMappingSmokeTest.cpp"
       - "Tests/StaticBatchPacketReplacementSetSmokeTest.cpp"
@@ -59,6 +61,7 @@ on:
       - "Source/GameApplication/Service/Graphics/RHI/**"
       - "Source/Shader/StaticBatchVS.hlsl"
       - "Source/Shader/StaticBatchGBufferPS.hlsl"
+      - "Source/Shader/shadowPS.hlsl"
       - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
       - "Tests/StaticBatchResourceKeySmokeTest.cpp"
       - "Tests/StaticBatchResourceKeyUVSmokeTest.cpp"
@@ -70,6 +73,7 @@ on:
       - "Tests/StaticBatchInstanceInputLayoutSmokeTest.cpp"
       - "Tests/StaticBatchGroupVisibilitySmokeTest.cpp"
       - "Tests/StaticBatchPipelineBootstrapSmokeTest.cpp"
+      - "Tests/StaticBatchShadowPipelineSmokeTest.cpp"
       - "Tests/StaticBatchDrawSubmissionSmokeTest.cpp"
       - "Tests/StaticBatchPacketIndexMappingSmokeTest.cpp"
       - "Tests/StaticBatchPacketReplacementSetSmokeTest.cpp"
@@ -115,6 +119,8 @@ jobs:
             output: static-batch-group-visibility-test.exe
           - source: Tests/StaticBatchPipelineBootstrapSmokeTest.cpp
             output: static-batch-pipeline-bootstrap-test.exe
+          - source: Tests/StaticBatchShadowPipelineSmokeTest.cpp
+            output: static-batch-shadow-pipeline-test.exe
           - source: Tests/StaticBatchDrawSubmissionSmokeTest.cpp
             output: static-batch-draw-submission-test.exe
           - source: Tests/StaticBatchPacketIndexMappingSmokeTest.cpp
@@ -166,3 +172,6 @@ jobs:
           fxc /nologo /T vs_5_0 /E main /I Source\Shader /Fo StaticBatchVS.cso Source\Shader\StaticBatchVS.hlsl
           if errorlevel 1 exit /b 1
           fxc /nologo /T ps_5_0 /E main /I Source\Shader /Fo StaticBatchGBufferPS.cso Source\Shader\StaticBatchGBufferPS.hlsl
+          if errorlevel 1 exit /b 1
+          fxc /nologo /T ps_5_0 /E main /I Source\Shader /Fo StaticBatchShadowPS.cso Source\Shader\shadowPS.hlsl
+          if errorlevel 1 exit /b 1
