@@ -6,7 +6,6 @@
 #pragma once
 #include "../IRenderPass.h"
 #include "Graphics/mainRenderer.h"
-#include "System/Render/StaticBatch/StaticBatchShadowSubmissionTelemetry.h"
 #include <d3d11.h>
 #include <memory>
 #include <vector>
@@ -22,11 +21,6 @@ public:
 	void Finalize() override;
 	void Execute(const RenderPassContext& ctx) override;
 
-	const StaticBatchShadowSubmissionTelemetry&
-	GetStaticBatchTelemetry() const noexcept {
-		return m_staticBatchTelemetry;
-	}
-
 	std::shared_ptr<PixelShaderData> m_RenderablePixelShader;
 
 	std::vector<IRenderable*> renderables;
@@ -36,5 +30,4 @@ public:
 
 private:
 	void RenderShadowScene(const RenderPassContext& ctx);
-	StaticBatchShadowSubmissionTelemetry m_staticBatchTelemetry;
 };
