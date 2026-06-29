@@ -14,6 +14,7 @@ inline void ResetAnimationRuntime(ModelRendererComponent& component){
 	component.cpuSkinnedVertices.clear();
 	component.animationPoseRevision = 0;
 	component.animationPoseSourceModelRevision = 0;
+	component.animationPoseSourceInputRevision = 0;
 	component.animationUploadFailureCount = 0;
 	component.animationPoseReady = false;
 	component.cpuSkinningReady = false;
