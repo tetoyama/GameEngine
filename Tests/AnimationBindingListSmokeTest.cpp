@@ -1,31 +1,30 @@
 #include <cassert>
 
-#include "Engine/Scene/Component/modelRendererComponent.h"
 #include "Engine/Scene/System/Render/Animation/AnimationBindingList.h"
 
 int main(){
-	ModelRendererComponent component;
-	assert(!AnimationBindingList::Contains(component, "Asset/Run.fbx"));
-	assert(!AnimationBindingList::AddUnique(component, "", "Asset/Run.fbx"));
-	assert(!AnimationBindingList::AddUnique(component, "Run", ""));
+	AnimationBindingList::BindingList bindings;
+	assert(!AnimationBindingList::Contains(bindings, "Asset/Run.fbx"));
+	assert(!AnimationBindingList::AddUnique(bindings, "", "Asset/Run.fbx"));
+	assert(!AnimationBindingList::AddUnique(bindings, "Run", ""));
 	assert(AnimationBindingList::AddUnique(
-		component,
+		bindings,
 		"Run",
 		"Asset/Run.fbx"
 	));
-	assert(AnimationBindingList::Contains(component, "Asset/Run.fbx"));
-	assert(component.animations.size() == 1);
+	assert(AnimationBindingList::Contains(bindings, "Asset/Run.fbx"));
+	assert(bindings.size() == 1);
 	assert(!AnimationBindingList::AddUnique(
-		component,
+		bindings,
 		"RunAlias",
 		"Asset/Run.fbx"
 	));
-	assert(component.animations.size() == 1);
+	assert(bindings.size() == 1);
 	assert(AnimationBindingList::AddUnique(
-		component,
+		bindings,
 		"Walk",
 		"Asset/Walk.fbx"
 	));
-	assert(component.animations.size() == 2);
+	assert(bindings.size() == 2);
 	return 0;
 }
