@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <span>
 
 #include "System/Render/StaticBatch/StaticBatchModelMaterialResolver.h"
@@ -43,7 +44,11 @@ inline StaticBatchShadowGroupEligibilityResult Resolve(
 		return result;
 	}
 	if(group.firstInstance > packetIndices.size() ||
-		group.instanceCount > packetIndices.size() - group.firstInstance){
+		group.instanceCount > packetIndices.size() - group.firstInstance ||
+		group.firstInstance >
+			static_cast<std::size_t>((std::numeric_limits<std::uint32_t>::max)()) ||
+		group.instanceCount >
+			static_cast<std::size_t>((std::numeric_limits<std::uint32_t>::max)())){
 		result.rejectReason =
 			StaticBatchShadowGroupRejectReason::InvalidPacketRange;
 		return result;
