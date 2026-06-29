@@ -20,6 +20,23 @@ RenderPacket MakePacket(Entity entity, SceneContext* context){
 	return packet;
 }
 
+RenderPacketCullingView MakeShadowView(
+	CullingViewKind parentKind,
+	std::uint32_t parentInstanceID,
+	std::uint32_t tileIndex
+){
+	RenderPacketCullingView view;
+	view.kind = CullingViewKind::Shadow;
+	view.instanceID = ShadowRenderPacketCullingView::MakeInstanceID(
+		parentKind,
+		parentInstanceID,
+		tileIndex
+	);
+	view.viewProjection =
+		DirectX::XMMatrixOrthographicLH(2.0f, 2.0f, 0.0f, 20.0f);
+	return view;
+}
+
 } // namespace
 
 int main(){
@@ -71,32 +88,12 @@ int main(){
 	playerView.viewProjection =
 		DirectX::XMMatrixOrthographicLH(20.0f, 20.0f, 0.0f, 20.0f);
 
-	RenderPassContext shadowContext{};
-	shadowContext.viewMatrix = DirectX::XMMatrixIdentity();
-	shadowContext.projectionMatrix =
-		DirectX::XMMatrixOrthographicLH(2.0f, 2.0f, 0.0f, 20.0f);
-
 	const RenderPacketCullingView shadowView =
-		ShadowRenderPacketCullingView::Build(
-			shadowContext,
-			CullingViewKind::Player,
-			0,
-			0
-		);
+		MakeShadowView(CullingViewKind::Player, 0, 0);
 	const RenderPacketCullingView playerSecondTile =
-		ShadowRenderPacketCullingView::Build(
-			shadowContext,
-			CullingViewKind::Player,
-			0,
-			1
-		);
+		MakeShadowView(CullingViewKind::Player, 0, 1);
 	const RenderPacketCullingView editorShadowView =
-		ShadowRenderPacketCullingView::Build(
-			shadowContext,
-			CullingViewKind::Editor,
-			0,
-			0
-		);
+		MakeShadowView(CullingViewKind::Editor, 0, 0);
 
 	RenderPacketCullingView invalidShadowView;
 	invalidShadowView.kind = CullingViewKind::Shadow;
