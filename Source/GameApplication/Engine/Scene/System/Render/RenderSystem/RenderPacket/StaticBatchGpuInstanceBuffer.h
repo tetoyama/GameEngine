@@ -15,6 +15,7 @@ struct StaticBatchGpuInstanceBufferTelemetry {
 	std::size_t uploadCount = 0;
 	std::size_t reallocationCount = 0;
 	std::size_t failedUploadCount = 0;
+	std::size_t growthDeniedCount = 0;
 	std::uint64_t uploadedSourceRevision = 0;
 	bool valid = false;
 };
@@ -24,10 +25,35 @@ public:
 	static constexpr std::uint32_t InstanceStride =
 		static_cast<std::uint32_t>(sizeof(StaticBatchInstanceData));
 
+	bool Reserve(
+		RHI::IRHIDevice& device,
+		std::size_t instanceCapacity
+	){
+		if(instanceCapacity == 0 ||
+			(m_buffer && instanceCapacity <= m_instanceCapacity)){
+			return true;
+		}
+		if(EnsureCapacity(device, instanceCapacity, true)){
+			return true;
+		}
+		++m_failedUploadCount;
+		InvalidateUploadState();
+		return false;
+	}
+
 	bool Synchronize(
 		RHI::IRHIDevice& device,
 		RHI::IRHICommandList& commandList,
 		const StaticBatchInstanceDataBuffer& source
+	){
+		return Synchronize(device, commandList, source, true);
+	}
+
+	bool Synchronize(
+		RHI::IRHIDevice& device,
+		RHI::IRHICommandList& commandList,
+		const StaticBatchInstanceDataBuffer& source,
+		bool allowRuntimeGrowth
 	){
 		if(!source.IsValid() || source.IsOverflowed()){
 			InvalidateUploadState();
@@ -37,7 +63,8 @@ public:
 			device,
 			commandList,
 			source.Instances(),
-			source.SourceRevision()
+			source.SourceRevision(),
+			allowRuntimeGrowth
 		);
 	}
 
@@ -46,6 +73,22 @@ public:
 		RHI::IRHICommandList& commandList,
 		std::span<const StaticBatchInstanceData> instances,
 		std::uint64_t sourceRevision
+	){
+		return Upload(
+			device,
+			commandList,
+			instances,
+			sourceRevision,
+			true
+		);
+	}
+
+	bool Upload(
+		RHI::IRHIDevice& device,
+		RHI::IRHICommandList& commandList,
+		std::span<const StaticBatchInstanceData> instances,
+		std::uint64_t sourceRevision,
+		bool allowRuntimeGrowth
 	){
 		if(instances.empty()){
 			m_currentInstanceCount = 0;
@@ -60,7 +103,7 @@ public:
 			return true;
 		}
 
-		if(!EnsureCapacity(device, instances.size())){
+		if(!EnsureCapacity(device, instances.size(), allowRuntimeGrowth)){
 			++m_failedUploadCount;
 			InvalidateUploadState();
 			return false;
@@ -121,6 +164,7 @@ public:
 			m_uploadCount,
 			m_reallocationCount,
 			m_failedUploadCount,
+			m_growthDeniedCount,
 			m_uploadedSourceRevision,
 			m_valid
 		};
@@ -130,6 +174,7 @@ public:
 		m_uploadCount = 0;
 		m_reallocationCount = 0;
 		m_failedUploadCount = 0;
+		m_growthDeniedCount = 0;
 	}
 
 private:
@@ -147,9 +192,17 @@ private:
 		return capacity;
 	}
 
-	bool EnsureCapacity(RHI::IRHIDevice& device, std::size_t requiredCapacity){
+	bool EnsureCapacity(
+		RHI::IRHIDevice& device,
+		std::size_t requiredCapacity,
+		bool allowRuntimeGrowth
+	){
 		if(m_buffer && requiredCapacity <= m_instanceCapacity){
 			return true;
+		}
+		if(!allowRuntimeGrowth){
+			++m_growthDeniedCount;
+			return false;
 		}
 
 		const std::size_t newCapacity = ResolveCapacity(
@@ -197,6 +250,7 @@ private:
 	std::size_t m_uploadCount = 0;
 	std::size_t m_reallocationCount = 0;
 	std::size_t m_failedUploadCount = 0;
+	std::size_t m_growthDeniedCount = 0;
 	std::uint64_t m_uploadedSourceRevision = 0;
 	bool m_valid = false;
 };
