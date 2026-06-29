@@ -3,8 +3,7 @@
 #include <string>
 #include <string_view>
 
-#include "Scene/Component/modelRendererComponent.h"
-
+// ModelRendererComponent定義後にincludeする軽量Helper。
 namespace AnimationBindingList {
 
 inline bool Contains(
