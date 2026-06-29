@@ -26,7 +26,7 @@ Static BatchのCPU GroupとGPU Instance Bufferを、既存GBufferへ安全に接
 - Animation / Dynamic Vertex Bufferなし
 - Vertex / Index Bufferが有効
 - Geometry Resource Keyが一致
-- 2 Instance以上
+- 可視Instanceが2個以上
 
 複数SubMesh ModelはFrame Buffer公開境界でSubMesh単位Packetへ展開する。
 
@@ -102,16 +102,38 @@ Static Batch側では次をSubMesh Scopeへ対応した。
 - Normal Mapを参照するGroupは初期Static Draw対象外
 - Packet由来Material解決とAssimp Material解決を分離し、単体TestはAssimp Linkへ依存しない
 
-### Visibility
+### View別Visibility再圧縮
 
-Group可視性は次の保守的契約とする。
+Player / Editor GBuffer Passごとに独立した可視Instance選択とGPU Bufferを所有する。
 
-- 全Instance可視: Instanced Draw候補
-- 全Instance不可視: Group全体をSkip可能
-- 可視・不可視混在: 通常Packet描画へFallback
-- 無効Range / Context不整合: 通常Packet描画へFallback
+`StaticBatchVisibleInstanceBuffer`はSource Groupを次のように再構築する。
 
-Instance Bufferの部分詰め直しは初期実装では行わない。
+- 全Instance可視: GroupをそのままView-local Groupへコピー
+- 全Instance不可視: GroupをView-local Bufferから除外
+- 可視・不可視混在: 可視Instanceと対応Packet Indexだけを連続領域へ再圧縮
+- 無効Group Partition / Packet Mapping: 全Static提出を中止し、通常Packet描画へFallback
+- Growth禁止時Capacity不足: OverflowとしてStatic提出を中止
+
+再圧縮結果は次を保持する。
+
+- View-local `StaticBatchInstanceGroup`
+- View-local `StaticBatchInstanceData`
+- 可視Packet Index
+- 元Source Group Index
+- Source Revision
+- View Revision
+- Visibility Mask込みSelection Revision
+
+元Source Group Indexを保持することで、再圧縮後も`StaticBatchGeometryBindingCache::FindByGroupIndex`から正しいGeometry Bindingを取得する。
+
+View Revisionは次を組み合わせる。
+
+- `CullingVisibilitySet::FrameSerial()`
+- Camera Entity
+- `CullingViewKind`
+- View Instance ID
+
+Visibility View未構築・Overflow時は既存`ShouldRender`契約により全描画Fallbackとなる。
 
 ### Draw Submission Boundary
 
@@ -146,14 +168,18 @@ Instance Bufferの部分詰め直しは初期実装では行わない。
 
 GBuffer Passで次を実装した。
 
-1. Static Pipeline / Geometry / Instance Buffer / GBuffer Viewを検証
-2. Instance Upload Source Revisionを検証
-3. Group Visibilityを評価
-4. Representative PacketからMaterial / Texture / UV状態を解決
-5. `DrawIndexedInstanced`を提出
-6. Graphics Queue Submit成功GroupだけReplacement Setへ登録
-7. 通常Packet LoopでReplacement Set登録PacketだけをSkip
-8. Static Draw後に通常GBuffer Shader / Input Layout / Samplerを復元
+1. Static Pipeline / Geometry Cache / GBuffer Viewを検証
+2. Source Packet Cache / CPU Instance Data Revisionを検証
+3. Player / Editor Viewごとに可視Instanceを再圧縮
+4. Selection Revision単位でView-local GPU Instance BufferへUpload
+5. 元Source Group IndexからGeometry Bindingを解決
+6. Representative PacketからMaterial / Texture / UV状態を解決
+7. `DrawIndexedInstanced`を提出
+8. Graphics Queue Submit成功Groupの可視PacketだけReplacement Setへ登録
+9. 通常Packet LoopでReplacement Set登録PacketだけをSkip
+10. Static Draw後に通常GBuffer Shader / Input Layout / Samplerを復元
+
+混在可視Groupでは、可視PacketだけStatic Drawへ置換し、不可視Packetは通常Loopへ残る。通常Loop側のView Cullingにより不可視Packetは描画されない。
 
 どの段階で失敗しても、該当SubMesh Packetの通常RenderPacketは残る。
 
@@ -175,8 +201,26 @@ Packet Mappingの安全契約:
 Static Draw成功後は`StaticBatchPacketReplacementSet`へGroup全体を原子的に登録する。
 
 - Group内に不正Packet Indexが一つでもあればDraw前にFallback
-- 成功GroupのSubMesh Packetだけ通常描画から除外
-- Draw失敗Group、混在可視Group、Material非対応Groupは通常描画へ残す
+- 成功した可視SubMesh Packetだけ通常描画から除外
+- Draw失敗Group、単一可視Instance Group、Material非対応Groupは通常描画へ残す
+
+### Picking契約
+
+通常GBufferとStatic GBufferは`MakeGBufferParameter`を共有し、Param TargetのChannel順を固定する。
+
+- x: Scene ID
+- y: Entity Index / Object ID
+- z: Shader ID
+- w: Material Flags
+
+Static Instance入力側もChannel定義を共通化した。
+
+- x: Entity Index
+- y: Entity Generation
+- z: Scene ID
+- w: Reserved
+
+Editor Pickingは既存どおりScene IDとEntity Indexから`EntityRegistry::Resolve`する。GenerationはInstance Payloadに保持するが、既存Param Target互換のため書き込まない。
 
 ### Telemetry
 
@@ -184,33 +228,50 @@ GBuffer Passごとに次をFrame単位で保持する。
 
 - Source Revision
 - Candidate / Submitted Group数
+- View可視 / Culling Instance数
+- 再圧縮した混在Group数
+- Visibility Selection失敗数
 - Submitted Instance数
 - 置換した通常Draw Call数
 - Static Draw Call数
 - 推定Draw Call削減数
 - Single Instance Fallback
 - Packet Range / Layer Fallback
-- Culled / Mixed Visibility Group数
+- 全不可視Group数
 - Geometry / Material Fallback
 - Draw / Queue / Target Binding失敗
-- Pipeline / Instance Upload Ready状態
+- Pipeline / View-local Instance Upload Ready状態
 
 1 Packetが1 SubMesh Drawに対応するため、推定Draw Call削減数は次で求める。
 
 `Submitted Instance数 - Submitted Group数`
 
-Project Settingsへ`Static Batch`タブを追加し、次を同時表示する。
+Project Settingsへ`Static Batch`タブを追加し、Player / Editor別に次を表示する。
 
-- GPU Instance Upload状態
-- Geometry Binding Cache状態
-- Player GBuffer提出結果
-- Editor GBuffer提出結果
+- View可視 / Culling Instance数
+- 再圧縮した混在Group数
 - Draw Call削減数
 - 各Fallback理由
+- Source GPU Upload状態
+- Geometry Binding Cache状態
 
 ### Smoke Coverage
 
 Static Batch Foundation Workflowは17個のC++ Smoke TestとFXC Shader Contractを実行する。
+
+追加の専用Workflow:
+
+- `Static Batch Picking Contract`
+  - C++ Channel契約
+  - 通常GBuffer PS
+  - Static GBuffer PS
+- `Static Batch Visible Instance Contract`
+  - 混在Group再圧縮
+  - 全不可視Group除外
+  - Source Group Index保持
+  - Cache Hit時Telemetry保持
+  - Group Partition拒否
+  - Growth禁止時Overflow
 
 SubMesh関連の専用契約:
 
@@ -224,12 +285,13 @@ SubMesh関連の専用契約:
 - Windows Debug / Release x64のコンパイル確認
 - Script Debug / Release x64のコンパイル確認
 - Static Batch Foundation全Smoke Test確認
+- Static Batch Picking Contract確認
+- Static Batch Visible Instance Contract確認
 - D3D11 Static Batch Interop実機Smoke確認
 - Player / Editor View実機描画回帰
 - Telemetry削減値とRenderDoc Draw Call差分の実機照合
-- 部分可視GroupのInstance再圧縮
+- Static Pickingクリック実機回帰
 - Static Shadow Batch提出
-- Static Picking専用回帰確認
 - Batch Culling展開
 
 ## Compile Gate
@@ -239,6 +301,8 @@ SubMesh関連の専用契約:
 - Windows Build Debug / Release x64
 - Script Build Debug / Release x64
 - Static Batch Foundation Smoke Test
+- Static Batch Picking Contract
+- Static Batch Visible Instance Contract
 - D3D11 Static Batch Interop Smoke
 - RHI Smoke Test
 - D3D11 Real Triangle Smoke
