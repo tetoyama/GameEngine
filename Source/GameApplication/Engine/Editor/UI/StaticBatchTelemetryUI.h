@@ -102,6 +102,7 @@ inline void DrawShadowTelemetry(const StaticBatchUploadSystem* upload){
 		DrawMetricRow("Estimated Draw Reduction", t.EstimatedDrawCallReduction(), "Replaced minus static draws");
 		DrawMetricRow("Mapping Fallback", t.mappingFallbackCount, "CPU/cache group mismatch");
 		DrawMetricRow("Eligibility Fallback", t.eligibilityFallbackCount, "Eligibility contract unavailable");
+		DrawMetricRow("Texture Binding Fallback", t.textureBindingFallbackCount, "Diffuse SRV or sampler unavailable");
 		DrawMetricRow("Layer Fallback", t.layerFallbackCount, "Hidden or invalid layers");
 		DrawMetricRow("Geometry Fallback", t.geometryFallbackCount, "Geometry unavailable");
 		DrawMetricRow("Draw Failures", t.drawFailureCount, "Draw creation failures");
