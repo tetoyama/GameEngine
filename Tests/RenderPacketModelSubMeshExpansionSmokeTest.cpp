@@ -44,7 +44,7 @@ int main(){
 	scene->mMeshes[1]->mNumVertices = 6;
 	scene->mMeshes[1]->mNumFaces = 2;
 	scene->mMeshes[1]->mMaterialIndex = 1;
-	scene->mNumMaterials = 2;
+	scene->mNumMaterials = 0;
 
 	auto model = std::make_shared<ModelData>();
 	model->AiScene = scene.get();
