@@ -13,10 +13,10 @@
 #include "System/Render/StaticBatch/StaticBatchDrawSubmission.h"
 #include "System/Render/StaticBatch/StaticBatchPacketReplacementSet.h"
 #include "System/Render/StaticBatch/StaticBatchShadowGroupEligibility.h"
-#include "System/Render/StaticBatch/StaticBatchShadowGroupVisibility.h"
 #include "System/Render/StaticBatch/StaticBatchShadowPixelState.h"
 #include "System/Render/StaticBatch/StaticBatchShadowSubmissionTelemetry.h"
 #include "System/Render/StaticBatch/StaticBatchUploadSystem.h"
+#include "System/Render/StaticBatch/StaticBatchViewSelectionPolicy.h"
 
 namespace StaticBatchShadowSubmission {
 
@@ -83,15 +83,80 @@ inline StaticBatchShadowSubmissionTelemetry Submit(
 	const StaticBatchInstanceDataBuffer& source =
 		frameBuffer.StaticBatchInstances();
 	const StaticBatchPacketCache& cache = frameBuffer.StaticBatchCache();
-	const StaticBatchGpuInstanceBuffer& gpuInstances =
-		uploadSystem.GetGpuInstanceBuffer();
 	telemetry.candidateGroupCount = source.Groups().size();
 	if(!source.IsValid() || source.IsOverflowed() ||
 		!cache.IsValid() || cache.IsOverflowed() ||
-		!gpuInstances.CanSubmit() ||
-		gpuInstances.UploadedSourceRevision() != source.SourceRevision() ||
 		cache.SourceRevision() != source.SourceRevision() ||
-		cache.Entries().size() != source.Groups().size()){
+		cache.Entries().size() != source.Groups().size() ||
+		cache.PacketIndices().size() != source.Instances().size()){
+		return telemetry;
+	}
+
+	const std::span<const RenderPacket> packets = frameBuffer.Packets();
+	const std::span<const StaticBatchInstanceGroup> sourceGroups =
+		source.Groups();
+	const std::span<const StaticBatchPacketCacheEntry> cacheEntries =
+		cache.Entries();
+	const std::span<const std::size_t> sourcePacketIndices =
+		cache.PacketIndices();
+	for(const std::size_t packetIndex : sourcePacketIndices){
+		if(packetIndex >= packets.size()){
+			++telemetry.visibilityFailureCount;
+			return telemetry;
+		}
+	}
+
+	const StaticBatchViewSelectionStoragePolicy storagePolicy =
+		StaticBatchViewSelectionPolicy::ResolveStorage(
+			sourceGroups,
+			packets
+		);
+	if(!storagePolicy.valid){
+		++telemetry.visibilityFailureCount;
+		return telemetry;
+	}
+
+	StaticBatchVisibleInstanceBuffer& visibleInstances =
+		uploadSystem.GetShadowVisibleInstanceBuffer();
+	visibleInstances.Reserve(
+		storagePolicy.reserveCount,
+		storagePolicy.reserveCount
+	);
+	if(!visibleInstances.Build(
+		sourceGroups,
+		source.Instances(),
+		sourcePacketIndices,
+		source.SourceRevision(),
+		StaticBatchViewSelectionPolicy::MakeViewRevision(
+			visibility,
+			cullingView
+		),
+		storagePolicy.allowRuntimeGrowth,
+		[&](const StaticBatchInstanceData&, std::size_t sourceIndex){
+			return RenderPacketViewCulling::ShouldRender(
+				visibility,
+				cullingView,
+				packets[sourcePacketIndices[sourceIndex]]
+			);
+		}
+	)){
+		++telemetry.visibilityFailureCount;
+		return telemetry;
+	}
+
+	const StaticBatchVisibleInstanceBufferTelemetry visibilityTelemetry =
+		visibleInstances.Telemetry();
+	telemetry.visibleInstanceCount = visibilityTelemetry.visibleInstanceCount;
+	telemetry.culledInstanceCount = visibilityTelemetry.culledInstanceCount;
+	telemetry.fullyCulledGroupCount =
+		visibilityTelemetry.allCulledGroupCount;
+	telemetry.compactedMixedGroupCount = visibilityTelemetry.mixedGroupCount;
+	if(visibleInstances.Instances().empty()) return telemetry;
+
+	StaticBatchGpuInstanceBuffer& visibleGpuInstances =
+		uploadSystem.GetShadowVisibleGpuInstanceBuffer();
+	if(!visibleGpuInstances.Reserve(device, storagePolicy.reserveCount)){
+		++telemetry.instanceUploadFailureCount;
 		return telemetry;
 	}
 
@@ -108,52 +173,47 @@ inline StaticBatchShadowSubmissionTelemetry Submit(
 		return telemetry;
 	}
 
-	const std::span<const RenderPacket> packets = frameBuffer.Packets();
-	const std::span<const std::size_t> packetIndices = cache.PacketIndices();
-	const std::span<const StaticBatchPacketCacheEntry> cacheEntries =
-		cache.Entries();
-	const std::span<const StaticBatchInstanceGroup> groups = source.Groups();
+	const std::span<const StaticBatchInstanceGroup> groups =
+		visibleInstances.Groups();
+	const std::span<const std::size_t> sourceGroupIndices =
+		visibleInstances.SourceGroupIndices();
+	const std::span<const std::size_t> packetIndices =
+		visibleInstances.PacketIndices();
+	if(sourceGroupIndices.size() != groups.size()){
+		++telemetry.visibilityFailureCount;
+		return telemetry;
+	}
+
 	std::vector<std::size_t> submittedGroups;
 	submittedGroups.reserve(groups.size());
 
 	commandList->Begin();
+	if(!visibleGpuInstances.Upload(
+		device,
+		*commandList,
+		visibleInstances.Instances(),
+		visibleInstances.SelectionRevision(),
+		storagePolicy.allowRuntimeGrowth
+	)){
+		commandList->End();
+		++telemetry.instanceUploadFailureCount;
+		return telemetry;
+	}
+
 	for(std::size_t groupIndex = 0; groupIndex < groups.size(); ++groupIndex){
 		const StaticBatchInstanceGroup& group = groups[groupIndex];
-		if(!IsGroupMappingEquivalent(group, cacheEntries[groupIndex])){
+		const std::size_t sourceGroupIndex = sourceGroupIndices[groupIndex];
+		if(sourceGroupIndex >= sourceGroups.size() ||
+			sourceGroupIndex >= cacheEntries.size() ||
+			!IsGroupMappingEquivalent(
+				sourceGroups[sourceGroupIndex],
+				cacheEntries[sourceGroupIndex]
+			)){
 			++telemetry.mappingFallbackCount;
 			continue;
 		}
-
-		const StaticBatchShadowGroupVisibilityResult groupVisibility =
-			StaticBatchShadowGroupVisibility::Resolve(
-				group,
-				packetIndices,
-				packets.size(),
-				[&](std::size_t packetIndex){
-					return RenderPacketViewCulling::ShouldRender(
-						visibility,
-						cullingView,
-						packets[packetIndex]
-					);
-				}
-			);
-		if(groupVisibility.kind ==
-			StaticBatchShadowGroupVisibilityKind::Invalid){
-			++telemetry.visibilityFailureCount;
-			continue;
-		}
-		telemetry.visibleInstanceCount +=
-			groupVisibility.visibleInstanceCount;
-		telemetry.culledInstanceCount +=
-			groupVisibility.culledInstanceCount;
-		if(groupVisibility.kind ==
-			StaticBatchShadowGroupVisibilityKind::AllCulled){
-			++telemetry.fullyCulledGroupCount;
-			continue;
-		}
-		if(groupVisibility.kind ==
-			StaticBatchShadowGroupVisibilityKind::Mixed){
-			++telemetry.mixedVisibilityFallbackCount;
+		if(group.instanceCount < 2){
+			++telemetry.singleInstanceFallbackCount;
 			continue;
 		}
 
@@ -177,7 +237,9 @@ inline StaticBatchShadowSubmissionTelemetry Submit(
 		}
 
 		const StaticBatchD3D11GeometryBinding* geometry =
-			uploadSystem.GetGeometryBindingCache().FindByGroupIndex(groupIndex);
+			uploadSystem.GetGeometryBindingCache().FindByGroupIndex(
+				sourceGroupIndex
+			);
 		if(!geometry || !geometry->IsReady() ||
 			geometry->GeometryResourceKey() != group.key.geometryKey){
 			++telemetry.geometryFallbackCount;
@@ -204,7 +266,7 @@ inline StaticBatchShadowSubmissionTelemetry Submit(
 			uploadSystem.GetShadowPipelineResources().PipelineState();
 		draw.vertexBuffer = geometry->VertexBuffer();
 		draw.indexBuffer = geometry->IndexBuffer();
-		draw.instanceBuffer = gpuInstances.Buffer();
+		draw.instanceBuffer = visibleGpuInstances.Buffer();
 		draw.vertexStride = geometry->VertexStride();
 		draw.indexFormat = geometry->IndexFormat();
 		draw.indexCount = geometry->IndexCount();
