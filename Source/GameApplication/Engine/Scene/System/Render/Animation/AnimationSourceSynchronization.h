@@ -25,4 +25,24 @@ bool Synchronize(
 	return imported;
 }
 
+template<typename Component>
+bool Synchronize(Component& component){
+	if(!component.model) return false;
+	return Synchronize(
+		component.animations,
+		[&component](const std::string& assetPath){
+			return component.model->HasImportedAnimationSource(assetPath);
+		},
+		[&component](
+			const std::string& alias,
+			const std::string& assetPath
+		){
+			component.model->LoadAnimationSource(
+				assetPath.c_str(),
+				alias.c_str()
+			);
+		}
+	);
+}
+
 } // namespace AnimationSourceSynchronization
