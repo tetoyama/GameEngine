@@ -174,16 +174,31 @@ public:
 		return m_renderPacketBuffer;
 	}
 
+	void PrepareRenderPacketView(const RenderPacketCullingView& view){
+		RenderPacketViewCulling::Prepare(
+			m_cullingVisibility,
+			m_renderPacketBuffer,
+			view
+		);
+	}
+
 	void PrepareRenderPacketView(const RenderPassContext& context){
 		RenderPacketCullingView view;
 		view.camera = context.cameraData.ref.GetEntityID();
 		view.kind = context.cullingViewKind;
 		view.instanceID = context.cullingViewInstanceID;
 		view.viewProjection = context.viewMatrix * context.projectionMatrix;
-		RenderPacketViewCulling::Prepare(
+		PrepareRenderPacketView(view);
+	}
+
+	bool ShouldRenderPacket(
+		const RenderPacketCullingView& view,
+		const RenderPacket& packet
+	) const {
+		return RenderPacketViewCulling::ShouldRender(
 			m_cullingVisibility,
-			m_renderPacketBuffer,
-			view
+			view,
+			packet
 		);
 	}
 
@@ -196,11 +211,7 @@ public:
 		view.kind = context.cullingViewKind;
 		view.instanceID = context.cullingViewInstanceID;
 		view.viewProjection = context.viewMatrix * context.projectionMatrix;
-		return RenderPacketViewCulling::ShouldRender(
-			m_cullingVisibility,
-			view,
-			packet
-		);
+		return ShouldRenderPacket(view, packet);
 	}
 
 	const CullingVisibilitySet& GetCullingVisibility() const noexcept {
