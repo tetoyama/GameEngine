@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <span>
 #include <vector>
@@ -17,6 +18,7 @@ struct StaticBatchShadowSubmissionTelemetry {
 	std::size_t candidateGroupCount = 0;
 	std::size_t submittedGroupCount = 0;
 	std::size_t submittedInstanceCount = 0;
+	std::size_t mappingFallbackCount = 0;
 	std::size_t eligibilityFallbackCount = 0;
 	std::size_t layerFallbackCount = 0;
 	std::size_t geometryFallbackCount = 0;
@@ -32,6 +34,18 @@ struct StaticBatchShadowSubmissionTelemetry {
 
 namespace StaticBatchShadowSubmission {
 
+inline bool IsGroupMappingEquivalent(
+	const StaticBatchInstanceGroup& sourceGroup,
+	const StaticBatchPacketCacheEntry& cacheEntry
+) noexcept {
+	return sourceGroup.key == cacheEntry.key &&
+		sourceGroup.sceneContextID == cacheEntry.sceneContextID &&
+		sourceGroup.representativePacketIndex ==
+			cacheEntry.representativePacketIndex &&
+		sourceGroup.firstInstance == cacheEntry.firstInstance &&
+		sourceGroup.instanceCount == cacheEntry.instanceCount;
+}
+
 inline StaticBatchShadowSubmissionTelemetry Submit(
 	RHI::IRHIDevice& device,
 	GraphicsContext& graphics,
@@ -43,7 +57,8 @@ inline StaticBatchShadowSubmissionTelemetry Submit(
 ){
 	StaticBatchShadowSubmissionTelemetry telemetry;
 	replacements.Begin(frameBuffer.Packets().size());
-	if(!renderLayerVisibility || !frameBuffer.IsReady() ||
+	if(device.GetBackendType() != RHI::BackendType::Direct3D11 ||
+		!renderLayerVisibility || !frameBuffer.IsReady() ||
 		!uploadSystem.IsShadowPipelineReady()){
 		return telemetry;
 	}
@@ -74,6 +89,8 @@ inline StaticBatchShadowSubmissionTelemetry Submit(
 
 	const std::span<const RenderPacket> packets = frameBuffer.Packets();
 	const std::span<const std::size_t> packetIndices = cache.PacketIndices();
+	const std::span<const StaticBatchPacketCacheEntry> cacheEntries =
+		cache.Entries();
 	const std::span<const StaticBatchInstanceGroup> groups = source.Groups();
 	std::vector<std::size_t> submittedGroups;
 	submittedGroups.reserve(groups.size());
@@ -81,6 +98,11 @@ inline StaticBatchShadowSubmissionTelemetry Submit(
 	commandList->Begin();
 	for(std::size_t groupIndex = 0; groupIndex < groups.size(); ++groupIndex){
 		const StaticBatchInstanceGroup& group = groups[groupIndex];
+		if(!IsGroupMappingEquivalent(group, cacheEntries[groupIndex])){
+			++telemetry.mappingFallbackCount;
+			continue;
+		}
+
 		const StaticBatchShadowGroupEligibilityResult eligibility =
 			StaticBatchShadowGroupEligibility::Resolve(
 				group,
