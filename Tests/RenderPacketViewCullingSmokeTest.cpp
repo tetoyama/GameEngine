@@ -37,6 +37,13 @@ RenderPacketCullingView MakeShadowView(
 	return view;
 }
 
+bool IsZeroPlane(const CullingPlane& plane){
+	return plane.normal.x == 0.0f &&
+		plane.normal.y == 0.0f &&
+		plane.normal.z == 0.0f &&
+		plane.distance == 0.0f;
+}
+
 } // namespace
 
 int main(){
@@ -51,6 +58,8 @@ int main(){
 	const Entity camera{100, 1};
 	const Entity center = entities.Create();
 	const Entity side = entities.Create();
+	const Entity beforeNear = entities.Create();
+	const Entity beyondFar = entities.Create();
 
 	auto* centerBounds = components.AddComponent<CullingComponent>(center);
 	centerBounds->worldBounds = {
@@ -66,15 +75,33 @@ int main(){
 	};
 	sideBounds->boundsValid = true;
 
+	auto* beforeNearBounds =
+		components.AddComponent<CullingComponent>(beforeNear);
+	beforeNearBounds->worldBounds = {
+		Vector3(-0.5f, -0.5f, -6.0f),
+		Vector3(0.5f, 0.5f, -4.0f)
+	};
+	beforeNearBounds->boundsValid = true;
+
+	auto* beyondFarBounds =
+		components.AddComponent<CullingComponent>(beyondFar);
+	beyondFarBounds->worldBounds = {
+		Vector3(-0.5f, -0.5f, 24.0f),
+		Vector3(0.5f, 0.5f, 26.0f)
+	};
+	beyondFarBounds->boundsValid = true;
+
 	RenderPacketWorkerBuffer worker(0);
 	worker.Add(MakePacket(center, &context));
 	worker.Add(MakePacket(side, &context));
+	worker.Add(MakePacket(beforeNear, &context));
+	worker.Add(MakePacket(beyondFar, &context));
 	std::array<RenderPacketWorkerBuffer, 1> workers{worker};
 
 	RenderPacketFrameBuffer packets;
 	packets.BeginFrame(12);
 	packets.Merge(workers);
-	assert(packets.Size() == 2);
+	assert(packets.Size() == 4);
 
 	RenderPacketCullingView editorView;
 	editorView.camera = camera;
@@ -107,6 +134,15 @@ int main(){
 	assert(RenderPacketViewCulling::HasStableViewIdentity(shadowView));
 	assert(!RenderPacketViewCulling::HasStableViewIdentity(invalidShadowView));
 
+	const CullingFrustum editorFrustum =
+		RenderPacketViewCulling::BuildFrustum(editorView);
+	const CullingFrustum shadowFrustum =
+		RenderPacketViewCulling::BuildFrustum(shadowView);
+	assert(!IsZeroPlane(editorFrustum.planes[4]));
+	assert(!IsZeroPlane(editorFrustum.planes[5]));
+	assert(IsZeroPlane(shadowFrustum.planes[4]));
+	assert(IsZeroPlane(shadowFrustum.planes[5]));
+
 	CullingVisibilitySet visibility;
 	RenderPacketViewCulling::Prepare(visibility, packets, editorView);
 	RenderPacketViewCulling::Prepare(visibility, packets, playerView);
@@ -121,12 +157,20 @@ int main(){
 		visibility, editorView, packets.Packets()[0]));
 	assert(!RenderPacketViewCulling::ShouldRender(
 		visibility, editorView, packets.Packets()[1]));
+	assert(!RenderPacketViewCulling::ShouldRender(
+		visibility, editorView, packets.Packets()[2]));
+	assert(!RenderPacketViewCulling::ShouldRender(
+		visibility, editorView, packets.Packets()[3]));
 	assert(RenderPacketViewCulling::ShouldRender(
 		visibility, playerView, packets.Packets()[1]));
 	assert(RenderPacketViewCulling::ShouldRender(
 		visibility, shadowView, packets.Packets()[0]));
 	assert(!RenderPacketViewCulling::ShouldRender(
 		visibility, shadowView, packets.Packets()[1]));
+	assert(RenderPacketViewCulling::ShouldRender(
+		visibility, shadowView, packets.Packets()[2]));
+	assert(RenderPacketViewCulling::ShouldRender(
+		visibility, shadowView, packets.Packets()[3]));
 	assert(RenderPacketViewCulling::ShouldRender(
 		visibility, invalidShadowView, packets.Packets()[1]));
 	return 0;
