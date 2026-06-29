@@ -20,6 +20,7 @@
 #include "System/Render/StaticBatch/StaticBatchPipelineResources.h"
 #include "System/Render/StaticBatch/StaticBatchShadowPipelineBootstrap.h"
 #include "System/Render/StaticBatch/StaticBatchShadowPipelineResources.h"
+#include "System/Render/StaticBatch/StaticBatchShadowSubmissionTelemetry.h"
 
 class StaticBatchUploadSystem final : public ISystem {
 public:
@@ -61,6 +62,7 @@ public:
 		m_pipelineBootstrapResult =
 			StaticBatchPipelineBootstrapResult::NotAttempted;
 		m_lastUploadSucceeded = false;
+		m_shadowSubmissionTelemetry.Reset();
 	}
 
 	void Stop() override {
@@ -161,9 +163,23 @@ public:
 		return m_geometryBindingCache.Telemetry();
 	}
 
+	const StaticBatchShadowSubmissionTelemetry&
+	GetShadowSubmissionTelemetry() const noexcept {
+		return m_shadowSubmissionTelemetry;
+	}
+
+	void RecordShadowSubmissionTelemetry(
+		const StaticBatchShadowSubmissionTelemetry& telemetry
+	) const noexcept {
+		++m_shadowSubmissionTelemetry.lightTileCount;
+		++m_shadowSubmissionTelemetry.submissionAttemptCount;
+		m_shadowSubmissionTelemetry.AccumulateSubmission(telemetry);
+	}
+
 	void ResetTelemetry() noexcept {
 		m_gpuInstanceBuffer.ResetMetrics();
 		m_geometryBindingCache.ResetMetrics();
+		m_shadowSubmissionTelemetry.Reset();
 	}
 
 	bool LastUploadSucceeded() const noexcept {
@@ -331,5 +347,6 @@ private:
 		StaticBatchPipelineBootstrapResult::NotAttempted;
 	StaticBatchShadowPipelineBootstrapResult m_shadowPipelineBootstrapResult =
 		StaticBatchShadowPipelineBootstrapResult::NotAttempted;
+	mutable StaticBatchShadowSubmissionTelemetry m_shadowSubmissionTelemetry;
 	bool m_lastUploadSucceeded = false;
 };
