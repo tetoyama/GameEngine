@@ -7,10 +7,12 @@
 #include "../IRenderPass.h"
 
 #include <d3d11.h>
-#include <vector>
 #include <memory>
+#include <vector>
 
+#include "System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
 #include "System/Render/StaticBatch/StaticBatchGBufferSubmissionTelemetry.h"
+#include "System/Render/StaticBatch/StaticBatchVisibleInstanceBuffer.h"
 
 class IRenderable;
 struct RenderTarget;
@@ -43,5 +45,7 @@ public:
 	ID3D11SamplerState* sampler = nullptr;
 
 private:
+	StaticBatchVisibleInstanceBuffer m_staticBatchVisibleInstances;
+	StaticBatchGpuInstanceBuffer m_staticBatchVisibleGpuInstances;
 	StaticBatchGBufferSubmissionTelemetry m_staticBatchTelemetry;
 };
