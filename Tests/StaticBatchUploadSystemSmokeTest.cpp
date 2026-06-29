@@ -40,6 +40,51 @@ int main(){
 	assert(system.GetGeometryBindingCache().ResolvedGroupCount() == 0);
 	assert(!system.IsShadowPipelineReady());
 
+	StaticBatchShadowSubmissionTelemetry firstTile;
+	firstTile.candidateGroupCount = 4;
+	firstTile.submittedGroupCount = 1;
+	firstTile.submittedInstanceCount = 3;
+	firstTile.mappingFallbackCount = 1;
+	firstTile.eligibilityFallbackCount = 1;
+	firstTile.geometryFallbackCount = 1;
+	system.RecordShadowSubmissionTelemetry(firstTile);
+
+	StaticBatchShadowSubmissionTelemetry secondTile;
+	secondTile.candidateGroupCount = 4;
+	secondTile.submittedGroupCount = 2;
+	secondTile.submittedInstanceCount = 5;
+	secondTile.layerFallbackCount = 1;
+	secondTile.drawFailureCount = 1;
+	secondTile.queueFailureCount = 1;
+	system.RecordShadowSubmissionTelemetry(secondTile);
+
+	const StaticBatchShadowSubmissionTelemetry& aggregate =
+		system.GetShadowSubmissionTelemetry();
+	assert(aggregate.lightTileCount == 2);
+	assert(aggregate.submissionAttemptCount == 2);
+	assert(aggregate.candidateGroupCount == 8);
+	assert(aggregate.submittedGroupCount == 3);
+	assert(aggregate.submittedInstanceCount == 8);
+	assert(aggregate.mappingFallbackCount == 1);
+	assert(aggregate.eligibilityFallbackCount == 1);
+	assert(aggregate.layerFallbackCount == 1);
+	assert(aggregate.geometryFallbackCount == 1);
+	assert(aggregate.drawFailureCount == 1);
+	assert(aggregate.queueFailureCount == 1);
+	assert(aggregate.ReplacedOrdinaryDrawCount() == 8);
+	assert(aggregate.StaticDrawCallCount() == 3);
+	assert(aggregate.EstimatedDrawCallReduction() == 5);
+
+	system.ResetTelemetry();
+	const StaticBatchShadowSubmissionTelemetry& resetAggregate =
+		system.GetShadowSubmissionTelemetry();
+	assert(resetAggregate.lightTileCount == 0);
+	assert(resetAggregate.submissionAttemptCount == 0);
+	assert(resetAggregate.candidateGroupCount == 0);
+	assert(resetAggregate.submittedGroupCount == 0);
+	assert(resetAggregate.submittedInstanceCount == 0);
+	assert(resetAggregate.EstimatedDrawCallReduction() == 0);
+
 	RHI::BackendRegistry registry;
 	assert(RHI::RegisterNullRHIBackend(registry));
 	auto backend = registry.Create(RHI::BackendType::Null);
