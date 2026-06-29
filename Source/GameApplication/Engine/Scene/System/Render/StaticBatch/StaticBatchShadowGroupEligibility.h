@@ -17,7 +17,7 @@ enum class StaticBatchShadowGroupRejectReason : std::uint8_t {
 	MissingShadowPass,
 	GroupPacketMismatch,
 	MaterialUnavailable,
-	DiffuseTextureUnsupported
+	DiffuseTextureUnavailable
 };
 
 struct StaticBatchShadowGroupEligibilityResult {
@@ -103,37 +103,21 @@ inline StaticBatchShadowGroupEligibilityResult Resolve(
 		}
 	}
 
-	const StaticBatchModelMaterialResolveResult gBufferMaterial =
+	const StaticBatchModelMaterialResolveResult material =
 		StaticBatchModelMaterialResolver::Resolve(group, packets);
-	if(!gBufferMaterial.IsEligible()){
+	if(!material.IsEligible()){
 		result.rejectReason =
 			StaticBatchShadowGroupRejectReason::MaterialUnavailable;
 		return result;
 	}
-	if(gBufferMaterial.state.UsesDiffuseTexture()){
+	if(material.state.UsesDiffuseTexture() &&
+		!material.state.diffuseTexture){
 		result.rejectReason =
-			StaticBatchShadowGroupRejectReason::DiffuseTextureUnsupported;
+			StaticBatchShadowGroupRejectReason::DiffuseTextureUnavailable;
 		return result;
 	}
 
-	StaticBatchModelMaterialState shadowMaterial;
-	const StaticBatchModelMaterialRejectReason shadowMaterialResult =
-		StaticBatchModelPacketMaterial::Resolve(
-			representative,
-			shadowMaterial
-		);
-	if(shadowMaterialResult != StaticBatchModelMaterialRejectReason::None){
-		result.rejectReason =
-			StaticBatchShadowGroupRejectReason::MaterialUnavailable;
-		return result;
-	}
-	if(shadowMaterial.UsesDiffuseTexture()){
-		result.rejectReason =
-			StaticBatchShadowGroupRejectReason::DiffuseTextureUnsupported;
-		return result;
-	}
-
-	result.material = shadowMaterial;
+	result.material = material.state;
 	result.rejectReason = StaticBatchShadowGroupRejectReason::None;
 	return result;
 }
