@@ -12,25 +12,8 @@
 #include "System/Render/StaticBatch/StaticBatchDrawSubmission.h"
 #include "System/Render/StaticBatch/StaticBatchPacketReplacementSet.h"
 #include "System/Render/StaticBatch/StaticBatchShadowGroupEligibility.h"
+#include "System/Render/StaticBatch/StaticBatchShadowSubmissionTelemetry.h"
 #include "System/Render/StaticBatch/StaticBatchUploadSystem.h"
-
-struct StaticBatchShadowSubmissionTelemetry {
-	std::size_t candidateGroupCount = 0;
-	std::size_t submittedGroupCount = 0;
-	std::size_t submittedInstanceCount = 0;
-	std::size_t mappingFallbackCount = 0;
-	std::size_t eligibilityFallbackCount = 0;
-	std::size_t layerFallbackCount = 0;
-	std::size_t geometryFallbackCount = 0;
-	std::size_t drawFailureCount = 0;
-	std::size_t queueFailureCount = 0;
-
-	std::size_t EstimatedDrawCallReduction() const noexcept {
-		return submittedInstanceCount > submittedGroupCount
-			? submittedInstanceCount - submittedGroupCount
-			: 0;
-	}
-};
 
 namespace StaticBatchShadowSubmission {
 
