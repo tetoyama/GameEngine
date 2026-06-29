@@ -351,6 +351,13 @@ void GBufferPass::Execute(const RenderPassContext& context){
 		m_staticBatchTelemetry.compactedMixedGroupCount =
 			visibilityTelemetry.mixedGroupCount;
 		if(m_staticBatchVisibleInstances.Instances().empty()) return;
+		if(!m_staticBatchVisibleGpuInstances.Reserve(
+			*rhiDevice,
+			storagePolicy.reserveCount
+		)){
+			++m_staticBatchTelemetry.drawFailureCount;
+			return;
+		}
 
 		std::array<
 			ID3D11RenderTargetView*,
@@ -399,7 +406,8 @@ void GBufferPass::Execute(const RenderPassContext& context){
 				*rhiDevice,
 				*commandList,
 				m_staticBatchVisibleInstances.Instances(),
-				m_staticBatchVisibleInstances.SelectionRevision()
+				m_staticBatchVisibleInstances.SelectionRevision(),
+				storagePolicy.allowRuntimeGrowth
 			);
 		if(!uploadSucceeded){
 			commandList->End();
