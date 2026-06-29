@@ -5,6 +5,7 @@
 #include <limits>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "Scene/scene.h"
 #include "Scene/sceneManager.h"
@@ -14,6 +15,7 @@
 #include "Resources/resourceService.h"
 #include "Resources/Data/modelData.h"
 #include "DebugTools/debugSystem.h"
+#include "System/Render/Animation/AnimationInputRevision.h"
 #include "System/Render/Animation/AnimationPoseEvaluator.h"
 #include "System/Render/Animation/AnimationSkinningUpload.h"
 #include "System/Render/Animation/RenderSystemAnimationTaskRegistrar.h"
@@ -24,6 +26,7 @@ inline void ClearPendingPose(ModelRendererComponent& component){
 	component.evaluatedBones.clear();
 	component.cpuSkinnedVertices.clear();
 	component.animationPoseSourceModelRevision = 0;
+	component.animationPoseSourceInputRevision = 0;
 	component.animationPoseReady = false;
 	component.cpuSkinningReady = false;
 }
@@ -71,6 +74,7 @@ inline void RenderSystem::CalculateAnimationPoses(){
 				context->component->GetComponent<ModelRendererComponent>(entity);
 			if(!modelRenderer) continue;
 			modelRenderer->animationPoseSourceModelRevision = 0;
+			modelRenderer->animationPoseSourceInputRevision = 0;
 			modelRenderer->animationPoseReady = false;
 			modelRenderer->cpuSkinningReady = false;
 			const std::shared_ptr<ModelData>& model = modelRenderer->model;
@@ -78,15 +82,31 @@ inline void RenderSystem::CalculateAnimationPoses(){
 				RenderSystemAnimationTasksDetail::ClearPendingPose(*modelRenderer);
 				continue;
 			}
+
+			const std::vector<AnimationBlend> animationSnapshot =
+				modelRenderer->blendedAnimations;
+			const float animationTimeSnapshot = modelRenderer->animationTime;
+			const std::uint64_t inputRevision = AnimationInputRevision::Compute(
+				animationSnapshot,
+				animationTimeSnapshot
+			);
 			if(!AnimationPoseEvaluator::Evaluate(
 				*model,
-				modelRenderer->blendedAnimations,
-				modelRenderer->animationTime,
+				animationSnapshot,
+				animationTimeSnapshot,
 				modelRenderer->evaluatedBones
 			)){
 				RenderSystemAnimationTasksDetail::ClearPendingPose(*modelRenderer);
 				continue;
 			}
+			if(inputRevision != AnimationInputRevision::Compute(
+				modelRenderer->blendedAnimations,
+				modelRenderer->animationTime
+			)){
+				RenderSystemAnimationTasksDetail::ClearPendingPose(*modelRenderer);
+				continue;
+			}
+
 			const bool useGPUSkinning =
 				modelRenderer->evaluatedBones.size() <= BONE_MAX_COUNT;
 			if(useGPUSkinning){
@@ -108,6 +128,7 @@ inline void RenderSystem::CalculateAnimationPoses(){
 			}
 			modelRenderer->animationPoseSourceModelRevision =
 				modelRenderer->modelRuntimeRevision;
+			modelRenderer->animationPoseSourceInputRevision = inputRevision;
 			modelRenderer->animationPoseReady = true;
 		}
 	}
@@ -137,7 +158,13 @@ inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 			if(!modelRenderer->animationPoseReady) continue;
 			if(modelRenderer->animationPoseSourceModelRevision == 0 ||
 				modelRenderer->animationPoseSourceModelRevision !=
-					modelRenderer->modelRuntimeRevision){
+					modelRenderer->modelRuntimeRevision ||
+				modelRenderer->animationPoseSourceInputRevision == 0 ||
+				modelRenderer->animationPoseSourceInputRevision !=
+					AnimationInputRevision::Compute(
+						modelRenderer->blendedAnimations,
+						modelRenderer->animationTime
+					)){
 				RenderSystemAnimationTasksDetail::ClearPendingPose(*modelRenderer);
 				continue;
 			}
@@ -161,6 +188,7 @@ inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 			if(uploaded){
 				modelRenderer->animationUploadFailureCount = 0;
 				modelRenderer->animationPoseSourceModelRevision = 0;
+				modelRenderer->animationPoseSourceInputRevision = 0;
 				modelRenderer->animationPoseReady = false;
 				modelRenderer->cpuSkinningReady = false;
 			}else{
