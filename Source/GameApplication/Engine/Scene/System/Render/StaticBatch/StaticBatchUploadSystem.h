@@ -1,13 +1,11 @@
 #pragma once
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <memory>
 #include <span>
-#include <vector>
 
 #include "Interface/ISystem.h"
 #include "Graphics/graphicsContext.h"
@@ -162,8 +160,32 @@ private:
 		const RenderPacketFrameBuffer& frameBuffer
 	) const noexcept {
 		StaticBatchGpuStoragePolicy policy;
-		std::vector<std::uint32_t> sceneContextIDs;
-		sceneContextIDs.reserve(source.Groups().size());
+		if(!m_context || !m_context->sceneManager){
+			policy.valid = false;
+			return policy;
+		}
+
+		for(const auto& sceneEntry : m_context->sceneManager->GetActiveScenes()){
+			const std::shared_ptr<Scene>& scene = sceneEntry.second;
+			SceneContext* sceneContext = scene ? scene->GetSceneContext() : nullptr;
+			if(!sceneContext){
+				policy.valid = false;
+				return policy;
+			}
+
+			const std::size_t reserve = static_cast<std::size_t>(
+				sceneContext->storageConfig.staticBatchReserve
+			);
+			if(reserve >
+				(std::numeric_limits<std::size_t>::max)() - policy.reserveCount){
+				policy.valid = false;
+				return policy;
+			}
+			policy.reserveCount += reserve;
+			policy.allowRuntimeGrowth =
+				policy.allowRuntimeGrowth &&
+				sceneContext->storageConfig.allowRuntimeGrowth;
+		}
 
 		const std::span<const RenderPacket> packets = frameBuffer.Packets();
 		for(const StaticBatchInstanceGroup& group : source.Groups()){
@@ -180,28 +202,6 @@ private:
 				policy.valid = false;
 				return policy;
 			}
-
-			if(std::find(
-				sceneContextIDs.begin(),
-				sceneContextIDs.end(),
-				group.sceneContextID
-			) != sceneContextIDs.end()){
-				continue;
-			}
-			sceneContextIDs.push_back(group.sceneContextID);
-
-			const std::size_t reserve = static_cast<std::size_t>(
-				sceneContext->storageConfig.staticBatchReserve
-			);
-			if(reserve >
-				(std::numeric_limits<std::size_t>::max)() - policy.reserveCount){
-				policy.valid = false;
-				return policy;
-			}
-			policy.reserveCount += reserve;
-			policy.allowRuntimeGrowth =
-				policy.allowRuntimeGrowth &&
-				sceneContext->storageConfig.allowRuntimeGrowth;
 		}
 		return policy;
 	}
