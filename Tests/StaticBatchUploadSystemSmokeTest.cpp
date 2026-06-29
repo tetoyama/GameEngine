@@ -42,6 +42,10 @@ int main(){
 
 	StaticBatchShadowSubmissionTelemetry firstTile;
 	firstTile.candidateGroupCount = 4;
+	firstTile.visibleInstanceCount = 5;
+	firstTile.culledInstanceCount = 2;
+	firstTile.fullyCulledGroupCount = 1;
+	firstTile.mixedVisibilityFallbackCount = 1;
 	firstTile.submittedGroupCount = 1;
 	firstTile.submittedInstanceCount = 3;
 	firstTile.mappingFallbackCount = 1;
@@ -52,6 +56,9 @@ int main(){
 
 	StaticBatchShadowSubmissionTelemetry secondTile;
 	secondTile.candidateGroupCount = 4;
+	secondTile.visibleInstanceCount = 6;
+	secondTile.culledInstanceCount = 1;
+	secondTile.visibilityFailureCount = 1;
 	secondTile.submittedGroupCount = 2;
 	secondTile.submittedInstanceCount = 5;
 	secondTile.layerFallbackCount = 1;
@@ -64,6 +71,11 @@ int main(){
 	assert(aggregate.lightTileCount == 2);
 	assert(aggregate.submissionAttemptCount == 2);
 	assert(aggregate.candidateGroupCount == 8);
+	assert(aggregate.visibleInstanceCount == 11);
+	assert(aggregate.culledInstanceCount == 3);
+	assert(aggregate.fullyCulledGroupCount == 1);
+	assert(aggregate.mixedVisibilityFallbackCount == 1);
+	assert(aggregate.visibilityFailureCount == 1);
 	assert(aggregate.submittedGroupCount == 3);
 	assert(aggregate.submittedInstanceCount == 8);
 	assert(aggregate.mappingFallbackCount == 1);
@@ -83,6 +95,11 @@ int main(){
 	assert(resetAggregate.lightTileCount == 0);
 	assert(resetAggregate.submissionAttemptCount == 0);
 	assert(resetAggregate.candidateGroupCount == 0);
+	assert(resetAggregate.visibleInstanceCount == 0);
+	assert(resetAggregate.culledInstanceCount == 0);
+	assert(resetAggregate.fullyCulledGroupCount == 0);
+	assert(resetAggregate.mixedVisibilityFallbackCount == 0);
+	assert(resetAggregate.visibilityFailureCount == 0);
 	assert(resetAggregate.submittedGroupCount == 0);
 	assert(resetAggregate.submittedInstanceCount == 0);
 	assert(resetAggregate.textureBindingFallbackCount == 0);
