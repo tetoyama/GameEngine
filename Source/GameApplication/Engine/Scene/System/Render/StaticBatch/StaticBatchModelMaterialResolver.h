@@ -10,6 +10,18 @@
 #include "System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
 #include "System/Render/StaticBatch/StaticBatchModelPacketMaterial.h"
 
+struct StaticBatchModelMaterialResolvePolicy {
+	bool rejectNormalMapReference = true;
+
+	static constexpr StaticBatchModelMaterialResolvePolicy GBuffer() noexcept {
+		return {true};
+	}
+
+	static constexpr StaticBatchModelMaterialResolvePolicy Shadow() noexcept {
+		return {false};
+	}
+};
+
 struct StaticBatchModelMaterialResolveResult {
 	StaticBatchModelMaterialState state;
 	StaticBatchModelMaterialRejectReason rejectReason =
@@ -24,7 +36,9 @@ namespace StaticBatchModelMaterialResolver {
 
 inline StaticBatchModelMaterialResolveResult Resolve(
 	const StaticBatchPacketCacheEntry& group,
-	std::span<const RenderPacket> packets
+	std::span<const RenderPacket> packets,
+	StaticBatchModelMaterialResolvePolicy policy =
+		StaticBatchModelMaterialResolvePolicy::GBuffer()
 ){
 	StaticBatchModelMaterialResolveResult result;
 	if(group.representativePacketIndex >= packets.size()){
@@ -167,7 +181,8 @@ inline StaticBatchModelMaterialResolveResult Resolve(
 			&normalName
 		) == AI_SUCCESS && normalName.length > 0){
 			const auto normalIt = model->m_Texture.find(normalName.C_Str());
-			if(normalIt != model->m_Texture.end()){
+			if(normalIt != model->m_Texture.end() &&
+				policy.rejectNormalMapReference){
 				result.rejectReason =
 					StaticBatchModelMaterialRejectReason::NormalMapUnsupported;
 				return result;
