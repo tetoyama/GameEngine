@@ -1,25 +1,26 @@
 #pragma once
 
-#include "Scene/Component/modelRendererComponent.h"
+#include <string>
+#include <utility>
+
+#include "System/Render/Animation/AnimationBindingList.h"
 
 namespace AnimationSourceSynchronization {
 
-inline bool Synchronize(ModelRendererComponent& component){
-	if(!component.model) return false;
-
+template<typename IsImported, typename ImportSource>
+bool Synchronize(
+	const AnimationBindingList::BindingList& bindings,
+	IsImported&& isImported,
+	ImportSource&& importSource
+){
 	bool imported = false;
-	for(const auto& [alias, sourcePath] : component.animations){
-		if(alias.empty() || sourcePath.empty() ||
-			component.model->HasImportedAnimationSource(sourcePath)){
+	for(const auto& [alias, assetPath] : bindings){
+		if(alias.empty() || assetPath.empty() || isImported(assetPath)){
 			continue;
 		}
 
-		component.model->LoadAnimationSource(
-			sourcePath.c_str(),
-			alias.c_str()
-		);
-		imported = imported ||
-			component.model->HasImportedAnimationSource(sourcePath);
+		importSource(alias, assetPath);
+		imported = imported || isImported(assetPath);
 	}
 	return imported;
 }
