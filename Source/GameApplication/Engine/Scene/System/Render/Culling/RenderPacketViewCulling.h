@@ -24,6 +24,13 @@ struct RenderPacketCullingView {
 
 namespace RenderPacketViewCulling {
 
+inline bool HasStableViewIdentity(
+	const RenderPacketCullingView& view
+) noexcept {
+	if(view.camera) return true;
+	return view.kind == CullingViewKind::Shadow && view.instanceID != 0;
+}
+
 inline CullingViewKey MakeViewKey(
 	std::uint32_t sceneContextID,
 	const RenderPacketCullingView& view
@@ -44,7 +51,7 @@ inline void Prepare(
 	if(visibility.FrameSerial() != packets.Generation()){
 		visibility.BeginFrame(packets.Generation());
 	}
-	if(!view.camera) return;
+	if(!HasStableViewIdentity(view)) return;
 
 	const CullingFrustum frustum =
 		CullingFrustumRuntime::FromViewProjection(view.viewProjection);
@@ -80,7 +87,7 @@ inline bool ShouldRender(
 ){
 	SceneContext* context = packet.bindings.sceneContext;
 	if(!context || !context->component) return false;
-	if(!view.camera) return true;
+	if(!HasStableViewIdentity(view)) return true;
 
 	return CullingVisibilityBuilder::ShouldRender(
 		visibility,
