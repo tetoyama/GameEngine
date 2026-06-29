@@ -4,6 +4,7 @@
 
 #include "Engine/Scene/System/Render/StaticBatch/StaticBatchPipelineResources.h"
 #include "Engine/Scene/System/Render/StaticBatch/StaticBatchShadowPipelineResources.h"
+#include "Engine/Scene/System/Render/StaticBatch/StaticBatchShadowSubmission.h"
 #include "Service/Graphics/RHI/Null/NullRHIBackend.h"
 
 int main(){
@@ -73,6 +74,14 @@ int main(){
 		RHI::Format::D32_Float
 	);
 	assert(pipelineDesc->renderTargets.sampleCount == 1);
+
+	StaticBatchShadowSubmissionTelemetry telemetry;
+	telemetry.submittedGroupCount = 2;
+	telemetry.submittedInstanceCount = 7;
+	assert(telemetry.EstimatedDrawCallReduction() == 5);
+	telemetry.submittedGroupCount = 7;
+	telemetry.submittedInstanceCount = 2;
+	assert(telemetry.EstimatedDrawCallReduction() == 0);
 
 	RHI::CommandListCreateDesc commandDesc;
 	commandDesc.queueType = RHI::CommandQueueType::Graphics;
