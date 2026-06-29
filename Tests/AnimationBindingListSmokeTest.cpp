@@ -1,5 +1,6 @@
 #include <cassert>
 
+#include "Engine/Scene/Component/modelRendererComponent.h"
 #include "Engine/Scene/System/Render/Animation/AnimationBindingList.h"
 
 int main(){
