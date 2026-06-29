@@ -7,9 +7,12 @@ on:
     paths:
       - "Source/GameApplication/Engine/Scene/Config/SceneStorageConfig.h"
       - "Source/GameApplication/Engine/Scene/Config/SceneStorageRuntime.h"
+      - "Source/GameApplication/Engine/Scene/Config/SceneStoragePreloader.h"
+      - "Source/GameApplication/Engine/Scene/Config/SceneStorageYaml.h"
       - "Source/GameApplication/Engine/Scene/Registry/entityRegistry.h"
       - "Tests/SceneStorageRuntimeSmokeTest.cpp"
       - "Tests/SceneStorageGrowthPolicySmokeTest.cpp"
+      - "Tests/SceneStorageSaveLoadRoundTripSmokeTest.cpp"
       - ".github/workflows/scene-storage-runtime.yml"
   push:
     branches:
@@ -17,9 +20,12 @@ on:
     paths:
       - "Source/GameApplication/Engine/Scene/Config/SceneStorageConfig.h"
       - "Source/GameApplication/Engine/Scene/Config/SceneStorageRuntime.h"
+      - "Source/GameApplication/Engine/Scene/Config/SceneStoragePreloader.h"
+      - "Source/GameApplication/Engine/Scene/Config/SceneStorageYaml.h"
       - "Source/GameApplication/Engine/Scene/Registry/entityRegistry.h"
       - "Tests/SceneStorageRuntimeSmokeTest.cpp"
       - "Tests/SceneStorageGrowthPolicySmokeTest.cpp"
+      - "Tests/SceneStorageSaveLoadRoundTripSmokeTest.cpp"
       - ".github/workflows/scene-storage-runtime.yml"
   workflow_dispatch:
 
@@ -74,6 +80,22 @@ jobs:
             >> scene-storage-runtime.log 2>&1
           if errorlevel 1 exit /b 1
           scene-storage-growth-policy-test.exe >> scene-storage-runtime.log 2>&1
+          if errorlevel 1 exit /b 1
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX ^
+            /D_CRT_SECURE_NO_WARNINGS ^
+            /wd4100 /wd4201 /wd4458 /wd4471 /MTd ^
+            /I Source ^
+            /I Source/GameApplication ^
+            /I Source/GameApplication/Backends ^
+            /I Source/GameApplication/Engine ^
+            /I Source/GameApplication/Engine/Scene ^
+            /I Source/GameApplication/Service ^
+            Tests/SceneStorageSaveLoadRoundTripSmokeTest.cpp ^
+            /Fe:scene-storage-save-load-roundtrip-test.exe ^
+            /link /LIBPATH:Source\GameApplication\Backends\yaml-cpp yaml-cppd.lib ^
+            >> scene-storage-runtime.log 2>&1
+          if errorlevel 1 exit /b 1
+          scene-storage-save-load-roundtrip-test.exe >> scene-storage-runtime.log 2>&1
       - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
