@@ -5,12 +5,15 @@ on:
     branches: [master]
     paths:
       - "Directory.Build.targets"
+      - "Source/GameApplication/Engine/Editor/UI/StaticBatchTelemetryUI.h"
       - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/sceneManager.cpp"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshLocalBoundsBuilder.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/**"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Model/RenderableModel.cpp"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateTypes.h"
@@ -47,12 +50,15 @@ on:
     branches: [refactor/ecs-scheduler-foundation]
     paths:
       - "Directory.Build.targets"
+      - "Source/GameApplication/Engine/Editor/UI/StaticBatchTelemetryUI.h"
       - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/sceneManager.cpp"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshLocalBoundsBuilder.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/**"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Model/RenderableModel.cpp"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateTypes.h"
