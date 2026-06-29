@@ -83,6 +83,30 @@ int main(){
 	telemetry.submittedInstanceCount = 2;
 	assert(telemetry.EstimatedDrawCallReduction() == 0);
 
+	StaticBatchInstanceGroup sourceGroup;
+	sourceGroup.key.kind = RenderPacketKind::Model;
+	sourceGroup.key.layer = RenderLayer::Opaque3D;
+	sourceGroup.key.materialKey = 3;
+	sourceGroup.key.pipelineKey = 11;
+	sourceGroup.key.geometryKey = 12;
+	sourceGroup.key.textureSetKey = 13;
+	sourceGroup.key.materialStateKey = 14;
+	sourceGroup.sceneContextID = 5;
+	sourceGroup.representativePacketIndex = 2;
+	sourceGroup.firstInstance = 4;
+	sourceGroup.instanceCount = 6;
+
+	StaticBatchPacketCacheEntry cacheEntry = sourceGroup;
+	assert(StaticBatchShadowSubmission::IsGroupMappingEquivalent(
+		sourceGroup,
+		cacheEntry
+	));
+	cacheEntry.firstInstance = 5;
+	assert(!StaticBatchShadowSubmission::IsGroupMappingEquivalent(
+		sourceGroup,
+		cacheEntry
+	));
+
 	RHI::CommandListCreateDesc commandDesc;
 	commandDesc.queueType = RHI::CommandQueueType::Graphics;
 	auto commandList = device->CreateCommandList(commandDesc);
