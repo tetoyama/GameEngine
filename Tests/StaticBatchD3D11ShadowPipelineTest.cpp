@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <span>
+#include <string>
 
 #include <d3d11.h>
 #include <d3dcompiler.h>
@@ -12,6 +13,7 @@
 #include "Engine/Scene/System/Render/StaticBatch/StaticBatchDrawSubmission.h"
 #include "Engine/Scene/System/Render/StaticBatch/StaticBatchShadowPipelineResources.h"
 #include "Service/Graphics/RHI/D3D11/D3D11RHIDevice.h"
+#include "Shader/common.hlsl"
 
 namespace {
 
@@ -131,7 +133,7 @@ float4 main() : SV_TARGET {
 	vertexShaderDesc.debugName = "Static Shadow Interop VS";
 	const RHI::ShaderHandle vertexShader = device.CreateShader(
 		vertexShaderDesc,
-		BlobBytes(*vertexByteCode)
+		BlobBytes(*vertexByteCode.Get())
 	);
 	assert(vertexShader);
 
@@ -139,7 +141,7 @@ float4 main() : SV_TARGET {
 	assert(shadowPipeline.Create(
 		device,
 		vertexShader,
-		BlobBytes(*pixelByteCode)
+		BlobBytes(*pixelByteCode.Get())
 	));
 	assert(shadowPipeline.IsReady());
 
