@@ -38,7 +38,7 @@ public:
 	) = delete;
 
 	bool CanSampleDiffuseTexture() const noexcept {
-		return m_context && m_materialSampler;
+		return m_context != nullptr && m_materialSampler.Get() != nullptr;
 	}
 
 	bool BindDiffuseTexture(ID3D11ShaderResourceView* texture) noexcept {
