@@ -35,6 +35,20 @@ inline RHI::PipelineStateDesc BuildPipelineStateDesc(
 
 class StaticBatchShadowPipelineResources {
 public:
+	StaticBatchShadowPipelineResources() = default;
+	StaticBatchShadowPipelineResources(
+		const StaticBatchShadowPipelineResources&
+	) = delete;
+	StaticBatchShadowPipelineResources& operator=(
+		const StaticBatchShadowPipelineResources&
+	) = delete;
+	StaticBatchShadowPipelineResources(
+		StaticBatchShadowPipelineResources&&
+	) = delete;
+	StaticBatchShadowPipelineResources& operator=(
+		StaticBatchShadowPipelineResources&&
+	) = delete;
+
 	bool Create(
 		RHI::IRHIDevice& device,
 		RHI::ShaderHandle sharedVertexShader,
