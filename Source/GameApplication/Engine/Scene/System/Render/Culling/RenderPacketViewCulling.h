@@ -43,6 +43,21 @@ inline CullingViewKey MakeViewKey(
 	};
 }
 
+inline CullingFrustum BuildFrustum(
+	const RenderPacketCullingView& view
+) noexcept {
+	CullingFrustum frustum =
+		CullingFrustumRuntime::FromViewProjection(view.viewProjection);
+	if(view.kind == CullingViewKind::Shadow){
+		// ShadowMapPassはDepthClipEnable=falseで描画する。
+		// GPUが残すNear/Far範囲外CasterをCPUだけで除外しないよう、
+		// Shadow Viewでは左右上下Planeだけを使用する。
+		frustum.planes[4] = {};
+		frustum.planes[5] = {};
+	}
+	return frustum;
+}
+
 inline void Prepare(
 	CullingVisibilitySet& visibility,
 	const RenderPacketFrameBuffer& packets,
@@ -53,8 +68,7 @@ inline void Prepare(
 	}
 	if(!HasStableViewIdentity(view)) return;
 
-	const CullingFrustum frustum =
-		CullingFrustumRuntime::FromViewProjection(view.viewProjection);
+	const CullingFrustum frustum = BuildFrustum(view);
 	std::vector<SceneContext*> preparedScenes;
 
 	for(const RenderPacket& packet : packets.Packets()){
