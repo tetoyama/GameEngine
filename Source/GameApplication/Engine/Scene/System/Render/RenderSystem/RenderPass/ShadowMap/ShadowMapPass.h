@@ -6,6 +6,8 @@
 #pragma once
 #include "../IRenderPass.h"
 #include "Graphics/mainRenderer.h"
+#include "System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
+#include "System/Render/StaticBatch/StaticBatchVisibleInstanceBuffer.h"
 #include <d3d11.h>
 #include <memory>
 #include <vector>
@@ -30,4 +32,6 @@ public:
 
 private:
 	void RenderShadowScene(const RenderPassContext& ctx);
+	StaticBatchVisibleInstanceBuffer m_staticBatchVisibleInstances;
+	StaticBatchGpuInstanceBuffer m_staticBatchVisibleGpuInstances;
 };
