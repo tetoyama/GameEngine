@@ -7,6 +7,10 @@ int main(){
 	telemetry.sourceRevision = 44;
 	telemetry.submittedGroupCount = 3;
 	telemetry.submittedInstanceCount = 10;
+	telemetry.visibleInstanceCount = 12;
+	telemetry.culledInstanceCount = 8;
+	telemetry.compactedMixedGroupCount = 2;
+	telemetry.visibilitySelectionFailureCount = 1;
 	telemetry.pipelineReady = true;
 	telemetry.instanceUploadReady = true;
 
@@ -22,6 +26,10 @@ int main(){
 	assert(telemetry.sourceRevision == 99);
 	assert(telemetry.submittedGroupCount == 0);
 	assert(telemetry.submittedInstanceCount == 0);
+	assert(telemetry.visibleInstanceCount == 0);
+	assert(telemetry.culledInstanceCount == 0);
+	assert(telemetry.compactedMixedGroupCount == 0);
+	assert(telemetry.visibilitySelectionFailureCount == 0);
 	assert(telemetry.EstimatedDrawCallReduction() == 0);
 	assert(!telemetry.pipelineReady);
 	assert(!telemetry.instanceUploadReady);
