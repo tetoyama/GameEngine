@@ -239,9 +239,10 @@ void RenderableModel::Execute(
 							MATERIAL_FLAG_USE_NORMAL_TEXTURE;
 					}
 				}
-
-				graphicsContext->SetMaterial(materialData);
 			}
+
+			// ShadowでもDiffuse Texture / BaseColor Alphaを同じ定数へ反映する。
+			graphicsContext->SetMaterial(materialData);
 		} else{
 			if(model->SetTexture){
 				material.MaterialFlags |=
@@ -256,9 +257,9 @@ void RenderableModel::Execute(
 			}
 		}
 
-		//------------------------------------------------------------------
+		//----------------------------------------------------------------------
 		// Vertex Buffer
-		//------------------------------------------------------------------
+		//----------------------------------------------------------------------
 
 		UINT stride = sizeof(VERTEX_3D);
 		UINT offset = 0;
@@ -297,11 +298,9 @@ void RenderableModel::Execute(
 			model->IndexBuffer[meshIndex],
 			DXGI_FORMAT_R32_UINT,
 			0);
-
 		//----------------------------------------------------------------------
 		// Draw
 		//----------------------------------------------------------------------
-
 		deviceContext->DrawIndexed(
 			model->AiScene->mMeshes[meshIndex]->mNumFaces * 3,
 			0,
