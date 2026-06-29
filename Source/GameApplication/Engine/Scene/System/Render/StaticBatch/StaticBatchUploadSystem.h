@@ -18,6 +18,8 @@
 #include "System/Render/StaticBatch/StaticBatchGeometryBindingCache.h"
 #include "System/Render/StaticBatch/StaticBatchPipelineBootstrap.h"
 #include "System/Render/StaticBatch/StaticBatchPipelineResources.h"
+#include "System/Render/StaticBatch/StaticBatchShadowPipelineBootstrap.h"
+#include "System/Render/StaticBatch/StaticBatchShadowPipelineResources.h"
 
 class StaticBatchUploadSystem final : public ISystem {
 public:
@@ -30,19 +32,32 @@ public:
 	}
 
 	void Initialize() override {
+		RHI::IRHIDevice* device = ResolveDevice();
 		m_pipelineBootstrapResult = StaticBatchPipelineBootstrap::Initialize(
-			ResolveDevice(),
+			device,
 			m_pipelineResources
 		);
+		m_shadowPipelineBootstrapResult =
+			StaticBatchShadowPipelineBootstrap::Initialize(
+				device,
+				m_pipelineResources,
+				m_shadowPipelineResources
+			);
 	}
 
 	void Finalize() override {
 		RHI::IRHIDevice* device = ResolveDevice();
 		if(device){
+			const bool shadowReleased =
+				m_shadowPipelineResources.Release(*device);
 			m_geometryBindingCache.Release(*device);
-			m_pipelineResources.Release(*device);
+			if(shadowReleased){
+				m_pipelineResources.Release(*device);
+			}
 			m_gpuInstanceBuffer.Release(*device);
 		}
+		m_shadowPipelineBootstrapResult =
+			StaticBatchShadowPipelineBootstrapResult::NotAttempted;
 		m_pipelineBootstrapResult =
 			StaticBatchPipelineBootstrapResult::NotAttempted;
 		m_lastUploadSucceeded = false;
@@ -108,6 +123,26 @@ public:
 		return m_pipelineBootstrapResult ==
 			StaticBatchPipelineBootstrapResult::Success &&
 			m_pipelineResources.IsReady();
+	}
+
+	StaticBatchShadowPipelineResources& GetShadowPipelineResources() noexcept {
+		return m_shadowPipelineResources;
+	}
+
+	const StaticBatchShadowPipelineResources&
+	GetShadowPipelineResources() const noexcept {
+		return m_shadowPipelineResources;
+	}
+
+	StaticBatchShadowPipelineBootstrapResult
+	GetShadowPipelineBootstrapResult() const noexcept {
+		return m_shadowPipelineBootstrapResult;
+	}
+
+	bool IsShadowPipelineReady() const noexcept {
+		return m_shadowPipelineBootstrapResult ==
+			StaticBatchShadowPipelineBootstrapResult::Success &&
+			m_shadowPipelineResources.IsReady();
 	}
 
 	StaticBatchGeometryBindingCache& GetGeometryBindingCache() noexcept {
@@ -290,8 +325,11 @@ private:
 	SceneManagerContext* m_context = nullptr;
 	StaticBatchGpuInstanceBuffer m_gpuInstanceBuffer;
 	StaticBatchPipelineResources m_pipelineResources;
+	StaticBatchShadowPipelineResources m_shadowPipelineResources;
 	StaticBatchGeometryBindingCache m_geometryBindingCache;
 	StaticBatchPipelineBootstrapResult m_pipelineBootstrapResult =
 		StaticBatchPipelineBootstrapResult::NotAttempted;
+	StaticBatchShadowPipelineBootstrapResult m_shadowPipelineBootstrapResult =
+		StaticBatchShadowPipelineBootstrapResult::NotAttempted;
 	bool m_lastUploadSucceeded = false;
 };
