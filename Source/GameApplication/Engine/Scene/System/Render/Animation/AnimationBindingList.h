@@ -2,29 +2,32 @@
 
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
-// ModelRendererComponent定義後にincludeする軽量Helper。
 namespace AnimationBindingList {
 
+using BindingList = std::vector<std::pair<std::string, std::string>>;
+
 inline bool Contains(
-	const ModelRendererComponent& component,
+	const BindingList& bindings,
 	std::string_view assetPath
 ) noexcept {
-	for(const auto& binding : component.animations){
+	for(const auto& binding : bindings){
 		if(binding.second == assetPath) return true;
 	}
 	return false;
 }
 
 inline bool AddUnique(
-	ModelRendererComponent& component,
+	BindingList& bindings,
 	std::string_view alias,
 	std::string_view assetPath
 ){
-	if(alias.empty() || assetPath.empty() || Contains(component, assetPath)){
+	if(alias.empty() || assetPath.empty() || Contains(bindings, assetPath)){
 		return false;
 	}
-	component.animations.emplace_back(
+	bindings.emplace_back(
 		std::string(alias),
 		std::string(assetPath)
 	);
