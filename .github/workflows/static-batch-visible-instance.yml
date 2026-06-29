@@ -6,6 +6,7 @@ on:
     paths:
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchVisibleInstanceBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchVisibleInstanceSelection.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchVisibleInstanceCompaction.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceDataBuffer.h"
       - "Tests/StaticBatchVisibleInstanceBufferSmokeTest.cpp"
       - ".github/workflows/static-batch-visible-instance.yml"
@@ -14,6 +15,7 @@ on:
     paths:
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchVisibleInstanceBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchVisibleInstanceSelection.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchVisibleInstanceCompaction.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceDataBuffer.h"
       - "Tests/StaticBatchVisibleInstanceBufferSmokeTest.cpp"
       - ".github/workflows/static-batch-visible-instance.yml"
