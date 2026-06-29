@@ -38,6 +38,7 @@ int main(){
 
 	assert(system.GetGeometryBindingCache().BindingCount() == 0);
 	assert(system.GetGeometryBindingCache().ResolvedGroupCount() == 0);
+	assert(!system.IsShadowPipelineReady());
 
 	RHI::BackendRegistry registry;
 	assert(RHI::RegisterNullRHIBackend(registry));
@@ -53,6 +54,7 @@ int main(){
 	StaticBatchPipelineResources& resources = system.GetPipelineResources();
 	constexpr std::array<std::byte, 4> vertexByteCode{};
 	constexpr std::array<std::byte, 4> pixelByteCode{};
+	constexpr std::array<std::byte, 4> shadowPixelByteCode{};
 	assert(!resources.Create(*device, {}, {}));
 	assert(resources.Create(*device, vertexByteCode, pixelByteCode));
 	assert(resources.IsAllocated());
@@ -69,14 +71,36 @@ int main(){
 	assert(pipelineDesc->renderTargets.colorFormats[5] == RHI::Format::RGBA32_UInt);
 	assert(pipelineDesc->renderTargets.depthStencilFormat == RHI::Format::D32_Float);
 
+	StaticBatchShadowPipelineResources& shadowResources =
+		system.GetShadowPipelineResources();
+	assert(shadowResources.Create(
+		*device,
+		resources.VertexShader(),
+		shadowPixelByteCode
+	));
+	assert(shadowResources.IsReady());
+	const RHI::PipelineStateDesc* shadowPipelineDesc =
+		device->GetPipelineStateDesc(shadowResources.PipelineState());
+	assert(shadowPipelineDesc);
+	assert(shadowPipelineDesc->vertexShader == resources.VertexShader());
+	assert(shadowPipelineDesc->renderTargets.colorAttachmentCount == 0);
+	assert(
+		shadowPipelineDesc->renderTargets.depthStencilFormat ==
+		RHI::Format::D32_Float
+	);
+
 	RHI::CommandListCreateDesc commandDesc;
 	commandDesc.queueType = RHI::CommandQueueType::Graphics;
 	auto commandList = device->CreateCommandList(commandDesc);
 	assert(commandList);
 	commandList->Begin();
 	assert(resources.Bind(*commandList));
+	assert(commandList->SetPipelineState(shadowResources.PipelineState()));
 	commandList->End();
 
+	assert(shadowResources.Release(*device));
+	assert(!shadowResources.IsAllocated());
+	assert(resources.IsReady());
 	assert(resources.Release(*device));
 	assert(!resources.IsAllocated());
 	assert(!resources.IsReady());
