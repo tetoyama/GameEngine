@@ -34,6 +34,7 @@ on:
       - "Tests/StaticBatchGroupVisibilitySmokeTest.cpp"
       - "Tests/StaticBatchPipelineBootstrapSmokeTest.cpp"
       - "Tests/StaticBatchShadowPipelineSmokeTest.cpp"
+      - "Tests/StaticBatchShadowGroupEligibilitySmokeTest.cpp"
       - "Tests/StaticBatchDrawSubmissionSmokeTest.cpp"
       - "Tests/StaticBatchPacketIndexMappingSmokeTest.cpp"
       - "Tests/StaticBatchPacketReplacementSetSmokeTest.cpp"
@@ -74,6 +75,7 @@ on:
       - "Tests/StaticBatchGroupVisibilitySmokeTest.cpp"
       - "Tests/StaticBatchPipelineBootstrapSmokeTest.cpp"
       - "Tests/StaticBatchShadowPipelineSmokeTest.cpp"
+      - "Tests/StaticBatchShadowGroupEligibilitySmokeTest.cpp"
       - "Tests/StaticBatchDrawSubmissionSmokeTest.cpp"
       - "Tests/StaticBatchPacketIndexMappingSmokeTest.cpp"
       - "Tests/StaticBatchPacketReplacementSetSmokeTest.cpp"
@@ -121,6 +123,8 @@ jobs:
             output: static-batch-pipeline-bootstrap-test.exe
           - source: Tests/StaticBatchShadowPipelineSmokeTest.cpp
             output: static-batch-shadow-pipeline-test.exe
+          - source: Tests/StaticBatchShadowGroupEligibilitySmokeTest.cpp
+            output: static-batch-shadow-eligibility-test.exe
           - source: Tests/StaticBatchDrawSubmissionSmokeTest.cpp
             output: static-batch-draw-submission-test.exe
           - source: Tests/StaticBatchPacketIndexMappingSmokeTest.cpp
