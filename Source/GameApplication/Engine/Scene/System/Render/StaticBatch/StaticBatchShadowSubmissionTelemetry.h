@@ -9,6 +9,7 @@ struct StaticBatchShadowSubmissionTelemetry {
 	std::size_t visibleInstanceCount = 0;
 	std::size_t culledInstanceCount = 0;
 	std::size_t fullyCulledGroupCount = 0;
+	std::size_t mixedVisibilityFallbackCount = 0;
 	std::size_t compactedMixedGroupCount = 0;
 	std::size_t singleInstanceFallbackCount = 0;
 	std::size_t visibilityFailureCount = 0;
@@ -34,6 +35,7 @@ struct StaticBatchShadowSubmissionTelemetry {
 		visibleInstanceCount += other.visibleInstanceCount;
 		culledInstanceCount += other.culledInstanceCount;
 		fullyCulledGroupCount += other.fullyCulledGroupCount;
+		mixedVisibilityFallbackCount += other.mixedVisibilityFallbackCount;
 		compactedMixedGroupCount += other.compactedMixedGroupCount;
 		singleInstanceFallbackCount += other.singleInstanceFallbackCount;
 		visibilityFailureCount += other.visibilityFailureCount;
