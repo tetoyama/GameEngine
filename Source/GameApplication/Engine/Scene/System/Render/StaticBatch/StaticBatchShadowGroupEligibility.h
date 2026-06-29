@@ -32,7 +32,7 @@ struct StaticBatchShadowGroupEligibilityResult {
 namespace StaticBatchShadowGroupEligibility {
 
 inline StaticBatchShadowGroupEligibilityResult Resolve(
-	const StaticBatchInstanceGroup& group,
+	const StaticBatchPacketCacheEntry& group,
 	std::span<const std::size_t> packetIndices,
 	std::span<const RenderPacket> packets
 ){
