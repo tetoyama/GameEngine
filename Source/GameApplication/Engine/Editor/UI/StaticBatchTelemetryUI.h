@@ -99,7 +99,6 @@ inline void DrawShadowTelemetry(const StaticBatchUploadSystem* upload){
 		DrawMetricRow("Culled Instances", t.culledInstanceCount, "Instances omitted from light views");
 		DrawMetricRow("Fully Culled Groups", t.fullyCulledGroupCount, "Groups omitted from static and ordinary shadow draws");
 		DrawMetricRow("Compacted Mixed Groups", t.compactedMixedGroupCount, "Partially visible groups rebuilt with visible instances only");
-		DrawMetricRow("Legacy Mixed Fallback", t.mixedVisibilityFallbackCount, "Mixed groups kept on ordinary path before compaction");
 		DrawMetricRow("Single Instance Fallback", t.singleInstanceFallbackCount, "Visible-only groups too small to instance");
 		DrawMetricRow("Visibility Failures", t.visibilityFailureCount, "Invalid selection, packet mapping, or growth refusal");
 		DrawMetricRow("Instance Upload Failures", t.instanceUploadFailureCount, "View-local GPU instance upload failures");
