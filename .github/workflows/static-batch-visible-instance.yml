@@ -1,0 +1,54 @@
+name: Static Batch Visible Instance Contract
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchVisibleInstanceBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchVisibleInstanceSelection.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceDataBuffer.h"
+      - "Tests/StaticBatchVisibleInstanceBufferSmokeTest.cpp"
+      - ".github/workflows/static-batch-visible-instance.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchVisibleInstanceBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchVisibleInstanceSelection.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceDataBuffer.h"
+      - "Tests/StaticBatchVisibleInstanceBufferSmokeTest.cpp"
+      - ".github/workflows/static-batch-visible-instance.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: static-batch-visible-instance-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  visible-instance-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run visible instance compaction contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/StaticBatchVisibleInstanceBufferSmokeTest.cpp
+          /Fe:static-batch-visible-instance-test.exe
+          /link /NODEFAULTLIB:yaml-cppd.lib
+          && static-batch-visible-instance-test.exe
