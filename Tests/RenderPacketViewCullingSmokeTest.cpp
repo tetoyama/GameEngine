@@ -70,17 +70,40 @@ int main(){
 	playerView.viewProjection =
 		DirectX::XMMatrixOrthographicLH(20.0f, 20.0f, 0.0f, 20.0f);
 
+	RenderPacketCullingView shadowView;
+	shadowView.kind = CullingViewKind::Shadow;
+	shadowView.instanceID = 17;
+	shadowView.viewProjection =
+		DirectX::XMMatrixOrthographicLH(2.0f, 2.0f, 0.0f, 20.0f);
+
+	RenderPacketCullingView invalidShadowView;
+	invalidShadowView.kind = CullingViewKind::Shadow;
+	invalidShadowView.instanceID = 0;
+	invalidShadowView.viewProjection = shadowView.viewProjection;
+
+	assert(RenderPacketViewCulling::HasStableViewIdentity(editorView));
+	assert(RenderPacketViewCulling::HasStableViewIdentity(shadowView));
+	assert(!RenderPacketViewCulling::HasStableViewIdentity(invalidShadowView));
+
 	CullingVisibilitySet visibility;
 	RenderPacketViewCulling::Prepare(visibility, packets, editorView);
 	RenderPacketViewCulling::Prepare(visibility, packets, playerView);
+	RenderPacketViewCulling::Prepare(visibility, packets, shadowView);
+	RenderPacketViewCulling::Prepare(visibility, packets, invalidShadowView);
 
 	assert(visibility.FrameSerial() == 12);
-	assert(visibility.ViewCount() == 2);
+	assert(visibility.ViewCount() == 3);
 	assert(RenderPacketViewCulling::ShouldRender(
 		visibility, editorView, packets.Packets()[0]));
 	assert(!RenderPacketViewCulling::ShouldRender(
 		visibility, editorView, packets.Packets()[1]));
 	assert(RenderPacketViewCulling::ShouldRender(
 		visibility, playerView, packets.Packets()[1]));
+	assert(RenderPacketViewCulling::ShouldRender(
+		visibility, shadowView, packets.Packets()[0]));
+	assert(!RenderPacketViewCulling::ShouldRender(
+		visibility, shadowView, packets.Packets()[1]));
+	assert(RenderPacketViewCulling::ShouldRender(
+		visibility, invalidShadowView, packets.Packets()[1]));
 	return 0;
 }
