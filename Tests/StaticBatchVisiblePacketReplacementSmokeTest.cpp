@@ -47,6 +47,6 @@ int main(){
 	assert(replacements.Contains(100));
 	assert(!replacements.Contains(101));
 	assert(replacements.Contains(102));
-	assert(replacements.ReplacedPacketCount() == 2);
+	assert(replacements.Count() == 2);
 	return 0;
 }
