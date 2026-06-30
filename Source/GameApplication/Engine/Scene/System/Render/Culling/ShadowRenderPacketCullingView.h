@@ -27,7 +27,8 @@ inline RenderPacketCullingView Build(
 	const RenderPassContext& lightContext,
 	CullingViewKind parentKind,
 	std::uint32_t parentInstanceID,
-	std::uint32_t tileIndex
+	std::uint32_t tileIndex,
+	bool depthClipEnabled = false
 ) noexcept {
 	RenderPacketCullingView view;
 	view.kind = CullingViewKind::Shadow;
@@ -38,6 +39,7 @@ inline RenderPacketCullingView Build(
 	);
 	view.viewProjection =
 		lightContext.viewMatrix * lightContext.projectionMatrix;
+	view.depthClipEnabled = depthClipEnabled;
 	return view;
 }
 
