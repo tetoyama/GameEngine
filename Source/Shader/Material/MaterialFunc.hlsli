@@ -66,6 +66,25 @@ int ResolvePackedLightEntrySpan(LIGHT light, int firstEntryIndex, int activeEntr
     return min(span, remainingEntries);
 }
 
+bool ShouldEvaluateShadow(LIGHT light)
+{
+    if (light.CastShadow == 0)
+        return false;
+
+    if ((LightingDebugFlags & LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS) != 0u)
+        return false;
+
+    if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM &&
+        (LightingDebugFlags & LIGHTING_DEBUG_FLAG_DISABLE_CSM_SHADOWS) != 0u)
+        return false;
+
+    if (light.LightType == LIGHT_TYPE_POINT &&
+        (LightingDebugFlags & LIGHTING_DEBUG_FLAG_DISABLE_POINT_SHADOWS) != 0u)
+        return false;
+
+    return true;
+}
+
 LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFParams shadowParam)
 {
     LightingResult result = (LightingResult) 0;
@@ -102,8 +121,6 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         if (light.Enable == 0)
             continue;
 
-        // Packed continuation entries are skipped defensively. Under the normal
-        // contract the manual entryIndex advance above never lands on them.
         if (light.LightType == LIGHT_TYPE_POINT && light.Dummy < -1)
             continue;
         if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && light.Dummy > 1)
@@ -145,7 +162,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
 
         float shadow = 1.0;
 
-        if (light.CastShadow)
+        if (ShouldEvaluateShadow(light))
         {
             if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && light.Dummy == 1)
             {
