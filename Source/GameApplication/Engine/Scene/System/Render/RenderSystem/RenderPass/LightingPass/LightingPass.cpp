@@ -182,10 +182,41 @@ void LightingPass::Execute(const RenderPassContext& ctx){
 		LightBuffer diagnosticLights = originalLights;
 
 		if(settings.LightingDebugMaxActiveLights > 0){
-			diagnosticLights.ActiveLightCount = (std::min)(
+			const int sourceCount = (std::clamp)(
 				diagnosticLights.ActiveLightCount,
+				0,
+				LIGHT_MAX_COUNT
+			);
+			const int limitedCount = (std::min)(
+				sourceCount,
 				settings.LightingDebugMaxActiveLights
 			);
+			diagnosticLights.ActiveLightCount = limitedCount;
+
+			// CSM CascadeとPoint Shadow Faceは先頭EntryのPosition.wから
+			// 後続Entryを直接参照する。ActiveLightCountだけを切り詰めると
+			// 診断範囲外のEntryまで評価されるため、展開数も残数へ制限する。
+			for(int index = 0; index < limitedCount; ++index){
+				LIGHT& light = diagnosticLights.Lights[index];
+				const int remainingEntries = limitedCount - index;
+				if(light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM &&
+					light.Dummy == 1){
+					const int cascadeCount = (std::clamp)(
+						static_cast<int>(light.Position.w + 0.5f),
+						1,
+						remainingEntries
+					);
+					light.Position.w = static_cast<float>(cascadeCount);
+				}else if(light.LightType == LIGHT_TYPE_POINT &&
+					light.Dummy == -1){
+					const int faceCount = (std::clamp)(
+						static_cast<int>(light.Position.w + 0.5f),
+						1,
+						remainingEntries
+					);
+					light.Position.w = static_cast<float>(faceCount);
+				}
+			}
 			lightBufferOverridden = true;
 		}
 
