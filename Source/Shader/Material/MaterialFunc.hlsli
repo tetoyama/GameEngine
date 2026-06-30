@@ -179,6 +179,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
                     currentEntryIndex,
                     entrySpan,
                     currentShadowAtlasOffset,
+                    NdotL,
                     shadowParam);
             }
             else if (light.LightType == LIGHT_TYPE_POINT && light.Dummy == -1)
