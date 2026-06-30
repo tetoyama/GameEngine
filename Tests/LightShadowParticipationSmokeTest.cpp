@@ -16,7 +16,13 @@ int main(){
 	shadowPoint.CastShadow = 1;
 	shadowPoint.Dummy = -1;
 	shadowPoint.Position.w = 6.0f;
+	shadowPoint.Param.w = DEPTH_BIAS_CONSTANT;
 	assert(LightGpuSubmissionPolicy::ShouldExpandShadowEntries(shadowPoint));
+	assert(shadowPoint.Param.w == 0.0f);
+
+	shadowPoint.ShadowBias = ShadowBiasPolicy::MakeLegacy(0.002f);
+	assert(LightGpuSubmissionPolicy::ShouldSubmitLighting(shadowPoint));
+	assert(shadowPoint.Param.w == 0.002f);
 
 	const LIGHT unshadowed =
 		LightGpuSubmissionPolicy::MakeUnshadowedLogicalEntry(shadowPoint);
@@ -24,6 +30,7 @@ int main(){
 	assert(unshadowed.CastShadow == 0);
 	assert(unshadowed.Dummy == 0);
 	assert(unshadowed.Position.w == 0.0f);
+	assert(unshadowed.Param.w == 0.002f);
 
 	LightBuffer packed{};
 	packed.ActiveLightCount = 5;
@@ -48,6 +55,5 @@ int main(){
 	assert(
 		PackedLightEntryTraversal::ResolveEntryCountForLogicalLimit(packed, 2) == 5
 	);
-
 	return 0;
 }
