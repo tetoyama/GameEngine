@@ -5,11 +5,11 @@
 // =======================================================================
 #pragma once
 
-
+#include <algorithm>
+#include <cmath>
 #include <memory>
 
 #include "Interface/IComponent.h"
-
 #include "Graphics/graphicsContext.h"
 #include "Backends/YAMLConverters.h"
 #include "scene.h"
@@ -18,10 +18,13 @@
 #include "Resources/Loader/textureLoader.h"
 #include "Resources/Data/TextureData.h"
 
-
 // テクスチャリソースと UV 変換・スライスアニメーションを管理するコンポーネント。
-// UV_Slice_X / UV_Slice_Y はUV除数として扱う。
-// 0.01 = 100回リピート、1.0 = 等倍、2.0 = 1/2範囲を表示する。
+// UV_Slice_X / UV_Slice_Y は以下の契約で扱う。
+//   value == 1.0 : 等倍
+//   value >  1.0 : スライス数。2.0 = 2分割、4.0 = 4分割。
+//   0 < value < 1.0 : リピート除数。0.5 = 2リピート、0.25 = 4リピート。
+// Shader側は常に TransformUV(uv, UVStart, UVEnd) を使い、CPU側でこの契約を
+// UVStart / UVEnd へ解決して渡す。
 class TextureComponent : public IComponent {
 public:
 	float UV_Slice_X = 1.0f;
@@ -30,6 +33,67 @@ public:
 	int AnimationNum = 0;  // 表示するセルのインデックス
 
 	std::shared_ptr<TextureData> m_TextureData;  // ロード済みテクスチャデータ
+
+	static bool IsSliceValue(float value){
+		return value >= 1.0f;
+	}
+
+	static float ResolveUVSpan(float value){
+		if(value <= 0.0f){
+			return 1.0f;
+		}
+		return 1.0f / value;
+	}
+
+	static int ResolveSliceCount(float value){
+		if(!IsSliceValue(value)){
+			return 1;
+		}
+		return (std::max)(1, static_cast<int>(std::floor(value + 0.0001f)));
+	}
+
+	int ResolveMaxAnimationFrame() const{
+		const int columnCount = ResolveSliceCount(UV_Slice_X);
+		const int rowCount = ResolveSliceCount(UV_Slice_Y);
+		return (std::max)(0, columnCount * rowCount - 1);
+	}
+
+	UVMatrixBuffer ResolveUVMatrixBuffer() const{
+		UVMatrixBuffer uv{};
+		uv.UVStart = float2(0.0f, 0.0f);
+		uv.UVEnd = float2(1.0f, 1.0f);
+
+		if(UV_Slice_X <= 0.0f || UV_Slice_Y <= 0.0f){
+			return uv;
+		}
+
+		const bool sliceX = IsSliceValue(UV_Slice_X);
+		const bool sliceY = IsSliceValue(UV_Slice_Y);
+		const float spanX = ResolveUVSpan(UV_Slice_X);
+		const float spanY = ResolveUVSpan(UV_Slice_Y);
+		const int columnCount = ResolveSliceCount(UV_Slice_X);
+		const int rowCount = ResolveSliceCount(UV_Slice_Y);
+		const int maxFrame = (std::max)(0, columnCount * rowCount - 1);
+		const int safeFrame = std::clamp(AnimationNum, 0, maxFrame);
+
+		if(sliceX){
+			uv.UVStart.x = (safeFrame % columnCount) * spanX;
+			uv.UVEnd.x = uv.UVStart.x + spanX;
+		}else{
+			uv.UVStart.x = 0.0f;
+			uv.UVEnd.x = spanX;
+		}
+
+		if(sliceY){
+			uv.UVStart.y = (safeFrame / columnCount) * spanY;
+			uv.UVEnd.y = uv.UVStart.y + spanY;
+		}else{
+			uv.UVStart.y = 0.0f;
+			uv.UVEnd.y = spanY;
+		}
+
+		return uv;
+	}
 
 	YAML::Node encode() override{
 		YAML::Node node;
@@ -64,14 +128,13 @@ public:
     void inspector(SceneContext* context) override {
         ImGui::PushID(this);
 
-       
         // 色定義
         ImVec4 colorR = ImVec4(0.7f, 0.4f, 0.4f, 0.3f); // R
         ImVec4 colorG = ImVec4(0.4f, 0.7f, 0.4f, 0.3f); // G
 
-        // --- UV Divisor ---
-        ImGui::Text("UV Divisor");
-        ImGui::SameLine(100);
+        // --- UV Divisor / Slice ---
+        ImGui::Text("UV Slice / Repeat");
+        ImGui::SameLine(140);
 
         float availWidth = ImGui::GetContentRegionAvail().x;
 
@@ -105,33 +168,31 @@ public:
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();
 
-		ImGui::TextDisabled("0.01 = Repeat x100 / 1 = Full / 2 = Half");
+		ImGui::TextDisabled("1 = Full / 2 = 2 slices / 0.5 = Repeat x2");
 
 		// --- Animation Frame ---
 		ImGui::AlignTextToFramePadding();
 		ImGui::TextUnformatted("Frame");
 		ImGui::SameLine(100.0f);
 
-		// 計算
 		float totalAvail = ImGui::GetContentRegionAvail().x;
 		float sliderWidth = totalAvail * 0.6f;
 		float inputWidth = totalAvail - sliderWidth - ImGui::GetStyle().ItemSpacing.x * 2;
 
-		int maxFrame = (int)(UV_Slice_X * UV_Slice_Y) - 1;
-		if(maxFrame < 0) maxFrame = 0;
+		int maxFrame = ResolveMaxAnimationFrame();
+		if(AnimationNum > maxFrame) AnimationNum = maxFrame;
+		if(AnimationNum < 0) AnimationNum = 0;
 
 		// スライダー（左）
 		ImGui::PushItemWidth(sliderWidth);
-		// スタイル調整（丸いスライダーグリップ、細いバー）
 		ImGuiStyle& style = ImGui::GetStyle();
 		float oldGrabRounding = style.GrabRounding;
 
-		style.GrabRounding = 100.0f;             // 丸いつまみ
+		style.GrabRounding = 100.0f;
 		if(ImGui::SliderInt("##FrameSlider", &AnimationNum, 0, maxFrame)){
-			if(AnimationNum < 0) AnimationNum = 0;
+			AnimationNum = std::clamp(AnimationNum, 0, maxFrame);
 		}
 		ImGui::PopItemWidth();
-		// スタイル戻す
 		style.GrabRounding = oldGrabRounding;
 
 		ImGui::SameLine();
@@ -139,15 +200,14 @@ public:
 		// 数値入力（右）
 		ImGui::PushItemWidth(inputWidth);
 		if(ImGui::UndoDragInt("##FrameInput", &AnimationNum, 1, 0, maxFrame)){
-			if(AnimationNum < 0) AnimationNum = 0;
+			AnimationNum = std::clamp(AnimationNum, 0, maxFrame);
 		}
 		ImGui::PopItemWidth();
-
 
 		// --- Texture Input ---
 		ImGui::BeginGroup();
 		float textLabelWidth = 100.0f;
-		float inputFieldWidth = ImGui::GetContentRegionAvail().x - textLabelWidth - 24.0f; // 余白 + ボタンサイズ分調整
+		float inputFieldWidth = ImGui::GetContentRegionAvail().x - textLabelWidth - 24.0f;
 
 		char filepathBuffer[256] = "";
 		if(m_TextureData && !m_TextureData->FilePath.empty()){
@@ -162,14 +222,12 @@ public:
 		}
 		ImGui::PopItemWidth();
 
-
 		// Clear Button
 		ImGui::SameLine();
 		if(ImGui::SmallButton("x")){
-			filepathBuffer[0] = '\0'; // クリア
-			m_TextureData = nullptr; // テクスチャデータもクリア
+			filepathBuffer[0] = '\0';
+			m_TextureData = nullptr;
 		}
-
 
         // --- Texture Preview ---
         if (m_TextureData && m_TextureData->pTexture) {
@@ -190,18 +248,12 @@ public:
             ImGui::SameLine(0.0f, spacing);
 
             ImGui::BeginGroup();
-            ImVec2 start(0.0f, 0.0f);
-            ImVec2 end(1.0f, 1.0f);
-
-			if (UV_Slice_X > 0.0f && UV_Slice_Y > 0.0f) {
-				// 実際の頂点シェーダーと同じく、値の逆数を表示UV幅として扱う。
-				end.x = 1.0f / UV_Slice_X;
-				end.y = 1.0f / UV_Slice_Y;
-			}
+			const UVMatrixBuffer previewUv = ResolveUVMatrixBuffer();
             ImGui::Image(
                 (ImTextureID)m_TextureData->pTexture.Get(),
                 ImVec2(previewSize, previewSize),
-                start, end,
+                ImVec2(previewUv.UVStart.x, previewUv.UVStart.y),
+                ImVec2(previewUv.UVEnd.x, previewUv.UVEnd.y),
                 ImVec4(1, 1, 1, 1),
                 ImVec4(0, 0, 0, 0)
             );
@@ -209,8 +261,8 @@ public:
         } else {
             ImGui::TextDisabled("No texture loaded");
         }
-
 		ImGui::EndGroup();
+
 		// --- Drag and Drop for Texture ---
 		if(ImGui::BeginDragDropTarget()){
 			if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
@@ -223,6 +275,6 @@ public:
 		}
         ImGui::Spacing();
 
-		ImGui::PopID(); // コンポーネントのIDをポップ
+		ImGui::PopID();
     }
 };
