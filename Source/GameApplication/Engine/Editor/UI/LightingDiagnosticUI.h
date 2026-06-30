@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstdint>
 
 #include "Backends/ImGui/imgui.h"
 #include "Scene/sceneManager.h"
@@ -41,6 +42,46 @@ inline void Draw(SceneManager* sceneManager){
 	ImGui::TextDisabled(
 		"Material dispatch remains material-specific. No materialID switch is used."
 	);
+
+	SceneManagerContext* managerContext =
+		sceneManager ? sceneManager->GetContext() : nullptr;
+	if(managerContext){
+		const int playerWidth = (std::max)(
+			0,
+			static_cast<int>(managerContext->PlayerScreenSize.x)
+		);
+		const int playerHeight = (std::max)(
+			0,
+			static_cast<int>(managerContext->PlayerScreenSize.y)
+		);
+		const int editorWidth = (std::max)(
+			0,
+			static_cast<int>(managerContext->EditorScreenSize.x)
+		);
+		const int editorHeight = (std::max)(
+			0,
+			static_cast<int>(managerContext->EditorScreenSize.y)
+		);
+		const std::uint64_t playerPixels =
+			static_cast<std::uint64_t>(playerWidth) *
+			static_cast<std::uint64_t>(playerHeight);
+		const std::uint64_t editorPixels =
+			static_cast<std::uint64_t>(editorWidth) *
+			static_cast<std::uint64_t>(editorHeight);
+
+		ImGui::Text(
+			"Player Resolution: %d x %d / %llu pixels",
+			playerWidth,
+			playerHeight,
+			static_cast<unsigned long long>(playerPixels)
+		);
+		ImGui::Text(
+			"Editor Resolution: %d x %d / %llu pixels",
+			editorWidth,
+			editorHeight,
+			static_cast<unsigned long long>(editorPixels)
+		);
+	}
 
 	bool disableShadows =
 		(settings.LightingDebugFlags &
@@ -95,28 +136,26 @@ inline void Draw(SceneManager* sceneManager){
 	);
 	ImGui::TextDisabled("0 means all active GPU light entries.");
 
-	if(SceneManagerContext* context =
-		sceneManager ? sceneManager->GetContext() : nullptr){
-		if(context->graphics && context->graphics->GetLight()){
-			const LightBuffer* lights = context->graphics->GetLight();
-			const int activeCount = (std::clamp)(
-				lights->ActiveLightCount,
-				0,
-				LIGHT_MAX_COUNT
-			);
-			int shadowEntryCount = 0;
-			for(int index = 0; index < activeCount; ++index){
-				const LIGHT& light = lights->Lights[index];
-				if(light.Enable != 0 && light.CastShadow != 0){
-					++shadowEntryCount;
-				}
+	if(managerContext && managerContext->graphics &&
+		managerContext->graphics->GetLight()){
+		const LightBuffer* lights = managerContext->graphics->GetLight();
+		const int activeCount = (std::clamp)(
+			lights->ActiveLightCount,
+			0,
+			LIGHT_MAX_COUNT
+		);
+		int shadowEntryCount = 0;
+		for(int index = 0; index < activeCount; ++index){
+			const LIGHT& light = lights->Lights[index];
+			if(light.Enable != 0 && light.CastShadow != 0){
+				++shadowEntryCount;
 			}
-			ImGui::Text("Current GPU ActiveLightCount: %d", activeCount);
-			ImGui::Text("Shadow-casting GPU entries: %d", shadowEntryCount);
-			ImGui::TextDisabled(
-				"CSM cascades and point-light faces are counted as GPU entries."
-			);
 		}
+		ImGui::Text("Current GPU ActiveLightCount: %d", activeCount);
+		ImGui::Text("Shadow-casting GPU entries: %d", shadowEntryCount);
+		ImGui::TextDisabled(
+			"CSM cascades and point-light faces are counted as GPU entries."
+		);
 	}
 
 	auto applyBaseline = [&settings](){
