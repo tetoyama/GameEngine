@@ -17,6 +17,10 @@ int main(){
 	assert(legacy.x == 0.005f);
 	assert(legacy.y == 0.0f);
 
+	// The old Inspector allowed values up to 1.0. Loading must not truncate them.
+	float4 highLegacy = MakeLegacy(0.75f);
+	assert(highLegacy.x == 0.75f);
+
 	LIGHT legacyLight{};
 	legacyLight.Param.w = 0.25f;
 	legacyLight.ShadowBias = legacy;
@@ -54,5 +58,10 @@ int main(){
 	SetMode(modeSwitch, Mode::LegacyNdc, 0.002f);
 	assert(GetMode(modeSwitch) == Mode::LegacyNdc);
 	assert(std::abs(modeSwitch.x - 0.002f) < 0.000001f);
+
+	float4 zeroFallback = MakeWorldDefaults();
+	SetMode(zeroFallback, Mode::LegacyNdc, 0.0f);
+	assert(GetMode(zeroFallback) == Mode::LegacyNdc);
+	assert(std::abs(zeroFallback.x - DEPTH_BIAS_CONSTANT) < 0.000001f);
 	return 0;
 }
