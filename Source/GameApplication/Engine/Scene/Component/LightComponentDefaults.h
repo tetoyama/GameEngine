@@ -13,7 +13,7 @@ inline LIGHT Create() noexcept {
 	light.CastShadow = 0;
 	light.Ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
 	light.Diffuse = float4(1.0f, 1.0f, 1.0f, 1.0f);
-	light.Param = float4(10.0f, 0.0f, 0.0f, DEPTH_BIAS_CONSTANT);
+	light.Param = float4(10.0f, 0.0f, 0.0f, 0.0f);
 	light.ShadowBias = ShadowBiasPolicy::MakeWorldDefaults();
 	return light;
 }
