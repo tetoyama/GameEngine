@@ -9,6 +9,8 @@ on:
       - "Source/Shader/Material/DeferredFunc.hlsli"
       - "Source/Shader/Material/FowardFunc.hlsli"
       - "Source/Shader/Material/MaterialFunc.hlsli"
+      - "Source/Shader/Material/MaterialBRDF.hlsli"
+      - "Source/Shader/Material/MaterialLightingEvaluation.hlsli"
       - "Source/Shader/Material/PBRShader.hlsli"
       - "Source/Shader/Material/ShadowDepthBias.hlsli"
       - "Source/GameApplication/Engine/Editor/UI/LightingDiagnosticUI.h"
@@ -20,6 +22,8 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/LocalLightShadowProjection.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PackedLightEntryTraversal.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PointShadowFaceLayout.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/ShadowBiasPolicy.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/ShadowBiasSynchronization.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.cpp"
@@ -29,6 +33,7 @@ on:
       - "Tests/PackedLightEntryTraversalSmokeTest.cpp"
       - "Tests/LightShadowParticipationSmokeTest.cpp"
       - "Tests/LocalLightShadowProjectionSmokeTest.cpp"
+      - "Tests/ShadowBiasPolicySmokeTest.cpp"
       - "Tests/PointShadowFaceLayoutSmokeTest.cpp"
       - "Tests/LightingDiagnosticPBRSmoke.hlsl"
       - "Tests/LightingDiagnosticForwardPBRSmoke.hlsl"
@@ -41,6 +46,8 @@ on:
       - "Source/Shader/Material/DeferredFunc.hlsli"
       - "Source/Shader/Material/FowardFunc.hlsli"
       - "Source/Shader/Material/MaterialFunc.hlsli"
+      - "Source/Shader/Material/MaterialBRDF.hlsli"
+      - "Source/Shader/Material/MaterialLightingEvaluation.hlsli"
       - "Source/Shader/Material/PBRShader.hlsli"
       - "Source/Shader/Material/ShadowDepthBias.hlsli"
       - "Source/GameApplication/Engine/Editor/UI/LightingDiagnosticUI.h"
@@ -52,6 +59,8 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/LocalLightShadowProjection.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PackedLightEntryTraversal.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PointShadowFaceLayout.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/ShadowBiasPolicy.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/ShadowBiasSynchronization.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.cpp"
@@ -61,6 +70,7 @@ on:
       - "Tests/PackedLightEntryTraversalSmokeTest.cpp"
       - "Tests/LightShadowParticipationSmokeTest.cpp"
       - "Tests/LocalLightShadowProjectionSmokeTest.cpp"
+      - "Tests/ShadowBiasPolicySmokeTest.cpp"
       - "Tests/PointShadowFaceLayoutSmokeTest.cpp"
       - "Tests/LightingDiagnosticPBRSmoke.hlsl"
       - "Tests/LightingDiagnosticForwardPBRSmoke.hlsl"
@@ -128,6 +138,17 @@ jobs:
           Tests/LocalLightShadowProjectionSmokeTest.cpp
           /Fe:local-light-shadow-projection-test.exe
           && local-light-shadow-projection-test.exe
+      - name: Compile and run shadow bias contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471
+          /I Source
+          /I Source/GameApplication
+          Tests/ShadowBiasPolicySmokeTest.cpp
+          /Fe:shadow-bias-policy-test.exe
+          && shadow-bias-policy-test.exe
       - name: Compile and run point shadow face layout
         shell: cmd
         run: >-
@@ -139,31 +160,60 @@ jobs:
           Tests/PointShadowFaceLayoutSmokeTest.cpp
           /Fe:point-shadow-face-layout-test.exe
           && point-shadow-face-layout-test.exe
-      - name: Guard ShadowMapPass light and point-face contracts
+      - name: Guard lighting and shadow contracts
         shell: pwsh
         run: |
-          $path = "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.cpp"
-          $text = Get-Content -Raw -Path $path
-          if ($text -match 'if\s*\(\s*!lightcomp->light\.CastShadow\s*\)\s*continue') {
+          $shadowPass = "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.cpp"
+          $shadowPassText = Get-Content -Raw -Path $shadowPass
+          if ($shadowPassText -match 'if\s*\(\s*!lightcomp->light\.CastShadow\s*\)\s*continue') {
             throw "CastShadow=false lights must not be removed from GPU lighting submission."
           }
-          if ($text -notmatch 'MakeUnshadowedLogicalEntry') {
+          if ($shadowPassText -notmatch 'MakeUnshadowedLogicalEntry') {
             throw "Non-shadow logical light fallback is missing."
           }
-          if ($text -notmatch 'PointShadowFaceLayout::ProjectionFovRadians') {
+          if ($shadowPassText -notmatch 'PointShadowFaceLayout::ProjectionFovRadians') {
             throw "Point shadow overlap FOV contract is missing."
           }
-          if ($text -notmatch 'perspectiveShadowRS') {
+          if ($shadowPassText -notmatch 'perspectiveShadowRS') {
             throw "Point and spot shadows must use a depth-clipped rasterizer."
           }
-          if ($text -notmatch 'LocalLightShadowProjection::ResolveFarPlane') {
+          if ($shadowPassText -notmatch 'LocalLightShadowProjection::ResolveFarPlane') {
             throw "Point and spot shadows must share the local light Far contract."
           }
-          if ($text -match 'lightData\.Param\.x\s*\*\s*1000') {
+          if ($shadowPassText -match 'lightData\.Param\.x\s*\*\s*1000') {
             throw "Spot shadow Far must not multiply the light range by 1000."
           }
-          if ($text -notmatch 'static_cast<std::uint32_t>\(shadowNum\),\s*perspectiveShadow') {
+          if ($shadowPassText -notmatch 'static_cast<std::uint32_t>\(shadowNum\),\s*perspectiveShadow') {
             throw "Perspective shadow depth clipping must be forwarded to CPU culling."
+          }
+
+          $common = Get-Content -Raw -Path "Source/Shader/common.hlsl"
+          if ($common -notmatch 'float4\s+ShadowBias\s*;') {
+            throw "LIGHT must carry an explicit ShadowBias payload."
+          }
+
+          $biasHelper = Get-Content -Raw -Path "Source/Shader/Material/ShadowDepthBias.hlsli"
+          if ($biasHelper -notmatch 'ApplyShadowReceiverBias') {
+            throw "World-space receiver bias helper is missing."
+          }
+          if ($biasHelper -match 'depthDerivative') {
+            throw "The removed perspective derivative approximation must not return."
+          }
+
+          $evaluation = Get-Content -Raw -Path "Source/Shader/Material/MaterialLightingEvaluation.hlsli"
+          if ($evaluation -notmatch 'ApplyShadowReceiverBias') {
+            throw "Lighting evaluation must apply receiver bias before projection."
+          }
+
+          $operations = Get-Content -Raw -Path "Source/GameApplication/Engine/Scene/Component/Operations/LightComponentOperations.h"
+          if ($operations -notmatch 'node\["ShadowBias"\]') {
+            throw "ShadowBias must be serialized explicitly."
+          }
+          if ($operations -notmatch 'MakeLegacy\(light\.Param\.w\)') {
+            throw "Scenes without ShadowBias must migrate to Legacy NDC mode."
+          }
+          if ($operations -notmatch 'ShadowBiasSynchronization::Apply') {
+            throw "Legacy Param.w synchronization is missing."
           }
 
           $shaderPaths = @(
@@ -178,7 +228,7 @@ jobs:
           foreach ($shaderPath in $shaderPaths) {
             $shader = Get-Content -Raw -Path $shaderPath
             if ($shader -notmatch 'ResolvePerspectiveShadowDepthBias') {
-              throw "Depth-aware local shadow bias is missing in $shaderPath"
+              throw "Legacy perspective NDC bias adapter is missing in $shaderPath"
             }
             foreach ($rule in $faceRules) {
               if ($shader -notmatch $rule) {
