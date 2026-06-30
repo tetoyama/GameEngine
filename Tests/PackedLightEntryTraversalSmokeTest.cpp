@@ -1,8 +1,14 @@
 #include <cassert>
+#include <string_view>
 
 #include "Engine/Scene/System/Render/Lighting/PackedLightEntryTraversal.h"
 
 int main(){
+	using PackedLightEntryTraversal::LightTypeName;
+	assert(std::string_view(LightTypeName(LIGHT_TYPE_DIRECTIONAL_CSM)) ==
+		"Directional CSM");
+	assert(std::string_view(LightTypeName(LIGHT_TYPE_POINT)) == "Point");
+
 	LightBuffer lights{};
 	lights.ActiveLightCount = 10;
 
