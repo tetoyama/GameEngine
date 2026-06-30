@@ -252,6 +252,7 @@ void Scene::BuildDefaultScene(){
 		light->light.Ambient = DirectX::XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
 		light->light.Param = DirectX::XMFLOAT4(0.00f, 0.00f, 0.00f, 0.002f);
 		light->light.Param.x = 500.0f;
+		light->light.CastShadow = true;
 	}
 	{
 		Entity entity = entityRegistry->Create();
