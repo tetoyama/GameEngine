@@ -320,140 +320,111 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 						(1.0f - csmLambda) * uniSplit;
 				}
 
-				XMVECTOR worldUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-				if(fabsf(XMVectorGetX(
-					XMVector3Dot(lightDir, worldUp)
-				)) > 0.99f){
-					worldUp = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-				}
-
 				float prevSplit = csmNear;
 				int firstCascadeSlot = lightCount;
-				int addedCascades = 0;
+				int cascadeCount = 0;
 
-				for(int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT; c++){
-					if(lightCount >= LIGHT_MAX_COUNT){
-						break;
+				for(int c = 0;
+					c < DIRECTIONAL_CSM_CASCADE_COUNT && lightCount < LIGHT_MAX_COUNT;
+					++c){
+
+					float splitNear = prevSplit;
+					float splitFar = splitDepths[c];
+					prevSplit = splitFar;
+
+					XMVECTOR corners[8];
+					int idx = 0;
+					for(int zi = 0; zi < 2; zi++){
+						float z = zi == 0 ? splitNear : splitFar;
+						float hx = tanHalfFovH * z;
+						float hy = tanHalfFovV * z;
+
+						for(int sx = -1; sx <= 1; sx += 2){
+							for(int sy = -1; sy <= 1; sy += 2){
+								XMVECTOR viewCorner = XMVectorSet(
+									sx * hx,
+									sy * hy,
+									z,
+									1.0f
+								);
+								corners[idx++] =
+									XMVector3TransformCoord(
+										viewCorner,
+										invCameraView
+									);
+							}
+						}
 					}
 
-					float currSplit = splitDepths[c];
-
-					float nX = prevSplit * tanHalfFovH;
-					float nY = prevSplit * tanHalfFovV;
-					float fX = currSplit * tanHalfFovH;
-					float fY = currSplit * tanHalfFovV;
-
-					XMVECTOR corners[8] = {
-						XMVectorSet(-nX,  nY, prevSplit, 1.0f),
-						XMVectorSet(nX,  nY, prevSplit, 1.0f),
-						XMVectorSet(-nX, -nY, prevSplit, 1.0f),
-						XMVectorSet(nX, -nY, prevSplit, 1.0f),
-						XMVectorSet(-fX,  fY, currSplit, 1.0f),
-						XMVectorSet(fX,  fY, currSplit, 1.0f),
-						XMVectorSet(-fX, -fY, currSplit, 1.0f),
-						XMVectorSet(fX, -fY, currSplit, 1.0f),
-					};
-
-					for(int k = 0; k < 8; k++){
-						corners[k] =
-							XMVector4Transform(corners[k], invCameraView);
+					XMVECTOR center = XMVectorZero();
+					for(int i = 0; i < 8; i++){
+						center += corners[i];
 					}
-
-					XMVECTOR centroid = XMVectorZero();
-					for(int k = 0; k < 8; k++){
-						centroid = XMVectorAdd(centroid, corners[k]);
-					}
-					centroid = XMVectorScale(centroid, 1.0f / 8.0f);
+					center /= 8.0f;
 
 					float radius = 0.0f;
-					for(int k = 0; k < 8; k++){
+					for(int i = 0; i < 8; i++){
 						float d = XMVectorGetX(
-							XMVector3Length(corners[k] - centroid)
+							XMVector3Length(corners[i] - center)
 						);
-						if(d > radius) radius = d;
+						radius = (std::max)(radius, d);
 					}
 
-					XMVECTOR eye = centroid - lightDir * (radius + 1.0f);
-					XMMATRIX cascadeView =
-						XMMatrixLookAtLH(eye, centroid, worldUp);
+					radius = ceilf(radius * 16.0f) / 16.0f;
 
-					float minX = FLT_MAX, maxX = -FLT_MAX;
-					float minY = FLT_MAX, maxY = -FLT_MAX;
-					float minZ = FLT_MAX, maxZ = -FLT_MAX;
-
-					for(int k = 0; k < 8; k++){
-						XMVECTOR lc =
-							XMVector4Transform(corners[k], cascadeView);
-						float lx = XMVectorGetX(lc);
-						float ly = XMVectorGetY(lc);
-						float lz = XMVectorGetZ(lc);
-						minX = min(minX, lx); maxX = max(maxX, lx);
-						minY = min(minY, ly); maxY = max(maxY, ly);
-						minZ = min(minZ, lz); maxZ = max(maxZ, lz);
+					XMVECTOR eyev = center - lightDir * radius;
+					XMVECTOR upv = XMVectorSet(0, 1, 0, 0);
+					if(fabsf(XMVectorGetX(XMVector3Dot(upv, lightDir))) > 0.95f){
+						upv = XMVectorSet(0, 0, 1, 0);
 					}
 
-					if(maxZ <= minZ) maxZ = minZ + 1.0f;
-
-					XMMATRIX cascadeProj = XMMatrixOrthographicOffCenterLH(
-						minX,
-						maxX,
-						minY,
-						maxY,
+					XMMATRIX lightView = XMMatrixLookAtLH(eyev, center, upv);
+					XMMATRIX lightProj = XMMatrixOrthographicLH(
+						radius * 2.0f,
+						radius * 2.0f,
 						0.0f,
-						maxZ
+						radius * 2.0f
 					);
 
-					LIGHT cascadeEntry = lightData;
-					cascadeEntry.LightType = LIGHT_TYPE_DIRECTIONAL_CSM;
-					cascadeEntry.Enable = true;
-					cascadeEntry.CastShadow = true;
-					cascadeEntry.Dummy = c + 1;
+					LIGHT cascadeLight = lightData;
+					cascadeLight.Dummy = c + 1;
+					cascadeLight.Position.w = 0.0f;
 
-					XMFLOAT3 eyePos;
-					XMStoreFloat3(&eyePos, eye);
-					cascadeEntry.Position = XMFLOAT4(
-						eyePos.x,
-						eyePos.y,
-						eyePos.z,
+					if(c > 0){
+						cascadeLight.Diffuse = XMFLOAT4(0, 0, 0, 0);
+						cascadeLight.Ambient = XMFLOAT4(0, 0, 0, 0);
+					}
+
+					XMFLOAT3 lightCamPos;
+					XMStoreFloat3(&lightCamPos, eyev);
+					cascadeLight.Position = XMFLOAT4(
+						lightCamPos.x,
+						lightCamPos.y,
+						lightCamPos.z,
 						0.0f
 					);
 
-					if(c > 0){
-						cascadeEntry.Ambient =
-							XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-					}
-
 					XMStoreFloat4x4(
-						&cascadeEntry.LightView,
-						XMMatrixTranspose(cascadeView)
+						&cascadeLight.LightView,
+						XMMatrixTranspose(lightView)
 					);
 					XMStoreFloat4x4(
-						&cascadeEntry.LightProjection,
-						XMMatrixTranspose(cascadeProj)
+						&cascadeLight.LightProjection,
+						XMMatrixTranspose(lightProj)
 					);
 
-					light.Lights[lightCount] = cascadeEntry;
+					light.Lights[lightCount] = cascadeLight;
 					lightCount++;
 					shadowCount++;
-					addedCascades++;
-
-					prevSplit = currSplit;
+					cascadeCount++;
 				}
 
-				if(addedCascades > 0){
+				if(cascadeCount > 0){
 					light.Lights[firstCascadeSlot].Position.w =
-						(float)addedCascades;
-					hasCsmLight = true;
-					foundLight = true;
-					continue;
+						(float)cascadeCount;
 				}
-			}
 
-			// CSMを展開できない場合や2個目以降のCSMでも、照明自体は保持する。
-			if(lightData.LightType == LIGHT_TYPE_DIRECTIONAL_CSM){
-				light.Lights[lightCount] =
-					LightGpuSubmissionPolicy::MakeUnshadowedLogicalEntry(lightData);
-				lightCount++;
+				hasCsmLight = true;
 				foundLight = true;
 				continue;
 			}
@@ -461,21 +432,13 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 			// ======== Spot Shadow ========
 			if(lightData.LightType == LIGHT_TYPE_SPOT && lightData.CastShadow){
 				XMVECTOR eye = transform->position.ToXMVECTOR();
-				XMVECTOR forward =
-					XMVector3Normalize(transform->front().ToXMVECTOR());
+				XMVECTOR dir = transform->front().ToXMVECTOR();
+				XMVECTOR at = eye + dir;
 
-				XMVECTOR worldUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-				float dp = XMVectorGetX(XMVector3Dot(forward, worldUp));
-				if(fabsf(dp) > 0.99f){
-					worldUp = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+				XMVECTOR up = XMVectorSet(0, 1, 0, 0);
+				if(fabsf(XMVectorGetX(XMVector3Dot(up, dir))) > 0.95f){
+					up = XMVectorSet(0, 0, 1, 0);
 				}
-
-				XMVECTOR right =
-					XMVector3Normalize(XMVector3Cross(worldUp, forward));
-				XMVECTOR up = XMVector3Cross(forward, right);
-
-				XMVECTOR at = eye + forward;
 
 				float outer = lightData.Param.z;
 				if(outer <= 0.01f){
@@ -517,7 +480,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 				const float nearZ = LocalLightShadowProjection::NearPlane;
 				const float farZ =
-					LocalLightShadowProjection::ResolveFarPlane(lightData.Param.x);
+					LocalLightShadowProjection::ResolvePointShadowFarPlane(lightData.Param.x);
 
 				// 90度ちょうどでは主軸切替境界と投影端が一致する。
 				// 小さな重なりを持たせ、浮動小数誤差による面抜けを防ぐ。
