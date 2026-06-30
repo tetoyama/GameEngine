@@ -13,6 +13,10 @@
 #include "../common.hlsl"
 #endif
 
+#ifndef SHADOW_DEPTH_BIAS_HLSLI
+#include "ShadowDepthBias.hlsli"
+#endif
+
 // ================= Texture =================
 Texture2D BaseColorTex : register(t0);
 SamplerState LinearSampler : register(s0);
@@ -110,6 +114,7 @@ float ShadowFactor(
     if (sp.w <= 0.0)
         return 1.0;
 
+    const float perspectiveViewDepth = sp.w;
     sp.xyz /= sp.w;
 
     float2 uv = sp.xy * 0.5 + 0.5;
@@ -118,9 +123,16 @@ float ShadowFactor(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    // ---- シャドウバイアス (シャドウアクネ対策) ----
-    // Param.w で調整可能: 値を大きくするとアクネが減り、小さくするとピーターパン現象が減る
+    // Directionalは従来のNDC Biasを維持する。
+    // SpotはParam.wをWorld距離Biasとして深度依存NDC Biasへ変換する。
     float bias = light.Param.w;
+    if (light.LightType == LIGHT_TYPE_SPOT)
+    {
+        bias = ResolvePerspectiveShadowDepthBias(
+            perspectiveViewDepth,
+            light.Param.x,
+            light.Param.w);
+    }
     float depth = saturate(sp.z - bias);
 
     return SampleShadowAtlasPCF(uv, depth, lightIndex, pcf);
@@ -174,6 +186,7 @@ float ShadowFactorPoint(
     if (sp.w <= 0.0)
         return 1.0;
 
+    const float perspectiveViewDepth = sp.w;
     sp.xyz /= sp.w;
 
     float2 uv = sp.xy * 0.5 + 0.5;
@@ -182,7 +195,11 @@ float ShadowFactorPoint(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    float depth = saturate(sp.z - faceLight.Param.w);
+    const float bias = ResolvePerspectiveShadowDepthBias(
+        perspectiveViewDepth,
+        faceLight.Param.x,
+        faceLight.Param.w);
+    float depth = saturate(sp.z - bias);
     return SampleShadowAtlasPCF(uv, depth, atlasOffset + selectedFace, pcf);
 }
 
