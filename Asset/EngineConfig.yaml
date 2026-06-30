@@ -19,15 +19,37 @@ Systems:
   TerrainSystem: ~
   PhysicSystem:
     layers:
-      - { name: Default, bit: 1 }
-      - { name: Player, bit: 2 }
-      - { name: Enemy, bit: 4 }
-      - { name: Environment, bit: 8 }
+      - name: Default
+        bit: 1
+      - name: Player
+        bit: 2
+      - name: Enemy
+        bit: 4
+      - name: Environment
+        bit: 8
     collision:
-      - [true, true, true, true]
-      - [true, true, true, true]
-      - [true, true, true, true]
-      - [true, true, true, true]
+      -
+        - true
+        - true
+        - true
+        - true
+      -
+        - true
+        - true
+        - true
+        - true
+      -
+        - true
+        - true
+        - true
+        - true
+      -
+        - true
+        - true
+        - true
+        - true
   CustomScriptSystem: ~
   WaveSystem: ~
   FollowSystem: ~
+  CullingSystem: ~
+  StaticBatchUploadSystem: ~

@@ -1,3 +1,17 @@
+SceneSettings:
+  Storage:
+    ExpectedEntities: 1024
+    ExpectedTransforms: 768
+    ExpectedRenderables: 512
+    ExpectedCullingComponents: 512
+    ExpectedStaticEntities: 256
+    PreallocatedTransformPages: 0
+    PreallocatedTagPages: 0
+    RenderPacketReserve: 512
+    VisibleEntityReserve: 512
+    StaticBatchReserve: 64
+    AllowRuntimeGrowth: true
+    LogCapacityGrowth: true
 Entities:
   - Entity: 1
     Components:
@@ -152,9 +166,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
         UV_Slice_X: 1
@@ -267,9 +281,9 @@ Entities:
           z: 0
         Rotation:
           - 0
-          - -0.707106769
+          - -0.707106829
           - 0
-          - 0.707106709
+          - 0.707106769
         Scale:
           x: 1
           y: 1
@@ -322,10 +336,10 @@ Entities:
           y: 0.200000003
           z: 11.7557039
         Rotation:
-          - -0
-          - -0.89100647
           - 0
-          - -0.453990519
+          - 0.891006529
+          - -0
+          - 0.453990549
         Scale:
           x: 1
           y: 1
@@ -350,10 +364,10 @@ Entities:
           y: 0.200000003
           z: -11.7557106
         Rotation:
-          - -0
-          - -0.453990459
           - 0
-          - -0.891006529
+          - 0.453990489
+          - -0
+          - 0.891006589
         Scale:
           x: 1
           y: 1
@@ -378,10 +392,10 @@ Entities:
           y: 0.200000003
           z: -19.0211296
         Rotation:
-          - 0
-          - 0.156434521
           - -0
-          - -0.987688303
+          - -0.156434536
+          - 0
+          - 0.987688363
         Scale:
           x: 1
           y: 1
@@ -411,7 +425,7 @@ Entities:
           - 0
           - 1
         Scale:
-          x: 1.30999994
+          x: 0.850000024
           y: 0.230000004
           z: 1
         Parent: 0
@@ -425,8 +439,8 @@ Entities:
           x: 0.5
           y: 0.5
         pivot:
-          x: 0
-          y: 0
+          x: 0.5
+          y: 0.5
   - Entity: 12
     Components:
       - Component: NameComponent
@@ -464,7 +478,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
-          UseEnvironmentMap: false
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -475,8 +489,8 @@ Entities:
           x: 0.5
           y: 0.5
         pivot:
-          x: 0
-          y: 0
+          x: 0.5
+          y: 0.5
       - Component: FadeInSprite
         FadeTime: 1
   - Entity: 13
@@ -508,8 +522,8 @@ Entities:
           x: 0.5
           y: 0.5
         pivot:
-          x: 0
-          y: 0
+          x: 0.5
+          y: 0.5
   - Entity: 14
     Components:
       - Component: NameComponent
@@ -547,7 +561,7 @@ Entities:
           EmissiveIntensity: 0
           UseDiffuseTexture: true
           UseNormalTexture: true
-          UseEnvironmentMap: false
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -558,8 +572,8 @@ Entities:
           x: 0.5
           y: 0.5
         pivot:
-          x: 0
-          y: 0
+          x: 0.5
+          y: 0.5
       - Component: FadeOutSprite
         FadeTime: 1
       - Component: FadeSetScene
