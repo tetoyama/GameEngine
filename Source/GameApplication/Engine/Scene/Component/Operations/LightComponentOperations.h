@@ -11,6 +11,7 @@
 #include "Backends/YAMLConverters.h"
 #include "Engine/Scene/System/Render/Lighting/LocalLightShadowProjection.h"
 #include "Engine/Scene/System/Render/Lighting/ShadowBiasPolicy.h"
+#include "Engine/Scene/System/Render/Lighting/ShadowBiasSynchronization.h"
 
 namespace LightComponentOperations {
 
@@ -53,10 +54,7 @@ inline bool Decode(LightComponent& component, const YAML::Node& node){
 	if(node["Param"]) light.Param = node["Param"].as<DirectX::XMFLOAT4>();
 	if(node["ShadowBias"]){
 		light.ShadowBias = node["ShadowBias"].as<DirectX::XMFLOAT4>();
-		ShadowBiasPolicy::Sanitize(light.ShadowBias);
 	}else{
-		// 旧SceneはParam.wをNDC Biasとして使用していた。
-		// 明示的なShadowBiasが無い場合は見た目を変えずLegacy Modeへ移行する。
 		light.ShadowBias = ShadowBiasPolicy::MakeLegacy(light.Param.w);
 	}
 	if(node["LightView"]){
@@ -66,10 +64,7 @@ inline bool Decode(LightComponent& component, const YAML::Node& node){
 		light.LightProjection = node["LightProjection"].as<DirectX::XMFLOAT4X4>();
 	}
 
-	if(ShadowBiasPolicy::GetMode(light.ShadowBias) ==
-	   ShadowBiasPolicy::Mode::LegacyNdc){
-		light.Param.w = light.ShadowBias.x;
-	}
+	ShadowBiasSynchronization::Apply(light);
 	if(IsLocalLight(light)){
 		light.Param.x =
 			LocalLightShadowProjection::ResolveFarPlane(light.Param.x);
@@ -81,7 +76,7 @@ inline bool Decode(LightComponent& component, const YAML::Node& node){
 
 inline bool InspectShadowBias(LIGHT& light){
 	bool changed = false;
-	ShadowBiasPolicy::Sanitize(light.ShadowBias);
+	ShadowBiasSynchronization::Apply(light);
 
 	const char* biasModes[] = {
 		"Legacy NDC",
@@ -113,7 +108,6 @@ inline bool InspectShadowBias(LIGHT& light){
 			ShadowBiasPolicy::MaximumLegacyNdcBias,
 			"%.7f"
 		);
-		light.Param.w = light.ShadowBias.x;
 		if(ImGui::IsItemHovered()){
 			ImGui::SetTooltip(
 				"Backward-compatible projected-depth bias. Existing scenes use this mode. "
@@ -155,7 +149,7 @@ inline bool InspectShadowBias(LIGHT& light){
 		}
 	}
 
-	ShadowBiasPolicy::Sanitize(light.ShadowBias);
+	ShadowBiasSynchronization::Apply(light);
 	return changed;
 }
 
