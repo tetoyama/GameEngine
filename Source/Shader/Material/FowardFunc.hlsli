@@ -123,9 +123,11 @@ float ShadowFactor(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    // Directionalは従来のNDC Biasを維持する。
+    // DirectionalはParam.wを従来NDC Biasとして扱い、receiver slopeだけを追加する。
     // SpotはParam.wをWorld距離Biasとして深度依存NDC Biasへ変換する。
-    float bias = light.Param.w;
+    float bias = ResolveOrthographicShadowDepthBias(
+        sp.z,
+        light.Param.w);
     if (light.LightType == LIGHT_TYPE_SPOT)
     {
         bias = ResolvePerspectiveShadowDepthBias(
@@ -277,7 +279,9 @@ float ShadowFactorCascades(
             continue;
 
         // 2. 範囲内なのでシャドウをサンプリング
-        float bias = cLight.Param.w;
+        float bias = ResolveOrthographicShadowDepthBias(
+            cdepth,
+            cLight.Param.w);
         float depth = saturate(cdepth - bias);
 
         int tileIndex = atlasOffset + c;
