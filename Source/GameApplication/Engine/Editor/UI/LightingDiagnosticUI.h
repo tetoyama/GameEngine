@@ -12,6 +12,7 @@
 #include "Graphics/graphicsContext.h"
 #include "Scene/sceneManager.h"
 #include "Scene/Registry/systemRegistry.h"
+#include "System/Render/Lighting/PackedLightEntryTraversal.h"
 #include "System/Render/RenderSystem/renderSystem.h"
 
 namespace LightingDiagnosticUI {
@@ -156,32 +157,43 @@ inline void Draw(
 
 	ImGui::SetNextItemWidth(260.0f);
 	ImGui::SliderInt(
-		"Maximum Active Lights",
+		"Maximum Logical Lights",
 		&settings.LightingDebugMaxActiveLights,
 		0,
 		LIGHT_MAX_COUNT
 	);
-	ImGui::TextDisabled("0 means all active GPU light entries.");
+	ImGui::TextDisabled(
+		"0 means all logical lights. CSM cascades and point faces remain grouped."
+	);
 
 	if(managerContext && managerContext->graphics &&
 		managerContext->graphics->GetLight()){
 		const LightBuffer* lights = managerContext->graphics->GetLight();
-		const int activeCount = (std::clamp)(
+		const int activeEntryCount = (std::clamp)(
 			lights->ActiveLightCount,
 			0,
 			LIGHT_MAX_COUNT
 		);
+		const int logicalLightCount =
+			PackedLightEntryTraversal::CountLogicalLights(*lights);
+		const int shadowLogicalLightCount =
+			PackedLightEntryTraversal::CountShadowCastingLogicalLights(*lights);
 		int shadowEntryCount = 0;
-		for(int index = 0; index < activeCount; ++index){
+		for(int index = 0; index < activeEntryCount; ++index){
 			const LIGHT& light = lights->Lights[index];
 			if(light.Enable != 0 && light.CastShadow != 0){
 				++shadowEntryCount;
 			}
 		}
-		ImGui::Text("Current GPU ActiveLightCount: %d", activeCount);
-		ImGui::Text("Shadow-casting GPU entries: %d", shadowEntryCount);
+		ImGui::Text("Packed GPU entries: %d", activeEntryCount);
+		ImGui::Text("Logical lights: %d", logicalLightCount);
+		ImGui::Text(
+			"Shadow logical lights: %d / Shadow entries: %d",
+			shadowLogicalLightCount,
+			shadowEntryCount
+		);
 		ImGui::TextDisabled(
-			"CSM cascades and point-light faces are counted as GPU entries."
+			"CSM cascades and point-light faces share one logical-light evaluation."
 		);
 	}
 
@@ -258,7 +270,7 @@ inline void Draw(
 		std::snprintf(
 			captureLabel,
 			sizeof(captureLabel),
-			"Shadow:%s / PCF:%s / Environment:%s / Lights:All",
+			"Shadow:%s / PCF:%s / Environment:%s / LogicalLights:All",
 			captureShadowsDisabled ? "OFF" : "ON",
 			PcfModeName(settings.LightingDebugPcfMode),
 			captureEnvironmentDisabled ? "OFF" : "ON"
@@ -267,7 +279,7 @@ inline void Draw(
 		std::snprintf(
 			captureLabel,
 			sizeof(captureLabel),
-			"Shadow:%s / PCF:%s / Environment:%s / Lights:%d",
+			"Shadow:%s / PCF:%s / Environment:%s / LogicalLights:%d",
 			captureShadowsDisabled ? "OFF" : "ON",
 			PcfModeName(settings.LightingDebugPcfMode),
 			captureEnvironmentDisabled ? "OFF" : "ON",
@@ -354,7 +366,7 @@ inline void Draw(
 	ImGui::BulletText("No Shadow");
 	ImGui::BulletText("PCF 1x1 / 3x3 / 5x5");
 	ImGui::BulletText("No Environment");
-	ImGui::BulletText("Max Lights 1 / 2 / 4 / 8 / All");
+	ImGui::BulletText("Logical Lights 1 / 2 / 4 / 8 / All");
 	ImGui::TextDisabled(
 		"Keep resolution, camera, scene, and Post Effect settings unchanged."
 	);
