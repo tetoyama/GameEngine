@@ -39,7 +39,13 @@ inline RenderPacketCullingView Build(
 	);
 	view.viewProjection =
 		lightContext.viewMatrix * lightContext.projectionMatrix;
-	view.depthClipEnabled = depthClipEnabled;
+
+	// Shadow caster culling must be conservative.
+	// Point / Spot shadows still render with GPU DepthClipEnable=true, but CPU
+	// far-plane culling can drop large or boundary-touching casters before the GPU
+	// clips them. That creates a visible band where lighting still reaches the
+	// receiver but the shadow caster disappeared from the shadow map.
+	view.depthClipEnabled = false;
 	return view;
 }
 
