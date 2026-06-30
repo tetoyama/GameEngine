@@ -186,6 +186,15 @@ void PerformanceMonitor::ApplyGpuFrameTiming(
 	frame->gpuMilliseconds = result.status == GpuFrameTimingStatus::Resolved
 		? static_cast<float>(result.seconds * 1000.0)
 		: 0.0f;
+	frame->gpuResolvedPassMask = result.resolvedPassMask;
+	frame->gpuInvalidPassMask = result.invalidPassMask;
+	for(std::size_t index = 0; index < GpuPassTimingScopeCount; ++index){
+		const std::uint64_t bit = 1ull << index;
+		frame->gpuPassMilliseconds[index] =
+			(result.resolvedPassMask & bit) != 0
+			? static_cast<float>(result.passSeconds[index] * 1000.0)
+			: 0.0f;
+	}
 
 	for(std::size_t index = 0; index < SAMPLE_LENGTH; ++index){
 		if(FrameSerialSamples[index] != result.frameSerial){
@@ -430,6 +439,41 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 				0.0f,
 				1000.0f / 60.0f
 			);
+
+			if(ImGui::TreeNodeEx("GPU Pass内訳", ImGuiTreeNodeFlags_DefaultOpen)){
+				float accountedGpuMilliseconds = 0.0f;
+				for(std::size_t index = 0; index < GpuPassTimingScopeCount; ++index){
+					const std::uint64_t bit = 1ull << index;
+					const GpuPassTimingScope scope =
+						static_cast<GpuPassTimingScope>(index);
+					if((latestResolved->gpuResolvedPassMask & bit) != 0){
+						const float milliseconds =
+							latestResolved->gpuPassMilliseconds[index];
+						accountedGpuMilliseconds += milliseconds;
+						ImGui::Text(
+							"%s: %.4fms",
+							GpuPassTimingScopeName(scope),
+							milliseconds
+						);
+					} else if((latestResolved->gpuInvalidPassMask & bit) != 0){
+						ImGui::TextDisabled(
+							"%s: Invalid",
+							GpuPassTimingScopeName(scope)
+						);
+					}
+				}
+				const float unaccountedGpuMilliseconds = (std::max)(
+					0.0f,
+					latestResolved->gpuMilliseconds - accountedGpuMilliseconds
+				);
+				ImGui::Separator();
+				ImGui::Text(
+					"Accounted GPU: %.4fms / Unaccounted GPU: %.4fms",
+					accountedGpuMilliseconds,
+					unaccountedGpuMilliseconds
+				);
+				ImGui::TreePop();
+			}
 		} else{
 			ImGui::TextDisabled("GPU Frame Time: waiting for a resolved query result");
 		}
