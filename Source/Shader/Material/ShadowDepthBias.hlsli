@@ -5,28 +5,45 @@
 #include "../commonDefine.h"
 #endif
 
-float ResolvePerspectiveShadowDepthBias(
-    float viewDepth,
-    float farPlane,
-    float worldBias)
+#ifndef COMMON_HLSL
+#include "../common.hlsl"
+#endif
+
+bool UsesWorldSpaceShadowBias(LIGHT light)
 {
-    const float nearPlane = LOCAL_LIGHT_SHADOW_NEAR_PLANE;
-    const float safeFar = max(
-        farPlane,
-        nearPlane + LOCAL_LIGHT_SHADOW_MIN_DEPTH_SPAN);
-    const float safeDepth = clamp(abs(viewDepth), nearPlane, safeFar);
-    const float safeWorldBias = max(worldBias, 0.0f);
+    return (int) round(light.ShadowBias.z) == SHADOW_BIAS_MODE_WORLD_SPACE;
+}
 
-    // DirectX LH perspective depth:
-    // z_ndc = far/(far-near) - near*far/((far-near)*viewZ)
-    // Convert a world-distance bias to the NDC bias at this receiver depth.
-    const float depthDerivative =
-        (nearPlane * safeFar) /
-        ((safeFar - nearPlane) * safeDepth * safeDepth);
+float3 ApplyShadowReceiverBias(
+    float3 worldPos,
+    float3 worldNormal,
+    float3 directionToLight,
+    float normalDotLight,
+    LIGHT light)
+{
+    if (!UsesWorldSpaceShadowBias(light))
+        return worldPos;
 
-    return min(
-        safeWorldBias * depthDerivative,
-        LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS);
+    const float3 safeNormal = normalize(worldNormal);
+    const float3 safeDirectionToLight = normalize(directionToLight);
+    const float depthBias = max(light.ShadowBias.x, 0.0f);
+    const float normalBias = max(light.ShadowBias.y, 0.0f);
+    const float grazingFactor = saturate(1.0f - normalDotLight);
+
+    // Depth Bias moves the receiver toward the light in world space.
+    // Normal Bias is strongest at grazing angles and zero when N faces L.
+    return worldPos +
+        safeDirectionToLight * depthBias +
+        safeNormal * (normalBias * grazingFactor);
+}
+
+float ResolveShadowCompareDepth(float projectedDepth, LIGHT light)
+{
+    if (UsesWorldSpaceShadowBias(light))
+        return saturate(projectedDepth);
+
+    // Existing scenes keep their original projected-depth behavior.
+    return saturate(projectedDepth - max(light.ShadowBias.x, 0.0f));
 }
 
 #endif // SHADOW_DEPTH_BIAS_HLSLI
