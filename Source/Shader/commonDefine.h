@@ -69,8 +69,10 @@
 
 // Lighting diagnostic flags. These are uniform per draw and must not be
 // used to dispatch material implementations.
-#define LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS     (1u << 0)
-#define LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT (1u << 1)
+#define LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS          (1u << 0)
+#define LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT      (1u << 1)
+#define LIGHTING_DEBUG_FLAG_DISABLE_CSM_SHADOWS      (1u << 2)
+#define LIGHTING_DEBUG_FLAG_DISABLE_POINT_SHADOWS    (1u << 3)
 
 // PCF override modes. 0 preserves each material's default kernel.
 #define LIGHTING_DEBUG_PCF_DEFAULT (0)
@@ -95,9 +97,7 @@
 #define LIGHT_TYPE_POINT            (2)
 #define LIGHT_TYPE_SPOT             (3)
 // LightComponent のユーザー向けライトタイプ識別子。
-// GPU ライトバッファ (CbPerFrame.Lights[]) には LIGHT_TYPE_DIRECTIONAL_CSM エントリは存在しない。
-// ShadowMapPass がこのタイプを検出すると DIRECTIONAL_CSM_CASCADE_COUNT 個の
-// LIGHT_TYPE_DIRECTIONAL エントリに展開してアトラスに統合する。
+// ShadowMapPassはCSMを複数GPU Entryへ展開する。
 #define LIGHT_TYPE_DIRECTIONAL_CSM  (4)
 
 #define DIRECTIONAL_CSM_CASCADE_COUNT   (4)
