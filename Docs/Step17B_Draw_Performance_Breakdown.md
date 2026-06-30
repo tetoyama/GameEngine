@@ -1,4 +1,4 @@
-# Step 17-B.1: Draw Performance Breakdown
+# Step 17-B.1 Draw Performance Breakdown
 
 ## 背景
 
@@ -11,24 +11,47 @@ Schedule CaptureではRender Domain全体が約4.6msである一方、Performanc
 
 したがって、差分を未最適化のRender Submit時間と断定せず、CPU区間、Present待機、GPU実行時間を分離してから最適化対象を決定する。
 
+2026-06-30時点で、画面またはPlayer Viewを大きくするとFrame Rateが急激に低下することを確認した。描画Object数を変えず、表示Pixel数の増加だけで性能が低下するため、現在の主要仮説をCPU / Draw Call BoundからGPU Pixel / Memory Bandwidth Boundへ変更する。
+
+この観測だけでは確定しないため、Pass単位GPU TimestampとRender Scale比較によって証明する。
+
+詳細な実装手順:
+
+- `Docs/Step19A_GPU_Pixel_Cost_Optimization.md`
+
 ---
 
 ## 優先度
 
-**Step 17-Cより前に実施する高優先度の計測工程**
+**最優先の計測工程**
+
+Static Batch、ECS並列化、Task分割は継続するが、性能改善を目的とする作業の優先順位は次へ変更する。
+
+1. GPU Pass単位Timestamp
+2. 固定Render Scale
+3. GBuffer Format / Bytes Per Pixel台帳
+4. World Position Target削除
+5. Parameter Target縮小とPlayer Picking分離
+6. SSAO / SSR / Bloom等の低解像度化
+7. Full Screen Pass統合
+8. 描画並列化の再評価
 
 理由:
 
+- 画面サイズ依存の低下はCPU Task分割だけでは改善しにくい
+- Static BatchはDraw Callを減らすがPixel数は減らさない
+- GBufferは6 Color Targetを出力しており帯域負荷が大きい
+- World PositionはDepthから復元できる可能性がある
+- `uint4` ParameterはPlayer Viewの用途に対して過大な可能性がある
 - 誤った区間を最適化することを防ぐ
-- Render Packet化の効果をRender Schedule単体で比較できる
-- VSync待機とCPU負荷を区別できる
-- ImGui Multi-Viewport、Editor UI、Presentの負荷をSchedule外として可視化できる
+
+Compile Error、描画欠落、Resource Lifetime等のCorrectness修正は常に性能工程より優先する。
 
 ---
 
 ## CPU計測区間
 
-Performance Monitorへ次の直前完了フレームの値を表示する。
+Performance Monitorへ次の直前完了Frameの値を表示する。
 
 1. `Frame Setup`
    - BackBuffer / Depth Clear
@@ -60,14 +83,15 @@ Performance Monitorへ次の直前完了フレームの値を表示する。
 
 ---
 
-## 計測契約
+## CPU計測契約
 
-- Draw内訳は現在実行中のフレームへ途中表示しない
-- `EndDraw()`で確定した値を次フレームのEditor UIへ渡す
-- これによりEditor UI、ImGui Render、Presentを含む完全なフレームを表示する
-- Performance Monitorの描画コストは次フレームの`Editor UI Build CPU`へ含まれる
+- Draw内訳は現在実行中のFrameへ途中表示しない
+- `EndDraw()`で確定した値を次FrameのEditor UIへ渡す
+- Editor UI、ImGui Render、Presentを含む完全なFrameを表示する
+- Performance Monitorの描画コストは次Frameの`Editor UI Build CPU`へ含める
 - CPU計測とGPU計測を混同しない
 - `Present / Queue Wait`はGPU処理時間そのものではない
+- Query回収待機時間をGPU時間へ含めない
 
 ---
 
@@ -76,8 +100,8 @@ Performance Monitorへ次の直前完了フレームの値を表示する。
 - [x] `DrawTimingSection`を追加
 - [x] `DrawTimingBreakdown`を追加
 - [x] TimeServiceでDraw区間を個別計測
-- [x] 完了フレームのSnapshotをEditorへ渡す
-- [x] Performance Monitorへ現在値と60サンプル平均を表示
+- [x] 完了FrameのSnapshotをEditorへ渡す
+- [x] Performance Monitorへ現在値と60 Sample平均を表示
 - [x] VSync設定を表示
 - [x] 未計測時間を表示
 - [x] Schedule CaptureでPacket Build / Command Submit分離を確認
@@ -85,14 +109,20 @@ Performance Monitorへ次の直前完了フレームの値を表示する。
 - [x] Editor Panel単位CPU計測を実装
 - [x] D3D11 Timestamp / Disjoint QueryによるGPU Frame Time計測を実装
 - [ ] GPU Frame Timeの実機表示確認
+- [ ] GPU Pass単位Timestamp Query Pool
+- [ ] Player / Editor / Shadow / Post Effect別GPU時間
+- [ ] Internal Resolution / Pixel Count表示
+- [ ] GBuffer Format / Bytes Per Pixel表示
 - [ ] Editor Panel単位CPU時間の実機表示確認
 - [ ] VSync ON / OFFで同一Sceneを比較
-- [ ] Editor View / Player View条件を揃えた比較
-- [ ] 支配区間を最終確定
+- [ ] 720p / 1080p / 1440p比較
+- [ ] Render Scale 1.00 / 0.75 / 0.50比較
+- [ ] Player View / Editor View / 両方表示比較
+- [ ] 支配Passを最終確定
 
 ---
 
-## 2026-06-23 実機観測
+## 2026-06-23 CPU実機観測
 
 ### Editorレイアウト表示
 
@@ -107,7 +137,7 @@ Performance Monitorへ次の直前完了フレームの値を表示する。
 
 - Editor UI Buildが約52%を占める
 - Render Scheduleが約44%を占める
-- Editor使用時はPanel単位の調査が最優先
+- Editor使用時はPanel単位の調査が必要
 
 ### Player大表示
 
@@ -129,114 +159,244 @@ Performance Monitorへ次の直前完了フレームの値を表示する。
 
 ---
 
-## 実機検証手順
+## 2026-06-30 解像度依存観測
+
+観測:
+
+- 画面またはPlayer Viewを拡大するとFrame Rateが低下する
+- Object数やGame Logic負荷を増やさなくても低下する
+- CPU側のStatic BatchやScheduler改善だけでは体感改善が小さい
+
+現時点の仮説:
+
+```text
+GBuffer MRT Write
+    + Deferred Lighting Read
+    + Full Screen Post Effects
+    + Player / Editor二重描画
+    -> Pixel数増加に比例してGPU時間と帯域が増加
+```
+
+未確定事項:
+
+- GBuffer、Lighting、Post Effectのどれが支配しているか
+- World Position Targetの実際のFormatと帯域
+- `uint4` Parameter TargetがPlayer Viewでも必要か
+- SSAO / SSR / BloomがFull Resolutionか
+- Editor ViewとPlayer Viewの両方が同時に拡大されているか
+- Present待機とGPU実行時間の関係
+
+この段階ではGPUが限界と断定せず、解像度別Pass Timestampで確定する。
+
+---
+
+## GPU Pass計測契約
+
+D3D11ではFrame単位のDisjoint Queryに加え、Pass Begin / End Timestampを追加する。
+
+最低限のScope:
+
+- Shadow Map
+- Player GBuffer
+- Player Deferred Lighting
+- Player Post Effect
+- Editor GBuffer
+- Editor Deferred Lighting
+- Editor Post Effect
+- SSAO
+- SSR
+- Bloom
+- Debug / Overlay
+- ImGui Main Viewport
+- ImGui Platform Windows
+- Final Composite / Upscale
+- GPU Frame Total
+
+注意:
+
+- 同一FrameでQuery結果を待たない
+- 2～4 Frame遅延のRing Bufferで回収する
+- `GetData`でFlushを要求しない
+- Device Lost / Resize / Disjoint時は値を無効化する
+- 未実行Passを0msとして表示しない
+- Scope名は固定IDとし毎FrameAllocationしない
+- Pass合計とGPU Frame Totalの差を`Unaccounted GPU`として表示する
+
+---
+
+## Baseline検証手順
 
 ### 1. 条件固定
 
 次を同一にする。
 
 - Scene
-- Windowサイズ
-- Player Viewサイズ
-- Editor View表示状態
-- Play / Pause状態
-- Performance Monitor以外のEditor Panel配置
 - Camera位置
-- 描画オブジェクト数
+- Play / Pause状態
+- Object数
+- Light数
+- Shadow設定
+- Post Effect設定
+- VSync OFF
+- Performance Monitor以外のEditor Panel配置
 
-### 2. VSync ON
+60 Frame以上Warm-up後、120 Frame以上の平均とP95を記録する。
 
-最低60フレーム安定後、次の平均値を記録する。
+### 2. 解像度比較
 
-- Total Draw
-- Render Schedule CPU
-- Editor UI Build CPU
-- ImGui Render / Platform Windows
+```text
+1280 x 720
+1920 x 1080
+2560 x 1440
+```
+
+各条件で次を記録する。
+
+- GPU Frame Time
+- Pass別GPU Time
+- CPU Render Schedule
 - Present / Queue Wait
-- Unaccounted
+- Pixel Count
+- Draw Call
+- VRAMまたはRender Target推定容量
 
-### 3. VSync OFF
+### 3. 描画構成比較
 
-同一条件で同じ値を記録する。
+- Player Viewのみ
+- Editor Viewのみ
+- Player + Editor
+- GBuffer + Lightingのみ
+- Post Effect全停止
+- Shadow停止
+- SSAOのみ停止
+- SSRのみ停止
+- Bloomのみ停止
 
-### 4. 判定
+### 4. Render Scale比較
 
-#### Presentが支配的
+```text
+1.00
+0.75
+0.50
+```
 
-- VSync OFFでTotal Drawが大きく低下する
-- Render Schedule CPUはほぼ変わらない
+Window Sizeは固定し、Internal Render Sizeだけを変更する。
 
-判断:
+### 5. 判定
 
-- 12msの大部分は垂直同期待機
-- CPU Renderer最適化値として扱わない
-- GPU Frame Timeを追加して描画負荷を別途確認する
+#### Pixel / Bandwidth Bound
 
-#### Render Scheduleが支配的
+- Pixel数増加に近い比率でGPU時間が増える
+- Render Scale低下でGBuffer / Lighting / Post時間が大きく下がる
+- Draw Call削減ではGPU時間が大きく変わらない
 
-判断:
+次の工程:
 
-- `RenderSystem.Command.Submit`をSchedule Captureで細分化する
-- IRenderable内部のComponentRegistry再取得を除去する
-- Pipeline / Material / Mesh単位のState Sortを進める
-- Draw Call、Constant Buffer更新、重複Bindを削減する
+- World Position Target削除
+- Parameter Target縮小
+- Player Picking Target分離
+- Half Resolution Effect
+- Full Screen Pass統合
 
-#### Editor UI Buildが支配的
+#### Geometry / Vertex Bound
 
-判断:
+- 解像度を下げてもGPU時間があまり下がらない
+- Object数やTriangle数で時間が増える
 
-- Panel単位CPU計測を追加する
-- 非表示Panelの更新抑制を確認する
-- Hierarchy / Inspector / Assets等の毎Frame走査を調査する
+次の工程:
 
-#### ImGui Renderが支配的
+- LOD
+- Occlusion Culling
+- Mesh / Instance構造
+- Vertex Shader / Skinning
 
-判断:
+#### Shadow Bound
 
-- Multi-Viewport ON / OFFを比較する
-- Platform Window数と追加SwapChain提出を確認する
-- ImGui Draw Call / Vertex数を記録する
+- Shadow停止でGPU時間が大きく下がる
 
-#### Unaccountedが大きい
+次の工程:
 
-判断:
+- Shadow Resolution
+- Cascade数
+- PCF Kernel
+- Light別更新頻度
+- Static Shadow Cache
 
-- 計測区間の欠落を修正する
-- Driver同期、Resource Map待機、暗黙Flushの位置を調査する
+#### Editor二重描画
+
+- PlayerまたはEditor片方だけで大きく時間が下がる
+
+次の工程:
+
+- 非表示ViewのRender停止
+- View更新頻度
+- Editor Preview Resolution
+- View別Render Scale
 
 ---
 
-## GPU計測
+## GBuffer調査対象
 
-D3D11では次のQueryをFrame境界へ追加した。
+現行Shader出力:
 
-- `D3D11_QUERY_TIMESTAMP_DISJOINT`
-- Frame Begin Timestamp
-- Frame End Timestamp
+```text
+Albedo
+World Normal
+World Position
+Material
+Emissive
+Scene ID / Object ID / Shader ID / Flags (`uint4`)
+```
 
-取得値:
+最適化前に実際のRender Target生成Formatを台帳化する。
 
-- GPU Frame Time
-- Timestamp有効性
-- Query結果待機時間
+| Target | Format | Bytes / Pixel | Player用途 | Editor用途 | Consumer |
+|---|---:|---:|---|---|---|
+| Albedo | 調査 | 調査 | 必須 | 必須 | Lighting / Post |
+| Normal | 調査 | 調査 | 必須 | 必須 | Lighting / SSAO / SSR |
+| Position | 調査 | 調査 | Depth復元候補 | Depth復元候補 | Lighting / SSR / Post |
+| Material | 調査 | 調査 | 必須 | 必須 | Lighting |
+| Emissive | 調査 | 調査 | 条件付き | 条件付き | Lighting / Bloom |
+| Param | 調査 | 調査 | 縮小候補 | Picking必須 | Material選択 / Picking |
+| Depth | 調査 | 調査 | 必須 | 必須 | Depth / Position復元 |
 
-注意:
+推定帯域:
 
-- 同一フレームでQuery結果を待たない
-- 2～4フレーム遅延のリングバッファで回収する
-- Query待機をPerformance MonitorのDraw時間へ混入させない
-- Device Lost / Disjoint時は値を無効として表示する
+```text
+MiB / Frame = width * height * bytesPerPixel / 1024 / 1024
+MiB / Second = MiB / Frame * FPS
+```
+
+Read回数とMSAA Sample Countも別途加算する。
 
 ---
 
 ## 次の作業順
 
-1. GPU Frame TimeとEditor Panel単位CPU時間の実機確認
-2. 同一条件でVSync ON / OFF比較
-3. Editor Panelの支配要因を特定して不要な毎Frame処理を削減
-4. GPU時間とPresent / Queue Waitの関係を判定
-5. IRenderable内部のComponentRegistry参照除去
-6. Pipeline / Material / Mesh単位のState Bind削減
-7. Step 17-C Animation CPU Build / GPU Upload分離
+1. GPU Frame Timeの実機表示確認
+2. Pass単位GPU Timestamp Query Pool
+3. Performance MonitorへPass時間、解像度、Pixel Countを表示
+4. 720p / 1080p / 1440p Baseline
+5. Player / Editor / 両方表示比較
+6. 固定Render Scale 1.00 / 0.75 / 0.50
+7. GBuffer Format / Bytes Per Pixel台帳
+8. World PositionをDepth Reconstructionへ移行
+9. Player / Editor Parameter Target分離
+10. SSAO / SSR / BloomのHalf Resolution化
+11. Full Screen Pass統合
+12. RenderDoc Before / After比較
+13. 描画並列化の再検討
 
-Step 17-Cへ機械的に進むのではなく、計測結果によってRender Submit、Editor UI、ImGui、GPUのどこを先に改善するか決定する。
+Static BatchのCorrectness、Compile Gate、描画欠落修正は並行して継続するが、性能改善の主工程はGPU Pixel Cost側へ移す。
+
+## 完了条件
+
+- GPU Frame TimeをPass単位で説明できる
+- 画面サイズ増加時に支配するPassを特定できる
+- Window SizeとInternal Render Sizeが分離される
+- GBuffer TargetごとのFormatとBytes Per Pixelを確認できる
+- World Position Target削除のBefore / Afterを測定できる
+- Player Viewで不要なPicking Targetを書かない
+- Post EffectのFull / Half Resolution差を比較できる
+- 720p / 1080p / 1440pでGPU時間を記録できる
+- 変更前より画面サイズ増加時のFrame Rate低下が緩和される
