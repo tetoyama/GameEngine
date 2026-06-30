@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 
 
 enum class GpuFrameTimingStatus : std::uint8_t {
