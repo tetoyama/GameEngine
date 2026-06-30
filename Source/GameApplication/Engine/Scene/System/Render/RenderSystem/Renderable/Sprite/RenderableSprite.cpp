@@ -105,18 +105,7 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, const RenderPacket&
 		}
 
 		graphicsContext->SetMaterial(material);
-
-		UVMatrixBuffer uv{};
-		uv.UVStart = float2(0.0f, 0.0f);
-		uv.UVEnd = float2(1.0f, 1.0f);
-		if(pTexture->UV_Slice_X > 0.0f && pTexture->UV_Slice_Y > 0.0f){
-			const int columnCount = (std::max)(1, static_cast<int>(1.0f / pTexture->UV_Slice_X));
-			uv.UVStart.x = (pTexture->AnimationNum % columnCount) * pTexture->UV_Slice_X;
-			uv.UVStart.y = (pTexture->AnimationNum / columnCount) * pTexture->UV_Slice_Y;
-			uv.UVEnd.x = uv.UVStart.x + pTexture->UV_Slice_X;
-			uv.UVEnd.y = uv.UVStart.y + pTexture->UV_Slice_Y;
-		}
-		graphicsContext->SetUVMatrixBuffer(uv);
+		graphicsContext->SetUVMatrixBuffer(pTexture->ResolveUVMatrixBuffer());
 	}else{
 		graphicsContext->SetMaterial(material);
 		UVMatrixBuffer uv{};
