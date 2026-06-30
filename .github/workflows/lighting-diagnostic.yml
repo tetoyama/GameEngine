@@ -16,6 +16,7 @@ on:
       - "Source/GameApplication/Engine/Scene/Component/LightComponentDefaults.h"
       - "Source/GameApplication/Engine/Scene/Component/Operations/LightComponentOperations.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/LightGpuSubmissionPolicy.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/LocalLightShadowProjection.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PackedLightEntryTraversal.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PointShadowFaceLayout.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.h"
@@ -26,6 +27,7 @@ on:
       - "Tests/LightingDiagnosticSettingsSmokeTest.cpp"
       - "Tests/PackedLightEntryTraversalSmokeTest.cpp"
       - "Tests/LightShadowParticipationSmokeTest.cpp"
+      - "Tests/LocalLightShadowProjectionSmokeTest.cpp"
       - "Tests/PointShadowFaceLayoutSmokeTest.cpp"
       - "Tests/LightingDiagnosticPBRSmoke.hlsl"
       - ".github/workflows/lighting-diagnostic.yml"
@@ -44,6 +46,7 @@ on:
       - "Source/GameApplication/Engine/Scene/Component/LightComponentDefaults.h"
       - "Source/GameApplication/Engine/Scene/Component/Operations/LightComponentOperations.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/LightGpuSubmissionPolicy.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/LocalLightShadowProjection.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PackedLightEntryTraversal.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PointShadowFaceLayout.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.h"
@@ -54,6 +57,7 @@ on:
       - "Tests/LightingDiagnosticSettingsSmokeTest.cpp"
       - "Tests/PackedLightEntryTraversalSmokeTest.cpp"
       - "Tests/LightShadowParticipationSmokeTest.cpp"
+      - "Tests/LocalLightShadowProjectionSmokeTest.cpp"
       - "Tests/PointShadowFaceLayoutSmokeTest.cpp"
       - "Tests/LightingDiagnosticPBRSmoke.hlsl"
       - ".github/workflows/lighting-diagnostic.yml"
@@ -109,6 +113,17 @@ jobs:
           Tests/LightShadowParticipationSmokeTest.cpp
           /Fe:light-shadow-participation-test.exe
           && light-shadow-participation-test.exe
+      - name: Compile and run local shadow clip contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471
+          /I Source
+          /I Source/GameApplication
+          Tests/LocalLightShadowProjectionSmokeTest.cpp
+          /Fe:local-light-shadow-projection-test.exe
+          && local-light-shadow-projection-test.exe
       - name: Compile and run point shadow face layout
         shell: cmd
         run: >-
@@ -136,6 +151,15 @@ jobs:
           }
           if ($text -notmatch 'perspectiveShadowRS') {
             throw "Point and spot shadows must use a depth-clipped rasterizer."
+          }
+          if ($text -notmatch 'LocalLightShadowProjection::ResolveFarPlane') {
+            throw "Point and spot shadows must share the local light Far contract."
+          }
+          if ($text -match 'lightData\.Param\.x\s*\*\s*1000') {
+            throw "Spot shadow Far must not multiply the light range by 1000."
+          }
+          if ($text -notmatch 'static_cast<std::uint32_t>\(shadowNum\),\s*perspectiveShadow') {
+            throw "Perspective shadow depth clipping must be forwarded to CPU culling."
           }
 
           $shaderPaths = @(
