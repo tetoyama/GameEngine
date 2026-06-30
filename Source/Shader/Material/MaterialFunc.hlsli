@@ -4,6 +4,8 @@
 // ReCompilePixelShaders currently tracks this file but not transitive includes.
 // Lighting Diagnostic Contract verifies these Git blob IDs. When one dependency
 // changes, update its blob ID here so MaterialFunc's timestamp invalidates CSO cache.
+// dependency:DeferredFunc.hlsli=003a491858a37b069eded562e814c15645932c80
+// dependency:FowardFunc.hlsli=f3ccfb78043e74430dff7c173182b45307eec67c
 // dependency:MaterialBRDF.hlsli=9abe9b2cac74ed2ed01906bdf9a9f8d5f7e588f0
 // dependency:MaterialLightingEvaluation.hlsli=b91990aad16d0edc91794742b5109d356a974d8c
 // dependency:MaterialLightingTraversal.hlsli=a462b8a0a7272ba084485ca53c3c888261843fd9
