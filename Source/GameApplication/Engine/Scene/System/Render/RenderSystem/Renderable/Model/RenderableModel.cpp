@@ -91,24 +91,7 @@ void RenderableModel::Execute(
 				textureComponent->m_TextureData->pTexture.GetAddressOf());
 		}
 
-		if(textureComponent->UV_Slice_X > 0.0f && textureComponent->UV_Slice_Y > 0.0f){
-			// UV_Slice_X/Y は「1セルのUVサイズ」
-			// 例:
-			// 0.25f = 4分割
-			// 0.125f = 8分割
-
-			const int column = (std::max)(
-				1,
-				static_cast<int>(1.0f / textureComponent->UV_Slice_X)
-			);
-
-			uv.UVStart.x = (textureComponent->AnimationNum % column) * textureComponent->UV_Slice_X;
-			uv.UVStart.y = (textureComponent->AnimationNum / column) * textureComponent->UV_Slice_Y;
-
-			// 1 セルの UV サイズ: 1/スライス数
-			uv.UVEnd.x = uv.UVStart.x + textureComponent->UV_Slice_X;
-			uv.UVEnd.y = uv.UVStart.y + textureComponent->UV_Slice_Y;
-		}
+		uv = textureComponent->ResolveUVMatrixBuffer();
 	}
 	graphicsContext->SetUVMatrixBuffer(uv);
 	graphicsContext->SetMaterial(material);
