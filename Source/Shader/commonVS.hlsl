@@ -13,35 +13,26 @@ void main(in VS_IN In, out PS_IN Out)
 	//頂点法線をワールド行列で回転させる(頂点と同じ回転をさせる)
     float4 worldNormal, normal;             //ローカル変数を作成
     normal = float4(In.Normal.xyz, 0.0);    //入力法線ベクトルのwを0としてコピー（平行移動しないため)
-    worldNormal = mul(normal, World);       //コピーされた法線ベクトルをワールド行列で回転する
+    worldNormal = mul(normal, World);       //コピーされた法線をワールド行列で回転する
     worldNormal = normalize(worldNormal);   //回転後の法線を正規化する
     Out.Normal = worldNormal;               //回転後の法線出力 In.Normalでなく回転後の法線を出力
 
     // Tangent のワールド空間への変換
-    float4 tangent = float4(In.Tangent.xyz, 0.0f);  //入力Tangent.xyzのみを使用
+    float4 tangent = float4(In.Tangent.xyz, 0.0f);  // 移動成分不要なのでw=0
     float4 worldTangent = mul(tangent, World);      // ワールド行列で回転
     worldTangent = normalize(worldTangent);         // 正規化
     Out.Tangent = worldTangent;                     // 出力に格納
-
+    
     // Bitangent を計算（右手系）
     float3 worldNormal3 = normalize(worldNormal.xyz);
     float3 worldTangent3 = normalize(worldTangent.xyz);
     float3 worldBitangent3 = cross(worldNormal3, worldTangent3) * In.Tangent.w;
     Out.Bitangent = float4(worldBitangent3, 0.0f);
-
+    
     Out.Diffuse = In.Diffuse; //頂点の物をそのまま出力
 
-    // UVEnd - UVStart はUVの除数として扱う。
-    // 0.01なら0～100を出力してSamplerのWrapで100回リピートする。
-    // 1.0なら等倍、2.0なら0～0.5となり半分の範囲を表示する。
-    // fracは頂点段階では適用しない。両端が同じ値へ丸められると、
-    // ラスタライズ時の補間でUV勾配そのものが失われるため。
-    const float2 uvDivisor = UVEnd - UVStart;
-    const float2 safeDivisor = float2(
-        abs(uvDivisor.x) > 0.000001f ? uvDivisor.x : 1.0f,
-        abs(uvDivisor.y) > 0.000001f ? uvDivisor.y : 1.0f
-    );
-    Out.TexCoord = UVStart + In.TexCoord / safeDivisor;
+    float2 animatedUV = TransformUV(In.TexCoord, UVStart, UVEnd);
+    Out.TexCoord = animatedUV;
 
 	//ワールド変換した頂点座標を出力
     Out.WorldPosition = mul(In.Position, World);
