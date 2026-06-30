@@ -10,6 +10,7 @@ on:
       - "Source/Shader/Material/FowardFunc.hlsli"
       - "Source/Shader/Material/MaterialFunc.hlsli"
       - "Source/Shader/Material/PBRShader.hlsli"
+      - "Source/Shader/Material/ShadowDepthBias.hlsli"
       - "Source/GameApplication/Engine/Editor/UI/LightingDiagnosticUI.h"
       - "Source/GameApplication/Engine/Editor/UI/SystemSettingImplementation.inl"
       - "Source/GameApplication/Engine/Scene/Component/LightComponent.h"
@@ -30,6 +31,7 @@ on:
       - "Tests/LocalLightShadowProjectionSmokeTest.cpp"
       - "Tests/PointShadowFaceLayoutSmokeTest.cpp"
       - "Tests/LightingDiagnosticPBRSmoke.hlsl"
+      - "Tests/LightingDiagnosticForwardPBRSmoke.hlsl"
       - ".github/workflows/lighting-diagnostic.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
@@ -40,6 +42,7 @@ on:
       - "Source/Shader/Material/FowardFunc.hlsli"
       - "Source/Shader/Material/MaterialFunc.hlsli"
       - "Source/Shader/Material/PBRShader.hlsli"
+      - "Source/Shader/Material/ShadowDepthBias.hlsli"
       - "Source/GameApplication/Engine/Editor/UI/LightingDiagnosticUI.h"
       - "Source/GameApplication/Engine/Editor/UI/SystemSettingImplementation.inl"
       - "Source/GameApplication/Engine/Scene/Component/LightComponent.h"
@@ -60,6 +63,7 @@ on:
       - "Tests/LocalLightShadowProjectionSmokeTest.cpp"
       - "Tests/PointShadowFaceLayoutSmokeTest.cpp"
       - "Tests/LightingDiagnosticPBRSmoke.hlsl"
+      - "Tests/LightingDiagnosticForwardPBRSmoke.hlsl"
       - ".github/workflows/lighting-diagnostic.yml"
   workflow_dispatch:
 
@@ -173,16 +177,26 @@ jobs:
           )
           foreach ($shaderPath in $shaderPaths) {
             $shader = Get-Content -Raw -Path $shaderPath
+            if ($shader -notmatch 'ResolvePerspectiveShadowDepthBias') {
+              throw "Depth-aware local shadow bias is missing in $shaderPath"
+            }
             foreach ($rule in $faceRules) {
               if ($shader -notmatch $rule) {
                 throw "Point shadow face order mismatch in $shaderPath"
               }
             }
           }
-      - name: Compile PBR diagnostic shader
+      - name: Compile deferred PBR diagnostic shader
         shell: cmd
         run: >-
           fxc /nologo /T ps_5_0 /E main
           /I Source/Shader
           /Fo lighting-diagnostic-pbr.cso
           Tests/LightingDiagnosticPBRSmoke.hlsl
+      - name: Compile forward PBR diagnostic shader
+        shell: cmd
+        run: >-
+          fxc /nologo /T ps_5_0 /E main
+          /I Source/Shader
+          /Fo lighting-diagnostic-forward-pbr.cso
+          Tests/LightingDiagnosticForwardPBRSmoke.hlsl
