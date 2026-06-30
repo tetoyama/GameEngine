@@ -7,6 +7,17 @@
 
 namespace PackedLightEntryTraversal {
 
+inline const char* LightTypeName(int lightType) noexcept {
+	switch(lightType){
+		case LIGHT_TYPE_DIRECTIONAL: return "Directional";
+		case LIGHT_TYPE_DIRECTIONAL_CSM: return "Directional CSM";
+		case LIGHT_TYPE_POINT: return "Point";
+		case LIGHT_TYPE_SPOT: return "Spot";
+		case LIGHT_TYPE_NONE: return "None";
+		default: return "Unknown";
+	}
+}
+
 inline int ResolveEntrySpan(
 	const LIGHT& light,
 	int remainingEntries
