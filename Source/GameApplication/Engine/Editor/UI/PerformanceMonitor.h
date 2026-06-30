@@ -39,6 +39,9 @@ private:
 		float drawMilliseconds = 0.0f;
 		float gpuMilliseconds = 0.0f;
 		GpuFrameTimingStatus gpuStatus = GpuFrameTimingStatus::Pending;
+		std::array<float, GpuPassTimingScopeCount> gpuPassMilliseconds{};
+		std::uint64_t gpuResolvedPassMask = 0;
+		std::uint64_t gpuInvalidPassMask = 0;
 		DrawTimingBreakdown drawTiming{};
 		float resizeMilliseconds = 0.0f;
 		std::string dominantPanel;
