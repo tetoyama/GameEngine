@@ -19,6 +19,12 @@
 #define DEPTH_BIAS_CONSTANT         (0.005f)
 #define DEPTH_SLOPE_BIAS            (0.003f)
 
+// Point / Spot ShadowのPerspective Clip契約。
+// C++生成側とHLSL Sampling側で同じ値を使用する。
+#define LOCAL_LIGHT_SHADOW_NEAR_PLANE       (0.1f)
+#define LOCAL_LIGHT_SHADOW_MIN_DEPTH_SPAN   (0.1f)
+#define LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS     (0.01f)
+
 #define BONE_MAX_COUNT          (256)
 
 #define LOW_RESOLUTION
