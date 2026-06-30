@@ -4,6 +4,7 @@
 // 
 // =======================================================================
 #include "LightingPass.h"
+#include "LightingDiagnosticEntryLimit.h"
 #include "Shader/commonDefine.h"
 
 #include <algorithm>
@@ -198,23 +199,24 @@ void LightingPass::Execute(const RenderPassContext& ctx){
 			// 診断範囲外のEntryまで評価されるため、展開数も残数へ制限する。
 			for(int index = 0; index < limitedCount; ++index){
 				LIGHT& light = diagnosticLights.Lights[index];
-				const int remainingEntries = limitedCount - index;
 				if(light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM &&
 					light.Dummy == 1){
-					const int cascadeCount = (std::clamp)(
-						static_cast<int>(light.Position.w + 0.5f),
-						1,
-						remainingEntries
+					light.Position.w = static_cast<float>(
+						LightingDiagnosticEntryLimit::ResolveExpandedCount(
+							light.Position.w,
+							index,
+							limitedCount
+						)
 					);
-					light.Position.w = static_cast<float>(cascadeCount);
 				}else if(light.LightType == LIGHT_TYPE_POINT &&
 					light.Dummy == -1){
-					const int faceCount = (std::clamp)(
-						static_cast<int>(light.Position.w + 0.5f),
-						1,
-						remainingEntries
+					light.Position.w = static_cast<float>(
+						LightingDiagnosticEntryLimit::ResolveExpandedCount(
+							light.Position.w,
+							index,
+							limitedCount
+						)
 					);
-					light.Position.w = static_cast<float>(faceCount);
 				}
 			}
 			lightBufferOverridden = true;
