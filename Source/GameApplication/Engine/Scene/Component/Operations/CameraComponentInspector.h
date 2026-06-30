@@ -20,6 +20,11 @@
 
 namespace CameraComponentInspector {
 
+inline constexpr float PostEffectNodeContentWidth = 150.0f;
+inline constexpr float PostEffectNodeNameWidth = 150.0f;
+inline constexpr float PostEffectNodePreviewWidth = 120.0f;
+inline constexpr float PostEffectNodeOutputColumnX = 128.0f;
+
 inline void EnsureGraphInitialized(CameraComponent& camera){
 	if(camera.initialized){
 		return;
@@ -172,7 +177,7 @@ inline void DrawShaderField(
 
 	const std::string label =
 		std::string(pixelShader ? "PS##" : "VS##") + std::to_string(nodeId);
-	ImGui::SetNextItemWidth(150.0f);
+	ImGui::SetNextItemWidth(PostEffectNodeContentWidth);
 	if(ImGui::InputText(label.c_str(), pathBuffer, sizeof(pathBuffer))){
 		LoadShaderFromPath(effect, context, pathBuffer, pixelShader);
 	}
@@ -214,13 +219,14 @@ inline void DrawEffectNode(
 	ImNodes::BeginNodeTitleBar();
 	char nameBuffer[128]{};
 	std::strncpy(nameBuffer, effect.name.c_str(), sizeof(nameBuffer) - 1);
-	ImGui::SetNextItemWidth(200.0f);
+	ImGui::SetNextItemWidth(PostEffectNodeNameWidth);
 	const std::string nameLabel = "##NodeName" + std::to_string(nodeId);
 	if(ImGui::InputText(nameLabel.c_str(), nameBuffer, sizeof(nameBuffer))){
 		effect.name = nameBuffer;
 	}
 	ImNodes::EndNodeTitleBar();
 
+	ImGui::PushItemWidth(PostEffectNodeContentWidth);
 	ImGui::UndoCheckbox(("Enabled##" + std::to_string(nodeId)).c_str(), &effect.enabled);
 	ImGui::UndoDragFloat4(
 		("Param##" + std::to_string(nodeId)).c_str(),
@@ -241,15 +247,18 @@ inline void DrawEffectNode(
 		1,
 		8
 	);
+	ImGui::PopItemWidth();
 
 	DrawShaderField(effect, context, true, nodeId);
 	DrawShaderField(effect, context, false, nodeId);
 
 	if(effect.srv && effect.enabled){
-		constexpr float previewWidth = 150.0f;
 		ImGui::Image(
 			reinterpret_cast<ImTextureID>(effect.srv.Get()),
-			ImVec2(previewWidth, previewWidth / 16.0f * 9.0f)
+			ImVec2(
+				PostEffectNodePreviewWidth,
+				PostEffectNodePreviewWidth / 16.0f * 9.0f
+			)
 		);
 	}
 
@@ -266,7 +275,7 @@ inline void DrawEffectNode(
 		ImNodes::EndInputAttribute();
 
 		if(firstInput){
-			ImGui::SameLine(150.0f);
+			ImGui::SameLine(PostEffectNodeOutputColumnX);
 			ImNodes::BeginOutputAttribute(effect.outputPin);
 			ImGui::TextUnformatted("Output");
 			ImNodes::EndOutputAttribute();
