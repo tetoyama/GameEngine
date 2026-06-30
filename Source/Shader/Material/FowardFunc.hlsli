@@ -68,7 +68,14 @@ MaterialInput GetMaterialInput(PS_IN In)
     return input;
 }
 
-float SampleCascadePCF(float2 suvBase, float depth, float2 texelSize, float stepTexel, int radius);
+float SampleCascadePCF(
+    float2 suvBase,
+    float depth,
+    float2 atlasTexelSize,
+    float stepTexel,
+    int radius,
+    float2 tileMin,
+    float2 tileMax);
 
 float SampleShadowAtlasPCF(
     float2 uv,
@@ -76,28 +83,36 @@ float SampleShadowAtlasPCF(
     int tileIndex,
     ShadowPCFParams pcf)
 {
-    uint grid = (uint) ceil(sqrt((float) ShadowAtlasCount));
+    if (ShadowAtlasCount <= 0 || tileIndex < 0 || tileIndex >= ShadowAtlasCount)
+        return 1.0;
+
+    uint grid = max((uint) ceil(sqrt((float) ShadowAtlasCount)), 1u);
     float tile = 1.0 / grid;
 
     uint gx = tileIndex % grid;
     uint gy = tileIndex / grid;
 
     float2 tileMin = float2(gx, gy) * tile;
+    float2 tileMax = tileMin + tile;
     float2 suvBase = tileMin + uv * tile;
 
     uint texW, texH;
     ShadowMap.GetDimensions(texW, texH);
 
-    float2 texelSize = float2(1.0 / texW, 1.0 / texH);
-    texelSize *= tile;
+    // suvBase is already expressed in atlas UV, so one sampling step is one
+    // atlas texel. Multiplying by tile again would collapse PCF taps to
+    // sub-pixel offsets as the atlas grid grows.
+    float2 atlasTexelSize = float2(1.0 / texW, 1.0 / texH);
 
     int radius = max(pcf.KernelRadius, 0);
     return SampleCascadePCF(
         suvBase,
         depth,
-        texelSize,
+        atlasTexelSize,
         pcf.StepTexel,
-        radius
+        radius,
+        tileMin,
+        tileMax
     );
 }
 
@@ -123,8 +138,8 @@ float ShadowFactor(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    // Directionalは従来のNDC Biasを維持する。
-    // SpotはParam.wをWorld距離Biasとして深度依存NDC Biasへ変換する。
+    // Legacy mode keeps Param.w as projected-depth bias. World-space mode
+    // applies its receiver offset before this function and mirrors Param.w=0.
     float bias = light.Param.w;
     if (light.LightType == LIGHT_TYPE_SPOT)
     {
@@ -206,19 +221,35 @@ float ShadowFactorPoint(
 // =====================================================
 // CSM PCF サンプリングヘルパー
 // =====================================================
-float SampleCascadePCF(float2 suvBase, float depth, float2 texelSize, float stepTexel, int radius)
+float SampleCascadePCF(
+    float2 suvBase,
+    float depth,
+    float2 atlasTexelSize,
+    float stepTexel,
+    int radius,
+    float2 tileMin,
+    float2 tileMax)
 {
     float shadow = 0.0;
     int count = 0;
+    const float2 halfTexel = atlasTexelSize * 0.5;
+    const float2 safeTileMin = tileMin + halfTexel;
+    const float2 safeTileMax = tileMax - halfTexel;
+    const float safeStepTexel = max(stepTexel, 0.0);
+
     [loop]
     for (int sy = -radius; sy <= radius; sy++)
     {
         [loop]
         for (int sx = -radius; sx <= radius; sx++)
         {
+            float2 sampleUv = suvBase +
+                float2(sx, sy) * atlasTexelSize * safeStepTexel;
+            sampleUv = clamp(sampleUv, safeTileMin, safeTileMax);
+
             shadow += ShadowMap.SampleCmpLevelZero(
                 ShadowSampler,
-                suvBase + float2(sx, sy) * texelSize * stepTexel,
+                sampleUv,
                 depth);
             count++;
         }
@@ -237,12 +268,15 @@ float ShadowFactorCascades(
     //--------------------------------------------------
     // 共通計算（ループ外に出せるものは事前計算）
     //--------------------------------------------------
+    if (ShadowAtlasCount <= 0)
+        return 1.0;
+
     uint texW, texH;
     ShadowMap.GetDimensions(texW, texH);
 
-    uint grid = (uint) ceil(sqrt((float) ShadowAtlasCount));
+    uint grid = max((uint) ceil(sqrt((float) ShadowAtlasCount)), 1u);
     float tile = 1.0 / grid;
-    float2 texelSize = float2(1.0 / texW, 1.0 / texH) * tile;
+    float2 atlasTexelSize = float2(1.0 / texW, 1.0 / texH);
 
     int radius = max(pcf.KernelRadius, 0);
 
@@ -281,17 +315,23 @@ float ShadowFactorCascades(
         float depth = saturate(cdepth - bias);
 
         int tileIndex = atlasOffset + c;
+        if (tileIndex < 0 || tileIndex >= ShadowAtlasCount)
+            continue;
+
         uint gx = tileIndex % grid;
         uint gy = tileIndex / grid;
         float2 tileMin = float2(gx, gy) * tile;
+        float2 tileMax = tileMin + tile;
         float2 suvBase = tileMin + cuv * tile;
 
         float shadow = SampleCascadePCF(
             suvBase,
             depth,
-            texelSize,
+            atlasTexelSize,
             pcf.StepTexel,
-            radius
+            radius,
+            tileMin,
+            tileMax
         );
         // 3. 高層ビル等への対応 (本当に必要な状態かの確認)
         // 影が全く落ちていない(shadow >= 1.0)場合、手前のNear面で
