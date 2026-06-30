@@ -18,7 +18,6 @@
 #endif
 
 // ================= GBuffer =================
-// ライティングパスで参照する GBuffer 群
 Texture2D GAlbedo : register(t0);
 Texture2D GNormal : register(t1);
 Texture2D GPosition : register(t2);
@@ -40,9 +39,6 @@ SamplerComparisonState ShadowSampler : register(s1);
 Texture2D EnvironmentMap : register(t7);
 SamplerState EnvSampler : register(s3);
 
-// ================= Implement =================
-// GBuffer全体を読まずにmaterialIDだけを取得する
-// (マテリアル別パスでの早期discard判定用)
 uint GetMaterialID(PS_IN In)
 {
     uint textureWidth, textureHeight;
@@ -51,17 +47,12 @@ uint GetMaterialID(PS_IN In)
     return GParam.Load(int3(pixelCoord, 0)).z;
 }
 
-// GBuffer からマテリアル計算用の入力を復元する
 MaterialInput GetMaterialInput(PS_IN In)
 {
     MaterialInput input;
     input.uv = In.TexCoord;
-
-    input.baseColor =
-        float4(GAlbedo.Sample(PointSampler, input.uv).rgb, 1);
-
-    input.normal =
-        normalize(GNormal.Sample(PointSampler, input.uv).rgb * 2.0 - 1.0);
+    input.baseColor = float4(GAlbedo.Sample(PointSampler, input.uv).rgb, 1);
+    input.normal = normalize(GNormal.Sample(PointSampler, input.uv).rgb * 2.0 - 1.0);
 
     uint textureWidth, textureHeight;
     GPosition.GetDimensions(textureWidth, textureHeight);
@@ -85,7 +76,6 @@ MaterialInput GetMaterialInput(PS_IN In)
 
     GAlbedo.GetDimensions(input.screenSize.x, input.screenSize.y);
     input.screenUV = In.TexCoord;
-
     return input;
 }
 
@@ -96,14 +86,20 @@ float ShadowFactorCascades(
     int atlasOffset,
     ShadowPCFParams pcf)
 {
-    if (ShadowAtlasCount <= 0)
+    if (ShadowAtlasCount <= 0 ||
+        firstLightIdx < 0 ||
+        firstLightIdx >= LIGHT_MAX_COUNT ||
+        cascadeCount <= 0)
+    {
         return 1.0;
+    }
 
     uint texW, texH;
     ShadowMap.GetDimensions(texW, texH);
 
     const uint grid = max((uint) ceil(sqrt((float) ShadowAtlasCount)), 1u);
     const float tileSize = 1.0 / grid;
+    const float2 atlasTexelSize = float2(1.0 / texW, 1.0 / texH);
     float finalShadow = 1.0;
 
     [loop]
@@ -131,14 +127,8 @@ float ShadowFactorCascades(
         if (tileIndex < 0 || tileIndex >= ShadowAtlasCount)
             continue;
 
-        float shadow = SampleShadowAtlasPCF(
-            cuv,
-            depth,
-            tileIndex,
-            pcf);
+        float shadow = SampleShadowAtlasPCF(cuv, depth, tileIndex, pcf);
 
-        // Keep the existing cascade fallback. A fully lit result may mean the
-        // caster was clipped from a finer cascade, so test the next cascade.
         if (shadow >= 1.0 && c < cascadeCount - 1)
             continue;
 
@@ -147,7 +137,12 @@ float ShadowFactorCascades(
             uint tileX = tileIndex % grid;
             uint tileY = tileIndex / grid;
             float2 tileMin = float2(tileX, tileY) * tileSize;
-            float2 atlasUv = tileMin + cuv * tileSize;
+            float2 tileMax = tileMin + tileSize;
+            float2 atlasUv = clamp(
+                tileMin + cuv * tileSize,
+                tileMin + atlasTexelSize * 0.5,
+                tileMax - atlasTexelSize * 0.5);
+
             int2 maxLoadCoord = int2((int) texW - 1, (int) texH - 1);
             int2 loadCoord = clamp(
                 int2(atlasUv * float2(texW, texH)),
@@ -155,11 +150,9 @@ float ShadowFactorCascades(
                 maxLoadCoord);
             float rawDepth = ShadowMap.Load(int3(loadCoord, 0)).r;
 
-            float zScale = cLight.LightProjection[2][2];
-            float safeZScale = max(abs(zScale), 0.000001);
+            float safeZScale = max(abs(cLight.LightProjection[2][2]), 0.000001);
             float deltaZView = abs(cdepth - rawDepth) / safeZScale;
-            float3 occluderPos =
-                worldPos - cLight.Direction.xyz * deltaZView;
+            float3 occluderPos = worldPos - cLight.Direction.xyz * deltaZView;
 
             LIGHT prevLight = Lights[safeIdx - 1];
             float4 prevSp = mul(float4(occluderPos, 1.0), prevLight.LightView);
@@ -213,8 +206,6 @@ float ShadowFactor(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    // Legacy mode keeps Param.w as projected-depth bias. World-space mode
-    // applies its receiver offset before this function and mirrors Param.w=0.
     float bias = light.Param.w;
     if (light.LightType == LIGHT_TYPE_SPOT)
     {
@@ -224,11 +215,7 @@ float ShadowFactor(
             light.Param.w);
     }
 
-    return SampleShadowAtlasPCF(
-        uv,
-        saturate(sp.z - bias),
-        lightIndex,
-        pcf);
+    return SampleShadowAtlasPCF(uv, saturate(sp.z - bias), lightIndex, pcf);
 }
 
 int SelectPointShadowFace(float3 direction)
@@ -255,8 +242,7 @@ float ShadowFactorPoint(
         return 1.0;
 
     LIGHT firstFaceLight = Lights[firstLightIdx];
-    int selectedFace = SelectPointShadowFace(
-        worldPos - firstFaceLight.Position.xyz);
+    int selectedFace = SelectPointShadowFace(worldPos - firstFaceLight.Position.xyz);
 
     if (selectedFace < 0 || selectedFace >= faceCount)
         return 1.0;
