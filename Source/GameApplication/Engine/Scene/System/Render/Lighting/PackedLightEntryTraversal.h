@@ -37,6 +37,28 @@ inline int CountLogicalLights(const LightBuffer& lights) noexcept {
 	return logicalCount;
 }
 
+inline int CountShadowCastingLogicalLights(const LightBuffer& lights) noexcept {
+	const int activeEntries = (std::clamp)(
+		lights.ActiveLightCount,
+		0,
+		LIGHT_MAX_COUNT
+	);
+	int entryIndex = 0;
+	int logicalShadowCount = 0;
+	while(entryIndex < activeEntries){
+		const LIGHT& light = lights.Lights[entryIndex];
+		const int span = ResolveEntrySpan(
+			light,
+			activeEntries - entryIndex
+		);
+		if(light.Enable != 0 && light.CastShadow != 0){
+			++logicalShadowCount;
+		}
+		entryIndex += span;
+	}
+	return logicalShadowCount;
+}
+
 inline int ResolveEntryCountForLogicalLimit(
 	const LightBuffer& lights,
 	int maxLogicalLights
