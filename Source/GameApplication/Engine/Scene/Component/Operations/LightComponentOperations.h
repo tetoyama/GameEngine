@@ -9,8 +9,14 @@
 
 #include "Backends/ImGuiFunc.h"
 #include "Backends/YAMLConverters.h"
+#include "Engine/Scene/System/Render/Lighting/LocalLightShadowProjection.h"
 
 namespace LightComponentOperations {
+
+inline bool IsLocalLight(const LIGHT& light) noexcept {
+	return light.LightType == LIGHT_TYPE_POINT ||
+		light.LightType == LIGHT_TYPE_SPOT;
+}
 
 inline YAML::Node Encode(const LightComponent& component){
 	YAML::Node node;
@@ -48,6 +54,11 @@ inline bool Decode(LightComponent& component, const YAML::Node& node){
 	}
 	if(node["LightProjection"]){
 		light.LightProjection = node["LightProjection"].as<DirectX::XMFLOAT4X4>();
+	}
+
+	if(IsLocalLight(light)){
+		light.Param.x =
+			LocalLightShadowProjection::ResolveFarPlane(light.Param.x);
 	}
 
 	component.dirty = true;
@@ -93,6 +104,10 @@ inline void Inspect(LightComponent& component){
 		IM_ARRAYSIZE(lightTypes)
 	)){
 		light.LightType = static_cast<UINT>(selectedType);
+		if(IsLocalLight(light)){
+			light.Param.x =
+				LocalLightShadowProjection::ResolveFarPlane(light.Param.x);
+		}
 		changed = true;
 	}
 
@@ -117,11 +132,66 @@ inline void Inspect(LightComponent& component){
 		"Ambient",
 		reinterpret_cast<float*>(&light.Ambient)
 	);
-	changed |= ImGui::UndoDragFloat4(
-		"Param",
-		reinterpret_cast<float*>(&light.Param),
-		0.1f
-	);
+
+	if(IsLocalLight(light)){
+		changed |= ImGui::UndoDragFloat(
+			"Range / Shadow Far",
+			&light.Param.x,
+			0.1f,
+			LocalLightShadowProjection::NearPlane +
+				LocalLightShadowProjection::MinimumDepthSpan,
+			100000.0f,
+			"%.3f"
+		);
+
+		if(light.LightType == LIGHT_TYPE_SPOT){
+			changed |= ImGui::UndoDragFloat(
+				"Inner Angle",
+				&light.Param.y,
+				0.1f,
+				0.0f,
+				179.0f,
+				"%.2f deg"
+			);
+			changed |= ImGui::UndoDragFloat(
+				"Outer Angle",
+				&light.Param.z,
+				0.1f,
+				0.01f,
+				179.0f,
+				"%.2f deg"
+			);
+		}
+
+		changed |= ImGui::UndoDragFloat(
+			"Shadow Bias",
+			&light.Param.w,
+			0.0001f,
+			0.0f,
+			1.0f,
+			"%.6f"
+		);
+
+		light.Param.x =
+			LocalLightShadowProjection::ResolveFarPlane(light.Param.x);
+		ImGui::TextDisabled(
+			"Shadow Clip: Near %.3f / Far %.3f / Ratio %.1f",
+			LocalLightShadowProjection::NearPlane,
+			LocalLightShadowProjection::ResolveFarPlane(light.Param.x),
+			LocalLightShadowProjection::DepthRatio(light.Param.x)
+		);
+		if(LocalLightShadowProjection::DepthRatio(light.Param.x) > 10000.0f){
+			ImGui::TextWrapped(
+				"Warning: a very large Far/Near ratio reduces perspective shadow depth precision."
+			);
+		}
+	}else{
+		changed |= ImGui::UndoDragFloat4(
+			"Param",
+			reinterpret_cast<float*>(&light.Param),
+			0.1f
+		);
+	}
 
 	ImGui::PopStyleVar();
 	component.dirty |= changed;
