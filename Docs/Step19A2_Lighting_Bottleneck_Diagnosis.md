@@ -2,7 +2,7 @@
 
 ## 状態
 
-**最優先・原因特定済み・構造修正中**
+**最優先・Shadow主要因確認済み・Packed走査修正の実測待ち**
 
 2026-06-30のPass単位計測により、Player LightingがGPU Frameの主要ボトルネックであることを確認した。
 
@@ -35,7 +35,7 @@ Project Settings
 
 ### 1.1 `switch(materialID)`統合を使用しない
 
-過去の実機検証で、Material IDによる統合Shader分岐は軽量化しなかった。
+過去の実機検証でMaterial IDによる統合Shader分岐は軽量化しなかった。
 
 同一Wave内に異なるMaterialが混在すると複数経路が直列化される可能性があるため、次を禁止する。
 
@@ -72,23 +72,17 @@ Pixelごとに異なる診断分岐は追加しない。
 | Old Lights 1 | 36.7918ms | 4.2906ms | 2.9788ms | 17.0148ms | -34.4207ms / -88.9% |
 | No Environment | 71.1808ms | 38.9612ms | 3.0536ms | 16.9544ms | +0.2499ms / +0.6% |
 
-### 2.1 No Environment
+### 2.1 確定: Environmentは主要因ではない
 
-`No Environment`でPlayer Lightingは低下せず、約0.25ms増加した。
-
-この差は単一Frame計測の揺らぎの範囲と判断する。
-
-結論:
+`No Environment`でPlayer Lightingは低下せず、約0.25ms増加した。この差は単一Frame計測の揺らぎの範囲と判断する。
 
 - Environment Reflectionは現在の39ms問題の主要因ではない
 - Prefiltered Environment Map化は後順位へ移す
 - Environment経路は今回の恒久最適化対象に選ばない
 
-### 2.2 No Shadow
+### 2.2 確定: Lighting内Shadow評価が主要因
 
 `No Shadow`でPlayer Lightingが38.7113msから16.9738msへ低下した。
-
-差分:
 
 ```text
 Lighting-side Shadow evaluation cost ~= 21.7375ms
@@ -96,26 +90,22 @@ Lighting-side Shadow evaluation cost ~= 21.7375ms
 
 Shadow Map生成時間は約3msのままなので、主要コストはShadow Map生成ではなくLighting Shader内のShadow参照、PCF、CSM fallback、Point Face選択にある。
 
-結論:
-
 - Shadow参照は明確な主要因
-- PCF 1x1 / 3x3 / 5x5比較は引き続き必要
-- Shadow参照を完全に切るだけでは残り約17msのLighting負荷が残る
+- PCF 1x1 / 3x3 / 5x5比較が必要
+- Shadowを完全に切っても約17msのLighting負荷が残る
 
-### 2.3 Old Lights 1
+### 2.3 Old Lights 1は複数要因が混在した参考値
 
 旧`Lights 1`は`ActiveLightCount`をPacked GPU Entry数として1へ切り詰めていた。
 
-測定時のBuffer:
+測定時:
 
 ```text
 Packed GPU entries: 10
 Shadow-casting GPU entries: 10
 ```
 
-10 EntryはLogical Light 10個とは限らず、CSM CascadeとPoint Shadow Faceを含む。
-
-想定構成:
+10 EntryはLogical Light 10個とは限らず、次の構成である可能性が高い。
 
 ```text
 CSM:   4 Cascade Entries
@@ -124,36 +114,39 @@ Total: 10 Packed Entries
 Logical Lights: 2
 ```
 
-旧PresetはCSMを1 Cascadeへ切断していたため、`4.2906ms`を「Logical Light 1個のコスト」として扱ってはならない。
+旧PresetはCSMを1 Cascadeへ切断していたため、`4.2906ms`をLogical Light 1個のコストとして扱わない。
 
-ただし、Packed Entry数を減らすとLightingが大幅に低下した事実から、次の構造問題を確認できた。
+この差には次が同時に含まれる。
 
-- Pixelごとに全Packed Entryを順次走査していた
-- CSM後続CascadeとPoint後続Faceも`LIGHT`構造体を読み込んでからskipしていた
-- `LIGHT`はView / Projection Matrixを含み大きい
-- 使用しないShadow Entryの反復読込が全画面で発生していた
+- 2個目のLogical Light除外
+- Point Shadow 6 Face除外
+- CSM 4 Cascadeから1 Cascadeへの縮小
+- Packed Entry Loop回数削減
+- `LIGHT`構造体読込回数削減
+
+したがって、旧`Lights 1`だけではPacked Entry走査の寄与率を分離できない。
+
+ただし、診断Presetの意味が不正確だったことと、Packed Entryを1件ずつ走査する構造上の無駄は確認できたため修正対象とする。
 
 ---
 
-## 3. 確定した主要因
+## 3. 現時点の判断
 
-現時点の優先順位:
+### 確定事項
 
-1. **Packed Shadow EntryとLogical Lightの混在走査**
-2. **Lighting Shader内Shadow評価とPCF**
-3. Post Effect
-4. Material別Full Screen Draw
-5. Environment Reflection
+1. Player Lightingが最大Pass
+2. Lighting内Shadow評価が約21.7msを占める
+3. Environment Reflectionは主要因ではない
+4. 旧`Lights 1`はLogical Light比較として無効
+5. Packed Shadow EntryとLogical Lightが同じBufferへ格納されている
 
-Light Loop問題は単純な「Light数が多い」問題ではない。
+### 有力仮説
 
-```text
-Logical Light
-    -> Shadow Atlas用に複数Packed Entryへ展開
-    -> Lighting ShaderがPacked EntryをLogical Lightとして走査
-```
+- Packed Entry反復走査と巨大な`LIGHT`構造体読込が残り約17msの一部を占める
+- Point Shadowまたは2個目のLogical Lightが大きい
+- CSM fallbackと5x5 PCFがShadow側の大部分を占める
 
-というデータモデル混在が原因である。
+これらの寄与率は構造修正後のNew Baselineで確定する。
 
 ---
 
@@ -166,7 +159,7 @@ Logical Light
 - `PackedLightEntryTraversal.h`
 - CSM / PointのEntry Span解決
 - Packed Entry数からLogical Light数を算出
-- Logical Light上限から保持すべきPacked Entry数を算出
+- Logical Light上限から保持するPacked Entry境界を算出
 
 契約:
 
@@ -202,7 +195,9 @@ while entryIndex < ActiveLightCount
     entryIndex += span
 ```
 
-これにより、CSM 4 CascadeとPoint 6 Faceの構成は10回のLogical Light評価ではなく2回になる。
+CSM 4 CascadeとPoint 6 Faceの構成では、10回のPacked Entry走査から2回のLogical Light走査へ減る。
+
+Shadow評価時は各Logical Lightが保持するCascade / Face Entryを必要な範囲だけ参照する。
 
 ### 4.3 Shadow Atlas OffsetのCorrectness修正
 
@@ -210,7 +205,7 @@ while entryIndex < ActiveLightCount
 
 その結果、後続Lightが誤ったAtlas Tileを参照する可能性があった。
 
-新処理では次をLighting計算より先に確定する。
+新処理ではLighting計算より前に次を確定する。
 
 - Current Entry Index
 - Entry Span
@@ -219,6 +214,8 @@ while entryIndex < ActiveLightCount
 - Next Shadow Atlas Offset
 
 法線方向による早期continueが発生してもAtlas Offsetは正しく進む。
+
+通常ShadowもPacked Light IndexではなくShadow Atlas OffsetをTile Indexとして使用する。
 
 ### 4.4 診断Presetの意味修正
 
@@ -261,28 +258,17 @@ Project Settings > Lightingへ次を表示する。
 6. PCF 3x3
 7. PCF 5x5 / Material Default
 
-今回のSceneがLogical Light 2個なら、Lights 4 / 8 / Allは同じ結果になるため必須ではない。
+今回のSceneがLogical Light 2個ならLights 4 / 8 / Allは同じ結果になるため必須ではない。
 
 60 Frame Warm-up後、120 Resolved SampleのAverageとP95を記録する。
-
-記録項目:
-
-- GPU Frame Average / P95
-- Player Lighting Average / P95
-- Player Shadow Average / P95
-- Player Post Effect Average / P95
-- Player Resolution / Pixel Count
-- Packed Entry Count
-- Logical Light Count
-- Shadow Logical Light Count
 
 ### 判定
 
 #### New Baselineが大幅に低下
 
-Packed Entry反復走査が主要因だったと確定する。
+Packed Entry反復走査が主要因の一つだったと確定する。
 
-#### Logical Lights 1と2の差が大きい
+#### New Logical Lights 1と2の差が大きい
 
 Point Lightまたは2個目のLogical Lightが主要因。
 
@@ -302,9 +288,7 @@ PCF縮小とCSM Cascade選択最適化へ進む。
 
 ## 6. 中期設計
 
-現在の手動Span走査は互換修正であり、最終形ではない。
-
-最終候補:
+現在の手動Span走査は互換修正であり最終形ではない。
 
 ```text
 LogicalLightBuffer
@@ -318,8 +302,6 @@ ShadowEntryBuffer
 
 Lighting Loopは`LogicalLightBuffer`だけを走査し、Shadow評価時だけ`ShadowEntryBuffer`を参照する。
 
-この分離は以前からの設計方針である、Lighting DataとShadow Dataの分離にも一致する。
-
 ---
 
 ## 7. 実装状況
@@ -332,7 +314,7 @@ Lighting Loopは`LogicalLightBuffer`だけを走査し、Shadow評価時だけ`S
 - [x] 旧Packed Entry Lights 1参考測定
 - [x] Environmentが主要因でないことを確認
 - [x] Shadow参照が主要因であることを確認
-- [x] Packed Entry混在走査を特定
+- [x] 旧Light制限の診断不備を確認
 - [x] `PackedLightEntryTraversal`追加
 - [x] Logical Light単位Shader走査
 - [x] Shadow Atlas Offset早期continue修正
@@ -355,10 +337,10 @@ Lighting Loopは`LogicalLightBuffer`だけを走査し、Shadow評価時だけ`S
 ## 8. 完了条件
 
 - `switch(materialID)`統合を使用していない
-- CSM CascadeとPoint FaceをLogical Lightとして重複評価しない
+- CSM CascadeとPoint FaceをPacked Entry Loopで重複走査しない
 - Logical Light制限でPacked Entryを途中切断しない
 - 法線早期continue後もShadow Atlas Offsetが一致する
 - Default設定で変更前と同じ見た目になる
-- New BaselineでPlayer Lightingの改善量を確認できる
+- New BaselineでPacked走査修正の改善量を確認できる
 - PCF 1x1 / 3x3 / 5x5のAverage / P95を比較できる
 - 次の恒久Shadow最適化を数値に基づいて選択する
