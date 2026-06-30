@@ -51,20 +51,70 @@ void PlayerPass::Execute(const RenderPassContext& context){
 	playerRenderTarget->Resize(viewContext.screenSize, m_context->graphics);
 	playerRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearColor);
 	GraphicsContext* graphics = m_context->renderer->GetGraphicsContext();
-	gBufferPass->Execute(viewContext);
-	shadowMapPass->Execute(viewContext);
+	GpuPassTimingProfiler& profiler =
+		m_context->renderer->GetGpuPassTimingProfiler();
+	ID3D11DeviceContext* deviceContext = graphics->GetDeviceContext();
+
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::PlayerGBuffer
+		);
+		gBufferPass->Execute(viewContext);
+	}
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::PlayerShadow
+		);
+		shadowMapPass->Execute(viewContext);
+	}
+
 	graphics->SetCameraPosition(viewContext.CameraPosition);
 	graphics->SetViewMatrix(viewContext.viewMatrix);
 	graphics->SetProjectionMatrix(viewContext.projectionMatrix);
 	lightingPass->SetTextureSlot(gBufferPass, shadowMapPass, graphics);
-	lightingPass->Execute(viewContext);
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::PlayerLighting
+		);
+		lightingPass->Execute(viewContext);
+	}
+
 	forwardPass->SetInputs(lightingPass, gBufferPass, shadowMapPass);
-	forwardPass->Execute(viewContext);
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::PlayerForward
+		);
+		forwardPass->Execute(viewContext);
+	}
+
 	ID3D11ShaderResourceView* initialSRV = lightingPass->pRenderTarget->srv.Get();
 	ID3D11RenderTargetView** initialRTV = lightingPass->pRenderTarget->rtv.GetAddressOf();
 	postEffectPass->SetInputs(initialSRV, initialRTV, gBufferPass);
-	postEffectPass->Execute(viewContext);
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::PlayerPostEffect
+		);
+		postEffectPass->Execute(viewContext);
+	}
+
 	overlayUIPass->SetInputs(postEffectPass->resultRtv, lightingPass->pRenderTarget);
-	overlayUIPass->Execute(viewContext);
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::PlayerOverlay
+		);
+		overlayUIPass->Execute(viewContext);
+	}
 	result = postEffectPass->resultSrv;
 }

@@ -50,24 +50,86 @@ void EditorPass::Execute(const RenderPassContext& context){
 	m_renderSystem->PrepareRenderPacketView(viewContext);
 
 	GraphicsContext* graphics = m_context->renderer->GetGraphicsContext();
+	GpuPassTimingProfiler& profiler =
+		m_context->renderer->GetGpuPassTimingProfiler();
+	ID3D11DeviceContext* deviceContext = graphics->GetDeviceContext();
 	m_context->imgui->SetViewProjectionMatrix(viewContext.viewMatrix, viewContext.projectionMatrix);
-	gBufferPass->Execute(viewContext);
-	shadowMapPass->Execute(viewContext);
+
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::EditorGBuffer
+		);
+		gBufferPass->Execute(viewContext);
+	}
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::EditorShadow
+		);
+		shadowMapPass->Execute(viewContext);
+	}
+
 	graphics->SetCameraPosition(viewContext.CameraPosition);
 	graphics->SetViewMatrix(viewContext.viewMatrix);
 	graphics->SetProjectionMatrix(viewContext.projectionMatrix);
 	lightingPass->SetTextureSlot(gBufferPass, shadowMapPass, graphics);
-	lightingPass->Execute(viewContext);
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::EditorLighting
+		);
+		lightingPass->Execute(viewContext);
+	}
+
 	forwardPass->SetInputs(lightingPass, gBufferPass, shadowMapPass);
-	forwardPass->Execute(viewContext);
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::EditorForward
+		);
+		forwardPass->Execute(viewContext);
+	}
+
 	ID3D11ShaderResourceView* initialSRV = lightingPass->pRenderTarget->srv.Get();
 	ID3D11RenderTargetView** initialRTV = lightingPass->pRenderTarget->rtv.GetAddressOf();
 	postEffectPass->SetInputs(initialSRV, initialRTV, gBufferPass);
-	postEffectPass->Execute(viewContext);
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::EditorPostEffect
+		);
+		postEffectPass->Execute(viewContext);
+	}
+
 	overlayUIPass->SetInputs(postEffectPass->resultRtv, lightingPass->pRenderTarget);
-	overlayUIPass->Execute(viewContext);
-	graphics->GetDeviceContext()->OMSetRenderTargets(1, postEffectPass->resultRtv, gBufferPass->pDepthTarget->dsv.Get());
-	physXDebugPass->Execute(viewContext);
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::EditorOverlay
+		);
+		overlayUIPass->Execute(viewContext);
+	}
+
+	graphics->GetDeviceContext()->OMSetRenderTargets(
+		1,
+		postEffectPass->resultRtv,
+		gBufferPass->pDepthTarget->dsv.Get()
+	);
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::EditorPhysicsDebug
+		);
+		physXDebugPass->Execute(viewContext);
+	}
 	ID3D11RenderTargetView* nullRTV[1] = {nullptr};
 	graphics->GetDeviceContext()->OMSetRenderTargets(1, nullRTV, nullptr);
 	result = postEffectPass->resultSrv;

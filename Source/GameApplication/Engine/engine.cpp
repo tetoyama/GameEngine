@@ -177,9 +177,15 @@ void Engine::Run(EngineContext* context){
 		graphics->WaitForFrameLatency();
 		time->EndDrawSection(DrawTimingSection::FramePacingWait);
 
-		graphics->BeginGpuFrameTiming(activeFrameSerial);
+		GpuPassTimingProfiler& gpuPassTiming =
+			renderer->GetGpuPassTimingProfiler();
+		gpuPassTiming.BeginFrame(
+			graphics->GetDevice(),
+			graphics->GetDeviceContext(),
+			activeFrameSerial
+		);
 		const auto resolvedGpuFrameTimings =
-			graphics->ConsumeResolvedGpuFrameTimings();
+			gpuPassTiming.ConsumeResolved(graphics->GetDeviceContext());
 
 		time->BeginDrawSection(DrawTimingSection::FrameSetup);
 		renderer->BeginFrame();
@@ -219,10 +225,17 @@ void Engine::Run(EngineContext* context){
 		}
 
 		time->BeginDrawSection(DrawTimingSection::ImGuiRender);
-		imgui->End();
+		{
+			ScopedGpuPassTiming gpuTiming(
+				gpuPassTiming,
+				graphics->GetDeviceContext(),
+				GpuPassTimingScope::ImGui
+			);
+			imgui->End();
+		}
 		time->EndDrawSection(DrawTimingSection::ImGuiRender);
 
-		graphics->EndGpuFrameTiming();
+		gpuPassTiming.EndFrame(graphics->GetDeviceContext());
 
 		time->BeginDrawSection(DrawTimingSection::Present);
 		renderer->EndFrame(config->appConfig.Vsync);

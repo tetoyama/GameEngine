@@ -13,6 +13,7 @@
 #include <dwrite.h>
 
 #include "GraphicsContext.h"
+#include "GpuPassTimingProfiler.h"
 #include "D2DRenderer.h"
 #include "Service/IService.h"
 
@@ -37,7 +38,9 @@ public:
 		m_height = mainWindow->GetHeight();
 	}
 
-	void Shutdown()override {}
+	void Shutdown()override {
+		m_gpuPassTimingProfiler.Reset();
+	}
 
 	void BeginFrame();
 	void EndFrame(bool vsync = true);
@@ -68,6 +71,15 @@ public:
 	GraphicsContext* GetGraphicsContext() const{
 		return m_graphicsContext;
 	}
+
+	GpuPassTimingProfiler& GetGpuPassTimingProfiler() noexcept {
+		return m_gpuPassTimingProfiler;
+	}
+
+	const GpuPassTimingProfiler& GetGpuPassTimingProfiler() const noexcept {
+		return m_gpuPassTimingProfiler;
+	}
+
 	HWND GetHWND(){
 		return m_hwnd;
 	}
@@ -84,6 +96,7 @@ private:
 	HWND m_hwnd{};
 	GraphicsContext* m_graphicsContext = nullptr;
 	D2DRenderer* m_d2dRenderer = nullptr;
+	GpuPassTimingProfiler m_gpuPassTimingProfiler;
 
 	UINT m_width = 0;
 	UINT m_height = 0;
