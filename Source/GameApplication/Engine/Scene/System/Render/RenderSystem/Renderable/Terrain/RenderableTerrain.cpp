@@ -44,13 +44,7 @@ void RenderableTerrain::Execute(const RenderPassContext& ctx, const RenderPacket
 			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, texture->m_TextureData->pTexture.GetAddressOf());
 		}
-		if(texture->UV_Slice_X > 0.0f && texture->UV_Slice_Y > 0.0f){
-			const int column = (std::max)(1, static_cast<int>(1.0f / texture->UV_Slice_X));
-			uv.UVStart.x = (texture->AnimationNum % column) * texture->UV_Slice_X;
-			uv.UVStart.y = (texture->AnimationNum / column) * texture->UV_Slice_Y;
-			uv.UVEnd.x = uv.UVStart.x + texture->UV_Slice_X;
-			uv.UVEnd.y = uv.UVStart.y + texture->UV_Slice_Y;
-		}
+		uv = texture->ResolveUVMatrixBuffer();
 	}
 	graphicsContext->SetMaterial(material);
 	graphicsContext->SetUVMatrixBuffer(uv);
