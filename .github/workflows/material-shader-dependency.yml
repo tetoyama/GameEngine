@@ -5,6 +5,8 @@ on:
     branches: [master]
     paths:
       - "Source/Shader/Material/MaterialFunc.hlsli"
+      - "Source/Shader/Material/DeferredFunc.hlsli"
+      - "Source/Shader/Material/FowardFunc.hlsli"
       - "Source/Shader/Material/MaterialBRDF.hlsli"
       - "Source/Shader/Material/MaterialLightingEvaluation.hlsli"
       - "Source/Shader/Material/MaterialLightingTraversal.hlsli"
@@ -14,6 +16,8 @@ on:
     branches: [refactor/ecs-scheduler-foundation]
     paths:
       - "Source/Shader/Material/MaterialFunc.hlsli"
+      - "Source/Shader/Material/DeferredFunc.hlsli"
+      - "Source/Shader/Material/FowardFunc.hlsli"
       - "Source/Shader/Material/MaterialBRDF.hlsli"
       - "Source/Shader/Material/MaterialLightingEvaluation.hlsli"
       - "Source/Shader/Material/MaterialLightingTraversal.hlsli"
@@ -41,6 +45,8 @@ jobs:
           $materialFuncPath = "Source/Shader/Material/MaterialFunc.hlsli"
           $materialFunc = Get-Content -Raw -Path $materialFuncPath
           $dependencies = @(
+            "Source/Shader/Material/DeferredFunc.hlsli",
+            "Source/Shader/Material/FowardFunc.hlsli",
             "Source/Shader/Material/MaterialBRDF.hlsli",
             "Source/Shader/Material/MaterialLightingEvaluation.hlsli",
             "Source/Shader/Material/MaterialLightingTraversal.hlsli",
