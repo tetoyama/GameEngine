@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "Backends/ImGui/imgui.h"
+#include "Graphics/graphicsContext.h"
 #include "Scene/sceneManager.h"
 #include "Scene/Registry/systemRegistry.h"
 #include "System/Render/RenderSystem/renderSystem.h"
