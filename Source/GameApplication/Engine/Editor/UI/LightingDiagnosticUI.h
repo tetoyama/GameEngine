@@ -1,9 +1,14 @@
 #pragma once
 
 #include <algorithm>
+#include <cfloat>
 #include <cstdint>
+#include <cstdio>
+#include <span>
+#include <vector>
 
 #include "Backends/ImGui/imgui.h"
+#include "Editor/UI/LightingDiagnosticCapture.h"
 #include "Graphics/graphicsContext.h"
 #include "Scene/sceneManager.h"
 #include "Scene/Registry/systemRegistry.h"
@@ -11,7 +16,20 @@
 
 namespace LightingDiagnosticUI {
 
-inline void Draw(SceneManager* sceneManager){
+inline const char* PcfModeName(int mode){
+	switch(mode){
+		case LIGHTING_DEBUG_PCF_DEFAULT: return "Default";
+		case LIGHTING_DEBUG_PCF_1X1: return "1x1";
+		case LIGHTING_DEBUG_PCF_3X3: return "3x3";
+		case LIGHTING_DEBUG_PCF_5X5: return "5x5";
+	}
+	return "Invalid";
+}
+
+inline void Draw(
+	SceneManager* sceneManager,
+	const std::vector<GpuFrameTimingResult>* resolvedGpuTimings = nullptr
+){
 	SystemRegistry* registry =
 		sceneManager ? sceneManager->GetSystemRegistry() : nullptr;
 	RenderSystem* renderSystem = registry
@@ -20,6 +38,14 @@ inline void Draw(SceneManager* sceneManager){
 	if(!renderSystem){
 		ImGui::TextDisabled("RenderSystem is not available.");
 		return;
+	}
+
+	static LightingDiagnosticCapture capture;
+	if(resolvedGpuTimings){
+		capture.Consume(std::span<const GpuFrameTimingResult>(
+			resolvedGpuTimings->data(),
+			resolvedGpuTimings->size()
+		));
 	}
 
 	CbLightingDebug& settings = renderSystem->GetLightingDebugSettings();
@@ -218,6 +244,109 @@ inline void Draw(SceneManager* sceneManager){
 	ImGui::SameLine();
 	if(ImGui::Button("Lights All")){
 		applyLightLimit(0);
+	}
+
+	ImGui::SeparatorText("Measurement Capture");
+	const bool captureShadowsDisabled =
+		(settings.LightingDebugFlags &
+		 LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS) != 0u;
+	const bool captureEnvironmentDisabled =
+		(settings.LightingDebugFlags &
+		 LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT) != 0u;
+	char captureLabel[160]{};
+	if(settings.LightingDebugMaxActiveLights == 0){
+		std::snprintf(
+			captureLabel,
+			sizeof(captureLabel),
+			"Shadow:%s / PCF:%s / Environment:%s / Lights:All",
+			captureShadowsDisabled ? "OFF" : "ON",
+			PcfModeName(settings.LightingDebugPcfMode),
+			captureEnvironmentDisabled ? "OFF" : "ON"
+		);
+	}else{
+		std::snprintf(
+			captureLabel,
+			sizeof(captureLabel),
+			"Shadow:%s / PCF:%s / Environment:%s / Lights:%d",
+			captureShadowsDisabled ? "OFF" : "ON",
+			PcfModeName(settings.LightingDebugPcfMode),
+			captureEnvironmentDisabled ? "OFF" : "ON",
+			settings.LightingDebugMaxActiveLights
+		);
+	}
+	ImGui::TextDisabled("Current preset: %s", captureLabel);
+
+	if(capture.IsCapturing()){
+		ImGui::BeginDisabled();
+	}
+	if(ImGui::Button("Start 60 Warm-up + 120 Sample Capture")){
+		capture.Start(captureLabel, 60, 120);
+	}
+	if(capture.IsCapturing()){
+		ImGui::EndDisabled();
+		ImGui::SameLine();
+		if(ImGui::Button("Cancel Capture")){
+			capture.Cancel();
+		}
+	}
+
+	if(capture.IsCapturing()){
+		if(capture.WarmupRemaining() > 0){
+			const float progress =
+				1.0f - static_cast<float>(capture.WarmupRemaining()) / 60.0f;
+			char overlay[64]{};
+			std::snprintf(
+				overlay,
+				sizeof(overlay),
+				"Warm-up: %zu / 60",
+				60 - capture.WarmupRemaining()
+			);
+			ImGui::ProgressBar(progress, ImVec2(-FLT_MIN, 0.0f), overlay);
+		}else{
+			const float progress = static_cast<float>(capture.SamplesCollected()) /
+				static_cast<float>(capture.TargetSampleCount());
+			char overlay[64]{};
+			std::snprintf(
+				overlay,
+				sizeof(overlay),
+				"Samples: %zu / %zu",
+				capture.SamplesCollected(),
+				capture.TargetSampleCount()
+			);
+			ImGui::ProgressBar(progress, ImVec2(-FLT_MIN, 0.0f), overlay);
+		}
+	}
+
+	const LightingDiagnosticCapture::Summary& summary = capture.GetSummary();
+	if(summary.valid){
+		ImGui::TextWrapped("Result: %s", summary.label.c_str());
+		if(ImGui::BeginTable(
+			"LightingDiagnosticCaptureResult",
+			3,
+			ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg
+		)){
+			ImGui::TableSetupColumn("Scope");
+			ImGui::TableSetupColumn("Average (ms)");
+			ImGui::TableSetupColumn("P95 (ms)");
+			ImGui::TableHeadersRow();
+
+			auto row = [](const char* name,
+				const LightingDiagnosticCapture::MetricSummary& metric){
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::TextUnformatted(name);
+				ImGui::TableSetColumnIndex(1);
+				ImGui::Text("%.4f", metric.averageMilliseconds);
+				ImGui::TableSetColumnIndex(2);
+				ImGui::Text("%.4f", metric.p95Milliseconds);
+			};
+			row("GPU Frame", summary.gpuFrame);
+			row("Player Lighting", summary.playerLighting);
+			row("Player Shadow", summary.playerShadow);
+			row("Player Post Effect", summary.playerPostEffect);
+			ImGui::EndTable();
+		}
+		ImGui::TextDisabled("Resolved samples: %zu", summary.sampleCount);
 	}
 
 	ImGui::SeparatorText("Measurement Order");
