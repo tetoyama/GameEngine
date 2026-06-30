@@ -10,6 +10,7 @@ on:
       - "Source/Shader/Material/MaterialBRDF.hlsli"
       - "Source/Shader/Material/MaterialLightingEvaluation.hlsli"
       - "Source/Shader/Material/MaterialLightingTraversal.hlsli"
+      - "Source/Shader/Material/ShadowAtlasSampling.hlsli"
       - "Source/Shader/Material/ShadowDepthBias.hlsli"
       - ".github/workflows/material-shader-dependency.yml"
   push:
@@ -21,6 +22,7 @@ on:
       - "Source/Shader/Material/MaterialBRDF.hlsli"
       - "Source/Shader/Material/MaterialLightingEvaluation.hlsli"
       - "Source/Shader/Material/MaterialLightingTraversal.hlsli"
+      - "Source/Shader/Material/ShadowAtlasSampling.hlsli"
       - "Source/Shader/Material/ShadowDepthBias.hlsli"
       - ".github/workflows/material-shader-dependency.yml"
   workflow_dispatch:
@@ -50,6 +52,7 @@ jobs:
             "Source/Shader/Material/MaterialBRDF.hlsli",
             "Source/Shader/Material/MaterialLightingEvaluation.hlsli",
             "Source/Shader/Material/MaterialLightingTraversal.hlsli",
+            "Source/Shader/Material/ShadowAtlasSampling.hlsli",
             "Source/Shader/Material/ShadowDepthBias.hlsli"
           )
 
