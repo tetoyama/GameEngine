@@ -2,7 +2,7 @@
 
 ## 状態
 
-**最優先・Packed走査改善確認済み・Shadow種別分解中**
+**最優先・Packed走査改善確認済み・Light/Shadow参加分離の実機確認待ち**
 
 診断UI:
 
@@ -83,11 +83,11 @@ Packed GPU entries: 10
 Shadow-casting entries: 10
 ```
 
-想定構成:
+構成:
 
 ```text
-Logical 0: CSM   / 4 Cascade Entries
-Logical 1: Point / 6 Face Entries
+Logical 0: Directional CSM / 4 Cascade Entries
+Logical 1: Point           / 6 Face Entries
 Total: 10 Packed Entries
 ```
 
@@ -123,7 +123,7 @@ while entryIndex < ActiveLightCount
 
 Packed Entry走査修正後の単一Resolved Frame参考値。
 
-今回の画像ではPost Effectが0.0000msだったため、旧GPU Frame全体とは直接比較しない。Player Lighting同士を比較する。
+この計測ではPost Effectが0.0000msだったため、旧GPU Frame全体とは直接比較しない。Player Lighting同士を比較する。
 
 | 条件 | GPU Frame | Player Lighting | Player Shadow | Baseline比Lighting差 |
 |---|---:|---:|---:|---:|
@@ -154,8 +154,6 @@ Shadow-side cost ~= 16.0481ms
 
 Packed走査修正後もLighting時間の約55%をShadow評価が占める。
 
-Shadow Map生成は約4msのままであり、主要コストはLighting Shader内に残っている。
-
 ### 5.3 Logical Lights 1
 
 Logical Lights 1は13.2291msで、No Shadow 13.0765msとほぼ同じだった。
@@ -164,103 +162,195 @@ Logical Lights 1は13.2291msで、No Shadow 13.0765msとほぼ同じだった。
 Baseline - Logical Lights 1 = 15.8955ms
 ```
 
-この結果から、除外された2個目のLogical Lightが大きなコストを持つ可能性が高い。
-
-ただし現時点の画像ではLogical 0 / 1のLight Typeを表示していないため、Point Lightであるとはまだ断定しない。
+後続のLayout表示により、Logical 1はPoint Light、Spanは6 Faceであることを確認した。
 
 ### 5.4 PCF 1x1
 
 PCF 1x1は29.8199msで、Baseline 29.1246msより改善しなかった。
 
-可能性:
-
-- PCF Sample数よりCascade / Face選択、Matrix計算、Buffer読込が支配的
-- Point Shadow経路が支配的
-- Material Shader BinaryへのPCF Override反映を追加確認する必要がある
-- 単一Frameの揺らぎ
-
-この時点では既定PCFを3x3へ変更しない。
+現時点ではPCF Sample数よりも、Point Face処理、Cascade選択、Matrix計算、Buffer Accessが支配的な可能性が高い。既定PCFを3x3へ変更しない。
 
 ### 5.5 Environment
 
-No Environmentは29.1615msでBaselineとの差は0.04msだった。
-
-Environment最適化は後順位のままとする。
+No Environmentは29.1615msでBaselineとの差は0.04msだった。Environment最適化は後順位のままとする。
 
 ---
 
-## 6. 次の診断実装
+## 6. CastShadow既定値とLight参加の結合問題
 
-追加済み:
+### 6.1 観測
 
-- `LIGHTING_DEBUG_FLAG_DISABLE_CSM_SHADOWS`
-- `LIGHTING_DEBUG_FLAG_DISABLE_POINT_SHADOWS`
-- `No CSM Shadow` Preset
-- `No Point Shadow` Preset
-- Logical Light Layout表示
-- Logical LightごとのType / First Entry / Span / Shadow状態表示
-
-UI表示例:
+2026-06-30のLogical Light Layout:
 
 ```text
 Logical 0: Directional CSM / Entry 0 / Span 4 / Shadow ON
 Logical 1: Point           / Entry 4 / Span 6 / Shadow ON
 ```
 
-これによりLogical Lights 1の意味を推測ではなく実データで確認する。
+Scene内の2 Logical Lightが両方ともShadow ONになっていた。
+
+### 6.2 原因
+
+2つの問題が結合していた。
+
+1. `LightComponent`の新規作成既定値が`CastShadow = true`
+2. `ShadowMapPass`が`CastShadow == false`のLightをGPU Light Bufferへ登録する前に除外
+
+旧契約:
+
+```text
+CastShadow OFF
+    -> Shadowを生成しない
+    -> Light Bufferにも入らない
+    -> 照明自体が消える
+```
+
+このためLightを通常利用するだけでもCastShadowをONにする必要があり、Point Lightが自動的に6 Faceへ展開されやすい状態だった。
+
+### 6.3 根本修正
+
+追加:
+
+- `LightComponentDefaults.h`
+- `LightGpuSubmissionPolicy.h`
+- `LightShadowParticipationSmokeTest.cpp`
+
+新契約:
+
+```text
+Enable OFF
+    -> Lightingへ送らない
+    -> Shadowも生成しない
+
+Enable ON / CastShadow OFF
+    -> 1 Logical LightとしてLightingへ送る
+    -> Shadow Atlas Entryは生成しない
+
+Enable ON / CastShadow ON
+    -> Lightingへ送る
+    -> Light Typeに応じてShadow Entryへ展開する
+```
+
+`ShadowMapPass`は全Enabled LightをLighting Submission対象とし、CastShadow ONのLightだけを展開する。
+
+### 6.4 新規Lightの既定値
+
+```text
+Enable:      ON
+LightType:   Point
+CastShadow:  OFF
+```
+
+Point Shadowは必要なLightだけInspectorで明示的にONにする。
+
+### 6.5 既存Sceneの互換性
+
+Scene YAMLに明示的に保存済みの`CastShadow: true`は変更しない。
+
+旧既定値によって保存されたのか、ユーザーが意図的にONにしたのかを自動判別できないため、一括でOFFへ変換しない。
+
+Point LightごとにInspectorで確認する。
+
+### 6.6 Inspector警告
+
+- CastShadow OFFでもLightは有効なままであることをTooltip表示
+- Point Shadowは6 Atlas Faceへ展開されることを表示
+- CSM ShadowはCascade数分へ展開されることを表示
 
 ---
 
-## 7. 次の実機測定順
+## 7. Local Light範囲外Pixelの早期終了
 
-最新ブランチをビルドし、Material Shaderを再コンパイルしてから測る。
+Point / Spot Lightは`attenuation == 0`でもShadow評価とBRDF計算を続けていた。
 
-優先順:
+DiffuseとSpecularは最終的に0になるため、既存のAmbient加算だけを保持して早期終了する。
 
-1. Logical Light Layoutのスクリーンショット
-2. Baseline
+```text
+if attenuation <= 0
+    accumulate ambient
+    skip shadow sampling
+    skip BRDF
+```
+
+Point Lightが画面の一部だけを照らすSceneで効果が期待できる。
+
+---
+
+## 8. 添付された第3回スクリーンショットの扱い
+
+Layout情報は有効:
+
+```text
+Logical Lights: 2
+Shadow Logical Lights: 2
+Shadow Entries: 10
+CSM Span: 4
+Point Span: 6
+```
+
+一方、多くの画像で`GPU status: Pending`となっている。
+
+`GPU latest resolved`は現在表示中のPresetより前のFrameである可能性があるため、Baseline / No Shadow / No CSM Shadow等の単一Frame数値は直接比較しない。
+
+性能判定には診断UIの次を使用する。
+
+```text
+60 Frame Warm-up
+120 Resolved Samples
+Average / P95
+```
+
+---
+
+## 9. 次の実機確認
+
+最新ブランチをビルドし、Material Shaderを再コンパイルする。
+
+### 9.1 Correctness確認
+
+1. Point Lightを選択
+2. CastShadowをOFF
+3. Point Lightの明るさが残ることを確認
+4. Point Shadowだけ消えることを確認
+5. Scene保存・再読込後もOFFが維持されることを確認
+
+### 9.2 期待Telemetry
+
+CSM Shadow ON、Point Shadow OFF:
+
+```text
+Packed GPU entries:      5
+Logical lights:          2
+Shadow logical lights:   1
+Shadow entries:          4
+
+Logical 0: Directional CSM / Entry 0 / Span 4 / Shadow ON
+Logical 1: Point           / Entry 4 / Span 1 / Shadow OFF
+```
+
+CSM / PointともにShadow OFF:
+
+```text
+Packed GPU entries:      2
+Logical lights:          2
+Shadow logical lights:   0
+Shadow entries:          0
+```
+
+### 9.3 性能測定順
+
+1. CSM ON / Point OFF Baseline
+2. CSM ON / Point ON Baseline
 3. No CSM Shadow
 4. No Point Shadow
 5. No Shadow
-6. Logical Lights 1
-7. Logical Lights 2
-8. PCF 1x1
-9. PCF 3x3
-10. PCF 5x5
+6. PCF 1x1 / 3x3 / 5x5
 
-60 Frame Warm-up後、120 Resolved SampleのAverage / P95を使用する。
-
-### 判定
-
-#### No Point Shadowで大幅低下
-
-Point Shadowが主因。
-
-次工程:
-
-- Point Light範囲外PixelのShadow評価前Reject
-- Point Light VolumeまたはTiled Light Culling
-- Point Shadow更新頻度制限
-- Point Shadow Face MatrixをShadow専用Bufferへ分離
-
-#### No CSM Shadowで大幅低下
-
-CSMが主因。
-
-次工程:
-
-- Cascadeを深度から直接選択
-- 全Cascade fallback探索を通常経路から除去
-- 境界Pixelだけ隣接Cascadeを評価
-- PCF品質設定
-
-#### PCF差が引き続き小さい
-
-Sample数ではなくMatrix / Branch / Buffer Accessが支配的と判断する。
+各条件で60 Frame Warm-up後、120 Resolved SampleのAverage / P95を記録する。
 
 ---
 
-## 8. 中期設計
+## 10. 中期設計
 
 現在の手動Span走査は互換修正であり最終形ではない。
 
@@ -278,27 +368,29 @@ Lighting Loopは`LogicalLightBuffer`だけを走査し、Shadow評価時だけ`S
 
 ---
 
-## 9. 実装状況
+## 11. 実装状況
 
 - [x] GPU Pass単位Timestamp
 - [x] 初期Baseline / No Shadow / No Environment
 - [x] Packed Entry混在問題を特定
 - [x] Logical Light単位Shader走査
 - [x] Shadow Atlas Offset Correctness修正
-- [x] New Baseline取得
 - [x] Packed走査で約24.8%改善を確認
-- [x] New No Shadow取得
-- [x] New Logical Lights 1取得
-- [x] PCF 1x1参考値取得
-- [x] No Environment再確認
 - [x] CSM / Point Shadow個別Toggle
 - [x] Logical Light Layout Telemetry
-- [x] Settings / Packed Traversal Smoke更新
+- [x] CSM 4 Entry / Point 6 Entryを実機確認
+- [x] LightとShadow参加の結合問題を特定
+- [x] 非Shadow Lightを単一Logical Entryとして保持
+- [x] 新規LightのCastShadow既定値をOFFへ変更
+- [x] Point / Spot範囲外PixelのShadow / BRDF早期終了
+- [x] InspectorへShadow展開コストを表示
+- [x] Light Shadow Participation Smoke追加
+- [x] ShadowMapPass旧除外処理のソース契約追加
 - [ ] Windows Build確認
 - [ ] Lighting Diagnostic Contract確認
-- [ ] Logical Light Type確認
-- [ ] No CSM Shadow測定
-- [ ] No Point Shadow測定
+- [ ] Point CastShadow OFFでLightが残る実機確認
+- [ ] Packed 5 / Shadow 4 Telemetry確認
+- [ ] Scene保存・再読込確認
 - [ ] 120 Sample Average / P95取得
 - [ ] 恒久Shadow最適化
 - [ ] LogicalLightBuffer / ShadowEntryBuffer分離
@@ -306,12 +398,14 @@ Lighting Loopは`LogicalLightBuffer`だけを走査し、Shadow評価時だけ`S
 
 ---
 
-## 10. 完了条件
+## 12. 完了条件
 
 - `switch(materialID)`統合を使用していない
 - CSM CascadeとPoint FaceをPacked Entry Loopで重複走査しない
 - Logical Light制限でPacked Entryを途中切断しない
-- 法線早期continue後もShadow Atlas Offsetが一致する
-- CSM / Point Shadowコストを個別に測定できる
-- Default設定で変更前と同じ見た目になる
+- CastShadow OFFでもLightがLightingへ参加する
+- Point Shadow OFF時に6 Face Entryが生成されない
+- 新規LightのCastShadowが既定OFF
+- Scene保存・再読込でCastShadow設定が維持される
+- Default設定で意図した見た目になる
 - 次の恒久Shadow最適化をAverage / P95に基づいて選択する
