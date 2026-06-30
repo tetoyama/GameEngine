@@ -143,6 +143,12 @@ inline void Inspect(LightComponent& component){
 			100000.0f,
 			"%.3f"
 		);
+		if(ImGui::IsItemHovered()){
+			ImGui::SetTooltip(
+				"Point and Spot lighting attenuation reaches zero at this distance. "
+				"The same value is used as the perspective shadow Far plane."
+			);
+		}
 
 		if(light.LightType == LIGHT_TYPE_SPOT){
 			changed |= ImGui::UndoDragFloat(
@@ -164,13 +170,20 @@ inline void Inspect(LightComponent& component){
 		}
 
 		changed |= ImGui::UndoDragFloat(
-			"Shadow Bias",
+			"Shadow Bias (World)",
 			&light.Param.w,
 			0.0001f,
 			0.0f,
 			1.0f,
 			"%.6f"
 		);
+		if(ImGui::IsItemHovered()){
+			ImGui::SetTooltip(
+				"World-space receiver bias for Point and Spot shadows. "
+				"It is converted to perspective NDC depth per receiver, so changing Far "
+				"does not require an equivalent fixed NDC bias adjustment."
+			);
+		}
 
 		light.Param.x =
 			LocalLightShadowProjection::ResolveFarPlane(light.Param.x);
