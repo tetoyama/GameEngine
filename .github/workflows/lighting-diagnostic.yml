@@ -6,6 +6,8 @@ on:
     paths:
       - "Source/Shader/commonDefine.h"
       - "Source/Shader/common.hlsl"
+      - "Source/Shader/Material/DeferredFunc.hlsli"
+      - "Source/Shader/Material/FowardFunc.hlsli"
       - "Source/Shader/Material/MaterialFunc.hlsli"
       - "Source/Shader/Material/PBRShader.hlsli"
       - "Source/GameApplication/Engine/Editor/UI/LightingDiagnosticUI.h"
@@ -15,13 +17,16 @@ on:
       - "Source/GameApplication/Engine/Scene/Component/Operations/LightComponentOperations.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/LightGpuSubmissionPolicy.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PackedLightEntryTraversal.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PointShadowFaceLayout.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.cpp"
       - "Tests/LightingDiagnosticSettingsSmokeTest.cpp"
       - "Tests/PackedLightEntryTraversalSmokeTest.cpp"
       - "Tests/LightShadowParticipationSmokeTest.cpp"
+      - "Tests/PointShadowFaceLayoutSmokeTest.cpp"
       - "Tests/LightingDiagnosticPBRSmoke.hlsl"
       - ".github/workflows/lighting-diagnostic.yml"
   push:
@@ -29,6 +34,8 @@ on:
     paths:
       - "Source/Shader/commonDefine.h"
       - "Source/Shader/common.hlsl"
+      - "Source/Shader/Material/DeferredFunc.hlsli"
+      - "Source/Shader/Material/FowardFunc.hlsli"
       - "Source/Shader/Material/MaterialFunc.hlsli"
       - "Source/Shader/Material/PBRShader.hlsli"
       - "Source/GameApplication/Engine/Editor/UI/LightingDiagnosticUI.h"
@@ -38,13 +45,16 @@ on:
       - "Source/GameApplication/Engine/Scene/Component/Operations/LightComponentOperations.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/LightGpuSubmissionPolicy.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PackedLightEntryTraversal.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PointShadowFaceLayout.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.cpp"
       - "Tests/LightingDiagnosticSettingsSmokeTest.cpp"
       - "Tests/PackedLightEntryTraversalSmokeTest.cpp"
       - "Tests/LightShadowParticipationSmokeTest.cpp"
+      - "Tests/PointShadowFaceLayoutSmokeTest.cpp"
       - "Tests/LightingDiagnosticPBRSmoke.hlsl"
       - ".github/workflows/lighting-diagnostic.yml"
   workflow_dispatch:
@@ -99,7 +109,18 @@ jobs:
           Tests/LightShadowParticipationSmokeTest.cpp
           /Fe:light-shadow-participation-test.exe
           && light-shadow-participation-test.exe
-      - name: Guard ShadowMapPass light submission contract
+      - name: Compile and run point shadow face layout
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471
+          /I Source
+          /I Source/GameApplication
+          Tests/PointShadowFaceLayoutSmokeTest.cpp
+          /Fe:point-shadow-face-layout-test.exe
+          && point-shadow-face-layout-test.exe
+      - name: Guard ShadowMapPass light and point-face contracts
         shell: pwsh
         run: |
           $path = "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.cpp"
@@ -109,6 +130,30 @@ jobs:
           }
           if ($text -notmatch 'MakeUnshadowedLogicalEntry') {
             throw "Non-shadow logical light fallback is missing."
+          }
+          if ($text -notmatch 'PointShadowFaceLayout::ProjectionFovRadians') {
+            throw "Point shadow overlap FOV contract is missing."
+          }
+          if ($text -notmatch 'perspectiveShadowRS') {
+            throw "Point and spot shadows must use a depth-clipped rasterizer."
+          }
+
+          $shaderPaths = @(
+            "Source/Shader/Material/DeferredFunc.hlsli",
+            "Source/Shader/Material/FowardFunc.hlsli"
+          )
+          $faceRules = @(
+            'return \(direction\.x >= 0\.0\) \? 0 : 1;',
+            'return \(direction\.y >= 0\.0\) \? 2 : 3;',
+            'return \(direction\.z >= 0\.0\) \? 4 : 5;'
+          )
+          foreach ($shaderPath in $shaderPaths) {
+            $shader = Get-Content -Raw -Path $shaderPath
+            foreach ($rule in $faceRules) {
+              if ($shader -notmatch $rule) {
+                throw "Point shadow face order mismatch in $shaderPath"
+              }
+            }
           }
       - name: Compile PBR diagnostic shader
         shell: cmd
