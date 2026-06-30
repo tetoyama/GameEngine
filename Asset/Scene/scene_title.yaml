@@ -1,3 +1,17 @@
+SceneSettings:
+  Storage:
+    ExpectedEntities: 1024
+    ExpectedTransforms: 768
+    ExpectedRenderables: 512
+    ExpectedCullingComponents: 512
+    ExpectedStaticEntities: 256
+    PreallocatedTransformPages: 0
+    PreallocatedTagPages: 0
+    RenderPacketReserve: 512
+    VisibleEntityReserve: 512
+    StaticBatchReserve: 64
+    AllowRuntimeGrowth: true
+    LogCapacityGrowth: true
 Entities:
   - Entity: 1
     Components:
@@ -14,7 +28,7 @@ Entities:
           - -0
           - 1
         Scale:
-          x: 2.14100003
+          x: 1.70099998
           y: 1.39829457
           z: 1.39829457
         Parent: 0
@@ -47,8 +61,8 @@ Entities:
           x: 0.5
           y: 0.5
         pivot:
-          x: 0
-          y: 0
+          x: 0.5
+          y: 0.5
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -73,9 +87,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: 0
-          y: 38.4372406
-          z: -33.071373
+          x: 0.923976898
+          y: 34.4564438
+          z: -54.0282669
           w: 0
         Direction:
           x: 0
@@ -102,17 +116,17 @@ Entities:
             - 1
             - 0
             - -0
-            - 0
+            - -0.923976898
           -
             - 0
             - 0.808027446
             - 0.589144766
-            - -11.5745201
+            - 3.98871803
           -
             - 0
             - -0.589144766
             - 0.808027446
-            - 49.3676758
+            - 63.9561539
           -
             - 0
             - 0
@@ -196,10 +210,10 @@ Entities:
           y: 8.97999954
           z: 7.32999992
         Rotation:
-          - -0.958471298
-          - 0
-          - 0
-          - -0.285188973
+          - 0.958471298
+          - -0
+          - -0
+          - 0.285188973
         Scale:
           x: 1
           y: 1
@@ -255,6 +269,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset\Shader\PostEffectVS.cso
@@ -272,6 +287,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
           - Name: NewEffect
             Enabled: true
             VS: Asset\Shader\PostEffectVS.cso
@@ -290,6 +306,7 @@ Entities:
               z: 0
               w: 0
             ResolutionScale: 1
+            MipLevels: 1
         PostEffectLinks:
           - ID: 3
             StartNode: 1
@@ -344,7 +361,7 @@ Entities:
           - -0
           - 1
         Scale:
-          x: 1.5
+          x: 0.779999971
           y: 0.171000004
           z: 0.581081092
         Parent: 0
@@ -377,8 +394,8 @@ Entities:
           x: 0.5
           y: 0.5
         pivot:
-          x: 0
-          y: 0
+          x: 0.5
+          y: 0.5
   - Entity: 6
     Components:
       - Component: NameComponent
@@ -399,7 +416,7 @@ Entities:
           z: 1
         Parent: 0
       - Component: OrderInLayerComponent
-        layer: -11
+        order: -11
       - Component: MaterialComponent
         ShaderID: 0
         Material:
@@ -429,8 +446,8 @@ Entities:
           x: 0.5
           y: 0.5
         pivot:
-          x: 0
-          y: 0
+          x: 0.5
+          y: 0.5
       - Component: FadeInSprite
         FadeTime: 1
   - Entity: 7
@@ -439,7 +456,7 @@ Entities:
         Name: Press
       - Component: TransformComponent
         Position:
-          x: -0.0614036545
+          x: 0
           y: 0.269064426
           z: 0
         Rotation:
@@ -448,7 +465,7 @@ Entities:
           - -0
           - 1
         Scale:
-          x: 0.579999983
+          x: 0.469999999
           y: 0.0600000024
           z: 1
         Parent: 0
@@ -481,8 +498,8 @@ Entities:
           x: 0.5
           y: 0.5
         pivot:
-          x: 0
-          y: 0
+          x: 0.5
+          y: 0.5
   - Entity: 8
     Components:
       - Component: NameComponent
@@ -531,8 +548,8 @@ Entities:
           x: 0.5
           y: 0.5
         pivot:
-          x: 0
-          y: 0
+          x: 0.5
+          y: 0.5
       - Component: FadeOutSprite
         FadeTime: 1
       - Component: FadeSetScene
@@ -573,9 +590,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset/Model\football-stadium-with-surrounding-area\textures\Etaj4.jpeg
         UV_Slice_X: 1
@@ -620,9 +637,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset/Model\football-stadium-with-surrounding-area\textures\Opory2.jpeg
         UV_Slice_X: 1
@@ -667,9 +684,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset/Model\football-stadium-with-surrounding-area\textures\Krysha3.jpeg
         UV_Slice_X: 1
@@ -714,9 +731,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
   - Entity: 13
     Components:
       - Component: NameComponent
@@ -864,9 +881,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset/Texture\white.tga
         UV_Slice_X: 1
@@ -914,9 +931,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset/Texture\white.tga
         UV_Slice_X: 1
