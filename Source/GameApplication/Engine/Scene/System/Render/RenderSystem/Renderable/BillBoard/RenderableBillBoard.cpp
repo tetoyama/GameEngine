@@ -94,42 +94,23 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, const RenderPack
 
 	TextureComponent* pTexture = packet.bindings.texture;
 	if (pTexture) {
-
-			// マテリアル設定
 		if (pTexture->m_TextureData) {
 			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 		}
 
 		graphicsContext->SetMaterial(material);
-
-		UVMatrixBuffer uv;
-		if (pTexture->UV_Slice_X > 0.0f && pTexture->UV_Slice_Y > 0.0f) {
-			// UV_Slice_X/Y は「1セルのUVサイズ」
-			// 例:
-			// 0.25f = 4分割
-			// 0.125f = 8分割
-
-			int column = (int)(1.0f / pTexture->UV_Slice_X);
-
-			uv.UVStart.x = (pTexture->AnimationNum % column) * pTexture->UV_Slice_X;
-			uv.UVStart.y = (pTexture->AnimationNum / column) * pTexture->UV_Slice_Y;
-
-			// 1 セルの UV サイズ: 1/スライス数
-			uv.UVEnd.x = uv.UVStart.x + pTexture->UV_Slice_X;  // セルの右端 UV
-			uv.UVEnd.y = uv.UVStart.y + pTexture->UV_Slice_Y;  // セルの下端 UV
-		}
-		graphicsContext->SetUVMatrixBuffer(uv);
+		graphicsContext->SetUVMatrixBuffer(pTexture->ResolveUVMatrixBuffer());
 
 	} else {
-		// マテリアル設定
 		MATERIAL material{};
 		material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		graphicsContext->SetMaterial(material);
 
-		UVMatrixBuffer uv;
+		UVMatrixBuffer uv{};
+		uv.UVStart = float2(0.0f, 0.0f);
+		uv.UVEnd = float2(1.0f, 1.0f);
 		graphicsContext->SetUVMatrixBuffer(uv);
-
 	}
 	DirectX::XMMATRIX InvViewBillBoardMatrix = DirectX::XMMatrixRotationQuaternion(transform->rotationVector());
 	DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, ctx.viewMatrix);
