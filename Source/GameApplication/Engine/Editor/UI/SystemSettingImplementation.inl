@@ -14,6 +14,7 @@
 #include "Backends/ImGui/imgui.h"
 #include "Backends/ImGuiFunc.h"
 #include "DebugTools/ImGuiSystem.h"
+#include "Editor/UI/LightingDiagnosticUI.h"
 #include "Editor/UI/MenuBar.h"
 #include "Editor/UI/ScheduleProfileYamlExportUI.h"
 #include "Editor/UI/StaticBatchTelemetryUI.h"
@@ -271,6 +272,10 @@ void SystemSetting::Draw(const EditorDrawContext ctx) {
 		if(ImGui::BeginTabItem("Application")) {
 			DrawRenderingSettings(*config, sceneContext ? sceneContext->graphics : nullptr);
 			DrawApplicationSettings(*config, sceneContext ? sceneContext->graphics : nullptr);
+			ImGui::EndTabItem();
+		}
+		if(ImGui::BeginTabItem("Lighting")) {
+			LightingDiagnosticUI::Draw(sceneManager);
 			ImGui::EndTabItem();
 		}
 		if(ImGui::BeginTabItem("Systems")) {
