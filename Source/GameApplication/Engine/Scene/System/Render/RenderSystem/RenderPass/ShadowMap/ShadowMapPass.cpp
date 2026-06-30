@@ -23,6 +23,7 @@
 #include "Registry/systemRegistry.h"
 #include "System/Render/Culling/ShadowRenderPacketCullingView.h"
 #include "System/Render/Lighting/LightGpuSubmissionPolicy.h"
+#include "System/Render/Lighting/LocalLightShadowProjection.h"
 #include "System/Render/Lighting/PointShadowFaceLayout.h"
 #include "System/Render/RenderSystem/Renderable/Model/RenderableModel.h"
 #include "System/Render/StaticBatch/StaticBatchShadowSubmission.h"
@@ -206,6 +207,14 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 				0.0f
 			);
 			lightData.Dummy = 0;
+
+			// Point / SpotのRangeとShadow Farは同じ契約を使用する。
+			// 不正値はComponentとGPU Entryの双方で安全な値へ正規化する。
+			if(lightData.LightType == LIGHT_TYPE_POINT ||
+			   lightData.LightType == LIGHT_TYPE_SPOT){
+				lightData.Param.x =
+					LocalLightShadowProjection::ResolveFarPlane(lightData.Param.x);
+			}
 
 			// Lightの照明参加とShadow生成を分離する。
 			// CastShadowがOFFでも、単一Logical LightとしてLightingへ送る。
@@ -474,11 +483,9 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 				}
 				float fov = XMConvertToRadians(outer) * 2.0f;
 
-				float nearZ = 1.0f;
-				float farZ = lightData.Param.x * 1000.0f;
-				if(nearZ > farZ){
-					farZ = nearZ + 1.0f;
-				}
+				const float nearZ = LocalLightShadowProjection::NearPlane;
+				const float farZ =
+					LocalLightShadowProjection::ResolveFarPlane(lightData.Param.x);
 
 				XMMATRIX lightView = XMMatrixLookAtLH(eye, at, up);
 				XMMATRIX lightProj = XMMatrixPerspectiveFovLH(
@@ -508,12 +515,9 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 			if(lightData.LightType == LIGHT_TYPE_POINT && lightData.CastShadow){
 				XMVECTOR eye = transform->position.ToXMVECTOR();
 
-				float nearZ = 0.1f;
-				float farZ = lightData.Param.x;
-
-				if(farZ <= nearZ){
-					farZ = nearZ + 0.1f;
-				}
+				const float nearZ = LocalLightShadowProjection::NearPlane;
+				const float farZ =
+					LocalLightShadowProjection::ResolveFarPlane(lightData.Param.x);
 
 				// 90度ちょうどでは主軸切替境界と投影端が一致する。
 				// 小さな重なりを持たせ、浮動小数誤差による面抜けを防ぐ。
@@ -680,7 +684,8 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 				newContext,
 				ctx.cullingViewKind,
 				ctx.cullingViewInstanceID,
-				static_cast<std::uint32_t>(shadowNum)
+				static_cast<std::uint32_t>(shadowNum),
+				perspectiveShadow
 			);
 		if(packetBuffer.IsReady()){
 			m_renderSystem->PrepareRenderPacketView(shadowCullingView);
