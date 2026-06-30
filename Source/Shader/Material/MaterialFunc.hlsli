@@ -30,10 +30,9 @@ float3 FresnelSchlick(float cosTheta, float3 F0)
 float SchlickGGX(float NdotV, float roughness)
 {
     float a = roughness;
-    float k = (a * a + 1.0) / 8.0; // 安定化
+    float k = (a * a + 1.0) / 8.0;
     return NdotV / (NdotV * (1.0 - k) + k);
 }
-
 
 float G_Smith(float3 N, float3 V, float3 L, float roughness)
 {
@@ -50,6 +49,22 @@ float D_GTR2(float NdotH, float roughness)
     return a2 / (PI * d * d);
 }
 
+int ResolvePackedLightEntrySpan(LIGHT light, int firstEntryIndex, int activeEntryCount)
+{
+    int remainingEntries = max(activeEntryCount - firstEntryIndex, 1);
+    int span = 1;
+
+    if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && light.Dummy == 1)
+    {
+        span = max((int) round(light.Position.w), 1);
+    }
+    else if (light.LightType == LIGHT_TYPE_POINT && light.Dummy == -1)
+    {
+        span = max((int) round(light.Position.w), 1);
+    }
+
+    return min(span, remainingEntries);
+}
 
 LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFParams shadowParam)
 {
@@ -63,30 +78,42 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
 
     float3 F0 = lerp(float3(0.04, 0.04, 0.04), float3(1.0, 1.0, 1.0), metallic);
 
-    int shadowMapNum = 0;
+    int activeEntryCount = clamp(ActiveLightCount, 0, LIGHT_MAX_COUNT);
+    int entryIndex = 0;
+    int shadowAtlasOffset = 0;
 
-    for (int i = 0; i < ActiveLightCount; i++)
+    [loop]
+    while (entryIndex < activeEntryCount)
     {
-        LIGHT light = Lights[i];
-        
+        int currentEntryIndex = entryIndex;
+        LIGHT light = Lights[currentEntryIndex];
+        int entrySpan = ResolvePackedLightEntrySpan(
+            light,
+            currentEntryIndex,
+            activeEntryCount);
+        int currentShadowAtlasOffset = shadowAtlasOffset;
+
+        entryIndex += entrySpan;
+        if (light.CastShadow)
+        {
+            shadowAtlasOffset += entrySpan;
+        }
+
         if (light.Enable == 0)
             continue;
 
+        // Packed continuation entries are skipped defensively. Under the normal
+        // contract the manual entryIndex advance above never lands on them.
         if (light.LightType == LIGHT_TYPE_POINT && light.Dummy < -1)
             continue;
-
-        if(light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && light.Dummy > 1){
+        if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && light.Dummy > 1)
             continue;
-        }
-        
+
         float3 L;
         float attenuation = 1.0;
 
-        // -----------------------------
-        // Light direction
-        // -----------------------------
-
-        if (light.LightType == LIGHT_TYPE_DIRECTIONAL || light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM)
+        if (light.LightType == LIGHT_TYPE_DIRECTIONAL ||
+            light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM)
         {
             L = normalize(-light.Direction.xyz);
         }
@@ -96,19 +123,17 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
             float dist = length(toL);
 
             L = toL / max(dist, 0.001);
-
             attenuation = saturate(1.0 - dist / max(light.Param.x, 0.001));
 
             if (light.LightType == LIGHT_TYPE_SPOT)
             {
                 float3 spotDir = normalize(-light.Direction.xyz);
-
                 float cosTheta = dot(L, spotDir);
-
                 float innerCos = cos(radians(light.Param.y));
                 float outerCos = cos(radians(light.Param.z));
-
-                attenuation *= saturate((cosTheta - outerCos) / max(innerCos - outerCos, 0.001));
+                attenuation *= saturate(
+                    (cosTheta - outerCos) /
+                    max(innerCos - outerCos, 0.001));
             }
         }
 
@@ -118,64 +143,39 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         if (NdotL <= 0)
             continue;
 
-        // -----------------------------
-        // Shadow
-        // -----------------------------
-
         float shadow = 1.0;
 
         if (light.CastShadow)
         {
             if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && light.Dummy == 1)
             {
-                // 壊れたデータで 0 が入っても atlas 進行が崩れないよう最小値を DIRECTIONAL_CSM_CASCADE_COUNT に保つ。
-                int cascadeCount = max((int) round(light.Position.w), 1);
-                
                 shadow = ShadowFactorCascades(
                     input.worldPos,
-                    i,
-                    cascadeCount,
-                    shadowMapNum,
+                    currentEntryIndex,
+                    entrySpan,
+                    currentShadowAtlasOffset,
                     shadowParam);
-
-                shadowMapNum += cascadeCount;
-                //i += (cascadeCount - 1); // CSM は cascadeCount 分のライトエントリを占有するため、ループカウンタを進める
             }
             else if (light.LightType == LIGHT_TYPE_POINT && light.Dummy == -1)
             {
-                // 先頭 face の Position.w に実 face 数を格納。破損時でも最低 1 face として扱う。
-                int pointFaceCount = max((int) round(light.Position.w), 1);
-                
                 shadow = ShadowFactorPoint(
                     input.worldPos,
-                    i,
-                    pointFaceCount,
-                    shadowMapNum,
+                    currentEntryIndex,
+                    entrySpan,
+                    currentShadowAtlasOffset,
                     shadowParam);
-
-                shadowMapNum += pointFaceCount;
-                //i += (pointFaceCount - 1); // Point Shadow は face 数分のライトエントリを占有するため、ループカウンタを進める
             }
             else
             {
                 shadow = ShadowFactor(
                     input.worldPos,
                     light,
-                    i,
+                    currentShadowAtlasOffset,
                     shadowParam);
-                shadowMapNum++;
             }
         }
 
-        // -----------------------------
-        // Toon shadow
-        // -----------------------------
-
         float toonShadow = lerp(0.1, 1.0, shadow);
-
-        // -----------------------------
-        // Diffuse
-        // -----------------------------
 
         float3 diffuse =
             light.Diffuse.rgb *
@@ -183,24 +183,18 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
             NdotL *
             toonShadow;
 
-        // -----------------------------
-        // Specular
-        // -----------------------------
-
         float3 H = normalize(V + L);
-
         float NdotH = saturate(dot(N, H));
-
         float3 F = FresnelSchlick(saturate(dot(V, H)), F0);
-
         float G = G_Smith(N, V, L, roughness);
-
         float D = D_GTR2(NdotH, roughness);
 
-        float3 specBRDF = (D * G * F) / max(4.0 * NdotL * NdotV, 0.001);
+        float3 specBRDF =
+            (D * G * F) /
+            max(4.0 * NdotL * NdotV, 0.001);
 
-        // roughnessが高いと影の影響を弱くする
-        float specularShadow = lerp(1.0, shadow, saturate(1.0 - roughness));
+        float specularShadow =
+            lerp(1.0, shadow, saturate(1.0 - roughness));
 
         float3 specular =
             specBRDF *
@@ -216,6 +210,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
 
     return result;
 }
+
 float Quantize4(float v)
 {
     v = saturate(v);
