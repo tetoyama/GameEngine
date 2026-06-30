@@ -99,43 +99,85 @@ inline void Draw(SceneManager* sceneManager){
 		sceneManager ? sceneManager->GetContext() : nullptr){
 		if(context->graphics && context->graphics->GetLight()){
 			const LightBuffer* lights = context->graphics->GetLight();
-			ImGui::Text(
-				"Current GPU ActiveLightCount: %d",
-				lights->ActiveLightCount
+			const int activeCount = (std::clamp)(
+				lights->ActiveLightCount,
+				0,
+				LIGHT_MAX_COUNT
+			);
+			int shadowEntryCount = 0;
+			for(int index = 0; index < activeCount; ++index){
+				const LIGHT& light = lights->Lights[index];
+				if(light.Enable != 0 && light.CastShadow != 0){
+					++shadowEntryCount;
+				}
+			}
+			ImGui::Text("Current GPU ActiveLightCount: %d", activeCount);
+			ImGui::Text("Shadow-casting GPU entries: %d", shadowEntryCount);
+			ImGui::TextDisabled(
+				"CSM cascades and point-light faces are counted as GPU entries."
 			);
 		}
 	}
 
+	auto applyBaseline = [&settings](){
+		settings = CbLightingDebug{};
+	};
+	auto applyPcf = [&settings](int pcfMode){
+		settings = CbLightingDebug{};
+		settings.LightingDebugPcfMode = pcfMode;
+	};
+	auto applyLightLimit = [&settings](int maxLights){
+		settings = CbLightingDebug{};
+		settings.LightingDebugMaxActiveLights = maxLights;
+	};
+
 	ImGui::SeparatorText("A/B Presets");
 	if(ImGui::Button("Baseline")){
-		settings = CbLightingDebug{};
+		applyBaseline();
 	}
 	ImGui::SameLine();
 	if(ImGui::Button("No Shadow")){
-		settings = CbLightingDebug{};
+		applyBaseline();
 		settings.LightingDebugFlags =
 			LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS;
 	}
 	ImGui::SameLine();
-	if(ImGui::Button("PCF 1x1")){
-		settings = CbLightingDebug{};
-		settings.LightingDebugPcfMode = LIGHTING_DEBUG_PCF_1X1;
-	}
-	ImGui::SameLine();
-	if(ImGui::Button("PCF 3x3")){
-		settings = CbLightingDebug{};
-		settings.LightingDebugPcfMode = LIGHTING_DEBUG_PCF_3X3;
-	}
-
 	if(ImGui::Button("No Environment")){
-		settings = CbLightingDebug{};
+		applyBaseline();
 		settings.LightingDebugFlags =
 			LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT;
 	}
+
+	if(ImGui::Button("PCF 1x1")){
+		applyPcf(LIGHTING_DEBUG_PCF_1X1);
+	}
 	ImGui::SameLine();
-	if(ImGui::Button("Single Light")){
-		settings = CbLightingDebug{};
-		settings.LightingDebugMaxActiveLights = 1;
+	if(ImGui::Button("PCF 3x3")){
+		applyPcf(LIGHTING_DEBUG_PCF_3X3);
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("PCF 5x5")){
+		applyPcf(LIGHTING_DEBUG_PCF_5X5);
+	}
+
+	if(ImGui::Button("Lights 1")){
+		applyLightLimit(1);
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("Lights 2")){
+		applyLightLimit(2);
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("Lights 4")){
+		applyLightLimit(4);
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("Lights 8")){
+		applyLightLimit(8);
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("Lights All")){
+		applyLightLimit(0);
 	}
 
 	ImGui::SeparatorText("Measurement Order");
