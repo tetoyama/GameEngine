@@ -27,6 +27,18 @@ inline const char* PcfModeName(int mode){
 	return "Invalid";
 }
 
+inline bool HasFlag(const CbLightingDebug& settings, unsigned int flag){
+	return (settings.LightingDebugFlags & flag) != 0u;
+}
+
+inline void SetFlag(CbLightingDebug& settings, unsigned int flag, bool enabled){
+	if(enabled){
+		settings.LightingDebugFlags |= flag;
+	}else{
+		settings.LightingDebugFlags &= ~flag;
+	}
+}
+
 inline void Draw(
 	SceneManager* sceneManager,
 	const std::vector<GpuFrameTimingResult>* resolvedGpuTimings = nullptr
@@ -111,36 +123,58 @@ inline void Draw(
 		);
 	}
 
-	bool disableShadows =
-		(settings.LightingDebugFlags &
-		 LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS) != 0u;
-	if(ImGui::Checkbox("Disable Shadow Evaluation", &disableShadows)){
-		if(disableShadows){
-			settings.LightingDebugFlags |=
-				LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS;
-		}else{
-			settings.LightingDebugFlags &=
-				~LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS;
-		}
+	bool disableShadows = HasFlag(
+		settings,
+		LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS
+	);
+	if(ImGui::Checkbox("Disable All Shadow Evaluation", &disableShadows)){
+		SetFlag(
+			settings,
+			LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS,
+			disableShadows
+		);
 	}
 	if(ImGui::IsItemHovered()){
 		ImGui::SetTooltip(
 			"Disables shadow sampling inside Lighting only. "
-			"Shadow Map generation remains active for isolated timing."
+			"Shadow Map generation remains active."
 		);
 	}
 
-	bool disableEnvironment =
-		(settings.LightingDebugFlags &
-		 LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT) != 0u;
+	bool disableCsmShadows = HasFlag(
+		settings,
+		LIGHTING_DEBUG_FLAG_DISABLE_CSM_SHADOWS
+	);
+	if(ImGui::Checkbox("Disable CSM Shadow Evaluation", &disableCsmShadows)){
+		SetFlag(
+			settings,
+			LIGHTING_DEBUG_FLAG_DISABLE_CSM_SHADOWS,
+			disableCsmShadows
+		);
+	}
+
+	bool disablePointShadows = HasFlag(
+		settings,
+		LIGHTING_DEBUG_FLAG_DISABLE_POINT_SHADOWS
+	);
+	if(ImGui::Checkbox("Disable Point Shadow Evaluation", &disablePointShadows)){
+		SetFlag(
+			settings,
+			LIGHTING_DEBUG_FLAG_DISABLE_POINT_SHADOWS,
+			disablePointShadows
+		);
+	}
+
+	bool disableEnvironment = HasFlag(
+		settings,
+		LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT
+	);
 	if(ImGui::Checkbox("Disable Environment Reflection", &disableEnvironment)){
-		if(disableEnvironment){
-			settings.LightingDebugFlags |=
-				LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT;
-		}else{
-			settings.LightingDebugFlags &=
-				~LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT;
-		}
+		SetFlag(
+			settings,
+			LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT,
+			disableEnvironment
+		);
 	}
 
 	static constexpr const char* kPcfModes =
@@ -192,13 +226,37 @@ inline void Draw(
 			shadowLogicalLightCount,
 			shadowEntryCount
 		);
-		ImGui::TextDisabled(
-			"CSM cascades and point-light faces share one logical-light evaluation."
-		);
+
+		if(ImGui::TreeNodeEx("Logical Light Layout", ImGuiTreeNodeFlags_DefaultOpen)){
+			int entryIndex = 0;
+			int logicalIndex = 0;
+			while(entryIndex < activeEntryCount){
+				const LIGHT& light = lights->Lights[entryIndex];
+				const int span = PackedLightEntryTraversal::ResolveEntrySpan(
+					light,
+					activeEntryCount - entryIndex
+				);
+				ImGui::BulletText(
+					"Logical %d: %s / Entry %d / Span %d / Shadow %s",
+					logicalIndex,
+					PackedLightEntryTraversal::LightTypeName(light.LightType),
+					entryIndex,
+					span,
+					light.CastShadow != 0 ? "ON" : "OFF"
+				);
+				entryIndex += span;
+				++logicalIndex;
+			}
+			ImGui::TreePop();
+		}
 	}
 
 	auto applyBaseline = [&settings](){
 		settings = CbLightingDebug{};
+	};
+	auto applyFlagOnly = [&settings](unsigned int flag){
+		settings = CbLightingDebug{};
+		settings.LightingDebugFlags = flag;
 	};
 	auto applyPcf = [&settings](int pcfMode){
 		settings = CbLightingDebug{};
@@ -215,17 +273,21 @@ inline void Draw(
 	}
 	ImGui::SameLine();
 	if(ImGui::Button("No Shadow")){
-		applyBaseline();
-		settings.LightingDebugFlags =
-			LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS;
+		applyFlagOnly(LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS);
 	}
 	ImGui::SameLine();
-	if(ImGui::Button("No Environment")){
-		applyBaseline();
-		settings.LightingDebugFlags =
-			LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT;
+	if(ImGui::Button("No CSM Shadow")){
+		applyFlagOnly(LIGHTING_DEBUG_FLAG_DISABLE_CSM_SHADOWS);
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("No Point Shadow")){
+		applyFlagOnly(LIGHTING_DEBUG_FLAG_DISABLE_POINT_SHADOWS);
 	}
 
+	if(ImGui::Button("No Environment")){
+		applyFlagOnly(LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT);
+	}
+	ImGui::SameLine();
 	if(ImGui::Button("PCF 1x1")){
 		applyPcf(LIGHTING_DEBUG_PCF_1X1);
 	}
@@ -246,46 +308,42 @@ inline void Draw(
 		applyLightLimit(2);
 	}
 	ImGui::SameLine();
-	if(ImGui::Button("Lights 4")){
-		applyLightLimit(4);
-	}
-	ImGui::SameLine();
-	if(ImGui::Button("Lights 8")){
-		applyLightLimit(8);
-	}
-	ImGui::SameLine();
 	if(ImGui::Button("Lights All")){
 		applyLightLimit(0);
 	}
 
 	ImGui::SeparatorText("Measurement Capture");
-	const bool captureShadowsDisabled =
-		(settings.LightingDebugFlags &
-		 LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS) != 0u;
-	const bool captureEnvironmentDisabled =
-		(settings.LightingDebugFlags &
-		 LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT) != 0u;
-	char captureLabel[160]{};
-	if(settings.LightingDebugMaxActiveLights == 0){
-		std::snprintf(
-			captureLabel,
-			sizeof(captureLabel),
-			"Shadow:%s / PCF:%s / Environment:%s / LogicalLights:All",
-			captureShadowsDisabled ? "OFF" : "ON",
-			PcfModeName(settings.LightingDebugPcfMode),
-			captureEnvironmentDisabled ? "OFF" : "ON"
-		);
-	}else{
-		std::snprintf(
-			captureLabel,
-			sizeof(captureLabel),
-			"Shadow:%s / PCF:%s / Environment:%s / LogicalLights:%d",
-			captureShadowsDisabled ? "OFF" : "ON",
-			PcfModeName(settings.LightingDebugPcfMode),
-			captureEnvironmentDisabled ? "OFF" : "ON",
-			settings.LightingDebugMaxActiveLights
-		);
-	}
+	const bool captureShadowsDisabled = HasFlag(
+		settings,
+		LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS
+	);
+	const bool captureCsmDisabled = HasFlag(
+		settings,
+		LIGHTING_DEBUG_FLAG_DISABLE_CSM_SHADOWS
+	);
+	const bool capturePointDisabled = HasFlag(
+		settings,
+		LIGHTING_DEBUG_FLAG_DISABLE_POINT_SHADOWS
+	);
+	const bool captureEnvironmentDisabled = HasFlag(
+		settings,
+		LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT
+	);
+	char captureLabel[256]{};
+	std::snprintf(
+		captureLabel,
+		sizeof(captureLabel),
+		"Shadow:%s / CSM:%s / Point:%s / PCF:%s / Env:%s / Logical:%s%d",
+		captureShadowsDisabled ? "OFF" : "ON",
+		captureCsmDisabled ? "OFF" : "ON",
+		capturePointDisabled ? "OFF" : "ON",
+		PcfModeName(settings.LightingDebugPcfMode),
+		captureEnvironmentDisabled ? "OFF" : "ON",
+		settings.LightingDebugMaxActiveLights == 0 ? "All" : "",
+		settings.LightingDebugMaxActiveLights == 0
+			? 0
+			: settings.LightingDebugMaxActiveLights
+	);
 	ImGui::TextDisabled("Current preset: %s", captureLabel);
 
 	if(capture.IsCapturing()){
@@ -362,11 +420,10 @@ inline void Draw(
 	}
 
 	ImGui::SeparatorText("Measurement Order");
-	ImGui::BulletText("Baseline");
-	ImGui::BulletText("No Shadow");
+	ImGui::BulletText("Baseline / No Shadow");
+	ImGui::BulletText("No CSM Shadow / No Point Shadow");
+	ImGui::BulletText("Logical Lights 1 / 2");
 	ImGui::BulletText("PCF 1x1 / 3x3 / 5x5");
-	ImGui::BulletText("No Environment");
-	ImGui::BulletText("Logical Lights 1 / 2 / 4 / 8 / All");
 	ImGui::TextDisabled(
 		"Keep resolution, camera, scene, and Post Effect settings unchanged."
 	);
