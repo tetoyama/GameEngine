@@ -16,14 +16,24 @@
 
 #define ALPHA_CLIP_THRESHOLD        (0.01f)
 #define PI                          (3.14159265359f)
+
+// Legacy receiver depth bias. Existing scene Param.w values use this NDC unit.
 #define DEPTH_BIAS_CONSTANT         (0.005f)
 #define DEPTH_SLOPE_BIAS            (0.003f)
 
-// Point / Spot ShadowのPerspective Clip契約。
-// C++生成側とHLSL Sampling側で同じ値を使用する。
+// Point / Spot Shadow perspective clip contract shared by C++ and HLSL.
 #define LOCAL_LIGHT_SHADOW_NEAR_PLANE       (0.1f)
 #define LOCAL_LIGHT_SHADOW_MIN_DEPTH_SPAN   (0.1f)
-#define LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS     (0.01f)
+
+// Explicit shadow bias contract.
+// ShadowBias.x: depth bias (NDC in legacy mode, world units in world mode)
+// ShadowBias.y: normal bias in world units (world mode only)
+// ShadowBias.z: mode
+// ShadowBias.w: reserved
+#define SHADOW_BIAS_MODE_LEGACY_NDC         (0)
+#define SHADOW_BIAS_MODE_WORLD_SPACE        (1)
+#define SHADOW_BIAS_DEFAULT_WORLD_DEPTH     (0.005f)
+#define SHADOW_BIAS_DEFAULT_WORLD_NORMAL    (0.02f)
 
 #define BONE_MAX_COUNT          (256)
 
