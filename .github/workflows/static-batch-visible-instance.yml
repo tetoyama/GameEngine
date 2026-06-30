@@ -8,9 +8,11 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchVisibleInstanceSelection.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchVisibleInstanceCompaction.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchPacketReplacementSet.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchViewSelectionPolicy.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceDataBuffer.h"
       - "Tests/StaticBatchVisibleInstanceBufferSmokeTest.cpp"
       - "Tests/StaticBatchVisiblePacketReplacementSmokeTest.cpp"
+      - "Tests/StaticBatchViewSelectionPolicySmokeTest.cpp"
       - ".github/workflows/static-batch-visible-instance.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
@@ -19,9 +21,11 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchVisibleInstanceSelection.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchVisibleInstanceCompaction.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchPacketReplacementSet.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchViewSelectionPolicy.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceDataBuffer.h"
       - "Tests/StaticBatchVisibleInstanceBufferSmokeTest.cpp"
       - "Tests/StaticBatchVisiblePacketReplacementSmokeTest.cpp"
+      - "Tests/StaticBatchViewSelectionPolicySmokeTest.cpp"
       - ".github/workflows/static-batch-visible-instance.yml"
   workflow_dispatch:
 
@@ -43,6 +47,8 @@ jobs:
             output: static-batch-visible-instance-test.exe
           - source: Tests/StaticBatchVisiblePacketReplacementSmokeTest.cpp
             output: static-batch-visible-packet-replacement-test.exe
+          - source: Tests/StaticBatchViewSelectionPolicySmokeTest.cpp
+            output: static-batch-view-selection-policy-test.exe
     steps:
       - uses: actions/checkout@v4
         with:
