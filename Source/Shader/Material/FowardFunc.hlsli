@@ -123,11 +123,9 @@ float ShadowFactor(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    // DirectionalはParam.wを従来NDC Biasとして扱い、receiver slopeだけを追加する。
-    // SpotはParam.wをWorld距離Biasとして深度依存NDC Biasへ変換する。
-    float bias = ResolveOrthographicShadowDepthBias(
-        sp.z,
-        light.Param.w);
+    // Directional keeps Param.w as legacy NDC bias.
+    // Spot converts Param.w as world-distance bias for perspective depth.
+    float bias = light.Param.w;
     if (light.LightType == LIGHT_TYPE_SPOT)
     {
         bias = ResolvePerspectiveShadowDepthBias(
@@ -234,11 +232,9 @@ float ShadowFactorCascades(
     int firstLightIdx,
     int cascadeCount,
     int atlasOffset,
+    float receiverNdotL,
     ShadowPCFParams pcf)
 {
-    //--------------------------------------------------
-    // 共通計算（ループ外に出せるものは事前計算）
-    //--------------------------------------------------
     uint texW, texH;
     ShadowMap.GetDimensions(texW, texH);
 
@@ -249,10 +245,6 @@ float ShadowFactorCascades(
     int radius = max(pcf.KernelRadius, 0);
 
     float finalShadow = 1.0;
-
-    //--------------------------------------------------
-    // カスケード評価ループ (フォールバック統合型)
-    //--------------------------------------------------
 
     [loop]
     for (int c = 0; c < cascadeCount; c++)
@@ -271,17 +263,13 @@ float ShadowFactorCascades(
         cuv.y = 1.0 - cuv.y;
         float cdepth = ndc.z;
 
-        // 1. World座標からのUV範囲計算と深度チェック
         bool inUV = all(cuv >= 0.0) && all(cuv <= 1.0);
-
-        // 範囲外なら次のカスケードをチェック (フォールバック)
         if (!inUV)
             continue;
 
-        // 2. 範囲内なのでシャドウをサンプリング
         float bias = ResolveOrthographicShadowDepthBias(
-            cdepth,
-            cLight.Param.w);
+            cLight.Param.w,
+            receiverNdotL);
         float depth = saturate(cdepth - bias);
 
         int tileIndex = atlasOffset + c;
@@ -297,35 +285,21 @@ float ShadowFactorCascades(
             pcf.StepTexel,
             radius
         );
-        // 3. 高層ビル等への対応 (本当に必要な状態かの確認)
-        // 影が全く落ちていない(shadow >= 1.0)場合、手前のNear面で
-        // オクルーダーがクリップされている可能性があるため、確定させずに
-        // 次のカスケードへフォールバック(continue)する。
         if (shadow >= 1.0 && c < cascadeCount - 1)
         {
             continue;
         }
         
-        //--------------------------------------------------
-        // 遮蔽物のワールド座標復元と無効化判定
-        //--------------------------------------------------
         if (shadow < 1.0 && c > 0)
         {
-            // アトラス内のUVからピクセル座標を計算して生深度をフェッチ
             int3 loadCoord = int3((int) (suvBase.x * texW), (int) (suvBase.y * texH), 0);
             float rawDepth = ShadowMap.Load(loadCoord).r;
 
             float zScale = cLight.LightProjection[2][2];
-            // Reversed-Z を考慮し、絶対値でNDC深度差分を計算
             float deltaZ_ndc = abs(cdepth - rawDepth);
-                
-                // Zスケールで割り戻すことで、View空間での実際の距離を算出
             float deltaZ_view = deltaZ_ndc / abs(zScale);
-
-                // 遮蔽物はレシーバー(worldPos)より光源側にあるため、ライト方向の逆へ遡る
             float3 occluderPos = worldPos - cLight.Direction.xyz * deltaZ_view;
 
-                // 前回のカスケード(c - 1)のビューに入っているか判定
             LIGHT prevLight = Lights[safeIdx - 1];
             
             float4 prevSp = mul(float4(occluderPos, 1.0), prevLight.LightView);
@@ -349,15 +323,10 @@ float ShadowFactorCascades(
             }
         }
 
-        //--------------------------------------------------
-        // ここに到達した場合は「影が落ちている」または「最後のカスケード」
-        // なので影を確定させ、必要に応じてブレンドを行う
-        //--------------------------------------------------
         finalShadow = min(finalShadow, shadow);
         
         if (0.0f >= finalShadow)
         {
-            // 最適な影が確定したため、ループを抜ける
             break;
         }
     }
