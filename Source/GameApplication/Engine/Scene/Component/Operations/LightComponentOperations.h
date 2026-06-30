@@ -71,6 +71,12 @@ inline void Inspect(LightComponent& component){
 		light.CastShadow = castShadow ? TRUE : FALSE;
 		changed = true;
 	}
+	if(ImGui::IsItemHovered()){
+		ImGui::SetTooltip(
+			"Shadow generation is optional and defaults to OFF for new lights. "
+			"The light remains active when CastShadow is OFF."
+		);
+	}
 
 	const char* lightTypes[] = {
 		"None",
@@ -88,6 +94,19 @@ inline void Inspect(LightComponent& component){
 	)){
 		light.LightType = static_cast<UINT>(selectedType);
 		changed = true;
+	}
+
+	if(light.CastShadow != FALSE){
+		if(light.LightType == LIGHT_TYPE_POINT){
+			ImGui::TextDisabled(
+				"Point shadow expands to 6 atlas faces. Enable only when required."
+			);
+		}else if(light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM){
+			ImGui::TextDisabled(
+				"CSM shadow expands to %d cascade entries.",
+				DIRECTIONAL_CSM_CASCADE_COUNT
+			);
+		}
 	}
 
 	changed |= ImGui::UndoColorEdit4(
