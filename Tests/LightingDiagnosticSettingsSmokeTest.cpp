@@ -13,9 +13,16 @@ int main(){
 	static_assert(LIGHTING_DEBUG_PCF_1X1 == 1);
 	static_assert(LIGHTING_DEBUG_PCF_3X3 == 2);
 	static_assert(LIGHTING_DEBUG_PCF_5X5 == 3);
+
+	constexpr unsigned int allFlags =
+		LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS |
+		LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT |
+		LIGHTING_DEBUG_FLAG_DISABLE_CSM_SHADOWS |
+		LIGHTING_DEBUG_FLAG_DISABLE_POINT_SHADOWS;
+	static_assert(allFlags == 0x0fu);
 	static_assert(
-		(LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS &
-		 LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT) == 0u
+		(LIGHTING_DEBUG_FLAG_DISABLE_CSM_SHADOWS &
+		 LIGHTING_DEBUG_FLAG_DISABLE_POINT_SHADOWS) == 0u
 	);
 
 	CbLightingDebug defaults{};
@@ -25,9 +32,7 @@ int main(){
 	assert(defaults._LightingDebugPad == 0);
 
 	CbLightingDebug diagnostic{};
-	diagnostic.LightingDebugFlags =
-		LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS |
-		LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT;
+	diagnostic.LightingDebugFlags = allFlags;
 	diagnostic.LightingDebugPcfMode = LIGHTING_DEBUG_PCF_3X3;
 	diagnostic.LightingDebugMaxActiveLights = 1;
 
@@ -35,6 +40,10 @@ int main(){
 		LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS) != 0u);
 	assert((diagnostic.LightingDebugFlags &
 		LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT) != 0u);
+	assert((diagnostic.LightingDebugFlags &
+		LIGHTING_DEBUG_FLAG_DISABLE_CSM_SHADOWS) != 0u);
+	assert((diagnostic.LightingDebugFlags &
+		LIGHTING_DEBUG_FLAG_DISABLE_POINT_SHADOWS) != 0u);
 	assert(diagnostic.LightingDebugPcfMode == LIGHTING_DEBUG_PCF_3X3);
 	assert(diagnostic.LightingDebugMaxActiveLights == 1);
 
