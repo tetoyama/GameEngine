@@ -5,16 +5,16 @@
 namespace LightGpuSubmissionPolicy {
 
 inline bool ShouldSubmitLighting(const LIGHT& light) noexcept {
-	return light.Enable != FALSE;
+	return light.Enable != 0;
 }
 
 inline bool ShouldExpandShadowEntries(const LIGHT& light) noexcept {
-	return ShouldSubmitLighting(light) && light.CastShadow != FALSE;
+	return ShouldSubmitLighting(light) && light.CastShadow != 0;
 }
 
 inline LIGHT MakeUnshadowedLogicalEntry(const LIGHT& source) noexcept {
 	LIGHT entry = source;
-	entry.CastShadow = FALSE;
+	entry.CastShadow = 0;
 	entry.Dummy = 0;
 	entry.Position.w = 0.0f;
 	return entry;
