@@ -5,24 +5,18 @@ on:
     branches: [master]
     paths:
       - "Source/Shader/Material/MaterialFunc.hlsli"
-      - "Source/Shader/Material/DeferredFunc.hlsli"
-      - "Source/Shader/Material/FowardFunc.hlsli"
       - "Source/Shader/Material/MaterialBRDF.hlsli"
       - "Source/Shader/Material/MaterialLightingEvaluation.hlsli"
       - "Source/Shader/Material/MaterialLightingTraversal.hlsli"
-      - "Source/Shader/Material/ShadowAtlasSampling.hlsli"
       - "Source/Shader/Material/ShadowDepthBias.hlsli"
       - ".github/workflows/material-shader-dependency.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
     paths:
       - "Source/Shader/Material/MaterialFunc.hlsli"
-      - "Source/Shader/Material/DeferredFunc.hlsli"
-      - "Source/Shader/Material/FowardFunc.hlsli"
       - "Source/Shader/Material/MaterialBRDF.hlsli"
       - "Source/Shader/Material/MaterialLightingEvaluation.hlsli"
       - "Source/Shader/Material/MaterialLightingTraversal.hlsli"
-      - "Source/Shader/Material/ShadowAtlasSampling.hlsli"
       - "Source/Shader/Material/ShadowDepthBias.hlsli"
       - ".github/workflows/material-shader-dependency.yml"
   workflow_dispatch:
@@ -47,12 +41,9 @@ jobs:
           $materialFuncPath = "Source/Shader/Material/MaterialFunc.hlsli"
           $materialFunc = Get-Content -Raw -Path $materialFuncPath
           $dependencies = @(
-            "Source/Shader/Material/DeferredFunc.hlsli",
-            "Source/Shader/Material/FowardFunc.hlsli",
             "Source/Shader/Material/MaterialBRDF.hlsli",
             "Source/Shader/Material/MaterialLightingEvaluation.hlsli",
             "Source/Shader/Material/MaterialLightingTraversal.hlsli",
-            "Source/Shader/Material/ShadowAtlasSampling.hlsli",
             "Source/Shader/Material/ShadowDepthBias.hlsli"
           )
 
