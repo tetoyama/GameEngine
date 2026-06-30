@@ -6,15 +6,16 @@ on:
     paths:
       - "Source/Shader/commonDefine.h"
       - "Source/Shader/common.hlsl"
+      - "Source/Shader/Material/MaterialFunc.hlsli"
       - "Source/Shader/Material/PBRShader.hlsli"
       - "Source/GameApplication/Engine/Editor/UI/LightingDiagnosticUI.h"
       - "Source/GameApplication/Engine/Editor/UI/SystemSettingImplementation.inl"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PackedLightEntryTraversal.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.cpp"
-      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingDiagnosticEntryLimit.h"
       - "Tests/LightingDiagnosticSettingsSmokeTest.cpp"
-      - "Tests/LightingDiagnosticEntryLimitSmokeTest.cpp"
+      - "Tests/PackedLightEntryTraversalSmokeTest.cpp"
       - "Tests/LightingDiagnosticPBRSmoke.hlsl"
       - ".github/workflows/lighting-diagnostic.yml"
   push:
@@ -22,15 +23,16 @@ on:
     paths:
       - "Source/Shader/commonDefine.h"
       - "Source/Shader/common.hlsl"
+      - "Source/Shader/Material/MaterialFunc.hlsli"
       - "Source/Shader/Material/PBRShader.hlsli"
       - "Source/GameApplication/Engine/Editor/UI/LightingDiagnosticUI.h"
       - "Source/GameApplication/Engine/Editor/UI/SystemSettingImplementation.inl"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PackedLightEntryTraversal.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.cpp"
-      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingDiagnosticEntryLimit.h"
       - "Tests/LightingDiagnosticSettingsSmokeTest.cpp"
-      - "Tests/LightingDiagnosticEntryLimitSmokeTest.cpp"
+      - "Tests/PackedLightEntryTraversalSmokeTest.cpp"
       - "Tests/LightingDiagnosticPBRSmoke.hlsl"
       - ".github/workflows/lighting-diagnostic.yml"
   workflow_dispatch:
@@ -63,16 +65,17 @@ jobs:
           Tests/LightingDiagnosticSettingsSmokeTest.cpp
           /Fe:lighting-diagnostic-settings-test.exe
           && lighting-diagnostic-settings-test.exe
-      - name: Compile and run expanded entry limit contract
+      - name: Compile and run packed logical light traversal
         shell: cmd
         run: >-
           cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
           /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471
           /I Source
           /I Source/GameApplication
-          Tests/LightingDiagnosticEntryLimitSmokeTest.cpp
-          /Fe:lighting-diagnostic-entry-limit-test.exe
-          && lighting-diagnostic-entry-limit-test.exe
+          Tests/PackedLightEntryTraversalSmokeTest.cpp
+          /Fe:packed-light-entry-traversal-test.exe
+          && packed-light-entry-traversal-test.exe
       - name: Compile PBR diagnostic shader
         shell: cmd
         run: >-
