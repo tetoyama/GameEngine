@@ -18,6 +18,7 @@
 #include "Backends/myVector2.h"
 #include "Backends/myVector3.h"
 #include "Scene/Entity/Entity.h"
+#include "Shader/common.hlsl"
 #include "System/Render/RenderSystem/renderLayer.h"
 #include "System/Render/RenderSystem/ShaderMaterialProvider.h"
 #include "System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
@@ -162,6 +163,14 @@ public:
 		return ForwardPSDebug.get();
 	}
 
+	const CbLightingDebug& GetLightingDebugSettings() const noexcept {
+		return m_lightingDebugSettings;
+	}
+
+	CbLightingDebug& GetLightingDebugSettings() noexcept {
+		return m_lightingDebugSettings;
+	}
+
 	std::shared_ptr<TextureData> GetEnvironmentMap() const;
 	ID3D11SamplerState* GetEnvMapSampler() const;
 	IRenderable* GetRenderableForPacketKind(RenderPacketKind kind);
@@ -250,6 +259,7 @@ private:
 	std::vector<std::shared_ptr<PixelShaderData>> DeferredPSList;
 	std::vector<std::shared_ptr<PixelShaderData>> ForwardPSList;
 	std::shared_ptr<PixelShaderData> ForwardPSDebug;
+	CbLightingDebug m_lightingDebugSettings{};
 
 	RenderPacketFrameBuffer m_renderPacketBuffer;
 	CullingVisibilitySet m_cullingVisibility;
