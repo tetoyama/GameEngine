@@ -1,0 +1,61 @@
+name: Material Shader Dependency Contract
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Source/Shader/Material/MaterialFunc.hlsli"
+      - "Source/Shader/Material/MaterialBRDF.hlsli"
+      - "Source/Shader/Material/MaterialLightingEvaluation.hlsli"
+      - "Source/Shader/Material/MaterialLightingTraversal.hlsli"
+      - "Source/Shader/Material/ShadowDepthBias.hlsli"
+      - ".github/workflows/material-shader-dependency.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Source/Shader/Material/MaterialFunc.hlsli"
+      - "Source/Shader/Material/MaterialBRDF.hlsli"
+      - "Source/Shader/Material/MaterialLightingEvaluation.hlsli"
+      - "Source/Shader/Material/MaterialLightingTraversal.hlsli"
+      - "Source/Shader/Material/ShadowDepthBias.hlsli"
+      - ".github/workflows/material-shader-dependency.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: material-shader-dependency-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - name: Validate transitive dependency blobs
+        shell: pwsh
+        run: |
+          $materialFuncPath = "Source/Shader/Material/MaterialFunc.hlsli"
+          $materialFunc = Get-Content -Raw -Path $materialFuncPath
+          $dependencies = @(
+            "Source/Shader/Material/MaterialBRDF.hlsli",
+            "Source/Shader/Material/MaterialLightingEvaluation.hlsli",
+            "Source/Shader/Material/MaterialLightingTraversal.hlsli",
+            "Source/Shader/Material/ShadowDepthBias.hlsli"
+          )
+
+          foreach ($dependencyPath in $dependencies) {
+            $name = Split-Path -Leaf $dependencyPath
+            $blob = (git hash-object $dependencyPath).Trim()
+            $contract = "dependency:${name}=${blob}"
+            if (-not $materialFunc.Contains($contract)) {
+              throw "Material shader dependency changed without updating MaterialFunc cache stamp: $contract"
+            }
+          }
+
+          if ($materialFunc -notmatch 'ReCompilePixelShaders currently tracks this file') {
+            throw "MaterialFunc must explain why transitive dependency blobs are recorded."
+          }
