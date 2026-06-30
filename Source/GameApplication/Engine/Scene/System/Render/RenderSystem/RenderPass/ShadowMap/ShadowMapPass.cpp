@@ -22,6 +22,7 @@
 #include "Graphics/RHI/RHIService.h"
 #include "Registry/systemRegistry.h"
 #include "System/Render/Culling/ShadowRenderPacketCullingView.h"
+#include "System/Render/Lighting/LightGpuSubmissionPolicy.h"
 #include "System/Render/RenderSystem/Renderable/Model/RenderableModel.h"
 #include "System/Render/StaticBatch/StaticBatchShadowSubmission.h"
 #include <Component/LightComponent.h>
@@ -144,12 +145,8 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 	Vector3 mainCamPos = Vector3(ctx.CameraPosition.x, ctx.CameraPosition.y, ctx.CameraPosition.z);
 	Vector3 mainCamFront = ctx.cameraData.transformComponent->front();
 
-	// ======== Directional Light 取得 ========
-	LightBuffer light;
-
-	for(int i = 0; i < LIGHT_MAX_COUNT; i++){
-		light.Lights[i].Enable = false;
-	}
+	// ======== Light取得 / Shadow Entry展開 ========
+	LightBuffer light{};
 	int lightCount = 0;
 	int shadowCount = 0;
 
@@ -177,20 +174,40 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 			LightComponent* lightcomp = sctx->component->GetComponent<LightComponent>(ent);
 			if(!lightcomp) continue;
-			if(!lightcomp->light.Enable) continue;
-			if(!lightcomp->light.CastShadow) continue;
-
-			if(lightcomp->light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM || lightcomp->light.LightType == LIGHT_TYPE_DIRECTIONAL){
-				lightcomp->dirty = true;
-			}
+			if(!LightGpuSubmissionPolicy::ShouldSubmitLighting(lightcomp->light)) continue;
 
 			TransformComponent* transform = sctx->component->GetComponent<TransformComponent>(ent);
 			if(!transform) continue;
 
 			LIGHT& lightData = lightcomp->light;
-			lightData.Position = DirectX::XMFLOAT4(transform->position.x, transform->position.y, transform->position.z, 0.0f);
-			lightData.Direction = DirectX::XMFLOAT4(transform->front().x, transform->front().y, transform->front().z, 0.0f);
+			lightData.Position = DirectX::XMFLOAT4(
+				transform->position.x,
+				transform->position.y,
+				transform->position.z,
+				0.0f
+			);
+			lightData.Direction = DirectX::XMFLOAT4(
+				transform->front().x,
+				transform->front().y,
+				transform->front().z,
+				0.0f
+			);
 			lightData.Dummy = 0;
+
+			// Lightの照明参加とShadow生成を分離する。
+			// CastShadowがOFFでも、単一Logical LightとしてLightingへ送る。
+			if(!LightGpuSubmissionPolicy::ShouldExpandShadowEntries(lightData)){
+				light.Lights[lightCount] =
+					LightGpuSubmissionPolicy::MakeUnshadowedLogicalEntry(lightData);
+				lightCount++;
+				foundLight = true;
+				continue;
+			}
+
+			if(lightData.LightType == LIGHT_TYPE_DIRECTIONAL_CSM ||
+			   lightData.LightType == LIGHT_TYPE_DIRECTIONAL){
+				lightcomp->dirty = true;
+			}
 
 			// ======== Directional Shadow ========
 			if(lightData.LightType == LIGHT_TYPE_DIRECTIONAL){
@@ -353,9 +370,17 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 				if(addedCascades > 0){
 					light.Lights[firstCascadeSlot].Position.w = (float)addedCascades;
+					hasCsmLight = true;
+					foundLight = true;
+					continue;
 				}
+			}
 
-				hasCsmLight = true;
+			// CSMを展開できない場合や2個目以降のCSMでも、照明自体は保持する。
+			if(lightData.LightType == LIGHT_TYPE_DIRECTIONAL_CSM){
+				light.Lights[lightCount] =
+					LightGpuSubmissionPolicy::MakeUnshadowedLogicalEntry(lightData);
+				lightCount++;
 				foundLight = true;
 				continue;
 			}
@@ -482,11 +507,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 				continue;
 			}
 
-			// ======== それ以外の shadow light ========
-			if(lightData.LightType == LIGHT_TYPE_DIRECTIONAL_CSM){
-				continue;
-			}
-
+			// Shadow対象外の通常Lightも単一Entryとして保持する。
 			light.Lights[lightCount] = lightData;
 			lightCount++;
 			if(lightData.CastShadow){
