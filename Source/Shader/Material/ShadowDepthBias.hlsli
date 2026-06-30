@@ -19,13 +19,32 @@ float ResolvePerspectiveShadowDepthBias(
 
     // DirectX LH perspective depth:
     // z_ndc = far/(far-near) - near*far/((far-near)*viewZ)
-    // Convert a world-distance bias to the NDC bias at this receiver depth.
+    // Convert the configured world-distance bias to NDC at this receiver depth.
     const float depthDerivative =
         (nearPlane * safeFar) /
         ((safeFar - nearPlane) * safeDepth * safeDepth);
+    const float baseNdcBias = safeWorldBias * depthDerivative;
+
+    // Receiver-plane slope bias.
+    // A fixed bias is insufficient on surfaces nearly parallel to the light ray,
+    // because projected depth changes more rapidly across adjacent pixels there.
+    // Derivatives measure that projected-depth gradient directly, without adding
+    // fields to LIGHT or changing the Param.w contract.
+    const float projectedDepth =
+        safeFar / (safeFar - nearPlane) -
+        (nearPlane * safeFar) /
+        ((safeFar - nearPlane) * safeDepth);
+    const float receiverSlope = max(
+        abs(ddx(projectedDepth)),
+        abs(ddy(projectedDepth)));
+
+    // Param.w == 0 must continue to disable receiver bias completely.
+    const float slopeNdcBias = safeWorldBias > 0.0f
+        ? min(receiverSlope * 2.0f, LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS * 0.75f)
+        : 0.0f;
 
     return min(
-        safeWorldBias * depthDerivative,
+        baseNdcBias + slopeNdcBias,
         LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS);
 }
 
