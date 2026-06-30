@@ -5,6 +5,29 @@
 #include "../commonDefine.h"
 #endif
 
+float ResolveOrthographicShadowDepthBias(
+    float projectedDepth,
+    float legacyNdcBias)
+{
+    const float baseNdcBias = max(legacyNdcBias, 0.0f);
+
+    // Directional / CSM use orthographic light projection, so Param.w is
+    // already an NDC-depth bias. Add a receiver-plane slope term computed from
+    // the actual projected depth gradient. This preserves the existing Param.w
+    // contract and does not change LIGHT / constant-buffer layout.
+    const float receiverSlope = max(
+        abs(ddx(projectedDepth)),
+        abs(ddy(projectedDepth)));
+
+    const float slopeNdcBias = baseNdcBias > 0.0f
+        ? min(receiverSlope * 2.0f, LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS * 0.75f)
+        : 0.0f;
+
+    return min(
+        baseNdcBias + slopeNdcBias,
+        LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS);
+}
+
 float ResolvePerspectiveShadowDepthBias(
     float viewDepth,
     float farPlane,
@@ -25,11 +48,6 @@ float ResolvePerspectiveShadowDepthBias(
         ((safeFar - nearPlane) * safeDepth * safeDepth);
     const float baseNdcBias = safeWorldBias * depthDerivative;
 
-    // Receiver-plane slope bias.
-    // A fixed bias is insufficient on surfaces nearly parallel to the light ray,
-    // because projected depth changes more rapidly across adjacent pixels there.
-    // Derivatives measure that projected-depth gradient directly, without adding
-    // fields to LIGHT or changing the Param.w contract.
     const float projectedDepth =
         safeFar / (safeFar - nearPlane) -
         (nearPlane * safeFar) /
