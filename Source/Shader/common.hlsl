@@ -154,6 +154,16 @@ CBUFFER(CbPerObject, 2)
     uint _ObjPad;
 };
 
+// b3: Lighting診断用。値はDraw全体で均一であり、Material dispatchには使わない。
+// 全フィールド0が通常描画となるため、未Bind時も軽量化設定へ誤遷移しない。
+CBUFFER(CbLightingDebug, 3)
+{
+    uint LightingDebugFlags;
+    int LightingDebugPcfMode;
+    int LightingDebugMaxActiveLights;
+    int _LightingDebugPad;
+};
+
 #ifdef __cplusplus
 // UV スライス情報 (UVStart/UVEnd の 2フィールドをまとめる)
 struct UVMatrixBuffer { float2 UVStart; float2 UVEnd; };
@@ -161,6 +171,7 @@ struct UVMatrixBuffer { float2 UVStart; float2 UVEnd; };
 struct ObjectInfo     { uint SceneID; uint ObjectID; uint ShaderID; uint _pad; };
 // LightBuffer は CbPerFrame と同一 (親しみのある型名を維持)
 using LightBuffer = CbPerFrame;
+static_assert(sizeof(CbLightingDebug) == 16);
 #endif
 #ifndef __cplusplus
 
