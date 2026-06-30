@@ -13,7 +13,9 @@ enum class Mode : int {
 	WorldSpace = SHADOW_BIAS_MODE_WORLD_SPACE
 };
 
-inline constexpr float MaximumLegacyNdcBias = 0.05f;
+// The previous Inspector exposed Param.w in the 0..1 range.
+// Keep that full range so loading an old scene never truncates its value.
+inline constexpr float MaximumLegacyNdcBias = 1.0f;
 inline constexpr float MaximumWorldBias = 10.0f;
 
 inline float4 MakeLegacy(float legacyNdcBias) noexcept {
