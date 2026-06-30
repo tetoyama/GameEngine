@@ -30,6 +30,17 @@ float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness)
     return F0 + (max((float3) (1.0f - roughness), F0) - F0) * pow(1.0f - cosTheta, 5.0f);
 }
 
+int ResolveDiagnosticPcfRadius(int materialDefaultRadius)
+{
+    if (LightingDebugPcfMode == LIGHTING_DEBUG_PCF_1X1)
+        return 0;
+    if (LightingDebugPcfMode == LIGHTING_DEBUG_PCF_3X3)
+        return 1;
+    if (LightingDebugPcfMode == LIGHTING_DEBUG_PCF_5X5)
+        return 2;
+    return materialDefaultRadius;
+}
+
 // ------------------------------------------------------------
 // PBR
 // ------------------------------------------------------------
@@ -47,7 +58,7 @@ float4 ShadeMaterial_PBR(MaterialInput materialInput)
 
     float3 F0 = baseColor * metallic;
 
-    ShadowPCFParams pcf = { 2, 1 };
+    ShadowPCFParams pcf = { ResolveDiagnosticPcfRadius(2), 1 };
     LightingResult lighting = ComputeLightingFromMaterialInput(materialInput, pcf);
 
     float3 envSpecular = 0;
@@ -57,7 +68,10 @@ float4 ShadeMaterial_PBR(MaterialInput materialInput)
     // ------------------------------------------------
     // Environment reflection
     // ------------------------------------------------
-    if ((materialInput.materialFlags & MATERIAL_FLAG_USE_ENVIRONMENT_MAP) &&
+    const bool environmentEnabled =
+        (LightingDebugFlags & LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT) == 0u;
+    if (environmentEnabled &&
+        (materialInput.materialFlags & MATERIAL_FLAG_USE_ENVIRONMENT_MAP) &&
         metallic > 0.0f)
     {
         const int SAMPLE_COUNT = 8;
@@ -67,7 +81,6 @@ float4 ShadeMaterial_PBR(MaterialInput materialInput)
         float3 R = reflect(-V, N);
 
         float3 up = abs(R.y) < 0.999f ? float3(0, 1, 0) : float3(1, 0, 0);
-
         float3 T = normalize(cross(up, R));
         float3 B = cross(R, T);
 
