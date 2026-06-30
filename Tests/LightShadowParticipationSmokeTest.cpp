@@ -6,29 +6,29 @@
 
 int main(){
 	const LIGHT defaults = LightComponentDefaults::Create();
-	assert(defaults.Enable != FALSE);
+	assert(defaults.Enable != 0);
 	assert(defaults.LightType == LIGHT_TYPE_POINT);
-	assert(defaults.CastShadow == FALSE);
+	assert(defaults.CastShadow == 0);
 	assert(LightGpuSubmissionPolicy::ShouldSubmitLighting(defaults));
 	assert(!LightGpuSubmissionPolicy::ShouldExpandShadowEntries(defaults));
 
 	LIGHT shadowPoint = defaults;
-	shadowPoint.CastShadow = TRUE;
+	shadowPoint.CastShadow = 1;
 	shadowPoint.Dummy = -1;
 	shadowPoint.Position.w = 6.0f;
 	assert(LightGpuSubmissionPolicy::ShouldExpandShadowEntries(shadowPoint));
 
 	const LIGHT unshadowed =
 		LightGpuSubmissionPolicy::MakeUnshadowedLogicalEntry(shadowPoint);
-	assert(unshadowed.Enable != FALSE);
-	assert(unshadowed.CastShadow == FALSE);
+	assert(unshadowed.Enable != 0);
+	assert(unshadowed.CastShadow == 0);
 	assert(unshadowed.Dummy == 0);
 	assert(unshadowed.Position.w == 0.0f);
 
 	LightBuffer packed{};
 	packed.ActiveLightCount = 5;
-	packed.Lights[0].Enable = TRUE;
-	packed.Lights[0].CastShadow = TRUE;
+	packed.Lights[0].Enable = 1;
+	packed.Lights[0].CastShadow = 1;
 	packed.Lights[0].LightType = LIGHT_TYPE_DIRECTIONAL_CSM;
 	packed.Lights[0].Dummy = 1;
 	packed.Lights[0].Position.w = 4.0f;
