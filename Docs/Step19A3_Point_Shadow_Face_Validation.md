@@ -6,6 +6,12 @@
 
 この工程はPoint Shadowの方向依存アーティファクトを確認し、Lighting性能測定の前提となるShadow Correctnessを確定する。
 
+Far / Near / Biasの詳細検証は次へ分離した。
+
+```text
+Docs/Step19A4_Local_Shadow_Far_Validation.md
+```
+
 ---
 
 ## 1. 観測された可能性
@@ -179,6 +185,7 @@ XYZ Corner
 4. Point LightをCasterへ近づけ、Near Plane付近を確認
 5. CasterをLight Range外へ移動し、偽Shadowが残らないことを確認
 6. カメラを移動してもShadow形状が変化しないことを確認
+7. Far境界はStep 19-A.4のRange境界テストを実行
 
 ---
 
@@ -223,6 +230,7 @@ XYZ Corner
 - [x] Point Face FOV Overlap
 - [x] Face Layout Smoke Test
 - [x] Shader Face順Workflow Guard
+- [x] Far / Near / Bias検証をStep 19-A.4へ分離
 - [ ] Windows Build確認
 - [ ] Lighting Diagnostic Contract確認
 - [ ] 6 Axis実機確認
