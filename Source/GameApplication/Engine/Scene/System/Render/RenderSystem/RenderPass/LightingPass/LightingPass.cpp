@@ -6,6 +6,8 @@
 #include "LightingPass.h"
 #include "Shader/commonDefine.h"
 
+#include <algorithm>
+
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "sceneManager.h"
 #include "../RenderPassContext.h"
@@ -155,9 +157,10 @@ void LightingPass::Execute(const RenderPassContext& ctx){
 	vp.TopLeftY = 0;
 	dc->RSSetViewports(1, &vp);
 
-	if(m_lightingDebugBuffer && m_renderSystem){
-		const CbLightingDebug& settings =
-			m_renderSystem->GetLightingDebugSettings();
+	const CbLightingDebug settings = m_renderSystem
+		? m_renderSystem->GetLightingDebugSettings()
+		: CbLightingDebug{};
+	if(m_lightingDebugBuffer){
 		dc->UpdateSubresource(
 			m_lightingDebugBuffer.Get(),
 			0,
@@ -170,13 +173,46 @@ void LightingPass::Execute(const RenderPassContext& ctx){
 		dc->PSSetConstantBuffers(3, 1, &debugBuffer);
 	}
 
+	// Shadow無効とLight数制限は既存Material Shaderを変更せず、
+	// CbPerFrameの一時コピーで診断する。描画後に必ず元データへ戻す。
+	LightBuffer originalLights{};
+	bool lightBufferOverridden = false;
+	if(gc && gc->GetLight()){
+		originalLights = *gc->GetLight();
+		LightBuffer diagnosticLights = originalLights;
+
+		if(settings.LightingDebugMaxActiveLights > 0){
+			diagnosticLights.ActiveLightCount = (std::min)(
+				diagnosticLights.ActiveLightCount,
+				settings.LightingDebugMaxActiveLights
+			);
+			lightBufferOverridden = true;
+		}
+
+		if((settings.LightingDebugFlags &
+			LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS) != 0u){
+			for(int index = 0; index < LIGHT_MAX_COUNT; ++index){
+				diagnosticLights.Lights[index].CastShadow = 0;
+			}
+			lightBufferOverridden = true;
+		}
+
+		if(lightBufferOverridden){
+			gc->SetLight(&diagnosticLights);
+		}
+	}
+
 	// 登録マテリアル数 + デバッグ分だけ描画。
 	// 各PSは自分の担当materialID以外をGetMaterialIDで早期discardする。
-	// Material dispatchをswitchへ統合せず、診断設定はDraw全体で均一なb3だけを使用する。
+	// Material dispatchをswitchへ統合せず、診断設定はDraw全体で均一な値だけを使用する。
 	for(const auto& ps : m_renderSystem->GetDeferredPSList()){
 		if(!ps) continue;
 		dc->PSSetShader(ps->m_PixelShader.Get(), nullptr, 0);
 		gc->DrawQuad();
+	}
+
+	if(lightBufferOverridden){
+		gc->SetLight(&originalLights);
 	}
 
 	ID3D11Buffer* nullConstantBuffer = nullptr;
