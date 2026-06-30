@@ -11,6 +11,7 @@ on:
       - "Source/Shader/Material/MaterialFunc.hlsli"
       - "Source/Shader/Material/MaterialBRDF.hlsli"
       - "Source/Shader/Material/MaterialLightingEvaluation.hlsli"
+      - "Source/Shader/Material/MaterialLightingTraversal.hlsli"
       - "Source/Shader/Material/PBRShader.hlsli"
       - "Source/Shader/Material/ShadowDepthBias.hlsli"
       - "Source/GameApplication/Engine/Editor/UI/LightingDiagnosticUI.h"
@@ -48,6 +49,7 @@ on:
       - "Source/Shader/Material/MaterialFunc.hlsli"
       - "Source/Shader/Material/MaterialBRDF.hlsli"
       - "Source/Shader/Material/MaterialLightingEvaluation.hlsli"
+      - "Source/Shader/Material/MaterialLightingTraversal.hlsli"
       - "Source/Shader/Material/PBRShader.hlsli"
       - "Source/Shader/Material/ShadowDepthBias.hlsli"
       - "Source/GameApplication/Engine/Editor/UI/LightingDiagnosticUI.h"
@@ -201,8 +203,16 @@ jobs:
           }
 
           $evaluation = Get-Content -Raw -Path "Source/Shader/Material/MaterialLightingEvaluation.hlsli"
-          if ($evaluation -notmatch 'ApplyShadowReceiverBias') {
-            throw "Lighting evaluation must apply receiver bias before projection."
+          if ($evaluation -notmatch 'MaterialLightingTraversal\.hlsli') {
+            throw "Lighting evaluation must route through the split traversal implementation."
+          }
+
+          $traversal = Get-Content -Raw -Path "Source/Shader/Material/MaterialLightingTraversal.hlsli"
+          if ($traversal -notmatch 'ApplyShadowReceiverBias') {
+            throw "Lighting traversal must apply receiver bias before projection."
+          }
+          if ($traversal -notmatch 'ShadowFactorPointBiased\(\s*input\.worldPos,\s*shadowWorldPos') {
+            throw "Point face selection must use the unbiased position while projection uses the biased position."
           }
 
           $operations = Get-Content -Raw -Path "Source/GameApplication/Engine/Scene/Component/Operations/LightComponentOperations.h"
@@ -214,6 +224,11 @@ jobs:
           }
           if ($operations -notmatch 'ShadowBiasSynchronization::Apply') {
             throw "Legacy Param.w synchronization is missing."
+          }
+
+          $submission = Get-Content -Raw -Path "Source/GameApplication/Engine/Scene/System/Render/Lighting/LightGpuSubmissionPolicy.h"
+          if ($submission -notmatch 'PrepareForSubmission') {
+            throw "Direct script changes must be normalized at the GPU submission boundary."
           }
 
           $shaderPaths = @(
