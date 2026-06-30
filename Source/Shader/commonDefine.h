@@ -67,6 +67,17 @@
 
 #define LightingSlot_Max        (8)
 
+// Lighting diagnostic flags. These are uniform per draw and must not be
+// used to dispatch material implementations.
+#define LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS     (1u << 0)
+#define LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT (1u << 1)
+
+// PCF override modes. 0 preserves each material's default kernel.
+#define LIGHTING_DEBUG_PCF_DEFAULT (0)
+#define LIGHTING_DEBUG_PCF_1X1     (1)
+#define LIGHTING_DEBUG_PCF_3X3     (2)
+#define LIGHTING_DEBUG_PCF_5X5     (3)
+
 // ポストエフェクト用 GBuffer スロット (フォワードパスのテクスチャスロット後に続く固定スロット)
 #define PostEffectGBufferSlot_Start     (8)
 #define PostEffectGBufferSlot_Albedo    (8)
