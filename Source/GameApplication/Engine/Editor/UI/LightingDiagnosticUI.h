@@ -330,20 +330,30 @@ inline void Draw(
 		LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT
 	);
 	char captureLabel[256]{};
-	std::snprintf(
-		captureLabel,
-		sizeof(captureLabel),
-		"Shadow:%s / CSM:%s / Point:%s / PCF:%s / Env:%s / Logical:%s%d",
-		captureShadowsDisabled ? "OFF" : "ON",
-		captureCsmDisabled ? "OFF" : "ON",
-		capturePointDisabled ? "OFF" : "ON",
-		PcfModeName(settings.LightingDebugPcfMode),
-		captureEnvironmentDisabled ? "OFF" : "ON",
-		settings.LightingDebugMaxActiveLights == 0 ? "All" : "",
-		settings.LightingDebugMaxActiveLights == 0
-			? 0
-			: settings.LightingDebugMaxActiveLights
-	);
+	if(settings.LightingDebugMaxActiveLights == 0){
+		std::snprintf(
+			captureLabel,
+			sizeof(captureLabel),
+			"Shadow:%s / CSM:%s / Point:%s / PCF:%s / Env:%s / Logical:All",
+			captureShadowsDisabled ? "OFF" : "ON",
+			captureCsmDisabled ? "OFF" : "ON",
+			capturePointDisabled ? "OFF" : "ON",
+			PcfModeName(settings.LightingDebugPcfMode),
+			captureEnvironmentDisabled ? "OFF" : "ON"
+		);
+	}else{
+		std::snprintf(
+			captureLabel,
+			sizeof(captureLabel),
+			"Shadow:%s / CSM:%s / Point:%s / PCF:%s / Env:%s / Logical:%d",
+			captureShadowsDisabled ? "OFF" : "ON",
+			captureCsmDisabled ? "OFF" : "ON",
+			capturePointDisabled ? "OFF" : "ON",
+			PcfModeName(settings.LightingDebugPcfMode),
+			captureEnvironmentDisabled ? "OFF" : "ON",
+			settings.LightingDebugMaxActiveLights
+		);
+	}
 	ImGui::TextDisabled("Current preset: %s", captureLabel);
 
 	if(capture.IsCapturing()){
