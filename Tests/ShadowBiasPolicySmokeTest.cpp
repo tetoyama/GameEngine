@@ -5,6 +5,10 @@
 #include "Engine/Scene/System/Render/Lighting/ShadowBiasPolicy.h"
 #include "Engine/Scene/System/Render/Lighting/ShadowBiasSynchronization.h"
 
+static_assert(sizeof(LIGHT) == 240);
+static_assert(sizeof(CbPerFrame) == 15376);
+static_assert(sizeof(CbPerFrame) % 16 == 0);
+
 int main(){
 	using namespace ShadowBiasPolicy;
 
