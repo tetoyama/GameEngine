@@ -111,6 +111,13 @@ void LightingPass::SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shado
 		dc->PSSetShaderResources(LightingSlot_EnvironmentMap, 1, m_EnvironmentMap->pTexture.GetAddressOf());
 	}
 
+	// Deferred lighting must own every shadow sampling binding it consumes.
+	// Relying on ShadowMapPass to leave s1 bound makes the result depend on
+	// whichever pass last touched the pixel-shader sampler state.
+	ID3D11SamplerState* shadowComparisonSampler =
+		shadowMapPass ? shadowMapPass->shadowSampler : nullptr;
+	dc->PSSetSamplers(1, 1, &shadowComparisonSampler);
+
 	ID3D11SamplerState* samplers[] = {m_LinearSampler};
 	dc->PSSetSamplers(2, 1, samplers);
 	if(m_EnvMapSampler){
@@ -198,6 +205,6 @@ void LightingPass::Execute(const RenderPassContext& ctx){
 	ID3D11ShaderResourceView* nullSRV[LightingSlot_Max] = {};
 	dc->PSSetShaderResources(0, LightingSlot_Max, nullSRV);
 
-	ID3D11SamplerState* nullSampler[2] = {nullptr, nullptr};
-	dc->PSSetSamplers(2, 2, nullSampler);
+	ID3D11SamplerState* nullSamplers[3] = {nullptr, nullptr, nullptr};
+	dc->PSSetSamplers(1, 3, nullSamplers);
 }
