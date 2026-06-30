@@ -42,8 +42,18 @@ float ResolveShadowCompareDepth(float projectedDepth, LIGHT light)
     if (UsesWorldSpaceShadowBias(light))
         return saturate(projectedDepth);
 
-    // Existing scenes keep their original projected-depth behavior.
     return saturate(projectedDepth - max(light.ShadowBias.x, 0.0f));
+}
+
+// Compatibility adapter for existing Deferred / Forward shadow functions.
+// Legacy mode keeps Param.w as the original NDC bias. World mode stores 0 in
+// Param.w because its offset has already been applied to the receiver position.
+float ResolvePerspectiveShadowDepthBias(
+    float viewDepth,
+    float farPlane,
+    float legacyNdcBias)
+{
+    return max(legacyNdcBias, 0.0f);
 }
 
 #endif // SHADOW_DEPTH_BIAS_HLSLI
