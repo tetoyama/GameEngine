@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 
-#include "Graphics/GpuFrameTiming.h"
+#include "Service/Graphics/GpuFrameTiming.h"
 
 class LightingDiagnosticCapture final {
 public:
