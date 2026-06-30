@@ -20,6 +20,7 @@ struct RenderPacketCullingView {
 	CullingViewKind kind = CullingViewKind::Custom;
 	std::uint32_t instanceID = 0;
 	DirectX::XMMATRIX viewProjection = DirectX::XMMatrixIdentity();
+	bool depthClipEnabled = true;
 };
 
 namespace RenderPacketViewCulling {
@@ -48,10 +49,10 @@ inline CullingFrustum BuildFrustum(
 ) noexcept {
 	CullingFrustum frustum =
 		CullingFrustumRuntime::FromViewProjection(view.viewProjection);
-	if(view.kind == CullingViewKind::Shadow){
-		// ShadowMapPassはDepthClipEnable=falseで描画する。
+	if(view.kind == CullingViewKind::Shadow && !view.depthClipEnabled){
+		// Directional / CSMはDepthClipEnable=falseで描画する。
 		// GPUが残すNear/Far範囲外CasterをCPUだけで除外しないよう、
-		// Shadow Viewでは左右上下Planeだけを使用する。
+		// Depth Clampを使うShadow Viewでは左右上下Planeだけを使用する。
 		frustum.planes[4] = {};
 		frustum.planes[5] = {};
 	}
