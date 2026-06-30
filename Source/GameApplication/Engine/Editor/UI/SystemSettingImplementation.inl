@@ -243,7 +243,6 @@ inline void DrawScheduleSettings(
 } // namespace SystemSettingImplementationDetail
 
 void SystemSetting::Draw(const EditorDrawContext ctx) {
-	(void)ctx;
 	using namespace SystemSettingImplementationDetail;
 
 	MenuBar* menuBar = m_editor ? m_editor->GetUI<MenuBar>() : nullptr;
@@ -275,7 +274,10 @@ void SystemSetting::Draw(const EditorDrawContext ctx) {
 			ImGui::EndTabItem();
 		}
 		if(ImGui::BeginTabItem("Lighting")) {
-			LightingDiagnosticUI::Draw(sceneManager);
+			LightingDiagnosticUI::Draw(
+				sceneManager,
+				ctx.ResolvedGpuFrameTimings
+			);
 			ImGui::EndTabItem();
 		}
 		if(ImGui::BeginTabItem("Systems")) {
