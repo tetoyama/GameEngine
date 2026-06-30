@@ -102,39 +102,23 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, const RenderPacke
 			MATERIAL material{};
 
 			if(pTexture){
-				// マテリアル設定
 				if(pTexture->m_TextureData){
 					material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 					deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 				}
 
-				UVMatrixBuffer uv{};
-				if (pTexture->UV_Slice_X > 0.0f && pTexture->UV_Slice_Y > 0.0f) {
-					// UV_Slice_X/Y は「1セルのUVサイズ」
-					// 例:
-					// 0.25f = 4分割
-					// 0.125f = 8分割
-
-					int column = (int)(1.0f / pTexture->UV_Slice_X);
-
-					uv.UVStart.x = (pTexture->AnimationNum % column) * pTexture->UV_Slice_X;
-					uv.UVStart.y = (pTexture->AnimationNum / column) * pTexture->UV_Slice_Y;
-
-					// 1 セルの UV サイズ: 1/スライス数
-					uv.UVEnd.x = uv.UVStart.x + pTexture->UV_Slice_X;  // セルの右端 UV
-					uv.UVEnd.y = uv.UVStart.y + pTexture->UV_Slice_Y;  // セルの下端 UV
-				}
-				graphicsContext->SetUVMatrixBuffer(uv);
+				graphicsContext->SetUVMatrixBuffer(pTexture->ResolveUVMatrixBuffer());
 
 				if (pMaterial) {
 					material.BaseColor = pMaterial->Material.BaseColor;
 					material.BaseColor.w = pMaterial->Material.BaseColor.w * pParticle->Particle[i].LifeTime / pParticle->particleLifeTime;
 				}
 			} else{
-				// マテリアル設定
 				material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
 				UVMatrixBuffer uv{};
+				uv.UVStart = float2(0.0f, 0.0f);
+				uv.UVEnd = float2(1.0f, 1.0f);
 				graphicsContext->SetUVMatrixBuffer(uv);
 			}
 			graphicsContext->SetMaterial(material);
@@ -173,11 +157,6 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, const RenderPacke
 				DirectX::XMVectorSet(0, 0, 0, 1)
 			);
 
-			//deviceContext->IASetInputLayout(m_billBoardMesh->mesh.m_VertexLayout.Get());
-
-			//deviceContext->VSSetShader(m_billBoardMesh->mesh.m_VertexShader.Get(), NULL, 0);
-			//deviceContext->PSSetShader(m_billBoardMesh->mesh.m_PixelShader.Get(), NULL, 0);
-
 			// ローカル変換行列（スケール・ビルボード回転・位置）
 			DirectX::XMMATRIX LocalMatrix =
 				DirectX::XMMatrixScaling(transform.scale.x, transform.scale.y, transform.scale.z) *
@@ -193,9 +172,6 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, const RenderPacke
 			deviceContext->IASetVertexBuffers(0, 1, m_billBoardMesh->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
 
 			deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-			//if (ctx.passPhase == RenderPhase::PHASE_SHADOW) {
-			//	deviceContext->PSSetShader(nullptr, NULL, 0); // ピクセルシェーダー無効化
-			//}
 			deviceContext->Draw(m_billBoardMesh->mesh.meshCount, 0);
 		}
 	}
