@@ -4,11 +4,11 @@
 // 
 // =======================================================================
 #include "LightingPass.h"
-#include "LightingDiagnosticEntryLimit.h"
 #include "Shader/commonDefine.h"
 
 #include <algorithm>
 
+#include "System/Render/Lighting/PackedLightEntryTraversal.h"
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "sceneManager.h"
 #include "../RenderPassContext.h"
@@ -40,7 +40,6 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 	m_renderSystem = renderSystem;
 	m_context = context;
 
-	// Linear
 	D3D11_SAMPLER_DESC desc{};
 	desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -50,7 +49,6 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 	desc.MaxLOD = D3D11_FLOAT32_MAX;
 	m_context->graphics->GetDevice()->CreateSamplerState(&desc, &m_LinearSampler);
 
-	// Environment map sampler (trilinear + wrap for cubemap)
 	D3D11_SAMPLER_DESC envDesc{};
 	envDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	envDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -73,16 +71,11 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 	);
 
 	Vector2 size = Vector2((float)context->graphics->m_width, (float)context->graphics->m_height);
-
-	// ----- RenderTargets -----
-	// HDR float16 バッファ: エミッシブ HDR 値を保持しブルーム入力に使用する
 	pRenderTarget = new RenderTarget(size, context->graphics, RENDERTARGET_TYPE_COLOR);
-
 	m_LightingVertexShader = m_context->resource->Load<VertexShaderData>("Asset\\Shader\\LightingVS.cso");
 }
 
 void LightingPass::Finalize() {
-
 	m_LightingVertexShader.reset();
 	m_lightingDebugBuffer.Reset();
 
@@ -93,18 +86,14 @@ void LightingPass::Finalize() {
 		m_LinearSampler->Release();
 		m_LinearSampler = nullptr;
 	}
-
-	if (m_EnvMapSampler) {
+	if(m_EnvMapSampler){
 		m_EnvMapSampler->Release();
 		m_EnvMapSampler = nullptr;
 	}
-
 	m_EnvironmentMap.reset();
-
 }
 
 void LightingPass::SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shadowMapPass, GraphicsContext* gc) {
-
 	ID3D11DeviceContext* dc = gc->GetDeviceContext();
 
 	ID3D11ShaderResourceView* nullSRV[LightingSlot_Max] = {};
@@ -118,44 +107,35 @@ void LightingPass::SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shado
 	dc->PSSetShaderResources(LightingSlot_GParam, 1, gBufferPass->pRenderTargets[GBufferSlot_Param]->srv.GetAddressOf());
 	dc->PSSetShaderResources(LightingSlot_ShadowMap, 1, shadowMapPass->shadowRenderTarget->srv.GetAddressOf());
 
-	if (m_EnvironmentMap && m_EnvironmentMap->pTexture) {
+	if(m_EnvironmentMap && m_EnvironmentMap->pTexture){
 		dc->PSSetShaderResources(LightingSlot_EnvironmentMap, 1, m_EnvironmentMap->pTexture.GetAddressOf());
 	}
 
-	ID3D11SamplerState* samplers[] =
-	{
-		m_LinearSampler					// s2
-	};
+	ID3D11SamplerState* samplers[] = {m_LinearSampler};
 	dc->PSSetSamplers(2, 1, samplers);
-
-	if (m_EnvMapSampler) {
-		dc->PSSetSamplers(3, 1, &m_EnvMapSampler);	// s3
+	if(m_EnvMapSampler){
+		dc->PSSetSamplers(3, 1, &m_EnvMapSampler);
 	}
 }
 
-
 void LightingPass::Execute(const RenderPassContext& ctx){
-
 	pRenderTarget->Resize(ctx.screenSize, m_context->graphics);
 
-	float clearColor[4] = {0,0,0,0};
+	float clearColor[4] = {0, 0, 0, 0};
 	pRenderTarget->Clear(m_context->graphics->GetDeviceContext(), clearColor);
 
 	ID3D11DeviceContext* dc = m_context->graphics->GetDeviceContext();
 	GraphicsContext* gc = m_context->renderer->GetGraphicsContext();
 
 	dc->OMSetRenderTargets(1, pRenderTarget->rtv.GetAddressOf(), nullptr);
-
 	dc->VSSetShader(m_LightingVertexShader->m_VertexShader.Get(), nullptr, 0);
 	dc->IASetInputLayout(m_LightingVertexShader->m_VertexLayout.Get());
 
-	D3D11_VIEWPORT vp = {};
+	D3D11_VIEWPORT vp{};
 	vp.Width = ctx.screenSize.x;
 	vp.Height = ctx.screenSize.y;
 	vp.MinDepth = 0.0f;
 	vp.MaxDepth = 1.0f;
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
 	dc->RSSetViewports(1, &vp);
 
 	const CbLightingDebug settings = m_renderSystem
@@ -174,8 +154,6 @@ void LightingPass::Execute(const RenderPassContext& ctx){
 		dc->PSSetConstantBuffers(3, 1, &debugBuffer);
 	}
 
-	// Shadow無効とLight数制限は既存Material Shaderを変更せず、
-	// CbPerFrameの一時コピーで診断する。描画後に必ず元データへ戻す。
 	LightBuffer originalLights{};
 	bool lightBufferOverridden = false;
 	if(gc && gc->GetLight()){
@@ -183,42 +161,11 @@ void LightingPass::Execute(const RenderPassContext& ctx){
 		LightBuffer diagnosticLights = originalLights;
 
 		if(settings.LightingDebugMaxActiveLights > 0){
-			const int sourceCount = (std::clamp)(
-				diagnosticLights.ActiveLightCount,
-				0,
-				LIGHT_MAX_COUNT
-			);
-			const int limitedCount = (std::min)(
-				sourceCount,
-				settings.LightingDebugMaxActiveLights
-			);
-			diagnosticLights.ActiveLightCount = limitedCount;
-
-			// CSM CascadeとPoint Shadow Faceは先頭EntryのPosition.wから
-			// 後続Entryを直接参照する。ActiveLightCountだけを切り詰めると
-			// 診断範囲外のEntryまで評価されるため、展開数も残数へ制限する。
-			for(int index = 0; index < limitedCount; ++index){
-				LIGHT& light = diagnosticLights.Lights[index];
-				if(light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM &&
-					light.Dummy == 1){
-					light.Position.w = static_cast<float>(
-						LightingDiagnosticEntryLimit::ResolveExpandedCount(
-							light.Position.w,
-							index,
-							limitedCount
-						)
-					);
-				}else if(light.LightType == LIGHT_TYPE_POINT &&
-					light.Dummy == -1){
-					light.Position.w = static_cast<float>(
-						LightingDiagnosticEntryLimit::ResolveExpandedCount(
-							light.Position.w,
-							index,
-							limitedCount
-						)
-					);
-				}
-			}
+			diagnosticLights.ActiveLightCount =
+				PackedLightEntryTraversal::ResolveEntryCountForLogicalLimit(
+					diagnosticLights,
+					settings.LightingDebugMaxActiveLights
+				);
 			lightBufferOverridden = true;
 		}
 
@@ -235,9 +182,6 @@ void LightingPass::Execute(const RenderPassContext& ctx){
 		}
 	}
 
-	// 登録マテリアル数 + デバッグ分だけ描画。
-	// 各PSは自分の担当materialID以外をGetMaterialIDで早期discardする。
-	// Material dispatchをswitchへ統合せず、診断設定はDraw全体で均一な値だけを使用する。
 	for(const auto& ps : m_renderSystem->GetDeferredPSList()){
 		if(!ps) continue;
 		dc->PSSetShader(ps->m_PixelShader.Get(), nullptr, 0);
@@ -256,9 +200,4 @@ void LightingPass::Execute(const RenderPassContext& ctx){
 
 	ID3D11SamplerState* nullSampler[2] = {nullptr, nullptr};
 	dc->PSSetSamplers(2, 2, nullSampler);
-
-	{
-		return;
-		// ...以下dead codeはそのまま...
-	}
 }
