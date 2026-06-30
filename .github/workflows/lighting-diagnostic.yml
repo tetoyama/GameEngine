@@ -1,0 +1,68 @@
+name: Lighting Diagnostic Contract
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Source/Shader/commonDefine.h"
+      - "Source/Shader/common.hlsl"
+      - "Source/Shader/Material/PBRShader.hlsli"
+      - "Source/GameApplication/Engine/Editor/UI/LightingDiagnosticUI.h"
+      - "Source/GameApplication/Engine/Editor/UI/SystemSettingImplementation.inl"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.cpp"
+      - "Tests/LightingDiagnosticSettingsSmokeTest.cpp"
+      - "Tests/LightingDiagnosticPBRSmoke.hlsl"
+      - ".github/workflows/lighting-diagnostic.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Source/Shader/commonDefine.h"
+      - "Source/Shader/common.hlsl"
+      - "Source/Shader/Material/PBRShader.hlsli"
+      - "Source/GameApplication/Engine/Editor/UI/LightingDiagnosticUI.h"
+      - "Source/GameApplication/Engine/Editor/UI/SystemSettingImplementation.inl"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.cpp"
+      - "Tests/LightingDiagnosticSettingsSmokeTest.cpp"
+      - "Tests/LightingDiagnosticPBRSmoke.hlsl"
+      - ".github/workflows/lighting-diagnostic.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: lighting-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lighting-diagnostic-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run settings contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471
+          /I Source
+          /I Source/GameApplication
+          Tests/LightingDiagnosticSettingsSmokeTest.cpp
+          /Fe:lighting-diagnostic-settings-test.exe
+          && lighting-diagnostic-settings-test.exe
+      - name: Compile PBR diagnostic shader
+        shell: cmd
+        run: >-
+          fxc /nologo /T ps_5_0 /E main
+          /I Source/Shader
+          /Fo lighting-diagnostic-pbr.cso
+          Tests/LightingDiagnosticPBRSmoke.hlsl

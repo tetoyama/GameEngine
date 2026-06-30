@@ -6,6 +6,8 @@
 #include "LightingPass.h"
 #include "Shader/commonDefine.h"
 
+#include <algorithm>
+
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "sceneManager.h"
 #include "../RenderPassContext.h"
@@ -57,6 +59,18 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 	envDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	m_context->graphics->GetDevice()->CreateSamplerState(&envDesc, &m_EnvMapSampler);
 
+	D3D11_BUFFER_DESC debugBufferDesc{};
+	debugBufferDesc.ByteWidth = sizeof(CbLightingDebug);
+	debugBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	debugBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	debugBufferDesc.CPUAccessFlags = 0;
+	debugBufferDesc.MiscFlags = 0;
+	m_context->graphics->GetDevice()->CreateBuffer(
+		&debugBufferDesc,
+		nullptr,
+		m_lightingDebugBuffer.ReleaseAndGetAddressOf()
+	);
+
 	Vector2 size = Vector2((float)context->graphics->m_width, (float)context->graphics->m_height);
 
 	// ----- RenderTargets -----
@@ -69,12 +83,15 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 void LightingPass::Finalize() {
 
 	m_LightingVertexShader.reset();
+	m_lightingDebugBuffer.Reset();
 
 	delete pRenderTarget;
 	pRenderTarget = nullptr;
 
-	m_LinearSampler->Release();
-	m_LinearSampler = nullptr;
+	if(m_LinearSampler){
+		m_LinearSampler->Release();
+		m_LinearSampler = nullptr;
+	}
 
 	if (m_EnvMapSampler) {
 		m_EnvMapSampler->Release();
@@ -140,14 +157,66 @@ void LightingPass::Execute(const RenderPassContext& ctx){
 	vp.TopLeftY = 0;
 	dc->RSSetViewports(1, &vp);
 
+	const CbLightingDebug settings = m_renderSystem
+		? m_renderSystem->GetLightingDebugSettings()
+		: CbLightingDebug{};
+	if(m_lightingDebugBuffer){
+		dc->UpdateSubresource(
+			m_lightingDebugBuffer.Get(),
+			0,
+			nullptr,
+			&settings,
+			0,
+			0
+		);
+		ID3D11Buffer* debugBuffer = m_lightingDebugBuffer.Get();
+		dc->PSSetConstantBuffers(3, 1, &debugBuffer);
+	}
+
+	// Shadow無効とLight数制限は既存Material Shaderを変更せず、
+	// CbPerFrameの一時コピーで診断する。描画後に必ず元データへ戻す。
+	LightBuffer originalLights{};
+	bool lightBufferOverridden = false;
+	if(gc && gc->GetLight()){
+		originalLights = *gc->GetLight();
+		LightBuffer diagnosticLights = originalLights;
+
+		if(settings.LightingDebugMaxActiveLights > 0){
+			diagnosticLights.ActiveLightCount = (std::min)(
+				diagnosticLights.ActiveLightCount,
+				settings.LightingDebugMaxActiveLights
+			);
+			lightBufferOverridden = true;
+		}
+
+		if((settings.LightingDebugFlags &
+			LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS) != 0u){
+			for(int index = 0; index < LIGHT_MAX_COUNT; ++index){
+				diagnosticLights.Lights[index].CastShadow = 0;
+			}
+			lightBufferOverridden = true;
+		}
+
+		if(lightBufferOverridden){
+			gc->SetLight(&diagnosticLights);
+		}
+	}
+
 	// 登録マテリアル数 + デバッグ分だけ描画。
-	// 各PSは自分の担当materialID以外をGetMaterialIDで早期discardするため、
-	// 全パス合計で各ピクセルはちょうど1回だけ実シェーディングされる。
+	// 各PSは自分の担当materialID以外をGetMaterialIDで早期discardする。
+	// Material dispatchをswitchへ統合せず、診断設定はDraw全体で均一な値だけを使用する。
 	for(const auto& ps : m_renderSystem->GetDeferredPSList()){
 		if(!ps) continue;
 		dc->PSSetShader(ps->m_PixelShader.Get(), nullptr, 0);
 		gc->DrawQuad();
 	}
+
+	if(lightBufferOverridden){
+		gc->SetLight(&originalLights);
+	}
+
+	ID3D11Buffer* nullConstantBuffer = nullptr;
+	dc->PSSetConstantBuffers(3, 1, &nullConstantBuffer);
 
 	ID3D11ShaderResourceView* nullSRV[LightingSlot_Max] = {};
 	dc->PSSetShaderResources(0, LightingSlot_Max, nullSRV);
