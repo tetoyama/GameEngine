@@ -1,0 +1,60 @@
+name: GPU Pass Timing Contract
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Source/GameApplication/Service/Graphics/GpuFrameTiming.h"
+      - "Source/GameApplication/Service/Graphics/GpuPassTimingProfiler.h"
+      - "Source/GameApplication/Service/Graphics/mainRenderer.h"
+      - "Source/GameApplication/Engine/engine.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/PlayerView/PlayerPass.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/EditorView/EditorPass.cpp"
+      - "Source/GameApplication/Engine/Editor/UI/PerformanceMonitor.h"
+      - "Source/GameApplication/Engine/Editor/UI/PerformanceMonitor.cpp"
+      - "Tests/GpuPassTimingContractSmokeTest.cpp"
+      - ".github/workflows/gpu-pass-timing.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Source/GameApplication/Service/Graphics/GpuFrameTiming.h"
+      - "Source/GameApplication/Service/Graphics/GpuPassTimingProfiler.h"
+      - "Source/GameApplication/Service/Graphics/mainRenderer.h"
+      - "Source/GameApplication/Engine/engine.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/PlayerView/PlayerPass.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/EditorView/EditorPass.cpp"
+      - "Source/GameApplication/Engine/Editor/UI/PerformanceMonitor.h"
+      - "Source/GameApplication/Engine/Editor/UI/PerformanceMonitor.cpp"
+      - "Tests/GpuPassTimingContractSmokeTest.cpp"
+      - ".github/workflows/gpu-pass-timing.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: gpu-pass-timing-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gpu-pass-timing-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run GPU pass timing contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Service
+          Tests/GpuPassTimingContractSmokeTest.cpp
+          /Fe:gpu-pass-timing-contract-test.exe
+          && gpu-pass-timing-contract-test.exe
