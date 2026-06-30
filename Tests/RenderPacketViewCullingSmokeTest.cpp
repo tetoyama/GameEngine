@@ -23,7 +23,8 @@ RenderPacket MakePacket(Entity entity, SceneContext* context){
 RenderPacketCullingView MakeShadowView(
 	CullingViewKind parentKind,
 	std::uint32_t parentInstanceID,
-	std::uint32_t tileIndex
+	std::uint32_t tileIndex,
+	bool depthClipEnabled = false
 ){
 	RenderPacketCullingView view;
 	view.kind = CullingViewKind::Shadow;
@@ -34,6 +35,7 @@ RenderPacketCullingView MakeShadowView(
 	);
 	view.viewProjection =
 		DirectX::XMMatrixOrthographicLH(2.0f, 2.0f, 0.0f, 20.0f);
+	view.depthClipEnabled = depthClipEnabled;
 	return view;
 }
 
@@ -116,11 +118,13 @@ int main(){
 		DirectX::XMMatrixOrthographicLH(20.0f, 20.0f, 0.0f, 20.0f);
 
 	const RenderPacketCullingView shadowView =
-		MakeShadowView(CullingViewKind::Player, 0, 0);
+		MakeShadowView(CullingViewKind::Player, 0, 0, false);
 	const RenderPacketCullingView playerSecondTile =
-		MakeShadowView(CullingViewKind::Player, 0, 1);
+		MakeShadowView(CullingViewKind::Player, 0, 1, false);
 	const RenderPacketCullingView editorShadowView =
-		MakeShadowView(CullingViewKind::Editor, 0, 0);
+		MakeShadowView(CullingViewKind::Editor, 0, 0, false);
+	const RenderPacketCullingView perspectiveShadowView =
+		MakeShadowView(CullingViewKind::Player, 0, 2, true);
 
 	RenderPacketCullingView invalidShadowView;
 	invalidShadowView.kind = CullingViewKind::Shadow;
@@ -130,18 +134,24 @@ int main(){
 	assert(shadowView.instanceID != 0);
 	assert(shadowView.instanceID != playerSecondTile.instanceID);
 	assert(shadowView.instanceID != editorShadowView.instanceID);
+	assert(shadowView.instanceID != perspectiveShadowView.instanceID);
 	assert(RenderPacketViewCulling::HasStableViewIdentity(editorView));
 	assert(RenderPacketViewCulling::HasStableViewIdentity(shadowView));
+	assert(RenderPacketViewCulling::HasStableViewIdentity(perspectiveShadowView));
 	assert(!RenderPacketViewCulling::HasStableViewIdentity(invalidShadowView));
 
 	const CullingFrustum editorFrustum =
 		RenderPacketViewCulling::BuildFrustum(editorView);
 	const CullingFrustum shadowFrustum =
 		RenderPacketViewCulling::BuildFrustum(shadowView);
+	const CullingFrustum perspectiveShadowFrustum =
+		RenderPacketViewCulling::BuildFrustum(perspectiveShadowView);
 	assert(!IsZeroPlane(editorFrustum.planes[4]));
 	assert(!IsZeroPlane(editorFrustum.planes[5]));
 	assert(IsZeroPlane(shadowFrustum.planes[4]));
 	assert(IsZeroPlane(shadowFrustum.planes[5]));
+	assert(!IsZeroPlane(perspectiveShadowFrustum.planes[4]));
+	assert(!IsZeroPlane(perspectiveShadowFrustum.planes[5]));
 
 	CullingVisibilitySet visibility;
 	RenderPacketViewCulling::Prepare(visibility, packets, editorView);
@@ -149,10 +159,15 @@ int main(){
 	RenderPacketViewCulling::Prepare(visibility, packets, shadowView);
 	RenderPacketViewCulling::Prepare(visibility, packets, playerSecondTile);
 	RenderPacketViewCulling::Prepare(visibility, packets, editorShadowView);
+	RenderPacketViewCulling::Prepare(
+		visibility,
+		packets,
+		perspectiveShadowView
+	);
 	RenderPacketViewCulling::Prepare(visibility, packets, invalidShadowView);
 
 	assert(visibility.FrameSerial() == 12);
-	assert(visibility.ViewCount() == 5);
+	assert(visibility.ViewCount() == 6);
 	assert(RenderPacketViewCulling::ShouldRender(
 		visibility, editorView, packets.Packets()[0]));
 	assert(!RenderPacketViewCulling::ShouldRender(
@@ -171,6 +186,14 @@ int main(){
 		visibility, shadowView, packets.Packets()[2]));
 	assert(RenderPacketViewCulling::ShouldRender(
 		visibility, shadowView, packets.Packets()[3]));
+	assert(RenderPacketViewCulling::ShouldRender(
+		visibility, perspectiveShadowView, packets.Packets()[0]));
+	assert(!RenderPacketViewCulling::ShouldRender(
+		visibility, perspectiveShadowView, packets.Packets()[1]));
+	assert(!RenderPacketViewCulling::ShouldRender(
+		visibility, perspectiveShadowView, packets.Packets()[2]));
+	assert(!RenderPacketViewCulling::ShouldRender(
+		visibility, perspectiveShadowView, packets.Packets()[3]));
 	assert(RenderPacketViewCulling::ShouldRender(
 		visibility, invalidShadowView, packets.Packets()[1]));
 	return 0;
