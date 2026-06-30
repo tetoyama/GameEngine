@@ -18,6 +18,15 @@
 
 LightingとPost EffectだけでGPU Frameの約92.7%を占める。最初にLighting 39.6msを分解し、その後Post Effectへ進む。
 
+診断UI:
+
+```text
+Project Settings
+    -> Lighting
+```
+
+診断設定はRuntime専用であり、Scene YAMLまたはProject YAMLへ保存しない。
+
 ---
 
 ## 1. 禁止事項
@@ -64,11 +73,13 @@ LightingとPost EffectだけでGPU Frameの約92.7%を占める。最初にLight
 
 Shadow Map生成時間は`Player Shadow`へ計上されるが、Lighting Shader内のPCF Sample時間は`Player Lighting`へ計上される。Shadow Map生成が2.1msでも、Shadow参照がLighting 39.6msの主要部分である可能性がある。
 
+CSMは最大4 Cascadeを評価し、既定PCF半径2では1 Cascadeあたり25比較Sampleとなる。Fallback経路では1 Pixelあたり最大100比較Sampleへ達する可能性があるため、No ShadowとPCF Overrideを最初に比較する。
+
 ---
 
 ## 3. Lighting診断用定数バッファ
 
-`b3: CbLightingDebug`を追加する。
+`b3: CbLightingDebug`を使用する。
 
 ```text
 Flags
@@ -88,11 +99,18 @@ Reserved
 契約:
 
 - 16 Byte境界を維持
-- 未Bind時に通常描画へ戻れるよう0をDefaultとする
+- 全フィールド0を通常描画とする
 - Player / Editorへ同じ設定を適用
 - Debug診断専用でScene YAMLへ保存しない
 - Runtime中に変更してもShader再Compileを要求しない
 - Material ID分岐には使用しない
+
+実装:
+
+- PCF ModeとEnvironment Flagは`b3`をPBR ShaderへBindする
+- Shadow無効と最大Light数は`CbPerFrame`の一時コピーへ適用する
+- Lighting Draw後に元の`CbPerFrame`を即時復元する
+- Shadow無効時もShadow Map生成Passは実行し、生成時間と参照時間を分離する
 
 ---
 
@@ -247,18 +265,23 @@ Stencil方式は次を検証してから採用する。
 
 ---
 
-## 6. 実装順序
+## 6. 実装状況
 
 - [x] GPU Pass単位Timestamp
 - [x] Player Lighting / Shadow / Post Effect分離
 - [x] 2026-06-30 Baseline取得
-- [ ] `CbLightingDebug`追加
-- [ ] Shadow Disable Toggle
-- [ ] PCF 1x1 / 3x3 / 5x5 / Default Toggle
-- [ ] Environment Disable Toggle
-- [ ] Max Active Lights Toggle
-- [ ] Project Settings / RenderSystemへ診断UI追加
-- [ ] Smoke Test
+- [x] `CbLightingDebug`追加
+- [x] Shadow Disable Toggle
+- [x] PCF 1x1 / 3x3 / 5x5 / Default Toggle
+- [x] Environment Disable Toggle
+- [x] Max Active Lights Toggle
+- [x] Project SettingsへLighting診断UI追加
+- [x] Settings Contract Smoke
+- [x] PBR Shader Compile Smoke
+- [x] 専用GitHub Actions Workflow
+- [ ] Windows Build確認
+- [ ] Lighting Diagnostic Contract確認
+- [ ] Default設定の描画一致確認
 - [ ] No Shadow測定
 - [ ] PCF比較
 - [ ] No Environment測定
