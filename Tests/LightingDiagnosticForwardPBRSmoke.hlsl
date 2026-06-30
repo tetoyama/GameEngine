@@ -1,8 +1,7 @@
-#define FORWARD_FUNC_HLSLI
-
 #include "../Source/Shader/commonDefine.h"
 #include "../Source/Shader/common.hlsl"
 #include "../Source/Shader/Material/MaterialDefine.hlsli"
+#include "../Source/Shader/Material/FowardFunc.hlsli"
 #include "../Source/Shader/Material/MaterialFunc.hlsli"
 #include "../Source/Shader/Material/PBRShader.hlsli"
 
