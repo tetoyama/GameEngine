@@ -12,12 +12,21 @@ inline constexpr float MinimumDepthSpan =
 	LOCAL_LIGHT_SHADOW_MIN_DEPTH_SPAN;
 inline constexpr float MaximumNdcBias =
 	LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS;
+inline constexpr float PointShadowFarMultiplier = 2.0f;
 
 inline float ResolveFarPlane(float lightRange) noexcept {
 	if(!std::isfinite(lightRange)){
 		return NearPlane + MinimumDepthSpan;
 	}
 	return (std::max)(lightRange, NearPlane + MinimumDepthSpan);
+}
+
+inline float ResolvePointShadowFarPlane(float lightRange) noexcept {
+	const float lightingRange = ResolveFarPlane(lightRange);
+	return (std::max)(
+		lightingRange * PointShadowFarMultiplier,
+		NearPlane + MinimumDepthSpan
+	);
 }
 
 inline bool IsRangeValid(float lightRange) noexcept {
