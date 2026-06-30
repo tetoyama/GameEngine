@@ -160,6 +160,14 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         if (NdotL <= 0)
             continue;
 
+        // Point / Spotの影響範囲外ではDiffuseとSpecularが必ず0になる。
+        // 既存のAmbient加算だけを保持し、Shadow評価とBRDF計算を省略する。
+        if (attenuation <= 0.0f)
+        {
+            result.ambient += light.Ambient.rgb;
+            continue;
+        }
+
         float shadow = 1.0;
 
         if (ShouldEvaluateShadow(light))
