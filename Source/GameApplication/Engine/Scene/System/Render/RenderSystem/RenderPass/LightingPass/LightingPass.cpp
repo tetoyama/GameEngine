@@ -35,6 +35,14 @@
 #include "Resources/Data/textureData.h"
 #include <ImGui/imgui_impl_dx11.h>
 
+namespace {
+constexpr UINT MaterialStencilReadMask = 0xffu;
+
+UINT ResolveMaterialStencilRef(std::size_t materialIndex) noexcept {
+	return static_cast<UINT>(materialIndex & MaterialStencilReadMask);
+}
+} // namespace
+
 void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 
 	m_renderSystem = renderSystem;
@@ -58,6 +66,23 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 	envDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	m_context->graphics->GetDevice()->CreateSamplerState(&envDesc, &m_EnvMapSampler);
 
+	D3D11_DEPTH_STENCIL_DESC stencilDesc{};
+	stencilDesc.DepthEnable = FALSE;
+	stencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	stencilDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+	stencilDesc.StencilEnable = TRUE;
+	stencilDesc.StencilReadMask = MaterialStencilReadMask;
+	stencilDesc.StencilWriteMask = 0x00;
+	stencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
+	stencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	stencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	stencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+	stencilDesc.BackFace = stencilDesc.FrontFace;
+	m_context->graphics->GetDevice()->CreateDepthStencilState(
+		&stencilDesc,
+		m_materialStencilTestState.ReleaseAndGetAddressOf()
+	);
+
 	D3D11_BUFFER_DESC debugBufferDesc{};
 	debugBufferDesc.ByteWidth = sizeof(CbLightingDebug);
 	debugBufferDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -78,6 +103,7 @@ void LightingPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* c
 void LightingPass::Finalize() {
 	m_LightingVertexShader.reset();
 	m_lightingDebugBuffer.Reset();
+	m_materialStencilTestState.Reset();
 
 	delete pRenderTarget;
 	pRenderTarget = nullptr;
@@ -111,6 +137,10 @@ void LightingPass::SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shado
 		dc->PSSetShaderResources(LightingSlot_EnvironmentMap, 1, m_EnvironmentMap->pTexture.GetAddressOf());
 	}
 
+	ID3D11SamplerState* shadowComparisonSampler =
+		shadowMapPass ? shadowMapPass->shadowSampler : nullptr;
+	dc->PSSetSamplers(1, 1, &shadowComparisonSampler);
+
 	ID3D11SamplerState* samplers[] = {m_LinearSampler};
 	dc->PSSetSamplers(2, 1, samplers);
 	if(m_EnvMapSampler){
@@ -127,7 +157,19 @@ void LightingPass::Execute(const RenderPassContext& ctx){
 	ID3D11DeviceContext* dc = m_context->graphics->GetDeviceContext();
 	GraphicsContext* gc = m_context->renderer->GetGraphicsContext();
 
-	dc->OMSetRenderTargets(1, pRenderTarget->rtv.GetAddressOf(), nullptr);
+	GBufferPass* gBufferPass = m_renderSystem
+		? m_renderSystem->GetRenderPass<GBufferPass>()
+		: nullptr;
+	ID3D11DepthStencilView* materialStencilView =
+		gBufferPass && gBufferPass->pDepthTarget
+		? gBufferPass->pDepthTarget->dsv.Get()
+		: nullptr;
+
+	dc->OMSetRenderTargets(
+		1,
+		pRenderTarget->rtv.GetAddressOf(),
+		materialStencilView
+	);
 	dc->VSSetShader(m_LightingVertexShader->m_VertexShader.Get(), nullptr, 0);
 	dc->IASetInputLayout(m_LightingVertexShader->m_VertexLayout.Get());
 
@@ -182,8 +224,16 @@ void LightingPass::Execute(const RenderPassContext& ctx){
 		}
 	}
 
-	for(const auto& ps : m_renderSystem->GetDeferredPSList()){
+	const auto& deferredPixelShaders = m_renderSystem->GetDeferredPSList();
+	for(std::size_t materialIndex = 0;
+		materialIndex < deferredPixelShaders.size();
+		++materialIndex){
+		const auto& ps = deferredPixelShaders[materialIndex];
 		if(!ps) continue;
+		dc->OMSetDepthStencilState(
+			m_materialStencilTestState.Get(),
+			ResolveMaterialStencilRef(materialIndex)
+		);
 		dc->PSSetShader(ps->m_PixelShader.Get(), nullptr, 0);
 		gc->DrawQuad();
 	}
@@ -198,6 +248,8 @@ void LightingPass::Execute(const RenderPassContext& ctx){
 	ID3D11ShaderResourceView* nullSRV[LightingSlot_Max] = {};
 	dc->PSSetShaderResources(0, LightingSlot_Max, nullSRV);
 
-	ID3D11SamplerState* nullSampler[2] = {nullptr, nullptr};
-	dc->PSSetSamplers(2, 2, nullSampler);
+	ID3D11SamplerState* nullSamplers[3] = {nullptr, nullptr, nullptr};
+	dc->PSSetSamplers(1, 3, nullSamplers);
+	dc->OMSetDepthStencilState(nullptr, 0);
+	dc->OMSetRenderTargets(1, pRenderTarget->rtv.GetAddressOf(), nullptr);
 }
