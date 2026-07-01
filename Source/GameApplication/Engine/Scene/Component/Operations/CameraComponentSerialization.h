@@ -7,6 +7,8 @@
 // =======================================================================
 #pragma once
 
+#include <algorithm>
+
 #include "Resources/resourceService.h"
 #include "Scene/scene.h"
 #include "Scene/sceneManager.h"
@@ -23,6 +25,7 @@ inline YAML::Node Encode(const CameraComponent& camera){
 	node["viewMatrix"] = camera.viewMatrix;
 	node["nextLinkId"] = camera.nextLinkId;
 	node["nextPinId"] = camera.nextPinId;
+	node["PostEffectEditorZoom"] = camera.postEffectEditorZoom;
 
 	for(const CameraPostEffect& effect : camera.postEffects){
 		YAML::Node effectNode;
@@ -89,6 +92,13 @@ inline bool Decode(
 	}
 	if(node["nextLinkId"]) camera.nextLinkId = node["nextLinkId"].as<int>();
 	if(node["nextPinId"]) camera.nextPinId = node["nextPinId"].as<int>();
+	if(node["PostEffectEditorZoom"]){
+		camera.postEffectEditorZoom = std::clamp(
+			node["PostEffectEditorZoom"].as<float>(),
+			0.35f,
+			2.0f
+		);
+	}
 
 	ResourceService* resources =
 		context && context->manager ? context->manager->resource : nullptr;
