@@ -43,4 +43,5 @@ public:
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_lightingDebugBuffer;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_materialStencilTestState;
 };
