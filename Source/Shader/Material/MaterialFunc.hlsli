@@ -181,6 +181,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
                     input.worldPos,
                     currentEntryIndex,
                     entrySpan,
+                    NdotL,
                     shadowParam);
             }
             else
@@ -189,6 +190,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
                     input.worldPos,
                     light,
                     currentEntryIndex,
+                    NdotL,
                     shadowParam);
             }
         }
