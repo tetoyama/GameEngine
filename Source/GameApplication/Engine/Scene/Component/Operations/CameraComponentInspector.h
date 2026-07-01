@@ -118,6 +118,13 @@ inline void DrawCameraParameters(CameraComponent& camera){
 }
 
 inline void DrawScreenInputNode(CameraComponent& camera){
+	// ImNodes consumes node positions during BeginNode().
+	// Apply the zoomed editor-space position before BeginNode every frame.
+	ImNodes::SetNodeEditorSpacePos(
+		-1,
+		ToZoomedEditorPos(camera, camera.screenInputNode.nodePos)
+	);
+
 	ImNodes::BeginNode(-1);
 	ImNodes::BeginNodeTitleBar();
 	ImGui::TextUnformatted("ScreenInput");
@@ -127,14 +134,7 @@ inline void DrawScreenInputNode(CameraComponent& camera){
 	ImNodes::EndOutputAttribute();
 	ImNodes::EndNode();
 
-	if(!camera.screenInputNode.initialized){
-		ImNodes::SetNodeEditorSpacePos(
-			-1,
-			ToZoomedEditorPos(camera, camera.screenInputNode.nodePos)
-		);
-		camera.screenInputNode.initialized = true;
-	}
-
+	camera.screenInputNode.initialized = true;
 	camera.screenInputNode.nodePos = FromZoomedEditorPos(
 		camera,
 		ImNodes::GetNodeEditorSpacePos(-1)
@@ -147,6 +147,11 @@ inline void DrawScreenOutputNode(CameraComponent& camera){
 		camera.InvalidatePostEffectGraphCache();
 	}
 
+	ImNodes::SetNodeEditorSpacePos(
+		-2,
+		ToZoomedEditorPos(camera, camera.screenOutputNode.nodePos)
+	);
+
 	ImNodes::BeginNode(-2);
 	ImNodes::BeginNodeTitleBar();
 	ImGui::TextUnformatted("ScreenOutput");
@@ -156,14 +161,7 @@ inline void DrawScreenOutputNode(CameraComponent& camera){
 	ImNodes::EndInputAttribute();
 	ImNodes::EndNode();
 
-	if(!camera.screenOutputNode.initialized){
-		ImNodes::SetNodeEditorSpacePos(
-			-2,
-			ToZoomedEditorPos(camera, camera.screenOutputNode.nodePos)
-		);
-		camera.screenOutputNode.initialized = true;
-	}
-
+	camera.screenOutputNode.initialized = true;
 	camera.screenOutputNode.nodePos = FromZoomedEditorPos(
 		camera,
 		ImNodes::GetNodeEditorSpacePos(-2)
@@ -228,20 +226,14 @@ inline void DrawEffectNode(
 	int effectIndex
 ){
 	const int nodeId = effectIndex + 2;
-	ImNodes::BeginNode(nodeId);
 
-	if(!effect.initialized){
-		ImNodes::SetNodeEditorSpacePos(
-			nodeId,
-			ToZoomedEditorPos(camera, effect.nodePos)
-		);
-		effect.initialized = true;
-	} else {
-		effect.nodePos = FromZoomedEditorPos(
-			camera,
-			ImNodes::GetNodeEditorSpacePos(nodeId)
-		);
-	}
+	ImNodes::SetNodeEditorSpacePos(
+		nodeId,
+		ToZoomedEditorPos(camera, effect.nodePos)
+	);
+
+	ImNodes::BeginNode(nodeId);
+	effect.initialized = true;
 
 	ImNodes::BeginNodeTitleBar();
 	char nameBuffer[128]{};
@@ -331,6 +323,11 @@ inline void DrawEffectNode(
 	}
 
 	ImNodes::EndNode();
+
+	effect.nodePos = FromZoomedEditorPos(
+		camera,
+		ImNodes::GetNodeEditorSpacePos(nodeId)
+	);
 }
 
 inline void DrawLinks(CameraComponent& camera){
