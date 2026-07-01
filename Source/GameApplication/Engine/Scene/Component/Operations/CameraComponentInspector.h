@@ -8,6 +8,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -26,6 +27,7 @@ inline constexpr float PostEffectNodePreviewWidth = 120.0f;
 inline constexpr float PostEffectNodeOutputColumnX = 128.0f;
 inline constexpr float PostEffectEditorZoomMin = 0.35f;
 inline constexpr float PostEffectEditorZoomMax = 2.0f;
+inline constexpr float PostEffectEditorZoomEpsilon = 0.0001f;
 
 inline float ResolveEditorZoom(CameraComponent& camera){
 	camera.postEffectEditorZoom = std::clamp(
@@ -34,6 +36,17 @@ inline float ResolveEditorZoom(CameraComponent& camera){
 		PostEffectEditorZoomMax
 	);
 	return camera.postEffectEditorZoom;
+}
+
+inline bool IsZoomRelayoutRequired(const CameraComponent& camera){
+	return std::abs(
+		camera.postEffectEditorZoom -
+		camera.lastAppliedPostEffectEditorZoom
+	) > PostEffectEditorZoomEpsilon;
+}
+
+inline void MarkZoomLayoutApplied(CameraComponent& camera){
+	camera.lastAppliedPostEffectEditorZoom = camera.postEffectEditorZoom;
 }
 
 inline float Zoomed(CameraComponent& camera, float value){
@@ -73,6 +86,7 @@ inline void EnsureGraphInitialized(CameraComponent& camera){
 	});
 	camera.InvalidatePostEffectGraphCache();
 	camera.initialized = true;
+	camera.lastAppliedPostEffectEditorZoom = -1.0f;
 }
 
 inline void DrawCameraParameters(CameraComponent& camera){
@@ -117,12 +131,28 @@ inline void DrawCameraParameters(CameraComponent& camera){
 	}
 }
 
-inline void DrawScreenInputNode(CameraComponent& camera){
-	// ImNodes consumes node positions during BeginNode().
-	// Apply the zoomed editor-space position before BeginNode every frame.
+inline void ApplyNodePositionWhenNeeded(
+	CameraComponent& camera,
+	int nodeId,
+	const Vector2& logicalPosition,
+	bool forceApply
+){
+	if(!forceApply){
+		return;
+	}
+
 	ImNodes::SetNodeEditorSpacePos(
+		nodeId,
+		ToZoomedEditorPos(camera, logicalPosition)
+	);
+}
+
+inline void DrawScreenInputNode(CameraComponent& camera, bool relayoutRequired){
+	ApplyNodePositionWhenNeeded(
+		camera,
 		-1,
-		ToZoomedEditorPos(camera, camera.screenInputNode.nodePos)
+		camera.screenInputNode.nodePos,
+		relayoutRequired || !camera.screenInputNode.initialized
 	);
 
 	ImNodes::BeginNode(-1);
@@ -141,15 +171,17 @@ inline void DrawScreenInputNode(CameraComponent& camera){
 	);
 }
 
-inline void DrawScreenOutputNode(CameraComponent& camera){
+inline void DrawScreenOutputNode(CameraComponent& camera, bool relayoutRequired){
 	if(camera.screenOutputNode.inputPins.empty()){
 		camera.screenOutputNode.inputPins.push_back(camera.nextPinId++);
 		camera.InvalidatePostEffectGraphCache();
 	}
 
-	ImNodes::SetNodeEditorSpacePos(
+	ApplyNodePositionWhenNeeded(
+		camera,
 		-2,
-		ToZoomedEditorPos(camera, camera.screenOutputNode.nodePos)
+		camera.screenOutputNode.nodePos,
+		relayoutRequired || !camera.screenOutputNode.initialized
 	);
 
 	ImNodes::BeginNode(-2);
@@ -223,13 +255,16 @@ inline void DrawEffectNode(
 	CameraComponent& camera,
 	CameraPostEffect& effect,
 	SceneContext* context,
-	int effectIndex
+	int effectIndex,
+	bool relayoutRequired
 ){
 	const int nodeId = effectIndex + 2;
 
-	ImNodes::SetNodeEditorSpacePos(
+	ApplyNodePositionWhenNeeded(
+		camera,
 		nodeId,
-		ToZoomedEditorPos(camera, effect.nodePos)
+		effect.nodePos,
+		relayoutRequired || !effect.initialized
 	);
 
 	ImNodes::BeginNode(nodeId);
@@ -451,6 +486,7 @@ inline void AddEffect(CameraComponent& camera, SceneContext* context){
 
 	camera.postEffects.push_back(std::move(effect));
 	camera.InvalidatePostEffectGraphCache();
+	camera.lastAppliedPostEffectEditorZoom = -1.0f;
 }
 
 inline void DrawPostEffectZoomControls(CameraComponent& camera){
@@ -486,6 +522,7 @@ inline void Inspect(CameraComponent& camera, SceneContext* context){
 	ImGui::BeginChild("NodeEditorRegion", ImVec2(0.0f, 400.0f), true);
 
 	const float zoom = ResolveEditorZoom(camera);
+	const bool relayoutRequired = IsZoomRelayoutRequired(camera);
 	ImNodes::PushStyleVar(ImNodesStyleVar_NodePadding, ImVec2(4.0f * zoom, 4.0f * zoom));
 	ImNodes::PushStyleVar(ImNodesStyleVar_PinCircleRadius, 3.0f * zoom);
 	ImNodes::PushStyleVar(ImNodesStyleVar_PinHoverRadius, 10.0f * zoom);
@@ -493,12 +530,13 @@ inline void Inspect(CameraComponent& camera, SceneContext* context){
 	ImNodes::PushStyleVar(ImNodesStyleVar_GridSpacing, 16.0f * zoom);
 	ImNodes::BeginNodeEditor();
 
-	DrawScreenInputNode(camera);
-	DrawScreenOutputNode(camera);
+	DrawScreenInputNode(camera, relayoutRequired);
+	DrawScreenOutputNode(camera, relayoutRequired);
 	for(int index = 0; index < static_cast<int>(camera.postEffects.size()); ++index){
-		DrawEffectNode(camera, camera.postEffects[index], context, index);
+		DrawEffectNode(camera, camera.postEffects[index], context, index, relayoutRequired);
 	}
 	DrawLinks(camera);
+	MarkZoomLayoutApplied(camera);
 
 	ImNodes::MiniMap(0.2f, ImNodesMiniMapLocation_BottomRight);
 	ImNodes::EndNodeEditor();
