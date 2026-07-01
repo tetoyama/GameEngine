@@ -66,6 +66,32 @@ int ResolvePackedLightEntrySpan(LIGHT light, int firstEntryIndex, int activeEntr
     return min(span, remainingEntries);
 }
 
+float3 ResolvePointShadowFaceDirection(int faceIndex)
+{
+    if (faceIndex == 0) return float3( 1.0,  0.0,  0.0);
+    if (faceIndex == 1) return float3(-1.0,  0.0,  0.0);
+    if (faceIndex == 2) return float3( 0.0,  1.0,  0.0);
+    if (faceIndex == 3) return float3( 0.0, -1.0,  0.0);
+    if (faceIndex == 4) return float3( 0.0,  0.0,  1.0);
+    return float3(0.0, 0.0, -1.0);
+}
+
+float ResolvePointReceiverFaceAlignment(
+    float3 worldPos,
+    float3 lightPosition,
+    float3 receiverNormal)
+{
+    const float3 lightToReceiver = worldPos - lightPosition;
+    const int selectedFace = SelectPointShadowFace(lightToReceiver);
+    const float3 faceDirection = ResolvePointShadowFaceDirection(selectedFace);
+
+    // Perspective shadow acne is governed by the receiver slope relative to
+    // the selected face camera, not by NdotL to the radial light direction.
+    // A horizontal floor viewed by a horizontal cubemap face is a grazing
+    // receiver even while its radial NdotL remains non-zero.
+    return saturate(abs(dot(normalize(receiverNormal), faceDirection)));
+}
+
 bool ShouldEvaluateShadow(LIGHT light)
 {
     if (light.CastShadow == 0)
@@ -177,11 +203,17 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
             }
             else if (light.LightType == LIGHT_TYPE_POINT && light.Dummy == -1)
             {
+                const float receiverFaceAlignment =
+                    ResolvePointReceiverFaceAlignment(
+                        input.worldPos,
+                        light.Position.xyz,
+                        N);
+
                 shadow = ShadowFactorPoint(
                     input.worldPos,
                     currentEntryIndex,
                     entrySpan,
-                    NdotL,
+                    receiverFaceAlignment,
                     shadowParam);
             }
             else
