@@ -35,6 +35,12 @@
 
 namespace {
 
+constexpr UINT MaterialStencilReadWriteMask = 0xffu;
+
+UINT ResolveMaterialStencilRef(std::uint64_t materialKey) noexcept {
+	return static_cast<UINT>(materialKey & MaterialStencilReadWriteMask);
+}
+
 bool IsPacketRangeValid(
 	const StaticBatchPacketCacheEntry& group,
 	std::span<const std::size_t> packetIndices,
@@ -130,6 +136,23 @@ void GBufferPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* co
 	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	context->graphics->GetDevice()->CreateSamplerState(&samplerDesc, &sampler);
 
+	D3D11_DEPTH_STENCIL_DESC stencilDesc{};
+	stencilDesc.DepthEnable = TRUE;
+	stencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	stencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+	stencilDesc.StencilEnable = TRUE;
+	stencilDesc.StencilReadMask = MaterialStencilReadWriteMask;
+	stencilDesc.StencilWriteMask = MaterialStencilReadWriteMask;
+	stencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	stencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+	stencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	stencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+	stencilDesc.BackFace = stencilDesc.FrontFace;
+	context->graphics->GetDevice()->CreateDepthStencilState(
+		&stencilDesc,
+		m_materialStencilWriteState.ReleaseAndGetAddressOf()
+	);
+
 	const Vector2 size(
 		static_cast<float>(context->graphics->m_width),
 		static_cast<float>(context->graphics->m_height)
@@ -162,6 +185,7 @@ void GBufferPass::Finalize(){
 			m_staticBatchVisibleGpuInstances.Release(*rhiDevice);
 		}
 	}
+	m_materialStencilWriteState.Reset();
 	m_staticBatchVisibleInstances.Reset();
 	m_staticBatchTelemetry.Reset();
 	m_GBufferPixelShader.reset();
@@ -210,6 +234,7 @@ void GBufferPass::Execute(const RenderPassContext& context){
 		targets[index] = pRenderTargets[index]->rtv.Get();
 	}
 	deviceContext->OMSetRenderTargets(GBufferSlot_Max, targets, pDepthTarget->dsv.Get());
+	deviceContext->OMSetDepthStencilState(m_materialStencilWriteState.Get(), 0);
 
 	RenderPassContext passContext = context;
 	passContext.passPhase = RenderPhase::PHASE_GBUFFER;
@@ -247,16 +272,6 @@ void GBufferPass::Execute(const RenderPassContext& context){
 			++m_staticBatchTelemetry.targetBindingFailureCount;
 			return;
 		}
-
-		SystemRegistry* registry =
-			m_context->sceneManager->GetSystemRegistry();
-		StaticBatchUploadSystem* uploadSystem = registry
-			? registry->GetSystem<StaticBatchUploadSystem>()
-			: nullptr;
-		if(!uploadSystem || !uploadSystem->IsPipelineReady()){
-			return;
-		}
-		m_staticBatchTelemetry.pipelineReady = true;
 
 		RHI::RenderHardwareInterfaceService* rhiService =
 			m_context->graphics->GetRHIService();
@@ -376,6 +391,7 @@ void GBufferPass::Execute(const RenderPassContext& context){
 			++m_staticBatchTelemetry.targetBindingFailureCount;
 			return;
 		}
+		deviceContext->OMSetDepthStencilState(m_materialStencilWriteState.Get(), 0);
 
 		RHI::CommandListCreateDesc commandDesc;
 		commandDesc.queueType = RHI::CommandQueueType::Graphics;
@@ -471,6 +487,10 @@ void GBufferPass::Execute(const RenderPassContext& context){
 			objectInfo.ObjectID = 0;
 			objectInfo.ShaderID = material.state.shaderID;
 			graphics->SetObjectInfo(objectInfo);
+			deviceContext->OMSetDepthStencilState(
+				m_materialStencilWriteState.Get(),
+				ResolveMaterialStencilRef(material.state.shaderID)
+			);
 
 			ID3D11ShaderResourceView* diffuseTexture =
 				material.state.diffuseTexture;
@@ -532,6 +552,8 @@ void GBufferPass::Execute(const RenderPassContext& context){
 
 	submitStaticGroups();
 	bindRegularPipeline();
+	deviceContext->OMSetRenderTargets(GBufferSlot_Max, targets, pDepthTarget->dsv.Get());
+	deviceContext->OMSetDepthStencilState(m_materialStencilWriteState.Get(), 0);
 
 	for(std::size_t packetIndex = 0;
 		packetIndex < packetBuffer.Packets().size();
@@ -561,6 +583,12 @@ void GBufferPass::Execute(const RenderPassContext& context){
 		objectInfo.ObjectID = packet.entity;
 		objectInfo.ShaderID = static_cast<int>(packet.materialKey);
 		m_context->graphics->SetObjectInfo(objectInfo);
+		deviceContext->OMSetDepthStencilState(
+			m_materialStencilWriteState.Get(),
+			ResolveMaterialStencilRef(packet.materialKey)
+		);
 		renderable->Execute(passContext, packet);
 	}
+
+	graphics->SetDepthMode(DepthMode::Write);
 }
