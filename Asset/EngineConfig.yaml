@@ -6,7 +6,7 @@ Systems:
   TransformSystem: ~
   CameraSystem: ~
   RenderSystem:
-    ShaderPath: Source/Shader/AutoGen/
+    ShaderPath: Source/Shader/AutoGen
     ShaderMaterial:
       UnlitShader.hlsli: ShadeMaterial_Unlit
       PBRShader.hlsli: ShadeMaterial_PBR
