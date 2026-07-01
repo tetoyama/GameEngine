@@ -249,7 +249,7 @@ private:
 	SceneManagerContext* m_context = nullptr;
 	std::vector<std::shared_ptr<IRenderable>> m_renderables;
 	PostEffectShader* copyShader = nullptr;
-	std::string ShaderPath = "Source/Shader/AutoGen/";
+	std::string ShaderPath = "Source/Shader/AutoGen";
 
 	std::shared_ptr<TextureData> PlayButtonTexture;
 	std::shared_ptr<TextureData> PauseButtonTexture;
