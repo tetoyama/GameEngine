@@ -104,6 +104,7 @@ void LightingPass::Finalize() {
 	m_LightingVertexShader.reset();
 	m_lightingDebugBuffer.Reset();
 	m_materialStencilTestState.Reset();
+	m_activeGBufferPass = nullptr;
 
 	delete pRenderTarget;
 	pRenderTarget = nullptr;
@@ -120,6 +121,7 @@ void LightingPass::Finalize() {
 }
 
 void LightingPass::SetTextureSlot(GBufferPass* gBufferPass, ShadowMapPass* shadowMapPass, GraphicsContext* gc) {
+	m_activeGBufferPass = gBufferPass;
 	ID3D11DeviceContext* dc = gc->GetDeviceContext();
 
 	ID3D11ShaderResourceView* nullSRV[LightingSlot_Max] = {};
@@ -157,12 +159,9 @@ void LightingPass::Execute(const RenderPassContext& ctx){
 	ID3D11DeviceContext* dc = m_context->graphics->GetDeviceContext();
 	GraphicsContext* gc = m_context->renderer->GetGraphicsContext();
 
-	GBufferPass* gBufferPass = m_renderSystem
-		? m_renderSystem->GetRenderPass<GBufferPass>()
-		: nullptr;
 	ID3D11DepthStencilView* materialStencilView =
-		gBufferPass && gBufferPass->pDepthTarget
-		? gBufferPass->pDepthTarget->dsv.Get()
+		m_activeGBufferPass && m_activeGBufferPass->pDepthTarget
+		? m_activeGBufferPass->pDepthTarget->dsv.Get()
 		: nullptr;
 
 	dc->OMSetRenderTargets(
