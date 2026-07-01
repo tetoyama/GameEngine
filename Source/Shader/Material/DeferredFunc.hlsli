@@ -95,29 +95,55 @@ float SampleShadowAtlasPCF(
     int tileIndex,
     ShadowPCFParams pcf)
 {
-    uint grid = (uint) ceil(sqrt((float) ShadowAtlasCount));
+    uint atlasCount = max((uint) ShadowAtlasCount, 1u);
+    uint grid = max((uint) ceil(sqrt((float) atlasCount)), 1u);
     float tile = 1.0 / grid;
 
-    uint gx = tileIndex % grid;
-    uint gy = tileIndex / grid;
-
-    float2 tileMin = float2(gx, gy) * tile;
-    float2 suvBase = tileMin + uv * tile;
+    uint safeTileIndex = min((uint) max(tileIndex, 0), atlasCount - 1u);
+    uint gx = safeTileIndex % grid;
+    uint gy = safeTileIndex / grid;
 
     uint texW, texH;
     ShadowMap.GetDimensions(texW, texH);
 
-    float2 texelSize = float2(1.0 / texW, 1.0 / texH);
-    texelSize *= tile;
+    // Atlas UV上の1 texel。Tile比率を重ねて掛けるとsub-texelになり、
+    // 比較フィルタのfootprintと一致しないため使用しない。
+    float2 atlasTexelSize = float2(1.0 / texW, 1.0 / texH);
+    float2 tileMin = float2(gx, gy) * tile;
+    float2 tileMax = tileMin + tile;
 
+    // SampleCmpの線形比較フィルタとPCF tapが隣接Tileへ侵入しないよう、
+    // 常に現在Tileのhalf-texel内側へ制限する。
+    float2 sampleMin = tileMin + atlasTexelSize * 0.5;
+    float2 sampleMax = tileMax - atlasTexelSize * 0.5;
+    float2 suvBase = clamp(
+        tileMin + saturate(uv) * tile,
+        sampleMin,
+        sampleMax);
+
+    float shadow = 0.0;
+    int count = 0;
     int radius = max(pcf.KernelRadius, 0);
-    return SampleCascadePCF(
-        suvBase,
-        depth,
-        texelSize,
-        pcf.StepTexel,
-        radius
-    );
+
+    [loop]
+    for (int sy = -radius; sy <= radius; sy++)
+    {
+        [loop]
+        for (int sx = -radius; sx <= radius; sx++)
+        {
+            float2 sampleUV = clamp(
+                suvBase + float2(sx, sy) * atlasTexelSize * pcf.StepTexel,
+                sampleMin,
+                sampleMax);
+            shadow += ShadowMap.SampleCmpLevelZero(
+                ShadowSampler,
+                sampleUV,
+                depth);
+            count++;
+        }
+    }
+
+    return shadow / max(count, 1);
 }
 
 // =====================================================
