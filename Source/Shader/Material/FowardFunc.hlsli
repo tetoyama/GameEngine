@@ -135,6 +135,7 @@ float ShadowFactor(
     float3 worldPos,
     LIGHT light,
     int lightEntryIndex,
+    float receiverNdotL,
     ShadowPCFParams pcf)
 {
     float4 sp = mul(float4(worldPos, 1.0), light.LightView);
@@ -158,7 +159,8 @@ float ShadowFactor(
         bias = ResolvePerspectiveShadowDepthBias(
             perspectiveViewDepth,
             light.Param.x,
-            light.Param.w);
+            light.Param.w,
+            receiverNdotL);
     }
 
     float depth = saturate(sp.z - bias);
@@ -183,6 +185,7 @@ float ShadowFactorPoint(
     float3 worldPos,
     int firstLightIdx,
     int faceCount,
+    float receiverNdotL,
     ShadowPCFParams pcf)
 {
     if (firstLightIdx >= LIGHT_MAX_COUNT || faceCount <= 0)
@@ -222,7 +225,8 @@ float ShadowFactorPoint(
     const float bias = ResolvePerspectiveShadowDepthBias(
         perspectiveViewDepth,
         faceLight.Param.x,
-        faceLight.Param.w);
+        faceLight.Param.w,
+        receiverNdotL);
     float depth = saturate(sp.z - bias);
 
     int tileIndex = ResolveShadowAtlasTileForEntry(faceLightIdx);
