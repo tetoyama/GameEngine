@@ -99,7 +99,6 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
 
     int activeEntryCount = clamp(ActiveLightCount, 0, LIGHT_MAX_COUNT);
     int entryIndex = 0;
-    int shadowAtlasOffset = 0;
 
     [loop]
     while (entryIndex < activeEntryCount)
@@ -110,13 +109,8 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
             light,
             currentEntryIndex,
             activeEntryCount);
-        int currentShadowAtlasOffset = shadowAtlasOffset;
 
         entryIndex += entrySpan;
-        if (light.CastShadow)
-        {
-            shadowAtlasOffset += entrySpan;
-        }
 
         if (light.Enable == 0)
             continue;
@@ -178,7 +172,6 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
                     input.worldPos,
                     currentEntryIndex,
                     entrySpan,
-                    currentShadowAtlasOffset,
                     NdotL,
                     shadowParam);
             }
@@ -188,7 +181,6 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
                     input.worldPos,
                     currentEntryIndex,
                     entrySpan,
-                    currentShadowAtlasOffset,
                     shadowParam);
             }
             else
@@ -196,7 +188,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
                 shadow = ShadowFactor(
                     input.worldPos,
                     light,
-                    currentShadowAtlasOffset,
+                    currentEntryIndex,
                     shadowParam);
             }
         }
