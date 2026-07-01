@@ -69,6 +69,7 @@ public:
 	int nextPinId = 1;
 	bool initialized = false;
 	bool postEffectGraphDirty = true;
+	float postEffectEditorZoom = 1.0f;
 	std::vector<int> cachedSortedPostEffectIndices;
 	std::vector<std::vector<int>> cachedResolvedPostEffectInputs;
 
