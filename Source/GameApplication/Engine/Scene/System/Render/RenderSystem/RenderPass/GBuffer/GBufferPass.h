@@ -9,6 +9,7 @@
 #include <d3d11.h>
 #include <memory>
 #include <vector>
+#include <wrl/client.h>
 
 #include "System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
 #include "System/Render/StaticBatch/StaticBatchGBufferSubmissionTelemetry.h"
@@ -45,6 +46,7 @@ public:
 	ID3D11SamplerState* sampler = nullptr;
 
 private:
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_materialStencilWriteState;
 	StaticBatchVisibleInstanceBuffer m_staticBatchVisibleInstances;
 	StaticBatchGpuInstanceBuffer m_staticBatchVisibleGpuInstances;
 	StaticBatchGBufferSubmissionTelemetry m_staticBatchTelemetry;
