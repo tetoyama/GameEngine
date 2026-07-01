@@ -12,7 +12,13 @@ struct FaceBasis {
 };
 
 inline constexpr int FaceCount = 6;
-inline constexpr float FieldOfViewDegrees = 90.5f;
+
+// Point Shadowは6面をAtlasへ格納し、HLSL側で1面を選択してPCFする。
+// 低解像度設定では2048px Atlas / 4x4 grid = 1面512pxとなる。
+// 旧90.5度では45度境界の余白が約2.2pxしかなく、既定5x5 PCF
+// (radius=2)と比較フィルタのfootprintを吸収できなかった。
+// 92度なら境界を約8.8px内側へ収め、辺・角で隣接Faceとの重複を確保できる。
+inline constexpr float FieldOfViewDegrees = 92.0f;
 
 inline const std::array<FaceBasis, FaceCount>& Faces() noexcept {
 	static const std::array<FaceBasis, FaceCount> faces = {{
