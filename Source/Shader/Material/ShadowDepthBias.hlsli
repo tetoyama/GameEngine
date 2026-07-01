@@ -13,8 +13,7 @@ float ResolveOrthographicShadowDepthBias(
 
     // Directional / CSM use orthographic light projection, so Param.w is
     // already an NDC-depth bias. Increase only that existing bias when the
-    // receiver is nearly parallel to the light direction. This keeps LIGHT and
-    // constant-buffer layout unchanged and avoids derivative-based side effects.
+    // receiver is nearly parallel to the light direction.
     const float safeNdotL = saturate(receiverNdotL);
     const float grazing = 1.0f - safeNdotL;
     const float slopeScale = 1.0f + grazing * grazing * 8.0f;
@@ -27,27 +26,47 @@ float ResolveOrthographicShadowDepthBias(
 float ResolvePerspectiveShadowDepthBias(
     float viewDepth,
     float farPlane,
-    float worldBias)
+    float worldBias,
+    float receiverNdotL)
 {
     const float nearPlane = LOCAL_LIGHT_SHADOW_NEAR_PLANE;
     const float safeFar = max(
         farPlane,
         nearPlane + LOCAL_LIGHT_SHADOW_MIN_DEPTH_SPAN);
     const float safeDepth = clamp(abs(viewDepth), nearPlane, safeFar);
-    const float safeWorldBias = max(worldBias, 0.0f);
+
+    // Point cubemap side faces observe horizontal receivers at a grazing
+    // angle. A distance-only bias is then insufficient and causes the hard
+    // major-axis face boundary to appear as a square self-shadow region.
+    const float safeNdotL = saturate(receiverNdotL);
+    const float grazing = 1.0f - safeNdotL;
+    const float slopeScale = 1.0f + grazing * grazing * 8.0f;
+    const float effectiveWorldBias = max(worldBias, 0.0f) * slopeScale;
 
     // DirectX LH perspective depth:
     // z_ndc = far/(far-near) - near*far/((far-near)*viewZ)
-    // Convert the configured world-distance bias to NDC at this receiver depth.
-    // Keep local light bias distance-based only; derivative bias can vary across
-    // cubemap faces and was causing Point Light regressions.
+    // Convert the slope-adjusted world-distance bias to NDC at this receiver.
     const float depthDerivative =
         (nearPlane * safeFar) /
         ((safeFar - nearPlane) * safeDepth * safeDepth);
 
     return min(
-        safeWorldBias * depthDerivative,
+        effectiveWorldBias * depthDerivative,
         LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS);
+}
+
+// Compatibility adapter for call sites that do not yet provide a receiver
+// normal term. A front-facing receiver preserves the previous behavior.
+float ResolvePerspectiveShadowDepthBias(
+    float viewDepth,
+    float farPlane,
+    float worldBias)
+{
+    return ResolvePerspectiveShadowDepthBias(
+        viewDepth,
+        farPlane,
+        worldBias,
+        1.0f);
 }
 
 #endif // SHADOW_DEPTH_BIAS_HLSLI
