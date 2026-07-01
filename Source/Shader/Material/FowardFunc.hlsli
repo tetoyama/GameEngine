@@ -29,43 +29,52 @@ SamplerComparisonState ShadowSampler : register(s1);
 Texture2D EnvironmentMap : register(t8);
 SamplerState EnvSampler : register(s3);
 
-// ============================================================================
-// Forward : MaterialInput
-// ============================================================================
 MaterialInput GetMaterialInput(PS_IN In)
 {
     MaterialInput input;
     input.uv = In.TexCoord;
-
-    // ===== World =====
     input.worldPos = In.WorldPosition.xyz;
     input.viewDir = normalize(CameraPosition.xyz - input.worldPos);
 
-    // ===== Material =====
     input.baseColor = Material.BaseColor;
-    // Diffuse Texture を使うか
     if ((Material.MaterialFlags & MATERIAL_FLAG_USE_DIFFUSE_TEXTURE) != 0)
     {
         input.baseColor *= BaseColorTex.Sample(LinearSampler, In.TexCoord);
     }
 
     input.normal = normalize(In.Normal.xyz);
-    
     input.Metallic = Material.Metallic;
     input.Roughness = Material.Roughness;
     input.AO = Material.AO;
     input.Emissive = float4(Material.EmissiveColor, Material.EmissiveIntensity);
 
-    // ===== IDs =====
     input.materialID = ShaderID;
     input.objectID = ObjectID;
     input.sceneID = SceneID;
     input.materialFlags = Material.MaterialFlags;
-    
+
     BaseColorTex.GetDimensions(input.screenSize.x, input.screenSize.y);
     input.screenUV = In.Position.xy / float2(input.screenSize.x, input.screenSize.y);
-    
     return input;
+}
+
+int ResolveShadowAtlasTileForEntry(int lightEntryIndex)
+{
+    int activeEntryCount = clamp(ActiveLightCount, 0, LIGHT_MAX_COUNT);
+    int endEntry = clamp(lightEntryIndex, 0, activeEntryCount);
+    int tileIndex = 0;
+
+    [loop]
+    for (int entryIndex = 0; entryIndex < endEntry; ++entryIndex)
+    {
+        LIGHT entry = Lights[entryIndex];
+        if (entry.Enable != 0 && entry.CastShadow != 0)
+        {
+            ++tileIndex;
+        }
+    }
+
+    return tileIndex;
 }
 
 float SampleCascadePCF(float2 suvBase, float depth, float2 texelSize, float stepTexel, int radius);
@@ -76,38 +85,58 @@ float SampleShadowAtlasPCF(
     int tileIndex,
     ShadowPCFParams pcf)
 {
-    uint grid = (uint) ceil(sqrt((float) ShadowAtlasCount));
+    uint atlasCount = max((uint) ShadowAtlasCount, 1u);
+    uint grid = max((uint) ceil(sqrt((float) atlasCount)), 1u);
     float tile = 1.0 / grid;
 
-    uint gx = tileIndex % grid;
-    uint gy = tileIndex / grid;
-
-    float2 tileMin = float2(gx, gy) * tile;
-    float2 suvBase = tileMin + uv * tile;
+    uint safeTileIndex = min((uint) max(tileIndex, 0), atlasCount - 1u);
+    uint gx = safeTileIndex % grid;
+    uint gy = safeTileIndex / grid;
 
     uint texW, texH;
     ShadowMap.GetDimensions(texW, texH);
 
-    float2 texelSize = float2(1.0 / texW, 1.0 / texH);
-    texelSize *= tile;
+    float2 atlasTexelSize = float2(1.0 / texW, 1.0 / texH);
+    float2 tileMin = float2(gx, gy) * tile;
+    float2 tileMax = tileMin + tile;
+    float2 sampleMin = tileMin + atlasTexelSize * 0.5;
+    float2 sampleMax = tileMax - atlasTexelSize * 0.5;
+    float2 suvBase = clamp(
+        tileMin + saturate(uv) * tile,
+        sampleMin,
+        sampleMax);
 
+    float shadow = 0.0;
+    int count = 0;
     int radius = max(pcf.KernelRadius, 0);
-    return SampleCascadePCF(
-        suvBase,
-        depth,
-        texelSize,
-        pcf.StepTexel,
-        radius
-    );
+
+    [loop]
+    for (int sy = -radius; sy <= radius; sy++)
+    {
+        [loop]
+        for (int sx = -radius; sx <= radius; sx++)
+        {
+            float2 sampleUV = clamp(
+                suvBase + float2(sx, sy) * atlasTexelSize * pcf.StepTexel,
+                sampleMin,
+                sampleMax);
+            shadow += ShadowMap.SampleCmpLevelZero(
+                ShadowSampler,
+                sampleUV,
+                depth);
+            count++;
+        }
+    }
+
+    return shadow / max(count, 1);
 }
 
 float ShadowFactor(
     float3 worldPos,
     LIGHT light,
-    int lightIndex,
+    int lightEntryIndex,
     ShadowPCFParams pcf)
 {
-    // ---- Light Space ----
     float4 sp = mul(float4(worldPos, 1.0), light.LightView);
     sp = mul(sp, light.LightProjection);
 
@@ -123,8 +152,6 @@ float ShadowFactor(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    // Directional keeps Param.w as legacy NDC bias.
-    // Spot converts Param.w as world-distance bias for perspective depth.
     float bias = light.Param.w;
     if (light.LightType == LIGHT_TYPE_SPOT)
     {
@@ -133,9 +160,10 @@ float ShadowFactor(
             light.Param.x,
             light.Param.w);
     }
-    float depth = saturate(sp.z - bias);
 
-    return SampleShadowAtlasPCF(uv, depth, lightIndex, pcf);
+    float depth = saturate(sp.z - bias);
+    int tileIndex = ResolveShadowAtlasTileForEntry(lightEntryIndex);
+    return SampleShadowAtlasPCF(uv, depth, tileIndex, pcf);
 }
 
 int SelectPointShadowFace(float3 direction)
@@ -143,14 +171,10 @@ int SelectPointShadowFace(float3 direction)
     float3 absDir = abs(direction);
 
     if (absDir.x >= absDir.y && absDir.x >= absDir.z)
-    {
         return (direction.x >= 0.0) ? 0 : 1;
-    }
 
     if (absDir.y >= absDir.z)
-    {
         return (direction.y >= 0.0) ? 2 : 3;
-    }
 
     return (direction.z >= 0.0) ? 4 : 5;
 }
@@ -159,7 +183,6 @@ float ShadowFactorPoint(
     float3 worldPos,
     int firstLightIdx,
     int faceCount,
-    int atlasOffset,
     ShadowPCFParams pcf)
 {
     if (firstLightIdx >= LIGHT_MAX_COUNT || faceCount <= 0)
@@ -177,7 +200,8 @@ float ShadowFactorPoint(
         return 1.0;
 
     LIGHT faceLight = Lights[faceLightIdx];
-    if (!faceLight.Enable || !faceLight.CastShadow || faceLight.LightType != LIGHT_TYPE_POINT || faceLight.Dummy > -1)
+    if (!faceLight.Enable || !faceLight.CastShadow ||
+        faceLight.LightType != LIGHT_TYPE_POINT || faceLight.Dummy > -1)
         return 1.0;
 
     float4 sp = mul(float4(worldPos, 1.0), faceLight.LightView);
@@ -200,16 +224,16 @@ float ShadowFactorPoint(
         faceLight.Param.x,
         faceLight.Param.w);
     float depth = saturate(sp.z - bias);
-    return SampleShadowAtlasPCF(uv, depth, atlasOffset + selectedFace, pcf);
+
+    int tileIndex = ResolveShadowAtlasTileForEntry(faceLightIdx);
+    return SampleShadowAtlasPCF(uv, depth, tileIndex, pcf);
 }
 
-// =====================================================
-// CSM PCF サンプリングヘルパー
-// =====================================================
 float SampleCascadePCF(float2 suvBase, float depth, float2 texelSize, float stepTexel, int radius)
 {
     float shadow = 0.0;
     int count = 0;
+
     [loop]
     for (int sy = -radius; sy <= radius; sy++)
     {
@@ -223,27 +247,24 @@ float SampleCascadePCF(float2 suvBase, float depth, float2 texelSize, float step
             count++;
         }
     }
+
     return shadow / max(count, 1);
 }
-
 
 float ShadowFactorCascades(
     float3 worldPos,
     int firstLightIdx,
     int cascadeCount,
-    int atlasOffset,
     float receiverNdotL,
     ShadowPCFParams pcf)
 {
     uint texW, texH;
     ShadowMap.GetDimensions(texW, texH);
 
-    uint grid = (uint) ceil(sqrt((float) ShadowAtlasCount));
+    uint grid = max((uint) ceil(sqrt((float) max(ShadowAtlasCount, 1))), 1u);
     float tile = 1.0 / grid;
     float2 texelSize = float2(1.0 / texW, 1.0 / texH) * tile;
-
     int radius = max(pcf.KernelRadius, 0);
-
     float finalShadow = 1.0;
 
     [loop]
@@ -263,16 +284,13 @@ float ShadowFactorCascades(
         cuv.y = 1.0 - cuv.y;
         float cdepth = ndc.z;
 
-        bool inUV = all(cuv >= 0.0) && all(cuv <= 1.0);
-        if (!inUV)
+        if (any(cuv < 0.0) || any(cuv > 1.0))
             continue;
 
-        float bias = ResolveOrthographicShadowDepthBias(
-            cLight.Param.w,
-            receiverNdotL);
+        float bias = ResolveOrthographicShadowDepthBias(cLight.Param.w, receiverNdotL);
         float depth = saturate(cdepth - bias);
 
-        int tileIndex = atlasOffset + c;
+        int tileIndex = ResolveShadowAtlasTileForEntry(safeIdx);
         uint gx = tileIndex % grid;
         uint gy = tileIndex / grid;
         float2 tileMin = float2(gx, gy) * tile;
@@ -283,28 +301,24 @@ float ShadowFactorCascades(
             depth,
             texelSize,
             pcf.StepTexel,
-            radius
-        );
+            radius);
+
         if (shadow >= 1.0 && c < cascadeCount - 1)
-        {
             continue;
-        }
-        
+
         if (shadow < 1.0 && c > 0)
         {
             int3 loadCoord = int3((int) (suvBase.x * texW), (int) (suvBase.y * texH), 0);
             float rawDepth = ShadowMap.Load(loadCoord).r;
-
             float zScale = cLight.LightProjection[2][2];
             float deltaZ_ndc = abs(cdepth - rawDepth);
             float deltaZ_view = deltaZ_ndc / abs(zScale);
             float3 occluderPos = worldPos - cLight.Direction.xyz * deltaZ_view;
 
             LIGHT prevLight = Lights[safeIdx - 1];
-            
             float4 prevSp = mul(float4(occluderPos, 1.0), prevLight.LightView);
             prevSp = mul(prevSp, prevLight.LightProjection);
-            
+
             LIGHT firstLight = Lights[min(firstLightIdx, LIGHT_MAX_COUNT - 1)];
             float4 firstSp = mul(float4(occluderPos, 1.0), firstLight.LightView);
             firstSp = mul(firstSp, firstLight.LightProjection);
@@ -316,7 +330,8 @@ float ShadowFactorCascades(
                 float2 prevUv = prevNdc.xy * 0.5 + 0.5;
                 prevUv.y = 1.0 - prevUv.y;
 
-                if (all(prevUv > 0.0) && all(prevUv < 1.0) && firstNdc.z > 0.0 && prevNdc.z < 1.0)
+                if (all(prevUv > 0.0) && all(prevUv < 1.0) &&
+                    firstNdc.z > 0.0 && prevNdc.z < 1.0)
                 {
                     continue;
                 }
@@ -324,15 +339,11 @@ float ShadowFactorCascades(
         }
 
         finalShadow = min(finalShadow, shadow);
-        
-        if (0.0f >= finalShadow)
-        {
+        if (finalShadow <= 0.0f)
             break;
-        }
     }
 
     return finalShadow;
 }
-
 
 #endif
