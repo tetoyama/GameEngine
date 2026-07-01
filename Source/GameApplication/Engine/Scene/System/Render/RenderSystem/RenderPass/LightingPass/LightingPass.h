@@ -42,6 +42,7 @@ public:
 	RenderTarget* pRenderTarget = nullptr;
 
 private:
+	GBufferPass* m_activeGBufferPass = nullptr;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> m_lightingDebugBuffer;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_materialStencilTestState;
 };
