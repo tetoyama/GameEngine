@@ -273,6 +273,15 @@ void GBufferPass::Execute(const RenderPassContext& context){
 			return;
 		}
 
+		SystemRegistry* registry =
+			m_context->sceneManager->GetSystemRegistry();
+		StaticBatchUploadSystem* uploadSystem = registry
+			? registry->GetSystem<StaticBatchUploadSystem>()
+			: nullptr;
+		if(!uploadSystem || !uploadSystem->IsPipelineReady()){
+			return;
+		}
+
 		RHI::RenderHardwareInterfaceService* rhiService =
 			m_context->graphics->GetRHIService();
 		RHI::IRHIDevice* rhiDevice = rhiService
