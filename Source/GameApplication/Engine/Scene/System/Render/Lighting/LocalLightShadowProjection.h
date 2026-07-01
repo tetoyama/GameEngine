@@ -12,7 +12,6 @@ inline constexpr float MinimumDepthSpan =
 	LOCAL_LIGHT_SHADOW_MIN_DEPTH_SPAN;
 inline constexpr float MaximumNdcBias =
 	LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS;
-inline constexpr float PointShadowFarMultiplier = 2.0f;
 
 inline float ResolveFarPlane(float lightRange) noexcept {
 	if(!std::isfinite(lightRange)){
@@ -22,11 +21,10 @@ inline float ResolveFarPlane(float lightRange) noexcept {
 }
 
 inline float ResolvePointShadowFarPlane(float lightRange) noexcept {
-	const float lightingRange = ResolveFarPlane(lightRange);
-	return (std::max)(
-		lightingRange * PointShadowFarMultiplier,
-		NearPlane + MinimumDepthSpan
-	);
+	// Point lighting attenuation, shadow projection and shader-side bias must
+	// use the same distance contract. Expanding only the projection far plane
+	// caused range-dependent precision loss and made close-wall artifacts worse.
+	return ResolveFarPlane(lightRange);
 }
 
 inline bool IsRangeValid(float lightRange) noexcept {
