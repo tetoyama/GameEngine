@@ -40,6 +40,17 @@ inline float Zoomed(CameraComponent& camera, float value){
 	return value * ResolveEditorZoom(camera);
 }
 
+inline ImVec2 ToZoomedEditorPos(CameraComponent& camera, const Vector2& position){
+	const float zoom = ResolveEditorZoom(camera);
+	return ImVec2(position.x * zoom, position.y * zoom);
+}
+
+inline Vector2 FromZoomedEditorPos(CameraComponent& camera, const ImVec2& position){
+	const float zoom = ResolveEditorZoom(camera);
+	const float safeZoom = (std::max)(zoom, 0.0001f);
+	return Vector2(position.x / safeZoom, position.y / safeZoom);
+}
+
 inline void EnsureGraphInitialized(CameraComponent& camera){
 	if(camera.initialized){
 		return;
@@ -119,16 +130,15 @@ inline void DrawScreenInputNode(CameraComponent& camera){
 	if(!camera.screenInputNode.initialized){
 		ImNodes::SetNodeEditorSpacePos(
 			-1,
-			ImVec2(
-				camera.screenInputNode.nodePos.x,
-				camera.screenInputNode.nodePos.y
-			)
+			ToZoomedEditorPos(camera, camera.screenInputNode.nodePos)
 		);
 		camera.screenInputNode.initialized = true;
 	}
 
-	const ImVec2 position = ImNodes::GetNodeEditorSpacePos(-1);
-	camera.screenInputNode.nodePos = Vector2(position.x, position.y);
+	camera.screenInputNode.nodePos = FromZoomedEditorPos(
+		camera,
+		ImNodes::GetNodeEditorSpacePos(-1)
+	);
 }
 
 inline void DrawScreenOutputNode(CameraComponent& camera){
@@ -149,16 +159,15 @@ inline void DrawScreenOutputNode(CameraComponent& camera){
 	if(!camera.screenOutputNode.initialized){
 		ImNodes::SetNodeEditorSpacePos(
 			-2,
-			ImVec2(
-				camera.screenOutputNode.nodePos.x,
-				camera.screenOutputNode.nodePos.y
-			)
+			ToZoomedEditorPos(camera, camera.screenOutputNode.nodePos)
 		);
 		camera.screenOutputNode.initialized = true;
 	}
 
-	const ImVec2 position = ImNodes::GetNodeEditorSpacePos(-2);
-	camera.screenOutputNode.nodePos = Vector2(position.x, position.y);
+	camera.screenOutputNode.nodePos = FromZoomedEditorPos(
+		camera,
+		ImNodes::GetNodeEditorSpacePos(-2)
+	);
 }
 
 inline void LoadShaderFromPath(
@@ -224,12 +233,14 @@ inline void DrawEffectNode(
 	if(!effect.initialized){
 		ImNodes::SetNodeEditorSpacePos(
 			nodeId,
-			ImVec2(effect.nodePos.x, effect.nodePos.y)
+			ToZoomedEditorPos(camera, effect.nodePos)
 		);
 		effect.initialized = true;
 	} else {
-		const ImVec2 currentPosition = ImNodes::GetNodeEditorSpacePos(nodeId);
-		effect.nodePos = Vector2(currentPosition.x, currentPosition.y);
+		effect.nodePos = FromZoomedEditorPos(
+			camera,
+			ImNodes::GetNodeEditorSpacePos(nodeId)
+		);
 	}
 
 	ImNodes::BeginNodeTitleBar();
@@ -268,12 +279,14 @@ inline void DrawEffectNode(
 	DrawShaderField(camera, effect, context, true, nodeId);
 	DrawShaderField(camera, effect, context, false, nodeId);
 
-	if(effect.srv && effect.enabled){
+	if(effect.srv){
 		const float previewWidth = Zoomed(camera, PostEffectNodePreviewWidth);
 		ImGui::Image(
 			reinterpret_cast<ImTextureID>(effect.srv.Get()),
 			ImVec2(previewWidth, previewWidth / 16.0f * 9.0f)
 		);
+	} else {
+		ImGui::TextDisabled("No preview");
 	}
 
 	if(effect.inputPins.empty()){
@@ -476,11 +489,11 @@ inline void Inspect(CameraComponent& camera, SceneContext* context){
 	ImGui::BeginChild("NodeEditorRegion", ImVec2(0.0f, 400.0f), true);
 
 	const float zoom = ResolveEditorZoom(camera);
-	ImGui::SetWindowFontScale(zoom);
 	ImNodes::PushStyleVar(ImNodesStyleVar_NodePadding, ImVec2(4.0f * zoom, 4.0f * zoom));
 	ImNodes::PushStyleVar(ImNodesStyleVar_PinCircleRadius, 3.0f * zoom);
-	ImNodes::PushStyleVar(ImNodesStyleVar_GridSpacing, 16.0f * zoom);
+	ImNodes::PushStyleVar(ImNodesStyleVar_PinHoverRadius, 10.0f * zoom);
 	ImNodes::PushStyleVar(ImNodesStyleVar_LinkThickness, 1.0f * zoom);
+	ImNodes::PushStyleVar(ImNodesStyleVar_GridSpacing, 16.0f * zoom);
 	ImNodes::BeginNodeEditor();
 
 	DrawScreenInputNode(camera);
@@ -495,8 +508,7 @@ inline void Inspect(CameraComponent& camera, SceneContext* context){
 	DrawNodeContextMenu(camera);
 	AcceptNewLink(camera);
 
-	ImNodes::PopStyleVar(4);
-	ImGui::SetWindowFontScale(1.0f);
+	ImNodes::PopStyleVar(5);
 	ImGui::EndChild();
 
 	if(ImGui::Button("Add Node")){
