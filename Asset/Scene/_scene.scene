@@ -2347,6 +2347,7 @@ Entities:
             - 1
         nextLinkId: 57
         nextPinId: 43
+        PostEffectEditorZoom: 1
         PostEffects:
           - Name: NewEffect
             Enabled: true
@@ -2636,8 +2637,8 @@ Entities:
         distance: 6
         height: 2
         rotateSpeed: 1.5
-        minPitch: -2.70000005
-        maxPitch: 0.785398185
+        minPitch: -0.5
+        maxPitch: 1.10000002
         minDistance: 1
         targetPosLerpSpeed: 15
         cameraDistanceLerpSpeed: 12
