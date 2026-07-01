@@ -24,6 +24,21 @@ inline constexpr float PostEffectNodeContentWidth = 150.0f;
 inline constexpr float PostEffectNodeNameWidth = 150.0f;
 inline constexpr float PostEffectNodePreviewWidth = 120.0f;
 inline constexpr float PostEffectNodeOutputColumnX = 128.0f;
+inline constexpr float PostEffectEditorZoomMin = 0.35f;
+inline constexpr float PostEffectEditorZoomMax = 2.0f;
+
+inline float ResolveEditorZoom(CameraComponent& camera){
+	camera.postEffectEditorZoom = std::clamp(
+		camera.postEffectEditorZoom,
+		PostEffectEditorZoomMin,
+		PostEffectEditorZoomMax
+	);
+	return camera.postEffectEditorZoom;
+}
+
+inline float Zoomed(CameraComponent& camera, float value){
+	return value * ResolveEditorZoom(camera);
+}
 
 inline void EnsureGraphInitialized(CameraComponent& camera){
 	if(camera.initialized){
@@ -164,6 +179,7 @@ inline void LoadShaderFromPath(
 }
 
 inline void DrawShaderField(
+	CameraComponent& camera,
 	CameraPostEffect& effect,
 	SceneContext* context,
 	bool pixelShader,
@@ -177,7 +193,7 @@ inline void DrawShaderField(
 
 	const std::string label =
 		std::string(pixelShader ? "PS##" : "VS##") + std::to_string(nodeId);
-	ImGui::SetNextItemWidth(PostEffectNodeContentWidth);
+	ImGui::SetNextItemWidth(Zoomed(camera, PostEffectNodeContentWidth));
 	if(ImGui::InputText(label.c_str(), pathBuffer, sizeof(pathBuffer))){
 		LoadShaderFromPath(effect, context, pathBuffer, pixelShader);
 	}
@@ -219,14 +235,14 @@ inline void DrawEffectNode(
 	ImNodes::BeginNodeTitleBar();
 	char nameBuffer[128]{};
 	std::strncpy(nameBuffer, effect.name.c_str(), sizeof(nameBuffer) - 1);
-	ImGui::SetNextItemWidth(PostEffectNodeNameWidth);
+	ImGui::SetNextItemWidth(Zoomed(camera, PostEffectNodeNameWidth));
 	const std::string nameLabel = "##NodeName" + std::to_string(nodeId);
 	if(ImGui::InputText(nameLabel.c_str(), nameBuffer, sizeof(nameBuffer))){
 		effect.name = nameBuffer;
 	}
 	ImNodes::EndNodeTitleBar();
 
-	ImGui::PushItemWidth(PostEffectNodeContentWidth);
+	ImGui::PushItemWidth(Zoomed(camera, PostEffectNodeContentWidth));
 	ImGui::UndoCheckbox(("Enabled##" + std::to_string(nodeId)).c_str(), &effect.enabled);
 	ImGui::UndoDragFloat4(
 		("Param##" + std::to_string(nodeId)).c_str(),
@@ -249,16 +265,14 @@ inline void DrawEffectNode(
 	);
 	ImGui::PopItemWidth();
 
-	DrawShaderField(effect, context, true, nodeId);
-	DrawShaderField(effect, context, false, nodeId);
+	DrawShaderField(camera, effect, context, true, nodeId);
+	DrawShaderField(camera, effect, context, false, nodeId);
 
 	if(effect.srv && effect.enabled){
+		const float previewWidth = Zoomed(camera, PostEffectNodePreviewWidth);
 		ImGui::Image(
 			reinterpret_cast<ImTextureID>(effect.srv.Get()),
-			ImVec2(
-				PostEffectNodePreviewWidth,
-				PostEffectNodePreviewWidth / 16.0f * 9.0f
-			)
+			ImVec2(previewWidth, previewWidth / 16.0f * 9.0f)
 		);
 	}
 
@@ -275,7 +289,7 @@ inline void DrawEffectNode(
 		ImNodes::EndInputAttribute();
 
 		if(firstInput){
-			ImGui::SameLine(PostEffectNodeOutputColumnX);
+			ImGui::SameLine(Zoomed(camera, PostEffectNodeOutputColumnX));
 			ImNodes::BeginOutputAttribute(effect.outputPin);
 			ImGui::TextUnformatted("Output");
 			ImNodes::EndOutputAttribute();
@@ -429,6 +443,26 @@ inline void AddEffect(CameraComponent& camera, SceneContext* context){
 	camera.InvalidatePostEffectGraphCache();
 }
 
+inline void DrawPostEffectZoomControls(CameraComponent& camera){
+	ResolveEditorZoom(camera);
+	ImGui::TextUnformatted("Canvas Zoom");
+	ImGui::SameLine(100.0f);
+	ImGui::PushItemWidth(180.0f);
+	ImGui::SliderFloat(
+		"##PostEffectCanvasZoom",
+		&camera.postEffectEditorZoom,
+		PostEffectEditorZoomMin,
+		PostEffectEditorZoomMax,
+		"%.2fx"
+	);
+	ImGui::PopItemWidth();
+	ImGui::SameLine();
+	if(ImGui::SmallButton("Reset##PostEffectCanvasZoom")){
+		camera.postEffectEditorZoom = 1.0f;
+	}
+	ResolveEditorZoom(camera);
+}
+
 inline void Inspect(CameraComponent& camera, SceneContext* context){
 	EnsureGraphInitialized(camera);
 	camera.context = context;
@@ -438,11 +472,15 @@ inline void Inspect(CameraComponent& camera, SceneContext* context){
 
 	ImGui::Separator();
 	ImGui::TextUnformatted("Post-Process Node Editor");
+	DrawPostEffectZoomControls(camera);
 	ImGui::BeginChild("NodeEditorRegion", ImVec2(0.0f, 400.0f), true);
 
-	ImNodes::PushStyleVar(ImNodesStyleVar_NodePadding, ImVec2(4.0f, 4.0f));
-	ImNodes::PushStyleVar(ImNodesStyleVar_PinCircleRadius, 3.0f);
-	ImNodes::PushStyleVar(ImNodesStyleVar_GridSpacing, 16.0f);
+	const float zoom = ResolveEditorZoom(camera);
+	ImGui::SetWindowFontScale(zoom);
+	ImNodes::PushStyleVar(ImNodesStyleVar_NodePadding, ImVec2(4.0f * zoom, 4.0f * zoom));
+	ImNodes::PushStyleVar(ImNodesStyleVar_PinCircleRadius, 3.0f * zoom);
+	ImNodes::PushStyleVar(ImNodesStyleVar_GridSpacing, 16.0f * zoom);
+	ImNodes::PushStyleVar(ImNodesStyleVar_LinkThickness, 1.0f * zoom);
 	ImNodes::BeginNodeEditor();
 
 	DrawScreenInputNode(camera);
@@ -457,7 +495,8 @@ inline void Inspect(CameraComponent& camera, SceneContext* context){
 	DrawNodeContextMenu(camera);
 	AcceptNewLink(camera);
 
-	ImNodes::PopStyleVar(3);
+	ImNodes::PopStyleVar(4);
+	ImGui::SetWindowFontScale(1.0f);
 	ImGui::EndChild();
 
 	if(ImGui::Button("Add Node")){
