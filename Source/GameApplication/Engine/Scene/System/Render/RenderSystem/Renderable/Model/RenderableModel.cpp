@@ -103,7 +103,12 @@ void RenderableModel::Execute(
 	deviceContext->IASetPrimitiveTopology(
 		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	graphicsContext->SetCullMode(CullMode::Back);
+	// ShadowMapPass owns the complete rasterizer-state contract for the
+	// current light type. Replacing it here would discard Point/Spot depth
+	// clipping and any shadow-specific depth-bias settings.
+	if(ctx.passPhase != RenderPhase::PHASE_SHADOW){
+		graphicsContext->SetCullMode(CullMode::Back);
+	}
 
 	DirectX::XMMATRIX world =
 		LoadRenderPacketMatrix(packet.transform.worldMatrix);
