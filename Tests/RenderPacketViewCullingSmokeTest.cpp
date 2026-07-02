@@ -24,19 +24,19 @@ RenderPacketCullingView MakeShadowView(
 	CullingViewKind parentKind,
 	std::uint32_t parentInstanceID,
 	std::uint32_t tileIndex,
-	bool depthClipEnabled = false
+	bool gpuDepthClipEnabled = false
 ){
-	RenderPacketCullingView view;
-	view.kind = CullingViewKind::Shadow;
-	view.instanceID = ShadowRenderPacketCullingView::MakeInstanceID(
+	RenderPassContext lightContext;
+	lightContext.viewMatrix = DirectX::XMMatrixIdentity();
+	lightContext.projectionMatrix =
+		DirectX::XMMatrixOrthographicLH(2.0f, 2.0f, 0.0f, 20.0f);
+	return ShadowRenderPacketCullingView::Build(
+		lightContext,
 		parentKind,
 		parentInstanceID,
-		tileIndex
+		tileIndex,
+		gpuDepthClipEnabled
 	);
-	view.viewProjection =
-		DirectX::XMMatrixOrthographicLH(2.0f, 2.0f, 0.0f, 20.0f);
-	view.depthClipEnabled = depthClipEnabled;
-	return view;
 }
 
 bool IsZeroPlane(const CullingPlane& plane){
@@ -150,8 +150,8 @@ int main(){
 	assert(!IsZeroPlane(editorFrustum.planes[5]));
 	assert(IsZeroPlane(shadowFrustum.planes[4]));
 	assert(IsZeroPlane(shadowFrustum.planes[5]));
-	assert(!IsZeroPlane(perspectiveShadowFrustum.planes[4]));
-	assert(!IsZeroPlane(perspectiveShadowFrustum.planes[5]));
+	assert(IsZeroPlane(perspectiveShadowFrustum.planes[4]));
+	assert(IsZeroPlane(perspectiveShadowFrustum.planes[5]));
 
 	CullingVisibilitySet visibility;
 	RenderPacketViewCulling::Prepare(visibility, packets, editorView);
@@ -190,9 +190,9 @@ int main(){
 		visibility, perspectiveShadowView, packets.Packets()[0]));
 	assert(!RenderPacketViewCulling::ShouldRender(
 		visibility, perspectiveShadowView, packets.Packets()[1]));
-	assert(!RenderPacketViewCulling::ShouldRender(
+	assert(RenderPacketViewCulling::ShouldRender(
 		visibility, perspectiveShadowView, packets.Packets()[2]));
-	assert(!RenderPacketViewCulling::ShouldRender(
+	assert(RenderPacketViewCulling::ShouldRender(
 		visibility, perspectiveShadowView, packets.Packets()[3]));
 	assert(RenderPacketViewCulling::ShouldRender(
 		visibility, invalidShadowView, packets.Packets()[1]));
