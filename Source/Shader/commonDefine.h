@@ -21,9 +21,13 @@
 
 // Point / Spot ShadowのPerspective Clip契約。
 // C++生成側とHLSL Sampling側で同じ値を使用する。
-#define LOCAL_LIGHT_SHADOW_NEAR_PLANE       (0.1f)
-#define LOCAL_LIGHT_SHADOW_MIN_DEPTH_SPAN   (0.1f)
-#define LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS     (0.01f)
+#define LOCAL_LIGHT_SHADOW_NEAR_PLANE            (0.1f)
+#define LOCAL_LIGHT_SHADOW_MIN_DEPTH_SPAN        (0.1f)
+#define LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS          (0.01f)
+// 既存Param.wのNDC Biasを、距離に依存しないWorld Biasへ変換する基準深度。
+// 深度1.0までは旧挙動を上限として維持し、それ以遠は1/depth^2で弱める。
+#define LOCAL_LIGHT_SHADOW_BIAS_REFERENCE_DEPTH  (1.0f)
+#define LOCAL_LIGHT_SHADOW_MAX_SLOPE_SCALE       (9.0f)
 
 #define BONE_MAX_COUNT          (256)
 
