@@ -5,15 +5,34 @@
 #include "../commonDefine.h"
 #endif
 
+float ResolveProjectedShadowDepthBias(float projectedDepthBias)
+{
+    if (!isfinite(projectedDepthBias))
+        return 0.0f;
+
+    return min(
+        max(projectedDepthBias, 0.0f),
+        LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS);
+}
+
+float ResolveShadowReceiverAlignment(float receiverAlignment)
+{
+    return isfinite(receiverAlignment)
+        ? saturate(receiverAlignment)
+        : 1.0f;
+}
+
 float ResolveOrthographicShadowDepthBias(
     float legacyNdcBias,
     float receiverNdotL)
 {
-    const float baseNdcBias = max(legacyNdcBias, 0.0f);
+    const float baseNdcBias = ResolveProjectedShadowDepthBias(legacyNdcBias);
 
-    const float safeNdotL = saturate(receiverNdotL);
+    const float safeNdotL = ResolveShadowReceiverAlignment(receiverNdotL);
     const float grazing = 1.0f - safeNdotL;
-    const float slopeScale = 1.0f + grazing * grazing * 8.0f;
+    const float slopeScale = min(
+        1.0f + grazing * grazing * 8.0f,
+        LOCAL_LIGHT_SHADOW_MAX_SLOPE_SCALE);
 
     return min(
         baseNdcBias * slopeScale,
@@ -26,15 +45,21 @@ float ResolvePerspectiveShadowDepthBias(
     float projectedDepthBias,
     float receiverNdotL)
 {
-    const float baseNdcBias = min(
-        max(projectedDepthBias, 0.0f),
-        LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS);
+    const float baseNdcBias = ResolveProjectedShadowDepthBias(projectedDepthBias);
+    if (baseNdcBias <= 0.0f)
+        return 0.0f;
 
     const float nearPlane = LOCAL_LIGHT_SHADOW_NEAR_PLANE;
+    const float safeFarInput = isfinite(farPlane)
+        ? farPlane
+        : nearPlane + LOCAL_LIGHT_SHADOW_MIN_DEPTH_SPAN;
     const float safeFar = max(
-        farPlane,
+        safeFarInput,
         nearPlane + LOCAL_LIGHT_SHADOW_MIN_DEPTH_SPAN);
-    const float safeDepth = clamp(abs(viewDepth), nearPlane, safeFar);
+    const float safeViewDepth = isfinite(viewDepth)
+        ? abs(viewDepth)
+        : nearPlane;
+    const float safeDepth = clamp(safeViewDepth, nearPlane, safeFar);
     const float referenceDepth = clamp(
         LOCAL_LIGHT_SHADOW_BIAS_REFERENCE_DEPTH,
         nearPlane,
@@ -61,7 +86,7 @@ float ResolvePerspectiveShadowDepthBias(
         baseNdcBias /
         max(referenceDerivative, 0.000001f);
 
-    const float safeNdotL = saturate(receiverNdotL);
+    const float safeNdotL = ResolveShadowReceiverAlignment(receiverNdotL);
     const float grazing = 1.0f - safeNdotL;
     const float slopeScale = min(
         1.0f + grazing * grazing * 8.0f,
