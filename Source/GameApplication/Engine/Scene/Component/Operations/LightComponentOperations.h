@@ -18,6 +18,16 @@ inline bool IsLocalLight(const LIGHT& light) noexcept {
 		light.LightType == LIGHT_TYPE_SPOT;
 }
 
+inline bool NormalizeShadowBias(LIGHT& light) noexcept {
+	const float normalizedBias =
+		LocalLightShadowProjection::ResolveProjectedDepthBias(light.Param.w);
+	if(std::isfinite(light.Param.w) && light.Param.w == normalizedBias){
+		return false;
+	}
+	light.Param.w = normalizedBias;
+	return true;
+}
+
 inline YAML::Node Encode(const LightComponent& component){
 	YAML::Node node;
 	const LIGHT& light = component.light;
@@ -29,7 +39,12 @@ inline YAML::Node Encode(const LightComponent& component){
 	node["Direction"] = light.Direction;
 	node["Diffuse"] = light.Diffuse;
 	node["Ambient"] = light.Ambient;
-	node["Param"] = light.Param;
+
+	DirectX::XMFLOAT4 persistedParam = light.Param;
+	persistedParam.w =
+		LocalLightShadowProjection::ResolveProjectedDepthBias(persistedParam.w);
+	node["Param"] = persistedParam;
+
 	node["LightView"] = light.LightView;
 	node["LightProjection"] = light.LightProjection;
 	return node;
@@ -60,6 +75,7 @@ inline bool Decode(LightComponent& component, const YAML::Node& node){
 		light.Param.x =
 			LocalLightShadowProjection::ResolveFarPlane(light.Param.x);
 	}
+	NormalizeShadowBias(light);
 
 	component.dirty = true;
 	return true;
@@ -67,7 +83,7 @@ inline bool Decode(LightComponent& component, const YAML::Node& node){
 
 inline void Inspect(LightComponent& component){
 	LIGHT& light = component.light;
-	bool changed = false;
+	bool changed = NormalizeShadowBias(light);
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 6.0f));
 
@@ -174,19 +190,21 @@ inline void Inspect(LightComponent& component){
 			&light.Param.w,
 			0.0001f,
 			0.0f,
-			1.0f,
+			LocalLightShadowProjection::MaximumNdcBias,
 			"%.6f"
 		);
 		if(ImGui::IsItemHovered()){
 			ImGui::SetTooltip(
 				"Projected-depth bias at the reference depth. "
 				"Point and Spot shadows reduce it with distance so the equivalent "
-				"world-space offset remains stable."
+				"world-space offset remains stable. Effective range: 0.0 to %.3f.",
+				LocalLightShadowProjection::MaximumNdcBias
 			);
 		}
 
 		light.Param.x =
 			LocalLightShadowProjection::ResolveFarPlane(light.Param.x);
+		changed |= NormalizeShadowBias(light);
 		ImGui::TextDisabled(
 			"Shadow Clip: Near %.3f / Far %.3f / Ratio %.1f",
 			LocalLightShadowProjection::NearPlane,
@@ -204,6 +222,7 @@ inline void Inspect(LightComponent& component){
 			reinterpret_cast<float*>(&light.Param),
 			0.1f
 		);
+		changed |= NormalizeShadowBias(light);
 	}
 
 	ImGui::PopStyleVar();
