@@ -2,14 +2,15 @@
 
 ## 状態
 
-**最優先Lighting調査へ挿入・生成側安定化実装済み・実機確認待ち**
+**最優先Lighting調査へ挿入・生成側 / Atlas Tile境界安定化実装済み・実機確認待ち**
 
 この工程はPoint Shadowの方向依存アーティファクトを確認し、Lighting性能測定の前提となるShadow Correctnessを確定する。
 
-Far / Near / Biasの詳細検証は次へ分離した。
+Far / NearとBiasの詳細検証は次へ分離した。
 
 ```text
 Docs/Step19A4_Local_Shadow_Far_Validation.md
+Docs/Step19A5_Shadow_Bias_Contract.md
 ```
 
 ---
@@ -90,6 +91,12 @@ abs(Z) == abs(X)
 
 この境界では浮動小数誤差によって、選択したFaceのUVが僅かに0..1外へ出てShadowなしとして扱われる可能性がある。
 
+### 3.3 Atlas Tileを跨ぐPCF Tap
+
+Point Shadowの6 FaceはTexture2D Atlas上の別Tileへ格納される。
+
+PCF TapをAtlas全体だけでClampすると、Face端で隣接Tileの深度を比較し、方向依存の線や偽Shadowを作る。
+
 ---
 
 ## 4. 実装した修正
@@ -137,7 +144,21 @@ Point Face FOVを次へ変更した。
 
 この変更はFace順またはFace選択規則を変更しない。
 
-### 4.4 回帰テスト
+### 4.4 Atlas Tile内PCF Clamp
+
+Deferred / Forwardの`SampleShadowAtlasPCF`で、基準UVと各PCF Tapを現在TileのHalf-Texel内へClampする。
+
+```text
+sampleMin = tileMin + atlasTexelSize * 0.5
+sampleMax = tileMax - atlasTexelSize * 0.5
+sampleUV  = clamp(sampleUV, sampleMin, sampleMax)
+```
+
+これにより、PCF Kernelが隣接Faceまたは別LightのTileへ到達することを防ぐ。
+
+Atlas Texel StepはFull Atlas基準で1 Texelずつ移動するため、Tile Grid数を追加で掛けない。
+
+### 4.5 回帰テスト
 
 追加:
 
@@ -154,7 +175,7 @@ PointShadowFaceLayoutSmokeTest.cpp
 - Edge / Corner方向が90.5度Projection内に収まる
 - FOVが90度より大きく91度以下
 
-WorkflowではDeferred / Forward ShaderのFace番号順も検査する。
+WorkflowではDeferred / Forward ShaderのFace番号順と、共通Shadow Bias関数の使用も検査する。
 
 ---
 
@@ -186,6 +207,7 @@ XYZ Corner
 5. CasterをLight Range外へ移動し、偽Shadowが残らないことを確認
 6. カメラを移動してもShadow形状が変化しないことを確認
 7. Far境界はStep 19-A.4のRange境界テストを実行
+8. Bias距離依存はStep 19-A.5のReference Depthテストを実行
 
 ---
 
@@ -197,6 +219,7 @@ XYZ Corner
 - Lightを移動したとき境界に固定された線が出ない
 - Near Plane付近のGeometryがFace全体を遮蔽しない
 - Range外GeometryがFar PlaneへClampされて偽Shadowを作らない
+- PCF Tapが隣接Atlas Tileの深度を参照しない
 - Static Batchと通常Drawで結果が一致する
 - DeferredとForwardで結果が一致する
 
@@ -204,19 +227,19 @@ XYZ Corner
 
 ## 7. 残る場合の次の切り分け
 
-今回の修正後もFace境界に線が残る場合、次にShadow AtlasのTile境界を調査する。
-
-現在のComparison SamplingはAtlas全体をClamp対象としているため、Face端のPCF Tapが隣接Tileへ到達する可能性を個別確認する。
+Tile内Clamp後もFace境界に線が残る場合、原因は隣接Tile混入ではなく、Face選択の不連続または各Face Projection間の差である可能性が高い。
 
 次候補:
 
-1. PCF Sample UVを現在TileのHalf-Texel内へClamp
-2. Atlas Texel StepがFull Atlas基準になっているか確認
-3. Tile Border / Padding導入
-4. 境界のみ隣接Face Sampling
-5. 将来的にTextureCubeまたはTexture2DArrayへ移行
+1. PCF 1x1で線が残るか確認し、Filtering問題とProjection問題を分離
+2. 選択Face Index / UV / Projected DepthのDebug可視化
+3. Face境界で両Faceを評価して結果を比較
+4. 境界帯だけ隣接Face SamplingまたはBlend
+5. Casterが複数Faceへ同じ条件で描画されているか確認
+6. Static Batchと通常DrawのWorld / View / Projection一致確認
+7. 将来的にTextureCubeまたはTexture2DArrayへ移行
 
-性能への影響があるため、実機でFace境界問題が残ることを確認してから適用する。
+隣接Face SamplingやBlendはShadow Sample数を増やすため、PCF 1x1でもFace境界問題が残ることを確認してから導入する。
 
 ---
 
@@ -228,14 +251,17 @@ XYZ Corner
 - [x] Point Face Layout一元化
 - [x] Perspective Shadow Rasterizer分離
 - [x] Point Face FOV Overlap
+- [x] Atlas Tile Half-Texel PCF Clamp
 - [x] Face Layout Smoke Test
 - [x] Shader Face順Workflow Guard
-- [x] Far / Near / Bias検証をStep 19-A.4へ分離
+- [x] Far / Near検証をStep 19-A.4へ分離
+- [x] Bias検証をStep 19-A.5へ分離
 - [ ] Windows Build確認
 - [ ] Lighting Diagnostic Contract確認
 - [ ] 6 Axis実機確認
 - [ ] Edge / Corner実機確認
 - [ ] Near / Far Clip実機確認
+- [ ] PCF 1x1 / 3x3 / 5x5比較
 - [ ] Static / Dynamic Caster比較
 - [ ] Deferred / Forward比較
-- [ ] 必要時Atlas Tile PCF Clamp
+- [ ] 必要時のみ隣接Face Sampling検討
