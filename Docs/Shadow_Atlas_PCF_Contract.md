@@ -75,8 +75,8 @@ PCFの`StepTexel = 1`はFull Atlas上の実Texture Texelを1個移動する。
 ### 2.4 Tile Safe Range
 
 ```text
-tileMin   = tileCoordinate * tileSize
-tileMax   = tileMin + tileSize
+tileMin  = tileCoordinate * tileSize
+tileMax  = tileMin + tileSize
 sampleMin = tileMin + atlasTexelSize * 0.5
 sampleMax = tileMax - atlasTexelSize * 0.5
 ```
@@ -120,7 +120,7 @@ SampleShadowAtlasPCFResolved
     -> TapごとのTile Clamp
 
 SampleShadowAtlasPCF
-    -> Light-local UVからAtlas PCFを実行
+    -> 通常Shadow用Adapter
 ```
 
 対象:
@@ -130,30 +130,26 @@ Source/Shader/Material/DeferredFunc.hlsli
 Source/Shader/Material/FowardFunc.hlsli
 ```
 
-Directional / Spot / Point / CSMはすべて`SampleShadowAtlasPCF`を使用する。
+Point / Spotは`SampleShadowAtlasPCF`を使用する。
 
-CSMは完全なLight NDC Volumeへ入る最初のCascadeを選択した後、そのTileを1回だけSamplingする。
-
-```text
-Docs/CSM_Cascade_Selection_Contract.md
-```
+CSMはCascade判定後に`ResolveShadowAtlasSampleBase`を一度実行し、`SampleShadowAtlasPCFResolved`とRaw Depth参照で同じSafe Base UVを共有する。
 
 ---
 
-## 4. CSM旧Raw Depth補助経路
+## 4. CSM Raw Depth参照
 
-旧CSM経路は、複数CascadeのShadow結果を比較するため次を行っていた。
+CSMは現在CascadeのDepthからOccluder位置を推定し、前Cascadeとの整合を確認する補助経路を持つ。
 
-- 現在CascadeのRaw Shadow DepthをLoad
-- Occluder位置を推定
-- Previous / First Cascadeへ再投影
-- 遠CascadeのShadowを採用するか判定
+Raw DepthのLoad座標もAtlas範囲内へClampする。
 
-この経路は削除した。
+```text
+safeLoadCoord = clamp(
+    int2(suvBase * atlasDimensions),
+    int2(0, 0),
+    int2(atlasDimensions) - 1)
+```
 
-Cascade選択をShadow結果ではなく、受光点のXYZ Volumeで決定するため、Raw Depth Loadは不要である。
-
-Atlas契約はComparison PCFだけを担当し、Cascade選択責務を持たない。
+Projection Z Scaleが0へ近い場合の除算も下限値で保護する。
 
 ---
 
@@ -162,26 +158,20 @@ Atlas契約はComparison PCFだけを担当し、Cascade選択責務を持たな
 | Light Type | Projection | Sampling |
 |---|---|---|
 | Directional | Orthographic | Atlas Tile Clamp |
-| Directional CSM | Orthographic / Single Selected Cascade | Atlas Tile Clamp |
+| Directional CSM | Orthographic / Cascade | Atlas Tile Clamp + Raw Depth Clamp |
 | Spot | Perspective | Atlas Tile Clamp |
 | Point | 6 Perspective Face | Atlas Tile Clamp |
 
-Bias計算:
+Bias計算は別契約であり、この文書では変更しない。
 
 ```text
 Docs/Step19A5_Shadow_Bias_Contract.md
 ```
 
-Point Face選択とFOV:
+Point Face選択とFOVは次を参照する。
 
 ```text
 Docs/Step19A3_Point_Shadow_Face_Validation.md
-```
-
-CSM選択:
-
-```text
-Docs/CSM_Cascade_Selection_Contract.md
 ```
 
 ---
@@ -193,9 +183,7 @@ Docs/CSM_Cascade_Selection_Contract.md
 - `ResolveShadowAtlasSampleBase`が存在
 - `SampleShadowAtlasPCFResolved`が存在
 - Half-Texel Safe Rangeを計算
-- `texelSize * tile`計算を禁止
-- CSMが最初の有効Cascadeから即時Return
-- 複数Cascadeの`min`合成を禁止
+- CSM専用`texelSize * tile`計算を禁止
 - Deferred / Forward Shaderを`fxc ps_5_0`でコンパイル
 
 ---
@@ -228,7 +216,6 @@ PCF 5x5
 
 - 正方形の偽Shadowが出ない
 - 隣接CascadeのDepthが混入しない
-- 遠Cascadeが近Cascadeの結果を上書きしない
 - Deferred / Forwardで境界位置が一致
 
 ### 7.3 Point Face境界
@@ -250,9 +237,8 @@ PCF 5x5
 
 - [x] Full Atlas Texel Sizeへ統一
 - [x] Point / Spot Tile Half-Texel Clamp
-- [x] Directional / CSM Tile Half-Texel Clamp
-- [x] CSM Raw Depth補助経路を削除
-- [x] CSMを単一Cascade Samplingへ変更
+- [x] CSM Tile Half-Texel Clamp
+- [x] CSM Raw Depth Load Clamp
 - [x] Deferred / Forward共通関数構造
 - [x] CI Regression Guard追加
 - [ ] Lighting Diagnostic Contract成功

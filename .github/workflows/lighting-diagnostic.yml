@@ -16,7 +16,6 @@ on:
       - "Source/GameApplication/Engine/Scene/Component/LightComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/LightComponentDefaults.h"
       - "Source/GameApplication/Engine/Scene/Component/Operations/LightComponentOperations.h"
-      - "Source/GameApplication/Engine/Scene/System/Render/Culling/ShadowRenderPacketCullingView.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/LightGpuSubmissionPolicy.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/LocalLightShadowProjection.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PackedLightEntryTraversal.h"
@@ -49,7 +48,6 @@ on:
       - "Source/GameApplication/Engine/Scene/Component/LightComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/LightComponentDefaults.h"
       - "Source/GameApplication/Engine/Scene/Component/Operations/LightComponentOperations.h"
-      - "Source/GameApplication/Engine/Scene/System/Render/Culling/ShadowRenderPacketCullingView.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/LightGpuSubmissionPolicy.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/LocalLightShadowProjection.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PackedLightEntryTraversal.h"
@@ -141,13 +139,13 @@ jobs:
           Tests/PointShadowFaceLayoutSmokeTest.cpp
           /Fe:point-shadow-face-layout-test.exe
           && point-shadow-face-layout-test.exe
-      - name: Guard shadow lighting contracts
+      - name: Guard ShadowMapPass light and point-face contracts
         shell: pwsh
         run: |
           $path = "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.cpp"
           $text = Get-Content -Raw -Path $path
           if ($text -match 'if\s*\(\s*!lightcomp->light\.CastShadow\s*\)\s*continue') {
-            throw "CastShadow=false lights must remain in lighting submission."
+            throw "CastShadow=false lights must not be removed from GPU lighting submission."
           }
           if ($text -notmatch 'MakeUnshadowedLogicalEntry') {
             throw "Non-shadow logical light fallback is missing."
@@ -156,19 +154,16 @@ jobs:
             throw "Point shadow overlap FOV contract is missing."
           }
           if ($text -notmatch 'perspectiveShadowRS') {
-            throw "Point and spot depth-clipped rasterizer is missing."
+            throw "Point and spot shadows must use a depth-clipped rasterizer."
           }
           if ($text -notmatch 'LocalLightShadowProjection::ResolveFarPlane') {
-            throw "Local light Far contract is missing."
+            throw "Point and spot shadows must share the local light Far contract."
           }
           if ($text -match 'lightData\.Param\.x\s*\*\s*1000') {
-            throw "Spot shadow Far range regression."
+            throw "Spot shadow Far must not multiply the light range by 1000."
           }
-
-          $cullingPath = "Source/GameApplication/Engine/Scene/System/Render/Culling/ShadowRenderPacketCullingView.h"
-          $culling = Get-Content -Raw -Path $cullingPath
-          if ($culling -notmatch 'view\.depthClipEnabled\s*=\s*false') {
-            throw "Conservative shadow caster culling contract is missing."
+          if ($text -notmatch 'static_cast<std::uint32_t>\(shadowNum\),\s*perspectiveShadow') {
+            throw "Perspective shadow depth clipping must be forwarded to CPU culling."
           }
 
           $shaderPaths = @(
@@ -183,28 +178,19 @@ jobs:
           foreach ($shaderPath in $shaderPaths) {
             $shader = Get-Content -Raw -Path $shaderPath
             if ($shader -notmatch 'ResolvePerspectiveShadowDepthBias') {
-              throw "Local shadow bias contract is missing in $shaderPath"
+              throw "Depth-aware local shadow bias is missing in $shaderPath"
             }
             if ($shader -notmatch 'ResolveShadowAtlasSampleBase') {
-              throw "Atlas tile sampling contract is missing in $shaderPath"
+              throw "Shared atlas tile sampling contract is missing in $shaderPath"
             }
             if ($shader -notmatch 'SampleShadowAtlasPCFResolved') {
               throw "Resolved atlas PCF path is missing in $shaderPath"
             }
             if ($shader -notmatch 'sampleMin\s*=\s*tileMin\s*\+\s*atlasTexelSize\s*\*\s*0\.5') {
-              throw "Atlas half-texel boundary is missing in $shaderPath"
+              throw "Atlas PCF must clamp to the current tile half-texel boundary in $shaderPath"
             }
             if ($shader -match 'float2\s+texelSize\s*=.*\*\s*tile\s*;') {
-              throw "Atlas texel step regression in $shaderPath"
-            }
-            if ($shader -notmatch 'const bool outsideDepth') {
-              throw "CSM receiver depth selection is missing in $shaderPath"
-            }
-            if ($shader -notmatch 'return\s+SampleShadowAtlasPCF\(cuv,\s*depth,\s*tileIndex,\s*pcf\);') {
-              throw "Single CSM cascade return is missing in $shaderPath"
-            }
-            if ($shader -match 'finalShadow\s*=\s*min') {
-              throw "Overlapping CSM combination regression in $shaderPath"
+              throw "Atlas PCF texel step must use full-atlas texel size without multiplying by tile scale in $shaderPath"
             }
             foreach ($rule in $faceRules) {
               if ($shader -notmatch $rule) {
