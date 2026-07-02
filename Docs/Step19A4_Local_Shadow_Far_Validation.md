@@ -2,30 +2,34 @@
 
 ## 状態
 
-**最優先Lighting Correctnessへ挿入・構造修正済み・Bias契約再統一済み・実機確認待ち**
+**Range / Far・GPU Clip・保守的CPU Culling・Bias契約を整理済み／CI・実機確認待ち**
 
-Point / Spot ShadowのFar範囲をLight Rangeと一致させ、Far変更時の方向依存・影消失・偽Shadowを検証する。
+Point / Spot ShadowのFarをLight Rangeと一致させ、Far境界での影消失・偽Shadow・Bias変動を検証する。
 
-Biasの詳細契約は次を参照する。
+関連契約:
 
 ```text
+Docs/Step18D_Shadow_Depth_Clip_Culling_Contract.md
+Docs/Step19A3_Point_Shadow_Face_Validation.md
 Docs/Step19A5_Shadow_Bias_Contract.md
+Docs/Shadow_Atlas_PCF_Contract.md
 ```
 
 ---
 
-## 1. 観測
-
-Point LightのShadowが方向だけでなく、Far相当のRange変更時にも不自然になる可能性がある。
-
-対象設定:
+## 1. データ契約
 
 ```text
 LightComponent.Param.x = Local Light Range / Shadow Far
 LightComponent.Param.w = Projected-depth Bias at Reference Depth
 ```
 
-Point / SpotではRangeをLighting減衰とShadow ProjectionのFar Planeで共有する。
+Point / Spotでは同じ`Param.x`を次へ使用する。
+
+```text
+Lighting attenuation end
+Perspective Shadow Far
+```
 
 ---
 
@@ -41,21 +45,9 @@ Spot Shadow Far  = Param.x * 1000
 Lighting Range   = Param.x
 ```
 
-Spotでは光が届かない範囲までShadow Projectionが延び、PointとSpotでRangeの意味が異なっていた。
+Spotでは光が届かない範囲までProjectionが延び、PointとSpotでRangeの意味が異なっていた。
 
-### 2.2 CPU Shadow Cullingが全LightでNear / Far Planeを無効化
-
-旧Culling契約は、ShadowMapPass全体が`DepthClipEnable = FALSE`である前提だった。
-
-```text
-Shadow View
-    Left / Right / Top / Bottom Plane: ON
-    Near / Far Plane: OFF
-```
-
-Point / SpotをPerspective用`DepthClipEnable = TRUE`へ分離した後も、CPU側ではNear / Far Planeを無効化したままだった。
-
-### 2.3 Perspective Shadowへ固定NDC Biasを使用
+### 2.2 Perspective Shadowへ固定NDC Biasを使用していた
 
 旧Sampling:
 
@@ -63,15 +55,27 @@ Point / SpotをPerspective用`DepthClipEnable = TRUE`へ分離した後も、CPU
 depth = projectedDepth - Param.w
 ```
 
-Perspective Depthは非線形であるため、同じNDC Biasでもワールド空間換算量は受光点深度で変化する。
+Perspective Depthは非線形であるため、固定NDC Biasは遠距離ほど大きなWorld-space Offsetへ相当する。ShadowがCasterから離れる、または遠距離で消える原因になり得る。
 
-遠距離では固定NDC Biasが大きなワールド空間オフセットへ変換され、Shadowが離れる・消える原因になり得る。
+### 2.3 既存Bias値をWorld Unitへ再解釈した
 
-### 2.4 既存Bias値をWorld Unitへ再解釈した
+一時実装では`Param.w`をWorld Biasとして扱ったが、既存Sceneの`0.005`を`0.005 world units`へ読み替えるため保存互換がなかった。この方式は撤回した。
 
-一時実装では`Param.w`をWorld Biasとして扱ったが、既存Sceneの`0.005`を`0.005 world units`へ読み替えるため、保存互換がなかった。
+### 2.4 GPU ClipとCPU Cullingを同じ強さにすると影が欠落する
 
-この方式は撤回した。
+Point / SpotのGPU RasterizerはPerspective Near / Far Clipが必要である。
+
+ただしCPU AABB CullingでもNear / Far Planeを有効化すると、大きいCasterまたはFar境界を跨ぐCasterをTriangle Clip前に全体除外できる。
+
+症状:
+
+```text
+ReceiverにはLight Range内なので光が届く
+CasterはCPU Far Planeで除外される
+結果として影だけ消える
+```
+
+GPUとCPUを完全一致させるのではなく、CPU Shadow Cullingは保守的にする必要がある。
 
 ---
 
@@ -102,14 +106,12 @@ NaN / Infinity / Near以下
 
 ### 3.2 Shared Clip / Bias定数
 
-C++とHLSLで次を共有する。
-
 ```text
-Near Plane          = 0.1
-Minimum Span        = 0.1
-Maximum NDC Bias    = 0.01
+Near Plane           = 0.1
+Minimum Depth Span   = 0.1
+Maximum NDC Bias     = 0.01
 Bias Reference Depth = 1.0
-Maximum Slope Scale = 9.0
+Maximum Slope Scale  = 9.0
 ```
 
 定義:
@@ -118,41 +120,47 @@ Maximum Slope Scale = 9.0
 Source/Shader/commonDefine.h
 ```
 
-### 3.3 Light Type別CPU Culling
+### 3.3 GPU Rasterizer
 
 ```text
 Directional / CSM
-    DepthClipEnable = FALSE
-    CPU Near / Far Plane = OFF
+    DepthClipEnable = false
 
 Point / Spot
-    DepthClipEnable = TRUE
-    CPU Near / Far Plane = ON
+    DepthClipEnable = true
 ```
 
-GPU RasterizerとCPU CullingのDepth Clip契約を一致させる。
+Point / SpotではPerspective Near / Far外TriangleをGPUでClipし、Depth端へ押し込まれる偽Shadowを防ぐ。
 
-### 3.4 Reference-depth Perspective Bias
+### 3.4 CPU Shadow Caster Culling
 
-Point / Spotでは`Param.w`を基準深度でのProjected-depth Biasとして保存する。
-
-DirectX LH Perspective Depth:
+全Shadow ViewでNear / Far Planeを無効化する。
 
 ```text
-z_ndc = far / (far - near)
-      - near * far / ((far - near) * viewZ)
+Directional / CSM / Point / Spot
+    CPU Left / Right / Bottom / Top = enabled
+    CPU Near / Far                  = disabled
 ```
 
-微分:
+CPU CullingはGPUより保守的である。
+
+- Light-space XY外Casterは除外する
+- Near / Far境界を跨ぐCaster Boundsは保持する
+- Point / Spotの正確なPerspective ClipはGPUへ任せる
+
+実装:
 
 ```text
-d(z_ndc) / d(viewZ)
-    = near * far / ((far - near) * viewZ^2)
+Source/GameApplication/Engine/Scene/System/Render/Culling/
+    ShadowRenderPacketCullingView.h
 ```
 
-変換:
+### 3.5 Reference-depth Perspective Bias
+
+Point / Spotでは`Param.w`をReference DepthでのProjected-depth Biasとして保存する。
 
 ```text
+projectionScale = near * far / (far - near)
 referenceDerivative = projectionScale / referenceDepth^2
 currentDerivative   = projectionScale / receiverDepth^2
 
@@ -170,21 +178,12 @@ finalBias = min(Param.w, adjustedNdcBias)
 - 遠距離では`1 / depth^2`で小さくなる
 - 同一受光点深度ならFar変更に依存しない
 - Reference Depthより近い場合は既存値を上限として維持
-- 最大値は`LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS`で制限
+- NaN / Infinity / 負値は0
+- 最大値は`LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS`
 
-Directional / CSMはOrthographic用NDC Bias契約を維持する。
+Directional / CSMは共通Orthographic NDC Biasを使用する。
 
-共有HLSL:
-
-```text
-Source/Shader/Material/ShadowDepthBias.hlsli
-```
-
-Deferred / Forwardの両方で同じ関数を使用する。
-
-### 3.5 既存Scene互換
-
-既存YAMLの`Param.w`は保存形式も数値も変更しない。
+### 3.6 既存Scene互換
 
 ```text
 Existing Param.w = 0.005
@@ -198,26 +197,23 @@ Existing Param.w = 0.005
 
 ## 4. Inspector
 
-Point / Spotでは汎用`Param`表示を次へ分解した。
+Point / Spot:
 
 ```text
 Range / Shadow Far
 Inner Angle       // Spotのみ
 Outer Angle       // Spotのみ
 Shadow Bias
-```
-
-併記:
-
-```text
 Shadow Clip: Near / Far / Ratio
 ```
 
 `Far / Near > 10000`ではPerspective Depth精度警告を表示する。
 
-Range TooltipにはLighting減衰の終端とShadow Farが同じ値であることを表示する。
+Shadow Bias入力範囲:
 
-Shadow Bias Tooltipには基準深度のProjected-depth Biasであり、Point / Spotでは距離に応じて減衰することを表示する。
+```text
+0.0 .. 0.01
+```
 
 ---
 
@@ -232,22 +228,23 @@ Shadow Bias Tooltipには基準深度のProjected-depth Biasであり、Point / 
 - 深度が遠いほどNDC Biasが小さくなる
 - 逆算したWorld Equivalentが一定
 - 同一受光点深度ではFar変更に依存しない
-- Reference Depthより近い場合は既存値を上限として維持
 - Grazing SurfaceでSlope Scaleが増加
 - Maximum NDC Bias Clamp
 
 ### RenderPacketViewCullingSmokeTest
 
-- Depth Clamp ShadowではNear / Far Planeを無効化
-- Perspective ShadowではNear / Far Planeを保持
-- Perspective ShadowでNear手前Casterを除外
-- Perspective ShadowでFar外Casterを除外
+- Player / EditorではNear / Far Plane有効
+- 全Shadow ViewではNear / Far Plane無効
+- Shadow ViewではNear / Far外Casterを保持
+- 左右上下Plane外CasterはShadow Viewでも除外
+- TileごとのView Identityを分離
 
 ### Lighting Diagnostic Contract
 
 - Spot Rangeの`* 1000`再導入を禁止
 - Point / Spot共通Far Policyを確認
-- Perspective Depth ClipをCulling Viewへ渡すことを確認
+- Point / Spot GPU RasterizerがDepth Clipを使用
+- CPU Shadow Cullingが保守的Near / Far無効契約を維持
 - Deferred / Forwardで共通Bias関数を使用
 - Deferred / Forward Shaderを`fxc`でコンパイル
 
@@ -257,37 +254,19 @@ Shadow Bias Tooltipには基準深度のProjected-depth Biasであり、Point / 
 
 ### 6.1 Range境界
 
-Point Lightを固定し、Caster / Receiverを同じ軸上へ置く。
-
-測定Range:
-
 ```text
-5
-10
-25
-50
-100
-500
-```
-
-各Rangeで次を確認する。
-
-```text
-Caster distance = Range - 0.1
-Caster distance = Range
-Caster distance = Range + 0.1
+Range = 5 / 10 / 25 / 50 / 100 / 500
+Caster distance = Range - 0.1 / Range / Range + 0.1
 ```
 
 期待:
 
-- Range内Casterだけが有効
-- Range外CasterがFar PlaneへClampされない
-- Point Lightの減衰境界とShadow Farが一致
-- Range変更でShadowが急に大きく浮かない
+- Light減衰境界とShadow Farが一致
+- Range外TriangleがDepth端へClampされない
+- Far境界を跨ぐ大きいCasterの影が突然消えない
+- Range変更だけでShadowが大きく浮かない
 
 ### 6.2 6方向
-
-同じ距離条件を次の方向で確認する。
 
 ```text
 +X / -X
@@ -295,13 +274,12 @@ Caster distance = Range + 0.1
 +Z / -Z
 ```
 
-全方向でFar境界が一致すること。
+全方向でFar境界と影消失位置が一致すること。
 
 ### 6.3 Bias
 
-同じSceneでRangeだけを変更し、Shadow Biasを固定する。
-
 ```text
+Bias = 0
 Bias = 0.0005
 Bias = 0.001
 Bias = 0.005
@@ -315,16 +293,33 @@ Bias = 0.01
 - 遠距離でShadowが突然消えない
 - Point Face境界でBias量が不連続にならない
 
+### 6.4 CPU Conservative Culling
+
+- Caster AABBをFar Planeへ跨がせる
+- Caster中心だけをFar外へ置く
+- ReceiverはRange内へ残す
+- Static Batch / Ordinary Drawを比較
+
+期待:
+
+- AABB中心または一部がFar外でも、交差Triangleの影を維持
+- GPU Clip後にRange外部分だけが除外される
+
 ---
 
 ## 7. 残る場合の次候補
 
-1. Point Face Atlas Tileを跨ぐPCF Tap
-2. Far / Near Ratio過大によるD32 Perspective精度
-3. Caster BoundsがFar Planeを跨ぐ場合のCPU AABB判定
-4. Static Batchと通常DrawのProjection不一致
-5. Range外ReceiverでAmbientだけが残る見え方
-6. Texture2D AtlasからTextureCube / Texture2DArrayへの移行
+1. Far / Near Ratio過大によるD32 Perspective精度
+2. Point Face Projection境界
+3. Static Batchと通常DrawのProjection不一致
+4. Range外ReceiverでAmbientだけが残る見え方
+5. Texture2D AtlasからTextureCube / Texture2DArrayへの移行
+
+Atlas Tile混入は次で別管理する。
+
+```text
+Docs/Shadow_Atlas_PCF_Contract.md
+```
 
 ---
 
@@ -332,14 +327,13 @@ Bias = 0.01
 
 - [x] Point / Spot Far契約確認
 - [x] Spot `Range * 1000`削除
-- [x] Local Shadow Clip Policy追加
 - [x] 不正Range補正
-- [x] Point / Spot CPU Near / Far Culling有効化
+- [x] Point / Spot GPU Perspective Depth Clip
+- [x] 全Shadow CPU Near / Far Culling無効化
+- [x] CPU / GPU責務を文書化
 - [x] InspectorへNear / Far / Ratio表示
-- [x] Reference-depth Bias契約をInspectorへ明示
-- [x] Depth-aware Perspective Bias追加
+- [x] Reference-depth Bias契約
 - [x] Deferred / Forward Bias統一
-- [x] C++参照実装をHLSL契約へ再統一
 - [x] C++数式Smoke Test更新
 - [x] Deferred / Forward Shader Compile Smoke
 - [ ] Windows Build確認
@@ -348,4 +342,5 @@ Bias = 0.01
 - [ ] 6方向Far境界実機確認
 - [ ] Range 5..500実機確認
 - [ ] Bias段階実機確認
+- [ ] Far境界Caster AABB確認
 - [ ] Static / Dynamic Caster比較
