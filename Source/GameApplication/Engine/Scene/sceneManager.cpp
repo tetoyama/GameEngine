@@ -23,7 +23,9 @@
 #include "System/Transform/followSystem.h"
 
 #include "System/Render/RenderSystem/renderSystem.h"
+#include "System/Render/StaticBatch/StaticBatchUploadSystem.h"
 #include "System/Render/Camera/CameraSystem.h"
+#include "System/Render/Culling/CullingSystem.h"
 #include "System/Render/Effect/effectSystem.h"
 #include "System/Render/Terrain/waveSystem.h"
 #include "System/Render/Terrain/terrainSystem.h"
@@ -39,6 +41,10 @@
 #include "Editor/editorService.h"
 #include <Editor/UI/Inspector.h>
 #include <Editor/UI/Hierarchy.h>
+
+SceneManager::SceneManager() = default;
+
+SceneManager::~SceneManager() = default;
 
 void SceneManager::Initialize(SceneManagerContext sceneContext){
 	
@@ -61,27 +67,29 @@ void SceneManager::Initialize(SceneManagerContext sceneContext){
 		m_SceneContext.debug->LOG_INFO("SceneManager の初期化を開始します");
 	}
 
-	systemRegistry = std::make_shared<SystemRegistry>();
+	m_systemRegistry = std::make_unique<SystemRegistry>();
 
-	systemRegistry->RegisterSystem(std::make_unique<ScriptSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<ScriptSystem>(&m_SceneContext));
 
-	systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
-	systemRegistry->RegisterSystem(std::make_unique<FollowSystem>(&m_SceneContext));
-	systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
-	systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
-	systemRegistry->RegisterSystem(std::make_unique<AudioSystem>(&m_SceneContext));
-	systemRegistry->RegisterSystem(std::make_unique<ParticleSystem>(&m_SceneContext));
-	systemRegistry->RegisterSystem(std::make_unique<EffectSystem>(&m_SceneContext));
-	systemRegistry->RegisterSystem(std::make_unique<TerrainSystem>(&m_SceneContext));
-	systemRegistry->RegisterSystem(std::make_unique<PhysicSystem>(&m_SceneContext));
-	systemRegistry->RegisterSystem(std::make_unique<CustomScriptSystem>(&m_SceneContext));
-	systemRegistry->RegisterSystem(std::make_unique<WaveSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<TransformSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<FollowSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<CameraSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<CullingSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<RenderSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<StaticBatchUploadSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<AudioSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<ParticleSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<EffectSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<TerrainSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<PhysicSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<CustomScriptSystem>(&m_SceneContext));
+	m_systemRegistry->RegisterSystem(std::make_unique<WaveSystem>(&m_SceneContext));
 
 	// システムの初期化
-	systemRegistry->InitializeAll();
-	systemRegistry->DecodeAll(m_SceneContext.config->editorConfig);
+	m_systemRegistry->InitializeAll();
+	m_systemRegistry->DecodeAll(m_SceneContext.config->editorConfig);
 
-	m_SceneContext.systemRegistry = systemRegistry.get();
+	m_SceneContext.systemRegistry = m_systemRegistry.get();
 
 	for (auto& [name, scene] : m_activeScenes) {
 		scene->Initialize(&m_SceneContext);
@@ -108,10 +116,9 @@ void SceneManager::Update(float deltaTime){
 				m_SceneContext.debug->LOG_INFO("シーンを停止します");
 			}
 
-			systemRegistry->StopAll();
+			m_systemRegistry->StopAll();
 
 			TempLoad(); // 一時保存の読み込み
-
 			// プレイ中に積まれたコマンドは TempLoad 後に無効なため全クリア
 			if (m_SceneContext.editor) {
 				m_SceneContext.editor->commandManager.Clear();
@@ -124,7 +131,6 @@ void SceneManager::Update(float deltaTime){
 			if (OldState == SceneManagerState::Stopped) {
 
 				TempSave(); // 一時保存
-
 				// プレイ開始前のエディタ操作コマンドをクリア（プレイ中は Undo/Redo 無効）
 				if (m_SceneContext.editor) {
 					m_SceneContext.editor->commandManager.Clear();
@@ -133,7 +139,7 @@ void SceneManager::Update(float deltaTime){
 				if(m_SceneContext.debug){
 					m_SceneContext.debug->LOG_INFO("シーンを開始します");
 				}
-				systemRegistry->StartAll();
+				m_systemRegistry->StartAll();
 
 			} else {
 				if(m_SceneContext.debug){
@@ -156,17 +162,24 @@ void SceneManager::Update(float deltaTime){
 				if(m_SceneContext.debug){
 					m_SceneContext.debug->LOG_INFO("シーンを開始します");
 				}
-				systemRegistry->StartAll();
+				m_systemRegistry->StartAll();
 			}
 
+			// Scene固有処理は各Sceneに対して実行する。
 			for (auto& [name, scene] : m_activeScenes) {
-
 				scene->Update(deltaTime);
-				systemRegistry->UpdateAll(deltaTime);
-
-				scene->FixedUpdate(1.0f / TARGET_FPS);
-				systemRegistry->FixedUpdateAll(1.0f / TARGET_FPS);
 			}
+
+			// System側が全Active Sceneを処理するため、Sceneループ外で一度だけ実行する。
+			m_systemRegistry->UpdateAll(deltaTime);
+
+			const float fixedDeltaTime = 1.0f / TARGET_FPS;
+			for (auto& [name, scene] : m_activeScenes) {
+				scene->FixedUpdate(fixedDeltaTime);
+			}
+
+			// FixedUpdate系Systemも1ステップにつき一度だけ実行する。
+			m_systemRegistry->FixedUpdateAll(fixedDeltaTime);
 
 			OldState = State;
 			State = SceneManagerState::Paused;
@@ -179,9 +192,9 @@ void SceneManager::Update(float deltaTime){
 		for (auto& [name, scene] : m_activeScenes) {
 			scene->Update(deltaTime);
 		}
-		systemRegistry->UpdateAll(deltaTime);
+		m_systemRegistry->UpdateAll(deltaTime);
 	}
-	systemRegistry->EditorUpdateAll(deltaTime);
+	m_systemRegistry->EditorUpdateAll(deltaTime);
 
 	for (auto it = m_activeScenes.begin(); it != m_activeScenes.end(); ) {
 		if (it->second->isDestroy) {
@@ -223,7 +236,7 @@ void SceneManager::FixedUpdate(float fixedDeltaTime){
 		for (auto& [name, scene] : m_activeScenes) {
 			scene->FixedUpdate(fixedDeltaTime);
 		}
-		systemRegistry->FixedUpdateAll(fixedDeltaTime);
+		m_systemRegistry->FixedUpdateAll(fixedDeltaTime);
 	}
 }
 
@@ -231,35 +244,51 @@ void SceneManager::Draw(){
 	for(auto& [name, scene] : m_activeScenes){
 		scene->Draw();
 	}
-	systemRegistry->DrawAll();
+	m_systemRegistry->DrawAll();
 }
 
 void SceneManager::Shutdown(){
 	if(m_SceneContext.debug){
 		m_SceneContext.debug->LOG_INFO("SceneManager を終了します");
 	}
+
 	for(auto& [name, scene] : m_activeScenes){
-		scene->Shutdown();
-		scene.reset();
+		if(scene){
+			scene->Shutdown();
+			scene.reset();
+		}
 	}
 	m_activeScenes.clear();
-	systemRegistry->EncodeAll(m_SceneContext.config->editorConfig);
 
-	systemRegistry->FinalizeAll();
-	systemRegistry.reset();
+	// Scene::Shutdown() が個別登録を解除するが、異常終了経路で残った
+	// Contextもここで確実に無効化する。
+	m_contextRegistry.clear();
+
+	if(m_systemRegistry){
+		m_systemRegistry->EncodeAll(m_SceneContext.config->editorConfig);
+		m_systemRegistry->FinalizeAll();
+		m_systemRegistry.reset();
+	}
+	m_SceneContext.systemRegistry = nullptr;
 }
 
 uint32_t SceneManager::GetIDFromContext(SceneContext* ctx){
 	if(ctx == nullptr) return 0;
 
-	// 既に登録されているか確認
-	for(auto const& [id, registeredCtx] : m_contextRegistry){
-		if(registeredCtx == ctx) return id;
+	// SceneContext自身が保持するIDを使い、線形探索を避ける。
+	if(ctx->contextID != 0){
+		auto it = m_contextRegistry.find(ctx->contextID);
+		if(it != m_contextRegistry.end() && it->second == ctx){
+			return ctx->contextID;
+		}
+
+		// Context側だけに古いIDが残っていた場合は再登録する。
+		ctx->contextID = 0;
 	}
 
-	// 新規登録
-	uint32_t newID = m_nextContextID++;
+	const uint32_t newID = m_nextContextID++;
 	m_contextRegistry[newID] = ctx;
+	ctx->contextID = newID;
 	return newID;
 }
 
@@ -267,10 +296,28 @@ SceneContext* SceneManager::GetContextFromID(uint32_t id){
 	if(id == 0) return nullptr;
 
 	auto it = m_contextRegistry.find(id);
-	if(it != m_contextRegistry.end()){
-		return it->second;
+	return it != m_contextRegistry.end() ? it->second : nullptr;
+}
+
+void SceneManager::UnregisterContext(SceneContext* ctx){
+	if(ctx == nullptr) return;
+
+	if(ctx->contextID != 0){
+		auto it = m_contextRegistry.find(ctx->contextID);
+		if(it != m_contextRegistry.end() && it->second == ctx){
+			m_contextRegistry.erase(it);
+		}
+		ctx->contextID = 0;
+		return;
 	}
-	return nullptr;
+
+	// 旧データや不整合状態に対するフォールバック。
+	for(auto it = m_contextRegistry.begin(); it != m_contextRegistry.end(); ++it){
+		if(it->second == ctx){
+			m_contextRegistry.erase(it);
+			break;
+		}
+	}
 }
 
 void SceneManager::AddScene(std::shared_ptr<Scene> scene) {
@@ -378,9 +425,10 @@ std::shared_ptr<Scene> SceneManager::LoadFromFilePath(const std::string& filePat
 	}
 
 	auto scene = std::make_shared<Scene>();
+	// Initializeより前にPathを設定し、Storage設定の先読みと
+	// Default Scene生成を挟まない直接ロードを成立させる。
+	scene->ScenePath = filePath;
 	scene->Initialize(&m_SceneContext);
-	scene->ResetAll();
-	scene->LoadSceneFromYAML(filePath);
 
 	m_activeScenes[scene->SceneName] = scene;
 	if(m_SceneContext.debug){

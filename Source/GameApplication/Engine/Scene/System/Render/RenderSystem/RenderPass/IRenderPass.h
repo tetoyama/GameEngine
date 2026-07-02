@@ -1,14 +1,14 @@
 // =======================================================================
-// 
+//
 // IRenderPass.h
-// 
+//
 // =======================================================================
 #pragma once
 
+#include "RenderPassContext.h"
+
 class RenderSystem;
 struct SceneManagerContext;
-
-struct RenderPassContext;
 
 // レンダーパスの基底インターフェース
 // 各描画パス（GBuffer, Shadow, Forward, PostEffect 等）はこのインターフェースを実装する
@@ -26,6 +26,6 @@ public:
 	// 1 フレームの描画処理を実行する
 	virtual void Execute(const RenderPassContext& ctx) = 0;
 
-	SceneManagerContext* m_context      = nullptr;  // シーンコンテキストへの参照
-	RenderSystem*        m_renderSystem = nullptr;  // 親となる RenderSystem への参照
+	SceneManagerContext* m_context = nullptr;
+	RenderSystem* m_renderSystem = nullptr;
 };

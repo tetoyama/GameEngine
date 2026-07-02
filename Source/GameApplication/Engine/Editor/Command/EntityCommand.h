@@ -143,7 +143,12 @@ public:
 
 	void Undo() override {
 		if (!m_context || m_context->entity->IsAlive(m_entity)) return;
-		EntityCommandHelper::RestoreAll(m_snapshots, m_context);
+
+		auto restored = EntityCommandHelper::RestoreAll(m_snapshots, m_context);
+		auto rootIt = restored.find(m_entity.GetIndex());
+		if(rootIt == restored.end()) return;
+
+		m_entity = rootIt->second;
 		if (m_onRestored) m_onRestored(m_entity, m_context);
 	}
 
@@ -222,15 +227,19 @@ public:
 		if (!m_context) return;
 
 		if (m_duplicated != 0) {
-			// Redo: スナップショットから復元
-			EntityCommandHelper::RestoreAll(m_snapshots, m_context);
+			// Redo: スナップショットから新しいgenerationで復元
+			auto restored = EntityCommandHelper::RestoreAll(m_snapshots, m_context);
+			auto rootIt = restored.find(m_duplicated.GetIndex());
+			if(rootIt == restored.end()) return;
+
+			m_duplicated = rootIt->second;
 			if (m_onDuplicated) m_onDuplicated(m_duplicated, m_context);
 			return;
 		}
 
 		// 初回: 複製
 		auto* t = m_context->component->GetComponent<TransformComponent>(m_src);
-		Entity newParent = t ? t->parent : 0;
+		Entity newParent = t ? t->parent : Entity(0, 0);
 		m_duplicated = _DuplicateRecursive(m_src, newParent);
 
 		// Undo/Redo 用スナップショット
@@ -258,12 +267,14 @@ private:
 
 		const auto& idToName = m_context->component->GetComponentIDToNameMap();
 		auto comps = m_context->component->GetAllComponentsOfEntitySorted(src);
-		for (IComponent* comp : comps) {
-			ComponentTypeID tid = m_context->component->GetComponentIDByTypeIndex(std::type_index(typeid(*comp)));
-			if (tid == static_cast<ComponentTypeID>(-1)) continue;
-			auto nameIt = idToName.find(tid);
-			if (nameIt == idToName.end()) continue;
-			m_context->component->CreateFromYAML(nameIt->second, newEntity, comp->encode());
+		for(ComponentView component : m_context->component->GetAllComponentsOfEntitySorted(src)){
+			const std::string componentName = m_context->component->GetComponentName(component);
+			if(componentName.empty()) continue;
+			m_context->component->CreateFromYAML(
+				componentName,
+				newEntity,
+				m_context->component->EncodeComponent(component)
+			);
 		}
 
 		auto* newT = m_context->component->GetComponent<TransformComponent>(newEntity);
@@ -313,16 +324,16 @@ public:
 		, m_onUndone(onUndone)
 	{
 		auto* t = ctx->component->GetComponent<TransformComponent>(entity);
-		m_entityOldParent = t ? t->parent : 0;
+		m_entityOldParent = t ? t->parent : Entity(0, 0);
 	}
 
 	void Execute() override {
 		if (!m_context) return;
 
 		if (m_newParent != 0) {
-			// Redo: スナップショットから新親を復元
+			// Redo: 同じindexを新しいgenerationで復元
 			if (!m_context->entity->IsAlive(m_newParent))
-				m_context->entity->CreateID(m_newParent);
+				m_newParent = m_context->entity->CreateID(m_newParent);
 			for (auto& [compName, node] : m_snapshot)
 				m_context->component->CreateFromYAML(compName, m_newParent, node);
 			EntityCommandHelper::SetParent(m_entity, m_newParent, m_context);
@@ -341,12 +352,13 @@ public:
 
 		// Redo 用スナップショット
 		const auto& idToName = m_context->component->GetComponentIDToNameMap();
-		for (IComponent* comp : m_context->component->GetAllComponentsOfEntitySorted(m_newParent)) {
-			std::type_index ti(typeid(*comp));
-			ComponentTypeID tid = m_context->component->GetComponentIDByTypeIndex(ti);
-			auto nameIt = idToName.find(tid);
-			if (nameIt != idToName.end())
-				m_snapshot.emplace_back(nameIt->second, comp->encode());
+		for(ComponentView component : m_context->component->GetAllComponentsOfEntitySorted(m_newParent)){
+			const std::string componentName = m_context->component->GetComponentName(component);
+			if(componentName.empty()) continue;
+			m_snapshot.emplace_back(
+				componentName,
+				m_context->component->EncodeComponent(component)
+			);
 		}
 
 		if (m_onCreated) m_onCreated(m_newParent, m_context);

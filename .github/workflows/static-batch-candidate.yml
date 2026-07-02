@@ -1,0 +1,193 @@
+name: Static Batch Foundation Smoke Test
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Directory.Build.targets"
+      - "Source/GameApplication/Engine/Editor/UI/StaticBatchTelemetryUI.h"
+      - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/sceneManager.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshLocalBoundsBuilder.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/**"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Model/RenderableModel.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateTypes.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchPacketCache.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceDataBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceInputLayout.h"
+      - "Source/GameApplication/Service/Graphics/RHI/**"
+      - "Source/Shader/StaticBatchVS.hlsl"
+      - "Source/Shader/StaticBatchGBufferPS.hlsl"
+      - "Source/Shader/shadowPS.hlsl"
+      - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
+      - "Tests/StaticBatchResourceKeySmokeTest.cpp"
+      - "Tests/StaticBatchResourceKeyUVSmokeTest.cpp"
+      - "Tests/StaticBatchModelPacketMaterialSmokeTest.cpp"
+      - "Tests/StaticBatchInstanceDataBufferSmokeTest.cpp"
+      - "Tests/StaticBatchFrameBufferIntegrationSmokeTest.cpp"
+      - "Tests/StaticBatchGpuInstanceBufferSmokeTest.cpp"
+      - "Tests/StaticBatchUploadSystemSmokeTest.cpp"
+      - "Tests/StaticBatchInstanceInputLayoutSmokeTest.cpp"
+      - "Tests/StaticBatchGroupVisibilitySmokeTest.cpp"
+      - "Tests/StaticBatchPipelineBootstrapSmokeTest.cpp"
+      - "Tests/StaticBatchShadowPipelineSmokeTest.cpp"
+      - "Tests/StaticBatchShadowGroupEligibilitySmokeTest.cpp"
+      - "Tests/StaticBatchShadowGroupVisibilitySmokeTest.cpp"
+      - "Tests/StaticBatchDrawSubmissionSmokeTest.cpp"
+      - "Tests/StaticBatchPacketIndexMappingSmokeTest.cpp"
+      - "Tests/StaticBatchPacketReplacementSetSmokeTest.cpp"
+      - "Tests/StaticBatchGBufferSubmissionTelemetrySmokeTest.cpp"
+      - "Tests/RenderPacketSubMeshScopeSmokeTest.cpp"
+      - "Tests/RenderPacketModelSubMeshExpansionSmokeTest.cpp"
+      - ".github/workflows/static-batch-candidate.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Directory.Build.targets"
+      - "Source/GameApplication/Engine/Editor/UI/StaticBatchTelemetryUI.h"
+      - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/sceneManager.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshLocalBoundsBuilder.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/**"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Model/RenderableModel.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchCandidateTypes.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchPacketCache.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceDataBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchInstanceInputLayout.h"
+      - "Source/GameApplication/Service/Graphics/RHI/**"
+      - "Source/Shader/StaticBatchVS.hlsl"
+      - "Source/Shader/StaticBatchGBufferPS.hlsl"
+      - "Source/Shader/shadowPS.hlsl"
+      - "Tests/StaticBatchCandidateStorageSmokeTest.cpp"
+      - "Tests/StaticBatchResourceKeySmokeTest.cpp"
+      - "Tests/StaticBatchResourceKeyUVSmokeTest.cpp"
+      - "Tests/StaticBatchModelPacketMaterialSmokeTest.cpp"
+      - "Tests/StaticBatchInstanceDataBufferSmokeTest.cpp"
+      - "Tests/StaticBatchFrameBufferIntegrationSmokeTest.cpp"
+      - "Tests/StaticBatchGpuInstanceBufferSmokeTest.cpp"
+      - "Tests/StaticBatchUploadSystemSmokeTest.cpp"
+      - "Tests/StaticBatchInstanceInputLayoutSmokeTest.cpp"
+      - "Tests/StaticBatchGroupVisibilitySmokeTest.cpp"
+      - "Tests/StaticBatchPipelineBootstrapSmokeTest.cpp"
+      - "Tests/StaticBatchShadowPipelineSmokeTest.cpp"
+      - "Tests/StaticBatchShadowGroupEligibilitySmokeTest.cpp"
+      - "Tests/StaticBatchShadowGroupVisibilitySmokeTest.cpp"
+      - "Tests/StaticBatchDrawSubmissionSmokeTest.cpp"
+      - "Tests/StaticBatchPacketIndexMappingSmokeTest.cpp"
+      - "Tests/StaticBatchPacketReplacementSetSmokeTest.cpp"
+      - "Tests/StaticBatchGBufferSubmissionTelemetrySmokeTest.cpp"
+      - "Tests/RenderPacketSubMeshScopeSmokeTest.cpp"
+      - "Tests/RenderPacketModelSubMeshExpansionSmokeTest.cpp"
+      - ".github/workflows/static-batch-candidate.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: static-batch-foundation-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - source: Tests/StaticBatchCandidateStorageSmokeTest.cpp
+            output: static-batch-candidate-test.exe
+          - source: Tests/StaticBatchResourceKeySmokeTest.cpp
+            output: static-batch-resource-key-test.exe
+          - source: Tests/StaticBatchResourceKeyUVSmokeTest.cpp
+            output: static-batch-resource-key-uv-test.exe
+          - source: Tests/StaticBatchModelPacketMaterialSmokeTest.cpp
+            output: static-batch-model-packet-material-test.exe
+          - source: Tests/StaticBatchInstanceDataBufferSmokeTest.cpp
+            output: static-batch-instance-data-test.exe
+          - source: Tests/StaticBatchFrameBufferIntegrationSmokeTest.cpp
+            output: static-batch-frame-buffer-integration-test.exe
+          - source: Tests/StaticBatchGpuInstanceBufferSmokeTest.cpp
+            output: static-batch-gpu-instance-buffer-test.exe
+          - source: Tests/StaticBatchUploadSystemSmokeTest.cpp
+            output: static-batch-upload-system-test.exe
+          - source: Tests/StaticBatchInstanceInputLayoutSmokeTest.cpp
+            output: static-batch-instance-input-layout-test.exe
+          - source: Tests/StaticBatchGroupVisibilitySmokeTest.cpp
+            output: static-batch-group-visibility-test.exe
+          - source: Tests/StaticBatchPipelineBootstrapSmokeTest.cpp
+            output: static-batch-pipeline-bootstrap-test.exe
+          - source: Tests/StaticBatchShadowPipelineSmokeTest.cpp
+            output: static-batch-shadow-pipeline-test.exe
+          - source: Tests/StaticBatchShadowGroupEligibilitySmokeTest.cpp
+            output: static-batch-shadow-eligibility-test.exe
+          - source: Tests/StaticBatchShadowGroupVisibilitySmokeTest.cpp
+            output: static-batch-shadow-visibility-test.exe
+          - source: Tests/StaticBatchDrawSubmissionSmokeTest.cpp
+            output: static-batch-draw-submission-test.exe
+          - source: Tests/StaticBatchPacketIndexMappingSmokeTest.cpp
+            output: static-batch-packet-index-mapping-test.exe
+          - source: Tests/StaticBatchPacketReplacementSetSmokeTest.cpp
+            output: static-batch-packet-replacement-test.exe
+          - source: Tests/StaticBatchGBufferSubmissionTelemetrySmokeTest.cpp
+            output: static-batch-gbuffer-telemetry-test.exe
+          - source: Tests/RenderPacketSubMeshScopeSmokeTest.cpp
+            output: render-packet-submesh-scope-test.exe
+          - source: Tests/RenderPacketModelSubMeshExpansionSmokeTest.cpp
+            output: render-packet-model-submesh-expansion-test.exe
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run static batch contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          ${{ matrix.source }}
+          /Fe:${{ matrix.output }}
+          /link /NODEFAULTLIB:yaml-cppd.lib
+          && ${{ matrix.output }}
+
+  shader-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile static batch shaders
+        shell: cmd
+        run: |
+          fxc /nologo /T vs_5_0 /E main /I Source\Shader /Fo StaticBatchVS.cso Source\Shader\StaticBatchVS.hlsl
+          if errorlevel 1 exit /b 1
+          fxc /nologo /T ps_5_0 /E main /I Source\Shader /Fo StaticBatchGBufferPS.cso Source\Shader\StaticBatchGBufferPS.hlsl
+          if errorlevel 1 exit /b 1
+          fxc /nologo /T ps_5_0 /E main /I Source\Shader /Fo StaticBatchShadowPS.cso Source\Shader\shadowPS.hlsl
+          if errorlevel 1 exit /b 1

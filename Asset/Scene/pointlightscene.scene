@@ -1,0 +1,938 @@
+SceneSettings:
+  Storage:
+    ExpectedEntities: 1024
+    ExpectedTransforms: 768
+    ExpectedRenderables: 512
+    ExpectedCullingComponents: 512
+    ExpectedStaticEntities: 256
+    PreallocatedTransformPages: 0
+    PreallocatedTagPages: 0
+    RenderPacketReserve: 512
+    VisibleEntityReserve: 512
+    StaticBatchReserve: 64
+    AllowRuntimeGrowth: true
+    LogCapacityGrowth: true
+Entities:
+  - Entity: 1
+    Components:
+      - Component: NameComponent
+        Name: Field
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: -25
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 50
+          y: 50
+          z: 50
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0.25
+          Roughness: 0.5
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\mesh.png
+        UV_Slice_X: 0.0399999991
+        UV_Slice_Y: 0.0399999991
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 2
+    Components:
+      - Component: NameComponent
+        Name: Light
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0.321434408
+          - 0.446109146
+          - -0.175600424
+          - 0.816597283
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 4
+        CastShadow: 1
+        Position:
+          x: 0
+          y: 0
+          z: 0
+          w: 0
+        Direction:
+          x: 0.615695
+          y: -0.681638837
+          z: 0.39533323
+          w: 0
+        Diffuse:
+          x: 1
+          y: 1
+          z: 1
+          w: 1
+        Ambient:
+          x: 0.0500000007
+          y: 0.0500000007
+          z: 0.0500000007
+          w: 1
+        Param:
+          x: 500
+          y: 0
+          z: 0
+          w: 0.00200000009
+        LightView:
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+        LightProjection:
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+  - Entity: 3
+    Components:
+      - Component: NameComponent
+        Name: SkyBox
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 500
+          y: 500
+          z: 500
+        Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 0
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+          UseEnvironmentMap: false
+      - Component: TextureComponent
+        FilePath: Asset\Texture\Daylight.png
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\sky.fbx
+        isBlender: true
+        AnimationTime: 0
+      - Component: EnvironmentMapComponent
+        enabled: true
+  - Entity: 4
+    Components:
+      - Component: NameComponent
+        Name: Player
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.00999999978
+          y: 0.00999999978
+          z: 0.00999999978
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: true
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 2
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 75
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 90
+            radius: 25
+            height: 100
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0.100000001
+            collisionLayer: 2
+            lockRotX: true
+            lockRotY: true
+            lockRotZ: true
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+          UseEnvironmentMap: false
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\Y Bot.fbx
+        isBlender: false
+        AnimationTime: 0
+        Animations:
+          Idle: Asset\Model\Akai_Idle.fbx
+          Run: Asset\Model\Akai_Run.fbx
+      - Component: CharacterController
+        moveSpeed: 5
+        dashMultiplier: 2.5
+        jumpPower: 5
+        accel: 12
+        rotateSpeed: 8
+        groundRayLength: 0.300000012
+        slopeLimit: 45
+        gravity: 9
+        idleAnimFile: Asset/Model/Akai_Idle.fbx
+        runAnimFile: Asset/Model/Akai_Run.fbx
+        jumpUpAnimFile: Asset/Model/Jumping Up.fbx
+        jumpDownAnimFile: Asset/Model/Jumping Down.fbx
+        SelfLayerBit: 2
+  - Entity: 5
+    Components:
+      - Component: NameComponent
+        Name: Camera
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 5
+          z: -15
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: CameraComponent
+        isLock: false
+        Target:
+          x: 0
+          y: 0
+          z: 0
+        NearClip: 0.00999999978
+        FarClip: 1024
+        FOV: 1
+        viewMatrix:
+          -
+            - 1
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 1
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+          -
+            - 0
+            - -5
+            - 15
+            - 1
+        nextLinkId: 1
+        nextPinId: 1
+        ScreenInput:
+          Name: ""
+          NodePos:
+            x: -1
+            y: -1
+          OutputPin: -1
+        ScreenOutput:
+          Name: ""
+          NodePos:
+            x: -1
+            y: -1
+          InputPins:
+            []
+      - Component: CameraController
+        distance: 6
+        height: 2
+        rotateSpeed: 1.5
+        minPitch: -0.785398185
+        maxPitch: 0.785398185
+        minDistance: 1
+        targetPosLerpSpeed: 15
+        cameraDistanceLerpSpeed: 12
+        targetLookLerpSpeed: 10
+  - Entity: 6
+    Components:
+      - Component: NameComponent
+        Name: Field
+      - Component: TransformComponent
+        Position:
+          x: 48.4136086
+          y: 23.7067299
+          z: 0
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 50
+          y: 50
+          z: 50
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0.25
+          Roughness: 0.5
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\mesh.png
+        UV_Slice_X: 0.0399999991
+        UV_Slice_Y: 0.0399999991
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 7
+    Components:
+      - Component: NameComponent
+        Name: Field
+      - Component: TransformComponent
+        Position:
+          x: -47.6438179
+          y: 23.7067299
+          z: 0
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 50
+          y: 50
+          z: 50
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0.25
+          Roughness: 0.5
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\mesh.png
+        UV_Slice_X: 0.0399999991
+        UV_Slice_Y: 0.0399999991
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 8
+    Components:
+      - Component: NameComponent
+        Name: Field
+      - Component: TransformComponent
+        Position:
+          x: 0.12202692
+          y: 71.3436279
+          z: 0
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 50
+          y: 50
+          z: 50
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0.25
+          Roughness: 0.5
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\mesh.png
+        UV_Slice_X: 0.0399999991
+        UV_Slice_Y: 0.0399999991
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 9
+    Components:
+      - Component: NameComponent
+        Name: Field
+      - Component: TransformComponent
+        Position:
+          x: 0.122027449
+          y: 24.6675262
+          z: 46.6085815
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 50
+          y: 50
+          z: 50
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0.25
+          Roughness: 0.5
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\mesh.png
+        UV_Slice_X: 0.0399999991
+        UV_Slice_Y: 0.0399999991
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 10
+    Components:
+      - Component: NameComponent
+        Name: Field
+      - Component: TransformComponent
+        Position:
+          x: 0.122027449
+          y: 24.6675262
+          z: -47.4870605
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 50
+          y: 50
+          z: 50
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0.100000001
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0.25
+          Roughness: 0.5
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\mesh.png
+        UV_Slice_X: 0.0399999991
+        UV_Slice_Y: 0.0399999991
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 11
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 21.7988129
+          z: 0
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 2
+        CastShadow: 1
+        Position:
+          x: 0
+          y: 21.7988129
+          z: 0
+          w: 0
+        Direction:
+          x: 0
+          y: 0
+          z: 1
+          w: 0
+        Diffuse:
+          x: 1
+          y: 1
+          z: 1
+          w: 1
+        Ambient:
+          x: 0
+          y: 0
+          z: 0
+          w: 0
+        Param:
+          x: 34.5
+          y: 0
+          z: 0
+          w: 0.00499999989
+        LightView:
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+        LightProjection:
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+  - Entity: 12
+    Components:
+      - Component: NameComponent
+        Name: Cube
+      - Component: TransformComponent
+        Position:
+          x: -5.6054945
+          y: 21.7084255
+          z: 6.60669279
+        Rotation:
+          - -0
+          - 0
+          - -0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset/Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset/Model\cube.obj
+        isBlender: false
+        AnimationTime: 0

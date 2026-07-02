@@ -1,0 +1,222 @@
+name: Lighting Diagnostic Contract
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Source/Shader/commonDefine.h"
+      - "Source/Shader/common.hlsl"
+      - "Source/Shader/Material/DeferredFunc.hlsli"
+      - "Source/Shader/Material/FowardFunc.hlsli"
+      - "Source/Shader/Material/MaterialFunc.hlsli"
+      - "Source/Shader/Material/PBRShader.hlsli"
+      - "Source/Shader/Material/ShadowDepthBias.hlsli"
+      - "Source/GameApplication/Engine/Editor/UI/LightingDiagnosticUI.h"
+      - "Source/GameApplication/Engine/Editor/UI/SystemSettingImplementation.inl"
+      - "Source/GameApplication/Engine/Scene/Component/LightComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/LightComponentDefaults.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/LightComponentOperations.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/LightGpuSubmissionPolicy.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/LocalLightShadowProjection.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PackedLightEntryTraversal.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PointShadowFaceLayout.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.cpp"
+      - "Tests/LightingDiagnosticSettingsSmokeTest.cpp"
+      - "Tests/PackedLightEntryTraversalSmokeTest.cpp"
+      - "Tests/LightShadowParticipationSmokeTest.cpp"
+      - "Tests/LocalLightShadowProjectionSmokeTest.cpp"
+      - "Tests/PointShadowFaceLayoutSmokeTest.cpp"
+      - "Tests/LightingDiagnosticPBRSmoke.hlsl"
+      - "Tests/LightingDiagnosticForwardPBRSmoke.hlsl"
+      - ".github/workflows/lighting-diagnostic.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Source/Shader/commonDefine.h"
+      - "Source/Shader/common.hlsl"
+      - "Source/Shader/Material/DeferredFunc.hlsli"
+      - "Source/Shader/Material/FowardFunc.hlsli"
+      - "Source/Shader/Material/MaterialFunc.hlsli"
+      - "Source/Shader/Material/PBRShader.hlsli"
+      - "Source/Shader/Material/ShadowDepthBias.hlsli"
+      - "Source/GameApplication/Engine/Editor/UI/LightingDiagnosticUI.h"
+      - "Source/GameApplication/Engine/Editor/UI/SystemSettingImplementation.inl"
+      - "Source/GameApplication/Engine/Scene/Component/LightComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/LightComponentDefaults.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/LightComponentOperations.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/LightGpuSubmissionPolicy.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/LocalLightShadowProjection.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PackedLightEntryTraversal.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Lighting/PointShadowFaceLayout.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/LightingPass/LightingPass.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.cpp"
+      - "Tests/LightingDiagnosticSettingsSmokeTest.cpp"
+      - "Tests/PackedLightEntryTraversalSmokeTest.cpp"
+      - "Tests/LightShadowParticipationSmokeTest.cpp"
+      - "Tests/LocalLightShadowProjectionSmokeTest.cpp"
+      - "Tests/PointShadowFaceLayoutSmokeTest.cpp"
+      - "Tests/LightingDiagnosticPBRSmoke.hlsl"
+      - "Tests/LightingDiagnosticForwardPBRSmoke.hlsl"
+      - ".github/workflows/lighting-diagnostic.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: lighting-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lighting-diagnostic-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run settings contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471
+          /I Source
+          /I Source/GameApplication
+          Tests/LightingDiagnosticSettingsSmokeTest.cpp
+          /Fe:lighting-diagnostic-settings-test.exe
+          && lighting-diagnostic-settings-test.exe
+      - name: Compile and run packed logical light traversal
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471
+          /I Source
+          /I Source/GameApplication
+          Tests/PackedLightEntryTraversalSmokeTest.cpp
+          /Fe:packed-light-entry-traversal-test.exe
+          && packed-light-entry-traversal-test.exe
+      - name: Compile and run non-shadow light participation
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471
+          /I Source
+          /I Source/GameApplication
+          Tests/LightShadowParticipationSmokeTest.cpp
+          /Fe:light-shadow-participation-test.exe
+          && light-shadow-participation-test.exe
+      - name: Compile and run local shadow clip contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471
+          /I Source
+          /I Source/GameApplication
+          Tests/LocalLightShadowProjectionSmokeTest.cpp
+          /Fe:local-light-shadow-projection-test.exe
+          && local-light-shadow-projection-test.exe
+      - name: Compile and run point shadow face layout
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471
+          /I Source
+          /I Source/GameApplication
+          Tests/PointShadowFaceLayoutSmokeTest.cpp
+          /Fe:point-shadow-face-layout-test.exe
+          && point-shadow-face-layout-test.exe
+      - name: Guard ShadowMapPass light and point-face contracts
+        shell: pwsh
+        run: |
+          $path = "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/ShadowMap/ShadowMapPass.cpp"
+          $text = Get-Content -Raw -Path $path
+          if ($text -match 'if\s*\(\s*!lightcomp->light\.CastShadow\s*\)\s*continue') {
+            throw "CastShadow=false lights must not be removed from GPU lighting submission."
+          }
+          if ($text -notmatch 'MakeUnshadowedLogicalEntry') {
+            throw "Non-shadow logical light fallback is missing."
+          }
+          if ($text -notmatch 'PointShadowFaceLayout::ProjectionFovRadians') {
+            throw "Point shadow overlap FOV contract is missing."
+          }
+          if ($text -notmatch 'perspectiveShadowRS') {
+            throw "Point and spot shadows must use a depth-clipped rasterizer."
+          }
+          if ($text -notmatch 'LocalLightShadowProjection::ResolveFarPlane') {
+            throw "Point and spot shadows must share the local light Far contract."
+          }
+          if ($text -match 'lightData\.Param\.x\s*\*\s*1000') {
+            throw "Spot shadow Far must not multiply the light range by 1000."
+          }
+          if ($text -notmatch 'static_cast<std::uint32_t>\(shadowNum\),\s*perspectiveShadow') {
+            throw "Perspective shadow depth clipping must be forwarded to CPU culling."
+          }
+
+          $shaderPaths = @(
+            "Source/Shader/Material/DeferredFunc.hlsli",
+            "Source/Shader/Material/FowardFunc.hlsli"
+          )
+          $faceRules = @(
+            'return \(direction\.x >= 0\.0\) \? 0 : 1;',
+            'return \(direction\.y >= 0\.0\) \? 2 : 3;',
+            'return \(direction\.z >= 0\.0\) \? 4 : 5;'
+          )
+          foreach ($shaderPath in $shaderPaths) {
+            $shader = Get-Content -Raw -Path $shaderPath
+            if ($shader -notmatch 'ResolvePerspectiveShadowDepthBias') {
+              throw "Depth-aware local shadow bias is missing in $shaderPath"
+            }
+            if ($shader -notmatch 'ResolveShadowAtlasSampleBase') {
+              throw "Shared atlas tile sampling contract is missing in $shaderPath"
+            }
+            if ($shader -notmatch 'SampleShadowAtlasPCFResolved') {
+              throw "Resolved atlas PCF path is missing in $shaderPath"
+            }
+            if ($shader -notmatch 'sampleMin\s*=\s*tileMin\s*\+\s*atlasTexelSize\s*\*\s*0\.5') {
+              throw "Atlas PCF must clamp to the current tile half-texel boundary in $shaderPath"
+            }
+            if ($shader -match 'float2\s+texelSize\s*=.*\*\s*tile\s*;') {
+              throw "Atlas PCF texel step must use full-atlas texel size without multiplying by tile scale in $shaderPath"
+            }
+            foreach ($rule in $faceRules) {
+              if ($shader -notmatch $rule) {
+                throw "Point shadow face order mismatch in $shaderPath"
+              }
+            }
+          }
+
+          $biasShader = Get-Content -Raw -Path "Source/Shader/Material/ShadowDepthBias.hlsli"
+          if ($biasShader -notmatch 'ResolveProjectedShadowDepthBias') {
+            throw "Projected shadow bias sanitization is missing."
+          }
+          if ($biasShader -notmatch 'LOCAL_LIGHT_SHADOW_BIAS_REFERENCE_DEPTH') {
+            throw "Reference-depth shadow bias contract is missing."
+          }
+      - name: Compile deferred PBR diagnostic shader
+        shell: cmd
+        run: >-
+          fxc /nologo /T ps_5_0 /E main
+          /I Source/Shader
+          /Fo lighting-diagnostic-pbr.cso
+          Tests/LightingDiagnosticPBRSmoke.hlsl
+      - name: Compile forward PBR diagnostic shader
+        shell: cmd
+        run: >-
+          fxc /nologo /T ps_5_0 /E main
+          /I Source/Shader
+          /Fo lighting-diagnostic-forward-pbr.cso
+          Tests/LightingDiagnosticForwardPBRSmoke.hlsl

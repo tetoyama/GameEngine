@@ -17,8 +17,9 @@ public:
 	~FollowSystem() {}
 
 	void Initialize() override;
-	void Update(float deltaTime) override;
-	void EditorUpdate(float deltaTime) override;
+	void Update(float deltaTime);
+	void EditorUpdate(float deltaTime);
+	void RegisterTasks(SystemScheduleBuilder& builder) override;
 
 private:
 	void ProcessFollow();

@@ -29,21 +29,7 @@ public:
 	}
 
 	void Finalize() override{
-		auto manager = m_context->graphics->GetEffectManager();
-
-		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
-			auto context = scene->GetSceneContext();
-
-			auto entities = context->component->FindEntitiesWithComponent<EffectComponent>();
-			for(auto entity : entities){
-				if(auto* comp = context->component->GetComponent<EffectComponent>(entity)){
-					comp->Stop(context);
-				}
-			}
-		}
-
-		manager->StopAllEffects();
-		manager->Update(0.0f);
+		StopAllEffects();
 	}
 
 	void Start() override{
@@ -67,7 +53,47 @@ public:
 		}
 	}
 
-	void Update(float dt) override{
+	// Scene停止時はTempLoadや未使用Resource解放より先に、
+	// Effekseer側が保持するEffect / Texture参照を必ず切る。
+	void Stop() override{
+		StopAllEffects();
+	}
+
+	void RegisterTasks(SystemScheduleBuilder& builder) override{
+
+		using EffectUpdateQuery = ECSQuery::ComponentQueryView<
+			ECSQuery::Read<TransformComponent>,
+			ECSQuery::Write<EffectComponent>
+		>;
+
+		// Effekseer::ManagerはRenderer / DeviceContextと結合しており、
+		// WorkerからBeginUpdate / UpdateHandle / SetBaseMatrixを呼ばない。
+		builder.AddQueryTask<EffectUpdateQuery>(
+			"EffectSystem.Runtime.Simulate",
+			SystemTaskDomain::Frame,
+			SystemPhase::Late,
+			0,
+			StructuralAccess::None,
+			ThreadAffinity::MainThread,
+			[this](const SystemTaskContext& context){
+				Update(context.deltaTime);
+			}
+		);
+
+		builder.AddQueryTask<EffectUpdateQuery>(
+			"EffectSystem.Render.Commit",
+			SystemTaskDomain::Render,
+			SystemPhase::Early,
+			0,
+			StructuralAccess::None,
+			ThreadAffinity::MainThread,
+			[this](const SystemTaskContext& context){
+				EditorUpdate(context.deltaTime);
+			}
+		);
+	}
+
+	void Update(float dt){
 
 		auto manager = m_context->graphics->GetEffectManager();
 
@@ -75,24 +101,20 @@ public:
 
 		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
 			auto context = scene->GetSceneContext();
-			auto entities = context->component->FindEntitiesWithComponent<EffectComponent>();
+			const auto& entities = context->component->FindEntitiesWithComponent<EffectComponent>();
 
-			for(auto entity : entities){
+			for(auto& entity : entities){
 				auto* comp = context->component->GetComponent<EffectComponent>(entity);
 				if(!comp) continue;
-
-				// --------------------
-				// 再生状態更新（時間・TimeScale・停止）
-				// --------------------
 				comp->Update(context, dt);
-				
 			}
 		}
 
 		manager->EndUpdate();
 	}
 
-	void EditorUpdate(float dt) override{
+	void EditorUpdate(float dt){
+		(void)dt;
 		auto manager = m_context->graphics->GetEffectManager();
 
 		manager->BeginUpdate();
@@ -106,20 +128,16 @@ public:
 				if(!comp) continue;
 				comp->Update(context, 0.0f);
 
-				if(!comp->Playing)
+				if(!comp->Playing){
 					continue;
+				}
 
 				if(!manager->Exists(comp->m_Handle)){
 					comp->Playing = false;
 					continue;
 				}
 
-				// --------------------
-				// Transform 反映
-				// --------------------
-				if(auto* transform =
-				   context->component->GetComponent<TransformComponent>(entity)){
-
+				if(auto* transform = context->component->GetComponent<TransformComponent>(entity)){
 					const auto& pos = transform->position;
 					const auto& scale = transform->scale;
 					const auto rotQuat = transform->GetRotation();
@@ -133,9 +151,11 @@ public:
 					DirectX::XMFLOAT4X4 rotF;
 					DirectX::XMStoreFloat4x4(&rotF, rotMat);
 
-					for(int i = 0; i < 3; ++i)
-						for(int j = 0; j < 3; ++j)
+					for(int i = 0; i < 3; ++i){
+						for(int j = 0; j < 3; ++j){
 							matRot.Value[i][j] = rotF.m[i][j];
+						}
+					}
 
 					Effekseer::Matrix43 mat;
 					mat.SetSRT(
@@ -150,6 +170,32 @@ public:
 		}
 
 		manager->EndUpdate();
+	}
+
+private:
+	void StopAllEffects(){
+		if(!m_context || !m_context->graphics || !m_context->sceneManager){
+			return;
+		}
+
+		auto manager = m_context->graphics->GetEffectManager();
+
+		for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
+			if(!scene) continue;
+			auto context = scene->GetSceneContext();
+			if(!context || !context->component) continue;
+
+			auto entities = context->component->FindEntitiesWithComponent<EffectComponent>();
+			for(auto entity : entities){
+				if(auto* comp = context->component->GetComponent<EffectComponent>(entity)){
+					comp->Stop(context);
+					comp->m_EffectData.reset();
+				}
+			}
+		}
+
+		manager->StopAllEffects();
+		manager->Update(0.0f);
 	}
 
 private:

@@ -1,0 +1,221 @@
+#pragma once
+
+#include <cstdint>
+#include <memory>
+#include <span>
+
+#include "Backends/Assimp/material.h"
+#include "System/Render/RenderSystem/RenderPacket/RenderPacketModelSubMeshSelection.h"
+#include "System/Render/RenderSystem/RenderPacket/StaticBatchPacketCache.h"
+#include "System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
+#include "System/Render/StaticBatch/StaticBatchModelPacketMaterial.h"
+
+struct StaticBatchModelMaterialResolvePolicy {
+	bool requireGBufferPass = true;
+	bool applyGBufferAlphaRule = true;
+	bool rejectNormalMapReference = true;
+
+	static constexpr StaticBatchModelMaterialResolvePolicy GBuffer() noexcept {
+		return {true, true, true};
+	}
+
+	static constexpr StaticBatchModelMaterialResolvePolicy Shadow() noexcept {
+		return {false, false, false};
+	}
+};
+
+struct StaticBatchModelMaterialResolveResult {
+	StaticBatchModelMaterialState state;
+	StaticBatchModelMaterialRejectReason rejectReason =
+		StaticBatchModelMaterialRejectReason::InvalidRepresentativePacket;
+
+	bool IsEligible() const noexcept {
+		return rejectReason == StaticBatchModelMaterialRejectReason::None;
+	}
+};
+
+namespace StaticBatchModelMaterialResolver {
+
+inline StaticBatchModelMaterialResolveResult Resolve(
+	const StaticBatchPacketCacheEntry& group,
+	std::span<const RenderPacket> packets,
+	StaticBatchModelMaterialResolvePolicy policy =
+		StaticBatchModelMaterialResolvePolicy::GBuffer()
+){
+	StaticBatchModelMaterialResolveResult result;
+	if(group.representativePacketIndex >= packets.size()){
+		return result;
+	}
+
+	const RenderPacket& packet = packets[group.representativePacketIndex];
+	if(packet.sceneContextID != group.sceneContextID ||
+		packet.kind != group.key.kind ||
+		packet.layer != group.key.layer){
+		result.rejectReason =
+			StaticBatchModelMaterialRejectReason::GroupPacketMismatch;
+		return result;
+	}
+	if(packet.kind != RenderPacketKind::Model){
+		result.rejectReason =
+			StaticBatchModelMaterialRejectReason::UnsupportedPacketKind;
+		return result;
+	}
+	if(packet.layer != RenderLayer::Opaque3D){
+		result.rejectReason =
+			StaticBatchModelMaterialRejectReason::UnsupportedRenderLayer;
+		return result;
+	}
+	if(policy.requireGBufferPass &&
+		!HasRenderPacketPass(packet.passMask, RenderPacketPassMask::GBuffer)){
+		result.rejectReason =
+			StaticBatchModelMaterialRejectReason::MissingGBufferPass;
+		return result;
+	}
+
+	const StaticBatchModelMaterialRejectReason packetStateResult =
+		StaticBatchModelPacketMaterial::Resolve(
+			packet,
+			result.state,
+			policy.applyGBufferAlphaRule
+		);
+	if(packetStateResult != StaticBatchModelMaterialRejectReason::None){
+		result.rejectReason = packetStateResult;
+		return result;
+	}
+
+	const ModelRendererComponent* renderer = packet.bindings.modelRenderer;
+	if(!renderer){
+		result.rejectReason =
+			StaticBatchModelMaterialRejectReason::MissingModelRenderer;
+		return result;
+	}
+	const std::shared_ptr<ModelData>& model = renderer->model;
+	if(!model || !model->AiScene){
+		result.rejectReason =
+			StaticBatchModelMaterialRejectReason::MissingModelResource;
+		return result;
+	}
+	if(!model->AiScene->mMeshes){
+		result.rejectReason =
+			StaticBatchModelMaterialRejectReason::MissingSubMesh;
+		return result;
+	}
+
+	std::uint32_t meshIndex = 0;
+	if(!RenderPacketModelSubMeshSelection::ResolveSingleIndex(
+		packet,
+		model->AiScene->mNumMeshes,
+		meshIndex
+	)){
+		result.rejectReason = packet.TargetsAllSubMeshes()
+			? StaticBatchModelMaterialRejectReason::UnsupportedSubMeshCount
+			: StaticBatchModelMaterialRejectReason::MissingSubMesh;
+		return result;
+	}
+
+	const aiMesh* mesh = model->AiScene->mMeshes[meshIndex];
+	if(!mesh){
+		result.rejectReason =
+			StaticBatchModelMaterialRejectReason::MissingSubMesh;
+		return result;
+	}
+	if(!model->AiScene->mMaterials ||
+		mesh->mMaterialIndex >= model->AiScene->mNumMaterials){
+		result.rejectReason =
+			StaticBatchModelMaterialRejectReason::InvalidMaterialIndex;
+		return result;
+	}
+	const aiMaterial* sourceMaterial =
+		model->AiScene->mMaterials[mesh->mMaterialIndex];
+	if(!sourceMaterial){
+		result.rejectReason =
+			StaticBatchModelMaterialRejectReason::MissingMaterial;
+		return result;
+	}
+
+	const MaterialComponent* materialComponent = packet.bindings.material;
+	const bool hasOverrideTexture =
+		packet.bindings.texture &&
+		packet.bindings.texture->m_TextureData;
+	if(!hasOverrideTexture){
+		aiColor4D color;
+		if(sourceMaterial->Get(
+			AI_MATKEY_COLOR_DIFFUSE,
+			color
+		) == AI_SUCCESS){
+			result.state.material.BaseColor = float4(
+				color.r,
+				color.g,
+				color.b,
+				color.a
+			);
+			if(materialComponent){
+				result.state.material.BaseColor.x *=
+					materialComponent->Material.BaseColor.x;
+				result.state.material.BaseColor.y *=
+					materialComponent->Material.BaseColor.y;
+				result.state.material.BaseColor.z *=
+					materialComponent->Material.BaseColor.z;
+				result.state.material.BaseColor.w *=
+					materialComponent->Material.BaseColor.w;
+			}
+		}
+
+		aiString textureName;
+		if(sourceMaterial->GetTexture(
+			aiTextureType_DIFFUSE,
+			0,
+			&textureName
+		) == AI_SUCCESS && textureName.length > 0){
+			const auto diffuseIt =
+				model->m_Texture.find(textureName.C_Str());
+			if(diffuseIt != model->m_Texture.end()){
+				if(!diffuseIt->second){
+					result.rejectReason =
+						StaticBatchModelMaterialRejectReason::MissingModelDiffuseTexture;
+					return result;
+				}
+				result.state.diffuseTexture = diffuseIt->second;
+				result.state.material.MaterialFlags |=
+					MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
+			}
+		}
+
+		aiString normalName;
+		if(sourceMaterial->GetTexture(
+			aiTextureType_NORMALS,
+			0,
+			&normalName
+		) == AI_SUCCESS && normalName.length > 0){
+			const auto normalIt = model->m_Texture.find(normalName.C_Str());
+			if(normalIt != model->m_Texture.end() &&
+				policy.rejectNormalMapReference){
+				result.rejectReason =
+					StaticBatchModelMaterialRejectReason::NormalMapUnsupported;
+				return result;
+			}
+		}
+	}
+
+	if(result.state.UsesDiffuseTexture() && !result.state.diffuseTexture){
+		result.rejectReason =
+			StaticBatchModelMaterialRejectReason::MissingModelDiffuseTexture;
+		return result;
+	}
+
+	const StaticBatchResourceKeySet keys =
+		StaticBatchResourceKey::Build(packet);
+	if(keys.pipelineKey != group.key.pipelineKey ||
+		keys.geometryKey != group.key.geometryKey ||
+		keys.textureSetKey != group.key.textureSetKey ||
+		keys.materialStateKey != group.key.materialStateKey){
+		result.rejectReason =
+			StaticBatchModelMaterialRejectReason::ResourceKeyMismatch;
+		return result;
+	}
+
+	result.rejectReason = StaticBatchModelMaterialRejectReason::None;
+	return result;
+}
+
+} // namespace StaticBatchModelMaterialResolver

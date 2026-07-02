@@ -1,0 +1,27 @@
+diff --git a/Source/GameApplication/Engine/Scene/scene.h b/Source/GameApplication/Engine/Scene/scene.h
+--- a/Source/GameApplication/Engine/Scene/scene.h
++++ b/Source/GameApplication/Engine/Scene/scene.h
+@@ -103,7 +103,7 @@ private:
+ 	SceneContext m_SceneContext{};
+ 
+ 	// レジストリ
+-	std::shared_ptr<EntityRegistry> m_entityRegistry;
+-	std::shared_ptr<ComponentRegistry> m_componentRegistry;
+-	std::shared_ptr<PrefabSystem> m_prefabSystem;
++	std::unique_ptr<EntityRegistry> m_entityRegistry;
++	std::unique_ptr<ComponentRegistry> m_componentRegistry;
++	std::unique_ptr<PrefabSystem> m_prefabSystem;
+ };
+diff --git a/Source/GameApplication/Engine/Scene/scene.cpp b/Source/GameApplication/Engine/Scene/scene.cpp
+--- a/Source/GameApplication/Engine/Scene/scene.cpp
++++ b/Source/GameApplication/Engine/Scene/scene.cpp
+@@ -58,9 +58,9 @@ void Scene::Initialize(SceneManagerContext* set){
+ 	m_SceneContext.system = m_SceneManagerContext->systemRegistry;
+ 
+ 
+-	m_entityRegistry = std::make_shared<EntityRegistry>();
+-	m_componentRegistry = std::make_shared<ComponentRegistry>(m_entityRegistry.get(),&m_SceneContext);
+-	m_prefabSystem = std::make_shared<PrefabSystem>();
++	m_entityRegistry = std::make_unique<EntityRegistry>();
++	m_componentRegistry = std::make_unique<ComponentRegistry>(m_entityRegistry.get(), &m_SceneContext);
++	m_prefabSystem = std::make_unique<PrefabSystem>();

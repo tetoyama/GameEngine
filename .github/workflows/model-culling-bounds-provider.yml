@@ -1,0 +1,92 @@
+name: Resource Culling Bounds Provider Smoke Test
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/ModelCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshLocalBoundsBuilder.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/TerrainCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/WaveCullingBoundsProvider.h"
+      - "Tests/ModelCullingBoundsProviderSmokeTest.cpp"
+      - "Tests/MeshLocalBoundsBuilderSmokeTest.cpp"
+      - "Tests/MeshCullingBoundsProviderSmokeTest.cpp"
+      - "Tests/MeshCullingBoundsLifecycleSmokeTest.cpp"
+      - "Tests/CullingBoundsSourcePrioritySmokeTest.cpp"
+      - "Tests/TerrainCullingBoundsProviderSmokeTest.cpp"
+      - "Tests/WaveCullingBoundsProviderSmokeTest.cpp"
+      - ".github/workflows/model-culling-bounds-provider.yml"
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/ModelCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshLocalBoundsBuilder.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/TerrainCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/WaveCullingBoundsProvider.h"
+      - "Tests/ModelCullingBoundsProviderSmokeTest.cpp"
+      - "Tests/MeshLocalBoundsBuilderSmokeTest.cpp"
+      - "Tests/MeshCullingBoundsProviderSmokeTest.cpp"
+      - "Tests/MeshCullingBoundsLifecycleSmokeTest.cpp"
+      - "Tests/CullingBoundsSourcePrioritySmokeTest.cpp"
+      - "Tests/TerrainCullingBoundsProviderSmokeTest.cpp"
+      - "Tests/WaveCullingBoundsProviderSmokeTest.cpp"
+      - ".github/workflows/model-culling-bounds-provider.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: resource-culling-bounds-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - source: Tests/ModelCullingBoundsProviderSmokeTest.cpp
+            output: model-culling-bounds-provider-test.exe
+          - source: Tests/MeshLocalBoundsBuilderSmokeTest.cpp
+            output: mesh-local-bounds-builder-test.exe
+          - source: Tests/MeshCullingBoundsProviderSmokeTest.cpp
+            output: mesh-culling-bounds-provider-test.exe
+          - source: Tests/MeshCullingBoundsLifecycleSmokeTest.cpp
+            output: mesh-culling-bounds-lifecycle-test.exe
+          - source: Tests/CullingBoundsSourcePrioritySmokeTest.cpp
+            output: culling-bounds-source-priority-test.exe
+          - source: Tests/TerrainCullingBoundsProviderSmokeTest.cpp
+            output: terrain-culling-bounds-provider-test.exe
+          - source: Tests/WaveCullingBoundsProviderSmokeTest.cpp
+            output: wave-culling-bounds-provider-test.exe
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run resource bounds contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          ${{ matrix.source }}
+          /Fe:${{ matrix.output }}
+          /link /NODEFAULTLIB:yaml-cppd.lib
+          && ${{ matrix.output }}

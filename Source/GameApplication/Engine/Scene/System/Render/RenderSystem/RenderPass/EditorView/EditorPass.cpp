@@ -1,15 +1,8 @@
-// =======================================================================
-// 
-// EditorPass.cpp
-// 
-// =======================================================================
 #include "EditorPass.h"
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "sceneManager.h"
 #include "../RenderPassContext.h"
-#include "../../renderPhase.h"
 #include "../../RenderTarget/renderTarget.h"
-
 #include "../ShadowMap/ShadowMapPass.h"
 #include "../GBuffer/GBufferPass.h"
 #include "../LightingPass/LightingPass.h"
@@ -17,111 +10,127 @@
 #include "../PostEffect/PostEffectPass.h"
 #include "../OverlayUI/OverlayUIPass.h"
 #include "../PhysXDebug/PhysXDebugPass.h"
-
 #include "Graphics/graphicsContext.h"
 #include "DebugTools/ImGuiSystem.h"
 #include "Service/Graphics/mainRenderer.h"
 
-
-void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
-
+void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context){
 	m_renderSystem = renderSystem;
 	m_context = context;
-
 	shadowMapPass = new ShadowMapPass();
 	shadowMapPass->Initialize(renderSystem, context);
-
 	gBufferPass = new GBufferPass();
 	gBufferPass->Initialize(renderSystem, context);
-
 	lightingPass = new LightingPass();
 	lightingPass->Initialize(renderSystem, context);
-
 	forwardPass = new ForwardPass();
 	forwardPass->Initialize(renderSystem, context);
-
 	postEffectPass = new PostEffectPass();
 	postEffectPass->Initialize(renderSystem, context);
-
 	overlayUIPass = new OverlayUIPass();
 	overlayUIPass->Initialize(renderSystem, context);
-
 	physXDebugPass = new PhysXDebugPass();
 	physXDebugPass->Initialize(renderSystem, context);
 }
 
-void EditorPass::Finalize() {
-
-	postEffectPass->Finalize();
-	delete postEffectPass;
-	postEffectPass = nullptr;
-
-	overlayUIPass->Finalize();
-	delete overlayUIPass;
-	overlayUIPass = nullptr;
-
-	forwardPass->Finalize();
-	delete forwardPass;
-	forwardPass = nullptr;
-
-	lightingPass->Finalize();
-	delete lightingPass;
-	lightingPass = nullptr;
-
-	gBufferPass->Finalize();
-	delete gBufferPass;
-	gBufferPass = nullptr;
-
-	shadowMapPass->Finalize();
-	delete shadowMapPass;
-	shadowMapPass = nullptr;
-
-	physXDebugPass->Finalize();
-	delete physXDebugPass;
-	physXDebugPass = nullptr;
+void EditorPass::Finalize(){
+	postEffectPass->Finalize(); delete postEffectPass; postEffectPass = nullptr;
+	overlayUIPass->Finalize(); delete overlayUIPass; overlayUIPass = nullptr;
+	forwardPass->Finalize(); delete forwardPass; forwardPass = nullptr;
+	lightingPass->Finalize(); delete lightingPass; lightingPass = nullptr;
+	gBufferPass->Finalize(); delete gBufferPass; gBufferPass = nullptr;
+	shadowMapPass->Finalize(); delete shadowMapPass; shadowMapPass = nullptr;
+	physXDebugPass->Finalize(); delete physXDebugPass; physXDebugPass = nullptr;
 }
 
-void EditorPass::Execute(const RenderPassContext& ctx) {
+void EditorPass::Execute(const RenderPassContext& context){
+	RenderPassContext viewContext = context;
+	viewContext.cullingViewKind = CullingViewKind::Editor;
+	viewContext.cullingViewInstanceID = 0;
+	m_renderSystem->PrepareRenderPacketView(viewContext);
 
-	GraphicsContext* graphicsContext = m_context->renderer->GetGraphicsContext();
+	GraphicsContext* graphics = m_context->renderer->GetGraphicsContext();
+	GpuPassTimingProfiler& profiler =
+		m_context->renderer->GetGpuPassTimingProfiler();
+	ID3D11DeviceContext* deviceContext = graphics->GetDeviceContext();
+	m_context->imgui->SetViewProjectionMatrix(viewContext.viewMatrix, viewContext.projectionMatrix);
 
-	// ImGuizmo 用のビュー・投影行列を設定
-	m_context->imgui->SetViewProjectionMatrix(ctx.viewMatrix, ctx.projectionMatrix);
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::EditorGBuffer
+		);
+		gBufferPass->Execute(viewContext);
+	}
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::EditorShadow
+		);
+		shadowMapPass->Execute(viewContext);
+	}
 
-	// GBuffer パス
-	gBufferPass->Execute(ctx);
+	graphics->SetCameraPosition(viewContext.CameraPosition);
+	graphics->SetViewMatrix(viewContext.viewMatrix);
+	graphics->SetProjectionMatrix(viewContext.projectionMatrix);
+	lightingPass->SetTextureSlot(gBufferPass, shadowMapPass, graphics);
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::EditorLighting
+		);
+		lightingPass->Execute(viewContext);
+	}
 
-	// シャドウマップパス
-	shadowMapPass->Execute(ctx);
-
-	// カメラ行列をセット (ライティング・フォワード両パスで共用)
-	graphicsContext->SetCameraPosition(ctx.CameraPosition);
-	graphicsContext->SetViewMatrix(ctx.viewMatrix);
-	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
-
-	// ライティングパス (Deferred)
-	lightingPass->SetTextureSlot(gBufferPass, shadowMapPass, graphicsContext);
-	lightingPass->Execute(ctx);
-
-	// フォワードパス (透明・UIレイヤー)
 	forwardPass->SetInputs(lightingPass, gBufferPass, shadowMapPass);
-	forwardPass->Execute(ctx);
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::EditorForward
+		);
+		forwardPass->Execute(viewContext);
+	}
 
-	// ポストエフェクトパス
 	ID3D11ShaderResourceView* initialSRV = lightingPass->pRenderTarget->srv.Get();
-	ID3D11RenderTargetView** initialRTV  = lightingPass->pRenderTarget->rtv.GetAddressOf();
+	ID3D11RenderTargetView** initialRTV = lightingPass->pRenderTarget->rtv.GetAddressOf();
 	postEffectPass->SetInputs(initialSRV, initialRTV, gBufferPass);
-	postEffectPass->Execute(ctx);
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::EditorPostEffect
+		);
+		postEffectPass->Execute(viewContext);
+	}
 
-	// オーバーレイUIパス
 	overlayUIPass->SetInputs(postEffectPass->resultRtv, lightingPass->pRenderTarget);
-	overlayUIPass->Execute(ctx);
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::EditorOverlay
+		);
+		overlayUIPass->Execute(viewContext);
+	}
 
-	// PhysX デバッグ描画 (ポストエフェクト後のバッファに直接描画)
-	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, postEffectPass->resultRtv, gBufferPass->pDepthTarget->dsv.Get());
-	physXDebugPass->Execute(ctx);
-	ID3D11RenderTargetView* nullRTV[1] = { nullptr };
-	graphicsContext->GetDeviceContext()->OMSetRenderTargets(1, nullRTV, nullptr);
-
+	graphics->GetDeviceContext()->OMSetRenderTargets(
+		1,
+		postEffectPass->resultRtv,
+		gBufferPass->pDepthTarget->dsv.Get()
+	);
+	{
+		ScopedGpuPassTiming timing(
+			profiler,
+			deviceContext,
+			GpuPassTimingScope::EditorPhysicsDebug
+		);
+		physXDebugPass->Execute(viewContext);
+	}
+	ID3D11RenderTargetView* nullRTV[1] = {nullptr};
+	graphics->GetDeviceContext()->OMSetRenderTargets(1, nullRTV, nullptr);
 	result = postEffectPass->resultSrv;
 }

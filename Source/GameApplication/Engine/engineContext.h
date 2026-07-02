@@ -1,62 +1,74 @@
-// =======================================================================
-// 
-// engineContext.h
-// 
-// =======================================================================
-
 #pragma once
+
 #include <memory>
-#include <windows.h>
-#include <unordered_map>
+#include <type_traits>
 #include <typeindex>
+#include <unordered_map>
+#include <utility>
 #include <vector>
+#include <windows.h>
+
 #include "Service/IService.h"
 
-// サービスの依存注入コンテナ（DI コンテナ）
-// 全エンジンサービスを型をキーとして管理し、型安全な取得・登録を提供する
-// サービスの生成は EngineContextBuilder、終了は Shutdown() が担う
-class EngineContext{
-
+template<typename T>
+class ServiceRef {
 public:
-	// 全サービスを登録順の逆順でシャットダウンする
+	ServiceRef() = default;
+	explicit ServiceRef(T* value) noexcept : m_value(value){}
+
+	T* get() const noexcept { return m_value; }
+	T* operator->() const noexcept { return m_value; }
+	explicit operator bool() const noexcept { return m_value != nullptr; }
+
+private:
+	T* m_value = nullptr;
+};
+
+class EngineContext {
+public:
+	EngineContext() = default;
+	~EngineContext() = default;
+
+	EngineContext(const EngineContext&) = delete;
+	EngineContext& operator=(const EngineContext&) = delete;
+
 	void Shutdown();
 
-	// 指定した型のサービスをコンテナに登録する
-	// 同じ型が既に登録されている場合は上書きしない
-	// T は IService を継承していなければならない
-	// 登録順は Shutdown 時の逆順破棄に利用される
 	template<typename T>
-	void Register(std::shared_ptr<T> instance) {
-		static_assert(std::is_base_of<IService, T>::value, "サービスはIServiceを継承してください");
-		if (!instance) return;
-		auto type = std::type_index(typeid(T));
-		if (m_Services.count(type)) return;
-		m_Services[type] = instance;
-		m_ServiceOrder.push_back(type);
+	T* Register(std::unique_ptr<T> instance){
+		static_assert(std::is_base_of_v<IService, T>);
+		if(!instance) return nullptr;
+
+		const std::type_index type(typeid(T));
+		if(m_services.contains(type)) return nullptr;
+
+		T* result = instance.get();
+		m_services.emplace(type, std::move(instance));
+		m_serviceOrder.push_back(type);
+		return result;
 	}
 
-	// 指定した型のサービスをコンテナから取得する
-	// 登録されていない場合は nullptr を返し、デバッグ出力に警告を出す
+	template<typename T, typename... Args>
+	T* Emplace(Args&&... args){
+		return Register<T>(std::make_unique<T>(std::forward<Args>(args)...));
+	}
+
 	template<typename T>
-	inline std::shared_ptr<T> Get() const{
-		auto it = m_Services.find(std::type_index(typeid(T)));
-		if(it != m_Services.end()){
-			return std::static_pointer_cast<T>(it->second);
+	ServiceRef<T> Get() const {
+		auto iterator = m_services.find(std::type_index(typeid(T)));
+		if(iterator == m_services.end()){
+			OutputDebugStringA("EngineContext: service not registered.\n");
+			return {};
 		}
-		OutputDebugStringA("EngineContext:取得に失敗しました。\n");
-		return nullptr;
+		return ServiceRef<T>(static_cast<T*>(iterator->second.get()));
 	}
 
 private:
-    std::unordered_map<std::type_index, std::shared_ptr<IService>> m_Services; // 型 → サービスインスタンスのマップ
-    std::vector<std::type_index> m_ServiceOrder;                                // 登録順（Shutdown 時の逆順処理に使用）
+	std::unordered_map<std::type_index, std::unique_ptr<IService>> m_services;
+	std::vector<std::type_index> m_serviceOrder;
 };
 
-// EngineContext の全サービスを生成・登録してコンテキストを構築するビルダークラス
-class EngineContextBuilder
-{
+class EngineContextBuilder {
 public:
-	// 全サービスを登録した EngineContext を生成して返す
-	std::shared_ptr<EngineContext> Build();
+	std::unique_ptr<EngineContext> Build();
 };
-

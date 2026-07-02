@@ -21,10 +21,11 @@ public:
 	ParticleSystem(SceneManagerContext* context) : m_context(context) {}
 	~ParticleSystem() {}
 	void Initialize() override;
-	void Finalize()override;
+	void Finalize() override;
 
 	void Start() override;
-	void Update(float deltaTime) override;
+	void Update(float deltaTime);
+	void RegisterTasks(SystemScheduleBuilder& builder) override;
 
 private:
 	SceneManagerContext* m_context;

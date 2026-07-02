@@ -1,0 +1,13 @@
+name: Archived Render Packet View Pass Migration
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  archived:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Render Packet Forward and Overlay connection completed and archived."

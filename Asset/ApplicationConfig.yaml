@@ -1,6 +1,7 @@
 AppType: 0
 StartScene: Asset\Scene\scene_title.yaml
 Vsync: false
+MaximumFrameLatency: 2
 FullScreen: false
 Width: 1280
 Height: 720

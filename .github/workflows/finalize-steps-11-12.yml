@@ -1,0 +1,56 @@
+name: Migration Plan Validation
+
+on:
+  pull_request:
+    paths:
+      - Docs/ECS_Scheduler_Migration_Plan.md
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - Docs/ECS_Scheduler_Migration_Plan.md
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Validate Step headings
+        shell: python
+        run: |
+          import re
+          from pathlib import Path
+
+          text = Path("Docs/ECS_Scheduler_Migration_Plan.md").read_text(
+              encoding="utf-8-sig"
+          )
+
+          ordered_steps = [
+              "0", "1", "2", "3", "4", "5", "6", "7", "8",
+              "9", "9.5", "10", "11", "12", "13", "14", "15",
+              "16", "17", "18", "19", "20",
+          ]
+
+          positions = []
+          for step in ordered_steps:
+              pattern = re.compile(
+                  rf"^#+\s+Step\s+{re.escape(step)}:",
+                  re.MULTILINE,
+              )
+              matches = list(pattern.finditer(text))
+              if len(matches) != 1:
+                  raise RuntimeError(
+                      f"Expected one heading for Step {step}, found {len(matches)}"
+                  )
+              positions.append(matches[0].start())
+
+          if positions != sorted(positions):
+              raise RuntimeError("Step headings are not in migration order")

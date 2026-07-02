@@ -6,7 +6,9 @@
 #include "RenderableSprite.h"
 
 #include <d3d11.h>
+#include <algorithm>
 #include "../../RenderPass/RenderPassContext.h"
+#include "../../RenderPacket/RenderPacketTransformDX11.h"
 
 #include "DebugTools/DebugSystem.h"
 #include "Graphics/mainRenderer.h"
@@ -71,97 +73,82 @@ void RenderableSprite::Finalize(){
 	delete m_spriteMesh;
 }
 
-void RenderableSprite::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
+void RenderableSprite::Execute(const RenderPassContext& ctx, const RenderPacket& packet){
+	SceneContext* sceneContext = packet.bindings.sceneContext;
+	if(!sceneContext) return;
 
-	SpriteRendererComponent* spriteRenderer = sceneContext->component->GetComponent<SpriteRendererComponent>(entity);
-	TransformComponent* transform = sceneContext->component->GetComponent<TransformComponent>(entity);
+	SpriteRendererComponent* spriteRenderer = packet.bindings.spriteRenderer;
+	TransformComponent* transform = packet.bindings.transform;
 	if(!spriteRenderer || !transform){
 		return;
 	}
 
-
-
-	Vector2 viewportSize = Vector2(
-		(float)sceneContext->manager->graphics->m_width,
-		(float)sceneContext->manager->graphics->m_height
-	);
-
+	const Vector2 viewportSize = ctx.screenSize;
 	TransformComponent newTransform = transform->CalculateRectTransform(viewportSize, *spriteRenderer, *transform);
 
 	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
-	ID3D11Device* device = graphicsContext->GetDevice();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-	ComponentRegistry* componentRegistry = sceneContext->component;
-
 
 	MATERIAL material{};
 	material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
-	if (pMaterial) {
+	MaterialComponent* pMaterial = packet.bindings.material;
+	if(pMaterial){
 		material = pMaterial->Material;
 	}
 
-	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
-	if (pTexture) {
-
-			// マテリアル設定
-		if (pTexture->m_TextureData) {
+	TextureComponent* pTexture = packet.bindings.texture;
+	if(pTexture){
+		if(pTexture->m_TextureData){
 			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
-			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+			ID3D11ShaderResourceView* textureSRV = pTexture->m_TextureData->pTexture.Get();
+			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, &textureSRV);
 		}
 
 		graphicsContext->SetMaterial(material);
-
-		UVMatrixBuffer uv;
-		if (pTexture->UV_Slice_X > 0.0f && pTexture->UV_Slice_Y > 0.0f) {
-
-			int column = (int)(pTexture->UV_Slice_X);
-			if(column <= 0){
-				column = 1;
-			}
-
-			uv.UVStart.x = (pTexture->AnimationNum % column) * (1.0f / pTexture->UV_Slice_X);
-			uv.UVStart.y = (pTexture->AnimationNum / column) * (1.0f / pTexture->UV_Slice_Y);
-
-			// 1 セルの UV サイズ: 1/スライス数
-			uv.UVEnd.x = uv.UVStart.x + 1.0f / pTexture->UV_Slice_X;  // セルの右端 UV
-			uv.UVEnd.y = uv.UVStart.y + 1.0f / pTexture->UV_Slice_Y;  // セルの下端 UV
-		}
-		graphicsContext->SetUVMatrixBuffer(uv);
-
-	} else {
-		// マテリアル設定
-		MATERIAL material{};
-		material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		graphicsContext->SetUVMatrixBuffer(pTexture->ResolveUVMatrixBuffer());
+	}else{
 		graphicsContext->SetMaterial(material);
-
-		UVMatrixBuffer uv;
+		UVMatrixBuffer uv{};
+		uv.UVStart = float2(0.0f, 0.0f);
+		uv.UVEnd = float2(1.0f, 1.0f);
 		graphicsContext->SetUVMatrixBuffer(uv);
-
 	}
+
 	if(m_spriteMesh->mesh.m_VertexLayout){
 		deviceContext->IASetInputLayout(m_spriteMesh->mesh.m_VertexLayout.Get());
 	}
 	if(m_spriteMesh->mesh.m_VertexShader){
-		deviceContext->VSSetShader(m_spriteMesh->mesh.m_VertexShader.Get(), NULL, 0);
+		deviceContext->VSSetShader(m_spriteMesh->mesh.m_VertexShader.Get(), nullptr, 0);
 	}
 	if(m_spriteMesh->mesh.m_PixelShader){
-		deviceContext->PSSetShader(m_spriteMesh->mesh.m_PixelShader.Get(), NULL, 0);
+		deviceContext->PSSetShader(m_spriteMesh->mesh.m_PixelShader.Get(), nullptr, 0);
 	}
-	DirectX::XMMATRIX World = newTransform.CalculateWorldMatrix(&newTransform, componentRegistry);
 
-	graphicsContext->SetWorldViewProjection2D();
-	graphicsContext->SetWorldMatrix(World);
+	DirectX::XMMATRIX world = TransformMath::CalculateLocalMatrix(newTransform);
+	if(packet.transform.hasParentWorld){
+		world = world * LoadRenderPacketMatrix(packet.transform.parentWorldMatrix);
+	}
+
+	// 2D ProjectionはSwapChainサイズではなく、現在描画しているRender Targetのサイズを使う。
+	// Player View / Editor Viewの縮小Render TargetでもRectが同じ正規化契約で配置される。
+	graphicsContext->SetViewMatrix(DirectX::XMMatrixIdentity());
+	graphicsContext->SetProjectionMatrix(
+		DirectX::XMMatrixOrthographicOffCenterLH(
+			0.0f,
+			viewportSize.x,
+			viewportSize.y,
+			0.0f,
+			0.0f,
+			1.0f
+		)
+	);
+	graphicsContext->SetDepthMode(DepthMode::Disable);
+	graphicsContext->SetWorldMatrix(world);
+
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
-
 	deviceContext->IASetVertexBuffers(0, 1, m_spriteMesh->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
-
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-	//if (ctx.passPhase == RenderPhase::PHASE_SHADOW) {
-	//	deviceContext->PSSetShader(nullptr, NULL, 0); // ピクセルシェーダー無効化
-	//}
 	deviceContext->Draw(m_spriteMesh->mesh.meshCount, 0);
 
 	graphicsContext->SetDepthMode(DepthMode::Write);

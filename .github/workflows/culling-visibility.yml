@@ -1,0 +1,70 @@
+name: Culling Visibility Smoke Test
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "Source/GameApplication/Engine/Scene/Component/CullingComponent.h"
+      - "Source/GameApplication/Engine/Scene/Entity/Entity.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingMath.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingVisibilitySet.h"
+      - "Tests/CullingMathSmokeTest.cpp"
+      - "Tests/CullingVisibilitySetSmokeTest.cpp"
+      - ".github/workflows/culling-visibility.yml"
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run per-view visibility contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /wd4201 /wd4458 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          Tests/CullingVisibilitySetSmokeTest.cpp
+          /Fe:culling-visibility-test.exe
+          && culling-visibility-test.exe
+      - name: Compile and run AABB frustum contract
+        id: culling_math
+        continue-on-error: true
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /wd4201 /wd4458 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          Tests/CullingMathSmokeTest.cpp
+          /Fe:culling-math-test.exe
+          > culling-math.log 2>&1
+          && culling-math-test.exe >> culling-math.log 2>&1
+      - name: Upload culling diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: culling-math-diagnostics
+          path: culling-math.log
+          if-no-files-found: error
+      - name: Preserve culling result
+        if: steps.culling_math.outcome == 'failure'
+        run: cmd /c exit 1

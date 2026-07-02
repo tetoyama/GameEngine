@@ -7,8 +7,6 @@
 #include <d3d11.h>
 #include "../IRenderable.h"
 
-class ComponentRegistry;
-
 struct RenderPassContext;
 struct SceneManagerContext;
 
@@ -20,7 +18,6 @@ public:
 
 	void Execute(
 		const RenderPassContext& ctx,
-		SceneContext* sceneContext,
-		const Entity& entity
+		const RenderPacket& packet
 	) override;
 };

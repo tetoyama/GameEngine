@@ -6,6 +6,7 @@
 #include "graphicsContext.h"
 
 
+#include <algorithm>
 #include <stdexcept>
 #include <d2d1.h>
 #include <dwrite.h>
@@ -98,6 +99,10 @@ bool GraphicsContext::Initialize(HWND hwnd, UINT width, UINT height){
 		return false;
 	}
 
+	if(!CreateGpuFrameTimingQueries()){
+		GRAPHICS_LOG(LogLevel::Warning, "GPU Timestamp Queryの初期化に失敗したためGPU Frame Time計測を無効化します");
+	}
+
 	Resize(width, height);
 
 	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
@@ -131,8 +136,25 @@ void GraphicsContext::Shutdown(){
 		m_DeviceContext->Flush();       // GPU キューを空にする
 	}
 
+	for(auto& timing : m_GpuTimingQueries){
+		timing.disjoint.Reset();
+		timing.beginTimestamp.Reset();
+		timing.endTimestamp.Reset();
+		timing.pending = false;
+	}
+	m_GpuTimingAvailable = false;
+	m_ResolvedGpuFrameTimings.clear();
+	m_ActiveGpuTimingIndex = -1;
+
 	m_d2dFactory.Reset();
 	m_dwriteFactory.Reset();
+
+	if(m_FrameLatencyWaitableObject){
+		CloseHandle(m_FrameLatencyWaitableObject);
+		m_FrameLatencyWaitableObject = nullptr;
+	}
+	m_FrameLatencyWaitableObjectEnabled = false;
+	m_FrameLatencyWaitTimeoutCount = 0;
 
 	m_DeviceContext.Reset();
 	m_SwapChain.Reset();
@@ -321,9 +343,14 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 	desc.SampleDesc.Count = 1;
 	desc.Windowed = TRUE;
 
-	// ティアリング対応環境では、DXGI_SWAP_EFFECT_FLIP_DISCARD と DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING を使用する。
+	// ティアリング対応環境ではFlip Modelを使用し、Frame Latency Waitable Objectで
+	// CPUの先行投入量を1フレームへ制限する。これによりQueueが満杯になった時の
+	// 不定期なPresentブロックをFrame開始前の明示的な待機へ移す。
 	desc.SwapEffect = m_TearingSupported ? DXGI_SWAP_EFFECT_FLIP_DISCARD : DXGI_SWAP_EFFECT_DISCARD;
-	desc.Flags = m_TearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+	m_SwapChainFlags = m_TearingSupported
+		? (DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT)
+		: 0;
+	desc.Flags = m_SwapChainFlags;
 
 	UINT flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 #if defined(_DEBUG)
@@ -352,10 +379,50 @@ bool GraphicsContext::CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT heigh
 		m_Device.GetAddressOf(), &featureLevel, m_DeviceContext.GetAddressOf()
 	);
 
+	// 古いDXGI RuntimeやDriverではWaitable Object flagを拒否する場合がある。
+	// その場合はALLOW_TEARINGを維持したまま、Waitable flagだけを外して再試行する。
+	if(FAILED(hr) && (m_SwapChainFlags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT) != 0){
+		m_SwapChain.Reset();
+		m_DeviceContext.Reset();
+		m_Device.Reset();
+		m_SwapChainFlags &= ~DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+		desc.Flags = m_SwapChainFlags;
+		hr = D3D11CreateDeviceAndSwapChain(
+			pSelectedAdapter, D3D_DRIVER_TYPE_UNKNOWN, nullptr, flags,
+			featureLevels, _countof(featureLevels),
+			D3D11_SDK_VERSION, &desc, m_SwapChain.GetAddressOf(),
+			m_Device.GetAddressOf(), &featureLevel, m_DeviceContext.GetAddressOf()
+		);
+		if(SUCCEEDED(hr)){
+			GRAPHICS_LOG(LogLevel::Warning, "Frame Latency Waitable Object非対応のため通常SwapChainへフォールバックしました");
+		}
+	}
+
 	if(FAILED(hr)){
 		releaseFactoryResources();
 		GRAPHICS_LOG(LogLevel::Error, "スワップチェーンの作成に失敗しました");
 		return false;
+	}
+
+	if((m_SwapChainFlags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT) != 0){
+		Microsoft::WRL::ComPtr<IDXGISwapChain2> swapChain2;
+		if(SUCCEEDED(m_SwapChain.As(&swapChain2)) &&
+		   SUCCEEDED(swapChain2->SetMaximumFrameLatency(1))){
+			m_FrameLatencyWaitableObject = swapChain2->GetFrameLatencyWaitableObject();
+			m_FrameLatencyWaitableObjectEnabled = m_FrameLatencyWaitableObject != nullptr;
+		}
+	}
+
+	const bool usesWaitableFlag =
+		(m_SwapChainFlags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT) != 0;
+
+	if(!usesWaitableFlag){
+		Microsoft::WRL::ComPtr<IDXGIDevice1> dxgiDevice1;
+		if(SUCCEEDED(m_Device.As(&dxgiDevice1))){
+			dxgiDevice1->SetMaximumFrameLatency(1);
+		}
+	} else if(!m_FrameLatencyWaitableObjectEnabled){
+		GRAPHICS_LOG(LogLevel::Warning, "Frame latency wait handle is unavailable");
 	}
 
 	releaseFactoryResources();
@@ -793,6 +860,34 @@ void GraphicsContext::Clear(const float clearColor[4]){
 	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
 }
 
+void GraphicsContext::WaitForFrameLatency(){
+	if(!m_FrameLatencyWaitableObjectEnabled || !m_FrameLatencyWaitableObject){
+		return;
+	}
+
+	const DWORD waitResult = WaitForSingleObject(
+		m_FrameLatencyWaitableObject,
+		kFrameLatencyWaitTimeoutMilliseconds
+	);
+	if(waitResult == WAIT_OBJECT_0){
+		return;
+	}
+
+	if(waitResult == WAIT_TIMEOUT){
+		++m_FrameLatencyWaitTimeoutCount;
+		if(!m_FrameLatencyWaitWarningLogged){
+			m_FrameLatencyWaitWarningLogged = true;
+			GRAPHICS_LOG(LogLevel::Warning, "Frame Latency Waitが100msでTimeoutしました。Device/GPU stallを確認してください");
+		}
+		return;
+	}
+
+	if(!m_FrameLatencyWaitWarningLogged){
+		m_FrameLatencyWaitWarningLogged = true;
+		GRAPHICS_LOG(LogLevel::Warning, "Frame Latency Waitable Objectの待機に失敗しました");
+	}
+}
+
 void GraphicsContext::Present(bool vsync){
 	// 引数を実際に使う。
 	// vsync == true  -> SyncInterval=1 で確実に垂直同期させる。
@@ -808,6 +903,177 @@ void GraphicsContext::Present(bool vsync){
 	}
 
 	m_SwapChain->Present(syncInterval, presentFlags);
+}
+
+
+bool GraphicsContext::CreateGpuFrameTimingQueries(){
+	if(!m_Device || GetBackendType() != RHI::BackendType::Direct3D11){
+		return false;
+	}
+
+	D3D11_QUERY_DESC desc{};
+	for(auto& timing : m_GpuTimingQueries){
+		desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
+		if(FAILED(m_Device->CreateQuery(&desc, timing.disjoint.ReleaseAndGetAddressOf()))){
+			return false;
+		}
+
+		desc.Query = D3D11_QUERY_TIMESTAMP;
+		if(FAILED(m_Device->CreateQuery(&desc, timing.beginTimestamp.ReleaseAndGetAddressOf()))){
+			return false;
+		}
+		if(FAILED(m_Device->CreateQuery(&desc, timing.endTimestamp.ReleaseAndGetAddressOf()))){
+			return false;
+		}
+		timing.submittedFrameSerial = 0;
+		timing.pending = false;
+	}
+
+	m_GpuTimingWriteIndex = 0;
+	m_ActiveGpuTimingIndex = -1;
+	m_ResolvedGpuFrameTimings.clear();
+	m_GpuTimingAvailable = true;
+	return true;
+}
+
+void GraphicsContext::ResolveGpuFrameTimingQueries(){
+	if(!m_GpuTimingAvailable || !m_DeviceContext){
+		return;
+	}
+
+	for(auto& timing : m_GpuTimingQueries){
+		if(!timing.pending){
+			continue;
+		}
+
+		auto complete = [&](GpuFrameTimingStatus status, double seconds = 0.0){
+			m_ResolvedGpuFrameTimings.push_back({
+				timing.submittedFrameSerial,
+				seconds,
+				status
+			});
+			timing.pending = false;
+			timing.submittedFrameSerial = 0;
+		};
+
+		D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjoint{};
+		const HRESULT disjointResult = m_DeviceContext->GetData(
+			timing.disjoint.Get(),
+			&disjoint,
+			sizeof(disjoint),
+			D3D11_ASYNC_GETDATA_DONOTFLUSH
+		);
+		if(disjointResult == S_FALSE){
+			continue;
+		}
+		if(FAILED(disjointResult)){
+			complete(GpuFrameTimingStatus::Invalid);
+			continue;
+		}
+
+		UINT64 beginTimestamp = 0;
+		const HRESULT beginResult = m_DeviceContext->GetData(
+			timing.beginTimestamp.Get(),
+			&beginTimestamp,
+			sizeof(beginTimestamp),
+			D3D11_ASYNC_GETDATA_DONOTFLUSH
+		);
+		if(beginResult == S_FALSE){
+			continue;
+		}
+		if(FAILED(beginResult)){
+			complete(GpuFrameTimingStatus::Invalid);
+			continue;
+		}
+
+		UINT64 endTimestamp = 0;
+		const HRESULT endResult = m_DeviceContext->GetData(
+			timing.endTimestamp.Get(),
+			&endTimestamp,
+			sizeof(endTimestamp),
+			D3D11_ASYNC_GETDATA_DONOTFLUSH
+		);
+		if(endResult == S_FALSE){
+			continue;
+		}
+		if(FAILED(endResult)){
+			complete(GpuFrameTimingStatus::Invalid);
+			continue;
+		}
+
+		if(disjoint.Disjoint || disjoint.Frequency == 0 ||
+		   endTimestamp < beginTimestamp){
+			complete(GpuFrameTimingStatus::Invalid);
+			continue;
+		}
+
+		const double seconds =
+			static_cast<double>(endTimestamp - beginTimestamp) /
+			static_cast<double>(disjoint.Frequency);
+		complete(GpuFrameTimingStatus::Resolved, seconds);
+	}
+}
+
+std::vector<GpuFrameTimingResult>
+GraphicsContext::ConsumeResolvedGpuFrameTimings(){
+	ResolveGpuFrameTimingQueries();
+	std::stable_sort(
+		m_ResolvedGpuFrameTimings.begin(),
+		m_ResolvedGpuFrameTimings.end(),
+		[](const GpuFrameTimingResult& lhs, const GpuFrameTimingResult& rhs){
+			return lhs.frameSerial < rhs.frameSerial;
+		}
+	);
+
+	std::vector<GpuFrameTimingResult> results;
+	results.swap(m_ResolvedGpuFrameTimings);
+	return results;
+}
+
+void GraphicsContext::BeginGpuFrameTiming(uint64_t frameSerial){
+	ResolveGpuFrameTimingQueries();
+	if(!m_GpuTimingAvailable || !m_DeviceContext){
+		m_ResolvedGpuFrameTimings.push_back({
+			frameSerial,
+			0.0,
+			GpuFrameTimingStatus::Dropped
+		});
+		m_ActiveGpuTimingIndex = -1;
+		return;
+	}
+
+	auto& timing = m_GpuTimingQueries[m_GpuTimingWriteIndex];
+	if(timing.pending){
+		// GPUがリング長以上遅れてもCPUを待機させない。
+		// 計測できなかったFrameは明示的にDroppedとして返す。
+		m_ResolvedGpuFrameTimings.push_back({
+			frameSerial,
+			0.0,
+			GpuFrameTimingStatus::Dropped
+		});
+		m_ActiveGpuTimingIndex = -1;
+		return;
+	}
+
+	timing.submittedFrameSerial = frameSerial;
+	m_ActiveGpuTimingIndex = static_cast<int>(m_GpuTimingWriteIndex);
+	m_DeviceContext->Begin(timing.disjoint.Get());
+	m_DeviceContext->End(timing.beginTimestamp.Get());
+}
+
+void GraphicsContext::EndGpuFrameTiming(){
+	if(!m_GpuTimingAvailable || !m_DeviceContext || m_ActiveGpuTimingIndex < 0){
+		return;
+	}
+
+	auto& timing = m_GpuTimingQueries[static_cast<size_t>(m_ActiveGpuTimingIndex)];
+	m_DeviceContext->End(timing.endTimestamp.Get());
+	m_DeviceContext->End(timing.disjoint.Get());
+	timing.pending = true;
+
+	m_GpuTimingWriteIndex =
+		(m_GpuTimingWriteIndex + 1) % kGpuTimingBufferedFrames;
+	m_ActiveGpuTimingIndex = -1;
 }
 
 bool GraphicsContext::CreateVertexShader(const char* fileName, ID3D11VertexShader** vertexShader, ID3D11InputLayout** inputLayout){
@@ -859,8 +1125,14 @@ void GraphicsContext::Resize(UINT width, UINT height){
 
 		// 作成時と同じ条件でのみ ALLOW_TEARING を指定する。
 		// 作成時に立てていないフラグをリサイズ時に立てる/逆に外すと不整合になるため統一する。
-		UINT resizeFlags = m_TearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
-		HRESULT hr = m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, resizeFlags);
+		// 作成時に実際に使用したflagを完全に維持する。
+		HRESULT hr = m_SwapChain->ResizeBuffers(
+			0,
+			width,
+			height,
+			DXGI_FORMAT_UNKNOWN,
+			m_SwapChainFlags
+		);
 		if(FAILED(hr)){
 			GRAPHICS_LOG(LogLevel::Error, "スワップチェーンのリサイズに失敗しました");
 			OutputDebugStringA("スワップチェーンのリサイズに失敗しました。\n");

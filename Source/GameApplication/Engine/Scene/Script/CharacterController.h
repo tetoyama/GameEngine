@@ -118,6 +118,13 @@ public:
 		transform = GetComponentRef<TransformComponent>();
 		model     = GetComponentRef<ModelRendererComponent>();
 
+		// CharacterController が重力を一元管理するため、PhysX 側の重力を無効化する。
+		if (ColliderComponent* collider = GetComponent<ColliderComponent>()) {
+			if (physx::PxRigidDynamic* rigid = collider->pRigidbodyDynamic) {
+				rigid->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
+			}
+		}
+
 		// シーン内のカメラを探して方向基準に使う
 		auto cameraEntities = m_ref.GetScene()->component->FindEntitiesWithComponent<CameraComponent>();
 		if (!cameraEntities.empty()) {
@@ -185,6 +192,9 @@ public:
 			physx::PxRigidDynamic* rigid = collider->pRigidbodyDynamic;
 			if (!rigid) return;
 
+			// Rigidbody が OnStart 後に生成された場合にも重力の二重適用を防ぐ。
+			rigid->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
+
 			physx::PxVec3 velocity = rigid->getLinearVelocity();
 
 			// ------------------------------------------------
@@ -232,11 +242,13 @@ public:
 				} else {
 					// 着地確認：ジャンプフラグを確実にリセット
 					isInJump = false;
-					// 坂面に沿った Y 速度を使い、坂道では接地スナップを加えて
-					// 上り坂・下り坂どちらも滑らかに追従する。
-					// 平坦面（surfaceNormal.y ≒ 1）ではスナップ不要なのでゼロにする。
-					float slopeSnap = (surfaceNormal.y < 0.999f) ? -gravity * dt : 0.0f;
-					velY = horizontalVel.y + slopeSnap;
+
+					// 接地スナップをワールド下向きではなく坂面法線の逆方向へ加える。
+					// 純粋な法線成分なので、接触解決後に坂下方向の速度が残らない。
+					if (surfaceNormal.y < 0.999f) {
+						horizontalVel -= surfaceNormal * (gravity * dt);
+					}
+					velY = horizontalVel.y;
 				}
 			} else {
 				// 空中 or 急斜面：重力適用
@@ -291,7 +303,14 @@ public:
 		UpdateAnimations(isJumping, isGrounded);
 	}
 
-	void OnStop() override {}
+	void OnStop() override {
+		// Controller終了後に通常のPhysX Rigidbodyとして再利用できるよう重力を戻す。
+		if (ColliderComponent* collider = GetComponent<ColliderComponent>()) {
+			if (physx::PxRigidDynamic* rigid = collider->pRigidbodyDynamic) {
+				rigid->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, false);
+			}
+		}
+	}
 
 private:
 

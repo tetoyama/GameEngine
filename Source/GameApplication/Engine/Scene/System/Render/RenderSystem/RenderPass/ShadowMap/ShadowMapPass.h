@@ -5,6 +5,7 @@
 // =======================================================================
 #pragma once
 #include "../IRenderPass.h"
+#include "Graphics/mainRenderer.h"
 #include <d3d11.h>
 #include <memory>
 #include <vector>
@@ -25,7 +26,8 @@ public:
 	std::vector<IRenderable*> renderables;
 	RenderTarget* shadowRenderTarget = nullptr;
 	ID3D11SamplerState* shadowSampler = nullptr;
-	ID3D11RasterizerState* depthClampRS = nullptr; // DepthClipEnable=FALSE: フラスタム外 shadow caster のクリッピングを防ぐ
+	ID3D11RasterizerState* depthClampRS = nullptr;
+	ID3D11RasterizerState* perspectiveShadowRS = nullptr;
 
 private:
 	void RenderShadowScene(const RenderPassContext& ctx);

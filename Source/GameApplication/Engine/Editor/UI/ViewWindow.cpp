@@ -34,6 +34,8 @@ void ViewWindow::Initialize(EditorService* editor) {
 	PauseButtonTexture = resourceService->Load<TextureData>("Asset/Texture/UI/Control/Pause.png");
 	StopButtonTexture = resourceService->Load<TextureData> ("Asset/Texture/UI/Control/Stop.png");
 	StepButtonTexture = resourceService->Load<TextureData> ("Asset/Texture/UI/Control/Step.png");
+
+	ImGui::SetWindowFocus("Editor View");
 }
 
 void ViewWindow::Draw(const EditorDrawContext ctx) {
@@ -44,8 +46,10 @@ void ViewWindow::Draw(const EditorDrawContext ctx) {
 void ViewWindow::EditorView(const EditorDrawContext ctx){
 
 	GraphicsContext* graphicsContext = m_editor->sceneManager->GetContext()->graphics;
-	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
-	RenderSystem* renderSystem = m_editor->sceneManager->systemRegistry->GetSystem<RenderSystem>();
+	ID3D11DeviceContext* deviceContext = graphicsContext ? graphicsContext->GetDeviceContext() : nullptr;
+	SystemRegistry* registry = m_editor->sceneManager->GetSystemRegistry();
+	RenderSystem* renderSystem = registry ? registry->GetSystem<RenderSystem>() : nullptr;
+	if(!graphicsContext || !deviceContext || !renderSystem || !renderSystem->m_EditorPass) return;
 
 	bool* showEditor = &m_editor->GetUI<MenuBar>()->showEditorView;
 
@@ -191,29 +195,28 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 
 				auto* sprite = registry->GetComponent<SpriteRendererComponent>(selectedEntity);
 				if(sprite){
-					TransformComponent temp = transform->CalculateRectTransform(Vector2(avail.x, avail.y), *sprite, *transform);
-					DirectX::XMVECTOR scaling = DirectX::XMVectorSet(temp.scale.x, temp.scale.y, 1.0f, 0.0f);
-					DirectX::XMVECTOR rotationOrigin = DirectX::XMVectorSet(sprite->pivot.x, sprite->pivot.y, 0.0f, 0.0f);
-					float rotationZ = temp.GetRotationEuler().z;
-					DirectX::XMVECTOR translation = DirectX::XMVectorSet(temp.position.x, temp.position.y, temp.position.z, 0.0f);
-
-					DirectX::XMMATRIX model2D = DirectX::XMMatrixAffineTransformation2D(scaling, rotationOrigin, rotationZ, translation);
-					World = model2D;
-					modelMatrix = m_editor->sceneManager->GetContext()->imgui->RenderGizmo2D(World, DirectX::XMFLOAT2(avail.x, avail.y));
+					const Vector2 editorViewport(avail.x, avail.y);
+					TransformComponent rectTransform =
+						transform->CalculateRectTransform(editorViewport, *sprite, *transform);
+					World = rectTransform.CalculateWorldMatrix(&rectTransform, registry);
+					modelMatrix = m_editor->sceneManager->GetContext()->imgui->RenderGizmo2D(
+						World,
+						DirectX::XMFLOAT2(editorViewport.x, editorViewport.y)
+					);
 				} else{
 					modelMatrix = m_editor->sceneManager->GetContext()->imgui->RenderGizmo(World);
-				}
 
-				// 親の逆行列を適用してローカル座標系に戻す
-				Entity Parent = transform->parent;
-				while(Parent != 0){
-					auto* ParentTransform = registry->GetComponent<TransformComponent>(Parent);
-					if(ParentTransform){
-						DirectX::XMMATRIX ParentWorld = ParentTransform->CalculateWorldMatrix(ParentTransform, registry);
-						modelMatrix = modelMatrix * DirectX::XMMatrixInverse(nullptr, ParentWorld);
-						Parent = ParentTransform->parent;
-					} else{
-						Parent = 0;
+					// 3D Transformのみ親Worldを除去してローカルへ戻す。
+					Entity Parent = transform->parent;
+					while(Parent != 0){
+						auto* ParentTransform = registry->GetComponent<TransformComponent>(Parent);
+						if(ParentTransform){
+							DirectX::XMMATRIX ParentWorld = ParentTransform->CalculateWorldMatrix(ParentTransform, registry);
+							modelMatrix = modelMatrix * DirectX::XMMatrixInverse(nullptr, ParentWorld);
+							Parent = ParentTransform->parent;
+						} else{
+							Parent = 0;
+						}
 					}
 				}
 
@@ -288,8 +291,11 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 				SceneContext* recoveredContext = m_editor->sceneManager->GetContextFromID(sceneID_val);
 
 				if(recoveredContext){
+					const Entity pickedEntity = recoveredContext->entity->Resolve(objectID_val);
+					if(!pickedEntity) return;
+
 					hierarchy->sceneContext = recoveredContext;
-					hierarchy->selectedEntity = (Entity)objectID_val;
+					hierarchy->selectedEntity = pickedEntity;
 
 					// 選択した Entity にカメラを向ける
 					TransformComponent* transform = recoveredContext->component->GetComponent<TransformComponent>(hierarchy->selectedEntity);
@@ -359,7 +365,10 @@ void ViewWindow::ControlButton() {
 }
 
 void ViewWindow::DrawRenderLayerToggleUI() {
-	RenderSystem* renderSystem = m_editor->sceneManager->systemRegistry->GetSystem<RenderSystem>();
+	SystemRegistry* registry = m_editor->sceneManager->GetSystemRegistry();
+	RenderSystem* renderSystem =
+		registry ? registry->GetSystem<RenderSystem>() : nullptr;
+	if(!renderSystem) return;
 
 	ImGui::SameLine();
 

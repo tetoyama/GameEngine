@@ -1,0 +1,13 @@
+name: Archived RenderGraph Pass Culling Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  archived:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "RenderGraph Pass Culling validation completed and archived."

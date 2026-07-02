@@ -7,6 +7,7 @@
 #include "buildSetting.h"
 
 #include <algorithm>
+#include <array>
 #include <filesystem>
 #include <queue>
 #include <thread>
@@ -51,11 +52,20 @@
 #include "System/Physic/physicSystem.h"
 
 #include "System/Render/RenderSystem/renderLayer.h"
+#include "System/Render/RenderSystem/RenderPacket/RenderPacketTransformDX11.h"
 
 #include "Component/RenderLayerComponent.h"
 #include "Component/transformComponent.h"
 #include "Component/CameraComponent.h"
 #include <Component/modelRendererComponent.h>
+#include <Component/materialComponent.h>
+#include <Component/meshRendererComponent.h>
+#include <Component/BillBoardRendererComponent.h>
+#include <Component/2DspriteRendererComponent.h>
+#include <Component/terrainComponent.h>
+#include <Component/waveComponent.h>
+#include <Component/particleComponent.h>
+#include <Component/EffectComponent.h>
 #include <Component/LightComponent.h>
 #include <Component/textureComponent.h>
 #include <Component/environmentMapComponent.h>
@@ -75,6 +85,7 @@
 #include "RenderPass/ShadowMap/ShadowMapPass.h"
 #include "RenderPass/LightingPass/LightingPass.h"
 #include "RenderPass/PlayerView/PlayerPass.h"
+#include "RenderPass/PlayerView/PlayerViewRefreshPolicy.h"
 #include "RenderPass/EditorView/EditorPass.h"
 #include "Renderable/Wave/RenderableWave.h"
 #include <Editor/UI/ViewWindow.h>
@@ -302,14 +313,17 @@ void RenderSystem::Draw(){
 		PlayerView();
 	} else if(showPlayer && !*showPlayer && ((m_context->sceneManager->State == SceneManagerState::Playing) || !(showEditor && *showEditor))){
 
+		const Vector2 fullScreenSize(
+			static_cast<float>(m_context->renderer->GetGraphicsContext()->m_width),
+			static_cast<float>(m_context->renderer->GetGraphicsContext()->m_height)
+		);
+		m_context->PlayerScreenSize = fullScreenSize;
+
 		RenderPassContext renderPassContext(
 			RenderPhase::PHASE_GBUFFER,
 			playerRenderLayerVisible,
 			FindCameraEntity(),
-			Vector2(
-				(float)m_context->renderer->GetGraphicsContext()->m_width,
-				(float)m_context->renderer->GetGraphicsContext()->m_height
-			)
+			fullScreenSize
 		);
 		m_PlayerPass->Execute(renderPassContext);
 		if (!m_PlayerPass->result) {
@@ -324,6 +338,297 @@ void RenderSystem::Draw(){
 	}
 	m_context->graphics->ResetViewport();
 	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView());
+}
+
+
+
+IRenderable* RenderSystem::GetRenderableForPacketKind(RenderPacketKind kind){
+	switch(kind){
+		case RenderPacketKind::Model:
+			return GetRenderable<RenderableModel>();
+		case RenderPacketKind::Mesh:
+			return GetRenderable<RenderableMesh>();
+		case RenderPacketKind::Sprite:
+			return GetRenderable<RenderableSprite>();
+		case RenderPacketKind::Billboard:
+			return GetRenderable<RenderableBillBoard>();
+		case RenderPacketKind::Particle:
+			return GetRenderable<RenderableParticle>();
+		case RenderPacketKind::Terrain:
+			return GetRenderable<RenderableTerrain>();
+		case RenderPacketKind::Wave:
+			return GetRenderable<RenderableWave>();
+		case RenderPacketKind::Effect:
+			return GetRenderable<RenderableEffect>();
+		default:
+			return nullptr;
+	}
+}
+
+void RenderSystem::BuildRenderPackets(){
+	std::array<RenderPacketWorkerBuffer, 1> workerBuffers{
+		RenderPacketWorkerBuffer(0)
+	};
+	RenderPacketWorkerBuffer& worker = workerBuffers[0];
+	uint64_t stableSequence = 0;
+
+	struct SceneEntry {
+		uint32_t contextID = 0;
+		std::string name;
+		SceneContext* context = nullptr;
+	};
+
+	std::vector<SceneEntry> scenes;
+	for(const auto& [sceneName, scene] : m_context->sceneManager->GetActiveScenes()){
+		if(!scene) continue;
+		SceneContext* context = scene->GetSceneContext();
+		if(!context || !context->component || context->contextID == 0) continue;
+		scenes.push_back({context->contextID, sceneName, context});
+	}
+	std::sort(
+		scenes.begin(),
+		scenes.end(),
+		[](const SceneEntry& lhs, const SceneEntry& rhs){
+			if(lhs.contextID != rhs.contextID) return lhs.contextID < rhs.contextID;
+			return lhs.name < rhs.name;
+		}
+	);
+
+	for(const SceneEntry& sceneEntry : scenes){
+		ComponentRegistry* components = sceneEntry.context->component;
+		auto entities = components->FindEntitiesWithComponent<TransformComponent>();
+		std::sort(
+			entities.begin(),
+			entities.end(),
+			[](Entity lhs, Entity rhs){
+				return lhs.GetPackedValue() < rhs.GetPackedValue();
+			}
+		);
+
+		worker.Reserve(worker.Packets().size() + entities.size());
+		for(Entity entity : entities){
+			TransformComponent* transform =
+				components->GetComponent<TransformComponent>(entity);
+			if(!transform) continue;
+
+			const RenderLayerComponent* layerComponent =
+				components->GetComponent<RenderLayerComponent>(entity);
+			const OrderInLayerComponent* orderComponent =
+				components->GetComponent<OrderInLayerComponent>(entity);
+			MaterialComponent* materialComponent =
+				components->GetComponent<MaterialComponent>(entity);
+			TextureComponent* textureComponent =
+				components->GetComponent<TextureComponent>(entity);
+			ModelRendererComponent* modelRenderer =
+				components->GetComponent<ModelRendererComponent>(entity);
+			MeshRendererComponent* meshRenderer =
+				components->GetComponent<MeshRendererComponent>(entity);
+			SpriteRendererComponent* spriteRenderer =
+				components->GetComponent<SpriteRendererComponent>(entity);
+			BillBoardRendererComponent* billboardRenderer =
+				components->GetComponent<BillBoardRendererComponent>(entity);
+			ParticleComponent* particle =
+				components->GetComponent<ParticleComponent>(entity);
+			TerrainComponent* terrain =
+				components->GetComponent<TerrainComponent>(entity);
+			WaveComponent* wave =
+				components->GetComponent<WaveComponent>(entity);
+			EffectComponent* effect =
+				components->GetComponent<EffectComponent>(entity);
+			const bool isEnvironmentMap =
+				components->GetComponent<EnvironmentMapComponent>(entity) != nullptr;
+
+			const RenderLayer layer = layerComponent
+				? layerComponent->layer
+				: RenderLayer::Opaque3D;
+			const int32_t orderInLayer = orderComponent
+				? orderComponent->order
+				: 0;
+			const uint32_t materialKey = materialComponent
+				? static_cast<uint32_t>((std::max)(0, materialComponent->ShaderID))
+				: 0u;
+
+			RenderPacketTransformSnapshot snapshot;
+			snapshot.position[0] = transform->position.x;
+			snapshot.position[1] = transform->position.y;
+			snapshot.position[2] = transform->position.z;
+			const Vector3 worldPosition = transform->GetWorldPosition(components);
+			snapshot.worldPosition[0] = worldPosition.x;
+			snapshot.worldPosition[1] = worldPosition.y;
+			snapshot.worldPosition[2] = worldPosition.z;
+			const DirectX::XMFLOAT4& rotation = transform->GetRotation();
+			snapshot.rotation[0] = rotation.x;
+			snapshot.rotation[1] = rotation.y;
+			snapshot.rotation[2] = rotation.z;
+			snapshot.rotation[3] = rotation.w;
+			snapshot.scale[0] = transform->scale.x;
+			snapshot.scale[1] = transform->scale.y;
+			snapshot.scale[2] = transform->scale.z;
+			StoreRenderPacketMatrix(
+				snapshot.worldMatrix,
+				transform->CalculateWorldMatrix(transform, components)
+			);
+			if(transform->parent){
+				if(TransformComponent* parentTransform =
+					components->GetComponent<TransformComponent>(transform->parent)){
+					StoreRenderPacketMatrix(
+						snapshot.parentWorldMatrix,
+						parentTransform->CalculateWorldMatrix(parentTransform, components)
+					);
+					snapshot.hasParentWorld = true;
+				}
+			}
+
+			auto appendPacket = [&](RenderPacketKind kind){
+				RenderPacket packet;
+				packet.sceneContextID = sceneEntry.contextID;
+				packet.entity = entity;
+				packet.kind = kind;
+				const RenderLayer effectiveLayer = ResolveRenderPacketLayer(layer, kind);
+				packet.layer = effectiveLayer;
+				packet.passMask = ResolveRenderPacketPasses(effectiveLayer, kind);
+				if(isEnvironmentMap){
+					packet.passMask = RemoveRenderPacketPass(
+						packet.passMask,
+						RenderPacketPassMask::Shadow
+					);
+				}
+				packet.materialKey = materialKey;
+				packet.orderInLayer = orderInLayer;
+				packet.sortKey = MakeRenderPacketSortKey(
+					effectiveLayer,
+					kind,
+					materialKey,
+					orderInLayer
+				);
+				packet.stableSequence = stableSequence++;
+				packet.transform = snapshot;
+				packet.bindings.sceneContext = sceneEntry.context;
+				packet.bindings.transform = transform;
+				packet.bindings.material = materialComponent;
+				packet.bindings.texture = textureComponent;
+				packet.bindings.modelRenderer = modelRenderer;
+				packet.bindings.meshRenderer = meshRenderer;
+				packet.bindings.spriteRenderer = spriteRenderer;
+				packet.bindings.billboardRenderer = billboardRenderer;
+				packet.bindings.particle = particle;
+				packet.bindings.terrain = terrain;
+				packet.bindings.wave = wave;
+				packet.bindings.effect = effect;
+				worker.Add(std::move(packet));
+			};
+
+			if(modelRenderer){
+				appendPacket(RenderPacketKind::Model);
+			}
+			if(meshRenderer){
+				appendPacket(RenderPacketKind::Mesh);
+			}
+			if(spriteRenderer){
+				appendPacket(RenderPacketKind::Sprite);
+			}
+			if(billboardRenderer){
+				appendPacket(RenderPacketKind::Billboard);
+			}
+			if(particle){
+				appendPacket(RenderPacketKind::Particle);
+			}
+			if(terrain){
+				appendPacket(RenderPacketKind::Terrain);
+			}
+			if(wave){
+				appendPacket(RenderPacketKind::Wave);
+			}
+			if(effect){
+				appendPacket(RenderPacketKind::Effect);
+			}
+		}
+	}
+
+	m_renderPacketBuffer.BeginFrame(++m_renderPacketGeneration);
+	m_renderPacketBuffer.Merge(workerBuffers);
+}
+
+void RenderSystem::SubmitRenderPackets(){
+	m_lastSubmittedPacketGeneration = m_renderPacketBuffer.Generation();
+	Draw();
+}
+
+void RenderSystem::RegisterTasks(SystemScheduleBuilder& builder){
+
+	using RenderUpdateQuery = ECSQuery::ComponentQueryView<
+		ECSQuery::Read<TransformComponent>,
+		ECSQuery::Write<ModelRendererComponent>
+	>;
+
+	builder.AddQueryTask<RenderUpdateQuery>(
+		"RenderSystem.AnimationTime.Commit",
+		SystemTaskDomain::Frame,
+		SystemPhase::Late,
+		0,
+		StructuralAccess::None,
+		ThreadAffinity::AnyWorker,
+		[this](const SystemTaskContext& context){
+			Update(context.deltaTime);
+		}
+	);
+
+	builder.AddTask(
+		"RenderSystem.Animation.Upload",
+		SystemTaskDomain::Editor,
+		SystemPhase::Earliest,
+		0,
+		SystemAccess::LegacyExclusive(),
+		ThreadAffinity::MainThread,
+		[this](const SystemTaskContext& context){
+			EditorUpdate(context.deltaTime);
+		}
+	);
+
+	SystemAccess packetBuildAccess;
+	packetBuildAccess
+		.ReadComponent<TransformComponent>()
+		.ReadComponent<RenderLayerComponent>()
+		.ReadComponent<OrderInLayerComponent>()
+		.ReadComponent<MaterialComponent>()
+		.ReadComponent<TextureComponent>()
+		.ReadComponent<ModelRendererComponent>()
+		.ReadComponent<MeshRendererComponent>()
+		.ReadComponent<SpriteRendererComponent>()
+		.ReadComponent<BillBoardRendererComponent>()
+		.ReadComponent<ParticleComponent>()
+		.ReadComponent<TerrainComponent>()
+		.ReadComponent<WaveComponent>()
+		.ReadComponent<EffectComponent>()
+		.ReadComponent<EnvironmentMapComponent>()
+		.ReadResource<SceneManager>()
+		.WriteResource<RenderPacketFrameBuffer>();
+
+	builder.AddTask(
+		"RenderSystem.Packet.Build",
+		SystemTaskDomain::Render,
+		SystemPhase::Early,
+		0,
+		std::move(packetBuildAccess),
+		ThreadAffinity::AnyWorker,
+		[this](const SystemTaskContext&){
+			BuildRenderPackets();
+		}
+	);
+
+	SystemAccess submitAccess = SystemAccess::LegacyExclusive();
+	submitAccess.ReadResource<RenderPacketFrameBuffer>();
+	builder.AddTask(
+		"RenderSystem.Command.Submit",
+		SystemTaskDomain::Render,
+		SystemPhase::Late,
+		0,
+		std::move(submitAccess),
+		ThreadAffinity::MainThread,
+		[this](const SystemTaskContext&){
+			SubmitRenderPackets();
+		}
+	);
 }
 
 bool RenderSystem::decode(const YAML::Node& node){
@@ -663,49 +968,70 @@ void RenderSystem::ControlButton(){
 
 void RenderSystem::PlayerView(){
 
+	auto restoreMainRenderTarget = [this](){
+		m_context->graphics->GetDeviceContext()->OMSetRenderTargets(
+			1,
+			m_context->graphics->GetpRenderTargetView(),
+			m_context->graphics->GetDepthStencilView()
+		);
+	};
 
-	ImGui::Begin("Play View", showPlayer, 0);
+	if(!ImGui::Begin("Play View", showPlayer, 0)){
+		ImGui::End();
+		restoreMainRenderTarget();
+		return;
+	}
 
-	// 共通UI（元のControlButtonやSeparatorなど）
 	ControlButton();
 	ImGui::Separator();
 
-	// カメラコンポーネントを持つエンティティ取得
-	const CameraEntityData& cameraData = FindCameraEntity();
+	const CameraEntityData cameraData = FindCameraEntity();
 	if(!cameraData.cameraComponent){
-		ImGui::Text("No CameraBuffer Component found.");
+		ImGui::Text("No Camera Component found.");
 		ImGui::End();
+		restoreMainRenderTarget();
 		return;
 	}
-	// 利用可能な領域サイズを取得
-	ImVec2 avail = ImGui::GetContentRegionAvail();
 
-	if (avail.x <= 0.0f || avail.y <= 0.0f) {
+	const ImVec2 avail = ImGui::GetContentRegionAvail();
+	if(avail.x <= 0.0f || avail.y <= 0.0f){
 		ImGui::End();
+		restoreMainRenderTarget();
 		return;
 	}
+
+	const Vector2 playerSize(avail.x, avail.y);
+	m_context->PlayerScreenSize = playerSize;
+
 	RenderPassContext renderPassContext(
 		RenderPhase::PHASE_GBUFFER,
 		playerRenderLayerVisible,
 		cameraData,
-		Vector2(avail.x, avail.y)
+		playerSize
 	);
 
-	if(m_context->sceneManager->State == SceneManagerState::Stopped || m_context->sceneManager->State == SceneManagerState::Paused){
-		if(lazyTimer >= 1.0f){
-			lazyTimer = 0.0f;
-			m_PlayerPass->Execute(renderPassContext);
-		}
-	} else{
+	const SceneManagerState state = m_context->sceneManager->State;
+	const bool throttledState =
+		state == SceneManagerState::Stopped ||
+		state == SceneManagerState::Paused;
+	const bool shouldRender = PlayerViewRefreshPolicy::ShouldRender(
+		throttledState,
+		lazyTimer,
+		m_PlayerPass->result != nullptr
+	);
+
+	if(shouldRender){
+		if(throttledState) lazyTimer = 0.0f;
 		m_PlayerPass->Execute(renderPassContext);
 	}
 
-	ImGui::Image((ImTextureRef)m_PlayerPass->result, avail);
+	if(m_PlayerPass->result){
+		ImGui::Image((ImTextureRef)m_PlayerPass->result, avail);
+	}else{
+		ImGui::TextDisabled("Player render output is not available.");
+	}
 	ImGui::End();
-
-	m_context->graphics->GetDeviceContext()->OMSetRenderTargets(
-		1, m_context->graphics->GetpRenderTargetView(), m_context->graphics->GetDepthStencilView()
-	);
+	restoreMainRenderTarget();
 }
 
 void RenderSystem::ReCompilePixelShaders(){

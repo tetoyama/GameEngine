@@ -7,6 +7,7 @@
 
 #include <d3d11.h>
 #include "../../RenderPass/RenderPassContext.h"
+#include "../../RenderPacket/RenderPacketTransformDX11.h"
 
 #include "DebugTools/DebugSystem.h"
 
@@ -27,13 +28,15 @@
 
 void RenderableModel::Execute(
 	const RenderPassContext& ctx,
-	SceneContext* sceneContext,
-	const Entity& entity){
+	const RenderPacket& packet){
+	SceneContext* sceneContext = packet.bindings.sceneContext;
+	const Entity& entity = packet.entity;
+	if(!sceneContext) return;
 	ModelRendererComponent* modelRenderer =
-		sceneContext->component->GetComponent<ModelRendererComponent>(entity);
+		packet.bindings.modelRenderer;
 
 	TransformComponent* transform =
-		sceneContext->component->GetComponent<TransformComponent>(entity);
+		packet.bindings.transform;
 
 	if(!modelRenderer || !transform){
 		return;
@@ -49,10 +52,10 @@ void RenderableModel::Execute(
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	TextureComponent* textureComponent =
-		sceneContext->component->GetComponent<TextureComponent>(entity);
+		packet.bindings.texture;
 
 	MaterialComponent* materialComponent =
-		sceneContext->component->GetComponent<MaterialComponent>(entity);
+		packet.bindings.material;
 
 
 	//----------------------------------------------------------------------
@@ -88,24 +91,7 @@ void RenderableModel::Execute(
 				textureComponent->m_TextureData->pTexture.GetAddressOf());
 		}
 
-		if(textureComponent->UV_Slice_X > 0.0f && textureComponent->UV_Slice_Y > 0.0f){
-			// UV_Slice_X/Y は「1セルのUVサイズ」
-			// 例:
-			// 0.25f = 4分割
-			// 0.125f = 8分割
-
-			int column = (int)(textureComponent->UV_Slice_X);
-			if(column <= 0){
-				column = 1;
-			}
-
-			uv.UVStart.x = (textureComponent->AnimationNum % column) * textureComponent->UV_Slice_X;
-			uv.UVStart.y = (textureComponent->AnimationNum / column) * textureComponent->UV_Slice_Y;
-
-			// 1 セルの UV サイズ: 1/スライス数
-			uv.UVEnd.x = uv.UVStart.x + 1.0f / textureComponent->UV_Slice_X;  // セルの右端 UV
-			uv.UVEnd.y = uv.UVStart.y + 1.0f / textureComponent->UV_Slice_Y;  // セルの下端 UV
-		}
+		uv = textureComponent->ResolveUVMatrixBuffer();
 	}
 	graphicsContext->SetUVMatrixBuffer(uv);
 	graphicsContext->SetMaterial(material);
@@ -117,20 +103,33 @@ void RenderableModel::Execute(
 	deviceContext->IASetPrimitiveTopology(
 		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	graphicsContext->SetCullMode(CullMode::Back);
+	// ShadowMapPass owns the complete rasterizer-state contract for the
+	// current light type. Replacing it here would discard Point/Spot depth
+	// clipping and any shadow-specific depth-bias settings.
+	if(ctx.passPhase != RenderPhase::PHASE_SHADOW){
+		graphicsContext->SetCullMode(CullMode::Back);
+	}
 
 	DirectX::XMMATRIX world =
-		transform->CalculateWorldMatrix(
-			transform,
-			sceneContext->component);
+		LoadRenderPacketMatrix(packet.transform.worldMatrix);
 	graphicsContext->SetWorldMatrix(world);
 
 	//----------------------------------------------------------------------
 	// Draw Mesh
 	//----------------------------------------------------------------------
 
-	for(UINT meshIndex = 0;
-		meshIndex < model->AiScene->mNumMeshes;
+	UINT firstMeshIndex = 0;
+	UINT meshEndIndex = model->AiScene->mNumMeshes;
+	if(!packet.TargetsAllSubMeshes()){
+		if(packet.subMeshIndex >= model->AiScene->mNumMeshes){
+			return;
+		}
+		firstMeshIndex = packet.subMeshIndex;
+		meshEndIndex = firstMeshIndex + 1;
+	}
+
+	for(UINT meshIndex = firstMeshIndex;
+		meshIndex < meshEndIndex;
 		++meshIndex){
 
 		if(!textureComponent || !textureComponent->m_TextureData){
@@ -228,9 +227,10 @@ void RenderableModel::Execute(
 							MATERIAL_FLAG_USE_NORMAL_TEXTURE;
 					}
 				}
-
-				graphicsContext->SetMaterial(materialData);
 			}
+
+			// ShadowでもDiffuse Texture / BaseColor Alphaを同じ定数へ反映する。
+			graphicsContext->SetMaterial(materialData);
 		} else{
 			if(model->SetTexture){
 				material.MaterialFlags |=
@@ -245,42 +245,50 @@ void RenderableModel::Execute(
 			}
 		}
 
-		//------------------------------------------------------------------
+		//----------------------------------------------------------------------
 		// Vertex Buffer
-		//------------------------------------------------------------------
+		//----------------------------------------------------------------------
 
 		UINT stride = sizeof(VERTEX_3D);
 		UINT offset = 0;
 
-		if(!modelRenderer->blendedAnimations.empty()){
-			deviceContext->IASetVertexBuffers(
-				0,
-				1,
-				&modelRenderer->dynamicVertexBuffers[meshIndex],
-				&stride,
-				&offset);
-		} else{
-			deviceContext->IASetVertexBuffers(
-				0,
-				1,
-				&model->VertexBuffer[meshIndex],
-				&stride,
-				&offset);
+		const bool hasDynamicVertexBuffer =
+			!modelRenderer->blendedAnimations.empty() &&
+			meshIndex < modelRenderer->dynamicVertexBuffers.size() &&
+			modelRenderer->dynamicVertexBuffers[meshIndex] != nullptr;
+		const bool hasStaticVertexBuffer =
+			meshIndex < model->VertexBuffer.size() &&
+			model->VertexBuffer[meshIndex] != nullptr;
+		const bool hasIndexBuffer =
+			meshIndex < model->IndexBuffer.size() &&
+			model->IndexBuffer[meshIndex] != nullptr;
+
+		if(!hasIndexBuffer || (!hasDynamicVertexBuffer && !hasStaticVertexBuffer)){
+			continue;
 		}
 
-		//------------------------------------------------------------------
+		ID3D11Buffer* vertexBuffer = hasDynamicVertexBuffer
+			? modelRenderer->dynamicVertexBuffers[meshIndex]
+			: model->VertexBuffer[meshIndex];
+		deviceContext->IASetVertexBuffers(
+			0,
+			1,
+			&vertexBuffer,
+			&stride,
+			&offset
+		);
+
+		//----------------------------------------------------------------------
 		// Index Buffer
-		//------------------------------------------------------------------
+		//----------------------------------------------------------------------
 
 		deviceContext->IASetIndexBuffer(
 			model->IndexBuffer[meshIndex],
 			DXGI_FORMAT_R32_UINT,
 			0);
-
-		//------------------------------------------------------------------
+		//----------------------------------------------------------------------
 		// Draw
-		//------------------------------------------------------------------
-
+		//----------------------------------------------------------------------
 		deviceContext->DrawIndexed(
 			model->AiScene->mMeshes[meshIndex]->mNumFaces * 3,
 			0,

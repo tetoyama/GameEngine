@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+    Visual Studio / MSBuild は Windows 上では大文字小文字を区別せずに解決できるが、
+    Git の実ファイル名と .vcxproj 上の Include 表記がずれていると、
+    Solution 再読み込み・フィルタ表示・外部変更検知が不安定に見える場合がある。
+
+    GameEngine.vcxproj 本体は巨大で手動マージ衝突が起きやすいため、
+    評価後の Item をここで正規化する。
+
+    Directory.Build.targets は配下の全 Project に自動Importされる。
+    Script.vcxproj へEngine側のcppを混入させないよう、GameEngineだけに限定する。
+  -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'GameEngine'">
+    <ClCompile Remove="Source\GameApplication\Engine\Editor\UI\hierarchy.cpp" />
+    <ClCompile Remove="Source\GameApplication\Engine\Editor\UI\inspector.cpp" />
+    <ClCompile Remove="Source\GameApplication\Engine\Editor\UI\menuBar.cpp" />
+    <ClCompile Remove="Source\GameApplication\Engine\Editor\UI\performanceMonitor.cpp" />
+    <ClCompile Remove="Source\GameApplication\Engine\Editor\UI\systemSetting.cpp" />
+    <ClCompile Remove="Source\GameApplication\Engine\Editor\UI\viewWindow.cpp" />
+    <ClCompile Remove="Source\GameApplication\Engine\Scene\System\Script\scriptSystem.cpp" />
+    <ClCompile Remove="Source\GameApplication\Engine\Scene\System\Script\customScriptSystem.cpp" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'GameEngine'">
+    <ClCompile Include="Source\GameApplication\Engine\Editor\UI\Hierarchy.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Editor\UI\Inspector.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Editor\UI\MenuBar.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Editor\UI\PerformanceMonitor.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Editor\UI\SystemSetting.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Editor\UI\ViewWindow.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\ScriptSystem.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\CustomScriptSystem.cpp" />
+  </ItemGroup>
+
+  <!-- Static Batch専用ShaderはGameEngine x64だけでCSOへ変換する。 -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'GameEngine' and '$(Platform)' == 'x64'">
+    <FxCompile Include="Source\Shader\StaticBatchVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>main</EntryPointName>
+      <ObjectFileOutput>Asset\Shader\StaticBatchVS.cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="Source\Shader\StaticBatchGBufferPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>main</EntryPointName>
+      <ObjectFileOutput>Asset\Shader\StaticBatchGBufferPS.cso</ObjectFileOutput>
+    </FxCompile>
+  </ItemGroup>
+</Project>

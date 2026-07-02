@@ -1,0 +1,215 @@
+# Compile checks run on pull requests and branch pushes.
+# Executable smoke tests are intentionally limited to manual workflow dispatch.
+name: Windows Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  job-system-smoke-x64:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build Job System smoke test
+        run: >-
+          cl /nologo /std:c++20 /EHsc /W4 /MTd
+          /I Source/GameApplication/Engine/Scene
+          Tests/JobSystemSmokeTest.cpp
+          /Fe:job-system-smoke.exe
+
+      - name: Run Job System smoke test
+        run: .\job-system-smoke.exe
+
+  schedule-executor-smoke-x64:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build Schedule Executor smoke test
+        run: >-
+          cl /nologo /std:c++20 /EHsc /W4 /MTd
+          /I Source/GameApplication/Engine/Scene
+          Tests/DependencyScheduleExecutorSmokeTest.cpp
+          /Fe:schedule-executor-smoke.exe
+
+      - name: Run Schedule Executor smoke test
+        run: .\schedule-executor-smoke.exe
+
+  transform-rotation-smoke-x64:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build Transform Rotation smoke test
+        run: >-
+          cl /nologo /std:c++20 /EHsc /W4 /MTd
+          /I Source/GameApplication/Engine/Scene
+          Tests/TransformRotationSmokeTest.cpp
+          /Fe:transform-rotation-smoke.exe
+
+      - name: Run Transform Rotation smoke test
+        run: .\transform-rotation-smoke.exe
+
+  script-debug-x64:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Compile Script Debug x64
+        run: >-
+          msbuild Script/Script.vcxproj
+          /t:Build
+          /m
+          /p:Configuration=Debug
+          /p:Platform=x64
+          /verbosity:minimal
+          /consoleloggerparameters:ErrorsOnly
+
+  script-release-x64:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Compile Script Release x64
+        run: >-
+          msbuild Script/Script.vcxproj
+          /t:Build
+          /m
+          /p:Configuration=Release
+          /p:Platform=x64
+          /verbosity:minimal
+          /consoleloggerparameters:ErrorsOnly
+
+  engine-debug-x64:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Compile GameEngine Debug x64
+        id: engine_build
+        continue-on-error: true
+        run: >-
+          msbuild GameEngine.vcxproj
+          /t:Build
+          /m
+          /p:Configuration=Debug
+          /p:Platform=x64
+          /verbosity:minimal
+          /consoleloggerparameters:ErrorsOnly
+          /fileLogger
+          /fileLoggerParameters:"LogFile=engine-debug-errors.log;ErrorsOnly"
+
+      - name: Upload engine debug compiler diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-debug-build-errors
+          path: engine-debug-errors.log
+          if-no-files-found: warn
+
+      - name: Preserve engine debug compile result
+        if: steps.engine_build.outcome == 'failure'
+        run: cmd /c exit 1
+
+  engine-release-x64:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Compile GameEngine Release x64
+        id: engine_build
+        continue-on-error: true
+        run: >-
+          msbuild GameEngine.vcxproj
+          /t:Build
+          /m
+          /p:Configuration=Release
+          /p:Platform=x64
+          /verbosity:minimal
+          /consoleloggerparameters:ErrorsOnly
+          /fileLogger
+          /fileLoggerParameters:"LogFile=engine-release-errors.log;ErrorsOnly"
+
+      - name: Upload engine release compiler diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-release-build-errors
+          path: engine-release-errors.log
+          if-no-files-found: warn
+
+      - name: Preserve engine release compile result
+        if: steps.engine_build.outcome == 'failure'
+        run: cmd /c exit 1

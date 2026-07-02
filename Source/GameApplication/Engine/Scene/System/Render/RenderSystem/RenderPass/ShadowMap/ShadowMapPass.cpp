@@ -19,8 +19,14 @@
 #include "Shader/commonDefine.h"
 
 #include "Graphics/graphicsContext.h"
+#include "Graphics/RHI/RHIService.h"
 #include "Registry/systemRegistry.h"
+#include "System/Render/Culling/ShadowRenderPacketCullingView.h"
+#include "System/Render/Lighting/LightGpuSubmissionPolicy.h"
+#include "System/Render/Lighting/LocalLightShadowProjection.h"
+#include "System/Render/Lighting/PointShadowFaceLayout.h"
 #include "System/Render/RenderSystem/Renderable/Model/RenderableModel.h"
+#include "System/Render/StaticBatch/StaticBatchShadowSubmission.h"
 #include <Component/LightComponent.h>
 #include <Component/cameraComponent.h>
 #include <Component/environmentMapComponent.h>
@@ -28,21 +34,6 @@
 #include <System/Render/RenderSystem/Renderable/Wave/RenderableWave.h>
 #include <System/Render/RenderSystem/Renderable/Particle/RenderableParticle.h>
 #include <System/Render/RenderSystem/Renderable/BillBoard/RenderableBillBoard.h>
-
-struct PointFace {
-	DirectX::XMVECTOR dir;
-	DirectX::XMVECTOR up;
-};
-
-static const PointFace s_PointFaces[6] = {
-	{ { 1, 0, 0, 0}, { 0, 1, 0, 0 }}, // +X
-	{ {-1, 0, 0, 0 },{ 0, 1, 0, 0 }}, // -X
-	{ { 0, 1, 0, 0 },{ 0, 0, -1, 0}}, // +Y
-	{ { 0,-1, 0, 0 },{ 0, 0, 1, 0 }}, // -Y
-	{ { 0, 0, 1, 0 },{ 0, 1, 0, 0 }}, // +Z
-	{ { 0, 0,-1, 0 },{ 0, 1, 0, 0 }}, // -Z
-};
-
 
 void ShadowMapPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 	m_renderSystem = renderSystem;
@@ -70,35 +61,53 @@ void ShadowMapPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* 
 
 	m_RenderablePixelShader = m_context->resource->Load<PixelShaderData>("Asset\\Shader\\shadowPS.cso");
 
-	// DepthClipEnable=FALSE のラスタライザステートを作成
-	// フラスタム外の shadow caster が light-space Z < 0 でもクリップされず、
-	// near plane にクランプされることで正しく影を落とせるようにする
 	D3D11_RASTERIZER_DESC rsDesc = {};
 	rsDesc.FillMode = D3D11_FILL_SOLID;
 	rsDesc.CullMode = D3D11_CULL_BACK;
-	rsDesc.DepthClipEnable = FALSE;
 	rsDesc.MultisampleEnable = FALSE;
-	HRESULT hr = context->graphics->GetDevice()->CreateRasterizerState(&rsDesc, &depthClampRS);
+
+	// Directional / CSMは従来どおりDepth Clampを許可する。
+	// ライト空間Near面より手前のCasterを保持するために必要となる。
+	rsDesc.DepthClipEnable = FALSE;
+	HRESULT hr = context->graphics->GetDevice()->CreateRasterizerState(
+		&rsDesc,
+		&depthClampRS
+	);
 	assert(SUCCEEDED(hr));
 
+	// Point / SpotはPerspective ProjectionなのでDepth Clipを有効化する。
+	// Near/Far外の形状を深度端へクランプすると、面方向依存の偽Shadowになり得る。
+	rsDesc.DepthClipEnable = TRUE;
+	hr = context->graphics->GetDevice()->CreateRasterizerState(
+		&rsDesc,
+		&perspectiveShadowRS
+	);
+	assert(SUCCEEDED(hr));
 }
 
 void ShadowMapPass::Finalize() {
 	m_RenderablePixelShader.reset();
 
-	shadowSampler->Release();
-	shadowSampler = nullptr;
+	if(shadowSampler){
+		shadowSampler->Release();
+		shadowSampler = nullptr;
+	}
 
-	if (depthClampRS){
+	if(depthClampRS){
 		depthClampRS->Release();
 		depthClampRS = nullptr;
+	}
+
+	if(perspectiveShadowRS){
+		perspectiveShadowRS->Release();
+		perspectiveShadowRS = nullptr;
 	}
 
 	delete shadowRenderTarget;
 	shadowRenderTarget = nullptr;
 }
-void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
+void ShadowMapPass::Execute(const RenderPassContext& ctx){
 	using namespace DirectX;
 
 	ID3D11DeviceContext* deviceContext = m_context->graphics->GetDeviceContext();
@@ -118,7 +127,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 			0
 		);
 		deviceContext->OMSetRenderTargets(0, nullptr, shadowRenderTarget->dsv.Get());
-	} else{
+	}else{
 		float color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 		deviceContext->ClearRenderTargetView(shadowRenderTarget->rtv.Get(), color);
 		deviceContext->ClearDepthStencilView(
@@ -127,26 +136,26 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 			1.0f,
 			0
 		);
-		deviceContext->OMSetRenderTargets(1, shadowRenderTarget->rtv.GetAddressOf(), shadowRenderTarget->dsv.Get());
+		deviceContext->OMSetRenderTargets(
+			1,
+			shadowRenderTarget->rtv.GetAddressOf(),
+			shadowRenderTarget->dsv.Get()
+		);
 	}
-
-	// DepthClipEnable=FALSE で shadow caster をレンダリング
-	deviceContext->RSSetState(depthClampRS);
 
 	RenderPassContext newContext = ctx;
 	newContext.passPhase = RenderPhase::PHASE_SHADOW;
 	newContext.screenSize = Vector2(SHADOWMAP_SIZE, SHADOWMAP_SIZE);
 
 	// ======== メインカメラ取得 ========
-	Vector3 mainCamPos = Vector3(ctx.CameraPosition.x, ctx.CameraPosition.y, ctx.CameraPosition.z);
-	Vector3 mainCamFront = ctx.cameraData.transformComponent->front();
+	Vector3 mainCamPos = Vector3(
+		ctx.CameraPosition.x,
+		ctx.CameraPosition.y,
+		ctx.CameraPosition.z
+	);
 
-	// ======== Directional Light 取得 ========
-	LightBuffer light;
-
-	for(int i = 0; i < LIGHT_MAX_COUNT; i++){
-		light.Lights[i].Enable = false;
-	}
+	// ======== Light取得 / Shadow Entry展開 ========
+	LightBuffer light{};
 	int lightCount = 0;
 	int shadowCount = 0;
 
@@ -162,7 +171,8 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 		}
 
 		auto sctx = scene->GetSceneContext();
-		const auto& lightEntities = sctx->component->FindEntitiesWithComponent<LightComponent>();
+		const auto& lightEntities =
+			sctx->component->FindEntitiesWithComponent<LightComponent>();
 		if(lightEntities.empty()){
 			continue;
 		}
@@ -172,22 +182,54 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 				break;
 			}
 
-			LightComponent* lightcomp = sctx->component->GetComponent<LightComponent>(ent);
+			LightComponent* lightcomp =
+				sctx->component->GetComponent<LightComponent>(ent);
 			if(!lightcomp) continue;
-			if(!lightcomp->light.Enable) continue;
-			if(!lightcomp->light.CastShadow) continue;
-
-			if(lightcomp->light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM || lightcomp->light.LightType == LIGHT_TYPE_DIRECTIONAL){
-				lightcomp->dirty = true;
+			if(!LightGpuSubmissionPolicy::ShouldSubmitLighting(lightcomp->light)){
+				continue;
 			}
 
-			TransformComponent* transform = sctx->component->GetComponent<TransformComponent>(ent);
+			TransformComponent* transform =
+				sctx->component->GetComponent<TransformComponent>(ent);
 			if(!transform) continue;
 
 			LIGHT& lightData = lightcomp->light;
-			lightData.Position = DirectX::XMFLOAT4(transform->position.x, transform->position.y, transform->position.z, 0.0f);
-			lightData.Direction = DirectX::XMFLOAT4(transform->front().x, transform->front().y, transform->front().z, 0.0f);
+			lightData.Position = DirectX::XMFLOAT4(
+				transform->position.x,
+				transform->position.y,
+				transform->position.z,
+				0.0f
+			);
+			lightData.Direction = DirectX::XMFLOAT4(
+				transform->front().x,
+				transform->front().y,
+				transform->front().z,
+				0.0f
+			);
 			lightData.Dummy = 0;
+
+			// Point / SpotのRangeとShadow Farは同じ契約を使用する。
+			// 不正値はComponentとGPU Entryの双方で安全な値へ正規化する。
+			if(lightData.LightType == LIGHT_TYPE_POINT ||
+			   lightData.LightType == LIGHT_TYPE_SPOT){
+				lightData.Param.x =
+					LocalLightShadowProjection::ResolveFarPlane(lightData.Param.x);
+			}
+
+			// Lightの照明参加とShadow生成を分離する。
+			// CastShadowがOFFでも、単一Logical LightとしてLightingへ送る。
+			if(!LightGpuSubmissionPolicy::ShouldExpandShadowEntries(lightData)){
+				light.Lights[lightCount] =
+					LightGpuSubmissionPolicy::MakeUnshadowedLogicalEntry(lightData);
+				lightCount++;
+				foundLight = true;
+				continue;
+			}
+
+			if(lightData.LightType == LIGHT_TYPE_DIRECTIONAL_CSM ||
+			   lightData.LightType == LIGHT_TYPE_DIRECTIONAL){
+				lightcomp->dirty = true;
+			}
 
 			// ======== Directional Shadow ========
 			if(lightData.LightType == LIGHT_TYPE_DIRECTIONAL){
@@ -198,7 +240,6 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 				XMVECTOR camPos = mainCamPos.ToXMVECTOR();
 				XMVECTOR ld = transform->front().ToXMVECTOR();
-
 				XMVECTOR center = camPos;
 				float dist = shadowSize;
 
@@ -206,18 +247,34 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 				XMVECTOR upv = XMVectorSet(0, 1, 0, 0);
 
 				XMMATRIX lightView = XMMatrixLookAtLH(eyev, center, upv);
-				XMMATRIX lightProj = XMMatrixOrthographicLH(shadowSize, shadowSize, 0.1f, dist * 2.0f);
+				XMMATRIX lightProj = XMMatrixOrthographicLH(
+					shadowSize,
+					shadowSize,
+					0.1f,
+					dist * 2.0f
+				);
 
 				XMFLOAT3 lightCamPos;
 				XMStoreFloat3(&lightCamPos, eyev);
 
-				newContext.CameraPosition = XMFLOAT4(lightCamPos.x, lightCamPos.y, lightCamPos.z, 0);
+				newContext.CameraPosition = XMFLOAT4(
+					lightCamPos.x,
+					lightCamPos.y,
+					lightCamPos.z,
+					0
+				);
 				newContext.viewMatrix = lightView;
 				newContext.projectionMatrix = lightProj;
 				lightData.Position = newContext.CameraPosition;
 
-				XMStoreFloat4x4(&lightData.LightView, XMMatrixTranspose(newContext.viewMatrix));
-				XMStoreFloat4x4(&lightData.LightProjection, XMMatrixTranspose(newContext.projectionMatrix));
+				XMStoreFloat4x4(
+					&lightData.LightView,
+					XMMatrixTranspose(newContext.viewMatrix)
+				);
+				XMStoreFloat4x4(
+					&lightData.LightProjection,
+					XMMatrixTranspose(newContext.projectionMatrix)
+				);
 
 				light.Lights[lightCount] = lightData;
 				lightCount++;
@@ -227,19 +284,26 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 			}
 
 			// ======== CSM ========
-			if(lightData.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && !hasCsmLight
-			   && ctx.cameraData.cameraComponent && ctx.cameraData.cameraComponent->FarClip > ctx.cameraData.cameraComponent->NearClip){
+			if(lightData.LightType == LIGHT_TYPE_DIRECTIONAL_CSM &&
+			   !hasCsmLight &&
+			   ctx.cameraData.cameraComponent &&
+			   ctx.cameraData.cameraComponent->FarClip >
+				ctx.cameraData.cameraComponent->NearClip){
 
-				XMVECTOR lightDir = XMVector3Normalize(transform->front().ToXMVECTOR());
+				XMVECTOR lightDir =
+					XMVector3Normalize(transform->front().ToXMVECTOR());
 
 				float cameraNear = ctx.cameraData.cameraComponent->NearClip;
 				float cameraFar = ctx.cameraData.cameraComponent->FarClip;
 				float fov = ctx.cameraData.cameraComponent->FOV;
-				float aspect = (ctx.screenSize.y > 0.0f) ? (ctx.screenSize.x / ctx.screenSize.y) : 1.0f;
+				float aspect = (ctx.screenSize.y > 0.0f)
+					? (ctx.screenSize.x / ctx.screenSize.y)
+					: 1.0f;
 				float tanHalfFovV = tanf(fov * 0.5f);
 				float tanHalfFovH = tanHalfFovV * aspect;
 
-				XMMATRIX invCameraView = XMMatrixInverse(nullptr, ctx.viewMatrix);
+				XMMATRIX invCameraView =
+					XMMatrixInverse(nullptr, ctx.viewMatrix);
 
 				const float csmNear = max(cameraNear, 0.1f);
 				const float csmFar = cameraFar;
@@ -247,110 +311,117 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 				float splitDepths[DIRECTIONAL_CSM_CASCADE_COUNT];
 				for(int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT; c++){
-					float p = (float)(c + 1) / (float)DIRECTIONAL_CSM_CASCADE_COUNT;
+					float p = (float)(c + 1) /
+						(float)DIRECTIONAL_CSM_CASCADE_COUNT;
 					float logSplit = csmNear * powf(csmFar / csmNear, p);
 					float uniSplit = csmNear + (csmFar - csmNear) * p;
-					splitDepths[c] = csmLambda * logSplit + (1.0f - csmLambda) * uniSplit;
-				}
-
-				XMVECTOR worldUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-				if(fabsf(XMVectorGetX(XMVector3Dot(lightDir, worldUp))) > 0.99f){
-					worldUp = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+					splitDepths[c] =
+						csmLambda * logSplit +
+						(1.0f - csmLambda) * uniSplit;
 				}
 
 				float prevSplit = csmNear;
 				int firstCascadeSlot = lightCount;
-				int addedCascades = 0;
+				int cascadeCount = 0;
 
-				for(int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT; c++){
-					if(lightCount >= LIGHT_MAX_COUNT){
-						break;
+				for(int c = 0;
+					c < DIRECTIONAL_CSM_CASCADE_COUNT && lightCount < LIGHT_MAX_COUNT;
+					++c){
+
+					float splitNear = prevSplit;
+					float splitFar = splitDepths[c];
+					prevSplit = splitFar;
+
+					XMVECTOR corners[8];
+					int idx = 0;
+					for(int zi = 0; zi < 2; zi++){
+						float z = zi == 0 ? splitNear : splitFar;
+						float hx = tanHalfFovH * z;
+						float hy = tanHalfFovV * z;
+
+						for(int sx = -1; sx <= 1; sx += 2){
+							for(int sy = -1; sy <= 1; sy += 2){
+								XMVECTOR viewCorner = XMVectorSet(
+									sx * hx,
+									sy * hy,
+									z,
+									1.0f
+								);
+								corners[idx++] =
+									XMVector3TransformCoord(
+										viewCorner,
+										invCameraView
+									);
+							}
+						}
 					}
 
-					float currSplit = splitDepths[c];
-
-					float nX = prevSplit * tanHalfFovH;
-					float nY = prevSplit * tanHalfFovV;
-					float fX = currSplit * tanHalfFovH;
-					float fY = currSplit * tanHalfFovV;
-
-					XMVECTOR corners[8] = {
-						XMVectorSet(-nX,  nY, prevSplit, 1.0f),
-						XMVectorSet(nX,  nY, prevSplit, 1.0f),
-						XMVectorSet(-nX, -nY, prevSplit, 1.0f),
-						XMVectorSet(nX, -nY, prevSplit, 1.0f),
-						XMVectorSet(-fX,  fY, currSplit, 1.0f),
-						XMVectorSet(fX,  fY, currSplit, 1.0f),
-						XMVectorSet(-fX, -fY, currSplit, 1.0f),
-						XMVectorSet(fX, -fY, currSplit, 1.0f),
-					};
-
-					for(int k = 0; k < 8; k++){
-						corners[k] = XMVector4Transform(corners[k], invCameraView);
+					XMVECTOR center = XMVectorZero();
+					for(int i = 0; i < 8; i++){
+						center += corners[i];
 					}
-
-					XMVECTOR centroid = XMVectorZero();
-					for(int k = 0; k < 8; k++){
-						centroid = XMVectorAdd(centroid, corners[k]);
-					}
-					centroid = XMVectorScale(centroid, 1.0f / 8.0f);
+					center /= 8.0f;
 
 					float radius = 0.0f;
-					for(int k = 0; k < 8; k++){
-						float d = XMVectorGetX(XMVector3Length(corners[k] - centroid));
-						if(d > radius) radius = d;
+					for(int i = 0; i < 8; i++){
+						float d = XMVectorGetX(
+							XMVector3Length(corners[i] - center)
+						);
+						radius = (std::max)(radius, d);
 					}
 
-					XMVECTOR eye = centroid - lightDir * (radius + 1.0f);
-					XMMATRIX cascadeView = XMMatrixLookAtLH(eye, centroid, worldUp);
+					radius = ceilf(radius * 16.0f) / 16.0f;
 
-					float minX = FLT_MAX, maxX = -FLT_MAX;
-					float minY = FLT_MAX, maxY = -FLT_MAX;
-					float minZ = FLT_MAX, maxZ = -FLT_MAX;
-
-					for(int k = 0; k < 8; k++){
-						XMVECTOR lc = XMVector4Transform(corners[k], cascadeView);
-						float lx = XMVectorGetX(lc);
-						float ly = XMVectorGetY(lc);
-						float lz = XMVectorGetZ(lc);
-						minX = min(minX, lx); maxX = max(maxX, lx);
-						minY = min(minY, ly); maxY = max(maxY, ly);
-						minZ = min(minZ, lz); maxZ = max(maxZ, lz);
+					XMVECTOR eyev = center - lightDir * radius;
+					XMVECTOR upv = XMVectorSet(0, 1, 0, 0);
+					if(fabsf(XMVectorGetX(XMVector3Dot(upv, lightDir))) > 0.95f){
+						upv = XMVectorSet(0, 0, 1, 0);
 					}
 
-					if(maxZ <= minZ) maxZ = minZ + 1.0f;
-
-					XMMATRIX cascadeProj = XMMatrixOrthographicOffCenterLH(
-						minX, maxX, minY, maxY, 0.0f, maxZ
+					XMMATRIX lightView = XMMatrixLookAtLH(eyev, center, upv);
+					XMMATRIX lightProj = XMMatrixOrthographicLH(
+						radius * 2.0f,
+						radius * 2.0f,
+						0.0f,
+						radius * 2.0f
 					);
 
-					LIGHT cascadeEntry = lightData;
-					cascadeEntry.LightType = LIGHT_TYPE_DIRECTIONAL_CSM;
-					cascadeEntry.Enable = true;
-					cascadeEntry.CastShadow = true;
-					cascadeEntry.Dummy = c + 1;
-
-					XMFLOAT3 eyePos;
-					XMStoreFloat3(&eyePos, eye);
-					cascadeEntry.Position = XMFLOAT4(eyePos.x, eyePos.y, eyePos.z, 0.0f);
+					LIGHT cascadeLight = lightData;
+					cascadeLight.Dummy = c + 1;
+					cascadeLight.Position.w = 0.0f;
 
 					if(c > 0){
-						cascadeEntry.Ambient = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+						cascadeLight.Diffuse = XMFLOAT4(0, 0, 0, 0);
+						cascadeLight.Ambient = XMFLOAT4(0, 0, 0, 0);
 					}
 
-					XMStoreFloat4x4(&cascadeEntry.LightView, XMMatrixTranspose(cascadeView));
-					XMStoreFloat4x4(&cascadeEntry.LightProjection, XMMatrixTranspose(cascadeProj));
+					XMFLOAT3 lightCamPos;
+					XMStoreFloat3(&lightCamPos, eyev);
+					cascadeLight.Position = XMFLOAT4(
+						lightCamPos.x,
+						lightCamPos.y,
+						lightCamPos.z,
+						0.0f
+					);
 
-					light.Lights[lightCount] = cascadeEntry;
+					XMStoreFloat4x4(
+						&cascadeLight.LightView,
+						XMMatrixTranspose(lightView)
+					);
+					XMStoreFloat4x4(
+						&cascadeLight.LightProjection,
+						XMMatrixTranspose(lightProj)
+					);
+
+					light.Lights[lightCount] = cascadeLight;
 					lightCount++;
 					shadowCount++;
-					addedCascades++;
-
-					prevSplit = currSplit;
+					cascadeCount++;
 				}
 
-				if(addedCascades > 0){
-					light.Lights[firstCascadeSlot].Position.w = (float)addedCascades;
+				if(cascadeCount > 0){
+					light.Lights[firstCascadeSlot].Position.w =
+						(float)cascadeCount;
 				}
 
 				hasCsmLight = true;
@@ -360,40 +431,41 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 			// ======== Spot Shadow ========
 			if(lightData.LightType == LIGHT_TYPE_SPOT && lightData.CastShadow){
-
 				XMVECTOR eye = transform->position.ToXMVECTOR();
-				XMVECTOR forward = XMVector3Normalize(transform->front().ToXMVECTOR());
+				XMVECTOR dir = transform->front().ToXMVECTOR();
+				XMVECTOR at = eye + dir;
 
-				XMVECTOR worldUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-				float dp = XMVectorGetX(XMVector3Dot(forward, worldUp));
-				if(fabsf(dp) > 0.99f){
-					worldUp = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+				XMVECTOR up = XMVectorSet(0, 1, 0, 0);
+				if(fabsf(XMVectorGetX(XMVector3Dot(up, dir))) > 0.95f){
+					up = XMVectorSet(0, 0, 1, 0);
 				}
 
-				XMVECTOR right = XMVector3Normalize(XMVector3Cross(worldUp, forward));
-				XMVECTOR up = XMVector3Cross(forward, right);
-
-				XMVECTOR at = eye + forward;
-
-				float inner = lightData.Param.y;
 				float outer = lightData.Param.z;
 				if(outer <= 0.01f){
 					outer = 0.01f;
 				}
 				float fov = XMConvertToRadians(outer) * 2.0f;
 
-				float nearZ = 1.0f;
-				float farZ = lightData.Param.x * 1000.0f;
-				if(nearZ > farZ){
-					farZ = nearZ + 1.0f;
-				}
+				const float nearZ = LocalLightShadowProjection::NearPlane;
+				const float farZ =
+					LocalLightShadowProjection::ResolveFarPlane(lightData.Param.x);
 
 				XMMATRIX lightView = XMMatrixLookAtLH(eye, at, up);
-				XMMATRIX lightProj = XMMatrixPerspectiveFovLH(fov, 1.0f, nearZ, farZ);
+				XMMATRIX lightProj = XMMatrixPerspectiveFovLH(
+					fov,
+					1.0f,
+					nearZ,
+					farZ
+				);
 
-				XMStoreFloat4x4(&lightData.LightView, XMMatrixTranspose(lightView));
-				XMStoreFloat4x4(&lightData.LightProjection, XMMatrixTranspose(lightProj));
+				XMStoreFloat4x4(
+					&lightData.LightView,
+					XMMatrixTranspose(lightView)
+				);
+				XMStoreFloat4x4(
+					&lightData.LightProjection,
+					XMMatrixTranspose(lightProj)
+				);
 
 				light.Lights[lightCount] = lightData;
 				lightCount++;
@@ -404,60 +476,58 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 
 			// ======== Point Shadow ========
 			if(lightData.LightType == LIGHT_TYPE_POINT && lightData.CastShadow){
-
 				XMVECTOR eye = transform->position.ToXMVECTOR();
 
-				float nearZ = 0.1f;
-				float farZ = lightData.Param.x;
+				const float nearZ = LocalLightShadowProjection::NearPlane;
+				const float farZ =
+					LocalLightShadowProjection::ResolvePointShadowFarPlane(lightData.Param.x);
 
-				if(farZ <= nearZ){
-					farZ = nearZ + 0.1f;
-				}
-
-				XMMATRIX lightProj =
-					XMMatrixPerspectiveFovLH(
-						XM_PIDIV2,
-						1.0f,
-						nearZ,
-						farZ
-					);
+				// 90度ちょうどでは主軸切替境界と投影端が一致する。
+				// 小さな重なりを持たせ、浮動小数誤差による面抜けを防ぐ。
+				XMMATRIX lightProj = XMMatrixPerspectiveFovLH(
+					PointShadowFaceLayout::ProjectionFovRadians(),
+					1.0f,
+					nearZ,
+					farZ
+				);
 
 				int firstPointFaceSlot = lightCount;
 				int addedPointFaces = 0;
+				const auto& pointFaces = PointShadowFaceLayout::Faces();
 
-				for(int face = 0; face < 6; face++){
+				for(int face = 0;
+					face < PointShadowFaceLayout::FaceCount;
+					face++){
 
 					if(lightCount >= LIGHT_MAX_COUNT){
 						break;
 					}
 
-					XMVECTOR at = eye + s_PointFaces[face].dir;
+					const PointShadowFaceLayout::FaceBasis& basis =
+						pointFaces[face];
+					XMVECTOR faceDirection = XMLoadFloat3(&basis.direction);
+					XMVECTOR faceUp = XMLoadFloat3(&basis.up);
+					XMVECTOR at = eye + faceDirection;
 
-					XMMATRIX lightView =
-						XMMatrixLookAtLH(
-							eye,
-							at,
-							s_PointFaces[face].up
-						);
+					XMMATRIX lightView = XMMatrixLookAtLH(
+						eye,
+						at,
+						faceUp
+					);
 
 					LIGHT faceLight = lightData;
-
 					faceLight.Dummy = -(face + 1);
 					faceLight.Position.w = 0.0f;
 
 					if(face > 0){
-						faceLight.Diffuse =
-							XMFLOAT4(0, 0, 0, 0);
-
-						faceLight.Ambient =
-							XMFLOAT4(0, 0, 0, 0);
+						faceLight.Diffuse = XMFLOAT4(0, 0, 0, 0);
+						faceLight.Ambient = XMFLOAT4(0, 0, 0, 0);
 					}
 
 					XMStoreFloat4x4(
 						&faceLight.LightView,
 						XMMatrixTranspose(lightView)
 					);
-
 					XMStoreFloat4x4(
 						&faceLight.LightProjection,
 						XMMatrixTranspose(lightProj)
@@ -480,11 +550,7 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 				continue;
 			}
 
-			// ======== それ以外の shadow light ========
-			if(lightData.LightType == LIGHT_TYPE_DIRECTIONAL_CSM){
-				continue;
-			}
-
+			// Shadow対象外の通常Lightも単一Entryとして保持する。
 			light.Lights[lightCount] = lightData;
 			lightCount++;
 			if(lightData.CastShadow){
@@ -515,11 +581,26 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 		ATLAS_GRID++;
 	}
 	const int ATLAS_SIZE = (int)shadowRenderTarget->size.x;
-	const int TILE_SIZE = (ATLAS_GRID > 0) ? (ATLAS_SIZE / ATLAS_GRID) : ATLAS_SIZE;
+	const int TILE_SIZE = (ATLAS_GRID > 0)
+		? (ATLAS_SIZE / ATLAS_GRID)
+		: ATLAS_SIZE;
 	int shadowNum = 0;
 
-	for(int i = 0; i < lightCount; i++){
+	SystemRegistry* systemRegistry =
+		m_context->sceneManager->GetSystemRegistry();
+	StaticBatchUploadSystem* staticBatchUploadSystem = systemRegistry
+		? systemRegistry->GetSystem<StaticBatchUploadSystem>()
+		: nullptr;
+	RHI::RenderHardwareInterfaceService* rhiService =
+		m_context->graphics->GetRHIService();
+	RHI::IRHIDevice* rhiDevice = rhiService
+		? rhiService->GetDevice()
+		: nullptr;
+	const bool canSubmitStaticShadow =
+		staticBatchUploadSystem && rhiDevice &&
+		rhiDevice->GetBackendType() == RHI::BackendType::Direct3D11;
 
+	for(int i = 0; i < lightCount; i++){
 		if(!light.Lights[i].Enable || !light.Lights[i].CastShadow){
 			continue;
 		}
@@ -530,10 +611,21 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 		int tileY = gy * TILE_SIZE;
 
 		const LIGHT& currentLight = light.Lights[i];
+		const bool perspectiveShadow =
+			currentLight.LightType == LIGHT_TYPE_POINT ||
+			currentLight.LightType == LIGHT_TYPE_SPOT;
+		ID3D11RasterizerState* activeShadowRS = perspectiveShadow
+			? perspectiveShadowRS
+			: depthClampRS;
+		deviceContext->RSSetState(activeShadowRS);
 
 		newContext.CameraPosition = currentLight.Position;
-		newContext.viewMatrix = DirectX::XMMatrixTranspose(XMLoadFloat4x4(&currentLight.LightView));
-		newContext.projectionMatrix = DirectX::XMMatrixTranspose(XMLoadFloat4x4(&currentLight.LightProjection));
+		newContext.viewMatrix = DirectX::XMMatrixTranspose(
+			XMLoadFloat4x4(&currentLight.LightView)
+		);
+		newContext.projectionMatrix = DirectX::XMMatrixTranspose(
+			XMLoadFloat4x4(&currentLight.LightProjection)
+		);
 
 		graphicsContext->SetCameraPosition(newContext.CameraPosition);
 		graphicsContext->SetViewMatrix(newContext.viewMatrix);
@@ -548,35 +640,74 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 		vp.MaxDepth = 1.0f;
 		deviceContext->RSSetViewports(1, &vp);
 
-		for(const auto& [name, scene] : activeScenes){
+		const RenderPacketFrameBuffer& packetBuffer =
+			m_renderSystem->GetRenderPacketBuffer();
+		const RenderPacketCullingView shadowCullingView =
+			ShadowRenderPacketCullingView::Build(
+				newContext,
+				ctx.cullingViewKind,
+				ctx.cullingViewInstanceID,
+				static_cast<std::uint32_t>(shadowNum),
+				perspectiveShadow
+			);
+		if(packetBuffer.IsReady()){
+			m_renderSystem->PrepareRenderPacketView(shadowCullingView);
+		}
 
-			auto sctx = scene->GetSceneContext();
-			auto& component = *sctx->component;
+		StaticBatchPacketReplacementSet replacements;
+		if(packetBuffer.IsReady() && canSubmitStaticShadow){
+			(void)StaticBatchShadowSubmission::Submit(
+				*rhiDevice,
+				*graphicsContext,
+				packetBuffer,
+				*staticBatchUploadSystem,
+				m_renderSystem->GetCullingVisibility(),
+				shadowCullingView,
+				newContext.renderLayerVisibility,
+				static_cast<std::size_t>(maxLayer),
+				replacements
+			);
 
-			const auto entities = component.FindEntitiesWithComponent<TransformComponent>();
-			if(entities.empty()){
-				continue;
-			}
+			deviceContext->PSSetShader(
+				m_RenderablePixelShader->m_PixelShader.Get(),
+				nullptr,
+				0
+			);
+			deviceContext->PSSetSamplers(1, 1, &shadowSampler);
+			deviceContext->RSSetState(activeShadowRS);
+		}
 
-			for(Entity ent : entities){
-
-				if(component.GetComponent<EnvironmentMapComponent>(ent)){
+		if(packetBuffer.IsReady()){
+			const std::span<const RenderPacket> packets = packetBuffer.Packets();
+			for(std::size_t packetIndex = 0;
+				packetIndex < packets.size();
+				++packetIndex){
+				if(replacements.Contains(packetIndex)) continue;
+				const RenderPacket& packet = packets[packetIndex];
+				if(!HasRenderPacketPass(
+					packet.passMask,
+					RenderPacketPassMask::Shadow
+				)){
+					continue;
+				}
+				if(!m_renderSystem->ShouldRenderPacket(
+					shadowCullingView,
+					packet
+				)){
 					continue;
 				}
 
-				RenderLayer layer = scene->GetRenderLayerFromEntity(ent);
-				const int layerIndex = (int)layer;
-				if((unsigned)layerIndex >= (unsigned)maxLayer){
+				const int layerIndex = static_cast<int>(packet.layer);
+				if(static_cast<unsigned>(layerIndex) >=
+					static_cast<unsigned>(maxLayer)){
 					continue;
 				}
+				if(!newContext.renderLayerVisibility[layerIndex]) continue;
+				IRenderable* renderable =
+					m_renderSystem->GetRenderableForPacketKind(packet.kind);
+				if(!renderable) continue;
 
-				if(!newContext.renderLayerVisibility[layerIndex]){
-					continue;
-				}
-
-				for(auto renderable : renderables){
-					renderable->Execute(newContext, sctx, ent);
-				}
+				renderable->Execute(newContext, packet);
 			}
 		}
 

@@ -5,9 +5,7 @@
 // =======================================================================
 #pragma once
 #include "../IRenderable.h"
-class ComponentRegistry;
 
-struct RenderableContext;
 struct SceneManagerContext;
 // 波メッシュの描画を行うレンダラブル
 class RenderableWave : public IRenderable {
@@ -17,7 +15,6 @@ public:
 
 	void Execute(
 		const RenderPassContext& ctx,
-		SceneContext* sceneContext,
-		const Entity& entity
-	)override;
+		const RenderPacket& packet
+	) override;
 };

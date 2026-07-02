@@ -44,7 +44,27 @@ public:
 
 	}
 
-	void Update(float) override{
+	void RegisterTasks(SystemScheduleBuilder& builder) override{
+
+		using AudioUpdateQuery = ECSQuery::ComponentQueryView<
+			ECSQuery::Read<TransformComponent>,
+			ECSQuery::Write<AudioComponent>
+		>;
+
+		builder.AddQueryTask<AudioUpdateQuery>(
+			"AudioSystem.Playback.Commit",
+			SystemTaskDomain::Frame,
+			SystemPhase::Late,
+			0,
+			StructuralAccess::None,
+			ThreadAffinity::AnyWorker,
+			[this](const SystemTaskContext& context){
+				Update(context.deltaTime);
+			}
+		);
+	}
+
+	void Update(float){
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<AudioComponent>();

@@ -1,4 +1,4 @@
-﻿// =======================================================================
+// =======================================================================
 // 
 // scene.h
 // 
@@ -6,10 +6,13 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include <cstdint>
 #include <d3d11.h>
 #include <string>
 #include "Backends/myVector2.h"
 #include "Entity/Entity.h"
+#include "System/Script/ScriptModuleAPI.h"
+#include "Config/SceneStorageConfig.h"
 
 // 前方宣言
 enum RenderLayer;
@@ -20,19 +23,28 @@ class EntityRegistry;
 class ComponentRegistry;
 class SystemRegistry;
 class PrefabSystem;
+class EntityCommandBuffer;
+
+struct SceneContext;
+using SceneContextResolver = SceneContext* (*)(void* owner, uint32_t contextID);
 
 // シーン内の各レジストリ・マネージャへのポインタをまとめたコンテキスト
 struct SceneContext{
-
-	// マネージャコンテキスト
 	SceneManagerContext* manager = nullptr;
+	uint32_t contextID = 0;
 
-	// レジストリ
+	void* resolverOwner = nullptr;
+	SceneContextResolver resolver = nullptr;
+
 	EntityRegistry* entity = nullptr;
 	ComponentRegistry* component = nullptr;
 	SystemRegistry* system = nullptr;
 
-	// プレファブシステム
+	// Scene自身が所有するStorage初期確保設定。
+	SceneStorageConfig storageConfig{};
+
+	EntityCommandBuffer* commands = nullptr;
+	ScriptCommandAPI scriptCommands{};
 	PrefabSystem* prefab = nullptr;
 };
 
@@ -49,38 +61,36 @@ public:
 	void Shutdown();
 
 	void BuildDefaultScene();
-
 	void ResetAll();
-
 	bool LoadFromYAMLFile();
-
 	void Save();
-	void TempSave(); // 一時保存
+	void TempSave();
 
 	SceneContext* GetSceneContext(){return &m_SceneContext;}
+	SceneStorageConfig& GetStorageConfig() noexcept {
+		return m_SceneContext.storageConfig;
+	}
+	const SceneStorageConfig& GetStorageConfig() const noexcept {
+		return m_SceneContext.storageConfig;
+	}
 
 	void LoadSceneFromYAML(std::string path);
 	RenderLayer GetRenderLayerFromEntity(Entity entity);
 
-	std::string SceneName = "Untitled"; // シーンの名前
-	std::string ScenePath = ""; // シーンのパス
-
-	bool isDestroy = false; // シーンが破棄されるかどうか
+	std::string SceneName = "Untitled";
+	std::string ScenePath = "";
+	bool isDestroy = false;
 
 private:
-
 	std::string LoadSceneFileDialog();
 	bool SaveSceneFileDialog(std::wstring& outPath);
-
-	// TransformComponent の children リストを parent 参照から再構築する
 	void RebuildTransformChildren();
+	void ApplyStorageConfig();
 
-	// マネージャコンテキスト
 	SceneManagerContext* m_SceneManagerContext = nullptr;
 	SceneContext m_SceneContext{};
 
-	// レジストリ
-	std::shared_ptr<EntityRegistry> m_entityRegistry;
-	std::shared_ptr<ComponentRegistry> m_componentRegistry;
-	std::shared_ptr<PrefabSystem> m_prefabSystem;
+	std::unique_ptr<EntityRegistry> m_entityRegistry;
+	std::unique_ptr<ComponentRegistry> m_componentRegistry;
+	std::unique_ptr<PrefabSystem> m_prefabSystem;
 };

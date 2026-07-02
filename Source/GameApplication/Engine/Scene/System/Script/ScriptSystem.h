@@ -1,87 +1,82 @@
 // =======================================================================
-// 
+//
 // ScriptSystem.h
-// 
+//
 // =======================================================================
 #pragma once
-#include <unordered_map>
+
+#include <cstdint>
 #include <functional>
 #include <memory>
+#include <string>
 #include <typeindex>
+#include <unordered_map>
 
 #include "Scene/Interface/ISystem.h"
 #include "Scene/sceneManager.h"
 #include "Interface/IScriptComponent.h"
-#include "Scene/Component/ScriptComponent.h"
+#include "Scene/Component/scriptComponent.h"
 #include "Scene/Registry/componentRegistry.h"
+#include "Scene/System/Command/EntityCommandCommitSystem.h"
 
 using SetImGuiContextFunc = void(*)(void*);
 
-// C#スクリプトDLLとの連携を管理するシステム
-class ScriptSystem: public ISystem
-{
+class ScriptSystem: public ISystem {
 public:
 	const char* GetSystemName() const override{
 		return "ScriptSystem";
 	}
-	ScriptSystem(SceneManagerContext* context)
-		: m_context(context){}
 
-	// =========================
-	// ISystem
-	// =========================
+	explicit ScriptSystem(SceneManagerContext* context)
+		: m_context(context)
+		, m_commandCommitSystem(context) {
+	}
+
 	void Initialize() override;
 	void Finalize() override;
-
 	void Start() override;
 	void Stop() override;
-	void Update(float deltaTime) override;
-	void FixedUpdate(float fixedDeltaTime) override;
-	void EditorUpdate(float deltaTime) override;
-	void Draw() override;
+	void RegisterTasks(SystemScheduleBuilder& builder) override;
 
-	// =========================
-	// Script 登録
-	// =========================
 	template<typename T>
 	void RegisterEngineComponent(const char* name){
-		static_assert(std::is_base_of_v<IComponent, T>,
-					  "T must derive from IComponent");
-		m_nameToEngineTypeID[name] = ComponentType::Get<T>();
+		const ComponentTypeID typeID = ComponentType::Get<T>();
+		m_nameToEngineTypeID[name] = typeID;
+		m_engineTypeIDs[std::type_index(typeid(T))] = typeID;
 	}
 
-	// =========================
-	// Script 生成
-	// =========================
 	IScriptComponent* Create(const char* scriptName){
-		// ここで「スクリプト側プロジェクト」に名前を投げる
-		return m_scriptBridge
-			? m_scriptBridge(scriptName)
+		IScriptComponent* script = m_createScriptFunc
+			? m_createScriptFunc(scriptName)
 			: nullptr;
+
+		if(script && !script->HasRegistrationOrder()){
+			script->SetRegistrationOrder(m_nextScriptRegistrationOrder++);
+		}
+		return script;
 	}
 
-	// =========================
-	// Engine Component TypeID 取得
-	// =========================
+	const ScriptModuleAPI& GetModuleAPI() const {
+		return m_moduleAPI;
+	}
+
+	void Destroy(IScriptComponent* script) const {
+		if(script && m_moduleAPI.destroy){
+			m_moduleAPI.destroy(script);
+		}
+	}
+
 	template<typename T>
 	ComponentTypeID GetEngineComponentTypeID() const{
 		auto it = m_engineTypeIDs.find(std::type_index(typeid(T)));
-		if(it == m_engineTypeIDs.end())
+		if(it == m_engineTypeIDs.end()){
 			return static_cast<ComponentTypeID>(-1);
-
+		}
 		return it->second;
 	}
 
-	// DLL リロード
 	bool ReloadScriptDLL(const char* dllPath);
 
-	// DLL から渡される関数をセット
-	void SetScriptBridge(
-		std::function<IScriptComponent*(const char*)> bridge){
-		m_scriptBridge = std::move(bridge);
-	}
-
-	// ComponentTypeID を名前で引く（Script 用）
 	ComponentTypeID GetEngineComponentTypeIDByName(
 		const std::string& name) const{
 		auto it = m_nameToEngineTypeID.find(name);
@@ -91,7 +86,7 @@ public:
 	}
 
 	void SystemSetting() override {
-		if (ImGui::Button("Reload Script DLL")) {
+		if(ImGui::Button("Reload Script DLL")){
 			ReloadScriptDLL("Script/Script.dll");
 		}
 	}
@@ -99,22 +94,29 @@ public:
 	bool HasSystemSetting() const override { return true; }
 
 private:
+	using CreateScriptFunc = IScriptComponent* (*)(const char*);
+
+	void Update(float deltaTime);
+	void FixedUpdate(float fixedDeltaTime);
+	void EditorUpdate(float deltaTime);
+	void Draw();
+
 	SceneManagerContext* m_context = nullptr;
+	EntityCommandCommitSystem m_commandCommitSystem;
 
 	template<typename Func>
-	void ForEachScript(Func&& func);
+	void ForEachScript(SystemTaskDomain domain, Func&& func);
 
-	// 名前 → Engine ComponentTypeID
+	void DestroyAllScriptInstances();
+	void UnloadCurrentModule();
+
 	std::unordered_map<std::string, ComponentTypeID> m_nameToEngineTypeID;
-
-	// Script型 → Engine ComponentTypeID
 	std::unordered_map<std::type_index, ComponentTypeID> m_engineTypeIDs;
-
-	std::function<IScriptComponent*(const char*)> m_scriptBridge = nullptr;
-
 	std::function<void(void*)> m_setImGuiContextFunc = nullptr;
-
+	uint64_t m_nextScriptRegistrationOrder = 1;
+	uint64_t m_reloadGeneration = 0;
 	HMODULE m_scriptModule = nullptr;
-
-	using CreateScriptFunc = IScriptComponent * (*)(const char*);
+	CreateScriptFunc m_createScriptFunc = nullptr;
+	ScriptModuleAPI m_moduleAPI{};
+	std::wstring m_loadedModulePath;
 };

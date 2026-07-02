@@ -8,6 +8,7 @@
 #include "Interface/ISystem.h"
 
 #include <d3d11.h>
+#include <d3dcompiler.h>
 #include <wrl/client.h>
 #include <string>
 #include <vector>
@@ -17,7 +18,12 @@
 #include "Backends/myVector2.h"
 #include "Backends/myVector3.h"
 #include "Scene/Entity/Entity.h"
+#include "Shader/common.hlsl"
 #include "System/Render/RenderSystem/renderLayer.h"
+#include "System/Render/RenderSystem/ShaderMaterialProvider.h"
+#include "System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
+#include "System/Render/RenderSystem/RenderPass/RenderPassContext.h"
+#include "System/Render/Culling/RenderPacketViewCulling.h"
 
 struct SceneManagerContext;
 struct PixelShaderData;
@@ -43,49 +49,30 @@ class PostEffectShader;
 //======================================================================
 struct PostEffect
 {
-	PostEffectShader* shader;  // 使用するポストエフェクトシェーダ
-	std::string       name;    // UI表示用名称
-	bool              enabled; // 有効 / 無効
-};
-
-//======================================================================
-// シェーダーマテリアル定義
-//======================================================================
-struct ShaderMaterial
-{
-	std::string filePath;   // HLSL ファイルパス
-	std::string entryPoint; // エントリーポイント関数名
+	PostEffectShader* shader;
+	std::string       name;
+	bool              enabled;
 };
 
 //======================================================================
 // RenderSystem
 // 描画処理全体を管理するシステム
 //======================================================================
-class RenderSystem: public ISystem
+class RenderSystem: public ISystem, public IShaderMaterialProvider
 {
 public:
-
-	//------------------------------------------------------------------
-	// システム名取得
-	//------------------------------------------------------------------
 	const char* GetSystemName() const override{
 		return "RenderSystem";
 	}
 
-	//------------------------------------------------------------------
-	// コンストラクタ
-	// デフォルトのマテリアル設定を初期登録する
-	//------------------------------------------------------------------
 	RenderSystem(SceneManagerContext* context)
 		: m_context(context){
 		ShaderMaterials.clear();
 
-		// Unlit マテリアル
 		ShaderMaterial unlitMaterial;
 		unlitMaterial.filePath = "UnlitShader.hlsli";
 		unlitMaterial.entryPoint = "ShadeMaterial_Unlit";
 
-		// PBR マテリアル
 		ShaderMaterial pbrMaterial;
 		pbrMaterial.filePath = "PBRShader.hlsli";
 		pbrMaterial.entryPoint = "ShadeMaterial_PBR";
@@ -96,15 +83,35 @@ public:
 
 	~RenderSystem(){}
 
-	//------------------------------------------------------------------
-	// ISystem 実装
-	//------------------------------------------------------------------
 	void Initialize() override;
 	void Finalize() override;
 
-	void Update(float deltaTime) override;
-	void EditorUpdate(float deltaTime) override;
-	void Draw() override;
+	// RenderPacketはComponentへの非所有Pointerを保持するため、
+	// SceneのTempLoad / Shutdown前に公開済みPacketを必ず無効化する。
+	void Stop() override {
+		m_renderPacketBuffer.Reset();
+		m_cullingVisibility.BeginFrame(0);
+		m_lastSubmittedPacketGeneration = 0;
+	}
+
+	void Update(float deltaTime);
+
+	// 旧Main Thread一体処理。Task Migration後はScheduleから実行しない。
+	void EditorUpdate(float deltaTime);
+
+	// Step 17-C: CPU Pose計算とD3D11 Uploadを分離した実行段階。
+	void CalculateAnimationPoses();
+	void UploadAnimationPoses(float deltaTime);
+
+	void Draw();
+	void BuildRenderPackets();
+	void SubmitRenderPackets();
+
+	void RegisterTasks(SystemScheduleBuilder& builder) override;
+	void MigrateRegisteredTasks(
+		SystemScheduleBuilder& builder,
+		std::vector<SystemTask>& tasks
+	) override;
 
 	bool decode(const YAML::Node& node) override;
 	YAML::Node encode() override;
@@ -112,14 +119,10 @@ public:
 	void SystemSetting() override;
 	bool HasSystemSetting() const override { return true; }
 
-	//------------------------------------------------------------------
-	// 指定型の Renderable を取得
-	// 登録済みリストから dynamic_cast で検索する
-	//------------------------------------------------------------------
 	template<typename T>
 	T* GetRenderable(){
 		static_assert(std::is_base_of<IRenderable, T>::value,
-					  "T must inherit from IRenderable");
+			"T must inherit from IRenderable");
 
 		for(auto& r : m_renderables){
 			if(auto p = dynamic_cast<T*>(r.get())){
@@ -130,13 +133,9 @@ public:
 		return nullptr;
 	}
 
-	//------------------------------------------------------------------
-	// パス関連
-	//------------------------------------------------------------------
 	PlayerPass* m_PlayerPass = nullptr;
 	bool* showPlayer = nullptr;
 
-	// 各 RenderLayer の表示状態（Player）
 	bool playerRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] =
 	{
 		true, true, true, true, true, false
@@ -145,20 +144,13 @@ public:
 	EditorPass* m_EditorPass = nullptr;
 	bool* showEditor = nullptr;
 
-	// 各 RenderLayer の表示状態（Editor）
 	bool editorRenderLayerVisible[(int)RenderLayer::MaxRenderLayer] =
 	{
 		true, true, true, true, true, true,
 	};
 
-	//------------------------------------------------------------------
-	// ピクセルシェーダ再コンパイル
-	//------------------------------------------------------------------
 	void ReCompilePixelShaders();
 
-	//------------------------------------------------------------------
-	// 使用中のシェーダ取得（登録マテリアルごとに1つ）
-	//------------------------------------------------------------------
 	const std::vector<std::shared_ptr<PixelShaderData>>& GetDeferredPSList() const{
 		return DeferredPSList;
 	}
@@ -167,65 +159,114 @@ public:
 		return ForwardPSList;
 	}
 
-	// 登録外ShaderID用のフォールバック（マゼンタ表示）
 	PixelShaderData* GetForwardPSDebug() const{
 		return ForwardPSDebug.get();
 	}
 
-	// フォワードパス向けに環境マップテクスチャ・サンプラーを返す
-	std::shared_ptr<TextureData> GetEnvironmentMap() const;
-	ID3D11SamplerState*          GetEnvMapSampler()  const;
+	const CbLightingDebug& GetLightingDebugSettings() const noexcept {
+		return m_lightingDebugSettings;
+	}
 
-	//------------------------------------------------------------------
-	// 登録済みシェーダマテリアル一覧
-	//------------------------------------------------------------------
+	CbLightingDebug& GetLightingDebugSettings() noexcept {
+		return m_lightingDebugSettings;
+	}
+
+	std::shared_ptr<TextureData> GetEnvironmentMap() const;
+	ID3D11SamplerState* GetEnvMapSampler() const;
+	IRenderable* GetRenderableForPacketKind(RenderPacketKind kind);
+
+	RenderPacketFrameBuffer& GetRenderPacketBuffer() noexcept {
+		return m_renderPacketBuffer;
+	}
+
+	const RenderPacketFrameBuffer& GetRenderPacketBuffer() const noexcept {
+		return m_renderPacketBuffer;
+	}
+
+	void PrepareRenderPacketView(const RenderPacketCullingView& view){
+		RenderPacketViewCulling::Prepare(
+			m_cullingVisibility,
+			m_renderPacketBuffer,
+			view
+		);
+	}
+
+	void PrepareRenderPacketView(const RenderPassContext& context){
+		RenderPacketCullingView view;
+		view.camera = context.cameraData.ref.GetEntityID();
+		view.kind = context.cullingViewKind;
+		view.instanceID = context.cullingViewInstanceID;
+		view.viewProjection = context.viewMatrix * context.projectionMatrix;
+		PrepareRenderPacketView(view);
+	}
+
+	bool ShouldRenderPacket(
+		const RenderPacketCullingView& view,
+		const RenderPacket& packet
+	) const {
+		return RenderPacketViewCulling::ShouldRender(
+			m_cullingVisibility,
+			view,
+			packet
+		);
+	}
+
+	bool ShouldRenderPacket(
+		const RenderPassContext& context,
+		const RenderPacket& packet
+	) const {
+		RenderPacketCullingView view;
+		view.camera = context.cameraData.ref.GetEntityID();
+		view.kind = context.cullingViewKind;
+		view.instanceID = context.cullingViewInstanceID;
+		view.viewProjection = context.viewMatrix * context.projectionMatrix;
+		return ShouldRenderPacket(view, packet);
+	}
+
+	const CullingVisibilitySet& GetCullingVisibility() const noexcept {
+		return m_cullingVisibility;
+	}
+
+	uint64_t GetLastSubmittedPacketGeneration() const noexcept {
+		return m_lastSubmittedPacketGeneration;
+	}
+
+	std::span<const ShaderMaterial> GetShaderMaterials() const noexcept override {
+		return ShaderMaterials;
+	}
+
 	std::vector<ShaderMaterial> ShaderMaterials;
 
 private:
-
-	//------------------------------------------------------------------
-	// カメラ情報取得
-	//------------------------------------------------------------------
 	const CameraEntityData FindCameraEntity();
-
-	//------------------------------------------------------------------
-	// スカイスフィアから環境マップを自動更新
-	//------------------------------------------------------------------
 	void UpdateSkyBoxEnvironmentMap();
-
-	//------------------------------------------------------------------
-	// UI 制御関連
-	//------------------------------------------------------------------
 	void ControlButton();
 	void DrawRenderLayerToggleUI();
-
 	void EditorView();
 	void PlayerView();
 
 private:
-
 	SceneManagerContext* m_context = nullptr;
-
-	// 登録済み Renderable 一覧
 	std::vector<std::shared_ptr<IRenderable>> m_renderables;
-
-	// ポストエフェクト用コピーシェーダ
 	PostEffectShader* copyShader = nullptr;
+	std::string ShaderPath = "Source/Shader/AutoGen";
 
-	// 自動生成シェーダ出力パス
-	std::string ShaderPath = "Source/Shader/AutoGen/";
-
-	// UI ボタン用テクスチャ
 	std::shared_ptr<TextureData> PlayButtonTexture;
 	std::shared_ptr<TextureData> PauseButtonTexture;
 	std::shared_ptr<TextureData> StopButtonTexture;
 	std::shared_ptr<TextureData> StepButtonTexture;
 
-	// 描画パイプライン用ピクセルシェーダ（ShaderMaterials[i] に対応）
-	// DeferredPSListは末尾に範囲外materialID用のデバッグシェーダが1つ追加される
 	std::vector<std::shared_ptr<PixelShaderData>> DeferredPSList;
 	std::vector<std::shared_ptr<PixelShaderData>> ForwardPSList;
 	std::shared_ptr<PixelShaderData> ForwardPSDebug;
+	CbLightingDebug m_lightingDebugSettings{};
+
+	RenderPacketFrameBuffer m_renderPacketBuffer;
+	CullingVisibilitySet m_cullingVisibility;
+	uint64_t m_renderPacketGeneration = 0;
+	uint64_t m_lastSubmittedPacketGeneration = 0;
 
 	float lazyTimer = 0.0f;
 };
+
+#include "../Animation/RenderSystemAnimationTasks.inl"

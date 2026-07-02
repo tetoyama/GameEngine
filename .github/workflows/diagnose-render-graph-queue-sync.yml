@@ -1,0 +1,13 @@
+name: Archived RenderGraph Queue Synchronization Diagnostics
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  archived:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Queue synchronization diagnostics completed and archived."

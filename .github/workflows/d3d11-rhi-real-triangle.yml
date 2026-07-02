@@ -1,0 +1,43 @@
+name: D3D11 RHI Real Triangle Smoke
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Tests/D3D11RHIRealTriangleTest.cpp"
+      - "Source/GameApplication/Service/Graphics/RHI/**"
+      - ".github/workflows/d3d11-rhi-real-triangle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile real triangle smoke
+        shell: cmd
+        run: cl /nologo /std:c++20 /EHsc /W4 /MTd /I Source/GameApplication Tests/D3D11RHIRealTriangleTest.cpp /Fe:d3d11-rhi-real-triangle.exe
+
+  run:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run real triangle smoke
+        shell: cmd
+        run: |
+          cl /nologo /std:c++20 /EHsc /W4 /MTd /I Source/GameApplication Tests/D3D11RHIRealTriangleTest.cpp /Fe:d3d11-rhi-real-triangle.exe
+          d3d11-rhi-real-triangle.exe

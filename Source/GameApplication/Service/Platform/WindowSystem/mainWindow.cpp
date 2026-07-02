@@ -82,6 +82,20 @@ bool MainWindow::Create(const HINSTANCE hInstance, const int nCmdShow, const APP
 		return false;
 	}
 
+	DWORD processId = 0;
+	// 1. ウィンドウハンドルからプロセスID（PID）を取得
+	GetWindowThreadProcessId(m_HWND, &processId);
+
+	if (processId != 0) {
+		// 2. プロセスIDからプロセスハンドルを開く
+		HANDLE hProcess = OpenProcess(PROCESS_SET_INFORMATION, FALSE, processId);
+		if (hProcess != NULL) {
+			// 3. 効率モードを解除
+			SetPriorityClass(hProcess, NORMAL_PRIORITY_CLASS);
+			CloseHandle(hProcess);
+		}
+	}
+
 	// ウィンドウの表示
 	ShowWindow(m_HWND, nCmdShow);
 	UpdateWindow(m_HWND);

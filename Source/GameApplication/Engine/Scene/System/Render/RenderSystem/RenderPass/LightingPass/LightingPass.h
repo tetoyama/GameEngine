@@ -7,6 +7,7 @@
 #include "../IRenderPass.h"
 
 #include <d3d11.h>
+#include <wrl/client.h>
 #include <vector>
 #include <memory>
 
@@ -33,10 +34,15 @@ public:
 
 	std::shared_ptr<VertexShaderData> m_LightingVertexShader;
 
-	ID3D11SamplerState* m_LinearSampler;
+	ID3D11SamplerState* m_LinearSampler = nullptr;
 	ID3D11SamplerState* m_EnvMapSampler = nullptr;
 
 	std::shared_ptr<TextureData> m_EnvironmentMap;
 
-	RenderTarget* pRenderTarget;
+	RenderTarget* pRenderTarget = nullptr;
+
+private:
+	GBufferPass* m_activeGBufferPass = nullptr;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_lightingDebugBuffer;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_materialStencilTestState;
 };

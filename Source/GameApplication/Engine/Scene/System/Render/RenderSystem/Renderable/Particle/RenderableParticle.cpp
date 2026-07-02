@@ -6,6 +6,7 @@
 #include "RenderableParticle.h"
 #include <d3d11.h>
 #include "../../RenderPass/RenderPassContext.h"
+#include "../../RenderPacket/RenderPacketTransformDX11.h"
 
 #include "DebugTools/DebugSystem.h"
 #include "Graphics/mainRenderer.h"
@@ -70,14 +71,17 @@ void RenderableParticle::Finalize(){
 	delete m_billBoardMesh;
 }
 
-void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sceneContext, const Entity& entity){
-	ParticleComponent* pParticle = sceneContext->component->GetComponent<ParticleComponent>(entity);
-	TransformComponent* pTransform = sceneContext->component->GetComponent<TransformComponent>(entity);
+void RenderableParticle::Execute(const RenderPassContext& ctx, const RenderPacket& packet){
+	SceneContext* sceneContext = packet.bindings.sceneContext;
+	const Entity& entity = packet.entity;
+	if(!sceneContext) return;
+	ParticleComponent* pParticle = packet.bindings.particle;
+	TransformComponent* pTransform = packet.bindings.transform;
 	if(!pParticle || !pTransform){
 		return;
 	}
-	TextureComponent* pTexture = sceneContext->component->GetComponent<TextureComponent>(entity);
-	MaterialComponent* pMaterial = sceneContext->component->GetComponent<MaterialComponent>(entity);
+	TextureComponent* pTexture = packet.bindings.texture;
+	MaterialComponent* pMaterial = packet.bindings.material;
 	MATERIAL material{};
 	if (pMaterial) {
 		material = pMaterial->Material;
@@ -87,46 +91,34 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	graphicsContext->SetBlendMode(BlendMode::Additive);
-	//graphicsContext->SetDepthMode(DepthMode::Disable);
+	graphicsContext->SetDepthMode(DepthMode::ReadOnly);
+
+	deviceContext->IASetInputLayout(m_billBoardMesh->mesh.m_VertexLayout.Get());
+	deviceContext->VSSetShader(m_billBoardMesh->mesh.m_VertexShader.Get(), nullptr, 0);
+	deviceContext->PSSetShader(m_billBoardMesh->mesh.m_PixelShader.Get(), nullptr, 0);
 
 	for(int i = 0; i < MAXPARTICLE; i++){
 		if(pParticle->Particle[i].LifeTime > 0.0f){
 			MATERIAL material{};
 
 			if(pTexture){
-				// マテリアル設定
 				if(pTexture->m_TextureData){
 					material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 					deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
 				}
 
-				UVMatrixBuffer uv;
-				if (pTexture->UV_Slice_X > 0.0f && pTexture->UV_Slice_Y > 0.0f) {
-					// UV_Slice_X/Y は「1セルのUVサイズ」
-					// 例:
-					// 0.25f = 4分割
-					// 0.125f = 8分割
-
-					int column = (int)(1.0f / pTexture->UV_Slice_X);
-
-					uv.UVStart.x = (pTexture->AnimationNum % column) * pTexture->UV_Slice_X;
-					uv.UVStart.y = (pTexture->AnimationNum / column) * pTexture->UV_Slice_Y;
-
-					// 1 セルの UV サイズ: 1/スライス数
-					uv.UVEnd.x = uv.UVStart.x + 1.0f / pTexture->UV_Slice_X;  // セルの右端 UV
-					uv.UVEnd.y = uv.UVStart.y + 1.0f / pTexture->UV_Slice_Y;  // セルの下端 UV
-				}
-				graphicsContext->SetUVMatrixBuffer(uv);
+				graphicsContext->SetUVMatrixBuffer(pTexture->ResolveUVMatrixBuffer());
 
 				if (pMaterial) {
 					material.BaseColor = pMaterial->Material.BaseColor;
 					material.BaseColor.w = pMaterial->Material.BaseColor.w * pParticle->Particle[i].LifeTime / pParticle->particleLifeTime;
 				}
 			} else{
-				// マテリアル設定
 				material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
-				UVMatrixBuffer uv;
+				UVMatrixBuffer uv{};
+				uv.UVStart = float2(0.0f, 0.0f);
+				uv.UVEnd = float2(1.0f, 1.0f);
 				graphicsContext->SetUVMatrixBuffer(uv);
 			}
 			graphicsContext->SetMaterial(material);
@@ -165,11 +157,6 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 				DirectX::XMVectorSet(0, 0, 0, 1)
 			);
 
-			//deviceContext->IASetInputLayout(m_billBoardMesh->mesh.m_VertexLayout.Get());
-
-			//deviceContext->VSSetShader(m_billBoardMesh->mesh.m_VertexShader.Get(), NULL, 0);
-			//deviceContext->PSSetShader(m_billBoardMesh->mesh.m_PixelShader.Get(), NULL, 0);
-
 			// ローカル変換行列（スケール・ビルボード回転・位置）
 			DirectX::XMMATRIX LocalMatrix =
 				DirectX::XMMatrixScaling(transform.scale.x, transform.scale.y, transform.scale.z) *
@@ -185,12 +172,9 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, SceneContext* sce
 			deviceContext->IASetVertexBuffers(0, 1, m_billBoardMesh->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
 
 			deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-			//if (ctx.passPhase == RenderPhase::PHASE_SHADOW) {
-			//	deviceContext->PSSetShader(nullptr, NULL, 0); // ピクセルシェーダー無効化
-			//}
 			deviceContext->Draw(m_billBoardMesh->mesh.meshCount, 0);
 		}
 	}
 	graphicsContext->SetBlendMode(BlendMode::Alpha);
-	//graphicsContext->SetDepthMode(DepthMode::Write);
+	graphicsContext->SetDepthMode(DepthMode::Write);
 }

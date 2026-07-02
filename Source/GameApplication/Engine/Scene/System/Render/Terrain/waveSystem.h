@@ -54,7 +54,22 @@ public:
 		}
 	}
 
-	void EditorUpdate(float dt) override{
+	void RegisterTasks(SystemScheduleBuilder& builder) override{
+		builder.AddTask(
+			"WaveSystem.Vertex.Upload",
+			SystemTaskDomain::Render,
+			SystemPhase::Early,
+			0,
+			SystemAccess::LegacyExclusive(),
+			ThreadAffinity::MainThread,
+			[this](const SystemTaskContext& context){
+				Draw(context.deltaTime);
+			}
+		);
+	}
+
+	void Draw(float dt){
+		(void)dt;
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<WaveComponent>();
@@ -93,6 +108,7 @@ private:
 		std::vector<unsigned int> indices(indexCount);
 
 		float half = 1.0f;
+		(void)half;
 
 		for(int z = 0; z <= grid; ++z){
 			for(int x = 0; x <= grid; ++x){

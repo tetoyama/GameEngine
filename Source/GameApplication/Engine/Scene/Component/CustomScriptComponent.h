@@ -1,14 +1,21 @@
 // =======================================================================
-// 
+//
 // CustomScriptComponent.h
-// 
+//
 // =======================================================================
 #pragma once
+
 #include "Interface/IComponent.h"
 #include "Backends/YAMLConverters.h"
 #include "DebugTools/ImGuiSystem.h"
+#include "../System/Script/ScriptExecution.h"
+#include "../Command/EntityCommandBuffer.h"
+
+#include <atomic>
+#include <cstdint>
+#include <functional>
 #include <string>
-//#include "System/CustomScriptSystem.h" // For ScriptFactory
+#include <utility>
 
 #include "Scene.h"
 #include "SceneManager.h"
@@ -23,12 +30,16 @@ class ComponentRegistry;
 
 // ユーザー定義スクリプトの基底コンポーネント
 class CustomScriptComponent: public IComponent {
-
 public:
-	CustomScriptComponent() = default;
-	CustomScriptComponent(std::string name){
-		scriptName = name;
+	CustomScriptComponent(){
+		executionSettings.registrationOrder =
+			s_nextRegistrationOrder.fetch_add(1, std::memory_order_relaxed);
 	}
+
+	CustomScriptComponent(std::string name): CustomScriptComponent(){
+		scriptName = std::move(name);
+	}
+
 	virtual ~CustomScriptComponent() = default;
 
 	void Initialize(){
@@ -41,26 +52,31 @@ public:
 			isInitialized = true;
 		}
 	}
+
 	void Update(float dt){
 		if(isInitialized){
 			OnUpdate(dt);
 		}
 	}
+
 	void FixedUpdate(float dt){
 		if(isInitialized){
 			OnFixedUpdate(dt);
 		}
 	}
+
 	void Draw(){
 		if(isInitialized){
 			OnDraw();
 		}
 	}
+
 	void EditorUpdate(float dt){
 		if(isInitialized){
 			OnEditorUpdate(dt);
 		}
 	}
+
 	void Stop(){
 		if(isInitialized){
 			OnStop();
@@ -68,14 +84,26 @@ public:
 		}
 	}
 
-	// PhysicSystem から呼び出されるコリジョン / トリガーイベントディスパッチャ
-	void CollisionEnter(const HitInfo& hit) { if(isInitialized) OnCollisionEnter(hit); }
-	void CollisionStay(const HitInfo& hit)  { if(isInitialized) OnCollisionStay(hit); }
-	void CollisionExit(const HitInfo& hit)  { if(isInitialized) OnCollisionExit(hit); }
-	void TriggerEnter(const HitInfo& hit)   { if(isInitialized) OnTriggerEnter(hit); }
-	void TriggerExit(const HitInfo& hit)    { if(isInitialized) OnTriggerExit(hit); }
+	void CollisionEnter(const HitInfo& hit){
+		if(isInitialized) OnCollisionEnter(hit);
+	}
 
-	// 派生クラスでオーバーライド可能な仮想関数
+	void CollisionStay(const HitInfo& hit){
+		if(isInitialized) OnCollisionStay(hit);
+	}
+
+	void CollisionExit(const HitInfo& hit){
+		if(isInitialized) OnCollisionExit(hit);
+	}
+
+	void TriggerEnter(const HitInfo& hit){
+		if(isInitialized) OnTriggerEnter(hit);
+	}
+
+	void TriggerExit(const HitInfo& hit){
+		if(isInitialized) OnTriggerExit(hit);
+	}
+
 	virtual void OnInitialize() {}
 	virtual void OnStart() {}
 	virtual void OnUpdate(float dt){}
@@ -84,24 +112,25 @@ public:
 	virtual void OnEditorUpdate(float dt){}
 	virtual void OnStop(){}
 
-	// コリジョン / トリガーイベント（PhysicSystem が呼び出す）
 	virtual void OnCollisionEnter(const HitInfo& hit) {}
 	virtual void OnCollisionStay(const HitInfo& hit)  {}
 	virtual void OnCollisionExit(const HitInfo& hit)  {}
 	virtual void OnTriggerEnter(const HitInfo& hit)   {}
 	virtual void OnTriggerExit(const HitInfo& hit)    {}
 
-	// 共通のプロパティやメソッド
 	virtual YAML::Node encode() override{
 		YAML::Node node;
 		node["ScriptName"] = scriptName;
 		return node;
 	}
+
 	bool decode(SceneContext* context, const YAML::Node& node) override{
-		if(node["ScriptName"])
+		if(node["ScriptName"]){
 			scriptName = node["ScriptName"].as<std::string>();
+		}
 		return true;
 	}
+
 	virtual void inspector(SceneContext* context) override{
 		ImGui::Text(scriptName.c_str());
 	}
@@ -109,15 +138,28 @@ public:
 	void SetScriptName(const std::string& name){
 		scriptName = name;
 	}
+
 	const std::string& GetScriptName() const{
 		return scriptName;
+	}
+
+	void SetExecutionOrder(
+		SystemTaskDomain domain,
+		SystemPhase phase,
+		int32_t priority
+	){
+		executionSettings.SetOrder(domain, phase, priority);
+	}
+
+	SystemTaskOrder GetExecutionOrder(SystemTaskDomain domain) const{
+		return executionSettings.GetOrder(domain);
 	}
 
 	bool IsInitialized() const{
 		return isInitialized;
 	}
 
-	// UnityライクなAPI
+	// 既存互換の即時取得・追加API。
 	template<typename T>
 	T* GetComponent(){
 		if(!m_ref.IsValid()) return nullptr;
@@ -127,27 +169,84 @@ public:
 	template<typename T, typename... Args>
 	T* AddComponent(Args&&... args){
 		if(!m_ref.IsValid()) return nullptr;
-		return m_ref.GetScene()->component->AddComponent<T>(m_ref.GetEntityID(), std::forward<Args>(args)...);
+		return m_ref.GetScene()->component->AddComponent<T>(
+			m_ref.GetEntityID(),
+			std::forward<Args>(args)...
+		);
 	}
 
-	// 自分自身の Entity への安全なリファレンスを返す
-	// マルチシーンでも SceneContext で識別されるため一意に扱える
+	// Schedule実行中に使用する遅延構造変更API。
+	CommandEntity QueueCreateEntity(){
+		EntityCommandBuffer* commands = GetCommandBuffer();
+		return commands ? commands->CreateEntity() : CommandEntity{};
+	}
+
+	bool QueueDestroyEntity(Entity entity){
+		EntityCommandBuffer* commands = GetCommandBuffer();
+		if(!commands || !entity) return false;
+		commands->DestroyEntity(entity);
+		return true;
+	}
+
+	bool QueueDestroySelf(){
+		return QueueDestroyEntity(m_ref.GetEntityID());
+	}
+
+	template<typename T, typename... Args>
+	bool QueueAddComponent(Entity entity, Args&&... args){
+		EntityCommandBuffer* commands = GetCommandBuffer();
+		if(!commands || !entity) return false;
+		commands->AddComponent<T>(entity, std::forward<Args>(args)...);
+		return true;
+	}
+
+	template<typename T, typename... Args>
+	bool QueueAddComponent(CommandEntity entity, Args&&... args){
+		EntityCommandBuffer* commands = GetCommandBuffer();
+		if(!commands) return false;
+		commands->AddComponent<T>(entity, std::forward<Args>(args)...);
+		return true;
+	}
+
+	template<typename T>
+	bool QueueRemoveComponent(Entity entity){
+		EntityCommandBuffer* commands = GetCommandBuffer();
+		if(!commands || !entity) return false;
+		commands->RemoveComponent<T>(entity);
+		return true;
+	}
+
+	template<typename T>
+	bool QueueRemoveComponent(CommandEntity entity){
+		EntityCommandBuffer* commands = GetCommandBuffer();
+		if(!commands) return false;
+		commands->RemoveComponent<T>(entity);
+		return true;
+	}
+
+	bool QueueEntitySetup(
+		CommandEntity entity,
+		std::function<void(Entity, SceneContext&)> callback
+	){
+		EntityCommandBuffer* commands = GetCommandBuffer();
+		if(!commands || !callback) return false;
+		commands->Execute(entity, std::move(callback));
+		return true;
+	}
+
 	EntityRef GetEntityRef() const {
 		return m_ref;
 	}
 
-	// 自分自身の指定コンポーネントへの安全なリファレンスを返す
 	template<typename T>
 	ComponentRef<T> GetComponentRef() const {
 		return ComponentRef<T>(m_ref.GetEntityID(), m_ref.GetScene());
 	}
 
-	// 任意のエンティティへの安全なリファレンスを作成する（同一シーン内）
 	EntityRef GetEntityRefFor(Entity e) const {
 		return EntityRef(e, m_ref.GetScene());
 	}
 
-	// 任意のエンティティのコンポーネントへの安全なリファレンスを作成する（同一シーン内）
 	template<typename T>
 	ComponentRef<T> GetComponentRefFor(Entity e) const {
 		return ComponentRef<T>(e, m_ref.GetScene());
@@ -178,16 +277,21 @@ public:
 		return ctx->manager->input->IsKey(ctx->manager->hwnd, keyCode);
 	}
 
-	// 所属エンティティとコンテキストのセット
 	void SetContext(SceneContext* context, Entity entity){
 		m_ref = EntityRef(entity, context);
 	}
 
 protected:
+	EntityCommandBuffer* GetCommandBuffer() const {
+		SceneContext* context = m_ref.GetScene();
+		return context ? context->commands : nullptr;
+	}
+
 	std::string scriptName = "CustomScript";
-	bool isInitialized = false; // 初期化フラグ
+	ScriptExecutionSettings executionSettings;
+	bool isInitialized = false;
 	EntityRef m_ref;
 
 private:
-
+	inline static std::atomic<uint64_t> s_nextRegistrationOrder{1};
 };

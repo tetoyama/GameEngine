@@ -1,0 +1,102 @@
+name: D3D11 Static Batch Interop Smoke
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/**"
+      - "Source/GameApplication/Service/Graphics/RHI/D3D11/**"
+      - "Tests/D3D11RHINativeBufferImportTest.cpp"
+      - "Tests/StaticBatchD3D11GBufferTargetBindingTest.cpp"
+      - "Tests/StaticBatchD3D11ShadowPipelineTest.cpp"
+      - ".github/workflows/d3d11-native-buffer-import.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/**"
+      - "Source/GameApplication/Service/Graphics/RHI/D3D11/**"
+      - "Tests/D3D11RHINativeBufferImportTest.cpp"
+      - "Tests/StaticBatchD3D11GBufferTargetBindingTest.cpp"
+      - "Tests/StaticBatchD3D11ShadowPipelineTest.cpp"
+      - ".github/workflows/d3d11-native-buffer-import.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: d3d11-static-batch-interop
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  native-buffer-import:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run native buffer import
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /wd4100 /wd4201 /wd4458 /wd4471
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/D3D11RHINativeBufferImportTest.cpp
+          d3d11.lib dxgi.lib
+          /Fe:d3d11-native-buffer-import-test.exe
+          && d3d11-native-buffer-import-test.exe
+
+  gbuffer-target-binding:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run GBuffer target binding
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /wd4100 /wd4201 /wd4458 /wd4471
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/StaticBatchD3D11GBufferTargetBindingTest.cpp
+          d3d11.lib dxgi.lib
+          /Fe:d3d11-gbuffer-target-binding-test.exe
+          && d3d11-gbuffer-target-binding-test.exe
+
+  shadow-pipeline:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run static shadow pipeline
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /wd4100 /wd4201 /wd4458 /wd4471
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/StaticBatchD3D11ShadowPipelineTest.cpp
+          d3d11.lib d3dcompiler.lib dxgi.lib
+          /Fe:d3d11-static-shadow-pipeline-test.exe
+          && d3d11-static-shadow-pipeline-test.exe

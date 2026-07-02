@@ -1,274 +1,356 @@
 // =======================================================================
-// 
+//
 // Inspector.cpp
-// 
+//
 // =======================================================================
 #include "Inspector.h"
-#include <ImGui/imgui_internal.h>
+
+#include <algorithm>
+#include <cctype>
 #include <cstring>
 #include <memory>
-#include <sceneManager.h>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include <ImGui/imgui_internal.h>
+
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
 #include "Editor/Command/EntityCommand.h"
 #include "Editor/Command/ComponentCommand.h"
-#include <scene.h>
-#include <Component/transformComponent.h>
-#include <Component/entityNameComponent.h>
-#include <Component/PrefabComponent.h>
+#include "Scene/scene.h"
+#include "Scene/sceneManager.h"
+#include "Scene/Component/entityNameComponent.h"
+#include "Scene/Component/EntityStateComponents.h"
+#include "Scene/Component/CullingComponent.h"
+#include "Scene/Component/PrefabComponent.h"
 #include "Hierarchy.h"
 
-void Inspector::Draw(const EditorDrawContext ctx){
+namespace {
 
-	ImGuiWindowClass window_class;
-	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
-	ImGui::SetNextWindowClass(&window_class);
-	bool* showInspector = &m_editor->GetUI<MenuBar>()->showInspector;
-	Entity selectedEntity = m_editor->GetUI<Hierarchy>()->selectedEntity;
-	SceneContext* context = m_editor->GetUI<Hierarchy>()->sceneContext;
-
-	if(!showInspector || !*showInspector){
+template<typename T>
+void SetEntityHeaderTag(
+	EditorService* editor,
+	SceneContext* context,
+	Entity entity,
+	const char* componentName,
+	bool shouldExist
+){
+	if(!editor || !context || !context->component || !context->entity ||
+		!context->entity->IsAlive(entity)){
 		return;
 	}
+
+	ComponentRegistry* registry = context->component;
+	const bool exists = registry->HasComponent<T>(entity);
+	if(exists == shouldExist) return;
+
+	if(shouldExist){
+		auto command = std::make_unique<ComponentAddCommand>(
+			context,
+			entity,
+			componentName,
+			[registry](Entity target){
+				registry->AddComponent<T>(target);
+			}
+		);
+		editor->commandManager.Execute(std::move(command));
+		return;
+	}
+
+	const ComponentTypeID typeID =
+		registry->GetComponentIDByName(componentName);
+	if(typeID == INVALID_COMPONENT_TYPE_ID) return;
+
+	const ComponentView component =
+		registry->GetComponentByID(entity, typeID);
+	if(!component) return;
+
+	auto command = std::make_unique<ComponentRemoveCommand>(
+		context,
+		entity,
+		component
+	);
+	editor->commandManager.Execute(std::move(command));
+}
+
+} // namespace
+
+void Inspector::Draw(const EditorDrawContext ctx){
+	(void)ctx;
+
+	ImGuiWindowClass windowClass;
+	windowClass.DockNodeFlagsOverrideSet =
+		ImGuiDockNodeFlags_NoWindowMenuButton;
+	ImGui::SetNextWindowClass(&windowClass);
+
+	bool* showInspector = &m_editor->GetUI<MenuBar>()->showInspector;
+	Hierarchy* hierarchy = m_editor->GetUI<Hierarchy>();
+	Entity selectedEntity = hierarchy->selectedEntity;
+	SceneContext* context = hierarchy->sceneContext;
+
+	if(!showInspector || !*showInspector) return;
 
 	ImGui::Begin("Inspector", showInspector);
 
-	if(selectedEntity == 0 || !context){
-		ImGui::Text("No object selected.");
+	if(!selectedEntity || !context){
+		ImGui::TextUnformatted("No object selected.");
 		ImGui::End();
 		return;
-	} else {
-		bool alive = context->entity->IsAlive(selectedEntity); // 選択されたエンティティが生存しているか確認
-		if(!alive){
-			// ローカル変数だけでなく Hierarchy の selectedEntity も解除する
-			m_editor->GetUI<Hierarchy>()->selectedEntity = 0;
-			ImGui::End();
-
-			return;
-		}
 	}
 
-	auto* registry = context->component;
+	if(!context->entity->IsAlive(selectedEntity)){
+		hierarchy->selectedEntity = {};
+		ImGui::End();
+		return;
+	}
 
-	// オブジェクト情報
+	ComponentRegistry* registry = context->component;
+
 	ImGui::AlignTextToFramePadding();
-	ImGui::TextDisabled("ID: %u", selectedEntity);
+	ImGui::TextDisabled("ID: %u", selectedEntity.GetIndex());
 	ImGui::SameLine();
 
-	NameComponent* name = registry->GetComponent<NameComponent>(selectedEntity);
-	if(name){
-		// 名前編集用に std::string を ImGui の固定長バッファへ変換する
-		static char nameBuffer[256];
-		strncpy(nameBuffer, name->name.c_str(), sizeof(nameBuffer));
-		nameBuffer[sizeof(nameBuffer) - 1] = '\0';
+	if(NameComponent* name =
+		registry->GetComponent<NameComponent>(selectedEntity)){
+		char nameBuffer[256]{};
+		std::strncpy(nameBuffer, name->name.c_str(), sizeof(nameBuffer) - 1);
 
-		if(ImGui::InputText("##Name", nameBuffer, sizeof(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)){
-			// Enter 確定時のみコマンド経由で名前を更新する
-			std::string oldName = name->name;
-			auto cmd = std::make_unique<RenameCommand>(context, selectedEntity, oldName, nameBuffer);
-			m_editor->commandManager.Execute(std::move(cmd));
+		if(ImGui::InputText(
+			"##Name",
+			nameBuffer,
+			sizeof(nameBuffer),
+			ImGuiInputTextFlags_EnterReturnsTrue
+		)){
+			auto command = std::make_unique<RenameCommand>(
+				context,
+				selectedEntity,
+				name->name,
+				nameBuffer
+			);
+			m_editor->commandManager.Execute(std::move(command));
 		}
-		// PrefabComponent がある場合はエンティティが Prefab インスタンスであることを明示する
-		if(context->component->GetComponent<PrefabComponent>(selectedEntity)){
+
+		if(registry->GetComponent<PrefabComponent>(selectedEntity)){
 			ImGui::SameLine();
-			ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "(Prefab)");
+			ImGui::TextColored(
+				ImVec4(0.4f, 0.8f, 1.0f, 1.0f),
+				"(Prefab)"
+			);
 		}
 	}
-	ImGui::SameLine();
-	ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 60);
 
+	ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 60.0f);
 	if(ImGui::Button("- Delete")){
-		if(selectedEntity != 0){
-			Hierarchy* hierarchy = m_editor->GetUI<Hierarchy>();
-			auto cmd = std::make_unique<EntityDeleteCommand>(
-				context, selectedEntity,
-				[hierarchy, selectedEntity](){
-					if(hierarchy && hierarchy->selectedEntity == selectedEntity){
-						hierarchy->selectedEntity = 0;
-					}
-				},
-				[hierarchy](Entity e, SceneContext* ctx){
-					if(hierarchy){
-						hierarchy->selectedEntity = e;
-						hierarchy->sceneContext   = ctx;
-					}
-				});
-			m_editor->commandManager.Execute(std::move(cmd));
-		}
+		auto command = std::make_unique<EntityDeleteCommand>(
+			context,
+			selectedEntity,
+			[hierarchy, selectedEntity](){
+				if(hierarchy && hierarchy->selectedEntity == selectedEntity){
+					hierarchy->selectedEntity = {};
+				}
+			},
+			[hierarchy](Entity entity, SceneContext* restoredContext){
+				if(hierarchy){
+					hierarchy->selectedEntity = entity;
+					hierarchy->sceneContext = restoredContext;
+				}
+			}
+		);
+		m_editor->commandManager.Execute(std::move(command));
 	}
 
-	ImGui::Dummy(ImVec2(0, 10)); // 間隔を空ける
-	ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
-
-	auto components = registry->GetAllComponentsOfEntitySorted(selectedEntity);
-	std::vector<IComponent*> componentsToRemove;
-	auto drawList = ImGui::GetWindowDrawList();
-	for(auto Component : components){
-		std::string compName = typeid(*Component).name();
-
-		// 必要なImGui情報
-		ImVec2 cursorPos = ImGui::GetCursorScreenPos();
-		float fullWidth = ImGui::GetContentRegionAvail().x;
-		float frameHeight = ImGui::GetFrameHeight();
-
-		// 背景色
-		ImU32 bgColor = ImGui::GetColorU32(ImGuiCol_Header);
-		drawList->AddRectFilled(cursorPos, ImVec2(cursorPos.x + fullWidth, cursorPos.y + frameHeight), bgColor);
-
-		// ツリーノードの展開矢印だけ表示（幅だけ取るためにNoTreePushOnOpen）
-		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-		bool open = ImGui::TreeNodeEx((void*)Component, flags, "%s", compName.c_str());
-
-		// Removeボタンは同じ行の右端に配置
-		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 60);
-		if(ImGui::SmallButton(("Remove##" + compName).c_str())){
-			componentsToRemove.push_back(Component);
-		}
-		// 次の行に移動
-		if(open){
-			Component->inspector(context);
-		}
-		ImGui::Dummy(ImVec2(0, 2.5f)); // 間隔を空ける
-
-	}
-
-	// 削除は後からまとめてコマンドで実行
-	for(IComponent* comp : componentsToRemove){
-		auto cmd = std::make_unique<ComponentRemoveCommand>(context, selectedEntity, comp);
-		m_editor->commandManager.Execute(std::move(cmd));
-	}
-
-
-	// コンポーネント追加ボタン
 	ImGui::Separator();
-	if(ImGui::Button("+ Add Component", ImVec2(-1, 0))){
+	ImGui::PushID("EntityStateHeader");
+
+	bool enabled = !registry->HasComponent<DisabledComponent>(selectedEntity);
+	if(ImGui::Checkbox("Enable", &enabled)){
+		SetEntityHeaderTag<DisabledComponent>(
+			m_editor,
+			context,
+			selectedEntity,
+			"DisabledComponent",
+			!enabled
+		);
+	}
+
+	ImGui::SameLine();
+	bool isStatic = registry->HasComponent<StaticEntityComponent>(selectedEntity);
+	if(ImGui::Checkbox("Static", &isStatic)){
+		SetEntityHeaderTag<StaticEntityComponent>(
+			m_editor,
+			context,
+			selectedEntity,
+			"StaticEntityComponent",
+			isStatic
+		);
+	}
+
+	ImGui::SameLine();
+	bool culling = registry->HasComponent<CullingComponent>(selectedEntity);
+	if(ImGui::Checkbox("Culling", &culling)){
+		SetEntityHeaderTag<CullingComponent>(
+			m_editor,
+			context,
+			selectedEntity,
+			"CullingComponent",
+			culling
+		);
+	}
+
+	ImGui::SameLine();
+	bool visible = !registry->HasComponent<HiddenComponent>(selectedEntity);
+	if(ImGui::Checkbox("Visible", &visible)){
+		SetEntityHeaderTag<HiddenComponent>(
+			m_editor,
+			context,
+			selectedEntity,
+			"HiddenComponent",
+			!visible
+		);
+	}
+
+	ImGui::PopID();
+
+	ImGui::Dummy(ImVec2(0.0f, 10.0f));
+	ImGui::BeginChild(
+		"Child",
+		ImVec2(0.0f, 0.0f),
+		true,
+		ImGuiWindowFlags_HorizontalScrollbar
+	);
+
+	const std::vector<ComponentView> components =
+		registry->GetInspectorComponentViewsOfEntitySorted(selectedEntity);
+	std::vector<ComponentView> componentsToRemove;
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+	for(ComponentView component : components){
+		const std::string componentName =
+			registry->GetComponentName(component);
+		if(componentName.empty()) continue;
+
+		const ImVec2 cursorPosition = ImGui::GetCursorScreenPos();
+		const float fullWidth = ImGui::GetContentRegionAvail().x;
+		const float frameHeight = ImGui::GetFrameHeight();
+		drawList->AddRectFilled(
+			cursorPosition,
+			ImVec2(cursorPosition.x + fullWidth,
+				cursorPosition.y + frameHeight),
+			ImGui::GetColorU32(ImGuiCol_Header)
+		);
+
+		const ImGuiTreeNodeFlags flags =
+			ImGuiTreeNodeFlags_DefaultOpen |
+			ImGuiTreeNodeFlags_NoTreePushOnOpen;
+		const bool open = ImGui::TreeNodeEx(
+			component.data,
+			flags,
+			"%s",
+			componentName.c_str()
+		);
+
+		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 60.0f);
+		ImGui::PushID(static_cast<int>(component.typeID));
+		if(ImGui::SmallButton("Remove")){
+			componentsToRemove.push_back(component);
+		}
+		ImGui::PopID();
+
+		if(open){
+			registry->InspectComponent(component, context);
+		}
+		ImGui::Dummy(ImVec2(0.0f, 2.5f));
+	}
+
+	for(ComponentView component : componentsToRemove){
+		auto command = std::make_unique<ComponentRemoveCommand>(
+			context,
+			selectedEntity,
+			component
+		);
+		m_editor->commandManager.Execute(std::move(command));
+	}
+
+	ImGui::Separator();
+	if(ImGui::Button("+ Add Component", ImVec2(-1.0f, 0.0f))){
 		ImGui::OpenPopup("AddComponentPopup");
 	}
+
 	if(ImGui::BeginPopup("AddComponentPopup")){
-		static char componentSearchBuffer[128] = "";
-		ImGui::InputTextWithHint("##ComponentSearch", "Search component...", componentSearchBuffer, sizeof(componentSearchBuffer));
+		static char searchBuffer[128]{};
+		ImGui::InputTextWithHint(
+			"##ComponentSearch",
+			"Search component...",
+			searchBuffer,
+			sizeof(searchBuffer)
+		);
 		ImGui::Separator();
 
 		const auto& addableMap = registry->GetAddableComponentList();
-
-		// --- 名前順に並べ替える ---
-		std::vector<std::pair<std::string, std::function<void(Entity)>>> addableListSorted(
-			addableMap.begin(), addableMap.end()
+		std::vector<std::pair<std::string, std::function<void(Entity)>>> addable;
+		addable.assign(addableMap.begin(), addableMap.end());
+		std::sort(
+			addable.begin(),
+			addable.end(),
+			[](const auto& left, const auto& right){
+				return left.first < right.first;
+			}
 		);
 
-		std::sort(addableListSorted.begin(), addableListSorted.end(),
-				  [](const auto& a, const auto& b){
-					  return a.first < b.first;
-				  });
-
-		// --- マスク確認用 ---
-		const auto& entityMasks = registry->GetEntityMasks();
-		auto it = entityMasks.find(selectedEntity);
 		ComponentMask currentMask;
-		if(it != entityMasks.end()){
-			currentMask = it->second;
+		const auto& entityMasks = registry->GetEntityMasks();
+		if(auto maskIterator = entityMasks.find(selectedEntity);
+			maskIterator != entityMasks.end()){
+			currentMask = maskIterator->second;
 		}
 
-		// --- 検索小文字化 ---
-		std::string searchLower = componentSearchBuffer;
-		std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(), ::tolower);
+		std::string searchLower = searchBuffer;
+		std::transform(
+			searchLower.begin(),
+			searchLower.end(),
+			searchLower.begin(),
+			[](unsigned char value){
+				return static_cast<char>(std::tolower(value));
+			}
+		);
 
-		// --- メニュー表示 ---
-		for(const auto& [name, func] : addableListSorted){
-			ComponentTypeID typeID = registry->GetComponentIDByName(name);
-			if(currentMask.test(typeID)) continue;
+		for(const auto& [name, addFunction] : addable){
+			const ComponentTypeID typeID =
+				registry->GetComponentIDByName(name);
+			if(typeID == INVALID_COMPONENT_TYPE_ID || currentMask.test(typeID)){
+				continue;
+			}
 
-			std::string nameLower = name;
-			std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), ::tolower);
-
-			if(!searchLower.empty() && nameLower.find(searchLower) == std::string::npos){
+			std::string lowerName = name;
+			std::transform(
+				lowerName.begin(),
+				lowerName.end(),
+				lowerName.begin(),
+				[](unsigned char value){
+					return static_cast<char>(std::tolower(value));
+				}
+			);
+			if(!searchLower.empty() &&
+				lowerName.find(searchLower) == std::string::npos){
 				continue;
 			}
 
 			if(ImGui::MenuItem(name.c_str())){
-				auto cmd = std::make_unique<ComponentAddCommand>(context, selectedEntity, name, func);
-				m_editor->commandManager.Execute(std::move(cmd));
+				auto command = std::make_unique<ComponentAddCommand>(
+					context,
+					selectedEntity,
+					name,
+					addFunction
+				);
+				m_editor->commandManager.Execute(std::move(command));
 			}
 		}
 
 		ImGui::EndPopup();
 	}
 
-
-
-	TransformComponent* transform = registry->GetComponent<TransformComponent>(selectedEntity);
-
-	//if(transform && m_context->editor->GetUI<MenuBar>()->showEditorView){
-
-	//	DirectX::XMMATRIX World = transform->CalculateWorldMatrix(transform, context->component);
-
-	//	DirectX::XMMATRIX modelMatrix;
-
-	//	auto* sprite = registry->GetComponent<SpriteRendererComponent>(selectedEntity);
-
-	//	if(sprite){
-	//		TransformComponent temp = CalculateRectTransform(*sprite, *transform);
-	//		DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationRollPitchYaw(temp.GetRotationEuler().x, temp.GetRotationEuler().y, temp.GetRotationEuler().z);
-	//		DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(temp.scale.x, temp.scale.y, temp.scale.z);
-	//		DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(temp.position.x, temp.position.y, temp.position.z);
-
-	//		World = Scale * Rotation * Translation;
-
-	//		modelMatrix = m_context->imgui->RenderGizmo2D(World);
-
-	//	} else{
-	//		modelMatrix = m_context->imgui->RenderGizmo(World);
-	//	}
-	//	Entity Parent = transform->parent;
-	//	while(Parent != 0){
-	//		auto* ParentTransform = registry->GetComponent<TransformComponent>(Parent);
-	//		if(ParentTransform){
-
-	//			DirectX::XMMATRIX ParentWorld = ParentTransform->CalculateWorldMatrix(ParentTransform, context->component);
-
-	//			modelMatrix = modelMatrix * DirectX::XMMatrixInverse(nullptr, ParentWorld);
-
-	//			Parent = ParentTransform->parent;
-	//		} else{
-	//			Parent = 0;
-	//		}
-	//	}
-	//	if(ImGuizmo::IsUsing()){
-	//		// スケール、回転、並進を格納する変数
-	//		DirectX::XMVECTOR scale, rotationQuat, translation;
-
-	//		// 行列を分解
-	//		DirectX::XMMatrixDecompose(&scale, &rotationQuat, &translation, modelMatrix);
-
-	//		// XMVECTOR から XMFLOAT3 に変換
-	//		DirectX::XMFLOAT3 scale3, translation3;
-	//		DirectX::XMStoreFloat3(&scale3, scale);
-	//		DirectX::XMStoreFloat3(&translation3, translation);
-
-	//		// rotationQuat はクォータニオンなのでそのまま XMFLOAT4 に書き出し
-	//		DirectX::XMFLOAT4 quat;
-	//		DirectX::XMStoreFloat4(&quat, rotationQuat);
-
-	//		if(sprite){
-	//			TransformComponent edited;
-	//			edited.position = translation3;
-	//			edited.SetRotation(quat);     // クォータニオンを代入
-	//			edited.scale = scale3;
-
-	//			edited = ReverseCalculateRectTransform(*sprite, edited);
-
-	//			transform->position = edited.position;
-	//			transform->SetRotation(edited.GetRotation());
-	//			transform->scale = edited.scale;
-	//		} else{
-	//			transform->position = translation3;
-	//			transform->SetRotation(quat); // クォータニオンを保持
-	//			transform->scale = scale3;
-	//		}
-
-
-	//	}
-	//}
 	ImGui::EndChild();
 	ImGui::End();
 }

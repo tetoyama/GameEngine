@@ -1,0 +1,75 @@
+name: Culling System Task Smoke Test
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/ModelCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/TerrainCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/WaveCullingBoundsProvider.h"
+      - "Tests/CullingSystemTaskSmokeTest.cpp"
+      - ".github/workflows/culling-system-task.yml"
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/CullingSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/ModelCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/TerrainCullingBoundsProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Culling/WaveCullingBoundsProvider.h"
+      - "Tests/CullingSystemTaskSmokeTest.cpp"
+      - ".github/workflows/culling-system-task.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: culling-system-task-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run culling task contract
+        id: culling_task
+        continue-on-error: true
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/CullingSystemTaskSmokeTest.cpp
+          /Fe:culling-system-task-test.exe
+          /link /NODEFAULTLIB:yaml-cppd.lib
+          > culling-system-task.log 2>&1
+          && culling-system-task-test.exe >> culling-system-task.log 2>&1
+      - name: Upload culling task diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: culling-system-task-diagnostics
+          path: culling-system-task.log
+          if-no-files-found: error
+      - name: Preserve culling task result
+        if: steps.culling_task.outcome == 'failure'
+        run: cmd /c exit 1

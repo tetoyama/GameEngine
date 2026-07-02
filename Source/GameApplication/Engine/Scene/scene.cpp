@@ -9,6 +9,7 @@
 #include <commdlg.h> // GetOpenFileName
 #include <filesystem>
 #include <string>
+#include <unordered_map>
 
 #include "Backends/Taskbar/taskbar.h"
 #include "Backends/convertWString.h"
@@ -40,6 +41,9 @@
 #include "Prefab/PrefabSystem.h"
 
 #include "Component/componentList.h"
+#include "Config/SceneStoragePreloader.h"
+#include "Config/SceneStorageRuntime.h"
+#include "Config/SceneStorageYaml.h"
 
 Scene::Scene(){
 }
@@ -54,10 +58,19 @@ void Scene::Initialize(SceneManagerContext* set){
 
 	m_SceneContext.system = m_SceneManagerContext->systemRegistry;
 
+	// Scene固有のStorage設定は、Registry生成と最初のEntity生成より前に先読みする。
+	// 設定Nodeがない旧Sceneや解析失敗時は既定値を維持する。
+	if(!ScenePath.empty()){
+		SceneStoragePreloader::DecodeFromFile(
+			ScenePath,
+			m_SceneContext.storageConfig
+		);
+	}
+	m_SceneContext.storageConfig.Normalize();
 
-	m_entityRegistry = std::make_shared<EntityRegistry>();
-	m_componentRegistry = std::make_shared<ComponentRegistry>(m_entityRegistry.get(),&m_SceneContext);
-	m_prefabSystem = std::make_shared<PrefabSystem>();
+	m_entityRegistry = std::make_unique<EntityRegistry>();
+	m_componentRegistry = std::make_unique<ComponentRegistry>(m_entityRegistry.get(), &m_SceneContext);
+	m_prefabSystem = std::make_unique<PrefabSystem>();
 
 
 	// コンポーネントの登録
@@ -74,6 +87,23 @@ void Scene::Initialize(SceneManagerContext* set){
 	m_SceneContext.entity = m_entityRegistry.get();
 	m_SceneContext.component = m_componentRegistry.get();
 	m_SceneContext.prefab = m_prefabSystem.get();
+
+	// 全Component Storage登録後、最初のEntity生成前にReserve / Page Preallocationを適用する。
+	ApplyStorageConfig();
+
+	// EntityRefはこの関数ポインタ経由でContext IDを解決する。
+	// 呼び出し先はGameEngine側に置かれるため、Script DLLはSceneManager.cppを
+	// 直接リンクする必要がない。
+	m_SceneContext.resolverOwner = m_SceneManagerContext->sceneManager;
+	m_SceneContext.resolver = [](void* owner, uint32_t contextID) -> SceneContext* {
+		if(!owner || contextID == 0) return nullptr;
+		return static_cast<SceneManager*>(owner)->GetContextFromID(contextID);
+	};
+
+	// Context IDを初期化時に発行し、描画や参照側で安定して利用できるようにする。
+	if(m_SceneManagerContext->sceneManager){
+		m_SceneManagerContext->sceneManager->GetIDFromContext(&m_SceneContext);
+	}
 
 	auto graphicsContext = Renderer->GetGraphicsContext();
 
@@ -98,23 +128,58 @@ void Scene::Draw(){
 }
 
 void Scene::Shutdown(){
-	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を終了中...").c_str());
+	// 二重Shutdownを安全に無視する。
+	if(!m_SceneManagerContext) return;
 
-	if(m_SceneManagerContext->editor){
-		auto hierarchy = m_SceneManagerContext->editor->GetUI<Hierarchy>();
+	SceneManagerContext* managerContext = m_SceneManagerContext;
+	if(managerContext->debug){
+		managerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を終了中...").c_str());
+	}
+
+	if(managerContext->editor){
+		auto hierarchy = managerContext->editor->GetUI<Hierarchy>();
 		if(hierarchy && hierarchy->sceneContext == &m_SceneContext){
 			hierarchy->sceneContext = nullptr;
 			hierarchy->selectedEntity = 0;
 		}
 	}
 
+	// Registryを破棄する前にContext IDを無効化する。
+	// これ以降、古いEntityRefやPick結果からこのSceneは解決されない。
+	if(managerContext->sceneManager){
+		managerContext->sceneManager->UnregisterContext(&m_SceneContext);
+	}
+
 	ResetAll();
 
-	// レジストリの終了処理
-	m_entityRegistry.reset();
+	// ComponentRegistryはEntityRegistryを参照するため、Component側を先に破棄する。
 	m_componentRegistry.reset();
 	m_prefabSystem.reset();
-	m_SceneManagerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を終了しました").c_str());
+	m_entityRegistry.reset();
+
+	// SceneContextが破棄済みRegistryを指し続けないように明示的に無効化する。
+	m_SceneContext.entity = nullptr;
+	m_SceneContext.component = nullptr;
+	m_SceneContext.system = nullptr;
+	m_SceneContext.prefab = nullptr;
+	m_SceneContext.resolverOwner = nullptr;
+	m_SceneContext.resolver = nullptr;
+	m_SceneContext.manager = nullptr;
+
+	if(managerContext->debug){
+		managerContext->debug->LOG_INFO(("Scene[" + SceneName + "]を終了しました").c_str());
+	}
+	m_SceneManagerContext = nullptr;
+}
+
+void Scene::ApplyStorageConfig(){
+	if(!m_entityRegistry || !m_componentRegistry) return;
+
+	SceneStorageRuntime::Apply(
+		*m_entityRegistry,
+		*m_componentRegistry,
+		m_SceneContext.storageConfig
+	);
 }
 
 void Scene::BuildDefaultScene(){
@@ -187,6 +252,7 @@ void Scene::BuildDefaultScene(){
 		light->light.Ambient = DirectX::XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
 		light->light.Param = DirectX::XMFLOAT4(0.00f, 0.00f, 0.00f, 0.002f);
 		light->light.Param.x = 500.0f;
+		light->light.CastShadow = true;
 	}
 	{
 		Entity entity = entityRegistry->Create();
@@ -328,37 +394,26 @@ void Scene::Save(){
 		YAML::Node entityNode;
 		entityNode["Entity"] = static_cast<int>(e);
 		YAML::Node componentsNode = YAML::Node(YAML::NodeType::Sequence);
-		for (IComponent* comp : m_componentRegistry->GetAllComponentsOfEntitySorted(e)) {
-			if (comp) {
-				// 型情報を取得
-				std::type_index ti(typeid(*comp));
-				// 型IDを取得
-				auto compId = m_componentRegistry->GetComponentIDByTypeIndex(ti);
-				// ID→名前マップを取得
-				const auto& idToName = m_componentRegistry->GetComponentIDToNameMap();
-				auto it = idToName.find(compId);
-				if(it != idToName.end()){
-					YAML::Node compNode;
-					compNode["Component"] = it->second;
+		for(ComponentView component : m_componentRegistry->GetAllComponentsOfEntitySorted(e)){
+			const std::string componentName = m_componentRegistry->GetComponentName(component);
+			if(componentName.empty()) continue;
 
-					YAML::Node encoded = comp->encode();
-					// encodedの内容をcompNodeにマージ
-					if(encoded && encoded.IsMap()){
-						for(auto encIt = encoded.begin(); encIt != encoded.end(); ++encIt){
-							compNode[encIt->first.as<std::string>()] = encIt->second;
-						}
-					}
-					if(compNode && compNode.IsMap()){
-						componentsNode.push_back(compNode);
-					}
+			YAML::Node componentNode;
+			componentNode["Component"] = componentName;
+			const YAML::Node encoded = m_componentRegistry->EncodeComponent(component);
+			if(encoded && encoded.IsMap()){
+				for(auto iterator = encoded.begin(); iterator != encoded.end(); ++iterator){
+					componentNode[iterator->first.as<std::string>()] = iterator->second;
 				}
 			}
+			componentsNode.push_back(componentNode);
 		}
 
 		entityNode["Components"] = componentsNode;
 		entitiesNode.push_back(entityNode);
 	}
 
+	SceneStorageYaml::EncodeIntoRoot(root, m_SceneContext.storageConfig);
 	root["Entities"] = entitiesNode;
 
 	std::string utf8Path = std::filesystem::path(savePath).string();
@@ -389,37 +444,26 @@ void Scene::TempSave(){
 		YAML::Node entityNode;
 		entityNode["Entity"] = static_cast<int>(e);
 		YAML::Node componentsNode = YAML::Node(YAML::NodeType::Sequence);
-		for(IComponent* comp : m_componentRegistry->GetAllComponentsOfEntitySorted(e)){
-			if(comp){
-				// 型情報を取得
-				std::type_index ti(typeid(*comp));
-				// 型IDを取得
-				auto compId = m_componentRegistry->GetComponentIDByTypeIndex(ti);
-				// ID→名前マップを取得
-				const auto& idToName = m_componentRegistry->GetComponentIDToNameMap();
-				auto it = idToName.find(compId);
-				if(it != idToName.end()){
-					YAML::Node compNode;
-					compNode["Component"] = it->second;
+		for(ComponentView component : m_componentRegistry->GetAllComponentsOfEntitySorted(e)){
+			const std::string componentName = m_componentRegistry->GetComponentName(component);
+			if(componentName.empty()) continue;
 
-					YAML::Node encoded = comp->encode();
-					// encodedの内容をcompNodeにマージ
-					if(encoded && encoded.IsMap()){
-						for(auto encIt = encoded.begin(); encIt != encoded.end(); ++encIt){
-							compNode[encIt->first.as<std::string>()] = encIt->second;
-						}
-					}
-					if(compNode && compNode.IsMap()){
-						componentsNode.push_back(compNode);
-					}
+			YAML::Node componentNode;
+			componentNode["Component"] = componentName;
+			const YAML::Node encoded = m_componentRegistry->EncodeComponent(component);
+			if(encoded && encoded.IsMap()){
+				for(auto iterator = encoded.begin(); iterator != encoded.end(); ++iterator){
+					componentNode[iterator->first.as<std::string>()] = iterator->second;
 				}
 			}
+			componentsNode.push_back(componentNode);
 		}
 
 		entityNode["Components"] = componentsNode;
 		entitiesNode.push_back(entityNode);
 	}
 
+	SceneStorageYaml::EncodeIntoRoot(root, m_SceneContext.storageConfig);
 	root["Entities"] = entitiesNode;
 
 	std::string utf8Path = std::filesystem::path(savePath).string();
@@ -448,44 +492,131 @@ void Scene::ResetAll(){
 	m_entityRegistry->ResetAll();
 }
 
-void Scene::LoadSceneFromYAML(std::string path) {  
-	std::ifstream fin(path);  
-	if(!fin.is_open()){  
-		// ファイルが開けなかった場合  
-		m_SceneContext.manager->debug->LOG_ERROR(("Failed to open file: " + path).c_str());  
-		return;  
-	}
-
-	YAML::Node root = YAML::Load(fin);  
-	if(!root["Entities"] || !root["Entities"].IsSequence()){  
-		m_SceneContext.manager->debug->LOG_ERROR("YAML: 'Entities' node missing or invalid");  
+void Scene::LoadSceneFromYAML(std::string path) {
+	std::ifstream fin(path);
+	if(!fin.is_open()){
+		m_SceneContext.manager->debug->LOG_ERROR(("Failed to open file: " + path).c_str());
 		return;
 	}
 
-	ScenePath = path; // シーンのパスを設定
+	YAML::Node root = YAML::Load(fin);
+	if(!root["Entities"] || !root["Entities"].IsSequence()){
+		m_SceneContext.manager->debug->LOG_ERROR("YAML: 'Entities' node missing or invalid");
+		return;
+	}
+
+	// Initialize前に先読みできない再読込経路でも、Entity生成前に設定を反映する。
+	SceneStorageYaml::DecodeFromRoot(root, m_SceneContext.storageConfig);
+	ApplyStorageConfig();
+
+	ScenePath = path;
 	m_SceneContext.manager->debug->LOG_DEBUG(("Sceneをファイルから読み込みます:FilePath[" + ScenePath + "]").c_str());
 
 	std::filesystem::path fpath(ScenePath);
-	SceneName = fpath.stem().string();  // 拡張子を除いたファイル名
+	SceneName = fpath.stem().string();
 
-	YAML::Node entities = root["Entities"];  
-	for(const auto& entityNode : entities){  
+	const YAML::Node entities = root["Entities"];
 
-		if(!entityNode["Entity"]){  
-			continue;  
-		}  
-		Entity entity = m_entityRegistry->Create();  
+	// YAMLに保存されたEntity IDは永続参照用のIDであり、
+	// 実行時Entity IDとは一致する保証がない。
+	std::unordered_map<Entity, Entity> serializedToRuntime;
+	std::vector<std::pair<YAML::Node, Entity>> pendingEntities;
+	serializedToRuntime.reserve(entities.size());
+	pendingEntities.reserve(entities.size());
 
-		if(!entityNode["Components"] || !entityNode["Components"].IsSequence()){  
-			continue;  
+	// ------------------------------------------------------------
+	// Pass 1: 全Entityを先に作成し、旧IDから新IDへの対応表を作る。
+	// ------------------------------------------------------------
+	for(const auto& entityNode : entities){
+		if(!entityNode["Entity"]){
+			m_SceneContext.manager->debug->LOG_WARNING("YAML: Entity ID missing. Entry skipped.");
+			continue;
 		}
-		for(const auto& compNode : entityNode["Components"]){  
-			const auto& compType = compNode["Component"].as<std::string>();  
-			IComponent* comp = m_componentRegistry->CreateFromYAML(compType, entity, compNode);  
+
+		const Entity serializedEntity = static_cast<Entity>(
+			entityNode["Entity"].as<uint32_t>()
+		);
+
+		if(serializedEntity == 0){
+			m_SceneContext.manager->debug->LOG_WARNING("YAML: Entity ID 0 is invalid. Entry skipped.");
+			continue;
+		}
+
+		if(serializedToRuntime.contains(serializedEntity)){
+			m_SceneContext.manager->debug->LOG_ERROR((
+			"YAML: Duplicate Entity ID detected: " +
+			std::to_string(serializedEntity)
+			).c_str());
+			continue;
+		}
+
+		const Entity runtimeEntity = m_entityRegistry->Create();
+		serializedToRuntime.emplace(serializedEntity, runtimeEntity);
+		pendingEntities.emplace_back(entityNode, runtimeEntity);
+	}
+
+	// ------------------------------------------------------------
+	// Pass 2: 作成済みEntityへComponentを復元する。
+	// 全Entityが存在するため、ロード順に依存しない。
+	// ------------------------------------------------------------
+	for(const auto& [entityNode, runtimeEntity] : pendingEntities){
+		if(!entityNode["Components"] || !entityNode["Components"].IsSequence()){
+			continue;
+		}
+
+		for(const auto& compNode : entityNode["Components"]){
+			if(!compNode["Component"]){
+				m_SceneContext.manager->debug->LOG_WARNING("YAML: Component type missing. Component skipped.");
+				continue;
+			}
+
+			const std::string compType = compNode["Component"].as<std::string>();
+			m_componentRegistry->CreateFromYAML(compType, runtimeEntity, compNode);
 		}
 	}
 
-	// 全エンティティのロードが完了した後で children リストを再構築する
+	const auto remapReference = [&](Entity serializedReference,
+								  Entity ownerEntity,
+								  const char* fieldName) -> Entity {
+		if(serializedReference == 0){
+			return 0;
+		}
+
+		auto it = serializedToRuntime.find(serializedReference);
+		if(it != serializedToRuntime.end()){
+			return it->second;
+		}
+
+		m_SceneContext.manager->debug->LOG_WARNING((
+			"YAML: Unresolved Entity reference. Owner=" +
+			std::to_string(ownerEntity) +
+			", Field=" + fieldName +
+			", SerializedID=" + std::to_string(serializedReference)
+		).c_str());
+		return 0;
+	};
+
+	// ------------------------------------------------------------
+	// Pass 3: Component内に保存されたEntity参照を実行時IDへ変換する。
+	// ------------------------------------------------------------
+	for(const auto& [entityNode, runtimeEntity] : pendingEntities){
+		if(auto* transform = m_componentRegistry->GetComponent<TransformComponent>(runtimeEntity)){
+			transform->parent = remapReference(
+				transform->parent,
+				runtimeEntity,
+				"TransformComponent::parent"
+			);
+		}
+
+		if(auto* follow = m_componentRegistry->GetComponent<FollowComponent>(runtimeEntity)){
+			follow->targetEntity = remapReference(
+				follow->targetEntity,
+				runtimeEntity,
+				"FollowComponent::targetEntity"
+			);
+		}
+	}
+
 	RebuildTransformChildren();
 }
 
@@ -508,7 +639,7 @@ std::string Scene::LoadSceneFileDialog() {
 
 	OPENFILENAMEA ofn = {}; // ANSI版（UNICODEなら OPENFILENAMEW）
 	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = nullptr; // ウィンドウハンドル（必要なら自分のウィンドウ）
+	ofn.hwndOwner = nullptr; // 親ウィンドウハンドル（必要なら自分のウィンドウ）
 	ofn.lpstrFilter = "Scene Files (*.scene)\0*.scene\0YAML Files (*.yaml)\0*.yaml\0All Files (*.*)\0*.*\0";
 	ofn.lpstrFile = filename;
 	ofn.nMaxFile = MAX_PATH;

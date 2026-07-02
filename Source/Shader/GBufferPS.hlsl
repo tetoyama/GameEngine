@@ -9,7 +9,7 @@ struct GBUFFER_OUT
     float4 OutMaterial : SV_Target3; // x: Roughness, y: Metallic, z: AO, w: Flags
     float4 OutEmissive : SV_Target4; // RGB: Emissive (HDR), A: Intensity
 
-    uint4 OutParam : SV_Target5; //  SceneID / ObjectID /ShaderID / Flags
+    uint4 OutParam : SV_Target5; // SceneID / ObjectID / ShaderID / Flags
 };
 
 Texture2D DiffuseTexture : register(t0);
@@ -75,19 +75,15 @@ GBUFFER_OUT main(PS_IN In)
         Material.EmissiveColor,
         Material.EmissiveIntensity
     );
-    
+
     // -----------------------------
     // Param (UINT4)
     // -----------------------------
-    // x : ObjectID
-    // y : SceneID
-    // z : ShaderID
-    // w : Flags (自由)
-    Out.OutParam = uint4(
-        SceneID, // SceneID
-        ObjectID,   // ObjectID
-        ShaderID,   // ShaderID
-        Material.MaterialFlags // MaterialFlags
+    Out.OutParam = MakeGBufferParameter(
+        SceneID,
+        ObjectID,
+        ShaderID,
+        Material.MaterialFlags
     );
 
     return Out;

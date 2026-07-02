@@ -6,6 +6,53 @@
 #pragma once
 #include "Service/IService.h"
 #include "buildSetting.h"
+#include <cstdint>
+
+// Drawフェーズ内でCPU計測する区間。
+// GPU実行時間は含めず、Timestamp Queryによる計測と明確に分離する。
+enum class DrawTimingSection : unsigned char {
+	FramePacingWait,
+	FrameSetup,
+	ImGuiBegin,
+	RenderSchedule,
+	DebugDraw,
+	EditorUIBuild,
+	ImGuiRender,
+	Present
+};
+
+// 直前に完了したDrawフレームのCPU時間内訳。
+// 値の単位はTimeServiceの他の時間情報と同じ秒。
+struct DrawTimingBreakdown {
+	uint64_t frameSerial = 0;
+	double update = 0.0;
+	double framePacingWait = 0.0;
+	double frameSetup = 0.0;
+	double imguiBegin = 0.0;
+	double renderSchedule = 0.0;
+	double debugDraw = 0.0;
+	double editorUIBuild = 0.0;
+	double imguiRender = 0.0;
+	double present = 0.0;
+	double total = 0.0;
+
+	double GetAccountedTime() const {
+		return framePacingWait +
+			frameSetup +
+			imguiBegin +
+			renderSchedule +
+			debugDraw +
+			editorUIBuild +
+			imguiRender +
+			present;
+	}
+
+	double GetUnaccountedTime() const {
+		const double unaccounted = total - GetAccountedTime();
+		return unaccounted > 0.0 ? unaccounted : 0.0;
+	}
+};
+
 // フレームタイミング・デルタ時間・FPS計測を管理するサービス
 class TimeService : public IService
 {
@@ -26,8 +73,13 @@ public:
 	void BeginDeltaUpdate();
 	void EndDeltaUpdate();
 	void EndFixedUpdate();
-	void BeginDraw();
+	void BeginDraw(uint64_t frameSerial);
 	void EndDraw();
+
+	// Drawフェーズ内の非ネスト区間を計測する。
+	// BeginDrawSection / EndDrawSectionは同じsectionを対にして呼ぶ。
+	void BeginDrawSection(DrawTimingSection section);
+	void EndDrawSection(DrawTimingSection section);
 
 	double GetDeltaUpdateTime() const{
 		return deltaUpdateTime_;
@@ -40,6 +92,10 @@ public:
 	double GetDrawTime() const{
 		return drawTime_;
 	} // 前回の描画時間（秒）
+
+	const DrawTimingBreakdown& GetDrawTimingBreakdown() const {
+		return completedDrawTiming_;
+	}
 
 	double GetDeltaFPS() const{
 		return deltaUpdateFPS_;
@@ -58,11 +114,14 @@ public:
 	} // 前回のフレームFPS
 
 private:
+	void AccumulateDrawSection(DrawTimingSection section, double elapsedSeconds);
+
 	double frequency_;             // カウンタの1秒あたりのカウント数
 	long long startTime_;         // 開始時刻
 	long long prevTime_;          // 前フレームの時刻
 	long long updateBeginTime_ = 0;
 	long long drawBeginTime_ = 0;
+	long long drawSectionBeginTime_ = 0;
 	long long frameBeginTime_ = 0;
 
 	float deltaTime_;             // 前回からの経過時間（秒）
@@ -72,6 +131,10 @@ private:
 	double fixedUpdateTime_ = 0.0f;	// 前回の固定更新時間（秒）
 	double drawTime_ = 0.0f;			// 前回の描画時間（秒）
 
+	DrawTimingSection activeDrawSection_ = DrawTimingSection::FrameSetup;
+	bool drawSectionActive_ = false;
+	DrawTimingBreakdown currentDrawTiming_{};
+	DrawTimingBreakdown completedDrawTiming_{};
 
 	long long prevDeltaTime_ = 0;          // 前フレームの時刻
 	long long prevFixedTime_ = 0;          // 前フレームの時刻

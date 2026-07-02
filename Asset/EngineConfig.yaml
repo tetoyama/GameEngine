@@ -1,9 +1,12 @@
+Graphics:
+  Backend: Direct3D11
+  MaximumFrameLatency: 2
 Systems:
   ScriptSystem: ~
   TransformSystem: ~
   CameraSystem: ~
   RenderSystem:
-    ShaderPath: Source/Shader/AutoGen/
+    ShaderPath: Source/Shader/AutoGen
     ShaderMaterial:
       UnlitShader.hlsli: ShadeMaterial_Unlit
       PBRShader.hlsli: ShadeMaterial_PBR
@@ -48,3 +51,5 @@ Systems:
   CustomScriptSystem: ~
   WaveSystem: ~
   FollowSystem: ~
+  CullingSystem: ~
+  StaticBatchUploadSystem: ~

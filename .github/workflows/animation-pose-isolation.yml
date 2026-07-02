@@ -1,0 +1,61 @@
+name: Animation Pose Isolation Smoke Test
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "Source/GameApplication/Engine/Resources/Data/modelData.h"
+      - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Animation/AnimationPoseEvaluator.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Animation/AnimationSkinningUpload.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Animation/RenderSystemAnimationTasks.inl"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.cpp"
+      - "Tests/AnimationPoseIsolationSmokeTest.cpp"
+      - ".github/workflows/animation-pose-isolation.yml"
+  push:
+    branches:
+      - refactor/ecs-scheduler-foundation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run shared model pose isolation contract
+        id: pose_isolation
+        continue-on-error: true
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /wd4201 /wd4458 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/AnimationPoseIsolationSmokeTest.cpp
+          /Fe:animation-pose-isolation-test.exe
+          > animation-pose-isolation.log 2>&1
+          && animation-pose-isolation-test.exe >> animation-pose-isolation.log 2>&1
+      - name: Upload animation pose diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: animation-pose-isolation-diagnostics
+          path: animation-pose-isolation.log
+          if-no-files-found: error
+      - name: Preserve animation pose result
+        if: steps.pose_isolation.outcome == 'failure'
+        run: cmd /c exit 1

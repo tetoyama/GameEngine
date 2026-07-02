@@ -14,7 +14,6 @@
 #include "DebugTools/debugSystem.h"
 #include "DebugTools/imguisystem.h"
 
-
 #include "Graphics/graphicsContext.h"
 #include "Graphics/mainRenderer.h"
 
@@ -28,32 +27,62 @@
 #include "Component/transformComponent.h"
 
 void CameraSystem::Initialize(){
-	m_context->debug->LOG_DEBUG("CameraSystemを初期化中...");
+	m_context->debug->LOG_DEBUG("CameraSystem initialize...");
 }
 
-void CameraSystem::Draw() {
+void CameraSystem::RegisterTasks(SystemScheduleBuilder& builder){
+	using CameraUpdateQuery = ECSQuery::ComponentQueryView<
+		ECSQuery::Read<TransformComponent>,
+		ECSQuery::Write<CameraComponent>
+	>;
 
-	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
-		auto context = scene->GetSceneContext();
-		auto CameraBuffers = context->component->GetAllBaseComponents<CameraComponent>();
-		for (auto& [entity, CameraBuffer] : CameraBuffers) {
-			TransformComponent* transform = context->component->GetComponent<TransformComponent>(entity);
-			if (transform) {
-				if (CameraBuffer->isLock) {
-					CameraBuffer->viewMatrix = DirectX::XMMatrixLookAtLH(
-						transform->position.ToXMVECTOR(),
-						CameraBuffer->Target.ToXMVECTOR(),
-						{ 0.0f, 1.0f, 0.0f }
-					);
+	builder.AddQueryTask<CameraUpdateQuery>(
+		"CameraSystem.View.Build",
+		SystemTaskDomain::Render,
+		SystemPhase::Early,
+		0,
+		StructuralAccess::None,
+		ThreadAffinity::AnyWorker,
+		[this](const SystemTaskContext&){
+			Draw();
+		}
+	);
+}
 
-				} else {
+void CameraSystem::Draw(){
+	for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
+		(void)name;
 
-					CameraBuffer->viewMatrix = DirectX::XMMatrixLookAtLH(
-						transform->position.ToXMVECTOR(),
-						(transform->position + transform->front()).ToXMVECTOR(),
-						{0.0f, 1.0f, 0.0f}
-						);
-				}
+		SceneContext* context = scene->GetSceneContext();
+		if(!context || !context->component){
+			continue;
+		}
+
+		const auto cameraEntities =
+			context->component->FindEntitiesWithComponent<CameraComponent>();
+
+		for(Entity entity : cameraEntities){
+			CameraComponent* camera =
+				context->component->GetComponent<CameraComponent>(entity);
+			TransformComponent* transform =
+				context->component->GetComponent<TransformComponent>(entity);
+
+			if(!camera || !transform){
+				continue;
+			}
+
+			if(camera->isLock){
+				camera->viewMatrix = DirectX::XMMatrixLookAtLH(
+					transform->position.ToXMVECTOR(),
+					camera->Target.ToXMVECTOR(),
+					{0.0f, 1.0f, 0.0f}
+				);
+			} else{
+				camera->viewMatrix = DirectX::XMMatrixLookAtLH(
+					transform->position.ToXMVECTOR(),
+					(transform->position + transform->front()).ToXMVECTOR(),
+					{0.0f, 1.0f, 0.0f}
+				);
 			}
 		}
 	}

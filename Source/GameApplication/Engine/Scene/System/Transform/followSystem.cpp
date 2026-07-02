@@ -21,11 +21,28 @@
 
 void FollowSystem::Initialize() {}
 
-void FollowSystem::Update(float deltaTime) {
-	ProcessFollow();
+void FollowSystem::RegisterTasks(SystemScheduleBuilder& builder){
+	using FollowQuery = ECSQuery::ComponentQueryView<
+		ECSQuery::Read<FollowComponent>,
+		ECSQuery::Write<TransformComponent>,
+		ECSQuery::Read<ModelRendererComponent>
+	>;
+
+	builder.AddQueryTask<FollowQuery>(
+		"FollowSystem.Transform.Resolve",
+		SystemTaskDomain::Render,
+		SystemPhase::Earliest,
+		0,
+		StructuralAccess::None,
+		ThreadAffinity::AnyWorker,
+		[this](const SystemTaskContext& context){
+			EditorUpdate(context.deltaTime);
+		}
+	);
 }
 
 void FollowSystem::EditorUpdate(float deltaTime) {
+	(void)deltaTime;
 	ProcessFollow();
 }
 

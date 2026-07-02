@@ -6,6 +6,8 @@
 #pragma once
 #include "Component/entityNameComponent.h"
 #include "Component/transformComponent.h"
+#include "Component/EntityStateComponents.h"
+#include "Component/CullingComponent.h"
 #include "Component/CameraComponent.h"
 #include "Component/modelRendererComponent.h"
 #include "Component/meshRendererComponent.h"
@@ -29,6 +31,9 @@
 #include "Component/followComponent.h"
 #include "Component/environmentMapComponent.h"
 
+#include "Config/SceneStorageConfig.h"
+#include "Storage/ComponentStorageStrategy.h"
+
 #include "Script/SetScene.h"
 #include "Script/ScoreManager.h"
 #include "Script/ScoreSprite.h"
@@ -44,26 +49,37 @@
 #include "Script/CameraController.h"
 #include "Script/GN31.h"
 
-enum ComponentStorageType {
-	COMPONENT_SPARSE,
-	COMPONENT_ARCHETYPE
-};
+inline constexpr auto COMPONENT_SPARSE = ECSStorage::ComponentStorageStrategy::SparseStable;
+inline constexpr auto COMPONENT_DENSE = ECSStorage::ComponentStorageStrategy::Dense;
+inline constexpr auto COMPONENT_DIRECT_PAGED = ECSStorage::ComponentStorageStrategy::DirectPaged;
+inline constexpr auto COMPONENT_ARCHETYPE = ECSStorage::ComponentStorageStrategy::Archetype;
 
-// コンポーネントを登録（Archetype or Sparse を選択）
-// ボトルネックが見つかったコンポーネントから ArchetypeStorage<T> に移行
+namespace ECSStorage {
+template<>
+struct ComponentStoragePreference<TransformComponent> {
+	static constexpr bool HasExplicitStrategy = true;
+	static constexpr ComponentStorageStrategy Strategy = ComponentStorageStrategy::DirectPaged;
+	static constexpr size_t ExpectedCount = SceneStorageConfig::DefaultExpectedTransformCount;
+	static constexpr size_t PreallocatedPages = SceneStorageConfig::RequiredPageCount(ExpectedCount);
+};
+} // namespace ECSStorage
 
 #define COMPONENT_LIST(X) \
-    X(NameComponent,COMPONENT_SPARSE)\
-    X(TransformComponent,COMPONENT_SPARSE)\
+    X(NameComponent,COMPONENT_ARCHETYPE)\
+    X(TransformComponent,COMPONENT_DIRECT_PAGED)\
+    X(DisabledComponent,COMPONENT_DIRECT_PAGED)\
+    X(StaticEntityComponent,COMPONENT_DIRECT_PAGED)\
+    X(HiddenComponent,COMPONENT_DIRECT_PAGED)\
+    X(CullingComponent,COMPONENT_DENSE)\
     X(CustomScriptComponent,COMPONENT_SPARSE)\
     X(ColliderComponent,COMPONENT_SPARSE)\
     X(AudioComponent,COMPONENT_SPARSE)\
-    X(RenderLayerComponent,COMPONENT_SPARSE)\
-    X(OrderInLayerComponent,COMPONENT_SPARSE)\
-    X(MaterialComponent,COMPONENT_SPARSE)\
+    X(RenderLayerComponent,COMPONENT_ARCHETYPE)\
+    X(OrderInLayerComponent,COMPONENT_ARCHETYPE)\
+    X(MaterialComponent,COMPONENT_ARCHETYPE)\
     X(TextureComponent,COMPONENT_SPARSE)\
     X(BumpMapComponent,COMPONENT_SPARSE)\
-    X(LightComponent,COMPONENT_SPARSE)\
+    X(LightComponent,COMPONENT_ARCHETYPE)\
     X(MeshRendererComponent,COMPONENT_SPARSE)\
     X(ModelRendererComponent,COMPONENT_SPARSE)\
     X(BillBoardRendererComponent,COMPONENT_SPARSE)\
@@ -71,9 +87,9 @@ enum ComponentStorageType {
     X(TerrainComponent,COMPONENT_SPARSE)\
     X(WaveComponent,COMPONENT_SPARSE)\
     X(OutlineComponent,COMPONENT_SPARSE)\
-    X(ParticleComponent,COMPONENT_SPARSE)\
+    X(ParticleComponent,COMPONENT_ARCHETYPE)\
     X(EffectComponent,COMPONENT_SPARSE)\
-    X(CameraComponent,COMPONENT_SPARSE)\
+    X(CameraComponent,COMPONENT_ARCHETYPE)\
     X(SetScene,COMPONENT_SPARSE)\
     X(ScoreManager,COMPONENT_SPARSE)\
     X(ScoreSprite,COMPONENT_SPARSE)\
@@ -90,5 +106,5 @@ enum ComponentStorageType {
     X(ScriptComponent,COMPONENT_SPARSE)\
     X(GN31,COMPONENT_SPARSE)\
     X(PrefabComponent,COMPONENT_SPARSE)\
-    X(FollowComponent,COMPONENT_SPARSE)\
-    X(EnvironmentMapComponent,COMPONENT_SPARSE)
+    X(FollowComponent,COMPONENT_ARCHETYPE)\
+    X(EnvironmentMapComponent,COMPONENT_ARCHETYPE)

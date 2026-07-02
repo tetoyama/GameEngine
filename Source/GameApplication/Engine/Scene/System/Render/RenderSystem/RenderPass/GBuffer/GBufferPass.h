@@ -7,8 +7,13 @@
 #include "../IRenderPass.h"
 
 #include <d3d11.h>
-#include <vector>
 #include <memory>
+#include <vector>
+#include <wrl/client.h>
+
+#include "System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
+#include "System/Render/StaticBatch/StaticBatchGBufferSubmissionTelemetry.h"
+#include "System/Render/StaticBatch/StaticBatchVisibleInstanceBuffer.h"
 
 class IRenderable;
 struct RenderTarget;
@@ -23,6 +28,11 @@ public:
 	void Finalize() override;
 	void Execute(const RenderPassContext& ctx) override;
 
+	const StaticBatchGBufferSubmissionTelemetry&
+	GetStaticBatchTelemetry() const noexcept {
+		return m_staticBatchTelemetry;
+	}
+
 	// Renderables
 	std::vector<IRenderable*> renderables;
 
@@ -34,4 +44,10 @@ public:
 	RenderTarget* pDepthTarget = nullptr;
 
 	ID3D11SamplerState* sampler = nullptr;
+
+private:
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_materialStencilWriteState;
+	StaticBatchVisibleInstanceBuffer m_staticBatchVisibleInstances;
+	StaticBatchGpuInstanceBuffer m_staticBatchVisibleGpuInstances;
+	StaticBatchGBufferSubmissionTelemetry m_staticBatchTelemetry;
 };

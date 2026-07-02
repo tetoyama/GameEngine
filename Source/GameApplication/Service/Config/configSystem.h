@@ -1,51 +1,94 @@
 // =======================================================================
-// 
+//
 // configSystem.h
-// 
+//
 // =======================================================================
 #pragma once
-#include <vector>
+
+#include <algorithm>
+#include <fstream>
+#include <optional>
 #include <string>
-#include <filesystem>
-#include <iostream>
+#include <string_view>
+
 #include "YAMLConverters.h"
 #include "buildSetting.h"
 #include "appConfig.h"
+#include "Service/Graphics/RHI/RHIBackend.h"
 
-// アプリケーション・エディタ設定ファイルの読み込み・保存を管理するサービス
+struct EngineGraphicsConfig {
+	RHI::BackendType backend = RHI::BackendType::Direct3D11;
+	uint32_t maximumFrameLatency = 2;
+};
+
+struct EngineConfig {
+	EngineGraphicsConfig graphics;
+};
+
+inline std::string_view ToEngineConfigBackendName(
+	RHI::BackendType backend
+) noexcept {
+	switch(backend){
+		case RHI::BackendType::Null: return "Null";
+		case RHI::BackendType::Direct3D11: return "Direct3D11";
+		case RHI::BackendType::Direct3D12: return "Direct3D12";
+		case RHI::BackendType::Vulkan: return "Vulkan";
+	}
+	return "Direct3D11";
+}
+
+inline std::optional<RHI::BackendType> ParseEngineConfigBackend(
+	std::string_view name
+) noexcept {
+	if(name == "Null" || name == "null") return RHI::BackendType::Null;
+	if(name == "Direct3D11" || name == "D3D11" ||
+		name == "direct3d11" || name == "d3d11"){
+		return RHI::BackendType::Direct3D11;
+	}
+	if(name == "Direct3D12" || name == "D3D12" ||
+		name == "direct3d12" || name == "d3d12"){
+		return RHI::BackendType::Direct3D12;
+	}
+	if(name == "Vulkan" || name == "vulkan") return RHI::BackendType::Vulkan;
+	return std::nullopt;
+}
+
 class ConfigService: public IService {
 public:
-	ConfigService(){
-	}
-	~ConfigService(){
-	}
+	ConfigService() = default;
+	~ConfigService() = default;
 
 	bool Initialize(){
-
 		if(LoadEditorConfig(EDITOR_CONFIG_PATH)){
-			OutputDebugStringW(L"Editor config loaded successfully.\n");
-		} else{
-			OutputDebugStringW(L"Failed to load editor config. Using default settings.\n");
+			OutputDebugStringW(L"Engine config loaded successfully.\n");
+		} else {
+			OutputDebugStringW(L"Failed to load engine config. Using default settings.\n");
 			return false;
 		}
 
 		if(LoadApplicationConfig(APPLICATION_CONFIG_PATH)){
 			OutputDebugStringW(L"Application config loaded successfully.\n");
-		} else{
+		} else {
 			OutputDebugStringW(L"Failed to load application config. Using default settings.\n");
 			return false;
 		}
 
+		// ApplicationConfigの旧キーを読み込める状態は維持するが、
+		// 実行時の正規値はEngineConfig.Graphicsを使用する。
+		appConfig.MaximumFrameLatency = static_cast<int>(
+			engineConfig.graphics.maximumFrameLatency
+		);
+
 		return true;
 	}
 
-	void Shutdown() override{
-
+	void Shutdown() override {
 		SaveEditorConfig(EDITOR_CONFIG_PATH);
 		SaveApplicationConfig(APPLICATION_CONFIG_PATH);
 	}
 
 	APPCONFIG appConfig;
+	EngineConfig engineConfig;
 	YAML::Node editorConfig;
 
 	bool LoadEditorConfig(const std::wstring& file){
@@ -55,58 +98,71 @@ public:
 			return false;
 		}
 
-		editorConfig = YAML::Load(fin);
+		try{
+			editorConfig = YAML::Load(fin);
+		} catch(const YAML::Exception& exception){
+			OutputDebugStringA((
+				std::string("Failed to parse EngineConfig.yaml: ") +
+				exception.what() + "\n"
+			).c_str());
+			return false;
+		}
 
+		LoadTypedEngineConfig();
 		return true;
 	}
 
 	void SaveEditorConfig(const std::wstring& file){
+		WriteTypedEngineConfig();
+
 		std::ofstream fout(file);
 		if(!fout){
 			OutputDebugStringW((L"Failed to save config file:" + file).c_str());
 			return;
 		}
 		fout << editorConfig;
-		fout.close();
 	}
 
 	bool LoadApplicationConfig(const std::wstring& file){
-
 		std::ifstream fin(file);
 		if(!fin){
 			OutputDebugStringW((L"Config file not found: " + file).c_str());
 			return false;
 		}
 
-		YAML::Node root = YAML::Load(fin);
+		YAML::Node root;
+		try{
+			root = YAML::Load(fin);
+		} catch(const YAML::Exception& exception){
+			OutputDebugStringA((
+				std::string("Failed to parse ApplicationConfig.yaml: ") +
+				exception.what() + "\n"
+			).c_str());
+			return false;
+		}
 
 		if(root["AppType"])
 			appConfig.AppType = static_cast<APPTYPE>(root["AppType"].as<int>());
-
 		if(root["StartScene"])
 			appConfig.startSceneFilePath = root["StartScene"].as<std::string>();
-
 		if(root["Vsync"])
 			appConfig.Vsync = root["Vsync"].as<bool>();
-
+		if(root["MaximumFrameLatency"]){
+			const int legacyLatency = root["MaximumFrameLatency"].as<int>();
+			appConfig.MaximumFrameLatency = (std::max)(1, (std::min)(3, legacyLatency));
+		}
 		if(root["FullScreen"])
 			appConfig.FullScreen = root["FullScreen"].as<bool>();
-
 		if(root["Width"])
 			appConfig.Width = root["Width"].as<int>();
-
 		if(root["Height"])
 			appConfig.Height = root["Height"].as<int>();
-
 		if(root["MasterVolume"])
 			appConfig.MasterVolume = root["MasterVolume"].as<float>();
-
 		if(root["BGMVolume"])
 			appConfig.BGMVolume = root["BGMVolume"].as<float>();
-
 		if(root["SEVolume"])
 			appConfig.SEVolume = root["SEVolume"].as<float>();
-
 		if(root["TemplateDir"])
 			appConfig.templateDir = root["TemplateDir"].as<std::string>();
 
@@ -114,13 +170,14 @@ public:
 	}
 
 	void SaveApplicationConfig(const std::wstring& file){
-
 		YAML::Emitter out;
 		out << YAML::BeginMap;
-
 		out << YAML::Key << "AppType" << YAML::Value << static_cast<int>(appConfig.AppType);
 		out << YAML::Key << "StartScene" << YAML::Value << appConfig.startSceneFilePath;
 		out << YAML::Key << "Vsync" << YAML::Value << appConfig.Vsync;
+		// 旧ApplicationConfigとの互換性を維持するためミラー値も保存する。
+		out << YAML::Key << "MaximumFrameLatency" << YAML::Value
+			<< static_cast<int>(engineConfig.graphics.maximumFrameLatency);
 		out << YAML::Key << "FullScreen" << YAML::Value << appConfig.FullScreen;
 		out << YAML::Key << "Width" << YAML::Value << appConfig.Width;
 		out << YAML::Key << "Height" << YAML::Value << appConfig.Height;
@@ -128,7 +185,6 @@ public:
 		out << YAML::Key << "BGMVolume" << YAML::Value << appConfig.BGMVolume;
 		out << YAML::Key << "SEVolume" << YAML::Value << appConfig.SEVolume;
 		out << YAML::Key << "TemplateDir" << YAML::Value << appConfig.templateDir;
-
 		out << YAML::EndMap;
 
 		std::ofstream fout(file);
@@ -137,5 +193,56 @@ public:
 			return;
 		}
 		fout << out.c_str();
+	}
+
+private:
+	void LoadTypedEngineConfig(){
+		engineConfig = EngineConfig{};
+		const YAML::Node graphics = editorConfig["Graphics"];
+		if(!graphics || !graphics.IsMap()) return;
+
+		try{
+			if(graphics["Backend"]){
+				const std::string backendName = graphics["Backend"].as<std::string>();
+				const auto backend = ParseEngineConfigBackend(backendName);
+				if(backend){
+					engineConfig.graphics.backend = *backend;
+				} else {
+					OutputDebugStringA((
+						"Unknown Graphics.Backend '" + backendName +
+						"'. Falling back to Direct3D11.\n"
+					).c_str());
+				}
+			}
+
+			if(graphics["MaximumFrameLatency"]){
+				const int configuredLatency = graphics["MaximumFrameLatency"].as<int>();
+				const int clampedLatency = (std::max)(1, (std::min)(3, configuredLatency));
+				engineConfig.graphics.maximumFrameLatency =
+					static_cast<uint32_t>(clampedLatency);
+				if(configuredLatency != clampedLatency){
+					OutputDebugStringA(
+						"Graphics.MaximumFrameLatency is outside 1..3 and was clamped.\n"
+					);
+				}
+			}
+		} catch(const YAML::Exception& exception){
+			OutputDebugStringA((
+				std::string("Invalid Graphics section in EngineConfig.yaml: ") +
+				exception.what() + ". Using default graphics settings.\n"
+			).c_str());
+			engineConfig = EngineConfig{};
+		}
+	}
+
+	void WriteTypedEngineConfig(){
+		YAML::Node graphics = editorConfig["Graphics"];
+		graphics["Backend"] = std::string(
+			ToEngineConfigBackendName(engineConfig.graphics.backend)
+		);
+		graphics["MaximumFrameLatency"] = static_cast<int>(
+			(std::max)(1u, (std::min)(3u, engineConfig.graphics.maximumFrameLatency))
+		);
+		editorConfig["Graphics"] = graphics;
 	}
 };

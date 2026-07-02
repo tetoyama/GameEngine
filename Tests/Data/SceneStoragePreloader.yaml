@@ -1,0 +1,7 @@
+SceneSettings:
+  Storage:
+    ExpectedEntities: 2048
+    ExpectedTransforms: 1024
+    ExpectedCullingComponents: 512
+    PreallocatedTransformPages: 6
+Entities: []

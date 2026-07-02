@@ -27,6 +27,25 @@ void ParticleSystem::Initialize() {}
 
 void ParticleSystem::Finalize() {}
 
+void ParticleSystem::RegisterTasks(SystemScheduleBuilder& builder){
+	using ParticleUpdateQuery = ECSQuery::ComponentQueryView<
+		ECSQuery::Read<TransformComponent>,
+		ECSQuery::Write<ParticleComponent>
+	>;
+
+	builder.AddQueryTask<ParticleUpdateQuery>(
+		"ParticleSystem.Simulation.Simulate",
+		SystemTaskDomain::Frame,
+		SystemPhase::Late,
+		0,
+		StructuralAccess::None,
+		ThreadAffinity::AnyWorker,
+		[this](const SystemTaskContext& context){
+			Update(context.deltaTime);
+		}
+	);
+}
+
 void ParticleSystem::Start() {
 	for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
 		auto context = scene->GetSceneContext();

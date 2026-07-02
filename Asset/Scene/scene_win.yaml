@@ -1,3 +1,17 @@
+SceneSettings:
+  Storage:
+    ExpectedEntities: 1024
+    ExpectedTransforms: 768
+    ExpectedRenderables: 512
+    ExpectedCullingComponents: 512
+    ExpectedStaticEntities: 256
+    PreallocatedTransformPages: 0
+    PreallocatedTagPages: 0
+    RenderPacketReserve: 512
+    VisibleEntityReserve: 512
+    StaticBatchReserve: 64
+    AllowRuntimeGrowth: true
+    LogCapacityGrowth: true
 Entities:
   - Entity: 1
     Components:
@@ -51,9 +65,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: 0
-          y: 69.9584045
-          z: -17.0392513
+          x: 0.923976898
+          y: 54.9576035
+          z: -15.6661453
           w: 0
         Direction:
           x: 0
@@ -80,17 +94,17 @@ Entities:
             - 1
             - 0
             - -0
-            - 0
+            - -0.923976898
           -
             - 0
             - 0.0407850221
             - 0.999167919
-            - 14.1718187
+            - 13.4116631
           -
             - 0
             - -0.999167919
             - 0.0407850221
-            - 70.5951385
+            - 55.5508156
           -
             - 0
             - 0
@@ -239,9 +253,9 @@ Entities:
           z: 0
         Rotation:
           - 0
-          - -0.707106769
+          - -0.707106829
           - 0
-          - 0.707106709
+          - 0.707106769
         Scale:
           x: 1
           y: 1
@@ -294,10 +308,10 @@ Entities:
           y: 0.200000003
           z: 11.7557039
         Rotation:
-          - -0
-          - -0.89100647
           - 0
-          - -0.453990519
+          - 0.891006529
+          - -0
+          - 0.453990549
         Scale:
           x: 1
           y: 1
@@ -322,10 +336,10 @@ Entities:
           y: 0.200000003
           z: -11.7557106
         Rotation:
-          - -0
-          - -0.453990459
           - 0
-          - -0.891006529
+          - 0.453990489
+          - -0
+          - 0.891006589
         Scale:
           x: 1
           y: 1
@@ -350,10 +364,10 @@ Entities:
           y: 0.200000003
           z: -19.0211296
         Rotation:
-          - 0
-          - 0.156434521
           - -0
-          - -0.987688303
+          - -0.156434536
+          - 0
+          - 0.987688363
         Scale:
           x: 1
           y: 1
@@ -383,7 +397,7 @@ Entities:
           - -0
           - 1
         Scale:
-          x: 1.5
+          x: 0.810000002
           y: 0.300999999
           z: 0.581081092
         Parent: 0
@@ -397,8 +411,8 @@ Entities:
           x: 0.5
           y: 0.5
         pivot:
-          x: 0
-          y: 0
+          x: 0.5
+          y: 0.5
   - Entity: 11
     Components:
       - Component: NameComponent
@@ -419,7 +433,7 @@ Entities:
           z: 1
         Parent: 0
       - Component: OrderInLayerComponent
-        layer: -10
+        order: -10
       - Component: MaterialComponent
         ShaderID: 0
         Material:
@@ -449,8 +463,8 @@ Entities:
           x: 0.5
           y: 0.5
         pivot:
-          x: 0
-          y: 0
+          x: 0.5
+          y: 0.5
       - Component: FadeInSprite
         FadeTime: 1
   - Entity: 12
@@ -468,7 +482,7 @@ Entities:
           - -0
           - 1
         Scale:
-          x: 0.579999983
+          x: 0.419999987
           y: 0.0600000024
           z: 1
         Parent: 0
@@ -482,8 +496,8 @@ Entities:
           x: 0.5
           y: 0.5
         pivot:
-          x: 0
-          y: 0
+          x: 0.5
+          y: 0.5
   - Entity: 13
     Components:
       - Component: NameComponent
@@ -532,8 +546,8 @@ Entities:
           x: 0.5
           y: 0.5
         pivot:
-          x: 0
-          y: 0
+          x: 0.5
+          y: 0.5
       - Component: FadeOutSprite
         FadeTime: 1
       - Component: FadeSetScene
