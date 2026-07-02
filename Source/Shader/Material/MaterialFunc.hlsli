@@ -49,6 +49,134 @@ float D_GTR2(float NdotH, float roughness)
     return a2 / (PI * d * d);
 }
 
+// CSMは高精度Cascadeから順番に評価する。
+// 現在のCascadeが完全にLitの場合だけ後段Cascadeへフォールバックし、
+// 後段で見つかったShadowはOccluderを上位Cascadeへ再投影して妥当性を確認する。
+// 最初に妥当と判定されたShadowを即時採用し、低解像度Cascadeによる上書きを防ぐ。
+float ShadowFactorCascadesHighPrecisionFallback(
+    float3 worldPos,
+    int firstLightIdx,
+    int cascadeCount,
+    float receiverNdotL,
+    ShadowPCFParams pcf)
+{
+    if (firstLightIdx < 0 ||
+        firstLightIdx >= LIGHT_MAX_COUNT ||
+        cascadeCount <= 0)
+    {
+        return 1.0;
+    }
+
+    uint texW, texH;
+    ShadowMap.GetDimensions(texW, texH);
+
+    const int safeCascadeCount = min(
+        cascadeCount,
+        LIGHT_MAX_COUNT - firstLightIdx);
+
+    [loop]
+    for (int c = 0; c < safeCascadeCount; ++c)
+    {
+        const int safeIdx = firstLightIdx + c;
+        LIGHT cLight = Lights[safeIdx];
+
+        float4 csp = mul(float4(worldPos, 1.0), cLight.LightView);
+        csp = mul(csp, cLight.LightProjection);
+
+        if (csp.w <= 0.0)
+            continue;
+
+        float3 ndc = csp.xyz / csp.w;
+        float2 cuv = ndc.xy * 0.5 + 0.5;
+        cuv.y = 1.0 - cuv.y;
+        float cdepth = ndc.z;
+
+        // CSMのDepth Clamp契約を維持するため、Receiver選択はXY範囲で行う。
+        if (any(cuv < 0.0) || any(cuv > 1.0))
+            continue;
+
+        const float bias = ResolveOrthographicShadowDepthBias(
+            cLight.Param.w,
+            receiverNdotL);
+        const float depth = saturate(cdepth - bias);
+
+        const int tileIndex = ResolveShadowAtlasTileForEntry(safeIdx);
+        float2 atlasTexelSize;
+        float2 sampleMin;
+        float2 sampleMax;
+        const float2 suvBase = ResolveShadowAtlasSampleBase(
+            cuv,
+            tileIndex,
+            atlasTexelSize,
+            sampleMin,
+            sampleMax);
+        const float shadow = SampleShadowAtlasPCFResolved(
+            suvBase,
+            depth,
+            atlasTexelSize,
+            sampleMin,
+            sampleMax,
+            pcf);
+
+        // このCascadeで影が見つからない場合は、Near ClipなどでCasterが
+        // 欠落している可能性があるため、後段Cascadeを確認する。
+        if (shadow >= 1.0f)
+            continue;
+
+        if (c > 0)
+        {
+            const int2 safeLoadCoord = clamp(
+                int2(suvBase * float2(texW, texH)),
+                int2(0, 0),
+                int2((int) texW - 1, (int) texH - 1));
+            const float rawDepth = ShadowMap.Load(int3(safeLoadCoord, 0)).r;
+            const float zScale = cLight.LightProjection[2][2];
+            const float deltaZ_ndc = abs(cdepth - rawDepth);
+            const float deltaZ_view =
+                deltaZ_ndc / max(abs(zScale), 0.000001f);
+            const float3 occluderPos =
+                worldPos - cLight.Direction.xyz * deltaZ_view;
+
+            LIGHT prevLight = Lights[safeIdx - 1];
+            float4 prevSp = mul(
+                float4(occluderPos, 1.0),
+                prevLight.LightView);
+            prevSp = mul(prevSp, prevLight.LightProjection);
+
+            LIGHT firstLight = Lights[firstLightIdx];
+            float4 firstSp = mul(
+                float4(occluderPos, 1.0),
+                firstLight.LightView);
+            firstSp = mul(firstSp, firstLight.LightProjection);
+
+            if (prevSp.w > 0.0 && firstSp.w > 0.0)
+            {
+                const float3 prevNdc = prevSp.xyz / prevSp.w;
+                float2 prevUv = prevNdc.xy * 0.5 + 0.5;
+                prevUv.y = 1.0 - prevUv.y;
+                const float3 firstNdc = firstSp.xyz / firstSp.w;
+
+                const bool occluderBelongsToHigherPrecisionCascade =
+                    all(prevUv > 0.0) &&
+                    all(prevUv < 1.0) &&
+                    firstNdc.z > 0.0 &&
+                    prevNdc.z < 1.0;
+
+                if (occluderBelongsToHigherPrecisionCascade)
+                {
+                    // 後段CascadeのShadowを誤って採用せず、さらに後段を確認する。
+                    continue;
+                }
+            }
+        }
+
+        // NearからFarへ評価しているため、ここが最も高精度な妥当Shadow。
+        return shadow;
+    }
+
+    return 1.0;
+}
+
 int ResolvePackedLightEntrySpan(LIGHT light, int firstEntryIndex, int activeEntryCount)
 {
     int remainingEntries = max(activeEntryCount - firstEntryIndex, 1);
@@ -194,7 +322,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         {
             if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && light.Dummy == 1)
             {
-                shadow = ShadowFactorCascades(
+                shadow = ShadowFactorCascadesHighPrecisionFallback(
                     input.worldPos,
                     currentEntryIndex,
                     entrySpan,
