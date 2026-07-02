@@ -133,13 +133,9 @@ float ShadowFactorCascadesPrevious(
             pcf.StepTexel,
             radius);
 
-        // 手前CascadeでCasterがNear Clipされた場合に備え、
-        // 完全にLitなら後段Cascadeを確認する。
         if (shadow >= 1.0 && c < cascadeCount - 1)
             continue;
 
-        // 後段Cascadeで見つかった影が上位Cascade由来なら採用せず、
-        // さらに後段へFallbackする。
         if (shadow < 1.0 && c > 0)
         {
             int3 loadCoord = int3(
@@ -227,10 +223,6 @@ float ResolvePointReceiverFaceAlignment(
     const int selectedFace = SelectPointShadowFace(lightToReceiver);
     const float3 faceDirection = ResolvePointShadowFaceDirection(selectedFace);
 
-    // Perspective shadow acne is governed by the receiver slope relative to
-    // the selected face camera, not by NdotL to the radial light direction.
-    // A horizontal floor viewed by a horizontal cubemap face is a grazing
-    // receiver even while its radial NdotL remains non-zero.
     return saturate(abs(dot(normalize(receiverNormal), faceDirection)));
 }
 
@@ -326,8 +318,6 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         if (NdotL <= 0)
             continue;
 
-        // Point / Spotの影響範囲外ではDiffuseとSpecularが必ず0になる。
-        // 既存のAmbient加算だけを保持し、Shadow評価とBRDF計算を省略する。
         if (attenuation <= 0.0f)
         {
             result.ambient += light.Ambient.rgb;
@@ -338,10 +328,17 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
 
         if (ShouldEvaluateShadow(light))
         {
+            const float3 shadowWorldPos = ApplyShadowReceiverBias(
+                input.worldPos,
+                N,
+                L,
+                NdotL,
+                light);
+
             if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && light.Dummy == 1)
             {
                 shadow = ShadowFactorCascadesPrevious(
-                    input.worldPos,
+                    shadowWorldPos,
                     currentEntryIndex,
                     entrySpan,
                     currentShadowAtlasOffset,
@@ -356,7 +353,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
                         N);
 
                 shadow = ShadowFactorPoint(
-                    input.worldPos,
+                    shadowWorldPos,
                     currentEntryIndex,
                     entrySpan,
                     receiverFaceAlignment,
@@ -365,7 +362,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
             else
             {
                 shadow = ShadowFactor(
-                    input.worldPos,
+                    shadowWorldPos,
                     light,
                     currentEntryIndex,
                     NdotL,
