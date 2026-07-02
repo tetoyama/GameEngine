@@ -28,7 +28,7 @@ inline RenderPacketCullingView Build(
 	CullingViewKind parentKind,
 	std::uint32_t parentInstanceID,
 	std::uint32_t tileIndex,
-	bool depthClipEnabled = false
+	bool /*gpuDepthClipEnabled*/ = false
 ) noexcept {
 	RenderPacketCullingView view;
 	view.kind = CullingViewKind::Shadow;
@@ -40,11 +40,9 @@ inline RenderPacketCullingView Build(
 	view.viewProjection =
 		lightContext.viewMatrix * lightContext.projectionMatrix;
 
-	// Shadow caster culling must be conservative.
-	// Point / Spot shadows still render with GPU DepthClipEnable=true, but CPU
-	// far-plane culling can drop large or boundary-touching casters before the GPU
-	// clips them. That creates a visible band where lighting still reaches the
-	// receiver but the shadow caster disappeared from the shadow map.
+	// Shadow caster CPU culling remains conservative for every light type.
+	// The GPU may depth-clip Point and Spot triangles, while the CPU keeps
+	// boundary-touching caster bounds and uses only the four lateral planes.
 	view.depthClipEnabled = false;
 	return view;
 }
