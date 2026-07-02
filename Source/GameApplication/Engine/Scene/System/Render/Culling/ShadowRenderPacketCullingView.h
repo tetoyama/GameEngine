@@ -23,8 +23,8 @@ inline std::uint32_t MakeInstanceID(
 	return hash == 0 ? 1u : hash;
 }
 
-inline RenderPacketCullingView Build(
-	const RenderPassContext& lightContext,
+inline RenderPacketCullingView BuildFromViewProjection(
+	const DirectX::XMMATRIX& viewProjection,
 	CullingViewKind parentKind,
 	std::uint32_t parentInstanceID,
 	std::uint32_t tileIndex,
@@ -37,14 +37,29 @@ inline RenderPacketCullingView Build(
 		parentInstanceID,
 		tileIndex
 	);
-	view.viewProjection =
-		lightContext.viewMatrix * lightContext.projectionMatrix;
+	view.viewProjection = viewProjection;
 
 	// Shadow caster CPU culling remains conservative for every light type.
 	// The GPU may depth-clip Point and Spot triangles, while the CPU keeps
 	// boundary-touching caster bounds and uses only the four lateral planes.
 	view.depthClipEnabled = false;
 	return view;
+}
+
+inline RenderPacketCullingView Build(
+	const RenderPassContext& lightContext,
+	CullingViewKind parentKind,
+	std::uint32_t parentInstanceID,
+	std::uint32_t tileIndex,
+	bool gpuDepthClipEnabled = false
+) noexcept {
+	return BuildFromViewProjection(
+		lightContext.viewMatrix * lightContext.projectionMatrix,
+		parentKind,
+		parentInstanceID,
+		tileIndex,
+		gpuDepthClipEnabled
+	);
 }
 
 } // namespace ShadowRenderPacketCullingView
