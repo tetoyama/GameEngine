@@ -26,12 +26,8 @@ RenderPacketCullingView MakeShadowView(
 	std::uint32_t tileIndex,
 	bool gpuDepthClipEnabled = false
 ){
-	RenderPassContext lightContext;
-	lightContext.viewMatrix = DirectX::XMMatrixIdentity();
-	lightContext.projectionMatrix =
-		DirectX::XMMatrixOrthographicLH(2.0f, 2.0f, 0.0f, 20.0f);
-	return ShadowRenderPacketCullingView::Build(
-		lightContext,
+	return ShadowRenderPacketCullingView::BuildFromViewProjection(
+		DirectX::XMMatrixOrthographicLH(2.0f, 2.0f, 0.0f, 20.0f),
 		parentKind,
 		parentInstanceID,
 		tileIndex,
