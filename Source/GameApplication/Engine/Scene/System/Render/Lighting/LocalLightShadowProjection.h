@@ -33,6 +33,13 @@ inline float DepthRatio(float lightRange) noexcept {
 	return ResolveFarPlane(lightRange) / NearPlane;
 }
 
+inline float ResolveProjectedDepthBias(float projectedDepthBias) noexcept {
+	if(!std::isfinite(projectedDepthBias)){
+		return 0.0f;
+	}
+	return (std::clamp)(projectedDepthBias, 0.0f, MaximumNdcBias);
+}
+
 inline float ResolvePerspectiveDepthDerivative(
 	float viewDepth,
 	float lightRange
@@ -68,13 +75,8 @@ inline float ResolvePerspectiveDepthBias(
 		farPlane
 	);
 
-	const float baseNdcBias = std::isfinite(projectedDepthBiasAtReferenceDepth)
-		? (std::clamp)(
-			projectedDepthBiasAtReferenceDepth,
-			0.0f,
-			MaximumNdcBias
-		)
-		: 0.0f;
+	const float baseNdcBias =
+		ResolveProjectedDepthBias(projectedDepthBiasAtReferenceDepth);
 	if(baseNdcBias <= 0.0f){
 		return 0.0f;
 	}
