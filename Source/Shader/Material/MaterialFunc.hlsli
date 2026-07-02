@@ -49,35 +49,57 @@ float D_GTR2(float NdotH, float roughness)
     return a2 / (PI * d * d);
 }
 
-// CSMは高精度Cascadeから順番に評価する。
-// 現在のCascadeが完全にLitの場合だけ後段Cascadeへフォールバックし、
-// 後段で見つかったShadowはOccluderを上位Cascadeへ再投影して妥当性を確認する。
-// 最初に妥当と判定されたShadowを即時採用し、低解像度Cascadeによる上書きを防ぐ。
-float ShadowFactorCascadesHighPrecisionFallback(
+// PR #46で正常だったCSM専用PCF処理。
+// CSMについては共通Atlas PCFへ統合せず、当時のTexel幅とFallbackを維持する。
+float SampleCascadePCFPrevious(
+    float2 suvBase,
+    float depth,
+    float2 texelSize,
+    float stepTexel,
+    int radius)
+{
+    float shadow = 0.0;
+    int count = 0;
+
+    [loop]
+    for (int sy = -radius; sy <= radius; sy++)
+    {
+        [loop]
+        for (int sx = -radius; sx <= radius; sx++)
+        {
+            shadow += ShadowMap.SampleCmpLevelZero(
+                ShadowSampler,
+                suvBase + float2(sx, sy) * texelSize * stepTexel,
+                depth);
+            count++;
+        }
+    }
+
+    return shadow / max(count, 1);
+}
+
+// PR #46時点のCSM選択・Fallback・合成処理をそのまま維持する。
+float ShadowFactorCascadesPrevious(
     float3 worldPos,
     int firstLightIdx,
     int cascadeCount,
-    float receiverNdotL,
+    int atlasOffset,
     ShadowPCFParams pcf)
 {
-    if (firstLightIdx < 0 ||
-        firstLightIdx >= LIGHT_MAX_COUNT ||
-        cascadeCount <= 0)
-    {
-        return 1.0;
-    }
-
     uint texW, texH;
     ShadowMap.GetDimensions(texW, texH);
 
-    const int safeCascadeCount = min(
-        cascadeCount,
-        LIGHT_MAX_COUNT - firstLightIdx);
+    uint grid = (uint) ceil(sqrt((float) ShadowAtlasCount));
+    float tile = 1.0 / grid;
+    float2 texelSize = float2(1.0 / texW, 1.0 / texH) * tile;
+
+    int radius = max(pcf.KernelRadius, 0);
+    float finalShadow = 1.0;
 
     [loop]
-    for (int c = 0; c < safeCascadeCount; ++c)
+    for (int c = 0; c < cascadeCount; c++)
     {
-        const int safeIdx = firstLightIdx + c;
+        int safeIdx = min(firstLightIdx + c, LIGHT_MAX_COUNT - 1);
         LIGHT cLight = Lights[safeIdx];
 
         float4 csp = mul(float4(worldPos, 1.0), cLight.LightView);
@@ -91,50 +113,45 @@ float ShadowFactorCascadesHighPrecisionFallback(
         cuv.y = 1.0 - cuv.y;
         float cdepth = ndc.z;
 
-        // CSMのDepth Clamp契約を維持するため、Receiver選択はXY範囲で行う。
-        if (any(cuv < 0.0) || any(cuv > 1.0))
+        bool inUV = all(cuv >= 0.0) && all(cuv <= 1.0);
+        if (!inUV)
             continue;
 
-        const float bias = ResolveOrthographicShadowDepthBias(
-            cLight.Param.w,
-            receiverNdotL);
-        const float depth = saturate(cdepth - bias);
+        float bias = cLight.Param.w;
+        float depth = saturate(cdepth - bias);
 
-        const int tileIndex = ResolveShadowAtlasTileForEntry(safeIdx);
-        float2 atlasTexelSize;
-        float2 sampleMin;
-        float2 sampleMax;
-        const float2 suvBase = ResolveShadowAtlasSampleBase(
-            cuv,
-            tileIndex,
-            atlasTexelSize,
-            sampleMin,
-            sampleMax);
-        const float shadow = SampleShadowAtlasPCFResolved(
+        int tileIndex = atlasOffset + c;
+        uint gx = tileIndex % grid;
+        uint gy = tileIndex / grid;
+        float2 tileMin = float2(gx, gy) * tile;
+        float2 suvBase = tileMin + cuv * tile;
+
+        float shadow = SampleCascadePCFPrevious(
             suvBase,
             depth,
-            atlasTexelSize,
-            sampleMin,
-            sampleMax,
-            pcf);
+            texelSize,
+            pcf.StepTexel,
+            radius);
 
-        // このCascadeで影が見つからない場合は、Near ClipなどでCasterが
-        // 欠落している可能性があるため、後段Cascadeを確認する。
-        if (shadow >= 1.0f)
+        // 手前CascadeでCasterがNear Clipされた場合に備え、
+        // 完全にLitなら後段Cascadeを確認する。
+        if (shadow >= 1.0 && c < cascadeCount - 1)
             continue;
 
-        if (c > 0)
+        // 後段Cascadeで見つかった影が上位Cascade由来なら採用せず、
+        // さらに後段へFallbackする。
+        if (shadow < 1.0 && c > 0)
         {
-            const int2 safeLoadCoord = clamp(
-                int2(suvBase * float2(texW, texH)),
-                int2(0, 0),
-                int2((int) texW - 1, (int) texH - 1));
-            const float rawDepth = ShadowMap.Load(int3(safeLoadCoord, 0)).r;
-            const float zScale = cLight.LightProjection[2][2];
-            const float deltaZ_ndc = abs(cdepth - rawDepth);
-            const float deltaZ_view =
-                deltaZ_ndc / max(abs(zScale), 0.000001f);
-            const float3 occluderPos =
+            int3 loadCoord = int3(
+                (int) (suvBase.x * texW),
+                (int) (suvBase.y * texH),
+                0);
+            float rawDepth = ShadowMap.Load(loadCoord).r;
+
+            float zScale = cLight.LightProjection[2][2];
+            float deltaZ_ndc = abs(cdepth - rawDepth);
+            float deltaZ_view = deltaZ_ndc / abs(zScale);
+            float3 occluderPos =
                 worldPos - cLight.Direction.xyz * deltaZ_view;
 
             LIGHT prevLight = Lights[safeIdx - 1];
@@ -143,38 +160,35 @@ float ShadowFactorCascadesHighPrecisionFallback(
                 prevLight.LightView);
             prevSp = mul(prevSp, prevLight.LightProjection);
 
-            LIGHT firstLight = Lights[firstLightIdx];
+            LIGHT firstLight = Lights[min(firstLightIdx, LIGHT_MAX_COUNT - 1)];
             float4 firstSp = mul(
                 float4(occluderPos, 1.0),
                 firstLight.LightView);
             firstSp = mul(firstSp, firstLight.LightProjection);
+            float3 firstNdc = firstSp.xyz / firstSp.w;
 
-            if (prevSp.w > 0.0 && firstSp.w > 0.0)
+            if (prevSp.w > 0.0)
             {
-                const float3 prevNdc = prevSp.xyz / prevSp.w;
+                float3 prevNdc = prevSp.xyz / prevSp.w;
                 float2 prevUv = prevNdc.xy * 0.5 + 0.5;
                 prevUv.y = 1.0 - prevUv.y;
-                const float3 firstNdc = firstSp.xyz / firstSp.w;
 
-                const bool occluderBelongsToHigherPrecisionCascade =
-                    all(prevUv > 0.0) &&
+                if (all(prevUv > 0.0) &&
                     all(prevUv < 1.0) &&
                     firstNdc.z > 0.0 &&
-                    prevNdc.z < 1.0;
-
-                if (occluderBelongsToHigherPrecisionCascade)
+                    prevNdc.z < 1.0)
                 {
-                    // 後段CascadeのShadowを誤って採用せず、さらに後段を確認する。
                     continue;
                 }
             }
         }
 
-        // NearからFarへ評価しているため、ここが最も高精度な妥当Shadow。
-        return shadow;
+        finalShadow = min(finalShadow, shadow);
+        if (0.0f >= finalShadow)
+            break;
     }
 
-    return 1.0;
+    return finalShadow;
 }
 
 int ResolvePackedLightEntrySpan(LIGHT light, int firstEntryIndex, int activeEntryCount)
@@ -253,6 +267,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
 
     int activeEntryCount = clamp(ActiveLightCount, 0, LIGHT_MAX_COUNT);
     int entryIndex = 0;
+    int shadowAtlasOffset = 0;
 
     [loop]
     while (entryIndex < activeEntryCount)
@@ -263,8 +278,11 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
             light,
             currentEntryIndex,
             activeEntryCount);
+        int currentShadowAtlasOffset = shadowAtlasOffset;
 
         entryIndex += entrySpan;
+        if (light.CastShadow != 0)
+            shadowAtlasOffset += entrySpan;
 
         if (light.Enable == 0)
             continue;
@@ -322,11 +340,11 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         {
             if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && light.Dummy == 1)
             {
-                shadow = ShadowFactorCascadesHighPrecisionFallback(
+                shadow = ShadowFactorCascadesPrevious(
                     input.worldPos,
                     currentEntryIndex,
                     entrySpan,
-                    NdotL,
+                    currentShadowAtlasOffset,
                     shadowParam);
             }
             else if (light.LightType == LIGHT_TYPE_POINT && light.Dummy == -1)
