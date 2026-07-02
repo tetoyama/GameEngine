@@ -5,6 +5,51 @@
 #include "../commonDefine.h"
 #endif
 
+#ifndef COMMON_HLSL
+#include "../common.hlsl"
+#endif
+
+#ifndef SHADOW_BIAS_MODE_LEGACY_NDC
+#define SHADOW_BIAS_MODE_LEGACY_NDC (0)
+#endif
+#ifndef SHADOW_BIAS_MODE_WORLD_SPACE
+#define SHADOW_BIAS_MODE_WORLD_SPACE (1)
+#endif
+
+bool UsesWorldSpaceShadowBias(LIGHT light)
+{
+    return (int) round(light.ShadowBias.z) == SHADOW_BIAS_MODE_WORLD_SPACE;
+}
+
+float3 ApplyShadowReceiverBias(
+    float3 worldPos,
+    float3 worldNormal,
+    float3 directionToLight,
+    float normalDotLight,
+    LIGHT light)
+{
+    if (!UsesWorldSpaceShadowBias(light))
+        return worldPos;
+
+    const float3 safeNormal = normalize(worldNormal);
+    const float3 safeDirectionToLight = normalize(directionToLight);
+    const float depthBias = max(light.ShadowBias.x, 0.0f);
+    const float normalBias = max(light.ShadowBias.y, 0.0f);
+    const float grazingFactor = saturate(1.0f - normalDotLight);
+
+    return worldPos +
+        safeDirectionToLight * depthBias +
+        safeNormal * (normalBias * grazingFactor);
+}
+
+float ResolveShadowCompareDepth(float projectedDepth, LIGHT light)
+{
+    if (UsesWorldSpaceShadowBias(light))
+        return saturate(projectedDepth);
+
+    return saturate(projectedDepth - max(light.ShadowBias.x, 0.0f));
+}
+
 float ResolveProjectedShadowDepthBias(float projectedDepthBias)
 {
     if (!isfinite(projectedDepthBias))
@@ -65,13 +110,6 @@ float ResolvePerspectiveShadowDepthBias(
         nearPlane,
         safeFar);
 
-    // DirectX LH perspective depth:
-    // z_ndc = far/(far-near) - near*far/((far-near)*viewZ)
-    // Its derivative is proportional to 1/viewZ^2. A fixed NDC bias therefore
-    // becomes an increasingly large world-space offset at long distance and
-    // eventually skips over the caster. Convert the persisted bias at the
-    // reference depth into a world-space-equivalent bias, then project it at
-    // the current receiver depth.
     const float projectionScale =
         (nearPlane * safeFar) /
         max(safeFar - nearPlane, 0.000001f);
@@ -95,8 +133,6 @@ float ResolvePerspectiveShadowDepthBias(
     const float distanceAdjustedBias =
         worldEquivalentBias * slopeScale * currentDerivative;
 
-    // Never exceed the legacy fixed-NDC value at close range. This preserves
-    // the self-shadow fix while preventing distant shadows from disappearing.
     return min(baseNdcBias, distanceAdjustedBias);
 }
 
