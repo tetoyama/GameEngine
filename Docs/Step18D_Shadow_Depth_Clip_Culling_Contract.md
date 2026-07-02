@@ -2,17 +2,29 @@
 
 ## 目的
 
-ShadowMap PassのGPU RasterizerとCPU Frustum Cullingで、Depth方向のCaster判定を一致させる。
+ShadowMap Passで、GPU RasterizerのProjection別Depth Clipと、CPU Shadow Caster Cullingの保守性を両立する。
 
 ## 背景
 
-`ShadowMapPass`は`DepthClipEnable=false`で描画する。
+GPU RasterizerはProjection種別で分離する。
 
-この状態ではGPUがLight ViewのNear / Far範囲外CasterをRasterize対象として残す。一方、標準の6 Plane FrustumをCPU Cullingへそのまま使用すると、Near / Far範囲外CasterをCPUだけが除外し、通常描画時には存在していた影が欠落する。
+```text
+Directional / CSM
+    DepthClipEnable = false
+
+Point / Spot
+    DepthClipEnable = true
+```
+
+Point / SpotではPerspective Near / Far外のTriangleをGPUでClipし、Depth端へ押し込まれる偽Shadowを防ぐ。
+
+一方、CPU Frustum Cullingで同じNear / Far Planeをそのまま有効化すると、大きいAABBまたは境界を跨ぐCasterをGPUへ送る前に除外できる。この場合、Light Range内のReceiverへ光は届くのに、CasterだけがShadow Mapから消える。
+
+CPU CullingはGPU Rasterizerと完全一致させず、Shadow欠落を避けるため意図的に保守的にする。
 
 ## 契約
 
-`CullingViewKind::Shadow`では左右・右・上・下の4 Planeだけを使用し、Near / Far Planeを無効化する。
+`CullingViewKind::Shadow`では、Light Typeに関係なく左右・右・上・下の4 Planeだけを使用し、Near / Far Planeを無効化する。
 
 ```text
 Player / Editor View
@@ -21,6 +33,16 @@ Player / Editor View
 Shadow View
     -> Left / Right / Bottom / Top
     -> Near / FarはZero Planeとして無効化
+```
+
+GPU側ではPoint / SpotだけPerspective Depth Clipを有効化する。
+
+```text
+CPU Shadow Culling
+    -> Caster AABBを保守的に保持
+
+GPU Rasterizer
+    -> Projection種別に応じてTriangleを正確にClip
 ```
 
 Zero Planeは`CullingMath::IntersectsFrustum`でOutside判定を発生させない。
@@ -54,7 +76,7 @@ PlayerとEditor、同一View内の別Tileは異なるVisibility Viewを持つ。
 `RenderPacketViewCullingSmokeTest`で次を検証する。
 
 - Player / Editor ViewのNear / Far Planeが有効
-- Shadow ViewのNear / Far PlaneがZero Plane
+- 全Shadow ViewのNear / Far PlaneがZero Plane
 - Near Planeより手前のCasterを通常ViewではCulling
 - Far Planeより奥のCasterを通常ViewではCulling
 - 同じCasterをShadow Viewでは維持
@@ -63,7 +85,9 @@ PlayerとEditor、同一View内の別Tileは異なるVisibility Viewを持つ。
 
 ## 完了条件
 
-- `DepthClipEnable=false`時にNear / Far範囲外CasterをCPUだけで除外しない
+- Directional / CSM GPU RasterizerでDepth Clampを維持
+- Point / Spot GPU RasterizerでPerspective Depth Clipを有効化
+- 全Shadow CPU CullingでNear / Far範囲外Casterを早期除外しない
 - 左右上下のLight Frustum外Casterは除外できる
 - Static Shadowと通常Shadow Packetが同じLight View Visibilityを使用する
 - Visibility失敗時に影欠落ではなく通常描画へFallbackする
