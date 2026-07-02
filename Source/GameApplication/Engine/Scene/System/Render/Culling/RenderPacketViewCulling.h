@@ -20,6 +20,8 @@ struct RenderPacketCullingView {
 	CullingViewKind kind = CullingViewKind::Custom;
 	std::uint32_t instanceID = 0;
 	DirectX::XMMATRIX viewProjection = DirectX::XMMatrixIdentity();
+	// CPU Frustum Near/Far-plane culling policy. This is independent from the
+	// GPU rasterizer's DepthClipEnable state.
 	bool depthClipEnabled = true;
 };
 
@@ -50,9 +52,10 @@ inline CullingFrustum BuildFrustum(
 	CullingFrustum frustum =
 		CullingFrustumRuntime::FromViewProjection(view.viewProjection);
 	if(view.kind == CullingViewKind::Shadow && !view.depthClipEnabled){
-		// Directional / CSMはDepthClipEnable=falseで描画する。
-		// GPUが残すNear/Far範囲外CasterをCPUだけで除外しないよう、
-		// Depth Clampを使うShadow Viewでは左右上下Planeだけを使用する。
+		// CPU Shadow Caster Culling is intentionally conservative for every
+		// projection type. Point / Spot may use GPU DepthClipEnable=true, while
+		// CPU Near/Far rejection stays disabled so a boundary-touching caster
+		// bound is not removed before triangle-level clipping.
 		frustum.planes[4] = {};
 		frustum.planes[5] = {};
 	}
