@@ -170,7 +170,7 @@ inline void Inspect(LightComponent& component){
 		}
 
 		changed |= ImGui::UndoDragFloat(
-			"Shadow Bias (World)",
+			"Shadow Bias",
 			&light.Param.w,
 			0.0001f,
 			0.0f,
@@ -179,9 +179,9 @@ inline void Inspect(LightComponent& component){
 		);
 		if(ImGui::IsItemHovered()){
 			ImGui::SetTooltip(
-				"World-space receiver bias for Point and Spot shadows. "
-				"It is converted to perspective NDC depth per receiver, so changing Far "
-				"does not require an equivalent fixed NDC bias adjustment."
+				"Projected-depth bias at the reference depth. "
+				"Point and Spot shadows reduce it with distance so the equivalent "
+				"world-space offset remains stable."
 			);
 		}
 
