@@ -77,13 +77,12 @@ int ResolveShadowAtlasTileForEntry(int lightEntryIndex)
     return tileIndex;
 }
 
-float SampleCascadePCF(float2 suvBase, float depth, float2 texelSize, float stepTexel, int radius);
-
-float SampleShadowAtlasPCF(
+float2 ResolveShadowAtlasSampleBase(
     float2 uv,
-    float depth,
     int tileIndex,
-    ShadowPCFParams pcf)
+    out float2 atlasTexelSize,
+    out float2 sampleMin,
+    out float2 sampleMax)
 {
     uint atlasCount = max((uint) ShadowAtlasCount, 1u);
     uint grid = max((uint) ceil(sqrt((float) atlasCount)), 1u);
@@ -96,16 +95,27 @@ float SampleShadowAtlasPCF(
     uint texW, texH;
     ShadowMap.GetDimensions(texW, texH);
 
-    float2 atlasTexelSize = float2(1.0 / texW, 1.0 / texH);
+    // PCF StepはFull Atlas上の実Texel単位。Tile比率を重ねて掛けない。
+    atlasTexelSize = float2(1.0 / texW, 1.0 / texH);
     float2 tileMin = float2(gx, gy) * tile;
     float2 tileMax = tileMin + tile;
-    float2 sampleMin = tileMin + atlasTexelSize * 0.5;
-    float2 sampleMax = tileMax - atlasTexelSize * 0.5;
-    float2 suvBase = clamp(
+    sampleMin = tileMin + atlasTexelSize * 0.5;
+    sampleMax = tileMax - atlasTexelSize * 0.5;
+
+    return clamp(
         tileMin + saturate(uv) * tile,
         sampleMin,
         sampleMax);
+}
 
+float SampleShadowAtlasPCFResolved(
+    float2 suvBase,
+    float depth,
+    float2 atlasTexelSize,
+    float2 sampleMin,
+    float2 sampleMax,
+    ShadowPCFParams pcf)
+{
     float shadow = 0.0;
     int count = 0;
     int radius = max(pcf.KernelRadius, 0);
@@ -129,6 +139,31 @@ float SampleShadowAtlasPCF(
     }
 
     return shadow / max(count, 1);
+}
+
+float SampleShadowAtlasPCF(
+    float2 uv,
+    float depth,
+    int tileIndex,
+    ShadowPCFParams pcf)
+{
+    float2 atlasTexelSize;
+    float2 sampleMin;
+    float2 sampleMax;
+    float2 suvBase = ResolveShadowAtlasSampleBase(
+        uv,
+        tileIndex,
+        atlasTexelSize,
+        sampleMin,
+        sampleMax);
+
+    return SampleShadowAtlasPCFResolved(
+        suvBase,
+        depth,
+        atlasTexelSize,
+        sampleMin,
+        sampleMax,
+        pcf);
 }
 
 float ShadowFactor(
@@ -233,28 +268,6 @@ float ShadowFactorPoint(
     return SampleShadowAtlasPCF(uv, depth, tileIndex, pcf);
 }
 
-float SampleCascadePCF(float2 suvBase, float depth, float2 texelSize, float stepTexel, int radius)
-{
-    float shadow = 0.0;
-    int count = 0;
-
-    [loop]
-    for (int sy = -radius; sy <= radius; sy++)
-    {
-        [loop]
-        for (int sx = -radius; sx <= radius; sx++)
-        {
-            shadow += ShadowMap.SampleCmpLevelZero(
-                ShadowSampler,
-                suvBase + float2(sx, sy) * texelSize * stepTexel,
-                depth);
-            count++;
-        }
-    }
-
-    return shadow / max(count, 1);
-}
-
 float ShadowFactorCascades(
     float3 worldPos,
     int firstLightIdx,
@@ -265,10 +278,6 @@ float ShadowFactorCascades(
     uint texW, texH;
     ShadowMap.GetDimensions(texW, texH);
 
-    uint grid = max((uint) ceil(sqrt((float) max(ShadowAtlasCount, 1))), 1u);
-    float tile = 1.0 / grid;
-    float2 texelSize = float2(1.0 / texW, 1.0 / texH) * tile;
-    int radius = max(pcf.KernelRadius, 0);
     float finalShadow = 1.0;
 
     [loop]
@@ -295,28 +304,37 @@ float ShadowFactorCascades(
         float depth = saturate(cdepth - bias);
 
         int tileIndex = ResolveShadowAtlasTileForEntry(safeIdx);
-        uint gx = tileIndex % grid;
-        uint gy = tileIndex / grid;
-        float2 tileMin = float2(gx, gy) * tile;
-        float2 suvBase = tileMin + cuv * tile;
-
-        float shadow = SampleCascadePCF(
+        float2 atlasTexelSize;
+        float2 sampleMin;
+        float2 sampleMax;
+        float2 suvBase = ResolveShadowAtlasSampleBase(
+            cuv,
+            tileIndex,
+            atlasTexelSize,
+            sampleMin,
+            sampleMax);
+        float shadow = SampleShadowAtlasPCFResolved(
             suvBase,
             depth,
-            texelSize,
-            pcf.StepTexel,
-            radius);
+            atlasTexelSize,
+            sampleMin,
+            sampleMax,
+            pcf);
 
         if (shadow >= 1.0 && c < cascadeCount - 1)
             continue;
 
         if (shadow < 1.0 && c > 0)
         {
-            int3 loadCoord = int3((int) (suvBase.x * texW), (int) (suvBase.y * texH), 0);
-            float rawDepth = ShadowMap.Load(loadCoord).r;
+            int2 safeLoadCoord = int2(
+                clamp(
+                    int2(suvBase * float2(texW, texH)),
+                    int2(0, 0),
+                    int2((int) texW - 1, (int) texH - 1)));
+            float rawDepth = ShadowMap.Load(int3(safeLoadCoord, 0)).r;
             float zScale = cLight.LightProjection[2][2];
             float deltaZ_ndc = abs(cdepth - rawDepth);
-            float deltaZ_view = deltaZ_ndc / abs(zScale);
+            float deltaZ_view = deltaZ_ndc / max(abs(zScale), 0.000001f);
             float3 occluderPos = worldPos - cLight.Direction.xyz * deltaZ_view;
 
             LIGHT prevLight = Lights[safeIdx - 1];
