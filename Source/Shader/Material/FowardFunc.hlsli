@@ -188,7 +188,9 @@ float ShadowFactor(
     if (any(uv < 0.0) || any(uv > 1.0))
         return 1.0;
 
-    float bias = light.Param.w;
+    float bias = ResolveOrthographicShadowDepthBias(
+        light.Param.w,
+        receiverNdotL);
     if (light.LightType == LIGHT_TYPE_SPOT)
     {
         bias = ResolvePerspectiveShadowDepthBias(
@@ -326,11 +328,10 @@ float ShadowFactorCascades(
 
         if (shadow < 1.0 && c > 0)
         {
-            int2 safeLoadCoord = int2(
-                clamp(
-                    int2(suvBase * float2(texW, texH)),
-                    int2(0, 0),
-                    int2((int) texW - 1, (int) texH - 1)));
+            int2 safeLoadCoord = clamp(
+                int2(suvBase * float2(texW, texH)),
+                int2(0, 0),
+                int2((int) texW - 1, (int) texH - 1));
             float rawDepth = ShadowMap.Load(int3(safeLoadCoord, 0)).r;
             float zScale = cLight.LightProjection[2][2];
             float deltaZ_ndc = abs(cdepth - rawDepth);
@@ -344,13 +345,13 @@ float ShadowFactorCascades(
             LIGHT firstLight = Lights[min(firstLightIdx, LIGHT_MAX_COUNT - 1)];
             float4 firstSp = mul(float4(occluderPos, 1.0), firstLight.LightView);
             firstSp = mul(firstSp, firstLight.LightProjection);
-            float3 firstNdc = firstSp.xyz / firstSp.w;
 
-            if (prevSp.w > 0.0)
+            if (prevSp.w > 0.0 && firstSp.w > 0.0)
             {
                 float3 prevNdc = prevSp.xyz / prevSp.w;
                 float2 prevUv = prevNdc.xy * 0.5 + 0.5;
                 prevUv.y = 1.0 - prevUv.y;
+                float3 firstNdc = firstSp.xyz / firstSp.w;
 
                 if (all(prevUv > 0.0) && all(prevUv < 1.0) &&
                     firstNdc.z > 0.0 && prevNdc.z < 1.0)
