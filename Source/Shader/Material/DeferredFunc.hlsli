@@ -194,23 +194,15 @@ float ShadowFactorCascades(
     float receiverNdotL,
     ShadowPCFParams pcf)
 {
-    if (firstLightIdx < 0 || firstLightIdx >= LIGHT_MAX_COUNT || cascadeCount <= 0)
-        return 1.0;
+    uint texW, texH;
+    ShadowMap.GetDimensions(texW, texH);
 
-    const int safeCascadeCount = min(
-        cascadeCount,
-        LIGHT_MAX_COUNT - firstLightIdx);
-    const float boundsEpsilon = 0.0001f;
+    float finalShadow = 1.0;
 
-    // Cascades are packed from highest to lowest spatial resolution.
-    // Select the first cascade whose complete light-space volume contains the
-    // receiver, sample it once, and stop. Evaluating every overlapping cascade
-    // allowed a lower-resolution cascade to overwrite the selected result and
-    // multiplied the PCF cost by as much as the cascade count.
     [loop]
-    for (int c = 0; c < safeCascadeCount; ++c)
+    for (int c = 0; c < cascadeCount; c++)
     {
-        const int safeIdx = firstLightIdx + c;
+        int safeIdx = min(firstLightIdx + c, LIGHT_MAX_COUNT - 1);
         LIGHT cLight = Lights[safeIdx];
 
         float4 csp = mul(float4(worldPos, 1.0), cLight.LightView);
@@ -222,27 +214,73 @@ float ShadowFactorCascades(
         float3 ndc = csp.xyz / csp.w;
         float2 cuv = ndc.xy * 0.5 + 0.5;
         cuv.y = 1.0 - cuv.y;
+        float cdepth = ndc.z;
 
-        const bool outsideXY =
-            any(cuv < -boundsEpsilon) ||
-            any(cuv > 1.0f + boundsEpsilon);
-        const bool outsideDepth =
-            ndc.z < -boundsEpsilon ||
-            ndc.z > 1.0f + boundsEpsilon;
-        if (outsideXY || outsideDepth)
+        if (any(cuv < 0.0) || any(cuv > 1.0))
             continue;
 
-        cuv = saturate(cuv);
-        const float bias = ResolveOrthographicShadowDepthBias(
-            cLight.Param.w,
-            receiverNdotL);
-        const float depth = saturate(ndc.z - bias);
-        const int tileIndex = ResolveShadowAtlasTileForEntry(safeIdx);
+        float bias = ResolveOrthographicShadowDepthBias(cLight.Param.w, receiverNdotL);
+        float depth = saturate(cdepth - bias);
 
-        return SampleShadowAtlasPCF(cuv, depth, tileIndex, pcf);
+        int tileIndex = ResolveShadowAtlasTileForEntry(safeIdx);
+        float2 atlasTexelSize;
+        float2 sampleMin;
+        float2 sampleMax;
+        float2 suvBase = ResolveShadowAtlasSampleBase(
+            cuv,
+            tileIndex,
+            atlasTexelSize,
+            sampleMin,
+            sampleMax);
+        float shadow = SampleShadowAtlasPCFResolved(
+            suvBase,
+            depth,
+            atlasTexelSize,
+            sampleMin,
+            sampleMax,
+            pcf);
+
+        if (shadow >= 1.0 && c < cascadeCount - 1)
+            continue;
+
+        if (shadow < 1.0 && c > 0)
+        {
+            int2 safeLoadCoord = clamp(
+                int2(suvBase * float2(texW, texH)),
+                int2(0, 0),
+                int2((int) texW - 1, (int) texH - 1));
+            float rawDepth = ShadowMap.Load(int3(safeLoadCoord, 0)).r;
+            float zScale = cLight.LightProjection[2][2];
+            float deltaZ_ndc = abs(cdepth - rawDepth);
+            float deltaZ_view = deltaZ_ndc / max(abs(zScale), 0.000001f);
+            float3 occluderPos = worldPos - cLight.Direction.xyz * deltaZ_view;
+
+            LIGHT prevLight = Lights[safeIdx - 1];
+            float4 prevSp = mul(float4(occluderPos, 1.0), prevLight.LightView);
+            prevSp = mul(prevSp, prevLight.LightProjection);
+
+            LIGHT firstLight = Lights[min(firstLightIdx, LIGHT_MAX_COUNT - 1)];
+            float4 firstSp = mul(float4(occluderPos, 1.0), firstLight.LightView);
+            firstSp = mul(firstSp, firstLight.LightProjection);
+
+            if (prevSp.w > 0.0 && firstSp.w > 0.0)
+            {
+                float3 prevNdc = prevSp.xyz / prevSp.w;
+                float2 prevUv = prevNdc.xy * 0.5 + 0.5;
+                prevUv.y = 1.0 - prevUv.y;
+                float3 firstNdc = firstSp.xyz / firstSp.w;
+
+                if (all(prevUv > 0.0) && all(prevUv < 1.0) && firstNdc.z > 0.0 && prevNdc.z < 1.0)
+                    continue;
+            }
+        }
+
+        finalShadow = min(finalShadow, shadow);
+        if (finalShadow <= 0.0f)
+            break;
     }
 
-    return 1.0;
+    return finalShadow;
 }
 
 float ShadowFactor(
