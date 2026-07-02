@@ -180,11 +180,31 @@ jobs:
             if ($shader -notmatch 'ResolvePerspectiveShadowDepthBias') {
               throw "Depth-aware local shadow bias is missing in $shaderPath"
             }
+            if ($shader -notmatch 'ResolveShadowAtlasSampleBase') {
+              throw "Shared atlas tile sampling contract is missing in $shaderPath"
+            }
+            if ($shader -notmatch 'SampleShadowAtlasPCFResolved') {
+              throw "Resolved atlas PCF path is missing in $shaderPath"
+            }
+            if ($shader -notmatch 'sampleMin\s*=\s*tileMin\s*\+\s*atlasTexelSize\s*\*\s*0\.5') {
+              throw "Atlas PCF must clamp to the current tile half-texel boundary in $shaderPath"
+            }
+            if ($shader -match 'float2\s+texelSize\s*=.*\*\s*tile\s*;') {
+              throw "Atlas PCF texel step must use full-atlas texel size without multiplying by tile scale in $shaderPath"
+            }
             foreach ($rule in $faceRules) {
               if ($shader -notmatch $rule) {
                 throw "Point shadow face order mismatch in $shaderPath"
               }
             }
+          }
+
+          $biasShader = Get-Content -Raw -Path "Source/Shader/Material/ShadowDepthBias.hlsli"
+          if ($biasShader -notmatch 'ResolveProjectedShadowDepthBias') {
+            throw "Projected shadow bias sanitization is missing."
+          }
+          if ($biasShader -notmatch 'LOCAL_LIGHT_SHADOW_BIAS_REFERENCE_DEPTH') {
+            throw "Reference-depth shadow bias contract is missing."
           }
       - name: Compile deferred PBR diagnostic shader
         shell: cmd
