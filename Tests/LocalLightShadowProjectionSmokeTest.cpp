@@ -49,6 +49,17 @@ int main(){
 	assert(std::abs(DepthRatio(10.0f) - 100.0f) < 0.001f);
 	assert(std::abs(DepthRatio(1000.0f) - 10000.0f) < 0.001f);
 
+	assert(ResolveProjectedDepthBias(-1.0f) == 0.0f);
+	assert(ResolveProjectedDepthBias(0.0f) == 0.0f);
+	assert(ResolveProjectedDepthBias(0.005f) == 0.005f);
+	assert(ResolveProjectedDepthBias(MaximumNdcBias * 2.0f) == MaximumNdcBias);
+	assert(
+		ResolveProjectedDepthBias(std::numeric_limits<float>::infinity()) == 0.0f
+	);
+	assert(
+		ResolveProjectedDepthBias(std::numeric_limits<float>::quiet_NaN()) == 0.0f
+	);
+
 	constexpr float projectedBiasAtReferenceDepth = 0.005f;
 	constexpr float range = 10.0f;
 	const float referenceDepth = (std::clamp)(
