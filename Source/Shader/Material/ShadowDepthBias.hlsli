@@ -30,10 +30,6 @@ float ResolvePerspectiveShadowDepthBias(
     // that value as if it were a world-space distance reduced 0.005 to roughly
     // 1e-6 for ordinary Point-Light distances and caused severe face-dependent
     // self-shadowing. Keep the persisted contract independent of range/depth.
-    (void)viewDepth;
-    (void)farPlane;
-    (void)receiverNdotL;
-
     return min(
         max(projectedDepthBias, 0.0f),
         LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS);
