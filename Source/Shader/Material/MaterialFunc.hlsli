@@ -78,12 +78,14 @@ float SampleCascadePCFPrevious(
     return shadow / max(count, 1);
 }
 
-// PR #46時点のCSM選択・Fallback・合成処理をそのまま維持する。
+// PR #46時点のCSM選択・Fallback・合成処理を維持する。
+// Biasのみ固定値から受光面角度対応へ変更し、Cascade選択とPCF精度には触れない。
 float ShadowFactorCascadesPrevious(
     float3 worldPos,
     int firstLightIdx,
     int cascadeCount,
     int atlasOffset,
+    float receiverNdotL,
     ShadowPCFParams pcf)
 {
     uint texW, texH;
@@ -117,7 +119,11 @@ float ShadowFactorCascadesPrevious(
         if (!inUV)
             continue;
 
-        float bias = cLight.Param.w;
+        // 旧SceneのParam.wを基準値として維持しつつ、
+        // Grazing面ではSlope Scaleを加えてCSM Acneを抑制する。
+        float bias = ResolveOrthographicShadowDepthBias(
+            cLight.Param.w,
+            receiverNdotL);
         float depth = saturate(cdepth - bias);
 
         int tileIndex = atlasOffset + c;
@@ -342,6 +348,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
                     currentEntryIndex,
                     entrySpan,
                     currentShadowAtlasOffset,
+                    NdotL,
                     shadowParam);
             }
             else if (light.LightType == LIGHT_TYPE_POINT && light.Dummy == -1)
