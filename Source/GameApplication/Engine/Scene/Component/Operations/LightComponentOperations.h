@@ -10,22 +10,14 @@
 #include "Backends/ImGuiFunc.h"
 #include "Backends/YAMLConverters.h"
 #include "Engine/Scene/System/Render/Lighting/LocalLightShadowProjection.h"
+#include "Engine/Scene/System/Render/Lighting/ShadowBiasPolicy.h"
+#include "Engine/Scene/System/Render/Lighting/ShadowBiasSynchronization.h"
 
 namespace LightComponentOperations {
 
 inline bool IsLocalLight(const LIGHT& light) noexcept {
 	return light.LightType == LIGHT_TYPE_POINT ||
 		light.LightType == LIGHT_TYPE_SPOT;
-}
-
-inline bool NormalizeShadowBias(LIGHT& light) noexcept {
-	const float normalizedBias =
-		LocalLightShadowProjection::ResolveProjectedDepthBias(light.Param.w);
-	if(std::isfinite(light.Param.w) && light.Param.w == normalizedBias){
-		return false;
-	}
-	light.Param.w = normalizedBias;
-	return true;
 }
 
 inline YAML::Node Encode(const LightComponent& component){
@@ -39,12 +31,8 @@ inline YAML::Node Encode(const LightComponent& component){
 	node["Direction"] = light.Direction;
 	node["Diffuse"] = light.Diffuse;
 	node["Ambient"] = light.Ambient;
-
-	DirectX::XMFLOAT4 persistedParam = light.Param;
-	persistedParam.w =
-		LocalLightShadowProjection::ResolveProjectedDepthBias(persistedParam.w);
-	node["Param"] = persistedParam;
-
+	node["Param"] = light.Param;
+	node["ShadowBias"] = light.ShadowBias;
 	node["LightView"] = light.LightView;
 	node["LightProjection"] = light.LightProjection;
 	return node;
@@ -64,6 +52,11 @@ inline bool Decode(LightComponent& component, const YAML::Node& node){
 	if(node["Diffuse"]) light.Diffuse = node["Diffuse"].as<DirectX::XMFLOAT4>();
 	if(node["Ambient"]) light.Ambient = node["Ambient"].as<DirectX::XMFLOAT4>();
 	if(node["Param"]) light.Param = node["Param"].as<DirectX::XMFLOAT4>();
+	if(node["ShadowBias"]){
+		light.ShadowBias = node["ShadowBias"].as<DirectX::XMFLOAT4>();
+	}else{
+		light.ShadowBias = ShadowBiasPolicy::MakeLegacy(light.Param.w);
+	}
 	if(node["LightView"]){
 		light.LightView = node["LightView"].as<DirectX::XMFLOAT4X4>();
 	}
@@ -71,19 +64,98 @@ inline bool Decode(LightComponent& component, const YAML::Node& node){
 		light.LightProjection = node["LightProjection"].as<DirectX::XMFLOAT4X4>();
 	}
 
+	ShadowBiasSynchronization::Apply(light);
 	if(IsLocalLight(light)){
 		light.Param.x =
 			LocalLightShadowProjection::ResolveFarPlane(light.Param.x);
 	}
-	NormalizeShadowBias(light);
 
 	component.dirty = true;
 	return true;
 }
 
+inline bool InspectShadowBias(LIGHT& light){
+	bool changed = false;
+	ShadowBiasSynchronization::Apply(light);
+
+	const char* biasModes[] = {
+		"Legacy NDC",
+		"World Space"
+	};
+	int selectedMode = static_cast<int>(
+		ShadowBiasPolicy::GetMode(light.ShadowBias)
+	);
+	if(ImGui::Combo(
+		"Shadow Bias Mode",
+		&selectedMode,
+		biasModes,
+		IM_ARRAYSIZE(biasModes)
+	)){
+		const auto mode = selectedMode == SHADOW_BIAS_MODE_WORLD_SPACE
+			? ShadowBiasPolicy::Mode::WorldSpace
+			: ShadowBiasPolicy::Mode::LegacyNdc;
+		ShadowBiasPolicy::SetMode(light.ShadowBias, mode, light.Param.w);
+		changed = true;
+	}
+
+	if(ShadowBiasPolicy::GetMode(light.ShadowBias) ==
+	   ShadowBiasPolicy::Mode::LegacyNdc){
+		changed |= ImGui::UndoDragFloat(
+			"Depth Bias (NDC)",
+			&light.ShadowBias.x,
+			0.00001f,
+			0.0f,
+			ShadowBiasPolicy::MaximumLegacyNdcBias,
+			"%.7f"
+		);
+		if(ImGui::IsItemHovered()){
+			ImGui::SetTooltip(
+				"Backward-compatible projected-depth bias. Existing scenes use this mode. "
+				"Its world-space effect changes with projection and receiver distance."
+			);
+		}
+		ImGui::TextDisabled(
+			"Legacy compatibility mode: Normal Bias is disabled."
+		);
+	}else{
+		changed |= ImGui::UndoDragFloat(
+			"Depth Bias (World)",
+			&light.ShadowBias.x,
+			0.0001f,
+			0.0f,
+			ShadowBiasPolicy::MaximumWorldBias,
+			"%.6f"
+		);
+		if(ImGui::IsItemHovered()){
+			ImGui::SetTooltip(
+				"Moves the shadow receiver toward the light before projection. "
+				"The value is expressed in world units and is independent of Far."
+			);
+		}
+
+		changed |= ImGui::UndoDragFloat(
+			"Normal Bias (World)",
+			&light.ShadowBias.y,
+			0.0001f,
+			0.0f,
+			ShadowBiasPolicy::MaximumWorldBias,
+			"%.6f"
+		);
+		if(ImGui::IsItemHovered()){
+			ImGui::SetTooltip(
+				"Offsets the receiver along its normal. The offset increases toward "
+				"grazing light angles and is zero when the normal faces the light."
+			);
+		}
+	}
+
+	ShadowBiasSynchronization::Apply(light);
+	return changed;
+}
+
 inline void Inspect(LightComponent& component){
 	LIGHT& light = component.light;
-	bool changed = NormalizeShadowBias(light);
+	bool changed = false;
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 6.0f));
 
@@ -185,26 +257,8 @@ inline void Inspect(LightComponent& component){
 			);
 		}
 
-		changed |= ImGui::UndoDragFloat(
-			"Shadow Bias",
-			&light.Param.w,
-			0.0001f,
-			0.0f,
-			LocalLightShadowProjection::MaximumNdcBias,
-			"%.6f"
-		);
-		if(ImGui::IsItemHovered()){
-			ImGui::SetTooltip(
-				"Projected-depth bias at the reference depth. "
-				"Point and Spot shadows reduce it with distance so the equivalent "
-				"world-space offset remains stable. Effective range: 0.0 to %.3f.",
-				LocalLightShadowProjection::MaximumNdcBias
-			);
-		}
-
 		light.Param.x =
 			LocalLightShadowProjection::ResolveFarPlane(light.Param.x);
-		changed |= NormalizeShadowBias(light);
 		ImGui::TextDisabled(
 			"Shadow Clip: Near %.3f / Far %.3f / Ratio %.1f",
 			LocalLightShadowProjection::NearPlane,
@@ -217,13 +271,16 @@ inline void Inspect(LightComponent& component){
 			);
 		}
 	}else{
-		changed |= ImGui::UndoDragFloat4(
-			"Param",
+		changed |= ImGui::UndoDragFloat3(
+			"Light Param XYZ",
 			reinterpret_cast<float*>(&light.Param),
 			0.1f
 		);
-		changed |= NormalizeShadowBias(light);
 	}
+
+	ImGui::Separator();
+	ImGui::TextDisabled("Shadow Receiver Bias");
+	changed |= InspectShadowBias(light);
 
 	ImGui::PopStyleVar();
 	component.dirty |= changed;

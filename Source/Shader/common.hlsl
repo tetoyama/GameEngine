@@ -115,9 +115,22 @@ struct LIGHT
     float4x4 LightView;
     float4x4 LightProjection;
 
-    // x: 範囲(Point/Spot), y: 内側コーン角度(Spot), z: 外側コーン角度(Spot), w: シャドウバイアス
+    // x: 範囲(Point/Spot), y: 内側コーン角度(Spot), z: 外側コーン角度(Spot)
+    // w: 旧Scene互換用のLegacy NDC Shadow Bias。新規処理はShadowBiasを使用する。
     float4 Param;
+
+    // x: Depth Bias
+    //      LegacyNdc mode : NDC depth
+    //      WorldSpace mode: world units toward the light
+    // y: Normal Bias in world units (WorldSpace mode only)
+    // z: SHADOW_BIAS_MODE_*
+    // w: reserved
+    float4 ShadowBias;
 };
+
+#ifdef __cplusplus
+static_assert(sizeof(LIGHT) % 16 == 0);
+#endif
 
 // ==========================================
 // 定数バッファ (更新頻度順)
