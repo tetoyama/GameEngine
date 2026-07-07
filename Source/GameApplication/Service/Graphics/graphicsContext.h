@@ -106,7 +106,7 @@ public:
 	void WaitForFrameLatency();
 	void Present(bool vsync);
 	bool SetMaximumFrameLatency(UINT frameCount){
-		frameCount = (std::max)(1u, (std::min)(3u, frameCount));
+		frameCount = (std::max)(1u, (std::min)(5u, frameCount));
 
 		if(!m_SwapChain || !m_Device){
 			m_MaximumFrameLatency = frameCount;

@@ -57,7 +57,6 @@ class CharacterController : public CustomScriptComponent {
 	ComponentRef<TransformComponent>    cameraTransform;
 
 public:
-	CharacterController() : CustomScriptComponent("CharacterController") {}
 
 	// =====================================================
 	// YAML Encode / Decode

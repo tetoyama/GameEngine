@@ -16,7 +16,6 @@ public:
 
 	ComponentRef<GameTimeManager> m_gameTime;
 	ComponentRef<TextureComponent> m_texture;
-	TimerSprite(): CustomScriptComponent("TimerSprite"){}
 
 	YAML::Node encode() override{
 		YAML::Node node;

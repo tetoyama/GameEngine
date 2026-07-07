@@ -53,7 +53,6 @@ class PlayerController: public CustomScriptComponent {
 	ComponentRef<BallController> ballController;
 
 public:
-	PlayerController(): CustomScriptComponent("PlayerController"){}
 
 	// =====================================================
 	// YAML Encode / Decode

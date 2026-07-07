@@ -23,8 +23,6 @@ public:
 	ComponentRef<ColliderComponent> collider;
 	ComponentRef<ScoreManager> scoreManager;
 
-	BallController(): CustomScriptComponent("BallController"){}
-
 	YAML::Node encode() override{
 		YAML::Node node;
 		ENCODE_FIELDS(node);

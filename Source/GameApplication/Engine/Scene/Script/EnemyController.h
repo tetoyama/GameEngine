@@ -44,7 +44,6 @@ class EnemyController: public CustomScriptComponent {
 	ComponentRef<BallController> ballController;
 
 public:
-	EnemyController(): CustomScriptComponent("EnemyController"){}
 
 	// ---------------- Serialization ----------------
 	YAML::Node encode() override{

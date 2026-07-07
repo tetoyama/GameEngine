@@ -50,8 +50,8 @@ public:
 	bool showEditorView = IMGUI_SHOW_DEFAULT;
 	bool showPlayerView = IMGUI_SHOW_DEFAULT;
 	bool showPerformanceMonitor = IMGUI_SHOW_DEFAULT;
-	bool showProjectSettings = false;
-	bool showSceneSettings = false;
+	bool showProjectSettings = IMGUI_SHOW_DEFAULT;
+	bool showSceneSettings = IMGUI_SHOW_DEFAULT;
 	bool showCB41 = IMGUI_SHOW_DEFAULT;
 
 private:

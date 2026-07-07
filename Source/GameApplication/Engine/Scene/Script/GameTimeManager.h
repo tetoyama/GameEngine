@@ -22,7 +22,6 @@ public:
 	bool init = false;
 	ComponentRef<FadeOutSprite> fade;
 	ComponentRef<ScoreManager> score;
-	GameTimeManager(): CustomScriptComponent("GameTimeManager"){}
 
 	YAML::Node encode() override{
 		YAML::Node node;

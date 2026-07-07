@@ -1,6 +1,6 @@
 Graphics:
   Backend: Direct3D11
-  MaximumFrameLatency: 2
+  MaximumFrameLatency: 3
 Systems:
   ScriptSystem: ~
   TransformSystem: ~

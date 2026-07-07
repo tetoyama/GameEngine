@@ -126,20 +126,25 @@ Entities:
           z: 0.39533323
           w: 0
         Diffuse:
-          x: 0.689361691
-          y: 0.689361691
-          z: 0.689361691
+          x: 1
+          y: 1
+          z: 1
           w: 1
         Ambient:
-          x: 0.0500000007
-          y: 0.0500000007
-          z: 0.0500000007
-          w: 1
-        Param:
-          x: 500
+          x: 0
           y: 0
           z: 0
-          w: 0.00499999989
+          w: 0
+        Param:
+          x: 10
+          y: 0
+          z: 0
+          w: 0
+        ShadowBias:
+          x: 0.300000012
+          y: 0.200000003
+          z: 1
+          w: 0
         LightView:
           -
             - 0
@@ -938,6 +943,11 @@ Entities:
           y: 0
           z: 0
           w: 0.00200000009
+        ShadowBias:
+          x: 0.00200000009
+          y: 0
+          z: 0
+          w: 0
         LightView:
           -
             - 0
@@ -2008,10 +2018,10 @@ Entities:
           y: -4.78781652
           z: -7.20791149
         Rotation:
-          - -0.133494303
-          - -0.700108528
-          - 0.131382748
-          - 0.689032555
+          - -0.133494318
+          - -0.700108588
+          - 0.131382763
+          - 0.689032614
         Scale:
           x: 3.7300005
           y: 3.73000312
@@ -2347,6 +2357,7 @@ Entities:
             - 1
         nextLinkId: 57
         nextPinId: 43
+        PostEffectEditorZoom: 1
         PostEffects:
           - Name: NewEffect
             Enabled: true
@@ -2636,8 +2647,8 @@ Entities:
         distance: 6
         height: 2
         rotateSpeed: 1.5
-        minPitch: -2.70000005
-        maxPitch: 0.785398185
+        minPitch: -0.5
+        maxPitch: 1.10000002
         minDistance: 1
         targetPosLerpSpeed: 15
         cameraDistanceLerpSpeed: 12

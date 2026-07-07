@@ -115,7 +115,9 @@ inline void DrawRenderingSettings(
 	static constexpr const char* kFrameLatencyItems =
 		"1 - Low Latency\0"
 		"2 - Balanced\0"
-		"3 - Maximum Throughput\0";
+		"3 - Maximum Throughput\0"
+		"4 - Maximum Throughput\0"
+		"5 - Maximum Throughput\0";
 	if(ImGui::Combo("##MaximumFrameLatency", &selectedIndex, kFrameLatencyItems)) {
 		const uint32_t requestedLatency = static_cast<uint32_t>(selectedIndex + 1);
 		const uint32_t previousLatency = graphics

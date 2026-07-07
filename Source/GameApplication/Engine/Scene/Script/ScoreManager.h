@@ -13,8 +13,6 @@ public:
 		REFLECT_FIELD(int, RedScore, 0)
 		REFLECT_FIELD(int, BlueScore, 0)
 
-	ScoreManager(): CustomScriptComponent("ScoreManager"){}
-
 	YAML::Node encode() override{
 		YAML::Node node;
 		ENCODE_FIELDS(node);

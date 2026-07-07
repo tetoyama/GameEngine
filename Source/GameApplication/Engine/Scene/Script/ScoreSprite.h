@@ -16,7 +16,6 @@ public:
 
 	ComponentRef<ScoreManager> m_scoreManager;
 	ComponentRef<TextureComponent> m_texture;
-	ScoreSprite(): CustomScriptComponent("ScoreSprite"){}
 
 	YAML::Node encode() override{
 		YAML::Node node;

@@ -14,7 +14,6 @@ public:
 		REFLECT_FIELD(float, FadeTime, 1.0f)
 
 		float Timer = 0.0f;
-	FadeInSprite(): CustomScriptComponent("FadeInSprite"){}
 
 	YAML::Node encode() override{
 		YAML::Node node;

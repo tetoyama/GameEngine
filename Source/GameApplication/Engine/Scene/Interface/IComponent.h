@@ -141,6 +141,7 @@ struct FieldInfo {
 #define BEGIN_REFLECT(ClassName) \
 public: \
     using ThisType = ClassName; \
+	ClassName(): CustomScriptComponent("ClassName"){}\
     static std::vector<FieldInfo>& GetMetaStatic() { \
         static std::vector<FieldInfo> fields; \
         return fields; \

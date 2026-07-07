@@ -43,8 +43,6 @@ public:
 	Vector3 smoothTargetPos = Vector3(0, 0, 0);
 	Vector3 currentLookTarget = Vector3(0, 0, 0);
 
-	CameraController(): CustomScriptComponent("CameraController"){}
-
 	YAML::Node encode() override{
 		YAML::Node node;
 		ENCODE_FIELDS(node);
