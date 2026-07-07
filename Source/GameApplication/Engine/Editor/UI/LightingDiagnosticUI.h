@@ -356,14 +356,17 @@ inline void Draw(
 	}
 	ImGui::TextDisabled("Current preset: %s", captureLabel);
 
-	if(capture.IsCapturing()){
+	const bool wasCapturingBeforeStart = capture.IsCapturing();
+	if(wasCapturingBeforeStart){
 		ImGui::BeginDisabled();
 	}
 	if(ImGui::Button("Start 60 Warm-up + 120 Sample Capture")){
 		capture.Start(captureLabel, 60, 120);
 	}
-	if(capture.IsCapturing()){
+	if(wasCapturingBeforeStart){
 		ImGui::EndDisabled();
+	}
+	if(capture.IsCapturing()){
 		ImGui::SameLine();
 		if(ImGui::Button("Cancel Capture")){
 			capture.Cancel();
