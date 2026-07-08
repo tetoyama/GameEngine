@@ -368,6 +368,39 @@ Lighting Loopは`LogicalLightBuffer`だけを走査し、Shadow評価時だけ`S
 
 ---
 
+## 10.5 Shadow最適化の設計判断（2026-07）
+
+### 決定1: 全Cascade射影ループを維持する
+
+`ShadowFactorCascades`（`Source/Shader/Material/DeferredFunc.hlsli:190-284`）の全Cascade評価ループは、view-space depthによる単一Cascade選択へ置き換えない。
+
+理由（事実）:
+
+- 受光点を覆うCascadeと、その点を暗くすべきOccluderが写るCascadeが異なる場合がある。特にTerrainComponentで生成した地形で、Cascade境界の影が出たり消えたりするアーティファクトを実機で観測した。
+- `c > 0`時のraw-depth cross-cascade validation（`DeferredFunc.hlsli:246-276`）がこの誤りを補正しており、当該アーティファクトは現在解消済み。
+- 単一選択へ変えるとこの検証を失う。境界の正確さを保つには別途transition band blendが必要になり、コストと複雑さが戻る。
+
+したがってループとcross-validationは残し、各反復のオーバーヘッドを削る方向で最適化する。
+
+### 決定2: PCF Sample数削減は速度目的では採らない
+
+第2回A/B（§5.4）で`PCF 1x1`はBaseline 29.1246msに対し29.8199ms（+2.4%）で改善しなかった。Shadow評価約16msの支配要因は`SampleCmpLevelZero`の回数ではなく、反復あたりのオーバーヘッドである（事実）。per-Cascade Kernel削減も同じ理由で速度には効かない見込み（PCF 1x1データと整合する推測）。
+
+per-Cascade Kernelは速度ではなく品質調整として扱う。遠Cascadeはtexelの世界空間サイズが大きくpenumbraが太るため、Kernelを絞るとpenumbra幅がCascade間で揃う。速度最適化とは分けて評価する。
+
+### 決定3: 最適化はループ内オーバーヘッド削減を優先する
+
+ループ構造とcross-validationを変えずに、毎ピクセルの無駄を除く。
+
+- tile indexのCPU事前計算。`ResolveShadowAtlasTileForEntry`（`DeferredFunc.hlsli:79-99`）は毎ピクセル×毎CascadeでO(entries)の`Lights[]`走査を行う（`:225`で呼び出し）。CPU側の`shadowNum`→tile対応（`ShadowMapPass.cpp:608-611`）を各Entryへ格納しGPUへ渡して除去する。
+- `ShadowMap.GetDimensions`（`DeferredFunc.hlsli:116-117,197-198`）の毎ピクセル呼びを定数化する（Atlas=2048、`LOW_RESOLUTION`定義時）。
+- ループ不変量（texW / texH, atlasTexelSize）を反復外へ巻き上げる。
+- CPU計算済みsplit depths（`ShadowMapPass.cpp:312-321`）をGPUへ渡し、明らかにスライス外のCascadeは射影前に比較1回でskipする。覆う可能性のあるCascadeは全評価しcross-validationも維持するため、境界の正確さは不変。
+
+測定順: 上記を入れてから診断UIの120 Sample Average / P95で約16msの変化を測り、射影が残って支配的な場合のみ次段（depth事前skipの強化 / 品質目的のper-Cascade Kernel）を検討する。
+
+---
+
 ## 11. 実装状況
 
 - [x] GPU Pass単位Timestamp
@@ -392,9 +425,18 @@ Lighting Loopは`LogicalLightBuffer`だけを走査し、Shadow評価時だけ`S
 - [ ] Packed 5 / Shadow 4 Telemetry確認
 - [ ] Scene保存・再読込確認
 - [ ] 120 Sample Average / P95取得
-- [ ] 恒久Shadow最適化
-- [ ] LogicalLightBuffer / ShadowEntryBuffer分離
+- [x] 全Cascadeループ維持の設計判断を記録（§10.5、Terrain境界アーティファクト根拠）
+- [ ] 恒久Shadow最適化（§10.5、ループ内オーバーヘッド削減）
+  - [ ] tile index CPU事前計算でper-pixel O(n)走査を除去
+  - [ ] ShadowMap.GetDimensions定数化とループ不変量の巻き上げ
+  - [ ] split depthsによる射影前Cascade skip（覆う可能性は全評価・cross-validation維持）
+  - [ ] 上記前後の120 Sample Average / P95比較
+- [ ] LogicalLightBuffer / ShadowEntryBuffer分離（恒久形）
 - [ ] Post Effect内訳計測
+  - [ ] DepthBlurをSSAOと同じ0.25へ（現状full。0.25 AOをupsampleしてからfullでぼかしている）
+  - [ ] SSR 0.5 / GodLay 0.25 + radial化を検討
+  - [ ] 単純合成Pass（OutlineByShaderID / SSAOComposite / CompositeBloom / LensFlare）のFusion（Step 19-A.8）
+  - [ ] PostEffectPass毎フレームの`std::vector` / `unordered_map`確保削減（`PostEffectPass.cpp:38-39`）
 
 ---
 
@@ -409,3 +451,5 @@ Lighting Loopは`LogicalLightBuffer`だけを走査し、Shadow評価時だけ`S
 - Scene保存・再読込でCastShadow設定が維持される
 - Default設定で意図した見た目になる
 - 次の恒久Shadow最適化をAverage / P95に基づいて選択する
+- 全Cascadeループとcross-validationを維持したままShadow評価オーバーヘッドを削減する
+- DepthBlur等の全解像度Post Effectをinput解像度に整合させる

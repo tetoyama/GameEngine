@@ -49,6 +49,15 @@ Static BatchはDraw CallとCPU Submit負荷には有効だが、画面サイズ�
 
 Compile Error、描画欠落、Resource Lifetime等のCorrectness修正は引き続き最優先とする。
 
+## Correctness前提（コードレビュー 2026-07 反映）
+
+本工程の作業対象と重なる実害候補を、該当Stepと同工程で解消する。全体一覧と優先度は`Docs/ECS_Scheduler_Migration_Plan.md`§2.5横断課題を参照する。
+
+- H2 Device Lost（`graphicsContext.cpp:905/1129`, `engine.cpp:241`）: `Present` / `ResizeBuffers`のHRESULT未処理。Step 19-A.3のInternal Size Resizeで`ResizeBuffers`を触るため同工程で対応。
+- M-1 GBuffer UINT4 Clear（`GBufferPass.cpp:218-223`）: UINT4(ObjectID)のみClearをSkipし、非被覆Pixelに前FrameIDが残留。Pickが誤ID返却。Step 19-A.6で対応。
+- M-6 RenderPass所有権（`PlayerPass.cpp:18-40`, `EditorPass`）: 6 PassとRenderTargetを生new / 手動deleteで管理し、`Finalize`はnull検証なしdereference。render scaleでResource再生成を触るため、この工程で`unique_ptr`化して例外安全にする。
+- 隣接（Draw Cost軸、本工程外）: M-5 定数バッファ毎セッター全体Upload（`graphicsContext.cpp:197-243`）はPixel Costではなく毎Draw CPU / ドライバコスト。Step 17-B計測後に別途対応。
+
 ---
 
 # 1. 基本契約
@@ -280,12 +289,22 @@ internalY = displayY * internalHeight / displayHeight
 
 Clamp後にInteger Pixelへ変換する。Editor ViewのObject Picking回帰を必須とする。
 
+## Resize経路の堅牢化（Review反映）
+
+Internal Size変更は`ResizeBuffers`とRender Target再生成を伴うため、この経路で次を同時に満たす。
+
+- `ResizeBuffers`のHRESULTを確認し、`DXGI_ERROR_DEVICE_REMOVED / RESET`を検出する（Review H2）
+- Device Lost時はDevice / SwapChain / 全RTV / DSV / Timestamp Query Poolを再生成、または`GetDeviceRemovedReason()`をログしてGraceful終了
+- RenderPass / RenderTargetの所有権を`unique_ptr`化し、Resource再生成の途中失敗でリーク・二重解放・null dereferenceを起こさない（Review M-6: `PlayerPass.cpp:18-40`, `EditorPass`）
+- `RenderTarget::Resize`は生成成功後に`size`を確定する。失敗時に`size`を先行更新すると次Frame以降に再試行されずnull RTVで描画継続する（Review Low: `renderTarget.cpp:15-16`）
+
 ## 完了条件
 
 - Display Sizeを変えてもRender Scaleに応じたInternal Sizeになる
 - Scale 0.50でGBuffer / Lighting / PostのGPU時間が明確に低下する
 - Picking座標が一致する
 - Resize中にResource再生成が連続しない
+- Resize / Device Lost経路でCrashまたは黒画面固定にならない
 
 ---
 
@@ -431,6 +450,14 @@ Reserved
 
 Scene IDとObject IDはPicking用ID Tableで間接化する案も検討する。
 
+## Clear契約（Review M-1反映）
+
+現行`GBufferPass`はUINT4 ParameterのみClearをSkipしており（`GBufferPass.cpp:218-223`）、ジオメトリに覆われないPixelへ前FrameのObject IDが残留する。`RenderTarget::Pick`(`renderTarget.cpp:236`)がその空き領域をPickすると誤ったEntity IDを返す。
+
+- Picking / Parameter Targetを毎Frame Sentinel値（例: 0 または 0xFFFFFFFF）で`ClearRenderTargetView`する。整数FormatのRTVでもClearは値変換して動作するためSkipは不要。
+- Sentinel値をInvalid ID / 未書き込みの意味へ一意に割り当て、Clear値とValid IDが衝突しないようにする。
+- Player ViewでPickingを行わずTarget自体を生成しない構成では、この項目は対象Targetが存在する場合のみ適用する。
+
 ## 禁止事項
 
 - 上限未確認のままBitを切り詰めない
@@ -540,6 +567,12 @@ History Operations
 - [ ] Baseline Matrix記録
 - [ ] GBuffer Format / Bytes Per Pixel台帳
 
+## Phase 0: Correctness前提（Review反映・着手前）
+
+- [ ] H0 起動時エラー伝播修正（`Initialize`のbool化、失敗時Runへ入らない）※どの工程よりも先
+- [ ] H2 Present / ResizeBuffers Device Lost処理の骨組み
+- [ ] M-6 RenderPass / RenderTarget所有権のunique_ptr化
+
 ## Phase 2: 解像度制御
 
 - [ ] Player / Editor固定Render Scale
@@ -547,6 +580,8 @@ History Operations
 - [ ] Final Upscale
 - [ ] Picking座標変換
 - [ ] Resize Debounce
+- [ ] Resize経路へDevice Lost検出を統合（Review H2）
+- [ ] RenderTarget::Resizeの成功後size確定（Review Low）
 
 ## Phase 3: GBuffer縮小
 
@@ -557,6 +592,7 @@ History Operations
 - [ ] World Position Target削除
 - [ ] Player / Editor Parameter Target分離
 - [ ] Parameter Packing
+- [ ] UINT4 / Picking TargetのFrame Clear（Review M-1）
 
 ## Phase 4: Post Effect帯域削減
 
@@ -575,6 +611,8 @@ History Operations
 - [ ] VRAM比較
 - [ ] Debug / Release x64
 - [ ] Picking / Shadow / SSAO / SSR / Bloom回帰
+- [ ] Device Lost / TDR回復またはGraceful終了確認（Review H2）
+- [ ] Picking誤ID回帰（非被覆Pixel、Review M-1）
 
 ---
 

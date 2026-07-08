@@ -1,3 +1,17 @@
+SceneSettings:
+  Storage:
+    ExpectedEntities: 1024
+    ExpectedTransforms: 768
+    ExpectedRenderables: 512
+    ExpectedCullingComponents: 512
+    ExpectedStaticEntities: 256
+    PreallocatedTransformPages: 0
+    PreallocatedTagPages: 0
+    RenderPacketReserve: 512
+    VisibleEntityReserve: 512
+    StaticBatchReserve: 64
+    AllowRuntimeGrowth: true
+    LogCapacityGrowth: true
 Entities:
   - Entity: 1
     Components:
@@ -122,7 +136,12 @@ Entities:
           x: 500
           y: 0
           z: 0
-          w: 0.00200000009
+          w: 0
+        ShadowBias:
+          x: 0.100000001
+          y: 0.100000001
+          z: 1
+          w: 0
         LightView:
           -
             - 0
@@ -353,6 +372,7 @@ Entities:
             - 1
         nextLinkId: 1
         nextPinId: 1
+        PostEffectEditorZoom: 1
         ScreenInput:
           Name: ""
           NodePos:
