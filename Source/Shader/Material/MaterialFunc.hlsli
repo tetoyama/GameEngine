@@ -49,10 +49,23 @@ float D_GTR2(float NdotH, float roughness)
     return a2 / (PI * d * d);
 }
 
+float SampleCascadeTapPrevious(
+    float2 sampleUV,
+    float depth,
+    float2 sampleMin,
+    float2 sampleMax)
+{
+    return ShadowMap.SampleCmpLevelZero(
+        ShadowSampler,
+        clamp(sampleUV, sampleMin, sampleMax),
+        depth);
+}
+
 // PR #46で正常だったCSM専用PCF処理。
 // CSMについては共通Atlas PCFへ統合せず、当時のTexel幅とFallbackを維持する。
 // 2026-07-09: タップ座標のみ現在TileのHalf-Texel Safe Rangeへclampする
 // (Shadow_Atlas_PCF_Contract §2.4)。offset幅・Texel歩幅は従来のまま変更しない。
+// 2026-07-09: Sample数と結果を変えず、1x1 fast pathと3x3/5x5固定展開でCSM sample costを削減する。
 float SampleCascadePCFPrevious(
     float2 suvBase,
     float depth,
@@ -62,6 +75,57 @@ float SampleCascadePCFPrevious(
     float2 sampleMin,
     float2 sampleMax)
 {
+    const float2 safeBase = clamp(suvBase, sampleMin, sampleMax);
+    const float2 scaledTexel = texelSize * stepTexel;
+
+    if (radius <= 0)
+    {
+        return SampleCascadeTapPrevious(
+            safeBase,
+            depth,
+            sampleMin,
+            sampleMax);
+    }
+
+    if (radius == 1)
+    {
+        float shadow = 0.0;
+        [unroll]
+        for (int sy = -1; sy <= 1; sy++)
+        {
+            [unroll]
+            for (int sx = -1; sx <= 1; sx++)
+            {
+                shadow += SampleCascadeTapPrevious(
+                    safeBase + float2(sx, sy) * scaledTexel,
+                    depth,
+                    sampleMin,
+                    sampleMax);
+            }
+        }
+        return shadow / 9.0;
+    }
+
+    if (radius == 2)
+    {
+        float shadow = 0.0;
+        [unroll]
+        for (int sy = -2; sy <= 2; sy++)
+        {
+            [unroll]
+            for (int sx = -2; sx <= 2; sx++)
+            {
+                shadow += SampleCascadeTapPrevious(
+                    safeBase + float2(sx, sy) * scaledTexel,
+                    depth,
+                    sampleMin,
+                    sampleMax);
+            }
+        }
+        return shadow / 25.0;
+    }
+
+    // Material側が想定外に大きいKernelRadiusを指定した場合だけ旧式loopへFallbackする。
     float shadow = 0.0;
     int count = 0;
 
@@ -71,14 +135,11 @@ float SampleCascadePCFPrevious(
         [loop]
         for (int sx = -radius; sx <= radius; sx++)
         {
-            float2 sampleUV = clamp(
-                suvBase + float2(sx, sy) * texelSize * stepTexel,
+            shadow += SampleCascadeTapPrevious(
+                safeBase + float2(sx, sy) * scaledTexel,
+                depth,
                 sampleMin,
                 sampleMax);
-            shadow += ShadowMap.SampleCmpLevelZero(
-                ShadowSampler,
-                sampleUV,
-                depth);
             count++;
         }
     }
@@ -108,9 +169,12 @@ float ShadowFactorCascadesPrevious(
     int radius = max(pcf.KernelRadius, 0);
     float finalShadow = 1.0;
 
-    [loop]
-    for (int c = 0; c < cascadeCount; c++)
+    [unroll]
+    for (int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT; c++)
     {
+        if (c >= cascadeCount)
+            break;
+
         int safeIdx = min(firstLightIdx + c, LIGHT_MAX_COUNT - 1);
         LIGHT cLight = Lights[safeIdx];
 
