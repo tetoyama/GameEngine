@@ -217,9 +217,7 @@ void GBufferPass::Execute(const RenderPassContext& context){
 	float clearColor[4] = {0, 0, 0, 0};
 	for(int index = 0; index < GBufferSlot_Max; ++index){
 		pRenderTargets[index]->Resize(context.screenSize, m_context->graphics);
-		if(pRenderTargets[index]->type != RENDERTARGET_TYPE_UINT4){
-			deviceContext->ClearRenderTargetView(pRenderTargets[index]->rtv.Get(), clearColor);
-		}
+		deviceContext->ClearRenderTargetView(pRenderTargets[index]->rtv.Get(), clearColor);
 	}
 	pDepthTarget->Resize(context.screenSize, m_context->graphics);
 	deviceContext->ClearDepthStencilView(
