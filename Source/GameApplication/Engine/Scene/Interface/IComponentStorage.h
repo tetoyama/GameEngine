@@ -20,7 +20,7 @@
 using ComponentTypeID = uint32_t;
 constexpr ComponentTypeID INVALID_COMPONENT_TYPE_ID =
 	(std::numeric_limits<ComponentTypeID>::max)();
-constexpr size_t MAX_COMPONENTS = 64;
+constexpr size_t MAX_COMPONENTS = 256;
 using ComponentMask = std::bitset<MAX_COMPONENTS>;
 
 struct ComponentView {
