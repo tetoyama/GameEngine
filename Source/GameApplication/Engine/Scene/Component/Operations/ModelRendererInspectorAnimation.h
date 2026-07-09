@@ -56,7 +56,7 @@ inline void DrawAddAnimationPopup(ModelRendererComponent& component){
 		if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
 			const char* droppedPath = static_cast<const char*>(payload->Data);
 			if(droppedPath){
-				std::strncpy(animationPath, droppedPath, sizeof(animationPath) - 1);
+				CopyTextToBuffer(animationPath, sizeof(animationPath), droppedPath);
 				ImGui::OpenPopup("AddAnimationPopup");
 			}
 		}
@@ -76,7 +76,7 @@ inline void DrawAddAnimationPopup(ModelRendererComponent& component){
 		if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
 			const char* droppedPath = static_cast<const char*>(payload->Data);
 			if(droppedPath){
-				std::strncpy(animationPath, droppedPath, sizeof(animationPath) - 1);
+				CopyTextToBuffer(animationPath, sizeof(animationPath), droppedPath);
 			}
 		}
 		ImGui::EndDragDropTarget();
@@ -140,31 +140,16 @@ inline void DrawAnimationList(ModelRendererComponent& component){
 		}
 		ImGui::SameLine();
 		ImGui::TextUnformatted(name.c_str());
+		if(animation.isImported){
+			ImGui::SameLine();
+			ImGui::TextDisabled("[Imported]");
+		}
 		ImGui::PopID();
 	}
 	for(const std::string& name : sourcesToDelete){
 		RemoveAnimationSource(component, name);
 	}
 	ImGui::TreePop();
-}
-
-inline float GetAnimationDuration(
-	const ModelRendererComponent& component,
-	const std::string& name
-){
-	if(!component.model) return 0.0f;
-	const auto iterator = component.model->m_Animation.find(name);
-	if(iterator == component.model->m_Animation.end()) return 0.0f;
-
-	const AnimationData& animation = iterator->second;
-	if(animation.Animation){
-		return static_cast<float>(animation.Animation->mDuration);
-	}
-	if(animation.Scene && animation.Scene->mNumAnimations > 0 &&
-		animation.Scene->mAnimations[0]){
-		return static_cast<float>(animation.Scene->mAnimations[0]->mDuration);
-	}
-	return 0.0f;
 }
 
 } // namespace ModelRendererInspector
