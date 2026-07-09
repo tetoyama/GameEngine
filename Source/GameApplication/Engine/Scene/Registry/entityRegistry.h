@@ -157,6 +157,10 @@ public:
 		return m_structureVersion;
 	}
 
+	const uint64_t* GetStructureVersionPointer() const noexcept {
+		return &m_structureVersion;
+	}
+
 	void ResetPeakMetrics() noexcept {
 		m_peakAliveCount = m_alive.size();
 		m_growthEventCount = 0;
