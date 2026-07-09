@@ -32,18 +32,32 @@ jobs:
         with:
           arch: x64
       - name: Compile and run per-view packet culling contract
+        id: render_packet_view_culling
+        continue-on-error: true
         shell: cmd
-        run: >-
-          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
-          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
-          /I Source
-          /I Source/GameApplication
-          /I Source/GameApplication/Backends
-          /I Source/GameApplication/Engine
-          /I Source/GameApplication/Engine/Scene
-          /I Source/GameApplication/Service
-          Tests/RenderPacketViewCullingSmokeTest.cpp
-          Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp
-          /Fe:render-packet-view-culling-test.exe
-          /link /NODEFAULTLIB:yaml-cppd.lib
-          && render-packet-view-culling-test.exe
+        run: |
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX ^
+            /wd4100 /wd4201 /wd4458 /wd4471 /MTd ^
+            /I Source ^
+            /I Source/GameApplication ^
+            /I Source/GameApplication/Backends ^
+            /I Source/GameApplication/Engine ^
+            /I Source/GameApplication/Engine/Scene ^
+            /I Source/GameApplication/Service ^
+            Tests/RenderPacketViewCullingSmokeTest.cpp ^
+            Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp ^
+            /Fe:render-packet-view-culling-test.exe ^
+            /link /NODEFAULTLIB:yaml-cppd.lib ^
+            > render-packet-view-culling.log 2>&1
+          if errorlevel 1 exit /b 1
+          render-packet-view-culling-test.exe >> render-packet-view-culling.log 2>&1
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-packet-view-culling-diagnostics
+          path: render-packet-view-culling.log
+          if-no-files-found: error
+      - name: Preserve per-view packet culling result
+        if: steps.render_packet_view_culling.outcome == 'failure'
+        run: cmd /c exit 1
