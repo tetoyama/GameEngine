@@ -126,9 +126,7 @@ bool Engine::Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdSho
 	if(!imgui->Initialize(mainWindow.get(), graphics.get())){
 		return FailInitialize(debug.get(), "ImGuiService::Initialize returned false");
 	}
-	if(!renderer->Initialize(graphics.get(), mainWindow.get())){
-		return FailInitialize(debug.get(), "MainRenderer::Initialize returned false");
-	}
+	renderer->Initialize(graphics.get(), mainWindow.get());
 
 	mainWindow->SetMainRenderer(renderer.get());
 	mainWindow->SetImGuiSystem(imgui.get());
