@@ -25,6 +25,7 @@ class OverlayUIPass;
 // プレイヤービュー用の統合レンダリングパス
 class PlayerPass : public IRenderPass {
 public:
+	PlayerPass();
 	~PlayerPass() override;
 
 	void Initialize(RenderSystem* renderSystem, SceneManagerContext* context) override;

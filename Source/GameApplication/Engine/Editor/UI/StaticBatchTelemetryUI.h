@@ -169,7 +169,7 @@ inline void Draw(SceneManager* sceneManager){
 
 	const GBufferPass* playerPass =
 		render && render->m_PlayerPass
-			? render->m_PlayerPass->gBufferPass
+			? render->m_PlayerPass->gBufferPass.get()
 			: nullptr;
 	const GBufferPass* editorPass =
 		render && render->m_EditorPass

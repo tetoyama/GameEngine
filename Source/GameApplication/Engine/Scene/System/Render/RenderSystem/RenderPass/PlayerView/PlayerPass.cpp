@@ -12,6 +12,7 @@
 #include "Graphics/graphicsContext.h"
 #include "Graphics/mainRenderer.h"
 
+PlayerPass::PlayerPass() = default;
 PlayerPass::~PlayerPass() = default;
 
 void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context){

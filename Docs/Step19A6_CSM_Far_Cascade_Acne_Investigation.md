@@ -11,6 +11,18 @@ A/B用の無効化フラグは`LIGHTING_DEBUG_FLAG_DISABLE_CSM_TEXEL_BIAS`。
 
 遠いCascadeでShadow Acneが発生する報告(2026-07-09)の原因を特定し、Step19A5のBias契約を拡張する。
 
+### 実機確認ログ(2026-07-10)
+
+VS 2022 Debug x64でローカルビルド成功(先行してビルド不能だった3件のエラー — `StaticBatchTelemetryUI.h`のunique_ptr→生ポインタ`.get()`漏れ、`PlayerPass`のOverlayUIPass不完全型delete — を修正済。詳細はこのセッションのビルド修正参照)。
+起動・描画を実機確認:
+
+- 起動クラッシュなし、Debug Log **Error(0) / Critical(0)**。Editor/Player Viewとも3Dシーン描画OK。
+- **Lighting GPU Diagnostics 計測器が実機で正常動作**(§3.5の実装を確認): `Show CSM Cascade Coloring`でカスケード色分けが反映、`CSM Texel Bias Scale` / `CSM Bias Debug Scale`スライダー、`Disable CSM Texel Proportional Bias`、PCF 1x1/3x3/5x5・CSM Bias x2/x4等のA/Bプリセット、120 Sample Captureいずれも存在・機能。
+- Logical Light Layout実データ: Logical0 = Directional CSM / Span 4(4カスケード)/ Shadow ON、Logical1 = Point / Span 6(6面)/ Shadow ON。Packed GPU entries=10(CSM4+Point6)。
+- 通常視点でDirectional CSM影が描画され、**顕著なAcneは目視されず**。
+
+未確定(要ユーザ視覚サインオフ): §6完了条件のPCF全カーネルでの遠CascadeAcne無し / 近CascadePeter Panning無し / Deferred・Forward一致。A/Bプリセットで各条件を切替えながらの目視判断が必要。
+
 ---
 
 ## 1. 現象

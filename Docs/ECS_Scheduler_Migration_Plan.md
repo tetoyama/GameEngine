@@ -36,7 +36,7 @@ struct Entity {
 - GUI、GPU Resource、PhysX Object、DLL関数ポインタを所有しない
 - Component参照は世代付き`ComponentRef<T>`で検証する
 - `AddComponent`の戻り生ポインタと`GetDenseComponentSpan`は、同型の後続追加によるStorage再確保 / rehashで無効化しうる。寿命をまたぐ保持は`ComponentRef<T>`へ限定する（Review M-4: `Registry/componentRegistry.h:171-206`。SparseStable戦略型が対象）
-- Component型IDは`ComponentMask`(`std::bitset<64>`)のBit位置へ直結する。登録型数が`MAX_COMPONENTS`(64)へ達するとMask操作が`out_of_range`で例外化し捕捉されず`terminate`する。登録時と`AddComponent`でID上限をassertする（Review H-1: `Interface/IComponentStorage.h:23`。現在43型登録済で余裕は約21型）
+- Component型IDは`ComponentMask`(`std::bitset<256>`)のBit位置へ直結する。登録型数が`MAX_COMPONENTS`(256)へ達するとMask操作が`out_of_range`で例外化し捕捉されず`terminate`する。登録時と`AddComponent`でID上限をassertする（Review H-1: `Interface/IComponentStorage.h:23-24`。H1対応で64→256へ拡張済）
 - 既存Componentへの再`Add`はコンストラクタ引数を黙って破棄する現仕様を明文化し、上書きは`Set` / `Replace`として別APIへ分離する（Review M-4）
 
 ## 1.3 SystemTask
@@ -644,21 +644,21 @@ Correctness修正は性能作業より優先する（Step 19-A基本契約と同
 
 `Engine::Initialize`はService初期化失敗時にvoidで早期returnするだけで、`GameApplication::Run`は結果を見ずに`Run`へ進む。`Run`内は取得Serviceをnull検証なしで参照するため、部分初期化のままnull `shared_ptr`の`->`で確定Crashする（例: `window->GetMainWindow()->ShouldClose()`）。単一で最も広範なCrash源。
 
-- [ ] `Initialize`を`bool`へ変更し各失敗で`false`を返す
-- [ ] `Run`側で`Initialize`失敗時はRunへ入らずShutdownして終了コードを返す
-- [ ] 失敗Serviceと失敗段階をログへ記録
+- [x] `Initialize`を`bool`へ変更し各失敗で`false`を返す（`engine.cpp` `FailInitialize`で各Serviceをguard、55-127）
+- [x] `Run`側で`Initialize`失敗時はRunへ入らずShutdownして終了コードを返す（`gameApplication.cpp:29` 成功時のみRun、失敗時`exitCode=-1`。`Run`内も全Serviceをnull検証`LogRunFailure` 207-215）
+- [x] 失敗Serviceと失敗段階をログへ記録
 
-完了条件: いずれかのService初期化失敗時に、null参照Crashではなく制御された終了になる。
+完了条件: いずれかのService初期化失敗時に、null参照Crashではなく制御された終了になる。 → **達成(2026-07-10検証)**
 
 ## H1. Component Mask 64型上限（High）
 
 対象: `Interface/IComponentStorage.h:23`, `Registry/componentRegistry.h:204,295,356,377`（契約は§1.2）
 
-- [ ] `AddComponent` / Query / `HasComponent`のMask設定前に`assert(id < MAX_COMPONENTS)`
-- [ ] 登録時点でMAX_COMPONENTS超過を検出
-- [ ] 恒久対応として64→128以上への拡張可否を評価
+- [x] `AddComponent` / Query / `HasComponent`のMask設定前に`assert(id < MAX_COMPONENTS)`（`IsComponentMaskIndexValid`をRegister 80 / AddComponent 191 / Query 425 / QueryEntities 456で呼出）
+- [x] 登録時点でMAX_COMPONENTS超過を検出
+- [x] 恒久対応として64→128以上への拡張可否を評価 → **256へ拡張済**（`IComponentStorage.h:23-24` `MAX_COMPONENTS = 256` / `std::bitset<256>`）
 
-完了条件: 型追加で無防備な`terminate`が発生しない。上限接近を早期警告できる。
+完了条件: 型追加で無防備な`terminate`が発生しない。上限接近を早期警告できる。 → **達成(2026-07-10検証)**
 
 ## H2. デバイスロスト未処理（High）
 
@@ -679,24 +679,27 @@ Correctness修正は性能作業より優先する（Step 19-A基本契約と同
 
 `gethostbyname`戻り値をnull検証せず`memcpy`。失敗時（オフライン等）にヌルデリファレンスでCrash。IPv4決め打ち・C形式Castも併存。
 
-- [ ] null検証を追加
-- [ ] `getaddrinfo`移行とIPv4決め打ち解消を検討
+- [x] null検証を追加（`GN31.h:120` `if (!hostInfo || !hostInfo->h_addr_list || !hostInfo->h_addr_list[0])` を`memcpy`前にguard）
+- [ ] `getaddrinfo`移行とIPv4決め打ち解消を検討（現状は`gethostbyname`+IPv4 memcpyのまま。※直近コミットでGN31のgetaddrinfo移行を試行→include衝突でrevert済。要再着手）
 
 ## H4. Query反復中の構造変更強制（High）
 
 対象: §1.4に契約追記済。実装タスク。
 
-- [ ] Structure VersionをDebug assert化
-- [ ] 即時構造変更APIの内部専用化
+- [x] Structure VersionをDebug assert化（`ComponentQueryView.h:104` `ValidateStructureVersion()`をbegin/end/`operator++`/deref 75,80,85,94,118で検証）
+- [ ] 即時構造変更APIの内部専用化（`componentRegistry.h`の`AddComponent`184 / `RemoveComponent`は`public:`のまま。内部専用化は未）
 
 ## M. 中優先
 
 - [ ] M-1 GBuffer UINT4(ObjectID) Clear（`GBufferPass.cpp:218-223`）→ Step 19-A.6で対応。非被覆Pixelへの前FrameID残留でPickが誤ID返却する現状を解消
-- [ ] M-2 LLAMA `ResetContext`とWorker Threadのデータ競合（`LLAMAAgent.cpp:963`）。生成ループとResetの相互排他、または中断フラグで安全点まで待つ
-- [ ] M-3 EngineContext Shutdown最終破棄の順序（`engineContext.cpp:72-83`）。`Shutdown()`呼び出しは正しく逆順だが`clear()`はunordered_map破棄で無順序。`clear()`も`m_serviceOrder`逆順`erase`へ
+    - 【部分】前Frame残留は解消（毎Frame共有`clearColor{0,0,0,0}`ループでUINT4スロットもClear）。ただし**無効ID sentinelではなく0**へClearのため、背景PixelがEntity ID=0を返す問題は未解消。専用`ClearRenderTargetView`+sentinel化が残
+- [ ] M-2 LLAMA `ResetContext`とWorker Threadのデータ競合（`LLAMAAgent.cpp:963`）。生成ループとResetの相互排他、または中断フラグで安全点まで待つ 【未】
+- [x] M-3 EngineContext Shutdown最終破棄の順序（`engineContext.cpp:72-83`）。`Shutdown()`逆順呼出に加え、破棄も`m_serviceOrder.rbegin()`逆順eraseへ変更済（2026-07-10検証）
 - [ ] M-4 AddComponent戻り生ポインタ無効化 / 既存時の引数破棄（§1.2）。ComponentRef限定、`Set` / `Replace`分離
-- [ ] M-5 定数バッファ毎セッター全体Upload（`graphicsContext.cpp:197-243`）。Pixel Costとは別のDraw Cost軸。Step 17-B計測後にCPU Mirror 1回Upload / DYNAMIC + Map化
+    - 【部分】`ComponentRef<T>`型と`SetComponent`/`ReplaceComponent`分離は実装済（`componentRegistry.h:232,242`）。ただし`AddComponent`(184)は依然として生`T*`を返す(227)。ComponentRef限定化が残
+- [ ] M-5 定数バッファ毎セッター全体Upload（`graphicsContext.cpp:197-243`）。Pixel Costとは別のDraw Cost軸。Step 17-B計測後にCPU Mirror 1回Upload / DYNAMIC + Map化 【未】(全セッターが毎回`UpdateSubresource`でCB全体Upload)
 - [ ] M-6 RenderPass / PhysX userDataの生new/delete（`PlayerPass.cpp:18-40`, `EditorPass`, `physicSystem.cpp:615-1110`）。`unique_ptr`化。Step 19-Aのrender scale Resource再生成と同工程で例外安全化
+    - 【部分】RenderPass側は完了（`PlayerPass.cpp`全sub-pass+RTを`make_unique`、Finalizeで`.reset()`）。**PhysX側`physicSystem.cpp`は生`new ActorEntityInfo`(1063,1110)+生`delete`(615,621,694,700,1053,1100)が残**
 
 ## L. 低優先（記録のみ・README / 安定版前に一括）
 
@@ -720,14 +723,17 @@ Correctness修正は性能作業より優先する（Step 19-A基本契約と同
 
 # 3. 現在の作業位置
 
-1. Step 17-B.1 Performance MonitorでDraw CPU内訳を実機確認
-2. VSync ON / OFF比較とGPU Frame Time計測
-3. IRenderable内部のComponentRegistry参照除去
-4. Step 17-C Animation CPU Build / GPU Upload分離
-5. Step 17-D Terrain CPU Mesh Build / GPU Upload分離
-6. Step 17-E Wave CPU Vertex Build / GPU Upload分離
-7. Step 18-A RenderWorld基盤
-8. Step 18-B以降 Static Entity / Static Batching
+> 実態同期(2026-07-10コード検証)。項目1〜3は実装済み、Static Batchingは本リストの想定より大幅に先行実装済み。実装順序が当初計画と食い違っている点に注意。
+
+1. [x] Step 17-B.1 Performance MonitorでDraw CPU内訳（`PerformanceMonitor.h` `DrawTimingBreakdown`/`DrawSamples`/`DebugDrawSamples`/`PresentSamples`実装済）※実機での数値確認は別途
+2. [x] VSync ON / OFF比較とGPU Frame Time計測（`GPUFrameTimeSamples`/`GpuFrameTimingStatus`、`VSyncEnabled`表示 実装済）
+3. [x] IRenderable内部のComponentRegistry参照除去（`IRenderable::Execute`はRenderPacket駆動。`RenderableModel.cpp`はstaleな`#include componentRegistry.h`のみ残存＝実質除去。※includeの掃除が残）
+4. [ ] Step 17-C Animation CPU Build / GPU Upload分離 【未着手】
+5. [ ] Step 17-D Terrain CPU Mesh Build / GPU Upload分離 【未着手】
+6. [ ] Step 17-E Wave CPU Vertex Build / GPU Upload分離 【未着手】
+7. [ ] Step 18-A RenderWorld基盤 【未着手】（`RenderWorld`クラス/ファイルは未存在）
+8. [~] Step 18-B以降 Static Entity / Static Batching 【大幅先行実装済】RenderPacket再利用の暫定経路で `System/Render/StaticBatch/`(約30ヘッダ: GeometryBinding/InstanceBuffer/DrawSubmission/PipelineResources/PickingContract/ShadowSubmission…), `RenderPacket/StaticBatch*`キャッシュ, `Shader/StaticBatchVS.hlsl`+`StaticBatchGBufferPS.hlsl`, `StaticBatchTelemetryUI.h` を実装済。真のDraw Call統合(RenderWorld+RHI Handle移行後)が残
+9. **[ ] H2 デバイスロスト未処理（横断課題の残Critical/High・単独Crash源。真の最優先の未実装）**
 
 Step 17-AのTask命名統一は完了。以降のCapture、Profiler、YAML Export、依存解析では統一後のTask名を基準とする。
 Step 17-BのPacket Build / Command Submit分離はSchedule Captureで確認済み。Performance MonitorのDraw全体とRender Scheduleの差をCPU区間、Present待機、GPU時間へ分解してから次の最適化対象を決定する。
@@ -735,3 +741,13 @@ Static BatchingはRender PacketのSort / Pass Mask / Transform Snapshotを再利
 
 性能作業の現行トラックは`Docs/Step19A_GPU_Pixel_Cost_Optimization.md`（画面サイズ比例のPixel Cost削減）であり、Migration Plan上のStep 19「描画並列化の再検討」はその後段（Step 19-A優先度リストの項目9）に位置する。
 Step 19-Aの各工程に着手する前後で、§2.5横断課題のうち作業対象と重なる項目（H0起動 / H2 Device Lost / M-1 GBuffer Clear / M-6 RenderPass所有権）を同時に解消する。H0はどの工程よりも先に単独で修正する。
+
+---
+
+# 4. 最終ゴール(プロジェクトビジョン)
+
+本エンジンの最終目標は、Freejam『Robocraft』型の**キューブ&パーツ・ビルド&バトル**ゲームを自作エンジンで作り上げること。
+現行の基盤トラック(ECS / Scheduler / RHI / PhysX / Static Batching / Network)は、この最終形へ本質的に直結する土台に相当する（本Migration PlanはロードマップのPhase R0）。
+
+- 詳細と再現ロードマップ(Phase R0〜R6・設計判断): `Docs/Project_Vision_Robocraft_Roadmap.md`
+- 当面の指針: Phase R0(基盤)を計画通り進め、特に **H2デバイスロスト**など残Critical/Highを先に解消する。Static BatchingとECSが固まり次第、R1「ブロック構造表現」の小さなプロトタイプ(グリッド上にキューブを並べ1剛体で動かす)から着手すると基盤の穴が早期に見える。
