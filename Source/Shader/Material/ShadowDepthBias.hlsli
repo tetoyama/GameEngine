@@ -84,6 +84,30 @@ float ResolveOrthographicShadowDepthBias(
         LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS);
 }
 
+// CSM専用: WorldSpace Biasを受光点位置オフセットではなく比較深度Biasへ変換する。
+// Cascade選択・UV・Fallback入力を動かさず、他SceneのCSM Acneだけを抑える。
+float ResolveCsmWorldSpaceCompareDepthBias(
+    LIGHT light,
+    float receiverNdotL,
+    float ndcPerWorldZ)
+{
+    if (!UsesWorldSpaceShadowBias(light))
+        return 0.0f;
+    if (!isfinite(ndcPerWorldZ) || ndcPerWorldZ <= 0.0f)
+        return 0.0f;
+
+    const float safeNdotL = ResolveShadowReceiverAlignment(receiverNdotL);
+    const float grazing = saturate(1.0f - safeNdotL);
+    const float depthWorldBias = max(light.ShadowBias.x, 0.0f);
+    const float normalWorldBias = max(light.ShadowBias.y, 0.0f) * grazing;
+    const float worldBias = depthWorldBias + normalWorldBias;
+
+    if (!isfinite(worldBias) || worldBias <= 0.0f)
+        return 0.0f;
+
+    return min(worldBias * ndcPerWorldZ, CSM_WORLD_SPACE_BIAS_MAX_NDC);
+}
+
 // Cascade Texel World Size比例のOrthographic Bias(Step19A5契約)。
 // NDC固定Biasは遠Cascadeのtexelあたり深度誤差へ追従しないため、
 // texel世界サイズ×受光面勾配から必要量を推定し、NDCへ換算した下限を返す。
