@@ -12,36 +12,49 @@
 #include "Graphics/graphicsContext.h"
 #include "Graphics/mainRenderer.h"
 
+PlayerPass::~PlayerPass() = default;
+
 void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context){
 	m_renderSystem = renderSystem;
 	m_context = context;
-	shadowMapPass = new ShadowMapPass();
+	shadowMapPass = std::make_unique<ShadowMapPass>();
 	shadowMapPass->Initialize(renderSystem, context);
-	gBufferPass = new GBufferPass();
+	gBufferPass = std::make_unique<GBufferPass>();
 	gBufferPass->Initialize(renderSystem, context);
-	lightingPass = new LightingPass();
+	lightingPass = std::make_unique<LightingPass>();
 	lightingPass->Initialize(renderSystem, context);
-	forwardPass = new ForwardPass();
+	forwardPass = std::make_unique<ForwardPass>();
 	forwardPass->Initialize(renderSystem, context);
-	postEffectPass = new PostEffectPass();
+	postEffectPass = std::make_unique<PostEffectPass>();
 	postEffectPass->Initialize(renderSystem, context);
-	overlayUIPass = new OverlayUIPass();
+	overlayUIPass = std::make_unique<OverlayUIPass>();
 	overlayUIPass->Initialize(renderSystem, context);
-	playerRenderTarget = new RenderTarget(context->PlayerScreenSize, context->graphics, RenderTargetType::RENDERTARGET_TYPE_COLOR);
+	playerRenderTarget = std::make_unique<RenderTarget>(
+		context->PlayerScreenSize,
+		context->graphics,
+		RenderTargetType::RENDERTARGET_TYPE_COLOR
+	);
 }
 
 void PlayerPass::Finalize(){
-	postEffectPass->Finalize(); delete postEffectPass; postEffectPass = nullptr;
-	forwardPass->Finalize(); delete forwardPass; forwardPass = nullptr;
-	lightingPass->Finalize(); delete lightingPass; lightingPass = nullptr;
-	gBufferPass->Finalize(); delete gBufferPass; gBufferPass = nullptr;
-	shadowMapPass->Finalize(); delete shadowMapPass; shadowMapPass = nullptr;
-	overlayUIPass->Finalize(); delete overlayUIPass; overlayUIPass = nullptr;
-	delete playerRenderTarget; playerRenderTarget = nullptr;
+	if(postEffectPass){ postEffectPass->Finalize(); postEffectPass.reset(); }
+	if(forwardPass){ forwardPass->Finalize(); forwardPass.reset(); }
+	if(lightingPass){ lightingPass->Finalize(); lightingPass.reset(); }
+	if(gBufferPass){ gBufferPass->Finalize(); gBufferPass.reset(); }
+	if(shadowMapPass){ shadowMapPass->Finalize(); shadowMapPass.reset(); }
+	if(overlayUIPass){ overlayUIPass->Finalize(); overlayUIPass.reset(); }
+	playerRenderTarget.reset();
+	result = nullptr;
 }
 
 void PlayerPass::Execute(const RenderPassContext& context){
 	if(!context.cameraData.cameraComponent){ result = nullptr; return; }
+	if(!playerRenderTarget || !gBufferPass || !shadowMapPass || !lightingPass ||
+		!forwardPass || !postEffectPass || !overlayUIPass){
+		result = nullptr;
+		return;
+	}
+
 	RenderPassContext viewContext = context;
 	viewContext.cullingViewKind = CullingViewKind::Player;
 	viewContext.cullingViewInstanceID = 0;
@@ -75,7 +88,7 @@ void PlayerPass::Execute(const RenderPassContext& context){
 	graphics->SetCameraPosition(viewContext.CameraPosition);
 	graphics->SetViewMatrix(viewContext.viewMatrix);
 	graphics->SetProjectionMatrix(viewContext.projectionMatrix);
-	lightingPass->SetTextureSlot(gBufferPass, shadowMapPass, graphics);
+	lightingPass->SetTextureSlot(gBufferPass.get(), shadowMapPass.get(), graphics);
 	{
 		ScopedGpuPassTiming timing(
 			profiler,
@@ -85,7 +98,7 @@ void PlayerPass::Execute(const RenderPassContext& context){
 		lightingPass->Execute(viewContext);
 	}
 
-	forwardPass->SetInputs(lightingPass, gBufferPass, shadowMapPass);
+	forwardPass->SetInputs(lightingPass.get(), gBufferPass.get(), shadowMapPass.get());
 	{
 		ScopedGpuPassTiming timing(
 			profiler,
@@ -97,7 +110,7 @@ void PlayerPass::Execute(const RenderPassContext& context){
 
 	ID3D11ShaderResourceView* initialSRV = lightingPass->pRenderTarget->srv.Get();
 	ID3D11RenderTargetView** initialRTV = lightingPass->pRenderTarget->rtv.GetAddressOf();
-	postEffectPass->SetInputs(initialSRV, initialRTV, gBufferPass);
+	postEffectPass->SetInputs(initialSRV, initialRTV, gBufferPass.get());
 	{
 		ScopedGpuPassTiming timing(
 			profiler,
