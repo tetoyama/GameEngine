@@ -16,6 +16,8 @@ int GameApplication::Run(HINSTANCE hInstance, int nCmdShow){
 		return -1;
 	}
 
+	int exitCode = 0;
+
 	EngineContextBuilder builder;
 	std::unique_ptr<EngineContext> context = builder.Build();
 	if(!context){
@@ -24,11 +26,17 @@ int GameApplication::Run(HINSTANCE hInstance, int nCmdShow){
 	}
 
 	Engine engine;
-	engine.Initialize(context.get(), hInstance, nCmdShow);
-	engine.Run(context.get());
+	if(engine.Initialize(context.get(), hInstance, nCmdShow)){
+		engine.Run(context.get());
+	}
+	else{
+		exitCode = -1;
+		OutputDebugStringA("GameApplication::Run aborted because Engine::Initialize failed\n");
+	}
+
 	engine.Shutdown(context.get());
 	context.reset();
 
 	CoUninitialize();
-	return 0;
+	return exitCode;
 }
