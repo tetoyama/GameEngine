@@ -193,6 +193,8 @@ float ShadowFactorCascadesPrevious(
         if (!inUV)
             continue;
 
+        const float ndcPerWorldZ = abs(cLight.LightProjection[2][2]);
+
         // 旧SceneのParam.wを基準値として維持しつつ、
         // Grazing面ではSlope Scaleを加えてCSM Acneを抑制する。
         // LightingDebugCsmBiasScaleはStep19A6切り分け用の一時倍率(0=既定1.0)。
@@ -203,12 +205,20 @@ float ShadowFactorCascadesPrevious(
             cLight.Param.w * debugBiasScale,
             receiverNdotL);
 
+        // CSMではWorldSpace Receiver Biasで受光点を動かさない。
+        // 代わりにDepth/Normal Biasを比較深度Biasへ変換し、他SceneのAcneを抑制する。
+        bias = max(
+            bias,
+            ResolveCsmWorldSpaceCompareDepthBias(
+                cLight,
+                receiverNdotL,
+                ndcPerWorldZ));
+
         // Cascade Texel World Size比例の下限Bias(Step19A5契約・既定ON)。
         // 2026-07-09実機確認でFar Cascade Acneの解消を確認済み(Step19A6)。
         if ((LightingDebugFlags & LIGHTING_DEBUG_FLAG_DISABLE_CSM_TEXEL_BIAS) == 0u)
         {
             float orthoWidthScale = abs(cLight.LightProjection[0][0]);
-            float ndcPerWorldZ = abs(cLight.LightProjection[2][2]);
             float tilePixels = max((float) texW * tile, 1.0);
             float texelWorldSize =
                 (2.0 / max(orthoWidthScale, 0.000001)) / tilePixels;
@@ -461,7 +471,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
                 int usedCascade = -1;
                 // CSMはCascade選択・UV・Fallbackの安定性を優先し、
                 // WorldSpace Receiver Biasで受光点を動かさない。
-                // Acne対策はParam.w/CSM Texel比例Biasの比較深度側で行う。
+                // Acne対策は比較深度側のParam.w / WorldSpace Bias変換 / CSM Texel比例Biasで行う。
                 shadow = ShadowFactorCascadesPrevious(
                     input.worldPos,
                     currentEntryIndex,
