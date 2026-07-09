@@ -79,11 +79,11 @@ public:
 
             Scale = target - 1;
 
-            int mapSize = Scale + 1;
+            int generatedMapSize = Scale + 1;
             HeightMap.clear();
-            HeightMap.resize(mapSize * mapSize, 0.0f);
+            HeightMap.resize(generatedMapSize * generatedMapSize, 0.0f);
 
-            GenerateDiamondSquare(HeightMap, mapSize, roughness);
+            GenerateDiamondSquare(HeightMap, generatedMapSize, roughness);
 
             CurrentScale = 0;
         }
