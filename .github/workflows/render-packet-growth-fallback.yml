@@ -48,6 +48,7 @@ jobs:
             /I Source/GameApplication/Service ^
             Tests/RenderPacketGrowthFallbackSmokeTest.cpp ^
             /Fe:render-packet-growth-fallback-test.exe ^
+            /link /NODEFAULTLIB:yaml-cppd.lib ^
             > render-packet-growth-fallback.log 2>&1
           if errorlevel 1 exit /b 1
           render-packet-growth-fallback-test.exe >> render-packet-growth-fallback.log 2>&1
