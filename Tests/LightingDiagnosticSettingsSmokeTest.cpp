@@ -14,14 +14,13 @@ int main(){
 	static_assert(LIGHTING_DEBUG_PCF_3X3 == 2);
 	static_assert(LIGHTING_DEBUG_PCF_5X5 == 3);
 
-	constexpr unsigned int allFlags =
+	const unsigned int allFlags =
 		LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS |
 		LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT |
 		LIGHTING_DEBUG_FLAG_DISABLE_CSM_SHADOWS |
 		LIGHTING_DEBUG_FLAG_DISABLE_POINT_SHADOWS |
 		LIGHTING_DEBUG_FLAG_SHOW_CSM_CASCADES |
 		LIGHTING_DEBUG_FLAG_DISABLE_CSM_TEXEL_BIAS;
-	static_assert(allFlags == 0x3fu);
 	static_assert(
 		(LIGHTING_DEBUG_FLAG_DISABLE_CSM_SHADOWS &
 		 LIGHTING_DEBUG_FLAG_DISABLE_POINT_SHADOWS) == 0u
@@ -33,6 +32,7 @@ int main(){
 	static_assert(LIGHTING_DEBUG_FLAG_SHOW_CSM_CASCADES == (1u << 4));
 	// 全フィールド0=通常描画: Texel Biasは既定ONなので無効化側をフラグにする。
 	static_assert(LIGHTING_DEBUG_FLAG_DISABLE_CSM_TEXEL_BIAS == (1u << 5));
+	assert(allFlags == 0x3fu);
 
 	CbLightingDebug defaults{};
 	assert(defaults.LightingDebugFlags == 0u);
@@ -82,10 +82,14 @@ int main(){
 	}
 	capture.Consume(samples);
 	const auto& summary = capture.GetSummary();
+	const std::size_t lightingIndex = static_cast<std::size_t>(
+		GpuPassTimingScope::PlayerLighting
+	);
 	assert(summary.valid);
 	assert(summary.sampleCount == 2);
+	assert(summary.passSampleCounts[lightingIndex] == 2);
 	assert(std::abs(summary.gpuFrame.averageMilliseconds - 15.0) < 0.000001);
 	assert(std::abs(summary.gpuFrame.p95Milliseconds - 20.0) < 0.000001);
-	assert(std::abs(summary.playerLighting.averageMilliseconds - 6.0) < 0.000001);
+	assert(std::abs(summary.passes[lightingIndex].averageMilliseconds - 6.0) < 0.000001);
 	return 0;
 }
