@@ -54,8 +54,10 @@ jobs:
             /I Source/GameApplication/Backends ^
             /I Source/GameApplication/Engine ^
             /I Source/GameApplication/Engine/Scene ^
+            /I Source/GameApplication/Service ^
             Tests/ComponentStorageTelemetrySmokeTest.cpp ^
             /Fe:component-storage-telemetry-test.exe ^
+            /link /NODEFAULTLIB:yaml-cppd.lib ^
             > component-storage-telemetry.log 2>&1
           if errorlevel 1 exit /b 1
           component-storage-telemetry-test.exe >> component-storage-telemetry.log 2>&1
@@ -67,8 +69,10 @@ jobs:
             /I Source/GameApplication/Backends ^
             /I Source/GameApplication/Engine ^
             /I Source/GameApplication/Engine/Scene ^
+            /I Source/GameApplication/Service ^
             Tests/ComponentRegistryGrowthPolicySmokeTest.cpp ^
             /Fe:component-registry-growth-policy-test.exe ^
+            /link /NODEFAULTLIB:yaml-cppd.lib ^
             >> component-storage-telemetry.log 2>&1
           if errorlevel 1 exit /b 1
           component-registry-growth-policy-test.exe >> component-storage-telemetry.log 2>&1
