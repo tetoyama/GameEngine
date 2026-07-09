@@ -23,6 +23,36 @@ constexpr ComponentTypeID INVALID_COMPONENT_TYPE_ID =
 constexpr size_t MAX_COMPONENTS = 256;
 using ComponentMask = std::bitset<MAX_COMPONENTS>;
 
+constexpr bool IsComponentMaskIndexValid(ComponentTypeID typeID) noexcept {
+	return typeID < MAX_COMPONENTS;
+}
+
+inline bool TrySetComponentMaskBit(
+	ComponentMask& mask,
+	ComponentTypeID typeID
+) noexcept {
+	if(!IsComponentMaskIndexValid(typeID)) return false;
+	mask.set(static_cast<size_t>(typeID));
+	return true;
+}
+
+inline bool TryResetComponentMaskBit(
+	ComponentMask& mask,
+	ComponentTypeID typeID
+) noexcept {
+	if(!IsComponentMaskIndexValid(typeID)) return false;
+	mask.reset(static_cast<size_t>(typeID));
+	return true;
+}
+
+inline bool TestComponentMaskBit(
+	const ComponentMask& mask,
+	ComponentTypeID typeID
+) noexcept {
+	return IsComponentMaskIndexValid(typeID) &&
+		mask.test(static_cast<size_t>(typeID));
+}
+
 struct ComponentView {
 	ComponentTypeID typeID = INVALID_COMPONENT_TYPE_ID;
 	void* data = nullptr;
