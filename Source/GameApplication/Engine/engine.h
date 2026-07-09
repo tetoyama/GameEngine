@@ -11,7 +11,7 @@ class EngineContext;
 
 class Engine {
 public:
-	void Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdShow);
+	bool Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdShow);
 	void Shutdown(EngineContext* context);
 	void Run(EngineContext* context);
 };
