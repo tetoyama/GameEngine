@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <cstdio> // sprintf_s (H2 デバイスロストログ整形)
 #include <d2d1.h>
 #include <dwrite.h>
 #include <wrl/client.h>
@@ -902,7 +903,39 @@ void GraphicsContext::Present(bool vsync){
 		presentFlags = DXGI_PRESENT_ALLOW_TEARING;
 	}
 
-	m_SwapChain->Present(syncInterval, presentFlags);
+	// H2: Presentの戻り値を破棄せず確認する。
+	// DXGI_ERROR_DEVICE_REMOVED / RESET はTDR・ドライバ更新・GPU切替で発生し、
+	// 放置すると以降のGPU呼び出しがnull/無効参照でCrashするため検出してGraceful終了へ回す。
+	HRESULT hr = m_SwapChain->Present(syncInterval, presentFlags);
+	if(FAILED(hr)){
+		HandleDeviceLostHResult(hr, "Present");
+	}
+}
+
+bool GraphicsContext::HandleDeviceLostHResult(long hr, const char* where){
+	if(hr != DXGI_ERROR_DEVICE_REMOVED && hr != DXGI_ERROR_DEVICE_RESET){
+		return false;
+	}
+
+	// DEVICE_REMOVEDの場合は実際の除去理由を取得する(TDR / Hung / InternalError等の切り分け用)。
+	HRESULT reason = (hr == DXGI_ERROR_DEVICE_REMOVED && m_Device)
+		? m_Device->GetDeviceRemovedReason()
+		: hr;
+
+	char message[256];
+	sprintf_s(
+		message,
+		"デバイスロストを検出しました (%s): hr=0x%08lX, RemovedReason=0x%08lX",
+		where ? where : "unknown",
+		static_cast<unsigned long>(hr),
+		static_cast<unsigned long>(reason)
+	);
+	GRAPHICS_LOG(LogLevel::Error, message);
+	OutputDebugStringA(message);
+	OutputDebugStringA("\n");
+
+	m_DeviceLost = true;
+	return true;
 }
 
 
@@ -1136,6 +1169,8 @@ void GraphicsContext::Resize(UINT width, UINT height){
 		if(FAILED(hr)){
 			GRAPHICS_LOG(LogLevel::Error, "スワップチェーンのリサイズに失敗しました");
 			OutputDebugStringA("スワップチェーンのリサイズに失敗しました。\n");
+			// H2: リサイズ失敗がデバイスロスト起因なら検出してGraceful終了へ回す。
+			HandleDeviceLostHResult(hr, "ResizeBuffers");
 			return;
 		}
 		if(!CreateRenderTargetView()){

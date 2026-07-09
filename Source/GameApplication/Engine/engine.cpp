@@ -322,5 +322,16 @@ void Engine::Run(EngineContext* context){
 		time->EndDraw();
 		completedResizeSerial = activeResizeSerial;
 		completedResizeCpuTime = activeResizeCpuTime;
+
+		// H2: デバイスロスト(TDR/ドライバ更新/GPU切替)を検出したら、
+		// 無効なDevice/SwapChainを参照し続けてCrash/黒画面固定になる前に制御された終了へ移る。
+		// (Device/SwapChain/全View/Query Poolの完全再生成は後続フェーズで対応)
+		if(graphics->IsDeviceLost()){
+			if(debug) debug->Error(
+				"デバイスロストを検出したためGraceful終了します(H2)。",
+				"Engine::Run"
+			);
+			break;
+		}
 	}
 }

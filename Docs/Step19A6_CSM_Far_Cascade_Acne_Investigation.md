@@ -2,7 +2,7 @@
 
 ## 状態
 
-**原因確定・修正契約昇格済み(2026-07-09)・残余確認のみ**
+**クローズ済(2026-07-10) — 原因確定・修正既定ON昇格・ユーザ実機視覚確認で完了条件クリア**
 
 実機確認により`CSM Texel Proportional Bias`有効化でFar Cascade Acneの解消を確認。
 仮説A(NDC固定BiasがCascade Texel World Sizeへ追従しない)で確定した。
@@ -21,7 +21,7 @@ VS 2022 Debug x64でローカルビルド成功(先行してビルド不能だ�
 - Logical Light Layout実データ: Logical0 = Directional CSM / Span 4(4カスケード)/ Shadow ON、Logical1 = Point / Span 6(6面)/ Shadow ON。Packed GPU entries=10(CSM4+Point6)。
 - 通常視点でDirectional CSM影が描画され、**顕著なAcneは目視されず**。
 
-未確定(要ユーザ視覚サインオフ): §6完了条件のPCF全カーネルでの遠CascadeAcne無し / 近CascadePeter Panning無し / Deferred・Forward一致。A/Bプリセットで各条件を切替えながらの目視判断が必要。
+§6完了条件(PCF全カーネルでの遠CascadeAcne無し / 近CascadePeter Panning無し / Deferred・Forward一致)は**ユーザ実機視覚確認により問題なしを確認(2026-07-10)**。Step19A.6はクローズ。
 
 ---
 
@@ -112,8 +112,8 @@ Previous経路へ移植した(Shadow_Atlas_PCF_Contract 状態欄参照)。
 - [x] 原因の特定(仮説A: Texel Bias有効化でAcne解消。2026-07-09実機確認)
 - [x] 採用した対応をStep19A5へ契約として追記(§5.1)
 - [x] 既存Sceneの`Param.w`互換維持(基準Biasとして残置)
-- [ ] PCF 1x1 / 3x3 / 5x5すべてで遠CascadeにAcneなし
-- [ ] 近CascadeでPeter Panning悪化なし(影の付け根が浮かないこと)
+- [x] PCF 1x1 / 3x3 / 5x5すべてで遠CascadeにAcneなし（ユーザ実機視覚確認: 問題なし 2026-07-10）
+- [x] 近CascadeでPeter Panning悪化なし(影の付け根が浮かないこと)（ユーザ実機視覚確認 2026-07-10）
     - 2026-07-09: 定数項1.0texelで接地影の消失を確認 → 0.25texelへ調整。
       `CSM Texel Bias Scale`スライダーで再ビルドなしに追調整可能
-- [ ] Deferred / Forwardで結果一致
+- [x] Deferred / Forwardで結果一致（ユーザ実機視覚確認 2026-07-10）

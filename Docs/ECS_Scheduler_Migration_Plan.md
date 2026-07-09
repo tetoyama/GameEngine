@@ -666,12 +666,15 @@ Correctness修正は性能作業より優先する（Step 19-A基本契約と同
 
 `Present` / `ResizeBuffers`のHRESULTを破棄しており`DXGI_ERROR_DEVICE_REMOVED / RESET`を検出しない。Step 19-A.3のInternal Render Size Resizeで`ResizeBuffers`経路を触るため同工程で対応する。
 
-- [ ] Present / ResizeBuffersのHRESULT確認
-- [ ] REMOVED / RESET時に`GetDeviceRemovedReason()`をログ
-- [ ] Device / SwapChain / 全RTV / DSV / Timestamp Query Poolを再生成、最低限Graceful終了
-- [ ] Step 19-A.1のPending Query破棄契約と統合
+- [x] Present / ResizeBuffersのHRESULT確認（Phase1 2026-07-10。`Present`が戻り値を破棄していたのを`HRESULT`受けに変更。`ResizeBuffers`失敗パスにも判定追加）
+- [x] REMOVED / RESET時に`GetDeviceRemovedReason()`をログ（`GraphicsContext::HandleDeviceLostHResult`を新設。`DXGI_ERROR_DEVICE_REMOVED/RESET`判定→`GetDeviceRemovedReason`をhrと共にログ→`m_DeviceLost`フラグを立てる）
+- [~] Device / SwapChain / 全RTV / DSV / Timestamp Query Poolを再生成、最低限Graceful終了
+    - 【Phase1済】**Graceful終了**: `Engine::Run`メインループが`graphics->IsDeviceLost()`を検出したらログして`break`（無効Device/SwapChain参照によるCrash/黒画面固定を回避）
+    - 【Phase2 未】Device/SwapChain/全View/Query Poolの**完全再生成**による復帰は未実装（規模大のため別工程へ分離）
+- [ ] Step 19-A.1のPending Query破棄契約と統合（Phase2で対応）
 
 完了条件: TDR / ドライバ更新 / GPU切替でCrashまたは黒画面固定にならない。
+→ Phase1(検出+ログ+Graceful終了)実装・**VS Debug x64リビルド成功(2026-07-10)**。制御された終了でCrash/黒画面固定は回避。実デバイスロスト(TDR)発火による実機動作確認とPhase2(完全再生成復帰)は残。
 
 ## H3. Script Network null参照（High）
 
@@ -733,7 +736,7 @@ Correctness修正は性能作業より優先する（Step 19-A基本契約と同
 6. [ ] Step 17-E Wave CPU Vertex Build / GPU Upload分離 【未着手】
 7. [ ] Step 18-A RenderWorld基盤 【未着手】（`RenderWorld`クラス/ファイルは未存在）
 8. [~] Step 18-B以降 Static Entity / Static Batching 【大幅先行実装済】RenderPacket再利用の暫定経路で `System/Render/StaticBatch/`(約30ヘッダ: GeometryBinding/InstanceBuffer/DrawSubmission/PipelineResources/PickingContract/ShadowSubmission…), `RenderPacket/StaticBatch*`キャッシュ, `Shader/StaticBatchVS.hlsl`+`StaticBatchGBufferPS.hlsl`, `StaticBatchTelemetryUI.h` を実装済。真のDraw Call統合(RenderWorld+RHI Handle移行後)が残
-9. **[ ] H2 デバイスロスト未処理（横断課題の残Critical/High・単独Crash源。真の最優先の未実装）**
+9. **[~] H2 デバイスロスト未処理** — Phase1(検出+`GetDeviceRemovedReason`ログ+`IsDeviceLost`検出でGraceful終了)実装・VS Debugリビルド成功(2026-07-10)。Phase2(Device/SwapChain/View/Query Pool完全再生成による復帰)とTDR実機確認が残。
 
 Step 17-AのTask命名統一は完了。以降のCapture、Profiler、YAML Export、依存解析では統一後のTask名を基準とする。
 Step 17-BのPacket Build / Command Submit分離はSchedule Captureで確認済み。Performance MonitorのDraw全体とRender Scheduleの差をCPU区間、Present待機、GPU時間へ分解してから次の最適化対象を決定する。

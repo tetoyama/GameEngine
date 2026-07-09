@@ -158,6 +158,10 @@ public:
 	ID3D11Device* GetDevice() const{return m_Device.Get();}
 	ID3D11DeviceContext* GetDeviceContext() const{return m_DeviceContext.Get();}
 	IDXGISwapChain* GetSwapChain() const{return m_SwapChain.Get();}
+
+	// H2: デバイスロスト検出。Present/ResizeBuffersがDEVICE_REMOVED/RESETを返した場合にtrueとなる。
+	// メインループはこれを検出して制御された終了へ移る(null参照Crash/黒画面固定を避ける)。
+	bool IsDeviceLost() const { return m_DeviceLost; }
 	ID3D11RenderTargetView* GetRenderTargetView() {return m_RenderTargetView;}
 	ID3D11RenderTargetView** GetpRenderTargetView(){return &m_RenderTargetView;}
 	ID3D11ShaderResourceView* GetRenderTargetSRV() { return m_SRV.Get(); }
@@ -300,6 +304,11 @@ private:
 	ID3D11Buffer* m_CbPerCamera = nullptr;
 	ID3D11Buffer* m_CbPerObject = nullptr;
 	DebugLogService* m_DebugLog = nullptr;
+
+	// H2: デバイスロスト状態。true以降はGraceful終了へ向かう。
+	bool m_DeviceLost = false;
+	// hrがDEVICE_REMOVED/RESETならGetDeviceRemovedReasonをログしm_DeviceLostを立てる。戻り値=デバイスロストか否か。
+	bool HandleDeviceLostHResult(long hr, const char* where);
 	RHI::RenderHardwareInterfaceService* m_RHIService = nullptr;
 
 	CbPerFrame m_CbPerFrameData{};
