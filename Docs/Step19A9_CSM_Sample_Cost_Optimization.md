@@ -36,10 +36,23 @@
 - Occluder復元
 - Previous / First Cascade再投影判定
 - `finalShadow = min(finalShadow, shadow)`
-- Receiver Bias適用後の`shadowWorldPos`をCSMへ渡す経路
 - Tile Half-Texel Clamp
 - Cascade数4
 - Atlas全Entry同一Tile解像度
+
+---
+
+## CSM Bias方針
+
+`_scene`でPeter Panningが確認されたため、CSMではWorldSpace Receiver Biasで受光点位置を直接動かさない。
+
+理由:
+
+- `_scene`のDirectional CSM Lightは`ShadowBias.x=0.3 / y=0.2 / WorldSpace`であり、Texel比例Bias倍率を0.02まで下げても、受光点自体が大きくライト方向・法線方向へ移動して接地影が浮く。
+- CSMはCascade選択、UV、後段Fallbackの安定性が重要であり、受光点位置を動かすとCascade採用位置やRaw Depth再投影の入力も変わる。
+- CSMのAcne対策は、受光点位置ではなく比較深度側の`Param.w` / Slope Bias / CSM Texel比例Biasで行う。
+
+Point / Spot / 通常Directionalは従来通り`ApplyShadowReceiverBias`を使用する。
 
 ---
 
@@ -86,6 +99,7 @@ Source/Shader/Material/MaterialFunc.hlsli
 - 3x3 / 5x5 PCFを固定展開
 - KernelRadius 3以上は旧式loopへFallback
 - `ShadowFactorCascadesPrevious`のCascade loopを4段固定unroll
+- CSMは`input.worldPos`をそのままCascade判定へ渡し、WorldSpace Receiver Biasによる位置移動を行わない
 
 変更しない内容:
 
@@ -94,7 +108,7 @@ Source/Shader/Material/MaterialFunc.hlsli
 - Cascade数
 - Split
 - Atlas Tile割当
-- Bias式
+- Texel比例Bias式
 
 ---
 
@@ -128,6 +142,7 @@ Player Post Effect Avg / P95
 - CSM Cascade境界の影欠落が増えない
 - 完全Lit後段Fallbackの挙動が維持される
 - CSM Debug Colorで採用Cascadeが変化しない
+- 接地影のPeter PanningがWorldSpace Receiver Bias設定に引きずられない
 
 ---
 
