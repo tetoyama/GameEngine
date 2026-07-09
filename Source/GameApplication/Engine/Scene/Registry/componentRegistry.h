@@ -228,6 +228,21 @@ public:
 		return GetComponent<T>(entity);
 	}
 
+	template<typename T, typename... Args>
+	T* ReplaceComponent(Entity entity, Args&&... args){
+		assert(m_entityManager &&
+			m_entityManager->IsAlive(entity) &&
+			"ReplaceComponent: Entity is not alive");
+		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return nullptr;
+		RemoveComponent<T>(entity);
+		return AddComponent<T>(entity, std::forward<Args>(args)...);
+	}
+
+	template<typename T, typename... Args>
+	T* SetComponent(Entity entity, Args&&... args){
+		return ReplaceComponent<T>(entity, std::forward<Args>(args)...);
+	}
+
 	template<typename T>
 	T* GetComponent(Entity entity){
 		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return nullptr;
