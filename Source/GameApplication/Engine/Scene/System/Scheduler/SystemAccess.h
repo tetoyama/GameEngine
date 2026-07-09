@@ -30,6 +30,23 @@ enum class StructuralAccess {
 	ExclusiveWorldWrite
 };
 
+inline bool IsStructuralAccessDeclared(StructuralAccess access) noexcept {
+	return access != StructuralAccess::None;
+}
+
+inline bool IsImmediateStructuralWriteAllowed(StructuralAccess access) noexcept {
+	return access == StructuralAccess::ExclusiveWorldWrite;
+}
+
+inline bool IsStructuralCommandEmissionAllowed(StructuralAccess access) noexcept {
+	return access == StructuralAccess::EmitCommands ||
+		access == StructuralAccess::ExclusiveWorldWrite;
+}
+
+inline bool RequiresStructuralIsolation(StructuralAccess access) noexcept {
+	return access == StructuralAccess::ExclusiveWorldWrite;
+}
+
 // Component型・Resource型ごとのRead / Write宣言。
 // Schedulerはこの情報からRAW / WAW / WAR依存を生成する。
 struct SystemAccess {
@@ -75,6 +92,18 @@ struct SystemAccess {
 		return *this;
 	}
 
+	bool CanEmitStructuralCommands() const noexcept {
+		return IsStructuralCommandEmissionAllowed(structuralAccess);
+	}
+
+	bool CanWriteWorldStructureImmediately() const noexcept {
+		return IsImmediateStructuralWriteAllowed(structuralAccess);
+	}
+
+	bool RequiresStructuralIsolation() const noexcept {
+		return ::RequiresStructuralIsolation(structuralAccess);
+	}
+
 	// 既存System用の安全側設定。
 	// 詳細Accessが移行されるまでは同一Worldの他Taskと並列実行しない。
 	static SystemAccess LegacyExclusive() {
@@ -89,8 +118,7 @@ struct SystemAccess {
 			return true;
 		}
 
-		if(structuralAccess == StructuralAccess::ExclusiveWorldWrite ||
-			other.structuralAccess == StructuralAccess::ExclusiveWorldWrite) {
+		if(RequiresStructuralIsolation() || other.RequiresStructuralIsolation()) {
 			return true;
 		}
 
