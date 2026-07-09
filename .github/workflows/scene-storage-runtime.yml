@@ -62,6 +62,7 @@ jobs:
             /I Source/GameApplication/Service ^
             Tests/SceneStorageRuntimeSmokeTest.cpp ^
             /Fe:scene-storage-runtime-test.exe ^
+            /link /LIBPATH:Source\GameApplication\Backends\yaml-cpp yaml-cppd.lib ^
             > scene-storage-runtime.log 2>&1
           if errorlevel 1 exit /b 1
           scene-storage-runtime-test.exe >> scene-storage-runtime.log 2>&1
@@ -77,6 +78,7 @@ jobs:
             /I Source/GameApplication/Service ^
             Tests/SceneStorageGrowthPolicySmokeTest.cpp ^
             /Fe:scene-storage-growth-policy-test.exe ^
+            /link /LIBPATH:Source\GameApplication\Backends\yaml-cpp yaml-cppd.lib ^
             >> scene-storage-runtime.log 2>&1
           if errorlevel 1 exit /b 1
           scene-storage-growth-policy-test.exe >> scene-storage-runtime.log 2>&1
