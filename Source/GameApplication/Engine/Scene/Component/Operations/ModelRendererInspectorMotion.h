@@ -4,6 +4,27 @@
 
 namespace ModelRendererInspector {
 
+inline float GetAnimationDuration(
+	const ModelRendererComponent& component,
+	const std::string& animationName
+){
+	if(!component.model){
+		return 0.0f;
+	}
+
+	const auto animationIterator = component.model->m_Animation.find(animationName);
+	if(animationIterator == component.model->m_Animation.end() ||
+		!animationIterator->second.Animation){
+		return 0.0f;
+	}
+
+	const double duration = animationIterator->second.Animation->mDuration;
+	if(duration <= 0.0){
+		return 0.0f;
+	}
+	return static_cast<float>(duration);
+}
+
 inline void DrawMotionBlend(ModelRendererComponent& component){
 	const std::string label =
 		"Motion Blend(" +
