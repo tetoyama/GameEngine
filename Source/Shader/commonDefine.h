@@ -36,6 +36,9 @@
 // 定数項(texel単位)。大きいほど遠方Acneに強いが、接地影が浮く(Peter Panning)。
 // 2026-07-09: 1.0では足元の接地影が消えたため0.25へ調整。
 #define CSM_TEXEL_BIAS_CONST_TEXELS              (0.25f)
+// CSMではWorldSpace Receiver Biasで受光点位置を動かさず、比較深度Biasへ変換する。
+// 位置オフセット由来のPeter Panningを避けるため、Texel比例Biasとは別上限を持つ。
+#define CSM_WORLD_SPACE_BIAS_MAX_NDC             (0.015f)
 
 #define BONE_MAX_COUNT          (256)
 
