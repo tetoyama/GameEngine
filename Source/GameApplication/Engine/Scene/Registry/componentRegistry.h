@@ -76,9 +76,13 @@ public:
 	){
 		if(m_yamlFactory.contains(name)) return;
 
+		const ComponentTypeID typeID = ComponentType::Get<T>();
+		assert(IsComponentMaskIndexValid(typeID) &&
+			"RegisterYAMLComponent: Component type ID exceeds ComponentMask capacity");
+		if(!IsComponentMaskIndexValid(typeID)) return;
+
 		RegisterComponent<T>(strategy);
 
-		const ComponentTypeID typeID = ComponentType::Get<T>();
 		m_componentOperations[typeID] = {
 			name,
 			[](void* raw) -> YAML::Node {
@@ -112,7 +116,11 @@ public:
 				AddComponent<T>(entity);
 			};
 		} else {
-			m_entityHeaderComponentMask.set(typeID);
+			const bool maskUpdated =
+				TrySetComponentMaskBit(m_entityHeaderComponentMask, typeID);
+			assert(maskUpdated &&
+				"RegisterYAMLComponent: Entity header component mask update failed");
+			(void)maskUpdated;
 		}
 
 		m_componentRegistrationOrder.push_back(name);
@@ -129,7 +137,11 @@ public:
 		m_idToTypeIndex.emplace(typeID, typeid(T));
 
 		if constexpr(ECSStorage::ExcludeFromDefaultQueriesV<T>){
-			m_defaultQueryExcludedMask.set(typeID);
+			const bool maskUpdated =
+				TrySetComponentMaskBit(m_defaultQueryExcludedMask, typeID);
+			assert(maskUpdated &&
+				"RegisterYAMLComponent: Default query exclusion mask update failed");
+			(void)maskUpdated;
 		}
 
 		if constexpr(std::is_base_of_v<IComponent, T>){
@@ -175,6 +187,11 @@ public:
 			"AddComponent: Entity is not alive");
 		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return nullptr;
 
+		const ComponentTypeID typeID = ComponentType::Get<T>();
+		assert(IsComponentMaskIndexValid(typeID) &&
+			"AddComponent: Component type ID exceeds ComponentMask capacity");
+		if(!IsComponentMaskIndexValid(typeID)) return nullptr;
+
 		const std::type_index typeIndex(typeid(T));
 		if(!m_storages.contains(typeIndex)){
 			if constexpr(
@@ -201,7 +218,12 @@ public:
 			return nullptr;
 		}
 
-		m_entityMasks[entity].set(ComponentType::Get<T>());
+		const bool maskUpdated = TrySetComponentMaskBit(m_entityMasks[entity], typeID);
+		assert(maskUpdated && "AddComponent: Entity component mask update failed");
+		if(!maskUpdated){
+			RemoveComponent<T>(entity);
+			return nullptr;
+		}
 		return GetComponent<T>(entity);
 	}
 
@@ -292,7 +314,7 @@ public:
 		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return false;
 		auto maskIterator = m_entityMasks.find(entity);
 		return maskIterator != m_entityMasks.end() &&
-			maskIterator->second.test(ComponentType::Get<T>());
+			TestComponentMaskBit(maskIterator->second, ComponentType::Get<T>());
 	}
 
 	bool IsEntityEnabledForDefaultQueries(Entity entity) const {
@@ -314,7 +336,12 @@ public:
 		iterator->second->Remove(entity);
 		auto maskIterator = m_entityMasks.find(entity);
 		if(maskIterator != m_entityMasks.end()){
-			maskIterator->second.reset(ComponentType::Get<T>());
+			const bool maskUpdated = TryResetComponentMaskBit(
+				maskIterator->second,
+				ComponentType::Get<T>()
+			);
+			assert(maskUpdated && "RemoveComponent: Entity component mask reset failed");
+			(void)maskUpdated;
 		}
 	}
 
@@ -331,7 +358,14 @@ public:
 		}
 		storageIterator->second->Remove(entity);
 		auto maskIterator = m_entityMasks.find(entity);
-		if(maskIterator != m_entityMasks.end()) maskIterator->second.reset(typeID);
+		if(maskIterator != m_entityMasks.end()){
+			const bool maskUpdated = TryResetComponentMaskBit(
+				maskIterator->second,
+				typeID
+			);
+			assert(maskUpdated && "RemoveComponentByID: Entity component mask reset failed");
+			(void)maskUpdated;
+		}
 	}
 
 	void OnEntityDestroyed(Entity entity){
@@ -353,9 +387,13 @@ public:
 	template<typename... Accesses>
 	ECSQuery::ComponentQueryView<Accesses...> Query() const {
 		ComponentMask required;
-		(required.set(
-			ComponentType::Get<typename ECSQuery::ComponentType<Accesses>>()
-		), ...);
+		([&required]{
+			const ComponentTypeID typeID =
+				ComponentType::Get<typename ECSQuery::ComponentType<Accesses>>();
+			assert(IsComponentMaskIndexValid(typeID) &&
+				"Query: Component type ID exceeds ComponentMask capacity");
+			(void)TrySetComponentMaskBit(required, typeID);
+		}(), ...);
 		return ECSQuery::ComponentQueryView<Accesses...>(
 			m_entityManager->GetAllAlive(),
 			m_entityMasks,
@@ -374,7 +412,12 @@ public:
 		std::vector<Entity> result;
 		const auto& aliveEntities = m_entityManager->GetAllAlive();
 		ComponentMask required;
-		(required.set(ComponentType::Get<Components>()), ...);
+		([&required]{
+			const ComponentTypeID typeID = ComponentType::Get<Components>();
+			assert(IsComponentMaskIndexValid(typeID) &&
+				"QueryEntities: Component type ID exceeds ComponentMask capacity");
+			(void)TrySetComponentMaskBit(required, typeID);
+		}(), ...);
 		result.reserve(aliveEntities.size());
 		for(Entity entity : aliveEntities){
 			auto iterator = m_entityMasks.find(entity);
@@ -595,8 +638,10 @@ public:
 		std::erase_if(
 			components,
 			[this](ComponentView view){
-				return view.typeID < MAX_COMPONENTS &&
-					m_entityHeaderComponentMask.test(view.typeID);
+				return TestComponentMaskBit(
+					m_entityHeaderComponentMask,
+					view.typeID
+				);
 			}
 		);
 		return components;
