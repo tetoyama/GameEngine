@@ -9,8 +9,6 @@
 
 #include <stdio.h>
 
-#include <WinSock2.h>
-#include <WS2tcpip.h>
 #include <Windows.h>
 
 #include "Scene/sceneManager.h"
@@ -52,6 +50,7 @@ public:
 private:
 
 	WSADATA wsaData;
+	hostent* hostInfo = nullptr;
 	IN_ADDR ipAddr{};
 
 	NetworkState m_NetWorkState = NETWORKSTATE_CLOSE;
@@ -114,28 +113,18 @@ private:
 					m_NetWorkState = NETWORKSTATE_CLOSE;
 					return;
 				}
+				hostInfo = gethostbyname(hostName);
 				sprintf_s(debugString, "ホスト名=%s", hostName);
 				m_ref.GetScene()->manager->debug->LOG_DEBUG(debugString);
 
-				addrinfo hints{};
-				hints.ai_family = AF_INET;
-				hints.ai_socktype = SOCK_STREAM;
-				hints.ai_protocol = IPPROTO_TCP;
-
-				addrinfo* addressInfo = nullptr;
-				const int addressResult = getaddrinfo(hostName, nullptr, &hints, &addressInfo);
-				if (addressResult != 0 || !addressInfo) {
-					sprintf_s(debugString, "getaddrinfo failed: %d", addressResult);
-					m_ref.GetScene()->manager->debug->LOG_ERROR(debugString);
+				if (!hostInfo || !hostInfo->h_addr_list || !hostInfo->h_addr_list[0]) {
+					m_ref.GetScene()->manager->debug->LOG_ERROR("gethostbyname failed");
 					WSACleanup();
 					m_NetWorkState = NETWORKSTATE_CLOSE;
 					return;
 				}
-
-				SOCKADDR_IN* resolvedAddress = reinterpret_cast<SOCKADDR_IN*>(addressInfo->ai_addr);
-				ipAddr = resolvedAddress->sin_addr;
-				InetNtopA(AF_INET, &ipAddr, ipAddress, static_cast<DWORD>(sizeof(ipAddress)));
-				freeaddrinfo(addressInfo);
+				memcpy(&ipAddr, hostInfo->h_addr_list[0], sizeof(ipAddr));
+				strcpy_s(ipAddress, inet_ntoa(ipAddr));
 				sprintf_s(debugString, "IPアドレス=%s", ipAddress);
 				m_ref.GetScene()->manager->debug->LOG_DEBUG(debugString);
 
