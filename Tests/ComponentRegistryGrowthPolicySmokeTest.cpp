@@ -36,6 +36,33 @@ struct ComponentStoragePreference<LateRegisteredDenseComponent> {
 std::atomic<ComponentTypeID> ComponentType::s_nextID{0};
 
 int main(){
+	static_assert(MAX_COMPONENTS >= 256);
+	ComponentMask mask;
+	assert(TrySetComponentMaskBit(mask, 0));
+	assert(TestComponentMaskBit(mask, 0));
+	assert(TryResetComponentMaskBit(mask, 0));
+	assert(!TestComponentMaskBit(mask, 0));
+	assert(TrySetComponentMaskBit(
+		mask,
+		static_cast<ComponentTypeID>(MAX_COMPONENTS - 1)
+	));
+	assert(TestComponentMaskBit(
+		mask,
+		static_cast<ComponentTypeID>(MAX_COMPONENTS - 1)
+	));
+	assert(!TrySetComponentMaskBit(
+		mask,
+		static_cast<ComponentTypeID>(MAX_COMPONENTS)
+	));
+	assert(!TryResetComponentMaskBit(
+		mask,
+		static_cast<ComponentTypeID>(MAX_COMPONENTS)
+	));
+	assert(!TestComponentMaskBit(
+		mask,
+		static_cast<ComponentTypeID>(MAX_COMPONENTS)
+	));
+
 	EntityRegistry entities;
 	entities.Reserve(2);
 	const Entity firstEntity = entities.Create();
