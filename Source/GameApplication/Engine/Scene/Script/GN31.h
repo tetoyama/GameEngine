@@ -51,20 +51,20 @@ public:
 private:
 
 	WSADATA wsaData;
-	hostent* hostInfo;
-	IN_ADDR ipAddr;
+	hostent* hostInfo = nullptr;
+	IN_ADDR ipAddr{};
 
 	NetworkState m_NetWorkState = NETWORKSTATE_CLOSE;
 
-	char hostName[256], ipAddress[256];
+	char hostName[256]{}, ipAddress[256]{};
 
-	SOCKET listenSocket;
+	SOCKET listenSocket = INVALID_SOCKET;
 	char recvBuffer[1024];
 	SOCKADDR_IN serverAddr;
 
 	SOCKADDR_IN clientAddr; // クライアントのアドレス情報
 	int clientAddrLen = sizeof(clientAddr);
-	SOCKET clientSocket; // クライアントとの通信に使うソケット
+	SOCKET clientSocket = INVALID_SOCKET; // クライアントとの通信に使うソケット
 
 
 
@@ -108,12 +108,23 @@ private:
 				m_ref.GetScene()->manager->debug->LOG_DEBUG("WSAStartup成功です");
 
 				// 自分のホスト名とIPアドレスを取得（確認用）
-				gethostname(hostName, (int)sizeof(hostName));
-				hostInfo = (struct hostent*)gethostbyname(hostName);
+				if (gethostname(hostName, (int)sizeof(hostName)) == SOCKET_ERROR) {
+					m_ref.GetScene()->manager->debug->LOG_ERROR("gethostname failed");
+					WSACleanup();
+					m_NetWorkState = NETWORKSTATE_CLOSE;
+					return;
+				}
+				hostInfo = gethostbyname(hostName);
 				sprintf_s(debugString, "ホスト名=%s", hostName);
 				m_ref.GetScene()->manager->debug->LOG_DEBUG(debugString);
 
-				memcpy(&ipAddr, hostInfo->h_addr_list[0], 4);
+				if (!hostInfo || !hostInfo->h_addr_list || !hostInfo->h_addr_list[0]) {
+					m_ref.GetScene()->manager->debug->LOG_ERROR("gethostbyname failed");
+					WSACleanup();
+					m_NetWorkState = NETWORKSTATE_CLOSE;
+					return;
+				}
+				memcpy(&ipAddr, hostInfo->h_addr_list[0], sizeof(ipAddr));
 				strcpy_s(ipAddress, inet_ntoa(ipAddr));
 				sprintf_s(debugString, "IPアドレス=%s", ipAddress);
 				m_ref.GetScene()->manager->debug->LOG_DEBUG(debugString);
