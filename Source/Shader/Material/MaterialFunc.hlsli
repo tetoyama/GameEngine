@@ -51,12 +51,16 @@ float D_GTR2(float NdotH, float roughness)
 
 // PR #46で正常だったCSM専用PCF処理。
 // CSMについては共通Atlas PCFへ統合せず、当時のTexel幅とFallbackを維持する。
+// 2026-07-09: タップ座標のみ現在TileのHalf-Texel Safe Rangeへclampする
+// (Shadow_Atlas_PCF_Contract §2.4)。offset幅・Texel歩幅は従来のまま変更しない。
 float SampleCascadePCFPrevious(
     float2 suvBase,
     float depth,
     float2 texelSize,
     float stepTexel,
-    int radius)
+    int radius,
+    float2 sampleMin,
+    float2 sampleMax)
 {
     float shadow = 0.0;
     int count = 0;
@@ -67,9 +71,13 @@ float SampleCascadePCFPrevious(
         [loop]
         for (int sx = -radius; sx <= radius; sx++)
         {
+            float2 sampleUV = clamp(
+                suvBase + float2(sx, sy) * texelSize * stepTexel,
+                sampleMin,
+                sampleMax);
             shadow += ShadowMap.SampleCmpLevelZero(
                 ShadowSampler,
-                suvBase + float2(sx, sy) * texelSize * stepTexel,
+                sampleUV,
                 depth);
             count++;
         }
@@ -86,8 +94,10 @@ float ShadowFactorCascadesPrevious(
     int cascadeCount,
     int atlasOffset,
     float receiverNdotL,
-    ShadowPCFParams pcf)
+    ShadowPCFParams pcf,
+    out int debugCascadeIndex)
 {
+    debugCascadeIndex = -1;
     uint texW, texH;
     ShadowMap.GetDimensions(texW, texH);
 
@@ -121,33 +131,69 @@ float ShadowFactorCascadesPrevious(
 
         // 旧SceneのParam.wを基準値として維持しつつ、
         // Grazing面ではSlope Scaleを加えてCSM Acneを抑制する。
+        // LightingDebugCsmBiasScaleはStep19A6切り分け用の一時倍率(0=既定1.0)。
+        float debugBiasScale = LightingDebugCsmBiasScale > 0.0
+            ? LightingDebugCsmBiasScale
+            : 1.0;
         float bias = ResolveOrthographicShadowDepthBias(
-            cLight.Param.w,
+            cLight.Param.w * debugBiasScale,
             receiverNdotL);
+
+        // Cascade Texel World Size比例の下限Bias(Step19A5契約・既定ON)。
+        // 2026-07-09実機確認でFar Cascade Acneの解消を確認済み(Step19A6)。
+        if ((LightingDebugFlags & LIGHTING_DEBUG_FLAG_DISABLE_CSM_TEXEL_BIAS) == 0u)
+        {
+            float orthoWidthScale = abs(cLight.LightProjection[0][0]);
+            float ndcPerWorldZ = abs(cLight.LightProjection[2][2]);
+            float tilePixels = max((float) texW * tile, 1.0);
+            float texelWorldSize =
+                (2.0 / max(orthoWidthScale, 0.000001)) / tilePixels;
+            // Texel下限専用の調整倍率(0=既定x1)。Param.w倍率とは独立。
+            float texelBiasScale = LightingDebugCsmTexelBiasScale > 0.0
+                ? LightingDebugCsmTexelBiasScale
+                : 1.0;
+            bias = max(
+                bias,
+                ResolveCascadeTexelProportionalBias(
+                    texelWorldSize,
+                    receiverNdotL,
+                    ndcPerWorldZ) * texelBiasScale);
+        }
+
         float depth = saturate(cdepth - bias);
 
         int tileIndex = atlasOffset + c;
         uint gx = tileIndex % grid;
         uint gy = tileIndex / grid;
         float2 tileMin = float2(gx, gy) * tile;
-        float2 suvBase = tileMin + cuv * tile;
+        // 隣接Cascade Tileへの侵入をHalf-Texel Safe Rangeで防ぐ。
+        float2 atlasTexelSize = float2(1.0 / texW, 1.0 / texH);
+        float2 sampleMin = tileMin + atlasTexelSize * 0.5;
+        float2 sampleMax = tileMin + tile - atlasTexelSize * 0.5;
+        float2 suvBase = clamp(
+            tileMin + cuv * tile,
+            sampleMin,
+            sampleMax);
 
         float shadow = SampleCascadePCFPrevious(
             suvBase,
             depth,
             texelSize,
             pcf.StepTexel,
-            radius);
+            radius,
+            sampleMin,
+            sampleMax);
 
         if (shadow >= 1.0 && c < cascadeCount - 1)
             continue;
 
         if (shadow < 1.0 && c > 0)
         {
-            int3 loadCoord = int3(
-                (int) (suvBase.x * texW),
-                (int) (suvBase.y * texH),
-                0);
+            int2 safeLoadCoord = clamp(
+                int2(suvBase * float2(texW, texH)),
+                int2(0, 0),
+                int2((int) texW - 1, (int) texH - 1));
+            int3 loadCoord = int3(safeLoadCoord, 0);
             float rawDepth = ShadowMap.Load(loadCoord).r;
 
             float zScale = cLight.LightProjection[2][2];
@@ -185,12 +231,23 @@ float ShadowFactorCascadesPrevious(
             }
         }
 
+        debugCascadeIndex = c;
         finalShadow = min(finalShadow, shadow);
         if (0.0f >= finalShadow)
             break;
     }
 
     return finalShadow;
+}
+
+// Step19A6切り分け用: Cascade番号の識別色。
+float3 ResolveCsmCascadeDebugColor(int cascadeIndex)
+{
+    if (cascadeIndex == 0) return float3(1.0, 0.2, 0.2); // 赤
+    if (cascadeIndex == 1) return float3(0.2, 1.0, 0.2); // 緑
+    if (cascadeIndex == 2) return float3(0.2, 0.4, 1.0); // 青
+    if (cascadeIndex == 3) return float3(1.0, 1.0, 0.2); // 黄
+    return float3(1.0, 0.2, 1.0); // 5段目以降: マゼンタ
 }
 
 int ResolvePackedLightEntrySpan(LIGHT light, int firstEntryIndex, int activeEntryCount)
@@ -266,6 +323,7 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
     int activeEntryCount = clamp(ActiveLightCount, 0, LIGHT_MAX_COUNT);
     int entryIndex = 0;
     int shadowAtlasOffset = 0;
+    int csmDebugCascade = -1;
 
     [loop]
     while (entryIndex < activeEntryCount)
@@ -343,13 +401,17 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
 
             if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && light.Dummy == 1)
             {
+                int usedCascade = -1;
                 shadow = ShadowFactorCascadesPrevious(
                     shadowWorldPos,
                     currentEntryIndex,
                     entrySpan,
                     currentShadowAtlasOffset,
                     NdotL,
-                    shadowParam);
+                    shadowParam,
+                    usedCascade);
+                if (usedCascade >= 0)
+                    csmDebugCascade = usedCascade;
             }
             else if (light.LightType == LIGHT_TYPE_POINT && light.Dummy == -1)
             {
@@ -408,6 +470,17 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
         result.diffuse += saturate(diffuse);
         result.specular += specular;
         result.ambient += light.Ambient.rgb;
+    }
+
+    // Step19A6切り分け用: 実際にSamplingへ採用されたCascadeを色分け表示する。
+    // Shadow模様(Acne含む)が見えるよう色は50%混合に留める。
+    if ((LightingDebugFlags & LIGHTING_DEBUG_FLAG_SHOW_CSM_CASCADES) != 0u &&
+        csmDebugCascade >= 0)
+    {
+        result.diffuse = lerp(
+            result.diffuse,
+            ResolveCsmCascadeDebugColor(csmDebugCascade),
+            0.5);
     }
 
     return result;

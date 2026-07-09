@@ -29,6 +29,14 @@
 #define LOCAL_LIGHT_SHADOW_BIAS_REFERENCE_DEPTH  (1.0f)
 #define LOCAL_LIGHT_SHADOW_MAX_SLOPE_SCALE       (9.0f)
 
+// CSM Texel比例Biasの上限(Step19A5契約)。NDC固定Bias契約とは独立に、
+// 遠CascadeのTexel World Size由来の必要量を許容する。
+#define CSM_TEXEL_BIAS_MAX_NDC                   (0.03f)
+#define CSM_TEXEL_BIAS_MAX_SLOPE_TAN             (4.0f)
+// 定数項(texel単位)。大きいほど遠方Acneに強いが、接地影が浮く(Peter Panning)。
+// 2026-07-09: 1.0では足元の接地影が消えたため0.25へ調整。
+#define CSM_TEXEL_BIAS_CONST_TEXELS              (0.25f)
+
 #define BONE_MAX_COUNT          (256)
 
 #define LOW_RESOLUTION
@@ -83,6 +91,11 @@
 #define LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT      (1u << 1)
 #define LIGHTING_DEBUG_FLAG_DISABLE_CSM_SHADOWS      (1u << 2)
 #define LIGHTING_DEBUG_FLAG_DISABLE_POINT_SHADOWS    (1u << 3)
+// CSM Cascade番号を色分け表示する(Step19A6切り分け用)。
+#define LIGHTING_DEBUG_FLAG_SHOW_CSM_CASCADES        (1u << 4)
+// CSM Texel比例Biasは2026-07-09の実機確認(Step19A6仮説A確定)により既定ON。
+// このフラグはA/B比較用の無効化スイッチ。
+#define LIGHTING_DEBUG_FLAG_DISABLE_CSM_TEXEL_BIAS   (1u << 5)
 
 // PCF override modes. 0 preserves each material's default kernel.
 #define LIGHTING_DEBUG_PCF_DEFAULT (0)

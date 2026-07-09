@@ -206,6 +206,29 @@ jobs:
           if ($biasShader -notmatch 'LOCAL_LIGHT_SHADOW_BIAS_REFERENCE_DEPTH') {
             throw "Reference-depth shadow bias contract is missing."
           }
+          if ($biasShader -notmatch 'ResolveCascadeTexelProportionalBias') {
+            throw "Cascade texel proportional bias helper is missing (Step19A6)."
+          }
+          if ($biasShader -notmatch 'CSM_TEXEL_BIAS_MAX_NDC') {
+            throw "Cascade texel bias NDC cap is missing (Step19A6)."
+          }
+
+          $materialShader = Get-Content -Raw -Path "Source/Shader/Material/MaterialFunc.hlsli"
+          if ($materialShader -notmatch 'LIGHTING_DEBUG_FLAG_DISABLE_CSM_TEXEL_BIAS\) == 0u') {
+            throw "CSM texel proportional bias must be ON by default (Step19A5)."
+          }
+          if ($materialShader -notmatch 'LightingDebugCsmBiasScale > 0\.0') {
+            throw "CSM bias debug scale must treat 0 as default x1 (Step19A6)."
+          }
+          if ($materialShader -notmatch 'LIGHTING_DEBUG_FLAG_SHOW_CSM_CASCADES') {
+            throw "CSM cascade visualization flag is missing (Step19A6)."
+          }
+          if ($materialShader -notmatch 'ShadowFactorCascadesPrevious') {
+            throw "Live CSM path ShadowFactorCascadesPrevious is missing."
+          }
+          if ($materialShader -notmatch 'sampleMin\s*=\s*tileMin\s*\+\s*atlasTexelSize\s*\*\s*0\.5') {
+            throw "Live CSM path must clamp taps to the tile half-texel range."
+          }
       - name: Compile deferred PBR diagnostic shader
         shell: cmd
         run: >-

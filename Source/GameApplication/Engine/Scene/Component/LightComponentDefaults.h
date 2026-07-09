@@ -2,7 +2,7 @@
 
 #include "Shader/common.hlsl"
 #include "Shader/commonDefine.h"
-#include "System/Render/Lighting/ShadowBiasPolicy.h"
+#include "Engine/Scene/System/Render/Lighting/ShadowBiasPolicy.h"
 
 namespace LightComponentDefaults {
 

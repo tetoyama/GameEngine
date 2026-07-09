@@ -119,6 +119,37 @@ receiverAlignment = abs(dot(receiverNormal, selectedFaceDirection))
 
 Directional / CSMはOrthographic Projectionのため、Perspective距離補正を行わない。
 
+遠CascadeのAcne調査とBias契約拡張の検討は次を参照する。
+
+```text
+Docs/Step19A6_CSM_Far_Cascade_Acne_Investigation.md
+```
+
+### 5.1 Cascade Texel比例Bias(2026-07-09契約昇格)
+
+Far CascadeのAcne実機確認(Step19A6)により、Orthographic Biasへ
+Cascade Texel World Size比例の下限を既定で適用する。
+
+```text
+texelWorldSize = (2 / |LightProjection[0][0]|) / (atlasWidth * tile)
+worldBias      = texelWorldSize
+                 * (CSM_TEXEL_BIAS_CONST_TEXELS 0.25
+                    + min(tan(受光面角), CSM_TEXEL_BIAS_MAX_SLOPE_TAN 4.0))
+biasFloor      = min(worldBias * |LightProjection[2][2]|, CSM_TEXEL_BIAS_MAX_NDC 0.03)
+bias           = max(ResolveOrthographicShadowDepthBias(Param.w, NdotL), biasFloor)
+```
+
+調整履歴:
+
+- 2026-07-09: 定数項1.0texelで接地影が浮いた(Peter Panning)ため0.25へ縮小。
+  Runtime調整は`CSM Texel Bias Scale`(Texel下限のみへ乗算、0=既定x1)で行い、
+  確定値を`CSM_TEXEL_BIAS_CONST_TEXELS`へ反映する運用とする。
+
+- `Param.w`は再解釈しない(基準Biasとして残る)
+- 近CascadeはtexelWorldSizeが小さく下限が効かないため従来動作を維持する
+- A/B比較は`LIGHTING_DEBUG_FLAG_DISABLE_CSM_TEXEL_BIAS`で無効化できる
+- 実装: `ShadowDepthBias.hlsli::ResolveCascadeTexelProportionalBias`
+
 ```text
 baseNdcBias = max(Param.w, 0)
 finalBias = min(baseNdcBias * slopeScale, MaximumNdcBias)

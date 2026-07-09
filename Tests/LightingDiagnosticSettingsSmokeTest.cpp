@@ -7,7 +7,7 @@
 #include "Engine/Editor/UI/LightingDiagnosticCapture.h"
 
 int main(){
-	static_assert(sizeof(CbLightingDebug) == 16);
+	static_assert(sizeof(CbLightingDebug) == 32);
 	static_assert(alignof(CbLightingDebug) == 16);
 	static_assert(LIGHTING_DEBUG_PCF_DEFAULT == 0);
 	static_assert(LIGHTING_DEBUG_PCF_1X1 == 1);
@@ -18,18 +18,29 @@ int main(){
 		LIGHTING_DEBUG_FLAG_DISABLE_SHADOWS |
 		LIGHTING_DEBUG_FLAG_DISABLE_ENVIRONMENT |
 		LIGHTING_DEBUG_FLAG_DISABLE_CSM_SHADOWS |
-		LIGHTING_DEBUG_FLAG_DISABLE_POINT_SHADOWS;
-	static_assert(allFlags == 0x0fu);
+		LIGHTING_DEBUG_FLAG_DISABLE_POINT_SHADOWS |
+		LIGHTING_DEBUG_FLAG_SHOW_CSM_CASCADES |
+		LIGHTING_DEBUG_FLAG_DISABLE_CSM_TEXEL_BIAS;
+	static_assert(allFlags == 0x3fu);
 	static_assert(
 		(LIGHTING_DEBUG_FLAG_DISABLE_CSM_SHADOWS &
 		 LIGHTING_DEBUG_FLAG_DISABLE_POINT_SHADOWS) == 0u
 	);
+	static_assert(
+		(LIGHTING_DEBUG_FLAG_SHOW_CSM_CASCADES &
+		 LIGHTING_DEBUG_FLAG_DISABLE_CSM_TEXEL_BIAS) == 0u
+	);
+	static_assert(LIGHTING_DEBUG_FLAG_SHOW_CSM_CASCADES == (1u << 4));
+	// 全フィールド0=通常描画: Texel Biasは既定ONなので無効化側をフラグにする。
+	static_assert(LIGHTING_DEBUG_FLAG_DISABLE_CSM_TEXEL_BIAS == (1u << 5));
 
 	CbLightingDebug defaults{};
 	assert(defaults.LightingDebugFlags == 0u);
 	assert(defaults.LightingDebugPcfMode == LIGHTING_DEBUG_PCF_DEFAULT);
 	assert(defaults.LightingDebugMaxActiveLights == 0);
-	assert(defaults._LightingDebugPad == 0);
+	// 全フィールド0=通常描画契約: 各Scale 0は既定倍率x1として解釈される。
+	assert(defaults.LightingDebugCsmBiasScale == 0.0f);
+	assert(defaults.LightingDebugCsmTexelBiasScale == 0.0f);
 
 	CbLightingDebug diagnostic{};
 	diagnostic.LightingDebugFlags = allFlags;

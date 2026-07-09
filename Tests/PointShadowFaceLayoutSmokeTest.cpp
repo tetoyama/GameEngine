@@ -52,7 +52,7 @@ void VerifyBoundaryProjectsInside(float x, float y, float z){
 	const float ndcX = XMVectorGetX(clip) / w;
 	const float ndcY = XMVectorGetY(clip) / w;
 
-	// 90.5度の小さな重なりにより、主軸切替境界でも投影端より内側になる。
+	// Face FOVのOverlap(現在92度)により、主軸切替境界でも投影端より内側になる。
 	assert(std::abs(ndcX) < 1.0f);
 	assert(std::abs(ndcY) < 1.0f);
 }
@@ -79,8 +79,10 @@ int main(){
 	assert(PointShadowFaceLayout::SelectFace(0.0f, 1.0f, 1.0f) == 2);
 	assert(PointShadowFaceLayout::SelectFace(1.0f, 1.0f, 1.0f) == 0);
 
+	// 92度: 512px Faceで既定5x5 PCF(radius=2)のfootprintを吸収する
+	// Overlapを確保する。93度以上は歪みと無駄が増えるため上限とする。
 	assert(PointShadowFaceLayout::FieldOfViewDegrees > 90.0f);
-	assert(PointShadowFaceLayout::FieldOfViewDegrees <= 91.0f);
+	assert(PointShadowFaceLayout::FieldOfViewDegrees <= 92.0f);
 
 	const std::array<std::array<float, 3>, 20> boundaryDirections = {{
 		{{ 1.0f,  1.0f,  0.0f}},

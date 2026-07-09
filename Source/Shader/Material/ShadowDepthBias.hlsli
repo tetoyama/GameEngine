@@ -84,6 +84,34 @@ float ResolveOrthographicShadowDepthBias(
         LOCAL_LIGHT_SHADOW_MAX_NDC_BIAS);
 }
 
+// Cascade Texel World Size比例のOrthographic Bias(Step19A5契約)。
+// NDC固定Biasは遠Cascadeのtexelあたり深度誤差へ追従しないため、
+// texel世界サイズ×受光面勾配から必要量を推定し、NDCへ換算した下限を返す。
+// 既定ON。LIGHTING_DEBUG_FLAG_DISABLE_CSM_TEXEL_BIASでA/B無効化できる。
+// Param.wは再解釈しない。
+float ResolveCascadeTexelProportionalBias(
+    float texelWorldSize,
+    float receiverNdotL,
+    float ndcPerWorldZ)
+{
+    if (!isfinite(texelWorldSize) || texelWorldSize <= 0.0f)
+        return 0.0f;
+    if (!isfinite(ndcPerWorldZ) || ndcPerWorldZ <= 0.0f)
+        return 0.0f;
+
+    const float safeNdotL = ResolveShadowReceiverAlignment(receiverNdotL);
+    const float slopeTan = min(
+        sqrt(saturate(1.0f - safeNdotL * safeNdotL)) / max(safeNdotL, 0.001f),
+        CSM_TEXEL_BIAS_MAX_SLOPE_TAN);
+
+    // 定数texel分の深度量 + 勾配由来のtexel投影誤差。
+    // 定数項を盛ると接地影が浮く(Peter Panning)ため小さく保つ。
+    const float worldBias =
+        texelWorldSize * (CSM_TEXEL_BIAS_CONST_TEXELS + slopeTan);
+
+    return min(worldBias * ndcPerWorldZ, CSM_TEXEL_BIAS_MAX_NDC);
+}
+
 float ResolvePerspectiveShadowDepthBias(
     float viewDepth,
     float farPlane,

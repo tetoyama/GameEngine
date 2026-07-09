@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cfloat>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <span>
@@ -72,7 +73,23 @@ inline void Draw(
 		LIGHTING_DEBUG_PCF_DEFAULT,
 		LIGHTING_DEBUG_PCF_5X5
 	);
-	settings._LightingDebugPad = 0;
+	if(!std::isfinite(settings.LightingDebugCsmBiasScale) ||
+		settings.LightingDebugCsmBiasScale < 0.0f){
+		settings.LightingDebugCsmBiasScale = 0.0f;
+	}
+	settings.LightingDebugCsmBiasScale = (std::min)(
+		settings.LightingDebugCsmBiasScale,
+		8.0f
+	);
+	if(!std::isfinite(settings.LightingDebugCsmTexelBiasScale) ||
+		settings.LightingDebugCsmTexelBiasScale < 0.0f){
+		settings.LightingDebugCsmTexelBiasScale = 0.0f;
+	}
+	settings.LightingDebugCsmTexelBiasScale = (std::min)(
+		settings.LightingDebugCsmTexelBiasScale,
+		4.0f
+	);
+	settings._LightingDebugPad = float3(0.0f, 0.0f, 0.0f);
 
 	ImGui::SeparatorText("Lighting GPU Diagnostics");
 	ImGui::TextWrapped(
@@ -162,6 +179,76 @@ inline void Draw(
 			settings,
 			LIGHTING_DEBUG_FLAG_DISABLE_POINT_SHADOWS,
 			disablePointShadows
+		);
+	}
+
+	bool showCsmCascades = HasFlag(
+		settings,
+		LIGHTING_DEBUG_FLAG_SHOW_CSM_CASCADES
+	);
+	if(ImGui::Checkbox("Show CSM Cascade Coloring", &showCsmCascades)){
+		SetFlag(
+			settings,
+			LIGHTING_DEBUG_FLAG_SHOW_CSM_CASCADES,
+			showCsmCascades
+		);
+	}
+	if(ImGui::IsItemHovered()){
+		ImGui::SetTooltip(
+			"Tints pixels by the cascade actually sampled: "
+			"0=Red 1=Green 2=Blue 3=Yellow. Shadow pattern stays visible. "
+			"Integrity fallthrough may sample a later cascade (Step19A6)."
+		);
+	}
+
+	bool disableCsmTexelBias = HasFlag(
+		settings,
+		LIGHTING_DEBUG_FLAG_DISABLE_CSM_TEXEL_BIAS
+	);
+	if(ImGui::Checkbox("Disable CSM Texel Proportional Bias", &disableCsmTexelBias)){
+		SetFlag(
+			settings,
+			LIGHTING_DEBUG_FLAG_DISABLE_CSM_TEXEL_BIAS,
+			disableCsmTexelBias
+		);
+	}
+	if(ImGui::IsItemHovered()){
+		ImGui::SetTooltip(
+			"A/B switch. Texel proportional bias is ON by default "
+			"(Step19A5 contract, verified 2026-07-09). "
+			"Param.w is not reinterpreted."
+		);
+	}
+
+	ImGui::SetNextItemWidth(260.0f);
+	ImGui::SliderFloat(
+		"CSM Texel Bias Scale",
+		&settings.LightingDebugCsmTexelBiasScale,
+		0.0f,
+		4.0f,
+		settings.LightingDebugCsmTexelBiasScale <= 0.0f ? "Default (x1)" : "x%.2f"
+	);
+	if(ImGui::IsItemHovered()){
+		ImGui::SetTooltip(
+			"Scales only the texel proportional bias floor. "
+			"Lower if contact shadows detach (Peter Panning), "
+			"raise if far cascade acne returns. 0 means default x1."
+		);
+	}
+
+	ImGui::SetNextItemWidth(260.0f);
+	ImGui::SliderFloat(
+		"CSM Bias Debug Scale",
+		&settings.LightingDebugCsmBiasScale,
+		0.0f,
+		8.0f,
+		settings.LightingDebugCsmBiasScale <= 0.0f ? "Default (x1)" : "x%.2f"
+	);
+	if(ImGui::IsItemHovered()){
+		ImGui::SetTooltip(
+			"Temporary multiplier on CSM Param.w for isolation (Step19A6). "
+			"0 means default x1. Result is still capped by MAX_NDC_BIAS. "
+			"Not saved to Scene."
 		);
 	}
 
@@ -298,6 +385,26 @@ inline void Draw(
 	ImGui::SameLine();
 	if(ImGui::Button("PCF 5x5")){
 		applyPcf(LIGHTING_DEBUG_PCF_5X5);
+	}
+
+	auto applyCsmBiasScale = [&settings](float scale){
+		settings = CbLightingDebug{};
+		settings.LightingDebugCsmBiasScale = scale;
+	};
+	if(ImGui::Button("CSM Cascade View")){
+		applyFlagOnly(LIGHTING_DEBUG_FLAG_SHOW_CSM_CASCADES);
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("No CSM Texel Bias")){
+		applyFlagOnly(LIGHTING_DEBUG_FLAG_DISABLE_CSM_TEXEL_BIAS);
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("CSM Bias x2")){
+		applyCsmBiasScale(2.0f);
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("CSM Bias x4")){
+		applyCsmBiasScale(4.0f);
 	}
 
 	if(ImGui::Button("Lights 1")){

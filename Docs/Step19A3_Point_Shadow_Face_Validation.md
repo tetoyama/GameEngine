@@ -133,7 +133,7 @@ Static Batch Submission後も、現在のLight Typeに対応するRasterizer Sta
 Point Face FOVを次へ変更した。
 
 ```text
-90.0 degrees -> 90.5 degrees
+90.0 degrees -> 90.5 degrees -> 92.0 degrees
 ```
 
 目的:
@@ -141,6 +141,9 @@ Point Face FOVを次へ変更した。
 - 主軸切替境界をFace投影端より内側へ入れる
 - 浮動小数誤差による面抜けを防ぐ
 - Face間へ小さなOverlapを持たせる
+- 92.0度は低解像度(2048px Atlas / 4x4 grid = 1面512px)でも既定5x5 PCF(radius=2)と
+  比較フィルタのfootprintを吸収するため。90.5度では45度境界の余白が約2.2pxしかなく、
+  92.0度で境界を約8.8px内側へ収める
 
 この変更はFace順またはFace選択規則を変更しない。
 
@@ -172,8 +175,8 @@ PointShadowFaceLayoutSmokeTest.cpp
 - DirectionとUpが直交
 - Axis Centerが正しいFaceへ対応
 - X -> Y -> ZのTie-BreakがShaderと一致
-- Edge / Corner方向が90.5度Projection内に収まる
-- FOVが90度より大きく91度以下
+- Edge / Corner方向が92.0度Projection内に収まる
+- FOVが90度より大きく92度以下
 
 WorkflowではDeferred / Forward ShaderのFace番号順と、共通Shadow Bias関数の使用も検査する。
 

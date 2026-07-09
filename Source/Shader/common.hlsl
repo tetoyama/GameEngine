@@ -174,7 +174,13 @@ CBUFFER(CbLightingDebug, 3)
     uint LightingDebugFlags;
     int LightingDebugPcfMode;
     int LightingDebugMaxActiveLights;
-    int _LightingDebugPad;
+    // CSM Biasへ乗じる一時デバッグ倍率。0は既定(1.0)を意味し、
+    // 全フィールド0=通常描画の契約を維持する。Sceneへは保存しない。
+    float LightingDebugCsmBiasScale;
+    // Texel比例Bias下限のみへ乗じる調整倍率。0=既定x1。
+    // 接地影(Peter Panning)と遠方Acneのバランス調整用。Sceneへは保存しない。
+    float LightingDebugCsmTexelBiasScale;
+    float3 _LightingDebugPad;
 };
 
 #ifdef __cplusplus
@@ -184,7 +190,7 @@ struct UVMatrixBuffer { float2 UVStart; float2 UVEnd; };
 struct ObjectInfo     { uint SceneID; uint ObjectID; uint ShaderID; uint _pad; };
 // LightBuffer は CbPerFrame と同一 (親しみのある型名を維持)
 using LightBuffer = CbPerFrame;
-static_assert(sizeof(CbLightingDebug) == 16);
+static_assert(sizeof(CbLightingDebug) == 32);
 #endif
 #ifndef __cplusplus
 

@@ -2,7 +2,13 @@
 
 ## 状態
 
-**Deferred / Forward統一済み・CI / 実機確認待ち**
+**Point / Spot統一済み・CSMは旧経路+Tile Clamp・CI / 実機確認待ち**
+
+注意(2026-07-09): CSMの実際のSampling経路は`MaterialFunc.hlsli::ShadowFactorCascadesPrevious`
+(PR#46復元)であり、本契約の統一関数`ShadowFactorCascades`(DeferredFunc / FowardFunc)は
+現在呼ばれていない(将来の再統合候補として残置)。旧経路には本契約のうち
+Tile Half-Texel ClampとRaw Depth Load Clampのみ移植済み。Texel歩幅は当時の
+`atlasTexel * tile`を維持する(PCF Kernel実効幅が統一経路より狭い)。
 
 Point / Spot / Directional / CSMのShadow Atlas Samplingを同一契約へ統一する。
 
@@ -134,6 +140,9 @@ Point / Spotは`SampleShadowAtlasPCF`を使用する。
 
 CSMはCascade判定後に`ResolveShadowAtlasSampleBase`を一度実行し、`SampleShadowAtlasPCFResolved`とRaw Depth参照で同じSafe Base UVを共有する。
 
+**ただし現在この統一CSM経路は未使用**。実際のCSMは`ShadowFactorCascadesPrevious`
+(MaterialFunc.hlsli)が処理し、Clamp契約のみ共有する(状態欄の注意を参照)。
+
 ---
 
 ## 4. CSM Raw Depth参照
@@ -217,6 +226,7 @@ PCF 5x5
 - 正方形の偽Shadowが出ない
 - 隣接CascadeのDepthが混入しない
 - Deferred / Forwardで境界位置が一致
+- 遠CascadeのAcne(2026-07-09報告)は次で切り分ける: `Docs/Step19A6_CSM_Far_Cascade_Acne_Investigation.md`
 
 ### 7.3 Point Face境界
 
@@ -237,9 +247,9 @@ PCF 5x5
 
 - [x] Full Atlas Texel Sizeへ統一
 - [x] Point / Spot Tile Half-Texel Clamp
-- [x] CSM Tile Half-Texel Clamp
-- [x] CSM Raw Depth Load Clamp
-- [x] Deferred / Forward共通関数構造
+- [x] CSM Tile Half-Texel Clamp(2026-07-09: 実使用のPrevious経路へ移植)
+- [x] CSM Raw Depth Load Clamp(2026-07-09: 実使用のPrevious経路へ移植)
+- [x] Deferred / Forward共通関数構造(Point / Spot。CSMは旧経路のため対象外)
 - [x] CI Regression Guard追加
 - [ ] Lighting Diagnostic Contract成功
 - [ ] Windows Build成功
