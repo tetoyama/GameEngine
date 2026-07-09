@@ -56,7 +56,7 @@ Lighting Diagnostic UIへ次を追加した。すべてRuntime専用でSceneへ�
 
 ```text
 texelWorldSize = (2 / |LightProjection[0][0]|) / (atlasWidth * tile)
-worldBias      = texelWorldSize * (1 + min(tan(受光面角), 4.0))
+worldBias      = texelWorldSize * (CSM_TEXEL_BIAS_CONST_TEXELS 0.25 + min(tan(受光面角), 4.0))
 biasFloor      = min(worldBias * |LightProjection[2][2]|, CSM_TEXEL_BIAS_MAX_NDC 0.03)
 bias           = max(既存OrthographicBias, biasFloor)
 ```

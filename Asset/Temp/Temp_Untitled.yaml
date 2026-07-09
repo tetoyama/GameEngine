@@ -138,8 +138,8 @@ Entities:
           z: 0
           w: 0
         ShadowBias:
-          x: 0.100000001
-          y: 0.100000001
+          x: 0.150000006
+          y: 0.0500000007
           z: 1
           w: 0
         LightView:
