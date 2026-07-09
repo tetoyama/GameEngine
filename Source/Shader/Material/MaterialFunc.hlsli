@@ -456,18 +456,14 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
 
         if (ShouldEvaluateShadow(light))
         {
-            const float3 shadowWorldPos = ApplyShadowReceiverBias(
-                input.worldPos,
-                N,
-                L,
-                NdotL,
-                light);
-
             if (light.LightType == LIGHT_TYPE_DIRECTIONAL_CSM && light.Dummy == 1)
             {
                 int usedCascade = -1;
+                // CSMはCascade選択・UV・Fallbackの安定性を優先し、
+                // WorldSpace Receiver Biasで受光点を動かさない。
+                // Acne対策はParam.w/CSM Texel比例Biasの比較深度側で行う。
                 shadow = ShadowFactorCascadesPrevious(
-                    shadowWorldPos,
+                    input.worldPos,
                     currentEntryIndex,
                     entrySpan,
                     currentShadowAtlasOffset,
@@ -477,29 +473,39 @@ LightingResult ComputeLightingFromMaterialInput(MaterialInput input, ShadowPCFPa
                 if (usedCascade >= 0)
                     csmDebugCascade = usedCascade;
             }
-            else if (light.LightType == LIGHT_TYPE_POINT && light.Dummy == -1)
-            {
-                const float receiverFaceAlignment =
-                    ResolvePointReceiverFaceAlignment(
-                        input.worldPos,
-                        light.Position.xyz,
-                        N);
-
-                shadow = ShadowFactorPoint(
-                    shadowWorldPos,
-                    currentEntryIndex,
-                    entrySpan,
-                    receiverFaceAlignment,
-                    shadowParam);
-            }
             else
             {
-                shadow = ShadowFactor(
-                    shadowWorldPos,
-                    light,
-                    currentEntryIndex,
+                const float3 shadowWorldPos = ApplyShadowReceiverBias(
+                    input.worldPos,
+                    N,
+                    L,
                     NdotL,
-                    shadowParam);
+                    light);
+
+                if (light.LightType == LIGHT_TYPE_POINT && light.Dummy == -1)
+                {
+                    const float receiverFaceAlignment =
+                        ResolvePointReceiverFaceAlignment(
+                            input.worldPos,
+                            light.Position.xyz,
+                            N);
+
+                    shadow = ShadowFactorPoint(
+                        shadowWorldPos,
+                        currentEntryIndex,
+                        entrySpan,
+                        receiverFaceAlignment,
+                        shadowParam);
+                }
+                else
+                {
+                    shadow = ShadowFactor(
+                        shadowWorldPos,
+                        light,
+                        currentEntryIndex,
+                        NdotL,
+                        shadowParam);
+                }
             }
         }
 
