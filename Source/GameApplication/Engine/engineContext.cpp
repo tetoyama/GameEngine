@@ -78,6 +78,11 @@ void EngineContext::Shutdown(){
 			found->second->Shutdown();
 		}
 	}
-	m_services.clear();
+
+	for(auto iterator = m_serviceOrder.rbegin();
+		iterator != m_serviceOrder.rend();
+		++iterator){
+		m_services.erase(*iterator);
+	}
 	m_serviceOrder.clear();
 }
