@@ -224,6 +224,7 @@ public:
 			RemoveComponent<T>(entity);
 			return nullptr;
 		}
+		++m_structureVersion;
 		return GetComponent<T>(entity);
 	}
 
@@ -301,6 +302,10 @@ public:
 			: 0;
 	}
 
+	uint64_t GetRegistryStructureVersion() const noexcept {
+		return m_structureVersion;
+	}
+
 	template<typename T>
 	ECSStorage::ComponentStorageStrategy GetStorageStrategy() const {
 		auto iterator = m_storageStrategies.find(std::type_index(typeid(T)));
@@ -328,6 +333,7 @@ public:
 		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return;
 		auto iterator = m_storages.find(std::type_index(typeid(T)));
 		if(iterator == m_storages.end()) return;
+		const bool hadComponent = iterator->second->GetRaw(entity) != nullptr;
 		if constexpr(std::is_base_of_v<IComponent, T>){
 			if(T* component = static_cast<T*>(iterator->second->GetRaw(entity))){
 				component->OnBeforeRemove(m_context);
@@ -343,6 +349,9 @@ public:
 			assert(maskUpdated && "RemoveComponent: Entity component mask reset failed");
 			(void)maskUpdated;
 		}
+		if(hadComponent){
+			++m_structureVersion;
+		}
 	}
 
 	void RemoveComponentByID(Entity entity, ComponentTypeID typeID){
@@ -350,6 +359,7 @@ public:
 		if(typeIterator == m_idToTypeIndex.end()) return;
 		auto storageIterator = m_storages.find(typeIterator->second);
 		if(storageIterator == m_storages.end()) return;
+		const bool hadComponent = storageIterator->second->GetRaw(entity) != nullptr;
 		if(void* raw = storageIterator->second->GetRaw(entity)){
 			auto operations = m_componentOperations.find(typeID);
 			if(operations != m_componentOperations.end() && operations->second.beforeRemove){
@@ -366,9 +376,13 @@ public:
 			assert(maskUpdated && "RemoveComponentByID: Entity component mask reset failed");
 			(void)maskUpdated;
 		}
+		if(hadComponent){
+			++m_structureVersion;
+		}
 	}
 
 	void OnEntityDestroyed(Entity entity){
+		const bool hadMask = m_entityMasks.contains(entity);
 		for(auto& [typeIndex, storage] : m_storages){
 			if(void* raw = storage->GetRaw(entity)){
 				auto type = m_typeToID.find(typeIndex);
@@ -382,6 +396,9 @@ public:
 			storage->Remove(entity);
 		}
 		m_entityMasks.erase(entity);
+		if(hadMask){
+			++m_structureVersion;
+		}
 	}
 
 	template<typename... Accesses>
@@ -394,11 +411,18 @@ public:
 				"Query: Component type ID exceeds ComponentMask capacity");
 			(void)TrySetComponentMaskBit(required, typeID);
 		}(), ...);
+		const uint64_t entityStructureVersion = m_entityManager
+			? m_entityManager->GetStructureVersion()
+			: 0;
 		return ECSQuery::ComponentQueryView<Accesses...>(
 			m_entityManager->GetAllAlive(),
 			m_entityMasks,
 			required,
-			m_defaultQueryExcludedMask
+			m_defaultQueryExcludedMask,
+			m_entityManager ? m_entityManager->GetStructureVersionPointer() : nullptr,
+			entityStructureVersion,
+			&m_structureVersion,
+			m_structureVersion
 		);
 	}
 
@@ -870,5 +894,6 @@ private:
 	std::unordered_map<std::type_index, std::function<IComponent*(void*)>>
 		m_polymorphicAdapters;
 	std::vector<std::string> m_componentRegistrationOrder;
+	uint64_t m_structureVersion = 0;
 	bool m_allowRuntimeGrowth = true;
 };
