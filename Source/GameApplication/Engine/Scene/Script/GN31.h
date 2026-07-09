@@ -136,7 +136,8 @@ private:
 					) {
 					m_ref.GetScene()->manager->debug->LOG_DEBUG("ソケットオープンエラー\n");
 					WSACleanup();
-					exit(-5);
+					m_NetWorkState = NETWORKSTATE_CLOSE;
+					return;
 				}
 
 				// ④ ソケットとポートの結びつけ（bind）
