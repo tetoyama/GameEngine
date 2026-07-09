@@ -2,6 +2,8 @@
 #include "engine.h"
 #include "engineContext.h"
 
+#include <string>
+
 #include "Platform/WindowSystem/windowSystem.h"
 #include "Taskbar/taskbar.h"
 #include "Runtime/TimeService/timeService.h"
@@ -22,10 +24,40 @@
 #include "Backends/ImGuiFunc.h"
 #include "Audio/audioContext.h"
 
-void Engine::Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdShow){
-	if(!context) return;
+namespace {
+	bool FailInitialize(DebugLogService* debug, const char* reason){
+		std::string message = "Engine::Initialize failed: ";
+		message += reason ? reason : "unknown error";
+
+		if(debug){
+			debug->Error(message, "Engine::Initialize");
+		}
+
+		message += "\n";
+		OutputDebugStringA(message.c_str());
+		return false;
+	}
+
+	void LogRunFailure(DebugLogService* debug, const char* reason){
+		std::string message = "Engine::Run aborted: ";
+		message += reason ? reason : "unknown error";
+
+		if(debug){
+			debug->Error(message, "Engine::Run");
+		}
+
+		message += "\n";
+		OutputDebugStringA(message.c_str());
+	}
+}
+
+bool Engine::Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdShow){
+	if(!context) return FailInitialize(nullptr, "EngineContext is null");
 
 	auto debug = context->Get<DebugLogService>();
+	if(!debug) return FailInitialize(nullptr, "DebugLogService is not registered");
+	debug->Initialize();
+
 	auto config = context->Get<ConfigService>();
 	auto rhi = context->Get<RHI::RenderHardwareInterfaceService>();
 	auto window = context->Get<WindowService>();
@@ -37,38 +69,66 @@ void Engine::Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdSho
 	auto resources = context->Get<ResourceService>();
 	auto scenes = context->Get<SceneManager>();
 	auto imgui = context->Get<ImGuiService>();
+#ifdef _EDITOR
 	auto editor = context->Get<EditorService>();
+#else
+	ServiceRef<EditorService> editor{};
+#endif
 	auto llama = context->Get<LLAMAService>();
 
-	if(debug) debug->Initialize();
-	if(!config || !config->Initialize()) return;
-	if(!rhi || !rhi->SelectBackend(config->engineConfig.graphics.backend)) return;
-	if(!window || !window->Initialize(hInstance, nCmdShow, config->appConfig)) return;
+	if(!config) return FailInitialize(debug.get(), "ConfigService is not registered");
+	if(!rhi) return FailInitialize(debug.get(), "RenderHardwareInterfaceService is not registered");
+	if(!window) return FailInitialize(debug.get(), "WindowService is not registered");
+	if(!time) return FailInitialize(debug.get(), "TimeService is not registered");
+	if(!audio) return FailInitialize(debug.get(), "AudioContext is not registered");
+	if(!graphics) return FailInitialize(debug.get(), "GraphicsContext is not registered");
+	if(!renderer) return FailInitialize(debug.get(), "MainRenderer is not registered");
+	if(!input) return FailInitialize(debug.get(), "InputService is not registered");
+	if(!resources) return FailInitialize(debug.get(), "ResourceService is not registered");
+	if(!scenes) return FailInitialize(debug.get(), "SceneManager is not registered");
+	if(!imgui) return FailInitialize(debug.get(), "ImGuiService is not registered");
+	if(!llama) return FailInitialize(debug.get(), "LLAMAService is not registered");
+
+	if(!config->Initialize()){
+		return FailInitialize(debug.get(), "ConfigService::Initialize returned false");
+	}
+	if(!rhi->SelectBackend(config->engineConfig.graphics.backend)){
+		return FailInitialize(debug.get(), "RHI backend selection failed");
+	}
+	if(!window->Initialize(hInstance, nCmdShow, config->appConfig)){
+		return FailInitialize(debug.get(), "WindowService::Initialize returned false");
+	}
 
 	auto mainWindow = window->GetMainWindow();
-	if(!mainWindow) return;
+	if(!mainWindow){
+		return FailInitialize(debug.get(), "WindowService returned null main window");
+	}
 	InitTaskBar(mainWindow->GetHWND());
 
-	if(time) time->Initialize();
-	if(audio) audio->Initialize();
-	if(!graphics || !graphics->Initialize(
-		mainWindow->GetHWND(), mainWindow->GetWidth(), mainWindow->GetHeight())) return;
+	time->Initialize();
+	audio->Initialize();
+	if(!graphics->Initialize(
+		mainWindow->GetHWND(), mainWindow->GetWidth(), mainWindow->GetHeight())){
+		return FailInitialize(debug.get(), "GraphicsContext::Initialize returned false");
+	}
 
 	if(rhi->GetSelectedBackend() == RHI::BackendType::Direct3D11 &&
 		!RHI::EnsureGraphicsContextRHIDevice(*graphics.get())){
-		return;
+		return FailInitialize(debug.get(), "D3D11 RHI device binding failed");
 	}
 
 	graphics->SetMaximumFrameLatency(
 		static_cast<UINT>(config->engineConfig.graphics.maximumFrameLatency)
 	);
 
-	if(resources){
-		resources->Initialize(graphics.get(), audio.get(), debug.get());
+	resources->Initialize(graphics.get(), audio.get(), debug.get());
+	input->Initialize(mainWindow->GetHWND());
+	if(!imgui->Initialize(mainWindow.get(), graphics.get())){
+		return FailInitialize(debug.get(), "ImGuiService::Initialize returned false");
 	}
-	if(input) input->Initialize(mainWindow->GetHWND());
-	if(!imgui || !imgui->Initialize(mainWindow.get(), graphics.get())) return;
-	if(renderer) renderer->Initialize(graphics.get(), mainWindow.get());
+	if(!renderer->Initialize(graphics.get(), mainWindow.get())){
+		return FailInitialize(debug.get(), "MainRenderer::Initialize returned false");
+	}
 
 	mainWindow->SetMainRenderer(renderer.get());
 	mainWindow->SetImGuiSystem(imgui.get());
@@ -83,7 +143,7 @@ void Engine::Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdSho
 		editor->Initialize(editorContext);
 	}
 
-	if(scenes){
+	{
 		SceneManagerContext managerContext{};
 		managerContext.audio = audio.get();
 		managerContext.graphics = graphics.get();
@@ -117,11 +177,11 @@ void Engine::Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdSho
 		}
 	}
 
-	if(llama){
-		LLAMAServiceContext llamaContext{};
-		llamaContext.resourceService = resources.get();
-		llama->Initialize(llamaContext);
-	}
+	LLAMAServiceContext llamaContext{};
+	llamaContext.resourceService = resources.get();
+	llama->Initialize(llamaContext);
+
+	return true;
 }
 
 void Engine::Shutdown(EngineContext* context){
@@ -140,7 +200,27 @@ void Engine::Run(EngineContext* context){
 	auto graphics = context->Get<GraphicsContext>();
 	auto renderer = context->Get<MainRenderer>();
 	auto scenes = context->Get<SceneManager>();
+#ifdef _EDITOR
 	auto editor = context->Get<EditorService>();
+#else
+	ServiceRef<EditorService> editor{};
+#endif
+
+	if(!debug) return LogRunFailure(nullptr, "DebugLogService is not registered");
+	if(!window) return LogRunFailure(debug.get(), "WindowService is not registered");
+	if(!config) return LogRunFailure(debug.get(), "ConfigService is not registered");
+	if(!time) return LogRunFailure(debug.get(), "TimeService is not registered");
+	if(!input) return LogRunFailure(debug.get(), "InputService is not registered");
+	if(!imgui) return LogRunFailure(debug.get(), "ImGuiService is not registered");
+	if(!graphics) return LogRunFailure(debug.get(), "GraphicsContext is not registered");
+	if(!renderer) return LogRunFailure(debug.get(), "MainRenderer is not registered");
+	if(!scenes) return LogRunFailure(debug.get(), "SceneManager is not registered");
+
+	auto mainWindow = window->GetMainWindow();
+	if(!mainWindow){
+		LogRunFailure(debug.get(), "WindowService returned null main window");
+		return;
+	}
 
 	uint64_t drawFrameSerial = 0;
 	uint64_t completedResizeSerial = 0;
@@ -153,7 +233,7 @@ void Engine::Run(EngineContext* context){
 	scenes->LoadFromFilePath(config->appConfig.startSceneFilePath);
 #endif
 
-	while(!window->GetMainWindow()->ShouldClose()){
+	while(!mainWindow->ShouldClose()){
 		time->Tick();
 		while(time->ShouldRunFixedUpdate()){
 			scenes->FixedUpdate(time->GetFixedDeltaTime());
@@ -165,7 +245,7 @@ void Engine::Run(EngineContext* context){
 		input->Update();
 		scenes->Update(time->GetDeltaTime());
 		time->EndDeltaUpdate();
-		if(window->GetMainWindow()->ShouldClose()) break;
+		if(mainWindow->ShouldClose()) break;
 
 		const uint64_t activeFrameSerial = ++drawFrameSerial;
 		const uint64_t activeResizeSerial = renderer->GetResizeSerial();
