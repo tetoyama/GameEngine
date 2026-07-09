@@ -1,7 +1,7 @@
 #pragma once
 
 #include <algorithm>
-#include <cstring>
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -11,6 +11,11 @@
 #include "System/Render/Animation/AnimationBindingList.h"
 
 namespace ModelRendererInspector {
+
+inline void CopyTextToBuffer(char* buffer, std::size_t bufferSize, const char* text){
+	if(!buffer || bufferSize == 0) return;
+	std::snprintf(buffer, bufferSize, "%s", text ? text : "");
+}
 
 inline bool HasAnimationSourceBinding(
 	const ModelRendererComponent& component,
@@ -79,7 +84,7 @@ inline void DrawModelPath(
 	const std::string currentPath = component.model
 		? component.model->FilePath
 		: component.modelFilePath;
-	std::strncpy(pathBuffer, currentPath.c_str(), sizeof(pathBuffer) - 1);
+	CopyTextToBuffer(pathBuffer, sizeof(pathBuffer), currentPath.c_str());
 
 	if(ImGui::InputText("##ModelFilePath", pathBuffer, sizeof(pathBuffer))){
 		ChangeModelPath(component, context, pathBuffer);
