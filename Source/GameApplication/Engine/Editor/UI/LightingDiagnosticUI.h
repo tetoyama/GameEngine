@@ -512,16 +512,18 @@ inline void Draw(
 		ImGui::TextWrapped("Result: %s", summary.label.c_str());
 		if(ImGui::BeginTable(
 			"LightingDiagnosticCaptureResult",
-			3,
+			4,
 			ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg
 		)){
 			ImGui::TableSetupColumn("Scope");
 			ImGui::TableSetupColumn("Average (ms)");
 			ImGui::TableSetupColumn("P95 (ms)");
+			ImGui::TableSetupColumn("Samples");
 			ImGui::TableHeadersRow();
 
 			auto row = [](const char* name,
-				const LightingDiagnosticCapture::MetricSummary& metric){
+				const LightingDiagnosticCapture::MetricSummary& metric,
+				std::size_t samples){
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::TextUnformatted(name);
@@ -529,11 +531,22 @@ inline void Draw(
 				ImGui::Text("%.4f", metric.averageMilliseconds);
 				ImGui::TableSetColumnIndex(2);
 				ImGui::Text("%.4f", metric.p95Milliseconds);
+				ImGui::TableSetColumnIndex(3);
+				ImGui::Text("%zu", samples);
 			};
-			row("GPU Frame", summary.gpuFrame);
-			row("Player Lighting", summary.playerLighting);
-			row("Player Shadow", summary.playerShadow);
-			row("Player Post Effect", summary.playerPostEffect);
+			row("GPU Frame", summary.gpuFrame, summary.sampleCount);
+			for(std::size_t index = 0; index < GpuPassTimingScopeCount; ++index){
+				const std::size_t passSamples = summary.passSampleCounts[index];
+				if(passSamples == 0){
+					continue;
+				}
+				row(
+					GpuPassTimingScopeName(static_cast<GpuPassTimingScope>(index)),
+					summary.passes[index],
+					passSamples
+				);
+			}
+			row("Unaccounted GPU", summary.unaccountedGpu, summary.sampleCount);
 			ImGui::EndTable();
 		}
 		ImGui::TextDisabled("Resolved samples: %zu", summary.sampleCount);
