@@ -85,6 +85,33 @@ int main(){
 	assert(components.GetRegistryStructureVersion() == initialComponentVersion + 1);
 	const uint64_t firstAddVersion = components.GetRegistryStructureVersion();
 
+	auto* ignoredReadd = components.AddComponent<RegistryDenseComponent>(
+		firstEntity,
+		RegistryDenseComponent{99}
+	);
+	assert(ignoredReadd != nullptr);
+	assert(ignoredReadd->value == 10);
+	assert(components.GetRegistryStructureVersion() == firstAddVersion + 1);
+	const uint64_t readdVersion = components.GetRegistryStructureVersion();
+
+	auto* replacedFirst = components.ReplaceComponent<RegistryDenseComponent>(
+		firstEntity,
+		RegistryDenseComponent{15}
+	);
+	assert(replacedFirst != nullptr);
+	assert(replacedFirst->value == 15);
+	assert(components.GetRegistryStructureVersion() == readdVersion + 2);
+	const uint64_t replaceVersion = components.GetRegistryStructureVersion();
+
+	auto* setFirst = components.SetComponent<RegistryDenseComponent>(
+		firstEntity,
+		RegistryDenseComponent{20}
+	);
+	assert(setFirst != nullptr);
+	assert(setFirst->value == 20);
+	assert(components.GetRegistryStructureVersion() == replaceVersion + 2);
+	const uint64_t firstSetVersion = components.GetRegistryStructureVersion();
+
 	auto query = components.ReadQuery<RegistryDenseComponent>();
 	uint32_t queryCount = 0;
 	for(Entity entity : query){
@@ -92,7 +119,7 @@ int main(){
 		++queryCount;
 	}
 	assert(queryCount == 1);
-	assert(components.GetRegistryStructureVersion() == firstAddVersion);
+	assert(components.GetRegistryStructureVersion() == firstSetVersion);
 	assert(entities.GetStructureVersion() == initialEntityVersion + 2);
 
 	components.SetRuntimeGrowthAllowed(false);
@@ -111,10 +138,10 @@ int main(){
 	assert(components.GetComponentStorageSize<RegistryDenseComponent>() == 1);
 	assert(components.GetComponentStorageCapacity<RegistryDenseComponent>() == capacityBefore);
 	assert(components.GetTotalComponentStorageGrowthEventCount() == growthBefore);
-	assert(components.GetRegistryStructureVersion() == firstAddVersion);
+	assert(components.GetRegistryStructureVersion() == firstSetVersion);
 
 	components.RemoveComponent<RegistryDenseComponent>(firstEntity);
-	assert(components.GetRegistryStructureVersion() == firstAddVersion + 1);
+	assert(components.GetRegistryStructureVersion() == firstSetVersion + 1);
 	auto* reused = components.AddComponent<RegistryDenseComponent>(
 		secondEntity,
 		RegistryDenseComponent{30}
@@ -124,7 +151,7 @@ int main(){
 	assert(components.HasComponent<RegistryDenseComponent>(secondEntity));
 	assert(!components.HasComponent<RegistryDenseComponent>(firstEntity));
 	assert(components.GetComponentStorageCapacity<RegistryDenseComponent>() == capacityBefore);
-	assert(components.GetRegistryStructureVersion() == firstAddVersion + 2);
+	assert(components.GetRegistryStructureVersion() == firstSetVersion + 2);
 
 	auto* lateFirst = components.AddComponent<LateRegisteredDenseComponent>(
 		firstEntity,
