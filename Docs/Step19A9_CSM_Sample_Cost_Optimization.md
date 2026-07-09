@@ -50,7 +50,10 @@
 
 - `_scene`のDirectional CSM Lightは`ShadowBias.x=0.3 / y=0.2 / WorldSpace`であり、Texel比例Bias倍率を0.02まで下げても、受光点自体が大きくライト方向・法線方向へ移動して接地影が浮く。
 - CSMはCascade選択、UV、後段Fallbackの安定性が重要であり、受光点位置を動かすとCascade採用位置やRaw Depth再投影の入力も変わる。
-- CSMのAcne対策は、受光点位置ではなく比較深度側の`Param.w` / Slope Bias / CSM Texel比例Biasで行う。
+- CSMのAcne対策は、受光点位置ではなく比較深度側の`Param.w` / Slope Bias / WorldSpace Bias変換 / CSM Texel比例Biasで行う。
+
+`_scene`検証では受光点位置オフセットを止めることでPeter Panningが改善した。  
+一方で他SceneではAcneが残る可能性があるため、WorldSpace `ShadowBias.x/y`はCSMでも無視せず、Light ProjectionのZ scaleでNDC比較深度Biasへ変換して使用する。
 
 Point / Spot / 通常Directionalは従来通り`ApplyShadowReceiverBias`を使用する。
 
@@ -89,6 +92,8 @@ Material側が3以上のKernelRadiusを指定した場合は、旧式の動的lo
 対象:
 
 ```text
+Source/Shader/commonDefine.h
+Source/Shader/Material/ShadowDepthBias.hlsli
 Source/Shader/Material/MaterialFunc.hlsli
 ```
 
@@ -100,6 +105,8 @@ Source/Shader/Material/MaterialFunc.hlsli
 - KernelRadius 3以上は旧式loopへFallback
 - `ShadowFactorCascadesPrevious`のCascade loopを4段固定unroll
 - CSMは`input.worldPos`をそのままCascade判定へ渡し、WorldSpace Receiver Biasによる位置移動を行わない
+- WorldSpace `ShadowBias.x/y`をCSM比較深度Biasへ変換する
+- `CSM_WORLD_SPACE_BIAS_MAX_NDC`で変換Biasの上限を固定する
 
 変更しない内容:
 
@@ -143,6 +150,7 @@ Player Post Effect Avg / P95
 - 完全Lit後段Fallbackの挙動が維持される
 - CSM Debug Colorで採用Cascadeが変化しない
 - 接地影のPeter PanningがWorldSpace Receiver Bias設定に引きずられない
+- 他SceneでWorldSpace Bias設定がCSM Acne抑制に反映される
 
 ---
 
