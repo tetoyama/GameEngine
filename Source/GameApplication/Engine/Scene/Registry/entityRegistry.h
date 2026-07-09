@@ -57,6 +57,7 @@ public:
 		const Entity entity(index, m_generations[index]);
 		m_alive.insert(entity);
 		m_peakAliveCount = (std::max)(m_peakAliveCount, m_alive.size());
+		++m_structureVersion;
 		return entity;
 	}
 
@@ -91,6 +92,7 @@ public:
 		const Entity entity(index, m_generations[index]);
 		m_alive.insert(entity);
 		m_peakAliveCount = (std::max)(m_peakAliveCount, m_alive.size());
+		++m_structureVersion;
 		return entity;
 	}
 
@@ -103,6 +105,7 @@ public:
 		m_aliveFlags[entity.GetIndex()] = false;
 		IncrementGeneration(entity.GetIndex());
 		m_recycledIndices.push_back(entity.GetIndex());
+		++m_structureVersion;
 	}
 
 	bool IsAlive(Entity entity) const {
@@ -148,6 +151,10 @@ public:
 
 	size_t GetGrowthEventCount() const noexcept {
 		return m_growthEventCount;
+	}
+
+	uint64_t GetStructureVersion() const noexcept {
+		return m_structureVersion;
 	}
 
 	void ResetPeakMetrics() noexcept {
@@ -208,5 +215,6 @@ private:
 	std::unordered_set<Entity> m_alive;
 	size_t m_peakAliveCount = 0;
 	size_t m_growthEventCount = 0;
+	uint64_t m_structureVersion = 0;
 	bool m_allowRuntimeGrowth = true;
 };
