@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -22,9 +23,9 @@ public:
 		std::string label;
 		std::size_t sampleCount = 0;
 		MetricSummary gpuFrame;
-		MetricSummary playerLighting;
-		MetricSummary playerShadow;
-		MetricSummary playerPostEffect;
+		MetricSummary unaccountedGpu;
+		std::array<MetricSummary, GpuPassTimingScopeCount> passes{};
+		std::array<std::size_t, GpuPassTimingScopeCount> passSampleCounts{};
 		bool valid = false;
 	};
 
@@ -38,13 +39,13 @@ public:
 		m_targetSampleCount = (std::max)(targetSampleCount, std::size_t{1});
 		m_lastConsumedFrameSerial = 0;
 		m_gpuFrameSamples.clear();
-		m_playerLightingSamples.clear();
-		m_playerShadowSamples.clear();
-		m_playerPostEffectSamples.clear();
+		m_unaccountedGpuSamples.clear();
+		for(auto& samples : m_passSamples){
+			samples.clear();
+			samples.reserve(m_targetSampleCount);
+		}
 		m_gpuFrameSamples.reserve(m_targetSampleCount);
-		m_playerLightingSamples.reserve(m_targetSampleCount);
-		m_playerShadowSamples.reserve(m_targetSampleCount);
-		m_playerPostEffectSamples.reserve(m_targetSampleCount);
+		m_unaccountedGpuSamples.reserve(m_targetSampleCount);
 		m_summary = Summary{};
 		m_capturing = true;
 	}
@@ -75,19 +76,25 @@ public:
 				continue;
 			}
 
-			m_gpuFrameSamples.push_back(result.seconds * 1000.0);
-			m_playerLightingSamples.push_back(
-				result.GetPassSeconds(GpuPassTimingScope::PlayerLighting) * 1000.0
-			);
-			m_playerShadowSamples.push_back(
-				result.IsPassResolved(GpuPassTimingScope::PlayerShadow)
-				? result.GetPassSeconds(GpuPassTimingScope::PlayerShadow) * 1000.0
-				: 0.0
-			);
-			m_playerPostEffectSamples.push_back(
-				result.IsPassResolved(GpuPassTimingScope::PlayerPostEffect)
-				? result.GetPassSeconds(GpuPassTimingScope::PlayerPostEffect) * 1000.0
-				: 0.0
+			const double frameMilliseconds = result.seconds * 1000.0;
+			double passTotalMilliseconds = 0.0;
+			m_gpuFrameSamples.push_back(frameMilliseconds);
+
+			for(std::size_t index = 0; index < GpuPassTimingScopeCount; ++index){
+				const GpuPassTimingScope scope =
+					static_cast<GpuPassTimingScope>(index);
+				if(!result.IsPassResolved(scope)){
+					continue;
+				}
+
+				const double passMilliseconds =
+					result.GetPassSeconds(scope) * 1000.0;
+				m_passSamples[index].push_back(passMilliseconds);
+				passTotalMilliseconds += passMilliseconds;
+			}
+
+			m_unaccountedGpuSamples.push_back(
+				frameMilliseconds - passTotalMilliseconds
 			);
 
 			if(m_gpuFrameSamples.size() >= m_targetSampleCount){
@@ -148,9 +155,11 @@ private:
 		m_summary.label = m_label;
 		m_summary.sampleCount = m_gpuFrameSamples.size();
 		m_summary.gpuFrame = CalculateMetric(m_gpuFrameSamples);
-		m_summary.playerLighting = CalculateMetric(m_playerLightingSamples);
-		m_summary.playerShadow = CalculateMetric(m_playerShadowSamples);
-		m_summary.playerPostEffect = CalculateMetric(m_playerPostEffectSamples);
+		m_summary.unaccountedGpu = CalculateMetric(m_unaccountedGpuSamples);
+		for(std::size_t index = 0; index < GpuPassTimingScopeCount; ++index){
+			m_summary.passes[index] = CalculateMetric(m_passSamples[index]);
+			m_summary.passSampleCounts[index] = m_passSamples[index].size();
+		}
 		m_summary.valid = true;
 		m_capturing = false;
 	}
@@ -162,8 +171,7 @@ private:
 	bool m_capturing = false;
 
 	std::vector<double> m_gpuFrameSamples;
-	std::vector<double> m_playerLightingSamples;
-	std::vector<double> m_playerShadowSamples;
-	std::vector<double> m_playerPostEffectSamples;
+	std::vector<double> m_unaccountedGpuSamples;
+	std::array<std::vector<double>, GpuPassTimingScopeCount> m_passSamples{};
 	Summary m_summary;
 };
