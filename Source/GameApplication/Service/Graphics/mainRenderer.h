@@ -7,10 +7,11 @@
 #include <chrono>
 #include <cstdint>
 #include <d2d1.h>
-#include <wrl/client.h>
+#include <dwrite.h>
+#include <memory>
 #include <string>
 #include <vector>
-#include <dwrite.h>
+#include <wrl/client.h>
 
 #include "GraphicsContext.h"
 #include "GpuPassTimingProfiler.h"
@@ -22,24 +23,25 @@
 // メインウィンドウへの描画を管理するレンダラー
 class MainRenderer : public IService{
 public:
-	MainRenderer(){}
-
-	~MainRenderer() {
-		if(m_d2dRenderer){
-			delete m_d2dRenderer;
-		}
-	}
+	MainRenderer() = default;
+	~MainRenderer() override = default;
 
 	void Initialize(GraphicsContext* context, IWindow* mainWindow) {
 		m_graphicsContext = context;
-		m_hwnd = mainWindow->GetHWND();
-		m_d2dRenderer = new D2DRenderer(context, m_hwnd);
-		m_width = mainWindow->GetWidth();
-		m_height = mainWindow->GetHeight();
+		m_hwnd = mainWindow ? mainWindow->GetHWND() : nullptr;
+		m_d2dRenderer = (context && mainWindow)
+			? std::make_unique<D2DRenderer>(context, m_hwnd)
+			: nullptr;
+		m_width = mainWindow ? mainWindow->GetWidth() : 0;
+		m_height = mainWindow ? mainWindow->GetHeight() : 0;
 	}
 
 	void Shutdown()override {
 		m_gpuPassTimingProfiler.Reset();
+		// GraphicsContextより先にD2DのDevice依存Resourceを破棄する。
+		m_d2dRenderer.reset();
+		m_graphicsContext = nullptr;
+		m_hwnd = nullptr;
 	}
 
 	void BeginFrame();
@@ -96,7 +98,7 @@ public:
 		return m_gpuPassTimingProfiler;
 	}
 
-	HWND GetHWND(){
+	HWND GetHWND() const noexcept {
 		return m_hwnd;
 	}
 
@@ -111,7 +113,7 @@ public:
 private:
 	HWND m_hwnd{};
 	GraphicsContext* m_graphicsContext = nullptr;
-	D2DRenderer* m_d2dRenderer = nullptr;
+	std::unique_ptr<D2DRenderer> m_d2dRenderer;
 	GpuPassTimingProfiler m_gpuPassTimingProfiler;
 
 	UINT m_width = 0;
