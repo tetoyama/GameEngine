@@ -53,12 +53,28 @@ public:
 		if(width == 0 || height == 0 || (width == m_width && height == m_height)){
 			return;
 		}
+		if(!m_graphicsContext || !m_d2dRenderer){
+			return;
+		}
 
 		const auto begin = std::chrono::steady_clock::now();
+
+		// Step 19-A.1 / H2:
+		// Resize前のTimestamp Queryは旧Render Target構成に属するため破棄する。
+		// ResetはGetData待機を行わず、Query COM ObjectとPending Ringを即時解放する。
+		m_gpuPassTimingProfiler.Reset();
+
 		m_d2dRenderer->OnResizeRelease();
-		if(m_graphicsContext){
-			m_graphicsContext->Resize(width, height);
+		m_graphicsContext->Resize(width, height);
+
+		// ResizeBuffersでDevice Lostを検出した場合、失われたDeviceからD2D資源を
+		// 再生成せず、同じPollEventsループ内でWM_QUITを処理させる。
+		// これによりEngine::Runは次の描画へ入る前に終了できる。
+		if(m_graphicsContext->IsDeviceLost()){
+			PostQuitMessage(-1);
+			return;
 		}
+
 		m_d2dRenderer->OnResizeRecreate();
 		m_width = width;
 		m_height = height;
