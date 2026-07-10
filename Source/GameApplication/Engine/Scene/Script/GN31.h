@@ -21,7 +21,6 @@ enum class NetworkState : std::uint8_t {
 // Winsock型は共通Component一覧へ漏らさず、実装側GN31.cppだけで扱う。
 class GN31 : public CustomScriptComponent {
 public:
-	GN31() = default;
 	~GN31() override;
 
 	BEGIN_REFLECT(GN31)
