@@ -9,7 +9,9 @@
 #include <vector>
 
 void MainRenderer::DrawText2D(const std::wstring& text, float x, float y, float fontSize, D2D1::ColorF color){
-	m_d2dRenderer->DrawText2D(text, x, y, fontSize, color);
+	if(m_d2dRenderer){
+		m_d2dRenderer->DrawText2D(text, x, y, fontSize, color);
+	}
 }
 
 void MainRenderer::BeginFrame() {
