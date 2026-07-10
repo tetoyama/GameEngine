@@ -30,8 +30,12 @@ using int3 = DirectX::XMINT3;
 using uint3 = DirectX::XMUINT3;
 using uint4 = DirectX::XMUINT4;
 
-// C++ 側では定数バッファ宣言を通常構造体へ置き換える
-#define CBUFFER(name, slot) struct alignas(16) name
+// C++ 側では定数バッファ宣言を通常構造体へ置き換える。
+// D3D11が要求するのはGPU BufferのByteWidthが16byte倍数であることであり、
+// UpdateSubresourceへ渡すCPU側構造体自身の先頭アドレスを16byte境界へ強制する必要はない。
+// alignas(16)を型へ付けると、この型をメンバーに持つGraphicsContext全体へ不要な末尾Paddingが入り、
+// MSVC C4324が/WXのSmoke Testを横断して停止させるため使用しない。
+#define CBUFFER(name, slot) struct name
 #define REGISTER_B(id)
 #define REGISTER_T(id)
 #define REGISTER_S(id)
@@ -184,6 +188,12 @@ CBUFFER(CbLightingDebug, 3)
 };
 
 #ifdef __cplusplus
+// CPU側の自然配置でもD3D11定数バッファ契約(16byte倍数)を維持する。
+static_assert(sizeof(CbPerFrame) % 16 == 0);
+static_assert(sizeof(CbPerCamera) % 16 == 0);
+static_assert(sizeof(CbPerObject) % 16 == 0);
+static_assert(sizeof(CbLightingDebug) % 16 == 0);
+
 // UV スライス情報 (UVStart/UVEnd の 2フィールドをまとめる)
 struct UVMatrixBuffer { float2 UVStart; float2 UVEnd; };
 // オブジェクト識別情報 (SceneID / ObjectID / ShaderID をまとめる)
