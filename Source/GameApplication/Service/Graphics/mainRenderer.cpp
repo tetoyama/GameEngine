@@ -13,11 +13,25 @@ void MainRenderer::DrawText2D(const std::wstring& text, float x, float y, float 
 }
 
 void MainRenderer::BeginFrame() {
+	if(!m_graphicsContext || m_graphicsContext->IsDeviceLost()){
+		return;
+	}
 
-    float clearColor[4] = {0.5f, 0.5f, 0.5f, 1.0f};
+	float clearColor[4] = {0.5f, 0.5f, 0.5f, 1.0f};
 	m_graphicsContext->Clear(clearColor);
 }
 
 void MainRenderer::EndFrame(bool vsync) {
+	if(!m_graphicsContext || m_graphicsContext->IsDeviceLost()){
+		m_gpuPassTimingProfiler.Reset();
+		return;
+	}
+
 	m_graphicsContext->Present(vsync);
+
+	// PresentでDevice Lostが確定した時点で、現在Frameを含む未回収Timestamp Queryを
+	// GetData待機なしで破棄する。次Frameで失われたDeviceのQueryを参照しない。
+	if(m_graphicsContext->IsDeviceLost()){
+		m_gpuPassTimingProfiler.Reset();
+	}
 }
