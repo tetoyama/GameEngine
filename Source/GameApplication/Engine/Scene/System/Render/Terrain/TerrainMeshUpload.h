@@ -13,9 +13,12 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
+#include <utility>
 #include <vector>
 
 #include <d3d11.h>
+#include <wrl/client.h>
 
 #include "Graphics/graphicsContext.h"
 #include "Shader/Common.hlsl"
@@ -23,9 +26,8 @@
 
 namespace TerrainMeshUpload {
 
-// staging → meshRenderer の VB/IB を作り直す。
-// 成功時のみ meshCount/indexCount を更新して true を返す。
-// 失敗時は片方でも中途半端に残さないよう両バッファをResetする。
+// stagingから新しいVB/IBを一時生成し、両方成功した場合だけrendererへ反映する。
+// 失敗時は既存の正常なメッシュを維持し、再試行可能な状態でfalseを返す。
 inline bool Upload(
 	GraphicsContext& graphics,
 	MeshRendererComponent& renderer,
@@ -37,44 +39,58 @@ inline bool Upload(
 		return false;
 	}
 
-	const UINT vertexCount = static_cast<UINT>(vertices.size());
-	const UINT indexCount = static_cast<UINT>(indices.size());
+	constexpr std::size_t maxByteWidth =
+		static_cast<std::size_t>((std::numeric_limits<UINT>::max)());
+	if(vertices.size() > maxByteWidth / sizeof(VERTEX_3D) ||
+		indices.size() > maxByteWidth / sizeof(std::uint32_t) ||
+		vertices.size() > static_cast<std::size_t>((std::numeric_limits<int>::max)()) ||
+		indices.size() > static_cast<std::size_t>((std::numeric_limits<int>::max)())){
+		return false;
+	}
 
-	// 既存バッファを解放してから作り直す（低頻度な再生成方式）
-	renderer.mesh.m_VertexBuffer.Reset();
-	renderer.mesh.m_IndexBuffer.Reset();
+	const UINT vertexByteWidth =
+		static_cast<UINT>(sizeof(VERTEX_3D) * vertices.size());
+	const UINT indexByteWidth =
+		static_cast<UINT>(sizeof(std::uint32_t) * indices.size());
 
-	HRESULT hr = S_OK;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> newVertexBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> newIndexBuffer;
 
-	// VertexBuffer
 	D3D11_BUFFER_DESC bd{};
 	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bd.ByteWidth = static_cast<UINT>(sizeof(VERTEX_3D) * vertexCount);
+	bd.ByteWidth = vertexByteWidth;
 
 	D3D11_SUBRESOURCE_DATA sd{};
 	sd.pSysMem = vertices.data();
 
-	hr = device->CreateBuffer(&bd, &sd, renderer.mesh.m_VertexBuffer.GetAddressOf());
+	HRESULT hr = device->CreateBuffer(
+		&bd,
+		&sd,
+		newVertexBuffer.GetAddressOf()
+	);
 	if(FAILED(hr)){
-		renderer.mesh.m_VertexBuffer.Reset();
 		return false;
 	}
 
-	// IndexBuffer
 	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	bd.ByteWidth = static_cast<UINT>(sizeof(std::uint32_t) * indexCount);
+	bd.ByteWidth = indexByteWidth;
 	sd.pSysMem = indices.data();
 
-	hr = device->CreateBuffer(&bd, &sd, renderer.mesh.m_IndexBuffer.GetAddressOf());
+	hr = device->CreateBuffer(
+		&bd,
+		&sd,
+		newIndexBuffer.GetAddressOf()
+	);
 	if(FAILED(hr)){
-		renderer.mesh.m_VertexBuffer.Reset();
-		renderer.mesh.m_IndexBuffer.Reset();
 		return false;
 	}
 
-	renderer.mesh.meshCount = static_cast<int>(vertexCount);
-	renderer.mesh.indexCount = static_cast<int>(indexCount);
+	// Commit point: ここまでは既存メッシュに触れない。
+	renderer.mesh.m_VertexBuffer = std::move(newVertexBuffer);
+	renderer.mesh.m_IndexBuffer = std::move(newIndexBuffer);
+	renderer.mesh.meshCount = static_cast<int>(vertices.size());
+	renderer.mesh.indexCount = static_cast<int>(indices.size());
 	return true;
 }
 
