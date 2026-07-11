@@ -1,0 +1,53 @@
+name: Physics Simulation Overlap Analysis
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Physic/PhysicsSimulationOverlapAnalysis.h"
+      - "Source/GameApplication/Engine/Scene/System/Physic/PhysicSystemTasks.inl"
+      - "Source/GameApplication/Engine/Scene/System/Scheduler/SystemScheduleProfiler.h"
+      - "Tests/PhysicsSimulationOverlapAnalysisSmokeTest.cpp"
+      - ".github/workflows/physics-simulation-overlap.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Source/GameApplication/Engine/Scene/System/Physic/PhysicsSimulationOverlapAnalysis.h"
+      - "Source/GameApplication/Engine/Scene/System/Physic/PhysicSystemTasks.inl"
+      - "Source/GameApplication/Engine/Scene/System/Scheduler/SystemScheduleProfiler.h"
+      - "Tests/PhysicsSimulationOverlapAnalysisSmokeTest.cpp"
+      - ".github/workflows/physics-simulation-overlap.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: physics-simulation-overlap-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run physics overlap analysis contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/PhysicsSimulationOverlapAnalysisSmokeTest.cpp
+          /Fe:physics-simulation-overlap-test.exe
+          && physics-simulation-overlap-test.exe
