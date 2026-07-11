@@ -170,10 +170,6 @@ inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 				modelRenderer->CreateModel(context);
 				continue;
 			}
-			if(AnimationSourceSynchronization::Synchronize(*modelRenderer)){
-				RenderSystemAnimationTasksDetail::ClearPendingPose(*modelRenderer);
-				continue;
-			}
 
 			const ModelRendererGpuRuntimeKey runtimeKey =
 				RenderSystemAnimationTasksDetail::MakeRuntimeKey(*context, entity);
@@ -182,8 +178,13 @@ inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 				continue;
 			}
 
-			// Pose再計算待ちのFrameでも、描画中の最終Dynamic Bufferは維持する。
+			// Pose再計算またはAnimation Source同期待ちでも、Geometry Revisionが
+			// 同じ間は最後に成功したDynamic Bufferを維持する。
 			m_modelRendererGpuRuntime.Touch(runtimeKey, runtimeGeneration);
+			if(AnimationSourceSynchronization::Synchronize(*modelRenderer)){
+				RenderSystemAnimationTasksDetail::ClearPendingPose(*modelRenderer);
+				continue;
+			}
 			if(!modelRenderer->animationPoseReady) continue;
 			if(modelRenderer->animationPoseSourceModelRevision == 0 ||
 				modelRenderer->animationPoseSourceModelRevision !=
