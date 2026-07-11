@@ -5,6 +5,7 @@ on:
     branches: [master]
     paths:
       - "Source/GameApplication/Engine/Scene/Component/cameraComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/CameraComponentInspector.h"
       - "Source/GameApplication/Engine/Scene/Component/Operations/CameraPostEffectRuntime.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/PostEffect/CameraPostEffectRuntimeStorage.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/PostEffect/PostEffectPass.h"
@@ -15,6 +16,7 @@ on:
     branches: [refactor/ecs-scheduler-foundation]
     paths:
       - "Source/GameApplication/Engine/Scene/Component/cameraComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/CameraComponentInspector.h"
       - "Source/GameApplication/Engine/Scene/Component/Operations/CameraPostEffectRuntime.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/PostEffect/CameraPostEffectRuntimeStorage.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/PostEffect/PostEffectPass.h"
