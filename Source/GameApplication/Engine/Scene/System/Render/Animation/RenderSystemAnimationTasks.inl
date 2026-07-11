@@ -151,6 +151,9 @@ inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 	GraphicsContext* graphics = m_context->graphics;
 	ID3D11Device* device = graphics->GetDevice();
 	ID3D11DeviceContext* deviceContext = graphics->GetDeviceContext();
+	const std::uint64_t runtimeGeneration =
+		m_modelRendererGpuRuntime.BeginFrame();
+
 	for(const auto& [sceneName, scene] :
 		m_context->sceneManager->GetActiveScenes()){
 		(void)sceneName;
@@ -171,6 +174,16 @@ inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 				RenderSystemAnimationTasksDetail::ClearPendingPose(*modelRenderer);
 				continue;
 			}
+
+			const ModelRendererGpuRuntimeKey runtimeKey =
+				RenderSystemAnimationTasksDetail::MakeRuntimeKey(*context, entity);
+			if(modelRenderer->blendedAnimations.empty()){
+				// Animationを外したEntityの旧Dynamic BufferはEndFrameで破棄する。
+				continue;
+			}
+
+			// Pose再計算待ちのFrameでも、描画中の最終Dynamic Bufferは維持する。
+			m_modelRendererGpuRuntime.Touch(runtimeKey, runtimeGeneration);
 			if(!modelRenderer->animationPoseReady) continue;
 			if(modelRenderer->animationPoseSourceModelRevision == 0 ||
 				modelRenderer->animationPoseSourceModelRevision !=
@@ -185,10 +198,11 @@ inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 				continue;
 			}
 
-			const ModelRendererGpuRuntimeKey runtimeKey =
-				RenderSystemAnimationTasksDetail::MakeRuntimeKey(*context, entity);
 			ModelRendererGpuRuntime& runtime =
-				m_modelRendererGpuRuntime.Acquire(runtimeKey);
+				m_modelRendererGpuRuntime.Acquire(
+					runtimeKey,
+					runtimeGeneration
+				);
 			if(!runtime.Ensure(
 				device,
 				*modelRenderer->model,
@@ -234,6 +248,9 @@ inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 			}
 		}
 	}
+
+	// Scene Unload / Entity削除 / Animation解除済みRuntimeを同じFrame境界で解放する。
+	m_modelRendererGpuRuntime.EndFrame(runtimeGeneration);
 }
 
 // Step 17-C: `MigrateRegisteredTasks`互換Hookは撤去済み。
