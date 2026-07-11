@@ -5,6 +5,7 @@
 // =======================================================================
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -18,8 +19,8 @@
 #include "Resources/Data/pixelShaderData.h"
 #include "sceneManager.h"
 
-// PostEffect Graphの永続設定だけを保持する。
-// Texture / RTV / SRVなどのGPU RuntimeはPostEffectPass側が所有する。
+// PostEffect Graphの永続設定を保持する。
+// Texture / RTV / SRVなどのGPU Runtime所有権はPostEffectPass側にある。
 struct CameraPostEffect {
 	std::shared_ptr<PixelShaderData> ps;
 	std::shared_ptr<VertexShaderData> vs;
@@ -32,6 +33,11 @@ struct CameraPostEffect {
 	int outputPin = -1;
 	float resolutionScale = 1.0f;
 	int mipLevels = 1;
+
+	// Editor Preview用の一時・非所有Handle。
+	// PostEffectPassが有効期間を管理し、Serialization対象にはしない。
+	// Native D3D型やResource所有権をComponentへ戻さないためuintptr_tで保持する。
+	std::uintptr_t previewTextureId = 0;
 };
 
 struct CameraPostEffectLink {
