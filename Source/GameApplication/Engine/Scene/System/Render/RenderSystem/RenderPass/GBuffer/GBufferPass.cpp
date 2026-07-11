@@ -258,9 +258,11 @@ void GBufferPass::Execute(const RenderPassContext& context){
 	passContext.renderLayerVisibility[RenderLayer::Transparent3D] = false;
 	passContext.renderLayerVisibility[RenderLayer::OverlayUI] = false;
 
-	graphics->SetCameraPosition(context.CameraPosition);
-	graphics->SetViewMatrix(context.viewMatrix);
-	graphics->SetProjectionMatrix(context.projectionMatrix);
+	graphics->SetPerCameraConstants(
+		context.CameraPosition,
+		context.viewMatrix,
+		context.projectionMatrix
+	);
 
 	D3D11_VIEWPORT viewport{};
 	viewport.Width = context.screenSize.x;
@@ -478,7 +480,7 @@ void GBufferPass::Execute(const RenderPassContext& context){
 
 			const int layerIndex = static_cast<int>(group.key.layer);
 			if(static_cast<unsigned>(layerIndex) >=
-				static_cast<unsigned>(RenderLayer::MaxRenderLayer) ||
+					static_cast<unsigned>(RenderLayer::MaxRenderLayer) ||
 				!passContext.renderLayerVisibility[layerIndex]){
 				++m_staticBatchTelemetry.layerFallbackCount;
 				continue;
