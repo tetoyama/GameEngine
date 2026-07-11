@@ -1,9 +1,12 @@
+#include <atomic>
 #include <cassert>
 #include <vector>
 
 #include "Engine/Scene/Registry/componentRegistry.h"
 #include "Engine/Scene/Registry/entityRegistry.h"
 #include "Engine/Scene/System/Render/Culling/CullingVisibilityBuilder.h"
+
+std::atomic<ComponentTypeID> ComponentType::s_nextID{0};
 
 int main(){
 	EntityRegistry entities;
