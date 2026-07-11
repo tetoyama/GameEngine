@@ -39,7 +39,7 @@ inline std::uint64_t ComputeInputSignature(
 	float time
 ) noexcept {
 	std::uint64_t hash = 14695981039346656037ull;
-	HashUint32(hash, std::bit_cast<std::uint32_t>(resolution));
+	HashUint32(hash, static_cast<std::uint32_t>(resolution));
 	HashUint32(hash, std::bit_cast<std::uint32_t>(amplitude));
 	HashUint32(hash, std::bit_cast<std::uint32_t>(wavelength));
 	HashUint32(hash, std::bit_cast<std::uint32_t>(time));
@@ -66,18 +66,16 @@ inline bool TryComputeCounts(
 	if(cells > (std::numeric_limits<std::size_t>::max)() / 6) return false;
 	indexCount = cells * 6;
 
-	if(vertexCount > static_cast<std::size_t>((std::numeric_limits<std::uint32_t>::max)())){
+	const std::size_t maximumUint32 = static_cast<std::size_t>(
+		(std::numeric_limits<std::uint32_t>::max)()
+	);
+	if(vertexCount > maximumUint32 || indexCount > maximumUint32){
 		return false;
 	}
-	if(indexCount > static_cast<std::size_t>((std::numeric_limits<std::uint32_t>::max)())){
+	if(vertexCount > maximumUint32 / sizeof(VERTEX_3D)){
 		return false;
 	}
-	if(vertexCount > static_cast<std::size_t>((std::numeric_limits<UINT>::max)()) /
-		sizeof(VERTEX_3D)){
-		return false;
-	}
-	if(indexCount > static_cast<std::size_t>((std::numeric_limits<UINT>::max)()) /
-		sizeof(std::uint32_t)){
+	if(indexCount > maximumUint32 / sizeof(std::uint32_t)){
 		return false;
 	}
 	return true;
@@ -113,16 +111,16 @@ inline bool BuildTopology(
 
 	outVertices.assign(vertexCount, VERTEX_3D{});
 	outIndices.assign(indexCount, 0u);
-	const float grid = static_cast<float>(resolution);
+	const float gridFloat = static_cast<float>(resolution);
+	const std::size_t side = static_cast<std::size_t>(resolution) + 1;
 
 	for(int z = 0; z <= resolution; ++z){
 		for(int x = 0; x <= resolution; ++x){
 			const std::size_t vertexIndex =
-				static_cast<std::size_t>(z) *
-				(static_cast<std::size_t>(resolution) + 1) +
+				static_cast<std::size_t>(z) * side +
 				static_cast<std::size_t>(x);
-			const float u = static_cast<float>(x) / grid;
-			const float v = static_cast<float>(z) / grid;
+			const float u = static_cast<float>(x) / gridFloat;
+			const float v = static_cast<float>(z) / gridFloat;
 			FillBaseVertex(
 				outVertices[vertexIndex],
 				(u - 0.5f) * 2.0f,
@@ -137,13 +135,15 @@ inline bool BuildTopology(
 	std::size_t index = 0;
 	for(int z = 0; z < resolution; ++z){
 		for(int x = 0; x < resolution; ++x){
-			const std::uint32_t topLeft = static_cast<std::uint32_t>(
-				z * (resolution + 1) + x
-			);
+			const std::size_t topLeftValue =
+				static_cast<std::size_t>(z) * side +
+				static_cast<std::size_t>(x);
+			const std::size_t bottomLeftValue = topLeftValue + side;
+			const std::uint32_t topLeft =
+				static_cast<std::uint32_t>(topLeftValue);
 			const std::uint32_t topRight = topLeft + 1;
-			const std::uint32_t bottomLeft = static_cast<std::uint32_t>(
-				(z + 1) * (resolution + 1) + x
-			);
+			const std::uint32_t bottomLeft =
+				static_cast<std::uint32_t>(bottomLeftValue);
 			const std::uint32_t bottomRight = bottomLeft + 1;
 			outIndices[index++] = topLeft;
 			outIndices[index++] = bottomLeft;
@@ -175,18 +175,18 @@ inline bool BuildAnimatedVertices(
 	}
 
 	outVertices.assign(vertexCount, VERTEX_3D{});
-	const float grid = static_cast<float>(resolution);
+	const float gridFloat = static_cast<float>(resolution);
+	const std::size_t side = static_cast<std::size_t>(resolution) + 1;
 	const float omega = 2.0f * DirectX::XM_PI;
 	const float waveNumber = 2.0f * DirectX::XM_PI / wavelength;
 
 	for(int z = 0; z <= resolution; ++z){
 		for(int x = 0; x <= resolution; ++x){
 			const std::size_t vertexIndex =
-				static_cast<std::size_t>(z) *
-				(static_cast<std::size_t>(resolution) + 1) +
+				static_cast<std::size_t>(z) * side +
 				static_cast<std::size_t>(x);
-			const float u = static_cast<float>(x) / grid;
-			const float v = static_cast<float>(z) / grid;
+			const float u = static_cast<float>(x) / gridFloat;
+			const float v = static_cast<float>(z) / gridFloat;
 			const float px = (u - 0.5f) * 2.0f;
 			const float pz = (v - 0.5f) * 2.0f;
 			const float radius = std::sqrt(px * px + pz * pz);
