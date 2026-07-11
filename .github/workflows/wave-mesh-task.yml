@@ -1,0 +1,60 @@
+name: Wave Mesh Task Smoke Test
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Source/GameApplication/Engine/Scene/Component/waveComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Terrain/WaveMeshBuilder.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Terrain/WaveMeshUpload.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Terrain/WaveTaskRegistrar.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Terrain/waveSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Wave/RenderableWave.cpp"
+      - "Tests/WaveMeshTaskSmokeTest.cpp"
+      - ".github/workflows/wave-mesh-task.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Source/GameApplication/Engine/Scene/Component/waveComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Terrain/WaveMeshBuilder.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Terrain/WaveMeshUpload.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Terrain/WaveTaskRegistrar.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Terrain/waveSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Wave/RenderableWave.cpp"
+      - "Tests/WaveMeshTaskSmokeTest.cpp"
+      - ".github/workflows/wave-mesh-task.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: wave-mesh-task-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run wave mesh task contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/WaveMeshTaskSmokeTest.cpp
+          /Fe:wave-mesh-task-test.exe
+          /link /NODEFAULTLIB:yaml-cppd.lib
+          && wave-mesh-task-test.exe
