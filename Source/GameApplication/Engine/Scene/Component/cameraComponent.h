@@ -9,9 +9,7 @@
 #include <string>
 #include <vector>
 
-#include <d3d11.h>
 #include <DirectXMath.h>
-#include <wrl/client.h>
 
 #include "Interface/IComponent.h"
 #include "Backends/myVector2.h"
@@ -20,8 +18,8 @@
 #include "Resources/Data/pixelShaderData.h"
 #include "sceneManager.h"
 
-// ポストエフェクトGraphの設定と、移行期間中のD3D11 Runtime資源を保持する。
-// GPU資源所有権はStep 17のRenderWorld移行でPostEffectPass側へ移す。
+// PostEffect Graphの永続設定だけを保持する。
+// Texture / RTV / SRVなどのGPU RuntimeはPostEffectPass側が所有する。
 struct CameraPostEffect {
 	std::shared_ptr<PixelShaderData> ps;
 	std::shared_ptr<VertexShaderData> vs;
@@ -34,15 +32,6 @@ struct CameraPostEffect {
 	int outputPin = -1;
 	float resolutionScale = 1.0f;
 	int mipLevels = 1;
-
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> tex;
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
-	Vector2 resolution{1280.0f, 720.0f};
-
-	void CreateTexture(ID3D11Device* device, const Vector2& screenSize);
-	void ResizeTexture(ID3D11Device* device, const Vector2& screenSize);
-	void Clear(ID3D11DeviceContext* context, const float clearColor[4]);
 };
 
 struct CameraPostEffectLink {
@@ -91,7 +80,6 @@ public:
 	const std::vector<int>& GetResolvedPostEffectInputs(int effectIndex);
 };
 
-#include "Operations/CameraPostEffectRuntime.h"
 #include "Operations/CameraPostEffectGraph.h"
 #include "Operations/CameraComponentSerialization.h"
 #include "Operations/CameraComponentInspector.h"
