@@ -21,9 +21,8 @@
 #include "Shader/common.hlsl"
 #include "System/Render/RenderSystem/renderLayer.h"
 #include "System/Render/RenderSystem/ShaderMaterialProvider.h"
-#include "System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
+#include "System/Render/RenderSystem/RenderWorld/RenderWorld.h"
 #include "System/Render/RenderSystem/RenderPass/RenderPassContext.h"
-#include "System/Render/Culling/RenderPacketViewCulling.h"
 
 struct SceneManagerContext;
 struct PixelShaderData;
@@ -66,7 +65,11 @@ public:
 	}
 
 	RenderSystem(SceneManagerContext* context)
-		: m_context(context){
+		: m_context(context),
+		  m_renderPacketBuffer(m_renderWorld.Packets()),
+		  m_cullingVisibility(m_renderWorld.Visibility()),
+		  m_lastSubmittedPacketGeneration(
+			  m_renderWorld.SubmissionGenerationStorage()){
 		ShaderMaterials.clear();
 
 		ShaderMaterial unlitMaterial;
@@ -87,11 +90,9 @@ public:
 	void Finalize() override;
 
 	// RenderPacketはComponentへの非所有Pointerを保持するため、
-	// SceneのTempLoad / Shutdown前に公開済みPacketを必ず無効化する。
+	// SceneのTempLoad / Shutdown前に公開済みRenderWorldを必ず無効化する。
 	void Stop() override {
-		m_renderPacketBuffer.Reset();
-		m_cullingVisibility.BeginFrame(0);
-		m_lastSubmittedPacketGeneration = 0;
+		m_renderWorld.Reset();
 	}
 
 	void Update(float deltaTime);
@@ -170,20 +171,24 @@ public:
 	ID3D11SamplerState* GetEnvMapSampler() const;
 	IRenderable* GetRenderableForPacketKind(RenderPacketKind kind);
 
+	RenderWorld& GetRenderWorld() noexcept {
+		return m_renderWorld;
+	}
+
+	const RenderWorld& GetRenderWorld() const noexcept {
+		return m_renderWorld;
+	}
+
 	RenderPacketFrameBuffer& GetRenderPacketBuffer() noexcept {
-		return m_renderPacketBuffer;
+		return m_renderWorld.Packets();
 	}
 
 	const RenderPacketFrameBuffer& GetRenderPacketBuffer() const noexcept {
-		return m_renderPacketBuffer;
+		return m_renderWorld.Packets();
 	}
 
 	void PrepareRenderPacketView(const RenderPacketCullingView& view){
-		RenderPacketViewCulling::Prepare(
-			m_cullingVisibility,
-			m_renderPacketBuffer,
-			view
-		);
+		m_renderWorld.PrepareView(view);
 	}
 
 	void PrepareRenderPacketView(const RenderPassContext& context){
@@ -199,11 +204,7 @@ public:
 		const RenderPacketCullingView& view,
 		const RenderPacket& packet
 	) const {
-		return RenderPacketViewCulling::ShouldRender(
-			m_cullingVisibility,
-			view,
-			packet
-		);
+		return m_renderWorld.ShouldRender(view, packet);
 	}
 
 	bool ShouldRenderPacket(
@@ -219,11 +220,11 @@ public:
 	}
 
 	const CullingVisibilitySet& GetCullingVisibility() const noexcept {
-		return m_cullingVisibility;
+		return m_renderWorld.Visibility();
 	}
 
 	uint64_t GetLastSubmittedPacketGeneration() const noexcept {
-		return m_lastSubmittedPacketGeneration;
+		return m_renderWorld.LastSubmittedGeneration();
 	}
 
 	std::span<const ShaderMaterial> GetShaderMaterials() const noexcept override {
@@ -256,10 +257,15 @@ private:
 	std::shared_ptr<PixelShaderData> ForwardPSDebug;
 	CbLightingDebug m_lightingDebugSettings{};
 
-	RenderPacketFrameBuffer m_renderPacketBuffer;
-	CullingVisibilitySet m_cullingVisibility;
+	// Step 18-A: Frame-local描画データの所有権をRenderWorldへ集約する。
+	RenderWorld m_renderWorld;
+
+	// renderSystem.cppの段階移行用Alias。実体の所有者ではない。
+	// Build / SubmitがRenderWorld APIへ直接移行した後に削除する。
+	RenderPacketFrameBuffer& m_renderPacketBuffer;
+	CullingVisibilitySet& m_cullingVisibility;
 	uint64_t m_renderPacketGeneration = 0;
-	uint64_t m_lastSubmittedPacketGeneration = 0;
+	uint64_t& m_lastSubmittedPacketGeneration;
 
 	float lazyTimer = 0.0f;
 };
