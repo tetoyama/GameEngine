@@ -33,22 +33,26 @@ void RenderableWave::Execute(const RenderPassContext& ctx, const RenderPacket& p
 		material.MaterialFlags &= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
 	}
 
-	if(TextureComponent* texture = packet.bindings.texture;
-		texture && texture->m_TextureData && texture->m_TextureData->pTexture){
-		deviceContext->PSSetShaderResources(
-			TextureSlot_Albedo,
-			1,
-			texture->m_TextureData->pTexture.GetAddressOf()
-		);
-		material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
+	UVMatrixBuffer uv{};
+	uv.UVStart = float2(0.0f, 0.0f);
+	uv.UVEnd = float2(1.0f, 1.0f);
+	if(TextureComponent* texture = packet.bindings.texture){
+		uv = texture->ResolveUVMatrixBuffer();
+		if(texture->m_TextureData && texture->m_TextureData->pTexture){
+			deviceContext->PSSetShaderResources(
+				TextureSlot_Albedo,
+				1,
+				texture->m_TextureData->pTexture.GetAddressOf()
+			);
+			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
+		}
 	}
-	graphicsContext->SetMaterial(material);
 
 	auto meshRenderer = wave->meshRenderer;
 	const DirectX::XMMATRIX world =
 		LoadRenderPacketMatrix(packet.transform.worldMatrix);
 	graphicsContext->SetCullMode(CullMode::Back);
-	graphicsContext->SetWorldMatrix(world);
+	graphicsContext->SetPerObjectConstants(world, material, uv);
 
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
