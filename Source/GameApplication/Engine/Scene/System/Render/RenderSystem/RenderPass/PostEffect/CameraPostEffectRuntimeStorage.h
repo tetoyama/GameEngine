@@ -149,18 +149,13 @@ public:
 		std::uint32_t sceneContextID,
 		std::uint64_t cameraEntity
 	) noexcept {
-		const bool cameraChanged =
-			m_activeSceneContextID != 0 &&
-			(m_activeSceneContextID != sceneContextID ||
-				m_activeCameraEntity != cameraEntity);
-		if(cameraChanged){
-			// PostEffectPassは同時に1 Cameraだけを処理する。
-			// Camera切替時に旧CameraのTexture群を保持し続けない。
-			m_entries.clear();
-		}
 		m_activeSceneContextID = sceneContextID;
 		m_activeCameraEntity = cameraEntity;
-		return ++m_generation;
+		++m_generation;
+		if(m_generation == 0){
+			++m_generation;
+		}
+		return m_generation;
 	}
 
 	CameraPostEffectRuntime& Acquire(
@@ -180,6 +175,17 @@ public:
 				key.cameraEntity == m_activeCameraEntity;
 			if(belongsToActiveCamera &&
 				it->second.lastUsedGeneration != generation){
+				it = m_entries.erase(it);
+			}else{
+				++it;
+			}
+		}
+	}
+
+	template<class IsSceneActive>
+	void PruneInactiveScenes(IsSceneActive&& isSceneActive){
+		for(auto it = m_entries.begin(); it != m_entries.end();){
+			if(!isSceneActive(it->first.sceneContextID)){
 				it = m_entries.erase(it);
 			}else{
 				++it;
