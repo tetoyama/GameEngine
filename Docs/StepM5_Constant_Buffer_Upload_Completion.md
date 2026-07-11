@@ -50,8 +50,29 @@ Static Batch提出経路。
 - Map(WRITE_DISCARD)は毎回ミラー全体を書くため、DISCARDのリネーム挙動と
   契約が一致する（バインドはD3D11ランタイムが追従。再バインド不要）
 
+## Upload失敗診断
+
+`D3D11ConstantBufferUpload`は以下をUpload前に検証する。
+
+- Bufferが`D3D11_BIND_CONSTANT_BUFFER`であること
+- CPUミラーとBufferのByteWidthが一致すること
+- 選択StrategyとUsage / CPUAccessFlagsが一致すること
+
+契約不一致、`CreateBuffer`失敗、`Map`失敗時は失敗回数を記録し、
+初回と以後300回ごとに以下をDebug Outputへ出力する。
+
+- 失敗Stage
+- Upload Strategy
+- HRESULT
+- `GetDeviceRemovedReason()`
+- 累積失敗回数
+
+これによりMap失敗を古い定数のまま黙って継続する状態を避け、
+Device Lost経路との切り分けを可能にする。
+
 ## 変更ファイル（Phase 2）
 
+- `Source/GameApplication/Service/Graphics/D3D11ConstantBufferUpload.h`
 - `Source/GameApplication/Service/Graphics/graphicsContext.h`
 - `Source/GameApplication/Service/Graphics/graphicsContext.cpp`
 
@@ -60,6 +81,7 @@ Static Batch提出経路。
 - [x] 個別Setterの直接`UpdateSubresource`が0件
 - [x] 生成とUploadが同一戦略定数を共有する
 - [x] グループ化Setter含む全経路がポリシー経由である
+- [x] Strategy / Buffer契約不一致とMap失敗を診断可能
 - [ ] Windows Debug x64 Build
 - [ ] Windows Release x64 Build
 - [ ] 実機描画回帰（全Renderable種 / Shadow / GBuffer / Static Batch / Editor View）
