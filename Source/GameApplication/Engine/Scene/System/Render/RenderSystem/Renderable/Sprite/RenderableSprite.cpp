@@ -96,6 +96,10 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, const RenderPacket&
 		material = pMaterial->Material;
 	}
 
+	UVMatrixBuffer uv{};
+	uv.UVStart = float2(0.0f, 0.0f);
+	uv.UVEnd = float2(1.0f, 1.0f);
+
 	TextureComponent* pTexture = packet.bindings.texture;
 	if(pTexture){
 		if(pTexture->m_TextureData){
@@ -103,15 +107,7 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, const RenderPacket&
 			ID3D11ShaderResourceView* textureSRV = pTexture->m_TextureData->pTexture.Get();
 			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, &textureSRV);
 		}
-
-		graphicsContext->SetMaterial(material);
-		graphicsContext->SetUVMatrixBuffer(pTexture->ResolveUVMatrixBuffer());
-	}else{
-		graphicsContext->SetMaterial(material);
-		UVMatrixBuffer uv{};
-		uv.UVStart = float2(0.0f, 0.0f);
-		uv.UVEnd = float2(1.0f, 1.0f);
-		graphicsContext->SetUVMatrixBuffer(uv);
+		uv = pTexture->ResolveUVMatrixBuffer();
 	}
 
 	if(m_spriteMesh->mesh.m_VertexLayout){
@@ -131,8 +127,7 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, const RenderPacket&
 
 	// 2D ProjectionはSwapChainサイズではなく、現在描画しているRender Targetのサイズを使う。
 	// Player View / Editor Viewの縮小Render TargetでもRectが同じ正規化契約で配置される。
-	graphicsContext->SetViewMatrix(DirectX::XMMatrixIdentity());
-	graphicsContext->SetProjectionMatrix(
+	const DirectX::XMMATRIX projection =
 		DirectX::XMMatrixOrthographicOffCenterLH(
 			0.0f,
 			viewportSize.x,
@@ -140,10 +135,13 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, const RenderPacket&
 			0.0f,
 			0.0f,
 			1.0f
-		)
+		);
+	graphicsContext->SetPerCameraConstants(
+		DirectX::XMMatrixIdentity(),
+		projection
 	);
+	graphicsContext->SetPerObjectConstants(world, material, uv);
 	graphicsContext->SetDepthMode(DepthMode::Disable);
-	graphicsContext->SetWorldMatrix(world);
 
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
@@ -152,6 +150,5 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, const RenderPacket&
 	deviceContext->Draw(m_spriteMesh->mesh.meshCount, 0);
 
 	graphicsContext->SetDepthMode(DepthMode::Write);
-	graphicsContext->SetViewMatrix(ctx.viewMatrix);
-	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
+	graphicsContext->SetPerCameraConstants(ctx.viewMatrix, ctx.projectionMatrix);
 }
