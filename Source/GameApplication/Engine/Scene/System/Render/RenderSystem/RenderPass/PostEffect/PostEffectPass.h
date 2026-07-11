@@ -10,6 +10,7 @@
 #include "../IRenderPass.h"
 #include "CameraPostEffectRuntimeStorage.h"
 
+class CameraComponent;
 class GBufferPass;
 
 // ポストエフェクト処理パス
@@ -29,8 +30,11 @@ public:
 	ID3D11RenderTargetView** resultRtv = nullptr;
 
 private:
+	void ClearPreviewHandles() noexcept;
+
 	ID3D11ShaderResourceView* m_initialSRV = nullptr;
 	ID3D11RenderTargetView** m_initialRTV = nullptr;
 	GBufferPass* m_gBufferPass = nullptr;
 	CameraPostEffectRuntimeStorage m_cameraRuntime;
+	CameraComponent* m_previewCamera = nullptr;
 };
