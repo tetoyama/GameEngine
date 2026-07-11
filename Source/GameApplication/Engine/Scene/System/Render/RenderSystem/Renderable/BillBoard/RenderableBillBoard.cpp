@@ -70,6 +70,7 @@ void RenderableBillBoard::Initialize(SceneManagerContext* context){
 
 void RenderableBillBoard::Finalize(){
 	delete m_billBoardMesh;
+	m_billBoardMesh = nullptr;
 }
 
 void RenderableBillBoard::Execute(const RenderPassContext& ctx, const RenderPacket& packet){
@@ -106,6 +107,9 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, const RenderPack
 		}
 		uv = pTexture->ResolveUVMatrixBuffer();
 	}else{
+		// Preserve the legacy no-texture contract: billboard material state is
+		// reset to opaque white instead of inheriting a MaterialComponent.
+		material = MATERIAL{};
 		material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	}
 
