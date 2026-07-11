@@ -11,7 +11,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 #include "System/Scheduler/SystemScheduleProfiler.h"
@@ -54,7 +53,7 @@ inline const SystemTaskProfileSample* FindTask(
 	std::string_view taskName
 ) noexcept {
 	for(const SystemTaskProfileSample& sample : snapshot.samples){
-		if(sample.taskName == taskName){
+		if(std::string_view(sample.taskName) == taskName){
 			return &sample;
 		}
 	}
