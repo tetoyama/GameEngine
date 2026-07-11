@@ -89,6 +89,9 @@ public:
 			return false;
 		}
 
+#ifndef NDEBUG
+		// GetDescはCOM呼び出しを伴うため、DrawごとのRelease経路には入れない。
+		// Debugでは生成StrategyとUpload Strategyの不一致を即座に検出する。
 		D3D11_BUFFER_DESC bufferDesc{};
 		buffer->GetDesc(&bufferDesc);
 		const bool isConstantBuffer =
@@ -104,6 +107,7 @@ public:
 			ReportFailure(context, E_INVALIDARG, "BufferContract", strategy);
 			return false;
 		}
+#endif
 
 		if(strategy == D3D11ConstantBufferUploadStrategy::UpdateSubresource){
 			context->UpdateSubresource(buffer, 0, nullptr, data, 0, 0);
