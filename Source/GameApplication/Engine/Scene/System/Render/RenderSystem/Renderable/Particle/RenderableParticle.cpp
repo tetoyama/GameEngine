@@ -70,6 +70,7 @@ void RenderableParticle::Initialize(SceneManagerContext* context){
 
 void RenderableParticle::Finalize(){
 	delete m_billBoardMesh;
+	m_billBoardMesh = nullptr;
 }
 
 void RenderableParticle::Execute(const RenderPassContext& ctx, const RenderPacket& packet){
