@@ -54,17 +54,17 @@ void ValidateRuntimeStorage(){
 	assert(!storage.Contains(cameraAEffect0));
 	assert(storage.Contains(cameraAEffect1));
 
-	// 別Cameraの実行でCamera AのRuntimeを消さない。
+	// PostEffectPassは同時に1 Cameraだけを処理するため、Camera切替時は旧Camera Runtimeを破棄する。
 	const std::uint64_t cameraBFrame = storage.BeginCamera(1, 20);
+	assert(storage.Size() == 0);
+	assert(!storage.Contains(cameraAEffect1));
 	storage.Acquire(cameraBEffect0, cameraBFrame);
 	storage.EndCamera(cameraBFrame);
-	assert(storage.Size() == 2);
-	assert(storage.Contains(cameraAEffect1));
+	assert(storage.Size() == 1);
 	assert(storage.Contains(cameraBEffect0));
 
 	storage.Reset();
 	assert(storage.Size() == 0);
-	assert(!storage.Contains(cameraAEffect1));
 	assert(!storage.Contains(cameraBEffect0));
 }
 
@@ -85,6 +85,8 @@ void ValidatePassOwnershipContract(){
 	assert(passSource.find("m_cameraRuntime.Acquire(") != std::string::npos);
 	assert(passSource.find("m_cameraRuntime.EndCamera(") != std::string::npos);
 	assert(passSource.find("m_cameraRuntime.Reset();") != std::string::npos);
+	assert(passSource.find("node.mipLevels = runtime.mipLevels;") !=
+		std::string::npos);
 
 	// 新Texture / RTV / SRVがすべて成功する前に既存Runtimeを置換しない。
 	const std::size_t textureCreate = runtimeSource.find("device->CreateTexture2D(");
