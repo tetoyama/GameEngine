@@ -29,6 +29,8 @@
 ### 2. Camera PostEffect GPU Runtime
 
 `CameraPostEffect`はGraphと永続設定だけを保持する。
+Inspector Preview互換用に、参照Countを持たない`uintptr_t`ベースの一時Handleだけを保持する。
+Native D3D型とResource所有権はComponentへ戻さない。
 
 Componentから撤去したもの:
 
@@ -50,8 +52,10 @@ Scene Context ID + Camera Entity + Effect Index
 - Resize失敗時は以前の正常なRuntimeを継続使用する
 - Nodeへ渡すMip数と解像度は実際に使用中のRuntime値を使う
 - Effect削除時は同Cameraの未使用RuntimeをFrame末に破棄する
-- Camera切替時は以前のCamera Runtimeを破棄する
-- Cameraなし・Pass Finalize時はStorageをResetする
+- 同Scene内のCamera切替ではRuntimeを維持し、非Active CameraのInspector Previewを有効に保つ
+- Scene Context失効時に、そのSceneの全Camera Runtimeを破棄する
+- Pass Finalize時はStorageをResetする
+- Preview HandleはPassが毎回Reset / 再公開し、Serializationしない
 
 ### 3. ModelRenderer Dynamic Vertex Buffer Runtime
 
@@ -77,6 +81,7 @@ Scene Context ID + Entity packed value
 - Animation UploadとRenderableModelは同じStorageを参照する
 - Pose再計算待ちのFrameは最後に成功したDynamic Bufferを維持する
 - Scene Unload、Entity削除、Animation解除で未使用になったRuntimeをFrame境界で破棄する
+- Animation Upload TaskはStorageへのWrite Accessを宣言する
 - RenderSystem Stop時に全RuntimeをResetする
 
 ## 回帰テスト
@@ -92,8 +97,10 @@ Scene Context ID + Entity packed value
 - ComponentへNative D3D型が戻っていないこと
 - Runtime所有者がPass / RenderSystemであること
 - Transactional GPU Resource Commit
-- Generation / Reset / Camera切替 / Entity削除契約
+- Generation / Reset / Camera切替 / Scene失効 / Entity削除契約
+- Inspector Previewの非所有Handle契約
 - Animation UploadとRenderableのRuntime参照一致
+- SchedulerのRuntime Storage Write Access
 
 ## Step 18-A残作業
 
