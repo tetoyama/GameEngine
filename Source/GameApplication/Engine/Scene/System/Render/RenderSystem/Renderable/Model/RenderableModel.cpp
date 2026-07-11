@@ -13,10 +13,12 @@
 
 #include "Scene/scene.h"
 #include "Scene/sceneManager.h"
+#include "Scene/Registry/systemRegistry.h"
 
 #include "Scene/Component/modelRendererComponent.h"
 #include "Scene/Component/transformComponent.h"
 #include "Scene/Component/textureComponent.h"
+#include "System/Render/RenderSystem/renderSystem.h"
 
 #include "Backends/Assimp/material.h"
 #include "Backends/Assimp/scene.h"
@@ -43,7 +45,21 @@ void RenderableModel::Execute(
 	}
 
 	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
+	if(!graphicsContext) return;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+	if(!deviceContext) return;
+
+	const ModelRendererGpuRuntime* modelGpuRuntime = nullptr;
+	if(sceneContext->manager && sceneContext->manager->systemRegistry){
+		if(RenderSystem* renderSystem =
+			sceneContext->manager->systemRegistry->GetSystem<RenderSystem>()){
+			ModelRendererGpuRuntimeKey runtimeKey;
+			runtimeKey.sceneContextID = packet.sceneContextID;
+			runtimeKey.entity = packet.entity.GetPackedValue();
+			modelGpuRuntime =
+				renderSystem->GetModelRendererGpuRuntime().Find(runtimeKey);
+		}
+	}
 
 	TextureComponent* textureComponent = packet.bindings.texture;
 	MaterialComponent* materialComponent = packet.bindings.material;
@@ -216,8 +232,10 @@ void RenderableModel::Execute(
 
 		const bool hasDynamicVertexBuffer =
 			!modelRenderer->blendedAnimations.empty() &&
-			meshIndex < modelRenderer->dynamicVertexBuffers.size() &&
-			modelRenderer->dynamicVertexBuffers[meshIndex] != nullptr;
+			modelGpuRuntime &&
+			modelGpuRuntime->ModelRevision() ==
+				modelRenderer->modelRuntimeRevision &&
+			modelGpuRuntime->Buffer(meshIndex) != nullptr;
 		const bool hasStaticVertexBuffer =
 			meshIndex < model->VertexBuffer.size() &&
 			model->VertexBuffer[meshIndex] != nullptr;
@@ -230,7 +248,7 @@ void RenderableModel::Execute(
 		}
 
 		ID3D11Buffer* vertexBuffer = hasDynamicVertexBuffer
-			? modelRenderer->dynamicVertexBuffers[meshIndex]
+			? modelGpuRuntime->Buffer(meshIndex)
 			: model->VertexBuffer[meshIndex];
 		deviceContext->IASetVertexBuffers(
 			0,
