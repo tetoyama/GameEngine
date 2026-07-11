@@ -52,7 +52,7 @@ jobs:
             /I Source/GameApplication/Service ^
             Tests/CullingVisibilityGrowthFallbackSmokeTest.cpp ^
             /Fe:culling-visibility-growth-fallback-test.exe ^
-            /link /NODEFAULTLIB:yaml-cppd.lib ^
+            /link /NODEFAULTLIB:yaml-cppd.lib /NODEFAULTLIB:DirectXTex_Debug.lib ^
             > culling-visibility-growth-fallback.log 2>&1
           if errorlevel 1 exit /b 1
           culling-visibility-growth-fallback-test.exe >> culling-visibility-growth-fallback.log 2>&1
