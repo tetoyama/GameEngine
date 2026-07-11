@@ -7,6 +7,9 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Physic/PhysicsSimulationOverlapAnalysis.h"
       - "Source/GameApplication/Engine/Scene/System/Physic/PhysicSystemTasks.inl"
       - "Source/GameApplication/Engine/Scene/System/Scheduler/SystemScheduleProfiler.h"
+      - "Source/GameApplication/Engine/Editor/UI/PhysicsSimulationOverlapUI.h"
+      - "Source/GameApplication/Engine/Editor/UI/SystemSettingImplementation.inl"
+      - "Directory.Build.targets"
       - "Tests/PhysicsSimulationOverlapAnalysisSmokeTest.cpp"
       - ".github/workflows/physics-simulation-overlap.yml"
   push:
@@ -15,6 +18,9 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Physic/PhysicsSimulationOverlapAnalysis.h"
       - "Source/GameApplication/Engine/Scene/System/Physic/PhysicSystemTasks.inl"
       - "Source/GameApplication/Engine/Scene/System/Scheduler/SystemScheduleProfiler.h"
+      - "Source/GameApplication/Engine/Editor/UI/PhysicsSimulationOverlapUI.h"
+      - "Source/GameApplication/Engine/Editor/UI/SystemSettingImplementation.inl"
+      - "Directory.Build.targets"
       - "Tests/PhysicsSimulationOverlapAnalysisSmokeTest.cpp"
       - ".github/workflows/physics-simulation-overlap.yml"
   workflow_dispatch:
