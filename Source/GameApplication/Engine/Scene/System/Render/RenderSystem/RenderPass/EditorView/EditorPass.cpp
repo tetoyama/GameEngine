@@ -72,8 +72,8 @@ void EditorPass::Execute(const RenderPassContext& context){
 		shadowMapPass->Execute(viewContext);
 	}
 
-	graphics->SetCameraPosition(viewContext.CameraPosition);
 	graphics->SetPerCameraConstants(
+		viewContext.CameraPosition,
 		viewContext.viewMatrix,
 		viewContext.projectionMatrix
 	);
