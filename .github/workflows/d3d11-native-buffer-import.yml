@@ -51,6 +51,7 @@ jobs:
           Tests/D3D11RHINativeBufferImportTest.cpp
           d3d11.lib dxgi.lib
           /Fe:d3d11-native-buffer-import-test.exe
+          /link /NODEFAULTLIB:DirectXTex_Debug.lib
           && d3d11-native-buffer-import-test.exe
 
   gbuffer-target-binding:
@@ -75,6 +76,7 @@ jobs:
           Tests/StaticBatchD3D11GBufferTargetBindingTest.cpp
           d3d11.lib dxgi.lib
           /Fe:d3d11-gbuffer-target-binding-test.exe
+          /link /NODEFAULTLIB:DirectXTex_Debug.lib
           && d3d11-gbuffer-target-binding-test.exe
 
   shadow-pipeline:
@@ -99,4 +101,5 @@ jobs:
           Tests/StaticBatchD3D11ShadowPipelineTest.cpp
           d3d11.lib d3dcompiler.lib dxgi.lib
           /Fe:d3d11-static-shadow-pipeline-test.exe
+          /link /NODEFAULTLIB:DirectXTex_Debug.lib
           && d3d11-static-shadow-pipeline-test.exe
