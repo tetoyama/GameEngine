@@ -61,11 +61,10 @@ public:
 		return m_lastSubmittedGeneration;
 	}
 
-	// Step 18-A移行中だけ使用する互換参照。
-	// RenderSystem.cppの直接代入を維持しつつ、提出世代の実体はRenderWorldが所有する。
-	// RenderSystem.cppがMarkSubmitted()へ移行した段階で削除する。
-	std::uint64_t& SubmissionGenerationStorage() noexcept {
-		return m_lastSubmittedGeneration;
+	// Step 18-A移行中だけ使用する互換入口。
+	// RenderSystem.cppがMarkSubmitted()へ直接移行した段階で削除する。
+	void RecordSubmittedGeneration(std::uint64_t generation) noexcept {
+		m_lastSubmittedGeneration = generation;
 	}
 
 	RenderPacketFrameBuffer& Packets() noexcept {
