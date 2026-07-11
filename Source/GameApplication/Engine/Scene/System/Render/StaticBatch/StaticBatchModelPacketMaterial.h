@@ -38,7 +38,53 @@ struct StaticBatchModelMaterialState {
 	}
 };
 
+struct StaticBatchModelMaterialInput {
+	const MATERIAL* material = nullptr;
+	int shaderID = 0;
+	UVMatrixBuffer uv{};
+	bool hasOverrideDiffuseTexture = false;
+	ID3D11ShaderResourceView* overrideDiffuseTexture = nullptr;
+};
+
 namespace StaticBatchModelPacketMaterial {
+
+inline StaticBatchModelMaterialRejectReason Resolve(
+	std::uint32_t packetMaterialKey,
+	const StaticBatchModelMaterialInput& input,
+	StaticBatchModelMaterialState& state,
+	bool applyGBufferAlphaRule = true
+) noexcept {
+	const std::uint32_t expectedShaderID =
+		static_cast<std::uint32_t>((std::max)(0, input.shaderID));
+	if(packetMaterialKey != expectedShaderID){
+		return StaticBatchModelMaterialRejectReason::ShaderKeyMismatch;
+	}
+	if(applyGBufferAlphaRule && input.material &&
+		input.material->BaseColor.w < 0.999f){
+		return StaticBatchModelMaterialRejectReason::ExcludedByGBufferAlphaRule;
+	}
+
+	state = {};
+	state.material.BaseColor = float4(1.0f, 1.0f, 1.0f, 1.0f);
+	state.shaderID = expectedShaderID;
+	state.uv = input.uv;
+
+	if(input.material){
+		state.material = *input.material;
+		state.material.MaterialFlags &=
+			MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
+	}
+
+	if(input.hasOverrideDiffuseTexture){
+		if(!input.overrideDiffuseTexture){
+			return StaticBatchModelMaterialRejectReason::MissingOverrideDiffuseTexture;
+		}
+		state.diffuseTexture = input.overrideDiffuseTexture;
+		state.material.MaterialFlags |=
+			MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
+	}
+	return StaticBatchModelMaterialRejectReason::None;
+}
 
 inline StaticBatchModelMaterialRejectReason Resolve(
 	const RenderPacket& packet,
@@ -46,41 +92,27 @@ inline StaticBatchModelMaterialRejectReason Resolve(
 	bool applyGBufferAlphaRule = true
 ) noexcept {
 	const MaterialComponent* materialComponent = packet.bindings.material;
-	const std::uint32_t expectedShaderID = materialComponent
-		? static_cast<std::uint32_t>((std::max)(0, materialComponent->ShaderID))
-		: 0u;
-	if(packet.materialKey != expectedShaderID){
-		return StaticBatchModelMaterialRejectReason::ShaderKeyMismatch;
-	}
-	if(applyGBufferAlphaRule && materialComponent &&
-		materialComponent->Material.BaseColor.w < 0.999f){
-		return StaticBatchModelMaterialRejectReason::ExcludedByGBufferAlphaRule;
-	}
-
-	state = {};
-	state.material.BaseColor = float4(1.0f, 1.0f, 1.0f, 1.0f);
-	state.shaderID = expectedShaderID;
-	state.uv = StaticBatchResourceKey::ResolveUVState(
-		packet.bindings.texture
-	);
-
-	if(materialComponent){
-		state.material = materialComponent->Material;
-		state.material.MaterialFlags &=
-			MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
-	}
-
 	const TextureComponent* textureComponent = packet.bindings.texture;
-	if(textureComponent && textureComponent->m_TextureData){
-		if(!textureComponent->m_TextureData->pTexture){
-			return StaticBatchModelMaterialRejectReason::MissingOverrideDiffuseTexture;
-		}
-		state.diffuseTexture =
-			textureComponent->m_TextureData->pTexture.Get();
-		state.material.MaterialFlags |=
-			MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
+	const bool hasOverrideTexture =
+		textureComponent && textureComponent->m_TextureData;
+	ID3D11ShaderResourceView* overrideTexture = nullptr;
+	if(hasOverrideTexture && textureComponent->m_TextureData->pTexture){
+		overrideTexture = textureComponent->m_TextureData->pTexture.Get();
 	}
-	return StaticBatchModelMaterialRejectReason::None;
+
+	const StaticBatchModelMaterialInput input{
+		materialComponent ? &materialComponent->Material : nullptr,
+		materialComponent ? materialComponent->ShaderID : 0,
+		StaticBatchResourceKey::ResolveUVState(textureComponent),
+		hasOverrideTexture,
+		overrideTexture
+	};
+	return Resolve(
+		packet.materialKey,
+		input,
+		state,
+		applyGBufferAlphaRule
+	);
 }
 
 } // namespace StaticBatchModelPacketMaterial
