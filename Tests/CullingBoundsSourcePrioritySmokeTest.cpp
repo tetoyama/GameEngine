@@ -1,12 +1,9 @@
-#include <atomic>
 #include <cassert>
 
 #include "Engine/Scene/System/Render/Culling/MeshCullingBoundsProvider.h"
 #include "Engine/Scene/System/Render/Culling/ModelCullingBoundsProvider.h"
 #include "Engine/Scene/System/Render/Culling/TerrainCullingBoundsProvider.h"
 #include "Engine/Scene/System/Render/Culling/WaveCullingBoundsProvider.h"
-
-std::atomic<ComponentTypeID> ComponentType::s_nextID{0};
 
 int main(){
 	EntityRegistry entities;
