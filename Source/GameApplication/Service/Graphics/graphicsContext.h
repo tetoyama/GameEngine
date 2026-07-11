@@ -186,6 +186,53 @@ public:
 	void SetParameter(const float4& param);
 	void SetObjectInfo(const ObjectInfo& ObjectInfo);
 
+	// M-5 Phase 1: 関連フィールドをCPUミラーへまとめて反映し、
+	// 定数バッファ全体のUploadを1回に集約する。
+	// 既存の個別Setterは即時Upload契約を維持する。
+	void SetPerCameraConstants(
+		const DirectX::XMMATRIX& view,
+		const DirectX::XMMATRIX& projection
+	){
+		DirectX::XMStoreFloat4x4(
+			&m_CbPerCameraData.View,
+			DirectX::XMMatrixTranspose(view)
+		);
+		DirectX::XMStoreFloat4x4(
+			&m_CbPerCameraData.Projection,
+			DirectX::XMMatrixTranspose(projection)
+		);
+		m_DeviceContext->UpdateSubresource(
+			m_CbPerCamera,
+			0,
+			nullptr,
+			&m_CbPerCameraData,
+			0,
+			0
+		);
+	}
+
+	void SetPerObjectConstants(
+		const DirectX::XMMATRIX& world,
+		const MATERIAL& material,
+		const UVMatrixBuffer& uv
+	){
+		DirectX::XMStoreFloat4x4(
+			&m_CbPerObjectData.World,
+			DirectX::XMMatrixTranspose(world)
+		);
+		m_CbPerObjectData.Material = material;
+		m_CbPerObjectData.UVStart = uv.UVStart;
+		m_CbPerObjectData.UVEnd = uv.UVEnd;
+		m_DeviceContext->UpdateSubresource(
+			m_CbPerObject,
+			0,
+			nullptr,
+			&m_CbPerObjectData,
+			0,
+			0
+		);
+	}
+
 	void ResetViewport();
 	void ResetBuffer(const float clearColor[4]);
 	void SetWorldViewProjection2D();
