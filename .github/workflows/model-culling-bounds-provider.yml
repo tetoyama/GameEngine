@@ -88,5 +88,5 @@ jobs:
           /I Source/GameApplication/Service
           ${{ matrix.source }}
           /Fe:${{ matrix.output }}
-          /link /NODEFAULTLIB:yaml-cppd.lib
+          /link /NODEFAULTLIB:yaml-cppd.lib /NODEFAULTLIB:DirectXTex_Debug.lib
           && ${{ matrix.output }}
