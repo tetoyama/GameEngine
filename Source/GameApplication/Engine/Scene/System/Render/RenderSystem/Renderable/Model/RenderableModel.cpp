@@ -13,7 +13,6 @@
 
 #include "Scene/scene.h"
 #include "Scene/sceneManager.h"
-#include "Scene/Registry/componentRegistry.h"
 
 #include "Scene/Component/modelRendererComponent.h"
 #include "Scene/Component/transformComponent.h"
@@ -30,20 +29,15 @@ void RenderableModel::Execute(
 	const RenderPassContext& ctx,
 	const RenderPacket& packet){
 	SceneContext* sceneContext = packet.bindings.sceneContext;
-	const Entity& entity = packet.entity;
 	if(!sceneContext) return;
-	ModelRendererComponent* modelRenderer =
-		packet.bindings.modelRenderer;
 
-	TransformComponent* transform =
-		packet.bindings.transform;
-
+	ModelRendererComponent* modelRenderer = packet.bindings.modelRenderer;
+	TransformComponent* transform = packet.bindings.transform;
 	if(!modelRenderer || !transform){
 		return;
 	}
 
 	ModelData* model = modelRenderer->model.get();
-
 	if(!model || !model->AiScene){
 		return;
 	}
@@ -51,32 +45,25 @@ void RenderableModel::Execute(
 	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
-	TextureComponent* textureComponent =
-		packet.bindings.texture;
-
-	MaterialComponent* materialComponent =
-		packet.bindings.material;
-
+	TextureComponent* textureComponent = packet.bindings.texture;
+	MaterialComponent* materialComponent = packet.bindings.material;
 
 	//----------------------------------------------------------------------
 	// Material
 	//----------------------------------------------------------------------
-
 	MATERIAL material{};
 	material.BaseColor = {1.0f, 1.0f, 1.0f, 1.0f};
 
 	if(materialComponent){
 		material = materialComponent->Material;
-
-		// ユーザーが設定したフラグのみ保持する
-		// テクスチャ有無によるフラグは後段で自動設定する
+		// ユーザーが設定したフラグのみ保持する。
+		// テクスチャ有無によるフラグは後段で自動設定する。
 		material.MaterialFlags &= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
 	}
 
 	//----------------------------------------------------------------------
 	// Texture / UV Animation
 	//----------------------------------------------------------------------
-
 	UVMatrixBuffer uv{};
 	uv.UVStart = float2(0.0f, 0.0f);
 	uv.UVEnd = float2(1.0f, 1.0f);
@@ -84,24 +71,21 @@ void RenderableModel::Execute(
 	if(textureComponent){
 		if(textureComponent->m_TextureData){
 			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
-
 			deviceContext->PSSetShaderResources(
 				TextureSlot_Albedo,
 				1,
-				textureComponent->m_TextureData->pTexture.GetAddressOf());
+				textureComponent->m_TextureData->pTexture.GetAddressOf()
+			);
 		}
-
 		uv = textureComponent->ResolveUVMatrixBuffer();
 	}
-	graphicsContext->SetUVMatrixBuffer(uv);
-	graphicsContext->SetMaterial(material);
 
 	//----------------------------------------------------------------------
-	// Render State
+	// Render State / Per-object Constants
 	//----------------------------------------------------------------------
-
 	deviceContext->IASetPrimitiveTopology(
-		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
+	);
 
 	// ShadowMapPass owns the complete rasterizer-state contract for the
 	// current light type. Replacing it here would discard Point/Spot depth
@@ -110,14 +94,13 @@ void RenderableModel::Execute(
 		graphicsContext->SetCullMode(CullMode::Back);
 	}
 
-	DirectX::XMMATRIX world =
+	const DirectX::XMMATRIX world =
 		LoadRenderPacketMatrix(packet.transform.worldMatrix);
-	graphicsContext->SetWorldMatrix(world);
+	graphicsContext->SetPerObjectConstants(world, material, uv);
 
 	//----------------------------------------------------------------------
 	// Draw Mesh
 	//----------------------------------------------------------------------
-
 	UINT firstMeshIndex = 0;
 	UINT meshEndIndex = model->AiScene->mNumMeshes;
 	if(!packet.TargetsAllSubMeshes()){
@@ -133,26 +116,18 @@ void RenderableModel::Execute(
 		++meshIndex){
 
 		if(!textureComponent || !textureComponent->m_TextureData){
-
-
 			MATERIAL materialData = material;
-
-			// ユーザー指定フラグのみ残す
 			materialData.MaterialFlags &=
 				MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
 
-			aiMesh* mesh =
-				model->AiScene->mMeshes[meshIndex];
-
+			aiMesh* mesh = model->AiScene->mMeshes[meshIndex];
 			aiMaterial* aiMaterial =
 				model->AiScene->mMaterials[mesh->mMaterialIndex];
 
-			//------------------------------------------------------------------
+			//--------------------------------------------------------------
 			// Diffuse Color
-			//------------------------------------------------------------------
-
+			//--------------------------------------------------------------
 			aiColor4D color;
-
 			if(aiMaterial->Get(
 				AI_MATKEY_COLOR_DIFFUSE,
 				color) == AI_SUCCESS){
@@ -167,62 +142,52 @@ void RenderableModel::Execute(
 				if(materialComponent){
 					materialData.BaseColor.x *=
 						materialComponent->Material.BaseColor.x;
-
 					materialData.BaseColor.y *=
 						materialComponent->Material.BaseColor.y;
-
 					materialData.BaseColor.z *=
 						materialComponent->Material.BaseColor.z;
-
 					materialData.BaseColor.w *=
 						materialComponent->Material.BaseColor.w;
 				}
 			}
 
-			//------------------------------------------------------------------
+			//--------------------------------------------------------------
 			// Diffuse Texture
-			//------------------------------------------------------------------
-
+			//--------------------------------------------------------------
 			aiString texName;
-
 			if(aiMaterial->GetTexture(
 				aiTextureType_DIFFUSE,
 				0,
 				&texName) == AI_SUCCESS &&
 				texName.length > 0){
-				auto it =
-					model->m_Texture.find(texName.C_Str());
-
+				auto it = model->m_Texture.find(texName.C_Str());
 				if(it != model->m_Texture.end()){
 					deviceContext->PSSetShaderResources(
 						TextureSlot_Albedo,
 						1,
-						&it->second);
-
+						&it->second
+					);
 					materialData.MaterialFlags |=
 						MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 				}
 			}
 
-			//------------------------------------------------------------------
+			//--------------------------------------------------------------
 			// Normal Map
-			//------------------------------------------------------------------
+			//--------------------------------------------------------------
 			if(ctx.passPhase != RenderPhase::PHASE_SHADOW){
-
 				if(aiMaterial->GetTexture(
 					aiTextureType_NORMALS,
 					0,
 					&texName) == AI_SUCCESS &&
 					texName.length > 0){
-					auto it =
-						model->m_Texture.find(texName.C_Str());
-
+					auto it = model->m_Texture.find(texName.C_Str());
 					if(it != model->m_Texture.end()){
 						deviceContext->PSSetShaderResources(
 							1,
 							1,
-							&it->second);
-
+							&it->second
+						);
 						materialData.MaterialFlags |=
 							MATERIAL_FLAG_USE_NORMAL_TEXTURE;
 					}
@@ -231,7 +196,7 @@ void RenderableModel::Execute(
 
 			// ShadowでもDiffuse Texture / BaseColor Alphaを同じ定数へ反映する。
 			graphicsContext->SetMaterial(materialData);
-		} else{
+		}else{
 			if(model->SetTexture){
 				material.MaterialFlags |=
 					MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
@@ -240,14 +205,11 @@ void RenderableModel::Execute(
 				deviceContext->PSSetShaderResources(
 					TextureSlot_Albedo,
 					1,
-					textureComponent->m_TextureData->pTexture.GetAddressOf());
+					textureComponent->m_TextureData->pTexture.GetAddressOf()
+				);
 				graphicsContext->SetMaterial(material);
 			}
 		}
-
-		//----------------------------------------------------------------------
-		// Vertex Buffer
-		//----------------------------------------------------------------------
 
 		UINT stride = sizeof(VERTEX_3D);
 		UINT offset = 0;
@@ -278,20 +240,15 @@ void RenderableModel::Execute(
 			&offset
 		);
 
-		//----------------------------------------------------------------------
-		// Index Buffer
-		//----------------------------------------------------------------------
-
 		deviceContext->IASetIndexBuffer(
 			model->IndexBuffer[meshIndex],
 			DXGI_FORMAT_R32_UINT,
-			0);
-		//----------------------------------------------------------------------
-		// Draw
-		//----------------------------------------------------------------------
+			0
+		);
 		deviceContext->DrawIndexed(
 			model->AiScene->mMeshes[meshIndex]->mNumFaces * 3,
 			0,
-			0);
+			0
+		);
 	}
 }
