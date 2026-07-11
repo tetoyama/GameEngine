@@ -160,7 +160,7 @@ void ForwardPass::Execute(const RenderPassContext& ctx){
 		info.SceneID = packet.sceneContextID;
 		info.ObjectID = packet.entity;
 		info.ShaderID = materialID;
-		m_context->graphics->SetObjectInfo(info);
+		m_context->graphics->StageObjectInfo(info);
 		renderable->Execute(ctx, packet);
 	};
 
