@@ -1,0 +1,57 @@
+name: Camera Post Effect Runtime Smoke Test
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Source/GameApplication/Engine/Scene/Component/cameraComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/CameraPostEffectRuntime.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/PostEffect/CameraPostEffectRuntimeStorage.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/PostEffect/PostEffectPass.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/PostEffect/PostEffectPass.cpp"
+      - "Tests/CameraPostEffectRuntimeStorageSmokeTest.cpp"
+      - ".github/workflows/camera-post-effect-runtime.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Source/GameApplication/Engine/Scene/Component/cameraComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/CameraPostEffectRuntime.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/PostEffect/CameraPostEffectRuntimeStorage.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/PostEffect/PostEffectPass.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/PostEffect/PostEffectPass.cpp"
+      - "Tests/CameraPostEffectRuntimeStorageSmokeTest.cpp"
+      - ".github/workflows/camera-post-effect-runtime.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: camera-post-effect-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run camera post effect runtime contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/CameraPostEffectRuntimeStorageSmokeTest.cpp
+          /Fe:camera-post-effect-runtime-test.exe
+          && camera-post-effect-runtime-test.exe
