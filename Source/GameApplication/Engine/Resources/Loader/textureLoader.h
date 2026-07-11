@@ -16,12 +16,6 @@
 #include "Backends/DirectX11/DirectXTex.h"
 #include "Backends/checkFileExtention.h"
 
-#if _DEBUG
-#pragma comment(lib,"DirectXTex_Debug.lib")
-#else
-#pragma comment(lib,"DirectXTex_Release.lib")
-#endif
-
 inline std::shared_ptr<TextureData> LoadTextureFromFile(const std::string& filePath, GraphicsContext* context) {
 	std::shared_ptr<TextureData> tex = std::make_shared<TextureData>();
 	tex->FilePath = filePath;
