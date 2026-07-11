@@ -4,6 +4,10 @@
 // 
 // =======================================================================
 #pragma once
+
+#include <cstdint>
+#include <vector>
+
 #include "Interface/IComponent.h"
 #include "Backends/YAMLConverters.h"
 #include "Backends/myVector2.h"
@@ -19,6 +23,13 @@ public:
 	float Time = 0.0f;           // 経過時間
 	int CurrentResolution = -1;  // 現在のメッシュ状態
 	MeshRendererComponent* meshRenderer = nullptr;
+
+	// Step 17-E: AnyWorker BuildからMainThread Uploadへ渡すCPU staging。
+	std::vector<VERTEX_3D> stagingVertices;
+	std::vector<std::uint32_t> stagingIndices;
+	std::uint64_t stagingSignature = 0;
+	bool topologyBuildReady = false;
+	bool vertexBuildReady = false;
 
 	bool UseEnvironmentMap = false; // 環境マッピングを使用するか
 
