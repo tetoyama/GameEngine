@@ -29,6 +29,8 @@ void ValidateComponentBoundary(){
 	assert(component.find("CreateTexture(") == std::string::npos);
 	assert(component.find("ResizeTexture(") == std::string::npos);
 	assert(component.find("Clear(ID3D11DeviceContext") == std::string::npos);
+	assert(component.find("CameraPostEffectPreviewHandle srv;") !=
+		std::string::npos);
 }
 
 void ValidateRuntimeStorage(){
@@ -37,6 +39,7 @@ void ValidateRuntimeStorage(){
 	const CameraPostEffectRuntimeKey cameraAEffect0{1, 10, 0};
 	const CameraPostEffectRuntimeKey cameraAEffect1{1, 10, 1};
 	const CameraPostEffectRuntimeKey cameraBEffect0{1, 20, 0};
+	const CameraPostEffectRuntimeKey cameraCEffect0{2, 30, 0};
 
 	const std::uint64_t cameraAFrame1 = storage.BeginCamera(1, 10);
 	storage.Acquire(cameraAEffect0, cameraAFrame1);
@@ -54,18 +57,31 @@ void ValidateRuntimeStorage(){
 	assert(!storage.Contains(cameraAEffect0));
 	assert(storage.Contains(cameraAEffect1));
 
-	// PostEffectPassは同時に1 Cameraだけを処理するため、Camera切替時は旧Camera Runtimeを破棄する。
+	// 同Sceneの別Cameraへ切り替えても、Inspector Preview用Runtimeを維持する。
 	const std::uint64_t cameraBFrame = storage.BeginCamera(1, 20);
-	assert(storage.Size() == 0);
-	assert(!storage.Contains(cameraAEffect1));
 	storage.Acquire(cameraBEffect0, cameraBFrame);
 	storage.EndCamera(cameraBFrame);
-	assert(storage.Size() == 1);
+	assert(storage.Size() == 2);
+	assert(storage.Contains(cameraAEffect1));
 	assert(storage.Contains(cameraBEffect0));
+
+	const std::uint64_t cameraCFrame = storage.BeginCamera(2, 30);
+	storage.Acquire(cameraCEffect0, cameraCFrame);
+	storage.EndCamera(cameraCFrame);
+	assert(storage.Size() == 3);
+
+	// Scene Contextが失効した時点で、そのScene内の全Camera Runtimeを解放する。
+	storage.PruneInactiveScenes([](std::uint32_t sceneContextID){
+		return sceneContextID == 2;
+	});
+	assert(storage.Size() == 1);
+	assert(!storage.Contains(cameraAEffect1));
+	assert(!storage.Contains(cameraBEffect0));
+	assert(storage.Contains(cameraCEffect0));
 
 	storage.Reset();
 	assert(storage.Size() == 0);
-	assert(!storage.Contains(cameraBEffect0));
+	assert(!storage.Contains(cameraCEffect0));
 }
 
 void ValidatePassOwnershipContract(){
@@ -84,7 +100,12 @@ void ValidatePassOwnershipContract(){
 	assert(passSource.find("m_cameraRuntime.BeginCamera(") != std::string::npos);
 	assert(passSource.find("m_cameraRuntime.Acquire(") != std::string::npos);
 	assert(passSource.find("m_cameraRuntime.EndCamera(") != std::string::npos);
+	assert(passSource.find("m_cameraRuntime.PruneInactiveScenes(") !=
+		std::string::npos);
 	assert(passSource.find("m_cameraRuntime.Reset();") != std::string::npos);
+	assert(passSource.find("effect.srv.Reset();") != std::string::npos);
+	assert(passSource.find("effect.srv.Set(runtime.shaderResourceView.Get());") !=
+		std::string::npos);
 	assert(passSource.find("node.mipLevels = runtime.mipLevels;") !=
 		std::string::npos);
 
