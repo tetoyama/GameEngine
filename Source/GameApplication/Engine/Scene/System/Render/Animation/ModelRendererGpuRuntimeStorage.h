@@ -136,22 +136,55 @@ private:
 
 class ModelRendererGpuRuntimeStorage final {
 public:
-	ModelRendererGpuRuntime& Acquire(const ModelRendererGpuRuntimeKey& key){
-		return m_entries[key];
+	std::uint64_t BeginFrame() noexcept {
+		++m_generation;
+		if(m_generation == 0){
+			++m_generation;
+		}
+		return m_generation;
+	}
+
+	ModelRendererGpuRuntime& Acquire(
+		const ModelRendererGpuRuntimeKey& key,
+		std::uint64_t generation
+	){
+		Entry& entry = m_entries[key];
+		entry.lastUsedGeneration = generation;
+		return entry.runtime;
+	}
+
+	void Touch(
+		const ModelRendererGpuRuntimeKey& key,
+		std::uint64_t generation
+	) noexcept {
+		auto it = m_entries.find(key);
+		if(it != m_entries.end()){
+			it->second.lastUsedGeneration = generation;
+		}
+	}
+
+	void EndFrame(std::uint64_t generation){
+		for(auto it = m_entries.begin(); it != m_entries.end();){
+			if(it->second.lastUsedGeneration != generation){
+				it = m_entries.erase(it);
+			}else{
+				++it;
+			}
+		}
 	}
 
 	ModelRendererGpuRuntime* Find(
 		const ModelRendererGpuRuntimeKey& key
 	) noexcept {
 		auto it = m_entries.find(key);
-		return it != m_entries.end() ? &it->second : nullptr;
+		return it != m_entries.end() ? &it->second.runtime : nullptr;
 	}
 
 	const ModelRendererGpuRuntime* Find(
 		const ModelRendererGpuRuntimeKey& key
 	) const noexcept {
 		auto it = m_entries.find(key);
-		return it != m_entries.end() ? &it->second : nullptr;
+		return it != m_entries.end() ? &it->second.runtime : nullptr;
 	}
 
 	void Erase(const ModelRendererGpuRuntimeKey& key){
@@ -160,6 +193,7 @@ public:
 
 	void Reset() noexcept {
 		m_entries.clear();
+		m_generation = 0;
 	}
 
 	std::size_t Size() const noexcept {
@@ -167,9 +201,15 @@ public:
 	}
 
 private:
+	struct Entry {
+		ModelRendererGpuRuntime runtime;
+		std::uint64_t lastUsedGeneration = 0;
+	};
+
 	std::unordered_map<
 		ModelRendererGpuRuntimeKey,
-		ModelRendererGpuRuntime,
+		Entry,
 		ModelRendererGpuRuntimeKeyHash
 	> m_entries;
+	std::uint64_t m_generation = 0;
 };
