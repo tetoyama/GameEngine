@@ -36,8 +36,9 @@
   </ItemGroup>
 
   <!--
-    Step 17-C / 17-D / 17-E / 17-F / M-5で追加・削除したHeaderを評価後のProject Itemへ反映する。
-    vcxproj本体を全体書き換えせず、Solution Explorerと外部変更検知を同期する。
+    Step 17-C / 17-D / 17-E / 17-F / Step 18-A / M-5で追加・削除したHeaderを
+    評価後のProject Itemへ反映する。vcxproj本体を全体書き換えせず、
+    Solution Explorerと外部変更検知を同期する。
   -->
   <ItemGroup Condition="'$(MSBuildProjectName)' == 'GameEngine'">
     <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\Animation\RenderSystemAnimationTaskRegistration.h" />
@@ -51,6 +52,7 @@
     <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\Terrain\WaveTaskRegistrar.h" />
     <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Physic\PhysicsSimulationOverlapAnalysis.h" />
     <ClInclude Remove="Source\GameApplication\Engine\Editor\UI\PhysicsSimulationOverlapUI.h" />
+    <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderWorld\RenderWorld.h" />
 
     <ClInclude Include="Source\GameApplication\Service\Graphics\D3D11ConstantBufferUpload.h"
                Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Service\Graphics\D3D11ConstantBufferUpload.h')">
@@ -100,6 +102,11 @@
     <ClInclude Include="Source\GameApplication\Engine\Editor\UI\PhysicsSimulationOverlapUI.h"
                Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Engine\Editor\UI\PhysicsSimulationOverlapUI.h')">
       <Link>Header Files\Engine\Editor\UI\PhysicsSimulationOverlapUI.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderWorld\RenderWorld.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderWorld\RenderWorld.h')">
+      <Link>Header Files\Engine\Scene\System\Render\RenderSystem\RenderWorld\RenderWorld.h</Link>
     </ClInclude>
   </ItemGroup>
 
