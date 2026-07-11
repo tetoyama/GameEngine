@@ -14,15 +14,21 @@ int main(){
 	ComponentRegistry components(&entities, &context);
 	context.entity = &entities;
 	context.component = &components;
+	// ComponentRef<T>解決用のテスト向け自己解決resolver。
+	context.contextID = 1;
+	context.resolverOwner = &context;
+	context.resolver = [](void* owner, uint32_t) -> SceneContext* {
+		return static_cast<SceneContext*>(owner);
+	};
 
 	const Entity entity = entities.Create();
 	assert(entity);
 
-	auto* culling = components.AddComponent<CullingComponent>(entity);
-	auto* model = components.AddComponent<ModelRendererComponent>(entity);
-	auto* mesh = components.AddComponent<MeshRendererComponent>(entity);
-	auto* terrain = components.AddComponent<TerrainComponent>(entity);
-	auto* wave = components.AddComponent<WaveComponent>(entity);
+	auto culling = components.AddComponent<CullingComponent>(entity);
+	auto model = components.AddComponent<ModelRendererComponent>(entity);
+	auto* mesh = components.AddComponent<MeshRendererComponent>(entity).TryGet();
+	auto* terrain = components.AddComponent<TerrainComponent>(entity).TryGet();
+	auto* wave = components.AddComponent<WaveComponent>(entity).TryGet();
 	assert(culling && model && mesh && terrain && wave);
 
 	// Model resourceなし、Mesh metadataなし、Terrain無効ならWaveへFallbackする。

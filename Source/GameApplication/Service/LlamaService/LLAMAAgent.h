@@ -81,7 +81,10 @@ public:
 	// Context Utilities
 	// ============================
 
-	// context を初期状態に戻す
+	// context を初期状態に戻す。
+	// [M-2修正] 呼出Threadからllama状態へ直接触れず、生成ループへ中断を
+	// 要求してWorker Threadが安全点でResetを適用するまでブロックする。
+	// 未処理のジョブキューは破棄される。
 	void ResetContext();
 
 
@@ -160,6 +163,12 @@ private:
 	std::atomic<State> m_state{State::Idle};
 	std::atomic<bool>  m_running{true};
 	std::atomic<bool>  m_cancelRequested{false}; // ジョブキャンセル用フラグ
+
+	// [M-2修正] Reset要求フラグ。Worker Threadだけがllama状態
+	// (m_ctx / m_sampler / m_pastTokens / m_history / m_summaryText)へ触れる
+	// 契約とし、外部ThreadからのResetはWorkerの安全点で適用する。
+	std::atomic<bool> m_resetRequested{false};
+	std::condition_variable m_resetDoneCv; // Reset適用完了通知
 
 	// ============================
 	// Output

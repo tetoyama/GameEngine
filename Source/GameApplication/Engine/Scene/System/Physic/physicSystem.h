@@ -17,6 +17,7 @@
 #include <mutex>
 #include <vector>
 #include <string>
+#include <unordered_map>
 #include <DirectXMath.h>
 #include <d3d11.h>
 
@@ -192,6 +193,19 @@ private:
 	bool       UpdatingPhysics = false;
 	std::atomic<bool> m_simulationInFlight{false};
 	std::unique_ptr<PhysicsSimulationCallback> m_simCallback;
+
+	// [M-6修正] ActorEntityInfoの所有をPhysicSystemへ一元化する。
+	// PxActor::userDataへは非所有の生ポインタだけを渡し、
+	// 生new/deleteによるリーク・二重解放・例外非安全を排除する。
+	std::unordered_map<const physx::PxActor*, std::unique_ptr<ActorEntityInfo>>
+		m_actorEntityInfos;
+
+	ActorEntityInfo* AttachActorEntityInfo(
+		physx::PxActor& actor,
+		Entity entity,
+		SceneContext* context
+	);
+	void DetachActorEntityInfo(physx::PxActor* actor);
 
 	std::mutex m_collisionEventMutex;
 	std::vector<PendingScriptCollisionEvent> m_pendingCollisionEvents;

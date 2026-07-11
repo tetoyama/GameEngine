@@ -215,9 +215,27 @@ void GBufferPass::Execute(const RenderPassContext& context){
 	graphics->SetBlendMode(BlendMode::None);
 
 	float clearColor[4] = {0, 0, 0, 0};
+
+	// [M-1修正] Param(UINT4)のSceneID / ObjectIDチャンネルは0ではなく
+	// 無効ID sentinelでClearし、背景PixelのPickを明示的な無効値で弾く。
+	// （0は「Entity index 0 / SceneContext ID 0が予約済み」という暗黙依存だった）
+	// ShaderID / MaterialFlagsは既存契約（0 = 無効）を維持する。
+	// 整数フォーマットへのClearRenderTargetViewはfloat値が変換・クランプされるため、
+	// float(0xFFFFFFFF) = 2^32はUINT最大値0xFFFFFFFFへ確定する。
+	const float paramClearColor[4] = {
+		static_cast<float>(GBufferParam_InvalidID), // SceneID
+		static_cast<float>(GBufferParam_InvalidID), // ObjectID
+		0.0f,                                       // ShaderID (0 = 無効)
+		0.0f                                        // MaterialFlags
+	};
 	for(int index = 0; index < GBufferSlot_Max; ++index){
 		pRenderTargets[index]->Resize(context.screenSize, m_context->graphics);
-		deviceContext->ClearRenderTargetView(pRenderTargets[index]->rtv.Get(), clearColor);
+		const float* slotClearColor =
+			(index == GBufferSlot_Param) ? paramClearColor : clearColor;
+		deviceContext->ClearRenderTargetView(
+			pRenderTargets[index]->rtv.Get(),
+			slotClearColor
+		);
 	}
 	pDepthTarget->Resize(context.screenSize, m_context->graphics);
 	deviceContext->ClearDepthStencilView(

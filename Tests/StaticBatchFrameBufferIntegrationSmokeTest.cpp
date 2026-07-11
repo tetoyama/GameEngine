@@ -39,6 +39,11 @@ int main(){
 	context.entity = &entities;
 	context.component = &components;
 	context.contextID = 41;
+	// ComponentRef<T>解決用のテスト向け自己解決resolver。
+	context.resolverOwner = &context;
+	context.resolver = [](void* owner, uint32_t) -> SceneContext* {
+		return static_cast<SceneContext*>(owner);
+	};
 	context.storageConfig.renderPacketReserve = 2;
 	context.storageConfig.staticBatchReserve = 2;
 	context.storageConfig.allowRuntimeGrowth = true;

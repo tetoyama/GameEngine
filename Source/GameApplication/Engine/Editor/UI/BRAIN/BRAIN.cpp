@@ -172,9 +172,10 @@ void BRAIN::WorkerLoop(){
 		// ---------------------------
 		if(doReset){
 			if(m_mainAgent){
-				while(m_mainAgent->GetState() == LLAMAAgent::State::Running){
-					std::this_thread::sleep_for(std::chrono::milliseconds(1));
-				}
+				// [M-2修正] ResetContextはAgent内部で生成ループへ中断を要求し、
+				// Worker Threadの安全点で適用完了するまでブロックする。
+				// 旧実装のGetState() == Running busy-waitは不要
+				// （生成完了を待たず即座に中断・Resetされる）。
 				m_mainAgent->ResetContext();
 			}
 

@@ -6,15 +6,15 @@ DeferredDebug:
   shaderModel: ps_5_0
   deps:
     - path: Source/Shader/commonDefine.h
-      stamp: -5018673201051910716
+      stamp: -5018534539378303016
     - path: Source/Shader/common.hlsl
-      stamp: -5018711930035280616
+      stamp: -5018603727709551616
     - path: Source/Shader/Material/MaterialDefine.hlsli
-      stamp: -5020442764859398616
+      stamp: -5018603727709551616
     - path: Source/Shader/Material/MaterialFunc.hlsli
-      stamp: -5018673201055559916
+      stamp: -5018603727709551616
     - path: Source/Shader/Material/DeferredFunc.hlsli
-      stamp: -5019298259933497316
+      stamp: -5018603727709551616
     - path: __materialCount__
       stamp: 5
 ForwardDebug:
@@ -25,15 +25,15 @@ ForwardDebug:
   shaderModel: ps_5_0
   deps:
     - path: Source/Shader/commonDefine.h
-      stamp: -5018673201051910716
+      stamp: -5018534539378303016
     - path: Source/Shader/common.hlsl
-      stamp: -5018711930035280616
+      stamp: -5018603727709551616
     - path: Source/Shader/Material/MaterialDefine.hlsli
-      stamp: -5020442764859398616
+      stamp: -5018603727709551616
     - path: Source/Shader/Material/MaterialFunc.hlsli
-      stamp: -5018673201055559916
+      stamp: -5018603727709551616
     - path: Source/Shader/Material/FowardFunc.hlsli
-      stamp: -5019298259931643516
+      stamp: -5018603727709551616
 Version: 2
 Deferred:
   - hlsl: Source/Shader/AutoGen/DeferredRenderingPS_0.hlsl
@@ -43,17 +43,17 @@ Deferred:
     shaderModel: ps_5_0
     deps:
       - path: Source/Shader/commonDefine.h
-        stamp: -5018673201051910716
+        stamp: -5018534539378303016
       - path: Source/Shader/common.hlsl
-        stamp: -5018711930035280616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialDefine.hlsli
-        stamp: -5020442764859398616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5018673201055559916
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/DeferredFunc.hlsli
-        stamp: -5019298259933497316
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/UnlitShader.hlsli
-        stamp: -5020442764857890816
+        stamp: -5018603727709551616
   - hlsl: Source/Shader/AutoGen/DeferredRenderingPS_1.hlsl
     cso: Source/Shader/AutoGen/DeferredRenderingPS_1.cso
     entryPoint: ShadeMaterial_PBR
@@ -61,17 +61,17 @@ Deferred:
     shaderModel: ps_5_0
     deps:
       - path: Source/Shader/commonDefine.h
-        stamp: -5018673201051910716
+        stamp: -5018534539378303016
       - path: Source/Shader/common.hlsl
-        stamp: -5018711930035280616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialDefine.hlsli
-        stamp: -5020442764859398616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5018673201055559916
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/DeferredFunc.hlsli
-        stamp: -5019298259933497316
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/PBRShader.hlsli
-        stamp: -5019451636690915016
+        stamp: -5018603727709551616
   - hlsl: Source/Shader/AutoGen/DeferredRenderingPS_2.hlsl
     cso: Source/Shader/AutoGen/DeferredRenderingPS_2.cso
     entryPoint: ShadeMaterial_PBRToon
@@ -79,17 +79,17 @@ Deferred:
     shaderModel: ps_5_0
     deps:
       - path: Source/Shader/commonDefine.h
-        stamp: -5018673201051910716
+        stamp: -5018534539378303016
       - path: Source/Shader/common.hlsl
-        stamp: -5018711930035280616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialDefine.hlsli
-        stamp: -5020442764859398616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5018673201055559916
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/DeferredFunc.hlsli
-        stamp: -5019298259933497316
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/PBRToonShader.hlsli
-        stamp: -5020442764857890816
+        stamp: -5018603727709551616
   - hlsl: Source/Shader/AutoGen/DeferredRenderingPS_3.hlsl
     cso: Source/Shader/AutoGen/DeferredRenderingPS_3.cso
     entryPoint: ShadeMaterial_Toon
@@ -97,17 +97,17 @@ Deferred:
     shaderModel: ps_5_0
     deps:
       - path: Source/Shader/commonDefine.h
-        stamp: -5018673201051910716
+        stamp: -5018534539378303016
       - path: Source/Shader/common.hlsl
-        stamp: -5018711930035280616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialDefine.hlsli
-        stamp: -5020442764859398616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5018673201055559916
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/DeferredFunc.hlsli
-        stamp: -5019298259933497316
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/ToonShader.hlsli
-        stamp: -5020340502403123316
+        stamp: -5018603727709551616
   - hlsl: Source/Shader/AutoGen/DeferredRenderingPS_4.hlsl
     cso: Source/Shader/AutoGen/DeferredRenderingPS_4.cso
     entryPoint: ShadeMaterial_RimToon
@@ -115,17 +115,17 @@ Deferred:
     shaderModel: ps_5_0
     deps:
       - path: Source/Shader/commonDefine.h
-        stamp: -5018673201051910716
+        stamp: -5018534539378303016
       - path: Source/Shader/common.hlsl
-        stamp: -5018711930035280616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialDefine.hlsli
-        stamp: -5020442764859398616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5018673201055559916
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/DeferredFunc.hlsli
-        stamp: -5019298259933497316
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/RimToonShader.hlsli
-        stamp: -5020442764857890816
+        stamp: -5018603727709551616
 Forward:
   - hlsl: Source/Shader/AutoGen/ForwardRenderingPS_0.hlsl
     cso: Source/Shader/AutoGen/ForwardRenderingPS_0.cso
@@ -134,17 +134,17 @@ Forward:
     shaderModel: ps_5_0
     deps:
       - path: Source/Shader/commonDefine.h
-        stamp: -5018673201051910716
+        stamp: -5018534539378303016
       - path: Source/Shader/common.hlsl
-        stamp: -5018711930035280616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialDefine.hlsli
-        stamp: -5020442764859398616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5018673201055559916
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/FowardFunc.hlsli
-        stamp: -5019298259931643516
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/UnlitShader.hlsli
-        stamp: -5020442764857890816
+        stamp: -5018603727709551616
   - hlsl: Source/Shader/AutoGen/ForwardRenderingPS_1.hlsl
     cso: Source/Shader/AutoGen/ForwardRenderingPS_1.cso
     entryPoint: ShadeMaterial_PBR
@@ -152,17 +152,17 @@ Forward:
     shaderModel: ps_5_0
     deps:
       - path: Source/Shader/commonDefine.h
-        stamp: -5018673201051910716
+        stamp: -5018534539378303016
       - path: Source/Shader/common.hlsl
-        stamp: -5018711930035280616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialDefine.hlsli
-        stamp: -5020442764859398616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5018673201055559916
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/FowardFunc.hlsli
-        stamp: -5019298259931643516
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/PBRShader.hlsli
-        stamp: -5019451636690915016
+        stamp: -5018603727709551616
   - hlsl: Source/Shader/AutoGen/ForwardRenderingPS_2.hlsl
     cso: Source/Shader/AutoGen/ForwardRenderingPS_2.cso
     entryPoint: ShadeMaterial_PBRToon
@@ -170,17 +170,17 @@ Forward:
     shaderModel: ps_5_0
     deps:
       - path: Source/Shader/commonDefine.h
-        stamp: -5018673201051910716
+        stamp: -5018534539378303016
       - path: Source/Shader/common.hlsl
-        stamp: -5018711930035280616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialDefine.hlsli
-        stamp: -5020442764859398616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5018673201055559916
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/FowardFunc.hlsli
-        stamp: -5019298259931643516
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/PBRToonShader.hlsli
-        stamp: -5020442764857890816
+        stamp: -5018603727709551616
   - hlsl: Source/Shader/AutoGen/ForwardRenderingPS_3.hlsl
     cso: Source/Shader/AutoGen/ForwardRenderingPS_3.cso
     entryPoint: ShadeMaterial_Toon
@@ -188,17 +188,17 @@ Forward:
     shaderModel: ps_5_0
     deps:
       - path: Source/Shader/commonDefine.h
-        stamp: -5018673201051910716
+        stamp: -5018534539378303016
       - path: Source/Shader/common.hlsl
-        stamp: -5018711930035280616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialDefine.hlsli
-        stamp: -5020442764859398616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5018673201055559916
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/FowardFunc.hlsli
-        stamp: -5019298259931643516
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/ToonShader.hlsli
-        stamp: -5020340502403123316
+        stamp: -5018603727709551616
   - hlsl: Source/Shader/AutoGen/ForwardRenderingPS_4.hlsl
     cso: Source/Shader/AutoGen/ForwardRenderingPS_4.cso
     entryPoint: ShadeMaterial_RimToon
@@ -206,14 +206,14 @@ Forward:
     shaderModel: ps_5_0
     deps:
       - path: Source/Shader/commonDefine.h
-        stamp: -5018673201051910716
+        stamp: -5018534539378303016
       - path: Source/Shader/common.hlsl
-        stamp: -5018711930035280616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialDefine.hlsli
-        stamp: -5020442764859398616
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5018673201055559916
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/FowardFunc.hlsli
-        stamp: -5019298259931643516
+        stamp: -5018603727709551616
       - path: Source/Shader/Material/RimToonShader.hlsli
-        stamp: -5020442764857890816
+        stamp: -5018603727709551616

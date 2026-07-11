@@ -12,6 +12,11 @@ int main(){
 	context.entity = &entities;
 	context.component = &components;
 	context.contextID = 17;
+	// ComponentRef<T>解決用のテスト向け自己解決resolver。
+	context.resolverOwner = &context;
+	context.resolver = [](void* owner, uint32_t) -> SceneContext* {
+		return static_cast<SceneContext*>(owner);
+	};
 
 	const CullingFrustum frustum = CullingMath::MakeAxisAlignedFrustum({
 		Vector3(-10.0f, -10.0f, -10.0f),
@@ -23,7 +28,7 @@ int main(){
 		const Entity entity = entities.Create();
 		assert(entity);
 		candidates.push_back(entity);
-		auto* culling = components.AddComponent<CullingComponent>(entity);
+		auto culling = components.AddComponent<CullingComponent>(entity);
 		assert(culling);
 		culling->boundsValid = false;
 	}

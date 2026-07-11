@@ -134,7 +134,7 @@ bool PrefabSystem::SavePrefab(EntityRef ref, const std::string& filePath) {
 	// すでに付いている場合はパスと YAML スナップショットを最新の保存内容で上書きする
 	auto* prefabComp = context->component->GetComponent<PrefabComponent>(entity);
 	if (!prefabComp) {
-		prefabComp = context->component->AddComponent<PrefabComponent>(entity);
+		prefabComp = context->component->AddComponent<PrefabComponent>(entity).TryGet();
 	}
 	if (prefabComp) {
 		prefabComp->filePath   = filePath;
@@ -209,7 +209,7 @@ EntityRef PrefabSystem::Instantiate(SceneContext* context, const std::shared_ptr
 	// PrefabComponent をルートエンティティに付与する
 	// filePath は上書き保存に、sourceYaml はインスタンス化時の状態記録（差分検出の基準値）に使用する
 	if (!data->filePath.empty()) {
-		auto* prefabComp = context->component->AddComponent<PrefabComponent>(newEntities[0]);
+		auto* prefabComp = context->component->AddComponent<PrefabComponent>(newEntities[0]).TryGet();
 		if (prefabComp) {
 			prefabComp->filePath = data->filePath;
 			std::ostringstream ss;

@@ -612,13 +612,13 @@ void PhysicSystem::Finalize(){
 			}
 			if (Collider->pRigidbodyStatic) {
 				OutputDebugStringA(("Finalize Release Static Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyStatic) + "\n").c_str());
-				delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyStatic->userData);
+				DetachActorEntityInfo(Collider->pRigidbodyStatic);
 				Collider->pRigidbodyStatic->release();
 				Collider->pRigidbodyStatic = nullptr;
 			}
 			if (Collider->pRigidbodyDynamic) {
 				OutputDebugStringA(("Finalize Release Dynamic Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyDynamic) + "\n").c_str());
-				delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyDynamic->userData);
+				DetachActorEntityInfo(Collider->pRigidbodyDynamic);
 				Collider->pRigidbodyDynamic->release();
 				Collider->pRigidbodyDynamic = nullptr;
 			}
@@ -659,7 +659,31 @@ void PhysicSystem::Finalize(){
 		g_pFoundation = nullptr;
 	}
 
+	// [M-6修正] Detach漏れActorのInfoをまとめて解放する（リークバックストップ）
+	m_actorEntityInfos.clear();
+
 	m_simCallback.reset();
+}
+
+//======================================================================
+// ActorEntityInfo ownership (Review M-6)
+//======================================================================
+ActorEntityInfo* PhysicSystem::AttachActorEntityInfo(
+	physx::PxActor& actor,
+	Entity entity,
+	SceneContext* context
+){
+	auto info = std::make_unique<ActorEntityInfo>(ActorEntityInfo{ entity, context });
+	ActorEntityInfo* raw = info.get();
+	actor.userData = raw;
+	m_actorEntityInfos[&actor] = std::move(info);
+	return raw;
+}
+
+void PhysicSystem::DetachActorEntityInfo(physx::PxActor* actor){
+	if(!actor) return;
+	actor->userData = nullptr;
+	m_actorEntityInfos.erase(actor);
 }
 
 void PhysicSystem::Stop(){
@@ -691,13 +715,13 @@ void PhysicSystem::Stop(){
 
 			if (Collider->pRigidbodyStatic) {
 				OutputDebugStringA(("Stop Release Static Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyStatic) + "\n").c_str());
-				delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyStatic->userData);
+				DetachActorEntityInfo(Collider->pRigidbodyStatic);
 				Collider->pRigidbodyStatic->release();
 				Collider->pRigidbodyStatic = nullptr;
 			}
 			if (Collider->pRigidbodyDynamic) {
 				OutputDebugStringA(("Stop Release Dynamic Actor: " + std::to_string((uintptr_t)Collider->pRigidbodyDynamic) + "\n").c_str());
-				delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyDynamic->userData);
+				DetachActorEntityInfo(Collider->pRigidbodyDynamic);
 				Collider->pRigidbodyDynamic->release();
 				Collider->pRigidbodyDynamic = nullptr;
 			}
@@ -1050,7 +1074,7 @@ void PhysicSystem::UpdateCollider() {
 			if (Collider->isDynamic) {
 
 				if (Collider->pRigidbodyStatic) {
-					delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyStatic->userData);
+					DetachActorEntityInfo(Collider->pRigidbodyStatic);
 					Collider->pRigidbodyStatic->release();
 					Collider->pRigidbodyStatic = nullptr;
 				}
@@ -1060,7 +1084,7 @@ void PhysicSystem::UpdateCollider() {
 				}
 
 				Collider->pRigidbodyDynamic = g_pPhysics->createRigidDynamic(pxTransform);
-				Collider->pRigidbodyDynamic->userData = new ActorEntityInfo{ entity, context };
+				AttachActorEntityInfo(*Collider->pRigidbodyDynamic, entity, context);
 				g_pScene->addActor(*Collider->pRigidbodyDynamic);
 
 				for (auto& col : Collider->colliders) {
@@ -1097,7 +1121,7 @@ void PhysicSystem::UpdateCollider() {
 			} else {
 
 				if (Collider->pRigidbodyDynamic) {
-					delete static_cast<ActorEntityInfo*>(Collider->pRigidbodyDynamic->userData);
+					DetachActorEntityInfo(Collider->pRigidbodyDynamic);
 					Collider->pRigidbodyDynamic->release();
 					Collider->pRigidbodyDynamic = nullptr;
 				}
@@ -1107,7 +1131,7 @@ void PhysicSystem::UpdateCollider() {
 				}
 
 				Collider->pRigidbodyStatic = g_pPhysics->createRigidStatic(pxTransform);
-				Collider->pRigidbodyStatic->userData = new ActorEntityInfo{ entity, context };
+				AttachActorEntityInfo(*Collider->pRigidbodyStatic, entity, context);
 				g_pScene->addActor(*Collider->pRigidbodyStatic);
 
 				for (auto& col : Collider->colliders) {

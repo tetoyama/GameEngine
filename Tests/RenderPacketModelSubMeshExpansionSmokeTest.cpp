@@ -22,6 +22,11 @@ int main(){
 	context.entity = &entities;
 	context.component = &components;
 	context.contextID = 73;
+	// ComponentRef<T>解決用のテスト向け自己解決resolver。
+	context.resolverOwner = &context;
+	context.resolver = [](void* owner, uint32_t) -> SceneContext* {
+		return static_cast<SceneContext*>(owner);
+	};
 	context.storageConfig.renderPacketReserve = 2;
 	context.storageConfig.staticBatchReserve = 2;
 	context.storageConfig.allowRuntimeGrowth = true;
@@ -30,7 +35,7 @@ int main(){
 	assert(entity);
 	assert(components.AddComponent<StaticEntityComponent>(entity));
 	ModelRendererComponent* renderer =
-		components.AddComponent<ModelRendererComponent>(entity);
+		components.AddComponent<ModelRendererComponent>(entity).TryGet();
 	assert(renderer);
 	renderer->modelFilePath = "Asset/Test/TwoSubMeshes.fbx";
 	renderer->modelRuntimeRevision = 1;

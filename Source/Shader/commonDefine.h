@@ -71,6 +71,13 @@
 #define GBufferParamChannel_ShaderID      (2)
 #define GBufferParamChannel_MaterialFlags (3)
 
+// 非描画Pixelを示す無効ID sentinel（Review M-1）。
+// GBuffer PassはParam(UINT4)のSceneID / ObjectIDチャンネルをこの値でClearし、
+// Pick側はこの値を「何も描かれていない」として扱う。
+// 「Entity index 0 / SceneContext ID 0が予約済みである」ことへの暗黙依存を排除する。
+// 注意: ShaderID / MaterialFlagsは既存契約（0 = 無効）を維持し0でClearする。
+#define GBufferParam_InvalidID (0xFFFFFFFFu)
+
 // Static instance uint4 input contract.
 #define StaticInstanceObjectChannel_EntityIndex      (0)
 #define StaticInstanceObjectChannel_EntityGeneration (1)

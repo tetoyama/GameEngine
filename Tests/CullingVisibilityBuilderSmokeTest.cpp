@@ -11,6 +11,11 @@ int main(){
 	context.entity = &entities;
 	context.component = &components;
 	context.contextID = 7;
+	// ComponentRef<T>解決用のテスト向け自己解決resolver。
+	context.resolverOwner = &context;
+	context.resolver = [](void* owner, uint32_t) -> SceneContext* {
+		return static_cast<SceneContext*>(owner);
+	};
 	context.storageConfig.visibleEntityReserve = 32;
 
 	const Entity inside = entities.Create();
@@ -18,21 +23,21 @@ int main(){
 	const Entity invalidBounds = entities.Create();
 	const Entity noCulling = entities.Create();
 
-	auto* insideCulling = components.AddComponent<CullingComponent>(inside);
+	auto insideCulling = components.AddComponent<CullingComponent>(inside);
 	insideCulling->worldBounds = {
 		Vector3(-1.0f, -1.0f, -1.0f),
 		Vector3(1.0f, 1.0f, 1.0f)
 	};
 	insideCulling->boundsValid = true;
 
-	auto* outsideCulling = components.AddComponent<CullingComponent>(outside);
+	auto outsideCulling = components.AddComponent<CullingComponent>(outside);
 	outsideCulling->worldBounds = {
 		Vector3(20.0f, -1.0f, -1.0f),
 		Vector3(22.0f, 1.0f, 1.0f)
 	};
 	outsideCulling->boundsValid = true;
 
-	auto* invalidCulling = components.AddComponent<CullingComponent>(invalidBounds);
+	auto invalidCulling = components.AddComponent<CullingComponent>(invalidBounds);
 	invalidCulling->boundsValid = false;
 
 	const CullingFrustum frustum = CullingMath::MakeAxisAlignedFrustum({

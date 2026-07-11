@@ -286,6 +286,13 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 			uint32_t sceneID_val = result.u[0];  // x : SceneID
 			uint32_t objectID_val = result.u[1]; // y : ObjectID
 
+			// [M-1修正] 背景（非描画）Pixelは無効ID sentinelでClearされている。
+			// ID 0の予約に依存せず明示的に弾く。
+			if(sceneID_val == GBufferParam_InvalidID ||
+				objectID_val == GBufferParam_InvalidID){
+				return;
+			}
+
 			if(hierarchy){
 				// 管理テーブルから安全にコンテキストを復元
 				SceneContext* recoveredContext = m_editor->sceneManager->GetContextFromID(sceneID_val);

@@ -166,9 +166,12 @@ public:
 		return m_ref.GetScene()->component->GetComponent<T>(m_ref.GetEntityID());
 	}
 
+	// 即時追加API。戻り値は世代検証付きComponentRef<T>（Review M-4）。
+	// Schedule実行中はDebug assertで検出されるため、
+	// Update / Fixed / Draw中はQueueAddComponentを使用する（Review H-4）。
 	template<typename T, typename... Args>
-	T* AddComponent(Args&&... args){
-		if(!m_ref.IsValid()) return nullptr;
+	ComponentRef<T> AddComponent(Args&&... args){
+		if(!m_ref.IsValid()) return {};
 		return m_ref.GetScene()->component->AddComponent<T>(
 			m_ref.GetEntityID(),
 			std::forward<Args>(args)...

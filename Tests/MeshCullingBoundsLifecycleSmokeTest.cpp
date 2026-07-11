@@ -12,12 +12,18 @@ int main(){
 	ComponentRegistry components(&entities, &context);
 	context.entity = &entities;
 	context.component = &components;
+	// ComponentRef<T>解決用のテスト向け自己解決resolver。
+	context.contextID = 1;
+	context.resolverOwner = &context;
+	context.resolver = [](void* owner, uint32_t) -> SceneContext* {
+		return static_cast<SceneContext*>(owner);
+	};
 
 	const Entity entity = entities.Create();
 	assert(entity);
 
-	auto* mesh = components.AddComponent<MeshRendererComponent>(entity);
-	auto* culling = components.AddComponent<CullingComponent>(entity);
+	auto mesh = components.AddComponent<MeshRendererComponent>(entity);
+	auto culling = components.AddComponent<CullingComponent>(entity);
 	assert(mesh && culling);
 
 	mesh->mesh.SetLocalBounds(
@@ -37,7 +43,7 @@ int main(){
 	assert(culling->sourceRevision == 0);
 	assert(!culling->boundsValid);
 
-	auto* terrain = components.AddComponent<TerrainComponent>(entity);
+	auto* terrain = components.AddComponent<TerrainComponent>(entity).TryGet();
 	assert(terrain);
 	terrain->Scale = 1;
 	terrain->CurrentScale = 1;

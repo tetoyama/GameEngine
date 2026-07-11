@@ -92,6 +92,7 @@ LLAMAAgent::LLAMAAgent(std::shared_ptr<LLAMAModelData> model,
 	, m_config(std::move(config))
 	, m_running(true)
 	, m_cancelRequested(false)
+	, m_resetRequested(false)
 	, m_nPast(0)
 	, m_isSummarizing(false){
 
@@ -192,17 +193,35 @@ void LLAMAAgent::WorkerMain(){
 		std::string prompt;
 		{
 			std::unique_lock<std::mutex> lock(m_mutex);
-			m_cv.wait(lock, [&]{ return !m_jobQueue.empty() || !m_running.load(); });
+			m_cv.wait(lock, [&]{
+				return !m_jobQueue.empty() ||
+					!m_running.load() ||
+					m_resetRequested.load(std::memory_order_acquire);
+			});
+
+			// [M-2修正] Reset要求はジョブより先に安全点で適用する。
+			// llama状態へ触れるThreadをWorkerだけに限定するための唯一の適用箇所。
+			if(m_resetRequested.load(std::memory_order_acquire)){
+				ResetContextUnlocked();
+				m_state.store(State::Idle, std::memory_order_release);
+				m_cancelRequested.store(false, std::memory_order_release);
+				m_resetRequested.store(false, std::memory_order_release);
+				m_resetDoneCv.notify_all();
+				continue;
+			}
 
 			if(!m_running.load() && m_jobQueue.empty())
 				break;
 
 			prompt = std::move(m_jobQueue.front());
 			m_jobQueue.pop();
+
+			// [M-2修正] キャンセルフラグのリセットはm_mutex保持中に行う。
+			// ロック解放後に行うと、その隙間でStop() / ResetContext()が
+			// 立てたcancelを上書きして中断要求を取りこぼす。
+			m_cancelRequested.store(false, std::memory_order_release);
 		}
 
-		// ジョブ実行前にキャンセルフラグをリセット
-		m_cancelRequested.store(false, std::memory_order_release);
 		m_state.store(State::Running, std::memory_order_release);
 		try{
 			RunPromptInternal(prompt);
@@ -219,6 +238,8 @@ void LLAMAAgent::WorkerMain(){
 	}
 
 	m_state.store(State::Dead, std::memory_order_release);
+	// [M-2修正] Reset待機中のThreadがあれば起こす（Worker終了時のDeadlock防止）
+	m_resetDoneCv.notify_all();
 	OutputDebugStringA("[THREAD] LLAMAAgent::WorkerMain end\n");
 }
 
@@ -273,6 +294,15 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt, int retryDepth){
 
 	auto rollbackToSnapshot = [&](){
 		if(!s_cancelSnapshot.valid){
+			return;
+		}
+
+		// [M-2修正] Reset要求によるキャンセルの場合、直後にWorkerMainの
+		// 安全点で全消去されるため、Snapshot復元（KV再構築の重い再decode）は
+		// 不要。ここで巻き戻すとReset適用と二重作業になる。
+		if(m_resetRequested.load(std::memory_order_acquire)){
+			OutputDebugStringA("[POST] Cancel caused by reset request. Skipping rollback replay.\n");
+			s_cancelSnapshot.valid = false;
 			return;
 		}
 
@@ -960,9 +990,31 @@ void LLAMAAgent::SummarizeAndReset(){
 // Context reset
 // =====================================================
 void LLAMAAgent::ResetContext(){
-	std::lock_guard<std::mutex> lock(m_mutex);
-	m_state.store(State::Idle, std::memory_order_release);
-	ResetContextUnlocked();
+	// [M-2修正] 旧実装はm_mutexだけを握って呼出Threadから直接
+	// ResetContextUnlocked()を実行していたが、Worker Threadの生成ループは
+	// m_mutexを保持せずにm_ctx / m_sampler / m_pastTokens / m_historyへ
+	// 触れるため、生成中のResetはデータ競合だった。
+	// 現実装は中断フラグで生成ループを抜けさせ、WorkerMainの安全点で
+	// Resetを適用し、適用完了までここでブロックする。
+	OutputDebugStringA("[API] LLAMAAgent::ResetContext requested\n");
+
+	std::unique_lock<std::mutex> lock(m_mutex);
+
+	// 未処理ジョブは破棄する（Resetの意図は「会話を最初からやり直す」）
+	std::queue<std::string> emptyQueue;
+	std::swap(m_jobQueue, emptyQueue);
+
+	m_resetRequested.store(true, std::memory_order_release);
+	m_cancelRequested.store(true, std::memory_order_release);
+	m_cv.notify_all();
+
+	// Workerが適用完了するまで待つ。キャンセルはトークン単位で
+	// チェックされるため待機は有限時間で完了する。
+	// Worker終了(Dead)時もDeadlockせず抜ける。
+	m_resetDoneCv.wait(lock, [&]{
+		return !m_resetRequested.load(std::memory_order_acquire) ||
+			m_state.load(std::memory_order_acquire) == State::Dead;
+	});
 }
 
 void LLAMAAgent::ResetContextUnlocked(){

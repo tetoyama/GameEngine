@@ -683,26 +683,25 @@ Correctness修正は性能作業より優先する（Step 19-A基本契約と同
 `gethostbyname`戻り値をnull検証せず`memcpy`。失敗時（オフライン等）にヌルデリファレンスでCrash。IPv4決め打ち・C形式Castも併存。
 
 - [x] null検証を追加（`GN31.h:120` `if (!hostInfo || !hostInfo->h_addr_list || !hostInfo->h_addr_list[0])` を`memcpy`前にguard）
-- [ ] `getaddrinfo`移行とIPv4決め打ち解消を検討（現状は`gethostbyname`+IPv4 memcpyのまま。※直近コミットでGN31のgetaddrinfo移行を試行→include衝突でrevert済。要再着手）
+- [x] `getaddrinfo`移行とIPv4決め打ち解消 → **完了(2026-07-10)**。`GN31.cpp`新設でWinsockをヘッダから分離し、include衝突を解消した上で`getaddrinfo(AF_UNSPEC)`+Dual Stack Listener+Non-blocking化まで実装（`Docs/StepH3_GN31_Network_Resolution_Completion.md`）。Windows Debug/Release x64ビルドと実機接続確認は残
 
 ## H4. Query反復中の構造変更強制（High）
 
 対象: §1.4に契約追記済。実装タスク。
 
 - [x] Structure VersionをDebug assert化（`ComponentQueryView.h:104` `ValidateStructureVersion()`をbegin/end/`operator++`/deref 75,80,85,94,118で検証）
-- [ ] 即時構造変更APIの内部専用化（`componentRegistry.h`の`AddComponent`184 / `RemoveComponent`は`public:`のまま。内部専用化は未）
+- [x] 即時構造変更APIの内部専用化 → **完了(2026-07-10)**。生ポインタ返却の即時追加は`private: AddComponentRaw`へ隔離。さらに`Registry/StructuralChangeGuard.h`新設で、`SystemRegistry::ExecuteTasks`のEditor以外Domain実行中は`AddComponentRaw` / `RemoveComponent` / `RemoveComponentByID` / `OnEntityDestroyed` / `RegisterComponent`をDebug assertで検出。`EntityCommandBuffer::Commit`のPlayback区間だけScoped Unlockで適用を許可（`Docs/StepH4_M4_Structural_Change_Guard_Completion.md`）。Editor DomainはInspector / Undoの即時変更を許容するためLock対象外。ビルドと実機Debug回帰は残
 
 ## M. 中優先
 
-- [ ] M-1 GBuffer UINT4(ObjectID) Clear（`GBufferPass.cpp:218-223`）→ Step 19-A.6で対応。非被覆Pixelへの前FrameID残留でPickが誤ID返却する現状を解消
-    - 【部分】前Frame残留は解消（毎Frame共有`clearColor{0,0,0,0}`ループでUINT4スロットもClear）。ただし**無効ID sentinelではなく0**へClearのため、背景PixelがEntity ID=0を返す問題は未解消。専用`ClearRenderTargetView`+sentinel化が残
-- [ ] M-2 LLAMA `ResetContext`とWorker Threadのデータ競合（`LLAMAAgent.cpp:963`）。生成ループとResetの相互排他、または中断フラグで安全点まで待つ 【未】
+- [x] M-1 GBuffer UINT4(ObjectID) Clear（`GBufferPass.cpp`）→ **完了(2026-07-10)**。`commonDefine.h`へ`GBufferParam_InvalidID (0xFFFFFFFFu)`を新設し、Param(UINT4)のSceneID / ObjectIDチャンネルを専用Clear値でsentinel化。ShaderID / MaterialFlagsは既存契約（0 = 無効。Outline等が参照）を維持し0クリア。`ViewWindow.cpp`のPickにsentinel早期returnを追加し、「Entity index 0 / SceneContext ID 0が予約済み」という暗黙依存を排除（`Docs/StepM1_M6_Pick_Sentinel_PhysX_Ownership_Completion.md`）。ビルドと実機Pick確認は残
+- [x] M-2 LLAMA `ResetContext`とWorker Threadのデータ競合（`LLAMAAgent.cpp:963`）→ **完了(2026-07-10)**。「中断フラグで安全点まで待つ」方式を採用。`m_resetRequested`新設、llama状態へ触れるThreadをWorkerだけに限定し、`ResetContext`は中断要求＋WorkerMain安全点での適用完了までブロック。Reset起因キャンセル時のSnapshot復元(KV再decode)はスキップ。cancelフラグのクリアをm_mutex保持中へ移動し中断要求の取りこぼしも修正（`Docs/StepM2_LLAMA_Reset_Race_Completion.md`）。ビルドとBRAIN実機確認は残
 - [x] M-3 EngineContext Shutdown最終破棄の順序（`engineContext.cpp:72-83`）。`Shutdown()`逆順呼出に加え、破棄も`m_serviceOrder.rbegin()`逆順eraseへ変更済（2026-07-10検証）
-- [ ] M-4 AddComponent戻り生ポインタ無効化 / 既存時の引数破棄（§1.2）。ComponentRef限定、`Set` / `Replace`分離
-    - 【部分】`ComponentRef<T>`型と`SetComponent`/`ReplaceComponent`分離は実装済（`componentRegistry.h:232,242`）。ただし`AddComponent`(184)は依然として生`T*`を返す(227)。ComponentRef限定化が残
+- [x] M-4 AddComponent戻り生ポインタ無効化 / 既存時の引数破棄（§1.2）。ComponentRef限定、`Set` / `Replace`分離 → **完了(2026-07-10)**。公開`AddComponent` / `ReplaceComponent` / `SetComponent`は`ComponentRef<T>`を返す。生`T*`版は`private: AddComponentRaw`（YAML Factory / Editor用Adder / Playback専用）。`CustomScriptComponent::AddComponent`も`ComponentRef<T>`化。呼出側は`scene.cpp` 25箇所 / `PrefabSystem.cpp` / Testsを移行、一時参照が必要な箇所は`TryGet()`（`Docs/StepH4_M4_Structural_Change_Guard_Completion.md`）。ビルド確認は残
 - [ ] M-5 定数バッファ毎セッター全体Upload（`graphicsContext.cpp:197-243`）。Pixel Costとは別のDraw Cost軸。Step 17-B計測後にCPU Mirror 1回Upload / DYNAMIC + Map化 【未】(全セッターが毎回`UpdateSubresource`でCB全体Upload)
-- [ ] M-6 RenderPass / PhysX userDataの生new/delete（`PlayerPass.cpp:18-40`, `EditorPass`, `physicSystem.cpp:615-1110`）。`unique_ptr`化。Step 19-Aのrender scale Resource再生成と同工程で例外安全化
-    - 【部分】RenderPass側は完了（`PlayerPass.cpp`全sub-pass+RTを`make_unique`、Finalizeで`.reset()`）。**PhysX側`physicSystem.cpp`は生`new ActorEntityInfo`(1063,1110)+生`delete`(615,621,694,700,1053,1100)が残**
+- [x] M-6 RenderPass / PhysX userDataの生new/delete（`PlayerPass.cpp`, `EditorPass`, `physicSystem.cpp`）。`unique_ptr`化 → **完了(2026-07-10)**
+    - RenderPass側は完了済（`PlayerPass.cpp`全sub-pass+RTを`make_unique`、Finalizeで`.reset()`）
+    - PhysX側も完了: `ActorEntityInfo`の所有を`PhysicSystem`の`unordered_map<const PxActor*, unique_ptr<ActorEntityInfo>>`へ一元化。`userData`は非所有生ポインタのみ。生new/delete計8箇所を`AttachActorEntityInfo` / `DetachActorEntityInfo`へ置換、Finalizeにリークバックストップ`clear()`（`Docs/StepM1_M6_Pick_Sentinel_PhysX_Ownership_Completion.md`）。ビルドと実機Physics回帰は残
 
 ## L. 低優先（記録のみ・README / 安定版前に一括）
 

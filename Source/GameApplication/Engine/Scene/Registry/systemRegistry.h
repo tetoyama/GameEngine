@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "Interface/ISystem.h"
+#include "Registry/StructuralChangeGuard.h"
 #include "System/Job/JobSystem.h"
 #include "System/Scheduler/ExecuteDependencySchedule.h"
 #include "System/Scheduler/SystemScheduleCompiler.h"
@@ -264,6 +265,13 @@ private:
 			m_schedules[DomainIndex(domain)];
 		assert(schedule.valid && "Compiled system schedule is invalid");
 		if(!schedule.valid) return;
+
+		// Schedule実行中の即時構造変更をDebug検出する（Review H-4）。
+		// Editor DomainはMainThreadの編集操作（Inspector / Undo / Redo）による
+		// 即時構造変更を許容するためLock対象外とする。
+		ECSStructural::ScopedScheduleLock structuralLock(
+			domain != SystemTaskDomain::Editor
+		);
 
 		ExecuteDependencySchedule(
 			schedule,

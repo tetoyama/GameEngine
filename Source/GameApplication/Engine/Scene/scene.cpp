@@ -194,27 +194,27 @@ void Scene::BuildDefaultScene(){
 	{
 		Entity entity = entityRegistry->Create();
 
-		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		auto name = componentRegistry->AddComponent<NameComponent>(entity);
 		name->name = "Field";
 
 		// TransformComponentを追加
-		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
+		auto transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->scale = Vector3(50.0f, 50.0f, 50.0f);
 		transform->position = Vector3(0.0f, -transform->scale.y * 0.5f, 0);
 		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
 		// ModelRendererComponentを追加
-		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
+		auto modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->modelFilePath = "Asset\\Model\\cube.obj";
 
 		// TextureComponentを追加
-		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
+		auto texture = componentRegistry->AddComponent<TextureComponent>(entity);
 		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\mesh.png");
 		texture->UV_Slice_X = 0.04f;
 		texture->UV_Slice_Y = 0.04f;
 
 		// MaterialComponentを追加
-		auto* material = componentRegistry->AddComponent<MaterialComponent>(entity);
+		auto material = componentRegistry->AddComponent<MaterialComponent>(entity);
 		material->ShaderID = 1;
 		material->Material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		material->Material.Metallic = 0.25f;
@@ -222,7 +222,7 @@ void Scene::BuildDefaultScene(){
 		material->Material.MaterialFlags |= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
 
 		// ColliderComponentを追加
-		auto* collider = componentRegistry->AddComponent<ColliderComponent>(entity);
+		auto collider = componentRegistry->AddComponent<ColliderComponent>(entity);
 
 		// ボックスコライダーを追加
 		ColliderShape col;
@@ -236,17 +236,17 @@ void Scene::BuildDefaultScene(){
 	{
 		Entity entity = entityRegistry->Create();
 
-		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		auto name = componentRegistry->AddComponent<NameComponent>(entity);
 		name->name = "Light";
 
 		// TransformComponentを追加
-		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
+		auto transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, 0.0f,0.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 		transform->SetRotationEuler(Vector3(0.75f, 1.0f, 0.0f));
 
 		// LightComponentを追加
-		auto* light = componentRegistry->AddComponent<LightComponent>(entity);
+		auto light = componentRegistry->AddComponent<LightComponent>(entity);
 		light->light.LightType = LIGHT_TYPE_DIRECTIONAL_CSM;
 		light->light.Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		light->light.Ambient = DirectX::XMFLOAT4(0.05f, 0.05f, 0.05f, 1.0f);
@@ -257,45 +257,45 @@ void Scene::BuildDefaultScene(){
 	{
 		Entity entity = entityRegistry->Create();
 
-		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		auto name = componentRegistry->AddComponent<NameComponent>(entity);
 		name->name = "SkyBox";
 
 		// TransformComponentを追加
-		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
+		auto transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, 0.0f, 0.0f);
 		transform->scale = Vector3(500.0f, 500.0f, 500.0f);
 		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
-		auto* texture = componentRegistry->AddComponent<TextureComponent>(entity);
+		auto texture = componentRegistry->AddComponent<TextureComponent>(entity);
 		texture->m_TextureData = m_SceneManagerContext->resource->Load<TextureData>("Asset\\Texture\\Daylight.png");
 
-		auto* material = componentRegistry->AddComponent<MaterialComponent>(entity);
+		auto material = componentRegistry->AddComponent<MaterialComponent>(entity);
 
 		material->Material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
 		// ModelRendererComponentを追加
-		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
+		auto modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->isBlender = true;
 		modelRenderer->model = m_SceneManagerContext->resource->Load<ModelData>("Asset\\Model\\sky.fbx", true);
 
-		auto* env = componentRegistry->AddComponent<EnvironmentMapComponent>(entity);
+		auto env = componentRegistry->AddComponent<EnvironmentMapComponent>(entity);
 		env->enabled = true;
 	}
 	{
 		Entity entity = entityRegistry->Create();
 
-		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		auto name = componentRegistry->AddComponent<NameComponent>(entity);
 		name->name = "Player";
 
 		// TransformComponentを追加
-		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
+		auto transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, 0.0f, 0.0f);
 		transform->scale = Vector3(0.01f, 0.01f, 0.01f);
 		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
 
 		// ModelRendererComponentを追加
-		auto* modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
+		auto modelRenderer = componentRegistry->AddComponent<ModelRendererComponent>(entity);
 		modelRenderer->modelFilePath = "Asset\\Model\\Y Bot.fbx";
 		modelRenderer->isBlender = false;
 
@@ -304,7 +304,7 @@ void Scene::BuildDefaultScene(){
 		modelRenderer->CreateModel(&m_SceneContext);
 
 		// ColliderComponentを追加
-		auto* collider = componentRegistry->AddComponent<ColliderComponent>(entity);
+		auto collider = componentRegistry->AddComponent<ColliderComponent>(entity);
 		collider->isDynamic = true;
 
 		// カプセルコライダーを追加
@@ -323,10 +323,10 @@ void Scene::BuildDefaultScene(){
 		collider->colliders.push_back(col);
 
 		// PlayerControllerスクリプトを追加
-		auto* player = componentRegistry->AddComponent<CharacterController>(entity);
+		auto player = componentRegistry->AddComponent<CharacterController>(entity);
 
 		// マテリアルコンポーネントを追加
-		auto* material = componentRegistry->AddComponent<MaterialComponent>(entity);
+		auto material = componentRegistry->AddComponent<MaterialComponent>(entity);
 		material->Material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		material->ShaderID = 1;
 	}
@@ -334,20 +334,20 @@ void Scene::BuildDefaultScene(){
 	{
 		Entity entity = entityRegistry->Create();
 
-		auto* name = componentRegistry->AddComponent<NameComponent>(entity);
+		auto name = componentRegistry->AddComponent<NameComponent>(entity);
 		name->name = "Camera";
 
 		// TransformComponentを追加
-		auto* transform = componentRegistry->AddComponent<TransformComponent>(entity);
+		auto transform = componentRegistry->AddComponent<TransformComponent>(entity);
 		transform->position = Vector3(0.0f, 5.0f, -15.0f);
 		transform->scale = Vector3(1.0f, 1.0f, 1.0f);
 		transform->SetRotationEuler(Vector3(0.0f, 0.0f, 0.0f));
 
 		// CameraComponentを追加
-		auto* CameraBuffer = componentRegistry->AddComponent<CameraComponent>(entity);
+		auto CameraBuffer = componentRegistry->AddComponent<CameraComponent>(entity);
 
 		// CameraControllerスクリプトを追加
-		auto* cameraController = componentRegistry->AddComponent<CameraController>(entity);
+		auto cameraController = componentRegistry->AddComponent<CameraController>(entity);
 	}
 }
 

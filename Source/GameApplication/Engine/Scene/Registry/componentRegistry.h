@@ -26,8 +26,13 @@
 #include "Interface/IComponent.h"
 #include "Interface/IComponentStorage.h"
 #include "Query/ComponentQueryView.h"
+#include "Registry/StructuralChangeGuard.h"
 #include "Storage/ComponentStorageFactory.h"
 #include "Storage/ComponentStorageStrategy.h"
+
+// 世代検証付きComponent参照。定義はReference/ComponentRef.h(本ヘッダ末尾でinclude)。
+template<typename T>
+struct ComponentRef;
 
 struct ComponentOperations {
 	std::string name;
@@ -105,7 +110,7 @@ public:
 			Entity entity,
 			const YAML::Node& node
 		) -> ComponentView {
-			T* component = AddComponent<T>(entity);
+			T* component = AddComponentRaw<T>(entity);
 			if(!component) return {};
 			DecodeComponent(typeID, component, node);
 			return {typeID, component};
@@ -113,7 +118,7 @@ public:
 
 		if constexpr(!ECSStorage::IsEntityHeaderComponentV<T>){
 			m_addComponentFuncs[name] = [this](Entity entity){
-				AddComponent<T>(entity);
+				AddComponentRaw<T>(entity);
 			};
 		} else {
 			const bool maskUpdated =
@@ -127,7 +132,7 @@ public:
 
 		const std::string runtimeTypeName = typeid(T).name();
 		m_addDefaultComponentByRuntimeTypeName[runtimeTypeName] =
-			[this](Entity entity){ return AddComponent<T>(entity) != nullptr; };
+			[this](Entity entity){ return AddComponentRaw<T>(entity) != nullptr; };
 		m_removeComponentByRuntimeTypeName[runtimeTypeName] =
 			[this](Entity entity){ RemoveComponent<T>(entity); };
 
@@ -180,66 +185,31 @@ public:
 			: ComponentView{};
 	}
 
+	// 即時Component追加。戻り値は世代検証付きComponentRef<T>に限定する（Review M-4）。
+	// 生ポインタが必要な一時アクセスは戻り値の`TryGet()`を使用し、
+	// 寿命をまたぐ保持はComponentRef<T>のまま行う。
+	// Schedule実行中の呼出はDebug assertで検出される（Review H-4）。
+	// SystemからはEntityCommandBuffer経由の遅延変更を使用する。
 	template<typename T, typename... Args>
-	T* AddComponent(Entity entity, Args&&... args){
-		assert(m_entityManager &&
-			m_entityManager->IsAlive(entity) &&
-			"AddComponent: Entity is not alive");
-		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return nullptr;
-
-		const ComponentTypeID typeID = ComponentType::Get<T>();
-		assert(IsComponentMaskIndexValid(typeID) &&
-			"AddComponent: Component type ID exceeds ComponentMask capacity");
-		if(!IsComponentMaskIndexValid(typeID)) return nullptr;
-
-		const std::type_index typeIndex(typeid(T));
-		if(!m_storages.contains(typeIndex)){
-			if constexpr(
-				ECSStorage::ComponentStoragePreference<T>::HasExplicitStrategy
-			){
-				RegisterComponent<T>(
-					ECSStorage::ComponentStoragePreference<T>::Strategy
-				);
-			} else {
-				RegisterComponent<T>(
-					ECSStorage::ComponentStorageStrategy::SparseStable
-				);
-			}
-		}
-
-		auto adderIterator = m_storageAdders.find(typeIndex);
-		if(adderIterator == m_storageAdders.end()){
-			assert(false && "AddComponent: Storage adder is not registered");
-			return nullptr;
-		}
-
-		T component(std::forward<Args>(args)...);
-		if(!adderIterator->second(entity, &component)){
-			return nullptr;
-		}
-
-		const bool maskUpdated = TrySetComponentMaskBit(m_entityMasks[entity], typeID);
-		assert(maskUpdated && "AddComponent: Entity component mask update failed");
-		if(!maskUpdated){
-			RemoveComponent<T>(entity);
-			return nullptr;
-		}
-		++m_structureVersion;
-		return GetComponent<T>(entity);
+	ComponentRef<T> AddComponent(Entity entity, Args&&... args){
+		T* raw = AddComponentRaw<T>(entity, std::forward<Args>(args)...);
+		return raw ? ComponentRef<T>(entity, m_context) : ComponentRef<T>{};
 	}
 
 	template<typename T, typename... Args>
-	T* ReplaceComponent(Entity entity, Args&&... args){
+	ComponentRef<T> ReplaceComponent(Entity entity, Args&&... args){
 		assert(m_entityManager &&
 			m_entityManager->IsAlive(entity) &&
 			"ReplaceComponent: Entity is not alive");
-		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return nullptr;
+		if(!m_entityManager || !m_entityManager->IsAlive(entity)){
+			return ComponentRef<T>{};
+		}
 		RemoveComponent<T>(entity);
 		return AddComponent<T>(entity, std::forward<Args>(args)...);
 	}
 
 	template<typename T, typename... Args>
-	T* SetComponent(Entity entity, Args&&... args){
+	ComponentRef<T> SetComponent(Entity entity, Args&&... args){
 		return ReplaceComponent<T>(entity, std::forward<Args>(args)...);
 	}
 
@@ -345,6 +315,9 @@ public:
 
 	template<typename T>
 	void RemoveComponent(Entity entity){
+		assert(!ECSStructural::IsImmediateChangeForbidden() &&
+			"RemoveComponent: Immediate structural change during schedule execution. "
+			"Use EntityCommandBuffer instead");
 		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return;
 		auto iterator = m_storages.find(std::type_index(typeid(T)));
 		if(iterator == m_storages.end()) return;
@@ -370,6 +343,9 @@ public:
 	}
 
 	void RemoveComponentByID(Entity entity, ComponentTypeID typeID){
+		assert(!ECSStructural::IsImmediateChangeForbidden() &&
+			"RemoveComponentByID: Immediate structural change during schedule execution. "
+			"Use EntityCommandBuffer instead");
 		auto typeIterator = m_idToTypeIndex.find(typeID);
 		if(typeIterator == m_idToTypeIndex.end()) return;
 		auto storageIterator = m_storages.find(typeIterator->second);
@@ -397,6 +373,9 @@ public:
 	}
 
 	void OnEntityDestroyed(Entity entity){
+		assert(!ECSStructural::IsImmediateChangeForbidden() &&
+			"OnEntityDestroyed: Immediate structural change during schedule execution. "
+			"Use EntityCommandBuffer instead");
 		const bool hadMask = m_entityMasks.contains(entity);
 		for(auto& [typeIndex, storage] : m_storages){
 			if(void* raw = storage->GetRaw(entity)){
@@ -824,10 +803,67 @@ public:
 private:
 	using StorageAdder = std::function<bool(Entity, void*)>;
 
+	// 即時Component追加の内部実装（Review M-4 / H-4で内部専用化）。
+	// 戻り生ポインタは同型の後続追加によるStorage再確保 / rehashで無効化しうる。
+	// Registry内部（YAML Factory / Playback / Editor用Adder）だけが使用する。
+	template<typename T, typename... Args>
+	T* AddComponentRaw(Entity entity, Args&&... args){
+		assert(!ECSStructural::IsImmediateChangeForbidden() &&
+			"AddComponent: Immediate structural change during schedule execution. "
+			"Use EntityCommandBuffer instead");
+		assert(m_entityManager &&
+			m_entityManager->IsAlive(entity) &&
+			"AddComponent: Entity is not alive");
+		if(!m_entityManager || !m_entityManager->IsAlive(entity)) return nullptr;
+
+		const ComponentTypeID typeID = ComponentType::Get<T>();
+		assert(IsComponentMaskIndexValid(typeID) &&
+			"AddComponent: Component type ID exceeds ComponentMask capacity");
+		if(!IsComponentMaskIndexValid(typeID)) return nullptr;
+
+		const std::type_index typeIndex(typeid(T));
+		if(!m_storages.contains(typeIndex)){
+			if constexpr(
+				ECSStorage::ComponentStoragePreference<T>::HasExplicitStrategy
+			){
+				RegisterComponent<T>(
+					ECSStorage::ComponentStoragePreference<T>::Strategy
+				);
+			} else {
+				RegisterComponent<T>(
+					ECSStorage::ComponentStorageStrategy::SparseStable
+				);
+			}
+		}
+
+		auto adderIterator = m_storageAdders.find(typeIndex);
+		if(adderIterator == m_storageAdders.end()){
+			assert(false && "AddComponent: Storage adder is not registered");
+			return nullptr;
+		}
+
+		T component(std::forward<Args>(args)...);
+		if(!adderIterator->second(entity, &component)){
+			return nullptr;
+		}
+
+		const bool maskUpdated = TrySetComponentMaskBit(m_entityMasks[entity], typeID);
+		assert(maskUpdated && "AddComponent: Entity component mask update failed");
+		if(!maskUpdated){
+			RemoveComponent<T>(entity);
+			return nullptr;
+		}
+		++m_structureVersion;
+		return GetComponent<T>(entity);
+	}
+
 	template<typename T>
 	void RegisterComponent(ECSStorage::ComponentStorageStrategy strategy){
 		const std::type_index typeIndex(typeid(T));
 		if(m_storages.contains(typeIndex)) return;
+		assert(!ECSStructural::IsImmediateChangeForbidden() &&
+			"RegisterComponent: Storage registration during schedule execution. "
+			"Register component types before schedule execution");
 
 		auto storage = ECSStorage::CreateComponentStorage<T>(strategy);
 		assert(storage && "RegisterComponent: Storage creation failed");
@@ -912,3 +948,7 @@ private:
 	uint64_t m_structureVersion = 0;
 	bool m_allowRuntimeGrowth = true;
 };
+
+// AddComponent / ReplaceComponent / SetComponentの戻り型定義。
+// 本ヘッダ利用側でComponentRef<T>が常に完全型になるよう末尾でincludeする。
+#include "Reference/ComponentRef.h"

@@ -19,6 +19,7 @@
 #include "Scene/scene.h"
 #include "Scene/Registry/entityRegistry.h"
 #include "Scene/Registry/componentRegistry.h"
+#include "Scene/Registry/StructuralChangeGuard.h"
 #include "Scene/System/Script/ScriptModuleAPI.h"
 
 // Scene単位の構造変更キュー。
@@ -147,9 +148,15 @@ public:
 			resolved = m_resolvedPendingEntities;
 		}
 
-		for(Command& command : commands) {
-			if(command) {
-				command(context, resolved);
+		{
+			// Playback区間だけ即時構造変更を許可する（Review H-4）。
+			// CommitはLatest PhaseのExclusive Taskから呼ばれるため、
+			// 他Taskとの並行構造変更は発生しない。
+			ECSStructural::ScopedPlaybackUnlock playbackUnlock;
+			for(Command& command : commands) {
+				if(command) {
+					command(context, resolved);
+				}
 			}
 		}
 

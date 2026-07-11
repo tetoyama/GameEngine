@@ -22,19 +22,24 @@ int main(){
 	context.entity = &entities;
 	context.component = &components;
 	context.contextID = 7;
+	// ComponentRef<T>解決用のテスト向け自己解決resolver。
+	context.resolverOwner = &context;
+	context.resolver = [](void* owner, uint32_t) -> SceneContext* {
+		return static_cast<SceneContext*>(owner);
+	};
 
 	const Entity visible = entities.Create();
 	const Entity hidden = entities.Create();
 	const Entity uncullable = entities.Create();
 
-	auto* visibleBounds = components.AddComponent<CullingComponent>(visible);
+	auto visibleBounds = components.AddComponent<CullingComponent>(visible);
 	visibleBounds->worldBounds = {
 		Vector3(-0.5f, -0.5f, 4.0f),
 		Vector3(0.5f, 0.5f, 6.0f)
 	};
 	visibleBounds->boundsValid = true;
 
-	auto* hiddenBounds = components.AddComponent<CullingComponent>(hidden);
+	auto hiddenBounds = components.AddComponent<CullingComponent>(hidden);
 	hiddenBounds->worldBounds = {
 		Vector3(4.5f, -0.5f, 4.0f),
 		Vector3(5.5f, 0.5f, 6.0f)

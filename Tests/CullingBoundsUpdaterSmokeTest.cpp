@@ -15,11 +15,17 @@ int main(){
 	ComponentRegistry components(&entities, &context);
 	context.entity = &entities;
 	context.component = &components;
+	// ComponentRef<T>解決用のテスト向け自己解決resolver。
+	context.contextID = 1;
+	context.resolverOwner = &context;
+	context.resolver = [](void* owner, uint32_t) -> SceneContext* {
+		return static_cast<SceneContext*>(owner);
+	};
 
 	const Entity ready = entities.Create();
-	auto* transform = components.AddComponent<TransformComponent>(ready);
+	auto transform = components.AddComponent<TransformComponent>(ready);
 	transform->position = Vector3(5.0f, 0.0f, 0.0f);
-	auto* culling = components.AddComponent<CullingComponent>(ready);
+	auto culling = components.AddComponent<CullingComponent>(ready);
 	culling->localBounds = {
 		Vector3(-1.0f, -1.0f, -1.0f),
 		Vector3(1.0f, 1.0f, 1.0f)
@@ -31,7 +37,7 @@ int main(){
 	components.AddComponent<CullingComponent>(missingSource);
 
 	const Entity missingTransform = entities.Create();
-	auto* noTransformCulling =
+	auto noTransformCulling =
 		components.AddComponent<CullingComponent>(missingTransform);
 	noTransformCulling->localBounds = {
 		Vector3(-1.0f, -1.0f, -1.0f),

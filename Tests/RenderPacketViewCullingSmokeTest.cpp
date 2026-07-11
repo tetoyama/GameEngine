@@ -51,6 +51,11 @@ int main(){
 	context.entity = &entities;
 	context.component = &components;
 	context.contextID = 7;
+	// ComponentRef<T>解決用のテスト向け自己解決resolver。
+	context.resolverOwner = &context;
+	context.resolver = [](void* owner, uint32_t) -> SceneContext* {
+		return static_cast<SceneContext*>(owner);
+	};
 	context.storageConfig.visibleEntityReserve = 32;
 
 	const Entity camera{100, 1};
@@ -59,21 +64,21 @@ int main(){
 	const Entity beforeNear = entities.Create();
 	const Entity beyondFar = entities.Create();
 
-	auto* centerBounds = components.AddComponent<CullingComponent>(center);
+	auto centerBounds = components.AddComponent<CullingComponent>(center);
 	centerBounds->worldBounds = {
 		Vector3(-0.5f, -0.5f, 4.0f),
 		Vector3(0.5f, 0.5f, 6.0f)
 	};
 	centerBounds->boundsValid = true;
 
-	auto* sideBounds = components.AddComponent<CullingComponent>(side);
+	auto sideBounds = components.AddComponent<CullingComponent>(side);
 	sideBounds->worldBounds = {
 		Vector3(4.5f, -0.5f, 4.0f),
 		Vector3(5.5f, 0.5f, 6.0f)
 	};
 	sideBounds->boundsValid = true;
 
-	auto* beforeNearBounds =
+	auto beforeNearBounds =
 		components.AddComponent<CullingComponent>(beforeNear);
 	beforeNearBounds->worldBounds = {
 		Vector3(-0.5f, -0.5f, -6.0f),
@@ -81,7 +86,7 @@ int main(){
 	};
 	beforeNearBounds->boundsValid = true;
 
-	auto* beyondFarBounds =
+	auto beyondFarBounds =
 		components.AddComponent<CullingComponent>(beyondFar);
 	beyondFarBounds->worldBounds = {
 		Vector3(-0.5f, -0.5f, 24.0f),

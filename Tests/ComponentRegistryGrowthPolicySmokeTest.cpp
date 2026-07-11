@@ -72,13 +72,23 @@ int main(){
 	assert(secondEntity);
 	assert(entities.GetStructureVersion() == initialEntityVersion + 2);
 
-	ComponentRegistry components(&entities, nullptr);
+	// ComponentRef<T>の解決にはcontextID / resolverが必要なため、
+	// テスト用SceneContextを自己解決のresolver付きで用意する。
+	SceneContext context{};
+	ComponentRegistry components(&entities, &context);
+	context.entity = &entities;
+	context.component = &components;
+	context.contextID = 1;
+	context.resolverOwner = &context;
+	context.resolver = [](void* owner, uint32_t) -> SceneContext* {
+		return static_cast<SceneContext*>(owner);
+	};
 	const uint64_t initialComponentVersion =
 		components.GetRegistryStructureVersion();
 	auto* first = components.AddComponent<RegistryDenseComponent>(
 		firstEntity,
 		RegistryDenseComponent{10}
-	);
+	).TryGet();
 	assert(first != nullptr);
 	assert(first->value == 10);
 	assert(components.HasComponent<RegistryDenseComponent>(firstEntity));
@@ -88,7 +98,7 @@ int main(){
 	auto* ignoredReadd = components.AddComponent<RegistryDenseComponent>(
 		firstEntity,
 		RegistryDenseComponent{99}
-	);
+	).TryGet();
 	assert(ignoredReadd != nullptr);
 	assert(ignoredReadd->value == 10);
 	assert(components.GetRegistryStructureVersion() == firstAddVersion + 1);
@@ -97,7 +107,7 @@ int main(){
 	auto* replacedFirst = components.ReplaceComponent<RegistryDenseComponent>(
 		firstEntity,
 		RegistryDenseComponent{15}
-	);
+	).TryGet();
 	assert(replacedFirst != nullptr);
 	assert(replacedFirst->value == 15);
 	assert(components.GetRegistryStructureVersion() == readdVersion + 2);
@@ -106,7 +116,7 @@ int main(){
 	auto* setFirst = components.SetComponent<RegistryDenseComponent>(
 		firstEntity,
 		RegistryDenseComponent{20}
-	);
+	).TryGet();
 	assert(setFirst != nullptr);
 	assert(setFirst->value == 20);
 	assert(components.GetRegistryStructureVersion() == replaceVersion + 2);
@@ -131,7 +141,7 @@ int main(){
 	auto* rejected = components.AddComponent<RegistryDenseComponent>(
 		secondEntity,
 		RegistryDenseComponent{20}
-	);
+	).TryGet();
 	assert(rejected == nullptr);
 	assert(!components.HasComponent<RegistryDenseComponent>(secondEntity));
 	assert(components.GetComponent<RegistryDenseComponent>(secondEntity) == nullptr);
@@ -145,7 +155,7 @@ int main(){
 	auto* reused = components.AddComponent<RegistryDenseComponent>(
 		secondEntity,
 		RegistryDenseComponent{30}
-	);
+	).TryGet();
 	assert(reused != nullptr);
 	assert(reused->value == 30);
 	assert(components.HasComponent<RegistryDenseComponent>(secondEntity));
@@ -156,13 +166,13 @@ int main(){
 	auto* lateFirst = components.AddComponent<LateRegisteredDenseComponent>(
 		firstEntity,
 		LateRegisteredDenseComponent{40}
-	);
+	).TryGet();
 	assert(lateFirst != nullptr);
 	const uint64_t lateFirstVersion = components.GetRegistryStructureVersion();
 	auto* lateRejected = components.AddComponent<LateRegisteredDenseComponent>(
 		secondEntity,
 		LateRegisteredDenseComponent{50}
-	);
+	).TryGet();
 	assert(lateRejected == nullptr);
 	assert(!components.HasComponent<LateRegisteredDenseComponent>(secondEntity));
 	assert(components.GetRegistryStructureVersion() == lateFirstVersion);
@@ -171,7 +181,7 @@ int main(){
 	auto* grown = components.AddComponent<LateRegisteredDenseComponent>(
 		secondEntity,
 		LateRegisteredDenseComponent{60}
-	);
+	).TryGet();
 	assert(grown != nullptr);
 	assert(grown->value == 60);
 	assert(components.HasComponent<LateRegisteredDenseComponent>(secondEntity));
