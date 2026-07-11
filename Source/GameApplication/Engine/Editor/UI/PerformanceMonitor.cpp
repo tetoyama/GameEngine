@@ -16,6 +16,8 @@
 
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
+#include "sceneManager.h"
+#include "Service/Graphics/graphicsContext.h"
 
 namespace {
 
@@ -596,6 +598,33 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 		ImGui::PlotLines(text, CommitSizeSamples, SAMPLE_LENGTH);
 		std::snprintf(text, sizeof(text), "Working:%dMB", static_cast<int>(pmc.WorkingSetSize / 1000000));
 		ImGui::PlotLines(text, WorkingSetSizeSamples, SAMPLE_LENGTH);
+		ImGui::TreePop();
+	}
+
+	// H2 Phase 2a-1: デバイスロスト検証フック
+	// （Docs/StepH2_Device_Lost_Recovery_Design.md）
+	if(ImGui::TreeNodeEx("-Debug-")){
+		GraphicsContext* graphics = m_editor->sceneManager
+			? m_editor->sceneManager->GetContext()->graphics
+			: nullptr;
+
+		ImGui::BeginDisabled(!graphics || graphics->IsDeviceLost());
+		if(ImGui::Button("Simulate Device Lost") && graphics){
+			graphics->MarkDeviceLostForTest();
+		}
+		ImGui::EndDisabled();
+		ImGui::SameLine();
+		ImGui::TextDisabled("(?)");
+		if(ImGui::IsItemHovered()){
+			ImGui::SetTooltip(
+				"デバイスロスト検出経路の検証用。\n"
+				"現状(Phase 1)はGraceful終了するためアプリが閉じます。\n"
+				"実TDRの検証は dxcap -forcetdr を使用してください。"
+			);
+		}
+		if(graphics && graphics->IsDeviceLost()){
+			ImGui::TextUnformatted("Device Lost状態: 終了処理へ移行します");
+		}
 		ImGui::TreePop();
 	}
 

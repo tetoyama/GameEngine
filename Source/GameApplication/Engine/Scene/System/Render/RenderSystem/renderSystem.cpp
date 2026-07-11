@@ -189,60 +189,10 @@ void RenderSystem::Update(float deltaTime) {
 	}
 }
 
-void RenderSystem::EditorUpdate(float deltaTime)
-{
-	lazyTimer += deltaTime;
-
-	auto* dc = m_context->graphics->GetDeviceContext();
-
-	for(auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
-		auto context = scene->GetSceneContext();
-		const auto& modelEntities =
-			context->component->FindEntitiesWithComponent<ModelRendererComponent>();
-
-		for(Entity entity : modelEntities){
-			auto* mr = context->component->GetComponent<ModelRendererComponent>(entity);
-
-			if(!mr->model){
-				mr->CreateModel(context);
-				continue;
-			}
-			if(mr->blendedAnimations.empty()){
-				continue;
-			}
-			mr->model->UpdateBoneAnimation(
-				mr->blendedAnimations,
-				mr->animationTime
-			);
-			const bool useGPUSkinning = mr->model->m_Bones.size() <= BONE_MAX_COUNT;
-
-			if(useGPUSkinning){
-				mr->model->UpdateAndDispatchSkinning(m_context->graphics, mr->dynamicVertexBuffers);
-			}else{
-				for(size_t i = 0; i < mr->dynamicVertexBuffers.size(); i++){
-					D3D11_MAPPED_SUBRESOURCE mapped{};
-					HRESULT hr = dc->Map(
-						mr->dynamicVertexBuffers[i],
-						0,
-						D3D11_MAP_WRITE_DISCARD,
-						0,
-						&mapped
-					);
-					if(FAILED(hr)){
-						continue;
-					}
-					mr->model->CPU_Skinning(
-						mr->model->m_DeformVertex[i],
-						mr->model->AiScene->mMeshes[i],
-						static_cast<VERTEX_3D*>(mapped.pData)
-					);
-					dc->Unmap(mr->dynamicVertexBuffers[i], 0);
-				}
-			}
-		}
-	}
-}
-
+// Step 17-C: 旧EditorUpdate(Main Thread一体処理)は撤去済み。
+// Pose評価はRenderSystem.Animation.Pose.Calculate(AnyWorker)、
+// D3D11 UploadはRenderSystem.Animation.Upload(MainThread)が担う
+// (RenderSystemAnimationTasks.inl)。
 
 std::shared_ptr<TextureData> RenderSystem::GetEnvironmentMap() const {
 	if(m_PlayerPass && m_PlayerPass->lightingPass)
@@ -573,17 +523,10 @@ void RenderSystem::RegisterTasks(SystemScheduleBuilder& builder){
 		}
 	);
 
-	builder.AddTask(
-		"RenderSystem.Animation.Upload",
-		SystemTaskDomain::Editor,
-		SystemPhase::Earliest,
-		0,
-		SystemAccess::LegacyExclusive(),
-		ThreadAffinity::MainThread,
-		[this](const SystemTaskContext& context){
-			EditorUpdate(context.deltaTime);
-		}
-	);
+	// Step 17-C: Animation二段Task（Pose.Calculate: AnyWorker /
+	// Upload: MainThread）を直接登録する。
+	// 旧LegacyExclusive一体Taskと`MigrateRegisteredTasks`互換Hookは撤去済み。
+	RenderSystemAnimationTaskRegistrar::Register(*this, builder);
 
 	SystemAccess packetBuildAccess;
 	packetBuildAccess

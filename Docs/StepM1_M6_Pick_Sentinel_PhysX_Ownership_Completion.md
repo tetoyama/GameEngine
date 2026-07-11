@@ -75,6 +75,14 @@ Finalize / Stop / Collider再構築の計6箇所で生`delete`していた。
 - [ ] 実機確認: Play / Stop繰り返しでPhysXリーク・クラッシュなし
 - [ ] 実機確認: Static ⇔ Dynamic切替（isDynamic変更）でのActor再構築
 
+## 追記（2026-07-11）
+
+初回実装は`physicSystem.cpp`内の生delete置換のみで、**`PhysicSystemTasks.inl`の
+`ReleaseActor`に残っていた生delete経路を見逃していた**（Detachとの二重解放）。
+コミット`452a9333`で`ReleaseColliderRuntime`が`DetachActorEntityInfo`経由へ
+統一され解消済み。教訓: userData所有の変更は対象ディレクトリ全体
+（`.inl`含む）を横断検索して経路を列挙すること。
+
 ## 補足
 
 §2.5の残項目はH2 Phase2（Device / SwapChain / View / Query Pool完全再生成による

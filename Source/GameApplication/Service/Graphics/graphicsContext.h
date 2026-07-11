@@ -92,6 +92,14 @@ enum class PostProcessBufferID {
 
 class GraphicsContext : public IService {
 public:
+	// M-5 Phase 2: 共有定数バッファ(b0/b1/b2)のUpload戦略。
+	// 生成(CreateConstantBuffers)と全Upload経路がこの1定数を共有するため、
+	// 問題発生時はUpdateSubresourceへ戻すだけでロールバックできる。
+	// DynamicMapはDYNAMIC + Map(WRITE_DISCARD)でCPUミラー全体を書き込む。
+	static constexpr D3D11ConstantBufferUploadStrategy
+		kConstantBufferUploadStrategy =
+			D3D11ConstantBufferUploadStrategy::DynamicMap;
+
 	explicit GraphicsContext(
 		DebugLogService* debugLog = nullptr,
 		RHI::RenderHardwareInterfaceService* rhiService = nullptr
@@ -163,6 +171,12 @@ public:
 	// H2: デバイスロスト検出。Present/ResizeBuffersがDEVICE_REMOVED/RESETを返した場合にtrueとなる。
 	// メインループはこれを検出して制御された終了へ移る(null参照Crash/黒画面固定を避ける)。
 	bool IsDeviceLost() const { return m_DeviceLost; }
+
+	// H2 Phase 2a-1: 実TDRを伴わないデバイスロスト検証用フック。
+	// 検出ログ→m_DeviceLost→メインループ側の処理、という経路の順序検証に使う。
+	// 実デバイスは無効化されないため、リソース無効化を伴う本番検証は
+	// dxcap -forcetdr で行うこと（Docs/StepH2_Device_Lost_Recovery_Design.md）。
+	void MarkDeviceLostForTest();
 	ID3D11RenderTargetView* GetRenderTargetView() {return m_RenderTargetView;}
 	ID3D11RenderTargetView** GetpRenderTargetView(){return &m_RenderTargetView;}
 	ID3D11ShaderResourceView* GetRenderTargetSRV() { return m_SRV.Get(); }
@@ -214,7 +228,7 @@ public:
 			m_DeviceContext.Get(),
 			m_CbPerCamera,
 			m_CbPerCameraData,
-			D3D11ConstantBufferUploadStrategy::UpdateSubresource
+			kConstantBufferUploadStrategy
 		);
 	}
 
@@ -245,7 +259,7 @@ public:
 			m_DeviceContext.Get(),
 			m_CbPerObject,
 			m_CbPerObjectData,
-			D3D11ConstantBufferUploadStrategy::UpdateSubresource
+			kConstantBufferUploadStrategy
 		);
 	}
 
@@ -264,7 +278,7 @@ public:
 			m_DeviceContext.Get(),
 			m_CbPerObject,
 			m_CbPerObjectData,
-			D3D11ConstantBufferUploadStrategy::UpdateSubresource
+			kConstantBufferUploadStrategy
 		);
 	}
 

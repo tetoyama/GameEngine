@@ -37,19 +37,10 @@ public:
 
 	// Systemは必要なDomainだけをTaskとして明示登録する。
 	// 旧式のFixedUpdate/Update/EditorUpdate/Draw互換Taskは廃止する。
+	// 段階移行用のMigrateRegisteredTasks互換Hookは全移行完了により撤去済み
+	// （Step 17-C。Taskは必ずRegisterTasksで完結させる）。
 	virtual void RegisterTasks(SystemScheduleBuilder& builder) {
 		(void)builder;
-	}
-
-	// 大規模Systemを段階移行するための互換Hook。
-	// RegisterTasksが生成したLegacy Taskを、Schedule Compile前に新Taskへ置換する。
-	// 新規Systemは原則としてRegisterTasksだけで完結させる。
-	virtual void MigrateRegisteredTasks(
-		SystemScheduleBuilder& builder,
-		std::vector<SystemTask>& tasks
-	) {
-		(void)builder;
-		(void)tasks;
 	}
 
 	virtual YAML::Node encode() { return YAML::Node(); }

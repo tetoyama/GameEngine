@@ -207,21 +207,6 @@ inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 	}
 }
 
-inline void RenderSystem::MigrateRegisteredTasks(
-	SystemScheduleBuilder& builder,
-	std::vector<SystemTask>& tasks
-){
-	auto legacyIterator = std::find_if(
-		tasks.begin(),
-		tasks.end(),
-		[this](const SystemTask& task){
-			return task.owner == this &&
-				task.name == "RenderSystem.Animation.Upload" &&
-				task.domain == SystemTaskDomain::Editor &&
-				task.access.worldAccess == WorldAccessMode::Exclusive;
-		}
-	);
-	if(legacyIterator == tasks.end()) return;
-	tasks.erase(legacyIterator);
-	RenderSystemAnimationTaskRegistrar::Register(*this, builder);
-}
+// Step 17-C: `MigrateRegisteredTasks`互換Hookは撤去済み。
+// Animation二段Taskは`RenderSystem::RegisterTasks`が
+// `RenderSystemAnimationTaskRegistrar::Register`で直接登録する。

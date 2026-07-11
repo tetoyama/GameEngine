@@ -670,8 +670,9 @@ Correctness修正は性能作業より優先する（Step 19-A基本契約と同
 - [x] REMOVED / RESET時に`GetDeviceRemovedReason()`をログ（`GraphicsContext::HandleDeviceLostHResult`を新設。`DXGI_ERROR_DEVICE_REMOVED/RESET`判定→`GetDeviceRemovedReason`をhrと共にログ→`m_DeviceLost`フラグを立てる）
 - [~] Device / SwapChain / 全RTV / DSV / Timestamp Query Poolを再生成、最低限Graceful終了
     - 【Phase1済】**Graceful終了**: `Engine::Run`メインループが`graphics->IsDeviceLost()`を検出したらログして`break`（無効Device/SwapChain参照によるCrash/黒画面固定を回避）
-    - 【Phase2 未】Device/SwapChain/全View/Query Poolの**完全再生成**による復帰は未実装（規模大のため別工程へ分離）
-- [ ] Step 19-A.1のPending Query破棄契約と統合（Phase2で対応）
+    - 【Phase2 設計完了(2026-07-11)】完全再生成の設計は`Docs/StepH2_Device_Lost_Recovery_Design.md`。GPUリソース保持箇所の全棚卸し（約35ファイル・5レイヤー）、Renderer完全再起動方式（Phase 2a）→ ResourcePool中心再生成（Phase 2b、Step 18-A後）の2段構成、工程分割2a-1〜2a-6を定義
+    - 【2a-1済】シミュレーションフック: `GraphicsContext::MarkDeviceLostForTest()` + Performance Monitor「-Debug-」の`Simulate Device Lost`ボタン。検出→Graceful終了経路を実TDRなしで実機検証可能（リソース無効化検証は`dxcap -forcetdr`）
+- [ ] Step 19-A.1のPending Query破棄契約と統合（Phase2 工程2a-4/2a-6で対応）
 
 完了条件: TDR / ドライバ更新 / GPU切替でCrashまたは黒画面固定にならない。
 → Phase1(検出+ログ+Graceful終了)実装・**VS Debug x64リビルド成功(2026-07-10)**。制御された終了でCrash/黒画面固定は回避。実デバイスロスト(TDR)発火による実機動作確認とPhase2(完全再生成復帰)は残。
@@ -698,7 +699,9 @@ Correctness修正は性能作業より優先する（Step 19-A基本契約と同
 - [x] M-2 LLAMA `ResetContext`とWorker Threadのデータ競合（`LLAMAAgent.cpp:963`）→ **完了(2026-07-10)**。「中断フラグで安全点まで待つ」方式を採用。`m_resetRequested`新設、llama状態へ触れるThreadをWorkerだけに限定し、`ResetContext`は中断要求＋WorkerMain安全点での適用完了までブロック。Reset起因キャンセル時のSnapshot復元(KV再decode)はスキップ。cancelフラグのクリアをm_mutex保持中へ移動し中断要求の取りこぼしも修正（`Docs/StepM2_LLAMA_Reset_Race_Completion.md`）。ビルドとBRAIN実機確認は残
 - [x] M-3 EngineContext Shutdown最終破棄の順序（`engineContext.cpp:72-83`）。`Shutdown()`逆順呼出に加え、破棄も`m_serviceOrder.rbegin()`逆順eraseへ変更済（2026-07-10検証）
 - [x] M-4 AddComponent戻り生ポインタ無効化 / 既存時の引数破棄（§1.2）。ComponentRef限定、`Set` / `Replace`分離 → **完了(2026-07-10)**。公開`AddComponent` / `ReplaceComponent` / `SetComponent`は`ComponentRef<T>`を返す。生`T*`版は`private: AddComponentRaw`（YAML Factory / Editor用Adder / Playback専用）。`CustomScriptComponent::AddComponent`も`ComponentRef<T>`化。呼出側は`scene.cpp` 25箇所 / `PrefabSystem.cpp` / Testsを移行、一時参照が必要な箇所は`TryGet()`（`Docs/StepH4_M4_Structural_Change_Guard_Completion.md`）。ビルド確認は残
-- [ ] M-5 定数バッファ毎セッター全体Upload（`graphicsContext.cpp:197-243`）。Pixel Costとは別のDraw Cost軸。Step 17-B計測後にCPU Mirror 1回Upload / DYNAMIC + Map化 【未】(全セッターが毎回`UpdateSubresource`でCB全体Upload)
+- [x] M-5 定数バッファ毎セッター全体Upload（`graphicsContext.cpp`）→ **完了(2026-07-11)**
+    - Phase 1: `D3D11ConstantBufferUpload.h`（共有Uploadポリシー）新設。`SetPerCameraConstants` / `SetPerObjectConstants` / `SetStaticBatchObjectConstants`のグループ化Setterを追加し、全Renderable / Pass（Sprite / Mesh / Terrain / BillBoard / Particle / Model / Wave / Shadow / GBuffer / Editor / Player / Overlay / Forward / StaticBatch）を移行してUpload回数を集約
+    - Phase 2: 共有CB 3本（b0 PerFrame / b1 PerCamera / b2 PerObject）を`DYNAMIC + Map(WRITE_DISCARD)`へ切替。個別Setter 9箇所もポリシー経由化し、生成と全Upload経路が`kConstantBufferUploadStrategy`定数1箇所を共有（ロールバックは定数1行）。DYNAMICへの`UpdateSubresource`は不正のため生成と戦略の分離を禁止（`Docs/StepM5_Constant_Buffer_Upload_Completion.md`）。ビルドと実機描画回帰は残
 - [x] M-6 RenderPass / PhysX userDataの生new/delete（`PlayerPass.cpp`, `EditorPass`, `physicSystem.cpp`）。`unique_ptr`化 → **完了(2026-07-10)**
     - RenderPass側は完了済（`PlayerPass.cpp`全sub-pass+RTを`make_unique`、Finalizeで`.reset()`）
     - PhysX側も完了: `ActorEntityInfo`の所有を`PhysicSystem`の`unordered_map<const PxActor*, unique_ptr<ActorEntityInfo>>`へ一元化。`userData`は非所有生ポインタのみ。生new/delete計8箇所を`AttachActorEntityInfo` / `DetachActorEntityInfo`へ置換、Finalizeにリークバックストップ`clear()`（`Docs/StepM1_M6_Pick_Sentinel_PhysX_Ownership_Completion.md`）。ビルドと実機Physics回帰は残

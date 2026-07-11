@@ -197,50 +197,95 @@ void GraphicsContext::SetBlendMode(const BlendMode& mode){
 // 同一フレーム内で複数フィールドを変更する場合は呼び出し順に注意すること。
 void GraphicsContext::SetWorldMatrix(const DirectX::XMMATRIX& world){
 	XMStoreFloat4x4(&m_CbPerObjectData.World, XMMatrixTranspose(world));
-	m_DeviceContext->UpdateSubresource(m_CbPerObject, 0, nullptr, &m_CbPerObjectData, 0, 0);
+	D3D11ConstantBufferUpload::Upload(
+		m_DeviceContext.Get(),
+		m_CbPerObject,
+		m_CbPerObjectData,
+		kConstantBufferUploadStrategy
+	);
 }
 
 void GraphicsContext::SetViewMatrix(const DirectX::XMMATRIX& view){
 	XMStoreFloat4x4(&m_CbPerCameraData.View, XMMatrixTranspose(view));
-	m_DeviceContext->UpdateSubresource(m_CbPerCamera, 0, nullptr, &m_CbPerCameraData, 0, 0);
+	D3D11ConstantBufferUpload::Upload(
+		m_DeviceContext.Get(),
+		m_CbPerCamera,
+		m_CbPerCameraData,
+		kConstantBufferUploadStrategy
+	);
 }
 
 void GraphicsContext::SetProjectionMatrix(const DirectX::XMMATRIX& proj){
 	XMStoreFloat4x4(&m_CbPerCameraData.Projection, XMMatrixTranspose(proj));
-	m_DeviceContext->UpdateSubresource(m_CbPerCamera, 0, nullptr, &m_CbPerCameraData, 0, 0);
+	D3D11ConstantBufferUpload::Upload(
+		m_DeviceContext.Get(),
+		m_CbPerCamera,
+		m_CbPerCameraData,
+		kConstantBufferUploadStrategy
+	);
 }
 
 void GraphicsContext::SetUVMatrixBuffer(const UVMatrixBuffer& uv){
 	m_CbPerObjectData.UVStart = uv.UVStart;
 	m_CbPerObjectData.UVEnd = uv.UVEnd;
-	m_DeviceContext->UpdateSubresource(m_CbPerObject, 0, nullptr, &m_CbPerObjectData, 0, 0);
+	D3D11ConstantBufferUpload::Upload(
+		m_DeviceContext.Get(),
+		m_CbPerObject,
+		m_CbPerObjectData,
+		kConstantBufferUploadStrategy
+	);
 }
 
 void GraphicsContext::SetMaterial(const MATERIAL& material){
 	m_CbPerObjectData.Material = material;
-	m_DeviceContext->UpdateSubresource(m_CbPerObject, 0, nullptr, &m_CbPerObjectData, 0, 0);
+	D3D11ConstantBufferUpload::Upload(
+		m_DeviceContext.Get(),
+		m_CbPerObject,
+		m_CbPerObjectData,
+		kConstantBufferUploadStrategy
+	);
 }
 
 void GraphicsContext::SetLight(LightBuffer* light){
 	m_CbPerFrameData = *light;
-	m_DeviceContext->UpdateSubresource(m_CbPerFrame, 0, nullptr, &m_CbPerFrameData, 0, 0);
+	D3D11ConstantBufferUpload::Upload(
+		m_DeviceContext.Get(),
+		m_CbPerFrame,
+		m_CbPerFrameData,
+		kConstantBufferUploadStrategy
+	);
 }
 
 void GraphicsContext::SetCameraPosition(const float4& cameraPosition){
 	m_CbPerCameraData.CameraPosition = cameraPosition;
-	m_DeviceContext->UpdateSubresource(m_CbPerCamera, 0, nullptr, &m_CbPerCameraData, 0, 0);
+	D3D11ConstantBufferUpload::Upload(
+		m_DeviceContext.Get(),
+		m_CbPerCamera,
+		m_CbPerCameraData,
+		kConstantBufferUploadStrategy
+	);
 }
 
 void GraphicsContext::SetParameter(const float4& param){
 	m_CbPerObjectData.Parameter = param;
-	m_DeviceContext->UpdateSubresource(m_CbPerObject, 0, nullptr, &m_CbPerObjectData, 0, 0);
+	D3D11ConstantBufferUpload::Upload(
+		m_DeviceContext.Get(),
+		m_CbPerObject,
+		m_CbPerObjectData,
+		kConstantBufferUploadStrategy
+	);
 }
 
 void GraphicsContext::SetObjectInfo(const ObjectInfo& objectInfo){
 	m_CbPerObjectData.SceneID = objectInfo.SceneID;
 	m_CbPerObjectData.ObjectID = objectInfo.ObjectID;
 	m_CbPerObjectData.ShaderID = objectInfo.ShaderID;
-	m_DeviceContext->UpdateSubresource(m_CbPerObject, 0, nullptr, &m_CbPerObjectData, 0, 0);
+	D3D11ConstantBufferUpload::Upload(
+		m_DeviceContext.Get(),
+		m_CbPerObject,
+		m_CbPerObjectData,
+		kConstantBufferUploadStrategy
+	);
 }
 
 void GraphicsContext::ResetViewport(){
@@ -513,32 +558,45 @@ bool GraphicsContext::CreateSamplerState(){
 }
 
 bool GraphicsContext::CreateConstantBuffers(){
-	D3D11_BUFFER_DESC bufferDesc{};
-	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bufferDesc.CPUAccessFlags = 0;
-	bufferDesc.MiscFlags = 0;
-
-	HRESULT hr;
+	// M-5 Phase 2: 生成もUpload戦略と同じポリシーを使用する。
+	// DynamicMap戦略ではDYNAMIC + CPU_ACCESS_WRITEで生成される。
+	// 注意: DYNAMICバッファへのUpdateSubresourceは不正のため、
+	// 生成とUploadは必ずkConstantBufferUploadStrategyを共有すること。
+	bool created = false;
 
 	// b0: CbPerFrame — フレームごとに更新 (ライト情報)
-	bufferDesc.ByteWidth = sizeof(CbPerFrame);
-	hr = m_Device->CreateBuffer(&bufferDesc, nullptr, &m_CbPerFrame);
-	assert(SUCCEEDED(hr));
+	created = D3D11ConstantBufferUpload::Create(
+		m_Device.Get(),
+		sizeof(CbPerFrame),
+		kConstantBufferUploadStrategy,
+		&m_CbPerFrame
+	);
+	assert(created && "CreateConstantBuffers: CbPerFrame creation failed");
+	if(!created) return false;
 	m_DeviceContext->VSSetConstantBuffers(0, 1, &m_CbPerFrame);
 	m_DeviceContext->PSSetConstantBuffers(0, 1, &m_CbPerFrame);
 
 	// b1: CbPerCamera — カメラ/パスごとに更新 (View・Projection・CameraPosition)
-	bufferDesc.ByteWidth = sizeof(CbPerCamera);
-	hr = m_Device->CreateBuffer(&bufferDesc, nullptr, &m_CbPerCamera);
-	assert(SUCCEEDED(hr));
+	created = D3D11ConstantBufferUpload::Create(
+		m_Device.Get(),
+		sizeof(CbPerCamera),
+		kConstantBufferUploadStrategy,
+		&m_CbPerCamera
+	);
+	assert(created && "CreateConstantBuffers: CbPerCamera creation failed");
+	if(!created) return false;
 	m_DeviceContext->VSSetConstantBuffers(1, 1, &m_CbPerCamera);
 	m_DeviceContext->PSSetConstantBuffers(1, 1, &m_CbPerCamera);
 
 	// b2: CbPerObject — オブジェクトごとに更新 (World・Material・UV・Parameter・ObjectInfo)
-	bufferDesc.ByteWidth = sizeof(CbPerObject);
-	hr = m_Device->CreateBuffer(&bufferDesc, nullptr, &m_CbPerObject);
-	assert(SUCCEEDED(hr));
+	created = D3D11ConstantBufferUpload::Create(
+		m_Device.Get(),
+		sizeof(CbPerObject),
+		kConstantBufferUploadStrategy,
+		&m_CbPerObject
+	);
+	assert(created && "CreateConstantBuffers: CbPerObject creation failed");
+	if(!created) return false;
 	m_DeviceContext->VSSetConstantBuffers(2, 1, &m_CbPerObject);
 	m_DeviceContext->PSSetConstantBuffers(2, 1, &m_CbPerObject);
 
@@ -564,7 +622,7 @@ bool GraphicsContext::CreateConstantBuffers(){
 	// カメラ初期化
 	SetCameraPosition(DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f));
 
-	return SUCCEEDED(hr);
+	return true;
 }
 
 bool GraphicsContext::CreateRasterizerState(){
@@ -936,6 +994,14 @@ bool GraphicsContext::HandleDeviceLostHResult(long hr, const char* where){
 
 	m_DeviceLost = true;
 	return true;
+}
+
+void GraphicsContext::MarkDeviceLostForTest(){
+	// H2 Phase 2a-1: シミュレーションフック。既存の検出処理をそのまま通す。
+	HandleDeviceLostHResult(
+		static_cast<long>(DXGI_ERROR_DEVICE_REMOVED),
+		"SimulatedDeviceLost"
+	);
 }
 
 
