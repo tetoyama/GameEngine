@@ -54,6 +54,7 @@
     <ClInclude Remove="Source\GameApplication\Engine\Editor\UI\PhysicsSimulationOverlapUI.h" />
     <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderWorld\RenderWorld.h" />
     <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\CameraPostEffectRuntimeStorage.h" />
+    <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\Animation\ModelRendererGpuRuntimeStorage.h" />
 
     <ClInclude Include="Source\GameApplication\Service\Graphics\D3D11ConstantBufferUpload.h"
                Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Service\Graphics\D3D11ConstantBufferUpload.h')">
@@ -113,6 +114,11 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\CameraPostEffectRuntimeStorage.h"
                Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\CameraPostEffectRuntimeStorage.h')">
       <Link>Header Files\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\CameraPostEffectRuntimeStorage.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Animation\ModelRendererGpuRuntimeStorage.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Engine\Scene\System\Render\Animation\ModelRendererGpuRuntimeStorage.h')">
+      <Link>Header Files\Engine\Scene\System\Render\Animation\ModelRendererGpuRuntimeStorage.h</Link>
     </ClInclude>
   </ItemGroup>
 
