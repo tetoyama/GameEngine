@@ -4,12 +4,16 @@ on:
   pull_request:
     branches: [master]
     paths:
+      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp"
+      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Tests/RenderPacketGrowthFallbackSmokeTest.cpp"
       - ".github/workflows/render-packet-growth-fallback.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
     paths:
+      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp"
+      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Tests/RenderPacketGrowthFallbackSmokeTest.cpp"
       - ".github/workflows/render-packet-growth-fallback.yml"
@@ -47,6 +51,7 @@ jobs:
             /I Source/GameApplication/Engine/Scene ^
             /I Source/GameApplication/Service ^
             Tests/RenderPacketGrowthFallbackSmokeTest.cpp ^
+            Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp ^
             /Fe:render-packet-growth-fallback-test.exe ^
             /link /NODEFAULTLIB:yaml-cppd.lib /NODEFAULTLIB:DirectXTex_Debug.lib ^
             > render-packet-growth-fallback.log 2>&1
