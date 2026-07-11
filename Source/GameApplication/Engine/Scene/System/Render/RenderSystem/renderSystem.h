@@ -25,6 +25,7 @@
 #include "System/Render/RenderSystem/ShaderMaterialProvider.h"
 #include "System/Render/RenderSystem/RenderWorld/RenderWorld.h"
 #include "System/Render/RenderSystem/RenderPass/RenderPassContext.h"
+#include "System/Render/Animation/ModelRendererGpuRuntimeStorage.h"
 
 struct SceneManagerContext;
 struct PixelShaderData;
@@ -140,6 +141,7 @@ public:
 	// SceneのTempLoad / Shutdown前に公開済みRenderWorldを必ず無効化する。
 	void Stop() override {
 		m_renderWorld.Reset();
+		m_modelRendererGpuRuntime.Reset();
 	}
 
 	void Update(float deltaTime);
@@ -226,6 +228,14 @@ public:
 		return m_renderWorld;
 	}
 
+	ModelRendererGpuRuntimeStorage& GetModelRendererGpuRuntime() noexcept {
+		return m_modelRendererGpuRuntime;
+	}
+
+	const ModelRendererGpuRuntimeStorage& GetModelRendererGpuRuntime() const noexcept {
+		return m_modelRendererGpuRuntime;
+	}
+
 	RenderPacketFrameBuffer& GetRenderPacketBuffer() noexcept {
 		return m_renderWorld.Packets();
 	}
@@ -306,6 +316,9 @@ private:
 
 	// Step 18-A: Frame-local描画データの所有権をRenderWorldへ集約する。
 	RenderWorld m_renderWorld;
+
+	// ModelRendererComponentから分離したEntity単位の動的Vertex Buffer Runtime。
+	ModelRendererGpuRuntimeStorage m_modelRendererGpuRuntime;
 
 	// renderSystem.cppの段階移行用Facade。実体の所有者ではない。
 	RenderWorldPacketCompatibility m_renderPacketBuffer;
