@@ -197,15 +197,43 @@ inline void PhysicSystem::PhysicsFetch(){
 	const bool fetched = g_pScene->fetchResults(true, &errorState);
 	g_pScene->unlockWrite();
 
+	// A blocking fetch has consumed the submitted step even when PhysX reports
+	// an error. Never leave the state wedged and suppress all later simulations.
+	m_simulationInFlight.store(false, std::memory_order_release);
 	if(!fetched){
 		OutputDebugStringA("PhysicSystem::PhysicsFetch fetchResults failed\n");
 		return;
 	}
-
-	m_simulationInFlight.store(false, std::memory_order_release);
 	if(errorState != 0){
 		OutputDebugStringA("PhysicSystem::PhysicsFetch reported a PhysX error\n");
 	}
+}
+
+inline bool PhysicSystem::DrainSimulation(const char* reason){
+	if(!g_pScene){
+		m_simulationInFlight.store(false, std::memory_order_release);
+		return true;
+	}
+	if(!m_simulationInFlight.load(std::memory_order_acquire)){
+		return true;
+	}
+
+	physx::PxU32 errorState = 0;
+	g_pScene->lockWrite();
+	const bool fetched = g_pScene->fetchResults(true, &errorState);
+	g_pScene->unlockWrite();
+	m_simulationInFlight.store(false, std::memory_order_release);
+
+	if(!fetched || errorState != 0){
+		std::string message = "PhysicSystem::DrainSimulation failed";
+		if(reason && reason[0] != '\0'){
+			message += " during ";
+			message += reason;
+		}
+		message += "\n";
+		OutputDebugStringA(message.c_str());
+	}
+	return fetched && errorState == 0;
 }
 
 inline void PhysicSystem::PhysicsDownload(){
