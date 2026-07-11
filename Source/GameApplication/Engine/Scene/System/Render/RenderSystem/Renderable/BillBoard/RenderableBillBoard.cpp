@@ -74,7 +74,6 @@ void RenderableBillBoard::Finalize(){
 
 void RenderableBillBoard::Execute(const RenderPassContext& ctx, const RenderPacket& packet){
 	SceneContext* sceneContext = packet.bindings.sceneContext;
-	const Entity& entity = packet.entity;
 	if(!sceneContext) return;
 
 	BillBoardRendererComponent* billBoard = packet.bindings.billboardRenderer;
@@ -83,35 +82,33 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, const RenderPack
 		return;
 	}
 	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
-	ID3D11Device* device = graphicsContext->GetDevice();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
 
 	MATERIAL material{};
 	MaterialComponent* pMaterial = packet.bindings.material;
-	if (pMaterial) {
+	if(pMaterial){
 		material = pMaterial->Material;
 	}
 
+	UVMatrixBuffer uv{};
+	uv.UVStart = float2(0.0f, 0.0f);
+	uv.UVEnd = float2(1.0f, 1.0f);
+
 	TextureComponent* pTexture = packet.bindings.texture;
-	if (pTexture) {
-		if (pTexture->m_TextureData) {
+	if(pTexture){
+		if(pTexture->m_TextureData){
 			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
-			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
+			deviceContext->PSSetShaderResources(
+				TextureSlot_Albedo,
+				1,
+				pTexture->m_TextureData->pTexture.GetAddressOf()
+			);
 		}
-
-		graphicsContext->SetMaterial(material);
-		graphicsContext->SetUVMatrixBuffer(pTexture->ResolveUVMatrixBuffer());
-
-	} else {
-		MATERIAL material{};
+		uv = pTexture->ResolveUVMatrixBuffer();
+	}else{
 		material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		graphicsContext->SetMaterial(material);
-
-		UVMatrixBuffer uv{};
-		uv.UVStart = float2(0.0f, 0.0f);
-		uv.UVEnd = float2(1.0f, 1.0f);
-		graphicsContext->SetUVMatrixBuffer(uv);
 	}
+
 	DirectX::XMMATRIX InvViewBillBoardMatrix = DirectX::XMMatrixRotationQuaternion(transform->rotationVector());
 	DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, ctx.viewMatrix);
 	DirectX::XMFLOAT4X4 invViewFloat4x4;
@@ -120,14 +117,11 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, const RenderPack
 	if(!billBoard->RotateXYZ.x && !billBoard->RotateXYZ.y && !billBoard->RotateXYZ.z){
 		// 全軸false：回転しない → 単位行列（通常メッシュと同じ）
 
-	} else if(billBoard->RotateXYZ.y && !billBoard->RotateXYZ.x && !billBoard->RotateXYZ.z){
-
-		// Y軸だけ回転（XZビルボード） → UIパネルなどで多用される
-		// カメラの前方向ベクトル（Z軸）
+	}else if(billBoard->RotateXYZ.y && !billBoard->RotateXYZ.x && !billBoard->RotateXYZ.z){
+		// Y軸だけ回転（XZビルボード）
 		DirectX::XMVECTOR forward = DirectX::XMVectorSet(invViewFloat4x4._31, 0.0f, invViewFloat4x4._33, 0.0f);
 		forward = DirectX::XMVector3Normalize(forward);
 
-		// up = Y軸固定
 		DirectX::XMVECTOR up = DirectX::XMVectorSet(0, 1, 0, 0);
 		DirectX::XMVECTOR right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(up, forward));
 		up = DirectX::XMVector3Cross(forward, right);
@@ -138,8 +132,7 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, const RenderPack
 			forward,
 			DirectX::XMVectorSet(0, 0, 0, 1)
 		);
-	} else{
-		// 任意の軸制御（全軸、Y+Z など）
+	}else{
 		DirectX::XMVECTOR forward = DirectX::XMVectorSet(invViewFloat4x4._31, invViewFloat4x4._32, invViewFloat4x4._33, 0.0f);
 		DirectX::XMVECTOR right = DirectX::XMVectorSet(invViewFloat4x4._11, invViewFloat4x4._12, invViewFloat4x4._13, 0.0f);
 		DirectX::XMVECTOR up = DirectX::XMVectorSet(invViewFloat4x4._21, invViewFloat4x4._22, invViewFloat4x4._23, 0.0f);
@@ -152,7 +145,6 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, const RenderPack
 		if(!billBoard->RotateXYZ.y) up = worldUp;
 		if(!billBoard->RotateXYZ.z) forward = worldForward;
 
-		// 再直交化（forward優先）
 		forward = DirectX::XMVector3Normalize(forward);
 		right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(up, forward));
 		up = DirectX::XMVector3Cross(forward, right);
@@ -166,10 +158,6 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, const RenderPack
 	}
 	deviceContext->IASetInputLayout(m_billBoardMesh->mesh.m_VertexLayout.Get());
 
-	//deviceContext->VSSetShader(m_billBoardMesh->mesh.m_VertexShader.Get(), NULL, 0);
-	//deviceContext->PSSetShader(m_billBoardMesh->mesh.m_PixelShader.Get(), NULL, 0);
-
-	// ローカル変換行列（スケール・ビルボード回転・位置）
 	DirectX::XMMATRIX LocalMatrix =
 		DirectX::XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z) *
 		InvViewBillBoardMatrix *
@@ -191,13 +179,11 @@ void RenderableBillBoard::Execute(const RenderPassContext& ctx, const RenderPack
 			DirectX::XMMatrixTranslationFromVector(parentTranslation);
 	}
 
-	graphicsContext->SetWorldMatrix(WorldMatrix);
+	graphicsContext->SetPerObjectConstants(WorldMatrix, material, uv);
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
 
 	deviceContext->IASetVertexBuffers(0, 1, m_billBoardMesh->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
-
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
 	deviceContext->Draw(m_billBoardMesh->mesh.meshCount, 0);
 }
