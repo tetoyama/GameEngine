@@ -46,11 +46,10 @@ void RenderableTerrain::Execute(const RenderPassContext& ctx, const RenderPacket
 		}
 		uv = texture->ResolveUVMatrixBuffer();
 	}
-	graphicsContext->SetMaterial(material);
-	graphicsContext->SetUVMatrixBuffer(uv);
 
 	const DirectX::XMMATRIX world = LoadRenderPacketMatrix(packet.transform.worldMatrix);
-	graphicsContext->SetWorldMatrix(world);
+	graphicsContext->SetPerObjectConstants(world, material, uv);
+
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -59,6 +58,5 @@ void RenderableTerrain::Execute(const RenderPassContext& ctx, const RenderPacket
 	deviceContext->DrawIndexed(meshRenderer->mesh.indexCount, 0, 0);
 
 	graphicsContext->SetDepthMode(DepthMode::Write);
-	graphicsContext->SetViewMatrix(ctx.viewMatrix);
-	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
+	graphicsContext->SetPerCameraConstants(ctx.viewMatrix, ctx.projectionMatrix);
 }
