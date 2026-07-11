@@ -44,12 +44,7 @@ void RenderableMesh::Execute(const RenderPassContext& ctx, const RenderPacket& p
 
 	const DirectX::XMMATRIX world =
 		LoadRenderPacketMatrix(packet.transform.worldMatrix);
-
-	// SetWorldViewProjection2D() uploads an identity World matrix before this
-	// draw immediately overwrites it. Set only the camera state that is needed
-	// here so CbPerObject is uploaded once instead of twice.
-	graphicsContext->SetViewMatrix(DirectX::XMMatrixIdentity());
-	graphicsContext->SetProjectionMatrix(
+	const DirectX::XMMATRIX projection =
 		DirectX::XMMatrixOrthographicOffCenterLH(
 			0.0f,
 			static_cast<float>(graphicsContext->m_width),
@@ -57,7 +52,13 @@ void RenderableMesh::Execute(const RenderPassContext& ctx, const RenderPacket& p
 			0.0f,
 			0.0f,
 			1.0f
-		)
+		);
+
+	// Camera fields share CbPerCamera. Update both CPU mirror fields first and
+	// upload the full buffer once rather than once per field.
+	graphicsContext->SetPerCameraConstants(
+		DirectX::XMMatrixIdentity(),
+		projection
 	);
 	graphicsContext->SetDepthMode(DepthMode::Disable);
 	graphicsContext->SetWorldMatrix(world);
@@ -77,6 +78,5 @@ void RenderableMesh::Execute(const RenderPassContext& ctx, const RenderPacket& p
 	deviceContext->Draw(meshRenderer->mesh.meshCount, 0);
 
 	graphicsContext->SetDepthMode(DepthMode::Write);
-	graphicsContext->SetViewMatrix(ctx.viewMatrix);
-	graphicsContext->SetProjectionMatrix(ctx.projectionMatrix);
+	graphicsContext->SetPerCameraConstants(ctx.viewMatrix, ctx.projectionMatrix);
 }
