@@ -8,6 +8,7 @@
 #include "Resources/resourceService.h"
 #include "Scene/Component/modelRendererComponent.h"
 #include "Scene/sceneManager.h"
+#include "System/Render/Animation/ModelRendererGpuRuntimeStorage.h"
 
 namespace RenderSystemAnimationTaskRegistrar {
 
@@ -40,7 +41,8 @@ void Register(
 		.ReadResource<SceneManager>()
 		.WriteResource<ResourceService>()
 		.WriteResource<ModelData>()
-		.WriteResource<GraphicsContext>();
+		.WriteResource<GraphicsContext>()
+		.WriteResource<ModelRendererGpuRuntimeStorage>();
 
 	builder.AddTask(
 		"RenderSystem.Animation.Upload",
