@@ -19,115 +19,175 @@
 
 void PostEffectPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context) {
 	m_renderSystem = renderSystem;
-	m_context      = context;
+	m_context = context;
 }
 
 void PostEffectPass::Finalize() {
+	m_cameraRuntime.Reset();
+	resultSrv = nullptr;
+	resultRtv = nullptr;
+	m_initialSRV = nullptr;
+	m_initialRTV = nullptr;
+	m_gBufferPass = nullptr;
 }
 
-void PostEffectPass::SetInputs(ID3D11ShaderResourceView* initialSRV, ID3D11RenderTargetView** initialRTV, GBufferPass* gBufferPass) {
-	m_initialSRV  = initialSRV;
+void PostEffectPass::SetInputs(
+	ID3D11ShaderResourceView* initialSRV,
+	ID3D11RenderTargetView** initialRTV,
+	GBufferPass* gBufferPass
+){
+	m_initialSRV = initialSRV;
 	m_initialRTV = initialRTV;
 	m_gBufferPass = gBufferPass;
 }
 
 void PostEffectPass::Execute(const RenderPassContext& ctx) {
+	GraphicsContext* graphics = m_context ? m_context->graphics : nullptr;
+	if(!graphics){
+		resultSrv = m_initialSRV;
+		resultRtv = m_initialRTV;
+		return;
+	}
 
-	GraphicsContext*     graphics      = m_context->graphics;
-
-	std::vector<PostProcessNode>      postNodes;
-	std::unordered_map<int, int>      effectIndexToPostNodeIndex;
-	const DirectX::XMFLOAT4          clearColor = {0, 0, 0, 1};
+	std::vector<PostProcessNode> postNodes;
+	std::unordered_map<int, int> effectIndexToPostNodeIndex;
+	const DirectX::XMFLOAT4 clearColor = {0, 0, 0, 1};
 
 	CameraComponent* camera = ctx.cameraData.cameraComponent;
+	std::uint64_t cameraRuntimeGeneration = 0;
+	if(camera){
+		const std::uint32_t sceneContextID = ctx.cameraData.ref.GetContextID();
+		const std::uint64_t cameraEntity =
+			ctx.cameraData.ref.GetEntityID().GetPackedValue();
+		cameraRuntimeGeneration = m_cameraRuntime.BeginCamera(
+			sceneContextID,
+			cameraEntity
+		);
 
-	if (camera) {
 		const auto& sortedIndices = camera->TopologicalSortPostEffects();
 		postNodes.reserve(sortedIndices.size());
 		effectIndexToPostNodeIndex.reserve(sortedIndices.size());
 
-		for (int idx : sortedIndices) {
-			if (idx < 0) continue; // -1/-2 は ScreenInput/Output ノード
+		for(int idx : sortedIndices){
+			if(idx < 0){
+				continue; // -1/-2 は ScreenInput/Output ノード
+			}
+			if(static_cast<std::size_t>(idx) >= camera->postEffects.size()){
+				continue;
+			}
 
-			auto& e = camera->postEffects[idx];
-			if (!e.enabled || !e.ps || !e.vs) continue;
+			auto& effect = camera->postEffects[static_cast<std::size_t>(idx)];
+			if(!effect.enabled || !effect.ps || !effect.vs){
+				continue;
+			}
+
+			CameraPostEffectRuntimeKey runtimeKey;
+			runtimeKey.sceneContextID = sceneContextID;
+			runtimeKey.cameraEntity = cameraEntity;
+			runtimeKey.effectIndex = idx;
+			CameraPostEffectRuntime& runtime = m_cameraRuntime.Acquire(
+				runtimeKey,
+				cameraRuntimeGeneration
+			);
+
+			const float scale = (std::max)(
+				0.1f,
+				(std::min)(1.0f, effect.resolutionScale)
+			);
+			const Vector2 scaledSize{
+				ctx.screenSize.x * scale,
+				ctx.screenSize.y * scale
+			};
+			const bool runtimeReady = runtime.Ensure(
+				graphics->GetDevice(),
+				scaledSize,
+				effect.mipLevels
+			);
+			if(!runtimeReady && !runtime.IsValid()){
+				continue;
+			}
+			runtime.Clear(graphics->GetDeviceContext(), &clearColor.x);
 
 			PostProcessNode node{};
-			node.id                  = idx;
-			node.shader.m_VS         = e.vs->m_VertexShader;
-			node.shader.m_PS         = e.ps->m_PixelShader;
-			node.shader.m_InputLayout = e.vs->m_VertexLayout;
-			node.param               = e.Param;
-			node.resolutionScale     = e.resolutionScale;
-			node.mipLevels           = e.mipLevels;
-
-			float scale = max(0.1f, min(1.0f, e.resolutionScale));
-			Vector2 scaledSize{ ctx.screenSize.x * scale, ctx.screenSize.y * scale };
-			e.ResizeTexture(graphics->GetDevice(), scaledSize);
-			e.Clear(graphics->GetDeviceContext(), &clearColor.x);
-			node.outputWidth = static_cast<UINT>(e.resolution.x);
-			node.outputHeight = static_cast<UINT>(e.resolution.y);
-			node.rtv = e.rtv.GetAddressOf();
-			node.srv = e.srv.Get();
-			node.tex = e.tex.Get();
+			node.id = idx;
+			node.shader.m_VS = effect.vs->m_VertexShader;
+			node.shader.m_PS = effect.ps->m_PixelShader;
+			node.shader.m_InputLayout = effect.vs->m_VertexLayout;
+			node.param = effect.Param;
+			node.resolutionScale = effect.resolutionScale;
+			node.mipLevels = effect.mipLevels;
+			node.outputWidth = static_cast<UINT>(runtime.resolution.x);
+			node.outputHeight = static_cast<UINT>(runtime.resolution.y);
+			node.rtv = runtime.renderTargetView.GetAddressOf();
+			node.srv = runtime.shaderResourceView.Get();
+			node.tex = runtime.texture.Get();
 
 			node.inputs.clear();
-			int postNodeIndex = static_cast<int>(postNodes.size());
+			const int postNodeIndex = static_cast<int>(postNodes.size());
 			effectIndexToPostNodeIndex[idx] = postNodeIndex;
-
 			postNodes.push_back(std::move(node));
 		}
 
-		// リンクを後から解決
-		for (auto& node : postNodes) {
-			int   effectIdx = node.id;
-			const auto& resolvedInputs = camera->GetResolvedPostEffectInputs(effectIdx);
-
+		// リンクを後から解決する。
+		for(auto& node : postNodes){
+			const int effectIndex = node.id;
+			const auto& resolvedInputs =
+				camera->GetResolvedPostEffectInputs(effectIndex);
 			node.inputs.assign(resolvedInputs.size(), -1);
 
-			for (size_t slotIndex = 0; slotIndex < resolvedInputs.size(); ++slotIndex) {
-				int inputSource = resolvedInputs[slotIndex];
-				if (inputSource == -2) {
+			for(std::size_t slotIndex = 0;
+				slotIndex < resolvedInputs.size();
+				++slotIndex){
+				const int inputSource = resolvedInputs[slotIndex];
+				if(inputSource == -2){
 					node.inputs[slotIndex] = -2;
-				} else {
+				}else{
 					auto it = effectIndexToPostNodeIndex.find(inputSource);
-					if (it != effectIndexToPostNodeIndex.end()) {
+					if(it != effectIndexToPostNodeIndex.end()){
 						node.inputs[slotIndex] = it->second;
 					}
 				}
 			}
 		}
+
+		m_cameraRuntime.EndCamera(cameraRuntimeGeneration);
 	}
 
-	if (!postNodes.empty()) {
-
-		// 未接続スロット (-1) を初期 SRV 扱い (-2) に統一
-		for (auto& node : postNodes) {
-			for (size_t i = 0; i < node.inputs.size(); ++i) {
-				if (node.inputs[i] == -1) {
-					node.inputs[i] = -2;
+	if(!postNodes.empty()){
+		// 未接続スロット(-1)を初期SRV扱い(-2)へ統一する。
+		for(auto& node : postNodes){
+			for(int& input : node.inputs){
+				if(input == -1){
+					input = -2;
 				}
 			}
 		}
 
-		// GBuffer SRV を収集
 		ID3D11ShaderResourceView* gbufferSRVs[PostEffectGBufferSlot_Count] = {};
-		for (int g = 0; g < GBufferSlot_Max; ++g) {
-			gbufferSRVs[g] = m_gBufferPass->pRenderTargets[g]->srv.Get();
+		if(m_gBufferPass){
+			for(int g = 0; g < GBufferSlot_Max; ++g){
+				if(m_gBufferPass->pRenderTargets[g]){
+					gbufferSRVs[g] =
+						m_gBufferPass->pRenderTargets[g]->srv.Get();
+				}
+			}
+			if(m_gBufferPass->pDepthTarget){
+				gbufferSRVs[
+					PostEffectGBufferSlot_Depth - PostEffectGBufferSlot_Start
+				] = m_gBufferPass->pDepthTarget->srv.Get();
+			}
 		}
-		gbufferSRVs[PostEffectGBufferSlot_Depth - PostEffectGBufferSlot_Start] =
-			m_gBufferPass->pDepthTarget->srv.Get();
 
 		graphics->ApplyPostProcessChain(
-			postNodes, m_initialSRV, gbufferSRVs, PostEffectGBufferSlot_Count
+			postNodes,
+			m_initialSRV,
+			gbufferSRVs,
+			PostEffectGBufferSlot_Count
 		);
-
 		resultSrv = graphics->m_CurrentSRV;
 		resultRtv = graphics->m_CurrentRTV;
-
-	} else {
+	}else{
 		resultSrv = m_initialSRV;
 		resultRtv = m_initialRTV;
 	}
-
 }
