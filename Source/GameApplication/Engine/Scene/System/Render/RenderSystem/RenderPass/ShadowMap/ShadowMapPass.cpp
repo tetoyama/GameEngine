@@ -627,9 +627,11 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 			XMLoadFloat4x4(&currentLight.LightProjection)
 		);
 
-		graphicsContext->SetCameraPosition(newContext.CameraPosition);
-		graphicsContext->SetViewMatrix(newContext.viewMatrix);
-		graphicsContext->SetProjectionMatrix(newContext.projectionMatrix);
+		graphicsContext->SetPerCameraConstants(
+			newContext.CameraPosition,
+			newContext.viewMatrix,
+			newContext.projectionMatrix
+		);
 
 		D3D11_VIEWPORT vp = {};
 		vp.TopLeftX = (float)tileX;
