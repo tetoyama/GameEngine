@@ -44,9 +44,23 @@ void PostEffectPass::SetInputs(
 void PostEffectPass::Execute(const RenderPassContext& ctx) {
 	GraphicsContext* graphics = m_context ? m_context->graphics : nullptr;
 	if(!graphics){
+		if(CameraComponent* camera = ctx.cameraData.cameraComponent){
+			for(CameraPostEffect& effect : camera->postEffects){
+				effect.srv.Reset();
+			}
+		}
 		resultSrv = m_initialSRV;
 		resultRtv = m_initialRTV;
 		return;
+	}
+
+	if(m_context && m_context->sceneManager){
+		SceneManager* sceneManager = m_context->sceneManager;
+		m_cameraRuntime.PruneInactiveScenes(
+			[sceneManager](std::uint32_t sceneContextID){
+				return sceneManager->GetContextFromID(sceneContextID) != nullptr;
+			}
+		);
 	}
 
 	std::vector<PostProcessNode> postNodes;
@@ -56,6 +70,12 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 	CameraComponent* camera = ctx.cameraData.cameraComponent;
 	std::uint64_t cameraRuntimeGeneration = 0;
 	if(camera){
+		// Preview Handleは毎回現在のRuntimeから再公開する。
+		// Disabled / Shader未設定 / Runtime生成失敗時は0のままにする。
+		for(CameraPostEffect& effect : camera->postEffects){
+			effect.srv.Reset();
+		}
+
 		const std::uint32_t sceneContextID = ctx.cameraData.ref.GetContextID();
 		const std::uint64_t cameraEntity =
 			ctx.cameraData.ref.GetEntityID().GetPackedValue();
@@ -107,6 +127,7 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 				continue;
 			}
 			runtime.Clear(graphics->GetDeviceContext(), &clearColor.x);
+			effect.srv.Set(runtime.shaderResourceView.Get());
 
 			PostProcessNode node{};
 			node.id = idx;
@@ -152,9 +173,6 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 		}
 
 		m_cameraRuntime.EndCamera(cameraRuntimeGeneration);
-	}else{
-		// Cameraが存在しないPassでは以前のCamera Runtimeを保持し続けない。
-		m_cameraRuntime.Reset();
 	}
 
 	if(!postNodes.empty()){
@@ -164,7 +182,7 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 				if(input == -1){
 					input = -2;
 				}
-			}
+		}
 		}
 
 		ID3D11ShaderResourceView* gbufferSRVs[PostEffectGBufferSlot_Count] = {};
