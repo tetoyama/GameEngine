@@ -249,6 +249,25 @@ public:
 		);
 	}
 
+	// Static BatchのWorldはInstance Bufferから供給されるため、CPUミラー内の
+	// Worldを維持したままMaterial / UV / ObjectInfoだけを一括更新する。
+	void SetStaticBatchObjectConstants(
+		const MATERIAL& material,
+		const UVMatrixBuffer& uv,
+		const ObjectInfo& objectInfo
+	){
+		m_CbPerObjectData.Material = material;
+		m_CbPerObjectData.UVStart = uv.UVStart;
+		m_CbPerObjectData.UVEnd = uv.UVEnd;
+		StageObjectInfo(objectInfo);
+		D3D11ConstantBufferUpload::Upload(
+			m_DeviceContext.Get(),
+			m_CbPerObject,
+			m_CbPerObjectData,
+			D3D11ConstantBufferUploadStrategy::UpdateSubresource
+		);
+	}
+
 	void ResetViewport();
 	void ResetBuffer(const float clearColor[4]);
 	void SetWorldViewProjection2D();
