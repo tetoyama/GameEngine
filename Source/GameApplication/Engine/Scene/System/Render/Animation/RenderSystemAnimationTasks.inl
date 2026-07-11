@@ -58,6 +58,16 @@ inline void RecordUploadFailure(
 	);
 }
 
+inline ModelRendererGpuRuntimeKey MakeRuntimeKey(
+	const SceneContext& context,
+	Entity entity
+) noexcept {
+	ModelRendererGpuRuntimeKey key;
+	key.sceneContextID = context.contextID;
+	key.entity = entity.GetPackedValue();
+	return key;
+}
+
 } // namespace RenderSystemAnimationTasksDetail
 
 inline void RenderSystem::CalculateAnimationPoses(){
@@ -139,13 +149,14 @@ inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 	lazyTimer += deltaTime;
 	if(!m_context || !m_context->sceneManager || !m_context->graphics) return;
 	GraphicsContext* graphics = m_context->graphics;
+	ID3D11Device* device = graphics->GetDevice();
 	ID3D11DeviceContext* deviceContext = graphics->GetDeviceContext();
 	for(const auto& [sceneName, scene] :
 		m_context->sceneManager->GetActiveScenes()){
 		(void)sceneName;
 		if(!scene) continue;
 		SceneContext* context = scene->GetSceneContext();
-		if(!context || !context->component) continue;
+		if(!context || !context->component || context->contextID == 0) continue;
 		const auto modelEntities =
 			context->component->FindEntitiesWithComponent<ModelRendererComponent>();
 		for(Entity entity : modelEntities){
@@ -173,6 +184,24 @@ inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 				RenderSystemAnimationTasksDetail::ClearPendingPose(*modelRenderer);
 				continue;
 			}
+
+			const ModelRendererGpuRuntimeKey runtimeKey =
+				RenderSystemAnimationTasksDetail::MakeRuntimeKey(*context, entity);
+			ModelRendererGpuRuntime& runtime =
+				m_modelRendererGpuRuntime.Acquire(runtimeKey);
+			if(!runtime.Ensure(
+				device,
+				*modelRenderer->model,
+				modelRenderer->modelRuntimeRevision
+			)){
+				RenderSystemAnimationTasksDetail::RecordUploadFailure(
+					m_context,
+					entity,
+					*modelRenderer
+				);
+				continue;
+			}
+
 			bool uploaded = false;
 			const bool useGPUSkinning =
 				modelRenderer->evaluatedBones.size() <= BONE_MAX_COUNT;
@@ -181,13 +210,13 @@ inline void RenderSystem::UploadAnimationPoses(float deltaTime){
 					*graphics,
 					*modelRenderer->model,
 					modelRenderer->evaluatedBones,
-					modelRenderer->dynamicVertexBuffers
+					runtime.RawBuffers()
 				);
 			}else if(modelRenderer->cpuSkinningReady && deviceContext){
 				uploaded = AnimationSkinningUpload::UploadCPU(
 					*deviceContext,
 					modelRenderer->cpuSkinnedVertices,
-					modelRenderer->dynamicVertexBuffers
+					runtime.RawBuffers()
 				);
 			}
 			if(uploaded){
