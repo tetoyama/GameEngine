@@ -7,6 +7,12 @@
 #include "Engine/Scene/Registry/entityRegistry.h"
 #include "Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
 
+// This standalone smoke executable does not link the editor UI. The component
+// vtable only needs the symbol to exist; the inspector is never invoked here.
+namespace ImGui {
+void Text(const char*, ...){ }
+}
+
 namespace {
 
 RenderPacket MakeStaticMeshPacket(
