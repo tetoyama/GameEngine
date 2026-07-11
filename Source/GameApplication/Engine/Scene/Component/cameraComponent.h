@@ -19,6 +19,28 @@
 #include "Resources/Data/pixelShaderData.h"
 #include "sceneManager.h"
 
+// Inspector Preview互換用の一時・非所有Handle。
+// Native D3D型も参照Countも持たず、PostEffectPassが有効期間を管理する。
+struct CameraPostEffectPreviewHandle {
+	std::uintptr_t value = 0;
+
+	explicit operator bool() const noexcept {
+		return value != 0;
+	}
+
+	void* Get() const noexcept {
+		return reinterpret_cast<void*>(value);
+	}
+
+	void Set(const void* pointer) noexcept {
+		value = reinterpret_cast<std::uintptr_t>(pointer);
+	}
+
+	void Reset() noexcept {
+		value = 0;
+	}
+};
+
 // PostEffect Graphの永続設定を保持する。
 // Texture / RTV / SRVなどのGPU Runtime所有権はPostEffectPass側にある。
 struct CameraPostEffect {
@@ -34,10 +56,8 @@ struct CameraPostEffect {
 	float resolutionScale = 1.0f;
 	int mipLevels = 1;
 
-	// Editor Preview用の一時・非所有Handle。
-	// PostEffectPassが有効期間を管理し、Serialization対象にはしない。
-	// Native D3D型やResource所有権をComponentへ戻さないためuintptr_tで保持する。
-	std::uintptr_t previewTextureId = 0;
+	// Serialization対象外。PostEffectPassが毎回更新・無効化する。
+	CameraPostEffectPreviewHandle srv;
 };
 
 struct CameraPostEffectLink {
