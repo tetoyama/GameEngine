@@ -115,7 +115,8 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 			node.shader.m_InputLayout = effect.vs->m_VertexLayout;
 			node.param = effect.Param;
 			node.resolutionScale = effect.resolutionScale;
-			node.mipLevels = effect.mipLevels;
+			// Resize失敗で旧Runtimeを継続使用する場合も、実資源のMip数へ合わせる。
+			node.mipLevels = runtime.mipLevels;
 			node.outputWidth = static_cast<UINT>(runtime.resolution.x);
 			node.outputHeight = static_cast<UINT>(runtime.resolution.y);
 			node.rtv = runtime.renderTargetView.GetAddressOf();
@@ -151,6 +152,9 @@ void PostEffectPass::Execute(const RenderPassContext& ctx) {
 		}
 
 		m_cameraRuntime.EndCamera(cameraRuntimeGeneration);
+	}else{
+		// Cameraが存在しないPassでは以前のCamera Runtimeを保持し続けない。
+		m_cameraRuntime.Reset();
 	}
 
 	if(!postNodes.empty()){
