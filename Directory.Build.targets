@@ -35,6 +35,39 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\Script\GN31.cpp" />
   </ItemGroup>
 
+  <!--
+    Step 17-C / 17-D / M-5で追加・削除したHeaderを評価後のProject Itemへ反映する。
+    vcxproj本体を全体書き換えせず、Solution Explorerと外部変更検知を同期する。
+  -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'GameEngine'">
+    <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\Animation\RenderSystemAnimationTaskRegistration.h" />
+
+    <ClInclude Include="Source\GameApplication\Service\Graphics\D3D11ConstantBufferUpload.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Service\Graphics\D3D11ConstantBufferUpload.h')">
+      <Link>Header Files\Service\Graphics\D3D11ConstantBufferUpload.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Animation\RenderSystemAnimationTaskRegistrar.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Engine\Scene\System\Render\Animation\RenderSystemAnimationTaskRegistrar.h')">
+      <Link>Header Files\Engine\Scene\System\Render\Animation\RenderSystemAnimationTaskRegistrar.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Terrain\TerrainMeshBuilder.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Engine\Scene\System\Render\Terrain\TerrainMeshBuilder.h')">
+      <Link>Header Files\Engine\Scene\System\Render\Terrain\TerrainMeshBuilder.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Terrain\TerrainMeshUpload.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Engine\Scene\System\Render\Terrain\TerrainMeshUpload.h')">
+      <Link>Header Files\Engine\Scene\System\Render\Terrain\TerrainMeshUpload.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Terrain\TerrainTaskRegistrar.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Engine\Scene\System\Render\Terrain\TerrainTaskRegistrar.h')">
+      <Link>Header Files\Engine\Scene\System\Render\Terrain\TerrainTaskRegistrar.h</Link>
+    </ClInclude>
+  </ItemGroup>
+
   <!-- Static Batch専用ShaderはGameEngine x64だけでCSOへ変換する。 -->
   <ItemGroup Condition="'$(MSBuildProjectName)' == 'GameEngine' and '$(Platform)' == 'x64'">
     <FxCompile Include="Source\Shader\StaticBatchVS.hlsl">
