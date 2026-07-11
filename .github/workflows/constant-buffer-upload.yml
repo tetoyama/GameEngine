@@ -1,0 +1,53 @@
+name: Constant Buffer Upload Contract
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Source/GameApplication/Service/Graphics/D3D11ConstantBufferUpload.h"
+      - "Source/GameApplication/Service/Graphics/graphicsContext.h"
+      - "Source/GameApplication/Service/Graphics/graphicsContext.cpp"
+      - "Tests/D3D11ConstantBufferUploadContractSmokeTest.cpp"
+      - ".github/workflows/constant-buffer-upload.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Source/GameApplication/Service/Graphics/D3D11ConstantBufferUpload.h"
+      - "Source/GameApplication/Service/Graphics/graphicsContext.h"
+      - "Source/GameApplication/Service/Graphics/graphicsContext.cpp"
+      - "Tests/D3D11ConstantBufferUploadContractSmokeTest.cpp"
+      - ".github/workflows/constant-buffer-upload.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: constant-buffer-upload-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run constant buffer upload contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/D3D11ConstantBufferUploadContractSmokeTest.cpp
+          /Fe:constant-buffer-upload-test.exe
+          && constant-buffer-upload-test.exe
