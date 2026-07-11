@@ -190,7 +190,9 @@ private:
 	physx::PxScene* g_pScene = nullptr;
 	physx::PxPvd* g_pPvd = nullptr;
 
-	std::mutex mtx;
+	// serialize simulate / fetch / drain so Stop or Finalize cannot issue a
+	// second fetch while the Scheduler's Fetch task is still active.
+	std::mutex m_simulationMutex;
 	bool       UpdatingPhysics = false;
 	std::atomic<bool> m_simulationInFlight{false};
 	std::unique_ptr<PhysicsSimulationCallback> m_simCallback;
