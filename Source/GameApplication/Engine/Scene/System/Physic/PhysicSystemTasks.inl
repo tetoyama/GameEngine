@@ -172,9 +172,16 @@ inline void PhysicSystem::PhysicsBegin(float fixedDeltaTime){
 		return;
 	}
 
+	// PxScene::simulate is a write call. Keep it under the scene write lock
+	// so checked builds with eREQUIRE_RW_LOCK validate the same contract.
 	g_pScene->lockWrite();
-	g_pScene->simulate(fixedDeltaTime);
+	const bool submitted = g_pScene->simulate(fixedDeltaTime);
 	g_pScene->unlockWrite();
+
+	if(!submitted){
+		m_simulationInFlight.store(false, std::memory_order_release);
+		OutputDebugStringA("PhysicSystem::PhysicsBegin simulate failed\n");
+	}
 }
 
 inline void PhysicSystem::PhysicsFetch(){
@@ -182,11 +189,23 @@ inline void PhysicSystem::PhysicsFetch(){
 		return;
 	}
 
-	g_pScene->lockRead();
-	g_pScene->fetchResults(true);
-	g_pScene->unlockRead();
+	// PxScene::fetchResults fires callbacks and swaps simulation buffers; it is
+	// a write call, not a read-only query. A read lock here violates the PhysX
+	// scene-lock contract when eREQUIRE_RW_LOCK is enabled.
+	physx::PxU32 errorState = 0;
+	g_pScene->lockWrite();
+	const bool fetched = g_pScene->fetchResults(true, &errorState);
+	g_pScene->unlockWrite();
+
+	if(!fetched){
+		OutputDebugStringA("PhysicSystem::PhysicsFetch fetchResults failed\n");
+		return;
+	}
 
 	m_simulationInFlight.store(false, std::memory_order_release);
+	if(errorState != 0){
+		OutputDebugStringA("PhysicSystem::PhysicsFetch reported a PhysX error\n");
+	}
 }
 
 inline void PhysicSystem::PhysicsDownload(){
