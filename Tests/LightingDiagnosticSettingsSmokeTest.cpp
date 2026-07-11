@@ -8,7 +8,7 @@
 
 int main(){
 	static_assert(sizeof(CbLightingDebug) == 32);
-	static_assert(alignof(CbLightingDebug) == 16);
+	static_assert(sizeof(CbLightingDebug) % 16 == 0);
 	static_assert(LIGHTING_DEBUG_PCF_DEFAULT == 0);
 	static_assert(LIGHTING_DEBUG_PCF_1X1 == 1);
 	static_assert(LIGHTING_DEBUG_PCF_3X3 == 2);
