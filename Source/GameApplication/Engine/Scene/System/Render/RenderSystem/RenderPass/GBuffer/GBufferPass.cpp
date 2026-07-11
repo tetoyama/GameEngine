@@ -480,7 +480,7 @@ void GBufferPass::Execute(const RenderPassContext& context){
 
 			const int layerIndex = static_cast<int>(group.key.layer);
 			if(static_cast<unsigned>(layerIndex) >=
-					static_cast<unsigned>(RenderLayer::MaxRenderLayer) ||
+				static_cast<unsigned>(RenderLayer::MaxRenderLayer) ||
 				!passContext.renderLayerVisibility[layerIndex]){
 				++m_staticBatchTelemetry.layerFallbackCount;
 				continue;
@@ -507,13 +507,15 @@ void GBufferPass::Execute(const RenderPassContext& context){
 				continue;
 			}
 
-			graphics->SetMaterial(material.state.material);
-			graphics->SetUVMatrixBuffer(material.state.uv);
 			ObjectInfo objectInfo{};
 			objectInfo.SceneID = group.sceneContextID;
 			objectInfo.ObjectID = 0;
 			objectInfo.ShaderID = material.state.shaderID;
-			graphics->SetObjectInfo(objectInfo);
+			graphics->SetStaticBatchObjectConstants(
+				material.state.material,
+				material.state.uv,
+				objectInfo
+			);
 			deviceContext->OMSetDepthStencilState(
 				m_materialStencilWriteState.Get(),
 				ResolveMaterialStencilRef(material.state.shaderID)
@@ -609,7 +611,7 @@ void GBufferPass::Execute(const RenderPassContext& context){
 		objectInfo.SceneID = packet.sceneContextID;
 		objectInfo.ObjectID = packet.entity;
 		objectInfo.ShaderID = static_cast<int>(packet.materialKey);
-		m_context->graphics->SetObjectInfo(objectInfo);
+		m_context->graphics->StageObjectInfo(objectInfo);
 		deviceContext->OMSetDepthStencilState(
 			m_materialStencilWriteState.Get(),
 			ResolveMaterialStencilRef(packet.materialKey)
