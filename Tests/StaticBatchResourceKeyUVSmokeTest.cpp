@@ -3,61 +3,67 @@
 #include "Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
 
 int main(){
-	MeshRendererComponent mesh;
-	mesh.mesh.SetGeometryResourceKey(0x1234u);
+	const UVMatrixBuffer base =
+		StaticBatchResourceKey::ResolveUVState(1.0f, 1.0f, 0);
+	assert(base.UVStart.x == 0.0f);
+	assert(base.UVStart.y == 0.0f);
+	assert(base.UVEnd.x == 1.0f);
+	assert(base.UVEnd.y == 1.0f);
 
-	TextureData meshTexture;
-	meshTexture.FilePath = "Asset/Texture/ModelDiffuse.png";
-	mesh.mesh.m_TextureData = &meshTexture;
+	// 4 x 2 slices. Frame 3 is the last cell in the first row.
+	const UVMatrixBuffer sliced =
+		StaticBatchResourceKey::ResolveUVState(4.0f, 2.0f, 3);
+	assert(sliced.UVStart.x == 0.75f);
+	assert(sliced.UVStart.y == 0.0f);
+	assert(sliced.UVEnd.x == 1.0f);
+	assert(sliced.UVEnd.y == 0.5f);
 
-	TextureComponent texture;
-	texture.m_TextureData.reset();
-	texture.UV_Slice_X = 1.0f;
-	texture.UV_Slice_Y = 1.0f;
-	texture.AnimationNum = 0;
+	// Frame 4 starts the second row.
+	const UVMatrixBuffer secondRow =
+		StaticBatchResourceKey::ResolveUVState(4.0f, 2.0f, 4);
+	assert(secondRow.UVStart.x == 0.0f);
+	assert(secondRow.UVStart.y == 0.5f);
+	assert(secondRow.UVEnd.x == 0.25f);
+	assert(secondRow.UVEnd.y == 1.0f);
 
-	RenderPacket packet;
-	packet.kind = RenderPacketKind::Mesh;
-	packet.layer = RenderLayer::Transparent3D;
-	packet.passMask = RenderPacketPassMask::Forward;
-	packet.bindings.meshRenderer = &mesh;
-	packet.bindings.texture = &texture;
+	// Values below one are repeat divisors, not animation slices.
+	const UVMatrixBuffer repeated =
+		StaticBatchResourceKey::ResolveUVState(0.25f, 0.5f, 99);
+	assert(repeated.UVStart.x == 0.0f);
+	assert(repeated.UVStart.y == 0.0f);
+	assert(repeated.UVEnd.x == 4.0f);
+	assert(repeated.UVEnd.y == 2.0f);
 
-	const StaticBatchResourceKeySet base =
-		StaticBatchResourceKey::Build(packet);
-	assert(base.IsComplete());
-	assert(base.textureSetKey != 0);
+	// Animation frames are clamped to the last valid slice.
+	const UVMatrixBuffer clamped =
+		StaticBatchResourceKey::ResolveUVState(4.0f, 2.0f, 99);
+	assert(clamped.UVStart.x == 0.75f);
+	assert(clamped.UVStart.y == 0.5f);
+	assert(clamped.UVEnd.x == 1.0f);
+	assert(clamped.UVEnd.y == 1.0f);
 
-	texture.UV_Slice_X = 0.25f;
-	texture.UV_Slice_Y = 0.5f;
-	const StaticBatchResourceKeySet sliced =
-		StaticBatchResourceKey::Build(packet);
-	assert(sliced.textureSetKey == base.textureSetKey);
-	assert(sliced.materialStateKey != base.materialStateKey);
+	const UVMatrixBuffer invalid =
+		StaticBatchResourceKey::ResolveUVState(0.0f, 2.0f, 1);
+	assert(invalid.UVStart.x == 0.0f);
+	assert(invalid.UVStart.y == 0.0f);
+	assert(invalid.UVEnd.x == 1.0f);
+	assert(invalid.UVEnd.y == 1.0f);
 
-	texture.AnimationNum = 3;
-	const StaticBatchResourceKeySet animated =
-		StaticBatchResourceKey::Build(packet);
-	assert(animated.textureSetKey == sliced.textureSetKey);
-	assert(animated.materialStateKey != sliced.materialStateKey);
-
-	const UVMatrixBuffer uv =
-		StaticBatchResourceKey::ResolveUVState(&texture);
-	assert(uv.UVStart.x == 0.75f);
-	assert(uv.UVStart.y == 0.0f);
-	assert(uv.UVEnd.x == 1.0f);
-	assert(uv.UVEnd.y == 0.5f);
-
-	texture.m_TextureData = std::make_shared<TextureData>();
-	texture.m_TextureData->FilePath = "Asset/Texture/Override.png";
-	const StaticBatchResourceKeySet overridden =
-		StaticBatchResourceKey::Build(packet);
-	assert(overridden.IsComplete());
-	assert(overridden.textureSetKey != animated.textureSetKey);
-
-	texture.m_TextureData.reset();
-	const StaticBatchResourceKeySet fallback =
-		StaticBatchResourceKey::Build(packet);
-	assert(fallback.textureSetKey == animated.textureSetKey);
+	const UVMatrixBuffer nullTexture =
+		StaticBatchResourceKey::ResolveUVState(
+			static_cast<const TextureComponent*>(nullptr)
+		);
+	assert(
+		StaticBatchResourceKey::MakeUVStateKey(nullTexture) ==
+		StaticBatchResourceKey::MakeUVStateKey(base)
+	);
+	assert(
+		StaticBatchResourceKey::MakeUVStateKey(sliced) !=
+		StaticBatchResourceKey::MakeUVStateKey(secondRow)
+	);
+	assert(
+		StaticBatchResourceKey::MakeUVStateKey(base) !=
+		StaticBatchResourceKey::MakeUVStateKey(repeated)
+	);
 	return 0;
 }
