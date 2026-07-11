@@ -11,6 +11,7 @@ on:
       - "Source/GameApplication/Engine/Editor/UI/SystemSettingImplementation.inl"
       - "Directory.Build.targets"
       - "Tests/PhysicsSimulationOverlapAnalysisSmokeTest.cpp"
+      - "Tests/PhysicsSimulationTaskContractSmokeTest.cpp"
       - ".github/workflows/physics-simulation-overlap.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
@@ -22,6 +23,7 @@ on:
       - "Source/GameApplication/Engine/Editor/UI/SystemSettingImplementation.inl"
       - "Directory.Build.targets"
       - "Tests/PhysicsSimulationOverlapAnalysisSmokeTest.cpp"
+      - "Tests/PhysicsSimulationTaskContractSmokeTest.cpp"
       - ".github/workflows/physics-simulation-overlap.yml"
   workflow_dispatch:
 
@@ -35,6 +37,14 @@ permissions:
 jobs:
   smoke:
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - source: Tests/PhysicsSimulationOverlapAnalysisSmokeTest.cpp
+            output: physics-simulation-overlap-test.exe
+          - source: Tests/PhysicsSimulationTaskContractSmokeTest.cpp
+            output: physics-simulation-task-contract-test.exe
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,7 +52,7 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-      - name: Compile and run physics overlap analysis contract
+      - name: Compile and run physics overlap contract
         shell: cmd
         run: >-
           cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
@@ -54,6 +64,6 @@ jobs:
           /I Source/GameApplication/Engine
           /I Source/GameApplication/Engine/Scene
           /I Source/GameApplication/Service
-          Tests/PhysicsSimulationOverlapAnalysisSmokeTest.cpp
-          /Fe:physics-simulation-overlap-test.exe
-          && physics-simulation-overlap-test.exe
+          ${{ matrix.source }}
+          /Fe:${{ matrix.output }}
+          && ${{ matrix.output }}
