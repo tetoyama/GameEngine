@@ -21,6 +21,7 @@
 #include "Scene/Component/transformComponent.h"
 #include "Scene/Component/textureComponent.h"
 #include <Component/materialComponent.h>
+
 void RenderableParticle::Initialize(SceneManagerContext* context){
 	m_billBoardMesh = new MeshRendererComponent;
 	if(m_billBoardMesh){
@@ -73,7 +74,6 @@ void RenderableParticle::Finalize(){
 
 void RenderableParticle::Execute(const RenderPassContext& ctx, const RenderPacket& packet){
 	SceneContext* sceneContext = packet.bindings.sceneContext;
-	const Entity& entity = packet.entity;
 	if(!sceneContext) return;
 	ParticleComponent* pParticle = packet.bindings.particle;
 	TransformComponent* pTransform = packet.bindings.transform;
@@ -82,10 +82,6 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, const RenderPacke
 	}
 	TextureComponent* pTexture = packet.bindings.texture;
 	MaterialComponent* pMaterial = packet.bindings.material;
-	MATERIAL material{};
-	if (pMaterial) {
-		material = pMaterial->Material;
-	}
 
 	GraphicsContext* graphicsContext = sceneContext->manager->renderer->GetGraphicsContext();
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
@@ -97,83 +93,120 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, const RenderPacke
 	deviceContext->VSSetShader(m_billBoardMesh->mesh.m_VertexShader.Get(), nullptr, 0);
 	deviceContext->PSSetShader(m_billBoardMesh->mesh.m_PixelShader.Get(), nullptr, 0);
 
-	for(int i = 0; i < MAXPARTICLE; i++){
-		if(pParticle->Particle[i].LifeTime > 0.0f){
-			MATERIAL material{};
+	UVMatrixBuffer uv{};
+	uv.UVStart = float2(0.0f, 0.0f);
+	uv.UVEnd = float2(1.0f, 1.0f);
+	const bool hasTexture = pTexture && pTexture->m_TextureData;
+	if(pTexture){
+		uv = pTexture->ResolveUVMatrixBuffer();
+		if(hasTexture){
+			deviceContext->PSSetShaderResources(
+				TextureSlot_Albedo,
+				1,
+				pTexture->m_TextureData->pTexture.GetAddressOf()
+			);
+		}
+	}
 
-			if(pTexture){
-				if(pTexture->m_TextureData){
-					material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
-					deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, pTexture->m_TextureData->pTexture.GetAddressOf());
-				}
+	BillBoardRendererComponent billBoard;
+	DirectX::XMMATRIX invViewBillBoardMatrix =
+		DirectX::XMMatrixRotationQuaternion(pTransform->rotationVector());
+	const DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, ctx.viewMatrix);
+	DirectX::XMFLOAT4X4 invViewFloat4x4;
+	DirectX::XMStoreFloat4x4(&invViewFloat4x4, invView);
 
-				graphicsContext->SetUVMatrixBuffer(pTexture->ResolveUVMatrixBuffer());
+	DirectX::XMVECTOR forward = DirectX::XMVectorSet(
+		invViewFloat4x4._31,
+		invViewFloat4x4._32,
+		invViewFloat4x4._33,
+		0.0f
+	);
+	DirectX::XMVECTOR right = DirectX::XMVectorSet(
+		invViewFloat4x4._11,
+		invViewFloat4x4._12,
+		invViewFloat4x4._13,
+		0.0f
+	);
+	DirectX::XMVECTOR up = DirectX::XMVectorSet(
+		invViewFloat4x4._21,
+		invViewFloat4x4._22,
+		invViewFloat4x4._23,
+		0.0f
+	);
 
-				if (pMaterial) {
-					material.BaseColor = pMaterial->Material.BaseColor;
-					material.BaseColor.w = pMaterial->Material.BaseColor.w * pParticle->Particle[i].LifeTime / pParticle->particleLifeTime;
-				}
-			} else{
-				material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	const DirectX::XMVECTOR worldRight = DirectX::XMVectorSet(1, 0, 0, 0);
+	const DirectX::XMVECTOR worldUp = DirectX::XMVectorSet(0, 1, 0, 0);
+	const DirectX::XMVECTOR worldForward = DirectX::XMVectorSet(0, 0, 1, 0);
 
-				UVMatrixBuffer uv{};
-				uv.UVStart = float2(0.0f, 0.0f);
-				uv.UVEnd = float2(1.0f, 1.0f);
-				graphicsContext->SetUVMatrixBuffer(uv);
+	if(!billBoard.RotateXYZ.x) right = worldRight;
+	if(!billBoard.RotateXYZ.y) up = worldUp;
+	if(!billBoard.RotateXYZ.z) forward = worldForward;
+
+	forward = DirectX::XMVector3Normalize(forward);
+	right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(up, forward));
+	up = DirectX::XMVector3Cross(forward, right);
+
+	invViewBillBoardMatrix = DirectX::XMMATRIX(
+		right,
+		up,
+		forward,
+		DirectX::XMVectorSet(0, 0, 0, 1)
+	);
+
+	for(int i = 0; i < MAXPARTICLE; ++i){
+		if(pParticle->Particle[i].LifeTime <= 0.0f){
+			continue;
+		}
+
+		MATERIAL material{};
+		if(pTexture){
+			if(hasTexture){
+				material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 			}
-			graphicsContext->SetMaterial(material);
+			if(pMaterial){
+				material.BaseColor = pMaterial->Material.BaseColor;
+				material.BaseColor.w =
+					pMaterial->Material.BaseColor.w *
+					pParticle->Particle[i].LifeTime /
+					pParticle->particleLifeTime;
+			}
+		}else{
+			material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		}
 
-			TransformComponent transform = *pTransform;
-			transform.position += pParticle->Particle[i].Position * pParticle->particleSize;
-			transform.scale *= pParticle->particleSize;
+		TransformComponent transform = *pTransform;
+		transform.position +=
+			pParticle->Particle[i].Position * pParticle->particleSize;
+		transform.scale *= pParticle->particleSize;
 
-			BillBoardRendererComponent billBoard;
-			DirectX::XMMATRIX InvViewBillBoardMatrix = DirectX::XMMatrixRotationQuaternion(transform.rotationVector());
-			DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, ctx.viewMatrix);
-			DirectX::XMFLOAT4X4 invViewFloat4x4;
-			DirectX::XMStoreFloat4x4(&invViewFloat4x4, invView);
-
-			DirectX::XMVECTOR forward = DirectX::XMVectorSet(invViewFloat4x4._31, invViewFloat4x4._32, invViewFloat4x4._33, 0.0f);
-			DirectX::XMVECTOR right = DirectX::XMVectorSet(invViewFloat4x4._11, invViewFloat4x4._12, invViewFloat4x4._13, 0.0f);
-			DirectX::XMVECTOR up = DirectX::XMVectorSet(invViewFloat4x4._21, invViewFloat4x4._22, invViewFloat4x4._23, 0.0f);
-
-			const DirectX::XMVECTOR worldRight = DirectX::XMVectorSet(1, 0, 0, 0);
-			const DirectX::XMVECTOR worldUp = DirectX::XMVectorSet(0, 1, 0, 0);
-			const DirectX::XMVECTOR worldForward = DirectX::XMVectorSet(0, 0, 1, 0);
-
-			if(!billBoard.RotateXYZ.x) right = worldRight;
-			if(!billBoard.RotateXYZ.y) up = worldUp;
-			if(!billBoard.RotateXYZ.z) forward = worldForward;
-
-			// 再直交化（forward優先）
-			forward = DirectX::XMVector3Normalize(forward);
-			right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(up, forward));
-			up = DirectX::XMVector3Cross(forward, right);
-
-			InvViewBillBoardMatrix = DirectX::XMMATRIX(
-				right,
-				up,
-				forward,
-				DirectX::XMVectorSet(0, 0, 0, 1)
+		const DirectX::XMMATRIX worldMatrix =
+			DirectX::XMMatrixScaling(
+				transform.scale.x,
+				transform.scale.y,
+				transform.scale.z
+			) *
+			invViewBillBoardMatrix *
+			DirectX::XMMatrixTranslation(
+				transform.position.x,
+				transform.position.y,
+				transform.position.z
 			);
 
-			// ローカル変換行列（スケール・ビルボード回転・位置）
-			DirectX::XMMATRIX LocalMatrix =
-				DirectX::XMMatrixScaling(transform.scale.x, transform.scale.y, transform.scale.z) *
-				InvViewBillBoardMatrix *
-				DirectX::XMMatrixTranslation(transform.position.x, transform.position.y, transform.position.z);
+		graphicsContext->SetPerObjectConstants(worldMatrix, material, uv);
 
-			DirectX::XMMATRIX WorldMatrix = LocalMatrix;
-
-			graphicsContext->SetWorldMatrix(WorldMatrix);
-			UINT stride = sizeof(VERTEX_3D);
-			UINT offset = 0;
-
-			deviceContext->IASetVertexBuffers(0, 1, m_billBoardMesh->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
-
-			deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-			deviceContext->Draw(m_billBoardMesh->mesh.meshCount, 0);
-		}
+		UINT stride = sizeof(VERTEX_3D);
+		UINT offset = 0;
+		deviceContext->IASetVertexBuffers(
+			0,
+			1,
+			m_billBoardMesh->mesh.m_VertexBuffer.GetAddressOf(),
+			&stride,
+			&offset
+		);
+		deviceContext->IASetPrimitiveTopology(
+			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP
+		);
+		deviceContext->Draw(m_billBoardMesh->mesh.meshCount, 0);
 	}
 	graphicsContext->SetBlendMode(BlendMode::Alpha);
 	graphicsContext->SetDepthMode(DepthMode::Write);
