@@ -38,18 +38,38 @@ void ValidateRenderSystemOwnershipContract(){
 	assert(header.find("return m_renderWorld.LastSubmittedGeneration();") !=
 		std::string::npos);
 
-	// Step 18-A移行中のcpp互換名は参照であり、所有Storageではない。
-	assert(header.find("RenderPacketFrameBuffer& m_renderPacketBuffer;") !=
+	// 旧cppのBuild / Submit式はFacadeからRenderWorldへ転送する。
+	assert(header.find("class RenderWorldPacketCompatibility final") !=
 		std::string::npos);
-	assert(header.find("CullingVisibilitySet& m_cullingVisibility;") !=
+	assert(header.find("m_world.BeginFrame(generation);") !=
 		std::string::npos);
-	assert(header.find("uint64_t& m_lastSubmittedPacketGeneration;") !=
+	assert(header.find("m_world.Publish(workerBuffers);") !=
 		std::string::npos);
+	assert(header.find("return m_world.Generation();") !=
+		std::string::npos);
+	assert(header.find("class RenderWorldSubmissionCompatibility final") !=
+		std::string::npos);
+	assert(header.find("m_world.RecordSubmittedGeneration(generation);") !=
+		std::string::npos);
+	assert(header.find(
+		"RenderWorldPacketCompatibility m_renderPacketBuffer;"
+	) != std::string::npos);
+	assert(header.find(
+		"RenderWorldSubmissionCompatibility m_lastSubmittedPacketGeneration;"
+	) != std::string::npos);
+
+	// RenderSystem側へFrame Storageの直接所有を戻さない。
 	assert(header.find("RenderPacketFrameBuffer m_renderPacketBuffer;") ==
+		std::string::npos);
+	assert(header.find("RenderPacketFrameBuffer& m_renderPacketBuffer;") ==
 		std::string::npos);
 	assert(header.find("CullingVisibilitySet m_cullingVisibility;") ==
 		std::string::npos);
+	assert(header.find("CullingVisibilitySet& m_cullingVisibility;") ==
+		std::string::npos);
 	assert(header.find("uint64_t m_lastSubmittedPacketGeneration = 0;") ==
+		std::string::npos);
+	assert(header.find("uint64_t& m_lastSubmittedPacketGeneration;") ==
 		std::string::npos);
 }
 
@@ -91,9 +111,7 @@ int main(){
 	assert(!world.IsCurrentFrameSubmitted());
 	assert(world.LastSubmittedGeneration() == 42);
 
-	std::uint64_t& compatibilitySubmission =
-		world.SubmissionGenerationStorage();
-	compatibilitySubmission = 43;
+	world.RecordSubmittedGeneration(43);
 	assert(world.LastSubmittedGeneration() == 43);
 
 	RenderPacketCullingView unstableView;
