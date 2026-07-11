@@ -41,6 +41,11 @@
   -->
   <ItemGroup Condition="'$(MSBuildProjectName)' == 'GameEngine'">
     <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\Animation\RenderSystemAnimationTaskRegistration.h" />
+    <ClInclude Remove="Source\GameApplication\Service\Graphics\D3D11ConstantBufferUpload.h" />
+    <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\Animation\RenderSystemAnimationTaskRegistrar.h" />
+    <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\Terrain\TerrainMeshBuilder.h" />
+    <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\Terrain\TerrainMeshUpload.h" />
+    <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\Terrain\TerrainTaskRegistrar.h" />
 
     <ClInclude Include="Source\GameApplication\Service\Graphics\D3D11ConstantBufferUpload.h"
                Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Service\Graphics\D3D11ConstantBufferUpload.h')">
