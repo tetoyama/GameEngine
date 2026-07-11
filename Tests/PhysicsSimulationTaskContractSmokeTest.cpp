@@ -73,8 +73,10 @@ void ValidateSameStepFetchContract(){
 		RequireToken(source, "inline void PhysicSystem::PhysicsBegin(");
 	const std::size_t fetchFunction =
 		RequireToken(source, "inline void PhysicSystem::PhysicsFetch()", beginFunction);
+	const std::size_t drainFunction =
+		RequireToken(source, "inline bool PhysicSystem::DrainSimulation(", fetchFunction);
 	const std::size_t downloadFunction =
-		RequireToken(source, "inline void PhysicSystem::PhysicsDownload()", fetchFunction);
+		RequireToken(source, "inline void PhysicSystem::PhysicsDownload()", drainFunction);
 
 	const std::string beginBody = source.substr(
 		beginFunction,
@@ -82,7 +84,11 @@ void ValidateSameStepFetchContract(){
 	);
 	const std::string fetchBody = source.substr(
 		fetchFunction,
-		downloadFunction - fetchFunction
+		drainFunction - fetchFunction
+	);
+	const std::string drainBody = source.substr(
+		drainFunction,
+		downloadFunction - drainFunction
 	);
 
 	const std::size_t beginLock =
@@ -108,18 +114,97 @@ void ValidateSameStepFetchContract(){
 	);
 	const std::size_t fetchUnlock =
 		RequireToken(fetchBody, "g_pScene->unlockWrite();", fetchCall);
-	const std::size_t fetchedGuard =
-		RequireToken(fetchBody, "if(!fetched)", fetchUnlock);
 	const std::size_t clearInFlight = RequireToken(
 		fetchBody,
 		"m_simulationInFlight.store(false, std::memory_order_release)",
-		fetchedGuard
+		fetchUnlock
 	);
+	const std::size_t fetchedGuard =
+		RequireToken(fetchBody, "if(!fetched)", clearInFlight);
 	assert(fetchLock < fetchCall);
 	assert(fetchCall < fetchUnlock);
-	assert(fetchUnlock < fetchedGuard);
-	assert(fetchedGuard < clearInFlight);
+	assert(fetchUnlock < clearInFlight);
+	assert(clearInFlight < fetchedGuard);
 	assert(fetchBody.find("lockRead") == std::string::npos);
+
+	const std::size_t drainFetch =
+		RequireToken(drainBody, "g_pScene->fetchResults(true, &errorState)");
+	const std::size_t drainClear = RequireToken(
+		drainBody,
+		"m_simulationInFlight.store(false, std::memory_order_release)",
+		drainFetch
+	);
+	assert(drainFetch < drainClear);
+	assert(drainBody.find("lockRead") == std::string::npos);
+}
+
+void ValidateShutdownLifecycle(){
+	const std::string source = ReadTextFile(
+		"Source/GameApplication/Engine/Scene/System/Physic/physicSystem.cpp"
+	);
+	const std::size_t finalizeFunction =
+		RequireToken(source, "void PhysicSystem::Finalize()");
+	const std::size_t attachFunction =
+		RequireToken(source, "ActorEntityInfo* PhysicSystem::AttachActorEntityInfo(", finalizeFunction);
+	const std::string finalizeBody = source.substr(
+		finalizeFunction,
+		attachFunction - finalizeFunction
+	);
+
+	const std::size_t disableCallback =
+		RequireToken(finalizeBody, "m_simCallback->m_active = false");
+	const std::size_t drain =
+		RequireToken(finalizeBody, "DrainSimulation(\"Finalize\")", disableCallback);
+	const std::size_t releaseScene =
+		RequireToken(finalizeBody, "g_pScene->release();", drain);
+	const std::size_t getTransport =
+		RequireToken(finalizeBody, "g_pPvd->getTransport()", releaseScene);
+	const std::size_t releasePvd =
+		RequireToken(finalizeBody, "g_pPvd->release();", getTransport);
+	const std::size_t releaseTransport =
+		RequireToken(finalizeBody, "transport->release();", releasePvd);
+	assert(disableCallback < drain);
+	assert(drain < releaseScene);
+	assert(getTransport < releasePvd);
+	assert(releasePvd < releaseTransport);
+	assert(finalizeBody.find("disconnect()") == std::string::npos);
+
+	const std::size_t stopFunction =
+		RequireToken(source, "void PhysicSystem::Stop()");
+	const std::size_t encodeFunction =
+		RequireToken(source, "YAML::Node PhysicSystem::encode()", stopFunction);
+	const std::string stopBody = source.substr(
+		stopFunction,
+		encodeFunction - stopFunction
+	);
+	const std::size_t stopDrain =
+		RequireToken(stopBody, "DrainSimulation(\"Stop\")");
+	const std::size_t releaseCollider =
+		RequireToken(stopBody, "ReleaseColliderRuntime(collider)", stopDrain);
+	assert(stopDrain < releaseCollider);
+	assert(stopBody.find("simulate(") == std::string::npos);
+	assert(stopBody.find("fetchResults(") == std::string::npos);
+	assert(stopBody.find("lockRead") == std::string::npos);
+
+	const std::size_t fixedUpdateFunction =
+		RequireToken(source, "void PhysicSystem::FixedUpdate(float deltaTime)");
+	const std::size_t drawLayerFunction =
+		RequireToken(source, "void PhysicSystem::DrawLayerEditor()", fixedUpdateFunction);
+	const std::string fixedUpdateBody = source.substr(
+		fixedUpdateFunction,
+		drawLayerFunction - fixedUpdateFunction
+	);
+	const std::size_t upload = RequireToken(fixedUpdateBody, "PhysicsUpload();");
+	const std::size_t begin = RequireToken(fixedUpdateBody, "PhysicsBegin(deltaTime);", upload);
+	const std::size_t fetch = RequireToken(fixedUpdateBody, "PhysicsFetch();", begin);
+	const std::size_t download = RequireToken(fixedUpdateBody, "PhysicsDownload();", fetch);
+	const std::size_t dispatch = RequireToken(fixedUpdateBody, "CollisionEventDispatch();", download);
+	assert(upload < begin);
+	assert(begin < fetch);
+	assert(fetch < download);
+	assert(download < dispatch);
+	assert(fixedUpdateBody.find("g_pScene->simulate") == std::string::npos);
+	assert(fixedUpdateBody.find("g_pScene->fetchResults") == std::string::npos);
 }
 
 void ValidateAnalysisNamesMatchTasks(){
@@ -145,6 +230,7 @@ void ValidateAnalysisNamesMatchTasks(){
 int main(){
 	ValidateTaskChain();
 	ValidateSameStepFetchContract();
+	ValidateShutdownLifecycle();
 	ValidateAnalysisNamesMatchTasks();
 	return 0;
 }
