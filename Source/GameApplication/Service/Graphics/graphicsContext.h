@@ -21,6 +21,7 @@
 
 #include "Service/IService.h"
 #include "GpuFrameTiming.h"
+#include "D3D11ConstantBufferUpload.h"
 #include "Service/Graphics/RHI/RHIService.h"
 #include "Shader/Common.hlsl"
 
@@ -203,13 +204,11 @@ public:
 			&m_CbPerCameraData.Projection,
 			DirectX::XMMatrixTranspose(projection)
 		);
-		m_DeviceContext->UpdateSubresource(
+		D3D11ConstantBufferUpload::Upload(
+			m_DeviceContext.Get(),
 			m_CbPerCamera,
-			0,
-			nullptr,
-			&m_CbPerCameraData,
-			0,
-			0
+			m_CbPerCameraData,
+			D3D11ConstantBufferUploadStrategy::UpdateSubresource
 		);
 	}
 
@@ -236,13 +235,11 @@ public:
 		m_CbPerObjectData.Material = material;
 		m_CbPerObjectData.UVStart = uv.UVStart;
 		m_CbPerObjectData.UVEnd = uv.UVEnd;
-		m_DeviceContext->UpdateSubresource(
+		D3D11ConstantBufferUpload::Upload(
+			m_DeviceContext.Get(),
 			m_CbPerObject,
-			0,
-			nullptr,
-			&m_CbPerObjectData,
-			0,
-			0
+			m_CbPerObjectData,
+			D3D11ConstantBufferUploadStrategy::UpdateSubresource
 		);
 	}
 
