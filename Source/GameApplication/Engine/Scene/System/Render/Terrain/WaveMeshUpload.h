@@ -32,12 +32,13 @@ inline bool ValidateCounts(
 		indices.size() > static_cast<std::size_t>((std::numeric_limits<int>::max)())){
 		return false;
 	}
-	if(vertices.size() > static_cast<std::size_t>((std::numeric_limits<UINT>::max)()) /
-		sizeof(VERTEX_3D)){
+	const std::size_t maximumByteWidth = static_cast<std::size_t>(
+		(std::numeric_limits<UINT>::max)()
+	);
+	if(vertices.size() > maximumByteWidth / sizeof(VERTEX_3D)){
 		return false;
 	}
-	if(indices.size() > static_cast<std::size_t>((std::numeric_limits<UINT>::max)()) /
-		sizeof(std::uint32_t)){
+	if(indices.size() > maximumByteWidth / sizeof(std::uint32_t)){
 		return false;
 	}
 	return true;
@@ -55,9 +56,12 @@ inline bool ReplaceMesh(
 	Microsoft::WRL::ComPtr<ID3D11Buffer> newVertexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> newIndexBuffer;
 
+	const std::size_t vertexByteWidth = vertices.size() * sizeof(VERTEX_3D);
+	const std::size_t indexByteWidth = indices.size() * sizeof(std::uint32_t);
+
 	D3D11_BUFFER_DESC vertexDesc{};
 	vertexDesc.Usage = D3D11_USAGE_DYNAMIC;
-	vertexDesc.ByteWidth = static_cast<UINT>(vertices.size() * sizeof(VERTEX_3D));
+	vertexDesc.ByteWidth = static_cast<UINT>(vertexByteWidth);
 	vertexDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vertexDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
@@ -72,7 +76,7 @@ inline bool ReplaceMesh(
 
 	D3D11_BUFFER_DESC indexDesc{};
 	indexDesc.Usage = D3D11_USAGE_DEFAULT;
-	indexDesc.ByteWidth = static_cast<UINT>(indices.size() * sizeof(std::uint32_t));
+	indexDesc.ByteWidth = static_cast<UINT>(indexByteWidth);
 	indexDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 
 	D3D11_SUBRESOURCE_DATA indexData{};
@@ -105,13 +109,13 @@ inline bool UploadVertices(
 		return false;
 	}
 
+	const std::size_t requiredBytes = vertices.size() * sizeof(VERTEX_3D);
 #ifndef NDEBUG
 	D3D11_BUFFER_DESC desc{};
 	vertexBuffer->GetDesc(&desc);
-	const std::size_t requiredBytes = vertices.size() * sizeof(VERTEX_3D);
 	if(desc.Usage != D3D11_USAGE_DYNAMIC ||
 		(desc.CPUAccessFlags & D3D11_CPU_ACCESS_WRITE) == 0 ||
-		desc.ByteWidth != requiredBytes){
+		static_cast<std::size_t>(desc.ByteWidth) != requiredBytes){
 		return false;
 	}
 #endif
@@ -126,11 +130,7 @@ inline bool UploadVertices(
 	);
 	if(FAILED(result) || !mapped.pData) return false;
 
-	std::memcpy(
-		mapped.pData,
-		vertices.data(),
-		vertices.size() * sizeof(VERTEX_3D)
-	);
+	std::memcpy(mapped.pData, vertices.data(), requiredBytes);
 	context->Unmap(vertexBuffer, 0);
 	return true;
 }
