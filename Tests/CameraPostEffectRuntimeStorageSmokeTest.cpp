@@ -20,6 +20,9 @@ void ValidateComponentBoundary(){
 	const std::string component = ReadTextFile(
 		"Source/GameApplication/Engine/Scene/Component/cameraComponent.h"
 	);
+	const std::string inspector = ReadTextFile(
+		"Source/GameApplication/Engine/Scene/Component/Operations/CameraComponentInspector.h"
+	);
 	assert(component.find("#include <d3d11.h>") == std::string::npos);
 	assert(component.find("#include <wrl/client.h>") == std::string::npos);
 	assert(component.find("ID3D11Texture2D") == std::string::npos);
@@ -31,6 +34,8 @@ void ValidateComponentBoundary(){
 	assert(component.find("Clear(ID3D11DeviceContext") == std::string::npos);
 	assert(component.find("CameraPostEffectPreviewHandle srv;") !=
 		std::string::npos);
+	assert(inspector.find("if(effect.srv)") != std::string::npos);
+	assert(inspector.find("effect.srv.Get()") != std::string::npos);
 }
 
 void ValidateRuntimeStorage(){
