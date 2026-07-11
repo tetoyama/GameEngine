@@ -77,6 +77,9 @@ void ValidateRenderSystemOwnership(){
 	const std::string animationTasks = ReadTextFile(
 		"Source/GameApplication/Engine/Scene/System/Render/Animation/RenderSystemAnimationTasks.inl"
 	);
+	const std::string animationRegistrar = ReadTextFile(
+		"Source/GameApplication/Engine/Scene/System/Render/Animation/RenderSystemAnimationTaskRegistrar.h"
+	);
 	const std::string renderable = ReadTextFile(
 		"Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Model/RenderableModel.cpp"
 	);
@@ -96,6 +99,9 @@ void ValidateRenderSystemOwnership(){
 		std::string::npos);
 	assert(animationTasks.find("runtime.Ensure(") != std::string::npos);
 	assert(animationTasks.find("runtime.RawBuffers()") != std::string::npos);
+	assert(animationRegistrar.find(
+		"WriteResource<ModelRendererGpuRuntimeStorage>()"
+	) != std::string::npos);
 	assert(renderable.find("GetModelRendererGpuRuntime().Find(runtimeKey)") !=
 		std::string::npos);
 	assert(renderable.find("modelGpuRuntime->Buffer(meshIndex)") !=
