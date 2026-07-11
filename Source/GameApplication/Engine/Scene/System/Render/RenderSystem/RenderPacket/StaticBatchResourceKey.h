@@ -52,27 +52,65 @@ inline void CombineFloat(std::uint64_t& hash, float value) noexcept {
 }
 
 inline UVMatrixBuffer ResolveUVState(
-	const TextureComponent* texture
+	float sliceX,
+	float sliceY,
+	int animationFrame
 ) noexcept {
 	UVMatrixBuffer uv{};
 	uv.UVStart = float2(0.0f, 0.0f);
 	uv.UVEnd = float2(1.0f, 1.0f);
-	if(!texture || texture->UV_Slice_X <= 0.0f ||
-		texture->UV_Slice_Y <= 0.0f){
+	if(sliceX <= 0.0f || sliceY <= 0.0f){
 		return uv;
 	}
 
-	const int column = (std::max)(
-		1,
-		static_cast<int>(1.0f / texture->UV_Slice_X)
-	);
-	uv.UVStart.x =
-		(texture->AnimationNum % column) * texture->UV_Slice_X;
-	uv.UVStart.y =
-		(texture->AnimationNum / column) * texture->UV_Slice_Y;
-	uv.UVEnd.x = uv.UVStart.x + texture->UV_Slice_X;
-	uv.UVEnd.y = uv.UVStart.y + texture->UV_Slice_Y;
+	const bool isSliceX = TextureComponent::IsSliceValue(sliceX);
+	const bool isSliceY = TextureComponent::IsSliceValue(sliceY);
+	const float spanX = TextureComponent::ResolveUVSpan(sliceX);
+	const float spanY = TextureComponent::ResolveUVSpan(sliceY);
+	const int columnCount = TextureComponent::ResolveSliceCount(sliceX);
+	const int rowCount = TextureComponent::ResolveSliceCount(sliceY);
+	const int maxFrame = (std::max)(0, columnCount * rowCount - 1);
+	const int safeFrame = std::clamp(animationFrame, 0, maxFrame);
+
+	if(isSliceX){
+		uv.UVStart.x = (safeFrame % columnCount) * spanX;
+		uv.UVEnd.x = uv.UVStart.x + spanX;
+	}else{
+		uv.UVStart.x = 0.0f;
+		uv.UVEnd.x = spanX;
+	}
+
+	if(isSliceY){
+		uv.UVStart.y = (safeFrame / columnCount) * spanY;
+		uv.UVEnd.y = uv.UVStart.y + spanY;
+	}else{
+		uv.UVStart.y = 0.0f;
+		uv.UVEnd.y = spanY;
+	}
+
 	return uv;
+}
+
+inline UVMatrixBuffer ResolveUVState(
+	const TextureComponent* texture
+) noexcept {
+	if(!texture){
+		return ResolveUVState(1.0f, 1.0f, 0);
+	}
+	return ResolveUVState(
+		texture->UV_Slice_X,
+		texture->UV_Slice_Y,
+		texture->AnimationNum
+	);
+}
+
+inline std::uint64_t MakeUVStateKey(const UVMatrixBuffer& uv) noexcept {
+	std::uint64_t key = 0x55565354415445ull;
+	CombineFloat(key, uv.UVStart.x);
+	CombineFloat(key, uv.UVStart.y);
+	CombineFloat(key, uv.UVEnd.x);
+	CombineFloat(key, uv.UVEnd.y);
+	return key == 0 ? 1 : key;
 }
 
 inline void CombineMaterial(
@@ -279,10 +317,7 @@ inline std::uint64_t MakeMaterialStateKey(const RenderPacket& packet) noexcept {
 	}
 
 	const UVMatrixBuffer uv = ResolveUVState(packet.bindings.texture);
-	CombineFloat(key, uv.UVStart.x);
-	CombineFloat(key, uv.UVStart.y);
-	CombineFloat(key, uv.UVEnd.x);
-	CombineFloat(key, uv.UVEnd.y);
+	Combine(key, MakeUVStateKey(uv));
 	return key == 0 ? 1 : key;
 }
 
