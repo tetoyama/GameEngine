@@ -47,7 +47,7 @@ jobs:
             Tests/RenderPacketViewCullingSmokeTest.cpp ^
             Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp ^
             /Fe:render-packet-view-culling-test.exe ^
-            /link /NODEFAULTLIB:yaml-cppd.lib ^
+            /link /NODEFAULTLIB:yaml-cppd.lib /NODEFAULTLIB:DirectXTex_Debug.lib ^
             > render-packet-view-culling.log 2>&1
           if errorlevel 1 exit /b 1
           render-packet-view-culling-test.exe >> render-packet-view-culling.log 2>&1
