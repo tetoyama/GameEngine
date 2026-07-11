@@ -39,20 +39,34 @@ jobs:
         with:
           arch: x64
       - name: Compile and run native buffer import
+        id: native_buffer_import
+        continue-on-error: true
         shell: cmd
-        run: >-
-          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
-          /wd4100 /wd4201 /wd4458 /wd4471
-          /I Source
-          /I Source/GameApplication
-          /I Source/GameApplication/Engine
-          /I Source/GameApplication/Engine/Scene
-          /I Source/GameApplication/Service
-          Tests/D3D11RHINativeBufferImportTest.cpp
-          d3d11.lib dxgi.lib
-          /Fe:d3d11-native-buffer-import-test.exe
-          /link /NODEFAULTLIB:DirectXTex_Debug.lib
-          && d3d11-native-buffer-import-test.exe
+        run: |
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd ^
+            /wd4100 /wd4201 /wd4458 /wd4471 ^
+            /I Source ^
+            /I Source/GameApplication ^
+            /I Source/GameApplication/Engine ^
+            /I Source/GameApplication/Engine/Scene ^
+            /I Source/GameApplication/Service ^
+            Tests/D3D11RHINativeBufferImportTest.cpp ^
+            d3d11.lib dxgi.lib ^
+            /Fe:d3d11-native-buffer-import-test.exe ^
+            /link /NODEFAULTLIB:DirectXTex_Debug.lib ^
+            > d3d11-native-buffer-import.log 2>&1
+          if errorlevel 1 exit /b 1
+          d3d11-native-buffer-import-test.exe >> d3d11-native-buffer-import.log 2>&1
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d3d11-native-buffer-import-diagnostics
+          path: d3d11-native-buffer-import.log
+          if-no-files-found: error
+      - name: Preserve native buffer import result
+        if: steps.native_buffer_import.outcome == 'failure'
+        run: cmd /c exit 1
 
   gbuffer-target-binding:
     runs-on: windows-latest
@@ -64,20 +78,34 @@ jobs:
         with:
           arch: x64
       - name: Compile and run GBuffer target binding
+        id: gbuffer_target_binding
+        continue-on-error: true
         shell: cmd
-        run: >-
-          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
-          /wd4100 /wd4201 /wd4458 /wd4471
-          /I Source
-          /I Source/GameApplication
-          /I Source/GameApplication/Engine
-          /I Source/GameApplication/Engine/Scene
-          /I Source/GameApplication/Service
-          Tests/StaticBatchD3D11GBufferTargetBindingTest.cpp
-          d3d11.lib dxgi.lib
-          /Fe:d3d11-gbuffer-target-binding-test.exe
-          /link /NODEFAULTLIB:DirectXTex_Debug.lib
-          && d3d11-gbuffer-target-binding-test.exe
+        run: |
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd ^
+            /wd4100 /wd4201 /wd4458 /wd4471 ^
+            /I Source ^
+            /I Source/GameApplication ^
+            /I Source/GameApplication/Engine ^
+            /I Source/GameApplication/Engine/Scene ^
+            /I Source/GameApplication/Service ^
+            Tests/StaticBatchD3D11GBufferTargetBindingTest.cpp ^
+            d3d11.lib dxgi.lib ^
+            /Fe:d3d11-gbuffer-target-binding-test.exe ^
+            /link /NODEFAULTLIB:DirectXTex_Debug.lib ^
+            > d3d11-gbuffer-target-binding.log 2>&1
+          if errorlevel 1 exit /b 1
+          d3d11-gbuffer-target-binding-test.exe >> d3d11-gbuffer-target-binding.log 2>&1
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d3d11-gbuffer-target-binding-diagnostics
+          path: d3d11-gbuffer-target-binding.log
+          if-no-files-found: error
+      - name: Preserve GBuffer target binding result
+        if: steps.gbuffer_target_binding.outcome == 'failure'
+        run: cmd /c exit 1
 
   shadow-pipeline:
     runs-on: windows-latest
@@ -89,17 +117,31 @@ jobs:
         with:
           arch: x64
       - name: Compile and run static shadow pipeline
+        id: shadow_pipeline
+        continue-on-error: true
         shell: cmd
-        run: >-
-          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
-          /wd4100 /wd4201 /wd4458 /wd4471
-          /I Source
-          /I Source/GameApplication
-          /I Source/GameApplication/Engine
-          /I Source/GameApplication/Engine/Scene
-          /I Source/GameApplication/Service
-          Tests/StaticBatchD3D11ShadowPipelineTest.cpp
-          d3d11.lib d3dcompiler.lib dxgi.lib
-          /Fe:d3d11-static-shadow-pipeline-test.exe
-          /link /NODEFAULTLIB:DirectXTex_Debug.lib
-          && d3d11-static-shadow-pipeline-test.exe
+        run: |
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd ^
+            /wd4100 /wd4201 /wd4458 /wd4471 ^
+            /I Source ^
+            /I Source/GameApplication ^
+            /I Source/GameApplication/Engine ^
+            /I Source/GameApplication/Engine/Scene ^
+            /I Source/GameApplication/Service ^
+            Tests/StaticBatchD3D11ShadowPipelineTest.cpp ^
+            d3d11.lib d3dcompiler.lib dxgi.lib ^
+            /Fe:d3d11-static-shadow-pipeline-test.exe ^
+            /link /NODEFAULTLIB:DirectXTex_Debug.lib ^
+            > d3d11-static-shadow-pipeline.log 2>&1
+          if errorlevel 1 exit /b 1
+          d3d11-static-shadow-pipeline-test.exe >> d3d11-static-shadow-pipeline.log 2>&1
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d3d11-static-shadow-pipeline-diagnostics
+          path: d3d11-static-shadow-pipeline.log
+          if-no-files-found: error
+      - name: Preserve static shadow pipeline result
+        if: steps.shadow_pipeline.outcome == 'failure'
+        run: cmd /c exit 1
