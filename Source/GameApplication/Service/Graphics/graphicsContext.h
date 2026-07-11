@@ -187,6 +187,12 @@ public:
 	void SetParameter(const float4& param);
 	void SetObjectInfo(const ObjectInfo& ObjectInfo);
 
+	void StageObjectInfo(const ObjectInfo& objectInfo) noexcept {
+		m_CbPerObjectData.SceneID = objectInfo.SceneID;
+		m_CbPerObjectData.ObjectID = objectInfo.ObjectID;
+		m_CbPerObjectData.ShaderID = objectInfo.ShaderID;
+	}
+
 	// M-5 Phase 1: 関連フィールドをCPUミラーへまとめて反映し、
 	// 定数バッファ全体のUploadを1回に集約する。
 	// 既存の個別Setterは即時Upload契約を維持する。
