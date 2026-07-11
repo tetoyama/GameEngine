@@ -102,8 +102,8 @@ public:
 				}
 
 				const bool needsTopology =
-					!component->meshRenderer ||
-					component->Resolution != component->CurrentResolution;
+					component->Resolution != component->CurrentResolution ||
+					!HasRenderableMesh(*component);
 
 				if(needsTopology){
 					if(!WaveMeshBuilder::BuildTopology(
@@ -186,7 +186,7 @@ public:
 						delete component->meshRenderer;
 						component->meshRenderer = nullptr;
 					}
-				}else if(component->meshRenderer &&
+				}else if(HasRenderableMesh(*component) &&
 					component->CurrentResolution == component->Resolution){
 					uploaded = WaveMeshUpload::UploadVertices(
 						*m_graphicContext,
@@ -194,8 +194,9 @@ public:
 						component->stagingVertices
 					);
 				}else{
-					// Topologyが失われた場合は次Frameに再構築へ戻す。
+					// GPU Meshが失われた場合は次FrameにTopology再構築へ戻す。
 					ClearStaging(*component);
+					component->CurrentResolution = -1;
 					continue;
 				}
 
@@ -220,6 +221,14 @@ public:
 	}
 
 private:
+	static bool HasRenderableMesh(const WaveComponent& component){
+		return component.meshRenderer &&
+			component.meshRenderer->mesh.m_VertexBuffer &&
+			component.meshRenderer->mesh.m_IndexBuffer &&
+			component.meshRenderer->mesh.meshCount > 0 &&
+			component.meshRenderer->mesh.indexCount > 0;
+	}
+
 	static void ClearStaging(WaveComponent& component){
 		component.stagingVertices.clear();
 		component.stagingIndices.clear();
