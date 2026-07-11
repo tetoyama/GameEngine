@@ -7,13 +7,15 @@
 
 #include "Interface/ISystem.h"
 
+#include <cstdint>
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <wrl/client.h>
-#include <string>
-#include <vector>
 #include <memory>
 #include <mutex>
+#include <span>
+#include <string>
+#include <vector>
 
 #include "Backends/myVector2.h"
 #include "Backends/myVector3.h"
@@ -59,6 +61,53 @@ struct PostEffect
 //======================================================================
 class RenderSystem: public ISystem, public IShaderMaterialProvider
 {
+private:
+	// renderSystem.cppを全体書き換えせず、Build経路をRenderWorld APIへ
+	// 転送するためのStep 18-A互換Facade。描画Storageは所有しない。
+	class RenderWorldPacketCompatibility final {
+	public:
+		explicit RenderWorldPacketCompatibility(RenderWorld& world) noexcept
+			: m_world(world){
+		}
+
+		void BeginFrame(std::uint64_t generation){
+			m_world.BeginFrame(generation);
+		}
+
+		void Merge(std::span<const RenderPacketWorkerBuffer> workerBuffers){
+			m_world.Publish(workerBuffers);
+		}
+
+		std::uint64_t Generation() const noexcept {
+			return m_world.Generation();
+		}
+
+	private:
+		RenderWorld& m_world;
+	};
+
+	// Submit経路の旧代入式をRenderWorldへ転送する一時Facade。
+	class RenderWorldSubmissionCompatibility final {
+	public:
+		explicit RenderWorldSubmissionCompatibility(RenderWorld& world) noexcept
+			: m_world(world){
+		}
+
+		RenderWorldSubmissionCompatibility& operator=(
+			std::uint64_t generation
+		) noexcept {
+			m_world.RecordSubmittedGeneration(generation);
+			return *this;
+		}
+
+		operator std::uint64_t() const noexcept {
+			return m_world.LastSubmittedGeneration();
+		}
+
+	private:
+		RenderWorld& m_world;
+	};
+
 public:
 	const char* GetSystemName() const override{
 		return "RenderSystem";
@@ -66,10 +115,8 @@ public:
 
 	RenderSystem(SceneManagerContext* context)
 		: m_context(context),
-		  m_renderPacketBuffer(m_renderWorld.Packets()),
-		  m_cullingVisibility(m_renderWorld.Visibility()),
-		  m_lastSubmittedPacketGeneration(
-			  m_renderWorld.SubmissionGenerationStorage()){
+		  m_renderPacketBuffer(m_renderWorld),
+		  m_lastSubmittedPacketGeneration(m_renderWorld){
 		ShaderMaterials.clear();
 
 		ShaderMaterial unlitMaterial;
@@ -223,7 +270,7 @@ public:
 		return m_renderWorld.Visibility();
 	}
 
-	uint64_t GetLastSubmittedPacketGeneration() const noexcept {
+	std::uint64_t GetLastSubmittedPacketGeneration() const noexcept {
 		return m_renderWorld.LastSubmittedGeneration();
 	}
 
@@ -260,12 +307,10 @@ private:
 	// Step 18-A: Frame-local描画データの所有権をRenderWorldへ集約する。
 	RenderWorld m_renderWorld;
 
-	// renderSystem.cppの段階移行用Alias。実体の所有者ではない。
-	// Build / SubmitがRenderWorld APIへ直接移行した後に削除する。
-	RenderPacketFrameBuffer& m_renderPacketBuffer;
-	CullingVisibilitySet& m_cullingVisibility;
-	uint64_t m_renderPacketGeneration = 0;
-	uint64_t& m_lastSubmittedPacketGeneration;
+	// renderSystem.cppの段階移行用Facade。実体の所有者ではない。
+	RenderWorldPacketCompatibility m_renderPacketBuffer;
+	std::uint64_t m_renderPacketGeneration = 0;
+	RenderWorldSubmissionCompatibility m_lastSubmittedPacketGeneration;
 
 	float lazyTimer = 0.0f;
 };
