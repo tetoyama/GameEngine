@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <unordered_map>
+#include <utility>
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -148,6 +149,15 @@ public:
 		std::uint32_t sceneContextID,
 		std::uint64_t cameraEntity
 	) noexcept {
+		const bool cameraChanged =
+			m_activeSceneContextID != 0 &&
+			(m_activeSceneContextID != sceneContextID ||
+				m_activeCameraEntity != cameraEntity);
+		if(cameraChanged){
+			// PostEffectPassは同時に1 Cameraだけを処理する。
+			// Camera切替時に旧CameraのTexture群を保持し続けない。
+			m_entries.clear();
+		}
 		m_activeSceneContextID = sceneContextID;
 		m_activeCameraEntity = cameraEntity;
 		return ++m_generation;
