@@ -73,8 +73,10 @@ void EditorPass::Execute(const RenderPassContext& context){
 	}
 
 	graphics->SetCameraPosition(viewContext.CameraPosition);
-	graphics->SetViewMatrix(viewContext.viewMatrix);
-	graphics->SetProjectionMatrix(viewContext.projectionMatrix);
+	graphics->SetPerCameraConstants(
+		viewContext.viewMatrix,
+		viewContext.projectionMatrix
+	);
 	lightingPass->SetTextureSlot(gBufferPass, shadowMapPass, graphics);
 	{
 		ScopedGpuPassTiming timing(
