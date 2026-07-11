@@ -1,0 +1,60 @@
+name: Terrain Mesh Task Smoke Test
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Source/GameApplication/Engine/Scene/Component/terrainComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Terrain/TerrainMeshBuilder.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Terrain/TerrainMeshUpload.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Terrain/TerrainTaskRegistrar.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Terrain/terrainSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Terrain/RenderableTerrain.cpp"
+      - "Tests/TerrainMeshTaskSmokeTest.cpp"
+      - ".github/workflows/terrain-mesh-task.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Source/GameApplication/Engine/Scene/Component/terrainComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Terrain/TerrainMeshBuilder.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Terrain/TerrainMeshUpload.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Terrain/TerrainTaskRegistrar.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Terrain/terrainSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Terrain/RenderableTerrain.cpp"
+      - "Tests/TerrainMeshTaskSmokeTest.cpp"
+      - ".github/workflows/terrain-mesh-task.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: terrain-mesh-task-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run terrain mesh task contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/TerrainMeshTaskSmokeTest.cpp
+          /Fe:terrain-mesh-task-test.exe
+          /link /NODEFAULTLIB:yaml-cppd.lib
+          && terrain-mesh-task-test.exe
