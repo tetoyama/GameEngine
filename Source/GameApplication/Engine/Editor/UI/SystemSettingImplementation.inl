@@ -16,6 +16,7 @@
 #include "DebugTools/ImGuiSystem.h"
 #include "Editor/UI/LightingDiagnosticUI.h"
 #include "Editor/UI/MenuBar.h"
+#include "Editor/UI/PhysicsSimulationOverlapUI.h"
 #include "Editor/UI/ScheduleProfileYamlExportUI.h"
 #include "Editor/UI/StaticBatchTelemetryUI.h"
 #include "Scene/sceneManager.h"
@@ -239,6 +240,7 @@ inline void DrawScheduleSettings(
 	}
 
 	ScheduleProfileYamlExportUI::Draw(*registry, viewState);
+	PhysicsSimulationOverlapUI::Draw(*registry, viewState);
 	ScheduleProfilerView::Draw(*registry, viewState);
 }
 
