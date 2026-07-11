@@ -11,20 +11,17 @@
 #include <utility>
 #include <vector>
 
-#include <d3d11.h>
-
 #include "Interface/IComponent.h"
 #include "Resources/Data/modelData.h"
 
-// モデル設定、Entity固有Animation状態、動的VB参照を保持するComponent。
-// ModelDataはResourceServiceで共有されるため、可変なBone PoseをResourceへ保存しない。
+// モデル設定とEntity固有AnimationのCPU状態を保持するComponent。
+// 動的Vertex BufferなどのGPU RuntimeはRenderSystem側Storageが所有する。
 class ModelRendererComponent: public IComponent {
 public:
 	std::shared_ptr<ModelData> model;
 	std::string modelFilePath;
 	std::vector<std::pair<std::string, std::string>> animations;
 	std::vector<AnimationBlend> blendedAnimations;
-	std::vector<ID3D11Buffer*> dynamicVertexBuffers;
 	bool isBlender = false;
 	float animationTime = 0.0f;
 
@@ -34,6 +31,7 @@ public:
 	uint64_t animationPoseRevision = 0;
 
 	// Modelの再生成・Reloadを跨いだ古いPose Uploadを拒否する世代。
+	// GPU Runtime StorageもこのRevisionで古いBufferを置換する。
 	uint64_t modelRuntimeRevision = 1;
 	uint64_t animationPoseSourceModelRevision = 0;
 
