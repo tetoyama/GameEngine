@@ -85,14 +85,41 @@ void ValidateSameStepFetchContract(){
 		downloadFunction - fetchFunction
 	);
 
-	assert(beginBody.find("g_pScene->simulate(fixedDeltaTime)") !=
-		std::string::npos);
+	const std::size_t beginLock =
+		RequireToken(beginBody, "g_pScene->lockWrite();");
+	const std::size_t simulateCall =
+		RequireToken(beginBody, "g_pScene->simulate(fixedDeltaTime)", beginLock);
+	const std::size_t beginUnlock =
+		RequireToken(beginBody, "g_pScene->unlockWrite();", simulateCall);
+	assert(beginLock < simulateCall);
+	assert(simulateCall < beginUnlock);
+	assert(beginBody.find("lockRead") == std::string::npos);
 	assert(beginBody.find("fetchResults") == std::string::npos);
-	assert(fetchBody.find("g_pScene->fetchResults(true)") !=
-		std::string::npos);
-	assert(fetchBody.find(
-		"m_simulationInFlight.store(false, std::memory_order_release)"
-	) != std::string::npos);
+	assert(beginBody.find("if(!submitted)") != std::string::npos);
+
+	const std::size_t errorState =
+		RequireToken(fetchBody, "physx::PxU32 errorState = 0;");
+	const std::size_t fetchLock =
+		RequireToken(fetchBody, "g_pScene->lockWrite();", errorState);
+	const std::size_t fetchCall = RequireToken(
+		fetchBody,
+		"g_pScene->fetchResults(true, &errorState)",
+		fetchLock
+	);
+	const std::size_t fetchUnlock =
+		RequireToken(fetchBody, "g_pScene->unlockWrite();", fetchCall);
+	const std::size_t fetchedGuard =
+		RequireToken(fetchBody, "if(!fetched)", fetchUnlock);
+	const std::size_t clearInFlight = RequireToken(
+		fetchBody,
+		"m_simulationInFlight.store(false, std::memory_order_release)",
+		fetchedGuard
+	);
+	assert(fetchLock < fetchCall);
+	assert(fetchCall < fetchUnlock);
+	assert(fetchUnlock < fetchedGuard);
+	assert(fetchedGuard < clearInFlight);
+	assert(fetchBody.find("lockRead") == std::string::npos);
 }
 
 void ValidateAnalysisNamesMatchTasks(){
