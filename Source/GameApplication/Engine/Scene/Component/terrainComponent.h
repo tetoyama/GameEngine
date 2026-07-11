@@ -8,6 +8,9 @@
 #include "Backends/YAMLConverters.h"
 #include "Backends/myVector2.h"
 #include "meshRendererComponent.h"
+#include "Shader/Common.hlsl"
+#include <cstdint>
+#include <vector>
 #include <random>
 
 // 地形の生成と編集を管理するコンポーネント
@@ -21,6 +24,18 @@ public:
 	std::vector<float> HeightMap;  // 高さマップデータ（(Scale+1)*(Scale+1) 個のフロート値）
 
 	MeshRendererComponent* meshRenderer = nullptr;  // 生成されたメッシュを保持するレンダラー
+
+	// ---- Step 17-D: CPU Build → GPU Upload 分離用のstaging ----
+	// TerrainSystem.Mesh.Build（AnyWorker/純CPU）が生成し、
+	// TerrainSystem.Mesh.Upload（MainThread/GPU）が消費する。
+	std::vector<VERTEX_3D> stagingVertices;   // Build結果の頂点列（CPU）
+	std::vector<std::uint32_t> stagingIndices; // Build結果のインデックス列（CPU）
+	bool meshBuildReady = false;              // stagingがUpload待ちかどうか
+
+	// Build時点の (Scale, HeightMap) から求めた世代値。
+	// Upload時に再照合し、Build後にScale/HeightMapが変化していたら
+	// 古いstagingのUploadを拒否する（17-CのRevision照合と同型）。
+	std::uint64_t stagingSignature = 0;
 
 	// デストラクタ: メッシュレンダラーを解放する
 	~TerrainComponent() {
