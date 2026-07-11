@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -62,7 +63,9 @@ public:
 			const std::uint64_t byteWidth =
 				static_cast<std::uint64_t>(sizeof(VERTEX_3D)) *
 				static_cast<std::uint64_t>(mesh->mNumVertices);
-			if(byteWidth == 0 || byteWidth > UINT_MAX){
+			const std::uint64_t maximumByteWidth =
+				static_cast<std::uint64_t>((std::numeric_limits<UINT>::max)());
+			if(byteWidth == 0 || byteWidth > maximumByteWidth){
 				return false;
 			}
 
