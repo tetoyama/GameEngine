@@ -162,6 +162,7 @@ inline void PhysicSystem::PhysicsUpload(){
 }
 
 inline void PhysicSystem::PhysicsBegin(float fixedDeltaTime){
+	std::scoped_lock simulationLock(m_simulationMutex);
 	if(!g_pScene || fixedDeltaTime <= 0.0f) return;
 
 	bool expected = false;
@@ -185,6 +186,7 @@ inline void PhysicSystem::PhysicsBegin(float fixedDeltaTime){
 }
 
 inline void PhysicSystem::PhysicsFetch(){
+	std::scoped_lock simulationLock(m_simulationMutex);
 	if(!g_pScene || !m_simulationInFlight.load(std::memory_order_acquire)){
 		return;
 	}
@@ -210,6 +212,7 @@ inline void PhysicSystem::PhysicsFetch(){
 }
 
 inline bool PhysicSystem::DrainSimulation(const char* reason){
+	std::scoped_lock simulationLock(m_simulationMutex);
 	if(!g_pScene){
 		m_simulationInFlight.store(false, std::memory_order_release);
 		return true;
