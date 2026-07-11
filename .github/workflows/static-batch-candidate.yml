@@ -157,21 +157,35 @@ jobs:
         with:
           arch: x64
       - name: Compile and run static batch contract
+        id: static_batch_contract
+        continue-on-error: true
         shell: cmd
-        run: >-
-          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
-          /D_CRT_SECURE_NO_WARNINGS
-          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
-          /I Source
-          /I Source/GameApplication
-          /I Source/GameApplication/Backends
-          /I Source/GameApplication/Engine
-          /I Source/GameApplication/Engine/Scene
-          /I Source/GameApplication/Service
-          ${{ matrix.source }}
-          /Fe:${{ matrix.output }}
-          /link /NODEFAULTLIB:yaml-cppd.lib
-          && ${{ matrix.output }}
+        run: |
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX ^
+            /D_CRT_SECURE_NO_WARNINGS ^
+            /wd4100 /wd4201 /wd4458 /wd4471 /MTd ^
+            /I Source ^
+            /I Source/GameApplication ^
+            /I Source/GameApplication/Backends ^
+            /I Source/GameApplication/Engine ^
+            /I Source/GameApplication/Engine/Scene ^
+            /I Source/GameApplication/Service ^
+            ${{ matrix.source }} ^
+            /Fe:${{ matrix.output }} ^
+            /link /NODEFAULTLIB:yaml-cppd.lib /NODEFAULTLIB:DirectXTex_Debug.lib ^
+            > ${{ matrix.output }}.log 2>&1
+          if errorlevel 1 exit /b 1
+          ${{ matrix.output }} >> ${{ matrix.output }}.log 2>&1
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.output }}-diagnostics
+          path: ${{ matrix.output }}.log
+          if-no-files-found: error
+      - name: Preserve static batch result
+        if: steps.static_batch_contract.outcome == 'failure'
+        run: cmd /c exit 1
 
   shader-contract:
     runs-on: windows-latest
