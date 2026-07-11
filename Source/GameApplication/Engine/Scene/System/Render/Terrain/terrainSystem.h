@@ -35,18 +35,21 @@ public:
 	~TerrainSystem() {}
 
 	void Initialize() override {
-		m_graphicContext = m_context->graphics;
-		// Step 17-D: 起動時同期CreateMeshは撤去。
-		// 初回メッシュ生成はTask経路（Build=Earliest → Upload=Early）へ委ねる。
-		// CurrentScale の初期値は -1 のため、最初のRenderフレームで
-		// BuildTerrainMeshes が未生成として検出し再構築する。
-		// 【挙動変更】初回メッシュは Initialize 完了時点ではなく、
-		// 最初のRenderフレームのUploadタスク完了後に有効になる。
+		m_graphicContext = m_context ? m_context->graphics : nullptr;
+
+		// 初回表示の互換性を維持するため、Initialize時は同期的に
+		// CPU Build→GPU Uploadまで完了させる。以後の再生成はScheduler上の
+		// Build(Earliest/AnyWorker)→Upload(Early/MainThread)経路を使用する。
+		BuildTerrainMeshes();
+		UploadTerrainMeshes();
 	}
 
 	void Finalize() override {
+		if(!m_context || !m_context->sceneManager) return;
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+			if(!scene) continue;
 			auto context = scene->GetSceneContext();
+			if(!context || !context->component) continue;
 			auto entities = context->component->FindEntitiesWithComponent<TerrainComponent>();
 			for (auto entity : entities) {
 				auto* comp = context->component->GetComponent<TerrainComponent>(entity);
@@ -58,9 +61,16 @@ public:
 					comp->meshRenderer->mesh.m_VertexShader.Reset();
 					comp->meshRenderer->mesh.m_VertexLayout.Reset();
 					delete comp->meshRenderer->mesh.m_TextureData;
+					comp->meshRenderer->mesh.m_TextureData = nullptr;
 
 					delete comp->meshRenderer;
 					comp->meshRenderer = nullptr;
+				}
+				if(comp){
+					comp->stagingVertices.clear();
+					comp->stagingIndices.clear();
+					comp->meshBuildReady = false;
+					comp->stagingSignature = 0;
 				}
 			}
 		}
@@ -70,7 +80,6 @@ public:
 		// Step 17-D: Terrainメッシュ生成を2段Task化。
 		//   Build  : Render / Earliest / AnyWorker（純CPU staging生成）
 		//   Upload : Render / Early    / MainThread（GPUバッファ確保）
-		// 旧 LegacyExclusive 一体Task（Draw→CreateMesh）は撤去済み。
 		TerrainTaskRegistrar::Register(*this, builder);
 	}
 
@@ -98,18 +107,27 @@ public:
 					continue;
 				}
 
+				const std::uint64_t currentSignature =
+					TerrainMeshBuilder::ComputeSignature(comp->Scale, comp->HeightMap);
+				if(comp->meshBuildReady && comp->stagingSignature == currentSignature){
+					// 前回Upload失敗時のstagingを保持し、再生成せず再試行する。
+					continue;
+				}
+
 				std::vector<VERTEX_3D> vertices;
 				std::vector<std::uint32_t> indices;
 				if (!TerrainMeshBuilder::Build(
 						comp->Scale, comp->HeightMap, vertices, indices)) {
 					comp->meshBuildReady = false;
+					comp->stagingSignature = 0;
+					comp->stagingVertices.clear();
+					comp->stagingIndices.clear();
 					continue;
 				}
 
 				comp->stagingVertices = std::move(vertices);
 				comp->stagingIndices = std::move(indices);
-				comp->stagingSignature =
-					TerrainMeshBuilder::ComputeSignature(comp->Scale, comp->HeightMap);
+				comp->stagingSignature = currentSignature;
 				comp->meshBuildReady = true;
 			}
 		}
@@ -138,6 +156,7 @@ public:
 				if (comp->stagingSignature !=
 					TerrainMeshBuilder::ComputeSignature(comp->Scale, comp->HeightMap)) {
 					comp->meshBuildReady = false;
+					comp->stagingSignature = 0;
 					comp->stagingVertices.clear();
 					comp->stagingIndices.clear();
 					continue;
@@ -155,12 +174,14 @@ public:
 						comp->stagingIndices)) {
 					comp->CurrentScale = comp->Scale;
 					comp->meshBuildReady = false;
+					comp->stagingSignature = 0;
 					comp->stagingVertices.clear();
 					comp->stagingIndices.clear();
 
 					auto* col = context->component->GetComponent<ColliderComponent>(entity);
 					if (col) col->needsUpdate = true;
 				}
+				// 失敗時はstagingと旧GPUメッシュを維持し、次のRenderで再試行する。
 			}
 		}
 	}
