@@ -23,8 +23,17 @@ void RenderableWave::Execute(const RenderPassContext& ctx, const RenderPacket& p
 	WaveComponent* wave = packet.bindings.wave;
 	if(!sceneContext || !wave || !wave->meshRenderer) return;
 
+	MeshRendererComponent* meshRenderer = wave->meshRenderer;
+	ID3D11Buffer* vertexBuffer = meshRenderer->mesh.m_VertexBuffer.Get();
+	ID3D11Buffer* indexBuffer = meshRenderer->mesh.m_IndexBuffer.Get();
+	if(!vertexBuffer || !indexBuffer || meshRenderer->mesh.indexCount <= 0){
+		return;
+	}
+
 	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
+	if(!graphicsContext) return;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+	if(!deviceContext) return;
 
 	MATERIAL material{};
 	material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -48,7 +57,6 @@ void RenderableWave::Execute(const RenderPassContext& ctx, const RenderPacket& p
 		}
 	}
 
-	auto meshRenderer = wave->meshRenderer;
 	const DirectX::XMMATRIX world =
 		LoadRenderPacketMatrix(packet.transform.worldMatrix);
 	graphicsContext->SetCullMode(CullMode::Back);
@@ -62,12 +70,12 @@ void RenderableWave::Execute(const RenderPassContext& ctx, const RenderPacket& p
 	deviceContext->IASetVertexBuffers(
 		0,
 		1,
-		meshRenderer->mesh.m_VertexBuffer.GetAddressOf(),
+		&vertexBuffer,
 		&stride,
 		&offset
 	);
 	deviceContext->IASetIndexBuffer(
-		*meshRenderer->mesh.m_IndexBuffer.GetAddressOf(),
+		indexBuffer,
 		DXGI_FORMAT_R32_UINT,
 		0
 	);
