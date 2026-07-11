@@ -36,7 +36,7 @@
   </ItemGroup>
 
   <!--
-    Step 17-C / 17-D / M-5で追加・削除したHeaderを評価後のProject Itemへ反映する。
+    Step 17-C / 17-D / 17-E / M-5で追加・削除したHeaderを評価後のProject Itemへ反映する。
     vcxproj本体を全体書き換えせず、Solution Explorerと外部変更検知を同期する。
   -->
   <ItemGroup Condition="'$(MSBuildProjectName)' == 'GameEngine'">
@@ -46,6 +46,9 @@
     <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\Terrain\TerrainMeshBuilder.h" />
     <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\Terrain\TerrainMeshUpload.h" />
     <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\Terrain\TerrainTaskRegistrar.h" />
+    <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\Terrain\WaveMeshBuilder.h" />
+    <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\Terrain\WaveMeshUpload.h" />
+    <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\Terrain\WaveTaskRegistrar.h" />
 
     <ClInclude Include="Source\GameApplication\Service\Graphics\D3D11ConstantBufferUpload.h"
                Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Service\Graphics\D3D11ConstantBufferUpload.h')">
@@ -70,6 +73,21 @@
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Terrain\TerrainTaskRegistrar.h"
                Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Engine\Scene\System\Render\Terrain\TerrainTaskRegistrar.h')">
       <Link>Header Files\Engine\Scene\System\Render\Terrain\TerrainTaskRegistrar.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Terrain\WaveMeshBuilder.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Engine\Scene\System\Render\Terrain\WaveMeshBuilder.h')">
+      <Link>Header Files\Engine\Scene\System\Render\Terrain\WaveMeshBuilder.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Terrain\WaveMeshUpload.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Engine\Scene\System\Render\Terrain\WaveMeshUpload.h')">
+      <Link>Header Files\Engine\Scene\System\Render\Terrain\WaveMeshUpload.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Terrain\WaveTaskRegistrar.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Engine\Scene\System\Render\Terrain\WaveTaskRegistrar.h')">
+      <Link>Header Files\Engine\Scene\System\Render\Terrain\WaveTaskRegistrar.h</Link>
     </ClInclude>
   </ItemGroup>
 
