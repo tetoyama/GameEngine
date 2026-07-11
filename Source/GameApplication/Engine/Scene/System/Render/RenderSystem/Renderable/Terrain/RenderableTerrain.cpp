@@ -26,9 +26,17 @@ void RenderableTerrain::Execute(const RenderPassContext& ctx, const RenderPacket
 	TransformComponent* transform = packet.bindings.transform;
 	if(!terrain || !terrain->meshRenderer || !transform) return;
 
-	auto meshRenderer = terrain->meshRenderer;
+	auto* meshRenderer = terrain->meshRenderer;
+	ID3D11Buffer* vertexBuffer = meshRenderer->mesh.m_VertexBuffer.Get();
+	ID3D11Buffer* indexBuffer = meshRenderer->mesh.m_IndexBuffer.Get();
+	if(!vertexBuffer || !indexBuffer || meshRenderer->mesh.indexCount <= 0){
+		return;
+	}
+
 	GraphicsContext* graphicsContext = sceneContext->manager->graphics;
+	if(!graphicsContext) return;
 	ID3D11DeviceContext* deviceContext = graphicsContext->GetDeviceContext();
+	if(!deviceContext) return;
 
 	MATERIAL material{};
 	material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -42,19 +50,32 @@ void RenderableTerrain::Execute(const RenderPassContext& ctx, const RenderPacket
 	if(TextureComponent* texture = packet.bindings.texture){
 		if(texture->m_TextureData){
 			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
-			deviceContext->PSSetShaderResources(TextureSlot_Albedo, 1, texture->m_TextureData->pTexture.GetAddressOf());
+			deviceContext->PSSetShaderResources(
+				TextureSlot_Albedo,
+				1,
+				texture->m_TextureData->pTexture.GetAddressOf()
+			);
 		}
 		uv = texture->ResolveUVMatrixBuffer();
 	}
 
-	const DirectX::XMMATRIX world = LoadRenderPacketMatrix(packet.transform.worldMatrix);
+	const DirectX::XMMATRIX world =
+		LoadRenderPacketMatrix(packet.transform.worldMatrix);
 	graphicsContext->SetPerObjectConstants(world, material, uv);
 
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
-	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	deviceContext->IASetVertexBuffers(0, 1, meshRenderer->mesh.m_VertexBuffer.GetAddressOf(), &stride, &offset);
-	deviceContext->IASetIndexBuffer(*meshRenderer->mesh.m_IndexBuffer.GetAddressOf(), DXGI_FORMAT_R32_UINT, 0);
+	deviceContext->IASetPrimitiveTopology(
+		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
+	);
+	deviceContext->IASetVertexBuffers(
+		0,
+		1,
+		&vertexBuffer,
+		&stride,
+		&offset
+	);
+	deviceContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	deviceContext->DrawIndexed(meshRenderer->mesh.indexCount, 0, 0);
 
 	graphicsContext->SetDepthMode(DepthMode::Write);
