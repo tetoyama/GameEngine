@@ -190,9 +190,11 @@ public:
 	// 定数バッファ全体のUploadを1回に集約する。
 	// 既存の個別Setterは即時Upload契約を維持する。
 	void SetPerCameraConstants(
+		const float4& cameraPosition,
 		const DirectX::XMMATRIX& view,
 		const DirectX::XMMATRIX& projection
 	){
+		m_CbPerCameraData.CameraPosition = cameraPosition;
 		DirectX::XMStoreFloat4x4(
 			&m_CbPerCameraData.View,
 			DirectX::XMMatrixTranspose(view)
@@ -208,6 +210,17 @@ public:
 			&m_CbPerCameraData,
 			0,
 			0
+		);
+	}
+
+	void SetPerCameraConstants(
+		const DirectX::XMMATRIX& view,
+		const DirectX::XMMATRIX& projection
+	){
+		SetPerCameraConstants(
+			m_CbPerCameraData.CameraPosition,
+			view,
+			projection
 		);
 	}
 
