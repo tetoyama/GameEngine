@@ -17,16 +17,6 @@ inline void ReleaseRef(T*& resource){
 	resource = nullptr;
 }
 
-inline void ReleaseActor(physx::PxRigidActor*& actor){
-	if(!actor) return;
-	if(actor->userData){
-		delete static_cast<ActorEntityInfo*>(actor->userData);
-		actor->userData = nullptr;
-	}
-	actor->release();
-	actor = nullptr;
-}
-
 inline void ReleaseShapeRuntime(
 	ColliderComponent* collider,
 	size_t shapeIndex
@@ -49,30 +39,31 @@ inline void ReleaseShapeRuntime(
 	ReleaseRef(shapeRuntime.pxConvexMesh);
 }
 
-inline void ReleaseEntityRuntime(ColliderComponent* collider){
-	if(!collider) return;
-
-	physx::PxRigidActor* dynamicActor = collider->pRigidbodyDynamic;
-	physx::PxRigidActor* staticActor = collider->pRigidbodyStatic;
-	ReleaseActor(dynamicActor);
-	ReleaseActor(staticActor);
-	collider->pRigidbodyDynamic = nullptr;
-	collider->pRigidbodyStatic = nullptr;
-
-	for(ColliderShape& shapeRuntime : collider->colliders){
-		shapeRuntime.pxShape = nullptr;
-		ReleaseRef(shapeRuntime.pxMaterial);
-		ReleaseRef(shapeRuntime.pxHeightField);
-		ReleaseRef(shapeRuntime.pxTriangleMesh);
-		ReleaseRef(shapeRuntime.pxConvexMesh);
-	}
-}
-
-
 } // namespace PhysicSystemTaskDetail
 
 inline void PhysicSystem::ReleaseColliderRuntime(ColliderComponent* collider){
-	PhysicSystemTaskDetail::ReleaseEntityRuntime(collider);
+	if(!collider) return;
+
+	// ActorEntityInfo ownership belongs exclusively to m_actorEntityInfos.
+	// Never delete PxActor::userData directly: DetachActorEntityInfo clears
+	// the non-owning alias and erases the corresponding unique_ptr exactly once.
+	auto releaseActor = [this](auto*& actor){
+		if(!actor) return;
+		DetachActorEntityInfo(actor);
+		actor->release();
+		actor = nullptr;
+	};
+
+	releaseActor(collider->pRigidbodyDynamic);
+	releaseActor(collider->pRigidbodyStatic);
+
+	for(ColliderShape& shapeRuntime : collider->colliders){
+		shapeRuntime.pxShape = nullptr;
+		PhysicSystemTaskDetail::ReleaseRef(shapeRuntime.pxMaterial);
+		PhysicSystemTaskDetail::ReleaseRef(shapeRuntime.pxHeightField);
+		PhysicSystemTaskDetail::ReleaseRef(shapeRuntime.pxTriangleMesh);
+		PhysicSystemTaskDetail::ReleaseRef(shapeRuntime.pxConvexMesh);
+	}
 }
 
 inline void PhysicSystem::ReleaseColliderShapeRuntime(
@@ -190,7 +181,6 @@ inline void PhysicSystem::PhysicsFetch(){
 	if(!g_pScene || !m_simulationInFlight.load(std::memory_order_acquire)){
 		return;
 	}
-
 
 	g_pScene->lockRead();
 	g_pScene->fetchResults(true);
