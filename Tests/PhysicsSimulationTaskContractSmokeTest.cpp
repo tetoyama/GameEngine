@@ -69,6 +69,9 @@ void ValidateSameStepFetchContract(){
 	const std::string source = ReadTextFile(
 		"Source/GameApplication/Engine/Scene/System/Physic/PhysicSystemTasks.inl"
 	);
+	const std::string header = ReadTextFile(
+		"Source/GameApplication/Engine/Scene/System/Physic/physicSystem.h"
+	);
 	const std::size_t beginFunction =
 		RequireToken(source, "inline void PhysicSystem::PhysicsBegin(");
 	const std::size_t fetchFunction =
@@ -91,20 +94,30 @@ void ValidateSameStepFetchContract(){
 		downloadFunction - drainFunction
 	);
 
+	assert(header.find("std::mutex m_simulationMutex;") != std::string::npos);
+	const std::size_t beginStateLock = RequireToken(
+		beginBody,
+		"std::scoped_lock simulationLock(m_simulationMutex);"
+	);
 	const std::size_t beginLock =
-		RequireToken(beginBody, "g_pScene->lockWrite();");
+		RequireToken(beginBody, "g_pScene->lockWrite();", beginStateLock);
 	const std::size_t simulateCall =
 		RequireToken(beginBody, "g_pScene->simulate(fixedDeltaTime)", beginLock);
 	const std::size_t beginUnlock =
 		RequireToken(beginBody, "g_pScene->unlockWrite();", simulateCall);
+	assert(beginStateLock < beginLock);
 	assert(beginLock < simulateCall);
 	assert(simulateCall < beginUnlock);
 	assert(beginBody.find("lockRead") == std::string::npos);
 	assert(beginBody.find("fetchResults") == std::string::npos);
 	assert(beginBody.find("if(!submitted)") != std::string::npos);
 
+	const std::size_t fetchStateLock = RequireToken(
+		fetchBody,
+		"std::scoped_lock simulationLock(m_simulationMutex);"
+	);
 	const std::size_t errorState =
-		RequireToken(fetchBody, "physx::PxU32 errorState = 0;");
+		RequireToken(fetchBody, "physx::PxU32 errorState = 0;", fetchStateLock);
 	const std::size_t fetchLock =
 		RequireToken(fetchBody, "g_pScene->lockWrite();", errorState);
 	const std::size_t fetchCall = RequireToken(
@@ -121,19 +134,28 @@ void ValidateSameStepFetchContract(){
 	);
 	const std::size_t fetchedGuard =
 		RequireToken(fetchBody, "if(!fetched)", clearInFlight);
+	assert(fetchStateLock < fetchLock);
 	assert(fetchLock < fetchCall);
 	assert(fetchCall < fetchUnlock);
 	assert(fetchUnlock < clearInFlight);
 	assert(clearInFlight < fetchedGuard);
 	assert(fetchBody.find("lockRead") == std::string::npos);
 
-	const std::size_t drainFetch =
-		RequireToken(drainBody, "g_pScene->fetchResults(true, &errorState)");
+	const std::size_t drainStateLock = RequireToken(
+		drainBody,
+		"std::scoped_lock simulationLock(m_simulationMutex);"
+	);
+	const std::size_t drainFetch = RequireToken(
+		drainBody,
+		"g_pScene->fetchResults(true, &errorState)",
+		drainStateLock
+	);
 	const std::size_t drainClear = RequireToken(
 		drainBody,
 		"m_simulationInFlight.store(false, std::memory_order_release)",
 		drainFetch
 	);
+	assert(drainStateLock < drainFetch);
 	assert(drainFetch < drainClear);
 	assert(drainBody.find("lockRead") == std::string::npos);
 }
