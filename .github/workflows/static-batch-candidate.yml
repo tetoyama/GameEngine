@@ -8,6 +8,8 @@ on:
       - "Source/GameApplication/Engine/Editor/UI/StaticBatchTelemetryUI.h"
       - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.h"
+      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp"
       - "Source/GameApplication/Engine/Scene/sceneManager.cpp"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshLocalBoundsBuilder.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/**"
@@ -54,6 +56,8 @@ on:
       - "Source/GameApplication/Engine/Editor/UI/StaticBatchTelemetryUI.h"
       - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.h"
+      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp"
       - "Source/GameApplication/Engine/Scene/sceneManager.cpp"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshLocalBoundsBuilder.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/**"
@@ -171,6 +175,7 @@ jobs:
             /I Source/GameApplication/Engine/Scene ^
             /I Source/GameApplication/Service ^
             ${{ matrix.source }} ^
+            Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp ^
             /Fe:${{ matrix.output }} ^
             /link /NODEFAULTLIB:yaml-cppd.lib /NODEFAULTLIB:DirectXTex_Debug.lib ^
             > ${{ matrix.output }}.log 2>&1
