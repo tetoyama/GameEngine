@@ -167,6 +167,7 @@ private:
 	void PhysicsFetch();
 	void PhysicsDownload();
 	void CollisionEventDispatch();
+	bool DrainSimulation(const char* reason);
 
 	bool QueueScriptCollisionEvent(
 		CustomScriptComponent* script,
