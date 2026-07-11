@@ -6,6 +6,8 @@ on:
       - master
     paths:
       - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp"
+      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/ModelCullingBoundsProvider.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshLocalBoundsBuilder.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshCullingBoundsProvider.h"
@@ -24,6 +26,8 @@ on:
       - refactor/ecs-scheduler-foundation
     paths:
       - "Source/GameApplication/Engine/Scene/Component/meshRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp"
+      - "Source/GameApplication/Engine/Scene/Registry/componentRegistry.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/ModelCullingBoundsProvider.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshLocalBoundsBuilder.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Culling/MeshCullingBoundsProvider.h"
@@ -75,18 +79,33 @@ jobs:
         with:
           arch: x64
       - name: Compile and run resource bounds contract
+        id: resource_bounds
+        continue-on-error: true
         shell: cmd
-        run: >-
-          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
-          /D_CRT_SECURE_NO_WARNINGS
-          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
-          /I Source
-          /I Source/GameApplication
-          /I Source/GameApplication/Backends
-          /I Source/GameApplication/Engine
-          /I Source/GameApplication/Engine/Scene
-          /I Source/GameApplication/Service
-          ${{ matrix.source }}
-          /Fe:${{ matrix.output }}
-          /link /NODEFAULTLIB:yaml-cppd.lib /NODEFAULTLIB:DirectXTex_Debug.lib
-          && ${{ matrix.output }}
+        run: |
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX ^
+            /D_CRT_SECURE_NO_WARNINGS ^
+            /wd4100 /wd4201 /wd4458 /wd4471 /MTd ^
+            /I Source ^
+            /I Source/GameApplication ^
+            /I Source/GameApplication/Backends ^
+            /I Source/GameApplication/Engine ^
+            /I Source/GameApplication/Engine/Scene ^
+            /I Source/GameApplication/Service ^
+            ${{ matrix.source }} ^
+            Source/GameApplication/Engine/Scene/Registry/componentRegistry.cpp ^
+            /Fe:${{ matrix.output }} ^
+            /link /NODEFAULTLIB:yaml-cppd.lib /NODEFAULTLIB:DirectXTex_Debug.lib ^
+            > ${{ matrix.output }}.log 2>&1
+          if errorlevel 1 exit /b 1
+          ${{ matrix.output }} >> ${{ matrix.output }}.log 2>&1
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.output }}-diagnostics
+          path: ${{ matrix.output }}.log
+          if-no-files-found: error
+      - name: Preserve resource bounds result
+        if: steps.resource_bounds.outcome == 'failure'
+        run: cmd /c exit 1
