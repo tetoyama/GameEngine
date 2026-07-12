@@ -134,8 +134,9 @@ private:
 	bool IsHumanTurn() const noexcept;
 	PlayerId ActiveViewer() const noexcept;
 
-	// 既存cppのコンストラクタ互換。実際のシリアライズ名は基底scriptNameへdecodeされる。
-	std::string ScriptName;
+	// Compatibility name used by the existing cpp constructor. Bind it to
+	// CustomScriptComponent::scriptName so YAML encoding and Inspector agree.
+	std::string& ScriptName = scriptName;
 	MatchFlowModel m_flow;
 	BattleInteractionModel m_interaction;
 	ElemenTacticsLlmFacade m_llm;
