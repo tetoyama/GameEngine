@@ -17,6 +17,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -217,7 +218,7 @@ protected:
             return;
         }
 
-        const float panelWidth = 780.0f;
+        const float panelWidth = std::min(780.0f, std::max(480.0f, ui.Width() - 36.0f));
         const float panelX = (ui.Width() - panelWidth) * 0.5f;
         ui.FillPanel(panelX, 14.0f, panelWidth, 92.0f);
         ui.DrawText(title, panelX + 24.0f, 22.0f, 27.0f);
@@ -240,6 +241,8 @@ protected:
             15.0f,
             D2D1::ColorF(0.68f, 0.76f, 0.88f, 1.0f)
         );
+
+        DrawStrategyGuide(ui, title ? std::string_view(title) : std::string_view{});
     }
 
     void DrawScoreRow(const std::vector<int>& scores) const {
@@ -248,27 +251,55 @@ protected:
             return;
         }
 
-        const float panelWidth = 600.0f;
+        const float panelWidth = std::min(680.0f, std::max(480.0f, ui.Width() - 52.0f));
         const float panelX = (ui.Width() - panelWidth) * 0.5f;
+        const float panelY = 116.0f;
+        const float panelHeight = 58.0f;
         ui.FillPanel(
             panelX,
-            116.0f,
+            panelY,
             panelWidth,
-            48.0f,
-            D2D1::ColorF(0.025f, 0.035f, 0.06f, 0.80f)
+            panelHeight,
+            D2D1::ColorF(0.025f, 0.035f, 0.06f, 0.84f)
         );
 
+        const int highScore = *std::max_element(scores.begin(), scores.end());
+        const std::size_t leaderCount = static_cast<std::size_t>(std::count(
+            scores.begin(),
+            scores.end(),
+            highScore
+        ));
         const float cellWidth = panelWidth / static_cast<float>(scores.size());
+
         for (std::size_t index = 0; index < scores.size(); ++index) {
             const DirectX::XMFLOAT4 playerColor = PlayerColor(
                 static_cast<PlayerId>(index)
             );
+            const bool isPlayer = index == 0;
+            const bool isLeader = scores[index] == highScore;
+
+            ui.FillPanel(
+                panelX + cellWidth * static_cast<float>(index) + 3.0f,
+                panelY + 3.0f,
+                cellWidth - 6.0f,
+                panelHeight - 6.0f,
+                D2D1::ColorF(
+                    playerColor.x,
+                    playerColor.y,
+                    playerColor.z,
+                    isPlayer ? 0.24f : isLeader ? 0.15f : 0.055f
+                )
+            );
+
+            std::string label = isPlayer
+                ? "YOU P1  "
+                : "CPU P" + std::to_string(index + 1) + "  ";
+            label += std::to_string(scores[index]);
             ui.DrawText(
-                "P" + std::to_string(index + 1) + "  " +
-                    std::to_string(scores[index]),
-                panelX + cellWidth * static_cast<float>(index) + 22.0f,
-                127.0f,
-                21.0f,
+                label,
+                panelX + cellWidth * static_cast<float>(index) + 12.0f,
+                panelY + 25.0f,
+                isPlayer ? 19.0f : 17.0f,
                 D2D1::ColorF(
                     playerColor.x,
                     playerColor.y,
@@ -276,6 +307,17 @@ protected:
                     1.0f
                 )
             );
+
+            if (isLeader) {
+                ui.DrawText(
+                    leaderCount == 1 ? "LEAD" : "TIED LEAD",
+                    panelX + cellWidth * static_cast<float>(index) + 12.0f,
+                    panelY + 7.0f,
+                    12.0f,
+                    D2D1::ColorF(1.0f, 0.88f, 0.34f, 1.0f),
+                    false
+                );
+            }
         }
     }
 
@@ -311,21 +353,28 @@ protected:
                 D2D1::ColorF(1.0f, 0.86f, 0.28f, 1.0f)
             );
         } else if (!result.players.empty()) {
+            const bool playerWon = result.players.front().playerId == 0;
             ui.DrawTextCentered(
-                "WINNER  P" + std::to_string(result.players.front().playerId + 1),
+                playerWon
+                    ? "YOU WIN"
+                    : "WINNER  P" + std::to_string(result.players.front().playerId + 1),
                 ui.Width() * 0.5f,
                 panelY + 60.0f,
                 25.0f,
-                D2D1::ColorF(1.0f, 0.86f, 0.28f, 1.0f)
+                playerWon
+                    ? D2D1::ColorF(0.3f, 0.75f, 1.0f, 1.0f)
+                    : D2D1::ColorF(1.0f, 0.86f, 0.28f, 1.0f)
             );
         }
 
         float rowY = panelY + 98.0f;
         for (const PlayerResult& player : result.players) {
             const DirectX::XMFLOAT4 playerColor = PlayerColor(player.playerId);
-            std::string row = std::to_string(player.rank) + ".  P" +
-                std::to_string(player.playerId + 1) + "   SCORE " +
-                std::to_string(player.score);
+            std::string row = std::to_string(player.rank) + ".  ";
+            row += player.playerId == 0
+                ? "YOU P1"
+                : "CPU P" + std::to_string(player.playerId + 1);
+            row += "   SCORE " + std::to_string(player.score);
             if (player.eliminated) {
                 row += "   OUT";
             }
@@ -350,6 +399,63 @@ protected:
             panelY + panelHeight - 42.0f,
             16.0f,
             D2D1::ColorF(0.72f, 0.8f, 0.92f, 1.0f)
+        );
+    }
+
+private:
+    static void DrawStrategyGuide(
+        MiniGameRuntimeUi& ui,
+        std::string_view title
+    ) {
+        std::string line1;
+        std::string line2;
+
+        if (title == "COLOR TERRITORY") {
+            line1 = "灰色は+1点。敵色を奪うと、自分+1 / 相手-1で点差が2動く";
+            line2 = "序盤は空地を広げ、終盤は首位の色を削る。自分の色を踏み直しても得点なし";
+        } else if (title == "SHEEP ROUNDUP") {
+            line1 = "羊は近いプレイヤーから反対方向へ逃げる。追うだけでは囲いへ入らない";
+            line2 = "自分の囲いと羊を結ぶ線の反対側へ回り込み、横から来る敵の押しを崩す";
+        } else if (title == "BACKSHOT") {
+            line1 = "移動方向が照準。背面だけ即撃破、正面と側面からの弾は防御される";
+            line2 = "射撃後は約0.82秒撃てない。障害物で射線を切り、相手が別方向を向いた瞬間を狙う";
+        } else {
+            return;
+        }
+
+        const float width = std::min(850.0f, std::max(520.0f, ui.Width() - 36.0f));
+        const float x = (ui.Width() - width) * 0.5f;
+        const float y = std::max(184.0f, ui.Height() - 82.0f);
+        ui.FillPanel(
+            x,
+            y,
+            width,
+            66.0f,
+            D2D1::ColorF(0.018f, 0.027f, 0.048f, 0.82f)
+        );
+        ui.DrawText(
+            "YOU = P1 / BLUE",
+            x + 16.0f,
+            y + 8.0f,
+            14.0f,
+            D2D1::ColorF(0.28f, 0.68f, 1.0f, 1.0f),
+            false
+        );
+        ui.DrawText(
+            line1,
+            x + 150.0f,
+            y + 8.0f,
+            14.0f,
+            D2D1::ColorF(0.92f, 0.95f, 1.0f, 1.0f),
+            false
+        );
+        ui.DrawText(
+            line2,
+            x + 16.0f,
+            y + 36.0f,
+            13.0f,
+            D2D1::ColorF(0.7f, 0.79f, 0.9f, 1.0f),
+            false
         );
     }
 };
