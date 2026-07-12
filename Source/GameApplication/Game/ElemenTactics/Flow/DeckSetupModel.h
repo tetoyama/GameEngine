@@ -14,6 +14,9 @@ class DeckSetupModel final {
 public:
 	static DeckSetupModel BalancedDefault();
 	static DeckSetupModel ConcentratedDefault();
+	static DeckSetupModel FromDecks(std::array<std::vector<ElementType>, 3> decks){
+		return DeckSetupModel(std::move(decks));
+	}
 
 	const std::array<std::vector<ElementType>, 3>& Decks() const noexcept{ return m_decks; }
 	std::array<std::vector<ElementType>, 3>& DecksForTesting() noexcept{ return m_decks; }
