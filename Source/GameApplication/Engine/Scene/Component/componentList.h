@@ -52,6 +52,7 @@
 #include "Game/ElemenTactics/Runtime/ElemenTacticsGameController.h"
 #include "Game/ElemenTactics/Runtime/ElemenTacticsKeyboardNavigator.h"
 #include "Game/ElemenTactics/Runtime/ElemenTacticsVisualGuide.h"
+#include "Game/ElemenTactics/Runtime/ElemenTacticsTabletopPresentation.h"
 
 inline constexpr auto COMPONENT_SPARSE = ECSStorage::ComponentStorageStrategy::SparseStable;
 inline constexpr auto COMPONENT_DENSE = ECSStorage::ComponentStorageStrategy::Dense;
@@ -113,6 +114,7 @@ struct ComponentStoragePreference<TransformComponent> {
     X(ElemenTactics::ElemenTacticsGameController,COMPONENT_SPARSE)\
     X(ElemenTactics::ElemenTacticsKeyboardNavigator,COMPONENT_SPARSE)\
     X(ElemenTactics::ElemenTacticsVisualGuide,COMPONENT_SPARSE)\
+    X(ElemenTactics::ElemenTacticsTabletopPresentation,COMPONENT_SPARSE)\
     X(PrefabComponent,COMPONENT_SPARSE)\
     X(FollowComponent,COMPONENT_ARCHETYPE)\
     X(EnvironmentMapComponent,COMPONENT_ARCHETYPE)
