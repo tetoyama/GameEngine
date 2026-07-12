@@ -19,7 +19,7 @@ class PlatformerEnemy : public CustomScriptComponent {
 		REFLECT_FIELD(Vector3, patrolAxis, Vector3(1.0f, 0.0f, 0.0f))
 		REFLECT_FIELD(float, patrolDistance, 3.0f)
 		REFLECT_FIELD(float, patrolSpeed, 1.6f)
-		REFLECT_FIELD(float, stompHeightMargin, 0.35f)
+		REFLECT_FIELD(float, stompHeightMargin, 0.12f)
 		REFLECT_FIELD(float, defeatDuration, 0.42f)
 
 public:
@@ -31,6 +31,9 @@ public:
 
 	bool decode(SceneContext* context, const YAML::Node& node) override {
 		DECODE_FIELDS(node);
+		// Existing scenes stored 0.35, which required the player's feet to be too
+		// close to the exact top. Keep a broad beginner-friendly upper-contact band.
+		stompHeightMargin = std::clamp(stompHeightMargin, 0.08f, 0.18f);
 		return true;
 	}
 
@@ -175,12 +178,20 @@ private:
 		auto* playerPose = playerTransform.TryGet();
 		if(!enemyTransform || !playerPose) return;
 
-		// AlignColliderToModelCenter raises the visual/entity origin while keeping
-		// the collider in the same world position. Use the pre-alignment gameplay
-		// reference height so fixing the mesh does not make stomping harder.
+		// Prefer a stomp over side damage whenever the player is descending or has
+		// just crossed the apex and contacts the upper half of the enemy. The broad
+		// horizontal catch radius removes the need to land exactly on the cube centre.
 		const float stompReferenceY = enemyTransform->position.y - visualCenterLift;
-		const bool above = playerPose->position.y >= stompReferenceY + stompHeightMargin;
-		if(controller->IsDescending() && above) {
+		const float verticalVelocity = controller->GetVerticalVelocity();
+		const bool descendingOrNearApex = verticalVelocity <= 0.65f;
+		const bool above =
+			playerPose->position.y >= stompReferenceY + stompHeightMargin;
+		const float dx = playerPose->position.x - enemyTransform->position.x;
+		const float dz = playerPose->position.z - enemyTransform->position.z;
+		const float horizontalDistance = std::sqrt(dx * dx + dz * dz);
+		const float catchRadius = (std::max)(
+			0.72f, (std::max)(baseScale.x, baseScale.z) * 0.72f);
+		if(descendingOrNearApex && above && horizontalDistance <= catchRadius) {
 			Defeat(*controller, enemyTransform->position);
 			return;
 		}
