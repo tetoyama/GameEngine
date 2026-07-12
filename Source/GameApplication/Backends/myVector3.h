@@ -47,7 +47,7 @@ public:
 		DirectX::XMStoreFloat3(reinterpret_cast<DirectX::XMFLOAT3*>(this), v);
 		return *this;
 	}
-	Vector3& operator=(std::initializer_list<float> values){
+	Vector3& operator=(std::initializer_list<float> values) noexcept{
 		auto it = values.begin();
 		x = it != values.end() ? *it++ : 0.0f;
 		y = it != values.end() ? *it++ : 0.0f;
