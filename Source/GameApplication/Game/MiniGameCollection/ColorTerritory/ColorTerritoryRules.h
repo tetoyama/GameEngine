@@ -80,6 +80,22 @@ public:
             cooldown = std::max(0.0f, cooldown - delta);
         }
 
+        // 同じTileへ複数人が同時に立っている間は、処理順で所有権を往復させない。
+        // 誰か一人だけが残り、短時間安定してから初めて塗りを確定する。
+        std::vector<bool> contestedPlayers(m_pendingTiles.size(), false);
+        for (std::size_t lhs = 0; lhs < m_pendingTiles.size(); ++lhs) {
+            if (!m_pendingTiles[lhs]) {
+                continue;
+            }
+            for (std::size_t rhs = lhs + 1; rhs < m_pendingTiles.size(); ++rhs) {
+                if (m_pendingTiles[rhs] &&
+                    *m_pendingTiles[lhs] == *m_pendingTiles[rhs]) {
+                    contestedPlayers[lhs] = true;
+                    contestedPlayers[rhs] = true;
+                }
+            }
+        }
+
         for (std::size_t index = 0; index < m_pendingTiles.size(); ++index) {
             if (!m_pendingTiles[index]) {
                 m_candidateTiles[index].reset();
@@ -91,7 +107,7 @@ public:
             const TileCoord tile = *m_pendingTiles[index];
             m_pendingTiles[index].reset();
 
-            if (!m_board->IsInside(tile)) {
+            if (!m_board->IsInside(tile) || contestedPlayers[index]) {
                 m_candidateTiles[index].reset();
                 m_candidateHoldSeconds[index] = 0.0f;
                 continue;
@@ -99,17 +115,18 @@ public:
 
             const bool isCurrentTile =
                 m_currentTiles[index] && *m_currentTiles[index] == tile;
-            if (isCurrentTile) {
+            const bool alreadyOwnsTile =
+                m_board->GetOwner(tile) == static_cast<std::int16_t>(playerId);
+            if (isCurrentTile && alreadyOwnsTile) {
                 m_candidateTiles[index].reset();
                 m_candidateHoldSeconds[index] = 0.0f;
+                continue;
+            }
 
-                // 爆弾で足元の所有権が変化した場合は、同じTileに立ったままでも塗り直せる。
-                if (m_board->GetOwner(tile) == static_cast<std::int16_t>(playerId)) {
-                    continue;
-                }
-            } else if (m_currentTiles[index]) {
+            if (m_currentTiles[index]) {
                 // 接触解決や壁際の押し合いで座標が境界を往復しても、
-                // 短時間だけ触れた隣接Tileへ所有権が連続反転しないようにする。
+                // 短時間だけ触れたTileへ所有権が連続反転しないようにする。
+                // 爆弾で足元が変化した場合も同じ確認時間を通し、毎Frameの再奪取を防ぐ。
                 if (!m_candidateTiles[index] || *m_candidateTiles[index] != tile) {
                     m_candidateTiles[index] = tile;
                     m_candidateHoldSeconds[index] = delta;
