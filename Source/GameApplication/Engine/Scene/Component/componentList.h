@@ -49,6 +49,18 @@
 #include "Script/CameraController.h"
 #include "Script/GN31.h"
 
+#include "Game/Platformer/PlatformerCharacterController.h"
+#include "Game/Platformer/PlatformerAnimationController.h"
+#include "Game/Platformer/PlatformerGameManager.h"
+#include "Game/Platformer/PlatformerCoin.h"
+#include "Game/Platformer/PlatformerCheckpoint.h"
+#include "Game/Platformer/PlatformerEnemy.h"
+#include "Game/Platformer/PlatformerMovingPlatform.h"
+#include "Game/Platformer/PlatformerCameraController.h"
+#include "Game/Platformer/PlatformerCameraZone.h"
+#include "Game/Platformer/PlatformerBoss.h"
+#include "Game/Platformer/PlatformerHud.h"
+
 inline constexpr auto COMPONENT_SPARSE = ECSStorage::ComponentStorageStrategy::SparseStable;
 inline constexpr auto COMPONENT_DENSE = ECSStorage::ComponentStorageStrategy::Dense;
 inline constexpr auto COMPONENT_DIRECT_PAGED = ECSStorage::ComponentStorageStrategy::DirectPaged;
@@ -105,6 +117,17 @@ struct ComponentStoragePreference<TransformComponent> {
     X(FadeSetScene,COMPONENT_SPARSE)\
     X(ScriptComponent,COMPONENT_SPARSE)\
     X(GN31,COMPONENT_SPARSE)\
+    X(PlatformerCharacterController,COMPONENT_SPARSE)\
+    X(PlatformerAnimationController,COMPONENT_SPARSE)\
+    X(PlatformerGameManager,COMPONENT_SPARSE)\
+    X(PlatformerCoin,COMPONENT_SPARSE)\
+    X(PlatformerCheckpoint,COMPONENT_SPARSE)\
+    X(PlatformerEnemy,COMPONENT_SPARSE)\
+    X(PlatformerMovingPlatform,COMPONENT_SPARSE)\
+    X(PlatformerCameraController,COMPONENT_SPARSE)\
+    X(PlatformerCameraZone,COMPONENT_SPARSE)\
+    X(PlatformerBoss,COMPONENT_SPARSE)\
+    X(PlatformerHud,COMPONENT_SPARSE)\
     X(PrefabComponent,COMPONENT_SPARSE)\
     X(FollowComponent,COMPONENT_ARCHETYPE)\
     X(EnvironmentMapComponent,COMPONENT_ARCHETYPE)
