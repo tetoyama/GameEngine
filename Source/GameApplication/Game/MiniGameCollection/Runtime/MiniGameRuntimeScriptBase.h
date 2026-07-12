@@ -2,6 +2,7 @@
 
 #include "Game/MiniGameCollection/Core/MiniGameMath.h"
 #include "Game/MiniGameCollection/Runtime/MiniGameRuntimeMailbox.h"
+#include "Game/MiniGameCollection/Runtime/MiniGameRuntimeUi.h"
 
 #include "Scene/Component/CustomScriptComponent.h"
 #include "Scene/Component/entityNameComponent.h"
@@ -12,6 +13,8 @@
 #include <algorithm>
 #include <cmath>
 #include <functional>
+#include <iomanip>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -38,6 +41,7 @@ public:
         return true;
     }
 
+    // Inspectorは開発者向けデバッグUIなのでImGuiの使用を許可する。
     void inspector(SceneContext* context) override {
         (void)context;
         ImGui::TextUnformatted(scriptName.c_str());
@@ -187,101 +191,151 @@ protected:
         }
     }
 
-    static void DrawScreenHeader(
+    void DrawScreenHeader(
         const char* title,
         const char* rule,
         const char* controls,
         float remainingSeconds
-    ) {
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(
-            ImVec2(
-                viewport->WorkPos.x + viewport->WorkSize.x * 0.5f,
-                viewport->WorkPos.y + 18.0f
-            ),
-            ImGuiCond_Always,
-            ImVec2(0.5f, 0.0f)
+    ) const {
+        MiniGameRuntimeUi ui(GetEntityRef().GetScene());
+        if (!ui.IsAvailable()) {
+            return;
+        }
+
+        const float panelWidth = 780.0f;
+        const float panelX = (ui.Width() - panelWidth) * 0.5f;
+        ui.FillPanel(panelX, 14.0f, panelWidth, 92.0f);
+        ui.DrawText(title, panelX + 24.0f, 22.0f, 27.0f);
+
+        std::ostringstream timer;
+        timer << "TIME " << std::fixed << std::setprecision(1)
+              << std::max(0.0f, remainingSeconds);
+        ui.DrawText(
+            timer.str(),
+            panelX + panelWidth - 145.0f,
+            25.0f,
+            21.0f,
+            D2D1::ColorF(1.0f, 0.86f, 0.28f, 1.0f)
         );
-        ImGui::SetNextWindowBgAlpha(0.78f);
-        ImGui::Begin(
-            "##MiniGameHeader",
-            nullptr,
-            ImGuiWindowFlags_NoDecoration |
-            ImGuiWindowFlags_AlwaysAutoResize |
-            ImGuiWindowFlags_NoSavedSettings |
-            ImGuiWindowFlags_NoInputs
+        ui.DrawText(rule, panelX + 24.0f, 56.0f, 18.0f);
+        ui.DrawText(
+            controls,
+            panelX + 24.0f,
+            80.0f,
+            15.0f,
+            D2D1::ColorF(0.68f, 0.76f, 0.88f, 1.0f)
         );
-        ImGui::TextUnformatted(title);
-        ImGui::Separator();
-        ImGui::TextUnformatted(rule);
-        ImGui::TextUnformatted(controls);
-        ImGui::SameLine();
-        ImGui::Text("  TIME %.1f", std::max(0.0f, remainingSeconds));
-        ImGui::End();
     }
 
-    static void DrawScoreRow(const std::vector<int>& scores) {
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(
-            ImVec2(
-                viewport->WorkPos.x + viewport->WorkSize.x * 0.5f,
-                viewport->WorkPos.y + 112.0f
-            ),
-            ImGuiCond_Always,
-            ImVec2(0.5f, 0.0f)
+    void DrawScoreRow(const std::vector<int>& scores) const {
+        MiniGameRuntimeUi ui(GetEntityRef().GetScene());
+        if (!ui.IsAvailable() || scores.empty()) {
+            return;
+        }
+
+        const float panelWidth = 600.0f;
+        const float panelX = (ui.Width() - panelWidth) * 0.5f;
+        ui.FillPanel(
+            panelX,
+            116.0f,
+            panelWidth,
+            48.0f,
+            D2D1::ColorF(0.025f, 0.035f, 0.06f, 0.80f)
         );
-        ImGui::SetNextWindowBgAlpha(0.72f);
-        ImGui::Begin(
-            "##MiniGameScores",
-            nullptr,
-            ImGuiWindowFlags_NoDecoration |
-            ImGuiWindowFlags_AlwaysAutoResize |
-            ImGuiWindowFlags_NoSavedSettings |
-            ImGuiWindowFlags_NoInputs
-        );
+
+        const float cellWidth = panelWidth / static_cast<float>(scores.size());
         for (std::size_t index = 0; index < scores.size(); ++index) {
-            if (index > 0) ImGui::SameLine();
-            ImGui::Text("P%zu: %d", index + 1, scores[index]);
-        }
-        ImGui::End();
-    }
-
-    static void DrawResultPanel(
-        const MiniGameResult& result,
-        const char* retryText = "R: RETRY   B/BACKSPACE: SELECT   N: NEXT"
-    ) {
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(
-            viewport->GetCenter(),
-            ImGuiCond_Always,
-            ImVec2(0.5f, 0.5f)
-        );
-        ImGui::SetNextWindowBgAlpha(0.92f);
-        ImGui::Begin(
-            "RESULT",
-            nullptr,
-            ImGuiWindowFlags_NoCollapse |
-            ImGuiWindowFlags_AlwaysAutoResize |
-            ImGuiWindowFlags_NoSavedSettings
-        );
-        if (result.isTie) {
-            ImGui::TextUnformatted("DRAW");
-        } else if (!result.players.empty()) {
-            ImGui::Text("WINNER: P%d", result.players.front().playerId + 1);
-        }
-        ImGui::Separator();
-        for (const PlayerResult& player : result.players) {
-            ImGui::Text(
-                "%u. P%d   SCORE %d%s",
-                player.rank,
-                player.playerId + 1,
-                player.score,
-                player.eliminated ? "   OUT" : ""
+            const DirectX::XMFLOAT4 playerColor = PlayerColor(
+                static_cast<PlayerId>(index)
+            );
+            ui.DrawText(
+                "P" + std::to_string(index + 1) + "  " +
+                    std::to_string(scores[index]),
+                panelX + cellWidth * static_cast<float>(index) + 22.0f,
+                127.0f,
+                21.0f,
+                D2D1::ColorF(
+                    playerColor.x,
+                    playerColor.y,
+                    playerColor.z,
+                    1.0f
+                )
             );
         }
-        ImGui::Separator();
-        ImGui::TextUnformatted(retryText);
-        ImGui::End();
+    }
+
+    void DrawResultPanel(
+        const MiniGameResult& result,
+        const char* retryText = "R: RETRY   B/BACKSPACE: SELECT   N: NEXT"
+    ) const {
+        MiniGameRuntimeUi ui(GetEntityRef().GetScene());
+        if (!ui.IsAvailable()) {
+            return;
+        }
+
+        const float panelWidth = 620.0f;
+        const float panelHeight = 168.0f +
+            static_cast<float>(result.players.size()) * 34.0f;
+        const float panelX = (ui.Width() - panelWidth) * 0.5f;
+        const float panelY = (ui.Height() - panelHeight) * 0.5f;
+        ui.FillPanel(
+            panelX,
+            panelY,
+            panelWidth,
+            panelHeight,
+            D2D1::ColorF(0.018f, 0.025f, 0.045f, 0.94f)
+        );
+        ui.DrawTextCentered("RESULT", ui.Width() * 0.5f, panelY + 18.0f, 34.0f);
+
+        if (result.isTie) {
+            ui.DrawTextCentered(
+                "DRAW",
+                ui.Width() * 0.5f,
+                panelY + 60.0f,
+                25.0f,
+                D2D1::ColorF(1.0f, 0.86f, 0.28f, 1.0f)
+            );
+        } else if (!result.players.empty()) {
+            ui.DrawTextCentered(
+                "WINNER  P" + std::to_string(result.players.front().playerId + 1),
+                ui.Width() * 0.5f,
+                panelY + 60.0f,
+                25.0f,
+                D2D1::ColorF(1.0f, 0.86f, 0.28f, 1.0f)
+            );
+        }
+
+        float rowY = panelY + 98.0f;
+        for (const PlayerResult& player : result.players) {
+            const DirectX::XMFLOAT4 playerColor = PlayerColor(player.playerId);
+            std::string row = std::to_string(player.rank) + ".  P" +
+                std::to_string(player.playerId + 1) + "   SCORE " +
+                std::to_string(player.score);
+            if (player.eliminated) {
+                row += "   OUT";
+            }
+            ui.DrawText(
+                row,
+                panelX + 78.0f,
+                rowY,
+                20.0f,
+                D2D1::ColorF(
+                    playerColor.x,
+                    playerColor.y,
+                    playerColor.z,
+                    1.0f
+                )
+            );
+            rowY += 34.0f;
+        }
+
+        ui.DrawTextCentered(
+            retryText,
+            ui.Width() * 0.5f,
+            panelY + panelHeight - 42.0f,
+            16.0f,
+            D2D1::ColorF(0.72f, 0.8f, 0.92f, 1.0f)
+        );
     }
 };
 
