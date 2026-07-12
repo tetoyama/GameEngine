@@ -21,6 +21,7 @@ class RuntimeTextSystem;
 namespace ElemenTactics {
 
 class ElemenTacticsKeyboardNavigator;
+class ElemenTacticsVisualGuide;
 
 // ComponentRegistry constructs a temporary component and moves it into its
 // selected storage. ElemenTacticsLlmFacade is intentionally non-copyable, so
@@ -154,6 +155,7 @@ public:
 
 private:
 	friend class ElemenTacticsKeyboardNavigator;
+	friend class ElemenTacticsVisualGuide;
 
 	enum class UiCommand : std::uint8_t {
 		None,
