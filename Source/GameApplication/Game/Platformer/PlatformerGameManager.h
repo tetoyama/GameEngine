@@ -66,7 +66,8 @@ public:
 		if(state != RunState::Cleared) runTime += (std::max)(0.0f, dt);
 		if(clearTimer > 0.0f) clearTimer = (std::max)(0.0f, clearTimer - dt);
 
-		if(state == RunState::Cleared && clearTimer <= 0.0f && !reloadRequested && GetKeyDown('R')) {
+		const bool restartPressed = GetKeyDown('R') || GetKeyDown(VK_RETURN);
+		if(state == RunState::Cleared && clearTimer <= 0.0f && !reloadRequested && restartPressed) {
 			reloadRequested = true;
 			if(!restartScenePath.empty()) LoadScene(restartScenePath);
 		}
