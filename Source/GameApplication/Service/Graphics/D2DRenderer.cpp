@@ -110,6 +110,26 @@ void D2DRenderer::DrawText2D(const std::wstring& text, float x, float y, float f
 	EndDraw();
 }
 
+void D2DRenderer::FillRect2D(
+	float x,
+	float y,
+	float width,
+	float height,
+	D2D1::ColorF color
+){
+	if(!m_d2dRenderTarget || !m_fontBrush || width <= 0.0f || height <= 0.0f){
+		return;
+	}
+
+	m_fontBrush->SetColor(color);
+	BeginDraw();
+	m_d2dRenderTarget->FillRectangle(
+		D2D1::RectF(x, y, x + width, y + height),
+		m_fontBrush
+	);
+	EndDraw();
+}
+
 // テキストフォーマットの再生成
 void D2DRenderer::ReloadTextFormat(){
 	if(m_textFormat){
@@ -180,18 +200,22 @@ void D2DRenderer::SetTextSize(float size, bool reload){
 	m_fontSize = size;
 	if(reload) ReloadTextFormat();
 }
+
 void D2DRenderer::SetTextFont(const std::wstring& name, bool reload){
 	m_fontName = name;
 	if(reload) ReloadTextFormat();
 }
+
 void D2DRenderer::SetTextWeight(DWRITE_FONT_WEIGHT weight, bool reload){
 	m_fontWeight = weight;
 	if(reload) ReloadTextFormat();
 }
+
 void D2DRenderer::SetTextStyle(DWRITE_FONT_STYLE style, bool reload){
 	m_fontStyle = style;
 	if(reload) ReloadTextFormat();
 }
+
 void D2DRenderer::SetTextStretch(DWRITE_FONT_STRETCH stretch, bool reload){
 	m_fontStretch = stretch;
 	if(reload) ReloadTextFormat();
