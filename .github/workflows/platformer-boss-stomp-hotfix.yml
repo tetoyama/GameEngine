@@ -1,0 +1,129 @@
+name: Platformer Boss Stomp Hotfix
+
+on:
+  push:
+    branches:
+      - game/platformer-tech-demo
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: game/platformer-tech-demo
+          fetch-depth: 0
+
+      - name: Make boss reachable with a normal held jump
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('Source/GameApplication/Game/Platformer/PlatformerBoss.h')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+              (
+                  'REFLECT_FIELD(float, stompHeightMargin, 0.75f)',
+                  'REFLECT_FIELD(float, stompHeightMargin, -0.25f)'
+              ),
+              (
+                  '\t\tValidatePresentationSettings();\n\t\ttransform = GetComponentRef<TransformComponent>();',
+                  '\t\tValidatePresentationSettings();\n\t\ttransform = GetComponentRef<TransformComponent>();'
+              ),
+              (
+                  '\t\tif(!bossPose || !playerController || !playerPose) return;\n\n\t\tswitch(state) {',
+                  '\t\tif(!bossPose || !playerController || !playerPose) return;\n\n'
+                  '\t\t// The visual boss is intentionally large, but its vulnerable area must\n'
+                  '\t\t// remain reachable by the ordinary fully-held first jump. Resolve the\n'
+                  '\t\t// descending weak-point overlap before the broad body collider contact.\n'
+                  '\t\tif(state == State::Stunned &&\n'
+                  '\t\t   TryReceiveAccessibleStomp(*playerController, *playerPose, *bossPose)) {\n'
+                  '\t\t\treturn;\n'
+                  '\t\t}\n\n'
+                  '\t\tswitch(state) {'
+              ),
+              (
+                  '\tvoid ValidatePresentationSettings() {\n\t\teffectCenterHeight = (std::max)(0.0f, effectCenterHeight);',
+                  '\tvoid ValidatePresentationSettings() {\n'
+                  '\t\t// Older scene/default data used +0.75 m above the boss origin, which\n'
+                  '\t\t// effectively required a chained jump. Keep the weak point around the\n'
+                  '\t\t// compressed upper body so a normal held jump can cross it while falling.\n'
+                  '\t\tstompHeightMargin = std::clamp(stompHeightMargin, -0.45f, -0.20f);\n'
+                  '\t\teffectCenterHeight = (std::max)(0.0f, effectCenterHeight);'
+              ),
+              (
+                  '\tbool HandlePlayerContact(const EntityRef& other) {',
+                  '\tbool TryReceiveAccessibleStomp(\n'
+                  '\t\tPlatformerCharacterController& playerController,\n'
+                  '\t\tconst TransformComponent& playerPose,\n'
+                  '\t\tconst TransformComponent& bossPose\n'
+                  '\t) {\n'
+                  '\t\tif(state != State::Stunned || !playerController.IsDescending()) return false;\n\n'
+                  '\t\tconst float dx = playerPose.position.x - bossPose.position.x;\n'
+                  '\t\tconst float dz = playerPose.position.z - bossPose.position.z;\n'
+                  '\t\tconst float horizontalDistance = std::sqrt(dx * dx + dz * dz);\n'
+                  '\t\tconst float visualRadius = (std::max)(baseScale.x, baseScale.z);\n'
+                  '\t\tconst float catchRadius = (std::max)(1.0f, visualRadius * 0.42f);\n'
+                  '\t\tconst float minimumFootHeight = bossPose.position.y + stompHeightMargin;\n'
+                  '\t\tconst float maximumFootHeight = bossPose.position.y +\n'
+                  '\t\t\t(std::max)(1.25f, baseScale.y * 0.55f);\n\n'
+                  '\t\tif(horizontalDistance > catchRadius ||\n'
+                  '\t\t   playerPose.position.y < minimumFootHeight ||\n'
+                  '\t\t   playerPose.position.y > maximumFootHeight) {\n'
+                  '\t\t\treturn false;\n'
+                  '\t\t}\n\n'
+                  '\t\tReceiveStomp(playerController, bossPose.position);\n'
+                  '\t\treturn true;\n'
+                  '\t}\n\n'
+                  '\tbool HandlePlayerContact(const EntityRef& other) {'
+              ),
+              (
+                  'baseScale.y * (0.52f + wobble * 0.07f)',
+                  'baseScale.y * (0.36f + wobble * 0.06f)'
+              )
+          ]
+
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'expected source fragment not found: {old[:80]!r}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+          Path('.github/workflows/platformer-boss-stomp-hotfix.yml').unlink()
+          PY
+
+      - name: Commit hotfix
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add Source/GameApplication/Game/Platformer/PlatformerBoss.h .github/workflows/platformer-boss-stomp-hotfix.yml
+          git commit -m "Make boss stomp reachable with normal jump"
+          git push origin HEAD:game/platformer-tech-demo
+
+  build:
+    needs: patch
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: game/platformer-tech-demo
+      - uses: microsoft/setup-msbuild@v2
+      - name: Build Debug x64
+        shell: pwsh
+        run: >-
+          msbuild GameEngine.sln
+          /m
+          /restore
+          /t:Build
+          /p:Configuration=Debug
+          /p:Platform=x64
+          /p:UseSharedCompilation=false
+          /verbosity:minimal
