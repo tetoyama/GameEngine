@@ -8,6 +8,7 @@
 #include "Scene/Component/entityNameComponent.h"
 #include "Scene/Component/materialComponent.h"
 #include "Scene/Component/modelRendererComponent.h"
+#include "Scene/Component/textureComponent.h"
 #include "Scene/Component/transformComponent.h"
 
 #include <algorithm>
@@ -71,6 +72,7 @@ protected:
         QueueAddComponent<NameComponent>(pending);
         QueueAddComponent<TransformComponent>(pending);
         QueueAddComponent<MaterialComponent>(pending);
+        QueueAddComponent<TextureComponent>(pending);
         QueueAddComponent<ModelRendererComponent>(pending);
 
         return QueueEntitySetup(
@@ -88,6 +90,8 @@ protected:
                     context.component->GetComponent<TransformComponent>(entity);
                 auto* material =
                     context.component->GetComponent<MaterialComponent>(entity);
+                auto* texture =
+                    context.component->GetComponent<TextureComponent>(entity);
                 auto* renderer =
                     context.component->GetComponent<ModelRendererComponent>(entity);
 
@@ -105,6 +109,17 @@ protected:
                     material->Material.Roughness = 0.68f;
                     material->Material.MaterialFlags &=
                         ~MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
+                }
+                if (texture && context.manager && context.manager->resource) {
+                    // cube.objが参照するcube.mtlはAssetに存在しないため、
+                    // モデル内Diffuseへ依存せず明示的な白TextureへBaseColorを乗算する。
+                    texture->m_TextureData =
+                        context.manager->resource->Load<TextureData>(
+                            "Asset\\Texture\\white.tga"
+                        );
+                    texture->UV_Slice_X = 1.0f;
+                    texture->UV_Slice_Y = 1.0f;
+                    texture->AnimationNum = 0;
                 }
                 if (renderer) {
                     renderer->modelFilePath = "Asset\\Model\\cube.obj";
