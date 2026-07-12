@@ -59,6 +59,7 @@
 #ifdef max
 #undef max
 #endif
+#include "Game/MiniGameCollection/Runtime/MiniGameCollectionEntryRuntime.h"
 #include "Game/MiniGameCollection/Runtime/MiniGamePersistentRuntime.h"
 #include "Game/MiniGameCollection/Runtime/PresentationSpikeRuntime.h"
 #include "Game/MiniGameCollection/Runtime/ColorTerritoryRuntime.h"
@@ -123,6 +124,7 @@ struct ComponentStoragePreference<TransformComponent> {
     X(FadeSetScene,COMPONENT_SPARSE)\
     X(ScriptComponent,COMPONENT_SPARSE)\
     X(GN31,COMPONENT_SPARSE)\
+    X(MiniGameCollection::Runtime::MiniGameCollectionEntryRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::MiniGamePersistentRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::PresentationSpikeRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::ColorTerritoryRuntime,COMPONENT_SPARSE)\
