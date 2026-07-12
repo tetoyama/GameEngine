@@ -25,3 +25,33 @@ Entities:
       - Component: ElemenTactics::ElemenTacticsGameController
         ScriptName: ElemenTacticsGameController
         InitialScreen: Title
+      - Component: ElemenTactics::ElemenTacticsKeyboardNavigator
+        ScriptName: ElemenTacticsKeyboardNavigator
+  - Entity: 2
+    Components:
+      - Component: NameComponent
+        Name: ElemenTactics Player Camera
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: -10
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: CameraComponent
+        isLock: true
+        Target:
+          x: 0
+          y: 0
+          z: 0
+        NearClip: 0.01
+        FarClip: 1024
+        FOV: 1
