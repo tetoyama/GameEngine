@@ -4,6 +4,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
+#include <sstream>
 #include <string>
 
 namespace MiniGameCollection::Runtime {
@@ -87,7 +89,7 @@ private:
                 ++m_retryCount;
                 SubmitPresentation(RuntimePresentationCommandType::Cancel);
                 BeginAttempt();
-            } else if (GetKeyDown(VK_ESCAPE)) {
+            } else if (IsReturnToSelectionPressed()) {
                 m_transitionSubmitted = SubmitTransition(
                     {},
                     TransitionRequest::Selection
@@ -260,30 +262,47 @@ private:
     }
 
     void DrawTimingTrack() const {
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        const ImVec2 center = viewport->GetCenter();
-        const ImVec2 trackMin(center.x - 260.0f, center.y + 120.0f);
-        const ImVec2 trackMax(center.x + 260.0f, center.y + 154.0f);
-        ImDrawList* draw = ImGui::GetForegroundDrawList();
-        draw->AddRectFilled(trackMin, trackMax, IM_COL32(18, 24, 38, 225), 8.0f);
-        draw->AddRectFilled(
-            ImVec2(center.x - 42.0f, trackMin.y),
-            ImVec2(center.x + 42.0f, trackMax.y),
-            IM_COL32(50, 180, 245, 175),
-            6.0f
+        MiniGameRuntimeUi ui(GetEntityRef().GetScene());
+        if (!ui.IsAvailable()) {
+            return;
+        }
+
+        const float trackWidth = 520.0f;
+        const float trackHeight = 34.0f;
+        const float trackX = (ui.Width() - trackWidth) * 0.5f;
+        const float trackY = ui.Height() * 0.5f + 120.0f;
+        ui.FillPanel(
+            trackX,
+            trackY,
+            trackWidth,
+            trackHeight,
+            D2D1::ColorF(0.035f, 0.05f, 0.09f, 0.9f)
         );
+        ui.FillPanel(
+            ui.Width() * 0.5f - 42.0f,
+            trackY,
+            84.0f,
+            trackHeight,
+            D2D1::ColorF(0.12f, 0.62f, 0.92f, 0.75f)
+        );
+
         if (m_phase == Phase::InputWindow || m_phase == Phase::Outcome) {
             const float normalized = std::clamp(
                 (m_markerPosition + 4.0f) / 8.0f,
                 0.0f,
                 1.0f
             );
-            const float markerX = std::lerp(trackMin.x, trackMax.x, normalized);
-            draw->AddCircleFilled(
-                ImVec2(markerX, (trackMin.y + trackMax.y) * 0.5f),
-                13.0f,
-                IM_COL32(255, 212, 72, 255),
-                24
+            const float markerX = std::lerp(
+                trackX,
+                trackX + trackWidth,
+                normalized
+            );
+            ui.FillPanel(
+                markerX - 9.0f,
+                trackY - 8.0f,
+                18.0f,
+                trackHeight + 16.0f,
+                D2D1::ColorF(1.0f, 0.82f, 0.22f, 1.0f)
             );
         }
     }
@@ -294,39 +313,72 @@ private:
         }
 
         const char* label = "WAIT";
+        D2D1::ColorF labelColor(0.9f, 0.92f, 1.0f, 1.0f);
         switch (m_outcome) {
-        case Outcome::Success: label = "SUCCESS"; break;
-        case Outcome::NearMiss: label = "CLOSE"; break;
-        case Outcome::Failure: label = "MISS"; break;
-        case Outcome::Pending: break;
+        case Outcome::Success:
+            label = "SUCCESS";
+            labelColor = D2D1::ColorF(0.28f, 1.0f, 0.42f, 1.0f);
+            break;
+        case Outcome::NearMiss:
+            label = "CLOSE";
+            labelColor = D2D1::ColorF(1.0f, 0.76f, 0.2f, 1.0f);
+            break;
+        case Outcome::Failure:
+            label = "MISS";
+            labelColor = D2D1::ColorF(1.0f, 0.25f, 0.22f, 1.0f);
+            break;
+        case Outcome::Pending:
+            break;
         }
 
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(
-            viewport->GetCenter(),
-            ImGuiCond_Always,
-            ImVec2(0.5f, 0.5f)
-        );
-        ImGui::SetNextWindowBgAlpha(0.9f);
-        ImGui::Begin(
-            "##PresentationSpikeResult",
-            nullptr,
-            ImGuiWindowFlags_NoDecoration |
-            ImGuiWindowFlags_AlwaysAutoResize |
-            ImGuiWindowFlags_NoSavedSettings
-        );
-        ImGui::TextUnformatted(label);
-        if (m_outcome != Outcome::Failure || m_inputErrorSeconds > 0.0f) {
-            ImGui::Text("ERROR %.3f sec", m_inputErrorSeconds);
+        MiniGameRuntimeUi ui(GetEntityRef().GetScene());
+        if (!ui.IsAvailable()) {
+            return;
         }
-        ImGui::Text("RETRY COUNT %u", m_retryCount);
+        const float panelWidth = 540.0f;
+        const float panelHeight = m_phase == Phase::Result ? 210.0f : 154.0f;
+        const float panelX = (ui.Width() - panelWidth) * 0.5f;
+        const float panelY = (ui.Height() - panelHeight) * 0.5f;
+        ui.FillPanel(
+            panelX,
+            panelY,
+            panelWidth,
+            panelHeight,
+            D2D1::ColorF(0.018f, 0.025f, 0.045f, 0.94f)
+        );
+        ui.DrawTextCentered(
+            label,
+            ui.Width() * 0.5f,
+            panelY + 18.0f,
+            38.0f,
+            labelColor
+        );
+
+        std::ostringstream error;
+        error << "ERROR " << std::fixed << std::setprecision(3)
+              << m_inputErrorSeconds << " sec";
+        ui.DrawTextCentered(
+            error.str(),
+            ui.Width() * 0.5f,
+            panelY + 72.0f,
+            19.0f
+        );
+        ui.DrawTextCentered(
+            "RETRY COUNT " + std::to_string(m_retryCount),
+            ui.Width() * 0.5f,
+            panelY + 104.0f,
+            17.0f,
+            D2D1::ColorF(0.68f, 0.76f, 0.9f, 1.0f)
+        );
         if (m_phase == Phase::Result) {
-            ImGui::Separator();
-            ImGui::TextUnformatted(
-                "R: RETRY   ENTER/N: COLOR TERRITORY   ESC: SELECT"
+            ui.DrawTextCentered(
+                "R: RETRY   ENTER/N: COLOR TERRITORY   B/BACKSPACE: SELECT",
+                ui.Width() * 0.5f,
+                panelY + 158.0f,
+                15.0f,
+                D2D1::ColorF(0.72f, 0.8f, 0.92f, 1.0f)
             );
         }
-        ImGui::End();
     }
 
     float RemainingSeconds() const noexcept {
