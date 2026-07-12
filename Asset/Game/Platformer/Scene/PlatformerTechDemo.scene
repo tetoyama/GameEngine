@@ -55,12 +55,12 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 0.0449999981
+          y: 0.0349999927
           z: 1.13324761
         Rotation:
-          - -0
           - 0
-          - -0
+          - 0
+          - 0
           - 1
         Scale:
           x: 0.00999999978
@@ -194,7 +194,7 @@ Entities:
           y: 1.20000005
           z: 0
         NearClip: 0.0299999993
-        FarClip: 512
+        FarClip: 1024
         FOV: 1
         viewMatrix:
           -
@@ -217,7 +217,7 @@ Entities:
             - -1.13263011
             - 8.87226868
             - 1
-        nextLinkId: 8
+        nextLinkId: 11
         nextPinId: 13
         PostEffectEditorZoom: 1
         PostEffects:
@@ -226,8 +226,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\Blur.cso
             NodePos:
-              x: 169
-              y: 94
+              x: 257.652222
+              y: -120.903229
             InputPins:
               - 1
               - 12
@@ -244,8 +244,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\BrightPass.cso
             NodePos:
-              x: 160
-              y: -203
+              x: -70.6943359
+              y: -135.608658
             InputPins:
               - 3
               - 7
@@ -262,8 +262,8 @@ Entities:
             VS: Asset\Shader\PostEffectVS.cso
             PS: Asset\Shader\CompositeBloom.cso
             NodePos:
-              x: 417
-              y: -55
+              x: 544.305664
+              y: 13.3913422
             InputPins:
               - 8
               - 10
@@ -277,11 +277,6 @@ Entities:
             ResolutionScale: 1
             MipLevels: 1
         PostEffectLinks:
-          - ID: 3
-            StartNode: 1
-            EndNode: 2
-            StartAttr: 4
-            EndAttr: 8
           - ID: 4
             StartNode: 0
             EndNode: 2
@@ -297,30 +292,39 @@ Entities:
             EndNode: -2
             StartAttr: 9
             EndAttr: 6
-          - ID: 7
+          - ID: 9
             StartNode: -1
-            EndNode: 0
+            EndNode: 2
             StartAttr: 5
+            EndAttr: 8
+          - ID: 10
+            StartNode: 1
+            EndNode: 0
+            StartAttr: 4
             EndAttr: 1
         ScreenInput:
           Name: ""
           NodePos:
-            x: 40
-            y: 151
+            x: -196.694336
+            y: 102.391342
           OutputPin: 5
         ScreenOutput:
           Name: ""
           NodePos:
-            x: 646
-            y: 139
+            x: 773.305664
+            y: 207.391342
           InputPins:
             - 6
       - Component: PlatformerCameraController
         followSharpness: 7.5
         verticalFollowSharpness: 3
         transitionSharpness: 4.80000019
+        occlusionShortenSharpness: 13
         occlusionReturnSharpness: 6
-        minimumDistance: 1.20000005
+        occlusionEnterDelay: 0.0799999982
+        occlusionExitDelay: 0.119999997
+        occlusionProbeStart: 0.449999988
+        minimumDistance: 2.5
         collisionPadding: 0.180000007
         courseYawDegrees: 0
         courseDistance: 8.5
@@ -330,7 +334,7 @@ Entities:
         wallHeight: 4.5
         bossDistance: 13.5
         bossHeight: 7
-        SelfLayerBit: 10
+        SelfLayerBit: 26
         Profile: 0
   - Entity: 4
     Components:
@@ -342,10 +346,10 @@ Entities:
           y: 42
           z: -30
         Rotation:
-          - 0.217116982
-          - 0.464520961
-          - 0.118611991
-          - 0.850300968
+          - 0.422417223
+          - 0.384705573
+          - -0.0180797596
+          - 0.820511103
         Scale:
           x: 1
           y: 1
@@ -361,9 +365,9 @@ Entities:
           z: -30
           w: 0
         Direction:
-          x: 0.841470599
-          y: -0.259034038
-          z: 0.474161059
+          x: 0.616035998
+          y: -0.707106829
+          z: 0.347130656
           w: 0
         Diffuse:
           x: 1
@@ -381,7 +385,7 @@ Entities:
           z: 0
           w: 0
         ShadowBias:
-          x: 0.000500000024
+          x: 0.150000006
           y: 0.0199999996
           z: 1
           w: 0
