@@ -5,12 +5,16 @@
 // =======================================================================
 #pragma once
 
-// キーボード 1 キー分の入力状態を保持する
+// キーボード1キー分の入力状態を保持する。
+// Win32 MessageはPollEvents中、Scriptはその後のScene Updateで読むため、
+// 押下・解放エッジはpendingから公開状態へ1フレームだけラッチする。
 struct KeyState {
-	bool isDown = false;      // 現在押下中か
-	bool wasPressed = false;  // このフレームで押されたか
-	bool wasReleased = false; // このフレームで離されたか
-	int frameCount = 0;       // 押下継続フレーム数
+	bool isDown = false;          // 現在押下中か
+	bool pressed = false;         // 現在のScriptフレームで押されたか
+	bool released = false;        // 現在のScriptフレームで離されたか
+	bool pendingPressed = false;  // PollEvents中に受け取った押下エッジ
+	bool pendingReleased = false; // PollEvents中に受け取った解放エッジ
+	int frameCount = 0;           // 押下継続フレーム数（既存互換）
 };
 
 // マウス入力の座標・ホイール・各ボタン状態をまとめて保持する
