@@ -1,0 +1,136 @@
+SceneSettings:
+  Storage:
+    ExpectedEntities: 256
+    ExpectedTransforms: 192
+    ExpectedRenderables: 64
+    ExpectedCullingComponents: 64
+    ExpectedStaticEntities: 32
+    PreallocatedTransformPages: 0
+    PreallocatedTagPages: 0
+    RenderPacketReserve: 128
+    VisibleEntityReserve: 128
+    StaticBatchReserve: 16
+    AllowRuntimeGrowth: true
+    LogCapacityGrowth: true
+Entities:
+  - Entity: 1
+    Components:
+      - Component: NameComponent
+        Name: MiniGamePersistentRuntime
+      - Component: MiniGameCollection::Runtime::MiniGamePersistentRuntime
+        ScriptName: MiniGamePersistentRuntime
+        SelectedIndex: 0
+  - Entity: 2
+    Components:
+      - Component: NameComponent
+        Name: MiniGameCamera
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 12
+          z: 12
+        Rotation:
+          - -0.958471298
+          - 0
+          - 0
+          - 0.285188973
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: CameraComponent
+        isLock: false
+        Target:
+          x: 0
+          y: 0
+          z: 0
+        NearClip: 0.01
+        FarClip: 256
+        FOV: 1.05
+        nextLinkId: 1
+        nextPinId: 3
+        ScreenInput:
+          Name: ""
+          NodePos:
+            x: 40
+            y: 50
+          OutputPin: 1
+        ScreenOutput:
+          Name: ""
+          NodePos:
+            x: 500
+            y: 50
+          InputPins:
+            - 2
+  - Entity: 3
+    Components:
+      - Component: NameComponent
+        Name: MiniGameDirectionalLight
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 20
+          z: -12
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 1
+        CastShadow: 0
+        Position:
+          x: 0
+          y: 20
+          z: -12
+          w: 0
+        Direction:
+          x: -0.28
+          y: -0.78
+          z: 0.56
+          w: 0
+        Diffuse:
+          x: 0.95
+          y: 0.94
+          z: 1
+          w: 1
+        Ambient:
+          x: 0.28
+          y: 0.3
+          z: 0.34
+          w: 1
+        Param:
+          x: 80
+          y: 0
+          z: 0
+          w: 0
+  - Entity: 4
+    Components:
+      - Component: NameComponent
+        Name: MiniGameScreenFlash
+      - Component: MaterialComponent
+        ShaderID: 0
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 0
+          Metallic: 0
+          Roughness: 1
+          AO: 1
+          EmissiveColor:
+            x: 1
+            y: 1
+            z: 1
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+          UseEnvironmentMap: false
