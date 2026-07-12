@@ -126,15 +126,20 @@ void InputService::MessageUpdateInput(HWND hWnd, UINT message, WPARAM wParam, LP
 void InputService::Update(){
 	for(auto& winPair : m_windowStates){
 		WindowInputState& state = winPair.second;
-		// マウスボタンの状態を更新
+
+		// PollEvents() 中に受け取った Win32 Message のエッジを、この
+		// Update() から次の Update() まで Script へ公開する。
+		// 旧実装はここで buttonPressed を消していたため、Scene Update から
+		// IsMouse() が常に false になっていた。
 		for(int i = 0; i < MouseButtonCount; ++i){
-			if(state.mouseState.buttonPressed[i]){
-				state.mouseState.buttonPressed[i] = false;
-			}
-			if(state.mouseState.buttonReleased[i]){
-				state.mouseState.buttonReleased[i] = false;
-			}
+			state.mouseState.buttonPressed[i] =
+				state.mouseState.pendingPressed[i];
+			state.mouseState.buttonReleased[i] =
+				state.mouseState.pendingReleased[i];
+			state.mouseState.pendingPressed[i] = false;
+			state.mouseState.pendingReleased[i] = false;
 		}
+
 		// キーの状態を更新
 		for(auto& kstate : state.keyStates){
 			if(kstate.second.wasPressed){
@@ -247,19 +252,17 @@ void InputService::OnMouseMove(WindowInputState& state, int x, int y){
 void InputService::OnMouseButtonDown(WindowInputState& state, int button){
 	if(button < 0 || button >= MouseButtonCount) return;
 	if(!state.mouseState.buttonDown[button]){
-		state.mouseState.buttonPressed[button] = true;
-	} else{
-		state.mouseState.buttonPressed[button] = false;
+		state.mouseState.pendingPressed[button] = true;
 	}
 	state.mouseState.buttonDown[button] = true;
-	state.mouseState.buttonReleased[button] = false;
 }
 
 void InputService::OnMouseButtonUp(WindowInputState& state, int button){
 	if(button < 0 || button >= MouseButtonCount) return;
+	if(state.mouseState.buttonDown[button]){
+		state.mouseState.pendingReleased[button] = true;
+	}
 	state.mouseState.buttonDown[button] = false;
-	state.mouseState.buttonReleased[button] = true;
-	state.mouseState.buttonPressed[button] = false;
 }
 
 void InputService::OnMouseWheel(WindowInputState& state, int delta){
