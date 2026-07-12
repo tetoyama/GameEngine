@@ -142,14 +142,15 @@ inline std::uint64_t MakePipelineKey(const RenderPacket& packet) noexcept {
 
 inline void CombineMeshGeometry(
 	std::uint64_t& key,
-	const aiMesh* mesh
+	const aiMesh* mesh,
+	const ModelMeshGeometryCpuData* geometry
 ) noexcept {
-	if(!mesh){
+	if(!mesh || !geometry || !geometry->IsValid()){
 		Combine(key, 0);
 		return;
 	}
-	Combine(key, static_cast<std::uint64_t>(mesh->mNumVertices));
-	Combine(key, static_cast<std::uint64_t>(mesh->mNumFaces));
+	Combine(key, static_cast<std::uint64_t>(geometry->vertices.size()));
+	Combine(key, static_cast<std::uint64_t>(geometry->indices.size()));
 	Combine(key, static_cast<std::uint64_t>(mesh->mMaterialIndex));
 	Combine(key, mesh->HasBones() ? 1ull : 0ull);
 }
@@ -167,7 +168,8 @@ inline std::uint64_t MakeGeometryKey(const RenderPacket& packet) noexcept {
 	const ModelRendererComponent& renderer = *packet.bindings.modelRenderer;
 	const std::shared_ptr<ModelData>& model = renderer.model;
 	if(renderer.modelFilePath.empty() || !model || !model->AiScene ||
-		!model->AiScene->mMeshes){
+		!model->AiScene->mMeshes ||
+		model->MeshGeometry.size() != model->AiScene->mNumMeshes){
 		return 0;
 	}
 
@@ -175,15 +177,15 @@ inline std::uint64_t MakeGeometryKey(const RenderPacket& packet) noexcept {
 	Combine(key, renderer.modelRuntimeRevision);
 	Combine(key, renderer.isBlender ? 1ull : 0ull);
 	Combine(key, static_cast<std::uint64_t>(model->AiScene->mNumMeshes));
-	Combine(key, static_cast<std::uint64_t>(model->VertexBuffer.size()));
-	Combine(key, static_cast<std::uint64_t>(model->IndexBuffer.size()));
+	Combine(key, static_cast<std::uint64_t>(model->MeshGeometry.size()));
 	Combine(key, static_cast<std::uint64_t>(packet.subMeshIndex));
 
 	if(!packet.TargetsAllSubMeshes()){
 		if(packet.subMeshIndex >= model->AiScene->mNumMeshes) return 0;
 		CombineMeshGeometry(
 			key,
-			model->AiScene->mMeshes[packet.subMeshIndex]
+			model->AiScene->mMeshes[packet.subMeshIndex],
+			&model->MeshGeometry[packet.subMeshIndex]
 		);
 		return key == 0 ? 1 : key;
 	}
@@ -191,7 +193,11 @@ inline std::uint64_t MakeGeometryKey(const RenderPacket& packet) noexcept {
 	for(unsigned int meshIndex = 0;
 		meshIndex < model->AiScene->mNumMeshes;
 		++meshIndex){
-		CombineMeshGeometry(key, model->AiScene->mMeshes[meshIndex]);
+		CombineMeshGeometry(
+			key,
+			model->AiScene->mMeshes[meshIndex],
+			&model->MeshGeometry[meshIndex]
+		);
 	}
 	return key == 0 ? 1 : key;
 }
