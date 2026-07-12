@@ -1,0 +1,28 @@
+Entities:
+  - LocalID: 0
+    Components:
+      - Component: NameComponent
+        Name: PlatformerBearDecoration
+      - Component: TransformComponent
+        Position: {x: 0, y: 0, z: 0}
+        Rotation: [0, 0, 0, 1]
+        Scale: {x: 0.32, y: 0.32, z: 0.32}
+        Parent: 0
+      - Component: StaticEntityComponent
+      - Component: CullingComponent
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor: {x: 0.32, y: 0.34, z: 0.42, w: 1}
+          Metallic: 0.38
+          Roughness: 0.42
+          AO: 1
+          EmissiveColor: {x: 0.02, y: 0.025, z: 0.05}
+          EmissiveIntensity: 0.1
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\bear.fbx
+        isBlender: false
+        AnimationTime: 0
