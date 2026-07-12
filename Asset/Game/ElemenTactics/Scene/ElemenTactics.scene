@@ -27,6 +27,8 @@ Entities:
         InitialScreen: Title
       - Component: ElemenTactics::ElemenTacticsKeyboardNavigator
         ScriptName: ElemenTacticsKeyboardNavigator
+      - Component: ElemenTactics::ElemenTacticsVisualGuide
+        ScriptName: ElemenTacticsVisualGuide
   - Entity: 2
     Components:
       - Component: NameComponent
