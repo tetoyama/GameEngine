@@ -113,6 +113,26 @@ public:
         };
     }
 
+    PaintResult Clear(TileCoord coord) {
+        const std::size_t index = ToIndex(coord);
+        const std::int16_t previous = m_ownerByTile[index];
+        if (previous == UnclaimedOwner) {
+            return {
+                .changed = false,
+                .previousOwner = previous,
+                .newOwner = InvalidPlayerId
+            };
+        }
+
+        --m_scores[static_cast<std::size_t>(previous)];
+        m_ownerByTile[index] = UnclaimedOwner;
+        return {
+            .changed = true,
+            .previousOwner = previous,
+            .newOwner = InvalidPlayerId
+        };
+    }
+
     PlayerId FindLeader() const noexcept {
         if (m_scores.empty()) {
             return InvalidPlayerId;
