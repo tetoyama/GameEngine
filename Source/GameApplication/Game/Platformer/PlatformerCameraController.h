@@ -11,11 +11,15 @@
 
 class PlatformerCameraController : public CustomScriptComponent {
 	BEGIN_REFLECT(PlatformerCameraController)
-		REFLECT_FIELD(float, followSharpness, 7.5f)
+		REFLECT_FIELD(float, followSharpness, 6.0f)
 		REFLECT_FIELD(float, verticalFollowSharpness, 3.0f)
-		REFLECT_FIELD(float, transitionSharpness, 4.8f)
-		REFLECT_FIELD(float, occlusionShortenSharpness, 13.0f)
-		REFLECT_FIELD(float, occlusionReturnSharpness, 4.0f)
+		REFLECT_FIELD(float, transitionSharpness, 2.2f)
+		REFLECT_FIELD(float, targetHorizontalMaxSpeed, 11.0f)
+		REFLECT_FIELD(float, targetVerticalMaxSpeed, 5.5f)
+		REFLECT_FIELD(float, occlusionShortenSharpness, 8.0f)
+		REFLECT_FIELD(float, occlusionReturnSharpness, 3.5f)
+		REFLECT_FIELD(float, occlusionShortenMaxSpeed, 8.0f)
+		REFLECT_FIELD(float, occlusionReturnMaxSpeed, 4.0f)
 		REFLECT_FIELD(float, occlusionEnterDelay, 0.08f)
 		REFLECT_FIELD(float, occlusionExitDelay, 0.12f)
 		REFLECT_FIELD(float, occlusionProbeStart, 0.45f)
@@ -29,9 +33,11 @@ class PlatformerCameraController : public CustomScriptComponent {
 		REFLECT_FIELD(float, wallHeight, 4.5f)
 		REFLECT_FIELD(float, bossDistance, 13.5f)
 		REFLECT_FIELD(float, bossHeight, 7.0f)
-		REFLECT_FIELD(float, impulsePositionScale, 0.34f)
-		REFLECT_FIELD(float, impulseRollDegrees, 1.8f)
-		REFLECT_FIELD(float, impulseFrequency, 24.0f)
+		REFLECT_FIELD(bool, comfortCamera, true)
+		REFLECT_FIELD(float, impulsePositionScale, 0.075f)
+		REFLECT_FIELD(float, impulseFrequency, 7.0f)
+		REFLECT_FIELD(float, impulseResponseSharpness, 10.0f)
+		REFLECT_FIELD(float, maxImpulseFovKick, 0.010f)
 
 public:
 	enum class Profile : int {
@@ -90,6 +96,8 @@ public:
 		impulseStrength = 0.0f;
 		impulseFovKick = 0.0f;
 		impulseDirection = Vector3();
+		filteredImpulseOffset = Vector3();
+		filteredImpulseFov = 0.0f;
 	}
 
 	void OnFixedUpdate(float dt) override {
@@ -126,20 +134,21 @@ public:
 		if(currentDistance <= 0.0f) currentDistance = desiredDistance;
 		const bool shortening = distanceTarget < currentDistance;
 		const float distanceSharpness = shortening ? occlusionShortenSharpness : occlusionReturnSharpness;
-		currentDistance += (distanceTarget - currentDistance) * ExpBlend(distanceSharpness, dt);
+		const float distanceMaxSpeed = shortening ? occlusionShortenMaxSpeed : occlusionReturnMaxSpeed;
+		const float desiredStep = (distanceTarget - currentDistance) * ExpBlend(distanceSharpness, dt);
+		const float limitedStep = std::clamp(desiredStep, -distanceMaxSpeed * dt, distanceMaxSpeed * dt);
+		currentDistance += limitedStep;
 		currentDistance = (std::max)(minimumDistance, currentDistance);
 
 		Vector3 cameraPosition = smoothedTarget + rayDirection * currentDistance;
-		Vector3 lookTarget = smoothedTarget;
 		float fov = currentSettings.fov;
-		float rollRadians = 0.0f;
-		ApplyImpulse(dt, cameraPosition, lookTarget, fov, rollRadians);
+		ApplyImpulse(dt, cameraPosition, fov);
 
 		cameraPose->position = cameraPosition;
 		cameraComponent->isLock = true;
-		cameraComponent->Target = lookTarget;
+		cameraComponent->Target = smoothedTarget;
 		cameraComponent->FOV = fov;
-		ApplyLookRotation(*cameraPose, lookTarget, rollRadians);
+		ApplyLookRotation(*cameraPose, smoothedTarget);
 	}
 
 	void SetProfile(Profile next) {
@@ -162,22 +171,28 @@ public:
 		float fovKick = 0.0f,
 		const Vector3& direction = Vector3()
 	) {
-		strength = std::clamp(strength, 0.0f, 1.5f);
-		duration = (std::max)(0.02f, duration);
+		const float maximumStrength = comfortCamera ? 0.72f : 1.5f;
+		strength = std::clamp(strength, 0.0f, maximumStrength);
+		duration = std::clamp(duration, 0.06f, comfortCamera ? 0.24f : 0.5f);
 		if(strength <= 0.0f) return;
 
 		const float retained = impulseStrength * ImpulseEnvelope();
-		impulseStrength = (std::min)(1.5f, retained + strength * (1.0f - (std::min)(retained, 1.0f) * 0.35f));
+		impulseStrength = (std::min)(maximumStrength,
+			retained + strength * (1.0f - (std::min)(retained, 1.0f) * 0.45f));
 		impulseDuration = (std::max)(duration, impulseTime);
 		impulseTime = impulseDuration;
-		if(std::abs(fovKick) >= std::abs(impulseFovKick * ImpulseEnvelope())) impulseFovKick = fovKick;
+
+		const float limitedFovKick = std::clamp(fovKick, -maxImpulseFovKick, maxImpulseFovKick);
+		if(std::abs(limitedFovKick) >= std::abs(impulseFovKick * ImpulseEnvelope())) {
+			impulseFovKick = limitedFovKick;
+		}
 
 		if(direction.length() > 0.0001f) {
 			const Vector3 normalized = direction.normalize();
 			const Vector3 combined = impulseDirection + normalized * strength;
 			impulseDirection = combined.length() > 0.0001f ? combined.normalize() : normalized;
 		}
-		impulsePhase += 0.37f;
+		impulsePhase += 0.23f;
 	}
 
 private:
@@ -194,21 +209,36 @@ private:
 		followSharpness = (std::max)(0.1f, followSharpness);
 		verticalFollowSharpness = (std::max)(0.1f, verticalFollowSharpness);
 		transitionSharpness = (std::max)(0.1f, transitionSharpness);
+		targetHorizontalMaxSpeed = (std::max)(0.1f, targetHorizontalMaxSpeed);
+		targetVerticalMaxSpeed = (std::max)(0.1f, targetVerticalMaxSpeed);
 		occlusionShortenSharpness = (std::max)(0.1f, occlusionShortenSharpness);
 		occlusionReturnSharpness = (std::max)(0.1f, occlusionReturnSharpness);
+		occlusionShortenMaxSpeed = (std::max)(0.1f, occlusionShortenMaxSpeed);
+		occlusionReturnMaxSpeed = (std::max)(0.1f, occlusionReturnMaxSpeed);
 		occlusionEnterDelay = (std::max)(0.0f, occlusionEnterDelay);
 		occlusionExitDelay = (std::max)(0.0f, occlusionExitDelay);
 		occlusionProbeStart = (std::max)(0.0f, occlusionProbeStart);
 		impulsePositionScale = (std::max)(0.0f, impulsePositionScale);
-		impulseRollDegrees = (std::max)(0.0f, impulseRollDegrees);
 		impulseFrequency = (std::max)(1.0f, impulseFrequency);
+		impulseResponseSharpness = (std::max)(0.1f, impulseResponseSharpness);
+		maxImpulseFovKick = (std::max)(0.0f, maxImpulseFovKick);
+
+		if(comfortCamera) {
+			// Older scene data stores the original aggressive values. Clamp them here
+			// so opening an existing scene also receives the comfort-safe behavior.
+			followSharpness = (std::min)(followSharpness, 6.0f);
+			transitionSharpness = (std::min)(transitionSharpness, 2.2f);
+			occlusionShortenSharpness = (std::min)(occlusionShortenSharpness, 8.0f);
+			occlusionReturnSharpness = (std::min)(occlusionReturnSharpness, 3.5f);
+			impulsePositionScale = (std::min)(impulsePositionScale, 0.075f);
+			impulseFrequency = std::clamp(impulseFrequency, 4.0f, 8.0f);
+			maxImpulseFovKick = (std::min)(maxImpulseFovKick, 0.010f);
+		}
 
 		// Player, gameplay triggers, enemies, and the boss are never camera
 		// occluders. Older scene saves contain mask 10, so enforce layer 4 here.
 		selfLayerBit |= (1u << 1) | (1u << 3) | (1u << 4);
 
-		// Older authored scenes stored 1.2. That distance is too close for this
-		// character scale and makes a single transient ray hit visually violent.
 		minimumDistance = (std::max)(2.5f, minimumDistance);
 		collisionPadding = (std::max)(0.05f, collisionPadding);
 	}
@@ -244,9 +274,13 @@ private:
 
 		const float horizontalBlend = ExpBlend(followSharpness, dt);
 		const float verticalBlend = ExpBlend(verticalFollowSharpness, dt);
-		smoothedTarget.x += (desiredTarget.x - smoothedTarget.x) * horizontalBlend;
-		smoothedTarget.z += (desiredTarget.z - smoothedTarget.z) * horizontalBlend;
-		smoothedVertical += (desiredTarget.y - smoothedVertical) * verticalBlend;
+		const float desiredX = smoothedTarget.x + (desiredTarget.x - smoothedTarget.x) * horizontalBlend;
+		const float desiredZ = smoothedTarget.z + (desiredTarget.z - smoothedTarget.z) * horizontalBlend;
+		const float desiredY = smoothedVertical + (desiredTarget.y - smoothedVertical) * verticalBlend;
+
+		smoothedTarget.x = MoveTowards(smoothedTarget.x, desiredX, targetHorizontalMaxSpeed * dt);
+		smoothedTarget.z = MoveTowards(smoothedTarget.z, desiredZ, targetHorizontalMaxSpeed * dt);
+		smoothedVertical = MoveTowards(smoothedVertical, desiredY, targetVerticalMaxSpeed * dt);
 		smoothedTarget.y = smoothedVertical;
 	}
 
@@ -300,40 +334,45 @@ private:
 		return desiredDistance;
 	}
 
-	void ApplyImpulse(
-		float dt,
-		Vector3& cameraPosition,
-		Vector3& lookTarget,
-		float& fov,
-		float& rollRadians
-	) {
-		if(impulseTime <= 0.0f || impulseStrength <= 0.0f) return;
+	void ApplyImpulse(float dt, Vector3& cameraPosition, float& fov) {
+		Vector3 desiredOffset;
+		float desiredFov = 0.0f;
 
-		const float envelope = ImpulseEnvelope();
-		impulsePhase += dt * impulseFrequency * DirectX::XM_2PI;
-		const Vector3 noise(
-			std::sin(impulsePhase + 0.37f),
-			std::sin(impulsePhase * 1.73f + 1.11f),
-			std::sin(impulsePhase * 2.31f + 2.07f));
-		const float positionAmount = impulsePositionScale * impulseStrength * envelope;
-		Vector3 shake = noise * (positionAmount * 0.72f);
-		if(impulseDirection.length() > 0.0001f) {
-			shake += impulseDirection * (std::sin(impulsePhase * 0.63f) * positionAmount * 0.42f);
+		if(impulseTime > 0.0f && impulseStrength > 0.0f) {
+			const float envelope = ImpulseEnvelope();
+			impulsePhase += dt * impulseFrequency * DirectX::XM_2PI;
+
+			// Use a slow, coherent movement rather than independent high-frequency
+			// noise on position, target, roll, and FOV. The stable look target is the
+			// most important part of keeping the camera comfortable.
+			const Vector3 wave(
+				std::sin(impulsePhase),
+				std::sin(impulsePhase * 0.73f + 1.2f) * 0.45f,
+				std::sin(impulsePhase * 0.51f + 2.1f) * 0.30f);
+			const float positionAmount = impulsePositionScale * impulseStrength * envelope;
+			desiredOffset = wave * positionAmount;
+			if(impulseDirection.length() > 0.0001f) {
+				desiredOffset += impulseDirection * (positionAmount * 0.35f);
+			}
+			desiredFov = impulseFovKick * envelope;
+
+			impulseTime = (std::max)(0.0f, impulseTime - dt);
+			if(impulseTime <= 0.0f) {
+				impulseDuration = 0.0f;
+				impulseStrength = 0.0f;
+				impulseFovKick = 0.0f;
+				impulseDirection = Vector3();
+			}
 		}
 
-		cameraPosition += shake;
-		lookTarget += noise * (positionAmount * 0.12f);
-		fov += impulseFovKick * envelope;
-		rollRadians = DegreesToRadians(
-			std::sin(impulsePhase * 1.29f) * impulseRollDegrees * impulseStrength * envelope);
+		const float response = ExpBlend(impulseResponseSharpness, dt);
+		filteredImpulseOffset = Vec3Lerp(filteredImpulseOffset, desiredOffset, response);
+		filteredImpulseFov += (desiredFov - filteredImpulseFov) * response;
+		if(filteredImpulseOffset.length() < 0.0001f) filteredImpulseOffset = Vector3();
+		if(std::abs(filteredImpulseFov) < 0.00001f) filteredImpulseFov = 0.0f;
 
-		impulseTime = (std::max)(0.0f, impulseTime - dt);
-		if(impulseTime <= 0.0f) {
-			impulseDuration = 0.0f;
-			impulseStrength = 0.0f;
-			impulseFovKick = 0.0f;
-			impulseDirection = Vector3();
-		}
+		cameraPosition += filteredImpulseOffset;
+		fov += filteredImpulseFov;
 	}
 
 	float ImpulseEnvelope() const {
@@ -349,16 +388,16 @@ private:
 			result = {DegreesToRadians(courseYawDegrees), courseDistance, courseHeight, 1.25f, 0.9f, 1.0f};
 			break;
 		case Profile::TripleJump:
-			result = {DegreesToRadians(courseYawDegrees), courseDistance + 2.0f, courseHeight + 1.0f, 1.8f, 1.8f, 1.02f};
+			result = {DegreesToRadians(courseYawDegrees), courseDistance + 2.0f, courseHeight + 1.0f, 1.8f, 1.8f, 1.01f};
 			break;
 		case Profile::WallKick:
-			result = {DegreesToRadians(wallYawDegrees), wallDistance, wallHeight, 2.0f, 0.0f, 0.95f};
+			result = {DegreesToRadians(wallYawDegrees), wallDistance, wallHeight, 2.0f, 0.0f, 0.98f};
 			break;
 		case Profile::Boss:
-			result = {DegreesToRadians(courseYawDegrees), bossDistance, bossHeight, 2.0f, 0.0f, 1.08f};
+			result = {DegreesToRadians(courseYawDegrees), bossDistance, bossHeight, 2.0f, 0.0f, 1.04f};
 			break;
 		case Profile::Clear:
-			result = {DegreesToRadians(courseYawDegrees + 25.0f), 7.0f, 5.0f, 1.8f, 0.0f, 0.9f};
+			result = {DegreesToRadians(courseYawDegrees + 25.0f), 7.0f, 5.0f, 1.8f, 0.0f, 0.96f};
 			break;
 		}
 		return result;
@@ -368,13 +407,13 @@ private:
 		return std::sqrt(settings.distance * settings.distance + settings.height * settings.height);
 	}
 
-	static void ApplyLookRotation(TransformComponent& transform, const Vector3& target, float rollRadians) {
+	static void ApplyLookRotation(TransformComponent& transform, const Vector3& target) {
 		const Vector3 forward = (target - transform.position).normalize();
 		if(forward.length() <= 0.0001f) return;
 		const float yaw = std::atan2(forward.x, forward.z);
 		const float pitch = std::asin(std::clamp(-forward.y, -1.0f, 1.0f));
 		DirectX::XMFLOAT4 rotation;
-		DirectX::XMStoreFloat4(&rotation, DirectX::XMQuaternionRotationRollPitchYaw(pitch, yaw, rollRadians));
+		DirectX::XMStoreFloat4(&rotation, DirectX::XMQuaternionRotationRollPitchYaw(pitch, yaw, 0.0f));
 		transform.SetRotation(rotation);
 	}
 
@@ -393,6 +432,11 @@ private:
 		return current + delta * std::clamp(t, 0.0f, 1.0f);
 	}
 
+	static float MoveTowards(float current, float target, float maxDelta) {
+		if(std::abs(target - current) <= maxDelta) return target;
+		return current + (target > current ? maxDelta : -maxDelta);
+	}
+
 	ComponentRef<TransformComponent> transform;
 	ComponentRef<CameraComponent> camera;
 	ComponentRef<PlatformerCharacterController> player;
@@ -402,6 +446,7 @@ private:
 	CameraSettings targetSettings;
 	Vector3 smoothedTarget;
 	Vector3 impulseDirection;
+	Vector3 filteredImpulseOffset;
 	float smoothedVertical = 0.0f;
 	float currentDistance = 0.0f;
 	float occlusionEnterTimer = 0.0f;
@@ -411,6 +456,7 @@ private:
 	float impulseStrength = 0.0f;
 	float impulseFovKick = 0.0f;
 	float impulsePhase = 0.0f;
+	float filteredImpulseFov = 0.0f;
 	bool occlusionActive = false;
 	uint32_t selfLayerBit = 1u << 1;
 	uint32_t profileRevision = 0;
