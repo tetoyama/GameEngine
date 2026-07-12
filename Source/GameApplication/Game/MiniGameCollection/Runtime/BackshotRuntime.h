@@ -24,6 +24,8 @@ public:
 private:
     static constexpr std::size_t PlayerCount = 4;
     static constexpr float GameDurationSeconds = 35.0f;
+    static constexpr float TracerLifetimeSeconds = 0.22f;
+    static constexpr float TracerGrowSeconds = 0.055f;
     static constexpr const char* ScenePath =
         "Asset/Game/MiniGameCollection/Scene/Backshot/Backshot.scene";
     static constexpr const char* NextScenePath =
@@ -49,6 +51,15 @@ private:
         Vec2 to{};
         Backshot::ShotResolution resolution = Backshot::ShotResolution::Miss;
         float remainingSeconds = 0.0f;
+    };
+
+    struct ShotTracer {
+        EntityRef entity;
+        ComponentRef<TransformComponent> transform;
+        ComponentRef<MaterialComponent> material;
+        Vec2 from{};
+        Vec2 to{};
+        float elapsedSeconds = 0.0f;
     };
 
     void OnStart() override {
@@ -113,17 +124,21 @@ private:
         m_countdownRemainingSeconds = 3.0f;
         m_result.reset();
         m_debugShots.clear();
+        m_shotTracers.clear();
+        m_nextShotTracerId = 0;
         m_transitionSubmitted = false;
         m_warning10Played = false;
         m_finalDuelPlayed = false;
     }
 
     void OnUpdate(float dt) override {
+        const float delta = std::max(0.0f, dt);
+        UpdateShotTracers(delta);
+
         if (m_rulesShutdown || m_transitionSubmitted) {
             return;
         }
 
-        const float delta = std::max(0.0f, dt);
         UpdateDebugShots(delta);
         if (GetKeyDown(VK_F3)) {
             m_showHitDebug = !m_showHitDebug;
@@ -199,6 +214,7 @@ private:
     }
 
     void OnStop() override {
+        ClearShotTracers();
         ShutdownRules();
         MiniGameRuntimeMailbox::UnregisterRulesShutdown(m_sceneToken);
         MiniGameRuntimeMailbox::ClearForScene(m_sceneToken);
@@ -393,6 +409,18 @@ private:
                     )
                 );
             } else {
+                const Vec2 direction = NormalizeOrZero(m_players[0].state.forward);
+                const Vec2 from = m_players[0].state.position;
+                const Vec2 to = ClipShotToObstacle(
+                    from,
+                    from + direction * m_combatConfig.range
+                );
+                SpawnShotTracer(
+                    0,
+                    from,
+                    to,
+                    Backshot::ShotResolution::Miss
+                );
                 SubmitPresentation(
                     RuntimePresentationCommandType::NearMiss,
                     m_players[0].state.position,
@@ -456,9 +484,22 @@ private:
         for (const Backshot::BackshotEvent& event : m_rules.ConsumeEvents()) {
             if (event.shot.attacker < PlayerCount &&
                 event.shot.victim < PlayerCount) {
+                const Vec2 from = m_players[event.shot.attacker].state.position;
+                Vec2 to = m_players[event.shot.victim].state.position;
+                if (event.shot.resolution == Backshot::ShotResolution::Blocked) {
+                    to = ClipShotToObstacle(from, to);
+                }
+                if (event.shot.resolution != Backshot::ShotResolution::Cooldown) {
+                    SpawnShotTracer(
+                        event.shot.attacker,
+                        from,
+                        to,
+                        event.shot.resolution
+                    );
+                }
                 m_debugShots.push_back({
-                    .from = m_players[event.shot.attacker].state.position,
-                    .to = m_players[event.shot.victim].state.position,
+                    .from = from,
+                    .to = to,
                     .resolution = event.shot.resolution,
                     .remainingSeconds = 0.65f
                 });
@@ -505,6 +546,171 @@ private:
             }
         }
         UpdatePlayerVisuals();
+    }
+
+    void SpawnShotTracer(
+        PlayerId attacker,
+        Vec2 from,
+        Vec2 to,
+        Backshot::ShotResolution resolution
+    ) {
+        Vec2 direction = NormalizeOrZero(to - from);
+        if (LengthSquared(direction) <= 0.0001f && attacker < PlayerCount) {
+            direction = NormalizeOrZero(m_players[attacker].state.forward);
+        }
+        if (LengthSquared(direction) <= 0.0001f) {
+            direction = {0.0f, 1.0f};
+        }
+
+        const Vec2 muzzle = from + direction * 0.52f;
+        if (DistanceSquared(muzzle, to) <= 0.04f) {
+            to = muzzle + direction * 0.25f;
+        }
+
+        const DirectX::XMFLOAT4 color = ShotTracerColor(attacker, resolution);
+        const std::uint64_t tracerId = m_nextShotTracerId++;
+        QueueCube(
+            "BackshotShotTracer_" + std::to_string(tracerId),
+            ToWorld(muzzle, 0.95f),
+            Vector3(0.14f, 0.14f, 0.05f),
+            color,
+            [this, muzzle, to, color](const CubeVisualRefs& refs) {
+                if (MaterialComponent* material = refs.material.TryGet()) {
+                    material->Material.Metallic = 0.0f;
+                    material->Material.Roughness = 0.12f;
+                    material->Material.EmissiveColor = DirectX::XMFLOAT3(
+                        color.x,
+                        color.y,
+                        color.z
+                    );
+                    material->Material.EmissiveIntensity = 4.5f;
+                }
+                m_shotTracers.push_back({
+                    .entity = refs.entity,
+                    .transform = refs.transform,
+                    .material = refs.material,
+                    .from = muzzle,
+                    .to = to,
+                    .elapsedSeconds = 0.0f
+                });
+            }
+        );
+    }
+
+    void UpdateShotTracers(float deltaTime) {
+        for (ShotTracer& tracer : m_shotTracers) {
+            tracer.elapsedSeconds += deltaTime;
+            const float normalizedLife = std::clamp(
+                tracer.elapsedSeconds / TracerLifetimeSeconds,
+                0.0f,
+                1.0f
+            );
+            const float grow = std::clamp(
+                tracer.elapsedSeconds / TracerGrowSeconds,
+                0.0f,
+                1.0f
+            );
+
+            const Vec2 segment = tracer.to - tracer.from;
+            const float fullLength = Length(segment);
+            const Vec2 direction = NormalizeOrZero(segment);
+            const float visibleLength = std::max(0.05f, fullLength * grow);
+            const Vec2 center = tracer.from + direction * (visibleLength * 0.5f);
+
+            if (TransformComponent* transform = tracer.transform.TryGet()) {
+                transform->position = ToWorld(center, 0.95f);
+                transform->SetRotationEuler(Vector3(
+                    0.0f,
+                    std::atan2(direction.x, direction.y),
+                    0.0f
+                ));
+                const float thickness = 0.07f + (1.0f - normalizedLife) * 0.08f;
+                transform->scale = Vector3(
+                    thickness,
+                    thickness,
+                    visibleLength
+                );
+            }
+            if (MaterialComponent* material = tracer.material.TryGet()) {
+                material->Material.EmissiveIntensity =
+                    0.35f + (1.0f - normalizedLife) * 4.15f;
+            }
+        }
+
+        std::erase_if(
+            m_shotTracers,
+            [this](ShotTracer& tracer) {
+                if (tracer.elapsedSeconds < TracerLifetimeSeconds) {
+                    return false;
+                }
+                if (tracer.entity.IsValid()) {
+                    QueueDestroyEntity(tracer.entity.GetEntityID());
+                }
+                return true;
+            }
+        );
+    }
+
+    void ClearShotTracers() {
+        for (ShotTracer& tracer : m_shotTracers) {
+            if (tracer.entity.IsValid()) {
+                QueueDestroyEntity(tracer.entity.GetEntityID());
+            }
+        }
+        m_shotTracers.clear();
+    }
+
+    static DirectX::XMFLOAT4 ShotTracerColor(
+        PlayerId attacker,
+        Backshot::ShotResolution resolution
+    ) {
+        switch (resolution) {
+        case Backshot::ShotResolution::RearElimination:
+            return {1.0f, 0.12f, 0.04f, 1.0f};
+        case Backshot::ShotResolution::FrontOrSideGuard:
+            return {1.0f, 0.82f, 0.16f, 1.0f};
+        case Backshot::ShotResolution::Blocked:
+            return {0.62f, 0.72f, 0.82f, 1.0f};
+        case Backshot::ShotResolution::OutOfRange:
+        case Backshot::ShotResolution::OutsideForwardArc:
+        case Backshot::ShotResolution::Miss:
+            return PlayerColor(attacker);
+        case Backshot::ShotResolution::Cooldown:
+        default:
+            return {0.55f, 0.58f, 0.64f, 1.0f};
+        }
+    }
+
+    Vec2 ClipShotToObstacle(Vec2 from, Vec2 to) const {
+        const Vec2 segment = to - from;
+        const float segmentLengthSquared = LengthSquared(segment);
+        if (segmentLengthSquared <= 0.0001f) {
+            return to;
+        }
+
+        float nearestT = 1.0f;
+        for (const Obstacle& obstacle : m_obstacles) {
+            const Vec2 relative = from - obstacle.center;
+            const float a = segmentLengthSquared;
+            const float b = 2.0f * Dot(relative, segment);
+            const float c = Dot(relative, relative) -
+                obstacle.radius * obstacle.radius;
+            const float discriminant = b * b - 4.0f * a * c;
+            if (discriminant < 0.0f) {
+                continue;
+            }
+
+            const float root = std::sqrt(discriminant);
+            const float inverseDenominator = 1.0f / (2.0f * a);
+            const float first = (-b - root) * inverseDenominator;
+            const float second = (-b + root) * inverseDenominator;
+            if (first >= 0.0f && first <= nearestT) {
+                nearestT = first;
+            } else if (second >= 0.0f && second <= nearestT) {
+                nearestT = second;
+            }
+        }
+        return from + segment * nearestT;
     }
 
     void UpdatePlayerVisuals() {
@@ -796,8 +1002,10 @@ private:
     };
     std::vector<Obstacle> m_obstacles;
     std::vector<DebugShot> m_debugShots;
+    std::vector<ShotTracer> m_shotTracers;
     std::optional<MiniGameResult> m_result;
     SceneToken m_sceneToken = 0;
+    std::uint64_t m_nextShotTracerId = 0;
     float m_countdownRemainingSeconds = 3.0f;
     bool m_started = false;
     bool m_rulesShutdown = false;
