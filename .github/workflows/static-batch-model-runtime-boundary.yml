@@ -5,6 +5,8 @@ on:
     branches: [master]
     paths:
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchGeometryBindingCache.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceProvider.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceResolver.h"
       - "Tests/StaticBatchModelRuntimeBoundarySmokeTest.cpp"
       - ".github/workflows/static-batch-model-runtime-boundary.yml"
@@ -12,6 +14,8 @@ on:
     branches: [refactor/ecs-scheduler-foundation]
     paths:
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchGeometryBindingCache.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceProvider.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceResolver.h"
       - "Tests/StaticBatchModelRuntimeBoundarySmokeTest.cpp"
       - ".github/workflows/static-batch-model-runtime-boundary.yml"
