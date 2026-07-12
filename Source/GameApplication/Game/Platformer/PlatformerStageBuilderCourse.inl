@@ -42,7 +42,9 @@
 		QueueBlock(commands, "Orchard_Island_B",
 			Vector3(-5.0f, 6.0f, 79.0f), Vector3(7.0f, 1.0f, 7.0f), Grass());
 		QueueBlock(commands, "Orchard_SafetyFloor",
-			Vector3(0.0f, -2.5f, 82.0f), Vector3(28.0f, 1.0f, 50.0f), Grass());
+			Vector3(0.0f, 1.5f, 82.0f), Vector3(28.0f, 1.0f, 50.0f), Grass());
+		QueueBlock(commands, "Orchard_RescueStep",
+			Vector3(4.0f, 2.4f, 61.0f), Vector3(6.0f, 0.8f, 4.0f), Orchard());
 		QueueMovingPlatform(commands, "Orchard_Lift",
 			Vector3(0.0f, 6.6f, 85.0f), Vector3(0.0f, 3.0f, 0.0f), 4.2f, 0.35f);
 		QueueBlock(commands, "Orchard_HighIsland",
