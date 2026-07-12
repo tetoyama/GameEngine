@@ -3,17 +3,36 @@
 #include "Engine/Scene/Component/audioComponent.h"
 #include "Engine/Scene/Component/particleComponent.h"
 #include "Game/Platformer/PlatformerSceneAccess.h"
+#include "Game/Platformer/PlatformerSoundLibrary.h"
 
 #include <algorithm>
 #include <cmath>
+#include <string>
 
 class PlatformerFeedback {
 public:
-	static void Play(AudioComponent* audio, SceneContext* context) {
-		if(!audio || !context) return;
-		if(auto* audioContext = PlatformerSceneAccess::Audio(context)) {
-			audio->Play(audioContext);
+	static bool Play(AudioComponent* audio, SceneContext* context, const char* soundPath = nullptr) {
+		if(!audio || !context) return false;
+		PlatformerSoundLibrary::EnsureGenerated();
+
+		if(soundPath && soundPath[0] != '\0' && audio->FilePath != soundPath) {
+			audio->Reset();
+			audio->FilePath = soundPath;
+			audio->Loop = false;
+			audio->PlayOnStart = false;
 		}
+
+		if(!audio->m_AudioData && !audio->FilePath.empty()) {
+			if(auto* resources = PlatformerSceneAccess::Resources(context)) {
+				audio->m_AudioData = resources->Load<AudioData>(audio->FilePath);
+			}
+		}
+		audio->isInitialized = audio->m_AudioData != nullptr;
+
+		if(auto* audioContext = PlatformerSceneAccess::Audio(context)) {
+			return audio->Play(audioContext);
+		}
+		return false;
 	}
 
 	static void Burst(
