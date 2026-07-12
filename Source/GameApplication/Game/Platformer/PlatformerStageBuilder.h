@@ -204,7 +204,14 @@ private:
 		bool restoreOnExit
 	) {
 		commands.InstantiatePrefab(CameraZonePrefab, [position, scale, profile, exitProfile, restoreOnExit](EntityRef root) {
-			SetTransform(root, position, scale);
+			// Camera profiles describe horizontal stage sections. Vertical movement
+			// must not enter or leave a profile, otherwise jump arcs repeatedly switch
+			// back to Course and make the camera appear to zoom toward the player.
+			Vector3 zonePosition = position;
+			zonePosition.y = 0.0f;
+			Vector3 zoneScale = scale;
+			if(zoneScale.y < 64.0f) zoneScale.y = 64.0f;
+			SetTransform(root, zonePosition, zoneScale);
 			if(auto* zone = ComponentRef<PlatformerCameraZone>(root).TryGet()) {
 				zone->profile = profile;
 				zone->exitProfile = exitProfile;
