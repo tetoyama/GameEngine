@@ -11,6 +11,11 @@
 #include "System/Render/RenderSystem/RenderTarget/renderTarget.h"
 #include "Graphics/graphicsContext.h"
 #include "Graphics/mainRenderer.h"
+#include "Resources/resourceService.h"
+#include "Resources/Data/vertexShaderData.h"
+#include "Resources/Data/pixelShaderData.h"
+
+#include <algorithm>
 
 PlayerPass::PlayerPass() = default;
 PlayerPass::~PlayerPass() = default;
@@ -35,9 +40,60 @@ void PlayerPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* con
 		context->graphics,
 		RenderTargetType::RENDERTARGET_TYPE_COLOR
 	);
+
+	if(context && context->resource){
+		auto vertexShader = context->resource->Load<VertexShaderData>(
+			"Asset\\Shader\\PostEffectVS.cso"
+		);
+		auto pixelShader = context->resource->Load<PixelShaderData>(
+			"Asset\\Shader\\PostEffectPS.cso"
+		);
+		if(vertexShader && pixelShader){
+			m_runtimeUiCopyShader = std::make_unique<PostEffectShader>();
+			m_runtimeUiCopyShader->m_VS = vertexShader->m_VertexShader;
+			m_runtimeUiCopyShader->m_PS = pixelShader->m_PixelShader;
+			m_runtimeUiCopyShader->m_InputLayout = vertexShader->m_VertexLayout;
+		}
+	}
+
+	ID3D11Device* device = context && context->graphics
+		? context->graphics->GetDevice()
+		: nullptr;
+	if(device){
+		D3D11_BLEND_DESC blendDesc{};
+		blendDesc.AlphaToCoverageEnable = FALSE;
+		blendDesc.IndependentBlendEnable = FALSE;
+		auto& target = blendDesc.RenderTarget[0];
+		target.BlendEnable = TRUE;
+		// Direct2Dの透明TextureはPremultiplied Alpha。
+		target.SrcBlend = D3D11_BLEND_ONE;
+		target.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+		target.BlendOp = D3D11_BLEND_OP_ADD;
+		target.SrcBlendAlpha = D3D11_BLEND_ONE;
+		target.DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+		target.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		target.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		device->CreateBlendState(
+			&blendDesc,
+			m_runtimeUiBlendState.ReleaseAndGetAddressOf()
+		);
+
+		D3D11_DEPTH_STENCIL_DESC depthDesc{};
+		depthDesc.DepthEnable = FALSE;
+		depthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		depthDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+		depthDesc.StencilEnable = FALSE;
+		device->CreateDepthStencilState(
+			&depthDesc,
+			m_runtimeUiDepthState.ReleaseAndGetAddressOf()
+		);
+	}
 }
 
 void PlayerPass::Finalize(){
+	m_runtimeUiDepthState.Reset();
+	m_runtimeUiBlendState.Reset();
+	m_runtimeUiCopyShader.reset();
 	if(postEffectPass){ postEffectPass->Finalize(); postEffectPass.reset(); }
 	if(forwardPass){ forwardPass->Finalize(); forwardPass.reset(); }
 	if(lightingPass){ lightingPass->Finalize(); lightingPass.reset(); }
@@ -132,5 +188,67 @@ void PlayerPass::Execute(const RenderPassContext& context){
 		);
 		overlayUIPass->Execute(viewContext);
 	}
+
+	// CustomScriptのRuntime UI CommandをPlayerPass最終Textureへ合成する。
+	// PlayViewはこのresultSrvを表示するため、Editor埋め込みとStandaloneで同一画面になる。
+	const UINT overlayWidth = static_cast<UINT>(
+		(std::max)(1.0f, viewContext.screenSize.x)
+	);
+	const UINT overlayHeight = static_cast<UINT>(
+		(std::max)(1.0f, viewContext.screenSize.y)
+	);
+	ID3D11ShaderResourceView* runtimeUiSrv =
+		m_context->renderer->RenderRuntime2DOverlay(overlayWidth, overlayHeight);
+
+	ID3D11RenderTargetView* finalRtv =
+		postEffectPass->resultRtv ? *postEffectPass->resultRtv : nullptr;
+	if(runtimeUiSrv && finalRtv && m_runtimeUiCopyShader &&
+		m_runtimeUiBlendState && m_runtimeUiDepthState){
+		Microsoft::WRL::ComPtr<ID3D11BlendState> previousBlendState;
+		FLOAT previousBlendFactor[4]{};
+		UINT previousSampleMask = 0xffffffff;
+		deviceContext->OMGetBlendState(
+			previousBlendState.GetAddressOf(),
+			previousBlendFactor,
+			&previousSampleMask
+		);
+
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> previousDepthState;
+		UINT previousStencilRef = 0;
+		deviceContext->OMGetDepthStencilState(
+			previousDepthState.GetAddressOf(),
+			&previousStencilRef
+		);
+
+		deviceContext->OMSetRenderTargets(1, &finalRtv, nullptr);
+		D3D11_VIEWPORT viewport{};
+		viewport.TopLeftX = 0.0f;
+		viewport.TopLeftY = 0.0f;
+		viewport.Width = static_cast<float>(overlayWidth);
+		viewport.Height = static_cast<float>(overlayHeight);
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+		deviceContext->RSSetViewports(1, &viewport);
+
+		const FLOAT blendFactor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+		deviceContext->OMSetBlendState(
+			m_runtimeUiBlendState.Get(),
+			blendFactor,
+			0xffffffff
+		);
+		deviceContext->OMSetDepthStencilState(m_runtimeUiDepthState.Get(), 0);
+		graphics->DrawQuad(m_runtimeUiCopyShader.get(), runtimeUiSrv);
+
+		deviceContext->OMSetBlendState(
+			previousBlendState.Get(),
+			previousBlendFactor,
+			previousSampleMask
+		);
+		deviceContext->OMSetDepthStencilState(
+			previousDepthState.Get(),
+			previousStencilRef
+		);
+	}
+
 	result = postEffectPass->resultSrv;
 }
