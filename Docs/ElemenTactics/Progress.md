@@ -64,7 +64,28 @@ Implemented without player-facing ImGui:
 - runtime mouse hit testing and board interaction
 - Runtime Text facade backed by DirectWrite/WIC and existing Sprite rendering
 
-The current presentation is functional text/symbol UI. Final original card, piece, board, logo, audio, and effect assets are still pending.
+The current presentation remains text/symbol based. Final original card, piece, board, logo, audio, and authored effect assets are still pending.
+
+### Presentation and game feel
+
+Implemented in the Runtime Text presentation layer:
+
+- dark drop shadow for all runtime text
+- outline and colored glow for emphasized battle, reorder, and result text
+- heavier DirectWrite font weights for headings and decisive messages
+- staggered board-cell appearance
+- piece spawn and state-change pop animation
+- card dealing and reorder-card entrance motion
+- title reveal with overshoot easing
+- battle impact shake across pieces and board cells
+- battle-result text jumping toward the center before settling into the HUD
+- scout ripple and wave motion
+- move landing bounce
+- center-reorder card wave
+- two-stage `GAME SET` and winner reveal
+- motion-state cleanup when runtime UI entities are destroyed
+
+The presentation layer derives cues only from public runtime text and ECS entity names. It does not read hidden deck information or alter Rules Engine timing/state.
 
 ### AI and LLM boundary
 
@@ -132,26 +153,28 @@ The `yaml-cppd.pdb` LNK4099 messages are non-fatal debug-symbol warnings and wer
 
 The code path now contains a complete functional flow from Title through deck setup, match, result, retry, and Title return. Both local two-player and CPU modes are connected at the model/controller level.
 
-Runtime completion has not yet been verified by a successful full Engine build and interactive launch after the latest fixes. Therefore this is not yet classified as player-ready.
+Runtime completion has not yet been verified by a successful full Engine build and interactive launch after the latest fixes and presentation additions. Therefore this is not yet classified as player-ready.
 
 ## Open work
 
-1. Rebuild Debug x64 after the latest compile fixes and resolve the next independent error, if any.
+1. Rebuild Debug x64 after the latest compile and presentation changes and resolve the next independent error, if any.
 2. Build Release x64.
 3. Launch the dedicated scene and validate all screen transitions at 1280x720.
-4. Verify Runtime Text rendering, mouse coordinates, queue-created UI entities, and cleanup.
-5. Verify LLM model loading, asynchronous request completion, timeout, cancellation, and heuristic fallback in the running Engine.
-6. Verify local-player privacy handoff and hidden-information boundaries interactively.
-7. Add original board, card, piece, attribute-symbol, title-logo, audio, and effect assets.
-8. Add battle, scout, reorder, King defeat, Assassin defeat, and GAME SET presentation sequencing.
-9. Add board-target highlighting synchronized with public AI reasoning.
-10. Run at least ten consecutive retries and Title returns while checking LLM tasks, events, entities, audio, effects, and history cleanup.
-11. Update the PR description and final completion checklist after runtime validation.
+4. Verify Runtime Text rendering, mouse coordinates, queue-created UI entities, animation cleanup, and repeated screen rebuilds.
+5. Tune battle shake, pop scale, status displacement, and result timing from captured gameplay rather than source-only estimates.
+6. Verify LLM model loading, asynchronous request completion, timeout, cancellation, and heuristic fallback in the running Engine.
+7. Verify local-player privacy handoff and hidden-information boundaries interactively.
+8. Add original board, card, piece, attribute-symbol, title-logo, audio, and authored effect assets.
+9. Add stronger defeat-specific presentation for normal piece defeat, King defeat, and Assassin defeat once authored assets are available.
+10. Add board-target highlighting synchronized with public AI reasoning.
+11. Run at least ten consecutive retries and Title returns while checking LLM tasks, events, entities, audio, effects, motion state, and history cleanup.
+12. Update the PR description and final completion checklist after runtime validation.
 
 ## Known blockers and risks
 
-- The latest complete Engine build result is still pending after the macro and AgentConfig fixes.
+- The latest complete Engine build result is still pending after the macro, AgentConfig, and presentation changes.
 - Runtime Text creates textures dynamically; resource release and repeated-screen rebuild behavior require interactive profiling.
+- Presentation uses real-time `steady_clock` motion and currently remains active while the game simulation is paused; this is intentional for UI responsiveness but must be validated against the Engine pause policy.
 - The current LLM bridge only initializes from an already loaded model. Game-owned model-loading behavior still requires runtime verification and likely refinement.
 - The initial belief model is safe against hidden-information leakage but strategically simple; multi-hypothesis sampling remains future AI-strength work.
 - Prefab instantiation uses immediate structure mutation; ElemenTactics runtime entities currently use Queue APIs instead.
