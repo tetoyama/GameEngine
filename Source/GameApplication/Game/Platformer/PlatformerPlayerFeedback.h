@@ -31,6 +31,11 @@ class PlatformerPlayerFeedback : public CustomScriptComponent {
 		REFLECT_FIELD(float, assistSecondJumpBoost, 0.58f)
 		REFLECT_FIELD(float, assistThirdJumpBoost, 0.95f)
 		REFLECT_FIELD(float, assistLandingCarryBoost, 0.24f)
+		REFLECT_FIELD(bool, stepAssistEnabled, true)
+		REFLECT_FIELD(float, stepAssistHeight, 0.34f)
+		REFLECT_FIELD(float, stepAssistProbeDistance, 0.38f)
+		REFLECT_FIELD(float, stepAssistForwardOffset, 0.29f)
+		REFLECT_FIELD(float, stepAssistCooldown, 0.055f)
 
 public:
 	YAML::Node encode() override {
@@ -49,6 +54,7 @@ public:
 		ImGui::Text("Platformer Player Feedback");
 		INSPECTOR_FIELDS();
 		ImGui::Text("Run Assist: %.2f", runAssistNormalized);
+		ImGui::Text("Step Cooldown: %.3f", stepAssistTimer);
 	}
 
 	void OnStart() override {
@@ -60,6 +66,7 @@ public:
 		transform = GetComponentRef<TransformComponent>();
 		particle = GetComponentRef<ParticleComponent>();
 		audio = GetComponentRef<AudioComponent>();
+		stepAssistTimer = 0.0f;
 		if(auto* controller = player.TryGet()) {
 			CaptureRevisions(*controller);
 			previousVerticalVelocity = controller->GetVerticalVelocity();
@@ -69,6 +76,7 @@ public:
 	void OnFixedUpdate(float dt) override {
 		if(dt <= 0.0f) return;
 		ValidateAssistSettings();
+		stepAssistTimer = (std::max)(0.0f, stepAssistTimer - dt);
 		if(!player.IsValid()) player = PlatformerSceneAccess::FindFirst<PlatformerCharacterController>(m_ref.GetScene());
 		auto* controller = player.TryGet();
 		ComponentRef<TransformComponent> playerTransform(player.GetEntityRef());
@@ -77,6 +85,7 @@ public:
 
 		ResolvePlayerRuntimeRefs();
 		ApplyMovementAssist(*controller, dt);
+		ApplyStepAssist(*controller, *playerPose);
 
 		const Vector3 origin = playerPose->position + Vector3(0.0f, particleVerticalOffset, 0.0f);
 
@@ -128,6 +137,7 @@ public:
 		if(controller->GetDamageEventRevision() != damageRevision) {
 			damageRevision = controller->GetDamageEventRevision();
 			runAssistTimer = 0.0f;
+			stepAssistTimer = stepAssistCooldown;
 			EmitAt(origin, 56, 5.4f, 5.2f, 0.88f, 0.21f);
 			Impulse(0.48f, 0.28f, 0.060f);
 			PlatformerFeedback::Play(audio.TryGet(), m_ref.GetScene(), PlatformerSoundLibrary::ImpactPath);
@@ -136,6 +146,7 @@ public:
 		if(controller->GetRespawnEventRevision() != respawnRevision) {
 			respawnRevision = controller->GetRespawnEventRevision();
 			runAssistTimer = 0.0f;
+			stepAssistTimer = stepAssistCooldown;
 			EmitAt(origin, 46, 4.2f, 6.6f, 1.05f, 0.17f);
 			Impulse(0.18f, 0.30f, 0.022f, Vector3(0.0f, 1.0f, 0.0f));
 			PlatformerFeedback::Play(audio.TryGet(), m_ref.GetScene(), PlatformerSoundLibrary::CheckpointPath);
@@ -157,6 +168,10 @@ private:
 		assistSecondJumpBoost = (std::max)(0.0f, assistSecondJumpBoost);
 		assistThirdJumpBoost = (std::max)(0.0f, assistThirdJumpBoost);
 		assistLandingCarryBoost = (std::max)(0.0f, assistLandingCarryBoost);
+		stepAssistHeight = std::clamp(stepAssistHeight, 0.05f, 0.42f);
+		stepAssistProbeDistance = std::clamp(stepAssistProbeDistance, 0.15f, 0.65f);
+		stepAssistForwardOffset = std::clamp(stepAssistForwardOffset, 0.27f, 0.42f);
+		stepAssistCooldown = std::clamp(stepAssistCooldown, 0.01f, 0.20f);
 	}
 
 	void ResolvePlayerRuntimeRefs() {
@@ -169,6 +184,94 @@ private:
 		cameraTransform = cameraComponent.IsValid()
 			? ComponentRef<TransformComponent>(cameraComponent.GetEntityRef())
 			: ComponentRef<TransformComponent>{};
+	}
+
+	static bool IsStaticSolidHit(const RayHit& hit) {
+		if(!hit.hit) return false;
+		if(hit.hitShape && hit.hitShape->getFlags().isSet(physx::PxShapeFlag::eTRIGGER_SHAPE)) return false;
+		return !hit.hitActor || hit.hitActor->getType() != physx::PxActorType::eRIGID_DYNAMIC;
+	}
+
+	void ApplyStepAssist(
+		const PlatformerCharacterController& controller,
+		TransformComponent& playerPose
+	) {
+		if(!stepAssistEnabled || stepAssistTimer > 0.0f || !controller.IsControlEnabled() ||
+		   !controller.IsGrounded() || std::abs(controller.GetVerticalVelocity()) > 0.75f) {
+			return;
+		}
+
+		Vector3 direction = BuildCameraRelativeInput();
+		direction.y = 0.0f;
+		if(direction.length() <= 0.0001f) return;
+		direction = direction.normalize();
+
+		auto* colliderComponent = playerCollider.TryGet();
+		auto* rigid = colliderComponent ? colliderComponent->pRigidbodyDynamic : nullptr;
+		auto* physics = PlatformerSceneAccess::Physics(m_ref.GetScene());
+		if(!rigid || !physics) return;
+
+		const physx::PxVec3 velocity = rigid->getLinearVelocity();
+		const Vector3 horizontal(velocity.x, 0.0f, velocity.z);
+		if(horizontal.length() < 0.45f || horizontal.normalize().dot(direction) < 0.25f) return;
+
+		constexpr physx::PxU32 kPlayerProbeMask = 1u << 1;
+		const float lowerProbeHeight = (std::min)(0.10f, stepAssistHeight * 0.40f);
+		const Vector3 faceOrigin = playerPose.position + direction * stepAssistForwardOffset;
+		const physx::PxVec3 forward(direction.x, 0.0f, direction.z);
+
+		const RayHit lowerHit = physics->RaycastWithMask(
+			physx::PxVec3(faceOrigin.x, playerPose.position.y + lowerProbeHeight, faceOrigin.z),
+			forward,
+			stepAssistProbeDistance,
+			kPlayerProbeMask);
+		if(!IsStaticSolidHit(lowerHit) || std::abs(lowerHit.normal.y) > 0.45f) return;
+
+		// A clear ray above the accepted step height distinguishes a curb or stair
+		// from a full wall, arena boundary or large platform side.
+		const RayHit upperHit = physics->RaycastWithMask(
+			physx::PxVec3(faceOrigin.x, playerPose.position.y + stepAssistHeight + 0.08f, faceOrigin.z),
+			forward,
+			stepAssistProbeDistance,
+			kPlayerProbeMask);
+		if(IsStaticSolidHit(upperHit)) return;
+
+		const float beyondFace = std::clamp(
+			lowerHit.distance + 0.14f,
+			0.14f,
+			stepAssistProbeDistance + 0.06f);
+		const Vector3 topSample = faceOrigin + direction * beyondFace;
+		const RayHit topHit = physics->RaycastWithMask(
+			physx::PxVec3(topSample.x, playerPose.position.y + stepAssistHeight + 0.16f, topSample.z),
+			physx::PxVec3(0.0f, -1.0f, 0.0f),
+			stepAssistHeight + 0.24f,
+			kPlayerProbeMask);
+		const float minNormalY = std::cos(50.0f * DirectX::XM_PI / 180.0f);
+		if(!IsStaticSolidHit(topHit) || topHit.normal.y < minNormalY) return;
+
+		const float rise = topHit.position.y - playerPose.position.y;
+		if(rise <= 0.025f || rise > stepAssistHeight + 0.025f) return;
+
+		// The player capsule spans approximately 1.5 m from the entity origin. Check
+		// upward clearance before moving it so low ceilings cannot trap the actor.
+		const RayHit ceilingHit = physics->RaycastWithMask(
+			physx::PxVec3(playerPose.position.x, playerPose.position.y + 1.52f, playerPose.position.z),
+			physx::PxVec3(0.0f, 1.0f, 0.0f),
+			rise + 0.06f,
+			kPlayerProbeMask);
+		if(IsStaticSolidHit(ceilingHit)) return;
+
+		Vector3 target = playerPose.position;
+		target.y += rise + 0.012f;
+		target += direction * 0.025f;
+		playerPose.position = target;
+
+		physx::PxTransform actorPose = rigid->getGlobalPose();
+		actorPose.p = physx::PxVec3(target.x, target.y, target.z);
+		rigid->setGlobalPose(actorPose, true);
+		rigid->setLinearVelocity(physx::PxVec3(velocity.x, 0.0f, velocity.z));
+		rigid->wakeUp();
+		stepAssistTimer = stepAssistCooldown;
 	}
 
 	void ApplyMovementAssist(const PlatformerCharacterController& controller, float dt) {
@@ -377,6 +480,7 @@ private:
 	ComponentRef<AudioComponent> audio;
 	float runAssistTimer = 0.0f;
 	float runAssistNormalized = 0.0f;
+	float stepAssistTimer = 0.0f;
 	float previousVerticalVelocity = 0.0f;
 	uint32_t jumpRevision = 0;
 	uint32_t landRevision = 0;
