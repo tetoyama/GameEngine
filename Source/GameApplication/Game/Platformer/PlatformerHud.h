@@ -103,6 +103,8 @@ public:
 				ImGui::Text("COINS  %d / %d", game->GetCollectedCoins(), game->GetCoinTotal());
 				const int totalSeconds = static_cast<int>(game->GetRunTime());
 				ImGui::Text("TIME   %02d:%02d", totalSeconds / 60, totalSeconds % 60);
+				ImGui::Separator();
+				ImGui::TextUnformatted(game->CanRestart() ? "PRESS R TO RESTART" : "RESULT LOCKED...");
 			}
 			ImGui::End();
 		}
