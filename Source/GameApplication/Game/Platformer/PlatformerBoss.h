@@ -11,6 +11,7 @@
 #include "Game/Platformer/PlatformerFeedback.h"
 #include "Game/Platformer/PlatformerGameManager.h"
 #include "Game/Platformer/PlatformerSceneAccess.h"
+#include "Game/Platformer/PlatformerSoundLibrary.h"
 
 #include <algorithm>
 #include <cmath>
@@ -180,6 +181,7 @@ private:
 	void BeginIntro(PlatformerCharacterController& playerController) {
 		state = State::Intro;
 		stateTimer = (std::max)(0.0f, introDuration);
+		StopPlayerHorizontalMotion(playerController);
 		playerController.SetControlEnabled(false);
 		if(auto* game = manager.TryGet()) game->BeginBossIntro();
 		if(auto* cameraController = camera.TryGet()) {
@@ -208,6 +210,7 @@ private:
 		chargeDirection = HorizontalDirection(bossPose.position, playerPosition);
 		if(chargeDirection.length() <= 0.0001f) chargeDirection = bossPose.front().normalize();
 		PlatformerFeedback::Burst(particle.TryGet(), bossPose.position + Vector3(0.0f, 0.5f, 0.0f), 20, 1.8f, 2.2f, stateTimer + 0.2f);
+		PlatformerFeedback::Play(audio.TryGet(), m_ref.GetScene(), PlatformerSoundLibrary::BossChargePath);
 		++stateRevision;
 	}
 
@@ -215,7 +218,6 @@ private:
 		state = State::Charge;
 		stateTimer = chargeDuration;
 		chargeStartPosition = bossPose.position;
-		PlatformerFeedback::Play(audio.TryGet(), m_ref.GetScene());
 		++stateRevision;
 	}
 
@@ -264,7 +266,7 @@ private:
 		++hitRevision;
 		playerController.ApplyStompBounce(9.0f);
 		PlatformerFeedback::Burst(particle.TryGet(), position + Vector3(0.0f, 1.1f, 0.0f), 38, 4.4f, 6.0f, 1.0f);
-		PlatformerFeedback::Play(audio.TryGet(), m_ref.GetScene());
+		PlatformerFeedback::Play(audio.TryGet(), m_ref.GetScene(), PlatformerSoundLibrary::ImpactPath);
 		if(auto* game = manager.TryGet()) game->SetBossHealth(health);
 
 		if(health <= 0) {
@@ -306,6 +308,16 @@ private:
 
 	void StopHorizontalMotion() {
 		if(auto* col = collider.TryGet()) {
+			if(auto* rigid = col->pRigidbodyDynamic) {
+				const physx::PxVec3 current = rigid->getLinearVelocity();
+				rigid->setLinearVelocity(physx::PxVec3(0.0f, current.y, 0.0f));
+			}
+		}
+	}
+
+	static void StopPlayerHorizontalMotion(PlatformerCharacterController& playerController) {
+		ComponentRef<ColliderComponent> playerCollider(playerController.GetEntityRef());
+		if(auto* col = playerCollider.TryGet()) {
 			if(auto* rigid = col->pRigidbodyDynamic) {
 				const physx::PxVec3 current = rigid->getLinearVelocity();
 				rigid->setLinearVelocity(physx::PxVec3(0.0f, current.y, 0.0f));
