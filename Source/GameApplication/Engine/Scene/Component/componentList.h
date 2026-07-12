@@ -14,6 +14,7 @@
 #include "Component/BillBoardRendererComponent.h"
 #include "Component/terrainComponent.h"
 #include "Component/textureComponent.h"
+#include "Component/RuntimeTextComponent.h"
 #include "Component/CustomScriptComponent.h"
 #include "Component/bumpMapComponent.h"
 #include "Component/2DspriteRendererComponent.h"
@@ -78,6 +79,7 @@ struct ComponentStoragePreference<TransformComponent> {
     X(OrderInLayerComponent,COMPONENT_ARCHETYPE)\
     X(MaterialComponent,COMPONENT_ARCHETYPE)\
     X(TextureComponent,COMPONENT_SPARSE)\
+    X(RuntimeTextComponent,COMPONENT_SPARSE)\
     X(BumpMapComponent,COMPONENT_SPARSE)\
     X(LightComponent,COMPONENT_ARCHETYPE)\
     X(MeshRendererComponent,COMPONENT_SPARSE)\
