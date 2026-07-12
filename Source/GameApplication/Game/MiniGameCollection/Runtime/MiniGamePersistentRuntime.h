@@ -469,51 +469,76 @@ private:
     }
 
     void DrawSelection() const {
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(
-            viewport->GetCenter(),
-            ImGuiCond_Always,
-            ImVec2(0.5f, 0.5f)
+        MiniGameRuntimeUi ui(GetEntityRef().GetScene());
+        if (!ui.IsAvailable()) {
+            return;
+        }
+
+        const float panelWidth = 700.0f;
+        const float panelHeight = 430.0f;
+        const float panelX = (ui.Width() - panelWidth) * 0.5f;
+        const float panelY = (ui.Height() - panelHeight) * 0.5f;
+        ui.FillPanel(
+            panelX,
+            panelY,
+            panelWidth,
+            panelHeight,
+            D2D1::ColorF(0.018f, 0.025f, 0.05f, 0.94f)
         );
-        ImGui::SetNextWindowSize(ImVec2(580.0f, 390.0f), ImGuiCond_Always);
-        ImGui::SetNextWindowBgAlpha(0.9f);
-        ImGui::Begin(
+        ui.DrawTextCentered(
             "MINI GAME COLLECTION",
-            nullptr,
-            ImGuiWindowFlags_NoCollapse |
-            ImGuiWindowFlags_NoResize |
-            ImGuiWindowFlags_NoSavedSettings
+            ui.Width() * 0.5f,
+            panelY + 22.0f,
+            34.0f
         );
-        ImGui::TextUnformatted("SHORT COMPETITIVE GAMES / 1 PLAYER + 3 CPU");
-        ImGui::Separator();
+        ui.DrawTextCentered(
+            "SHORT COMPETITIVE GAMES / 1 PLAYER + 3 CPU",
+            ui.Width() * 0.5f,
+            panelY + 66.0f,
+            16.0f,
+            D2D1::ColorF(0.66f, 0.74f, 0.88f, 1.0f)
+        );
+
+        float rowY = panelY + 112.0f;
         for (std::size_t index = 0; index < m_collection.GetGameCount(); ++index) {
             const MiniGameDescriptor& game = m_collection.GetGame(index);
             const bool selected = index == m_collection.GetSelectedIndex();
-            if (selected) {
-                ImGui::PushStyleColor(
-                    ImGuiCol_Text,
-                    ImVec4(1.0f, 0.85f, 0.25f, 1.0f)
-                );
-            }
-            ImGui::Text(
-                "%s %s",
-                selected ? ">" : " ",
-                game.displayName.c_str()
+            ui.DrawText(
+                std::string(selected ? ">  " : "   ") + game.displayName,
+                panelX + 70.0f,
+                rowY,
+                selected ? 26.0f : 22.0f,
+                selected
+                    ? D2D1::ColorF(1.0f, 0.84f, 0.24f, 1.0f)
+                    : D2D1::ColorF(0.76f, 0.82f, 0.92f, 1.0f)
             );
             if (selected) {
-                ImGui::PopStyleColor();
-                ImGui::Indent(28.0f);
-                ImGui::TextWrapped("%s", game.ruleText.c_str());
-                ImGui::TextUnformatted(game.controlText.c_str());
-                ImGui::Unindent(28.0f);
+                ui.DrawText(
+                    game.ruleText,
+                    panelX + 112.0f,
+                    rowY + 31.0f,
+                    17.0f
+                );
+                ui.DrawText(
+                    game.controlText,
+                    panelX + 112.0f,
+                    rowY + 54.0f,
+                    15.0f,
+                    D2D1::ColorF(0.62f, 0.72f, 0.86f, 1.0f)
+                );
+                rowY += 92.0f;
+            } else {
+                rowY += 46.0f;
             }
-            ImGui::Spacing();
         }
-        ImGui::Separator();
-        ImGui::TextUnformatted(
-            "W/S or UP/DOWN: SELECT   ENTER/SPACE: PLAY"
+
+        ui.DrawTextCentered(
+            "W/S or UP/DOWN: SELECT   ENTER/SPACE: PLAY",
+            ui.Width() * 0.5f,
+            panelY + panelHeight - 42.0f,
+            17.0f,
+            D2D1::ColorF(0.72f, 0.8f, 0.92f, 1.0f)
         );
-        ImGui::End();
     }
 
     void UpdateCountdown(float deltaTime) {
@@ -544,24 +569,27 @@ private:
             }
         }
 
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImDrawList* draw = ImGui::GetForegroundDrawList();
-        const ImVec2 center = viewport->GetCenter();
-        const float radius = 62.0f * scale;
-        draw->AddCircleFilled(
-            center,
-            radius,
-            IM_COL32(15, 20, 30, 210),
-            48
+        MiniGameRuntimeUi ui(GetEntityRef().GetScene());
+        if (!ui.IsAvailable()) {
+            return;
+        }
+        const float width = 190.0f * scale;
+        const float height = 120.0f * scale;
+        const float x = (ui.Width() - width) * 0.5f;
+        const float y = (ui.Height() - height) * 0.5f;
+        ui.FillPanel(
+            x,
+            y,
+            width,
+            height,
+            D2D1::ColorF(0.025f, 0.035f, 0.06f, 0.88f)
         );
-        const ImVec2 textSize = ImGui::CalcTextSize(text);
-        draw->AddText(
-            ImVec2(
-                center.x - textSize.x * 0.5f,
-                center.y - textSize.y * 0.5f
-            ),
-            IM_COL32(255, 245, 180, 255),
-            text
+        ui.DrawTextCentered(
+            text,
+            ui.Width() * 0.5f,
+            y + 16.0f * scale,
+            68.0f * scale,
+            D2D1::ColorF(1.0f, 0.94f, 0.58f, 1.0f)
         );
     }
 
@@ -591,29 +619,25 @@ private:
     }
 
     void DrawHudBursts() const {
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImDrawList* draw = ImGui::GetForegroundDrawList();
+        MiniGameRuntimeUi ui(GetEntityRef().GetScene());
+        if (!ui.IsAvailable()) {
+            return;
+        }
         for (const HudBurst& burst : m_hudBursts) {
             const float normalized = burst.durationSeconds > 0.0f
                 ? 1.0f - burst.remainingSeconds / burst.durationSeconds
                 : 1.0f;
-            const ImVec2 position(
-                viewport->WorkPos.x + viewport->WorkSize.x *
-                    (0.5f + burst.worldPosition.x / 24.0f),
-                viewport->WorkPos.y + viewport->WorkSize.y *
-                    (0.5f - burst.worldPosition.y / 18.0f)
-            );
-            const float radius =
-                (18.0f + normalized * 52.0f) * burst.intensity;
-            const int alpha = static_cast<int>(
-                220.0f * (1.0f - normalized)
-            );
-            draw->AddCircle(
-                position,
-                radius,
-                IM_COL32(255, 235, 110, alpha),
-                32,
-                4.0f
+            const float x = ui.Width() *
+                (0.5f + burst.worldPosition.x / 24.0f);
+            const float y = ui.Height() *
+                (0.5f - burst.worldPosition.y / 18.0f) - normalized * 42.0f;
+            const float alpha = std::clamp(1.0f - normalized, 0.0f, 1.0f);
+            ui.DrawTextCentered(
+                "+",
+                x,
+                y,
+                (28.0f + normalized * 18.0f) * burst.intensity,
+                D2D1::ColorF(1.0f, 0.9f, 0.3f, alpha)
             );
         }
     }
@@ -637,17 +661,21 @@ private:
             0.0f,
             1.0f
         );
-        const int alpha = static_cast<int>(
-            255.0f * m_screenFlash.intensity * normalized
-        );
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::GetForegroundDrawList()->AddRectFilled(
-            viewport->WorkPos,
-            ImVec2(
-                viewport->WorkPos.x + viewport->WorkSize.x,
-                viewport->WorkPos.y + viewport->WorkSize.y
-            ),
-            IM_COL32(255, 255, 255, alpha)
+        MiniGameRuntimeUi ui(GetEntityRef().GetScene());
+        if (!ui.IsAvailable()) {
+            return;
+        }
+        ui.FillPanel(
+            0.0f,
+            0.0f,
+            ui.Width(),
+            ui.Height(),
+            D2D1::ColorF(
+                1.0f,
+                1.0f,
+                1.0f,
+                m_screenFlash.intensity * normalized
+            )
         );
     }
 
