@@ -1,0 +1,261 @@
+SceneSettings:
+  Storage:
+    ExpectedEntities: 192
+    ExpectedTransforms: 192
+    ExpectedRenderables: 160
+    ExpectedCullingComponents: 160
+    ExpectedStaticEntities: 64
+    PreallocatedTransformPages: 2
+    PreallocatedTagPages: 1
+    RenderPacketReserve: 192
+    VisibleEntityReserve: 192
+    StaticBatchReserve: 48
+    AllowRuntimeGrowth: true
+    LogCapacityGrowth: true
+Entities:
+  - Entity: 1
+    Components:
+      - Component: NameComponent
+        Name: PlatformerGame
+      - Component: TransformComponent
+        Position: {x: 0, y: 0, z: 0}
+        Rotation: [0, 0, 0, 1]
+        Scale: {x: 1, y: 1, z: 1}
+        Parent: 0
+      - Component: AudioComponent
+        FilePath: Asset\Audio\BGM.wav
+        Loop: true
+        Volume: 0.08
+        PlayOnStart: true
+      - Component: PlatformerGameManager
+        authoredCoinTotal: 30
+        initialBossHealth: 3
+        clearInputLockSeconds: 1.2
+      - Component: PlatformerHud
+        instructionDuration: 8
+        showControls: true
+      - Component: PlatformerStageBuilder
+        buildOnStart: true
+        stageRevision: 1
+  - Entity: 2
+    Components:
+      - Component: NameComponent
+        Name: PlatformerPlayer
+      - Component: TransformComponent
+        Position: {x: 0, y: 0.05, z: 0}
+        Rotation: [0, 0, 0, 1]
+        Scale: {x: 0.01, y: 0.01, z: 0.01}
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: true
+        autoMass: true
+        Mass: 1
+        colliders:
+          - type: 2
+            size: [1, 1, 1]
+            offset: [0, 75, 0]
+            rotationOffset: [0, 0, 90]
+            radius: 25
+            height: 100
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 2
+            lockRotX: true
+            lockRotY: true
+            lockRotZ: true
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor: {x: 0.94, y: 0.96, z: 1, w: 1}
+          Metallic: 0.05
+          Roughness: 0.62
+          AO: 1
+          EmissiveColor: {x: 0.02, y: 0.08, z: 0.18}
+          EmissiveIntensity: 0.25
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\Akai.fbx
+        isBlender: false
+        AnimationTime: 0
+        Animations:
+          Idle: Asset\Model\Akai_Idle.fbx
+          Run: Asset\Model\Akai_Run.fbx
+          JumpUp: Asset\Model\Jumping Up.fbx
+          Fall: Asset\Model\Jumping Down.fbx
+      - Component: OutlineComponent
+      - Component: PlatformerCharacterController
+        maxGroundSpeed: 7
+        groundAcceleration: 36
+        groundDeceleration: 44
+        airAcceleration: 14
+        airTurnAcceleration: 24
+        rotationSpeed: 14
+        firstJumpVelocity: 7.6
+        secondJumpVelocity: 8.4
+        thirdJumpVelocity: 10
+        stompBounceVelocity: 8.2
+        coyoteTime: 0.12
+        jumpBufferTime: 0.14
+        gravityAscending: 20
+        gravityDescending: 31
+        apexGravityScale: 0.55
+        maxSlopeDegrees: 50
+        tripleJumpMinimumSpeed: 4.2
+        tripleJumpChainWindow: 0.32
+        wallProbeDistance: 0.62
+        wallContactGrace: 0.14
+        wallKickHorizontalVelocity: 7.2
+        wallKickVerticalVelocity: 8.8
+        killY: -14
+        maxHealth: 3
+        SelfLayerBit: 2
+        Checkpoint: {x: 0, y: 0.05, z: 0}
+      - Component: PlatformerAnimationController
+        idleAnimation: Asset/Model/Akai_Idle.fbx
+        runAnimation: Asset/Model/Akai_Run.fbx
+        jumpUpAnimation: Asset/Model/Jumping Up.fbx
+        fallAnimation: Asset/Model/Jumping Down.fbx
+        blendSpeed: 8
+        runPlaybackScale: 1
+        squashAmount: 0.12
+  - Entity: 3
+    Components:
+      - Component: NameComponent
+        Name: PlatformerCamera
+      - Component: TransformComponent
+        Position: {x: 0, y: 4, z: -8}
+        Rotation: [0, 0, 0, 1]
+        Scale: {x: 1, y: 1, z: 1}
+        Parent: 0
+      - Component: CameraComponent
+        isLock: true
+        Target: {x: 0, y: 1.2, z: 0}
+        NearClip: 0.03
+        FarClip: 512
+        FOV: 1
+        nextLinkId: 8
+        nextPinId: 13
+        PostEffectEditorZoom: 1
+        PostEffects:
+          - Name: PlatformerBlur
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Blur.cso
+            NodePos: {x: 169, y: 94}
+            InputPins: [1, 12]
+            OutputPin: 2
+            Param: {x: 1, y: 0, z: 0, w: 0}
+            ResolutionScale: 0.5
+            MipLevels: 1
+          - Name: PlatformerBrightPass
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\BrightPass.cso
+            NodePos: {x: 160, y: -203}
+            InputPins: [3, 7]
+            OutputPin: 4
+            Param: {x: 0.95, y: 0, z: 0, w: 0}
+            ResolutionScale: 0.5
+            MipLevels: 1
+          - Name: PlatformerBloomComposite
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\CompositeBloom.cso
+            NodePos: {x: 417, y: -55}
+            InputPins: [8, 10, 11]
+            OutputPin: 9
+            Param: {x: 0, y: 0, z: 0, w: 0}
+            ResolutionScale: 1
+            MipLevels: 1
+        PostEffectLinks:
+          - {ID: 3, StartNode: 1, EndNode: 2, StartAttr: 4, EndAttr: 8}
+          - {ID: 4, StartNode: 0, EndNode: 2, StartAttr: 2, EndAttr: 10}
+          - {ID: 5, StartNode: -1, EndNode: 1, StartAttr: 5, EndAttr: 3}
+          - {ID: 6, StartNode: 2, EndNode: -2, StartAttr: 9, EndAttr: 6}
+          - {ID: 7, StartNode: -1, EndNode: 0, StartAttr: 5, EndAttr: 1}
+        ScreenInput:
+          Name: ""
+          NodePos: {x: 40, y: 151}
+          OutputPin: 5
+        ScreenOutput:
+          Name: ""
+          NodePos: {x: 646, y: 139}
+          InputPins: [6]
+      - Component: PlatformerCameraController
+        followSharpness: 7.5
+        verticalFollowSharpness: 3
+        transitionSharpness: 4.8
+        occlusionReturnSharpness: 6
+        minimumDistance: 1.2
+        collisionPadding: 0.18
+        courseYawDegrees: 0
+        courseDistance: 8.5
+        courseHeight: 3.8
+        wallYawDegrees: 90
+        wallDistance: 11.5
+        wallHeight: 4.5
+        bossDistance: 13.5
+        bossHeight: 7
+        SelfLayerBit: 2
+        Profile: 0
+  - Entity: 4
+    Components:
+      - Component: NameComponent
+        Name: Sun
+      - Component: TransformComponent
+        Position: {x: -24, y: 42, z: -30}
+        Rotation: [0.217117, 0.464521, 0.118612, 0.850301]
+        Scale: {x: 1, y: 1, z: 1}
+        Parent: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 4
+        CastShadow: 1
+        Position: {x: -24, y: 42, z: -30, w: 0}
+        Direction: {x: 0.55, y: -0.72, z: 0.42, w: 0}
+        Diffuse: {x: 1, y: 0.94, z: 0.84, w: 1}
+        Ambient: {x: 0.18, y: 0.21, z: 0.28, w: 1}
+        Param: {x: 500, y: 0, z: 0, w: 0.004}
+        ShadowBias: {x: 0.0005, y: 0.02, z: 1, w: 0}
+  - Entity: 5
+    Components:
+      - Component: NameComponent
+        Name: PlatformerSky
+      - Component: TransformComponent
+        Position: {x: 0, y: 0, z: 60}
+        Rotation: [0, 0, 0, 1]
+        Scale: {x: 500, y: 500, z: 500}
+        Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 0
+        Material:
+          BaseColor: {x: 1, y: 1, z: 1, w: 1}
+          Metallic: 0
+          Roughness: 0
+          AO: 1
+          EmissiveColor: {x: 0, y: 0, z: 0}
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\Daylight.png
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\sky.fbx
+        isBlender: true
+        AnimationTime: 0
+      - Component: EnvironmentMapComponent
+        enabled: true
