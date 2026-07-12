@@ -29,6 +29,9 @@ void ValidateModelRuntimeBoundary(){
 	const std::string modelLoader = ReadTextFile(
 		"Source/GameApplication/Engine/Resources/Loader/modelLoader.h"
 	);
+	const std::string resourceKey = ReadTextFile(
+		"Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
+	);
 	const std::string provider = ReadTextFile(
 		"Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceProvider.h"
 	);
@@ -64,6 +67,16 @@ void ValidateModelRuntimeBoundary(){
 		std::string::npos);
 	assert(modelLoader.find("new VERTEX_3D[") == std::string::npos);
 	assert(modelLoader.find("new unsigned int[") == std::string::npos);
+
+	// Geometry Resource KeyはNative Buffer配置ではなくCPU Snapshotを識別する。
+	assert(resourceKey.find("model->MeshGeometry.size()") != std::string::npos);
+	assert(resourceKey.find("geometry->vertices.size()") != std::string::npos);
+	assert(resourceKey.find("geometry->indices.size()") != std::string::npos);
+	assert(resourceKey.find("model->VertexBuffer.size()") == std::string::npos);
+	assert(resourceKey.find("model->IndexBuffer.size()") == std::string::npos);
+	assert(resourceKey.find(
+		"model->MeshGeometry.size() != model->AiScene->mNumMeshes"
+	) != std::string::npos);
 
 	// Resolver / CacheはModelDataのNative Buffer配置を知らず、Provider境界だけを使う。
 	assert(resolver.find("model->VertexBuffer") == std::string::npos);
