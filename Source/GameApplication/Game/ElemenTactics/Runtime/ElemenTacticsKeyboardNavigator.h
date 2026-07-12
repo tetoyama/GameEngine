@@ -22,6 +22,13 @@
 #include <vector>
 #include <windows.h>
 
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+
 namespace ElemenTactics {
 
 // Player-facing keyboard navigation for the Runtime Text UI.
@@ -297,8 +304,8 @@ private:
 			if(!name || !transform || !text || name->name != "Button") continue;
 
 			const ScreenPoint entityCenter{
-				(transform->position.x() + transform->scale.x() * 0.5f) * viewWidth,
-				(transform->position.y() + transform->scale.y() * 0.5f) * viewHeight
+				(transform->position.x + transform->scale.x * 0.5f) * viewWidth,
+				(transform->position.y + transform->scale.y * 0.5f) * viewHeight
 			};
 
 			std::size_t nearestIndex = 0;
