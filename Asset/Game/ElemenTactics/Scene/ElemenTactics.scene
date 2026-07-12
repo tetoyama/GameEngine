@@ -1,7 +1,7 @@
 Storage:
-  ExpectedEntities: 256
-  ExpectedTransformCount: 256
-  TransformPreallocatedPages: 1
+  ExpectedEntities: 512
+  ExpectedTransformCount: 512
+  TransformPreallocatedPages: 2
 Entities:
   - Entity: 1
     Components:
@@ -27,17 +27,17 @@ Entities:
         InitialScreen: Title
       - Component: ElemenTactics::ElemenTacticsKeyboardNavigator
         ScriptName: ElemenTacticsKeyboardNavigator
-      - Component: ElemenTactics::ElemenTacticsVisualGuide
-        ScriptName: ElemenTacticsVisualGuide
+      - Component: ElemenTactics::ElemenTacticsTabletopPresentation
+        ScriptName: ElemenTacticsTabletopPresentation
   - Entity: 2
     Components:
       - Component: NameComponent
-        Name: ElemenTactics Player Camera
+        Name: ElemenTactics Table Camera
       - Component: TransformComponent
         Position:
           x: 0
-          y: 0
-          z: -10
+          y: 10.5
+          z: -10.5
         Rotation:
           - 0
           - 0
@@ -52,8 +52,8 @@ Entities:
         isLock: true
         Target:
           x: 0
-          y: 0
+          y: 0.15
           z: 0
-        NearClip: 0.01
-        FarClip: 1024
-        FOV: 1
+        NearClip: 0.1
+        FarClip: 100
+        FOV: 0.72
