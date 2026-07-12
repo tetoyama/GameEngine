@@ -44,6 +44,7 @@ public:
 		lastJumpRevision = character.IsValid() ? character->GetJumpEventRevision() : 0;
 		lastLandRevision = character.IsValid() ? character->GetLandEventRevision() : 0;
 		lastWallRevision = character.IsValid() ? character->GetWallKickEventRevision() : 0;
+		lastStompRevision = character.IsValid() ? character->GetStompEventRevision() : 0;
 		lastDamageRevision = character.IsValid() ? character->GetDamageEventRevision() : 0;
 	}
 
@@ -90,43 +91,52 @@ private:
 	void UpdateFeedbackState(const PlatformerCharacterController& controller) {
 		if(controller.GetJumpEventRevision() != lastJumpRevision) {
 			lastJumpRevision = controller.GetJumpEventRevision();
-			jumpPulse = controller.GetJumpStage() == 3 ? 1.0f : 0.55f;
+			const int stage = controller.GetJumpStage();
+			jumpPulse = stage >= 3 ? 1.45f : stage == 2 ? 0.95f : 0.62f;
 		}
 		if(controller.GetLandEventRevision() != lastLandRevision) {
 			lastLandRevision = controller.GetLandEventRevision();
-			landPulse = 1.0f;
+			const float impact = std::clamp(std::abs(controller.GetVerticalVelocity()) / 10.0f, 0.55f, 1.35f);
+			landPulse = impact;
 		}
 		if(controller.GetWallKickEventRevision() != lastWallRevision) {
 			lastWallRevision = controller.GetWallKickEventRevision();
-			wallSpin = 1.0f;
+			wallSpin = 1.25f;
+			jumpPulse = (std::max)(jumpPulse, 0.95f);
+		}
+		if(controller.GetStompEventRevision() != lastStompRevision) {
+			lastStompRevision = controller.GetStompEventRevision();
+			stompPulse = 1.45f;
 		}
 		if(controller.GetDamageEventRevision() != lastDamageRevision) {
 			lastDamageRevision = controller.GetDamageEventRevision();
-			damagePulse = 1.0f;
+			damagePulse = 1.35f;
 		}
 	}
 
 	void UpdateTransformFallback(const PlatformerCharacterController& controller, TransformComponent& t, float dt) {
-		jumpPulse = (std::max)(0.0f, jumpPulse - dt * 3.5f);
-		landPulse = (std::max)(0.0f, landPulse - dt * 6.0f);
-		wallSpin = (std::max)(0.0f, wallSpin - dt * 3.0f);
-		damagePulse = (std::max)(0.0f, damagePulse - dt * 4.0f);
+		jumpPulse = (std::max)(0.0f, jumpPulse - dt * 4.1f);
+		landPulse = (std::max)(0.0f, landPulse - dt * 7.6f);
+		wallSpin = (std::max)(0.0f, wallSpin - dt * 3.5f);
+		stompPulse = (std::max)(0.0f, stompPulse - dt * 5.2f);
+		damagePulse = (std::max)(0.0f, damagePulse - dt * 4.7f);
 
-		const float verticalStretch = jumpPulse * squashAmount;
-		const float landingSquash = landPulse * squashAmount;
-		const float damageSquash = damagePulse * squashAmount * 0.5f;
+		const float verticalStretch = jumpPulse * squashAmount * 1.25f;
+		const float landingSquash = landPulse * squashAmount * 1.55f;
+		const float stompStretch = stompPulse * squashAmount * 1.75f;
+		const float damageSquash = damagePulse * squashAmount * 0.85f;
 		const Vector3 targetScale(
-			baseScale.x * (1.0f + landingSquash + damageSquash - verticalStretch * 0.5f),
-			baseScale.y * (1.0f + verticalStretch - landingSquash),
-			baseScale.z * (1.0f + landingSquash + damageSquash - verticalStretch * 0.5f));
-		const float scaleBlend = 1.0f - std::exp(-12.0f * dt);
+			baseScale.x * (1.0f + landingSquash + damageSquash - verticalStretch * 0.48f - stompStretch * 0.35f),
+			baseScale.y * (1.0f + verticalStretch + stompStretch - landingSquash - damageSquash * 0.45f),
+			baseScale.z * (1.0f + landingSquash + damageSquash - verticalStretch * 0.48f - stompStretch * 0.35f));
+		const float scaleBlend = 1.0f - std::exp(-18.0f * dt);
 		t.scale = Vec3Lerp(t.scale, targetScale, scaleBlend);
 
 		if(wallSpin > 0.0f) {
-			t.AddRotationY(dt * DirectX::XM_2PI * (0.65f + wallSpin));
+			t.AddRotationY(dt * DirectX::XM_2PI * (0.9f + wallSpin * 1.25f));
 		}
 		if(controller.GetJumpStage() == 3 && !controller.IsGrounded()) {
-			t.AddRotationY(dt * DirectX::XM_2PI * 1.2f);
+			t.AddRotationY(dt * DirectX::XM_2PI * 1.65f);
 		}
 	}
 
@@ -163,9 +173,11 @@ private:
 	float jumpPulse = 0.0f;
 	float landPulse = 0.0f;
 	float wallSpin = 0.0f;
+	float stompPulse = 0.0f;
 	float damagePulse = 0.0f;
 	uint32_t lastJumpRevision = 0;
 	uint32_t lastLandRevision = 0;
 	uint32_t lastWallRevision = 0;
+	uint32_t lastStompRevision = 0;
 	uint32_t lastDamageRevision = 0;
 };
