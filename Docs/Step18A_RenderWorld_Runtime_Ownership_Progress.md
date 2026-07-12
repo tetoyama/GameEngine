@@ -2,7 +2,7 @@
 
 ## 状態
 
-**実装中 — RenderWorld基盤、Camera / ModelRendererのNative描画資源分離、Static Batch Geometry Source Provider境界まで完了。CI・実機確認待ち。**
+**実装中 — RenderWorld基盤、Camera / ModelRendererのNative描画資源分離、Static Batch Model Geometry Runtime Storage接続まで完了。CI・追加実機確認待ち。**
 
 親計画:
 
@@ -84,18 +84,36 @@ Scene Context ID + Entity packed value
 - Animation Upload TaskはStorageへのWrite Accessを宣言する
 - RenderSystem Stop時に全RuntimeをResetする
 
-### 4. Static Batch Model Geometry Source Provider
+### 4. Static Batch Model Geometry Provider / Runtime Storage
 
 Static BatchのGroup Resolver / Geometry Binding Cacheから、`ModelData`内のNative Vertex / Index Buffer配置への直接依存を除いた。
+
+Provider境界:
 
 - `IStaticBatchModelGeometrySourceProvider`を追加
 - ResolverはProviderから検証済み`StaticBatchD3D11GeometrySource`だけを受け取る
 - Geometry Binding CacheへProvider注入Overloadを追加
-- 既存Runtime互換用に`StaticBatchLegacyModelGeometrySourceProvider`を維持
-- Legacy Providerだけが移行期間中の`ModelData::VertexBuffer / IndexBuffer`を参照する
 - Animation Group拒否、Skinned SubMesh拒否、Geometry Resource Key一致検証を維持
 
-この境界により、次工程でModel共有GeometryをRenderSystem側Runtime Storageへ移してもResolver / Cache / GBuffer / Shadow提出契約を変更せずに差し替えられる。
+Runtime Storage:
+
+- `StaticBatchUploadSystem`が`StaticBatchRuntimeModelGeometrySourceProvider`を所有する
+- Provider内部の`StaticBatchModelGeometryRuntimeStorage`がModel Geometry Entryを保持する
+- EntryはVertex / Index Bufferへ独立した`ComPtr<ID3D11Buffer>`参照を持つ
+- Model識別は`weak_ptr<ModelData>`、`modelRuntimeRevision`、SubMesh Scopeで行う
+- 同一Keyが同じ同期内に別Model実体へ衝突した場合、先に採用したEntryを維持して後続を拒否する
+- `BeginSynchronization / EndSynchronization`間で使用されたKeyだけを維持し、未使用Entryを解放する
+- Geometry Synchronize Taskは`StaticBatchModelGeometryRuntimeStorage`へのWrite Accessを宣言する
+- `Stop / Finalize`でGeometry Binding CacheとRuntime Storageを破棄する
+- Entry数、Import、Reuse、Replacement、Release、RejectをTelemetryとして公開する
+
+移行中のBootstrap:
+
+- `StaticBatchLegacyModelGeometrySourceProvider`だけが`ModelData::VertexBuffer / IndexBuffer`を参照する
+- Legacy ProviderはStorage MissまたはModel Revision差し替え時の初回取り込みにだけ使用する
+- 通常FrameのResolver / Geometry Binding CacheはRuntime Storage Entryを再利用する
+
+この境界により、次工程でModel共有Geometryの**生成元**を`ModelData`からRenderSystem側へ移しても、Resolver / Cache / GBuffer / Shadow提出契約を変更せずに差し替えられる。
 
 ## 回帰テスト
 
@@ -116,14 +134,17 @@ Static BatchのGroup Resolver / Geometry Binding Cacheから、`ModelData`内の
 - Animation UploadとRenderableのRuntime参照一致
 - SchedulerのRuntime Storage Write Access
 - Static Batch Resolver / CacheがModelData Native Bufferを直接参照しないこと
-- Legacy Providerだけが既存ModelData Geometryを参照すること
+- Legacy Providerだけが既存ModelData GeometryへBootstrap時にアクセスすること
+- Runtime Storageが独立COM参照を保持すること
 - Provider注入経路がGeometry Binding Cacheまで接続されていること
+- 同期開始 / 終了と未使用Entry解放契約
 
 ## Step 18-A残作業
 
 - [ ] `renderSystem.cpp`のBuild / Submitを`RenderWorld` APIへ直接接続し、一時Facadeを削除
 - [ ] RendererのComponentRegistry直接走査を専用Extraction Taskへ分離
-- [ ] Model共有GeometryをRenderSystem側Runtime Storageへ移し、Legacy Providerを置換
+- [x] Static Batch Model Geometry Runtime Storageを追加し、Geometry Cacheへ接続
+- [ ] Model共有Geometryの生成・破棄を`ModelData`からRenderSystem側へ移す
 - [ ] Native API型をRenderSystem公開境界から段階的に撤去
 - [ ] RenderWorldからRHI Commandを生成する境界を追加
 - [ ] Windows Debug / Release x64 Build
@@ -136,7 +157,7 @@ Static BatchのGroup Resolver / Geometry Binding Cacheから、`ModelData`内の
 
 1. `RenderSystem.Packet.Build`をRenderWorld Extraction責務として独立
 2. Build / Submitの一時Facade撤去
-3. Model共有Geometry Runtime Storageを追加し、Provider実装を差し替え
+3. Model共有Geometry生成をRenderSystem Runtimeへ移し、Legacy Bootstrapを撤去
 4. Render PacketのComponent Pointer依存をSnapshot / Handleへ縮小
 5. RHI Command生成境界へ接続
 
