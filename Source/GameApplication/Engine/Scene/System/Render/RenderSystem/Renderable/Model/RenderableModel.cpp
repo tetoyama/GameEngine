@@ -19,6 +19,8 @@
 #include "Scene/Component/transformComponent.h"
 #include "Scene/Component/textureComponent.h"
 #include "System/Render/RenderSystem/renderSystem.h"
+#include "Service/Graphics/RHI/RHIService.h"
+#include "Service/Graphics/RHI/D3D11/D3D11RHIDevice.h"
 
 #include "Backends/Assimp/material.h"
 #include "Backends/Assimp/scene.h"
@@ -50,6 +52,7 @@ void RenderableModel::Execute(
 	if(!deviceContext) return;
 
 	const ModelRendererGpuRuntime* modelGpuRuntime = nullptr;
+	const ModelGeometryRuntime* modelGeometryRuntime = nullptr;
 	if(sceneContext->manager && sceneContext->manager->systemRegistry){
 		if(RenderSystem* renderSystem =
 			sceneContext->manager->systemRegistry->GetSystem<RenderSystem>()){
@@ -58,7 +61,17 @@ void RenderableModel::Execute(
 			runtimeKey.entity = packet.entity.GetPackedValue();
 			modelGpuRuntime =
 				renderSystem->GetModelRendererGpuRuntime().Find(runtimeKey);
+			modelGeometryRuntime =
+				renderSystem->GetModelGeometryRuntime().Find(model);
 		}
+	}
+
+	RHI::D3D11RHIDevice* d3d11RhiDevice = nullptr;
+	if(RHI::RenderHardwareInterfaceService* service =
+		graphicsContext->GetRHIService()){
+		d3d11RhiDevice = dynamic_cast<RHI::D3D11RHIDevice*>(
+			service->GetDevice()
+		);
 	}
 
 	TextureComponent* textureComponent = packet.bindings.texture;
@@ -230,18 +243,33 @@ void RenderableModel::Execute(
 		UINT stride = sizeof(VERTEX_3D);
 		UINT offset = 0;
 
+		const ModelGeometryRuntimeMesh* sharedGeometry =
+			modelGeometryRuntime ? modelGeometryRuntime->Mesh(meshIndex) : nullptr;
+		ID3D11Buffer* sharedVertexBuffer =
+			d3d11RhiDevice && sharedGeometry
+				? d3d11RhiDevice->NativeBuffer(sharedGeometry->vertexBuffer)
+				: nullptr;
+		ID3D11Buffer* sharedIndexBuffer =
+			d3d11RhiDevice && sharedGeometry
+				? d3d11RhiDevice->NativeBuffer(sharedGeometry->indexBuffer)
+				: nullptr;
+
 		const bool hasDynamicVertexBuffer =
 			!modelRenderer->blendedAnimations.empty() &&
 			modelGpuRuntime &&
 			modelGpuRuntime->ModelRevision() ==
 				modelRenderer->modelRuntimeRevision &&
 			modelGpuRuntime->Buffer(meshIndex) != nullptr;
-		const bool hasStaticVertexBuffer =
+		const bool hasLegacyStaticVertexBuffer =
 			meshIndex < model->VertexBuffer.size() &&
 			model->VertexBuffer[meshIndex] != nullptr;
-		const bool hasIndexBuffer =
+		const bool hasLegacyIndexBuffer =
 			meshIndex < model->IndexBuffer.size() &&
 			model->IndexBuffer[meshIndex] != nullptr;
+		const bool hasStaticVertexBuffer =
+			sharedVertexBuffer != nullptr || hasLegacyStaticVertexBuffer;
+		const bool hasIndexBuffer =
+			sharedIndexBuffer != nullptr || hasLegacyIndexBuffer;
 
 		if(!hasIndexBuffer || (!hasDynamicVertexBuffer && !hasStaticVertexBuffer)){
 			continue;
@@ -249,7 +277,12 @@ void RenderableModel::Execute(
 
 		ID3D11Buffer* vertexBuffer = hasDynamicVertexBuffer
 			? modelGpuRuntime->Buffer(meshIndex)
-			: model->VertexBuffer[meshIndex];
+			: (sharedVertexBuffer
+				? sharedVertexBuffer
+				: model->VertexBuffer[meshIndex]);
+		ID3D11Buffer* indexBuffer = sharedIndexBuffer
+			? sharedIndexBuffer
+			: model->IndexBuffer[meshIndex];
 		deviceContext->IASetVertexBuffers(
 			0,
 			1,
@@ -259,12 +292,15 @@ void RenderableModel::Execute(
 		);
 
 		deviceContext->IASetIndexBuffer(
-			model->IndexBuffer[meshIndex],
+			indexBuffer,
 			DXGI_FORMAT_R32_UINT,
 			0
 		);
+		const UINT indexCount = sharedGeometry && sharedIndexBuffer
+			? sharedGeometry->indexCount
+			: model->AiScene->mMeshes[meshIndex]->mNumFaces * 3;
 		deviceContext->DrawIndexed(
-			model->AiScene->mMeshes[meshIndex]->mNumFaces * 3,
+			indexCount,
 			0,
 			0
 		);
