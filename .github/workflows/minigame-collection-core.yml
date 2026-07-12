@@ -10,6 +10,8 @@ on:
       - "Source/GameApplication/Engine/Scene/Component/audioComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/componentList.h"
       - "Source/GameApplication/Engine/Scene/System/Audio/audioSystem.h"
+      - "Source/GameApplication/Engine/Scene/sceneManager.h"
+      - "Source/GameApplication/Engine/Scene/sceneManager.cpp"
       - "Source/GameApplication/Engine/engine.cpp"
       - "Source/GameApplication/Service/Graphics/D2DRenderer.h"
       - "Source/GameApplication/Service/Graphics/D2DRenderer.cpp"
@@ -32,6 +34,8 @@ on:
       - "Source/GameApplication/Engine/Scene/Component/audioComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/componentList.h"
       - "Source/GameApplication/Engine/Scene/System/Audio/audioSystem.h"
+      - "Source/GameApplication/Engine/Scene/sceneManager.h"
+      - "Source/GameApplication/Engine/Scene/sceneManager.cpp"
       - "Source/GameApplication/Engine/engine.cpp"
       - "Source/GameApplication/Service/Graphics/D2DRenderer.h"
       - "Source/GameApplication/Service/Graphics/D2DRenderer.cpp"
@@ -79,6 +83,21 @@ jobs:
           test "$(grep -c "ImGui::" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h)" -eq 1
           grep -q "void inspector" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h
           grep -q "void DrawHitDebug" Source/GameApplication/Game/MiniGameCollection/Runtime/BackshotRuntime.h
+      - name: Enforce deferred additive scene loading
+        shell: bash
+        run: |
+          runtime_files=(
+            Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGamePersistentRuntime.h
+            Source/GameApplication/Game/MiniGameCollection/Core/MiniGameSceneTransitionEngineBackend.h
+          )
+          if grep -n "LoadFromFilePath" "${runtime_files[@]}"; then
+            echo "Mini-game runtime must queue additive scene loads outside ECS schedule execution."
+            exit 1
+          fi
+          grep -q "QueueAdditiveSceneLoadFromFilePath" Source/GameApplication/Engine/Scene/sceneManager.h
+          grep -q "ProcessQueuedAdditiveSceneLoads" Source/GameApplication/Engine/engine.cpp
+          grep -q "QueueAdditiveSceneLoadFromFilePath" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGamePersistentRuntime.h
+          grep -q "QueueAdditiveSceneLoadFromFilePath" Source/GameApplication/Game/MiniGameCollection/Core/MiniGameSceneTransitionEngineBackend.h
       - name: Compile and run minigame model contracts
         shell: bash
         run: |
