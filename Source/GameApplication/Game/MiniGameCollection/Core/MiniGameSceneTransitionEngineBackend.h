@@ -69,12 +69,11 @@ public:
         if (scenePath.empty()) {
             return false;
         }
-        std::shared_ptr<Scene> scene = m_sceneManager.LoadFromFilePath(scenePath);
-        if (!scene) {
+        if (!m_sceneManager.QueueAdditiveSceneLoadFromFilePath(scenePath)) {
             return false;
         }
         m_lastRequestedPath = scenePath;
-        m_lastLoadedSceneName = scene->SceneName;
+        m_lastLoadedSceneName.clear();
         return true;
     }
 
@@ -82,6 +81,7 @@ public:
         for (const auto& [name, scene] : m_sceneManager.GetActiveScenes()) {
             (void)name;
             if (scene && scene->ScenePath == scenePath) {
+                m_lastLoadedSceneName = scene->SceneName;
                 return true;
             }
         }
@@ -98,7 +98,7 @@ private:
     InputGate m_inputGate;
     RulesShutdown m_rulesShutdown;
     std::string m_lastRequestedPath;
-    std::string m_lastLoadedSceneName;
+    mutable std::string m_lastLoadedSceneName;
 };
 
 } // namespace MiniGameCollection
