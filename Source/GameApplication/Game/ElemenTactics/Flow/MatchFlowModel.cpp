@@ -53,9 +53,36 @@ bool MatchFlowModel::ConfirmCurrentDeck(std::string* error){
 	return false;
 }
 
+bool MatchFlowModel::CancelDeckSetup(){
+	if(m_screen == FlowScreen::DeckSetupPlayerOne){
+		m_mode.reset();
+		m_playerOneDecks = {};
+		m_playerTwoDecks = {};
+		m_editingDeck = DeckSetupModel::BalancedDefault();
+		m_screen = FlowScreen::ModeSelect;
+		return true;
+	}
+	if(m_screen == FlowScreen::DeckSetupPlayerTwo){
+		m_editingDeck = DeckSetupModel::BalancedDefault();
+		m_screen = FlowScreen::LocalPrivacyHandoff;
+		return true;
+	}
+	return false;
+}
+
 bool MatchFlowModel::ConfirmPrivacyHandoff(){
 	if(m_screen != FlowScreen::LocalPrivacyHandoff) return false;
 	m_screen = FlowScreen::DeckSetupPlayerTwo;
+	return true;
+}
+
+bool MatchFlowModel::ReturnFromPrivacyHandoff(){
+	if(m_screen != FlowScreen::LocalPrivacyHandoff ||
+		!m_mode || *m_mode != GameMode::LocalHumanVsHuman){
+		return false;
+	}
+	m_editingDeck = DeckSetupModel::FromDecks(m_playerOneDecks);
+	m_screen = FlowScreen::DeckSetupPlayerOne;
 	return true;
 }
 
@@ -66,6 +93,18 @@ bool MatchFlowModel::BeginMatch(PlayerId firstPlayer, std::string* error){
 	m_match = ElemenTacticsRules::CreateInitialState(setup, firstPlayer);
 	m_lastFirstPlayer = firstPlayer;
 	m_screen = FlowScreen::BattleBoard;
+	return true;
+}
+
+bool MatchFlowModel::ReturnFromMatchIntroduction(){
+	if(m_screen != FlowScreen::MatchIntroduction || !m_mode) return false;
+	if(*m_mode == GameMode::LocalHumanVsHuman){
+		m_editingDeck = DeckSetupModel::FromDecks(m_playerTwoDecks);
+		m_screen = FlowScreen::DeckSetupPlayerTwo;
+	} else {
+		m_editingDeck = DeckSetupModel::FromDecks(m_playerOneDecks);
+		m_screen = FlowScreen::DeckSetupPlayerOne;
+	}
 	return true;
 }
 
