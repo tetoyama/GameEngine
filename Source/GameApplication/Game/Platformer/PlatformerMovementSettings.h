@@ -59,16 +59,16 @@ struct PlatformerMovementSettings {
 	float apexGravityScale = 0.50f;
 	float apexVelocityThreshold = 1.30f;
 
-	// The player capsule spans approximately y=0.0 to y=1.5 relative to the
-	// entity origin. RaycastWithMask uses an exclusion mask, but older scene data
-	// does not exclude the player's layer. Start the ground ray just below the
-	// capsule instead of inside it so a distance-zero self hit cannot report
-	// permanent grounding. The controller uses start + distance as ray length.
-	float groundProbeStart = -0.03f;
-	float groundProbeDistance = 0.21f;
+	// The capsule foot is at the entity origin. The previous negative start put
+	// the ray below a settled floor surface, so a downward ray could miss the top
+	// face and report falling while PhysX still visibly supported the capsule.
+	// Start above the foot and extend below it so small contact offsets, slopes,
+	// triangle seams and moving-platform separation remain inside the probe span.
+	float groundProbeStart = 0.14f;
+	float groundProbeDistance = 0.30f;
 	// This is a velocity, not an acceleration. Keep only a small downward bias
 	// after genuine contact so PhysX friction does not cancel horizontal motion.
-	float groundSnapSpeed = 0.12f;
+	float groundSnapSpeed = 0.10f;
 	float maxSlopeDegrees = 50.0f;
 
 	float tripleJumpMinimumSpeed = 4.2f;
