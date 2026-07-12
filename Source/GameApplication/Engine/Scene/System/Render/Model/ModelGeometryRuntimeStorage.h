@@ -129,8 +129,8 @@ public:
 			const ModelMeshGeometryCpuData& source = model->MeshGeometry[meshIndex];
 			const ModelGeometryRuntimeMesh& runtime = m_meshes[meshIndex];
 			if(!source.IsValid() || !runtime.IsReady() ||
-				runtime.vertexCount != source.vertices.size() ||
-				runtime.indexCount != source.indices.size()){
+				static_cast<std::size_t>(runtime.vertexCount) != source.vertices.size() ||
+				static_cast<std::size_t>(runtime.indexCount) != source.indices.size()){
 				return false;
 			}
 		}
@@ -206,7 +206,7 @@ struct ModelGeometryRuntimeStorageTelemetry {
 class ModelGeometryRuntimeStorage final {
 public:
 	ModelGeometryRuntimeStorage() = default;
-	~ModelGeometryRuntimeStorage(){ Reset(); }
+	~ModelGeometryRuntimeStorage() = default;
 	ModelGeometryRuntimeStorage(const ModelGeometryRuntimeStorage&) = delete;
 	ModelGeometryRuntimeStorage& operator=(const ModelGeometryRuntimeStorage&) = delete;
 
@@ -328,7 +328,8 @@ private:
 	struct Entry {
 		ModelGeometryRuntime runtime;
 		std::uint64_t lastUsedGeneration = 0;
-		std::uint64_t lastAttemptGeneration = 0;
+		std::uint64_t lastAttemptGeneration =
+			(std::numeric_limits<std::uint64_t>::max)();
 	};
 
 	RHI::IRHIDevice* m_device = nullptr;
