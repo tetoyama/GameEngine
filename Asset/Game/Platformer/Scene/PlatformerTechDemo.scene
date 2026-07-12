@@ -52,7 +52,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 0.00999999326
+          y: 0.00749999285
           z: 1.13324761
         Rotation:
           - 0
@@ -366,9 +366,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: 12.0689068
-          y: 55.4590187
-          z: 34.1239586
+          x: 40.7485962
+          y: 62.7439232
+          z: 18.5306511
           w: 0
         Direction:
           x: 0
@@ -400,17 +400,17 @@ Entities:
             - 1
             - 0
             - -0
-            - -12.0689068
+            - -40.7485962
           -
             - 0
             - 0.5
             - 0.866025388
-            - -57.281723
+            - -47.4199753
           -
             - 0
             - -0.866025388
             - 0.5
-            - 30.9669399
+            - 45.0725021
           -
             - 0
             - 0
@@ -2488,11 +2488,11 @@ Entities:
         Position:
           x: 0
           y: 0
-          z: 33
+          z: 32.3595734
         Rotation:
+          - -0
           - 0
-          - 0
-          - 0
+          - -0
           - 1
         Scale:
           x: 8
@@ -2542,16 +2542,16 @@ Entities:
         Position:
           x: 0
           y: 0
-          z: 59
+          z: 60.5396233
         Rotation:
+          - -0
           - 0
-          - 0
-          - 0
+          - -0
           - 1
         Scale:
           x: 8
           y: 64
-          z: 21
+          z: 16.8124504
         Parent: 0
       - Component: ColliderComponent
         isDynamic: false
@@ -2925,7 +2925,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 0.425000012
+          y: 0.422500014
           z: 88.9225311
         Rotation:
           - 0
@@ -3049,7 +3049,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 1.43193674
+          y: 1.42943668
           z: 113
         Rotation:
           - 0
