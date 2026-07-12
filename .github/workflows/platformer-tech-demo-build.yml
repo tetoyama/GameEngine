@@ -9,49 +9,12 @@ on:
       - refactor/ecs-scheduler-foundation
   workflow_dispatch:
 
-permissions:
-  contents: write
+concurrency:
+  group: platformer-tech-demo-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  bake-redesigned-stage:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Checkout head branch
-        uses: actions/checkout@v4
-        with:
-          ref: game/platformer-tech-demo
-          fetch-depth: 0
-
-      - name: Bake redesigned scene when requested
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ ! -f .stage-upload/ready ]]; then
-            echo "No stage bake request is present."
-            exit 0
-          fi
-
-          python -m pip install --quiet pyyaml
-          sudo mkdir -p /mnt/data
-          sudo chown "$(id -u):$(id -g)" /mnt/data
-          base64 --decode .stage-upload/generator.py.gz.b64 | gzip --decompress > /tmp/generate_platformer_scene.py
-          base64 --decode .stage-upload/finalize.py.gz.b64 | gzip --decompress > /tmp/finalize_platformer_stage.py
-          python /tmp/generate_platformer_scene.py
-          cp /mnt/data/PlatformerTechDemo_rebuilt.scene Asset/Game/Platformer/Scene/PlatformerTechDemo.scene
-          python /tmp/finalize_platformer_stage.py
-
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add -A
-          git commit -m "Bake redesigned platformer demo stage"
-          git push origin HEAD:game/platformer-tech-demo
-
   build-debug-x64:
-    needs: bake-redesigned-stage
-    if: always() && (needs.bake-redesigned-stage.result == 'success' || needs.bake-redesigned-stage.result == 'skipped')
     runs-on: windows-2022
     timeout-minutes: 45
 
