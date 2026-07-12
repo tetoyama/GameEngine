@@ -361,7 +361,7 @@ private:
 	void UpdateWallProbe(const TransformComponent& t, const Vector3& inputDirection, const Vector3& velocity) {
 		if(grounded) {
 			wallGraceTimer = 0.0f;
-			lastWallNormal = {};
+			lastWallNormal = Vector3();
 			sameWallBlockTimer = 0.0f;
 			return;
 		}
