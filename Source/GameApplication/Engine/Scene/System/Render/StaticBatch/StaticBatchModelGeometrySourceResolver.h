@@ -99,6 +99,11 @@ inline StaticBatchModelGeometryResolveResult Resolve(
 			StaticBatchModelGeometryRejectReason::MissingGBufferPass;
 		return result;
 	}
+	if(group.key.geometryKey == 0){
+		result.rejectReason =
+			StaticBatchModelGeometryRejectReason::InvalidGeometryCount;
+		return result;
+	}
 
 	const ModelRendererComponent* renderer = packet.bindings.modelRenderer;
 	if(!renderer){
@@ -113,7 +118,7 @@ inline StaticBatchModelGeometryResolveResult Resolve(
 	}
 
 	const StaticBatchModelGeometrySourceResult sourceResult =
-		sourceProvider.Resolve(*renderer, packet);
+		sourceProvider.Resolve(*renderer, packet, group.key.geometryKey);
 	if(!sourceResult.IsEligible()){
 		result.rejectReason = MapSourceStatus(sourceResult.status);
 		return result;
