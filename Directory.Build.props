@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+    Windows SDK の min / max マクロが std::min / std::max /
+    std::numeric_limits<T>::max() を破壊しないよう、GameEngineの全構成で統一する。
+    各.vcxprojが %(PreprocessorDefinitions) を継承する前に評価されるため、
+    Headerのinclude順へ依存しない。
+  -->
+  <ItemDefinitionGroup Condition="'$(MSBuildProjectName)' == 'GameEngine'">
+    <ClCompile>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+</Project>
