@@ -1,15 +1,13 @@
 // =======================================================================
-// 
+//
 // gameApplication.cpp
-// 
+//
 // =======================================================================
 #include <windows.h>
 #include "gameApplication.h"
 
 #include "engine.h"
 #include "engineContext.h"
-#include "Config/ConfigSystem.h"
-#include "Scene/sceneManager.h"
 
 int GameApplication::Run(HINSTANCE hInstance, int nCmdShow){
 	HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -29,27 +27,7 @@ int GameApplication::Run(HINSTANCE hInstance, int nCmdShow){
 
 	Engine engine;
 	if(engine.Initialize(context.get(), hInstance, nCmdShow)){
-		auto scenes = context->Get<SceneManager>();
-		auto config = context->Get<ConfigService>();
-		if(!scenes || !config){
-			exitCode = -1;
-			OutputDebugStringA(
-				"GameApplication could not resolve SceneManager or ConfigService\n"
-			);
-		}else{
-			// ApplicationConfigで指定されたEntry Sceneだけを起動する。
-			// Multi-Scene構成の組み立てはEntry Scene自身のRuntimeへ委譲する。
-			if(scenes->GetActiveScenes().empty() &&
-			   !scenes->LoadFromFilePath(config->appConfig.startSceneFilePath)){
-				exitCode = -1;
-				OutputDebugStringA(
-					"GameApplication failed to load the configured entry scene\n"
-				);
-			}else{
-				scenes->State = SceneManagerState::Playing;
-				engine.Run(context.get());
-			}
-		}
+		engine.Run(context.get());
 	}
 	else{
 		exitCode = -1;
