@@ -52,7 +52,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 0.0149999941
+          y: 0.00999999326
           z: 1.13324761
         Rotation:
           - 0
@@ -354,12 +354,12 @@ Entities:
         Parent: 0
       - Component: LightComponent
         Enable: 1
-        LightType: 4
+        LightType: 1
         CastShadow: 1
         Position:
-          x: -24
-          y: 42
-          z: -30
+          x: 8.58826542
+          y: 47.7994995
+          z: 59.4748535
           w: 0
         Direction:
           x: 0
@@ -388,46 +388,46 @@ Entities:
           w: 0
         LightView:
           -
+            - 1
             - 0
+            - -0
+            - -8.58826542
+          -
             - 0
+            - 0.5
+            - 0.866025388
+            - -75.4064789
+          -
             - 0
-            - 0
+            - -0.866025388
+            - 0.5
+            - 11.6581535
           -
             - 0
             - 0
             - 0
-            - 0
-          -
-            - 0
-            - 0
-            - 0
-            - 0
-          -
-            - 0
-            - 0
-            - 0
-            - 0
+            - 1
         LightProjection:
           -
-            - 0
-            - 0
-            - 0
-            - 0
-          -
-            - 0
+            - 0.0399999991
             - 0
             - 0
             - 0
           -
             - 0
-            - 0
+            - 0.0399999991
             - 0
             - 0
           -
             - 0
             - 0
+            - 0.0100100096
+            - -0.00100100099
+          -
             - 0
             - 0
+            - 0
+            - 1
   - Entity: 5
     Components:
       - Component: NameComponent
@@ -1280,18 +1280,18 @@ Entities:
         Name: WallLeft
       - Component: TransformComponent
         Position:
-          x: -3
-          y: 4.19999981
+          x: -2.68331957
+          y: 5.19593668
           z: 59
         Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
+          - 0.0040766364
+          - 0.00257296767
+          - -0.0214272495
+          - 0.99975878
         Scale:
-          x: 0.449999988
-          y: 4.69999981
-          z: 8
+          x: 0.44999963
+          y: 4.69999695
+          z: 7.99999857
         Parent: 0
       - Component: StaticEntityComponent
       - Component: ColliderComponent
@@ -2904,7 +2904,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 0.430000007
+          y: 0.425000012
           z: 88.9225311
         Rotation:
           - 0
@@ -3028,7 +3028,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 1.43693686
+          y: 1.43193674
           z: 113
         Rotation:
           - 0
@@ -3759,126 +3759,6 @@ Entities:
           x: 0
           y: 2.79999995
           z: 21.5
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 0.340000004
-          y: 0.519999981
-          z: 0.119999997
-        Parent: 0
-      - Component: ColliderComponent
-        isDynamic: false
-        autoMass: true
-        Mass: 0.00100000005
-        colliders:
-          - type: 1
-            size:
-              - 1
-              - 1
-              - 1
-            offset:
-              - 0
-              - 0
-              - 0
-            rotationOffset:
-              - 0
-              - 0
-              - 0
-            radius: 1.25
-            height: 1
-            staticFriction: 0
-            dynamicFriction: 0
-            restitution: 0
-            collisionLayer: 8
-            lockRotX: false
-            lockRotY: false
-            lockRotZ: false
-            isTrigger: true
-            boneName: ""
-      - Component: AudioComponent
-        FilePath: Asset\Game\Platformer\Sound\Coin.wav
-        Loop: false
-        Volume: 0.159999996
-        PlayOnStart: false
-      - Component: MaterialComponent
-        ShaderID: 1
-        Material:
-          BaseColor:
-            x: 1
-            y: 0.720000029
-            z: 0.0799999982
-            w: 1
-          Metallic: 0.649999976
-          Roughness: 0.219999999
-          AO: 1
-          EmissiveColor:
-            x: 1
-            y: 0.349999994
-            z: 0.00999999978
-          EmissiveIntensity: 1.79999995
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-          UseEnvironmentMap: true
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\cube.obj
-        isBlender: false
-        AnimationTime: 0
-      - Component: ParticleComponent
-        IsLoop: false
-        SpawnInterval: 0.0500000007
-        SpawnCount: 18
-        SpawnTimer: 0
-        ParticleLifeTime: 0.550000012
-        ParticleSize: 0.119999997
-        ParticleSpeed: 1
-        SpawnPosition:
-          x: 0
-          y: 0
-          z: 0
-        SpawnPositionRandom:
-          x: 0
-          y: 0
-          z: 0
-        StartSpeed:
-          x: 0
-          y: 2
-          z: 0
-        StartSpeedRandom:
-          x: 1
-          y: 1
-          z: 1
-        AddSpeed:
-          x: 0
-          y: -8
-          z: 0
-        MulSpeed:
-          x: 0.949999988
-          y: 0.949999988
-          z: 0.949999988
-      - Component: PlatformerCoin
-        rotationSpeed: 2.79999995
-        bobAmplitude: 0.180000007
-        bobFrequency: 2.20000005
-        collectDuration: 0.550000012
-      - Component: PrefabComponent
-        FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 45
-    Components:
-      - Component: NameComponent
-        Name: Coin_7
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 1.20000005
-          z: 25
         Rotation:
           - 0
           - 0
@@ -5679,126 +5559,6 @@ Entities:
           x: 0
           y: 3.20000005
           z: 83.5
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 0.340000004
-          y: 0.519999981
-          z: 0.119999997
-        Parent: 0
-      - Component: ColliderComponent
-        isDynamic: false
-        autoMass: true
-        Mass: 0.00100000005
-        colliders:
-          - type: 1
-            size:
-              - 1
-              - 1
-              - 1
-            offset:
-              - 0
-              - 0
-              - 0
-            rotationOffset:
-              - 0
-              - 0
-              - 0
-            radius: 1.25
-            height: 1
-            staticFriction: 0
-            dynamicFriction: 0
-            restitution: 0
-            collisionLayer: 8
-            lockRotX: false
-            lockRotY: false
-            lockRotZ: false
-            isTrigger: true
-            boneName: ""
-      - Component: AudioComponent
-        FilePath: Asset\Game\Platformer\Sound\Coin.wav
-        Loop: false
-        Volume: 0.159999996
-        PlayOnStart: false
-      - Component: MaterialComponent
-        ShaderID: 1
-        Material:
-          BaseColor:
-            x: 1
-            y: 0.720000029
-            z: 0.0799999982
-            w: 1
-          Metallic: 0.649999976
-          Roughness: 0.219999999
-          AO: 1
-          EmissiveColor:
-            x: 1
-            y: 0.349999994
-            z: 0.00999999978
-          EmissiveIntensity: 1.79999995
-          UseDiffuseTexture: true
-          UseNormalTexture: true
-          UseEnvironmentMap: true
-      - Component: TextureComponent
-        FilePath: Asset\Texture\white.tga
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
-      - Component: ModelRendererComponent
-        FilePath: Asset\Model\cube.obj
-        isBlender: false
-        AnimationTime: 0
-      - Component: ParticleComponent
-        IsLoop: false
-        SpawnInterval: 0.0500000007
-        SpawnCount: 18
-        SpawnTimer: 0
-        ParticleLifeTime: 0.550000012
-        ParticleSize: 0.119999997
-        ParticleSpeed: 1
-        SpawnPosition:
-          x: 0
-          y: 0
-          z: 0
-        SpawnPositionRandom:
-          x: 0
-          y: 0
-          z: 0
-        StartSpeed:
-          x: 0
-          y: 2
-          z: 0
-        StartSpeedRandom:
-          x: 1
-          y: 1
-          z: 1
-        AddSpeed:
-          x: 0
-          y: -8
-          z: 0
-        MulSpeed:
-          x: 0.949999988
-          y: 0.949999988
-          z: 0.949999988
-      - Component: PlatformerCoin
-        rotationSpeed: 2.79999995
-        bobAmplitude: 0.180000007
-        bobFrequency: 2.20000005
-        collectDuration: 0.550000012
-      - Component: PrefabComponent
-        FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 61
-    Components:
-      - Component: NameComponent
-        Name: Coin_26
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 2
-          z: 86.5
         Rotation:
           - 0
           - 0
