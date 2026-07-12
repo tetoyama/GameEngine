@@ -167,6 +167,12 @@ ID3D11ShaderResourceView* MainRenderer::RenderRuntime2DOverlay(
 	return drawSucceeded ? m_runtime2DOverlaySrv.Get() : nullptr;
 }
 
+void MainRenderer::FlushRuntime2DOverlay(){
+	// Runtime UIの正規出力先はPlayerPass。Cameraなし等で消費されなかったCommandを
+	// Editor全体のSwapChainへ漏らさず、このFrameの終端で破棄する。
+	m_runtime2DCommands.clear();
+}
+
 void MainRenderer::BeginFrame() {
 	// 前Frameが途中終了してもRuntime UIを持ち越さない。
 	m_runtime2DCommands.clear();
