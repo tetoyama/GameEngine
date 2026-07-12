@@ -8,9 +8,19 @@ Entities:
       - Component: NameComponent
         Name: ElemenTactics Runtime Controller
       - Component: TransformComponent
-        Position: [0, 0, 0]
-        Rotation: [0, 0, 0, 1]
-        Scale: [1, 1, 1]
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
         Parent: 0
       - Component: ElemenTactics::ElemenTacticsGameController
         ScriptName: ElemenTacticsGameController
