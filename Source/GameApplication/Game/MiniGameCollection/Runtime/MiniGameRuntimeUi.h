@@ -22,16 +22,14 @@ public:
         return Renderer() != nullptr;
     }
 
+    // Runtime UIは論理解像度でレイアウトし、実画面へ一括縮小する。
+    // これにより高解像度PlayerViewでHUDが巨大化してゲーム領域を圧迫しない。
     float Width() const noexcept {
-        return m_context && m_context->manager
-            ? m_context->manager->PlayerScreenSize.x
-            : 1280.0f;
+        return PhysicalWidth() / LayoutScale();
     }
 
     float Height() const noexcept {
-        return m_context && m_context->manager
-            ? m_context->manager->PlayerScreenSize.y
-            : 720.0f;
+        return PhysicalHeight() / LayoutScale();
     }
 
     void FillPanel(
@@ -42,7 +40,14 @@ public:
         D2D1::ColorF color = D2D1::ColorF(0.025f, 0.035f, 0.06f, 0.88f)
     ) const {
         if (MainRenderer* renderer = Renderer()) {
-            renderer->FillRect2D(x, y, width, height, color);
+            const float scale = LayoutScale();
+            renderer->FillRect2D(
+                x * scale,
+                y * scale,
+                width * scale,
+                height * scale,
+                color
+            );
         }
     }
 
@@ -70,17 +75,28 @@ public:
             return;
         }
 
+        const float scale = LayoutScale();
+        const float physicalX = x * scale;
+        const float physicalY = y * scale;
+        const float physicalFontSize = fontSize * scale;
         const std::wstring owned(text);
         if (shadow) {
+            const float shadowOffset = std::max(1.0f, 2.0f * scale);
             renderer->DrawText2D(
                 owned,
-                x + 2.0f,
-                y + 2.0f,
-                fontSize,
+                physicalX + shadowOffset,
+                physicalY + shadowOffset,
+                physicalFontSize,
                 D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.82f)
             );
         }
-        renderer->DrawText2D(owned, x, y, fontSize, color);
+        renderer->DrawText2D(
+            owned,
+            physicalX,
+            physicalY,
+            physicalFontSize,
+            color
+        );
     }
 
     void DrawTextCentered(
@@ -136,6 +152,29 @@ private:
         return m_context && m_context->manager
             ? m_context->manager->renderer
             : nullptr;
+    }
+
+    float PhysicalWidth() const noexcept {
+        return m_context && m_context->manager
+            ? std::max(1.0f, m_context->manager->PlayerScreenSize.x)
+            : 1280.0f;
+    }
+
+    float PhysicalHeight() const noexcept {
+        return m_context && m_context->manager
+            ? std::max(1.0f, m_context->manager->PlayerScreenSize.y)
+            : 720.0f;
+    }
+
+    float LayoutScale() const noexcept {
+        const float height = PhysicalHeight();
+        if (height >= 900.0f) {
+            return 0.78f;
+        }
+        if (height >= 720.0f) {
+            return 0.84f;
+        }
+        return 0.90f;
     }
 
     static float EstimateWidth(std::wstring_view text, float fontSize) noexcept {
