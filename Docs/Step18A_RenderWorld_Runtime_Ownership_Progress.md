@@ -2,7 +2,7 @@
 
 ## 状態
 
-**実装中 — RenderWorld基盤とCamera / ModelRendererのNative描画資源分離まで完了。CI・実機確認待ち。**
+**実装中 — RenderWorld基盤、Camera / ModelRendererのNative描画資源分離、Static Batch Geometry Source Provider境界まで完了。CI・実機確認待ち。**
 
 親計画:
 
@@ -84,6 +84,19 @@ Scene Context ID + Entity packed value
 - Animation Upload TaskはStorageへのWrite Accessを宣言する
 - RenderSystem Stop時に全RuntimeをResetする
 
+### 4. Static Batch Model Geometry Source Provider
+
+Static BatchのGroup Resolver / Geometry Binding Cacheから、`ModelData`内のNative Vertex / Index Buffer配置への直接依存を除いた。
+
+- `IStaticBatchModelGeometrySourceProvider`を追加
+- ResolverはProviderから検証済み`StaticBatchD3D11GeometrySource`だけを受け取る
+- Geometry Binding CacheへProvider注入Overloadを追加
+- 既存Runtime互換用に`StaticBatchLegacyModelGeometrySourceProvider`を維持
+- Legacy Providerだけが移行期間中の`ModelData::VertexBuffer / IndexBuffer`を参照する
+- Animation Group拒否、Skinned SubMesh拒否、Geometry Resource Key一致検証を維持
+
+この境界により、次工程でModel共有GeometryをRenderSystem側Runtime Storageへ移してもResolver / Cache / GBuffer / Shadow提出契約を変更せずに差し替えられる。
+
 ## 回帰テスト
 
 追加済み:
@@ -91,6 +104,7 @@ Scene Context ID + Entity packed value
 - `RenderWorld Foundation Smoke Test`
 - `Camera Post Effect Runtime Smoke Test`
 - `Model Renderer GPU Runtime Smoke Test`
+- `Static Batch Model Runtime Boundary Smoke Test`
 
 検証内容:
 
@@ -101,23 +115,29 @@ Scene Context ID + Entity packed value
 - Inspector Previewの非所有Handle契約
 - Animation UploadとRenderableのRuntime参照一致
 - SchedulerのRuntime Storage Write Access
+- Static Batch Resolver / CacheがModelData Native Bufferを直接参照しないこと
+- Legacy Providerだけが既存ModelData Geometryを参照すること
+- Provider注入経路がGeometry Binding Cacheまで接続されていること
 
 ## Step 18-A残作業
 
 - [ ] `renderSystem.cpp`のBuild / Submitを`RenderWorld` APIへ直接接続し、一時Facadeを削除
 - [ ] RendererのComponentRegistry直接走査を専用Extraction Taskへ分離
+- [ ] Model共有GeometryをRenderSystem側Runtime Storageへ移し、Legacy Providerを置換
 - [ ] Native API型をRenderSystem公開境界から段階的に撤去
 - [ ] RenderWorldからRHI Commandを生成する境界を追加
 - [ ] Windows Debug / Release x64 Build
 - [ ] Player / Editor PostEffect Graph実機確認
 - [ ] GPU / CPU Skinning Model実機確認
+- [ ] Static Model GBuffer / Shadow実機確認
 - [ ] Scene Reload / Play / Stop / Model Reload時のResource解放確認
 
 ## 次の実装単位
 
 1. `RenderSystem.Packet.Build`をRenderWorld Extraction責務として独立
 2. Build / Submitの一時Facade撤去
-3. Render PacketのComponent Pointer依存をSnapshot / Handleへ縮小
-4. RHI Command生成境界へ接続
+3. Model共有Geometry Runtime Storageを追加し、Provider実装を差し替え
+4. Render PacketのComponent Pointer依存をSnapshot / Handleへ縮小
+5. RHI Command生成境界へ接続
 
 Static Batch経路は既存Dynamic Packetを置き換えず、同じRender Passへ併存提出する方針を維持する。
