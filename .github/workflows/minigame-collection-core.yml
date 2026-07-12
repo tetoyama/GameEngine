@@ -12,6 +12,8 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Audio/audioSystem.h"
       - "Source/GameApplication/Engine/Scene/sceneManager.h"
       - "Source/GameApplication/Engine/Scene/sceneManager.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/PlayerView/PlayerPass.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/PlayerView/PlayerPass.cpp"
       - "Source/GameApplication/Engine/engine.cpp"
       - "Source/GameApplication/Service/Graphics/D2DRenderer.h"
       - "Source/GameApplication/Service/Graphics/D2DRenderer.cpp"
@@ -36,6 +38,8 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Audio/audioSystem.h"
       - "Source/GameApplication/Engine/Scene/sceneManager.h"
       - "Source/GameApplication/Engine/Scene/sceneManager.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/PlayerView/PlayerPass.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/PlayerView/PlayerPass.cpp"
       - "Source/GameApplication/Engine/engine.cpp"
       - "Source/GameApplication/Service/Graphics/D2DRenderer.h"
       - "Source/GameApplication/Service/Graphics/D2DRenderer.cpp"
@@ -84,18 +88,30 @@ jobs:
           test "$(grep -c "ImGui::" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h)" -eq 1
           grep -q "void inspector" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h
           grep -q "void DrawHitDebug" Source/GameApplication/Game/MiniGameCollection/Runtime/BackshotRuntime.h
-      - name: Enforce post-render runtime UI overlay
+      - name: Enforce PlayerPass runtime UI composition
         shell: bash
         run: |
           renderer=Source/GameApplication/Service/Graphics/mainRenderer.cpp
-          engine=Source/GameApplication/Engine/engine.cpp
+          d2d=Source/GameApplication/Service/Graphics/D2DRenderer.cpp
+          player=Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/PlayerView/PlayerPass.cpp
           grep -q "m_runtime2DCommands.push_back" "$renderer"
-          grep -q "void MainRenderer::FlushRuntime2DOverlay" "$renderer"
-          draw_line=$(grep -n "scenes->Draw();" "$engine" | head -n1 | cut -d: -f1)
-          flush_line=$(grep -n "renderer->FlushRuntime2DOverlay();" "$engine" | head -n1 | cut -d: -f1)
-          test -n "$draw_line"
-          test -n "$flush_line"
-          test "$flush_line" -gt "$draw_line"
+          grep -q "ID3D11ShaderResourceView\* MainRenderer::RenderRuntime2DOverlay" "$renderer"
+          grep -q "BeginTextureDraw" "$d2d"
+          grep -q "D2D1_ALPHA_MODE_PREMULTIPLIED" "$d2d"
+          overlay_line=$(grep -n "overlayUIPass->Execute" "$player" | head -n1 | cut -d: -f1)
+          runtime_line=$(grep -n "RenderRuntime2DOverlay" "$player" | head -n1 | cut -d: -f1)
+          result_line=$(grep -n "result = postEffectPass->resultSrv" "$player" | tail -n1 | cut -d: -f1)
+          test -n "$overlay_line"
+          test -n "$runtime_line"
+          test -n "$result_line"
+          test "$runtime_line" -gt "$overlay_line"
+          test "$result_line" -gt "$runtime_line"
+          grep -q "D3D11_BLEND_ONE" "$player"
+          grep -q "D3D11_BLEND_INV_SRC_ALPHA" "$player"
+          if grep -n "m_d2dRenderer->DrawText2D" "$renderer"; then
+            echo "Runtime UI must not bypass PlayerPass by drawing directly to the SwapChain."
+            exit 1
+          fi
       - name: Enforce scene-driven entry flow
         shell: bash
         run: |
