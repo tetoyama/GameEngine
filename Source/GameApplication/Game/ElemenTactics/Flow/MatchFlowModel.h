@@ -7,7 +7,11 @@
 #include <optional>
 #include <string>
 
+struct SceneContext;
+
 namespace ElemenTactics {
+
+class ElemenTacticsLlmFacade;
 
 enum class GameMode : std::uint8_t {
 	HumanVsLlm,
@@ -67,6 +71,7 @@ struct AiStepResult {
 	bool applied = false;
 	bool usedLlm = false;
 	bool usedFallback = false;
+	bool pending = false;
 	std::string error;
 	std::string fallbackReason;
 	PublicReasoning reasoning;
@@ -83,6 +88,15 @@ public:
 		PlayerId aiPlayer,
 		std::uint64_t seed,
 		const std::optional<std::string>& llmResponse = std::nullopt);
+
+	// Runtime-only bridge. Pure tests continue to use ExecuteNextStep above.
+	static AiStepResult ExecuteNextStepWithFacade(
+		ElemenTacticsLlmFacade& facade,
+		::SceneContext* sceneContext,
+		float deltaTime,
+		GameState& state,
+		PlayerId aiPlayer,
+		std::uint64_t seed);
 };
 
 } // namespace ElemenTactics
