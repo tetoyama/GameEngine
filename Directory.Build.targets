@@ -11,6 +11,17 @@
     Directory.Build.targets は配下の全 Project に自動Importされる。
     Script.vcxproj へEngine側のcppを混入させないよう、GameEngineだけに限定する。
   -->
+  <!--
+    Windows SDK の min / max マクロが std::min / std::max / numeric_limits::max
+    を破壊しないよう、GameEngine の全翻訳単位で NOMINMAX を統一する。
+    個別Headerのinclude順へ依存させず、既存コードとMiniGameCollectionの双方を守る。
+  -->
+  <ItemDefinitionGroup Condition="'$(MSBuildProjectName)' == 'GameEngine'">
+    <ClCompile>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+
   <ItemGroup Condition="'$(MSBuildProjectName)' == 'GameEngine'">
     <ClCompile Remove="Source\GameApplication\Engine\Editor\UI\hierarchy.cpp" />
     <ClCompile Remove="Source\GameApplication\Engine\Editor\UI\inspector.cpp" />
