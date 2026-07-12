@@ -90,6 +90,20 @@ public:
 			result.status = StaticBatchModelGeometrySourceStatus::SkinnedSubMesh;
 			return result;
 		}
+		if(meshIndex >= model->MeshGeometry.size()){
+			result.status = StaticBatchModelGeometrySourceStatus::InvalidGeometryCount;
+			return result;
+		}
+
+		const ModelMeshGeometryCpuData& geometry = model->MeshGeometry[meshIndex];
+		if(!geometry.IsValid() ||
+			geometry.vertices.size() >
+				(std::numeric_limits<std::uint32_t>::max)() ||
+			geometry.indices.size() >
+				(std::numeric_limits<std::uint32_t>::max)()){
+			result.status = StaticBatchModelGeometrySourceStatus::InvalidGeometryCount;
+			return result;
+		}
 		if(meshIndex >= model->VertexBuffer.size() ||
 			meshIndex >= model->IndexBuffer.size() ||
 			!model->VertexBuffer[meshIndex] ||
@@ -97,19 +111,15 @@ public:
 			result.status = StaticBatchModelGeometrySourceStatus::MissingNativeBuffer;
 			return result;
 		}
-		if(mesh->mNumVertices == 0 || mesh->mNumFaces == 0 ||
-			mesh->mNumFaces >
-				(std::numeric_limits<std::uint32_t>::max)() / 3u){
-			result.status = StaticBatchModelGeometrySourceStatus::InvalidGeometryCount;
-			return result;
-		}
 
 		result.source.vertexBuffer = model->VertexBuffer[meshIndex];
 		result.source.indexBuffer = model->IndexBuffer[meshIndex];
 		result.source.vertexStride =
 			static_cast<std::uint32_t>(sizeof(VERTEX_3D));
-		result.source.vertexCount = mesh->mNumVertices;
-		result.source.indexCount = mesh->mNumFaces * 3u;
+		result.source.vertexCount =
+			static_cast<std::uint32_t>(geometry.vertices.size());
+		result.source.indexCount =
+			static_cast<std::uint32_t>(geometry.indices.size());
 		result.source.indexFormat = RHI::IndexFormat::UInt32;
 		result.source.geometryResourceKey = expectedGeometryResourceKey;
 		result.status = result.source.IsValid()
