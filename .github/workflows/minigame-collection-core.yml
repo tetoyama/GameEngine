@@ -11,6 +11,10 @@ on:
       - "Source/GameApplication/Engine/Scene/Component/componentList.h"
       - "Source/GameApplication/Engine/Scene/System/Audio/audioSystem.h"
       - "Source/GameApplication/Engine/engine.cpp"
+      - "Source/GameApplication/Service/Graphics/D2DRenderer.h"
+      - "Source/GameApplication/Service/Graphics/D2DRenderer.cpp"
+      - "Source/GameApplication/Service/Graphics/mainRenderer.h"
+      - "Source/GameApplication/Service/Graphics/mainRenderer.cpp"
       - "Source/GameApplication/gameApplication.cpp"
       - "Asset/Game/MiniGameCollection/**"
       - "Tests/MiniGameCollectionCoreSmokeTest.cpp"
@@ -29,6 +33,10 @@ on:
       - "Source/GameApplication/Engine/Scene/Component/componentList.h"
       - "Source/GameApplication/Engine/Scene/System/Audio/audioSystem.h"
       - "Source/GameApplication/Engine/engine.cpp"
+      - "Source/GameApplication/Service/Graphics/D2DRenderer.h"
+      - "Source/GameApplication/Service/Graphics/D2DRenderer.cpp"
+      - "Source/GameApplication/Service/Graphics/mainRenderer.h"
+      - "Source/GameApplication/Service/Graphics/mainRenderer.cpp"
       - "Source/GameApplication/gameApplication.cpp"
       - "Asset/Game/MiniGameCollection/**"
       - "Tests/MiniGameCollectionCoreSmokeTest.cpp"
@@ -54,6 +62,23 @@ jobs:
       - uses: actions/checkout@v4
         with:
           show-progress: false
+      - name: Enforce runtime UI boundary
+        shell: bash
+        run: |
+          files=(
+            Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGamePersistentRuntime.h
+            Source/GameApplication/Game/MiniGameCollection/Runtime/PresentationSpikeRuntime.h
+            Source/GameApplication/Game/MiniGameCollection/Runtime/ColorTerritoryRuntime.h
+            Source/GameApplication/Game/MiniGameCollection/Runtime/SheepRoundupRuntime.h
+            Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeUi.h
+          )
+          if grep -n "ImGui::" "${files[@]}"; then
+            echo "Gameplay UI must use MiniGameRuntimeUi / Direct2D, not ImGui."
+            exit 1
+          fi
+          test "$(grep -c "ImGui::" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h)" -eq 1
+          grep -q "void inspector" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h
+          grep -q "void DrawHitDebug" Source/GameApplication/Game/MiniGameCollection/Runtime/BackshotRuntime.h
       - name: Compile and run minigame model contracts
         shell: bash
         run: |
