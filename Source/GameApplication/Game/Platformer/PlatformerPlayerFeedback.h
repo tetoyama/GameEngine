@@ -195,6 +195,17 @@ private:
 		const Vector3 currentDirection = speed > 0.0001f ? horizontal / speed : inputDirection;
 		const float alignment = currentDirection.dot(inputDirection);
 
+		// CharacterController owns the complete tangent velocity while grounded on a
+		// slope. Replacing only X/Z here while preserving its slope-derived Y breaks
+		// the tangent, creates an outward normal velocity on descents, and makes the
+		// capsule lose contact with the ramp. Keep the run-charge state but do not
+		// overwrite PhysX velocity until the surface is effectively flat again.
+		constexpr float kSlopeVerticalThreshold = 0.35f;
+		if(controller.IsGrounded() && std::abs(rigidVelocity.y) > kSlopeVerticalThreshold) {
+			runAssistNormalized = SmoothStep01(runAssistTimer / assistBuildSeconds);
+			return;
+		}
+
 		float targetSpeed = assistBaseRunSpeed;
 		float acceleration = assistLowSpeedAcceleration;
 		if(controller.IsGrounded()) {
@@ -238,6 +249,11 @@ private:
 		auto* rigid = colliderComponent ? colliderComponent->pRigidbodyDynamic : nullptr;
 		if(!rigid) return;
 		const physx::PxVec3 velocity = rigid->getLinearVelocity();
+
+		// A landing event also occurs when reacquiring a ramp. Do not add a flat
+		// horizontal impulse to a slope-tangent velocity on that transition.
+		if(std::abs(velocity.y) > 0.35f) return;
+
 		Vector3 horizontal(velocity.x, 0.0f, velocity.z);
 		if(horizontal.length() <= 0.35f || horizontal.normalize().dot(inputDirection) <= 0.15f) return;
 		ApplyHorizontalBoost(assistLandingCarryBoost);
