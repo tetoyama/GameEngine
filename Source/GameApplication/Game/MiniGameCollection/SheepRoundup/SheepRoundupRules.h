@@ -18,7 +18,7 @@ struct SheepSpawnDefinition {
 };
 
 struct SheepSpawnConfig {
-    bool endlessSpawning = false;
+    bool endlessSpawning = true;
     std::size_t poolCapacity = 24;
     std::size_t earlyTargetActive = 8;
     std::size_t lateTargetActive = 18;
@@ -47,10 +47,7 @@ struct SheepState {
     bool active = false;
     bool golden = false;
 
-    bool IsActive() const noexcept {
-        return active;
-    }
-
+    bool IsActive() const noexcept { return active; }
     bool IsScored() const noexcept {
         return !active && scoredBy != InvalidPlayerId;
     }
@@ -100,6 +97,9 @@ public:
         if (m_started) {
             throw std::logic_error("Cannot change sheep layout while playing");
         }
+        // 明示配置は固定問題・テスト用途として有限モードにする。
+        // 補充制へ戻す場合は、この呼び出し後にSetSpawnConfigを行う。
+        m_spawnConfig.endlessSpawning = false;
         m_initialSheep.clear();
         m_initialSheep.reserve(positions.size());
         for (const Vec2 position : positions) {
@@ -111,6 +111,7 @@ public:
         if (m_started) {
             throw std::logic_error("Cannot change sheep layout while playing");
         }
+        m_spawnConfig.endlessSpawning = false;
         m_initialSheep = std::move(sheep);
     }
 
@@ -236,7 +237,6 @@ public:
                 m_bounds,
                 0.25f
             );
-
             TryScoreSheep(sheep);
         }
 
@@ -256,9 +256,7 @@ public:
         }
     }
 
-    bool IsFinished() const override {
-        return m_finished;
-    }
+    bool IsFinished() const override { return m_finished; }
 
     MiniGameResult BuildResult() const override {
         MiniGameResult result;
@@ -318,7 +316,6 @@ public:
     const SheepSpawnConfig& GetSpawnConfig() const noexcept {
         return m_spawnConfig;
     }
-
     float GetElapsedSeconds() const noexcept { return m_elapsedSeconds; }
     float GetRemainingSeconds() const noexcept {
         return std::max(0.0f, m_durationSeconds - m_elapsedSeconds);
@@ -361,10 +358,7 @@ private:
                 {-0.8f, 0.0f}, {0.9f, 0.1f}
             };
             for (const Vec2 position : defaults) {
-                m_initialSheep.push_back({
-                    .position = position,
-                    .golden = false
-                });
+                m_initialSheep.push_back({.position = position, .golden = false});
             }
         }
 
@@ -419,7 +413,6 @@ private:
             const int points = std::max(1, sheep.scoreValue);
             const bool wasGolden = sheep.golden;
             const Vec2 scorePosition = pen.center;
-
             sheep.active = false;
             sheep.scoredBy = pen.owner;
             sheep.position = scorePosition;
@@ -476,7 +469,6 @@ private:
             : m_spawnConfig.earlySpawnIntervalSeconds;
         const float jitter = 0.82f + NextUnit() * 0.36f;
         m_nextSpawnSeconds = std::max(0.1f, baseInterval * jitter);
-
         if (GetActiveSheepCount() + 2 < target) {
             m_nextSpawnSeconds = std::min(m_nextSpawnSeconds, 0.25f);
         }
@@ -508,8 +500,12 @@ private:
         }
 
         const bool golden = RollGolden(lateRush);
-        const Vec2 position = ChooseSpawnPosition();
-        ActivateSheep(*available, position, golden, emitEvent);
+        ActivateSheep(
+            *available,
+            ChooseSpawnPosition(),
+            golden,
+            emitEvent
+        );
         return true;
     }
 
@@ -543,9 +539,8 @@ private:
     }
 
     bool RollGolden(bool lateRush) {
-        const std::size_t activeGolden = GetActiveGoldenSheepCount();
         const std::size_t goldenCap = lateRush ? 3 : 1;
-        if (activeGolden >= goldenCap) {
+        if (GetActiveGoldenSheepCount() >= goldenCap) {
             ++m_normalSpawnsSinceGolden;
             return false;
         }
@@ -643,8 +638,7 @@ private:
         value ^= value << 13;
         value ^= value >> 17;
         value ^= value << 5;
-        m_spawnRandomState =
-            value != 0 ? value : DefaultSpawnSeed;
+        m_spawnRandomState = value != 0 ? value : DefaultSpawnSeed;
         return static_cast<float>(m_spawnRandomState & 0x00FFFFFFu) /
             static_cast<float>(0x01000000u);
     }
@@ -660,11 +654,10 @@ private:
         PlayerId leader = InvalidPlayerId;
         int leaderCount = 0;
         for (std::size_t index = 0; index < m_scores.size(); ++index) {
-            if (m_scores[index] != maximum) {
-                continue;
+            if (m_scores[index] == maximum) {
+                leader = static_cast<PlayerId>(index);
+                ++leaderCount;
             }
-            leader = static_cast<PlayerId>(index);
-            ++leaderCount;
         }
         return leaderCount == 1 ? leader : InvalidPlayerId;
     }
