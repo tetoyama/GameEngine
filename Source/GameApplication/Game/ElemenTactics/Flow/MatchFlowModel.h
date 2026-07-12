@@ -44,8 +44,11 @@ public:
 	bool ReturnFromRules();
 	bool SelectMode(GameMode mode);
 	bool ConfirmCurrentDeck(std::string* error = nullptr);
+	bool CancelDeckSetup();
 	bool ConfirmPrivacyHandoff();
+	bool ReturnFromPrivacyHandoff();
 	bool BeginMatch(PlayerId firstPlayer = PlayerId::One, std::string* error = nullptr);
+	bool ReturnFromMatchIntroduction();
 	bool NotifyRuleStateChanged();
 	bool Retry(std::string* error = nullptr);
 	void ReturnToTitle();
