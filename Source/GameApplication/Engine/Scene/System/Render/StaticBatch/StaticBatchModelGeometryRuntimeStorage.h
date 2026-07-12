@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
+#include <memory>
 #include <span>
 #include <vector>
 
@@ -61,6 +62,16 @@ public:
 			AddActiveKey(geometryResourceKey);
 			++m_reuseCount;
 			return entryIt->MakeResult();
+		}
+
+		// 同じ同期内で同一Keyが別Model実体へ解決された場合、先に採用した
+		// Entryを維持する。ここで置換するとGroup順によってSourceが往復する。
+		if(entryIt != m_entries.end() &&
+			Contains(m_activeKeys, geometryResourceKey)){
+			result.status =
+				StaticBatchModelGeometrySourceStatus::InvalidGeometryCount;
+			++m_rejectedSourceCount;
+			return result;
 		}
 
 		const StaticBatchModelGeometrySourceResult bootstrapResult =
@@ -145,7 +156,7 @@ public:
 private:
 	struct Entry {
 		std::uint64_t geometryResourceKey = 0;
-		const ModelData* modelIdentity = nullptr;
+		std::weak_ptr<ModelData> modelIdentity;
 		std::uint64_t modelRuntimeRevision = 0;
 		std::uint32_t subMeshIndex = RenderPacketAllSubMeshes;
 		bool targetsAllSubMeshes = true;
@@ -161,7 +172,7 @@ private:
 			const RenderPacket& packet,
 			const StaticBatchD3D11GeometrySource& source
 		){
-			if(!source.IsValid()) return false;
+			if(!source.IsValid() || !renderer.model) return false;
 
 			Microsoft::WRL::ComPtr<ID3D11Buffer> newVertexBuffer;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> newIndexBuffer;
@@ -170,7 +181,7 @@ private:
 			if(!newVertexBuffer || !newIndexBuffer) return false;
 
 			geometryResourceKey = source.geometryResourceKey;
-			modelIdentity = renderer.model.get();
+			modelIdentity = renderer.model;
 			modelRuntimeRevision = renderer.modelRuntimeRevision;
 			subMeshIndex = packet.subMeshIndex;
 			targetsAllSubMeshes = packet.TargetsAllSubMeshes();
@@ -187,7 +198,8 @@ private:
 			const ModelRendererComponent& renderer,
 			const RenderPacket& packet
 		) const noexcept {
-			return modelIdentity == renderer.model.get() &&
+			const std::shared_ptr<ModelData> model = modelIdentity.lock();
+			return model && model == renderer.model &&
 				modelRuntimeRevision == renderer.modelRuntimeRevision &&
 				subMeshIndex == packet.subMeshIndex &&
 				targetsAllSubMeshes == packet.TargetsAllSubMeshes() &&
