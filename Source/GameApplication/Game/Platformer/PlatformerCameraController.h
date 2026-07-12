@@ -29,6 +29,9 @@ class PlatformerCameraController : public CustomScriptComponent {
 		REFLECT_FIELD(float, wallHeight, 4.5f)
 		REFLECT_FIELD(float, bossDistance, 13.5f)
 		REFLECT_FIELD(float, bossHeight, 7.0f)
+		REFLECT_FIELD(float, impulsePositionScale, 0.34f)
+		REFLECT_FIELD(float, impulseRollDegrees, 1.8f)
+		REFLECT_FIELD(float, impulseFrequency, 24.0f)
 
 public:
 	enum class Profile : int {
@@ -63,6 +66,7 @@ public:
 		if(ImGui::Combo("Profile", &value, profiles, 5)) SetProfile(static_cast<Profile>(value));
 		ImGui::Text("Distance: %.2f", currentDistance);
 		ImGui::Text("Occluded: %s", occlusionActive ? "true" : "false");
+		ImGui::Text("Impulse: %.2f", impulseStrength * ImpulseEnvelope());
 	}
 
 	void OnStart() override {
@@ -81,6 +85,11 @@ public:
 		occlusionEnterTimer = 0.0f;
 		occlusionExitTimer = 0.0f;
 		occlusionActive = false;
+		impulseTime = 0.0f;
+		impulseDuration = 0.0f;
+		impulseStrength = 0.0f;
+		impulseFovKick = 0.0f;
+		impulseDirection = Vector3();
 	}
 
 	void OnFixedUpdate(float dt) override {
@@ -120,11 +129,17 @@ public:
 		currentDistance += (distanceTarget - currentDistance) * ExpBlend(distanceSharpness, dt);
 		currentDistance = (std::max)(minimumDistance, currentDistance);
 
-		cameraPose->position = smoothedTarget + rayDirection * currentDistance;
+		Vector3 cameraPosition = smoothedTarget + rayDirection * currentDistance;
+		Vector3 lookTarget = smoothedTarget;
+		float fov = currentSettings.fov;
+		float rollRadians = 0.0f;
+		ApplyImpulse(dt, cameraPosition, lookTarget, fov, rollRadians);
+
+		cameraPose->position = cameraPosition;
 		cameraComponent->isLock = true;
-		cameraComponent->Target = smoothedTarget;
-		cameraComponent->FOV = currentSettings.fov;
-		ApplyLookRotation(*cameraPose, smoothedTarget);
+		cameraComponent->Target = lookTarget;
+		cameraComponent->FOV = fov;
+		ApplyLookRotation(*cameraPose, lookTarget, rollRadians);
 	}
 
 	void SetProfile(Profile next) {
@@ -140,6 +155,30 @@ public:
 	uint32_t GetProfileRevision() const { return profileRevision; }
 	void SetBossTarget(const EntityRef& entity) { bossTarget = entity; }
 	void ClearBossTarget() { bossTarget = {}; }
+
+	void AddImpulse(
+		float strength,
+		float duration,
+		float fovKick = 0.0f,
+		const Vector3& direction = Vector3()
+	) {
+		strength = std::clamp(strength, 0.0f, 1.5f);
+		duration = (std::max)(0.02f, duration);
+		if(strength <= 0.0f) return;
+
+		const float retained = impulseStrength * ImpulseEnvelope();
+		impulseStrength = (std::min)(1.5f, retained + strength * (1.0f - (std::min)(retained, 1.0f) * 0.35f));
+		impulseDuration = (std::max)(duration, impulseTime);
+		impulseTime = impulseDuration;
+		if(std::abs(fovKick) >= std::abs(impulseFovKick * ImpulseEnvelope())) impulseFovKick = fovKick;
+
+		if(direction.length() > 0.0001f) {
+			const Vector3 normalized = direction.normalize();
+			const Vector3 combined = impulseDirection + normalized * strength;
+			impulseDirection = combined.length() > 0.0001f ? combined.normalize() : normalized;
+		}
+		impulsePhase += 0.37f;
+	}
 
 private:
 	struct CameraSettings {
@@ -160,6 +199,9 @@ private:
 		occlusionEnterDelay = (std::max)(0.0f, occlusionEnterDelay);
 		occlusionExitDelay = (std::max)(0.0f, occlusionExitDelay);
 		occlusionProbeStart = (std::max)(0.0f, occlusionProbeStart);
+		impulsePositionScale = (std::max)(0.0f, impulsePositionScale);
+		impulseRollDegrees = (std::max)(0.0f, impulseRollDegrees);
+		impulseFrequency = (std::max)(1.0f, impulseFrequency);
 
 		// Player, gameplay triggers, enemies, and the boss are never camera
 		// occluders. Older scene saves contain mask 10, so enforce layer 4 here.
@@ -258,6 +300,48 @@ private:
 		return desiredDistance;
 	}
 
+	void ApplyImpulse(
+		float dt,
+		Vector3& cameraPosition,
+		Vector3& lookTarget,
+		float& fov,
+		float& rollRadians
+	) {
+		if(impulseTime <= 0.0f || impulseStrength <= 0.0f) return;
+
+		const float envelope = ImpulseEnvelope();
+		impulsePhase += dt * impulseFrequency * DirectX::XM_2PI;
+		const Vector3 noise(
+			std::sin(impulsePhase + 0.37f),
+			std::sin(impulsePhase * 1.73f + 1.11f),
+			std::sin(impulsePhase * 2.31f + 2.07f));
+		const float positionAmount = impulsePositionScale * impulseStrength * envelope;
+		Vector3 shake = noise * (positionAmount * 0.72f);
+		if(impulseDirection.length() > 0.0001f) {
+			shake += impulseDirection * (std::sin(impulsePhase * 0.63f) * positionAmount * 0.42f);
+		}
+
+		cameraPosition += shake;
+		lookTarget += noise * (positionAmount * 0.12f);
+		fov += impulseFovKick * envelope;
+		rollRadians = DegreesToRadians(
+			std::sin(impulsePhase * 1.29f) * impulseRollDegrees * impulseStrength * envelope);
+
+		impulseTime = (std::max)(0.0f, impulseTime - dt);
+		if(impulseTime <= 0.0f) {
+			impulseDuration = 0.0f;
+			impulseStrength = 0.0f;
+			impulseFovKick = 0.0f;
+			impulseDirection = Vector3();
+		}
+	}
+
+	float ImpulseEnvelope() const {
+		if(impulseDuration <= 0.0001f || impulseTime <= 0.0f) return 0.0f;
+		const float normalized = std::clamp(impulseTime / impulseDuration, 0.0f, 1.0f);
+		return normalized * normalized;
+	}
+
 	CameraSettings GetProfileSettings(Profile selected) const {
 		CameraSettings result;
 		switch(selected) {
@@ -284,13 +368,13 @@ private:
 		return std::sqrt(settings.distance * settings.distance + settings.height * settings.height);
 	}
 
-	static void ApplyLookRotation(TransformComponent& transform, const Vector3& target) {
+	static void ApplyLookRotation(TransformComponent& transform, const Vector3& target, float rollRadians) {
 		const Vector3 forward = (target - transform.position).normalize();
 		if(forward.length() <= 0.0001f) return;
 		const float yaw = std::atan2(forward.x, forward.z);
 		const float pitch = std::asin(std::clamp(-forward.y, -1.0f, 1.0f));
 		DirectX::XMFLOAT4 rotation;
-		DirectX::XMStoreFloat4(&rotation, DirectX::XMQuaternionRotationRollPitchYaw(pitch, yaw, 0.0f));
+		DirectX::XMStoreFloat4(&rotation, DirectX::XMQuaternionRotationRollPitchYaw(pitch, yaw, rollRadians));
 		transform.SetRotation(rotation);
 	}
 
@@ -317,10 +401,16 @@ private:
 	CameraSettings currentSettings;
 	CameraSettings targetSettings;
 	Vector3 smoothedTarget;
+	Vector3 impulseDirection;
 	float smoothedVertical = 0.0f;
 	float currentDistance = 0.0f;
 	float occlusionEnterTimer = 0.0f;
 	float occlusionExitTimer = 0.0f;
+	float impulseTime = 0.0f;
+	float impulseDuration = 0.0f;
+	float impulseStrength = 0.0f;
+	float impulseFovKick = 0.0f;
+	float impulsePhase = 0.0f;
 	bool occlusionActive = false;
 	uint32_t selfLayerBit = 1u << 1;
 	uint32_t profileRevision = 0;
