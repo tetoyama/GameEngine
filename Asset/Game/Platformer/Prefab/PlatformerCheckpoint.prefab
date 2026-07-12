@@ -1,0 +1,74 @@
+Entities:
+  - LocalID: 0
+    Components:
+      - Component: NameComponent
+        Name: PlatformerCheckpoint
+      - Component: TransformComponent
+        Position: {x: 0, y: 0, z: 0}
+        Rotation: [0, 0, 0, 1]
+        Scale: {x: 0.45, y: 1.2, z: 0.45}
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 0
+            size: [2.5, 2.0, 2.5]
+            offset: [0, 0.5, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor: {x: 0.18, y: 0.82, z: 1, w: 1}
+          Metallic: 0.2
+          Roughness: 0.28
+          AO: 1
+          EmissiveColor: {x: 0.02, y: 0.42, z: 1}
+          EmissiveIntensity: 1.35
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: ParticleComponent
+        IsLoop: false
+        SpawnInterval: 0.05
+        SpawnCount: 24
+        SpawnTimer: 0
+        ParticleLifeTime: 0.8
+        ParticleSize: 0.15
+        ParticleSpeed: 1
+        SpawnPosition: {x: 0, y: 0, z: 0}
+        SpawnPositionRandom: {x: 0, y: 0, z: 0}
+        StartSpeed: {x: 0, y: 3, z: 0}
+        StartSpeedRandom: {x: 1.5, y: 1, z: 1.5}
+        AddSpeed: {x: 0, y: -8, z: 0}
+        MulSpeed: {x: 0.96, y: 0.96, z: 0.96}
+      - Component: AudioComponent
+        FilePath: Asset\Audio\BGM.wav
+        Loop: false
+        Volume: 0.12
+        PlayOnStart: false
+      - Component: PlatformerCheckpoint
+        respawnOffset: {x: 0, y: 1.1, z: 0}
+        activationScale: 1.25
+        pulseSpeed: 3
