@@ -1,5 +1,6 @@
 #pragma once
 #include <math.h>
+#include <initializer_list>
 #include <DirectXMath.h>
 class Vector3
 {
@@ -44,6 +45,13 @@ public:
 	}
 	Vector3& operator=(const DirectX::XMVECTOR& v){
 		DirectX::XMStoreFloat3(reinterpret_cast<DirectX::XMFLOAT3*>(this), v);
+		return *this;
+	}
+	Vector3& operator=(std::initializer_list<float> values){
+		auto it = values.begin();
+		x = it != values.end() ? *it++ : 0.0f;
+		y = it != values.end() ? *it++ : 0.0f;
+		z = it != values.end() ? *it++ : 0.0f;
 		return *this;
 	}
 
