@@ -7,6 +7,7 @@
 #include "GraphicsContext.h"
 #include <d2d1helper.h>
 #include <dwrite.h>
+#include <dxgi.h>
 #include <wrl/client.h>
 
 #pragma comment(lib, "d2d1.lib")
@@ -20,6 +21,8 @@ D2DRenderer::D2DRenderer(GraphicsContext* context, HWND hwnd)
 }
 
 D2DRenderer::~D2DRenderer(){
+	m_textureBrush.Reset();
+	m_textureRenderTarget.Reset();
 	SAFE_RELEASE(m_d2dRenderTarget);
 	SAFE_RELEASE(m_dwriteFactory);
 	SAFE_RELEASE(m_fontBrush);
@@ -86,6 +89,141 @@ void D2DRenderer::EndDraw(){
 	if(m_d2dRenderTarget){
 		m_d2dRenderTarget->EndDraw();
 	}
+}
+
+bool D2DRenderer::BeginTextureDraw(ID3D11Texture2D* texture){
+	m_textureDrawActive = false;
+	m_textureBrush.Reset();
+	m_textureRenderTarget.Reset();
+
+	if(!texture || !m_graphicsContext || !m_dwriteFactory){
+		return false;
+	}
+
+	ID2D1Factory* d2dFactory = m_graphicsContext->GetD2DFactory();
+	if(!d2dFactory){
+		return false;
+	}
+
+	D3D11_TEXTURE2D_DESC textureDesc{};
+	texture->GetDesc(&textureDesc);
+	if(textureDesc.Width == 0 || textureDesc.Height == 0 ||
+		textureDesc.Format != DXGI_FORMAT_R8G8B8A8_UNORM){
+		return false;
+	}
+
+	Microsoft::WRL::ComPtr<IDXGISurface> dxgiSurface;
+	HRESULT hr = texture->QueryInterface(IID_PPV_ARGS(dxgiSurface.GetAddressOf()));
+	if(FAILED(hr) || !dxgiSurface){
+		return false;
+	}
+
+	const FLOAT dpi = static_cast<FLOAT>(GetDpiForWindow(m_hwnd));
+	D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
+		D2D1_RENDER_TARGET_TYPE_DEFAULT,
+		D2D1::PixelFormat(
+			DXGI_FORMAT_R8G8B8A8_UNORM,
+			D2D1_ALPHA_MODE_PREMULTIPLIED
+		),
+		dpi,
+		dpi
+	);
+
+	hr = d2dFactory->CreateDxgiSurfaceRenderTarget(
+		dxgiSurface.Get(),
+		&props,
+		m_textureRenderTarget.ReleaseAndGetAddressOf()
+	);
+	if(FAILED(hr) || !m_textureRenderTarget){
+		return false;
+	}
+
+	hr = m_textureRenderTarget->CreateSolidColorBrush(
+		D2D1::ColorF(D2D1::ColorF::White),
+		m_textureBrush.ReleaseAndGetAddressOf()
+	);
+	if(FAILED(hr) || !m_textureBrush){
+		m_textureRenderTarget.Reset();
+		return false;
+	}
+
+	m_textureRenderTarget->BeginDraw();
+	m_textureRenderTarget->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+	m_textureDrawActive = true;
+	return true;
+}
+
+void D2DRenderer::DrawTextToTexture(
+	const std::wstring& text,
+	float x,
+	float y,
+	float fontSize,
+	D2D1::ColorF color
+){
+	if(!m_textureDrawActive || !m_textureRenderTarget || !m_textureBrush ||
+		!m_dwriteFactory || text.empty()){
+		return;
+	}
+
+	m_textureBrush->SetColor(color);
+
+	Microsoft::WRL::ComPtr<IDWriteTextFormat> textFormat;
+	HRESULT hr = m_dwriteFactory->CreateTextFormat(
+		L"メイリオ",
+		nullptr,
+		DWRITE_FONT_WEIGHT_NORMAL,
+		DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL,
+		fontSize,
+		L"ja-jp",
+		textFormat.GetAddressOf()
+	);
+	if(FAILED(hr) || !textFormat){
+		return;
+	}
+
+	const D2D1_SIZE_F targetSize = m_textureRenderTarget->GetSize();
+	m_textureRenderTarget->DrawTextW(
+		text.c_str(),
+		static_cast<UINT32>(text.length()),
+		textFormat.Get(),
+		D2D1::RectF(x, y, targetSize.width, targetSize.height),
+		m_textureBrush.Get()
+	);
+}
+
+void D2DRenderer::FillRectToTexture(
+	float x,
+	float y,
+	float width,
+	float height,
+	D2D1::ColorF color
+){
+	if(!m_textureDrawActive || !m_textureRenderTarget || !m_textureBrush ||
+		width <= 0.0f || height <= 0.0f){
+		return;
+	}
+
+	m_textureBrush->SetColor(color);
+	m_textureRenderTarget->FillRectangle(
+		D2D1::RectF(x, y, x + width, y + height),
+		m_textureBrush.Get()
+	);
+}
+
+bool D2DRenderer::EndTextureDraw(){
+	if(!m_textureDrawActive || !m_textureRenderTarget){
+		m_textureBrush.Reset();
+		m_textureRenderTarget.Reset();
+		m_textureDrawActive = false;
+		return false;
+	}
+
+	const HRESULT hr = m_textureRenderTarget->EndDraw();
+	m_textureDrawActive = false;
+	m_textureBrush.Reset();
+	m_textureRenderTarget.Reset();
+	return SUCCEEDED(hr);
 }
 
 void D2DRenderer::DrawText2D(const std::wstring& text, float x, float y, float fontSize, D2D1::ColorF color){
