@@ -51,47 +51,35 @@ permissions:
 
 jobs:
   smoke:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           show-progress: false
-      - uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
       - name: Compile and run minigame model contracts
-        shell: cmd
-        run: >-
-          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
-          /DNOMINMAX /D_CRT_SECURE_NO_WARNINGS
-          /wd4100 /wd4201 /wd4324 /wd4458 /wd4471 /MTd
-          /I Source
-          /I Source/GameApplication
-          Tests/MiniGameCollectionCoreSmokeTest.cpp
-          /Fe:minigame-collection-core-test.exe
-          && minigame-collection-core-test.exe
+        shell: bash
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror \
+            -I Source -I Source/GameApplication \
+            Tests/MiniGameCollectionCoreSmokeTest.cpp \
+            -o minigame-collection-core-test
+          ./minigame-collection-core-test
       - name: Compile and run presentation retry contract
-        shell: cmd
-        run: >-
-          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
-          /DNOMINMAX /D_CRT_SECURE_NO_WARNINGS
-          /wd4100 /wd4201 /wd4324 /wd4458 /wd4471 /MTd
-          /I Source
-          /I Source/GameApplication
-          Tests/MiniGamePresentationSpikeSmokeTest.cpp
-          /Fe:minigame-presentation-spike-test.exe
-          && minigame-presentation-spike-test.exe
+        shell: bash
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror \
+            -I Source -I Source/GameApplication \
+            Tests/MiniGamePresentationSpikeSmokeTest.cpp \
+            -o minigame-presentation-spike-test
+          ./minigame-presentation-spike-test
       - name: Compile and run minigame rule flow
-        shell: cmd
-        run: >-
-          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
-          /DNOMINMAX /D_CRT_SECURE_NO_WARNINGS
-          /wd4100 /wd4201 /wd4324 /wd4458 /wd4471 /MTd
-          /I Source
-          /I Source/GameApplication
-          Tests/MiniGameRulesSmokeTest.cpp
-          /Fe:minigame-rules-test.exe
-          && minigame-rules-test.exe
+        shell: bash
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror \
+            -I Source -I Source/GameApplication \
+            Tests/MiniGameRulesSmokeTest.cpp \
+            -o minigame-rules-test
+          ./minigame-rules-test
       - name: Validate required scene assets
         shell: pwsh
         run: |
