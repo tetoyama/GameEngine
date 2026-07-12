@@ -1,5 +1,24 @@
 #pragma once
 
+// Some movement values are authored in existing scenes. This wrapper preserves
+// those scene fields while enforcing a runtime minimum for values whose older
+// tuning is no longer sufficient for the current controller behaviour.
+struct PlatformerMinimumFloat {
+	float value = 0.0f;
+	float minimum = 0.0f;
+
+	constexpr PlatformerMinimumFloat(float initialValue, float minimumValue)
+		: value(initialValue < minimumValue ? minimumValue : initialValue),
+		  minimum(minimumValue) {}
+
+	PlatformerMinimumFloat& operator=(float newValue) noexcept {
+		value = newValue < minimum ? minimum : newValue;
+		return *this;
+	}
+
+	constexpr operator float() const noexcept { return value; }
+};
+
 // Runtime tuning values are kept in one POD-like structure so the controller
 // implementation remains readable and the eventual editor presentation can
 // expose the same contract without touching engine internals.
@@ -29,7 +48,9 @@ struct PlatformerMovementSettings {
 	float firstJumpForwardBoost = 0.30f;
 	float secondJumpForwardBoost = 0.62f;
 	float thirdJumpForwardBoost = 1.05f;
-	float variableJumpCut = 0.43f;
+	// The previous 0.43 cut made short wall-jump taps lose most of their height.
+	// Keep variable height, but retain enough launch velocity to feel deliberate.
+	float variableJumpCut = 0.54f;
 	float coyoteTime = 0.12f;
 	float jumpBufferTime = 0.14f;
 
@@ -60,12 +81,24 @@ struct PlatformerMovementSettings {
 	// directly rather than relying only on scene-authored layer masks.
 	float wallProbeHeight = 1.58f;
 	float wallProbeDistance = 0.62f;
-	float wallContactGrace = 0.14f;
-	float wallKickHorizontalVelocity = 7.2f;
-	float wallKickVerticalVelocity = 8.8f;
-	float wallKickInputInfluence = 2.45f;
-	float wallKickControlLock = 0.085f;
-	float sameWallBlockTime = 0.34f;
+	float wallContactGrace = 0.16f;
+
+	// Existing scenes still serialize the old 7.2 / 8.8 launch values. Clamp
+	// assignments from those fields so the wall jump has a clear outward break
+	// and reaches slightly above a second jump rather than feeling like a bump.
+	PlatformerMinimumFloat wallKickHorizontalVelocity{8.6f, 8.6f};
+	PlatformerMinimumFloat wallKickVerticalVelocity{10.6f, 10.6f};
+	float wallKickInputInfluence = 1.20f;
+
+	// The old control lock entered the generic deceleration branch and removed
+	// several units of horizontal launch speed. Let normal air control blend in
+	// immediately instead of braking the kick before it is visible.
+	float wallKickControlLock = 0.0f;
+
+	// TryWallKick already bypasses this block for a different wall and the ground
+	// probe resets it when landing. A practically non-expiring value therefore
+	// means: one kick per wall until the player lands or reaches another wall.
+	float sameWallBlockTime = 1000000000.0f;
 
 	float damageKnockbackHorizontal = 6.0f;
 	float damageKnockbackVertical = 6.2f;
