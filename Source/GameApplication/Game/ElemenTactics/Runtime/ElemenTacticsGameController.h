@@ -2,10 +2,10 @@
 
 #include "Component/CustomScriptComponent.h"
 #include "Reference/EntityRef.h"
-#include "AI/ElemenTacticsLlmFacade.h"
-#include "Flow/MatchFlowModel.h"
-#include "Runtime/BattleInteractionModel.h"
-#include "Runtime/BoardLayout.h"
+#include "../AI/ElemenTacticsLlmFacade.h"
+#include "../Flow/MatchFlowModel.h"
+#include "BattleInteractionModel.h"
+#include "BoardLayout.h"
 
 #include <cstddef>
 #include <cstdint>
