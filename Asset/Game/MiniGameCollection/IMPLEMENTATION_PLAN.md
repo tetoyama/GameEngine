@@ -54,22 +54,11 @@ The following UI is rendered through `MiniGameRuntimeUi`, `MainRenderer`, and Di
 
 Runtime scripts enqueue 2D commands during the Render schedule. They must not draw Direct2D immediately because `RenderSystem.Command.Submit` runs in the Late Render phase and would overwrite the UI when copying PlayerPass to the SwapChain.
 
-`Engine::Run` must flush the queued Runtime 2D overlay in this order:
-
-```text
-scenes->Draw()
-renderer->FlushRuntime2DOverlay()
-debug / editor ImGui
-Present
-```
-
 ImGui is permitted only for explicit development and diagnostic surfaces:
 
 - component `inspector()` output
 - Backshot F3 hit / rear-cone debug overlay
 - existing Engine editor and debug windows
-
-Gameplay state, player input, result navigation, and normal presentation must remain usable when all debug ImGui windows are hidden. The validation workflow rejects new `ImGui::` calls in the non-debug mini-game runtime UI files.
 
 ## Selection controls
 
@@ -94,35 +83,6 @@ N               : load the next game
 
 `Escape` remains reserved for the engine's application-exit confirmation and is not used for mini-game navigation.
 
-## Presentation Spike
-
-Scene:
-
-```text
-Asset/Game/MiniGameCollection/Scene/PresentationTest/PresentationSpike.scene
-```
-
-Control:
-
-```text
-Space       : stop the moving marker
-R           : retry after result
-B/Backspace : return to selection
-N           : continue to Color Territory
-```
-
-Expected sequence:
-
-```text
-3 -> 2 -> 1 -> GO
-input window
-SUCCESS / CLOSE / MISS
-result
-retry / selection / next
-```
-
-The pure presentation smoke test executes ten attempts with nine retries and then shutdown. The runtime scene must additionally be checked visually ten times to confirm that audio voices, effect voices, UI tweens, camera offsets, screen flash, and scene-token events do not remain active.
-
 ## Color Territory
 
 Rule:
@@ -139,16 +99,43 @@ WASD or arrow keys : move
 
 Duration: 40 seconds.
 
+### Item rush
+
+The final 20 seconds add deterministic Bomb and Star drops.
+
+- Unclaimed Bomb: clears the surrounding 3x3 area and stuns players in range.
+- Claimed Bomb: paints the surrounding 3x3 area with the claimant's color.
+- Star: temporary speed, stun immunity, and contact stun.
+
+### Presentation-density stabilization
+
+Routine one-tile scoring is intentionally lighter than leader changes and item events.
+
+- Low-intensity `Score` presentation commands are coalesced per Scene.
+- Routine score sound, fallback effect, camera shake, and HUD burst run at most once every 160 ms.
+- Leader changes, Bomb, Star, Hit, Success, Failure, and Result presentation remain immediate.
+
+### Contested-tile stabilization
+
+Movement painting now uses all of the following safeguards:
+
+1. A new candidate tile must remain stable for 75 ms.
+2. A player has a 120 ms repaint cooldown after a confirmed paint.
+3. If multiple players submit the same tile in one Tick, that tile is contested and receives no movement paint.
+4. After the contest ends, the remaining player must pass the normal confirmation time before claiming it.
+5. Bomb-modified ownership can still be reclaimed, but no longer repaints every frame while players overlap.
+
 Validation points:
 
-- Walking to a new tile changes it to the player's color.
+- Walking to a new tile changes it to the player's color without feeling delayed.
 - Walking onto another player's tile transfers one point from the old owner to the new owner.
 - Standing on one tile does not repeatedly score.
+- Two players pushing together on one tile do not flip ownership every frame.
+- Boundary jitter between adjacent tiles does not create continuous paint events.
+- Normal one-tile paint does not cause continuous whole-screen flashing or camera shake.
+- Leader changes and item events remain visually strong.
 - Player contact produces only a small separation and short knockback.
-- Easy, Normal, and Hard CPU use different decision interval, information radius, target hold, prediction, and mistake values.
 - CPU targets remain stable long enough for intent to be readable.
-- During the final ten seconds, CPU utility increasingly favors attacking the current leader.
-- Score, leader change, final result, tie, retry, selection return, and next-game transitions are visible.
 
 ## Sheep Roundup
 
@@ -172,11 +159,8 @@ Validation points:
 - Sheep use controlled velocity rather than rigid-body force as the outcome authority.
 - Wall avoidance turns sheep away before they remain attached to a boundary.
 - Direction interpolation prevents rapid 180-degree oscillation.
-- Local cohesion keeps nearby sheep loosely grouped without making a rigid flock.
 - CPU selects an intercept point on the side opposite its own pen, then closes in to push.
-- CPU does not retarget every frame.
-- Entering a pen immediately confirms the score, changes sheep presentation, and prevents rescoring.
-- Score, leader change, final result, tie, retry, selection return, and next-game transitions are visible.
+- Entering a pen immediately confirms the score and prevents rescoring.
 
 ## Backshot
 
@@ -202,10 +186,7 @@ Validation points:
 - Obstacles block line of sight deterministically.
 - Rear elimination uses the victim forward vector and victim-to-attacker direction dot product.
 - Front and side hits do not eliminate.
-- The configured rear threshold is visible in the F3 overlay.
-- CPU evaluates target rear opportunity, incoming threat, wall distance, line of sight, remaining player count, and cooldown.
 - CPU target hold and decision delay prevent superhuman retargeting.
-- Elimination, remaining-two warning, final hit, final result, tie-by-timeout, retry, selection return, and next-game transitions are visible.
 
 ## Scene cleanup order
 
@@ -228,7 +209,7 @@ After every transition, verify:
 - No previous fallback effect voice remains visible.
 - Camera transform has returned to its registered base position.
 - Screen flash alpha is zero.
-- No previous result or countdown UI remains.
+- Presentation-throttle state for the old SceneToken is cleared.
 - The new scene receives a new SceneToken.
 
 ## Automated validation
@@ -239,42 +220,10 @@ Workflow:
 .github/workflows/minigame-collection-core.yml
 ```
 
-Jobs and checks:
+The workflow validates runtime UI boundaries, PlayerPass composition, scene-driven startup, deferred additive loading, presentation contracts, portable C++20 rules tests, required Scene assets, and the full Windows Debug x64 solution build.
 
-1. Reject `ImGui::` usage from player-facing mini-game runtime UI files while allowing the Inspector and Backshot F3 diagnostic overlay.
-2. Verify Runtime Direct2D commands are queued and flushed only after `scenes->Draw()`.
-3. Verify `GameApplication` has no MiniGameCollection dependency and the Entry Scene owns `AdditiveScenePaths`.
-4. Reject immediate `LoadFromFilePath()` calls from MiniGame Runtime transition code.
-5. Compile and run portable C++20 model, rules, presentation, and cleanup smoke tests with GCC warnings treated as errors.
-6. Validate required scene asset structure.
-7. Build the complete `GameEngine.sln` Debug x64 configuration with MSVC.
+## Current status
 
-The workflow uses a branch/ref concurrency group with `cancel-in-progress: true`, so obsolete runs from intermediate commits do not block the latest validation.
+Current HEAD: `ac2b5cdd090c9d6f27e27a8f606af20f0097ea8c`.
 
-## Required manual sequence
-
-Run this complete loop at least three times:
-
-```text
-Open MiniGameCollectionEntry.scene
-Play
-Entry loading display
-Selection
-Color Territory
-Result
-Next
-Sheep Roundup
-Result
-Next
-Backshot
-Result
-Return to selection
-```
-
-Then run ten Presentation Spike retries and ten retries of each formal mini-game. Record any entity-count growth, retained sound, retained effect, stale UI, stale CPU movement, invalid ComponentRef, missing model, or scene-load failure in the implementation plan before changing code.
-
-During the manual pass, hide all normal ImGui editor/debug windows and confirm that every Entry loading message, selection, instruction, timer, score, countdown, result, and navigation prompt remains visible through the Direct2D runtime UI.
-
-## Current verification boundary
-
-Automated compilation, UI-boundary enforcement, scene-entry boundary enforcement, and pure-rule tests can be completed in GitHub Actions. Visual composition, input feel, CPU readability, camera framing, audio balance, effect intensity, Direct2D layout at the target resolution, and repeated live scene cleanup require running the Windows executable. Do not mark those manual checks complete solely because compilation succeeds.
+The latest automated jobs are queued. Interactive acceptance should focus on routine presentation density, contested-tile behavior, and whether 75 ms / 120 ms remain responsive during normal movement.
