@@ -6,8 +6,10 @@ on:
     paths:
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchGeometryBindingCache.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometryRuntimeStorage.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceProvider.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceResolver.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchUploadSystem.h"
       - "Tests/StaticBatchModelRuntimeBoundarySmokeTest.cpp"
       - ".github/workflows/static-batch-model-runtime-boundary.yml"
   push:
@@ -15,8 +17,10 @@ on:
     paths:
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchGeometryBindingCache.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometryRuntimeStorage.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceProvider.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceResolver.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchUploadSystem.h"
       - "Tests/StaticBatchModelRuntimeBoundarySmokeTest.cpp"
       - ".github/workflows/static-batch-model-runtime-boundary.yml"
   workflow_dispatch:
