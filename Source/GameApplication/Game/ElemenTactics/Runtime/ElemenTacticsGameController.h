@@ -20,10 +20,127 @@ class RuntimeTextSystem;
 
 namespace ElemenTactics {
 
+// ComponentRegistry constructs a temporary component and moves it into its
+// selected storage. ElemenTacticsLlmFacade is intentionally non-copyable, so
+// keep it behind a unique owner that can be transferred during ECS insertion.
+// Runtime code retains the existing dot-call surface used by the controller.
+class ElemenTacticsLlmOwner final {
+public:
+	ElemenTacticsLlmOwner()
+		: m_value(std::make_unique<ElemenTacticsLlmFacade>()){}
+
+	ElemenTacticsLlmOwner(const ElemenTacticsLlmOwner&) = delete;
+	ElemenTacticsLlmOwner& operator=(const ElemenTacticsLlmOwner&) = delete;
+	ElemenTacticsLlmOwner(ElemenTacticsLlmOwner&&) noexcept = default;
+	ElemenTacticsLlmOwner& operator=(ElemenTacticsLlmOwner&&) noexcept = default;
+
+	void Shutdown() noexcept{
+		if(m_value) m_value->Shutdown();
+	}
+
+	bool ResetForNewMatch(std::string* error = nullptr){
+		if(!m_value){
+			if(error) *error = "ElemenTactics LLM owner has been moved";
+			return false;
+		}
+		return m_value->ResetForNewMatch(error);
+	}
+
+	LlmDecisionPollResult Cancel(){
+		return m_value ? m_value->Cancel() : LlmDecisionPollResult{};
+	}
+
+	ElemenTacticsLlmFacade& Get(){
+		return *m_value;
+	}
+
+	const ElemenTacticsLlmFacade& Get() const{
+		return *m_value;
+	}
+
+	operator ElemenTacticsLlmFacade&(){
+		return Get();
+	}
+
+private:
+	std::unique_ptr<ElemenTacticsLlmFacade> m_value;
+};
+
 class ElemenTacticsGameController final : public CustomScriptComponent {
 public:
 	ElemenTacticsGameController();
 	~ElemenTacticsGameController() override;
+
+	ElemenTacticsGameController(const ElemenTacticsGameController&) = delete;
+	ElemenTacticsGameController& operator=(const ElemenTacticsGameController&) = delete;
+
+	// SparseStorage::Add receives components by value and then moves them into
+	// the node. Explicit transfer keeps runtime ownership unique and prevents
+	// the moved-from temporary from executing OnStop in its destructor.
+	ElemenTacticsGameController(ElemenTacticsGameController&& other) noexcept
+		: CustomScriptComponent(),
+		  ScriptName(scriptName),
+		  m_flow(std::move(other.m_flow)),
+		  m_interaction(std::move(other.m_interaction)),
+		  m_llm(std::move(other.m_llm)),
+		  m_textSystem(std::move(other.m_textSystem)),
+		  m_uiLifetime(std::move(other.m_uiLifetime)),
+		  m_buttons(std::move(other.m_buttons)),
+		  m_boardLayout(std::move(other.m_boardLayout)),
+		  m_selectedDeckCard(std::move(other.m_selectedDeckCard)),
+		  m_reorderOrder(std::move(other.m_reorderOrder)),
+		  m_selectedReorderCard(std::move(other.m_selectedReorderCard)),
+		  m_reorderPiece(std::move(other.m_reorderPiece)),
+		  m_status(std::move(other.m_status)),
+		  m_lastAiReasoning(std::move(other.m_lastAiReasoning)),
+		  m_screenDirty(other.m_screenDirty),
+		  m_localTurnHandoff(other.m_localTurnHandoff),
+		  m_started(other.m_started),
+		  m_aiDelay(other.m_aiDelay),
+		  m_cachedViewWidth(other.m_cachedViewWidth),
+		  m_cachedViewHeight(other.m_cachedViewHeight){
+		scriptName = std::move(other.scriptName);
+		executionSettings = other.executionSettings;
+		isInitialized = other.isInitialized;
+		m_ref = other.m_ref;
+		other.isInitialized = false;
+		other.m_ref = {};
+		other.m_started = false;
+	}
+
+	ElemenTacticsGameController& operator=(ElemenTacticsGameController&& other) noexcept{
+		if(this == &other) return *this;
+		if(m_started) OnStop();
+
+		scriptName = std::move(other.scriptName);
+		executionSettings = other.executionSettings;
+		isInitialized = other.isInitialized;
+		m_ref = other.m_ref;
+		m_flow = std::move(other.m_flow);
+		m_interaction = std::move(other.m_interaction);
+		m_llm = std::move(other.m_llm);
+		m_textSystem = std::move(other.m_textSystem);
+		m_uiLifetime = std::move(other.m_uiLifetime);
+		m_buttons = std::move(other.m_buttons);
+		m_boardLayout = std::move(other.m_boardLayout);
+		m_selectedDeckCard = std::move(other.m_selectedDeckCard);
+		m_reorderOrder = std::move(other.m_reorderOrder);
+		m_selectedReorderCard = std::move(other.m_selectedReorderCard);
+		m_reorderPiece = std::move(other.m_reorderPiece);
+		m_status = std::move(other.m_status);
+		m_lastAiReasoning = std::move(other.m_lastAiReasoning);
+		m_screenDirty = other.m_screenDirty;
+		m_localTurnHandoff = other.m_localTurnHandoff;
+		m_started = other.m_started;
+		m_aiDelay = other.m_aiDelay;
+		m_cachedViewWidth = other.m_cachedViewWidth;
+		m_cachedViewHeight = other.m_cachedViewHeight;
+
+		other.isInitialized = false;
+		other.m_ref = {};
+		other.m_started = false;
+		return *this;
+	}
 
 	void OnStart() override;
 	void OnUpdate(float dt) override;
@@ -134,12 +251,12 @@ private:
 	bool IsHumanTurn() const noexcept;
 	PlayerId ActiveViewer() const noexcept;
 
-	// Compatibility name used by the existing cpp constructor. Bind it to
-	// CustomScriptComponent::scriptName so YAML encoding and Inspector agree.
+	// Compatibility name used by the existing cpp constructor. It is always
+	// rebound to this instance's base scriptName by the explicit move constructor.
 	std::string& ScriptName = scriptName;
 	MatchFlowModel m_flow;
 	BattleInteractionModel m_interaction;
-	ElemenTacticsLlmFacade m_llm;
+	ElemenTacticsLlmOwner m_llm;
 	std::unique_ptr<RuntimeTextSystem> m_textSystem;
 	std::shared_ptr<UiLifetime> m_uiLifetime;
 	std::vector<UiButton> m_buttons;
