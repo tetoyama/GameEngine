@@ -58,6 +58,7 @@ public:
 	void inspector(SceneContext* context) override {
 		ImGui::Text("Platformer Character Controller");
 		INSPECTOR_FIELDS();
+		ImGui::Text("Input: %.2f, %.2f", capturedInputX, capturedInputZ);
 		ImGui::Text("Grounded: %s", grounded ? "true" : "false");
 		ImGui::Text("Jump Stage: %d", jumpStage);
 		ImGui::Text("Vertical Velocity: %.2f", verticalVelocity);
@@ -68,9 +69,7 @@ public:
 		ApplyReflectedSettings();
 		transform = GetComponentRef<TransformComponent>();
 		collider = GetComponentRef<ColliderComponent>();
-		cameraTransform = PlatformerSceneAccess::FindFirst<CameraComponent>(m_ref.GetScene()).GetEntityRef().IsValid()
-			? ComponentRef<TransformComponent>(PlatformerSceneAccess::FindFirst<CameraComponent>(m_ref.GetScene()).GetEntityRef())
-			: ComponentRef<TransformComponent>{};
+		ResolveCamera();
 
 		if(auto* t = transform.TryGet()) {
 			if(checkpointPosition.length() <= 0.0001f) checkpointPosition = t->position;
@@ -82,6 +81,7 @@ public:
 		grounded = false;
 		wasGrounded = false;
 		verticalVelocity = 0.0f;
+		fallbackVelocity = Vector3();
 		jumpStage = 0;
 		jumpBufferTimer = 0.0f;
 		coyoteTimer = 0.0f;
@@ -89,16 +89,16 @@ public:
 		invulnerabilityTimer = 0.0f;
 		controlLockTimer = 0.0f;
 		fallRecoveryTimer = 0.0f;
+		capturedInputX = 0.0f;
+		capturedInputZ = 0.0f;
+		previousJumpHeld = false;
+		jumpReleaseQueued = false;
 		respawning = false;
 		ConfigureRigidbody();
 	}
 
 	void OnUpdate(float dt) override {
-		if(GetKeyDown(VK_SPACE)) {
-			jumpBufferTimer = settings.jumpBufferTime;
-		}
-		jumpHeld = GetKey(VK_SPACE);
-		if(GetKeyUp(VK_SPACE)) jumpReleaseQueued = true;
+		CaptureFrameInput();
 	}
 
 	void OnFixedUpdate(float dt) override {
@@ -106,13 +106,10 @@ public:
 		ApplyReflectedSettings();
 		TickTimers(dt);
 
-		auto* t = transform.TryGet();
-		if(!t) return;
+		auto* pose = transform.TryGet();
+		if(!pose) return;
 
-		if(t->position.y < killY && !respawning) {
-			BeginFallRecovery();
-		}
-
+		if(pose->position.y < killY && !respawning) BeginFallRecovery();
 		if(respawning) {
 			fallRecoveryTimer -= dt;
 			StopRigidbodyMotion();
@@ -121,19 +118,22 @@ public:
 		}
 
 		if(!collider.IsValid()) collider = GetComponentRef<ColliderComponent>();
-		auto* col = collider.TryGet();
-		if(!col || !col->pRigidbodyDynamic) return;
-		auto* rigid = col->pRigidbodyDynamic;
-		rigid->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
+		auto* colliderComponent = collider.TryGet();
+		physx::PxRigidDynamic* rigid = colliderComponent ? colliderComponent->pRigidbodyDynamic : nullptr;
+		if(rigid) rigid->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
 
-		const Vector3 inputDirection = ReadCameraRelativeInput();
-		const bool hasInput = inputDirection.length() > 0.0001f;
-		physx::PxVec3 velocityPx = rigid->getLinearVelocity();
-		Vector3 velocity(velocityPx.x, velocityPx.y, velocityPx.z);
+		Vector3 velocity = fallbackVelocity;
+		if(rigid) {
+			const physx::PxVec3 current = rigid->getLinearVelocity();
+			velocity = Vector3(current.x, current.y, current.z);
+		}
 		verticalVelocity = velocity.y;
 
-		UpdateGroundProbe(*t);
-		UpdateWallProbe(*t, inputDirection, velocity);
+		const Vector3 inputDirection = BuildCameraRelativeDirection();
+		const bool hasInput = inputDirection.length() > 0.0001f;
+
+		UpdateGroundProbe(*pose);
+		UpdateWallProbe(*pose, inputDirection, velocity);
 		UpdateTripleJumpLanding(inputDirection, velocity);
 
 		if(jumpBufferTimer > 0.0f && controlEnabled && controlLockTimer <= 0.0f) {
@@ -155,7 +155,7 @@ public:
 
 		if(controlEnabled && controlLockTimer <= 0.0f) {
 			UpdateHorizontalVelocity(inputDirection, hasInput, velocity, dt);
-		} else if(cleared) {
+		} else {
 			velocity.x = MoveTowards(velocity.x, 0.0f, settings.groundDeceleration * dt);
 			velocity.z = MoveTowards(velocity.z, 0.0f, settings.groundDeceleration * dt);
 		}
@@ -170,27 +170,29 @@ public:
 		}
 
 		velocity.y = verticalVelocity;
-		rigid->setLinearVelocity(physx::PxVec3(velocity.x, velocity.y, velocity.z));
-
-		if(hasInput && controlEnabled && controlLockTimer <= 0.0f) {
-			RotateToward(*t, inputDirection, dt);
+		fallbackVelocity = velocity;
+		if(rigid) {
+			rigid->setLinearVelocity(physx::PxVec3(velocity.x, velocity.y, velocity.z));
+			rigid->wakeUp();
+		} else {
+			// Scene start can precede PhysX actor creation by one or more ticks.
+			// Preserve responsive controls until the actor becomes available.
+			pose->position += velocity * dt;
 		}
 
+		if(hasInput && controlEnabled && controlLockTimer <= 0.0f) RotateToward(*pose, inputDirection, dt);
 		wasGrounded = grounded;
 	}
 
 	void OnStop() override {
-		if(auto* col = collider.TryGet()) {
-			if(col->pRigidbodyDynamic) {
-				col->pRigidbodyDynamic->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, false);
+		if(auto* component = collider.TryGet()) {
+			if(component->pRigidbodyDynamic) {
+				component->pRigidbodyDynamic->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, false);
 			}
 		}
 	}
 
-	void SetCheckpoint(const Vector3& position) {
-		checkpointPosition = position;
-	}
-
+	void SetCheckpoint(const Vector3& position) { checkpointPosition = position; }
 	const Vector3& GetCheckpoint() const { return checkpointPosition; }
 	bool IsGrounded() const { return grounded; }
 	bool IsDescending() const { return !grounded && verticalVelocity < -0.05f; }
@@ -213,16 +215,19 @@ public:
 
 	void SetControlEnabled(bool enabled) {
 		controlEnabled = enabled;
+		if(!enabled) StopHorizontalMotion();
 	}
 
 	void BeginClear() {
 		cleared = true;
 		controlEnabled = false;
 		controlLockTimer = 9999.0f;
+		StopHorizontalMotion();
 	}
 
 	void ApplyStompBounce(float velocity = -1.0f) {
 		verticalVelocity = velocity > 0.0f ? velocity : settings.stompBounceVelocity;
+		fallbackVelocity.y = verticalVelocity;
 		grounded = false;
 		groundDetachTimer = 0.08f;
 		canCutJump = false;
@@ -232,8 +237,8 @@ public:
 
 	bool ApplyDamage(const Vector3& damageSource) {
 		if(IsInvulnerable() || respawning || cleared) return false;
-		auto* t = transform.TryGet();
-		if(!t) return false;
+		auto* pose = transform.TryGet();
+		if(!pose) return false;
 
 		--health;
 		invulnerabilityTimer = settings.invulnerabilityTime;
@@ -242,17 +247,19 @@ public:
 		grounded = false;
 		jumpStage = 0;
 
-		Vector3 away = t->position - damageSource;
+		Vector3 away = pose->position - damageSource;
 		away.y = 0.0f;
 		if(away.length() <= 0.0001f) away = Vector3(0.0f, 0.0f, -1.0f);
 		away = away.normalize();
-
-		if(auto* col = collider.TryGet()) {
-			if(auto* rigid = col->pRigidbodyDynamic) {
+		fallbackVelocity = Vector3(
+			away.x * settings.damageKnockbackHorizontal,
+			settings.damageKnockbackVertical,
+			away.z * settings.damageKnockbackHorizontal);
+		if(auto* component = collider.TryGet()) {
+			if(auto* rigid = component->pRigidbodyDynamic) {
 				rigid->setLinearVelocity(physx::PxVec3(
-					away.x * settings.damageKnockbackHorizontal,
-					settings.damageKnockbackVertical,
-					away.z * settings.damageKnockbackHorizontal));
+					fallbackVelocity.x, fallbackVelocity.y, fallbackVelocity.z));
+				rigid->wakeUp();
 			}
 		}
 		verticalVelocity = settings.damageKnockbackVertical;
@@ -291,11 +298,61 @@ private:
 		settings.wallKickVerticalVelocity = wallKickVerticalVelocity;
 	}
 
+	void CaptureFrameInput() {
+		capturedInputX = 0.0f;
+		capturedInputZ = 0.0f;
+		if(IsKeyHeld('W') || IsKeyHeld(VK_UP)) capturedInputZ += 1.0f;
+		if(IsKeyHeld('S') || IsKeyHeld(VK_DOWN)) capturedInputZ -= 1.0f;
+		if(IsKeyHeld('D') || IsKeyHeld(VK_RIGHT)) capturedInputX += 1.0f;
+		if(IsKeyHeld('A') || IsKeyHeld(VK_LEFT)) capturedInputX -= 1.0f;
+
+		const bool jumpNow = IsKeyHeld(VK_SPACE);
+		if(jumpNow && !previousJumpHeld) jumpBufferTimer = settings.jumpBufferTime;
+		if(!jumpNow && previousJumpHeld) jumpReleaseQueued = true;
+		previousJumpHeld = jumpNow;
+	}
+
+	bool IsKeyHeld(int keyCode) const {
+		if(GetKey(keyCode)) return true;
+		SceneContext* context = m_ref.GetScene();
+		if(!context || !context->manager || !context->manager->hwnd) return false;
+		HWND foreground = GetForegroundWindow();
+		if(foreground != context->manager->hwnd && !IsChild(context->manager->hwnd, foreground)) return false;
+		return (GetAsyncKeyState(keyCode) & 0x8000) != 0;
+	}
+
+	void ResolveCamera() {
+		auto camera = PlatformerSceneAccess::FindFirst<CameraComponent>(m_ref.GetScene());
+		cameraTransform = camera.IsValid()
+			? ComponentRef<TransformComponent>(camera.GetEntityRef())
+			: ComponentRef<TransformComponent>{};
+	}
+
+	Vector3 BuildCameraRelativeDirection() {
+		Vector3 raw(capturedInputX, 0.0f, capturedInputZ);
+		if(raw.length() <= 0.0001f) return {};
+		raw = raw.normalize();
+
+		if(!cameraTransform.IsValid()) ResolveCamera();
+		if(auto* cameraPose = cameraTransform.TryGet()) {
+			Vector3 forward = cameraPose->front();
+			Vector3 right = cameraPose->right();
+			forward.y = 0.0f;
+			right.y = 0.0f;
+			if(forward.length() > 0.0001f) forward = forward.normalize();
+			if(right.length() > 0.0001f) right = right.normalize();
+			const Vector3 result = forward * raw.z + right * raw.x;
+			if(result.length() > 0.0001f) return result.normalize();
+		}
+		return raw;
+	}
+
 	void ConfigureRigidbody() {
 		if(!collider.IsValid()) collider = GetComponentRef<ColliderComponent>();
-		if(auto* col = collider.TryGet()) {
-			if(col->pRigidbodyDynamic) {
-				col->pRigidbodyDynamic->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
+		if(auto* component = collider.TryGet()) {
+			if(component->pRigidbodyDynamic) {
+				component->pRigidbodyDynamic->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, true);
+				component->pRigidbodyDynamic->wakeUp();
 			}
 		}
 	}
@@ -311,54 +368,27 @@ private:
 		sameWallBlockTimer = (std::max)(0.0f, sameWallBlockTimer - dt);
 	}
 
-	Vector3 ReadCameraRelativeInput() {
-		Vector3 raw;
-		if(GetKey('W')) raw.z += 1.0f;
-		if(GetKey('S')) raw.z -= 1.0f;
-		if(GetKey('D')) raw.x += 1.0f;
-		if(GetKey('A')) raw.x -= 1.0f;
-		if(raw.length() <= 0.0001f) return {};
-		raw = raw.normalize();
-
-		if(!cameraTransform.IsValid()) {
-			auto camera = PlatformerSceneAccess::FindFirst<CameraComponent>(m_ref.GetScene());
-			if(camera.IsValid()) cameraTransform = ComponentRef<TransformComponent>(camera.GetEntityRef());
-		}
-
-		if(auto* cam = cameraTransform.TryGet()) {
-			Vector3 forward = cam->front();
-			Vector3 right = cam->right();
-			forward.y = 0.0f;
-			right.y = 0.0f;
-			if(forward.length() > 0.0001f) forward = forward.normalize();
-			if(right.length() > 0.0001f) right = right.normalize();
-			Vector3 result = forward * raw.z + right * raw.x;
-			return result.length() > 0.0001f ? result.normalize() : Vector3{};
-		}
-		return raw;
-	}
-
-	void UpdateGroundProbe(const TransformComponent& t) {
+	void UpdateGroundProbe(const TransformComponent& pose) {
 		auto* physics = PlatformerSceneAccess::Physics(m_ref.GetScene());
 		if(!physics) {
 			grounded = false;
 			return;
 		}
-
 		const RayHit hit = physics->RaycastWithMask(
-			physx::PxVec3(t.position.x, t.position.y + settings.groundProbeStart, t.position.z),
+			physx::PxVec3(pose.position.x, pose.position.y + settings.groundProbeStart, pose.position.z),
 			physx::PxVec3(0.0f, -1.0f, 0.0f),
 			settings.groundProbeStart + settings.groundProbeDistance,
 			selfLayerBit);
-
 		const float minNormalY = std::cos(settings.maxSlopeDegrees * DirectX::XM_PI / 180.0f);
 		const bool validGround = hit.hit && hit.normal.y >= minNormalY;
-		groundNormal = validGround ? Vector3(hit.normal.x, hit.normal.y, hit.normal.z) : Vector3(0.0f, 1.0f, 0.0f);
+		groundNormal = validGround
+			? Vector3(hit.normal.x, hit.normal.y, hit.normal.z)
+			: Vector3(0.0f, 1.0f, 0.0f);
 		grounded = validGround && groundDetachTimer <= 0.0f && verticalVelocity <= 1.0f;
 		if(grounded) coyoteTimer = settings.coyoteTime;
 	}
 
-	void UpdateWallProbe(const TransformComponent& t, const Vector3& inputDirection, const Vector3& velocity) {
+	void UpdateWallProbe(const TransformComponent& pose, const Vector3& inputDirection, const Vector3& velocity) {
 		if(grounded) {
 			wallGraceTimer = 0.0f;
 			lastWallNormal = Vector3();
@@ -370,7 +400,6 @@ private:
 
 		Vector3 velocityDirection(velocity.x, 0.0f, velocity.z);
 		if(velocityDirection.length() > 0.0001f) velocityDirection = velocityDirection.normalize();
-
 		const Vector3 candidates[6] = {
 			inputDirection,
 			velocityDirection,
@@ -386,7 +415,7 @@ private:
 			if(candidate.length() <= 0.0001f) continue;
 			const Vector3 direction = candidate.normalize();
 			const RayHit hit = physics->RaycastWithMask(
-				physx::PxVec3(t.position.x, t.position.y + settings.wallProbeHeight, t.position.z),
+				physx::PxVec3(pose.position.x, pose.position.y + settings.wallProbeHeight, pose.position.z),
 				physx::PxVec3(direction.x, 0.0f, direction.z),
 				settings.wallProbeDistance,
 				selfLayerBit);
@@ -394,7 +423,6 @@ private:
 			bestDistance = hit.distance;
 			bestNormal = Vector3(hit.normal.x, 0.0f, hit.normal.z).normalize();
 		}
-
 		if(bestNormal.length() > 0.0001f) {
 			lastWallNormal = bestNormal;
 			wallGraceTimer = settings.wallContactGrace;
@@ -430,7 +458,6 @@ private:
 			speed >= settings.tripleJumpMinimumSpeed &&
 			(lastJumpDirection.length() <= 0.0001f || currentDirection.length() <= 0.0001f ||
 			 lastJumpDirection.dot(currentDirection) >= settings.tripleJumpDirectionDot);
-
 		jumpStage = chained ? (std::min)(3, jumpStage + 1) : 1;
 		verticalVelocity = jumpStage == 3 ? settings.thirdJumpVelocity
 			: jumpStage == 2 ? settings.secondJumpVelocity
@@ -456,7 +483,6 @@ private:
 		if(awaySpeed < settings.wallKickHorizontalVelocity * 0.65f) {
 			kick += lastWallNormal * (settings.wallKickHorizontalVelocity * 0.65f - awaySpeed);
 		}
-
 		velocity.x = kick.x;
 		velocity.z = kick.z;
 		verticalVelocity = settings.wallKickVerticalVelocity;
@@ -473,8 +499,8 @@ private:
 	}
 
 	void UpdateHorizontalVelocity(const Vector3& inputDirection, bool hasInput, Vector3& velocity, float dt) {
-		Vector3 current(velocity.x, 0.0f, velocity.z);
-		Vector3 target = hasInput ? inputDirection * settings.maxGroundSpeed : Vector3{};
+		const Vector3 current(velocity.x, 0.0f, velocity.z);
+		const Vector3 target = hasInput ? inputDirection * settings.maxGroundSpeed : Vector3{};
 		float acceleration = grounded
 			? (hasInput ? settings.groundAcceleration : settings.groundDeceleration)
 			: settings.airAcceleration;
@@ -493,14 +519,14 @@ private:
 		verticalVelocity -= gravity * dt;
 	}
 
-	void RotateToward(TransformComponent& t, const Vector3& direction, float dt) {
+	void RotateToward(TransformComponent& pose, const Vector3& direction, float dt) {
 		const float targetYaw = std::atan2(direction.x, direction.z);
-		const DirectX::XMVECTOR targetQ = DirectX::XMQuaternionRotationRollPitchYaw(0.0f, targetYaw, 0.0f);
+		const DirectX::XMVECTOR target = DirectX::XMQuaternionRotationRollPitchYaw(0.0f, targetYaw, 0.0f);
 		const float blend = 1.0f - std::exp(-settings.rotationSpeed * dt);
-		const DirectX::XMVECTOR result = DirectX::XMQuaternionSlerp(t.rotationVector(), targetQ, blend);
-		DirectX::XMFLOAT4 q;
-		DirectX::XMStoreFloat4(&q, result);
-		t.SetRotation(q);
+		const DirectX::XMVECTOR result = DirectX::XMQuaternionSlerp(pose.rotationVector(), target, blend);
+		DirectX::XMFLOAT4 rotation;
+		DirectX::XMStoreFloat4(&rotation, result);
+		pose.SetRotation(rotation);
 	}
 
 	void BeginFallRecovery() {
@@ -514,17 +540,18 @@ private:
 	}
 
 	void FinishFallRecovery() {
-		auto* t = transform.TryGet();
-		if(!t) return;
-		t->position = checkpointPosition;
-		if(auto* col = collider.TryGet()) {
-			if(auto* rigid = col->pRigidbodyDynamic) {
+		auto* pose = transform.TryGet();
+		if(!pose) return;
+		pose->position = checkpointPosition;
+		if(auto* component = collider.TryGet()) {
+			if(auto* rigid = component->pRigidbodyDynamic) {
 				rigid->setGlobalPose(physx::PxTransform(checkpointPosition.x, checkpointPosition.y, checkpointPosition.z));
 				rigid->setLinearVelocity(physx::PxVec3(0.0f));
 				rigid->setAngularVelocity(physx::PxVec3(0.0f));
 				rigid->wakeUp();
 			}
 		}
+		fallbackVelocity = Vector3();
 		verticalVelocity = 0.0f;
 		respawning = false;
 		controlEnabled = true;
@@ -534,14 +561,26 @@ private:
 		++respawnEventRevision;
 	}
 
+	void StopHorizontalMotion() {
+		fallbackVelocity.x = 0.0f;
+		fallbackVelocity.z = 0.0f;
+		if(auto* component = collider.TryGet()) {
+			if(auto* rigid = component->pRigidbodyDynamic) {
+				const physx::PxVec3 current = rigid->getLinearVelocity();
+				rigid->setLinearVelocity(physx::PxVec3(0.0f, current.y, 0.0f));
+			}
+		}
+	}
+
 	void StopRigidbodyMotion() {
-		if(auto* col = collider.TryGet()) {
-			if(auto* rigid = col->pRigidbodyDynamic) {
+		fallbackVelocity = Vector3();
+		verticalVelocity = 0.0f;
+		if(auto* component = collider.TryGet()) {
+			if(auto* rigid = component->pRigidbodyDynamic) {
 				rigid->setLinearVelocity(physx::PxVec3(0.0f));
 				rigid->setAngularVelocity(physx::PxVec3(0.0f));
 			}
 		}
-		verticalVelocity = 0.0f;
 	}
 
 	static Vector3 ProjectOnPlane(const Vector3& value, const Vector3& normal) {
@@ -549,9 +588,8 @@ private:
 	}
 
 	static float MoveTowards(float current, float target, float maxDelta) {
-		const float difference = target - current;
-		if(std::abs(difference) <= maxDelta) return target;
-		return current + (difference > 0.0f ? maxDelta : -maxDelta);
+		if(std::abs(target - current) <= maxDelta) return target;
+		return current + (target > current ? maxDelta : -maxDelta);
 	}
 
 	static Vector3 MoveTowards(const Vector3& current, const Vector3& target, float maxDelta) {
@@ -565,37 +603,36 @@ private:
 	ComponentRef<TransformComponent> transform;
 	ComponentRef<ColliderComponent> collider;
 	ComponentRef<TransformComponent> cameraTransform;
-
-	uint32_t selfLayerBit = 1u << 1;
 	Vector3 checkpointPosition;
 	Vector3 groundNormal = Vector3(0.0f, 1.0f, 0.0f);
 	Vector3 lastWallNormal;
 	Vector3 lastWallKickNormal;
 	Vector3 lastJumpDirection;
-
+	Vector3 fallbackVelocity;
+	float capturedInputX = 0.0f;
+	float capturedInputZ = 0.0f;
 	float verticalVelocity = 0.0f;
 	float horizontalSpeed = 0.0f;
 	float jumpBufferTimer = 0.0f;
 	float coyoteTimer = 0.0f;
 	float wallGraceTimer = 0.0f;
 	float tripleChainTimer = 0.0f;
-	float sameWallBlockTimer = 0.0f;
-	float controlLockTimer = 0.0f;
 	float invulnerabilityTimer = 0.0f;
+	float controlLockTimer = 0.0f;
 	float groundDetachTimer = 0.0f;
+	float sameWallBlockTimer = 0.0f;
 	float fallRecoveryTimer = 0.0f;
-
+	int health = 3;
+	int jumpStage = 0;
 	bool grounded = false;
 	bool wasGrounded = false;
-	bool jumpHeld = false;
+	bool previousJumpHeld = false;
 	bool jumpReleaseQueued = false;
 	bool canCutJump = false;
 	bool controlEnabled = true;
 	bool respawning = false;
 	bool cleared = false;
-	int jumpStage = 0;
-	int health = 3;
-
+	uint32_t selfLayerBit = 1u << 1;
 	uint32_t jumpEventRevision = 0;
 	uint32_t landEventRevision = 0;
 	uint32_t wallKickEventRevision = 0;
