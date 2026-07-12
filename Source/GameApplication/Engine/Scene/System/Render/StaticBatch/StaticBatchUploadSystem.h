@@ -16,6 +16,7 @@
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
 #include "System/Render/StaticBatch/StaticBatchGeometryBindingCache.h"
+#include "System/Render/StaticBatch/StaticBatchModelGeometryRuntimeStorage.h"
 #include "System/Render/StaticBatch/StaticBatchPipelineBootstrap.h"
 #include "System/Render/StaticBatch/StaticBatchPipelineResources.h"
 #include "System/Render/StaticBatch/StaticBatchShadowPipelineBootstrap.h"
@@ -59,6 +60,7 @@ public:
 			}
 			m_gpuInstanceBuffer.Release(*device);
 		}
+		m_modelGeometrySourceProvider.Reset();
 		m_shadowVisibleInstances.Reset();
 		m_shadowPipelineBootstrapResult =
 			StaticBatchShadowPipelineBootstrapResult::NotAttempted;
@@ -69,6 +71,11 @@ public:
 	}
 
 	void Stop() override {
+		RHI::IRHIDevice* device = ResolveDevice();
+		if(device){
+			m_geometryBindingCache.Release(*device);
+		}
+		m_modelGeometrySourceProvider.Reset();
 		m_lastUploadSucceeded = false;
 	}
 
@@ -76,6 +83,7 @@ public:
 		SystemAccess geometryAccess;
 		geometryAccess
 			.ReadResource<RenderPacketFrameBuffer>()
+			.WriteResource<StaticBatchModelGeometryRuntimeStorage>()
 			.WriteResource<StaticBatchGeometryBindingCache>();
 
 		builder.AddTask(
@@ -158,6 +166,11 @@ public:
 		return m_geometryBindingCache;
 	}
 
+	const StaticBatchModelGeometryRuntimeStorage&
+	GetModelGeometryRuntimeStorage() const noexcept {
+		return m_modelGeometrySourceProvider.Storage();
+	}
+
 	StaticBatchVisibleInstanceBuffer&
 	GetShadowVisibleInstanceBuffer() const noexcept {
 		return m_shadowVisibleInstances;
@@ -176,6 +189,11 @@ public:
 		return m_geometryBindingCache.Telemetry();
 	}
 
+	StaticBatchModelGeometryRuntimeStorageTelemetry
+	GetModelGeometryRuntimeTelemetry() const noexcept {
+		return m_modelGeometrySourceProvider.Storage().Telemetry();
+	}
+
 	const StaticBatchShadowSubmissionTelemetry&
 	GetShadowSubmissionTelemetry() const noexcept {
 		return m_shadowSubmissionTelemetry;
@@ -192,6 +210,7 @@ public:
 	void ResetTelemetry() noexcept {
 		m_gpuInstanceBuffer.ResetMetrics();
 		m_geometryBindingCache.ResetMetrics();
+		m_modelGeometrySourceProvider.Storage().ResetMetrics();
 		m_shadowSubmissionTelemetry.Reset();
 	}
 
@@ -271,9 +290,14 @@ private:
 	}
 
 	void SynchronizeGeometry(){
+		m_modelGeometrySourceProvider.BeginSynchronization();
+
 		RenderSystem* renderSystem = ResolveRenderSystem();
 		RHI::IRHIDevice* device = ResolveDevice();
-		if(!renderSystem || !device) return;
+		if(!renderSystem || !device){
+			m_modelGeometrySourceProvider.EndSynchronization();
+			return;
+		}
 
 		const RenderPacketFrameBuffer& frameBuffer =
 			renderSystem->GetRenderPacketBuffer();
@@ -283,16 +307,20 @@ private:
 			m_geometryBindingCache.Synchronize(
 				*device,
 				std::span<const StaticBatchPacketCacheEntry>{},
-				frameBuffer.Packets()
+				frameBuffer.Packets(),
+				m_modelGeometrySourceProvider
 			);
+			m_modelGeometrySourceProvider.EndSynchronization();
 			return;
 		}
 
 		m_geometryBindingCache.Synchronize(
 			*device,
 			source.Groups(),
-			frameBuffer.Packets()
+			frameBuffer.Packets(),
+			m_modelGeometrySourceProvider
 		);
+		m_modelGeometrySourceProvider.EndSynchronization();
 	}
 
 	void UploadInstances(){
@@ -355,6 +383,7 @@ private:
 	StaticBatchGpuInstanceBuffer m_gpuInstanceBuffer;
 	StaticBatchPipelineResources m_pipelineResources;
 	StaticBatchShadowPipelineResources m_shadowPipelineResources;
+	StaticBatchRuntimeModelGeometrySourceProvider m_modelGeometrySourceProvider;
 	StaticBatchGeometryBindingCache m_geometryBindingCache;
 	StaticBatchPipelineBootstrapResult m_pipelineBootstrapResult =
 		StaticBatchPipelineBootstrapResult::NotAttempted;
