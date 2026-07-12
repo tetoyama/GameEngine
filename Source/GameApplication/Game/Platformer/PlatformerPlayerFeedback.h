@@ -4,11 +4,14 @@
 #include "Engine/Scene/Component/TransformComponent.h"
 #include "Engine/Scene/Component/audioComponent.h"
 #include "Engine/Scene/Component/particleComponent.h"
+#include "Game/Platformer/PlatformerCameraController.h"
 #include "Game/Platformer/PlatformerCharacterController.h"
 #include "Game/Platformer/PlatformerFeedback.h"
 #include "Game/Platformer/PlatformerSceneAccess.h"
 #include "Game/Platformer/PlatformerSoundLibrary.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 
 class PlatformerPlayerFeedback : public CustomScriptComponent {
@@ -34,6 +37,7 @@ public:
 
 	void OnStart() override {
 		player = PlatformerSceneAccess::FindFirst<PlatformerCharacterController>(m_ref.GetScene());
+		camera = PlatformerSceneAccess::FindFirst<PlatformerCameraController>(m_ref.GetScene());
 		transform = GetComponentRef<TransformComponent>();
 		particle = GetComponentRef<ParticleComponent>();
 		audio = GetComponentRef<AudioComponent>();
@@ -51,38 +55,55 @@ public:
 
 		if(controller->GetJumpEventRevision() != jumpRevision) {
 			jumpRevision = controller->GetJumpEventRevision();
-			const bool triple = controller->GetJumpStage() == 3;
-			EmitAt(origin, triple ? 30 : 12, triple ? 4.2f : 2.0f, triple ? 5.0f : 2.8f, triple ? 0.8f : 0.4f);
+			const int stage = controller->GetJumpStage();
+			if(stage >= 3) {
+				EmitAt(origin, 44, 4.8f, 6.2f, 0.82f, 0.18f);
+				Impulse(0.24f, 0.20f, 0.040f, Vector3(0.0f, 1.0f, 0.0f));
+			} else if(stage == 2) {
+				EmitAt(origin, 26, 3.2f, 4.3f, 0.58f, 0.145f);
+				Impulse(0.12f, 0.13f, 0.018f, Vector3(0.0f, 1.0f, 0.0f));
+			} else {
+				EmitAt(origin, 16, 2.3f, 3.1f, 0.42f, 0.12f);
+				Impulse(0.065f, 0.10f, 0.008f, Vector3(0.0f, 1.0f, 0.0f));
+			}
 			PlatformerFeedback::Play(audio.TryGet(), m_ref.GetScene(), PlatformerSoundLibrary::ActionPath);
 		}
 
 		if(controller->GetLandEventRevision() != landRevision) {
 			landRevision = controller->GetLandEventRevision();
-			EmitAt(playerPose->position, 10, 2.2f, 1.2f, 0.35f);
+			const float impact = std::clamp((std::abs(controller->GetVerticalVelocity()) - 1.5f) / 10.0f, 0.25f, 1.0f);
+			const int count = 16 + static_cast<int>(impact * 24.0f);
+			EmitAt(playerPose->position, count, 2.4f + impact * 2.4f, 1.0f + impact * 1.1f, 0.38f + impact * 0.18f, 0.12f + impact * 0.05f);
+			Impulse(0.08f + impact * 0.20f, 0.11f + impact * 0.09f, -0.008f - impact * 0.015f, Vector3(0.0f, -1.0f, 0.0f));
 		}
 
 		if(controller->GetWallKickEventRevision() != wallRevision) {
 			wallRevision = controller->GetWallKickEventRevision();
-			const Vector3 wallOrigin = origin - controller->GetLastWallNormal() * 0.3f;
-			EmitAt(wallOrigin, 24, 3.8f, 4.4f, 0.65f);
+			const Vector3 wallNormal = controller->GetLastWallNormal();
+			const Vector3 wallOrigin = origin - wallNormal * 0.3f;
+			EmitAt(wallOrigin, 34, 4.2f, 5.0f, 0.68f, 0.165f);
+			Impulse(0.21f, 0.17f, 0.025f, wallNormal);
 			PlatformerFeedback::Play(audio.TryGet(), m_ref.GetScene(), PlatformerSoundLibrary::ActionPath);
 		}
 
 		if(controller->GetStompEventRevision() != stompRevision) {
 			stompRevision = controller->GetStompEventRevision();
-			EmitAt(playerPose->position, 28, 4.0f, 5.2f, 0.75f);
+			EmitAt(playerPose->position, 52, 5.2f, 6.4f, 0.82f, 0.20f);
+			Impulse(0.38f, 0.23f, 0.050f, Vector3(0.0f, -1.0f, 0.0f));
 			PlatformerFeedback::Play(audio.TryGet(), m_ref.GetScene(), PlatformerSoundLibrary::ImpactPath);
 		}
 
 		if(controller->GetDamageEventRevision() != damageRevision) {
 			damageRevision = controller->GetDamageEventRevision();
-			EmitAt(origin, 32, 4.6f, 4.8f, 0.8f);
+			EmitAt(origin, 56, 5.4f, 5.2f, 0.88f, 0.21f);
+			Impulse(0.48f, 0.28f, 0.060f);
 			PlatformerFeedback::Play(audio.TryGet(), m_ref.GetScene(), PlatformerSoundLibrary::ImpactPath);
 		}
 
 		if(controller->GetRespawnEventRevision() != respawnRevision) {
 			respawnRevision = controller->GetRespawnEventRevision();
-			EmitAt(origin, 36, 4.0f, 6.0f, 1.0f);
+			EmitAt(origin, 46, 4.2f, 6.6f, 1.05f, 0.17f);
+			Impulse(0.18f, 0.30f, 0.022f, Vector3(0.0f, 1.0f, 0.0f));
 			PlatformerFeedback::Play(audio.TryGet(), m_ref.GetScene(), PlatformerSoundLibrary::CheckpointPath);
 		}
 	}
@@ -93,7 +114,8 @@ private:
 		int count,
 		float horizontalSpeed,
 		float upwardSpeed,
-		float lifetime
+		float lifetime,
+		float particleSize
 	) {
 		auto* feedbackPose = transform.TryGet();
 		auto* feedbackParticle = particle.TryGet();
@@ -105,6 +127,7 @@ private:
 		// particles from being dragged when the emitter is moved to a later event.
 		for(auto& state : feedbackParticle->Particle) state.LifeTime = 0.0f;
 		feedbackPose->position = worldOrigin;
+		feedbackParticle->particleSize = particleSize;
 		PlatformerFeedback::Burst(
 			feedbackParticle,
 			Vector3(0.0f, 0.0f, 0.0f),
@@ -112,6 +135,16 @@ private:
 			horizontalSpeed,
 			upwardSpeed,
 			lifetime);
+	}
+
+	void Impulse(
+		float strength,
+		float duration,
+		float fovKick,
+		const Vector3& direction = Vector3()
+	) {
+		if(!camera.IsValid()) camera = PlatformerSceneAccess::FindFirst<PlatformerCameraController>(m_ref.GetScene());
+		if(auto* controller = camera.TryGet()) controller->AddImpulse(strength, duration, fovKick, direction);
 	}
 
 	void CaptureRevisions(const PlatformerCharacterController& controller) {
@@ -124,6 +157,7 @@ private:
 	}
 
 	ComponentRef<PlatformerCharacterController> player;
+	ComponentRef<PlatformerCameraController> camera;
 	ComponentRef<TransformComponent> transform;
 	ComponentRef<ParticleComponent> particle;
 	ComponentRef<AudioComponent> audio;
