@@ -1,16 +1,13 @@
 #pragma once
 
 #include <cstdint>
-#include <limits>
 #include <span>
 
 #include "Scene/Component/modelRendererComponent.h"
 #include "System/Render/RenderSystem/RenderPacket/RenderPacket.h"
-#include "System/Render/RenderSystem/RenderPacket/RenderPacketModelSubMeshSelection.h"
 #include "System/Render/RenderSystem/RenderPacket/StaticBatchPacketCache.h"
-#include "System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
 #include "System/Render/StaticBatch/StaticBatchD3D11GeometrySource.h"
-#include "Shader/common.hlsl"
+#include "System/Render/StaticBatch/StaticBatchModelGeometrySourceProvider.h"
 
 enum class StaticBatchModelGeometryRejectReason : std::uint8_t {
 	None,
@@ -44,9 +41,35 @@ struct StaticBatchModelGeometryResolveResult {
 
 namespace StaticBatchModelGeometrySourceResolver {
 
+inline StaticBatchModelGeometryRejectReason MapSourceStatus(
+	StaticBatchModelGeometrySourceStatus status
+) noexcept {
+	switch(status){
+		case StaticBatchModelGeometrySourceStatus::None:
+			return StaticBatchModelGeometryRejectReason::None;
+		case StaticBatchModelGeometrySourceStatus::MissingModelResource:
+			return StaticBatchModelGeometryRejectReason::MissingModelResource;
+		case StaticBatchModelGeometrySourceStatus::UnsupportedSubMeshCount:
+			return StaticBatchModelGeometryRejectReason::UnsupportedSubMeshCount;
+		case StaticBatchModelGeometrySourceStatus::InvalidSubMeshIndex:
+			return StaticBatchModelGeometryRejectReason::InvalidSubMeshIndex;
+		case StaticBatchModelGeometrySourceStatus::MissingSubMesh:
+			return StaticBatchModelGeometryRejectReason::MissingSubMesh;
+		case StaticBatchModelGeometrySourceStatus::SkinnedSubMesh:
+			return StaticBatchModelGeometryRejectReason::SkinnedSubMesh;
+		case StaticBatchModelGeometrySourceStatus::MissingNativeBuffer:
+			return StaticBatchModelGeometryRejectReason::MissingNativeBuffer;
+		case StaticBatchModelGeometrySourceStatus::InvalidGeometryCount:
+			return StaticBatchModelGeometryRejectReason::InvalidGeometryCount;
+		default:
+			return StaticBatchModelGeometryRejectReason::InvalidGeometryCount;
+	}
+}
+
 inline StaticBatchModelGeometryResolveResult Resolve(
 	const StaticBatchPacketCacheEntry& group,
-	std::span<const RenderPacket> packets
+	std::span<const RenderPacket> packets,
+	const IStaticBatchModelGeometrySourceProvider& sourceProvider
 ) noexcept {
 	StaticBatchModelGeometryResolveResult result;
 	if(group.representativePacketIndex >= packets.size()){
@@ -89,78 +112,32 @@ inline StaticBatchModelGeometryResolveResult Resolve(
 		return result;
 	}
 
-	const std::shared_ptr<ModelData>& model = renderer->model;
-	if(!model || !model->AiScene){
-		result.rejectReason =
-			StaticBatchModelGeometryRejectReason::MissingModelResource;
+	const StaticBatchModelGeometrySourceResult sourceResult =
+		sourceProvider.Resolve(*renderer, packet);
+	if(!sourceResult.IsEligible()){
+		result.rejectReason = MapSourceStatus(sourceResult.status);
 		return result;
 	}
-	if(!model->AiScene->mMeshes){
-		result.rejectReason =
-			StaticBatchModelGeometryRejectReason::MissingSubMesh;
-		return result;
-	}
-
-	std::uint32_t meshIndex = 0;
-	if(!RenderPacketModelSubMeshSelection::ResolveSingleIndex(
-		packet,
-		model->AiScene->mNumMeshes,
-		meshIndex
-	)){
-		result.rejectReason = packet.TargetsAllSubMeshes()
-			? StaticBatchModelGeometryRejectReason::UnsupportedSubMeshCount
-			: StaticBatchModelGeometryRejectReason::InvalidSubMeshIndex;
-		return result;
-	}
-
-	const aiMesh* mesh = model->AiScene->mMeshes[meshIndex];
-	if(!mesh){
-		result.rejectReason =
-			StaticBatchModelGeometryRejectReason::MissingSubMesh;
-		return result;
-	}
-	if(mesh->HasBones()){
-		result.rejectReason =
-			StaticBatchModelGeometryRejectReason::SkinnedSubMesh;
-		return result;
-	}
-	if(meshIndex >= model->VertexBuffer.size() ||
-		meshIndex >= model->IndexBuffer.size() ||
-		!model->VertexBuffer[meshIndex] ||
-		!model->IndexBuffer[meshIndex]){
-		result.rejectReason =
-			StaticBatchModelGeometryRejectReason::MissingNativeBuffer;
-		return result;
-	}
-	if(mesh->mNumVertices == 0 || mesh->mNumFaces == 0 ||
-		mesh->mNumFaces >
-			(std::numeric_limits<std::uint32_t>::max)() / 3u){
-		result.rejectReason =
-			StaticBatchModelGeometryRejectReason::InvalidGeometryCount;
-		return result;
-	}
-
-	const std::uint64_t geometryResourceKey =
-		StaticBatchResourceKey::MakeGeometryKey(packet);
-	if(geometryResourceKey == 0 ||
-		geometryResourceKey != group.key.geometryKey){
+	if(sourceResult.source.geometryResourceKey != group.key.geometryKey){
 		result.rejectReason =
 			StaticBatchModelGeometryRejectReason::GeometryResourceKeyMismatch;
 		return result;
 	}
 
-	result.source.vertexBuffer = model->VertexBuffer[meshIndex];
-	result.source.indexBuffer = model->IndexBuffer[meshIndex];
-	result.source.vertexStride =
-		static_cast<std::uint32_t>(sizeof(VERTEX_3D));
-	result.source.vertexCount = mesh->mNumVertices;
-	result.source.indexCount = mesh->mNumFaces * 3u;
-	result.source.indexFormat = RHI::IndexFormat::UInt32;
-	result.source.geometryResourceKey = geometryResourceKey;
-	result.rejectReason = result.source.IsValid()
-		? StaticBatchModelGeometryRejectReason::None
-		: StaticBatchModelGeometryRejectReason::InvalidGeometryCount;
+	result.source = sourceResult.source;
+	result.rejectReason = StaticBatchModelGeometryRejectReason::None;
 	return result;
+}
+
+inline StaticBatchModelGeometryResolveResult Resolve(
+	const StaticBatchPacketCacheEntry& group,
+	std::span<const RenderPacket> packets
+) noexcept {
+	return Resolve(
+		group,
+		packets,
+		StaticBatchModelGeometrySourceProviders::LegacyModelData()
+	);
 }
 
 } // namespace StaticBatchModelGeometrySourceResolver
