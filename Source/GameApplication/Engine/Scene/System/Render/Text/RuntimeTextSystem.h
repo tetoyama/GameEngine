@@ -7,6 +7,15 @@
 #include <wincodec.h>
 #include <wrl/client.h>
 
+// Windows SDK headers can expose function-like min/max macros. Remove them
+// before RuntimeTextSystem.cpp uses the standard library algorithms.
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+
 struct SceneManagerContext;
 class RuntimeTextComponent;
 struct TextureData;
