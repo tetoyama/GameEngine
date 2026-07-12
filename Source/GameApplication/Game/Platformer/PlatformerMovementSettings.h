@@ -11,18 +11,32 @@ struct PlatformerMovementSettings {
 	float airTurnAcceleration = 24.0f;
 	float rotationSpeed = 14.0f;
 
+	// Feel layer: preserve the authored base speed while adding a quick first
+	// response and a small sustained-run reward. These are intentionally modest
+	// so the existing course remains playable without widening every platform.
+	float initialResponseAcceleration = 20.0f;
+	float reverseAccelerationMultiplier = 1.75f;
+	float runBuildSeconds = 0.58f;
+	float runSpeedBonus = 1.15f;
+	float runBuildDecay = 1.8f;
+	float apexHorizontalAssist = 1.32f;
+	float landingMomentumBoost = 0.28f;
+
 	float firstJumpVelocity = 7.6f;
 	float secondJumpVelocity = 8.4f;
 	float thirdJumpVelocity = 10.0f;
 	float stompBounceVelocity = 8.2f;
-	float variableJumpCut = 0.48f;
+	float firstJumpForwardBoost = 0.30f;
+	float secondJumpForwardBoost = 0.62f;
+	float thirdJumpForwardBoost = 1.05f;
+	float variableJumpCut = 0.43f;
 	float coyoteTime = 0.12f;
 	float jumpBufferTime = 0.14f;
 
 	float gravityAscending = 20.0f;
 	float gravityDescending = 31.0f;
-	float apexGravityScale = 0.55f;
-	float apexVelocityThreshold = 1.15f;
+	float apexGravityScale = 0.50f;
+	float apexVelocityThreshold = 1.30f;
 
 	// The player capsule spans approximately y=0.0 to y=1.5 relative to the
 	// entity origin. RaycastWithMask uses an exclusion mask, but older scene data
@@ -49,9 +63,9 @@ struct PlatformerMovementSettings {
 	float wallContactGrace = 0.14f;
 	float wallKickHorizontalVelocity = 7.2f;
 	float wallKickVerticalVelocity = 8.8f;
-	float wallKickInputInfluence = 2.2f;
-	float wallKickControlLock = 0.12f;
-	float sameWallBlockTime = 0.38f;
+	float wallKickInputInfluence = 2.45f;
+	float wallKickControlLock = 0.085f;
+	float sameWallBlockTime = 0.34f;
 
 	float damageKnockbackHorizontal = 6.0f;
 	float damageKnockbackVertical = 6.2f;
@@ -59,6 +73,6 @@ struct PlatformerMovementSettings {
 	float invulnerabilityTime = 1.15f;
 
 	float fallRecoveryDelay = 0.42f;
-	float respawnControlLock = 0.22f;
+	float respawnControlLock = 0.18f;
 	float respawnInvulnerability = 1.0f;
 };
