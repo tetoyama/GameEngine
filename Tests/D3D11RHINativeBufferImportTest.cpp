@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <iterator>
 #include <memory>
+#include <span>
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -206,6 +207,7 @@ int main(){
 	assert(rhiDevice.GetBufferDesc(indexHandle) == nullptr);
 	assert(rhiDevice.GetBufferDesc(vertexHandle) == nullptr);
 
+	// Native Buffer互換Fallback。
 	auto bindingVertexBuffer = CreateBuffer(
 		*primary.device,
 		static_cast<UINT>(sizeof(vertices)),
@@ -219,29 +221,32 @@ int main(){
 		indices.data()
 	);
 
-	StaticBatchD3D11GeometrySource source;
-	source.vertexBuffer = bindingVertexBuffer.Get();
-	source.indexBuffer = bindingIndexBuffer.Get();
-	source.vertexStride = vertexStride;
-	source.vertexCount = 3;
-	source.indexCount = 3;
-	source.indexFormat = RHI::IndexFormat::UInt32;
-	source.geometryResourceKey = 0x12345678ull;
-	assert(source.IsValid());
+	StaticBatchD3D11GeometrySource nativeSource;
+	nativeSource.vertexBuffer = bindingVertexBuffer.Get();
+	nativeSource.indexBuffer = bindingIndexBuffer.Get();
+	nativeSource.vertexStride = vertexStride;
+	nativeSource.vertexCount = 3;
+	nativeSource.indexCount = 3;
+	nativeSource.indexFormat = RHI::IndexFormat::UInt32;
+	nativeSource.geometryResourceKey = 0x12345678ull;
+	assert(nativeSource.IsValid());
+	assert(!nativeSource.HasCpuData());
+	assert(nativeSource.HasNativeBuffers());
 
-	StaticBatchD3D11GeometryBinding binding;
-	StaticBatchD3D11GeometrySource oversizedSource = source;
-	oversizedSource.vertexCount = 4;
-	assert(!binding.Create(rhiDevice, oversizedSource));
-	assert(!binding.IsAllocated());
-	assert(binding.Create(rhiDevice, source));
-	assert(binding.IsReady());
-	assert(binding.Matches(source));
-	assert(binding.VertexStride() == vertexStride);
-	assert(binding.VertexCount() == 3);
-	assert(binding.IndexCount() == 3);
-	assert(binding.IndexFormat() == RHI::IndexFormat::UInt32);
-	assert(binding.GeometryResourceKey() == source.geometryResourceKey);
+	StaticBatchD3D11GeometryBinding nativeBinding;
+	StaticBatchD3D11GeometrySource oversizedNativeSource = nativeSource;
+	oversizedNativeSource.vertexCount = 4;
+	assert(!nativeBinding.Create(rhiDevice, oversizedNativeSource));
+	assert(!nativeBinding.IsAllocated());
+	assert(nativeBinding.Create(rhiDevice, nativeSource));
+	assert(nativeBinding.IsReady());
+	assert(!nativeBinding.WasCreatedFromCpuData());
+	assert(nativeBinding.Matches(nativeSource));
+	assert(nativeBinding.VertexStride() == vertexStride);
+	assert(nativeBinding.VertexCount() == 3);
+	assert(nativeBinding.IndexCount() == 3);
+	assert(nativeBinding.IndexFormat() == RHI::IndexFormat::UInt32);
+	assert(nativeBinding.GeometryResourceKey() == nativeSource.geometryResourceKey);
 
 	bindingVertexBuffer.Reset();
 	bindingIndexBuffer.Reset();
@@ -252,10 +257,70 @@ int main(){
 	});
 	assert(commandList);
 	commandList->Begin();
-	assert(binding.Bind(*commandList));
+	assert(nativeBinding.Bind(*commandList));
 	commandList->End();
-	assert(binding.Release(rhiDevice));
-	assert(!binding.IsAllocated());
-	assert(!binding.IsReady());
+	assert(nativeBinding.Release(rhiDevice));
+	assert(!nativeBinding.IsAllocated());
+	assert(!nativeBinding.IsReady());
+
+	// CPU SnapshotからImmutable RHI Bufferを直接生成する主経路。
+	StaticBatchD3D11GeometrySource cpuSource;
+	cpuSource.vertexData = std::as_bytes(std::span<const float>(vertices));
+	cpuSource.indexData = std::as_bytes(
+		std::span<const std::uint32_t>(indices)
+	);
+	cpuSource.vertexStride = vertexStride;
+	cpuSource.vertexCount = 3;
+	cpuSource.indexCount = 3;
+	cpuSource.indexFormat = RHI::IndexFormat::UInt32;
+	cpuSource.geometryResourceKey = 0x87654321ull;
+	assert(cpuSource.IsValid());
+	assert(cpuSource.HasCpuData());
+	assert(!cpuSource.HasNativeBuffers());
+
+	StaticBatchD3D11GeometryBinding cpuBinding;
+	StaticBatchD3D11GeometrySource oversizedCpuSource = cpuSource;
+	oversizedCpuSource.indexCount = 4;
+	assert(!oversizedCpuSource.IsValid());
+	assert(!cpuBinding.Create(rhiDevice, oversizedCpuSource));
+	assert(cpuBinding.Create(rhiDevice, cpuSource));
+	assert(cpuBinding.IsReady());
+	assert(cpuBinding.WasCreatedFromCpuData());
+	assert(cpuBinding.Matches(cpuSource));
+
+	const RHI::BufferDesc* cpuVertexDesc =
+		rhiDevice.GetBufferDesc(cpuBinding.VertexBuffer());
+	const RHI::BufferDesc* cpuIndexDesc =
+		rhiDevice.GetBufferDesc(cpuBinding.IndexBuffer());
+	assert(cpuVertexDesc);
+	assert(cpuIndexDesc);
+	assert(cpuVertexDesc->byteSize == sizeof(vertices));
+	assert(cpuVertexDesc->stride == vertexStride);
+	assert(cpuVertexDesc->usage == RHI::ResourceUsage::Immutable);
+	assert(cpuVertexDesc->initialState == RHI::ResourceState::VertexBuffer);
+	assert(RHI::HasAnyFlag(
+		cpuVertexDesc->bindFlags,
+		RHI::BufferBindFlags::Vertex
+	));
+	assert(cpuIndexDesc->byteSize == sizeof(indices));
+	assert(cpuIndexDesc->stride == sizeof(std::uint32_t));
+	assert(cpuIndexDesc->usage == RHI::ResourceUsage::Immutable);
+	assert(cpuIndexDesc->initialState == RHI::ResourceState::IndexBuffer);
+	assert(RHI::HasAnyFlag(
+		cpuIndexDesc->bindFlags,
+		RHI::BufferBindFlags::Index
+	));
+
+	commandList = rhiDevice.CreateCommandList({
+		RHI::CommandQueueType::Graphics,
+		false
+	});
+	assert(commandList);
+	commandList->Begin();
+	assert(cpuBinding.Bind(*commandList));
+	commandList->End();
+	assert(cpuBinding.Release(rhiDevice));
+	assert(!cpuBinding.IsAllocated());
+	assert(!cpuBinding.IsReady());
 	return 0;
 }
