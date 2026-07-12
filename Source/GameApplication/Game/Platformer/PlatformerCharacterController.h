@@ -309,7 +309,6 @@ private:
 		controlLockTimer = (std::max)(0.0f, controlLockTimer - dt);
 		groundDetachTimer = (std::max)(0.0f, groundDetachTimer - dt);
 		sameWallBlockTimer = (std::max)(0.0f, sameWallBlockTimer - dt);
-		if(tripleChainTimer <= 0.0f && grounded) jumpStage = 0;
 	}
 
 	Vector3 ReadCameraRelativeInput() {
@@ -418,6 +417,8 @@ private:
 				jumpStage = 0;
 				tripleChainTimer = 0.0f;
 			}
+		} else if(grounded && tripleChainTimer <= 0.0f) {
+			jumpStage = 0;
 		}
 	}
 
