@@ -6,6 +6,7 @@
 #pragma once
 
 // 既定で読み込む初期シーン
+// Release起動時のフォールバック。Editorでは開いているSceneをPlayする。
 #define DEFAULT_SCENE "Asset/Game/ElemenTactics/Scene/ElemenTactics.yaml"
 
 // アセット・設定ファイルの共通パス
@@ -27,9 +28,9 @@
 
 #ifdef _DEBUG
 
-// ElemenTactics専用branchではDebug構成でもApplicationConfigのStartSceneから
-// ゲームSceneを起動する。Editor機能は維持する。
-#define _RELEASE_BUILD
+// Debugは通常のEditor経路を使う。
+// Engine起動後にElemenTactics.yamlを開き、PlayしたScene自身をゲーム入口とする。
+#define _DEBUG_BUILD
 #define _EDITOR
 
 #else
