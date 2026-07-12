@@ -96,6 +96,7 @@ protected:
                 auto* renderer =
                     context.component->GetComponent<ModelRendererComponent>(entity);
 
+                const std::string materialRole = name;
                 if (nameComponent) {
                     nameComponent->name = std::move(name);
                 }
@@ -104,12 +105,7 @@ protected:
                     transform->scale = scale;
                 }
                 if (material) {
-                    material->ShaderID = 0;
-                    material->Material.BaseColor = color;
-                    material->Material.Metallic = 0.05f;
-                    material->Material.Roughness = 0.68f;
-                    material->Material.MaterialFlags &=
-                        ~MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
+                    ApplyCubeMaterialPreset(materialRole, color, *material);
                 }
                 if (texture && context.manager && context.manager->resource) {
                     // cube.objが参照するcube.mtlはAssetに存在しないため、
@@ -403,6 +399,86 @@ protected:
     }
 
 private:
+    static bool ContainsRole(std::string_view name, std::string_view token) noexcept {
+        return name.find(token) != std::string_view::npos;
+    }
+
+    static void ApplyCubeMaterialPreset(
+        std::string_view role,
+        DirectX::XMFLOAT4 color,
+        MaterialComponent& material
+    ) {
+        material.ShaderID = 1;
+        material.Material.BaseColor = color;
+        material.Material.Metallic = 0.08f;
+        material.Material.Roughness = 0.58f;
+        material.Material.AO = 1.0f;
+        material.Material.EmissiveColor = DirectX::XMFLOAT3(
+            color.x * 0.08f,
+            color.y * 0.08f,
+            color.z * 0.08f
+        );
+        material.Material.EmissiveIntensity = 0.0f;
+        material.Material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
+        material.Material.MaterialFlags &= ~MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
+
+        if (ContainsRole(role, "Player_")) {
+            material.Material.Metallic = 0.24f;
+            material.Material.Roughness = 0.30f;
+            material.Material.EmissiveColor = DirectX::XMFLOAT3(
+                color.x * 0.58f,
+                color.y * 0.58f,
+                color.z * 0.58f
+            );
+            material.Material.EmissiveIntensity = 0.58f;
+        } else if (ContainsRole(role, "Sheep_") || ContainsRole(role, "SheepField")) {
+            material.Material.Metallic = 0.0f;
+            material.Material.Roughness = ContainsRole(role, "SheepField") ? 0.86f : 0.96f;
+        } else if (ContainsRole(role, "Tile_") || ContainsRole(role, "TerritoryTile")) {
+            material.Material.Metallic = 0.10f;
+            material.Material.Roughness = 0.44f;
+            material.Material.EmissiveColor = DirectX::XMFLOAT3(
+                color.x * 0.22f,
+                color.y * 0.22f,
+                color.z * 0.22f
+            );
+            material.Material.EmissiveIntensity = 0.12f;
+        } else if (ContainsRole(role, "Pen")) {
+            material.Material.Metallic = 0.16f;
+            material.Material.Roughness = 0.32f;
+            material.Material.EmissiveColor = DirectX::XMFLOAT3(
+                color.x * 0.72f,
+                color.y * 0.72f,
+                color.z * 0.72f
+            );
+            material.Material.EmissiveIntensity = 0.85f;
+        } else if (
+            ContainsRole(role, "Wall") ||
+            ContainsRole(role, "Obstacle")
+        ) {
+            material.Material.Metallic = 0.38f;
+            material.Material.Roughness = 0.40f;
+        } else if (
+            ContainsRole(role, "Floor") ||
+            ContainsRole(role, "Field")
+        ) {
+            material.Material.Metallic = 0.03f;
+            material.Material.Roughness = 0.84f;
+        } else if (
+            ContainsRole(role, "ShotTracer") ||
+            ContainsRole(role, "FallbackEffect")
+        ) {
+            material.Material.Metallic = 0.12f;
+            material.Material.Roughness = 0.14f;
+            material.Material.EmissiveColor = DirectX::XMFLOAT3(
+                color.x,
+                color.y,
+                color.z
+            );
+            material.Material.EmissiveIntensity = 3.2f;
+        }
+    }
+
     static void DrawStrategyGuide(
         MiniGameRuntimeUi& ui,
         std::string_view title
