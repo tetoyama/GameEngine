@@ -64,7 +64,7 @@ Entities:
         AddSpeed: {x: 0, y: -8, z: 0}
         MulSpeed: {x: 0.95, y: 0.95, z: 0.95}
       - Component: AudioComponent
-        FilePath: Asset\Audio\BGM.wav
+        FilePath: Asset\Game\Platformer\Sound\Coin.wav
         Loop: false
         Volume: 0.16
         PlayOnStart: false
