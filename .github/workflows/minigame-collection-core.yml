@@ -104,11 +104,18 @@ jobs:
             exit 1
           fi
           entry_scene=Asset/Game/MiniGameCollection/Scene/Entry/MiniGameCollectionEntry.scene
+          persistent_scene=Asset/Game/MiniGameCollection/Scene/Persistent/MiniGamePersistent.scene
+          runtime_base=Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h
           grep -q "MiniGameCollectionEntryRuntime" Source/GameApplication/Engine/Scene/Component/componentList.h
           grep -q "AdditiveScenePaths" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameCollectionEntryRuntime.h
+          grep -q "UnloadScenesOutsideComposition" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameCollectionEntryRuntime.h
           grep -q "AdditiveScenePaths:" "$entry_scene"
           grep -q "Asset/Game/MiniGameCollection/Scene/Persistent/MiniGamePersistent.scene" "$entry_scene"
+          grep -q "UnloadScenesOutsideComposition: true" "$entry_scene"
           grep -q "DestroyEntryAfterLoaded: true" "$entry_scene"
+          grep -q "isLock: true" "$persistent_scene"
+          grep -q "QueueAddComponent<TextureComponent>" "$runtime_base"
+          grep -q "Asset.*Texture.*white.tga" "$runtime_base"
       - name: Enforce deferred additive scene loading
         shell: bash
         run: |
