@@ -3,6 +3,7 @@
 #include "Game/MiniGameCollection/Core/MiniGameCore.h"
 #include "Game/MiniGameCollection/Core/MiniGameMath.h"
 
+#include <chrono>
 #include <functional>
 #include <mutex>
 #include <optional>
@@ -65,7 +66,39 @@ public:
         if (command.sceneToken == 0) {
             return;
         }
+
         std::scoped_lock lock(Mutex());
+
+        if (command.type == RuntimePresentationCommandType::BeginScene) {
+            LastLowScorePresentationTimes().erase(command.sceneToken);
+        }
+
+        // 通常の1マス取得は最大4人から高頻度で届く。
+        // すべてをカメラ揺れ・発光Effect・HUD Burstへ変換すると画面全体が点滅するため、
+        // 低強度ScoreだけScene単位で間引く。首位変動、爆弾、スター等の強演出は通す。
+        if (command.type == RuntimePresentationCommandType::Score &&
+            command.intensity < LowScorePresentationIntensityThreshold) {
+            const auto now = PresentationClock::now();
+            auto& lastTimes = LastLowScorePresentationTimes();
+            const auto found = lastTimes.find(command.sceneToken);
+            if (found != lastTimes.end() &&
+                now - found->second < LowScorePresentationInterval) {
+                auto& commands = PresentationCommands();
+                for (auto it = commands.rbegin(); it != commands.rend(); ++it) {
+                    if (it->sceneToken == command.sceneToken &&
+                        it->type == RuntimePresentationCommandType::Score &&
+                        it->intensity < LowScorePresentationIntensityThreshold) {
+                        if (command.intensity >= it->intensity) {
+                            *it = command;
+                        }
+                        return;
+                    }
+                }
+                return;
+            }
+            lastTimes[command.sceneToken] = now;
+        }
+
         PresentationCommands().push_back(command);
     }
 
@@ -110,6 +143,7 @@ public:
     static void ClearForScene(SceneToken sceneToken) {
         std::scoped_lock lock(Mutex());
         ShutdownCallbacks().erase(sceneToken);
+        LastLowScorePresentationTimes().erase(sceneToken);
         std::erase_if(
             PresentationCommands(),
             [sceneToken](const RuntimePresentationCommand& command) {
@@ -123,6 +157,11 @@ public:
     }
 
 private:
+    using PresentationClock = std::chrono::steady_clock;
+    static constexpr float LowScorePresentationIntensityThreshold = 1.0f;
+    static constexpr auto LowScorePresentationInterval =
+        std::chrono::milliseconds(160);
+
     static std::mutex& Mutex() {
         static std::mutex mutex;
         return mutex;
@@ -136,6 +175,12 @@ private:
     static std::vector<RuntimePresentationCommand>& PresentationCommands() {
         static std::vector<RuntimePresentationCommand> commands;
         return commands;
+    }
+
+    static std::unordered_map<SceneToken, PresentationClock::time_point>&
+    LastLowScorePresentationTimes() {
+        static std::unordered_map<SceneToken, PresentationClock::time_point> times;
+        return times;
     }
 
     static std::unordered_map<SceneToken, ShutdownCallback>& ShutdownCallbacks() {
