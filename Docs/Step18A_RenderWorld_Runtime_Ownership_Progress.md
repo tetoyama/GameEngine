@@ -94,6 +94,8 @@ Provider境界:
 - ResolverはProviderから検証済み`StaticBatchD3D11GeometrySource`だけを受け取る
 - Geometry Binding CacheへProvider注入Overloadを追加
 - Animation Group拒否、Skinned SubMesh拒否、Geometry Resource Key一致検証を維持
+- Packet Build時に確定した`group.key.geometryKey`をProviderへ明示的に渡す
+- Provider / Runtime Storage内では`StaticBatchResourceKey::MakeGeometryKey(packet)`を再実行しない
 
 Runtime Storage:
 
@@ -112,6 +114,7 @@ Runtime Storage:
 - `StaticBatchLegacyModelGeometrySourceProvider`だけが`ModelData::VertexBuffer / IndexBuffer`を参照する
 - Legacy ProviderはStorage MissまたはModel Revision差し替え時の初回取り込みにだけ使用する
 - 通常FrameのResolver / Geometry Binding CacheはRuntime Storage Entryを再利用する
+- Legacy Providerも確定済みGeometry Keyを受け取り、ModelDataからKeyを再構築しない
 
 この境界により、次工程でModel共有Geometryの**生成元**を`ModelData`からRenderSystem側へ移しても、Resolver / Cache / GBuffer / Shadow提出契約を変更せずに差し替えられる。
 
@@ -138,6 +141,8 @@ Runtime Storage:
 - Runtime Storageが独立COM参照を保持すること
 - Provider注入経路がGeometry Binding Cacheまで接続されていること
 - 同期開始 / 終了と未使用Entry解放契約
+- 確定済みGroup Geometry KeyがProviderへ伝播すること
+- Provider / Runtime StorageでGeometry Keyを再生成しないこと
 
 ## Step 18-A残作業
 
