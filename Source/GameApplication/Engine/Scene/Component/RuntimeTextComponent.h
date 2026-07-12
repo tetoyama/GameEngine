@@ -4,9 +4,8 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <cstring>
-#include <functional>
 #include <string>
+#include <utility>
 
 class RuntimeTextComponent final : public IComponent {
 public:
@@ -77,6 +76,7 @@ public:
 		appendBytes(&Horizontal, sizeof(Horizontal));
 		appendBytes(&Vertical, sizeof(Vertical));
 		appendBytes(&WordWrap, sizeof(WordWrap));
+		appendBytes(&AutoSizeTransform, sizeof(AutoSizeTransform));
 		return hash == 0 ? 1 : hash;
 	}
 
@@ -149,6 +149,10 @@ public:
 			PixelWidth = std::clamp(PixelWidth, 1, 4096);
 			PixelHeight = std::clamp(PixelHeight, 1, 4096);
 			FontSize = std::clamp(FontSize, 4.0f, 256.0f);
+			ColorR = std::clamp(ColorR, 0.0f, 1.0f);
+			ColorG = std::clamp(ColorG, 0.0f, 1.0f);
+			ColorB = std::clamp(ColorB, 0.0f, 1.0f);
+			ColorA = std::clamp(ColorA, 0.0f, 1.0f);
 			MarkDirty();
 		}
 	}
