@@ -1,0 +1,52 @@
+Entities:
+  - LocalID: 0
+    Components:
+      - Component: NameComponent
+        Name: PlatformerBlock
+      - Component: TransformComponent
+        Position: {x: 0, y: 0, z: 0}
+        Rotation: [0, 0, 0, 1]
+        Scale: {x: 1, y: 1, z: 1}
+        Parent: 0
+      - Component: StaticEntityComponent
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 0
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0.8
+            dynamicFriction: 0.6
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor: {x: 0.24, y: 0.34, z: 0.46, w: 1}
+          Metallic: 0.05
+          Roughness: 0.82
+          AO: 1
+          EmissiveColor: {x: 0, y: 0, z: 0}
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
