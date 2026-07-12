@@ -71,7 +71,7 @@ public:
 			return false;
 		}
 
-		m_SourceVoice->SetVolume(std::max(0.0f, Volume));
+		m_SourceVoice->SetVolume((std::max)(0.0f, Volume));
 		m_SourceVoice->SetFrequencyRatio(ClampPitch(Pitch));
 		hr = m_SourceVoice->Start();
 		if(FAILED(hr)){
