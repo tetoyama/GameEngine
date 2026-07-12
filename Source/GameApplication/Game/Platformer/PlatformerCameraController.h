@@ -14,9 +14,13 @@ class PlatformerCameraController : public CustomScriptComponent {
 		REFLECT_FIELD(float, followSharpness, 7.5f)
 		REFLECT_FIELD(float, verticalFollowSharpness, 3.0f)
 		REFLECT_FIELD(float, transitionSharpness, 4.8f)
-		REFLECT_FIELD(float, occlusionReturnSharpness, 6.0f)
-		REFLECT_FIELD(float, minimumDistance, 1.2f)
-		REFLECT_FIELD(float, collisionPadding, 0.18f)
+		REFLECT_FIELD(float, occlusionShortenSharpness, 13.0f)
+		REFLECT_FIELD(float, occlusionReturnSharpness, 4.0f)
+		REFLECT_FIELD(float, occlusionEnterDelay, 0.08f)
+		REFLECT_FIELD(float, occlusionExitDelay, 0.12f)
+		REFLECT_FIELD(float, occlusionProbeStart, 0.45f)
+		REFLECT_FIELD(float, minimumDistance, 2.5f)
+		REFLECT_FIELD(float, collisionPadding, 0.24f)
 		REFLECT_FIELD(float, courseYawDegrees, 0.0f)
 		REFLECT_FIELD(float, courseDistance, 8.5f)
 		REFLECT_FIELD(float, courseHeight, 3.8f)
@@ -47,6 +51,7 @@ public:
 		DECODE_FIELDS(node);
 		if(node["SelfLayerBit"]) selfLayerBit = node["SelfLayerBit"].as<uint32_t>();
 		if(node["Profile"]) profile = static_cast<Profile>(std::clamp(node["Profile"].as<int>(), 0, 4));
+		ValidateSettings();
 		return true;
 	}
 
@@ -56,9 +61,12 @@ public:
 		int value = static_cast<int>(profile);
 		const char* profiles[] = {"Course", "Triple Jump", "Wall Kick", "Boss", "Clear"};
 		if(ImGui::Combo("Profile", &value, profiles, 5)) SetProfile(static_cast<Profile>(value));
+		ImGui::Text("Distance: %.2f", currentDistance);
+		ImGui::Text("Occluded: %s", occlusionActive ? "true" : "false");
 	}
 
 	void OnStart() override {
+		ValidateSettings();
 		transform = GetComponentRef<TransformComponent>();
 		camera = GetComponentRef<CameraComponent>();
 		player = PlatformerSceneAccess::FindFirst<PlatformerCharacterController>(m_ref.GetScene());
@@ -66,76 +74,51 @@ public:
 			smoothedTarget = playerPose->position + Vector3(0.0f, 1.2f, 0.0f);
 			smoothedVertical = smoothedTarget.y;
 		}
-		currentDistance = GetProfileSettings(profile).distance;
+
 		currentSettings = GetProfileSettings(profile);
 		targetSettings = currentSettings;
+		currentDistance = OffsetLength(currentSettings);
+		occlusionEnterTimer = 0.0f;
+		occlusionExitTimer = 0.0f;
+		occlusionActive = false;
 	}
 
 	void OnFixedUpdate(float dt) override {
+		if(dt <= 0.0f) return;
+		ValidateSettings();
+
 		auto* cameraPose = transform.TryGet();
 		auto* cameraComponent = camera.TryGet();
 		if(!cameraPose || !cameraComponent) return;
+
 		if(!player.IsValid()) player = PlatformerSceneAccess::FindFirst<PlatformerCharacterController>(m_ref.GetScene());
 		ComponentRef<TransformComponent> playerTransform(player.GetEntityRef());
 		auto* playerPose = playerTransform.TryGet();
 		if(!playerPose) return;
 
-		targetSettings = GetProfileSettings(profile);
-		const float settingsBlend = ExpBlend(transitionSharpness, dt);
-		currentSettings.distance += (targetSettings.distance - currentSettings.distance) * settingsBlend;
-		currentSettings.height += (targetSettings.height - currentSettings.height) * settingsBlend;
-		currentSettings.lookHeight += (targetSettings.lookHeight - currentSettings.lookHeight) * settingsBlend;
-		currentSettings.lookAhead += (targetSettings.lookAhead - currentSettings.lookAhead) * settingsBlend;
-		currentSettings.yawRadians = LerpAngle(currentSettings.yawRadians, targetSettings.yawRadians, settingsBlend);
-		currentSettings.fov += (targetSettings.fov - currentSettings.fov) * settingsBlend;
-
-		Vector3 desiredTarget = playerPose->position;
-		Vector3 forward = playerPose->front();
-		forward.y = 0.0f;
-		if(forward.length() > 0.0001f) forward = forward.normalize();
-		desiredTarget += forward * currentSettings.lookAhead;
-		desiredTarget.y += currentSettings.lookHeight;
-
-		if(profile == Profile::Boss && bossTarget.IsValid()) {
-			ComponentRef<TransformComponent> bossTransform(bossTarget);
-			if(auto* bossPose = bossTransform.TryGet()) {
-				const Vector3 midpoint = (playerPose->position + bossPose->position) * 0.5f;
-				desiredTarget.x = midpoint.x;
-				desiredTarget.z = midpoint.z;
-				desiredTarget.y = (std::max)(playerPose->position.y, bossPose->position.y) + currentSettings.lookHeight;
-			}
-		}
-
-		const float horizontalBlend = ExpBlend(followSharpness, dt);
-		const float verticalBlend = ExpBlend(verticalFollowSharpness, dt);
-		smoothedTarget.x += (desiredTarget.x - smoothedTarget.x) * horizontalBlend;
-		smoothedTarget.z += (desiredTarget.z - smoothedTarget.z) * horizontalBlend;
-		smoothedVertical += (desiredTarget.y - smoothedVertical) * verticalBlend;
-		smoothedTarget.y = smoothedVertical;
+		UpdateProfileSettings(dt);
+		UpdateTarget(*playerPose, dt);
 
 		const Vector3 offset(
 			std::sin(currentSettings.yawRadians) * currentSettings.distance,
 			currentSettings.height,
 			-std::cos(currentSettings.yawRadians) * currentSettings.distance);
 		const Vector3 desiredCamera = smoothedTarget + offset;
-		Vector3 ray = desiredCamera - smoothedTarget;
-		float desiredDistance = ray.length();
-		Vector3 rayDirection = desiredDistance > 0.0001f ? ray / desiredDistance : Vector3(0.0f, 0.0f, -1.0f);
-		float unoccludedDistance = desiredDistance;
+		const Vector3 desiredRay = desiredCamera - smoothedTarget;
+		const float desiredDistance = desiredRay.length();
+		const Vector3 rayDirection = desiredDistance > 0.0001f
+			? desiredRay / desiredDistance
+			: Vector3(0.0f, 0.0f, -1.0f);
 
-		if(auto* physics = PlatformerSceneAccess::Physics(m_ref.GetScene())) {
-			const RayHit hit = physics->RaycastWithMask(
-				physx::PxVec3(smoothedTarget.x, smoothedTarget.y, smoothedTarget.z),
-				physx::PxVec3(rayDirection.x, rayDirection.y, rayDirection.z),
-				desiredDistance,
-				selfLayerBit);
-			if(hit.hit) unoccludedDistance = (std::max)(minimumDistance, hit.distance - collisionPadding);
-		}
+		float obstructionDistance = desiredDistance;
+		const bool obstructed = ProbeOcclusion(rayDirection, desiredDistance, obstructionDistance);
+		const float distanceTarget = ResolveDistanceTarget(obstructed, obstructionDistance, desiredDistance, dt);
 
-		if(currentDistance <= 0.0f) currentDistance = unoccludedDistance;
-		if(unoccludedDistance < currentDistance) currentDistance = unoccludedDistance;
-		else currentDistance += (unoccludedDistance - currentDistance) * ExpBlend(occlusionReturnSharpness, dt);
-		currentDistance = std::clamp(currentDistance, minimumDistance, (std::max)(minimumDistance, desiredDistance));
+		if(currentDistance <= 0.0f) currentDistance = desiredDistance;
+		const bool shortening = distanceTarget < currentDistance;
+		const float distanceSharpness = shortening ? occlusionShortenSharpness : occlusionReturnSharpness;
+		currentDistance += (distanceTarget - currentDistance) * ExpBlend(distanceSharpness, dt);
+		currentDistance = (std::max)(minimumDistance, currentDistance);
 
 		cameraPose->position = smoothedTarget + rayDirection * currentDistance;
 		cameraComponent->isLock = true;
@@ -147,6 +130,9 @@ public:
 	void SetProfile(Profile next) {
 		if(profile == next) return;
 		profile = next;
+		occlusionEnterTimer = 0.0f;
+		occlusionExitTimer = 0.0f;
+		occlusionActive = false;
 		++profileRevision;
 	}
 
@@ -164,6 +150,118 @@ private:
 		float lookAhead = 0.8f;
 		float fov = 1.0f;
 	};
+
+	void ValidateSettings() {
+		followSharpness = (std::max)(0.1f, followSharpness);
+		verticalFollowSharpness = (std::max)(0.1f, verticalFollowSharpness);
+		transitionSharpness = (std::max)(0.1f, transitionSharpness);
+		occlusionShortenSharpness = (std::max)(0.1f, occlusionShortenSharpness);
+		occlusionReturnSharpness = (std::max)(0.1f, occlusionReturnSharpness);
+		occlusionEnterDelay = (std::max)(0.0f, occlusionEnterDelay);
+		occlusionExitDelay = (std::max)(0.0f, occlusionExitDelay);
+		occlusionProbeStart = (std::max)(0.0f, occlusionProbeStart);
+
+		// Older authored scenes stored 1.2. That distance is too close for this
+		// character scale and makes a single transient ray hit visually violent.
+		minimumDistance = (std::max)(2.5f, minimumDistance);
+		collisionPadding = (std::max)(0.05f, collisionPadding);
+	}
+
+	void UpdateProfileSettings(float dt) {
+		targetSettings = GetProfileSettings(profile);
+		const float blend = ExpBlend(transitionSharpness, dt);
+		currentSettings.distance += (targetSettings.distance - currentSettings.distance) * blend;
+		currentSettings.height += (targetSettings.height - currentSettings.height) * blend;
+		currentSettings.lookHeight += (targetSettings.lookHeight - currentSettings.lookHeight) * blend;
+		currentSettings.lookAhead += (targetSettings.lookAhead - currentSettings.lookAhead) * blend;
+		currentSettings.yawRadians = LerpAngle(currentSettings.yawRadians, targetSettings.yawRadians, blend);
+		currentSettings.fov += (targetSettings.fov - currentSettings.fov) * blend;
+	}
+
+	void UpdateTarget(const TransformComponent& playerPose, float dt) {
+		Vector3 desiredTarget = playerPose.position;
+		Vector3 forward = playerPose.front();
+		forward.y = 0.0f;
+		if(forward.length() > 0.0001f) forward = forward.normalize();
+		desiredTarget += forward * currentSettings.lookAhead;
+		desiredTarget.y += currentSettings.lookHeight;
+
+		if(profile == Profile::Boss && bossTarget.IsValid()) {
+			ComponentRef<TransformComponent> bossTransform(bossTarget);
+			if(auto* bossPose = bossTransform.TryGet()) {
+				const Vector3 midpoint = (playerPose.position + bossPose->position) * 0.5f;
+				desiredTarget.x = midpoint.x;
+				desiredTarget.z = midpoint.z;
+				desiredTarget.y = (std::max)(playerPose.position.y, bossPose->position.y) + currentSettings.lookHeight;
+			}
+		}
+
+		const float horizontalBlend = ExpBlend(followSharpness, dt);
+		const float verticalBlend = ExpBlend(verticalFollowSharpness, dt);
+		smoothedTarget.x += (desiredTarget.x - smoothedTarget.x) * horizontalBlend;
+		smoothedTarget.z += (desiredTarget.z - smoothedTarget.z) * horizontalBlend;
+		smoothedVertical += (desiredTarget.y - smoothedVertical) * verticalBlend;
+		smoothedTarget.y = smoothedVertical;
+	}
+
+	bool ProbeOcclusion(
+		const Vector3& rayDirection,
+		float desiredDistance,
+		float& obstructionDistance
+	) const {
+		auto* physics = PlatformerSceneAccess::Physics(m_ref.GetScene());
+		if(!physics || desiredDistance <= minimumDistance) return false;
+
+		const float startDistance = (std::min)(occlusionProbeStart, desiredDistance * 0.25f);
+		const Vector3 origin = smoothedTarget + rayDirection * startDistance;
+		const float probeLength = desiredDistance - startDistance;
+		if(probeLength <= 0.001f) return false;
+
+		const RayHit hit = physics->RaycastWithMask(
+			physx::PxVec3(origin.x, origin.y, origin.z),
+			physx::PxVec3(rayDirection.x, rayDirection.y, rayDirection.z),
+			probeLength,
+			selfLayerBit);
+		if(!hit.hit || hit.distance <= 0.02f) return false;
+
+		obstructionDistance = (std::max)(
+			minimumDistance,
+			startDistance + hit.distance - collisionPadding);
+		return obstructionDistance < desiredDistance - 0.15f;
+	}
+
+	float ResolveDistanceTarget(
+		bool obstructed,
+		float obstructionDistance,
+		float desiredDistance,
+		float dt
+	) {
+		// Profile transitions are allowed to change the distance immediately as a
+		// target, but the actual camera still interpolates toward that target.
+		if(currentDistance > desiredDistance + 0.05f) {
+			occlusionEnterTimer = 0.0f;
+			occlusionExitTimer = 0.0f;
+			occlusionActive = false;
+			return desiredDistance;
+		}
+
+		if(obstructed) {
+			occlusionExitTimer = 0.0f;
+			occlusionEnterTimer += dt;
+			if(occlusionEnterTimer >= occlusionEnterDelay) occlusionActive = true;
+			return occlusionActive ? obstructionDistance : currentDistance;
+		}
+
+		occlusionEnterTimer = 0.0f;
+		if(occlusionActive) {
+			occlusionExitTimer += dt;
+			if(occlusionExitTimer < occlusionExitDelay) return currentDistance;
+		}
+
+		occlusionActive = false;
+		occlusionExitTimer = 0.0f;
+		return desiredDistance;
+	}
 
 	CameraSettings GetProfileSettings(Profile selected) const {
 		CameraSettings result;
@@ -185,6 +283,10 @@ private:
 			break;
 		}
 		return result;
+	}
+
+	static float OffsetLength(const CameraSettings& settings) {
+		return std::sqrt(settings.distance * settings.distance + settings.height * settings.height);
 	}
 
 	static void ApplyLookRotation(TransformComponent& transform, const Vector3& target) {
@@ -222,6 +324,9 @@ private:
 	Vector3 smoothedTarget;
 	float smoothedVertical = 0.0f;
 	float currentDistance = 0.0f;
+	float occlusionEnterTimer = 0.0f;
+	float occlusionExitTimer = 0.0f;
+	bool occlusionActive = false;
 	uint32_t selfLayerBit = 1u << 1;
 	uint32_t profileRevision = 0;
 };
