@@ -33,18 +33,22 @@ struct TerritoryItemConfig {
     float starGroundLifetimeSeconds = 5.0f;
     float starBuffSeconds = 6.0f;
     float starSpeedMultiplier = 1.55f;
-    float starTouchStunSeconds = 0.72f;
+    float starTouchStunSeconds = 0.45f;
     float starTouchCooldownSeconds = 0.85f;
 };
 
 struct TerritoryPlayerPowerState {
+    static constexpr float StarContactArmSeconds = 0.2f;
+
     float stunRemainingSeconds = 0.0f;
     float starRemainingSeconds = 0.0f;
+    float starContactArmRemainingSeconds = 0.0f;
     std::array<float, 4> touchCooldownSeconds{};
 
     void Reset() noexcept {
         stunRemainingSeconds = 0.0f;
         starRemainingSeconds = 0.0f;
+        starContactArmRemainingSeconds = 0.0f;
         touchCooldownSeconds.fill(0.0f);
     }
 
@@ -52,6 +56,10 @@ struct TerritoryPlayerPowerState {
         const float delta = std::max(0.0f, deltaTime);
         stunRemainingSeconds = std::max(0.0f, stunRemainingSeconds - delta);
         starRemainingSeconds = std::max(0.0f, starRemainingSeconds - delta);
+        starContactArmRemainingSeconds = std::max(
+            0.0f,
+            starContactArmRemainingSeconds - delta
+        );
         for (float& cooldown : touchCooldownSeconds) {
             cooldown = std::max(0.0f, cooldown - delta);
         }
@@ -62,6 +70,8 @@ struct TerritoryPlayerPowerState {
             starRemainingSeconds,
             std::max(0.0f, durationSeconds)
         );
+        starContactArmRemainingSeconds = StarContactArmSeconds;
+        touchCooldownSeconds.fill(0.0f);
         // 取得した瞬間から無敵として扱い、既存の硬直も解除する。
         stunRemainingSeconds = 0.0f;
     }
@@ -82,11 +92,19 @@ struct TerritoryPlayerPowerState {
         PlayerId target,
         float cooldownSeconds
     ) noexcept {
-        if (!HasStar() || target >= touchCooldownSeconds.size() ||
+        if (!HasStar() ||
+            starContactArmRemainingSeconds > 0.0f ||
+            target >= touchCooldownSeconds.size() ||
             touchCooldownSeconds[target] > 0.0f) {
             return false;
         }
+
         touchCooldownSeconds[target] = std::max(0.0f, cooldownSeconds);
+
+        // 接触妨害はスター1個につき1回だけ。
+        // CPUが同じ相手へ追突し続ける状態を避け、命中後は通常の陣取りへ戻す。
+        starRemainingSeconds = 0.0f;
+        starContactArmRemainingSeconds = 0.0f;
         return true;
     }
 
@@ -96,6 +114,10 @@ struct TerritoryPlayerPowerState {
 
     bool HasStar() const noexcept {
         return starRemainingSeconds > 0.0f;
+    }
+
+    bool IsStarContactArmed() const noexcept {
+        return HasStar() && starContactArmRemainingSeconds <= 0.0f;
     }
 
     float ResolveSpeedMultiplier(const TerritoryItemConfig& config) const noexcept {
