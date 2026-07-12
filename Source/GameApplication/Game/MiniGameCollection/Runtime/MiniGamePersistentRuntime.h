@@ -2,6 +2,7 @@
 
 #include "Game/MiniGameCollection/Core/MiniGameCollectionManagerModel.h"
 #include "Game/MiniGameCollection/Core/MiniGameSceneTransitionEngineBackend.h"
+#include "Game/MiniGameCollection/Presentation/MiniGameFallbackEffectPool.h"
 #include "Game/MiniGameCollection/Presentation/MiniGamePresentationEngineBackend.h"
 #include "Game/MiniGameCollection/Presentation/MiniGameProceduralAudio.h"
 #include "Game/MiniGameCollection/Runtime/MiniGameRuntimeMailbox.h"
@@ -14,6 +15,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -48,6 +50,9 @@ public:
     }
 
 private:
+    static constexpr const char* PresentationSpikePath =
+        "Asset/Game/MiniGameCollection/Scene/PresentationTest/PresentationSpike.scene";
+
     struct HudBurst {
         SceneToken sceneToken = 0;
         Vec2 worldPosition{};
@@ -56,14 +61,25 @@ private:
         float intensity = 1.0f;
     };
 
+    struct ScreenFlashOverlay {
+        SceneToken sceneToken = 0;
+        float remainingSeconds = 0.0f;
+        float durationSeconds = 0.0f;
+        float intensity = 0.0f;
+    };
+
     void OnStart() override {
         SceneContext* context = GetEntityRef().GetScene();
         if (!context || !context->manager || !context->manager->sceneManager) {
             return;
         }
 
-        m_backend = std::make_unique<Presentation::MiniGamePresentationEngineBackend>(context);
-        m_presentation = std::make_unique<Presentation::MiniGamePresentationService>(*m_backend);
+        m_backend = std::make_unique<Presentation::MiniGamePresentationEngineBackend>(
+            context
+        );
+        m_presentation = std::make_unique<Presentation::MiniGamePresentationService>(
+            *m_backend
+        );
         m_transitionBackend =
             std::make_unique<MiniGameSceneTransitionEngineBackend>(
                 *context->manager->sceneManager,
@@ -75,11 +91,14 @@ private:
                     MiniGameRuntimeMailbox::InvokeRulesShutdown(sceneToken);
                 }
             );
-        m_transition = std::make_unique<MiniGameSceneTransition>(*m_transitionBackend);
+        m_transition = std::make_unique<MiniGameSceneTransition>(
+            *m_transitionBackend
+        );
 
         RegisterExistingCameraAndFlash(context);
         QueueUiTargets();
         QueueAudioPool();
+        QueueFallbackEffectPool();
         m_selectionInputEnabled = true;
     }
 
@@ -90,8 +109,10 @@ private:
 
         const float unscaledDeltaTime = std::max(0.0f, dt);
         m_backend->Tick(unscaledDeltaTime);
+        m_fallbackEffects.Tick(unscaledDeltaTime);
         m_presentation->Tick(unscaledDeltaTime);
         UpdateHudBursts(unscaledDeltaTime);
+        UpdateScreenFlash(unscaledDeltaTime);
         UpdateCountdown(unscaledDeltaTime);
         DispatchPresentationCommands();
 
@@ -110,8 +131,7 @@ private:
             });
         }
 
-        const bool gameLoaded = IsAnyMiniGameSceneLoaded();
-        if (!gameLoaded && !m_transition->IsActive()) {
+        if (!IsAnyMiniGameSceneLoaded() && !m_transition->IsActive()) {
             UpdateSelectionInput();
         }
     }
@@ -127,6 +147,7 @@ private:
         }
         DrawCountdownOverlay();
         DrawHudBursts();
+        DrawScreenFlashOverlay();
     }
 
     void OnEditorUpdate(float dt) override {
@@ -135,7 +156,9 @@ private:
 
     void OnStop() override {
         if (m_presentation && m_presentation->GetSceneToken() != 0) {
-            m_presentation->CancelAllForScene(m_presentation->GetSceneToken());
+            const SceneToken token = m_presentation->GetSceneToken();
+            m_presentation->CancelAllForScene(token);
+            m_fallbackEffects.CancelAllForScene(token);
         }
         m_transition.reset();
         m_transitionBackend.reset();
@@ -143,6 +166,7 @@ private:
         m_backend.reset();
         m_hudBursts.clear();
         m_uiTargets.clear();
+        m_screenFlash = {};
     }
 
     void RegisterExistingCameraAndFlash(SceneContext* context) {
@@ -157,7 +181,8 @@ private:
         const auto materials =
             context->component->FindEntitiesWithComponent<MaterialComponent>();
         for (Entity entity : materials) {
-            const auto* name = context->component->GetComponent<NameComponent>(entity);
+            const auto* name =
+                context->component->GetComponent<NameComponent>(entity);
             if (name && name->name == "MiniGameScreenFlash") {
                 m_backend->RegisterScreenFlash(
                     ComponentRef<MaterialComponent>(entity, context)
@@ -181,7 +206,8 @@ private:
                     Entity entity,
                     SceneContext& context
                 ) {
-                    if (auto* name = context.component->GetComponent<NameComponent>(entity)) {
+                    if (auto* name =
+                        context.component->GetComponent<NameComponent>(entity)) {
                         name->name = "MiniGameUiTween_" + target;
                     }
                     ComponentRef<TransformComponent> transform(entity, &context);
@@ -229,10 +255,13 @@ private:
                         audioData,
                         index
                     ](Entity entity, SceneContext& context) {
-                        if (auto* name = context.component->GetComponent<NameComponent>(entity)) {
-                            name->name = cueId + "_Voice_" + std::to_string(index);
+                        if (auto* name =
+                            context.component->GetComponent<NameComponent>(entity)) {
+                            name->name = cueId + "_Voice_" +
+                                std::to_string(index);
                         }
-                        if (auto* audio = context.component->GetComponent<AudioComponent>(entity)) {
+                        if (auto* audio =
+                            context.component->GetComponent<AudioComponent>(entity)) {
                             audio->m_AudioData = audioData;
                             audio->FilePath.clear();
                             audio->Loop = false;
@@ -249,6 +278,24 @@ private:
         }
     }
 
+    void QueueFallbackEffectPool() {
+        constexpr int EffectVoiceCount = 16;
+        for (int index = 0; index < EffectVoiceCount; ++index) {
+            QueueCube(
+                "MiniGameFallbackEffect_" + std::to_string(index),
+                Vector3(0.0f, -1000.0f, 0.0f),
+                Vector3(0.0f, 0.0f, 0.0f),
+                DirectX::XMFLOAT4(1.0f, 0.75f, 0.2f, 0.0f),
+                [this](const CubeVisualRefs& refs) {
+                    m_fallbackEffects.RegisterVoice(
+                        refs.transform,
+                        refs.material
+                    );
+                }
+            );
+        }
+    }
+
     void DispatchPresentationCommands() {
         for (const RuntimePresentationCommand& command :
             MiniGameRuntimeMailbox::ConsumePresentation()) {
@@ -256,6 +303,7 @@ private:
             case RuntimePresentationCommandType::BeginScene:
                 m_presentation->BeginScene(command.sceneToken);
                 break;
+
             case RuntimePresentationCommandType::Countdown:
                 if (m_presentation->GetSceneToken() != command.sceneToken) {
                     m_presentation->BeginScene(command.sceneToken);
@@ -263,11 +311,15 @@ private:
                 m_countdownRemainingSeconds = 3.45f;
                 m_presentation->PlayCountdown();
                 break;
+
             case RuntimePresentationCommandType::Score:
                 m_backend->PlayOneShotSound({
                     .cueId = "score",
                     .volume = 0.9f,
-                    .pitch = 1.0f + std::min(0.35f, command.intensity * 0.05f),
+                    .pitch = 1.0f + std::min(
+                        0.35f,
+                        command.intensity * 0.05f
+                    ),
                     .sceneToken = command.sceneToken
                 });
                 m_backend->PlayCameraShake({
@@ -276,8 +328,10 @@ private:
                     .frequency = 18.0f,
                     .sceneToken = command.sceneToken
                 });
+                PlayFallbackEffect(command);
                 AddHudBurst(command);
                 break;
+
             case RuntimePresentationCommandType::Hit:
                 m_backend->PlayOneShotSound({
                     .cueId = "hit",
@@ -296,32 +350,68 @@ private:
                     .intensity = 0.28f * command.intensity,
                     .sceneToken = command.sceneToken
                 });
+                PlayFallbackEffect(command);
+                StartScreenFlash(command.sceneToken, 0.1f, 0.28f * command.intensity);
                 AddHudBurst(command);
                 break;
+
             case RuntimePresentationCommandType::Success:
+                PlayFallbackEffect(command);
+                StartScreenFlash(command.sceneToken, 0.13f, 0.5f * command.intensity);
                 m_presentation->PlaySuccess(0.0f, command.intensity);
                 AddHudBurst(command);
                 break;
+
             case RuntimePresentationCommandType::NearMiss:
                 m_presentation->PlayNearMiss();
                 break;
+
             case RuntimePresentationCommandType::Failure:
+                StartScreenFlash(command.sceneToken, 0.2f, 0.2f);
                 m_presentation->PlayFailure();
                 break;
+
             case RuntimePresentationCommandType::Result:
                 m_presentation->PlayResult(0.0f);
                 break;
+
             case RuntimePresentationCommandType::Cancel:
                 m_presentation->CancelAllForScene(command.sceneToken);
+                m_fallbackEffects.CancelAllForScene(command.sceneToken);
                 std::erase_if(
                     m_hudBursts,
                     [token = command.sceneToken](const HudBurst& burst) {
                         return burst.sceneToken == token;
                     }
                 );
+                if (m_screenFlash.sceneToken == command.sceneToken) {
+                    m_screenFlash = {};
+                }
                 break;
             }
         }
+    }
+
+    void PlayFallbackEffect(const RuntimePresentationCommand& command) {
+        m_fallbackEffects.Play(
+            command.sceneToken,
+            command.position,
+            command.intensity,
+            m_nextEffectSerial++
+        );
+    }
+
+    void StartScreenFlash(
+        SceneToken sceneToken,
+        float durationSeconds,
+        float intensity
+    ) {
+        m_screenFlash = {
+            .sceneToken = sceneToken,
+            .remainingSeconds = std::max(0.0f, durationSeconds),
+            .durationSeconds = std::max(0.001f, durationSeconds),
+            .intensity = std::clamp(intensity, 0.0f, 1.0f)
+        };
     }
 
     void UpdateSelectionInput() {
@@ -345,8 +435,9 @@ private:
             SceneContext* context = GetEntityRef().GetScene();
             if (context && context->manager && context->manager->sceneManager) {
                 const MiniGameDescriptor& game = m_collection.GetSelectedGame();
-                context->manager->sceneManager->LoadFromFilePath(game.scenePath);
-                m_selectionInputEnabled = false;
+                if (context->manager->sceneManager->LoadFromFilePath(game.scenePath)) {
+                    m_selectionInputEnabled = false;
+                }
             }
         }
     }
@@ -356,13 +447,20 @@ private:
         if (!context || !context->manager || !context->manager->sceneManager) {
             return false;
         }
-        for (std::size_t index = 0; index < m_collection.GetGameCount(); ++index) {
-            const std::string& path = m_collection.GetGame(index).scenePath;
-            for (const auto& [name, scene] :
-                context->manager->sceneManager->GetActiveScenes()) {
-                (void)name;
-                if (scene && scene->ScenePath == path &&
-                    scene->GetSceneContext() != context) {
+
+        for (const auto& [name, scene] :
+            context->manager->sceneManager->GetActiveScenes()) {
+            (void)name;
+            if (!scene || scene->GetSceneContext() == context) {
+                continue;
+            }
+            if (scene->ScenePath == PresentationSpikePath) {
+                return true;
+            }
+            for (std::size_t index = 0;
+                 index < m_collection.GetGameCount();
+                 ++index) {
+                if (scene->ScenePath == m_collection.GetGame(index).scenePath) {
                     return true;
                 }
             }
@@ -392,9 +490,16 @@ private:
             const MiniGameDescriptor& game = m_collection.GetGame(index);
             const bool selected = index == m_collection.GetSelectedIndex();
             if (selected) {
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.85f, 0.25f, 1.0f));
+                ImGui::PushStyleColor(
+                    ImGuiCol_Text,
+                    ImVec4(1.0f, 0.85f, 0.25f, 1.0f)
+                );
             }
-            ImGui::Text("%s %s", selected ? ">" : " ", game.displayName.c_str());
+            ImGui::Text(
+                "%s %s",
+                selected ? ">" : " ",
+                game.displayName.c_str()
+            );
             if (selected) {
                 ImGui::PopStyleColor();
                 ImGui::Indent(28.0f);
@@ -405,7 +510,9 @@ private:
             ImGui::Spacing();
         }
         ImGui::Separator();
-        ImGui::TextUnformatted("W/S or UP/DOWN: SELECT   ENTER/SPACE: PLAY");
+        ImGui::TextUnformatted(
+            "W/S or UP/DOWN: SELECT   ENTER/SPACE: PLAY"
+        );
         ImGui::End();
     }
 
@@ -441,10 +548,18 @@ private:
         ImDrawList* draw = ImGui::GetForegroundDrawList();
         const ImVec2 center = viewport->GetCenter();
         const float radius = 62.0f * scale;
-        draw->AddCircleFilled(center, radius, IM_COL32(15, 20, 30, 210), 48);
+        draw->AddCircleFilled(
+            center,
+            radius,
+            IM_COL32(15, 20, 30, 210),
+            48
+        );
         const ImVec2 textSize = ImGui::CalcTextSize(text);
         draw->AddText(
-            ImVec2(center.x - textSize.x * 0.5f, center.y - textSize.y * 0.5f),
+            ImVec2(
+                center.x - textSize.x * 0.5f,
+                center.y - textSize.y * 0.5f
+            ),
             IM_COL32(255, 245, 180, 255),
             text
         );
@@ -503,13 +618,49 @@ private:
         }
     }
 
+    void UpdateScreenFlash(float deltaTime) {
+        m_screenFlash.remainingSeconds = std::max(
+            0.0f,
+            m_screenFlash.remainingSeconds - deltaTime
+        );
+        if (m_screenFlash.remainingSeconds <= 0.0f) {
+            m_screenFlash = {};
+        }
+    }
+
+    void DrawScreenFlashOverlay() const {
+        if (m_screenFlash.remainingSeconds <= 0.0f) {
+            return;
+        }
+        const float normalized = std::clamp(
+            m_screenFlash.remainingSeconds / m_screenFlash.durationSeconds,
+            0.0f,
+            1.0f
+        );
+        const int alpha = static_cast<int>(
+            255.0f * m_screenFlash.intensity * normalized
+        );
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::GetForegroundDrawList()->AddRectFilled(
+            viewport->WorkPos,
+            ImVec2(
+                viewport->WorkPos.x + viewport->WorkSize.x,
+                viewport->WorkPos.y + viewport->WorkSize.y
+            ),
+            IM_COL32(255, 255, 255, alpha)
+        );
+    }
+
     MiniGameCollectionManagerModel m_collection;
     std::unique_ptr<Presentation::MiniGamePresentationEngineBackend> m_backend;
     std::unique_ptr<Presentation::MiniGamePresentationService> m_presentation;
     std::unique_ptr<MiniGameSceneTransitionEngineBackend> m_transitionBackend;
     std::unique_ptr<MiniGameSceneTransition> m_transition;
+    Presentation::MiniGameFallbackEffectPool m_fallbackEffects;
     std::unordered_map<std::string, ComponentRef<TransformComponent>> m_uiTargets;
     std::vector<HudBurst> m_hudBursts;
+    ScreenFlashOverlay m_screenFlash{};
+    std::uint64_t m_nextEffectSerial = 1;
     float m_countdownRemainingSeconds = 0.0f;
     bool m_selectionInputEnabled = true;
 };
