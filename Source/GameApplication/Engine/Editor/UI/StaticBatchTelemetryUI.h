@@ -140,6 +140,7 @@ inline void Draw(SceneManager* sceneManager){
 	}else{
 		const auto instance = upload->GetTelemetry();
 		const auto geometry = upload->GetGeometryTelemetry();
+		const auto modelGeometry = upload->GetModelGeometryRuntimeTelemetry();
 		ImGui::Text(
 			"GBuffer Pipeline: %s | Shadow Pipeline: %s | Source Upload: %s",
 			upload->IsPipelineReady() ? "Ready" : "Unavailable",
@@ -162,6 +163,17 @@ inline void Draw(SceneManager* sceneManager){
 			geometry.createCount,
 			geometry.reuseCount,
 			geometry.rejectedGroupCount
+		);
+		ImGui::Text(
+			"Model Geometry Runtime: %zu / Peak %zu | Sync: %zu | Imports: %zu | Reuses: %zu | Replacements: %zu | Releases: %zu | Rejects: %zu",
+			modelGeometry.currentEntryCount,
+			modelGeometry.peakEntryCount,
+			modelGeometry.synchronizationCount,
+			modelGeometry.importCount,
+			modelGeometry.reuseCount,
+			modelGeometry.replacementCount,
+			modelGeometry.releaseCount,
+			modelGeometry.rejectedSourceCount
 		);
 	}
 
