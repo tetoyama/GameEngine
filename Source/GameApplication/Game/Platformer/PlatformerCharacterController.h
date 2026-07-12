@@ -132,7 +132,7 @@ public:
 		const Vector3 inputDirection = BuildCameraRelativeDirection();
 		const bool hasInput = inputDirection.length() > 0.0001f;
 
-		UpdateGroundProbe(*pose);
+		UpdateGroundProbe(*pose, velocity);
 		UpdateWallProbe(*pose, inputDirection, velocity);
 		UpdateTripleJumpLanding(inputDirection, velocity);
 
@@ -160,11 +160,15 @@ public:
 			velocity.z = MoveTowards(velocity.z, 0.0f, settings.groundDeceleration * dt);
 		}
 
-		if(grounded && groundDetachTimer <= 0.0f && verticalVelocity <= 0.0f) {
-			const Vector3 projected = ProjectOnPlane(Vector3(velocity.x, 0.0f, velocity.z), groundNormal);
+		if(grounded && groundDetachTimer <= 0.0f) {
+			// Preserve the complete slope-tangent velocity. The previous min(projected.y,
+			// -snap) always replaced a positive uphill component with a negative value,
+			// so the capsule was driven into the ramp instead of travelling up it.
+			const Vector3 projected = ProjectOnPlane(
+				Vector3(velocity.x, 0.0f, velocity.z), groundNormal);
 			velocity.x = projected.x;
 			velocity.z = projected.z;
-			verticalVelocity = (std::min)(projected.y, -settings.groundSnapSpeed);
+			verticalVelocity = projected.y - settings.groundSnapSpeed;
 		} else {
 			ApplyGravity(dt);
 		}
@@ -368,7 +372,7 @@ private:
 		sameWallBlockTimer = (std::max)(0.0f, sameWallBlockTimer - dt);
 	}
 
-	void UpdateGroundProbe(const TransformComponent& pose) {
+	void UpdateGroundProbe(const TransformComponent& pose, const Vector3& velocity) {
 		auto* physics = PlatformerSceneAccess::Physics(m_ref.GetScene());
 		if(!physics) {
 			grounded = false;
@@ -384,7 +388,18 @@ private:
 		groundNormal = validGround
 			? Vector3(hit.normal.x, hit.normal.y, hit.normal.z)
 			: Vector3(0.0f, 1.0f, 0.0f);
-		grounded = validGround && groundDetachTimer <= 0.0f && verticalVelocity <= 1.0f;
+
+		// Uphill locomotion legitimately has positive world-Y velocity. Compare the
+		// measured velocity against the slope tangent expected from the current X/Z
+		// motion instead of using a flat, fixed +1.0 threshold.
+		const Vector3 horizontalVelocity(velocity.x, 0.0f, velocity.z);
+		const Vector3 expectedTangent = validGround
+			? ProjectOnPlane(horizontalVelocity, groundNormal)
+			: Vector3();
+		const float groundedUpwardLimit = (std::max)(1.0f, expectedTangent.y + 0.75f);
+		grounded = validGround &&
+			groundDetachTimer <= 0.0f &&
+			verticalVelocity <= groundedUpwardLimit;
 		if(grounded) coyoteTimer = settings.coyoteTime;
 	}
 
