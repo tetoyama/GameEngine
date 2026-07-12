@@ -87,6 +87,7 @@ private:
 		SpawnBlock(*commands, "WallExitShelf", Vector3(1.6f, 6.0f, 65.5f), Vector3(1.4f, 0.35f, 2.0f), wallColor);
 		SpawnBlock(*commands, "WallRecovery", Vector3(0.0f, -0.5f, 62.0f), Vector3(3.6f, 0.5f, 9.0f), wallColor);
 		SpawnBlock(*commands, "WallExitGround", Vector3(0.0f, -0.5f, 70.5f), Vector3(4.5f, 0.5f, 3.0f), wallColor);
+		SpawnCheckpoint(*commands, Vector3(0.0f, 0.6f, 71.5f));
 		SpawnCameraZone(*commands, Vector3(0.0f, 4.0f, 59.0f), Vector3(8.0f, 8.0f, 21.0f), 2, 0, true);
 
 		// Section 4: moving platform and first stomp enemy.
