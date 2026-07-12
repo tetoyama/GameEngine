@@ -96,7 +96,7 @@ Target coin count: 30. Coins are guidance and feedback, never a progression lock
 - [x] Camera profiles for course, triple-jump, wall section, boss, and clear.
 - [x] SpriteRenderer runtime HUD without ImGui gameplay rendering.
 - [x] Grounded movement friction defect corrected.
-- [x] Camera transient-occlusion approach corrected in code.
+- [x] Camera transient-occlusion and gameplay-actor occlusion corrected in code.
 - [x] No long-lived raw component pointers in game scripts.
 - [x] Queued structural changes in scheduled callbacks.
 - [x] No direct renderer/RHI/D3D11 dependency.
@@ -116,7 +116,7 @@ Target coin count: 30. Coins are guidance and feedback, never a progression lock
 
 ## Current next action
 
-1. Confirm the latest Windows Debug x64 workflow result.
+1. Confirm the latest Windows Debug x64 workflow result for the current branch head.
 2. Load `Asset/Game/Platformer/Scene/PlatformerTechDemo.scene` in the Editor and verify grounded locomotion without jumping.
 3. Traverse the enemy and boss sections while watching for transient camera distance changes.
 4. Tune camera hysteresis and movement support bias only from observed runtime behavior.
