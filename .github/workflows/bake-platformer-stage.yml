@@ -1,0 +1,130 @@
+name: Bake Platformer Stage
+
+on:
+  push:
+    branches:
+      - game/platformer-tech-demo
+    paths:
+      - .stage-upload/ready
+
+permissions:
+  contents: write
+
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: game/platformer-tech-demo
+          fetch-depth: 0
+
+      - name: Generate baked scene
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet pyyaml
+          mkdir -p /mnt/data
+          base64 --decode .stage-upload/generator.py.gz.b64 | gzip --decompress > /tmp/generate_platformer_scene.py
+          python /tmp/generate_platformer_scene.py
+          cp /mnt/data/PlatformerTechDemo_rebuilt.scene Asset/Game/Platformer/Scene/PlatformerTechDemo.scene
+
+      - name: Restore scene-authored stage architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          manager = Path('Source/GameApplication/Game/Platformer/PlatformerGameManager.h')
+          text = manager.read_text(encoding='utf-8')
+          text = text.replace('#include "Game/Platformer/PlatformerStageBuilder.h"\n', '')
+          text = re.sub(
+              r'\n\t\t// Replace the legacy baked course through the deferred ECS command buffer\.\n'
+              r'\t\t// This keeps prefab instantiation and entity removal outside active tasks\.\n'
+              r'\t\tPlatformerStageBuilder::Rebuild\(m_ref\.GetScene\(\), GetCommandBuffer\(\)\);\n',
+              '\n',
+              text)
+          manager.write_text(text, encoding='utf-8')
+
+          builder = Path('Source/GameApplication/Game/Platformer/PlatformerStageBuilder.h')
+          builder.write_text(r'''#pragma once
+
+#include "Engine/Scene/Component/CustomScriptComponent.h"
+
+#include <algorithm>
+
+// Compatibility component retained for old serialized data. The platformer
+// course is authored directly in PlatformerTechDemo.scene and is never rebuilt
+// during scheduled gameplay execution.
+class PlatformerStageBuilder : public CustomScriptComponent {
+    BEGIN_REFLECT(PlatformerStageBuilder)
+        REFLECT_FIELD(bool, buildOnStart, false)
+        REFLECT_FIELD(int, stageRevision, 3)
+
+public:
+    YAML::Node encode() override {
+        YAML::Node node;
+        ENCODE_FIELDS(node);
+        return node;
+    }
+
+    bool decode(SceneContext* context, const YAML::Node& node) override {
+        (void)context;
+        DECODE_FIELDS(node);
+        stageRevision = (std::max)(3, stageRevision);
+        buildOnStart = false;
+        return true;
+    }
+
+    void inspector(SceneContext* context) override {
+        (void)context;
+        ImGui::Text("Platformer Stage");
+        ImGui::TextWrapped("The stage is baked directly into PlatformerTechDemo.scene.");
+        ImGui::Text("Stage Revision: %d", stageRevision);
+    }
+
+    void OnStart() override {
+        buildOnStart = false;
+    }
+};
+''', encoding='utf-8')
+          PY
+
+          rm -f Source/GameApplication/Game/Platformer/PlatformerStageBuilderCommon.inl
+          rm -f Source/GameApplication/Game/Platformer/PlatformerStageBuilderCourse.inl
+
+      - name: Validate and commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+
+          path = Path('Asset/Game/Platformer/Scene/PlatformerTechDemo.scene')
+          root = yaml.safe_load(path.read_text(encoding='utf-8'))
+          entities = root['Entities']
+          names = []
+          for entity in entities:
+              for component in entity['Components']:
+                  if component.get('Component') == 'NameComponent':
+                      names.append(component.get('Name', ''))
+                      break
+          assert len(entities) == 108, len(entities)
+          assert len(names) == len(set(names)), 'duplicate entity names'
+          assert sum(name.startswith('Coin_') for name in names) == 30
+          assert sum(name.startswith('Enemy_') for name in names) == 4
+          assert sum(name.startswith('Checkpoint_') for name in names) == 4
+          assert 'PlatformerBoss' in names
+          print('validated', len(entities), 'entities')
+          PY
+
+          rm -rf .stage-upload
+          rm -f .github/workflows/bake-platformer-stage.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "Bake redesigned platformer demo stage"
+          git push origin HEAD:game/platformer-tech-demo
