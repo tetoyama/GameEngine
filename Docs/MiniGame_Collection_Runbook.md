@@ -9,17 +9,54 @@
 
 The game branch owns all mini-game-specific code and assets. Do not copy these runtime classes into the PR #45 refactoring branch.
 
-## Startup
+## Startup architecture
 
-`GameApplication` loads:
+`GameApplication` must remain independent from the mini-game collection. It only creates the Engine context and executes `Initialize`, `Run`, and `Shutdown`.
+
+The mini-game collection is started by opening or launching this scene through the Engine's normal scene workflow:
 
 ```text
-Asset/Game/MiniGameCollection/Scene/Persistent/MiniGamePersistent.scene
+Asset/Game/MiniGameCollection/Scene/Entry/MiniGameCollectionEntry.scene
 ```
 
-The bootstrap then changes `SceneManager::State` to `Playing`. The persistent scene owns the common camera, directional light, selection UI, countdown/result presentation, pooled audio voices, fallback one-shot effect voices, screen flash, camera shake, UI tween state, and scene transition service.
+Expected composition flow:
+
+```text
+Normal scene launch path
+  -> MiniGameCollectionEntry.scene
+       -> MiniGameCollectionEntryRuntime queues MiniGamePersistent.scene
+       -> SceneManager applies the additive load outside ECS schedule execution
+       -> MiniGamePersistent.scene starts
+       -> Entry scene marks itself for destruction
+       -> Persistent + selected mini-game scene form the runtime Multi-Scene composition
+```
+
+Do not add mini-game scene loading to `GameApplication`. Do not hard-code the entry scene into application configuration as part of the feature branch. A standalone build may select the entry scene through the existing build/start-scene configuration, while the Editor may open the entry scene normally before Play.
+
+Do not use `MiniGamePersistent.scene` as the normal entry point. Direct persistent-scene startup bypasses the scene-driven composition contract and does not verify the Entry-to-Persistent transition.
+
+The persistent scene owns the common camera, directional light, selection UI, countdown/result presentation, pooled audio voices, fallback one-shot effect voices, screen flash, camera shake, UI tween state, and scene transition service.
 
 Mini-game scenes are loaded additively and contain only their rules runtime. Stage, player, CPU, tile, sheep, pen, obstacle, and presentation fallback entities are created through the queued structural API.
+
+## Deferred additive scene loading
+
+`Scene::Initialize` registers component storage. It must not run while an ECS schedule is executing.
+
+All mini-game additive loads therefore use:
+
+```text
+QueueAdditiveSceneLoadFromFilePath(path)
+```
+
+The queued paths are processed by the Engine at the next safe frame boundary before `SceneManager::Update`. Runtime scripts must not call `LoadFromFilePath` directly.
+
+This rule applies to:
+
+- Entry scene loading Persistent
+- selection loading the chosen game
+- retry
+- next-game transition
 
 ## Runtime UI boundary
 
@@ -27,6 +64,7 @@ Player-facing mini-game UI must not use ImGui.
 
 The following UI is rendered through `MiniGameRuntimeUi`, `MainRenderer`, and Direct2D / DirectWrite:
 
+- entry loading display
 - game selection
 - rule and control explanation
 - timer
@@ -192,7 +230,8 @@ Cancel presentation by SceneToken
 Invoke rules shutdown callback
 Mark the mini-game scene for unload
 Wait until SceneManager removes it
-Load the requested next scene, or complete for selection return
+Queue the requested next additive scene, or complete for selection return
+Wait until the queued scene is present
 ```
 
 After every transition, verify:
@@ -215,20 +254,23 @@ Workflow:
 
 Jobs and checks:
 
-1. Reject `ImGui::` usage from player-facing mini-game runtime UI files while allowing the Inspector and Backshot F3 diagnostic overlay.
-2. Compile and run portable C++20 model, rules, presentation, and cleanup smoke tests with GCC warnings treated as errors.
-3. Validate required scene asset structure.
-4. Build the complete `GameEngine.sln` Debug x64 configuration with MSVC.
+1. Verify that `GameApplication` has no MiniGameCollection dependency.
+2. Verify the Entry Scene and Entry Runtime composition contract.
+3. Reject immediate `LoadFromFilePath` calls from mini-game runtime code.
+4. Reject `ImGui::` usage from player-facing mini-game runtime UI files while allowing the Inspector and Backshot F3 diagnostic overlay.
+5. Compile and run portable C++20 model, rules, presentation, and cleanup smoke tests with GCC warnings treated as errors.
+6. Validate required scene asset structure, including the Entry Scene.
+7. Build the complete `GameEngine.sln` Debug x64 configuration with MSVC.
 
 The workflow uses a branch/ref concurrency group with `cancel-in-progress: true`, so obsolete runs from intermediate commits do not block the latest validation.
 
 ## Required manual sequence
 
-Run this complete loop at least three times:
+Open `MiniGameCollectionEntry.scene`, then run this complete loop at least three times:
 
 ```text
-Startup
-Selection
+Entry loading display
+Persistent selection
 Color Territory
 Result
 Next
@@ -240,10 +282,10 @@ Result
 Return to selection
 ```
 
-Then run ten Presentation Spike retries and ten retries of each formal mini-game. Record any entity-count growth, retained sound, retained effect, stale UI, stale CPU movement, invalid ComponentRef, missing model, or scene-load failure in the implementation plan before changing code.
+Then run ten Presentation Spike retries and ten retries of each formal mini-game. Record any entity-count growth, retained sound, retained effect, stale UI, stale CPU movement, invalid ComponentRef, missing model, assertion, or scene-load failure in the implementation plan before changing code.
 
 During the manual pass, hide all normal ImGui editor/debug windows and confirm that every selection, instruction, timer, score, countdown, result, and navigation prompt remains visible through the Direct2D runtime UI.
 
 ## Current verification boundary
 
-Automated compilation, UI-boundary enforcement, and pure-rule tests can be completed in GitHub Actions. Visual composition, input feel, CPU readability, camera framing, audio balance, effect intensity, Direct2D layout at the target resolution, and repeated live scene cleanup require running the Windows executable. Do not mark those manual checks complete solely because compilation succeeds.
+Automated compilation, scene-entry enforcement, deferred-load enforcement, UI-boundary enforcement, and pure-rule tests can be completed in GitHub Actions. Visual composition, input feel, CPU readability, camera framing, audio balance, effect intensity, Direct2D layout at the target resolution, and repeated live scene cleanup require running the Windows executable. Do not mark those manual checks complete solely because compilation succeeds.
