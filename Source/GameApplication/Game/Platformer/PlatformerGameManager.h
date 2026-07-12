@@ -4,7 +4,6 @@
 #include "Game/Platformer/PlatformerCharacterController.h"
 #include "Game/Platformer/PlatformerSceneAccess.h"
 #include "Game/Platformer/PlatformerSoundLibrary.h"
-#include "Game/Platformer/PlatformerStageBuilder.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -61,10 +60,6 @@ public:
 		bossRevision = 0;
 		stateRevision = 0;
 		reloadRequested = false;
-
-		// Replace the legacy baked course through the deferred ECS command buffer.
-		// This keeps prefab instantiation and entity removal outside active tasks.
-		PlatformerStageBuilder::Rebuild(m_ref.GetScene(), GetCommandBuffer());
 	}
 
 	void OnUpdate(float dt) override {
