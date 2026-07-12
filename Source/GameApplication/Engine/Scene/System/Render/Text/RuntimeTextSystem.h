@@ -21,8 +21,11 @@ public:
 	void Finalize() override;
 	void RegisterTasks(SystemScheduleBuilder& builder) override;
 
+	// ElemenTactics owns this facade locally until it becomes a globally registered Engine system.
+	// Must be called on the main thread before sprite packet submission.
+	void ProcessDirtyText();
+
 private:
-	void Update();
 	bool Rasterize(
 		const RuntimeTextComponent& component,
 		std::shared_ptr<TextureData>& output,
