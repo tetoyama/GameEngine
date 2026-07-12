@@ -23,6 +23,12 @@ void ValidateModelRuntimeBoundary(){
 	const std::string component = ReadTextFile(
 		"Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
 	);
+	const std::string modelData = ReadTextFile(
+		"Source/GameApplication/Engine/Resources/Data/modelData.h"
+	);
+	const std::string modelLoader = ReadTextFile(
+		"Source/GameApplication/Engine/Resources/Loader/modelLoader.h"
+	);
 	const std::string provider = ReadTextFile(
 		"Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceProvider.h"
 	);
@@ -42,6 +48,22 @@ void ValidateModelRuntimeBoundary(){
 	assert(component.find("dynamicVertexBuffers") == std::string::npos);
 	assert(resolver.find("dynamicVertexBuffers") == std::string::npos);
 	assert(resolver.find("UsesDynamicVertexBuffer") == std::string::npos);
+
+	// Model Loaderは一時new[]ではなくBackend非依存CPU Geometry Snapshotを生成し、
+	// 既存D3D11 Bufferも同じSnapshotから初期化する。
+	assert(modelData.find("struct ModelMeshGeometryCpuData") !=
+		std::string::npos);
+	assert(modelData.find("std::vector<ModelMeshGeometryCpuData> MeshGeometry;") !=
+		std::string::npos);
+	assert(modelLoader.find("model->MeshGeometry.resize") != std::string::npos);
+	assert(modelLoader.find("geometry.vertices.resize") != std::string::npos);
+	assert(modelLoader.find("geometry.indices.resize") != std::string::npos);
+	assert(modelLoader.find("sd.pSysMem = geometry.vertices.data();") !=
+		std::string::npos);
+	assert(modelLoader.find("sd.pSysMem = geometry.indices.data();") !=
+		std::string::npos);
+	assert(modelLoader.find("new VERTEX_3D[") == std::string::npos);
+	assert(modelLoader.find("new unsigned int[") == std::string::npos);
 
 	// Resolver / CacheはModelDataのNative Buffer配置を知らず、Provider境界だけを使う。
 	assert(resolver.find("model->VertexBuffer") == std::string::npos);
@@ -65,11 +87,14 @@ void ValidateModelRuntimeBoundary(){
 	assert(runtimeStorage.find("StaticBatchResourceKey::MakeGeometryKey") ==
 		std::string::npos);
 
-	// Legacy ProviderだけがModelData Native Bufferから初回Sourceを取り込む。
+	// Legacy ProviderだけがNative BufferをBootstrapし、件数はCPU Snapshotから解決する。
 	assert(provider.find("class IStaticBatchModelGeometrySourceProvider") !=
 		std::string::npos);
 	assert(provider.find("StaticBatchLegacyModelGeometrySourceProvider") !=
 		std::string::npos);
+	assert(provider.find("model->MeshGeometry") != std::string::npos);
+	assert(provider.find("geometry.vertices.size()") != std::string::npos);
+	assert(provider.find("geometry.indices.size()") != std::string::npos);
 	assert(provider.find("model->VertexBuffer") != std::string::npos);
 	assert(provider.find("model->IndexBuffer") != std::string::npos);
 	assert(runtimeStorage.find("model->VertexBuffer") == std::string::npos);
