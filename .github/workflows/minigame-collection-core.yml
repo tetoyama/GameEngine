@@ -132,6 +132,23 @@ jobs:
           grep -q "isLock: true" "$persistent_scene"
           grep -q "QueueAddComponent<TextureComponent>" "$runtime_base"
           grep -q "Asset.*Texture.*white.tga" "$runtime_base"
+      - name: Enforce tactile feedback stack
+        shell: bash
+        run: |
+          effects=Source/GameApplication/Game/MiniGameCollection/Presentation/MiniGameFallbackEffectPool.h
+          runtime_base=Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h
+          persistent_scene=Asset/Game/MiniGameCollection/Scene/Persistent/MiniGamePersistent.scene
+          grep -q "ParticleComponent" "$effects"
+          grep -q "LIGHT_TYPE_POINT" "$effects"
+          grep -q "CastShadow = 0" "$effects"
+          grep -q "ApplyCubeMaterialPreset" "$runtime_base"
+          grep -q "material.ShaderID = 1" "$runtime_base"
+          grep -q "EmissiveIntensity" "$runtime_base"
+          grep -q "MiniGameBrightPass" "$persistent_scene"
+          grep -q "MiniGameBloomComposite" "$persistent_scene"
+          grep -q "Name: MiniGameBlueFillLight" "$persistent_scene"
+          grep -q "Name: MiniGameWarmFillLight" "$persistent_scene"
+          grep -q "CastShadow: 1" "$persistent_scene"
       - name: Enforce deferred additive scene loading
         shell: bash
         run: |
