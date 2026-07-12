@@ -1,10 +1,11 @@
-name: ElemenTactics Rules Smoke Test
+name: ElemenTactics Rules and Flow Smoke Tests
 
 on:
   pull_request:
     paths:
       - "Source/GameApplication/Game/ElemenTactics/**"
       - "Tests/ElemenTacticsRulesSmokeTest.cpp"
+      - "Tests/ElemenTacticsFlowSmokeTest.cpp"
       - ".github/workflows/elementactics-rules.yml"
   push:
     branches:
@@ -12,6 +13,7 @@ on:
     paths:
       - "Source/GameApplication/Game/ElemenTactics/**"
       - "Tests/ElemenTacticsRulesSmokeTest.cpp"
+      - "Tests/ElemenTacticsFlowSmokeTest.cpp"
       - ".github/workflows/elementactics-rules.yml"
   workflow_dispatch:
 
@@ -19,7 +21,7 @@ permissions:
   contents: read
 
 jobs:
-  rules:
+  contracts:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,3 +41,16 @@ jobs:
           Tests\ElemenTacticsRulesSmokeTest.cpp
           /Fe:elementactics-rules-test.exe
           && elementactics-rules-test.exe
+      - name: Compile and run flow and AI fallback contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /I Source\GameApplication
+          Source\GameApplication\Game\ElemenTactics\Rules\ElemenTacticsRules.cpp
+          Source\GameApplication\Game\ElemenTactics\AI\ElemenTacticsAi.cpp
+          Source\GameApplication\Game\ElemenTactics\AI\LlmDecisionAdapter.cpp
+          Source\GameApplication\Game\ElemenTactics\Flow\DeckSetupModel.cpp
+          Source\GameApplication\Game\ElemenTactics\Flow\MatchFlowModel.cpp
+          Tests\ElemenTacticsFlowSmokeTest.cpp
+          /Fe:elementactics-flow-test.exe
+          && elementactics-flow-test.exe
