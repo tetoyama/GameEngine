@@ -3,10 +3,15 @@ name: ElemenTactics Contracts and Engine Build
 on:
   pull_request:
     paths:
+      - "Asset/ApplicationConfig.yaml"
+      - "Asset/Game/ElemenTactics/**"
+      - "Source/buildSetting.h"
       - "Source/GameApplication/Game/ElemenTactics/**"
       - "Source/GameApplication/Engine/Scene/Component/RuntimeTextComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/componentList.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Text/**"
+      - "Source/GameApplication/Engine/Scene/sceneManager.h"
+      - "Source/GameApplication/Service/Platform/InputSystem/InputSystem.h"
       - "Tests/ElemenTacticsRulesSmokeTest.cpp"
       - "Tests/ElemenTacticsFlowSmokeTest.cpp"
       - "Tests/ElemenTacticsLlmSessionSmokeTest.cpp"
@@ -17,10 +22,15 @@ on:
     branches:
       - game/elementactics-boardgame
     paths:
+      - "Asset/ApplicationConfig.yaml"
+      - "Asset/Game/ElemenTactics/**"
+      - "Source/buildSetting.h"
       - "Source/GameApplication/Game/ElemenTactics/**"
       - "Source/GameApplication/Engine/Scene/Component/RuntimeTextComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/componentList.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Text/**"
+      - "Source/GameApplication/Engine/Scene/sceneManager.h"
+      - "Source/GameApplication/Service/Platform/InputSystem/InputSystem.h"
       - "Tests/ElemenTacticsRulesSmokeTest.cpp"
       - "Tests/ElemenTacticsFlowSmokeTest.cpp"
       - "Tests/ElemenTacticsLlmSessionSmokeTest.cpp"
@@ -89,3 +99,6 @@ jobs:
       - name: Build GameEngine Debug x64
         shell: cmd
         run: msbuild GameEngine.sln /m /t:Build /p:Configuration=Debug /p:Platform=x64 /verbosity:minimal
+      - name: Build GameEngine Release x64
+        shell: cmd
+        run: msbuild GameEngine.sln /m /t:Build /p:Configuration=Release /p:Platform=x64 /verbosity:minimal
