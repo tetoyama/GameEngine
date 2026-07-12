@@ -257,7 +257,9 @@ private:
 	MatchFlowModel m_flow;
 	BattleInteractionModel m_interaction;
 	ElemenTacticsLlmOwner m_llm;
-	std::unique_ptr<RuntimeTextSystem> m_textSystem;
+	// shared_ptr supports move assignment while RuntimeTextSystem is forward declared.
+	// The controller remains the sole logical owner and resets it during OnStop.
+	std::shared_ptr<RuntimeTextSystem> m_textSystem;
 	std::shared_ptr<UiLifetime> m_uiLifetime;
 	std::vector<UiButton> m_buttons;
 	BoardLayout m_boardLayout;
