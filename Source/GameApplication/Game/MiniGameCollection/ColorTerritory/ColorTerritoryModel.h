@@ -114,13 +114,46 @@ public:
     }
 
     PlayerId FindLeader() const noexcept {
-        const auto best = std::max_element(m_scores.begin(), m_scores.end());
-        return best == m_scores.end()
-            ? InvalidPlayerId
-            : static_cast<PlayerId>(std::distance(m_scores.begin(), best));
+        if (m_scores.empty()) {
+            return InvalidPlayerId;
+        }
+        const int bestScore = *std::max_element(m_scores.begin(), m_scores.end());
+        const std::size_t leaderCount = static_cast<std::size_t>(std::count(
+            m_scores.begin(),
+            m_scores.end(),
+            bestScore
+        ));
+        if (leaderCount != 1) {
+            return InvalidPlayerId;
+        }
+        return static_cast<PlayerId>(std::distance(
+            m_scores.begin(),
+            std::find(m_scores.begin(), m_scores.end(), bestScore)
+        ));
     }
 
     int CountAdjacentOwned(TileCoord coord, PlayerId playerId) const noexcept {
+        return CountAdjacentMatching(coord, [playerId](std::int16_t owner) {
+            return owner == static_cast<std::int16_t>(playerId);
+        });
+    }
+
+    int CountAdjacentUnclaimed(TileCoord coord) const noexcept {
+        return CountAdjacentMatching(coord, [](std::int16_t owner) {
+            return owner == UnclaimedOwner;
+        });
+    }
+
+    int CountAdjacentEnemy(TileCoord coord, PlayerId playerId) const noexcept {
+        return CountAdjacentMatching(coord, [playerId](std::int16_t owner) {
+            return owner != UnclaimedOwner &&
+                owner != static_cast<std::int16_t>(playerId);
+        });
+    }
+
+private:
+    template<typename Predicate>
+    int CountAdjacentMatching(TileCoord coord, Predicate predicate) const noexcept {
         static constexpr TileCoord offsets[] = {
             {-1, 0}, {1, 0}, {0, -1}, {0, 1}
         };
@@ -134,14 +167,13 @@ public:
             const std::size_t index = static_cast<std::size_t>(
                 neighbor.y * m_width + neighbor.x
             );
-            if (m_ownerByTile[index] == static_cast<std::int16_t>(playerId)) {
+            if (predicate(m_ownerByTile[index])) {
                 ++count;
             }
         }
         return count;
     }
 
-private:
     static std::size_t CheckedTileCount(int width, int height) {
         if (width <= 0 || height <= 0) {
             throw std::invalid_argument("TerritoryBoard dimensions must be positive");
@@ -205,35 +237,46 @@ public:
 
             const float distance = std::sqrt(distanceSquared);
             const std::int16_t owner = board.GetOwner(candidate);
+            const bool isSelfTile =
+                owner == static_cast<std::int16_t>(context.self);
             const bool isLeaderTile =
                 leader != InvalidPlayerId &&
                 leader != context.self &&
                 owner == static_cast<std::int16_t>(leader);
+            const int adjacentUnclaimed = board.CountAdjacentUnclaimed(candidate);
+            const int adjacentEnemy = board.CountAdjacentEnemy(candidate, context.self);
+            const int adjacentOpportunity = adjacentUnclaimed + adjacentEnemy;
 
             float utility = 0.0f;
             if (owner == UnclaimedOwner) {
-                utility += 4.0f;
-            } else if (owner == static_cast<std::int16_t>(context.self)) {
-                utility += 0.35f;
-                utility += static_cast<float>(
+                utility += 4.2f;
+            } else if (isSelfTile) {
+                // 自陣の奥へ戻る行動には価値を与えない。
+                // 次の空地・敵地へ接続する境界だけを経由地点として評価する。
+                utility -= 1.7f;
+                utility += static_cast<float>(adjacentOpportunity) * 1.05f;
+                utility -= static_cast<float>(
                     board.CountAdjacentOwned(candidate, context.self)
                 ) * 0.18f;
             } else {
-                utility += 2.7f;
+                // 敵地を奪うと自分+1/相手-1で点差が2動くため、空地より高く評価する。
+                utility += 5.0f;
+                utility += static_cast<float>(adjacentEnemy) * 0.28f;
                 if (isLeaderTile) {
-                    utility += 1.25f +
-                        endgame * 3.0f * difficulty.lateGameAggression;
+                    utility += 1.4f +
+                        endgame * 4.2f * difficulty.lateGameAggression;
                 }
             }
 
-            utility -= distance * 0.32f;
+            utility += static_cast<float>(adjacentOpportunity) * 0.32f;
+            utility -= distance * (isSelfTile ? 0.22f : 0.34f);
 
             if (index < context.crowdByTile.size()) {
-                utility -= static_cast<float>(context.crowdByTile[index]) * 1.15f;
+                utility -= static_cast<float>(context.crowdByTile[index]) * 1.35f;
             }
 
             if (candidate == context.currentTile) {
-                utility -= 1.0f;
+                utility -= 2.2f;
             }
 
             CpuTargetDecision decision{
