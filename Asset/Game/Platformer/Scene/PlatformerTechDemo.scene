@@ -313,11 +313,15 @@ Entities:
           InputPins:
             - 6
       - Component: PlatformerCameraController
-        followSharpness: 7.5
+        followSharpness: 6
         verticalFollowSharpness: 3
-        transitionSharpness: 4.80000019
-        occlusionShortenSharpness: 13
-        occlusionReturnSharpness: 6
+        transitionSharpness: 2.20000005
+        targetHorizontalMaxSpeed: 11
+        targetVerticalMaxSpeed: 5.5
+        occlusionShortenSharpness: 8
+        occlusionReturnSharpness: 3.5
+        occlusionShortenMaxSpeed: 8
+        occlusionReturnMaxSpeed: 4
         occlusionEnterDelay: 0.0799999982
         occlusionExitDelay: 0.119999997
         occlusionProbeStart: 0.449999988
@@ -331,6 +335,11 @@ Entities:
         wallHeight: 4.5
         bossDistance: 13.5
         bossHeight: 7
+        comfortCamera: true
+        impulsePositionScale: 0.075000003
+        impulseFrequency: 7
+        impulseResponseSharpness: 10
+        maxImpulseFovKick: 0.00999999978
         SelfLayerBit: 26
         Profile: 0
   - Entity: 4
@@ -357,9 +366,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: 8.58826542
-          y: 47.7994995
-          z: 59.4748535
+          x: 12.0689068
+          y: 55.4590187
+          z: 34.1239586
           w: 0
         Direction:
           x: 0
@@ -391,17 +400,17 @@ Entities:
             - 1
             - 0
             - -0
-            - -8.58826542
+            - -12.0689068
           -
             - 0
             - 0.5
             - 0.866025388
-            - -75.4064789
+            - -57.281723
           -
             - 0
             - -0.866025388
             - 0.5
-            - 11.6581535
+            - 30.9669399
           -
             - 0
             - 0
@@ -535,6 +544,18 @@ Entities:
           z: 0.949999988
       - Component: PlatformerPlayerFeedback
         particleVerticalOffset: 0.449999988
+        movementAssistEnabled: true
+        assistBaseRunSpeed: 7
+        assistRunSpeedBonus: 1.10000002
+        assistBuildSeconds: 0.649999976
+        assistLowSpeedAcceleration: 14
+        assistHighSpeedAcceleration: 43
+        assistReverseMultiplier: 1.75
+        assistAirAcceleration: 18
+        assistFirstJumpBoost: 0.280000001
+        assistSecondJumpBoost: 0.579999983
+        assistThirdJumpBoost: 0.949999988
+        assistLandingCarryBoost: 0.239999995
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerPlayerFeedback.prefab
   - Entity: 7
@@ -1447,7 +1468,7 @@ Entities:
           - -0
           - 1
         Scale:
-          x: 1.20000005
+          x: 4.17937088
           y: 0.300000012
           z: 1.79999995
         Parent: 0
@@ -1517,7 +1538,7 @@ Entities:
         Name: WallExitShelf
       - Component: TransformComponent
         Position:
-          x: -2.21072531
+          x: -1.61630225
           y: 2.20069408
           z: 61.8199158
         Rotation:
@@ -1526,7 +1547,7 @@ Entities:
           - -0
           - 1
         Scale:
-          x: 1.39999998
+          x: 4.37049484
           y: 0.349999994
           z: 2
         Parent: 0
@@ -1677,16 +1698,16 @@ Entities:
         Position:
           x: 0
           y: -0.5
-          z: 70.5
+          z: 71.6099701
         Rotation:
+          - -0
           - 0
-          - 0
-          - 0
+          - -0
           - 1
         Scale:
           x: 4.5
           y: 0.5
-          z: 3
+          z: 4.93943834
         Parent: 0
       - Component: StaticEntityComponent
       - Component: ColliderComponent
@@ -3870,7 +3891,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 46
+  - Entity: 45
     Components:
       - Component: NameComponent
         Name: Coin_8
@@ -3990,7 +4011,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 47
+  - Entity: 46
     Components:
       - Component: NameComponent
         Name: Coin_9
@@ -4110,7 +4131,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 48
+  - Entity: 47
     Components:
       - Component: NameComponent
         Name: Coin_10
@@ -4230,7 +4251,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 49
+  - Entity: 48
     Components:
       - Component: NameComponent
         Name: Coin_11
@@ -4350,7 +4371,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 50
+  - Entity: 49
     Components:
       - Component: NameComponent
         Name: Coin_12
@@ -4470,7 +4491,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 51
+  - Entity: 50
     Components:
       - Component: NameComponent
         Name: Coin_13
@@ -4590,7 +4611,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 52
+  - Entity: 51
     Components:
       - Component: NameComponent
         Name: Coin_14
@@ -4710,7 +4731,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 53
+  - Entity: 52
     Components:
       - Component: NameComponent
         Name: Coin_15
@@ -4830,7 +4851,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 54
+  - Entity: 53
     Components:
       - Component: NameComponent
         Name: Coin_16
@@ -4950,7 +4971,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 55
+  - Entity: 54
     Components:
       - Component: NameComponent
         Name: Coin_18
@@ -5070,7 +5091,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 56
+  - Entity: 55
     Components:
       - Component: NameComponent
         Name: Coin_19
@@ -5190,7 +5211,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 57
+  - Entity: 56
     Components:
       - Component: NameComponent
         Name: Coin_22
@@ -5310,7 +5331,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 58
+  - Entity: 57
     Components:
       - Component: NameComponent
         Name: Coin_23
@@ -5430,7 +5451,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 59
+  - Entity: 58
     Components:
       - Component: NameComponent
         Name: Coin_24
@@ -5550,7 +5571,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 60
+  - Entity: 59
     Components:
       - Component: NameComponent
         Name: Coin_25
@@ -5670,7 +5691,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 62
+  - Entity: 60
     Components:
       - Component: NameComponent
         Name: Coin_27
@@ -5790,7 +5811,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 63
+  - Entity: 61
     Components:
       - Component: NameComponent
         Name: Coin_28
@@ -5910,7 +5931,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 64
+  - Entity: 62
     Components:
       - Component: NameComponent
         Name: Coin_29
@@ -6030,7 +6051,7 @@ Entities:
         collectDuration: 0.550000012
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerCoin.prefab
-  - Entity: 65
+  - Entity: 63
     Components:
       - Component: NameComponent
         Name: Coin_30
