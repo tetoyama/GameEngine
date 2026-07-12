@@ -3,6 +3,7 @@
 #include "LlmDecisionAdapter.h"
 #include "LlmRequestSession.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -59,6 +60,15 @@ public:
 	bool IsInitialized() const noexcept;
 	bool HasActiveRequest() const noexcept{ return m_session.HasActiveRequest(); }
 
+	double AdvanceRuntimeClock(double deltaSeconds) noexcept{
+		m_runtimeClock += std::max(0.0, deltaSeconds);
+		return m_runtimeClock;
+	}
+	double RuntimeClock() const noexcept{ return m_runtimeClock; }
+	void SetRequestStateSerial(std::uint64_t serial) noexcept{ m_requestStateSerial = serial; }
+	std::uint64_t RequestStateSerial() const noexcept{ return m_requestStateSerial; }
+	void ClearRequestStateSerial() noexcept{ m_requestStateSerial = 0; }
+
 private:
 	class AgentPort;
 	static LlmDecisionStatus ConvertStatus(LlmRequestStatus status) noexcept;
@@ -69,6 +79,8 @@ private:
 	LlmRequestSession m_session;
 	PublicGameView m_requestView;
 	std::vector<GameAction> m_requestLegalActions;
+	double m_runtimeClock = 0.0;
+	std::uint64_t m_requestStateSerial = 0;
 };
 
 } // namespace ElemenTactics
