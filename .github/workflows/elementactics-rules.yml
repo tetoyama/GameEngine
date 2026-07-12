@@ -1,4 +1,4 @@
-name: ElemenTactics Rules and Flow Smoke Tests
+name: ElemenTactics Rules, Flow, and LLM Contract Tests
 
 on:
   pull_request:
@@ -6,6 +6,7 @@ on:
       - "Source/GameApplication/Game/ElemenTactics/**"
       - "Tests/ElemenTacticsRulesSmokeTest.cpp"
       - "Tests/ElemenTacticsFlowSmokeTest.cpp"
+      - "Tests/ElemenTacticsLlmSessionSmokeTest.cpp"
       - ".github/workflows/elementactics-rules.yml"
   push:
     branches:
@@ -14,6 +15,7 @@ on:
       - "Source/GameApplication/Game/ElemenTactics/**"
       - "Tests/ElemenTacticsRulesSmokeTest.cpp"
       - "Tests/ElemenTacticsFlowSmokeTest.cpp"
+      - "Tests/ElemenTacticsLlmSessionSmokeTest.cpp"
       - ".github/workflows/elementactics-rules.yml"
   workflow_dispatch:
 
@@ -54,3 +56,12 @@ jobs:
           Tests\ElemenTacticsFlowSmokeTest.cpp
           /Fe:elementactics-flow-test.exe
           && elementactics-flow-test.exe
+      - name: Compile and run LLM request lifecycle contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /I Source\GameApplication
+          Source\GameApplication\Game\ElemenTactics\AI\LlmRequestSession.cpp
+          Tests\ElemenTacticsLlmSessionSmokeTest.cpp
+          /Fe:elementactics-llm-session-test.exe
+          && elementactics-llm-session-test.exe
