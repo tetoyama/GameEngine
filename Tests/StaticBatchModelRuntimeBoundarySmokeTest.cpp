@@ -33,6 +33,12 @@ void ValidateModelRuntimeBoundary(){
 	const std::string resourceKey = ReadTextFile(
 		"Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
 	);
+	const std::string source = ReadTextFile(
+		"Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchD3D11GeometrySource.h"
+	);
+	const std::string binding = ReadTextFile(
+		"Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchD3D11GeometryBinding.h"
+	);
 	const std::string provider = ReadTextFile(
 		"Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceProvider.h"
 	);
@@ -54,7 +60,7 @@ void ValidateModelRuntimeBoundary(){
 	assert(resolver.find("UsesDynamicVertexBuffer") == std::string::npos);
 
 	// Model Loaderは一時new[]ではなくBackend非依存CPU Geometry Snapshotを生成し、
-	// 既存D3D11 Bufferも同じSnapshotから初期化する。
+	// 既存通常描画用D3D11 Bufferも同じSnapshotから初期化する。
 	assert(modelData.find("struct ModelMeshGeometryCpuData") !=
 		std::string::npos);
 	assert(modelData.find("std::vector<ModelMeshGeometryCpuData> MeshGeometry;") !=
@@ -79,6 +85,39 @@ void ValidateModelRuntimeBoundary(){
 		"model->MeshGeometry.size() != model->AiScene->mNumMeshes"
 	) != std::string::npos);
 
+	// Geometry SourceはCPU byte spanを第一経路とし、Native Bufferは互換Fallbackだけ。
+	assert(source.find("std::span<const std::byte> vertexData") !=
+		std::string::npos);
+	assert(source.find("std::span<const std::byte> indexData") !=
+		std::string::npos);
+	assert(source.find("bool HasCpuData() const noexcept") != std::string::npos);
+	assert(source.find("HasCpuData() || HasNativeBuffers()") !=
+		std::string::npos);
+
+	// Model Provider / Runtime StorageはModelData Native Bufferを参照しない。
+	assert(provider.find("StaticBatchModelCpuGeometrySourceProvider") !=
+		std::string::npos);
+	assert(provider.find("std::as_bytes") != std::string::npos);
+	assert(provider.find("model->VertexBuffer") == std::string::npos);
+	assert(provider.find("model->IndexBuffer") == std::string::npos);
+	assert(runtimeStorage.find("model->VertexBuffer") == std::string::npos);
+	assert(runtimeStorage.find("model->IndexBuffer") == std::string::npos);
+	assert(runtimeStorage.find("ComPtr<ID3D11Buffer>") == std::string::npos);
+	assert(runtimeStorage.find("std::vector<std::byte> vertexData") !=
+		std::string::npos);
+	assert(runtimeStorage.find("std::vector<std::byte> indexData") !=
+		std::string::npos);
+
+	// RHI Geometry BindingはCPU SourceからImmutable Bufferを直接生成する。
+	assert(binding.find("CreateFromCpuData") != std::string::npos);
+	assert(binding.find("device.CreateBuffer(vertexDesc, source.vertexData)") !=
+		std::string::npos);
+	assert(binding.find("device.CreateBuffer(indexDesc, source.indexData)") !=
+		std::string::npos);
+	assert(binding.find("RHI::ResourceUsage::Immutable") != std::string::npos);
+	assert(binding.find("WasCreatedFromCpuData") != std::string::npos);
+	assert(binding.find("CreateFromNativeBuffers") != std::string::npos);
+
 	// Resolver / CacheはModelDataのNative Buffer配置を知らず、Provider境界だけを使う。
 	assert(resolver.find("model->VertexBuffer") == std::string::npos);
 	assert(resolver.find("model->IndexBuffer") == std::string::npos);
@@ -101,22 +140,10 @@ void ValidateModelRuntimeBoundary(){
 	assert(runtimeStorage.find("StaticBatchResourceKey::MakeGeometryKey") ==
 		std::string::npos);
 
-	// Legacy ProviderだけがNative BufferをBootstrapし、件数はCPU Snapshotから解決する。
-	assert(provider.find("class IStaticBatchModelGeometrySourceProvider") !=
-		std::string::npos);
-	assert(provider.find("StaticBatchLegacyModelGeometrySourceProvider") !=
-		std::string::npos);
-	assert(provider.find("model->MeshGeometry") != std::string::npos);
-	assert(provider.find("geometry.vertices.size()") != std::string::npos);
-	assert(provider.find("geometry.indices.size()") != std::string::npos);
-	assert(provider.find("model->VertexBuffer") != std::string::npos);
-	assert(provider.find("model->IndexBuffer") != std::string::npos);
-	assert(runtimeStorage.find("model->VertexBuffer") == std::string::npos);
-	assert(runtimeStorage.find("model->IndexBuffer") == std::string::npos);
-
-	// Runtime Storageは独立COM参照を保持し、同期単位で未使用Entryを解放する。
-	assert(runtimeStorage.find("ComPtr<ID3D11Buffer>") != std::string::npos);
+	// Runtime StorageはCPU Snapshotを複製し、同期単位で未使用Entryを解放する。
 	assert(runtimeStorage.find("StaticBatchRuntimeModelGeometrySourceProvider") !=
+		std::string::npos);
+	assert(runtimeStorage.find("StaticBatchModelGeometrySourceProviders::ModelCpuData()") !=
 		std::string::npos);
 	assert(runtimeStorage.find("bootstrapProvider.Resolve") != std::string::npos);
 	assert(runtimeStorage.find("BeginSynchronization") != std::string::npos);
@@ -133,7 +160,7 @@ void ValidateModelRuntimeBoundary(){
 		std::string::npos);
 
 	// Animation設定のあるModelはGroup単位で拒否し、
-	// Boneを持つSubMeshはBootstrap Providerで拒否する。
+	// Boneを持つSubMeshはCPU Providerで拒否する。
 	assert(resolver.find("renderer->blendedAnimations.empty()") !=
 		std::string::npos);
 	assert(provider.find("mesh->HasBones()") != std::string::npos);
