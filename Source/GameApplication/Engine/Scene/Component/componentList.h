@@ -49,6 +49,7 @@
 #include "Script/FadeSetScene.h"
 #include "Script/CameraController.h"
 #include "Script/GN31.h"
+#include "Game/ElemenTactics/Runtime/ElemenTacticsGameController.h"
 
 inline constexpr auto COMPONENT_SPARSE = ECSStorage::ComponentStorageStrategy::SparseStable;
 inline constexpr auto COMPONENT_DENSE = ECSStorage::ComponentStorageStrategy::Dense;
@@ -107,6 +108,7 @@ struct ComponentStoragePreference<TransformComponent> {
     X(FadeSetScene,COMPONENT_SPARSE)\
     X(ScriptComponent,COMPONENT_SPARSE)\
     X(GN31,COMPONENT_SPARSE)\
+    X(ElemenTactics::ElemenTacticsGameController,COMPONENT_SPARSE)\
     X(PrefabComponent,COMPONENT_SPARSE)\
     X(FollowComponent,COMPONENT_ARCHETYPE)\
     X(EnvironmentMapComponent,COMPONENT_ARCHETYPE)
