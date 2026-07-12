@@ -12,7 +12,66 @@
 #include <cmath>
 #include <Xinput.h>
 
+#ifdef _EDITOR
+#include "Backends/ImGui/imgui_internal.h"
+#endif
+
 #pragma comment(lib, "xinput.lib")
+
+namespace {
+
+bool TryMapMouseToPlayerView(
+	int rawX,
+	int rawY,
+	int& mappedX,
+	int& mappedY
+){
+#ifdef _EDITOR
+	if(!ImGui::GetCurrentContext()) return false;
+
+	// RenderSystem::PlayerView() submits the player texture as the final item in
+	// the "Play View" window. The previous frame's window layout therefore keeps
+	// the exact image size in PrevLineSize and its top edge in CursorPosPrevLine.
+	// Scene Update happens before the current ImGui frame is built, so using this
+	// retained layout is intentional and stable while docking/resizing.
+	ImGuiWindow* playWindow = ImGui::FindWindowByName("Play View");
+	if(!playWindow || (!playWindow->Active && !playWindow->WasActive) ||
+		playWindow->Collapsed){
+		return false;
+	}
+
+	const float imageWidth = playWindow->DC.PrevLineSize.x;
+	const float imageHeight = playWindow->DC.PrevLineSize.y;
+	if(imageWidth <= 1.0f || imageHeight <= 1.0f) return false;
+
+	const ImVec2 imageMin{
+		playWindow->DC.CursorPosPrevLine.x - imageWidth,
+		playWindow->DC.CursorPosPrevLine.y
+	};
+	const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+	const ImVec2 viewportOrigin = mainViewport
+		? mainViewport->Pos
+		: ImVec2(0.0f, 0.0f);
+
+	// InputService stores main-window client coordinates. ImGui window/item
+	// coordinates are relative to the main viewport when docking is used, and
+	// absolute when multi-viewports are enabled. Removing the main viewport
+	// origin normalizes both cases to the same client-space convention.
+	const float playerOriginX = imageMin.x - viewportOrigin.x;
+	const float playerOriginY = imageMin.y - viewportOrigin.y;
+	mappedX = static_cast<int>(std::lround(static_cast<float>(rawX) - playerOriginX));
+	mappedY = static_cast<int>(std::lround(static_cast<float>(rawY) - playerOriginY));
+	return true;
+#else
+	(void)rawX;
+	(void)rawY;
+	(void)mappedX;
+	(void)mappedY;
+	return false;
+#endif
+}
+
+} // namespace
 
 InputService::InputService(){
 	for(auto& g : m_gamepads) g = GamepadState{};
@@ -211,12 +270,30 @@ bool InputService::IsMouse(HWND hwnd, int button) const{
 int InputService::GetMouseX(HWND hwnd) const{
 	auto it = m_windowStates.find(hwnd);
 	if(it == m_windowStates.end()) return 0;
+	int mappedX = 0;
+	int mappedY = 0;
+	if(TryMapMouseToPlayerView(
+		it->second.mouseState.x,
+		it->second.mouseState.y,
+		mappedX,
+		mappedY)){
+		return mappedX;
+	}
 	return it->second.mouseState.x;
 }
 
 int InputService::GetMouseY(HWND hwnd) const{
 	auto it = m_windowStates.find(hwnd);
 	if(it == m_windowStates.end()) return 0;
+	int mappedX = 0;
+	int mappedY = 0;
+	if(TryMapMouseToPlayerView(
+		it->second.mouseState.x,
+		it->second.mouseState.y,
+		mappedX,
+		mappedY)){
+		return mappedY;
+	}
 	return it->second.mouseState.y;
 }
 
