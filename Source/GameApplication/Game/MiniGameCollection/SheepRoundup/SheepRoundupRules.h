@@ -18,6 +18,7 @@ struct SheepSpawnDefinition {
 };
 
 struct SheepSpawnConfig {
+    bool endlessSpawning = false;
     std::size_t poolCapacity = 24;
     std::size_t earlyTargetActive = 8;
     std::size_t lateTargetActive = 18;
@@ -146,10 +147,10 @@ public:
         EnsureDefaultLayout();
         ValidatePens();
 
-        const std::size_t capacity = std::max(
-            m_spawnConfig.poolCapacity,
-            m_initialSheep.size()
-        );
+        m_spawnRandomState = m_spawnSeed;
+        const std::size_t capacity = m_spawnConfig.endlessSpawning
+            ? std::max(m_spawnConfig.poolCapacity, m_initialSheep.size())
+            : m_initialSheep.size();
         m_sheep.assign(capacity, {});
         for (std::size_t index = 0; index < m_sheep.size(); ++index) {
             m_sheep[index].sheepId = index;
@@ -177,16 +178,15 @@ public:
         m_started = false;
         m_finished = false;
         m_lastLeader = InvalidPlayerId;
-        m_spawnRandomState = m_spawnSeed;
         m_normalSpawnsSinceGolden = 0;
     }
 
     void StartGame() override {
-        if (GetActiveSheepCount() == 0) {
+        if (GetActiveSheepCount() == 0 && m_spawnConfig.endlessSpawning) {
             SpawnUntilTarget(false);
         }
         if (GetActiveSheepCount() == 0) {
-            throw std::logic_error("SheepRoundupRules could not spawn sheep");
+            throw std::logic_error("SheepRoundupRules has no active sheep");
         }
         m_started = true;
     }
@@ -240,9 +240,18 @@ public:
             TryScoreSheep(sheep);
         }
 
-        UpdateSpawning(delta);
-
         if (m_elapsedSeconds >= m_durationSeconds) {
+            m_finished = true;
+            return;
+        }
+
+        if (m_spawnConfig.endlessSpawning) {
+            UpdateSpawning(delta);
+        } else if (std::none_of(
+            m_sheep.begin(),
+            m_sheep.end(),
+            [](const SheepState& sheep) { return sheep.IsActive(); }
+        )) {
             m_finished = true;
         }
     }
@@ -320,7 +329,8 @@ public:
             : 0.0f;
     }
     bool IsLateRush() const noexcept {
-        return GetRemainingTimeRatio() <=
+        return m_spawnConfig.endlessSpawning &&
+            GetRemainingTimeRatio() <=
             std::clamp(m_spawnConfig.latePhaseStartRemainingRatio, 0.0f, 1.0f);
     }
     std::size_t GetActiveSheepCount() const noexcept {
