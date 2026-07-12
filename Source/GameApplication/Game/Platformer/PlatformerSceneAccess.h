@@ -44,33 +44,47 @@ public:
 			return physics->RaycastWithMask(origin, direction, maxDistance, effectiveMask);
 		}
 
-		// A single centre ray can fall exactly on a triangle seam or just beyond a
-		// platform edge while the capsule is still visibly supported. Sample the
-		// centre plus four points inside the 0.25 m capsule radius and prefer the
-		// most upward-facing result, then the nearest result at the same slope.
-		constexpr float probeRadius = 0.16f;
+		// The authored player capsule has a 0.25 m world-space radius. The previous
+		// 0.16 m cross still left a wide unsupported annulus, so landing near a ledge
+		// or across a triangle seam could miss all five rays while PhysX visibly
+		// supported part of the capsule. Sample a nine-point disc at 0.22 m instead.
+		constexpr float probeRadius = 0.22f;
+		constexpr float diagonal = probeRadius * 0.70710678f;
 		const physx::PxVec3 offsets[] = {
 			physx::PxVec3(0.0f, 0.0f, 0.0f),
 			physx::PxVec3(probeRadius, 0.0f, 0.0f),
 			physx::PxVec3(-probeRadius, 0.0f, 0.0f),
 			physx::PxVec3(0.0f, 0.0f, probeRadius),
-			physx::PxVec3(0.0f, 0.0f, -probeRadius)
+			physx::PxVec3(0.0f, 0.0f, -probeRadius),
+			physx::PxVec3(diagonal, 0.0f, diagonal),
+			physx::PxVec3(-diagonal, 0.0f, diagonal),
+			physx::PxVec3(diagonal, 0.0f, -diagonal),
+			physx::PxVec3(-diagonal, 0.0f, -diagonal)
 		};
+
+		// Give descending motion a small one-fixed-step tolerance without changing
+		// the controller's authored slope limit or making wall/camera rays longer.
+		constexpr physx::PxReal landingTolerance = 0.10f;
+		const physx::PxReal queryDistance = maxDistance + landingTolerance;
 
 		RayHit best{};
 		for(const physx::PxVec3& offset : offsets) {
 			const RayHit candidate = physics->RaycastWithMask(
 				origin + offset,
 				direction,
-				maxDistance,
+				queryDistance,
 				effectiveMask);
 			if(!candidate.hit) continue;
 
-			const bool moreWalkable = !best.hit || candidate.normal.y > best.normal.y + 0.001f;
-			const bool sameSlopeAndCloser = best.hit &&
-				std::abs(candidate.normal.y - best.normal.y) <= 0.001f &&
-				candidate.distance < best.distance;
-			if(moreWalkable || sameSlopeAndCloser) best = candidate;
+			// Prefer a clearly nearer support. For hits at approximately the same
+			// height, prefer the more upward-facing triangle so seams and bevels do not
+			// override a valid walkable top surface.
+			const bool clearlyCloser = !best.hit ||
+				candidate.distance + 0.035f < best.distance;
+			const bool sameHeightMoreWalkable = best.hit &&
+				std::abs(candidate.distance - best.distance) <= 0.035f &&
+				candidate.normal.y > best.normal.y + 0.001f;
+			if(clearlyCloser || sameHeightMoreWalkable) best = candidate;
 		}
 		return best;
 	}
