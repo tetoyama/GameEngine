@@ -1,4 +1,5 @@
 #include "Game/MiniGameCollection/Backshot/BackshotModel.h"
+#include "Game/MiniGameCollection/ColorTerritory/ColorTerritoryItemModel.h"
 #include "Game/MiniGameCollection/ColorTerritory/ColorTerritoryModel.h"
 #include "Game/MiniGameCollection/Core/MiniGameCore.h"
 #include "Game/MiniGameCollection/SheepRoundup/SheepSteeringModel.h"
@@ -156,6 +157,17 @@ void TestColorTerritory() {
     );
     assert(decision.has_value());
     assert(decision->attacksLeader);
+
+    TerritoryItemConfig itemConfig;
+    TerritoryPlayerPowerState power;
+    power.ActivateStar(itemConfig.starBuffSeconds);
+    assert(power.HasStar());
+    assert(std::abs(power.ResolveSpeedMultiplier(itemConfig) - 1.55f) < 0.0001f);
+    assert(power.TryConsumeStarTouch(1, itemConfig.starTouchCooldownSeconds));
+    assert(!power.HasStar());
+    assert(std::abs(power.ResolveSpeedMultiplier(itemConfig) - 1.0f) < 0.0001f);
+    assert(!power.TryConsumeStarTouch(1, itemConfig.starTouchCooldownSeconds));
+    assert(std::abs(itemConfig.starTouchStunSeconds - 0.45f) < 0.0001f);
 }
 
 void TestSheepSteering() {
