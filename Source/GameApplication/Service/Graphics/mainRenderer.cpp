@@ -14,6 +14,18 @@ void MainRenderer::DrawText2D(const std::wstring& text, float x, float y, float 
 	}
 }
 
+void MainRenderer::FillRect2D(
+	float x,
+	float y,
+	float width,
+	float height,
+	D2D1::ColorF color
+){
+	if(m_d2dRenderer){
+		m_d2dRenderer->FillRect2D(x, y, width, height, color);
+	}
+}
+
 void MainRenderer::BeginFrame() {
 	if(!m_graphicsContext || m_graphicsContext->IsDeviceLost()){
 		return;
