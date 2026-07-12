@@ -4,6 +4,7 @@
 // 
 // =======================================================================
 #pragma once
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <xaudio2.h>
@@ -19,53 +20,37 @@
 class AudioContext;
 
 // オーディオの再生を管理するコンポーネント
-// XAudio2 の IXAudio2SourceVoice を通じて音声の再生・停止・音量制御を行う
-// AudioSystem が PlayOnStart フラグを見て再生を開始する
+// XAudio2 の IXAudio2SourceVoice を通じて音声の再生・停止・音量・Pitch制御を行う
+// AudioSystem が PlayOnStart と再生終了状態を管理する
 class AudioComponent: public IComponent {
 public:
-	std::shared_ptr<AudioData> m_AudioData;        // ロード済みオーディオデータ
-	std::string FilePath;                           // オーディオファイルのパス（YAML 保存用）
+	std::shared_ptr<AudioData> m_AudioData;
+	std::string FilePath;
 
-	bool Loop = false;          // ループ再生するか
-	float Volume = 1.0f;        // 音量（0.0〜1.0）
-	bool PlayOnStart = false;   // シーン開始時に自動再生するか
-	bool Playing = false;       // 現在再生中かどうか
-	bool isInitialized = false; // AudioSystem によって初期化済みかどうか
+	bool Loop = false;
+	float Volume = 1.0f;
+	float Pitch = 1.0f;
+	bool PlayOnStart = false;
+	bool Playing = false;
+	bool isInitialized = false;
 
-	IXAudio2SourceVoice* m_SourceVoice = nullptr; // 再生ハンドル（AudioSystem が生成・管理）
+	IXAudio2SourceVoice* m_SourceVoice = nullptr;
 
 	AudioComponent() = default;
 
-	// デストラクタ: ソースボイスを停止・解放する
 	~AudioComponent(){
-		if(m_SourceVoice){
-			m_SourceVoice->Stop();
-			m_SourceVoice->DestroyVoice();
-			m_SourceVoice = nullptr;
-		}
+		Stop();
 	}
 
-	// AudioContext を渡して音声を再生する
-	// 既存のソースボイスがある場合は停止・解放してから新規生成する
-	// 引数:
-	//   audioContext - XAudio2 マスタリングボイスを保持するコンテキスト
-	// 戻り値: 再生開始に成功した場合 true
 	bool Play(AudioContext* audioContext){
 		if(!m_AudioData || !m_AudioData->m_SoundData || !audioContext)
 			return false;
 
-		// 既存ボイスを破棄して新規ボイスを作成
-		if(m_SourceVoice){
-			m_SourceVoice->Stop();
-			m_SourceVoice->DestroyVoice();
-			m_SourceVoice = nullptr;
-		}
+		Stop();
 
-		// オーディオフォーマットに合ったソースボイスを生成
 		m_SourceVoice = audioContext->CreateSourceVoice(&m_AudioData->m_Format);
 		if(!m_SourceVoice) return false;
 
-		// バッファを設定してソースボイスに送信
 		XAUDIO2_BUFFER buffer = {};
 		buffer.AudioBytes = m_AudioData->m_Length;
 		buffer.pAudioData = m_AudioData->m_SoundData;
@@ -73,7 +58,6 @@ public:
 		buffer.PlayLength = m_AudioData->m_PlayLength;
 		buffer.Flags = XAUDIO2_END_OF_STREAM;
 
-		// ループ設定: 無限ループの場合はバッファ全体を繰り返す
 		if(Loop){
 			buffer.LoopBegin = 0;
 			buffer.LoopLength = m_AudioData->m_PlayLength;
@@ -87,26 +71,46 @@ public:
 			return false;
 		}
 
-		m_SourceVoice->Start();
-		m_SourceVoice->SetVolume(Volume);
-		Playing = true;
+		m_SourceVoice->SetVolume(std::max(0.0f, Volume));
+		m_SourceVoice->SetFrequencyRatio(ClampPitch(Pitch));
+		hr = m_SourceVoice->Start();
+		if(FAILED(hr)){
+			Stop();
+			return false;
+		}
 
+		Playing = true;
 		return true;
 	}
 
-	// 再生中の音声を停止してソースボイスを解放する
+	// One-shot終了後のSourceVoiceを回収し、固定Voice Poolから再利用可能にする。
+	void RefreshPlaybackState(){
+		if(!Playing || !m_SourceVoice) return;
+
+		XAUDIO2_VOICE_STATE state{};
+		m_SourceVoice->GetState(&state, XAUDIO2_VOICE_NOSAMPLESPLAYED);
+		if(!Loop && state.BuffersQueued == 0){
+			Stop();
+		}
+	}
+
+	void SetPitch(float pitch){
+		Pitch = ClampPitch(pitch);
+		if(m_SourceVoice){
+			m_SourceVoice->SetFrequencyRatio(Pitch);
+		}
+	}
+
 	void Stop(){
 		if(m_SourceVoice){
 			m_SourceVoice->Stop();
-			m_SourceVoice->FlushSourceBuffers(); // バッファをフラッシュして再生残を破棄
+			m_SourceVoice->FlushSourceBuffers();
 			m_SourceVoice->DestroyVoice();
 			m_SourceVoice = nullptr;
 		}
 		Playing = false;
 	}
 
-	// 音声を完全にリセットする（ファイルロードし直し時に呼ぶ）
-	// 停止・初期化フラグクリア・オーディオデータの解放を行う
 	void Reset(){
 		Stop();
 		isInitialized = false;
@@ -118,27 +122,30 @@ public:
 		node["FilePath"] = FilePath;
 		node["Loop"] = Loop;
 		node["Volume"] = Volume;
+		node["Pitch"] = Pitch;
 		node["PlayOnStart"] = PlayOnStart;
 		return node;
 	}
 
 	bool decode(SceneContext* context, const YAML::Node& node) override{
+		(void)context;
 		if(!node.IsMap()) return false;
 		if(node["FilePath"]) FilePath = node["FilePath"].as<std::string>();
 		if(node["Loop"]) Loop = node["Loop"].as<bool>();
 		if(node["Volume"]) Volume = node["Volume"].as<float>();
+		if(node["Pitch"]) Pitch = ClampPitch(node["Pitch"].as<float>());
 		if(node["PlayOnStart"]) PlayOnStart = node["PlayOnStart"].as<bool>();
 		return true;
 	}
 
 	void inspector(SceneContext* context) override{
+		(void)context;
 		ImGui::PushID(this);
 
 		char filepathBuffer[256] = "";
 		strncpy_s(filepathBuffer, sizeof(filepathBuffer), FilePath.c_str(), _TRUNCATE);
 
 		ImGui::BeginGroup();
-
 		ImGui::Text("Audio");
 		ImGui::SameLine(100);
 		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 24.0f);
@@ -166,9 +173,7 @@ public:
 		if(ImGui::UndoCheckbox("Loop", &Loop)){
 			Reset();
 		}
-		
 		ImGui::SameLine();
-		
 		if(ImGui::UndoCheckbox("Play On Start", &PlayOnStart)){
 			Reset();
 		}
@@ -184,6 +189,21 @@ public:
 		}
 		ImGui::PopItemWidth();
 
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("Pitch");
+		ImGui::SameLine(100);
+		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+		float editedPitch = Pitch;
+		if(ImGui::UndoSliderFloat("##PitchSlider", &editedPitch, 0.5f, 2.0f)){
+			SetPitch(editedPitch);
+		}
+		ImGui::PopItemWidth();
+
 		ImGui::PopID();
+	}
+
+private:
+	static float ClampPitch(float pitch){
+		return std::clamp(pitch, 0.5f, 2.0f);
 	}
 };
