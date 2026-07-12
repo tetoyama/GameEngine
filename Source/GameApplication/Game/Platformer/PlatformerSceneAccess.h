@@ -48,6 +48,10 @@ public:
 		return context && context->manager ? context->manager->audio : nullptr;
 	}
 
+	static ResourceService* Resources(SceneContext* context) {
+		return context && context->manager ? context->manager->resource : nullptr;
+	}
+
 	static bool IsAlive(const EntityRef& entity) {
 		return entity.IsValid();
 	}
