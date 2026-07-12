@@ -7,6 +7,7 @@
 #include "BattleInteractionModel.h"
 #include "BoardLayout.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -125,7 +126,7 @@ private:
 	std::string PieceLabel(PieceId piece) const;
 	std::string PublicEventLabel(const PublicEvent& event) const;
 	std::string BuildDeckLine(const std::vector<ElementType>& deck) const;
-	std::pair<float, float> ElementColor(ElementType element) const;
+	std::array<float, 3> ElementColor(ElementType element) const;
 
 	float ViewWidth() const noexcept;
 	float ViewHeight() const noexcept;
