@@ -10,6 +10,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
@@ -21,6 +22,7 @@
 #include "Scene/Registry/componentRegistry.h"
 #include "Scene/Registry/StructuralChangeGuard.h"
 #include "Scene/System/Script/ScriptModuleAPI.h"
+#include "Scene/Prefab/PrefabSystem.h"
 
 // Scene単位の構造変更キュー。
 // Task実行中はコマンドだけを記録し、Latest PhaseのCommit Taskでまとめて適用する。
@@ -47,6 +49,22 @@ public:
 		);
 
 		return CommandEntity::Pending(pendingID);
+	}
+
+	void InstantiatePrefab(
+		std::string filePath,
+		std::function<void(EntityRef)> initializer = {}
+	) {
+		Enqueue(
+			[filePath = std::move(filePath), initializer = std::move(initializer)](
+				SceneContext& context,
+				ResolveMap&
+			) mutable {
+				if(filePath.empty() || !context.prefab) return;
+				EntityRef root = context.prefab->InstantiatePrefab(&context, filePath);
+				if(initializer && root.IsValid()) initializer(root);
+			}
+		);
 	}
 
 	void DestroyEntity(Entity entity) {
