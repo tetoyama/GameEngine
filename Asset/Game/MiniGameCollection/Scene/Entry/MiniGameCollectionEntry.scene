@@ -19,3 +19,6 @@ Entities:
         Name: MiniGameCollectionEntryRuntime
       - Component: MiniGameCollection::Runtime::MiniGameCollectionEntryRuntime
         ScriptName: MiniGameCollectionEntryRuntime
+        AdditiveScenePaths:
+          - Asset/Game/MiniGameCollection/Scene/Persistent/MiniGamePersistent.scene
+        DestroyEntryAfterLoaded: true
