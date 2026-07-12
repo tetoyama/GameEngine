@@ -23,9 +23,25 @@ Entities:
         AddSpeed: {x: 0, y: -9, z: 0}
         MulSpeed: {x: 0.95, y: 0.95, z: 0.95}
       - Component: AudioComponent
-        FilePath: Asset\Audio\BGM.wav
+        FilePath: Asset\Game\Platformer\Sound\Action.wav
         Loop: false
         Volume: 0.12
         PlayOnStart: false
       - Component: PlatformerPlayerFeedback
         particleVerticalOffset: 0.45
+  - LocalID: 1
+    Components:
+      - Component: NameComponent
+        Name: PlatformerClearFeedback
+      - Component: TransformComponent
+        Position: {x: 0, y: 0, z: 0}
+        Rotation: [0, 0, 0, 1]
+        Scale: {x: 1, y: 1, z: 1}
+        Parent: 0
+      - Component: AudioComponent
+        FilePath: Asset\Game\Platformer\Sound\Clear.wav
+        Loop: false
+        Volume: 0.32
+        PlayOnStart: false
+      - Component: PlatformerClearFeedback
+        clearVolume: 0.32
