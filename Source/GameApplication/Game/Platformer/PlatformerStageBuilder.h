@@ -9,7 +9,6 @@
 #include "Game/Platformer/PlatformerEnemy.h"
 #include "Game/Platformer/PlatformerMovingPlatform.h"
 
-#include <array>
 #include <string>
 #include <vector>
 
@@ -96,14 +95,13 @@ private:
 		SpawnBlock(*commands, "GimmickLanding", Vector3(0.0f, -0.5f, 89.0f), Vector3(5.0f, 0.5f, 4.0f), gimmickColor);
 		SpawnEnemy(*commands, Vector3(0.0f, 0.45f, 90.0f), Vector3(1.0f, 0.0f, 0.0f), 2.8f);
 
-		// Section 5: boss checkpoint and enclosed charge arena.
+		// Section 5: boss checkpoint and open-entry charge arena.
 		SpawnCheckpoint(*commands, Vector3(0.0f, 0.6f, 95.0f));
 		SpawnBlock(*commands, "BossApproach", Vector3(0.0f, -0.5f, 96.0f), Vector3(5.5f, 0.5f, 4.0f), arenaColor);
 		SpawnBlock(*commands, "BossArenaFloor", Vector3(0.0f, -0.5f, 109.0f), Vector3(10.0f, 0.5f, 13.0f), arenaColor);
 		SpawnBlock(*commands, "BossWallLeft", Vector3(-10.0f, 2.5f, 109.0f), Vector3(0.5f, 3.0f, 13.0f), arenaColor);
 		SpawnBlock(*commands, "BossWallRight", Vector3(10.0f, 2.5f, 109.0f), Vector3(0.5f, 3.0f, 13.0f), arenaColor);
 		SpawnBlock(*commands, "BossWallFar", Vector3(0.0f, 2.5f, 122.0f), Vector3(10.5f, 3.0f, 0.5f), arenaColor);
-		SpawnBlock(*commands, "BossWallNear", Vector3(0.0f, 2.5f, 98.0f), Vector3(10.5f, 3.0f, 0.5f), arenaColor);
 		SpawnBlock(*commands, "BossJumpWallLeft", Vector3(-6.0f, 2.2f, 111.0f), Vector3(0.45f, 2.7f, 2.0f), wallColor);
 		SpawnBlock(*commands, "BossJumpWallRight", Vector3(6.0f, 2.2f, 111.0f), Vector3(0.45f, 2.7f, 2.0f), wallColor);
 		SpawnBoss(*commands, Vector3(0.0f, 1.0f, 113.0f));
