@@ -47,6 +47,20 @@ public:
 		std::span<const StaticBatchPacketCacheEntry> groups,
 		std::span<const RenderPacket> packets
 	){
+		return Synchronize(
+			device,
+			groups,
+			packets,
+			StaticBatchModelGeometrySourceProviders::LegacyModelData()
+		);
+	}
+
+	bool Synchronize(
+		RHI::IRHIDevice& device,
+		std::span<const StaticBatchPacketCacheEntry> groups,
+		std::span<const RenderPacket> packets,
+		const IStaticBatchModelGeometrySourceProvider& sourceProvider
+	){
 		m_resolvedGroups.clear();
 		++m_synchronizeCount;
 		if(device.GetBackendType() != RHI::BackendType::Direct3D11){
@@ -63,7 +77,11 @@ public:
 			++groupIndex){
 			const StaticBatchPacketCacheEntry& group = groups[groupIndex];
 			const StaticBatchModelGeometryResolveResult resolved =
-				StaticBatchModelGeometrySourceResolver::Resolve(group, packets);
+				StaticBatchModelGeometrySourceResolver::Resolve(
+					group,
+					packets,
+					sourceProvider
+				);
 			if(!resolved.IsEligible()){
 				RecordReject(resolved.rejectReason);
 				continue;
