@@ -3,11 +3,17 @@
 #include "Game/MiniGameCollection/Core/MiniGameCpuDecisionClock.h"
 #include "Game/MiniGameCollection/Core/MiniGamePlayerModel.h"
 #include "Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h"
+#include "Game/MiniGameCollection/Runtime/MiniGameRuntimeUi.h"
 #include "Game/MiniGameCollection/SheepRoundup/SheepRoundupRules.h"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
+#include <iomanip>
 #include <optional>
+#include <sstream>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace MiniGameCollection::Runtime {
@@ -24,6 +30,7 @@ public:
 private:
     static constexpr std::size_t PlayerCount = 4;
     static constexpr float GameDurationSeconds = 50.0f;
+    static constexpr float SpawnPopSeconds = 0.55f;
     static constexpr SheepRoundup::Bounds2 MovementArea{
         {-10.0f, -7.0f},
         {10.0f, 7.0f}
@@ -40,9 +47,24 @@ private:
         Vec2 interceptPosition{};
     };
 
+    struct SheepVisual {
+        ComponentRef<TransformComponent> bodyTransform;
+        ComponentRef<MaterialComponent> bodyMaterial;
+        ComponentRef<TransformComponent> haloTransform;
+        ComponentRef<MaterialComponent> haloMaterial;
+        float spawnPulseRemainingSeconds = 0.0f;
+    };
+
+    struct Banner {
+        std::string text;
+        D2D1::ColorF color = D2D1::ColorF(1.0f, 0.86f, 0.18f, 1.0f);
+        float remainingSeconds = 0.0f;
+    };
+
     void OnStart() override {
         m_sceneToken = GetRuntimeSceneToken();
         m_rules.Prepare();
+        m_players = {};
         m_players[0].state = {
             .playerId = 0,
             .position = {-7.5f, -4.8f},
@@ -97,9 +119,14 @@ private:
         SubmitPresentation(RuntimePresentationCommandType::Countdown);
         m_countdownRemainingSeconds = 3.0f;
         m_result.reset();
+        m_banner = {};
+        m_visualTimeSeconds = 0.0f;
         m_transitionSubmitted = false;
         m_warning10Played = false;
         m_warning5Played = false;
+        m_lateRushAnnounced = false;
+        m_started = false;
+        m_rulesShutdown = false;
     }
 
     void OnUpdate(float dt) override {
@@ -108,6 +135,12 @@ private:
         }
 
         const float delta = std::max(0.0f, dt);
+        m_visualTimeSeconds += delta;
+        m_banner.remainingSeconds = std::max(
+            0.0f,
+            m_banner.remainingSeconds - delta
+        );
+
         if (!m_started) {
             m_countdownRemainingSeconds = std::max(
                 0.0f,
@@ -121,14 +154,30 @@ private:
                 }
             }
             UpdatePlayerVisuals();
-            UpdateSheepVisuals();
+            UpdateSheepVisuals(delta);
             return;
         }
 
         if (!m_rules.IsFinished()) {
             UpdatePlayers(delta);
             m_rules.Tick(delta);
-            UpdateSheepVisuals();
+
+            if (!m_lateRushAnnounced && m_rules.IsLateRush()) {
+                m_lateRushAnnounced = true;
+                SetBanner(
+                    "FLOCK RUSH!  MORE SHEEP / MORE GOLDEN CHANCES",
+                    D2D1::ColorF(1.0f, 0.58f, 0.12f, 1.0f),
+                    1.35f
+                );
+                SubmitPresentation(
+                    RuntimePresentationCommandType::Hit,
+                    {},
+                    1.25f
+                );
+            }
+
+            ApplySpawnEvents();
+            UpdateSheepVisuals(delta);
             ApplyScoreEvents();
             UpdateWarnings();
 
@@ -151,6 +200,7 @@ private:
                 }
             }
         } else {
+            UpdateSheepVisuals(delta);
             UpdateResultInput();
         }
     }
@@ -162,11 +212,12 @@ private:
     void OnDraw() override {
         DrawScreenHeader(
             "SHEEP ROUNDUP",
-            "羊を自分の囲いへ入れろ！",
+            "羊は無限補充。金色の羊は3点！ 後半は群れが一気に増える",
             "操作：WASD / 矢印キーで移動",
             m_rules.GetRemainingSeconds()
         );
         DrawScoreRow(m_rules.GetScores());
+        DrawFlockHud();
         if (m_result) {
             DrawResultPanel(*m_result);
         }
@@ -232,18 +283,34 @@ private:
 
     void QueueSheepVisuals() {
         const auto& sheep = m_rules.GetSheep();
-        m_sheepTransforms.assign(sheep.size(), {});
-        m_sheepMaterials.assign(sheep.size(), {});
+        m_sheepVisuals.assign(sheep.size(), {});
         for (std::size_t index = 0; index < sheep.size(); ++index) {
             QueueCube(
-                "Sheep_" + std::to_string(index),
-                ToWorld(sheep[index].position, 0.48f),
-                Vector3(0.64f, 0.72f, 0.84f),
+                "SheepBody_" + std::to_string(index),
+                sheep[index].IsActive()
+                    ? ToWorld(sheep[index].position, 0.48f)
+                    : HiddenPosition(),
+                sheep[index].IsActive()
+                    ? Vector3(0.64f, 0.72f, 0.84f)
+                    : Vector3(),
                 DirectX::XMFLOAT4(0.94f, 0.94f, 0.88f, 1.0f),
                 [this, index](const CubeVisualRefs& refs) {
-                    if (index < m_sheepTransforms.size()) {
-                        m_sheepTransforms[index] = refs.transform;
-                        m_sheepMaterials[index] = refs.material;
+                    if (index < m_sheepVisuals.size()) {
+                        m_sheepVisuals[index].bodyTransform = refs.transform;
+                        m_sheepVisuals[index].bodyMaterial = refs.material;
+                    }
+                }
+            );
+            QueueCube(
+                "GoldenSheepHalo_" + std::to_string(index),
+                HiddenPosition(),
+                Vector3(),
+                DirectX::XMFLOAT4(1.0f, 0.76f, 0.08f, 1.0f),
+                [this, index](const CubeVisualRefs& refs) {
+                    if (index < m_sheepVisuals.size()) {
+                        m_sheepVisuals[index].haloTransform = refs.transform;
+                        m_sheepVisuals[index].haloMaterial = refs.material;
+                        ConfigureGoldenMaterial(refs.material, 4.0f);
                     }
                 }
             );
@@ -259,7 +326,6 @@ private:
                 Vector3(pen.radius * 1.7f, 0.12f, pen.radius * 1.7f),
                 color
             );
-            // 囲いの後端を視覚化し、CPUとプレイヤーが押す方向を読みやすくする。
             const Vec2 outward = NormalizeOrZero(pen.center);
             const Vec2 back = pen.center + outward * (pen.radius * 0.8f);
             QueueCube(
@@ -278,13 +344,18 @@ private:
         const auto& sheep = m_rules.GetSheep();
         std::vector<SheepRoundup::SheepTargetCandidate> candidates;
         candidates.reserve(sheep.size());
+        std::vector<SheepRoundup::SheepTargetCandidate> goldenCandidates;
         for (const SheepRoundup::SheepState& value : sheep) {
-            candidates.push_back({
+            SheepRoundup::SheepTargetCandidate candidate{
                 .sheepIndex = value.sheepId,
                 .sheepPosition = value.position,
                 .sheepVelocity = value.velocity,
-                .alreadyScored = value.IsScored()
-            });
+                .alreadyScored = !value.IsActive()
+            };
+            candidates.push_back(candidate);
+            if (value.IsActive() && value.golden) {
+                goldenCandidates.push_back(candidate);
+            }
         }
 
         const auto& pens = m_rules.GetPens();
@@ -298,8 +369,7 @@ private:
                     pens,
                     static_cast<PlayerId>(playerIndex)
                 );
-                context.remainingTimeRatio =
-                    m_rules.GetRemainingSeconds() / GameDurationSeconds;
+                context.remainingTimeRatio = m_rules.GetRemainingTimeRatio();
                 for (std::size_t opponent = 0; opponent < PlayerCount; ++opponent) {
                     if (opponent != playerIndex) {
                         context.opponentPositions.push_back(
@@ -313,12 +383,36 @@ private:
                     : cpuIndex == 1
                         ? CpuDifficultyProfile::Normal()
                         : CpuDifficultyProfile::Hard();
+                const float standOff = cpuIndex == 0 ? 1.15f : 1.65f;
                 auto decision = SheepRoundup::SheepCpuEvaluator::ChooseSheep(
                     candidates,
                     context,
                     difficulty,
-                    cpuIndex == 0 ? 1.15f : 1.65f
+                    standOff
                 );
+
+                const auto goldenDecision =
+                    SheepRoundup::SheepCpuEvaluator::ChooseSheep(
+                        goldenCandidates,
+                        context,
+                        difficulty,
+                        standOff
+                    );
+                if (goldenDecision) {
+                    const float distance = Distance(
+                        m_players[playerIndex].state.position,
+                        sheep[goldenDecision->sheepIndex].position
+                    );
+                    const float goldenAwareness = cpuIndex == 0
+                        ? 5.5f
+                        : cpuIndex == 1
+                            ? 8.0f
+                            : 12.0f;
+                    if (distance <= goldenAwareness || !decision) {
+                        decision = goldenDecision;
+                    }
+                }
+
                 if (decision) {
                     m_players[playerIndex].targetSheep = decision->sheepIndex;
                     m_players[playerIndex].interceptPosition =
@@ -332,8 +426,10 @@ private:
             }
 
             if (m_players[playerIndex].targetSheep) {
-                const std::size_t targetIndex = *m_players[playerIndex].targetSheep;
-                if (targetIndex >= sheep.size() || sheep[targetIndex].IsScored()) {
+                const std::size_t targetIndex =
+                    *m_players[playerIndex].targetSheep;
+                if (targetIndex >= sheep.size() ||
+                    !sheep[targetIndex].IsActive()) {
                     m_players[playerIndex].targetSheep.reset();
                     clock.ClearTarget();
                 } else {
@@ -342,7 +438,6 @@ private:
                         m_players[playerIndex].state.position;
                     inputs[playerIndex].move = NormalizeOrZero(toTarget);
                     if (LengthSquared(toTarget) < 0.2f) {
-                        // 回り込み地点へ着いた後は羊へ接近して押し始める。
                         inputs[playerIndex].move = NormalizeOrZero(
                             sheep[targetIndex].position -
                             m_players[playerIndex].state.position
@@ -397,20 +492,133 @@ private:
         }
     }
 
-    void UpdateSheepVisuals() {
-        const auto& sheep = m_rules.GetSheep();
-        const std::size_t count = std::min(sheep.size(), m_sheepTransforms.size());
-        for (std::size_t index = 0; index < count; ++index) {
-            if (TransformComponent* transform = m_sheepTransforms[index].TryGet()) {
-                transform->position = ToWorld(sheep[index].position, 0.48f);
-                const float yaw = std::atan2(
-                    sheep[index].direction.x,
-                    sheep[index].direction.y
+    void ApplySpawnEvents() {
+        for (const SheepRoundup::SheepSpawnEvent& event :
+            m_rules.ConsumeSpawnEvents()) {
+            if (event.sheepId < m_sheepVisuals.size()) {
+                m_sheepVisuals[event.sheepId].spawnPulseRemainingSeconds =
+                    SpawnPopSeconds;
+            }
+
+            SubmitPresentation(
+                RuntimePresentationCommandType::Score,
+                event.position,
+                event.golden ? 1.65f : 0.35f
+            );
+
+            if (event.golden) {
+                SetBanner(
+                    "GOLDEN SHEEP!  3 POINTS",
+                    D2D1::ColorF(1.0f, 0.82f, 0.12f, 1.0f),
+                    1.1f
                 );
-                transform->SetRotationEuler(Vector3(0.0f, yaw, 0.0f));
-                if (sheep[index].IsScored()) {
-                    transform->scale = Vector3(0.48f, 0.48f, 0.48f);
+            }
+        }
+    }
+
+    void UpdateSheepVisuals(float deltaTime) {
+        const auto& sheep = m_rules.GetSheep();
+        const std::size_t count = std::min(
+            sheep.size(),
+            m_sheepVisuals.size()
+        );
+        for (std::size_t index = 0; index < count; ++index) {
+            SheepVisual& visual = m_sheepVisuals[index];
+            visual.spawnPulseRemainingSeconds = std::max(
+                0.0f,
+                visual.spawnPulseRemainingSeconds - deltaTime
+            );
+
+            TransformComponent* body = visual.bodyTransform.TryGet();
+            TransformComponent* halo = visual.haloTransform.TryGet();
+            MaterialComponent* bodyMaterial = visual.bodyMaterial.TryGet();
+            MaterialComponent* haloMaterial = visual.haloMaterial.TryGet();
+            const SheepRoundup::SheepState& state = sheep[index];
+
+            if (!state.IsActive()) {
+                HideTransform(body);
+                HideTransform(halo);
+                continue;
+            }
+
+            const float spawnProgress =
+                visual.spawnPulseRemainingSeconds > 0.0f
+                    ? 1.0f -
+                        visual.spawnPulseRemainingSeconds / SpawnPopSeconds
+                    : 1.0f;
+            const float spawnPop = std::sin(
+                std::clamp(spawnProgress, 0.0f, 1.0f) * 3.14159265f
+            );
+            const float goldenPulse = 0.5f + 0.5f * std::sin(
+                m_visualTimeSeconds * 9.0f +
+                static_cast<float>(index) * 0.73f
+            );
+
+            if (body) {
+                body->position = ToWorld(
+                    state.position,
+                    0.48f + (1.0f - spawnProgress) * 1.1f
+                );
+                const float yaw = std::atan2(
+                    state.direction.x,
+                    state.direction.y
+                );
+                body->SetRotationEuler(Vector3(
+                    0.0f,
+                    yaw + (state.golden
+                        ? m_visualTimeSeconds * 0.35f
+                        : 0.0f),
+                    0.0f
+                ));
+                const float spawnScale =
+                    0.7f + spawnProgress * 0.3f + spawnPop * 0.18f;
+                const float goldenScale = state.golden
+                    ? 1.08f + goldenPulse * 0.08f
+                    : 1.0f;
+                body->scale = Vector3(
+                    0.64f * spawnScale * goldenScale,
+                    0.72f * spawnScale * goldenScale,
+                    0.84f * spawnScale * goldenScale
+                );
+            }
+
+            if (bodyMaterial) {
+                if (state.golden) {
+                    bodyMaterial->ShaderID = 1;
+                    bodyMaterial->Material.BaseColor =
+                        DirectX::XMFLOAT4(1.0f, 0.68f, 0.06f, 1.0f);
+                    bodyMaterial->Material.Metallic = 0.62f;
+                    bodyMaterial->Material.Roughness = 0.18f;
+                    bodyMaterial->Material.EmissiveColor =
+                        DirectX::XMFLOAT3(1.0f, 0.48f, 0.02f);
+                    bodyMaterial->Material.EmissiveIntensity =
+                        3.2f + goldenPulse * 2.8f;
+                } else {
+                    bodyMaterial->Material.BaseColor =
+                        DirectX::XMFLOAT4(0.94f, 0.94f, 0.88f, 1.0f);
+                    bodyMaterial->Material.Metallic = 0.0f;
+                    bodyMaterial->Material.Roughness = 0.82f;
+                    bodyMaterial->Material.EmissiveColor =
+                        DirectX::XMFLOAT3(0.08f, 0.08f, 0.06f);
+                    bodyMaterial->Material.EmissiveIntensity = 0.08f;
                 }
+            }
+
+            if (state.golden && halo) {
+                halo->position = ToWorld(state.position, 0.12f);
+                const float haloScale = 1.15f + goldenPulse * 0.5f;
+                halo->scale = Vector3(haloScale, 0.055f, haloScale);
+                halo->SetRotationEuler(Vector3(
+                    0.0f,
+                    m_visualTimeSeconds * 2.8f,
+                    0.0f
+                ));
+                if (haloMaterial) {
+                    haloMaterial->Material.EmissiveIntensity =
+                        4.0f + goldenPulse * 3.0f;
+                }
+            } else {
+                HideTransform(halo);
             }
         }
     }
@@ -418,30 +626,106 @@ private:
     void ApplyScoreEvents() {
         for (const SheepRoundup::SheepScoreEvent& event :
             m_rules.ConsumeScoreEvents()) {
-            if (event.sheepId < m_sheepMaterials.size()) {
-                if (MaterialComponent* material =
-                    m_sheepMaterials[event.sheepId].TryGet()) {
-                    material->Material.BaseColor = PlayerColor(event.playerId);
-                    material->Material.EmissiveColor = DirectX::XMFLOAT3(
-                        0.2f,
-                        0.2f,
-                        0.2f
-                    );
-                    material->Material.EmissiveIntensity =
-                        event.changedLeader ? 1.0f : 0.4f;
-                }
-            }
-            Vec2 position{};
-            if (event.sheepId < m_rules.GetSheep().size()) {
-                position = m_rules.GetSheep()[event.sheepId].position;
-            }
+            const float intensity = event.golden
+                ? 2.6f
+                : event.changedLeader
+                    ? 2.0f
+                    : 0.85f +
+                        static_cast<float>(event.newScore) * 0.04f;
             SubmitPresentation(
                 RuntimePresentationCommandType::Score,
-                position,
-                event.changedLeader ? 2.0f :
-                    0.8f + static_cast<float>(event.newScore) * 0.08f
+                event.position,
+                intensity
+            );
+
+            if (event.golden) {
+                SetBanner(
+                    "P" + std::to_string(event.playerId + 1) +
+                        " GOLDEN SHEEP  +3!",
+                    PlayerColorD2D(event.playerId),
+                    1.25f
+                );
+            } else if (event.changedLeader) {
+                SetBanner(
+                    "P" + std::to_string(event.playerId + 1) +
+                        " TAKES THE LEAD!",
+                    PlayerColorD2D(event.playerId),
+                    0.9f
+                );
+            }
+        }
+    }
+
+    void DrawFlockHud() const {
+        MiniGameRuntimeUi ui(GetEntityRef().GetScene());
+        if (!ui.IsAvailable() || m_result) {
+            return;
+        }
+
+        const float panelWidth = std::min(
+            620.0f,
+            std::max(420.0f, ui.Width() - 48.0f)
+        );
+        const float x = (ui.Width() - panelWidth) * 0.5f;
+        const float y = 182.0f;
+        ui.FillPanel(
+            x,
+            y,
+            panelWidth,
+            42.0f,
+            D2D1::ColorF(0.018f, 0.03f, 0.045f, 0.88f)
+        );
+
+        std::ostringstream status;
+        status << (m_rules.IsLateRush() ? "FLOCK RUSH" : "FLOCK")
+               << "  ACTIVE " << m_rules.GetActiveSheepCount()
+               << "   GOLD " << m_rules.GetActiveGoldenSheepCount()
+               << "   GOLDEN = 3 POINTS";
+        ui.DrawText(
+            status.str(),
+            x + 14.0f,
+            y + 12.0f,
+            14.0f,
+            m_rules.IsLateRush()
+                ? D2D1::ColorF(1.0f, 0.67f, 0.14f, 1.0f)
+                : D2D1::ColorF(0.9f, 0.94f, 1.0f, 1.0f),
+            false
+        );
+
+        if (m_banner.remainingSeconds > 0.0f && !m_banner.text.empty()) {
+            const float bannerWidth = 390.0f;
+            const float bannerX = ui.Width() - bannerWidth - 24.0f;
+            const float bannerY = 234.0f;
+            ui.FillPanel(
+                bannerX,
+                bannerY,
+                bannerWidth,
+                44.0f,
+                D2D1::ColorF(
+                    m_banner.color.r * 0.13f,
+                    m_banner.color.g * 0.13f,
+                    m_banner.color.b * 0.13f,
+                    0.9f
+                )
+            );
+            ui.DrawTextCentered(
+                m_banner.text,
+                bannerX + bannerWidth * 0.5f,
+                bannerY + 11.0f,
+                17.0f,
+                m_banner.color
             );
         }
+    }
+
+    void SetBanner(
+        std::string text,
+        D2D1::ColorF color,
+        float durationSeconds
+    ) {
+        m_banner.text = std::move(text);
+        m_banner.color = color;
+        m_banner.remainingSeconds = std::max(0.0f, durationSeconds);
     }
 
     void UpdateWarnings() {
@@ -466,7 +750,7 @@ private:
                 ScenePath,
                 TransitionRequest::Retry
             );
-        } else if (GetKeyDown(VK_ESCAPE)) {
+        } else if (IsReturnToSelectionPressed()) {
             m_transitionSubmitted = SubmitTransition(
                 {},
                 TransitionRequest::Selection
@@ -489,6 +773,39 @@ private:
             }
         }
         return {};
+    }
+
+    static void ConfigureGoldenMaterial(
+        ComponentRef<MaterialComponent> materialRef,
+        float emissiveIntensity
+    ) {
+        if (MaterialComponent* material = materialRef.TryGet()) {
+            material->ShaderID = 1;
+            material->Material.BaseColor =
+                DirectX::XMFLOAT4(1.0f, 0.72f, 0.08f, 1.0f);
+            material->Material.Metallic = 0.55f;
+            material->Material.Roughness = 0.16f;
+            material->Material.EmissiveColor =
+                DirectX::XMFLOAT3(1.0f, 0.5f, 0.02f);
+            material->Material.EmissiveIntensity = emissiveIntensity;
+        }
+    }
+
+    static D2D1::ColorF PlayerColorD2D(PlayerId playerId) {
+        const DirectX::XMFLOAT4 color = PlayerColor(playerId);
+        return D2D1::ColorF(color.x, color.y, color.z, color.w);
+    }
+
+    static void HideTransform(TransformComponent* transform) {
+        if (!transform) {
+            return;
+        }
+        transform->position = HiddenPosition();
+        transform->scale = Vector3();
+    }
+
+    static Vector3 HiddenPosition() {
+        return Vector3(0.0f, -1000.0f, 0.0f);
     }
 
     static Vector3 ToWorld(Vec2 position, float y) {
@@ -518,16 +835,18 @@ private:
         .knockbackDamping = 9.0f,
         .collisionRadius = 0.45f
     };
-    std::vector<ComponentRef<TransformComponent>> m_sheepTransforms;
-    std::vector<ComponentRef<MaterialComponent>> m_sheepMaterials;
+    std::vector<SheepVisual> m_sheepVisuals;
     std::optional<MiniGameResult> m_result;
+    Banner m_banner;
     SceneToken m_sceneToken = 0;
     float m_countdownRemainingSeconds = 3.0f;
+    float m_visualTimeSeconds = 0.0f;
     bool m_started = false;
     bool m_rulesShutdown = false;
     bool m_transitionSubmitted = false;
     bool m_warning10Played = false;
     bool m_warning5Played = false;
+    bool m_lateRushAnnounced = false;
 };
 
 } // namespace MiniGameCollection::Runtime
