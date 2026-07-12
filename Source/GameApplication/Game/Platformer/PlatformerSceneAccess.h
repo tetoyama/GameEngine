@@ -24,15 +24,16 @@ public:
 	) const {
 		if(!physics) return {};
 
-		// Older Platformer scenes serialized SelfLayerBit as 10 (Player |
-		// Environment). For the controller's short foot/wall probes this made the
-		// query ignore the stage itself once Environment layers were authored.
-		// A self-layer field is singular, so use its least-significant bit for
-		// short gameplay probes. Camera obstruction rays keep their full mask.
-		physx::PxU32 effectiveMask = layerMask;
 		const bool shortGameplayProbe = maxDistance <= 0.75f;
-		if(shortGameplayProbe && effectiveMask != 0) {
-			effectiveMask &= (~effectiveMask + 1u);
+		physx::PxU32 effectiveMask = layerMask;
+		if(shortGameplayProbe) {
+			// SelfLayerBit was serialized as 10 in older Platformer scenes even though
+			// the player shape may use either the canonical Player bit or the legacy
+			// Default bit. Never preserve the Environment bit from that stale value.
+			const physx::PxU32 playerLayer = physics->GetLayerBit("Player");
+			effectiveMask = playerLayer != 0
+				? playerLayer
+				: (layerMask != 0 ? layerMask & (~layerMask + 1u) : 0u);
 		}
 
 		const bool downwardGroundProbe =
@@ -44,10 +45,9 @@ public:
 			return physics->RaycastWithMask(origin, direction, maxDistance, effectiveMask);
 		}
 
-		// Keep the probe footprint well inside the 0.25 m capsule radius. The wider
-		// nine-point disc allowed one trailing corner ray to keep reporting ground
-		// after the capsule centre had already left a ledge, effectively preventing
-		// falling. A centre plus four-point cross is sufficient for triangle seams.
+		// Keep the probe footprint well inside the 0.25 m capsule radius. A centre
+		// plus four-point cross preserves support across mesh seams without allowing
+		// one trailing corner to keep the player grounded after leaving a ledge.
 		constexpr float probeRadius = 0.15f;
 		const physx::PxVec3 offsets[] = {
 			physx::PxVec3(0.0f, 0.0f, 0.0f),
@@ -63,11 +63,35 @@ public:
 		float peripheralReferenceDistance = 0.0f;
 
 		for(int index = 0; index < 5; ++index) {
-			const RayHit candidate = physics->RaycastWithMask(
-				origin + offsets[index],
-				direction,
-				maxDistance,
-				effectiveMask);
+			physx::PxU32 queryMask = effectiveMask;
+			RayHit candidate{};
+
+			// The ground ray begins inside the authored capsule. Legacy scene data has
+			// the capsule on Default (1) while SelfLayerBit requests Player (2), so the
+			// first hit can be the player itself on every frame. Reject dynamic actors
+			// and retry with their actual query-filter bit added to the exclusion mask.
+			for(int attempt = 0; attempt < 3; ++attempt) {
+				candidate = physics->RaycastWithMask(
+					origin + offsets[index],
+					direction,
+					maxDistance,
+					queryMask);
+				if(!candidate.hit) break;
+
+				const bool dynamicActor = candidate.hitActor &&
+					candidate.hitActor->getType() == physx::PxActorType::eRIGID_DYNAMIC;
+				if(!dynamicActor) break;
+
+				const physx::PxU32 hitLayer = candidate.hitShape
+					? candidate.hitShape->getQueryFilterData().word0
+					: 0u;
+				if(hitLayer == 0u || (queryMask & hitLayer) != 0u) {
+					candidate = {};
+					break;
+				}
+				queryMask |= hitLayer;
+			}
+
 			if(!candidate.hit || candidate.normal.y <= 0.35f) continue;
 
 			if(index == 0) {
