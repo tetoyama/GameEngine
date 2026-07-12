@@ -27,6 +27,8 @@ public:
             paths.push_back(path);
         }
         node["AdditiveScenePaths"] = paths;
+        node["UnloadScenesOutsideComposition"] =
+            m_unloadScenesOutsideComposition;
         node["DestroyEntryAfterLoaded"] = m_destroyEntryAfterLoaded;
         return node;
     }
@@ -43,6 +45,10 @@ public:
                     m_additiveScenePaths.push_back(value);
                 }
             }
+        }
+        if (node["UnloadScenesOutsideComposition"]) {
+            m_unloadScenesOutsideComposition =
+                node["UnloadScenesOutsideComposition"].as<bool>();
         }
         if (node["DestroyEntryAfterLoaded"]) {
             m_destroyEntryAfterLoaded =
@@ -69,8 +75,15 @@ private:
             m_loadRequested = QueueConfiguredScenes();
         }
 
-        if (!AreConfiguredScenesLoaded(sceneManager) ||
-            !m_destroyEntryAfterLoaded) {
+        if (!AreConfiguredScenesLoaded(sceneManager)) {
+            return;
+        }
+
+        if (m_unloadScenesOutsideComposition) {
+            MarkScenesOutsideCompositionForDestroy(sceneManager, context);
+        }
+
+        if (!m_destroyEntryAfterLoaded) {
             return;
         }
 
@@ -159,6 +172,31 @@ private:
         return true;
     }
 
+    bool IsConfiguredScenePath(const std::string& scenePath) const {
+        for (const std::string& configuredPath : m_additiveScenePaths) {
+            if (scenePath == configuredPath) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void MarkScenesOutsideCompositionForDestroy(
+        SceneManager& sceneManager,
+        const SceneContext* entryContext
+    ) const {
+        for (const auto& [name, scene] : sceneManager.GetActiveScenes()) {
+            (void)name;
+            if (!scene || scene->GetSceneContext() == entryContext) {
+                continue;
+            }
+            if (IsConfiguredScenePath(scene->ScenePath)) {
+                continue;
+            }
+            scene->isDestroy = true;
+        }
+    }
+
     static bool IsSceneLoaded(
         const SceneManager& sceneManager,
         const std::string& scenePath
@@ -173,6 +211,7 @@ private:
     }
 
     std::vector<std::string> m_additiveScenePaths;
+    bool m_unloadScenesOutsideComposition = true;
     bool m_destroyEntryAfterLoaded = true;
     bool m_loadRequested = false;
 };
