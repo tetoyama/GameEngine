@@ -18,7 +18,7 @@ Static Instance BatchをShadowMap Passへ提出し、同一Geometry / Material�
 - Geometry Binding Cacheの再利用
 - Directional / CSM / Spot / Pointの各Shadow Atlas Tileで`DrawIndexedInstanced`提出
 - Queue Submit成功Groupだけ通常Shadow Packetから除外
-- Static提出後のShader / Sampler / Rasterizer / Diffuse Texture状態復元
+- Static提出後のVertex Shader / Input Layout / Primitive Topology / Pixel Shader / Sampler / Rasterizer / Diffuse Texture状態復元
 - Player / Editorと全Light Tileを合算する累積Shadow Telemetry
 - Diffuse Texture / Alpha Cutout対応
 - GBuffer / Shadow別Material Resolve Policy
@@ -27,6 +27,7 @@ Static Instance BatchをShadowMap Passへ提出し、同一Geometry / Material�
 - Light View単位の可視Instance / Packet Index再圧縮
 - Light View専用GPU Instance BufferへのUpload
 - D3D11 WARPによるDepth-only Pipeline / Instanced Draw / Texture State実機契約
+- `_scene`でStatic Shadow後の通常描画復帰を実機確認
 
 ## Eligibility
 
@@ -126,6 +127,30 @@ WARP Interop Testで次を検証する。
 - スコープ終了後の完全復元
 - Sampler未Bind時の`CanSampleDiffuseTexture=false`
 
+## D3D11 Vertex Input State契約
+
+D3D11 RHI Command Listの`SetPipelineState`はImmediate ContextへStatic Batch用Vertex Shaderと10要素Input Layoutを直接Bindする。
+
+通常Shadow Packetへ戻る際にStatic Layoutが残ると、通常`commonVS`が持たない次のSemanticをInput Layoutが要求する。
+
+```text
+INSTANCEWORLD0
+INSTANCEWORLD1
+INSTANCEWORLD2
+INSTANCEWORLD3
+INSTANCEOBJECT0
+```
+
+この状態ではD3D11 Debug Layerが`DEVICE_SHADER_LINKAGE_SEMANTICNAME_NOT_FOUND`を報告し、後続の通常`Draw / DrawIndexed`が破棄される。
+
+`StaticBatchD3D11VertexInputState`がStatic提出前の次の状態をRAIIで保存・復元する。
+
+- Vertex Shader
+- Input Layout
+- Primitive Topology
+
+保存スコープはStatic Shadow Submissionの全体を囲む。Source不整合、Upload失敗、Draw失敗、Queue失敗を含む全return経路で復元する。
+
 ## 原子的Fallback
 
 ```text
@@ -169,9 +194,12 @@ GroupごとのMaterial / Texture更新とDraw順序は維持される。
 
 Static提出後、通常Renderable描画へ戻る前に次を復元する。
 
+- 通常Shadow Vertex Shader
+- 通常Shadow Input Layout
+- Primitive Topology
 - `shadowPS.cso`
 - Shadow Sampler Slot 1
-- `DepthClipEnable=false` Rasterizer State
+- Light種別に対応するRasterizer State
 - Diffuse Texture Slot `t0`
 - Material Sampler Slot `s0`
 
@@ -213,6 +241,7 @@ Shadow Submission Telemetryは`StaticBatchUploadSystem`が所有し、Player / E
 - Instance Range検証
 - Light View Telemetry集計 / Draw削減計算 / Reset
 - Shadow / GBuffer Shader Compile
+- Vertex Shader / Input Layout / Primitive TopologyのRAII復元契約
 
 `D3D11 Static Batch Interop Smoke`:
 
@@ -225,12 +254,31 @@ Shadow Submission Telemetryは`StaticBatchUploadSystem`が所有し、Player / E
 
 WorkflowのPath FilterにはStatic Batch、Culling、ShadowMapPass、RenderableModel、Telemetry UIを含める。
 
+## 実機確認履歴
+
+### 2026-07-12 `_scene`
+
+修正前:
+
+- Static Shadow提出後にInstancing用Input Layoutが通常描画へ残留
+- `INSTANCEWORLD0-3 / INSTANCEOBJECT0`のSemantic不一致
+- 通常`Draw / DrawIndexed`がD3D11 Debug Layerにより破棄される
+
+修正後:
+
+- `_scene`読み込み後の通常描画復帰を確認
+- Static Shadow後の通常描画破損は再現しない
+- Vertex Input State復元修正を実機確認済み
+
+この確認はVertex Input State境界の回帰確認であり、Directional / CSM / Spot / Point各LightのShadow形状一致確認とは分離する。
+
 ## 未完了
 
 - [ ] Windows Engine Debug x64 Compile
 - [ ] Windows Engine Release x64 Compile
 - [ ] Static Batch Foundation Workflow完了
 - [ ] D3D11 Static Batch Interop Workflow完了
+- [x] Static Shadow後の通常Vertex Input State復元実機回帰
 - [ ] Directional Shadow実機回帰
 - [ ] CSM全Cascade実機回帰
 - [ ] Spot Shadow実機回帰
