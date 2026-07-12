@@ -158,8 +158,8 @@ Entities:
         SelfLayerBit: 10
         Checkpoint:
           x: 0
-          y: 0.0500000007
-          z: 0
+          y: 0.0449999981
+          z: 1.13324761
       - Component: PlatformerAnimationController
         idleAnimation: Asset/Model/Akai_Idle.fbx
         runAnimation: Asset/Model/Akai_Run.fbx
