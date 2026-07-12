@@ -3,12 +3,21 @@
 #include "LlmDecisionAdapter.h"
 #include "LlmRequestSession.h"
 
-#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
 #include <vector>
+
+// windows.h defines function-like min/max macros unless NOMINMAX was set
+// before its first inclusion. ElemenTactics uses the standard algorithms, so
+// remove any macros that entered through existing Engine headers.
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
 
 class LLAMAService;
 class LLAMAAgent;
@@ -61,7 +70,7 @@ public:
 	bool HasActiveRequest() const noexcept{ return m_session.HasActiveRequest(); }
 
 	double AdvanceRuntimeClock(double deltaSeconds) noexcept{
-		m_runtimeClock += std::max(0.0, deltaSeconds);
+		if(deltaSeconds > 0.0) m_runtimeClock += deltaSeconds;
 		return m_runtimeClock;
 	}
 	double RuntimeClock() const noexcept{ return m_runtimeClock; }
