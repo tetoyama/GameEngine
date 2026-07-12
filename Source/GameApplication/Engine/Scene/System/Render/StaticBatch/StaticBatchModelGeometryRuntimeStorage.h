@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <span>
 #include <vector>
 
@@ -146,7 +147,7 @@ private:
 		std::uint64_t geometryResourceKey = 0;
 		const ModelData* modelIdentity = nullptr;
 		std::uint64_t modelRuntimeRevision = 0;
-		std::uint32_t subMeshIndex = RenderPacket::AllSubMeshes;
+		std::uint32_t subMeshIndex = RenderPacketAllSubMeshes;
 		bool targetsAllSubMeshes = true;
 		Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
 		Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
@@ -162,10 +163,10 @@ private:
 		){
 			if(!source.IsValid()) return false;
 
-			Microsoft::WRL::ComPtr<ID3D11Buffer> newVertexBuffer =
-				source.vertexBuffer;
-			Microsoft::WRL::ComPtr<ID3D11Buffer> newIndexBuffer =
-				source.indexBuffer;
+			Microsoft::WRL::ComPtr<ID3D11Buffer> newVertexBuffer;
+			Microsoft::WRL::ComPtr<ID3D11Buffer> newIndexBuffer;
+			newVertexBuffer = source.vertexBuffer;
+			newIndexBuffer = source.indexBuffer;
 			if(!newVertexBuffer || !newIndexBuffer) return false;
 
 			geometryResourceKey = source.geometryResourceKey;
