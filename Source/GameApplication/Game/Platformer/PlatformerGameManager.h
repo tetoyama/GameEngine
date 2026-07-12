@@ -6,12 +6,14 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <string>
 
 class PlatformerGameManager : public CustomScriptComponent {
 	BEGIN_REFLECT(PlatformerGameManager)
 		REFLECT_FIELD(int, authoredCoinTotal, 0)
 		REFLECT_FIELD(int, initialBossHealth, 3)
 		REFLECT_FIELD(float, clearInputLockSeconds, 1.2f)
+		REFLECT_FIELD(std::string, restartScenePath, std::string("Asset/Game/Platformer/Scene/PlatformerTechDemo.scene"))
 
 public:
 	enum class RunState : int {
@@ -55,11 +57,17 @@ public:
 		coinRevision = 0;
 		bossRevision = 0;
 		stateRevision = 0;
+		reloadRequested = false;
 	}
 
 	void OnUpdate(float dt) override {
 		if(state != RunState::Cleared) runTime += (std::max)(0.0f, dt);
 		if(clearTimer > 0.0f) clearTimer = (std::max)(0.0f, clearTimer - dt);
+
+		if(state == RunState::Cleared && clearTimer <= 0.0f && !reloadRequested && GetKeyDown('R')) {
+			reloadRequested = true;
+			if(!restartScenePath.empty()) LoadScene(restartScenePath);
+		}
 	}
 
 	void RegisterCoin() {
@@ -113,6 +121,7 @@ public:
 	RunState GetState() const { return state; }
 	bool IsCleared() const { return state == RunState::Cleared; }
 	bool IsBossBattle() const { return state == RunState::BossBattle; }
+	bool CanRestart() const { return state == RunState::Cleared && clearTimer <= 0.0f; }
 	int GetCollectedCoins() const { return collectedCoins; }
 	int GetCoinTotal() const { return authoredCoinTotal > 0 ? authoredCoinTotal : registeredCoins; }
 	int GetBossHealth() const { return bossHealth; }
@@ -132,6 +141,7 @@ private:
 	int bossMaxHealth = 3;
 	float runTime = 0.0f;
 	float clearTimer = 0.0f;
+	bool reloadRequested = false;
 	uint32_t coinRevision = 0;
 	uint32_t bossRevision = 0;
 	uint32_t stateRevision = 0;
