@@ -26,18 +26,20 @@ Deliver one short, linear 3D platformer stage that can be played from start to c
 
 1. `HitInfo` exposes the other `EntityRef` and collision layer, but not contact position or normal.
 2. Ground and wall normals therefore come from `PhysicSystem::RaycastWithMask`.
-3. `RaycastWithMask` takes an exclusion mask. Player layer 1 and gameplay-trigger layer 3 are excluded with mask `10`.
+3. `RaycastWithMask` takes an exclusion mask. Player layer 1 and gameplay-trigger layer 3 are excluded from character probes. Camera probes additionally enforce enemy/boss layer 4 exclusion at runtime, producing mask `26` even when an older Scene stores `10`.
 4. `ColliderComponent::pRigidbodyDynamic` is a non-owning PhysX runtime alias. The platformer controller disables PhysX gravity and owns vertical acceleration, matching the existing `CharacterController` pattern.
-5. Structural mutation from Update, FixedUpdate, collision, or trigger callbacks must be queued.
-6. Runtime-created game entities use queued Prefab instantiation; the dedicated Scene stores only the core game, player, camera, light, and sky entities.
-7. Runtime Prefab scripts initialize safely: FixedUpdate may initialize their object state first, then the next frame performs `Start()` and `OnStart()` once.
+5. Ground snap is a velocity. The former `3.2` downward velocity generated enough contact impulse for floor friction to cancel ground acceleration. It is now a small `0.12` support bias.
+6. Camera obstruction must not respond to one-frame ray hits. Occlusion now has entry/exit hysteresis, smooth shortening/return, a probe start offset, and a 2.5 minimum distance.
+7. Structural mutation from Update, FixedUpdate, collision, or trigger callbacks must be queued.
+8. Runtime-created game entities use queued Prefab instantiation; the dedicated Scene stores only the core game, player, camera, light, and sky entities.
+9. Runtime Prefab scripts initialize safely: FixedUpdate may initialize their object state first, then the next frame performs `Start()` and `OnStart()` once.
 
 ## New game classes
 
 - `PlatformerSceneAccess`: centralized scene/service lookup so registry access is not scattered.
 - `PlatformerMovementSettings`: controller tuning data.
 - `PlatformerCharacterController`: camera-relative locomotion, variable jump, coyote time, jump buffer, asymmetric gravity, apex adjustment, ground snap, slope projection, triple jump, wall kick, stomp bounce, damage, knockback, invulnerability, control lock, checkpoint recovery, and clear state.
-- `PlatformerCameraController`: constrained follow camera, zone framing, collision shortening, boss framing, and clear framing.
+- `PlatformerCameraController`: constrained follow camera, zone framing, collision shortening with hysteresis, boss framing, and clear framing.
 - `PlatformerAnimationController`: animation-state selection with transform fallback when clips are unavailable.
 - `PlatformerGameManager`: run state, coins, boss state, clear state, result lock, and scene restart.
 - `PlatformerCoin`: spin/bob, trigger collection, duplicate prevention, feedback, and delayed queued destruction.
@@ -46,7 +48,7 @@ Deliver one short, linear 3D platformer stage that can be played from start to c
 - `PlatformerMovingPlatform`: deterministic ping-pong platform motion and rider transport.
 - `PlatformerBoss`: telegraph, chase, charge, wall impact, stunned weak point, stomp damage, phase escalation, defeat, and clear request.
 - `PlatformerCameraZone`: trigger-driven camera profile changes.
-- `PlatformerHud`: coin count, health, boss health, controls, clear result, and restart prompt.
+- `PlatformerHud`: SpriteRenderer-based coin count, health, boss health, clear result, and restart prompt without in-game ImGui.
 - `PlatformerStageBuilder`: queued Prefab construction of the complete course.
 - `PlatformerPlayerFeedback` / `PlatformerClearFeedback`: event-revision-driven particles and audio.
 - `PlatformerSoundLibrary`: deterministic generation of small PCM WAV effects when dedicated sound files are absent.
@@ -65,7 +67,7 @@ Deliver one short, linear 3D platformer stage that can be played from start to c
 3. Safe shelf, alternating-wall shaft, short exposed wall-kick exit, and lower recovery floor.
 4. Mid-course checkpoint, tilted vertically moving platform, and one stompable patrol enemy.
 5. Boss-front checkpoint and open-entry charge arena with side walls, far impact wall, and optional wall-jump aids.
-6. Boss defeat presentation, clear result, and `R` restart.
+6. Boss defeat presentation, clear result, and `R`/Enter restart.
 
 Target coin count: 30. Coins are guidance and feedback, never a progression lock.
 
@@ -73,7 +75,7 @@ Target coin count: 30. Coins are guidance and feedback, never a progression lock
 
 - Existing animated player model with Idle, Run, Jump Up, and Fall clips.
 - Transform squash/stretch, triple-jump spin, wall-kick spin, damage response, and landing pulse fallbacks.
-- Course-section materials, directional light/shadow, sky environment, Bloom post effect, particles, BGM, generated action effects, boss material telegraph, boss defeat collapse, HUD, boss bar, clear jingle, and result screen.
+- Course-section materials, directional light/shadow, sky environment, Bloom post effect, particles, BGM, generated action effects, boss material telegraph, boss defeat collapse, Sprite HUD, boss bar, clear jingle, and result screen.
 - Static course blocks carry `StaticEntityComponent`, while rendering/culling remain fully owned by the Engine.
 
 ## Risks and validation limits
@@ -92,10 +94,13 @@ Target coin count: 30. Coins are guidance and feedback, never a progression lock
 - [x] Required locomotion and recovery features.
 - [x] Stompable enemy and three-hit boss.
 - [x] Camera profiles for course, triple-jump, wall section, boss, and clear.
+- [x] SpriteRenderer runtime HUD without ImGui gameplay rendering.
+- [x] Grounded movement friction defect corrected.
+- [x] Camera transient-occlusion approach corrected in code.
 - [x] No long-lived raw component pointers in game scripts.
 - [x] Queued structural changes in scheduled callbacks.
 - [x] No direct renderer/RHI/D3D11 dependency.
-- [ ] Windows Debug x64 compile check green.
+- [ ] Latest Windows Debug x64 compile check green.
 - [ ] Real runtime start-to-clear playthrough verified.
 
 ## Progress
@@ -103,14 +108,15 @@ Target coin count: 30. Coins are guidance and feedback, never a progression lock
 - [x] Phase 0: inspect current Engine APIs and add this plan.
 - [x] Phase 1: ground/air movement, variable jump, coyote time, jump buffer, slope handling, fall recovery, and constrained camera.
 - [x] Phase 2: triple jump, wall probes, wall kick, animation state, and action feedback.
-- [x] Phase 3: coin, HUD, particles, audio, enemy stomp, damage, knockback, invulnerability, and checkpoints.
+- [x] Phase 3: coin, Sprite HUD, particles, audio, enemy stomp, damage, knockback, invulnerability, and checkpoints.
 - [x] Phase 4: dedicated full gray-box course with recovery routes and 30 guidance coins.
 - [x] Phase 5: three-hit boss state machine, encounter framing, defeat, and clear request.
 - [x] Phase 6: models, materials, lighting, shadow, particles, BGM/SFX, post effect, camera presentation, boss presentation, result, and restart.
-- [ ] Phase 7: Windows compile result, runtime playthrough, tuning, and final defect stabilization.
+- [ ] Phase 7: latest Windows compile result, runtime playthrough, tuning, and final defect stabilization.
 
 ## Current next action
 
-1. Resolve any Windows CI compile errors without weakening Engine boundaries.
-2. Load `Asset/Game/Platformer/Scene/PlatformerTechDemo.scene` in the Editor and perform a full start-to-clear run.
-3. Tune movement, camera distances, platform dimensions, boss timing, and sound levels from observed runtime behavior.
+1. Confirm the latest Windows Debug x64 workflow result.
+2. Load `Asset/Game/Platformer/Scene/PlatformerTechDemo.scene` in the Editor and verify grounded locomotion without jumping.
+3. Traverse the enemy and boss sections while watching for transient camera distance changes.
+4. Tune camera hysteresis and movement support bias only from observed runtime behavior.
