@@ -115,6 +115,7 @@ private:
 		// offset. This keeps the collider at exactly the same world position and
 		// raises only the visual origin to the model/collider center.
 		const float worldLift = authoredOffsetY * t->scale.y;
+		visualCenterLift = worldLift;
 		t->position.y += worldLift;
 		shape.offset.y = 0.0f;
 
@@ -149,7 +150,11 @@ private:
 		auto* playerPose = playerTransform.TryGet();
 		if(!enemyTransform || !playerPose) return;
 
-		const bool above = playerPose->position.y >= enemyTransform->position.y + stompHeightMargin;
+		// AlignColliderToModelCenter raises the visual/entity origin while keeping
+		// the collider in the same world position. Use the pre-alignment gameplay
+		// reference height so fixing the mesh does not make stomping harder.
+		const float stompReferenceY = enemyTransform->position.y - visualCenterLift;
+		const bool above = playerPose->position.y >= stompReferenceY + stompHeightMargin;
 		if(controller->IsDescending() && above) {
 			Defeat(*controller, enemyTransform->position);
 			return;
@@ -189,6 +194,7 @@ private:
 	ComponentRef<AudioComponent> audio;
 	Vector3 origin;
 	Vector3 baseScale = Vector3(1.0f, 1.0f, 1.0f);
+	float visualCenterLift = 0.0f;
 	float direction = 1.0f;
 	float defeatTimer = 0.0f;
 	bool defeated = false;
