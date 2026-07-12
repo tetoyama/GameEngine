@@ -12,10 +12,6 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: platformer-tech-demo-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   bake-redesigned-stage:
     if: github.event_name == 'pull_request'
