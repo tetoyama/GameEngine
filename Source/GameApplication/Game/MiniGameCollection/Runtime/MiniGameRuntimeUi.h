@@ -23,7 +23,7 @@ public:
     }
 
     // Runtime UIは論理解像度でレイアウトし、実画面へ一括縮小する。
-    // これにより高解像度PlayerViewでHUDが巨大化してゲーム領域を圧迫しない。
+    // 高解像度PlayerViewでもHUDが巨大化せず、ゲーム画面を主役に保つ。
     float Width() const noexcept {
         return PhysicalWidth() / LayoutScale();
     }
