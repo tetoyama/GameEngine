@@ -50,6 +50,9 @@ public:
         );
         m_currentTiles.assign(m_playerCount, std::nullopt);
         m_pendingTiles.assign(m_playerCount, std::nullopt);
+        m_candidateTiles.assign(m_playerCount, std::nullopt);
+        m_candidateHoldSeconds.assign(m_playerCount, 0.0f);
+        m_repaintCooldownSeconds.assign(m_playerCount, 0.0f);
         m_elapsedSeconds = 0.0f;
         m_started = false;
         m_finished = false;
@@ -73,26 +76,59 @@ public:
             m_elapsedSeconds + delta
         );
 
+        for (float& cooldown : m_repaintCooldownSeconds) {
+            cooldown = std::max(0.0f, cooldown - delta);
+        }
+
         for (std::size_t index = 0; index < m_pendingTiles.size(); ++index) {
             if (!m_pendingTiles[index]) {
+                m_candidateTiles[index].reset();
+                m_candidateHoldSeconds[index] = 0.0f;
                 continue;
             }
+
             const PlayerId playerId = static_cast<PlayerId>(index);
             const TileCoord tile = *m_pendingTiles[index];
             m_pendingTiles[index].reset();
 
             if (!m_board->IsInside(tile)) {
+                m_candidateTiles[index].reset();
+                m_candidateHoldSeconds[index] = 0.0f;
                 continue;
             }
-            // 爆弾で足元の所有権が変化した場合は、同じTileに立ったままでも塗り直せる。
-            if (m_currentTiles[index] && *m_currentTiles[index] == tile &&
-                m_board->GetOwner(tile) == static_cast<std::int16_t>(playerId)) {
-                continue;
+
+            const bool isCurrentTile =
+                m_currentTiles[index] && *m_currentTiles[index] == tile;
+            if (isCurrentTile) {
+                m_candidateTiles[index].reset();
+                m_candidateHoldSeconds[index] = 0.0f;
+
+                // 爆弾で足元の所有権が変化した場合は、同じTileに立ったままでも塗り直せる。
+                if (m_board->GetOwner(tile) == static_cast<std::int16_t>(playerId)) {
+                    continue;
+                }
+            } else if (m_currentTiles[index]) {
+                // 接触解決や壁際の押し合いで座標が境界を往復しても、
+                // 短時間だけ触れた隣接Tileへ所有権が連続反転しないようにする。
+                if (!m_candidateTiles[index] || *m_candidateTiles[index] != tile) {
+                    m_candidateTiles[index] = tile;
+                    m_candidateHoldSeconds[index] = delta;
+                } else {
+                    m_candidateHoldSeconds[index] += delta;
+                }
+
+                if (m_candidateHoldSeconds[index] < TileSwitchConfirmSeconds ||
+                    m_repaintCooldownSeconds[index] > 0.0f) {
+                    continue;
+                }
             }
 
             const PlayerId previousLeader = m_board->FindLeader();
             const PaintResult paint = m_board->Paint(tile, playerId);
             m_currentTiles[index] = tile;
+            m_candidateTiles[index].reset();
+            m_candidateHoldSeconds[index] = 0.0f;
+            m_repaintCooldownSeconds[index] = TileRepaintCooldownSeconds;
             const PlayerId newLeader = m_board->FindLeader();
 
             if (paint.changed) {
@@ -142,6 +178,9 @@ public:
         m_finished = true;
         m_currentTiles.clear();
         m_pendingTiles.clear();
+        m_candidateTiles.clear();
+        m_candidateHoldSeconds.clear();
+        m_repaintCooldownSeconds.clear();
         m_events.clear();
         m_board.reset();
     }
@@ -236,6 +275,9 @@ public:
     PlayerId GetLeader() const noexcept { return m_lastLeader; }
 
 private:
+    static constexpr float TileSwitchConfirmSeconds = 0.075f;
+    static constexpr float TileRepaintCooldownSeconds = 0.12f;
+
     void RequirePrepared() const {
         if (!m_board) {
             throw std::logic_error("ColorTerritoryRules is not prepared");
@@ -253,6 +295,9 @@ private:
     std::unique_ptr<TerritoryBoard> m_board;
     std::vector<std::optional<TileCoord>> m_currentTiles;
     std::vector<std::optional<TileCoord>> m_pendingTiles;
+    std::vector<std::optional<TileCoord>> m_candidateTiles;
+    std::vector<float> m_candidateHoldSeconds;
+    std::vector<float> m_repaintCooldownSeconds;
     std::vector<TerritoryPaintEvent> m_events;
 };
 
