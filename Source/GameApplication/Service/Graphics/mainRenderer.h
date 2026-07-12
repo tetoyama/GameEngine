@@ -55,6 +55,10 @@ public:
 	void DrawText2D(const std::wstring& text, float x, float y, float fontSize, D2D1::ColorF color);
 	void FillRect2D(float x, float y, float width, float height, D2D1::ColorF color);
 	ID3D11ShaderResourceView* RenderRuntime2DOverlay(UINT width, UINT height);
+
+	// 互換呼出。PlayerPassが消費できなかったCommandをSwapChainへ描かず破棄する。
+	void FlushRuntime2DOverlay();
+
 	bool HasRuntime2DCommands() const noexcept {
 		return !m_runtime2DCommands.empty();
 	}
