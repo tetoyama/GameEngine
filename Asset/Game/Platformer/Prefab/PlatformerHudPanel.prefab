@@ -9,7 +9,7 @@ Entities:
         Scale: {x: 0.1, y: 0.1, z: 1}
         Parent: 0
       - Component: OrderInLayerComponent
-        order: -20
+        order: 10
       - Component: MaterialComponent
         ShaderID: 0
         Material:
