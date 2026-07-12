@@ -16,6 +16,8 @@ on:
       - "Tests/MiniGameCollectionCoreSmokeTest.cpp"
       - "Tests/MiniGamePresentationSpikeSmokeTest.cpp"
       - "Tests/MiniGameRulesSmokeTest.cpp"
+      - "Directory.Build.props"
+      - "Directory.Build.targets"
       - "GameEngine.vcxproj"
       - "GameEngine.sln"
       - ".github/workflows/minigame-collection-core.yml"
@@ -33,10 +35,16 @@ on:
       - "Tests/MiniGameCollectionCoreSmokeTest.cpp"
       - "Tests/MiniGamePresentationSpikeSmokeTest.cpp"
       - "Tests/MiniGameRulesSmokeTest.cpp"
+      - "Directory.Build.props"
+      - "Directory.Build.targets"
       - "GameEngine.vcxproj"
       - "GameEngine.sln"
       - ".github/workflows/minigame-collection-core.yml"
   workflow_dispatch:
+
+concurrency:
+  group: minigame-collection-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -55,7 +63,7 @@ jobs:
         shell: cmd
         run: >-
           cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
-          /D_CRT_SECURE_NO_WARNINGS
+          /DNOMINMAX /D_CRT_SECURE_NO_WARNINGS
           /wd4100 /wd4201 /wd4324 /wd4458 /wd4471 /MTd
           /I Source
           /I Source/GameApplication
@@ -66,7 +74,7 @@ jobs:
         shell: cmd
         run: >-
           cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
-          /D_CRT_SECURE_NO_WARNINGS
+          /DNOMINMAX /D_CRT_SECURE_NO_WARNINGS
           /wd4100 /wd4201 /wd4324 /wd4458 /wd4471 /MTd
           /I Source
           /I Source/GameApplication
@@ -77,7 +85,7 @@ jobs:
         shell: cmd
         run: >-
           cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
-          /D_CRT_SECURE_NO_WARNINGS
+          /DNOMINMAX /D_CRT_SECURE_NO_WARNINGS
           /wd4100 /wd4201 /wd4324 /wd4458 /wd4471 /MTd
           /I Source
           /I Source/GameApplication
