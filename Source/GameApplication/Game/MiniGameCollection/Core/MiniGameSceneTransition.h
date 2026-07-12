@@ -24,6 +24,7 @@ enum class SceneTransitionStep : std::uint8_t {
 struct SceneTransitionRequest {
     SceneToken sourceSceneToken = 0;
     std::string sourceSceneName;
+    // Selectionへ戻る場合は空文字を許可し、MiniGame SceneのUnloadだけで完了する。
     std::string targetScenePath;
     TransitionRequest reason = TransitionRequest::None;
     float presentationWaitSeconds = 0.0f;
@@ -57,8 +58,11 @@ public:
         if (request.sourceSceneToken == 0 || request.sourceSceneName.empty()) {
             throw std::invalid_argument("Scene transition requires a source scene");
         }
-        if (request.targetScenePath.empty()) {
-            throw std::invalid_argument("Scene transition requires a target scene path");
+        if (request.targetScenePath.empty() &&
+            request.reason != TransitionRequest::Selection) {
+            throw std::invalid_argument(
+                "Only return-to-selection may omit the target scene path"
+            );
         }
 
         m_request = std::move(request);
@@ -115,7 +119,9 @@ public:
                 }
             }
             if (m_backend.IsSceneUnloaded(m_request.sourceSceneName)) {
-                m_step = SceneTransitionStep::LoadTargetScene;
+                m_step = m_request.targetScenePath.empty()
+                    ? SceneTransitionStep::Complete
+                    : SceneTransitionStep::LoadTargetScene;
             }
             return;
 
