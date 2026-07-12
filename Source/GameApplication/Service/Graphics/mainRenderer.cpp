@@ -6,6 +6,7 @@
 #include "MainRenderer.h"
 #include <dwrite.h>
 #include <d2d1.h>
+#include <utility>
 #include <vector>
 
 void MainRenderer::DrawText2D(
