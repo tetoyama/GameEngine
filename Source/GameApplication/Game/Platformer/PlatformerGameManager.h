@@ -3,6 +3,7 @@
 #include "Engine/Scene/Component/CustomScriptComponent.h"
 #include "Game/Platformer/PlatformerCharacterController.h"
 #include "Game/Platformer/PlatformerSceneAccess.h"
+#include "Game/Platformer/PlatformerSoundLibrary.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -46,6 +47,7 @@ public:
 	}
 
 	void OnStart() override {
+		PlatformerSoundLibrary::EnsureGenerated();
 		player = PlatformerSceneAccess::FindFirst<PlatformerCharacterController>(m_ref.GetScene());
 		state = RunState::Playing;
 		collectedCoins = 0;
