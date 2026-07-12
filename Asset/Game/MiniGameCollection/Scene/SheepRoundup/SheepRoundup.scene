@@ -1,0 +1,21 @@
+SceneSettings:
+  Storage:
+    ExpectedEntities: 128
+    ExpectedTransforms: 112
+    ExpectedRenderables: 96
+    ExpectedCullingComponents: 96
+    ExpectedStaticEntities: 48
+    PreallocatedTransformPages: 0
+    PreallocatedTagPages: 0
+    RenderPacketReserve: 128
+    VisibleEntityReserve: 128
+    StaticBatchReserve: 24
+    AllowRuntimeGrowth: true
+    LogCapacityGrowth: true
+Entities:
+  - Entity: 1
+    Components:
+      - Component: NameComponent
+        Name: SheepRoundupRuntime
+      - Component: MiniGameCollection::Runtime::SheepRoundupRuntime
+        ScriptName: SheepRoundupRuntime
