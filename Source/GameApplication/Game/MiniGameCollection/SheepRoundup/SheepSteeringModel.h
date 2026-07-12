@@ -18,15 +18,17 @@ struct Bounds2 {
 };
 
 struct SheepSteeringConfig {
-    float fleeStartRadius = 4.0f;
-    float fleeWeight = 1.0f;
-    float cohesionRadius = 3.25f;
-    float cohesionWeight = 0.22f;
-    float wallAvoidanceDistance = 1.4f;
-    float wallAvoidanceWeight = 1.8f;
-    float turnResponsiveness = 4.5f;
-    float maximumSpeed = 3.2f;
-    float calmSpeed = 0.35f;
+    float fleeStartRadius = 3.4f;
+    float fleeWeight = 1.3f;
+    float separationRadius = 0.95f;
+    float separationWeight = 0.82f;
+    float cohesionRadius = 3.0f;
+    float cohesionWeight = 0.12f;
+    float wallAvoidanceDistance = 1.55f;
+    float wallAvoidanceWeight = 2.2f;
+    float turnResponsiveness = 6.0f;
+    float maximumSpeed = 2.9f;
+    float calmSpeed = 0.12f;
 };
 
 struct SheepSteeringInput {
@@ -54,6 +56,8 @@ public:
         const float fleeRadius = std::max(0.01f, config.fleeStartRadius);
         Vec2 flee{};
         float threatStrength = 0.0f;
+        float nearestThreatDistance = std::numeric_limits<float>::infinity();
+        Vec2 nearestThreatDirection{};
 
         for (const Vec2 playerPosition : input.playerPositions) {
             const Vec2 away = input.position - playerPosition;
@@ -62,26 +66,55 @@ public:
                 continue;
             }
 
-            const float influence = 1.0f - distance / fleeRadius;
-            flee += NormalizeOrZero(away) * influence;
-            threatStrength += influence;
+            const float influence = std::clamp(
+                1.0f - distance / fleeRadius,
+                0.0f,
+                1.0f
+            );
+            // 距離の近いプレイヤーほど急激に影響を強める。
+            // 複数人に囲まれても合成方向が毎Frame反転しにくい。
+            flee += NormalizeOrZero(away) * (influence * influence);
+            threatStrength = std::max(threatStrength, influence);
+            if (distance < nearestThreatDistance) {
+                nearestThreatDistance = distance;
+                nearestThreatDirection = NormalizeOrZero(away);
+            }
         }
-        threatStrength = std::clamp(threatStrength, 0.0f, 1.0f);
+
+        if (LengthSquared(nearestThreatDirection) > 0.00001f) {
+            flee += nearestThreatDirection * (threatStrength * 0.7f);
+        }
 
         Vec2 cohesion{};
+        Vec2 separation{};
         Vec2 flockCenter{};
         std::size_t neighborCount = 0;
-        const float cohesionRadiusSquared =
-            config.cohesionRadius * config.cohesionRadius;
+        const float cohesionRadius = std::max(0.01f, config.cohesionRadius);
+        const float cohesionRadiusSquared = cohesionRadius * cohesionRadius;
+        const float separationRadius = std::max(0.01f, config.separationRadius);
+        const float separationRadiusSquared = separationRadius * separationRadius;
 
         for (const Vec2 flockPosition : input.flockPositions) {
-            const float distanceSquared = DistanceSquared(input.position, flockPosition);
-            if (distanceSquared <= 0.00001f ||
-                distanceSquared > cohesionRadiusSquared) {
+            const Vec2 away = input.position - flockPosition;
+            const float distanceSquared = LengthSquared(away);
+            if (distanceSquared <= 0.00001f) {
                 continue;
             }
-            flockCenter += flockPosition;
-            ++neighborCount;
+
+            if (distanceSquared <= cohesionRadiusSquared) {
+                flockCenter += flockPosition;
+                ++neighborCount;
+            }
+
+            if (distanceSquared <= separationRadiusSquared) {
+                const float distance = std::sqrt(distanceSquared);
+                const float strength = std::clamp(
+                    1.0f - distance / separationRadius,
+                    0.0f,
+                    1.0f
+                );
+                separation += NormalizeOrZero(away) * strength;
+            }
         }
 
         if (neighborCount > 0) {
@@ -97,6 +130,7 @@ public:
 
         Vec2 desired =
             flee * config.fleeWeight +
+            separation * config.separationWeight +
             cohesion * config.cohesionWeight +
             wall.direction * config.wallAvoidanceWeight;
 
@@ -120,10 +154,16 @@ public:
             direction = desired;
         }
 
+        const float movementIntent = std::clamp(
+            threatStrength + wall.strength * 0.45f +
+                std::min(1.0f, Length(separation)) * 0.25f,
+            0.0f,
+            1.0f
+        );
         const float speed = std::lerp(
             std::max(0.0f, config.calmSpeed),
             std::max(0.0f, config.maximumSpeed),
-            std::clamp(threatStrength + wall.strength * 0.35f, 0.0f, 1.0f)
+            movementIntent
         );
 
         return {
@@ -172,7 +212,11 @@ private:
             if (wallDistance >= distance) {
                 return;
             }
-            const float strength = std::clamp(1.0f - wallDistance / distance, 0.0f, 1.0f);
+            const float strength = std::clamp(
+                1.0f - wallDistance / distance,
+                0.0f,
+                1.0f
+            );
             direction += inward * strength;
             strongest = std::max(strongest, strength);
         };
@@ -236,6 +280,9 @@ public:
 
             const float travelDistance = Distance(context.cpuPosition, intercept);
             const float penDistance = Distance(predictedSheep, context.ownPenCenter);
+            const Vec2 towardPen = NormalizeOrZero(context.ownPenCenter - predictedSheep);
+            const float deliveryMomentum = Dot(candidate.sheepVelocity, towardPen);
+
             float nearestOpponent = std::numeric_limits<float>::infinity();
             for (const Vec2 opponent : context.opponentPositions) {
                 nearestOpponent = std::min(
@@ -245,11 +292,17 @@ public:
             }
 
             float utility = 7.0f;
-            utility -= travelDistance * 0.75f;
-            utility -= penDistance * 0.18f;
+            utility -= travelDistance * 0.68f;
+            utility -= penDistance * 0.24f;
+            // すでに自分の囲いへ進んでいる羊を継続して押し、
+            // 毎回別の羊へ切り替える不自然な挙動を抑える。
+            utility += deliveryMomentum * 1.15f;
+
             if (nearestOpponent != std::numeric_limits<float>::infinity()) {
                 const float contestValue = std::max(0.0f, 4.0f - nearestOpponent);
-                utility += contestValue * (0.35f + endgame * difficulty.lateGameAggression);
+                const float contestBias =
+                    -0.12f + endgame * difficulty.lateGameAggression * 0.72f;
+                utility += contestValue * contestBias;
             }
 
             SheepCpuDecision decision{
