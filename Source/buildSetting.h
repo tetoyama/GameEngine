@@ -6,7 +6,7 @@
 #pragma once
 
 // 既定で読み込む初期シーン
-#define DEFAULT_SCENE "Asset\\Scene\\scene_title.yaml"
+#define DEFAULT_SCENE "Asset/Game/ElemenTactics/Scene/ElemenTactics.yaml"
 
 // アセット・設定ファイルの共通パス
 #define ASSET_PATH "Asset/"
@@ -38,4 +38,3 @@
 #define _EDITOR
 
 #endif // _DEBUG
-
