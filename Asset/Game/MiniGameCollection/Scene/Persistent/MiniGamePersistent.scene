@@ -27,8 +27,8 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 18
-          z: -18
+          y: 13.5
+          z: -15.5
         Rotation:
           - 0
           - 0
@@ -43,11 +43,11 @@ Entities:
         isLock: true
         Target:
           x: 0
-          y: 0.5
+          y: 0.35
           z: 0
         NearClip: 0.05
         FarClip: 256
-        FOV: 1.05
+        FOV: 0.8
         nextLinkId: 11
         nextPinId: 13
         PostEffects:
