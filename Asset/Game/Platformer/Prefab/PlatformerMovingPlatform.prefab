@@ -5,7 +5,7 @@ Entities:
         Name: PlatformerMovingPlatform
       - Component: TransformComponent
         Position: {x: 0, y: 0, z: 0}
-        Rotation: [0, 0, 0, 1]
+        Rotation: [-0.052336, 0, 0, 0.99863]
         Scale: {x: 2.2, y: 0.35, z: 2.2}
         Parent: 0
       - Component: ColliderComponent
