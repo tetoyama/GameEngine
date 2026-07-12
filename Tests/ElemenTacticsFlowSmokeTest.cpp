@@ -56,6 +56,43 @@ void TestLocalPrivacyHandoff(){
 	assert(flow.Match()->currentPlayer == PlayerId::Two);
 }
 
+void TestKeyboardBackNavigation(){
+	{
+		MatchFlowModel flow;
+		assert(flow.OpenModeSelect());
+		assert(flow.SelectMode(GameMode::HumanVsLlm));
+		assert(flow.CancelDeckSetup());
+		assert(flow.Screen() == FlowScreen::ModeSelect);
+	}
+
+	MatchFlowModel flow;
+	assert(flow.OpenModeSelect());
+	assert(flow.SelectMode(GameMode::LocalHumanVsHuman));
+	flow.EditingDeck() = DeckSetupModel::ConcentratedDefault();
+	std::string error;
+	assert(flow.ConfirmCurrentDeck(&error));
+	assert(flow.Screen() == FlowScreen::LocalPrivacyHandoff);
+
+	assert(flow.ReturnFromPrivacyHandoff());
+	assert(flow.Screen() == FlowScreen::DeckSetupPlayerOne);
+	assert(flow.EditingDeck().Decks()[0].size() == 8);
+	assert(flow.EditingDeck().Decks()[1].empty());
+
+	assert(flow.ConfirmCurrentDeck(&error));
+	assert(flow.ConfirmPrivacyHandoff());
+	assert(flow.Screen() == FlowScreen::DeckSetupPlayerTwo);
+	assert(flow.CancelDeckSetup());
+	assert(flow.Screen() == FlowScreen::LocalPrivacyHandoff);
+
+	assert(flow.ConfirmPrivacyHandoff());
+	flow.EditingDeck() = DeckSetupModel::ConcentratedDefault();
+	assert(flow.ConfirmCurrentDeck(&error));
+	assert(flow.Screen() == FlowScreen::MatchIntroduction);
+	assert(flow.ReturnFromMatchIntroduction());
+	assert(flow.Screen() == FlowScreen::DeckSetupPlayerTwo);
+	assert(flow.EditingDeck().Decks()[0].size() == 8);
+}
+
 void TestAiStepReevaluatesAndFallsBack(){
 	MatchFlowModel flow;
 	assert(flow.OpenModeSelect());
@@ -106,6 +143,7 @@ int main(){
 	TestDeckEditor();
 	TestSinglePlayerFlow();
 	TestLocalPrivacyHandoff();
+	TestKeyboardBackNavigation();
 	TestAiStepReevaluatesAndFallsBack();
 	TestFlowMirrorsReorderAndResult();
 	std::cout << "ElemenTactics flow smoke tests passed\n";
