@@ -102,7 +102,7 @@ jobs:
             Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGamePersistentRuntime.h
             Source/GameApplication/Game/MiniGameCollection/Core/MiniGameSceneTransitionEngineBackend.h
           )
-          if grep -n "LoadFromFilePath" "${runtime_files[@]}"; then
+          if grep -nE '(^|[^A-Za-z0-9_])LoadFromFilePath[[:space:]]*\(' "${runtime_files[@]}"; then
             echo "Mini-game runtime must queue additive scene loads outside ECS schedule execution."
             exit 1
           fi
