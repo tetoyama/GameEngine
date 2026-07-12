@@ -128,6 +128,10 @@ protected:
         return ClampLength(input, 1.0f);
     }
 
+    bool IsReturnToSelectionPressed() const noexcept {
+        return GetKeyDown('B') || GetKeyDown(VK_BACK);
+    }
+
     SceneToken GetRuntimeSceneToken() const noexcept {
         SceneContext* scene = GetEntityRef().GetScene();
         return scene ? static_cast<SceneToken>(scene->contextID) : 0;
@@ -244,7 +248,7 @@ protected:
 
     static void DrawResultPanel(
         const MiniGameResult& result,
-        const char* retryText = "R: RETRY   ESC: SELECT   N: NEXT"
+        const char* retryText = "R: RETRY   B/BACKSPACE: SELECT   N: NEXT"
     ) {
         const ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(
