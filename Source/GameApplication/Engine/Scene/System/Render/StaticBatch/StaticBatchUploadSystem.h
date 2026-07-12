@@ -82,6 +82,8 @@ public:
 	void RegisterTasks(SystemScheduleBuilder& builder) override {
 		SystemAccess geometryAccess;
 		geometryAccess
+			.ReadComponent<ModelRendererComponent>()
+			.ReadResource<ModelData>()
 			.ReadResource<RenderPacketFrameBuffer>()
 			.WriteResource<StaticBatchModelGeometryRuntimeStorage>()
 			.WriteResource<StaticBatchGeometryBindingCache>();
