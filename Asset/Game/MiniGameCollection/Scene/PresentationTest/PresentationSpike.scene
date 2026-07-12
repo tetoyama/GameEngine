@@ -1,0 +1,21 @@
+SceneSettings:
+  Storage:
+    ExpectedEntities: 64
+    ExpectedTransforms: 48
+    ExpectedRenderables: 32
+    ExpectedCullingComponents: 32
+    ExpectedStaticEntities: 8
+    PreallocatedTransformPages: 0
+    PreallocatedTagPages: 0
+    RenderPacketReserve: 64
+    VisibleEntityReserve: 64
+    StaticBatchReserve: 8
+    AllowRuntimeGrowth: true
+    LogCapacityGrowth: true
+Entities:
+  - Entity: 1
+    Components:
+      - Component: NameComponent
+        Name: PresentationSpikeRuntime
+      - Component: MiniGameCollection::Runtime::PresentationSpikeRuntime
+        ScriptName: PresentationSpikeRuntime
