@@ -14,6 +14,7 @@
 #include <functional>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace MiniGameCollection::Runtime {
 
@@ -59,7 +60,7 @@ protected:
         CubeReadyCallback ready = {}
     ) {
         CommandEntity pending = QueueCreateEntity();
-        if (!pending) {
+        if (!pending.IsPending() && !pending.IsExisting()) {
             return false;
         }
 
@@ -189,7 +190,10 @@ protected:
     ) {
         const ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(
-            ImVec2(viewport->WorkPos.x + viewport->WorkSize.x * 0.5f, viewport->WorkPos.y + 18.0f),
+            ImVec2(
+                viewport->WorkPos.x + viewport->WorkSize.x * 0.5f,
+                viewport->WorkPos.y + 18.0f
+            ),
             ImGuiCond_Always,
             ImVec2(0.5f, 0.0f)
         );
@@ -214,7 +218,10 @@ protected:
     static void DrawScoreRow(const std::vector<int>& scores) {
         const ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(
-            ImVec2(viewport->WorkPos.x + viewport->WorkSize.x * 0.5f, viewport->WorkPos.y + 112.0f),
+            ImVec2(
+                viewport->WorkPos.x + viewport->WorkSize.x * 0.5f,
+                viewport->WorkPos.y + 112.0f
+            ),
             ImGuiCond_Always,
             ImVec2(0.5f, 0.0f)
         );
