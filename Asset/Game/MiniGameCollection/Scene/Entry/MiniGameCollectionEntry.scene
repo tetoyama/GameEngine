@@ -21,4 +21,5 @@ Entities:
         ScriptName: MiniGameCollectionEntryRuntime
         AdditiveScenePaths:
           - Asset/Game/MiniGameCollection/Scene/Persistent/MiniGamePersistent.scene
+        UnloadScenesOutsideComposition: true
         DestroyEntryAfterLoaded: true
