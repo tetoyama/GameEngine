@@ -1,0 +1,41 @@
+name: ElemenTactics Rules Smoke Test
+
+on:
+  pull_request:
+    paths:
+      - "Source/GameApplication/Game/ElemenTactics/**"
+      - "Tests/ElemenTacticsRulesSmokeTest.cpp"
+      - ".github/workflows/elementactics-rules.yml"
+  push:
+    branches:
+      - game/elementactics-boardgame
+    paths:
+      - "Source/GameApplication/Game/ElemenTactics/**"
+      - "Tests/ElemenTacticsRulesSmokeTest.cpp"
+      - ".github/workflows/elementactics-rules.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rules:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run pure rules contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /I Source\GameApplication
+          Source\GameApplication\Game\ElemenTactics\Rules\ElemenTacticsRules.cpp
+          Source\GameApplication\Game\ElemenTactics\AI\ElemenTacticsAi.cpp
+          Source\GameApplication\Game\ElemenTactics\AI\LlmDecisionAdapter.cpp
+          Tests\ElemenTacticsRulesSmokeTest.cpp
+          /Fe:elementactics-rules-test.exe
+          && elementactics-rules-test.exe
