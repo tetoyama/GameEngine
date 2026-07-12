@@ -4,6 +4,7 @@
 // 
 // =======================================================================
 #pragma once
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -64,6 +65,18 @@ struct AnimationData {
 	}
 };
 
+// Assimp Meshから抽出したBackend非依存の共有Geometry Source。
+// 移行中は既存D3D11 Buffer生成にも使用し、次工程でRenderSystem/RHI側の
+// Model Geometry Runtime生成元へ切り替える。
+struct ModelMeshGeometryCpuData {
+	std::vector<VERTEX_3D> vertices;
+	std::vector<std::uint32_t> indices;
+
+	bool IsValid() const noexcept {
+		return !vertices.empty() && !indices.empty();
+	}
+};
+
 struct ModelData {
 public:
 	ModelData(){
@@ -82,6 +95,11 @@ public:
 	bool SetTexture = false;
 	const aiScene* AiScene = nullptr;
 
+	// Backend非依存CPU Geometry。Native Bufferと寿命を分離し、RHI移行時の
+	// 再生成元として保持する。
+	std::vector<ModelMeshGeometryCpuData> MeshGeometry;
+
+	// Legacy通常描画互換。生成・所有は段階的にRenderSystem/RHIへ移す。
 	std::vector<ID3D11Buffer*> VertexBuffer;
 	std::vector<ID3D11Buffer*> IndexBuffer;
 	std::unordered_map<std::string, ID3D11ShaderResourceView*> m_Texture;
