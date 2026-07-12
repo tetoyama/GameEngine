@@ -10,6 +10,7 @@
 #include "Graphics/graphicsContext.h"
 #include "System/Render/Culling/RenderPacketViewCulling.h"
 #include "System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
+#include "System/Render/StaticBatch/StaticBatchD3D11VertexInputState.h"
 #include "System/Render/StaticBatch/StaticBatchDrawSubmission.h"
 #include "System/Render/StaticBatch/StaticBatchPacketReplacementSet.h"
 #include "System/Render/StaticBatch/StaticBatchShadowGroupEligibility.h"
@@ -79,6 +80,13 @@ inline StaticBatchShadowSubmissionTelemetry Submit(
 		!RenderPacketViewCulling::HasStableViewIdentity(cullingView)){
 		return telemetry;
 	}
+
+	// D3D11 RHI Command ListはImmediate ContextへStatic Batch用VS / Layoutを
+	// 直接Bindする。通常Shadow Packetへ戻る前に元のVertex Input状態を
+	// 必ず復元し、INSTANCEWORLD / INSTANCEOBJECT Layoutの残留を防ぐ。
+	[[maybe_unused]] StaticBatchD3D11VertexInputState vertexInputState(
+		graphics.GetDeviceContext()
+	);
 
 	const StaticBatchInstanceDataBuffer& source =
 		frameBuffer.StaticBatchInstances();
