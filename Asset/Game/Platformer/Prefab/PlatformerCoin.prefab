@@ -22,7 +22,7 @@ Entities:
             staticFriction: 0
             dynamicFriction: 0
             restitution: 0
-            collisionLayer: 0
+            collisionLayer: 3
             lockRotX: false
             lockRotY: false
             lockRotZ: false
