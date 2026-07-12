@@ -181,6 +181,36 @@ void TestColorTerritoryRules() {
     rules.Shutdown();
 }
 
+void TestColorTerritoryStrategy() {
+    using namespace MiniGameCollection;
+    using namespace MiniGameCollection::ColorTerritory;
+
+    TerritoryBoard tiedBoard(2, 1, 2);
+    tiedBoard.Paint({0, 0}, 0);
+    tiedBoard.Paint({1, 0}, 1);
+    assert(tiedBoard.FindLeader() == InvalidPlayerId);
+
+    TerritoryBoard board(5, 1, 2);
+    board.Paint({0, 0}, 0);
+    board.Paint({1, 0}, 0);
+    board.Paint({2, 0}, 0);
+    board.Paint({4, 0}, 1);
+
+    CpuTargetContext context;
+    context.self = 0;
+    context.currentTile = {1, 0};
+    context.remainingTimeRatio = 0.4f;
+    context.crowdByTile.assign(board.GetTileCount(), 0);
+
+    const auto decision = TerritoryCpuEvaluator::ChooseTarget(
+        board,
+        context,
+        CpuDifficultyProfile::Normal()
+    );
+    assert(decision.has_value());
+    assert(board.GetOwner(decision->target) != 0);
+}
+
 void TestSheepRoundupRules() {
     using namespace MiniGameCollection;
     using namespace MiniGameCollection::SheepRoundup;
@@ -203,6 +233,43 @@ void TestSheepRoundupRules() {
     assert(events.size() == 1);
     assert(events[0].playerId == 0);
     rules.Shutdown();
+}
+
+void TestSheepStrategy() {
+    using namespace MiniGameCollection;
+    using namespace MiniGameCollection::SheepRoundup;
+
+    SheepSteeringInput input;
+    input.position = {0.0f, 0.0f};
+    input.previousDirection = {0.0f, 1.0f};
+    input.playerPositions = {{-1.0f, 0.0f}};
+    input.flockPositions = {{0.0f, 0.0f}, {0.25f, 0.0f}};
+    input.movementBounds = {{-5.0f, -5.0f}, {5.0f, 5.0f}};
+
+    const SheepSteeringOutput steering = SheepSteeringModel::Compute(
+        input,
+        SheepSteeringConfig{},
+        1.0f
+    );
+    assert(steering.direction.x > 0.0f);
+    assert(steering.threatStrength > 0.0f);
+
+    std::vector<SheepTargetCandidate> candidates{
+        {.sheepIndex = 0, .sheepPosition = {0.0f, 0.0f}, .sheepVelocity = {-1.0f, 0.0f}},
+        {.sheepIndex = 1, .sheepPosition = {0.2f, 0.0f}, .sheepVelocity = {1.0f, 0.0f}}
+    };
+    SheepCpuContext context;
+    context.cpuPosition = {1.0f, 0.0f};
+    context.ownPenCenter = {-5.0f, 0.0f};
+    context.remainingTimeRatio = 0.8f;
+
+    const auto decision = SheepCpuEvaluator::ChooseSheep(
+        candidates,
+        context,
+        CpuDifficultyProfile::Normal()
+    );
+    assert(decision.has_value());
+    assert(decision->sheepIndex == 0);
 }
 
 void TestBackshotRules() {
@@ -228,6 +295,47 @@ void TestBackshotRules() {
     rules.Shutdown();
 }
 
+void TestBackshotStrategy() {
+    using namespace MiniGameCollection;
+    using namespace MiniGameCollection::Backshot;
+
+    BackshotCpuContext context;
+    context.self = {
+        .playerId = 1,
+        .position = {0.0f, -2.0f},
+        .forward = {0.0f, 1.0f},
+        .alive = true
+    };
+    context.remainingTimeRatio = 1.0f;
+    context.livingPlayerCount = 4;
+    context.candidates.push_back({
+        .combatant = {
+            .playerId = 0,
+            .position = {0.0f, 0.0f},
+            .forward = {0.0f, 1.0f},
+            .alive = true
+        },
+        .hasLineOfSight = true
+    });
+
+    auto decision = BackshotCpuEvaluator::Evaluate(
+        context,
+        BackshotConfig{},
+        CpuDifficultyProfile::Normal()
+    );
+    assert(decision.has_value());
+    assert(decision->shouldShoot);
+
+    context.candidates[0].combatant.forward = {0.0f, -1.0f};
+    decision = BackshotCpuEvaluator::Evaluate(
+        context,
+        BackshotConfig{},
+        CpuDifficultyProfile::Normal()
+    );
+    assert(decision.has_value());
+    assert(!decision->shouldShoot);
+}
+
 } // namespace
 
 int main() {
@@ -236,7 +344,10 @@ int main() {
     TestSceneTransition();
     TestCollectionSelection();
     TestColorTerritoryRules();
+    TestColorTerritoryStrategy();
     TestSheepRoundupRules();
+    TestSheepStrategy();
     TestBackshotRules();
+    TestBackshotStrategy();
     return 0;
 }
