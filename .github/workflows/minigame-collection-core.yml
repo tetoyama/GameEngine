@@ -1,4 +1,4 @@
-name: MiniGame Collection Core Smoke Test
+name: MiniGame Collection Validation
 
 on:
   pull_request:
@@ -7,18 +7,34 @@ on:
       - refactor/ecs-scheduler-foundation
     paths:
       - "Source/GameApplication/Game/MiniGameCollection/**"
+      - "Source/GameApplication/Engine/Scene/Component/audioComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/componentList.h"
+      - "Source/GameApplication/Engine/Scene/System/Audio/audioSystem.h"
+      - "Source/GameApplication/Engine/engine.cpp"
+      - "Source/GameApplication/gameApplication.cpp"
+      - "Asset/Game/MiniGameCollection/**"
       - "Tests/MiniGameCollectionCoreSmokeTest.cpp"
       - "Tests/MiniGamePresentationSpikeSmokeTest.cpp"
       - "Tests/MiniGameRulesSmokeTest.cpp"
+      - "GameEngine.vcxproj"
+      - "GameEngine.sln"
       - ".github/workflows/minigame-collection-core.yml"
   push:
     branches:
       - game/minigame-collection
     paths:
       - "Source/GameApplication/Game/MiniGameCollection/**"
+      - "Source/GameApplication/Engine/Scene/Component/audioComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/componentList.h"
+      - "Source/GameApplication/Engine/Scene/System/Audio/audioSystem.h"
+      - "Source/GameApplication/Engine/engine.cpp"
+      - "Source/GameApplication/gameApplication.cpp"
+      - "Asset/Game/MiniGameCollection/**"
       - "Tests/MiniGameCollectionCoreSmokeTest.cpp"
       - "Tests/MiniGamePresentationSpikeSmokeTest.cpp"
       - "Tests/MiniGameRulesSmokeTest.cpp"
+      - "GameEngine.vcxproj"
+      - "GameEngine.sln"
       - ".github/workflows/minigame-collection-core.yml"
   workflow_dispatch:
 
@@ -68,3 +84,36 @@ jobs:
           Tests/MiniGameRulesSmokeTest.cpp
           /Fe:minigame-rules-test.exe
           && minigame-rules-test.exe
+      - name: Validate required scene assets
+        shell: pwsh
+        run: |
+          $required = @(
+            'Asset/Game/MiniGameCollection/Scene/Persistent/MiniGamePersistent.scene',
+            'Asset/Game/MiniGameCollection/Scene/PresentationTest/PresentationSpike.scene',
+            'Asset/Game/MiniGameCollection/Scene/ColorTerritory/ColorTerritory.scene',
+            'Asset/Game/MiniGameCollection/Scene/SheepRoundup/SheepRoundup.scene',
+            'Asset/Game/MiniGameCollection/Scene/Backshot/Backshot.scene'
+          )
+          foreach ($path in $required) {
+            if (-not (Test-Path $path)) {
+              throw "Missing required minigame scene: $path"
+            }
+            $content = Get-Content -Raw $path
+            if ($content -notmatch 'SceneSettings:' -or $content -notmatch 'Entities:') {
+              throw "Invalid minigame scene YAML structure: $path"
+            }
+          }
+
+  full-build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+          submodules: recursive
+      - uses: microsoft/setup-msbuild@v2
+      - name: Build Debug x64 solution
+        shell: pwsh
+        run: |
+          msbuild GameEngine.sln /m /restore /p:Configuration=Debug /p:Platform=x64 /p:RunCodeAnalysis=false
