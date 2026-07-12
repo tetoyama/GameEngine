@@ -6,6 +6,7 @@
 #pragma once
 #include <d2d1.h>
 #include <dwrite.h>
+#include <d3d11.h>
 #include <wrl/client.h>
 #include <string>
 #include <DirectXMath.h>
@@ -23,6 +24,26 @@ public:
 	void FillRect2D(float x, float y, float width, float height, D2D1::ColorF color);
 	void BeginDraw();
 	void EndDraw();
+
+	// PlayerPass用の透明Textureへ複数UI Commandをまとめて描画する。
+	// BeginTextureDraw / EndTextureDrawの間ではBeginDraw/EndDrawを個別に呼ばない。
+	bool BeginTextureDraw(ID3D11Texture2D* texture);
+	void DrawTextToTexture(
+		const std::wstring& text,
+		float x,
+		float y,
+		float fontSize,
+		D2D1::ColorF color
+	);
+	void FillRectToTexture(
+		float x,
+		float y,
+		float width,
+		float height,
+		D2D1::ColorF color
+	);
+	bool EndTextureDraw();
+
 	void ReloadTextFormat();
 	Microsoft::WRL::ComPtr<IDWriteTextLayout> CreateTextLayout(const std::wstring& text);
 	void DrawTextLayout(IDWriteTextLayout* textLayout, const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT4& color);
@@ -35,6 +56,9 @@ public:
 
 	// D2Dリソース解放
 	void OnResizeRelease(){
+		m_textureBrush.Reset();
+		m_textureRenderTarget.Reset();
+
 		if(m_d2dRenderTarget){
 			m_d2dRenderTarget->Release();
 			m_d2dRenderTarget = nullptr;
@@ -65,6 +89,10 @@ private:
 	ID2D1SolidColorBrush* m_fontBrush = nullptr;
 	IDWriteFactory* m_dwriteFactory = nullptr;
 	IDWriteTextFormat* m_textFormat = nullptr;
+
+	Microsoft::WRL::ComPtr<ID2D1RenderTarget> m_textureRenderTarget;
+	Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> m_textureBrush;
+	bool m_textureDrawActive = false;
 
 	std::wstring m_fontName = L"メイリオ";
 	float m_fontSize = 24.0f;
