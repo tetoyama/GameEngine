@@ -9,6 +9,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 namespace ElemenTactics {
 
@@ -27,7 +28,7 @@ LLAMAService* ResolveService(SceneContext* sceneContext){
 std::shared_ptr<const AgentConfig> BuildGameAgentConfig(){
 	auto config = std::make_shared<AgentConfig>();
 	config->n_ctx = 4096;
-	config->n_predict = 384;
+	config->max_tokens = 384;
 	config->n_threads = 8;
 	config->temperature = 0.35f;
 	config->top_p = 0.90f;
