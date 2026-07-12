@@ -6,7 +6,6 @@
 #include "Scene/Component/modelRendererComponent.h"
 #include "System/Render/RenderSystem/RenderPacket/RenderPacket.h"
 #include "System/Render/RenderSystem/RenderPacket/RenderPacketModelSubMeshSelection.h"
-#include "System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
 #include "System/Render/StaticBatch/StaticBatchD3D11GeometrySource.h"
 #include "Shader/common.hlsl"
 
@@ -33,16 +32,16 @@ struct StaticBatchModelGeometrySourceResult {
 };
 
 // Static BatchのGroup解決からModelDataのNative Buffer所有形態を分離する境界。
-// 現在はLegacy Providerが既存ModelDataを参照するが、RenderSystem側Runtime
-// Storageへ移行する際はこのInterfaceの実装を差し替え、Resolver / Cacheの
-// 契約を変更しない。
+// Geometry KeyはPacket Build時に確定したGroup Keyを受け取り、Provider内で
+// ModelDataを再走査してKeyを再生成しない。
 class IStaticBatchModelGeometrySourceProvider {
 public:
 	virtual ~IStaticBatchModelGeometrySourceProvider() = default;
 
 	virtual StaticBatchModelGeometrySourceResult Resolve(
 		const ModelRendererComponent& renderer,
-		const RenderPacket& packet
+		const RenderPacket& packet,
+		std::uint64_t expectedGeometryResourceKey
 	) const noexcept = 0;
 };
 
@@ -51,9 +50,16 @@ class StaticBatchLegacyModelGeometrySourceProvider final
 public:
 	StaticBatchModelGeometrySourceResult Resolve(
 		const ModelRendererComponent& renderer,
-		const RenderPacket& packet
+		const RenderPacket& packet,
+		std::uint64_t expectedGeometryResourceKey
 	) const noexcept override {
 		StaticBatchModelGeometrySourceResult result;
+		if(expectedGeometryResourceKey == 0){
+			result.status =
+				StaticBatchModelGeometrySourceStatus::InvalidGeometryCount;
+			return result;
+		}
+
 		const std::shared_ptr<ModelData>& model = renderer.model;
 		if(!model || !model->AiScene){
 			return result;
@@ -98,13 +104,6 @@ public:
 			return result;
 		}
 
-		const std::uint64_t geometryResourceKey =
-			StaticBatchResourceKey::MakeGeometryKey(packet);
-		if(geometryResourceKey == 0){
-			result.status = StaticBatchModelGeometrySourceStatus::InvalidGeometryCount;
-			return result;
-		}
-
 		result.source.vertexBuffer = model->VertexBuffer[meshIndex];
 		result.source.indexBuffer = model->IndexBuffer[meshIndex];
 		result.source.vertexStride =
@@ -112,7 +111,7 @@ public:
 		result.source.vertexCount = mesh->mNumVertices;
 		result.source.indexCount = mesh->mNumFaces * 3u;
 		result.source.indexFormat = RHI::IndexFormat::UInt32;
-		result.source.geometryResourceKey = geometryResourceKey;
+		result.source.geometryResourceKey = expectedGeometryResourceKey;
 		result.status = result.source.IsValid()
 			? StaticBatchModelGeometrySourceStatus::None
 			: StaticBatchModelGeometrySourceStatus::InvalidGeometryCount;
