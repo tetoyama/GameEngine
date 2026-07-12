@@ -66,11 +66,12 @@ public:
 			physx::PxU32 queryMask = effectiveMask;
 			RayHit candidate{};
 
-			// The ground ray begins inside the authored capsule. Legacy scene data has
-			// the capsule on Default (1) while SelfLayerBit requests Player (2), so the
-			// first hit can be the player itself on every frame. Reject dynamic actors
-			// and retry with their actual query-filter bit added to the exclusion mask.
-			for(int attempt = 0; attempt < 3; ++attempt) {
+			// The foot ray starts inside the player capsule and can also pass through
+			// CameraZone, Checkpoint and Coin trigger volumes. Those shapes participate
+			// in scene queries even though they are not simulation surfaces. Retry after
+			// excluding the actual layer of any dynamic actor or trigger hit so only a
+			// static, non-trigger support surface can become ground.
+			for(int attempt = 0; attempt < 6; ++attempt) {
 				candidate = physics->RaycastWithMask(
 					origin + offsets[index],
 					direction,
@@ -80,7 +81,9 @@ public:
 
 				const bool dynamicActor = candidate.hitActor &&
 					candidate.hitActor->getType() == physx::PxActorType::eRIGID_DYNAMIC;
-				if(!dynamicActor) break;
+				const bool triggerShape = candidate.hitShape &&
+					candidate.hitShape->getFlags().isSet(physx::PxShapeFlag::eTRIGGER_SHAPE);
+				if(!dynamicActor && !triggerShape) break;
 
 				const physx::PxU32 hitLayer = candidate.hitShape
 					? candidate.hitShape->getQueryFilterData().word0
