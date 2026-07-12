@@ -52,6 +52,8 @@ public:
 	int GetMouseX(HWND hwnd) const;
 	int GetMouseY(HWND hwnd) const;
 	int GetMouseWheel(HWND hwnd) const;
+	int GetMouseX() const { return GetMouseX(m_window); }
+	int GetMouseY() const { return GetMouseY(m_window); }
 
 	// ゲームパッド（グローバル管理）
 	bool IsGamepadConnected(int id) const;
