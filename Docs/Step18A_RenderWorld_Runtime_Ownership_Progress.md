@@ -2,7 +2,7 @@
 
 ## 状態
 
-**実装中 — RenderWorld基盤、Camera / ModelRendererのNative描画資源分離、Static Batch Model Geometry Runtime Storage接続まで完了。CI・追加実機確認待ち。**
+**実装中 — RenderWorld基盤、Camera / ModelRendererのNative描画資源分離、Static Batch Model Geometry Runtime Storage、Model CPU Geometry Source抽出まで完了。CI・追加実機確認待ち。**
 
 親計画:
 
@@ -116,7 +116,30 @@ Runtime Storage:
 - 通常FrameのResolver / Geometry Binding CacheはRuntime Storage Entryを再利用する
 - Legacy Providerも確定済みGeometry Keyを受け取り、ModelDataからKeyを再構築しない
 
-この境界により、次工程でModel共有Geometryの**生成元**を`ModelData`からRenderSystem側へ移しても、Resolver / Cache / GBuffer / Shadow提出契約を変更せずに差し替えられる。
+### 5. Model CPU Geometry Source
+
+`ModelMeshGeometryCpuData`を追加し、Assimp Meshから抽出した共有GeometryをNative Bufferとは独立して保持する。
+
+```text
+ModelData::MeshGeometry[SubMesh]
+    vertices : vector<VERTEX_3D>
+    indices  : vector<uint32_t>
+```
+
+契約:
+
+- Model Loaderは一時`new[]`配列を作らない
+- Vertex / IndexのCPU Snapshotを先に構築する
+- 移行中のD3D11 Vertex / Index Bufferも同じSnapshotから初期化する
+- Static Batch Geometry CountはAssimp Face CountではなくSnapshotの要素数から取得する
+- Geometry Resource Keyは`VertexBuffer / IndexBuffer`配列サイズへ依存しない
+- Geometry Resource KeyへSnapshotのVertex / Index件数を含める
+- `MeshGeometry.size()`とAssimp SubMesh数が一致しないModelはStatic Geometry Keyを生成しない
+- Native Bufferが存在しなくてもCPU SnapshotだけでGeometry Keyを決定できる
+
+この段階では通常描画互換のNative Buffer生成・破棄はまだ`modelLoader.h / ModelData::Release`に残る。次工程でCPU SnapshotからRenderSystem / RHI Runtimeを生成し、Legacy Native Buffer Bootstrapを撤去する。
+
+この境界により、Model共有Geometryの**生成元**を`ModelData`からRenderSystem側へ移しても、Resolver / Cache / GBuffer / Shadow提出契約を変更せずに差し替えられる。
 
 ## 回帰テスト
 
@@ -143,13 +166,18 @@ Runtime Storage:
 - 同期開始 / 終了と未使用Entry解放契約
 - 確定済みGroup Geometry KeyがProviderへ伝播すること
 - Provider / Runtime StorageでGeometry Keyを再生成しないこと
+- LoaderがCPU Geometry Snapshotを構築すること
+- Native Bufferが空でもCPU Snapshotから決定的なGeometry Keyを生成できること
+- CPU SnapshotのVertex / Index件数変更でGeometry Keyが変わること
 
 ## Step 18-A残作業
 
 - [ ] `renderSystem.cpp`のBuild / Submitを`RenderWorld` APIへ直接接続し、一時Facadeを削除
 - [ ] RendererのComponentRegistry直接走査を専用Extraction Taskへ分離
 - [x] Static Batch Model Geometry Runtime Storageを追加し、Geometry Cacheへ接続
-- [ ] Model共有Geometryの生成・破棄を`ModelData`からRenderSystem側へ移す
+- [x] Model共有GeometryのBackend非依存CPU Sourceを抽出
+- [ ] CPU SourceからRenderSystem / RHI Geometry Runtimeを生成する
+- [ ] `ModelData`のLegacy Native Geometry生成・破棄を撤去
 - [ ] Native API型をRenderSystem公開境界から段階的に撤去
 - [ ] RenderWorldからRHI Commandを生成する境界を追加
 - [ ] Windows Debug / Release x64 Build
@@ -162,8 +190,9 @@ Runtime Storage:
 
 1. `RenderSystem.Packet.Build`をRenderWorld Extraction責務として独立
 2. Build / Submitの一時Facade撤去
-3. Model共有Geometry生成をRenderSystem Runtimeへ移し、Legacy Bootstrapを撤去
-4. Render PacketのComponent Pointer依存をSnapshot / Handleへ縮小
-5. RHI Command生成境界へ接続
+3. CPU Geometry Sourceから共有RHI Geometry Runtimeを生成
+4. Legacy Native Geometry Bootstrapを撤去
+5. Render PacketのComponent Pointer依存をSnapshot / Handleへ縮小
+6. RHI Command生成境界へ接続
 
 Static Batch経路は既存Dynamic Packetを置き換えず、同じRender Passへ併存提出する方針を維持する。
