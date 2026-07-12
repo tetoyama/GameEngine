@@ -52,11 +52,13 @@ private:
 	static constexpr const char* MovingPlatformPrefab = "Asset/Game/Platformer/Prefab/PlatformerMovingPlatform.prefab";
 	static constexpr const char* CameraZonePrefab = "Asset/Game/Platformer/Prefab/PlatformerCameraZone.prefab";
 	static constexpr const char* BossPrefab = "Asset/Game/Platformer/Prefab/PlatformerBoss.prefab";
+	static constexpr const char* PlayerFeedbackPrefab = "Asset/Game/Platformer/Prefab/PlatformerPlayerFeedback.prefab";
 
 	void BuildStage() {
 		EntityCommandBuffer* commands = GetCommandBuffer();
 		if(!commands) return;
 		built = true;
+		commands->InstantiatePrefab(PlayerFeedbackPrefab);
 
 		const float4 courseColor(0.22f, 0.34f, 0.48f, 1.0f);
 		const float4 tripleColor(0.24f, 0.44f, 0.72f, 1.0f);
@@ -226,7 +228,7 @@ private:
 	}
 
 	static void SetName(const EntityRef& root, const std::string& name) {
-		if(auto* component = ComponentRef<NameComponent>(root).TryGet()) component->Name = name;
+		if(auto* component = ComponentRef<NameComponent>(root).TryGet()) component->name = name;
 	}
 
 	static void SetMaterialColor(const EntityRef& root, const float4& color) {
