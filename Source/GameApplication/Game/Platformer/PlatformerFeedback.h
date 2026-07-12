@@ -56,6 +56,8 @@ public:
 			const float radial = horizontalSpeed * (0.75f + 0.25f * static_cast<float>((i % 3) + 1) / 3.0f);
 			particle->Particle[i].LifeTime = particle->particleLifeTime;
 			particle->Particle[i].Position = origin;
+			particle->Particle[i].Color = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+			particle->Particle[i].SizeScale = 1.0f;
 			particle->Particle[i].Speed = Vector3(
 				std::cos(angle) * radial,
 				upwardSpeed * (0.75f + 0.08f * static_cast<float>(i % 4)),
