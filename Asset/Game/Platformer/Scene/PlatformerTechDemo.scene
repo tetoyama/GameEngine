@@ -118,7 +118,7 @@ Entities:
         wallKickVerticalVelocity: 8.8
         killY: -14
         maxHealth: 3
-        SelfLayerBit: 2
+        SelfLayerBit: 10
         Checkpoint: {x: 0, y: 0.05, z: 0}
       - Component: PlatformerAnimationController
         idleAnimation: Asset/Model/Akai_Idle.fbx
@@ -206,7 +206,7 @@ Entities:
         wallHeight: 4.5
         bossDistance: 13.5
         bossHeight: 7
-        SelfLayerBit: 2
+        SelfLayerBit: 10
         Profile: 0
   - Entity: 4
     Components:
