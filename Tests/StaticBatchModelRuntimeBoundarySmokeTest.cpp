@@ -4,6 +4,7 @@
 #include <string>
 
 #include "Engine/Scene/System/Render/StaticBatch/StaticBatchGeometryBindingCache.h"
+#include "Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometryRuntimeStorage.h"
 #include "Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceProvider.h"
 #include "Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceResolver.h"
 
@@ -25,11 +26,17 @@ void ValidateModelRuntimeBoundary(){
 	const std::string provider = ReadTextFile(
 		"Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceProvider.h"
 	);
+	const std::string runtimeStorage = ReadTextFile(
+		"Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometryRuntimeStorage.h"
+	);
 	const std::string resolver = ReadTextFile(
 		"Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceResolver.h"
 	);
 	const std::string cache = ReadTextFile(
 		"Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchGeometryBindingCache.h"
+	);
+	const std::string uploadSystem = ReadTextFile(
+		"Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchUploadSystem.h"
 	);
 
 	assert(component.find("dynamicVertexBuffers") == std::string::npos);
@@ -45,24 +52,57 @@ void ValidateModelRuntimeBoundary(){
 		std::string::npos);
 	assert(cache.find("sourceProvider") != std::string::npos);
 
-	// Legacy Providerだけが移行期間中のModelData Native Bufferを参照する。
+	// Legacy ProviderだけがModelData Native Bufferから初回Sourceを取り込む。
 	assert(provider.find("class IStaticBatchModelGeometrySourceProvider") !=
 		std::string::npos);
 	assert(provider.find("StaticBatchLegacyModelGeometrySourceProvider") !=
 		std::string::npos);
 	assert(provider.find("model->VertexBuffer") != std::string::npos);
 	assert(provider.find("model->IndexBuffer") != std::string::npos);
+	assert(runtimeStorage.find("model->VertexBuffer") == std::string::npos);
+	assert(runtimeStorage.find("model->IndexBuffer") == std::string::npos);
+
+	// Runtime Storageは独立COM参照を保持し、同期単位で未使用Entryを解放する。
+	assert(runtimeStorage.find("ComPtr<ID3D11Buffer>") != std::string::npos);
+	assert(runtimeStorage.find("StaticBatchRuntimeModelGeometrySourceProvider") !=
+		std::string::npos);
+	assert(runtimeStorage.find("bootstrapProvider.Resolve") != std::string::npos);
+	assert(runtimeStorage.find("BeginSynchronization") != std::string::npos);
+	assert(runtimeStorage.find("EndSynchronization") != std::string::npos);
+
+	// Upload SystemがRuntime ProviderをCacheへ注入し、Scheduler競合へ公開する。
+	assert(uploadSystem.find("StaticBatchRuntimeModelGeometrySourceProvider") !=
+		std::string::npos);
+	assert(uploadSystem.find(
+		"WriteResource<StaticBatchModelGeometryRuntimeStorage>()"
+	) != std::string::npos);
+	assert(uploadSystem.find("m_modelGeometrySourceProvider") != std::string::npos);
+	assert(uploadSystem.find("m_modelGeometrySourceProvider.Reset()") !=
+		std::string::npos);
 
 	// Animation設定のあるModelはGroup単位で拒否し、
-	// Boneを持つSubMeshはGeometry Source Providerで拒否する。
+	// Boneを持つSubMeshはBootstrap Providerで拒否する。
 	assert(resolver.find("renderer->blendedAnimations.empty()") !=
 		std::string::npos);
 	assert(provider.find("mesh->HasBones()") != std::string::npos);
+}
+
+void ValidateEmptyRuntimeStorageLifecycle(){
+	StaticBatchModelGeometryRuntimeStorage storage;
+	assert(storage.EntryCount() == 0);
+	storage.BeginSynchronization();
+	storage.EndSynchronization();
+	const StaticBatchModelGeometryRuntimeStorageTelemetry telemetry =
+		storage.Telemetry();
+	assert(telemetry.currentEntryCount == 0);
+	assert(telemetry.synchronizationCount == 1);
+	storage.Reset();
 }
 
 } // namespace
 
 int main(){
 	ValidateModelRuntimeBoundary();
+	ValidateEmptyRuntimeStorageLifecycle();
 	return 0;
 }
