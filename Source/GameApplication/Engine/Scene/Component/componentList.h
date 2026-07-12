@@ -60,6 +60,7 @@
 #include "Game/Platformer/PlatformerCameraZone.h"
 #include "Game/Platformer/PlatformerBoss.h"
 #include "Game/Platformer/PlatformerHud.h"
+#include "Game/Platformer/PlatformerStageBuilder.h"
 
 inline constexpr auto COMPONENT_SPARSE = ECSStorage::ComponentStorageStrategy::SparseStable;
 inline constexpr auto COMPONENT_DENSE = ECSStorage::ComponentStorageStrategy::Dense;
@@ -128,6 +129,7 @@ struct ComponentStoragePreference<TransformComponent> {
     X(PlatformerCameraZone,COMPONENT_SPARSE)\
     X(PlatformerBoss,COMPONENT_SPARSE)\
     X(PlatformerHud,COMPONENT_SPARSE)\
+    X(PlatformerStageBuilder,COMPONENT_SPARSE)\
     X(PrefabComponent,COMPONENT_SPARSE)\
     X(FollowComponent,COMPONENT_ARCHETYPE)\
     X(EnvironmentMapComponent,COMPONENT_ARCHETYPE)
