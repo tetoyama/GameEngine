@@ -7,8 +7,8 @@
 #include "Registry/componentRegistry.h"
 #include "Resources/Data/textureData.h"
 #include "Service/Graphics/graphicsContext.h"
-#include "scene.h"
-#include "sceneManager.h"
+#include "Scene/scene.h"
+#include "Scene/sceneManager.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -122,11 +122,11 @@ void RuntimeTextSystem::RegisterTasks(SystemScheduleBuilder& builder){
 		0,
 		StructuralAccess::None,
 		ThreadAffinity::MainThread,
-		[this](const SystemTaskContext&){ Update(); }
+		[this](const SystemTaskContext&){ ProcessDirtyText(); }
 	);
 }
 
-void RuntimeTextSystem::Update(){
+void RuntimeTextSystem::ProcessDirtyText(){
 	if(!m_context || !m_context->sceneManager || !m_wicFactory) return;
 
 	for(const auto& [name, scene] : m_context->sceneManager->GetActiveScenes()){
@@ -238,10 +238,10 @@ bool RuntimeTextSystem::Rasterize(
 
 	renderTarget->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
 	renderTarget->BeginDraw();
-	renderTarget->Clear(D2D1::ColorF(0.0f, 0.0f));
+	renderTarget->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
 	const std::wstring text = Utf8ToWide(component.Text);
 	if(!text.empty()){
-		renderTarget->DrawTextW(
+		renderTarget->DrawText(
 			text.data(),
 			static_cast<UINT32>(text.size()),
 			textFormat.Get(),
