@@ -49,6 +49,11 @@
 #include "Script/CameraController.h"
 #include "Script/GN31.h"
 
+#include "Game/MiniGameCollection/Runtime/MiniGamePersistentRuntime.h"
+#include "Game/MiniGameCollection/Runtime/ColorTerritoryRuntime.h"
+#include "Game/MiniGameCollection/Runtime/SheepRoundupRuntime.h"
+#include "Game/MiniGameCollection/Runtime/BackshotRuntime.h"
+
 inline constexpr auto COMPONENT_SPARSE = ECSStorage::ComponentStorageStrategy::SparseStable;
 inline constexpr auto COMPONENT_DENSE = ECSStorage::ComponentStorageStrategy::Dense;
 inline constexpr auto COMPONENT_DIRECT_PAGED = ECSStorage::ComponentStorageStrategy::DirectPaged;
@@ -105,6 +110,10 @@ struct ComponentStoragePreference<TransformComponent> {
     X(FadeSetScene,COMPONENT_SPARSE)\
     X(ScriptComponent,COMPONENT_SPARSE)\
     X(GN31,COMPONENT_SPARSE)\
+    X(MiniGameCollection::Runtime::MiniGamePersistentRuntime,COMPONENT_SPARSE)\
+    X(MiniGameCollection::Runtime::ColorTerritoryRuntime,COMPONENT_SPARSE)\
+    X(MiniGameCollection::Runtime::SheepRoundupRuntime,COMPONENT_SPARSE)\
+    X(MiniGameCollection::Runtime::BackshotRuntime,COMPONENT_SPARSE)\
     X(PrefabComponent,COMPONENT_SPARSE)\
     X(FollowComponent,COMPONENT_ARCHETYPE)\
     X(EnvironmentMapComponent,COMPONENT_ARCHETYPE)
