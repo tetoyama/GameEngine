@@ -1,11 +1,15 @@
 #pragma once
 
 #include "Engine/Scene/Component/CustomScriptComponent.h"
+#include "Engine/Scene/Component/TransformComponent.h"
+#include "Engine/Scene/Component/ColliderComponent.h"
+#include "Engine/Scene/Component/entityNameComponent.h"
 #include "Game/Platformer/PlatformerCharacterController.h"
 #include "Game/Platformer/PlatformerSceneAccess.h"
 #include "Game/Platformer/PlatformerSoundLibrary.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <string>
 
@@ -49,6 +53,7 @@ public:
 	void OnStart() override {
 		PlatformerSoundLibrary::EnsureGenerated();
 		player = PlatformerSceneAccess::FindFirst<PlatformerCharacterController>(m_ref.GetScene());
+		ConfigureBossForNormalJump();
 		state = RunState::Playing;
 		collectedCoins = 0;
 		registeredCoins = 0;
@@ -136,6 +141,41 @@ public:
 	uint32_t GetStateRevision() const { return stateRevision; }
 
 private:
+	void ConfigureBossForNormalJump() {
+		SceneContext* context = m_ref.GetScene();
+		if(!context || !context->component) return;
+
+		const auto namedEntities = context->component->FindEntitiesWithComponent<NameComponent>();
+		for(Entity entity : namedEntities) {
+			auto* name = context->component->GetComponent<NameComponent>(entity);
+			if(!name || name->name != "PlatformerBoss") continue;
+
+			auto* pose = context->component->GetComponent<TransformComponent>(entity);
+			auto* col = context->component->GetComponent<ColliderComponent>(entity);
+			if(!pose || !col || col->colliders.empty()) return;
+
+			ColliderShape& shape = col->colliders.front();
+			if(shape.type != ColliderType::Box) return;
+
+			const float shapeHeight = (std::max)(0.001f, shape.size.y);
+			const float oldScaleY = (std::max)(0.001f, std::abs(pose->scale.y));
+			const float oldWorldHeight = shapeHeight * oldScaleY;
+			const float targetWorldHeight = (std::min)(oldWorldHeight, 1.15f);
+			if(targetWorldHeight >= oldWorldHeight - 0.01f) return;
+
+			// Preserve the floor contact while lowering both the visual body and the
+			// rebuilt PhysX box. With the legacy +0.75 stomp margin, the resulting
+			// weak point sits around 1.33 m and is reachable by a held first jump.
+			const float oldCenterY = pose->position.y + shape.offset.y * oldScaleY;
+			const float bottomY = oldCenterY - oldWorldHeight * 0.5f;
+			pose->scale.y = targetWorldHeight / shapeHeight;
+			const float newCenterY = bottomY + targetWorldHeight * 0.5f;
+			pose->position.y = newCenterY - shape.offset.y * pose->scale.y;
+			col->needsUpdate = true;
+			return;
+		}
+	}
+
 	ComponentRef<PlatformerCharacterController> player;
 	RunState state = RunState::Playing;
 	int registeredCoins = 0;
