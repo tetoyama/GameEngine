@@ -105,6 +105,7 @@ protected:
                 if (renderer) {
                     renderer->modelFilePath = "Asset\\Model\\cube.obj";
                     renderer->isBlender = false;
+                    renderer->CreateModel(&context);
                 }
 
                 if (ready) {
