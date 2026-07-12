@@ -36,8 +36,8 @@ public:
             {
                 .gameId = MiniGameId::ColorTerritory,
                 .displayName = "Color Territory",
-                .ruleText = "空地を広げ、敵色を奪って点差を動かせ！",
-                .controlText = "移動のみ / 敵色は自分+1・相手-1、終盤は首位を狙う",
+                .ruleText = "空地と敵色を奪え。後半はBOMB / STAR争奪戦！",
+                .controlText = "BOMBは先に触れれば自分色、STARは加速・無敵・接触硬直",
                 .scenePath = "Asset/Game/MiniGameCollection/Scene/ColorTerritory/ColorTerritory.scene"
             },
             {
