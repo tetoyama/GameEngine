@@ -25,15 +25,15 @@
 // 固定更新の基準となる目標 FPS
 #define TARGET_FPS (60)
 
-#ifdef _DEBUG 
+#ifdef _DEBUG
 
-#define _DEBUG_BUILD
-//#define _RELEASE_BUILD
+// ElemenTactics専用branchではDebug構成でもApplicationConfigのStartSceneから
+// ゲームSceneを起動する。Editor機能は維持する。
+#define _RELEASE_BUILD
 #define _EDITOR
 
 #else
 
-//#define _DEBUG_BUILD
 #define _RELEASE_BUILD
 #define _EDITOR
 
