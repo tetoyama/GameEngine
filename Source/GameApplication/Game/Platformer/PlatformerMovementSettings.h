@@ -26,7 +26,11 @@ struct PlatformerMovementSettings {
 
 	float groundProbeStart = 0.16f;
 	float groundProbeDistance = 0.52f;
-	float groundSnapSpeed = 3.2f;
+	// This is a velocity, not an acceleration. A large value creates a large
+	// contact impulse every fixed tick and lets PhysX friction cancel locomotion.
+	// Keep only a small downward bias so the character remains attached to flat
+	// ground without making grounded movement feel locked.
+	float groundSnapSpeed = 0.12f;
 	float maxSlopeDegrees = 50.0f;
 
 	float tripleJumpMinimumSpeed = 4.2f;
