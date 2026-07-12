@@ -435,7 +435,8 @@ private:
             SceneContext* context = GetEntityRef().GetScene();
             if (context && context->manager && context->manager->sceneManager) {
                 const MiniGameDescriptor& game = m_collection.GetSelectedGame();
-                if (context->manager->sceneManager->LoadFromFilePath(game.scenePath)) {
+                if (context->manager->sceneManager
+                        ->QueueAdditiveSceneLoadFromFilePath(game.scenePath)) {
                     m_selectionInputEnabled = false;
                 }
             }
