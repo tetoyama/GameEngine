@@ -1,80 +1,38 @@
-name: Apply Platformer Celebration Patch
+name: Platformer Tech Demo Build
 
 on:
   push:
     branches:
       - game/platformer-tech-demo
+  pull_request:
+    branches:
+      - refactor/ecs-scheduler-foundation
   workflow_dispatch:
 
-permissions:
-  contents: write
+concurrency:
+  group: platformer-tech-demo-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  patch-celebration-particles:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+  build-debug-x64:
+    runs-on: windows-2022
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: game/platformer-tech-demo
-          fetch-depth: 0
 
-      - name: Patch particle runtime
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
+      - name: Configure MSBuild
+        uses: microsoft/setup-msbuild@v2
 
-          def replace_once(path: str, old: str, new: str) -> None:
-              p = Path(path)
-              text = p.read_text(encoding="utf-8")
-              count = text.count(old)
-              if count != 1:
-                  raise RuntimeError(f"{path}: expected one match, found {count}")
-              p.write_text(text.replace(old, new, 1), encoding="utf-8")
-
-          replace_once(
-              "Source/GameApplication/Engine/Scene/Component/particleComponent.h",
-              '#include "Backends/myVector3.h"\n',
-              '#include "Backends/myVector3.h"\n#include <DirectXMath.h>\n')
-
-          replace_once(
-              "Source/GameApplication/Engine/Scene/Component/particleComponent.h",
-              '\tVector3 Speed = Vector3(0.0f, 0.0f, 0.0f);\n\tfloat LifeTime = 0.0f;\n',
-              '\tVector3 Speed = Vector3(0.0f, 0.0f, 0.0f);\n\tDirectX::XMFLOAT4 Color = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);\n\tfloat SizeScale = 1.0f;\n\tfloat LifeTime = 0.0f;\n')
-
-          replace_once(
-              "Source/GameApplication/Game/Platformer/PlatformerFeedback.h",
-              '\t\t\tparticle->Particle[i].Position = origin;\n\t\t\tparticle->Particle[i].Speed = Vector3(\n',
-              '\t\t\tparticle->Particle[i].Position = origin;\n\t\t\tparticle->Particle[i].Color = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);\n\t\t\tparticle->Particle[i].SizeScale = 1.0f;\n\t\t\tparticle->Particle[i].Speed = Vector3(\n')
-
-          replace_once(
-              "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Particle/RenderableParticle.cpp",
-              '#include <d3d11.h>\n',
-              '#include <d3d11.h>\n#include <algorithm>\n')
-
-          old_material = '''\t\tMATERIAL material{};\n\t\tif(pTexture){\n\t\t\tif(hasTexture){\n\t\t\t\tmaterial.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;\n\t\t\t}\n\t\t\tif(pMaterial){\n\t\t\t\tmaterial.BaseColor = pMaterial->Material.BaseColor;\n\t\t\t\tmaterial.BaseColor.w =\n\t\t\t\t\tpMaterial->Material.BaseColor.w *\n\t\t\t\t\tpParticle->Particle[i].LifeTime /\n\t\t\t\t\tpParticle->particleLifeTime;\n\t\t\t}\n\t\t}else{\n\t\t\tmaterial.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);\n\t\t}\n'''
-          new_material = '''\t\tMATERIAL material{};\n\t\tif(pTexture && hasTexture){\n\t\t\tmaterial.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;\n\t\t}\n\t\tmaterial.BaseColor = pMaterial\n\t\t\t? pMaterial->Material.BaseColor\n\t\t\t: DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);\n\n\t\tconst DirectX::XMFLOAT4 particleColor = pParticle->Particle[i].Color;\n\t\tconst float safeLifetime = (std::max)(0.0001f, pParticle->particleLifeTime);\n\t\tconst float lifeAlpha = std::clamp(\n\t\t\tpParticle->Particle[i].LifeTime / safeLifetime,\n\t\t\t0.0f,\n\t\t\t1.0f);\n\t\tmaterial.BaseColor.x *= particleColor.x;\n\t\tmaterial.BaseColor.y *= particleColor.y;\n\t\tmaterial.BaseColor.z *= particleColor.z;\n\t\tmaterial.BaseColor.w *= particleColor.w * lifeAlpha;\n'''
-          replace_once(
-              "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Particle/RenderableParticle.cpp",
-              old_material,
-              new_material)
-
-          replace_once(
-              "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Particle/RenderableParticle.cpp",
-              '\t\ttransform.scale *= pParticle->particleSize;\n',
-              '\t\ttransform.scale *= pParticle->particleSize * pParticle->Particle[i].SizeScale;\n')
-          PY
-
-      - name: Commit patch
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Source/GameApplication/Engine/Scene/Component/particleComponent.h
-          git add Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Particle/RenderableParticle.cpp
-          git add Source/GameApplication/Game/Platformer/PlatformerFeedback.h
-          git commit -m "Add per-particle celebration tint and scale" || exit 0
-          git push origin HEAD:game/platformer-tech-demo
+      - name: Build Debug x64
+        shell: pwsh
+        run: >-
+          msbuild GameEngine.sln
+          /m
+          /restore
+          /t:Build
+          /p:Configuration=Debug
+          /p:Platform=x64
+          /p:UseSharedCompilation=false
+          /verbosity:minimal
