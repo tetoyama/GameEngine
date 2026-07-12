@@ -224,12 +224,16 @@ void Engine::Run(EngineContext* context){
 	uint64_t completedResizeSerial = 0;
 	double completedResizeCpuTime = 0.0;
 
-	auto initialScene = std::make_shared<Scene>();
+	// GameApplication may preload a persistent Multi-Scene composition before Run.
+	// Only create the historical default scene when no scene has been supplied.
+	if(scenes->GetActiveScenes().empty()){
+		auto initialScene = std::make_shared<Scene>();
 #ifdef _DEBUG_BUILD
-	scenes->LoadScene(initialScene);
+		scenes->LoadScene(initialScene);
 #else
-	scenes->LoadFromFilePath(config->appConfig.startSceneFilePath);
+		scenes->LoadFromFilePath(config->appConfig.startSceneFilePath);
 #endif
+	}
 
 	while(!mainWindow->ShouldClose()){
 		time->Tick();
