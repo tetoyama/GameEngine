@@ -59,13 +59,12 @@ struct PlatformerMovementSettings {
 	float apexGravityScale = 0.50f;
 	float apexVelocityThreshold = 1.30f;
 
-	// The capsule foot is at the entity origin. The previous negative start put
-	// the ray below a settled floor surface, so a downward ray could miss the top
-	// face and report falling while PhysX still visibly supported the capsule.
-	// Start above the foot and extend below it so small contact offsets, slopes,
-	// triangle seams and moving-platform separation remain inside the probe span.
+	// The capsule foot is at the entity origin. Start the ray above the foot so it
+	// can see a settled floor, but accept support only a short distance below it.
+	// The former 0.30 m reach marked the player grounded well before contact and
+	// made CameraZone/checkpoint trigger surfaces feel like they pulled the player.
 	float groundProbeStart = 0.14f;
-	float groundProbeDistance = 0.30f;
+	float groundProbeDistance = 0.12f;
 	// This is a velocity, not an acceleration. Keep only a small downward bias
 	// after genuine contact so PhysX friction does not cancel horizontal motion.
 	float groundSnapSpeed = 0.10f;
