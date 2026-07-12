@@ -23,6 +23,7 @@ class ImGuiService;
 class ConfigService;
 class EditorService;
 class SystemRegistry;
+class LLAMAService;
 
 struct SceneContext;
 class SceneManager;
@@ -44,6 +45,7 @@ struct SceneManagerContext {
 	ImGuiService*    imgui     = nullptr;
 	ConfigService*   config    = nullptr;
 	EditorService*   editor    = nullptr;
+	LLAMAService*    llama     = nullptr;
 	HWND             hwnd      = nullptr;
 };
 

@@ -1,0 +1,104 @@
+name: ElemenTactics Contracts and Engine Build
+
+on:
+  pull_request:
+    paths:
+      - "Asset/ApplicationConfig.yaml"
+      - "Asset/Game/ElemenTactics/**"
+      - "Source/buildSetting.h"
+      - "Source/GameApplication/Game/ElemenTactics/**"
+      - "Source/GameApplication/Engine/Scene/Component/RuntimeTextComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/componentList.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Text/**"
+      - "Source/GameApplication/Engine/Scene/sceneManager.h"
+      - "Source/GameApplication/Service/Platform/InputSystem/InputSystem.h"
+      - "Tests/ElemenTacticsRulesSmokeTest.cpp"
+      - "Tests/ElemenTacticsFlowSmokeTest.cpp"
+      - "Tests/ElemenTacticsLlmSessionSmokeTest.cpp"
+      - "Tests/ElemenTacticsRuntimeInteractionSmokeTest.cpp"
+      - "Directory.Build.targets"
+      - ".github/workflows/elementactics-rules.yml"
+  push:
+    branches:
+      - game/elementactics-boardgame
+    paths:
+      - "Asset/ApplicationConfig.yaml"
+      - "Asset/Game/ElemenTactics/**"
+      - "Source/buildSetting.h"
+      - "Source/GameApplication/Game/ElemenTactics/**"
+      - "Source/GameApplication/Engine/Scene/Component/RuntimeTextComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/componentList.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Text/**"
+      - "Source/GameApplication/Engine/Scene/sceneManager.h"
+      - "Source/GameApplication/Service/Platform/InputSystem/InputSystem.h"
+      - "Tests/ElemenTacticsRulesSmokeTest.cpp"
+      - "Tests/ElemenTacticsFlowSmokeTest.cpp"
+      - "Tests/ElemenTacticsLlmSessionSmokeTest.cpp"
+      - "Tests/ElemenTacticsRuntimeInteractionSmokeTest.cpp"
+      - "Directory.Build.targets"
+      - ".github/workflows/elementactics-rules.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts-and-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run pure rules contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /I Source\GameApplication
+          Source\GameApplication\Game\ElemenTactics\Rules\ElemenTacticsRules.cpp
+          Source\GameApplication\Game\ElemenTactics\AI\ElemenTacticsAi.cpp
+          Source\GameApplication\Game\ElemenTactics\AI\LlmDecisionAdapter.cpp
+          Tests\ElemenTacticsRulesSmokeTest.cpp
+          /Fe:elementactics-rules-test.exe
+          && elementactics-rules-test.exe
+      - name: Compile and run flow and AI fallback contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /I Source\GameApplication
+          Source\GameApplication\Game\ElemenTactics\Rules\ElemenTacticsRules.cpp
+          Source\GameApplication\Game\ElemenTactics\AI\ElemenTacticsAi.cpp
+          Source\GameApplication\Game\ElemenTactics\AI\LlmDecisionAdapter.cpp
+          Source\GameApplication\Game\ElemenTactics\Flow\DeckSetupModel.cpp
+          Source\GameApplication\Game\ElemenTactics\Flow\MatchFlowModel.cpp
+          Tests\ElemenTacticsFlowSmokeTest.cpp
+          /Fe:elementactics-flow-test.exe
+          && elementactics-flow-test.exe
+      - name: Compile and run LLM request lifecycle contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /I Source\GameApplication
+          Source\GameApplication\Game\ElemenTactics\AI\LlmRequestSession.cpp
+          Tests\ElemenTacticsLlmSessionSmokeTest.cpp
+          /Fe:elementactics-llm-session-test.exe
+          && elementactics-llm-session-test.exe
+      - name: Compile and run board layout and interaction contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /I Source\GameApplication
+          Source\GameApplication\Game\ElemenTactics\Rules\ElemenTacticsRules.cpp
+          Source\GameApplication\Game\ElemenTactics\Runtime\BoardLayout.cpp
+          Source\GameApplication\Game\ElemenTactics\Runtime\BattleInteractionModel.cpp
+          Tests\ElemenTacticsRuntimeInteractionSmokeTest.cpp
+          /Fe:elementactics-runtime-interaction-test.exe
+          && elementactics-runtime-interaction-test.exe
+      - name: Build GameEngine Debug x64
+        shell: cmd
+        run: msbuild GameEngine.sln /m /t:Build /p:Configuration=Debug /p:Platform=x64 /verbosity:minimal
+      - name: Build GameEngine Release x64
+        shell: cmd
+        run: msbuild GameEngine.sln /m /t:Build /p:Configuration=Release /p:Platform=x64 /verbosity:minimal

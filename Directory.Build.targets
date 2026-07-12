@@ -122,6 +122,26 @@
     </ClInclude>
   </ItemGroup>
 
+  <!-- ElemenTacticsは専用branchのGameEngine本体へだけ登録する。 -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'GameEngine'">
+    <ClCompile Include="Source\GameApplication\Game\ElemenTactics\**\*.cpp">
+      <Link>Source Files\Game\ElemenTactics\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </ClCompile>
+    <ClInclude Include="Source\GameApplication\Game\ElemenTactics\**\*.h">
+      <Link>Header Files\Game\ElemenTactics\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </ClInclude>
+
+    <ClCompile Include="Source\GameApplication\Engine\Scene\System\Render\Text\RuntimeTextSystem.cpp">
+      <Link>Source Files\Engine\Scene\System\Render\Text\RuntimeTextSystem.cpp</Link>
+    </ClCompile>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\Text\RuntimeTextSystem.h">
+      <Link>Header Files\Engine\Scene\System\Render\Text\RuntimeTextSystem.h</Link>
+    </ClInclude>
+    <ClInclude Include="Source\GameApplication\Engine\Scene\Component\RuntimeTextComponent.h">
+      <Link>Header Files\Engine\Scene\Component\RuntimeTextComponent.h</Link>
+    </ClInclude>
+  </ItemGroup>
+
   <!-- Static Batch専用ShaderはGameEngine x64だけでCSOへ変換する。 -->
   <ItemGroup Condition="'$(MSBuildProjectName)' == 'GameEngine' and '$(Platform)' == 'x64'">
     <FxCompile Include="Source\Shader\StaticBatchVS.hlsl">

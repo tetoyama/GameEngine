@@ -14,6 +14,7 @@
 #include "Component/BillBoardRendererComponent.h"
 #include "Component/terrainComponent.h"
 #include "Component/textureComponent.h"
+#include "Component/RuntimeTextComponent.h"
 #include "Component/CustomScriptComponent.h"
 #include "Component/bumpMapComponent.h"
 #include "Component/2DspriteRendererComponent.h"
@@ -48,6 +49,10 @@
 #include "Script/FadeSetScene.h"
 #include "Script/CameraController.h"
 #include "Script/GN31.h"
+#include "Game/ElemenTactics/Runtime/ElemenTacticsGameController.h"
+#include "Game/ElemenTactics/Runtime/ElemenTacticsKeyboardNavigator.h"
+#include "Game/ElemenTactics/Runtime/ElemenTacticsVisualGuide.h"
+#include "Game/ElemenTactics/Runtime/ElemenTacticsTabletopPresentation.h"
 
 inline constexpr auto COMPONENT_SPARSE = ECSStorage::ComponentStorageStrategy::SparseStable;
 inline constexpr auto COMPONENT_DENSE = ECSStorage::ComponentStorageStrategy::Dense;
@@ -78,6 +83,7 @@ struct ComponentStoragePreference<TransformComponent> {
     X(OrderInLayerComponent,COMPONENT_ARCHETYPE)\
     X(MaterialComponent,COMPONENT_ARCHETYPE)\
     X(TextureComponent,COMPONENT_SPARSE)\
+    X(RuntimeTextComponent,COMPONENT_SPARSE)\
     X(BumpMapComponent,COMPONENT_SPARSE)\
     X(LightComponent,COMPONENT_ARCHETYPE)\
     X(MeshRendererComponent,COMPONENT_SPARSE)\
@@ -105,6 +111,10 @@ struct ComponentStoragePreference<TransformComponent> {
     X(FadeSetScene,COMPONENT_SPARSE)\
     X(ScriptComponent,COMPONENT_SPARSE)\
     X(GN31,COMPONENT_SPARSE)\
+    X(ElemenTactics::ElemenTacticsGameController,COMPONENT_SPARSE)\
+    X(ElemenTactics::ElemenTacticsKeyboardNavigator,COMPONENT_SPARSE)\
+    X(ElemenTactics::ElemenTacticsVisualGuide,COMPONENT_SPARSE)\
+    X(ElemenTactics::ElemenTacticsTabletopPresentation,COMPONENT_SPARSE)\
     X(PrefabComponent,COMPONENT_SPARSE)\
     X(FollowComponent,COMPONENT_ARCHETYPE)\
     X(EnvironmentMapComponent,COMPONENT_ARCHETYPE)

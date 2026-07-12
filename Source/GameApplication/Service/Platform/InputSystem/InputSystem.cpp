@@ -12,7 +12,66 @@
 #include <cmath>
 #include <Xinput.h>
 
+#ifdef _EDITOR
+#include "Backends/ImGui/imgui_internal.h"
+#endif
+
 #pragma comment(lib, "xinput.lib")
+
+namespace {
+
+bool TryMapMouseToPlayerView(
+	int rawX,
+	int rawY,
+	int& mappedX,
+	int& mappedY
+){
+#ifdef _EDITOR
+	if(!ImGui::GetCurrentContext()) return false;
+
+	// RenderSystem::PlayerView() submits the player texture as the final item in
+	// the "Play View" window. The previous frame's window layout therefore keeps
+	// the exact image size in PrevLineSize and its top edge in CursorPosPrevLine.
+	// Scene Update happens before the current ImGui frame is built, so using this
+	// retained layout is intentional and stable while docking/resizing.
+	ImGuiWindow* playWindow = ImGui::FindWindowByName("Play View");
+	if(!playWindow || (!playWindow->Active && !playWindow->WasActive) ||
+		playWindow->Collapsed){
+		return false;
+	}
+
+	const float imageWidth = playWindow->DC.PrevLineSize.x;
+	const float imageHeight = playWindow->DC.PrevLineSize.y;
+	if(imageWidth <= 1.0f || imageHeight <= 1.0f) return false;
+
+	const ImVec2 imageMin{
+		playWindow->DC.CursorPosPrevLine.x - imageWidth,
+		playWindow->DC.CursorPosPrevLine.y
+	};
+	const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+	const ImVec2 viewportOrigin = mainViewport
+		? mainViewport->Pos
+		: ImVec2(0.0f, 0.0f);
+
+	// InputService stores main-window client coordinates. ImGui window/item
+	// coordinates are relative to the main viewport when docking is used, and
+	// absolute when multi-viewports are enabled. Removing the main viewport
+	// origin normalizes both cases to the same client-space convention.
+	const float playerOriginX = imageMin.x - viewportOrigin.x;
+	const float playerOriginY = imageMin.y - viewportOrigin.y;
+	mappedX = static_cast<int>(std::lround(static_cast<float>(rawX) - playerOriginX));
+	mappedY = static_cast<int>(std::lround(static_cast<float>(rawY) - playerOriginY));
+	return true;
+#else
+	(void)rawX;
+	(void)rawY;
+	(void)mappedX;
+	(void)mappedY;
+	return false;
+#endif
+}
+
+} // namespace
 
 InputService::InputService(){
 	for(auto& g : m_gamepads) g = GamepadState{};
@@ -126,32 +185,33 @@ void InputService::MessageUpdateInput(HWND hWnd, UINT message, WPARAM wParam, LP
 void InputService::Update(){
 	for(auto& winPair : m_windowStates){
 		WindowInputState& state = winPair.second;
-		// マウスボタンの状態を更新
+
+		// PollEvents() 中に受け取った Win32 Message のエッジを、この
+		// Update() から次の Update() まで Script へ公開する。
 		for(int i = 0; i < MouseButtonCount; ++i){
-			if(state.mouseState.buttonPressed[i]){
-				state.mouseState.buttonPressed[i] = false;
-			}
-			if(state.mouseState.buttonReleased[i]){
-				state.mouseState.buttonReleased[i] = false;
-			}
+			state.mouseState.buttonPressed[i] =
+				state.mouseState.pendingPressed[i];
+			state.mouseState.buttonReleased[i] =
+				state.mouseState.pendingReleased[i];
+			state.mouseState.pendingPressed[i] = false;
+			state.mouseState.pendingReleased[i] = false;
 		}
-		// キーの状態を更新
-		for(auto& kstate : state.keyStates){
-			if(kstate.second.wasPressed){
-				//kstate.second.wasPressed = false;
-				if(0 >= kstate.second.frameCount){
-					kstate.second.frameCount = 1;
-				} else{
-					kstate.second.frameCount++;
-				}
-			}
-			if(kstate.second.wasReleased){
-				//kstate.second.wasReleased = false;
-				if(0 < kstate.second.frameCount){
-					kstate.second.frameCount = 0;
-				} else{
-					kstate.second.frameCount--;
-				}
+
+		// キーボードもマウスと同じラッチ契約に統一する。
+		// 短いEnter/C/Space入力でもScene Updateまで確実に残る。
+		for(auto& [key, keyState] : state.keyStates){
+			(void)key;
+			keyState.pressed = keyState.pendingPressed;
+			keyState.released = keyState.pendingReleased;
+			keyState.pendingPressed = false;
+			keyState.pendingReleased = false;
+
+			if(keyState.isDown){
+				keyState.frameCount = keyState.pressed
+					? 1
+					: (std::max)(1, keyState.frameCount + 1);
+			}else{
+				keyState.frameCount = 0;
 			}
 		}
 	}
@@ -163,7 +223,7 @@ bool InputService::IsKeyDown(HWND hwnd, int key) const{
 	if(it == m_windowStates.end()) return false;
 	auto kit = it->second.keyStates.find(key);
 	if(kit == it->second.keyStates.end()) return false;
-	return kit->second.frameCount == 1;
+	return kit->second.pressed;
 }
 
 bool InputService::IsKeyUp(HWND hwnd, int key) const{
@@ -171,7 +231,7 @@ bool InputService::IsKeyUp(HWND hwnd, int key) const{
 	if(it == m_windowStates.end()) return false;
 	auto kit = it->second.keyStates.find(key);
 	if(kit == it->second.keyStates.end()) return false;
-	return kit->second.frameCount == 0;
+	return kit->second.released;
 }
 
 bool InputService::IsKey(HWND hwnd, int key) const{
@@ -179,7 +239,7 @@ bool InputService::IsKey(HWND hwnd, int key) const{
 	if(it == m_windowStates.end()) return false;
 	auto kit = it->second.keyStates.find(key);
 	if(kit == it->second.keyStates.end()) return false;
-	return kit->second.frameCount > 0;
+	return kit->second.isDown;
 }
 
 bool InputService::IsMouseDown(HWND hwnd, int button) const{
@@ -206,12 +266,30 @@ bool InputService::IsMouse(HWND hwnd, int button) const{
 int InputService::GetMouseX(HWND hwnd) const{
 	auto it = m_windowStates.find(hwnd);
 	if(it == m_windowStates.end()) return 0;
+	int mappedX = 0;
+	int mappedY = 0;
+	if(TryMapMouseToPlayerView(
+		it->second.mouseState.x,
+		it->second.mouseState.y,
+		mappedX,
+		mappedY)){
+		return mappedX;
+	}
 	return it->second.mouseState.x;
 }
 
 int InputService::GetMouseY(HWND hwnd) const{
 	auto it = m_windowStates.find(hwnd);
 	if(it == m_windowStates.end()) return 0;
+	int mappedX = 0;
+	int mappedY = 0;
+	if(TryMapMouseToPlayerView(
+		it->second.mouseState.x,
+		it->second.mouseState.y,
+		mappedX,
+		mappedY)){
+		return mappedY;
+	}
 	return it->second.mouseState.y;
 }
 
@@ -222,21 +300,19 @@ int InputService::GetMouseWheel(HWND hwnd) const{
 }
 
 void InputService::OnKeyDown(WindowInputState& state, int key){
-	auto& kstate = state.keyStates[key];
-	if(!kstate.isDown){
-		kstate.wasPressed = true;
-	} else{
-		kstate.wasPressed = false;
+	auto& keyState = state.keyStates[key];
+	if(!keyState.isDown){
+		keyState.pendingPressed = true;
 	}
-	kstate.isDown = true;
-	kstate.wasReleased = false;
+	keyState.isDown = true;
 }
 
 void InputService::OnKeyUp(WindowInputState& state, int key){
-	auto& kstate = state.keyStates[key];
-	kstate.isDown = false;
-	kstate.wasReleased = true;
-	kstate.wasPressed = false;
+	auto& keyState = state.keyStates[key];
+	if(keyState.isDown){
+		keyState.pendingReleased = true;
+	}
+	keyState.isDown = false;
 }
 
 void InputService::OnMouseMove(WindowInputState& state, int x, int y){
@@ -247,19 +323,17 @@ void InputService::OnMouseMove(WindowInputState& state, int x, int y){
 void InputService::OnMouseButtonDown(WindowInputState& state, int button){
 	if(button < 0 || button >= MouseButtonCount) return;
 	if(!state.mouseState.buttonDown[button]){
-		state.mouseState.buttonPressed[button] = true;
-	} else{
-		state.mouseState.buttonPressed[button] = false;
+		state.mouseState.pendingPressed[button] = true;
 	}
 	state.mouseState.buttonDown[button] = true;
-	state.mouseState.buttonReleased[button] = false;
 }
 
 void InputService::OnMouseButtonUp(WindowInputState& state, int button){
 	if(button < 0 || button >= MouseButtonCount) return;
+	if(state.mouseState.buttonDown[button]){
+		state.mouseState.pendingReleased[button] = true;
+	}
 	state.mouseState.buttonDown[button] = false;
-	state.mouseState.buttonReleased[button] = true;
-	state.mouseState.buttonPressed[button] = false;
 }
 
 void InputService::OnMouseWheel(WindowInputState& state, int delta){
