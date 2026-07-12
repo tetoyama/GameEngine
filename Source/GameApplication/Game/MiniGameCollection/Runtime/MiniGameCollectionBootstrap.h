@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Scene/scene.h"
 #include "Scene/sceneManager.h"
 
 #include <memory>
