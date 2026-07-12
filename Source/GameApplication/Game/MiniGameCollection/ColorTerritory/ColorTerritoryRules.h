@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -11,10 +12,18 @@
 
 namespace MiniGameCollection::ColorTerritory {
 
+enum class TerritoryPaintSource : std::uint8_t {
+    Movement,
+    BombPaint,
+    BombClear
+};
+
 struct TerritoryPaintEvent {
     TileCoord tile{};
     PlayerId playerId = InvalidPlayerId;
     std::int16_t previousOwner = UnclaimedOwner;
+    std::int16_t newOwner = UnclaimedOwner;
+    TerritoryPaintSource source = TerritoryPaintSource::Movement;
     bool changed = false;
     bool changedLeader = false;
 };
@@ -75,7 +84,9 @@ public:
             if (!m_board->IsInside(tile)) {
                 continue;
             }
-            if (m_currentTiles[index] && *m_currentTiles[index] == tile) {
+            // 爆弾で足元の所有権が変化した場合は、同じTileに立ったままでも塗り直せる。
+            if (m_currentTiles[index] && *m_currentTiles[index] == tile &&
+                m_board->GetOwner(tile) == static_cast<std::int16_t>(playerId)) {
                 continue;
             }
 
@@ -89,6 +100,8 @@ public:
                     .tile = tile,
                     .playerId = playerId,
                     .previousOwner = paint.previousOwner,
+                    .newOwner = static_cast<std::int16_t>(playerId),
+                    .source = TerritoryPaintSource::Movement,
                     .changed = true,
                     .changedLeader =
                         previousLeader != newLeader &&
@@ -142,6 +155,63 @@ public:
         }
         m_pendingTiles[playerId] = tile;
         return true;
+    }
+
+    std::size_t ApplyBombArea(
+        TileCoord center,
+        int radius,
+        std::optional<PlayerId> owner
+    ) {
+        if (!m_started || m_finished || !m_board || !m_board->IsInside(center)) {
+            return 0;
+        }
+        if (owner && *owner >= m_playerCount) {
+            return 0;
+        }
+
+        const int safeRadius = std::max(0, radius);
+        const PlayerId previousLeader = m_board->FindLeader();
+        const std::size_t firstEvent = m_events.size();
+        std::size_t changedCount = 0;
+
+        for (int y = center.y - safeRadius; y <= center.y + safeRadius; ++y) {
+            for (int x = center.x - safeRadius; x <= center.x + safeRadius; ++x) {
+                const TileCoord tile{x, y};
+                if (!m_board->IsInside(tile)) {
+                    continue;
+                }
+
+                const PaintResult result = owner
+                    ? m_board->Paint(tile, *owner)
+                    : m_board->Clear(tile);
+                if (!result.changed) {
+                    continue;
+                }
+
+                ++changedCount;
+                m_events.push_back({
+                    .tile = tile,
+                    .playerId = owner.value_or(InvalidPlayerId),
+                    .previousOwner = result.previousOwner,
+                    .newOwner = owner
+                        ? static_cast<std::int16_t>(*owner)
+                        : UnclaimedOwner,
+                    .source = owner
+                        ? TerritoryPaintSource::BombPaint
+                        : TerritoryPaintSource::BombClear,
+                    .changed = true,
+                    .changedLeader = false
+                });
+            }
+        }
+
+        const PlayerId newLeader = m_board->FindLeader();
+        if (m_events.size() > firstEvent && previousLeader != newLeader &&
+            newLeader != InvalidPlayerId) {
+            m_events[firstEvent].changedLeader = true;
+        }
+        m_lastLeader = newLeader;
+        return changedCount;
     }
 
     std::vector<TerritoryPaintEvent> ConsumePaintEvents() {
