@@ -20,8 +20,7 @@ public:
 	AudioSystem(SceneManagerContext* context)
 		: m_context(context){}
 
-	~AudioSystem(){
-	}
+	~AudioSystem() = default;
 
 	void Initialize() override{
 		m_audioContext = m_context->audio;
@@ -29,6 +28,7 @@ public:
 
 	void Finalize() override{
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+			(void)name;
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<AudioComponent>();
 			for (auto entity : entities) {
@@ -40,12 +40,9 @@ public:
 		}
 	}
 
-	void Start() override{
-
-	}
+	void Start() override{}
 
 	void RegisterTasks(SystemScheduleBuilder& builder) override{
-
 		using AudioUpdateQuery = ECSQuery::ComponentQueryView<
 			ECSQuery::Read<TransformComponent>,
 			ECSQuery::Write<AudioComponent>
@@ -66,14 +63,15 @@ public:
 
 	void Update(float){
 		for (auto& [name, scene] : m_context->sceneManager->GetActiveScenes()) {
+			(void)name;
 			auto context = scene->GetSceneContext();
 			auto entities = context->component->FindEntitiesWithComponent<AudioComponent>();
 			for (auto entity : entities) {
 				auto* comp = context->component->GetComponent<AudioComponent>(entity);
 				if (!comp) continue;
+
 				if (!comp->isInitialized) {
 					comp->isInitialized = true;
-					// AudioDataロードはSystem側でやる
 					if (!comp->m_AudioData && !comp->FilePath.empty()) {
 						comp->m_AudioData = m_context->resource->Load<AudioData>(comp->FilePath);
 					}
@@ -82,11 +80,10 @@ public:
 						comp->Play(m_audioContext);
 					}
 				}
-				if (comp->Playing) {
-					if (!comp->m_SourceVoice) {
-						comp->Playing = false;
-					}
-				}
+
+				// One-shot完了を検出してVoiceを回収する。
+				// これにより固定個数のAudioComponentを安全に再利用できる。
+				comp->RefreshPlaybackState();
 			}
 		}
 	}
