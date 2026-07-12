@@ -188,8 +188,6 @@ void InputService::Update(){
 
 		// PollEvents() 中に受け取った Win32 Message のエッジを、この
 		// Update() から次の Update() まで Script へ公開する。
-		// 旧実装はここで buttonPressed を消していたため、Scene Update から
-		// IsMouse() が常に false になっていた。
 		for(int i = 0; i < MouseButtonCount; ++i){
 			state.mouseState.buttonPressed[i] =
 				state.mouseState.pendingPressed[i];
@@ -199,23 +197,21 @@ void InputService::Update(){
 			state.mouseState.pendingReleased[i] = false;
 		}
 
-		// キーの状態を更新
-		for(auto& kstate : state.keyStates){
-			if(kstate.second.wasPressed){
-				//kstate.second.wasPressed = false;
-				if(0 >= kstate.second.frameCount){
-					kstate.second.frameCount = 1;
-				} else{
-					kstate.second.frameCount++;
-				}
-			}
-			if(kstate.second.wasReleased){
-				//kstate.second.wasReleased = false;
-				if(0 < kstate.second.frameCount){
-					kstate.second.frameCount = 0;
-				} else{
-					kstate.second.frameCount--;
-				}
+		// キーボードもマウスと同じラッチ契約に統一する。
+		// 短いEnter/C/Space入力でもScene Updateまで確実に残る。
+		for(auto& [key, keyState] : state.keyStates){
+			(void)key;
+			keyState.pressed = keyState.pendingPressed;
+			keyState.released = keyState.pendingReleased;
+			keyState.pendingPressed = false;
+			keyState.pendingReleased = false;
+
+			if(keyState.isDown){
+				keyState.frameCount = keyState.pressed
+					? 1
+					: (std::max)(1, keyState.frameCount + 1);
+			}else{
+				keyState.frameCount = 0;
 			}
 		}
 	}
@@ -227,7 +223,7 @@ bool InputService::IsKeyDown(HWND hwnd, int key) const{
 	if(it == m_windowStates.end()) return false;
 	auto kit = it->second.keyStates.find(key);
 	if(kit == it->second.keyStates.end()) return false;
-	return kit->second.frameCount == 1;
+	return kit->second.pressed;
 }
 
 bool InputService::IsKeyUp(HWND hwnd, int key) const{
@@ -235,7 +231,7 @@ bool InputService::IsKeyUp(HWND hwnd, int key) const{
 	if(it == m_windowStates.end()) return false;
 	auto kit = it->second.keyStates.find(key);
 	if(kit == it->second.keyStates.end()) return false;
-	return kit->second.frameCount == 0;
+	return kit->second.released;
 }
 
 bool InputService::IsKey(HWND hwnd, int key) const{
@@ -243,7 +239,7 @@ bool InputService::IsKey(HWND hwnd, int key) const{
 	if(it == m_windowStates.end()) return false;
 	auto kit = it->second.keyStates.find(key);
 	if(kit == it->second.keyStates.end()) return false;
-	return kit->second.frameCount > 0;
+	return kit->second.isDown;
 }
 
 bool InputService::IsMouseDown(HWND hwnd, int button) const{
@@ -304,21 +300,19 @@ int InputService::GetMouseWheel(HWND hwnd) const{
 }
 
 void InputService::OnKeyDown(WindowInputState& state, int key){
-	auto& kstate = state.keyStates[key];
-	if(!kstate.isDown){
-		kstate.wasPressed = true;
-	} else{
-		kstate.wasPressed = false;
+	auto& keyState = state.keyStates[key];
+	if(!keyState.isDown){
+		keyState.pendingPressed = true;
 	}
-	kstate.isDown = true;
-	kstate.wasReleased = false;
+	keyState.isDown = true;
 }
 
 void InputService::OnKeyUp(WindowInputState& state, int key){
-	auto& kstate = state.keyStates[key];
-	kstate.isDown = false;
-	kstate.wasReleased = true;
-	kstate.wasPressed = false;
+	auto& keyState = state.keyStates[key];
+	if(keyState.isDown){
+		keyState.pendingReleased = true;
+	}
+	keyState.isDown = false;
 }
 
 void InputService::OnMouseMove(WindowInputState& state, int x, int y){
