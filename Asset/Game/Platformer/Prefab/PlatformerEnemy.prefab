@@ -64,7 +64,7 @@ Entities:
         AddSpeed: {x: 0, y: -9, z: 0}
         MulSpeed: {x: 0.94, y: 0.94, z: 0.94}
       - Component: AudioComponent
-        FilePath: Asset\Audio\BGM.wav
+        FilePath: Asset\Game\Platformer\Sound\Impact.wav
         Loop: false
         Volume: 0.14
         PlayOnStart: false
