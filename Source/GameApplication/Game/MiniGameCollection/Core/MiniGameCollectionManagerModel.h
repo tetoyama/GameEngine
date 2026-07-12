@@ -36,22 +36,22 @@ public:
             {
                 .gameId = MiniGameId::ColorTerritory,
                 .displayName = "Color Territory",
-                .ruleText = "床を自分の色に塗れ！",
-                .controlText = "操作：移動",
+                .ruleText = "空地を広げ、敵色を奪って点差を動かせ！",
+                .controlText = "移動のみ / 敵色は自分+1・相手-1、終盤は首位を狙う",
                 .scenePath = "Asset/Game/MiniGameCollection/Scene/ColorTerritory/ColorTerritory.scene"
             },
             {
                 .gameId = MiniGameId::SheepRoundup,
                 .displayName = "Sheep Roundup",
-                .ruleText = "羊を自分の囲いへ入れろ！",
-                .controlText = "操作：移動",
+                .ruleText = "羊の反対側へ回り込み、自分の囲いへ押し込め！",
+                .controlText = "移動のみ / 羊を追うより、囲いと反対側へ先回りする",
                 .scenePath = "Asset/Game/MiniGameCollection/Scene/SheepRoundup/SheepRoundup.scene"
             },
             {
                 .gameId = MiniGameId::Backshot,
                 .displayName = "Backshot",
-                .ruleText = "相手の背中を撃て！",
-                .controlText = "操作：移動＋射撃",
+                .ruleText = "移動方向で照準し、相手の背面だけを撃ち抜け！",
+                .controlText = "移動＋SPACE / 正面は防御、障害物で射線を切る",
                 .scenePath = "Asset/Game/MiniGameCollection/Scene/Backshot/Backshot.scene"
             }
         };
