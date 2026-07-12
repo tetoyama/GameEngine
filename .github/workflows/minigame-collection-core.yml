@@ -1,0 +1,44 @@
+name: MiniGame Collection Core Smoke Test
+
+on:
+  pull_request:
+    branches:
+      - master
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - "Source/GameApplication/Game/MiniGameCollection/**"
+      - "Tests/MiniGameCollectionCoreSmokeTest.cpp"
+      - ".github/workflows/minigame-collection-core.yml"
+  push:
+    branches:
+      - game/minigame-collection
+    paths:
+      - "Source/GameApplication/Game/MiniGameCollection/**"
+      - "Tests/MiniGameCollectionCoreSmokeTest.cpp"
+      - ".github/workflows/minigame-collection-core.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run minigame core contracts
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4324 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          Tests/MiniGameCollectionCoreSmokeTest.cpp
+          /Fe:minigame-collection-core-test.exe
+          && minigame-collection-core-test.exe
