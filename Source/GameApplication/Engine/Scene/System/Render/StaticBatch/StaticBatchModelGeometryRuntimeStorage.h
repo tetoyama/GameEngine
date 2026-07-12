@@ -10,7 +10,6 @@
 
 #include <wrl/client.h>
 
-#include "System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
 #include "System/Render/StaticBatch/StaticBatchModelGeometrySourceProvider.h"
 
 struct StaticBatchModelGeometryRuntimeStorageTelemetry {
@@ -45,21 +44,20 @@ public:
 	StaticBatchModelGeometrySourceResult Resolve(
 		const ModelRendererComponent& renderer,
 		const RenderPacket& packet,
+		std::uint64_t expectedGeometryResourceKey,
 		const IStaticBatchModelGeometrySourceProvider& bootstrapProvider
 	){
 		StaticBatchModelGeometrySourceResult result;
-		const std::uint64_t geometryResourceKey =
-			StaticBatchResourceKey::MakeGeometryKey(packet);
-		if(geometryResourceKey == 0){
+		if(expectedGeometryResourceKey == 0){
 			result.status =
 				StaticBatchModelGeometrySourceStatus::InvalidGeometryCount;
 			++m_rejectedSourceCount;
 			return result;
 		}
 
-		auto entryIt = FindEntry(geometryResourceKey);
+		auto entryIt = FindEntry(expectedGeometryResourceKey);
 		if(entryIt != m_entries.end() && entryIt->Matches(renderer, packet)){
-			AddActiveKey(geometryResourceKey);
+			AddActiveKey(expectedGeometryResourceKey);
 			++m_reuseCount;
 			return entryIt->MakeResult();
 		}
@@ -67,7 +65,7 @@ public:
 		// 同じ同期内で同一Keyが別Model実体へ解決された場合、先に採用した
 		// Entryを維持する。ここで置換するとGroup順によってSourceが往復する。
 		if(entryIt != m_entries.end() &&
-			Contains(m_activeKeys, geometryResourceKey)){
+			Contains(m_activeKeys, expectedGeometryResourceKey)){
 			result.status =
 				StaticBatchModelGeometrySourceStatus::InvalidGeometryCount;
 			++m_rejectedSourceCount;
@@ -75,9 +73,14 @@ public:
 		}
 
 		const StaticBatchModelGeometrySourceResult bootstrapResult =
-			bootstrapProvider.Resolve(renderer, packet);
+			bootstrapProvider.Resolve(
+				renderer,
+				packet,
+				expectedGeometryResourceKey
+			);
 		if(!bootstrapResult.IsEligible() ||
-			bootstrapResult.source.geometryResourceKey != geometryResourceKey){
+			bootstrapResult.source.geometryResourceKey !=
+				expectedGeometryResourceKey){
 			++m_rejectedSourceCount;
 			return bootstrapResult;
 		}
@@ -103,7 +106,7 @@ public:
 			++m_importCount;
 		}
 
-		AddActiveKey(geometryResourceKey);
+		AddActiveKey(expectedGeometryResourceKey);
 		m_peakEntryCount = (std::max)(m_peakEntryCount, m_entries.size());
 		return entryIt->MakeResult();
 	}
@@ -270,12 +273,18 @@ public:
 
 	StaticBatchModelGeometrySourceResult Resolve(
 		const ModelRendererComponent& renderer,
-		const RenderPacket& packet
+		const RenderPacket& packet,
+		std::uint64_t expectedGeometryResourceKey
 	) const noexcept override {
 		if(!m_bootstrapProvider){
 			return {};
 		}
-		return m_storage.Resolve(renderer, packet, *m_bootstrapProvider);
+		return m_storage.Resolve(
+			renderer,
+			packet,
+			expectedGeometryResourceKey,
+			*m_bootstrapProvider
+		);
 	}
 
 	void BeginSynchronization() const {
