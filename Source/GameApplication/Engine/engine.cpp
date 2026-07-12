@@ -245,6 +245,9 @@ void Engine::Run(EngineContext* context){
 		time->BeginDeltaUpdate();
 		window->PollEvents();
 		input->Update();
+		// Script/System scheduleから予約されたAdditive Sceneを、
+		// 次フレームのschedule開始前に安全に初期化する。
+		scenes->ProcessQueuedAdditiveSceneLoads();
 		scenes->Update(time->GetDeltaTime());
 		time->EndDeltaUpdate();
 		if(mainWindow->ShouldClose()) break;
