@@ -52,6 +52,19 @@ void ValidateModelRuntimeBoundary(){
 		std::string::npos);
 	assert(cache.find("sourceProvider") != std::string::npos);
 
+	// Geometry KeyはPacket Build済みGroupからProviderへ渡し、Provider / Runtime
+	// Storage内でModelDataを再走査して生成し直さない。
+	assert(provider.find("expectedGeometryResourceKey") != std::string::npos);
+	assert(runtimeStorage.find("expectedGeometryResourceKey") !=
+		std::string::npos);
+	assert(resolver.find(
+		"sourceProvider.Resolve(*renderer, packet, group.key.geometryKey)"
+	) != std::string::npos);
+	assert(provider.find("StaticBatchResourceKey::MakeGeometryKey") ==
+		std::string::npos);
+	assert(runtimeStorage.find("StaticBatchResourceKey::MakeGeometryKey") ==
+		std::string::npos);
+
 	// Legacy ProviderだけがModelData Native Bufferから初回Sourceを取り込む。
 	assert(provider.find("class IStaticBatchModelGeometrySourceProvider") !=
 		std::string::npos);
