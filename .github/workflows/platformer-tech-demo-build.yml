@@ -14,7 +14,232 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  patch-step-assist:
+    if: ${{ github.event_name == 'push' && !contains(github.event.head_commit.message, '[step-assist-fix]') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add grounded step assist and restore workflow
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('Source/GameApplication/Game/Platformer/PlatformerCharacterController.h')
+          text = path.read_text(encoding='utf-8')
+
+          def replace_once(old: str, new: str, label: str) -> None:
+              global text
+              if old not in text:
+                  raise SystemExit(f'{label} insertion point not found')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              '\t\tREFLECT_FIELD(float, wallKickVerticalVelocity, 8.8f)\n\t\tREFLECT_FIELD(float, killY, -14.0f)',
+              '\t\tREFLECT_FIELD(float, wallKickVerticalVelocity, 8.8f)\n'
+              '\t\tREFLECT_FIELD(float, stepHeight, 0.34f)\n'
+              '\t\tREFLECT_FIELD(float, stepProbeDistance, 0.38f)\n'
+              '\t\tREFLECT_FIELD(float, stepLowerProbeHeight, 0.09f)\n'
+              '\t\tREFLECT_FIELD(float, stepForwardOffset, 0.28f)\n'
+              '\t\tREFLECT_FIELD(float, stepCooldown, 0.05f)\n'
+              '\t\tREFLECT_FIELD(float, killY, -14.0f)',
+              'reflected step settings')
+
+          replace_once(
+              '\t\tfallRecoveryTimer = 0.0f;\n\t\tcapturedInputX = 0.0f;',
+              '\t\tfallRecoveryTimer = 0.0f;\n\t\tstepAssistTimer = 0.0f;\n\t\tcapturedInputX = 0.0f;',
+              'step timer initialization')
+
+          replace_once(
+              '\t\t} else {\n'
+              '\t\t\tvelocity.x = MoveTowards(velocity.x, 0.0f, settings.groundDeceleration * dt);\n'
+              '\t\t\tvelocity.z = MoveTowards(velocity.z, 0.0f, settings.groundDeceleration * dt);\n'
+              '\t\t}\n\n'
+              '\t\tif(grounded && groundDetachTimer <= 0.0f) {',
+              '\t\t} else {\n'
+              '\t\t\tvelocity.x = MoveTowards(velocity.x, 0.0f, settings.groundDeceleration * dt);\n'
+              '\t\t\tvelocity.z = MoveTowards(velocity.z, 0.0f, settings.groundDeceleration * dt);\n'
+              '\t\t}\n\n'
+              '\t\tTryStepAssist(*pose, inputDirection, hasInput, velocity, rigid);\n\n'
+              '\t\tif(grounded && groundDetachTimer <= 0.0f) {',
+              'step assist call')
+
+          replace_once(
+              '\t\tstepAssistTimer = (std::max)(0.0f, stepAssistTimer - dt);',
+              '\t\tstepAssistTimer = (std::max)(0.0f, stepAssistTimer - dt);',
+              'noop guard') if '\t\tstepAssistTimer = (std::max)(0.0f, stepAssistTimer - dt);' in text else None
+
+          replace_once(
+              '\t\tsameWallBlockTimer = (std::max)(0.0f, sameWallBlockTimer - dt);\n\t}',
+              '\t\tsameWallBlockTimer = (std::max)(0.0f, sameWallBlockTimer - dt);\n'
+              '\t\tstepAssistTimer = (std::max)(0.0f, stepAssistTimer - dt);\n\t}',
+              'step timer tick')
+
+          step_code = r'''
+	static bool IsStaticSolidHit(const RayHit& hit) {
+		if(!hit.hit) return false;
+		if(hit.hitShape && hit.hitShape->getFlags().isSet(physx::PxShapeFlag::eTRIGGER_SHAPE)) {
+			return false;
+		}
+		return !hit.hitActor || hit.hitActor->getType() != physx::PxActorType::eRIGID_DYNAMIC;
+	}
+
+	bool TryStepAssist(
+		TransformComponent& pose,
+		const Vector3& inputDirection,
+		bool hasInput,
+		Vector3& velocity,
+		physx::PxRigidDynamic* rigid
+	) {
+		if(!rigid || !grounded || groundDetachTimer > 0.0f || stepAssistTimer > 0.0f ||
+		   !controlEnabled || controlLockTimer > 0.0f || !hasInput ||
+		   std::abs(verticalVelocity) > 0.75f) {
+			return false;
+		}
+
+		Vector3 direction = inputDirection;
+		direction.y = 0.0f;
+		if(direction.length() <= 0.0001f) return false;
+		direction = direction.normalize();
+
+		auto* physics = PlatformerSceneAccess::Physics(m_ref.GetScene());
+		if(!physics) return false;
+
+		const float safeHeight = std::clamp(stepHeight, 0.05f, 0.42f);
+		const float safeDistance = std::clamp(stepProbeDistance, 0.15f, 0.65f);
+		const float lowerHeight = std::clamp(stepLowerProbeHeight, 0.04f, safeHeight * 0.55f);
+		const float forwardOffset = std::clamp(stepForwardOffset, 0.26f, 0.42f);
+		const physx::PxVec3 forward(direction.x, 0.0f, direction.z);
+
+		const Vector3 forwardOrigin = pose.position + direction * forwardOffset;
+		const RayHit lowerHit = physics->RaycastWithMask(
+			physx::PxVec3(forwardOrigin.x, pose.position.y + lowerHeight, forwardOrigin.z),
+			forward,
+			safeDistance,
+			selfLayerBit);
+		if(!IsStaticSolidHit(lowerHit) || std::abs(lowerHit.normal.y) > 0.45f) return false;
+
+		// A clear ray just above the maximum step distinguishes a small ledge from a
+		// wall. This also prevents the assist from climbing steep arena boundaries.
+		const RayHit upperHit = physics->RaycastWithMask(
+			physx::PxVec3(forwardOrigin.x, pose.position.y + safeHeight + 0.08f, forwardOrigin.z),
+			forward,
+			safeDistance,
+			selfLayerBit);
+		if(IsStaticSolidHit(upperHit)) return false;
+
+		const float beyondFace = std::clamp(lowerHit.distance + 0.14f, 0.14f, safeDistance + 0.06f);
+		const Vector3 topSample = forwardOrigin + direction * beyondFace;
+		const RayHit topHit = physics->RaycastWithMask(
+			physx::PxVec3(topSample.x, pose.position.y + safeHeight + 0.16f, topSample.z),
+			physx::PxVec3(0.0f, -1.0f, 0.0f),
+			safeHeight + 0.24f,
+			selfLayerBit);
+		const float minNormalY = std::cos(settings.maxSlopeDegrees * DirectX::XM_PI / 180.0f);
+		if(!IsStaticSolidHit(topHit) || topHit.normal.y < minNormalY) return false;
+
+		const float rise = topHit.position.y - pose.position.y;
+		if(rise <= 0.025f || rise > safeHeight + 0.025f) return false;
+
+		// Preserve head room before teleporting the capsule upward. The ray starts
+		// just above the 1.5 m player capsule, avoiding a self hit.
+		const RayHit ceilingHit = physics->RaycastWithMask(
+			physx::PxVec3(pose.position.x, pose.position.y + 1.52f, pose.position.z),
+			physx::PxVec3(0.0f, 1.0f, 0.0f),
+			rise + 0.06f,
+			selfLayerBit);
+		if(IsStaticSolidHit(ceilingHit)) return false;
+
+		Vector3 target = pose.position;
+		target.y += rise + 0.012f;
+		target += direction * 0.025f;
+		pose.position = target;
+
+		physx::PxTransform actorPose = rigid->getGlobalPose();
+		actorPose.p = physx::PxVec3(target.x, target.y, target.z);
+		rigid->setGlobalPose(actorPose, true);
+		rigid->setLinearVelocity(physx::PxVec3(velocity.x, 0.0f, velocity.z));
+		rigid->wakeUp();
+
+		verticalVelocity = 0.0f;
+		velocity.y = 0.0f;
+		fallbackVelocity.y = 0.0f;
+		groundNormal = Vector3(topHit.normal.x, topHit.normal.y, topHit.normal.z);
+		grounded = true;
+		coyoteTimer = settings.coyoteTime;
+		stepAssistTimer = std::clamp(stepCooldown, 0.01f, 0.20f);
+		return true;
+	}
+
+'''
+          replace_once(
+              '\tvoid UpdateHorizontalVelocity(const Vector3& inputDirection, bool hasInput, Vector3& velocity, float dt) {',
+              step_code + '\tvoid UpdateHorizontalVelocity(const Vector3& inputDirection, bool hasInput, Vector3& velocity, float dt) {',
+              'step assist implementation')
+
+          replace_once(
+              '\tfloat fallRecoveryTimer = 0.0f;\n\tint health = 3;',
+              '\tfloat fallRecoveryTimer = 0.0f;\n\tfloat stepAssistTimer = 0.0f;\n\tint health = 3;',
+              'step timer member')
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          cat > .github/workflows/platformer-tech-demo-build.yml <<'YAML'
+          name: Platformer Tech Demo Build
+
+          on:
+            push:
+              branches:
+                - game/platformer-tech-demo
+            pull_request:
+              branches:
+                - refactor/ecs-scheduler-foundation
+            workflow_dispatch:
+
+          concurrency:
+            group: platformer-tech-demo-${{ github.ref }}
+            cancel-in-progress: true
+
+          jobs:
+            build-debug-x64:
+              runs-on: windows-2022
+              timeout-minutes: 45
+
+              steps:
+                - name: Checkout
+                  uses: actions/checkout@v4
+
+                - name: Configure MSBuild
+                  uses: microsoft/setup-msbuild@v2
+
+                - name: Build Debug x64
+                  shell: pwsh
+                  run: >-
+                    msbuild GameEngine.sln
+                    /m
+                    /restore
+                    /t:Build
+                    /p:Configuration=Debug
+                    /p:Platform=x64
+                    /p:UseSharedCompilation=false
+                    /verbosity:minimal
+          YAML
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Source/GameApplication/Game/Platformer/PlatformerCharacterController.h .github/workflows/platformer-tech-demo-build.yml
+          git commit -m "Add grounded step assist [step-assist-fix]"
+          git push origin HEAD:game/platformer-tech-demo
+
   build-debug-x64:
+    if: ${{ github.event_name != 'push' || contains(github.event.head_commit.message, '[step-assist-fix]') }}
     runs-on: windows-2022
     timeout-minutes: 45
 
