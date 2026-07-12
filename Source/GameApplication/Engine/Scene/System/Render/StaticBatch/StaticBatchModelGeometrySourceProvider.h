@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <span>
 
 #include "Scene/Component/modelRendererComponent.h"
 #include "System/Render/RenderSystem/RenderPacket/RenderPacket.h"
@@ -45,7 +46,10 @@ public:
 	) const noexcept = 0;
 };
 
-class StaticBatchLegacyModelGeometrySourceProvider final
+// ModelData内のBackend非依存CPU Geometry Snapshotを公開するProvider。
+// Static Batch用RHI BufferはこのSourceから生成し、ModelDataのLegacy Native
+// Vertex / Index BufferをBootstrapに使用しない。
+class StaticBatchModelCpuGeometrySourceProvider final
 	: public IStaticBatchModelGeometrySourceProvider {
 public:
 	StaticBatchModelGeometrySourceResult Resolve(
@@ -90,26 +94,39 @@ public:
 			result.status = StaticBatchModelGeometrySourceStatus::SkinnedSubMesh;
 			return result;
 		}
-		if(meshIndex >= model->VertexBuffer.size() ||
-			meshIndex >= model->IndexBuffer.size() ||
-			!model->VertexBuffer[meshIndex] ||
-			!model->IndexBuffer[meshIndex]){
-			result.status = StaticBatchModelGeometrySourceStatus::MissingNativeBuffer;
-			return result;
-		}
-		if(mesh->mNumVertices == 0 || mesh->mNumFaces == 0 ||
-			mesh->mNumFaces >
-				(std::numeric_limits<std::uint32_t>::max)() / 3u){
+		if(meshIndex >= model->MeshGeometry.size()){
 			result.status = StaticBatchModelGeometrySourceStatus::InvalidGeometryCount;
 			return result;
 		}
 
-		result.source.vertexBuffer = model->VertexBuffer[meshIndex];
-		result.source.indexBuffer = model->IndexBuffer[meshIndex];
+		const ModelMeshGeometryCpuData& geometry = model->MeshGeometry[meshIndex];
+		if(!geometry.IsValid() ||
+			geometry.vertices.size() >
+				(std::numeric_limits<std::uint32_t>::max)() ||
+			geometry.indices.size() >
+				(std::numeric_limits<std::uint32_t>::max)()){
+			result.status = StaticBatchModelGeometrySourceStatus::InvalidGeometryCount;
+			return result;
+		}
+
+		result.source.vertexData = std::as_bytes(
+			std::span<const VERTEX_3D>(
+				geometry.vertices.data(),
+				geometry.vertices.size()
+			)
+		);
+		result.source.indexData = std::as_bytes(
+			std::span<const std::uint32_t>(
+				geometry.indices.data(),
+				geometry.indices.size()
+			)
+		);
 		result.source.vertexStride =
 			static_cast<std::uint32_t>(sizeof(VERTEX_3D));
-		result.source.vertexCount = mesh->mNumVertices;
-		result.source.indexCount = mesh->mNumFaces * 3u;
+		result.source.vertexCount =
+			static_cast<std::uint32_t>(geometry.vertices.size());
+		result.source.indexCount =
+			static_cast<std::uint32_t>(geometry.indices.size());
 		result.source.indexFormat = RHI::IndexFormat::UInt32;
 		result.source.geometryResourceKey = expectedGeometryResourceKey;
 		result.status = result.source.IsValid()
@@ -121,9 +138,14 @@ public:
 
 namespace StaticBatchModelGeometrySourceProviders {
 
-inline const IStaticBatchModelGeometrySourceProvider& LegacyModelData() noexcept {
-	static const StaticBatchLegacyModelGeometrySourceProvider provider;
+inline const IStaticBatchModelGeometrySourceProvider& ModelCpuData() noexcept {
+	static const StaticBatchModelCpuGeometrySourceProvider provider;
 	return provider;
+}
+
+// 段階移行中のSource互換名。実体はNative Buffer ProviderではなくCPU Provider。
+inline const IStaticBatchModelGeometrySourceProvider& LegacyModelData() noexcept {
+	return ModelCpuData();
 }
 
 } // namespace StaticBatchModelGeometrySourceProviders

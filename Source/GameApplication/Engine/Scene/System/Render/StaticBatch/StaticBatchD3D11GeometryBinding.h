@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 
 #include "Service/Graphics/RHI/D3D11/D3D11RHIDevice.h"
 #include "System/Render/StaticBatch/StaticBatchD3D11GeometrySource.h"
@@ -30,51 +31,31 @@ public:
 			return false;
 		}
 
-		auto* d3d11Device = dynamic_cast<RHI::D3D11RHIDevice*>(&device);
-		if(!d3d11Device) return false;
-
-		m_vertexBuffer = d3d11Device->ImportNativeBuffer(
-			source.vertexBuffer,
-			source.vertexStride,
-			RHI::ResourceState::VertexBuffer,
-			"Static Batch Imported Vertex Buffer"
-		);
-		if(!m_vertexBuffer) return false;
-
-		m_indexBuffer = d3d11Device->ImportNativeBuffer(
-			source.indexBuffer,
-			source.IndexElementSize(),
-			RHI::ResourceState::IndexBuffer,
-			"Static Batch Imported Index Buffer"
-		);
-		if(!m_indexBuffer){
-			Release(device);
-			return false;
+		if(source.HasCpuData()){
+			if(!CreateFromCpuData(device, source)) return false;
+			m_createdFromCpuData = true;
+		}else{
+			if(!CreateFromNativeBuffers(device, source)) return false;
+			m_createdFromCpuData = false;
 		}
 
 		const RHI::BufferDesc* vertexDesc =
 			device.GetBufferDesc(m_vertexBuffer);
 		const RHI::BufferDesc* indexDesc =
 			device.GetBufferDesc(m_indexBuffer);
-		if(!vertexDesc || !indexDesc){
+		if(!vertexDesc || !indexDesc ||
+			source.RequiredVertexBytes() > vertexDesc->byteSize ||
+			source.RequiredIndexBytes() > indexDesc->byteSize){
 			Release(device);
 			return false;
 		}
 
-		const std::uint64_t requiredVertexBytes =
-			static_cast<std::uint64_t>(source.vertexCount) *
-			source.vertexStride;
-		const std::uint64_t requiredIndexBytes =
-			static_cast<std::uint64_t>(source.indexCount) *
-			source.IndexElementSize();
-		if(requiredVertexBytes > vertexDesc->byteSize ||
-			requiredIndexBytes > indexDesc->byteSize){
-			Release(device);
-			return false;
-		}
-
-		m_nativeVertexBuffer = source.vertexBuffer;
-		m_nativeIndexBuffer = source.indexBuffer;
+		m_nativeVertexBuffer = source.HasNativeBuffers()
+			? source.vertexBuffer
+			: nullptr;
+		m_nativeIndexBuffer = source.HasNativeBuffers()
+			? source.indexBuffer
+			: nullptr;
 		m_vertexStride = source.vertexStride;
 		m_vertexCount = source.vertexCount;
 		m_indexCount = source.indexCount;
@@ -119,6 +100,7 @@ public:
 		if(!IsAllocated()){
 			m_nativeVertexBuffer = nullptr;
 			m_nativeIndexBuffer = nullptr;
+			m_createdFromCpuData = false;
 			m_vertexStride = 0;
 			m_vertexCount = 0;
 			m_indexCount = 0;
@@ -129,10 +111,11 @@ public:
 	}
 
 	bool IsReady() const noexcept {
+		const bool sourceReady = m_createdFromCpuData ||
+			(m_nativeVertexBuffer != nullptr && m_nativeIndexBuffer != nullptr);
 		return static_cast<bool>(m_vertexBuffer) &&
 			static_cast<bool>(m_indexBuffer) &&
-			m_nativeVertexBuffer != nullptr &&
-			m_nativeIndexBuffer != nullptr &&
+			sourceReady &&
 			m_vertexStride != 0 &&
 			m_vertexCount != 0 &&
 			m_indexCount != 0 &&
@@ -147,14 +130,20 @@ public:
 	bool Matches(
 		const StaticBatchD3D11GeometrySource& source
 	) const noexcept {
-		return IsReady() && source.IsValid() &&
+		if(!IsReady() || !source.IsValid() ||
+			source.vertexStride != m_vertexStride ||
+			source.vertexCount != m_vertexCount ||
+			source.indexCount != m_indexCount ||
+			source.indexFormat != m_indexFormat ||
+			source.geometryResourceKey != m_geometryResourceKey){
+			return false;
+		}
+		if(source.HasCpuData()){
+			return m_createdFromCpuData;
+		}
+		return !m_createdFromCpuData && source.HasNativeBuffers() &&
 			source.vertexBuffer == m_nativeVertexBuffer &&
-			source.indexBuffer == m_nativeIndexBuffer &&
-			source.vertexStride == m_vertexStride &&
-			source.vertexCount == m_vertexCount &&
-			source.indexCount == m_indexCount &&
-			source.indexFormat == m_indexFormat &&
-			source.geometryResourceKey == m_geometryResourceKey;
+			source.indexBuffer == m_nativeIndexBuffer;
 	}
 
 	RHI::BufferHandle VertexBuffer() const noexcept { return m_vertexBuffer; }
@@ -166,12 +155,82 @@ public:
 	std::uint64_t GeometryResourceKey() const noexcept {
 		return m_geometryResourceKey;
 	}
+	bool WasCreatedFromCpuData() const noexcept {
+		return m_createdFromCpuData;
+	}
 
 private:
+	bool CreateFromCpuData(
+		RHI::IRHIDevice& device,
+		const StaticBatchD3D11GeometrySource& source
+	){
+		if(source.vertexData.size() >
+				(static_cast<std::size_t>((std::numeric_limits<std::uint32_t>::max)())) ||
+			source.indexData.size() >
+				(static_cast<std::size_t>((std::numeric_limits<std::uint32_t>::max)()))){
+			return false;
+		}
+
+		RHI::BufferDesc vertexDesc;
+		vertexDesc.byteSize =
+			static_cast<std::uint32_t>(source.vertexData.size());
+		vertexDesc.stride = source.vertexStride;
+		vertexDesc.usage = RHI::ResourceUsage::Immutable;
+		vertexDesc.bindFlags = RHI::BufferBindFlags::Vertex;
+		vertexDesc.initialState = RHI::ResourceState::VertexBuffer;
+		vertexDesc.debugName = "Static Batch CPU Vertex Buffer";
+		m_vertexBuffer = device.CreateBuffer(vertexDesc, source.vertexData);
+		if(!m_vertexBuffer) return false;
+
+		RHI::BufferDesc indexDesc;
+		indexDesc.byteSize =
+			static_cast<std::uint32_t>(source.indexData.size());
+		indexDesc.stride = source.IndexElementSize();
+		indexDesc.usage = RHI::ResourceUsage::Immutable;
+		indexDesc.bindFlags = RHI::BufferBindFlags::Index;
+		indexDesc.initialState = RHI::ResourceState::IndexBuffer;
+		indexDesc.debugName = "Static Batch CPU Index Buffer";
+		m_indexBuffer = device.CreateBuffer(indexDesc, source.indexData);
+		if(!m_indexBuffer){
+			Release(device);
+			return false;
+		}
+		return true;
+	}
+
+	bool CreateFromNativeBuffers(
+		RHI::IRHIDevice& device,
+		const StaticBatchD3D11GeometrySource& source
+	){
+		auto* d3d11Device = dynamic_cast<RHI::D3D11RHIDevice*>(&device);
+		if(!d3d11Device || !source.HasNativeBuffers()) return false;
+
+		m_vertexBuffer = d3d11Device->ImportNativeBuffer(
+			source.vertexBuffer,
+			source.vertexStride,
+			RHI::ResourceState::VertexBuffer,
+			"Static Batch Imported Vertex Buffer"
+		);
+		if(!m_vertexBuffer) return false;
+
+		m_indexBuffer = d3d11Device->ImportNativeBuffer(
+			source.indexBuffer,
+			source.IndexElementSize(),
+			RHI::ResourceState::IndexBuffer,
+			"Static Batch Imported Index Buffer"
+		);
+		if(!m_indexBuffer){
+			Release(device);
+			return false;
+		}
+		return true;
+	}
+
 	RHI::BufferHandle m_vertexBuffer;
 	RHI::BufferHandle m_indexBuffer;
 	ID3D11Buffer* m_nativeVertexBuffer = nullptr;
 	ID3D11Buffer* m_nativeIndexBuffer = nullptr;
+	bool m_createdFromCpuData = false;
 	std::uint32_t m_vertexStride = 0;
 	std::uint32_t m_vertexCount = 0;
 	std::uint32_t m_indexCount = 0;

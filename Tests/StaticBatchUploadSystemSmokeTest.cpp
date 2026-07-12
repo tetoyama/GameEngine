@@ -23,6 +23,19 @@ int main(){
 	assert(geometryTask.order.priority == 0);
 	assert(geometryTask.threadAffinity == ThreadAffinity::MainThread);
 	assert(static_cast<bool>(geometryTask.execute));
+	assert(geometryTask.access.componentReads.contains(
+		typeid(ModelRendererComponent)
+	));
+	assert(geometryTask.access.resourceReads.contains(typeid(ModelData)));
+	assert(geometryTask.access.resourceReads.contains(
+		typeid(RenderPacketFrameBuffer)
+	));
+	assert(geometryTask.access.resourceWrites.contains(
+		typeid(StaticBatchModelGeometryRuntimeStorage)
+	));
+	assert(geometryTask.access.resourceWrites.contains(
+		typeid(StaticBatchGeometryBindingCache)
+	));
 
 	const SystemTask& instanceTask = tasks[1];
 	assert(instanceTask.owner == &system);
@@ -32,6 +45,12 @@ int main(){
 	assert(instanceTask.order.priority == 1);
 	assert(instanceTask.threadAffinity == ThreadAffinity::MainThread);
 	assert(static_cast<bool>(instanceTask.execute));
+	assert(instanceTask.access.resourceReads.contains(
+		typeid(RenderPacketFrameBuffer)
+	));
+	assert(instanceTask.access.resourceWrites.contains(
+		typeid(StaticBatchGpuInstanceBuffer)
+	));
 
 	assert(system.GetGeometryBindingCache().BindingCount() == 0);
 	assert(system.GetGeometryBindingCache().ResolvedGroupCount() == 0);
