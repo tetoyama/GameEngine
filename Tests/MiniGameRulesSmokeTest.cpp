@@ -1,4 +1,5 @@
 #include "Game/MiniGameCollection/Backshot/BackshotRules.h"
+#include "Game/MiniGameCollection/ColorTerritory/ColorTerritoryItemModel.h"
 #include "Game/MiniGameCollection/ColorTerritory/ColorTerritoryRules.h"
 #include "Game/MiniGameCollection/Core/MiniGameCollectionManagerModel.h"
 #include "Game/MiniGameCollection/Core/MiniGameCpuDecisionClock.h"
@@ -211,6 +212,56 @@ void TestColorTerritoryStrategy() {
     assert(board.GetOwner(decision->target) != 0);
 }
 
+void TestColorTerritoryItems() {
+    using namespace MiniGameCollection;
+    using namespace MiniGameCollection::ColorTerritory;
+
+    ColorTerritoryRules rules(3, 3, 2, 10.0f);
+    rules.Prepare();
+    rules.StartGame();
+
+    assert(rules.ApplyBombArea({1, 1}, 1, PlayerId{0}) == 9);
+    assert(rules.TryGetBoard()->GetScore(0) == 9);
+    auto events = rules.ConsumePaintEvents();
+    assert(events.size() == 9);
+    for (const TerritoryPaintEvent& event : events) {
+        assert(event.source == TerritoryPaintSource::BombPaint);
+        assert(event.newOwner == 0);
+    }
+
+    assert(rules.ApplyBombArea({1, 1}, 1, std::nullopt) == 9);
+    assert(rules.TryGetBoard()->GetScore(0) == 0);
+    events = rules.ConsumePaintEvents();
+    assert(events.size() == 9);
+    for (const TerritoryPaintEvent& event : events) {
+        assert(event.source == TerritoryPaintSource::BombClear);
+        assert(event.newOwner == UnclaimedOwner);
+    }
+
+    TerritoryItemConfig config;
+    TerritoryPlayerPowerState power;
+    assert(power.ApplyStun(1.0f));
+    assert(power.IsStunned());
+    power.ActivateStar(config.starBuffSeconds);
+    assert(power.HasStar());
+    assert(!power.IsStunned());
+    assert(std::abs(power.ResolveSpeedMultiplier(config) - 1.55f) < 0.0001f);
+    assert(!power.ApplyStun(2.0f));
+    assert(power.TryConsumeStarTouch(1, config.starTouchCooldownSeconds));
+    assert(!power.TryConsumeStarTouch(1, config.starTouchCooldownSeconds));
+    power.Tick(config.starBuffSeconds + 0.1f);
+    assert(!power.HasStar());
+    assert(power.ApplyStun(0.5f));
+
+    TerritoryItemRandom lhs(777u);
+    TerritoryItemRandom rhs(777u);
+    for (int index = 0; index < 8; ++index) {
+        assert(lhs.NextType() == rhs.NextType());
+        assert(lhs.NextTile(11, 7) == rhs.NextTile(11, 7));
+    }
+    rules.Shutdown();
+}
+
 void TestSheepRoundupRules() {
     using namespace MiniGameCollection;
     using namespace MiniGameCollection::SheepRoundup;
@@ -345,6 +396,7 @@ int main() {
     TestCollectionSelection();
     TestColorTerritoryRules();
     TestColorTerritoryStrategy();
+    TestColorTerritoryItems();
     TestSheepRoundupRules();
     TestSheepStrategy();
     TestBackshotRules();
