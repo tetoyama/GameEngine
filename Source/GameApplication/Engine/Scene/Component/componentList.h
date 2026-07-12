@@ -50,6 +50,7 @@
 #include "Script/GN31.h"
 
 #include "Game/MiniGameCollection/Runtime/MiniGamePersistentRuntime.h"
+#include "Game/MiniGameCollection/Runtime/PresentationSpikeRuntime.h"
 #include "Game/MiniGameCollection/Runtime/ColorTerritoryRuntime.h"
 #include "Game/MiniGameCollection/Runtime/SheepRoundupRuntime.h"
 #include "Game/MiniGameCollection/Runtime/BackshotRuntime.h"
@@ -111,6 +112,7 @@ struct ComponentStoragePreference<TransformComponent> {
     X(ScriptComponent,COMPONENT_SPARSE)\
     X(GN31,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::MiniGamePersistentRuntime,COMPONENT_SPARSE)\
+    X(MiniGameCollection::Runtime::PresentationSpikeRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::ColorTerritoryRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::SheepRoundupRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::BackshotRuntime,COMPONENT_SPARSE)\
