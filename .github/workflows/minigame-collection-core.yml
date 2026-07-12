@@ -84,6 +84,18 @@ jobs:
           test "$(grep -c "ImGui::" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h)" -eq 1
           grep -q "void inspector" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h
           grep -q "void DrawHitDebug" Source/GameApplication/Game/MiniGameCollection/Runtime/BackshotRuntime.h
+      - name: Enforce post-render runtime UI overlay
+        shell: bash
+        run: |
+          renderer=Source/GameApplication/Service/Graphics/mainRenderer.cpp
+          engine=Source/GameApplication/Engine/engine.cpp
+          grep -q "m_runtime2DCommands.push_back" "$renderer"
+          grep -q "void MainRenderer::FlushRuntime2DOverlay" "$renderer"
+          draw_line=$(grep -n "scenes->Draw();" "$engine" | head -n1 | cut -d: -f1)
+          flush_line=$(grep -n "renderer->FlushRuntime2DOverlay();" "$engine" | head -n1 | cut -d: -f1)
+          test -n "$draw_line"
+          test -n "$flush_line"
+          test "$flush_line" -gt "$draw_line"
       - name: Enforce scene-driven entry flow
         shell: bash
         run: |
