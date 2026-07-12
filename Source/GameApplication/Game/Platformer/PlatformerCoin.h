@@ -62,10 +62,16 @@ public:
 		}
 
 		collectTimer += dt;
-		const float normalized = collectDuration > 0.0f ? std::clamp(collectTimer / collectDuration, 0.0f, 1.0f) : 1.0f;
-		t->position.y += dt * (1.2f + normalized * 1.5f);
+		const float normalized = collectDuration > 0.0f
+			? std::clamp(collectTimer / collectDuration, 0.0f, 1.0f)
+			: 1.0f;
+
+		// Keep the emitter fixed at the collection point. Particle positions are
+		// local to this entity, so moving or shrinking the coin Transform would
+		// drag and rescale the burst after it has already spawned.
+		t->position = basePosition;
+		t->scale = baseScale;
 		t->AddRotationY(rotationSpeed * dt * 3.5f);
-		t->scale = baseScale * (1.0f - normalized);
 
 		if(normalized >= 1.0f && !destroyQueued) {
 			destroyQueued = QueueDestroySelf();
@@ -94,7 +100,17 @@ private:
 		collected = true;
 		collectTimer = 0.0f;
 		if(auto* t = transform.TryGet()) {
-			PlatformerFeedback::Burst(particle.TryGet(), t->position, 18, 2.6f, 3.6f, collectDuration);
+			// Snap out of the bob cycle and emit from local zero. Passing t->position
+			// here would apply the world position a second time in RenderableParticle.
+			t->position = basePosition;
+			t->scale = baseScale;
+			PlatformerFeedback::Burst(
+				particle.TryGet(),
+				Vector3(0.0f, 0.0f, 0.0f),
+				18,
+				2.6f,
+				3.6f,
+				collectDuration);
 		}
 		PlatformerFeedback::Play(audio.TryGet(), m_ref.GetScene());
 	}
