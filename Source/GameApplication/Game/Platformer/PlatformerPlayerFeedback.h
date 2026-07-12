@@ -33,8 +33,8 @@ class PlatformerPlayerFeedback : public CustomScriptComponent {
 		REFLECT_FIELD(float, assistLandingCarryBoost, 0.24f)
 		REFLECT_FIELD(bool, stepAssistEnabled, true)
 		REFLECT_FIELD(float, stepAssistHeight, 0.34f)
-		REFLECT_FIELD(float, stepAssistProbeDistance, 0.38f)
-		REFLECT_FIELD(float, stepAssistForwardOffset, 0.29f)
+		REFLECT_FIELD(float, stepAssistProbeDistance, 0.40f)
+		REFLECT_FIELD(float, stepAssistForwardOffset, 0.02f)
 		REFLECT_FIELD(float, stepAssistCooldown, 0.055f)
 
 public:
@@ -170,7 +170,7 @@ private:
 		assistLandingCarryBoost = (std::max)(0.0f, assistLandingCarryBoost);
 		stepAssistHeight = std::clamp(stepAssistHeight, 0.05f, 0.42f);
 		stepAssistProbeDistance = std::clamp(stepAssistProbeDistance, 0.15f, 0.65f);
-		stepAssistForwardOffset = std::clamp(stepAssistForwardOffset, 0.27f, 0.42f);
+		stepAssistForwardOffset = std::clamp(stepAssistForwardOffset, 0.0f, 0.20f);
 		stepAssistCooldown = std::clamp(stepAssistCooldown, 0.01f, 0.20f);
 	}
 
@@ -192,6 +192,14 @@ private:
 		return !hit.hitActor || hit.hitActor->getType() != physx::PxActorType::eRIGID_DYNAMIC;
 	}
 
+	static physx::PxU32 ResolveActorLayerMask(physx::PxRigidDynamic* rigid) {
+		if(!rigid || rigid->getNbShapes() == 0) return 1u;
+		physx::PxShape* shape = nullptr;
+		if(rigid->getShapes(&shape, 1) == 0 || !shape) return 1u;
+		const physx::PxU32 mask = shape->getQueryFilterData().word0;
+		return mask != 0u ? mask : 1u;
+	}
+
 	void ApplyStepAssist(
 		const PlatformerCharacterController& controller,
 		TransformComponent& playerPose
@@ -208,14 +216,15 @@ private:
 
 		auto* colliderComponent = playerCollider.TryGet();
 		auto* rigid = colliderComponent ? colliderComponent->pRigidbodyDynamic : nullptr;
-		auto* physics = PlatformerSceneAccess::Physics(m_ref.GetScene());
+		auto* probe = PlatformerSceneAccess::Physics(m_ref.GetScene());
+		auto* physics = probe ? probe->Raw() : nullptr;
 		if(!rigid || !physics) return;
 
 		const physx::PxVec3 velocity = rigid->getLinearVelocity();
 		const Vector3 horizontal(velocity.x, 0.0f, velocity.z);
 		if(horizontal.length() < 0.45f || horizontal.normalize().dot(direction) < 0.25f) return;
 
-		constexpr physx::PxU32 kPlayerProbeMask = 1u << 1;
+		const physx::PxU32 selfMask = ResolveActorLayerMask(rigid);
 		const float lowerProbeHeight = (std::min)(0.10f, stepAssistHeight * 0.40f);
 		const Vector3 faceOrigin = playerPose.position + direction * stepAssistForwardOffset;
 		const physx::PxVec3 forward(direction.x, 0.0f, direction.z);
@@ -224,7 +233,7 @@ private:
 			physx::PxVec3(faceOrigin.x, playerPose.position.y + lowerProbeHeight, faceOrigin.z),
 			forward,
 			stepAssistProbeDistance,
-			kPlayerProbeMask);
+			selfMask);
 		if(!IsStaticSolidHit(lowerHit) || std::abs(lowerHit.normal.y) > 0.45f) return;
 
 		// A clear ray above the accepted step height distinguishes a curb or stair
@@ -233,7 +242,7 @@ private:
 			physx::PxVec3(faceOrigin.x, playerPose.position.y + stepAssistHeight + 0.08f, faceOrigin.z),
 			forward,
 			stepAssistProbeDistance,
-			kPlayerProbeMask);
+			selfMask);
 		if(IsStaticSolidHit(upperHit)) return;
 
 		const float beyondFace = std::clamp(
@@ -245,7 +254,7 @@ private:
 			physx::PxVec3(topSample.x, playerPose.position.y + stepAssistHeight + 0.16f, topSample.z),
 			physx::PxVec3(0.0f, -1.0f, 0.0f),
 			stepAssistHeight + 0.24f,
-			kPlayerProbeMask);
+			selfMask);
 		const float minNormalY = std::cos(50.0f * DirectX::XM_PI / 180.0f);
 		if(!IsStaticSolidHit(topHit) || topHit.normal.y < minNormalY) return;
 
@@ -258,7 +267,7 @@ private:
 			physx::PxVec3(playerPose.position.x, playerPose.position.y + 1.52f, playerPose.position.z),
 			physx::PxVec3(0.0f, 1.0f, 0.0f),
 			rise + 0.06f,
-			kPlayerProbeMask);
+			selfMask);
 		if(IsStaticSolidHit(ceilingHit)) return;
 
 		Vector3 target = playerPose.position;
