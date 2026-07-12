@@ -48,6 +48,7 @@ public:
 	void EndFrame(bool vsync = true);
 
 	void DrawText2D(const std::wstring& text, float x, float y, float fontSize, D2D1::ColorF color);
+	void FillRect2D(float x, float y, float width, float height, D2D1::ColorF color);
 	
 	void OnResize(UINT width, UINT height){
 		// WM_SIZEは同じサイズで複数回届くことがある。
