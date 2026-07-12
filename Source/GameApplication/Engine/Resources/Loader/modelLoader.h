@@ -38,6 +38,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 		return nullptr;
 	}
 
+	model->MeshGeometry.resize(model->AiScene->mNumMeshes);
 	model->VertexBuffer.resize(model->AiScene->mNumMeshes);
 	model->IndexBuffer.resize(model->AiScene->mNumMeshes);
 
@@ -60,12 +61,12 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 	for(unsigned int m = 0; m < model->AiScene->mNumMeshes; m++){
 
 		aiMesh* mesh = model->AiScene->mMeshes[m];
+		ModelMeshGeometryCpuData& geometry = model->MeshGeometry[m];
 
-		UINT vertexCount = mesh->mNumVertices;
-
-		// 頂点バッファ生成
+		// Backend非依存CPU頂点を生成し、既存D3D11 Bufferと将来のRHI Runtimeで共有する。
 		{
-			VERTEX_3D* vertex = new VERTEX_3D[mesh->mNumVertices];
+			geometry.vertices.resize(mesh->mNumVertices);
+			VERTEX_3D* vertex = geometry.vertices.data();
 
 			for(unsigned int v = 0; v < mesh->mNumVertices; v++){
 
@@ -131,11 +132,9 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
 			D3D11_SUBRESOURCE_DATA sd = {};
-			sd.pSysMem = vertex;
+			sd.pSysMem = geometry.vertices.data();
 
 			context->GetDevice()->CreateBuffer(&bd, &sd, &model->VertexBuffer[m]);
-
-			delete[] vertex;
 		}
 		if (hasBones) {
 
@@ -145,10 +144,10 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 		}
 
 
-		// インデックスバッファ生成
+		// Backend非依存CPU Indexを生成し、既存D3D11 Bufferと将来のRHI Runtimeで共有する。
 		{
-			unsigned int* index = new unsigned int[mesh->mNumFaces * 3];
-			//unsigned short* index = new unsigned short[mesh->mNumFaces * 3];
+			geometry.indices.resize(static_cast<std::size_t>(mesh->mNumFaces) * 3u);
+			std::uint32_t* index = geometry.indices.data();
 
 			for (unsigned int f = 0; f < mesh->mNumFaces; f++) {
 				const aiFace* face = &mesh->mFaces[f];
@@ -163,17 +162,15 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			D3D11_BUFFER_DESC bd = {};
 
 			bd.Usage = D3D11_USAGE_DEFAULT;
-			bd.ByteWidth = sizeof(unsigned int) * mesh->mNumFaces * 3;
+			bd.ByteWidth = sizeof(std::uint32_t) * mesh->mNumFaces * 3;
 			bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 			bd.CPUAccessFlags = 0;
 
 			D3D11_SUBRESOURCE_DATA sd = {};
 
-			sd.pSysMem = index;
+			sd.pSysMem = geometry.indices.data();
 
 			context->GetDevice()->CreateBuffer(&bd, &sd, &model->IndexBuffer[m]);
-
-			delete[] index;
 		}
 
 		//変形後頂点データ初期化
@@ -410,4 +407,3 @@ inline void ResourceLoader<ModelData>::SetupLoadFunc(void* contextPtr) {
 		return LoadModelFromFile(path, isBlender, context);
 	});
 }
-
