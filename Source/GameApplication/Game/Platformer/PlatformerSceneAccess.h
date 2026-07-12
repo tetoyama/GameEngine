@@ -44,48 +44,56 @@ public:
 			return physics->RaycastWithMask(origin, direction, maxDistance, effectiveMask);
 		}
 
-		// The authored player capsule has a 0.25 m world-space radius. The previous
-		// 0.16 m cross still left a wide unsupported annulus, so landing near a ledge
-		// or across a triangle seam could miss all five rays while PhysX visibly
-		// supported part of the capsule. Sample a nine-point disc at 0.22 m instead.
-		constexpr float probeRadius = 0.22f;
-		constexpr float diagonal = probeRadius * 0.70710678f;
+		// Keep the probe footprint well inside the 0.25 m capsule radius. The wider
+		// nine-point disc allowed one trailing corner ray to keep reporting ground
+		// after the capsule centre had already left a ledge, effectively preventing
+		// falling. A centre plus four-point cross is sufficient for triangle seams.
+		constexpr float probeRadius = 0.15f;
 		const physx::PxVec3 offsets[] = {
 			physx::PxVec3(0.0f, 0.0f, 0.0f),
 			physx::PxVec3(probeRadius, 0.0f, 0.0f),
 			physx::PxVec3(-probeRadius, 0.0f, 0.0f),
 			physx::PxVec3(0.0f, 0.0f, probeRadius),
-			physx::PxVec3(0.0f, 0.0f, -probeRadius),
-			physx::PxVec3(diagonal, 0.0f, diagonal),
-			physx::PxVec3(-diagonal, 0.0f, diagonal),
-			physx::PxVec3(diagonal, 0.0f, -diagonal),
-			physx::PxVec3(-diagonal, 0.0f, -diagonal)
+			physx::PxVec3(0.0f, 0.0f, -probeRadius)
 		};
 
-		// Give descending motion a small one-fixed-step tolerance without changing
-		// the controller's authored slope limit or making wall/camera rays longer.
-		constexpr physx::PxReal landingTolerance = 0.10f;
-		const physx::PxReal queryDistance = maxDistance + landingTolerance;
-
 		RayHit best{};
-		for(const physx::PxVec3& offset : offsets) {
-			const RayHit candidate = physics->RaycastWithMask(
-				origin + offset,
-				direction,
-				queryDistance,
-				effectiveMask);
-			if(!candidate.hit) continue;
+		bool centreSupported = false;
+		int peripheralSupportCount = 0;
+		float peripheralReferenceDistance = 0.0f;
 
-			// Prefer a clearly nearer support. For hits at approximately the same
-			// height, prefer the more upward-facing triangle so seams and bevels do not
-			// override a valid walkable top surface.
+		for(int index = 0; index < 5; ++index) {
+			const RayHit candidate = physics->RaycastWithMask(
+				origin + offsets[index],
+				direction,
+				maxDistance,
+				effectiveMask);
+			if(!candidate.hit || candidate.normal.y <= 0.35f) continue;
+
+			if(index == 0) {
+				centreSupported = true;
+			} else if(peripheralSupportCount == 0) {
+				peripheralReferenceDistance = candidate.distance;
+				peripheralSupportCount = 1;
+			} else if(std::abs(candidate.distance - peripheralReferenceDistance) <= 0.08f) {
+				++peripheralSupportCount;
+			} else if(candidate.distance < peripheralReferenceDistance) {
+				peripheralReferenceDistance = candidate.distance;
+				peripheralSupportCount = 1;
+			}
+
 			const bool clearlyCloser = !best.hit ||
-				candidate.distance + 0.035f < best.distance;
+				candidate.distance + 0.025f < best.distance;
 			const bool sameHeightMoreWalkable = best.hit &&
-				std::abs(candidate.distance - best.distance) <= 0.035f &&
+				std::abs(candidate.distance - best.distance) <= 0.025f &&
 				candidate.normal.y > best.normal.y + 0.001f;
 			if(clearlyCloser || sameHeightMoreWalkable) best = candidate;
 		}
+
+		// A centre hit is authoritative. If the centre lies on a triangle seam, two
+		// surrounding hits at the same height are enough. One isolated edge hit is
+		// deliberately rejected so the player detaches and gravity starts normally.
+		if(!centreSupported && peripheralSupportCount < 2) return {};
 		return best;
 	}
 
