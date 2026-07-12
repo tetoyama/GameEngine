@@ -86,7 +86,8 @@ private:
 		"Asset/Game/Platformer/Prefab/PlatformerCameraZone.prefab";
 	static constexpr const char* BossPrefab =
 		"Asset/Game/Platformer/Prefab/PlatformerBoss.prefab";
-	static constexpr const char* TreePrefab = "Asset/Prefab/Tree.prefab";
+	static constexpr const char* TreePrefab =
+		"Asset/Game/Platformer/Prefab/PlatformerTreeDecoration.prefab";
 	static constexpr const char* BearDecorationPrefab =
 		"Asset/Game/Platformer/Prefab/PlatformerBearDecoration.prefab";
 	static constexpr const char* GlowOrbPrefab =
