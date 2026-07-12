@@ -240,20 +240,11 @@ private:
 		float desiredDistance,
 		float dt
 	) {
-		// Profile transitions are allowed to change the distance immediately as a
-		// target, but the actual camera still interpolates toward that target.
-		if(currentDistance > desiredDistance + 0.05f) {
-			occlusionEnterTimer = 0.0f;
-			occlusionExitTimer = 0.0f;
-			occlusionActive = false;
-			return desiredDistance;
-		}
-
 		if(obstructed) {
 			occlusionExitTimer = 0.0f;
 			occlusionEnterTimer += dt;
 			if(occlusionEnterTimer >= occlusionEnterDelay) occlusionActive = true;
-			return occlusionActive ? obstructionDistance : currentDistance;
+			return occlusionActive ? obstructionDistance : (std::min)(currentDistance, desiredDistance);
 		}
 
 		occlusionEnterTimer = 0.0f;
