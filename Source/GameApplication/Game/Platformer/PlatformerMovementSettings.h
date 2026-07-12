@@ -24,12 +24,14 @@ struct PlatformerMovementSettings {
 	float apexGravityScale = 0.55f;
 	float apexVelocityThreshold = 1.15f;
 
+	// The ray starts slightly above the character origin. The previous additional
+	// distance of 0.52 treated a character hovering more than half a metre above
+	// the floor as grounded, bypassing custom gravity. Keep this as a contact
+	// tolerance only; the total downward ray length is now 0.26.
 	float groundProbeStart = 0.16f;
-	float groundProbeDistance = 0.52f;
-	// This is a velocity, not an acceleration. A large value creates a large
-	// contact impulse every fixed tick and lets PhysX friction cancel locomotion.
-	// Keep only a small downward bias so the character remains attached to flat
-	// ground without making grounded movement feel locked.
+	float groundProbeDistance = 0.10f;
+	// This is a velocity, not an acceleration. Keep only a small downward bias
+	// after genuine contact so PhysX friction does not cancel horizontal motion.
 	float groundSnapSpeed = 0.12f;
 	float maxSlopeDegrees = 50.0f;
 
