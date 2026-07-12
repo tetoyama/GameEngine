@@ -1,6 +1,5 @@
 #pragma once
 
-#include <algorithm>
 #include <cstdint>
 #include <limits>
 #include <span>
@@ -45,16 +44,6 @@ struct StaticBatchModelGeometryResolveResult {
 
 namespace StaticBatchModelGeometrySourceResolver {
 
-inline bool UsesDynamicVertexBuffer(
-	const ModelRendererComponent& renderer
-) noexcept {
-	return std::any_of(
-		renderer.dynamicVertexBuffers.begin(),
-		renderer.dynamicVertexBuffers.end(),
-		[](const ID3D11Buffer* buffer){ return buffer != nullptr; }
-	);
-}
-
 inline StaticBatchModelGeometryResolveResult Resolve(
 	const StaticBatchPacketCacheEntry& group,
 	std::span<const RenderPacket> packets
@@ -94,7 +83,7 @@ inline StaticBatchModelGeometryResolveResult Resolve(
 			StaticBatchModelGeometryRejectReason::MissingModelRenderer;
 		return result;
 	}
-	if(!renderer->blendedAnimations.empty() || UsesDynamicVertexBuffer(*renderer)){
+	if(!renderer->blendedAnimations.empty()){
 		result.rejectReason =
 			StaticBatchModelGeometryRejectReason::AnimatedModel;
 		return result;
