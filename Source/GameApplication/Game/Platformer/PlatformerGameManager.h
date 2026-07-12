@@ -399,14 +399,20 @@ private:
 			const float shapeHeight = (std::max)(0.001f, shape.size.y);
 			const float oldScaleY = (std::max)(0.001f, std::abs(pose->scale.y));
 			const float oldWorldHeight = shapeHeight * oldScaleY;
-			const float targetWorldHeight = (std::min)(oldWorldHeight, 1.15f);
+			const float targetWorldHeight = (std::min)(oldWorldHeight, 1.50f);
 			const float oldCenterY = pose->position.y + shape.offset.y * oldScaleY;
 			const float bottomY = oldCenterY - oldWorldHeight * 0.5f;
 
 			if(targetWorldHeight < oldWorldHeight - 0.01f) {
 				pose->scale.y = targetWorldHeight / shapeHeight;
+				// The stomp rule uses the rendered entity origin plus 0.75 m. Keep the
+				// physical bottom on the floor, but place the physical box centre 14 cm
+				// above the visual origin. The weak point is then 14 cm below the box top
+				// instead of 17.5 cm above it, so a held first jump can enter the band.
+				const float weakPointInset = (std::min)(0.14f, targetWorldHeight * 0.18f);
+				shape.offset.y = weakPointInset / pose->scale.y;
 				const float newCenterY = bottomY + targetWorldHeight * 0.5f;
-				pose->position.y = newCenterY - shape.offset.y * pose->scale.y;
+				pose->position.y = newCenterY - weakPointInset;
 				col->needsUpdate = true;
 			}
 
