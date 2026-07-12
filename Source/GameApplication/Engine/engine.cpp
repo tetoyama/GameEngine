@@ -224,8 +224,8 @@ void Engine::Run(EngineContext* context){
 	uint64_t completedResizeSerial = 0;
 	double completedResizeCpuTime = 0.0;
 
-	// GameApplication may preload a persistent Multi-Scene composition before Run.
-	// Only create the historical default scene when no scene has been supplied.
+	// Editorや通常の開始Scene経路で既にSceneが開かれている場合はそれを使用する。
+	// 何も供給されていない場合だけ、従来の既定Sceneを生成または読み込む。
 	if(scenes->GetActiveScenes().empty()){
 		auto initialScene = std::make_shared<Scene>();
 #ifdef _DEBUG_BUILD
