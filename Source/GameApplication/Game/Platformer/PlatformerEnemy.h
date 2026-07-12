@@ -42,6 +42,9 @@ public:
 		collider = GetComponentRef<ColliderComponent>();
 		particle = GetComponentRef<ParticleComponent>();
 		audio = GetComponentRef<AudioComponent>();
+
+		AlignColliderToModelCenter();
+
 		if(auto* t = transform.TryGet()) {
 			origin = t->position;
 			baseScale = t->scale;
@@ -94,6 +97,44 @@ public:
 	}
 
 private:
+	void AlignColliderToModelCenter() {
+		auto* t = transform.TryGet();
+		auto* col = collider.TryGet();
+		if(!t || !col || col->colliders.empty()) return;
+
+		ColliderShape& shape = col->colliders.front();
+		if(shape.type != ColliderType::Box) return;
+
+		const float authoredOffsetY = shape.offset.y;
+		if(std::abs(authoredOffsetY) <= 0.0001f) return;
+
+		// The scene was authored with the entity origin at the enemy's feet and
+		// only the PhysX shape shifted upward. The cube model is centered on the
+		// entity origin, so its lower half was rendered below the floor. Move the
+		// entity/actor by the same world-space amount while removing the shape
+		// offset. This keeps the collider at exactly the same world position and
+		// raises only the visual origin to the model/collider center.
+		const float worldLift = authoredOffsetY * t->scale.y;
+		t->position.y += worldLift;
+		shape.offset.y = 0.0f;
+
+		if(shape.pxShape) {
+			physx::PxTransform localPose = shape.pxShape->getLocalPose();
+			localPose.p.y = 0.0f;
+			shape.pxShape->setLocalPose(localPose);
+		}
+
+		if(auto* rigid = col->pRigidbodyDynamic) {
+			physx::PxTransform actorPose = rigid->getGlobalPose();
+			actorPose.p.y += worldLift;
+			rigid->setGlobalPose(actorPose, true);
+		}
+
+		// Persist the corrected authoring value if the scene is saved after play,
+		// and let PhysicSystem rebuild the shape from the normalized data.
+		col->needsUpdate = true;
+	}
+
 	void HandleContact(const EntityRef& other, bool entered) {
 		if(defeated || !other.IsValid()) return;
 		ComponentRef<PlatformerCharacterController> player(other);
@@ -122,7 +163,16 @@ private:
 		defeated = true;
 		defeatTimer = 0.0f;
 		player.ApplyStompBounce();
-		PlatformerFeedback::Burst(particle.TryGet(), position + Vector3(0.0f, 0.45f, 0.0f), 22, 3.3f, 4.5f, defeatDuration + 0.2f);
+		// Particle positions are local to the enemy entity. The corrected entity
+		// origin is now at the cube center, so emit near its top without adding the
+		// world position a second time.
+		PlatformerFeedback::Burst(
+			particle.TryGet(),
+			Vector3(0.0f, 0.45f, 0.0f),
+			22,
+			3.3f,
+			4.5f,
+			defeatDuration + 0.2f);
 		PlatformerFeedback::Play(audio.TryGet(), m_ref.GetScene());
 
 		if(auto* col = collider.TryGet()) {
