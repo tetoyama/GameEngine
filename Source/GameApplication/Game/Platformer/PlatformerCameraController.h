@@ -161,6 +161,10 @@ private:
 		occlusionExitDelay = (std::max)(0.0f, occlusionExitDelay);
 		occlusionProbeStart = (std::max)(0.0f, occlusionProbeStart);
 
+		// Player, gameplay triggers, enemies, and the boss are never camera
+		// occluders. Older scene saves contain mask 10, so enforce layer 4 here.
+		selfLayerBit |= (1u << 1) | (1u << 3) | (1u << 4);
+
 		// Older authored scenes stored 1.2. That distance is too close for this
 		// character scale and makes a single transient ray hit visually violent.
 		minimumDistance = (std::max)(2.5f, minimumDistance);
