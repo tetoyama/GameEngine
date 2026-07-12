@@ -1,25 +1,17 @@
-Scene: ElemenTactics
 Storage:
   ExpectedEntities: 256
   ExpectedTransformCount: 256
   TransformPreallocatedPages: 1
-Hierarchy:
-  - Entity: 0
-    Children:
-      []
 Entities:
-  - Entity: 0
+  - Entity: 1
     Components:
       - Component: NameComponent
-        Data:
-          Name: ElemenTactics Runtime Controller
+        Name: ElemenTactics Runtime Controller
       - Component: TransformComponent
-        Data:
-          position: [0, 0, 0]
-          rotation: [0, 0, 0]
-          scale: [1, 1, 1]
-          parent: -1
+        Position: [0, 0, 0]
+        Rotation: [0, 0, 0, 1]
+        Scale: [1, 1, 1]
+        Parent: 0
       - Component: ElemenTactics::ElemenTacticsGameController
-        Data:
-          ScriptName: ElemenTacticsGameController
-          InitialScreen: Title
+        ScriptName: ElemenTacticsGameController
+        InitialScreen: Title
