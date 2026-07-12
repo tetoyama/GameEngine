@@ -24,12 +24,13 @@ struct PlatformerMovementSettings {
 	float apexGravityScale = 0.55f;
 	float apexVelocityThreshold = 1.15f;
 
-	// The ray starts slightly above the character origin. The previous additional
-	// distance of 0.52 treated a character hovering more than half a metre above
-	// the floor as grounded, bypassing custom gravity. Keep this as a contact
-	// tolerance only; the total downward ray length is now 0.26.
-	float groundProbeStart = 0.16f;
-	float groundProbeDistance = 0.10f;
+	// The player capsule spans approximately y=0.0 to y=1.5 relative to the
+	// entity origin. RaycastWithMask uses an exclusion mask, but older scene data
+	// does not exclude the player's layer. Start the ground ray just below the
+	// capsule instead of inside it so a distance-zero self hit cannot report
+	// permanent grounding. The controller uses start + distance as ray length.
+	float groundProbeStart = -0.03f;
+	float groundProbeDistance = 0.21f;
 	// This is a velocity, not an acceleration. Keep only a small downward bias
 	// after genuine contact so PhysX friction does not cancel horizontal motion.
 	float groundSnapSpeed = 0.12f;
@@ -39,7 +40,11 @@ struct PlatformerMovementSettings {
 	float tripleJumpChainWindow = 0.32f;
 	float tripleJumpDirectionDot = 0.25f;
 
-	float wallProbeHeight = 0.95f;
+	// Horizontal wall rays previously began inside the same capsule and therefore
+	// created a permanent wall contact, allowing repeated wall kicks in open air.
+	// Probe slightly above the capsule until the query API can exclude an actor
+	// directly rather than relying only on scene-authored layer masks.
+	float wallProbeHeight = 1.58f;
 	float wallProbeDistance = 0.62f;
 	float wallContactGrace = 0.14f;
 	float wallKickHorizontalVelocity = 7.2f;
