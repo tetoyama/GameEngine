@@ -40,6 +40,7 @@ on:
       - "Tests/StaticBatchGroupVisibilitySmokeTest.cpp"
       - "Tests/StaticBatchPipelineBootstrapSmokeTest.cpp"
       - "Tests/StaticBatchShadowPipelineSmokeTest.cpp"
+      - "Tests/StaticBatchShadowVertexInputRestoreSmokeTest.cpp"
       - "Tests/StaticBatchShadowGroupEligibilitySmokeTest.cpp"
       - "Tests/StaticBatchShadowGroupVisibilitySmokeTest.cpp"
       - "Tests/StaticBatchDrawSubmissionSmokeTest.cpp"
@@ -88,6 +89,7 @@ on:
       - "Tests/StaticBatchGroupVisibilitySmokeTest.cpp"
       - "Tests/StaticBatchPipelineBootstrapSmokeTest.cpp"
       - "Tests/StaticBatchShadowPipelineSmokeTest.cpp"
+      - "Tests/StaticBatchShadowVertexInputRestoreSmokeTest.cpp"
       - "Tests/StaticBatchShadowGroupEligibilitySmokeTest.cpp"
       - "Tests/StaticBatchShadowGroupVisibilitySmokeTest.cpp"
       - "Tests/StaticBatchDrawSubmissionSmokeTest.cpp"
@@ -137,6 +139,8 @@ jobs:
             output: static-batch-pipeline-bootstrap-test.exe
           - source: Tests/StaticBatchShadowPipelineSmokeTest.cpp
             output: static-batch-shadow-pipeline-test.exe
+          - source: Tests/StaticBatchShadowVertexInputRestoreSmokeTest.cpp
+            output: static-batch-shadow-vertex-input-restore-test.exe
           - source: Tests/StaticBatchShadowGroupEligibilitySmokeTest.cpp
             output: static-batch-shadow-eligibility-test.exe
           - source: Tests/StaticBatchShadowGroupVisibilitySmokeTest.cpp
@@ -196,8 +200,6 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          show-progress: false
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
