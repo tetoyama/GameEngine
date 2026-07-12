@@ -1,0 +1,32 @@
+Entities:
+  - LocalID: 0
+    Components:
+      - Component: NameComponent
+        Name: PlatformerHudDigit
+      - Component: TransformComponent
+        Position: {x: 0, y: 0, z: 0}
+        Rotation: [0, 0, 0, 1]
+        Scale: {x: 0.05, y: 0.07, z: 1}
+        Parent: 0
+      - Component: OrderInLayerComponent
+        order: 0
+      - Component: MaterialComponent
+        ShaderID: 0
+        Material:
+          BaseColor: {x: 1, y: 1, z: 1, w: 1}
+          Metallic: 0
+          Roughness: 0
+          AO: 1
+          EmissiveColor: {x: 0, y: 0, z: 0}
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: false
+          UseEnvironmentMap: false
+      - Component: TextureComponent
+        FilePath: Asset\Texture\number.png
+        UV_Slice_X: 5
+        UV_Slice_Y: 5
+        AnimationNum: 0
+      - Component: SpriteRendererComponent
+        anchor: {x: 0.5, y: 0.5}
+        pivot: {x: 0.5, y: 0.5}
