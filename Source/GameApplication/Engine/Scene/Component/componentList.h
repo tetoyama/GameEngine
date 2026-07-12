@@ -49,11 +49,23 @@
 #include "Script/CameraController.h"
 #include "Script/GN31.h"
 
+// Windows SDKのmin/maxマクロはMiniGameCollection内部のstd::min/std::maxを
+// 破壊する。Engine全体でNOMINMAXを強制せず、このinclude境界だけ一時退避する。
+#pragma push_macro("min")
+#pragma push_macro("max")
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
 #include "Game/MiniGameCollection/Runtime/MiniGamePersistentRuntime.h"
 #include "Game/MiniGameCollection/Runtime/PresentationSpikeRuntime.h"
 #include "Game/MiniGameCollection/Runtime/ColorTerritoryRuntime.h"
 #include "Game/MiniGameCollection/Runtime/SheepRoundupRuntime.h"
 #include "Game/MiniGameCollection/Runtime/BackshotRuntime.h"
+#pragma pop_macro("max")
+#pragma pop_macro("min")
 
 inline constexpr auto COMPONENT_SPARSE = ECSStorage::ComponentStorageStrategy::SparseStable;
 inline constexpr auto COMPONENT_DENSE = ECSStorage::ComponentStorageStrategy::Dense;
