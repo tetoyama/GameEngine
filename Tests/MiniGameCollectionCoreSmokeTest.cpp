@@ -2,6 +2,7 @@
 #include "Game/MiniGameCollection/ColorTerritory/ColorTerritoryItemModel.h"
 #include "Game/MiniGameCollection/ColorTerritory/ColorTerritoryModel.h"
 #include "Game/MiniGameCollection/Core/MiniGameCore.h"
+#include "Game/MiniGameCollection/SheepRoundup/SheepRoundupRules.h"
 #include "Game/MiniGameCollection/SheepRoundup/SheepSteeringModel.h"
 
 #include <cassert>
@@ -12,23 +13,10 @@ namespace {
 
 class DummyRules final : public MiniGameCollection::IMiniGameRules {
 public:
-    void Prepare() override {
-        prepared = true;
-    }
-
-    void StartGame() override {
-        assert(prepared);
-        started = true;
-    }
-
-    void Tick(float deltaTime) override {
-        assert(started);
-        elapsed += deltaTime;
-    }
-
-    bool IsFinished() const override {
-        return elapsed >= 0.1f;
-    }
+    void Prepare() override { prepared = true; }
+    void StartGame() override { assert(prepared); started = true; }
+    void Tick(float deltaTime) override { assert(started); elapsed += deltaTime; }
+    bool IsFinished() const override { return elapsed >= 0.1f; }
 
     MiniGameCollection::MiniGameResult BuildResult() const override {
         MiniGameCollection::MiniGameResult result;
@@ -40,9 +28,7 @@ public:
         return result;
     }
 
-    void Shutdown() override {
-        shutdown = true;
-    }
+    void Shutdown() override { shutdown = true; }
 
     bool prepared = false;
     bool started = false;
@@ -210,6 +196,60 @@ void TestSheepSteering() {
     assert(target->interceptPosition.x > 1.0f);
 }
 
+void TestEndlessGoldenSheep() {
+    using namespace MiniGameCollection;
+    using namespace MiniGameCollection::SheepRoundup;
+
+    SheepRoundupRules rules(
+        2,
+        10.0f,
+        {{-5.0f, -5.0f}, {5.0f, 5.0f}}
+    );
+    rules.SetPens({
+        {.owner = 0, .center = {-4.0f, 0.0f}, .radius = 1.0f},
+        {.owner = 1, .center = {4.0f, 0.0f}, .radius = 1.0f}
+    });
+    rules.SetInitialSheepDefinitions({
+        {.position = {-4.0f, 0.0f}, .golden = true}
+    });
+
+    SheepSpawnConfig spawn;
+    spawn.endlessSpawning = true;
+    spawn.poolCapacity = 6;
+    spawn.earlyTargetActive = 1;
+    spawn.lateTargetActive = 4;
+    spawn.earlySpawnIntervalSeconds = 0.01f;
+    spawn.lateSpawnIntervalSeconds = 0.01f;
+    spawn.earlySpawnBatch = 1;
+    spawn.lateSpawnBatch = 2;
+    spawn.earlyGoldenChance = 1.0f;
+    spawn.lateGoldenChance = 1.0f;
+    rules.SetSpawnConfig(spawn);
+    rules.SetSpawnSeed(12345u);
+
+    rules.Prepare();
+    rules.StartGame();
+    rules.SetPlayerPosition(0, {0.0f, 4.0f});
+    rules.SetPlayerPosition(1, {0.0f, -4.0f});
+    rules.Tick(0.05f);
+
+    assert(!rules.IsFinished());
+    assert(rules.GetScores()[0] == 3);
+    const auto scoreEvents = rules.ConsumeScoreEvents();
+    assert(scoreEvents.size() == 1);
+    assert(scoreEvents[0].golden);
+    assert(scoreEvents[0].pointsAwarded == 3);
+    assert(rules.GetActiveSheepCount() == 1);
+    assert(!rules.ConsumeSpawnEvents().empty());
+
+    rules.Tick(5.0f);
+    rules.Tick(0.02f);
+    assert(rules.IsLateRush());
+    assert(rules.GetActiveSheepCount() >= 3);
+    assert(rules.GetActiveGoldenSheepCount() >= 1);
+    rules.Shutdown();
+}
+
 void TestBackshot() {
     using namespace MiniGameCollection;
     using namespace MiniGameCollection::Backshot;
@@ -272,6 +312,7 @@ int main() {
     TestPresentationTimeline();
     TestColorTerritory();
     TestSheepSteering();
+    TestEndlessGoldenSheep();
     TestBackshot();
     return 0;
 }
