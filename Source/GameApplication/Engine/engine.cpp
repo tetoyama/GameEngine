@@ -283,6 +283,9 @@ void Engine::Run(EngineContext* context){
 
 		time->BeginDrawSection(DrawTimingSection::RenderSchedule);
 		scenes->Draw();
+		// Runtime UIはRenderSystemのPlayerPass後にSwapChainへ重ねる。
+		// Debug / Editor ImGuiはこの後に描画されるため最前面を維持する。
+		renderer->FlushRuntime2DOverlay();
 		time->EndDrawSection(DrawTimingSection::RenderSchedule);
 
 		time->BeginDrawSection(DrawTimingSection::DebugDraw);
