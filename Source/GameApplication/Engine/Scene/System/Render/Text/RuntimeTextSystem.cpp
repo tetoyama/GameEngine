@@ -155,8 +155,12 @@ void RuntimeTextSystem::ProcessDirtyText(){
 			texture->AnimationNum = 0;
 			if(text->AutoSizeTransform){
 				if(auto* transform = sceneContext->component->GetComponent<TransformComponent>(entity)){
-					transform->scale.x = static_cast<float>(text->PixelWidth);
-					transform->scale.y = static_cast<float>(text->PixelHeight);
+					const float viewportWidth = static_cast<float>(
+						std::max<UINT>(1U, m_context->graphics ? m_context->graphics->m_width : 1U));
+					const float viewportHeight = static_cast<float>(
+						std::max<UINT>(1U, m_context->graphics ? m_context->graphics->m_height : 1U));
+					transform->scale.x = static_cast<float>(text->PixelWidth) / viewportWidth;
+					transform->scale.y = static_cast<float>(text->PixelHeight) / viewportHeight;
 				}
 			}
 			text->MarkRasterized();
