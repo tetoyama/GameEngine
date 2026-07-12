@@ -70,6 +70,7 @@ jobs:
         shell: bash
         run: |
           files=(
+            Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameCollectionEntryRuntime.h
             Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGamePersistentRuntime.h
             Source/GameApplication/Game/MiniGameCollection/Runtime/PresentationSpikeRuntime.h
             Source/GameApplication/Game/MiniGameCollection/Runtime/ColorTerritoryRuntime.h
@@ -83,10 +84,21 @@ jobs:
           test "$(grep -c "ImGui::" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h)" -eq 1
           grep -q "void inspector" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h
           grep -q "void DrawHitDebug" Source/GameApplication/Game/MiniGameCollection/Runtime/BackshotRuntime.h
+      - name: Enforce scene-driven entry flow
+        shell: bash
+        run: |
+          if grep -n "MiniGameCollection" Source/GameApplication/gameApplication.cpp; then
+            echo "GameApplication must remain independent from the mini-game entry scene."
+            exit 1
+          fi
+          grep -q "MiniGameCollectionEntryRuntime" Source/GameApplication/Engine/Scene/Component/componentList.h
+          grep -q "QueueAdditiveSceneLoadFromFilePath" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameCollectionEntryRuntime.h
+          grep -q "MiniGamePersistent.scene" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameCollectionEntryRuntime.h
       - name: Enforce deferred additive scene loading
         shell: bash
         run: |
           runtime_files=(
+            Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameCollectionEntryRuntime.h
             Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGamePersistentRuntime.h
             Source/GameApplication/Game/MiniGameCollection/Core/MiniGameSceneTransitionEngineBackend.h
           )
@@ -126,6 +138,7 @@ jobs:
         shell: pwsh
         run: |
           $required = @(
+            'Asset/Game/MiniGameCollection/Scene/Entry/MiniGameCollectionEntry.scene',
             'Asset/Game/MiniGameCollection/Scene/Persistent/MiniGamePersistent.scene',
             'Asset/Game/MiniGameCollection/Scene/PresentationTest/PresentationSpike.scene',
             'Asset/Game/MiniGameCollection/Scene/ColorTerritory/ColorTerritory.scene',
