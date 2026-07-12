@@ -5,11 +5,13 @@
 #include "Scene/scene.h"
 #include "Scene/sceneManager.h"
 
+#include <string>
+#include <vector>
+
 namespace MiniGameCollection::Runtime {
 
-// MiniGameCollectionの唯一の起動Sceneに配置するRuntime。
-// GameApplicationはEntry Sceneだけを開き、このRuntimeがPersistent Sceneを
-// AdditiveロードすることでMulti-Scene構成を成立させる。
+// Entry Sceneに配置し、Scene資産が宣言したAdditiveScenePathsから
+// Multi-Scene構成を組み立てるRuntime。
 class MiniGameCollectionEntryRuntime final : public MiniGameRuntimeScriptBase {
 public:
     MiniGameCollectionEntryRuntime()
@@ -18,12 +20,40 @@ public:
         SetExecutionOrder(SystemTaskDomain::Render, SystemPhase::Late, 300);
     }
 
-private:
-    static constexpr const char* PersistentScenePath =
-        "Asset/Game/MiniGameCollection/Scene/Persistent/MiniGamePersistent.scene";
+    YAML::Node encode() override {
+        YAML::Node node = MiniGameRuntimeScriptBase::encode();
+        YAML::Node paths(YAML::NodeType::Sequence);
+        for (const std::string& path : m_additiveScenePaths) {
+            paths.push_back(path);
+        }
+        node["AdditiveScenePaths"] = paths;
+        node["DestroyEntryAfterLoaded"] = m_destroyEntryAfterLoaded;
+        return node;
+    }
 
+    bool decode(SceneContext* context, const YAML::Node& node) override {
+        MiniGameRuntimeScriptBase::decode(context, node);
+
+        m_additiveScenePaths.clear();
+        if (const YAML::Node paths = node["AdditiveScenePaths"];
+            paths && paths.IsSequence()) {
+            for (const YAML::Node& path : paths) {
+                const std::string value = path.as<std::string>();
+                if (!value.empty()) {
+                    m_additiveScenePaths.push_back(value);
+                }
+            }
+        }
+        if (node["DestroyEntryAfterLoaded"]) {
+            m_destroyEntryAfterLoaded =
+                node["DestroyEntryAfterLoaded"].as<bool>();
+        }
+        return true;
+    }
+
+private:
     void OnStart() override {
-        QueuePersistentScene();
+        m_loadRequested = QueueConfiguredScenes();
     }
 
     void OnUpdate(float dt) override {
@@ -36,15 +66,15 @@ private:
 
         SceneManager& sceneManager = *context->manager->sceneManager;
         if (!m_loadRequested) {
-            QueuePersistentScene();
+            m_loadRequested = QueueConfiguredScenes();
         }
 
-        if (!IsPersistentSceneLoaded(sceneManager)) {
+        if (!AreConfiguredScenesLoaded(sceneManager) ||
+            !m_destroyEntryAfterLoaded) {
             return;
         }
 
-        // Persistent Sceneが起動した後はEntry Sceneを構成から外す。
-        // Multi-Sceneの所有者はPersistent Runtimeへ引き継がれる。
+        // 宣言したScene群が揃った後はEntry Sceneを構成から外す。
         for (const auto& [name, scene] : sceneManager.GetActiveScenes()) {
             (void)name;
             if (scene && scene->GetSceneContext() == context) {
@@ -78,11 +108,15 @@ private:
             34.0f
         );
         ui.DrawTextCentered(
-            "LOADING...",
+            m_additiveScenePaths.empty()
+                ? "ENTRY SCENE HAS NO ADDITIVE SCENES"
+                : "LOADING MULTI-SCENE COMPOSITION...",
             ui.Width() * 0.5f,
             ui.Height() * 0.5f + 18.0f,
             18.0f,
-            D2D1::ColorF(0.64f, 0.74f, 0.9f, 1.0f)
+            m_additiveScenePaths.empty()
+                ? D2D1::ColorF(1.0f, 0.32f, 0.28f, 1.0f)
+                : D2D1::ColorF(0.64f, 0.74f, 0.9f, 1.0f)
         );
     }
 
@@ -94,33 +128,52 @@ private:
         m_loadRequested = false;
     }
 
-    void QueuePersistentScene() {
+    bool QueueConfiguredScenes() {
         SceneContext* context = GetEntityRef().GetScene();
-        if (!context || !context->manager || !context->manager->sceneManager) {
-            return;
+        if (!context || !context->manager || !context->manager->sceneManager ||
+            m_additiveScenePaths.empty()) {
+            return false;
         }
 
         SceneManager& sceneManager = *context->manager->sceneManager;
-        if (IsPersistentSceneLoaded(sceneManager)) {
-            m_loadRequested = true;
-            return;
+        bool allQueued = true;
+        for (const std::string& path : m_additiveScenePaths) {
+            if (IsSceneLoaded(sceneManager, path)) {
+                continue;
+            }
+            allQueued = sceneManager.QueueAdditiveSceneLoadFromFilePath(path) &&
+                allQueued;
         }
-
-        m_loadRequested = sceneManager.QueueAdditiveSceneLoadFromFilePath(
-            PersistentScenePath
-        );
+        return allQueued;
     }
 
-    static bool IsPersistentSceneLoaded(const SceneManager& sceneManager) {
+    bool AreConfiguredScenesLoaded(const SceneManager& sceneManager) const {
+        if (m_additiveScenePaths.empty()) {
+            return false;
+        }
+        for (const std::string& path : m_additiveScenePaths) {
+            if (!IsSceneLoaded(sceneManager, path)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static bool IsSceneLoaded(
+        const SceneManager& sceneManager,
+        const std::string& scenePath
+    ) {
         for (const auto& [name, scene] : sceneManager.GetActiveScenes()) {
             (void)name;
-            if (scene && scene->ScenePath == PersistentScenePath) {
+            if (scene && scene->ScenePath == scenePath) {
                 return true;
             }
         }
         return false;
     }
 
+    std::vector<std::string> m_additiveScenePaths;
+    bool m_destroyEntryAfterLoaded = true;
     bool m_loadRequested = false;
 };
 
