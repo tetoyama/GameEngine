@@ -91,9 +91,12 @@ jobs:
             echo "GameApplication must remain independent from the mini-game entry scene."
             exit 1
           fi
+          entry_scene=Asset/Game/MiniGameCollection/Scene/Entry/MiniGameCollectionEntry.scene
           grep -q "MiniGameCollectionEntryRuntime" Source/GameApplication/Engine/Scene/Component/componentList.h
-          grep -q "QueueAdditiveSceneLoadFromFilePath" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameCollectionEntryRuntime.h
-          grep -q "MiniGamePersistent.scene" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameCollectionEntryRuntime.h
+          grep -q "AdditiveScenePaths" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameCollectionEntryRuntime.h
+          grep -q "AdditiveScenePaths:" "$entry_scene"
+          grep -q "Asset/Game/MiniGameCollection/Scene/Persistent/MiniGamePersistent.scene" "$entry_scene"
+          grep -q "DestroyEntryAfterLoaded: true" "$entry_scene"
       - name: Enforce deferred additive scene loading
         shell: bash
         run: |
@@ -108,6 +111,7 @@ jobs:
           fi
           grep -q "QueueAdditiveSceneLoadFromFilePath" Source/GameApplication/Engine/Scene/sceneManager.h
           grep -q "ProcessQueuedAdditiveSceneLoads" Source/GameApplication/Engine/engine.cpp
+          grep -q "QueueAdditiveSceneLoadFromFilePath" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameCollectionEntryRuntime.h
           grep -q "QueueAdditiveSceneLoadFromFilePath" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGamePersistentRuntime.h
           grep -q "QueueAdditiveSceneLoadFromFilePath" Source/GameApplication/Game/MiniGameCollection/Core/MiniGameSceneTransitionEngineBackend.h
       - name: Compile and run minigame model contracts
