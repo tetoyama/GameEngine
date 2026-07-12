@@ -1,0 +1,33 @@
+Entities:
+  - LocalID: 0
+    Components:
+      - Component: NameComponent
+        Name: PlatformerTreeDecoration
+      - Component: TransformComponent
+        Position: {x: 0, y: 0, z: 0}
+        Rotation: [0, 0, 0, 1]
+        Scale: {x: 5.2, y: 5.2, z: 5.2}
+        Parent: 0
+      - Component: StaticEntityComponent
+      - Component: CullingComponent
+      - Component: MaterialComponent
+        ShaderID: 0
+        Material:
+          BaseColor: {x: 0.88, y: 1, z: 0.88, w: 1}
+          Metallic: 0
+          Roughness: 0.86
+          AO: 1
+          EmissiveColor: {x: 0, y: 0.01, z: 0}
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\tree.png
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: BillBoardRendererComponent
+        RotateX: false
+        RotateY: true
+        RotateZ: false
