@@ -9,6 +9,7 @@ on:
       - "Source/GameApplication/Game/MiniGameCollection/**"
       - "Tests/MiniGameCollectionCoreSmokeTest.cpp"
       - "Tests/MiniGamePresentationSpikeSmokeTest.cpp"
+      - "Tests/MiniGameRulesSmokeTest.cpp"
       - ".github/workflows/minigame-collection-core.yml"
   push:
     branches:
@@ -17,6 +18,7 @@ on:
       - "Source/GameApplication/Game/MiniGameCollection/**"
       - "Tests/MiniGameCollectionCoreSmokeTest.cpp"
       - "Tests/MiniGamePresentationSpikeSmokeTest.cpp"
+      - "Tests/MiniGameRulesSmokeTest.cpp"
       - ".github/workflows/minigame-collection-core.yml"
   workflow_dispatch:
 
@@ -33,7 +35,7 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-      - name: Compile and run minigame rule contracts
+      - name: Compile and run minigame model contracts
         shell: cmd
         run: >-
           cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
@@ -55,3 +57,14 @@ jobs:
           Tests/MiniGamePresentationSpikeSmokeTest.cpp
           /Fe:minigame-presentation-spike-test.exe
           && minigame-presentation-spike-test.exe
+      - name: Compile and run minigame rule flow
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4324 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          Tests/MiniGameRulesSmokeTest.cpp
+          /Fe:minigame-rules-test.exe
+          && minigame-rules-test.exe
