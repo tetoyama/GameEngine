@@ -8,8 +8,6 @@
 #include <span>
 #include <vector>
 
-#include <wrl/client.h>
-
 #include "System/Render/StaticBatch/StaticBatchModelGeometrySourceProvider.h"
 
 struct StaticBatchModelGeometryRuntimeStorageTelemetry {
@@ -23,9 +21,9 @@ struct StaticBatchModelGeometryRuntimeStorageTelemetry {
 	std::size_t rejectedSourceCount = 0;
 };
 
-// ModelDataが生成したD3D11 GeometryをStatic Batch Runtime側で保持する。
-// EntryはVertex / Index Bufferへ独立したCOM参照を持つため、Geometry Binding
-// Cacheの同期中にComponentやModelDataの寿命へ依存しない。
+// ModelDataのCPU Geometry SnapshotをStatic Batch Runtime側へ複製する。
+// EntryはModelDataのNative Bufferや寿命に依存せず、Geometry Binding Cacheが
+// RHI Vertex / Index Bufferを生成するためのFrame間Sourceを提供する。
 class StaticBatchModelGeometryRuntimeStorage {
 public:
 	StaticBatchModelGeometryRuntimeStorage() = default;
@@ -80,7 +78,8 @@ public:
 			);
 		if(!bootstrapResult.IsEligible() ||
 			bootstrapResult.source.geometryResourceKey !=
-				expectedGeometryResourceKey){
+				expectedGeometryResourceKey ||
+			!bootstrapResult.source.HasCpuData()){
 			++m_rejectedSourceCount;
 			return bootstrapResult;
 		}
@@ -92,7 +91,7 @@ public:
 			bootstrapResult.source
 		)){
 			result.status =
-				StaticBatchModelGeometrySourceStatus::MissingNativeBuffer;
+				StaticBatchModelGeometrySourceStatus::InvalidGeometryCount;
 			++m_rejectedSourceCount;
 			return result;
 		}
@@ -163,8 +162,8 @@ private:
 		std::uint64_t modelRuntimeRevision = 0;
 		std::uint32_t subMeshIndex = RenderPacketAllSubMeshes;
 		bool targetsAllSubMeshes = true;
-		Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
-		Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
+		std::vector<std::byte> vertexData;
+		std::vector<std::byte> indexData;
 		std::uint32_t vertexStride = 0;
 		std::uint32_t vertexCount = 0;
 		std::uint32_t indexCount = 0;
@@ -175,21 +174,27 @@ private:
 			const RenderPacket& packet,
 			const StaticBatchD3D11GeometrySource& source
 		){
-			if(!source.IsValid() || !renderer.model) return false;
+			if(!source.IsValid() || !source.HasCpuData() || !renderer.model){
+				return false;
+			}
 
-			Microsoft::WRL::ComPtr<ID3D11Buffer> newVertexBuffer;
-			Microsoft::WRL::ComPtr<ID3D11Buffer> newIndexBuffer;
-			newVertexBuffer = source.vertexBuffer;
-			newIndexBuffer = source.indexBuffer;
-			if(!newVertexBuffer || !newIndexBuffer) return false;
+			std::vector<std::byte> newVertexData(
+				source.vertexData.begin(),
+				source.vertexData.end()
+			);
+			std::vector<std::byte> newIndexData(
+				source.indexData.begin(),
+				source.indexData.end()
+			);
+			if(newVertexData.empty() || newIndexData.empty()) return false;
 
 			geometryResourceKey = source.geometryResourceKey;
 			modelIdentity = renderer.model;
 			modelRuntimeRevision = renderer.modelRuntimeRevision;
 			subMeshIndex = packet.subMeshIndex;
 			targetsAllSubMeshes = packet.TargetsAllSubMeshes();
-			vertexBuffer = std::move(newVertexBuffer);
-			indexBuffer = std::move(newIndexBuffer);
+			vertexData = std::move(newVertexData);
+			indexData = std::move(newIndexData);
 			vertexStride = source.vertexStride;
 			vertexCount = source.vertexCount;
 			indexCount = source.indexCount;
@@ -206,13 +211,13 @@ private:
 				modelRuntimeRevision == renderer.modelRuntimeRevision &&
 				subMeshIndex == packet.subMeshIndex &&
 				targetsAllSubMeshes == packet.TargetsAllSubMeshes() &&
-				vertexBuffer && indexBuffer;
+				!vertexData.empty() && !indexData.empty();
 		}
 
 		StaticBatchModelGeometrySourceResult MakeResult() const noexcept {
 			StaticBatchModelGeometrySourceResult result;
-			result.source.vertexBuffer = vertexBuffer.Get();
-			result.source.indexBuffer = indexBuffer.Get();
+			result.source.vertexData = vertexData;
+			result.source.indexData = indexData;
 			result.source.vertexStride = vertexStride;
 			result.source.vertexCount = vertexCount;
 			result.source.indexCount = indexCount;
@@ -220,7 +225,7 @@ private:
 			result.source.geometryResourceKey = geometryResourceKey;
 			result.status = result.source.IsValid()
 				? StaticBatchModelGeometrySourceStatus::None
-				: StaticBatchModelGeometrySourceStatus::MissingNativeBuffer;
+				: StaticBatchModelGeometrySourceStatus::InvalidGeometryCount;
 			return result;
 		}
 	};
@@ -260,13 +265,13 @@ private:
 };
 
 // Static Batch ResolverへRuntime Storageを公開するProvider。
-// Legacy ProviderはStorage Miss / Revision差し替え時のBootstrapにだけ使用する。
+// Model CPU ProviderはStorage Miss / Revision差し替え時の取り込みに使用する。
 class StaticBatchRuntimeModelGeometrySourceProvider final
 	: public IStaticBatchModelGeometrySourceProvider {
 public:
 	explicit StaticBatchRuntimeModelGeometrySourceProvider(
 		const IStaticBatchModelGeometrySourceProvider& bootstrapProvider =
-			StaticBatchModelGeometrySourceProviders::LegacyModelData()
+			StaticBatchModelGeometrySourceProviders::ModelCpuData()
 	) noexcept
 		: m_bootstrapProvider(&bootstrapProvider) {
 	}
