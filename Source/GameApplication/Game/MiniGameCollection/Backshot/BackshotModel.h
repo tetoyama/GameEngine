@@ -144,7 +144,7 @@ public:
 
         const Vec2 selfForward = NormalizeOrZero(context.self.forward);
         const float endgame = 1.0f - std::clamp(context.remainingTimeRatio, 0.0f, 1.0f);
-        const float rearDanger = ComputeRearDanger(context);
+        const RearThreat rearThreat = FindRearThreat(context);
         std::optional<BackshotCpuDecision> best;
 
         for (const TargetCandidate& candidate : context.candidates) {
@@ -169,38 +169,55 @@ public:
             const bool inShotArc =
                 aimDot >= std::clamp(config.forwardAimDotThreshold, -1.0f, 1.0f);
             const bool inRange = distance <= std::max(0.0f, config.range);
-            const bool cooldownReady = context.self.shotCooldownRemainingSeconds <= 0.0f;
+            const bool cooldownReady =
+                context.self.shotCooldownRemainingSeconds <= 0.0f;
 
             float utility = 0.0f;
-            utility += rearOpportunity ? 7.0f : 1.0f;
-            utility += candidate.hasLineOfSight ? 1.2f : -2.5f;
-            utility += candidate.isTargetingSelf ? 1.6f : 0.0f;
-            utility += inRange ? 1.0f : -std::max(0.0f, distance - config.range) * 0.5f;
+            utility += rearOpportunity ? 9.0f : 0.6f;
+            utility += candidate.hasLineOfSight ? 1.2f : -3.0f;
+            utility += candidate.isTargetingSelf ? 1.25f : 0.0f;
+            utility += inRange ? 1.0f :
+                -std::max(0.0f, distance - config.range) * 0.55f;
             utility += endgame * difficulty.lateGameAggression *
-                (context.livingPlayerCount <= 2 ? 2.0f : 0.7f);
-            utility -= rearDanger * 2.2f;
+                (context.livingPlayerCount <= 2 ? 2.4f : 0.7f);
+            utility -= rearThreat.strength * 2.5f;
 
-            const Vec2 behindTarget =
-                candidate.combatant.position - targetForward * 2.0f;
-            Vec2 desiredPosition = behindTarget;
+            const float flankDistance = rearOpportunity ? 1.35f : 2.25f;
+            Vec2 desiredPosition =
+                candidate.combatant.position - targetForward * flankDistance;
 
-            if (rearDanger > 0.55f && context.distanceToWallBehindSelf > 1.2f) {
-                desiredPosition = context.self.position - selfForward * 2.0f;
-                utility += 0.8f;
+            // 背後から狙われている時は、単純に逃げて背中を晒し続けず、
+            // 最も危険な相手へ向き直って防御状態を作る。
+            if (rearThreat.strength > 0.38f &&
+                LengthSquared(rearThreat.directionToThreat) > 0.00001f) {
+                desiredPosition = context.self.position +
+                    rearThreat.directionToThreat * 1.8f;
+                utility += candidate.combatant.playerId == rearThreat.playerId
+                    ? 2.2f
+                    : -1.0f;
+            } else if (rearOpportunity && inRange) {
+                // 背面を取れた後に目標点を通り越さず、射程を維持する。
+                desiredPosition = context.self.position +
+                    targetDirection * std::max(0.0f, distance - 4.6f);
             }
 
+            const bool desperateGuardShot =
+                endgame >= 0.82f &&
+                context.livingPlayerCount <= 2 &&
+                targetRearDot < 0.2f;
             const bool shouldShoot =
                 cooldownReady &&
                 candidate.hasLineOfSight &&
                 inRange &&
-                inShotArc;
+                inShotArc &&
+                (rearOpportunity || desperateGuardShot);
 
             BackshotCpuDecision decision{
                 .target = candidate.combatant.playerId,
                 .desiredPosition = desiredPosition,
                 .shouldShoot = shouldShoot,
                 .utility = utility,
-                .rearDanger = rearDanger
+                .rearDanger = rearThreat.strength
             };
 
             if (!best || IsBetter(decision, *best)) {
@@ -212,43 +229,64 @@ public:
     }
 
 private:
-    static float ComputeRearDanger(const BackshotCpuContext& context) {
+    struct RearThreat {
+        PlayerId playerId = InvalidPlayerId;
+        Vec2 directionToThreat{};
+        float strength = 0.0f;
+    };
+
+    static RearThreat FindRearThreat(const BackshotCpuContext& context) {
         const Vec2 selfForward = NormalizeOrZero(context.self.forward);
-        float danger = 0.0f;
+        RearThreat result;
 
         for (const TargetCandidate& candidate : context.candidates) {
             if (!candidate.combatant.alive) {
                 continue;
             }
-            const Vec2 selfToEnemy = candidate.combatant.position - context.self.position;
+            const Vec2 selfToEnemy =
+                candidate.combatant.position - context.self.position;
             const float distance = Length(selfToEnemy);
             if (distance <= 0.00001f) {
                 continue;
             }
 
-            const float rearDot = Dot(selfForward, selfToEnemy / distance);
+            const Vec2 direction = selfToEnemy / distance;
+            const float rearDot = Dot(selfForward, direction);
             if (rearDot >= 0.0f) {
                 continue;
             }
 
-            const float proximity = std::clamp(1.0f - distance / 8.0f, 0.0f, 1.0f);
+            const float proximity = std::clamp(
+                1.0f - distance / 8.0f,
+                0.0f,
+                1.0f
+            );
             const float behind = std::clamp(-rearDot, 0.0f, 1.0f);
-            const float targeting = candidate.isTargetingSelf ? 1.0f : 0.55f;
-            danger = std::max(danger, proximity * behind * targeting);
+            const float targeting = candidate.isTargetingSelf ? 1.0f : 0.58f;
+            const float strength = proximity * behind * targeting;
+            if (strength > result.strength) {
+                result.playerId = candidate.combatant.playerId;
+                result.directionToThreat = direction;
+                result.strength = strength;
+            }
         }
-        return danger;
+
+        return result;
     }
 
     static bool IsBetter(
         const BackshotCpuDecision& candidate,
         const BackshotCpuDecision& currentBest
-    ) noexcept {
+    ) {
         constexpr float epsilon = 0.0001f;
         if (candidate.utility > currentBest.utility + epsilon) {
             return true;
         }
         if (candidate.utility + epsilon < currentBest.utility) {
             return false;
+        }
+        if (candidate.shouldShoot != currentBest.shouldShoot) {
+            return candidate.shouldShoot;
         }
         return candidate.target < currentBest.target;
     }
