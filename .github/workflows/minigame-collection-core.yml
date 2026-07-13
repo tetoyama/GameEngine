@@ -88,6 +88,23 @@ jobs:
           test "$(grep -c "ImGui::" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h)" -eq 1
           grep -q "void inspector" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h
           grep -q "void DrawHitDebug" Source/GameApplication/Game/MiniGameCollection/Runtime/BackshotRuntime.h
+      - name: Enforce result menu controls
+        shell: bash
+        run: |
+          result_ui=Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h
+          grep -q '"もう一度"' "$result_ui"
+          grep -q '"次のゲーム"' "$result_ui"
+          grep -q '"タイトルに戻る"' "$result_ui"
+          grep -q 'VK_UP' "$result_ui"
+          grep -q 'VK_DOWN' "$result_ui"
+          grep -q 'VK_LEFT' "$result_ui"
+          grep -q 'VK_RIGHT' "$result_ui"
+          grep -q 'CustomScriptComponent::GetKeyDown(VK_SPACE)' "$result_ui"
+          grep -q 'm_resultMenuSelection = 0' "$result_ui"
+          grep -q 'std::clamp' "$result_ui"
+          grep -q 'keyCode == VK_ESCAPE' "$result_ui"
+          grep -q 'ResultMenuAction::ReturnToTitle' "$result_ui"
+          grep -q '矢印キー：選択    SPACE：決定' "$result_ui"
       - name: Enforce PlayerPass runtime UI composition
         shell: bash
         run: |
