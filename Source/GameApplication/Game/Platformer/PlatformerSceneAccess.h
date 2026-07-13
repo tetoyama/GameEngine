@@ -9,9 +9,10 @@
 
 #include <cmath>
 
-// Platformer-only physics query adapter. Gameplay uses short probes for the
-// capsule foot and walls, while the camera uses a much longer obstruction ray.
-// Keeping the extra robustness here avoids changing the engine-wide Raycast API.
+// Platformer-only physics query adapter. Gameplay probes must see static course
+// geometry even when the player and old authored stage shapes share a stale
+// Default layer. Dynamic actors and triggers are rejected by shape/actor type,
+// rather than by excluding an entire layer bit.
 class PlatformerPhysicsProbe {
 public:
 	void Bind(PhysicSystem* value) { physics = value; }
@@ -25,24 +26,16 @@ public:
 		if(!physics) return {};
 
 		const bool shortGameplayProbe = maxDistance <= 0.75f;
-		physx::PxU32 effectiveMask = layerMask;
-		if(shortGameplayProbe) {
-			// SelfLayerBit was serialized as 10 in older Platformer scenes even though
-			// the player shape may use either the canonical Player bit or the legacy
-			// Default bit. Never preserve the Environment bit from that stale value.
-			const physx::PxU32 playerLayer = physics->GetLayerBit("Player");
-			effectiveMask = playerLayer != 0
-				? playerLayer
-				: (layerMask != 0 ? layerMask & (~layerMask + 1u) : 0u);
+		if(!shortGameplayProbe) {
+			return physics->RaycastWithMask(origin, direction, maxDistance, layerMask);
 		}
 
 		const bool downwardGroundProbe =
-			shortGameplayProbe &&
 			direction.y < -0.9f &&
 			std::abs(direction.x) < 0.1f &&
 			std::abs(direction.z) < 0.1f;
 		if(!downwardGroundProbe) {
-			return physics->RaycastWithMask(origin, direction, maxDistance, effectiveMask);
+			return RaycastStaticSurface(origin, direction, maxDistance);
 		}
 
 		// Keep the probe footprint well inside the 0.25 m capsule radius. A centre
@@ -63,38 +56,10 @@ public:
 		float peripheralReferenceDistance = 0.0f;
 
 		for(int index = 0; index < 5; ++index) {
-			physx::PxU32 queryMask = effectiveMask;
-			RayHit candidate{};
-
-			// The foot ray starts inside the player capsule and can also pass through
-			// CameraZone, Checkpoint and Coin trigger volumes. Those shapes participate
-			// in scene queries even though they are not simulation surfaces. Retry after
-			// excluding the actual layer of any dynamic actor or trigger hit so only a
-			// static, non-trigger support surface can become ground.
-			for(int attempt = 0; attempt < 6; ++attempt) {
-				candidate = physics->RaycastWithMask(
-					origin + offsets[index],
-					direction,
-					maxDistance,
-					queryMask);
-				if(!candidate.hit) break;
-
-				const bool dynamicActor = candidate.hitActor &&
-					candidate.hitActor->getType() == physx::PxActorType::eRIGID_DYNAMIC;
-				const bool triggerShape = candidate.hitShape &&
-					candidate.hitShape->getFlags().isSet(physx::PxShapeFlag::eTRIGGER_SHAPE);
-				if(!dynamicActor && !triggerShape) break;
-
-				const physx::PxU32 hitLayer = candidate.hitShape
-					? candidate.hitShape->getQueryFilterData().word0
-					: 0u;
-				if(hitLayer == 0u || (queryMask & hitLayer) != 0u) {
-					candidate = {};
-					break;
-				}
-				queryMask |= hitLayer;
-			}
-
+			const RayHit candidate = RaycastStaticSurface(
+				origin + offsets[index],
+				direction,
+				maxDistance);
 			if(!candidate.hit || candidate.normal.y <= 0.35f) continue;
 
 			if(index == 0) {
@@ -124,9 +89,84 @@ public:
 		return best;
 	}
 
-	PhysicSystem* Raw() const { return physics; }
+	// Existing platformer callers use Raw() only to perform more gameplay rays.
+	// Returning the adapter keeps those rays on the same actor/trigger-safe path
+	// instead of falling back to layer-mask exclusion and hiding Default-layer
+	// course geometry together with the player.
+	PlatformerPhysicsProbe* Raw() { return this; }
+	const PlatformerPhysicsProbe* Raw() const { return this; }
 
 private:
+	class StaticSurfaceFilter final : public physx::PxQueryFilterCallback {
+	public:
+		physx::PxQueryHitType::Enum preFilter(
+			const physx::PxFilterData&,
+			const physx::PxShape* shape,
+			const physx::PxRigidActor* actor,
+			physx::PxHitFlags&
+		) override {
+			if(!shape) return physx::PxQueryHitType::eNONE;
+			if(shape->getFlags().isSet(physx::PxShapeFlag::eTRIGGER_SHAPE)) {
+				return physx::PxQueryHitType::eNONE;
+			}
+			if(actor && actor->getType() == physx::PxActorType::eRIGID_DYNAMIC) {
+				return physx::PxQueryHitType::eNONE;
+			}
+			return physx::PxQueryHitType::eBLOCK;
+		}
+
+		physx::PxQueryHitType::Enum postFilter(
+			const physx::PxFilterData&,
+			const physx::PxQueryHit&,
+			const physx::PxShape*,
+			const physx::PxRigidActor*
+		) override {
+			return physx::PxQueryHitType::eBLOCK;
+		}
+	};
+
+	RayHit RaycastStaticSurface(
+		const physx::PxVec3& origin,
+		const physx::PxVec3& direction,
+		physx::PxReal maxDistance
+	) const {
+		RayHit result{};
+		physx::PxScene* scene = physics ? physics->GetScene() : nullptr;
+		if(!scene || maxDistance <= 0.0f) return result;
+
+		physx::PxVec3 normalized = direction;
+		if(normalized.normalize() < 1e-6f) return result;
+
+		physx::PxQueryFilterData filterData;
+		filterData.data.word0 = 0;
+		filterData.flags |= physx::PxQueryFlag::ePREFILTER |
+			physx::PxQueryFlag::eDISABLE_HARDCODED_FILTER;
+
+		StaticSurfaceFilter filter;
+		physx::PxRaycastBuffer hitBuffer;
+		const bool status = scene->raycast(
+			origin,
+			normalized,
+			maxDistance,
+			hitBuffer,
+			physx::PxHitFlags(
+				physx::PxHitFlag::eDEFAULT |
+				physx::PxHitFlag::eMESH_BOTH_SIDES),
+			filterData,
+			&filter);
+
+		if(status && hitBuffer.hasBlock) {
+			const physx::PxRaycastHit& block = hitBuffer.block;
+			result.hit = true;
+			result.position = block.position;
+			result.normal = block.normal;
+			result.distance = block.distance;
+			result.hitShape = block.shape;
+			result.hitActor = block.actor;
+		}
+		return result;
+	}
+
 	PhysicSystem* physics = nullptr;
 };
 
