@@ -117,7 +117,7 @@ Scene:
 Asset/Game/MiniGameCollection/Scene/PresentationTest/PresentationSpike.scene
 ```
 
-During the timing phase, Space stops the marker. After the result, the shared arrow / Space action routing is used instead of direct R/N/B/Escape shortcuts.
+During the timing phase, Space stops the marker. After the result, direct R/N/B/Escape guidance is removed and the shared arrow / Space action routing is used.
 
 The Presentation Spike is a diagnostic Scene. The three formal games are the acceptance target for the full visual three-row Result Menu.
 
@@ -207,8 +207,9 @@ Automated checks cover:
 3. Deferred additive loading.
 4. Player-facing ImGui prohibition.
 5. PlayerPass Runtime UI composition.
-6. Portable C++20 rule and presentation smoke tests.
-7. Required Scene YAML structure.
-8. Complete Debug x64 solution build with MSVC.
+6. Result Menu labels, arrow navigation, Space confirmation, clamped selection, and Escape-to-title remapping prohibition.
+7. Portable C++20 rule and presentation smoke tests.
+8. Required Scene YAML structure.
+9. Complete Debug x64 solution build with MSVC.
 
 Visual cursor behavior, input feel, audio balance, effect intensity, and repeated live Scene cleanup require local Windows execution and must not be marked complete only from compilation.
