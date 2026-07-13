@@ -233,7 +233,11 @@ private:
                 : m_outcome == Outcome::Failure
                     ? 0.72f
                     : 1.0f;
-            transform->scale = Vector3(0.5f * scale, 1.0f * scale, 0.5f * scale);
+            transform->scale = Vector3(
+                0.5f * scale,
+                1.0f * scale,
+                0.5f * scale
+            );
         }
         if (MaterialComponent* material = m_markerMaterial.TryGet()) {
             switch (m_outcome) {
@@ -267,8 +271,8 @@ private:
             return;
         }
 
-        const float trackWidth = 520.0f;
-        const float trackHeight = 34.0f;
+        constexpr float trackWidth = 520.0f;
+        constexpr float trackHeight = 34.0f;
         const float trackX = (ui.Width() - trackWidth) * 0.5f;
         const float trackY = ui.Height() * 0.5f + 120.0f;
         ui.FillPanel(
@@ -335,7 +339,7 @@ private:
         if (!ui.IsAvailable()) {
             return;
         }
-        const float panelWidth = 540.0f;
+        constexpr float panelWidth = 540.0f;
         const float panelHeight = m_phase == Phase::Result ? 210.0f : 154.0f;
         const float panelX = (ui.Width() - panelWidth) * 0.5f;
         const float panelY = (ui.Height() - panelHeight) * 0.5f;
@@ -372,7 +376,7 @@ private:
         );
         if (m_phase == Phase::Result) {
             ui.DrawTextCentered(
-                "R: RETRY   ENTER/N: COLOR TERRITORY   B/BACKSPACE: SELECT",
+                "矢印キー：選択    SPACE：決定",
                 ui.Width() * 0.5f,
                 panelY + 158.0f,
                 15.0f,
