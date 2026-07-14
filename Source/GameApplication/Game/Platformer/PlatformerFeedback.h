@@ -47,6 +47,15 @@ public:
 		float upwardSpeed = 3.0f,
 		float lifetime = 0.5f
 	) {
+		DirectX::XMFLOAT4 primary(0.82f, 0.68f, 0.42f, 1.0f);
+		DirectX::XMFLOAT4 secondary(0.24f, 0.74f, 1.0f, 1.0f);
+		if(horizontalSpeed >= 5.0f && upwardSpeed >= 4.5f) {
+			primary = DirectX::XMFLOAT4(1.0f, 0.44f, 0.05f, 1.0f);
+			secondary = DirectX::XMFLOAT4(0.92f, 0.04f, 0.03f, 1.0f);
+		} else if(upwardSpeed >= 3.5f) {
+			primary = DirectX::XMFLOAT4(0.22f, 0.88f, 1.0f, 1.0f);
+			secondary = DirectX::XMFLOAT4(0.58f, 0.28f, 1.0f, 1.0f);
+		}
 		LayeredBurst(
 			particle,
 			origin,
@@ -54,8 +63,8 @@ public:
 			horizontalSpeed,
 			upwardSpeed,
 			lifetime,
-			DirectX::XMFLOAT4(0.30f, 0.82f, 1.0f, 1.0f),
-			DirectX::XMFLOAT4(1.0f, 0.72f, 0.20f, 1.0f));
+			primary,
+			secondary);
 	}
 
 	// Produces four readable layers in one ParticleComponent allocation:
@@ -71,7 +80,11 @@ public:
 		const DirectX::XMFLOAT4& secondary
 	) {
 		if(!particle) return;
-		const int safeCount = std::clamp(count, 1, MAXPARTICLE);
+		// Existing gameplay events were authored for the old single-ring renderer.
+		// Double only modest requests; large authored set pieces keep their explicit
+		// budget and remain bounded by MAXPARTICLE.
+		const int expandedCount = count < 96 ? count * 2 : count;
+		const int safeCount = std::clamp(expandedCount, 1, MAXPARTICLE);
 		particle->isLoop = false;
 		particle->SpawnPosition = origin;
 		particle->SpawnCount = safeCount;
@@ -137,7 +150,8 @@ public:
 		const DirectX::XMFLOAT4& secondary
 	) {
 		if(!particle) return;
-		const int safeCount = std::clamp(count, 1, MAXPARTICLE);
+		const int expandedCount = count < 72 ? count * 2 : count;
+		const int safeCount = std::clamp(expandedCount, 1, MAXPARTICLE);
 		Vector3 forward = direction;
 		if(forward.length() <= 0.0001f) forward = Vector3(0.0f, 1.0f, 0.0f);
 		forward = forward.normalize();
