@@ -61,6 +61,7 @@
 #endif
 #include "Game/MiniGameCollection/Runtime/MiniGameCollectionEntryRuntime.h"
 #include "Game/MiniGameCollection/Runtime/MiniGamePersistentRuntime.h"
+#include "Game/MiniGameCollection/Runtime/MiniGameResponsiveCameraRuntime.h"
 #include "Game/MiniGameCollection/Runtime/PresentationSpikeRuntime.h"
 #include "Game/MiniGameCollection/Runtime/ColorTerritoryRuntime.h"
 #include "Game/MiniGameCollection/Runtime/SheepRoundupRuntime.h"
@@ -159,6 +160,7 @@ struct ComponentStoragePreference<TransformComponent> {
     X(PlatformerClearFeedback,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::MiniGameCollectionEntryRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::MiniGamePersistentRuntime,COMPONENT_SPARSE)\
+    X(MiniGameCollection::Runtime::MiniGameResponsiveCameraRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::PresentationSpikeRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::ColorTerritoryRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::SheepRoundupRuntime,COMPONENT_SPARSE)\
