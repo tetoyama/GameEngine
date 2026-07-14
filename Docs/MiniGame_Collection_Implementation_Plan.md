@@ -37,8 +37,9 @@
 | Camera shake / flash / HUD burst / bloom | [完了] | Presentation Service経由で利用可能 |
 | 通常演出の密度抑制 | [部分] | 軽いScore演出の集約・間引きはあるが、通知優先度と予告の排他管理はない |
 | 体感型操作説明 | [未着手] | 現在はヘッダーの説明文と3秒カウントダウンのみ |
+| Briefing skip | [未着手] | 初回・再戦ともに説明を明示的に飛ばす共通操作がない |
 | 共通イベント予告モデル | [未着手] | イベント発生前、発生、結果を状態として分離する共通機構はない |
-| 初回説明済み状態 | [未着手] | 初回フル説明、再戦短縮、スキップ可否を管理していない |
+| 初回説明済み状態 | [未着手] | 初回full、再戦compact、session内完了状態を管理していない |
 
 ### 3.2 COLOR TERRITORY
 
@@ -87,7 +88,7 @@
 
 ```text
 ゲーム選択
-  -> 体感型説明
+  -> 体感型説明、またはEnter長押しでSkip
   -> READY
   -> 3秒Countdown
   -> 本番
@@ -114,6 +115,27 @@
 - 穏やかなpulseと低頻度SEを使う
 - 発生時だけ短いparticle、SE、必要最小限のshakeを使う
 - 一度に表示する重大予告は1件まで
+
+### 4.3 Briefing skip方針
+
+Briefingは初回・再戦を問わずスキップ可能にする。
+
+```text
+ENTERを1.0秒長押し: Briefingをスキップ
+```
+
+SpaceはColor TerritoryやSheep Roundupでは将来のaction追加余地があり、BackShotでは射撃に使用するため、Briefing skipには使わない。
+
+EnterはSelection画面のゲーム開始にも使うため、誤スキップ防止として`release-to-arm`を採用する。
+
+1. MiniGame Sceneへ入った時点ではskip判定を無効にする。
+2. Selectionで押していたEnterが一度離されたことを確認する。
+3. その後のEnter長押しだけをskip進捗として数える。
+4. 1.0秒未満で離した場合は進捗を0へ戻す。
+5. 長押し中は画面上にゲージまたは円形progressを表示する。
+6. skip成立後は説明用entity・score・状態をresetしてから`Ready`へ進む。
+7. skipから直接`Playing`へ入らず、通常の3秒Countdownを必ず通す。
+8. Escapeはアプリケーション終了と競合するため使用しない。
 
 ## 5. 目標アーキテクチャ
 
@@ -154,6 +176,12 @@ struct BriefingStep {
     std::function<void()> beginAction;
     std::function<void()> resetAction;
 };
+
+struct BriefingSkipConfig {
+    int keyCode = VK_RETURN;
+    float holdSeconds = 1.0f;
+    bool requireReleaseToArm = true;
+};
 ```
 
 設計条件:
@@ -164,8 +192,10 @@ struct BriefingStep {
 4. 成功したstepだけ次へ進む。
 5. 失敗時は対象だけ安全な初期状態へ戻す。
 6. Persistent側がGameIdごとの「このsessionで説明済み」を保持する。
-7. 初回はfull briefing、retryは短縮版を標準とする。
-8. full briefingを一度完了した後だけ、Space長押し等のskipを許可する案を手動検証する。
+7. 初回はfull briefing、retryはcompact briefingを標準表示する。
+8. 初回・retryのどちらでもEnter長押しによるskipを許可する。
+9. Selectionで使用したEnterの持ち越しを`release-to-arm`で無効化する。
+10. skip時も説明用状態をcleanupし、通常Countdownへ接続する。
 
 ### 5.3 イベント予告
 
@@ -211,7 +241,7 @@ struct TelegraphDescriptor {
 
 ## 6. 実装工程
 
-## Phase 0: 現行baseline固定
+### Phase 0: 現行baseline固定
 
 状態: `[完了]`
 
@@ -225,24 +255,28 @@ struct TelegraphDescriptor {
 - `9626ef5a...`を今回の差分基準として記録する。
 - 既存3ゲームのルールを新機能追加前に変更しない。
 
-## Phase 1: 共通Briefing基盤
+### Phase 1: 共通Briefing基盤
 
 状態: `[未着手]`
 
 実装:
 
 1. `MiniGameBriefingModel`をportable C++で追加する。
-2. step開始、minimum display、成功、reset、skip条件を状態機械化する。
-3. `MiniGameRuntimeScriptBase`へ共通Briefing UI描画helperを追加する。
-4. Persistent RuntimeへGameId別のsession内完了状態を追加する。
-5. Briefing中はCountdownを開始せず、通常presentation commandを抑制する。
-6. Briefing完了後に一度だけCountdownを開始する。
+2. step開始、minimum display、成功、resetを状態機械化する。
+3. `MiniGameBriefingPresenter`へEnter長押しskip状態を追加する。
+4. `MiniGameRuntimeScriptBase`へ共通Briefing UI描画helperを追加する。
+5. Persistent RuntimeへGameId別のsession内完了状態を追加する。
+6. Briefing中はCountdownを開始せず、通常presentation commandを抑制する。
+7. Briefing完了またはskip後に一度だけCountdownを開始する。
+8. SelectionからのEnter持ち越しを防ぐrelease-to-armを実装する。
 
 表示:
 
 - 中央下部に現在の一文だけを表示する。
 - 操作対象を明るくし、それ以外を軽く暗くする。
 - 完了条件を満たした瞬間に小さなcheck演出を出す。
+- 画面端へ`ENTER長押し：説明をスキップ`を常時表示する。
+- Enter長押し中はskip progressを視覚化する。
 - 文章だけで自動進行させない。
 
 自動テスト:
@@ -251,9 +285,16 @@ struct TelegraphDescriptor {
 - minimum display前の誤完了防止
 - reset後の再試行
 - full / compact mode
+- Enterの短いtapではskipしない
+- Enter長押し1.0秒でskipする
+- 長押し途中のreleaseでprogressがresetされる
+- Scene開始時にEnterが押されたままでもskipしない
+- release後の再長押しでのみskipする
+- skip後にbriefing用状態がcleanupされる
+- skip後もCountdownを通る
 - SceneToken cleanup
 
-## Phase 2: 共通Telegraph基盤
+### Phase 2: 共通Telegraph基盤
 
 状態: `[未着手]`
 
@@ -280,7 +321,7 @@ struct TelegraphDescriptor {
 
 数値はInspectorまたはconfig structから調整可能にする。定数をRuntime各所へ分散させない。
 
-## Phase 3: COLOR TERRITORY導入改善
+### Phase 3: COLOR TERRITORY導入改善
 
 状態: `[部分]`
 
@@ -297,6 +338,8 @@ Briefing steps:
 4. 表示された爆発範囲から出る。
 5. Starを取得し、速度上昇を短時間体験する。
 
+各step中もEnter長押しでBriefing全体をskipできる。Spaceはskipへ使用しない。
+
 Telegraph変更:
 
 - Item Rush開始3秒前に`ITEM RUSH IN 3`を開始する。
@@ -312,7 +355,7 @@ Telegraph変更:
 - 爆発前に安全範囲へ移動する時間がある。
 - 通常塗りで重大予告が隠れない。
 
-## Phase 4: SHEEP ROUNDUP導入改善
+### Phase 4: SHEEP ROUNDUP導入改善
 
 状態: `[部分]`
 
@@ -329,6 +372,8 @@ Briefing steps:
 4. 通常羊が1点になることを表示する。
 5. 説明用金羊を入れ、3点になることを表示する。
 
+各step中もEnter長押しでBriefing全体をskipできる。
+
 Telegraph変更:
 
 - 残り29秒で4秒のFLOCK RUSH予告を開始し、残り25秒でRulesを切り替える。
@@ -343,7 +388,7 @@ Telegraph変更:
 - 通常羊の大量補充でbannerが連続しない。
 - 金羊の位置と3点価値を出現前から把握できる。
 
-## Phase 5: BACKSHOT通路topology
+### Phase 5: BACKSHOT通路topology
 
 状態: `[再設計]`
 
@@ -389,7 +434,7 @@ LayoutはRuntimeのhard-code配列ではなく、専用data structへ分離す�
 - Blockとreserved routeの手前で止まる
 - 同一layout / seedで結果が一致する
 
-## Phase 6: BACKSHOT Boost item
+### Phase 6: BACKSHOT Boost item
 
 状態: `[未着手]`
 
@@ -420,7 +465,7 @@ LayoutはRuntimeのhard-code配列ではなく、専用data structへ分離す�
 
 現行のslide durationは距離から計算し`0.18〜0.52秒`へclampしている。Boost時は距離と倍率からdurationを再計算し、短距離が視認不能にならないminimumを別configとして持つ。
 
-## Phase 7: BACKSHOT おじゃまマス
+### Phase 7: BACKSHOT おじゃまマス
 
 状態: `[未着手]`
 
@@ -447,7 +492,7 @@ LayoutはRuntimeのhard-code配列ではなく、専用data structへ分離す�
 - 全員が移動不能になるlayoutを生成しない。
 - 予告を見て別routeを選べる時間がある。
 
-## Phase 8: BACKSHOT体感型説明
+### Phase 8: BACKSHOT体感型説明
 
 状態: `[未着手]`
 
@@ -463,9 +508,9 @@ Briefing steps:
 6. Boostを取り、効果時間中に2回滑る。
 7. おじゃまマスの予告を見て別routeを選ぶ。
 
-BackShotは今回最もルール変更が大きいため、説明を省略して本番へ入れない。
+BackShotは今回最もルール変更が大きいため、初回はfull briefingを標準表示する。ただし強制はせず、他ゲームと同じEnter長押しでいつでもskip可能にする。Spaceは射撃専用のまま維持する。
 
-## Phase 9: 演出優先度と情報整理
+### Phase 9: 演出優先度と情報整理
 
 状態: `[部分]`
 
@@ -476,14 +521,16 @@ BackShotは今回最もルール変更が大きいため、説明を省略して
 - 同じ文言を複数箇所へ重複表示しない。
 - Countdown中にgame固有eventを進めない。
 - Briefing完了演出と本番Countdownを同じframeに開始しない。
+- Skip成立時も強い演出を出さず、短い確認音と`SKIPPED`表示だけにする。
 
-## Phase 10: 安定性・受け入れ確認
+### Phase 10: 安定性・受け入れ確認
 
 状態: `[手動確認]`
 
 自動検証へ追加:
 
 - Briefing model contract
+- Briefing Enter-hold / release-to-arm contract
 - Telegraph phase / priority contract
 - Color item warning duration contract
 - Sheep pre-rush timing contract
@@ -499,9 +546,9 @@ BackShotは今回最もルール変更が大きいため、説明を省略して
 Entry
  -> Color full briefing
  -> Color game
- -> Result / Retry compact briefing
+ -> Result / Retry compact briefingをEnter長押しでskip
  -> Next
- -> Sheep full briefing
+ -> Sheep full briefingを途中でEnter長押しskip
  -> Sheep game
  -> Result
  -> Next
@@ -513,6 +560,12 @@ Entry
 
 最低3周実施し、次を確認する。
 
+- SelectionでEnterを押し続けてもBriefingが自動skipされない。
+- Enterを一度離してから再長押しするとskipできる。
+- 短いEnter tapではskipされない。
+- Enter長押し中のprogressが分かる。
+- skip後も3秒Countdownを通る。
+- skip後に説明用entity、score、CPU状態が残らない。
 - 以前のBriefing UI、Telegraph、world markerが残らない。
 - Audio / effect voiceが残らない。
 - CPUがBriefing中に通常行動しない。
@@ -529,12 +582,14 @@ Entry
 - 特殊eventの予告時に何が起こると思ったか。
 - 予告を見て行動を変えられたか。
 - 発生後に初めて意味を理解したeventがあったか。
+- Briefingをskipしたい操作が明確だったか。
+- 意図せずskipしてしまったことがなかったか。
 
 「発生後に初めて理解した」が残る場合、派手さではなくBriefing stepまたはwarning durationを修正する。
 
 ## 7. 優先順位
 
-1. 共通Briefing基盤
+1. 共通Briefing基盤とEnter長押しskip
 2. 共通Telegraph基盤
 3. COLOR TERRITORYへの適用
 4. SHEEP ROUNDUPへの適用
@@ -549,6 +604,7 @@ Entry
 
 - 既存3ゲームのルールは成立している。
 - 現在最大の問題は、ルール追加より「理解前にeventが発生する」ことにある。
+- Briefingを任意skip可能にすることで、初見理解と再プレイ速度を両立する。
 - 共通基盤を先に作ることで、3ゲームごとの一時的なbanner実装を増やさない。
 - BackShotは盤面data構造の変更を伴うため、共通導入基盤の後に進める。
 
@@ -560,6 +616,8 @@ Entry
 - Color TerritoryのBomb / Star基本効果を変更しない。
 - Sheepの24slot poolとendless scoringを廃止しない。
 - BackShotの背面撃破、正面Guard、射撃Cooldownを変更しない。
+- SpaceをBriefing skipへ割り当てない。
+- EscapeをBriefingやゲーム内遷移へ割り当てない。
 - 予告を強くするためだけに全画面flashや連続camera shakeを増やさない。
 
 ## 9. Completion gates
@@ -579,6 +637,8 @@ Entry
 ### 今回の改善
 
 - [ ] Common interactive Briefing model complete
+- [ ] Enter-hold Briefing skip complete
+- [ ] Release-to-arm and accidental-skip prevention complete
 - [ ] Common Telegraph model complete
 - [ ] Color full Briefing complete
 - [ ] Color item / bomb telegraphs complete
@@ -603,3 +663,5 @@ Entry
 - 既存機能と未実装案を状態表へ分離した。
 - 既存bannerは主に発生時または発生後の通知であり、共通Telegraphではないと判断した。
 - Briefing、Telegraph、通路topology、Boost、おじゃまマスを今後の差分工程として整理した。
+- Briefingは初回・再戦ともにEnter長押しでskip可能とする方針を確定した。
+- SelectionのEnter入力持ち越しを防ぐため、release-to-armを必須契約へ追加した。
