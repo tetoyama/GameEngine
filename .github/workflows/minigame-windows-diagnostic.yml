@@ -1,0 +1,66 @@
+name: MiniGame Windows Diagnostic
+
+on:
+  pull_request:
+    branches:
+      - master
+      - refactor/ecs-scheduler-foundation
+    paths:
+      - "Source/GameApplication/Game/MiniGameCollection/**"
+      - "Directory.Build.targets"
+      - ".github/workflows/minigame-windows-diagnostic.yml"
+  push:
+    branches:
+      - game/minigame-collection
+    paths:
+      - "Source/GameApplication/Game/MiniGameCollection/**"
+      - "Directory.Build.targets"
+      - ".github/workflows/minigame-windows-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-log:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+          submodules: recursive
+      - uses: microsoft/setup-msbuild@v2
+      - name: Build and capture log
+        id: build
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          msbuild GameEngine.sln /m /restore /p:Configuration=Debug /p:Platform=x64 /p:RunCodeAnalysis=false /fl /flp:"logfile=msbuild.log;verbosity=diagnostic"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Extract build errors
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path msbuild.log) {
+            Select-String -Path msbuild.log -Pattern 'error C[0-9]+|error LNK[0-9]+|error MSB[0-9]+|fatal error' |
+              ForEach-Object { $_.Line } |
+              Set-Content -Encoding utf8 msbuild-errors.txt
+          }
+          if (-not (Test-Path msbuild-errors.txt)) {
+            Set-Content -Encoding utf8 msbuild-errors.txt 'No matching compiler, linker, or MSBuild error line was found.'
+          }
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: minigame-windows-build-log
+          path: |
+            msbuild.log
+            msbuild-errors.txt
+          if-no-files-found: error
+          retention-days: 3
+      - name: Propagate build failure
+        if: steps.build.outcome == 'failure'
+        shell: pwsh
+        run: exit 1
