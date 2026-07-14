@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - game/platformer-tech-demo
+      - game/all-in
   pull_request:
     branches:
       - refactor/ecs-scheduler-foundation
