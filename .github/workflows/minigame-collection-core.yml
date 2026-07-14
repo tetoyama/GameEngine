@@ -24,6 +24,7 @@ on:
       - "Tests/MiniGameCollectionCoreSmokeTest.cpp"
       - "Tests/MiniGamePresentationSpikeSmokeTest.cpp"
       - "Tests/MiniGameRulesSmokeTest.cpp"
+      - "Tests/BackshotSlideMovementSmokeTest.cpp"
       - "Directory.Build.targets"
       - "GameEngine.vcxproj"
       - "GameEngine.sln"
@@ -50,6 +51,7 @@ on:
       - "Tests/MiniGameCollectionCoreSmokeTest.cpp"
       - "Tests/MiniGamePresentationSpikeSmokeTest.cpp"
       - "Tests/MiniGameRulesSmokeTest.cpp"
+      - "Tests/BackshotSlideMovementSmokeTest.cpp"
       - "Directory.Build.targets"
       - "GameEngine.vcxproj"
       - "GameEngine.sln"
@@ -79,6 +81,7 @@ jobs:
             Source/GameApplication/Game/MiniGameCollection/Runtime/PresentationSpikeRuntime.h
             Source/GameApplication/Game/MiniGameCollection/Runtime/ColorTerritoryRuntime.h
             Source/GameApplication/Game/MiniGameCollection/Runtime/SheepRoundupRuntime.h
+            Source/GameApplication/Game/MiniGameCollection/Runtime/BackshotSlideRuntime.h
             Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeUi.h
           )
           if grep -n "ImGui::" "${files[@]}"; then
@@ -105,6 +108,21 @@ jobs:
           grep -q 'keyCode == VK_ESCAPE' "$result_ui"
           grep -q 'ResultMenuAction::ReturnToTitle' "$result_ui"
           grep -q '矢印キー：選択    SPACE：決定' "$result_ui"
+      - name: Enforce sliding Backshot contract
+        shell: bash
+        run: |
+          runtime=Source/GameApplication/Game/MiniGameCollection/Runtime/BackshotSlideRuntime.h
+          movement=Source/GameApplication/Game/MiniGameCollection/Backshot/BackshotSlideMovement.h
+          scene=Asset/Game/MiniGameCollection/Scene/Backshot/Backshot.scene
+          components=Source/GameApplication/Engine/Scene/Component/componentList.h
+          grep -q 'BackshotSlideRuntime' "$scene"
+          grep -q 'BackshotSlideRuntime.h' "$components"
+          grep -q 'BackshotSlideRuntime,COMPONENT_SPARSE' "$components"
+          grep -q 'ComputeMove' "$movement"
+          grep -q 'BuildReservedCells' "$runtime"
+          grep -q 'player.sliding' "$runtime"
+          grep -q 'GetKeyDown(VK_SPACE)' "$runtime"
+          grep -q 'LANDING' "$runtime"
       - name: Enforce PlayerPass runtime UI composition
         shell: bash
         run: |
@@ -207,6 +225,14 @@ jobs:
             Tests/MiniGameRulesSmokeTest.cpp \
             -o minigame-rules-test
           ./minigame-rules-test
+      - name: Compile and run Backshot slide movement contracts
+        shell: bash
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror \
+            -I Source -I Source/GameApplication \
+            Tests/BackshotSlideMovementSmokeTest.cpp \
+            -o backshot-slide-movement-test
+          ./backshot-slide-movement-test
       - name: Validate required scene assets
         shell: pwsh
         run: |
