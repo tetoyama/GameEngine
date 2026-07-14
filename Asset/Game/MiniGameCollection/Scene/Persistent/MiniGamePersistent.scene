@@ -20,6 +20,11 @@ Entities:
       - Component: MiniGameCollection::Runtime::MiniGamePersistentRuntime
         ScriptName: MiniGamePersistentRuntime
         SelectedIndex: 0
+      - Component: MiniGameCollection::Runtime::MiniGameResponsiveCameraRuntime
+        ScriptName: MiniGameResponsiveCameraRuntime
+        ReferenceAspect: 1.7777778
+        ReferenceVerticalFov: 0.8
+        MaximumVerticalFov: 2.0943952
   - Entity: 2
     Components:
       - Component: NameComponent
