@@ -123,7 +123,7 @@
     </ClInclude>
 
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\CameraPostEffectRuntimeStorage.h"
-               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderSystem\RenderPass\PostEffect\CameraPostEffectRuntimeStorage.h')">
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\CameraPostEffectRuntimeStorage.h')">
       <Link>Header Files\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\CameraPostEffectRuntimeStorage.h</Link>
     </ClInclude>
 
