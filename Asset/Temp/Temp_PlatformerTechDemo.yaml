@@ -1,15 +1,15 @@
 SceneSettings:
   Storage:
-    ExpectedEntities: 192
-    ExpectedTransforms: 192
-    ExpectedRenderables: 160
-    ExpectedCullingComponents: 160
-    ExpectedStaticEntities: 64
-    PreallocatedTransformPages: 2
-    PreallocatedTagPages: 1
-    RenderPacketReserve: 192
-    VisibleEntityReserve: 192
-    StaticBatchReserve: 48
+    ExpectedEntities: 96
+    ExpectedTransforms: 96
+    ExpectedRenderables: 64
+    ExpectedCullingComponents: 32
+    ExpectedStaticEntities: 24
+    PreallocatedTransformPages: 0
+    PreallocatedTagPages: 0
+    RenderPacketReserve: 512
+    VisibleEntityReserve: 512
+    StaticBatchReserve: 64
     AllowRuntimeGrowth: true
     LogCapacityGrowth: true
 Entities:
@@ -36,18 +36,26 @@ Entities:
         FilePath: Asset\Audio\BGM.wav
         Loop: true
         Volume: 0.0799999982
+        Pitch: 1
         PlayOnStart: true
       - Component: PlatformerGameManager
-        authoredCoinTotal: 30
+        authoredCoinTotal: 10
         initialBossHealth: 3
         clearInputLockSeconds: 1.20000005
+        bossActivationZ: 139
+        bossActivationDistance: 13.25
+        arenaLockZ: 136.75
+        arenaRespawnPosition:
+          x: 0
+          y: 0.0799999982
+          z: 139.5
+        arenaMinX: -11.25
+        arenaMaxX: 11.25
+        arenaMaxZ: 161.25
         restartScenePath: Asset/Game/Platformer/Scene/PlatformerTechDemo.scene
       - Component: PlatformerHud
         instructionDuration: 8
         showControls: true
-      - Component: PlatformerStageBuilder
-        buildOnStart: true
-        stageRevision: 1
   - Entity: 2
     Components:
       - Component: NameComponent
@@ -55,12 +63,12 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 0.0449999981
-          z: 1.13324761
+          y: 0.037499994
+          z: 0
         Rotation:
-          - -0
           - 0
-          - -0
+          - 0
+          - 0
           - 1
         Scale:
           x: 0.00999999978
@@ -84,7 +92,7 @@ Entities:
             rotationOffset:
               - 0
               - 0
-              - 90
+              - -90
             radius: 25
             height: 100
             staticFriction: 0
@@ -97,7 +105,7 @@ Entities:
             isTrigger: false
             boneName: ""
       - Component: MaterialComponent
-        ShaderID: 1
+        ShaderID: 4
         Material:
           BaseColor:
             x: 0.939999998
@@ -121,14 +129,9 @@ Entities:
         UV_Slice_Y: 1
         AnimationNum: 0
       - Component: ModelRendererComponent
-        FilePath: Asset\Model\Akai.fbx
+        FilePath: Asset/Model\Y Bot.fbx
         isBlender: false
         AnimationTime: 0
-        Animations:
-          Idle: Asset\Model\Akai_Idle.fbx
-          Run: Asset\Model\Akai_Run.fbx
-          JumpUp: Asset\Model\Jumping Up.fbx
-          Fall: Asset\Model\Jumping Down.fbx
       - Component: OutlineComponent
       - Component: PlatformerCharacterController
         maxGroundSpeed: 7
@@ -171,170 +174,6 @@ Entities:
   - Entity: 3
     Components:
       - Component: NameComponent
-        Name: PlatformerCamera
-      - Component: TransformComponent
-        Position:
-          x: 0
-          y: 4
-          z: -8
-        Rotation:
-          - 0
-          - 0
-          - 0
-          - 1
-        Scale:
-          x: 1
-          y: 1
-          z: 1
-        Parent: 0
-      - Component: CameraComponent
-        isLock: true
-        Target:
-          x: 0
-          y: 1.20000005
-          z: 0
-        NearClip: 0.0299999993
-        FarClip: 512
-        FOV: 1
-        viewMatrix:
-          -
-            - 1
-            - 0
-            - 0
-            - 0
-          -
-            - 0
-            - 0.943858325
-            - -0.330350399
-            - 0
-          -
-            - -0
-            - 0.330350399
-            - 0.943858325
-            - 0
-          -
-            - 0
-            - -1.13263011
-            - 8.87226868
-            - 1
-        nextLinkId: 8
-        nextPinId: 13
-        PostEffectEditorZoom: 1
-        PostEffects:
-          - Name: PlatformerBlur
-            Enabled: true
-            VS: Asset\Shader\PostEffectVS.cso
-            PS: Asset\Shader\Blur.cso
-            NodePos:
-              x: 169
-              y: 94
-            InputPins:
-              - 1
-              - 12
-            OutputPin: 2
-            Param:
-              x: 1
-              y: 0
-              z: 0
-              w: 0
-            ResolutionScale: 0.5
-            MipLevels: 1
-          - Name: PlatformerBrightPass
-            Enabled: true
-            VS: Asset\Shader\PostEffectVS.cso
-            PS: Asset\Shader\BrightPass.cso
-            NodePos:
-              x: 160
-              y: -203
-            InputPins:
-              - 3
-              - 7
-            OutputPin: 4
-            Param:
-              x: 0.949999988
-              y: 0
-              z: 0
-              w: 0
-            ResolutionScale: 0.5
-            MipLevels: 1
-          - Name: PlatformerBloomComposite
-            Enabled: true
-            VS: Asset\Shader\PostEffectVS.cso
-            PS: Asset\Shader\CompositeBloom.cso
-            NodePos:
-              x: 417
-              y: -55
-            InputPins:
-              - 8
-              - 10
-              - 11
-            OutputPin: 9
-            Param:
-              x: 0
-              y: 0
-              z: 0
-              w: 0
-            ResolutionScale: 1
-            MipLevels: 1
-        PostEffectLinks:
-          - ID: 3
-            StartNode: 1
-            EndNode: 2
-            StartAttr: 4
-            EndAttr: 8
-          - ID: 4
-            StartNode: 0
-            EndNode: 2
-            StartAttr: 2
-            EndAttr: 10
-          - ID: 5
-            StartNode: -1
-            EndNode: 1
-            StartAttr: 5
-            EndAttr: 3
-          - ID: 6
-            StartNode: 2
-            EndNode: -2
-            StartAttr: 9
-            EndAttr: 6
-          - ID: 7
-            StartNode: -1
-            EndNode: 0
-            StartAttr: 5
-            EndAttr: 1
-        ScreenInput:
-          Name: ""
-          NodePos:
-            x: 40
-            y: 151
-          OutputPin: 5
-        ScreenOutput:
-          Name: ""
-          NodePos:
-            x: 646
-            y: 139
-          InputPins:
-            - 6
-      - Component: PlatformerCameraController
-        followSharpness: 7.5
-        verticalFollowSharpness: 3
-        transitionSharpness: 4.80000019
-        occlusionReturnSharpness: 6
-        minimumDistance: 1.20000005
-        collisionPadding: 0.180000007
-        courseYawDegrees: 0
-        courseDistance: 8.5
-        courseHeight: 3.79999995
-        wallYawDegrees: 90
-        wallDistance: 11.5
-        wallHeight: 4.5
-        bossDistance: 13.5
-        bossHeight: 7
-        SelfLayerBit: 10
-        Profile: 0
-  - Entity: 4
-    Components:
-      - Component: NameComponent
         Name: Sun
       - Component: TransformComponent
         Position:
@@ -342,10 +181,10 @@ Entities:
           y: 42
           z: -30
         Rotation:
-          - 0.217116982
-          - 0.464520961
-          - 0.118611991
-          - 0.850300968
+          - 0.597062111
+          - -0.346724421
+          - 0.318801492
+          - 0.64935708
         Scale:
           x: 1
           y: 1
@@ -361,9 +200,9 @@ Entities:
           z: -30
           w: 0
         Direction:
-          x: 0.841470599
-          y: -0.259034038
-          z: 0.474161059
+          x: -0.0696073472
+          y: -0.996485591
+          z: 0.0465980321
           w: 0
         Diffuse:
           x: 1
@@ -376,14 +215,2314 @@ Entities:
           z: 0.280000001
           w: 1
         Param:
-          x: 500
+          x: 10
           y: 0
           z: 0
           w: 0
         ShadowBias:
-          x: 0.000500000024
+          x: 0.150000006
           y: 0.0199999996
           z: 1
+          w: 0
+        LightView:
+          -
+            - 1
+            - 0
+            - -0
+            - 28.3841572
+          -
+            - 0
+            - 0.5
+            - 0.866025388
+            - -96.2209244
+          -
+            - 0
+            - -0.866025388
+            - 0.5
+            - 9.16247177
+          -
+            - 0
+            - 0
+            - 0
+            - 1
+        LightProjection:
+          -
+            - 0.0399999991
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0.0399999991
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0.0100100096
+            - -0.00100100099
+          -
+            - 0
+            - 0
+            - 0
+            - 1
+  - Entity: 4
+    Components:
+      - Component: NameComponent
+        Name: PlatformerSky
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 80
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 500
+          y: 500
+          z: 500
+        Parent: 0
+      - Component: MaterialComponent
+        ShaderID: 0
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 1
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\Daylight.png
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\sky.fbx
+        isBlender: true
+        AnimationTime: 0
+      - Component: EnvironmentMapComponent
+        enabled: true
+  - Entity: 5
+    Components:
+      - Component: NameComponent
+        Name: PlatformerPlayerFeedback
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: AudioComponent
+        FilePath: Asset\Game\Platformer\Sound\Action.wav
+        Loop: false
+        Volume: 0.119999997
+        Pitch: 1
+        PlayOnStart: false
+      - Component: ParticleComponent
+        IsLoop: false
+        SpawnInterval: 0.0399999991
+        SpawnCount: 36
+        SpawnTimer: 0
+        ParticleLifeTime: 0.800000012
+        ParticleSize: 0.140000001
+        ParticleSpeed: 1
+        SpawnPosition:
+          x: 0
+          y: 0
+          z: 0
+        SpawnPositionRandom:
+          x: 0
+          y: 0
+          z: 0
+        StartSpeed:
+          x: 0
+          y: 3
+          z: 0
+        StartSpeedRandom:
+          x: 1
+          y: 1
+          z: 1
+        AddSpeed:
+          x: 0
+          y: -9
+          z: 0
+        MulSpeed:
+          x: 0.949999988
+          y: 0.949999988
+          z: 0.949999988
+      - Component: PlatformerPlayerFeedback
+        particleVerticalOffset: 0.449999988
+        movementAssistEnabled: true
+        assistBaseRunSpeed: 7
+        assistRunSpeedBonus: 1.10000002
+        assistBuildSeconds: 0.649999976
+        assistLowSpeedAcceleration: 14
+        assistHighSpeedAcceleration: 43
+        assistReverseMultiplier: 1.75
+        assistAirAcceleration: 18
+        assistFirstJumpBoost: 0.280000001
+        assistSecondJumpBoost: 0.579999983
+        assistThirdJumpBoost: 0.949999988
+        assistLandingCarryBoost: 0.239999995
+        stepAssistEnabled: true
+        stepAssistHeight: 0.340000004
+        stepAssistProbeDistance: 0.400000006
+        stepAssistForwardOffset: 0.0199999996
+        stepAssistCooldown: 0.0549999997
+      - Component: PrefabComponent
+        FilePath: Asset/Game/Platformer/Prefab/PlatformerPlayerFeedback.prefab
+  - Entity: 6
+    Components:
+      - Component: NameComponent
+        Name: PlatformerClearFeedback
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: AudioComponent
+        FilePath: Asset\Game\Platformer\Sound\Clear.wav
+        Loop: false
+        Volume: 0.319999993
+        Pitch: 1
+        PlayOnStart: false
+      - Component: PlatformerClearFeedback
+        clearVolume: 0.319999993
+        defeatExplosionDuration: 1.54999995
+        defeatBurstInterval: 0.129999995
+        confettiDuration: 6
+        confettiInterval: 0.0900000036
+        confettiPerBurst: 24
+  - Entity: 7
+    Components:
+      - Component: NameComponent
+        Name: Stage_Meadow
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: StaticEntityComponent
+      - Component: CullingComponent
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 3
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.800000012
+            dynamicFriction: 0.600000024
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 0.200000003
+            y: 0.419999987
+            z: 0.280000001
+            w: 1
+          Metallic: 0.0199999996
+          Roughness: 0.879999995
+          AO: 1
+          EmissiveColor:
+            x: 0
+            y: 0.0149999997
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Game\Platformer\Model\PlatformerMeadow.obj
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 8
+    Components:
+      - Component: NameComponent
+        Name: Stage_Garden
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: StaticEntityComponent
+      - Component: CullingComponent
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 3
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.800000012
+            dynamicFriction: 0.600000024
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 0.550000012
+            y: 0.449999988
+            z: 0.270000011
+            w: 1
+          Metallic: 0.0299999993
+          Roughness: 0.819999993
+          AO: 1
+          EmissiveColor:
+            x: 0.0199999996
+            y: 0.00999999978
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Game\Platformer\Model\PlatformerGarden.obj
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 9
+    Components:
+      - Component: NameComponent
+        Name: Stage_Orchard
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: StaticEntityComponent
+      - Component: CullingComponent
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 3
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.800000012
+            dynamicFriction: 0.600000024
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 0.340000004
+            y: 0.479999989
+            z: 0.300000012
+            w: 1
+          Metallic: 0.0299999993
+          Roughness: 0.819999993
+          AO: 1
+          EmissiveColor:
+            x: 0.00999999978
+            y: 0.0299999993
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Game\Platformer\Model\PlatformerOrchard.obj
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 10
+    Components:
+      - Component: NameComponent
+        Name: Stage_Ruins
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: StaticEntityComponent
+      - Component: CullingComponent
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 3
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.800000012
+            dynamicFriction: 0.600000024
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 0.319999993
+            y: 0.340000004
+            z: 0.419999987
+            w: 1
+          Metallic: 1
+          Roughness: 0.419999987
+          AO: 1
+          EmissiveColor:
+            x: 0.0199999996
+            y: 0.0250000004
+            z: 0.0500000007
+          EmissiveIntensity: 0.100000001
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Game\Platformer\Model\PlatformerRuins.obj
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 11
+    Components:
+      - Component: NameComponent
+        Name: Stage_Arena
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: StaticEntityComponent
+      - Component: CullingComponent
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 3
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.800000012
+            dynamicFriction: 0.600000024
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 0.200000003
+            y: 0.219999999
+            z: 0.300000012
+            w: 1
+          Metallic: 0.479999989
+          Roughness: 0.349999994
+          AO: 1
+          EmissiveColor:
+            x: 0.0199999996
+            y: 0.0149999997
+            z: 0.0599999987
+          EmissiveIntensity: 0.150000006
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Game\Platformer\Model\PlatformerArena.obj
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 12
+    Components:
+      - Component: NameComponent
+        Name: Garden_Crossing
+      - Component: TransformComponent
+        Position:
+          x: -3
+          y: 3
+          z: 54
+        Rotation:
+          - -0.0523359552
+          - 0
+          - 0
+          - 0.99862951
+        Scale:
+          x: 3
+          y: 0.349999994
+          z: 3
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.850000024
+            dynamicFriction: 0.649999976
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 0.180000007
+            y: 0.720000029
+            z: 0.639999986
+            w: 1
+          Metallic: 0.180000007
+          Roughness: 0.479999989
+          AO: 1
+          EmissiveColor:
+            x: 0.00999999978
+            y: 0.180000007
+            z: 0.119999997
+          EmissiveIntensity: 0.649999976
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerMovingPlatform
+        localOffset:
+          x: 9
+          y: 0
+          z: 0
+        cycleSeconds: 4.5999999
+        phaseOffset: 0.100000001
+        carryPlayer: true
+  - Entity: 13
+    Components:
+      - Component: NameComponent
+        Name: Orchard_Lift
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 6.5999999
+          z: 85
+        Rotation:
+          - -0.0523359552
+          - 0
+          - 0
+          - 0.99862951
+        Scale:
+          x: 3
+          y: 0.349999994
+          z: 3
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.850000024
+            dynamicFriction: 0.649999976
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 0.180000007
+            y: 0.720000029
+            z: 0.639999986
+            w: 1
+          Metallic: 0.180000007
+          Roughness: 0.479999989
+          AO: 1
+          EmissiveColor:
+            x: 0.00999999978
+            y: 0.180000007
+            z: 0.119999997
+          EmissiveIntensity: 0.649999976
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerMovingPlatform
+        localOffset:
+          x: 0
+          y: 3
+          z: 0
+        cycleSeconds: 4.19999981
+        phaseOffset: 0.349999994
+        carryPlayer: true
+  - Entity: 14
+    Components:
+      - Component: NameComponent
+        Name: Enemy_Meadow
+      - Component: TransformComponent
+        Position:
+          x: 8.79858635e-06
+          y: 0.450022221
+          z: 16.0001431
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.899999976
+          y: 0.899999976
+          z: 0.899999976
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: true
+        autoMass: true
+        Mass: 1
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.100000001
+            dynamicFriction: 0.100000001
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: true
+            lockRotY: true
+            lockRotZ: true
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 0.839999974
+            y: 0.159999996
+            z: 0.180000007
+            w: 1
+          Metallic: 0.0799999982
+          Roughness: 0.680000007
+          AO: 1
+          EmissiveColor:
+            x: 0.180000007
+            y: 0.00999999978
+            z: 0.00999999978
+          EmissiveIntensity: 0.349999994
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerEnemy
+        patrolAxis:
+          x: 1
+          y: 0
+          z: 0
+        patrolDistance: 2.20000005
+        patrolSpeed: 1.14999998
+        stompHeightMargin: 0.180000007
+        defeatDuration: 0.419999987
+  - Entity: 15
+    Components:
+      - Component: NameComponent
+        Name: Enemy_Orchard
+      - Component: TransformComponent
+        Position:
+          x: -4.99994802
+          y: 6.95002508
+          z: 78.9999542
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.899999976
+          y: 0.899999976
+          z: 0.899999976
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: true
+        autoMass: true
+        Mass: 1
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.100000001
+            dynamicFriction: 0.100000001
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: true
+            lockRotY: true
+            lockRotZ: true
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 0.839999974
+            y: 0.159999996
+            z: 0.180000007
+            w: 1
+          Metallic: 0.0799999982
+          Roughness: 0.680000007
+          AO: 1
+          EmissiveColor:
+            x: 0.180000007
+            y: 0.00999999978
+            z: 0.00999999978
+          EmissiveIntensity: 0.349999994
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerEnemy
+        patrolAxis:
+          x: 0
+          y: 0
+          z: 1
+        patrolDistance: 1.79999995
+        patrolSpeed: 1.14999998
+        stompHeightMargin: 0.180000007
+        defeatDuration: 0.419999987
+  - Entity: 16
+    Components:
+      - Component: NameComponent
+        Name: Enemy_Ruins
+      - Component: TransformComponent
+        Position:
+          x: -4.99994087
+          y: 6.45002508
+          z: 106.999901
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.899999976
+          y: 0.899999976
+          z: 0.899999976
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: true
+        autoMass: true
+        Mass: 1
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.100000001
+            dynamicFriction: 0.100000001
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: true
+            lockRotY: true
+            lockRotZ: true
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 0.839999974
+            y: 0.159999996
+            z: 0.180000007
+            w: 1
+          Metallic: 0.0799999982
+          Roughness: 0.680000007
+          AO: 1
+          EmissiveColor:
+            x: 0.180000007
+            y: 0.00999999978
+            z: 0.00999999978
+          EmissiveIntensity: 0.349999994
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerEnemy
+        patrolAxis:
+          x: 1
+          y: 0
+          z: 0
+        patrolDistance: 2.29999995
+        patrolSpeed: 1.29999995
+        stompHeightMargin: 0.180000007
+        defeatDuration: 0.419999987
+  - Entity: 17
+    Components:
+      - Component: NameComponent
+        Name: Checkpoint_Meadow
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0.600000024
+          z: 20
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.449999988
+          y: 1.20000005
+          z: 0.449999988
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 0
+            size:
+              - 2.5
+              - 2
+              - 2.5
+            offset:
+              - 0
+              - 0.5
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 0.180000007
+            y: 0.819999993
+            z: 1
+            w: 1
+          Metallic: 0.200000003
+          Roughness: 0.280000001
+          AO: 1
+          EmissiveColor:
+            x: 0.0199999996
+            y: 0.419999987
+            z: 1
+          EmissiveIntensity: 1.35000002
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerCheckpoint
+        respawnOffset:
+          x: 0
+          y: 1.10000002
+          z: 0
+        activationScale: 1.25
+        pulseSpeed: 3
+  - Entity: 18
+    Components:
+      - Component: NameComponent
+        Name: Checkpoint_Orchard
+      - Component: TransformComponent
+        Position:
+          x: 5
+          y: 10.1000004
+          z: 92
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.449999988
+          y: 1.20000005
+          z: 0.449999988
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 0
+            size:
+              - 2.5
+              - 2
+              - 2.5
+            offset:
+              - 0
+              - 0.5
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 0.180000007
+            y: 0.819999993
+            z: 1
+            w: 1
+          Metallic: 0.200000003
+          Roughness: 0.280000001
+          AO: 1
+          EmissiveColor:
+            x: 0.0199999996
+            y: 0.419999987
+            z: 1
+          EmissiveIntensity: 1.35000002
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerCheckpoint
+        respawnOffset:
+          x: 0
+          y: 1.10000002
+          z: 0
+        activationScale: 1.25
+        pulseSpeed: 3
+  - Entity: 19
+    Components:
+      - Component: NameComponent
+        Name: Checkpoint_BossGate
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 5.0999999
+          z: 121
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.449999988
+          y: 1.20000005
+          z: 0.449999988
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 0
+            size:
+              - 2.5
+              - 2
+              - 2.5
+            offset:
+              - 0
+              - 0.5
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 0.180000007
+            y: 0.819999993
+            z: 1
+            w: 1
+          Metallic: 0.200000003
+          Roughness: 0.280000001
+          AO: 1
+          EmissiveColor:
+            x: 0.0199999996
+            y: 0.419999987
+            z: 1
+          EmissiveIntensity: 1.35000002
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerCheckpoint
+        respawnOffset:
+          x: 0
+          y: 1.10000002
+          z: 0
+        activationScale: 1.25
+        pulseSpeed: 3
+  - Entity: 20
+    Components:
+      - Component: NameComponent
+        Name: CameraZone_GardenTurn
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 3
+          z: 43
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 22
+          y: 8
+          z: 22
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: PlatformerCameraZone
+        profile: 1
+        exitProfile: 0
+        restoreOnExit: true
+  - Entity: 21
+    Components:
+      - Component: NameComponent
+        Name: CameraZone_Orchard
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 7
+          z: 82
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 28
+          y: 18
+          z: 44
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: PlatformerCameraZone
+        profile: 2
+        exitProfile: 0
+        restoreOnExit: true
+  - Entity: 22
+    Components:
+      - Component: NameComponent
+        Name: Coin_01
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 1
+          z: 4
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.340000004
+          y: 0.519999981
+          z: 0.119999997
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 1
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 1.25
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 0.720000029
+            z: 0.0799999982
+            w: 1
+          Metallic: 0.649999976
+          Roughness: 0.219999999
+          AO: 1
+          EmissiveColor:
+            x: 1
+            y: 0.349999994
+            z: 0.00999999978
+          EmissiveIntensity: 1.79999995
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerCoin
+        rotationSpeed: 2.79999995
+        bobAmplitude: 0.180000007
+        bobFrequency: 2.20000005
+        collectDuration: 0.550000012
+  - Entity: 23
+    Components:
+      - Component: NameComponent
+        Name: Coin_02
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 1
+          z: 12
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.340000004
+          y: 0.519999981
+          z: 0.119999997
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 1
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 1.25
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 0.720000029
+            z: 0.0799999982
+            w: 1
+          Metallic: 0.649999976
+          Roughness: 0.219999999
+          AO: 1
+          EmissiveColor:
+            x: 1
+            y: 0.349999994
+            z: 0.00999999978
+          EmissiveIntensity: 1.79999995
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerCoin
+        rotationSpeed: 2.79999995
+        bobAmplitude: 0.180000007
+        bobFrequency: 2.20000005
+        collectDuration: 0.550000012
+  - Entity: 24
+    Components:
+      - Component: NameComponent
+        Name: Coin_03
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 1.20000005
+          z: 20
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.340000004
+          y: 0.519999981
+          z: 0.119999997
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 1
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 1.25
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 0.720000029
+            z: 0.0799999982
+            w: 1
+          Metallic: 0.649999976
+          Roughness: 0.219999999
+          AO: 1
+          EmissiveColor:
+            x: 1
+            y: 0.349999994
+            z: 0.00999999978
+          EmissiveIntensity: 1.79999995
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerCoin
+        rotationSpeed: 2.79999995
+        bobAmplitude: 0.180000007
+        bobFrequency: 2.20000005
+        collectDuration: 0.550000012
+  - Entity: 25
+    Components:
+      - Component: NameComponent
+        Name: Coin_04
+      - Component: TransformComponent
+        Position:
+          x: 3
+          y: 2.4000001
+          z: 28
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.340000004
+          y: 0.519999981
+          z: 0.119999997
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 1
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 1.25
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 0.720000029
+            z: 0.0799999982
+            w: 1
+          Metallic: 0.649999976
+          Roughness: 0.219999999
+          AO: 1
+          EmissiveColor:
+            x: 1
+            y: 0.349999994
+            z: 0.00999999978
+          EmissiveIntensity: 1.79999995
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerCoin
+        rotationSpeed: 2.79999995
+        bobAmplitude: 0.180000007
+        bobFrequency: 2.20000005
+        collectDuration: 0.550000012
+  - Entity: 26
+    Components:
+      - Component: NameComponent
+        Name: Coin_05
+      - Component: TransformComponent
+        Position:
+          x: 4
+          y: 3
+          z: 35
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.340000004
+          y: 0.519999981
+          z: 0.119999997
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 1
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 1.25
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 0.720000029
+            z: 0.0799999982
+            w: 1
+          Metallic: 0.649999976
+          Roughness: 0.219999999
+          AO: 1
+          EmissiveColor:
+            x: 1
+            y: 0.349999994
+            z: 0.00999999978
+          EmissiveIntensity: 1.79999995
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerCoin
+        rotationSpeed: 2.79999995
+        bobAmplitude: 0.180000007
+        bobFrequency: 2.20000005
+        collectDuration: 0.550000012
+  - Entity: 27
+    Components:
+      - Component: NameComponent
+        Name: Coin_06
+      - Component: TransformComponent
+        Position:
+          x: -3
+          y: 3.79999995
+          z: 47
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.340000004
+          y: 0.519999981
+          z: 0.119999997
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 1
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 1.25
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 0.720000029
+            z: 0.0799999982
+            w: 1
+          Metallic: 0.649999976
+          Roughness: 0.219999999
+          AO: 1
+          EmissiveColor:
+            x: 1
+            y: 0.349999994
+            z: 0.00999999978
+          EmissiveIntensity: 1.79999995
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerCoin
+        rotationSpeed: 2.79999995
+        bobAmplitude: 0.180000007
+        bobFrequency: 2.20000005
+        collectDuration: 0.550000012
+  - Entity: 28
+    Components:
+      - Component: NameComponent
+        Name: Coin_07
+      - Component: TransformComponent
+        Position:
+          x: 5
+          y: 4.5
+          z: 59
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.340000004
+          y: 0.519999981
+          z: 0.119999997
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 1
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 1.25
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 0.720000029
+            z: 0.0799999982
+            w: 1
+          Metallic: 0.649999976
+          Roughness: 0.219999999
+          AO: 1
+          EmissiveColor:
+            x: 1
+            y: 0.349999994
+            z: 0.00999999978
+          EmissiveIntensity: 1.79999995
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerCoin
+        rotationSpeed: 2.79999995
+        bobAmplitude: 0.180000007
+        bobFrequency: 2.20000005
+        collectDuration: 0.550000012
+  - Entity: 29
+    Components:
+      - Component: NameComponent
+        Name: Coin_08
+      - Component: TransformComponent
+        Position:
+          x: 2
+          y: 6.30000019
+          z: 70
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.340000004
+          y: 0.519999981
+          z: 0.119999997
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 1
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 1.25
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 0.720000029
+            z: 0.0799999982
+            w: 1
+          Metallic: 0.649999976
+          Roughness: 0.219999999
+          AO: 1
+          EmissiveColor:
+            x: 1
+            y: 0.349999994
+            z: 0.00999999978
+          EmissiveIntensity: 1.79999995
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerCoin
+        rotationSpeed: 2.79999995
+        bobAmplitude: 0.180000007
+        bobFrequency: 2.20000005
+        collectDuration: 0.550000012
+  - Entity: 30
+    Components:
+      - Component: NameComponent
+        Name: Coin_09
+      - Component: TransformComponent
+        Position:
+          x: -5
+          y: 7.30000019
+          z: 79
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.340000004
+          y: 0.519999981
+          z: 0.119999997
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 1
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 1.25
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 0.720000029
+            z: 0.0799999982
+            w: 1
+          Metallic: 0.649999976
+          Roughness: 0.219999999
+          AO: 1
+          EmissiveColor:
+            x: 1
+            y: 0.349999994
+            z: 0.00999999978
+          EmissiveIntensity: 1.79999995
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerCoin
+        rotationSpeed: 2.79999995
+        bobAmplitude: 0.180000007
+        bobFrequency: 2.20000005
+        collectDuration: 0.550000012
+  - Entity: 31
+    Components:
+      - Component: NameComponent
+        Name: Coin_10
+      - Component: TransformComponent
+        Position:
+          x: 5
+          y: 10.3999996
+          z: 92
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.340000004
+          y: 0.519999981
+          z: 0.119999997
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 1
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 1.25
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 0.720000029
+            z: 0.0799999982
+            w: 1
+          Metallic: 0.649999976
+          Roughness: 0.219999999
+          AO: 1
+          EmissiveColor:
+            x: 1
+            y: 0.349999994
+            z: 0.00999999978
+          EmissiveIntensity: 1.79999995
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: PlatformerCoin
+        rotationSpeed: 2.79999995
+        bobAmplitude: 0.180000007
+        bobFrequency: 2.20000005
+        collectDuration: 0.550000012
+  - Entity: 33
+    Components:
+      - Component: NameComponent
+        Name: Ruin_Bear_Left
+      - Component: TransformComponent
+        Position:
+          x: -6.89961243
+          y: 10.2093782
+          z: 115.837929
+        Rotation:
+          - -0
+          - -0.311646819
+          - -0
+          - 0.950198054
+        Scale:
+          x: 0.339999914
+          y: 0.340000004
+          z: 0.339999914
+        Parent: 0
+      - Component: StaticEntityComponent
+      - Component: CullingComponent
+      - Component: MaterialComponent
+        ShaderID: 3
+        Material:
+          BaseColor:
+            x: 0.319999993
+            y: 0.340000004
+            z: 0.419999987
+            w: 1
+          Metallic: 0.379999995
+          Roughness: 0.419999987
+          AO: 1
+          EmissiveColor:
+            x: 0.0199999996
+            y: 0.0250000004
+            z: 0.0500000007
+          EmissiveIntensity: 0.100000001
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\bear.fbx
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 34
+    Components:
+      - Component: NameComponent
+        Name: GuideLamp_1
+      - Component: TransformComponent
+        Position:
+          x: -3
+          y: 1.20000005
+          z: 20
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.280000001
+          y: 0.280000001
+          z: 0.280000001
+        Parent: 0
+      - Component: StaticEntityComponent
+      - Component: CullingComponent
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 0.649999976
+            z: 0.25
+            w: 1
+          Metallic: 0.25
+          Roughness: 0.200000003
+          AO: 1
+          EmissiveColor:
+            x: 1
+            y: 0.449999988
+            z: 0.119999997
+          EmissiveIntensity: 3.20000005
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 2
+        CastShadow: 0
+        Position:
+          x: -3
+          y: 1.20000005
+          z: 20
+          w: 0
+        Direction:
+          x: 0
+          y: 0
+          z: 1
+          w: 0
+        Diffuse:
+          x: 1
+          y: 0.550000012
+          z: 0.219999999
+          w: 1
+        Ambient:
+          x: 0
+          y: 0
+          z: 0
+          w: 0
+        Param:
+          x: 11
+          y: 0
+          z: 0
+          w: 0.00200000009
+        ShadowBias:
+          x: 0.00200000009
+          y: 0
+          z: 0
           w: 0
         LightView:
           -
@@ -427,36 +2566,650 @@ Entities:
             - 0
             - 0
             - 0
-  - Entity: 5
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\ball.fbx
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 35
     Components:
       - Component: NameComponent
-        Name: PlatformerSky
+        Name: GuideLamp_2
       - Component: TransformComponent
         Position:
-          x: 0
-          y: 0
-          z: 60
+          x: 6
+          y: 10.6999998
+          z: 92
         Rotation:
           - 0
           - 0
           - 0
           - 1
         Scale:
-          x: 500
-          y: 500
-          z: 500
+          x: 0.280000001
+          y: 0.280000001
+          z: 0.280000001
         Parent: 0
+      - Component: StaticEntityComponent
+      - Component: CullingComponent
       - Component: MaterialComponent
-        ShaderID: 0
+        ShaderID: 1
         Material:
           BaseColor:
             x: 1
+            y: 0.649999976
+            z: 0.25
+            w: 1
+          Metallic: 0.25
+          Roughness: 0.200000003
+          AO: 1
+          EmissiveColor:
+            x: 1
+            y: 0.449999988
+            z: 0.119999997
+          EmissiveIntensity: 3.20000005
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 2
+        CastShadow: 0
+        Position:
+          x: 6
+          y: 10.6999998
+          z: 92
+          w: 0
+        Direction:
+          x: 0
+          y: 0
+          z: 1
+          w: 0
+        Diffuse:
+          x: 1
+          y: 0.550000012
+          z: 0.219999999
+          w: 1
+        Ambient:
+          x: 0
+          y: 0
+          z: 0
+          w: 0
+        Param:
+          x: 11
+          y: 0
+          z: 0
+          w: 0.00200000009
+        ShadowBias:
+          x: 0.00200000009
+          y: 0
+          z: 0
+          w: 0
+        LightView:
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+        LightProjection:
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\ball.fbx
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 36
+    Components:
+      - Component: NameComponent
+        Name: GuideLamp_3
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 5.80000019
+          z: 121
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 0.280000001
+          y: 0.280000001
+          z: 0.280000001
+        Parent: 0
+      - Component: StaticEntityComponent
+      - Component: CullingComponent
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 1
+            y: 0.649999976
+            z: 0.25
+            w: 1
+          Metallic: 0.25
+          Roughness: 0.200000003
+          AO: 1
+          EmissiveColor:
+            x: 1
+            y: 0.449999988
+            z: 0.119999997
+          EmissiveIntensity: 3.20000005
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 2
+        CastShadow: 0
+        Position:
+          x: 0
+          y: 5.80000019
+          z: 121
+          w: 0
+        Direction:
+          x: 0
+          y: 0
+          z: 1
+          w: 0
+        Diffuse:
+          x: 1
+          y: 0.550000012
+          z: 0.219999999
+          w: 1
+        Ambient:
+          x: 0
+          y: 0
+          z: 0
+          w: 0
+        Param:
+          x: 11
+          y: 0
+          z: 0
+          w: 0.00200000009
+        ShadowBias:
+          x: 0.00200000009
+          y: 0
+          z: 0
+          w: 0
+        LightView:
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+        LightProjection:
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\ball.fbx
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 37
+    Components:
+      - Component: NameComponent
+        Name: PlatformerBoss
+      - Component: TransformComponent
+        Position:
+          x: -1.70944222e-05
+          y: 0.999997973
+          z: 148
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 2.4000001
+          y: 2
+          z: 2.4000001
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: true
+        autoMass: true
+        Mass: 1
+        colliders:
+          - type: 0
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.150000006
+            dynamicFriction: 0.0799999982
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: true
+            lockRotY: true
+            lockRotZ: true
+            isTrigger: false
+            boneName: ""
+      - Component: AudioComponent
+        FilePath: Asset\Game\Platformer\Sound\BossCharge.wav
+        Loop: false
+        Volume: 0.180000007
+        Pitch: 1
+        PlayOnStart: false
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor:
+            x: 0.340000004
+            y: 0.0799999982
+            z: 0.460000008
+            w: 1
+          Metallic: 0.300000012
+          Roughness: 0.479999989
+          AO: 1
+          EmissiveColor:
+            x: 0.119999997
+            y: 0.00999999978
+            z: 0.200000003
+          EmissiveIntensity: 0.75
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: ParticleComponent
+        IsLoop: false
+        SpawnInterval: 0.0500000007
+        SpawnCount: 40
+        SpawnTimer: 0
+        ParticleLifeTime: 1
+        ParticleSize: 0.219999999
+        ParticleSpeed: 1
+        SpawnPosition:
+          x: 0
+          y: 0
+          z: 0
+        SpawnPositionRandom:
+          x: 0
+          y: 0
+          z: 0
+        StartSpeed:
+          x: 0
+          y: 3
+          z: 0
+        StartSpeedRandom:
+          x: 1
+          y: 1
+          z: 1
+        AddSpeed:
+          x: 0
+          y: -8
+          z: 0
+        MulSpeed:
+          x: 0.949999988
+          y: 0.949999988
+          z: 0.949999988
+      - Component: PlatformerBoss
+        maxHealth: 3
+        activationDistance: 13
+        introDuration: 1.10000002
+        chaseDuration: 2.20000005
+        chaseSpeed: 2.79999995
+        telegraphDuration: 0.899999976
+        chargeSpeed: 10.5
+        chargeDuration: 1.35000002
+        chargeMaxDistance: 12
+        stunDuration: 2.70000005
+        recoverDuration: 0.649999976
+        stompHeightMargin: 0.75
+        defeatClearDelay: 1.79999995
+        effectCenterHeight: 1
+        telegraphPulseInterval: 0.140000001
+        defeatBurstInterval: 0.219999999
+  - Entity: 38
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: CameraComponent
+        isLock: false
+        Target:
+          x: 0
+          y: 0
+          z: 0
+        NearClip: 0.00999999978
+        FarClip: 1024
+        FOV: 1
+        viewMatrix:
+          -
+            - 1
+            - 0
+            - 0
+            - 0
+          -
+            - 0
+            - 1
+            - 0
+            - 0
+          -
+            - 0
+            - 0
+            - 1
+            - 0
+          -
+            - 0
+            - 0
+            - 0
+            - 1
+        nextLinkId: 9
+        nextPinId: 16
+        PostEffectEditorZoom: 0.839999974
+        PostEffects:
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\BrightPass.cso
+            NodePos:
+              x: 400.454132
+              y: 188.99675
+            InputPins:
+              - 3
+              - 5
+            OutputPin: 4
+            Param:
+              x: 1
+              y: 0
+              z: 0
+              w: 0
+            ResolutionScale: 0.5
+            MipLevels: 1
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\Blur.cso
+            NodePos:
+              x: -1337.26282
+              y: 881.871582
+            InputPins:
+              - 6
+              - 8
+            OutputPin: 7
+            Param:
+              x: 1
+              y: 0
+              z: 0
+              w: 0
+            ResolutionScale: 0.5
+            MipLevels: 1
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\CompositeBloom.cso
+            NodePos:
+              x: 693.787964
+              y: 132.807785
+            InputPins:
+              - 9
+              - 11
+              - 15
+            OutputPin: 10
+            Param:
+              x: 0
+              y: 0
+              z: 0
+              w: 0
+            ResolutionScale: 1
+            MipLevels: 1
+          - Name: NewEffect
+            Enabled: true
+            VS: Asset/Shader/PostEffectVS.cso
+            PS: Asset/Shader\SSR.cso
+            NodePos:
+              x: -355.778015
+              y: 250.569092
+            InputPins:
+              - 12
+              - 14
+            OutputPin: 13
+            Param:
+              x: 128
+              y: 0.400000006
+              z: 1
+              w: 0
+            ResolutionScale: 1
+            MipLevels: 1
+        PostEffectLinks:
+          - ID: 2
+            StartNode: -1
+            EndNode: 0
+            StartAttr: 1
+            EndAttr: 3
+          - ID: 3
+            StartNode: 0
+            EndNode: 1
+            StartAttr: 4
+            EndAttr: 6
+          - ID: 5
+            StartNode: -1
+            EndNode: 2
+            StartAttr: 1
+            EndAttr: 11
+          - ID: 6
+            StartNode: 2
+            EndNode: 3
+            StartAttr: 10
+            EndAttr: 12
+          - ID: 7
+            StartNode: 1
+            EndNode: 2
+            StartAttr: 7
+            EndAttr: 9
+          - ID: 8
+            StartNode: 3
+            EndNode: -2
+            StartAttr: 13
+            EndAttr: 2
+        ScreenInput:
+          Name: ""
+          NodePos:
+            x: -1563.07837
+            y: 429.389008
+          OutputPin: 1
+        ScreenOutput:
+          Name: ""
+          NodePos:
+            x: 1892.85754
+            y: 409.232819
+          InputPins:
+            - 2
+      - Component: PlatformerCameraController
+        followSharpness: 6
+        verticalFollowSharpness: 3
+        transitionSharpness: 2.20000005
+        targetHorizontalMaxSpeed: 11
+        targetVerticalMaxSpeed: 5.5
+        occlusionShortenSharpness: 8
+        occlusionReturnSharpness: 3.5
+        occlusionShortenMaxSpeed: 8
+        occlusionReturnMaxSpeed: 4
+        occlusionEnterDelay: 0.0799999982
+        occlusionExitDelay: 0.119999997
+        occlusionProbeStart: 0.449999988
+        minimumDistance: 2.5
+        collisionPadding: 0.239999995
+        courseYawDegrees: 0
+        courseDistance: 8.5
+        courseHeight: 3.79999995
+        wallYawDegrees: 90
+        wallDistance: 11.5
+        wallHeight: 4.5
+        bossDistance: 13.5
+        bossHeight: 7
+        comfortCamera: true
+        impulsePositionScale: 0.075000003
+        impulseFrequency: 7
+        impulseResponseSharpness: 10
+        maxImpulseFovKick: 0.00999999978
+        SelfLayerBit: 26
+        Profile: 0
+  - Entity: 39
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: -7.9875102
+          y: -0.382445097
+          z: 17.2859116
+        Rotation:
+          - -0
+          - -0.250389278
+          - -0
+          - 0.968145251
+        Scale:
+          x: 0.280000001
+          y: 0.280000001
+          z: 0.280000001
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 3
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.600000024
+            dynamicFriction: 0.600000024
+            restitution: 0.100000001
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 4
+        Material:
+          BaseColor:
+            x: 0.0289855003
             y: 1
-            z: 1
+            z: 0
             w: 1
           Metallic: 0
           Roughness: 0
-          AO: 1
+          AO: 0
           EmissiveColor:
             x: 0
             y: 0
@@ -465,14 +3218,220 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
-      - Component: TextureComponent
-        FilePath: Asset\Texture\Daylight.png
-        UV_Slice_X: 1
-        UV_Slice_Y: 1
-        AnimationNum: 0
       - Component: ModelRendererComponent
-        FilePath: Asset\Model\sky.fbx
-        isBlender: true
+        FilePath: Asset/Model\Lowpoly_tree_sample.obj
+        isBlender: false
         AnimationTime: 0
-      - Component: EnvironmentMapComponent
-        enabled: true
+  - Entity: 40
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: -4.05244541
+          y: 2.1403811
+          z: 66.2292099
+        Rotation:
+          - -0
+          - -0.679861546
+          - -0
+          - 0.733340502
+        Scale:
+          x: 0.280000746
+          y: 0.280000001
+          z: 0.280000746
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 3
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.600000024
+            dynamicFriction: 0.600000024
+            restitution: 0.100000001
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 4
+        Material:
+          BaseColor:
+            x: 0.603864729
+            y: 1
+            z: 0.615346789
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: ModelRendererComponent
+        FilePath: Asset/Model\Lowpoly_tree_sample.obj
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 41
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 11.3884211
+          y: 2.1403811
+          z: 78.6158142
+        Rotation:
+          - -0
+          - -0.15940851
+          - -0
+          - 0.987212718
+        Scale:
+          x: 0.280000865
+          y: 0.280000001
+          z: 0.280000865
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 3
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.600000024
+            dynamicFriction: 0.600000024
+            restitution: 0.100000001
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 4
+        Material:
+          BaseColor:
+            x: 0.603864729
+            y: 1
+            z: 0.707204342
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: ModelRendererComponent
+        FilePath: Asset/Model\Lowpoly_tree_sample.obj
+        isBlender: false
+        AnimationTime: 0
+  - Entity: 42
+    Components:
+      - Component: NameComponent
+        Name: Entity
+      - Component: TransformComponent
+        Position:
+          x: 8.61213207
+          y: -0.382444859
+          z: 1.40599358
+        Rotation:
+          - -0
+          - -0.872774482
+          - -0
+          - 0.488123626
+        Scale:
+          x: 0.280000389
+          y: 0.280000001
+          z: 0.280000389
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0.00100000005
+        colliders:
+          - type: 3
+            size:
+              - 1
+              - 1
+              - 1
+            offset:
+              - 0
+              - 0
+              - 0
+            rotationOffset:
+              - 0
+              - 0
+              - 0
+            radius: 0.5
+            height: 1
+            staticFriction: 0.600000024
+            dynamicFriction: 0.600000024
+            restitution: 0.100000001
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 4
+        Material:
+          BaseColor:
+            x: 0.115942001
+            y: 1
+            z: 0
+            w: 1
+          Metallic: 0
+          Roughness: 0
+          AO: 0
+          EmissiveColor:
+            x: 0
+            y: 0
+            z: 0
+          EmissiveIntensity: 0
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: ModelRendererComponent
+        FilePath: Asset/Model\Lowpoly_tree_sample.obj
+        isBlender: false
+        AnimationTime: 0
