@@ -36,6 +36,9 @@
     <ClCompile Include="Source\GameApplication\Game\MiniGameCollection\Runtime\MiniGameBriefingPresenter.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Source\GameApplication\Game\MiniGameCollection\Runtime\WorldEventTelegraphPresenter.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
 
   <!--
@@ -64,9 +67,19 @@
       <Link>Header Files\Game\MiniGameCollection\Core\MiniGameBriefingModel.h</Link>
     </ClInclude>
 
+    <ClInclude Include="Source\GameApplication\Game\MiniGameCollection\Core\WorldEventTelegraphModel.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Game\MiniGameCollection\Core\WorldEventTelegraphModel.h')">
+      <Link>Header Files\Game\MiniGameCollection\Core\WorldEventTelegraphModel.h</Link>
+    </ClInclude>
+
     <ClInclude Include="Source\GameApplication\Game\MiniGameCollection\Runtime\MiniGameBriefingPresenter.h"
                Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Game\MiniGameCollection\Runtime\MiniGameBriefingPresenter.h')">
       <Link>Header Files\Game\MiniGameCollection\Runtime\MiniGameBriefingPresenter.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Game\MiniGameCollection\Runtime\WorldEventTelegraphPresenter.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Game\MiniGameCollection\Runtime\WorldEventTelegraphPresenter.h')">
+      <Link>Header Files\Game\MiniGameCollection\Runtime\WorldEventTelegraphPresenter.h</Link>
     </ClInclude>
 
     <ClInclude Include="Source\GameApplication\Service\Graphics\D3D11ConstantBufferUpload.h"
