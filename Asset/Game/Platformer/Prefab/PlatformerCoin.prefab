@@ -1,0 +1,75 @@
+Entities:
+  - LocalID: 0
+    Components:
+      - Component: NameComponent
+        Name: PlatformerCoin
+      - Component: TransformComponent
+        Position: {x: 0, y: 0, z: 0}
+        Rotation: [0, 0, 0, 1]
+        Scale: {x: 0.34, y: 0.52, z: 0.12}
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 1
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 1.25
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor: {x: 1, y: 0.72, z: 0.08, w: 1}
+          Metallic: 0.65
+          Roughness: 0.22
+          AO: 1
+          EmissiveColor: {x: 1, y: 0.35, z: 0.01}
+          EmissiveIntensity: 1.8
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: ParticleComponent
+        IsLoop: false
+        SpawnInterval: 0.05
+        SpawnCount: 18
+        SpawnTimer: 0
+        ParticleLifeTime: 0.55
+        ParticleSize: 0.12
+        ParticleSpeed: 1
+        SpawnPosition: {x: 0, y: 0, z: 0}
+        SpawnPositionRandom: {x: 0, y: 0, z: 0}
+        StartSpeed: {x: 0, y: 2, z: 0}
+        StartSpeedRandom: {x: 1, y: 1, z: 1}
+        AddSpeed: {x: 0, y: -8, z: 0}
+        MulSpeed: {x: 0.95, y: 0.95, z: 0.95}
+      - Component: AudioComponent
+        FilePath: Asset\Game\Platformer\Sound\Coin.wav
+        Loop: false
+        Volume: 0.16
+        PlayOnStart: false
+      - Component: PlatformerCoin
+        rotationSpeed: 2.8
+        bobAmplitude: 0.18
+        bobFrequency: 2.2
+        collectDuration: 0.55

@@ -63,8 +63,8 @@ struct PostEffect
 class RenderSystem: public ISystem, public IShaderMaterialProvider
 {
 private:
-	// renderSystem.cppを全体書き換えせず、Build経路をRenderWorld APIへ
-	// 転送するためのStep 18-A互換Facade。描画Storageは所有しない。
+	// Step 18-Aの隔離済みLegacy実装だけをコンパイルするための互換Facade。
+	// Active Build / Submit経路はRenderWorld APIを直接使用する。
 	class RenderWorldPacketCompatibility final {
 	public:
 		explicit RenderWorldPacketCompatibility(RenderWorld& world) noexcept
@@ -87,7 +87,7 @@ private:
 		RenderWorld& m_world;
 	};
 
-	// Submit経路の旧代入式をRenderWorldへ転送する一時Facade。
+	// 隔離済みLegacy Submit式をコンパイルするためだけの互換Facade。
 	class RenderWorldSubmissionCompatibility final {
 	public:
 		explicit RenderWorldSubmissionCompatibility(RenderWorld& world) noexcept
@@ -298,6 +298,12 @@ private:
 	void EditorView();
 	void PlayerView();
 
+	// RenderSystemLegacyImplementation.inlへ隔離した旧実装。
+	// Active Taskからは呼ばず、次工程でFacadeと一緒に削除する。
+	void BuildRenderPacketsLegacy();
+	void SubmitRenderPacketsLegacy();
+	void RegisterTasksLegacy(SystemScheduleBuilder& builder);
+
 private:
 	SceneManagerContext* m_context = nullptr;
 	std::vector<std::shared_ptr<IRenderable>> m_renderables;
@@ -320,7 +326,7 @@ private:
 	// ModelRendererComponentから分離したEntity単位の動的Vertex Buffer Runtime。
 	ModelRendererGpuRuntimeStorage m_modelRendererGpuRuntime;
 
-	// renderSystem.cppの段階移行用Facade。実体の所有者ではない。
+	// 隔離済みLegacy実装のコンパイル互換だけに残す。Active経路は使用しない。
 	RenderWorldPacketCompatibility m_renderPacketBuffer;
 	std::uint64_t m_renderPacketGeneration = 0;
 	RenderWorldSubmissionCompatibility m_lastSubmittedPacketGeneration;

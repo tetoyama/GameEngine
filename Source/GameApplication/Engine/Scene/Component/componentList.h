@@ -68,6 +68,21 @@
 #pragma pop_macro("max")
 #pragma pop_macro("min")
 
+#include "Game/Platformer/PlatformerCharacterController.h"
+#include "Game/Platformer/PlatformerAnimationController.h"
+#include "Game/Platformer/PlatformerGameManager.h"
+#include "Game/Platformer/PlatformerCoin.h"
+#include "Game/Platformer/PlatformerCheckpoint.h"
+#include "Game/Platformer/PlatformerEnemy.h"
+#include "Game/Platformer/PlatformerMovingPlatform.h"
+#include "Game/Platformer/PlatformerCameraController.h"
+#include "Game/Platformer/PlatformerCameraZone.h"
+#include "Game/Platformer/PlatformerBoss.h"
+#include "Game/Platformer/PlatformerHud.h"
+#include "Game/Platformer/PlatformerStageBuilder.h"
+#include "Game/Platformer/PlatformerPlayerFeedback.h"
+#include "Game/Platformer/PlatformerClearFeedback.h"
+
 inline constexpr auto COMPONENT_SPARSE = ECSStorage::ComponentStorageStrategy::SparseStable;
 inline constexpr auto COMPONENT_DENSE = ECSStorage::ComponentStorageStrategy::Dense;
 inline constexpr auto COMPONENT_DIRECT_PAGED = ECSStorage::ComponentStorageStrategy::DirectPaged;
@@ -124,6 +139,20 @@ struct ComponentStoragePreference<TransformComponent> {
     X(FadeSetScene,COMPONENT_SPARSE)\
     X(ScriptComponent,COMPONENT_SPARSE)\
     X(GN31,COMPONENT_SPARSE)\
+    X(PlatformerCharacterController,COMPONENT_SPARSE)\
+    X(PlatformerAnimationController,COMPONENT_SPARSE)\
+    X(PlatformerGameManager,COMPONENT_SPARSE)\
+    X(PlatformerCoin,COMPONENT_SPARSE)\
+    X(PlatformerCheckpoint,COMPONENT_SPARSE)\
+    X(PlatformerEnemy,COMPONENT_SPARSE)\
+    X(PlatformerMovingPlatform,COMPONENT_SPARSE)\
+    X(PlatformerCameraController,COMPONENT_SPARSE)\
+    X(PlatformerCameraZone,COMPONENT_SPARSE)\
+    X(PlatformerBoss,COMPONENT_SPARSE)\
+    X(PlatformerHud,COMPONENT_SPARSE)\
+    X(PlatformerStageBuilder,COMPONENT_SPARSE)\
+    X(PlatformerPlayerFeedback,COMPONENT_SPARSE)\
+    X(PlatformerClearFeedback,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::MiniGameCollectionEntryRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::MiniGamePersistentRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::PresentationSpikeRuntime,COMPONENT_SPARSE)\

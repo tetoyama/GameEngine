@@ -7,6 +7,7 @@
 
 #include "Interface/IComponent.h"
 #include "Backends/myVector3.h"
+#include <DirectXMath.h>
 
 #define MAXPARTICLE 512
 
@@ -14,6 +15,8 @@
 struct PARTICLE {
 	Vector3 Position = Vector3(0.0f, 0.0f, 0.0f);
 	Vector3 Speed = Vector3(0.0f, 0.0f, 0.0f);
+	DirectX::XMFLOAT4 Color = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	float SizeScale = 1.0f;
 	float LifeTime = 0.0f;
 };
 

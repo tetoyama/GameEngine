@@ -2,7 +2,7 @@
 
 ## 状態
 
-**実装中 — RenderWorld基盤、Camera / ModelRendererのNative描画資源分離、Model CPU Geometry SourceからStatic Batch RHI Geometryを直接生成する経路まで完了。CI・追加実機確認待ち。**
+**実装中 — RenderWorld基盤、Camera / ModelRendererのNative描画資源分離、Model CPU Geometry SourceからStatic Batch RHI Geometryを直接生成する経路、Render Packet Extraction Task分離まで完了。CI・追加実機確認待ち。**
 
 親計画:
 
@@ -146,11 +146,40 @@ ModelData::MeshGeometry[SubMesh]
 
 この段階では通常描画互換のNative Buffer生成・破棄はまだ`modelLoader.h / ModelData::Release`に残る。次工程で通常Renderableも共有RHI Geometry Runtimeへ接続する。
 
+### 6. Render Packet Extraction Task
+
+`RenderSystem::BuildRenderPackets()`に埋め込まれていたComponentRegistry走査を`RenderWorldExtraction`へ分離した。
+
+Active経路:
+
+```text
+RenderSystem.Packet.Build
+    -> RenderWorldExtractionTaskRegistrar
+    -> RenderSystem::BuildRenderPackets
+    -> RenderWorldExtraction::Extract
+    -> RenderWorld::BeginFrame / Publish
+```
+
+契約:
+
+- Sceneは`contextID`、同値時はScene名で安定ソートする
+- EntityはPacked Valueで安定順序を決定する
+- Packetの`stableSequence`をExtraction内で一意に採番する
+- Transform Snapshot、Component Binding、Layer / Pass / Sort Key生成をExtraction責務とする
+- Environment Map EntityはShadow Passを除外する
+- `RenderSystem`はSceneManager入力、Generation更新、Task起動だけを担当する
+- TaskのComponent / Resource Access宣言は`RenderWorldExtractionTaskRegistrar`へ集約する
+- Active `renderSystem.cpp`はComponentRegistryを直接走査しない
+- Active Submitは`RenderWorld::MarkSubmitted()`を直接使用する
+
+巨大な旧実装は挙動保持のため`RenderSystemLegacyImplementation.inl`へ隔離した。旧Build / Submit / RegisterTasksはActive Taskから呼ばれない。Legacy Facadeと隔離実装の物理削除は次工程で行う。
+
 ## 回帰テスト
 
 追加済み:
 
 - `RenderWorld Foundation Smoke Test`
+- `RenderWorld Extraction Smoke Test`
 - `Camera Post Effect Runtime Smoke Test`
 - `Model Renderer GPU Runtime Smoke Test`
 - `Static Batch Model Runtime Boundary Smoke Test`
@@ -178,11 +207,16 @@ ModelData::MeshGeometry[SubMesh]
 - WARP上でCPU byte dataからImmutable RHI Vertex / Index Bufferを生成できること
 - CPU生成BindingのBind / Matches / Release契約
 - Native Buffer Import互換Fallbackが維持されること
+- Extraction TaskのAccess集合、Domain、Phase、Thread Affinity
+- 空WorkerのPublishでRenderWorld Generation / Ready状態が更新されること
+- Active Build / Submit経路がRenderWorld APIへ直接接続されること
+- ComponentRegistry直接走査が隔離済みLegacy実装だけに残ること
 
 ## Step 18-A残作業
 
-- [ ] `renderSystem.cpp`のBuild / Submitを`RenderWorld` APIへ直接接続し、一時Facadeを削除
-- [ ] RendererのComponentRegistry直接走査を専用Extraction Taskへ分離
+- [x] RendererのComponentRegistry直接走査を専用Extraction Taskへ分離
+- [ ] `renderSystem.cpp`の隔離済み旧Build / Submit / RegisterTasksと一時Facadeを削除
+- [x] Active Build / Submitを`RenderWorld` APIへ直接接続
 - [x] Static Batch Model Geometry Runtime Storageを追加し、Geometry Cacheへ接続
 - [x] Model共有GeometryのBackend非依存CPU Sourceを抽出
 - [x] Static Batch RHI GeometryをCPU Sourceから直接生成
@@ -199,11 +233,10 @@ ModelData::MeshGeometry[SubMesh]
 
 ## 次の実装単位
 
-1. `RenderSystem.Packet.Build`をRenderWorld Extraction責務として独立
-2. Build / Submitの一時Facade撤去
-3. 通常Renderableを共有RHI Geometry Runtimeへ接続
-4. `ModelData`のLegacy Native Geometryを撤去
-5. Render PacketのComponent Pointer依存をSnapshot / Handleへ縮小
-6. RHI Command生成境界へ接続
+1. 隔離済み旧Build / Submit / RegisterTasksとRenderWorld互換Facadeを削除
+2. 通常Renderableを共有RHI Geometry Runtimeへ接続
+3. `ModelData`のLegacy Native Geometryを撤去
+4. Render PacketのComponent Pointer依存をSnapshot / Handleへ縮小
+5. RHI Command生成境界へ接続
 
 Static Batch経路は既存Dynamic Packetを置き換えず、同じRender Passへ併存提出する方針を維持する。

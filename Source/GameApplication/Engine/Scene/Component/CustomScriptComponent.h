@@ -14,6 +14,7 @@
 #include <atomic>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -257,9 +258,16 @@ public:
 
 	void LoadScene(const std::string& scenePath){
 		auto* ctx = m_ref.GetScene();
-		if(!ctx || !ctx->manager || !ctx->manager->sceneManager) return;
-		auto setScene = ctx->manager->sceneManager->LoadFromFilePath(scenePath);
-		ctx->manager->sceneManager->DeferredLoadScene(setScene);
+		if(!ctx || !ctx->manager || !ctx->manager->sceneManager || scenePath.empty()) return;
+
+		// Script callbacks execute inside the ECS schedule. LoadFromFilePath()
+		// initializes a new Scene immediately, which registers component storage and
+		// therefore violates the structural-change guard. Queue an uninitialized
+		// Scene carrying only its source path; SceneManager applies and initializes
+		// it after the current schedule has completed.
+		auto pendingScene = std::make_shared<Scene>();
+		pendingScene->ScenePath = scenePath;
+		ctx->manager->sceneManager->DeferredLoadScene(std::move(pendingScene));
 	}
 
 	bool GetKeyUp(int keyCode) const{

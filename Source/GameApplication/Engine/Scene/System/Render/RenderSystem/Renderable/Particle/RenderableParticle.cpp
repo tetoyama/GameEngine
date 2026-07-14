@@ -5,6 +5,7 @@
 // =======================================================================
 #include "RenderableParticle.h"
 #include <d3d11.h>
+#include <algorithm>
 #include "../../RenderPass/RenderPassContext.h"
 #include "../../RenderPacket/RenderPacketTransformDX11.h"
 
@@ -160,25 +161,29 @@ void RenderableParticle::Execute(const RenderPassContext& ctx, const RenderPacke
 		}
 
 		MATERIAL material{};
-		if(pTexture){
-			if(hasTexture){
-				material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
-			}
-			if(pMaterial){
-				material.BaseColor = pMaterial->Material.BaseColor;
-				material.BaseColor.w =
-					pMaterial->Material.BaseColor.w *
-					pParticle->Particle[i].LifeTime /
-					pParticle->particleLifeTime;
-			}
-		}else{
-			material.BaseColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		if(pTexture && hasTexture){
+			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 		}
+		material.BaseColor = pMaterial
+			? pMaterial->Material.BaseColor
+			: DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+
+		const DirectX::XMFLOAT4 particleColor = pParticle->Particle[i].Color;
+		const float safeLifetime = (std::max)(0.0001f, pParticle->particleLifeTime);
+		const float lifeAlpha = std::clamp(
+			pParticle->Particle[i].LifeTime / safeLifetime,
+			0.0f,
+			1.0f);
+		material.BaseColor.x *= particleColor.x;
+		material.BaseColor.y *= particleColor.y;
+		material.BaseColor.z *= particleColor.z;
+		material.BaseColor.w *= particleColor.w * lifeAlpha;
 
 		TransformComponent transform = *pTransform;
 		transform.position +=
 			pParticle->Particle[i].Position * pParticle->particleSize;
-		transform.scale *= pParticle->particleSize;
+		transform.scale *=
+			pParticle->particleSize * pParticle->Particle[i].SizeScale;
 
 		const DirectX::XMMATRIX worldMatrix =
 			DirectX::XMMatrixScaling(
