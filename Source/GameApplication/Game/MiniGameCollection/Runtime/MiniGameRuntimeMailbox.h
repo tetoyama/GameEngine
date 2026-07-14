@@ -76,7 +76,8 @@ public:
             PresentationCommands(),
             [sceneToken](const RuntimePresentationCommand& command) {
                 return command.sceneToken == sceneToken &&
-                    command.type != RuntimePresentationCommandType::BeginScene;
+                    command.type != RuntimePresentationCommandType::BeginScene &&
+                    command.type != RuntimePresentationCommandType::Countdown;
             }
         );
     }
