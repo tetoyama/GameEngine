@@ -56,6 +56,16 @@
     <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\CameraPostEffectRuntimeStorage.h" />
     <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\Animation\ModelRendererGpuRuntimeStorage.h" />
 
+    <ClInclude Include="Source\GameApplication\Game\MiniGameCollection\Core\MiniGameBriefingModel.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Game\MiniGameCollection\Core\MiniGameBriefingModel.h')">
+      <Link>Header Files\Game\MiniGameCollection\Core\MiniGameBriefingModel.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Game\MiniGameCollection\Runtime\MiniGameBriefingPresenter.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Game\MiniGameCollection\Runtime\MiniGameBriefingPresenter.h')">
+      <Link>Header Files\Game\MiniGameCollection\Runtime\MiniGameBriefingPresenter.h</Link>
+    </ClInclude>
+
     <ClInclude Include="Source\GameApplication\Service\Graphics\D3D11ConstantBufferUpload.h"
                Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Service\Graphics\D3D11ConstantBufferUpload.h')">
       <Link>Header Files\Service\Graphics\D3D11ConstantBufferUpload.h</Link>
