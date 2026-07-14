@@ -50,7 +50,8 @@ public:
     static bool SubmitTransition(RuntimeTransitionCommand command) {
         std::scoped_lock lock(Mutex());
         if (command.sceneToken == 0 || command.sourceSceneName.empty() ||
-            PendingTransition().has_value()) {
+            PendingTransition().has_value() ||
+            GuidanceScenes().contains(command.sceneToken)) {
             return false;
         }
         PendingTransition() = std::move(command);
@@ -90,6 +91,18 @@ public:
         return GuidanceScenes().contains(sceneToken);
     }
 
+    static void ArmBriefingBypass(MiniGameId gameId) {
+        std::scoped_lock lock(Mutex());
+        BriefingBypassGames().insert(static_cast<std::uint8_t>(gameId));
+    }
+
+    static bool ConsumeBriefingBypass(MiniGameId gameId) {
+        std::scoped_lock lock(Mutex());
+        return BriefingBypassGames().erase(
+            static_cast<std::uint8_t>(gameId)
+        ) > 0;
+    }
+
     static BriefingMode ResolveBriefingMode(MiniGameId gameId) {
         std::scoped_lock lock(Mutex());
         return BriefingProgress().ResolveMode(gameId, false);
@@ -108,6 +121,7 @@ public:
     static void ResetBriefingProgress() {
         std::scoped_lock lock(Mutex());
         BriefingProgress().Reset();
+        BriefingBypassGames().clear();
     }
 
     static void SetMajorTelegraphActive(
@@ -139,6 +153,7 @@ public:
 
         if (GuidanceScenes().contains(command.sceneToken) &&
             command.type != RuntimePresentationCommandType::BeginScene &&
+            command.type != RuntimePresentationCommandType::Countdown &&
             command.type != RuntimePresentationCommandType::Cancel) {
             return;
         }
@@ -273,6 +288,11 @@ private:
     static std::unordered_set<SceneToken>& GuidanceScenes() {
         static std::unordered_set<SceneToken> scenes;
         return scenes;
+    }
+
+    static std::unordered_set<std::uint8_t>& BriefingBypassGames() {
+        static std::unordered_set<std::uint8_t> games;
+        return games;
     }
 
     static std::unordered_set<SceneToken>& MajorTelegraphScenes() {
