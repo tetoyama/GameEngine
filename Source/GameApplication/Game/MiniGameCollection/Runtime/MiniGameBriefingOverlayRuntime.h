@@ -153,17 +153,21 @@ private:
         m_finished = true;
         m_releasePending = false;
 
+        // Transition処理が同一frameで進んでも、再ロード先が先にbypassを
+        // 取得できるよう、request送信前にone-shot stateをarmする。
+        MiniGameRuntimeMailbox::ArmBriefingBypass(m_gameId);
         if (SubmitTransition(
                 ScenePathForGame(m_gameId),
                 TransitionRequest::Retry,
                 0.05f)) {
             // 同じSceneを再ロードし、練習中のscore、timer、配置、乱数状態を
             // 完全に破棄する。次の1回だけBriefingを表示しない。
-            MiniGameRuntimeMailbox::ArmBriefingBypass(m_gameId);
             return;
         }
 
-        // Transitionが受理されなかった場合に、説明だけ消えて操作不能にしない。
+        // Transitionが受理されなかった場合はone-shot stateを取り消し、
+        // 説明だけ消えて操作不能になる状態を避ける。
+        MiniGameRuntimeMailbox::ConsumeBriefingBypass(m_gameId);
         MiniGameRuntimeMailbox::BeginGuidance(m_sceneToken);
         BeginPracticeBriefing();
     }
