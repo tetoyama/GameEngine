@@ -32,10 +32,16 @@ class PlatformerPlayerFeedback : public CustomScriptComponent {
 		REFLECT_FIELD(float, assistThirdJumpBoost, 0.95f)
 		REFLECT_FIELD(float, assistLandingCarryBoost, 0.24f)
 		REFLECT_FIELD(bool, stepAssistEnabled, true)
-		REFLECT_FIELD(float, stepAssistHeight, 0.34f)
-		REFLECT_FIELD(float, stepAssistProbeDistance, 0.40f)
-		REFLECT_FIELD(float, stepAssistForwardOffset, 0.02f)
-		REFLECT_FIELD(float, stepAssistCooldown, 0.055f)
+		REFLECT_FIELD(float, stepAssistHeight, 0.42f)
+		REFLECT_FIELD(float, stepAssistProbeDistance, 0.52f)
+		REFLECT_FIELD(float, stepAssistForwardOffset, 0.04f)
+		REFLECT_FIELD(float, stepAssistCooldown, 0.035f)
+		REFLECT_FIELD(float, stepAssistGroundGrace, 0.10f)
+		REFLECT_FIELD(float, stepAssistSideProbeScale, 0.62f)
+		REFLECT_FIELD(float, stepAssistTopInset, 0.12f)
+		REFLECT_FIELD(float, stepAssistForwardNudge, 0.035f)
+		REFLECT_FIELD(float, stepAssistHeightTolerance, 0.08f)
+		REFLECT_FIELD(bool, stepAssistFeedbackEnabled, true)
 
 public:
 	YAML::Node encode() override {
@@ -45,7 +51,16 @@ public:
 	}
 
 	bool decode(SceneContext* context, const YAML::Node& node) override {
+		const bool legacyStepAssist = !node["stepAssistGroundGrace"];
 		DECODE_FIELDS(node);
+		if(legacyStepAssist) {
+			// Existing scenes used the original centre-ray implementation. Promote its
+			// conservative values to the safer wide-probe defaults on first load.
+			stepAssistHeight = (std::max)(stepAssistHeight, 0.38f);
+			stepAssistProbeDistance = (std::max)(stepAssistProbeDistance, 0.48f);
+			stepAssistForwardOffset = (std::max)(stepAssistForwardOffset, 0.035f);
+			stepAssistCooldown = (std::min)(stepAssistCooldown, 0.04f);
+		}
 		ValidateAssistSettings();
 		return true;
 	}
@@ -55,6 +70,8 @@ public:
 		INSPECTOR_FIELDS();
 		ImGui::Text("Run Assist: %.2f", runAssistNormalized);
 		ImGui::Text("Step Cooldown: %.3f", stepAssistTimer);
+		ImGui::Text("Step Ground Grace: %.3f", stepAssistGroundTimer);
+		ImGui::Text("Last Step Rise: %.3f", lastStepRise);
 	}
 
 	void OnStart() override {
@@ -67,6 +84,8 @@ public:
 		particle = GetComponentRef<ParticleComponent>();
 		audio = GetComponentRef<AudioComponent>();
 		stepAssistTimer = 0.0f;
+		stepAssistGroundTimer = 0.0f;
+		lastStepRise = 0.0f;
 		if(auto* controller = player.TryGet()) {
 			CaptureRevisions(*controller);
 			previousVerticalVelocity = controller->GetVerticalVelocity();
@@ -82,6 +101,9 @@ public:
 		ComponentRef<TransformComponent> playerTransform(player.GetEntityRef());
 		auto* playerPose = playerTransform.TryGet();
 		if(!controller || !playerPose) return;
+
+		if(controller->IsGrounded()) stepAssistGroundTimer = stepAssistGroundGrace;
+		else stepAssistGroundTimer = (std::max)(0.0f, stepAssistGroundTimer - dt);
 
 		ResolvePlayerRuntimeRefs();
 		ApplyMovementAssist(*controller, dt);
@@ -138,6 +160,7 @@ public:
 			damageRevision = controller->GetDamageEventRevision();
 			runAssistTimer = 0.0f;
 			stepAssistTimer = stepAssistCooldown;
+			stepAssistGroundTimer = 0.0f;
 			EmitAt(origin, 56, 5.4f, 5.2f, 0.88f, 0.21f);
 			Impulse(0.48f, 0.28f, 0.060f);
 			PlatformerFeedback::Play(audio.TryGet(), m_ref.GetScene(), PlatformerSoundLibrary::ImpactPath);
@@ -147,6 +170,7 @@ public:
 			respawnRevision = controller->GetRespawnEventRevision();
 			runAssistTimer = 0.0f;
 			stepAssistTimer = stepAssistCooldown;
+			stepAssistGroundTimer = 0.0f;
 			EmitAt(origin, 46, 4.2f, 6.6f, 1.05f, 0.17f);
 			Impulse(0.18f, 0.30f, 0.022f, Vector3(0.0f, 1.0f, 0.0f));
 			PlatformerFeedback::Play(audio.TryGet(), m_ref.GetScene(), PlatformerSoundLibrary::CheckpointPath);
@@ -156,6 +180,19 @@ public:
 	}
 
 private:
+	struct StepCapsuleMetrics {
+		float radius = 0.25f;
+		float footY = 0.0f;
+		float headY = 1.5f;
+	};
+
+	struct StepTopCandidate {
+		RayHit hit{};
+		float rise = 0.0f;
+		int lane = 0;
+		bool valid = false;
+	};
+
 	void ValidateAssistSettings() {
 		assistBaseRunSpeed = (std::max)(0.1f, assistBaseRunSpeed);
 		assistRunSpeedBonus = (std::max)(0.0f, assistRunSpeedBonus);
@@ -168,10 +205,15 @@ private:
 		assistSecondJumpBoost = (std::max)(0.0f, assistSecondJumpBoost);
 		assistThirdJumpBoost = (std::max)(0.0f, assistThirdJumpBoost);
 		assistLandingCarryBoost = (std::max)(0.0f, assistLandingCarryBoost);
-		stepAssistHeight = std::clamp(stepAssistHeight, 0.05f, 0.42f);
-		stepAssistProbeDistance = std::clamp(stepAssistProbeDistance, 0.15f, 0.65f);
-		stepAssistForwardOffset = std::clamp(stepAssistForwardOffset, 0.0f, 0.20f);
-		stepAssistCooldown = std::clamp(stepAssistCooldown, 0.01f, 0.20f);
+		stepAssistHeight = std::clamp(stepAssistHeight, 0.08f, 0.48f);
+		stepAssistProbeDistance = std::clamp(stepAssistProbeDistance, 0.25f, 0.75f);
+		stepAssistForwardOffset = std::clamp(stepAssistForwardOffset, 0.0f, 0.18f);
+		stepAssistCooldown = std::clamp(stepAssistCooldown, 0.015f, 0.12f);
+		stepAssistGroundGrace = std::clamp(stepAssistGroundGrace, 0.02f, 0.18f);
+		stepAssistSideProbeScale = std::clamp(stepAssistSideProbeScale, 0.35f, 0.90f);
+		stepAssistTopInset = std::clamp(stepAssistTopInset, 0.06f, 0.24f);
+		stepAssistForwardNudge = std::clamp(stepAssistForwardNudge, 0.0f, 0.08f);
+		stepAssistHeightTolerance = std::clamp(stepAssistHeightTolerance, 0.025f, 0.12f);
 	}
 
 	void ResolvePlayerRuntimeRefs() {
@@ -200,87 +242,267 @@ private:
 		return mask != 0u ? mask : 1u;
 	}
 
+	static StepCapsuleMetrics ResolveCapsuleMetrics(
+		const ColliderComponent& colliderComponent,
+		const TransformComponent& playerPose
+	) {
+		StepCapsuleMetrics metrics;
+		metrics.footY = playerPose.position.y;
+		metrics.headY = playerPose.position.y + 1.5f;
+
+		for(const ColliderShape& shape : colliderComponent.colliders) {
+			if(shape.type != ColliderType::Capsule) continue;
+			const float scaleX = std::abs(playerPose.scale.x);
+			const float scaleY = std::abs(playerPose.scale.y);
+			const float scaleZ = std::abs(playerPose.scale.z);
+			const float conservativeScale = (std::max)(0.0001f, (std::max)(scaleX, (std::max)(scaleY, scaleZ)));
+			const float verticalScale = (std::max)(0.0001f, scaleY);
+			metrics.radius = (std::max)(0.05f, shape.radius * conservativeScale);
+			const float capsuleHalfHeight = shape.height * 0.5f * conservativeScale + metrics.radius;
+			const float centerY = playerPose.position.y + shape.offset.y * verticalScale;
+			metrics.footY = centerY - capsuleHalfHeight;
+			metrics.headY = centerY + capsuleHalfHeight;
+			break;
+		}
+		return metrics;
+	}
+
+	static bool IsStepFace(const RayHit& hit, const Vector3& direction) {
+		if(!IsStaticSolidHit(hit) || std::abs(hit.normal.y) > 0.48f) return false;
+		Vector3 horizontalNormal(hit.normal.x, 0.0f, hit.normal.z);
+		if(horizontalNormal.length() <= 0.0001f) return false;
+		horizontalNormal = horizontalNormal.normalize();
+		return horizontalNormal.dot(direction) <= -0.12f;
+	}
+
+	bool HasStepHeadClearance(
+		PlatformerPhysicsProbe& physics,
+		physx::PxU32 selfMask,
+		const StepCapsuleMetrics& metrics,
+		const Vector3& currentPosition,
+		const Vector3& targetPosition,
+		const Vector3& side,
+		float sideOffset,
+		float rise
+	) const {
+		const float distance = rise + 0.065f;
+		const Vector3 bases[2] = { currentPosition, targetPosition };
+		const float lanes[3] = { 0.0f, -sideOffset, sideOffset };
+		for(const Vector3& base : bases) {
+			for(float lane : lanes) {
+				const Vector3 sample = base + side * lane;
+				const RayHit hit = physics.RaycastWithMask(
+					physx::PxVec3(sample.x, metrics.headY + 0.015f, sample.z),
+					physx::PxVec3(0.0f, 1.0f, 0.0f),
+					distance,
+					selfMask);
+				if(IsStaticSolidHit(hit)) return false;
+			}
+		}
+		return true;
+	}
+
+	bool ResolveStepTop(
+		PlatformerPhysicsProbe& physics,
+		physx::PxU32 selfMask,
+		const StepCapsuleMetrics& metrics,
+		const Vector3& sampleCenter,
+		const Vector3& side,
+		float sideOffset,
+		float& outRise
+	) const {
+		const float topLift = (std::max)(0.12f, metrics.radius * 0.40f);
+		const float rayStartY = metrics.footY + stepAssistHeight + topLift;
+		const float rayDistance = stepAssistHeight + topLift + 0.10f;
+		const float minNormalY = std::cos(50.0f * DirectX::XM_PI / 180.0f);
+		const float lanes[3] = { 0.0f, -sideOffset, sideOffset };
+		StepTopCandidate candidates[3];
+
+		for(int i = 0; i < 3; ++i) {
+			const Vector3 sample = sampleCenter + side * lanes[i];
+			const RayHit hit = physics.RaycastWithMask(
+				physx::PxVec3(sample.x, rayStartY, sample.z),
+				physx::PxVec3(0.0f, -1.0f, 0.0f),
+				rayDistance,
+				selfMask);
+			const float rise = hit.position.y - metrics.footY;
+			const bool valid = IsStaticSolidHit(hit) &&
+				hit.normal.y >= minNormalY &&
+				rise > 0.018f &&
+				rise <= stepAssistHeight + 0.025f;
+			candidates[i].hit = hit;
+			candidates[i].rise = rise;
+			candidates[i].lane = i;
+			candidates[i].valid = valid;
+		}
+
+		int bestCount = 0;
+		int bestCenterSupport = 0;
+		float bestSum = 0.0f;
+		for(int reference = 0; reference < 3; ++reference) {
+			if(!candidates[reference].valid) continue;
+			int count = 0;
+			int centerSupport = 0;
+			float sum = 0.0f;
+			for(int candidate = 0; candidate < 3; ++candidate) {
+				if(!candidates[candidate].valid) continue;
+				if(std::abs(candidates[candidate].rise - candidates[reference].rise) > stepAssistHeightTolerance) continue;
+				++count;
+				if(candidate == 0) centerSupport = 1;
+				sum += candidates[candidate].rise;
+			}
+			if(count > bestCount || (count == bestCount && centerSupport > bestCenterSupport)) {
+				bestCount = count;
+				bestCenterSupport = centerSupport;
+				bestSum = sum;
+			}
+		}
+
+		// Requiring two coherent support samples prevents climbing isolated corners,
+		// rails and decorative spikes while still accepting diagonal stair entry.
+		if(bestCount < 2) return false;
+		outRise = bestSum / static_cast<float>(bestCount);
+		return true;
+	}
+
 	void ApplyStepAssist(
 		const PlatformerCharacterController& controller,
 		TransformComponent& playerPose
 	) {
-		if(!stepAssistEnabled || stepAssistTimer > 0.0f || !controller.IsControlEnabled() ||
-		   !controller.IsGrounded() || std::abs(controller.GetVerticalVelocity()) > 0.75f) {
+		if(!stepAssistEnabled || stepAssistTimer > 0.0f || stepAssistGroundTimer <= 0.0f ||
+		   !controller.IsControlEnabled()) {
 			return;
 		}
+		const float verticalVelocity = controller.GetVerticalVelocity();
+		if(verticalVelocity > 0.65f || verticalVelocity < -1.25f) return;
 
-		Vector3 direction = BuildCameraRelativeInput();
-		direction.y = 0.0f;
-		if(direction.length() <= 0.0001f) return;
-		direction = direction.normalize();
+		Vector3 inputDirection = BuildCameraRelativeInput();
+		inputDirection.y = 0.0f;
+		if(inputDirection.length() <= 0.0001f) return;
+		inputDirection = inputDirection.normalize();
 
 		auto* colliderComponent = playerCollider.TryGet();
 		auto* rigid = colliderComponent ? colliderComponent->pRigidbodyDynamic : nullptr;
-		auto* probe = PlatformerSceneAccess::Physics(m_ref.GetScene());
-		auto* physics = probe ? probe->Raw() : nullptr;
-		if(!rigid || !physics) return;
+		auto* physics = PlatformerSceneAccess::Physics(m_ref.GetScene());
+		if(!colliderComponent || !rigid || !physics) return;
 
-		const physx::PxVec3 velocity = rigid->getLinearVelocity();
-		const Vector3 horizontal(velocity.x, 0.0f, velocity.z);
-		if(horizontal.length() < 0.45f || horizontal.normalize().dot(direction) < 0.25f) return;
+		const physx::PxVec3 rigidVelocity = rigid->getLinearVelocity();
+		Vector3 horizontalVelocity(rigidVelocity.x, 0.0f, rigidVelocity.z);
+		const float horizontalSpeed = horizontalVelocity.length();
+		if(horizontalSpeed < 0.35f) return;
+		horizontalVelocity = horizontalVelocity.normalize();
+		if(horizontalVelocity.dot(inputDirection) < 0.15f) return;
 
+		Vector3 direction = inputDirection * 0.72f + horizontalVelocity * 0.28f;
+		if(direction.length() <= 0.0001f) return;
+		direction = direction.normalize();
+		const Vector3 side(-direction.z, 0.0f, direction.x);
+
+		const StepCapsuleMetrics metrics = ResolveCapsuleMetrics(*colliderComponent, playerPose);
+		const float sideOffset = std::clamp(
+			metrics.radius * stepAssistSideProbeScale,
+			0.07f,
+			0.22f);
+		const float lowerProbeHeight = std::clamp(stepAssistHeight * 0.28f, 0.055f, 0.115f);
+		const float startOffset = stepAssistForwardOffset + metrics.radius * 0.12f;
+		const float faceDistance = stepAssistProbeDistance + metrics.radius * 0.25f;
+		const Vector3 faceBase(
+			playerPose.position.x + direction.x * startOffset,
+			metrics.footY + lowerProbeHeight,
+			playerPose.position.z + direction.z * startOffset);
+		const float lanes[3] = { 0.0f, -sideOffset, sideOffset };
 		const physx::PxU32 selfMask = ResolveActorLayerMask(rigid);
-		const float lowerProbeHeight = (std::min)(0.10f, stepAssistHeight * 0.40f);
-		const Vector3 faceOrigin = playerPose.position + direction * stepAssistForwardOffset;
-		const physx::PxVec3 forward(direction.x, 0.0f, direction.z);
 
-		const RayHit lowerHit = physics->RaycastWithMask(
-			physx::PxVec3(faceOrigin.x, playerPose.position.y + lowerProbeHeight, faceOrigin.z),
-			forward,
-			stepAssistProbeDistance,
-			selfMask);
-		if(!IsStaticSolidHit(lowerHit) || std::abs(lowerHit.normal.y) > 0.45f) return;
+		RayHit nearestFace{};
+		float nearestDistance = faceDistance + 1.0f;
+		for(float lane : lanes) {
+			const Vector3 origin = faceBase + side * lane;
+			const RayHit hit = physics->RaycastWithMask(
+				physx::PxVec3(origin.x, origin.y, origin.z),
+				physx::PxVec3(direction.x, 0.0f, direction.z),
+				faceDistance,
+				selfMask);
+			if(!IsStepFace(hit, direction) || hit.distance >= nearestDistance) continue;
+			nearestFace = hit;
+			nearestDistance = hit.distance;
+		}
+		if(nearestDistance > faceDistance) return;
 
-		// A clear ray above the accepted step height distinguishes a curb or stair
-		// from a full wall, arena boundary or large platform side.
-		const RayHit upperHit = physics->RaycastWithMask(
-			physx::PxVec3(faceOrigin.x, playerPose.position.y + stepAssistHeight + 0.08f, faceOrigin.z),
-			forward,
-			stepAssistProbeDistance,
-			selfMask);
-		if(IsStaticSolidHit(upperHit)) return;
+		// The entire capsule width must pass above the candidate face. A single clear
+		// centre ray is not enough when approaching a wall or stair corner diagonally.
+		const float upperY = metrics.footY + stepAssistHeight + (std::max)(0.075f, metrics.radius * 0.32f);
+		const float upperDistance = (std::min)(faceDistance, nearestDistance + metrics.radius * 0.95f);
+		for(float lane : lanes) {
+			const Vector3 origin = Vector3(faceBase.x, upperY, faceBase.z) + side * lane;
+			const RayHit hit = physics->RaycastWithMask(
+				physx::PxVec3(origin.x, origin.y, origin.z),
+				physx::PxVec3(direction.x, 0.0f, direction.z),
+				upperDistance,
+				selfMask);
+			if(IsStaticSolidHit(hit)) return;
+		}
 
-		const float beyondFace = std::clamp(
-			lowerHit.distance + 0.14f,
-			0.14f,
-			stepAssistProbeDistance + 0.06f);
-		const Vector3 topSample = faceOrigin + direction * beyondFace;
-		const RayHit topHit = physics->RaycastWithMask(
-			physx::PxVec3(topSample.x, playerPose.position.y + stepAssistHeight + 0.16f, topSample.z),
-			physx::PxVec3(0.0f, -1.0f, 0.0f),
-			stepAssistHeight + 0.24f,
-			selfMask);
-		const float minNormalY = std::cos(50.0f * DirectX::XM_PI / 180.0f);
-		if(!IsStaticSolidHit(topHit) || topHit.normal.y < minNormalY) return;
+		const float inset = (std::max)(stepAssistTopInset, metrics.radius * 0.58f);
+		const Vector3 topSampleCenter(
+			faceBase.x + direction.x * (nearestDistance + inset),
+			metrics.footY,
+			faceBase.z + direction.z * (nearestDistance + inset));
+		float rise = 0.0f;
+		if(!ResolveStepTop(*physics, selfMask, metrics, topSampleCenter, side, sideOffset * 0.88f, rise)) return;
 
-		const float rise = topHit.position.y - playerPose.position.y;
-		if(rise <= 0.025f || rise > stepAssistHeight + 0.025f) return;
+		const Vector3 currentPosition = playerPose.position;
+		Vector3 targetPosition = currentPosition;
+		targetPosition.y += rise + 0.010f;
+		targetPosition += direction * stepAssistForwardNudge;
+		if(!HasStepHeadClearance(
+			*physics,
+			selfMask,
+			metrics,
+			currentPosition,
+			targetPosition,
+			side,
+			sideOffset,
+			rise)) {
+			return;
+		}
 
-		// The player capsule spans approximately 1.5 m from the entity origin. Check
-		// upward clearance before moving it so low ceilings cannot trap the actor.
-		const RayHit ceilingHit = physics->RaycastWithMask(
-			physx::PxVec3(playerPose.position.x, playerPose.position.y + 1.52f, playerPose.position.z),
-			physx::PxVec3(0.0f, 1.0f, 0.0f),
-			rise + 0.06f,
-			selfMask);
-		if(IsStaticSolidHit(ceilingHit)) return;
-
-		Vector3 target = playerPose.position;
-		target.y += rise + 0.012f;
-		target += direction * 0.025f;
-		playerPose.position = target;
-
+		playerPose.position = targetPosition;
 		physx::PxTransform actorPose = rigid->getGlobalPose();
-		actorPose.p = physx::PxVec3(target.x, target.y, target.z);
+		actorPose.p = physx::PxVec3(targetPosition.x, targetPosition.y, targetPosition.z);
 		rigid->setGlobalPose(actorPose, true);
-		rigid->setLinearVelocity(physx::PxVec3(velocity.x, 0.0f, velocity.z));
+		const float safeVertical = std::clamp(rigidVelocity.y, 0.0f, 0.25f);
+		rigid->setLinearVelocity(physx::PxVec3(rigidVelocity.x, safeVertical, rigidVelocity.z));
 		rigid->wakeUp();
+
+		lastStepRise = rise;
 		stepAssistTimer = stepAssistCooldown;
+		stepAssistGroundTimer = stepAssistGroundGrace;
+		if(stepAssistFeedbackEnabled) {
+			EmitStepFeedback(
+				Vector3(targetPosition.x, metrics.footY + rise + 0.025f, targetPosition.z),
+				direction);
+		}
+	}
+
+	void EmitStepFeedback(const Vector3& worldOrigin, const Vector3& direction) {
+		auto* feedbackPose = transform.TryGet();
+		auto* feedbackParticle = particle.TryGet();
+		if(!feedbackPose || !feedbackParticle) return;
+		for(auto& state : feedbackParticle->Particle) state.LifeTime = 0.0f;
+		feedbackPose->position = worldOrigin;
+		feedbackPose->scale = Vector3(1.0f, 1.0f, 1.0f);
+		feedbackParticle->particleSize = 0.050f;
+		PlatformerFeedback::DirectionalBurst(
+			feedbackParticle,
+			Vector3(),
+			direction * -1.0f,
+			12,
+			1.2f,
+			1.4f,
+			0.75f,
+			0.34f,
+			DirectX::XMFLOAT4(0.72f, 0.62f, 0.42f, 1.0f),
+			DirectX::XMFLOAT4(0.28f, 0.72f, 1.0f, 1.0f));
 	}
 
 	void ApplyMovementAssist(const PlatformerCharacterController& controller, float dt) {
@@ -490,6 +712,8 @@ private:
 	float runAssistTimer = 0.0f;
 	float runAssistNormalized = 0.0f;
 	float stepAssistTimer = 0.0f;
+	float stepAssistGroundTimer = 0.0f;
+	float lastStepRise = 0.0f;
 	float previousVerticalVelocity = 0.0f;
 	uint32_t jumpRevision = 0;
 	uint32_t landRevision = 0;
