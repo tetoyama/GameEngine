@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Game/MiniGameCollection/Core/MiniGameBriefingModel.h"
 #include "Game/MiniGameCollection/Core/MiniGameCore.h"
 
 #include <cstddef>
@@ -89,6 +90,25 @@ public:
     std::size_t GetGameCount() const noexcept { return m_games.size(); }
     std::size_t GetSelectedIndex() const noexcept { return m_selectedIndex; }
 
+    BriefingMode ResolveBriefingMode(
+        MiniGameId gameId,
+        bool isRetry
+    ) const noexcept {
+        return m_briefingState.ResolveMode(gameId, isRetry);
+    }
+
+    bool HasCompletedBriefing(MiniGameId gameId) const noexcept {
+        return m_briefingState.HasCompleted(gameId);
+    }
+
+    void MarkBriefingCompleted(MiniGameId gameId) noexcept {
+        m_briefingState.MarkCompleted(gameId);
+    }
+
+    void ResetBriefingProgress() noexcept {
+        m_briefingState.Reset();
+    }
+
     bool BeginSelectedGame(SceneToken sceneToken) {
         if (m_sessionActive || sceneToken == 0) {
             return false;
@@ -138,6 +158,7 @@ private:
     }
 
     std::vector<MiniGameDescriptor> m_games;
+    MiniGameBriefingSessionState m_briefingState;
     std::size_t m_selectedIndex = 0;
     SceneToken m_activeSceneToken = 0;
     TransitionRequest m_lastTransitionRequest = TransitionRequest::None;
