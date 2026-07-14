@@ -22,12 +22,15 @@ void TestCornerAutoTurn() {
         SlideDirection::Right,
         {}
     );
+    const SlideCell expectedStop{2, 3};
+    const SlideCell expectedCorner{2, 1};
+    const SlideCell expectedTurnCell{2, 2};
     assert(move.IsValid());
-    assert(move.stop == SlideCell{2, 3});
+    assert(move.stop == expectedStop);
     assert(move.finalDirection == SlideDirection::Up);
     assert(move.DistanceCells() == 4);
-    assert(move.path[2] == SlideCell{2, 1});
-    assert(move.path[3] == SlideCell{2, 2});
+    assert(move.path[2] == expectedCorner);
+    assert(move.path[3] == expectedTurnCell);
 }
 
 void TestJunctionStopsAndInvalidConnection() {
@@ -37,16 +40,18 @@ void TestJunctionStopsAndInvalidConnection() {
         SlideDirection::Right,
         {}
     );
+    const SlideCell expectedJunction{3, 3};
     assert(move.IsValid());
-    assert(move.stop == SlideCell{3, 3});
+    assert(move.stop == expectedJunction);
 
     const RouteSlideMove invalid = board.ComputeMove(
         {1, 1},
         SlideDirection::Down,
         {}
     );
+    const SlideCell expectedStart{1, 1};
     assert(!invalid.IsValid());
-    assert(invalid.stop == SlideCell{1, 1});
+    assert(invalid.stop == expectedStart);
 }
 
 void TestReservedAndTemporaryBlockStopsBeforeCell() {
@@ -56,12 +61,13 @@ void TestReservedAndTemporaryBlockStopsBeforeCell() {
         SlideDirection::Right,
         {{4, 1}}
     );
+    const SlideCell expectedStop{3, 1};
     assert(move.IsValid());
-    assert(move.stop == SlideCell{3, 1});
+    assert(move.stop == expectedStop);
 
     board.SetTemporaryBlockedCells({{4, 1}});
     move = board.ComputeMove({1, 1}, SlideDirection::Right, {});
-    assert(move.stop == SlideCell{3, 1});
+    assert(move.stop == expectedStop);
 }
 
 void TestLayoutsAreDeterministicAndDistinct() {
