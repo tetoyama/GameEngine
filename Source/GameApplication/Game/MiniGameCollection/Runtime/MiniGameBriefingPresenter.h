@@ -32,18 +32,17 @@ public:
             return;
         }
 
-        const float panelWidth = (std::min)(
-            920.0f,
-            (std::max)(620.0f, ui.Width() - 56.0f)
-        );
-        const float panelX = (ui.Width() - panelWidth) * 0.5f;
-        constexpr float topY = 18.0f;
+        const float panelWidth = ui.ResolvePanelWidth(920.0f, 620.0f);
+        const float panelX = ui.CenteredX(panelWidth);
+        const float safeY = ui.SafeMarginY();
+        const float topY = safeY;
         constexpr float topHeight = 184.0f;
         constexpr float bottomHeight = 72.0f;
-        const float bottomY = ui.Height() - bottomHeight - 18.0f;
+        const float bottomY = ui.Height() - bottomHeight - safeY;
 
-        // Nintendo系のミニゲーム説明画面と同様に、実ゲームを見せたまま
-        // ルールカードと開始操作だけを重ねる。背景は暗くしすぎない。
+        // 実ゲームを見せたままルールカードと開始操作だけを重ねる。
+        // MiniGameRuntimeUiのuniform-fit座標系により16:9、4:3、横長、縦長で
+        // 同じ見かけの大きさを保ち、余剰領域へ安全にアンカーする。
         ui.FillPanel(
             0.0f,
             0.0f,
