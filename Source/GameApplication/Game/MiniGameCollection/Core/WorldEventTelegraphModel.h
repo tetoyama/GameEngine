@@ -109,19 +109,23 @@ public:
 
             float remainingDelta = delta;
             while (IsActivePhase(entry.phase)) {
-                if (entry.phaseRemainingSeconds > remainingDelta) {
+                if (entry.phaseRemainingSeconds >
+                    remainingDelta + PhaseBoundaryEpsilon) {
                     entry.phaseRemainingSeconds -= remainingDelta;
                     break;
                 }
 
-                remainingDelta -= entry.phaseRemainingSeconds;
+                remainingDelta = (std::max)(
+                    0.0f,
+                    remainingDelta - entry.phaseRemainingSeconds
+                );
                 entry.phaseRemainingSeconds = 0.0f;
                 Advance(entry, events);
 
                 // 時間を使い切った後でも、次phaseが0秒なら同じTick内で連鎖させる。
-                if (remainingDelta <= 0.0f &&
+                if (remainingDelta <= PhaseBoundaryEpsilon &&
                     (!IsActivePhase(entry.phase) ||
-                     entry.phaseRemainingSeconds > 0.0f)) {
+                     entry.phaseRemainingSeconds > PhaseBoundaryEpsilon)) {
                     break;
                 }
             }
@@ -241,6 +245,8 @@ public:
     }
 
 private:
+    static constexpr float PhaseBoundaryEpsilon = 0.00001f;
+
     struct Entry {
         TelegraphDefinition definition;
         TelegraphPhase phase = TelegraphPhase::Pending;
