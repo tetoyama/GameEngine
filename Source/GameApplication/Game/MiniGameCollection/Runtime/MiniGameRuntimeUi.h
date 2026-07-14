@@ -81,7 +81,7 @@ public:
         const float physicalFontSize = fontSize * scale;
         const std::wstring owned(text);
         if (shadow) {
-            const float shadowOffset = std::max(1.0f, 2.0f * scale);
+            const float shadowOffset = (std::max)(1.0f, 2.0f * scale);
             renderer->DrawText2D(
                 owned,
                 physicalX + shadowOffset,
@@ -156,13 +156,13 @@ private:
 
     float PhysicalWidth() const noexcept {
         return m_context && m_context->manager
-            ? std::max(1.0f, m_context->manager->PlayerScreenSize.x)
+            ? (std::max)(1.0f, m_context->manager->PlayerScreenSize.x)
             : 1280.0f;
     }
 
     float PhysicalHeight() const noexcept {
         return m_context && m_context->manager
-            ? std::max(1.0f, m_context->manager->PlayerScreenSize.y)
+            ? (std::max)(1.0f, m_context->manager->PlayerScreenSize.y)
             : 720.0f;
     }
 
