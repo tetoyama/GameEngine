@@ -28,9 +28,9 @@ public:
             return;
         }
 
-        const float panelWidth = std::min(
+        const float panelWidth = (std::min)(
             780.0f,
-            std::max(520.0f, ui.Width() - 56.0f)
+            (std::max)(520.0f, ui.Width() - 56.0f)
         );
         constexpr float panelHeight = 250.0f;
         const float panelX = (ui.Width() - panelWidth) * 0.5f;
@@ -77,7 +77,7 @@ public:
             return;
         }
 
-        const std::size_t displayStep = std::min(
+        const std::size_t displayStep = (std::min)(
             briefing.GetCurrentStepIndex() + 1,
             briefing.GetStepCount()
         );
