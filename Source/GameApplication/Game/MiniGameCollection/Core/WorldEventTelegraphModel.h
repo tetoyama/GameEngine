@@ -108,7 +108,7 @@ public:
             }
 
             float remainingDelta = delta;
-            while (remainingDelta >= 0.0f && IsActivePhase(entry.phase)) {
+            while (IsActivePhase(entry.phase)) {
                 if (entry.phaseRemainingSeconds > remainingDelta) {
                     entry.phaseRemainingSeconds -= remainingDelta;
                     break;
@@ -118,7 +118,10 @@ public:
                 entry.phaseRemainingSeconds = 0.0f;
                 Advance(entry, events);
 
-                if (remainingDelta <= 0.0f) {
+                // 時間を使い切った後でも、次phaseが0秒なら同じTick内で連鎖させる。
+                if (remainingDelta <= 0.0f &&
+                    (!IsActivePhase(entry.phase) ||
+                     entry.phaseRemainingSeconds > 0.0f)) {
                     break;
                 }
             }
