@@ -1,14 +1,14 @@
 SceneSettings:
   Storage:
-    ExpectedEntities: 224
-    ExpectedTransforms: 192
-    ExpectedRenderables: 176
-    ExpectedCullingComponents: 176
+    ExpectedEntities: 232
+    ExpectedTransforms: 200
+    ExpectedRenderables: 184
+    ExpectedCullingComponents: 184
     ExpectedStaticEntities: 96
     PreallocatedTransformPages: 0
     PreallocatedTagPages: 0
-    RenderPacketReserve: 224
-    VisibleEntityReserve: 224
+    RenderPacketReserve: 232
+    VisibleEntityReserve: 232
     StaticBatchReserve: 32
     AllowRuntimeGrowth: true
     LogCapacityGrowth: true
@@ -25,3 +25,9 @@ Entities:
         Name: ColorTerritoryBriefingRuntime
       - Component: MiniGameCollection::Runtime::ColorTerritoryBriefingRuntime
         ScriptName: ColorTerritoryBriefingRuntime
+  - Entity: 3
+    Components:
+      - Component: NameComponent
+        Name: ColorTerritoryEventTelegraphRuntime
+      - Component: MiniGameCollection::Runtime::ColorTerritoryEventTelegraphRuntime
+        ScriptName: ColorTerritoryEventTelegraphRuntime
