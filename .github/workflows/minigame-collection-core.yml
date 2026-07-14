@@ -25,6 +25,7 @@ on:
       - "Tests/MiniGamePresentationSpikeSmokeTest.cpp"
       - "Tests/MiniGameRulesSmokeTest.cpp"
       - "Tests/BackshotSlideMovementSmokeTest.cpp"
+      - "Tests/WorldEventTelegraphSmokeTest.cpp"
       - "Directory.Build.targets"
       - "GameEngine.vcxproj"
       - "GameEngine.sln"
@@ -52,6 +53,7 @@ on:
       - "Tests/MiniGamePresentationSpikeSmokeTest.cpp"
       - "Tests/MiniGameRulesSmokeTest.cpp"
       - "Tests/BackshotSlideMovementSmokeTest.cpp"
+      - "Tests/WorldEventTelegraphSmokeTest.cpp"
       - "Directory.Build.targets"
       - "GameEngine.vcxproj"
       - "GameEngine.sln"
@@ -83,6 +85,8 @@ jobs:
             Source/GameApplication/Game/MiniGameCollection/Runtime/SheepRoundupRuntime.h
             Source/GameApplication/Game/MiniGameCollection/Runtime/BackshotSlideRuntime.h
             Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeUi.h
+            Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameBriefingPresenter.h
+            Source/GameApplication/Game/MiniGameCollection/Runtime/WorldEventTelegraphPresenter.h
           )
           if grep -n "ImGui::" "${files[@]}"; then
             echo "Gameplay UI must use MiniGameRuntimeUi / Direct2D, not ImGui."
@@ -123,6 +127,23 @@ jobs:
           grep -q 'player.sliding' "$runtime"
           grep -q 'GetKeyDown(VK_SPACE)' "$runtime"
           grep -q 'LANDING' "$runtime"
+      - name: Enforce shared telegraph architecture
+        shell: bash
+        run: |
+          model=Source/GameApplication/Game/MiniGameCollection/Core/WorldEventTelegraphModel.h
+          presenter=Source/GameApplication/Game/MiniGameCollection/Runtime/WorldEventTelegraphPresenter.h
+          grep -q 'TelegraphPhase::Warning' "$model"
+          grep -q 'TelegraphPhase::Armed' "$model"
+          grep -q 'TelegraphEventType::Resolve' "$model"
+          grep -q 'MajorDisplayLimit = 1' "$model"
+          grep -q 'MinorDisplayLimit = 2' "$model"
+          grep -q 'ClearForScene' "$model"
+          grep -q 'MiniGameRuntimeUi' "$presenter"
+          grep -q 'DrawWorldMarker' "$presenter"
+          if grep -n 'SubmitPresentation' "$model"; then
+            echo "Portable telegraph model must not call runtime presentation APIs."
+            exit 1
+          fi
       - name: Enforce PlayerPass runtime UI composition
         shell: bash
         run: |
@@ -209,6 +230,14 @@ jobs:
             Tests/MiniGameCollectionCoreSmokeTest.cpp \
             -o minigame-collection-core-test
           ./minigame-collection-core-test
+      - name: Compile and run telegraph contracts
+        shell: bash
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror \
+            -I Source -I Source/GameApplication \
+            Tests/WorldEventTelegraphSmokeTest.cpp \
+            -o world-event-telegraph-test
+          ./world-event-telegraph-test
       - name: Compile and run presentation retry contract
         shell: bash
         run: |
