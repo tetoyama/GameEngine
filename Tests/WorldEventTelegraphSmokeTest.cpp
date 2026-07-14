@@ -101,7 +101,8 @@ void TestPriorityAndDisplayLimits() {
 
     model.Tick(2.0f);
     assert(model.ActiveCount(TelegraphPriority::Major) == 1);
-    assert(model.ActiveCount(TelegraphPriority::Minor) == 2);
+    assert(model.ActiveCount(TelegraphPriority::Minor) == 1);
+    assert(model.PendingCount() == 0);
     assert(model.Find(2).has_value());
     assert(model.Find(5).has_value());
 }
