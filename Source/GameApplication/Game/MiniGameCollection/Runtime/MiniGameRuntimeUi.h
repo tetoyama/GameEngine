@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Game/MiniGameCollection/Core/MiniGameResponsiveLayout.h"
+
 #include "Scene/scene.h"
 #include "Scene/sceneManager.h"
 #include "Graphics/mainRenderer.h"
@@ -7,6 +9,7 @@
 #include <Windows.h>
 
 #include <algorithm>
+#include <cmath>
 #include <string>
 #include <string_view>
 
@@ -22,14 +25,42 @@ public:
         return Renderer() != nullptr;
     }
 
-    // Runtime UIは論理解像度でレイアウトし、実画面へ一括縮小する。
-    // 高解像度PlayerViewでもHUDが巨大化せず、ゲーム画面を主役に保つ。
+    // 1280x720を基準とするuniform-fit座標系。
+    // 16:9では解像度にかかわらず同じ論理座標を返し、4:3・縦長・横長では
+    // 余った方向だけ論理領域を拡張する。UIの縦横比を壊さず画面外も防ぐ。
     float Width() const noexcept {
-        return PhysicalWidth() / LayoutScale();
+        return Viewport().logicalWidth;
     }
 
     float Height() const noexcept {
-        return PhysicalHeight() / LayoutScale();
+        return Viewport().logicalHeight;
+    }
+
+    float Scale() const noexcept {
+        return Viewport().scale;
+    }
+
+    float SafeMarginX() const noexcept {
+        return Viewport().SafeMarginX();
+    }
+
+    float SafeMarginY() const noexcept {
+        return Viewport().SafeMarginY();
+    }
+
+    float ResolvePanelWidth(
+        float preferredWidth,
+        float minimumWidth = 0.0f
+    ) const noexcept {
+        return Viewport().ResolvePanelWidth(preferredWidth, minimumWidth);
+    }
+
+    float CenteredX(float width) const noexcept {
+        return Viewport().CenteredX(width);
+    }
+
+    bool IsPortrait() const noexcept {
+        return Viewport().IsPortrait();
     }
 
     void FillPanel(
@@ -40,7 +71,7 @@ public:
         D2D1::ColorF color = D2D1::ColorF(0.025f, 0.035f, 0.06f, 0.88f)
     ) const {
         if (MainRenderer* renderer = Renderer()) {
-            const float scale = LayoutScale();
+            const float scale = Scale();
             renderer->FillRect2D(
                 x * scale,
                 y * scale,
@@ -75,7 +106,7 @@ public:
             return;
         }
 
-        const float scale = LayoutScale();
+        const float scale = Scale();
         const float physicalX = x * scale;
         const float physicalY = y * scale;
         const float physicalFontSize = fontSize * scale;
@@ -148,6 +179,13 @@ public:
     }
 
 private:
+    MiniGameResponsiveViewport Viewport() const noexcept {
+        return MiniGameResponsiveViewport::Build(
+            PhysicalWidth(),
+            PhysicalHeight()
+        );
+    }
+
     MainRenderer* Renderer() const noexcept {
         return m_context && m_context->manager
             ? m_context->manager->renderer
@@ -155,26 +193,21 @@ private:
     }
 
     float PhysicalWidth() const noexcept {
-        return m_context && m_context->manager
-            ? (std::max)(1.0f, m_context->manager->PlayerScreenSize.x)
-            : 1280.0f;
+        const float width = m_context && m_context->manager
+            ? m_context->manager->PlayerScreenSize.x
+            : MiniGameResponsiveViewport::ReferenceWidth;
+        return std::isfinite(width) && width > 1.0f
+            ? width
+            : MiniGameResponsiveViewport::ReferenceWidth;
     }
 
     float PhysicalHeight() const noexcept {
-        return m_context && m_context->manager
-            ? (std::max)(1.0f, m_context->manager->PlayerScreenSize.y)
-            : 720.0f;
-    }
-
-    float LayoutScale() const noexcept {
-        const float height = PhysicalHeight();
-        if (height >= 900.0f) {
-            return 0.78f;
-        }
-        if (height >= 720.0f) {
-            return 0.84f;
-        }
-        return 0.90f;
+        const float height = m_context && m_context->manager
+            ? m_context->manager->PlayerScreenSize.y
+            : MiniGameResponsiveViewport::ReferenceHeight;
+        return std::isfinite(height) && height > 1.0f
+            ? height
+            : MiniGameResponsiveViewport::ReferenceHeight;
     }
 
     static float EstimateWidth(std::wstring_view text, float fontSize) noexcept {
