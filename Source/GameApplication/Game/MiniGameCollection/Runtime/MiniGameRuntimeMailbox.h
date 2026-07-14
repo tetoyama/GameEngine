@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Game/MiniGameCollection/Core/MiniGameBriefingModel.h"
 #include "Game/MiniGameCollection/Core/MiniGameCore.h"
 #include "Game/MiniGameCollection/Core/MiniGameMath.h"
 
@@ -9,6 +10,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -62,12 +64,90 @@ public:
         return result;
     }
 
+    static void BeginGuidance(SceneToken sceneToken) {
+        if (sceneToken == 0) {
+            return;
+        }
+        std::scoped_lock lock(Mutex());
+        GuidanceScenes().insert(sceneToken);
+        LastLowScorePresentationTimes().erase(sceneToken);
+        std::erase_if(
+            PresentationCommands(),
+            [sceneToken](const RuntimePresentationCommand& command) {
+                return command.sceneToken == sceneToken &&
+                    command.type != RuntimePresentationCommandType::BeginScene;
+            }
+        );
+    }
+
+    static void EndGuidance(SceneToken sceneToken) {
+        std::scoped_lock lock(Mutex());
+        GuidanceScenes().erase(sceneToken);
+    }
+
+    static bool IsGuidanceActive(SceneToken sceneToken) {
+        std::scoped_lock lock(Mutex());
+        return GuidanceScenes().contains(sceneToken);
+    }
+
+    static BriefingMode ResolveBriefingMode(MiniGameId gameId) {
+        std::scoped_lock lock(Mutex());
+        return BriefingProgress().ResolveMode(gameId, false);
+    }
+
+    static bool HasCompletedBriefing(MiniGameId gameId) {
+        std::scoped_lock lock(Mutex());
+        return BriefingProgress().HasCompleted(gameId);
+    }
+
+    static void MarkBriefingCompleted(MiniGameId gameId) {
+        std::scoped_lock lock(Mutex());
+        BriefingProgress().MarkCompleted(gameId);
+    }
+
+    static void ResetBriefingProgress() {
+        std::scoped_lock lock(Mutex());
+        BriefingProgress().Reset();
+    }
+
+    static void SetMajorTelegraphActive(
+        SceneToken sceneToken,
+        bool active
+    ) {
+        if (sceneToken == 0) {
+            return;
+        }
+        std::scoped_lock lock(Mutex());
+        if (active) {
+            MajorTelegraphScenes().insert(sceneToken);
+        } else {
+            MajorTelegraphScenes().erase(sceneToken);
+        }
+    }
+
+    static bool IsMajorTelegraphActive(SceneToken sceneToken) {
+        std::scoped_lock lock(Mutex());
+        return MajorTelegraphScenes().contains(sceneToken);
+    }
+
     static void SubmitPresentation(RuntimePresentationCommand command) {
         if (command.sceneToken == 0) {
             return;
         }
 
         std::scoped_lock lock(Mutex());
+
+        if (GuidanceScenes().contains(command.sceneToken) &&
+            command.type != RuntimePresentationCommandType::BeginScene &&
+            command.type != RuntimePresentationCommandType::Cancel) {
+            return;
+        }
+
+        if (MajorTelegraphScenes().contains(command.sceneToken) &&
+            (command.type == RuntimePresentationCommandType::Score ||
+             command.type == RuntimePresentationCommandType::NearMiss)) {
+            return;
+        }
 
         if (command.type == RuntimePresentationCommandType::BeginScene) {
             LastLowScorePresentationTimes().erase(command.sceneToken);
@@ -144,6 +224,8 @@ public:
         std::scoped_lock lock(Mutex());
         ShutdownCallbacks().erase(sceneToken);
         LastLowScorePresentationTimes().erase(sceneToken);
+        GuidanceScenes().erase(sceneToken);
+        MajorTelegraphScenes().erase(sceneToken);
         std::erase_if(
             PresentationCommands(),
             [sceneToken](const RuntimePresentationCommand& command) {
@@ -186,6 +268,21 @@ private:
     static std::unordered_map<SceneToken, ShutdownCallback>& ShutdownCallbacks() {
         static std::unordered_map<SceneToken, ShutdownCallback> callbacks;
         return callbacks;
+    }
+
+    static std::unordered_set<SceneToken>& GuidanceScenes() {
+        static std::unordered_set<SceneToken> scenes;
+        return scenes;
+    }
+
+    static std::unordered_set<SceneToken>& MajorTelegraphScenes() {
+        static std::unordered_set<SceneToken> scenes;
+        return scenes;
+    }
+
+    static MiniGameBriefingSessionState& BriefingProgress() {
+        static MiniGameBriefingSessionState state;
+        return state;
     }
 };
 
