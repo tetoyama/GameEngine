@@ -65,6 +65,7 @@
 #include "Game/MiniGameCollection/Runtime/ColorTerritoryRuntime.h"
 #include "Game/MiniGameCollection/Runtime/SheepRoundupRuntime.h"
 #include "Game/MiniGameCollection/Runtime/BackshotRuntime.h"
+#include "Game/MiniGameCollection/Runtime/BackshotSlideRuntime.h"
 #pragma pop_macro("max")
 #pragma pop_macro("min")
 
@@ -130,6 +131,7 @@ struct ComponentStoragePreference<TransformComponent> {
     X(MiniGameCollection::Runtime::ColorTerritoryRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::SheepRoundupRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::BackshotRuntime,COMPONENT_SPARSE)\
+    X(MiniGameCollection::Runtime::BackshotSlideRuntime,COMPONENT_SPARSE)\
     X(PrefabComponent,COMPONENT_SPARSE)\
     X(FollowComponent,COMPONENT_ARCHETYPE)\
     X(EnvironmentMapComponent,COMPONENT_ARCHETYPE)
