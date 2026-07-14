@@ -48,9 +48,10 @@ struct PlatformerMovementSettings {
 	float firstJumpForwardBoost = 0.30f;
 	float secondJumpForwardBoost = 0.62f;
 	float thirdJumpForwardBoost = 1.05f;
-	// The previous 0.43 cut made short wall-jump taps lose most of their height.
-	// Keep variable height, but retain enough launch velocity to feel deliberate.
-	float variableJumpCut = 0.54f;
+	// Releasing jump now preserves almost all launch velocity. A tap therefore
+	// reaches approximately the former held-jump height while a hold retains only
+	// a very small amount of extra height and forgiveness.
+	float variableJumpCut = 0.96f;
 	float coyoteTime = 0.12f;
 	float jumpBufferTime = 0.14f;
 
