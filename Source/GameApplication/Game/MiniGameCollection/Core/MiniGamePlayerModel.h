@@ -32,6 +32,10 @@ struct MiniGamePlayerState {
     Vec2 position{};
     Vec2 velocity{};
     Vec2 forward{0.0f, 1.0f};
+    // Route-based games may commit facing independently from continuous
+    // movement. Keep this explicit compatibility field synchronized by the
+    // shared movement model while allowing route runtimes to own it directly.
+    Vec2 facing{0.0f, 1.0f};
     Vec2 knockbackVelocity{};
     bool inputEnabled = false;
     bool eliminated = false;
@@ -77,6 +81,7 @@ public:
             const Vec2 turned = NormalizeOrZero(Lerp(state.forward, targetForward, turnAmount));
             if (LengthSquared(turned) > 0.0001f) {
                 state.forward = turned;
+                state.facing = turned;
             }
         }
 

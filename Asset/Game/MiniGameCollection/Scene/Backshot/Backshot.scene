@@ -1,21 +1,27 @@
 SceneSettings:
   Storage:
-    ExpectedEntities: 128
-    ExpectedTransforms: 112
-    ExpectedRenderables: 96
-    ExpectedCullingComponents: 96
-    ExpectedStaticEntities: 48
+    ExpectedEntities: 224
+    ExpectedTransforms: 208
+    ExpectedRenderables: 192
+    ExpectedCullingComponents: 192
+    ExpectedStaticEntities: 96
     PreallocatedTransformPages: 0
     PreallocatedTagPages: 0
-    RenderPacketReserve: 128
-    VisibleEntityReserve: 128
-    StaticBatchReserve: 24
+    RenderPacketReserve: 224
+    VisibleEntityReserve: 224
+    StaticBatchReserve: 48
     AllowRuntimeGrowth: true
     LogCapacityGrowth: true
 Entities:
   - Entity: 1
     Components:
       - Component: NameComponent
-        Name: BackshotRuntime
-      - Component: MiniGameCollection::Runtime::BackshotRuntime
-        ScriptName: BackshotRuntime
+        Name: BackshotRouteRuntime
+      - Component: MiniGameCollection::Runtime::BackshotRouteRuntime
+        ScriptName: BackshotRouteRuntime
+  - Entity: 2
+    Components:
+      - Component: NameComponent
+        Name: BackshotBriefingRuntime
+      - Component: MiniGameCollection::Runtime::BackshotBriefingRuntime
+        ScriptName: BackshotBriefingRuntime

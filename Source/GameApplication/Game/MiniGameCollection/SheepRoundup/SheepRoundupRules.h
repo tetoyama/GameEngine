@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -34,6 +35,8 @@ struct SheepSpawnConfig {
     float spawnPlayerClearance = 1.4f;
     float spawnSheepClearance = 0.85f;
     float spawnPenClearance = 1.35f;
+    float normalSpawnWarningSeconds = 0.65f;
+    float goldenSpawnWarningSeconds = 2.2f;
 };
 
 struct SheepState {
@@ -78,47 +81,65 @@ struct SheepSpawnEvent {
     bool lateRush = false;
 };
 
+struct SheepSpawnWarning {
+    std::size_t sheepId = 0;
+    Vec2 position{};
+    float warningSeconds = 0.0f;
+    std::uint32_t nextGeneration = 0;
+    bool golden = false;
+    bool lateRush = false;
+};
+
 class SheepRoundupRules final : public IMiniGameRules {
 public:
+    using SpawnWarningObserver = std::function<void(const SheepSpawnWarning&)>;
+
     SheepRoundupRules(
         std::size_t playerCount = 4,
         float durationSeconds = 50.0f,
         Bounds2 movementBounds = {{-10.0f, -7.0f}, {10.0f, 7.0f}}
     )
         : m_playerCount(playerCount),
-          m_durationSeconds(std::max(1.0f, durationSeconds)),
+          m_durationSeconds((std::max)(1.0f, durationSeconds)),
           m_bounds(movementBounds) {
         if (playerCount == 0 || playerCount > InvalidPlayerId) {
-            throw std::invalid_argument("SheepRoundupRules requires 1..254 players");
+            throw std::invalid_argument(
+                "SheepRoundupRules requires 1..254 players"
+            );
         }
+    }
+
+    static void SetSpawnWarningObserver(SpawnWarningObserver observer) {
+        WarningObserver() = std::move(observer);
+    }
+
+    static void ClearSpawnWarningObserver() {
+        WarningObserver() = {};
     }
 
     void SetInitialSheep(std::vector<Vec2> positions) {
-        if (m_started) {
-            throw std::logic_error("Cannot change sheep layout while playing");
-        }
-        // 明示配置は固定問題・テスト用途として有限モードにする。
-        // 補充制へ戻す場合は、この呼び出し後にSetSpawnConfigを行う。
+        EnsureNotStarted("Cannot change sheep layout while playing");
         m_spawnConfig.endlessSpawning = false;
         m_initialSheep.clear();
         m_initialSheep.reserve(positions.size());
-        for (const Vec2 position : positions) {
-            m_initialSheep.push_back({.position = position, .golden = false});
+        for (Vec2 position : positions) {
+            m_initialSheep.push_back({
+                .position = position,
+                .golden = false
+            });
         }
     }
 
-    void SetInitialSheepDefinitions(std::vector<SheepSpawnDefinition> sheep) {
-        if (m_started) {
-            throw std::logic_error("Cannot change sheep layout while playing");
-        }
+    void SetInitialSheepDefinitions(
+        std::vector<SheepSpawnDefinition> sheep
+    ) {
+        EnsureNotStarted("Cannot change sheep layout while playing");
         m_spawnConfig.endlessSpawning = false;
         m_initialSheep = std::move(sheep);
     }
 
     void SetPens(std::vector<SheepPenDefinition> pens) {
-        if (m_started) {
-            throw std::logic_error("Cannot change pens while playing");
-        }
+        EnsureNotStarted("Cannot change pens while playing");
         m_penDefinitions = std::move(pens);
     }
 
@@ -127,9 +148,7 @@ public:
     }
 
     void SetSpawnConfig(SheepSpawnConfig config) {
-        if (m_started) {
-            throw std::logic_error("Cannot change sheep spawn config while playing");
-        }
+        EnsureNotStarted("Cannot change sheep spawn config while playing");
         if (config.poolCapacity == 0 ||
             config.normalScoreValue <= 0 ||
             config.goldenScoreValue <= 0 ||
@@ -137,6 +156,14 @@ public:
             config.lateSpawnIntervalSeconds <= 0.0f) {
             throw std::invalid_argument("Sheep spawn config is invalid");
         }
+        config.normalSpawnWarningSeconds = (std::max)(
+            0.0f,
+            config.normalSpawnWarningSeconds
+        );
+        config.goldenSpawnWarningSeconds = (std::max)(
+            config.normalSpawnWarningSeconds,
+            config.goldenSpawnWarningSeconds
+        );
         m_spawnConfig = config;
     }
 
@@ -150,7 +177,7 @@ public:
 
         m_spawnRandomState = m_spawnSeed;
         const std::size_t capacity = m_spawnConfig.endlessSpawning
-            ? std::max(m_spawnConfig.poolCapacity, m_initialSheep.size())
+            ? (std::max)(m_spawnConfig.poolCapacity, m_initialSheep.size())
             : m_initialSheep.size();
         m_sheep.assign(capacity, {});
         for (std::size_t index = 0; index < m_sheep.size(); ++index) {
@@ -166,6 +193,7 @@ public:
                     0.3f
                 ),
                 m_initialSheep[index].golden,
+                false,
                 false
             );
         }
@@ -174,6 +202,7 @@ public:
         m_scores.assign(m_playerCount, 0);
         m_scoreEvents.clear();
         m_spawnEvents.clear();
+        m_pendingSpawns.clear();
         m_elapsedSeconds = 0.0f;
         m_nextSpawnSeconds = m_spawnConfig.earlySpawnIntervalSeconds;
         m_started = false;
@@ -197,48 +226,14 @@ public:
             return;
         }
 
-        const float delta = std::max(0.0f, deltaTime);
-        m_elapsedSeconds = std::min(
+        const float delta = (std::max)(0.0f, deltaTime);
+        m_elapsedSeconds = (std::min)(
             m_durationSeconds,
             m_elapsedSeconds + delta
         );
 
-        std::vector<Vec2> flockPositions;
-        flockPositions.reserve(GetActiveSheepCount());
-        for (const SheepState& sheep : m_sheep) {
-            if (sheep.IsActive()) {
-                flockPositions.push_back(sheep.position);
-            }
-        }
-
-        for (SheepState& sheep : m_sheep) {
-            if (!sheep.IsActive()) {
-                sheep.velocity = {};
-                continue;
-            }
-
-            SheepSteeringInput input;
-            input.position = sheep.position;
-            input.previousDirection = sheep.direction;
-            input.playerPositions = m_playerPositions;
-            input.flockPositions = flockPositions;
-            input.movementBounds = m_bounds;
-
-            const SheepSteeringOutput steering = SheepSteeringModel::Compute(
-                input,
-                m_steeringConfig,
-                delta
-            );
-            sheep.direction = steering.direction;
-            sheep.velocity = steering.velocity;
-            sheep.position += sheep.velocity * delta;
-            sheep.position = SheepSteeringModel::ClampInsideBounds(
-                sheep.position,
-                m_bounds,
-                0.25f
-            );
-            TryScoreSheep(sheep);
-        }
+        UpdateSheepMotion(delta);
+        UpdatePendingSpawns(delta);
 
         if (m_elapsedSeconds >= m_durationSeconds) {
             m_finished = true;
@@ -282,6 +277,7 @@ public:
         m_scores.clear();
         m_scoreEvents.clear();
         m_spawnEvents.clear();
+        m_pendingSpawns.clear();
     }
 
     bool SetPlayerPosition(PlayerId playerId, Vec2 position) noexcept {
@@ -308,8 +304,12 @@ public:
         return events;
     }
 
-    const std::vector<SheepState>& GetSheep() const noexcept { return m_sheep; }
-    const std::vector<int>& GetScores() const noexcept { return m_scores; }
+    const std::vector<SheepState>& GetSheep() const noexcept {
+        return m_sheep;
+    }
+    const std::vector<int>& GetScores() const noexcept {
+        return m_scores;
+    }
     const std::vector<SheepPenDefinition>& GetPens() const noexcept {
         return m_penDefinitions;
     }
@@ -318,7 +318,7 @@ public:
     }
     float GetElapsedSeconds() const noexcept { return m_elapsedSeconds; }
     float GetRemainingSeconds() const noexcept {
-        return std::max(0.0f, m_durationSeconds - m_elapsedSeconds);
+        return (std::max)(0.0f, m_durationSeconds - m_elapsedSeconds);
     }
     float GetRemainingTimeRatio() const noexcept {
         return m_durationSeconds > 0.0f
@@ -327,8 +327,11 @@ public:
     }
     bool IsLateRush() const noexcept {
         return m_spawnConfig.endlessSpawning &&
-            GetRemainingTimeRatio() <=
-            std::clamp(m_spawnConfig.latePhaseStartRemainingRatio, 0.0f, 1.0f);
+            GetRemainingTimeRatio() <= (std::clamp)(
+                m_spawnConfig.latePhaseStartRemainingRatio,
+                0.0f,
+                1.0f
+            );
     }
     std::size_t GetActiveSheepCount() const noexcept {
         return static_cast<std::size_t>(std::count_if(
@@ -346,9 +349,33 @@ public:
             }
         ));
     }
+    std::size_t GetPendingSpawnCount() const noexcept {
+        return m_pendingSpawns.size();
+    }
 
 private:
     static constexpr std::uint32_t DefaultSpawnSeed = 0x5EE9A11u;
+    static constexpr float SpawnBoundaryEpsilon = 0.00001f;
+
+    struct PendingSpawn {
+        std::size_t sheepId = 0;
+        Vec2 position{};
+        float remainingSeconds = 0.0f;
+        bool golden = false;
+        bool lateRush = false;
+        bool emitEvent = true;
+    };
+
+    static SpawnWarningObserver& WarningObserver() {
+        static SpawnWarningObserver observer;
+        return observer;
+    }
+
+    void EnsureNotStarted(const char* message) const {
+        if (m_started) {
+            throw std::logic_error(message);
+        }
+    }
 
     void EnsureDefaultLayout() {
         if (m_initialSheep.empty()) {
@@ -357,8 +384,11 @@ private:
                 {-2.3f, 1.3f}, {0.0f, 1.7f}, {2.2f, 1.2f},
                 {-0.8f, 0.0f}, {0.9f, 0.1f}
             };
-            for (const Vec2 position : defaults) {
-                m_initialSheep.push_back({.position = position, .golden = false});
+            for (Vec2 position : defaults) {
+                m_initialSheep.push_back({
+                    .position = position,
+                    .golden = false
+                });
             }
         }
 
@@ -389,16 +419,53 @@ private:
     void ValidatePens() const {
         std::vector<bool> hasPen(m_playerCount, false);
         for (const SheepPenDefinition& pen : m_penDefinitions) {
-            if (pen.owner >= m_playerCount || pen.radius <= 0.0f) {
+            if (pen.owner >= m_playerCount || pen.radius <= 0.0f ||
+                hasPen[pen.owner]) {
                 throw std::invalid_argument("Sheep pen definition is invalid");
-            }
-            if (hasPen[pen.owner]) {
-                throw std::invalid_argument("Each player must have exactly one sheep pen");
             }
             hasPen[pen.owner] = true;
         }
         if (std::find(hasPen.begin(), hasPen.end(), false) != hasPen.end()) {
             throw std::invalid_argument("A player is missing a sheep pen");
+        }
+    }
+
+    void UpdateSheepMotion(float deltaTime) {
+        std::vector<Vec2> flockPositions;
+        flockPositions.reserve(GetActiveSheepCount());
+        for (const SheepState& sheep : m_sheep) {
+            if (sheep.IsActive()) {
+                flockPositions.push_back(sheep.position);
+            }
+        }
+
+        for (SheepState& sheep : m_sheep) {
+            if (!sheep.IsActive()) {
+                sheep.velocity = {};
+                continue;
+            }
+
+            SheepSteeringInput input;
+            input.position = sheep.position;
+            input.previousDirection = sheep.direction;
+            input.playerPositions = m_playerPositions;
+            input.flockPositions = flockPositions;
+            input.movementBounds = m_bounds;
+
+            const SheepSteeringOutput steering = SheepSteeringModel::Compute(
+                input,
+                m_steeringConfig,
+                deltaTime
+            );
+            sheep.direction = steering.direction;
+            sheep.velocity = steering.velocity;
+            sheep.position += sheep.velocity * deltaTime;
+            sheep.position = SheepSteeringModel::ClampInsideBounds(
+                sheep.position,
+                m_bounds,
+                0.25f
+            );
+            TryScoreSheep(sheep);
         }
     }
 
@@ -410,12 +477,11 @@ private:
             }
 
             const PlayerId previousLeader = FindLeader();
-            const int points = std::max(1, sheep.scoreValue);
+            const int points = (std::max)(1, sheep.scoreValue);
             const bool wasGolden = sheep.golden;
-            const Vec2 scorePosition = pen.center;
             sheep.active = false;
             sheep.scoredBy = pen.owner;
-            sheep.position = scorePosition;
+            sheep.position = pen.center;
             sheep.velocity = {};
             m_scores[pen.owner] += points;
 
@@ -423,7 +489,7 @@ private:
             m_scoreEvents.push_back({
                 .sheepId = sheep.sheepId,
                 .playerId = pen.owner,
-                .position = scorePosition,
+                .position = pen.center,
                 .pointsAwarded = points,
                 .newScore = m_scores[pen.owner],
                 .golden = wasGolden,
@@ -443,69 +509,129 @@ private:
             return;
         }
 
-        const std::size_t target = std::min(
+        const std::size_t target = (std::min)(
             m_sheep.size(),
             lateRush
                 ? m_spawnConfig.lateTargetActive
                 : m_spawnConfig.earlyTargetActive
         );
-        const std::size_t batch = std::max<std::size_t>(
+        const std::size_t batch = (std::max<std::size_t>)(
             1,
             lateRush
                 ? m_spawnConfig.lateSpawnBatch
                 : m_spawnConfig.earlySpawnBatch
         );
 
-        std::size_t spawned = 0;
-        while (spawned < batch && GetActiveSheepCount() < target) {
+        std::size_t scheduled = 0;
+        while (scheduled < batch && GetReservedOrActiveCount() < target) {
             if (!SpawnOne(lateRush)) {
                 break;
             }
-            ++spawned;
+            ++scheduled;
         }
 
         const float baseInterval = lateRush
             ? m_spawnConfig.lateSpawnIntervalSeconds
             : m_spawnConfig.earlySpawnIntervalSeconds;
-        const float jitter = 0.82f + NextUnit() * 0.36f;
-        m_nextSpawnSeconds = std::max(0.1f, baseInterval * jitter);
-        if (GetActiveSheepCount() + 2 < target) {
-            m_nextSpawnSeconds = std::min(m_nextSpawnSeconds, 0.25f);
+        m_nextSpawnSeconds = (std::max)(
+            0.1f,
+            baseInterval * (0.82f + NextUnit() * 0.36f)
+        );
+        if (GetReservedOrActiveCount() + 2 < target) {
+            m_nextSpawnSeconds = (std::min)(m_nextSpawnSeconds, 0.25f);
         }
+    }
+
+    void UpdatePendingSpawns(float deltaTime) {
+        for (PendingSpawn& pending : m_pendingSpawns) {
+            pending.remainingSeconds = (std::max)(
+                0.0f,
+                pending.remainingSeconds - deltaTime
+            );
+        }
+
+        for (const PendingSpawn& pending : m_pendingSpawns) {
+            if (pending.remainingSeconds > SpawnBoundaryEpsilon ||
+                pending.sheepId >= m_sheep.size()) {
+                continue;
+            }
+            ActivateSheep(
+                m_sheep[pending.sheepId],
+                pending.position,
+                pending.golden,
+                pending.emitEvent,
+                pending.lateRush
+            );
+        }
+
+        std::erase_if(
+            m_pendingSpawns,
+            [](const PendingSpawn& pending) {
+                return pending.remainingSeconds <= SpawnBoundaryEpsilon;
+            }
+        );
     }
 
     void SpawnUntilTarget(bool emitEvents) {
         const bool lateRush = IsLateRush();
-        const std::size_t target = std::min(
+        const std::size_t target = (std::min)(
             m_sheep.size(),
             lateRush
                 ? m_spawnConfig.lateTargetActive
                 : m_spawnConfig.earlyTargetActive
         );
-        while (GetActiveSheepCount() < target) {
-            if (!SpawnOne(lateRush, emitEvents)) {
+        while (GetReservedOrActiveCount() < target) {
+            if (!SpawnOne(lateRush, emitEvents, true)) {
                 break;
             }
         }
     }
 
-    bool SpawnOne(bool lateRush, bool emitEvent = true) {
-        auto available = std::find_if(
+    bool SpawnOne(
+        bool lateRush,
+        bool emitEvent = true,
+        bool forceImmediate = false
+    ) {
+        const auto available = std::find_if(
             m_sheep.begin(),
             m_sheep.end(),
-            [](const SheepState& sheep) { return !sheep.IsActive(); }
+            [this](const SheepState& sheep) {
+                return !sheep.IsActive() && !IsSheepPending(sheep.sheepId);
+            }
         );
         if (available == m_sheep.end()) {
             return false;
         }
 
         const bool golden = RollGolden(lateRush);
-        ActivateSheep(
-            *available,
-            ChooseSpawnPosition(),
-            golden,
-            emitEvent
-        );
+        const Vec2 position = ChooseSpawnPosition();
+        const bool useWarning =
+            !forceImmediate && emitEvent && static_cast<bool>(WarningObserver());
+        const float warningSeconds = golden
+            ? m_spawnConfig.goldenSpawnWarningSeconds
+            : m_spawnConfig.normalSpawnWarningSeconds;
+
+        if (!useWarning || warningSeconds <= SpawnBoundaryEpsilon) {
+            ActivateSheep(*available, position, golden, emitEvent, lateRush);
+            return true;
+        }
+
+        m_pendingSpawns.push_back({
+            .sheepId = available->sheepId,
+            .position = position,
+            .remainingSeconds = warningSeconds,
+            .golden = golden,
+            .lateRush = lateRush,
+            .emitEvent = emitEvent
+        });
+        WarningObserver()({
+            .sheepId = available->sheepId,
+            .position = position,
+            .warningSeconds = warningSeconds,
+            .nextGeneration = available->generation + 1,
+            .golden = golden,
+            .lateRush = lateRush
+        });
         return true;
     }
 
@@ -513,7 +639,8 @@ private:
         SheepState& sheep,
         Vec2 position,
         bool golden,
-        bool emitEvent
+        bool emitEvent,
+        bool lateRush
     ) {
         sheep.position = position;
         sheep.direction = RandomDirection();
@@ -521,8 +648,8 @@ private:
         sheep.scoredBy = InvalidPlayerId;
         sheep.golden = golden;
         sheep.scoreValue = golden
-            ? std::max(1, m_spawnConfig.goldenScoreValue)
-            : std::max(1, m_spawnConfig.normalScoreValue);
+            ? (std::max)(1, m_spawnConfig.goldenScoreValue)
+            : (std::max)(1, m_spawnConfig.normalScoreValue);
         sheep.active = true;
         ++sheep.generation;
 
@@ -533,20 +660,27 @@ private:
                 .scoreValue = sheep.scoreValue,
                 .generation = sheep.generation,
                 .golden = sheep.golden,
-                .lateRush = IsLateRush()
+                .lateRush = lateRush
             });
         }
     }
 
     bool RollGolden(bool lateRush) {
-        const std::size_t goldenCap = lateRush ? 3 : 1;
-        if (GetActiveGoldenSheepCount() >= goldenCap) {
+        const std::size_t cap = lateRush ? 3 : 1;
+        const std::size_t pendingGolden = static_cast<std::size_t>(
+            std::count_if(
+                m_pendingSpawns.begin(),
+                m_pendingSpawns.end(),
+                [](const PendingSpawn& pending) { return pending.golden; }
+            )
+        );
+        if (GetActiveGoldenSheepCount() + pendingGolden >= cap) {
             ++m_normalSpawnsSinceGolden;
             return false;
         }
 
         const int pityThreshold = lateRush ? 4 : 7;
-        const float chance = std::clamp(
+        const float chance = (std::clamp)(
             lateRush
                 ? m_spawnConfig.lateGoldenChance
                 : m_spawnConfig.earlyGoldenChance,
@@ -603,15 +737,13 @@ private:
         for (const SheepPenDefinition& pen : m_penDefinitions) {
             const float clearance =
                 pen.radius + m_spawnConfig.spawnPenClearance;
-            if (DistanceSquared(position, pen.center) <
-                clearance * clearance) {
+            if (DistanceSquared(position, pen.center) < clearance * clearance) {
                 return false;
             }
         }
-        for (const Vec2 player : m_playerPositions) {
-            if (DistanceSquared(position, player) <
-                m_spawnConfig.spawnPlayerClearance *
-                m_spawnConfig.spawnPlayerClearance) {
+        for (Vec2 player : m_playerPositions) {
+            const float clearance = m_spawnConfig.spawnPlayerClearance;
+            if (DistanceSquared(position, player) < clearance * clearance) {
                 return false;
             }
         }
@@ -619,13 +751,34 @@ private:
             if (!sheep.IsActive()) {
                 continue;
             }
+            const float clearance = m_spawnConfig.spawnSheepClearance;
             if (DistanceSquared(position, sheep.position) <
-                m_spawnConfig.spawnSheepClearance *
-                m_spawnConfig.spawnSheepClearance) {
+                clearance * clearance) {
+                return false;
+            }
+        }
+        for (const PendingSpawn& pending : m_pendingSpawns) {
+            const float clearance = m_spawnConfig.spawnSheepClearance;
+            if (DistanceSquared(position, pending.position) <
+                clearance * clearance) {
                 return false;
             }
         }
         return true;
+    }
+
+    bool IsSheepPending(std::size_t sheepId) const noexcept {
+        return std::any_of(
+            m_pendingSpawns.begin(),
+            m_pendingSpawns.end(),
+            [sheepId](const PendingSpawn& pending) {
+                return pending.sheepId == sheepId;
+            }
+        );
+    }
+
+    std::size_t GetReservedOrActiveCount() const noexcept {
+        return GetActiveSheepCount() + m_pendingSpawns.size();
     }
 
     Vec2 RandomDirection() {
@@ -635,9 +788,9 @@ private:
 
     float NextUnit() noexcept {
         std::uint32_t value = m_spawnRandomState;
-        value ^= value << 13;
-        value ^= value >> 17;
-        value ^= value << 5;
+        value ^= value << 13u;
+        value ^= value >> 17u;
+        value ^= value << 5u;
         m_spawnRandomState = value != 0 ? value : DefaultSpawnSeed;
         return static_cast<float>(m_spawnRandomState & 0x00FFFFFFu) /
             static_cast<float>(0x01000000u);
@@ -652,14 +805,14 @@ private:
             m_scores.end()
         );
         PlayerId leader = InvalidPlayerId;
-        int leaderCount = 0;
+        int count = 0;
         for (std::size_t index = 0; index < m_scores.size(); ++index) {
             if (m_scores[index] == maximum) {
                 leader = static_cast<PlayerId>(index);
-                ++leaderCount;
+                ++count;
             }
         }
-        return leaderCount == 1 ? leader : InvalidPlayerId;
+        return count == 1 ? leader : InvalidPlayerId;
     }
 
     std::size_t m_playerCount = 0;
@@ -674,6 +827,7 @@ private:
     std::vector<int> m_scores;
     std::vector<SheepScoreEvent> m_scoreEvents;
     std::vector<SheepSpawnEvent> m_spawnEvents;
+    std::vector<PendingSpawn> m_pendingSpawns;
     float m_elapsedSeconds = 0.0f;
     float m_nextSpawnSeconds = 0.0f;
     bool m_started = false;

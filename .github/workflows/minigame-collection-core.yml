@@ -7,6 +7,7 @@ on:
       - refactor/ecs-scheduler-foundation
     paths:
       - "Source/GameApplication/Game/MiniGameCollection/**"
+      - "Source/GameApplication/Engine/Scene/Component/CustomScriptComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/audioComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/componentList.h"
       - "Source/GameApplication/Engine/Scene/System/Audio/audioSystem.h"
@@ -24,6 +25,10 @@ on:
       - "Tests/MiniGameCollectionCoreSmokeTest.cpp"
       - "Tests/MiniGamePresentationSpikeSmokeTest.cpp"
       - "Tests/MiniGameRulesSmokeTest.cpp"
+      - "Tests/BackshotSlideMovementSmokeTest.cpp"
+      - "Tests/BackshotRouteTopologySmokeTest.cpp"
+      - "Tests/WorldEventTelegraphSmokeTest.cpp"
+      - "Tests/MiniGameForecastSmokeTest.cpp"
       - "Directory.Build.targets"
       - "GameEngine.vcxproj"
       - "GameEngine.sln"
@@ -33,6 +38,7 @@ on:
       - game/minigame-collection
     paths:
       - "Source/GameApplication/Game/MiniGameCollection/**"
+      - "Source/GameApplication/Engine/Scene/Component/CustomScriptComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/audioComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/componentList.h"
       - "Source/GameApplication/Engine/Scene/System/Audio/audioSystem.h"
@@ -50,6 +56,10 @@ on:
       - "Tests/MiniGameCollectionCoreSmokeTest.cpp"
       - "Tests/MiniGamePresentationSpikeSmokeTest.cpp"
       - "Tests/MiniGameRulesSmokeTest.cpp"
+      - "Tests/BackshotSlideMovementSmokeTest.cpp"
+      - "Tests/BackshotRouteTopologySmokeTest.cpp"
+      - "Tests/WorldEventTelegraphSmokeTest.cpp"
+      - "Tests/MiniGameForecastSmokeTest.cpp"
       - "Directory.Build.targets"
       - "GameEngine.vcxproj"
       - "GameEngine.sln"
@@ -70,6 +80,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           show-progress: false
+
       - name: Enforce runtime UI boundary
         shell: bash
         run: |
@@ -79,7 +90,13 @@ jobs:
             Source/GameApplication/Game/MiniGameCollection/Runtime/PresentationSpikeRuntime.h
             Source/GameApplication/Game/MiniGameCollection/Runtime/ColorTerritoryRuntime.h
             Source/GameApplication/Game/MiniGameCollection/Runtime/SheepRoundupRuntime.h
+            Source/GameApplication/Game/MiniGameCollection/Runtime/BackshotSlideRuntime.h
+            Source/GameApplication/Game/MiniGameCollection/Runtime/BackshotRouteRuntime.h
+            Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameBriefingOverlayRuntime.h
+            Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameEventTelegraphRuntime.h
             Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeUi.h
+            Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameBriefingPresenter.h
+            Source/GameApplication/Game/MiniGameCollection/Runtime/WorldEventTelegraphPresenter.h
           )
           if grep -n "ImGui::" "${files[@]}"; then
             echo "Gameplay UI must use MiniGameRuntimeUi / Direct2D, not ImGui."
@@ -88,6 +105,7 @@ jobs:
           test "$(grep -c "ImGui::" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h)" -eq 1
           grep -q "void inspector" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h
           grep -q "void DrawHitDebug" Source/GameApplication/Game/MiniGameCollection/Runtime/BackshotRuntime.h
+
       - name: Enforce result menu controls
         shell: bash
         run: |
@@ -105,6 +123,115 @@ jobs:
           grep -q 'keyCode == VK_ESCAPE' "$result_ui"
           grep -q 'ResultMenuAction::ReturnToTitle' "$result_ui"
           grep -q '矢印キー：選択    SPACE：決定' "$result_ui"
+
+      - name: Enforce interactive briefing flow
+        shell: bash
+        run: |
+          engine_script=Source/GameApplication/Engine/Scene/Component/CustomScriptComponent.h
+          model=Source/GameApplication/Game/MiniGameCollection/Core/MiniGameBriefingModel.h
+          overlay=Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameBriefingOverlayRuntime.h
+          mailbox=Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeMailbox.h
+          color_scene=Asset/Game/MiniGameCollection/Scene/ColorTerritory/ColorTerritory.scene
+          sheep_scene=Asset/Game/MiniGameCollection/Scene/SheepRoundup/SheepRoundup.scene
+          backshot_scene=Asset/Game/MiniGameCollection/Scene/Backshot/Backshot.scene
+
+          grep -q 'AwaitingSkipRelease' "$model"
+          grep -q 'holdSeconds = 1.0f' "$overlay"
+          grep -q 'CustomScriptComponent::GetKey(VK_RETURN)' "$overlay"
+          grep -q 'SuspendSceneUpdates' "$overlay"
+          grep -q 'SetIgnoreSceneUpdateSuspension(true)' "$overlay"
+          grep -q 'm_releasePending = true' "$overlay"
+          grep -q 'MarkBriefingCompleted' "$overlay"
+          grep -q 'BeginGuidance' "$mailbox"
+          grep -q 'GuidanceScenes' "$mailbox"
+          grep -q 'ShouldRunFrameUpdate' "$engine_script"
+          grep -q 'ShouldRunFixedUpdate' "$engine_script"
+          grep -q 'ColorTerritoryBriefingRuntime' "$color_scene"
+          grep -q 'SheepRoundupBriefingRuntime' "$sheep_scene"
+          grep -q 'BackshotBriefingRuntime' "$backshot_scene"
+          grep -q '塗ったマス' "$overlay"
+          grep -q 'GOLDEN SHEEP' "$overlay"
+          grep -q 'WHITE FRONT' "$overlay"
+          grep -q 'RED REAR' "$overlay"
+          grep -q 'BOOST SLIDES' "$overlay"
+          grep -q '黄色route' "$overlay"
+
+      - name: Enforce shared telegraph architecture
+        shell: bash
+        run: |
+          model=Source/GameApplication/Game/MiniGameCollection/Core/WorldEventTelegraphModel.h
+          presenter=Source/GameApplication/Game/MiniGameCollection/Runtime/WorldEventTelegraphPresenter.h
+          mailbox=Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameRuntimeMailbox.h
+          grep -q 'TelegraphPhase::Warning' "$model"
+          grep -q 'TelegraphPhase::Armed' "$model"
+          grep -q 'TelegraphEventType::Resolve' "$model"
+          grep -q 'MajorDisplayLimit = 1' "$model"
+          grep -q 'MinorDisplayLimit = 2' "$model"
+          grep -q 'ClearForScene' "$model"
+          grep -q 'MiniGameRuntimeUi' "$presenter"
+          grep -q 'DrawWorldMarker' "$presenter"
+          grep -q 'MajorTelegraphScenes' "$mailbox"
+          grep -q 'RuntimePresentationCommandType::Score' "$mailbox"
+          grep -q 'RuntimePresentationCommandType::NearMiss' "$mailbox"
+          if grep -n 'SubmitPresentation' "$model"; then
+            echo "Portable telegraph model must not call runtime presentation APIs."
+            exit 1
+          fi
+
+      - name: Enforce Color and Sheep predictive warnings
+        shell: bash
+        run: |
+          color_model=Source/GameApplication/Game/MiniGameCollection/ColorTerritory/ColorTerritoryItemModel.h
+          sheep_rules=Source/GameApplication/Game/MiniGameCollection/SheepRoundup/SheepRoundupRules.h
+          runtime=Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameEventTelegraphRuntime.h
+          color_scene=Asset/Game/MiniGameCollection/Scene/ColorTerritory/ColorTerritory.scene
+          sheep_scene=Asset/Game/MiniGameCollection/Scene/SheepRoundup/SheepRoundup.scene
+
+          grep -q 'fallingSeconds = 2.8f' "$color_model"
+          grep -q 'TerritoryItemForecast' "$color_model"
+          grep -q 'SetForecastObserver' "$color_model"
+          grep -q 'goldenSpawnWarningSeconds = 2.2f' "$sheep_rules"
+          grep -q 'PendingSpawn' "$sheep_rules"
+          grep -q 'SetSpawnWarningObserver' "$sheep_rules"
+          grep -q 'ITEM RUSH IN 3' "$runtime"
+          grep -q 'BOMB 3x3 / MOVE OUT' "$runtime"
+          grep -q 'FLOCK RUSH IN 4' "$runtime"
+          grep -q 'GOLDEN SHEEP / 3 POINTS' "$runtime"
+          grep -q 'ColorTerritoryEventTelegraphRuntime' "$color_scene"
+          grep -q 'SheepRoundupEventTelegraphRuntime' "$sheep_scene"
+
+      - name: Enforce route-based Backshot contract
+        shell: bash
+        run: |
+          runtime=Source/GameApplication/Game/MiniGameCollection/Runtime/BackshotRouteRuntime.h
+          topology=Source/GameApplication/Game/MiniGameCollection/Backshot/BackshotRouteTopology.h
+          events=Source/GameApplication/Game/MiniGameCollection/Backshot/BackshotDynamicEvents.h
+          scene=Asset/Game/MiniGameCollection/Scene/Backshot/Backshot.scene
+          components=Source/GameApplication/Engine/Scene/Component/componentList.h
+
+          grep -q 'BackshotRouteRuntime' "$scene"
+          grep -q 'BackshotRouteRuntime.h' "$components"
+          grep -q 'BackshotRouteRuntime,COMPONENT_SPARSE' "$components"
+          grep -q 'RouteCellType' "$topology"
+          grep -q 'CornerNE' "$topology"
+          grep -q 'TJunctionN' "$topology"
+          grep -q 'Cross' "$topology"
+          grep -q 'DeadEndN' "$topology"
+          grep -q 'LayoutA' "$topology"
+          grep -q 'LayoutB' "$topology"
+          grep -q 'LayoutC' "$topology"
+          grep -q 'continuationCount != 1' "$topology"
+          grep -q 'BuildReservedCells' "$runtime"
+          grep -q 'player.sliding' "$runtime"
+          grep -q 'GetKeyDown(VK_SPACE)' "$runtime"
+          grep -q 'BoostPoolCapacity = 2' "$runtime"
+          grep -q 'BoostWarningSeconds = 2.8f' "$runtime"
+          grep -q 'warningSeconds = 4.0f' "$runtime"
+          grep -q 'closedSeconds = 6.0f' "$runtime"
+          grep -q 'reopeningSeconds = 1.0f' "$runtime"
+          grep -q 'BlocksNewRoutes' "$events"
+          grep -q 'WouldRemainNavigable' "$topology"
+
       - name: Enforce PlayerPass runtime UI composition
         shell: bash
         run: |
@@ -129,6 +256,7 @@ jobs:
             echo "Runtime UI must not bypass PlayerPass by drawing directly to the SwapChain."
             exit 1
           fi
+
       - name: Enforce scene-driven entry flow
         shell: bash
         run: |
@@ -149,6 +277,7 @@ jobs:
           grep -q "isLock: true" "$persistent_scene"
           grep -q "QueueAddComponent<TextureComponent>" "$runtime_base"
           grep -q "Asset.*Texture.*white.tga" "$runtime_base"
+
       - name: Enforce tactile feedback stack
         shell: bash
         run: |
@@ -166,6 +295,7 @@ jobs:
           grep -q "Name: MiniGameBlueFillLight" "$persistent_scene"
           grep -q "Name: MiniGameWarmFillLight" "$persistent_scene"
           grep -q "CastShadow: 1" "$persistent_scene"
+
       - name: Enforce deferred additive scene loading
         shell: bash
         run: |
@@ -183,6 +313,7 @@ jobs:
           grep -q "QueueAdditiveSceneLoadFromFilePath" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGameCollectionEntryRuntime.h
           grep -q "QueueAdditiveSceneLoadFromFilePath" Source/GameApplication/Game/MiniGameCollection/Runtime/MiniGamePersistentRuntime.h
           grep -q "QueueAdditiveSceneLoadFromFilePath" Source/GameApplication/Game/MiniGameCollection/Core/MiniGameSceneTransitionEngineBackend.h
+
       - name: Compile and run minigame model contracts
         shell: bash
         run: |
@@ -191,6 +322,25 @@ jobs:
             Tests/MiniGameCollectionCoreSmokeTest.cpp \
             -o minigame-collection-core-test
           ./minigame-collection-core-test
+
+      - name: Compile and run telegraph contracts
+        shell: bash
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror \
+            -I Source -I Source/GameApplication \
+            Tests/WorldEventTelegraphSmokeTest.cpp \
+            -o world-event-telegraph-test
+          ./world-event-telegraph-test
+
+      - name: Compile and run exact forecast contracts
+        shell: bash
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror \
+            -I Source -I Source/GameApplication \
+            Tests/MiniGameForecastSmokeTest.cpp \
+            -o minigame-forecast-test
+          ./minigame-forecast-test
+
       - name: Compile and run presentation retry contract
         shell: bash
         run: |
@@ -199,6 +349,7 @@ jobs:
             Tests/MiniGamePresentationSpikeSmokeTest.cpp \
             -o minigame-presentation-spike-test
           ./minigame-presentation-spike-test
+
       - name: Compile and run minigame rule flow
         shell: bash
         run: |
@@ -207,6 +358,25 @@ jobs:
             Tests/MiniGameRulesSmokeTest.cpp \
             -o minigame-rules-test
           ./minigame-rules-test
+
+      - name: Compile and run legacy Backshot slide contracts
+        shell: bash
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror \
+            -I Source -I Source/GameApplication \
+            Tests/BackshotSlideMovementSmokeTest.cpp \
+            -o backshot-slide-movement-test
+          ./backshot-slide-movement-test
+
+      - name: Compile and run route Backshot contracts
+        shell: bash
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror \
+            -I Source -I Source/GameApplication \
+            Tests/BackshotRouteTopologySmokeTest.cpp \
+            -o backshot-route-topology-test
+          ./backshot-route-topology-test
+
       - name: Validate required scene assets
         shell: pwsh
         run: |

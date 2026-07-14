@@ -1,254 +1,231 @@
-# MiniGame Collection Implementation Plan
+# ミニゲーム集 改善作業計画書
 
-## Branch contract
+## 1. 文書の位置付け
 
-- Base pull request: `tetoyama/GameEngine#45`
+- Repository: `tetoyama/GameEngine`
+- Branch: `game/minigame-collection`
+- Pull request: `#48`
 - Base branch: `refactor/ecs-scheduler-foundation`
 - Base commit: `355b9ac450d2461bac3fffb49820d73d8b2e8f2e`
-- Game branch: `game/minigame-collection`
-- Created: 2026-07-12
+- 初期調査基準HEAD: `9626ef5a3356477c0c82d27619cad4e0539e63a5`
+- 実装完了HEAD: `79566919ad9475151a6ce047d3e0118af9650a0a`
+- 更新日: 2026-07-14
 
-This branch must remain separable from the ongoing ECS / Scheduler / RenderWorld / Static Batch / RHI migration. Game code must not depend directly on RenderWorld, RenderPacket, RenderPass, StaticBatch, Camera PostEffect GPU runtime, D3D11 resources, RHI internals, or raw PhysX actors.
+本書は現行コードを基準にした差分計画として作成し、Phase 0〜10の実装と自動検証を完了した。残る作業はWindows実行環境での手動プレイ確認と初見プレイヤーによる理解度確認である。
 
-## Phase 0 findings
+## 2. 状態表記
 
-### Scene and Multi-Scene
+- `[完了]`: 実装と自動検証が完了
+- `[手動確認]`: 実装済みで、実行環境による体感確認が必要
 
-Current `SceneManager` owns an `unordered_map<string, shared_ptr<Scene>>` of active scenes and updates, fixed-updates, draws, and system-processes all active scenes. A scene is removed when `Scene::isDestroy` becomes true. `DeferredLoadScene` exists, but the current public header does not expose a named unload API, a persistent-scene marker, or a transition transaction.
+## 3. 最終実装状態
 
-Required game-facing additions:
+### 3.1 共通基盤
 
-1. A thin `MiniGameSceneTransition` facade that only uses public `SceneManager` / `Scene` operations.
-2. A safe named-scene unload request or a documented helper that sets only the selected mini-game scene to `isDestroy`.
-3. Transition ordering that blocks input, finishes presentation, cancels scene-owned effects/audio/tweens, destroys scene-owned entities, then unloads the scene.
-4. Persistent services must live in a dedicated scene that is never marked for destruction by mini-game transitions.
+| 項目 | 状態 | 実装内容 |
+|---|---|---|
+| Entry -> Persistent -> MiniGameのMulti-Scene構成 | [完了] | Entryのシリアライズ値からPersistentとMiniGame Sceneを安全なフレーム境界で追加ロードする |
+| SceneToken単位の終了処理 | [完了] | 入力lock、演出cancel、Rules shutdown、Scene unload、次Scene loadを順序化 |
+| Direct2D Runtime UI | [完了] | PlayerPass合成。プレイヤー向けImGuiは使用しない |
+| Result Menu | [完了] | 矢印キーで選択、Spaceで決定。Escapeはアプリケーション終了専用 |
+| 共通Briefing | [完了] | Full / Compact、step成功、reset、Ready、cleanup、session内説明済み管理 |
+| Briefing skip | [完了] | Enter 1.0秒長押し、release-to-arm、短押しreset、skip後もReadyと3秒Countdownを通る |
+| Briefing中の停止 | [完了] | 本番RuntimeのFrame / Fixed更新をsuspendし、説明Overlayのみ継続する |
+| 共通Telegraph | [完了] | Pending / Warning / Armed / Resolving / Aftermath / Complete |
+| 演出優先度 | [完了] | Major同時1件、Minor同時2件。Major中は通常Score / NearMissを抑制・集約 |
+| Scene cleanup | [完了] | Briefing、Telegraph、Presentation、TransitionをSceneToken単位で破棄 |
 
-### Custom scripts and ECS references
+### 3.2 COLOR TERRITORY
 
-Available:
+| 項目 | 状態 | 実装内容 |
+|---|---|---|
+| 基本ルール、CPU、Bomb / Star | [完了] | 既存効果を維持 |
+| Full Briefing | [完了] | 塗る、奪う、Bomb取得、爆発範囲回避、Star加速を体感する |
+| Item Rush予告 | [完了] | 開始3秒前から`ITEM RUSH IN 3` |
+| Bomb落下予告 | [完了] | 2.8秒前から着地点を表示 |
+| Star落下予告 | [完了] | 2.4秒前から着地点を表示 |
+| Bomb Fuse予告 | [完了] | Fuse中に3 x 3対象範囲と残り時間を表示 |
+| 情報優先度 | [完了] | 重大予告中は通常paint通知で上書きしない |
 
-- `CustomScriptComponent`
-- `EntityRef`
-- `ComponentRef<T>` with entity and component-generation validation
-- `QueueCreateEntity`
-- `QueueDestroyEntity`
-- `QueueDestroySelf`
-- `QueueAddComponent`
-- `QueueRemoveComponent`
-- `QueueEntitySetup`
-- Collision and Trigger callbacks
+### 3.3 SHEEP ROUNDUP
 
-Rules for this branch:
+| 項目 | 状態 | 実装内容 |
+|---|---|---|
+| 24slot pool、endless spawn、金羊3点 | [完了] | 既存ルールを維持 |
+| Full Briefing | [完了] | 羊の逃げ方、回り込み、囲い、通常1点、金羊3点を体感する |
+| FLOCK RUSH予告 | [完了] | 発生4秒前から予告し、発生領域をまとめて示す |
+| 金羊予告 | [完了] | 2.2秒前から位置と`3 POINTS`を表示 |
+| 通常補充通知 | [完了] | 個別bannerを避け、Minorな発生領域表示へ集約 |
 
-- Long-lived references use `EntityRef` or `ComponentRef<T>`.
-- Pointers returned by `TryGet()` / `GetComponent()` are limited to the current operation.
-- Update, FixedUpdate, collision, trigger, and scheduled-task structural changes use Queue APIs.
-- Direct `sceneContext->manager/component/system` access is confined to narrow adapter classes where no public facade exists.
+### 3.4 BACKSHOT
 
-### Prefab
+| 項目 | 状態 | 実装内容 |
+|---|---|---|
+| Route topology | [完了] | N / E / S / W接続bit maskを正とする |
+| Cell種別 | [完了] | Straight、Corner、T字、Cross、DeadEnd、Empty、Block |
+| 移動 | [完了] | Corner自動旋回、T字 / Cross停止、Block / player / reserved route手前停止 |
+| 3 Layout | [完了] | Layout A / B / Cを決定論的round indexで切替 |
+| Boost | [完了] | 5.0秒、1.4倍、再取得は延長、倍率非重複、固定2slot |
+| Boost予告 | [完了] | 2.8秒前から青いring |
+| おじゃまマス | [完了] | 4秒予告、6秒閉鎖、1秒再開予告 |
+| Block安全性 | [完了] | occupied / reserved除外、接続性維持、Warning開始から新規routeをblock |
+| Full Briefing | [完了] | 直線、Corner、分岐、正面Guard、背面撃破、Boost、Blocker回避 |
+| facing整合 | [完了] | route用`facing`を明示し、連続移動では`forward`と同期する |
 
-`SceneContext` exposes `PrefabSystem* prefab`. Phase 1 must verify the exact public instantiate API and whether prefab spawn can be queued. Runtime entities should be prefab-backed where practical.
-
-### Input
-
-`CustomScriptComponent` currently exposes key polling through `InputService`. Phase 2 must inspect gamepad axis/button APIs and provide one shared movement/action sample structure for human and CPU controllers.
-
-### Collider / Trigger / Physics
-
-`ColliderComponent`, collision callbacks, and trigger callbacks are available. Gameplay results must use deterministic rule logic; physics is limited to contact, trigger, and controlled knockback. No game result may depend on unconstrained rigid-body simulation.
-
-### Audio
-
-Current `AudioComponent::Play` destroys an existing source voice before creating a replacement. One component therefore cannot overlap repeated one-shot sounds. A pooled playback service is required.
-
-Required boundary:
-
-```text
-MiniGameAudioService
-- Preload(soundId, path)
-- PlayOneShot(soundId, volume, pitch)
-- StopOwnedByScene(sceneToken)
-- StopAll()
-- Update(unscaledDeltaTime)
-```
-
-Initial implementation may use a fixed voice pool. Game scripts must not create/destroy `AudioComponent` for each sound event.
-
-### Effect
-
-`EffectComponent` supports Play, Stop, Loop, TimeScale, MaxPlayTime, and EffectSystem updates, but refuses `Play` while already playing. Repeated one-shot effects therefore require a pool of effect entities/components.
-
-Required boundary:
+## 4. プレイヤー体験の最終順序
 
 ```text
-MiniGameEffectPool
-- Prewarm(effectId, prefab, capacity)
-- PlayOneShot(effectId, transform, intensity, sceneToken)
-- CancelOwnedByScene(sceneToken)
-- Update(unscaledDeltaTime)
+ゲーム選択
+  -> Full / Compact体感型Briefing
+  -> Enter長押しskip可能
+  -> READY
+  -> 3秒Countdown
+  -> 本番
+  -> 長時間Telegraph
+  -> Event resolve
+  -> Aftermath
+  -> Result Menu
 ```
 
-### Presentation gaps
+説明、予告、発生演出は同じ瞬間へ重ねない。
 
-The following common boundaries are missing or not yet verified:
-
-- One-shot effect pool
-- Overlapping audio voice pool
-- Pitch control
-- UI tween runner
-- Camera shake mixer
-- Screen flash overlay
-- Countdown presenter
-- Result presenter
-- Scaled vs unscaled time split for hit stop / slow motion
-- Scene-token cleanup
-
-No presentation service may access RenderPass, D3D11, SRV/RTV, or RHI internals. Post-effect requests, if needed, go through a narrow game-facing facade.
-
-## Target architecture
+## 5. Briefing仕様
 
 ```text
-Persistent Scene
-- MiniGameCollectionManager
-- MiniGameSession
-- MiniGameSceneTransition
-- MiniGamePresentationService
-- MiniGameAudioService
-- MiniGameInputRouter
-- Countdown / Result / HUD presenters
-- Persistent camera manager
-
-MiniGame Scene
-- IMiniGameRules implementation
-- stage entities
-- player / CPU spawn points
-- game-specific scoring and gimmicks
-- game-specific camera settings
+ENTERを1.0秒長押し: Briefingをスキップ
 ```
 
-### Shared state
+- Selectionで押していたEnterを一度離すまでskipをarmしない。
+- 1.0秒未満で離した場合はprogressを0へ戻す。
+- Briefing中は本番timer、正式score、通常CPUを進めない。
+- 初回未完了はFull、retryまたはsession内説明済みはCompact。
+- skip成立後も直接Playingへ入らず、Readyと3秒Countdownを通す。
+- SpaceはBackshot射撃などと競合するためskipに使用しない。
+- Escapeはアプリケーション終了専用のまま維持する。
 
-```cpp
-enum class MiniGameState {
-    Loading,
-    Introduction,
-    Countdown,
-    Playing,
-    Finishing,
-    Result,
-    Transition
-};
+## 6. Telegraph仕様
+
+```text
+Pending -> Warning -> Armed -> Resolving -> Aftermath -> Complete
 ```
 
-`MiniGameSession` owns the legal state transitions, active game id, elapsed/remaining time, input lock, scene token, and final result. Individual rules do not perform scene transitions directly.
+- Modelはportableな純粋データとして時間とphaseを管理する。
+- ゲーム固有RuntimeがResolve eventをconsumeしてRules変更を実行する。
+- PresenterはDirect2Dと既存poolを使用する。
+- SceneToken変更時に旧予告と旧Resolve eventを破棄する。
+- Major同時1件、Minor同時2件。
+- Major warning中は通常Score / NearMissを抑制または集約する。
+- 予告中は強いflashや連続shakeを使用しない。
 
-### Rule boundary
+| Event | Warning | Armed / 発生直前 | Aftermath |
+|---|---:|---:|---:|
+| Bomb落下 | 2.8秒 | 0.35秒 | 0.8秒 |
+| Bomb爆発 | Fuse 3.4秒 | 0.25秒 | 1.0秒 |
+| Star落下 | 2.4秒 | 0.25秒 | 0.6秒 |
+| FLOCK RUSH | 4.0秒 | 0.5秒 | 1.0秒 |
+| 金羊出現 | 2.2秒 | 0.25秒 | 0.7秒 |
+| Backshot Boost | 2.8秒 | 0.25秒 | 0.6秒 |
+| おじゃまマス閉鎖 | 4.0秒 | 0.5秒 | 0.8秒 |
 
-```cpp
-class IMiniGameRules {
-public:
-    virtual ~IMiniGameRules() = default;
-    virtual void Prepare() = 0;
-    virtual void StartGame() = 0;
-    virtual void Tick(float deltaTime) = 0;
-    virtual bool IsFinished() const = 0;
-    virtual MiniGameResult BuildResult() const = 0;
-    virtual void Shutdown() = 0;
-};
+## 7. 自動検証
+
+実装完了HEAD `79566919ad9475151a6ce047d3e0118af9650a0a` で、`MiniGame Collection Validation` run `29346206737`が成功した。
+
+成功項目:
+
+- [x] Runtime UI boundary
+- [x] Result Menu controls
+- [x] Interactive Briefing flow
+- [x] Shared Telegraph architecture
+- [x] Color / Sheep predictive warning contracts
+- [x] Route-based Backshot contract
+- [x] PlayerPass Runtime UI composition
+- [x] Scene-driven Entry flow
+- [x] Presentation stack
+- [x] Deferred additive loading
+- [x] Portable MiniGame model tests
+- [x] Telegraph phase / priority tests
+- [x] Exact forecast timing tests
+- [x] Presentation retry tests
+- [x] MiniGame rule flow tests
+- [x] Legacy Backshot slide tests
+- [x] Route topology / Boost / blocker tests
+- [x] Required Scene asset validation
+- [x] Windows Debug x64 full solution build
+
+## 8. 手動受け入れ確認
+
+状態: `[手動確認]`
+
+実装と自動検証は完了した。以下はWindows実行環境でユーザーが確認する。
+
+```text
+Entry
+  -> Color full briefing
+  -> Color game
+  -> Result / Retry compact briefingをEnter長押しでskip
+  -> Next
+  -> Sheep full briefingを途中でEnter長押しskip
+  -> Sheep game
+  -> Result
+  -> Next
+  -> Backshot full briefing
+  -> Backshot game
+  -> Result
+  -> Return to selection
 ```
 
-Only behavior genuinely shared by all three games belongs in Core.
+最低3周で確認する項目:
 
-## Implementation order
+- SelectionでEnterを押し続けてもBriefingが自動skipされない。
+- Enterを一度離してから再長押しした場合だけskipできる。
+- 短いEnter tapではskipされず、progressがresetされる。
+- skip後も3秒Countdownを通る。
+- Briefing中にtimer、score、通常CPUが進まない。
+- retry / Next / Selection復帰後に説明用entityやUIが残らない。
+- Major warningが通常Score通知に上書きされない。
+- Boost / blocker / Telegraphがretry後に残らない。
+- SceneToken変更後に古いResolve eventが発火しない。
+- ColorのBomb / Star / Item Rushを発生前に理解できる。
+- SheepのFLOCK RUSHと金羊3点を発生前に理解できる。
+- Backshotのroute、Guard、背面、Boost、blockerを本番前に理解できる。
 
-### Phase 1: Presentation Spike
+詳細手順は`Asset/Game/MiniGameCollection/FINAL_VALIDATION.md`を参照する。
 
-- Create deterministic presentation timeline.
-- Implement countdown and GO events.
-- Implement scene-owned effect and audio pools.
-- Implement UI tween, camera shake, and screen flash adapters.
-- Implement success, near-miss, failure, result, retry, and back-to-selection flow.
-- Run at least ten retry cycles and assert zero retained scene-token resources.
+## 9. Completion gates
 
-### Phase 2: Persistent flow
+### 実装・自動検証
 
-- Persistent scene and manager.
-- Mini-game selection.
-- Common player input/movement.
-- CPU difficulty profile and decision clocks.
-- Result and retry flow.
-- Explicit transition cleanup.
+- [x] Common interactive Briefing model complete
+- [x] Enter-hold Briefing skip complete
+- [x] Release-to-arm and accidental-skip prevention complete
+- [x] Common Telegraph model complete
+- [x] Color full Briefing complete
+- [x] Color item / Bomb telegraphs complete
+- [x] Sheep full Briefing complete
+- [x] Sheep FLOCK RUSH / golden telegraphs complete
+- [x] Backshot route topology complete
+- [x] Backshot three layouts complete
+- [x] Backshot timed Boost complete
+- [x] Backshot temporary blocker complete
+- [x] Backshot full Briefing complete
+- [x] Major / Minor presentation priority complete
+- [x] SceneToken cleanup contracts complete
+- [x] Final Windows Debug x64 build and smoke tests green
 
-### Phase 3: Color Territory
+### 実行環境確認
 
-- Deterministic tile board and ownership changes.
-- Score aggregation and tie handling.
-- Shared player movement/contact.
-- CPU local candidate evaluation with decision intervals.
-- Late-game aggression and leader targeting.
-- Endgame presentation.
+- [ ] Three-cycle manual cleanup pass
+- [ ] First-time-player comprehension pass
 
-### Phase 4: Sheep Roundup
+## 10. 変更しない方針
 
-- Controlled sheep steering: flee, combined threat, cohesion, wall avoidance, turn smoothing.
-- Pen trigger and scoring.
-- CPU intercept/guard/steal intentions with hold times.
-- Anti-oscillation and wall-stick diagnostics.
-
-### Phase 5: Backshot
-
-- Forward shot with cooldown.
-- Dot-product rear-hit resolver with adjustable threshold.
-- Debug visualization data for rear cone and shot line.
-- Elimination and tie handling.
-- CPU threat, cover, wall, target, and cooldown evaluation with reaction delay.
-
-### Phase 6: Presentation polish
-
-- Shared countdown, warnings, finish, winner, result, retry.
-- Game-specific score, reversal, hit, capture, and elimination feedback.
-
-### Phase 7: Stability
-
-- Repeated sequence: selection -> game -> result -> retry -> selection -> next game.
-- Verify no previous scene timer, CPU, event, audio, effect, UI tween, or entity survives.
-- Validate application shutdown.
-
-## Difficulty contract
-
-Difficulty changes information radius, decision interval, candidate quality, prediction quality, and controlled mistake probability. It does not change input latency below humanly readable limits, movement physics, shot cooldown, or hidden information access.
-
-## Risks
-
-1. **Scene unload API gap**: active scenes can be destroyed, but named transition ownership needs a safe facade.
-2. **Audio overlap gap**: current component replaces its voice on replay.
-3. **Effect overlap gap**: current component rejects replay while active.
-4. **Time-domain gap**: presentation and transition must continue during hit stop.
-5. **Input API uncertainty**: gamepad axes/buttons must be verified before common player integration.
-6. **Prefab queue uncertainty**: runtime prefab spawning must be inspected for scheduler-safe use.
-7. **Project integration**: new source files must be included without destabilizing the large `GameEngine.vcxproj`; prefer `Directory.Build.targets` for narrowly scoped additions.
-8. **No local Windows build in the current execution environment**: compilation must be validated by the repository Windows workflow after a draft PR is opened.
-
-## Completion gates
-
-- [x] Branch created from PR #45 latest HEAD.
-- [x] PR head, branch, and active migration scope recorded.
-- [x] Scene, script, reference, command-buffer, audio, and effect boundaries inspected.
-- [ ] Presentation Spike complete and retried ten times.
-- [ ] Persistent multi-scene flow complete.
-- [ ] Color Territory playable with CPU and result.
-- [ ] Sheep Roundup playable with CPU and result.
-- [ ] Backshot playable with CPU and result.
-- [ ] Shared presentation polish complete.
-- [ ] Three-game repeated-cycle stability pass complete.
-- [ ] Windows compile and smoke tests green.
-
-## Progress log
-
-### 2026-07-12
-
-- Created `game/minigame-collection` from `355b9ac450d2461bac3fffb49820d73d8b2e8f2e`.
-- Confirmed PR #45 is in Step 19-A GPU pixel cost / shadow correctness work, with RenderWorld, Static Batch, RenderPacket, RHI, and scheduler migration still active.
-- Confirmed game code must remain outside those internals.
-- Identified scene-transition, one-shot audio, one-shot effect, UI tween, camera shake, screen flash, and unscaled-time boundaries as the first implementation risks.
-- Next: add compile-isolated Core state/result/session contracts and deterministic rule smoke tests before wiring engine-facing presentation adapters.
+- Entry SceneをGameApplicationへhard-codeしない。
+- Player-facing UIへImGuiを導入しない。
+- ゲーム側からRender / D3D11 / RHI internalsへ直接アクセスしない。
+- Color TerritoryのBomb / Star基本効果を変更しない。
+- Sheepの24slot poolとendless scoringを廃止しない。
+- Backshotの背面撃破、正面Guard、射撃Cooldownを変更しない。
+- SpaceをBriefing skipへ割り当てない。
+- EscapeをBriefingやゲーム内遷移へ割り当てない。
+- 予告を強くする目的だけで全画面flashや連続camera shakeを増やさない。

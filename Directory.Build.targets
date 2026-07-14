@@ -33,6 +33,12 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\ScriptSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\CustomScriptSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\Script\GN31.cpp" />
+    <ClCompile Include="Source\GameApplication\Game\MiniGameCollection\Runtime\MiniGameBriefingPresenter.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Source\GameApplication\Game\MiniGameCollection\Runtime\WorldEventTelegraphPresenter.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
 
   <!--
@@ -55,6 +61,51 @@
     <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderWorld\RenderWorld.h" />
     <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\CameraPostEffectRuntimeStorage.h" />
     <ClInclude Remove="Source\GameApplication\Engine\Scene\System\Render\Animation\ModelRendererGpuRuntimeStorage.h" />
+
+    <ClInclude Include="Source\GameApplication\Game\MiniGameCollection\Core\MiniGameBriefingModel.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Game\MiniGameCollection\Core\MiniGameBriefingModel.h')">
+      <Link>Header Files\Game\MiniGameCollection\Core\MiniGameBriefingModel.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Game\MiniGameCollection\Core\WorldEventTelegraphModel.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Game\MiniGameCollection\Core\WorldEventTelegraphModel.h')">
+      <Link>Header Files\Game\MiniGameCollection\Core\WorldEventTelegraphModel.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Game\MiniGameCollection\Backshot\BackshotRouteTopology.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Game\MiniGameCollection\Backshot\BackshotRouteTopology.h')">
+      <Link>Header Files\Game\MiniGameCollection\Backshot\BackshotRouteTopology.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Game\MiniGameCollection\Backshot\BackshotDynamicEvents.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Game\MiniGameCollection\Backshot\BackshotDynamicEvents.h')">
+      <Link>Header Files\Game\MiniGameCollection\Backshot\BackshotDynamicEvents.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Game\MiniGameCollection\Runtime\MiniGameBriefingPresenter.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Game\MiniGameCollection\Runtime\MiniGameBriefingPresenter.h')">
+      <Link>Header Files\Game\MiniGameCollection\Runtime\MiniGameBriefingPresenter.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Game\MiniGameCollection\Runtime\WorldEventTelegraphPresenter.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Game\MiniGameCollection\Runtime\WorldEventTelegraphPresenter.h')">
+      <Link>Header Files\Game\MiniGameCollection\Runtime\WorldEventTelegraphPresenter.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Game\MiniGameCollection\Runtime\MiniGameBriefingOverlayRuntime.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Game\MiniGameCollection\Runtime\MiniGameBriefingOverlayRuntime.h')">
+      <Link>Header Files\Game\MiniGameCollection\Runtime\MiniGameBriefingOverlayRuntime.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Game\MiniGameCollection\Runtime\MiniGameEventTelegraphRuntime.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Game\MiniGameCollection\Runtime\MiniGameEventTelegraphRuntime.h')">
+      <Link>Header Files\Game\MiniGameCollection\Runtime\MiniGameEventTelegraphRuntime.h</Link>
+    </ClInclude>
+
+    <ClInclude Include="Source\GameApplication\Game\MiniGameCollection\Runtime\BackshotRouteRuntime.h"
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Game\MiniGameCollection\Runtime\BackshotRouteRuntime.h')">
+      <Link>Header Files\Game\MiniGameCollection\Runtime\BackshotRouteRuntime.h</Link>
+    </ClInclude>
 
     <ClInclude Include="Source\GameApplication\Service\Graphics\D3D11ConstantBufferUpload.h"
                Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Service\Graphics\D3D11ConstantBufferUpload.h')">
