@@ -33,6 +33,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\ScriptSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\CustomScriptSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\Script\GN31.cpp" />
+    <ClCompile Include="Source\GameApplication\Game\MiniGameCollection\Runtime\MiniGameBriefingPresenter.cpp" />
   </ItemGroup>
 
   <!--
@@ -122,7 +123,7 @@
     </ClInclude>
 
     <ClInclude Include="Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\CameraPostEffectRuntimeStorage.h"
-               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\CameraPostEffectRuntimeStorage.h')">
+               Condition="Exists('$(MSBuildThisFileDirectory)Source\GameApplication\Engine\Scene\System\Render\RenderSystem\RenderSystem\RenderPass\PostEffect\CameraPostEffectRuntimeStorage.h')">
       <Link>Header Files\Engine\Scene\System\Render\RenderSystem\RenderPass\PostEffect\CameraPostEffectRuntimeStorage.h</Link>
     </ClInclude>
 
