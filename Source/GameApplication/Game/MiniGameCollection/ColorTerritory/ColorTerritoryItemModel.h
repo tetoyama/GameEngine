@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <utility>
 
 namespace MiniGameCollection::ColorTerritory {
@@ -24,7 +25,8 @@ struct TerritoryItemConfig {
     float rushStartRemainingSeconds = 20.0f;
     float minimumSpawnIntervalSeconds = 4.0f;
     float maximumSpawnIntervalSeconds = 6.0f;
-    float fallingSeconds = 0.9f;
+    // Bombは2.8秒、Starは最低2.4秒の予告要件を満たす共通猶予。
+    float fallingSeconds = 2.8f;
     float bombFuseSeconds = 3.4f;
     float bombClaimGraceSeconds = 1.2f;
     int bombTileRadius = 1;
@@ -109,16 +111,32 @@ struct TerritoryPlayerPowerState {
     }
 };
 
+struct TerritoryItemForecast {
+    TerritoryItemType type = TerritoryItemType::Bomb;
+    TileCoord tile{};
+};
+
 class TerritoryItemRandom {
 public:
+    using ForecastObserver = std::function<void(const TerritoryItemForecast&)>;
+
     explicit TerritoryItemRandom(std::uint32_t seed = 0xC01017E1u) noexcept {
         Reset(seed);
+    }
+
+    static void SetForecastObserver(ForecastObserver observer) {
+        Observer() = std::move(observer);
+    }
+
+    static void ClearForecastObserver() {
+        Observer() = {};
     }
 
     void Reset(std::uint32_t seed) noexcept {
         m_state = seed != 0 ? seed : 0xC01017E1u;
         m_lastType = TerritoryItemType::Star;
         m_sameTypeCount = 0;
+        m_lastTile = {};
     }
 
     float NextUnit() noexcept {
@@ -148,6 +166,9 @@ public:
             m_lastType = candidate;
             m_sameTypeCount = 0;
         }
+        if (ForecastObserver& observer = Observer(); observer) {
+            observer({.type = candidate, .tile = m_lastTile});
+        }
         return candidate;
     }
 
@@ -158,13 +179,19 @@ public:
         const int marginY = safeHeight >= 5 ? 1 : 0;
         const int usableWidth = std::max(1, safeWidth - marginX * 2);
         const int usableHeight = std::max(1, safeHeight - marginY * 2);
-        return {
+        m_lastTile = {
             marginX + static_cast<int>(NextU32() % static_cast<std::uint32_t>(usableWidth)),
             marginY + static_cast<int>(NextU32() % static_cast<std::uint32_t>(usableHeight))
         };
+        return m_lastTile;
     }
 
 private:
+    static ForecastObserver& Observer() {
+        static ForecastObserver observer;
+        return observer;
+    }
+
     std::uint32_t NextU32() noexcept {
         std::uint32_t value = m_state;
         value ^= value << 13;
@@ -176,6 +203,7 @@ private:
 
     std::uint32_t m_state = 0xC01017E1u;
     TerritoryItemType m_lastType = TerritoryItemType::Star;
+    TileCoord m_lastTile{};
     int m_sameTypeCount = 0;
 };
 
