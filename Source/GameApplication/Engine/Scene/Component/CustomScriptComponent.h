@@ -4,7 +4,6 @@
 //
 // =======================================================================
 #pragma once
-
 #include "Interface/IComponent.h"
 #include "Backends/YAMLConverters.h"
 #include "DebugTools/ImGuiSystem.h"
@@ -54,13 +53,13 @@ public:
 	}
 
 	void Update(float dt){
-		if(isInitialized){
+		if(isInitialized && ShouldRunFrameUpdate()){
 			OnUpdate(dt);
 		}
 	}
 
 	void FixedUpdate(float dt){
-		if(isInitialized){
+		if(isInitialized && ShouldRunFixedUpdate()){
 			OnFixedUpdate(dt);
 		}
 	}
@@ -111,6 +110,11 @@ public:
 	virtual void OnDraw(){}
 	virtual void OnEditorUpdate(float dt){}
 	virtual void OnStop(){}
+
+	// Scene内の補助Runtimeが本体の時間進行だけを停止できる共通hook。
+	// DrawとEditorUpdateは継続するため、pause中も説明UIを描画できる。
+	virtual bool ShouldRunFrameUpdate() const { return true; }
+	virtual bool ShouldRunFixedUpdate() const { return true; }
 
 	virtual void OnCollisionEnter(const HitInfo& hit) {}
 	virtual void OnCollisionStay(const HitInfo& hit)  {}
