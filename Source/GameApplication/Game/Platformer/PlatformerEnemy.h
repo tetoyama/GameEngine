@@ -21,6 +21,7 @@ class PlatformerEnemy : public CustomScriptComponent {
 		REFLECT_FIELD(float, patrolSpeed, 1.6f)
 		REFLECT_FIELD(float, stompHeightMargin, 0.12f)
 		REFLECT_FIELD(float, defeatDuration, 0.42f)
+		REFLECT_FIELD(bool, turnDustEnabled, true)
 
 public:
 	YAML::Node encode() override {
@@ -34,6 +35,7 @@ public:
 		// Existing scenes stored 0.35, which required the player's feet to be too
 		// close to the exact top. Keep a broad beginner-friendly upper-contact band.
 		stompHeightMargin = std::clamp(stompHeightMargin, 0.08f, 0.18f);
+		defeatDuration = (std::max)(0.20f, defeatDuration);
 		return true;
 	}
 
@@ -67,12 +69,18 @@ public:
 		if(defeated || dt <= 0.0f) return;
 		auto* t = transform.TryGet();
 		if(!t) return;
+		turnDustCooldown = (std::max)(0.0f, turnDustCooldown - dt);
 
 		const float signedDistance = (t->position - origin).dot(patrolAxis);
+		const float previousDirection = direction;
 		if(signedDistance >= patrolDistance) direction = -1.0f;
 		if(signedDistance <= -patrolDistance) direction = 1.0f;
-		const Vector3 desired = patrolAxis * (patrolSpeed * direction);
+		if(previousDirection != direction && turnDustEnabled && turnDustCooldown <= 0.0f) {
+			EmitTurnDust();
+			turnDustCooldown = 0.18f;
+		}
 
+		const Vector3 desired = patrolAxis * (patrolSpeed * direction);
 		if(!collider.IsValid()) collider = GetComponentRef<ColliderComponent>();
 		if(auto* col = collider.TryGet()) {
 			if(auto* rigid = col->pRigidbodyDynamic) {
@@ -95,18 +103,18 @@ public:
 
 		if(auto* t = transform.TryGet()) {
 			t->scale = Vector3(
-				baseScale.x * (1.0f + impactPop * 0.48f + normalized * 0.45f),
-				baseScale.y * (std::max)(0.0f, 1.0f - impactPop * 0.55f - normalized),
-				baseScale.z * (1.0f + impactPop * 0.48f + normalized * 0.45f));
-			t->AddRotationY(dt * (3.0f + normalized * 10.0f));
+				baseScale.x * (1.0f + impactPop * 0.62f + normalized * 0.62f),
+				baseScale.y * (std::max)(0.0f, 1.0f - impactPop * 0.68f - normalized),
+				baseScale.z * (1.0f + impactPop * 0.62f + normalized * 0.62f));
+			t->AddRotationY(dt * (4.5f + normalized * 14.0f));
 		}
 		if(auto* mat = material.TryGet()) {
 			const float flash = (1.0f - normalized) * (1.0f - normalized);
 			mat->Material.BaseColor.x = baseMaterial.BaseColor.x + (1.0f - baseMaterial.BaseColor.x) * flash;
-			mat->Material.BaseColor.y = baseMaterial.BaseColor.y + (0.55f - baseMaterial.BaseColor.y) * flash;
-			mat->Material.BaseColor.z = baseMaterial.BaseColor.z + (0.12f - baseMaterial.BaseColor.z) * flash;
-			mat->Material.EmissiveColor = float3(1.0f, 0.18f, 0.04f);
-			mat->Material.EmissiveIntensity = baseMaterial.EmissiveIntensity + flash * 4.2f;
+			mat->Material.BaseColor.y = baseMaterial.BaseColor.y + (0.48f - baseMaterial.BaseColor.y) * flash;
+			mat->Material.BaseColor.z = baseMaterial.BaseColor.z + (0.06f - baseMaterial.BaseColor.z) * flash;
+			mat->Material.EmissiveColor = float3(1.0f, 0.12f, 0.01f);
+			mat->Material.EmissiveIntensity = baseMaterial.EmissiveIntensity + flash * 7.2f;
 		}
 		if(defeatTimer >= defeatDuration && !destroyQueued) destroyQueued = QueueDestroySelf();
 	}
@@ -136,12 +144,6 @@ private:
 		const float authoredOffsetY = shape.offset.y;
 		if(std::abs(authoredOffsetY) <= 0.0001f) return;
 
-		// The scene was authored with the entity origin at the enemy's feet and
-		// only the PhysX shape shifted upward. The cube model is centered on the
-		// entity origin, so its lower half was rendered below the floor. Move the
-		// entity/actor by the same world-space amount while removing the shape
-		// offset. This keeps the collider at exactly the same world position and
-		// raises only the visual origin to the model/collider center.
 		const float worldLift = authoredOffsetY * t->scale.y;
 		visualCenterLift = worldLift;
 		t->position.y += worldLift;
@@ -158,10 +160,24 @@ private:
 			actorPose.p.y += worldLift;
 			rigid->setGlobalPose(actorPose, true);
 		}
-
-		// Persist the corrected authoring value if the scene is saved after play,
-		// and let PhysicSystem rebuild the shape from the normalized data.
 		col->needsUpdate = true;
+	}
+
+	void EmitTurnDust() {
+		auto* effect = particle.TryGet();
+		if(!effect) return;
+		effect->particleSize = 0.075f;
+		PlatformerFeedback::DirectionalBurst(
+			effect,
+			Vector3(0.0f, -0.35f, 0.0f),
+			patrolAxis * -direction,
+			24,
+			2.2f,
+			1.8f,
+			1.2f,
+			0.42f,
+			DirectX::XMFLOAT4(0.95f, 0.52f, 0.18f, 1.0f),
+			DirectX::XMFLOAT4(0.42f, 0.16f, 0.06f, 1.0f));
 	}
 
 	void HandleContact(const EntityRef& other, bool entered) {
@@ -178,47 +194,45 @@ private:
 		auto* playerPose = playerTransform.TryGet();
 		if(!enemyTransform || !playerPose) return;
 
-		// Prefer a stomp over side damage whenever the player is descending or has
-		// just crossed the apex and contacts the upper half of the enemy. The broad
-		// horizontal catch radius removes the need to land exactly on the cube centre.
 		const float stompReferenceY = enemyTransform->position.y - visualCenterLift;
 		const float verticalVelocity = controller->GetVerticalVelocity();
 		const bool descendingOrNearApex = verticalVelocity <= 0.65f;
-		const bool above =
-			playerPose->position.y >= stompReferenceY + stompHeightMargin;
+		const bool above = playerPose->position.y >= stompReferenceY + stompHeightMargin;
 		const float dx = playerPose->position.x - enemyTransform->position.x;
 		const float dz = playerPose->position.z - enemyTransform->position.z;
 		const float horizontalDistance = std::sqrt(dx * dx + dz * dz);
 		const float catchRadius = (std::max)(
 			0.72f, (std::max)(baseScale.x, baseScale.z) * 0.72f);
 		if(descendingOrNearApex && above && horizontalDistance <= catchRadius) {
-			Defeat(*controller, enemyTransform->position);
+			Defeat(*controller);
 			return;
 		}
 
 		controller->ApplyDamage(enemyTransform->position);
 	}
 
-	void Defeat(PlatformerCharacterController& player, const Vector3& position) {
+	void Defeat(PlatformerCharacterController& player) {
 		if(defeated) return;
 		defeated = true;
 		defeatTimer = 0.0f;
 		player.ApplyStompBounce();
-		if(auto* effect = particle.TryGet()) effect->particleSize = 0.21f;
-		// Particle positions are local to the enemy entity. The corrected entity
-		// origin is now at the cube center, so emit near its top without adding the
-		// world position a second time.
-		PlatformerFeedback::Burst(
-			particle.TryGet(),
-			Vector3(0.0f, 0.45f, 0.0f),
-			48,
-			5.2f,
-			6.4f,
-			defeatDuration + 0.35f);
+		if(auto* effect = particle.TryGet()) {
+			for(auto& state : effect->Particle) state.LifeTime = 0.0f;
+			effect->particleSize = 0.19f;
+			PlatformerFeedback::LayeredBurst(
+				effect,
+				Vector3(0.0f, 0.45f, 0.0f),
+				144,
+				8.2f,
+				9.4f,
+				defeatDuration + 0.72f,
+				DirectX::XMFLOAT4(1.0f, 0.42f, 0.04f, 1.0f),
+				DirectX::XMFLOAT4(0.72f, 0.02f, 0.02f, 1.0f));
+		}
 		PlatformerFeedback::Play(audio.TryGet(), m_ref.GetScene());
 		if(!camera.IsValid()) camera = PlatformerSceneAccess::FindFirst<PlatformerCameraController>(m_ref.GetScene());
 		if(auto* cameraController = camera.TryGet()) {
-			cameraController->AddImpulse(0.34f, 0.22f, 0.045f, Vector3(0.0f, -1.0f, 0.0f));
+			cameraController->AddImpulse(0.48f, 0.26f, 0.060f, Vector3(0.0f, -1.0f, 0.0f));
 		}
 
 		if(auto* col = collider.TryGet()) {
@@ -241,6 +255,7 @@ private:
 	float visualCenterLift = 0.0f;
 	float direction = 1.0f;
 	float defeatTimer = 0.0f;
+	float turnDustCooldown = 0.0f;
 	bool defeated = false;
 	bool destroyQueued = false;
 };
