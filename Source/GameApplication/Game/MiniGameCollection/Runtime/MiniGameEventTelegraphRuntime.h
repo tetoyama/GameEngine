@@ -20,7 +20,8 @@ class ColorTerritoryEventTelegraphRuntime final
 public:
     ColorTerritoryEventTelegraphRuntime()
         : MiniGameRuntimeScriptBase("ColorTerritoryEventTelegraphRuntime") {
-        SetExecutionOrder(SystemTaskDomain::Frame, SystemPhase::Default, 50);
+        // Major開始frameから通常Score演出を抑制できるようゲーム本体より先に更新する。
+        SetExecutionOrder(SystemTaskDomain::Frame, SystemPhase::Default, -50);
         SetExecutionOrder(SystemTaskDomain::Render, SystemPhase::Late, 300);
     }
 
@@ -186,6 +187,15 @@ private:
                 ? "BOMB DROPPING"
                 : "STAR DROPPING"
         });
+
+        // Observerはゲーム本体のSpawnItem中に呼ばれる。
+        // Bombだけは同一frameの通常Item演出より先にMajor gateを立てる。
+        if (forecast.type == ColorTerritory::TerritoryItemType::Bomb) {
+            MiniGameRuntimeMailbox::SetMajorTelegraphActive(
+                m_sceneToken,
+                true
+            );
+        }
     }
 
     static Vec2 TileToWorld(ColorTerritory::TileCoord tile) noexcept {
@@ -214,7 +224,7 @@ class SheepRoundupEventTelegraphRuntime final
 public:
     SheepRoundupEventTelegraphRuntime()
         : MiniGameRuntimeScriptBase("SheepRoundupEventTelegraphRuntime") {
-        SetExecutionOrder(SystemTaskDomain::Frame, SystemPhase::Default, 50);
+        SetExecutionOrder(SystemTaskDomain::Frame, SystemPhase::Default, -50);
         SetExecutionOrder(SystemTaskDomain::Render, SystemPhase::Late, 300);
     }
 
@@ -313,6 +323,13 @@ private:
                 ? "GOLDEN SHEEP / 3 POINTS"
                 : "SHEEP INCOMING"
         });
+
+        if (warning.golden) {
+            MiniGameRuntimeMailbox::SetMajorTelegraphActive(
+                m_sceneToken,
+                true
+            );
+        }
     }
 
     std::uint64_t NextId(std::uint64_t family) noexcept {
