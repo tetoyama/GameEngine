@@ -13,7 +13,9 @@
 #include <atomic>
 #include <cstdint>
 #include <functional>
+#include <mutex>
 #include <string>
+#include <unordered_map>
 #include <utility>
 
 #include "Scene.h"
@@ -113,8 +115,14 @@ public:
 
 	// Scene内の補助Runtimeが本体の時間進行だけを停止できる共通hook。
 	// DrawとEditorUpdateは継続するため、pause中も説明UIを描画できる。
-	virtual bool ShouldRunFrameUpdate() const { return true; }
-	virtual bool ShouldRunFixedUpdate() const { return true; }
+	virtual bool ShouldRunFrameUpdate() const {
+		return m_ignoreSceneUpdateSuspension ||
+			!IsSceneUpdateSuspended(m_ref.GetScene());
+	}
+	virtual bool ShouldRunFixedUpdate() const {
+		return m_ignoreSceneUpdateSuspension ||
+			!IsSceneUpdateSuspended(m_ref.GetScene());
+	}
 
 	virtual void OnCollisionEnter(const HitInfo& hit) {}
 	virtual void OnCollisionStay(const HitInfo& hit)  {}
@@ -161,6 +169,41 @@ public:
 
 	bool IsInitialized() const{
 		return isInitialized;
+	}
+
+	void SetIgnoreSceneUpdateSuspension(bool ignore) noexcept {
+		m_ignoreSceneUpdateSuspension = ignore;
+	}
+
+	static void SuspendSceneUpdates(SceneContext* context){
+		if(!context) return;
+		std::scoped_lock lock(SceneSuspensionMutex());
+		++SceneSuspensionCounts()[context];
+	}
+
+	static void ResumeSceneUpdates(SceneContext* context){
+		if(!context) return;
+		std::scoped_lock lock(SceneSuspensionMutex());
+		auto found = SceneSuspensionCounts().find(context);
+		if(found == SceneSuspensionCounts().end()) return;
+		if(found->second <= 1){
+			SceneSuspensionCounts().erase(found);
+		}else{
+			--found->second;
+		}
+	}
+
+	static void ClearSceneUpdateSuspension(SceneContext* context){
+		if(!context) return;
+		std::scoped_lock lock(SceneSuspensionMutex());
+		SceneSuspensionCounts().erase(context);
+	}
+
+	static bool IsSceneUpdateSuspended(SceneContext* context){
+		if(!context) return false;
+		std::scoped_lock lock(SceneSuspensionMutex());
+		const auto found = SceneSuspensionCounts().find(context);
+		return found != SceneSuspensionCounts().end() && found->second > 0;
 	}
 
 	// 既存互換の即時取得・追加API。
@@ -300,5 +343,16 @@ protected:
 	EntityRef m_ref;
 
 private:
+	static std::mutex& SceneSuspensionMutex(){
+		static std::mutex mutex;
+		return mutex;
+	}
+
+	static std::unordered_map<SceneContext*, std::size_t>& SceneSuspensionCounts(){
+		static std::unordered_map<SceneContext*, std::size_t> counts;
+		return counts;
+	}
+
 	inline static std::atomic<uint64_t> s_nextRegistrationOrder{1};
+	bool m_ignoreSceneUpdateSuspension = false;
 };
