@@ -1,6 +1,8 @@
 #include "Game/MiniGameCollection/Backshot/BackshotModel.h"
 #include "Game/MiniGameCollection/ColorTerritory/ColorTerritoryItemModel.h"
 #include "Game/MiniGameCollection/ColorTerritory/ColorTerritoryModel.h"
+#include "Game/MiniGameCollection/Core/MiniGameBriefingModel.h"
+#include "Game/MiniGameCollection/Core/MiniGameCollectionManagerModel.h"
 #include "Game/MiniGameCollection/Core/MiniGameCore.h"
 #include "Game/MiniGameCollection/SheepRoundup/SheepRoundupRules.h"
 #include "Game/MiniGameCollection/SheepRoundup/SheepSteeringModel.h"
@@ -105,6 +107,174 @@ void TestPresentationTimeline() {
 
     timeline.CancelAllForScene(77);
     assert(timeline.PendingCount() == 0);
+}
+
+void TestBriefingStepOrderAndMinimumDisplay() {
+    using namespace MiniGameCollection;
+
+    MiniGameBriefingModel briefing({
+        {
+            .prompt = "MOVE",
+            .minimumDisplaySeconds = 0.5f,
+            .includedInCompactMode = true
+        },
+        {
+            .prompt = "SPECIAL",
+            .minimumDisplaySeconds = 0.25f,
+            .includedInCompactMode = false
+        },
+        {
+            .prompt = "GOAL",
+            .minimumDisplaySeconds = 0.0f,
+            .includedInCompactMode = true
+        }
+    });
+
+    assert(briefing.Begin(BriefingMode::Full) == BriefingEvent::None);
+    assert(briefing.GetPhase() == BriefingPhase::AwaitingSkipRelease);
+    assert(briefing.GetCurrentPrompt() == "MOVE");
+
+    BriefingEvent events = briefing.Tick(
+        0.0f,
+        {.skipKeyHeld = false}
+    );
+    assert(HasBriefingEvent(events, BriefingEvent::SkipArmed));
+    assert(HasBriefingEvent(events, BriefingEvent::StepStarted));
+    assert(briefing.GetPhase() == BriefingPhase::StepActive);
+
+    events = briefing.Tick(
+        0.2f,
+        {.stepSucceeded = true}
+    );
+    assert(events == BriefingEvent::None);
+    assert(briefing.GetCurrentStepIndex() == 0);
+
+    events = briefing.Tick(
+        0.3f,
+        {.stepSucceeded = true}
+    );
+    assert(HasBriefingEvent(events, BriefingEvent::StepCompleted));
+    assert(HasBriefingEvent(events, BriefingEvent::StepStarted));
+    assert(briefing.GetCurrentStepIndex() == 1);
+    assert(briefing.GetCurrentPrompt() == "SPECIAL");
+
+    events = briefing.Tick(
+        0.25f,
+        {.stepSucceeded = true}
+    );
+    assert(HasBriefingEvent(events, BriefingEvent::StepCompleted));
+    assert(briefing.GetCurrentStepIndex() == 2);
+
+    events = briefing.Tick(
+        0.0f,
+        {.stepSucceeded = true}
+    );
+    assert(HasBriefingEvent(events, BriefingEvent::ReadyReached));
+    assert(briefing.IsReady());
+    assert(!briefing.IsComplete());
+
+    events = briefing.ConfirmReady();
+    assert(HasBriefingEvent(events, BriefingEvent::Completed));
+    assert(briefing.IsComplete());
+}
+
+void TestBriefingResetCompactAndCleanup() {
+    using namespace MiniGameCollection;
+
+    MiniGameBriefingModel briefing({
+        {.prompt = "BASIC", .minimumDisplaySeconds = 0.5f, .includedInCompactMode = true},
+        {.prompt = "DETAIL", .minimumDisplaySeconds = 0.5f, .includedInCompactMode = false},
+        {.prompt = "READY", .minimumDisplaySeconds = 0.0f, .includedInCompactMode = true}
+    });
+
+    briefing.Begin(BriefingMode::Compact);
+    briefing.Tick(0.0f, {.skipKeyHeld = false});
+    assert(briefing.GetStepCount() == 2);
+    assert(briefing.GetCurrentPrompt() == "BASIC");
+
+    briefing.Tick(0.4f, {});
+    assert(briefing.GetStepProgress() > 0.79f);
+    const BriefingEvent reset = briefing.Tick(
+        0.0f,
+        {.resetRequested = true}
+    );
+    assert(HasBriefingEvent(reset, BriefingEvent::StepReset));
+    assert(briefing.GetStepProgress() == 0.0f);
+
+    briefing.Tick(0.5f, {.stepSucceeded = true});
+    assert(briefing.GetCurrentPrompt() == "READY");
+    briefing.Tick(0.0f, {.stepSucceeded = true});
+    assert(briefing.IsReady());
+
+    briefing.Clear();
+    assert(briefing.GetPhase() == BriefingPhase::Inactive);
+    assert(!briefing.IsActive());
+    assert(briefing.GetStepCount() == 0);
+    assert(briefing.GetSkipProgress() == 0.0f);
+}
+
+void TestBriefingEnterHoldReleaseToArm() {
+    using namespace MiniGameCollection;
+
+    MiniGameBriefingModel briefing(
+        {{.prompt = "MOVE", .minimumDisplaySeconds = 0.0f}},
+        {.holdSeconds = 1.0f, .requireReleaseToArm = true}
+    );
+    briefing.Begin(BriefingMode::Full);
+
+    briefing.Tick(2.0f, {.skipKeyHeld = true});
+    assert(briefing.GetPhase() == BriefingPhase::AwaitingSkipRelease);
+    assert(!briefing.IsSkipArmed());
+    assert(briefing.GetSkipProgress() == 0.0f);
+
+    briefing.Tick(0.0f, {.skipKeyHeld = false});
+    assert(briefing.IsSkipArmed());
+    assert(briefing.GetPhase() == BriefingPhase::StepActive);
+
+    briefing.Tick(0.6f, {.skipKeyHeld = true});
+    assert(briefing.GetSkipProgress() > 0.59f);
+    assert(!briefing.IsReady());
+
+    briefing.Tick(0.0f, {.skipKeyHeld = false});
+    assert(briefing.GetSkipProgress() == 0.0f);
+
+    const BriefingEvent skipped = briefing.Tick(
+        1.0f,
+        {.skipKeyHeld = true}
+    );
+    assert(HasBriefingEvent(skipped, BriefingEvent::Skipped));
+    assert(HasBriefingEvent(skipped, BriefingEvent::ReadyReached));
+    assert(briefing.WasSkipped());
+    assert(briefing.IsReady());
+    assert(!briefing.IsComplete());
+
+    briefing.ConfirmReady();
+    assert(briefing.IsComplete());
+}
+
+void TestBriefingSessionProgress() {
+    using namespace MiniGameCollection;
+
+    MiniGameCollectionManagerModel manager;
+    assert(
+        manager.ResolveBriefingMode(MiniGameId::ColorTerritory, false) ==
+        BriefingMode::Full
+    );
+    assert(
+        manager.ResolveBriefingMode(MiniGameId::ColorTerritory, true) ==
+        BriefingMode::Compact
+    );
+
+    manager.MarkBriefingCompleted(MiniGameId::ColorTerritory);
+    assert(manager.HasCompletedBriefing(MiniGameId::ColorTerritory));
+    assert(
+        manager.ResolveBriefingMode(MiniGameId::ColorTerritory, false) ==
+        BriefingMode::Compact
+    );
+    assert(!manager.HasCompletedBriefing(MiniGameId::SheepRoundup));
+
+    manager.ResetBriefingProgress();
+    assert(!manager.HasCompletedBriefing(MiniGameId::ColorTerritory));
 }
 
 void TestColorTerritory() {
@@ -310,6 +480,10 @@ void TestBackshot() {
 int main() {
     TestSessionAndResult();
     TestPresentationTimeline();
+    TestBriefingStepOrderAndMinimumDisplay();
+    TestBriefingResetCompactAndCleanup();
+    TestBriefingEnterHoldReleaseToArm();
+    TestBriefingSessionProgress();
     TestColorTerritory();
     TestSheepSteering();
     TestEndlessGoldenSheep();
