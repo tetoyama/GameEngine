@@ -33,7 +33,9 @@
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\ScriptSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\CustomScriptSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\Script\GN31.cpp" />
-    <ClCompile Include="Source\GameApplication\Game\MiniGameCollection\Runtime\MiniGameBriefingPresenter.cpp" />
+    <ClCompile Include="Source\GameApplication\Game\MiniGameCollection\Runtime\MiniGameBriefingPresenter.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
 
   <!--
