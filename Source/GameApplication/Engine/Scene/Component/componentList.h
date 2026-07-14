@@ -66,6 +66,7 @@
 #include "Game/MiniGameCollection/Runtime/SheepRoundupRuntime.h"
 #include "Game/MiniGameCollection/Runtime/BackshotRuntime.h"
 #include "Game/MiniGameCollection/Runtime/BackshotSlideRuntime.h"
+#include "Game/MiniGameCollection/Runtime/BackshotRouteRuntime.h"
 #include "Game/MiniGameCollection/Runtime/MiniGameBriefingOverlayRuntime.h"
 #pragma pop_macro("max")
 #pragma pop_macro("min")
@@ -133,6 +134,7 @@ struct ComponentStoragePreference<TransformComponent> {
     X(MiniGameCollection::Runtime::SheepRoundupRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::BackshotRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::BackshotSlideRuntime,COMPONENT_SPARSE)\
+    X(MiniGameCollection::Runtime::BackshotRouteRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::ColorTerritoryBriefingRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::SheepRoundupBriefingRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::BackshotBriefingRuntime,COMPONENT_SPARSE)\
