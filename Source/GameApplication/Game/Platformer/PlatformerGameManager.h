@@ -4,8 +4,10 @@
 #include "Engine/Scene/Component/TransformComponent.h"
 #include "Engine/Scene/Component/ColliderComponent.h"
 #include "Engine/Scene/Component/entityNameComponent.h"
+#include "Engine/Scene/Component/particleComponent.h"
 #include "Game/Platformer/PlatformerCameraController.h"
 #include "Game/Platformer/PlatformerCharacterController.h"
+#include "Game/Platformer/PlatformerPlayerAmbientFeedback.h"
 #include "Game/Platformer/PlatformerSceneAccess.h"
 #include "Game/Platformer/PlatformerSoundLibrary.h"
 
@@ -67,6 +69,7 @@ public:
 		PlatformerSoundLibrary::EnsureGenerated();
 		player = PlatformerSceneAccess::FindFirst<PlatformerCharacterController>(m_ref.GetScene());
 		camera = PlatformerSceneAccess::FindFirst<PlatformerCameraController>(m_ref.GetScene());
+		EnsurePlayerAmbientFeedback();
 		ConfigureBossForNormalJumpAndArenaEntry();
 		state = RunState::Playing;
 		collectedCoins = 0;
@@ -225,6 +228,30 @@ private:
 		if(arenaMinX > arenaMaxX) std::swap(arenaMinX, arenaMaxX);
 		arenaRespawnPosition.x = std::clamp(arenaRespawnPosition.x, arenaMinX + 0.5f, arenaMaxX - 0.5f);
 		arenaRespawnPosition.z = std::clamp(arenaRespawnPosition.z, arenaLockZ + 0.5f, arenaMaxZ - 1.0f);
+	}
+
+	void EnsurePlayerAmbientFeedback() {
+		SceneContext* context = m_ref.GetScene();
+		if(!context || !context->commands || !context->component) return;
+		if(PlatformerSceneAccess::FindFirst<PlatformerPlayerAmbientFeedback>(context).IsValid()) return;
+
+		const CommandEntity runtime = QueueCreateEntity();
+		QueueAddComponent<NameComponent>(runtime);
+		QueueAddComponent<TransformComponent>(runtime);
+		QueueAddComponent<ParticleComponent>(runtime);
+		QueueAddComponent<PlatformerPlayerAmbientFeedback>(runtime);
+		QueueEntitySetup(runtime, [](Entity entity, SceneContext& scene) {
+			if(auto* name = scene.component->GetComponent<NameComponent>(entity)) {
+				name->name = "PlatformerPlayerAmbientFeedback";
+			}
+			if(auto* particle = scene.component->GetComponent<ParticleComponent>(entity)) {
+				particle->isLoop = false;
+				particle->SpawnInterval = 0.0f;
+				particle->SpawnCount = 0;
+				particle->SpawnTimer = 0.0f;
+				for(auto& state : particle->Particle) state.LifeTime = 0.0f;
+			}
+		});
 	}
 
 	void ResolveRuntimeReferences() {
