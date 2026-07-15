@@ -63,6 +63,10 @@ public:
 		return !(*this == vec3);
 	}
 
+	Vector3 operator-() const{
+		return Vector3(-x, -y, -z);
+	}
+
 	Vector3 operator+(const Vector3& vec3) const{
 		return Vector3(x + vec3.x, y + vec3.y, z + vec3.z);
 	}
