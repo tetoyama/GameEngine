@@ -11,9 +11,9 @@
 #include <algorithm>
 #include <cmath>
 
-// Lightweight, self-contained ambient presentation for the player. This owns a
-// dedicated ParticleComponent so persistent movement trails never clear or
-// resize the one-shot interaction bursts emitted by PlatformerPlayerFeedback.
+// Dedicated ambient presentation for the player. It intentionally owns a
+// separate ParticleComponent so continuous trails never clear one-shot impact
+// bursts emitted by PlatformerPlayerFeedback.
 class PlatformerPlayerAmbientFeedback : public CustomScriptComponent {
 	BEGIN_REFLECT(PlatformerPlayerAmbientFeedback)
 		REFLECT_FIELD(bool, movementTrailEnabled, true)
@@ -86,15 +86,14 @@ public:
 		if(!controller || !pose || !particles) return;
 
 		Vector3 frameDelta = pose->position - previousPlayerPosition;
-		const float teleportDistance = frameDelta.length();
-		if(teleportDistance > 4.0f) {
+		if(frameDelta.length() > 4.0f) {
 			ClearParticles();
 			frameDelta = Vector3();
 			travelDistance = 0.0f;
 		}
 		MoveEmitterPreserveWorld(pose->position);
 
-		Vector3 velocity = safeDt > 0.0001f ? frameDelta / safeDt : Vector3();
+		Vector3 velocity = frameDelta / safeDt;
 		if(auto* col = playerCollider.TryGet()) {
 			if(auto* rigid = col->pRigidbodyDynamic) {
 				const physx::PxVec3 measured = rigid->getLinearVelocity();
@@ -123,49 +122,19 @@ public:
 		if(grounded) travelDistance += horizontalTravel;
 
 		if(presentationActive) {
-			if(movementTrailEnabled && grounded && currentHorizontalSpeed >= minimumTrailSpeed && groundSmokeTimer <= 0.0f) {
-				EmitGroundSmoke(direction, side, currentHorizontalSpeed);
-				const float speedFactor = std::clamp(currentHorizontalSpeed / 8.0f, 0.0f, 1.0f);
-				groundSmokeTimer = groundSmokeInterval * (1.15f - speedFactor * 0.62f);
-			}
-
-			if(footstepDustEnabled && grounded && currentHorizontalSpeed >= minimumTrailSpeed && travelDistance >= footstepDistance) {
-				travelDistance = std::fmod(travelDistance, footstepDistance);
-				EmitFootstepDust(direction, side);
-				leftFoot = !leftFoot;
-			}
-
-			if(speedStreakEnabled && currentHorizontalSpeed >= sprintTrailSpeed && speedStreakTimer <= 0.0f) {
-				EmitSpeedStreak(direction, side, currentHorizontalSpeed);
-				speedStreakTimer = speedStreakInterval;
-			}
-
-			if(airTrailEnabled && !grounded && std::abs(velocity.y) >= 1.4f && airTrailTimer <= 0.0f) {
-				EmitAirTrail(direction, side, velocity.y);
-				airTrailTimer = airTrailInterval;
-			}
-
-			const float directionDot = previousHorizontalDirection.length() > 0.0001f && direction.length() > 0.0001f
-				? previousHorizontalDirection.dot(direction)
-				: 1.0f;
-			const float brakingRate = (previousHorizontalSpeed - currentHorizontalSpeed) / safeDt;
-			if(skidFeedbackEnabled && grounded && skidCooldown <= 0.0f && previousHorizontalSpeed >= 3.2f &&
-			   ((currentHorizontalSpeed >= 1.4f && directionDot < 0.18f) || brakingRate > 24.0f)) {
-				EmitSkid(previousHorizontalDirection.length() > 0.0001f ? previousHorizontalDirection : direction, side);
-				skidCooldown = 0.22f;
-			}
+			TickGroundTrail(grounded, direction, side);
+			TickAirTrail(grounded, direction, side, velocity.y);
+			TickSkid(grounded, direction, side, safeDt);
 
 			if(apexFeedbackEnabled && !grounded && previousVerticalVelocity > 0.55f && velocity.y <= 0.0f) {
 				EmitApexRing();
 			}
-
 			if(ledgeFeedbackEnabled && wasGrounded && !grounded && velocity.y <= 0.25f && velocity.y > -1.8f) {
 				EmitLedgePuff(direction, side);
 			}
 		}
 
 		UpdatePlayerMaterial(*controller, currentHorizontalSpeed);
-
 		previousPlayerPosition = pose->position;
 		previousVerticalVelocity = velocity.y;
 		previousHorizontalSpeed = currentHorizontalSpeed;
@@ -192,7 +161,9 @@ private:
 	}
 
 	void ResolvePlayerReferences() {
-		if(!player.IsValid()) player = PlatformerSceneAccess::FindFirst<PlatformerCharacterController>(m_ref.GetScene());
+		if(!player.IsValid()) {
+			player = PlatformerSceneAccess::FindFirst<PlatformerCharacterController>(m_ref.GetScene());
+		}
 		if(!player.IsValid()) return;
 		const EntityRef entity = player.GetEntityRef();
 		playerTransform = ComponentRef<TransformComponent>(entity);
@@ -201,9 +172,7 @@ private:
 	}
 
 	void ConfigureEmitter() {
-		if(auto* emitter = emitterTransform.TryGet()) {
-			emitter->scale = Vector3(1.0f, 1.0f, 1.0f);
-		}
+		if(auto* emitter = emitterTransform.TryGet()) emitter->scale = Vector3(1.0f, 1.0f, 1.0f);
 		if(auto* particles = emitterParticle.TryGet()) {
 			particles->isLoop = false;
 			particles->SpawnInterval = 0.0f;
@@ -215,6 +184,40 @@ private:
 			particles->MulSpeed = Vector3(0.18f, 0.42f, 0.18f);
 			for(auto& state : particles->Particle) state.LifeTime = 0.0f;
 		}
+	}
+
+	void TickGroundTrail(bool grounded, const Vector3& direction, const Vector3& side) {
+		if(movementTrailEnabled && grounded && currentHorizontalSpeed >= minimumTrailSpeed && groundSmokeTimer <= 0.0f) {
+			EmitGroundSmoke(direction, side, currentHorizontalSpeed);
+			const float speedFactor = std::clamp(currentHorizontalSpeed / 8.0f, 0.0f, 1.0f);
+			groundSmokeTimer = groundSmokeInterval * (1.15f - speedFactor * 0.62f);
+		}
+		if(footstepDustEnabled && grounded && currentHorizontalSpeed >= minimumTrailSpeed && travelDistance >= footstepDistance) {
+			travelDistance = std::fmod(travelDistance, footstepDistance);
+			EmitFootstepDust(direction, side);
+			leftFoot = !leftFoot;
+		}
+		if(speedStreakEnabled && currentHorizontalSpeed >= sprintTrailSpeed && speedStreakTimer <= 0.0f) {
+			EmitSpeedStreak(direction, side, currentHorizontalSpeed);
+			speedStreakTimer = speedStreakInterval;
+		}
+	}
+
+	void TickAirTrail(bool grounded, const Vector3& direction, const Vector3& side, float verticalVelocity) {
+		if(!airTrailEnabled || grounded || std::abs(verticalVelocity) < 1.4f || airTrailTimer > 0.0f) return;
+		EmitAirTrail(direction, side, verticalVelocity);
+		airTrailTimer = airTrailInterval;
+	}
+
+	void TickSkid(bool grounded, const Vector3& direction, const Vector3& side, float dt) {
+		if(!skidFeedbackEnabled || !grounded || skidCooldown > 0.0f || previousHorizontalSpeed < 3.2f) return;
+		const float directionDot = previousHorizontalDirection.length() > 0.0001f && direction.length() > 0.0001f
+			? previousHorizontalDirection.dot(direction)
+			: 1.0f;
+		const float brakingRate = (previousHorizontalSpeed - currentHorizontalSpeed) / dt;
+		if(!((currentHorizontalSpeed >= 1.4f && directionDot < 0.18f) || brakingRate > 24.0f)) return;
+		EmitSkid(previousHorizontalDirection.length() > 0.0001f ? previousHorizontalDirection : direction, side);
+		skidCooldown = 0.22f;
 	}
 
 	void CapturePlayerMaterial() {
@@ -243,7 +246,6 @@ private:
 			material->Material.EmissiveColor = float3(0.08f, 0.48f + speedGlow * 0.28f, 1.0f);
 			material->Material.EmissiveIntensity = basePlayerMaterial.EmissiveIntensity + speedGlow * speedGlowIntensity;
 		}
-
 		if(damageFlashEnabled && controller.IsInvulnerable()) {
 			const float flash = 0.45f + 0.55f * std::abs(std::sin(ambientElapsed * 26.0f));
 			material->Material.BaseColor.x = basePlayerMaterial.BaseColor.x + (1.0f - basePlayerMaterial.BaseColor.x) * flash;
@@ -283,8 +285,7 @@ private:
 	) {
 		auto* particles = emitterParticle.TryGet();
 		if(!particles) return;
-		const int index = particleCursor++ % MAXPARTICLE;
-		PARTICLE& state = particles->Particle[index];
+		PARTICLE& state = particles->Particle[particleCursor++ % MAXPARTICLE];
 		const float inverseSize = 1.0f / (std::max)(0.001f, particles->particleSize);
 		state.Position = worldOffset * inverseSize;
 		state.Speed = worldVelocity * inverseSize;
@@ -299,8 +300,8 @@ private:
 			const float wave = Wave(i, 1.71f);
 			const float lateral = (static_cast<float>(i) - 1.5f) * 0.08f;
 			SpawnParticle(
-				Vector3(0.0f, 0.055f, 0.0f) - direction * (0.04f + wave * 0.12f) + side * lateral,
-				-direction * (0.45f + strength * 1.25f + wave * 0.35f) + side * lateral * 2.2f + Vector3(0.0f, 0.55f + wave * 0.75f, 0.0f),
+				Vector3(0.0f, 0.055f, 0.0f) + direction * (-0.04f - wave * 0.12f) + side * lateral,
+				direction * (-0.45f - strength * 1.25f - wave * 0.35f) + side * lateral * 2.2f + Vector3(0.0f, 0.55f + wave * 0.75f, 0.0f),
 				0.48f + wave * 0.25f,
 				0.78f + wave * 0.78f,
 				DirectX::XMFLOAT4(0.66f + wave * 0.14f, 0.58f + wave * 0.12f, 0.43f + wave * 0.10f, 0.58f));
@@ -315,7 +316,7 @@ private:
 			const Vector3 radial(std::cos(angle), 0.0f, std::sin(angle));
 			SpawnParticle(
 				Vector3(0.0f, 0.035f, 0.0f) + side * footSide,
-				radial * (0.45f + wave * 0.85f) - direction * 0.35f + Vector3(0.0f, 0.35f + wave * 0.45f, 0.0f),
+				radial * (0.45f + wave * 0.85f) + direction * -0.35f + Vector3(0.0f, 0.35f + wave * 0.45f, 0.0f),
 				0.36f + wave * 0.18f,
 				0.48f + wave * 0.60f,
 				DirectX::XMFLOAT4(0.82f, 0.72f, 0.52f, 0.62f));
@@ -327,8 +328,8 @@ private:
 		for(int i = 0; i < 3; ++i) {
 			const float lane = (static_cast<float>(i) - 1.0f) * 0.18f;
 			SpawnParticle(
-				Vector3(0.0f, 0.48f + 0.20f * static_cast<float>(i % 2), 0.0f) + side * lane - direction * 0.18f,
-				-direction * (3.2f + strength * 2.8f) + side * lane * 1.8f + Vector3(0.0f, 0.15f, 0.0f),
+				Vector3(0.0f, 0.48f + 0.20f * static_cast<float>(i % 2), 0.0f) + side * lane + direction * -0.18f,
+				direction * (-3.2f - strength * 2.8f) + side * lane * 1.8f + Vector3(0.0f, 0.15f, 0.0f),
 				0.20f + strength * 0.12f,
 				0.35f + strength * 0.24f,
 				DirectX::XMFLOAT4(0.14f, 0.72f + strength * 0.20f, 1.0f, 0.88f));
@@ -341,7 +342,7 @@ private:
 			const float lane = (static_cast<float>(i) - 1.0f) * 0.13f;
 			SpawnParticle(
 				Vector3(0.0f, 0.28f, 0.0f) + side * lane,
-				-direction * 1.15f + side * lane * 1.5f + Vector3(0.0f, verticalSign * 0.65f, 0.0f),
+				direction * -1.15f + side * lane * 1.5f + Vector3(0.0f, verticalSign * 0.65f, 0.0f),
 				0.30f,
 				0.38f + 0.12f * static_cast<float>(i),
 				DirectX::XMFLOAT4(0.48f, 0.82f, 1.0f, 0.65f));
@@ -356,11 +357,10 @@ private:
 			const bool spark = i % 3 == 0;
 			SpawnParticle(
 				Vector3(0.0f, 0.05f, 0.0f) + side * ((i % 2 == 0) ? -0.16f : 0.16f),
-				-oldDirection * (0.8f + wave * 1.5f) + radial * (0.7f + wave * 1.1f) + Vector3(0.0f, spark ? 1.1f : 0.42f, 0.0f),
+				oldDirection * (-0.8f - wave * 1.5f) + radial * (0.7f + wave * 1.1f) + Vector3(0.0f, spark ? 1.1f : 0.42f, 0.0f),
 				spark ? 0.48f : 0.62f,
 				spark ? 0.35f : (0.72f + wave * 0.45f),
-				spark
-					? DirectX::XMFLOAT4(1.0f, 0.42f, 0.04f, 0.95f)
+				spark ? DirectX::XMFLOAT4(1.0f, 0.42f, 0.04f, 0.95f)
 					: DirectX::XMFLOAT4(0.72f, 0.60f, 0.42f, 0.68f));
 		}
 	}
@@ -374,8 +374,7 @@ private:
 				radial * 1.65f + Vector3(0.0f, 0.18f + 0.04f * static_cast<float>(i % 3), 0.0f),
 				0.38f,
 				0.34f + 0.16f * static_cast<float>(i % 2),
-				(i % 2 == 0)
-					? DirectX::XMFLOAT4(0.16f, 0.86f, 1.0f, 0.82f)
+				(i % 2 == 0) ? DirectX::XMFLOAT4(0.16f, 0.86f, 1.0f, 0.82f)
 					: DirectX::XMFLOAT4(0.64f, 0.30f, 1.0f, 0.78f));
 		}
 	}
@@ -385,8 +384,8 @@ private:
 			const float wave = Wave(i, 2.11f);
 			const float lane = (static_cast<float>(i % 3) - 1.0f) * 0.14f;
 			SpawnParticle(
-				Vector3(0.0f, 0.04f, 0.0f) + side * lane - direction * 0.12f,
-				-direction * (0.55f + wave * 0.75f) + side * lane * 2.0f + Vector3(0.0f, 0.38f + wave * 0.48f, 0.0f),
+				Vector3(0.0f, 0.04f, 0.0f) + side * lane + direction * -0.12f,
+				direction * (-0.55f - wave * 0.75f) + side * lane * 2.0f + Vector3(0.0f, 0.38f + wave * 0.48f, 0.0f),
 				0.42f + wave * 0.16f,
 				0.55f + wave * 0.52f,
 				DirectX::XMFLOAT4(0.76f, 0.68f, 0.52f, 0.62f));
