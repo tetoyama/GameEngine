@@ -7,6 +7,7 @@
 #include "Engine/Scene/Component/particleComponent.h"
 #include "Game/Platformer/PlatformerCameraController.h"
 #include "Game/Platformer/PlatformerCharacterController.h"
+#include "Game/Platformer/PlatformerMovingPlatform.h"
 #include "Game/Platformer/PlatformerPlayerAmbientFeedback.h"
 #include "Game/Platformer/PlatformerSceneAccess.h"
 #include "Game/Platformer/PlatformerSoundLibrary.h"
@@ -69,6 +70,7 @@ public:
 		PlatformerSoundLibrary::EnsureGenerated();
 		player = PlatformerSceneAccess::FindFirst<PlatformerCharacterController>(m_ref.GetScene());
 		camera = PlatformerSceneAccess::FindFirst<PlatformerCameraController>(m_ref.GetScene());
+		ApplyRestrainedAmbientDefaults();
 		EnsurePlayerAmbientFeedback();
 		ConfigureBossForNormalJumpAndArenaEntry();
 		state = RunState::Playing;
@@ -230,10 +232,31 @@ private:
 		arenaRespawnPosition.z = std::clamp(arenaRespawnPosition.z, arenaLockZ + 0.5f, arenaMaxZ - 1.0f);
 	}
 
+	void ApplyRestrainedAmbientDefaults() {
+		SceneContext* context = m_ref.GetScene();
+		if(!context || !context->component) return;
+
+		if(auto existing = PlatformerSceneAccess::FindFirst<PlatformerPlayerAmbientFeedback>(context); existing.IsValid()) {
+			if(auto* feedback = existing.TryGet()) feedback->speedGlowEnabled = false;
+		}
+
+		const auto platforms = context->component->FindEntitiesWithComponent<PlatformerMovingPlatform>();
+		for(Entity entity : platforms) {
+			if(auto* platform = context->component->GetComponent<PlatformerMovingPlatform>(entity)) {
+				// Keep path dots, current-position marker and endpoint warnings, but do not
+				// recolour the whole platform every time its travel direction changes.
+				platform->platformGlowEnabled = false;
+			}
+		}
+	}
+
 	void EnsurePlayerAmbientFeedback() {
 		SceneContext* context = m_ref.GetScene();
 		if(!context || !context->commands || !context->component) return;
-		if(PlatformerSceneAccess::FindFirst<PlatformerPlayerAmbientFeedback>(context).IsValid()) return;
+		if(auto existing = PlatformerSceneAccess::FindFirst<PlatformerPlayerAmbientFeedback>(context); existing.IsValid()) {
+			if(auto* feedback = existing.TryGet()) feedback->speedGlowEnabled = false;
+			return;
+		}
 
 		const CommandEntity runtime = QueueCreateEntity();
 		QueueAddComponent<NameComponent>(runtime);
@@ -250,6 +273,9 @@ private:
 				particle->SpawnCount = 0;
 				particle->SpawnTimer = 0.0f;
 				for(auto& state : particle->Particle) state.LifeTime = 0.0f;
+			}
+			if(auto* feedback = scene.component->GetComponent<PlatformerPlayerAmbientFeedback>(entity)) {
+				feedback->speedGlowEnabled = false;
 			}
 		});
 	}
