@@ -86,6 +86,7 @@
 #include "Game/Platformer/PlatformerHud.h"
 #include "Game/Platformer/PlatformerStageBuilder.h"
 #include "Game/Platformer/PlatformerPlayerFeedback.h"
+#include "Game/Platformer/PlatformerPlayerAmbientFeedback.h"
 #include "Game/Platformer/PlatformerClearFeedback.h"
 
 inline constexpr auto COMPONENT_SPARSE = ECSStorage::ComponentStorageStrategy::SparseStable;
@@ -157,6 +158,7 @@ struct ComponentStoragePreference<TransformComponent> {
     X(PlatformerHud,COMPONENT_SPARSE)\
     X(PlatformerStageBuilder,COMPONENT_SPARSE)\
     X(PlatformerPlayerFeedback,COMPONENT_SPARSE)\
+    X(PlatformerPlayerAmbientFeedback,COMPONENT_SPARSE)\
     X(PlatformerClearFeedback,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::MiniGameCollectionEntryRuntime,COMPONENT_SPARSE)\
     X(MiniGameCollection::Runtime::MiniGamePersistentRuntime,COMPONENT_SPARSE)\
