@@ -4,7 +4,7 @@
 #include "Game/MiniGameCollection/Runtime/MiniGameRuntimeUi.h"
 
 #include <algorithm>
-#include <cmath>
+#include <cstddef>
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -12,13 +12,14 @@
 
 namespace MiniGameCollection::Runtime {
 
+// 2D側は画面全体イベントと補助的な状態表示だけを担当する。
+// worldPositionを持つ危険範囲はWorldEventTelegraphRuntimeSupportが
+// 実際の3D床面Geometryとして表示する。
 class WorldEventTelegraphPresenter final {
 public:
-    static void Draw(
+    static void DrawHud(
         SceneContext* context,
-        const WorldEventTelegraphModel& model,
-        float worldWidth = 24.0f,
-        float worldHeight = 18.0f
+        const WorldEventTelegraphModel& model
     ) {
         MiniGameRuntimeUi ui(context);
         if (!ui.IsAvailable()) {
@@ -27,27 +28,36 @@ public:
 
         const std::vector<TelegraphSnapshot> snapshots =
             model.GetVisibleSnapshots();
-        const TelegraphSnapshot* major = nullptr;
-        std::size_t minorStatusRow = 0;
+        const TelegraphSnapshot* screenMajor = nullptr;
+        std::size_t statusRow = 0;
 
         for (const TelegraphSnapshot& snapshot : snapshots) {
-            if (snapshot.definition.priority == TelegraphPriority::Major &&
-                !major) {
-                major = &snapshot;
-            }
-            DrawWorldMarker(ui, snapshot, worldWidth, worldHeight);
-        }
-
-        if (major) {
-            DrawMajorBanner(ui, *major);
-        }
-
-        for (const TelegraphSnapshot& snapshot : snapshots) {
-            if (snapshot.definition.priority == TelegraphPriority::Major) {
+            if (snapshot.definition.shape == TelegraphShape::Screen &&
+                snapshot.definition.priority == TelegraphPriority::Major &&
+                !screenMajor) {
+                screenMajor = &snapshot;
                 continue;
             }
-            DrawMinorStatus(ui, snapshot, minorStatusRow++);
+
+            // 位置は3D Markerで示す。HUDには名称と残り時間だけを端へ置く。
+            DrawStatus(ui, snapshot, statusRow++);
         }
+
+        if (screenMajor) {
+            DrawMajorBanner(ui, *screenMajor);
+        }
+    }
+
+    // 旧呼出しとの互換。worldWidth/worldHeightは疑似投影を廃止したため使用しない。
+    static void Draw(
+        SceneContext* context,
+        const WorldEventTelegraphModel& model,
+        float worldWidth = 24.0f,
+        float worldHeight = 18.0f
+    ) {
+        (void)worldWidth;
+        (void)worldHeight;
+        DrawHud(context, model);
     }
 
 private:
@@ -87,9 +97,9 @@ private:
         const MiniGameRuntimeUi& ui,
         const TelegraphSnapshot& snapshot
     ) {
-        const float width = (std::min)(720.0f, ui.Width() - 48.0f);
-        const float x = (ui.Width() - width) * 0.5f;
-        constexpr float y = 92.0f;
+        const float width = ui.ResolvePanelWidth(720.0f, 480.0f);
+        const float x = ui.CenteredX(width);
+        const float y = ui.SafeMarginY() + 92.0f;
         constexpr float height = 80.0f;
         const D2D1::ColorF color = PhaseColor(snapshot.phase);
 
@@ -125,15 +135,18 @@ private:
         );
     }
 
-    static void DrawMinorStatus(
+    static void DrawStatus(
         const MiniGameRuntimeUi& ui,
         const TelegraphSnapshot& snapshot,
         std::size_t row
     ) {
-        constexpr float width = 280.0f;
+        const float width = ui.ResolvePanelWidth(292.0f, 220.0f);
         constexpr float height = 44.0f;
-        const float x = ui.Width() - width - 24.0f;
-        const float y = 118.0f + static_cast<float>(row) * 52.0f;
+        const float x = ui.Width() - width - ui.SafeMarginX();
+        const float y = ui.SafeMarginY() + 118.0f +
+            static_cast<float>(row) * 52.0f;
+        const D2D1::ColorF color = PhaseColor(snapshot.phase);
+
         ui.FillPanel(
             x,
             y,
@@ -141,65 +154,21 @@ private:
             height,
             D2D1::ColorF(0.02f, 0.03f, 0.055f, 0.88f)
         );
+        ui.FillPanel(
+            x,
+            y + height - 4.0f,
+            width * (std::clamp)(snapshot.phaseProgress, 0.0f, 1.0f),
+            4.0f,
+            color
+        );
         ui.DrawText(
             snapshot.definition.label + "  " +
                 TimeText(snapshot.phaseRemainingSeconds) + "s",
             x + 12.0f,
-            y + 11.0f,
+            y + 10.0f,
             15.0f,
-            PhaseColor(snapshot.phase),
-            false
-        );
-    }
-
-    static void DrawWorldMarker(
-        const MiniGameRuntimeUi& ui,
-        const TelegraphSnapshot& snapshot,
-        float worldWidth,
-        float worldHeight
-    ) {
-        if (snapshot.definition.shape == TelegraphShape::Screen) {
-            return;
-        }
-
-        const float normalizedX = snapshot.definition.worldPosition.x /
-            (std::max)(1.0f, worldWidth);
-        const float normalizedY = snapshot.definition.worldPosition.y /
-            (std::max)(1.0f, worldHeight);
-        const float centerX = ui.Width() * (0.5f + normalizedX);
-        const float centerY = ui.Height() * (0.5f - normalizedY);
-        const float pulse = 0.5f + 0.5f * std::sin(
-            snapshot.phaseProgress * 18.8495559f
-        );
-        const float baseSize = snapshot.definition.shape == TelegraphShape::Area
-            ? 86.0f
-            : snapshot.definition.shape == TelegraphShape::Path
-                ? 68.0f
-                : 52.0f;
-        const float size = baseSize + pulse * 14.0f;
-        const D2D1::ColorF color = PhaseColor(snapshot.phase);
-
-        ui.FillPanel(
-            centerX - size * 0.5f,
-            centerY - 3.0f,
-            size,
-            6.0f,
-            D2D1::ColorF(color.r, color.g, color.b, 0.78f)
-        );
-        ui.FillPanel(
-            centerX - 3.0f,
-            centerY - size * 0.5f,
-            6.0f,
-            size,
-            D2D1::ColorF(color.r, color.g, color.b, 0.78f)
-        );
-        ui.DrawTextCentered(
-            snapshot.definition.label,
-            centerX,
-            centerY + size * 0.5f + 5.0f,
-            14.0f,
             color,
-            true
+            false
         );
     }
 };
