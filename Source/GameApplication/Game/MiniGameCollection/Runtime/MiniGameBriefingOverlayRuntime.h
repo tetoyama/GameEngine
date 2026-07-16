@@ -38,15 +38,16 @@ public:
 
 protected:
     static constexpr float ReadyDisplaySeconds = 0.4f;
+    static constexpr float PracticeResetDisplaySeconds = 0.55f;
 
     void OnInitialize() override {
         m_sceneToken = GetRuntimeSceneToken();
         m_bypassBriefing =
             MiniGameRuntimeMailbox::ConsumeBriefingBypass(m_gameId);
         if (!m_bypassBriefing) {
-            // Full-game practiceではCustomScriptComponent::SuspendSceneUpdatesを使わない。
-            // 本番Runtime、CPU、timer、item、telegraphを実際に動かして理解させる。
-            MiniGameRuntimeMailbox::BeginGuidance(m_sceneToken);
+            // PracticeはTutorial Guidanceとは別の実行コンテキスト。
+            // Score/Hit/Item/Telegraphは本番同様に動かし、Resultと通常遷移だけ分離する。
+            MiniGameRuntimeMailbox::BeginPractice(m_sceneToken);
         }
     }
 
@@ -69,6 +70,17 @@ protected:
             return;
         }
 
+        if (m_practiceResetPending) {
+            m_practiceResetRemainingSeconds = (std::max)(
+                0.0f,
+                m_practiceResetRemainingSeconds - delta
+            );
+            if (m_practiceResetRemainingSeconds <= 0.0f) {
+                ReloadPracticeRound();
+            }
+            return;
+        }
+
         if (m_briefing.IsReady()) {
             m_readyRemainingSeconds = (std::max)(
                 0.0f,
@@ -77,6 +89,13 @@ protected:
             if (m_readyRemainingSeconds <= 0.0f) {
                 m_releasePending = true;
             }
+            return;
+        }
+
+        // 各Game RuntimeがResultへ到達した場合は、公式Result状態を見せず
+        // 練習ラウンドだけを初期状態から再生成する。
+        if (MiniGameRuntimeMailbox::ConsumePracticeRoundFinished(m_sceneToken)) {
+            BeginPracticeReset();
             return;
         }
 
@@ -101,6 +120,18 @@ protected:
             return;
         }
 
+        // Game RuntimeのUpdate後にResult通知が届いたFrameでも、Render順1000の
+        // reset coverを重ねることでResult panelの1Frame露出を防ぐ。
+        if (!m_practiceResetPending &&
+            MiniGameRuntimeMailbox::ConsumePracticeRoundFinished(m_sceneToken)) {
+            BeginPracticeReset();
+        }
+
+        if (m_practiceResetPending) {
+            DrawPracticeReset();
+            return;
+        }
+
         const std::array<std::string_view, 3> tips{
             m_tips[0],
             m_tips[1],
@@ -119,6 +150,7 @@ protected:
     void OnEditorUpdate(float dt) override { (void)dt; }
 
     void OnStop() override {
+        MiniGameRuntimeMailbox::EndPractice(m_sceneToken);
         MiniGameRuntimeMailbox::EndGuidance(m_sceneToken);
         m_briefing.Clear();
     }
@@ -127,7 +159,10 @@ private:
     void BeginPracticeBriefing() {
         m_finished = false;
         m_releasePending = false;
+        m_practiceResetPending = false;
+        m_practiceTransitionSubmitted = false;
         m_readyRemainingSeconds = 0.0f;
+        m_practiceResetRemainingSeconds = 0.0f;
         m_briefing.Clear();
         m_briefing.SetSteps({
             {
@@ -145,10 +180,89 @@ private:
         );
     }
 
+    void BeginPracticeReset() {
+        if (m_practiceResetPending || m_finished) {
+            return;
+        }
+        m_practiceResetPending = true;
+        m_practiceTransitionSubmitted = false;
+        m_practiceResetRemainingSeconds = PracticeResetDisplaySeconds;
+    }
+
+    void DrawPracticeReset() const {
+        MiniGameRuntimeUi ui(GetEntityRef().GetScene());
+        if (!ui.IsAvailable()) {
+            return;
+        }
+
+        const float panelWidth = ui.ResolvePanelWidth(620.0f, 420.0f);
+        const float panelHeight = 156.0f;
+        const float panelX = ui.CenteredX(panelWidth);
+        const float panelY = (ui.Height() - panelHeight) * 0.5f;
+
+        // 下でGame RuntimeがResult UIを描いていても完全に隠す。
+        ui.FillPanel(
+            0.0f,
+            0.0f,
+            ui.Width(),
+            ui.Height(),
+            D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.72f)
+        );
+        ui.FillPanel(
+            panelX,
+            panelY,
+            panelWidth,
+            panelHeight,
+            D2D1::ColorF(0.018f, 0.027f, 0.052f, 0.98f)
+        );
+        ui.DrawTextCentered(
+            "PRACTICE",
+            ui.Width() * 0.5f,
+            panelY + 22.0f,
+            18.0f,
+            D2D1::ColorF(0.36f, 0.78f, 1.0f, 1.0f),
+            false
+        );
+        ui.DrawTextCentered(
+            "RESETTING ROUND",
+            ui.Width() * 0.5f,
+            panelY + 50.0f,
+            30.0f
+        );
+        ui.DrawTextCentered(
+            "練習結果は記録されません",
+            ui.Width() * 0.5f,
+            panelY + 101.0f,
+            17.0f,
+            D2D1::ColorF(0.7f, 0.78f, 0.9f, 1.0f)
+        );
+    }
+
+    void ReloadPracticeRound() {
+        if (m_practiceTransitionSubmitted) {
+            return;
+        }
+
+        const bool accepted = MiniGameRuntimeMailbox::SubmitPracticeTransition({
+            .sceneToken = m_sceneToken,
+            .sourceSceneName = GetRuntimeSceneName(),
+            .targetScenePath = ScenePathForGame(m_gameId),
+            .reason = TransitionRequest::Retry,
+            .presentationWaitSeconds = 0.05f
+        });
+        if (accepted) {
+            m_practiceTransitionSubmitted = true;
+            return;
+        }
+
+        // 一時的に別Transitionが残っていた場合は、Result画面を露出させず再試行する。
+        m_practiceResetRemainingSeconds = 0.1f;
+    }
+
     void StartFullGameFromCleanState() {
         m_briefing.ConfirmReady();
         MiniGameRuntimeMailbox::MarkBriefingCompleted(m_gameId);
-        MiniGameRuntimeMailbox::EndGuidance(m_sceneToken);
+        MiniGameRuntimeMailbox::EndPractice(m_sceneToken);
 
         m_finished = true;
         m_releasePending = false;
@@ -160,15 +274,14 @@ private:
                 ScenePathForGame(m_gameId),
                 TransitionRequest::Retry,
                 0.05f)) {
-            // 同じSceneを再ロードし、練習中のscore、timer、配置、乱数状態を
-            // 完全に破棄する。次の1回だけBriefingを表示しない。
+            // 練習中のscore、timer、配置、乱数状態を破棄し、Matchとして再生成する。
             return;
         }
 
         // Transitionが受理されなかった場合はone-shot stateを取り消し、
-        // 説明だけ消えて操作不能になる状態を避ける。
+        // Practiceを復元して説明だけ消える状態を避ける。
         MiniGameRuntimeMailbox::ConsumeBriefingBypass(m_gameId);
-        MiniGameRuntimeMailbox::BeginGuidance(m_sceneToken);
+        MiniGameRuntimeMailbox::BeginPractice(m_sceneToken);
         BeginPracticeBriefing();
     }
 
@@ -193,8 +306,11 @@ private:
     MiniGameBriefingModel m_briefing;
     SceneToken m_sceneToken = 0;
     float m_readyRemainingSeconds = 0.0f;
+    float m_practiceResetRemainingSeconds = 0.0f;
     bool m_bypassBriefing = false;
     bool m_releasePending = false;
+    bool m_practiceResetPending = false;
+    bool m_practiceTransitionSubmitted = false;
     bool m_finished = false;
 };
 
