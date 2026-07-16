@@ -51,7 +51,21 @@ public:
         std::scoped_lock lock(Mutex());
         if (command.sceneToken == 0 || command.sourceSceneName.empty() ||
             PendingTransition().has_value() ||
-            GuidanceScenes().contains(command.sceneToken)) {
+            GuidanceScenes().contains(command.sceneToken) ||
+            PracticeScenes().contains(command.sceneToken)) {
+            return false;
+        }
+        PendingTransition() = std::move(command);
+        return true;
+    }
+
+    // Practiceのラウンド再生成だけが使用する内部遷移。
+    // 通常RuntimeのResult入力はPracticeScenesで遮断したままにする。
+    static bool SubmitPracticeTransition(RuntimeTransitionCommand command) {
+        std::scoped_lock lock(Mutex());
+        if (command.sceneToken == 0 || command.sourceSceneName.empty() ||
+            PendingTransition().has_value() ||
+            !PracticeScenes().contains(command.sceneToken)) {
             return false;
         }
         PendingTransition() = std::move(command);
@@ -90,6 +104,47 @@ public:
     static bool IsGuidanceActive(SceneToken sceneToken) {
         std::scoped_lock lock(Mutex());
         return GuidanceScenes().contains(sceneToken);
+    }
+
+    static void BeginPractice(SceneToken sceneToken) {
+        if (sceneToken == 0) {
+            return;
+        }
+
+        std::scoped_lock lock(Mutex());
+        PracticeScenes().insert(sceneToken);
+        PracticeRoundFinishedScenes().erase(sceneToken);
+        LastLowScorePresentationTimes().erase(sceneToken);
+
+        // Practice開始前に残っていた公式Result系だけを破棄する。
+        // Score/Hit/NearMissは練習の手触りとして通常どおり再生する。
+        std::erase_if(
+            PresentationCommands(),
+            [sceneToken](const RuntimePresentationCommand& command) {
+                if (command.sceneToken != sceneToken) {
+                    return false;
+                }
+                return command.type == RuntimePresentationCommandType::Result ||
+                    command.type == RuntimePresentationCommandType::Success ||
+                    command.type == RuntimePresentationCommandType::Failure;
+            }
+        );
+    }
+
+    static void EndPractice(SceneToken sceneToken) {
+        std::scoped_lock lock(Mutex());
+        PracticeScenes().erase(sceneToken);
+        PracticeRoundFinishedScenes().erase(sceneToken);
+    }
+
+    static bool IsPracticeActive(SceneToken sceneToken) {
+        std::scoped_lock lock(Mutex());
+        return PracticeScenes().contains(sceneToken);
+    }
+
+    static bool ConsumePracticeRoundFinished(SceneToken sceneToken) {
+        std::scoped_lock lock(Mutex());
+        return PracticeRoundFinishedScenes().erase(sceneToken) > 0;
     }
 
     static void ArmBriefingBypass(MiniGameId gameId) {
@@ -151,6 +206,18 @@ public:
         }
 
         std::scoped_lock lock(Mutex());
+
+        if (PracticeScenes().contains(command.sceneToken)) {
+            if (command.type == RuntimePresentationCommandType::Result) {
+                // Result画面へ入る代わりにPractice Overlayへラウンド終了を通知する。
+                PracticeRoundFinishedScenes().insert(command.sceneToken);
+                return;
+            }
+            if (command.type == RuntimePresentationCommandType::Success ||
+                command.type == RuntimePresentationCommandType::Failure) {
+                return;
+            }
+        }
 
         if (GuidanceScenes().contains(command.sceneToken) &&
             command.type != RuntimePresentationCommandType::BeginScene &&
@@ -241,6 +308,8 @@ public:
         ShutdownCallbacks().erase(sceneToken);
         LastLowScorePresentationTimes().erase(sceneToken);
         GuidanceScenes().erase(sceneToken);
+        PracticeScenes().erase(sceneToken);
+        PracticeRoundFinishedScenes().erase(sceneToken);
         MajorTelegraphScenes().erase(sceneToken);
         std::erase_if(
             PresentationCommands(),
@@ -287,6 +356,16 @@ private:
     }
 
     static std::unordered_set<SceneToken>& GuidanceScenes() {
+        static std::unordered_set<SceneToken> scenes;
+        return scenes;
+    }
+
+    static std::unordered_set<SceneToken>& PracticeScenes() {
+        static std::unordered_set<SceneToken> scenes;
+        return scenes;
+    }
+
+    static std::unordered_set<SceneToken>& PracticeRoundFinishedScenes() {
         static std::unordered_set<SceneToken> scenes;
         return scenes;
     }
