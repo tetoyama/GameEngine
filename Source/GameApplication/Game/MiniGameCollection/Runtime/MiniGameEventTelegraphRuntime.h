@@ -2,8 +2,7 @@
 
 #include "Game/MiniGameCollection/ColorTerritory/ColorTerritoryItemModel.h"
 #include "Game/MiniGameCollection/Core/WorldEventTelegraphModel.h"
-#include "Game/MiniGameCollection/Runtime/MiniGameRuntimeScriptBase.h"
-#include "Game/MiniGameCollection/Runtime/WorldEventTelegraphPresenter.h"
+#include "Game/MiniGameCollection/Runtime/WorldEventTelegraphRuntimeSupport.h"
 #include "Game/MiniGameCollection/SheepRoundup/SheepRoundupRules.h"
 
 #include <algorithm>
@@ -16,10 +15,12 @@
 namespace MiniGameCollection::Runtime {
 
 class ColorTerritoryEventTelegraphRuntime final
-    : public MiniGameRuntimeScriptBase {
+    : public WorldEventTelegraphRuntimeSupport {
 public:
     ColorTerritoryEventTelegraphRuntime()
-        : MiniGameRuntimeScriptBase("ColorTerritoryEventTelegraphRuntime") {
+        : WorldEventTelegraphRuntimeSupport(
+            "ColorTerritoryEventTelegraphRuntime"
+        ) {
         // Major開始frameから通常Score演出を抑制できるようゲーム本体より先に更新する。
         SetExecutionOrder(SystemTaskDomain::Frame, SystemPhase::Default, -50);
         SetExecutionOrder(SystemTaskDomain::Render, SystemPhase::Late, 300);
@@ -55,6 +56,8 @@ private:
         m_nextTelegraphId = 1;
         m_itemForecasts.clear();
         m_telegraphs.Clear();
+        QueueWorldTelegraphVisuals("ColorTerritoryTelegraph");
+        SyncWorldTelegraphVisuals(m_telegraphs);
         MiniGameRuntimeMailbox::SetMajorTelegraphActive(m_sceneToken, false);
     }
 
@@ -102,7 +105,7 @@ private:
                     .priority = TelegraphPriority::Major,
                     .worldPosition = record.position,
                     .shape = TelegraphShape::Area,
-                    .radius = 2.25f,
+                    .radius = 1.65f,
                     .warningSeconds = BombFuseSeconds,
                     .armedSeconds = 0.0f,
                     .resolvingSeconds = 0.18f,
@@ -126,6 +129,7 @@ private:
             }
         }
 
+        SyncWorldTelegraphVisuals(m_telegraphs);
         MiniGameRuntimeMailbox::SetMajorTelegraphActive(
             m_sceneToken,
             m_telegraphs.HasActiveMajor()
@@ -135,11 +139,9 @@ private:
     void OnFixedUpdate(float dt) override { (void)dt; }
 
     void OnDraw() override {
-        WorldEventTelegraphPresenter::Draw(
+        DrawTelegraphHud(
             GetEntityRef().GetScene(),
-            m_telegraphs,
-            13.0f,
-            9.0f
+            m_telegraphs
         );
     }
 
@@ -150,6 +152,7 @@ private:
         MiniGameRuntimeMailbox::SetMajorTelegraphActive(m_sceneToken, false);
         m_telegraphs.ClearForScene(m_sceneToken);
         m_itemForecasts.clear();
+        ClearWorldTelegraphVisuals();
     }
 
     void SubmitItemForecast(
@@ -177,8 +180,8 @@ private:
             .worldPosition = position,
             .shape = TelegraphShape::Ring,
             .radius = forecast.type == ColorTerritory::TerritoryItemType::Bomb
-                ? 1.65f
-                : 1.0f,
+                ? 1.0f
+                : 0.8f,
             .warningSeconds = ItemFallingSeconds,
             .armedSeconds = 0.0f,
             .resolvingSeconds = 0.1f,
@@ -220,10 +223,12 @@ private:
 };
 
 class SheepRoundupEventTelegraphRuntime final
-    : public MiniGameRuntimeScriptBase {
+    : public WorldEventTelegraphRuntimeSupport {
 public:
     SheepRoundupEventTelegraphRuntime()
-        : MiniGameRuntimeScriptBase("SheepRoundupEventTelegraphRuntime") {
+        : WorldEventTelegraphRuntimeSupport(
+            "SheepRoundupEventTelegraphRuntime"
+        ) {
         SetExecutionOrder(SystemTaskDomain::Frame, SystemPhase::Default, -50);
         SetExecutionOrder(SystemTaskDomain::Render, SystemPhase::Late, 300);
     }
@@ -246,6 +251,8 @@ private:
         m_rushWarningScheduled = false;
         m_nextTelegraphId = 1;
         m_telegraphs.Clear();
+        QueueWorldTelegraphVisuals("SheepRoundupTelegraph");
+        SyncWorldTelegraphVisuals(m_telegraphs);
         MiniGameRuntimeMailbox::SetMajorTelegraphActive(m_sceneToken, false);
     }
 
@@ -275,6 +282,7 @@ private:
         }
 
         m_telegraphs.Tick(delta);
+        SyncWorldTelegraphVisuals(m_telegraphs);
         MiniGameRuntimeMailbox::SetMajorTelegraphActive(
             m_sceneToken,
             m_telegraphs.HasActiveMajor()
@@ -284,11 +292,9 @@ private:
     void OnFixedUpdate(float dt) override { (void)dt; }
 
     void OnDraw() override {
-        WorldEventTelegraphPresenter::Draw(
+        DrawTelegraphHud(
             GetEntityRef().GetScene(),
-            m_telegraphs,
-            22.0f,
-            15.0f
+            m_telegraphs
         );
     }
 
@@ -298,6 +304,7 @@ private:
         SheepRoundup::SheepRoundupRules::ClearSpawnWarningObserver();
         MiniGameRuntimeMailbox::SetMajorTelegraphActive(m_sceneToken, false);
         m_telegraphs.ClearForScene(m_sceneToken);
+        ClearWorldTelegraphVisuals();
     }
 
     void SubmitSpawnWarning(
