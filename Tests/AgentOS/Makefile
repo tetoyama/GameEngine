@@ -33,6 +33,7 @@ TESTS = AgentOSCommandPipelineSmokeTest \
         AgentOSTaskStoreSmokeTest \
         AgentOSEvidenceLogicSmokeTest \
         AgentOSExecutionControlSmokeTest \
+        AgentOSSceneSnapshotFastPathSmokeTest \
         AgentOSVerticalSliceSmokeTest
 
 .PHONY: all build run clean $(addprefix run-,$(TESTS))
