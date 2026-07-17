@@ -14,9 +14,26 @@ namespace agentos {
 
 namespace {
 
-// フェンス厳守を再度促すリマインダー。ローカル小型モデルは出力契約を
-// 守れないことがあるため、リトライ時にのみ追記する。
 const char* kFenceReminder = "\n\n出力は```jsonフェンス内の単一JSONオブジェクトのみ。";
+
+// DirectReplyが会話上の人物質問に対してEngine Toolを誤提案した場合、
+// Orchestratorへ渡す前にTool側だけを無効化する。reply文字列は保持するため、
+// 「私は誰ですか」がTool失敗へ変換されず会話として返る。
+void SanitizeConversationResult(Json* value) {
+	if (value == nullptr || !value->is_object()) {
+		return;
+	}
+	if (!prompts::CurrentRequestIsPersonalIdentityQuestion()) {
+		return;
+	}
+	const bool directReplyShape =
+		value->contains("reply") || value->contains("toolCall") || value->contains("escalate");
+	if (!directReplyShape) {
+		return;
+	}
+	(*value)["toolCall"] = nullptr;
+	(*value)["escalate"] = false;
+}
 
 } // namespace
 
@@ -28,8 +45,6 @@ Result CallLlmJson(AgentContext& ctx, const PromptPair& prompt, Json* out) {
 		return Result::Fail("CallLlmJson: llm backend is not set");
 	}
 
-	// systemPrompt/userPromptでLLMを呼び、Budgetを（prompt+response文字数で）消費する。
-	// Budget超過はリトライしても解消しないため、その場でResultを返す。
 	auto generateAndConsume = [&](const std::string& userPrompt, std::string* responseOut) -> Result {
 		LlmGenerationStats stats;
 		*responseOut = ctx.llm->Generate(prompt.system, userPrompt, &stats);
@@ -37,8 +52,8 @@ Result CallLlmJson(AgentContext& ctx, const PromptPair& prompt, Json* out) {
 		if (ctx.budget != nullptr) {
 			std::int64_t chars = stats.promptChars + stats.completionChars;
 			if (chars <= 0) {
-				// バックエンドがstatsを埋めない場合の保険（文字数を実測する）。
-				chars = static_cast<std::int64_t>(prompt.system.size() + userPrompt.size() + responseOut->size());
+				chars = static_cast<std::int64_t>(
+					prompt.system.size() + userPrompt.size() + responseOut->size());
 			}
 			return ctx.budget->ConsumeLlmCall(chars);
 		}
@@ -54,11 +69,11 @@ Result CallLlmJson(AgentContext& ctx, const PromptPair& prompt, Json* out) {
 	Json extracted;
 	Result extractResult = JsonExtractor::Extract(response, &extracted);
 	if (extractResult) {
+		SanitizeConversationResult(&extracted);
 		*out = std::move(extracted);
 		return Result::Ok();
 	}
 
-	// --- JSON抽出失敗 → リマインダーを追記して1回だけリトライ ---
 	const std::string retryUser = prompt.user + kFenceReminder;
 	std::string retryResponse;
 	Result retryBudgetResult = generateAndConsume(retryUser, &retryResponse);
@@ -69,8 +84,10 @@ Result CallLlmJson(AgentContext& ctx, const PromptPair& prompt, Json* out) {
 	Json retryExtracted;
 	Result retryExtractResult = JsonExtractor::Extract(retryResponse, &retryExtracted);
 	if (!retryExtractResult) {
-		return Result::Fail("CallLlmJson: JSON extraction failed after retry: " + retryExtractResult.error);
+		return Result::Fail(
+			"CallLlmJson: JSON extraction failed after retry: " + retryExtractResult.error);
 	}
+	SanitizeConversationResult(&retryExtracted);
 	*out = std::move(retryExtracted);
 	return Result::Ok();
 }
