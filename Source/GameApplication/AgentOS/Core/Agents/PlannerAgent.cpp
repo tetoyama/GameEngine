@@ -19,7 +19,6 @@ namespace {
 
 constexpr int kMaxTasks = 6;
 
-// depsMap（taskId → dependencies）に循環があるかをDFSで検査する。
 bool HasCycle(const std::unordered_map<std::string, std::vector<std::string>>& depsMap) {
 	enum class Mark { Unvisited, InProgress, Done };
 	std::unordered_map<std::string, Mark> marks;
@@ -30,22 +29,14 @@ bool HasCycle(const std::unordered_map<std::string, std::vector<std::string>>& d
 
 	std::function<bool(const std::string&)> visit = [&](const std::string& node) -> bool {
 		auto markIt = marks.find(node);
-		if (markIt == marks.end()) {
-			return false;
-		}
-		if (markIt->second == Mark::Done) {
-			return false;
-		}
-		if (markIt->second == Mark::InProgress) {
-			return true;
-		}
+		if (markIt == marks.end()) return false;
+		if (markIt->second == Mark::Done) return false;
+		if (markIt->second == Mark::InProgress) return true;
 		markIt->second = Mark::InProgress;
 		auto depsIt = depsMap.find(node);
 		if (depsIt != depsMap.end()) {
 			for (const std::string& dep : depsIt->second) {
-				if (visit(dep)) {
-					return true;
-				}
+				if (visit(dep)) return true;
 			}
 		}
 		markIt->second = Mark::Done;
@@ -54,50 +45,55 @@ bool HasCycle(const std::unordered_map<std::string, std::vector<std::string>>& d
 
 	for (const auto& [id, deps] : depsMap) {
 		(void)deps;
-		if (visit(id)) {
-			return true;
-		}
+		if (visit(id)) return true;
 	}
 	return false;
 }
 
 bool CatalogHasTool(const Json& toolCatalog, const std::string& name) {
-	if (!toolCatalog.is_array()) {
-		return false;
-	}
+	if (!toolCatalog.is_array()) return false;
 	for (const auto& tool : toolCatalog) {
-		if (tool.is_object() && tool.value("name", std::string()) == name) {
-			return true;
-		}
+		if (tool.is_object() && tool.value("name", std::string()) == name) return true;
 	}
 	return false;
 }
 
 bool ContainsAny(const std::string& text, std::initializer_list<const char*> needles) {
 	for (const char* needle : needles) {
-		if (text.find(needle) != std::string::npos) {
-			return true;
-		}
+		if (text.find(needle) != std::string::npos) return true;
 	}
 	return false;
 }
 
-// 「現在のシーンの状態/概要を報告」のような単純スナップショット要求は、
-// Planner LLMを使わず安全な既知DAGへ固定する。時間変化を要求していないため
-// WriteTraceは含めない。
-bool TryBuildSceneSnapshotPlan(const Json& intake, const Json& toolCatalog, Json* planOut) {
-	if (planOut == nullptr || !intake.is_object()) {
-		return false;
+std::string CurrentPlanningText(const Json& intake) {
+	std::string text;
+	if (!intake.is_object()) return text;
+	text = intake.value(
+		"resolvedRequest",
+		intake.value("goal", std::string()));
+	if (intake.contains("symptoms") && intake.at("symptoms").is_array()) {
+		text += "\n" + intake.at("symptoms").dump();
 	}
+	if (intake.contains("constraints") && intake.at("constraints").is_array()) {
+		text += "\n" + intake.at("constraints").dump();
+	}
+	return text;
+}
 
-	const std::string text = intake.dump();
+// Scene snapshot判定には過去のconversationContextを含めない。
+// 履歴に「シーン」があっても、現在のresolvedRequestが別件ならFast Pathへ入れない。
+bool TryBuildSceneSnapshotPlan(const Json& intake, const Json& toolCatalog, Json* planOut) {
+	if (planOut == nullptr || !intake.is_object()) return false;
+
+	const std::string text = CurrentPlanningText(intake);
 	const bool sceneRequest = ContainsAny(text, {"シーン", "Scene", "scene"});
-	const bool snapshotRequest = ContainsAny(text, {"現在", "状態", "状況", "概要", "報告", "一覧", "全体"});
-	const bool temporalRequest = ContainsAny(text, {"変化", "推移", "フレーム間", "トレース", "Trace", "trace", "時間経過"});
-	if (!sceneRequest || !snapshotRequest || temporalRequest) {
-		return false;
-	}
-	if (!CatalogHasTool(toolCatalog, "ListEntities") || !CatalogHasTool(toolCatalog, "ListSystems")) {
+	const bool snapshotRequest = ContainsAny(
+		text, {"現在", "状態", "状況", "概要", "報告", "一覧", "全体"});
+	const bool temporalRequest = ContainsAny(
+		text, {"変化", "推移", "フレーム間", "トレース", "Trace", "trace", "時間経過"});
+	if (!sceneRequest || !snapshotRequest || temporalRequest) return false;
+	if (!CatalogHasTool(toolCatalog, "ListEntities") ||
+	    !CatalogHasTool(toolCatalog, "ListSystems")) {
 		return false;
 	}
 
@@ -141,7 +137,10 @@ bool TryBuildSceneSnapshotPlan(const Json& intake, const Json& toolCatalog, Json
 		{"searchHints", Json::array()},
 	}));
 
-	*planOut = Json::object({{"tasks", std::move(tasks)}, {"route", "deterministic_scene_snapshot"}});
+	*planOut = Json::object({
+		{"tasks", std::move(tasks)},
+		{"route", "deterministic_scene_snapshot"},
+	});
 	return true;
 }
 
@@ -232,23 +231,15 @@ bool ValidatePlan(const Json& plan, const Json& toolCatalog, std::string* error)
 		*error = "dependency cycle detected among tasks";
 		return false;
 	}
-
 	return true;
 }
 
-// LLMの型揺れと、Toolを持つAnalysisタスクを決定的に正規化する。
 void NormalizePlan(Json* plan) {
-	if (plan == nullptr || !plan->is_object() || !plan->contains("tasks")) {
-		return;
-	}
+	if (plan == nullptr || !plan->is_object() || !plan->contains("tasks")) return;
 	Json& tasks = (*plan)["tasks"];
-	if (!tasks.is_array()) {
-		return;
-	}
+	if (!tasks.is_array()) return;
 	for (Json& task : tasks) {
-		if (!task.is_object()) {
-			continue;
-		}
+		if (!task.is_object()) continue;
 		if (task.contains("taskId") && task["taskId"].is_number_integer()) {
 			task["taskId"] = std::to_string(task["taskId"].get<std::int64_t>());
 		}
@@ -259,8 +250,8 @@ void NormalizePlan(Json* plan) {
 				}
 			}
 		}
-		const bool hasTools = task.contains("allowedTools") && task["allowedTools"].is_array() &&
-			!task["allowedTools"].empty();
+		const bool hasTools = task.contains("allowedTools") &&
+			task["allowedTools"].is_array() && !task["allowedTools"].empty();
 		if (task.value("type", std::string()) == "Analysis" && hasTools) {
 			task["type"] = "RuntimeObservation";
 		}
@@ -282,9 +273,7 @@ Result PlannerAgent::Run(AgentContext& ctx, const Json& intake, const Json& tool
 
 	Json raw;
 	Result callResult = CallLlmJson(ctx, prompt, &raw);
-	if (!callResult) {
-		return callResult;
-	}
+	if (!callResult) return callResult;
 
 	NormalizePlan(&raw);
 
@@ -295,13 +284,13 @@ Result PlannerAgent::Run(AgentContext& ctx, const Json& intake, const Json& tool
 	}
 
 	PromptPair retryPrompt = prompt;
-	retryPrompt.user += "\n\n前回の出力は次の理由で拒否されました。修正して再出力してください: " + validationError;
+	retryPrompt.user +=
+		"\n\n前回の出力は次の理由で拒否されました。修正して再出力してください: " +
+		validationError;
 
 	Json retryRaw;
 	Result retryCallResult = CallLlmJson(ctx, retryPrompt, &retryRaw);
-	if (!retryCallResult) {
-		return retryCallResult;
-	}
+	if (!retryCallResult) return retryCallResult;
 
 	NormalizePlan(&retryRaw);
 
