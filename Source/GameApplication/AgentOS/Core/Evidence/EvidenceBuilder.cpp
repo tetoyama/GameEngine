@@ -9,6 +9,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "../Llm/PromptTemplates.h"
+
 namespace agentos {
 
 void EvidenceBuilder::Add(Evidence e) {
@@ -21,20 +23,14 @@ void EvidenceBuilder::MarkPlannedTask(TaskId taskId) {
 
 namespace {
 
-// claim + payload dumpの完全一致を重複キーとする。
 std::string DedupKey(const Evidence& e) {
 	return e.claim + "\x1f" + e.payload.dump();
 }
 
-// payloadから "target"（文字列）と "value" を取り出す。
 bool ExtractTargetValue(const Evidence& e, std::string* targetOut, std::string* valueDumpOut) {
-	if (!e.payload.is_object()) {
-		return false;
-	}
-	if (!e.payload.contains("target") || !e.payload.at("target").is_string()) {
-		return false;
-	}
-	if (!e.payload.contains("value")) {
+	if (!e.payload.is_object() ||
+	    !e.payload.contains("target") || !e.payload.at("target").is_string() ||
+	    !e.payload.contains("value")) {
 		return false;
 	}
 	*targetOut = e.payload.at("target").get<std::string>();
@@ -63,7 +59,6 @@ bool IsFailureEvidence(const Evidence& evidence) {
 EvidenceBuilder::BuiltEvidence EvidenceBuilder::Build() const {
 	BuiltEvidence built;
 
-	// --- 重複除去（先勝ち） ---
 	std::unordered_set<std::string> seenKeys;
 	built.evidences.reserve(evidences_.size());
 	for (const Evidence& e : evidences_) {
@@ -83,7 +78,6 @@ EvidenceBuilder::BuiltEvidence EvidenceBuilder::Build() const {
 		}
 	}
 
-	// --- 矛盾検出 ---
 	const std::size_t n = built.evidences.size();
 	for (std::size_t i = 0; i < n; ++i) {
 		for (std::size_t j = i + 1; j < n; ++j) {
@@ -93,8 +87,7 @@ EvidenceBuilder::BuiltEvidence EvidenceBuilder::Build() const {
 			std::string targetA, valueA, targetB, valueB;
 			const bool hasTvA = ExtractTargetValue(a, &targetA, &valueA);
 			const bool hasTvB = ExtractTargetValue(b, &targetB, &valueB);
-			if (hasTvA && hasTvB &&
-			    targetA == targetB &&
+			if (hasTvA && hasTvB && targetA == targetB &&
 			    a.provenance.frame >= 0 && a.provenance.frame == b.provenance.frame &&
 			    valueA != valueB) {
 				built.contradictions.push_back(ContradictionRecord{
@@ -117,7 +110,6 @@ EvidenceBuilder::BuiltEvidence EvidenceBuilder::Build() const {
 		}
 	}
 
-	// --- Coverage: 成功Evidenceだけを数える ---
 	if (plannedTasks_.empty()) {
 		built.coverage = 1.0;
 	} else {
@@ -164,6 +156,11 @@ Json EvidenceBuilder::ToJson(const BuiltEvidence& built) {
 	j["tasksWithoutEvidence"] = built.tasksWithoutEvidence;
 	j["usableEvidenceCount"] = built.usableEvidenceCount;
 	j["failedEvidenceCount"] = built.failedEvidenceCount;
+
+	const Json requestContext = prompts::CurrentConversationRequestContext();
+	if (requestContext.is_object() && !requestContext.empty()) {
+		j["requestContext"] = requestContext;
+	}
 
 	return j;
 }
