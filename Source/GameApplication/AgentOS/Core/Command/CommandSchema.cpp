@@ -5,6 +5,8 @@
 // =======================================================================
 #include "CommandSchema.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <exception>
 #include <string>
@@ -33,6 +35,12 @@ bool CheckPrimitiveType(const Json& value, const std::string& type) {
 	if (type == "array")   return value.is_array();
 	if (type == "object")  return value.is_object();
 	return false; // 未知の型指定は常に不一致扱い
+}
+
+bool HasNonWhitespace(const std::string& value) {
+	return std::any_of(value.begin(), value.end(), [](unsigned char ch) {
+		return std::isspace(ch) == 0;
+	});
 }
 
 } // namespace
@@ -76,6 +84,15 @@ Result SchemaValidator::Validate(const Json& arguments, const Json& argumentSche
 
 			if (!type.empty() && !CheckPrimitiveType(value, type)) {
 				return Result::Fail("type mismatch for field '" + fieldName + "': expected " + type);
+			}
+
+			// requiredなstringは、キーが存在するだけでは不十分。空文字や空白だけの値を
+			// LLMプレースホルダーとして実行層へ通さない。
+			if (type == "string" && required) {
+				const std::string text = value.get<std::string>();
+				if (!HasNonWhitespace(text)) {
+					return Result::Fail("field '" + fieldName + "' must not be blank");
+				}
 			}
 
 			if (type == "integer" || type == "number") {
