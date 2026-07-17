@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <initializer_list>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -30,13 +31,13 @@ bool HasCycle(const std::unordered_map<std::string, std::vector<std::string>>& d
 	std::function<bool(const std::string&)> visit = [&](const std::string& node) -> bool {
 		auto markIt = marks.find(node);
 		if (markIt == marks.end()) {
-			return false; // 未知ノード（存在チェックは別途行う）
+			return false;
 		}
 		if (markIt->second == Mark::Done) {
 			return false;
 		}
 		if (markIt->second == Mark::InProgress) {
-			return true; // 循環検出
+			return true;
 		}
 		markIt->second = Mark::InProgress;
 		auto depsIt = depsMap.find(node);
@@ -45,6 +46,7 @@ bool HasCycle(const std::unordered_map<std::string, std::vector<std::string>>& d
 				if (visit(dep)) {
 					return true;
 				}
+			}
 		}
 		markIt->second = Mark::Done;
 		return false;
@@ -143,7 +145,6 @@ bool TryBuildSceneSnapshotPlan(const Json& intake, const Json& toolCatalog, Json
 	return true;
 }
 
-// PlanのJSONを決定的に検証する。合格すればtrue、不合格ならerrorを埋めてfalse。
 bool ValidatePlan(const Json& plan, const Json& toolCatalog, std::string* error) {
 	if (!plan.is_object() || !plan.contains("tasks") || !plan.at("tasks").is_array()) {
 		*error = "plan must contain a 'tasks' array";
@@ -214,10 +215,10 @@ bool ValidatePlan(const Json& plan, const Json& toolCatalog, std::string* error)
 					*error = "task '" + id + "' allowedTools references a tool not in the catalog";
 					return false;
 				}
+			}
 		}
 	}
 
-	// 依存先が実在するtaskIdであることを確認する。
 	for (const auto& [id, deps] : depsMap) {
 		for (const auto& d : deps) {
 			if (seenIds.count(d) == 0) {
@@ -236,8 +237,6 @@ bool ValidatePlan(const Json& plan, const Json& toolCatalog, std::string* error)
 }
 
 // LLMの型揺れと、Toolを持つAnalysisタスクを決定的に正規化する。
-// AnalysisはReasoningAgent専用でWorkerを起動しないため、allowedToolsがある場合は
-// RuntimeObservationへ変換し、Tool実行が黙って消えることを防ぐ。
 void NormalizePlan(Json* plan) {
 	if (plan == nullptr || !plan->is_object() || !plan->contains("tasks")) {
 		return;
@@ -295,7 +294,6 @@ Result PlannerAgent::Run(AgentContext& ctx, const Json& intake, const Json& tool
 		return Result::Ok();
 	}
 
-	// --- バリデーション失敗 → エラーを添えて1回だけリトライ ---
 	PromptPair retryPrompt = prompt;
 	retryPrompt.user += "\n\n前回の出力は次の理由で拒否されました。修正して再出力してください: " + validationError;
 
