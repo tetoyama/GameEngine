@@ -6,6 +6,7 @@
 #include "ReasoningAgent.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <string>
 #include <unordered_set>
 
@@ -19,6 +20,39 @@ double Clamp01(double v) {
 	return v;
 }
 
+bool IsCompleteSceneSnapshot(const Json& builtEvidenceJson, Json* evidenceIdsOut) {
+	if (!builtEvidenceJson.is_object() || builtEvidenceJson.value("coverage", 0.0) < 1.0 ||
+	    builtEvidenceJson.value("failedEvidenceCount", std::size_t(0)) != 0 ||
+	    !builtEvidenceJson.contains("evidences") || !builtEvidenceJson.at("evidences").is_array()) {
+		return false;
+	}
+
+	bool hasEntities = false;
+	bool hasSystems = false;
+	Json evidenceIds = Json::array();
+	for (const Json& evidence : builtEvidenceJson.at("evidences")) {
+		if (!evidence.is_object()) {
+			continue;
+		}
+		if (evidence.contains("id") && evidence.at("id").is_number_integer()) {
+			evidenceIds.push_back(evidence.at("id"));
+		}
+		if (evidence.contains("provenance") && evidence.at("provenance").is_object()) {
+			const std::string sourceType = evidence.at("provenance").value("sourceType", std::string());
+			hasEntities = hasEntities || sourceType == "Tool:ListEntities";
+			hasSystems = hasSystems || sourceType == "Tool:ListSystems";
+		}
+	}
+
+	if (!hasEntities || !hasSystems || evidenceIds.empty()) {
+		return false;
+	}
+	if (evidenceIdsOut != nullptr) {
+		*evidenceIdsOut = std::move(evidenceIds);
+	}
+	return true;
+}
+
 } // namespace
 
 Result ReasoningAgent::Run(AgentContext& ctx, const Json& builtEvidenceJson, LogicGraph* graphOut, Json* rawOut) {
@@ -26,12 +60,29 @@ Result ReasoningAgent::Run(AgentContext& ctx, const Json& builtEvidenceJson, Log
 		return Result::Fail("ReasoningAgent: graphOut is null");
 	}
 
-	const PromptPair prompt = prompts::Reason(builtEvidenceJson);
 	Json raw;
-	Result callResult = CallLlmJson(ctx, prompt, &raw);
-	if (!callResult) {
-		return callResult;
+	Json sceneEvidenceIds;
+	if (IsCompleteSceneSnapshot(builtEvidenceJson, &sceneEvidenceIds)) {
+		// Sceneの現在状態を列挙する要求は原因仮説を必要としない。取得済みEvidenceを
+		// そのまま「完全なScene snapshot」としてLogicGraphへ載せ、Reasoning LLMを省略する。
+		raw = Json::object({
+			{"hypotheses", Json::array({Json::object({
+				{"description", "現在のScene snapshotをEntity・Component・System観測から構成した"},
+				{"rubricBase", 1.0},
+				{"supports", sceneEvidenceIds},
+				{"contradicts", Json::array()},
+				{"missingEvidence", Json::array()},
+			})})},
+			{"route", "deterministic_scene_snapshot"},
+		});
+	} else {
+		const PromptPair prompt = prompts::Reason(builtEvidenceJson);
+		Result callResult = CallLlmJson(ctx, prompt, &raw);
+		if (!callResult) {
+			return callResult;
+		}
 	}
+
 	if (rawOut != nullptr) {
 		*rawOut = raw;
 	}
@@ -49,7 +100,7 @@ Result ReasoningAgent::Run(AgentContext& ctx, const Json& builtEvidenceJson, Log
 	}
 
 	if (!raw.is_object() || !raw.contains("hypotheses") || !raw.at("hypotheses").is_array()) {
-		return Result::Ok(); // 仮説0件も正当な出力として扱う
+		return Result::Ok();
 	}
 
 	for (const auto& h : raw.at("hypotheses")) {
@@ -58,7 +109,7 @@ Result ReasoningAgent::Run(AgentContext& ctx, const Json& builtEvidenceJson, Log
 		}
 		const std::string description = h.value("description", std::string());
 		if (description.empty()) {
-			continue; // 説明の無い仮説は無視する
+			continue;
 		}
 		const double rubricBase = Clamp01(h.value("rubricBase", 0.0));
 
