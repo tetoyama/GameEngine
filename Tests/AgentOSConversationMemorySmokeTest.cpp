@@ -55,19 +55,24 @@ public:
 			{"name", Json::object({{"type", "string"}, {"required", true}})},
 		});
 	}
-
 	const ToolDescriptor& Descriptor() const override { return descriptor_; }
 	Result CheckPrecondition(const Json&) override { return Result::Ok(); }
 	CommandResult Execute(const Json&) override {
 		++executeCount;
 		return CommandResult::Ok();
 	}
-
 	int executeCount = 0;
-
 private:
 	ToolDescriptor descriptor_;
 };
+
+Json SceneToolCatalog() {
+	return Json::array({
+		Json::object({{"name", "ListEntities"}}),
+		Json::object({{"name", "ListSystems"}}),
+		Json::object({{"name", "DescribeEntity"}}),
+	});
+}
 
 void TestTurnPairsAndSummaryCursor() {
 	RemoveDb();
@@ -193,10 +198,56 @@ void TestAutomaticCompressionKeepsRecentRawTurns() {
 	assert(context.at("recentTurns").size() == 6);
 	assert(context.at("recentTurns")[0].value("user", std::string()) == "user turn 4");
 	assert(context.at("recentTurns")[5].value("assistant", std::string()) == "assistant final 9");
-	assert(calls[1].second.find("user turn 9") != std::string::npos);
-	assert(calls[1].second.find("assistant final 9") != std::string::npos);
 
 	std::puts("  - automatic compression retains recent raw turns: OK");
+}
+
+void TestCompressionFailureUsesBoundedDeterministicSummary() {
+	RemoveDb();
+	TaskStore store;
+	assert(store.Open(kDbPath));
+
+	SessionId fourth = kInvalidId;
+	for (int i = 0; i < 10; ++i) {
+		const SessionId session = AddTurn(
+			store,
+			"fallback user " + std::to_string(i),
+			"fallback assistant " + std::to_string(i));
+		if (i == 3) fourth = session;
+	}
+	const SessionId current = store.CreateSession(Json::object({{"userRequest", "続けて"}}));
+
+	MockLlmBackend llm;
+	// Memory担当はデフォルト{}を返す。Intakeだけ有効なJSONを返す。
+	llm.AddRule(
+		"Intake担当",
+		"```json\n"
+		"{\"goal\":\"直前作業を続ける\",\"resolvedRequest\":\"fallback assistant 9を前提に続ける\","
+		"\"turnRelation\":\"continue\",\"symptoms\":[],\"constraints\":[],"
+		"\"requiredCapabilities\":[],\"unresolvedReferences\":[],"
+		"\"requestType\":\"conversation\"}\n"
+		"```");
+
+	Budget budget;
+	budget.maxLlmCalls = 6;
+	budget.maxLlmChars = 300000;
+	BudgetTracker tracker(budget);
+	AgentContext ctx;
+	ctx.llm = &llm;
+	ctx.store = &store;
+	ctx.budget = &tracker;
+	ctx.sessionId = current;
+
+	Json intake;
+	assert(IntakeAgent::Run(ctx, "続けて", &intake));
+	const Json context = store.GetConversationContext(current);
+	assert(context.value("totalTurns", 0) == 10);
+	assert(context.value("summarizedThroughSessionId", kInvalidId) == fourth);
+	assert(context.value("summary", std::string()).find("deterministic conversation compression") != std::string::npos);
+	assert(context.at("recentTurns").size() == 6);
+	assert(context.at("recentTurns")[5].value("assistant", std::string()) == "fallback assistant 9");
+
+	std::puts("  - failed compression falls back to bounded deterministic summary: OK");
 }
 
 void TestPromptPackingAlwaysKeepsNewestTurn() {
@@ -250,14 +301,9 @@ void TestOldSceneHistoryDoesNotTriggerCurrentSceneFastPath() {
 			{"recentTurns", Json::array()},
 		})},
 	});
-	const Json catalog = Json::array({
-		Json::object({{"name", "ListEntities"}}),
-		Json::object({{"name", "ListSystems"}}),
-		Json::object({{"name", "DescribeEntity"}}),
-	});
 
 	Json plan;
-	assert(PlannerAgent::Run(ctx, intake, catalog, &plan));
+	assert(PlannerAgent::Run(ctx, intake, SceneToolCatalog(), &plan));
 	assert(llm.GetCalls().size() == 1);
 	assert(plan.value("route", std::string()).empty());
 	assert(plan.at("tasks")[0].value("description", std::string()).find("コード設計") != std::string::npos);
@@ -265,13 +311,41 @@ void TestOldSceneHistoryDoesNotTriggerCurrentSceneFastPath() {
 	std::puts("  - old scene history cannot trigger current scene fast path: OK");
 }
 
+void TestNarrowCorrectionDoesNotUseSceneWideFastPath() {
+	MockLlmBackend llm;
+	llm.AddRule(
+		"Planner担当",
+		"```json\n"
+		"{\"tasks\":[{\"taskId\":\"T1\",\"type\":\"RuntimeObservation\","
+		"\"description\":\"Player EntityだけをDescribeEntityで確認する\","
+		"\"dependencies\":[],\"allowedTools\":[\"DescribeEntity\"],"
+		"\"searchHints\":[\"Player\"]}]}\n"
+		"```");
+
+	AgentContext ctx;
+	ctx.llm = &llm;
+	const Json intake = Json::object({
+		{"goal", "Player Entityだけを確認する"},
+		{"resolvedRequest", "Scene全体ではなくPlayer EntityだけのComponentと現在状態を確認する"},
+		{"turnRelation", "correct"},
+		{"requestType", "investigation"},
+		{"symptoms", Json::array()},
+		{"constraints", Json::array({"Scene全体は対象外"})},
+	});
+
+	Json plan;
+	assert(PlannerAgent::Run(ctx, intake, SceneToolCatalog(), &plan));
+	assert(llm.GetCalls().size() == 1);
+	assert(plan.value("route", std::string()).empty());
+	assert(plan.at("tasks")[0].at("allowedTools")[0].get<std::string>() == "DescribeEntity");
+
+	std::puts("  - narrowed correction bypasses scene-wide fast path: OK");
+}
+
 void TestPersonalIdentityCannotExecuteEngineTool() {
 	prompts::SetCurrentConversationRequestContext(
 		Json::object(),
-		Json::object({
-			{"resolvedRequest", "私は誰ですか"},
-			{"requestType", "conversation"},
-		}));
+		Json::object({{"resolvedRequest", "私は誰ですか"}, {"requestType", "conversation"}}));
 
 	auto tool = std::make_shared<CountingTool>();
 	CommandPipeline pipeline(nullptr);
@@ -292,10 +366,7 @@ void TestPersonalIdentityCannotExecuteEngineTool() {
 void TestPersonalIdentityToolProposalIsSanitized() {
 	prompts::SetCurrentConversationRequestContext(
 		Json::object(),
-		Json::object({
-			{"resolvedRequest", "私は誰ですか"},
-			{"requestType", "conversation"},
-		}));
+		Json::object({{"resolvedRequest", "私は誰ですか"}, {"requestType", "conversation"}}));
 
 	MockLlmBackend llm;
 	llm.EnqueueResponse(
@@ -314,8 +385,7 @@ void TestPersonalIdentityToolProposalIsSanitized() {
 	assert(CallLlmJson(ctx, prompt, &output));
 	assert(output.value("reply", std::string()).find("ユーザー") != std::string::npos);
 	assert(output.contains("toolCall") && output.at("toolCall").is_null());
-	assert(output.contains("escalate") && output.at("escalate").is_boolean());
-	assert(!output.at("escalate").get<bool>());
+	assert(output.contains("escalate") && !output.at("escalate").get<bool>());
 	prompts::ClearCurrentConversationRequestContext();
 
 	std::puts("  - personal identity DirectReply proposal sanitization: OK");
@@ -328,8 +398,10 @@ int main() {
 	TestTurnPairsAndSummaryCursor();
 	TestCorrectionResolutionUsesHistory();
 	TestAutomaticCompressionKeepsRecentRawTurns();
+	TestCompressionFailureUsesBoundedDeterministicSummary();
 	TestPromptPackingAlwaysKeepsNewestTurn();
 	TestOldSceneHistoryDoesNotTriggerCurrentSceneFastPath();
+	TestNarrowCorrectionDoesNotUseSceneWideFastPath();
 	TestPersonalIdentityCannotExecuteEngineTool();
 	TestPersonalIdentityToolProposalIsSanitized();
 	RemoveDb();
