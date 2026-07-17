@@ -71,6 +71,20 @@ bool ContainsAny(const std::string& text, std::initializer_list<const char*> nee
 	return false;
 }
 
+// 単文だけでは意味が確定しない訂正・参照・継続Turnは、Serviceの決定的Fast Pathへ
+// 入れず、必ずConversation Memory付きIntakeへ送る。
+bool IsContextDependentRequest(const std::string& request) {
+	const std::string lower = LowerAscii(request);
+	return ContainsAny(request, {
+		"そうじゃなく", "そうではなく", "違う", "ちがう", "じゃなく", "ではなく",
+		"それ", "その", "これ", "前の", "さっき", "先ほど", "今の",
+		"続けて", "続きを", "続き", "もう一度", "やっぱり", "同じ", "代わりに"
+	}) || ContainsAny(lower, {
+		"not that", "instead", "previous", "continue", "keep going",
+		"the same", "that one", "as before", "again"
+	});
+}
+
 std::string TruncateForLog(const std::string& text, std::size_t maxChars = 16000) {
 	if(text.size() <= maxChars) return text;
 	return text.substr(0, maxChars) + "\n...(truncated)...";
@@ -130,6 +144,8 @@ struct FastPathRoute {
 };
 
 FastPathRoute ResolveFastPath(const std::string& request) {
+	if(IsContextDependentRequest(request)) return {};
+
 	const std::string lower = LowerAscii(request);
 
 	if(ContainsAny(request, {"何ができますか", "何ができる", "できること"}) ||
@@ -361,8 +377,6 @@ void AgentOSService::WorkerMain(std::string request) {
 		return;
 	}
 
-	// Fast Pathでも最終回答は必ずローカルLLMで生成する。
-	// C++側が省略するのはPlanner/Reasoning等の多段経路だけであり、生成自体ではない。
 	if(!EnsureLlmReady()){
 		const bool cancelled = m_shutdownRequested.load(std::memory_order_acquire);
 		SetStage(cancelled ? "cancelled" : "error");
@@ -414,6 +428,9 @@ void AgentOSService::WorkerMain(std::string request) {
 	}
 
 	const OrchestratorResult result = m_orchestrator->RunSession(request);
+	if(result.sessionId != kInvalidId && !result.report.empty()){
+		(void)m_taskStore.SetConversationResponse(result.sessionId, result.report);
+	}
 
 	WriteTranscriptEvent(
 		"result",
@@ -575,7 +592,7 @@ bool AgentOSService::TryRunDeterministicFastPath(const std::string& request) {
 		&report
 	);
 
-	bool completed = static_cast<bool>(generationResult);
+	const bool completed = static_cast<bool>(generationResult);
 	Json stopInfo;
 	if(completed){
 		stopInfo = Json::object({
@@ -610,6 +627,7 @@ bool AgentOSService::TryRunDeterministicFastPath(const std::string& request) {
 		m_taskStore.UpdateTaskState(taskId, TaskState::Failed);
 	}
 
+	(void)m_taskStore.SetConversationResponse(sessionId, report);
 	m_taskStore.UpdateSessionState(sessionId, completed ? "Completed" : "Stopped");
 
 	WriteTranscriptEvent(
@@ -866,12 +884,13 @@ void AgentOSService::OpenTranscriptForSession() {
 	if(!path.empty()){
 		WriteTranscriptEvent(
 			"session_context",
-			{{"transcriptVersion", "3"},
+			{{"transcriptVersion", "4"},
 			 {"buildRevision", "unknown"},
 			 {"modelPath", m_context.modelPath},
 			 {"dbPath", m_context.dbPath},
 			 {"modelFingerprint", ModelFingerprint(m_context.modelPath)},
-			 {"fastPathResponsePolicy", "local_llm_generation"}},
+			 {"fastPathResponsePolicy", "context-dependent turns bypass deterministic fast path"},
+			 {"conversationMemoryPolicy", "all raw turns retained; old turns cumulatively summarized"}},
 			{}
 		);
 	}
