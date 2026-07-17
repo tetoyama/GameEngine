@@ -5,25 +5,22 @@
 // =======================================================================
 #include "PromptTemplates.h"
 
+#include <initializer_list>
+
 namespace agentos {
 namespace prompts {
 
-std::string Truncate(const std::string& text, std::size_t maxChars) {
-	if (text.size() <= maxChars) {
-		return text;
-	}
-	return text.substr(0, maxChars) + "\n...(truncated)...";
-}
-
 namespace {
+
+thread_local Json g_conversationContext = Json::object();
+thread_local Json g_normalizedIntake = Json::object();
 
 const char* kContractJa =
 	"あなたはAgentOSのサブシステムとして動作するアシスタントです。\n"
 	"出力契約（厳守）:\n"
 	"1. 応答は単一の```json フェンスで囲まれたJSONオブジェクトのみとすること。\n"
 	"2. フェンスの外に文章を書かないこと。指定されたキー以外を追加しないこと。\n"
-	"3. 不確実な点は指定フィールド（confidence/missingEvidence/failures等）で表現し、\n"
-	"   存在しない事実やEvidenceを捏造してはならない。\n";
+	"3. 不確実な点は指定フィールドで表現し、存在しない事実やEvidenceを捏造しないこと。\n";
 
 std::string BuildSystem(const std::string& roleDescription, const std::string& schemaJson) {
 	std::string s;
@@ -36,14 +33,75 @@ std::string BuildSystem(const std::string& roleDescription, const std::string& s
 	return s;
 }
 
-std::string ContextText(const Json& conversationContext) {
-	if (!conversationContext.is_object() || conversationContext.empty()) {
+bool ContainsAny(const std::string& text, std::initializer_list<const char*> needles) {
+	for (const char* needle : needles) {
+		if (needle != nullptr && text.find(needle) != std::string::npos) {
+			return true;
+		}
+	}
+	return false;
+}
+
+std::string ContextText(const Json& supplied) {
+	const Json& context = supplied.is_object() && !supplied.empty()
+		? supplied
+		: g_conversationContext;
+	if (!context.is_object() || context.empty()) {
 		return "(会話履歴なし)";
 	}
-	return Truncate(conversationContext.dump(2), 12000);
+	return Truncate(context.dump(2), 12000);
 }
 
 } // namespace
+
+std::string Truncate(const std::string& text, std::size_t maxChars) {
+	if (text.size() <= maxChars) {
+		return text;
+	}
+	return text.substr(0, maxChars) + "\n...(truncated)...";
+}
+
+void SetCurrentConversationRequestContext(
+	const Json& conversationContext,
+	const Json& normalizedIntake) {
+	g_conversationContext = conversationContext.is_object()
+		? conversationContext
+		: Json::object();
+	g_normalizedIntake = normalizedIntake.is_object()
+		? normalizedIntake
+		: Json::object();
+}
+
+void ClearCurrentConversationRequestContext() {
+	g_conversationContext = Json::object();
+	g_normalizedIntake = Json::object();
+}
+
+Json CurrentConversationRequestContext() {
+	Json context = Json::object();
+	context["conversation"] = g_conversationContext;
+	context["intake"] = g_normalizedIntake;
+	return context;
+}
+
+std::string CurrentResolvedRequest(const std::string& fallback) {
+	if (g_normalizedIntake.is_object() &&
+	    g_normalizedIntake.contains("resolvedRequest") &&
+	    g_normalizedIntake.at("resolvedRequest").is_string() &&
+	    !g_normalizedIntake.at("resolvedRequest").get<std::string>().empty()) {
+		return g_normalizedIntake.at("resolvedRequest").get<std::string>();
+	}
+	return fallback;
+}
+
+bool CurrentRequestIsPersonalIdentityQuestion() {
+	const std::string request = CurrentResolvedRequest();
+	return ContainsAny(request, {
+		"私は誰", "わたしは誰", "僕は誰", "自分は誰",
+		"あなたは誰", "君は誰", "who am i", "Who am I",
+		"who are you", "Who are you"
+	});
+}
 
 std::string CompactToolCatalog(const Json& toolCatalog) {
 	std::string out;
@@ -63,9 +121,7 @@ std::string CompactToolCatalog(const Json& toolCatalog) {
 		if (tool.contains("argumentSchema") && tool.at("argumentSchema").is_object()) {
 			bool first = true;
 			for (const auto& item : tool.at("argumentSchema").items()) {
-				if (!first) {
-					args += ", ";
-				}
+				if (!first) args += ", ";
 				first = false;
 				const Json& spec = item.value();
 				const bool required = spec.is_object() && spec.value("required", false);
@@ -73,23 +129,12 @@ std::string CompactToolCatalog(const Json& toolCatalog) {
 					? spec.value("type", std::string("any"))
 					: std::string("any");
 				args += item.key();
-				if (!required) {
-					args += "?";
-				}
-				args += ":";
-				args += type;
+				if (!required) args += "?";
+				args += ":" + type;
 			}
 		}
 
-		out += "- ";
-		out += name;
-		out += "(";
-		out += args;
-		out += ") : ";
-		out += description;
-		out += " [";
-		out += permission;
-		out += "]\n";
+		out += "- " + name + "(" + args + ") : " + description + " [" + permission + "]\n";
 	}
 	return out;
 }
@@ -114,11 +159,9 @@ PromptPair Intake(const std::string& userRequest, const Json& conversationContex
 		"\"requiredCapabilities\": [string], \"unresolvedReferences\": [string], "
 		"\"requestType\": \"conversation\"|\"investigation\"}");
 
-	p.user = "会話履歴:\n";
-	p.user += ContextText(conversationContext);
-	p.user += "\n\n現在のユーザー入力:\n";
-	p.user += userRequest;
-	p.user += "\n\n履歴を反映したresolvedRequestを生成してください。";
+	p.user = "会話履歴:\n" + ContextText(conversationContext) +
+		"\n\n現在のユーザー入力:\n" + userRequest +
+		"\n\n履歴を反映したresolvedRequestを生成してください。";
 	return p;
 }
 
@@ -139,28 +182,23 @@ PromptPair DirectReply(
 		"{\"reply\": string|null, \"toolCall\": {\"tool\": string, \"arguments\": object}|null, "
 		"\"escalate\": boolean}");
 
-	p.user = "会話履歴:\n";
-	p.user += ContextText(conversationContext);
-	p.user += "\n\n今回の解決済み要求:\n";
-	p.user += userRequest;
-	p.user += "\n\n利用可能なTool一覧:\n";
-	p.user += compactToolCatalog;
+	const std::string resolved = CurrentResolvedRequest(userRequest);
+	p.user = "会話履歴:\n" + ContextText(conversationContext) +
+		"\n\n今回の解決済み要求:\n" + resolved +
+		"\n\n利用可能なTool一覧:\n" + compactToolCatalog;
 	return p;
 }
 
 PromptPair FormatToolResult(const std::string& userRequest, const std::string& toolName, const Json& payload) {
 	PromptPair p;
 	p.system = BuildSystem(
-		"Tool実行結果をユーザー要求に沿って日本語で要約するReporter担当。"
+		"Tool実行結果を現在の解決済み要求に沿って日本語で要約するReporter担当。"
 		"結果に無い事実を足さないこと。",
 		"{\"reply\": string}");
 
-	p.user = "ユーザー要求:\n";
-	p.user += userRequest;
-	p.user += "\n\n実行したTool: ";
-	p.user += toolName;
-	p.user += "\n\nTool実行結果:\n";
-	p.user += Truncate(payload.dump(2));
+	p.user = "ユーザー要求:\n" + CurrentResolvedRequest(userRequest) +
+		"\n\n実行したTool: " + toolName +
+		"\n\nTool実行結果:\n" + Truncate(payload.dump(2));
 	return p;
 }
 
@@ -171,7 +209,6 @@ PromptPair CompressConversationMemory(
 	PromptPair p;
 	p.system = BuildSystem(
 		"古いConversation Turnを累積会話要約へ圧縮するMemory担当。\n"
-		"保存規則（厳守）:\n"
 		"- 各Turnはuser入力とassistant最終応答のペアとして読む。\n"
 		"- ユーザーの目的、確定仕様、好み、対象名、直近の訂正、未完了事項を保持する。\n"
 		"- 後の訂正が前の内容と矛盾する場合、最新状態を正文とし、変更された事実も短く残す。\n"
@@ -179,10 +216,9 @@ PromptPair CompressConversationMemory(
 		"- 存在しない事実を追加しない。summaryは4000文字程度以内。",
 		"{\"summary\": string}");
 
-	p.user = "既存の累積要約:\n";
-	p.user += existingSummary.empty() ? "(なし)" : Truncate(existingSummary, 6000);
-	p.user += "\n\n今回要約へ畳み込むTurn:\n";
-	p.user += Truncate(turnsToCompress.dump(2), 14000);
+	p.user = "既存の累積要約:\n" +
+		(existingSummary.empty() ? std::string("(なし)") : Truncate(existingSummary, 6000)) +
+		"\n\n今回要約へ畳み込むTurn:\n" + Truncate(turnsToCompress.dump(2), 14000);
 	return p;
 }
 
@@ -190,45 +226,35 @@ PromptPair Plan(const Json& intake, const Json& toolCatalog, int maxTasks) {
 	PromptPair p;
 	p.system = BuildSystem(
 		"Intake結果とTool一覧からTask DAGを作るPlanner担当。task数は" +
-			std::to_string(maxTasks) + "件以内に収めること。\n"
-		"重要な計画規則:\n"
+		std::to_string(maxTasks) + "件以内。\n"
 		"- resolvedRequestと最新constraintsを正とし、訂正前の条件を復活させない。\n"
-		"- 現在状態・一覧・概要の取得はスナップショット観測であり、ListEntities/ListSystems/"
-		"DescribeEntity等を使う。時間変化・推移・フレーム間差分が明示されない限りWriteTraceを使わない。\n"
-		"- Toolを実行するTaskはAnalysisにしない。AnalysisはallowedToolsを空配列にする。\n"
-		"- 後続TaskがEntity名やComponent名を必要とする場合、先行Taskで候補を取得しdependenciesで"
-		"明示する。存在を確認していない名前を計画へ埋め込まない。",
+		"- 現在状態・一覧・概要はListEntities/ListSystems/DescribeEntity等のsnapshot観測を使う。"
+		"時間変化が明示されない限りWriteTraceを使わない。\n"
+		"- Toolを実行するTaskはAnalysisにしない。\n"
+		"- Entity名等は先行Taskで取得しdependenciesでGroundingする。",
 		"{\"tasks\": [{\"taskId\": string, "
 		"\"type\": \"RuntimeObservation\"|\"CodeSearch\"|\"Trace\"|\"Analysis\", "
 		"\"description\": string, \"dependencies\": [string], "
 		"\"allowedTools\": [string], \"searchHints\": [string]}]}");
 
-	p.user = "Intake結果:\n";
-	p.user += Truncate(intake.dump(2), 10000);
-	p.user += "\n\nTool一覧:\n";
-	p.user += Truncate(CompactToolCatalog(toolCatalog));
-	p.user += "\n\n最大Task数: " + std::to_string(maxTasks);
+	p.user = "Intake結果:\n" + Truncate(intake.dump(2), 10000) +
+		"\n\nTool一覧:\n" + Truncate(CompactToolCatalog(toolCatalog)) +
+		"\n\n最大Task数: " + std::to_string(maxTasks);
 	return p;
 }
 
 PromptPair GenerateQueries(const Json& taskSpec, const Json& toolCatalog) {
 	PromptPair p;
 	p.system = BuildSystem(
-		"割り当てられたTaskを遂行するために実行すべきTool呼び出しを提案するWorker担当。"
-		"最大5件までとする。\n"
-		"引数のGrounding規則（厳守）:\n"
-		"- Task specにdependencyEvidenceがある場合、後続ToolのEntity名・Component名等は"
-		"そこに実在する文字列を完全一致でコピーする。\n"
-		"- 空文字、主要なEntity、対象Component、key component、TODO等の説明用プレースホルダーを"
-		"引数にしない。存在しない名前を推測しない。\n"
-		"- 必要な具体値をEvidenceから決められない場合は捏造せずcommandsを空配列にする。\n"
-		"- allowedToolsにないToolを提案しない。",
+		"Task遂行用Tool呼び出しを最大5件提案するWorker担当。\n"
+		"- dependencyEvidenceがある場合、Entity名・Component名等は実在文字列を完全一致でコピー。\n"
+		"- 空文字、主要なEntity、対象Component、TODO等のプレースホルダーは禁止。\n"
+		"- 必要値をEvidenceから決められない場合はcommandsを空配列にする。\n"
+		"- allowedTools外のToolは禁止。",
 		"{\"commands\": [{\"tool\": string, \"arguments\": object}]}");
 
-	p.user = "Task spec:\n";
-	p.user += Truncate(taskSpec.dump(2), 10000);
-	p.user += "\n\nTool一覧:\n";
-	p.user += Truncate(CompactToolCatalog(toolCatalog));
+	p.user = "Task spec:\n" + Truncate(taskSpec.dump(2), 10000) +
+		"\n\nTool一覧:\n" + Truncate(CompactToolCatalog(toolCatalog));
 	return p;
 }
 
@@ -236,49 +262,37 @@ PromptPair Reason(const Json& builtEvidence) {
 	PromptPair p;
 	p.system = BuildSystem(
 		"統合済みEvidenceとrequestContextのみから仮説を組み立てるReasoning担当。"
-		"Evidenceに無い実世界の事実は書かない。最新のresolvedRequest/constraintsを優先する。"
-		"rubricBaseは論拠の質の自己評価（0〜1）であり、最終confidenceそのものではない。",
+		"最新のresolvedRequest/constraintsを優先し、Evidenceに無い実世界の事実は書かない。",
 		"{\"hypotheses\": [{\"description\": string, \"rubricBase\": number, "
 		"\"supports\": [integer], \"contradicts\": [integer], \"missingEvidence\": [string]}]}");
-
-	p.user = "統合Evidence:\n";
-	p.user += Truncate(builtEvidence.dump(2), 12000);
+	p.user = "統合Evidence:\n" + Truncate(builtEvidence.dump(2), 12000);
 	return p;
 }
 
 PromptPair Critique(const Json& hypotheses, const Json& builtEvidence) {
 	PromptPair p;
 	p.system = BuildSystem(
-		"仮説とEvidenceを検証するCritic担当。各観点を0〜1で採点し、欠陥と追加調査案を挙げる。"
-		"ToolError、CommandValidationError、failure=trueの記録は成功Evidenceとして扱わない。"
+		"仮説とEvidenceを検証するCritic担当。ToolError等は成功Evidenceとして扱わない。"
 		"現在のresolvedRequestに答えていない仮説は通過させない。",
 		"{\"scores\": {\"evidenceCoverage\": number, \"contradictionHandling\": number, "
 		"\"causalCompleteness\": number, \"testability\": number}, "
 		"\"failures\": [string], "
 		"\"additionalTasksSuggested\": [{\"type\": string, \"description\": string}]}");
-
-	p.user = "仮説:\n";
-	p.user += Truncate(hypotheses.dump(2));
-	p.user += "\n\n統合Evidence:\n";
-	p.user += Truncate(builtEvidence.dump(2), 12000);
+	p.user = "仮説:\n" + Truncate(hypotheses.dump(2)) +
+		"\n\n統合Evidence:\n" + Truncate(builtEvidence.dump(2), 12000);
 	return p;
 }
 
 PromptPair Synthesize(const Json& evidence, const Json& rankedHypotheses, const Json& stopInfo) {
 	PromptPair p;
 	p.system = BuildSystem(
-		"確定したrequestContext・Evidence・仮説・停止理由から、今回の会話に直接続くMarkdown応答を作る"
-		"Synthesis担当。最新の訂正を優先し、訂正前の要求へ戻らない。"
-		"新規の調査やEvidenceに基づかない断定は禁止。不確実な範囲は明記する。"
-		"停止理由がcritic passedでない場合、調査完了や追加調査不要と断定しない。",
+		"requestContext・Evidence・仮説・停止理由から、今回の会話に直接続くMarkdown応答を作る。"
+		"最新の訂正を優先し、訂正前の要求へ戻らない。Evidence外の断定は禁止。"
+		"停止理由がcritic passedでない場合、調査完了と断定しない。",
 		"{\"report\": string}");
-
-	p.user = "確定Evidenceと要求Context:\n";
-	p.user += Truncate(evidence.dump(2), 14000);
-	p.user += "\n\n順位付き仮説:\n";
-	p.user += Truncate(rankedHypotheses.dump(2));
-	p.user += "\n\n停止情報:\n";
-	p.user += Truncate(stopInfo.dump(2));
+	p.user = "確定Evidenceと要求Context:\n" + Truncate(evidence.dump(2), 14000) +
+		"\n\n順位付き仮説:\n" + Truncate(rankedHypotheses.dump(2)) +
+		"\n\n停止情報:\n" + Truncate(stopInfo.dump(2));
 	return p;
 }
 
