@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <string>
 
 namespace agentos {
 
@@ -67,6 +68,27 @@ std::size_t CountFailedEvidenceDefensively(const Json& builtEvidence) {
 	return count;
 }
 
+bool IsCompleteSceneSnapshot(const Json& builtEvidence) {
+	if (!builtEvidence.is_object() || builtEvidence.value("coverage", 0.0) < 1.0 ||
+	    builtEvidence.value("failedEvidenceCount", CountFailedEvidenceDefensively(builtEvidence)) != 0 ||
+	    !builtEvidence.contains("evidences") || !builtEvidence.at("evidences").is_array()) {
+		return false;
+	}
+
+	bool hasEntities = false;
+	bool hasSystems = false;
+	for (const Json& evidence : builtEvidence.at("evidences")) {
+		if (!evidence.is_object() || !evidence.contains("provenance") ||
+		    !evidence.at("provenance").is_object()) {
+			continue;
+		}
+		const std::string sourceType = evidence.at("provenance").value("sourceType", std::string());
+		hasEntities = hasEntities || sourceType == "Tool:ListEntities";
+		hasSystems = hasSystems || sourceType == "Tool:ListSystems";
+	}
+	return hasEntities && hasSystems;
+}
+
 void AddFailureOnce(CriticVerdict* verdict, const std::string& failure) {
 	if (std::find(verdict->failures.begin(), verdict->failures.end(), failure) == verdict->failures.end()) {
 		verdict->failures.push_back(failure);
@@ -80,6 +102,21 @@ Result CriticAgent::Run(AgentContext& ctx, const Json& rankedHypotheses, const J
 		return Result::Fail("CriticAgent: out is null");
 	}
 	*out = CriticVerdict{};
+
+	if (IsCompleteSceneSnapshot(builtEvidence)) {
+		// Scene snapshotは原因仮説ではなく観測結果そのもの。全必須観測が成功し、
+		// failure Evidenceが無いことを決定的に確認できたためCritic LLMを省略する。
+		out->llmScores = Json::object({
+			{"evidenceCoverage", 1.0},
+			{"contradictionHandling", 1.0},
+			{"causalCompleteness", 1.0},
+			{"testability", 1.0},
+			{"route", "deterministic_scene_snapshot"},
+		});
+		out->programmaticScore = 1.0;
+		out->pass = true;
+		return Result::Ok();
+	}
 
 	const PromptPair prompt = prompts::Critique(rankedHypotheses, builtEvidence);
 	Json raw;
@@ -97,11 +134,9 @@ Result CriticAgent::Run(AgentContext& ctx, const Json& rankedHypotheses, const J
 			out->additionalTasks = raw.at("additionalTasksSuggested");
 		}
 	} else {
-		// LLM所見はadvisory。呼び出し失敗自体は決定的採点のHard Failにはしない。
 		out->failures.push_back("critic LLM call failed: " + callResult.error);
 	}
 
-	// --- プログラム採点（LLMを一切使わない） ---
 	const double coverage = builtEvidence.is_object() ? builtEvidence.value("coverage", 0.0) : 0.0;
 	const double topConfidence = TopHypothesisConfidence(rankedHypotheses);
 	const std::size_t contradictionCount = ArraySize(builtEvidence, "contradictions");
