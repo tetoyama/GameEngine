@@ -29,14 +29,16 @@ jobs:
         with:
           ref: llm-agent
           fetch-depth: 0
+          show-progress: false
 
       - name: Extract and run one-shot patch
         shell: bash
         run: |
+          set -o pipefail
           sed -n "/python - <<'PY'/,/^          PY$/p" \
             .github/workflows/agentos-ui-tooltip-patch.yml \
             | sed '1d;$d;s/^          //' > /tmp/agentos-ui-patch.py
-          python /tmp/agentos-ui-patch.py
+          python /tmp/agentos-ui-patch.py 2>&1 | tee /tmp/agentos-ui-patch.log
 
       - name: Restore workflow and commit source changes
         shell: bash
