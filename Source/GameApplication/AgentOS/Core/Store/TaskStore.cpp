@@ -11,7 +11,6 @@ namespace agentos {
 
 namespace {
 
-// TEXT列 -> TaskState。ToStringの逆変換。共有ヘッダには置かず本ファイル限定。
 static TaskState ParseTaskState(const std::string& text) {
 	if (text == "Pending")          return TaskState::Pending;
 	if (text == "Running")          return TaskState::Running;
@@ -19,14 +18,34 @@ static TaskState ParseTaskState(const std::string& text) {
 	if (text == "Failed")           return TaskState::Failed;
 	if (text == "Cancelled")        return TaskState::Cancelled;
 	if (text == "AwaitingApproval") return TaskState::AwaitingApproval;
-	return TaskState::Pending; // 未知値はPending扱い（本来は到達しない）
+	return TaskState::Pending;
+}
+
+std::string ExtractUserText(const Json& goal) {
+	if (goal.is_object() && goal.contains("userRequest") &&
+	    goal.at("userRequest").is_string()) {
+		return goal.at("userRequest").get<std::string>();
+	}
+	return goal.dump();
+}
+
+std::string ExtractFinalResponse(const Json& result) {
+	if (!result.is_object()) {
+		return {};
+	}
+	if (result.contains("report") && result.at("report").is_string() &&
+	    !result.at("report").get<std::string>().empty()) {
+		return result.at("report").get<std::string>();
+	}
+	if (result.contains("reply") && result.at("reply").is_string() &&
+	    !result.at("reply").get<std::string>().empty()) {
+		return result.at("reply").get<std::string>();
+	}
+	return {};
 }
 
 } // namespace
 
-// ---------------------------------
-// Open / Schema
-// ---------------------------------
 Result TaskStore::Open(const std::string& path) {
 	std::lock_guard<std::mutex> lock(mutex_);
 	Result r = db_.Open(path);
@@ -100,17 +119,34 @@ Result TaskStore::CreateSchema() {
 		"  created_at TEXT NOT NULL DEFAULT (datetime('now'))"
 		");"
 
+		// user入力と最終assistant応答を1 Session = 1 Turnとして原文保存する。
+		"CREATE TABLE IF NOT EXISTS ConversationTurn("
+		"  session_id INTEGER PRIMARY KEY REFERENCES Session(id),"
+		"  user_text TEXT NOT NULL,"
+		"  assistant_text TEXT NOT NULL DEFAULT '',"
+		"  created_at TEXT NOT NULL DEFAULT (datetime('now')),"
+		"  updated_at TEXT NOT NULL DEFAULT (datetime('now'))"
+		");"
+
+		// 古いTurnをPromptへ渡すための累積要約。原文Turnは削除しない。
+		"CREATE TABLE IF NOT EXISTS ConversationMemory("
+		"  id INTEGER PRIMARY KEY CHECK(id=1),"
+		"  summary_text TEXT NOT NULL DEFAULT '',"
+		"  summarized_through_session_id INTEGER NOT NULL DEFAULT 0,"
+		"  updated_at TEXT NOT NULL DEFAULT (datetime('now'))"
+		");"
+		"INSERT OR IGNORE INTO ConversationMemory(id, summary_text, summarized_through_session_id) "
+		"VALUES(1, '', 0);"
+
 		"CREATE INDEX IF NOT EXISTS idx_task_session_id ON Task(session_id);"
 		"CREATE INDEX IF NOT EXISTS idx_task_parent_id ON Task(parent_id);"
 		"CREATE INDEX IF NOT EXISTS idx_evidence_task_id ON Evidence(task_id);"
-		"CREATE INDEX IF NOT EXISTS idx_command_task_id ON Command(task_id);";
+		"CREATE INDEX IF NOT EXISTS idx_command_task_id ON Command(task_id);"
+		"CREATE INDEX IF NOT EXISTS idx_conversation_turn_session_id ON ConversationTurn(session_id);";
 
 	return db_.Exec(kSchemaSql);
 }
 
-// ---------------------------------
-// Session
-// ---------------------------------
 SessionId TaskStore::CreateSession(const Json& goal) {
 	std::lock_guard<std::mutex> lock(mutex_);
 	Transaction tx(db_);
@@ -126,7 +162,20 @@ SessionId TaskStore::CreateSession(const Json& goal) {
 		return kInvalidId;
 	}
 
-	SessionId id = db_.LastInsertRowId();
+	const SessionId id = db_.LastInsertRowId();
+	Statement turn;
+	r = db_.Prepare(
+		"INSERT INTO ConversationTurn(session_id, user_text, assistant_text) VALUES(?1, ?2, '');",
+		&turn);
+	if (!r) {
+		return kInvalidId;
+	}
+	turn.BindInt64(1, id);
+	turn.BindText(2, ExtractUserText(goal));
+	if (turn.Step() == Statement::StepResult::Error) {
+		return kInvalidId;
+	}
+
 	if (!tx.Commit()) {
 		return kInvalidId;
 	}
@@ -154,9 +203,143 @@ Result TaskStore::UpdateSessionState(SessionId sessionId, const std::string& sta
 	return tx.Commit();
 }
 
-// ---------------------------------
-// Task
-// ---------------------------------
+Result TaskStore::SetConversationResponseLocked(
+	SessionId sessionId,
+	const std::string& assistantText) {
+
+	if (assistantText.empty()) {
+		return Result::Fail("SetConversationResponse: assistantText is empty");
+	}
+
+	Statement stmt;
+	Result r = db_.Prepare(
+		"UPDATE ConversationTurn SET assistant_text=?1, updated_at=datetime('now') WHERE session_id=?2;",
+		&stmt);
+	if (!r) {
+		return r;
+	}
+	stmt.BindText(1, assistantText);
+	stmt.BindInt64(2, sessionId);
+	if (stmt.Step() == Statement::StepResult::Error) {
+		return Result::Fail(sqlite3_errmsg(db_.Handle()));
+	}
+	if (sqlite3_changes(db_.Handle()) == 0) {
+		return Result::Fail(
+			"SetConversationResponse: session id=" + std::to_string(sessionId) + " が存在しない");
+	}
+	return Result::Ok();
+}
+
+Result TaskStore::SetConversationResponse(
+	SessionId sessionId,
+	const std::string& assistantText) {
+
+	std::lock_guard<std::mutex> lock(mutex_);
+	Transaction tx(db_);
+	Result r = SetConversationResponseLocked(sessionId, assistantText);
+	if (!r) {
+		return r;
+	}
+	return tx.Commit();
+}
+
+Json TaskStore::GetConversationContext(SessionId beforeSessionId) {
+	std::lock_guard<std::mutex> lock(mutex_);
+
+	Json context = Json::object();
+	std::string summary;
+	SessionId summarizedThrough = kInvalidId;
+
+	Statement memory;
+	Result r = db_.Prepare(
+		"SELECT summary_text, summarized_through_session_id FROM ConversationMemory WHERE id=1;",
+		&memory);
+	if (r && memory.Step() == Statement::StepResult::Row) {
+		summary = memory.ColumnText(0);
+		summarizedThrough = memory.ColumnInt64(1);
+	}
+
+	std::int64_t totalTurns = 0;
+	Statement count;
+	r = db_.Prepare(
+		"SELECT COUNT(*) FROM ConversationTurn "
+		"WHERE session_id < ?1 AND assistant_text <> '';",
+		&count);
+	if (r) {
+		count.BindInt64(1, beforeSessionId);
+		if (count.Step() == Statement::StepResult::Row) {
+			totalTurns = count.ColumnInt64(0);
+		}
+	}
+
+	Json recentTurns = Json::array();
+	Statement turns;
+	r = db_.Prepare(
+		"SELECT session_id, user_text, assistant_text FROM ConversationTurn "
+		"WHERE session_id > ?1 AND session_id < ?2 AND assistant_text <> '' "
+		"ORDER BY session_id;",
+		&turns);
+	if (r) {
+		turns.BindInt64(1, summarizedThrough);
+		turns.BindInt64(2, beforeSessionId);
+		while (turns.Step() == Statement::StepResult::Row) {
+			recentTurns.push_back(Json::object({
+				{"sessionId", turns.ColumnInt64(0)},
+				{"user", turns.ColumnText(1)},
+				{"assistant", turns.ColumnText(2)},
+			}));
+		}
+	}
+
+	context["summary"] = summary;
+	context["summarizedThroughSessionId"] = summarizedThrough;
+	context["recentTurns"] = std::move(recentTurns);
+	context["totalTurns"] = totalTurns;
+	return context;
+}
+
+Result TaskStore::UpdateConversationSummary(
+	const std::string& summary,
+	SessionId summarizedThroughSessionId) {
+
+	if (summary.empty()) {
+		return Result::Fail("UpdateConversationSummary: summary is empty");
+	}
+
+	std::lock_guard<std::mutex> lock(mutex_);
+	Transaction tx(db_);
+
+	Statement current;
+	Result r = db_.Prepare(
+		"SELECT summarized_through_session_id FROM ConversationMemory WHERE id=1;",
+		&current);
+	if (!r) {
+		return r;
+	}
+	SessionId currentThrough = kInvalidId;
+	if (current.Step() == Statement::StepResult::Row) {
+		currentThrough = current.ColumnInt64(0);
+	}
+	if (summarizedThroughSessionId < currentThrough) {
+		return Result::Fail("UpdateConversationSummary: summary cursor cannot move backwards");
+	}
+
+	Statement update;
+	r = db_.Prepare(
+		"UPDATE ConversationMemory SET summary_text=?1, summarized_through_session_id=?2, "
+		"updated_at=datetime('now') WHERE id=1;",
+		&update);
+	if (!r) {
+		return r;
+	}
+	update.BindText(1, summary);
+	update.BindInt64(2, summarizedThroughSessionId);
+	if (update.Step() == Statement::StepResult::Error) {
+		return Result::Fail(sqlite3_errmsg(db_.Handle()));
+	}
+	return tx.Commit();
+}
+
 TaskId TaskStore::CreateTask(SessionId sessionId, TaskId parentId, const std::string& type,
                               const Json& spec, int depth) {
 	std::lock_guard<std::mutex> lock(mutex_);
@@ -184,7 +367,7 @@ TaskId TaskStore::CreateTask(SessionId sessionId, TaskId parentId, const std::st
 		return kInvalidId;
 	}
 
-	TaskId id = db_.LastInsertRowId();
+	const TaskId id = db_.LastInsertRowId();
 	if (!tx.Commit()) {
 		return kInvalidId;
 	}
@@ -204,7 +387,7 @@ Result TaskStore::UpdateTaskState(TaskId taskId, TaskState newState) {
 	if (select.Step() != Statement::StepResult::Row) {
 		return Result::Fail("UpdateTaskState: task id=" + std::to_string(taskId) + " が存在しない");
 	}
-	TaskState currentState = ParseTaskState(select.ColumnText(0));
+	const TaskState currentState = ParseTaskState(select.ColumnText(0));
 
 	if (!IsLegalTransition(currentState, newState)) {
 		return Result::Fail(
@@ -229,8 +412,20 @@ Result TaskStore::SetTaskResult(TaskId taskId, const Json& result) {
 	std::lock_guard<std::mutex> lock(mutex_);
 	Transaction tx(db_);
 
+	SessionId sessionId = kInvalidId;
+	Statement task;
+	Result r = db_.Prepare("SELECT session_id FROM Task WHERE id=?1;", &task);
+	if (!r) {
+		return r;
+	}
+	task.BindInt64(1, taskId);
+	if (task.Step() != Statement::StepResult::Row) {
+		return Result::Fail("SetTaskResult: task id=" + std::to_string(taskId) + " が存在しない");
+	}
+	sessionId = task.ColumnInt64(0);
+
 	Statement stmt;
-	Result r = db_.Prepare("UPDATE Task SET result_json=?1, updated_at=datetime('now') WHERE id=?2;", &stmt);
+	r = db_.Prepare("UPDATE Task SET result_json=?1, updated_at=datetime('now') WHERE id=?2;", &stmt);
 	if (!r) {
 		return r;
 	}
@@ -241,6 +436,14 @@ Result TaskStore::SetTaskResult(TaskId taskId, const Json& result) {
 	}
 	if (sqlite3_changes(db_.Handle()) == 0) {
 		return Result::Fail("SetTaskResult: task id=" + std::to_string(taskId) + " が存在しない");
+	}
+
+	const std::string finalResponse = ExtractFinalResponse(result);
+	if (!finalResponse.empty()) {
+		r = SetConversationResponseLocked(sessionId, finalResponse);
+		if (!r) {
+			return r;
+		}
 	}
 
 	return tx.Commit();
@@ -352,16 +555,12 @@ TaskRow TaskStore::RowFromStatement(Statement& stmt) {
 	if (stmt.ColumnIsNull(8)) {
 		row.result = Json::object();
 	} else {
-		Json result = Json::parse(stmt.ColumnText(8), nullptr, false);
-		row.result = result.is_discarded() ? Json::object() : result;
+		Json parsed = Json::parse(stmt.ColumnText(8), nullptr, false);
+		row.result = parsed.is_discarded() ? Json::object() : parsed;
 	}
-
 	return row;
 }
 
-// ---------------------------------
-// Evidence
-// ---------------------------------
 EvidenceId TaskStore::AddEvidence(const Evidence& evidence) {
 	std::lock_guard<std::mutex> lock(mutex_);
 	Transaction tx(db_);
@@ -386,7 +585,7 @@ EvidenceId TaskStore::AddEvidence(const Evidence& evidence) {
 		return kInvalidId;
 	}
 
-	EvidenceId id = db_.LastInsertRowId();
+	const EvidenceId id = db_.LastInsertRowId();
 	if (!tx.Commit()) {
 		return kInvalidId;
 	}
@@ -405,7 +604,6 @@ Evidence TaskStore::EvidenceFromStatement(Statement& stmt) {
 
 	Json payload = Json::parse(stmt.ColumnText(7), nullptr, false);
 	e.payload = payload.is_discarded() ? Json::object() : payload;
-
 	e.confidence = stmt.ColumnDouble(8);
 	return e;
 }
@@ -468,9 +666,6 @@ std::vector<Evidence> TaskStore::GetEvidenceForSession(SessionId sessionId) {
 	return rows;
 }
 
-// ---------------------------------
-// Logic
-// ---------------------------------
 LogicNodeId TaskStore::AddLogicNode(TaskId taskId, const std::string& hypothesis, double confidence) {
 	std::lock_guard<std::mutex> lock(mutex_);
 	Transaction tx(db_);
@@ -489,7 +684,7 @@ LogicNodeId TaskStore::AddLogicNode(TaskId taskId, const std::string& hypothesis
 		return kInvalidId;
 	}
 
-	LogicNodeId id = db_.LastInsertRowId();
+	const LogicNodeId id = db_.LastInsertRowId();
 	if (!tx.Commit()) {
 		return kInvalidId;
 	}
@@ -514,7 +709,6 @@ Result TaskStore::UpdateLogicNode(LogicNodeId nodeId, double confidence, const s
 	if (sqlite3_changes(db_.Handle()) == 0) {
 		return Result::Fail("UpdateLogicNode: logic node id=" + std::to_string(nodeId) + " が存在しない");
 	}
-
 	return tx.Commit();
 }
 
@@ -534,13 +728,9 @@ Result TaskStore::AddLogicEdge(std::int64_t fromId, std::int64_t toId, const std
 	if (stmt.Step() == Statement::StepResult::Error) {
 		return Result::Fail(sqlite3_errmsg(db_.Handle()));
 	}
-
 	return tx.Commit();
 }
 
-// ---------------------------------
-// Command
-// ---------------------------------
 Result TaskStore::RecordCommand(TaskId taskId, const std::string& issuer, const std::string& tool,
                                  const Json& args, const std::string& validationStatus,
                                  const std::string& executionStatus, const Json& result) {
@@ -569,13 +759,9 @@ Result TaskStore::RecordCommand(TaskId taskId, const std::string& issuer, const 
 	if (stmt.Step() == Statement::StepResult::Error) {
 		return Result::Fail(sqlite3_errmsg(db_.Handle()));
 	}
-
 	return tx.Commit();
 }
 
-// ---------------------------------
-// Summary
-// ---------------------------------
 Json TaskStore::GetSessionSummary(SessionId sessionId) {
 	std::lock_guard<std::mutex> lock(mutex_);
 
