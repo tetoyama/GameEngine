@@ -6,7 +6,6 @@
 #include "EvidenceBuilder.h"
 
 #include <algorithm>
-#include <unordered_map>
 #include <unordered_set>
 
 #include "../Llm/PromptTemplates.h"
@@ -17,8 +16,11 @@ void EvidenceBuilder::Add(Evidence e) {
 	evidences_.push_back(std::move(e));
 }
 
-void EvidenceBuilder::MarkPlannedTask(TaskId taskId) {
-	plannedTasks_.push_back(taskId);
+void EvidenceBuilder::MarkPlannedTask(TaskId taskId, int requestRevision) {
+	const int revision = requestRevision >= 0
+		? requestRevision
+		: prompts::CurrentRequestRevision();
+	plannedTaskRevisions_[taskId] = revision;
 }
 
 namespace {
@@ -27,7 +29,17 @@ std::string DedupKey(const Evidence& e) {
 	return e.claim + "\x1f" + e.payload.dump();
 }
 
-bool ExtractTargetValue(const Evidence& e, std::string* targetOut, std::string* valueDumpOut) {
+int EvidenceRevision(const Evidence& evidence) {
+	if (evidence.payload.is_object()) {
+		return evidence.payload.value("requestRevision", 0);
+	}
+	return 0;
+}
+
+bool ExtractTargetValue(
+	const Evidence& e,
+	std::string* targetOut,
+	std::string* valueDumpOut) {
 	if (!e.payload.is_object() ||
 	    !e.payload.contains("target") || !e.payload.at("target").is_string() ||
 	    !e.payload.contains("value")) {
@@ -41,13 +53,12 @@ bool ExtractTargetValue(const Evidence& e, std::string* targetOut, std::string* 
 bool IsFailureEvidence(const Evidence& evidence) {
 	const std::string& sourceType = evidence.provenance.sourceType;
 	if (sourceType == "ToolError" || sourceType == "ToolResultError" ||
-	    sourceType == "CommandValidationError") {
+	    sourceType == "ToolUnsatisfied" || sourceType == "CommandValidationError" ||
+	    sourceType == "DependencyUnsatisfied") {
 		return true;
 	}
-	if (!evidence.payload.is_object()) {
-		return false;
-	}
-	if (evidence.payload.value("failure", false)) {
+	if (!evidence.payload.is_object()) return false;
+	if (evidence.payload.value("failure", false) || evidence.payload.value("unsatisfied", false)) {
 		return true;
 	}
 	return evidence.payload.contains("error") && evidence.payload.at("error").is_string() &&
@@ -59,23 +70,29 @@ bool IsFailureEvidence(const Evidence& evidence) {
 EvidenceBuilder::BuiltEvidence EvidenceBuilder::Build() const {
 	BuiltEvidence built;
 
+	for (const auto& [taskId, revision] : plannedTaskRevisions_) {
+		(void)taskId;
+		built.activeRevision = (std::max)(built.activeRevision, revision);
+	}
+	for (const Evidence& evidence : evidences_) {
+		built.activeRevision = (std::max)(built.activeRevision, EvidenceRevision(evidence));
+	}
+
 	std::unordered_set<std::string> seenKeys;
-	built.evidences.reserve(evidences_.size());
-	for (const Evidence& e : evidences_) {
-		const std::string key = DedupKey(e);
-		if (seenKeys.count(key) != 0) {
+	for (const Evidence& evidence : evidences_) {
+		if (EvidenceRevision(evidence) != built.activeRevision) {
+			++built.supersededEvidenceCount;
 			continue;
 		}
+		const std::string key = DedupKey(evidence);
+		if (seenKeys.count(key) != 0) continue;
 		seenKeys.insert(key);
-		built.evidences.push_back(e);
+		built.evidences.push_back(evidence);
 	}
 
 	for (const Evidence& evidence : built.evidences) {
-		if (IsFailureEvidence(evidence)) {
-			++built.failedEvidenceCount;
-		} else {
-			++built.usableEvidenceCount;
-		}
+		if (IsFailureEvidence(evidence)) ++built.failedEvidenceCount;
+		else ++built.usableEvidenceCount;
 	}
 
 	const std::size_t n = built.evidences.size();
@@ -110,24 +127,25 @@ EvidenceBuilder::BuiltEvidence EvidenceBuilder::Build() const {
 		}
 	}
 
-	if (plannedTasks_.empty()) {
+	std::vector<TaskId> activePlannedTasks;
+	for (const auto& [taskId, revision] : plannedTaskRevisions_) {
+		if (revision == built.activeRevision) activePlannedTasks.push_back(taskId);
+	}
+
+	if (activePlannedTasks.empty()) {
 		built.coverage = 1.0;
 	} else {
 		std::unordered_set<TaskId> tasksWithUsableEvidence;
 		for (const Evidence& evidence : built.evidences) {
-			if (!IsFailureEvidence(evidence)) {
-				tasksWithUsableEvidence.insert(evidence.taskId);
-			}
+			if (!IsFailureEvidence(evidence)) tasksWithUsableEvidence.insert(evidence.taskId);
 		}
 		std::size_t covered = 0;
-		for (const TaskId task : plannedTasks_) {
-			if (tasksWithUsableEvidence.count(task) != 0) {
-				++covered;
-			} else {
-				built.tasksWithoutEvidence.push_back(task);
-			}
+		for (const TaskId task : activePlannedTasks) {
+			if (tasksWithUsableEvidence.count(task) != 0) ++covered;
+			else built.tasksWithoutEvidence.push_back(task);
 		}
-		built.coverage = static_cast<double>(covered) / static_cast<double>(plannedTasks_.size());
+		built.coverage = static_cast<double>(covered) /
+			static_cast<double>(activePlannedTasks.size());
 	}
 
 	return built;
@@ -137,31 +155,25 @@ Json EvidenceBuilder::ToJson(const BuiltEvidence& built) {
 	Json j = Json::object();
 
 	Json evidences = Json::array();
-	for (const Evidence& e : built.evidences) {
-		evidences.push_back(e.ToJson());
-	}
+	for (const Evidence& e : built.evidences) evidences.push_back(e.ToJson());
 	j["evidences"] = std::move(evidences);
 
 	Json contradictions = Json::array();
 	for (const ContradictionRecord& c : built.contradictions) {
 		contradictions.push_back(Json::object({
-			{"a", c.a},
-			{"b", c.b},
-			{"reason", c.reason},
+			{"a", c.a}, {"b", c.b}, {"reason", c.reason},
 		}));
 	}
 	j["contradictions"] = std::move(contradictions);
-
 	j["coverage"] = built.coverage;
 	j["tasksWithoutEvidence"] = built.tasksWithoutEvidence;
 	j["usableEvidenceCount"] = built.usableEvidenceCount;
 	j["failedEvidenceCount"] = built.failedEvidenceCount;
+	j["supersededEvidenceCount"] = built.supersededEvidenceCount;
+	j["activeRevision"] = built.activeRevision;
 
 	const Json requestContext = prompts::CurrentConversationRequestContext();
-	if (requestContext.is_object() && !requestContext.empty()) {
-		j["requestContext"] = requestContext;
-	}
-
+	if (requestContext.is_object() && !requestContext.empty()) j["requestContext"] = requestContext;
 	return j;
 }
 
