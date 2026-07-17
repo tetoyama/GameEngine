@@ -38,10 +38,10 @@ void RemoveDb() {
 	std::remove((std::string(kDbPath) + "-journal").c_str());
 }
 
-class FindEntityTool final : public ICommandExecutor {
+class InspectEntityTool final : public ICommandExecutor {
 public:
-	FindEntityTool() {
-		descriptor_.name = "FindEntityByName";
+	InspectEntityTool() {
+		descriptor_.name = "InspectEntity";
 		descriptor_.description = "test entity lookup";
 		descriptor_.requiredPermission = PermissionLevel::Read;
 		descriptor_.argumentSchema = Json::object({
@@ -146,11 +146,10 @@ void TestDependencyFailureAndGrounding() {
 	const SessionId session = store.CreateSession(Json::object({{"goal", "test"}}));
 	const TaskId root = store.CreateTask(session, kInvalidId, "Intake", Json::object(), 0);
 
-	auto tool = std::make_shared<FindEntityTool>();
+	auto tool = std::make_shared<InspectEntityTool>();
 	CommandPipeline pipeline(nullptr);
 	pipeline.RegisterTool(tool);
 
-	// 失敗した依存Taskを持つWorkerはLLMもToolも呼ばない。
 	const Json failedDepSpec = Json::object({{"taskId", "T1"}});
 	const TaskId failedDep = store.CreateTask(session, root, "RuntimeObservation", failedDepSpec, 1);
 	assert(store.UpdateTaskState(failedDep, TaskState::Running));
@@ -160,7 +159,7 @@ void TestDependencyFailureAndGrounding() {
 		{"taskId", "T2"},
 		{"type", "RuntimeObservation"},
 		{"dependencies", Json::array({"T1"})},
-		{"allowedTools", Json::array({"FindEntityByName"})},
+		{"allowedTools", Json::array({"InspectEntity"})},
 	});
 	const TaskId blocked = store.CreateTask(session, root, "RuntimeObservation", blockedSpec, 1);
 	assert(store.UpdateTaskState(blocked, TaskState::Running));
@@ -180,7 +179,6 @@ void TestDependencyFailureAndGrounding() {
 	assert(blockedEvidence.empty());
 	assert(blockedSummary.value("skipped", false));
 
-	// 成功した依存TaskのEvidenceを後続Workerへ渡す。
 	const Json sourceSpec = Json::object({{"taskId", "T3"}});
 	const TaskId source = store.CreateTask(session, root, "RuntimeObservation", sourceSpec, 1);
 	assert(store.UpdateTaskState(source, TaskState::Running));
@@ -199,14 +197,14 @@ void TestDependencyFailureAndGrounding() {
 		{"taskId", "T4"},
 		{"type", "RuntimeObservation"},
 		{"dependencies", Json::array({"T3"})},
-		{"allowedTools", Json::array({"FindEntityByName"})},
+		{"allowedTools", Json::array({"InspectEntity"})},
 	});
 	const TaskId target = store.CreateTask(session, root, "RuntimeObservation", targetSpec, 1);
 	assert(store.UpdateTaskState(target, TaskState::Running));
 
 	MockLlmBackend badLlm;
 	badLlm.AddRule("Worker担当",
-		"```json\n{\"commands\":[{\"tool\":\"FindEntityByName\","
+		"```json\n{\"commands\":[{\"tool\":\"InspectEntity\","
 		"\"arguments\":{\"name\":\"主要な Entity\"}}]}\n```");
 	AgentContext badCtx;
 	badCtx.llm = &badLlm;
@@ -224,13 +222,13 @@ void TestDependencyFailureAndGrounding() {
 		{"taskId", "T5"},
 		{"type", "RuntimeObservation"},
 		{"dependencies", Json::array({"T3"})},
-		{"allowedTools", Json::array({"FindEntityByName"})},
+		{"allowedTools", Json::array({"InspectEntity"})},
 	});
 	const TaskId goodTask = store.CreateTask(session, root, "RuntimeObservation", goodSpec, 1);
 	assert(store.UpdateTaskState(goodTask, TaskState::Running));
 	MockLlmBackend goodLlm;
 	goodLlm.AddRule("Worker担当",
-		"```json\n{\"commands\":[{\"tool\":\"FindEntityByName\","
+		"```json\n{\"commands\":[{\"tool\":\"InspectEntity\","
 		"\"arguments\":{\"name\":\"Player\"}}]}\n```");
 	AgentContext goodCtx;
 	goodCtx.llm = &goodLlm;
@@ -242,7 +240,7 @@ void TestDependencyFailureAndGrounding() {
 	assert(goodResult);
 	assert(tool->executeCount == 1);
 	assert(goodEvidence.size() == 1);
-	assert(goodEvidence[0].provenance.sourceType == "Tool:FindEntityByName");
+	assert(goodEvidence[0].provenance.sourceType == "Tool:InspectEntity");
 
 	RemoveDb();
 	std::puts("  - dependency gating and argument grounding: OK");
