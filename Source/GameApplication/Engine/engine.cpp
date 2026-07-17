@@ -21,6 +21,8 @@
 #include "Editor/UI/MenuBar.h"
 #include "Config/ConfigSystem.h"
 #include "LlamaService/LLAMAService.h"
+#include "AgentOS/Service/AgentOSService.h"
+#include "AgentOS/UI/AgentOSPanel.h"
 #include "Backends/ImGuiFunc.h"
 #include "Audio/audioContext.h"
 
@@ -75,6 +77,11 @@ bool Engine::Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdSho
 	ServiceRef<EditorService> editor{};
 #endif
 	auto llama = context->Get<LLAMAService>();
+#ifdef _EDITOR
+	auto agentOS = context->Get<agentos::AgentOSService>();
+#else
+	ServiceRef<agentos::AgentOSService> agentOS{};
+#endif
 
 	if(!config) return FailInitialize(debug.get(), "ConfigService is not registered");
 	if(!rhi) return FailInitialize(debug.get(), "RenderHardwareInterfaceService is not registered");
@@ -178,6 +185,30 @@ bool Engine::Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdSho
 	LLAMAServiceContext llamaContext{};
 	llamaContext.resourceService = resources.get();
 	llama->Initialize(llamaContext);
+
+#ifdef _EDITOR
+	// AgentOS初期化。
+	// editor->Initialize()の後でないとGetUI<AgentOSPanel>()が解決できず、
+	// llama->Initialize()の後でないとモデルロードが行えないため、ここで行う。
+	if(agentOS && editor){
+		agentos::AgentOSServiceContext agentOSContext{};
+		agentOSContext.sceneManager = scenes.get();
+		agentOSContext.debugLog = debug.get();
+		agentOSContext.llamaService = llama.get();
+		agentOSContext.modelPath = "Asset/BRAIN/model/Qwen3.5-9B-Q4_K_M.gguf";
+		agentOSContext.dbPath = "Logs/AgentOS/agentos.db";
+		agentOS->Initialize(agentOSContext);
+
+		// EditorServiceContextにAgentOS用の経路が無いため、パネルへ事後注入する。
+		if(agentos::AgentOSPanel* panel = editor->GetUI<agentos::AgentOSPanel>()){
+			panel->SetService(agentOS.get());
+		} else if(debug){
+			debug->LOG_WARNING(
+				"AgentOSPanel is not registered in EditorService; "
+				"AgentOSService will run without UI.");
+		}
+	}
+#endif
 
 	return true;
 }

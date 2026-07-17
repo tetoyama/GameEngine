@@ -444,6 +444,15 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt, int retryDepth){
 	// add_ass=true を正しいテンプレートに対して渡している以上、この後処理は不要
 	// （かつ ChatML 以外のモデルでは逆に害になる）ので削除した。
 
+	// [AgentOS対応] 応答prefill。
+	// add_ass=true でassistantヘッダが付いた直後に response_prefix を差し込むことで、
+	// モデルの応答をこの文字列の続きから開始させる。AgentOSはここへ空のthinkブロック
+	// （"<think>\n\n</think>\n\n"）を渡し、Thinkingモードを確定的にスキップする。
+	// 空文字列（既定値）なら何もしないため、BRAIN等の既存利用へは影響しない。
+	if(!m_config->response_prefix.empty()){
+		diffFormatted += m_config->response_prefix;
+	}
+
 	DBG_UTF8(("\n[DEBUG] Input Diff Text:\n" + diffFormatted + "\n----------------------------\n").c_str());
 
 	// =====================================================
@@ -682,7 +691,7 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt, int retryDepth){
 		char dbg_buf[256]{};
 		int dbg_len = llama_token_to_piece(vocab, tok, dbg_buf, sizeof(dbg_buf), 0, false);
 		if(dbg_len > 0){
-			DBG_UTF8(("[Generated Piece]: " + std::string(dbg_buf, dbg_len) + "\n").c_str());
+			DBG_UTF8((std::string(dbg_buf, dbg_len) + " ").c_str());
 		}
 
 		++loop;

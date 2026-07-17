@@ -22,6 +22,7 @@
 #include "Config/ConfigSystem.h"
 #include "Editor/editorService.h"
 #include "LlamaService/LLAMAService.h"
+#include "AgentOS/Service/AgentOSService.h"
 
 std::unique_ptr<EngineContext> EngineContextBuilder::Build(){
 	std::unique_ptr<EngineContext> context = std::make_unique<EngineContext>();
@@ -65,6 +66,17 @@ std::unique_ptr<EngineContext> EngineContextBuilder::Build(){
 	context->Register<LLAMAService>(
 		std::make_unique<LLAMAService>(debugLogSystem)
 	);
+
+#ifdef _EDITOR
+	// AgentOSServiceはLLAMAServiceより後に登録する。
+	// EngineContext::Shutdown()は登録の逆順にShutdown()を呼ぶため、
+	// AgentOSServiceが保持するLLAMAAgent/CommandPipelineを
+	// LLAMAService::Shutdown()より先に解放できる。
+	// 現状AgentOSPanel(Editor UI)経由でのみ操作するため_EDITOR限定。
+	context->Register<agentos::AgentOSService>(
+		std::make_unique<agentos::AgentOSService>()
+	);
+#endif
 
 	return context;
 }

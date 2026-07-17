@@ -55,6 +55,14 @@ struct AgentConfig final {
 	// 会話が長くなって語彙のループが気になる場合のみ、隠し味程度に 1.01f〜1.02f を試すこと。
 	float repeat_penalty = 1.01f;
 
+	// 応答prefill（assistant応答の先頭へ強制挿入する文字列）
+	// 空なら従来どおり何もしない。
+	// AgentOSは "<think>\n\n</think>\n\n" を設定してQwen系のThinkingを空欄で確定させ、
+	// JSON出力までのトークン浪費（実測で1回の呼び出しあたり1000token超）を防ぐ。
+	// /no_think ソフトスイッチが効かないモデルでも、prefillはテンプレート層で
+	// 確実に効く。ChatML以外のモデルで使う場合は内容の妥当性を確認すること。
+	std::string response_prefix;
+
 	// ============================
 	// Agent 実行制御
 	// ============================
