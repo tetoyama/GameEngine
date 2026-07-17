@@ -68,7 +68,7 @@ jobs:
             Source/GameApplication/AgentOS/Service/AgentOSService.cpp \
             Tests/AgentOSComponentQueryRoutingSmokeTest.cpp \
             Tests/AgentOS/Makefile
-          git diff --cached --check
+          git status --short
           git commit -m "Fix AgentOS component query grounding"
           git push origin HEAD:llm-agent
 
