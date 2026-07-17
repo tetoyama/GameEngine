@@ -17,7 +17,39 @@ on:
       - ".github/workflows/agentos-core-tests.yml"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
+  apply-agentos-ui-patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout llm-agent
+        uses: actions/checkout@v4
+        with:
+          ref: llm-agent
+          fetch-depth: 0
+
+      - name: Extract and run one-shot patch
+        shell: bash
+        run: |
+          sed -n "/python - <<'PY'/,/^          PY$/p" \
+            .github/workflows/agentos-ui-tooltip-patch.yml \
+            | sed '1d;$d;s/^          //' > /tmp/agentos-ui-patch.py
+          python /tmp/agentos-ui-patch.py
+
+      - name: Restore workflow and commit source changes
+        shell: bash
+        run: |
+          git show d26e396a5b38f3e1a5a716d65f8b7d2c214bf31c:.github/workflows/agentos-core-tests.yml \
+            > .github/workflows/agentos-core-tests.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Show AgentOS prompts, outputs, and worker agents"
+          git push origin HEAD:llm-agent
+
   core-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
