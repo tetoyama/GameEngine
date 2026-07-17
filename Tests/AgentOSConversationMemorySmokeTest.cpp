@@ -2,11 +2,12 @@
 //
 // AgentOSConversationMemorySmokeTest.cpp
 //
-// 全Turn原文保持 / 累積要約 / 最近Turn原文 / 訂正解決 / 人物質問Tool遮断。
+// 全Turn原文保持 / 累積要約 / 最新Turn優先 / 訂正解決 / 人物質問Tool遮断。
 //
 // =======================================================================
 #include "AgentOS/Core/Agents/AgentContext.h"
 #include "AgentOS/Core/Agents/IntakeAgent.h"
+#include "AgentOS/Core/Agents/PlannerAgent.h"
 #include "AgentOS/Core/Budget/Budget.h"
 #include "AgentOS/Core/Command/CommandPipeline.h"
 #include "AgentOS/Core/Llm/MockLlmBackend.h"
@@ -198,6 +199,72 @@ void TestAutomaticCompressionKeepsRecentRawTurns() {
 	std::puts("  - automatic compression retains recent raw turns: OK");
 }
 
+void TestPromptPackingAlwaysKeepsNewestTurn() {
+	Json context = Json::object({
+		{"summary", "古い会話の要約"},
+		{"summarizedThroughSessionId", 10},
+		{"totalTurns", 12},
+		{"recentTurns", Json::array({
+			Json::object({
+				{"sessionId", 11},
+				{"user", "古い巨大Turn"},
+				{"assistant", std::string(18000, 'x')},
+			}),
+			Json::object({
+				{"sessionId", 12},
+				{"user", "最新の訂正: Scene全体ではなくPlayerだけ"},
+				{"assistant", "了解。Playerだけを対象にする。"},
+			}),
+		})},
+	});
+
+	const PromptPair prompt = prompts::Intake("そうじゃなくて、そのPlayerだけ", context);
+	assert(prompt.user.find("最新の訂正: Scene全体ではなくPlayerだけ") != std::string::npos);
+	assert(prompt.user.find("Playerだけを対象にする") != std::string::npos);
+	assert(prompt.user.find("omittedRecentTurnCount") != std::string::npos);
+	assert(prompt.user.size() < 15000);
+
+	std::puts("  - newest turn survives prompt context packing: OK");
+}
+
+void TestOldSceneHistoryDoesNotTriggerCurrentSceneFastPath() {
+	MockLlmBackend llm;
+	llm.AddRule(
+		"Planner担当",
+		"```json\n"
+		"{\"tasks\":[{\"taskId\":\"T1\",\"type\":\"Analysis\","
+		"\"description\":\"現在のコード設計要求を分析する\","
+		"\"dependencies\":[],\"allowedTools\":[],\"searchHints\":[]}]}\n"
+		"```");
+
+	AgentContext ctx;
+	ctx.llm = &llm;
+	const Json intake = Json::object({
+		{"goal", "現在のコード設計を説明する"},
+		{"resolvedRequest", "現在のコード設計を説明する"},
+		{"requestType", "investigation"},
+		{"symptoms", Json::array()},
+		{"constraints", Json::array()},
+		{"conversationContext", Json::object({
+			{"summary", "以前は現在のシーン全体を報告した"},
+			{"recentTurns", Json::array()},
+		})},
+	});
+	const Json catalog = Json::array({
+		Json::object({{"name", "ListEntities"}}),
+		Json::object({{"name", "ListSystems"}}),
+		Json::object({{"name", "DescribeEntity"}}),
+	});
+
+	Json plan;
+	assert(PlannerAgent::Run(ctx, intake, catalog, &plan));
+	assert(llm.GetCalls().size() == 1);
+	assert(plan.value("route", std::string()).empty());
+	assert(plan.at("tasks")[0].value("description", std::string()).find("コード設計") != std::string::npos);
+
+	std::puts("  - old scene history cannot trigger current scene fast path: OK");
+}
+
 void TestPersonalIdentityCannotExecuteEngineTool() {
 	prompts::SetCurrentConversationRequestContext(
 		Json::object(),
@@ -261,6 +328,8 @@ int main() {
 	TestTurnPairsAndSummaryCursor();
 	TestCorrectionResolutionUsesHistory();
 	TestAutomaticCompressionKeepsRecentRawTurns();
+	TestPromptPackingAlwaysKeepsNewestTurn();
+	TestOldSceneHistoryDoesNotTriggerCurrentSceneFastPath();
 	TestPersonalIdentityCannotExecuteEngineTool();
 	TestPersonalIdentityToolProposalIsSanitized();
 	RemoveDb();
