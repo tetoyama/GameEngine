@@ -31,6 +31,48 @@ std::size_t ArraySize(const Json& parent, const char* key) {
 	return 0;
 }
 
+bool EvidenceLooksFailed(const Json& evidence) {
+	if (!evidence.is_object()) {
+		return false;
+	}
+	if (evidence.contains("payload") && evidence.at("payload").is_object()) {
+		const Json& payload = evidence.at("payload");
+		if (payload.value("failure", false)) {
+			return true;
+		}
+		if (payload.contains("error") && payload.at("error").is_string() &&
+		    !payload.at("error").get<std::string>().empty()) {
+			return true;
+		}
+	}
+	if (evidence.contains("provenance") && evidence.at("provenance").is_object()) {
+		const std::string sourceType = evidence.at("provenance").value("sourceType", std::string());
+		return sourceType == "ToolError" || sourceType == "ToolResultError" ||
+			sourceType == "CommandValidationError";
+	}
+	return false;
+}
+
+std::size_t CountFailedEvidenceDefensively(const Json& builtEvidence) {
+	if (!builtEvidence.is_object() || !builtEvidence.contains("evidences") ||
+	    !builtEvidence.at("evidences").is_array()) {
+		return 0;
+	}
+	std::size_t count = 0;
+	for (const Json& evidence : builtEvidence.at("evidences")) {
+		if (EvidenceLooksFailed(evidence)) {
+			++count;
+		}
+	}
+	return count;
+}
+
+void AddFailureOnce(CriticVerdict* verdict, const std::string& failure) {
+	if (std::find(verdict->failures.begin(), verdict->failures.end(), failure) == verdict->failures.end()) {
+		verdict->failures.push_back(failure);
+	}
+}
+
 } // namespace
 
 Result CriticAgent::Run(AgentContext& ctx, const Json& rankedHypotheses, const Json& builtEvidence, CriticVerdict* out) {
@@ -45,17 +87,16 @@ Result CriticAgent::Run(AgentContext& ctx, const Json& rankedHypotheses, const J
 	if (callResult) {
 		out->llmScores = raw.value("scores", Json::object());
 		if (raw.contains("failures") && raw.at("failures").is_array()) {
-			for (const auto& f : raw.at("failures")) {
-				if (f.is_string()) {
-					out->failures.push_back(f.get<std::string>());
+			for (const auto& failure : raw.at("failures")) {
+				if (failure.is_string()) {
+					out->failures.push_back(failure.get<std::string>());
 				}
-			}
 		}
 		if (raw.contains("additionalTasksSuggested") && raw.at("additionalTasksSuggested").is_array()) {
 			out->additionalTasks = raw.at("additionalTasksSuggested");
 		}
 	} else {
-		// LLMの所見はadvisoryに過ぎない。失敗しても採点自体はプログラムで続行する。
+		// LLM所見はadvisory。呼び出し失敗自体は決定的採点のHard Failにはしない。
 		out->failures.push_back("critic LLM call failed: " + callResult.error);
 	}
 
@@ -64,14 +105,49 @@ Result CriticAgent::Run(AgentContext& ctx, const Json& rankedHypotheses, const J
 	const double topConfidence = TopHypothesisConfidence(rankedHypotheses);
 	const std::size_t contradictionCount = ArraySize(builtEvidence, "contradictions");
 	const std::size_t evidenceCount = ArraySize(builtEvidence, "evidences");
+	const std::size_t tasksWithoutEvidence = ArraySize(builtEvidence, "tasksWithoutEvidence");
+	const std::size_t failedEvidenceCount = builtEvidence.is_object()
+		? builtEvidence.value("failedEvidenceCount", CountFailedEvidenceDefensively(builtEvidence))
+		: CountFailedEvidenceDefensively(builtEvidence);
+	const std::size_t usableEvidenceCount = builtEvidence.is_object()
+		? builtEvidence.value(
+			"usableEvidenceCount",
+			evidenceCount >= failedEvidenceCount ? evidenceCount - failedEvidenceCount : std::size_t(0))
+		: 0;
 
 	const double contradictionTerm = 1.0 - std::min(1.0, static_cast<double>(contradictionCount) / 3.0);
-	const double evidenceTerm = (evidenceCount >= 3) ? 1.0 : 0.0;
-
+	const double evidenceTerm = (usableEvidenceCount >= 3) ? 1.0 : 0.0;
 	out->programmaticScore =
 		0.4 * coverage + 0.3 * topConfidence + 0.2 * contradictionTerm + 0.1 * evidenceTerm;
-	out->pass = (out->programmaticScore >= 0.55) && (topConfidence >= 0.4);
 
+	// --- Hard Fail条件 ---
+	bool hardFail = false;
+	if (coverage < 1.0) {
+		AddFailureOnce(out, "programmatic hard fail: required task coverage is incomplete");
+		hardFail = true;
+	}
+	if (tasksWithoutEvidence > 0) {
+		AddFailureOnce(out, "programmatic hard fail: one or more planned tasks produced no usable evidence");
+		hardFail = true;
+	}
+	if (usableEvidenceCount == 0) {
+		AddFailureOnce(out, "programmatic hard fail: no usable evidence was collected");
+		hardFail = true;
+	}
+	if (failedEvidenceCount > 0) {
+		AddFailureOnce(out, "programmatic hard fail: failed tool or command-validation evidence exists");
+		hardFail = true;
+	}
+	if (out->additionalTasks.is_array() && !out->additionalTasks.empty()) {
+		AddFailureOnce(out, "programmatic hard fail: critic requested additional investigation");
+		hardFail = true;
+	}
+	if (topConfidence < 0.4) {
+		AddFailureOnce(out, "programmatic hard fail: top hypothesis confidence is below 0.4");
+		hardFail = true;
+	}
+
+	out->pass = !hardFail && out->programmaticScore >= 0.55;
 	return Result::Ok();
 }
 
