@@ -9,10 +9,6 @@
 // 回避するため、AgentOSのEngineToolはすべてMain Threadのエディタ描画タイミング
 // （AgentOSPanel::Draw → AgentOSService::PumpMainThread → Pump()）で実行する。
 //
-// エンジンヘッダに依存しないため、Linux上でも
-//   g++ -std=c++20 -fsyntax-only MainThreadDispatcher.cpp -I Source/GameApplication -I Source/GameApplication/Backends/llama/vendor
-// で構文チェック可能。
-//
 // =======================================================================
 #pragma once
 
@@ -20,37 +16,45 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <thread>
 #include <vector>
 
 #include "../Core/Json.h"
 
 namespace agentos {
 
-// ---------------------------------
-// MainThreadDispatcher
-// スレッドセーフ。RunOnMainThreadは任意スレッドから、Pumpは必ずMain Threadから呼ぶ。
-// ---------------------------------
 class MainThreadDispatcher {
 public:
-	// closureをMain Threadのキューへ積み、Pump()によって実行されるまで
-	// 呼び出しスレッドをブロックする。5秒以内にPumpされなければ
-	// {"error":"main thread timeout","infrastructure":true} を返す。
+	// closureをMain Threadのキューへ積み、Pump()によって実行されるまで待つ。
+	// 5秒以内に実行開始されなければQueueからキャンセルしてtimeoutを返す。
+	// 実行開始後は完了まで待ち、"timeoutと報告した後で遅延実行される"状態を防ぐ。
 	Json RunOnMainThread(std::function<Json()> fn);
 
-	// Main Threadから毎フレーム呼び出す。キュー中のジョブをすべて実行し、
-	// 待機中のRunOnMainThread呼び出し側を起床させる。
+	// Main Threadから毎フレーム呼び出す。
 	void Pump();
 
+	// Shutdown時に未実行Jobをキャンセルし、待機中Workerを起床させる。
+	// 既にMain Thread上で実行開始済みのJobは完了まで待つ。
+	void CancelPending();
+
 private:
+	enum class JobState {
+		Queued,
+		Running,
+		Completed,
+		Cancelled,
+	};
+
 	struct PendingJob {
 		std::function<Json()> fn;
 		Json result;
-		bool done = false;
+		JobState state = JobState::Queued;
 	};
 
 	std::mutex m_mutex;
 	std::condition_variable m_cv;
 	std::vector<std::shared_ptr<PendingJob>> m_queue;
+	std::thread::id m_mainThreadId{};
 };
 
 } // namespace agentos
