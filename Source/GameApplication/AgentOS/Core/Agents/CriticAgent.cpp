@@ -68,10 +68,16 @@ std::size_t CountFailedEvidenceDefensively(const Json& builtEvidence) {
 	return count;
 }
 
+bool IsSceneSnapshotSource(const std::string& sourceType) {
+	return sourceType == "Tool:ListEntities" || sourceType == "Tool:ListSystems" ||
+		sourceType == "Tool:DescribeEntity";
+}
+
 bool IsCompleteSceneSnapshot(const Json& builtEvidence) {
 	if (!builtEvidence.is_object() || builtEvidence.value("coverage", 0.0) < 1.0 ||
 	    builtEvidence.value("failedEvidenceCount", CountFailedEvidenceDefensively(builtEvidence)) != 0 ||
-	    !builtEvidence.contains("evidences") || !builtEvidence.at("evidences").is_array()) {
+	    !builtEvidence.contains("evidences") || !builtEvidence.at("evidences").is_array() ||
+	    builtEvidence.at("evidences").empty()) {
 		return false;
 	}
 
@@ -80,9 +86,12 @@ bool IsCompleteSceneSnapshot(const Json& builtEvidence) {
 	for (const Json& evidence : builtEvidence.at("evidences")) {
 		if (!evidence.is_object() || !evidence.contains("provenance") ||
 		    !evidence.at("provenance").is_object()) {
-			continue;
+			return false;
 		}
 		const std::string sourceType = evidence.at("provenance").value("sourceType", std::string());
+		if (!IsSceneSnapshotSource(sourceType)) {
+			return false;
+		}
 		hasEntities = hasEntities || sourceType == "Tool:ListEntities";
 		hasSystems = hasSystems || sourceType == "Tool:ListSystems";
 	}
@@ -104,8 +113,6 @@ Result CriticAgent::Run(AgentContext& ctx, const Json& rankedHypotheses, const J
 	*out = CriticVerdict{};
 
 	if (IsCompleteSceneSnapshot(builtEvidence)) {
-		// Scene snapshotは原因仮説ではなく観測結果そのもの。全必須観測が成功し、
-		// failure Evidenceが無いことを決定的に確認できたためCritic LLMを省略する。
 		out->llmScores = Json::object({
 			{"evidenceCoverage", 1.0},
 			{"contradictionHandling", 1.0},
