@@ -5,9 +5,16 @@
 // =======================================================================
 #include "IntakeAgent.h"
 
+#include <cstddef>
+#include <string>
+
 namespace agentos {
 
 namespace {
+
+constexpr std::size_t kKeepRecentTurns = 6;
+constexpr std::size_t kCompressTurnThreshold = 9;
+constexpr std::size_t kCompressCharThreshold = 12000;
 
 void NormalizeStringArray(const Json& raw, const char* key, Json* normalized) {
 	Json arr = Json::array();
@@ -33,6 +40,97 @@ std::string NormalizeRelation(const Json& raw) {
 	return "new";
 }
 
+std::size_t ConversationChars(const Json& context) {
+	if (!context.is_object() || !context.contains("recentTurns") ||
+	    !context.at("recentTurns").is_array()) {
+		return 0;
+	}
+	std::size_t chars = 0;
+	for (const Json& turn : context.at("recentTurns")) {
+		if (!turn.is_object()) {
+			continue;
+		}
+		chars += turn.value("user", std::string()).size();
+		chars += turn.value("assistant", std::string()).size();
+	}
+	return chars;
+}
+
+bool NeedsCompression(const Json& context) {
+	if (!context.is_object() || !context.contains("recentTurns") ||
+	    !context.at("recentTurns").is_array()) {
+		return false;
+	}
+	const std::size_t count = context.at("recentTurns").size();
+	return count >= kCompressTurnThreshold || ConversationChars(context) > kCompressCharThreshold;
+}
+
+Json LatestTurnsOnly(const Json& context) {
+	Json compact = context;
+	Json latest = Json::array();
+	if (context.is_object() && context.contains("recentTurns") &&
+	    context.at("recentTurns").is_array()) {
+		const Json& turns = context.at("recentTurns");
+		const std::size_t begin = turns.size() > kKeepRecentTurns
+			? turns.size() - kKeepRecentTurns
+			: 0;
+		for (std::size_t i = begin; i < turns.size(); ++i) {
+			latest.push_back(turns[i]);
+		}
+	}
+	compact["recentTurns"] = std::move(latest);
+	compact["contextDegraded"] = true;
+	compact["contextDegradedReason"] = "conversation compression failed; latest raw turns retained";
+	return compact;
+}
+
+Result CompressStoredConversationIfNeeded(AgentContext& ctx, Json* context) {
+	if (context == nullptr || ctx.store == nullptr || !NeedsCompression(*context)) {
+		return Result::Ok();
+	}
+
+	const Json& turns = context->at("recentTurns");
+	if (turns.size() <= kKeepRecentTurns) {
+		return Result::Ok();
+	}
+
+	const std::size_t compressCount = turns.size() - kKeepRecentTurns;
+	Json toCompress = Json::array();
+	for (std::size_t i = 0; i < compressCount; ++i) {
+		toCompress.push_back(turns[i]);
+	}
+
+	const std::string existingSummary = context->value("summary", std::string());
+	const PromptPair prompt = prompts::CompressConversationMemory(existingSummary, toCompress);
+	Json raw;
+	Result callResult = CallLlmJson(ctx, prompt, &raw);
+	if (!callResult || !raw.is_object() || !raw.contains("summary") ||
+	    !raw.at("summary").is_string() || raw.at("summary").get<std::string>().empty()) {
+		*context = LatestTurnsOnly(*context);
+		return callResult
+			? Result::Fail("IntakeAgent: conversation compression returned no summary")
+			: callResult;
+	}
+
+	const Json& lastCompressed = toCompress.back();
+	if (!lastCompressed.is_object() || !lastCompressed.contains("sessionId") ||
+	    !lastCompressed.at("sessionId").is_number_integer()) {
+		*context = LatestTurnsOnly(*context);
+		return Result::Fail("IntakeAgent: compressed turn has no sessionId");
+	}
+
+	const SessionId through = lastCompressed.at("sessionId").get<SessionId>();
+	Result updateResult = ctx.store->UpdateConversationSummary(
+		raw.at("summary").get<std::string>(), through);
+	if (!updateResult) {
+		*context = LatestTurnsOnly(*context);
+		return updateResult;
+	}
+
+	*context = ctx.store->GetConversationContext(ctx.sessionId);
+	return Result::Ok();
+}
+
 } // namespace
 
 Result IntakeAgent::Run(
@@ -45,7 +143,15 @@ Result IntakeAgent::Run(
 		return Result::Fail("IntakeAgent: intakeOut is null");
 	}
 
-	const PromptPair prompt = prompts::Intake(userRequest, conversationContext);
+	Json effectiveContext = conversationContext;
+	if ((!effectiveContext.is_object() || effectiveContext.empty()) &&
+	    ctx.store != nullptr && ctx.sessionId != kInvalidId) {
+		effectiveContext = ctx.store->GetConversationContext(ctx.sessionId);
+		// 圧縮失敗は要求処理そのものを止めない。LatestTurnsOnlyへ劣化して続行する。
+		(void)CompressStoredConversationIfNeeded(ctx, &effectiveContext);
+	}
+
+	const PromptPair prompt = prompts::Intake(userRequest, effectiveContext);
 
 	Json raw;
 	Result callResult = CallLlmJson(ctx, prompt, &raw);
@@ -84,10 +190,8 @@ Result IntakeAgent::Run(
 	}
 	normalized["requestType"] = requestType;
 
-	// 後続Agentが履歴全体を再解釈せずに済むよう、Intake時点の解決根拠を
-	// compactな形で同梱する。生の全TurnはService側で保持される。
-	if (conversationContext.is_object() && !conversationContext.empty()) {
-		normalized["conversationContext"] = conversationContext;
+	if (effectiveContext.is_object() && !effectiveContext.empty()) {
+		normalized["conversationContext"] = effectiveContext;
 	}
 
 	*intakeOut = std::move(normalized);
