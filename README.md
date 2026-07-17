@@ -1,11 +1,11 @@
 <p align="center">
-  <img src=".github/assets/gameengine-hero.svg" width="100%" alt="GameEngine — C++20 / DirectX 11 / ECS / Editor / Local LLM" />
+  <img src=".github/assets/gameengine-hero.svg" width="100%" alt="Abstract overview of the GameEngine architecture" />
 </p>
 
 <h1 align="center">GameEngine</h1>
 
 <p align="center">
-  ゲーム固有の要求に合わせて、内部構造から作り替えられる個人開発ゲームエンジン。
+  ゲーム固有の要求に応じて、内部構造から拡張・変更できる個人開発ゲームエンジン。
   <br />
   <sub>A personal game engine built to understand, extend, and reshape every layer of the stack.</sub>
 </p>
@@ -19,40 +19,40 @@
 </p>
 
 <p align="center">
-  <a href="#このエンジンが目指すもの">Philosophy</a> ·
+  <a href="#設計方針">Philosophy</a> ·
   <a href="#主な機能">Features</a> ·
   <a href="#アーキテクチャ">Architecture</a> ·
-  <a href="#このエンジンで開発中のゲーム">Projects</a> ·
+  <a href="#開発中のゲームプロジェクト">Projects</a> ·
   <a href="#ビルド">Build</a> ·
   <a href="Docs/">Docs</a>
 </p>
 
 > [!IMPORTANT]
-> このリポジトリは、完成済みSDKではなく、ゲーム制作とエンジン研究を並行して進めている開発中のプロジェクトだよ。API・データ形式・内部構造は継続的に更新される。
+> 本リポジトリは完成済みのSDKではなく、ゲーム制作とエンジン研究を並行して進めている開発中のプロジェクトである。API、データ形式、内部構造は継続的に変更される可能性がある。
 
-## このエンジンが目指すもの
+## 設計方針
 
 <table>
 <tr>
 <td width="33%" valign="top">
 
-### 完全に把握できる
+### 内部構造を把握できること
 
-ブラックボックスに依存せず、ゲームループ、ECS、Renderer、Editor、Resource、PhysicsまでC++コードとして追跡・変更できる構造を目指す。
-
-</td>
-<td width="33%" valign="top">
-
-### ゲーム側へ適応する
-
-汎用エンジンの制約にゲームを合わせるのではなく、ゲーム固有AdapterやServiceを追加し、必要ならEngine内部の契約そのものを拡張する。
+ゲームループ、ECS、Renderer、Editor、Resource、PhysicsまでをC++コードとして追跡し、必要に応じて変更できる構造を目指している。
 
 </td>
 <td width="33%" valign="top">
 
-### 基盤と手触りを分離しない
+### ゲーム側の要求へ適応すること
 
-低レイヤーの設計、並列実行、描画最適化だけでなく、カメラ、操作感、視認性、演出まで同じコードベースで検証する。
+汎用エンジンの制約へゲームを合わせるのではなく、ゲーム固有のAdapterやServiceを追加し、必要であればEngine内部の契約も拡張する。
+
+</td>
+<td width="33%" valign="top">
+
+### 基盤と体験を同時に検証すること
+
+低レイヤー設計、並列実行、描画最適化だけでなく、カメラ、操作感、視認性、演出までを同一コードベース上で検証する。
 
 </td>
 </tr>
@@ -71,7 +71,7 @@
 | **Animation / VFX** | Compute Shader Skinning、Animation Blend、Particle、Effekseer、Terrain、Wave Mesh |
 | **Scripting** | C++ Reflection、YAML Serialization、Inspector自動生成、C# DLL Hot Reload |
 | **Local AI** | llama.cppを利用したEditor内ローカルLLM Agent、非同期推論、KV Cache、Context要約 |
-| **Platform** | Win32 Window、Keyboard / Mouse / XInput、XAudio2、複数Windowを見据えたService構成 |
+| **Platform** | Win32 Window、Keyboard / Mouse / XInput、XAudio2、複数Windowを想定したService構成 |
 
 ## アーキテクチャ
 
@@ -124,7 +124,7 @@ ECS World
   -> Editor / Player View
 ```
 
-設計の中心は、ECS WorldをRendererから直接参照させず、CPU側で抽出したRenderWorldを境界にすることだよ。Systemは処理を直接抱え込まずTaskを生成し、SchedulerがRead / Write Accessから実行依存を構築する。
+設計上の主要な境界は、ECS WorldをRendererから直接参照させず、CPU側で抽出したRenderWorldを介して描画情報を受け渡す点にある。Systemは処理単位となるTaskを生成し、SchedulerがRead / Write Accessから実行依存を構築する。
 
 詳細な移行契約と進捗は [`Docs/ECS_Scheduler_Migration_Plan.md`](Docs/ECS_Scheduler_Migration_Plan.md) を参照。
 
@@ -171,11 +171,11 @@ ECS World
 - Schedule / Render / Performance可視化
 - Editor内ローカルLLM Agent
 
-## このエンジンで開発中のゲーム
+## 開発中のゲームプロジェクト
 
-エンジン機能は抽象テストだけでなく、異なるゲームジャンルへ実際に適用して検証している。
+エンジン機能は抽象的なテストだけでなく、異なるゲームジャンルへ実際に適用することで検証している。
 
-| Project | 検証している領域 | Development |
+| Project | 主な検証領域 | Development |
 |---|---|---|
 | **3D Platformer Tech Demo** | Character Controller、PhysX、Camera Zone、Checkpoint、Boss、演出 | [PR #47](https://github.com/tetoyama/GameEngine/pull/47) |
 | **Mini-game Collection** | Multi-scene、短時間ゲームループ、CPU、Runtime UI、共通Presentation | [PR #48](https://github.com/tetoyama/GameEngine/pull/48) |
@@ -205,7 +205,7 @@ start GameEngine.sln
 Visual Studioで `Debug | x64` または `Release | x64` を選択し、`GameEngine` をビルドする。
 
 > [!NOTE]
-> 現在はWindows / DirectX 11を実動Backendとしている。上位描画層をNative API型から分離し、Direct3D 12 / Vulkanへ展開できるMulti-Backend RHIを段階的に構築中。
+> 現在の実動BackendはWindows / DirectX 11である。上位描画層をNative API型から分離し、Direct3D 12 / Vulkanへ展開可能なMulti-Backend RHIを段階的に構築している。
 
 ## Repository layout
 
@@ -225,17 +225,17 @@ GameEngine/
 
 ## Roadmap
 
-現在の中心課題は次の通り。
+現在は、以下の課題を中心に開発を進めている。
 
 1. ECS / Scheduler契約の強制と安全な並列実行
 2. ECS WorldとRenderWorldの分離完了
 3. Direct3D 11 Rendererの安定化とGPUボトルネック削減
 4. Multi-Backend RHIの段階的実装
-5. Editorの制作効率・可観測性・堅牢性向上
-6. ローカルLLM AgentをチャットUIからタスク実行基盤へ発展
-7. 複数ジャンルの実ゲームによるEngine API検証
+5. Editorの制作効率、可観測性、堅牢性の向上
+6. ローカルLLM Agentのタスク実行基盤への発展
+7. 複数ジャンルの実ゲームによるEngine APIの検証
 
-進行中の詳細は以下に集約している。
+進行中の設計と検証内容は、以下の資料に集約している。
 
 - [ECS / Scheduler / RHI Migration Plan](Docs/ECS_Scheduler_Migration_Plan.md)
 - [GPU Pixel Cost Optimization](Docs/Step19A_GPU_Pixel_Cost_Optimization.md)
@@ -263,7 +263,7 @@ GameEngine/
 
 ## License
 
-このリポジトリ全体に対するライセンスは、現時点では明示されていない。各Third-party componentには、それぞれのライセンスが適用される。
+本リポジトリ全体に適用されるライセンスは、現時点では明示されていない。各Third-party componentには、それぞれのライセンスが適用される。
 
 ---
 
