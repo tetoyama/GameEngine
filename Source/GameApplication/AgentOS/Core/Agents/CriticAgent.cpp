@@ -216,7 +216,10 @@ Result CriticAgent::Run(
 		hardFail = true;
 	}
 	if (failedEvidenceCount > 0) {
-		AddFailureOnce(out, "programmatic hard fail: failed or unsatisfied Tool evidence exists");
+		AddFailureOnce(
+			out,
+			"programmatic hard fail: failed tool or command-validation evidence exists "
+			"(including unsatisfied Tool results)");
 		hardFail = true;
 	}
 	if (requestPatchApplied) {
