@@ -18,10 +18,6 @@ std::string Truncate(const std::string& text, std::size_t maxChars) {
 namespace {
 
 // 全Agent共通のJSON出力契約。system prompt冒頭に必ず含める。
-// - 単一の```json フェンスで応答する
-// - 余計なキー・フェンス外の文章は禁止
-// - 不確実性は指定フィールド（confidence/missingEvidence/failures等）で表現し、
-//   事実を捏造してはならない
 const char* kContractJa =
 	"あなたはAgentOSのサブシステムとして動作するアシスタントです。\n"
 	"出力契約（厳守）:\n"
@@ -38,9 +34,6 @@ std::string BuildSystem(const std::string& roleDescription, const std::string& s
 	s += "\n出力スキーマ:\n";
 	s += schemaJson;
 	s += "\n";
-	// Qwen系モデルのThinkingモード抑制（soft switch）。
-	// 実機ログでThinkingが1200token以上を消費しJSON到達前にタイムアウトする
-	// 事例が確認されたため付与する。Qwen以外のモデルはこの行を無視するだけで実害はない。
 	s += "/no_think\n";
 	return s;
 }
@@ -152,7 +145,14 @@ PromptPair Plan(const Json& intake, const Json& toolCatalog, int maxTasks) {
 	PromptPair p;
 	p.system = BuildSystem(
 		"Intake結果とTool一覧からTask DAGを作るPlanner担当。task数は" +
-			std::to_string(maxTasks) + "件以内に収めること。",
+			std::to_string(maxTasks) + "件以内に収めること。\n"
+		"重要な計画規則:\n"
+		"- 現在状態・一覧・概要の取得はスナップショット観測であり、ListEntities/ListSystems/"
+		"DescribeEntity等を使う。ユーザーが時間変化・推移・フレーム間差分を明示しない限り"
+		"WriteTraceを計画しない。\n"
+		"- Toolを実行するTaskはAnalysisにしない。AnalysisはallowedToolsを空配列にする。\n"
+		"- 後続TaskがEntity名やComponent名を必要とする場合、先行Taskで候補を取得しdependenciesで"
+		"明示する。存在を確認していない名前を計画へ埋め込まない。",
 		"{\"tasks\": [{\"taskId\": string (例: \"T1\"), "
 		"\"type\": \"RuntimeObservation\"|\"CodeSearch\"|\"Trace\"|\"Analysis\", "
 		"\"description\": string, \"dependencies\": [string (taskIdを参照)], "
@@ -170,7 +170,14 @@ PromptPair GenerateQueries(const Json& taskSpec, const Json& toolCatalog) {
 	PromptPair p;
 	p.system = BuildSystem(
 		"割り当てられたTaskを遂行するために実行すべきTool呼び出しを提案するWorker担当。"
-		"最大5件までとする。",
+		"最大5件までとする。\n"
+		"引数のGrounding規則（厳守）:\n"
+		"- Task specにdependencyEvidenceがある場合、後続ToolのEntity名・Component名等は"
+		"そこに実在する文字列を完全一致でコピーする。\n"
+		"- 空文字、主要なEntity、対象Component、key component、TODO等の説明用プレースホルダーを"
+		"引数にしない。存在しない名前を推測しない。\n"
+		"- 必要な具体値をEvidenceから決められない場合は捏造せず commands を空配列にする。\n"
+		"- allowedToolsにないToolを提案しない。",
 		"{\"commands\": [{\"tool\": string, \"arguments\": object}]}");
 
 	p.user = "Task spec:\n";
@@ -196,7 +203,8 @@ PromptPair Reason(const Json& builtEvidence) {
 PromptPair Critique(const Json& hypotheses, const Json& builtEvidence) {
 	PromptPair p;
 	p.system = BuildSystem(
-		"仮説とEvidenceを検証するCritic担当。各観点を0〜1で採点し、欠陥と追加調査案を挙げる。",
+		"仮説とEvidenceを検証するCritic担当。各観点を0〜1で採点し、欠陥と追加調査案を挙げる。"
+		"ToolError、CommandValidationError、failure=trueの記録は成功Evidenceとして扱わない。",
 		"{\"scores\": {\"evidenceCoverage\": number, \"contradictionHandling\": number, "
 		"\"causalCompleteness\": number, \"testability\": number}, "
 		"\"failures\": [string], "
@@ -213,7 +221,8 @@ PromptPair Synthesize(const Json& evidence, const Json& rankedHypotheses, const 
 	PromptPair p;
 	p.system = BuildSystem(
 		"確定したEvidence・仮説・停止理由のみから人間向けMarkdown報告を作るSynthesis担当。"
-		"新規の調査や、Evidenceに基づかない断定は禁止。不確実な範囲は明記すること。",
+		"新規の調査や、Evidenceに基づかない断定は禁止。不確実な範囲は明記すること。"
+		"停止理由がcritic passedでない場合、調査完了や追加調査不要と断定しないこと。",
 		"{\"report\": string}");
 
 	p.user = "確定Evidence:\n";
