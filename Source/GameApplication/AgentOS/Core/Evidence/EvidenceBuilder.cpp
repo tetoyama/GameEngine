@@ -27,7 +27,6 @@ std::string DedupKey(const Evidence& e) {
 }
 
 // payloadから "target"（文字列）と "value" を取り出す。
-// どちらか欠けている、またはtargetが文字列でない場合はfalseを返す。
 bool ExtractTargetValue(const Evidence& e, std::string* targetOut, std::string* valueDumpOut) {
 	if (!e.payload.is_object()) {
 		return false;
@@ -43,6 +42,22 @@ bool ExtractTargetValue(const Evidence& e, std::string* targetOut, std::string* 
 	return true;
 }
 
+bool IsFailureEvidence(const Evidence& evidence) {
+	const std::string& sourceType = evidence.provenance.sourceType;
+	if (sourceType == "ToolError" || sourceType == "ToolResultError" ||
+	    sourceType == "CommandValidationError") {
+		return true;
+	}
+	if (!evidence.payload.is_object()) {
+		return false;
+	}
+	if (evidence.payload.value("failure", false)) {
+		return true;
+	}
+	return evidence.payload.contains("error") && evidence.payload.at("error").is_string() &&
+		!evidence.payload.at("error").get<std::string>().empty();
+}
+
 } // namespace
 
 EvidenceBuilder::BuiltEvidence EvidenceBuilder::Build() const {
@@ -54,15 +69,21 @@ EvidenceBuilder::BuiltEvidence EvidenceBuilder::Build() const {
 	for (const Evidence& e : evidences_) {
 		const std::string key = DedupKey(e);
 		if (seenKeys.count(key) != 0) {
-			continue; // 既出。先に追加された方を残す。
+			continue;
 		}
 		seenKeys.insert(key);
 		built.evidences.push_back(e);
 	}
 
+	for (const Evidence& evidence : built.evidences) {
+		if (IsFailureEvidence(evidence)) {
+			++built.failedEvidenceCount;
+		} else {
+			++built.usableEvidenceCount;
+		}
+	}
+
 	// --- 矛盾検出 ---
-	// ルール1: 同一target（文字列）・同一frame（>=0）でvalueが食い違う。
-	// ルール2: claim文字列が完全一致し、payload["value"]が食い違う。
 	const std::size_t n = built.evidences.size();
 	for (std::size_t i = 0; i < n; ++i) {
 		for (std::size_t j = i + 1; j < n; ++j) {
@@ -96,17 +117,19 @@ EvidenceBuilder::BuiltEvidence EvidenceBuilder::Build() const {
 		}
 	}
 
-	// --- Coverage ---
+	// --- Coverage: 成功Evidenceだけを数える ---
 	if (plannedTasks_.empty()) {
 		built.coverage = 1.0;
 	} else {
-		std::unordered_set<TaskId> tasksWithEvidence;
-		for (const Evidence& e : built.evidences) {
-			tasksWithEvidence.insert(e.taskId);
+		std::unordered_set<TaskId> tasksWithUsableEvidence;
+		for (const Evidence& evidence : built.evidences) {
+			if (!IsFailureEvidence(evidence)) {
+				tasksWithUsableEvidence.insert(evidence.taskId);
+			}
 		}
 		std::size_t covered = 0;
 		for (const TaskId task : plannedTasks_) {
-			if (tasksWithEvidence.count(task) != 0) {
+			if (tasksWithUsableEvidence.count(task) != 0) {
 				++covered;
 			} else {
 				built.tasksWithoutEvidence.push_back(task);
@@ -139,6 +162,8 @@ Json EvidenceBuilder::ToJson(const BuiltEvidence& built) {
 
 	j["coverage"] = built.coverage;
 	j["tasksWithoutEvidence"] = built.tasksWithoutEvidence;
+	j["usableEvidenceCount"] = built.usableEvidenceCount;
+	j["failedEvidenceCount"] = built.failedEvidenceCount;
 
 	return j;
 }
