@@ -7,6 +7,7 @@
 
 #include <string>
 
+#include "../AgentOsTypes.h"
 #include "../Json.h"
 
 namespace agentos {
