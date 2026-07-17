@@ -66,6 +66,13 @@ void TestRoutes() {
 		assert(route.arguments.at("component") == "LightComponent");
 	}
 	{
+		const auto route = componentquery::Resolve(
+			"PlayerのTransformComponentの設定を教えて");
+		assert(route.tool == "ReadComponent");
+		assert(route.arguments.at("entityName") == "Player");
+		assert(route.arguments.at("component") == "TransformComponent");
+	}
+	{
 		// Scene全体の要求はListEntitiesだけに短絡せず、
 		// PlannerのScene Snapshot経路へ渡す。
 		const auto route = componentquery::Resolve("今のシーンの状況を教えて");
