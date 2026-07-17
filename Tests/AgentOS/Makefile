@@ -29,6 +29,7 @@ SQLITE_SRC = Source/GameApplication/Backends/sqlite/sqlite3.c
 SQLITE_OBJ = $(BUILD_DIR)/sqlite3.o
 
 TESTS = AgentOSCommandPipelineSmokeTest \
+        AgentOSAuditSinkDedupSmokeTest \
         AgentOSTaskStoreSmokeTest \
         AgentOSEvidenceLogicSmokeTest \
         AgentOSVerticalSliceSmokeTest
