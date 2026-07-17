@@ -20,10 +20,16 @@ double Clamp01(double v) {
 	return v;
 }
 
+bool IsSceneSnapshotSource(const std::string& sourceType) {
+	return sourceType == "Tool:ListEntities" || sourceType == "Tool:ListSystems" ||
+		sourceType == "Tool:DescribeEntity";
+}
+
 bool IsCompleteSceneSnapshot(const Json& builtEvidenceJson, Json* evidenceIdsOut) {
 	if (!builtEvidenceJson.is_object() || builtEvidenceJson.value("coverage", 0.0) < 1.0 ||
 	    builtEvidenceJson.value("failedEvidenceCount", std::size_t(0)) != 0 ||
-	    !builtEvidenceJson.contains("evidences") || !builtEvidenceJson.at("evidences").is_array()) {
+	    !builtEvidenceJson.contains("evidences") || !builtEvidenceJson.at("evidences").is_array() ||
+	    builtEvidenceJson.at("evidences").empty()) {
 		return false;
 	}
 
@@ -31,16 +37,18 @@ bool IsCompleteSceneSnapshot(const Json& builtEvidenceJson, Json* evidenceIdsOut
 	bool hasSystems = false;
 	Json evidenceIds = Json::array();
 	for (const Json& evidence : builtEvidenceJson.at("evidences")) {
-		if (!evidence.is_object()) {
-			continue;
+		if (!evidence.is_object() || !evidence.contains("provenance") ||
+		    !evidence.at("provenance").is_object()) {
+			return false;
 		}
+		const std::string sourceType = evidence.at("provenance").value("sourceType", std::string());
+		if (!IsSceneSnapshotSource(sourceType)) {
+			return false; // Trace/CodeSearch等が1件でも混ざる調査は通常推論へ戻す。
+		}
+		hasEntities = hasEntities || sourceType == "Tool:ListEntities";
+		hasSystems = hasSystems || sourceType == "Tool:ListSystems";
 		if (evidence.contains("id") && evidence.at("id").is_number_integer()) {
 			evidenceIds.push_back(evidence.at("id"));
-		}
-		if (evidence.contains("provenance") && evidence.at("provenance").is_object()) {
-			const std::string sourceType = evidence.at("provenance").value("sourceType", std::string());
-			hasEntities = hasEntities || sourceType == "Tool:ListEntities";
-			hasSystems = hasSystems || sourceType == "Tool:ListSystems";
 		}
 	}
 
@@ -87,8 +95,6 @@ Result ReasoningAgent::Run(AgentContext& ctx, const Json& builtEvidenceJson, Log
 		*rawOut = raw;
 	}
 
-	// LLM出力が参照してよいEvidence IDは、実際に統合Evidenceへ含まれるものだけ。
-	// それ以外はLLMの捏造とみなし、黙って捨てる（構想§3の信頼境界）。
 	std::unordered_set<std::int64_t> validEvidenceIds;
 	if (builtEvidenceJson.is_object() && builtEvidenceJson.contains("evidences") &&
 	    builtEvidenceJson.at("evidences").is_array()) {
