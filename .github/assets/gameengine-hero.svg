@@ -1,0 +1,113 @@
+<svg width="1200" height="440" viewBox="0 0 1200 440" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="background" x1="70" y1="24" x2="1110" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0A1020"/>
+      <stop offset="0.52" stop-color="#111A33"/>
+      <stop offset="1" stop-color="#080D18"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="176" y1="100" x2="672" y2="338" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#59D8FF"/>
+      <stop offset="0.48" stop-color="#8B7CFF"/>
+      <stop offset="1" stop-color="#FF9D5C"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="746" y1="78" x2="1082" y2="364" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1D2947"/>
+      <stop offset="1" stop-color="#10182C"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(904 210) rotate(90) scale(235 310)">
+      <stop stop-color="#695CFF" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#695CFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000000" flood-opacity="0.28"/>
+    </filter>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" stroke="#6E7FA8" stroke-opacity="0.09"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="440" rx="28" fill="url(#background)"/>
+  <rect width="1200" height="440" rx="28" fill="url(#grid)"/>
+  <rect width="1200" height="440" rx="28" fill="url(#glow)"/>
+  <rect x="0.75" y="0.75" width="1198.5" height="438.5" rx="27.25" stroke="#7184B3" stroke-opacity="0.26" stroke-width="1.5"/>
+
+  <g opacity="0.9">
+    <circle cx="54" cy="48" r="5" fill="#FF6B6B"/>
+    <circle cx="73" cy="48" r="5" fill="#FFD166"/>
+    <circle cx="92" cy="48" r="5" fill="#55D88A"/>
+    <path d="M116 48H262" stroke="#91A1C5" stroke-opacity="0.28" stroke-width="2" stroke-linecap="round"/>
+  </g>
+
+  <g>
+    <rect x="74" y="90" width="124" height="30" rx="15" fill="#14223C" stroke="#4D638E" stroke-opacity="0.65"/>
+    <circle cx="93" cy="105" r="5" fill="#59D8FF"/>
+    <text x="107" y="110" fill="#B7C7E8" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="600" letter-spacing="1.8">PERSONAL ENGINE</text>
+
+    <text x="72" y="194" fill="#F5F7FF" font-family="Segoe UI, Arial, sans-serif" font-size="72" font-weight="800" letter-spacing="-3">GameEngine</text>
+    <rect x="74" y="218" width="505" height="5" rx="2.5" fill="url(#accent)"/>
+
+    <text x="74" y="266" fill="#CBD5EE" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="500">Build the engine behind the game.</text>
+    <text x="74" y="301" fill="#8798BD" font-family="Segoe UI, Arial, sans-serif" font-size="16">C++20  /  DirectX 11  /  ECS  /  Editor  /  Local LLM</text>
+
+    <g transform="translate(74 336)">
+      <rect width="104" height="34" rx="9" fill="#14243D" stroke="#315379"/>
+      <text x="52" y="22" text-anchor="middle" fill="#70DFFF" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">DATA-ORIENTED</text>
+      <rect x="116" width="108" height="34" rx="9" fill="#1B1D40" stroke="#4E4F8C"/>
+      <text x="170" y="22" text-anchor="middle" fill="#A89EFF" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">EXTENSIBLE</text>
+      <rect x="236" width="110" height="34" rx="9" fill="#352317" stroke="#765038"/>
+      <text x="291" y="22" text-anchor="middle" fill="#FFB47E" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">GAME-FIRST</text>
+    </g>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="700" y="72" width="416" height="306" rx="18" fill="url(#panel)" stroke="#5F729D" stroke-opacity="0.48"/>
+    <rect x="700" y="72" width="416" height="42" rx="18" fill="#1C2945"/>
+    <path d="M700 96C700 82.7452 710.745 72 724 72H1092C1105.25 72 1116 82.7452 1116 96V114H700V96Z" fill="#1C2945"/>
+    <circle cx="725" cy="93" r="4" fill="#59D8FF"/>
+    <text x="739" y="98" fill="#AFC0E2" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="600">SCENE / SCHEDULER / RENDER WORLD</text>
+
+    <rect x="720" y="133" width="105" height="224" rx="10" fill="#10182B" stroke="#394A70" stroke-opacity="0.72"/>
+    <text x="736" y="156" fill="#7F91B7" font-family="Segoe UI, Arial, sans-serif" font-size="10" font-weight="700" letter-spacing="1">HIERARCHY</text>
+    <g fill="#202F50">
+      <rect x="735" y="174" width="72" height="8" rx="4"/>
+      <rect x="747" y="194" width="60" height="8" rx="4"/>
+      <rect x="747" y="214" width="48" height="8" rx="4"/>
+      <rect x="735" y="244" width="68" height="8" rx="4"/>
+      <rect x="747" y="264" width="54" height="8" rx="4"/>
+      <rect x="735" y="294" width="58" height="8" rx="4"/>
+      <rect x="747" y="314" width="43" height="8" rx="4"/>
+    </g>
+    <circle cx="728" cy="178" r="3" fill="#59D8FF"/>
+    <circle cx="740" cy="198" r="3" fill="#8B7CFF"/>
+    <circle cx="740" cy="218" r="3" fill="#FF9D5C"/>
+
+    <rect x="839" y="133" width="257" height="136" rx="10" fill="#0D1527" stroke="#394A70" stroke-opacity="0.72"/>
+    <path d="M839 233L890 195L931 214L975 168L1030 190L1096 148" stroke="#59D8FF" stroke-opacity="0.28" stroke-width="1.5"/>
+    <path d="M839 252L889 225L936 239L987 204L1041 224L1096 190" stroke="#8B7CFF" stroke-opacity="0.28" stroke-width="1.5"/>
+    <circle cx="889" cy="195" r="14" fill="#142C42" stroke="#59D8FF"/>
+    <circle cx="931" cy="214" r="14" fill="#20204A" stroke="#8B7CFF"/>
+    <circle cx="975" cy="168" r="14" fill="#342417" stroke="#FF9D5C"/>
+    <circle cx="1030" cy="190" r="14" fill="#142C42" stroke="#59D8FF"/>
+    <path d="M903 195H917" stroke="#7185B2" stroke-width="2" stroke-linecap="round"/>
+    <path d="M945 205L961 178" stroke="#7185B2" stroke-width="2" stroke-linecap="round"/>
+    <path d="M989 172L1016 186" stroke="#7185B2" stroke-width="2" stroke-linecap="round"/>
+    <text x="854" y="154" fill="#7F91B7" font-family="Segoe UI, Arial, sans-serif" font-size="10" font-weight="700" letter-spacing="1">SYSTEM GRAPH</text>
+
+    <rect x="839" y="283" width="257" height="74" rx="10" fill="#10182B" stroke="#394A70" stroke-opacity="0.72"/>
+    <text x="854" y="304" fill="#7F91B7" font-family="Segoe UI, Arial, sans-serif" font-size="10" font-weight="700" letter-spacing="1">FRAME PIPELINE</text>
+    <g>
+      <rect x="854" y="319" width="44" height="20" rx="6" fill="#14304A"/>
+      <rect x="905" y="319" width="44" height="20" rx="6" fill="#1D2850"/>
+      <rect x="956" y="319" width="44" height="20" rx="6" fill="#2E2547"/>
+      <rect x="1007" y="319" width="36" height="20" rx="6" fill="#3B281B"/>
+      <rect x="1050" y="319" width="31" height="20" rx="6" fill="#14304A"/>
+      <text x="876" y="333" text-anchor="middle" fill="#80E3FF" font-family="Segoe UI, Arial, sans-serif" font-size="8" font-weight="700">ECS</text>
+      <text x="927" y="333" text-anchor="middle" fill="#9FA7FF" font-family="Segoe UI, Arial, sans-serif" font-size="8" font-weight="700">TASK</text>
+      <text x="978" y="333" text-anchor="middle" fill="#B8A0FF" font-family="Segoe UI, Arial, sans-serif" font-size="8" font-weight="700">WORLD</text>
+      <text x="1025" y="333" text-anchor="middle" fill="#FFC08F" font-family="Segoe UI, Arial, sans-serif" font-size="8" font-weight="700">RHI</text>
+      <text x="1066" y="333" text-anchor="middle" fill="#80E3FF" font-family="Segoe UI, Arial, sans-serif" font-size="8" font-weight="700">GPU</text>
+    </g>
+  </g>
+
+  <path d="M661 102V338" stroke="url(#accent)" stroke-opacity="0.45" stroke-width="2" stroke-dasharray="4 9"/>
+</svg>
