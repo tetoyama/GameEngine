@@ -186,6 +186,7 @@ AgentOSService::~AgentOSService() = default;
 void AgentOSService::Initialize(AgentOSServiceContext context) {
 	m_context = std::move(context);
 	m_shutdownRequested.store(false, std::memory_order_release);
+	m_llmLoadState.store(LlmLoadState::Unloaded, std::memory_order_release);
 
 	m_engineToolContext.sceneManager = m_context.sceneManager;
 	m_engineToolContext.debugLog = m_context.debugLog;
@@ -228,8 +229,7 @@ void AgentOSService::Shutdown() {
 	m_llmBackend.reset();
 	m_llmAgent.reset();
 	m_pipeline.reset();
-	m_llmReady = false;
-	m_llmLoadAttempted = false;
+	m_llmLoadState.store(LlmLoadState::Unloaded, std::memory_order_release);
 
 	{
 		std::lock_guard<std::mutex> lock(m_transcriptMutex);
@@ -473,16 +473,16 @@ bool AgentOSService::TryRunDeterministicFastPath(const std::string& request) {
 }
 
 bool AgentOSService::EnsureLlmReady() {
-	if(m_llmReady) return true;
+	if(m_llmLoadState.load(std::memory_order_acquire) == LlmLoadState::Ready) return true;
 	if(m_shutdownRequested.load(std::memory_order_acquire)) return false;
 	if(!m_context.llamaService) return false;
 
-	m_llmLoadAttempted = true;
+	m_llmLoadState.store(LlmLoadState::Loading, std::memory_order_release);
 	SetStage("loading_model");
 
 	const bool loaded = m_context.llamaService->LoadModel(m_context.modelPath);
 	if(!loaded){
-		m_llmLoadAttempted = false; // 次回Requestで再試行可能にする。
+		m_llmLoadState.store(LlmLoadState::RetryableFailure, std::memory_order_release);
 		if(m_context.debugLog){
 			m_context.debugLog->LOG_ERROR(
 				"AgentOSService: LoadModel failed: " + m_context.modelPath);
@@ -492,7 +492,7 @@ bool AgentOSService::EnsureLlmReady() {
 
 	auto model = m_context.llamaService->GetModel(m_context.modelPath);
 	if(!model){
-		m_llmLoadAttempted = false;
+		m_llmLoadState.store(LlmLoadState::RetryableFailure, std::memory_order_release);
 		if(m_context.debugLog){
 			m_context.debugLog->LOG_ERROR(
 				"AgentOSService: model unavailable after load: " + m_context.modelPath);
@@ -509,7 +509,7 @@ bool AgentOSService::EnsureLlmReady() {
 
 	m_llmAgent = m_context.llamaService->CreateAgent(model, config);
 	if(!m_llmAgent){
-		m_llmLoadAttempted = false;
+		m_llmLoadState.store(LlmLoadState::RetryableFailure, std::memory_order_release);
 		if(m_context.debugLog){
 			m_context.debugLog->LOG_ERROR("AgentOSService: CreateAgent failed.");
 		}
@@ -527,7 +527,8 @@ bool AgentOSService::EnsureLlmReady() {
 				"llm_call",
 				{{"elapsedMs", std::to_string(stats.elapsedMillis)},
 				 {"promptChars", std::to_string(stats.promptChars)},
-				 {"completionChars", std::to_string(stats.completionChars)}},
+				 {"completionChars", std::to_string(stats.completionChars)},
+				 {"stopReason", stats.stopReason}},
 				{{"system", systemPrompt},
 				 {"user", userPrompt},
 				 {"output", output}}
@@ -535,7 +536,7 @@ bool AgentOSService::EnsureLlmReady() {
 		}
 	);
 
-	m_llmReady = true;
+	m_llmLoadState.store(LlmLoadState::Ready, std::memory_order_release);
 	return true;
 }
 
