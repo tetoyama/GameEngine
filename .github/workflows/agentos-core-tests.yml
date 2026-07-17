@@ -1,0 +1,29 @@
+name: AgentOS Core Tests
+
+on:
+  push:
+    branches:
+      - llm-agent
+    paths:
+      - "Source/GameApplication/AgentOS/Core/**"
+      - "Tests/AgentOS*"
+      - "Tests/AgentOS/**"
+      - ".github/workflows/agentos-core-tests.yml"
+  pull_request:
+    paths:
+      - "Source/GameApplication/AgentOS/Core/**"
+      - "Tests/AgentOS*"
+      - "Tests/AgentOS/**"
+      - ".github/workflows/agentos-core-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  core-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and run AgentOS core tests
+        run: make -f Tests/AgentOS/Makefile -j2
