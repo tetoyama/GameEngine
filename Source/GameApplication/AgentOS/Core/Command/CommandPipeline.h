@@ -26,50 +26,33 @@
 
 namespace agentos {
 
-// ---------------------------------
-// 監査シンク
-// Submit()の結果（成否問わず）を受け取る。SQLite永続化・UI表示等はこれを実装する。
-// ---------------------------------
 class IAuditSink {
 public:
 	virtual ~IAuditSink() = default;
 	virtual void OnCommand(const CommandRequest& request, const CommandResult& result) = 0;
 };
 
-// ---------------------------------
-// Pipeline設定
-// ---------------------------------
 struct CommandPipelineConfig {
-	// このレベル以上を要求するToolはHuman Approval Gateを通す。
 	PermissionLevel approvalRequiredAtOrAbove = PermissionLevel::Modify;
 };
 
-// ---------------------------------
-// CommandPipeline
-// スレッドセーフ。Tool登録・Submitともに複数スレッドから呼んでよい。
-// ---------------------------------
 class CommandPipeline {
 public:
 	explicit CommandPipeline(CapabilityRegistry* capabilityRegistry, CommandPipelineConfig config = {});
 
-	// Descriptor().nameをキーに登録する。同名Toolの再登録は置き換える。
 	void RegisterTool(std::shared_ptr<ICommandExecutor> tool);
 
+	// 同じ動的型のSinkは置換する。Sessionごとに同じSQLite Sinkが追加され続けて
+	// Commandが二重・三重記録されることを防ぐ。
 	void AddAuditSink(std::shared_ptr<IAuditSink> sink);
+	bool HasAuditSinks() const;
 
-	// trueを返せば承認、falseまたは未設定ならAwaitingApprovalのまま保留する。
 	void SetApprovalHandler(std::function<bool(const CommandRequest&)> handler);
-
-	// nullptrを渡せばBudget検査自体を無効化できる（省略可能）。
 	void SetBudgetTracker(BudgetTracker* budgetTracker);
 
 	CommandResult Submit(CommandRequest request);
 
-	// 内蔵の監査ログ（AuditSinkとは別に常に記録される）を返す。
 	std::vector<std::pair<CommandRequest, CommandResult>> GetAuditLog() const;
-
-	// 登録済みTool一覧を {name, description, requiredPermission, argumentSchema} の配列で返す。
-	// LLMへTool catalogを提示する用途。
 	Json DescribeTools() const;
 
 private:
