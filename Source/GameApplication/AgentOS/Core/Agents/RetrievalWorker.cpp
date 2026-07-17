@@ -53,9 +53,7 @@ std::string LowerAscii(std::string value) {
 bool IsPlaceholderString(const std::string& raw) {
 	const std::string value = Trim(raw);
 	const std::string lower = LowerAscii(value);
-	if (value.empty()) {
-		return true;
-	}
+	if (value.empty()) return true;
 	if ((value.front() == '<' && value.back() == '>') ||
 	    lower == "todo" || lower == "tbd" || lower == "unknown" ||
 	    lower == "entity" || lower == "component" || lower == "entity_name" ||
@@ -77,17 +75,30 @@ bool IsPlaceholderString(const std::string& raw) {
 }
 
 bool PayloadRepresentsFailure(const Json& payload) {
-	if (!payload.is_object()) {
-		return false;
-	}
-	if (payload.value("failure", false)) {
-		return true;
-	}
+	if (!payload.is_object()) return false;
+	if (payload.value("failure", false)) return true;
 	if (payload.contains("error") && payload.at("error").is_string() &&
-	    !Trim(payload.at("error").get<std::string>()).empty()) {
-		return true;
+	    !Trim(payload.at("error").get<std::string>()).empty()) return true;
+	return false;
+}
+
+bool PayloadRepresentsUnsatisfied(const Json& payload) {
+	if (!payload.is_object()) return false;
+	for (const char* key : {"found", "exists", "satisfied"}) {
+		if (payload.contains(key) && payload.at(key).is_boolean() &&
+		    !payload.at(key).get<bool>()) return true;
+	}
+	if (payload.contains("status") && payload.at("status").is_string()) {
+		const std::string status = LowerAscii(payload.at("status").get<std::string>());
+		return status == "not_found" || status == "unsatisfied" || status == "missing";
 	}
 	return false;
+}
+
+void StampRevision(Json* payload) {
+	if (payload == nullptr) return;
+	if (!payload->is_object()) *payload = Json::object({{"raw", *payload}});
+	(*payload)["requestRevision"] = prompts::CurrentRequestRevision();
 }
 
 void AddStoredEvidence(AgentContext& ctx, Evidence evidence, std::vector<Evidence>* evidenceOut) {
@@ -107,15 +118,11 @@ Result ResolveDependencyEvidence(AgentContext& ctx, TaskId storeTaskId, const Js
 	}
 
 	const std::optional<TaskRow> current = ctx.store->GetTask(storeTaskId);
-	if (!current) {
-		return Result::Fail("RetrievalWorker: current task is missing from TaskStore");
-	}
+	if (!current) return Result::Fail("RetrievalWorker: current task is missing from TaskStore");
 	const std::vector<TaskRow> siblings = ctx.store->GetChildren(current->parentId);
 
 	for (const Json& depValue : taskSpec.at("dependencies")) {
-		if (!depValue.is_string()) {
-			return Result::Fail("RetrievalWorker: dependency id is not a string");
-		}
+		if (!depValue.is_string()) return Result::Fail("RetrievalWorker: dependency id is not a string");
 		const std::string depId = depValue.get<std::string>();
 		const TaskRow* dependency = nullptr;
 		for (const TaskRow& candidate : siblings) {
@@ -129,7 +136,7 @@ Result ResolveDependencyEvidence(AgentContext& ctx, TaskId storeTaskId, const Js
 		}
 		if (dependency->state != TaskState::Succeeded) {
 			return Result::Fail(
-				"RetrievalWorker: dependency '" + depId + "' did not succeed (state=" +
+				"RetrievalWorker: dependency '" + depId + "' did not satisfy its task (state=" +
 				ToString(dependency->state) + ")");
 		}
 
@@ -148,35 +155,27 @@ Result ResolveDependencyEvidence(AgentContext& ctx, TaskId storeTaskId, const Js
 }
 
 const Json* FindToolDescriptor(const Json& catalog, const std::string& toolName) {
-	if (!catalog.is_array()) {
-		return nullptr;
-	}
+	if (!catalog.is_array()) return nullptr;
 	for (const Json& entry : catalog) {
-		if (entry.is_object() && entry.value("name", std::string()) == toolName) {
-			return &entry;
-		}
+		if (entry.is_object() && entry.value("name", std::string()) == toolName) return &entry;
 	}
 	return nullptr;
 }
 
 bool SchemaHasRequiredFields(const Json& descriptor) {
 	if (!descriptor.is_object() || !descriptor.contains("argumentSchema") ||
-	    !descriptor.at("argumentSchema").is_object()) {
-		return false;
-	}
+	    !descriptor.at("argumentSchema").is_object()) return false;
 	for (const auto& item : descriptor.at("argumentSchema").items()) {
-		if (item.value().is_object() && item.value().value("required", false)) {
-			return true;
-		}
+		if (item.value().is_object() && item.value().value("required", false)) return true;
 	}
 	return false;
 }
 
 void CollectNamedEntities(const Json& value, std::vector<std::string>* names) {
-	if (names->size() >= 5) {
-		return;
-	}
+	if (names->size() >= 5) return;
 	if (value.is_object()) {
+		// found=false等の負の結果は、その内部の検索語を正のBindingとして収集しない。
+		if (PayloadRepresentsUnsatisfied(value) || PayloadRepresentsFailure(value)) return;
 		if (value.contains("name") && value.at("name").is_string()) {
 			const std::string name = Trim(value.at("name").get<std::string>());
 			if (!name.empty() && !IsPlaceholderString(name) &&
@@ -202,14 +201,10 @@ Json BuildDeterministicCommands(
 	const Json& dependencyEvidence) {
 
 	Json commands = Json::array();
-	if (allowed.size() != 1) {
-		return commands;
-	}
+	if (allowed.size() != 1) return commands;
 	const std::string toolName = *allowed.begin();
 	const Json* descriptor = FindToolDescriptor(filteredCatalog, toolName);
-	if (descriptor == nullptr) {
-		return commands;
-	}
+	if (descriptor == nullptr) return commands;
 
 	if (!SchemaHasRequiredFields(*descriptor)) {
 		commands.push_back(Json::object({{"tool", toolName}, {"arguments", Json::object()}}));
@@ -228,6 +223,21 @@ Json BuildDeterministicCommands(
 		}
 	}
 	return commands;
+}
+
+Json ParseExplicitCommands(const Json& taskSpec) {
+	if (!taskSpec.is_object()) return Json::array();
+	if (taskSpec.contains("commands") && taskSpec.at("commands").is_array()) {
+		return taskSpec.at("commands");
+	}
+	const std::string description = taskSpec.value("description", std::string());
+	const std::string marker = "REPAIR_COMMAND ";
+	const std::size_t pos = description.find(marker);
+	if (pos == std::string::npos) return Json::array();
+	const std::string encoded = Trim(description.substr(pos + marker.size()));
+	Json command = Json::parse(encoded, nullptr, false);
+	if (!command.is_object() || command.is_discarded()) return Json::array();
+	return Json::array({command});
 }
 
 Result ValidateGroundedValue(
@@ -297,10 +307,9 @@ Evidence MakeFailureEvidence(
 	Evidence evidence;
 	evidence.taskId = storeTaskId;
 	evidence.claim = claim;
-	if (!payload.is_object()) {
-		payload = Json::object({{"raw", std::move(payload)}});
-	}
+	if (!payload.is_object()) payload = Json::object({{"raw", std::move(payload)}});
 	payload["failure"] = true;
+	StampRevision(&payload);
 	evidence.payload = std::move(payload);
 	evidence.provenance.sourceType = sourceType;
 	evidence.provenance.sourceUri = sourceUri;
@@ -311,54 +320,50 @@ Evidence MakeFailureEvidence(
 
 } // namespace
 
-Result RetrievalWorker::Run(AgentContext& ctx, TaskId storeTaskId, const Json& taskSpec,
-                             std::vector<Evidence>* evidenceOut, Json* summaryOut) {
-	if (evidenceOut == nullptr) {
-		return Result::Fail("RetrievalWorker: evidenceOut is null");
-	}
+Result RetrievalWorker::Run(
+	AgentContext& ctx,
+	TaskId storeTaskId,
+	const Json& taskSpec,
+	std::vector<Evidence>* evidenceOut,
+	Json* summaryOut) {
+	if (evidenceOut == nullptr) return Result::Fail("RetrievalWorker: evidenceOut is null");
 	if (ctx.pipeline == nullptr || ctx.store == nullptr) {
 		return Result::Fail("RetrievalWorker: pipeline or store is null");
 	}
 
-	// --- 依存Taskは成功済みの場合だけ使用し、その結果とEvidenceを後続Workerへ渡す ---
 	Json dependencyEvidence;
 	Result dependencyResult = ResolveDependencyEvidence(ctx, storeTaskId, taskSpec, &dependencyEvidence);
 	if (!dependencyResult) {
 		if (summaryOut != nullptr) {
 			*summaryOut = Json::object({
-				{"executed", 0}, {"failed", 0}, {"rejected", 0}, {"skipped", true},
+				{"executed", 0}, {"failed", 1}, {"rejected", 0}, {"skipped", true},
+				{"outcome", "DependencyUnsatisfied"},
 				{"coverageNote", dependencyResult.error},
 			});
 		}
 		return dependencyResult;
 	}
 
-	// --- taskSpec.allowedToolsのみに絞ったTool catalogを作る ---
 	std::unordered_set<std::string> allowed;
 	if (taskSpec.is_object() && taskSpec.contains("allowedTools") && taskSpec.at("allowedTools").is_array()) {
-		for (const auto& tool : taskSpec.at("allowedTools")) {
-			if (tool.is_string()) {
-				allowed.insert(tool.get<std::string>());
-			}
+		for (const Json& tool : taskSpec.at("allowedTools")) {
+			if (tool.is_string()) allowed.insert(tool.get<std::string>());
 		}
 	}
-	if (allowed.empty()) {
-		return Result::Fail("RetrievalWorker: task has no allowed tools");
-	}
+	if (allowed.empty()) return Result::Fail("RetrievalWorker: task has no allowed tools");
 
 	Json filteredCatalog = Json::array();
 	const Json fullCatalog = ctx.pipeline->DescribeTools();
 	if (fullCatalog.is_array()) {
-		for (const auto& entry : fullCatalog) {
+		for (const Json& entry : fullCatalog) {
 			if (entry.is_object() && entry.contains("name") && entry.at("name").is_string() &&
 			    allowed.count(entry.at("name").get<std::string>()) != 0) {
 				filteredCatalog.push_back(entry);
 			}
 		}
-	}
 
-	// 引数不要の単一Toolと、ListEntities結果からのDescribeEntityはLLMを介さず決定的に生成する。
-	Json commands = BuildDeterministicCommands(allowed, filteredCatalog, dependencyEvidence);
+	Json commands = ParseExplicitCommands(taskSpec);
+	if (commands.empty()) commands = BuildDeterministicCommands(allowed, filteredCatalog, dependencyEvidence);
 	if (commands.empty()) {
 		Json augmentedTaskSpec = taskSpec;
 		augmentedTaskSpec["dependencyEvidence"] = dependencyEvidence;
@@ -377,14 +382,17 @@ Result RetrievalWorker::Run(AgentContext& ctx, TaskId storeTaskId, const Json& t
 	int succeeded = 0;
 	int failed = 0;
 	int rejected = 0;
+	int unsatisfied = 0;
 
-	const std::size_t limit = std::min<std::size_t>(commands.size(), 5);
+	const std::size_t limit = (std::min<std::size_t>)(commands.size(), 5);
 	for (std::size_t i = 0; i < limit; ++i) {
 		const Json& command = commands[i];
 		Result grounded = ValidateGroundedCommand(command, allowed, dependencyEvidence);
 		if (!grounded) {
 			++rejected;
-			const std::string toolName = command.is_object() ? command.value("tool", std::string("?")) : "?";
+			const std::string toolName = command.is_object()
+				? command.value("tool", std::string("?"))
+				: "?";
 			AddStoredEvidence(ctx, MakeFailureEvidence(
 				ctx, storeTaskId, "CommandValidationError", toolName,
 				"Tool command rejected before execution: " + grounded.error,
@@ -415,8 +423,17 @@ Result RetrievalWorker::Run(AgentContext& ctx, TaskId storeTaskId, const Json& t
 			++failed;
 			AddStoredEvidence(ctx, MakeFailureEvidence(
 				ctx, storeTaskId, "ToolResultError", toolName,
-				"Tool " + toolName + " returned an error result",
-				result.payload), evidenceOut);
+				"Tool " + toolName + " returned an error result", result.payload), evidenceOut);
+			break;
+		}
+		if (PayloadRepresentsUnsatisfied(result.payload)) {
+			++unsatisfied;
+			Json payload = result.payload;
+			payload["unsatisfied"] = true;
+			payload["arguments"] = arguments;
+			AddStoredEvidence(ctx, MakeFailureEvidence(
+				ctx, storeTaskId, "ToolUnsatisfied", toolName,
+				"Tool " + toolName + " completed but did not satisfy the task", payload), evidenceOut);
 			break;
 		}
 
@@ -425,6 +442,7 @@ Result RetrievalWorker::Run(AgentContext& ctx, TaskId storeTaskId, const Json& t
 		evidence.taskId = storeTaskId;
 		evidence.claim = ExtractClaim(result.payload, toolName);
 		evidence.payload = result.payload;
+		StampRevision(&evidence.payload);
 		evidence.provenance.sourceType = "Tool:" + toolName;
 		evidence.provenance.sourceUri = toolName;
 		evidence.provenance.session = "session_" + std::to_string(ctx.sessionId);
@@ -437,24 +455,29 @@ Result RetrievalWorker::Run(AgentContext& ctx, TaskId storeTaskId, const Json& t
 		summary["attempted"] = attempted;
 		summary["executed"] = succeeded;
 		summary["failed"] = failed;
+		summary["unsatisfied"] = unsatisfied;
 		summary["rejected"] = rejected;
 		summary["skipped"] = false;
+		summary["requestRevision"] = prompts::CurrentRequestRevision();
 		summary["dependencyEvidence"] = dependencyEvidence;
+		summary["outcome"] = unsatisfied > 0
+			? "Unsatisfied"
+			: ((failed > 0 || rejected > 0) ? "Failed" : "Satisfied");
 		summary["coverageNote"] = "task '" + ExtractPlanTaskId(taskSpec) + "': succeeded=" +
 			std::to_string(succeeded) + " failed=" + std::to_string(failed) +
+			" unsatisfied=" + std::to_string(unsatisfied) +
 			" rejected=" + std::to_string(rejected);
 		*summaryOut = std::move(summary);
 	}
 
-	if (commands.empty()) {
-		return Result::Fail("RetrievalWorker: no grounded commands were generated");
-	}
+	if (commands.empty()) return Result::Fail("RetrievalWorker: no grounded commands were generated");
 	if (failed > 0 || rejected > 0) {
 		return Result::Fail("RetrievalWorker: one or more commands failed or were rejected");
 	}
-	if (succeeded == 0) {
-		return Result::Fail("RetrievalWorker: no command completed successfully");
+	if (unsatisfied > 0) {
+		return Result::Fail("RetrievalWorker: command completed but task outcome was Unsatisfied");
 	}
+	if (succeeded == 0) return Result::Fail("RetrievalWorker: no command completed successfully");
 	return Result::Ok();
 }
 
