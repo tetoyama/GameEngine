@@ -8,6 +8,7 @@
 #include <typeinfo>
 
 #include "CommandSchema.h"
+#include "../Llm/PromptTemplates.h"
 
 namespace agentos {
 
@@ -85,6 +86,17 @@ CommandResult CommandPipeline::Submit(CommandRequest request) {
 	Result schemaResult = SchemaValidator::Validate(request.arguments, descriptor.argumentSchema);
 	if(!schemaResult){
 		CommandResult result = CommandResult::Fail(CommandStatus::SchemaRejected, schemaResult.error);
+		Audit(request, result);
+		return result;
+	}
+
+	// 会話上の「私は誰」「あなたは誰」をScene Entity探索へ変換することを、
+	// DirectReplyのプロンプトだけでなく実行境界でも拒否する。
+	if(request.issuer == "QuickPath" && prompts::CurrentRequestIsPersonalIdentityQuestion()){
+		CommandResult result = CommandResult::Fail(
+			CommandStatus::PreconditionRejected,
+			"personal conversation request cannot be executed as an Engine Tool"
+		);
 		Audit(request, result);
 		return result;
 	}
