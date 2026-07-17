@@ -15,6 +15,7 @@
   <img alt="DirectX 11" src="https://img.shields.io/badge/DirectX-11-59D8FF?style=flat-square&logo=windows&logoColor=0A1020" />
   <img alt="Windows x64" src="https://img.shields.io/badge/Windows-x64-0078D4?style=flat-square&logo=windows11&logoColor=white" />
   <img alt="Visual Studio 2022" src="https://img.shields.io/badge/Visual%20Studio-2022-8B7CFF?style=flat-square&logo=visualstudio&logoColor=white" />
+  <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-55D88A?style=flat-square" />
   <img alt="Active development" src="https://img.shields.io/badge/status-active%20development-FF9D5C?style=flat-square" />
 </p>
 
@@ -24,6 +25,7 @@
   <a href="#アーキテクチャ">Architecture</a> ·
   <a href="#開発中のゲームプロジェクト">Projects</a> ·
   <a href="#ビルド">Build</a> ·
+  <a href="#ライセンス">License</a> ·
   <a href="Docs/">Docs</a>
 </p>
 
@@ -173,9 +175,9 @@ ECS World
 
 ## 開発中のゲームプロジェクト
 
-エンジン機能は抽象的なテストだけでなく、異なるゲームジャンルへ実際に適用することで検証している。
+エンジン機能は抽象テストだけでなく、異なるゲームジャンルへ実際に適用して検証している。
 
-| Project | 主な検証領域 | Development |
+| Project | 検証している領域 | Development |
 |---|---|---|
 | **3D Platformer Tech Demo** | Character Controller、PhysX、Camera Zone、Checkpoint、Boss、演出 | [PR #47](https://github.com/tetoyama/GameEngine/pull/47) |
 | **Mini-game Collection** | Multi-scene、短時間ゲームループ、CPU、Runtime UI、共通Presentation | [PR #48](https://github.com/tetoyama/GameEngine/pull/48) |
@@ -205,7 +207,7 @@ start GameEngine.sln
 Visual Studioで `Debug | x64` または `Release | x64` を選択し、`GameEngine` をビルドする。
 
 > [!NOTE]
-> 現在の実動BackendはWindows / DirectX 11である。上位描画層をNative API型から分離し、Direct3D 12 / Vulkanへ展開可能なMulti-Backend RHIを段階的に構築している。
+> 現在はWindows / DirectX 11を実動Backendとしている。上位描画層をNative API型から分離し、Direct3D 12 / Vulkanへ展開できるMulti-Backend RHIを段階的に構築中である。
 
 ## Repository layout
 
@@ -225,17 +227,17 @@ GameEngine/
 
 ## Roadmap
 
-現在は、以下の課題を中心に開発を進めている。
+現在の中心課題は次の通り。
 
 1. ECS / Scheduler契約の強制と安全な並列実行
 2. ECS WorldとRenderWorldの分離完了
 3. Direct3D 11 Rendererの安定化とGPUボトルネック削減
 4. Multi-Backend RHIの段階的実装
-5. Editorの制作効率、可観測性、堅牢性の向上
-6. ローカルLLM Agentのタスク実行基盤への発展
-7. 複数ジャンルの実ゲームによるEngine APIの検証
+5. Editorの制作効率・可観測性・堅牢性向上
+6. ローカルLLM AgentをチャットUIからタスク実行基盤へ発展
+7. 複数ジャンルの実ゲームによるEngine API検証
 
-進行中の設計と検証内容は、以下の資料に集約している。
+進行中の詳細は以下に集約している。
 
 - [ECS / Scheduler / RHI Migration Plan](Docs/ECS_Scheduler_Migration_Plan.md)
 - [GPU Pixel Cost Optimization](Docs/Step19A_GPU_Pixel_Cost_Optimization.md)
@@ -261,9 +263,17 @@ GameEngine/
 
 </details>
 
-## License
+## ライセンス
 
-本リポジトリ全体に適用されるライセンスは、現時点では明示されていない。各Third-party componentには、それぞれのライセンスが適用される。
+本プロジェクトで独自に作成したソースコードおよび関連ドキュメントは、特に明記されていない限り [MIT License](LICENSE) の下で提供される。
+
+MIT Licenseは、商用・非商用を問わず、利用、複製、改変、統合、公開、再配布、サブライセンスおよび販売を許可する。コピーまたは本ソフトウェアの重要な部分を再配布する場合は、著作権表示およびMIT Licenseの許諾文を保持する必要がある。
+
+ゲーム内、README、スタッフロールなどでのクレジット表記は必須ではないが、以下の形式による表記を歓迎する。
+
+> Uses GameEngine by Tetora Yamazaki (tetoyama)
+
+第三者ライブラリ、同梱された外部ソースコード、モデル、テクスチャ、音声、フォントその他の外部素材には、それぞれの権利者が定めるライセンスが適用される。これらは本プロジェクトのMIT Licenseによって再ライセンスされない。
 
 ---
 
