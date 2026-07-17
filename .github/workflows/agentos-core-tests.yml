@@ -22,6 +22,7 @@ permissions:
 
 jobs:
   apply-component-query-fix:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout llm-agent
