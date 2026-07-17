@@ -5,8 +5,12 @@
 // =======================================================================
 #include "IntakeAgent.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cstddef>
 #include <string>
+#include <unordered_set>
+#include <vector>
 
 namespace agentos {
 
@@ -20,10 +24,22 @@ void NormalizeStringArray(const Json& raw, const char* key, Json* normalized) {
 	Json arr = Json::array();
 	if (raw.contains(key) && raw.at(key).is_array()) {
 		for (const auto& v : raw.at(key)) {
-			if (v.is_string()) arr.push_back(v.get<std::string>());
+			if (v.is_string() && !v.get<std::string>().empty()) arr.push_back(v.get<std::string>());
 		}
 	}
 	(*normalized)[key] = std::move(arr);
+}
+
+Json NormalizeReferencedSessionIds(const Json& raw) {
+	Json ids = Json::array();
+	if (!raw.is_object() || !raw.contains("referencedSessionIds") ||
+	    !raw.at("referencedSessionIds").is_array()) {
+		return ids;
+	}
+	for (const Json& value : raw.at("referencedSessionIds")) {
+		if (value.is_number_integer()) ids.push_back(value.get<SessionId>());
+	}
+	return ids;
 }
 
 std::string NormalizeRelation(const Json& raw) {
@@ -72,8 +88,6 @@ Json LatestTurnsOnly(const Json& context, const std::string& reason) {
 	return compact;
 }
 
-// 圧縮LLMが使えない場合の有界な累積要約。原文TurnはConversationTurnへ残るため、
-// ここではPrompt再構成に必要な目的と最終応答だけを最新側優先で残す。
 std::string BuildDeterministicSummary(
 	const std::string& existingSummary,
 	const Json& turnsToCompress) {
@@ -139,12 +153,132 @@ Result CompressStoredConversationIfNeeded(AgentContext& ctx, Json* context) {
 	*context = ctx.store->GetConversationContext(ctx.sessionId);
 	if (!generatedSummary) {
 		(*context)["contextDegraded"] = true;
-		(*context)["contextDegradedReason"] =
-			callResult
-				? "conversation compression returned no summary; deterministic summary used"
-				: "conversation compression LLM failed; deterministic summary used";
+		(*context)["contextDegradedReason"] = callResult
+			? "conversation compression returned no summary; deterministic summary used"
+			: "conversation compression LLM failed; deterministic summary used";
 	}
 	return Result::Ok();
+}
+
+bool ContainsAny(const std::string& text, std::initializer_list<const char*> needles) {
+	for (const char* needle : needles) {
+		if (needle != nullptr && text.find(needle) != std::string::npos) return true;
+	}
+	return false;
+}
+
+bool IsSimpleConversationInput(const std::string& userRequest) {
+	if (userRequest.empty() || userRequest.size() > 96) return false;
+	const bool greeting = ContainsAny(userRequest, {
+		"こんにちは", "こんばんは", "おはよう", "はじめまして", "ありがとう", "よろしく",
+		"Hello", "hello", "Hi", "hi"
+	});
+	const bool engineRequest = ContainsAny(userRequest, {
+		"Entity", "Component", "System", "シーン", "コード", "調査", "確認", "一覧", "修正"
+	});
+	return greeting && !engineRequest;
+}
+
+Json SelectConversationContext(
+	const Json& fullContext,
+	const std::string& relation,
+	const Json& referencedSessionIds) {
+
+	Json selected = Json::object();
+	selected["summary"] = "";
+	selected["summarizedThroughSessionId"] =
+		fullContext.value("summarizedThroughSessionId", kInvalidId);
+	selected["totalTurns"] = fullContext.value("totalTurns", 0);
+	selected["recentTurns"] = Json::array();
+	selected["selectionPolicy"] = relation;
+	if (fullContext.contains("contextDegraded")) selected["contextDegraded"] = fullContext.at("contextDegraded");
+	if (fullContext.contains("contextDegradedReason")) {
+		selected["contextDegradedReason"] = fullContext.at("contextDegradedReason");
+	}
+
+	// newは履歴を保存したまま生成Contextから隔離する。
+	if (relation == "new") {
+		selected["selectionPolicy"] = "active_turn_only";
+		return selected;
+	}
+
+	selected["summary"] = fullContext.value("summary", std::string());
+	if (!fullContext.contains("recentTurns") || !fullContext.at("recentTurns").is_array()) {
+		return selected;
+	}
+	const Json& turns = fullContext.at("recentTurns");
+
+	std::unordered_set<SessionId> referenced;
+	if (referencedSessionIds.is_array()) {
+		for (const Json& id : referencedSessionIds) {
+			if (id.is_number_integer()) referenced.insert(id.get<SessionId>());
+		}
+	}
+	if (!referenced.empty()) {
+		for (const Json& turn : turns) {
+			if (turn.is_object() && turn.contains("sessionId") &&
+			    turn.at("sessionId").is_number_integer() &&
+			    referenced.count(turn.at("sessionId").get<SessionId>()) != 0) {
+				selected["recentTurns"].push_back(turn);
+			}
+		}
+		if (!selected["recentTurns"].empty()) {
+			selected["selectionPolicy"] = "explicit_session_reference";
+			return selected;
+		}
+	}
+
+	std::size_t keep = relation == "refer" ? 3 : 2;
+	if (relation == "clarify") keep = 3;
+	const std::size_t begin = turns.size() > keep ? turns.size() - keep : 0;
+	for (std::size_t i = begin; i < turns.size(); ++i) selected["recentTurns"].push_back(turns[i]);
+	selected["selectionPolicy"] = "recent_related_" + relation;
+	return selected;
+}
+
+void CollectIdentifiersFromText(const std::string& text, std::unordered_set<std::string>* out) {
+	static const std::unordered_set<std::string> kStopWords = {
+		"User", "Assistant", "Scene", "Entity", "Component", "System", "Tool", "AgentOS",
+		"Runtime", "Current", "Report", "Field", // Fieldは一般語にもなり得るが固有名ログでは後で復元する。
+	};
+
+	std::string token;
+	auto flush = [&]() {
+		if (token.size() >= 3 && kStopWords.count(token) == 0) out->insert(token);
+		token.clear();
+	};
+	for (unsigned char ch : text) {
+		if (std::isalnum(ch) != 0 || ch == '_' || ch == ':' || ch == '/' || ch == '.' || ch == '-') {
+			token.push_back(static_cast<char>(ch));
+		} else {
+			flush();
+		}
+	}
+	flush();
+
+	// 実機で頻出する短い固有Entity名は明示的に拾う。
+	for (const char* known : {"Field", "Player", "Camera", "Light", "SkyBox", "MainCamera"}) {
+		if (text.find(known) != std::string::npos) out->insert(known);
+	}
+}
+
+Json ExtractHistoryIdentifiers(const Json& fullContext) {
+	std::unordered_set<std::string> identifiers;
+	if (fullContext.is_object()) {
+		CollectIdentifiersFromText(fullContext.value("summary", std::string()), &identifiers);
+		if (fullContext.contains("recentTurns") && fullContext.at("recentTurns").is_array()) {
+			for (const Json& turn : fullContext.at("recentTurns")) {
+				if (!turn.is_object()) continue;
+				CollectIdentifiersFromText(turn.value("user", std::string()), &identifiers);
+				CollectIdentifiersFromText(turn.value("assistant", std::string()), &identifiers);
+			}
+		}
+	}
+	Json result = Json::array();
+	std::vector<std::string> ordered(identifiers.begin(), identifiers.end());
+	std::sort(ordered.begin(), ordered.end());
+	for (const std::string& identifier : ordered) result.push_back(identifier);
+	return result;
 }
 
 } // namespace
@@ -158,14 +292,14 @@ Result IntakeAgent::Run(
 	prompts::ClearCurrentConversationRequestContext();
 	if (intakeOut == nullptr) return Result::Fail("IntakeAgent: intakeOut is null");
 
-	Json effectiveContext = conversationContext;
-	if ((!effectiveContext.is_object() || effectiveContext.empty()) &&
+	Json fullContext = conversationContext;
+	if ((!fullContext.is_object() || fullContext.empty()) &&
 	    ctx.store != nullptr && ctx.sessionId != kInvalidId) {
-		effectiveContext = ctx.store->GetConversationContext(ctx.sessionId);
-		(void)CompressStoredConversationIfNeeded(ctx, &effectiveContext);
+		fullContext = ctx.store->GetConversationContext(ctx.sessionId);
+		(void)CompressStoredConversationIfNeeded(ctx, &fullContext);
 	}
 
-	const PromptPair prompt = prompts::Intake(userRequest, effectiveContext);
+	const PromptPair prompt = prompts::Intake(userRequest, fullContext);
 	Json raw;
 	Result callResult = CallLlmJson(ctx, prompt, &raw);
 	if (!callResult) return callResult;
@@ -176,34 +310,54 @@ Result IntakeAgent::Run(
 	}
 
 	Json normalized = Json::object();
-	const std::string goal = raw.at("goal").get<std::string>();
-	normalized["goal"] = goal;
-
+	std::string goal = raw.at("goal").get<std::string>();
 	std::string resolvedRequest = goal;
 	if (raw.contains("resolvedRequest") && raw.at("resolvedRequest").is_string() &&
 	    !raw.at("resolvedRequest").get<std::string>().empty()) {
 		resolvedRequest = raw.at("resolvedRequest").get<std::string>();
 	}
-	normalized["resolvedRequest"] = resolvedRequest;
-	normalized["turnRelation"] = NormalizeRelation(raw);
-
-	NormalizeStringArray(raw, "symptoms", &normalized);
-	NormalizeStringArray(raw, "constraints", &normalized);
-	NormalizeStringArray(raw, "requiredCapabilities", &normalized);
-	NormalizeStringArray(raw, "unresolvedReferences", &normalized);
+	std::string relation = NormalizeRelation(raw);
 
 	std::string requestType = "investigation";
 	if (raw.contains("requestType") && raw.at("requestType").is_string()) {
 		const std::string rawType = raw.at("requestType").get<std::string>();
 		if (rawType == "conversation" || rawType == "investigation") requestType = rawType;
 	}
-	normalized["requestType"] = requestType;
 
-	if (effectiveContext.is_object() && !effectiveContext.empty()) {
-		normalized["conversationContext"] = effectiveContext;
+	normalized["goal"] = goal;
+	normalized["resolvedRequest"] = resolvedRequest;
+	normalized["turnRelation"] = relation;
+	NormalizeStringArray(raw, "symptoms", &normalized);
+	NormalizeStringArray(raw, "constraints", &normalized);
+	NormalizeStringArray(raw, "requiredCapabilities", &normalized);
+	NormalizeStringArray(raw, "unresolvedReferences", &normalized);
+	normalized["referencedSessionIds"] = NormalizeReferencedSessionIds(raw);
+	normalized["requestType"] = requestType;
+	normalized["currentUserInput"] = userRequest;
+	normalized["requestRevision"] = 0;
+	normalized["historyIdentifiers"] = ExtractHistoryIdentifiers(fullContext);
+
+	const bool simpleConversation = requestType == "conversation" && IsSimpleConversationInput(userRequest);
+	if (simpleConversation) {
+		normalized["goal"] = "ユーザーの挨拶または短い会話へ応答する";
+		normalized["resolvedRequest"] = "現在のユーザー入力に対して短く自然に会話応答する";
+		normalized["turnRelation"] = "new";
+		normalized["symptoms"] = Json::array();
+		normalized["constraints"] = Json::array();
+		normalized["requiredCapabilities"] = Json::array();
+		normalized["unresolvedReferences"] = Json::array();
+		normalized["referencedSessionIds"] = Json::array();
+		normalized["simpleConversation"] = true;
+		relation = "new";
 	}
 
-	prompts::SetCurrentConversationRequestContext(effectiveContext, normalized);
+	const Json selectedContext = SelectConversationContext(
+		fullContext,
+		relation,
+		normalized.value("referencedSessionIds", Json::array()));
+	normalized["conversationContext"] = selectedContext;
+
+	prompts::SetCurrentConversationRequestContext(selectedContext, normalized);
 	*intakeOut = std::move(normalized);
 	return Result::Ok();
 }
