@@ -88,7 +88,7 @@ void TestTurnPairsAndSummaryCursor() {
 
 	assert(store.UpdateConversationSummary("最初のTurnではScene全体を報告した。", first));
 	context = store.GetConversationContext(current);
-	assert(context.value("totalTurns", 0) == 2); // 原文Turnは削除されない。
+	assert(context.value("totalTurns", 0) == 2);
 	assert(context.value("summary", std::string()) == "最初のTurnではScene全体を報告した。");
 	assert(context.at("recentTurns").size() == 1);
 	assert(context.at("recentTurns")[0].value("sessionId", kInvalidId) == second);
@@ -183,10 +183,10 @@ void TestAutomaticCompressionKeepsRecentRawTurns() {
 	Json intake;
 	assert(IntakeAgent::Run(ctx, "続けて", &intake));
 	const auto calls = llm.GetCalls();
-	assert(calls.size() == 2); // Memory compression + Intake
+	assert(calls.size() == 2);
 
 	const Json context = store.GetConversationContext(current);
-	assert(context.value("totalTurns", 0) == 10); // 全原文は残る。
+	assert(context.value("totalTurns", 0) == 10);
 	assert(context.value("summarizedThroughSessionId", kInvalidId) == fourth);
 	assert(context.value("summary", std::string()).find("turn 0〜3") != std::string::npos);
 	assert(context.at("recentTurns").size() == 6);
@@ -222,6 +222,38 @@ void TestPersonalIdentityCannotExecuteEngineTool() {
 	std::puts("  - personal identity Engine Tool guard: OK");
 }
 
+void TestPersonalIdentityToolProposalIsSanitized() {
+	prompts::SetCurrentConversationRequestContext(
+		Json::object(),
+		Json::object({
+			{"resolvedRequest", "私は誰ですか"},
+			{"requestType", "conversation"},
+		}));
+
+	MockLlmBackend llm;
+	llm.EnqueueResponse(
+		"```json\n"
+		"{\"reply\":\"あなたはこのエディタを操作しているユーザーです。\","
+		"\"toolCall\":{\"tool\":\"FindEntityByName\","
+		"\"arguments\":{\"name\":\"わたし\"}},\"escalate\":true}\n"
+		"```");
+
+	AgentContext ctx;
+	ctx.llm = &llm;
+	PromptPair prompt;
+	prompt.system = "DirectReply担当";
+	prompt.user = "私は誰ですか";
+	Json output;
+	assert(CallLlmJson(ctx, prompt, &output));
+	assert(output.value("reply", std::string()).find("ユーザー") != std::string::npos);
+	assert(output.contains("toolCall") && output.at("toolCall").is_null());
+	assert(output.contains("escalate") && output.at("escalate").is_boolean());
+	assert(!output.at("escalate").get<bool>());
+	prompts::ClearCurrentConversationRequestContext();
+
+	std::puts("  - personal identity DirectReply proposal sanitization: OK");
+}
+
 } // namespace
 
 int main() {
@@ -230,6 +262,7 @@ int main() {
 	TestCorrectionResolutionUsesHistory();
 	TestAutomaticCompressionKeepsRecentRawTurns();
 	TestPersonalIdentityCannotExecuteEngineTool();
+	TestPersonalIdentityToolProposalIsSanitized();
 	RemoveDb();
 	std::cout << "=== ALL PASSED ===\n";
 	return 0;
