@@ -8,8 +8,9 @@
 //   (1) payloadに文字列キー"target"と任意キー"value"を両方持つEvidence同士で、
 //       target一致・provenance.frame一致（>=0）・valueのdumpが不一致なら矛盾。
 //   (2) claimが完全一致するEvidence同士で、payload["value"]のdumpが不一致なら矛盾。
-// - Coverage: MarkPlannedTaskで登録したTaskのうち、1件以上Evidenceを産んだ割合。
-//   計画Taskが1件も無ければ1.0とする。
+// - Coverage: MarkPlannedTaskで登録したTaskのうち、1件以上の利用可能な成功Evidenceを
+//   産んだ割合。ToolError/ToolResultError/CommandValidationErrorおよびfailure=true/error付き
+//   payloadはCoverageへ数えない。計画Taskが無ければ1.0とする。
 //
 // =======================================================================
 #pragma once
@@ -26,7 +27,6 @@ namespace agentos {
 
 class EvidenceBuilder {
 public:
-	// 矛盾ペアの記録。a/bの順序はAdd()された順（先に追加された方がa）。
 	struct ContradictionRecord {
 		EvidenceId a = kInvalidId;
 		EvidenceId b = kInvalidId;
@@ -38,6 +38,8 @@ public:
 		std::vector<ContradictionRecord> contradictions;
 		double coverage = 1.0;
 		std::vector<TaskId> tasksWithoutEvidence;
+		std::size_t usableEvidenceCount = 0;
+		std::size_t failedEvidenceCount = 0;
 	};
 
 	void Add(Evidence e);
