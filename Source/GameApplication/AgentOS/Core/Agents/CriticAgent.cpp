@@ -33,22 +33,17 @@ std::size_t ArraySize(const Json& parent, const char* key) {
 }
 
 bool EvidenceLooksFailed(const Json& evidence) {
-	if (!evidence.is_object()) {
-		return false;
-	}
+	if (!evidence.is_object()) return false;
 	if (evidence.contains("payload") && evidence.at("payload").is_object()) {
 		const Json& payload = evidence.at("payload");
-		if (payload.value("failure", false)) {
-			return true;
-		}
+		if (payload.value("failure", false) || payload.value("unsatisfied", false)) return true;
 		if (payload.contains("error") && payload.at("error").is_string() &&
-		    !payload.at("error").get<std::string>().empty()) {
-			return true;
-		}
+		    !payload.at("error").get<std::string>().empty()) return true;
 	}
 	if (evidence.contains("provenance") && evidence.at("provenance").is_object()) {
 		const std::string sourceType = evidence.at("provenance").value("sourceType", std::string());
 		return sourceType == "ToolError" || sourceType == "ToolResultError" ||
+			sourceType == "ToolUnsatisfied" || sourceType == "DependencyUnsatisfied" ||
 			sourceType == "CommandValidationError";
 	}
 	return false;
@@ -56,14 +51,10 @@ bool EvidenceLooksFailed(const Json& evidence) {
 
 std::size_t CountFailedEvidenceDefensively(const Json& builtEvidence) {
 	if (!builtEvidence.is_object() || !builtEvidence.contains("evidences") ||
-	    !builtEvidence.at("evidences").is_array()) {
-		return 0;
-	}
+	    !builtEvidence.at("evidences").is_array()) return 0;
 	std::size_t count = 0;
 	for (const Json& evidence : builtEvidence.at("evidences")) {
-		if (EvidenceLooksFailed(evidence)) {
-			++count;
-		}
+		if (EvidenceLooksFailed(evidence)) ++count;
 	}
 	return count;
 }
@@ -85,13 +76,9 @@ bool IsCompleteSceneSnapshot(const Json& builtEvidence) {
 	bool hasSystems = false;
 	for (const Json& evidence : builtEvidence.at("evidences")) {
 		if (!evidence.is_object() || !evidence.contains("provenance") ||
-		    !evidence.at("provenance").is_object()) {
-			return false;
-		}
+		    !evidence.at("provenance").is_object()) return false;
 		const std::string sourceType = evidence.at("provenance").value("sourceType", std::string());
-		if (!IsSceneSnapshotSource(sourceType)) {
-			return false;
-		}
+		if (!IsSceneSnapshotSource(sourceType)) return false;
 		hasEntities = hasEntities || sourceType == "Tool:ListEntities";
 		hasSystems = hasSystems || sourceType == "Tool:ListSystems";
 	}
@@ -104,12 +91,50 @@ void AddFailureOnce(CriticVerdict* verdict, const std::string& failure) {
 	}
 }
 
+std::string NormalizeRepairType(const std::string& rawType, const std::string& toolName) {
+	if (rawType == "RuntimeObservation" || rawType == "CodeSearch" || rawType == "Trace") {
+		return rawType;
+	}
+	if (!toolName.empty()) return "RuntimeObservation";
+	return {};
+}
+
+Json NormalizeRepairTasks(const Json& rawTasks) {
+	Json normalized = Json::array();
+	if (!rawTasks.is_array()) return normalized;
+
+	for (const Json& task : rawTasks) {
+		if (!task.is_object() || normalized.size() >= 2) break;
+		const std::string tool = task.value("tool", std::string());
+		const std::string type = NormalizeRepairType(task.value("type", std::string()), tool);
+		if (type.empty()) continue;
+
+		std::string description = task.value("description", std::string());
+		if (description.empty()) description = "Criticが要求した追加調査";
+		if (!tool.empty()) {
+			const Json command = Json::object({
+				{"tool", tool},
+				{"arguments", task.value("arguments", Json::object())},
+			});
+			description += "\nREPAIR_COMMAND " + command.dump();
+		}
+
+		normalized.push_back(Json::object({
+			{"type", type},
+			{"description", description},
+		}));
+	}
+	return normalized;
+}
+
 } // namespace
 
-Result CriticAgent::Run(AgentContext& ctx, const Json& rankedHypotheses, const Json& builtEvidence, CriticVerdict* out) {
-	if (out == nullptr) {
-		return Result::Fail("CriticAgent: out is null");
-	}
+Result CriticAgent::Run(
+	AgentContext& ctx,
+	const Json& rankedHypotheses,
+	const Json& builtEvidence,
+	CriticVerdict* out) {
+	if (out == nullptr) return Result::Fail("CriticAgent: out is null");
 	*out = CriticVerdict{};
 
 	if (IsCompleteSceneSnapshot(builtEvidence)) {
@@ -128,17 +153,30 @@ Result CriticAgent::Run(AgentContext& ctx, const Json& rankedHypotheses, const J
 	const PromptPair prompt = prompts::Critique(rankedHypotheses, builtEvidence);
 	Json raw;
 	Result callResult = CallLlmJson(ctx, prompt, &raw);
+	bool requestPatchApplied = false;
 	if (callResult) {
 		out->llmScores = raw.value("scores", Json::object());
 		if (raw.contains("failures") && raw.at("failures").is_array()) {
-			for (const auto& failure : raw.at("failures")) {
-				if (failure.is_string()) {
-					out->failures.push_back(failure.get<std::string>());
-				}
+			for (const Json& failure : raw.at("failures")) {
+				if (failure.is_string()) out->failures.push_back(failure.get<std::string>());
 			}
 		}
-		if (raw.contains("additionalTasksSuggested") && raw.at("additionalTasksSuggested").is_array()) {
-			out->additionalTasks = raw.at("additionalTasksSuggested");
+
+		if (raw.contains("requestPatch") && raw.at("requestPatch").is_object() &&
+		    !raw.at("requestPatch").empty()) {
+			Json revised;
+			Result patchResult = prompts::ApplyCurrentRequestPatch(raw.at("requestPatch"), &revised);
+			if (patchResult) {
+				requestPatchApplied = true;
+				out->llmScores["requestPatchApplied"] = true;
+				out->llmScores["activeRevision"] = revised.value("requestRevision", 0);
+			} else {
+				AddFailureOnce(out, "critic request patch rejected: " + patchResult.error);
+			}
+		}
+
+		if (raw.contains("additionalTasksSuggested")) {
+			out->additionalTasks = NormalizeRepairTasks(raw.at("additionalTasksSuggested"));
 		}
 	} else {
 		out->failures.push_back("critic LLM call failed: " + callResult.error);
@@ -158,8 +196,9 @@ Result CriticAgent::Run(AgentContext& ctx, const Json& rankedHypotheses, const J
 			evidenceCount >= failedEvidenceCount ? evidenceCount - failedEvidenceCount : std::size_t(0))
 		: 0;
 
-	const double contradictionTerm = 1.0 - std::min(1.0, static_cast<double>(contradictionCount) / 3.0);
-	const double evidenceTerm = (usableEvidenceCount >= 3) ? 1.0 : 0.0;
+	const double contradictionTerm = 1.0 -
+		(std::min)(1.0, static_cast<double>(contradictionCount) / 3.0);
+	const double evidenceTerm = usableEvidenceCount >= 3 ? 1.0 : 0.0;
 	out->programmaticScore =
 		0.4 * coverage + 0.3 * topConfidence + 0.2 * contradictionTerm + 0.1 * evidenceTerm;
 
@@ -177,7 +216,11 @@ Result CriticAgent::Run(AgentContext& ctx, const Json& rankedHypotheses, const J
 		hardFail = true;
 	}
 	if (failedEvidenceCount > 0) {
-		AddFailureOnce(out, "programmatic hard fail: failed tool or command-validation evidence exists");
+		AddFailureOnce(out, "programmatic hard fail: failed or unsatisfied Tool evidence exists");
+		hardFail = true;
+	}
+	if (requestPatchApplied) {
+		AddFailureOnce(out, "programmatic hard fail: request revision changed and must be re-observed");
 		hardFail = true;
 	}
 	if (out->additionalTasks.is_array() && !out->additionalTasks.empty()) {
