@@ -42,6 +42,9 @@ bool ContainsAny(const std::string& text, std::initializer_list<const char*> nee
 	return false;
 }
 
+// Prompt用ContextはDB上の原文保存とは別物。古い累積要約を残しつつ、
+// recentTurnsは末尾（最新）から予算内へ詰める。単純な先頭切り捨てで
+// 最新の「そうじゃなくて」対象が欠落することを防ぐ。
 std::string ContextText(const Json& supplied) {
 	const Json& context = supplied.is_object() && !supplied.empty()
 		? supplied
@@ -49,7 +52,57 @@ std::string ContextText(const Json& supplied) {
 	if (!context.is_object() || context.empty()) {
 		return "(会話履歴なし)";
 	}
-	return Truncate(context.dump(2), 12000);
+
+	constexpr std::size_t kContextBudget = 12000;
+	Json packed = Json::object();
+	packed["summary"] = Truncate(context.value("summary", std::string()), 3500);
+	packed["summarizedThroughSessionId"] =
+		context.value("summarizedThroughSessionId", kInvalidId);
+	packed["totalTurns"] = context.value("totalTurns", 0);
+	if (context.contains("contextDegraded")) {
+		packed["contextDegraded"] = context.at("contextDegraded");
+	}
+	if (context.contains("contextDegradedReason")) {
+		packed["contextDegradedReason"] = context.at("contextDegradedReason");
+	}
+
+	Json selected = Json::array();
+	std::size_t originalCount = 0;
+	if (context.contains("recentTurns") && context.at("recentTurns").is_array()) {
+		const Json& turns = context.at("recentTurns");
+		originalCount = turns.size();
+
+		// 1件、2件…と最新側から広げ、予算内で最大の連続suffixを採用する。
+		for (std::size_t start = turns.size(); start > 0; --start) {
+			Json candidate = Json::array();
+			for (std::size_t i = start - 1; i < turns.size(); ++i) {
+				candidate.push_back(turns[i]);
+			}
+			Json candidateContext = packed;
+			candidateContext["recentTurns"] = candidate;
+			candidateContext["omittedRecentTurnCount"] = start - 1;
+			if (candidateContext.dump(2).size() <= kContextBudget) {
+				selected = std::move(candidate);
+				continue;
+			}
+
+			// 最新Turn単体でも巨大な場合だけ、DB原文を変えずPrompt上で各発話を圧縮する。
+			if (selected.empty() && !turns.empty() && turns.back().is_object()) {
+				Json latest = turns.back();
+				latest["user"] = Truncate(latest.value("user", std::string()), 3200);
+				latest["assistant"] = Truncate(latest.value("assistant", std::string()), 4200);
+				selected.push_back(std::move(latest));
+			}
+			break;
+		}
+	}
+
+	packed["recentTurns"] = std::move(selected);
+	packed["omittedRecentTurnCount"] =
+		originalCount >= packed["recentTurns"].size()
+			? originalCount - packed["recentTurns"].size()
+			: 0;
+	return packed.dump(2);
 }
 
 } // namespace
