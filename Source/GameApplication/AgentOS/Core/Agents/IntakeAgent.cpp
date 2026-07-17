@@ -20,18 +20,14 @@ void NormalizeStringArray(const Json& raw, const char* key, Json* normalized) {
 	Json arr = Json::array();
 	if (raw.contains(key) && raw.at(key).is_array()) {
 		for (const auto& v : raw.at(key)) {
-			if (v.is_string()) {
-				arr.push_back(v.get<std::string>());
-			}
+			if (v.is_string()) arr.push_back(v.get<std::string>());
 		}
 	}
 	(*normalized)[key] = std::move(arr);
 }
 
 std::string NormalizeRelation(const Json& raw) {
-	if (!raw.contains("turnRelation") || !raw.at("turnRelation").is_string()) {
-		return "new";
-	}
+	if (!raw.contains("turnRelation") || !raw.at("turnRelation").is_string()) return "new";
 	const std::string value = raw.at("turnRelation").get<std::string>();
 	if (value == "new" || value == "continue" || value == "correct" ||
 	    value == "clarify" || value == "refer") {
@@ -42,9 +38,7 @@ std::string NormalizeRelation(const Json& raw) {
 
 std::size_t ConversationChars(const Json& context) {
 	if (!context.is_object() || !context.contains("recentTurns") ||
-	    !context.at("recentTurns").is_array()) {
-		return 0;
-	}
+	    !context.at("recentTurns").is_array()) return 0;
 	std::size_t chars = 0;
 	for (const Json& turn : context.at("recentTurns")) {
 		if (!turn.is_object()) continue;
@@ -56,14 +50,12 @@ std::size_t ConversationChars(const Json& context) {
 
 bool NeedsCompression(const Json& context) {
 	if (!context.is_object() || !context.contains("recentTurns") ||
-	    !context.at("recentTurns").is_array()) {
-		return false;
-	}
+	    !context.at("recentTurns").is_array()) return false;
 	const std::size_t count = context.at("recentTurns").size();
 	return count >= kCompressTurnThreshold || ConversationChars(context) > kCompressCharThreshold;
 }
 
-Json LatestTurnsOnly(const Json& context) {
+Json LatestTurnsOnly(const Json& context, const std::string& reason) {
 	Json compact = context;
 	Json latest = Json::array();
 	if (context.is_object() && context.contains("recentTurns") &&
@@ -72,14 +64,38 @@ Json LatestTurnsOnly(const Json& context) {
 		const std::size_t begin = turns.size() > kKeepRecentTurns
 			? turns.size() - kKeepRecentTurns
 			: 0;
-		for (std::size_t i = begin; i < turns.size(); ++i) {
-			latest.push_back(turns[i]);
-		}
+		for (std::size_t i = begin; i < turns.size(); ++i) latest.push_back(turns[i]);
 	}
 	compact["recentTurns"] = std::move(latest);
 	compact["contextDegraded"] = true;
-	compact["contextDegradedReason"] = "conversation compression failed; latest raw turns retained";
+	compact["contextDegradedReason"] = reason;
 	return compact;
+}
+
+// 圧縮LLMが使えない場合の有界な累積要約。原文TurnはConversationTurnへ残るため、
+// ここではPrompt再構成に必要な目的と最終応答だけを最新側優先で残す。
+std::string BuildDeterministicSummary(
+	const std::string& existingSummary,
+	const Json& turnsToCompress) {
+
+	std::string added;
+	if (turnsToCompress.is_array()) {
+		for (std::size_t index = turnsToCompress.size(); index > 0; --index) {
+			const Json& turn = turnsToCompress[index - 1];
+			if (!turn.is_object()) continue;
+			const std::string segment =
+				"- User: " + prompts::Truncate(turn.value("user", std::string()), 360) +
+				"\n  Assistant final: " +
+				prompts::Truncate(turn.value("assistant", std::string()), 560) + "\n";
+			if (added.size() + segment.size() > 2600) break;
+			added = segment + added;
+		}
+	}
+
+	std::string summary = prompts::Truncate(existingSummary, 1200);
+	if (!summary.empty()) summary += "\n";
+	summary += "[deterministic conversation compression]\n" + added;
+	return prompts::Truncate(summary, 4000);
 }
 
 Result CompressStoredConversationIfNeeded(AgentContext& ctx, Json* context) {
@@ -88,44 +104,46 @@ Result CompressStoredConversationIfNeeded(AgentContext& ctx, Json* context) {
 	}
 
 	const Json& turns = context->at("recentTurns");
-	if (turns.size() <= kKeepRecentTurns) {
-		return Result::Ok();
-	}
+	if (turns.size() <= kKeepRecentTurns) return Result::Ok();
 
 	const std::size_t compressCount = turns.size() - kKeepRecentTurns;
 	Json toCompress = Json::array();
-	for (std::size_t i = 0; i < compressCount; ++i) {
-		toCompress.push_back(turns[i]);
-	}
-
-	const std::string existingSummary = context->value("summary", std::string());
-	const PromptPair prompt = prompts::CompressConversationMemory(existingSummary, toCompress);
-	Json raw;
-	Result callResult = CallLlmJson(ctx, prompt, &raw);
-	if (!callResult || !raw.is_object() || !raw.contains("summary") ||
-	    !raw.at("summary").is_string() || raw.at("summary").get<std::string>().empty()) {
-		*context = LatestTurnsOnly(*context);
-		return callResult
-			? Result::Fail("IntakeAgent: conversation compression returned no summary")
-			: callResult;
-	}
+	for (std::size_t i = 0; i < compressCount; ++i) toCompress.push_back(turns[i]);
 
 	const Json& lastCompressed = toCompress.back();
 	if (!lastCompressed.is_object() || !lastCompressed.contains("sessionId") ||
 	    !lastCompressed.at("sessionId").is_number_integer()) {
-		*context = LatestTurnsOnly(*context);
+		*context = LatestTurnsOnly(*context, "compressed turn has no sessionId");
 		return Result::Fail("IntakeAgent: compressed turn has no sessionId");
 	}
-
 	const SessionId through = lastCompressed.at("sessionId").get<SessionId>();
-	Result updateResult = ctx.store->UpdateConversationSummary(
-		raw.at("summary").get<std::string>(), through);
+	const std::string existingSummary = context->value("summary", std::string());
+
+	const PromptPair prompt = prompts::CompressConversationMemory(existingSummary, toCompress);
+	Json raw;
+	const Result callResult = CallLlmJson(ctx, prompt, &raw);
+	const bool generatedSummary =
+		callResult && raw.is_object() && raw.contains("summary") &&
+		raw.at("summary").is_string() && !raw.at("summary").get<std::string>().empty();
+
+	const std::string summary = generatedSummary
+		? raw.at("summary").get<std::string>()
+		: BuildDeterministicSummary(existingSummary, toCompress);
+
+	Result updateResult = ctx.store->UpdateConversationSummary(summary, through);
 	if (!updateResult) {
-		*context = LatestTurnsOnly(*context);
+		*context = LatestTurnsOnly(*context, "conversation summary persistence failed");
 		return updateResult;
 	}
 
 	*context = ctx.store->GetConversationContext(ctx.sessionId);
+	if (!generatedSummary) {
+		(*context)["contextDegraded"] = true;
+		(*context)["contextDegradedReason"] =
+			callResult
+				? "conversation compression returned no summary; deterministic summary used"
+				: "conversation compression LLM failed; deterministic summary used";
+	}
 	return Result::Ok();
 }
 
@@ -138,10 +156,7 @@ Result IntakeAgent::Run(
 	Json* intakeOut) {
 
 	prompts::ClearCurrentConversationRequestContext();
-
-	if (intakeOut == nullptr) {
-		return Result::Fail("IntakeAgent: intakeOut is null");
-	}
+	if (intakeOut == nullptr) return Result::Fail("IntakeAgent: intakeOut is null");
 
 	Json effectiveContext = conversationContext;
 	if ((!effectiveContext.is_object() || effectiveContext.empty()) &&
@@ -151,12 +166,9 @@ Result IntakeAgent::Run(
 	}
 
 	const PromptPair prompt = prompts::Intake(userRequest, effectiveContext);
-
 	Json raw;
 	Result callResult = CallLlmJson(ctx, prompt, &raw);
-	if (!callResult) {
-		return callResult;
-	}
+	if (!callResult) return callResult;
 
 	if (!raw.is_object() || !raw.contains("goal") || !raw.at("goal").is_string() ||
 	    raw.at("goal").get<std::string>().empty()) {
@@ -183,9 +195,7 @@ Result IntakeAgent::Run(
 	std::string requestType = "investigation";
 	if (raw.contains("requestType") && raw.at("requestType").is_string()) {
 		const std::string rawType = raw.at("requestType").get<std::string>();
-		if (rawType == "conversation" || rawType == "investigation") {
-			requestType = rawType;
-		}
+		if (rawType == "conversation" || rawType == "investigation") requestType = rawType;
 	}
 	normalized["requestType"] = requestType;
 
