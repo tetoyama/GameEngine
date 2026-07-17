@@ -2,8 +2,8 @@
 //
 // IntakeAgent.h
 //
-// 自然言語のユーザー要求を goal/symptoms/constraints/requiredCapabilities へ
-// 分解するIntake担当（構想§9）。原因の断定は行わない。
+// 会話履歴と現在入力からstandaloneなresolvedRequestを生成し、
+// goal/symptoms/constraints/requiredCapabilitiesへ分解するIntake担当。
 //
 // =======================================================================
 #pragma once
@@ -16,9 +16,16 @@ namespace agentos {
 
 class IntakeAgent {
 public:
-	// userRequestを解析し、指定スキーマのJSONをintakeOutへ格納する。
-	// "goal"（文字列）が無ければFail。配列フィールドの欠損は空配列で補う。
-	static Result Run(AgentContext& ctx, const std::string& userRequest, Json* intakeOut);
+	static Result Run(
+		AgentContext& ctx,
+		const std::string& userRequest,
+		const Json& conversationContext,
+		Json* intakeOut);
+
+	// 履歴なしの既存呼び出し・テスト向け互換オーバーロード。
+	static Result Run(AgentContext& ctx, const std::string& userRequest, Json* intakeOut) {
+		return Run(ctx, userRequest, Json::object(), intakeOut);
+	}
 };
 
 } // namespace agentos
