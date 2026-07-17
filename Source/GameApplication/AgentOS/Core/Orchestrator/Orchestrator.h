@@ -3,7 +3,7 @@
 // Orchestrator.h
 //
 // Intake → Plan → Retrieve → Evidence → Reason → Critic → Repair → Synthesize。
-// conversationContextは、古いTurnの累積要約と最近のuser/assistant最終応答ペアを含む。
+// 会話履歴はIntakeAgentがTaskStoreから取得し、同一Worker threadの後続Agentへ共有する。
 //
 // =======================================================================
 #pragma once
@@ -33,7 +33,6 @@ struct OrchestratorResult {
 	Json stopInfo = Json::object();
 	SessionId sessionId = kInvalidId;
 	Json rankedHypotheses = Json::object();
-	Json resolvedRequest = Json::object();
 };
 
 class Orchestrator {
@@ -41,9 +40,7 @@ public:
 	Orchestrator(ILlmBackend* llm, CommandPipeline* pipeline, TaskStore* store,
 	             CapabilityRegistry* capabilityRegistry, OrchestratorConfig config = {});
 
-	OrchestratorResult RunSession(
-		const std::string& userRequest,
-		const Json& conversationContext = Json::object());
+	OrchestratorResult RunSession(const std::string& userRequest);
 
 	void SetProgressCallback(std::function<void(const std::string& stage, const Json& detail)> callback);
 	CapabilityToken GetLastIssuedToken() const;
