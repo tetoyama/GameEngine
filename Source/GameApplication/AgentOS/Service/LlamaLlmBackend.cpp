@@ -22,7 +22,12 @@ std::string LlamaLlmBackend::Generate(
 	LlmGenerationStats* statsOut
 ) {
 	if(statsOut) *statsOut = LlmGenerationStats{};
-	if(!m_agent || m_cancelRequested.load(std::memory_order_acquire)){
+	if(!m_agent){
+		if(statsOut) statsOut->stopReason = "backend_unavailable";
+		return std::string();
+	}
+	if(m_cancelRequested.load(std::memory_order_acquire)){
+		if(statsOut) statsOut->stopReason = "cancelled";
 		return std::string();
 	}
 
@@ -40,11 +45,13 @@ std::string LlamaLlmBackend::Generate(
 	// 呼び出しごとに独立したContextへ戻す。
 	m_agent->ResetContext();
 	if(m_cancelRequested.load(std::memory_order_acquire)){
+		if(statsOut) statsOut->stopReason = "cancelled";
 		return std::string();
 	}
 	m_agent->RunAsync(prompt);
 
 	bool timedOut = false;
+	bool backendDead = false;
 
 	// Running状態への遷移待ち。
 	while(m_agent->GetState() != LLAMAAgent::State::Running){
@@ -53,6 +60,7 @@ std::string LlamaLlmBackend::Generate(
 			break;
 		}
 		if(m_agent->GetState() == LLAMAAgent::State::Dead){
+			backendDead = true;
 			break;
 		}
 		if(elapsedMillis() > m_timeoutMillis){
@@ -84,7 +92,9 @@ std::string LlamaLlmBackend::Generate(
 		statsOut->promptChars = static_cast<std::int64_t>(prompt.size());
 		statsOut->completionChars = static_cast<std::int64_t>(output.size());
 		statsOut->elapsedMillis = elapsedMillis();
-		(void)timedOut; // stop reasonの構造化はILlmBackend拡張時に追加する。
+		statsOut->stopReason = cancelled
+			? "cancelled"
+			: (timedOut ? "timeout" : (backendDead ? "backend_dead" : "completed"));
 	}
 
 	return output;
