@@ -15,7 +15,7 @@
   <img alt="DirectX 11" src="https://img.shields.io/badge/DirectX-11-59D8FF?style=flat-square&logo=windows&logoColor=0A1020" />
   <img alt="Windows x64" src="https://img.shields.io/badge/Windows-x64-0078D4?style=flat-square&logo=windows11&logoColor=white" />
   <img alt="Visual Studio 2022" src="https://img.shields.io/badge/Visual%20Studio-2022-8B7CFF?style=flat-square&logo=visualstudio&logoColor=white" />
-  <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-55D88A?style=flat-square" />
+  <img alt="Apache License 2.0" src="https://img.shields.io/badge/license-Apache%202.0-55D88A?style=flat-square" />
   <img alt="Active development" src="https://img.shields.io/badge/status-active%20development-FF9D5C?style=flat-square" />
 </p>
 
@@ -261,19 +261,23 @@ GameEngine/
 | [DirectXTex](https://github.com/microsoft/DirectXTex) | Texture Processing | MIT |
 | DirectXMath / Windows SDK APIs | Math, Graphics, Audio, Input, Platform | Windows SDK terms |
 
+詳細な帰属情報と運用方針は [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) を参照。
+
 </details>
 
 ## ライセンス
 
-本プロジェクトで独自に作成したソースコードおよび関連ドキュメントは、特に明記されていない限り [MIT License](LICENSE) の下で提供される。
+本プロジェクトで独自に作成したソースコードおよび関連ドキュメントは、特に明記されていない限り [Apache License 2.0](LICENSE) の下で提供される。
 
-MIT Licenseは、商用・非商用を問わず、利用、複製、改変、統合、公開、再配布、サブライセンスおよび販売を許可する。コピーまたは本ソフトウェアの重要な部分を再配布する場合は、著作権表示およびMIT Licenseの許諾文を保持する必要がある。
+Apache License 2.0は、商用・非商用を問わず、利用、複製、改変、派生物の作成、公開、再配布、サブライセンスおよび販売を許可する。改変したコードや、このエンジンを使用したゲームについて、ソースコードの公開は要求しない。
 
-ゲーム内、README、スタッフロールなどでのクレジット表記は必須ではないが、以下の形式による表記を歓迎する。
+再配布時は、Apache License 2.0に従い、ライセンス全文の提供、適用される著作権・特許・帰属表示の保持、改変したファイルへの変更通知、および [`NOTICE`](NOTICE) に含まれる帰属表示の引き継ぎが必要となる。
+
+ゲーム内、README、スタッフロールなどで目立つクレジットを表示することは必須ではないが、以下の形式による表記を歓迎する。
 
 > Uses GameEngine by Tetora Yamazaki (tetoyama)
 
-第三者ライブラリ、同梱された外部ソースコード、モデル、テクスチャ、音声、フォントその他の外部素材には、それぞれの権利者が定めるライセンスが適用される。これらは本プロジェクトのMIT Licenseによって再ライセンスされない。
+第三者ライブラリ、同梱された外部ソースコード、モデル、テクスチャ、音声、フォントその他の外部素材には、それぞれの権利者が定めるライセンスが適用される。これらは本プロジェクトのApache License 2.0によって再ライセンスされない。詳細は [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) を参照。
 
 ---
 
