@@ -24,7 +24,6 @@ void NormalizeStringArray(const Json& raw, const char* key, Json* normalized) {
 				arr.push_back(v.get<std::string>());
 			}
 		}
-	}
 	(*normalized)[key] = std::move(arr);
 }
 
@@ -47,9 +46,7 @@ std::size_t ConversationChars(const Json& context) {
 	}
 	std::size_t chars = 0;
 	for (const Json& turn : context.at("recentTurns")) {
-		if (!turn.is_object()) {
-			continue;
-		}
+		if (!turn.is_object()) continue;
 		chars += turn.value("user", std::string()).size();
 		chars += turn.value("assistant", std::string()).size();
 	}
@@ -139,6 +136,8 @@ Result IntakeAgent::Run(
 	const Json& conversationContext,
 	Json* intakeOut) {
 
+	prompts::ClearCurrentConversationRequestContext();
+
 	if (intakeOut == nullptr) {
 		return Result::Fail("IntakeAgent: intakeOut is null");
 	}
@@ -147,7 +146,6 @@ Result IntakeAgent::Run(
 	if ((!effectiveContext.is_object() || effectiveContext.empty()) &&
 	    ctx.store != nullptr && ctx.sessionId != kInvalidId) {
 		effectiveContext = ctx.store->GetConversationContext(ctx.sessionId);
-		// 圧縮失敗は要求処理そのものを止めない。LatestTurnsOnlyへ劣化して続行する。
 		(void)CompressStoredConversationIfNeeded(ctx, &effectiveContext);
 	}
 
@@ -194,6 +192,7 @@ Result IntakeAgent::Run(
 		normalized["conversationContext"] = effectiveContext;
 	}
 
+	prompts::SetCurrentConversationRequestContext(effectiveContext, normalized);
 	*intakeOut = std::move(normalized);
 	return Result::Ok();
 }
