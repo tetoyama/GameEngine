@@ -24,6 +24,8 @@ TESTS = AgentOSCommandPipelineSmokeTest \
         AgentOSEvidenceLogicSmokeTest \
         AgentOSExecutionControlSmokeTest \
         AgentOSConversationMemorySmokeTest \
+        AgentOSContextIsolationSmokeTest \
+        AgentOSRepairExecutionSmokeTest \
         AgentOSSceneSnapshotFastPathSmokeTest \
         AgentOSVerticalSliceSmokeTest
 
