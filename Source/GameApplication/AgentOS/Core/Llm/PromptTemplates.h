@@ -23,15 +23,23 @@ std::string Truncate(const std::string& text, std::size_t maxChars = 6000);
 std::string CompactToolCatalog(const Json& toolCatalog);
 
 // Intakeで解決した会話Contextを、同一Worker threadの後続Agentへ共有する。
-// AgentOSServiceは同時に1 Sessionのみ実行するが、thread_localとしておくことで
-// テスト並列実行時にもContextが混線しない。
+// Conversation Storeの全原文ではなく、Context Retrieverが今回のTurnに必要と
+// 判定したselected contextだけを設定する。
 void SetCurrentConversationRequestContext(
 	const Json& conversationContext,
 	const Json& normalizedIntake);
 void ClearCurrentConversationRequestContext();
 Json CurrentConversationRequestContext();
 std::string CurrentResolvedRequest(const std::string& fallback = {});
+std::string CurrentTurnRelation();
+int CurrentRequestRevision();
+Json CurrentHistoryIdentifiers();
 bool CurrentRequestIsPersonalIdentityQuestion();
+bool CurrentRequestIsSimpleConversation();
+
+// Criticが提案した修正をRequest Revisionとして適用する。
+// goal/resolvedRequest/constraintsのみを許可し、revisionを単調増加させる。
+Result ApplyCurrentRequestPatch(const Json& requestPatch, Json* revisedIntakeOut = nullptr);
 
 PromptPair Intake(
 	const std::string& userRequest,
