@@ -5,6 +5,8 @@
 // =======================================================================
 #include "CommandPipeline.h"
 
+#include <typeinfo>
+
 #include "CommandSchema.h"
 
 namespace agentos {
@@ -13,13 +15,27 @@ CommandPipeline::CommandPipeline(CapabilityRegistry* capabilityRegistry, Command
 	: capabilityRegistry_(capabilityRegistry), config_(config) {}
 
 void CommandPipeline::RegisterTool(std::shared_ptr<ICommandExecutor> tool) {
+	if(!tool) return;
 	std::lock_guard<std::mutex> lock(mutex_);
 	tools_[tool->Descriptor().name] = std::move(tool);
 }
 
 void CommandPipeline::AddAuditSink(std::shared_ptr<IAuditSink> sink) {
+	if(!sink) return;
 	std::lock_guard<std::mutex> lock(mutex_);
+
+	for(auto& existing : auditSinks_){
+		if(existing && typeid(*existing) == typeid(*sink)){
+			existing = std::move(sink);
+			return;
+		}
+	}
 	auditSinks_.push_back(std::move(sink));
+}
+
+bool CommandPipeline::HasAuditSinks() const {
+	std::lock_guard<std::mutex> lock(mutex_);
+	return !auditSinks_.empty();
 }
 
 void CommandPipeline::SetApprovalHandler(std::function<bool(const CommandRequest&)> handler) {
@@ -39,92 +55,99 @@ void CommandPipeline::Audit(const CommandRequest& request, const CommandResult& 
 		auditLog_.emplace_back(request, result);
 		sinksCopy = auditSinks_;
 	}
-	for (auto& sink : sinksCopy) {
-		sink->OnCommand(request, result);
+	for(auto& sink : sinksCopy){
+		if(sink) sink->OnCommand(request, result);
 	}
 }
 
 CommandResult CommandPipeline::Submit(CommandRequest request) {
-	if (request.id == kInvalidId) {
+	if(request.id == kInvalidId){
 		request.id = nextCommandId_.fetch_add(1);
 	}
 
-	// --- Tool検索 ---
 	std::shared_ptr<ICommandExecutor> tool;
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
 		auto it = tools_.find(request.tool);
-		if (it != tools_.end()) {
-			tool = it->second;
-		}
+		if(it != tools_.end()) tool = it->second;
 	}
-	if (!tool) {
-		CommandResult result = CommandResult::Fail(CommandStatus::ExecutionFailed, "unknown tool: " + request.tool);
+	if(!tool){
+		CommandResult result = CommandResult::Fail(
+			CommandStatus::ExecutionFailed,
+			"unknown tool: " + request.tool
+		);
 		Audit(request, result);
 		return result;
 	}
 
 	const ToolDescriptor& descriptor = tool->Descriptor();
 
-	// --- Schema検証 ---
 	Result schemaResult = SchemaValidator::Validate(request.arguments, descriptor.argumentSchema);
-	if (!schemaResult) {
+	if(!schemaResult){
 		CommandResult result = CommandResult::Fail(CommandStatus::SchemaRejected, schemaResult.error);
 		Audit(request, result);
 		return result;
 	}
 
-	// --- Capability検証 ---
-	if (capabilityRegistry_) {
-		Result capabilityResult = capabilityRegistry_->Validate(request.capability, request.tool, descriptor.requiredPermission);
-		if (!capabilityResult) {
-			CommandResult result = CommandResult::Fail(CommandStatus::CapabilityRejected, capabilityResult.error);
+	if(capabilityRegistry_){
+		Result capabilityResult = capabilityRegistry_->Validate(
+			request.capability,
+			request.tool,
+			descriptor.requiredPermission
+		);
+		if(!capabilityResult){
+			CommandResult result = CommandResult::Fail(
+				CommandStatus::CapabilityRejected,
+				capabilityResult.error
+			);
 			Audit(request, result);
 			return result;
 		}
 	}
 
-	// --- Budget消費（すべての検証を通過した後、実行前に消費する） ---
 	BudgetTracker* budgetTracker = nullptr;
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
 		budgetTracker = budgetTracker_;
 	}
-	if (budgetTracker) {
+	if(budgetTracker){
 		Result budgetResult = budgetTracker->ConsumeToolCall();
-		if (!budgetResult) {
+		if(!budgetResult){
 			CommandResult result = CommandResult::Fail(CommandStatus::BudgetRejected, budgetResult.error);
 			Audit(request, result);
 			return result;
 		}
 	}
 
-	// --- Approval Gate ---
-	if (static_cast<std::uint8_t>(descriptor.requiredPermission) >=
-	    static_cast<std::uint8_t>(config_.approvalRequiredAtOrAbove)) {
+	if(static_cast<std::uint8_t>(descriptor.requiredPermission) >=
+	   static_cast<std::uint8_t>(config_.approvalRequiredAtOrAbove)){
 		std::function<bool(const CommandRequest&)> handler;
 		{
 			std::lock_guard<std::mutex> lock(mutex_);
 			handler = approvalHandler_;
 		}
 		const bool approved = handler ? handler(request) : false;
-		if (!approved) {
-			CommandResult result = CommandResult::Fail(CommandStatus::AwaitingApproval, "awaiting human approval");
+		if(!approved){
+			CommandResult result = CommandResult::Fail(
+				CommandStatus::AwaitingApproval,
+				"awaiting human approval"
+			);
 			Audit(request, result);
 			return result;
 		}
 	}
 
-	// --- Precondition ---
 	Result preconditionResult = tool->CheckPrecondition(request.arguments);
-	if (!preconditionResult) {
-		CommandResult result = CommandResult::Fail(CommandStatus::PreconditionRejected, preconditionResult.error);
+	if(!preconditionResult){
+		CommandResult result = CommandResult::Fail(
+			CommandStatus::PreconditionRejected,
+			preconditionResult.error
+		);
 		Audit(request, result);
 		return result;
 	}
 
-	// --- Dry Run（Preconditionまでで停止） ---
-	if (request.dryRun) {
+	if(request.dryRun){
 		Json payload = Json::object();
 		payload["dryRun"] = true;
 		CommandResult result = CommandResult::Ok(payload);
@@ -132,7 +155,6 @@ CommandResult CommandPipeline::Submit(CommandRequest request) {
 		return result;
 	}
 
-	// --- Execute ---
 	CommandResult result = tool->Execute(request.arguments);
 	Audit(request, result);
 	return result;
@@ -146,7 +168,8 @@ std::vector<std::pair<CommandRequest, CommandResult>> CommandPipeline::GetAuditL
 Json CommandPipeline::DescribeTools() const {
 	std::lock_guard<std::mutex> lock(mutex_);
 	Json array = Json::array();
-	for (const auto& [name, tool] : tools_) {
+	for(const auto& [name, tool] : tools_){
+		(void)name;
 		const ToolDescriptor& descriptor = tool->Descriptor();
 		Json entry = Json::object();
 		entry["name"] = descriptor.name;
