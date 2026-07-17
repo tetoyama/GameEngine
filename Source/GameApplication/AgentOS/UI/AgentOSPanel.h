@@ -35,6 +35,7 @@ public:
 	void SetService(AgentOSService* service) { m_service = service; }
 
 private:
+	void DrawCompactHeader();
 	void DrawChatTab();
 	void DrawFlowTab();
 	void DrawHypothesesTab();
@@ -48,6 +49,7 @@ private:
 	char m_inputBuffer[4096]{};
 	bool m_scrollToBottom = false;
 	std::int64_t m_frameCounter = 0;
+	std::int64_t m_lastLiveCompletionTokens = -1;
 };
 
 } // namespace agentos

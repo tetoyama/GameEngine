@@ -109,6 +109,15 @@ public:
 	// 使用率（0.0f ～ 1.0f）
 	float GetTokenUsageRate() const noexcept;
 
+	// 直近のRunAsyncで入力・生成したトークン数。
+	// AgentOSの進捗表示から読み取れるようatomicで公開する。
+	int GetLastPromptTokenCount() const noexcept {
+		return m_lastPromptTokens.load(std::memory_order_acquire);
+	}
+	int GetLastGeneratedTokenCount() const noexcept {
+		return m_lastGeneratedTokens.load(std::memory_order_acquire);
+	}
+
 
 private:
 
@@ -146,6 +155,8 @@ private:
 	// 会話コンテキスト
 	std::vector<llama_token> m_pastTokens;
 	std::atomic<int> m_nPast = 0;
+	std::atomic<int> m_lastPromptTokens{0};
+	std::atomic<int> m_lastGeneratedTokens{0};
 
 	// Agent側で一元管理する会話の履歴バッファ
 	std::vector<MessageEntry> m_history;

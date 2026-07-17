@@ -15,6 +15,8 @@
 namespace agentos {
 
 struct LlmGenerationStats {
+	std::int64_t promptTokens = 0;
+	std::int64_t completionTokens = 0;
 	std::int64_t promptChars = 0;      // トークン数が取れない場合は文字数で代替
 	std::int64_t completionChars = 0;
 	std::int64_t elapsedMillis = 0;

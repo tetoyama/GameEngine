@@ -602,6 +602,8 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt, int retryDepth){
 		m_output.clear();
 		m_visibleOutput.clear();
 	}
+	m_lastPromptTokens.store(ntok, std::memory_order_release);
+	m_lastGeneratedTokens.store(0, std::memory_order_release);
 
 	// =====================================================
 	// 7. 生成ループ
@@ -695,6 +697,7 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt, int retryDepth){
 		}
 
 		++loop;
+		m_lastGeneratedTokens.store(loop, std::memory_order_release);
 		// [修正] 以前あったハードコード 4096 の安全ブレークは、
 		// while条件の genTokenLimit に統合したので撤去した。
 	}

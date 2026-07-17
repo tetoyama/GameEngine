@@ -13,6 +13,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -24,6 +25,11 @@ namespace agentos {
 
 class LlamaLlmBackend : public ILlmBackend {
 public:
+	using StreamCallback = std::function<void(
+		const std::string& output,
+		std::int64_t elapsedMillis,
+		std::int64_t promptTokens,
+		std::int64_t completionTokens)>;
 	// timeoutMillis: 1回のGenerate呼び出し全体（Running遷移待ち含む）のタイムアウト。
 	// 超過した場合はStop()して、その時点のGetOutput()（部分出力）を返す。
 	explicit LlamaLlmBackend(
@@ -42,11 +48,13 @@ public:
 	void Cancel() override;
 	void ResetCancellation() noexcept;
 	bool IsCancellationRequested() const noexcept;
+	void SetStreamCallback(StreamCallback callback);
 
 private:
 	std::shared_ptr<LLAMAAgent> m_agent;
 	std::int64_t m_timeoutMillis;
 	std::atomic<bool> m_cancelRequested{false};
+	StreamCallback m_streamCallback;
 };
 
 } // namespace agentos

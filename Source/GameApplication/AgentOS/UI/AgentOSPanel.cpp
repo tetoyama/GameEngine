@@ -7,8 +7,11 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cmath>
 #include <cstring>
+#include <initializer_list>
+#include <sstream>
 #include <string>
 
 #include "Backends/ImGui/imgui.h"
@@ -35,6 +38,10 @@ const ImVec4 kAssistantColor(0.55f, 0.95f, 0.73f, 1.00f);
 const ImVec4 kCardColor(0.075f, 0.090f, 0.120f, 1.00f);
 const ImVec4 kCardAltColor(0.095f, 0.112f, 0.148f, 1.00f);
 const ImVec4 kBorderColor(0.20f, 0.24f, 0.31f, 1.00f);
+const ImVec4 kCodeColor(0.83f, 0.86f, 0.91f, 1.00f);
+const ImVec4 kCodeKeywordColor(0.50f, 0.72f, 1.00f, 1.00f);
+const ImVec4 kCodeCommentColor(0.45f, 0.68f, 0.49f, 1.00f);
+const ImVec4 kCodeLiteralColor(0.91f, 0.72f, 0.43f, 1.00f);
 
 struct AgentPhase {
 	const char* stage;
@@ -431,6 +438,128 @@ void DrawActivityCard(const Json& audit, const ImVec2& size) {
 	ImGui::PopStyleColor(2);
 }
 
+std::string CompactLabel(const std::string& text, std::size_t maxChars) {
+	if(text.size() <= maxChars) return text;
+	if(maxChars <= 3) return text.substr(0, maxChars);
+	return text.substr(0, maxChars - 3) + "...";
+}
+
+std::string TrimLeft(std::string value) {
+	value.erase(value.begin(), std::find_if(value.begin(), value.end(), [](unsigned char c) {
+		return !std::isspace(c);
+	}));
+	return value;
+}
+
+bool StartsWithAny(const std::string& text, std::initializer_list<const char*> prefixes) {
+	for(const char* prefix : prefixes) {
+		if(text.rfind(prefix, 0) == 0) return true;
+	}
+	return false;
+}
+
+ImVec4 CodeLineColor(const std::string& line) {
+	const std::string trimmed = TrimLeft(line);
+	if(StartsWithAny(trimmed, {"//", "/*", "*", "#"})) return kCodeCommentColor;
+	if(trimmed.find('"') != std::string::npos || trimmed.find('\'') != std::string::npos) {
+		return kCodeLiteralColor;
+	}
+	if(StartsWithAny(trimmed, {
+		"class ", "struct ", "namespace ", "template", "using ", "enum ",
+		"if(", "if (", "for(", "for (", "while(", "while (", "switch(",
+		"return ", "const ", "auto ", "void ", "bool ", "int ", "float "})) {
+		return kCodeKeywordColor;
+	}
+	return kCodeColor;
+}
+
+void RenderPlainText(const std::string& text) {
+	constexpr std::size_t kChunkSize = 4096;
+	for(std::size_t offset = 0; offset < text.size(); offset += kChunkSize) {
+		const std::size_t count = (std::min)(kChunkSize, text.size() - offset);
+		ImGui::TextWrapped("%.*s", static_cast<int>(count), text.c_str() + offset);
+	}
+}
+
+void RenderCodeBlock(const std::string& code, const std::string& language, int blockId) {
+	ImGui::PushID(blockId);
+	if(!language.empty()) ImGui::TextColored(kMutedColor, "%s", language.c_str());
+
+	std::size_t lineCount = 1;
+	for(char c : code) if(c == '\n') ++lineCount;
+	const float codeHeight = (std::min)(180.0f,
+		(std::max)(52.0f, static_cast<float>(lineCount) * ImGui::GetTextLineHeightWithSpacing() + 10.0f));
+
+	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.045f, 0.052f, 0.070f, 1.0f));
+	ImGui::BeginChild("Code", ImVec2(-1.0f, codeHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
+	std::istringstream stream(code);
+	std::string line;
+	while(std::getline(stream, line)) ImGui::TextColored(CodeLineColor(line), "%s", line.c_str());
+	ImGui::EndChild();
+	ImGui::PopStyleColor();
+
+	if(ImGui::SmallButton("Copy")) ImGui::SetClipboardText(code.c_str());
+	ImGui::SameLine();
+	ImGui::BeginDisabled(true);
+	ImGui::SmallButton("Apply");
+	ImGui::EndDisabled();
+	if(ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+		ImGui::SetTooltip("Apply requires the audited patch/rollback pipeline.");
+	}
+	ImGui::PopID();
+}
+
+void RenderRichText(const std::string& text, int messageId) {
+	std::istringstream stream(text);
+	std::string line;
+	std::string plain;
+	std::string code;
+	std::string language;
+	bool inCode = false;
+	int blockId = 0;
+
+	auto flushPlain = [&]() {
+		if(plain.empty()) return;
+		RenderPlainText(plain);
+		plain.clear();
+	};
+	auto flushCode = [&]() {
+		RenderCodeBlock(code, language, messageId * 100 + blockId++);
+		code.clear();
+		language.clear();
+	};
+
+	while(std::getline(stream, line)) {
+		if(line.rfind("```", 0) == 0) {
+			if(inCode) {
+				flushCode();
+				inCode = false;
+			} else {
+				flushPlain();
+				language = line.substr(3);
+				inCode = true;
+			}
+			continue;
+		}
+		std::string& target = inCode ? code : plain;
+		if(!target.empty()) target += '\n';
+		target += line;
+	}
+	if(inCode) flushCode(); else flushPlain();
+}
+
+std::string ProcessLabel(
+	std::int64_t elapsedMillis,
+	std::int64_t promptTokens,
+	std::int64_t completionTokens) {
+	std::ostringstream out;
+	out.setf(std::ios::fixed);
+	out.precision(1);
+	out << "Process log (" << (static_cast<double>(elapsedMillis) / 1000.0)
+		<< "s / " << (promptTokens + completionTokens) << " tk)";
+	return out.str();
+}
+
 } // namespace
 
 // --------------------------------------------
@@ -441,6 +570,7 @@ void AgentOSPanel::Initialize(EditorService* editor) {
 	m_show = true;
 	m_scrollToBottom = false;
 	m_frameCounter = 0;
+	m_lastLiveCompletionTokens = -1;
 	std::memset(m_inputBuffer, 0, sizeof(m_inputBuffer));
 }
 
@@ -464,7 +594,8 @@ void AgentOSPanel::Draw(const EditorDrawContext) {
 		m_service->PumpMainThread(m_frameCounter++);
 	}
 
-	ImGui::SetNextWindowSize(ImVec2(920.0f, 680.0f), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(380.0f, 680.0f), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSizeConstraints(ImVec2(300.0f, 300.0f), ImVec2(1600.0f, 1600.0f));
 	if(!ImGui::Begin("AgentOS // Mission Control", &m_show)) {
 		ImGui::End();
 		return;
@@ -479,6 +610,7 @@ void AgentOSPanel::Draw(const EditorDrawContext) {
 		return;
 	}
 
+	DrawCompactHeader();
 	if(ImGui::BeginTabBar("AgentOSTabs")) {
 		if(ImGui::BeginTabItem("Chat")) {
 			DrawChatTab();
@@ -506,85 +638,151 @@ void AgentOSPanel::Draw(const EditorDrawContext) {
 	ImGui::End();
 }
 
+void AgentOSPanel::DrawCompactHeader() {
+	const AgentOSService::StateSnapshot snapshot = m_service->GetSnapshot();
+	const std::string modelLabel = CompactLabel(snapshot.modelName, 18);
+
+	ImGui::PushStyleColor(ImGuiCol_ChildBg, kCardColor);
+	ImGui::BeginChild("AgentOSCompactHeader", ImVec2(-1.0f, 34.0f), false,
+		ImGuiWindowFlags_HorizontalScrollbar);
+	ImGui::SetNextItemWidth(118.0f);
+	if(ImGui::BeginCombo("##Model", modelLabel.c_str(), ImGuiComboFlags_HeightSmall)) {
+		ImGui::Selectable(snapshot.modelName.c_str(), true);
+		ImGui::EndCombo();
+	}
+	if(ImGui::IsItemHovered()) ImGui::SetTooltip("Model: %s", snapshot.modelName.c_str());
+	ImGui::SameLine();
+	ImGui::TextDisabled("DX11");
+	if(ImGui::IsItemHovered()) ImGui::SetTooltip("Target: %s", snapshot.targetEnvironment.c_str());
+	ImGui::SameLine();
+	ImGui::Text("%lld tk", static_cast<long long>(
+		snapshot.totalPromptTokens + snapshot.totalCompletionTokens));
+	ImGui::SameLine();
+	ImGui::TextDisabled("API $0");
+	ImGui::SameLine();
+	ImGui::Text("%.1f tk/s", snapshot.tokensPerSecond);
+	ImGui::EndChild();
+	ImGui::PopStyleColor();
+}
+
 // --------------------------------------------
 // DrawChatTab
 // --------------------------------------------
 void AgentOSPanel::DrawChatTab() {
 	const AgentOSService::StateSnapshot snapshot = m_service->GetSnapshot();
-
-	DrawMissionHeader(snapshot, "##AgentOSChatHeader", true);
-	ImGui::Spacing();
-	DrawAgentPipeline(snapshot, "##AgentOSChatPipeline", true);
-	ImGui::Spacing();
-
-	if(!snapshot.errorMessage.empty()) {
-		ImGui::TextColored(kErrorColor, "Error: %s", snapshot.errorMessage.c_str());
+	if(snapshot.liveCompletionTokens != m_lastLiveCompletionTokens) {
+		m_lastLiveCompletionTokens = snapshot.liveCompletionTokens;
+		m_scrollToBottom = snapshot.running;
 	}
 
-	const float composerHeight = 122.0f;
-	const float availableHeight = ImGui::GetContentRegionAvail().y;
-	const float chatHeight = (std::max)(140.0f, availableHeight - composerHeight);
-	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.035f, 0.043f, 0.058f, 1.0f));
-	ImGui::PushStyleColor(ImGuiCol_Border, kBorderColor);
-	ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
-	ImGui::BeginChild("AgentOSChatLog", ImVec2(-1.0f, chatHeight), true);
-	for(const auto& [role, text] : snapshot.chatLog) {
-		const bool isUser = role == "user";
-		DrawPill(isUser ? "YOU" : "AGENTOS", isUser ? kUserColor : kAssistantColor);
-		ImGui::TextWrapped("%s", text.c_str());
+	if(!snapshot.errorMessage.empty()) {
+		ImGui::TextColored(kErrorColor, "%s", snapshot.errorMessage.c_str());
+	}
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 6.0f));
+	ImGui::BeginChild("AgentOSChatTimeline", ImVec2(-1.0f, -116.0f), false);
+	for(std::size_t index = 0; index < snapshot.chatLog.size(); ++index) {
+		const AgentOSService::ChatEntry& entry = snapshot.chatLog[index];
+		const bool isUser = entry.role == "user";
+		ImGui::PushID(static_cast<int>(index));
+		ImGui::TextColored(isUser ? kUserColor : kAssistantColor,
+			isUser ? "YOU" : "AGENTOS");
+
+		if(!isUser && !entry.processLog.empty()) {
+			const std::string label = ProcessLabel(
+				entry.elapsedMillis, entry.promptTokens, entry.completionTokens);
+			if(ImGui::TreeNodeEx("##Process", ImGuiTreeNodeFlags_SpanAvailWidth,
+				"%s", label.c_str())) {
+				ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.055f, 0.063f, 0.083f, 1.0f));
+				ImGui::BeginChild("ProcessBody", ImVec2(-1.0f, 110.0f), true);
+				ImGui::PushStyleColor(ImGuiCol_Text, kMutedColor);
+				RenderPlainText(entry.processLog);
+				ImGui::PopStyleColor();
+				ImGui::EndChild();
+				ImGui::PopStyleColor();
+				ImGui::TreePop();
+			}
+		}
+
+		RenderRichText(entry.text, static_cast<int>(index) + 1);
+		if(!isUser) {
+			ImGui::TextDisabled("%lld tk  |  %.1fs",
+				static_cast<long long>(entry.promptTokens + entry.completionTokens),
+				static_cast<double>(entry.elapsedMillis) / 1000.0);
+		}
 		ImGui::Spacing();
 		ImGui::Separator();
 		ImGui::Spacing();
+		ImGui::PopID();
 	}
+
+	if(snapshot.running) {
+		ImGui::TextColored(kAssistantColor, "AGENTOS  -  %s",
+			snapshot.stage.empty() ? "working" : snapshot.stage.c_str());
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.050f, 0.058f, 0.078f, 1.0f));
+		ImGui::BeginChild("LiveProcess", ImVec2(-1.0f, 105.0f), true);
+		ImGui::TextColored(kMutedColor, "LIVE PROCESS");
+		if(!snapshot.liveThinking.empty()) {
+			RenderPlainText(snapshot.liveThinking);
+		} else if(!snapshot.sessionProcessLog.empty()) {
+			RenderPlainText(snapshot.sessionProcessLog);
+		} else {
+			ImGui::TextDisabled("Preparing the next step...");
+		}
+		ImGui::EndChild();
+		ImGui::PopStyleColor();
+
+		if(!snapshot.liveResponse.empty()) {
+			ImGui::TextColored(kMutedColor, "GENERATION PREVIEW");
+			RenderRichText(snapshot.liveResponse, 900000);
+		}
+		ImGui::TextDisabled("%.1fs  |  %lld tk  |  %.1f tk/s",
+			static_cast<double>(snapshot.liveElapsedMillis) / 1000.0,
+			static_cast<long long>(snapshot.livePromptTokens + snapshot.liveCompletionTokens),
+			snapshot.tokensPerSecond);
+	}
+
 	if(m_scrollToBottom) {
 		ImGui::SetScrollHereY(1.0f);
 		m_scrollToBottom = false;
 	}
 	ImGui::EndChild();
 	ImGui::PopStyleVar();
-	ImGui::PopStyleColor(2);
 
-	ImGui::InputTextMultiline(
+	ImGui::Separator();
+	const bool inputEvent = ImGui::InputTextMultiline(
 		"##AgentOSInput",
 		m_inputBuffer,
 		sizeof(m_inputBuffer),
-		ImVec2(-1.0f, 72.0f));
+		ImVec2(-1.0f, 66.0f));
+	const bool submitShortcut = inputEvent && ImGui::GetIO().KeyCtrl &&
+		ImGui::IsKeyPressed(ImGuiKey_Enter, false);
+	const bool hasInput = m_inputBuffer[0] != '\0';
 
-	const bool busy = m_service->IsBusy();
-	ImGui::BeginDisabled(busy);
-	if(ImGui::Button("Send", ImVec2(92.0f, 0.0f))) {
-		const std::string request(m_inputBuffer);
-		if(!request.empty()) {
-			m_service->SubmitRequest(request);
+	if(snapshot.running) {
+		if(ImGui::Button("Stop", ImVec2(76.0f, 0.0f))) m_service->CancelCurrentRequest();
+		ImGui::SameLine();
+		ImGui::TextDisabled("Ctrl+Enter sends when idle");
+	} else {
+		ImGui::BeginDisabled(!hasInput);
+		const bool sendClicked = ImGui::Button("Send", ImVec2(76.0f, 0.0f));
+		ImGui::EndDisabled();
+		ImGui::SameLine();
+		ImGui::TextDisabled("Ctrl+Enter");
+		if((sendClicked || submitShortcut) && hasInput) {
+			m_service->SubmitRequest(std::string(m_inputBuffer));
 			std::memset(m_inputBuffer, 0, sizeof(m_inputBuffer));
 			m_scrollToBottom = true;
 		}
 	}
-	ImGui::EndDisabled();
 
 	ImGui::SameLine();
-	if(ImGui::Button("Copy chat")) {
+	if(ImGui::SmallButton("Copy all")) {
 		std::string clip;
-		for(const auto& [role, text] : snapshot.chatLog) {
-			clip += "[" + role + "]\n" + text + "\n\n";
-		}
-		if(!snapshot.transcriptPath.empty()) {
-			clip += "(full transcript: " + snapshot.transcriptPath + ")\n";
+		for(const auto& entry : snapshot.chatLog) {
+			clip += "[" + entry.role + "]\n" + entry.text + "\n\n";
 		}
 		ImGui::SetClipboardText(clip.c_str());
-	}
-
-	if(busy) {
-		const int dotCount = static_cast<int>(ImGui::GetTime() * 2.4) % 4;
-		std::string activity = "Generating";
-		activity.append(static_cast<std::size_t>(dotCount), '.');
-		ImGui::SameLine();
-		ImGui::TextColored(kAccentColor, "%s", activity.c_str());
-	}
-
-	if(!snapshot.transcriptPath.empty()) {
-		ImGui::SameLine();
-		ImGui::TextDisabled("  %s", snapshot.transcriptPath.c_str());
 	}
 }
 
@@ -713,6 +911,12 @@ void AgentOSPanel::DrawStatusTab() {
 		ImGui::Text("Busy: %s", snapshot.running ? "true" : "false");
 		ImGui::Text("Stage: %s", snapshot.stage.empty() ? "idle" : snapshot.stage.c_str());
 		ImGui::Text("Active agent: %s", CurrentAgentLabel(snapshot));
+		ImGui::Text("Model: %s", snapshot.modelName.c_str());
+		ImGui::Text("Target: %s", snapshot.targetEnvironment.c_str());
+		ImGui::Text("Tokens: %lld prompt / %lld completion",
+			static_cast<long long>(snapshot.totalPromptTokens),
+			static_cast<long long>(snapshot.totalCompletionTokens));
+		ImGui::Text("Generation: %.1f tk/s", snapshot.tokensPerSecond);
 	}
 
 	if(!snapshot.errorMessage.empty()) {

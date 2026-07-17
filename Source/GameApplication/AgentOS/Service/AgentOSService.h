@@ -16,6 +16,7 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <fstream>
 #include <memory>
@@ -59,15 +60,39 @@ struct AgentOSServiceContext {
 
 class AgentOSService : public IService {
 public:
+	struct ChatEntry {
+		std::string role;
+		std::string text;
+		std::string processLog;
+		std::int64_t elapsedMillis = 0;
+		std::int64_t promptTokens = 0;
+		std::int64_t completionTokens = 0;
+	};
+
 	struct StateSnapshot {
 		bool running = false;
 		std::string stage;
-		std::vector<std::pair<std::string, std::string>> chatLog;
+		std::vector<ChatEntry> chatLog;
 		std::string lastReport;
 		Json lastHypotheses = Json::object();
 		Json progressDetail = Json::object();
 		std::string errorMessage;
 		std::string transcriptPath;
+		std::string modelName;
+		std::string targetEnvironment = "GameEngine / C++ / DirectX 11";
+		bool generationActive = false;
+		std::string liveThinking;
+		std::string liveResponse;
+		std::string sessionProcessLog;
+		std::int64_t sessionElapsedMillis = 0;
+		std::int64_t liveElapsedMillis = 0;
+		std::int64_t livePromptTokens = 0;
+		std::int64_t liveCompletionTokens = 0;
+		std::int64_t totalPromptTokens = 0;
+		std::int64_t totalCompletionTokens = 0;
+		std::int64_t sessionPromptTokens = 0;
+		std::int64_t sessionCompletionTokens = 0;
+		double tokensPerSecond = 0.0;
 	};
 
 	AgentOSService();
@@ -77,6 +102,7 @@ public:
 	void Shutdown() override;
 
 	void SubmitRequest(const std::string& text);
+	void CancelCurrentRequest();
 	void PumpMainThread(std::int64_t frameCounter);
 
 	StateSnapshot GetSnapshot() const;
@@ -95,6 +121,7 @@ private:
 	bool TryRunDeterministicFastPath(const std::string& request);
 	bool EnsureLlmReady();
 	void AppendChat(const std::string& role, const std::string& text);
+	void AppendProcessEvent(const std::string& event);
 	void SetStage(const std::string& stage);
 
 	void OpenTranscriptForSession();
@@ -118,13 +145,16 @@ private:
 	std::atomic<LlmLoadState> m_llmLoadState{LlmLoadState::Unloaded};
 
 	std::unique_ptr<Orchestrator> m_orchestrator;
+	mutable std::mutex m_backendMutex;
 
 	std::thread m_worker;
 	std::atomic<bool> m_running{false};
 	std::atomic<bool> m_shutdownRequested{false};
+	std::atomic<bool> m_cancelRequested{false};
 
 	mutable std::mutex m_stateMutex;
 	StateSnapshot m_state;
+	std::chrono::steady_clock::time_point m_sessionStartedAt{};
 
 	mutable std::mutex m_transcriptMutex;
 	std::ofstream m_transcript;

@@ -90,6 +90,33 @@ std::string ModelFingerprint(const std::string& path) {
 		";mtimeTicks=" + std::to_string(writeTime.time_since_epoch().count());
 }
 
+struct GeneratedOutputParts {
+	std::string thinking;
+	std::string response;
+};
+
+GeneratedOutputParts SplitGeneratedOutput(const std::string& output) {
+	GeneratedOutputParts parts;
+	constexpr const char* openTag = "<think>";
+	constexpr const char* closeTag = "</think>";
+	const std::size_t open = output.find(openTag);
+	if(open == std::string::npos){
+		parts.response = output;
+		return parts;
+	}
+
+	const std::size_t thoughtStart = open + std::char_traits<char>::length(openTag);
+	const std::size_t close = output.find(closeTag, thoughtStart);
+	if(close == std::string::npos){
+		parts.thinking = output.substr(thoughtStart);
+		return parts;
+	}
+
+	parts.thinking = output.substr(thoughtStart, close - thoughtStart);
+	parts.response = output.substr(close + std::char_traits<char>::length(closeTag));
+	return parts;
+}
+
 enum class FastPathKind {
 	None,
 	Capabilities,
@@ -203,6 +230,13 @@ void AgentOSService::Initialize(AgentOSServiceContext context) {
 	m_context = std::move(context);
 	m_shutdownRequested.store(false, std::memory_order_release);
 	m_llmLoadState.store(LlmLoadState::Unloaded, std::memory_order_release);
+	m_cancelRequested.store(false, std::memory_order_release);
+	{
+		std::lock_guard<std::mutex> lock(m_stateMutex);
+		const std::filesystem::path modelPath(m_context.modelPath);
+		m_state.modelName = modelPath.filename().string();
+		if(m_state.modelName.empty()) m_state.modelName = "Local model";
+	}
 
 	m_engineToolContext.sceneManager = m_context.sceneManager;
 	m_engineToolContext.debugLog = m_context.debugLog;
@@ -232,8 +266,11 @@ void AgentOSService::Shutdown() {
 	SetStage("shutting_down");
 
 	m_dispatcher.CancelPending();
-	if(m_llmBackend) m_llmBackend->Cancel();
-	if(m_llmAgent) m_llmAgent->Stop();
+	{
+		std::lock_guard<std::mutex> backendLock(m_backendMutex);
+		if(m_llmBackend) m_llmBackend->Cancel();
+		if(m_llmAgent) m_llmAgent->Stop();
+	}
 
 	if(m_worker.joinable()){
 		m_worker.join();
@@ -250,6 +287,16 @@ void AgentOSService::Shutdown() {
 		std::lock_guard<std::mutex> lock(m_transcriptMutex);
 		if(m_transcript.is_open()) m_transcript.close();
 	}
+}
+
+void AgentOSService::CancelCurrentRequest() {
+	if(!IsBusy()) return;
+	m_cancelRequested.store(true, std::memory_order_release);
+	SetStage("cancelling");
+	AppendProcessEvent("Cancellation requested");
+	std::lock_guard<std::mutex> backendLock(m_backendMutex);
+	if(m_llmBackend) m_llmBackend->Cancel();
+	if(m_llmAgent) m_llmAgent->Stop();
 }
 
 void AgentOSService::SubmitRequest(const std::string& text) {
@@ -269,7 +316,11 @@ void AgentOSService::SubmitRequest(const std::string& text) {
 	}
 
 	if(m_worker.joinable()) m_worker.join();
-	if(m_llmBackend) m_llmBackend->ResetCancellation();
+	{
+		std::lock_guard<std::mutex> backendLock(m_backendMutex);
+		if(m_llmBackend) m_llmBackend->ResetCancellation();
+	}
+	m_cancelRequested.store(false, std::memory_order_release);
 
 	m_running.store(true, std::memory_order_release);
 	AppendChat("user", text);
@@ -278,7 +329,20 @@ void AgentOSService::SubmitRequest(const std::string& text) {
 		std::lock_guard<std::mutex> lock(m_stateMutex);
 		m_state.errorMessage.clear();
 		m_state.progressDetail = Json::object();
+		m_state.generationActive = false;
+		m_state.liveThinking.clear();
+		m_state.liveResponse.clear();
+		m_state.sessionProcessLog.clear();
+		m_state.sessionElapsedMillis = 0;
+		m_state.liveElapsedMillis = 0;
+		m_state.livePromptTokens = 0;
+		m_state.liveCompletionTokens = 0;
+		m_state.sessionPromptTokens = 0;
+		m_state.sessionCompletionTokens = 0;
+		m_state.tokensPerSecond = 0.0;
+		m_sessionStartedAt = std::chrono::steady_clock::now();
 	}
+	AppendProcessEvent("Request accepted");
 
 	OpenTranscriptForSession();
 	WriteTranscriptEvent("user_request", {}, {{"text", text}});
@@ -306,6 +370,12 @@ void AgentOSService::WorkerMain(std::string request) {
 		m_state.errorMessage = cancelled
 			? "AgentOS session cancelled during shutdown."
 			: ("LLM model failed to load: " + m_context.modelPath);
+		return;
+	}
+	if(m_cancelRequested.load(std::memory_order_acquire)){
+		std::lock_guard<std::mutex> backendLock(m_backendMutex);
+		if(m_llmBackend) m_llmBackend->Cancel();
+		SetStage("cancelled");
 		return;
 	}
 
@@ -363,7 +433,9 @@ void AgentOSService::WorkerMain(std::string request) {
 			m_state.errorMessage = "session did not complete: " + result.stopInfo.dump();
 		}
 	}
-	SetStage(result.completed ? "completed" : "stopped");
+	SetStage(m_cancelRequested.load(std::memory_order_acquire)
+		? "cancelled"
+		: (result.completed ? "completed" : "stopped"));
 }
 
 bool AgentOSService::TryRunDeterministicFastPath(const std::string& request) {
@@ -597,8 +669,8 @@ bool AgentOSService::EnsureLlmReady() {
 	config->response_prefix = "<think>\n\n</think>\n\n";
 	config->n_threads = 6;
 
-	m_llmAgent = m_context.llamaService->CreateAgent(model, config);
-	if(!m_llmAgent){
+	auto llmAgent = m_context.llamaService->CreateAgent(model, config);
+	if(!llmAgent){
 		m_llmLoadState.store(LlmLoadState::RetryableFailure, std::memory_order_release);
 		if(m_context.debugLog){
 			m_context.debugLog->LOG_ERROR("AgentOSService: CreateAgent failed.");
@@ -606,16 +678,57 @@ bool AgentOSService::EnsureLlmReady() {
 		return false;
 	}
 
-	m_llmBackend = std::make_unique<LlamaLlmBackend>(m_llmAgent);
-	m_llmBackend->ResetCancellation();
+	auto llmBackend = std::make_unique<LlamaLlmBackend>(llmAgent);
+	llmBackend->ResetCancellation();
+	llmBackend->SetStreamCallback(
+		[this](const std::string& output, std::int64_t elapsedMillis,
+		       std::int64_t promptTokens, std::int64_t completionTokens){
+			const GeneratedOutputParts parts = SplitGeneratedOutput(output);
+			std::lock_guard<std::mutex> lock(m_stateMutex);
+			m_state.generationActive = true;
+			m_state.liveThinking = parts.thinking;
+			m_state.liveResponse = parts.response;
+			m_state.liveElapsedMillis = elapsedMillis;
+			m_state.livePromptTokens = promptTokens;
+			m_state.liveCompletionTokens = completionTokens;
+			m_state.tokensPerSecond = elapsedMillis > 0
+				? (static_cast<double>(completionTokens) * 1000.0 /
+				   static_cast<double>(elapsedMillis))
+				: 0.0;
+		}
+	);
 
-	m_loggingBackend = std::make_unique<LoggingLlmBackend>(
-		m_llmBackend.get(),
+	auto loggingBackend = std::make_unique<LoggingLlmBackend>(
+		llmBackend.get(),
 		[this](const std::string& systemPrompt, const std::string& userPrompt,
 		       const std::string& output, const LlmGenerationStats& stats){
+			const GeneratedOutputParts parts = SplitGeneratedOutput(output);
+			{
+				std::lock_guard<std::mutex> lock(m_stateMutex);
+				m_state.generationActive = false;
+				m_state.liveThinking = parts.thinking;
+				m_state.liveResponse = parts.response;
+				m_state.liveElapsedMillis = stats.elapsedMillis;
+				m_state.livePromptTokens = stats.promptTokens;
+				m_state.liveCompletionTokens = stats.completionTokens;
+				m_state.totalPromptTokens += stats.promptTokens;
+				m_state.totalCompletionTokens += stats.completionTokens;
+				m_state.sessionPromptTokens += stats.promptTokens;
+				m_state.sessionCompletionTokens += stats.completionTokens;
+				m_state.tokensPerSecond = stats.elapsedMillis > 0
+					? (static_cast<double>(stats.completionTokens) * 1000.0 /
+					   static_cast<double>(stats.elapsedMillis))
+					: 0.0;
+				if(!parts.thinking.empty()){
+					if(!m_state.sessionProcessLog.empty()) m_state.sessionProcessLog += "\n\n";
+					m_state.sessionProcessLog += parts.thinking;
+				}
+			}
 			WriteTranscriptEvent(
 				"llm_call",
 				{{"elapsedMs", std::to_string(stats.elapsedMillis)},
+				 {"promptTokens", std::to_string(stats.promptTokens)},
+				 {"completionTokens", std::to_string(stats.completionTokens)},
 				 {"promptChars", std::to_string(stats.promptChars)},
 				 {"completionChars", std::to_string(stats.completionChars)},
 				 {"stopReason", stats.stopReason}},
@@ -625,6 +738,12 @@ bool AgentOSService::EnsureLlmReady() {
 			);
 		}
 	);
+	{
+		std::lock_guard<std::mutex> backendLock(m_backendMutex);
+		m_llmAgent = std::move(llmAgent);
+		m_llmBackend = std::move(llmBackend);
+		m_loggingBackend = std::move(loggingBackend);
+	}
 
 	m_llmLoadState.store(LlmLoadState::Ready, std::memory_order_release);
 	return true;
@@ -639,6 +758,11 @@ AgentOSService::StateSnapshot AgentOSService::GetSnapshot() const {
 	std::lock_guard<std::mutex> lock(m_stateMutex);
 	StateSnapshot snapshot = m_state;
 	snapshot.running = m_running.load(std::memory_order_acquire);
+	if(snapshot.running && m_sessionStartedAt.time_since_epoch().count() != 0){
+		snapshot.sessionElapsedMillis =
+			std::chrono::duration_cast<std::chrono::milliseconds>(
+				std::chrono::steady_clock::now() - m_sessionStartedAt).count();
+	}
 	return snapshot;
 }
 
@@ -668,12 +792,44 @@ bool AgentOSService::IsBusy() const {
 
 void AgentOSService::AppendChat(const std::string& role, const std::string& text) {
 	std::lock_guard<std::mutex> lock(m_stateMutex);
-	m_state.chatLog.emplace_back(role, text);
+	ChatEntry entry;
+	entry.role = role;
+	entry.text = text;
+	if(role == "assistant"){
+		entry.processLog = m_state.sessionProcessLog;
+		entry.elapsedMillis = m_state.sessionElapsedMillis;
+		if(m_sessionStartedAt.time_since_epoch().count() != 0){
+			entry.elapsedMillis =
+				std::chrono::duration_cast<std::chrono::milliseconds>(
+					std::chrono::steady_clock::now() - m_sessionStartedAt).count();
+		}
+		entry.promptTokens = m_state.sessionPromptTokens;
+		entry.completionTokens = m_state.sessionCompletionTokens;
+		m_state.sessionElapsedMillis = entry.elapsedMillis;
+		m_state.generationActive = false;
+	}
+	m_state.chatLog.push_back(std::move(entry));
 }
 
 void AgentOSService::SetStage(const std::string& stage) {
+	{
+		std::lock_guard<std::mutex> lock(m_stateMutex);
+		m_state.stage = stage;
+	}
+	AppendProcessEvent(stage);
+}
+
+void AgentOSService::AppendProcessEvent(const std::string& event) {
+	if(event.empty()) return;
 	std::lock_guard<std::mutex> lock(m_stateMutex);
-	m_state.stage = stage;
+	const std::string line = "[" + event + "]";
+	if(m_state.sessionProcessLog.size() >= line.size() &&
+	   m_state.sessionProcessLog.compare(
+		   m_state.sessionProcessLog.size() - line.size(), line.size(), line) == 0){
+		return;
+	}
+	if(!m_state.sessionProcessLog.empty()) m_state.sessionProcessLog += '\n';
+	m_state.sessionProcessLog += line;
 }
 
 void AgentOSService::OpenTranscriptForSession() {

@@ -73,6 +73,13 @@ std::string LlamaLlmBackend::Generate(
 
 	// 出力監視ループ。
 	while(m_agent->GetState() == LLAMAAgent::State::Running){
+		if(m_streamCallback){
+			m_streamCallback(
+				m_agent->GetOutput(),
+				elapsedMillis(),
+				m_agent->GetLastPromptTokenCount(),
+				m_agent->GetLastGeneratedTokenCount());
+		}
 		if(m_cancelRequested.load(std::memory_order_acquire)){
 			m_agent->Stop();
 			break;
@@ -87,8 +94,17 @@ std::string LlamaLlmBackend::Generate(
 
 	const bool cancelled = m_cancelRequested.load(std::memory_order_acquire);
 	const std::string output = cancelled ? std::string() : m_agent->GetOutput();
+	if(m_streamCallback){
+		m_streamCallback(
+			output,
+			elapsedMillis(),
+			m_agent->GetLastPromptTokenCount(),
+			m_agent->GetLastGeneratedTokenCount());
+	}
 
 	if(statsOut){
+		statsOut->promptTokens = m_agent->GetLastPromptTokenCount();
+		statsOut->completionTokens = m_agent->GetLastGeneratedTokenCount();
 		statsOut->promptChars = static_cast<std::int64_t>(prompt.size());
 		statsOut->completionChars = static_cast<std::int64_t>(output.size());
 		statsOut->elapsedMillis = elapsedMillis();
@@ -111,6 +127,10 @@ void LlamaLlmBackend::ResetCancellation() noexcept {
 
 bool LlamaLlmBackend::IsCancellationRequested() const noexcept {
 	return m_cancelRequested.load(std::memory_order_acquire);
+}
+
+void LlamaLlmBackend::SetStreamCallback(StreamCallback callback) {
+	m_streamCallback = std::move(callback);
 }
 
 } // namespace agentos
