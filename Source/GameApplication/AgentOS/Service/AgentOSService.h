@@ -84,6 +84,13 @@ public:
 	bool IsBusy() const;
 
 private:
+	enum class LlmLoadState : std::uint8_t {
+		Unloaded,
+		Loading,
+		Ready,
+		RetryableFailure,
+	};
+
 	void WorkerMain(std::string request);
 	bool TryRunDeterministicFastPath(const std::string& request);
 	bool EnsureLlmReady();
@@ -108,8 +115,7 @@ private:
 	std::shared_ptr<LLAMAAgent> m_llmAgent;
 	std::unique_ptr<LlamaLlmBackend> m_llmBackend;
 	std::unique_ptr<LoggingLlmBackend> m_loggingBackend;
-	bool m_llmLoadAttempted = false;
-	bool m_llmReady = false;
+	std::atomic<LlmLoadState> m_llmLoadState{LlmLoadState::Unloaded};
 
 	std::unique_ptr<Orchestrator> m_orchestrator;
 
