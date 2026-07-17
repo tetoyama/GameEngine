@@ -2,16 +2,6 @@
 #
 # AgentOS Core テスト用 Makefile（Linux / g++）
 #
-# 使い方:
-#   cd <repo root>
-#   make -f Tests/AgentOS/Makefile -j4   # 全テストをビルドして実行
-#   make -f Tests/AgentOS/Makefile clean
-#
-# オブジェクトファイルを build/agentos_tests/obj にキャッシュするため、
-# 中断しても再実行すれば続きからビルドされる。
-# Windows側はCIワークフローと同形式（cl.exe直叩き）で実行できる。
-# Docs/AgentOS/02_VS_Integration.md を参照。
-#
 # =======================================================================
 
 CXX      ?= g++
@@ -33,6 +23,7 @@ TESTS = AgentOSCommandPipelineSmokeTest \
         AgentOSTaskStoreSmokeTest \
         AgentOSEvidenceLogicSmokeTest \
         AgentOSExecutionControlSmokeTest \
+        AgentOSConversationMemorySmokeTest \
         AgentOSSceneSnapshotFastPathSmokeTest \
         AgentOSVerticalSliceSmokeTest
 
@@ -42,7 +33,6 @@ all: build run
 	@echo "==== AgentOS: ALL TESTS PASSED ===="
 
 build: $(addprefix $(BUILD_DIR)/,$(TESTS))
-
 run: $(addprefix run-,$(TESTS))
 
 $(SQLITE_OBJ): $(SQLITE_SRC)
