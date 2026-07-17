@@ -120,16 +120,11 @@ inline std::string ExtractEntityBeforeComponent(
 	return AsciiIdentifierBefore(request, particlePosition);
 }
 
-inline std::string EntityFromComponent(const std::string& component) {
-	constexpr const char* suffix = "Component";
-	constexpr std::size_t suffixLength = 9;
-	if(component.size() > suffixLength &&
-		component.compare(
-			component.size() - suffixLength,
-			suffixLength,
-			suffix) == 0) {
-		return component.substr(0, component.size() - suffixLength);
-	}
+inline std::string KnownDefaultEntityForComponent(
+	const std::string& component) {
+	// 実ログで確認されたScene命名だけを決定的に補完する。
+	// TransformComponent -> Transformのような一般化は行わない。
+	if(component == "LightComponent") return "Light";
 	return {};
 }
 
@@ -145,7 +140,9 @@ inline Route Resolve(const std::string& request) {
 	const std::string component = ExtractComponentName(request);
 	std::string entity = ExtractQuotedEntity(request);
 	if(entity.empty()) entity = ExtractEntityBeforeComponent(request, component);
-	if(entity.empty() && !component.empty()) entity = EntityFromComponent(component);
+	if(entity.empty() && !component.empty()) {
+		entity = KnownDefaultEntityForComponent(component);
+	}
 	if(entity.empty()) entity = ExtractEntityBeforeParticle(request);
 
 	if(!component.empty() && !entity.empty()) {
